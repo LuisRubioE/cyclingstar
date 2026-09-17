@@ -128,13 +128,6 @@ export interface MoveContext {
    */
   hasGcContext: boolean
   /**
-   * EN QUÉ DÍA DE LA CARRERA ESTAMOS (v76.2). Lo pide `ventanaDeAmenaza`: la misma fuga no vale lo
-   * mismo en la etapa 3 que en la 18. Ausentes = carrera de un día, y entonces la ventana es la de
-   * siempre.
-   */
-  stageDay?: number
-  totalStages?: number
-  /**
    * QUIÉN DEFIENDE EN ESTE GRUPO, y con cuánto colchón (v46). Es la mitad que faltaba de la
    * conciencia de general del motor, y faltaba entera: hasta aquí toda ella colgaba de UNA pregunta
    * —`gcDeficitSeconds <= gcThreatFraction · gcControlLeash`— que dice si te juegas algo pero **no
@@ -454,7 +447,7 @@ export function attackAppetite(
        * se le pone un freno. El freno ya lo tiene y es el suyo —`autoOrders` le pone `reservon`, o
        * sea 0,3 de apetito— y meter aquí otro sería cobrarle dos veces la misma prudencia.
        */
-      if (ctx.hasGcContext && r.gcDeficitSeconds <= ventanaDeAmenaza(ctx)) {
+      if (ctx.hasGcContext && r.gcDeficitSeconds <= STAGE.gcThreatFraction * STAGE.gcControlLeash) {
         a *=
           1 +
           STAGE.tacticGcStakeWeight * (1 - gcDefendShare(r, ctx)) +
@@ -471,7 +464,7 @@ export function attackAppetite(
     // solo pregunta «¿eres tú el que defiende?», y para todo el que no lo es responde que no. Lo
     // cazó la prueba de abajo, y el defecto era de bulto: media parrilla salía «desafiando» la
     // general de una carrera que perdió hace una semana.
-    r.gcDeficitSeconds <= ventanaDeAmenaza(ctx)
+    r.gcDeficitSeconds <= STAGE.gcThreatFraction * STAGE.gcControlLeash
   ) {
     /**
      * …Y FUERA DEL DESENLACE TAMBIÉN HAY GENERAL, en montaña (v52).
@@ -834,41 +827,6 @@ export function carriesGcLeader(
  * maillot escalador en la fuga ganando al sprint una etapa de velocistas—. La fuga del día no se
  * lleva al líder de la general: el pelotón entero vive de que eso no ocurra.
  */
-/**
- * LA VENTANA DE AMENAZA NO ES LA MISMA EN LA ETAPA 3 QUE EN LA 18 (v76.2).
- *
- * El dueño, mirando el Tour: «en la etapa 3, con todos muy cerca, se escapa un ciclista peligroso
- * para la general pero solo tiene 1 minuto… y veo tirando a gente que va por la general. No veo que
- * alguien que quizás acabe luchando por el podio tenga que desgastar a su equipo por una fuga que
- * saca solo un minuto. Otra cosa sería si va sacando 20 minutos, o si es la etapa 18».
- *
- * Tiene razón, y el motivo es aritmético. La ventana era **fija**: `gcThreatFraction · gcControlLeash`
- * = 258 s, los mismos el primer día que el último. Y **en la etapa 3 la general está comprimida**:
- * casi todo el pelotón está dentro de 258 s del líder, así que TODOS cuentan como amenaza y todo
- * equipo con aspiraciones tiene motivo para tirar. En la 18 el campo ya está estirado y solo entran
- * los que de verdad se juegan el podio. Por eso el defecto se ve al principio y no al final.
- *
- * Lo que faltaba no es un número mejor: es la pregunta. No «¿estás cerca?», sino **«¿lo que ganes
- * hoy me cambia el puesto?»** — y un minuto en la etapa 3, con dieciocho por delante, se recupera en
- * cualquier puerto de la segunda semana. Quemar el equipo por eso es exactamente cómo se pierde la
- * tercera.
- *
- * Así que la ventana escala con lo que la carrera YA HA CORRIDO, que es lo que mide cuánto queda
- * para recuperar. El suelo existe porque un equipo de general nunca es del todo indiferente, y en
- * una carrera de un día —sin `totalStages`— la ventana es la de siempre.
- *
- * En la etapa 1 esto no afloja nada aunque el factor sea pequeño: ahí todos están a cero segundos y
- * cualquier ventana positiva los incluye. El nerviosismo del primer día es otra regla (R28.5) y
- * sigue intacto.
- */
-export function ventanaDeAmenaza(ctx: { stageDay?: number; totalStages?: number }): number {
-  const base = STAGE.gcThreatFraction * STAGE.gcControlLeash
-  const total = ctx.totalStages ?? 1
-  if (total <= 1 || ctx.stageDay === undefined) return base
-  const corrido = Math.min(1, Math.max(0, ctx.stageDay / total))
-  return base * Math.max(STAGE.gcThreatEarlyFloor, corrido)
-}
-
 export function pelotonAllows(move: MoveRider[], ctx: MoveContext, rng: Rng): boolean {
   // EL DADO SE TIRA SIEMPRE, decida lo que decida el veto, y no es manía: `rngTactics` es un flujo
   // compartido por toda la etapa, así que ahorrarse una tirada aquí correría el flujo de TODAS las
