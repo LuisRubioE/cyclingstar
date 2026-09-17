@@ -262,6 +262,7 @@ export {
 export {
   addToRoster,
   getRaceRivals,
+  getRaceTeams,
   getRosterTeammates,
   getStageOrders,
   isOnRoster,

@@ -1,6 +1,6 @@
 import { and, desc, eq, isNull, ne, or } from 'drizzle-orm'
 import type { Database } from './client.js'
-import { raceRosters, riders, stageOrders } from './schema.js'
+import { raceRosters, riders, stageOrders, teams } from './schema.js'
 
 /** Órdenes de etapa (Paso 29). Cola de las cinco capas por etapa de una carrera (SPEC 6.18). */
 
@@ -90,6 +90,42 @@ export async function getRaceRivals(
     .where(and(eq(raceRosters.raceId, raceId), ne(riders.id, riderId), notMine))
     .orderBy(desc(riders.fame))
     .limit(limit)
+}
+
+/**
+ * LOS EQUIPOS QUE CORREN LA CARRERA, menos el tuyo (paso 17a).
+ *
+ * Lo pide `refuseRelayTeams` —«con ésos no colaboro», S-256—, que toma identificadores de EQUIPO. Sin
+ * esto la pantalla de órdenes no puede ofrecer la palanca: el endpoint mandaba `teammates` y
+ * `rivals`, que son CORREDORES, y con una lista de corredores no se puede pintar un selector de
+ * equipos. La columna existía, el motor la leía, y la pantalla no tenía con qué rellenarla.
+ *
+ * El propio equipo se excluye porque no puedes negarte a colaborar contigo mismo, y los agentes
+ * libres tampoco salen: no son un equipo con el que se pacte o se deje de pactar.
+ */
+export async function getRaceTeams(
+  db: Database,
+  raceId: string,
+  riderId: string,
+): Promise<{ id: string; name: string }[]> {
+  const me = await db
+    .select({ teamId: riders.teamId })
+    .from(riders)
+    .where(eq(riders.id, riderId))
+    .limit(1)
+  const myTeam = me[0]?.teamId ?? null
+  const rows = await db
+    .selectDistinct({ id: teams.id, name: teams.name })
+    .from(raceRosters)
+    .innerJoin(riders, eq(riders.id, raceRosters.riderId))
+    .innerJoin(teams, eq(teams.id, riders.teamId))
+    .where(
+      myTeam
+        ? and(eq(raceRosters.raceId, raceId), ne(teams.id, myTeam))
+        : eq(raceRosters.raceId, raceId),
+    )
+    .orderBy(teams.name)
+  return rows
 }
 
 /** ¿Está el corredor convocado a la carrera? (SPEC, Paso 29). */

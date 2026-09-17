@@ -294,10 +294,23 @@ describe('contratos: órdenes de etapa', () => {
     ],
     teammates: [{ id: 'r2', name: 'Luis' }],
     rivals: [{ id: 'r3', name: 'Marta' }],
+    teams: [{ id: 't9', name: 'Rival Team' }],
   }
 
   it('acepta las órdenes de una carrera del calendario', () => {
     expect(raceOrdersResponseSchema.parse(payload)).toEqual(payload)
+  })
+
+  /**
+   * EL DESPLIEGUE ESCALONADO, FIJADO (paso 17a). `teams` llega con la lista de equipos de la carrera
+   * —la necesita `refuseRelayTeams`, que toma identificadores de EQUIPO— y va con `.default([])` a
+   * propósito: entre que sube la API y sube la web hay una ventana en la que el servidor todavía no
+   * lo manda, y sin el defecto la respuesta ENTERA dejaría de parsear y la pantalla de órdenes se
+   * caería por un campo que solo sirve para una palanca.
+   */
+  it('una respuesta sin `teams` sigue valiendo, y la lista sale vacía', () => {
+    const { teams: _omitido, ...viejo } = payload
+    expect(raceOrdersResponseSchema.parse(viejo).teams).toEqual([])
   })
 
   it('rechaza un rol o una mentalidad que el motor no entiende', () => {

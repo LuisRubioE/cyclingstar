@@ -10,6 +10,7 @@ import {
   getRaceHistory,
   getRaceRiderIdentities,
   getRaceRivals,
+  getRaceTeams,
   getRosterTeammates,
   getRunStageDays,
   getStageOrders,
@@ -323,7 +324,8 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
     const orders = await getStageOrders(db, raceKey, rider.id)
     const teammates = await getRosterTeammates(db, raceKey, rider.id)
     const rivals = await getRaceRivals(db, raceKey, rider.id)
-    return { race: { id: race.id, name: race.name }, stages, orders, teammates, rivals }
+    const teams = await getRaceTeams(db, raceKey, rider.id)
+    return { race: { id: race.id, name: race.name }, stages, orders, teammates, rivals, teams }
   })
 
   app.put('/api/my-orders', async (request, reply) => {

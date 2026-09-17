@@ -1143,6 +1143,12 @@ export const raceOrdersResponseSchema = z.object({
   teammates: z.array(rosterRiderSchema),
   /** Rivales en la carrera (a quién marcar/seguir), por fama. */
   rivals: z.array(rosterRiderSchema),
+  /**
+   * LOS EQUIPOS DE LA CARRERA, menos el tuyo (paso 17a). Lo pide `refuseRelayTeams`, que toma
+   * identificadores de EQUIPO: con `teammates` y `rivals` —que son corredores— la pantalla no puede
+   * pintar un selector de equipos. Opcional para que un cliente viejo siga validando.
+   */
+  teams: z.array(rosterRiderSchema).default([]),
 })
 export type RaceOrders = z.infer<typeof raceOrdersResponseSchema>
 
