@@ -3960,25 +3960,9 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         const why = pullReason(pull.ids, worksFor)
         const effort =
           c <= STAGE.pullEffortTempoMax ? 'tempo' : c >= STAGE.pullEffortFullMin ? 'tope' : 'firme'
-        /**
-         * …Y LA IDENTIDAD NO PUEDE SER UN NOMBRE QUE ROTA (v73.2). Antes, sin nadie a quien servir,
-         * esto caía a `pull.ids[0]`: el hombre que más había tirado. Con el turno convertido en cola
-         * ese nombre cambia CADA KILÓMETRO, así que la identidad dejaba de ser una identidad y se
-         * volvía una copia de la lista de nombres — y la condición de abajo, que exige que cambien
-         * las dos cosas, dejaba de filtrar nada.
-         *
-         * Medido: en el banco de atribución —que es un campo de AGENTES LIBRES, sin `teamId`, donde
-         * `why.targetId` es siempre nulo— con la cola encendida el **100 %** de los partes salía por
-         * cambio de nombres (141 de 141, contra 20 de 54 con la cola apagada), y el parte pasaba de
-         * 4,46 a 10,00 por etapa. En el banco de la voz, donde el frente lo llevan equipos y
-         * `targetId` existe, no se movía: 264 → 267.
-         *
-         * Sin nadie a quien servir, lo que identifica al parte es EL TRABAJO —de qué clase es, a qué
-         * esfuerzo, y si hay alguien delante—, no quién lo firma ese kilómetro. Entonces la
-         * caducidad de `pullReportKmGap` vuelve a ser quien marca la cadencia, que es lo que hacía
-         * cuando los mismos hombres iban al frente todo el día.
-         */
-        const identidad = [why.targetId ?? '', why.kind, effort, ahead ? 1 : 0].join('/')
+        const identidad = [why.targetId ?? pull.ids[0] ?? '', why.kind, effort, ahead ? 1 : 0].join(
+          '/',
+        )
         /**
          * …Y LAS DOS COSAS TIENEN QUE CAMBIAR, no una u otra. El lector lee nombres Y significado,
          * así que un parte solo merece la pena si le trae algo nuevo de alguno de los dos lados: o
