@@ -3232,6 +3232,12 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
               // EL BOQUETE DE HOY (v38): la postura se decide mirando la carretera, no solo la
               // general de ayer. Sin nada delante vale `null` y no hay nada que cazar.
               gapSeconds: front ? gap : null,
+              // EL DÍA DE CARRERA (v76.2): un minuto en la etapa 3 se recupera y en la 18 es el
+              // podio. Ver `isThreatened`.
+              ...(input.race?.stageDay !== undefined ? { stageDay: input.race.stageDay } : {}),
+              ...(input.race?.totalStages !== undefined
+                ? { totalStages: input.race.totalStages }
+                : {}),
             }),
           )
         }

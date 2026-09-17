@@ -756,7 +756,24 @@
  * entero bajaba a por quien no era su baza, y la crónica lo contaba como un compromiso con la
  * general que nadie había tomado.
  */
-export const ENGINE_VERSION = 76 as const
+/**
+ * **v77 — LA ETAPA 3 NO SE CORRE COMO LA 18** (corrección de producción).
+ *
+ * El dueño, mirando el Tour: «en la etapa 3, con todos muy cerca, se escapa un ciclista peligroso
+ * para la general pero solo tiene 1 minuto… y veo tirando a gente que va por la general. No veo que
+ * alguien que quizás acabe luchando por el podio tenga que desgastar a su equipo por eso. Otra cosa
+ * sería si va sacando 20 minutos, o si es la etapa 18».
+ *
+ * La causa eran **dos preguntas distintas metidas en una**. `isThreatened` preguntaba «¿se me
+ * acerca?», y eso vale mientras el de delante siga POR DETRÁS de nuestro hombre en la general
+ * virtual. En cuanto le PASA, esa misma cuenta responde que sí para cualquier hueco —de un minuto o
+ * de veinte— y en la etapa 3, con la general comprimida a SEGUNDOS, cualquier fuga que se lleve un
+ * minuto adelanta a media parrilla. Por eso tiraba medio pelotón.
+ *
+ * Cuando te pasa, la pregunta ya no es cuánto se te acerca sino **cuánto te saca y si puedes
+ * devolvérselo**. Ver `gcRecoverablePerStage`.
+ */
+export const ENGINE_VERSION = 77 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -3599,6 +3616,16 @@ export const STAGE = {
   // castigo, y cuánto castigo hay depende de lo cerca que esté el hombre del maillot. Era una
   // puerta y por eso el líder de la general y un rival a 4:10 recibían exactamente el mismo trato.
   gcThreatFraction: 0.6,
+  /**
+   * CUÁNTO SE PUEDE RECUPERAR POR ETAPA QUE QUEDE (v76.2). Ver `isThreatened`: la amenaza no es
+   * «¿se me pone por delante?» sino «¿se me pone por delante Y NO PUEDO DEVOLVÉRSELO?». Con 15 s por
+   * etapa restante, en la etapa 3 de 21 hay que llevarse 4:30 antes de que un equipo de general
+   * queme a los suyos; en la 18 bastan 1:45; en la última, los 7:00 de siempre.
+   *
+   * No es «lo que se recupera de media en una etapa» —eso sería mucho más— sino lo que un equipo
+   * cuenta como recuperable SIN TENER QUE HACER NADA HOY, que es la pregunta que se está haciendo.
+   */
+  gcRecoverablePerStage: 15,
   // Ritmo del pelotón cuando NO hay nada que cazar por delante (sin fuga, o ya cazada). Antes esto
   // no existía: el controlador vivía dentro de `if (breakaway && !caught)` y el pelotón se quedaba
   // en `commitIdle` toda la etapa. Un pelotón rueda a tempo de carretera, no a paseo.

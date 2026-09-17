@@ -14305,3 +14305,101 @@ bancos pasan holgados (1,5-3,5), en vez de vivir en el filo.
 **Criterio de cierre, el mismo de antes y ahora con las seis celdas medidas de base**: un solo valor,
 en banda en los dos bancos, con la cola encendida y apagada. Y esta vez la propuesta se mide **antes**
 de escribirla.
+
+## v77 — la etapa 3 no se corre como la 18, y la causa eran dos preguntas metidas en una
+
+El dueño, mirando el Tour de Francia en producción:
+
+> «En una carrera de 21 días no deberían aplicar los equipos igual sus tácticas en la etapa 3 que en
+> la 18. Ejemplo: en la etapa 3, con todos muy cerca, se escapa un ciclista peligroso para la general
+> pero solo tiene 1 minuto. Lo que veo ahora es que van tirando del pelotón muchas personas,
+> incluyendo un mix de alguno del equipo del líder —esos son los únicos que hacen sentido— y gente
+> que va por la general… pero ¡está a solo 1 minuto! No veo que alguien que quizás acabe luchando
+> por el podio tenga que desgastar a su equipo por una fuga en la etapa 3 que saca solo 1 minuto.
+> Otra cosa sería si va sacando 20 minutos, que entonces sí es peligroso; o si es la etapa 18 y
+> justo les va a quitar la posición de podio al suyo.»
+
+### El diagnóstico, y por qué el primer arreglo estaba mal
+
+La primera hipótesis fue que **la ventana de amenaza era fija** —`gcThreatFraction · gcControlLeash`
+= 258 s, los mismos el primer día que el último— y que bastaba con escalarla con lo que la carrera ya
+ha corrido. Se escribió, se midió y **se revirtió en el acto**, porque la medida decía otra cosa:
+con la ventana escalada seguían contendiendo **7 de 8 equipos tanto en la etapa 3 como en la 18**. O
+sea, no arreglaba nada de lo que el dueño había señalado.
+
+El motivo por el que no arreglaba nada es el diagnóstico de verdad: **`isThreatened` estaba haciendo
+dos preguntas distintas con una sola cuenta.**
+
+```
+virtual = frontThreatDeficit − gapSeconds        // dónde quedaría el de delante si le dan la cuerda
+return virtual − gcDeficitSeconds <= ventana     // ¿se me acerca?
+```
+
+Esa resta responde «¿se me acerca?», y es la pregunta correcta **mientras el de delante siga por
+detrás de nuestro hombre en la general virtual**. En cuanto le PASA, el lado izquierdo se vuelve
+negativo y la comparación responde **que sí para cualquier hueco**: un minuto y veinte minutos dan
+exactamente la misma respuesta.
+
+Y en la etapa 3 la general está comprimida a SEGUNDOS, así que **cualquier fuga que se lleve un
+minuto adelanta a media parrilla**. Media parrilla se sentía amenazada y media parrilla se ponía a
+tirar. Ésa es la foto que el dueño describió, y por eso se ve al principio de una vuelta y no al
+final: no es que la ventana sea grande, es que **la pregunta se acaba en cuanto te adelantan**.
+
+### La otra mitad de la pregunta
+
+Cuando el de delante te pasa, lo que un equipo se pregunta no es cuánto se le acerca sino **cuánto le
+saca y si puede devolvérselo**. Un minuto en la etapa 3, con dieciocho por delante, se devuelve en
+cualquier puerto de la segunda semana; veinte minutos no se devuelven nunca; y en la etapa 18 no se
+devuelve ni el minuto. Así que la cuenta se parte en dos, según de qué lado estés:
+
+```
+ventaja = gcDeficitSeconds − virtual
+if (ventaja > 0) return ventaja > recuperable     // me ha pasado: ¿puedo devolvérselo?
+return virtual − gcDeficitSeconds <= ventana      // sigo por delante: ¿se me acerca?
+```
+
+con `recuperable` = `gcRecoverablePerStage` (15 s) × etapas que quedan. No es «lo que se recupera de
+media en una etapa» —eso sería mucho más— sino **lo que un equipo cuenta como recuperable sin tener
+que hacer nada hoy**, que es justo la pregunta que se está haciendo.
+
+En carrera de un día, o sin saber en qué día estamos, `recuperable` es 0 y la cuenta es la de
+siempre. Por eso los escenarios canónicos no la notan.
+
+### Medido
+
+La tabla es lo que el dueño pidió, celda por celda, sobre un equipo de general con su hombre a la
+altura del podio:
+
+```
+  fuga     etapa 3      etapa 11     etapa 18     última
+   1 min   se queda     se queda     se queda     PERSIGUE
+   3 min   se queda     PERSIGUE     PERSIGUE     PERSIGUE
+  10 min   PERSIGUE     PERSIGUE     PERSIGUE     PERSIGUE
+  20 min   PERSIGUE     PERSIGUE     PERSIGUE     PERSIGUE
+```
+
+Las cuatro esquinas son las cuatro frases del dueño: un minuto en la etapa 3 **no** quema al equipo;
+veinte minutos sí, cualquier día; y en la etapa 18 el minuto que le quita el podio, también.
+
+**Las cuatro huellas no se mueven y las bandas canónicas tampoco**, y era la predicción escrita antes
+de correr la medida —los escenarios canónicos son de un día y no traen `totalStages`, así que
+`recuperable` vale 0 y la aritmética es exactamente la de ayer:
+
+| Banco                   | Con el cambio | Banda  |
+| ----------------------- | ------------- | ------ |
+| reina · fuga            | 23,3 %        | 15-40  |
+| reina · hueco 1.º-10.º  | 95 s          | 40-360 |
+| reina · erosión         | 0,567         | —      |
+| llana · fuga            | 5,0 %         | —      |
+| llana · mejor velocista | 38,3 %        | —      |
+
+Cifra por cifra las mismas que la v76.1. 14 pruebas nuevas en `nacionales.test.ts` fijan la tabla de
+arriba, y `ENGINE_VERSION` sube 76 → **77** porque esto sí cambia resultados en una vuelta.
+
+### La lección de método, que es la del revert
+
+El primer intento **no era un número mal elegido: era la pregunta equivocada**, y se vio porque la
+medida se escribió como predicción ANTES de correrla y luego no se cumplió. El commit decía «en la
+etapa 3 sólo entran los que de verdad se juegan el podio» y la medida decía «entran 7 de 8, igual que
+en la 18». Un commit que afirma lo que su medida no sostiene se revierte aunque el código compile y
+las pruebas pasen, porque lo que queda en el repositorio no es el código: es la afirmación.

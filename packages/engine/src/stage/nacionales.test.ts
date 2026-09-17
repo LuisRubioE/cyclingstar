@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { hayGeneralEnJuego } from './citas.js'
-import { buildTeamPlans, type TeamPlanRider } from './teamPlan.js'
+import { buildTeamPlans, teamStance, type TeamPlanRider } from './teamPlan.js'
 
 /**
  * EL CAMPEONATO NACIONAL, Y POR QUÉ NO HACE FALTA UN `nationalBlocs` APARTE (paso 18c, R28.6).
@@ -151,5 +151,83 @@ describe('la etapa 1 de una vuelta tiene general, y la de un día no', () => {
     const conDiferencias = [{ gcDeficitSeconds: 0 }, { gcDeficitSeconds: 42 }]
     expect(hayGeneralEnJuego(conDiferencias, { stageDay: 9, totalStages: 21 })).toBe(true)
     expect(hayGeneralEnJuego(conDiferencias, undefined)).toBe(true)
+  })
+})
+
+/**
+ * UN MINUTO EN LA ETAPA 3 NO ES UN MINUTO EN LA 18 (v76.2).
+ *
+ * El dueño, mirando el Tour: «en la etapa 3, con todos muy cerca, se escapa un ciclista peligroso
+ * para la general pero solo tiene 1 minuto… y veo tirando a gente que va por la general. No veo que
+ * alguien que quizás acabe luchando por el podio tenga que desgastar a su equipo por eso. Otra cosa
+ * sería si va sacando 20 minutos, o si es la etapa 18».
+ *
+ * La causa eran **dos preguntas distintas metidas en una**. `isThreatened` preguntaba «¿se me
+ * acerca?», y eso vale mientras el de delante siga POR DETRÁS de nuestro hombre en la general
+ * virtual. En cuanto le PASA, esa misma cuenta responde que sí para cualquier hueco —de un minuto o
+ * de veinte— y en la etapa 3, con la general comprimida a SEGUNDOS, cualquier fuga que se lleve un
+ * minuto adelanta a media parrilla. De ahí medio pelotón tirando.
+ *
+ * Cuando te pasa, la pregunta ya no es cuánto se te acerca: es **cuánto te saca y si puedes
+ * devolvérselo**.
+ */
+describe('perseguir una fuga depende de qué día de la carrera es', () => {
+  const plan = {
+    teamId: 't1',
+    memberIds: ['a', 'b', 'c', 'd', 'e'],
+    leaderId: 'a',
+    gcLeaderId: 'a',
+    purposes: ['general' as const],
+    stageCandidateId: null,
+    quality: 60,
+    gcDeficitSeconds: 30,
+    sprintFinish: true,
+    budget: 100,
+    form: 1,
+    rebelIds: [],
+  }
+  /** Una fuga con un hombre a 45 s en la general que se lleva `gap` segundos. */
+  const sit = (gap: number, stageDay: number) => ({
+    manUpTheRoad: false,
+    leaderUpTheRoad: false,
+    kmToGo: 60,
+    frontThreatDeficit: 45,
+    gapSeconds: gap,
+    stageDay,
+    totalStages: 21,
+  })
+  const persigue = (gap: number, dia: number) => teamStance(plan, sit(gap, dia)).threatened
+
+  it('un minuto en la etapa 3 no vale quemar al equipo', () => {
+    expect(persigue(60, 3)).toBe(false)
+    expect(persigue(180, 3)).toBe(false)
+  })
+
+  it('…pero veinte minutos sí, desde el primer día', () => {
+    expect(persigue(1200, 3)).toBe(true)
+    expect(persigue(600, 3)).toBe(true)
+  })
+
+  it('y en la última etapa se persigue hasta por un minuto', () => {
+    expect(persigue(60, 21)).toBe(true)
+  })
+
+  /**
+   * LA RAMPA, que es lo que hace que esto sea una regla y no dos casos: el mismo hueco va cambiando
+   * de respuesta según se acaba la carrera, porque lo que queda por recuperar mengua.
+   */
+  it('el mismo hueco cambia de respuesta según avanza la carrera', () => {
+    const tresMinutos = [3, 8, 11, 15, 18, 21].map((d) => persigue(180, d))
+    // Empieza en «me quedo» y acaba en «persigo», y no vuelve atrás.
+    expect(tresMinutos[0]).toBe(false)
+    expect(tresMinutos[tresMinutos.length - 1]).toBe(true)
+    const primerSi = tresMinutos.indexOf(true)
+    expect(tresMinutos.slice(primerSi).every(Boolean)).toBe(true)
+  })
+
+  /** Y en una carrera de un día no hay nada que recuperar mañana: la cuenta es la de siempre. */
+  it('una carrera de un día no descuenta nada', () => {
+    const unDia = { ...sit(60, 1), totalStages: 1 }
+    expect(teamStance(plan, unDia).threatened).toBe(true)
   })
 })
