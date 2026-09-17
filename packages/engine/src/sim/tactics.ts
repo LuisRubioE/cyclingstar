@@ -7,6 +7,7 @@
  * Es análisis, no motor: solo lee `StageOutput`. Lo consume `sim/cli.ts`.
  */
 import { STAGE } from '../constants.js'
+import { TARGETS } from './targets.js'
 import { SEASON_CALENDAR } from '../routes/calendar.js'
 import { chaseField } from '../stage/chase.js'
 import { simulateStage } from '../stage/simulate.js'
@@ -481,7 +482,12 @@ export function analyzeAttribution(scenario: Scenario, seeds: string[]): Attribu
     const out = simulateStage(scenario.input, seed)
     const pull = out.events.filter((e) => e.plantilla === 'peloton_pull')
     pulls.push(pull.length)
-    if (pull.length >= 3 && pull.length <= 6) inWindow += 1
+    if (
+      pull.length >= TARGETS.chronicle.pullsPerStage.min &&
+      pull.length <= TARGETS.chronicle.pullsPerStage.max
+    ) {
+      inWindow += 1
+    }
     for (const e of pull) names.push(e.protagonistas.length)
     const caught = out.events.filter(
       (e) =>

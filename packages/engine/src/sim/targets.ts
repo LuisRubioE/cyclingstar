@@ -281,6 +281,20 @@ export const TARGETS = {
    * con equipos de verdad y los roles repartidos por el mismo planificador que usa producción.
    */
   chronicle: {
+    /**
+     * CUÁNTAS VECES CUENTA LA CRÓNICA QUIÉN TIRA, por etapa (v79).
+     *
+     * **Esta banda YA EXISTÍA Y NO VIVÍA AQUÍ**: era una comparación a pelo dentro de
+     * `analyzeAttribution` (`pull.length >= 3 && pull.length <= 6`), imprimida por `tacticsCli` y
+     * leída por una persona. Y eso es exactamente cómo un defecto se queda años: **el banco que
+     * detecta el problema del indicador de relevos no tenía ni banda declarada ni invariante**, así
+     * que el indicador podía romperse con CI en verde. Que fue lo que pasó.
+     *
+     * Ni una ni veinte: tres a seis es cuántas veces cambia de manos el trabajo en una etapa de
+     * verdad. Por debajo, el lector no sabe nunca quién lleva la carrera; por encima, la crónica
+     * repite lo mismo con otros nombres — que es el síntoma que la v79 arregla.
+     */
+    pullsPerStage: { label: 'Partes de «quién tira» por etapa', min: 3, max: 6, unit: '' },
     // POR QUÉ 45-80 % EN LA LLANA, y no más ni menos. En una llana con trenes de sprint el frente
     // tiene dueño casi todo el día: un equipo se pone a tirar, se funde, y otro toma el relevo. Pero
     // NO es el 100 %: en el relevo entre dos equipos, en la primera hora sin nadie interesado y
