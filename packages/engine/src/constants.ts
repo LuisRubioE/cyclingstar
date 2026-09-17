@@ -780,7 +780,17 @@
  * esprinta de verdad; en alto es todo o nada desde el penúltimo puerto. Lo que las separa es el tipo
  * de final, que el motor ya calculaba. Ver `ultimaEtapa` y `ultimoDiaDeVuelta`.
  */
-export const ENGINE_VERSION = 78 as const
+/**
+ * **v79 — EL INDICADOR DEL PARTE DE RELEVOS, QUE TENÍA BLOQUEADAS LAS CINCO CAPAS.**
+ *
+ * La puerta que decide si la crónica cuenta quién tira hacía dos preguntas y la rotación de relevos
+ * rompía las dos en sentidos opuestos: «¿hay trabajo?» miraba a UN hombre, y «¿esto es noticia?»
+ * miraba una identidad que caía en un nombre que rota. Ver `pullMinTotalWork` y `pullIdentity`.
+ *
+ * Sube la versión porque cambia **lo que el motor emite**: los resultados son los mismos —las cuatro
+ * huellas no se mueven— pero la crónica no, y una etapa guardada bajo la v78 no la cuenta este motor.
+ */
+export const ENGINE_VERSION = 79 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -4067,9 +4077,25 @@ export const STAGE = {
   // así el parte dice «X y Z» cuando de verdad tiran dos y «X» cuando tira uno solo.
   pullNamesMax: 3,
   pullNamesMinShare: 0.55,
-  // Trabajo mínimo del que más ha tirado en la ventana para que haya parte. Es lo que impide narrar
-  // «tiran fulano y mengano» de un pelotón que va de paseo detrás de una fuga consentida.
-  pullMinWork: 0.35,
+  /**
+   * TRABAJO MÍNIMO AL FRENTE PARA QUE HAYA PARTE. Es lo que impide narrar «tiran fulano y mengano»
+   * de un pelotón que va de paseo detrás de una fuga consentida.
+   *
+   * **SUSTITUYE A `pullMinWork` 0,35, QUE MEDÍA A UN SOLO HOMBRE** (v79, deuda escrita en la v64).
+   * Aquél era el trabajo acumulado por EL QUE MÁS lleva en la ventana, y ese número está calibrado
+   * contra un motor en el que los mismos hombres iban al frente todo el día. Con el turno convertido
+   * en cola (R18.1) un hombre da la cara seiscientos metros y se va al final de la fila, así que
+   * **nadie acumula**: medido en el km 100 de una etapa sin fuga con la cola encendida, el mejor
+   * llevaba 0,066 contra un listón de 0,35 y el parte de relevos pasaba de 24 etapas de 24 a 0 de 24.
+   *
+   * No es que nadie tire —tiran todos, y por turnos, que es lo que se quería—: es que la pregunta
+   * era «¿quién lleva mucho rato delante?» y una rotación de verdad hace que la respuesta sea
+   * «nadie». El trabajo TOTAL es el mismo se reparta como se reparta, y por eso es lo que se mide.
+   *
+   * El valor sale del barrido de las cuatro celdas —atribución y voz, con la cola encendida y
+   * apagada—, que es el criterio que esta deuda llevaba escrito desde la v73.
+   */
+  pullMinTotalWork: 2.5,
   // Throttle del parte: nunca dos partes en menos de `Min` km aunque cambie quién manda, y como
   // mucho uno cada `pullReportKmGap` km aunque no cambie nadie. Medido (60 semillas por escenario):
   // con 9/30 salían 5,4 por etapa en la llana y 6,3 en Flandes; con 12/36 la mediana queda en 4-5 y
