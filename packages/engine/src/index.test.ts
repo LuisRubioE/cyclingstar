@@ -3,6 +3,17 @@ import { ENGINE_VERSION } from './index.js'
 
 describe('engine: esqueleto', () => {
   it('expone una engine_version sellada', () => {
+    // v74: EL PASO 17b — EL MOTOR LEE LAS PALANCAS NUEVAS DE LA HOJA DE ORDENES (R22).
+    // `triggerOn` llevaba desde el 17a con sus seis formas de decir «cuando» y el motor solo leia
+    // la del tiempo; las otras cinco eran letra muerta. Ahora se resuelven las POSICIONALES —el
+    // puerto («al pie», «en lo mas duro», «cerca de la cima») y el sector de pave— convirtiendolas
+    // en un kilometro antes de empezar, de donde manda la maquinaria de `triggerKm` de la v58. Y
+    // `dayGoal` DECLARA: ir a por los puntos es disputar los volantes sin marcarlo dos veces, salir
+    // a ganar se corre a tope. Solo ENCIENDE casillas y solo SUBE el esfuerzo: una declaracion no
+    // es un veto sobre lo que el mismo hombre pidio en la linea de al lado.
+    // Quedan fuera, y se dice: el hueco y el ataque de Z (dependen de los demas, no son
+    // posicionales) y `chasePolicy`, que es una decision DE EQUIPO y vive en R20, apagada.
+    // Las cuatro huellas NO se mueven: los escenarios canonicos no ponen ninguna de las dos.
     // v73: LA REINA CANONICA VUELVE, Y CON EL DEFECTO QUE ELLA MISMA DESTAPO ARREGLADO
     // (docs/balance.md «v73»). El escenario sintetico pasa a ser una reina de verdad —158 km y
     // 2.933 m, dos puertos y final en alto, decision 5 del dueno— y al correr por primera vez el
@@ -422,6 +433,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(73)
+    expect(ENGINE_VERSION).toBe(74)
   })
 })

@@ -756,7 +756,7 @@
  * entero bajaba a por quien no era su baza, y la crónica lo contaba como un compromiso con la
  * general que nadie había tomado.
  */
-export const ENGINE_VERSION = 73 as const
+export const ENGINE_VERSION = 74 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a

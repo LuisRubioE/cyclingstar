@@ -24,6 +24,7 @@ import {
 } from '@cyclingstar/db'
 import {
   ENGINE_VERSION,
+  checkReplay,
   SEASON_CALENDAR,
   type StageInput,
   TEST_TOUR,
@@ -227,8 +228,32 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
         )),
       ]
 
-      // Regenera los eventos ejecutando el motor con la misma entrada y semilla.
-      const output = simulateStage(input, snapshot.seed)
+      /**
+       * EL INFORME DEJA DE RE-SIMULAR (paso 17d, R23.5).
+       *
+       * Esto ejecutaba el motor de HOY sobre la entrada de AYER para «regenerar» los eventos. Con
+       * `ENGINE_VERSION` moviéndose paso a paso —52 → 74 en esta tanda— eso deja de regenerar nada:
+       * cuenta una carrera DISTINTA de la que está en la hoja de resultados, con los mismos
+       * corredores y otro desenlace. El jugador ve un diario que no casa con la clasificación que
+       * tiene al lado, y no hay forma de que sepa cuál de los dos miente.
+       *
+       * Es el mismo defecto que el dueño vio en la Race Radio y por el que la vista dice «esta etapa
+       * se corrió antes de que se grabara la radio» en vez de reconstruirla. La regla es la misma:
+       * **lo que se corrió se lee, no se vuelve a correr.**
+       *
+       * Los eventos se guardan al correr la etapa (`stage_snapshots.events`), así que se leen. Solo
+       * se re-simula cuando NO están —snapshots anteriores a que se guardaran— y además el motor
+       * sigue siendo el mismo (`checkReplay`), que es la única circunstancia en la que volver a
+       * correr devuelve la misma carrera. Si no se cumple, se sirve la etapa sin crónica: una
+       * pestaña vacía es honesta y una crónica inventada no.
+       */
+      const guardados = snapshot.events as ChronicleEvent[] | null
+      const output =
+        guardados && guardados.length > 0
+          ? { events: guardados }
+          : checkReplay(snapshot.engineVersion).faithful
+            ? simulateStage(input, snapshot.seed)
+            : { events: [] as ChronicleEvent[] }
       // La vuelta de prueba no tiene roster de carrera: las identidades salen de los resultados, así
       // que van sin dorsal (y la crónica lo omite, en vez de inventarlo).
       const chronicle = buildChronicle(output.events, chronicleNames(results), {
