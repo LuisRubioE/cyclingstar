@@ -14788,3 +14788,68 @@ factor inerte en `chooseInstigator`. **Las filas idénticas se miran, no se cele
 
 **Se conserva** la ventana 3-6 declarada en `targets.ts`: ese cambio es correcto por su cuenta, y es
 lo que permitió ver todo esto.
+
+## v79 — el maillot no se va en la fuga del día, y el freno estaba roto por dos sitios
+
+El dueño, mirando el Tour:
+
+> «El que tiene maillot amarillo debería ser suuuper extraño que se fugue o que entre en una fuga…
+> otra cosa es que en la montaña ataque para irse solo, o que su equipo haga una selección y luego él
+> remate. Pero lo normal es que él siempre vaya a rueda, protegido, a la defensiva, tal vez
+> respondiendo a ataques en la montaña de sus enemigos. Pero en el llano entrar en una fuga, eso
+> debería ser mucho más raro de lo que ocurre… ocurre demasiado a menudo.»
+
+### No era una constante mal puesta: eran dos agujeros
+
+**1. El freno que existe no corre.** `jerseyAttackFactor` está escrito desde el paso 7 (R02.12) y es
+la respuesta a una queja anterior del mismo dueño —«el maillot salta seis veces»—. Se aplica dentro
+de `colaOn`, o sea de `STAGE.teamPlay.enabled`, **que está en `false`**. No ha frenado nada en
+ninguna carrera de producción, nunca.
+
+**2. Y aunque corriera, solo frena ATACAR.** Entrar en una fuga es casi siempre **saltar a la rueda**
+del que se va, y `followProbability` no tenía **una sola línea** sobre el maillot: el líder saltaba
+con la misma probabilidad que cualquiera de su rol y sus piernas. Esa mitad no estaba rota — es que
+no se había escrito.
+
+Es el tercer caso del mismo patrón en esta sesión, y ya no es anécdota: **algo que existe, parece que
+funciona, y nadie lo comprueba.** Los otros dos fueron `gcClimbRecoverPerKm` —incalibrable porque su
+capa está apagada— y la mitad de R28.4 que cuelga de esa misma capa.
+
+### La distinción del dueño es de CLASE de movimiento, no de terreno
+
+El maillot no se va **a por la etapa** —la fuga del día, el contraataque, el puente— y sí se va **a
+por la carrera** —ataca en el puerto, responde a un rival, remata la selección de los suyos—. Por eso
+`ataque_grupo` y `ataque_final` **no se tocan**: ésos son su oficio, y quien los dosifica es el
+colchón (`jerseyCushionS`), que es otra regla y otra queja.
+
+El terreno solo **gradúa lo primero**: en el llano irse con la fuga del día es noticia de portada; en
+un puerto, un contraataque suyo puede ser carrera de general y no caza de etapa.
+
+### Medido, contra un árbol sin la regla
+
+40 semillas, campo de ocho equipos con general de verdad (el líder a 0 y el resto escalonado):
+
+| Escenario | maillot en el grupo de cabeza | gana la etapa   |
+| --------- | ----------------------------- | --------------- |
+| **llana** | 12,5 % → **0,0 %**            | 12,5 % → 12,5 % |
+| **reina** | 25,0 % → **7,5 %**            | 2,5 % → 2,5 %   |
+
+En el llano **desaparece**; en la reina baja un 70 % y **sigue pasando**, que es exactamente la
+distinción que el dueño hace. Y **sus victorias de etapa no cambian**: no se le quitan opciones, se
+le quita la fuga del día.
+
+**Las bandas canónicas no se mueven, y era la predicción escrita antes de medir**: los escenarios
+canónicos son carreras de un día, todos llegan con déficit cero, sin general en juego no hay maillot
+y `esMaillot` sale `false` para todo el mundo. Medido: reina fuga 23,3 % (15-40), hueco 95 s (40-300),
+erosión 0,567; llana fuga 5,0 %, mejor velocista 38,3 %. Cifra por cifra las de la v77.
+
+### Y un fallo de mi medida, dicho porque casi me lo trago
+
+La estadística que elegí primero —«¿sale nombrado en el evento de fuga formada?»— da **cero en los
+dos brazos**, porque ese evento nombra dos o tres protagonistas y el líder metido en una fuga de diez
+no aparece ahí. De no haber mirado la segunda columna habría publicado «de 0 % a 0 %» como si fuera
+un resultado, cuando lo que tenía era un instrumento ciego.
+
+Es la misma familia de error que las otras tres de hoy —creer que estoy midiendo algo que no mido— y
+el remedio también: **una medida que no distingue los dos brazos no es una medida**, y la forma de
+cazarlo es mirar si el ANTES da un número que tenga sentido.
