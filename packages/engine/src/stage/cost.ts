@@ -46,6 +46,17 @@ export interface CostTerms {
    * pequeña a propósito; el frío se cobra sobre todo en `coldStopS`. Ausente = 0.
    */
   cold?: number
+  /**
+   * LA ALTITUD (R28.7, S-479, paso 18d). Por encima de `altitudeThresholdM` el aire deja de dar lo
+   * mismo, y **un puerto a 2.500 m criba distinto que uno idéntico a 900**.
+   *
+   * ES EL ÚNICO DE LOS CINCO QUE NO ES DE SUMA CERO POR GRUPO, y el diseño lo avisa por escrito: los
+   * otros cuatro redistribuyen dentro del grupo —el que empuja paga y el que se esconde ahorra— y
+   * éste **encarece a todo el que sube**. Por eso es el único que puede mover la economía del
+   * depósito, por eso va en PR propio con `ENGINE_VERSION++`, y por eso su tope importa más que el
+   * de los demás. Ausente = 0.
+   */
+  altitude?: number
 }
 
 /**
@@ -59,7 +70,8 @@ export interface CostTerms {
  * el peor caso —el que remonta cien puestos en pleno acordeón— sin volver el bloque incoherente.
  */
 export function tacticalCostMultiplier(t: CostTerms, mediaPush: number): number {
-  const suma = t.push - mediaPush + t.accordion + (t.rhythm ?? 0) + (t.cold ?? 0)
+  const suma =
+    t.push - mediaPush + t.accordion + (t.rhythm ?? 0) + (t.cold ?? 0) + (t.altitude ?? 0)
   return Math.max(-STAGE.tacticalCostCap, Math.min(STAGE.tacticalCostCap, suma))
 }
 
@@ -67,3 +79,29 @@ export function tacticalCostMultiplier(t: CostTerms, mediaPush: number): number 
 export function tacticalCostFactor(t: CostTerms, mediaPush: number): number {
   return 1 + tacticalCostMultiplier(t, mediaPush)
 }
+
+/**
+ * EL SOBRECOSTE DE LA ALTITUD, en la escala de `tacticalCostMultiplier` (R28.7, paso 18d).
+ *
+ * `altitudeGain · (m − umbral)/1000 · (1 + carga)`, donde `carga` es lo que el diseño llama
+ * «peso relativo»: cuánto le pesa a ESTE hombre subir a esta altura.
+ *
+ * **Y ahí hay un sustituto que hay que declarar**: este motor **no tiene el peso de los corredores**
+ * en ninguna parte. El diseño dice «el corpulento y el que no ha hecho altura pierden mucho más que
+ * el escalador ligero», y lo único que este modelo sabe de esa frase es lo segundo: quién sube bien.
+ * Así que la carga sale de la capacidad de subir INVERTIDA —el que peor sube paga más— y queda
+ * escrito como lo que es: **un sustituto, no el dato**. El día que exista el peso, esta línea es la
+ * única que cambia.
+ *
+ * Por debajo del umbral vale 0 exacto, que es el brazo A/B de este paso: **con todos los recorridos
+ * a la cota que tienen hoy —ninguna—, la ley no cobra nada**.
+ */
+export function altitudeCost(metros: number, subeBien: number): number {
+  const sobre = metros - STAGE.altitudeThresholdM
+  if (sobre <= 0) return 0
+  const carga = 1 - clamp01(subeBien / 100)
+  const bruto = (STAGE.altitudeGain * sobre * (1 + carga)) / 1000
+  return Math.min(STAGE.altitudeCap, bruto)
+}
+
+const clamp01 = (x: number): number => Math.max(0, Math.min(1, x))

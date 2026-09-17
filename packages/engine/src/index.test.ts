@@ -3,6 +3,18 @@ import { ENGINE_VERSION } from './index.js'
 
 describe('engine: esqueleto', () => {
   it('expone una engine_version sellada', () => {
+    // v76: EL PASO 18d — LA ALTITUD (R28.7, S-479). El quinto multiplicador del coste del bloque,
+    // y el UNICO QUE NO ES DE SUMA CERO POR GRUPO: los otros cuatro redistribuyen —el que empuja
+    // paga, el que se esconde ahorra— y este encarece a todo el que sube. Por eso va en PR propio,
+    // con subida propia y con tope propio (0,18, lo que cuesta el Stelvio al que peor sube).
+    // Va con DOS SUSTITUTOS DECLARADOS, porque los datos que la regla pide no existen aqui: no hay
+    // altitud absoluta —el calendario guarda pendientes, no cotas— asi que entra `startM` con
+    // defecto 0; y no hay peso de corredor, asi que la carga sale de la capacidad de subir
+    // invertida. Es un sustituto, no el dato.
+    // CON LOS RECORRIDOS DE HOY EL TERMINO VALE CERO: ninguno trae cota y un perfil que arranca en
+    // el mar no llega a 2.000 m (el desnivel ACUMULADO no es la altitud). La ley esta puesta y
+    // dormida, no puesta y funcionando a medias, y despierta sola cuando el calendario traiga las
+    // cotas. Por eso ni las cuatro huellas ni el invariante 43 se mueven, y eso se declaro ANTES.
     // v75: EL PASO 18b — LA ETAPA 1 DE UNA VUELTA TIENE GENERAL (R28.5, S-074/S-388/S-158).
     // En la etapa 1 y en una carrera de un dia TODOS llegan con `gcDeficitSeconds` = 0, asi que
     // mirando solo los deficits los dos casos son identicos y el motor deducia «no hay general» en
@@ -444,6 +456,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(75)
+    expect(ENGINE_VERSION).toBe(76)
   })
 })

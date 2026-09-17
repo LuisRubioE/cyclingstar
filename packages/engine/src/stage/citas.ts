@@ -140,3 +140,23 @@ export function hayGeneralEnJuego(
   if (riders.some((r) => r.gcDeficitSeconds > 0)) return true
   return race?.stageDay === 1 && (race?.totalStages ?? 1) > 1
 }
+
+/**
+ * LA ALTITUD DE CADA BLOQUE, integrando las pendientes desde la cota de salida (R28.7, paso 18d).
+ *
+ * Un bloque de `dx` km al `g` % sube `g · dx · 10` metros. Es aritmética, no un modelo: la única
+ * decisión aquí es **de dónde se parte**, y de eso se encarga `startM` —0 por defecto, porque el
+ * calendario guarda pendientes y no cotas—.
+ *
+ * Se devuelve la altitud AL FINAL de cada bloque, que es la que el corredor está respirando cuando
+ * lo paga.
+ */
+export function altitudesDelPerfil(blocks: readonly Block[], dx: number, startM = 0): number[] {
+  const out: number[] = []
+  let m = startM
+  for (const b of blocks) {
+    m += b.g * dx * 10
+    out.push(m)
+  }
+  return out
+}

@@ -46,6 +46,17 @@ export interface Segment {
 export interface StageProfile {
   segments: Segment[]
   banners?: Banner[]
+  /**
+   * LA COTA DE SALIDA, en metros sobre el mar (R28.7, paso 18d). Opcional y **0 por defecto**, y eso
+   * no es pereza: el calendario de hoy guarda PENDIENTES, no altitudes, así que no hay de dónde
+   * sacar la cota de ninguna etapa. Con 0 la ley de la altitud no cobra nada —un perfil a nivel del
+   * mar nunca pasa de 2.000 m— y el motor corre exactamente como antes.
+   *
+   * La ley entra ahora y queda dormida a propósito, con la condición de despertarla escrita: **el
+   * día que los recorridos traigan su cota, empieza a cobrar sola**. La alternativa era inventarse
+   * altitudes por etapa, que es peor que no tenerlas.
+   */
+  startM?: number
 }
 
 /** Un bloque de 100 metros ya muestreado, listo para la física (SPEC 6.2, 6.16). */

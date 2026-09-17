@@ -756,7 +756,7 @@
  * entero bajaba a por quien no era su baza, y la crónica lo contaba como un compromiso con la
  * general que nadie había tomado.
  */
-export const ENGINE_VERSION = 75 as const
+export const ENGINE_VERSION = 76 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -4354,6 +4354,19 @@ export const STAGE = {
    * sin que nadie lo vea.
    */
   tacticalCostCap: 0.6,
+  /**
+   * LA ALTITUD (R28.7, S-479, paso 18d). Por encima de 2.000 m el aire deja de dar lo mismo y un
+   * puerto a 2.500 criba distinto que uno idéntico a 900. Los números son los del diseño: umbral
+   * 2.000 m y 0,04 por cada mil metros por encima, escalado por lo que le pese a ese hombre subir.
+   *
+   * El TOPE es propio y no el de los otros cuatro términos, porque éste **no es de suma cero por
+   * grupo**: encarece a todo el que sube en vez de redistribuir. 0,18 es lo que cuesta el Stelvio
+   * —2.758 m— al que peor sube, y por encima de eso el término dejaría de ser un matiz del bloque
+   * para pasar a decidir la etapa él solo.
+   */
+  altitudeThresholdM: 2000,
+  altitudeGain: 0.04,
+  altitudeCap: 0.18,
 
   /**
    * LA CAÍDA COMO SUCESO SOCIAL Y EL HUNDIMIENTO COMO ESTADO OBSERVABLE (R12 + R13,

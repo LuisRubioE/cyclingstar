@@ -15,7 +15,13 @@ import {
   timeCutFraction,
 } from './abandon.js'
 import { chaseField, chaseForce, isFinisher, lerp } from './chase.js'
-import { hayGeneralEnJuego, kmDeLaCita, metasDelDia, tramosDelPerfil } from './citas.js'
+import {
+  altitudesDelPerfil,
+  hayGeneralEnJuego,
+  kmDeLaCita,
+  metasDelDia,
+  tramosDelPerfil,
+} from './citas.js'
 import { EventLog, announceRebels } from './events.js'
 import {
   type Group,
@@ -66,7 +72,7 @@ import {
 import { type RelayQueue, advanceQueue, emptyQueue } from './relayQueue.js'
 import { believedGap, bloodFactor, dirQualityOf, infoLagKm, readState } from './director.js'
 import { type ChaseCandidate, chaseTargetOf, desiredGapOf, frontClaimOf } from './frontAuction.js'
-import { tacticalCostFactor } from './cost.js'
+import { altitudeCost, tacticalCostFactor } from './cost.js'
 import {
   accordionActive,
   accordionTerm,
@@ -1376,6 +1382,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    * empezar y no cuestan nada en el bucle.
    */
   const tramosDeHoy = tramosDelPerfil(blocks, STAGE.dx)
+  /** La altitud al final de cada bloque (R28.7, paso 18d). Sin cota de salida, todo a nivel del mar. */
+  const altitudesDeHoy = altitudesDelPerfil(blocks, STAGE.dx, input.profile.startM ?? 0)
   /**
    * LA CITA EFECTIVA DE UN HOMBRE, por orden de precedencia: la que ya se CUMPLIÓ en carretera —el
    * tiempo (R14.3)—, luego la POSICIONAL del perfil —el puerto, el sector, el kilómetro de
@@ -5218,14 +5226,26 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
          * arriba —el calor—, así que una etapa a 2° y una a 20° costaban exactamente lo mismo.
          */
         const frioTermino = climaOn ? STAGE.truce.coldCostScale * frio : 0
+        /**
+         * …Y EL QUINTO, DESDE EL PASO 18d: **la altitud** (R28.7, S-479). Por encima de 2.000 m un
+         * puerto criba distinto que uno idéntico a 900, y el que peor sube lo paga más.
+         *
+         * Es el único de los cinco que **no es de suma cero por grupo**: los otros cuatro
+         * redistribuyen —el que empuja paga, el que se esconde ahorra— y éste encarece a todo el que
+         * sube. Con los recorridos de hoy vale **0 exacto**, porque ninguno trae cota de salida y un
+         * perfil que arranca a nivel del mar no llega a 2.000 m: la ley está puesta y dormida, y
+         * despierta sola el día que el calendario traiga las cotas.
+         */
+        const alturaTermino = altitudeCost(altitudesDeHoy[i] ?? 0, m.input.eff0.MON)
         const tactico =
-          colocacionOn || ritmo !== 0 || frioTermino !== 0
+          colocacionOn || ritmo !== 0 || frioTermino !== 0 || alturaTermino !== 0
             ? tacticalCostFactor(
                 {
                   push: colocacionOn ? pushTerm(m.pushing) : 0,
                   accordion: hayAcordeon ? accordionTerm(m.placement, mediaPlace) : 0,
                   rhythm: ritmo,
                   cold: frioTermino,
+                  altitude: alturaTermino,
                 },
                 colocacionOn ? mediaPush : 0,
               )
