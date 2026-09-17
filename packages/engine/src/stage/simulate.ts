@@ -6353,6 +6353,14 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       pulling: esPeloton && m.pulling,
       // …y si viene de que le cacen tras una fuga larga, hoy ya no está para nadie (v42).
       gastado: km < m.gastadoHastaKm,
+      /**
+       * ¿LLEVA EL MAILLOT? (R02.12 · v79). El dueño: «que el del maillot amarillo se fugue o entre
+       * en una fuga debería ser suuuper extraño… en el llano eso ocurre demasiado a menudo».
+       *
+       * Misma fuente que el freno del colchón —`gcRank === 1` con general en juego— y no una
+       * deducción del déficit: en la etapa 1 de una vuelta todos llegan a cero.
+       */
+      esMaillot: hasGcContext && m.input.gcRank === 1,
     })
 
     /**

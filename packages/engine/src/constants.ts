@@ -780,7 +780,15 @@
  * esprinta de verdad; en alto es todo o nada desde el penúltimo puerto. Lo que las separa es el tipo
  * de final, que el motor ya calculaba. Ver `ultimaEtapa` y `ultimoDiaDeVuelta`.
  */
-export const ENGINE_VERSION = 78 as const
+/**
+ * **v79 — EL MAILLOT NO SE VA EN LA FUGA DEL DÍA** (R02.12, corrección de producción).
+ *
+ * El dueño: «que el del maillot amarillo se fugue o entre en una fuga debería ser suuuper extraño…
+ * en el llano ocurre demasiado a menudo». Tenía el freno roto de dos maneras: el que existía vivía
+ * dentro de `teamPlay` (apagada) y solo frenaba ATACAR, no SALTAR A LA RUEDA — que es como se entra
+ * en una fuga. Ver `jerseyBreakDampFlat` y `jerseyBreakDamp`.
+ */
+export const ENGINE_VERSION = 79 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -4065,6 +4073,36 @@ export const STAGE = {
   // Cuántos nombres da el parte y qué parte del trabajo del primero hay que haber hecho para
   // aparecer en él. Con 0,55, un relevo que se lleva la mitad de lo que se lleva el que más no sale:
   // así el parte dice «X y Z» cuando de verdad tiran dos y «X» cuando tira uno solo.
+  /**
+   * EL MAILLOT NO SE VA EN LA FUGA DEL DÍA (R02.12 · v79).
+   *
+   * El dueño, mirando el Tour: «el que tiene maillot amarillo debería ser suuuper extraño que se
+   * fugue o que entre en una fuga… otra cosa es que en la montaña ataque para irse solo, o que su
+   * equipo haga una selección y luego él remate. Pero lo normal es que él siempre vaya a rueda,
+   * protegido, a la defensiva. En el llano entrar en una fuga debería ser mucho más raro de lo que
+   * ocurre».
+   *
+   * Y tiene razón dos veces, porque el motor tenía el freno **roto de dos maneras distintas**:
+   *
+   *  1. `jerseyAttackFactor` existe desde el paso 7 y vive dentro de `colaOn`, o sea de
+   *     `STAGE.teamPlay.enabled`, que está en `false`. **No se aplicaba nunca.**
+   *  2. Y aunque se aplicara, solo frena ATACAR. `followProbability` —saltar a la rueda del que se
+   *     va, que es como se entra en una fuga— **no tenía una sola línea sobre el maillot**: el
+   *     líder saltaba con la misma probabilidad que cualquiera de su rol y sus piernas.
+   *
+   * LA DISTINCIÓN QUE HACE EL DUEÑO ES LA BUENA, y es de CLASE de movimiento, no de terreno: el
+   * maillot no se va **a por la etapa** —la fuga del día, el contraataque, el puente— y sí se va **a
+   * por la carrera** —ataca en el puerto, responde a un rival—. Por eso `ataque_grupo` y
+   * `ataque_final` no se tocan aquí: ésos son su oficio, y quien los dosifica es el colchón
+   * (`jerseyCushionS`).
+   *
+   * Los dos valores son **[calibrar]**. El del llano es casi cero a propósito: en carretera un
+   * maillot amarillo en la fuga del día es noticia de portada, no una tarde cualquiera. El del
+   * puerto deja más margen porque ahí un contraataque suyo sí puede ser carrera de general y no
+   * cazar etapa.
+   */
+  jerseyBreakDampFlat: 0.02,
+  jerseyBreakDampClimb: 0.25,
   pullNamesMax: 3,
   pullNamesMinShare: 0.55,
   // Trabajo mínimo del que más ha tirado en la ventana para que haya parte. Es lo que impide narrar
