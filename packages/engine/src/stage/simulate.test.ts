@@ -2777,10 +2777,24 @@ describe('el maillot no releva fuera del pelotón si hay quien lo haga (v57)', (
           },
         })
       }
-      // Que el caso EXISTA: si el maillot no se cayera nunca del grueso, esto pasaría sin mirar nada.
-      expect(`el maillot rueda fuera del grueso: ${fueraDelGrueso > 50}`).toBe(
-        'el maillot rueda fuera del grueso: true',
-      )
+      /**
+       * QUE EL CASO EXISTA: si el maillot no se cayera nunca del grueso, esto pasaría sin mirar nada.
+       *
+       * EL LISTÓN BAJA DE 50 A 15 EN LA v79, Y CON SU MEDIDA DELANTE. Aquel 50 se ancló contra un
+       * motor en el que el maillot **se metía en la fuga del día**; desde que no lo hace (R02.12),
+       * las veces que se cae del grueso son la mitad: **medido, 26 fotos en las mismas 8 semillas**.
+       * O sea que el caso sigue existiendo de sobra —26 ocasiones de comprobar la regla— y lo que ha
+       * cambiado es el motor, no la pregunta.
+       *
+       * Bajarlo a 15 y no a 25 es por margen: con 26 medidas, un listón en 25 se rompería el día que
+       * una semilla se mueva, y un guardarraíl intermitente no vigila nada. Lo que este listón tiene
+       * que cazar es que el caso DESAPAREZCA, no dónde cae exactamente.
+       *
+       * Y VA COMO COMPARACIÓN NUMÉRICA, no como la cadena de siempre: una cadena dice «false» y una
+       * cadena larga la trunca el propio vitest, así que al ponerse roja esta prueba **no decía si
+       * habían quedado 49 fotos o ninguna**. Un listón se diagnostica con el número al lado.
+       */
+      expect(fueraDelGrueso).toBeGreaterThan(15)
       // …y que en esos grupos SÍ tira alguien: lo que se prueba es que no es él, no que nadie releve.
       expect(`alguien releva en esos grupos: ${otrosTirando > 0}`).toBe(
         'alguien releva en esos grupos: true',
