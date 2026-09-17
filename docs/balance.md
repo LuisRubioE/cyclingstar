@@ -14685,3 +14685,106 @@ Subir la versión por costumbre tendría un coste real y silencioso: `ENGINE_VER
 si una etapa guardada se puede volver a leer, y moverla **tira todas las crónicas guardadas** que
 seguían siendo perfectamente válidas. La regla de la casa es «cada cambio de conducta sube la
 versión»; aquí no hay cambio de conducta, hay capacidad nueva que nadie usa todavía.
+
+## v79 revertida — el indicador del parte de relevos, séptima refutación (y la más útil)
+
+El criterio estaba escrito desde la v73 y no se relajó: **un solo valor, en banda en los DOS bancos,
+con la cola encendida y apagada. Cuatro celdas, no una.** No existe ese valor, así que el arreglo se
+revierte. Lo que sí queda es lo que la medida enseñó, que es más de lo que dejaron las seis
+refutaciones anteriores juntas.
+
+### El diagnóstico, que era coherente, estaba leído en el código, y era falso
+
+La puerta que decide si la crónica cuenta quién tira hace dos preguntas:
+
+```ts
+pull.best >= pullMinWork && // ¿hay trabajo?
+  ((identidad !== lastPullLeader && nombres !== lastPullNames) || // ¿es noticia?
+    km - lastPullReportKm >= pullReportKmGap) // …o ha caducado
+```
+
+Y la identidad tenía esto:
+
+```ts
+;[why.targetId ?? pull.ids[0] ?? '', why.kind, effort, ahead]
+```
+
+`pullReason` deja `targetId` **indefinido en dos casos** —`'libre'` (campo sin equipos) y
+`'alianza'` (varios equipos tirando para jefes distintos, que es lo normal en una llana)— y en los
+dos la identidad caía en **el primer nombre de una lista que rota cada kilómetro**. Eso es cierto, se
+lee en el código, y explicaba perfectamente el «100 % de partes por cambio de nombres» de la v73.2.
+
+**Y no cambia nada.** Medido en un árbol con SOLO esa mitad arreglada y `pull.best` intacto:
+
+| Solo la identidad arreglada | atribución            | v78 (referencia) |
+| --------------------------- | --------------------- | ---------------- |
+| cola apagada                | 5 partes · **77 %**   | 5 · 80 %         |
+| cola encendida              | 5,5 partes · **57 %** | 5,5 · **57 %**   |
+
+Idéntico en la celda que importa.
+
+### Por qué no cambia nada, con la aritmética delante
+
+`llana-180` mide **180 km** y `pullReportKmGap` son **36**. 180 ÷ 36 = **5,0 partes por etapa solo
+por el tope de caducidad**. La mediana medida es **5**.
+
+**Los partes no los dispara la identidad: los dispara el tope de kilómetros.** La condición de
+identidad casi nunca llega a decidir nada, así que arreglarla no puede cambiar cuántos partes salen.
+Seis intentos —y éste— apuntaban a una puerta que estaba casi siempre abierta por otro sitio.
+
+### Dos correcciones a la bitácora que esto arrastra
+
+1. **El «100 % de los partes por cambio de nombres» (v73.2) no dice lo que parecía decir.** Contaba
+   **qué condición era cierta**, no cuál provocó la emisión. Con el tope de 36 km vencido las dos son
+   ciertas casi siempre, y atribuírselo a los nombres es arbitrario.
+2. **El «el parte pasa de 24 etapas de 24 a 0 de 24» (v64) no se reproduce.** Medido aquí, con
+   `pull.best` intacto y la cola encendida salen **5,5 partes por etapa**, no cero. Lo que sí se
+   reproduce es una degradación real de la narración: **la ventana 3-6 cae del 80 % al 57 %** de las
+   etapas.
+
+### Las once celdas
+
+| Motor                        | atribución            | voz: partes · equipo · frentes |
+| ---------------------------- | --------------------- | ------------------------------ |
+| **v78** · cola apagada       | 5 partes · **80 %**   | 6,9 · 74,3 % · 2,83            |
+| **v78** · cola encendida     | 5,5 partes · **57 %** | 6,8 · 73,7 % · 2,93            |
+| v79 · apagada · listón 1,5   | 6 partes · 57 %       | 6,6 · 72,6 % · 2,73            |
+| v79 · apagada · listón 2,5   | 6 partes · 63 %       | 5,3 · 73,6 % · 2,43            |
+| v79 · apagada · listón 3,5   | 5 partes · **83 %**   | 4,0 · 67,2 % · **2,07**        |
+| v79 · encendida · listón 1,5 | 9 partes · 20 %       | 6,7 · 71,6 % · 2,87            |
+| v79 · encendida · listón 2,5 | 8 partes · 30 %       | 5,6 · 68,0 % · 2,63            |
+| v79 · encendida · listón 3,5 | 7 partes · **43 %**   | 3,9 · 65,0 % · **2,07**        |
+| solo identidad · apagada     | 5 partes · 77 %       | 6,9 · 73,9 % · 2,83            |
+| solo identidad · encendida   | 5,5 partes · 57 %     | 6,8 · 74,5 % · 2,93            |
+
+En el listón 3,5 la cola apagada **mejora** el punto de partida (83 % contra 80 %) y la encendida se
+queda en **43 %, peor que el 57 % de la v78**. Subir más el listón no es salida: en 3,5 la voz ya
+tiene los frentes en **2,07 contra un suelo de 1,8**, que es exactamente el modo de fallo de las seis
+veces anteriores — **apretar un banco matando el otro**.
+
+### Y un defecto de método que casi me lo oculta
+
+**Cambié las dos mitades a la vez.** La tabla de ocho celdas no puede culpar a ninguna, y de no
+haberlo aislado en un tercer árbol habría publicado «el arreglo empeora la cola» sin saber cuál de
+las dos mitades lo hacía — o peor, habría atribuido la mejora de la cola apagada a la identidad,
+que no tiene nada que ver.
+
+**Y el primer arnés no variaba nada.** Le puse una query para invalidar la caché al importar
+`tactics.js`, pero ese módulo importa `constants.js` **sin** la query, así que Node servía el
+`constants.js` de la primera vez: las seis celdas midieron la misma configuración. Lo cazó el
+síntoma —seis filas idénticas— y no una revisión. Es el tercer error del día con la misma forma
+(creer que estoy variando algo que no varío), después del `dist` reconstruido bajo el barrido y del
+factor inerte en `chooseInstigator`. **Las filas idénticas se miran, no se celebran.**
+
+### Lo que esta medida deja para el siguiente intento
+
+1. **La palanca no es la identidad.** Es la **cadencia** (`pullReportKmGap`) y, en segundo lugar, la
+   puerta del trabajo. Cualquier propuesta que empiece por la identidad ya está refutada.
+2. **`pull.total` con un listón fijo sí mueve la cosa**, y en la dirección buena con la cola apagada.
+   Con la cola encendida hace falta un listón más alto, y ahí choca con los frentes de la voz.
+3. Por tanto **el listón no puede ser una constante**: o escala con lo que la rotación le hace al
+   trabajo por hombre, o la cadencia deja de ser un número fijo de kilómetros. Cualquiera de las dos
+   es una tanda propia con su medición.
+
+**Se conserva** la ventana 3-6 declarada en `targets.ts`: ese cambio es correcto por su cuenta, y es
+lo que permitió ver todo esto.
