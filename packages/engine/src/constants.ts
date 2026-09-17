@@ -3682,6 +3682,24 @@ export const STAGE = {
     /** Y cuánta se da en la decisiva, desde el penúltimo puerto. [calibrar] */
     decisivaAttack: 1.4,
   },
+  /**
+   * EL CIRCUITO (R28.6, S-227 · paso 18b), que es una frase del diseño: **«la carrera arranca a dos
+   * vueltas»**. Ver `cuerdaDelCircuito`.
+   *
+   * Los dos números son **[calibrar]** y hoy **no los cobra nadie**: ningún recorrido del calendario
+   * declara `laps`. Se dice aquí en vez de disimularse — poner una carrera en circuito de verdad
+   * mueve resultados de producción y es una decisión de calendario, no de esta tanda. Lo que esta
+   * tanda trae es que el motor sepa correr uno.
+   *
+   * `antesDeDosVueltas` no es cero porque una carrera de circuito tampoco está parada: se rueda, se
+   * intenta y se caza. Lo que no hay es el movimiento que decide.
+   */
+  circuito: {
+    /** Cuánta cuerda hay antes de que queden dos vueltas. [calibrar] */
+    antesDeDosVueltas: 0.35,
+    /** Y cuánta en la última, donde sale el ataque decisivo. [calibrar] */
+    ultimaVuelta: 1.6,
+  },
   // Ritmo del pelotón cuando NO hay nada que cazar por delante (sin fuga, o ya cazada). Antes esto
   // no existía: el controlador vivía dentro de `if (breakaway && !caught)` y el pelotón se quedaba
   // en `commitIdle` toda la etapa. Un pelotón rueda a tempo de carretera, no a paseo.

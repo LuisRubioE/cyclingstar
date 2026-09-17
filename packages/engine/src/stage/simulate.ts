@@ -17,6 +17,7 @@ import {
 import { chaseField, chaseForce, isFinisher, lerp } from './chase.js'
 import {
   altitudesDelPerfil,
+  cuerdaDelCircuito,
   finDelPaseo,
   hayGeneralEnJuego,
   kmDeLaCita,
@@ -6379,6 +6380,22 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         : ultimoDia === 'decisiva' && kmTodoONada !== null && km >= kmTodoONada
           ? STAGE.ultimaEtapa.decisivaAttack
           : 1
+    /**
+     * …Y LA DEL CIRCUITO (R28.6, S-227), que se MULTIPLICA con la anterior en vez de competir con
+     * ella. No es pereza: las dos cosas pueden pasar a la vez —la última etapa de una vuelta suele
+     * acabar dando vueltas a un circuito, que es exactamente el caso de los Campos Elíseos— y ahí el
+     * paseo y «la carrera arranca a dos vueltas» dicen lo MISMO por dos caminos. Que se refuercen es
+     * la respuesta correcta; elegir uno sería tirar media regla.
+     */
+    const cuerdaDeHoy =
+      cuerdaDelUltimoDia *
+      cuerdaDelCircuito(
+        km,
+        totalKm,
+        input.profile.laps,
+        STAGE.circuito.antesDeDosVueltas,
+        STAGE.circuito.ultimaVuelta,
+      )
 
     /**
      * Un intento de movimiento desde `source`. Puede no salir, salir y fracasar, o salir y cuajar.
@@ -6508,10 +6525,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        */
       const salta = ventanaFlyer
         ? dado() <
-          blockProbability(
-            STAGE.phases.lambdaFlyer * lambdaPancarta(km) * cuerdaDelUltimoDia,
-            STAGE.dx,
-          )
+          blockProbability(STAGE.phases.lambdaFlyer * lambdaPancarta(km) * cuerdaDeHoy, STAGE.dx)
         : rollMoveAttempt(
             dado,
             ctx,
@@ -6523,8 +6537,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
               : lambdaPancarta(km) === 1
                 ? null
                 : { ...PHASE_TABLE.control, lambdaScale: lambdaPancarta(km) },
-            // …y la última etapa va POR FUERA de la fila, a propósito: ver `rollMoveAttempt`.
-            cuerdaDelUltimoDia,
+            // …y la última etapa y el circuito van POR FUERA de la fila: ver `rollMoveAttempt`.
+            cuerdaDeHoy,
           )
       if (!salta) return
       lastAttemptKm.set(source.id, km)

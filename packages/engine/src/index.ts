@@ -100,6 +100,7 @@ export {
   overlappingRaces,
   raceOngoingBefore,
   scheduledStageIndex,
+  scheduledStageIndices,
   stageDayOfSeason,
   stagePlace,
 } from './routes/schedule.js'

@@ -14562,3 +14562,126 @@ ningún banco puede ver es una ley que CI no vigila. Lo que la sujeta hoy son su
 —`ultimoDiaDeVuelta` y `finDelPaseo`, nueve aserciones— y esta medida hecha a mano. **El banco que
 falta es uno que corra etapas CON contexto de carrera**, y queda anotado como deuda con nombre: sin
 él, los pasos 18b y 21 seguirán entregando reglas que solo el dueño puede ver fallar.
+
+## Paso 18b (R28.6, S-431) — la semietapa, y su problema de verdad no está en el calendario
+
+«Dos `StageInput` el mismo día, con depósito encadenado (R08.5).» La frase parece de calendario y no
+lo es.
+
+### La mitad fácil: el dato no se podía ni expresar
+
+El calendario sabía **meter** un día entre dos etapas (`restAfter`, las jornadas de descanso de una
+gran vuelta) y no sabía **quitarlo**. `stageDayOfSeason` era `startDay + (i − 1) + descansosAntes`, y
+con esa cuenta dos etapas no pueden caer el mismo día por construcción.
+
+Entra `doubleAfter`, que es el espejo exacto de `restAfter` —la lista de etapas tras las cuales la
+siguiente se corre el mismo día— y va al otro lado de la misma suma. Y entra
+`scheduledStageIndices`, que devuelve **las** etapas del día en vez de **la** etapa: el singular se
+conserva para preguntar «¿corre hoy esta carrera?», que es lo que hace, pero quien lo use para correr
+la jornada **no correría nunca la segunda mitad y nadie se enteraría**. Eso último está sellado con su
+prueba, porque es justo la clase de hueco que este documento lleva todo el día cazando.
+
+### La mitad difícil, que es la que importa: `applyDailyLoad` es un paso POR DÍA
+
+```
+atl = prev.atl + (tss − prev.atl) / tauFatigue(recovery)
+ctl = prev.ctl + (tss − prev.ctl) / tauFitness
+```
+
+Eso es **un día de Banister**. Correr dos etapas el mismo día llamándolo dos veces no encadena nada:
+aplica **dos días de fisiología**, y el corredor termina la jornada partida con una jornada entera de
+forma y de recuperación **que no ha pasado**. Y el parte diario, que va por `(corredor, día)`,
+tendría dos filas para un solo día.
+
+O sea: la frase del diseño —«con depósito encadenado»— no describe un efecto bonito que sale solo.
+Describe **la única parte de la semietapa que hay que programar**, y si no se programa el defecto
+entra en silencio y no lo caza ninguna banda, porque ninguna banda mira el ATL de un corredor.
+
+Así que en una jornada partida la carga se aplica **una vez, con el TSS de las dos mitades**: la
+primera lo APUNTA en `cargaDelDia.banked` y no toca ni la carga ni el parte; la última suma y aplica
+un paso. El depósito se encadena solo, porque la segunda mitad lee el estado que dejó la primera y
+entre ellas no hay noche.
+
+**Y lo que NO espera al cierre del día: lo que se aprende corriendo.** Eso sí es por etapa —la mitad
+de la mañana de una semietapa es una carrera— y meterlo en el mismo saco le cobraría al corredor
+media jornada de aprendizaje por correr dos veces.
+
+### Medido contra Postgres, con su control del control
+
+Una jornada partida de verdad, corrida en el banco de datos:
+
+| Qué                                 | Resultado                                   |
+| ----------------------------------- | ------------------------------------------- |
+| Partes diarios tras la mañana       | **0** — el día no ha cerrado                |
+| Trabajo apuntado tras la mañana     | **> 0** — está ahí, esperando a la tarde    |
+| Partes diarios tras la tarde        | **1**, no dos                               |
+| TSS del parte                       | el de las **dos** mitades                   |
+| ATL resultante contra **un** paso   | casa a seis cifras (57,38927 vs 57,389272)  |
+| ATL resultante contra **dos** pasos | **no casa**, y las dos cuentas distan > 0,5 |
+
+La última fila es la que convierte esto en una prueba. Sin ella, la penúltima podría estar pasando
+por casualidad —si un paso y dos dieran lo mismo, no estaría comprobando nada—, que es exactamente
+el defecto que este documento le señaló a media docena de sellos esta misma sesión.
+
+### Lo que NO se hace, dicho en vez de fingido
+
+**Ninguna carrera del calendario declara una semietapa.** Poner una de verdad mueve resultados de
+producción y es una decisión de calendario, o sea del dueño. Lo que esta rama trae es que el motor y
+el tick **sepan correrla cuando la haya**, con la aritmética del depósito resuelta y sellada, en vez
+de que el dato no se pueda ni escribir.
+
+Es la diferencia entre una capa apagada y una capa que no existe: ésta existe, está probada, y espera
+a que alguien escriba `doubleAfter: [2]` en una carrera.
+
+## Paso 18b (R28.6, S-227) — el circuito, que es una sola frase del diseño
+
+> «CIRCUITO: la criba se ACUMULA vuelta a vuelta, la fuga se caza en el penúltimo paso y el ataque
+> decisivo sale en el último. **La carrera arranca «a dos vueltas».**»
+
+Los tres trozos hablan de lo mismo —cuántas vueltas quedan— así que caben en una cuenta:
+
+```
+con más de dos vueltas por delante   ->  no pasa nada serio        (antesDeDosVueltas)
+en la penúltima                      ->  se corre normal: se caza  (1)
+en la última                         ->  sale el ataque decisivo   (ultimaVuelta)
+```
+
+**Y «la criba se acumula vuelta a vuelta» no necesita código**: sale sola de pasar varias veces por
+los mismos puertos, porque el recorrido los lleva ya desplegados. Escribirla habría sido inventar un
+mecanismo para un efecto que la física ya produce.
+
+### Dónde vive `laps`, y por qué no en el calendario
+
+En el **recorrido** (`StageProfile.laps`), no en `CalendarStage`. Dos motivos: el motor tiene que
+poder correr un circuito le venga de donde le venga, y el banco tiene que poder montar uno sin tocar
+`SEASON_CALENDAR`. Y **no cambia el recorrido**: `segments` sigue siendo la etapa entera, con sus
+vueltas desplegadas, y la física no se entera de nada. Es un dato táctico.
+
+### Se multiplica con el paseo, no compite con él
+
+La última etapa de una gran vuelta **suele acabar dando vueltas a un circuito** —los Campos Elíseos
+son exactamente eso—, así que las dos reglas se aplican a la vez y dicen lo mismo por dos caminos: el
+paseo de R28.4 y «la carrera arranca a dos vueltas» de R28.6. Que se refuercen es la respuesta
+correcta; elegir una sería tirar media regla.
+
+### Lo que NO se hace, y su precio dicho
+
+**Ningún recorrido del calendario declara `laps`.** Y aquí el precio es mayor que en la semietapa,
+así que conviene decirlo con el número delante: R28.6 dice que el campeonato nacional se corre en
+circuito, y los nacionales son **532 de las 1.418 etapas del calendario**. Declararlos circuito
+cambiaría de golpe los resultados de **más de un tercio de la temporada**.
+
+Eso no es una tanda de tácticas: es una decisión de calendario con su propia medición, y es del
+dueño. Lo que esta rama deja hecho es que el motor sepa correr un circuito, con su regla sellada y
+sus dos constantes marcadas `[calibrar]` —porque hoy no las cobra nadie y por tanto no hay con qué
+calibrarlas—.
+
+### Por qué esto NO sube `ENGINE_VERSION`
+
+Ni el circuito ni la semietapa cambian **nada** para ninguna entrada existente: sin `laps` la cuerda
+vale 1 exacto, y sin `doubleAfter` la cuenta de días y la carga son las de siempre, línea por línea.
+
+Subir la versión por costumbre tendría un coste real y silencioso: `ENGINE_VERSION` es lo que decide
+si una etapa guardada se puede volver a leer, y moverla **tira todas las crónicas guardadas** que
+seguían siendo perfectamente válidas. La regla de la casa es «cada cambio de conducta sube la
+versión»; aquí no hay cambio de conducta, hay capacidad nueva que nadie usa todavía.

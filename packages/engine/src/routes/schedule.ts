@@ -4,11 +4,17 @@
  */
 import type { CalendarRace } from './calendar.js'
 
-/** Día de la temporada en que se corre una etapa (1-based) de la carrera, contando descansos. */
+/**
+ * Día de la temporada en que se corre una etapa (1-based) de la carrera, contando descansos **y
+ * semietapas**: un descanso mete un día entre dos etapas y una semietapa lo quita, así que van a los
+ * dos lados de la misma suma (R28.6, S-431).
+ */
 export function stageDayOfSeason(race: CalendarRace, stageIndex: number): number {
   const rest = race.restAfter ?? []
   const restBefore = rest.filter((r) => r < stageIndex).length
-  return race.startDay + (stageIndex - 1) + restBefore
+  const dobles = race.doubleAfter ?? []
+  const doblesBefore = dobles.filter((d) => d < stageIndex).length
+  return race.startDay + (stageIndex - 1) + restBefore - doblesBefore
 }
 
 /**
@@ -30,12 +36,27 @@ export function stagePlace(race: CalendarRace, stageIndex: number): { pais?: str
   }
 }
 
-/** Número de etapa (1-based) de la carrera que se corre en `dayOfSeason`, o null si ninguna. */
-export function scheduledStageIndex(race: CalendarRace, dayOfSeason: number): number | null {
+/**
+ * LAS ETAPAS que se corren en `dayOfSeason`, en orden. Normalmente cero o una; **dos cuando hay
+ * semietapa** (R28.6, S-431), que es justo lo que `scheduledStageIndex` no podía decir.
+ */
+export function scheduledStageIndices(race: CalendarRace, dayOfSeason: number): number[] {
+  const out: number[] = []
   for (let i = 1; i <= race.stages.length; i++) {
-    if (stageDayOfSeason(race, i) === dayOfSeason) return i
+    if (stageDayOfSeason(race, i) === dayOfSeason) out.push(i)
   }
-  return null
+  return out
+}
+
+/**
+ * Número de etapa (1-based) de la carrera que se corre en `dayOfSeason`, o null si ninguna.
+ *
+ * **La PRIMERA, si hay semietapa.** Sirve para preguntar «¿corre hoy esta carrera?»; quien vaya a
+ * correrlas necesita `scheduledStageIndices`, porque con este de aquí la segunda mitad de una
+ * jornada partida no se correría nunca y nadie se enteraría.
+ */
+export function scheduledStageIndex(race: CalendarRace, dayOfSeason: number): number | null {
+  return scheduledStageIndices(race, dayOfSeason)[0] ?? null
 }
 
 /** Día de la temporada de la última etapa (fin de la carrera, contando descansos). */

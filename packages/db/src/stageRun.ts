@@ -103,6 +103,29 @@ export interface StageRunSpec {
    * parte del mapa.
    */
   lugar?: { pais?: string; dia: number }
+  /**
+   * LA CARGA DE UN DÍA PARTIDO EN DOS (R28.6, S-431 · paso 18b), y es el problema de verdad de la
+   * semietapa: no está en el calendario, está aquí.
+   *
+   * `applyDailyLoad` es un paso de Banister **por DÍA** —el ATL se suaviza hacia el TSS con su tau y
+   * el CTL igual—, así que correr dos etapas el mismo día llamándolo dos veces aplicaría **dos días
+   * de fisiología**: el corredor ganaría una jornada entera de forma y de recuperación que no ha
+   * pasado. Y el parte diario, que va por `(corredor, día)`, tendría dos filas para un solo día.
+   *
+   * Así que en una jornada partida la carga se aplica **una sola vez, con el TSS de las dos
+   * mitades**: la primera lo APUNTA en `banked` y no toca ni la carga ni el parte; la segunda suma y
+   * aplica un paso. El depósito se encadena solo, porque la segunda mitad lee el estado que dejó la
+   * primera y entre ellas no hay noche.
+   *
+   * Ausente = jornada normal, que es el caso de todas las carreras de hoy: ninguna declara
+   * `doubleAfter`. Con el campo ausente el código es byte a byte el de siempre.
+   */
+  cargaDelDia?: {
+    /** TSS ya corrido hoy por cada uno, de las mitades anteriores. La primera mitad lo ESCRIBE. */
+    banked: Map<string, number>
+    /** ¿Es ésta la última mitad del día? Solo entonces se aplica el paso y se escribe el parte. */
+    aplicaHoy: boolean
+  }
 }
 
 /**
@@ -604,6 +627,24 @@ export async function runOneStage(
       .filter((e) => e.plantilla === 'rider_abandons')
       .flatMap((e) => e.protagonistas.map((id) => [id, e.datos?.causa] as const)),
   )
+  /**
+   * EL TSS QUE LE TOCA A ESTE DÍA, o `null` si hoy todavía no se cierra (ver `cargaDelDia`).
+   *
+   * En una jornada normal devuelve el de la etapa y ya está. En una jornada PARTIDA, la primera
+   * mitad apunta lo suyo y devuelve `null` —ni carga ni parte— y la última suma lo apuntado y lo
+   * propio, para que el Banister avance **un día, no dos**.
+   */
+  const tssDelDia = (riderId: string, tss: number): number | null => {
+    const carga = spec.cargaDelDia
+    if (!carga) return tss
+    const total = tss + (carga.banked.get(riderId) ?? 0)
+    if (!carga.aplicaHoy) {
+      carga.banked.set(riderId, total)
+      return null
+    }
+    return total
+  }
+
   const abandonReasonOf = (r: { riderId: string; estado: string }): AbandonReason => {
     if (r.estado !== 'abandon') return 'fuera_control'
     return abandonCause.get(r.riderId) === 'caida' ? 'lesion' : 'colapso'
@@ -615,7 +656,8 @@ export async function runOneStage(
       // Solo la carga del día; el resto de la contabilidad de la etapa no le corresponde.
       const state = riderState.get(result.riderId)
       if (state) {
-        const tss = stageTss(output.workUnits.get(result.riderId) ?? 0)
+        const tss = tssDelDia(result.riderId, stageTss(output.workUnits.get(result.riderId) ?? 0))
+        if (tss === null) continue
         const load = applyDailyLoad({ ctl: state.ctl, atl: state.atl }, tss, state.attributes.REC)
         loadValues.push([result.riderId, load.ctl, load.atl])
         dailyLogValues.push({
@@ -662,8 +704,18 @@ export async function runOneStage(
 
     const state = riderState.get(result.riderId)
     if (!state) continue
-    const tss = stageTss(output.workUnits.get(result.riderId) ?? 0)
-    const load = applyDailyLoad({ ctl: state.ctl, atl: state.atl }, tss, state.attributes.REC)
+    /**
+     * EL TSS QUE CIERRA EL DÍA, o `null` si esta etapa es la PRIMERA MITAD de una jornada partida
+     * (ver `cargaDelDia`). Solo la carga, la tensión y el parte diario esperan a que el día cierre:
+     * **lo que se aprende corriendo NO**, porque eso sí es por etapa —la mitad de la mañana de una
+     * semietapa es una carrera— y saltárselo sería cobrarle al corredor media jornada de
+     * aprendizaje por correr dos veces.
+     */
+    const tss = tssDelDia(result.riderId, stageTss(output.workUnits.get(result.riderId) ?? 0))
+    const load =
+      tss === null
+        ? null
+        : applyDailyLoad({ ctl: state.ctl, atl: state.atl }, tss, state.attributes.REC)
     /**
      * LA TENSIÓN TAMBIÉN CUENTA EL DÍA QUE SE CORRE (docs/entrenamiento.md §5.6), y es justo el caso
      * que importa: las grandes vueltas son DONDE se llega a −35 de depósito. Contarlo solo en el día
@@ -672,27 +724,29 @@ export async function runOneStage(
      * Se mira el depósito de SALIDA —el de antes de la etapa— porque es con el que se tomó la
      * salida; el de después ya lleva el castigo del día y lo contaría dos veces.
      */
-    const tsbSalida = state.ctl - state.atl
-    const tension =
-      tsbSalida < HEALTH.strainTsb
-        ? state.strainDays + 1
-        : Math.max(0, state.strainDays - HEALTH.strainRecovery)
-    const tocado = state.health === 'molestias' || state.health === 'enfermo'
-    strainValues.push([result.riderId, tension, tocado ? state.illDays + 1 : 0])
+    if (load !== null && tss !== null) {
+      const tsbSalida = state.ctl - state.atl
+      const tension =
+        tsbSalida < HEALTH.strainTsb
+          ? state.strainDays + 1
+          : Math.max(0, state.strainDays - HEALTH.strainRecovery)
+      const tocado = state.health === 'molestias' || state.health === 'enfermo'
+      strainValues.push([result.riderId, tension, tocado ? state.illDays + 1 : 0])
 
-    loadValues.push([result.riderId, load.ctl, load.atl])
-    dailyLogValues.push({
-      riderId: result.riderId,
-      gameDay,
-      tss,
-      ctl: load.ctl,
-      atl: load.atl,
-      tsb: load.tsb,
-      activity: `carrera:${spec.raceId}:e${spec.stageDay}`,
-      // EN QUÉ SE LE FUE EL DÍA (v47). Se guarda al correr la etapa, como la crónica y la radio:
-      // una etapa corrida con el motor de ayer no se puede reconstruir con el de hoy.
-      parte: output.efforts.get(result.riderId) ?? null,
-    })
+      loadValues.push([result.riderId, load.ctl, load.atl])
+      dailyLogValues.push({
+        riderId: result.riderId,
+        gameDay,
+        tss,
+        ctl: load.ctl,
+        atl: load.atl,
+        tsb: load.tsb,
+        activity: `carrera:${spec.raceId}:e${spec.stageDay}`,
+        // EN QUÉ SE LE FUE EL DÍA (v47). Se guarda al correr la etapa, como la crónica y la radio:
+        // una etapa corrida con el motor de ayer no se puede reconstruir con el de hoy.
+        parte: output.efforts.get(result.riderId) ?? null,
+      })
+    }
 
     /**
      * LO QUE SE APRENDE CORRIENDO (v54, docs/epics.md «G1»). La regla vivía aquí, en dos constantes
