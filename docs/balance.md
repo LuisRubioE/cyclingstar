@@ -15124,3 +15124,43 @@ resultado cuando lo que falla está tres pasos antes es lo que ha costado las cu
 
 **La capa sigue apagada, y ya van tres motivos medidos**: no se podía ver (v79), su disparador era un
 dado (v80), y con el disparador arreglado su efecto no llega (esta entrada).
+
+### …y el mecanismo, que es donde había que haber mirado desde el principio
+
+La entrada de arriba termina diciendo que el siguiente paso no es otra medida de resultado sino
+instrumentar el mecanismo. Hecho, y el resultado convierte esto en otra clase de problema.
+
+El factor que `sangreDelLider` produce de verdad, calculado **con las funciones del propio motor**
+(`signalSd`, `readState`, `bloodFactor`) sobre las fotos reales de la sonda, 120 semillas × 7 rivales:
+
+|                  | valor                                   |
+| ---------------- | --------------------------------------- |
+| pares medidos    | 840                                     |
+| **dispara**      | **32,3 %**                              |
+| **factor medio** | **1,172**                               |
+| mediana          | 1,00 (la mayoría no dispara)            |
+| p90 y máximo     | 1,70 — que es el techo, `1 + bloodGain` |
+
+**El empujón existe y es grande**: un tercio de las veces, y cuando salta se va al techo.
+
+Y con eso la contradicción deja de ser cualitativa. Los rivales firman 4,40 de ~10 intentos, o sea
+una cuota de apetito de ~0,44. Con un 32 % de ellos multiplicado por 1,7, su masa efectiva se
+multiplica por 1,22, y la normalización de `chooseInstigator` da una cuota nueva de
+0,44·1,22 / (0,44·1,22 + 0,56) = **0,49**: sobre diez intentos, **+0,5 por etapa**.
+
+Lo medido a 250 semillas es **0,00 ± 0,159**. La predicción queda excluida a **más de 3σ**.
+
+**Eso cambia la naturaleza del problema: no es calibración, es que algo entre `MoveRider.teamAttack` y
+el recuento de ataques se está comiendo el factor.** Tiene forma de defecto, no de constante mal
+puesta, y es la primera vez en toda esta investigación que se puede decir eso con un número delante.
+
+**La salvedad, escrita y no disimulada**: ese 1,172 está calculado EN EL PIE DEL PUERTO, y los
+intentos ocurren repartidos por toda la etapa; además el TAC lo leo de `eff0` y el motor usa
+`riderEff`, que lleva la fatiga puesta. El número exacto promediado sobre todos los momentos de
+ataque será otro. Pero **no rescata la predicción**: al principio de la etapa todos van llenos, así
+que la diferencia entre depósitos la pone casi entera el ruido de lectura y la regla dispara **más**,
+no menos.
+
+El siguiente paso es más estrecho que todos los anteriores, y por eso vale: contar dentro de
+`chooseInstigator` cuántas veces sale elegido un corredor con `teamAttack > 1`, contra su cuota
+esperada. Si esa cuenta cuadra con la cuota, el factor se pierde antes; si no cuadra, se pierde ahí.
