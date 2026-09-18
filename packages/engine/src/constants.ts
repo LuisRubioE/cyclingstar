@@ -1753,6 +1753,33 @@ export const STAGE = {
   // Velocidad inicial del grupo tras la salida neutralizada (6.3).
   initialSpeed: 35,
   captureGapSeconds: 5,
+  /**
+   * EL CONTACTO: por debajo de esto dos grupos NO son dos grupos (v81).
+   *
+   * El dueño, mirando las etapas de montaña del tick: «2 grupos a 0 segundos que no se unen… y 2
+   * grupos que de repente 20 de atrás adelantan a los 10 de alante». Las dos cosas salen de que las
+   * puertas de fusión piden algo MÁS que estar juntos —la del pelotón exige ir estrictamente más
+   * rápido (`cerrando`, v35) y la de cruce no funde en terreno que rompe (`onRough`, v56)— y esas
+   * dos exigencias son correctas a veinte segundos y absurdas a uno.
+   *
+   * MEDIDO antes de tocar nada, sobre las nueve reinas REALES del banco con 4 semillas (6.120 fotos,
+   * una por kilómetro): **4 parejas de grupos a menos de 2 s durante 3 km o más sin fundirse**, y
+   * **28 cruces** de dos grupos que se intercambian el orden sin juntarse. Los ejemplos dicen el
+   * tamaño del disparate mejor que el recuento:
+   *
+   *   race-two-seas e4 km 92    shed-9(87) y peloton(88) a 1,4 s
+   *   race-two-seas e4 km 108   peloton(142) y mov-22(6) a 0,2 s
+   *   race-italy e19 km 136     peloton(131) y shed-59(7) a 1,5 s
+   *
+   * Ochenta y siete corredores y ochenta y ocho, a segundo y medio, kilómetro tras kilómetro, en dos
+   * grupos distintos. A esta distancia no se persigue: se va en la rueda.
+   *
+   * DOS SEGUNDOS y no cinco (`captureGapSeconds`, que es cuándo se consideran juntos PARA CONTARLOS)
+   * porque fundir es más fuerte que contar: a 2 s son ~15 metros, que es la cola de un grupo, y deja
+   * intactas las puertas calibradas de 5 y 22 s. Lo que esta constante arregla es el caso en que la
+   * pregunta «¿se están acercando?» no tiene sentido porque ya han llegado.
+   */
+  contactGapSeconds: 2,
   // Un descolgado en llano/descenso vuelve al pelotón si su boquete es de este orden (s): la subida
   // parte el grupo, pero en terreno rodador los cortes pequeños se cazan y el pelotón se recompone.
   //

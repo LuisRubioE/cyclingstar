@@ -7371,8 +7371,22 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
          * El AUTOBÚS que triplica en número sigue teniendo su puerta más ancha (`shutFor`): no es un
          * regalo de reloj, es que setenta hombres organizados vuelven donde diez no.
          */
+        /**
+         * …Y A UN SEGUNDO NO SE PERSIGUE, SE VA EN LA RUEDA (v81, `contactGapSeconds`).
+         *
+         * Las dos puertas de arriba piden algo MÁS que estar juntos: `caught` pide que el reloj haya
+         * LLEGADO, y la otra pide ir estrictamente más rápido (`cerrando`). Las dos son correctas a
+         * veinte segundos y absurdas a uno: dos grupos que ruedan a la MISMA velocidad separados por
+         * segundo y medio no se funden jamás, porque ninguno de los dos se está acercando.
+         *
+         * El dueño lo vio en producción —«2 grupos a 0 segundos que no se unen»— y medido sobre las
+         * nueve reinas reales salía con ejemplos de 87 corredores a 1,4 s de otros 88, kilómetro
+         * tras kilómetro. Aquí se cierra: por debajo del contacto no hay dos grupos.
+         */
+        const enContacto = Math.abs(gapSeconds(peloton, sg)) <= STAGE.contactGapSeconds
         if (
           caught ||
+          enContacto ||
           (!onRough &&
             cerrando &&
             gapSeconds(peloton, sg) <= STAGE.rejoinGapSeconds * shutFor(mem.length))
@@ -7541,7 +7555,19 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
            * consideran juntos) y que entre los dos haya gente suficiente para que la radio lo
            * enseñe.
            */
-          if (onRough || detras.g.tS > delante.g.tS) {
+          /**
+           * …SALVO EN CONTACTO (v81). El límite que la v56 dejó anotado —«en un puerto dos grupos
+           * todavía pueden cruzarse sin juntarse»— es defendible cuando hay hueco: un grupo que sube
+           * más fuerte te pasa y te deja, y eso la v58 decidió NARRARLO en vez de impedirlo, con
+           * razón. Lo que no es defendible es a cero: veinte que pasan a diez a medio segundo no
+           * pasan de largo, se juntan y luego la subida vuelve a partirlos por piernas.
+           *
+           * Medido: 28 cruces sin fusión en 36 etapas reina reales. Por debajo del contacto se
+           * funden aunque sea puerto; por encima, la regla de la v58 sigue intacta y el rebase se
+           * cuenta como lo que es.
+           */
+          const juntos = Math.abs(detras.g.tS - delante.g.tS) <= STAGE.contactGapSeconds
+          if (!juntos && (onRough || detras.g.tS > delante.g.tS)) {
             // El cruce EN EL PUERTO se apunta para confirmarlo más adelante (ver `rebasesPendientes`
             // y el bloque que los resuelve, unas líneas más arriba).
             if (onRough && detras.g.tS < delante.g.tS) {
