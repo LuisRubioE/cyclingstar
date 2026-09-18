@@ -7335,31 +7335,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
          * grupo que de verdad vuelve pasa por ella y entra igual que antes; el que va camino arriba
          * se queda donde está, que es en la carrera.
          */
-        /**
-         * …Y UN DESCOLGADO NO ATRAVIESA AL PELOTÓN, NI SIQUIERA EN UN PUERTO (v81).
-         *
-         * El `!onRough` de esta puerta venía de la v56 y protege algo real: en una rampa, fundir por
-         * proximidad REHACE el pelotón, y eso está medido —la fuga de montaña se iba al 54,2 % contra
-         * una banda de 25-45—. Pero protegía de más. `caught` no es proximidad: es que el reloj del
-         * descolgado HAYA LLEGADO al del pelotón, o sea que le ha alcanzado de verdad.
-         *
-         * Con el `!onRough` puesto, un grupo que se cayó del pelotón podía alcanzarlo en el puerto,
-         * ATRAVESARLO y largarse. El dueño lo vio: «2 grupos que de repente 20 de atrás adelantan a
-         * los 10 de alante». Medido sobre las nueve reinas reales, los dos casos que cuajan son
-         * exactamente éste:
-         *
-         *   race-guatemala e9 km 135    shed-24(22) pasa a peloton(153) y 3 km después va 11,2 s delante
-         *   race-rhone-alpes e8 km 70   shed-15(36) pasa a peloton(137) y 3 km después va 28,4 s delante
-         *
-         * Treinta y seis hombres que se habían caído de un pelotón de 137 sacándole medio minuto. Un
-         * grupo fuerte SÍ puede irse del pelotón en una subida —eso es carretera y no se toca—, pero
-         * uno que se cayó de ese mismo pelotón no lo atraviesa: si tiene piernas para pasarlo, las
-         * tiene para volver a él, que es lo que esta puerta hace.
-         *
-         * Lo que NO cambia es la otra puerta, la de `cerrando`: ésa sigue cerrada en terreno que
-         * rompe, y es la que la v56 midió. Aquí solo se permite lo que ya era alcance de verdad.
-         */
-        const caught = sg.tS <= peloton.tS && peloton.tS - sg.tS <= STAGE.rejoinGapSeconds
+        const caught =
+          !onRough && sg.tS <= peloton.tS && peloton.tS - sg.tS <= STAGE.rejoinGapSeconds
         /**
          * …Y LA PUERTA NO ABSORBE (v35). Hasta la v34 bastaba con ESTAR a menos de 22 s: un grupo
          * que rodaba a la misma velocidad que el pelotón —o incluso perdiendo una décima por
