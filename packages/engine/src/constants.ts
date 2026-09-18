@@ -4108,11 +4108,48 @@ export const STAGE = {
   // Trabajo mínimo del que más ha tirado en la ventana para que haya parte. Es lo que impide narrar
   // «tiran fulano y mengano» de un pelotón que va de paseo detrás de una fuga consentida.
   pullMinWork: 0.35,
-  // Throttle del parte: nunca dos partes en menos de `Min` km aunque cambie quién manda, y como
-  // mucho uno cada `pullReportKmGap` km aunque no cambie nadie. Medido (60 semillas por escenario):
-  // con 9/30 salían 5,4 por etapa en la llana y 6,3 en Flandes; con 12/36 la mediana queda en 4-5 y
-  // el 75-90% de las etapas cae en la ventana 3-6 que pedía el encargo.
-  pullReportMinKmGap: 12,
+  /**
+   * Throttle del parte: nunca dos partes en menos de `Min` km aunque cambie quién manda, y como
+   * mucho uno cada `pullReportKmGap` km aunque no cambie nadie. Medido (60 semillas por escenario):
+   * con 9/30 salían 5,4 por etapa en la llana y 6,3 en Flandes; con 12/36 la mediana quedaba en 4-5
+   * y el 75-90 % de las etapas caía en la ventana 3-6 que pedía el encargo.
+   *
+   * ————— 12 -> 14 EN LA v81, PORQUE SE ENCIENDEN LAS CINCO CAPAS —————
+   *
+   * Aquella calibración se hizo contra un motor SIN subasta de frente y SIN cola de relevos. Con las
+   * cinco encendidas el trabajo cambia de manos de verdad —`frontTeamsAvg` 2,73 por etapa— y la
+   * crónica se pone habladora: la ventana 3-6 cae al **50 %**, con mediana 6 y hasta 10 partes. Y el
+   * fallo es POR ARRIBA (47,5 % de las etapas se pasan, solo el 2,5 % se quedan cortas), que es el
+   * defecto CONTRARIO al que se temía: el de la v64 era que el parte DESAPARECÍA.
+   *
+   * **LA CADENCIA ES INERTE Y LA PALANCA ES EL THROTTLE**, y eso corrige por escrito la conclusión
+   * de la séptima refutación (v79), que dejó dicho «la palanca NO es la identidad, es la CADENCIA
+   * (`pullReportKmGap`)». No lo es: con 36 -> 48 -> 60 la ventana pasa del 50 % al 53 % y ahí se
+   * queda. Quien manda es este número.
+   *
+   * Y EL VALOR LO FIJAN DOS BANCOS QUE TIRAN EN SENTIDOS OPUESTOS. El campo RICO (`llana-180` con
+   * ocho equipos) quiere MÁS throttle; el campo POBRE de `attribution.test.ts` —29 corredores, tres
+   * trenes, una meta volante— quiere MENOS, porque allí los partes los dispara la caducidad y no los
+   * cambios de mando. Medido celda a celda CONTRA LOS DOS:
+   *
+   *   throttle   POBRE (media >= 2,5)    RICO (ventana 3-6)
+   *      12      pasa                    50 %
+   *      14      pasa                    70 %   <- se queda éste
+   *      15      FALLA (2,42)            75 %
+   *      16      FALLA (2,29)            75 %
+   *      18      FALLA (2,21)            80 %
+   *
+   * 14 es el valor más alto que el banco pobre aguanta, y cumple el criterio que llevaba SIETE
+   * intentos sin cumplirse: UN SOLO VALOR, EN BANDA EN LOS DOS BANCOS, CON LA COLA ENCENDIDA. Las
+   * tres bandas de la voz quedan dentro (equipo 67,7 · frentes 2,70 · motivo 99,3).
+   *
+   * **EL MARGEN ES FINO Y SE DICE**: en 15 el banco pobre vale 2,42 contra un suelo de 2,5, así que
+   * 14 pasa por poco. Esta constante queda pinzada entre dos bancos con muy poca holgura, y eso es
+   * señal de que un throttle en KILÓMETROS FIJOS es la forma equivocada: lo que de verdad cambió al
+   * encender las capas es CUÁNTAS MANOS se turnan al frente, y el throttle debería leer eso. Queda
+   * anotado como la tanda siguiente, no resuelto de paso aquí.
+   */
+  pullReportMinKmGap: 14,
   pullReportKmGap: 36,
   // Sin fuga del día no había parte de relevos en toda la etapa, y con él se iba lo único que se
   // podía contar del tramo medio: medido en producción, Race Muscat —donde no cuajó ninguna fuga—
