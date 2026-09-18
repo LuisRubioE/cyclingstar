@@ -62,19 +62,45 @@ describe('engine: leer el estado del rival (R24.5) y oler la sangre (R13.1)', ()
     expect(readState(0.98, 40, 9)).toBe(1)
   })
 
-  it('EL DÍA QUE EL MAILLOT CEDE, SUS RIVALES ATACAN MÁS', () => {
-    // Es el contrario nº 9, y hoy el motor hace lo contrario: el mecanismo que existe es ciego a la
-    // identidad del que flaquea y vive solo en el ataque final.
-    expect(bloodFactor(1)).toBe(1)
-    expect(bloodFactor(STAGE.director.bloodThreshold)).toBe(1)
-    expect(bloodFactor(STAGE.director.bloodThreshold + 0.01)).toBe(1)
-    // Vacío del todo: el apetito sube lo que dice la constante, ni más ni menos.
-    expect(bloodFactor(0)).toBeCloseTo(1 + STAGE.director.bloodGain, 6)
-    // Y a medio camino, la mitad: es una rampa, no un escalón.
-    expect(bloodFactor(STAGE.director.bloodThreshold / 2)).toBeCloseTo(
-      1 + STAGE.director.bloodGain / 2,
-      6,
-    )
+  it('EL DÍA QUE EL MAILLOT CEDE, SUS RIVALES ATACAN MÁS — y «ceder» es CONTRA UNO MISMO', () => {
+    // Es el contrario nº 9. Hasta la v80 la comparación era ABSOLUTA contra un listón de 0,45 que
+    // estaba por debajo del percentil 5 de su propia distribución, así que la regla no la disparaba
+    // el líder sino el error de lectura. Ahora la referencia es el depósito del que mira.
+    const m = STAGE.director.bloodMargin
+    const g = STAGE.director.bloodGain
+    const span = STAGE.director.bloodSpan
+
+    // Va MEJOR que yo: no hay sangre, por vacío que se le lea en términos absolutos. Es justo el
+    // caso que el listón absoluto no sabía distinguir: en una etapa que deja a todos a 0,30, que el
+    // líder esté a 0,30 no es sangre, es el día que ha hecho.
+    expect(bloodFactor(0.3, 0.3)).toBe(1)
+    expect(bloodFactor(0.9, 0.5)).toBe(1)
+    expect(bloodFactor(m + 0.01 + 0.5, 0.5)).toBe(1)
+
+    // Y al revés: ir a 0,60 SÍ es sangre si el que mira va a 0,70, que el listón absoluto tampoco
+    // veía. Las dos mitades de la misma frase.
+    expect(bloodFactor(0.6, 0.7)).toBeGreaterThan(1)
+
+    // Un cuartil entero de diferencia (el IQR medido) da el efecto completo, ni más ni menos.
+    expect(bloodFactor(0.5 - span, 0.5)).toBeCloseTo(1 + g, 6)
+    // Y más allá NO sigue subiendo: la rampa está acotada.
+    expect(bloodFactor(0.5 - 3 * span, 0.5)).toBeCloseTo(1 + g, 6)
+    // A medio camino, la mitad: es una rampa, no un escalón.
+    expect(bloodFactor(0.5 - span / 2, 0.5)).toBeCloseTo(1 + g / 2, 6)
+  })
+
+  it('…y la regla NO depende del recorrido, que es por lo que se cambió', () => {
+    /**
+     * EL CONTROL DE LA v80, y es el que justifica el cambio entero. Medido con la capa apagada, 60
+     * semillas por recorrido, el depósito del maillot al pie del puerto decisivo vale ~0,553 en la
+     * reina canónica y ~0,479 en una reina real de tercera semana. Con un listón absoluto, la misma
+     * carrera contada en dos recorridos daba dos reglas distintas. Con el relativo, la MISMA
+     * situación —el líder un pelo por debajo del que mira— da el MISMO factor en los dos.
+     */
+    const canonica = bloodFactor(0.553 - 0.02, 0.553)
+    const real = bloodFactor(0.479 - 0.02, 0.479)
+    expect(canonica).toBeCloseTo(real, 10)
+    expect(canonica).toBeGreaterThan(1)
   })
 })
 

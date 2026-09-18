@@ -22,7 +22,6 @@
 import { flatScenario, queenScenario, campaignSeeds } from './scenarios.js'
 import { teamedField } from './tactics.js'
 import { simulateStage } from '../stage/simulate.js'
-import { STAGE } from '../constants.js'
 import type { SnapshotRider, StageInput, StageProfile, StageRider } from '../stage/types.js'
 
 export interface GeneralStats {
@@ -50,8 +49,9 @@ export interface GeneralStats {
    * EL DEPÓSITO DEL MAILLOT AL PIE DEL PUERTO DECISIVO, en fracción del tanque con el que salió.
    *
    * Es el dato que le falta a R13.1 —«el día que el maillot cede, sus rivales atacan más»— y el que
-   * enseña por qué esa regla hoy no puede cumplirse: `STAGE.director.bloodThreshold` vale 0,45 y
-   * esta distribución vive por encima. Ver la entrada de la v79 en docs/balance.md.
+   * enseñó por qué esa regla no podía cumplirse hasta la v80: el listón absoluto valía 0,45 y esta
+   * distribución vive POR ENCIMA, así que lo que disparaba la regla era el error de lectura. La v80
+   * lo sustituye por una comparación relativa (`bloodMargin`). Ver docs/balance.md v79 y v80.
    */
   jerseyTankAtDecisive: { p05: number; p50: number; belowBloodPct: number }
 }
@@ -166,7 +166,10 @@ function tanqueDelMaillot(
     Math.round(
       1000 * fracciones[Math.min(fracciones.length - 1, Math.floor(q * fracciones.length))]!,
     ) / 1000
-  const bajo = fracciones.filter((f) => f < STAGE.director.bloodThreshold).length
+  // El 0,45 va ESCRITO y no leído de la constante: la constante ya no existe —la v80 la sustituyó
+  // por `bloodMargin`— y lo que este número documenta es el listón CONTRA EL QUE SE MIDIÓ, que es un
+  // dato histórico. Leerlo de `STAGE` haría que la cifra cambiase de significado sin avisar.
+  const bajo = fracciones.filter((f) => f < 0.45).length
   return {
     p05: en(0.05),
     p50: en(0.5),

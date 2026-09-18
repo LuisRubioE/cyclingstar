@@ -4368,28 +4368,45 @@ export const STAGE = {
     signalSdBase: 0.28,
     signalSdPerTac: 0.0022,
     /**
-     * A PARTIR DE QUÉ LECTURA SE HUELE LA SANGRE, y cuánto sube el apetito de atacar (R13.1). Es el
-     * contrario nº 9: hoy, el día que el maillot cede, sus rivales atacan MENOS.
+     * A PARTIR DE QUÉ DIFERENCIA SE HUELE LA SANGRE (R13.1), **y la diferencia es contra UNO MISMO**.
+     *
+     * `bloodMargin` sustituye en la v80 al `bloodThreshold: 0,45` absoluto, que **no podía
+     * dispararse**. Medido con la capa apagada, 60 semillas por recorrido, el depósito del maillot al
+     * pie del puerto decisivo vale **p05 0,510** en la reina canónica y **p05 0,426** en una reina
+     * real de tercera semana: 0,45 estaba por debajo del percentil 5 en dos de los tres recorridos.
+     * Lo que disparaba la regla era el ERROR DE LECTURA (±0,19-0,28), no el líder, y se notaba: con
+     * la capa encendida cambiaba el ganador en el **57 %** de las etapas sin mover NI UN agregado de
+     * forma medible (Δ 0,3σ y 0,6σ, pareado por semilla). La firma de un dado. Ver docs/balance.md.
+     *
+     * **CERO, Y EL CERO ES EL DATO**: la regla se dispara cuando el que mira le lee al líder MENOS
+     * depósito del que él mismo tiene —«hoy no es mejor que yo»—. Medida esa diferencia, su mediana
+     * vale 0,051 · 0,045 · 0,054 en los tres recorridos, invariante, contra 0,557 · 0,557 · 0,478 de
+     * la absoluta. Y en cero dispara en el **10,3 %** de los pares rival-etapa en la canónica y el
+     * **19,2 %** en una reina real: que la etapa dura module sola la tasa es lo que el listón
+     * absoluto prometía y no cumplía.
+     *
+     * La referencia es EL QUE MIRA y no la mediana del pelotón, también por medida: las dos son
+     * igual de invariantes en el centro, pero contra uno mismo la dispersión es **el triple** (IQR
+     * 0,084-0,115 contra 0,028-0,055) porque es POR OBSERVADOR. El mismo día unos le ven sangre y
+     * otros no, que es lo que la regla dice querer; una mediana del pelotón hace que todos opinen
+     * igual.
      */
-    bloodThreshold: 0.45,
+    bloodMargin: 0,
+    /**
+     * Y CUÁNTA DIFERENCIA HACE FALTA PARA EL EFECTO ENTERO. Anclada al IQR medido de esa misma
+     * diferencia (0,084 · 0,082 · 0,115): con 0,08, el que le saca al líder un cuartil entero de
+     * depósito le ve toda la sangre y el que le saca un pelo le ve un pelo. Rampa, no escalón.
+     */
+    bloodSpan: 0.08,
     bloodGain: 0.7,
     /**
-     * `bloodThreshold` ESTÁ POR DEBAJO DE SU PROPIA DISTRIBUCIÓN, y por eso esta capa sigue apagada
-     * con un motivo medido en vez de con uno vago (v79, docs/balance.md).
+     * Y POR QUÉ ESTA CAPA SIGUE APAGADA pese a que la v80 le arregla el umbral.
      *
-     * Medido con la capa apagada, 60 semillas por recorrido, el depósito del maillot al pie del
-     * puerto decisivo: **p05 0,510 · mediana 0,553** en la reina canónica y **p05 0,426 · mediana
-     * 0,479** en una reina real de tercera semana. Con el listón en 0,45, el líder lo cruza el 3,3 %
-     * y el 10 % de las veces. O sea que la rama «huele sangre» casi nunca la dispara el ESTADO del
-     * líder: la dispara el ERROR DE LECTURA de `readState` (±0,19-0,28), que son los falsos
-     * positivos. Y se nota: con la capa encendida cambia el ganador en el **57 %** de las etapas sin
-     * mover NI UN agregado de forma medible (Δ hueco 0,3σ y 0,6σ, pareado por semilla). Esa es la
-     * firma de un dado, no de una regla.
-     *
-     * Y SUBIRLO NO ES LA SALIDA: 0,553 contra 0,479 según el recorrido, porque depende de cuánta
-     * carretera haya antes del último puerto. Ninguna constante absoluta cubre las dos. Lo que esto
-     * pide es un umbral RELATIVO —el depósito del líder contra el de sus rivales en el mismo punto—,
-     * que es lo único invariante al recorrido, y eso es una tanda propia que cambia el motor.
+     * Arreglar el disparador no autoriza a encender la capa: lo que la v79 midió —57 % de cambio de
+     * ganador sin mover ningún agregado— se midió CON EL UMBRAL ROTO, así que no dice nada sobre
+     * cómo se comporta con el umbral arreglado. Encenderla exige su propia medida de dos brazos, y
+     * esa es la tanda siguiente. Lo que aquí queda cerrado es la mitad que se podía cerrar: el
+     * disparador ya no es un dado.
      */
   },
 
