@@ -778,6 +778,38 @@ export const TARGETS = {
     },
   },
   /**
+   * LA GENERAL (v79, `sim/generalBench.ts`). El banco que no existía, y **una sola banda**.
+   *
+   * Aquí se vigila la regla que el dueño dictó en producción: «el que tiene maillot amarillo debería
+   * ser suuuper extraño que se fugue o que entre en una fuga… en el llano entrar en una fuga, eso
+   * debería ser mucho más raro de lo que ocurre». Antes de la v79 el maillot salía delante en el
+   * **12,5 %** de las llanas; después, en el **2,5 %** (40 semillas).
+   *
+   * LAS OTRAS TRES ESTADÍSTICAS DEL BANCO SE PUBLICAN SIN BANDA, y cada una con su motivo escrito:
+   *
+   *  - `jerseyFrontQueenPct` mide el defecto CONTRARIO —que el freno se pase de frenada y el maillot
+   *    no ataque nunca en montaña— y a 40 semillas vale 2,5 %, es decir **un solo caso**. Con σ ≈ 2,5
+   *    puntos, un suelo no distinguiría un 2,5 % de un 7,5 % ni un 0 % de un 5 %: sellarlo sería
+   *    inventar una garantía que la muestra no da. Queda impreso para que se vea, y para que quien
+   *    suba las semillas pueda ponerle suelo con la medida delante.
+   *  - `gcPullTeamsEarly` / `gcPullTeamsLate` son el pareado de la v77 (la etapa 3 no se corre como
+   *    la 18). Miden **0,50 y 0,675** equipos por etapa: van en la dirección correcta —tarde tira
+   *    más que temprano— pero son 20 casos contra 27 sobre 40 semillas, **~1σ**. Una banda sobre esa
+   *    diferencia sellaría ruido.
+   *
+   * Es la misma regla de la casa que `calendarQueens` y `weather`: se pone banda a lo que la muestra
+   * aguanta, y lo que no la aguanta se publica con el número y la razón, no se sella a ojo.
+   */
+  general: {
+    /**
+     * EL TECHO DEL MAILLOT EN LA FUGA DEL DÍA (R02.12, v79). Es un TECHO y no un rango centrado: el
+     * defecto tiene una sola dirección. El suelo se deja en 0 a propósito —que el maillot no entre
+     * NUNCA en la fuga de una llana no es un defecto en carretera— y el techo en 10 % deja el 12,5 %
+     * de antes de la v79 fuera con ~3σ de margen sobre las 40 semillas del invariante (σ ≈ 2,5 pt).
+     */
+    jerseyFrontFlatPct: { label: 'El maillot, delante en llano', min: 0, max: 10, unit: '%' },
+  },
+  /**
    * EL VIENTO CON DIRECCIÓN (R14, paso 20). Las dos bandas que el paso 20 dejó **medidas y sin
    * sellar**, y aquí es donde el paso 21 las escribe.
    *

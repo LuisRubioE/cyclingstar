@@ -14853,3 +14853,67 @@ un resultado, cuando lo que tenía era un instrumento ciego.
 Es la misma familia de error que las otras tres de hoy —creer que estoy midiendo algo que no mido— y
 el remedio también: **una medida que no distingue los dos brazos no es una medida**, y la forma de
 cazarlo es mirar si el ANTES da un número que tenga sentido.
+
+## v79 — el banco de la general, que no existía
+
+La v79 anterior arregló el freno del maillot y lo midió **a mano**. Esta entrada es la otra mitad del
+trabajo, y la que importa a medio plazo: **ningún banco de este repositorio pasaba contexto de
+carrera**, así que el arreglo se fue a producción sin que la CI pudiera verlo — igual que los dos
+anteriores.
+
+### El agujero, dicho con nombres
+
+Ni `grandTour`, ni `smallTours`, ni los escenarios canónicos mandan `race`; y los canónicos son
+además carreras **de un día**, así que todos los corredores llegan con `gcDeficitSeconds` = 0. Con
+eso `hasGcContext` sale `false` y **no hay maillot ni general que defender**. La consecuencia se ha
+cobrado cuatro veces en una sola sesión:
+
+- **v75** (la etapa 1 de una vuelta tiene general), **v77** (la etapa 3 no se corre como la 18) y
+  **v79** (el maillot no se va en la fuga del día) entraron en producción sin que ningún banco
+  pudiera verlas. Lo que las sujeta son pruebas de unidad y medidas a mano.
+- `gcClimbRecoverPerKm` se declaró «imposible de calibrar» porque su capa está apagada.
+- Y la capa `director` sale **idéntica a producción** en los bancos canónicos, no porque sea inocua
+  sino porque su mitad principal (`sangreDelLider`) devuelve 1 de inmediato `if (!hasGcContext)`.
+
+`sim/generalBench.ts` corre el motor **con una general de verdad**: un líder, un pelotón escalonado
+detrás (25 s por puesto, hasta 40) y el día de carrera puesto.
+
+### Lo medido, 40 semillas
+
+| Estadístico                                     | Valor     | ¿Banda?            |
+| ----------------------------------------------- | --------- | ------------------ |
+| maillot delante en **llano**                    | **2,5 %** | **sí**, techo 10 % |
+| maillot delante en la **reina**                 | 2,5 %     | no                 |
+| equipos de general que tiran, **etapa 3 de 21** | 0,50      | no                 |
+| …y los mismos en la **etapa 18**                | 0,675     | no                 |
+
+**Se pone banda a lo que la muestra aguanta, y lo que no la aguanta se publica con el número y la
+razón.** Es la misma regla que ya siguen `calendarQueens` y `weather`:
+
+- El **techo del llano** deja fuera el 12,5 % de antes de la v79 con ~3σ de margen (σ ≈ 2,5 puntos a
+  40 semillas). El suelo se deja en 0 a propósito: que el maillot no entre **nunca** en la fuga de
+  una llana no es un defecto en carretera.
+- La **reina** mide el defecto CONTRARIO —que el freno se pase de frenada— y a 40 semillas un 2,5 %
+  es **un solo caso**: un suelo no distinguiría un 2,5 % de un 7,5 %. Sellarlo sería inventar una
+  garantía que la muestra no da.
+- El **pareado 3 contra 18** va en la dirección correcta (tarde tira más que temprano) pero son 20
+  casos contra 27: **~1σ**. Una banda sobre esa diferencia sellaría ruido.
+
+Los dos números de la llana —12,5 % → 0 % de la medida a mano, 2,5 % aquí— no se contradicen: son
+campos y semillas distintos. El techo de 10 % cubre a los dos y deja fuera al defecto.
+
+### Y el mismo error de instrumento, otra vez, esta vez mío
+
+La primera versión del pareado 3/18 medía los equipos de general **sobre el campo de llano** y daba
+**cero en los dos brazos**. El motivo no se supuso, se contó: 76 partes de relevo, motivos `maillot`
+26 y `etapa` 25, **`general` cero** — en un campo orientado al esprint los jefes son velocistas y
+ningún equipo tiene motivo de general. Con campo de reina aparecen.
+
+Es la segunda métrica ciega del día y el mismo remedio: **una medida que no distingue los dos brazos
+no es una medida**, y se caza mirando si el brazo de control da un número que tenga sentido.
+
+### El coste, y por qué la CI no lo paga entero
+
+El invariante llama `analyzeGeneral(40, false)`: el pareado son **dos reinas por semilla** y su
+diferencia no puede fallar a estas semillas, así que pagar reinas en cada push por un número sin
+banda sería pagar por nada. `pnpm sim` sí lo corre y lo imprime.

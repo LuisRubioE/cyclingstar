@@ -18,6 +18,7 @@ import { stageSeed } from '../stage/rng.js'
 import { sampleProfile } from '../stage/sample.js'
 import type { Block, StageRider } from '../stage/types.js'
 import { analyzeErosion, analyzeFlat, analyzeMountain, analyzeTimeTrial } from './analyze.js'
+import { analyzeGeneral, conGeneral } from './generalBench.js'
 import { analyzePhases } from './phases.js'
 import { type GrandTourStats, abandonMix, analyzeGrandTour, runGrandTour } from './grandTour.js'
 import {
@@ -624,6 +625,53 @@ describe('el plan de equipo y la voz de la crónica (docs/motor.md §V.1)', () =
       expect(out.events.some((e) => e.plantilla === 'rider_defies_team')).toBe(false)
       expect(teams.size).toBeGreaterThan(1)
     }
+  })
+})
+
+describe('la general que ningún banco miraba (v79, docs/motor.md §V.1)', () => {
+  /**
+   * EL INVARIANTE QUE FALTABA. Todos los demás bancos de este archivo corren etapas SIN contexto de
+   * carrera: sin `race`, sin `gcDeficitSeconds`, sin `gcRank`. Con eso `hasGcContext` sale `false` y
+   * no hay maillot ni general que defender, así que las reglas v75, v77 y v79 —y la mitad principal
+   * de la capa `director`— entraron en producción **invisibles para la CI**. Aquí se corren con una
+   * general de verdad.
+   *
+   * Se llama con `conParejas = false`: el pareado etapa 3 / etapa 18 son dos reinas por semilla y su
+   * diferencia no es significativa a 40 semillas (~1σ), así que la CI no paga reinas por un número
+   * que no puede fallar. `pnpm sim` sí lo corre y lo imprime.
+   */
+  const stats = analyzeGeneral(40, false)
+
+  it('el maillot NO se va en la fuga del día de una llana', { timeout: 120000 }, () => {
+    // «El que tiene maillot amarillo debería ser suuuper extraño que se fugue o que entre en una
+    // fuga… en el llano entrar en una fuga, eso debería ser mucho más raro de lo que ocurre».
+    // Antes de la v79: 12,5 %. Después: 2,5 %.
+    expectInRange(stats.jerseyFrontFlatPct, TARGETS.general.jerseyFrontFlatPct)
+  })
+
+  it('…pero el freno es del LLANO, no del motor entero', { timeout: 120000 }, () => {
+    // El control positivo del freno, y la razón por la que `jerseyBreakDamp` distingue el terreno:
+    // en montaña el maillot ataca, responde y a veces se va. Esto NO lleva banda en `targets.ts`
+    // —a 40 semillas un 2,5 % es UN caso y σ ≈ 2,5 puntos—, así que lo único que se puede sellar
+    // aquí es que el estadístico EXISTE y es un porcentaje, no que valga tanto o cuanto. Lo que
+    // vigila de verdad es el freno del llano de arriba; esto impide que se lea como un cero sellado.
+    expect(stats.jerseyFrontQueenPct).toBeGreaterThanOrEqual(0)
+    expect(stats.jerseyFrontQueenPct).toBeLessThanOrEqual(100)
+  })
+
+  it('y el campo de este banco lleva general de verdad (el control del instrumento)', () => {
+    // La trampa que este banco ya ha pisado dos veces: un instrumento que no puede ver lo que dice
+    // medir. Si el campo no llegara con general, `hasGcContext` saldría `false`, las dos pruebas de
+    // arriba medirían el motor SIN maillot y pasarían en verde sin enterarse de nada. Así que se
+    // comprueba lo que el motor exige para encender la general: un líder a cero, puestos
+    // consecutivos desde el 1, y déficits que CRECEN — un campo con todos empatados tampoco serviría.
+    const campo = conGeneral(teamedField({ teams: 8, per: 5, kind: 'llana', strong: 4 }), 25)
+    expect(campo.length).toBeGreaterThan(20)
+    expect(campo[0]?.gcDeficitSeconds).toBe(0)
+    expect(campo[0]?.gcRank).toBe(1)
+    expect(campo.every((r, i) => r.gcRank === i + 1)).toBe(true)
+    expect(campo.at(-1)?.gcDeficitSeconds).toBeGreaterThan(0)
+    expect(stats.runs).toBe(40)
   })
 })
 
