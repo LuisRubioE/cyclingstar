@@ -15054,3 +15054,73 @@ no subirla por costumbre: `ENGINE_VERSION` decide si una etapa guardada se puede
 moverla **tira todas las crónicas** que seguían siendo válidas.
 
 Las cuatro huellas tampoco se mueven, por lo mismo: se calculan con la capa apagada.
+
+## v80 — la capa `director`, medida con el umbral arreglado: sigue sin cumplir R13.1
+
+La v80 se puso por escrito su propia condición para encender la capa: «lo que la v79 midió se midió
+CON EL UMBRAL ROTO, así que no dice nada sobre cómo se comporta con el arreglado. Encenderla exige su
+propia medida de dos brazos». Aquí está esa medida, y **el veredicto es que la capa sigue apagada**.
+
+### Los dos brazos, antes y después del arreglo
+
+Mismo campo, mismas semillas, mismos estadísticos que la v79. Pareado por semilla, 60 semillas:
+
+|                             | v79 (umbral roto)   | v80 (umbral arreglado)                     |
+| --------------------------- | ------------------- | ------------------------------------------ |
+| Reina · cambia el ganador   | 56,7 %              | **76,7 %**                                 |
+| Reina · Δ hueco del maillot | +11,5 ± 33,1 (0,3σ) | −22,3 ± 40,2 (0,55σ) · 29 suben / 30 bajan |
+| Reina · Δ intentos          | +0,37 ± 0,40        | **+0,03 ± 0,46**                           |
+| Llana · cambia el ganador   | 56,7 %              | **71,7 %**                                 |
+| Llana · Δ hueco             | +8,2 ± 14,6 (0,6σ)  | +0,8 ± 17,5 · 25 / 25                      |
+
+Arreglar el umbral hizo lo que tenía que hacer —**la regla dispara mucho más**, 57 % → 77 % de cambio
+de ganador— y **los agregados siguen exactamente igual de planos**, con los signos empatados.
+
+### Y el estadístico global era el equivocado, otra vez
+
+`Δ intentos` cuenta TODOS los intentos, y R13.1 no promete más intentos en general: promete que atacan
+**sus rivales**. Separando las dos poblaciones, con 60 semillas, el signo salía bien en las cuatro
+celdas —rivales +0,517 (0,98σ), el resto −0,267 (1,04σ)—, y la lectura parecía redonda: la capa no
+cambia _cuántos_ ataques hay sino _quién_ los firma, que explicaría el 77 % con Δ total de +0,03.
+
+**A 250 semillas se cae, y con el signo cambiado**: Δ rivales **−0,10 ± 0,275 (0,36σ)**, 106 suben
+contra 101 bajan. El +0,98σ era ruido. Es la cuarta vez en esta sesión que una señal convincente a
+muestra baja se evapora al cuadruplicarla, y ya no es anécdota: **este banco no resuelve efectos de
+~0,5 intentos por etapa con menos de 200 semillas.**
+
+### Mi diagnóstico de la cancelación: propuesto, comprobado y FALSO
+
+Con el resultado delante propuse una causa concreta: el control del propio instrumento decía **24
+rivales de un campo de 40**, y `chooseInstigator` NORMALIZA los apetitos (`pick = rng() * total`), así
+que un factor sobre todos se cancela exacto. Subirle el apetito al 60 % del pelotón sería casi un
+factor global. Es el mismo mecanismo que ya dejó inerte a R28.4 esta misma sesión.
+
+Pero ese 60 % es **artefacto de mi campo**, no del motor: yo monto la general con 25 s por puesto, y
+en una gran vuelta real 700 s de correa en la etapa 15 cubren a muchos menos. Así que la hipótesis era
+comprobable: con una general más abierta, el efecto tenía que aparecer.
+
+Con 60 s por puesto —**7 rivales de 40**, que es lo realista— y 250 semillas:
+
+|                               | off  | on   | Δ                                                 |
+| ----------------------------- | ---- | ---- | ------------------------------------------------- |
+| intentos de RIVALES por etapa | 4,40 | 4,40 | **0,00 ± 0,159 (0,00σ)** · 89 suben / 79 bajan    |
+| intentos del RESTO            |      |      | **−0,428 ± 0,184 (2,33σ)** · 75 suben / 104 bajan |
+
+**Cero exacto.** La hipótesis de la cancelación era plausible, estaba leída en el código, y es falsa.
+
+### Lo que queda establecido
+
+1. La capa **cambia el ganador en el 77 % de las etapas**.
+2. **No aumenta los ataques de los rivales de general**: 0,00σ con una general realista y 250
+   semillas. R13.1 no se cumple ni con el disparador arreglado.
+3. Lo único por encima de 2σ en toda la investigación es que **el resto del pelotón ataca menos**
+   (−0,43, 2,33σ), que no es lo que la regla promete sino su sombra.
+
+O sea: **la regla se ejecuta y su efecto no llega al resultado.** Lo que falta no es calibración —eso
+era la v80— sino entender por qué un empujón de apetito sobre los rivales de general no produce más
+ataques suyos. Y el siguiente paso no es otra medida de resultado: es instrumentar `chooseInstigator`
+directamente y contar cuántas veces sale elegido un corredor con el apetito subido. Medir el
+resultado cuando lo que falla está tres pasos antes es lo que ha costado las cuatro medidas de hoy.
+
+**La capa sigue apagada, y ya van tres motivos medidos**: no se podía ver (v79), su disparador era un
+dado (v80), y con el disparador arreglado su efecto no llega (esta entrada).
