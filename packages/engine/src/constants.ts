@@ -788,7 +788,7 @@
  * dentro de `teamPlay` (apagada) y solo frenaba ATACAR, no SALTAR A LA RUEDA — que es como se entra
  * en una fuga. Ver `jerseyBreakDampFlat` y `jerseyBreakDamp`.
  */
-export const ENGINE_VERSION = 79 as const
+export const ENGINE_VERSION = 80 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -2411,7 +2411,7 @@ export const STAGE = {
    * de a «algo que cambió en el mismo PR».
    */
   phases: {
-    enabled: false,
+    enabled: true,
     /** Km durante los que una captura mantiene la fase `captura`, con su cuerda de ×2,5. */
     capturaKm: 1,
     /** Cuánto antes de una cima empieza la aproximación. */
@@ -2454,7 +2454,7 @@ export const STAGE = {
    * rampa de arranque por el camino.
    */
   customs: {
-    enabled: false,
+    enabled: true,
     /**
      * LA PERILLA DEL PASO 6: cuánto pesa el dinero dispuesto a pagar el cierre frente a lo que
      * cuesta cerrar. Es contra este número contra el que se barre `flat.breakawayWinPct`.
@@ -2543,7 +2543,7 @@ export const STAGE = {
    * dos racimos nuevos apagados.
    */
   front: {
-    enabled: false,
+    enabled: true,
     /**
      * Banda de empate de la amenaza (R20.1). Dentro de ella dos movimientos se consideran igual de
      * peligrosos y desempata la carretera: el más cerca de meta, y luego el id menor.
@@ -2584,7 +2584,7 @@ export const STAGE = {
    * atacar por intención, y lo que hacen dos compañeros en el mismo grupo.
    */
   teamPlay: {
-    enabled: false,
+    enabled: true,
     /**
      * CUÁNTO DURA UN TURNO, por terreno (R18.1). En cuesta se releva antes —el esfuerzo es continuo
      * y no hay rueda que valga tanto— y con viento de lado, antes todavía.
@@ -4347,7 +4347,7 @@ export const STAGE = {
    * adorno: apagado, el director ve el hueco exacto al instante, que es el motor de siempre.
    */
   director: {
-    enabled: false,
+    enabled: true,
     /**
      * La calidad media de dirección del campo, y cuánto varía de un equipo a otro. El diseño pide
      * una base por división (WT 0,85 · PRS 0,65 · CON 0,50); la división no viaja en `StageInput`,
