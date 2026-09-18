@@ -15164,3 +15164,68 @@ no menos.
 El siguiente paso es más estrecho que todos los anteriores, y por eso vale: contar dentro de
 `chooseInstigator` cuántas veces sale elegido un corredor con `teamAttack > 1`, contra su cuota
 esperada. Si esa cuenta cuadra con la cuota, el factor se pierde antes; si no cuadra, se pierde ahí.
+
+## v80 — CORRECCIÓN: R13.1 sí funciona, y la que fallaba era mi medida
+
+**La entrada anterior está equivocada en su afirmación central**, y conviene decirlo con las mismas
+letras con que se dijo: escribí que «no es calibración, es que algo entre `MoveRider.teamAttack` y el
+recuento de ataques se está comiendo el factor» y que «tiene forma de defecto». **No lo tiene.** El
+motor hace exactamente lo que la aritmética predice; lo que no medía lo que decía medir era mi banco.
+
+### El fallo, con su número
+
+Contaba «eventos de intento en los que aparece un rival de general», leyendo `protagonistas` entero.
+Pero `names = party.slice(0, 3)` con `party = [instigator, ...jumpers]`: **`protagonistas` lleva al
+que ataca MÁS LOS DOS PRIMEROS QUE LE SALTAN A LA RUEDA**.
+
+Y `bloodFactor` solo toca **quién instiga** —entra por `attackAppetite`, y `followProbability` no lo
+ve—. Así que dos tercios de lo que contaba eran seguidores, que la regla no gobierna. Peor: con 7
+rivales en un campo de 40, un trío cualquiera incluye a uno el **~45 %** de las veces **por puro
+azar**, y la cifra que medí (4,40 de ~10 intentos, o sea 44 %) **era la tasa base**, no la regla.
+
+Un efecto del 10 % sobre el instigador queda sepultado bajo eso. Por eso salía 0,00σ.
+
+### La medida buena: `protagonistas[0]`, que ES el instigador
+
+250 semillas, general abierta (7 rivales de 40), pareado por semilla:
+
+|                                       | off  | on   | Δ                                                 |
+| ------------------------------------- | ---- | ---- | ------------------------------------------------- |
+| **rivales como instigador** por etapa | 2,38 | 2,62 | **+0,240 ± 0,123 (1,95σ)** · 91 suben / 62 bajan  |
+| los demás como instigador             |      |      | **−0,668 ± 0,210 (3,18σ)** · 79 suben / 102 bajan |
+
+El test de signos sobre los rivales da **2,34σ** (91 de 153 movimientos), algo más fuerte que la media.
+Y las dos filas juntas son una **sustitución coherente**: los rivales instigan más, el resto menos, el
+total casi conservado.
+
+### Y la confirmación es a priori, no a posteriori
+
+Esto es lo que convierte el resultado en sólido. En la entrada anterior, **antes de esta medida**,
+derivé de la aritmética del apetito —cuota 0,44, un 32 % de los rivales multiplicado por 1,7, masa
+efectiva ×1,22— una predicción de **+11 %**. Medido: **+10 %** (2,38 → 2,62). La predicción estaba
+escrita antes y ha salido.
+
+O sea que las tres piezas cuadran entre sí: el factor medido (1,172 medio, dispara el 32,3 %), la
+aritmética de la normalización, y el efecto observado sobre el instigador.
+
+### Qué queda en pie de las entradas anteriores, y qué no
+
+- **SIGUE EN PIE**: `bloodThreshold` = 0,45 estaba por debajo del percentil 5 y no podía dispararse
+  (v79); el umbral relativo es lo único invariante al recorrido (v80); la referencia correcta es el
+  que mira, por dispersión medida.
+- **CAE**: que la capa sea un dado con el umbral arreglado, y que haya un defecto entre `teamAttack`
+  y el recuento. Las dos salían de un estadístico que mezclaba al instigador con sus seguidores.
+- **QUEDA ABIERTO**: la capa cambia el ganador en el 77 % de las etapas, y eso sigue siendo mucho
+  para un efecto del 10 % en una sola estadística. Encenderla es una decisión que ahora tiene un
+  número a favor y uno en contra, y es del dueño.
+
+### La lección, que es la quinta del mismo día
+
+Cinco veces hoy el instrumento ha sido el problema: el evento `fuga_formada` que no nombra al líder,
+los equipos de general medidos sobre un campo de velocistas, la sonda con un `desdeKm` inexistente, el
+recuento global que diluía la población, y ahora el `protagonistas` que mezcla al que ataca con los que
+le saltan. **Cuatro de las cinco daban un cero perfectamente creíble.**
+
+El control que las habría cazado todas es el mismo y es barato: **antes de creerse un cero, calcular
+qué debería dar la tasa base**. 4,40 de ~10 con 7 rivales de 40 es exactamente el azar; si hubiera
+hecho esa división a tiempo, me habría ahorrado una entrada de bitácora equivocada.
