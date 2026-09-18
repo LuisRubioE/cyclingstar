@@ -170,7 +170,18 @@ describe('engine: el que se sienta (R20.5)', () => {
  * —R01, R19 y R03—, así que su encendido no es uno más de la lista y se mide aparte.
  */
 describe('engine: el interruptor del paso 9', () => {
-  it('nace apagado, y el sello existe para que encenderlo sea una decisión y no un descuido', () => {
-    expect(STAGE.front.enabled).toBe(false)
+  /**
+   * ————— ENCENDIDA EN LA v81, POR DECISIÓN DEL DUEÑO —————
+   *
+   * «Enciende director y todos, luego ya vemos si hay que calibrar algo mejor». Las cinco capas
+   * pasan a `true` a la vez, y `ENGINE_VERSION` sube a 80.
+   *
+   * EL SELLO NO SE RETIRA, SE DA LA VUELTA: su trabajo nunca fue mantener la capa apagada sino que
+   * encenderla tuviera que ser una decisión declarada y no un descuido. Ha hecho exactamente eso —
+   * las cinco pruebas se pusieron rojas y obligaron a escribir esto. Ahora vigila lo contrario: que
+   * nadie la apague de vuelta sin decirlo.
+   */
+  it('ENCENDIDO en la v81, y el sello lo hizo una decisión y no un descuido', () => {
+    expect(STAGE.front.enabled).toBe(true)
   })
 })

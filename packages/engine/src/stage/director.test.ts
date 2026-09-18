@@ -105,7 +105,18 @@ describe('engine: leer el estado del rival (R24.5) y oler la sangre (R13.1)', ()
 })
 
 describe('engine: el interruptor del paso 11', () => {
-  it('nace apagado: es el racimo que desafina todas las cazas', () => {
-    expect(STAGE.director.enabled).toBe(false)
+  /**
+   * ————— ENCENDIDA EN LA v81, POR DECISIÓN DEL DUEÑO —————
+   *
+   * «Enciende director y todos, luego ya vemos si hay que calibrar algo mejor». Las cinco capas
+   * pasan a `true` a la vez, y `ENGINE_VERSION` sube a 80.
+   *
+   * EL SELLO NO SE RETIRA, SE DA LA VUELTA: su trabajo nunca fue mantener la capa apagada sino que
+   * encenderla tuviera que ser una decisión declarada y no un descuido. Ha hecho exactamente eso —
+   * las cinco pruebas se pusieron rojas y obligaron a escribir esto. Ahora vigila lo contrario: que
+   * nadie la apague de vuelta sin decirlo.
+   */
+  it('ENCENDIDO en la v81, con su umbral ya arreglado (v80)', () => {
+    expect(STAGE.director.enabled).toBe(true)
   })
 })

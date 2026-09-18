@@ -169,6 +169,13 @@ describe('engine: la tabla de fase', () => {
      * cambio»— y el interruptor se queda apagado hasta el paso 6. La medida entera está en
      * docs/balance.md «v60 §5».
      */
-    expect(STAGE.phases.enabled).toBe(false)
+    /**
+     * ————— ENCENDIDA EN LA v81, POR DECISIÓN DEL DUEÑO —————
+     *
+     * «Enciende director y todos, luego ya vemos si hay que calibrar algo mejor». El sello no se
+     * retira, se da la vuelta: su trabajo era que encenderla fuera una decisión declarada, y lo ha
+     * hecho —se puso rojo y obligó a escribir esto—. Ahora vigila que nadie la apague sin decirlo.
+     */
+    expect(STAGE.phases.enabled).toBe(true)
   })
 })

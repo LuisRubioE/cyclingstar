@@ -282,7 +282,18 @@ describe('engine: el interruptor del paso 6', () => {
    * El efecto es la forma más barata que tiene un repositorio de mentirse: la lista de pruebas en
    * verde se lee como si la capa corriera. Corría en el repositorio y no en la carretera.
    */
-  it('nace apagada: la aduana aún no decide la cuerda (v65, sello corregido en la v73.1)', () => {
-    expect(STAGE.customs.enabled).toBe(false)
+  /**
+   * ————— ENCENDIDA EN LA v81, POR DECISIÓN DEL DUEÑO —————
+   *
+   * «Enciende director y todos, luego ya vemos si hay que calibrar algo mejor». Las cinco capas
+   * pasan a `true` a la vez, y `ENGINE_VERSION` sube a 80.
+   *
+   * EL SELLO NO SE RETIRA, SE DA LA VUELTA: su trabajo nunca fue mantener la capa apagada sino que
+   * encenderla tuviera que ser una decisión declarada y no un descuido. Ha hecho exactamente eso —
+   * las cinco pruebas se pusieron rojas y obligaron a escribir esto. Ahora vigila lo contrario: que
+   * nadie la apague de vuelta sin decirlo.
+   */
+  it('ENCENDIDA en la v81: la aduana decide la cuerda', () => {
+    expect(STAGE.customs.enabled).toBe(true)
   })
 })
