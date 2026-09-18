@@ -9,6 +9,7 @@
  */
 import { analyzeErosion, analyzeFlat, analyzeMountain, analyzeTimeTrial } from './analyze.js'
 import { analyzeClimbs } from './climbs.js'
+import { analyzeGeneral } from './generalBench.js'
 import { abandonMix, analyzeGrandTour } from './grandTour.js'
 import { REAL_QUEENS, analyzeRealQueens, colombiaRegressionTails } from './realQueens.js'
 import { REAL_TIME_TRIALS, analyzeRealTimeTrials } from './timeTrials.js'
@@ -308,6 +309,28 @@ function main(): void {
     ].join('\n  '),
   )
 
+  /**
+   * LA GENERAL (v79, `sim/generalBench.ts`). El único banco de esta casa que corre con una general
+   * de verdad —un líder, un pelotón escalonado detrás y el día de carrera puesto—. Todo lo demás de
+   * este informe corre SIN contexto de carrera, así que no puede ver ni al maillot ni a la general.
+   *
+   * De sus cuatro estadísticas solo una lleva banda (`TARGETS.general`); las otras tres se imprimen
+   * con su número y su razón, que están escritas en `targets.ts`.
+   */
+  // Tope de 60 semillas: este banco corre TRES etapas por semilla cuando lleva el pareado (una
+  // llana y dos reinas), así que `pnpm sim 500` costaría mil quinientas etapas por un solo techo.
+  const gen = analyzeGeneral(Math.min(runs, 60))
+  const genOk = report(
+    'la general (v79)',
+    gen.runs,
+    [{ target: TARGETS.general.jerseyFrontFlatPct, value: gen.jerseyFrontFlatPct }],
+    [
+      `SIN BANDA (la muestra no la aguanta, ver targets.ts):`,
+      `  el maillot delante en la REINA ${gen.jerseyFrontQueenPct.toFixed(1)}% — es el defecto CONTRARIO (pasarse de frenada); a estas semillas un caso vale 1/${gen.runs}`,
+      `  equipos de general que tiran, etapa 3 ${gen.gcPullTeamsEarly.toFixed(2)} contra etapa 18 ${gen.gcPullTeamsLate.toFixed(2)} (v77) — va en la dirección correcta, pero la diferencia es ~1σ`,
+    ].join('\n  '),
+  )
+
   // …y el caso de la regresión con el campo con el que se vio (escalón de niveles, no continuo).
   const colombia = colombiaRegressionTails(5)
   const worstColombia = Math.max(...colombia.map((t) => t.lastGroupPct))
@@ -319,7 +342,9 @@ function main(): void {
   )
 
   console.log('')
-  process.exit(flatOk && mtnOk && ttOk && rttOk && eroOk && voiceOk && gtOk && rqOk && stOk ? 0 : 1)
+  process.exit(
+    flatOk && mtnOk && ttOk && rttOk && eroOk && voiceOk && gtOk && rqOk && stOk && genOk ? 0 : 1,
+  )
 }
 
 main()
