@@ -4373,6 +4373,24 @@ export const STAGE = {
      */
     bloodThreshold: 0.45,
     bloodGain: 0.7,
+    /**
+     * `bloodThreshold` ESTÁ POR DEBAJO DE SU PROPIA DISTRIBUCIÓN, y por eso esta capa sigue apagada
+     * con un motivo medido en vez de con uno vago (v79, docs/balance.md).
+     *
+     * Medido con la capa apagada, 60 semillas por recorrido, el depósito del maillot al pie del
+     * puerto decisivo: **p05 0,510 · mediana 0,553** en la reina canónica y **p05 0,426 · mediana
+     * 0,479** en una reina real de tercera semana. Con el listón en 0,45, el líder lo cruza el 3,3 %
+     * y el 10 % de las veces. O sea que la rama «huele sangre» casi nunca la dispara el ESTADO del
+     * líder: la dispara el ERROR DE LECTURA de `readState` (±0,19-0,28), que son los falsos
+     * positivos. Y se nota: con la capa encendida cambia el ganador en el **57 %** de las etapas sin
+     * mover NI UN agregado de forma medible (Δ hueco 0,3σ y 0,6σ, pareado por semilla). Esa es la
+     * firma de un dado, no de una regla.
+     *
+     * Y SUBIRLO NO ES LA SALIDA: 0,553 contra 0,479 según el recorrido, porque depende de cuánta
+     * carretera haya antes del último puerto. Ninguna constante absoluta cubre las dos. Lo que esto
+     * pide es un umbral RELATIVO —el depósito del líder contra el de sus rivales en el mismo punto—,
+     * que es lo único invariante al recorrido, y eso es una tanda propia que cambia el motor.
+     */
   },
 
   /**

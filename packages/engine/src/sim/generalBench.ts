@@ -22,7 +22,8 @@
 import { flatScenario, queenScenario, campaignSeeds } from './scenarios.js'
 import { teamedField } from './tactics.js'
 import { simulateStage } from '../stage/simulate.js'
-import type { StageInput, StageProfile, StageRider } from '../stage/types.js'
+import { STAGE } from '../constants.js'
+import type { SnapshotRider, StageInput, StageProfile, StageRider } from '../stage/types.js'
 
 export interface GeneralStats {
   runs: number
@@ -45,6 +46,14 @@ export interface GeneralStats {
   gcPullTeamsEarly: number
   /** …y los mismos, con la misma fuga y las mismas semillas, en la etapa 18. Tiene que ser MÁS. */
   gcPullTeamsLate: number
+  /**
+   * EL DEPÓSITO DEL MAILLOT AL PIE DEL PUERTO DECISIVO, en fracción del tanque con el que salió.
+   *
+   * Es el dato que le falta a R13.1 —«el día que el maillot cede, sus rivales atacan más»— y el que
+   * enseña por qué esa regla hoy no puede cumplirse: `STAGE.director.bloodThreshold` vale 0,45 y
+   * esta distribución vive por encima. Ver la entrada de la v79 en docs/balance.md.
+   */
+  jerseyTankAtDecisive: { p05: number; p50: number; belowBloodPct: number }
 }
 
 /**
@@ -103,6 +112,69 @@ function equiposTirandoPorLaGeneral(
 }
 
 /**
+ * EL PIE DEL ÚLTIMO PUERTO, que es donde alguien le mira la cara al líder.
+ *
+ * `Segment` NO lleva su kilómetro de inicio —solo su LONGITUD—, así que hay que acumularlo. Dicho
+ * porque la primera versión de esta medida leía un `desdeKm` que no existe: `pieKm` salía `NaN`, la
+ * sonda no disparó ni una vez en sesenta semillas y la muestra quedó vacía. Un instrumento que no
+ * dispara no devuelve un error, devuelve un cero tranquilizador.
+ */
+function pieDelUltimoPuerto(perfil: StageProfile): number {
+  let acumulado = 0
+  let pie: number | null = null
+  for (const s of perfil.segments) {
+    // `'puerto'` es el ÚNICO terreno de subida que existe en un `Segment`: `'subida'` es terreno de
+    // BLOQUE (`BlockTerrain`), del otro lado del muestreo, y buscarlo aquí es una rama muerta.
+    if (s.tipo === 'puerto') pie = acumulado
+    acumulado += s.km
+  }
+  return pie ?? acumulado * 0.7
+}
+
+/**
+ * LA FRACCIÓN DE TANQUE DEL MAILLOT AL PIE DEL PUERTO DECISIVO, sobre `runs` semillas.
+ *
+ * Se mide con la capa `director` APAGADA a propósito: la pregunta es qué estado produce el motor,
+ * no qué produce la capa que va a leer ese estado.
+ */
+function tanqueDelMaillot(
+  perfil: StageProfile,
+  campo: readonly StageRider[],
+  maillot: string,
+  runs: number,
+): { p05: number; p50: number; belowBloodPct: number } {
+  const pieKm = pieDelUltimoPuerto(perfil)
+  const fracciones: number[] = []
+  for (const seed of campaignSeeds('general-tanque', runs)) {
+    let foto: readonly SnapshotRider[] = []
+    simulateStage(
+      { profile: perfil, riders: [...campo], race: { stageDay: 15, totalStages: 21 } },
+      seed,
+      {
+        atKm: [pieKm],
+        onSnapshot: (_km, rs) => {
+          foto = rs
+        },
+      },
+    )
+    const l = foto.find((r) => r.riderId === maillot)
+    if (l != null && l.energy0 > 0) fracciones.push(l.energy / l.energy0)
+  }
+  if (fracciones.length === 0) return { p05: 0, p50: 0, belowBloodPct: 0 }
+  fracciones.sort((a, b) => a - b)
+  const en = (q: number): number =>
+    Math.round(
+      1000 * fracciones[Math.min(fracciones.length - 1, Math.floor(q * fracciones.length))]!,
+    ) / 1000
+  const bajo = fracciones.filter((f) => f < STAGE.director.bloodThreshold).length
+  return {
+    p05: en(0.05),
+    p50: en(0.5),
+    belowBloodPct: Math.round((1000 * bajo) / fracciones.length) / 10,
+  }
+}
+
+/**
  * `conParejas` corre además el pareado etapa 3 / etapa 18, que son DOS reinas por semilla y es lo
  * caro de este banco. El invariante de CI lo deja fuera a propósito y solo lo corre `pnpm sim`: su
  * diferencia no es significativa a estas semillas (ver `gcPullTeamsEarly`), así que pagar reinas en
@@ -155,6 +227,19 @@ export function analyzeGeneral(runs: number, conParejas = true): GeneralStats {
 
   return {
     runs,
+    /**
+     * DIEZ SEMILLAS EN CI Y LA MUESTRA ENTERA EN `pnpm sim`, y no es una excepción caprichosa: lo
+     * que la CI comprueba de este número es que la sonda DISPARE, y eso lo prueban diez reinas igual
+     * que sesenta. Los percentiles, que sí necesitan muestra, los imprime `pnpm sim`. Cobrarle a
+     * cada push cuarenta reinas por una comprobación de existencia sería justo lo que este banco
+     * decidió no hacer con el pareado etapa 3 / etapa 18.
+     */
+    jerseyTankAtDecisive: tanqueDelMaillot(
+      queen.input.profile,
+      gcCampo,
+      gcCampo[0]!.riderId,
+      conParejas ? runs : Math.min(runs, 10),
+    ),
     jerseyFrontFlatPct: (100 * frenteLlana) / runs,
     jerseyFrontQueenPct: (100 * frenteReina) / runs,
     gcPullTeamsEarly: parejas === 0 ? 0 : temprano / parejas,
