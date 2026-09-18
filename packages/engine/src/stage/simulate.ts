@@ -2165,7 +2165,14 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
     // Solo los que se juegan algo: un fugado a cuarenta minutos no ataca al maillot por olerle nada.
     if (r.input.gcDeficitSeconds > STAGE.gcControlLeash) return 1
     const fraccion = lider.energy0 > 0 ? lider.energy / lider.energy0 : 0
-    return bloodFactor(readState(fraccion, riderEff(r).TAC, normal(rngPizarra, 0, 1)))
+    /**
+     * Y LA COMPARACIÓN ES CONTRA EL PROPIO DEPÓSITO DEL QUE MIRA (v80). Al líder se le LEE con
+     * error (R24.5); lo suyo lo sabe EXACTO, porque `SelfView` lo es (§3.1). De ahí sale la regla
+     * que un corredor piensa de verdad —«hoy no es mejor que yo»— y, de paso, la única referencia
+     * que no depende del recorrido: ver `bloodFactor` y docs/balance.md v80.
+     */
+    const propia = r.energy0 > 0 ? r.energy / r.energy0 : 0
+    return bloodFactor(readState(fraccion, riderEff(r).TAC, normal(rngPizarra, 0, 1)), propia)
   }
   /**
    * EL COLCHÓN DEL LÍDER: lo que le saca al siguiente de la general. Sin general en juego no hay

@@ -14992,3 +14992,65 @@ vive en `generalBench.ts` con un invariante que solo comprueba una cosa: **que d
 
 Sin banda, y el motivo escrito: el depósito al pie depende del recorrido, así que una banda medida
 sobre un escenario no dice nada sobre el otro.
+
+## v80 — «oler sangre» deja de ser un absoluto, porque un absoluto no podía dispararse
+
+La v79 dejó el diagnóstico escrito y una tanda pedida: `bloodThreshold` = 0,45 está por debajo del
+percentil 5 del depósito del maillot al pie del puerto decisivo, así que la rama «huele sangre» no la
+disparaba el líder sino el error de lectura, y la capa entera se comportaba como un dado. Esto lo
+arregla, y lo arregla **con la medida delante en cada decisión**, incluida la de qué referencia usar.
+
+### La pregunta que había que contestar primero: ¿relativo a QUÉ?
+
+Dos candidatas, y no se eligió la bonita: se midieron las dos sobre los mismos tres recorridos.
+
+| recorrido            | (a) contra la MEDIANA rival              | (b) contra EL QUE MIRA                       |
+| -------------------- | ---------------------------------------- | -------------------------------------------- |
+| reina canónica       | p50 0,046 · IQR 0,028 · bajo cero 5,0 %  | p50 0,051 · IQR 0,084 · bajo cero **10,3 %** |
+| reina 3ª semana      | p50 0,041 · IQR 0,034 · bajo cero 3,3 %  | p50 0,045 · IQR 0,082 · bajo cero 10,8 %     |
+| reina REAL 3ª semana | p50 0,054 · IQR 0,055 · bajo cero 11,7 % | p50 0,054 · IQR 0,115 · bajo cero **19,2 %** |
+
+**Las dos son invariantes al recorrido en su centro** —0,046/0,041/0,054 y 0,051/0,045/0,054, contra
+0,557/0,557/0,478 de la absoluta—, que era lo que había que comprobar antes de proponer ninguna.
+
+Lo que las separa es **la dispersión, y gana la (b) por lo que esa dispersión SIGNIFICA**: tiene el
+triple (IQR 0,084-0,115 contra 0,028-0,055) porque es **por observador**. El mismo día, unos rivales
+le ven sangre al líder y otros no. Eso no es ruido: es exactamente «la mitad de la carrera que se
+juega mirando caras», que es lo que la regla dice querer y que una mediana del pelotón **no puede
+dar**, porque emite un veredicto único y hace que todos opinen igual.
+
+Y encaja con el contrato de los contextos sin forzarlo: **lo propio se sabe exacto** (`SelfView`,
+§3.1) y **al rival se le lee con error** (R24.5). La regla que sale de ahí es la que un corredor
+piensa de verdad: **«hoy no es mejor que yo»**.
+
+### Los números, y de dónde sale cada uno
+
+- **`bloodMargin: 0`** — y el cero es el dato, no un valor por defecto: dispara cuando al líder se le
+  lee menos depósito del que uno mismo tiene. A esa altura la regla salta en el **10,3 %** de los
+  pares rival-etapa en la canónica y el **19,2 %** en una reina real. Que la etapa dura module sola
+  la tasa es lo que el listón absoluto prometía y no cumplía (3,3 % contra 10 %, pero por debajo del
+  percentil 5 en los dos casos, o sea disparando por error de lectura en ambos).
+- **`bloodSpan: 0,08`** — anclado al IQR medido de esa misma diferencia (0,084 · 0,082 · 0,115). El
+  que le saca al líder un cuartil entero de depósito le ve toda la sangre; el que le saca un pelo, un
+  pelo. Rampa, no escalón.
+- **`bloodGain: 0,7`** — no se toca. No hay medida que lo mueva y moverlo de paso sería justo lo que
+  esta bitácora lleva todo el día cazando.
+
+### Lo que esto NO autoriza
+
+**La capa sigue apagada.** Arreglar el disparador no autoriza a encenderla, y el motivo es de método:
+lo que la v79 midió —57 % de cambio de ganador sin mover ningún agregado— se midió **con el umbral
+roto**, así que no dice absolutamente nada sobre cómo se comporta con el umbral arreglado. Encenderla
+exige su propia medida de dos brazos. Lo que aquí queda cerrado es la mitad que se podía cerrar: **el
+disparador ya no es un dado**.
+
+### Y por qué esto no sube `ENGINE_VERSION`
+
+Porque no cambia nada para ninguna entrada existente. `sangreDelLider` solo se llama si `dirOn`, y
+`dirOn` es `input.flags?.director === true || STAGE.director.enabled`: la constante está en `false` y
+producción no manda `flags` —son de banco—, así que la función no se ejecuta ni una vez en ninguna
+carrera guardada. Es el mismo caso que `laps` y `doubleAfter` en el paso 18b, y la misma razón para
+no subirla por costumbre: `ENGINE_VERSION` decide si una etapa guardada se puede volver a leer, y
+moverla **tira todas las crónicas** que seguían siendo válidas.
+
+Las cuatro huellas tampoco se mueven, por lo mismo: se calculan con la capa apagada.
