@@ -328,6 +328,7 @@ function main(): void {
       `SIN BANDA (la muestra no la aguanta, ver targets.ts):`,
       `  el maillot delante en la REINA ${gen.jerseyFrontQueenPct.toFixed(1)}% — es el defecto CONTRARIO (pasarse de frenada); a estas semillas un caso vale 1/${gen.runs}`,
       `  equipos de general que tiran, etapa 3 ${gen.gcPullTeamsEarly.toFixed(2)} contra etapa 18 ${gen.gcPullTeamsLate.toFixed(2)} (v77) — va en la dirección correcta, pero la diferencia es ~1σ`,
+      `  depósito del maillot al pie del puerto decisivo: p05 ${gen.jerseyTankAtDecisive.p05.toFixed(3)} · mediana ${gen.jerseyTankAtDecisive.p50.toFixed(3)} · por debajo de bloodThreshold (${STAGE.director.bloodThreshold}) el ${gen.jerseyTankAtDecisive.belowBloodPct.toFixed(1)}% — R13.1 no se puede cumplir con un umbral por debajo de su propia distribución`,
     ].join('\n  '),
   )
 

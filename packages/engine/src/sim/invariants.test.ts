@@ -659,6 +659,26 @@ describe('la general que ningún banco miraba (v79, docs/motor.md §V.1)', () =>
     expect(stats.jerseyFrontQueenPct).toBeLessThanOrEqual(100)
   })
 
+  it('la sonda del depósito del maillot DISPARA (el control del otro instrumento)', () => {
+    /**
+     * Lo único que aquí se puede sellar, y no es poco: que la medida EXISTA.
+     *
+     * Su primera versión buscaba el pie del puerto en un `desdeKm` que `Segment` no tiene, así que
+     * el kilómetro salía `NaN`, la sonda no disparó ni una vez en sesenta semillas y la muestra
+     * quedó vacía. Una sonda que no dispara no da un error: da un cero, y un cero aquí se lee como
+     * «el maillot llega con el tanque vacío», que es lo contrario de lo que pasa.
+     *
+     * La BANDA de este número no se pone, y el motivo está escrito en `targets.ts`: el depósito al
+     * pie depende del RECORRIDO —0,553 en la reina canónica y 0,479 en una reina real de tercera
+     * semana— así que una banda sobre un escenario no dice nada sobre el otro.
+     */
+    const t = stats.jerseyTankAtDecisive
+    expect(t.p50).toBeGreaterThan(0)
+    expect(t.p50).toBeLessThan(1)
+    expect(t.p05).toBeGreaterThan(0)
+    expect(t.p05).toBeLessThanOrEqual(t.p50)
+  })
+
   it('y el campo de este banco lleva general de verdad (el control del instrumento)', () => {
     // La trampa que este banco ya ha pisado dos veces: un instrumento que no puede ver lo que dice
     // medir. Si el campo no llegara con general, `hasGcContext` saldría `false`, las dos pruebas de

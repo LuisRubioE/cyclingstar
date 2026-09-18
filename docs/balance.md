@@ -14917,3 +14917,78 @@ no es una medida**, y se caza mirando si el brazo de control da un número que t
 El invariante llama `analyzeGeneral(40, false)`: el pareado son **dos reinas por semilla** y su
 diferencia no puede fallar a estas semillas, así que pagar reinas en cada push por un número sin
 banda sería pagar por nada. `pnpm sim` sí lo corre y lo imprime.
+
+## v79 — la capa `director` deja de ser invisible, y lo que se ve es que es un dado
+
+El banco de la general se construyó, entre otras cosas, para poder mirar la capa `director`: su mitad
+principal (`sangreDelLider`) devuelve 1 de inmediato `if (!hasGcContext)`, así que en los bancos
+canónicos salía **idéntica a producción** y nadie podía decir si era inocua o no. Ya se puede.
+
+### Primer brazo: la capa NO es inocua, y no mueve nada
+
+Dos brazos, mismo campo, mismas semillas, `flags.director` encendido y apagado. Cuarenta reinas y
+cuarenta llanas por brazo, sobre un campo con general de verdad:
+
+|                    | intentos/etapa | ataques/etapa | mediana del hueco del maillot |
+| ------------------ | -------------- | ------------- | ----------------------------- |
+| **Reina** OFF → ON | 10,05 → 10,68  | 1,75 → 1,90   | 180 s → 181 s                 |
+| **Llana** OFF → ON | 15,20 → 14,55  | 2,90 → 3,38   | **31 s → 83 s**               |
+
+Ese 31 → 83 s parecía el resultado. **No lo era.** Pareado por semilla —cada carrera corrida dos
+veces, y medida la diferencia DENTRO de la semilla, que elimina la varianza del escenario— sale esto:
+
+|           | Δ hueco (s)                                  | Δ intentos   | cambia el ganador |
+| --------- | -------------------------------------------- | ------------ | ----------------- |
+| **Reina** | +11,5 ± 33,1 (**0,3σ**) · 26 suben, 32 bajan | +0,37 ± 0,40 | **56,7 %**        |
+| **Llana** | +8,2 ± 14,6 (**0,6σ**) · 21 suben, 23 bajan  | −0,47 ± 0,27 | **56,7 %**        |
+
+Dos medianas sueltas de cuarenta carreras no distinguen 31 de 83. Pareadas, la mediana de la
+diferencia es **−2 s** en la reina y **0 s** en la llana.
+
+Lo que sí sale, y es el resultado: **`director` cambia el ganador en el 57 % de las etapas y no mueve
+ni un agregado de forma medible**. Encenderla cambiaría los resultados de producción de arriba abajo
+sin que ninguna banda pudiera decir si a mejor o a peor. Con la regla de esta casa, eso no se enciende.
+
+### Y la causa, que no es la capa sino su umbral
+
+R13.1 no promete «se ataca más»: promete «**el día que el maillot cede**, sus rivales atacan más». Un
+recuento incondicional promedia los días en que va entero y diluye la señal. Condicionando —la
+clasificación se hace con la lectura del brazo APAGADO, para que el mismo dato no elija la muestra y
+mida el efecto a la vez— la muestra del día que cede es de **un caso sobre sesenta**.
+
+El depósito del maillot al pie del puerto decisivo, con la capa apagada, 60 semillas por recorrido:
+
+| recorrido            | p05   | p25   | p50   | p75   | por debajo de 0,45 |
+| -------------------- | ----- | ----- | ----- | ----- | ------------------ |
+| reina canónica       | 0,510 | 0,543 | 0,553 | 0,563 | **3,3 %**          |
+| reina 3ª semana      | 0,513 | 0,542 | 0,553 | 0,564 | 1,7 %              |
+| reina REAL 3ª semana | 0,426 | 0,468 | 0,479 | 0,490 | 10 %               |
+
+**`STAGE.director.bloodThreshold` vale 0,45 y está por debajo del percentil 5 en dos de los tres
+recorridos.** La rama «huele sangre» no la dispara el estado del líder: la dispara el **error de
+lectura** de `readState` (±0,19-0,28), que son los falsos positivos. Eso explica exactamente el primer
+brazo: 57 % de cambio de ganador y cero efecto direccional es la firma de un **dado**, no de una regla.
+
+**Y LA SOLUCIÓN FÁCIL NO SIRVE.** Subir el umbral a ~p25 lo arreglaría en un recorrido y lo rompería
+en el otro: el depósito al pie vale **0,553 en la reina canónica y 0,479 en una reina real**, porque
+depende de cuánta carretera haya antes del último puerto. Ninguna constante absoluta cubre las dos. El
+umbral no puede ser una fracción absoluta: tiene que ser **relativo** —el depósito del líder contra el
+de sus rivales en el mismo punto—, que es lo único invariante al recorrido. Eso es una tanda propia y
+cambia el motor, así que no entra aquí de paso.
+
+### Dos correcciones a mi propia medida, dichas porque las dos casi se publican
+
+**1. La fila de «3ª semana» no dice nada sobre la tercera semana.** En las tres filas yo sustituyo el
+campo por el mío (`conGeneral(teamedField(...))`), así que lo único que cambia entre ellas es el
+RECORRIDO. Que la canónica y la de tercera semana salgan idénticas (0,553 contra 0,553) no es un
+hallazgo sobre la fatiga: es que llevan el mismo campo fresco. La comparación que la tabla sí sostiene
+es la de recorridos, que es para la que se hizo.
+
+**2. La sonda no disparó en las primeras sesenta semillas.** `Segment` no lleva `desdeKm` —solo su
+LONGITUD—, así que el kilómetro del pie salía `NaN` y la foto volvía vacía. Se vio porque la casilla
+de control reventó en vez de imprimir un cero; si la hubiera escrito con un `?? 0`, habría publicado
+«el maillot llega al puerto con el tanque a cero», que es lo contrario de lo que pasa. Ahora la sonda
+vive en `generalBench.ts` con un invariante que solo comprueba una cosa: **que dispare**.
+
+Sin banda, y el motivo escrito: el depósito al pie depende del recorrido, así que una banda medida
+sobre un escenario no dice nada sobre el otro.
