@@ -1780,6 +1780,24 @@ export const STAGE = {
    * pregunta «¿se están acercando?» no tiene sentido porque ya han llegado.
    */
   contactGapSeconds: 2,
+  /**
+   * …Y CUÁNTOS KM SEGUIDOS DE CONTACTO HACEN FALTA PARA FUNDIR (v81, corrección medida).
+   *
+   * La primera versión de la cláusula de contacto fundía por proximidad INSTANTÁNEA, y eso
+   * **deshacía los abanicos**: un corte de viento que deja a un grupo a segundo y medio se volvía a
+   * fundir en el mismo bloque, y el banco lo cazó —el día que corta, el campo entero llegaba a meta
+   * con 0 s de diferencia entre el primero y el último, contra un mínimo de 20—.
+   *
+   * Y enseña que la regla estaba mal planteada: lo que distingue «un pelotón fingiendo ser dos» de
+   * «un corte formándose» NO ES LA DISTANCIA, ES LA DURACIÓN. Segundo y medio durante tres
+   * kilómetros es lo primero; segundo y medio durante un bloque es lo segundo. La propia medida del
+   * defecto ya lo decía —contaba parejas pegadas **3 km o más**— y la primera implementación se dejó
+   * esa mitad por el camino.
+   *
+   * Un kilómetro: diez bloques seguidos a menos de dos segundos. Un abanico abre mucho más rápido
+   * que eso, y dos grupos que llevan un kilómetro pegados no son dos grupos.
+   */
+  contactHoldKm: 1,
   // Un descolgado en llano/descenso vuelve al pelotón si su boquete es de este orden (s): la subida
   // parte el grupo, pero en terreno rodador los cortes pequeños se cazan y el pelotón se recompone.
   //

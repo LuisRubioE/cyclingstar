@@ -1597,6 +1597,26 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    */
   let ultimoAvisoLiderKm = Number.NEGATIVE_INFINITY
   /**
+   * DESDE QUÉ KM LLEVA CADA GRUPO PEGADO A OTRO (v81, `contactGapSeconds`/`contactHoldKm`).
+   *
+   * La clave es el par de grupos, porque lo que se mide es una relación y no un estado de uno solo.
+   * Se borra en cuanto se separan: el contacto tiene que ser SEGUIDO.
+   */
+  const contactoDesdeKm = new Map<string, number>()
+  const llevaEnContacto = (kmAhora: number, a: string, b: string, juntos: boolean): boolean => {
+    const clave = a < b ? `${a}|${b}` : `${b}|${a}`
+    if (!juntos) {
+      contactoDesdeKm.delete(clave)
+      return false
+    }
+    const desde = contactoDesdeKm.get(clave)
+    if (desde === undefined) {
+      contactoDesdeKm.set(clave, kmAhora)
+      return false
+    }
+    return kmAhora - desde >= STAGE.contactHoldKm
+  }
+  /**
    * LA CRIBA LEJOS DE META (v21, docs/motor.md §16). Todo lo de arriba vive dentro del desenlace
    * (`raceThisClimb`), y por buenas razones: con perfiles reales hay relieve por todas partes y un
    * puerto de tempo rompe y recompone el pelotón sin consecuencias. Pero la etapa a veces se decide
@@ -7503,7 +7523,12 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
          * nueve reinas reales salía con ejemplos de 87 corredores a 1,4 s de otros 88, kilómetro
          * tras kilómetro. Aquí se cierra: por debajo del contacto no hay dos grupos.
          */
-        const enContacto = Math.abs(gapSeconds(peloton, sg)) <= STAGE.contactGapSeconds
+        const enContacto = llevaEnContacto(
+          km,
+          PELOTON,
+          sg.id,
+          Math.abs(gapSeconds(peloton, sg)) <= STAGE.contactGapSeconds,
+        )
         if (
           caught ||
           enContacto ||
@@ -7686,7 +7711,12 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
            * funden aunque sea puerto; por encima, la regla de la v58 sigue intacta y el rebase se
            * cuenta como lo que es.
            */
-          const juntos = Math.abs(detras.g.tS - delante.g.tS) <= STAGE.contactGapSeconds
+          const juntos = llevaEnContacto(
+            km,
+            detras.g.id,
+            delante.g.id,
+            Math.abs(detras.g.tS - delante.g.tS) <= STAGE.contactGapSeconds,
+          )
           if (!juntos && (onRough || detras.g.tS > delante.g.tS)) {
             // El cruce EN EL PUERTO se apunta para confirmarlo más adelante (ver `rebasesPendientes`
             // y el bloque que los resuelve, unas líneas más arriba).
