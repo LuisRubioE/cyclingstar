@@ -2482,15 +2482,6 @@ export const STAGE = {
      * se recorta hasta `flyerKm` y lo que cabe en medio es un solo movimiento, el del peor rematador
      * del grupo, con una intensidad de `lambdaFlyer`: el que sabe que a rueda pierde.
      */
-    /**
-     * CUÁNTO AMORTIGUA CERRAR (v81). El pelotón que está cazando un movimiento sin cuerda ataca
-     * MENOS, no deja de atacar: multiplica la cuerda del intento. Sustituye al veto binario del paso
-     * 4, que R19 retiró y cuyo reemplazo del paso 6 (`customs.closingBusyDamp`) frena a un solo
-     * equipo. Los dos extremos están medidos y ninguno sirve: sin nada, la selección lejana cae a 6
-     * de 24; con el veto entero, el parte de relevos se muere (cero partes en una carrera sin fuga).
-     * El valor sale del barrido contra LOS DOS bancos.
-     */
-    closingLambdaDamp: 0.3,
     flyerKm: 0.8,
     lambdaFlyer: 0.08,
     /**
