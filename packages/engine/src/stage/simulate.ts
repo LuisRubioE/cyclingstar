@@ -5444,7 +5444,11 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
          * —para distinguir al que revienta del que simplemente no aguanta el ritmo—, el terreno, y
          * los kilómetros que faltaban.
          */
-        if (hasGcContext && m.input.gcRank === 1 && km - ultimoAvisoLiderKm >= STAGE.leaderDropKmGap) {
+        if (
+          hasGcContext &&
+          m.input.gcRank === 1 &&
+          km - ultimoAvisoLiderKm >= STAGE.leaderDropKmGap
+        ) {
           ultimoAvisoLiderKm = km
           log.emit(km, group.tS + delayS, 'lider_descolgado', 'leader_dropped', [m.input.riderId], {
             deposito: Math.round(100 * (m.energy0 > 0 ? clamp(m.energy / m.energy0, 0, 1) : 0)),
@@ -7038,7 +7042,35 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        * paso 6, cuando `payable` exista. Aquí solo se retira el veto, y `closingNow` viaja como
        * selector de flujo.
        */
-      if (fasesOn || !closingNow) {
+      /**
+       * ————— EL VETO SE QUEDA HASTA QUE SU SUSTITUTO SEA SUFICIENTE (v81) —————
+       *
+       * R19 retiró este veto a propósito —«aquí solo se retira el veto, y `closingNow` viaja como
+       * selector de flujo»— dejando su reemplazo para el paso 6: `closingBusyDamp` sobre `payable`,
+       * «la mitad del cierre que el 5 no podía hacer». El paso 6 ya está encendido. El reemplazo
+       * existe y está vivo. Y NO BASTA.
+       *
+       * MEDIDO, al encender las cinco capas: dos pruebas de conducta se caen —la selección que parte
+       * la carrera a 50 km de meta baja de ≥12 de 24 etapas a **6**, y el mayor corte narrado se
+       * queda en **2** corredores contra un mínimo de 12—. Bisecado capa a capa, es `phases`; y
+       * dentro de `phases`, bisecado enganche a enganche, es ESTA LÍNEA:
+       *
+       *   A · tope GLOBAL de movimientos ........ 2 | 6   no
+       *   B · fila de fase NULA ................. 2 | 6   no
+       *   C · ESTE VETO RESTAURADO .............. LAS DOS PASAN
+       *   D · sin puente desde atrás ............ 3 | 7   no
+       *
+       * Y se ve POR QUÉ no basta el reemplazo: `closingBusyDamp` frena a UN equipo —`cerrandoAhora`
+       * devuelve como mucho el que lleva el frente, y solo si hay `frontTeamId`—, mientras que el
+       * veto paraba el intento ENTERO del pelotón. Con el veto fuera, el pelotón sigue lanzando
+       * ataques mientras caza, la carrera se fragmenta y la ruptura lejana no llega a ocurrir.
+       *
+       * Así que el veto se queda, y la retirada de R19 queda APLAZADA con su medida delante en vez
+       * de dada por hecha. Lo que la desbloquea está escrito: que `closingBusyDamp` frene a todos
+       * los que podrían saltar mientras el pelotón cierra, no solo al que lleva el frente. Eso es
+       * una tanda propia con su propia medición, y hasta entonces esto no se toca.
+       */
+      if (!closingNow) {
         attemptFrom(peloton, kind, bridgeable && head ? head.g : null, closingNow)
       }
     }
