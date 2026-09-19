@@ -6537,6 +6537,33 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       cerrando = false,
     ): void => {
       /**
+       * ————— CERRAR AMORTIGUA, NO VETA (v81) —————
+       *
+       * R19 retiró el veto del paso 4 —«en el paso 4 vetaba el intento entero; ahora solo dice de
+       * qué dado se tira»— dejando su reemplazo para el paso 6: `closingBusyDamp` sobre `payable`,
+       * «la mitad del cierre que el 5 no podía hacer». El paso 6 ya está encendido, el reemplazo
+       * existe... y no basta: frena a UN equipo —el que lleva el frente, y solo si lo hay— donde el
+       * veto paraba el intento entero.
+       *
+       * Y MEDIDO, NINGUNO DE LOS DOS EXTREMOS SIRVE:
+       *
+       *   sin veto (R19 tal cual)   la selección lejana cae a 6 de 24 (mínimo 12)
+       *   con el veto restaurado    la selección vuelve, y el parte de relevos SE MUERE:
+       *                             media 1,67 de 2,5, y CERO partes en una carrera sin fuga
+       *
+       * Lo segundo tiene su mecánica: el veto corta intentos, sin intentos no hay nada que cazar, y
+       * sin caza el pelotón no tira — así que la crónica se queda sin «quién tira», que es
+       * exactamente lo que el banco de la v13 existe para impedir («el parte de relevos NO depende
+       * de que cuaje la fuga del día»). Y bajar el throttle no lo rescata: medido 8/10/12/14 con el
+       * veto puesto, la media va de 2,21 a 1,67 y NINGUNO llega al suelo.
+       *
+       * O sea que el instrumento correcto no es binario. Lo que el diseño pide —«las amortiguaciones
+       * bajan el compromiso HASTA ESE SUELO y ahí se paran»— es una amortiguación, y aquí la tiene:
+       * cerrar multiplica la cuerda del intento en vez de prohibirlo. El pelotón que va cazando
+       * ataca MENOS, no deja de atacar.
+       */
+      const cuerdaAhora = cerrando ? cuerdaDeHoy * STAGE.phases.closingLambdaDamp : cuerdaDeHoy
+      /**
        * EL CORTE DE LOS ÚLTIMOS KILÓMETROS, Y EL FLYER QUE CABE DENTRO (R19.6).
        *
        * `tacticNoAttackKm` = 3 apagaba la carrera tres kilómetros antes de meta porque «eso ES el
@@ -6652,7 +6679,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        */
       const salta = ventanaFlyer
         ? dado() <
-          blockProbability(STAGE.phases.lambdaFlyer * lambdaPancarta(km) * cuerdaDeHoy, STAGE.dx)
+          blockProbability(STAGE.phases.lambdaFlyer * lambdaPancarta(km) * cuerdaAhora, STAGE.dx)
         : rollMoveAttempt(
             dado,
             ctx,
@@ -6665,7 +6692,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
                 ? null
                 : { ...PHASE_TABLE.control, lambdaScale: lambdaPancarta(km) },
             // …y la última etapa y el circuito van POR FUERA de la fila: ver `rollMoveAttempt`.
-            cuerdaDeHoy,
+            cuerdaAhora,
           )
       if (!salta) return
       lastAttemptKm.set(source.id, km)
@@ -7062,35 +7089,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        * paso 6, cuando `payable` exista. Aquí solo se retira el veto, y `closingNow` viaja como
        * selector de flujo.
        */
-      /**
-       * ————— EL VETO SE QUEDA HASTA QUE SU SUSTITUTO SEA SUFICIENTE (v81) —————
-       *
-       * R19 retiró este veto a propósito —«aquí solo se retira el veto, y `closingNow` viaja como
-       * selector de flujo»— dejando su reemplazo para el paso 6: `closingBusyDamp` sobre `payable`,
-       * «la mitad del cierre que el 5 no podía hacer». El paso 6 ya está encendido. El reemplazo
-       * existe y está vivo. Y NO BASTA.
-       *
-       * MEDIDO, al encender las cinco capas: dos pruebas de conducta se caen —la selección que parte
-       * la carrera a 50 km de meta baja de ≥12 de 24 etapas a **6**, y el mayor corte narrado se
-       * queda en **2** corredores contra un mínimo de 12—. Bisecado capa a capa, es `phases`; y
-       * dentro de `phases`, bisecado enganche a enganche, es ESTA LÍNEA:
-       *
-       *   A · tope GLOBAL de movimientos ........ 2 | 6   no
-       *   B · fila de fase NULA ................. 2 | 6   no
-       *   C · ESTE VETO RESTAURADO .............. LAS DOS PASAN
-       *   D · sin puente desde atrás ............ 3 | 7   no
-       *
-       * Y se ve POR QUÉ no basta el reemplazo: `closingBusyDamp` frena a UN equipo —`cerrandoAhora`
-       * devuelve como mucho el que lleva el frente, y solo si hay `frontTeamId`—, mientras que el
-       * veto paraba el intento ENTERO del pelotón. Con el veto fuera, el pelotón sigue lanzando
-       * ataques mientras caza, la carrera se fragmenta y la ruptura lejana no llega a ocurrir.
-       *
-       * Así que el veto se queda, y la retirada de R19 queda APLAZADA con su medida delante en vez
-       * de dada por hecha. Lo que la desbloquea está escrito: que `closingBusyDamp` frene a todos
-       * los que podrían saltar mientras el pelotón cierra, no solo al que lleva el frente. Eso es
-       * una tanda propia con su propia medición, y hasta entonces esto no se toca.
-       */
-      if (!closingNow) {
+      if (fasesOn || !closingNow) {
         attemptFrom(peloton, kind, bridgeable && head ? head.g : null, closingNow)
       }
     }
