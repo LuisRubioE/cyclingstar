@@ -5030,14 +5030,65 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
          * la que el motor mueve la carretera, así que la etiqueta ya no puede contradecir a la
          * carrera que se está viendo.
          */
-        if (!isBunch && group.tS >= relojPrincipal)
-          return {
-            motivo: group.compromiso >= compromisoPrincipal ? 'persecucion' : 'grupeto',
-            para: null,
-          }
         const suEquipo = rebels.has(m.input.riderId) ? null : (teamOf.get(m.input.riderId) ?? null)
         const plan = suEquipo != null ? teamPlans.get(suEquipo) : undefined
         const proposito = purposeOfTeam(suEquipo)
+        if (!isBunch && group.tS >= relojPrincipal) {
+          /**
+           * …PERO SI SU JEFE VA EN ESTE GRUPO, TIRA POR ÉL, AUNQUE EL GRUPO VAYA POR DETRÁS (v81).
+           *
+           * El dueño, con la captura delante: el maillot amarillo descolgado a 1:43, tres compañeros
+           * suyos tirando para devolverlo, y la radio diciéndole a los tres **«just riding — this
+           * group is chasing nothing»**. «Que chingados pasó aquí».
+           *
+           * Y el motor se contradecía a sí mismo con las palabras del dueño de dos versiones
+           * distintas. La regla que bloqueaba esto es de la v47 y su justificación escrita es
+           * **«¿para qué carajos tiran si en ese grupo NO ESTÁ su líder?»** — o sea que se escribió
+           * para el caso contrario a éste—. Y la regla que lo arregla ya existía desde la v58 («SI SU
+           * HOMBRE VA EN ESTE GRUPO, TIRA POR ÉL»), solo que vivía DEBAJO de este retorno temprano y
+           * por tanto era inalcanzable para cualquier grupo que fuera por detrás del grueso.
+           *
+           * Lo que la v47 quiso decir sigue en pie entero: por detrás del grueso no hay plan de
+           * equipo que valga **cuando tu jefe no está ahí**. Cuando está, lo que se ve en carretera
+           * es un gregario dando la cara delante de su líder, que es justo lo que el dueño estaba
+           * mirando.
+           */
+          const cartaDetras =
+            plan == null
+              ? null
+              : proposito === 'etapa'
+                ? plan.stageCandidateId
+                : (plan.leaderId ?? plan.stageCandidateId)
+          if (cartaDetras != null && cartaDetras !== m.input.riderId && idSet.has(cartaDetras)) {
+            switch (proposito) {
+              case 'maillot':
+                return { motivo: 'equipo_maillot', para: cartaDetras }
+              case 'general':
+                return { motivo: 'equipo_general', para: cartaDetras }
+              case 'etapa':
+                return { motivo: 'equipo_etapa', para: cartaDetras }
+            }
+          }
+          /**
+           * …Y «PERSEGUIR» NO SE MIDE CONTRA EL PELOTÓN A TREN DE SPRINT (v81).
+           *
+           * La v59 decidió esto comparando el compromiso del grupo con el del grueso, y a media
+           * etapa es la comparación correcta. En el FINAL se rompe: en la captura del dueño el
+           * pelotón lleva **trece hombres en trenes de sprint**, o sea el compromiso más alto que da
+           * el motor, y cinco corredores persiguiendo a tope no lo superan por mucho que se maten.
+           * Resultado: un grupo que evidentemente persigue sale como «chasing nothing».
+           *
+           * La referencia buena la da el propio motor: `droppedCommit` dice que un grupo descolgado
+           * **«quiere rodar al de un pelotón»** (`shedCommitBunch`), y lo que decide si pelea o se
+           * resigna son el boquete y las piernas, no lo que haga el grueso. Así que persigue el que
+           * rueda al menos a eso —o al ritmo del grueso, si el grueso va más flojo—.
+           */
+          const listonDePersecucion = Math.min(compromisoPrincipal, STAGE.shedCommitBunch)
+          return {
+            motivo: group.compromiso >= listonDePersecucion ? 'persecucion' : 'grupeto',
+            para: null,
+          }
+        }
         /**
          * SI SU HOMBRE VA EN ESTE GRUPO, TIRA POR ÉL — LO DIGA EL PRESUPUESTO O NO (v58).
          *
