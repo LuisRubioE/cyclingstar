@@ -2794,7 +2794,28 @@ describe('el maillot no releva fuera del pelotón si hay quien lo haga (v57)', (
             )
             if (pueden.length < 3) return
             fueraDelGrueso += 1
-            if (yo.pulling) tirandoConCompañía += 1
+            /**
+             * …Y «CON COMPAÑÍA» SE MIDE CON LAS PALABRAS DE LA REGLA (v81).
+             *
+             * La v57 no dice «el maillot no tira NUNCA fuera del grueso»: dice que queda EL ÚLTIMO
+             * de la fila del deber, y que el suelo de relevistas «lo saca al frente cuando de verdad
+             * no queda nadie —va solo, **o los que le acompañan están peor que él**—».
+             *
+             * El filtro viejo —tres compañeros con más del 5 % de depósito— no distinguía eso, y por
+             * eso este sello se puso rojo con una foto que era EL CASO PREVISTO: grupo de cuatro en
+             * el km 47, él a **0,667** y los suyos a 0,654 · 0,650 · 0,649. El más fresco de los
+             * cuatro era él, y sacarle al frente es justo lo que la regla manda.
+             *
+             * Y apretar el filtro por el otro lado tampoco valía: pedir tres compañeros MÁS FRESCOS
+             * que él deja la muestra en CERO —los que bajan a rescatarle han quemado para llegar, así
+             * que van peor— y un control que no ve ningún caso no vigila nada.
+             *
+             * Así que se cuenta lo que la regla PROHÍBE: que tire habiendo alguien mejor que él.
+             */
+            const hayAlguienMejor = suGrupo.some(
+              (r) => r.riderId !== 'maillot' && r.energy / r.energy0 > yo.energy / yo.energy0,
+            )
+            if (yo.pulling && hayAlguienMejor) tirandoConCompañía += 1
             if (suGrupo.some((r) => r.riderId !== 'maillot' && r.pulling)) otrosTirando += 1
           },
         })
