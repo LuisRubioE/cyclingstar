@@ -1754,7 +1754,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
     ledger: Iterable<[string, number]>,
     max: number,
     minShare: number,
-  ): { ids: string[]; best: number } => {
+  ): { ids: string[]; best: number; total: number } => {
     const ranked = [...ledger]
       .filter(([, w]) => w > 0)
       .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
@@ -1765,6 +1765,10 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         .filter(([, w]) => w >= best * minShare)
         .map(([id]) => id),
       best,
+      // …y EL TRABAJO TOTAL de la ventana, que es lo mismo se reparta como se reparta (v81). El
+      // `best` responde «quién lleva mucho rato delante» y una rotación de verdad hace que la
+      // respuesta sea «nadie»; la suma responde «cuánto se está tirando», que es la pregunta.
+      total: ranked.reduce((a, [, w]) => a + w, 0),
     }
   }
 
@@ -4091,28 +4095,42 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
          */
         const nombres = pull.ids.join()
         /**
-         * ————— `pullMinWork` MIDE UN SÍNTOMA DEL DEFECTO QUE LA COLA ARREGLA (v64) —————
+         * ————— `pullMinWork` MEDÍA UN SÍNTOMA, Y LA COLA LO DESTAPÓ (v64 lo escribió, v81 lo paga) —————
          *
          * `pull.best` es el trabajo acumulado por **UN HOMBRE** en la ventana que se olvida cada
-         * kilómetro, y el listón de 0,35 está calibrado contra un motor en el que **los mismos
+         * kilómetro, y el listón de 0,35 estaba calibrado contra un motor en el que **los mismos
          * hombres iban al frente todo el día**: por eso uno solo llegaba a acumular tanto.
          *
-         * Con el turno convertido en cola (R18.1, docs/tactica.md paso 7) un hombre da la cara 600
-         * metros y se va al final de la fila, así que **nadie acumula**. Medido en el km 100 de una
-         * etapa sin fuga con la cola encendida: el mejor lleva **0,066** contra el listón de 0,35, y
-         * el parte de relevos pasa de **24 etapas de 24 a 0 de 24**. No es que nadie tire —tiran
-         * todos, y por turnos, que es lo que se quería—: es que el indicador pregunta quién lleva
-         * mucho rato delante, y una rotación de verdad hace que la respuesta sea «nadie».
+         * Con el turno convertido en cola (R18.1, `teamPlay.turnPullKm`) un hombre da la cara 600
+         * metros y se va al final de la fila, así que **nadie acumula**. Medido en el escenario sin
+         * fuga del banco B6, kilómetro a kilómetro, con las cinco capas encendidas contra el mismo
+         * escenario con `teamPlay` apagado:
          *
-         * El arreglo NO es bajar el 0,35, y tampoco medirlo por equipos: se probó, y en el campo de
-         * este banco —que no tiene `teamId`— la suma por casa da exactamente lo mismo que el mejor
-         * hombre. Lo que hay que medir es **el trabajo total al frente**, que es invariante a cómo
-         * se reparta, y eso lleva su propia calibración en los dos brazos. Queda escrito aquí y en
-         * docs/balance.md «v60 §11»; se hace cuando la cola se encienda, no antes.
+         * | km  | `best` sin cola | `best` con cola | hombres con trabajo |
+         * |-----|-----------------|-----------------|---------------------|
+         * | 20  | 0,279           | 0,055           | 20 → 89             |
+         * | 60  | 0,422           | 0,088           | 42 → 80             |
+         * | 100 | 0,608           | 0,016           | 48 → 80             |
+         *
+         * El mismo trabajo, repartido entre el doble de hombres: `best` se hunde cinco veces y el
+         * parte de relevos desaparece. El banco B6 —«el parte no depende de que cuaje la fuga»—
+         * pasaba a CERO partes en una etapa entera, y el de atribución se quedaba en 1,75 por etapa
+         * contra un suelo de 2,5. Un solo defecto, dos bancos rojos. La bisección capa a capa lo
+         * dice sin ambigüedad: con las cinco apagadas el B6 pasa; encendiendo UNA sola, solo
+         * `teamPlay` lo tumba.
+         *
+         * **Lo que se mide ahora es el trabajo TOTAL al frente**, que es invariante a cómo se
+         * reparta, exactamente como dejó escrito la v64. Y el listón NO se elige a ojo: es **el
+         * mínimo que el listón viejo dejaba pasar**. Con el motor calibrado (capas apagadas, puerta
+         * `best >= 0,35`) se registró el total en los 95 partes que emitieron las 24 etapas del
+         * banco de atribución: el suelo de esa distribución es **1,206** (p5 2,26, mediana 3,81).
+         * `pullMinWorkTotal: 1.2` es ese suelo, o sea la misma exigencia dicha donde no depende del
+         * reparto. Con él, el motor calibrado no cambia de régimen (3,96 → 4,54 partes por etapa) y
+         * el de cinco capas deja de estar mudo.
          */
         if (
           pull.ids.length > 0 &&
-          pull.best >= STAGE.pullMinWork &&
+          pull.total >= STAGE.pullMinWorkTotal &&
           km - lastPullReportKm >= STAGE.pullReportMinKmGap &&
           ((identidad !== lastPullLeader && nombres !== lastPullNames) ||
             km - lastPullReportKm >= STAGE.pullReportKmGap)

@@ -788,7 +788,16 @@
  * dentro de `teamPlay` (apagada) y solo frenaba ATACAR, no SALTAR A LA RUEDA — que es como se entra
  * en una fuga. Ver `jerseyBreakDampFlat` y `jerseyBreakDamp`.
  */
-export const ENGINE_VERSION = 80 as const
+/**
+ * **v81 — LAS CINCO CAPAS TÁCTICAS SE ENCIENDEN** (docs/tactica.md, orden del dueño).
+ *
+ * `phases`, `customs`, `front`, `teamPlay` y `director` pasan a `enabled: true` a la vez. Lo que
+ * destapó el encendido y esta versión arregla: con la cola de relevos en marcha nadie acumula
+ * trabajo al frente, así que el parte de «quién tira» —que preguntaba por el hombre que más había
+ * tirado— desaparecía; ahora se mide el trabajo TOTAL, que es invariante al reparto. Ver
+ * `pullMinWorkTotal` y `pullReportMinKmGap`.
+ */
+export const ENGINE_VERSION = 81 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -4157,51 +4166,78 @@ export const STAGE = {
   jerseyBreakDampClimb: 0.25,
   pullNamesMax: 3,
   pullNamesMinShare: 0.55,
-  // Trabajo mínimo del que más ha tirado en la ventana para que haya parte. Es lo que impide narrar
-  // «tiran fulano y mengano» de un pelotón que va de paseo detrás de una fuga consentida.
-  pullMinWork: 0.35,
+  /**
+   * TRABAJO MÍNIMO AL FRENTE para que haya parte: lo que impide narrar «tiran fulano y mengano» de
+   * un pelotón que va de paseo detrás de una fuga consentida.
+   *
+   * Hasta la v81 esto era `pullMinWork: 0.35` y se medía sobre **el hombre que más había tirado**.
+   * Con la cola de relevos encendida (`teamPlay.turnPullKm`) el mismo trabajo se reparte entre el
+   * doble de hombres y ninguno acumula: `best` se hunde cinco veces y el parte desaparece. No es
+   * que nadie tire —tiran todos, y por turnos, que es lo que se quería—: es que el indicador
+   * preguntaba quién lleva mucho rato delante. Ver `simulate.ts` para la medida km a km.
+   *
+   * Se mide la SUMA de la ventana, que es la misma se reparta como se reparta. Y el listón no se
+   * elige: es **el mínimo que el listón viejo dejaba pasar**. Con el motor calibrado (las cinco
+   * capas apagadas, puerta `best >= 0,35`) se registró el total en los 95 partes de las 24 etapas
+   * del banco de atribución, y el suelo de esa distribución es 1,206 —p5 2,26, mediana 3,81—. Este
+   * 1,2 es ese suelo: la misma exigencia, dicha donde no depende del reparto.
+   */
+  pullMinWorkTotal: 1.2,
   /**
    * Throttle del parte: nunca dos partes en menos de `Min` km aunque cambie quién manda, y como
    * mucho uno cada `pullReportKmGap` km aunque no cambie nadie. Medido (60 semillas por escenario):
    * con 9/30 salían 5,4 por etapa en la llana y 6,3 en Flandes; con 12/36 la mediana quedaba en 4-5
    * y el 75-90 % de las etapas caía en la ventana 3-6 que pedía el encargo.
    *
-   * ————— 12 -> 14 EN LA v81, PORQUE SE ENCIENDEN LAS CINCO CAPAS —————
+   * ————— 12 -> 30 EN LA v81, Y LOS DOS BANCOS DEJAN DE PELEARSE —————
    *
    * Aquella calibración se hizo contra un motor SIN subasta de frente y SIN cola de relevos. Con las
    * cinco encendidas el trabajo cambia de manos de verdad —`frontTeamsAvg` 2,73 por etapa— y la
-   * crónica se pone habladora: la ventana 3-6 cae al **50 %**, con mediana 6 y hasta 10 partes. Y el
-   * fallo es POR ARRIBA (47,5 % de las etapas se pasan, solo el 2,5 % se quedan cortas), que es el
-   * defecto CONTRARIO al que se temía: el de la v64 era que el parte DESAPARECÍA.
+   * crónica se pone habladora.
    *
    * **LA CADENCIA ES INERTE Y LA PALANCA ES EL THROTTLE**, y eso corrige por escrito la conclusión
    * de la séptima refutación (v79), que dejó dicho «la palanca NO es la identidad, es la CADENCIA
    * (`pullReportKmGap`)». No lo es: con 36 -> 48 -> 60 la ventana pasa del 50 % al 53 % y ahí se
    * queda. Quien manda es este número.
    *
-   * Y EL VALOR LO FIJAN DOS BANCOS QUE TIRAN EN SENTIDOS OPUESTOS. El campo RICO (`llana-180` con
-   * ocho equipos) quiere MÁS throttle; el campo POBRE de `attribution.test.ts` —29 corredores, tres
-   * trenes, una meta volante— quiere MENOS, porque allí los partes los dispara la caducidad y no los
-   * cambios de mando. Medido celda a celda CONTRA LOS DOS:
+   * ESTE NÚMERO SE PUSO EN 14 CONTRA UN INDICADOR AVERIADO, Y ASÍ QUEDA DICHO. La tabla que estuvo
+   * aquí escrita decía que el campo POBRE (`attribution.test.ts`) se quedaba corto a partir de 15
+   * —2,42 contra un suelo de 2,5— y que 14 era «el valor más alto que aguanta», con un margen que
+   * yo mismo dejé anotado como sospechoso: «un throttle en kilómetros fijos es la forma
+   * equivocada». No era la forma del throttle. Era que la PUERTA del parte (`pullMinWork`) medía el
+   * trabajo del hombre que más tiraba, y con la cola de relevos encendida nadie acumula, así que el
+   * banco pobre estaba MUERTO DE HAMBRE, no apretado. Arreglada la puerta (`pullMinWorkTotal`, ver
+   * arriba), ese banco pasa de 1,75 partes por etapa a 9,38 con el throttle en 14: de quedarse
+   * corto a pasarse. La tabla vieja se retira entera porque midió con la puerta rota.
    *
-   *   throttle   POBRE (media >= 2,5)    RICO (ventana 3-6)
-   *      12      pasa                    50 %
-   *      14      pasa                    70 %   <- se queda éste
-   *      15      FALLA (2,42)            75 %
-   *      16      FALLA (2,29)            75 %
-   *      18      FALLA (2,21)            80 %
+   * MEDIDO DE NUEVO, con la puerta arreglada y las cinco capas encendidas, contra los dos bancos que
+   * tiran en sentidos opuestos —el POBRE (`attribution.test.ts`, 24 semillas) quiere media 2,5-6,5 y
+   * máximo 9; el RICO (`sim/tactics`, 40 semillas por escenario) quiere el mayor porcentaje de
+   * etapas dentro de la ventana 3-6—:
    *
-   * 14 es el valor más alto que el banco pobre aguanta, y cumple el criterio que llevaba SIETE
-   * intentos sin cumplirse: UN SOLO VALOR, EN BANDA EN LOS DOS BANCOS, CON LA COLA ENCENDIDA. Las
-   * tres bandas de la voz quedan dentro (equipo 67,7 · frentes 2,70 · motivo 99,3).
+   *   throttle   POBRE: media (máx)     RICO `llana-180`   RICO `reina-canonica`
+   *      14      9,38 (11)  FALLA         5,0 %                72,5 %
+   *      20      6,83  (8)  pasa         37,5 %                70,0 %
+   *      25      5,71  (7)  pasa         92,5 %                65,0 %
+   *      30      4,88  (6)  pasa        100,0 %                60,0 %   <- se queda éste
+   *      36      4,08  (5)  pasa        100,0 %                55,0 %
    *
-   * **EL MARGEN ES FINO Y SE DICE**: en 15 el banco pobre vale 2,42 contra un suelo de 2,5, así que
-   * 14 pasa por poco. Esta constante queda pinzada entre dos bancos con muy poca holgura, y eso es
-   * señal de que un throttle en KILÓMETROS FIJOS es la forma equivocada: lo que de verdad cambió al
-   * encender las capas es CUÁNTAS MANOS se turnan al frente, y el throttle debería leer eso. Queda
-   * anotado como la tanda siguiente, no resuelto de paso aquí.
+   * Ya no hay pinza: el banco pobre pasa en TODO el tramo 20-36, que es una meseta y no un filo. La
+   * elección la deciden los otros dos, y **van en sentidos contrarios**: la llana sube del 5 % al
+   * 100 % y la reina baja del 72,5 % al 55 %. 30 es el máximo de la suma —la llana llega a su tope
+   * y la reina solo ha cedido 12,5 puntos— y además es donde el banco pobre queda mejor: media 4,88,
+   * el centro del 3-6 que pidió el encargo, con un máximo de 6 y tres puntos de holgura contra el
+   * techo de 9 (en 20 el máximo ya es 8, a uno del techo).
+   *
+   * LA REINA NO ENTRA EN BANDA EN NINGUNA CELDA y eso no se tapa: su mediana es 3 con mínimo 1 en
+   * todo el barrido, o sea que hay etapas de montaña con UN solo parte. Es coherente con lo que una
+   * reina es —el pelotón se rompe pronto y deja de haber «quién tira del pelotón» que contar—, pero
+   * no está demostrado que sea eso y no un segundo indicador averiado. Queda anotado, sin cerrar.
+   *
+   * Y 30 sigue por debajo de la CADUCIDAD (`pullReportKmGap` 36), que es lo que tiene que ser: el
+   * suelo no puede tragarse al techo.
    */
-  pullReportMinKmGap: 14,
+  pullReportMinKmGap: 30,
   pullReportKmGap: 36,
   // Sin fuga del día no había parte de relevos en toda la etapa, y con él se iba lo único que se
   // podía contar del tramo medio: medido en producción, Race Muscat —donde no cuajó ninguna fuga—

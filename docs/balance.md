@@ -15229,3 +15229,130 @@ le saltan. **Cuatro de las cinco daban un cero perfectamente creíble.**
 El control que las habría cazado todas es el mismo y es barato: **antes de creerse un cero, calcular
 qué debería dar la tasa base**. 4,40 de ~10 con 7 rivales de 40 es exactamente el azar; si hubiera
 hecho esa división a tiempo, me habría ahorrado una entrada de bitácora equivocada.
+
+## v81 — las cinco capas tácticas se encienden, y lo que el encendido destapó
+
+El dueño, literal: «Si!! Enciende director!!! Luego ya vemos si hay que calibrar algo mejor, de
+momento enciende este y todos». `phases`, `customs`, `front`, `teamPlay` y `director` pasan a
+`enabled: true` a la vez.
+
+El encendido dejó cuatro cosas en rojo. Tres eran defectos de verdad y están arregladas; la cuarta
+era un sello que había que volver a tomar. Esta entrada cuenta la que costó más de encontrar,
+porque es la que enseña algo.
+
+### El defecto: el parte de «quién tira» desaparecía, y no era por lo que yo creía
+
+`journal.test.ts` «el parte de relevos no depende de que cuaje la fuga del día» pedía **al menos un
+parte** en una etapa de 200 km con el campo entero convertido en gregarios reservones —nadie ataca,
+no hay fuga— y salían **cero**. En paralelo, `attribution.test.ts` «sale unas pocas veces por etapa,
+ni una ni veinte» daba **1,75 partes por etapa** contra un suelo de 2,5.
+
+Los traté como dos fallos. Eran uno.
+
+**Bisección capa a capa** contra el banco del diario, con las cinco apagadas de partida:
+
+| capas encendidas | B6 «sin fuga también se cuenta» |
+| ---------------- | ------------------------------- |
+| ninguna          | pasa                            |
+| solo `phases`    | pasa                            |
+| solo `customs`   | pasa                            |
+| solo `front`     | pasa                            |
+| solo `teamPlay`  | **falla**                       |
+| solo `director`  | pasa                            |
+
+Una sola capa, y la primera sospecha —`front`, que es la que subasta el frente— quedó descartada de
+entrada. Dentro de `teamPlay` la pieza es la **cola de relevos** (`turnPullKm`, R18.1): das tu turno
+de 600 m, te apartas y te vas al final de la fila.
+
+**La medida, km a km, en el propio escenario del banco**, con `teamPlay` encendida contra el mismo
+escenario con `teamPlay` apagada:
+
+| km  | `best` sin cola | `best` con cola | hombres con trabajo |
+| --- | --------------- | --------------- | ------------------- |
+| 20  | 0,279           | 0,055           | 20 → 89             |
+| 60  | 0,422           | 0,088           | 42 → 80             |
+| 100 | 0,608           | 0,016           | 48 → 80             |
+
+El mismo trabajo, repartido entre el doble de hombres. La puerta del parte era
+`pull.best >= pullMinWork` con `pullMinWork` = 0,35, o sea **el trabajo acumulado por UN HOMBRE**, y
+ese 0,35 estaba calibrado contra un motor en el que los mismos hombres iban al frente todo el día.
+Con una rotación de verdad, la pregunta «¿quién lleva mucho rato delante?» tiene la respuesta
+«nadie» — y el parte se calla aunque esté tirando el pelotón entero.
+
+Esto **ya estaba escrito en el código desde la v64**, con el arreglo indicado: medir el trabajo
+TOTAL al frente, que es invariante al reparto, «cuando la cola se encienda, no antes». Se encendió.
+
+### El listón no se elige: se traduce
+
+`pullMinWorkTotal` no se puso a ojo ni se bajó hasta que pasara el banco. Con el motor calibrado
+—las cinco capas apagadas, la puerta vieja— se registró el total de la ventana en **los 95 partes
+que emitieron las 24 etapas** del banco de atribución:
+
+| p0        | p5   | p10  | p25  | p50  | p75  | p100  |
+| --------- | ---- | ---- | ---- | ---- | ---- | ----- |
+| **1,206** | 2,26 | 2,63 | 3,05 | 3,81 | 5,87 | 11,61 |
+
+El suelo de esa distribución —1,206— es **el mínimo que el listón viejo dejaba pasar**.
+`pullMinWorkTotal: 1.2` es ese suelo: la misma exigencia, dicha donde no depende del reparto. Con
+él, el motor calibrado no cambia de régimen (3,96 → 4,54 partes por etapa) y el de cinco capas deja
+de estar mudo.
+
+### Y el throttle estaba puesto contra un indicador averiado
+
+Tres commits antes de esto subí `pullReportMinKmGap` de 12 a 14 con una tabla que decía que el
+banco «pobre» (`attribution.test.ts`) se quedaba corto a partir de 15 —2,42 contra un suelo de 2,5—
+y que 14 era «el valor más alto que aguanta». Dejé anotado que el margen era sospechoso: «un
+throttle en kilómetros fijos es la forma equivocada».
+
+**No era la forma del throttle.** Ese banco no estaba apretado: estaba muerto de hambre, por la
+puerta rota. Arreglada la puerta, pasa de 1,75 partes por etapa a **9,38** con el throttle en 14.
+La tabla vieja midió con el indicador roto y se retira entera.
+
+Remedido, con la puerta arreglada y las cinco capas encendidas, contra los dos bancos que tiran en
+sentidos opuestos:
+
+| throttle | POBRE: media (máx)  | RICO `llana-180`: ventana 3-6 | RICO `reina-canonica` |
+| -------- | ------------------- | ----------------------------- | --------------------- |
+| 14       | 9,38 (11) **FALLA** | 5,0 %                         | 72,5 %                |
+| 20       | 6,83 (8) pasa       | 37,5 %                        | 70,0 %                |
+| 25       | 5,71 (7) pasa       | 92,5 %                        | 65,0 %                |
+| **30**   | **4,88 (6) pasa**   | **100,0 %**                   | **60,0 %**            |
+| 36       | 4,08 (5) pasa       | 100,0 %                       | 55,0 %                |
+
+Ya no hay pinza: el banco pobre pasa en todo el tramo 20-36, que es una **meseta y no un filo** —y
+eso, por sí solo, es la señal de que el indicador ha dejado de mentir—. La elección la deciden los
+otros dos, que van en sentidos contrarios: la llana sube del 5 % al 100 % y la reina baja del 72,5 %
+al 55 %. **30** es el máximo de la suma y donde el banco pobre queda mejor: media 4,88 —el centro
+del 3-6 que pidió el encargo— con máximo 6 contra un techo de 9.
+
+**Lo que NO se cierra y se dice:** la reina no entra en banda en ninguna celda. Su mediana es 3 con
+mínimo 1 en todo el barrido, o sea que hay etapas de montaña con un solo parte. Es coherente con lo
+que una reina es —el pelotón se rompe pronto y deja de haber «quién tira del pelotón» que contar—,
+pero no está demostrado que sea eso y no un segundo indicador averiado.
+
+### Las dos huellas de montaña, reselladas con la medida delante
+
+Las dos huellas llanas de `attribution.test.ts` se resellaron al encender; las dos de la reina se
+quedaron sin resellar y el sello llevaba desde entonces en rojo. Antes de resellarlas se comprobó
+qué se había movido:
+
+- **La reina se corre más despacio y se rompe más.** Los 176 corredores entran más tarde, con delta
+  mediano **+72 s** (semilla 0) y **+69 s** (semilla 1), y los grupos de llegada pasan de 39 a 44 y
+  de 28 a 33. La montaña selecciona más, que es lo que las capas prometen.
+- **La general de cabeza no cambia de manos.** Los cuatro primeros son los mismos cuatro hombres en
+  las dos semillas. Lo único que se mueve arriba es un empate deshecho al revés: `gc-3` y `gc-2`
+  entraban los dos en 15.839 y ahora entran los dos en 15.907, con `gc-2` delante.
+- **Cambia quién acompaña**: en los puestos 5-6 los `pel-` dan paso a los `bar-`, la firma de una
+  carrera con movimientos repartidos por toda la etapa.
+
+Y está comprobado que **la v81 no mueve un segundo con la crónica**: las cuatro huellas salen dígito
+a dígito iguales con la puerta vieja y con la nueva. El parte de relevos es observación pura.
+
+### La lección
+
+Un banco que se queda corto y otro que se queda mudo son, muchas veces, **el mismo indicador roto
+visto desde dos sitios**. Y el síntoma que lo delata es el que tuve delante tres commits y no leí:
+**una constante pinzada entre dos bancos sin holgura**. Cuando un solo valor pasa por 0,08 y el
+siguiente falla, la hipótesis barata no es «la forma de la constante es equivocada» sino **«uno de
+los dos bancos está midiendo mal»**. Arreglado el indicador, el filo se convirtió en una meseta de
+dieciséis kilómetros de ancho.
