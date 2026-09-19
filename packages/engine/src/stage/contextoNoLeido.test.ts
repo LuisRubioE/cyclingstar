@@ -208,17 +208,47 @@ describe('engine: qué parte del contexto de carrera decide y qué parte solo vi
   })
 
   it('cambiar la parte INERTE entera tampoco mueve un segundo', () => {
-    // El control del control: si la prueba de arriba pasara porque el contexto es inerte por ser
-    // siempre el mismo, esto lo cazaría.
+    /**
+     * El control del control: si la prueba de arriba pasara porque el contexto es inerte por ser
+     * siempre el mismo, esto lo cazaría.
+     *
+     * La memoria y el día se dejan FUERA de los dos lados: desde los pasos 16 y 18b sí deciden, y
+     * mezclarlos aquí convertiría el control del control en una comprobación de otra cosa.
+     *
+     * ————— Y `daysLeft` SALE DE LA LISTA EN LA v81, PORQUE YA DECIDE —————
+     *
+     * Al encender las cinco capas esta prueba se puso roja, y bisecada campo a campo la respuesta es
+     * de una precisión que conviene escribir:
+     *
+     *   standings ....... inerte
+     *   totalKm ......... inerte
+     *   nextClimbKm ..... inerte
+     *   daysLeft ........ DECIDE
+     *
+     * Y decide POR DISEÑO, no por accidente: `customs.ts` calcula el suelo de la correa como
+     * `gcLeashMinS · clamp(diasRestantes / 5, 0,5, 1)`, y el propio motor lo tiene escrito —«con el
+     * paso 6 encendido deja de ser `gcControlLeash` = 700»—. O sea que la premisa de esta prueba
+     * («el `shape` viaja y no decide») era cierta MIENTRAS `customs` estuviera apagada, que es
+     * exactamente lo que este fichero existe para vigilar.
+     *
+     * Así que no se relaja: se parte en dos. Lo que sigue sin decidir se sigue exigiendo inerte, y lo
+     * que ya decide se exige que DECIDA —porque si `daysLeft` volviera a ser inerte, la correa de la
+     * aduana habría dejado de leer lo que el paso 6 le manda leer, y eso sería el defecto—.
+     */
     const riders = campo('ctx')
-    // La memoria y el día se dejan FUERA de los dos lados: desde los pasos 16 y 18b sí deciden, y
-    // mezclarlos aquí convertiría el control del control en una comprobación de otra cosa.
     const base = inerte(CONTEXTO)
-    const otro: RaceContext = {
-      ...base,
-      standings: new Map(),
-      shape: { ...CONTEXTO.shape!, totalKm: 240, daysLeft: 9, nextClimbKm: 12 },
-    }
-    expect(huella(riders, otro)).toBe(huella(riders, base))
+    const igual = (o: Partial<RaceContext>) =>
+      huella(riders, { ...base, ...o }) === huella(riders, base)
+
+    expect(`standings inerte: ${igual({ standings: new Map() })}`).toBe('standings inerte: true')
+    expect(`totalKm inerte: ${igual({ shape: { ...CONTEXTO.shape!, totalKm: 240 } })}`).toBe(
+      'totalKm inerte: true',
+    )
+    expect(`nextClimbKm inerte: ${igual({ shape: { ...CONTEXTO.shape!, nextClimbKm: 12 } })}`).toBe(
+      'nextClimbKm inerte: true',
+    )
+    expect(`daysLeft DECIDE: ${!igual({ shape: { ...CONTEXTO.shape!, daysLeft: 9 } })}`).toBe(
+      'daysLeft DECIDE: true',
+    )
   })
 })
