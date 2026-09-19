@@ -1746,6 +1746,28 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   let breakShareReported = false
 
   /**
+   * NADA SE ACABA ANTES DE EMPEZAR (v81). El desenlace de un movimiento se narra con el reloj del
+   * grupo que lo caza, y ese reloj puede ser MENOR que el del movimiento: el pelotón se cuenta por
+   * su primer hombre y el que salta lo hace desde la mitad de la fila, así que sale con veinte o
+   * treinta segundos de reloj MÁS que el grupo del que sale.
+   *
+   * Normalmente da igual, porque la captura llega kilómetros después y manda el km. Pero un
+   * movimiento que nace y muere EN EL MISMO BLOQUE de cien metros deja las dos líneas en el mismo
+   * kilómetro, y entonces manda el reloj: la crónica ordena por km y luego por reloj, así que el
+   * lector leía **primero que le cazan y después que ataca**.
+   *
+   * Medido en `reina-150-18`: `mov-14` nace en el km 110,05 con reloj 10.153 y lo cazan en el mismo
+   * bloque con reloj 10.130 —veintitrés segundos ANTES—, y lo mismo con `mov-15`, `mov-17` y
+   * `mov-19`. Los cuatro son el `ataqueSinCerrar` que el banco de coherencia contaba: el arco SÍ se
+   * cerraba, pero la línea de cierre caía delante de la de salida, y el auditor —que mira hacia
+   * adelante, como el lector— no la encontraba.
+   *
+   * El suelo es el reloj de nacimiento, no el del bloque: lo que se corrige es un artefacto de qué
+   * hombre representa a cada grupo, no una duración.
+   */
+  const noAntesDeNacer = (m: { bornTs: number }, tS: number): number => Math.max(m.bornTs, tS)
+
+  /**
    * Los que más trabajo al frente han hecho, de más a menos, quedándose solo con los que han
    * puesto una parte apreciable de lo que puso el primero: si tiran dos, se nombran dos; si tira
    * uno solo, se nombra uno. El desempate por id hace el orden total (nunca el de inserción).
@@ -8222,11 +8244,18 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           // ahorra una línea, deja una historia sin final. Se cuenta cómo acaba TODO lo que se
           // contó cómo empezaba.
           const narra = narraCierre
-          log.emit(km, front.g.tS, 'intento_fallido', 'attack_reeled', attackers.slice(0, 3), {
-            kind: front.kind,
-            km: Math.max(1, Math.round(km - front.bornKm)),
-            narra: narra ? 1 : 0,
-          })
+          log.emit(
+            km,
+            noAntesDeNacer(front, front.g.tS),
+            'intento_fallido',
+            'attack_reeled',
+            attackers.slice(0, 3),
+            {
+              kind: front.kind,
+              km: Math.max(1, Math.round(km - front.bornKm)),
+              narra: narra ? 1 : 0,
+            },
+          )
           // …y con ella, quién lo cerró. Solo de lo que se ha narrado: el epitafio de un intento
           // que no se contó tampoco necesita autor.
           if (narra) attributeChase(front, km, front.g.tS)
@@ -8444,7 +8473,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             const narra = m.prospered || m.narrated
             log.emit(
               km,
-              peloton.tS,
+              noAntesDeNacer(m, peloton.tS),
               m.prospered ? 'movimiento_cazado' : 'intento_fallido',
               m.prospered ? 'move_caught' : 'attack_reeled',
               ids.slice(0, 3),
@@ -8536,11 +8565,18 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
          * lector esperando una captura que no llegaba nunca. Lo que se abre se cierra.
          */
         if (!m.closed && m.narrated && !m.dayBreak) {
-          log.emit(km, peloton.tS, 'intento_fallido', 'move_faded', m.lastIds.slice(0, 3), {
-            kind: m.kind,
-            km: Math.max(1, Math.round(km - m.bornKm)),
-            toGo: Math.round(totalKm - km),
-          })
+          log.emit(
+            km,
+            noAntesDeNacer(m, peloton.tS),
+            'intento_fallido',
+            'move_faded',
+            m.lastIds.slice(0, 3),
+            {
+              kind: m.kind,
+              km: Math.max(1, Math.round(km - m.bornKm)),
+              toGo: Math.round(totalKm - km),
+            },
+          )
         }
         m.closed = true
         moves.splice(a, 1)
