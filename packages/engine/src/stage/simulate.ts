@@ -1589,6 +1589,14 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   // Quién apretó en el aviso anterior, para no nombrar diez veces al mismo protagonista.
   let lastSplitDriverId: string | null = null
   /**
+   * EL ÚLTIMO KILÓMETRO EN QUE SE CONTÓ QUE EL LÍDER PERDIÓ LA RUEDA (v81).
+   *
+   * El maillot puede soltarse, volver y soltarse otra vez en la misma rampa; contarlo cada vez
+   * convertiría la noticia del día en una letanía. Se cuenta la primera y luego solo si ha habido
+   * carretera de por medio.
+   */
+  let ultimoAvisoLiderKm = Number.NEGATIVE_INFINITY
+  /**
    * LA CRIBA LEJOS DE META (v21, docs/motor.md §16). Todo lo de arriba vive dentro del desenlace
    * (`raceThisClimb`), y por buenas razones: con perfiles reales hay relieve por todas partes y un
    * puerto de tempo rompe y recompone el pelotón sin consecuencias. Pero la etapa a veces se decide
@@ -5415,7 +5423,36 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       // …y para el parte del corredor (v47), el km en que perdió EL GRUESO DE LA CARRERA. Se
       // sobrescribe: lo que interesa es la última vez que lo perdió, no la primera, porque entre
       // medias puede haber vuelto. Perder un grupeto no es perder la carrera y no se apunta.
-      if (group.id === (mainId ?? PELOTON)) m.parte.descuelgueKm = km
+      if (group.id === (mainId ?? PELOTON)) {
+        m.parte.descuelgueKm = km
+        /**
+         * …Y SI EL QUE SE SUELTA ES EL LÍDER DE LA CARRERA, SE CUENTA CON SU NOMBRE (v81).
+         *
+         * El dueño, con la captura del maillot descolgado a 1:43 y sus compañeros rescatándole: «el
+         * Journal es incoherente… y no explica por qué se quedó el líder».
+         *
+         * Y era literal. `peloton_split` nombra a QUIEN APRIETA y cuenta CUÁNTOS se quedan, pero no
+         * nombra a ninguno de los descolgados: cuando el que se cae es el maillot amarillo, la
+         * crónica decía «41 riders dropped» y el hecho más importante de la etapa —que el líder ha
+         * perdido la rueda— no aparecía por ningún lado. La radio lo enseñaba y el diario no.
+         *
+         * Va AQUÍ y no en la criba porque `dropOut` es la puerta ÚNICA por la que pasan las tres
+         * vías de descuelgue —la criba, el que se deja ir y el que se va al suelo—, que es lo que su
+         * propio comentario de la v26 dice y lo que hace imposible que una de las tres se escape.
+         *
+         * Y LLEVA EL PORQUÉ, que es la otra mitad de la queja: el depósito con el que se quedó
+         * —para distinguir al que revienta del que simplemente no aguanta el ritmo—, el terreno, y
+         * los kilómetros que faltaban.
+         */
+        if (hasGcContext && m.input.gcRank === 1 && km - ultimoAvisoLiderKm >= STAGE.leaderDropKmGap) {
+          ultimoAvisoLiderKm = km
+          log.emit(km, group.tS + delayS, 'lider_descolgado', 'leader_dropped', [m.input.riderId], {
+            deposito: Math.round(100 * (m.energy0 > 0 ? clamp(m.energy / m.energy0, 0, 1) : 0)),
+            terreno: block.tipo,
+            toGo: Math.round(totalKm - km),
+          })
+        }
+      }
       // El que acaba de soltarse no está relevando: solo importa para la foto (v28), donde si no un
       // caído —el único descuelgue que ocurre DESPUÉS de `advance()`— saldría tirando de su grupeto.
       m.pulling = false

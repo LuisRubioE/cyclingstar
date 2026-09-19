@@ -1827,6 +1827,13 @@ export const STAGE = {
   radioMaxKmh: 85,
   rejoinGapSeconds: 22,
   regroupGapSeconds: 22,
+  /**
+   * CADA CUÁNTOS KM SE PUEDE VOLVER A CONTAR QUE EL LÍDER PERDIÓ LA RUEDA (v81). El maillot puede
+   * soltarse, volver y soltarse otra vez en la misma rampa, y contarlo cada vez convierte la noticia
+   * del día en una letanía. Cinco kilómetros es la misma escala con la que la crónica separa dos
+   * avisos del frente.
+   */
+  leaderDropKmGap: 5,
   // …y ese umbral se estrecha según lo que esté apretando el pelotón: se escala por
   // `clamp((1 − c) / (1 − chaseBackShutTempo), chaseBackShutFloor, 1)`, así que a tempo de carretera
   // (0,55) o por debajo vale 1 —el llano y el valle de la reina no se mueven— y con los trenes
