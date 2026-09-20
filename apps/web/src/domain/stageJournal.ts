@@ -548,6 +548,38 @@ function chronicleTemplate(e: ChronicleEntry): string {
         `${who} hits the wall and loses the wheels with ${toGo} km left.`,
       ])
     }
+    case 'leader_dropped': {
+      /**
+       * EL LÍDER PIERDE LA RUEDA (v81), que es la noticia del día y no se contaba.
+       *
+       * El dueño, con la captura del maillot descolgado a 1:43 y sus compañeros rescatándole: «el
+       * Journal es incoherente… y no explica por qué se quedó el líder». Y era literal:
+       * `peloton_split` nombra a quien APRIETA y cuenta CUÁNTOS se quedan, pero no nombra a ninguno
+       * de los descolgados, así que el maillot podía perder la carrera sin una sola frase.
+       *
+       * Y SE DICE EL PORQUÉ, que era la otra mitad de la queja. El motor manda el depósito con el
+       * que se quedó, y eso distingue las dos historias que la carretera cuenta distinto: el que
+       * REVIENTA —va vacío— y el que simplemente no aguanta el ritmo con piernas todavía.
+       */
+      const toGo = Number(e.datos?.toGo ?? 0)
+      const deposito = Number(e.datos?.deposito ?? 100)
+      const donde = toGo > 0 ? ` with ${toGo} km to go` : ''
+      const enSubida = String(e.datos?.terreno ?? '') === 'subida'
+      if (deposito <= 25) {
+        return pick([
+          `The race leader is in trouble: ${who} is empty and loses the wheels${donde}.`,
+          `${who} cracks. The maillot slides off the back${donde}, and the race has a new story.`,
+          `Nothing left for ${who}: the race leader comes off${donde}.`,
+        ])
+      }
+      return pick([
+        enSubida
+          ? `The race leader cannot follow: ${who} is distanced on the climb${donde}.`
+          : `The race leader is distanced: ${who} loses contact with the front${donde}.`,
+        `${who} loses the wheel of the group and the race lead is suddenly on the line${donde}.`,
+        `Trouble for the maillot: ${who} is off the back${donde}.`,
+      ])
+    }
     case 'riders_bonk': {
       const count = Number(e.datos?.count ?? e.protagonists.length)
       const named = riders.slice(0, NAMED_IN_SUMMARY).map(riderFull)
@@ -1145,7 +1177,16 @@ function chronicleTemplate(e: ChronicleEntry): string {
       // Desde la v13 `leads` solo llega a 1 si el ganador está ESTRICTAMENTE por delante de todos los
       // demás: tres corredores con un punto cada uno no pueden liderar los tres (defecto B5). Y la
       // frase deja claro que habla de la montaña DE LA CARRERA, que es lo que el motor sabe contar.
-      const leadPart = e.datos?.leads === 1 ? ' — and takes the lead in the mountains' : ''
+      /**
+       * …Y CON LA CIFRA QUE LO SOSTIENE (v81). La frase decía «takes the lead in the mountains» y no
+       * decía con cuánto, así que el lector no podía distinguir un liderato de nueve puntos a ocho
+       * de uno de treinta a dos. El motor ya compara los dos lados —tiene que estar ESTRICTAMENTE
+       * por delante del mejor de los demás— y desde la v81 los publica.
+       */
+      const total = Number(e.datos?.total ?? 0)
+      const tras = Number(e.datos?.tras ?? 0)
+      const margen = total > 0 && total > tras ? ` — ${total} points to ${tras}` : ''
+      const leadPart = e.datos?.leads === 1 ? ` — and takes the lead in the mountains${margen}` : ''
       return `${who} is first over the ${catLabel}${ptsPart}${leadPart}.`
     }
     case 'domestiques_drop_back': {

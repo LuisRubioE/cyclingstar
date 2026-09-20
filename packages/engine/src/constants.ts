@@ -788,7 +788,16 @@
  * dentro de `teamPlay` (apagada) y solo frenaba ATACAR, no SALTAR A LA RUEDA — que es como se entra
  * en una fuga. Ver `jerseyBreakDampFlat` y `jerseyBreakDamp`.
  */
-export const ENGINE_VERSION = 79 as const
+/**
+ * **v81 — LAS CINCO CAPAS TÁCTICAS SE ENCIENDEN** (docs/tactica.md, orden del dueño).
+ *
+ * `phases`, `customs`, `front`, `teamPlay` y `director` pasan a `enabled: true` a la vez. Lo que
+ * destapó el encendido y esta versión arregla: con la cola de relevos en marcha nadie acumula
+ * trabajo al frente, así que el parte de «quién tira» —que preguntaba por el hombre que más había
+ * tirado— desaparecía; ahora se mide el trabajo TOTAL, que es invariante al reparto. Ver
+ * `pullMinWorkTotal` y `pullReportMinKmGap`.
+ */
+export const ENGINE_VERSION = 81 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -1753,6 +1762,60 @@ export const STAGE = {
   // Velocidad inicial del grupo tras la salida neutralizada (6.3).
   initialSpeed: 35,
   captureGapSeconds: 5,
+  /**
+   * EL CONTACTO: por debajo de esto dos grupos NO son dos grupos (v81).
+   *
+   * El dueño, mirando las etapas de montaña del tick: «2 grupos a 0 segundos que no se unen… y 2
+   * grupos que de repente 20 de atrás adelantan a los 10 de alante». Las dos cosas salen de que las
+   * puertas de fusión piden algo MÁS que estar juntos —la del pelotón exige ir estrictamente más
+   * rápido (`cerrando`, v35) y la de cruce no funde en terreno que rompe (`onRough`, v56)— y esas
+   * dos exigencias son correctas a veinte segundos y absurdas a uno.
+   *
+   * MEDIDO antes de tocar nada, sobre las nueve reinas REALES del banco con 4 semillas (6.120 fotos,
+   * una por kilómetro): **4 parejas de grupos a menos de 2 s durante 3 km o más sin fundirse**, y
+   * **28 cruces** de dos grupos que se intercambian el orden sin juntarse. Los ejemplos dicen el
+   * tamaño del disparate mejor que el recuento:
+   *
+   *   race-two-seas e4 km 92    shed-9(87) y peloton(88) a 1,4 s
+   *   race-two-seas e4 km 108   peloton(142) y mov-22(6) a 0,2 s
+   *   race-italy e19 km 136     peloton(131) y shed-59(7) a 1,5 s
+   *
+   * Ochenta y siete corredores y ochenta y ocho, a segundo y medio, kilómetro tras kilómetro, en dos
+   * grupos distintos. A esta distancia no se persigue: se va en la rueda.
+   *
+   * DOS SEGUNDOS y no cinco (`captureGapSeconds`, que es cuándo se consideran juntos PARA CONTARLOS)
+   * porque fundir es más fuerte que contar: a 2 s son ~15 metros, que es la cola de un grupo, y deja
+   * intactas las puertas calibradas de 5 y 22 s. Lo que esta constante arregla es el caso en que la
+   * pregunta «¿se están acercando?» no tiene sentido porque ya han llegado.
+   */
+  contactGapSeconds: 2,
+  /**
+   * METROS DE CARRETERA QUE OCUPA UN CORREDOR dentro de un grupo (v81), que es lo que convierte el
+   * suelo de arriba en una distancia de verdad. Ver `contactoS` en `simulate.ts`.
+   *
+   * ANCLADO en lo que mide un pelotón real: el de una gran vuelta, 176 corredores, ocupa entre 130
+   * y 150 metros de carretera. 140/176 = 0,80; se usa 0,75 porque un grupo en rotación va más
+   * apretado que uno en fila india y ésta es la cifra que se aplica a los dos.
+   */
+  contactMetresPerRider: 0.75,
+  /**
+   * …Y CUÁNTOS KM SEGUIDOS DE CONTACTO HACEN FALTA PARA FUNDIR (v81, corrección medida).
+   *
+   * La primera versión de la cláusula de contacto fundía por proximidad INSTANTÁNEA, y eso
+   * **deshacía los abanicos**: un corte de viento que deja a un grupo a segundo y medio se volvía a
+   * fundir en el mismo bloque, y el banco lo cazó —el día que corta, el campo entero llegaba a meta
+   * con 0 s de diferencia entre el primero y el último, contra un mínimo de 20—.
+   *
+   * Y enseña que la regla estaba mal planteada: lo que distingue «un pelotón fingiendo ser dos» de
+   * «un corte formándose» NO ES LA DISTANCIA, ES LA DURACIÓN. Segundo y medio durante tres
+   * kilómetros es lo primero; segundo y medio durante un bloque es lo segundo. La propia medida del
+   * defecto ya lo decía —contaba parejas pegadas **3 km o más**— y la primera implementación se dejó
+   * esa mitad por el camino.
+   *
+   * Un kilómetro: diez bloques seguidos a menos de dos segundos. Un abanico abre mucho más rápido
+   * que eso, y dos grupos que llevan un kilómetro pegados no son dos grupos.
+   */
+  contactHoldKm: 1,
   // Un descolgado en llano/descenso vuelve al pelotón si su boquete es de este orden (s): la subida
   // parte el grupo, pero en terreno rodador los cortes pequeños se cazan y el pelotón se recompone.
   //
@@ -1800,6 +1863,13 @@ export const STAGE = {
   radioMaxKmh: 85,
   rejoinGapSeconds: 22,
   regroupGapSeconds: 22,
+  /**
+   * CADA CUÁNTOS KM SE PUEDE VOLVER A CONTAR QUE EL LÍDER PERDIÓ LA RUEDA (v81). El maillot puede
+   * soltarse, volver y soltarse otra vez en la misma rampa, y contarlo cada vez convierte la noticia
+   * del día en una letanía. Cinco kilómetros es la misma escala con la que la crónica separa dos
+   * avisos del frente.
+   */
+  leaderDropKmGap: 5,
   // …y ese umbral se estrecha según lo que esté apretando el pelotón: se escala por
   // `clamp((1 − c) / (1 − chaseBackShutTempo), chaseBackShutFloor, 1)`, así que a tempo de carretera
   // (0,55) o por debajo vale 1 —el llano y el valle de la reina no se mueven— y con los trenes
@@ -2411,7 +2481,7 @@ export const STAGE = {
    * de a «algo que cambió en el mismo PR».
    */
   phases: {
-    enabled: false,
+    enabled: true,
     /** Km durante los que una captura mantiene la fase `captura`, con su cuerda de ×2,5. */
     capturaKm: 1,
     /** Cuánto antes de una cima empieza la aproximación. */
@@ -2454,7 +2524,7 @@ export const STAGE = {
    * rampa de arranque por el camino.
    */
   customs: {
-    enabled: false,
+    enabled: true,
     /**
      * LA PERILLA DEL PASO 6: cuánto pesa el dinero dispuesto a pagar el cierre frente a lo que
      * cuesta cerrar. Es contra este número contra el que se barre `flat.breakawayWinPct`.
@@ -2543,7 +2613,7 @@ export const STAGE = {
    * dos racimos nuevos apagados.
    */
   front: {
-    enabled: false,
+    enabled: true,
     /**
      * Banda de empate de la amenaza (R20.1). Dentro de ella dos movimientos se consideran igual de
      * peligrosos y desempata la carretera: el más cerca de meta, y luego el id menor.
@@ -2584,7 +2654,7 @@ export const STAGE = {
    * atacar por intención, y lo que hacen dos compañeros en el mismo grupo.
    */
   teamPlay: {
-    enabled: false,
+    enabled: true,
     /**
      * CUÁNTO DURA UN TURNO, por terreno (R18.1). En cuesta se releva antes —el esfuerzo es continuo
      * y no hay rueda que valga tanto— y con viento de lado, antes todavía.
@@ -4105,14 +4175,78 @@ export const STAGE = {
   jerseyBreakDampClimb: 0.25,
   pullNamesMax: 3,
   pullNamesMinShare: 0.55,
-  // Trabajo mínimo del que más ha tirado en la ventana para que haya parte. Es lo que impide narrar
-  // «tiran fulano y mengano» de un pelotón que va de paseo detrás de una fuga consentida.
-  pullMinWork: 0.35,
-  // Throttle del parte: nunca dos partes en menos de `Min` km aunque cambie quién manda, y como
-  // mucho uno cada `pullReportKmGap` km aunque no cambie nadie. Medido (60 semillas por escenario):
-  // con 9/30 salían 5,4 por etapa en la llana y 6,3 en Flandes; con 12/36 la mediana queda en 4-5 y
-  // el 75-90% de las etapas cae en la ventana 3-6 que pedía el encargo.
-  pullReportMinKmGap: 12,
+  /**
+   * TRABAJO MÍNIMO AL FRENTE para que haya parte: lo que impide narrar «tiran fulano y mengano» de
+   * un pelotón que va de paseo detrás de una fuga consentida.
+   *
+   * Hasta la v81 esto era `pullMinWork: 0.35` y se medía sobre **el hombre que más había tirado**.
+   * Con la cola de relevos encendida (`teamPlay.turnPullKm`) el mismo trabajo se reparte entre el
+   * doble de hombres y ninguno acumula: `best` se hunde cinco veces y el parte desaparece. No es
+   * que nadie tire —tiran todos, y por turnos, que es lo que se quería—: es que el indicador
+   * preguntaba quién lleva mucho rato delante. Ver `simulate.ts` para la medida km a km.
+   *
+   * Se mide la SUMA de la ventana, que es la misma se reparta como se reparta. Y el listón no se
+   * elige: es **el mínimo que el listón viejo dejaba pasar**. Con el motor calibrado (las cinco
+   * capas apagadas, puerta `best >= 0,35`) se registró el total en los 95 partes de las 24 etapas
+   * del banco de atribución, y el suelo de esa distribución es 1,206 —p5 2,26, mediana 3,81—. Este
+   * 1,2 es ese suelo: la misma exigencia, dicha donde no depende del reparto.
+   */
+  pullMinWorkTotal: 1.2,
+  /**
+   * Throttle del parte: nunca dos partes en menos de `Min` km aunque cambie quién manda, y como
+   * mucho uno cada `pullReportKmGap` km aunque no cambie nadie. Medido (60 semillas por escenario):
+   * con 9/30 salían 5,4 por etapa en la llana y 6,3 en Flandes; con 12/36 la mediana quedaba en 4-5
+   * y el 75-90 % de las etapas caía en la ventana 3-6 que pedía el encargo.
+   *
+   * ————— 12 -> 30 EN LA v81, Y LOS DOS BANCOS DEJAN DE PELEARSE —————
+   *
+   * Aquella calibración se hizo contra un motor SIN subasta de frente y SIN cola de relevos. Con las
+   * cinco encendidas el trabajo cambia de manos de verdad —`frontTeamsAvg` 2,73 por etapa— y la
+   * crónica se pone habladora.
+   *
+   * **LA CADENCIA ES INERTE Y LA PALANCA ES EL THROTTLE**, y eso corrige por escrito la conclusión
+   * de la séptima refutación (v79), que dejó dicho «la palanca NO es la identidad, es la CADENCIA
+   * (`pullReportKmGap`)». No lo es: con 36 -> 48 -> 60 la ventana pasa del 50 % al 53 % y ahí se
+   * queda. Quien manda es este número.
+   *
+   * ESTE NÚMERO SE PUSO EN 14 CONTRA UN INDICADOR AVERIADO, Y ASÍ QUEDA DICHO. La tabla que estuvo
+   * aquí escrita decía que el campo POBRE (`attribution.test.ts`) se quedaba corto a partir de 15
+   * —2,42 contra un suelo de 2,5— y que 14 era «el valor más alto que aguanta», con un margen que
+   * yo mismo dejé anotado como sospechoso: «un throttle en kilómetros fijos es la forma
+   * equivocada». No era la forma del throttle. Era que la PUERTA del parte (`pullMinWork`) medía el
+   * trabajo del hombre que más tiraba, y con la cola de relevos encendida nadie acumula, así que el
+   * banco pobre estaba MUERTO DE HAMBRE, no apretado. Arreglada la puerta (`pullMinWorkTotal`, ver
+   * arriba), ese banco pasa de 1,75 partes por etapa a 9,38 con el throttle en 14: de quedarse
+   * corto a pasarse. La tabla vieja se retira entera porque midió con la puerta rota.
+   *
+   * MEDIDO DE NUEVO, con la puerta arreglada y las cinco capas encendidas, contra los dos bancos que
+   * tiran en sentidos opuestos —el POBRE (`attribution.test.ts`, 24 semillas) quiere media 2,5-6,5 y
+   * máximo 9; el RICO (`sim/tactics`, 40 semillas por escenario) quiere el mayor porcentaje de
+   * etapas dentro de la ventana 3-6—:
+   *
+   *   throttle   POBRE: media (máx)     RICO `llana-180`   RICO `reina-canonica`
+   *      14      9,38 (11)  FALLA         5,0 %                72,5 %
+   *      20      6,83  (8)  pasa         37,5 %                70,0 %
+   *      25      5,71  (7)  pasa         92,5 %                65,0 %
+   *      30      4,88  (6)  pasa        100,0 %                60,0 %   <- se queda éste
+   *      36      4,08  (5)  pasa        100,0 %                55,0 %
+   *
+   * Ya no hay pinza: el banco pobre pasa en TODO el tramo 20-36, que es una meseta y no un filo. La
+   * elección la deciden los otros dos, y **van en sentidos contrarios**: la llana sube del 5 % al
+   * 100 % y la reina baja del 72,5 % al 55 %. 30 es el máximo de la suma —la llana llega a su tope
+   * y la reina solo ha cedido 12,5 puntos— y además es donde el banco pobre queda mejor: media 4,88,
+   * el centro del 3-6 que pidió el encargo, con un máximo de 6 y tres puntos de holgura contra el
+   * techo de 9 (en 20 el máximo ya es 8, a uno del techo).
+   *
+   * LA REINA NO ENTRA EN BANDA EN NINGUNA CELDA y eso no se tapa: su mediana es 3 con mínimo 1 en
+   * todo el barrido, o sea que hay etapas de montaña con UN solo parte. Es coherente con lo que una
+   * reina es —el pelotón se rompe pronto y deja de haber «quién tira del pelotón» que contar—, pero
+   * no está demostrado que sea eso y no un segundo indicador averiado. Queda anotado, sin cerrar.
+   *
+   * Y 30 sigue por debajo de la CADUCIDAD (`pullReportKmGap` 36), que es lo que tiene que ser: el
+   * suelo no puede tragarse al techo.
+   */
+  pullReportMinKmGap: 30,
   pullReportKmGap: 36,
   // Sin fuga del día no había parte de relevos en toda la etapa, y con él se iba lo único que se
   // podía contar del tramo medio: medido en producción, Race Muscat —donde no cuajó ninguna fuga—
@@ -4347,7 +4481,7 @@ export const STAGE = {
    * adorno: apagado, el director ve el hueco exacto al instante, que es el motor de siempre.
    */
   director: {
-    enabled: false,
+    enabled: true,
     /**
      * La calidad media de dirección del campo, y cuánto varía de un equipo a otro. El diseño pide
      * una base por división (WT 0,85 · PRS 0,65 · CON 0,50); la división no viaja en `StageInput`,

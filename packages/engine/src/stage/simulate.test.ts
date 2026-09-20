@@ -2588,6 +2588,7 @@ describe('cada relevo dice para qué es (v47)', () => {
     let relevosDetras = 0
     let conMotivoDeEquipo = 0
     let deEquipoEnElPeloton = 0
+    let conJefeDentro = 0
     for (const seed of seedsFor('motivo', 6)) {
       for (const km of radioDe(seed).kms) {
         const pel = km.groups.findIndex((g) => g.id === km.mainId)
@@ -2601,7 +2602,22 @@ describe('cada relevo dice para qué es (v47)', () => {
             // `groups` va en orden de CARRETERA, así que ir después del pelotón es ir por detrás.
             if (pel < 0 || i < pel) continue
             relevosDetras += 1
-            if (deEquipo) conMotivoDeEquipo += 1
+            /**
+             * …Y LA DISTINCIÓN QUE ESTE SELLO NO PODÍA HACER CUANDO SE ESCRIBIÓ (v81).
+             *
+             * El sello decía «0 motivos de equipo por detrás», pero su propia justificación —arriba,
+             * con las palabras del dueño— es **«¿para qué carajos tiran si en ese grupo NO ESTÁ su
+             * líder?»**. Cuando su líder SÍ está, tirar por él es exactamente lo que se ve en la
+             * carretera, y el dueño lo reclamó con una captura: el maillot descolgado a 1:43, tres
+             * compañeros suyos rescatándole, y la radio diciéndoles «just riding — this group is
+             * chasing nothing». «Que chingados pasó aquí».
+             *
+             * Así que el sello conserva su significado y gana la distinción: por detrás no se tira
+             * por un jefe que no está, y sí por uno que está. Las dos mitades se cuentan.
+             */
+            const jefeDentro = p.para != null && g.riderIds.includes(p.para)
+            if (deEquipo && jefeDentro) conJefeDentro += 1
+            else if (deEquipo) conMotivoDeEquipo += 1
           }
         })
       }
@@ -2611,8 +2627,14 @@ describe('cada relevo dice para qué es (v47)', () => {
     // Y la evidencia: ninguno de ellos persigue nada por su equipo. Es lo que el dueño no podía ver
     // en la pantalla —«¿para qué carajos tiran si en ese grupo no está su líder?»— y ahora la propia
     // tabla lo dice: van en un grupeto, no persiguen nada.
-    expect(`motivos de equipo por detrás: ${conMotivoDeEquipo}`).toBe(
-      'motivos de equipo por detrás: 0',
+    expect(`motivos de equipo por detrás SIN su jefe: ${conMotivoDeEquipo}`).toBe(
+      'motivos de equipo por detrás SIN su jefe: 0',
+    )
+    // …Y LA MITAD NUEVA (v81), que es la que el dueño reclamó: cuando su jefe VA EN ESE GRUPO, el
+    // que tira lo dice. Sin este control, el arreglo se podría deshacer mañana y este test seguiría
+    // en verde poniendo `grupeto` a todo el mundo otra vez.
+    expect(`tiran por su jefe descolgado: ${conJefeDentro > 0}`).toBe(
+      'tiran por su jefe descolgado: true',
     )
     // …y la otra mitad, sin la cual esto se pasaría poniendo `grupeto` a todo el mundo: dentro del
     // pelotón el frente SÍ tiene dueño y sus hombres lo dicen.
@@ -2772,7 +2794,28 @@ describe('el maillot no releva fuera del pelotón si hay quien lo haga (v57)', (
             )
             if (pueden.length < 3) return
             fueraDelGrueso += 1
-            if (yo.pulling) tirandoConCompañía += 1
+            /**
+             * …Y «CON COMPAÑÍA» SE MIDE CON LAS PALABRAS DE LA REGLA (v81).
+             *
+             * La v57 no dice «el maillot no tira NUNCA fuera del grueso»: dice que queda EL ÚLTIMO
+             * de la fila del deber, y que el suelo de relevistas «lo saca al frente cuando de verdad
+             * no queda nadie —va solo, **o los que le acompañan están peor que él**—».
+             *
+             * El filtro viejo —tres compañeros con más del 5 % de depósito— no distinguía eso, y por
+             * eso este sello se puso rojo con una foto que era EL CASO PREVISTO: grupo de cuatro en
+             * el km 47, él a **0,667** y los suyos a 0,654 · 0,650 · 0,649. El más fresco de los
+             * cuatro era él, y sacarle al frente es justo lo que la regla manda.
+             *
+             * Y apretar el filtro por el otro lado tampoco valía: pedir tres compañeros MÁS FRESCOS
+             * que él deja la muestra en CERO —los que bajan a rescatarle han quemado para llegar, así
+             * que van peor— y un control que no ve ningún caso no vigila nada.
+             *
+             * Así que se cuenta lo que la regla PROHÍBE: que tire habiendo alguien mejor que él.
+             */
+            const hayAlguienMejor = suGrupo.some(
+              (r) => r.riderId !== 'maillot' && r.energy / r.energy0 > yo.energy / yo.energy0,
+            )
+            if (yo.pulling && hayAlguienMejor) tirandoConCompañía += 1
             if (suGrupo.some((r) => r.riderId !== 'maillot' && r.pulling)) otrosTirando += 1
           },
         })

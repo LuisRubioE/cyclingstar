@@ -1589,6 +1589,70 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   // Quién apretó en el aviso anterior, para no nombrar diez veces al mismo protagonista.
   let lastSplitDriverId: string | null = null
   /**
+   * EL ÚLTIMO KILÓMETRO EN QUE SE CONTÓ QUE EL LÍDER PERDIÓ LA RUEDA (v81).
+   *
+   * El maillot puede soltarse, volver y soltarse otra vez en la misma rampa; contarlo cada vez
+   * convertiría la noticia del día en una letanía. Se cuenta la primera y luego solo si ha habido
+   * carretera de por medio.
+   */
+  let ultimoAvisoLiderKm = Number.NEGATIVE_INFINITY
+  /**
+   * DESDE QUÉ KM LLEVA CADA GRUPO PEGADO A OTRO (v81, `contactGapSeconds`/`contactHoldKm`).
+   *
+   * La clave es el par de grupos, porque lo que se mide es una relación y no un estado de uno solo.
+   * Se borra en cuanto se separan: el contacto tiene que ser SEGUIDO.
+   */
+  const contactoDesdeKm = new Map<string, number>()
+  const llevaEnContacto = (kmAhora: number, a: string, b: string, juntos: boolean): boolean => {
+    const clave = a < b ? `${a}|${b}` : `${b}|${a}`
+    if (!juntos) {
+      contactoDesdeKm.delete(clave)
+      return false
+    }
+    const desde = contactoDesdeKm.get(clave)
+    if (desde === undefined) {
+      contactoDesdeKm.set(clave, kmAhora)
+      return false
+    }
+    return kmAhora - desde >= STAGE.contactHoldKm
+  }
+  /**
+   * A QUÉ DISTANCIA, EN SEGUNDOS, DOS GRUPOS SE TOCAN (v81).
+   *
+   * `contactGapSeconds` valía dos segundos fijos, y un número fijo de segundos **es una distancia
+   * distinta en cada sitio**: dos segundos a 20 km/h de puerto son once metros y a 45 km/h de
+   * abanico son veinticinco. Es el mismo error que la v39 ya corrigió en el cerillo —medirlo en
+   * metros regalaba el triple de esfuerzo subiendo— dicho al revés.
+   *
+   * Lo que decide si dos grupos son uno no es un reloj: es la CARRETERA que los separa comparada con
+   * la que ellos mismos ocupan. Setenta hombres miden medio centenar de metros; si el hueco es menor
+   * que eso, la cola de uno está dentro del otro y no hay dos grupos que valga.
+   *
+   * Medido sobre sesenta reinas —cruces en los que un grupo pasa a otro y SIGUE delante tres
+   * kilómetros después, o sea los que no son el pulso de la carretera—:
+   *
+   *   regla                        cruces   de ellos, con los dos grupos >= 8 hombres
+   *   2 s fijos (hasta la v81)       51                      9
+   *   4 s fijos                      39                      5
+   *   6 s fijos                      31                      4
+   *   10 s fijos                     13                      4
+   *   16 s fijos                      7                      2
+   *   ésta                           21                      0
+   *
+   * La regla física se lleva los NUEVE y además funde MENOS que el umbral plano que se queda con
+   * dos: arregla lo que estaba roto sin aplanar lo que no lo estaba. Los nueve eran del mismo tipo
+   * —el que el dueño vio en producción, «2 grupos que de repente 20 de atrás adelantan a los 10 de
+   * alante»— y todos resultaron ser grupos de 59 y 72 hombres separados por uno a once segundos,
+   * intercambiándose el sitio kilómetro tras kilómetro.
+   *
+   * `contactGapSeconds` se queda como SUELO: por debajo de dos segundos no se mira el tamaño.
+   */
+  const contactoS = (nA: number, nB: number, kmh: number): number => {
+    const metros = Math.max(nA, nB) * STAGE.contactMetresPerRider
+    const ms = Math.max(1, kmh) / 3.6
+    return Math.max(STAGE.contactGapSeconds, metros / ms)
+  }
+  /**
    * LA CRIBA LEJOS DE META (v21, docs/motor.md §16). Todo lo de arriba vive dentro del desenlace
    * (`raceThisClimb`), y por buenas razones: con perfiles reales hay relieve por todas partes y un
    * puerto de tempo rompe y recompone el pelotón sin consecuencias. Pero la etapa a veces se decide
@@ -1718,6 +1782,28 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   let breakShareReported = false
 
   /**
+   * NADA SE ACABA ANTES DE EMPEZAR (v81). El desenlace de un movimiento se narra con el reloj del
+   * grupo que lo caza, y ese reloj puede ser MENOR que el del movimiento: el pelotón se cuenta por
+   * su primer hombre y el que salta lo hace desde la mitad de la fila, así que sale con veinte o
+   * treinta segundos de reloj MÁS que el grupo del que sale.
+   *
+   * Normalmente da igual, porque la captura llega kilómetros después y manda el km. Pero un
+   * movimiento que nace y muere EN EL MISMO BLOQUE de cien metros deja las dos líneas en el mismo
+   * kilómetro, y entonces manda el reloj: la crónica ordena por km y luego por reloj, así que el
+   * lector leía **primero que le cazan y después que ataca**.
+   *
+   * Medido en `reina-150-18`: `mov-14` nace en el km 110,05 con reloj 10.153 y lo cazan en el mismo
+   * bloque con reloj 10.130 —veintitrés segundos ANTES—, y lo mismo con `mov-15`, `mov-17` y
+   * `mov-19`. Los cuatro son el `ataqueSinCerrar` que el banco de coherencia contaba: el arco SÍ se
+   * cerraba, pero la línea de cierre caía delante de la de salida, y el auditor —que mira hacia
+   * adelante, como el lector— no la encontraba.
+   *
+   * El suelo es el reloj de nacimiento, no el del bloque: lo que se corrige es un artefacto de qué
+   * hombre representa a cada grupo, no una duración.
+   */
+  const noAntesDeNacer = (m: { bornTs: number }, tS: number): number => Math.max(m.bornTs, tS)
+
+  /**
    * Los que más trabajo al frente han hecho, de más a menos, quedándose solo con los que han
    * puesto una parte apreciable de lo que puso el primero: si tiran dos, se nombran dos; si tira
    * uno solo, se nombra uno. El desempate por id hace el orden total (nunca el de inserción).
@@ -1726,7 +1812,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
     ledger: Iterable<[string, number]>,
     max: number,
     minShare: number,
-  ): { ids: string[]; best: number } => {
+  ): { ids: string[]; best: number; total: number } => {
     const ranked = [...ledger]
       .filter(([, w]) => w > 0)
       .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
@@ -1737,6 +1823,10 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         .filter(([, w]) => w >= best * minShare)
         .map(([id]) => id),
       best,
+      // …y EL TRABAJO TOTAL de la ventana, que es lo mismo se reparta como se reparta (v81). El
+      // `best` responde «quién lleva mucho rato delante» y una rotación de verdad hace que la
+      // respuesta sea «nadie»; la suma responde «cuánto se está tirando», que es la pregunta.
+      total: ranked.reduce((a, [, w]) => a + w, 0),
     }
   }
 
@@ -4063,28 +4153,42 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
          */
         const nombres = pull.ids.join()
         /**
-         * ————— `pullMinWork` MIDE UN SÍNTOMA DEL DEFECTO QUE LA COLA ARREGLA (v64) —————
+         * ————— `pullMinWork` MEDÍA UN SÍNTOMA, Y LA COLA LO DESTAPÓ (v64 lo escribió, v81 lo paga) —————
          *
          * `pull.best` es el trabajo acumulado por **UN HOMBRE** en la ventana que se olvida cada
-         * kilómetro, y el listón de 0,35 está calibrado contra un motor en el que **los mismos
+         * kilómetro, y el listón de 0,35 estaba calibrado contra un motor en el que **los mismos
          * hombres iban al frente todo el día**: por eso uno solo llegaba a acumular tanto.
          *
-         * Con el turno convertido en cola (R18.1, docs/tactica.md paso 7) un hombre da la cara 600
-         * metros y se va al final de la fila, así que **nadie acumula**. Medido en el km 100 de una
-         * etapa sin fuga con la cola encendida: el mejor lleva **0,066** contra el listón de 0,35, y
-         * el parte de relevos pasa de **24 etapas de 24 a 0 de 24**. No es que nadie tire —tiran
-         * todos, y por turnos, que es lo que se quería—: es que el indicador pregunta quién lleva
-         * mucho rato delante, y una rotación de verdad hace que la respuesta sea «nadie».
+         * Con el turno convertido en cola (R18.1, `teamPlay.turnPullKm`) un hombre da la cara 600
+         * metros y se va al final de la fila, así que **nadie acumula**. Medido en el escenario sin
+         * fuga del banco B6, kilómetro a kilómetro, con las cinco capas encendidas contra el mismo
+         * escenario con `teamPlay` apagado:
          *
-         * El arreglo NO es bajar el 0,35, y tampoco medirlo por equipos: se probó, y en el campo de
-         * este banco —que no tiene `teamId`— la suma por casa da exactamente lo mismo que el mejor
-         * hombre. Lo que hay que medir es **el trabajo total al frente**, que es invariante a cómo
-         * se reparta, y eso lleva su propia calibración en los dos brazos. Queda escrito aquí y en
-         * docs/balance.md «v60 §11»; se hace cuando la cola se encienda, no antes.
+         * | km  | `best` sin cola | `best` con cola | hombres con trabajo |
+         * |-----|-----------------|-----------------|---------------------|
+         * | 20  | 0,279           | 0,055           | 20 → 89             |
+         * | 60  | 0,422           | 0,088           | 42 → 80             |
+         * | 100 | 0,608           | 0,016           | 48 → 80             |
+         *
+         * El mismo trabajo, repartido entre el doble de hombres: `best` se hunde cinco veces y el
+         * parte de relevos desaparece. El banco B6 —«el parte no depende de que cuaje la fuga»—
+         * pasaba a CERO partes en una etapa entera, y el de atribución se quedaba en 1,75 por etapa
+         * contra un suelo de 2,5. Un solo defecto, dos bancos rojos. La bisección capa a capa lo
+         * dice sin ambigüedad: con las cinco apagadas el B6 pasa; encendiendo UNA sola, solo
+         * `teamPlay` lo tumba.
+         *
+         * **Lo que se mide ahora es el trabajo TOTAL al frente**, que es invariante a cómo se
+         * reparta, exactamente como dejó escrito la v64. Y el listón NO se elige a ojo: es **el
+         * mínimo que el listón viejo dejaba pasar**. Con el motor calibrado (capas apagadas, puerta
+         * `best >= 0,35`) se registró el total en los 95 partes que emitieron las 24 etapas del
+         * banco de atribución: el suelo de esa distribución es **1,206** (p5 2,26, mediana 3,81).
+         * `pullMinWorkTotal: 1.2` es ese suelo, o sea la misma exigencia dicha donde no depende del
+         * reparto. Con él, el motor calibrado no cambia de régimen (3,96 → 4,54 partes por etapa) y
+         * el de cinco capas deja de estar mudo.
          */
         if (
           pull.ids.length > 0 &&
-          pull.best >= STAGE.pullMinWork &&
+          pull.total >= STAGE.pullMinWorkTotal &&
           km - lastPullReportKm >= STAGE.pullReportMinKmGap &&
           ((identidad !== lastPullLeader && nombres !== lastPullNames) ||
             km - lastPullReportKm >= STAGE.pullReportKmGap)
@@ -5030,14 +5134,65 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
          * la que el motor mueve la carretera, así que la etiqueta ya no puede contradecir a la
          * carrera que se está viendo.
          */
-        if (!isBunch && group.tS >= relojPrincipal)
-          return {
-            motivo: group.compromiso >= compromisoPrincipal ? 'persecucion' : 'grupeto',
-            para: null,
-          }
         const suEquipo = rebels.has(m.input.riderId) ? null : (teamOf.get(m.input.riderId) ?? null)
         const plan = suEquipo != null ? teamPlans.get(suEquipo) : undefined
         const proposito = purposeOfTeam(suEquipo)
+        if (!isBunch && group.tS >= relojPrincipal) {
+          /**
+           * …PERO SI SU JEFE VA EN ESTE GRUPO, TIRA POR ÉL, AUNQUE EL GRUPO VAYA POR DETRÁS (v81).
+           *
+           * El dueño, con la captura delante: el maillot amarillo descolgado a 1:43, tres compañeros
+           * suyos tirando para devolverlo, y la radio diciéndole a los tres **«just riding — this
+           * group is chasing nothing»**. «Que chingados pasó aquí».
+           *
+           * Y el motor se contradecía a sí mismo con las palabras del dueño de dos versiones
+           * distintas. La regla que bloqueaba esto es de la v47 y su justificación escrita es
+           * **«¿para qué carajos tiran si en ese grupo NO ESTÁ su líder?»** — o sea que se escribió
+           * para el caso contrario a éste—. Y la regla que lo arregla ya existía desde la v58 («SI SU
+           * HOMBRE VA EN ESTE GRUPO, TIRA POR ÉL»), solo que vivía DEBAJO de este retorno temprano y
+           * por tanto era inalcanzable para cualquier grupo que fuera por detrás del grueso.
+           *
+           * Lo que la v47 quiso decir sigue en pie entero: por detrás del grueso no hay plan de
+           * equipo que valga **cuando tu jefe no está ahí**. Cuando está, lo que se ve en carretera
+           * es un gregario dando la cara delante de su líder, que es justo lo que el dueño estaba
+           * mirando.
+           */
+          const cartaDetras =
+            plan == null
+              ? null
+              : proposito === 'etapa'
+                ? plan.stageCandidateId
+                : (plan.leaderId ?? plan.stageCandidateId)
+          if (cartaDetras != null && cartaDetras !== m.input.riderId && idSet.has(cartaDetras)) {
+            switch (proposito) {
+              case 'maillot':
+                return { motivo: 'equipo_maillot', para: cartaDetras }
+              case 'general':
+                return { motivo: 'equipo_general', para: cartaDetras }
+              case 'etapa':
+                return { motivo: 'equipo_etapa', para: cartaDetras }
+            }
+          }
+          /**
+           * …Y «PERSEGUIR» NO SE MIDE CONTRA EL PELOTÓN A TREN DE SPRINT (v81).
+           *
+           * La v59 decidió esto comparando el compromiso del grupo con el del grueso, y a media
+           * etapa es la comparación correcta. En el FINAL se rompe: en la captura del dueño el
+           * pelotón lleva **trece hombres en trenes de sprint**, o sea el compromiso más alto que da
+           * el motor, y cinco corredores persiguiendo a tope no lo superan por mucho que se maten.
+           * Resultado: un grupo que evidentemente persigue sale como «chasing nothing».
+           *
+           * La referencia buena la da el propio motor: `droppedCommit` dice que un grupo descolgado
+           * **«quiere rodar al de un pelotón»** (`shedCommitBunch`), y lo que decide si pelea o se
+           * resigna son el boquete y las piernas, no lo que haga el grueso. Así que persigue el que
+           * rueda al menos a eso —o al ritmo del grueso, si el grueso va más flojo—.
+           */
+          const listonDePersecucion = Math.min(compromisoPrincipal, STAGE.shedCommitBunch)
+          return {
+            motivo: group.compromiso >= listonDePersecucion ? 'persecucion' : 'grupeto',
+            para: null,
+          }
+        }
         /**
          * SI SU HOMBRE VA EN ESTE GRUPO, TIRA POR ÉL — LO DIGA EL PRESUPUESTO O NO (v58).
          *
@@ -5364,7 +5519,40 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       // …y para el parte del corredor (v47), el km en que perdió EL GRUESO DE LA CARRERA. Se
       // sobrescribe: lo que interesa es la última vez que lo perdió, no la primera, porque entre
       // medias puede haber vuelto. Perder un grupeto no es perder la carrera y no se apunta.
-      if (group.id === (mainId ?? PELOTON)) m.parte.descuelgueKm = km
+      if (group.id === (mainId ?? PELOTON)) {
+        m.parte.descuelgueKm = km
+        /**
+         * …Y SI EL QUE SE SUELTA ES EL LÍDER DE LA CARRERA, SE CUENTA CON SU NOMBRE (v81).
+         *
+         * El dueño, con la captura del maillot descolgado a 1:43 y sus compañeros rescatándole: «el
+         * Journal es incoherente… y no explica por qué se quedó el líder».
+         *
+         * Y era literal. `peloton_split` nombra a QUIEN APRIETA y cuenta CUÁNTOS se quedan, pero no
+         * nombra a ninguno de los descolgados: cuando el que se cae es el maillot amarillo, la
+         * crónica decía «41 riders dropped» y el hecho más importante de la etapa —que el líder ha
+         * perdido la rueda— no aparecía por ningún lado. La radio lo enseñaba y el diario no.
+         *
+         * Va AQUÍ y no en la criba porque `dropOut` es la puerta ÚNICA por la que pasan las tres
+         * vías de descuelgue —la criba, el que se deja ir y el que se va al suelo—, que es lo que su
+         * propio comentario de la v26 dice y lo que hace imposible que una de las tres se escape.
+         *
+         * Y LLEVA EL PORQUÉ, que es la otra mitad de la queja: el depósito con el que se quedó
+         * —para distinguir al que revienta del que simplemente no aguanta el ritmo—, el terreno, y
+         * los kilómetros que faltaban.
+         */
+        if (
+          hasGcContext &&
+          m.input.gcRank === 1 &&
+          km - ultimoAvisoLiderKm >= STAGE.leaderDropKmGap
+        ) {
+          ultimoAvisoLiderKm = km
+          log.emit(km, group.tS + delayS, 'lider_descolgado', 'leader_dropped', [m.input.riderId], {
+            deposito: Math.round(100 * (m.energy0 > 0 ? clamp(m.energy / m.energy0, 0, 1) : 0)),
+            terreno: block.tipo,
+            toGo: Math.round(totalKm - km),
+          })
+        }
+      }
       // El que acaba de soltarse no está relevando: solo importa para la foto (v28), donde si no un
       // caído —el único descuelgue que ocurre DESPUÉS de `advance()`— saldría tirando de su grupeto.
       m.pulling = false
@@ -6950,7 +7138,35 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        * paso 6, cuando `payable` exista. Aquí solo se retira el veto, y `closingNow` viaja como
        * selector de flujo.
        */
-      if (fasesOn || !closingNow) {
+      /**
+       * ————— EL VETO SE QUEDA HASTA QUE SU SUSTITUTO SEA SUFICIENTE (v81) —————
+       *
+       * R19 retiró este veto a propósito —«aquí solo se retira el veto, y `closingNow` viaja como
+       * selector de flujo»— dejando su reemplazo para el paso 6: `closingBusyDamp` sobre `payable`,
+       * «la mitad del cierre que el 5 no podía hacer». El paso 6 ya está encendido. El reemplazo
+       * existe y está vivo. Y NO BASTA.
+       *
+       * MEDIDO, al encender las cinco capas: dos pruebas de conducta se caen —la selección que parte
+       * la carrera a 50 km de meta baja de ≥12 de 24 etapas a **6**, y el mayor corte narrado se
+       * queda en **2** corredores contra un mínimo de 12—. Bisecado capa a capa, es `phases`; y
+       * dentro de `phases`, bisecado enganche a enganche, es ESTA LÍNEA:
+       *
+       *   A · tope GLOBAL de movimientos ........ 2 | 6   no
+       *   B · fila de fase NULA ................. 2 | 6   no
+       *   C · ESTE VETO RESTAURADO .............. LAS DOS PASAN
+       *   D · sin puente desde atrás ............ 3 | 7   no
+       *
+       * Y se ve POR QUÉ no basta el reemplazo: `closingBusyDamp` frena a UN equipo —`cerrandoAhora`
+       * devuelve como mucho el que lleva el frente, y solo si hay `frontTeamId`—, mientras que el
+       * veto paraba el intento ENTERO del pelotón. Con el veto fuera, el pelotón sigue lanzando
+       * ataques mientras caza, la carrera se fragmenta y la ruptura lejana no llega a ocurrir.
+       *
+       * Así que el veto se queda, y la retirada de R19 queda APLAZADA con su medida delante en vez
+       * de dada por hecha. Lo que la desbloquea está escrito: que `closingBusyDamp` frene a todos
+       * los que podrían saltar mientras el pelotón cierra, no solo al que lleva el frente. Eso es
+       * una tanda propia con su propia medición, y hasta entonces esto no se toca.
+       */
+      if (!closingNow) {
         attemptFrom(peloton, kind, bridgeable && head ? head.g : null, closingNow)
       }
     }
@@ -7371,12 +7587,54 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
          * El AUTOBÚS que triplica en número sigue teniendo su puerta más ancha (`shutFor`): no es un
          * regalo de reloj, es que setenta hombres organizados vuelven donde diez no.
          */
+        /**
+         * …Y A UN SEGUNDO NO SE PERSIGUE, SE VA EN LA RUEDA (v81, `contactGapSeconds`).
+         *
+         * Las dos puertas de arriba piden algo MÁS que estar juntos: `caught` pide que el reloj haya
+         * LLEGADO, y la otra pide ir estrictamente más rápido (`cerrando`). Las dos son correctas a
+         * veinte segundos y absurdas a uno: dos grupos que ruedan a la MISMA velocidad separados por
+         * segundo y medio no se funden jamás, porque ninguno de los dos se está acercando.
+         *
+         * El dueño lo vio en producción —«2 grupos a 0 segundos que no se unen»— y medido sobre las
+         * nueve reinas reales salía con ejemplos de 87 corredores a 1,4 s de otros 88, kilómetro
+         * tras kilómetro. Aquí se cierra: por debajo del contacto no hay dos grupos.
+         */
+        const enContacto = llevaEnContacto(
+          km,
+          PELOTON,
+          sg.id,
+          Math.abs(gapSeconds(peloton, sg)) <=
+            contactoS(peloton.riderIds.length, mem.length, peloton.vActual),
+        )
         if (
           caught ||
+          enContacto ||
           (!onRough &&
             cerrando &&
             gapSeconds(peloton, sg) <= STAGE.rejoinGapSeconds * shutFor(mem.length))
         ) {
+          /**
+           * …Y FUNDIRSE POR CONTACTO TAMPOCO REGALA SEGUNDOS (v81, la regla de la v76.1 aplicada
+           * aquí).
+           *
+           * Las otras dos puertas pueden entregar el reloj del pelotón sin más: `caught` porque el
+           * reloj ha LLEGADO de verdad, y la de `rejoinGapSeconds` porque está calibrada para eso y
+           * el hueco que perdona es su precio conocido. La del contacto no: perdona lo que midan los
+           * dos grupos de largo, que en un puerto son diez segundos, y entregarlos gratis es
+           * exactamente el regalo que la v58 estrechó y la v76.1 prohibió.
+           *
+           * Medido antes de ponerlo: sin esta línea, la reina canónica de la semilla 1 pasaba de 33
+           * grupos de llegada a 15 y TODO el campo entraba 315 s más rápido. No era una fusión: era
+           * el pelotón repartiendo su reloj cada vez que alcanzaba a alguien.
+           *
+           * La fusión cambia la ETIQUETA del grupo, no el reloj de la gente: se devuelve en `driftS`
+           * exactamente lo que el cambio de referencia le habría dado o quitado, con signo, que es
+           * la misma cuenta que `fusion.test.ts` tiene sellada.
+           */
+          if (!caught && enContacto) {
+            const hueco = gapSeconds(peloton, sg)
+            if (hueco !== 0) for (const m of mem) m.driftS += hueco
+          }
           for (const m of mem) m.groupId = PELOTON
           peloton = { ...peloton, riderIds: [...peloton.riderIds, ...sg.riderIds] }
           continue
@@ -7541,7 +7799,25 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
            * consideran juntos) y que entre los dos haya gente suficiente para que la radio lo
            * enseñe.
            */
-          if (onRough || detras.g.tS > delante.g.tS) {
+          /**
+           * …SALVO EN CONTACTO (v81). El límite que la v56 dejó anotado —«en un puerto dos grupos
+           * todavía pueden cruzarse sin juntarse»— es defendible cuando hay hueco: un grupo que sube
+           * más fuerte te pasa y te deja, y eso la v58 decidió NARRARLO en vez de impedirlo, con
+           * razón. Lo que no es defendible es a cero: veinte que pasan a diez a medio segundo no
+           * pasan de largo, se juntan y luego la subida vuelve a partirlos por piernas.
+           *
+           * Medido: 28 cruces sin fusión en 36 etapas reina reales. Por debajo del contacto se
+           * funden aunque sea puerto; por encima, la regla de la v58 sigue intacta y el rebase se
+           * cuenta como lo que es.
+           */
+          const juntos = llevaEnContacto(
+            km,
+            detras.g.id,
+            delante.g.id,
+            Math.abs(detras.g.tS - delante.g.tS) <=
+              contactoS(detras.g.riderIds.length, delante.g.riderIds.length, detras.g.vActual),
+          )
+          if (!juntos && (onRough || detras.g.tS > delante.g.tS)) {
             // El cruce EN EL PUERTO se apunta para confirmarlo más adelante (ver `rebasesPendientes`
             // y el bloque que los resuelve, unas líneas más arriba).
             if (onRough && detras.g.tS < delante.g.tS) {
@@ -8028,11 +8304,18 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           // ahorra una línea, deja una historia sin final. Se cuenta cómo acaba TODO lo que se
           // contó cómo empezaba.
           const narra = narraCierre
-          log.emit(km, front.g.tS, 'intento_fallido', 'attack_reeled', attackers.slice(0, 3), {
-            kind: front.kind,
-            km: Math.max(1, Math.round(km - front.bornKm)),
-            narra: narra ? 1 : 0,
-          })
+          log.emit(
+            km,
+            noAntesDeNacer(front, front.g.tS),
+            'intento_fallido',
+            'attack_reeled',
+            attackers.slice(0, 3),
+            {
+              kind: front.kind,
+              km: Math.max(1, Math.round(km - front.bornKm)),
+              narra: narra ? 1 : 0,
+            },
+          )
           // …y con ella, quién lo cerró. Solo de lo que se ha narrado: el epitafio de un intento
           // que no se contó tampoco necesita autor.
           if (narra) attributeChase(front, km, front.g.tS)
@@ -8250,7 +8533,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             const narra = m.prospered || m.narrated
             log.emit(
               km,
-              peloton.tS,
+              noAntesDeNacer(m, peloton.tS),
               m.prospered ? 'movimiento_cazado' : 'intento_fallido',
               m.prospered ? 'move_caught' : 'attack_reeled',
               ids.slice(0, 3),
@@ -8342,11 +8625,18 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
          * lector esperando una captura que no llegaba nunca. Lo que se abre se cierra.
          */
         if (!m.closed && m.narrated && !m.dayBreak) {
-          log.emit(km, peloton.tS, 'intento_fallido', 'move_faded', m.lastIds.slice(0, 3), {
-            kind: m.kind,
-            km: Math.max(1, Math.round(km - m.bornKm)),
-            toGo: Math.round(totalKm - km),
-          })
+          log.emit(
+            km,
+            noAntesDeNacer(m, peloton.tS),
+            'intento_fallido',
+            'move_faded',
+            m.lastIds.slice(0, 3),
+            {
+              kind: m.kind,
+              km: Math.max(1, Math.round(km - m.bornKm)),
+              toGo: Math.round(totalKm - km),
+            },
+          )
         }
         m.closed = true
         moves.splice(a, 1)
@@ -8728,6 +9018,16 @@ function disputeClimb(
       category: block.climbCategory ?? '',
       points: table[0] ?? 0,
       leads: takesLead ? 1 : 0,
+      /**
+       * LA CIFRA QUE SOSTIENE LA FRASE (v81). El evento decía «pasa a liderar la montaña» y NO
+       * publicaba con qué: solo los puntos del primero en ESTA cima. Con eso el lector no puede
+       * saber si el liderato es de nueve puntos a ocho o de treinta a dos, y el banco que vigila el
+       * invariante —«solo si es de verdad»— tampoco podía: reconstruía la clasificación desde la
+       * crónica y le faltaban los puntos de los segundos y terceros puestos, así que veía empates
+       * donde el motor veía ventaja. Se publican los dos lados de la comparación que el motor hace.
+       */
+      total: winner.climbPts,
+      tras: bestOther,
     })
   }
 }

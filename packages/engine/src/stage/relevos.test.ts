@@ -89,7 +89,18 @@ describe('engine: la cola del turno de relevos', () => {
    * Aquí no se enciende nada: lo que se arregla es el NOMBRE, para que la lista de pruebas en verde
    * deje de leerse como si la capa corriera. El encendido va aparte, con su medida.
    */
-  it('el juego de equipo nace APAGADO, y el nombre ya no dice lo contrario', () => {
-    expect(STAGE.teamPlay.enabled).toBe(false)
+  /**
+   * ————— ENCENDIDA EN LA v81, POR DECISIÓN DEL DUEÑO —————
+   *
+   * «Enciende director y todos, luego ya vemos si hay que calibrar algo mejor». Las cinco capas
+   * pasan a `true` a la vez, y `ENGINE_VERSION` sube a 80.
+   *
+   * EL SELLO NO SE RETIRA, SE DA LA VUELTA: su trabajo nunca fue mantener la capa apagada sino que
+   * encenderla tuviera que ser una decisión declarada y no un descuido. Ha hecho exactamente eso —
+   * las cinco pruebas se pusieron rojas y obligaron a escribir esto. Ahora vigila lo contrario: que
+   * nadie la apague de vuelta sin decirlo.
+   */
+  it('el juego de equipo está ENCENDIDO desde la v81, y el nombre lo dice', () => {
+    expect(STAGE.teamPlay.enabled).toBe(true)
   })
 })
