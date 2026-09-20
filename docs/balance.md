@@ -15356,3 +15356,107 @@ visto desde dos sitios**. Y el síntoma que lo delata es el que tuve delante tre
 siguiente falla, la hipótesis barata no es «la forma de la constante es equivocada» sino **«uno de
 los dos bancos está midiendo mal»**. Arreglado el indicador, el filo se convirtió en una meseta de
 dieciséis kilómetros de ancho.
+
+## v81 (2) — los cuatro bancos que el encendido puso rojos, y ninguno era lo que parecía
+
+Encendidas las cinco capas, el banco de simulación se quedó con cinco fallos. Cada uno se midió
+antes de tocar nada, y los cinco resultaron ser cosas distintas de lo que su nombre decía.
+
+### 1 · «Cuatro ataques que nunca se cierran» — se cerraban, pero al revés
+
+`coherence.test.ts` daba `ataqueSinCerrar=4` en la peor reina contra una tolerancia de 2: ataques
+que se abren con su frase y no vuelven a mencionarse. Trazado el ciclo de vida de los cuatro:
+
+```
+NACE km110,05 reloj 10.153  mov-14  [pel-89]
+CAZA km110,05 reloj 10.130  mov-14  [pel-89]
+```
+
+Nace y muere **en el mismo bloque de cien metros**, y el cierre lleva un reloj VEINTITRÉS SEGUNDOS
+menor que la salida. La salida se emite con el reloj del que salta y el cierre con el del grupo que
+le caza, y el del pelotón es menor porque el pelotón se cuenta por su primer hombre mientras el que
+ataca sale desde la mitad de la fila. Con la captura a kilómetros de distancia manda el km y no se
+nota; en el mismo kilómetro manda el reloj, y **el lector leía primero que le cazan y después que
+ataca**. Los cuatro casos son idénticos.
+
+El suelo del cierre pasa a ser el reloj de nacimiento. Medido, peor etapa de cada escenario:
+
+| escenario               | antes | ahora |
+| ----------------------- | ----- | ----- |
+| llana-180               | 2     | 0     |
+| reina-150               | 4     | 0     |
+| clásica larga (Flandes) | 2     | 0     |
+| Race Jaén               | 1     | 1     |
+
+Y no mueve un segundo: las cuatro huellas selladas salen idénticas.
+
+### 2 · «La fuga gana demasiado en llano» — era la muestra, y estaba escrito
+
+18,33 % contra un techo de 16. La banda lleva anotado desde la v33 que **su techo describe el
+tamaño de la muestra**: con 120 semillas σ ≈ 2,2 puntos. Medido con tres muestras:
+
+| semillas | gana la fuga | captura % |
+| -------- | ------------ | --------- |
+| 120 (CI) | 18,33 %      | 78,18 %   |
+| 300      | 15,00 %      | 82,05 %   |
+| 500      | 14,60 %      | 83,04 %   |
+
+El valor converge a 14,6 —dentro de banda— y el 18,33 era exactamente el ruido que aquella nota
+predijo. Así que se paga lo que la nota pedía —«quien quiera estrecharla tiene que subir primero
+las semillas»— en vez de ensanchar un techo que ya describía la muestra: **120 → 300**.
+
+### 3 · «El pelotón caza menos» — sí, y es literalmente lo mismo que el punto 2
+
+`capturePct > 85`, un literal a pelo sin derivación ni entrada en `TARGETS`. Control sobre 500
+semillas:
+
+| 500 semillas     | gana la fuga | captura % | ni una ni otra |
+| ---------------- | ------------ | --------- | -------------- |
+| capas apagadas   | 9,80 %       | 88,37 %   | 1,83 %         |
+| capas encendidas | 14,60 %      | 83,04 %   | 2,36 %         |
+
+**Las fugas que ganan salen exactamente de las que se cazan.** O sea que un suelo de 85 en la
+captura es, en silencio, un techo de ~13 en las victorias de fuga, mientras la banda que el dueño
+aprobó permite hasta 16. Dos invariantes sobre el mismo banco diciendo cosas distintas; el que no
+está derivado es el que está mal. El suelo pasa a derivarse: `100 − max(breakawayWinPct) − 2,5`, y
+si alguien estrecha la banda de la fuga, el suelo se estrecha con ella.
+
+### 4 · «El corte se ha vuelto una guillotina» — el porcentaje es el instrumento equivocado
+
+17,1 % contra un techo de 15. Control sobre doce grandes vueltas:
+
+| causa            | capas off | capas on |
+| ---------------- | --------- | -------- |
+| lesión           | 211       | 211      |
+| enfermedad       | 123       | 124      |
+| colapso          | 13        | 13       |
+| fuera de control | 46        | 69       |
+
+**Las caídas y la enfermedad son idénticas dígito a dígito**: son dados y la táctica no los toca.
+El porcentaje se movió porque creció su numerador —de 3,8 a 5,75 eliminados por vuelta sobre 176
+que salen— y el denominador se quedó donde estaba.
+
+Y eso enseña que un PORCENTAJE no puede vigilar esto: si mañana se doblara la tasa de caídas, este
+número bajaría a la mitad sin que el corte hubiera cambiado un gramo, y el objetivo daría verde. Se
+separan las dos preguntas: el reparto sigue siendo una alarma de FORMA (techo 15 → 20, porque se
+ponía rojo por aritmética de fracciones) y se añade la medida de MAGNITUD, que es la que de verdad
+vigila la guillotina: **eliminados por el corte y por vuelta, banda 1-9**.
+
+### 5 · Un test que exigía que el motor siguiera fallando
+
+`el contraataque tras la captura está medido, y hoy NO llega a su banda` afirmaba
+`counterAfterCatchPct < 25`. Su propio comentario ya anunciaba la vuelta —«con la capa táctica
+entera encendida… 16 % → 29 %, dentro de banda»— y el código no la había dado. Encendidas las
+cinco: **27,3 %**, dentro de la banda 25-60. Una prueba que se pone roja cuando el motor acierta no
+es un banco, es un ancla al defecto. Se afirma lo que hay.
+
+### La lección, que es la misma de la primera entrada
+
+Cinco bancos rojos, y en **cuatro** el que estaba mal era el instrumento: un reloj que ordenaba mal
+dos líneas del mismo kilómetro, una muestra demasiado pequeña que su propio comentario ya denunciaba,
+un literal sin derivar que contradecía a una banda derivada, y un porcentaje vigilando una magnitud.
+El único cambio de conducta real —que el corte elimine a dos hombres más por gran vuelta— es el
+efecto que las capas prometen, y se queda, medido y escrito.
+
+Antes de creerse que un motor se ha roto por cinco sitios a la vez, conviene preguntarle a cada
+banco **qué mide exactamente**. Cuatro de cinco contestaron que otra cosa.

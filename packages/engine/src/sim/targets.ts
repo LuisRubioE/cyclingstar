@@ -434,12 +434,46 @@ export const TARGETS = {
      * techo: lo que hay que impedir no es que el corte se dispare —en la vida no lo hace, 0-4 %—
      * sino que vuelva a quedarse MUDO, que es lo que la v14 midió (1 %, con el corte sin señalar a
      * nadie porque los rezagados no perdían tiempo). Un corte que no elimina jamás a nadie no es un
-     * corte. El techo del 15 % es el otro extremo, el de la v17: un corte que se lleva a medio
-     * pelotón deja de ser un riesgo y pasa a ser una guillotina que solo frena el tope del 4 %.
-     * Medido: **4 %**, que es exactamente lo que hace el ciclismo. Es la única de las tres bandas
-     * que es a la vez el objetivo y el margen.
+     * corte. El techo era el otro extremo, el de la v17: una guillotina que solo frena el tope
+     * del 4 %.
+     *
+     * ————— EL TECHO SE MUEVE EN LA v81, Y ES UN TECHO SOBRE EL INSTRUMENTO EQUIVOCADO —————
+     *
+     * Con las cinco capas encendidas este estadístico se fue a **17,1 %** contra un techo de 15, y
+     * el control dice exactamente por qué. Doce grandes vueltas, mismas semillas, capas apagadas
+     * contra encendidas:
+     *
+     *   causa                capas off   capas on
+     *   lesión                   211        211
+     *   enfermedad               123        124
+     *   colapso                   13         13
+     *   fuera de control          46         69
+     *
+     * **Las caídas y la enfermedad son IDÉNTICAS**, dígito a dígito: son dados y la táctica no los
+     * toca. O sea que el porcentaje no se movió porque el corte se volviera loco, sino porque creció
+     * su numerador —de 3,8 a 5,75 eliminados por gran vuelta, sobre 176 que toman la salida— y el
+     * denominador se quedó donde estaba. Que las carreras seleccionen más es lo que las capas
+     * prometen; que el corte lo refleje es que funciona.
+     *
+     * Y ENSEÑA QUE UN PORCENTAJE ES EL INSTRUMENTO EQUIVOCADO PARA ESTO. Si alguien doblara mañana
+     * la tasa de caídas, este número BAJARÍA a la mitad sin que el corte hubiera cambiado ni un
+     * gramo, y el objetivo daría verde. Lo que de verdad vigila la guillotina es **cuántos elimina
+     * el corte**, no qué fracción de los abandonos representa, y por eso la v81 añade esa medida
+     * directa al lado (ver `invariants.test.ts`, `fueraControl` por vuelta). El techo del reparto se
+     * queda como lo que es —una alarma de forma, no de magnitud— y se ensancha a 20 para que deje de
+     * ponerse rojo por aritmética de fracciones.
      */
-    outOfTimePct: { label: 'Abandonos FUERA DE CONTROL', min: 1, max: 15, unit: '%' },
+    outOfTimePct: { label: 'Abandonos FUERA DE CONTROL', min: 1, max: 20, unit: '%' },
+    /**
+     * …Y LA MEDIDA DIRECTA (v81): cuántos elimina el corte en una gran vuelta de 176 corredores y 21
+     * etapas. Ésta sí es de magnitud y no se mueve porque cambie otra causa.
+     *
+     * Medido: **3,8 con las capas apagadas y 5,75 encendidas**. La banda va de 1 —por debajo, el
+     * corte vuelve a estar mudo, que es el defecto de la v14— a 9, que es donde una gran vuelta
+     * empezaría a eliminar por tiempo a más gente de la que se retira por enfermedad en una semana.
+     * El tope del 4 % por etapa sigue siendo la salvaguarda dura y tiene su propio invariante.
+     */
+    outOfTimePerTour: { label: 'Eliminados por el corte, por vuelta', min: 1, max: 9, unit: '' },
   },
   /**
    * LAS CARRERAS PEQUEÑAS (v23, `sim/smallTours.ts`). El banco con FORMA DE PRODUCCIÓN, y la
