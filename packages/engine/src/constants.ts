@@ -2579,37 +2579,47 @@ export const STAGE = {
      * Segundos que se mueve la general por km de puerto ENTRE HOMBRES VECINOS, no entre el mejor y
      * el peor.
      *
-     * **SIGUE [calibrar], Y EN LA v82 POR UN MOTIVO DISTINTO Y MUCHO MÁS ACOTADO.**
+     * ————— DEJA DE ESTAR [calibrar] EN LA v82: **DERIVADA**, y con su ancla vigilada —————
      *
-     * El comentario decía «[calibrar] sobre `realQueens` en el paso 21», y el paso 21 comprobó que
-     * ese banco existe y **no mide esto**: publica el tamaño de la cola, no cuánto se separan dos
-     * hombres consecutivos del top-10.
+     * Costó tres intentos y los tres se dicen, porque el patrón es el que esta casa lleva toda la
+     * tanda cazando.
      *
-     * El barrido del paso 21 fue más lejos y dio la constante **inerte dígito a dígito** en 1,2, 1,6
-     * y 2,0 sobre las diez estadísticas de los bancos de un día. La causa, encontrada leyendo el
-     * único camino por el que decide: `recoverableSeconds(shape)` multiplica `kmSubidaRestante`, que
-     * sale de `race.shape` —lo que queda DE CARRERA, no de etapa—. En producción lo rellena
-     * `packages/db/src/raceContext.ts`; **ningún banco lo pasaba**, así que la constante multiplicaba
-     * un cero en todos ellos. No era que no decidiera: era que nadie le daba nada que decidir.
+     * **Intento 1, el ancla que citaba.** «[calibrar] sobre `realQueens` en el paso 21»: ese banco
+     * existe y publica el TAMAÑO DE LA COLA, que no es lo que esta constante cuenta.
      *
-     * LA v82 CONSTRUYE EL INSTRUMENTO: `sim/generalBench` pasa una forma de carrera declarada y
-     * publica `breakMaxGapS`, el colchón mediano de la fuga del día, que es literalmente lo que la
-     * correa gobierna. Medido sobre 60 reinas con general:
+     * **Intento 2, el barrido del paso 21.** Salió **inerte dígito a dígito** en 1,2, 1,6 y 2,0
+     * sobre las diez estadísticas. No porque no decidiera: `recoverableSeconds(shape)` multiplica
+     * `kmSubidaRestante`, que sale de `race.shape` —lo que queda DE CARRERA—, y **ningún banco lo
+     * pasaba**. En producción sí lo rellena `packages/db/src/raceContext.ts`. Con la forma puesta en
+     * `sim/generalBench`, la respuesta es monótona (283 · 305 · 452 con 1,2; 283 · 317 · 492 con
+     * 1,6; 283 · 368 · 533 con 2,0, para 0, 120 y 400 km de puerto por delante) y con su control
+     * dentro: con CERO km de puerto es inerte, que es lo que tiene que ser.
      *
-     *   gcClimbRecoverPerKm   0 km de puerto   120 km   400 km
-     *          1,2                 283          305      452
-     *          1,6                 283          317      492
-     *          2,0                 283          368      533
+     * **Intento 3, el que ancla, y sale de leer la frase de esta constante literalmente.** «Segundos
+     * que se mueve la general por km de puerto entre hombres vecinos» es algo que el motor produce y
+     * que no se estaba midiendo. `sim/analyze` lo publica ahora como `gcMovePerClimbKm`, sin correr
+     * nada nuevo: la brecha 1.º-10.º entre sus nueve huecos y entre los km de puerto del recorrido,
+     * contados como los cuenta `terrenoRestante`, que es **la misma unidad en la que esto cobra**.
+     * En la reina canónica: 187,5 s / 9 / 25 km = **0,83 s por km de puerto y por vecino**.
      *
-     * Monótona donde tiene que serlo, **y con su control dentro**: con cero km de puerto por delante
-     * es inerte en las tres filas, que es exactamente lo que una constante que multiplica
-     * `kmSubidaRestante` tiene que hacer.
+     * Y LO QUE SE COMPARA ES EL PRODUCTO, no este número suelto, porque `recoverableSeconds` se usa
+     * en **un solo sitio de todo el motor** —`leashOf`— y siempre multiplicada por `gcLeashShare`:
      *
-     * LO QUE SIGUE FALTANDO, y por eso la marca se queda: `breakMaxGapS` **no tiene banda**. No hay
-     * en este repositorio ninguna medida de cuánto colchón llega a tener la fuga de una etapa de gran
-     * vuelta, y sin ella el barrido dice que la constante MUEVE el estadístico pero no cuál de los
-     * tres valores es el bueno. La marca deja de significar «no hay instrumento» y pasa a significar
-     * «hay instrumento y falta su ancla», que es un paso y se dice como tal.
+     *     gcClimbRecoverPerKm · gcLeashShare = 1,6 · 0,6 = 0,96   contra los 0,83 medidos
+     *
+     * Un 16 % por encima y por el lado correcto: esta cuenta contesta «¿cuánto se PUEDE recuperar
+     * todavía?», que es una cota superior y no una media. Por eso el valor **no se mueve**: lo que
+     * faltaba no era otro número, era saber contra qué se mide éste.
+     *
+     * LA RELACIÓN QUEDA VIGILADA, que es lo que distingue anclar de escribir una frase bonita: hay
+     * un invariante en `sim/invariants.test.ts` que comprueba que el producto y la medida no se
+     * divorcien. Su margen es ancho —un factor de dos— a propósito: lo que caza no es que el producto
+     * deje de ser 0,96, sino que alguien cambie la montaña, la general pase a moverse el triple y la
+     * correa siga concediendo cuerda con la cuenta de antes.
+     *
+     * SU ESLABÓN DÉBIL, dicho: esto la ata al COMPORTAMIENTO del motor, y lo que ata ese
+     * comportamiento a la realidad es `mountain.top10GapSeconds` (40-300 s). La cadena tiene tres
+     * eslabones y el de en medio no existía.
      */
     gcClimbRecoverPerKm: 1.6,
     /**
@@ -4764,14 +4774,45 @@ export const STAGE = {
     ambushRivalWindowS: 700,
     /**
      * QUÉ PARTE DEL PERCANCE ESTÁ DE VERDAD EN JUEGO. El caído pierde su tiempo se espere o no; lo
-     * que el pelotón le puede negar es el REGRESO, y eso es la mitad larga de lo perdido.
+     * que el pelotón le puede negar es el REGRESO.
      *
-     * **SIGUE [calibrar], Y LA MEDIDA QUE CITABA NO EXISTE.** Decía «[calibrar] contra
-     * `truceGrantedPct` 50-85 %», y `truceGrantedPct` **no está en este repositorio**: cero
-     * apariciones en `sim/targets.ts` y en `sim/analyze.ts`, y la propia tabla de `docs/tactica.md`
-     * la lista con la columna «no existe». La banda 50-85 % es del diseño, no del banco.
+     * ————— DEJA DE ESTAR [calibrar] EN LA v82, Y SE MUEVE 0,50 -> 0,35 —————
+     *
+     * El ancla que citaba —«[calibrar] contra `truceGrantedPct` 50-85 %»— **no existía**: cero
+     * apariciones en `sim/targets.ts` y en `sim/analyze.ts`, y la tabla de `docs/tactica.md` la
+     * listaba con la columna «no existe».
+     *
+     * El barrido del paso 21 sobre los bancos de un día dio esta constante **inerte dígito a dígito**
+     * en 0,30, 0,50 y 0,70 sobre diez estadísticas. Y no porque no decida: el camino de la emboscada
+     * exige equipos con jefe de GENERAL y `gcDeficitSeconds` de verdad, y esos bancos son carreras de
+     * un día. El instrumento tenía que construirse donde sí los hay —`sim/generalBench`, el único
+     * banco con general— y ahí vive ahora `truceGrantedPct`.
+     *
+     * MEDIDO, 150 reinas con general por celda:
+     *
+     *   ambushGainShare   pedidas   concedidas   %      negativas por «emboscada»
+     *        0,20            34         29      85,3              2
+     *        0,30            34         27      79,4              4
+     *        0,35            34         24      70,6              7      <- se queda éste
+     *        0,40            36         17      47,2             15
+     *        0,50 (antes)    38         12      31,6             22
+     *        0,70            39          6      15,4             29
+     *
+     * Curva monótona y limpia, y el mecanismo se lee en la última columna: lo que esta constante
+     * mueve es cuántas treguas se niegan POR EMBOSCADA, que es exactamente lo que gobierna. El valor
+     * viejo dejaba el estadístico en **31,6 %, fuera de banda por abajo**; 0,35 lo pone en **70,6 %**,
+     * el centro del 50-85.
+     *
+     * LA PRECISIÓN QUE HAY Y LA QUE NO: la FORMA de la curva es sólida —monótona en seis valores con
+     * 34-39 sucesos cada uno— pero el nivel de cada celda lleva su error. Con 34 treguas, el 70,6 %
+     * arrastra ±15 puntos, así que elegir 0,35 en vez de 0,30 está dentro del ruido. Se toma 0,35
+     * por ser la más centrada de las tres celdas que caen en banda, no por precisión que no hay.
+     *
+     * Y hay que decir lo que esto le hace a la prosa de arriba: el 0,50 venía de «es la mitad larga
+     * de lo perdido», que era una estimación razonada y no una medida. La medida dice que es algo
+     * menos de un tercio. Manda la medida, y la frase se corrige en vez de conservarse.
      */
-    ambushGainShare: 0.5,
+    ambushGainShare: 0.35,
     ambushCommit: 0.88,
     ambushKm: 8,
     /** EL RESCATE (R12.4): un hombre por cada treinta y cinco segundos de hueco. */

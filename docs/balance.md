@@ -15695,3 +15695,92 @@ decide, leído entero.
 
 Y la de R19 es la misma con otro traje: dos piezas retiradas en el mismo commit, un defecto muerto, y
 el mérito repartido entre las dos sin comprobar cuál lo había matado.
+
+## v82 (2) — la última `[calibrar]` se cierra, y un commit que afirmaba lo que no traía
+
+Quedaba una sola marca del paso 21 con deuda real: `gcClimbRecoverPerKm`. La v82 la había dejado
+diciendo «hay instrumento y falta su ancla». Aquí se le pone el ancla. Y por el camino salió un
+error mío que vale más que el ancla.
+
+### El ancla: tres intentos, y el tercero sale de leer la frase de la constante
+
+**Intento 1, el que citaba.** «[calibrar] sobre `realQueens` en el paso 21». Ese banco existe y
+publica el tamaño de la cola, que no es lo que esta constante cuenta. Ya estaba descartado.
+
+**Intento 2, el barrido.** Inerte dígito a dígito, porque ningún banco pasaba `race.shape`. Se
+construyó `breakMaxGapS` y la respuesta salió monótona con su control dentro. Pero `breakMaxGapS` no
+tiene banda —no hay en este repositorio ninguna medida de cuánto colchón tiene la fuga de una gran
+vuelta— así que el barrido decía que la constante **mueve** el estadístico, no cuál de los tres
+valores es el bueno.
+
+**Intento 3, el que ancla.** La frase de la constante es «segundos que se mueve la general por km de
+puerto **entre hombres vecinos**». Eso es algo que el motor produce y que no se estaba midiendo — y
+no hace falta correr nada nuevo para medirlo:
+
+```
+gcMovePerClimbKm = medianTop10GapSeconds / 9 / kmDePuerto
+                 =        187,5          / 9 /    25      = 0,83 s/km
+```
+
+Los nueve huecos que separan al 1.º del 10.º, y los km de `tipo: 'puerto'`, que es **la misma unidad
+en la que la constante cobra** —la que `terrenoRestante` cuenta en `packages/db`—. Sin esa
+coincidencia de unidad el número no serviría para anclar nada.
+
+### Y lo que se compara es el PRODUCTO, no el número suelto
+
+`recoverableSeconds` se usa en **un solo sitio de todo el motor**, y siempre con su descuento:
+
+```
+leashOf = clamp(colchón + recoverableSeconds(shape) · gcLeashShare, suelo, techo)
+```
+
+Así que lo que decide es `gcClimbRecoverPerKm · gcLeashShare` = 1,6 · 0,6 = **0,96 s por km de
+puerto y por vecino**, contra los **0,83** medidos. Un 16 % por encima y **por el lado correcto**:
+esa cuenta contesta «¿cuánto se PUEDE recuperar todavía?», que es una cota superior y no una media.
+
+Por eso el valor **no se mueve**. Lo que faltaba no era otro número: era saber contra qué se mide
+éste. Y la relación queda **vigilada** por un invariante, que es lo que distingue anclar de escribir
+una frase bonita. Su margen es de un factor de dos a propósito: lo que caza no es que el producto
+deje de ser 0,96, sino que alguien cambie la montaña, la general pase a moverse el triple, y la
+correa siga concediendo cuerda con la cuenta de antes.
+
+**Su eslabón débil, dicho**: esto ata la constante al COMPORTAMIENTO del motor, y lo que ata ese
+comportamiento a la realidad es `mountain.top10GapSeconds` (40-300 s). La cadena tiene tres eslabones
+y el de en medio no existía.
+
+### El error: un commit que afirmaba un cambio que no contenía
+
+`cc81f0b` y el cuerpo de su PR dicen, con tabla y todo, «`ambushGainShare` 0,50 → 0,35». **El commit
+tiene 0,50.**
+
+Lo que pasó: los barridos de esta sesión hacen copia de `constants.ts` al empezar y **la restauran al
+acabar**. Yo edité el fichero mientras uno de ellos corría en segundo plano, y al terminar me
+sobrescribió la edición. Verifiqué el cambio —`grep` dio `0.35`— antes de que el barrido restaurara,
+así que la comprobación pasó y el cambio murió después.
+
+Tres cosas de esto, y ninguna es «se me pasó»:
+
+1. **El riesgo estaba escrito en esta misma bitácora**, en el paso 21: «el barrido parchea
+   `constants.ts`… los dos no pueden correr a la vez: se pisan el fichero. Van en cola, nunca en
+   paralelo». La nota existía y no sirvió, porque **una nota no falla**. Lo que falla es un test.
+2. **Las dos suites pasaron en verde con el valor viejo** —958 y 113— y eso es lo que hace al error
+   peligroso: ningún banco miraba este valor, así que el verde no decía nada sobre él. Un número
+   medido, escrito en la bitácora y no sellado en ninguna parte es un número que se puede perder sin
+   que nadie se entere.
+3. **Verificar justo después de editar no basta** cuando hay un proceso en vuelo que toca el mismo
+   fichero. La comprobación tiene que sobrevivir al final de la sesión, no al instante de la edición.
+
+El arreglo son las tres: el valor re-aplicado, **un sello en `truce.test.ts` que ata el número a la
+celda del barrido que lo eligió**, y esta entrada. El sello es el que importa: si mañana otro barrido
+vuelve a pisar el fichero, la suite se pone roja en vez de pasar en verde mintiendo.
+
+Y se sella el VALOR y el LADO, no el porcentaje: con 34 treguas por celda el 70,6 % arrastra ±15
+puntos, así que elegir 0,35 en vez de 0,30 está dentro del ruido. Lo que la curva sostiene sin
+discusión es el lado —por debajo de 0,40 se concede dentro de banda, de 0,40 en adelante no— y eso es
+lo que se sella aparte.
+
+### La lección
+
+Es la misma de toda la tanda, aplicada a mí: **un resultado que no vigila nadie no es un resultado**.
+Llevo dos días cazando constantes cuyo ancla citaba bancos que no medían lo que prometían, y el
+mismo día me dejé un valor medido, escrito y sin sellar — y se perdió en la ventana de un `cp`.
