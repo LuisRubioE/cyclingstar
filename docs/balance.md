@@ -15460,3 +15460,87 @@ efecto que las capas prometen, y se queda, medido y escrito.
 
 Antes de creerse que un motor se ha roto por cinco sitios a la vez, conviene preguntarle a cada
 banco **qué mide exactamente**. Cuatro de cinco contestaron que otra cosa.
+
+## v81 (3) — dos grupos son uno cuando se tocan, y tocarse no se mide en segundos
+
+El defecto que el dueño vio en producción, con sus palabras: «en las etapas de montaña siguen
+pasando cosas sin sentido: 2 grupos a 0 segundos que no se unen… y 2 grupos que de repente 20 de
+atrás adelantan a los 10 de alante».
+
+La primera versión del arreglo (la cláusula de contacto, `contactGapSeconds` = 2 s con
+`contactHoldKm` = 1) se llevó las parejas pegadas, y dejó nueve cruces grandes. Medidos uno a uno
+—cruces en los que un grupo pasa a otro y **sigue delante tres kilómetros después**, o sea los que
+no son el pulso de la carretera— resultaron ser todos del mismo tipo: grupos de **59 y 72 hombres
+separados por uno a once segundos**, intercambiándose el sitio kilómetro tras kilómetro.
+
+### Un número fijo de segundos es una distancia distinta en cada sitio
+
+Dos segundos a 20 km/h de puerto son once metros; a 45 km/h de abanico son veinticinco. Es el mismo
+error que la v39 ya corrigió en el cerillo —medirlo en metros regalaba el triple de esfuerzo
+subiendo— dicho al revés.
+
+Lo que decide si dos grupos son uno no es un reloj: es la **carretera que los separa comparada con
+la que ellos mismos ocupan**. Setenta hombres miden medio centenar de metros; si el hueco es menor
+que eso, la cola de uno está dentro del otro. El ancla del metraje es un pelotón real: 176
+corredores ocupan 130-150 m, o sea 0,75-0,85 m por hombre.
+
+Medido sobre sesenta reinas:
+
+| regla                      | cruces pegajosos | de ellos, con los dos grupos ≥ 8 hombres |
+| -------------------------- | ---------------- | ---------------------------------------- |
+| 2 s fijos (hasta la v81)   | 51               | **9**                                    |
+| 4 s fijos                  | 39               | 5                                        |
+| 6 s fijos                  | 31               | 4                                        |
+| 10 s fijos                 | 13               | 4                                        |
+| 16 s fijos                 | 7                | 2                                        |
+| **física (0,75 m/hombre)** | **21**           | **0**                                    |
+
+La regla física se lleva los nueve **y funde MENOS que el umbral plano que se queda con dos**:
+arregla lo que estaba roto sin aplanar lo que no lo estaba. Ningún umbral fijo consigue las dos
+cosas, porque ningún umbral fijo sabe si está en un puerto o en un abanico.
+
+### Y la prueba de que no aplana: las huellas llanas no se mueven
+
+De las cuatro huellas selladas, **las dos de llano salen idénticas dígito a dígito**. En llano se
+rueda a 45 km/h, el umbral se encoge a un par de segundos y no se funde nada que no se fundiera ya.
+Los abanicos siguen exactamente donde estaban, que era el riesgo real de esta regla.
+
+En la reina, lo que cambia es el **número de grupos de llegada, no los tiempos**: 44 → 27 y 33 → 32,
+con deltas medianos de +8 s y −1 s. Y los cuatro de cabeza entran juntos —`gc-2`, `gc-1`, `gc-3` y
+`gc-0` los cuatro en 15.520, donde marcaban 15.489, 15.512, 15.528 y 15.546—. Cincuenta y siete
+segundos repartidos entre cuatro hombres que iban en contacto no eran cuatro grupos: eran uno.
+
+### El regalo de reloj que casi se cuela, y cómo se cazó
+
+La primera implementación de la regla física daba un resultado sospechoso: la semilla 1 de la reina
+pasaba de 33 grupos de llegada a **15** y el campo entero entraba **315 segundos más rápido**. Eso
+no es una fusión, es un regalo.
+
+Y estaba escrito dónde: la puerta del pelotón entrega su reloj al grupo que absorbe, sin más. Con un
+umbral de dos segundos el regalo era de dos segundos y no se notaba; con el umbral físico son diez
+en un puerto, y la puerta se abre mucho más a menudo. Es exactamente el regalo que la v58 estrechó
+(`rejoinGapSeconds`) y que la v76.1 prohibió con una regla que este repositorio ya tenía sellada:
+**la fusión cambia la etiqueta del grupo, no el reloj de la gente**.
+
+Aplicada aquí —se devuelve en `driftS` lo que el cambio de referencia daría o quitaría, con signo—
+los deltas medianos pasan de −315 s a **−1 s**. Las otras dos puertas no la necesitan: `caught` es
+que el reloj ha llegado de verdad, y la de `rejoinGapSeconds` está calibrada con su precio conocido.
+
+### De propina, un liderato que la crónica no sabía justificar
+
+El contacto movió lo suficiente la montaña como para que saltara otro banco: `climb_kom` anunciaba
+«pasa a liderar la montaña» y su invariante veía un **empate a 2** donde el motor tenía 3 contra 2.
+El motor tenía razón; el banco reconstruía la clasificación sumando solo los puntos del PRIMERO de
+cada cima, y en una cima puntúan varios.
+
+Pero el fallo de fondo no era del banco: era que **la crónica anunciaba un liderato sin publicar la
+cifra que lo sostiene**. Un lector que lee «takes the lead in the mountains» no puede saber si es de
+nueve a ocho o de treinta a dos, y el banco estaba en su misma situación. El evento pasa a traer
+`total` y `tras` —los dos lados de la comparación que el motor hace—, el banco comprueba
+exactamente eso, y la línea del diario los dice: «takes the lead in the mountains — 12 points to 9».
+
+### La lección
+
+Cuando una constante en segundos hay que subirla «un poco más» cada vez que aparece un caso nuevo,
+la pregunta no es cuánto, es **si segundos es la unidad correcta**. Aquí no lo era: el barrido plano
+iba 51 → 39 → 31 → 13 → 7 sin llegar nunca a cero, y la regla física llegó a cero fundiendo la mitad.

@@ -1790,6 +1790,15 @@ export const STAGE = {
    */
   contactGapSeconds: 2,
   /**
+   * METROS DE CARRETERA QUE OCUPA UN CORREDOR dentro de un grupo (v81), que es lo que convierte el
+   * suelo de arriba en una distancia de verdad. Ver `contactoS` en `simulate.ts`.
+   *
+   * ANCLADO en lo que mide un pelotón real: el de una gran vuelta, 176 corredores, ocupa entre 130
+   * y 150 metros de carretera. 140/176 = 0,80; se usa 0,75 porque un grupo en rotación va más
+   * apretado que uno en fila india y ésta es la cifra que se aplica a los dos.
+   */
+  contactMetresPerRider: 0.75,
+  /**
    * …Y CUÁNTOS KM SEGUIDOS DE CONTACTO HACEN FALTA PARA FUNDIR (v81, corrección medida).
    *
    * La primera versión de la cláusula de contacto fundía por proximidad INSTANTÁNEA, y eso

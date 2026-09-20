@@ -1617,6 +1617,42 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
     return kmAhora - desde >= STAGE.contactHoldKm
   }
   /**
+   * A QUÉ DISTANCIA, EN SEGUNDOS, DOS GRUPOS SE TOCAN (v81).
+   *
+   * `contactGapSeconds` valía dos segundos fijos, y un número fijo de segundos **es una distancia
+   * distinta en cada sitio**: dos segundos a 20 km/h de puerto son once metros y a 45 km/h de
+   * abanico son veinticinco. Es el mismo error que la v39 ya corrigió en el cerillo —medirlo en
+   * metros regalaba el triple de esfuerzo subiendo— dicho al revés.
+   *
+   * Lo que decide si dos grupos son uno no es un reloj: es la CARRETERA que los separa comparada con
+   * la que ellos mismos ocupan. Setenta hombres miden medio centenar de metros; si el hueco es menor
+   * que eso, la cola de uno está dentro del otro y no hay dos grupos que valga.
+   *
+   * Medido sobre sesenta reinas —cruces en los que un grupo pasa a otro y SIGUE delante tres
+   * kilómetros después, o sea los que no son el pulso de la carretera—:
+   *
+   *   regla                        cruces   de ellos, con los dos grupos >= 8 hombres
+   *   2 s fijos (hasta la v81)       51                      9
+   *   4 s fijos                      39                      5
+   *   6 s fijos                      31                      4
+   *   10 s fijos                     13                      4
+   *   16 s fijos                      7                      2
+   *   ésta                           21                      0
+   *
+   * La regla física se lleva los NUEVE y además funde MENOS que el umbral plano que se queda con
+   * dos: arregla lo que estaba roto sin aplanar lo que no lo estaba. Los nueve eran del mismo tipo
+   * —el que el dueño vio en producción, «2 grupos que de repente 20 de atrás adelantan a los 10 de
+   * alante»— y todos resultaron ser grupos de 59 y 72 hombres separados por uno a once segundos,
+   * intercambiándose el sitio kilómetro tras kilómetro.
+   *
+   * `contactGapSeconds` se queda como SUELO: por debajo de dos segundos no se mira el tamaño.
+   */
+  const contactoS = (nA: number, nB: number, kmh: number): number => {
+    const metros = Math.max(nA, nB) * STAGE.contactMetresPerRider
+    const ms = Math.max(1, kmh) / 3.6
+    return Math.max(STAGE.contactGapSeconds, metros / ms)
+  }
+  /**
    * LA CRIBA LEJOS DE META (v21, docs/motor.md §16). Todo lo de arriba vive dentro del desenlace
    * (`raceThisClimb`), y por buenas razones: con perfiles reales hay relieve por todas partes y un
    * puerto de tempo rompe y recompone el pelotón sin consecuencias. Pero la etapa a veces se decide
@@ -7567,7 +7603,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           km,
           PELOTON,
           sg.id,
-          Math.abs(gapSeconds(peloton, sg)) <= STAGE.contactGapSeconds,
+          Math.abs(gapSeconds(peloton, sg)) <=
+            contactoS(peloton.riderIds.length, mem.length, peloton.vActual),
         )
         if (
           caught ||
@@ -7576,6 +7613,28 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             cerrando &&
             gapSeconds(peloton, sg) <= STAGE.rejoinGapSeconds * shutFor(mem.length))
         ) {
+          /**
+           * …Y FUNDIRSE POR CONTACTO TAMPOCO REGALA SEGUNDOS (v81, la regla de la v76.1 aplicada
+           * aquí).
+           *
+           * Las otras dos puertas pueden entregar el reloj del pelotón sin más: `caught` porque el
+           * reloj ha LLEGADO de verdad, y la de `rejoinGapSeconds` porque está calibrada para eso y
+           * el hueco que perdona es su precio conocido. La del contacto no: perdona lo que midan los
+           * dos grupos de largo, que en un puerto son diez segundos, y entregarlos gratis es
+           * exactamente el regalo que la v58 estrechó y la v76.1 prohibió.
+           *
+           * Medido antes de ponerlo: sin esta línea, la reina canónica de la semilla 1 pasaba de 33
+           * grupos de llegada a 15 y TODO el campo entraba 315 s más rápido. No era una fusión: era
+           * el pelotón repartiendo su reloj cada vez que alcanzaba a alguien.
+           *
+           * La fusión cambia la ETIQUETA del grupo, no el reloj de la gente: se devuelve en `driftS`
+           * exactamente lo que el cambio de referencia le habría dado o quitado, con signo, que es
+           * la misma cuenta que `fusion.test.ts` tiene sellada.
+           */
+          if (!caught && enContacto) {
+            const hueco = gapSeconds(peloton, sg)
+            if (hueco !== 0) for (const m of mem) m.driftS += hueco
+          }
           for (const m of mem) m.groupId = PELOTON
           peloton = { ...peloton, riderIds: [...peloton.riderIds, ...sg.riderIds] }
           continue
@@ -7755,7 +7814,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             km,
             detras.g.id,
             delante.g.id,
-            Math.abs(detras.g.tS - delante.g.tS) <= STAGE.contactGapSeconds,
+            Math.abs(detras.g.tS - delante.g.tS) <=
+              contactoS(detras.g.riderIds.length, delante.g.riderIds.length, detras.g.vActual),
           )
           if (!juntos && (onRough || detras.g.tS > delante.g.tS)) {
             // El cruce EN EL PUERTO se apunta para confirmarlo más adelante (ver `rebasesPendientes`
@@ -8958,6 +9018,16 @@ function disputeClimb(
       category: block.climbCategory ?? '',
       points: table[0] ?? 0,
       leads: takesLead ? 1 : 0,
+      /**
+       * LA CIFRA QUE SOSTIENE LA FRASE (v81). El evento decía «pasa a liderar la montaña» y NO
+       * publicaba con qué: solo los puntos del primero en ESTA cima. Con eso el lector no puede
+       * saber si el liderato es de nueve puntos a ocho o de treinta a dos, y el banco que vigila el
+       * invariante —«solo si es de verdad»— tampoco podía: reconstruía la clasificación desde la
+       * crónica y le faltaban los puntos de los segundos y terceros puestos, así que veía empates
+       * donde el motor veía ventaja. Se publican los dos lados de la comparación que el motor hace.
+       */
+      total: winner.climbPts,
+      tras: bestOther,
     })
   }
 }

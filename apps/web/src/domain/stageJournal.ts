@@ -1177,7 +1177,16 @@ function chronicleTemplate(e: ChronicleEntry): string {
       // Desde la v13 `leads` solo llega a 1 si el ganador está ESTRICTAMENTE por delante de todos los
       // demás: tres corredores con un punto cada uno no pueden liderar los tres (defecto B5). Y la
       // frase deja claro que habla de la montaña DE LA CARRERA, que es lo que el motor sabe contar.
-      const leadPart = e.datos?.leads === 1 ? ' — and takes the lead in the mountains' : ''
+      /**
+       * …Y CON LA CIFRA QUE LO SOSTIENE (v81). La frase decía «takes the lead in the mountains» y no
+       * decía con cuánto, así que el lector no podía distinguir un liderato de nueve puntos a ocho
+       * de uno de treinta a dos. El motor ya compara los dos lados —tiene que estar ESTRICTAMENTE
+       * por delante del mejor de los demás— y desde la v81 los publica.
+       */
+      const total = Number(e.datos?.total ?? 0)
+      const tras = Number(e.datos?.tras ?? 0)
+      const margen = total > 0 && total > tras ? ` — ${total} points to ${tras}` : ''
+      const leadPart = e.datos?.leads === 1 ? ` — and takes the lead in the mountains${margen}` : ''
       return `${who} is first over the ${catLabel}${ptsPart}${leadPart}.`
     }
     case 'domestiques_drop_back': {
