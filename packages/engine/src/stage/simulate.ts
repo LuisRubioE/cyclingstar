@@ -95,6 +95,7 @@ import {
   customsProbability,
   jerseyVetoes,
   leashOf,
+  objectionOf,
 } from './customs.js'
 import {
   belowEchelonThreshold,
@@ -2734,12 +2735,57 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   /**
    * QUÉ EQUIPOS ESTÁN OCUPADOS CERRANDO (R19.4, el precio que el paso 5 dejó pendiente). Mientras se
    * cierra un movimiento sin cuerda, quien paga ese cierre tiene menos que ofrecer por lo siguiente.
-   * Hoy el cierre lo paga quien lleva el frente; cuando exista la subasta de R20, lo pagará quien la
-   * gane, y esta función es el sitio donde eso se sustituye.
+   *
+   * ————— Y LO PAGAN TODOS LOS QUE LO PAGAN, NO SOLO EL DE LA ETIQUETA (v82) —————
+   *
+   * Esta función devolvía **como mucho un equipo**: el que lleva el frente. Y su propio comentario
+   * dejaba escrito el porqué y la condición de cierre: «hoy el cierre lo paga quien lleva el frente;
+   * cuando exista la subasta de R20, lo pagará quien la gane, y esta función es el sitio donde eso
+   * se sustituye». R20 está encendida, así que la condición se ha cumplido —y al ir a hacerlo
+   * resulta que la sustitución que el comentario pedía **ya está hecha por otro lado**: con
+   * `front.enabled`, `frontTeamId` lo decide `frontClaimOf`, o sea el ganador de la subasta.
+   *
+   * Lo que seguía sin hacerse es la otra mitad, y es la que la regla dice de verdad: **un cierre no
+   * lo paga un equipo, lo pagan todos los que objetan**. `potOf` suma `min(objeción, payable)` equipo
+   * a equipo —ésa es la definición del bote— así que el que pone dinero en ese bote está ocupado,
+   * lleve la etiqueta del frente o no. Con la versión vieja, un equipo que estaba vaciándose en la
+   * persecución llegaba al siguiente movimiento con el bolsillo intacto porque la etiqueta la tenía
+   * otro.
+   *
+   * NO HAY CIRCULARIDAD, y es lo que hace que esto se pueda calcular aquí: `objectionOf` **no lee
+   * `closing`** —solo `payableOf` lo hace—, así que se construyen los equipos con `closing` en falso,
+   * se pregunta quién objeta al movimiento que se está cerrando, y esos son los ocupados.
+   *
+   * MEDIDO, equipos que pagan el cierre por llamada, sobre ocho equipos de cinco:
+   *
+   *   llana-180 ....... 0,94 -> 0,95
+   *   reina ........... 0,96 -> 2,76
+   *
+   * Y el reparto es el que la regla predice: en llano, un movimiento que el pelotón cierra sin
+   * concederle cuerda casi nunca amenaza a nadie más que al que lleva el frente, así que el número no
+   * se mueve. En montaña amenaza a varios equipos de general a la vez, y ahí es donde el precio del
+   * cierre pasaba gratis para todos menos uno. Es también el único sitio donde esto cambia carreras.
    */
   const cerrandoAhora = (): ReadonlySet<string> => {
-    const hay = moves.some((m) => !m.closed) && !moves.some((m) => m.allowed || m.dayBreak)
-    return hay && frontTeamId !== null ? new Set([frontTeamId]) : new Set<string>()
+    const abierto = moves.find((m) => !m.closed)
+    if (abierto === undefined || moves.some((m) => m.allowed || m.dayBreak)) {
+      return new Set<string>()
+    }
+    if (!customsOn) {
+      return frontTeamId !== null ? new Set([frontTeamId]) : new Set<string>()
+    }
+    const dentro = membersOf(abierto.g.id)
+    if (dentro.length === 0) {
+      return frontTeamId !== null ? new Set([frontTeamId]) : new Set<string>()
+    }
+    const mv = customsMoveDe(dentro, Math.max(0, peloton.tS - abierto.g.tS), abierto.kind)
+    const ocupados = new Set<string>()
+    for (const t of customsTeams(gcLeash(), new Set<string>())) {
+      if (objectionOf(t, mv) > 0) ocupados.add(t.teamId)
+    }
+    // El que lleva el frente paga siempre, objete o no: está tirando.
+    if (frontTeamId !== null) ocupados.add(frontTeamId)
+    return ocupados
   }
 
   const customsTeams = (leashAhora: number, cerrandoAhora: ReadonlySet<string>): CustomsTeam[] => {

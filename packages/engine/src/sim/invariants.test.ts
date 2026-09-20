@@ -713,6 +713,50 @@ describe('la general que ningún banco miraba (v79, docs/motor.md §V.1)', () =>
     expect(stats.jerseyFrontQueenPct).toBeLessThanOrEqual(100)
   })
 
+  /**
+   * ————— LA TREGUA, QUE ES EL OBJETIVO QUE `ambushGainShare` CITABA Y NO EXISTÍA (v82) —————
+   *
+   * La constante llevaba «[calibrar] contra `truceGrantedPct` 50-85 %» desde que nació y ese
+   * estadístico no estaba en el repositorio. Ahora está, vive aquí —es el único banco con general de
+   * verdad, y la emboscada la necesita— y con él la constante pasó de dejar el número en **31,6 %**,
+   * fuera de banda por abajo, a **70,6 %** con 0,35. Ver `constants.ts` para la curva entera.
+   */
+  it('se piden treguas, y la sonda que las cuenta DISPARA', { timeout: 300000 }, () => {
+    /**
+     * LO QUE LA CI PUEDE SELLAR AQUÍ ES QUE LA SONDA DISPARE, Y NO MÁS, y el número que lo dice
+     * está medido: con las 40 semillas del invariante salen **6 treguas** —0,15 por etapa— y seis
+     * casos no son un porcentaje. Comprobado: esas seis dan 33,3 %, y las 150 reinas del barrido
+     * dan 70,6 % con el mismo motor. Sellar la banda aquí sería sellar la diferencia entre dos
+     * sucesos y cuatro.
+     *
+     * La banda (50-85, `TARGETS.general.truceGrantedPct`) se comprueba con la muestra entera en
+     * `pnpm sim`, que es el mismo reparto que este repositorio ya usa con `calendarQueens` y con
+     * `weather`: la banda se escribe donde se mide, y la CI vigila que el instrumento exista.
+     *
+     * Y EL CONTROL NO ES UN TRÁMITE: si no se pidiera ninguna tregua, `truceGrantedPct` sería un
+     * 0/0 disfrazado de porcentaje y cualquier banda pasaría en verde sin medir nada. Es
+     * exactamente el defecto que esta tanda lleva todo el día cazando.
+     */
+    expect(stats.truceAskedPerStage).toBeGreaterThan(0)
+    expect(stats.truceGrantedPct).toBeGreaterThanOrEqual(0)
+    expect(stats.truceGrantedPct).toBeLessThanOrEqual(100)
+  })
+
+  it('el colchón de la fuga existe y es de ciclismo (el instrumento de la correa)', () => {
+    /**
+     * `breakMaxGapS` NO lleva banda —no hay ancla en este repositorio para «cuánto colchón tiene la
+     * fuga de una etapa de gran vuelta»— así que lo único sellable es que la medida EXISTA y no diga
+     * un disparate. Es el instrumento con el que `gcClimbRecoverPerKm` deja de ser inmedible: sin él
+     * la constante multiplicaba un cero en todos los bancos, porque ninguno pasaba `race.shape`.
+     *
+     * El suelo es un minuto —por debajo no habría fuga que contar— y el techo, el de la propia
+     * correa (`gcLeashMaxS` 900) con margen: si el colchón se fuera por encima de eso, lo que estaría
+     * roto es la correa y no esta medida.
+     */
+    expect(stats.breakMaxGapS).toBeGreaterThan(60)
+    expect(stats.breakMaxGapS).toBeLessThan(1800)
+  })
+
   it('la sonda del depósito del maillot DISPARA (el control del otro instrumento)', () => {
     /**
      * Lo único que aquí se puede sellar, y no es poco: que la medida EXISTA.

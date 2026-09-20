@@ -797,7 +797,16 @@
  * tirado— desaparecía; ahora se mide el trabajo TOTAL, que es invariante al reparto. Ver
  * `pullMinWorkTotal` y `pullReportMinKmGap`.
  */
-export const ENGINE_VERSION = 81 as const
+/**
+ * **v82 — EL PASO 21 SE CIERRA, Y LA DEUDA DE R19 TAMBIÉN** (docs/tactica.md §8, paso 21).
+ *
+ * Dos cosas de conducta. `ambushGainShare` 0,50 -> 0,35, anclada por fin al `truceGrantedPct` que su
+ * comentario citaba desde que nació y que no existía. Y el precio de cerrar (R19.4) lo pagan ahora
+ * todos los equipos que objetan al movimiento que se cierra, no solo el que lleva la etiqueta del
+ * frente: en montaña son 2,76 equipos por llamada contra 0,96. Ver `ambushGainShare` y
+ * `cerrandoAhora`.
+ */
+export const ENGINE_VERSION = 82 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -2570,15 +2579,37 @@ export const STAGE = {
      * Segundos que se mueve la general por km de puerto ENTRE HOMBRES VECINOS, no entre el mejor y
      * el peor.
      *
-     * **SIGUE [calibrar], Y EL PASO 21 DEJA ESCRITO POR QUÉ.** Este comentario decía «[calibrar]
-     * sobre `realQueens` en el paso 21», y al ir a hacerlo resultó que **ese banco existe y no mide
-     * esto**: `analyzeRealQueens` publica `lastGroupPct` y `worstStagePct`, o sea el TAMAÑO DE LA
-     * COLA. La cola no dice nada de cuánto se separan dos hombres consecutivos del top-10, que es lo
-     * que esta constante cuenta.
+     * **SIGUE [calibrar], Y EN LA v82 POR UN MOTIVO DISTINTO Y MUCHO MÁS ACOTADO.**
      *
-     * Una constante no queda anclada porque su comentario nombre un banco: queda anclada cuando ese
-     * banco mide **la pregunta que la constante contesta**. Hasta que exista ese estadístico, la
-     * marca se queda, y se queda diciendo la verdad en vez de apuntar a un ancla que no sostiene.
+     * El comentario decía «[calibrar] sobre `realQueens` en el paso 21», y el paso 21 comprobó que
+     * ese banco existe y **no mide esto**: publica el tamaño de la cola, no cuánto se separan dos
+     * hombres consecutivos del top-10.
+     *
+     * El barrido del paso 21 fue más lejos y dio la constante **inerte dígito a dígito** en 1,2, 1,6
+     * y 2,0 sobre las diez estadísticas de los bancos de un día. La causa, encontrada leyendo el
+     * único camino por el que decide: `recoverableSeconds(shape)` multiplica `kmSubidaRestante`, que
+     * sale de `race.shape` —lo que queda DE CARRERA, no de etapa—. En producción lo rellena
+     * `packages/db/src/raceContext.ts`; **ningún banco lo pasaba**, así que la constante multiplicaba
+     * un cero en todos ellos. No era que no decidiera: era que nadie le daba nada que decidir.
+     *
+     * LA v82 CONSTRUYE EL INSTRUMENTO: `sim/generalBench` pasa una forma de carrera declarada y
+     * publica `breakMaxGapS`, el colchón mediano de la fuga del día, que es literalmente lo que la
+     * correa gobierna. Medido sobre 60 reinas con general:
+     *
+     *   gcClimbRecoverPerKm   0 km de puerto   120 km   400 km
+     *          1,2                 283          305      452
+     *          1,6                 283          317      492
+     *          2,0                 283          368      533
+     *
+     * Monótona donde tiene que serlo, **y con su control dentro**: con cero km de puerto por delante
+     * es inerte en las tres filas, que es exactamente lo que una constante que multiplica
+     * `kmSubidaRestante` tiene que hacer.
+     *
+     * LO QUE SIGUE FALTANDO, y por eso la marca se queda: `breakMaxGapS` **no tiene banda**. No hay
+     * en este repositorio ninguna medida de cuánto colchón llega a tener la fuga de una etapa de gran
+     * vuelta, y sin ella el barrido dice que la constante MUEVE el estadístico pero no cuál de los
+     * tres valores es el bueno. La marca deja de significar «no hay instrumento» y pasa a significar
+     * «hay instrumento y falta su ancla», que es un paso y se dice como tal.
      */
     gcClimbRecoverPerKm: 1.6,
     /**
@@ -4588,14 +4619,30 @@ export const STAGE = {
     /**
      * Subir cien puestos ≈ un cerillo largo.
      *
-     * **SIGUE [calibrar], Y SU ANCLA ANTERIOR NO SE PODÍA RESOLVER.** Decía «[calibrar] contra el
-     * invariante 18», y los invariantes de este motor están **nombrados, no numerados**:
-     * `invariants.test.ts` los agrupa por tema (llano, fases, montaña, crono, desgaste, abandonos,
-     * pavé). El «18» venía de la numeración suelta de `docs/tactica.md`, donde esa fila es una del
-     * PLAN DE TRABAJO —R08 + R28, el depósito entre etapas— y no una medida.
+     * **DEJA DE ESTAR [calibrar] EN LA v82, Y SU ANCLA ES OTRA QUE LA QUE CITABA.** Decía
+     * «[calibrar] contra el invariante 18», y los invariantes de este motor están **nombrados, no
+     * numerados**: el «18» venía de la numeración suelta de `docs/tactica.md`, donde esa fila es una
+     * del PLAN DE TRABAJO —R08 + R28— y no una medida. Ese ancla no se podía resolver.
      *
-     * Citar un ancla que no se puede resolver es peor que no citar ninguna, porque el que venga
-     * detrás cree que hay una medida esperándole. No la hay.
+     * El barrido del paso 21 preguntó lo que sí se puede preguntar —**¿mueve esta constante alguna
+     * banda que exista?**— y la respuesta es que sí, y con mecanismo legible. Sesenta semillas por
+     * celda, mismas semillas en las tres:
+     *
+     *   pushCost   gana la fuga (llana)   gana el mejor velocista
+     *     0,30            21,67                   38,33
+     *     0,45            23,33                   36,67
+     *     0,60            25,00                   35,00
+     *
+     * Las dos monótonas y en direcciones opuestas, que es justo lo que la física predice ANTES de
+     * mirar: cuanto más barato es recolocarse, más fácil le resulta al velocista llegar al frente,
+     * más masiva acaba la llegada y menos etapas gana la fuga. `flat.bestSprinterWinPct` (30-45) y
+     * `flat.breakawayWinPct` (5-16) son las dos bandas que esta constante gobierna, y ahí queda
+     * anclada.
+     *
+     * **El valor NO se mueve**, y conviene decir por qué: el barrido detecta MOVIMIENTO con semillas
+     * pareadas, no mide NIVELES —a 60 semillas la fuga del llano sale en 21-25 % cuando su valor
+     * convergido es 14,6 %—. Lo que el barrido autoriza es retirar la marca y nombrar las bandas;
+     * mover el número pediría el nivel, y eso son 300 semillas por celda.
      */
     pushCost: 0.45,
     /** Sobre `placement − media del grupo`, NUNCA sobre `placement`. Ver `accordionTerm`. */
