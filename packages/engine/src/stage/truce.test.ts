@@ -151,3 +151,38 @@ describe('el hundimiento observable (R13)', () => {
     expect(feedStarveFactor(80)).toBe(STAGE.truce.feedStarveGain)
   })
 })
+
+/**
+ * ————— EL VALOR DE `ambushGainShare` QUEDA ATADO A SU MEDIDA (v82) —————
+ *
+ * Este sello no vigila una conducta: vigila que **el número y su bitácora no se separen**, y existe
+ * por un error concreto que conviene dejar escrito.
+ *
+ * La v82 midió esta constante contra `truceGrantedPct` —que hubo que construir, porque el ancla que
+ * la constante citaba no existía en el repositorio— y la movió de 0,50 a 0,35. El commit se hizo, se
+ * empujó, y **no contenía el cambio**: un barrido que corría en segundo plano hace copia de
+ * `constants.ts` al empezar y la RESTAURA al acabar, y la edición cayó dentro de esa ventana. El
+ * mensaje del commit afirmaba un cambio que el commit no traía, y las dos suites pasaron en verde
+ * porque ninguna miraba este valor.
+ *
+ * La propia `docs/balance.md` ya tenía anotado el riesgo —«los dos no pueden correr a la vez: se
+ * pisan el fichero»— y la nota no bastó, porque una nota no falla. Un test sí.
+ *
+ * NO se sella el porcentaje: con 34 treguas por celda arrastra ±15 puntos, y eso está dicho en
+ * `constants.ts`. Lo que se sella es la celda de la curva que se eligió, que es lo que se puede
+ * perder en silencio.
+ */
+describe('la emboscada está donde su medida dice (R12)', () => {
+  it('`ambushGainShare` vale la celda que el barrido eligió', () => {
+    expect(STAGE.truce.ambushGainShare).toBe(0.35)
+  })
+
+  it('…y esa celda está en el tramo que concede treguas, no en el que las niega', () => {
+    // Las celdas medidas: 0,20 → 85,3 % · 0,30 → 79,4 % · 0,35 → 70,6 % · 0,40 → 47,2 % ·
+    // 0,50 → 31,6 % · 0,70 → 15,4 %, contra una banda de 50-85 %. Por debajo de 0,40 se concede
+    // dentro de banda; de 0,40 en adelante, no. Esto sella el LADO, que es lo que la curva sostiene
+    // sin discusión, y deja el valor exacto al sello de arriba.
+    expect(STAGE.truce.ambushGainShare).toBeLessThan(0.4)
+    expect(STAGE.truce.ambushGainShare).toBeGreaterThan(0.15)
+  })
+})

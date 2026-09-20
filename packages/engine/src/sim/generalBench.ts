@@ -23,6 +23,7 @@ import { flatScenario, queenScenario, campaignSeeds } from './scenarios.js'
 import { teamedField } from './tactics.js'
 import { simulateStage } from '../stage/simulate.js'
 import type { SnapshotRider, StageInput, StageProfile, StageRider } from '../stage/types.js'
+import type { RaceShape } from '../stage/views.js'
 
 export interface GeneralStats {
   runs: number
@@ -54,6 +55,33 @@ export interface GeneralStats {
    * lo sustituye por una comparación relativa (`bloodMargin`). Ver docs/balance.md v79 y v80.
    */
   jerseyTankAtDecisive: { p05: number; p50: number; belowBloodPct: number }
+  /**
+   * ————— LA TREGUA, QUE ES EL ESTADÍSTICO QUE EL DISEÑO PEDÍA Y NO EXISTÍA (v82) —————
+   *
+   * `ambushGainShare` llevaba marcado «[calibrar] contra `truceGrantedPct` 50-85 %» desde que nació,
+   * y el paso 21 comprobó que **`truceGrantedPct` no estaba en el repositorio**: cero apariciones en
+   * `targets.ts` y en `analyze.ts`, y la propia tabla de `tactica.md` lo listaba con la columna «no
+   * existe». Aquí se construye, y aquí es el único sitio donde puede vivir: la emboscada exige
+   * equipos con jefe de GENERAL y `gcDeficitSeconds` de verdad, y este es el único banco que los
+   * tiene. Medido en el barrido del paso 21, con los bancos de un día `ambushGainShare` salía
+   * **idéntica dígito a dígito** en 0,30, 0,50 y 0,70 sobre las diez estadísticas: no es que no
+   * decidiera, es que en una carrera de un día ese camino no se recorre nunca.
+   */
+  truceAskedPerStage: number
+  truceGrantedPct: number
+  /**
+   * ————— Y LA CORREA, POR EL MISMO MOTIVO (v82) —————
+   *
+   * `gcClimbRecoverPerKm` solo decide a través de `recoverableSeconds(shape)`, y `shape` sale de
+   * `race.shape` —lo que QUEDA DE CARRERA, no de etapa—. En producción lo rellena
+   * `packages/db/src/raceContext.ts`; **ningún banco lo pasaba**, así que la constante multiplicaba
+   * un cero en todos ellos. Por eso salía inerte dígito a dígito en el barrido.
+   *
+   * Aquí se pasa una forma declarada —la que queda desde la etapa 15 de una gran vuelta de tres
+   * semanas— y se mide lo que la correa gobierna: **cuánto colchón llega a tener la fuga del día**,
+   * que es literalmente lo que un director concede según con qué terreno puede recuperarlo.
+   */
+  breakMaxGapS: number
 }
 
 /**
@@ -78,6 +106,99 @@ function corre(
   race?: StageInput['race'],
 ) {
   return simulateStage({ profile, riders, ...(race ? { race } : {}) }, seed)
+}
+
+/**
+ * LA FORMA DE LA CARRERA QUE QUEDA, DECLARADA (v82). Es lo que `packages/db/raceContext.ts` calcula
+ * en producción a partir del calendario y lo que ningún banco pasaba, con la consecuencia de que
+ * `gcClimbRecoverPerKm` multiplicaba un cero en todos ellos.
+ *
+ * Los números son de una gran vuelta de tres semanas vista desde su etapa 15: quedan siete días, y
+ * en ellos **120 km de puerto, una crono de 30 y cinco etapas en línea**. No salen de ningún banco
+ * porque no hay ninguno que los mida: salen de mirar la última semana de un calendario de tres
+ * semanas, y se dicen aquí para que el que los cambie sepa qué está cambiando.
+ */
+function formaDeLaCarrera(profile: StageProfile, climbKmLeft: number): RaceShape {
+  const totalKm = profile.segments.reduce((a, g) => a + g.km, 0)
+  return {
+    totalKm,
+    kmDone: 0,
+    nextClimbKm: null,
+    lastClimbKm: null,
+    valleyAfterLastClimbKm: null,
+    daysLeft: 7,
+    raceClimbKmLeft: climbKmLeft,
+    raceTtKmLeft: 30,
+    raceLineStagesLeft: 5,
+  }
+}
+
+/**
+ * LA TREGUA, CONTADA: cuántas se piden por etapa y qué fracción se concede. Es `truceGrantedPct`,
+ * el estadístico que `ambushGainShare` citaba como ancla y que no existía.
+ */
+function tregua(
+  perfil: StageProfile,
+  campo: readonly StageRider[],
+  runs: number,
+): { asked: number; grantedPct: number } {
+  let pedidas = 0
+  let concedidas = 0
+  for (const seed of campaignSeeds('general-tregua', runs)) {
+    const out = simulateStage(
+      {
+        profile: perfil,
+        riders: [...campo],
+        race: { stageDay: 15, totalStages: 21, shape: formaDeLaCarrera(perfil, 120) },
+      },
+      seed,
+    )
+    for (const e of out.events) {
+      if (e.plantilla === 'truce_granted') {
+        pedidas += 1
+        concedidas += 1
+      } else if (e.plantilla === 'truce_denied') {
+        pedidas += 1
+      }
+    }
+  }
+  return {
+    asked: runs === 0 ? 0 : pedidas / runs,
+    grantedPct: pedidas === 0 ? 0 : (100 * concedidas) / pedidas,
+  }
+}
+
+/**
+ * EL COLCHÓN MÁXIMO DE LA FUGA DEL DÍA, que es lo que la correa gobierna: un director concede
+ * según con qué terreno puede recuperar lo concedido (`recoverableSeconds`), y eso se ve en cuánto
+ * llega a irse la fuga. Mediana sobre las semillas, con la forma de la carrera puesta.
+ */
+function colchonDeLaFuga(
+  perfil: StageProfile,
+  campo: readonly StageRider[],
+  runs: number,
+  climbKmLeft: number,
+): number {
+  const huecos: number[] = []
+  for (const seed of campaignSeeds('general-correa', runs)) {
+    const out = simulateStage(
+      {
+        profile: perfil,
+        riders: [...campo],
+        race: { stageDay: 15, totalStages: 21, shape: formaDeLaCarrera(perfil, climbKmLeft) },
+      },
+      seed,
+    )
+    let mx = 0
+    for (const e of out.events) {
+      const g = Number(e.datos?.gapS ?? 0)
+      if (Number.isFinite(g) && g > mx) mx = g
+    }
+    huecos.push(mx)
+  }
+  if (huecos.length === 0) return 0
+  huecos.sort((a, b) => a - b)
+  return huecos[Math.floor(huecos.length / 2)]!
 }
 
 /** ¿Sale el maillot nombrado en el grupo de cabeza en algún momento de la etapa? */
@@ -228,6 +349,14 @@ export function analyzeGeneral(runs: number, conParejas = true): GeneralStats {
     )
   }
 
+  /**
+   * LA TREGUA CORRE SIEMPRE LA MUESTRA ENTERA, y es la excepción al «diez en CI» de este banco. El
+   * motivo es que aquí el suceso es RARO —se pide en el 25 % de las reinas— así que recortar la
+   * muestra no abarata una medida: la borra. Con diez semillas salen dos o tres treguas y un
+   * porcentaje sobre tres casos no es un porcentaje.
+   */
+  const laTregua = tregua(queen.input.profile, gcCampo, runs)
+
   return {
     runs,
     /**
@@ -242,6 +371,14 @@ export function analyzeGeneral(runs: number, conParejas = true): GeneralStats {
       gcCampo,
       gcCampo[0]!.riderId,
       conParejas ? runs : Math.min(runs, 10),
+    ),
+    truceAskedPerStage: laTregua.asked,
+    truceGrantedPct: laTregua.grantedPct,
+    breakMaxGapS: colchonDeLaFuga(
+      queen.input.profile,
+      gcCampo,
+      conParejas ? runs : Math.min(runs, 10),
+      120,
     ),
     jerseyFrontFlatPct: (100 * frenteLlana) / runs,
     jerseyFrontQueenPct: (100 * frenteReina) / runs,

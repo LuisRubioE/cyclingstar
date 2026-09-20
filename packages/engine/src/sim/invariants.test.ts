@@ -253,6 +253,43 @@ describe('invariantes de montaña (6.17)', () => {
   it('una etapa reina produce la brecha objetivo entre el primero y el décimo del día', () => {
     expectInRange(stats.medianTop10GapSeconds, TARGETS.mountain.top10GapSeconds)
   })
+
+  /**
+   * ————— EL ANCLA DE `gcClimbRecoverPerKm`, Y VIGILADA (v82) —————
+   *
+   * La constante llevaba `[calibrar]` desde que nació. Su frase —«segundos que se mueve la general
+   * por km de puerto ENTRE HOMBRES VECINOS»— describe algo que el motor produce y que nadie estaba
+   * midiendo; `gcMovePerClimbKm` lo mide ahora, y la unidad coincide con la que la constante cobra
+   * (los segmentos `tipo: 'puerto'`, que es como `terrenoRestante` cuenta en `packages/db`).
+   *
+   * LO QUE SE COMPARA ES EL PRODUCTO, y no la constante suelta, porque `recoverableSeconds` se usa
+   * en **un solo sitio de todo el motor** —`leashOf`— y siempre multiplicada por `gcLeashShare`:
+   *
+   *     leashOf = clamp(colchón + recoverableSeconds(shape) · gcLeashShare, suelo, techo)
+   *
+   * Así que lo que de verdad decide es `gcClimbRecoverPerKm · gcLeashShare` = 1,6 · 0,6 = **0,96 s
+   * por km de puerto y por vecino**, contra los **0,83** que el motor produce en la reina canónica.
+   * Un 16 % por encima, y por el lado correcto: `recoverableSeconds` contesta «¿cuánto se PUEDE
+   * recuperar todavía?», que es una cota superior y no una media.
+   *
+   * EL MARGEN ES ANCHO A PROPÓSITO (un factor de dos en cada sentido). Lo que este invariante caza
+   * no es que el producto deje de ser 0,96: es que el motor y la constante se divorcien —que alguien
+   * cambie la montaña, la general pase a moverse el triple, y la correa siga concediendo cuerda con
+   * la cuenta de antes—. Un margen estrecho aquí sería sellar la σ de una mediana sobre 120 reinas,
+   * que es justo lo que la banda de arriba ya tuvo que ensanchar dos veces.
+   *
+   * SU ESLABÓN DÉBIL, dicho: esto ancla la constante al COMPORTAMIENTO del motor, y lo que ata ese
+   * comportamiento a la realidad es la banda de arriba (40-300 s). La cadena es real y tiene tres
+   * eslabones; el de en medio es este invariante y antes no existía ninguno.
+   */
+  it('la correa concede con la cuenta que la montaña produce de verdad', () => {
+    // Primero el control: sin km de puerto en el recorrido el estadístico vale 0 por construcción y
+    // la comparación de abajo pasaría sola. La reina canónica tiene 25.
+    expect(stats.gcMovePerClimbKm).toBeGreaterThan(0)
+    const cuentaDeLaCorrea = STAGE.customs.gcClimbRecoverPerKm * STAGE.customs.gcLeashShare
+    expect(cuentaDeLaCorrea).toBeGreaterThan(stats.gcMovePerClimbKm * 0.5)
+    expect(cuentaDeLaCorrea).toBeLessThan(stats.gcMovePerClimbKm * 2)
+  })
 })
 
 describe('contrarreloj (6.17)', () => {
@@ -711,6 +748,50 @@ describe('la general que ningún banco miraba (v79, docs/motor.md §V.1)', () =>
     // vigila de verdad es el freno del llano de arriba; esto impide que se lea como un cero sellado.
     expect(stats.jerseyFrontQueenPct).toBeGreaterThanOrEqual(0)
     expect(stats.jerseyFrontQueenPct).toBeLessThanOrEqual(100)
+  })
+
+  /**
+   * ————— LA TREGUA, QUE ES EL OBJETIVO QUE `ambushGainShare` CITABA Y NO EXISTÍA (v82) —————
+   *
+   * La constante llevaba «[calibrar] contra `truceGrantedPct` 50-85 %» desde que nació y ese
+   * estadístico no estaba en el repositorio. Ahora está, vive aquí —es el único banco con general de
+   * verdad, y la emboscada la necesita— y con él la constante pasó de dejar el número en **31,6 %**,
+   * fuera de banda por abajo, a **70,6 %** con 0,35. Ver `constants.ts` para la curva entera.
+   */
+  it('se piden treguas, y la sonda que las cuenta DISPARA', { timeout: 300000 }, () => {
+    /**
+     * LO QUE LA CI PUEDE SELLAR AQUÍ ES QUE LA SONDA DISPARE, Y NO MÁS, y el número que lo dice
+     * está medido: con las 40 semillas del invariante salen **6 treguas** —0,15 por etapa— y seis
+     * casos no son un porcentaje. Comprobado: esas seis dan 33,3 %, y las 150 reinas del barrido
+     * dan 70,6 % con el mismo motor. Sellar la banda aquí sería sellar la diferencia entre dos
+     * sucesos y cuatro.
+     *
+     * La banda (50-85, `TARGETS.general.truceGrantedPct`) se comprueba con la muestra entera en
+     * `pnpm sim`, que es el mismo reparto que este repositorio ya usa con `calendarQueens` y con
+     * `weather`: la banda se escribe donde se mide, y la CI vigila que el instrumento exista.
+     *
+     * Y EL CONTROL NO ES UN TRÁMITE: si no se pidiera ninguna tregua, `truceGrantedPct` sería un
+     * 0/0 disfrazado de porcentaje y cualquier banda pasaría en verde sin medir nada. Es
+     * exactamente el defecto que esta tanda lleva todo el día cazando.
+     */
+    expect(stats.truceAskedPerStage).toBeGreaterThan(0)
+    expect(stats.truceGrantedPct).toBeGreaterThanOrEqual(0)
+    expect(stats.truceGrantedPct).toBeLessThanOrEqual(100)
+  })
+
+  it('el colchón de la fuga existe y es de ciclismo (el instrumento de la correa)', () => {
+    /**
+     * `breakMaxGapS` NO lleva banda —no hay ancla en este repositorio para «cuánto colchón tiene la
+     * fuga de una etapa de gran vuelta»— así que lo único sellable es que la medida EXISTA y no diga
+     * un disparate. Es el instrumento con el que `gcClimbRecoverPerKm` deja de ser inmedible: sin él
+     * la constante multiplicaba un cero en todos los bancos, porque ninguno pasaba `race.shape`.
+     *
+     * El suelo es un minuto —por debajo no habría fuga que contar— y el techo, el de la propia
+     * correa (`gcLeashMaxS` 900) con margen: si el colchón se fuera por encima de eso, lo que estaría
+     * roto es la correa y no esta medida.
+     */
+    expect(stats.breakMaxGapS).toBeGreaterThan(60)
+    expect(stats.breakMaxGapS).toBeLessThan(1800)
   })
 
   it('la sonda del depósito del maillot DISPARA (el control del otro instrumento)', () => {

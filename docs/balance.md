@@ -15544,3 +15544,243 @@ exactamente eso, y la línea del diario los dice: «takes the lead in the mounta
 Cuando una constante en segundos hay que subirla «un poco más» cada vez que aparece un caso nuevo,
 la pregunta no es cuánto, es **si segundos es la unidad correcta**. Aquí no lo era: el barrido plano
 iba 51 → 39 → 31 → 13 → 7 sin llegar nunca a cero, y la regla física llegó a cero fundiendo la mitad.
+
+## v82 — el paso 21 se cierra, y la deuda de R19 se cierra por el otro lado
+
+Las dos cosas que quedaban de `docs/tactica.md`: el barrido del paso 21 y la retirada del veto que
+R19 dejó aplazada. Las dos se cierran, y ninguna por donde parecía.
+
+### El barrido: tres constantes, tres respuestas distintas
+
+La pregunta del paso 21 no era «¿qué valor es el bueno?» —eso ya estaba escrito que hoy no tiene
+respuesta— sino **¿mueve esta constante alguna banda que exista?**. Siete celdas, 60 semillas cada
+una, mismas semillas en todas:
+
+| celda                     | llanaFuga | mejorSprinter | reinaFuga | hueco 1º-10º | colaRQ    | gruposRQ |
+| ------------------------- | --------- | ------------- | --------- | ------------ | --------- | -------- |
+| base                      | 23,33     | 36,67         | 35,00     | 187,5        | 10,73     | 12       |
+| `gcClimbRecoverPerKm` 1,2 | **23,33** | **36,67**     | **35,00** | **187,5**    | **10,73** | **12**   |
+| `gcClimbRecoverPerKm` 2,0 | **23,33** | **36,67**     | **35,00** | **187,5**    | **10,73** | **12**   |
+| `pushCost` 0,30           | 21,67     | 38,33         | 36,67     | 177,5        | 10,45     | 13       |
+| `pushCost` 0,60           | 25,00     | 35,00         | 40,00     | 162,5        | 10,87     | 13       |
+| `ambushGainShare` 0,30    | **23,33** | **36,67**     | **35,00** | **187,5**    | **10,73** | **12**   |
+| `ambushGainShare` 0,70    | **23,33** | **36,67**     | **35,00** | **187,5**    | **10,73** | **12**   |
+
+Dos de las tres salen **idénticas dígito a dígito en las diez estadísticas**, en los dos sentidos. Y
+eso no es «no decide»: es una pista, y lleva al mismo sitio las dos veces.
+
+### Las dos inertes lo son por la misma causa, y no es la que decía la nota
+
+- **`ambushGainShare`** solo decide en un sitio: `mejorGananciaS = perdidaDelCaido · ambushGainShare`,
+  dentro de un bucle que exige equipos con `gcLeaderId`, propósito `maillot`/`general` y
+  `gcDeficitSeconds` de verdad.
+- **`gcClimbRecoverPerKm`** solo decide vía `recoverableSeconds(shape)`, que multiplica
+  `kmSubidaRestante` — lo que queda **DE CARRERA**, no de etapa.
+
+Las dos necesitan contexto de carrera, **y todos los bancos del barrido son carreras de un día**. En
+el segundo caso la comprobación fue más fina de lo que yo esperaba: busqué quién rellena
+`raceClimbKmLeft` y estuve a punto de escribir que **nadie**, o sea que la constante multiplicaba un
+cero en producción también. No es así: `packages/db/src/raceContext.ts` lo rellena. Lo que ningún
+**banco** hacía era pasarlo.
+
+### Así que el barrido no termina con un valor: termina con dos instrumentos
+
+`sim/generalBench` es el único banco con general de verdad, y ahí es donde tenían que vivir:
+
+**`truceGrantedPct`** — el estadístico que `ambushGainShare` citaba como ancla desde que nació y que
+el paso 21 comprobó que **no existía en el repositorio**. Construido, y con potencia: 150 reinas por
+celda dan 34-39 treguas pedidas.
+
+| `ambushGainShare` | pedidas | concedidas | %        | negativas por «emboscada» |
+| ----------------- | ------- | ---------- | -------- | ------------------------- |
+| 0,20              | 34      | 29         | 85,3     | 2                         |
+| 0,30              | 34      | 27         | 79,4     | 4                         |
+| **0,35**          | 34      | 24         | **70,6** | 7                         |
+| 0,40              | 36      | 17         | 47,2     | 15                        |
+| 0,50 (antes)      | 38      | 12         | **31,6** | 22                        |
+| 0,70              | 39      | 6          | 15,4     | 29                        |
+
+Monótona en cinco valores, y el mecanismo se lee en la última columna: lo que mueve es cuántas
+treguas se niegan **por emboscada**, que es exactamente lo que gobierna. El valor viejo dejaba el
+número en 31,6 %, **fuera de la banda 50-85 por abajo**. Se mueve a **0,35**, que lo pone en 70,6 %.
+
+Y hay que decir lo que esto le hace a la prosa: el 0,50 venía de «es la mitad larga de lo perdido»,
+una estimación razonada. La medida dice que es algo menos de un tercio. Manda la medida.
+
+**`breakMaxGapS`** — el colchón mediano de la fuga del día, con la forma de la carrera puesta. Es lo
+que la correa gobierna:
+
+| `gcClimbRecoverPerKm` | 0 km de puerto | 120 km | 400 km |
+| --------------------- | -------------- | ------ | ------ |
+| 1,2                   | **283**        | 305    | 452    |
+| 1,6                   | **283**        | 317    | 492    |
+| 2,0                   | **283**        | 368    | 533    |
+
+Monótona donde tiene que serlo, **y con su control dentro**: con cero km de puerto por delante es
+inerte en las tres filas, que es lo que una constante que multiplica `kmSubidaRestante` debe hacer.
+
+### Qué queda de las tres marcas
+
+- **`ambushGainShare`**: la marca se retira y el valor se mueve. Tiene banda, instrumento y curva.
+- **`pushCost`**: la marca se retira y el valor **no** se mueve. Mueve `flat.bestSprinterWinPct` y
+  `flat.breakawayWinPct` monótonamente y en direcciones opuestas, que es lo que la física predice
+  antes de mirar: más barato recolocarse → el velocista llega al frente → llegada masiva → la fuga
+  gana menos. Ahí queda anclada. El valor no se mueve porque el barrido detecta **movimiento** con
+  semillas pareadas, no **niveles**: a 60 semillas la fuga del llano sale en 21-25 % cuando su valor
+  convergido es 14,6 %.
+- **`gcClimbRecoverPerKm`**: la marca **se queda**, y por un motivo distinto y mucho más acotado.
+  Antes significaba «no hay instrumento»; ahora significa «hay instrumento y falta su ancla»:
+  `breakMaxGapS` no tiene banda porque no existe en este repositorio ninguna medida de cuánto
+  colchón tiene la fuga de una etapa de gran vuelta, y ponérsela a ojo sería exactamente lo que esta
+  tanda lleva todo el día cazando.
+
+### La deuda de R19: el veto no era el culpable
+
+R19 retiró dos cosas a la vez en el paso 5 —`tacticMaxMoves` (el contador GLOBAL de movimientos) y
+el veto del cierre— y le atribuyó a las dos el mérito de matar el apagón. La v81 midió que quitar el
+veto cuesta dos conductas y lo dejó puesto, con la retirada «aplazada» y una condición escrita: que
+`closingBusyDamp` frenara a todos los que pueden saltar mientras el pelotón cierra.
+
+**Esa condición estaba mal planteada, y es lo primero que hay que decir.** `closingBusyDamp` baja lo
+que un equipo **paga por cerrar**, o sea hace el siguiente movimiento **más** fácil de conceder. No
+es sustituto del veto ni en dirección.
+
+Y el veto tampoco era el culpable. Medido cuánto muerde hoy —porcentaje de bloques con el veto
+activo—: 12,0 % en la llana canónica, 17,1 % en la reina y **40,2 % en Race Jaén**. O sea que en un
+perfil real muerde mucho, y el invariante que vigila el apagón corre sobre la llana: **el guardián no
+mira donde vivía el defecto**. Así que se fue a mirar ahí, con el veto puesto:
+
+| carrera          | intentos/etapa | en la 2ª mitad | último intento | etapas mudas en la 2ª mitad |
+| ---------------- | -------------- | -------------- | -------------- | --------------------------- |
+| **race-almeria** | **17**         | **11**         | km 204 de 210  | **0 de 24**                 |
+| race-jaen        | 19             | 11             | km 204         | 0 de 24                     |
+| race-muscat      | 22             | 12             | km 204         | 0 de 24                     |
+| race-besseges    | 16             | 11             | km 178 de 184  | 0 de 24                     |
+
+R19 citaba literalmente Race Almeria e1: «cuatro intentos hasta el km 19 y **ni uno más en los 190
+restantes**». Hoy son diecisiete, once de ellos en la segunda mitad, el último a seis kilómetros de
+meta, y ni una sola etapa de veinticuatro se queda muda. **El apagón está muerto con el veto
+puesto**, y la causa que el propio texto de R19 nombra era el contador global, no el veto.
+
+Dos cosas se retiraron juntas, solo una era la culpable, y retirar la inocente costó dos conductas.
+
+### Lo que sí faltaba de R19.4, y se hace
+
+`cerrandoAhora` devolvía **como mucho un equipo**, el que lleva el frente, y su propio comentario
+dejaba la condición: «cuando exista la subasta de R20, lo pagará quien la gane». R20 está encendida
+—y al ir a hacerlo resulta que esa sustitución ya estaba hecha por otro lado: con `front.enabled`,
+`frontTeamId` lo decide `frontClaimOf`—. Lo que seguía sin hacerse es la otra mitad, que es lo que la
+regla dice de verdad: **un cierre no lo paga un equipo, lo pagan todos los que objetan**, porque
+`potOf` suma `min(objeción, payable)` equipo a equipo y ésa es la definición del bote.
+
+No hay circularidad y es lo que permite calcularlo ahí: `objectionOf` **no lee `closing`**, solo
+`payableOf` lo hace. Medido, equipos que pagan el cierre por llamada, sobre ocho equipos de cinco:
+
+| escenario | antes | ahora    |
+| --------- | ----- | -------- |
+| llana-180 | 0,94  | 0,95     |
+| reina     | 0,96  | **2,76** |
+
+Y el reparto es el que la regla predice: en llano, un movimiento que el pelotón cierra sin concederle
+cuerda casi nunca amenaza a nadie más que al que lleva el frente. En montaña amenaza a varios equipos
+de general a la vez, y ahí el precio del cierre pasaba gratis para todos menos uno.
+
+### La lección
+
+Dos constantes salieron inertes en diez estadísticas, en los dos sentidos, y la tentación era
+escribir «no decide nada». Ninguna de las dos es inerte: **las dos necesitaban un contexto que
+ningún banco daba**. Un cero perfectamente reproducible sigue siendo un cero que hay que explicar
+antes de creérselo, y las dos veces la explicación estaba en el único camino por el que la constante
+decide, leído entero.
+
+Y la de R19 es la misma con otro traje: dos piezas retiradas en el mismo commit, un defecto muerto, y
+el mérito repartido entre las dos sin comprobar cuál lo había matado.
+
+## v82 (2) — la última `[calibrar]` se cierra, y un commit que afirmaba lo que no traía
+
+Quedaba una sola marca del paso 21 con deuda real: `gcClimbRecoverPerKm`. La v82 la había dejado
+diciendo «hay instrumento y falta su ancla». Aquí se le pone el ancla. Y por el camino salió un
+error mío que vale más que el ancla.
+
+### El ancla: tres intentos, y el tercero sale de leer la frase de la constante
+
+**Intento 1, el que citaba.** «[calibrar] sobre `realQueens` en el paso 21». Ese banco existe y
+publica el tamaño de la cola, que no es lo que esta constante cuenta. Ya estaba descartado.
+
+**Intento 2, el barrido.** Inerte dígito a dígito, porque ningún banco pasaba `race.shape`. Se
+construyó `breakMaxGapS` y la respuesta salió monótona con su control dentro. Pero `breakMaxGapS` no
+tiene banda —no hay en este repositorio ninguna medida de cuánto colchón tiene la fuga de una gran
+vuelta— así que el barrido decía que la constante **mueve** el estadístico, no cuál de los tres
+valores es el bueno.
+
+**Intento 3, el que ancla.** La frase de la constante es «segundos que se mueve la general por km de
+puerto **entre hombres vecinos**». Eso es algo que el motor produce y que no se estaba midiendo — y
+no hace falta correr nada nuevo para medirlo:
+
+```
+gcMovePerClimbKm = medianTop10GapSeconds / 9 / kmDePuerto
+                 =        187,5          / 9 /    25      = 0,83 s/km
+```
+
+Los nueve huecos que separan al 1.º del 10.º, y los km de `tipo: 'puerto'`, que es **la misma unidad
+en la que la constante cobra** —la que `terrenoRestante` cuenta en `packages/db`—. Sin esa
+coincidencia de unidad el número no serviría para anclar nada.
+
+### Y lo que se compara es el PRODUCTO, no el número suelto
+
+`recoverableSeconds` se usa en **un solo sitio de todo el motor**, y siempre con su descuento:
+
+```
+leashOf = clamp(colchón + recoverableSeconds(shape) · gcLeashShare, suelo, techo)
+```
+
+Así que lo que decide es `gcClimbRecoverPerKm · gcLeashShare` = 1,6 · 0,6 = **0,96 s por km de
+puerto y por vecino**, contra los **0,83** medidos. Un 16 % por encima y **por el lado correcto**:
+esa cuenta contesta «¿cuánto se PUEDE recuperar todavía?», que es una cota superior y no una media.
+
+Por eso el valor **no se mueve**. Lo que faltaba no era otro número: era saber contra qué se mide
+éste. Y la relación queda **vigilada** por un invariante, que es lo que distingue anclar de escribir
+una frase bonita. Su margen es de un factor de dos a propósito: lo que caza no es que el producto
+deje de ser 0,96, sino que alguien cambie la montaña, la general pase a moverse el triple, y la
+correa siga concediendo cuerda con la cuenta de antes.
+
+**Su eslabón débil, dicho**: esto ata la constante al COMPORTAMIENTO del motor, y lo que ata ese
+comportamiento a la realidad es `mountain.top10GapSeconds` (40-300 s). La cadena tiene tres eslabones
+y el de en medio no existía.
+
+### El error: un commit que afirmaba un cambio que no contenía
+
+`cc81f0b` y el cuerpo de su PR dicen, con tabla y todo, «`ambushGainShare` 0,50 → 0,35». **El commit
+tiene 0,50.**
+
+Lo que pasó: los barridos de esta sesión hacen copia de `constants.ts` al empezar y **la restauran al
+acabar**. Yo edité el fichero mientras uno de ellos corría en segundo plano, y al terminar me
+sobrescribió la edición. Verifiqué el cambio —`grep` dio `0.35`— antes de que el barrido restaurara,
+así que la comprobación pasó y el cambio murió después.
+
+Tres cosas de esto, y ninguna es «se me pasó»:
+
+1. **El riesgo estaba escrito en esta misma bitácora**, en el paso 21: «el barrido parchea
+   `constants.ts`… los dos no pueden correr a la vez: se pisan el fichero. Van en cola, nunca en
+   paralelo». La nota existía y no sirvió, porque **una nota no falla**. Lo que falla es un test.
+2. **Las dos suites pasaron en verde con el valor viejo** —958 y 113— y eso es lo que hace al error
+   peligroso: ningún banco miraba este valor, así que el verde no decía nada sobre él. Un número
+   medido, escrito en la bitácora y no sellado en ninguna parte es un número que se puede perder sin
+   que nadie se entere.
+3. **Verificar justo después de editar no basta** cuando hay un proceso en vuelo que toca el mismo
+   fichero. La comprobación tiene que sobrevivir al final de la sesión, no al instante de la edición.
+
+El arreglo son las tres: el valor re-aplicado, **un sello en `truce.test.ts` que ata el número a la
+celda del barrido que lo eligió**, y esta entrada. El sello es el que importa: si mañana otro barrido
+vuelve a pisar el fichero, la suite se pone roja en vez de pasar en verde mintiendo.
+
+Y se sella el VALOR y el LADO, no el porcentaje: con 34 treguas por celda el 70,6 % arrastra ±15
+puntos, así que elegir 0,35 en vez de 0,30 está dentro del ruido. Lo que la curva sostiene sin
+discusión es el lado —por debajo de 0,40 se concede dentro de banda, de 0,40 en adelante no— y eso es
+lo que se sella aparte.
+
+### La lección
+
+Es la misma de toda la tanda, aplicada a mí: **un resultado que no vigila nadie no es un resultado**.
+Llevo dos días cazando constantes cuyo ancla citaba bancos que no medían lo que prometían, y el
+mismo día me dejé un valor medido, escrito y sin sellar — y se perdió en la ventana de un `cp`.

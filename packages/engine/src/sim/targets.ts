@@ -833,6 +833,23 @@ export const TARGETS = {
    *
    * Es la misma regla de la casa que `calendarQueens` y `weather`: se pone banda a lo que la muestra
    * aguanta, y lo que no la aguanta se publica con el número y la razón, no se sella a ojo.
+   *
+   * ————— Y EN LA v82 EL BANCO GANA DOS INSTRUMENTOS, PORQUE DOS CONSTANTES NO TENÍAN NINGUNO —————
+   *
+   * El barrido del paso 21 dio `ambushGainShare` y `gcClimbRecoverPerKm` **inertes dígito a dígito**
+   * sobre las diez estadísticas de los bancos de un día. Las dos por la misma causa de fondo: sus
+   * caminos exigen contexto de CARRERA —una general con `gcDeficitSeconds` de verdad la primera, y
+   * `race.shape` —lo que queda de carrera— la segunda—, y ese contexto solo lo tiene este banco.
+   *
+   *  - **`truceGrantedPct`** lleva banda (50-85, del diseño) porque la muestra la aguanta: 34-39
+   *    treguas pedidas por celda sobre 150 reinas, y la respuesta a `ambushGainShare` es monótona en
+   *    cinco valores (85,3 · 79,4 · 70,6 · 47,2 · 31,6 · 15,4). Ver `constants.ts`.
+   *  - **`breakMaxGapS`** se publica SIN banda, y el motivo es que no tengo ancla para ella: no hay
+   *    en este repositorio ninguna medida de «cuánto colchón llega a tener la fuga de una etapa de
+   *    gran vuelta», y ponerle una a ojo sería exactamente lo que esta tanda lleva todo el día
+   *    cazando. Lo que sí hace es **existir**, que es lo que le faltaba a `gcClimbRecoverPerKm`:
+   *    medida con la forma de la carrera puesta, la respuesta es monótona y con su control dentro
+   *    —con CERO km de puerto por delante la constante es inerte, que es lo que tiene que ser—.
    */
   general: {
     /**
@@ -842,6 +859,20 @@ export const TARGETS = {
      * de antes de la v79 fuera con ~3σ de margen sobre las 40 semillas del invariante (σ ≈ 2,5 pt).
      */
     jerseyFrontFlatPct: { label: 'El maillot, delante en llano', min: 0, max: 10, unit: '%' },
+    /**
+     * ————— LA TREGUA, QUE ES EL OBJETIVO QUE EL DISEÑO PEDÍA Y NO EXISTÍA (v82) —————
+     *
+     * `ambushGainShare` citaba «[calibrar] contra `truceGrantedPct` 50-85 %» desde que nació, y el
+     * paso 21 comprobó que **ese estadístico no estaba en el repositorio**: la banda era del diseño
+     * y el banco no la medía. Aquí se escribe, y la banda es la que el diseño pedía —cuando alguien
+     * se cae y su equipo pide tregua, el pelotón la concede la mayoría de las veces, pero no
+     * siempre: negarla cuesta reputación, y concederla siempre sería un pelotón sin colmillos—.
+     *
+     * Vive en `general` y no en `mountain` porque la emboscada **exige una general de verdad**:
+     * equipos con jefe de GC y `gcDeficitSeconds` distinto de cero. En una carrera de un día ese
+     * camino no se recorre nunca, que es por qué el barrido del paso 21 daba la constante inerte.
+     */
+    truceGrantedPct: { label: 'Treguas concedidas', min: 50, max: 85, unit: '%' },
   },
   /**
    * EL VIENTO CON DIRECCIÓN (R14, paso 20). Las dos bandas que el paso 20 dejó **medidas y sin
