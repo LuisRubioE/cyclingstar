@@ -285,6 +285,39 @@ describe('radioForStorage: la velocidad de un grupo la miden SUS HOMBRES', () =>
     expect(stored.kms[0]!.groups[0]!.speedKmh).toBeCloseTo(45, 1)
   })
 
+  /**
+   * ————— Y LA ÚLTIMA FOTO SE MIDE HACIA ATRÁS (v85) —————
+   *
+   * El dueño lo vio en la etapa 20 de producción: un grupo de 21 sin velocidad mientras los de
+   * delante y detrás iban marcados. La velocidad se calcula contra el kilómetro SIGUIENTE y en la
+   * última foto no hay siguiente, así que el grupo salía en blanco.
+   *
+   * Medido sobre veinte reinas: **204 de los 229 huecos en blanco de la radio eran exactamente eso**,
+   * el 89 %. Y no hacía falta ninguno: en la última foto no hay kilómetro siguiente, pero el
+   * kilómetro que se acaba de recorrer existe igual. Con la foto anterior como referencia, los
+   * huecos en blanco pasan de **237 a 31** sobre 13.805 fotos de grupo (1,72 % -> 0,22 %).
+   *
+   * Los 31 que quedan son relojes que saltan en una fusión, que es la radio negándose a enseñar un
+   * número imposible y no un defecto. Ver `docs/balance.md` «v85».
+   */
+  it('la ÚLTIMA foto se mide contra la anterior, porque ese kilómetro sí se ha recorrido', () => {
+    const aqui = radioKmFrom(
+      10,
+      Array.from({ length: 20 }, (_, i) => rider(`r-${i}`, 'peloton', 1000)),
+      20,
+    )
+    const luego = radioKmFrom(
+      11,
+      Array.from({ length: 20 }, (_, i) => rider(`r-${i}`, 'peloton', 1080)),
+      20,
+    )
+    const stored = radioForStorage({ starters: 20, kms: [aqui, luego] }, new Set())
+    // La primera se mide contra la siguiente: un kilómetro en 80 s son 45 km/h.
+    expect(stored.kms[0]!.groups[0]!.speedKmh).toBeCloseTo(45, 1)
+    // Y la última contra la anterior: el mismo kilómetro y el mismo número, no un hueco en blanco.
+    expect(stored.kms[1]!.groups[0]!.speedKmh).toBeCloseTo(45, 1)
+  })
+
   it('si no queda ni uno de los suyos en la foto siguiente, no se inventa una velocidad', () => {
     const aqui = radioKmFrom(100, [rider('a', 'peloton', 5000), rider('b', 'peloton', 5000)], 2)
     const luego = radioKmFrom(101, [rider('c', 'peloton', 5080)], 3)

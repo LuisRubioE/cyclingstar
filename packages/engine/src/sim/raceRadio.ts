@@ -654,6 +654,12 @@ function groupSpeedKmh(
   groupAhead: ReadonlyMap<string, string> = new Map(),
   /** Quiénes se pararon en este kilómetro: su reloj no mide carretera (v70.1). */
   paradas: ReadonlySet<string> = new Set(),
+  /**
+   * ¿La foto de referencia es la ANTERIOR en vez de la siguiente? (v85). Solo la última foto de la
+   * etapa la necesita: no tiene kilómetro siguiente contra el que medirse, pero el kilómetro que
+   * acaba de recorrer existe igual. La cuenta es la misma con el signo al revés.
+   */
+  haciaAtras = false,
 ): number | null {
   if (dKm <= 0) return null
   // Dónde acaba la MAYORÍA de este grupo: ése es «el mismo grupo» en la foto siguiente.
@@ -716,7 +722,7 @@ function groupSpeedKmh(
      * enseñar —tiene un percance, que es la noticia y va en `mishap`—.
      */
     if (paradas.has(rider)) continue
-    const dt = then - g.riderTs[i]!
+    const dt = haciaAtras ? g.riderTs[i]! - then : then - g.riderTs[i]!
     if (dt >= dtMinimo) dts.push(dt)
   }
   if (dts.length === 0) return null
@@ -763,13 +769,26 @@ export function radioForStorage(
 
   const kms = radio.kms.map((k, i) => {
     const next = radio.kms[i + 1]
-    // El reloj de cada corredor en la foto SIGUIENTE, una vez por kilómetro: es lo que necesita
+    /**
+     * …Y LA ÚLTIMA FOTO SE MIDE HACIA ATRÁS (v85). La velocidad se calcula contra el kilómetro
+     * SIGUIENTE, y en la última foto no hay siguiente: el grupo salía sin velocidad. Medido sobre
+     * veinte reinas, **204 de los 229 huecos en blanco de la radio eran exactamente eso**, el 89 %.
+     *
+     * Y no hacía falta: en la última foto no hay kilómetro siguiente pero sí hay ANTERIOR, y la
+     * velocidad del último kilómetro es una cantidad que existe y que se ha recorrido. Es la misma
+     * cuenta con el signo al revés y con «dónde acaba cada uno» leído como «de dónde viene cada
+     * uno», que tiene la misma defensa contra el reloj que salta.
+     */
+    const prev = i > 0 ? radio.kms[i - 1] : undefined
+    const ref = next ?? prev
+    const haciaAtras = next === undefined
+    // El reloj de cada corredor en la foto de referencia, una vez por kilómetro: es lo que necesita
     // `groupSpeedKmh` para medir la velocidad por los hombres en vez de por dos relojes de grupo.
     const clockAhead = new Map<string, number>()
-    // …y EN QUÉ GRUPO acaba cada uno, que es lo que permite descartar al que se cayó del nuestro.
+    // …y EN QUÉ GRUPO acaba (o empieza) cada uno, lo que permite descartar al que se cayó del nuestro.
     const groupAhead = new Map<string, string>()
-    if (next) {
-      for (const g of next.groups)
+    if (ref) {
+      for (const g of ref.groups)
         for (let j = 0; j < g.riderIds.length; j++) {
           clockAhead.set(g.riderIds[j]!, g.riderTs[j]!)
           groupAhead.set(g.riderIds[j]!, g.id)
@@ -810,7 +829,14 @@ export function radioForStorage(
         )
         .map(idx)
       // La velocidad del grupo en este km, medida por los suyos (ver `groupSpeedKmh`).
-      const speedKmh = groupSpeedKmh(g, clockAhead, next ? next.km - k.km : 0, groupAhead, paradas)
+      const speedKmh = groupSpeedKmh(
+        g,
+        clockAhead,
+        next ? next.km - k.km : prev ? k.km - prev.km : 0,
+        groupAhead,
+        paradas,
+        haciaAtras,
+      )
       return {
         kind: g.kind,
         size: g.size,

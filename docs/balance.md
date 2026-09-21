@@ -16244,3 +16244,87 @@ después de pintar perfecta en los cortos. Lo que las dos tenían en común es q
 EJE equivocado —la fuerza del empuje, y luego la intención— cuando el eje estaba en la frase del
 dueño desde el principio: no es cómo de fuerte tiras, es **a cuántos hombres comprometes**, y no en
 cualquier postura sino en la de administrar algo que no te amenaza.
+
+## v85 — la última foto de la etapa no tenía velocidad, y el filtro que iba a arreglar no estaba roto
+
+El dueño, sobre la etapa 20 de producción: «el grupo 2 sin velocidad… y 1 km más tarde el grupo 2 ha
+atrapado al grupo 1».
+
+Son **dos cosas distintas** y conviene separarlas antes de nada, porque tienen estados distintos.
+
+### La fusión a 87 segundos era la v82, y ya estaba arreglada
+
+Verificado corredor a corredor en el radio de producción:
+
+```
+km 130  Isaac Clark SOLO a 0 s          |  grupo de 21 a 87 s
+km 131  grupo de 15 a 0 s con Clark y 9 de los 21  |  grupo de 7 a 2 s con otros 5
+```
+
+87 segundos tragados en un kilómetro. Y esa etapa está sembrada de la misma firma —el pelotón
+absorbiendo grupos a **102, 127, 149, 223 y 258 segundos**—, que con el motor de la v83 es imposible:
+medido, **una sola fusión por encima de 22 s y era de 23**. Se corrió con la v82.
+
+### El hueco en blanco NO lo arreglaba la v83, y el 89 % tenía una causa tonta
+
+Medido con el motor de hoy, 13.528 fotos de grupo sobre veinte reinas, desglosado por causa:
+
+| causa                         |   casos |       |
+| ----------------------------- | ------: | ----- |
+| **última foto de la etapa**   | **204** | 89 %  |
+| reloj saltado tras una fusión |      22 | 9,6 % |
+| el grupo acaba repartido      |       3 | 1,3 % |
+
+Nueve de cada diez huecos en blanco eran **la última foto**: la velocidad se calcula contra el
+kilómetro SIGUIENTE y ahí no hay siguiente. Pero sí hay **anterior**, y el kilómetro que el grupo
+acaba de recorrer existe igual. Es la misma cuenta con el signo al revés y con «dónde acaba cada uno»
+leído como «de dónde viene cada uno», que tiene la misma defensa contra el reloj que salta.
+
+Medido sobre el mismo árbol y las mismas 13.805 fotos:
+
+|                                | huecos en blanco |            |
+| ------------------------------ | ---------------: | ---------- |
+| radio de hoy                   |          **237** | 1,72 %     |
+| última foto medida hacia atrás |           **31** | **0,22 %** |
+
+Los 31 que quedan son relojes que saltan en una fusión: la radio negándose a enseñar un número
+imposible, que es lo que tiene que hacer.
+
+### Y LA MITAD DE ESTA VERSIÓN QUE NO SE ESCRIBIÓ, porque el defecto no existía
+
+Yo llevaba desde la auditoría de la mañana con esto apuntado como defecto abierto: «lecturas de
+velocidad de grupo de hasta 81,5 km/h; `radioMaxKmh` es un filtro absoluto por corredor y la pregunta
+correcta es si es posible EN ESTA CARRETERA». Iba a sustituirlo por un listón contextual sacado de
+`targetSpeed`.
+
+**No era un defecto.** El km 28 de la etapa 19, donde salía ese 81,5, es una **bajada** —comprobado
+descodificando la altimetría de la propia etapa— y 81,5 km/h bajando es una velocidad de ciclista.
+
+Y el banco lo confirma. Velocidades que el motor muestra hoy, por terreno, sobre 13.187 lecturas:
+
+| terreno      |     n | mediana |  p99 | máximo | >70 | >80 |
+| ------------ | ----: | ------: | ---: | -----: | --: | --: |
+| puerto       | 2.016 |    16,6 | 21,6 |   40,8 |   0 |   0 |
+| rompepiernas | 2.171 |    42,0 | 47,6 |   60,6 |   0 |   0 |
+| llano        | 7.717 |    43,5 | 51,7 |   62,5 |   0 |   0 |
+| descenso     | 1.283 |    57,2 | 76,3 |   84,8 |  21 |   6 |
+
+Los únicos números altos están **donde tienen que estar**. En puerto no pasa de 41 y en llano no pasa
+de 63; los ochenta solo salen bajando. El filtro absoluto está haciendo su trabajo.
+
+Así que la mitad contextual se tira a la basura antes de escribirla. **Es la primera vez en toda la
+tanda que una medida me ahorra el trabajo en vez de corregírmelo**, y es el mismo movimiento: medir
+antes de construir.
+
+### `ENGINE_VERSION` NO sube, y es una decisión, no un olvido
+
+Este cambio no altera un segundo de ninguna carrera: es la radio contando mejor lo que ya pasaba.
+`checkReplay` ata `ENGINE_VERSION` a que una re-simulación reproduzca la carrera guardada, así que
+subirlo marcaría todas las etapas pasadas como no reproducibles a cambio de nada.
+
+### La lección
+
+Dos defectos en la misma foto y con estados opuestos: uno arreglado hacía horas y otro vivo, y el
+vivo tenía una causa que no era la que yo le atribuía. Separarlos costó una tarde de medidas y valió
+la pena: el que parecía el problema grande —el filtro de velocidad— no era un problema, y el que
+parecía un detalle —la última foto— era el 89 % de lo que el dueño ve.
