@@ -2274,6 +2274,57 @@ export const STAGE = {
    */
   relayRotationMax: 20,
   /**
+   * ————— CUÁNTOS HOMBRES COMPROMETE UN EQUIPO AL TURNO, SEGÚN LO QUE ESTÁ HACIENDO (v84) —————
+   *
+   * **La otra mitad de la frase del dueño, que llevaba cuarenta versiones sin implementarse.** La
+   * cita entera está en `relayRotationMax`, unas líneas más arriba: «un máximo de unos 20 ciclistas;
+   * más de 20 pasando a los relevos es irreal… pero eso aplica tanto a una fuga de 25 como al propio
+   * pelotón: **si hay 4 equipos colaborando, pues 5 de cada uno**». El techo de 20 se puso; el «5 de
+   * cada uno» no está en ninguna parte, y sin él **un solo equipo puede llenar la rotación entera**.
+   *
+   * El defecto que eso produce lo vio el dueño en producción, etapa 19: «el maillot amarillo tiene 9
+   * minutos de ventaja sobre el segundo, los escapados están a 33 y 41 minutos en la general… ¿qué
+   * necesidad hay de que el equipo del líder tire tan fuerte para acabar con la fuga?». Medido en la
+   * radio de esa etapa: **siete de los ocho hombres del equipo del maillot al frente durante cuarenta
+   * kilómetros seguidos** contra una fuga de uno a tres tipos. Y no es de esa etapa: en la 13, la 15
+   * y la 18 el equipo del maillot pone cinco o más el 62 %, el 63 % y el 68 % de los kilómetros.
+   *
+   * ————— Y NO ES `teamDriveControl`, QUE FUE LO PRIMERO QUE PROBÉ. MEDIDO Y DESCARTADO. —————
+   *
+   * La hipótesis barata era que `controlar` empujaba demasiado (0,75 contra 1,0 de `perseguir`).
+   * Barrido sobre el banco de reina con campo de producción (22 equipos de 8), midiendo el % de
+   * kilómetros con cinco o más del maillot al frente:
+   *
+   * ```
+   *   teamDriveControl   0,75   0,60   0,45   0,30   0,20
+   *   km con >= 5         41 %  38,9 % 37,9 % 35,8 % 34,5 %
+   * ```
+   *
+   * Seis puntos y medio por matar el empuje ENTERO. No es el mecanismo, y el motivo está escrito en
+   * `relayTurn`: el empuje decide **quién es dueño del frente**, no cuántos pone. Una vez dueño, sus
+   * hombres se ordenan arriba por deber y llenan el turno hasta el techo global.
+   *
+   * ————— LOS NÚMEROS —————
+   *
+   * Controlar y cazar no se distinguen en con cuánta fuerza tiras: se distinguen en **a cuántos
+   * hombres comprometes**. Un equipo que caza pone cinco —la cifra del dueño—; uno que controla pone
+   * tres, que es lo que se ve en cualquier etapa de transición; y el que solo arropa, dos.
+   *
+   * El cupo NO reasigna el hueco a otro: el que se pasa del cupo de su casa **no quiere tirar**, y si
+   * no quiere nadie más el turno se encoge y el pelotón va más despacio. Ésa es la diferencia entre
+   * controlar y cazar en la carretera, y si el hueco se reasignara lo único que cambiaría sería el
+   * nombre del que tira (ver el suelo de rescate, `relayMinPullers`, que sigue garantizando que
+   * alguien va delante).
+   */
+  relayTeamShare: {
+    perseguir: 5,
+    lanzar: 5,
+    controlar: 3,
+    proteger: 2,
+    fuga: 5,
+    nada: 5,
+  } as Record<string, number>,
+  /**
    * EL UMBRAL DE DEBER POR ENCIMA DEL CUAL SE TIRA (v38). El dueño: «los que estén por encima de un
    * umbral X tiran; y si está por encima del máximo, seleccionar al top de esos; y si sale 0,
    * escoger el mínimo que según el tamaño del grupo podría ser 1-4».
