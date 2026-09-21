@@ -271,6 +271,27 @@ describe('la general que ningún banco miraba (v79, docs/motor.md §V.1)', () =>
   })
 
   /**
+   * ————— Y EL EQUIPO DEL MAILLOT NO PONE A TODA LA CASA CONTRA UNA FUGA INOFENSIVA (v84) —————
+   *
+   * El dueño, sobre la etapa 19 de producción: «el maillot amarillo tiene 9 minutos de ventaja sobre
+   * el segundo, los escapados están a 33 y 41 minutos en la general… ¿qué necesidad hay de que el
+   * equipo del líder tire tan fuerte para acabar con la fuga?». Medido en esa radio: siete de los
+   * ocho al frente durante cuarenta kilómetros, y en las etapas 13, 15 y 18 el 62 %, el 63 % y el
+   * 68 % de los kilómetros con cinco o más.
+   *
+   * El arreglo es `relayTeamShareWatch`, y lo que se sella aquí es su EFECTO y no su valor, que es
+   * la lección de la v82 (2): un número medido y no sellado es un número que se puede perder sin que
+   * nadie se entere.
+   */
+  it(
+    'el equipo del maillot no pone a media casa contra lo que no le amenaza',
+    { timeout: 600000 },
+    () => {
+      expectInRange(stats.jerseyFrontHeavyPct, TARGETS.general.jerseyFrontHeavyPct)
+    },
+  )
+
+  /**
    * ————— LA TREGUA, QUE ES EL OBJETIVO QUE `ambushGainShare` CITABA Y NO EXISTÍA (v82) —————
    *
    * La constante llevaba «[calibrar] contra `truceGrantedPct` 50-85 %» desde que nació y ese

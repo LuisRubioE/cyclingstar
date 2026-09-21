@@ -20,6 +20,7 @@
  * día de carrera puesto. Cada estadística vigila una regla que hoy no vigila nadie.
  */
 import { flatScenario, queenScenario, campaignSeeds } from './scenarios.js'
+import { raceRadioCollector, radioKmPoints } from './raceRadio.js'
 import { teamedField } from './tactics.js'
 import { simulateStage } from '../stage/simulate.js'
 import type { SnapshotRider, StageInput, StageProfile, StageRider } from '../stage/types.js'
@@ -82,6 +83,22 @@ export interface GeneralStats {
    * que es literalmente lo que un director concede según con qué terreno puede recuperarlo.
    */
   breakMaxGapS: number
+  /**
+   * ————— CUÁNTA GENTE PONE AL FRENTE EL EQUIPO DEL MAILLOT EN UNA REINA (v84) —————
+   *
+   * % de kilómetros del pelotón en los que el equipo del maillot tiene **cinco o más hombres**
+   * dando la cara. El dueño lo vio en producción, etapa 19: «el maillot amarillo tiene 9 minutos de
+   * ventaja sobre el segundo, los escapados están a 33 y 41 minutos en la general… ¿qué necesidad
+   * hay de que el equipo del líder tire tan fuerte?». Siete de ocho hombres durante cuarenta
+   * kilómetros. Y en las etapas 13, 15 y 18 del mismo Tour: 62 %, 63 % y 68 % de los kilómetros.
+   *
+   * **SE MIDE SOBRE UN CAMPO CON FORMA DE PRODUCCIÓN (22 equipos de 8) Y NO SOBRE EL DE ESTE
+   * BANCO**, y no es un capricho: con los 8 equipos de 5 que usa el resto de `analyzeGeneral` es
+   * IMPOSIBLE que haya siete hombres de una casa al frente, así que la sonda medía cero y no podía
+   * ver lo que dice medir. Es el mismo error que este fichero lleva dos versiones cazando —un
+   * instrumento ciego devuelve un cero tranquilizador— y esta vez lo cometí al montarla.
+   */
+  jerseyFrontHeavyPct: number
 }
 
 /**
@@ -299,6 +316,36 @@ function tanqueDelMaillot(
 }
 
 /**
+ * CUÁNTOS HOMBRES PONE AL FRENTE EL EQUIPO DEL MAILLOT, kilómetro a kilómetro (v84).
+ *
+ * Se lee de la RADIO y no de los partes de relevo porque el parte nombra como mucho a tres: la
+ * pregunta es cuántos hay, no a quién se nombra. Y el motivo `equipo_maillot` vale como cuenta por
+ * equipo sin más filtro porque **equipo del maillot no hay más que uno**; contar por motivo sería
+ * un error para cualquier otro —`equipo_etapa` suma varias casas de velocista a la vez, y de hecho
+ * me lo tragué una vez: salía 20 con cupo y sin él porque 20 es el techo global, no lo de una casa—.
+ */
+function maillotAlFrente(perfil: StageProfile, campo: readonly StageRider[], runs: number): number {
+  let fotos = 0
+  let pesadas = 0
+  const totalKm = perfil.segments.reduce((a, s) => a + s.km, 0)
+  for (const seed of campaignSeeds('general-maillot-frente', runs)) {
+    const { probe, radio } = raceRadioCollector(radioKmPoints(totalKm, 1))
+    simulateStage(
+      { profile: perfil, riders: [...campo], race: { stageDay: 15, totalStages: 21 } },
+      seed,
+      probe,
+    )
+    for (const k of radio().kms) {
+      const pel = k.groups.find((g) => g.id === 'peloton')
+      if (pel === undefined || pel.pulling.length === 0) continue
+      fotos += 1
+      if (pel.pulling.filter((x) => x.motivo === 'equipo_maillot').length >= 5) pesadas += 1
+    }
+  }
+  return fotos === 0 ? 0 : Math.round((1000 * pesadas) / fotos) / 10
+}
+
+/**
  * `conParejas` corre además el pareado etapa 3 / etapa 18, que son DOS reinas por semilla y es lo
  * caro de este banco. El invariante de CI lo deja fuera a propósito y solo lo corre `pnpm sim`: su
  * diferencia no es significativa a estas semillas (ver `gcPullTeamsEarly`), así que pagar reinas en
@@ -379,6 +426,15 @@ export function analyzeGeneral(runs: number, conParejas = true): GeneralStats {
       gcCampo,
       conParejas ? runs : Math.min(runs, 10),
       120,
+    ),
+    /**
+     * CAMPO DE PRODUCCIÓN Y MUESTRA CORTA: lo caro aquí son los 176 corredores, no las semillas, y
+     * lo que la CI comprueba es que el número esté en su sitio, no su tercer decimal.
+     */
+    jerseyFrontHeavyPct: maillotAlFrente(
+      queen.input.profile,
+      conGeneral(teamedField({ teams: 22, per: 8, kind: 'reina', strong: 6 }), 25),
+      conParejas ? Math.min(runs, 20) : Math.min(runs, 6),
     ),
     jerseyFrontFlatPct: (100 * frenteLlana) / runs,
     jerseyFrontQueenPct: (100 * frenteReina) / runs,

@@ -755,9 +755,9 @@ function relayTurn(
    * CUÁNTOS HOMBRES PUEDE PONER LA CASA DE ESTE CORREDOR EN EL TURNO (v84, `relayTeamShare`).
    *
    * Es la otra mitad del «si hay 4 equipos colaborando, pues 5 de cada uno» del dueño: el techo de
-   * 20 estaba y el cupo por casa no, así que un solo equipo podía llenar la rotación entera. El
-   * cupo sale de lo que el equipo está HACIENDO —cazar compromete cinco, controlar tres, arropar
-   * dos— porque ésa es la diferencia que en carretera se ve y que el motor no tenía.
+   * 20 estaba y el cupo por casa no, así que un solo equipo podía llenar la rotación entera. Se
+   * cobra SOLO al que administra una fuga que no le amenaza —ver `relayTeamShareWatch`, con las dos
+   * hipótesis que los bancos tumbaron antes de llegar a ésta—; para todos los demás vale infinito.
    *
    * Viene resuelto de fuera porque depende del plan de equipo, que esta función no ve. Sin él
    * —fugas, grupetos, campos sin equipos— vale infinito y todo sigue igual que antes.
@@ -5072,7 +5072,22 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           }
           const stance = teamNow.get(eq)
           if (stance === undefined) return { equipo: null, cupo: Number.POSITIVE_INFINITY }
-          return { equipo: eq, cupo: STAGE.relayTeamShare[stance.intent] ?? STAGE.relayRotationMax }
+          /**
+           * ADMINISTRAR NO ES CAZAR, y es lo ÚNICO que se capa (v84). Un equipo de velocista que se
+           * pasa la llana entera en `controlar` está haciendo su trabajo del día; el equipo del
+           * maillot poniendo siete hombres contra unos fugados a media hora en la general, no.
+           *
+           * En cuanto lo de delante amenaza de verdad, el cupo desaparece: `threatened` es la misma
+           * cuenta con la que `driveOnFront` decide si ese equipo rueda a tempo o se pone a cazar.
+           */
+          const administra =
+            (stance.purpose === 'maillot' || stance.purpose === 'general') &&
+            stance.intent === 'controlar' &&
+            !stance.threatened
+          return {
+            equipo: eq,
+            cupo: administra ? STAGE.relayTeamShareWatch : Number.POSITIVE_INFINITY,
+          }
         },
       )
       /**

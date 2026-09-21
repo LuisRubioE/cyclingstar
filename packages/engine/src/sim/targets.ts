@@ -873,6 +873,30 @@ export const TARGETS = {
      * camino no se recorre nunca, que es por qué el barrido del paso 21 daba la constante inerte.
      */
     truceGrantedPct: { label: 'Treguas concedidas', min: 50, max: 85, unit: '%' },
+    /**
+     * ————— EL EQUIPO DEL MAILLOT NO PONE A TODA LA CASA CONTRA UNA FUGA INOFENSIVA (v84) —————
+     *
+     * % de kilómetros del pelotón de una reina con CINCO O MÁS hombres del equipo del maillot al
+     * frente. El dueño, sobre la etapa 19 de producción: «los escapados están a 33 y 41 minutos en
+     * la general… ¿qué necesidad hay de que el equipo del líder tire tan fuerte?». Siete de ocho
+     * durante cuarenta kilómetros, y en las etapas 13, 15 y 18 del mismo Tour el 62 %, el 63 % y el
+     * 68 % de los kilómetros.
+     *
+     * **ES UN TECHO CON SUELO EN CERO, y el suelo importa tanto como el techo**: que el equipo del
+     * maillot NUNCA ponga cinco sería el defecto contrario —un maillot al que nadie defiende el día
+     * que la fuga sí se lleva el liderato—. Por eso el cupo de `relayTeamShareWatch` solo se cobra
+     * cuando la fuga NO amenaza: en cuanto amenaza, desaparece.
+     *
+     * Medido con el cupo puesto: **10,9 %** sobre un campo con forma de producción. Sin él, 41 %. El
+     * techo se pone en 25 y no pegado al 11: lo que vigila esta banda es que no se vuelva al «toda
+     * la casa todo el día», no el segundo decimal de una muestra corta.
+     */
+    jerseyFrontHeavyPct: {
+      label: 'El maillot, con media casa al frente',
+      min: 0,
+      max: 25,
+      unit: '%',
+    },
   },
   /**
    * EL VIENTO CON DIRECCIÓN (R14, paso 20). Las dos bandas que el paso 20 dejó **medidas y sin
