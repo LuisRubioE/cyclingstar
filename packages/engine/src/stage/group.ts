@@ -10,6 +10,18 @@ import type { Block } from './types.js'
 /** Un grupo de corredores rodando juntos, con su reloj y su estado social (SPEC 6.3, 6.10). */
 export interface Group {
   id: string
+  /**
+   * NO ES EL TAMAÑO DEL GRUPO, y creerlo costó un defecto en producción (v83).
+   *
+   * Esta lista **solo crece** en el pelotón: cada fusión hace `[...peloton.riderIds, ...sg.riderIds]`
+   * y nadie borra de ahí al que se descuelga después, así que el que va y vuelve tres veces figura
+   * tres veces. Medido sobre doce reinas, el pelotón llegó a declarar **629 corredores en una
+   * carrera de 176**.
+   *
+   * Quién va HOY en un grupo es `membersOf(id)` —los corredores cuyo `groupId` vivo es ese—, y es
+   * lo único que vale para contar. `eslint.config.js` prohíbe `riderIds.length` en `src/stage`
+   * precisamente para que este error no pueda repetirse.
+   */
   riderIds: string[]
   /** Cronómetro acumulado en segundos desde la salida. */
   tS: number

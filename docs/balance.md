@@ -15486,18 +15486,26 @@ corredores ocupan 130-150 m, o sea 0,75-0,85 m por hombre.
 
 Medido sobre sesenta reinas:
 
-| regla                      | cruces pegajosos | de ellos, con los dos grupos ≥ 8 hombres |
-| -------------------------- | ---------------- | ---------------------------------------- |
-| 2 s fijos (hasta la v81)   | 51               | **9**                                    |
-| 4 s fijos                  | 39               | 5                                        |
-| 6 s fijos                  | 31               | 4                                        |
-| 10 s fijos                 | 13               | 4                                        |
-| 16 s fijos                 | 7                | 2                                        |
-| **física (0,75 m/hombre)** | **21**           | **0**                                    |
+| regla                          | cruces pegajosos | de ellos, con los dos grupos ≥ 8 hombres |
+| ------------------------------ | ---------------- | ---------------------------------------- |
+| 2 s fijos (hasta la v81)       | 51               | **9**                                    |
+| 4 s fijos                      | 39               | 5                                        |
+| 6 s fijos                      | 31               | 4                                        |
+| 10 s fijos                     | 13               | 4                                        |
+| 16 s fijos                     | 7                | 2                                        |
+| ~~**física (0,75 m/hombre)**~~ | ~~**21**~~       | ~~**0**~~                                |
 
-La regla física se lleva los nueve **y funde MENOS que el umbral plano que se queda con dos**:
-arregla lo que estaba roto sin aplanar lo que no lo estaba. Ningún umbral fijo consigue las dos
-cosas, porque ningún umbral fijo sabe si está en un puerto o en un abanico.
+> **CORREGIDO EN LA v83 — la última fila la produjo un defecto mío, no la regla.** Le di a la regla
+> física el tamaño equivocado (`riderIds.length`, una lista que solo crece y que llegaba a declarar
+> 629 corredores en una carrera de 176), así que el umbral no era medio centenar de metros: eran
+> cientos. Con el tamaño bueno, la misma sonda sobre las mismas sesenta reinas da **39 cruces
+> pegajosos y 5 grandes**, no 21 y 0. Ver «v83» más abajo.
+
+Con la cifra corregida, lo que la regla física sostiene sigue siendo lo que importa —**mejora las
+dos columnas a la vez frente al umbral de 2 s que había (51 → 39 y 9 → 5)**— pero ya no es cierto
+que funda menos que todos los umbrales planos ni que se lleve los nueve. Un umbral plano alto se
+lleva más cruces a cambio de aplanar; la regla física mejora sin aplanar, y ésa es la comparación
+que se sostiene.
 
 ### Y la prueba de que no aplana: las huellas llanas no se mueven
 
@@ -15509,6 +15517,13 @@ En la reina, lo que cambia es el **número de grupos de llegada, no los tiempos*
 con deltas medianos de +8 s y −1 s. Y los cuatro de cabeza entran juntos —`gc-2`, `gc-1`, `gc-3` y
 `gc-0` los cuatro en 15.520, donde marcaban 15.489, 15.512, 15.528 y 15.546—. Cincuenta y siete
 segundos repartidos entre cuatro hombres que iban en contacto no eran cuatro grupos: eran uno.
+
+> **CORREGIDO EN LA v83, y este párrafo es el que peor envejece.** Ese 44 → 27 y esos cuatro hombres
+> entrando juntos en 15.520 **eran el defecto haciendo su trabajo**, no la regla: con el tamaño bueno
+> la reina vuelve a 44 grupos y los cuatro de cabeza vuelven a entrar separados, exactamente en
+> 15.489, 15.512, 15.528 y 15.546. Lo escribí como la prueba de que la regla funcionaba y era la
+> prueba de que estaba envenenada. Lo que sí sobrevive intacto es la frase siguiente: las dos huellas
+> de llano salen idénticas dígito a dígito, antes y después.
 
 ### El regalo de reloj que casi se cuela, y cómo se cazó
 
@@ -15784,3 +15799,217 @@ lo que se sella aparte.
 Es la misma de toda la tanda, aplicada a mí: **un resultado que no vigila nadie no es un resultado**.
 Llevo dos días cazando constantes cuyo ancla citaba bancos que no medían lo que prometían, y el
 mismo día me dejé un valor medido, escrito y sin sellar — y se perdió en la ventana de un `cp`.
+
+## v83 — el pelotón declaraba 629 corredores en una carrera de 176
+
+El dueño, mirando la crónica de producción: «checa también qué pasa entre el km 119 y el 120… que
+de repente se juntan 87 ciclistas que estaban en 4 grupos, de una forma un poco rara».
+
+Tenía razón y el defecto era mío, de la v81. Y la radio de esa etapa lo enseña entero:
+
+```
+km 118  peloton  48 a 0s   grupeto 63 a 30s   grupeto 30 a 61s   …
+km 119  peloton  16 a 0s   grupeto  2 a 23s   grupeto 15 a 38s   grupeto 78 a 63s   …
+km 120  peloton  87 a 0s   grupeto  2 a 23s   grupeto  7 a 39s   grupeto 15 a 63s   …
+```
+
+Entre el 119 y el 120 el pelotón pasa de 16 a 87 hombres porque se traga un grupo de **78 que iba a
+63 segundos**. Y el detalle que señala al culpable con el dedo: el grupo de 15 que iba a 38 s —más
+cerca— **no** se fundió. No se tragó al más próximo: se tragó al más grande, porque el umbral lo
+fijaba `Math.max` de los dos tamaños y el tamaño estaba envenenado.
+
+### Cómo se cazó: instrumentar las fusiones y leer la línea imposible
+
+Se pusieron contadores en los sitios donde un grupo deja de existir y se corrieron doce reinas. La
+línea que lo destapó:
+
+```
+FUS shed->PELOTON km=157.4 n=44 hueco=221 onRough=true caught=false contacto=true
+```
+
+Un grupo de 44 hombres **a tres minutos y 41 segundos** del pelotón, absorbido por la cláusula de
+contacto. La cláusula de contacto es la regla física de la v81: dos grupos son uno cuando el hueco
+que los separa es menor que la carretera que ellos mismos ocupan. Para 44 y 176 hombres eso son
+unos trece segundos, no doscientos veintiuno. El umbral no estaba mal planteado: estaba mal
+alimentado.
+
+### La causa: `riderIds` no es el tamaño de un grupo, y yo lo usé como si lo fuera
+
+```ts
+peloton = { ...peloton, riderIds: [...peloton.riderIds, ...sg.riderIds] }
+```
+
+Esa lista **solo crece**. Cada fusión concatena y nadie borra de ahí al que se descuelga después, así
+que el que se cae y vuelve tres veces figura tres veces. Medido sobre las mismas doce reinas, el
+pelotón llegó a declarar **629 corredores en una carrera de 176**, cuando los que iban de verdad
+dentro eran como mucho 175.
+
+La aritmética del veneno es directa: 629 hombres son 472 metros de carretera, y a 15 km/h de puerto
+eso son **113 segundos de umbral** donde correspondían trece. En el peor caso medido, el pelotón se
+tragó un grupo que iba a **179 segundos** como si lo llevara pegado a la rueda. Eso es lo que el
+dueño vio: cuatro grupos separados por minutos convirtiéndose en 87 ciclistas juntos de un kilómetro
+para otro.
+
+Quién va **hoy** en un grupo es `membersOf(id)` —los corredores cuyo `groupId` vivo es ese—, y es lo
+único que vale para contar. El arreglo son dos llamadas:
+
+```ts
+contactoS(membersOf(PELOTON).length, mem.length, peloton.vActual)
+contactoS(membersOf(detras.g.id).length, membersOf(delante.g.id).length, detras.g.vActual)
+```
+
+### Medido: la misma sonda, las mismas doce reinas, con el bug y sin él
+
+| puerta de fusión                              | con el bug | arreglado |
+| --------------------------------------------- | ---------- | --------- |
+| descolgados → pelotón: fusiones               | 248        | **60**    |
+| descolgados → pelotón: **a más de 22 s**      | 184        | **1**     |
+| descolgados → pelotón: peor hueco fundido     | **179 s**  | **23 s**  |
+| cruce entre grupos: fusiones / a más de 22 s  | 9 / 0      | 10 / 0    |
+| movimiento → pelotón (no usa la regla física) | 254 / 58   | 245 / 54  |
+
+Las dos puertas que llaman a la regla física se ordenan: el pelotón deja de fundir cuatro de cada
+cinco grupos que fundía, y la única fusión que queda por encima de 22 s es de 23 s, que es la puerta
+de `rejoinGapSeconds` haciendo su trabajo calibrado. La puerta de los movimientos no cambia porque
+no toca la regla: su número se lista sólo para enseñar que el arreglo no la ha rozado.
+
+### Lo que mueve en las huellas: el llano no se entera, la reina recupera granos
+
+- **Las dos huellas de llano salen idénticas dígito a dígito.** En llano se rueda a 45 km/h, el
+  umbral se encoge a un par de segundos con cualquiera de los dos tamaños y no había nada que fundir
+  de más.
+- **En la reina vuelven los grupos de llegada que el defecto estaba aplastando**: 27 → **44** y
+  32 → **36**. El bug no adelantaba a nadie: fundía. Cada fusión de más era un grupo de llegada de
+  menos.
+- **Y vuelven a separarse los cuatro de cabeza**: `gc-2`, `gc-1` y `gc-3` marcaban los tres 15.520 y
+  ahora marcan 15.489, 15.512 y 15.528. Movidos 176 de 176, mediano **−7 s**; en la semilla 1,
+  172 de 176 y mediano **−3 s**.
+
+### La corrección que me toca escribir
+
+La entrada «v81 (3)» de esta misma bitácora presentaba dos cosas como la prueba de que la regla
+física funcionaba. Las dos eran el defecto:
+
+1. **«21 cruces pegajosos y 0 grandes»**. Con el tamaño bueno, la misma sonda sobre las mismas
+   sesenta reinas da **39 y 5**. La regla mejora frente a los 2 s que había —51 → 39 y 9 → 5, las
+   dos columnas a la vez— pero no se lleva los nueve ni funde menos que todos los umbrales planos.
+   La fila de los 2 s se volvió a medir para que la comparación fuera de la misma tanda y salió
+   **51 y 9 clavados**: lo que se movió es la fila de la regla, no el banco.
+2. **«los cuatro de cabeza entran juntos en 15.520»**. Escrito como la señal de que la regla
+   reconocía un grupo que era uno. Era el umbral envenenado fundiendo cuatro grupos que no lo eran,
+   y con el arreglo vuelven a entrar separados.
+
+Lo peor no es el número: es que **usé como evidencia a favor justo el sitio por donde el defecto
+salía**. Una regla nueva que mueve mucho más de lo que prometía no es una regla que funciona mejor
+de lo esperado; es una regla que hay que ir a medir otra vez.
+
+### El sello
+
+Por la lección de la v82 (2) —«una nota no falla; lo que falla es un test»— esto no se queda en un
+comentario. `eslint.config.js` prohíbe `riderIds.length` en `packages/engine/src/stage`, con el
+mensaje que dice qué usar en su lugar. Se acota a `src/stage` porque es donde vive el tipo
+envenenado: el `riderIds` de `src/sim/raceRadio.ts` es una foto fiel de un kilómetro y se recorre en
+paralelo con `riderTs`.
+
+Y el bloque repite las tres restricciones de pureza (`Math.random`, `Date.now`, `new Date()`): en
+flat config un segundo bloque **reemplaza** la configuración de la regla para esos ficheros en vez de
+sumarse, así que omitirlas habría apagado el guardián de la pureza justo en `src/stage`. Comprobado
+a mano en las dos direcciones antes de darlo por bueno.
+
+### La lección
+
+`riderIds` llevaba meses siendo append-only sin hacer daño, porque nadie lo leía como un tamaño. El
+defecto no lo introdujo esa lista: lo introduje yo el día que le pregunté **cuántos** a un campo que
+solo sabe responder **quiénes han pasado por aquí**. Un dato que miente sólo cuando le haces la
+pregunta equivocada es peor que uno que miente siempre, porque el verde de la suite no lo nota: las
+dos suites pasaron enteras con el pelotón declarando 629 hombres.
+
+## v83 (2) — un abanico que se anunciaba y se evaporaba: la histéresis estaba del revés
+
+Esto salió persiguiendo lo anterior. Con el tamaño de los grupos arreglado, la suite rápida se puso
+roja en un sitio que no tenía nada que ver con fundir grupos:
+
+```
+el día que corta, el corte MANDA en la carrera
+AssertionError: expected 119 to be less than 117
+```
+
+Y lo primero que apareció al mirarlo fue que **la prueba ya estaba pasando en falso**.
+
+### La afirmación medía lo contrario de lo que promete
+
+Con el motor de producción, en la semilla 0 del banco del viento el abanico parte la carrera en 64
+hombres y al final **entran 119 de 120 en el mismo segundo**. O sea, el abanico se recompone entero.
+La prueba pasaba en verde porque comparaba la cabeza contra el pelotón de ANTES del corte: 119 es
+menor que 120. Lo único que hacía falta para pasar era que se quedara un hombre por el camino.
+
+Mi arreglo no rompió la prueba: movió qué semillas caen en el agujero —de una de cuatro a dos de
+cuatro— y con eso la puso roja. Lo que hay debajo llevaba ahí desde la v41.
+
+### La causa: las dos puertas del abanico no hablan del mismo viento
+
+```ts
+// ABRE:   cualquier lateral por encima de cero
+if (vientoLateral > 0 && block.tipo === 'llano' && !isFinal) { … }
+
+// CIERRA: por debajo de 0,35 sostenido dos kilómetros
+echelonCloseThreshold: 0.35
+```
+
+El motor abría el abanico con un viento que él mismo considera insuficiente para mantenerlo. Trazada
+la semilla 142:
+
+```
+km 58,55  echelon_split  before=114 remaining=84 dropped=30 wind=23
+km 58,65  echelon_close  wind=23
+km 62,5   shed->PELOTON  n=30 hueco=3 contacto=true
+```
+
+**Cien metros de abanico.** Y el cierre salta inmediatamente porque `kmAlAbrigo` llevaba acumulando
+desde la salida: según el criterio de cierre, los 58 km anteriores eran carretera al abrigo. Los
+treinta cortados vuelven cuatro kilómetros después a **tres segundos** —eso sí es correcto, tres
+segundos con ochenta y cinco hombres es contacto de verdad— y la etapa acaba con los 120 en el mismo
+segundo y **cero de desparrame**. Una crónica que anuncia que el viento parte la carrera y un
+resultado en el que no pasó nada.
+
+La constante ya lo avisaba, en su propio comentario: «la puerta real que ABRE el abanico hoy es la de
+`corte()`… el umbral con que se CIERRA no tiene ancla y se calibra». Lo que no estaba escrito es que
+las dos juntas dan una **histéresis al revés**: en cualquier sistema así se abre con MÁS y se cierra
+con MENOS, y aquí se abría con cualquier cosa.
+
+### El arreglo es una frase
+
+El viento que rompe la carrera es, como mínimo, el viento que la mantiene rota. Un número para las
+dos puertas, y los dos kilómetros de carretera al abrigo como única histéresis, que es la que tiene
+sentido físico.
+
+Medido sobre 240 semillas del banco del viento:
+
+|                                        | sin arreglar                                   | con la histéresis             |
+| -------------------------------------- | ---------------------------------------------- | ----------------------------- |
+| días de abanico                        | 10 de 240                                      | 7 de 240                      |
+| **abanicos que se recomponen enteros** | **4 de 10 (40 %)**                             | **1 de 7 (14 %)**             |
+| el peor caso                           | semilla 142: 120 juntos, **0 s** de desparrame | semilla 102: 118 juntos, 12 s |
+
+Los días que se caen son justo los de viento flojo —la 142 con lateral 0,23, la 135 que soltaba 0,78
+hombres de 119—. Los que cortan de verdad siguen cortando y ahora **aguantan**: 38 en cabeza de los
+38 que quedaron, 30 de 30, 37 de 37.
+
+### Y la prueba se ENDURECE, no se afloja
+
+`< before` pasa a `< (before + remaining) / 2`: el resultado del día lo decide el corte, así que la
+cabeza en meta tiene que parecerse a lo que quedó tras el corte y no a lo de antes. Caza la semilla 0
+de producción (119 contra 92) y la 142 (120 contra 99), y las tres que cortan de verdad pasan con
+margen: 38<79, 33<69, 67<83.
+
+**Queda un resto, y se escribe en vez de taparse**: sobre 240 semillas, **1 de cada 7 abanicos
+todavía se recompone** —la 102, con 12 s de desparrame—. Es un abanico justo en el umbral al que el
+pelotón caza, que en carretera pasa. El día que deje de parecerlo, ahí está el número contra el que
+medirlo.
+
+### La lección
+
+Un test puede estar en verde **y medir lo contrario de lo que su frase promete**. Éste llevaba desde
+la v41 diciendo «el corte manda en la carrera» y comprobando «al menos un hombre se quedó», y nadie
+—yo el primero— leyó la comparación al lado de la frase. Lo que lo destapó fue un cambio en otra
+parte del motor: la señal no vino de quien vigilaba, vino de quien pasaba por ahí.

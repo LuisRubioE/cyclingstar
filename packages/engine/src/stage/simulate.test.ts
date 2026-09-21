@@ -1143,8 +1143,24 @@ describe('el viento de lado parte la carrera (v41)', () => {
       // Y no se recompone solo: el que se queda en la cuneta pierde tiempo de verdad.
       const t = out.results.map((r) => r.tiempoS).sort((a, b) => a - b)
       expect(t[t.length - 1]! - t[0]!).toBeGreaterThan(20)
-      // El grupo de cabeza en meta no puede ser el pelotón entero.
-      expect(t.filter((x) => x === t[0]).length).toBeLessThan(before)
+      /**
+       * EL GRUPO DE CABEZA EN META SE PARECE A LO QUE QUEDÓ TRAS EL CORTE, NO A LO DE ANTES (v83).
+       *
+       * Esto decía `< before` y **pasaba en verde midiendo lo contrario de lo que promete**: en la
+       * semilla 0, con el motor de producción, el abanico partía la carrera en 64 y al final entraban
+       * 119 de 120 en el mismo segundo. O sea, el abanico se recomponía ENTERO y la afirmación pasaba
+       * porque 119 es menor que 120. El corte no mandaba en nada.
+       *
+       * Lo que la frase significa es que el resultado del día lo decide el corte, así que la cabeza
+       * tiene que estar más cerca de `remaining` que de `before`. Con el punto medio: caza la semilla
+       * 0 (119 contra 92), caza la 142 (120 contra 99) —la que abría cien metros de abanico con
+       * viento de 0,23— y las tres que cortan de verdad pasan con margen (38<79, 33<69, 67<83).
+       *
+       * Queda un resto MEDIDO y declarado: sobre 240 semillas, **1 de cada 7 abanicos todavía se
+       * recompone** (la 102, con 12 s de desparrame). Es un abanico justo en el umbral al que el
+       * pelotón caza, que en carretera pasa; no se tapa, se escribe.
+       */
+      expect(t.filter((x) => x === t[0]).length).toBeLessThan((before + remaining) / 2)
     }
   })
 
