@@ -111,13 +111,18 @@ cambia `packages/engine/`, que es lo único que puede romperlos; `cobertura.yml`
 con cobertura una vez al día pase lo que pase. En local, mientras se trabaja en la web o en la API,
 `test:rapido` da la misma respuesta mucho más rápido.
 
-**Y en CI los bancos van en SEIS tramos en paralelo** (v83), no porque se salte ninguno —no se salta
-ninguno, ésa es la condición— sino porque `invariants.test.ts` era el 64 % del trabajo y dentro de un
-fichero vitest corre en serie. Se partió en cuatro (`invariants`, `invariantsClasicas`,
-`invariantsAbandonos`, `invariantsPequenas`), con una de las tres pruebas caras en cada hermano, y la
-matriz de `ci.yml` los reparte junto con `coherence` y el trío pequeño. El reloj de pared del job
-baja de **~71 min a ~22**, que es lo que marca el tramo más largo. `pnpm test:bancos` en local los
+**Y en CI los bancos van en OCHO tramos en paralelo** (v83), no porque se salte ninguno —no se
+salta ninguno, ésa es la condición— sino porque `invariants.test.ts` era el 64 % del trabajo y dentro
+de un fichero vitest corre en serie. Se partió en seis (`invariants`, `invariantsLlano`,
+`invariantsDesgaste`, `invariantsClasicas`, `invariantsAbandonos`, `invariantsPequenas`) y la matriz
+de `ci.yml` los reparte junto con `coherence` y el trío pequeño. `pnpm test:bancos` en local los
 sigue corriendo todos de una vez.
+
+El primer corte fueron cuatro ficheros y **el CI dijo que se quedaba corto**: 33,1 min el tramo de
+`invariantes` contra 12,7 del siguiente, o sea 71 → 33 y no los ~22 que se habían pronosticado con
+tiempos locales medidos con contención. De ahí el segundo corte. **El número que manda es el que
+imprime el CI en cada tramo**, y es el que hay que mirar para volver a afinarlo — no una estimación
+local.
 
 ### Race Radio — depurar una etapa kilómetro a kilómetro
 

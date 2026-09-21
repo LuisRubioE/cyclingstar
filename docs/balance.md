@@ -16076,11 +16076,8 @@ esconda lo que dicen los otros cinco.
 
 Los cuatro hermanos corriendo A LA VEZ en esta máquina de cuatro núcleos: 2.180 s, 985, 775 y 582.
 Son tiempos **con contención** —los cuatro peleándose por los mismos núcleos— así que sirven para el
-reparto relativo y no como pronóstico: escalados al total real (2.798 s) salen del orden de 1.350,
-610, 480 y 360. El tramo más largo del job pasa a ser `coherence` con sus 1.197 s.
-
-O sea: **de ~71 minutos de reloj de pared a ~22**, y el número que hay que vigilar para afinar el
-reparto lo imprime el propio CI en cada tramo, que es mejor dato que éste.
+reparto relativo y no como pronóstico. Escalados al total real salían del orden de 1.350, 610, 480 y
+360, y de ahí pronostiqué **~22 minutos** de reloj de pared.
 
 El precio se dice también: cada tramo paga su `setup` y su build (~3 min), así que el gasto en
 minutos de runner sube del orden de un 25 %. Por 3,5× de reloj, se paga.
@@ -16090,3 +16087,43 @@ minutos de runner sube del orden de un 25 %. Por 3,5× de reloj, se paga.
 Antes de partir nada, medir dónde se va el tiempo. La partición «por temas» que iba a hacer habría
 repartido mal —64 % en un lado— y además habría tenido que adivinar qué banda puede romper cada
 cambio, que es justo lo que esta tanda ha demostrado que no se puede adivinar.
+
+## v83 (4) — el pronóstico de los 22 minutos era malo, y el CI lo dijo en la primera corrida
+
+Lo que la matriz midió de verdad (run 35613047784):
+
+| tramo           |      CI real |
+| --------------- | -----------: |
+| **invariantes** | **33,1 min** |
+| pequeñas        |     12,7 min |
+| abandonos       |     12,0 min |
+| coherencia      |     10,4 min |
+| clásicas        |      9,2 min |
+| mundo y radio   |      5,5 min |
+
+O sea **71 → 33**, no los ~22 que yo había escrito. El error es identificable y vale la pena dejarlo
+escrito: los cuatro hermanos los medí **corriendo a la vez en cuatro núcleos**, y escalar unos
+tiempos con contención al total de una corrida en serie no es una predicción, es una regla de tres
+sobre una carga que no se comporta así. La parte relativa del reparto sí valía —y por eso el reparto
+no está mal— pero el pronóstico del reloj de pared no.
+
+Y el dato dice además lo que falta: `invariantes` sigue siendo el cuello con casi el triple que el
+siguiente. Así que se parte otra vez, en tres: el `desgaste` a `invariantsDesgaste.test.ts` y el par
+llano+fases —que corren sobre `flatScenario` con 300 y 120 semillas, y que medidos aparte eran la
+mitad de lo que quedaba— a `invariantsLlano.test.ts`. La matriz pasa a **ocho tramos** y los 25 `it`
+del fichero se reparten en 13 + 6 + 6, que siguen siendo 25.
+
+**Y esta vez no se escribe ningún pronóstico de minutos.** El número lo dirá la siguiente corrida,
+tramo a tramo, que es de donde tenía que haber salido el anterior.
+
+**El precio, ahora medido en vez de estimado**: la suma de los seis tramos fue de 82,8 min de runner
+contra los 71 de antes, o sea **un 17 %** más —yo había dicho «del orden de un 25 %»—, porque cada
+tramo paga su `setup` y su build.
+
+### La lección
+
+Un pronóstico y una medida no son lo mismo, y aquí los mezclé: presenté un número escalado de una
+corrida con contención con la misma cara con la que este documento presenta lo que ha medido. Lo que
+salvó la papeleta fue que el propio comentario del workflow dijera «el reparto se afina con los
+tiempos que el CI imprime» — o sea que el número que iba a corregirlo ya estaba encargado antes de
+saber que hacía falta.
