@@ -751,6 +751,21 @@ function relayTurn(
   ordenesRef = false,
   /** Qué equipos van en este grupo, para poder aplicar «con ésos no colaboro». */
   equiposEnElGrupo: (ids: ReadonlySet<string>) => ReadonlySet<string> = () => new Set<string>(),
+  /**
+   * CUÁNTOS HOMBRES PUEDE PONER LA CASA DE ESTE CORREDOR EN EL TURNO (v84, `relayTeamShare`).
+   *
+   * Es la otra mitad del «si hay 4 equipos colaborando, pues 5 de cada uno» del dueño: el techo de
+   * 20 estaba y el cupo por casa no, así que un solo equipo podía llenar la rotación entera. Se
+   * cobra SOLO al que administra una fuga que no le amenaza —ver `relayTeamShareWatch`, con las dos
+   * hipótesis que los bancos tumbaron antes de llegar a ésta—; para todos los demás vale infinito.
+   *
+   * Viene resuelto de fuera porque depende del plan de equipo, que esta función no ve. Sin él
+   * —fugas, grupetos, campos sin equipos— vale infinito y todo sigue igual que antes.
+   */
+  cupoDeEquipo: (riderId: string) => { equipo: string | null; cupo: number } = () => ({
+    equipo: null,
+    cupo: Number.POSITIVE_INFINITY,
+  }),
 ): Set<string> {
   const scored = members.map((m) => {
     const helpers = domestiquesFor.get(m.input.riderId)
@@ -922,6 +937,32 @@ function relayTurn(
           STAGE.relayDutyPaceRelief * Math.max(0, Math.min(1, paceFraction))
   const quieren = scored.filter((s) => s.duty >= listón).length
   /**
+   * …Y CADA CASA PONE LOS SUYOS HASTA SU CUPO (v84). `scored` viene ordenado por deber de mayor a
+   * menor, así que recorrerlo y parar en el listón deja a los que quieren; el cupo va quitando a los
+   * que su casa ya no puede poner.
+   *
+   * **El hueco NO se reasigna**, y es la mitad importante de la regla: el que se pasa del cupo de su
+   * casa deja de querer tirar, y si no quiere nadie más el turno se ENCOGE y el pelotón va más
+   * despacio. Reasignarlo al siguiente por deber solo cambiaría el nombre del que tira —y encima a
+   * uno sin motivo, que es el defecto que la v38 cazó—: no cambiaría la carrera. Lo que hace que
+   * alguien vaya delante igualmente es el suelo de rescate (`minimo`), como siempre.
+   */
+  const conCupo: typeof scored = []
+  {
+    const puestos = new Map<string, number>()
+    for (const sc of scored) {
+      if (sc.duty < listón) break
+      const { equipo, cupo } = cupoDeEquipo(sc.id)
+      if (equipo !== null) {
+        const ya = puestos.get(equipo) ?? 0
+        if (ya >= cupo) continue
+        puestos.set(equipo, ya + 1)
+      }
+      conCupo.push(sc)
+    }
+  }
+  const quierenConCupo = conCupo.length
+  /**
    * …Y ALGUIEN TIENE QUE DAR LA CARA IGUAL: un grupo rueda porque alguien va delante. Son los que
    * menos se resisten, y cuántos depende del tamaño —uno en una fuga de dos, cuatro en un pelotón—.
    * Éste es también el caso del hombre que va SOLO, que da la cara el 100 % del tiempo porque no
@@ -959,15 +1000,22 @@ function relayTurn(
    * protegidos salen en negativo del deber, quedan al final del orden y basta con no contarlos.
    */
   const protegidos = enAbanico ? scored.filter((s) => s.protegido).length : 0
+  /**
+   * EN UN ABANICO NO HAY CUPO POR CASA, y es coherente con lo de arriba: en una fila con el viento
+   * de lado rota la fila entera porque detrás del último que da la cara no hay rueda, hay cuneta.
+   * Ahí no se decide a cuánta gente compromete un equipo: se decide quién cabe en el asfalto.
+   */
+  const disponibles = enAbanico ? quieren : quierenConCupo
   const cuantos = enAbanico
     ? Math.max(minimo, Math.min(techo, members.length - protegidos))
-    : Math.max(minimo, Math.min(quieren, techo))
-  if (cuantos <= quieren) {
-    const candidatos = scored.slice(0, quieren).map((s) => s.id)
+    : Math.max(minimo, Math.min(disponibles, techo))
+  if (cuantos <= disponibles) {
+    const elegibles = enAbanico ? scored.slice(0, quieren) : conCupo
+    const candidatos = elegibles.map((s) => s.id)
     return elTren(
       cola
         ? advanceQueue(cola, candidatos, cuantos, STAGE.dx, terrenoCola)
-        : new Set(scored.slice(0, cuantos).map((s) => s.id)),
+        : new Set(elegibles.slice(0, cuantos).map((s) => s.id)),
       scored,
       lanzando,
     )
@@ -5009,6 +5057,38 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         seApartaDelTurno,
         ordenesOn,
         equiposDe,
+        /**
+         * EL CUPO DE CADA CASA (v84, `relayTeamShare`), resuelto aquí porque es aquí donde se sabe
+         * qué está haciendo cada equipo.
+         *
+         * SOLO EN EL PELOTÓN: en una fuga o un grupeto no hay plan de equipo que reparta nada
+         * —relevan todos, que es lo que una fuga es— y meterles un cupo sería inventarse una
+         * disciplina que ahí no existe. Fuera del pelotón devuelve infinito y nada cambia.
+         */
+        (riderId) => {
+          const eq = teamOf.get(riderId)
+          if (!isBunch || eq == null || rebels.has(riderId)) {
+            return { equipo: null, cupo: Number.POSITIVE_INFINITY }
+          }
+          const stance = teamNow.get(eq)
+          if (stance === undefined) return { equipo: null, cupo: Number.POSITIVE_INFINITY }
+          /**
+           * ADMINISTRAR NO ES CAZAR, y es lo ÚNICO que se capa (v84). Un equipo de velocista que se
+           * pasa la llana entera en `controlar` está haciendo su trabajo del día; el equipo del
+           * maillot poniendo siete hombres contra unos fugados a media hora en la general, no.
+           *
+           * En cuanto lo de delante amenaza de verdad, el cupo desaparece: `threatened` es la misma
+           * cuenta con la que `driveOnFront` decide si ese equipo rueda a tempo o se pone a cazar.
+           */
+          const administra =
+            (stance.purpose === 'maillot' || stance.purpose === 'general') &&
+            stance.intent === 'controlar' &&
+            !stance.threatened
+          return {
+            equipo: eq,
+            cupo: administra ? STAGE.relayTeamShareWatch : Number.POSITIVE_INFINITY,
+          }
+        },
       )
       /**
        * CUÁNTOS SE REPARTEN EL VIENTO AL FRENTE: LOS QUE TIRAN, y punto (v38).

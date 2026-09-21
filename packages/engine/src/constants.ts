@@ -806,7 +806,7 @@
  * frente: en montaña son 2,76 equipos por llamada contra 0,96. Ver `ambushGainShare` y
  * `cerrandoAhora`.
  */
-export const ENGINE_VERSION = 83 as const
+export const ENGINE_VERSION = 84 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -2273,6 +2273,63 @@ export const STAGE = {
    * quién puede nombrar la radio.
    */
   relayRotationMax: 20,
+  /**
+   * ————— CUÁNTOS HOMBRES PONE EL QUE ADMINISTRA UNA FUGA QUE NO LE AMENAZA (v84) —————
+   *
+   * **La otra mitad de la frase del dueño, que llevaba cuarenta versiones sin implementarse.** La
+   * cita entera está en `relayRotationMax`, unas líneas más arriba: «un máximo de unos 20 ciclistas;
+   * más de 20 pasando a los relevos es irreal… pero eso aplica tanto a una fuga de 25 como al propio
+   * pelotón: **si hay 4 equipos colaborando, pues 5 de cada uno**». El techo de 20 se puso; el cupo
+   * por casa no está en ninguna parte, y sin él **un solo equipo puede llenar la rotación entera**.
+   *
+   * El defecto que eso produce lo vio el dueño en producción, etapa 19: «el maillot amarillo tiene 9
+   * minutos de ventaja sobre el segundo, los escapados están a 33 y 41 minutos en la general… ¿qué
+   * necesidad hay de que el equipo del líder tire tan fuerte para acabar con la fuga?». Medido en la
+   * radio de esa etapa: **siete de los ocho hombres del equipo del maillot al frente durante cuarenta
+   * kilómetros seguidos** contra una fuga de uno a tres tipos. Y no es de esa etapa: en la 13, la 15
+   * y la 18 el equipo del maillot pone cinco o más el 62 %, el 63 % y el 68 % de los kilómetros.
+   *
+   * ————— LO QUE NO ES, Y LAS DOS VECES QUE ME EQUIVOQUÉ ANTES DE LLEGAR AQUÍ —————
+   *
+   * **No es `teamDriveControl`.** La hipótesis barata era que `controlar` empuja demasiado (0,75
+   * contra 1,0 de `perseguir`). Barrido sobre el banco de reina con campo de producción (22 equipos
+   * de 8), % de kilómetros con cinco o más del maillot al frente:
+   *
+   * ```
+   *   teamDriveControl   0,75   0,60   0,45   0,30   0,20
+   *   km con >= 5         41 %  38,9 % 37,9 % 35,8 % 34,5 %
+   * ```
+   *
+   * Seis puntos y medio por matar el empuje ENTERO. El empuje decide **quién es dueño del frente**,
+   * no cuántos pone: una vez dueño, sus hombres se ordenan arriba por deber y llenan el turno.
+   *
+   * **Y no es un cupo por INTENCIÓN.** La primera versión de esta constante era una tabla —cazar
+   * cinco, controlar tres, arropar dos— y los bancos la tumbaron a 300 semillas: `breakawayWinPct`
+   * del llano se fue a **21,67 %** contra un techo de 16, y la captura a **75,93 %** contra un suelo
+   * de 81,5. Subir el cupo de cazar a siete lo dejó PEOR (23 % y 74,4), o sea que no era la caza.
+   *
+   * El motivo está en `intentFor`: **`controlar` no es solo la postura del maillot**. Un equipo de
+   * velocista se pasa casi toda una llana en `controlar` —solo salta a `perseguir` cuando el boquete
+   * crece— así que capar `controlar` le estrangulaba el tempo todo el día y la fuga se iba.
+   *
+   * ————— LO QUE SÍ ES —————
+   *
+   * El acto que el dueño señala no es «controlar»: es **administrar una fuga que no te amenaza**, y
+   * eso solo lo hace el equipo que corre por la general. Un equipo de velocista tirando toda la tarde
+   * en una llana es su trabajo del día y en carretera se ve; el equipo del maillot poniendo siete
+   * hombres contra unos fugados a media hora en la general, no.
+   *
+   * Así que el cupo se cobra donde ocurre: motivo de `maillot` o `general`, intención de `controlar`
+   * y **sin amenaza de verdad** (`threatened`, la misma cuenta que ya decide si ese equipo tira a
+   * tempo o se pone a cazar en `driveOnFront`). En cuanto la fuga amenaza de verdad, el cupo
+   * desaparece y el equipo pone a los que haga falta.
+   *
+   * TRES, que es lo que pone en carretera un equipo que administra: uno delante y dos cubriendo. El
+   * cupo NO reasigna el hueco a otro —el que se pasa deja de querer tirar y el turno se ENCOGE—, que
+   * es la diferencia entre administrar y cazar; el suelo de rescate (`relayMinPullers` = 4) sigue
+   * garantizando que alguien va delante, y por eso el máximo medido es 4 y no 3.
+   */
+  relayTeamShareWatch: 3,
   /**
    * EL UMBRAL DE DEBER POR ENCIMA DEL CUAL SE TIRA (v38). El dueño: «los que estén por encima de un
    * umbral X tiran; y si está por encima del máximo, seleccionar al top de esos; y si sale 0,

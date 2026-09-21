@@ -16127,3 +16127,120 @@ corrida con contención con la misma cara con la que este documento presenta lo 
 salvó la papeleta fue que el propio comentario del workflow dijera «el reparto se afina con los
 tiempos que el CI imprime» — o sea que el número que iba a corregirlo ya estaba encargado antes de
 saber que hacía falta.
+
+## v84 — el equipo del maillot ponía siete hombres contra una fuga a media hora, y las dos veces que me equivoqué antes de arreglarlo
+
+El dueño, mirando la etapa 19 de producción: «el maillot amarillo tiene 9 minutos de ventaja sobre
+el segundo. Los escapados están a 33 y 41 minutos en la general… ¿qué necesidad hay de que el equipo
+del líder tire tan fuerte para acabar con la fuga?». Y una foto más, peor: «ídem aquí, y más grave
+porque vemos al propio líder tirando del grupo».
+
+### Primero: que la sonda pudiera ver el defecto
+
+Medido en la radio de esa etapa, kilómetro a kilómetro: **siete de los ocho hombres del equipo del
+maillot al frente durante cuarenta kilómetros seguidos** (km 77-116) contra una fuga de uno a tres
+tipos. Y no era esa etapa: en la 13, la 15 y la 18 del mismo Tour el equipo del maillot pone cinco o
+más durante el **62 %, el 63 % y el 68 %** de los kilómetros.
+
+La primera sonda de banco dio **cero**, y el motivo es el error que este documento lleva tres
+versiones cazando: la monté sobre el campo de `analyzeGeneral`, que son **8 equipos de 5**. Con cinco
+hombres por casa es IMPOSIBLE que haya siete al frente. Un instrumento ciego no devuelve un error,
+devuelve un cero tranquilizador. Con un campo con forma de producción —22 equipos de 8— la sonda ve
+el defecto: **41 %** de los kilómetros de una reina con cinco o más.
+
+### Lo que NO era, primera vez: `teamDriveControl`
+
+La hipótesis barata: `controlar` empuja demasiado (0,75 contra el 1,0 de `perseguir`). Barrido:
+
+| `teamDriveControl`           |     0,75 |   0,60 |   0,45 |   0,30 |   0,20 |
+| ---------------------------- | -------: | -----: | -----: | -----: | -----: |
+| km de reina con ≥5 al frente | **41 %** | 38,9 % | 37,9 % | 35,8 % | 34,5 % |
+
+Seis puntos y medio por matar el empuje **entero**. No es el mecanismo, y el motivo está en
+`relayTurn`: el empuje decide **quién es dueño del frente**, no cuántos hombres pone. Una vez dueño,
+los suyos se ordenan arriba por deber y llenan el turno hasta el techo global.
+
+### La regla que faltaba estaba escrita, con las palabras del dueño, desde hacía cuarenta versiones
+
+En el comentario de `relayRotationMax`, y solo se implementó la mitad:
+
+> «un máximo de unos 20 ciclistas; más de 20 pasando a los relevos es irreal… pero eso aplica tanto a
+> una fuga de 25 en la que ya no hay entendimiento entre todos como al propio pelotón: **si hay 4
+> equipos colaborando, pues 5 de cada uno**».
+
+El techo de 20 está en el código desde entonces. El **cupo por casa no está en ninguna parte**, y sin
+él un solo equipo puede llenar la rotación entera.
+
+### Lo que NO era, segunda vez: un cupo por INTENCIÓN
+
+La primera implementación fue una tabla —cazar cinco, controlar tres, arropar dos— y en el banco
+corto pintaba perfecta: el 41 % caía a **0 %**. Los bancos a 300 semillas la tumbaron:
+
+```
+la fuga gana el porcentaje objetivo   21,67 %  contra un techo de 16
+la captura mediana                    75,93 %  contra un suelo de 81,5
+```
+
+Y subir el cupo de cazar a siete lo dejó **peor** (23 % y 74,4), que es lo que descartó mi propio
+diagnóstico: no era la caza.
+
+La causa estaba en `intentFor` y es una frase: **`controlar` no es solo la postura del maillot**. Un
+equipo de velocista se pasa casi toda una llana en `controlar` —solo salta a `perseguir` cuando el
+boquete crece—, así que capar `controlar` le estrangulaba el tempo todo el día, la fuga se iba, y
+cuando por fin cambiaba de postura ya era tarde.
+
+### Lo que sí es: administrar no es cazar
+
+El acto que el dueño señala no es «controlar»: es **administrar una fuga que no te amenaza**, y eso
+solo lo hace el equipo que corre por la general. Un equipo de velocista tirando toda la tarde en una
+llana está haciendo su trabajo del día y en carretera se ve; el equipo del maillot poniendo siete
+hombres contra unos fugados a media hora en la general, no.
+
+Así que el cupo se cobra donde ocurre —motivo de `maillot` o `general`, intención de `controlar` y
+**sin amenaza de verdad**— usando `threatened`, la misma cuenta con la que `driveOnFront` ya decide
+si ese equipo rueda a tempo o se pone a cazar. En cuanto la fuga amenaza, el cupo desaparece.
+
+Medido, sobre campo de producción:
+
+| reina                           | sin cupo | cupo por intención (rompía bandas) | **cupo acotado** |
+| ------------------------------- | -------: | ---------------------------------: | ---------------: |
+| km con ≥5 del maillot al frente | **41 %** |                                0 % |       **10,9 %** |
+| p90 de hombres del maillot      |        6 |                                  3 |                5 |
+
+Y el cupo **no reasigna el hueco**: el que se pasa deja de querer tirar y el turno se ENCOGE, que es
+la diferencia entre administrar y cazar. Reasignarlo al siguiente por deber solo cambiaría el nombre
+del que tira —y encima a uno sin motivo, el defecto que la v38 cazó—. El suelo de rescate
+(`relayMinPullers` = 4) sigue garantizando que alguien va delante, y por eso el máximo medido por
+casa es 4 y no 3 cuando el cupo manda.
+
+### La rama de los cinco está viva, y comprobarlo costó una medida tirada a la basura
+
+Quise verificar que el cupo alto (el de cazar) hacía algo contando a los que tiran con motivo
+`equipo_etapa`. Salió **20 en las dos celdas**, con cupo y sin él, y por un momento pareció que el
+cupo no se aplicaba. No: **la medida no servía**, porque `equipo_etapa` suma varias casas de
+velocista a la vez y 20 es el techo global. Con 22 equipos, cuatro casas a cinco dan exactamente
+veinte. Contado **por equipo**:
+
+| máximo de una sola casa al frente | sin cupo | con cupo |
+| --------------------------------- | -------: | -------: |
+| reina                             |    **7** |    **4** |
+| llana                             |    **7** |    **7** |
+
+El dato del maillot sí valía desde el principio, y por una razón que conviene decir: **equipo del
+maillot no hay más que uno**.
+
+### Lo que se sella
+
+`jerseyFrontHeavyPct` entra en `GeneralStats` y en `targets.ts` con techo 25 y **suelo 0 a
+propósito**: que el equipo del maillot no ponga NUNCA cinco sería el defecto contrario —un maillot al
+que nadie defiende el día que la fuga sí se lleva el liderato—. Lo que la banda vigila es que no se
+vuelva al «toda la casa todo el día», no el segundo decimal de una muestra corta.
+
+### La lección
+
+Dos hipótesis, las dos plausibles, las dos falsas, y **las dos las tumbó una medida y no un
+razonamiento**. La primera cayó en un barrido de cinco celdas; la segunda, en los bancos grandes
+después de pintar perfecta en los cortos. Lo que las dos tenían en común es que yo había elegido el
+EJE equivocado —la fuerza del empuje, y luego la intención— cuando el eje estaba en la frase del
+dueño desde el principio: no es cómo de fuerte tiras, es **a cuántos hombres comprometes**, y no en
+cualquier postura sino en la de administrar algo que no te amenaza.
