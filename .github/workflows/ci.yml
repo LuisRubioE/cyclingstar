@@ -115,25 +115,46 @@ jobs:
     #
     # Dentro de un fichero vitest corre los tests EN SERIE, así que mientras `invariants` fuera uno
     # solo ningún runner extra podía ayudar: el suelo del job eran sus 47 minutos. Por eso el fichero
-    # se partió en cuatro (ver su cabecera) poniendo una de las tres pruebas caras en cada hermano.
+    # se partió (ver su cabecera) poniendo una de las tres pruebas caras en cada hermano.
+    #
+    # …Y EL PRIMER REPARTO SE QUEDÓ CORTO, QUE ES LO QUE EL CI ESTABA AHÍ PARA DECIR. Medidos los
+    # seis tramos en una corrida real (run 35613047784):
+    #
+    #   invariantes      33,1 min   <- el cuello
+    #   pequeñas         12,7 min
+    #   abandonos        12,0 min
+    #   coherencia       10,4 min
+    #   clásicas          9,2 min
+    #   mundo y radio     5,5 min
+    #
+    # O sea 71 -> 33, no los ~22 que yo había pronosticado con tiempos locales CON CONTENCIÓN (los
+    # cuatro hermanos peleándose por cuatro núcleos). El pronóstico era malo y el dato es el bueno.
+    #
+    # Así que `invariants` se parte otra vez, en tres: el `desgaste` y el par llano+fases —que corren
+    # sobre `flatScenario` con 300 y 120 semillas— salen a sus propios ficheros. La matriz pasa a
+    # OCHO tramos. Y esta vez no se pone aquí ningún pronóstico de minutos: el número lo dirá la
+    # siguiente corrida, tramo a tramo, que es de donde tenía que haber salido el anterior.
     #
     # LO QUE **NO** SE HACE, Y ES LA CONDICIÓN DURA: aquí no se salta NADA. La matriz no elige qué
     # bancos corren según lo que toca el cambio —eso sería adivinar qué banda puede moverse—, sino
     # que corre los mismos de siempre EN PARALELO. Si un cambio mueve una banda, la mueve igual y el
-    # job entero sigue siendo condición para fusionar. Lo único que cambia es el reloj de pared:
-    # ~71 min -> ~20, que es el que marca el tramo más largo (`coherence`, 1.197 s).
+    # job entero sigue siendo condición para fusionar. Lo único que cambia es el reloj de pared.
     #
-    # El precio: cada tramo paga su `setup` y su build (~3 min), así que el coste en minutos de
-    # runner sube del orden de un 25 %. Se paga a gusto por 3,5× de reloj.
+    # El precio, medido: la suma de los seis tramos fue de 82,8 min de runner contra los 71 de antes,
+    # o sea un 17 % más, porque cada tramo paga su `setup` y su build. Se paga a gusto por el reloj.
     #
-    # El reparto se afina con los tiempos que el propio CI imprime en cada tramo; estos son los
-    # locales, que es lo que había al partirlo.
+    # El reparto se afina con los tiempos que el propio CI imprime en cada tramo, y se ha afinado una
+    # vez ya: ver el bloque de medidas de arriba.
     strategy:
       fail-fast: false
       matrix:
         include:
           - nombre: invariantes
             ficheros: packages/engine/src/sim/invariants.test.ts
+          - nombre: llano y fases
+            ficheros: packages/engine/src/sim/invariantsLlano.test.ts
+          - nombre: desgaste
+            ficheros: packages/engine/src/sim/invariantsDesgaste.test.ts
           - nombre: clásicas
             ficheros: packages/engine/src/sim/invariantsClasicas.test.ts
           - nombre: abandonos
