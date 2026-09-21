@@ -150,6 +150,47 @@ export default tseslint.config(
     },
   },
   {
+    /**
+     * `riderIds` NO ES EL TAMAÑO DE UN GRUPO (v83, defecto de producción).
+     *
+     * La lista solo crece en el pelotón —cada fusión concatena y nadie borra al que se descuelga
+     * después—, así que medido sobre doce reinas llegó a declarar 629 corredores en una carrera de
+     * 176. Con ese número dentro de la regla física del contacto, el umbral pasaba de trece
+     * segundos a más de cien y el pelotón se tragaba grupos a tres minutos.
+     *
+     * Quién va hoy en un grupo es `membersOf(id)`. Esta regla es lo que hace que el error no pueda
+     * repetirse: una nota no falla, un lint sí. Se acota a `src/stage`, que es donde vive el tipo
+     * envenenado; `src/sim/raceRadio.ts` tiene su propio `riderIds`, que sí es una foto fiel y se
+     * recorre en paralelo con `riderTs`.
+     */
+    files: ['packages/engine/src/stage/**/*.ts'],
+    rules: {
+      // Las tres de pureza se repiten a propósito: en flat config este bloque REEMPLAZA la
+      // configuración de la regla para estos ficheros, no la suma. Omitirlas apagaría el guardián
+      // de `Math.random`/`Date.now` justo en `src/stage`, que es donde más falta hace.
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "CallExpression[callee.object.name='Math'][callee.property.name='random']",
+          message: 'packages/engine es puro: usa el RNG sembrado (mulberry32), no Math.random.',
+        },
+        {
+          selector: "CallExpression[callee.object.name='Date'][callee.property.name='now']",
+          message: 'packages/engine es puro: no uses Date.now; el tiempo entra como dato.',
+        },
+        {
+          selector: "NewExpression[callee.name='Date']",
+          message: 'packages/engine es puro: no uses new Date(); el tiempo entra como dato.',
+        },
+        {
+          selector: "MemberExpression[property.name='length'][object.property.name='riderIds']",
+          message:
+            'riderIds solo crece y no es el tamaño del grupo (v83): cuenta con membersOf(id).length.',
+        },
+      ],
+    },
+  },
+  {
     // apps/web es una SPA React 19: se hacen cumplir rules-of-hooks y exhaustive-deps,
     // que hasta ahora no comprobaba nadie.
     files: ['apps/web/**/*.{ts,tsx}'],

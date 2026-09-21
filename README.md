@@ -91,8 +91,8 @@ El servicio `tick` solo necesita `DATABASE_URL` y `TICK_INTERVAL_MINUTES`.
 | -------------------------- | ---------------------------------------------------------------------- |
 | `pnpm typecheck`           | `tsc -b` de todos los paquetes + `tsc --noEmit` de apps/web.           |
 | `pnpm test`                | Vitest (`*.test.ts` y `*.test.tsx` bajo `{apps,packages}/*/src`).      |
-| `pnpm test:rapido`         | La suite MENOS los bancos de `sim/`: 1.203 pruebas en ~100 s.          |
-| `pnpm test:bancos`         | Solo los bancos de simulación (`sim/`): 69 pruebas en ~8 min.          |
+| `pnpm test:rapido`         | La suite MENOS los bancos de `sim/`: 1.771 pruebas en ~12,5 min.       |
+| `pnpm test:bancos`         | Solo los bancos de simulación (`sim/`): 114 pruebas en ~73 min.        |
 | `pnpm test:watch`          | Vitest en modo watch.                                                  |
 | `pnpm test:coverage`       | Tests con cobertura V8 (informe en `coverage/`).                       |
 | `pnpm lint`                | ESLint del monorepo.                                                   |
@@ -103,13 +103,21 @@ El servicio `tick` solo necesita `DATABASE_URL` y `TICK_INTERVAL_MINUTES`.
 
 Antes de cerrar cualquier paso: `pnpm typecheck && pnpm test` en verde (Claude.md).
 
-**Por qué hay tres comandos de test y no uno.** El reparto del tiempo es muy desigual: los tres
-ficheros de `packages/engine/src/sim/` se llevan **536 s de los 638** de la suite entera, y son 69 de
-las 1.272 pruebas. No son pruebas, son BANCOS: corren cientos de etapas completas contra los rangos
-objetivo del SPEC 6.17. Por eso el CI de cada push corre `test:rapido` (~100 s) y deja los bancos
-para cuando cambia `packages/engine/`, que es lo único que puede romperlos; `cobertura.yml` los corre
-enteros y con cobertura una vez al día pase lo que pase. En local, mientras se trabaja en la web o en
-la API, `test:rapido` da la misma respuesta cinco veces más rápido.
+**Por qué hay tres comandos de test y no uno.** El reparto del tiempo es muy desigual: los ficheros
+de `packages/engine/src/sim/` se llevan **4.365 s de los 5.115** de la suite entera, y son 114 de las
+1.885 pruebas. No son pruebas, son BANCOS: corren cientos de etapas completas contra los rangos
+objetivo del SPEC 6.17. Por eso el CI de cada push corre `test:rapido` y deja los bancos para cuando
+cambia `packages/engine/`, que es lo único que puede romperlos; `cobertura.yml` los corre enteros y
+con cobertura una vez al día pase lo que pase. En local, mientras se trabaja en la web o en la API,
+`test:rapido` da la misma respuesta mucho más rápido.
+
+**Y en CI los bancos van en SEIS tramos en paralelo** (v83), no porque se salte ninguno —no se salta
+ninguno, ésa es la condición— sino porque `invariants.test.ts` era el 64 % del trabajo y dentro de un
+fichero vitest corre en serie. Se partió en cuatro (`invariants`, `invariantsClasicas`,
+`invariantsAbandonos`, `invariantsPequenas`), con una de las tres pruebas caras en cada hermano, y la
+matriz de `ci.yml` los reparte junto con `coherence` y el trío pequeño. El reloj de pared del job
+baja de **~71 min a ~22**, que es lo que marca el tramo más largo. `pnpm test:bancos` en local los
+sigue corriendo todos de una vez.
 
 ### Race Radio — depurar una etapa kilómetro a kilómetro
 

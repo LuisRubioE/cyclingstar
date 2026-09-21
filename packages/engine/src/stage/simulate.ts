@@ -1649,6 +1649,19 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    * `contactGapSeconds` se queda como SUELO: por debajo de dos segundos no se mira el tamaño.
    */
   const contactoS = (nA: number, nB: number, kmh: number): number => {
+    /**
+     * LOS DOS TAMAÑOS SON DE `membersOf`, NUNCA DE `g.riderIds.length` (v83, defecto de producción).
+     *
+     * `riderIds` de un grupo es una lista que **solo crece**: cada fusión hace
+     * `[...peloton.riderIds, ...sg.riderIds]` y nadie borra de ahí al que se descuelga después. El
+     * que va y vuelve tres veces figura tres veces. Medido en la reina canónica, un grupo llegaba a
+     * declarar **621 corredores en una carrera de 176**.
+     *
+     * Con ese número aquí, la cuenta se envenena por donde más duele: 621 hombres son 465 metros, y
+     * a 15 km/h eso son **106 segundos de umbral** en vez de los trece que corresponden a un grupo
+     * de verdad. El pelotón se tragaba grupos a más de tres minutos. Ver la nota de la v83 en
+     * `docs/balance.md`.
+     */
     const metros = Math.max(nA, nB) * STAGE.contactMetresPerRider
     const ms = Math.max(1, kmh) / 3.6
     return Math.max(STAGE.contactGapSeconds, metros / ms)
@@ -6150,7 +6163,41 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
      * sortea por kilómetro y no se aplica de continuo. Y quién se queda dentro lo decide la
      * COLOCACIÓN (v41), que era la otra mitad de este EPIC y hasta aquí no existía en el motor.
      */
-    if (vientoLateral > 0 && block.tipo === 'llano' && !isFinal) {
+    /**
+     * …Y UN ABANICO NO PUEDE ABRIRSE CON UN VIENTO QUE LO CERRARÍA (v83, histéresis al revés).
+     *
+     * Esta puerta pedía `vientoLateral > 0` —cualquier cosa por encima de cero— y la de enfrente,
+     * `echelonCloses`, cierra por debajo de `echelonCloseThreshold` (0,35) sostenido dos kilómetros.
+     * O sea que el motor abría el abanico con un viento que él mismo considera insuficiente para
+     * mantenerlo, y entonces pasaba esto, medido en la semilla 142 del banco del viento:
+     *
+     * ```
+     * km 58,55  echelon_split  before=114 remaining=84 dropped=30 wind=23
+     * km 58,65  echelon_close  wind=23
+     * ```
+     *
+     * Cien metros de abanico. Y como `kmAlAbrigo` llevaba acumulando desde la salida —la carretera
+     * estaba «al abrigo» según el criterio de cierre durante los 58 km anteriores—, el cierre saltaba
+     * en el bloque siguiente al corte. Los treinta cortados volvían cuatro kilómetros después **a
+     * tres segundos**, y la etapa acababa con los 120 en el mismo segundo y CERO de desparrame: una
+     * crónica que anuncia que el viento parte la carrera y un resultado en el que no pasó nada.
+     *
+     * En cualquier sistema con histéresis se abre con MÁS y se cierra con MENOS; aquí estaba del
+     * revés. Se arregla con una frase: el viento que rompe la carrera es, como mínimo, el viento que
+     * la mantiene rota. La única histéresis que queda son los dos kilómetros de carretera al abrigo,
+     * que es la que tiene sentido físico.
+     *
+     * Medido sobre 240 semillas del banco del viento: los días de abanico pasan de 10 a 7 —se caen
+     * justo los de viento flojo, la 142 con lateral 0,23 y la 135 que soltaba 0,78 hombres de 119— y
+     * **los abanicos que se recomponen enteros pasan del 40 % (4 de 10) al 14 % (1 de 7)**. Los que
+     * cortan de verdad ahora aguantan: 38 en cabeza de los 38 que quedaron, 30 de 30, 37 de 37.
+     */
+    if (
+      !belowEchelonThreshold(vientoLateral) &&
+      vientoLateral > 0 &&
+      block.tipo === 'llano' &&
+      !isFinal
+    ) {
       /**
        * …Y SE PARTE TODO LO QUE NO CABE, NO SOLO EL PELOTÓN. Un abanico no es UN corte: es una
        * cascada. La masa que se queda fuera sigue sin caber en la carretera, así que a los pocos
@@ -7650,7 +7697,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           PELOTON,
           sg.id,
           Math.abs(gapSeconds(peloton, sg)) <=
-            contactoS(peloton.riderIds.length, mem.length, peloton.vActual),
+            contactoS(membersOf(PELOTON).length, mem.length, peloton.vActual),
         )
         if (
           caught ||
@@ -7861,7 +7908,11 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             detras.g.id,
             delante.g.id,
             Math.abs(detras.g.tS - delante.g.tS) <=
-              contactoS(detras.g.riderIds.length, delante.g.riderIds.length, detras.g.vActual),
+              contactoS(
+                membersOf(detras.g.id).length,
+                membersOf(delante.g.id).length,
+                detras.g.vActual,
+              ),
           )
           if (!juntos && (onRough || detras.g.tS > delante.g.tS)) {
             // El cruce EN EL PUERTO se apunta para confirmarlo más adelante (ver `rebasesPendientes`
