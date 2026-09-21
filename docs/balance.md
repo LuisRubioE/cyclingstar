@@ -16013,3 +16013,80 @@ Un test puede estar en verde **y medir lo contrario de lo que su frase promete**
 la v41 diciendo «el corte manda en la carrera» y comprobando «al menos un hombre se quedó», y nadie
 —yo el primero— leyó la comparación al lado de la frase. Lo que lo destapó fue un cambio en otra
 parte del motor: la señal no vino de quien vigilaba, vino de quien pasaba por ahí.
+
+## v83 (3) — el job de bancos eran 71 minutos en fila india, y ahora son seis en paralelo
+
+La decisión que quedaba pendiente del paso 22: **cómo partir el CI sin que un cambio que mueve una
+banda se cuele sin que nadie lo mida**. Primero se midió, y la medida cambió la pregunta.
+
+### Paso 1: dónde se va el tiempo
+
+Fichero a fichero, en segundos de una corrida local (4.365 s en total, que es aproximadamente lo que
+tarda el job en CI):
+
+| fichero                  | segundos |      % |
+| ------------------------ | -------: | -----: |
+| `invariants.test.ts`     |    2.798 | 64,1 % |
+| `coherence.test.ts`      |    1.197 | 27,4 % |
+| `calendarQueens.test.ts` |      293 |  6,7 % |
+| `world.test.ts`          |       63 |  1,4 % |
+| `raceRadio.test.ts`      |       13 |  0,3 % |
+
+Y **tres `it` sueltos se llevan el 40 % del job**: «el mejor rematador gana bastantes» (740 s), «el
+pelotón adelgaza entre un 12 % y un 20 % en tres semanas» (696 s) y «ninguna carrera de un día satura
+con el pelotón fresco» (345 s).
+
+### Paso 2: y por eso la partición NO es la que yo iba a hacer
+
+La idea de partida era la de siempre —«que corran solo los bancos que el cambio puede romper»— y con
+estos números es la idea equivocada, por dos motivos:
+
+1. **Ya existe** y funciona: el job se salta el trabajo entero cuando el cambio no toca
+   `packages/engine/` (v79). Lo que queda por decidir es qué hacer **dentro** de un cambio de motor,
+   y ahí adivinar qué banda puede moverse es exactamente lo que la casa no hace. Esta misma tanda es
+   la prueba: el arreglo del contacto puso roja una prueba de ABANICOS, que no tiene nada que ver.
+2. **El cuello no era el reparto, era la serie.** Dentro de un fichero vitest corre los tests uno
+   detrás de otro, así que mientras `invariants.test.ts` fuera uno solo el suelo del job eran sus 47
+   minutos y ningún runner de más podía ayudar.
+
+Así que la partición es **paralelizar sin saltarse nada**, y con eso la condición dura del encargo
+—«si un cambio mueve una banda, la banda se mide antes de fusionar»— se cumple por construcción: se
+corre lo mismo que antes, a la vez.
+
+### El reparto
+
+`invariants.test.ts` se parte en cuatro, poniendo **una de las tres pruebas caras en cada hermano**:
+
+| fichero                       | qué lleva                                    | medido |
+| ----------------------------- | -------------------------------------------- | -----: |
+| `invariants.test.ts`          | llano, fases, montaña, crono, desgaste, pavé | 25 its |
+| `invariantsClasicas.test.ts`  | erosión de clásicas (345 s), equipo, general | 12 its |
+| `invariantsAbandonos.test.ts` | tres semanas (696 s), cola de reinas reales  | 11 its |
+| `invariantsPequenas.test.ts`  | vueltas cortas (740 s)                       |  8 its |
+
+25 + 12 + 11 + 8 = **56**, que son exactamente los 56 `it` que tenía el fichero original. Los
+`describe` no comparten fixture caro —cada uno monta el suyo— así que el corte es gratis: nada se
+duplica y nada se pierde.
+
+Y `ci.yml` pasa de un job a una matriz de seis: los cuatro de invariantes, `coherence` y el trío
+pequeño (`calendarQueens` + `world` + `raceRadio`). Con `fail-fast: false`, para que un tramo rojo no
+esconda lo que dicen los otros cinco.
+
+### Lo que cuesta y lo que se gana
+
+Los cuatro hermanos corriendo A LA VEZ en esta máquina de cuatro núcleos: 2.180 s, 985, 775 y 582.
+Son tiempos **con contención** —los cuatro peleándose por los mismos núcleos— así que sirven para el
+reparto relativo y no como pronóstico: escalados al total real (2.798 s) salen del orden de 1.350,
+610, 480 y 360. El tramo más largo del job pasa a ser `coherence` con sus 1.197 s.
+
+O sea: **de ~71 minutos de reloj de pared a ~22**, y el número que hay que vigilar para afinar el
+reparto lo imprime el propio CI en cada tramo, que es mejor dato que éste.
+
+El precio se dice también: cada tramo paga su `setup` y su build (~3 min), así que el gasto en
+minutos de runner sube del orden de un 25 %. Por 3,5× de reloj, se paga.
+
+### La lección
+
+Antes de partir nada, medir dónde se va el tiempo. La partición «por temas» que iba a hacer habría
+repartido mal —64 % en un lado— y además habría tenido que adivinar qué banda puede romper cada
+cambio, que es justo lo que esta tanda ha demostrado que no se puede adivinar.

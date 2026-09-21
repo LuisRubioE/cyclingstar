@@ -87,17 +87,66 @@ jobs:
         run: pnpm test:rapido
 
   benches:
-    name: Bancos de simulación
+    name: Bancos · ${{ matrix.nombre }}
     runs-on: ubuntu-latest
-    # Los bancos (`sim/invariants`, `sim/coherence`, `sim/raceRadio`) tardan nueve minutos porque
-    # simulan cientos de etapas completas. Lo que vigilan es la FÍSICA, así que solo pueden romperse
-    # cuando cambia el motor: en un push que toca la web, la API o un documento, correrlos es pagar
-    # nueve minutos por una respuesta que ya se sabe.
+    # Los bancos simulan cientos de etapas completas. Lo que vigilan es la FÍSICA, así que solo
+    # pueden romperse cuando cambia el motor: en un push que toca la web, la API o un documento,
+    # correrlos es pagar el rato por una respuesta que ya se sabe.
     #
     # Por eso el job existe siempre —así la comprobación aparece en la lista y nadie se cree que se
     # ha saltado en silencio— y lo que se salta es el trabajo. Cuando no hay base fiable con la que
     # comparar (un primer push a una rama, un `github.event.before` vacío) los bancos SE CORREN: ante
     # la duda, se paga el minuto y no se mira para otro lado.
+    #
+    # ————— Y SE REPARTEN EN SEIS, PORQUE ERA UNA COLA DE 71 MINUTOS (v83) —————
+    #
+    # MEDIDO fichero a fichero, en segundos de una corrida local (4.365 s en total, que es lo que
+    # tarda el job entero en CI):
+    #
+    #   invariants.test.ts       2.798   64,1 %
+    #   coherence.test.ts        1.197   27,4 %
+    #   calendarQueens.test.ts     293    6,7 %
+    #   world.test.ts               63    1,4 %
+    #   raceRadio.test.ts           13    0,3 %
+    #
+    # Y tres `it` sueltos se llevaban el 40 % del job: «el mejor rematador gana bastantes» (740 s),
+    # «el pelotón adelgaza entre un 12% y un 20% en tres semanas» (696 s) y «ninguna carrera de un
+    # día satura con el pelotón fresco» (345 s).
+    #
+    # Dentro de un fichero vitest corre los tests EN SERIE, así que mientras `invariants` fuera uno
+    # solo ningún runner extra podía ayudar: el suelo del job eran sus 47 minutos. Por eso el fichero
+    # se partió en cuatro (ver su cabecera) poniendo una de las tres pruebas caras en cada hermano.
+    #
+    # LO QUE **NO** SE HACE, Y ES LA CONDICIÓN DURA: aquí no se salta NADA. La matriz no elige qué
+    # bancos corren según lo que toca el cambio —eso sería adivinar qué banda puede moverse—, sino
+    # que corre los mismos de siempre EN PARALELO. Si un cambio mueve una banda, la mueve igual y el
+    # job entero sigue siendo condición para fusionar. Lo único que cambia es el reloj de pared:
+    # ~71 min -> ~20, que es el que marca el tramo más largo (`coherence`, 1.197 s).
+    #
+    # El precio: cada tramo paga su `setup` y su build (~3 min), así que el coste en minutos de
+    # runner sube del orden de un 25 %. Se paga a gusto por 3,5× de reloj.
+    #
+    # El reparto se afina con los tiempos que el propio CI imprime en cada tramo; estos son los
+    # locales, que es lo que había al partirlo.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - nombre: invariantes
+            ficheros: packages/engine/src/sim/invariants.test.ts
+          - nombre: clásicas
+            ficheros: packages/engine/src/sim/invariantsClasicas.test.ts
+          - nombre: abandonos
+            ficheros: packages/engine/src/sim/invariantsAbandonos.test.ts
+          - nombre: pequeñas
+            ficheros: packages/engine/src/sim/invariantsPequenas.test.ts
+          - nombre: coherencia
+            ficheros: packages/engine/src/sim/coherence.test.ts
+          - nombre: mundo y radio
+            ficheros: >-
+              packages/engine/src/sim/calendarQueens.test.ts
+              packages/engine/src/sim/world.test.ts
+              packages/engine/src/sim/raceRadio.test.ts
     steps:
       - uses: actions/checkout@v4
         with:
@@ -130,7 +179,7 @@ jobs:
         run: pnpm exec tsc -b packages/engine
       - name: Bancos
         if: steps.motor.outputs.correr == 'si'
-        run: pnpm test:bancos
+        run: pnpm exec vitest run ${{ matrix.ficheros }}
 
   quality:
     name: Lint · Format
