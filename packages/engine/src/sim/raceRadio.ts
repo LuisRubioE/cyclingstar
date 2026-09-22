@@ -784,16 +784,46 @@ export function radioForStorage(
     const haciaAtras = next === undefined
     // El reloj de cada corredor en la foto de referencia, una vez por kilómetro: es lo que necesita
     // `groupSpeedKmh` para medir la velocidad por los hombres en vez de por dos relojes de grupo.
-    const clockAhead = new Map<string, number>()
     // …y EN QUÉ GRUPO acaba (o empieza) cada uno, lo que permite descartar al que se cayó del nuestro.
-    const groupAhead = new Map<string, string>()
-    if (ref) {
-      for (const g of ref.groups)
-        for (let j = 0; j < g.riderIds.length; j++) {
-          clockAhead.set(g.riderIds[j]!, g.riderTs[j]!)
-          groupAhead.set(g.riderIds[j]!, g.id)
-        }
+    const fotoRef = (
+      foto: RadioKm | undefined,
+    ): { clock: Map<string, number>; grupo: Map<string, string> } => {
+      const clock = new Map<string, number>()
+      const grupo = new Map<string, string>()
+      if (foto) {
+        for (const g of foto.groups)
+          for (let j = 0; j < g.riderIds.length; j++) {
+            clock.set(g.riderIds[j]!, g.riderTs[j]!)
+            grupo.set(g.riderIds[j]!, g.id)
+          }
+      }
+      return { clock, grupo }
     }
+    const { clock: clockAhead, grupo: groupAhead } = fotoRef(ref)
+    /**
+     * …Y SI EL KILÓMETRO SIGUIENTE NO SE PUEDE MEDIR, SE MIDE EL QUE ACABA DE RECORRER.
+     *
+     * El dueño, con la foto de un grupo de sesenta sin velocidad: «¿por qué no dice la velocidad?
+     * eso está mal… calcula la velocidad real a la que iba ese grupo SIN CONTAR EL REGALO por
+     * alcanzar a un grupo que va muy estirado, y pon ésa».
+     *
+     * Lo que pasa ahí está medido y NO es un fallo de la resta: cuando un grupo se funde con otro,
+     * sus corredores adoptan el reloj del grupo nuevo y el salto se reparte IGUAL entre todos —los
+     * 94 del caso peor traen el mismo Δt al décimo—, así que el kilómetro sale cubierto en 40 s, o
+     * sea a 89 km/h. `radioMaxKmh` lo rechaza entero, con razón, y el grupo se quedaba en blanco.
+     * El regalo es del motor (queda escrito en `docs/balance.md`) y la radio no lo puede deshacer:
+     * no sabe cuánto hueco quedaba en el instante de la fusión.
+     *
+     * Lo que SÍ puede es medir el otro kilómetro, el de antes, donde ese grupo iba solo y sus
+     * relojes no habían saltado. Es la misma cuenta de la v85 con el signo al revés, y es una
+     * velocidad REAL de ese grupo en ese punto de la carretera, no una estimación.
+     *
+     * Medido sobre veinte reinas (14.658 grupos): **46 blancos, 44 recuperados (el 95,7 %)** con
+     * valores de 22,7 a 62,5 km/h. Los dos que siguen en blanco son fusiones en kilómetros
+     * seguidos, donde tampoco el de antes está limpio. Y no mueve NINGUNA velocidad de las que ya
+     * salían: sólo entra cuando la cuenta de siempre no da nada.
+     */
+    const atras = next && prev ? fotoRef(prev) : undefined
     // …Y QUIÉNES SE PARARON AQUÍ (v70.1): su reloj cuenta tiempo de pie, no carretera cubierta.
     const paradas = new Set<string>(k.stopped)
     const groups = k.groups.map((g) => {
@@ -829,14 +859,18 @@ export function radioForStorage(
         )
         .map(idx)
       // La velocidad del grupo en este km, medida por los suyos (ver `groupSpeedKmh`).
-      const speedKmh = groupSpeedKmh(
-        g,
-        clockAhead,
-        next ? next.km - k.km : prev ? k.km - prev.km : 0,
-        groupAhead,
-        paradas,
-        haciaAtras,
-      )
+      const speedKmh =
+        groupSpeedKmh(
+          g,
+          clockAhead,
+          next ? next.km - k.km : prev ? k.km - prev.km : 0,
+          groupAhead,
+          paradas,
+          haciaAtras,
+        ) ??
+        (atras && prev
+          ? groupSpeedKmh(g, atras.clock, k.km - prev.km, atras.grupo, paradas, true)
+          : null)
       return {
         kind: g.kind,
         size: g.size,

@@ -16490,3 +16490,63 @@ Los diez bancos pasan, así que **no hay ninguna banda en contra**: lo que falta
 Tres sondas seguidas se me fueron en fontanería —una no compilaba, otra leyó un fichero viejo, otra
 no escribió— y eso ya es señal de parar la vía, no de insistir. Lo que sí quedó medido vale igual, y
 por eso se escribe aquí en vez de en la cabeza de nadie.
+
+## La radio mide el kilómetro de antes cuando el de delante es una fusión (sin tocar el motor)
+
+El dueño, con la foto de un grupo de sesenta sin velocidad: «¿por qué no dice la velocidad? eso está
+mal… podrías calcular cuánto es la velocidad real a la que iba ese grupo **sin contar el regalo** por
+alcanzar a un grupo que va muy estirado, y poner ésa en race radio… o sea **si lo que hace el motor
+está bien ahí, no cambies el motor, cambia el race radio**».
+
+### Lo que los blancos son, medido
+
+Veinte reinas, rejilla de producción (1 km), **14.658 fotos de grupo** y **46 blancos** (0,31 %).
+Los dos casos de la primera etapa, enteros:
+
+    km 75,0 · shed-12 · grupeto · n=20 · gap 599 s
+      dt de los 20: 40,4 40,4 40,4 … (los veinte, idénticos al décimo)  ->  89,1 km/h, rechazado
+      destino: shed-16 (el grupo al que alcanzan) · su propio dt: 64,1 s
+
+    km 79,1 · shed-17 · grupeto · n=3 · gap 611 s
+      dt de los 3: 41,9 (idénticos)                                     ->  85,9 km/h, rechazado
+      destino: peloton (170 hombres) · su propio dt: 73,5 s · hueco al pelotón: 31 s
+      73,5 − 41,9 = 31,6 s ≈ el hueco que desaparece
+
+El peor de los 46 es un grupo de **94** hombres, los 94 con el mismo Δt al décimo. Un salto idéntico
+para todos no es carretera: es el reloj del grupo nuevo, adoptado de golpe. Es el regalo de las
+fusiones, que ya está escrito arriba como HALLAZGO ABIERTO.
+
+### Por qué la radio NO puede deshacer el regalo
+
+Para devolver los segundos haría falta saber **cuánto hueco quedaba en el instante de la fusión**, y
+eso ocurre entre dos fotos: la radio no lo ve. El hueco de la foto anterior no vale —en el segundo
+caso son 31 s y casi cuadra, en el primero son 14 y no cuadra nada—, así que cualquier «corrección»
+sería un número inventado con cara de medida. Y el techo (`radioMaxKmh`) hace lo correcto al
+rechazarlo: 89 km/h no es un ciclista.
+
+### Lo que sí puede, y es una medida de verdad
+
+Medir **el otro kilómetro**: el que ese grupo acaba de recorrer, donde iba solo y sus relojes no
+habían saltado. Es exactamente la cuenta de la v85 con el signo al revés, ya escrita y ya probada, y
+lo que sale es una velocidad REAL de ese grupo en ese punto de la carretera.
+
+    blancos     46  ->  2     (44 recuperados, el 95,7 %)
+    y medido otra vez por el camino de verdad, `radioForStorage` sobre las mismas 20 reinas:
+    14.658 grupos, 2 blancos (0,01 %), antes 46 (0,31 %) — el mismo 2 que decía la sonda
+    valores     de 22,7 a 62,5 km/h
+    lo que mueve de lo que ya salía:  nada, cero — el recambio sólo entra cuando la cuenta de
+                                      siempre no devuelve nada
+
+Los dos que siguen en blanco son fusiones en kilómetros seguidos: tampoco el de antes está limpio, y
+ahí no hay nada que enseñar. Eso es lo honesto.
+
+### `ENGINE_VERSION` no sube, por lo mismo que en la v85
+
+No cambia un segundo de ninguna carrera: es la radio contando mejor lo que ya pasaba. Subirlo
+marcaría todas las etapas pasadas como no reproducibles a cambio de nada.
+
+### La lección
+
+El dueño acertó el reparto de culpas antes que yo: el motor hace ahí algo discutible —el regalo—
+pero la pantalla en blanco era de la radio, y se arregla en la radio sin tocar una carrera. Y el
+arreglo no es inventar el dato que falta: es medir el que sí existe.
