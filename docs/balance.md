@@ -16479,11 +16479,70 @@ Los diez bancos pasan, así que **no hay ninguna banda en contra**: lo que falta
 
 ### Lo siguiente, en orden
 
-1. Averiguar si el `gastoCerillos` de un `reservon` puede ser mayor que cero hoy. Si puede, hay un
-   camino que quema cerillos sin consultar `allowMatch`, y ése es un defecto propio que va **antes**
-   que esto.
-2. Entender los 97 s del ganador: un cambio en la cola no debería mover la cabeza así.
-3. Con las dos cosas entendidas, decidir si se compensa una puerta, las dos, o ninguna.
+1. ~~Averiguar si el `gastoCerillos` de un `reservon` puede ser mayor que cero hoy.~~ **Medido y
+   refutado**, ver abajo.
+2. ~~Entender los 97 s del ganador.~~ **Medido**, ver abajo: no son 97 s, es una distribución.
+3. Con las dos cosas entendidas, decidir si se compensa una puerta, las dos, o ninguna. **Sigue
+   abierto**, y hoy no corre prisa: el síntoma que lo empujaba —los huecos en blanco de la radio—
+   está resuelto en la radio, sin tocar el motor.
+
+### Punto 1 de la lista: MEDIDO Y REFUTADO — no hay camino que queme cerillos a espaldas de `allowMatch`
+
+Se preguntaba si el `gastoCerillos` de un `reservon` puede ser mayor que cero hoy, porque si puede
+habría un camino que quema cerillos sin consultar `allowMatch`, y ése iría antes que todo esto.
+
+Puede, y no es ese camino. Veinte reinas canónicas, **3.400 corredores-etapa con mentalidad
+`reservon`**:
+
+    reservones                       3.400
+    con al menos un cerillo          1.578  (46,41 %)
+    cerillos quemados                2.220
+    cerillos != ataques + saltos         0   ← la medida que decide
+
+**Cero.** Todos y cada uno de los 2.220 cerillos que quema un reservón salen del camino táctico
+—atacar o saltar a una rueda (`simulate.ts`, las dos ramas de `tacticAttackCost`)—, que es donde el
+cerillo ES el precio de la jugada y no tiene por qué consultar `allowMatch`. Ni uno solo sale de la
+puerta del descuelgue, que sigue cerrada para el reservón por su propia condición
+(`m.input.orders.mentality !== 'reservon'`, junto a `allowMatch`).
+
+Así que no hay defecto propio que vaya antes. La hipótesis era mía y la medida la tumba.
+
+### El mapa de las puertas, ya que estaba mirando
+
+Un grupo descolgado tiene CUATRO maneras de dejar de estarlo, y sólo una compensa el reloj:
+
+| puerta                            | qué pide                                                   | ¿compensa el hueco?                                     |
+| --------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------- |
+| `caught`                          | que el reloj haya LLEGADO de verdad                        | no hace falta: no hay hueco que regalar                 |
+| `enContacto`                      | estar a menos de lo que miden los dos grupos de largo      | **sí**, `m.driftS += hueco` (v81)                       |
+| `cerrando` + `rejoinGapSeconds`   | ir más rápido y estar a ≤ 22 s (más ancho para un autobús) | no — «el hueco que perdona es su precio conocido» (v58) |
+| fusión entre descolgados (`near`) | otro grupeto a ≤ `mergeGap`                                | no, y aquí no hay ninguna razón escrita                 |
+
+La tercera tiene su decisión razonada y medida en la v58. **La cuarta no tiene ninguna**: es la que
+sale en las medidas de arriba con huecos de hasta 22 s, y es por donde entran los 108.336
+corredores-segundo. Si algún día se compensa una sola puerta, es ésa.
+
+### Punto 2: los 97 s no eran 97 s, y la cola SÍ mueve la cabeza
+
+Faltaba la medida de compensar **sólo la cuarta puerta**, que es la que no tiene razón escrita. Se
+hizo en un árbol aparte (no se envía), veinte reinas canónicas, contra la misma base:
+
+    ganador distinto                    12 de 20
+    movimiento del ganador              de -609 s a +282 s   (mediana |38,5| s)
+    último clasificado                  de -538 s a +423 s
+    grupos de llegada                   suben en 17 de 20, bajan en 3
+                                        mediana 19 -> 23,5   (media 19,7 -> 23,9)
+
+Así que la pregunta «un cambio en la cola no debería mover la cabeza así» tiene respuesta: **sí
+debería**, y no por 97 s sino por hasta diez minutos. La cola realimenta la cabeza por la
+composición de los grupos —quién se descuelga cambia quién releva—, y el motor es determinista pero
+caótico: una decisión distinta en el km 60 da otra carrera. Los 97 s eran UNA tirada de esa
+distribución, no una señal.
+
+Lo que sí es sistemático, y es el dato que de verdad decide: **los grupos de llegada suben en 17 de
+20, con mediana de +4,5**. Eso es exactamente lo que se espera si el regalo es lo que pega la cola:
+compensarlo hace que el descolgado siga descolgado, y la cola se deshilacha. Si algún día se decide
+compensar, ése es el número que hay que poner delante y defender contra el calendario real.
 
 ### La lección, por adelantado
 
@@ -16550,3 +16609,61 @@ marcaría todas las etapas pasadas como no reproducibles a cambio de nada.
 El dueño acertó el reparto de culpas antes que yo: el motor hace ahí algo discutible —el regalo—
 pero la pantalla en blanco era de la radio, y se arregla en la radio sin tocar una carrera. Y el
 arreglo no es inventar el dato que falta: es medir el que sí existe.
+
+## El que está en el turno no va a rueda (radio, sin tocar el motor)
+
+El dueño, en producción: «hay 3 escapados… todos parece que colaboran, pero en vez de salir que
+tiran todos, **sale cada km que tira uno diferente**».
+
+### Reproducido con su etapa, no con una sintética
+
+`race-ain` s3, la radio guardada, kilómetros 10 a 25:
+
+    km 10  tira Ribeiro   · a rueda Muller, Iversen
+    km 11  tira Muller    · a rueda Ribeiro, Iversen
+    km 12  tira Iversen   · a rueda Muller, Ribeiro
+    km 13  tira Muller    · a rueda Ribeiro, Iversen
+    …
+
+Uno por kilómetro, y los otros dos con el icono de ir guarecido. Cuarenta y ocho fotos de fugas de
+tres en esa etapa: **1,08 nombres de tres** salían como que trabajaban.
+
+### El motor NO se equivoca, y esto importa
+
+En una fuga de tres, al frente va uno: el techo del turno es `ceil(paceFraction · n)` y con el ritmo
+de una fuga asentada eso es 1. Los otros dos van a su rueda. Es lo que pasa en carretera, y por eso
+aquí no se toca una línea del motor.
+
+Lo que estaba mal era la FOTO. `pulling` se llenaba con quien daba la cara **en ese instante**, y su
+propio contrato dice desde la v34: «tira del grupo: **está en la rotación que se reparte el
+viento**». Una rotación no cabe en un instante, así que el dato no cumplía su definición.
+
+### El arreglo, y por qué tres kilómetros
+
+El que dio la cara en alguno de los tres últimos kilómetros **y sigue en el mismo grupo** está en el
+turno. Tres porque es la vuelta de un relevo y porque es del orden de la memoria que el propio motor
+usa para esto (`pullWindowDecayPerKm` 0,87, media vida ~5 km).
+
+Se pide el MISMO grupo, no sólo el mismo hombre: el que venía relevando en el pelotón y acaba de
+caerse a un grupeto no está relevando en el grupeto, está descolgado. Tiene su prueba.
+
+### Medido
+
+Sobre la radio de producción que el dueño miraba (`race-ain` s3, 48 fotos de fugas de tres):
+
+    nombres que trabajan en una fuga de tres   1,08  ->  2,25
+    fotos en las que salen los tres            0     ->  16 de 48
+
+Y sobre seis reinas canónicas (4.521 fotos de grupo, 183 de fugas de tres), corriendo el motor:
+
+    nombres por grupo, todos los grupos        5,20  ->  5,95   (tope 12, intacto)
+    en fugas de tres                           2,10  ->  2,57
+    fotos con los tres                         91    ->  118 de 183
+
+El pelotón no se infla, que es justo lo que la v34 quitó al eliminar el rol de en medio: aquello
+sacaba «36,5 nombres de 14,9 equipos distintos, una lista de media parrilla». Esto son 0,75 nombres
+más por grupo y el tope de doce sigue donde estaba.
+
+### `ENGINE_VERSION` no sube
+
+Tercera vez seguida y por lo mismo: no cambia un segundo de ninguna carrera.

@@ -470,6 +470,105 @@ describe('radioForStorage: un hombre PARADO no es una velocidad', () => {
   })
 })
 
+describe('radioForStorage: el que está en el TURNO no va a rueda', () => {
+  /**
+   * EL DEFECTO, VISTO EN PRODUCCIÓN. El dueño: «hay 3 escapados… todos parece que colaboran, pero
+   * en vez de salir que tiran todos, sale cada km que tira uno diferente».
+   *
+   * Y con su etapa delante (`race-ain` s3, km 10 a 25) la radio nombraba a UNO por kilómetro y
+   * pintaba a los otros dos con el icono de ir guarecido. El motor no se equivoca —en una fuga de
+   * tres al frente va uno y los otros dos van a su rueda—; lo que estaba mal era la foto, porque
+   * `pulling` se llenaba con quien daba la cara EN ESE INSTANTE y su contrato dice desde la v34
+   * «está en la ROTACIÓN que se reparte el viento». Una rotación no cabe en un instante.
+   */
+  const tres = (km: number, alFrente: string) =>
+    radioKmFrom(
+      km,
+      ['a', 'b', 'c'].map((id) =>
+        rider(id, 'mov-1', 1000 + 80 * (km - 10), { pulling: id === alFrente, pullWindow: 1 }),
+      ),
+      3,
+    )
+
+  it('los tres de una fuga que se relevan salen los tres, no uno por kilómetro', () => {
+    const stored = radioForStorage(
+      { starters: 3, kms: [tres(10, 'a'), tres(11, 'b'), tres(12, 'c')] },
+      new Set(),
+    )
+    const g = stored.kms[2]!.groups[0]!
+    expect(g.pulling.map((i) => stored.riders[i]).sort()).toEqual(['a', 'b', 'c'])
+    // Y el que da la cara AHORA sigue yendo el primero de la lista: el orden es el del viento.
+    expect(stored.riders[g.pulling[0]!]).toBe('c')
+    expect(g.watching).toEqual([])
+  })
+
+  /* Al que va a rueda de verdad no se le asciende: el turno es haber dado la cara, no estar ahí. */
+  it('el que no ha dado la cara nunca sigue saliendo a rueda', () => {
+    const conGorron = (km: number, alFrente: string) =>
+      radioKmFrom(
+        km,
+        ['a', 'b', 'gorron'].map((id) =>
+          rider(id, 'mov-1', 1000 + 80 * (km - 10), {
+            pulling: id === alFrente,
+            pullWindow: id === 'gorron' ? 0 : 1,
+          }),
+        ),
+        3,
+      )
+    const stored = radioForStorage(
+      { starters: 3, kms: [conGorron(10, 'a'), conGorron(11, 'b'), conGorron(12, 'a')] },
+      new Set(),
+    )
+    const g = stored.kms[2]!.groups[0]!
+    expect(g.pulling.map((i) => stored.riders[i]).sort()).toEqual(['a', 'b'])
+    expect(g.watching.map((i) => stored.riders[i])).toEqual(['gorron'])
+  })
+
+  /*
+    El turno caduca: si dejó de relevar hace más de tres kilómetros, ya no está en la rotación.
+    Sin esto, «el que tira» acabaría siendo «el que tiró alguna vez», que no es un parte de radio.
+  */
+  it('el turno caduca a los tres kilómetros', () => {
+    const kms = [tres(10, 'a')]
+    for (let km = 11; km <= 15; km++) kms.push(tres(km, 'b'))
+    const stored = radioForStorage({ starters: 3, kms }, new Set())
+    // km 13: `a` dio la cara en el 10, hace tres → sigue contando.
+    expect(stored.kms[3]!.groups[0]!.pulling.map((i) => stored.riders[i]).sort()).toEqual([
+      'a',
+      'b',
+    ])
+    // km 15: hace cinco → ya no.
+    expect(stored.kms[5]!.groups[0]!.pulling.map((i) => stored.riders[i])).toEqual(['b'])
+  })
+
+  /*
+    Y se pide el MISMO grupo, no solo el mismo hombre: el que venía relevando en el pelotón y acaba
+    de caerse a un grupeto no está relevando en el grupeto — está descolgado.
+  */
+  it('el que relevaba en el pelotón y se cae a un grupeto no sale relevando allí', () => {
+    const antes = radioKmFrom(
+      10,
+      [
+        ...Array.from({ length: 10 }, (_, i) => rider(`p-${i}`, 'peloton', 1000)),
+        rider('caido', 'peloton', 1000, { pulling: true, pullWindow: 1 }),
+      ],
+      11,
+    )
+    const ahora = radioKmFrom(
+      11,
+      [
+        ...Array.from({ length: 10 }, (_, i) => rider(`p-${i}`, 'peloton', 1080)),
+        rider('caido', 'shed-1', 1200),
+      ],
+      11,
+    )
+    const stored = radioForStorage({ starters: 11, kms: [antes, ahora] }, new Set())
+    const grupeto = stored.kms[1]!.groups.find((g) => g.size === 1)!
+    expect(grupeto.pulling).toEqual([])
+    expect(grupeto.watching.map((i) => stored.riders[i])).toEqual(['caido'])
+  })
+})
+
 describe('radioForStorage: el que releva nunca sale como que va a rueda', () => {
   it('un relevista que no entra en el corte se queda sin nombrar, pero NO se pinta guarecido', () => {
     // El «símbolo de tirar que no sale en algunos que tiran»: `inPull` se calculaba sobre el corte
