@@ -806,7 +806,7 @@
  * frente: en montaña son 2,76 equipos por llamada contra 0,96. Ver `ambushGainShare` y
  * `cerrandoAhora`.
  */
-export const ENGINE_VERSION = 84 as const
+export const ENGINE_VERSION = 86 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a

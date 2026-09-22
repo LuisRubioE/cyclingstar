@@ -16328,3 +16328,90 @@ Dos defectos en la misma foto y con estados opuestos: uno arreglado hacía horas
 vivo tenía una causa que no era la que yo le atribuía. Separarlos costó una tarde de medidas y valió
 la pena: el que parecía el problema grande —el filtro de velocidad— no era un problema, y el que
 parecía un detalle —la última foto— era el 89 % de lo que el dueño ve.
+
+## v86 — el que va de amarillo no da relevos, y las tres veces que me equivoqué de mecanismo
+
+El dueño, sobre la etapa 19 de producción: «ídem aquí, y **más grave porque vemos al propio líder
+tirando del grupo**».
+
+Yo le contesté que en esa foto el pelotón iba en 53 tras un puerto y solo le quedaban dos hombres, o
+sea el caso que la v42 dejó abierto a propósito —«el jefe tira si no queda nadie más»—. **Estaba
+equivocado, y bastaba con medirlo.**
+
+### La medida que tumba mi explicación
+
+Banco de reina con campo de producción (22 equipos de 8), contando en cuántas fotos el hombre con
+`gcRank` 1 aparece dando la cara y con cuántos de los suyos al lado:
+
+```
+REINA  el maillot tira en 20 de 1.590 fotos (1,26 %)
+       y en 16 de esas 20 tiene a sus SIETE compañeros con él, en un grupo de 174
+LLANA  0,00 %
+```
+
+Siete compañeros presentes no es «no queda nadie». Y el cero del llano tampoco es la regla
+funcionando: allí el maillot resulta ser el **sprinter** de su equipo y cae por el otro lado de la
+condición. La regla se estaba salvando por casualidad.
+
+Lo que el banco enseña de paso, y es la raíz: **el hombre que lleva el maillot figura con
+`rol=gregario`**. El `lider` de su casa es el tercero de la general, a 50 s. La hoja de órdenes
+describe el plan del día; el maillot es un hecho de la carrera, y el motor no tenía ninguna regla que
+dijera «el que va de amarillo es la carta».
+
+### Tres intentos, tres medidas, dos fracasos
+
+| intento                                                    | efecto medido |
+| ---------------------------------------------------------- | ------------- |
+| 1. sacar al maillot del EMPUJE de equipo (como a la carta) | 20 → **18**   |
+| 2. …y darle el DEBER DE ROL de jefe de filas (1,0 → 0,1)   | 20 → **18**   |
+| 3. poner a la carta la ÚLTIMA en el orden del relleno      | 20 → **10**   |
+| 4. y que no sea CANDIDATA mientras haya otros suficientes  | 20 → **0**    |
+
+Los dos primeros no movían nada, y ahí es donde dejé de razonar y puse una sonda. La respuesta salió
+a la primera y era la misma en **238 de 238** casos: entra por la rama del **relleno**.
+
+```
+quieren=5  conCupo=3  cuantos=4  min=4  liston=1,50  dutyJefe=-2,68  n=170
+```
+
+La cadena entera: cinco quieren tirar; **el cupo que yo mismo puse en la v84** los recorta a tres —el
+equipo del maillot está administrando—; el suelo de rescate son cuatro; falta uno, y se cae al
+relleno. Y el relleno ordenaba **primero por «¿es del dueño del frente?»** y el deber en tercer
+lugar, así que el maillot entraba con el deber **más bajo de los ciento setenta**.
+
+Por eso los dos primeros intentos eran inútiles: los dos tocaban el DEBER, y el deber ahí no decidía.
+La frase que `relayDutyByRole.lider` lleva escrita desde siempre —«0,1: solo tira si no queda nadie
+más»— la estaba desmintiendo ese orden.
+
+### Y el tercero tampoco bastaba, por la cola
+
+Con la carta ordenada la última, el maillot quedaba el **170 de 174**… y seguía tirando en 10 fotos.
+El motivo es la COLA de relevos (R18.1): a partir del paso 7 la cola manda sobre el orden y persiste
+entre bloques, así que lo que el orden decide es **por dónde se empieza, no quién entra**. Y en esa
+rama se le pasaban como candidatos los ciento setenta y cuatro, o sea todo el grupo: tarde o temprano
+le tocaba a cualquiera.
+
+La regla, dicha como se lee: la carta **ni siquiera es candidata** mientras haya gente suficiente que
+no lo sea; y cuando no la hay, entra como todos. Eso es lo que da el cero.
+
+### Lo que mueve
+
+- **Las dos huellas de llano salen idénticas dígito a dígito**, y era la predicción antes de correr:
+  en `llana-180` no hay general en juego, así que nadie lleva maillot y la regla no se cobra.
+- `reina-canonica-0`: 168 de 176 se mueven, mediano **−1 s** (min/max −83/+11), grupos de llegada
+  44 → 48. `gc-2` entra en 15.488 donde entraba en 15.489.
+- `reina-canonica-1`: solo 65 de 176 se mueven, mediano **0 s**, y los tres de cabeza **clavados**.
+
+El signo es el que se espera: el maillot deja de gastar turnos y se ahorra un segundo. No cambia
+quién gana.
+
+### La lección
+
+Tres hipótesis sobre el mismo síntoma y dos fallaron, **y las dos fallaron por el mismo motivo**: di
+por hecho que quien entra en el turno lo decide el deber de relevo, porque es lo que el nombre de la
+función promete. Lo decide en la rama principal; en la de rescate lo decide otro orden, y en cuanto
+la cola está encendida lo decide una tercera cosa. Tres puertas para una misma pregunta, y yo llevaba
+toda la tanda arreglando la que no era.
+
+Lo que lo desatascó no fue pensar mejor: fue **imprimir por qué rama salía**. 238 de 238 a la
+primera.
