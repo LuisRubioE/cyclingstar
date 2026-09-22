@@ -16,7 +16,15 @@ export function Register() {
     setLoading(true)
     // No se pide el nombre: better-auth requiere el campo, así que lo derivamos del email.
     const name = email.split('@')[0] ?? email
-    const result = await authClient.signUp.email({ name, email, password })
+    // callbackURL: a dónde vuelve quien abre el enlace del correo de verificación que better-auth
+    // manda al registrarse. Verificar NO hace falta para jugar; sirve para poder recuperar
+    // la cuenta si algún día se pierde la contraseña.
+    const result = await authClient.signUp.email({
+      name,
+      email,
+      password,
+      callbackURL: '/verify-email',
+    })
     setLoading(false)
     if (result.error) {
       setError(result.error.message ?? 'Could not create your account.')

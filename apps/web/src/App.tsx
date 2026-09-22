@@ -34,6 +34,9 @@ const CreateRider = lazy(() =>
   import('./pages/CreateRider').then((m) => ({ default: m.CreateRider })),
 )
 const Finances = lazy(() => import('./pages/Finances').then((m) => ({ default: m.Finances })))
+const ForgotPassword = lazy(() =>
+  import('./pages/ForgotPassword').then((m) => ({ default: m.ForgotPassword })),
+)
 const HallOfFame = lazy(() => import('./pages/HallOfFame').then((m) => ({ default: m.HallOfFame })))
 const Home = lazy(() => import('./pages/Home').then((m) => ({ default: m.Home })))
 const HowToPlay = lazy(() => import('./pages/HowToPlay').then((m) => ({ default: m.HowToPlay })))
@@ -47,6 +50,9 @@ const RaceOrders = lazy(() => import('./pages/RaceOrders').then((m) => ({ defaul
 const RacesIndex = lazy(() => import('./pages/RacesIndex').then((m) => ({ default: m.RacesIndex })))
 const Rankings = lazy(() => import('./pages/Rankings').then((m) => ({ default: m.Rankings })))
 const Register = lazy(() => import('./pages/Register').then((m) => ({ default: m.Register })))
+const ResetPassword = lazy(() =>
+  import('./pages/ResetPassword').then((m) => ({ default: m.ResetPassword })),
+)
 const RiderProfile = lazy(() =>
   import('./pages/RiderProfile').then((m) => ({ default: m.RiderProfile })),
 )
@@ -63,6 +69,9 @@ const TeamIdentity = lazy(() =>
 const TeamSquad = lazy(() => import('./pages/TeamSquad').then((m) => ({ default: m.TeamSquad })))
 const Teams = lazy(() => import('./pages/Teams').then((m) => ({ default: m.Teams })))
 const Training = lazy(() => import('./pages/Training').then((m) => ({ default: m.Training })))
+const VerifyEmail = lazy(() =>
+  import('./pages/VerifyEmail').then((m) => ({ default: m.VerifyEmail })),
+)
 
 /**
  * Redirección de una ruta vieja a su sitio nuevo, conservando parámetros, query y ancla.
@@ -213,6 +222,14 @@ export function App() {
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />
+            {/*
+              Las tres páginas de los enlaces que llegan por correo. Públicas: el enlace se
+              abre a menudo desde el móvil o desde otro navegador, sin sesión, y exigirla ahí sería
+              decirle a esa persona que ha fallado cuando no.
+            */}
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
             <Route
               path="/account"
               element={

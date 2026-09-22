@@ -76,14 +76,21 @@ pnpm --filter @cyclingstar/web dev
 | Variable                | Obligatoria | Qué hace                                                                |
 | ----------------------- | ----------- | ----------------------------------------------------------------------- |
 | `DATABASE_URL`          | sí          | Conexión a Postgres.                                                    |
-| `ADMIN_TOKEN`           | sí (≥16)    | Protege `POST /admin/tick`, `/admin/advance` y `/admin/names`.          |
-| `SESSION_SECRET`        | sí (≥16)    | Firma de sesiones de better-auth.                                       |
+| `ADMIN_TOKEN`           | sí (≥32)    | Protege `POST /admin/tick`, `/admin/advance` y `/admin/names`.          |
+| `SESSION_SECRET`        | sí (≥32)    | Firma de sesiones de better-auth.                                       |
 | `APP_URL`               | sí          | URL pública; better-auth la usa como `baseURL` y origen de confianza.   |
+| `RESEND_API_KEY`        | no          | Clave de Resend. Sin ella la app arranca y no manda correo.             |
+| `MAIL_FROM`             | no          | Remitente (`Nombre <correo@dominio>`). Va en pareja con la clave.       |
 | `PORT`                  | no (3000)   | Puerto de escucha. En Railway lo inyecta la plataforma.                 |
 | `TICK_INTERVAL_MINUTES` | no (360)    | Minutos reales por día de juego. Bajarlo acelera el mundo para la alfa. |
 | `LOG_LEVEL`             | no (info)   | Nivel de log de Fastify.                                                |
 
 El servicio `tick` solo necesita `DATABASE_URL` y `TICK_INTERVAL_MINUTES`.
+
+`RESEND_API_KEY` y `MAIL_FROM` son opcionales pero **van en pareja**: con una sola, el arranque
+falla a propósito (un despliegue con clave y sin remitente cree que manda correo y no manda
+ninguno). Sin ninguna de las dos no se envía nada y cada correo deja una línea en el log — es el
+modo de desarrollo local. La puesta en marcha del dominio en Resend está en `docs/ops.md`.
 
 ## Comandos
 

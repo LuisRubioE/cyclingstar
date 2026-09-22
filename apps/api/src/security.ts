@@ -22,14 +22,22 @@ export const AUTH_RATE_LIMIT = { max: 60, timeWindow: '1 minute' } as const
 export const CREDENTIAL_RATE_LIMIT = { max: 10, timeWindow: '5 minutes' } as const
 
 /**
- * Rutas de better-auth que reciben o cambian credenciales. Se registran explícitamente (además del
+ * Rutas de better-auth que reciben o cambian credenciales, o que disparan un correo. Se registran explícitamente (además del
  * comodín /api/auth/*) solo para colgarles el límite estricto: find-my-way resuelve la ruta estática
  * antes que el comodín, así que el resto de endpoints de auth sigue por el comodín sin cambios.
+ *
+ * Aquí estaba `/api/auth/forget-password`, que en better-auth 1.6 YA NO EXISTE: la ruta se llama
+ * `/request-password-reset`. El límite estricto protegía una puerta tapiada mientras la de verdad
+ * —la que manda el correo— iba por el comodín, con el límite flojo.
  */
 export const CREDENTIAL_AUTH_PATHS = [
   '/api/auth/sign-in/email',
   '/api/auth/sign-up/email',
-  '/api/auth/forget-password',
+  // Las dos que MANDAN CORREO. Sin límite estricto, una sola IP puede pedir mil enlaces de
+  // recuperación contra mil direcciones: sondea qué cuentas existen, quema la reputación del
+  // dominio en Resend y llena de correo buzones ajenos.
+  '/api/auth/request-password-reset',
+  '/api/auth/send-verification-email',
   '/api/auth/reset-password',
   '/api/auth/change-password',
   '/api/auth/change-email',

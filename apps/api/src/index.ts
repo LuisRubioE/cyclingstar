@@ -3,6 +3,7 @@ import { ENGINE_VERSION } from '@cyclingstar/engine'
 import { buildApp } from './app.js'
 import { createAuth } from './auth.js'
 import { loadEnv } from './env.js'
+import { createMailer } from './mailer.js'
 
 /**
  * Arranque del servicio `web` de Railway: `node apps/api/dist/index.js` (SPEC 12).
@@ -15,7 +16,14 @@ async function main(): Promise<void> {
   await runMigrations(env.DATABASE_URL)
 
   const { db } = createDb(env.DATABASE_URL)
-  const auth = createAuth(db, { secret: env.SESSION_SECRET, baseURL: env.APP_URL })
+  // Correo transaccional: con RESEND_API_KEY y MAIL_FROM sale por Resend; sin ellas queda
+  // un mailer que sólo deja constancia, para que un entorno local arranque igual.
+  const mailer = createMailer(env)
+  const auth = createAuth(db, {
+    secret: env.SESSION_SECRET,
+    baseURL: env.APP_URL,
+    mailer,
+  })
   const msPerGameDay = env.TICK_INTERVAL_MINUTES * 60_000
 
   const app = buildApp({

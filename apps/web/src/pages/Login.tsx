@@ -44,6 +44,14 @@ export function Login() {
             autoComplete="current-password"
           />
           {error && <p className="text-sm text-red-600">{error}</p>}
+          <p className="text-right text-sm">
+            <Link
+              to="/forgot-password"
+              className="font-medium text-indigo-600 hover:text-indigo-500"
+            >
+              Forgot your password?
+            </Link>
+          </p>
           <button
             type="submit"
             disabled={loading}
