@@ -16667,3 +16667,42 @@ más por grupo y el tope de doce sigue donde estaba.
 ### `ENGINE_VERSION` no sube
 
 Tercera vez seguida y por lo mismo: no cambia un segundo de ninguna carrera.
+
+## El techo de la radio baja a 75 km/h, porque rechazar ya no cuesta un hueco en blanco
+
+Cuando la v58 puso `radioMaxKmh` en 85 —«está por encima de cualquier descenso real»— rechazar un
+kilómetro significaba dejar al grupo **sin velocidad**, así que el techo tenía que ser generoso: un
+falso rechazo se pagaba con un hueco en blanco en la pantalla. Desde que el kilómetro que no se
+puede medir hacia delante se mide hacia atrás, ese coste desapareció: un rechazo ya no es un
+blanco, es la velocidad del kilómetro anterior, que es una medida de verdad.
+
+Así que el techo puede ponerse donde está la física.
+
+### Dónde está la física, medido
+
+Veinte reinas canónicas, separando los kilómetros en los que la mayoría del grupo SIGUE en su grupo
+(limpios) de aquellos en los que se funde con otro:
+
+    LIMPIOS   n=13.666   mediana 41,6   p99 58,8   max 75,5   | >70: 10 (0,07 %)  >75: 1
+    SE FUNDEN n=   669   mediana 20,1   p99 81,8   max 84,6   | >70: 28 (4,2 %)   >80: 10
+
+Un grupo que no se funde con nadie **no pasa de 75,5 km/h en 13.666 kilómetros**. Todo lo que hay
+por encima vive en el otro lado de la tabla, que es donde están los relojes que saltan.
+
+### Lo que cambia en la pantalla
+
+                       techo 85 (antes)   techo 75
+    huecos en blanco                  2          2   ← no sube, y ésa es la clave
+    mediana                        41,4       41,4
+    velocidades > 70 km/h            46         16
+    velocidades > 75 km/h            25          0
+    velocidades > 80 km/h            14          0
+
+Desaparecen veinticinco números imposibles y **no aparece ni un hueco en blanco nuevo**: cada
+rechazo cae en el kilómetro de antes. Es exactamente la queja que el dueño lleva puesta dos veces
+—«¿qué me dices de este tercer grupo que va a 94 km/h?» (v58) y la de hoy— y que el techo generoso
+no podía cortar sin dejar la pantalla vacía.
+
+### `ENGINE_VERSION` no sube
+
+`radioMaxKmh` sólo lo lee la radio (`groupSpeedKmh`); no toca una carrera.
