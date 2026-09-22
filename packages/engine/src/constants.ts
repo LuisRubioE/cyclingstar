@@ -1865,11 +1865,42 @@ export const STAGE = {
    */
   /**
    * EL TECHO DE VELOCIDAD DE LA RADIO (v58). Por encima de esto no hay ciclista: hay un reloj que ha
-   * cambiado de grupo y una resta que no significa nada (ver `groupSpeedKmh`). El récord de descenso
-   * en carrera anda por los 90 km/h y una llegada masiva no pasa de 70, así que 85 deja fuera lo
-   * imposible sin recortar nada de lo que ocurre de verdad.
+   * cambiado de grupo y una resta que no significa nada (ver `groupSpeedKmh`).
+   *
+   * ————— …Y BAJA DE 85 A 75, PORQUE RECHAZAR YA NO CUESTA UN HUECO EN BLANCO —————
+   *
+   * Los 85 eran generosos A PROPÓSITO: cuando se pusieron, rechazar un kilómetro dejaba al grupo
+   * **sin velocidad**, así que un falso rechazo se pagaba con un hueco vacío en la pantalla y más
+   * valía dejar pasar algún número raro. Desde que el kilómetro que no se puede medir hacia delante
+   * se mide hacia atrás, ese coste desapareció: un rechazo ya no es un blanco, es la velocidad del
+   * kilómetro anterior, que es una medida de verdad. Así que el techo puede ponerse donde está la
+   * física.
+   *
+   * Y dónde está la física, medido sobre veinte reinas, separando los kilómetros en los que la
+   * mayoría del grupo SIGUE en su grupo de aquellos en los que se funde con otro:
+   *
+   *     LIMPIOS    n=13.666   mediana 41,6   p99 58,8   max 75,5   | >70: 10 (0,07 %)  >75: 1
+   *     SE FUNDEN  n=   669   mediana 20,1   p99 81,8   max 84,6   | >70: 28 (4,2 %)   >80: 10
+   *
+   * Un grupo que no se funde con nadie **no pasa de 75,5 km/h en 13.666 kilómetros**. Todo lo que
+   * hay por encima vive en el otro lado de la tabla, que es donde están los relojes que saltan.
+   *
+   * Lo que cambia en la pantalla, sobre las mismas veinte reinas:
+   *
+   *                            techo 85      techo 75
+   *     huecos en blanco              2             2   ← NO sube, y ésa es la clave
+   *     mediana                    41,4          41,4
+   *     velocidades > 70 km/h        46            16
+   *     velocidades > 75 km/h        25             0
+   *     velocidades > 80 km/h        14             0
+   *
+   * Desaparecen veinticinco números imposibles y no aparece ni un hueco nuevo. Es la queja que el
+   * dueño lleva puesta dos veces —«¿qué me dices de este tercer grupo que va a 94 km/h?»— y que el
+   * techo generoso no podía cortar sin dejar la pantalla vacía.
+   *
+   * Lo lee SOLO la radio (`groupSpeedKmh`): no toca una carrera.
    */
-  radioMaxKmh: 85,
+  radioMaxKmh: 75,
   rejoinGapSeconds: 22,
   regroupGapSeconds: 22,
   /**

@@ -363,6 +363,34 @@ describe('radioForStorage: la velocidad de un grupo la miden SUS HOMBRES', () =>
     expect(suyo.speedKmh).toBeCloseTo(45, 1)
   })
 
+  /**
+   * ————— Y EL TECHO BAJA A 75, PORQUE RECHAZAR YA NO CUESTA UN HUECO EN BLANCO —————
+   *
+   * Los 85 de la v58 eran generosos a propósito: entonces un rechazo dejaba al grupo SIN
+   * velocidad, así que más valía dejar pasar algún número raro que vaciar la pantalla. Con el
+   * kilómetro de antes como recambio ese coste desapareció y el techo puede ponerse donde está la
+   * física: medido sobre veinte reinas, un grupo que no se funde con nadie **no pasa de 75,5 km/h
+   * en 13.666 kilómetros**, mientras que los que se funden llegan a 84,6.
+   *
+   * Sobre esas mismas veinte reinas: las velocidades por encima de 75 km/h pasan de 25 a 0 y los
+   * huecos en blanco se quedan en 2, los mismos. Ver la nota de `radioMaxKmh`.
+   */
+  it('un kilómetro a 80 km/h ya no se enseña: se enseña el anterior, que sí se corrió', () => {
+    const foto = (km: number, t: number) =>
+      radioKmFrom(
+        km,
+        Array.from({ length: 5 }, (_, i) => rider(`r-${i}`, 'mov-1', t)),
+        5,
+      )
+    // km 10 -> 11: 80 s el kilómetro, 45 km/h. km 11 -> 12: 45 s, o sea 80 km/h.
+    const stored = radioForStorage(
+      { starters: 5, kms: [foto(10, 1000), foto(11, 1080), foto(12, 1125)] },
+      new Set(),
+    )
+    // Con el techo en 85 esto enseñaba 80 km/h. Con 75 se rechaza y cae en el kilómetro de antes.
+    expect(stored.kms[1]!.groups[0]!.speedKmh).toBeCloseTo(45, 1)
+  })
+
   it('…y NO pisa la velocidad del kilómetro siguiente cuando esa sí se puede medir', () => {
     // El pelotón frena: 80 s el km anterior (45 km/h) y 120 el siguiente (30). Manda el siguiente.
     const foto = (km: number, t: number) =>
