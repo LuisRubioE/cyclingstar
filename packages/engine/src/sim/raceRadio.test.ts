@@ -318,6 +318,81 @@ describe('radioForStorage: la velocidad de un grupo la miden SUS HOMBRES', () =>
     expect(stored.kms[1]!.groups[0]!.speedKmh).toBeCloseTo(45, 1)
   })
 
+  /**
+   * ————— Y SI EL KILÓMETRO SIGUIENTE NO SE PUEDE MEDIR, SE MIDE EL QUE ACABA DE RECORRER —————
+   *
+   * El dueño, con la foto de un grupo de sesenta sin velocidad: «¿por qué no dice la velocidad? eso
+   * está mal… calcula la velocidad real a la que iba ese grupo SIN CONTAR EL REGALO por alcanzar a
+   * un grupo que va muy estirado, y pon ésa».
+   *
+   * Medido: no es un fallo de la resta. Cuando un grupo se funde con otro, sus corredores adoptan
+   * el reloj del grupo nuevo y el salto se reparte IGUAL entre todos —los 94 del caso peor traen el
+   * mismo Δt al décimo—, así que el kilómetro sale a 89 km/h y `radioMaxKmh` lo rechaza entero, con
+   * razón. El regalo es del motor (`docs/balance.md`) y la radio no lo puede deshacer: no sabe
+   * cuánto hueco quedaba en el instante de la fusión.
+   *
+   * Lo que sí puede es medir el OTRO kilómetro, el de antes, donde ese grupo iba solo y sus relojes
+   * no habían saltado. Sobre veinte reinas (14.658 grupos): **46 blancos, 44 recuperados (95,7 %)**,
+   * de 22,7 a 62,5 km/h; los dos que quedan son fusiones en kilómetros seguidos.
+   */
+  it('un grupo que se funde enseña el kilómetro que acaba de correr, no un hueco en blanco', () => {
+    // km 10 → 11: los cinco ruedan solos, 80 s el kilómetro (45 km/h).
+    // km 11 → 12: se funden con el pelotón y su reloj salta: 40 s el kilómetro, o sea 90 km/h.
+    const foto = (km: number, tPel: number, grupo: string, tShed: number) =>
+      radioKmFrom(
+        km,
+        [
+          ...Array.from({ length: 30 }, (_, i) => rider(`pel-${i}`, 'peloton', tPel)),
+          ...Array.from({ length: 5 }, (_, i) => rider(`s-${i}`, grupo, tShed)),
+        ],
+        35,
+      )
+    const stored = radioForStorage(
+      {
+        starters: 35,
+        kms: [
+          foto(10, 1000, 'shed-1', 1120),
+          foto(11, 1080, 'shed-1', 1200),
+          foto(12, 1160, 'peloton', 1240),
+        ],
+      },
+      new Set(),
+    )
+    const suyo = stored.kms[1]!.groups.find((g) => g.size === 5)!
+    // Con la cuenta de siempre esto era `null`: 90 km/h rechazado y nada que enseñar.
+    expect(suyo.speedKmh).toBeCloseTo(45, 1)
+  })
+
+  it('…y NO pisa la velocidad del kilómetro siguiente cuando esa sí se puede medir', () => {
+    // El pelotón frena: 80 s el km anterior (45 km/h) y 120 el siguiente (30). Manda el siguiente.
+    const foto = (km: number, t: number) =>
+      radioKmFrom(
+        km,
+        Array.from({ length: 20 }, (_, i) => rider(`r-${i}`, 'peloton', t)),
+        20,
+      )
+    const stored = radioForStorage(
+      { starters: 20, kms: [foto(10, 1000), foto(11, 1080), foto(12, 1200)] },
+      new Set(),
+    )
+    expect(stored.kms[1]!.groups[0]!.speedKmh).toBeCloseTo(30, 1)
+  })
+
+  it('y si tampoco el kilómetro de antes está limpio, sigue sin haber velocidad que enseñar', () => {
+    // Dos saltos seguidos: 40 s hacia delante y 40 hacia atrás. No se inventa nada.
+    const foto = (km: number, t: number) =>
+      radioKmFrom(
+        km,
+        Array.from({ length: 20 }, (_, i) => rider(`r-${i}`, 'peloton', t)),
+        20,
+      )
+    const stored = radioForStorage(
+      { starters: 20, kms: [foto(10, 1000), foto(11, 1040), foto(12, 1080)] },
+      new Set(),
+    )
+    expect(stored.kms[1]!.groups[0]!.speedKmh).toBeNull()
+  })
+
   it('si no queda ni uno de los suyos en la foto siguiente, no se inventa una velocidad', () => {
     const aqui = radioKmFrom(100, [rider('a', 'peloton', 5000), rider('b', 'peloton', 5000)], 2)
     const luego = radioKmFrom(101, [rider('c', 'peloton', 5080)], 3)
