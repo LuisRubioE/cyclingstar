@@ -608,8 +608,28 @@ function relayDuty(
   protectedByTeam: boolean,
   teamDriveNow: number,
   sittingOn: boolean,
+  /**
+   * ¿LLEVA ESTE HOMBRE EL MAILLOT? (v86). Va aparte del rol porque son dos cosas distintas y el
+   * defecto vive justo donde se separan: ver la nota de `esLaCartaDelEquipo`.
+   */
+  llevaElMaillot = false,
 ): number {
-  const duty = STAGE.relayDutyByRole[m.input.orders.role]
+  /**
+   * EL QUE VA DE AMARILLO CORRE COMO JEFE DE FILAS, LO DIGA SU HOJA DE ÓRDENES O NO (v86).
+   *
+   * Y esto es lo que de verdad hacía falta, no la exención del empuje de abajo. Lo primero que
+   * probé fue justo eso —sacarle del empuje de equipo como a la carta— y **el banco lo midió y no
+   * servía: 20 fotos tirando pasaban a 18**. El empuje no era quien le subía.
+   *
+   * Lo que le subía es esta línea: el maillot que su equipo escribió como gregario cobra el deber de
+   * un gregario, que es **1,0 —el más alto de la tabla, porque su oficio ES tirar—** contra el 0,1
+   * de un jefe de filas. Con ese punto de partida cruza el listón él solo, sin que nadie le empuje.
+   *
+   * La hoja de órdenes describe el plan del día; el maillot es un HECHO de la carrera, y manda. Un
+   * equipo puede haber salido con otro jefe sobre el papel —un escalador mejor, el que era la carta
+   * cuando se dieron las órdenes— y eso no pone a trabajar al que va de líder.
+   */
+  const duty = STAGE.relayDutyByRole[llevaElMaillot ? 'lider' : m.input.orders.role]
   const freshness = m.energy0 > 0 ? Math.max(0, Math.min(1, m.energy / m.energy0)) : 0
   /**
    * EL EMPUJE DEL EQUIPO ES UNA ORDEN, Y LAS ÓRDENES SE LE DAN A LOS GREGARIOS (v42).
@@ -630,8 +650,38 @@ function relayDuty(
    * dar la cara: le deja su deber de rol, que para un líder es 0,1 y significa «solo tira si no
    * queda nadie más» (`relayDutyByRole`).
    */
+  /**
+   * ————— …Y EL QUE LLEVA EL MAILLOT ES LA CARTA, AUNQUE SU EQUIPO NO LO HAYA ESCRITO (v86) —————
+   *
+   * La v42 arregló esto a medias y la mitad que faltaba es justo la que el dueño ha vuelto a ver,
+   * cuatro versiones después: «y más grave porque vemos al propio líder tirando del grupo».
+   *
+   * La regla de arriba pregunta por el ROL —`lider` o `sprinter`— y por ir arropado, y las dos
+   * cosas salen de las ÓRDENES del día. El maillot no siempre está en ninguna de las dos: basta con
+   * que su equipo tenga escrito como jefe de filas a otro —un escalador mejor sobre el papel, un
+   * hombre que era la carta cuando se dieron las órdenes— para que el que va de amarillo figure como
+   * gregario. Y entonces el empuje de equipo, que existe para mandar al frente a los gregarios, le
+   * manda al frente a ÉL.
+   *
+   * No es hipotético: en el banco de reina con campo de producción, el hombre con `gcRank` 1 sale
+   * con `rol=gregario` —el `lider` de su casa es el tercero de la general, a 50 s— y **el maillot da
+   * la cara en 20 de 1.590 fotos, y en 16 de esas 20 con sus SIETE compañeros al lado**. O sea que
+   * no es el caso de «tira porque no queda nadie», que es el que la v42 dejó abierto a propósito:
+   * es el empuje levantando al hombre por el que se está corriendo.
+   *
+   * En llano la misma medida da CERO, y no porque la regla funcione: porque allí el maillot resulta
+   * ser el sprinter del equipo y cae por el otro lado de la condición. La regla se estaba salvando
+   * por casualidad.
+   *
+   * Dicho entero: la carta del equipo es el hombre por el que se trabaja, y el que va de amarillo lo
+   * es SIEMPRE, lo diga su hoja de órdenes o no. Como en la v42, esto no le veta dar la cara: le
+   * deja su deber de rol, que significa «solo si no queda nadie más».
+   */
   const esLaCartaDelEquipo =
-    protectedByTeam || m.input.orders.role === 'lider' || m.input.orders.role === 'sprinter'
+    protectedByTeam ||
+    llevaElMaillot ||
+    m.input.orders.role === 'lider' ||
+    m.input.orders.role === 'sprinter'
   const empuje = esLaCartaDelEquipo ? 0 : teamDriveNow
   const total =
     duty +
@@ -766,6 +816,8 @@ function relayTurn(
     equipo: null,
     cupo: Number.POSITIVE_INFINITY,
   }),
+  /** ¿Quién lleva el maillot? (v86). Ver la nota de `esLaCartaDelEquipo` en `relayDuty`. */
+  llevaMaillot: (riderId: string) => boolean = () => false,
 ): Set<string> {
   const scored = members.map((m) => {
     const helpers = domestiquesFor.get(m.input.riderId)
@@ -814,8 +866,24 @@ function relayTurn(
       // …y si sus hombres trabajan por él. En un abanico es lo ÚNICO que sigue sacando a alguien del
       // turno (ver `cuantos`, más abajo).
       protegido: protectedByTeam,
+      /**
+       * ¿ES ESTE HOMBRE LA CARTA DE SU EQUIPO? (v86). La misma cuenta que `relayDuty` hace para
+       * decidir si el empuje le levanta, sacada aquí porque el RELLENO también la necesita: ver la
+       * nota del orden del relleno, más abajo.
+       */
+      carta:
+        protectedByTeam ||
+        llevaMaillot(m.input.riderId) ||
+        m.input.orders.role === 'lider' ||
+        m.input.orders.role === 'sprinter',
       duty:
-        relayDuty(m, protectedByTeam, drive, sittingOn(m.input.riderId)) -
+        relayDuty(
+          m,
+          protectedByTeam,
+          drive,
+          sittingOn(m.input.riderId),
+          llevaMaillot(m.input.riderId),
+        ) -
         // …Y TAMPOCO VALE «¿PARA QUÉ VOY A TIRAR SI NO PUEDO GANAR?» (v41). En un abanico dar la cara
         // no es colaborar, es seguir en carrera: el que no entra al turno se cae de la fila. Medido
         // sin esto, el corte de trece hombres a 25 km de meta ponía DOS a rotar —los otros once
@@ -1033,20 +1101,67 @@ function relayTurn(
    * la carrera todo el día mantiene a un hombre delante aunque vaya vacío; no se aparta para que
    * tire el que no se juega nada.
    */
+  /**
+   * ————— …PERO LA CARTA DEL EQUIPO ES EL ÚLTIMO RECURSO, NO EL PRIMERO (v86) —————
+   *
+   * Este orden ponía `delDueño` de PRIMER criterio y el deber de segundo, y con eso desmentía la
+   * frase que `relayDutyByRole.lider` lleva escrita desde siempre: «0,1 — el equipo lo lleva; solo
+   * tira si no queda nadie más». No hacía falta que no quedara nadie: bastaba con ser del equipo que
+   * lleva el frente.
+   *
+   * El dueño lo vio en la etapa 19 de producción —«y más grave porque vemos al propio líder tirando
+   * del grupo»— y trazado en el banco sale por aquí, siempre por aquí: **238 de 238 veces**. La
+   * cadena, con los números de una foto real:
+   *
+   * ```
+   * quieren=5  conCupo=3  cuantos=4  min=4  liston=1,50  dutyJefe=-2,68  n=170
+   * ```
+   *
+   * Cinco quieren tirar; el cupo del que administra (v84) los recorta a tres; el suelo de rescate
+   * son cuatro; falta uno y se cae aquí; y aquí el maillot entra **con el deber más bajo de los
+   * ciento setenta**, porque el deber no se mira hasta el tercer criterio.
+   *
+   * Y así se explica por qué los dos arreglos que probé antes no movían nada —quitarle el empuje de
+   * equipo y darle el deber de jefe de filas dejaban las 20 fotos en 18—: los dos tocaban el DEBER,
+   * y el deber aquí no decidía.
+   *
+   * El orden correcto dice lo que la carretera: cuando no queda quien tire, da la cara el equipo que
+   * lleva la carrera —eso se queda— pero **por su gente, y el hombre por el que corren es el último
+   * de la lista**. Si de verdad no queda nadie más, sigue entrando: es un orden, no un veto.
+   */
   const relleno = [...scored].sort(
     (a, b) =>
-      Number(delDueño(b.id)) - Number(delDueño(a.id)) || b.duty - a.duty || (a.id < b.id ? -1 : 1),
+      Number(a.carta) - Number(b.carta) ||
+      Number(delDueño(b.id)) - Number(delDueño(a.id)) ||
+      b.duty - a.duty ||
+      (a.id < b.id ? -1 : 1),
   )
+  /**
+   * …Y LA CARTA NO ES CANDIDATA MIENTRAS HAYA OTROS (v86). Ordenarla la última no bastaba, y el
+   * banco lo dijo: con la carta al final del orden el maillot quedaba el **170 de 174** y aun así
+   * daba la cara en 10 de 1.590 fotos.
+   *
+   * El motivo es la COLA (R18.1): a partir del paso 7 la cola manda sobre el orden y persiste entre
+   * bloques —das tu relevo, te apartas y te vas al final—, así que lo que el orden decide es por
+   * dónde EMPIEZA, no quién entra. Y aquí se le estaba pasando como candidato el grupo entero, los
+   * ciento setenta y cuatro, así que tarde o temprano le tocaba a todo el mundo.
+   *
+   * La regla, dicha como se lee en `relayDutyByRole.lider`: el hombre por el que corre el equipo
+   * tira **solo si no queda nadie más**. O sea que ni siquiera es candidato mientras haya gente
+   * suficiente que no sea la carta de su casa; y cuando no la hay, entra como todos.
+   */
+  const sinCarta = relleno.filter((s) => !s.carta)
+  const candidatos = sinCarta.length >= cuantos ? sinCarta : relleno
   return elTren(
     cola
       ? advanceQueue(
           cola,
-          relleno.map((s) => s.id),
+          candidatos.map((s) => s.id),
           cuantos,
           STAGE.dx,
           terrenoCola,
         )
-      : new Set(relleno.slice(0, cuantos).map((s) => s.id)),
+      : new Set(candidatos.slice(0, cuantos).map((s) => s.id)),
     scored,
     lanzando,
   )
@@ -5089,6 +5204,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             cupo: administra ? STAGE.relayTeamShareWatch : Number.POSITIVE_INFINITY,
           }
         },
+        (riderId) => hasGcContext && sims.get(riderId)?.input.gcRank === 1,
       )
       /**
        * CUÁNTOS SE REPARTEN EL VIENTO AL FRENTE: LOS QUE TIRAN, y punto (v38).
