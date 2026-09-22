@@ -568,6 +568,12 @@ export interface StoredRaceRadio {
 const STORED_PULLERS_MAX = 12
 
 /**
+ * CUÁNTOS KILÓMETROS DURA UN TURNO A EFECTOS DE LA FOTO. El que dio la cara hace tres kilómetros y
+ * sigue en el grupo está en la rotación, no a rueda: ver la nota larga en `radioForStorage`.
+ */
+const TURNO_KM = 3
+
+/**
  * HASTA ESTE TAMAÑO SE NOMBRA AL GRUPO ENTERO, tire quien tire y lleve maillot quien lo lleve.
  *
  * `watch` resuelve «a quién hay que poder seguir SIEMPRE» —maillots y jefes de filas— y está pensado
@@ -824,6 +830,37 @@ export function radioForStorage(
      * salían: sólo entra cuando la cuenta de siempre no da nada.
      */
     const atras = next && prev ? fotoRef(prev) : undefined
+    /**
+     * ————— EL QUE ESTÁ EN EL TURNO NO VA A RUEDA, AUNQUE AHORA MISMO NO ESTÉ AL FRENTE —————
+     *
+     * El dueño, en producción: «hay 3 escapados… todos parece que colaboran, pero en vez de salir
+     * que tiran todos, sale cada km que tira uno diferente».
+     *
+     * Y tenía razón, con su etapa delante: en `race-ain` s3, kilómetros 10 a 25, la radio nombraba
+     * a UNO por kilómetro —Ribeiro, Muller, Iversen, Muller, Iversen…— y pintaba a los otros dos
+     * con el icono de ir guarecido. Los tres se estaban relevando.
+     *
+     * El motor no se equivoca: en una fuga de tres, al frente va uno —`techo` sale de
+     * `ceil(paceFraction · n)`— y los otros dos van a su rueda, que es lo que pasa en carretera. Lo
+     * que estaba mal era la foto: `pulling` se llenaba con quien daba la cara EN ESE INSTANTE, y el
+     * contrato de `radioRoleSchema` dice otra cosa desde la v34 — «tira del grupo: **está en la
+     * rotación que se reparte el viento**». Una rotación no cabe en un instante.
+     *
+     * Así que se mira también hacia atrás: el que dio la cara en alguno de los `TURNO_KM` últimos
+     * kilómetros, y sigue en este mismo grupo, sigue en el turno. Tres kilómetros porque es la
+     * vuelta de un relevo y porque es del orden de la memoria que el propio motor usa para esto
+     * (`pullWindowDecayPerKm` 0,87, media vida ~5 km).
+     *
+     * Medido sobre la radio de producción que el dueño estaba mirando (`race-ain` s3, 48 fotos de
+     * fugas de tres): los nombrados como que trabajan pasan de **1,08 a 2,25 de tres**, y en 16 de
+     * las 48 salen los tres. Y no infla el pelotón, que es lo que la v34 tenía que evitar al
+     * quitarse el rol de en medio: la media por grupo pasa de **4,57 a 4,97** nombres.
+     */
+    const enElTurno = new Map<string, RadioPuller>()
+    for (let j = Math.max(0, i - TURNO_KM); j < i; j++) {
+      for (const g of radio.kms[j]!.groups)
+        for (const p of g.pulling) enElTurno.set(`${g.id}|${p.riderId}`, p)
+    }
     // …Y QUIÉNES SE PARARON AQUÍ (v70.1): su reloj cuenta tiempo de pie, no carretera cubierta.
     const paradas = new Set<string>(k.stopped)
     const groups = k.groups.map((g) => {
@@ -838,13 +875,24 @@ export function radioForStorage(
        * Y a los que hay que poder seguir SIEMPRE —los maillots— se les guarda tiren donde tiren,
        * aunque el corte los dejara fuera: si el maillot está dando la cara, eso es la noticia.
        */
-      const keep = new Set(g.pulling.slice(0, STORED_PULLERS_MAX).map((p) => p.riderId))
-      for (const p of g.pulling) if (watch.has(p.riderId)) keep.add(p.riderId)
+      /**
+       * Los que dan la cara AHORA, y detrás los que la dieron en los últimos kilómetros y siguen
+       * aquí (ver `enElTurno`). Se pide el MISMO grupo, no solo el mismo hombre: el que venía
+       * relevando en el pelotón y acaba de caerse a un grupeto no está relevando en el grupeto.
+       */
+      const alFrente = new Set(g.pulling.map((p) => p.riderId))
+      const turno = g.riderIds
+        .filter((id) => !alFrente.has(id) && enElTurno.has(`${g.id}|${id}`))
+        .map((id) => enElTurno.get(`${g.id}|${id}`)!)
+        .sort((a, b) => b.pullWindow - a.pullWindow || (a.riderId < b.riderId ? -1 : 1))
+      const relevan: readonly RadioPuller[] = [...g.pulling, ...turno]
+      const keep = new Set(relevan.slice(0, STORED_PULLERS_MAX).map((p) => p.riderId))
+      for (const p of relevan) if (watch.has(p.riderId)) keep.add(p.riderId)
       // Se filtra conservando el orden, que viene con los que dan la cara al viento primero.
-      const pull = g.pulling.filter((p) => keep.has(p.riderId))
+      const pull = relevan.filter((p) => keep.has(p.riderId))
       const pulling = pull.map((p) => idx(p.riderId))
       // TODO el que tira queda excluido de los que van a rueda, entre en el corte o no.
-      const pullingAll = new Set(g.pulling.map((p) => p.riderId))
+      const pullingAll = new Set(relevan.map((p) => p.riderId))
       // En un grupo pequeño se nombra a todos; en el pelotón, a los que hay que poder seguir.
       const nameAll = g.size <= NAME_WHOLE_GROUP_UP_TO
       // …Y LOS MAILLOTS PRIMEROS (v47). El orden de esta lista es el que sobrevive al corte de la
