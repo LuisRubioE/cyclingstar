@@ -48,7 +48,45 @@ base idéntica; el script crea la extensión `citext` antes de restaurar (la usa
 | `WORLD_SEED`            | Semilla del mundo; fija la generación reproducible (SPEC 10).                                             |
 | `TICK_INTERVAL_MINUTES` | Minutos reales por día de juego (por defecto 360 = 6 h). Bajarlo acelera el mundo para la alfa (Paso 43). |
 | `ADMIN_TOKEN`           | Protege `POST /admin/tick`, `POST /admin/advance` y la lista de bloqueo de nombres (`/admin/names`).      |
-| `BETTER_AUTH_SECRET`    | Secreto de sesión de better-auth.                                                                         |
+| `SESSION_SECRET`        | Secreto de firma de sesiones de better-auth (mínimo 32 caracteres).                                       |
+| `APP_URL`               | URL pública de la app: `baseURL` de better-auth, origen de confianza y raíz de los enlaces del correo.    |
+| `RESEND_API_KEY`        | Clave de Resend. Opcional; sin ella la app arranca y NO manda correo (lo deja dicho en el log).           |
+| `MAIL_FROM`             | Remitente: `Cycling Star <no-reply@cyclingstar.app>`. Va en pareja con `RESEND_API_KEY`.                  |
+
+Esta tabla nombraba `BETTER_AUTH_SECRET` y `WORLD_SEED`, que el código NO lee: el secreto se llama
+`SESSION_SECRET` (`apps/api/src/env.ts`) y la semilla del mundo está fijada en el código
+(`'cyclingstar'`), no en el entorno. La lista de arriba es la que valida Zod al arrancar.
+
+## Correo transaccional (Resend)
+
+La app manda tres correos, todos de better-auth: recuperar contraseña, verificar la dirección y
+confirmar un cambio de correo. Salen por la API HTTP de Resend (`apps/api/src/mailer.ts`), sin SDK.
+
+Puesta en marcha, una sola vez:
+
+1. **Resend → Domains → Add domain**: `cyclingstar.app` (el dominio raíz, no el `www`; el remitente
+   será `no-reply@cyclingstar.app` y el correo se manda desde el dominio, no desde el subdominio de
+   la web).
+2. Copiar los registros que da Resend al DNS del dominio y esperar a que los marque verificados:
+   - `MX` y `TXT` de **SPF** en el subdominio de envío (`send.cyclingstar.app`),
+   - `TXT` de **DKIM** (`resend._domainkey`),
+   - opcionalmente el `TXT` de **DMARC** (`_dmarc`), recomendado: `v=DMARC1; p=none;`.
+3. **Resend → API Keys → Create**, permiso de sólo envío.
+4. En Railway, servicio `web`: `RESEND_API_KEY=re_…` y
+   `MAIL_FROM=Cycling Star <no-reply@cyclingstar.app>`. El servicio `tick` NO las necesita: no manda
+   correo.
+
+Comprobaciones:
+
+- Las dos variables van EN PAREJA: con una sola, la app **no arranca** (lo dice `env.ts`). Es
+  deliberado: media configuración es un despliegue que cree que manda correo y no manda ninguno.
+- Sin ninguna de las dos la app arranca igual y cada correo deja una línea
+  `correo NO enviado: falta RESEND_API_KEY/MAIL_FROM` en el log. Es el modo de desarrollo local.
+- Los enlaces de los correos se construyen sobre `APP_URL`. Si `APP_URL` no es el dominio público
+  real, los enlaces llegan apuntando al sitio equivocado.
+- Un envío fallido NUNCA rompe la petición del usuario: se registra y se sigue. Buscar en el log
+  `correo rechazado por Resend` (trae el código y el motivo) o `fallo al enviar el correo`.
+- El log lleva el buzón oculto (`l***@example.com`), nunca la dirección entera.
 
 ## Lista de bloqueo de nombres (admin)
 

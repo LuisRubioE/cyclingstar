@@ -16415,3 +16415,78 @@ toda la tanda arreglando la que no era.
 
 Lo que lo desatascó no fue pensar mejor: fue **imprimir por qué rama salía**. 238 de 238 a la
 primera.
+
+## HALLAZGO ABIERTO — el regalo de segundos en las fusiones de la cola (medido, NO arreglado)
+
+No lleva número de versión porque **no se ha subido nada**. Se escribe aquí para que el número no se
+pierda, que es la lección de la v82 (2).
+
+### Lo que el dueño vio
+
+`race-denmark` etapa 1, km 43: el cuarto grupo, de 60 corredores, **sin velocidad**, mientras los
+otros cinco de la foto la tienen (57-60 km/h).
+
+### Qué es, disecado
+
+No es un fallo de la radio. Un caso equivalente en el banco, abierto en canal:
+
+```
+dtMin = 42,4 s/km   (el listón de `radioMaxKmh` = 85 km/h)
+los 54 del grupo:  dt = 41,3 s/km  ->  87,2 km/h
+min = mediana = max = 41,3
+```
+
+**Los cincuenta y cuatro tienen el mismo `dt` exacto.** Cincuenta y cuatro ciclistas no cubren un
+kilómetro en el mismo tiempo al milisegundo: eso es un **desplazamiento uniforme del reloj del
+grupo**, o sea el regalo de una fusión. La radio se niega a enseñarlo porque no es una velocidad, y
+es lo único del sistema que estaba diciendo la verdad.
+
+### Cuánto vale, sobre veinte reinas
+
+| puerta                                     | fusiones | corredores | hueco mediano | corredor-segundos |
+| ------------------------------------------ | -------: | ---------: | ------------: | ----------------: |
+| el grupeto recoge a otro (`near`)          |      317 |      8.892 |          11 s |       **108.336** |
+| reenganche al pelotón (`rejoinGapSeconds`) |       76 |      2.920 |          21 s |        **61.128** |
+
+Unos **8.400 corredor-segundos por etapa**. Es exactamente lo que la v76.1 declaró prohibido —«la
+fusión cambia la etiqueta del grupo, no el reloj de la gente»— con una excepción dejada en estas dos
+puertas y justificada como «su precio conocido». El precio, ahora medido, es éste.
+
+### Qué pasa al compensarlo (la misma cuenta de `driftS` que la v81 puso en el contacto)
+
+|                                    |   hoy | solo reenganche | **las dos puertas** |
+| ---------------------------------- | ----: | --------------: | ------------------: |
+| huecos en blanco (de 13.805 fotos) |    31 |              32 |              **14** |
+| cola de carrera, mediana           | 965 s |         1.118 s |             1.090 s |
+| los diez bancos                    | verde |               — |           **verde** |
+
+**El reenganche solo NO arregla el síntoma** (31 → 32). Lo que se lleva los blancos es la puerta del
+grupeto — que es justo la que rompe un sello.
+
+### Por qué NO se sube
+
+1. **Rompe una prueba sellada**: «el supercombativo deja huella en el parte y el reservón no». Cae la
+   tercera afirmación (`escondido.gastoCerillos < agresivo.gastoCerillos`), y el comentario de esa
+   misma prueba dice que un `reservon` **no quema cerillos nunca** (`allowMatch`). O hay un camino
+   que los quema sin consultar a `allowMatch` —un defecto propio, que este cambio destaparía— o la
+   prueba es frágil. **No está averiguado**, y sin averiguarlo esto no se toca.
+2. **Mueve las huellas muchísimo**: el ganador de `reina-canonica-0` entra **97 s más rápido**
+   (15.488 → 15.391). Para un arreglo de la COLA de la carrera, mover así la cabeza es un radio de
+   explosión que pide explicación antes que resello.
+
+Los diez bancos pasan, así que **no hay ninguna banda en contra**: lo que falta es entender el punto
+1, no calibrar nada.
+
+### Lo siguiente, en orden
+
+1. Averiguar si el `gastoCerillos` de un `reservon` puede ser mayor que cero hoy. Si puede, hay un
+   camino que quema cerillos sin consultar `allowMatch`, y ése es un defecto propio que va **antes**
+   que esto.
+2. Entender los 97 s del ganador: un cambio en la cola no debería mover la cabeza así.
+3. Con las dos cosas entendidas, decidir si se compensa una puerta, las dos, o ninguna.
+
+### La lección, por adelantado
+
+Tres sondas seguidas se me fueron en fontanería —una no compilaba, otra leyó un fichero viejo, otra
+no escribió— y eso ya es señal de parar la vía, no de insistir. Lo que sí quedó medido vale igual, y
+por eso se escribe aquí en vez de en la cabeza de nadie.

@@ -16,6 +16,45 @@ function Notice({ status }: { status: Status }) {
   return null
 }
 
+/**
+ * Verificación de la dirección. Antes no había correo que mandar, así que ninguna cuenta
+ * tiene el correo verificado; el aviso sólo sale cuando falta, y no bloquea nada: verificar sirve
+ * para poder RECUPERAR la cuenta, no para jugar.
+ */
+function VerifyEmailNotice({ email }: { email: string }) {
+  const [status, setStatus] = useState<Status>({ kind: 'idle' })
+
+  async function onSend() {
+    setStatus({ kind: 'saving' })
+    const res = await authClient.sendVerificationEmail({ email, callbackURL: '/verify-email' })
+    if (res.error) {
+      setStatus({ kind: 'err', msg: res.error.message ?? 'Could not send the email.' })
+    } else {
+      setStatus({ kind: 'ok', msg: 'Link sent — check your inbox (and the spam folder).' })
+    }
+  }
+
+  return (
+    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6">
+      <h2 className="text-sm font-semibold text-amber-900">Your email is not confirmed</h2>
+      <p className="mt-1 text-xs text-amber-800">
+        Confirm it and you will be able to recover your account if you ever lose your password.
+      </p>
+      <div className="mt-3 space-y-2">
+        <Notice status={status} />
+        <button
+          type="button"
+          onClick={onSend}
+          disabled={status.kind === 'saving'}
+          className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-500 disabled:opacity-60"
+        >
+          Send me a confirmation link
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function ChangeEmail({ current }: { current: string }) {
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
@@ -27,11 +66,18 @@ function ChangeEmail({ current }: { current: string }) {
       return
     }
     setStatus({ kind: 'saving' })
-    const res = await authClient.changeEmail({ newEmail: email })
+    // callbackURL: a dónde vuelve quien abre el enlace de confirmación.
+    const res = await authClient.changeEmail({ newEmail: email, callbackURL: '/verify-email' })
     if (res.error) {
       setStatus({ kind: 'err', msg: res.error.message ?? 'Could not change your email.' })
     } else {
-      setStatus({ kind: 'ok', msg: 'Email updated.' })
+      // NO decía la verdad: el cambio no es inmediato, se confirma por correo. Y hasta ahora ni
+      // siquiera llegaba aquí — sin `sendVerificationEmail` configurada, better-auth 1.6 respondía
+      // 400 y este formulario fallaba SIEMPRE.
+      setStatus({
+        kind: 'ok',
+        msg: 'Check your inbox: the change is not done until you open the link we just sent.',
+      })
       setEmail('')
     }
   }
@@ -43,7 +89,8 @@ function ChangeEmail({ current }: { current: string }) {
     >
       <h2 className="text-sm font-semibold text-slate-800">Email</h2>
       <p className="mt-1 text-xs text-slate-400">
-        Signed in as <span className="font-medium text-slate-600">{current}</span>
+        Signed in as <span className="font-medium text-slate-600">{current}</span>. Changing it
+        sends a confirmation link by email.
       </p>
       <div className="mt-4 space-y-3">
         <div>
@@ -186,6 +233,7 @@ export function Account() {
         <p className="mt-1 text-sm text-slate-500">Manage your login details.</p>
       </div>
 
+      {email && data?.user.emailVerified === false && <VerifyEmailNotice email={email} />}
       {email && <ChangeEmail current={email} />}
       <ChangePassword />
 

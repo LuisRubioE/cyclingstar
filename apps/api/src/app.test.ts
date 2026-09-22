@@ -434,6 +434,34 @@ describe('api: rate limiting', () => {
     await rlApp.close()
   })
 
+  /*
+    La ruta que manda el correo de recuperación es la superficie de abuso NUEVA: quien la
+    encuentre sin límite estricto puede sondear qué direcciones existen y, de paso, llenar buzones
+    ajenos con enlaces que nadie pidió. Llevaba el límite holgado porque la lista de rutas de
+    credenciales nombraba `/forget-password`, que en better-auth 1.6 ya no existe.
+  */
+  it('pedir un correo de recuperación lleva el límite estricto, no el holgado', async () => {
+    const rlApp = buildTestApp({ session: null })
+    const res = await rlApp.inject({
+      method: 'POST',
+      url: '/api/auth/request-password-reset',
+      payload: { email: 'a@b.c' },
+    })
+    expect(res.headers['x-ratelimit-limit']).toBe('10')
+    await rlApp.close()
+  })
+
+  it('reenviar el correo de verificación también lleva el límite estricto', async () => {
+    const rlApp = buildTestApp({ session: null })
+    const res = await rlApp.inject({
+      method: 'POST',
+      url: '/api/auth/send-verification-email',
+      payload: { email: 'a@b.c' },
+    })
+    expect(res.headers['x-ratelimit-limit']).toBe('10')
+    await rlApp.close()
+  })
+
   it('el resto de /api/auth/* tiene un límite holgado (get-session en cada navegación)', async () => {
     const rlApp = buildTestApp({ session: null })
     const res = await rlApp.inject({ method: 'GET', url: '/api/auth/get-session' })
