@@ -28,6 +28,7 @@ import { SessionExpiryWatcher } from './components/SessionExpiryWatcher'
 // Carga diferida por página. Las páginas exportan componentes con nombre, de ahí el `.then(…)`.
 const Account = lazy(() => import('./pages/Account').then((m) => ({ default: m.Account })))
 const AdminNames = lazy(() => import('./pages/AdminNames').then((m) => ({ default: m.AdminNames })))
+const AdminPanel = lazy(() => import('./pages/AdminPanel').then((m) => ({ default: m.AdminPanel })))
 const Countries = lazy(() => import('./pages/Countries').then((m) => ({ default: m.Countries })))
 const Country = lazy(() => import('./pages/Country').then((m) => ({ default: m.Country })))
 const CreateRider = lazy(() =>
@@ -246,7 +247,16 @@ export function App() {
                 </Private>
               }
             />
-            {/* Base secreta de admins: no enlazada; se protege con el ADMIN_TOKEN dentro. */}
+            {/* Panel de admin: la API decide quién entra (sesión de administrador). */}
+            <Route
+              path="/admin"
+              element={
+                <Private>
+                  <AdminPanel />
+                </Private>
+              }
+            />
+            {/* Nombres bloqueados: sesión de admin, o el ADMIN_TOKEN para quien no la tenga. */}
             <Route path="/admin/names" element={<AdminNames />} />
 
             {/*

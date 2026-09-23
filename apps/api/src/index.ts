@@ -33,6 +33,7 @@ async function main(): Promise<void> {
     migrationsApplied: true,
     tickIntervalMinutes: env.TICK_INTERVAL_MINUTES,
     adminToken: env.ADMIN_TOKEN,
+    ...(env.ADMIN_EMAIL ? { adminEmail: env.ADMIN_EMAIL } : {}),
     onAdminTick: () =>
       runTick(env.DATABASE_URL, {
         now: new Date(),

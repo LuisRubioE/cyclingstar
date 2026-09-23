@@ -19,7 +19,7 @@ export interface WorldRouteContext {
 export const worldRoutes: FastifyPluginAsync<WorldRouteContext> = async (app, ctx) => {
   const { requireAdmin, onAdminAdvance } = ctx
   app.post<{ Querystring: { days?: string } }>('/api/world/advance', async (request, reply) => {
-    if (!requireAdmin(request, reply)) return
+    if (!(await requireAdmin(request, reply))) return
     const days = Math.min(10, Math.max(1, Number(request.query.days ?? 1) || 1))
     const summary = await onAdminAdvance(days)
     return { ok: true, currentDay: summary.currentDay, daysProcessed: summary.daysProcessed }

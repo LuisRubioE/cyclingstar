@@ -80,6 +80,7 @@ pnpm --filter @cyclingstar/web dev
 | `SESSION_SECRET`        | sí (≥32)    | Firma de sesiones de better-auth.                                       |
 | `APP_URL`               | sí          | URL pública; better-auth la usa como `baseURL` y origen de confianza.   |
 | `EXTRA_TRUSTED_ORIGINS` | no          | Orígenes de confianza extra, separados por comas (dominio viejo, etc.). |
+| `ADMIN_EMAIL`           | no          | Correo del admin raíz: esa cuenta, confirmada, entra en `/admin`.       |
 | `RESEND_API_KEY`        | no          | Clave de Resend. Sin ella la app arranca y no manda correo.             |
 | `MAIL_FROM`             | no          | Remitente (`Nombre <correo@dominio>`). Va en pareja con la clave.       |
 | `PORT`                  | no (3000)   | Puerto de escucha. En Railway lo inyecta la plataforma.                 |

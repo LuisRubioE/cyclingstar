@@ -1585,3 +1585,29 @@ export const worldHealthSchema = z.object({
 })
 export type WorldHealth = z.infer<typeof worldHealthSchema>
 export const worldHealthResponseSchema = z.object({ ok: z.boolean(), health: worldHealthSchema })
+
+/** Quién soy para el panel de admin: 200 si soy admin (con cómo lo soy), 401 si no. */
+export const adminWhoamiResponseSchema = z.object({
+  ok: z.boolean(),
+  via: z.enum(['token', 'session']),
+  userId: z.string().nullable(),
+})
+export type AdminWhoami = z.infer<typeof adminWhoamiResponseSchema>
+
+/** Una cuenta en el panel de administración. */
+export const adminUserSchema = z.object({
+  id: z.string(),
+  email: z.string(),
+  emailVerified: z.boolean(),
+  isAdmin: z.boolean(),
+  isRootAdmin: z.boolean(),
+  premium: z.boolean(),
+  createdAt: z.string(),
+  rider: z.object({ id: z.string(), name: z.string() }).nullable(),
+  team: z.object({ id: z.string(), name: z.string() }).nullable(),
+})
+export type AdminUser = z.infer<typeof adminUserSchema>
+export const adminUsersResponseSchema = z.object({
+  ok: z.boolean(),
+  users: z.array(adminUserSchema),
+})
