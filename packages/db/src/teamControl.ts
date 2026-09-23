@@ -190,3 +190,19 @@ export async function updateOwnedTeam(
   }
   return { ok: true }
 }
+
+/**
+ * BORRAR UNA CUENTA SIN ROMPER EL MUNDO. El corredor y el equipo de quien se va NO se borran:
+ * tienen carreras corridas, palmarés y compañeros, y arrancarlos dejaría huecos en clasificaciones
+ * e historiales. Pasan a ser NPC (`null = NPC`, lo que ya significa esa columna en todo el
+ * esquema) y el mundo sigue con ellos como con cualquier otro bot.
+ *
+ * Son las dos únicas referencias a `users` sin `ON DELETE CASCADE`; sesiones y credenciales se
+ * van solas con el usuario. Se llama justo antes de borrarlo (`beforeDelete` de better-auth).
+ */
+export async function releaseUserToWorld(db: Database, userId: string): Promise<void> {
+  await db.transaction(async (tx) => {
+    await tx.update(riders).set({ userId: null }).where(eq(riders.userId, userId))
+    await tx.update(teams).set({ ownerUserId: null }).where(eq(teams.ownerUserId, userId))
+  })
+}

@@ -1,8 +1,44 @@
-import { type Database, accounts, sessions, users, verifications } from '@cyclingstar/db'
+import {
+  type Database,
+  accounts,
+  releaseUserToWorld,
+  sessions,
+  users,
+  verifications,
+} from '@cyclingstar/db'
 import { betterAuth } from 'better-auth'
+import { APIError, createAuthMiddleware } from 'better-auth/api'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { changeEmailConfirmationEmail, resetPasswordEmail, verifyEmailEmail } from './emails.js'
 import type { Mailer } from './mailer.js'
+
+/**
+ * A DÓNDE LLEVAN LOS ENLACES DE VERIFICACIÓN, DECIDIDO AQUÍ Y NO EN EL NAVEGADOR.
+ *
+ * better-auth construye el enlace con el `callbackURL` que mande el cliente (o `/` si no manda
+ * ninguno, como pasa en el reenvío al intentar entrar). Y el cambio de correo tiene DOS enlaces que
+ * comparten ese destino: el aviso a la dirección vieja y la verificación de la nueva. Con el mismo
+ * destino, la página de vuelta no puede distinguir «cambio aprobado, falta abrir el segundo correo»
+ * de «cambio hecho», y le diría «Email confirmed» a quien todavía no ha terminado.
+ *
+ * Así que el servidor fija el destino de cada enlace: la verificación vuelve SIEMPRE a
+ * `/verify-email`, y el aviso de cambio a `/verify-email?step=approved`. Al aprobar, better-auth
+ * construye el segundo enlace con ese mismo destino, pero ese segundo enlace vuelve a pasar por
+ * `sendVerificationEmail` y aquí queda otra vez limpio.
+ */
+export const VERIFY_EMAIL_PATH = '/verify-email'
+export const CHANGE_APPROVED_PATH = '/verify-email?step=approved'
+
+/** Sustituye el `callbackURL` de un enlace de better-auth; si el enlace no se entiende, lo deja. */
+export function withCallbackURL(url: string, callbackURL: string): string {
+  try {
+    const u = new URL(url)
+    u.searchParams.set('callbackURL', callbackURL)
+    return u.toString()
+  } catch {
+    return url
+  }
+}
 
 /**
  * LOS ORÍGENES DE CONFIANZA, Y POR QUÉ NO BASTA `APP_URL` A SECAS.
@@ -78,6 +114,12 @@ export function createAuth(
     }),
     emailAndPassword: {
       enabled: true,
+      // Sin correo confirmado no se entra. El registro ya no abre sesión: deja la cuenta creada y
+      // manda el enlace, y es ABRIR ESE ENLACE lo que abre la primera sesión
+      // (`autoSignInAfterVerification`). Cuentas anteriores a este cambio: la sesión que ya tienen
+      // sigue viva; al volver a entrar se les pide confirmar y se les manda el enlace solo
+      // (`sendOnSignIn`), así que nadie se queda fuera sin saber por qué.
+      requireEmailVerification: true,
       // Recuperar la contraseña. Sin esta función, better-auth registra «Reset password
       // isn't enabled» y devuelve un error: la pantalla de «he olvidado mi contraseña» no existía
       // porque no había a dónde mandar el enlace.
@@ -92,24 +134,62 @@ export function createAuth(
       // isn't enabled». Es decir: el formulario de ajustes fallaba siempre, no «aplicaba el
       // cambio directamente» como decía el comentario que había aquí.
       sendVerificationEmail: async ({ user, url }) => {
-        await mailer.send({ to: user.email, ...verifyEmailEmail(url) })
+        await mailer.send({
+          to: user.email,
+          ...verifyEmailEmail(withCallbackURL(url, VERIFY_EMAIL_PATH)),
+        })
       },
-      // Se manda al registrarse, pero NO se exige para entrar: `requireEmailVerification` sigue
-      // en falso a propósito. Todas las cuentas que ya existen tienen el correo sin verificar, y
-      // exigirlo las dejaría fuera de su propio equipo de un despliegue para otro.
       sendOnSignUp: true,
+      // Quien intenta entrar sin haber confirmado recibe un enlace nuevo en ese momento. better-auth
+      // lo hace DESPUÉS de comprobar la contraseña, así que no sirve para saber qué correos existen
+      // ni para llenarle el buzón a otro.
+      sendOnSignIn: true,
+      // Abrir el enlace deja la sesión abierta: es el final natural del registro.
+      autoSignInAfterVerification: true,
     },
     user: {
-      // Cambio de correo desde ajustes (SPEC 7). Quien tenga la dirección actual ya verificada
-      // recibe AHÍ el aviso (`sendChangeEmailConfirmation`), que es lo que permite frenar a quien
-      // se haya colado en una sesión; quien no la tenga verificada recibe el enlace en la
-      // dirección nueva, y hasta que lo abra el correo de la cuenta no cambia.
+      // Cambio de correo desde ajustes (SPEC 7). La dirección nueva SIEMPRE se verifica: hasta que
+      // se abre el enlace que llega a ella, el correo de la cuenta no cambia. Si la actual ya está
+      // verificada, antes sale un aviso a ELLA (`sendChangeEmailConfirmation`), que es lo que
+      // permite frenar a quien se haya colado en una sesión; al aprobarlo sale el enlace a la nueva.
       changeEmail: {
         enabled: true,
         sendChangeEmailConfirmation: async ({ user, newEmail, url }) => {
-          await mailer.send({ to: user.email, ...changeEmailConfirmationEmail(url, newEmail) })
+          await mailer.send({
+            to: user.email,
+            ...changeEmailConfirmationEmail(withCallbackURL(url, CHANGE_APPROVED_PATH), newEmail),
+          })
         },
       },
+      // Borrar la cuenta desde ajustes. El corredor y el equipo NO se borran: pasan a NPC antes de
+      // que el usuario desaparezca (ver `releaseUserToWorld`), porque son las dos referencias a
+      // `users` que no caen en cascada y porque el mundo necesita su historial.
+      deleteUser: {
+        enabled: true,
+        beforeDelete: async (user) => {
+          await releaseUserToWorld(db, user.id)
+        },
+      },
+    },
+    hooks: {
+      /*
+        Borrar una cuenta pide SIEMPRE la contraseña. Sin ella, better-auth lo permite con una
+        sesión «fresca» (de menos de un día), y quien se haya colado en una sesión abierta podría
+        llevarse la cuenta de otro por delante. Es irreversible: la puerta se cierra aquí.
+      */
+      before: createAuthMiddleware(async (ctx) => {
+        if (ctx.path !== '/delete-user') return
+        const body: unknown = ctx.body
+        const password =
+          typeof body === 'object' && body !== null && 'password' in body
+            ? body.password
+            : undefined
+        if (typeof password !== 'string' || password === '') {
+          throw new APIError('BAD_REQUEST', {
+            message: 'Enter your password to delete your account.',
+          })
+        }
+      }),
     },
     advanced: {
       useSecureCookies: secureCookies,

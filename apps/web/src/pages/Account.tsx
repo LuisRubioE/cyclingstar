@@ -17,9 +17,9 @@ function Notice({ status }: { status: Status }) {
 }
 
 /**
- * Verificación de la dirección. Antes no había correo que mandar, así que ninguna cuenta
- * tiene el correo verificado; el aviso sólo sale cuando falta, y no bloquea nada: verificar sirve
- * para poder RECUPERAR la cuenta, no para jugar.
+ * Verificación de la dirección. Ahora es obligatoria para ENTRAR, pero las cuentas anteriores a
+ * ese cambio conservan la sesión que ya tenían: este aviso es para ellas, para que confirmen antes
+ * de que la sesión caduque y el login se lo pida.
  */
 function VerifyEmailNotice({ email }: { email: string }) {
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
@@ -38,7 +38,8 @@ function VerifyEmailNotice({ email }: { email: string }) {
     <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6">
       <h2 className="text-sm font-semibold text-amber-900">Your email is not confirmed</h2>
       <p className="mt-1 text-xs text-amber-800">
-        Confirm it and you will be able to recover your account if you ever lose your password.
+        You will need it the next time you log in, and to recover your account if you ever lose your
+        password.
       </p>
       <div className="mt-3 space-y-2">
         <Notice status={status} />
@@ -55,7 +56,7 @@ function VerifyEmailNotice({ email }: { email: string }) {
   )
 }
 
-function ChangeEmail({ current }: { current: string }) {
+function ChangeEmail({ current, verified }: { current: string; verified: boolean }) {
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
 
@@ -71,12 +72,13 @@ function ChangeEmail({ current }: { current: string }) {
     if (res.error) {
       setStatus({ kind: 'err', msg: res.error.message ?? 'Could not change your email.' })
     } else {
-      // NO decía la verdad: el cambio no es inmediato, se confirma por correo. Y hasta ahora ni
-      // siquiera llegaba aquí — sin `sendVerificationEmail` configurada, better-auth 1.6 respondía
-      // 400 y este formulario fallaba SIEMPRE.
+      // La dirección nueva SIEMPRE se verifica antes de aplicarse. Si la actual está confirmada,
+      // el primer correo va a ELLA (para aprobar el cambio) y sólo después sale el de la nueva.
       setStatus({
         kind: 'ok',
-        msg: 'Check your inbox: the change is not done until you open the link we just sent.',
+        msg: verified
+          ? `We have sent an approval link to ${current}. Once you approve, a confirmation link goes to ${email}; your email changes when you open it.`
+          : `We have sent a confirmation link to ${email}. Your email changes when you open it.`,
       })
       setEmail('')
     }
@@ -89,8 +91,8 @@ function ChangeEmail({ current }: { current: string }) {
     >
       <h2 className="text-sm font-semibold text-slate-800">Email</h2>
       <p className="mt-1 text-xs text-slate-400">
-        Signed in as <span className="font-medium text-slate-600">{current}</span>. Changing it
-        sends a confirmation link by email.
+        Signed in as <span className="font-medium text-slate-600">{current}</span>. A new address
+        has to be confirmed by email before it replaces this one.
       </p>
       <div className="mt-4 space-y-3">
         <div>
@@ -214,7 +216,90 @@ function ChangePassword() {
   )
 }
 
-/** Ajustes de la cuenta (SPEC 7): ver/cambiar correo, cambiar contraseña y cerrar sesión. */
+/**
+ * Borrar la cuenta. Irreversible, así que va en dos pasos (abrir el formulario, luego confirmar con
+ * la contraseña, que el servidor exige siempre) y dice qué pasa con el corredor y el equipo: se
+ * quedan en el mundo como NPC, no desaparecen.
+ */
+function DeleteAccount() {
+  const [open, setOpen] = useState(false)
+  const [password, setPassword] = useState('')
+  const [status, setStatus] = useState<Status>({ kind: 'idle' })
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (!password) {
+      setStatus({ kind: 'err', msg: 'Enter your password to delete your account.' })
+      return
+    }
+    setStatus({ kind: 'saving' })
+    const res = await authClient.deleteUser({ password })
+    if (res.error) {
+      setStatus({ kind: 'err', msg: res.error.message ?? 'Could not delete your account.' })
+      return
+    }
+    // Recarga completa: la sesión ya no existe y ninguna caché de la SPA debe sobrevivirla.
+    window.location.assign('/')
+  }
+
+  return (
+    <div className="rounded-2xl border border-red-200 bg-white p-6 shadow-sm">
+      <h2 className="text-sm font-semibold text-red-700">Delete account</h2>
+      <p className="mt-1 text-xs text-slate-500">
+        This cannot be undone. Your rider and your team stay in the world, run by the game, and your
+        email becomes free to use on another account.
+      </p>
+      {open ? (
+        <form onSubmit={onSubmit} className="mt-4 space-y-3">
+          <div>
+            <label htmlFor="delete-pw" className={labelClass}>
+              Password
+            </label>
+            <input
+              id="delete-pw"
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={`mt-1 ${inputClass}`}
+            />
+          </div>
+          <Notice status={status} />
+          <div className="flex gap-3">
+            <button
+              type="submit"
+              disabled={status.kind === 'saving'}
+              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-500 disabled:opacity-60"
+            >
+              Delete my account for good
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false)
+                setPassword('')
+                setStatus({ kind: 'idle' })
+              }}
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="mt-4 rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50"
+        >
+          Delete my account…
+        </button>
+      )}
+    </div>
+  )
+}
+
+/** Ajustes de la cuenta (SPEC 7): correo, contraseña, cerrar sesión y borrar la cuenta. */
 export function Account() {
   const navigate = useNavigate()
   const { data } = authClient.useSession()
@@ -234,7 +319,7 @@ export function Account() {
       </div>
 
       {email && data?.user.emailVerified === false && <VerifyEmailNotice email={email} />}
-      {email && <ChangeEmail current={email} />}
+      {email && <ChangeEmail current={email} verified={data?.user.emailVerified === true} />}
       <ChangePassword />
 
       <button
@@ -244,6 +329,8 @@ export function Account() {
       >
         Sign out
       </button>
+
+      <DeleteAccount />
     </section>
   )
 }

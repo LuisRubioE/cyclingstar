@@ -81,6 +81,17 @@ para dominios de verdad distintos.
 La app manda tres correos, todos de better-auth: recuperar contraseña, verificar la dirección y
 confirmar un cambio de correo. Salen por la API HTTP de Resend (`apps/api/src/mailer.ts`), sin SDK.
 
+**Confirmar el correo es obligatorio para entrar** (`requireEmailVerification`). El registro no
+abre sesión: manda el enlace, y abrirlo confirma la dirección y abre la sesión. Quien intenta entrar
+sin haber confirmado recibe un 403 y, en ese momento, un enlace nuevo. Las cuentas anteriores a
+este cambio conservan la sesión que tuvieran; al volver a entrar se les pide confirmar. Por eso,
+**sin Resend configurado nadie nuevo puede entrar**: en local, el enlace no sale y hay que marcar
+`users.email_verified` a mano.
+
+El cambio de correo siempre verifica la dirección nueva antes de aplicarse; si la actual ya estaba
+confirmada, antes se pide aprobarlo desde ella. A dónde vuelve cada enlace lo fija el servidor
+(`withCallbackURL` en `apps/api/src/auth.ts`), no el navegador.
+
 Puesta en marcha, una sola vez:
 
 1. **Resend → Domains → Add domain**: `cyclingstar.app` (el dominio raíz, no el `www`; el remitente

@@ -161,6 +161,7 @@ export { getWorldHealth, type WorldHealth, type TickLogRow } from './adminStats.
 export { langForCountry, makeLangTeamName, teamNameCandidate, type LangId } from './teamNameLang.js'
 export {
   getAccountControl,
+  releaseUserToWorld,
   setUserPremium,
   takeOverBotTeam,
   updateOwnedTeam,

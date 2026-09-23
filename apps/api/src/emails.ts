@@ -82,26 +82,28 @@ export function resetPasswordEmail(url: string): MailBody {
 }
 
 /**
- * Verificar la dirección. Se manda al registrarse y también cuando alguien cambia de correo: en
- * ese segundo caso el enlace es lo que APLICA el cambio, así que el texto no puede prometer sólo
- * «verificar».
+ * Verificar la dirección. Se manda al registrarse, al intentar entrar sin haber confirmado y al
+ * cambiar de correo (a la dirección NUEVA). Confirmar ya no es opcional: sin ello no se entra, y
+ * en el cambio de correo el enlace es lo que APLICA el cambio. Por eso el texto dice «para usarla
+ * en tu cuenta» y no sólo «verificar».
  */
 export function verifyEmailEmail(url: string): MailBody {
   return {
     subject: `Confirm your ${APP_NAME} email`,
     text: [
-      `Confirm this address so it can be used to recover your ${APP_NAME} account.`,
+      `Confirm this address to use it with your ${APP_NAME} account.`,
+      'You need to do it before you can log in with it.',
       '',
-      'Open this link:',
+      'Open this link (it expires in one hour):',
       url,
       '',
-      'If you did not sign up, ignore this email.',
+      'If you did not ask for this, ignore this email.',
     ].join('\n'),
     html: layout({
       title: 'Confirm your email',
-      body: `Confirm this address so it can be used to recover your ${escapeHtml(APP_NAME)} account.`,
+      body: `Confirm this address to use it with your ${escapeHtml(APP_NAME)} account. You need to do it before you can log in with it. The link below expires in one hour.`,
       cta: { label: 'Confirm my email', url },
-      footer: 'If you did not sign up, ignore this email.',
+      footer: 'If you did not ask for this, ignore this email.',
     }),
   }
 }
