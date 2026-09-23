@@ -49,13 +49,32 @@ base idéntica; el script crea la extensión `citext` antes de restaurar (la usa
 | `TICK_INTERVAL_MINUTES` | Minutos reales por día de juego (por defecto 360 = 6 h). Bajarlo acelera el mundo para la alfa (Paso 43). |
 | `ADMIN_TOKEN`           | Protege `POST /admin/tick`, `POST /admin/advance` y la lista de bloqueo de nombres (`/admin/names`).      |
 | `SESSION_SECRET`        | Secreto de firma de sesiones de better-auth (mínimo 32 caracteres).                                       |
-| `APP_URL`               | URL pública de la app: `baseURL` de better-auth, origen de confianza y raíz de los enlaces del correo.    |
+| `APP_URL`               | URL pública **canónica**: `baseURL` de better-auth, origen de confianza y raíz de los enlaces del correo. |
+| `EXTRA_TRUSTED_ORIGINS` | Orígenes de confianza extra, separados por comas. Opcional.                                               |
 | `RESEND_API_KEY`        | Clave de Resend. Opcional; sin ella la app arranca y NO manda correo (lo deja dicho en el log).           |
 | `MAIL_FROM`             | Remitente: `Cycling Star <no-reply@cyclingstar.app>`. Va en pareja con `RESEND_API_KEY`.                  |
 
 Esta tabla nombraba `BETTER_AUTH_SECRET` y `WORLD_SEED`, que el código NO lee: el secreto se llama
 `SESSION_SECRET` (`apps/api/src/env.ts`) y la semilla del mundo está fijada en el código
 (`'cyclingstar'`), no en el entorno. La lista de arriba es la que valida Zod al arrancar.
+
+## Cambiar de dominio
+
+`APP_URL` es la variable de la que cuelga TODO lo que depende del host: el `baseURL` de better-auth,
+la lista de orígenes de confianza, el flag `secure` de la cookie de sesión y la raíz de los enlaces
+que se mandan por correo. Al estrenar `www.cyclingstar.app` el login se cayó entero con «Invalid
+origin» porque la variable seguía nombrando el dominio de Railway.
+
+El orden, entonces:
+
+1. Añadir el dominio en Railway (servicio `web`) y apuntar el DNS.
+2. Comprobar cuál es el **canónico**: si el ápice redirige al `www` —que es el caso—, el canónico es
+   `https://www.cyclingstar.app`.
+3. Poner `APP_URL` a ese, **sin barra final**, y redesplegar.
+4. Si el dominio viejo tiene que seguir funcionando un tiempo, añadirlo a `EXTRA_TRUSTED_ORIGINS`.
+
+La pareja con y sin `www` se acepta sola (`trustedOriginsFor`), así que el paso 4 sólo hace falta
+para dominios de verdad distintos.
 
 ## Correo transaccional (Resend)
 

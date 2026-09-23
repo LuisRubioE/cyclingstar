@@ -23,6 +23,7 @@ async function main(): Promise<void> {
     secret: env.SESSION_SECRET,
     baseURL: env.APP_URL,
     mailer,
+    ...(env.EXTRA_TRUSTED_ORIGINS ? { extraTrustedOrigins: env.EXTRA_TRUSTED_ORIGINS } : {}),
   })
   const msPerGameDay = env.TICK_INTERVAL_MINUTES * 60_000
 

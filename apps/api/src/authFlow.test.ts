@@ -28,6 +28,8 @@ describe('correo: el camino completo contra una base real', () => {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
+          // Como un navegador: toda petición del sitio lleva su Origin.
+          origin: BASE,
           ...(cookie ? { cookie } : {}),
         },
         body: JSON.stringify(body),
@@ -118,5 +120,80 @@ describe('correo: el camino completo contra una base real', () => {
     expect(sent).toHaveLength(1)
     expect(sent[0]!.to).toBe('otro@example.com')
     expect(sent[0]!.text).toContain('/api/auth/verify-email?token=')
+  })
+})
+
+/**
+ * EL «INVALID ORIGIN» DEL DÍA DE LA MIGRACIÓN, reproducido donde ocurrió: en el handler.
+ *
+ * El dueño estrenó dominio y el login dejó de funcionar. No era el dominio: era que la lista de
+ * orígenes de confianza tenía UNA entrada, la de `APP_URL`, así que el navegador que llegaba desde
+ * el otro nombre del mismo sitio se comía un error que no nombra ningún dominio.
+ */
+describe('orígenes de confianza, contra el handler de verdad', () => {
+  let tdb: TestDb
+  let auth: ReturnType<typeof createAuth>
+
+  const APP = 'https://www.cyclingstar.app'
+  /*
+    La cookie NO es un detalle del test: better-auth solo comprueba el origen cuando la petición
+    lleva cookies (`if (!(forceValidate || useCookies)) return`), que es justo el caso del
+    navegador de alguien que ya ha estado en el sitio. Sin ella, la comprobación ni se ejecuta y
+    este test no probaría nada.
+  */
+  const entrar = (origin: string) =>
+    auth.handler(
+      new Request(`${APP}/api/auth/sign-in/email`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          origin,
+          cookie: 'algo=1',
+        },
+        body: JSON.stringify({ email: 'origen@example.com', password: 'contrasena-larga' }),
+      }),
+    )
+
+  beforeAll(async () => {
+    tdb = await startTestDb()
+    auth = createAuth(tdb.db, {
+      secret: 's'.repeat(32),
+      baseURL: APP,
+      mailer: {
+        async send() {
+          return true
+        },
+      },
+    })
+    await auth.handler(
+      new Request(`${APP}/api/auth/sign-up/email`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', origin: APP },
+        body: JSON.stringify({
+          name: 'origen',
+          email: 'origen@example.com',
+          password: 'contrasena-larga',
+        }),
+      }),
+    )
+  }, 120_000)
+
+  afterAll(async () => {
+    await tdb?.close()
+  })
+
+  it('desde el dominio de APP_URL se entra', async () => {
+    expect((await entrar(APP)).status).toBe(200)
+  })
+
+  /* ESTE es el caso del dueño: el mismo sitio, sin el `www` delante. Antes, 403. */
+  it('desde el MISMO sitio sin www también se entra', async () => {
+    expect((await entrar('https://cyclingstar.app')).status).toBe(200)
+  })
+
+  /* Y el parecido no basta: la comparación es de ORIGEN EXACTO, no de prefijo. */
+  it('desde un sitio ajeno que empieza igual NO se entra', async () => {
+    const res = await entrar('https://cyclingstar.app.evil.example')
+    expect(res.status).toBe(403)
   })
 })
