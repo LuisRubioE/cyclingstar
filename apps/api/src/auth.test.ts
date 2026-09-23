@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Database } from '@cyclingstar/db'
-import { createAuth, trustedOriginsFor } from './auth.js'
+import { createAuth, trustedOriginsFor, withCallbackURL } from './auth.js'
 import type { MailMessage, Mailer } from './mailer.js'
 
 const USER = {
@@ -84,17 +84,41 @@ describe('createAuth: correos', () => {
   })
 
   /*
-    Verificar SE PIDE pero NO SE EXIGE: todas las cuentas que ya existen tienen el correo sin
-    verificar, y exigirlo las dejaría fuera de su propio equipo de un despliegue para otro.
+    Verificar SE EXIGE: sin correo confirmado no se entra. El registro manda el enlace, el intento
+    de entrar sin confirmar manda otro, y abrir el enlace abre la sesión.
   */
-  it('pide verificación al registrarse y no la exige para entrar', () => {
+  it('exige verificación para entrar y reenvía el enlace al intentarlo', () => {
     const opciones = auth(spyMailer()).options
+    expect(opciones.emailAndPassword!.requireEmailVerification).toBe(true)
     expect(opciones.emailVerification!.sendOnSignUp).toBe(true)
-    // `requireEmailVerification` ni siquiera está puesta: se comprueba la AUSENCIA, que es lo que
-    // garantiza el defecto (falso) y lo que se rompería si alguien la añadiera sin pensarlo.
-    expect(Object.hasOwn(opciones.emailAndPassword as object, 'requireEmailVerification')).toBe(
-      false,
-    )
+    expect(opciones.emailVerification!.sendOnSignIn).toBe(true)
+    expect(opciones.emailVerification!.autoSignInAfterVerification).toBe(true)
+  })
+
+  /*
+    El reenvío al entrar llega con `callbackURL=/` (el cliente no manda ninguno): el servidor lo
+    endereza para que el enlace vuelva a la página que dice «confirmado».
+  */
+  it('el enlace de verificación vuelve siempre a /verify-email', async () => {
+    const mailer = spyMailer()
+    await auth(mailer).options.emailVerification!.sendVerificationEmail!({
+      user: USER,
+      url: 'https://www.cyclingstar.app/api/auth/verify-email?token=tok&callbackURL=%2F',
+      token: 'tok',
+    })
+    expect(mailer.sent[0]!.text).toContain('callbackURL=%2Fverify-email')
+    expect(mailer.sent[0]!.text).not.toContain('step%3Dapproved')
+  })
+
+  it('el aviso de cambio vuelve a la página que dice «falta el segundo correo»', async () => {
+    const mailer = spyMailer()
+    await auth(mailer).options.user!.changeEmail!.sendChangeEmailConfirmation!({
+      user: USER,
+      newEmail: 'otro@example.com',
+      url: 'https://www.cyclingstar.app/api/auth/verify-email?token=tok&callbackURL=%2Fverify-email',
+      token: 'tok',
+    })
+    expect(mailer.sent[0]!.text).toContain('callbackURL=%2Fverify-email%3Fstep%3Dapproved')
   })
 
   it('las cookies de sesión son seguras tras https y no lo son en local', () => {
@@ -180,5 +204,21 @@ describe('trustedOriginsFor', () => {
       mailer: spyMailer(),
     }).options
     expect(opciones.trustedOrigins).toContain('https://cyclingstar.app')
+  })
+})
+
+describe('withCallbackURL', () => {
+  it('sustituye el destino y conserva el token', () => {
+    const out = withCallbackURL(
+      'https://x.app/api/auth/verify-email?token=abc&callbackURL=%2F',
+      '/verify-email?step=approved',
+    )
+    const u = new URL(out)
+    expect(u.searchParams.get('token')).toBe('abc')
+    expect(u.searchParams.get('callbackURL')).toBe('/verify-email?step=approved')
+  })
+
+  it('deja intacto lo que no es una URL', () => {
+    expect(withCallbackURL('no es una url', '/x')).toBe('no es una url')
   })
 })

@@ -52,7 +52,22 @@ describe('correo: el camino completo contra una base real', () => {
     await tdb?.close()
   })
 
-  it('al registrarse sale el correo de verificación', async () => {
+  /** El enlace de un correo: la única URL absoluta del texto plano. */
+  const linkIn = (m: MailMessage | undefined): string => {
+    const url = m?.text.match(/https?:\/\/\S+/)?.[0]
+    if (!url) throw new Error('el correo no trae enlace')
+    return url
+  }
+  /** Abre un enlace del correo como lo haría un navegador (sin seguir la redirección). */
+  const open = (url: string, cookie?: string) =>
+    auth.handler(new Request(url, { headers: cookie ? { cookie } : {} }))
+  const cookieOf = (res: Response) =>
+    res.headers
+      .getSetCookie()
+      .map((c) => c.split(';')[0])
+      .join('; ')
+
+  it('al registrarse sale el correo de verificación y NO se abre sesión', async () => {
     const res = await post('/sign-up/email', {
       name: 'luis',
       email: 'luis@example.com',
@@ -60,9 +75,57 @@ describe('correo: el camino completo contra una base real', () => {
       callbackURL: '/verify-email',
     })
     expect(res.status).toBe(200)
+    expect(((await res.json()) as { token: string | null }).token).toBeNull()
     const verificacion = sent.find((m) => m.to === 'luis@example.com')
     expect(verificacion).toBeDefined()
     expect(verificacion!.text).toContain('/api/auth/verify-email?token=')
+  })
+
+  /*
+    EL CORAZÓN DEL CAMBIO: sin confirmar no se entra. Y quien lo intenta no se queda a oscuras:
+    le sale un enlace nuevo, que vuelve a la página de «confirmado» aunque el cliente no diga nada.
+  */
+  it('sin confirmar el correo no se entra, y el intento manda un enlace nuevo', async () => {
+    sent.length = 0
+    const res = await post('/sign-in/email', {
+      email: 'luis@example.com',
+      password: 'contrasena-larga',
+    })
+    expect(res.status).toBe(403)
+    expect(((await res.json()) as { code: string }).code).toBe('EMAIL_NOT_VERIFIED')
+    expect(sent).toHaveLength(1)
+    expect(sent[0]!.to).toBe('luis@example.com')
+    expect(new URL(linkIn(sent[0])).searchParams.get('callbackURL')).toBe('/verify-email')
+  })
+
+  /* Con la contraseña mala no sale nada: el reenvío no sirve para llenarle el buzón a otro. */
+  it('con la contraseña equivocada no se reenvía nada', async () => {
+    sent.length = 0
+    const res = await post('/sign-in/email', {
+      email: 'luis@example.com',
+      password: 'otra-cosa-mala',
+    })
+    expect(res.status).toBe(401)
+    expect(sent).toHaveLength(0)
+  })
+
+  it('abrir el enlace confirma el correo, abre sesión y deja entrar', async () => {
+    sent.length = 0
+    await post('/send-verification-email', {
+      email: 'luis@example.com',
+      callbackURL: '/verify-email',
+    })
+    const res = await open(linkIn(sent[0]))
+    expect(res.status).toBe(302)
+    expect(res.headers.get('location')).toBe('/verify-email')
+    // autoSignInAfterVerification: el enlace deja la sesión puesta.
+    expect(cookieOf(res)).toContain('session_token')
+
+    const login = await post('/sign-in/email', {
+      email: 'luis@example.com',
+      password: 'contrasena-larga',
+    })
+    expect(login.status).toBe(200)
   })
 
   it('«he olvidado mi contraseña» manda el enlace con su token', async () => {
@@ -91,21 +154,45 @@ describe('correo: el camino completo contra una base real', () => {
     expect(sent).toHaveLength(0)
   })
 
-  /*
-    EL DEFECTO QUE ESTO SELLA. Con `sendChangeEmailVerification` (el nombre que no existe) y sin
-    `emailVerification.sendVerificationEmail`, esta llamada devolvía 400 «Verification email isn't
-    enabled»: el formulario de ajustes fallaba SIEMPRE.
-  */
-  it('cambiar de correo ya no responde 400: manda el enlace a la dirección nueva', async () => {
-    const login = await post('/sign-in/email', {
+  /* La recuperación entera: enlace → página con token → contraseña nueva → se entra con ella. */
+  it('el enlace de recuperación deja poner otra contraseña y entrar con ella', async () => {
+    sent.length = 0
+    await post('/request-password-reset', {
+      email: 'luis@example.com',
+      redirectTo: '/reset-password',
+    })
+    const res = await open(linkIn(sent[0]))
+    expect(res.status).toBe(302)
+    const location = res.headers.get('location') ?? ''
+    expect(new URL(location, BASE).pathname).toBe('/reset-password')
+    const token = new URL(location, BASE).searchParams.get('token')
+
+    const reset = await post('/reset-password', { token, newPassword: 'contrasena-nueva' })
+    expect(reset.status).toBe(200)
+    const vieja = await post('/sign-in/email', {
       email: 'luis@example.com',
       password: 'contrasena-larga',
     })
+    expect(vieja.status).toBe(401)
+    const nueva = await post('/sign-in/email', {
+      email: 'luis@example.com',
+      password: 'contrasena-nueva',
+    })
+    expect(nueva.status).toBe(200)
+  })
+
+  /*
+    El cambio de correo con la dirección actual YA confirmada: dos enlaces. El primero, a la VIEJA,
+    aprueba (y frena a un intruso); el segundo, a la NUEVA, la verifica y es el que aplica el cambio.
+    Hasta abrir el segundo, la cuenta sigue con su correo de siempre.
+  */
+  it('cambiar de correo exige aprobarlo en la vieja y verificar la nueva', async () => {
+    const login = await post('/sign-in/email', {
+      email: 'luis@example.com',
+      password: 'contrasena-nueva',
+    })
     expect(login.status).toBe(200)
-    const cookie = login.headers
-      .getSetCookie()
-      .map((c) => c.split(';')[0])
-      .join('; ')
+    const cookie = cookieOf(login)
     expect(cookie).not.toBe('')
 
     sent.length = 0
@@ -115,11 +202,36 @@ describe('correo: el camino completo contra una base real', () => {
       cookie,
     )
     expect(res.status).toBe(200)
-    // El correo de la cuenta sigue sin verificar, así que el enlace va a la dirección NUEVA: hasta
-    // que lo abra, el cambio no se aplica.
+    expect(sent).toHaveLength(1)
+    expect(sent[0]!.to).toBe('luis@example.com')
+    expect(sent[0]!.text).toContain('otro@example.com')
+
+    const aviso = linkIn(sent[0])
+    sent.length = 0
+    const aprobado = await open(aviso, cookie)
+    expect(aprobado.status).toBe(302)
+    expect(aprobado.headers.get('location')).toBe('/verify-email?step=approved')
     expect(sent).toHaveLength(1)
     expect(sent[0]!.to).toBe('otro@example.com')
-    expect(sent[0]!.text).toContain('/api/auth/verify-email?token=')
+    // El segundo enlace vuelve a la página de «hecho», no a la de «falta un paso».
+    expect(new URL(linkIn(sent[0])).searchParams.get('callbackURL')).toBe('/verify-email')
+
+    // Aún no ha cambiado: con el correo nuevo no se entra.
+    const antes = await post('/sign-in/email', {
+      email: 'otro@example.com',
+      password: 'contrasena-nueva',
+    })
+    expect(antes.status).toBe(401)
+
+    const hecho = await open(linkIn(sent[0]), cookie)
+    expect(hecho.status).toBe(302)
+    expect(hecho.headers.get('location')).toBe('/verify-email')
+
+    const despues = await post('/sign-in/email', {
+      email: 'otro@example.com',
+      password: 'contrasena-nueva',
+    })
+    expect(despues.status).toBe(200)
   })
 })
 
@@ -176,6 +288,9 @@ describe('orígenes de confianza, contra el handler de verdad', () => {
         }),
       }),
     )
+    // Confirmada a mano: sin eso el login da 403 por EMAIL_NOT_VERIFIED, el mismo código que el
+    // del origen rechazado, y este bloque dejaría de distinguir una cosa de la otra.
+    await tdb.client`update users set email_verified = true where email = 'origen@example.com'`
   }, 120_000)
 
   afterAll(async () => {

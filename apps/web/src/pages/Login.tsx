@@ -8,15 +8,23 @@ export function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [unverified, setUnverified] = useState(false)
   const [loading, setLoading] = useState(false)
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
     setError(null)
+    setUnverified(false)
     setLoading(true)
     const result = await authClient.signIn.email({ email, password })
     setLoading(false)
     if (result.error) {
+      // Sin correo confirmado no se entra. El servidor ya ha mandado un enlace nuevo al rechazar
+      // el intento (`sendOnSignIn`), así que aquí sólo hay que decirlo.
+      if (result.error.code === 'EMAIL_NOT_VERIFIED') {
+        setUnverified(true)
+        return
+      }
       setError(result.error.message ?? 'Wrong email or password.')
       return
     }
@@ -44,6 +52,15 @@ export function Login() {
             autoComplete="current-password"
           />
           {error && <p className="text-sm text-red-600">{error}</p>}
+          {unverified && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              <p className="font-medium">Confirm your email first</p>
+              <p className="mt-1 text-xs text-amber-800">
+                We have just sent a new link to {email}. Open it and you will be signed in. Check
+                the spam folder if it does not show up.
+              </p>
+            </div>
+          )}
           <p className="text-right text-sm">
             <Link
               to="/forgot-password"

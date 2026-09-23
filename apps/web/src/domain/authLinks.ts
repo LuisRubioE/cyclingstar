@@ -10,7 +10,10 @@
 
 /** Lo que dice un enlace de correo: sirve, no sirve, o trae el permiso (token) para seguir. */
 export type LinkOutcome =
-  { kind: 'ok' } | { kind: 'token'; token: string } | { kind: 'error'; message: string }
+  | { kind: 'ok' }
+  | { kind: 'approved' }
+  | { kind: 'token'; token: string }
+  | { kind: 'error'; message: string }
 
 /**
  * Traducción de los códigos que devuelve better-auth. El mensaje crudo (`INVALID_TOKEN`) no le
@@ -50,8 +53,15 @@ export function readResetLink(search: string): LinkOutcome {
 /**
  * Vuelta de la verificación del correo. Aquí SÍ es válido llegar sin parámetros: el servidor
  * redirige limpio cuando la verificación ha salido bien.
+ *
+ * `?step=approved` es la vuelta del PRIMER enlace de un cambio de correo (el que llega a la
+ * dirección vieja): el cambio está aprobado pero NO hecho, falta abrir el que acaba de salir hacia
+ * la nueva. El servidor fija ese destino (ver `CHANGE_APPROVED_PATH` en la API). Un error manda
+ * sobre el paso: better-auth lo añade detrás (`?step=approved&error=…`) si el enlace ya no valía.
  */
 export function readVerificationLink(search: string): LinkOutcome {
-  const error = new URLSearchParams(search).get('error')
-  return error ? { kind: 'error', message: authErrorMessage(error) } : { kind: 'ok' }
+  const params = new URLSearchParams(search)
+  const error = params.get('error')
+  if (error) return { kind: 'error', message: authErrorMessage(error) }
+  return params.get('step') === 'approved' ? { kind: 'approved' } : { kind: 'ok' }
 }

@@ -35,6 +35,17 @@ describe('readVerificationLink', () => {
   it('con error, lo cuenta', () => {
     expect(readVerificationLink('?error=EMAIL_ALREADY_VERIFIED')).toMatchObject({ kind: 'error' })
   })
+
+  /* El primer paso de un cambio de correo NO es «confirmado»: falta el enlace de la nueva. */
+  it('el cambio aprobado en la vieja se distingue del cambio hecho', () => {
+    expect(readVerificationLink('?step=approved')).toEqual({ kind: 'approved' })
+  })
+
+  it('si el enlace de aprobación ya no valía, gana el error', () => {
+    expect(readVerificationLink('?step=approved&error=TOKEN_EXPIRED')).toMatchObject({
+      kind: 'error',
+    })
+  })
 })
 
 describe('authErrorMessage', () => {
