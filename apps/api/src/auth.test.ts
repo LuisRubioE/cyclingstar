@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Database } from '@cyclingstar/db'
-import { createAuth } from './auth.js'
+import { createAuth, trustedOriginsFor } from './auth.js'
 import type { MailMessage, Mailer } from './mailer.js'
 
 const USER = {
@@ -127,5 +127,58 @@ describe('CREDENTIAL_AUTH_PATHS', () => {
     for (const url of CREDENTIAL_AUTH_PATHS) {
       expect(servidas).toContain(url.replace('/api/auth', ''))
     }
+  })
+})
+
+/*
+  EL DEFECTO, VISTO EN PRODUCCIÓN EL DÍA DE LA MIGRACIÓN. El dueño, estrenando dominio: «al
+  intentar loguearme da este error: Invalid origin». La lista de orígenes de confianza era UNA
+  entrada —la de `APP_URL`—, así que en cuanto la app se sirvió en `www.cyclingstar.app` con la
+  variable todavía apuntando a Railway, el login entero dejó de funcionar con un mensaje que no
+  nombra ningún dominio.
+*/
+describe('trustedOriginsFor', () => {
+  it('confía en la pareja con y sin www, que es la trampa clásica', () => {
+    expect(trustedOriginsFor('https://www.cyclingstar.app')).toEqual([
+      'https://www.cyclingstar.app',
+      'https://cyclingstar.app',
+    ])
+    expect(trustedOriginsFor('https://cyclingstar.app')).toEqual([
+      'https://cyclingstar.app',
+      'https://www.cyclingstar.app',
+    ])
+  })
+
+  it('la barra final no crea un origen distinto', () => {
+    expect(trustedOriginsFor('https://www.cyclingstar.app/')).toContain(
+      'https://www.cyclingstar.app',
+    )
+  })
+
+  /* El dominio viejo durante una migración se escribe: confiar en un origen es una decisión. */
+  it('añade los orígenes extra, y también su pareja', () => {
+    const origins = trustedOriginsFor(
+      'https://www.cyclingstar.app',
+      'https://cyclingstar.up.railway.app, http://localhost:5173',
+    )
+    expect(origins).toContain('https://cyclingstar.up.railway.app')
+    expect(origins).toContain('http://localhost:5173')
+    expect(origins).toContain('https://www.cyclingstar.app')
+  })
+
+  it('sin extras no inventa nada y no deja entradas vacías', () => {
+    expect(trustedOriginsFor('http://localhost:3000', '')).toEqual([
+      'http://localhost:3000',
+      'http://www.localhost:3000',
+    ])
+  })
+
+  it('la instancia de better-auth los lleva puestos', () => {
+    const opciones = createAuth({} as unknown as Database, {
+      secret: 's'.repeat(32),
+      baseURL: 'https://www.cyclingstar.app',
+      mailer: spyMailer(),
+    }).options
+    expect(opciones.trustedOrigins).toContain('https://cyclingstar.app')
   })
 })

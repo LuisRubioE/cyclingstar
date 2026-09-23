@@ -79,6 +79,7 @@ pnpm --filter @cyclingstar/web dev
 | `ADMIN_TOKEN`           | sí (≥32)    | Protege `POST /admin/tick`, `/admin/advance` y `/admin/names`.          |
 | `SESSION_SECRET`        | sí (≥32)    | Firma de sesiones de better-auth.                                       |
 | `APP_URL`               | sí          | URL pública; better-auth la usa como `baseURL` y origen de confianza.   |
+| `EXTRA_TRUSTED_ORIGINS` | no          | Orígenes de confianza extra, separados por comas (dominio viejo, etc.). |
 | `RESEND_API_KEY`        | no          | Clave de Resend. Sin ella la app arranca y no manda correo.             |
 | `MAIL_FROM`             | no          | Remitente (`Nombre <correo@dominio>`). Va en pareja con la clave.       |
 | `PORT`                  | no (3000)   | Puerto de escucha. En Railway lo inyecta la plataforma.                 |
@@ -86,6 +87,11 @@ pnpm --filter @cyclingstar/web dev
 | `LOG_LEVEL`             | no (info)   | Nivel de log de Fastify.                                                |
 
 El servicio `tick` solo necesita `DATABASE_URL` y `TICK_INTERVAL_MINUTES`.
+
+`APP_URL` tiene que ser el dominio **canónico** por el que se navega de verdad. better-auth rechaza
+con «Invalid origin» cualquier petición que venga de otro sitio, así que apuntarla al dominio
+equivocado tira el login entero. La pareja con y sin `www` se acepta sola; cualquier otro origen
+—el dominio viejo mientras dura una migración— va en `EXTRA_TRUSTED_ORIGINS`.
 
 `RESEND_API_KEY` y `MAIL_FROM` son opcionales pero **van en pareja**: con una sola, el arranque
 falla a propósito (un despliegue con clave y sin remitente cree que manda correo y no manda

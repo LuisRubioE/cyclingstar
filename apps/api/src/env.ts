@@ -30,6 +30,12 @@ const envSchema = z
     SESSION_SECRET: z.string().min(32, 'SESSION_SECRET debe tener al menos 32 caracteres'),
     ADMIN_TOKEN: z.string().min(32, 'ADMIN_TOKEN debe tener al menos 32 caracteres'),
     TICK_INTERVAL_MINUTES: z.coerce.number().int().positive().default(360),
+    /**
+     * Orígenes de confianza ADICIONALES, separados por comas. El de `APP_URL` y su pareja con/sin
+     * `www` ya van solos (ver `trustedOriginsFor`); esto es para el dominio viejo mientras dura una
+     * migración o para un entorno de pruebas.
+     */
+    EXTRA_TRUSTED_ORIGINS: z.string().optional(),
     RESEND_API_KEY: z.string().min(1).optional(),
     MAIL_FROM: z
       .string()
