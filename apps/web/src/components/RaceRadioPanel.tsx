@@ -318,8 +318,16 @@ function GroupCard({ g, position, racing }: { g: RadioGroup; position: number; r
 
       {pulling.length > 0 && (
         <>
+          {/*
+            LA CUENTA, NO EL TOPE. El dueño: «si en 1 km solo pasa 1 al relevo, no tiene sentido que
+            en el pelotón pongamos que pasan 15, porque no es real». Los dos números eran correctos
+            —los dos dicen quiénes están en el turno— y aun así la comparación engañaba, porque la
+            lista se corta en doce nombres y la cuenta no: medido, en un grupo de 31-100 se relevan
+            veintisiete y salían doce. Ahora, cuando se corta, se dice: «Pulling (12 of 27)».
+          */}
           <p className="mt-2 text-[11px] font-semibold tracking-wide text-slate-400 uppercase">
-            Pulling ({pulling.length})
+            Pulling ({pulling.length}
+            {g.pullingTotal > pulling.length ? ` of ${g.pullingTotal}` : ''})
           </p>
           <ul className="mt-0.5 space-y-0.5">
             {pulling.map((r) => (

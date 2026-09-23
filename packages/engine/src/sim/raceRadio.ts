@@ -523,11 +523,34 @@ export interface StoredRadioGroup {
    * Quiénes TIRAN del grupo, de más a menos trabajo reciente. Una sola lista desde la v34: o tiras
    * o no tiras, y los que tiran se reparten el viento entre ellos (`shelterOf`).
    *
-   * El tope sigue estando por lo mismo de siempre —una lista larga no es un parte de radio— aunque
-   * desde la v34 la rotación ya no puede pasar de `relayRotationMax`, así que rara vez se llega.
+   * El tope sigue estando por lo mismo de siempre: una lista larga no es un parte de radio.
+   *
+   * AQUÍ DECÍA «así que rara vez se llega [al tope]», Y ERA FALSO. Medido sobre ocho reinas, lo
+   * enseñado contra los que de verdad están en el turno:
+   *
+   *     grupo 2-3      enseñados 1    ·  en el turno 1     ← exacto
+   *     grupo 4-8      enseñados 4    ·  en el turno 4     ← exacto
+   *     grupo 9-30     enseñados 12   ·  en el turno 14 (máx. 29)
+   *     grupo 31-100   enseñados 12   ·  en el turno 27 (máx. 60)   ← el tope esconde la mitad
+   *     grupo 100+     enseñados 8    ·  en el turno 8  (máx. 28)   ← exacto
+   *
+   * El tope muerde justo en los grupos MEDIANOS, y además no se llega por el turno de un bloque
+   * —que sí está acotado por `relayRotationMax`— sino por la unión de los últimos kilómetros. Por
+   * eso existe `pullingTotal`: la lista se corta, la cuenta no.
+   *
    * El número entero del grupo está en `size`.
    */
   pulling: readonly number[]
+  /**
+   * CUÁNTOS ESTÁN EN EL TURNO DE VERDAD, antes de cortar la lista (v34 + el tope de arriba).
+   *
+   * El dueño: «si en 1 km solo pasa 1 al relevo, no tiene sentido que en el pelotón pongamos que
+   * pasan 15, porque no es real». Los dos números eran correctos y aun así la comparación engañaba,
+   * porque uno es una CUENTA y el otro un TOPE: en un grupo de 31-100 se relevan 27 y salían 12.
+   *
+   * Ausente = etapa corrida antes de que esto existiera; entonces la cuenta es `pulling.length`.
+   */
+  pullingTotal?: number
   /**
    * PARA QUÉ tira cada uno de `pulling`, en el MISMO orden y con la misma longitud (v47). Va como
    * lista paralela y no dentro de cada entrada porque `pulling` son índices y esto tiene que poder
@@ -923,6 +946,8 @@ export function radioForStorage(
         kind: g.kind,
         size: g.size,
         gapS: Math.round(g.gapS),
+        // La lista se corta en `STORED_PULLERS_MAX`; la CUENTA no (ver `pullingTotal`).
+        pullingTotal: relevan.length,
         speedKmh,
         mishap: g.mishap,
         pulling,
