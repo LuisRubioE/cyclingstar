@@ -1416,6 +1416,16 @@ export const radioGroupSchema = z.object({
   riders: z.array(radioRiderSchema),
   /** Cuántos del grupo no se nombran («+56 riders more»). */
   unnamed: z.number().int(),
+  /**
+   * CUÁNTOS SE ESTÁN RELEVANDO, que no es lo mismo que cuántos salen nombrados como que tiran: la
+   * lista se corta en doce y en un grupo mediano se relevan veintisiete (medido). Sin este número,
+   * comparar «12 en el pelotón» con «3 en la fuga» es comparar un tope con una cuenta, que es
+   * justo la incongruencia que el dueño señaló.
+   *
+   * `default` a 0 para las etapas corridas antes de que existiera; la vista usa entonces los
+   * nombrados, que es lo que se enseñaba.
+   */
+  pullingTotal: z.number().int().default(0),
 })
 export type RadioGroup = z.infer<typeof radioGroupSchema>
 

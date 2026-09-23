@@ -391,6 +391,47 @@ describe('radioForStorage: la velocidad de un grupo la miden SUS HOMBRES', () =>
     expect(stored.kms[1]!.groups[0]!.speedKmh).toBeCloseTo(45, 1)
   })
 
+  /*
+    LA CUENTA NO SE CORTA AUNQUE LA LISTA SÍ. El dueño: «si en 1 km solo pasa 1 al relevo, no tiene
+    sentido que en el pelotón pongamos que pasan 15, porque no es real». Medido sobre ocho reinas,
+    lo enseñado contra los que de verdad están en el turno: en un grupo de 31-100 se relevan 27 y
+    salían 12, porque la lista se corta. Los dos números decían la verdad y aun así comparar uno con
+    otro engañaba: uno es una cuenta y el otro un tope.
+  */
+  it('cuando la lista se corta, la CUENTA de los que se relevan sigue entera', () => {
+    const foto = (km: number, t: number) =>
+      radioKmFrom(
+        km,
+        Array.from({ length: 30 }, (_, i) => rider(`r-${i}`, 'peloton', t, { pulling: i < 20 })),
+        30,
+      )
+    const stored = radioForStorage(
+      { starters: 30, kms: [foto(10, 1000), foto(11, 1080)] },
+      new Set(),
+    )
+    const g = stored.kms[0]!.groups[0]!
+    // Se nombran doce…
+    expect(g.pulling).toHaveLength(12)
+    // …pero los que se están relevando son veinte, y eso no se pierde.
+    expect(g.pullingTotal).toBe(20)
+  })
+
+  it('y cuando no se corta, la cuenta y la lista dicen lo mismo', () => {
+    const foto = (km: number, t: number) =>
+      radioKmFrom(
+        km,
+        Array.from({ length: 5 }, (_, i) => rider(`r-${i}`, 'mov-1', t, { pulling: i < 3 })),
+        5,
+      )
+    const stored = radioForStorage(
+      { starters: 5, kms: [foto(10, 1000), foto(11, 1080)] },
+      new Set(),
+    )
+    const g = stored.kms[0]!.groups[0]!
+    expect(g.pulling).toHaveLength(3)
+    expect(g.pullingTotal).toBe(3)
+  })
+
   it('…y NO pisa la velocidad del kilómetro siguiente cuando esa sí se puede medir', () => {
     // El pelotón frena: 80 s el km anterior (45 km/h) y 120 el siguiente (30). Manda el siguiente.
     const foto = (km: number, t: number) =>

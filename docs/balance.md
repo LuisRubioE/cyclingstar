@@ -16706,3 +16706,55 @@ no podía cortar sin dejar la pantalla vacía.
 ### `ENGINE_VERSION` no sube
 
 `radioMaxKmh` sólo lo lee la radio (`groupSpeedKmh`); no toca una carrera.
+
+## «Si en 1 km solo pasa 1 al relevo, no tiene sentido que en el pelotón pasen 15»
+
+El dueño, mirando la radio: «ojo, porque si eso es cierto, no tiene sentido en el pelotón poner que
+en 1 km pasan al relevo 15 personas, porque no es real». Y luego, cuando dije que la foto era un
+instante: «**es que la foto de la radio no es un instante, es 1 km entero… si fuera un instante, en
+el pelotón saldría solo ese 1 que da la cara. En el viento no caben 20**».
+
+Tenía razón en las dos, y la segunda la desmiente el propio motor, que lo lleva escrito al lado de
+`shelterProtected`: «el que tira paga el viento REPARTIDO entre los que de verdad tiran: **en una
+rotación de n, a cada uno le toca la cabeza 1/n del tiempo**». Ese conjunto es una ROTACIÓN, no una
+fila de gente en el viento.
+
+### Qué es cada número, medido
+
+El paso del motor son 100 m, y el turno dura 600 m en llano (`turnPullKm`). El tamaño del turno sale
+de `ceil(paceFraction · n)`, y **en una fuga `paceFraction` ES LA COOPERACIÓN del grupo**
+(`moveFrac = m.g.coop`), que baja con la tensión. Ocho reinas, separando por tipo de grupo —lo que
+mi primera medida no hacía, y por eso salió un disparate—:
+
+    ROTACIÓN (relevistas por bloque)
+      fuga|3           mediana 3      ← los tres, cuando cooperan
+      fuga|2           mediana 1
+      descolgados|2..8 mediana = el grupo entero
+      peloton (100+)   mediana 8      ← ocho, no veinte: 20 es el TECHO, no lo típico
+
+Así que una fuga de tres con la cooperación alta rota con los tres; una en la que ya se miran, con
+uno —y la cola (`advanceQueue`) le va cambiando cada 600 m—. Eso no es un defecto: es la historia.
+
+### Dónde SÍ engañaba, y es lo que se arregla
+
+Lo enseñado contra los que de verdad están en el turno:
+
+    grupo 2-3      enseñados 1    ·  en el turno 1     ← exacto
+    grupo 4-8      enseñados 4    ·  en el turno 4     ← exacto
+    grupo 9-30     enseñados 12   ·  en el turno 14 (máx. 29)
+    grupo 31-100   enseñados 12   ·  en el turno 27 (máx. 60)   ← el tope esconde la mitad
+    grupo 100+     enseñados 8    ·  en el turno 8  (máx. 28)   ← exacto
+
+Los dos números que el dueño comparaba eran correctos **y aun así la comparación engañaba**, porque
+uno es una CUENTA (1 de 3, exacto) y el otro un TOPE (12, cuando se relevan 27). La lista se corta
+en doce porque una lista larga no es un parte de radio; lo que no tenía por qué cortarse es la
+cuenta. Ahora va en `pullingTotal` y la vista dice «Pulling (12 of 27)».
+
+Y de paso se corrige un comentario del propio fichero que decía que al tope «rara vez se llega»: se
+llega en la mediana de todos los grupos de 9 a 100.
+
+### Lo que NO se toca
+
+El motor. Los dos números dicen lo mismo —quién está en el turno— y la diferencia entre 1 y 8 es la
+cooperación y el tamaño, que es lo que la carretera hace. Cambiar `cuantos` para que una fuga de
+tres rote siempre con tres sería borrar la diferencia entre una fuga que colabora y una que no.

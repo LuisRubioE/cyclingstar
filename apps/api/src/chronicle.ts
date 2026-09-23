@@ -1280,6 +1280,12 @@ const storedRaceRadioSchema = z.object({
             .nullish(),
           pulling: z.array(z.number()),
           /**
+           * Cuántos están en el turno DE VERDAD, antes de que la lista se corte en doce. Con
+           * `default` a 0 porque las etapas anteriores no lo traen; en ésas la cuenta buena es la
+           * longitud de `pulling`, y así lo resuelve el mapeo de abajo.
+           */
+          pullingTotal: z.number().optional(),
+          /**
            * PARA QUÉ tira cada uno de `pulling`, en el mismo orden (v47). Con `default` a propósito:
            * las etapas corridas antes de la v47 no lo traen y su radio tiene que seguir leyéndose.
            */
@@ -1377,6 +1383,15 @@ export function buildRaceRadio(stored: unknown, names: ChronicleNames): RaceRadi
             mishap: g.mishap ?? null,
             riders: shown,
             unnamed: Math.max(0, g.size - shown.length),
+            /**
+             * CUÁNTOS SE ESTÁN RELEVANDO, que no es lo mismo que cuántos se nombran: la lista se
+             * corta en doce y en un grupo mediano se relevan veintisiete. Sin este número, comparar
+             * «12 en el pelotón» con «3 en la fuga» es comparar un tope con una cuenta.
+             *
+             * Las etapas de antes no lo traen: entonces la cuenta es la de los nombrados, que es
+             * exactamente lo que se enseñaba.
+             */
+            pullingTotal: Math.max(g.pullingTotal ?? 0, g.pulling.length),
           }
         }),
       }
