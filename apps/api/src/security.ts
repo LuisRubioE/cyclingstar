@@ -41,6 +41,9 @@ export const CREDENTIAL_AUTH_PATHS = [
   '/api/auth/reset-password',
   '/api/auth/change-password',
   '/api/auth/change-email',
+  // Comprueba la contraseña igual que el login: sin límite estricto sería otra puerta para
+  // probarlas por fuerza bruta desde una sesión robada.
+  '/api/auth/delete-user',
 ] as const
 
 /**
@@ -58,30 +61,50 @@ export function timingSafeEqualString(a: string, b: string): boolean {
 }
 
 /**
- * Guarda de administrador: responde 401 y devuelve `false` cuando la petición no trae el
- * ADMIN_TOKEN correcto en la cabecera `x-admin-token`.
+ * Quién ha pasado la guarda de admin. Importa para las salvaguardas del panel (nadie se quita el
+ * permiso ni se borra a sí mismo), que sólo tienen sentido cuando hay una PERSONA detrás.
  */
-export type AdminGuard = (request: FastifyRequest, reply: FastifyReply) => boolean
+export type AdminActor = { via: 'token' } | { via: 'session'; userId: string }
 
 /**
- * Crea la guarda de admin para un ADMIN_TOKEN dado. Es el ÚNICO sitio donde se comprueba el token:
- * todas las rutas de admin (y el avance del mundo) pasan por aquí.
- *
- * Sin ADMIN_TOKEN configurado no hay administrador posible y la puerta queda cerrada (401), nunca
- * abierta: un despliegue mal configurado no debe exponer las operaciones destructivas.
+ * Guarda de administrador: responde 401 y devuelve `null` cuando la petición no es de un admin;
+ * si lo es, devuelve quién.
  */
-export function createAdminGuard(adminToken: string | undefined): AdminGuard {
-  return (request, reply) => {
+export type AdminGuard = (
+  request: FastifyRequest,
+  reply: FastifyReply,
+) => Promise<AdminActor | null>
+
+/**
+ * Crea la guarda de admin. Es el ÚNICO sitio donde se decide quién es administrador: todas las
+ * rutas de admin (y el avance del mundo) pasan por aquí. Dos puertas:
+ *
+ *  - el ADMIN_TOKEN en `x-admin-token`, comparado en tiempo constante. Es la de las máquinas (el
+ *    cron del tick, los scripts), que no tienen sesión;
+ *  - una SESIÓN de usuario administrador (`sessionAdmin` devuelve su id, o null). Es la de las
+ *    personas: el panel de la web ya no pide pegar un secreto en el navegador.
+ *
+ * Sin ADMIN_TOKEN configurado esa puerta queda cerrada (401), nunca abierta: un despliegue mal
+ * configurado no debe exponer las operaciones destructivas.
+ */
+export function createAdminGuard(
+  adminToken: string | undefined,
+  sessionAdmin?: (request: FastifyRequest) => Promise<string | null>,
+): AdminGuard {
+  return async (request, reply) => {
     const provided = request.headers['x-admin-token']
-    const ok =
+    const tokenOk =
       typeof adminToken === 'string' &&
       adminToken.length > 0 &&
       typeof provided === 'string' &&
       timingSafeEqualString(provided, adminToken)
-    if (!ok) {
-      unauthorized(reply)
-      return false
+    if (tokenOk) return { via: 'token' }
+    // Un token presente y malo NO cae a la sesión: quien lo manda está probando el token.
+    if (typeof provided !== 'string' && sessionAdmin) {
+      const userId = await sessionAdmin(request)
+      if (userId) return { via: 'session', userId }
     }
-    return true
+    unauthorized(reply)
+    return null
   }
 }

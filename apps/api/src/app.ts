@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import fastifyHelmet from '@fastify/helmet'
 import fastifyRateLimit from '@fastify/rate-limit'
 import fastifyStatic from '@fastify/static'
-import type { Database, TickSummary } from '@cyclingstar/db'
+import { type Database, type TickSummary, isUserAdmin } from '@cyclingstar/db'
 import Fastify, {
   type FastifyError,
   type FastifyInstance,
@@ -44,6 +44,8 @@ export interface AppDeps {
   auth?: Auth
   /** Token que protege las rutas de admin y el avance del mundo (Paso 10). */
   adminToken?: string
+  /** Correo del administrador raíz (ADMIN_EMAIL): admin sin que nadie le dé el permiso. */
+  adminEmail?: string
   /** Ejecutor del tick manual para POST /admin/tick (Paso 10). */
   onAdminTick?: () => Promise<TickSummary>
   /** Avance forzado de N días de juego para pruebas: POST /admin/advance (Paso 32). */
@@ -118,8 +120,19 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
     },
   })
 
-  // Guarda de admin (ADMIN_TOKEN en x-admin-token), en tiempo constante. Único punto de control.
-  const requireAdmin = createAdminGuard(deps.adminToken)
+  // Guarda de admin, único punto de control: ADMIN_TOKEN en x-admin-token (máquinas) o sesión de
+  // un usuario administrador (personas). Sin better-auth o sin base, sólo queda la del token.
+  const currentUserId = deps.auth ? createCurrentUserId(deps.auth) : null
+  const { db, adminEmail } = deps
+  const requireAdmin = createAdminGuard(
+    deps.adminToken,
+    currentUserId && db
+      ? async (request) => {
+          const userId = await currentUserId(request)
+          return userId && (await isUserAdmin(db, userId, adminEmail)) ? userId : null
+        }
+      : undefined,
+  )
 
   // Manejo uniforme de errores: SIEMPRE `{ ok: false, error: <codigo> }` (ver http.ts). Las
   // validaciones nativas de Fastify+Zod adjuntaban `detalles: error.validation`, que describe la
@@ -156,6 +169,7 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
     void app.register(adminRoutes, {
       db: deps.db,
       requireAdmin,
+      ...(deps.adminEmail ? { rootEmail: deps.adminEmail } : {}),
       ...(deps.onAdminTick ? { onAdminTick: deps.onAdminTick } : {}),
       ...(deps.onAdminAdvance ? { onAdminAdvance: deps.onAdminAdvance } : {}),
     })
@@ -171,7 +185,7 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
     const ctx: RouteContext = {
       db: deps.db,
       auth: deps.auth,
-      currentUserId: createCurrentUserId(deps.auth),
+      currentUserId: currentUserId ?? createCurrentUserId(deps.auth),
       requireAdmin,
     }
     void app.register(riderRoutes, ctx)

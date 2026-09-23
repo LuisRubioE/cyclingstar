@@ -1,9 +1,12 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   AdminAuthError,
+  type AdminKey,
   type BlockedKind,
   addBlocked,
+  fetchAdminWhoami,
   fetchBlocklist,
   fetchWorldHealth,
   removeBlocked,
@@ -12,8 +15,8 @@ import {
 
 /**
  * Base secreta de admins (no enlazada en la navegación): lista de bloqueo de nombres de equipos
- * reales y de ciclistas / personas famosas reales, para evitar su uso. Se protege con el
- * ADMIN_TOKEN (el que ya usas para el tick).
+ * reales y de ciclistas / personas famosas reales, para evitar su uso. Un administrador con sesión
+ * entra directo; sin ella, se sigue pudiendo desbloquear con el ADMIN_TOKEN (el del tick).
  *
  * SEGURIDAD: el token vive SOLO en el estado de React de esta página y se pasa a mano a cada
  * llamada. No se guarda en localStorage ni en ninguna otra parte, así que un XSS no puede
@@ -22,6 +25,13 @@ import {
 export function AdminNames() {
   const [token, setToken] = useState('')
   const [tokenInput, setTokenInput] = useState('')
+  const whoami = useQuery({ queryKey: ['admin-whoami'], queryFn: fetchAdminWhoami, retry: false })
+  // Con sesión de admin no hace falta token: `null` es «con mi sesión».
+  const key: AdminKey | undefined = token
+    ? token
+    : whoami.data?.via === 'session'
+      ? null
+      : undefined
 
   function unlock() {
     const value = tokenInput.trim()
@@ -34,7 +44,9 @@ export function AdminNames() {
     setToken('')
   }
 
-  if (!token) {
+  if (!token && whoami.isPending) return <p className="text-slate-500">Loading…</p>
+
+  if (key === undefined) {
     return (
       <section className="mx-auto max-w-md space-y-4">
         <h1 className="text-2xl font-bold tracking-tight">Admin — blocked names</h1>
@@ -76,27 +88,33 @@ export function AdminNames() {
             Names here are never generated and existing ones get renamed on the next world tick.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={lock}
-          className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
-        >
-          Lock
-        </button>
+        {token ? (
+          <button
+            type="button"
+            onClick={lock}
+            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+          >
+            Lock
+          </button>
+        ) : (
+          <Link to="/admin" className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+            ← Admin panel
+          </Link>
+        )}
       </div>
 
-      <HealthPanel token={token} onExpired={lock} />
+      <HealthPanel token={key} onExpired={lock} />
 
       <div className="grid gap-8 lg:grid-cols-2">
         <BlocklistPanel
-          token={token}
+          token={key}
           kind="team"
           title="Real team names"
           hint="e.g. UAE Team Emirates, Jumbo-Visma"
           onExpired={lock}
         />
         <BlocklistPanel
-          token={token}
+          token={key}
           kind="rider"
           title="Real riders & famous people"
           hint="e.g. Tadej Pogačar, Cristiano Ronaldo"
@@ -110,13 +128,13 @@ export function AdminNames() {
           Premium players (admin + trusted, paid later) can take over the bot team their rider races
           for and turn it into a player-managed team.
         </p>
-        <PremiumPanel token={token} onExpired={lock} />
+        <PremiumPanel token={key} onExpired={lock} />
       </div>
     </section>
   )
 }
 
-function PremiumPanel({ token, onExpired }: { token: string; onExpired: () => void }) {
+function PremiumPanel({ token, onExpired }: { token: AdminKey; onExpired: () => void }) {
   const [email, setEmail] = useState('')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
@@ -185,7 +203,7 @@ function Stat({ label, value }: { label: string; value: number | string }) {
   )
 }
 
-function HealthPanel({ token, onExpired }: { token: string; onExpired: () => void }) {
+function HealthPanel({ token, onExpired }: { token: AdminKey; onExpired: () => void }) {
   const query = useQuery({
     queryKey: ['admin-health'],
     queryFn: () => fetchWorldHealth(token),
@@ -240,7 +258,7 @@ function BlocklistPanel({
   hint,
   onExpired,
 }: {
-  token: string
+  token: AdminKey
   kind: BlockedKind
   title: string
   hint: string

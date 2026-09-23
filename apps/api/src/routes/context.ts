@@ -26,14 +26,16 @@ export interface RouteContext {
   auth: Auth
   /** Id del usuario de la sesión (better-auth), o null si la petición no trae sesión válida. */
   currentUserId: (request: FastifyRequest) => Promise<string | null>
-  /** Guarda de ADMIN_TOKEN en tiempo constante; responde 401 y devuelve false si no cuadra. */
+  /** Guarda de admin (token o sesión de administrador); responde 401 y devuelve null si no. */
   requireAdmin: AdminGuard
 }
 
-/** Contexto de las rutas de admin: no necesitan sesión de usuario, solo base de datos y token. */
+/** Contexto de las rutas de admin: base de datos y la guarda (que ya resuelve token o sesión). */
 export interface AdminRouteContext {
   db: Database
   requireAdmin: AdminGuard
+  /** Correo del administrador raíz (ADMIN_EMAIL), para marcarlo en el panel. */
+  rootEmail?: string
   onAdminTick?: () => Promise<TickSummary>
   onAdminAdvance?: (days: number) => Promise<TickSummary>
 }

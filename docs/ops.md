@@ -51,6 +51,7 @@ base idéntica; el script crea la extensión `citext` antes de restaurar (la usa
 | `SESSION_SECRET`        | Secreto de firma de sesiones de better-auth (mínimo 32 caracteres).                                       |
 | `APP_URL`               | URL pública **canónica**: `baseURL` de better-auth, origen de confianza y raíz de los enlaces del correo. |
 | `EXTRA_TRUSTED_ORIGINS` | Orígenes de confianza extra, separados por comas. Opcional.                                               |
+| `ADMIN_EMAIL`           | Correo del administrador raíz. Opcional; esa cuenta, con el correo confirmado, entra en `/admin`.         |
 | `RESEND_API_KEY`        | Clave de Resend. Opcional; sin ella la app arranca y NO manda correo (lo deja dicho en el log).           |
 | `MAIL_FROM`             | Remitente: `Cycling Star <no-reply@cyclingstar.app>`. Va en pareja con `RESEND_API_KEY`.                  |
 
@@ -118,11 +119,29 @@ Comprobaciones:
   `correo rechazado por Resend` (trae el código y el motivo) o `fallo al enviar el correo`.
 - El log lleva el buzón oculto (`l***@example.com`), nunca la dirección entera.
 
+## Panel de administración (`/admin`)
+
+Entra quien tenga sesión y sea administrador, sin token:
+
+- **El administrador raíz**: la cuenta cuyo correo **confirmado** coincide con `ADMIN_EMAIL`. Es cómo
+  entra el primero. Se evalúa en cada petición (no se copia a la base): cambiar la variable cambia
+  quién es el raíz. Sin confirmar el correo no es admin, así que registrarse con el correo del dueño
+  no da nada.
+- **Los que el panel haga admin** (columna `users.is_admin`).
+
+Desde **Account → Admin panel** (el enlace sólo aparece a los admins): lista de cuentas con buscador
+por correo; por cuenta, confirmar el correo a mano, dar o quitar premium, dar o quitar admin, y
+borrarla (su corredor y su equipo pasan a NPC). La API impide quitarse el admin a uno mismo,
+borrarse desde el panel (eso se hace en Account, con contraseña) y borrar al raíz.
+
+El `ADMIN_TOKEN` sigue valiendo para todas las rutas de admin: es la puerta de las máquinas (cron,
+scripts). Un token presente y equivocado se rechaza aunque la sesión sea de admin.
+
 ## Lista de bloqueo de nombres (admin)
 
 Nombres de equipos reales y de ciclistas / personas famosas reales que no deben usarse en el juego.
-Se gestionan desde la página **`/admin/names`** (no enlazada en la navegación): pega el `ADMIN_TOKEN`
-para desbloquearla y añade o quita nombres en dos listas (equipos y personas). Un nombre bloqueado
+Se gestionan desde la página **`/admin/names`** (enlazada desde el panel): un admin con sesión entra
+directo; sin sesión, se pega el `ADMIN_TOKEN` para desbloquearla. Ahí se añade o quita nombres en dos listas (equipos y personas). Un nombre bloqueado
 nunca se genera, y cualquiera que ya exista se renombra automáticamente en el siguiente _tick_ del
 mundo (la reparación es idempotente). La comparación ignora mayúsculas y espacios sobrantes.
 

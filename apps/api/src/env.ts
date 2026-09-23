@@ -36,6 +36,11 @@ const envSchema = z
      * migración o para un entorno de pruebas.
      */
     EXTRA_TRUSTED_ORIGINS: z.string().optional(),
+    /**
+     * Correo del ADMINISTRADOR RAÍZ: la cuenta con este correo, una vez CONFIRMADO, es admin sin
+     * que nadie le dé el permiso (ver `isRootAdmin`). Es cómo entra el primero al panel.
+     */
+    ADMIN_EMAIL: z.string().trim().email('ADMIN_EMAIL debe ser un correo válido').optional(),
     RESEND_API_KEY: z.string().min(1).optional(),
     MAIL_FROM: z
       .string()

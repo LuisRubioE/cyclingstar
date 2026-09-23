@@ -1,5 +1,7 @@
+import { useQuery } from '@tanstack/react-query'
 import { type FormEvent, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { fetchAdminWhoami } from '../api/admin'
 import { authClient } from '../auth/client'
 
 /** Estado de un formulario de ajustes: mensaje de éxito o de error, más "enviando". */
@@ -303,6 +305,8 @@ function DeleteAccount() {
 export function Account() {
   const navigate = useNavigate()
   const { data } = authClient.useSession()
+  // Sólo para enseñar el enlace: el servidor vuelve a decidir en cada petición del panel.
+  const whoami = useQuery({ queryKey: ['admin-whoami'], queryFn: fetchAdminWhoami, retry: false })
 
   async function onLogout() {
     await authClient.signOut()
@@ -317,6 +321,15 @@ export function Account() {
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">Account settings</h1>
         <p className="mt-1 text-sm text-slate-500">Manage your login details.</p>
       </div>
+
+      {whoami.data?.via === 'session' && (
+        <Link
+          to="/admin"
+          className="block rounded-2xl border border-indigo-200 bg-indigo-50 p-4 text-sm font-medium text-indigo-800 transition hover:bg-indigo-100"
+        >
+          Admin panel →
+        </Link>
+      )}
 
       {email && data?.user.emailVerified === false && <VerifyEmailNotice email={email} />}
       {email && <ChangeEmail current={email} verified={data?.user.emailVerified === true} />}

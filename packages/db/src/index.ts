@@ -170,6 +170,16 @@ export {
   type TeamEdit,
   type TeamEditResult,
 } from './teamControl.js'
+export {
+  deleteUserAsAdmin,
+  isRootAdmin,
+  isRootAdminUser,
+  isUserAdmin,
+  listUsersForAdmin,
+  updateUserAsAdmin,
+  type AdminUserPatch,
+  type AdminUserRow,
+} from './adminUsers.js'
 export { isRiderNameTaken, generateUniqueRiderName } from './nameService.js'
 export {
   addBlocked,
