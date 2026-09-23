@@ -1,3 +1,4 @@
+import { riders, teams, worlds } from '@cyclingstar/db'
 import { startTestDb, type TestDb } from '@cyclingstar/db/test'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createAuth } from './auth.js'
@@ -232,6 +233,147 @@ describe('correo: el camino completo contra una base real', () => {
       password: 'contrasena-nueva',
     })
     expect(despues.status).toBe(200)
+  })
+})
+
+/**
+ * BORRAR LA CUENTA: se va la persona, se quedan su corredor y su equipo, ya como NPC.
+ *
+ * Contra la base real porque lo que puede fallar es justo lo que un doble no ve: `riders.user_id` y
+ * `teams.owner_user_id` apuntan a `users` SIN cascada, así que sin soltarlos antes el DELETE revienta
+ * por clave foránea. Y la contraseña: sin ella, better-auth deja borrar con una sesión reciente.
+ */
+describe('borrar la cuenta, contra una base real', () => {
+  let tdb: TestDb
+  let auth: ReturnType<typeof createAuth>
+  let cookie = ''
+  let riderId = ''
+  let teamId = ''
+
+  const BASE = 'http://localhost:3000'
+  const post = (path: string, body: unknown) =>
+    auth.handler(
+      new Request(`${BASE}/api/auth${path}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', origin: BASE, cookie },
+        body: JSON.stringify(body),
+      }),
+    )
+
+  beforeAll(async () => {
+    tdb = await startTestDb()
+    auth = createAuth(tdb.db, {
+      secret: 's'.repeat(32),
+      baseURL: BASE,
+      mailer: {
+        async send() {
+          return true
+        },
+      },
+    })
+    await post('/sign-up/email', {
+      name: 'primario',
+      email: 'primario@example.com',
+      password: 'contrasena-larga',
+    })
+    await tdb.client`update users set email_verified = true where email = 'primario@example.com'`
+    const login = await post('/sign-in/email', {
+      email: 'primario@example.com',
+      password: 'contrasena-larga',
+    })
+    cookie = login.headers
+      .getSetCookie()
+      .map((c) => c.split(';')[0])
+      .join('; ')
+
+    const [fila] = await tdb.client<{ id: string }[]>`
+      select id from users where email = 'primario@example.com'`
+    const userId = fila!.id
+    const [world] = await tdb.db
+      .insert(worlds)
+      .values({ worldSeed: 'semilla-borrado', engineVersion: 1 })
+      .returning({ id: worlds.id })
+    const [team] = await tdb.db
+      .insert(teams)
+      .values({
+        worldId: world!.id,
+        ownerUserId: userId,
+        name: 'Equipo del que se va',
+        division: 'CON',
+        philosophy: 'cantera',
+        jerseySeed: 'j',
+        country: 'ES',
+        budget: 1_000_000,
+      })
+      .returning({ id: teams.id })
+    const [rider] = await tdb.db
+      .insert(riders)
+      .values({
+        worldId: world!.id,
+        userId,
+        teamId: team!.id,
+        name: 'Corredor del que se va',
+        country: 'ES',
+        gender: 'M',
+        birthSeason: 1,
+        archetype: 'escalada',
+        faceSeed: 'cara',
+      })
+      .returning({ id: riders.id })
+    teamId = team!.id
+    riderId = rider!.id
+  }, 120_000)
+
+  afterAll(async () => {
+    await tdb?.close()
+  })
+
+  /** Un recuento: la columna `n` de la primera fila. */
+  const count = async (q: PromiseLike<{ n: number }[]>): Promise<number> => (await q)[0]!.n
+
+  it('sin contraseña no se borra nada', async () => {
+    const res = await post('/delete-user', {})
+    expect(res.status).toBe(400)
+    const n = await count(tdb.client<{ n: number }[]>`select count(*)::int as n from users`)
+    expect(n).toBe(1)
+  })
+
+  it('con la contraseña equivocada tampoco', async () => {
+    const res = await post('/delete-user', { password: 'no-es-esta' })
+    expect(res.status).toBe(400)
+    const n = await count(tdb.client<{ n: number }[]>`select count(*)::int as n from users`)
+    expect(n).toBe(1)
+  })
+
+  it('con la contraseña se borra la cuenta, y corredor y equipo quedan como NPC', async () => {
+    const res = await post('/delete-user', { password: 'contrasena-larga' })
+    expect(res.status).toBe(200)
+
+    const n = await count(tdb.client<{ n: number }[]>`select count(*)::int as n from users`)
+    expect(n).toBe(0)
+    const s = await count(tdb.client<{ n: number }[]>`select count(*)::int as n from sessions`)
+    expect(s).toBe(0)
+
+    const [rider] = await tdb.client<{ user_id: string | null; team_id: string | null }[]>`
+      select user_id, team_id from riders where id = ${riderId}`
+    expect(rider).toEqual({ user_id: null, team_id: teamId })
+    const [team] = await tdb.client<{ owner_user_id: string | null }[]>`
+      select owner_user_id from teams where id = ${teamId}`
+    expect(team).toEqual({ owner_user_id: null })
+  })
+
+  /* El caso que lo motivó: borrada la cuenta, su correo queda libre para otra. */
+  it('el correo de la cuenta borrada vuelve a estar libre', async () => {
+    cookie = ''
+    const res = await post('/sign-up/email', {
+      name: 'otra',
+      email: 'primario@example.com',
+      password: 'contrasena-larga',
+    })
+    expect(res.status).toBe(200)
+    const n = await count(tdb.client<{ n: number }[]>`
+      select count(*)::int as n from users where email = 'primario@example.com'`)
+    expect(n).toBe(1)
   })
 })
 

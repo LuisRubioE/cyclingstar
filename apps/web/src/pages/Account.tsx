@@ -216,7 +216,90 @@ function ChangePassword() {
   )
 }
 
-/** Ajustes de la cuenta (SPEC 7): ver/cambiar correo, cambiar contraseña y cerrar sesión. */
+/**
+ * Borrar la cuenta. Irreversible, así que va en dos pasos (abrir el formulario, luego confirmar con
+ * la contraseña, que el servidor exige siempre) y dice qué pasa con el corredor y el equipo: se
+ * quedan en el mundo como NPC, no desaparecen.
+ */
+function DeleteAccount() {
+  const [open, setOpen] = useState(false)
+  const [password, setPassword] = useState('')
+  const [status, setStatus] = useState<Status>({ kind: 'idle' })
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (!password) {
+      setStatus({ kind: 'err', msg: 'Enter your password to delete your account.' })
+      return
+    }
+    setStatus({ kind: 'saving' })
+    const res = await authClient.deleteUser({ password })
+    if (res.error) {
+      setStatus({ kind: 'err', msg: res.error.message ?? 'Could not delete your account.' })
+      return
+    }
+    // Recarga completa: la sesión ya no existe y ninguna caché de la SPA debe sobrevivirla.
+    window.location.assign('/')
+  }
+
+  return (
+    <div className="rounded-2xl border border-red-200 bg-white p-6 shadow-sm">
+      <h2 className="text-sm font-semibold text-red-700">Delete account</h2>
+      <p className="mt-1 text-xs text-slate-500">
+        This cannot be undone. Your rider and your team stay in the world, run by the game, and your
+        email becomes free to use on another account.
+      </p>
+      {open ? (
+        <form onSubmit={onSubmit} className="mt-4 space-y-3">
+          <div>
+            <label htmlFor="delete-pw" className={labelClass}>
+              Password
+            </label>
+            <input
+              id="delete-pw"
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={`mt-1 ${inputClass}`}
+            />
+          </div>
+          <Notice status={status} />
+          <div className="flex gap-3">
+            <button
+              type="submit"
+              disabled={status.kind === 'saving'}
+              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-500 disabled:opacity-60"
+            >
+              Delete my account for good
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false)
+                setPassword('')
+                setStatus({ kind: 'idle' })
+              }}
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="mt-4 rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50"
+        >
+          Delete my account…
+        </button>
+      )}
+    </div>
+  )
+}
+
+/** Ajustes de la cuenta (SPEC 7): correo, contraseña, cerrar sesión y borrar la cuenta. */
 export function Account() {
   const navigate = useNavigate()
   const { data } = authClient.useSession()
@@ -246,6 +329,8 @@ export function Account() {
       >
         Sign out
       </button>
+
+      <DeleteAccount />
     </section>
   )
 }

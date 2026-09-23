@@ -1,5 +1,13 @@
-import { type Database, accounts, sessions, users, verifications } from '@cyclingstar/db'
+import {
+  type Database,
+  accounts,
+  releaseUserToWorld,
+  sessions,
+  users,
+  verifications,
+} from '@cyclingstar/db'
 import { betterAuth } from 'better-auth'
+import { APIError, createAuthMiddleware } from 'better-auth/api'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { changeEmailConfirmationEmail, resetPasswordEmail, verifyEmailEmail } from './emails.js'
 import type { Mailer } from './mailer.js'
@@ -153,6 +161,35 @@ export function createAuth(
           })
         },
       },
+      // Borrar la cuenta desde ajustes. El corredor y el equipo NO se borran: pasan a NPC antes de
+      // que el usuario desaparezca (ver `releaseUserToWorld`), porque son las dos referencias a
+      // `users` que no caen en cascada y porque el mundo necesita su historial.
+      deleteUser: {
+        enabled: true,
+        beforeDelete: async (user) => {
+          await releaseUserToWorld(db, user.id)
+        },
+      },
+    },
+    hooks: {
+      /*
+        Borrar una cuenta pide SIEMPRE la contraseña. Sin ella, better-auth lo permite con una
+        sesión «fresca» (de menos de un día), y quien se haya colado en una sesión abierta podría
+        llevarse la cuenta de otro por delante. Es irreversible: la puerta se cierra aquí.
+      */
+      before: createAuthMiddleware(async (ctx) => {
+        if (ctx.path !== '/delete-user') return
+        const body: unknown = ctx.body
+        const password =
+          typeof body === 'object' && body !== null && 'password' in body
+            ? body.password
+            : undefined
+        if (typeof password !== 'string' || password === '') {
+          throw new APIError('BAD_REQUEST', {
+            message: 'Enter your password to delete your account.',
+          })
+        }
+      }),
     },
     advanced: {
       useSecureCookies: secureCookies,
