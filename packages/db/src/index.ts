@@ -161,6 +161,7 @@ export { getWorldHealth, type WorldHealth, type TickLogRow } from './adminStats.
 export { langForCountry, makeLangTeamName, teamNameCandidate, type LangId } from './teamNameLang.js'
 export {
   getAccountControl,
+  releaseUserToWorld,
   setUserPremium,
   takeOverBotTeam,
   updateOwnedTeam,
@@ -169,6 +170,16 @@ export {
   type TeamEdit,
   type TeamEditResult,
 } from './teamControl.js'
+export {
+  deleteUserAsAdmin,
+  isRootAdmin,
+  isRootAdminUser,
+  isUserAdmin,
+  listUsersForAdmin,
+  updateUserAsAdmin,
+  type AdminUserPatch,
+  type AdminUserRow,
+} from './adminUsers.js'
 export { isRiderNameTaken, generateUniqueRiderName } from './nameService.js'
 export {
   addBlocked,
@@ -262,6 +273,7 @@ export {
 export {
   addToRoster,
   getRaceRivals,
+  getRaceTeams,
   getRosterTeammates,
   getStageOrders,
   isOnRoster,

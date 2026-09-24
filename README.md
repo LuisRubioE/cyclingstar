@@ -76,14 +76,28 @@ pnpm --filter @cyclingstar/web dev
 | Variable                | Obligatoria | Qué hace                                                                |
 | ----------------------- | ----------- | ----------------------------------------------------------------------- |
 | `DATABASE_URL`          | sí          | Conexión a Postgres.                                                    |
-| `ADMIN_TOKEN`           | sí (≥16)    | Protege `POST /admin/tick`, `/admin/advance` y `/admin/names`.          |
-| `SESSION_SECRET`        | sí (≥16)    | Firma de sesiones de better-auth.                                       |
+| `ADMIN_TOKEN`           | sí (≥32)    | Protege `POST /admin/tick`, `/admin/advance` y `/admin/names`.          |
+| `SESSION_SECRET`        | sí (≥32)    | Firma de sesiones de better-auth.                                       |
 | `APP_URL`               | sí          | URL pública; better-auth la usa como `baseURL` y origen de confianza.   |
+| `EXTRA_TRUSTED_ORIGINS` | no          | Orígenes de confianza extra, separados por comas (dominio viejo, etc.). |
+| `ADMIN_EMAIL`           | no          | Correo del admin raíz: esa cuenta, confirmada, entra en `/admin`.       |
+| `RESEND_API_KEY`        | no          | Clave de Resend. Sin ella la app arranca y no manda correo.             |
+| `MAIL_FROM`             | no          | Remitente (`Nombre <correo@dominio>`). Va en pareja con la clave.       |
 | `PORT`                  | no (3000)   | Puerto de escucha. En Railway lo inyecta la plataforma.                 |
 | `TICK_INTERVAL_MINUTES` | no (360)    | Minutos reales por día de juego. Bajarlo acelera el mundo para la alfa. |
 | `LOG_LEVEL`             | no (info)   | Nivel de log de Fastify.                                                |
 
 El servicio `tick` solo necesita `DATABASE_URL` y `TICK_INTERVAL_MINUTES`.
+
+`APP_URL` tiene que ser el dominio **canónico** por el que se navega de verdad. better-auth rechaza
+con «Invalid origin» cualquier petición que venga de otro sitio, así que apuntarla al dominio
+equivocado tira el login entero. La pareja con y sin `www` se acepta sola; cualquier otro origen
+—el dominio viejo mientras dura una migración— va en `EXTRA_TRUSTED_ORIGINS`.
+
+`RESEND_API_KEY` y `MAIL_FROM` son opcionales pero **van en pareja**: con una sola, el arranque
+falla a propósito (un despliegue con clave y sin remitente cree que manda correo y no manda
+ninguno). Sin ninguna de las dos no se envía nada y cada correo deja una línea en el log — es el
+modo de desarrollo local. La puesta en marcha del dominio en Resend está en `docs/ops.md`.
 
 ## Comandos
 
@@ -91,8 +105,8 @@ El servicio `tick` solo necesita `DATABASE_URL` y `TICK_INTERVAL_MINUTES`.
 | -------------------------- | ---------------------------------------------------------------------- |
 | `pnpm typecheck`           | `tsc -b` de todos los paquetes + `tsc --noEmit` de apps/web.           |
 | `pnpm test`                | Vitest (`*.test.ts` y `*.test.tsx` bajo `{apps,packages}/*/src`).      |
-| `pnpm test:rapido`         | La suite MENOS los bancos de `sim/`: 1.203 pruebas en ~100 s.          |
-| `pnpm test:bancos`         | Solo los bancos de simulación (`sim/`): 69 pruebas en ~8 min.          |
+| `pnpm test:rapido`         | La suite MENOS los bancos de `sim/`: 1.771 pruebas en ~12,5 min.       |
+| `pnpm test:bancos`         | Solo los bancos de simulación (`sim/`): 114 pruebas en ~73 min.        |
 | `pnpm test:watch`          | Vitest en modo watch.                                                  |
 | `pnpm test:coverage`       | Tests con cobertura V8 (informe en `coverage/`).                       |
 | `pnpm lint`                | ESLint del monorepo.                                                   |
@@ -103,13 +117,26 @@ El servicio `tick` solo necesita `DATABASE_URL` y `TICK_INTERVAL_MINUTES`.
 
 Antes de cerrar cualquier paso: `pnpm typecheck && pnpm test` en verde (Claude.md).
 
-**Por qué hay tres comandos de test y no uno.** El reparto del tiempo es muy desigual: los tres
-ficheros de `packages/engine/src/sim/` se llevan **536 s de los 638** de la suite entera, y son 69 de
-las 1.272 pruebas. No son pruebas, son BANCOS: corren cientos de etapas completas contra los rangos
-objetivo del SPEC 6.17. Por eso el CI de cada push corre `test:rapido` (~100 s) y deja los bancos
-para cuando cambia `packages/engine/`, que es lo único que puede romperlos; `cobertura.yml` los corre
-enteros y con cobertura una vez al día pase lo que pase. En local, mientras se trabaja en la web o en
-la API, `test:rapido` da la misma respuesta cinco veces más rápido.
+**Por qué hay tres comandos de test y no uno.** El reparto del tiempo es muy desigual: los ficheros
+de `packages/engine/src/sim/` se llevan **4.365 s de los 5.115** de la suite entera, y son 114 de las
+1.885 pruebas. No son pruebas, son BANCOS: corren cientos de etapas completas contra los rangos
+objetivo del SPEC 6.17. Por eso el CI de cada push corre `test:rapido` y deja los bancos para cuando
+cambia `packages/engine/`, que es lo único que puede romperlos; `cobertura.yml` los corre enteros y
+con cobertura una vez al día pase lo que pase. En local, mientras se trabaja en la web o en la API,
+`test:rapido` da la misma respuesta mucho más rápido.
+
+**Y en CI los bancos van en OCHO tramos en paralelo** (v83), no porque se salte ninguno —no se
+salta ninguno, ésa es la condición— sino porque `invariants.test.ts` era el 64 % del trabajo y dentro
+de un fichero vitest corre en serie. Se partió en seis (`invariants`, `invariantsLlano`,
+`invariantsDesgaste`, `invariantsClasicas`, `invariantsAbandonos`, `invariantsPequenas`) y la matriz
+de `ci.yml` los reparte junto con `coherence` y el trío pequeño. `pnpm test:bancos` en local los
+sigue corriendo todos de una vez.
+
+El primer corte fueron cuatro ficheros y **el CI dijo que se quedaba corto**: 33,1 min el tramo de
+`invariantes` contra 12,7 del siguiente, o sea 71 → 33 y no los ~22 que se habían pronosticado con
+tiempos locales medidos con contención. De ahí el segundo corte. **El número que manda es el que
+imprime el CI en cada tramo**, y es el que hay que mirar para volver a afinarlo — no una estimación
+local.
 
 ### Race Radio — depurar una etapa kilómetro a kilómetro
 

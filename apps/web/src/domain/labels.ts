@@ -223,3 +223,82 @@ export const NO_TEAM_LABEL = 'Individual'
 export function raceTeamLabel(teamName: string | null | undefined): string {
   return teamName || NO_TEAM_LABEL
 }
+
+// --- Las cuatro palancas del paso 17a ----------------------------------------------------------
+
+/**
+ * A QUÉ SALE HOY ESTE HOMBRE (R22 · S-216, S-024, S-030). Declara, no negocia: el jugador dice a qué
+ * va y el resto del plan se ordena alrededor. `null` = sin preferencia, y decide el motor.
+ */
+export const DAY_GOAL_OPTIONS = [
+  'ganar',
+  'general',
+  'puntos',
+  'montana',
+  'grupeto',
+  'ahorrar',
+  'servir',
+] as const
+export type DayGoalUi = (typeof DAY_GOAL_OPTIONS)[number]
+
+export const DAY_GOAL_LABEL: Record<DayGoalUi, string> = {
+  ganar: 'Win the stage',
+  general: 'Defend my GC place',
+  puntos: 'Points jersey',
+  montana: 'Mountains jersey',
+  grupeto: 'Ride in the grupetto',
+  ahorrar: 'Save myself for later',
+  servir: 'Work for someone else',
+}
+
+export const DAY_GOAL_DESC: Record<DayGoalUi, string> = {
+  ganar: 'Everything is spent on today. No saving for tomorrow.',
+  general: 'Mark the riders near you on time and stay out of trouble.',
+  puntos: 'Contest the intermediate sprints and the finish.',
+  montana: 'Contest the climbs, even from a breakaway.',
+  grupeto: 'Sit up and finish inside the time limit with the others.',
+  ahorrar: 'Ride as easy as the race allows. Tomorrow matters more.',
+  servir: 'No ambition of your own today.',
+}
+
+/** QUÉ HACE TU EQUIPO CON UNA FUGA (R22 · S-215, S-071). */
+export const CHASE_POLICY_OPTIONS = ['nunca', 'si_amenaza', 'siempre'] as const
+export type ChasePolicyUi = (typeof CHASE_POLICY_OPTIONS)[number]
+
+export const CHASE_POLICY_LABEL: Record<ChasePolicyUi, string> = {
+  nunca: 'Never chase',
+  si_amenaza: 'Chase if it threatens us',
+  siempre: 'Always chase',
+}
+
+export const CHASE_POLICY_DESC: Record<ChasePolicyUi, string> = {
+  nunca: 'Let it go. Someone else can do the work.',
+  si_amenaza: 'Only pull when the break carries a real danger.',
+  siempre: 'Pull regardless of who is up the road.',
+}
+
+/**
+ * CUÁNDO LANZA SU MOVIMIENTO (R22 · S-214/S-321/S-322). Seis formas de decir «cuándo», y **cinco
+ * dependen de lo que pase en la carretera** — que es toda la diferencia entre una cita y un
+ * despertador. El kilómetro sigue estando porque a veces es lo que el jugador quiere decir, y
+ * porque las hojas guardadas antes de este paso lo usan.
+ */
+export const TRIGGER_KIND_OPTIONS = ['ninguno', 'km', 'climb', 'gap', 'weather', 'sector'] as const
+export type TriggerKindUi = (typeof TRIGGER_KIND_OPTIONS)[number]
+
+export const TRIGGER_KIND_LABEL: Record<TriggerKindUi, string> = {
+  ninguno: 'Let my mentality decide',
+  km: 'At a kilometre',
+  climb: 'On a climb',
+  gap: 'When the gap reaches',
+  weather: 'If the weather turns',
+  sector: 'On a cobbled sector',
+}
+
+export const CLIMB_WHICH_LABEL = { last: 'the last climb', penultimate: 'the second-to-last climb' }
+export const CLIMB_PART_LABEL = {
+  pie: 'at the foot',
+  duro: 'on the steepest part',
+  cima: 'near the top',
+}
+export const WEATHER_COND_LABEL = { lluvia: 'it rains', viento: 'the wind picks up' }

@@ -285,11 +285,356 @@ describe('radioForStorage: la velocidad de un grupo la miden SUS HOMBRES', () =>
     expect(stored.kms[0]!.groups[0]!.speedKmh).toBeCloseTo(45, 1)
   })
 
+  /**
+   * ————— Y LA ÚLTIMA FOTO SE MIDE HACIA ATRÁS (v85) —————
+   *
+   * El dueño lo vio en la etapa 20 de producción: un grupo de 21 sin velocidad mientras los de
+   * delante y detrás iban marcados. La velocidad se calcula contra el kilómetro SIGUIENTE y en la
+   * última foto no hay siguiente, así que el grupo salía en blanco.
+   *
+   * Medido sobre veinte reinas: **204 de los 229 huecos en blanco de la radio eran exactamente eso**,
+   * el 89 %. Y no hacía falta ninguno: en la última foto no hay kilómetro siguiente, pero el
+   * kilómetro que se acaba de recorrer existe igual. Con la foto anterior como referencia, los
+   * huecos en blanco pasan de **237 a 31** sobre 13.805 fotos de grupo (1,72 % -> 0,22 %).
+   *
+   * Los 31 que quedan son relojes que saltan en una fusión, que es la radio negándose a enseñar un
+   * número imposible y no un defecto. Ver `docs/balance.md` «v85».
+   */
+  it('la ÚLTIMA foto se mide contra la anterior, porque ese kilómetro sí se ha recorrido', () => {
+    const aqui = radioKmFrom(
+      10,
+      Array.from({ length: 20 }, (_, i) => rider(`r-${i}`, 'peloton', 1000)),
+      20,
+    )
+    const luego = radioKmFrom(
+      11,
+      Array.from({ length: 20 }, (_, i) => rider(`r-${i}`, 'peloton', 1080)),
+      20,
+    )
+    const stored = radioForStorage({ starters: 20, kms: [aqui, luego] }, new Set())
+    // La primera se mide contra la siguiente: un kilómetro en 80 s son 45 km/h.
+    expect(stored.kms[0]!.groups[0]!.speedKmh).toBeCloseTo(45, 1)
+    // Y la última contra la anterior: el mismo kilómetro y el mismo número, no un hueco en blanco.
+    expect(stored.kms[1]!.groups[0]!.speedKmh).toBeCloseTo(45, 1)
+  })
+
+  /**
+   * ————— Y SI EL KILÓMETRO SIGUIENTE NO SE PUEDE MEDIR, SE MIDE EL QUE ACABA DE RECORRER —————
+   *
+   * El dueño, con la foto de un grupo de sesenta sin velocidad: «¿por qué no dice la velocidad? eso
+   * está mal… calcula la velocidad real a la que iba ese grupo SIN CONTAR EL REGALO por alcanzar a
+   * un grupo que va muy estirado, y pon ésa».
+   *
+   * Medido: no es un fallo de la resta. Cuando un grupo se funde con otro, sus corredores adoptan
+   * el reloj del grupo nuevo y el salto se reparte IGUAL entre todos —los 94 del caso peor traen el
+   * mismo Δt al décimo—, así que el kilómetro sale a 89 km/h y `radioMaxKmh` lo rechaza entero, con
+   * razón. El regalo es del motor (`docs/balance.md`) y la radio no lo puede deshacer: no sabe
+   * cuánto hueco quedaba en el instante de la fusión.
+   *
+   * Lo que sí puede es medir el OTRO kilómetro, el de antes, donde ese grupo iba solo y sus relojes
+   * no habían saltado. Sobre veinte reinas (14.658 grupos): **46 blancos, 44 recuperados (95,7 %)**,
+   * de 22,7 a 62,5 km/h; los dos que quedan son fusiones en kilómetros seguidos.
+   */
+  it('un grupo que se funde enseña el kilómetro que acaba de correr, no un hueco en blanco', () => {
+    // km 10 → 11: los cinco ruedan solos, 80 s el kilómetro (45 km/h).
+    // km 11 → 12: se funden con el pelotón y su reloj salta: 40 s el kilómetro, o sea 90 km/h.
+    const foto = (km: number, tPel: number, grupo: string, tShed: number) =>
+      radioKmFrom(
+        km,
+        [
+          ...Array.from({ length: 30 }, (_, i) => rider(`pel-${i}`, 'peloton', tPel)),
+          ...Array.from({ length: 5 }, (_, i) => rider(`s-${i}`, grupo, tShed)),
+        ],
+        35,
+      )
+    const stored = radioForStorage(
+      {
+        starters: 35,
+        kms: [
+          foto(10, 1000, 'shed-1', 1120),
+          foto(11, 1080, 'shed-1', 1200),
+          foto(12, 1160, 'peloton', 1240),
+        ],
+      },
+      new Set(),
+    )
+    const suyo = stored.kms[1]!.groups.find((g) => g.size === 5)!
+    // Con la cuenta de siempre esto era `null`: 90 km/h rechazado y nada que enseñar.
+    expect(suyo.speedKmh).toBeCloseTo(45, 1)
+  })
+
+  /**
+   * ————— Y EL TECHO BAJA A 75, PORQUE RECHAZAR YA NO CUESTA UN HUECO EN BLANCO —————
+   *
+   * Los 85 de la v58 eran generosos a propósito: entonces un rechazo dejaba al grupo SIN
+   * velocidad, así que más valía dejar pasar algún número raro que vaciar la pantalla. Con el
+   * kilómetro de antes como recambio ese coste desapareció y el techo puede ponerse donde está la
+   * física: medido sobre veinte reinas, un grupo que no se funde con nadie **no pasa de 75,5 km/h
+   * en 13.666 kilómetros**, mientras que los que se funden llegan a 84,6.
+   *
+   * Sobre esas mismas veinte reinas: las velocidades por encima de 75 km/h pasan de 25 a 0 y los
+   * huecos en blanco se quedan en 2, los mismos. Ver la nota de `radioMaxKmh`.
+   */
+  it('un kilómetro a 80 km/h ya no se enseña: se enseña el anterior, que sí se corrió', () => {
+    const foto = (km: number, t: number) =>
+      radioKmFrom(
+        km,
+        Array.from({ length: 5 }, (_, i) => rider(`r-${i}`, 'mov-1', t)),
+        5,
+      )
+    // km 10 -> 11: 80 s el kilómetro, 45 km/h. km 11 -> 12: 45 s, o sea 80 km/h.
+    const stored = radioForStorage(
+      { starters: 5, kms: [foto(10, 1000), foto(11, 1080), foto(12, 1125)] },
+      new Set(),
+    )
+    // Con el techo en 85 esto enseñaba 80 km/h. Con 75 se rechaza y cae en el kilómetro de antes.
+    expect(stored.kms[1]!.groups[0]!.speedKmh).toBeCloseTo(45, 1)
+  })
+
+  /*
+    LA CUENTA NO SE CORTA AUNQUE LA LISTA SÍ. El dueño: «si en 1 km solo pasa 1 al relevo, no tiene
+    sentido que en el pelotón pongamos que pasan 15, porque no es real». Medido sobre ocho reinas,
+    lo enseñado contra los que de verdad están en el turno: en un grupo de 31-100 se relevan 27 y
+    salían 12, porque la lista se corta. Los dos números decían la verdad y aun así comparar uno con
+    otro engañaba: uno es una cuenta y el otro un tope.
+  */
+  it('cuando la lista se corta, la CUENTA de los que se relevan sigue entera', () => {
+    const foto = (km: number, t: number) =>
+      radioKmFrom(
+        km,
+        Array.from({ length: 30 }, (_, i) => rider(`r-${i}`, 'peloton', t, { pulling: i < 20 })),
+        30,
+      )
+    const stored = radioForStorage(
+      { starters: 30, kms: [foto(10, 1000), foto(11, 1080)] },
+      new Set(),
+    )
+    const g = stored.kms[0]!.groups[0]!
+    // Se nombran doce…
+    expect(g.pulling).toHaveLength(12)
+    // …pero los que se están relevando son veinte, y eso no se pierde.
+    expect(g.pullingTotal).toBe(20)
+  })
+
+  it('y cuando no se corta, la cuenta y la lista dicen lo mismo', () => {
+    const foto = (km: number, t: number) =>
+      radioKmFrom(
+        km,
+        Array.from({ length: 5 }, (_, i) => rider(`r-${i}`, 'mov-1', t, { pulling: i < 3 })),
+        5,
+      )
+    const stored = radioForStorage(
+      { starters: 5, kms: [foto(10, 1000), foto(11, 1080)] },
+      new Set(),
+    )
+    const g = stored.kms[0]!.groups[0]!
+    expect(g.pulling).toHaveLength(3)
+    expect(g.pullingTotal).toBe(3)
+  })
+
+  it('…y NO pisa la velocidad del kilómetro siguiente cuando esa sí se puede medir', () => {
+    // El pelotón frena: 80 s el km anterior (45 km/h) y 120 el siguiente (30). Manda el siguiente.
+    const foto = (km: number, t: number) =>
+      radioKmFrom(
+        km,
+        Array.from({ length: 20 }, (_, i) => rider(`r-${i}`, 'peloton', t)),
+        20,
+      )
+    const stored = radioForStorage(
+      { starters: 20, kms: [foto(10, 1000), foto(11, 1080), foto(12, 1200)] },
+      new Set(),
+    )
+    expect(stored.kms[1]!.groups[0]!.speedKmh).toBeCloseTo(30, 1)
+  })
+
+  it('y si tampoco el kilómetro de antes está limpio, sigue sin haber velocidad que enseñar', () => {
+    // Dos saltos seguidos: 40 s hacia delante y 40 hacia atrás. No se inventa nada.
+    const foto = (km: number, t: number) =>
+      radioKmFrom(
+        km,
+        Array.from({ length: 20 }, (_, i) => rider(`r-${i}`, 'peloton', t)),
+        20,
+      )
+    const stored = radioForStorage(
+      { starters: 20, kms: [foto(10, 1000), foto(11, 1040), foto(12, 1080)] },
+      new Set(),
+    )
+    expect(stored.kms[1]!.groups[0]!.speedKmh).toBeNull()
+  })
+
   it('si no queda ni uno de los suyos en la foto siguiente, no se inventa una velocidad', () => {
     const aqui = radioKmFrom(100, [rider('a', 'peloton', 5000), rider('b', 'peloton', 5000)], 2)
     const luego = radioKmFrom(101, [rider('c', 'peloton', 5080)], 3)
     const stored = radioForStorage({ starters: 3, kms: [aqui, luego] }, new Set())
     expect(stored.kms[0]!.groups[0]!.speedKmh).toBeNull()
+  })
+})
+
+describe('radioForStorage: un hombre PARADO no es una velocidad', () => {
+  /**
+   * EL DEFECTO, VISTO EN PRODUCCIÓN (v70.1). El dueño, en el campeonato de Marruecos en carretera:
+   * el líder EN SOLITARIO marcado a **16,1 km/h** mientras el grupo de caza iba a 42,1 y el pelotón
+   * a 41,2. Y 16,1 km/h ahí es imposible por la LEY: en llano al 1,3 % el suelo de `targetSpeed`
+   * para un hombre solo, con el peor perfil del campo y compromiso cero, son **29,9 km/h**.
+   *
+   * No iba lento: estaba **de pie**, cambiando una rueda. Y a un hombre solo en cabeza el coche le
+   * cuesta el TRIPLE (`carNoAccessGain`) porque no lleva caravana detrás, o sea dos minutos largos.
+   * La radio dividía el kilómetro entre el tiempo que estuvo parado y llamaba a eso velocidad.
+   *
+   * Es el defecto SIMÉTRICO del de la v58 —«¿qué me dices de este tercer grupo que va a 94 km/h?»—:
+   * entonces se puso TECHO (`radioMaxKmh`) y no se puso suelo. En un pelotón la mediana ya se tragaba
+   * al que pinchaba; en un grupo de UNO no hay mediana que lo tape, y por eso salía a la pantalla.
+   */
+  const pinchazo = (riderId: string, lostS: number) =>
+    new Map([[riderId, { tipo: 'pinchazo' as const, lostS }]])
+
+  it('al que pincha yendo solo no se le inventa una velocidad: se dice el percance', () => {
+    // Un hombre solo en cabeza. Su kilómetro le cuesta 224 s (88 de rodar + 136 parado).
+    const aqui = radioKmFrom(
+      139,
+      [rider('lider', 'mov-1', 9000, { pulling: true })],
+      1,
+      undefined,
+      null,
+      undefined,
+      pinchazo('lider', 136),
+    )
+    const luego = radioKmFrom(140, [rider('lider', 'mov-1', 9224)], 1)
+    const stored = radioForStorage({ starters: 1, kms: [aqui, luego] }, new Set())
+    const g = stored.kms[0]!.groups[0]!
+    // Con la cuenta vieja: 3600/224 = 16,1 km/h, que es el número de la foto del dueño.
+    expect(g.speedKmh).toBeNull()
+    expect(g.mishap).toEqual({ tipo: 'pinchazo', lostS: 136 })
+  })
+
+  it('en un grupo grande el que pincha no arrastra la velocidad de los demás', () => {
+    // Veinte a 80 s el kilómetro (45 km/h) y uno que se para dos minutos.
+    const aqui = radioKmFrom(
+      50,
+      Array.from({ length: 21 }, (_, i) => rider(`r-${i}`, 'peloton', 3000)),
+      21,
+      undefined,
+      null,
+      undefined,
+      pinchazo('r-20', 120),
+    )
+    const luego = radioKmFrom(
+      51,
+      Array.from({ length: 21 }, (_, i) => rider(`r-${i}`, 'peloton', i < 20 ? 3080 : 3200)),
+      21,
+    )
+    const stored = radioForStorage({ starters: 21, kms: [aqui, luego] }, new Set())
+    const g = stored.kms[0]!.groups[0]!
+    expect(g.speedKmh).toBeCloseTo(45, 1)
+    // …y el percance se cuenta igual, que es la noticia aunque el grupo siga rodando a 45.
+    expect(g.mishap).toEqual({ tipo: 'pinchazo', lostS: 120 })
+  })
+
+  it('sin percances la radio se comporta exactamente como antes', () => {
+    const aqui = radioKmFrom(10, [rider('a', 'peloton', 1000)], 1)
+    const luego = radioKmFrom(11, [rider('a', 'peloton', 1080)], 1)
+    const stored = radioForStorage({ starters: 1, kms: [aqui, luego] }, new Set())
+    expect(stored.kms[0]!.groups[0]!.speedKmh).toBeCloseTo(45, 1)
+    expect(stored.kms[0]!.groups[0]!.mishap).toBeNull()
+  })
+})
+
+describe('radioForStorage: el que está en el TURNO no va a rueda', () => {
+  /**
+   * EL DEFECTO, VISTO EN PRODUCCIÓN. El dueño: «hay 3 escapados… todos parece que colaboran, pero
+   * en vez de salir que tiran todos, sale cada km que tira uno diferente».
+   *
+   * Y con su etapa delante (`race-ain` s3, km 10 a 25) la radio nombraba a UNO por kilómetro y
+   * pintaba a los otros dos con el icono de ir guarecido. El motor no se equivoca —en una fuga de
+   * tres al frente va uno y los otros dos van a su rueda—; lo que estaba mal era la foto, porque
+   * `pulling` se llenaba con quien daba la cara EN ESE INSTANTE y su contrato dice desde la v34
+   * «está en la ROTACIÓN que se reparte el viento». Una rotación no cabe en un instante.
+   */
+  const tres = (km: number, alFrente: string) =>
+    radioKmFrom(
+      km,
+      ['a', 'b', 'c'].map((id) =>
+        rider(id, 'mov-1', 1000 + 80 * (km - 10), { pulling: id === alFrente, pullWindow: 1 }),
+      ),
+      3,
+    )
+
+  it('los tres de una fuga que se relevan salen los tres, no uno por kilómetro', () => {
+    const stored = radioForStorage(
+      { starters: 3, kms: [tres(10, 'a'), tres(11, 'b'), tres(12, 'c')] },
+      new Set(),
+    )
+    const g = stored.kms[2]!.groups[0]!
+    expect(g.pulling.map((i) => stored.riders[i]).sort()).toEqual(['a', 'b', 'c'])
+    // Y el que da la cara AHORA sigue yendo el primero de la lista: el orden es el del viento.
+    expect(stored.riders[g.pulling[0]!]).toBe('c')
+    expect(g.watching).toEqual([])
+  })
+
+  /* Al que va a rueda de verdad no se le asciende: el turno es haber dado la cara, no estar ahí. */
+  it('el que no ha dado la cara nunca sigue saliendo a rueda', () => {
+    const conGorron = (km: number, alFrente: string) =>
+      radioKmFrom(
+        km,
+        ['a', 'b', 'gorron'].map((id) =>
+          rider(id, 'mov-1', 1000 + 80 * (km - 10), {
+            pulling: id === alFrente,
+            pullWindow: id === 'gorron' ? 0 : 1,
+          }),
+        ),
+        3,
+      )
+    const stored = radioForStorage(
+      { starters: 3, kms: [conGorron(10, 'a'), conGorron(11, 'b'), conGorron(12, 'a')] },
+      new Set(),
+    )
+    const g = stored.kms[2]!.groups[0]!
+    expect(g.pulling.map((i) => stored.riders[i]).sort()).toEqual(['a', 'b'])
+    expect(g.watching.map((i) => stored.riders[i])).toEqual(['gorron'])
+  })
+
+  /*
+    El turno caduca: si dejó de relevar hace más de tres kilómetros, ya no está en la rotación.
+    Sin esto, «el que tira» acabaría siendo «el que tiró alguna vez», que no es un parte de radio.
+  */
+  it('el turno caduca a los tres kilómetros', () => {
+    const kms = [tres(10, 'a')]
+    for (let km = 11; km <= 15; km++) kms.push(tres(km, 'b'))
+    const stored = radioForStorage({ starters: 3, kms }, new Set())
+    // km 13: `a` dio la cara en el 10, hace tres → sigue contando.
+    expect(stored.kms[3]!.groups[0]!.pulling.map((i) => stored.riders[i]).sort()).toEqual([
+      'a',
+      'b',
+    ])
+    // km 15: hace cinco → ya no.
+    expect(stored.kms[5]!.groups[0]!.pulling.map((i) => stored.riders[i])).toEqual(['b'])
+  })
+
+  /*
+    Y se pide el MISMO grupo, no solo el mismo hombre: el que venía relevando en el pelotón y acaba
+    de caerse a un grupeto no está relevando en el grupeto — está descolgado.
+  */
+  it('el que relevaba en el pelotón y se cae a un grupeto no sale relevando allí', () => {
+    const antes = radioKmFrom(
+      10,
+      [
+        ...Array.from({ length: 10 }, (_, i) => rider(`p-${i}`, 'peloton', 1000)),
+        rider('caido', 'peloton', 1000, { pulling: true, pullWindow: 1 }),
+      ],
+      11,
+    )
+    const ahora = radioKmFrom(
+      11,
+      [
+        ...Array.from({ length: 10 }, (_, i) => rider(`p-${i}`, 'peloton', 1080)),
+        rider('caido', 'shed-1', 1200),
+      ],
+      11,
+    )
+    const stored = radioForStorage({ starters: 11, kms: [antes, ahora] }, new Set())
+    const grupeto = stored.kms[1]!.groups.find((g) => g.size === 1)!
+    expect(grupeto.pulling).toEqual([])
+    expect(grupeto.watching.map((i) => stored.riders[i])).toEqual(['caido'])
   })
 })
 

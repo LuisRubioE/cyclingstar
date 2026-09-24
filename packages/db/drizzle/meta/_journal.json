@@ -281,6 +281,13 @@
       "when": 1789148629940,
       "tag": "0039_el_recorrido_es_del_mundo",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1789561663851,
+      "tag": "0040_ordenes_del_paso_17a",
+      "breakpoints": true
     }
   ]
 }

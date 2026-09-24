@@ -6,6 +6,7 @@
  * Paso 21: andamiaje. La física (6.4-6.14) llega a partir del Paso 22.
  */
 import type { Attribute } from '@cyclingstar/shared'
+import type { StageMaterial } from './weather.js'
 import type { RaceContext, StandingRow, TacticFlags } from './views.js'
 
 /** Terreno tal como lo escribe el autor del recorrido (SPEC 6.2). */
@@ -45,6 +46,31 @@ export interface Segment {
 export interface StageProfile {
   segments: Segment[]
   banners?: Banner[]
+  /**
+   * LA COTA DE SALIDA, en metros sobre el mar (R28.7, paso 18d). Opcional y **0 por defecto**, y eso
+   * no es pereza: el calendario de hoy guarda PENDIENTES, no altitudes, así que no hay de dónde
+   * sacar la cota de ninguna etapa. Con 0 la ley de la altitud no cobra nada —un perfil a nivel del
+   * mar nunca pasa de 2.000 m— y el motor corre exactamente como antes.
+   *
+   * La ley entra ahora y queda dormida a propósito, con la condición de despertarla escrita: **el
+   * día que los recorridos traigan su cota, empieza a cobrar sola**. La alternativa era inventarse
+   * altitudes por etapa, que es peor que no tenerlas.
+   */
+  startM?: number
+  /**
+   * CUÁNTAS VUELTAS AL MISMO CIRCUITO (R28.6, S-227 · paso 18b). Ausente o 1 = de un sitio a otro,
+   * que es como corre todo el calendario de hoy.
+   *
+   * **NO cambia el recorrido**: `segments` sigue siendo la etapa ENTERA, con sus vueltas ya
+   * desplegadas, y la física no se entera de nada. Es un dato TÁCTICO, y lo que dice es que el
+   * pelotón pasa `laps` veces por los mismos sitios — que es lo que convierte una carrera en un
+   * circuito: «la criba se ACUMULA vuelta a vuelta… la carrera arranca a dos vueltas».
+   *
+   * Poner esto en el recorrido y no en el calendario es a propósito: el motor tiene que poder correr
+   * un circuito le venga de donde le venga, y el banco tiene que poder montar uno sin tocar
+   * `SEASON_CALENDAR`.
+   */
+  laps?: number
 }
 
 /** Un bloque de 100 metros ya muestreado, listo para la física (SPEC 6.2, 6.16). */
@@ -97,7 +123,45 @@ export interface StageOrders {
   triggerKm?: number | null
   contestSprints: boolean
   contestClimbs: boolean
+  /**
+   * --- LAS CUATRO PALANCAS QUE EL PASO 17 AÑADE (R22, §6.2), TODAS OPCIONALES -----------------
+   *
+   * Las siete de hoy se conservan enteras y el juego pasa a tener **once**, que es el número del
+   * que hablan `ordersBench` y los tres invariantes del racimo. Todas opcionales a propósito: unas
+   * órdenes viejas —o unas de un bot— corren exactamente como antes.
+   */
+  /**
+   * LA CITA DEJA DE SER SOLO UN KILÓMETRO (S-214/S-321/S-322). «Al pie del último puerto», «si salta
+   * Z», «si la fuga pasa de dos minutos», «si llueve»: un kilómetro es la forma más pobre de decir
+   * cuándo, porque es la única que no depende de la carrera.
+   */
+  triggerOn?: TriggerCond | null
+  /** «SI LA FUGA PASA DE DOS MINUTOS, TIRO» (S-215, S-071): la política de caza del equipo. */
+  chasePolicy?: ChasePolicy
+  /** «CON ÉSOS NO COLABORO» (S-256). Se cobra donde duele: en el turno de relevos. */
+  refuseRelayTeams?: string[]
+  /** «HOY ME VOY AL GRUPETO» / «HOY ES MI DÍA» (S-216, S-024, S-030). Declara, no negocia. */
+  dayGoal?: DayGoal
 }
+
+/**
+ * CUÁNDO LANZA SU MOVIMIENTO ESTE HOMBRE (R22, S-214/S-321/S-322). Seis formas de decir «cuándo», y
+ * cinco de ellas dependen de lo que pase en la carretera — que es toda la diferencia entre una cita
+ * y un despertador.
+ */
+export type TriggerCond =
+  | { at: 'km'; km: number }
+  | { at: 'climb'; which: 'last' | 'penultimate'; part: 'pie' | 'duro' | 'cima' }
+  | { at: 'attack'; byRiderId: string }
+  | { at: 'gap'; overS: number }
+  | { at: 'weather'; cond: 'lluvia' | 'viento' }
+  | { at: 'sector'; index: number }
+
+/** Qué hace su equipo con una fuga: nunca perseguir, perseguir si amenaza, o perseguir siempre. */
+export type ChasePolicy = 'nunca' | 'si_amenaza' | 'siempre'
+
+/** A qué sale hoy este hombre. Es una declaración, no una negociación (§6.3). */
+export type DayGoal = 'ganar' | 'general' | 'puntos' | 'montana' | 'grupeto' | 'ahorrar' | 'servir'
 
 /** Un corredor tal como entra al motor (SPEC 6.1, 6.5, 6.6): efectividades ya resueltas. */
 export interface StageRider {
@@ -151,6 +215,30 @@ export interface StageRider {
   bib?: number | null
   /** Fragilidad oculta (SPEC 3.4): escala la probabilidad de lesión al caer. Por defecto 1. */
   fragility?: number
+  /**
+   * --- LO QUE EL PASO 18 LEE, Y QUE SE DEFINE EN `entrenamiento.md` ---------------------------
+   *
+   * La frontera entre los dos documentos: aquél se queda con la mitad **fisiológica** —el depósito,
+   * los cerillos, la salud— y éste con la **táctica**, que es **cómo el director LEE ese estado al
+   * planificar**. Los dos campos vienen calculados de fuera; el motor no los inventa.
+   */
+  /**
+   * EL RITMO DE CARRERA (R08.4, S-468/S-385/S-482), en [0,1]. `clamp(tssDeCarrera(28 d) / (0,25 ·
+   * tssTotal(28 d)), 0, 1)`, definido en `entrenamiento.md` §5.2 — **una sola contabilidad de
+   * carga**. «Días sin dorsal» a secas castigaba igual al que descansó tres semanas por bloque que
+   * al que acababa de correr una vuelta de tres semanas.
+   *
+   * Ausente = 1: el que no trae el dato corre como si llegara con ritmo, que es lo conservador.
+   */
+  raceRhythm?: number
+  /**
+   * DÍAS SEGUIDOS TOCADO (R08.2, S-380/S-381). **No hay dado nuevo ni «enfermo que sigue en
+   * carrera»**: en el motor enfermar ES abandonar, y lo que crece durante días antes es la molestia.
+   * Aquí solo se LEE, para degradar el papel del hombre y para decidir en la cuneta.
+   */
+  illDays?: number
+  /** Y si viene tocado de ayer: no entra al turno y no arriesga en un descenso (S-380). */
+  bruised?: boolean
   /**
    * EL AÑO DE CONTRATO (R15a.8, S-428). El que se juega el suyo corre de escaparate: ataca más y se
    * conforma menos con ir escondido. **Ausente = no lo sabemos**, y entonces no cambia nada.
@@ -210,6 +298,17 @@ export interface StageInput {
   flags?: TacticFlags
   /** CRI/cronoescalada: grupos de un corredor, sin drafting ni hazards (SPEC 6.13). */
   timeTrial?: boolean
+  /**
+   * EL MATERIAL QUE HA ELEGIDO CADA EQUIPO PARA HOY (R14.4, S-430, paso 20), por `teamId`.
+   *
+   * Tres opciones —lenticular con viento, presión baja en el pavé, desarrollo corto en la reina—,
+   * ±2 puntos de perfil en el terreno que corresponda y **penalización simétrica si se falla el
+   * parte**: elegir lenticular un día sin viento no es neutro, es ir peor. Que sea simétrico es lo
+   * que convierte la elección en una apuesta, y lo que hace que valga la pena mirar la previsión.
+   *
+   * OPCIONAL a propósito: sin ella nadie elige material y el motor corre exactamente como antes.
+   */
+  materiales?: Record<string, StageMaterial>
   /**
    * DÓNDE Y CUÁNDO SE CORRE (v42). Lo único que el motor necesita para saber qué clima le toca a
    * esta etapa, y es la petición del dueño en una línea: «el clima debería depender del país y del
@@ -323,6 +422,29 @@ export type PullMotive =
   | 'equipo_general'
   /** Nadie manda al frente: le toca por su papel (gregario, o corredor sin órdenes). */
   | 'rol'
+  /**
+   * --- LOS MOTIVOS QUE EL PASO 17 AÑADE (R23.1, S-434/S-441) ---------------------------------
+   *
+   * El vocabulario tenía diez palabras y la carretera produce quince. Las cinco que faltaban no son
+   * matices: son situaciones que la crónica contaba con la palabra equivocada, y **una crónica que
+   * miente es peor que una crónica muda**, porque el que lee no puede saber que le están mintiendo.
+   */
+  /**
+   * EL JEFE QUE SE HACE SU PROPIO RITMO (S-434). Ocho hombres en el último puerto y el favorito
+   * delante marcando tempo: eso no es «libre», es el motivo más claro que hay. Hasta hoy salía como
+   * `rol`, o sea como si le tocara por turno.
+   */
+  | 'propio'
+  /** …y el que tira por una clasificación secundaria, que es otra carrera dentro de la carrera. */
+  | 'equipo_puntos'
+  | 'equipo_montana'
+  /**
+   * EL INFILTRADO (R03.5), y la gracia es que se narra **como que NO tira**: su equipo le metió ahí
+   * para no tener que perseguir, así que su trabajo es exactamente no hacer ninguno.
+   */
+  | 'infiltrado'
+  /** Y el que va al frente COLOCANDO a su hombre, que es trabajo aunque no sea velocidad (R15). */
+  | 'colocando'
 
 export interface SnapshotRider {
   riderId: string

@@ -152,20 +152,30 @@ describe('db: consecuencias de un abandono', () => {
       .set({ abandonedDay: START_DAY + 1, abandonedReason: 'colapso' })
       .where(and(eq(raceRosters.raceId, RACE_KEY), eq(raceRosters.riderId, out)))
 
+    /**
+     * LA LISTA DE SALIDA SE LEE ANTES DE LA ETAPA, que es cuando una lista de salida existe.
+     *
+     * Este test ya se arregló una vez por frágil —comparaba contra `FIELD - 1` a secas y el nocturno
+     * del 17/08 lo tumbó— y el arreglo dejó la comparación contra el ROSTER **pero preguntándoselo
+     * DESPUÉS de correr**. Con eso el propio motivo del arreglo seguía intacto: el motor puede
+     * retirar a alguien DENTRO de la etapa (colapso o fuera de control, v14), y entonces el que
+     * tomó la salida ya no está en la lista cuando se la pregunta. Once corrieron, diez quedaban.
+     *
+     * Lo destapó el v77, que cambia qué equipos persiguen en una vuelta y con ello a quién le toca
+     * hundirse. No es un defecto del v77: es que la pregunta estaba hecha en el momento equivocado.
+     */
+    const enLista = await t.db
+      .select({ riderId: raceRosters.riderId })
+      .from(raceRosters)
+      .where(and(eq(raceRosters.raceId, RACE_KEY), isNull(raceRosters.abandonedDay)))
+
     const raced2 = await t.db.transaction((tx) =>
       runOneStage(tx, worldId, START_DAY + 2, 'semilla-abandono', stageSpec(3)),
     )
     // Ni corre…
     expect(raced2.has(out)).toBe(false)
-    // …y no se ha caído NADIE MÁS por la puerta del abandono: los que corren son los que quedan en
-    // la lista de salida. Se compara contra el ROSTER y no contra `FIELD - 1` a secas, que es lo
-    // que hacía este test y lo que lo volvía frágil: el motor puede retirar a alguien DENTRO de la
-    // etapa (colapso o fuera de control, v14) y eso es comportamiento legítimo, no un fallo de lo
-    // que aquí se comprueba. Medido: el nocturno del 17/08 falló exactamente por eso.
-    const enLista = await t.db
-      .select({ riderId: raceRosters.riderId })
-      .from(raceRosters)
-      .where(and(eq(raceRosters.raceId, RACE_KEY), isNull(raceRosters.abandonedDay)))
+    // …y no se ha caído NADIE MÁS por la puerta del abandono: los que corren son exactamente los que
+    // estaban en la lista de salida.
     expect(raced2.size).toBe(enLista.length)
     // …ni tiene resultado en esa etapa…
     const res3 = await getStageResults(t.db, RACE_KEY, 3)
@@ -177,10 +187,23 @@ describe('db: consecuencias de un abandono', () => {
       .from(raceGc)
       .where(and(eq(raceGc.raceId, RACE_KEY), eq(raceGc.riderId, out)))
     expect(after!.tiempoTotalS).toBe(before)
-    // Y la clasificación lo marca como DNF, ordenado al final (`results.ts`).
+    /**
+     * Y la clasificación lo marca como DNF, **ordenado al final** (`results.ts`).
+     *
+     * «Al final» es «detrás de todos los que terminaron», no «el último de la lista»: el motor puede
+     * retirar a alguien DENTRO de la etapa —colapso o fuera de control, v14—, y entonces hay dos DNF
+     * y el desempate entre ellos decide cuál cae el último. Pedir que sea ÉSTE era pedirle a la
+     * prueba que vigilara el desempate entre dos abandonos, que no es lo que dice el comentario ni
+     * lo que a este test le importa.
+     *
+     * Lo destapó el v77 por la misma puerta que la cuenta de arriba: al cambiar qué equipos
+     * persiguen en una vuelta, cambia a quién le toca hundirse.
+     */
     const gcAfter = await getRaceGc(t.db, RACE_KEY)
-    expect(gcAfter.find((r) => r.riderId === out)?.dnf).toBe(true)
-    expect(gcAfter[gcAfter.length - 1]?.riderId).toBe(out)
+    const iOut = gcAfter.findIndex((r) => r.riderId === out)
+    expect(gcAfter[iOut]?.dnf).toBe(true)
+    expect(gcAfter.slice(iOut).every((r) => r.dnf)).toBe(true)
+    expect(gcAfter.slice(0, iOut).some((r) => r.dnf)).toBe(false)
   })
 
   it('el jugador puede retirarse él mismo de una carrera en marcha, y es idempotente', async () => {

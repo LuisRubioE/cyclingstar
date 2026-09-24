@@ -65,10 +65,29 @@ export function analyzeFlat(scenario: Scenario, seeds: string[]): FlatStats {
 
 export interface MountainStats {
   runs: number
-  /** % de etapas que gana la fuga en montaña (objetivo 25-45%). */
+  /** % de etapas que gana la fuga en montaña. La banda vive en `sim/targets.ts`, no aquí. */
   breakawayWinPct: number
-  /** Brecha mediana entre el 1º y el 10º del día, en segundos (objetivo 60-240). */
+  /** Brecha mediana entre el 1º y el 10º del día, en segundos. Banda en `sim/targets.ts`. */
   medianTop10GapSeconds: number
+  /**
+   * ————— CUÁNTO MUEVE LA GENERAL UN KILÓMETRO DE PUERTO, ENTRE HOMBRES VECINOS (v82) —————
+   *
+   * Es **la frase literal de `customs.gcClimbRecoverPerKm`**, que llevaba `[calibrar]` desde que
+   * nació con un ancla que no se podía resolver: «[calibrar] sobre `realQueens` en el paso 21», y
+   * ese banco publica el TAMAÑO DE LA COLA, que no es esto.
+   *
+   * No hace falta correr nada nuevo: sale de lo que esta función ya mide, dividido por dos números
+   * de la propia etapa. `medianTop10GapSeconds` son los nueve huecos que separan al 1.º del 10.º,
+   * así que entre vecinos es una novena parte; y los km de puerto son los que `terrenoRestante`
+   * cuenta en `packages/db` —los segmentos `tipo: 'puerto'`— que es la MISMA unidad en la que la
+   * constante cobra. Sin esa coincidencia de unidad el número no valdría para anclar nada.
+   */
+  gcMovePerClimbKm: number
+}
+
+/** Los km de PUERTO de un recorrido, contados como los cuenta `terrenoRestante` en `packages/db`. */
+function kmDePuerto(scenario: Scenario): number {
+  return scenario.input.profile.segments.reduce((a, s) => a + (s.tipo === 'puerto' ? s.km : 0), 0)
 }
 
 /** Corre la etapa reina y agrega los invariantes de montaña (SPEC 6.17). */
@@ -89,6 +108,10 @@ export function analyzeMountain(scenario: Scenario, seeds: string[]): MountainSt
     runs,
     breakawayWinPct: (100 * breakawayWins) / runs,
     medianTop10GapSeconds: median(top10Gaps),
+    gcMovePerClimbKm: (() => {
+      const puerto = kmDePuerto(scenario)
+      return puerto <= 0 ? 0 : median(top10Gaps) / 9 / puerto
+    })(),
   }
 }
 
@@ -128,7 +151,7 @@ export function analyzeErosion(scenario: Scenario, seeds: string[]): ErosionStat
 
 export interface TimeTrialStats {
   runs: number
-  /** Brecha percentil 90 a 10 del campo, mediana en segundos (objetivo 120-240). */
+  /** Brecha percentil 90 a 10 del campo, mediana en segundos. Banda en `sim/targets.ts`. */
   medianP90MinusP10Seconds: number
   /** % de cronos que gana un especialista (id que empieza por "cri-"). */
   specialistWinPct: number

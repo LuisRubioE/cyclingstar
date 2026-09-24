@@ -8,11 +8,13 @@ import {
   formStars,
   freshnessBar,
   gcPointsByClass,
+  overlappingRaces,
   raceLastDay,
   raceLeadScore,
   raceOngoingBefore,
   raceVocationFit,
   scheduledStageIndex,
+  scheduledStageIndices,
   selectSquad,
   stagePlace,
   stagePointsByClass,
@@ -1088,11 +1090,9 @@ async function assignBibs(tx: Tx, race: CalendarRace, season: number): Promise<v
 
 /** Corredores ya comprometidos con otra carrera cuya ventana se solapa con la de `race` (misma temporada). */
 async function busyForRaceWindow(tx: Tx, race: CalendarRace, season: number): Promise<Set<string>> {
-  const start = race.startDay
-  const end = raceLastDay(race)
-  const overlappingKeys = SEASON_CALENDAR.filter(
-    (r) => r.id !== race.id && r.startDay <= end && start <= raceLastDay(r),
-  ).map((r) => `${r.id}:s${season}`)
+  // La cuenta de qué se solapa con qué vive en el motor y está sellada allí (`solapes.test.ts`):
+  // aquí se LLAMA, no se repite. Una regla escrita dos veces se arregla una sola.
+  const overlappingKeys = overlappingRaces(race, SEASON_CALENDAR).map((r) => `${r.id}:s${season}`)
   const busy = new Set<string>()
   if (overlappingKeys.length === 0) return busy
   const rows = await tx
@@ -1552,9 +1552,36 @@ export async function runCalendarDay(
     for (const row of rows) busy.add(row.riderId)
   }
 
+  /**
+   * LO QUE SE CORRE HOY, carrera por carrera y etapa por etapa. Son PARES y no una etapa por
+   * carrera porque una jornada puede ir partida en dos: la semietapa de R28.6 (S-431), dos
+   * `StageInput` el mismo día con el depósito encadenado. Con `scheduledStageIndex` a secas la
+   * segunda mitad no se correría nunca y nadie se enteraría.
+   */
+  const hoy: {
+    race: CalendarRace
+    idx: number
+    carga?: { banked: Map<string, number>; aplicaHoy: boolean }
+  }[] = []
   for (const race of SEASON_CALENDAR) {
-    const idx = scheduledStageIndex(race, dayOfSeason)
-    if (idx == null) continue
+    const indices = scheduledStageIndices(race, dayOfSeason)
+    if (indices.length === 0) continue
+    /**
+     * LA CARGA DE UN DÍA PARTIDO SE COMPARTE ENTRE SUS MITADES (ver `StageRunSpec.cargaDelDia`). El
+     * Banister avanza UN día, no uno por etapa, así que el TSS se suma y se aplica al cerrar. Con
+     * una sola etapa no se pasa nada y el camino es el de siempre.
+     */
+    const banked = indices.length > 1 ? new Map<string, number>() : null
+    for (const idx of indices) {
+      hoy.push({
+        race,
+        idx,
+        ...(banked ? { carga: { banked, aplicaHoy: idx === indices[indices.length - 1] } } : {}),
+      })
+    }
+  }
+
+  for (const { race, idx, carga } of hoy) {
     const raceKey = `${race.id}:s${season}`
 
     if (idx === 1) {
@@ -1619,6 +1646,7 @@ export async function runCalendarDay(
       // API da el parte meteorológico de antes con la MISMA función, y si las dos se separaran el
       // parte anunciaría el tiempo de otra carrera (v44).
       lugar: stagePlace(race, idx),
+      ...(carga ? { cargaDelDia: carga } : {}),
     })
     for (const id of r) raced.add(id)
   }

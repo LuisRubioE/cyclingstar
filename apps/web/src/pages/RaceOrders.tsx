@@ -23,6 +23,20 @@ import {
   STAGE_ROLE_LABEL,
   STAGE_ROLE_OPTIONS,
   STAGE_KIND_LABEL,
+  CHASE_POLICY_DESC,
+  CHASE_POLICY_LABEL,
+  CHASE_POLICY_OPTIONS,
+  type ChasePolicyUi,
+  CLIMB_PART_LABEL,
+  CLIMB_WHICH_LABEL,
+  DAY_GOAL_DESC,
+  DAY_GOAL_LABEL,
+  DAY_GOAL_OPTIONS,
+  type DayGoalUi,
+  TRIGGER_KIND_LABEL,
+  TRIGGER_KIND_OPTIONS,
+  type TriggerKindUi,
+  WEATHER_COND_LABEL,
 } from '../domain/labels'
 import {
   type OrdersDraft,
@@ -33,6 +47,179 @@ import {
 } from '../domain/raceOrdersDraft'
 
 const NEEDS_TARGET: StageRole[] = ['lanzador', 'gregario', 'marcador']
+
+/**
+ * LA CITA DEJA DE SER SOLO UN KILÓMETRO (paso 17a, R22 · S-214/S-321/S-322).
+ *
+ * Seis formas de decir «cuándo», y **cinco dependen de lo que pase en la carretera** — que es toda
+ * la diferencia entre una cita y un despertador. El kilómetro se queda porque a veces es lo que el
+ * jugador quiere decir, y porque las hojas guardadas antes de este paso lo usan.
+ *
+ * Cuando la forma elegida es el kilómetro se escriben LAS DOS COSAS, `triggerOn` y el `triggerKm` de
+ * siempre. No es duplicar por gusto: el motor lee hoy `triggerKm` y seguirá leyéndolo hasta el paso
+ * 17b, así que si solo se escribiera la forma nueva la palanca dejaría de funcionar durante un paso
+ * entero — que es exactamente el defecto de la v58 que este paso existe para no repetir.
+ */
+function Trigger({
+  stageDay,
+  stageKm,
+  order,
+  onChange,
+  selectClass,
+}: {
+  stageDay: number
+  stageKm: number
+  order: StageOrder
+  onChange: (patch: Partial<StageOrder>) => void
+  selectClass: string
+}) {
+  const t =
+    order.triggerOn ?? (order.triggerKm != null ? { at: 'km' as const, km: order.triggerKm } : null)
+  const kind: TriggerKindUi =
+    t?.at === 'attack' ? 'ninguno' : ((t?.at as TriggerKindUi) ?? 'ninguno')
+  const id = `trigger-${stageDay}`
+
+  const setKind = (k: TriggerKindUi) => {
+    if (k === 'ninguno') return onChange({ triggerOn: null, triggerKm: null })
+    if (k === 'km') return onChange({ triggerOn: { at: 'km', km: 0 }, triggerKm: 0 })
+    if (k === 'climb')
+      return onChange({ triggerOn: { at: 'climb', which: 'last', part: 'pie' }, triggerKm: null })
+    if (k === 'gap') return onChange({ triggerOn: { at: 'gap', overS: 120 }, triggerKm: null })
+    if (k === 'weather')
+      return onChange({ triggerOn: { at: 'weather', cond: 'lluvia' }, triggerKm: null })
+    return onChange({ triggerOn: { at: 'sector', index: 1 }, triggerKm: null })
+  }
+
+  return (
+    <div className="flex flex-col gap-1 text-xs font-medium text-slate-500">
+      <label htmlFor={id} className="flex flex-col gap-1">
+        When I go
+        <select
+          id={id}
+          className={selectClass}
+          value={kind}
+          onChange={(e) => setKind(e.target.value as TriggerKindUi)}
+        >
+          {TRIGGER_KIND_OPTIONS.map((k) => (
+            <option key={k} value={k}>
+              {TRIGGER_KIND_LABEL[k]}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      {t?.at === 'km' ? (
+        <input
+          aria-label="Kilometre"
+          type="number"
+          min={0}
+          max={stageKm}
+          className={selectClass}
+          value={t.km}
+          onChange={(e) => {
+            const km = e.target.value === '' ? 0 : Number(e.target.value)
+            onChange({ triggerOn: { at: 'km', km }, triggerKm: km })
+          }}
+        />
+      ) : null}
+
+      {t?.at === 'climb' ? (
+        <div className="flex gap-1">
+          <select
+            aria-label="Which climb"
+            className={selectClass}
+            value={t.which}
+            onChange={(e) =>
+              onChange({
+                triggerOn: {
+                  at: 'climb',
+                  which: e.target.value as 'last' | 'penultimate',
+                  part: t.part,
+                },
+              })
+            }
+          >
+            {(['last', 'penultimate'] as const).map((w) => (
+              <option key={w} value={w}>
+                {CLIMB_WHICH_LABEL[w]}
+              </option>
+            ))}
+          </select>
+          <select
+            aria-label="Where on the climb"
+            className={selectClass}
+            value={t.part}
+            onChange={(e) =>
+              onChange({
+                triggerOn: {
+                  at: 'climb',
+                  which: t.which,
+                  part: e.target.value as 'pie' | 'duro' | 'cima',
+                },
+              })
+            }
+          >
+            {(['pie', 'duro', 'cima'] as const).map((pp) => (
+              <option key={pp} value={pp}>
+                {CLIMB_PART_LABEL[pp]}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
+
+      {t?.at === 'gap' ? (
+        <input
+          aria-label="Gap in seconds"
+          type="number"
+          min={0}
+          step={15}
+          className={selectClass}
+          value={t.overS}
+          onChange={(e) =>
+            onChange({ triggerOn: { at: 'gap', overS: Number(e.target.value || 0) } })
+          }
+        />
+      ) : null}
+
+      {t?.at === 'weather' ? (
+        <select
+          aria-label="Weather"
+          className={selectClass}
+          value={t.cond}
+          onChange={(e) =>
+            onChange({ triggerOn: { at: 'weather', cond: e.target.value as 'lluvia' | 'viento' } })
+          }
+        >
+          {(['lluvia', 'viento'] as const).map((c) => (
+            <option key={c} value={c}>
+              {WEATHER_COND_LABEL[c]}
+            </option>
+          ))}
+        </select>
+      ) : null}
+
+      {t?.at === 'sector' ? (
+        <input
+          aria-label="Sector number"
+          type="number"
+          min={1}
+          className={selectClass}
+          value={t.index}
+          onChange={(e) =>
+            onChange({ triggerOn: { at: 'sector', index: Number(e.target.value || 1) } })
+          }
+        />
+      ) : null}
+
+      <span className="font-normal text-slate-400">
+        {kind === 'ninguno'
+          ? 'No appointment. Your mentality picks the moment.'
+          : 'A move launched here, if the legs are there when it comes.'}
+      </span>
+    </div>
+  )
+}
 
 /**
  * EL PARTE DEL DÍA, en la pantalla donde se decide (v44). Que el clima exista en el motor no sirve
@@ -164,6 +351,7 @@ export function RaceOrders() {
   }
 
   const teammates = data?.teammates ?? []
+  const teams = data?.teams ?? []
   const rivals = data?.rivals ?? []
 
   return (
@@ -355,28 +543,103 @@ export function RaceOrders() {
                     <span className="font-normal text-slate-400">{EFFORT_DESC[order.effort]}</span>
                   </label>
 
+                  <Trigger
+                    stageDay={stage.day}
+                    stageKm={stage.km}
+                    order={order}
+                    onChange={(patch) => update(stage.day, patch)}
+                    selectClass={selectClass}
+                  />
+
                   <label
-                    htmlFor={`trigger-km-${stage.day}`}
+                    htmlFor={`day-goal-${stage.day}`}
                     className="flex flex-col gap-1 text-xs font-medium text-slate-500"
                   >
-                    Attack at km (optional)
-                    <input
-                      id={`trigger-km-${stage.day}`}
-                      type="number"
-                      min={0}
-                      max={stage.km}
+                    What I ride for
+                    <select
+                      id={`day-goal-${stage.day}`}
                       className={selectClass}
-                      value={order.triggerKm ?? ''}
+                      value={order.dayGoal ?? ''}
                       onChange={(e) =>
                         update(stage.day, {
-                          triggerKm: e.target.value === '' ? null : Number(e.target.value),
+                          dayGoal: e.target.value === '' ? null : (e.target.value as DayGoalUi),
                         })
                       }
-                    />
+                    >
+                      <option value="">No preference — the team decides</option>
+                      {DAY_GOAL_OPTIONS.map((g) => (
+                        <option key={g} value={g}>
+                          {DAY_GOAL_LABEL[g]}
+                        </option>
+                      ))}
+                    </select>
                     <span className="font-normal text-slate-400">
-                      Launch a move at this distance. Leave blank to let your mentality decide when.
+                      {order.dayGoal
+                        ? DAY_GOAL_DESC[order.dayGoal as DayGoalUi]
+                        : 'Leave it blank and the day is planned for you.'}
                     </span>
                   </label>
+
+                  <label
+                    htmlFor={`chase-${stage.day}`}
+                    className="flex flex-col gap-1 text-xs font-medium text-slate-500"
+                  >
+                    What we do with a breakaway
+                    <select
+                      id={`chase-${stage.day}`}
+                      className={selectClass}
+                      value={order.chasePolicy ?? ''}
+                      onChange={(e) =>
+                        update(stage.day, {
+                          chasePolicy:
+                            e.target.value === '' ? null : (e.target.value as ChasePolicyUi),
+                        })
+                      }
+                    >
+                      <option value="">No preference — read the race</option>
+                      {CHASE_POLICY_OPTIONS.map((c) => (
+                        <option key={c} value={c}>
+                          {CHASE_POLICY_LABEL[c]}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="font-normal text-slate-400">
+                      {order.chasePolicy
+                        ? CHASE_POLICY_DESC[order.chasePolicy as ChasePolicyUi]
+                        : 'Leave it blank and the team judges each move on its merits.'}
+                    </span>
+                  </label>
+
+                  {teams.length > 0 ? (
+                    <fieldset className="flex flex-col gap-1 text-xs font-medium text-slate-500">
+                      <legend className="mb-1">Teams I will not work with</legend>
+                      <div className="flex max-h-28 flex-col gap-1 overflow-y-auto pr-1 text-sm font-normal text-slate-600">
+                        {teams.map((t) => {
+                          const vetados = order.refuseRelayTeams ?? []
+                          const marcado = vetados.includes(t.id)
+                          return (
+                            <label key={t.id} className="flex items-center gap-1.5">
+                              <input
+                                type="checkbox"
+                                checked={marcado}
+                                onChange={(e) =>
+                                  update(stage.day, {
+                                    refuseRelayTeams: e.target.checked
+                                      ? [...vetados, t.id]
+                                      : vetados.filter((x) => x !== t.id),
+                                  })
+                                }
+                              />
+                              {t.name}
+                            </label>
+                          )
+                        })}
+                      </div>
+                      <span className="font-normal text-slate-400">
+                        You will not take a turn on the front while they are the ones benefiting.
+                      </span>
+                    </fieldset>
+                  ) : null}
 
                   <div className="flex flex-col gap-1 text-sm text-slate-600">
                     <label htmlFor={`sprints-${stage.day}`} className="flex items-center gap-1.5">

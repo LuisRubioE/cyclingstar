@@ -82,6 +82,12 @@ const EVENT_ORDER: Record<string, number> = {
   // El abanico ocupa el mismo sitio que la criba (v41): es un corte del grupo, contado por el
   // viento en vez de por la rampa, y las dos no coinciden nunca en el mismo kilómetro.
   echelon_split: 4,
+  // …Y EL ABANICO QUE SE CIERRA (v70) comparte sitio con el que se abre: es la misma noticia por el
+  // otro lado —la carrera se rehace— y las dos no coinciden nunca en el mismo kilómetro.
+  echelon_close: 4,
+  // La lluvia que hace subir a un equipo entero al frente (v70) vale lo que un relevo del pelotón:
+  // es trabajo colectivo con una causa, no un corte.
+  rain_front: 2.5,
   // La criba LEJOS de meta (v21) va en el sitio del corte: es la misma noticia contada en el tramo
   // de carretera donde el desenlace todavía no ha empezado.
   peloton_selection: 4,
@@ -1262,12 +1268,42 @@ const storedRaceRadioSchema = z.object({
           size: z.number(),
           gapS: z.number(),
           speedKmh: z.number().nullable(),
+          /**
+           * EL PERCANCE DE ESTE KILÓMETRO (v70.1). Opcional a propósito: las etapas corridas antes
+           * no lo traen y su radio tiene que seguir leyéndose igual.
+           */
+          mishap: z
+            .object({
+              tipo: z.enum(['caida', 'pinchazo', 'averia']),
+              lostS: z.number(),
+            })
+            .nullish(),
           pulling: z.array(z.number()),
+          /**
+           * Cuántos están en el turno DE VERDAD, antes de que la lista se corte en doce. Con
+           * `default` a 0 porque las etapas anteriores no lo traen; en ésas la cuenta buena es la
+           * longitud de `pulling`, y así lo resuelve el mapeo de abajo.
+           */
+          pullingTotal: z.number().optional(),
           /**
            * PARA QUÉ tira cada uno de `pulling`, en el mismo orden (v47). Con `default` a propósito:
            * las etapas corridas antes de la v47 no lo traen y su radio tiene que seguir leyéndose.
            */
-          motivos: z.array(pullMotiveSchema.nullable()).default([]),
+          /**
+           * …Y UN MOTIVO DESCONOCIDO NO PUEDE COSTAR LA RADIO ENTERA (corrección de producción).
+           *
+           * Esto era `pullMotiveSchema.nullable()` a secas, y con eso **un solo valor que el
+           * contrato no conociera tiraba abajo los ciento ochenta y siete kilómetros de la etapa**:
+           * `safeParse` falla, `buildRaceRadio` devuelve `null` y la pantalla dice «se corrió antes
+           * de que se grabara la radio», que además es mentira.
+           *
+           * Pasó de verdad: el paso 17c añadió cinco motivos al motor y no los añadió aquí. Se
+           * arregla el enum, sí — pero el enum volverá a quedarse corto la próxima vez que el motor
+           * crezca, así que lo que hay que arreglar es la FRAGILIDAD: con `.catch(null)` un motivo
+           * que no se entienda se degrada a «no lo sé» y el corredor sale sin frase, en vez de
+           * llevarse la etapa por delante. La vista ya sabe no decir nada cuando el motivo es nulo.
+           */
+          motivos: z.array(pullMotiveSchema.nullable().catch(null)).default([]),
           /**
            * …y PARA QUIÉN, en el mismo orden (v57). Con `default` por lo mismo: las etapas
            * anteriores no lo traen y su radio tiene que seguir leyéndose igual.
@@ -1344,8 +1380,18 @@ export function buildRaceRadio(stored: unknown, names: ChronicleNames): RaceRadi
             gapS: g.gapS,
             gapToPrevS,
             speedKmh: g.speedKmh,
+            mishap: g.mishap ?? null,
             riders: shown,
             unnamed: Math.max(0, g.size - shown.length),
+            /**
+             * CUÁNTOS SE ESTÁN RELEVANDO, que no es lo mismo que cuántos se nombran: la lista se
+             * corta en doce y en un grupo mediano se relevan veintisiete. Sin este número, comparar
+             * «12 en el pelotón» con «3 en la fuga» es comparar un tope con una cuenta.
+             *
+             * Las etapas de antes no lo traen: entonces la cuenta es la de los nombrados, que es
+             * exactamente lo que se enseñaba.
+             */
+            pullingTotal: Math.max(g.pullingTotal ?? 0, g.pulling.length),
           }
         }),
       }

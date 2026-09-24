@@ -103,6 +103,29 @@ export interface StageRunSpec {
    * parte del mapa.
    */
   lugar?: { pais?: string; dia: number }
+  /**
+   * LA CARGA DE UN DÍA PARTIDO EN DOS (R28.6, S-431 · paso 18b), y es el problema de verdad de la
+   * semietapa: no está en el calendario, está aquí.
+   *
+   * `applyDailyLoad` es un paso de Banister **por DÍA** —el ATL se suaviza hacia el TSS con su tau y
+   * el CTL igual—, así que correr dos etapas el mismo día llamándolo dos veces aplicaría **dos días
+   * de fisiología**: el corredor ganaría una jornada entera de forma y de recuperación que no ha
+   * pasado. Y el parte diario, que va por `(corredor, día)`, tendría dos filas para un solo día.
+   *
+   * Así que en una jornada partida la carga se aplica **una sola vez, con el TSS de las dos
+   * mitades**: la primera lo APUNTA en `banked` y no toca ni la carga ni el parte; la segunda suma y
+   * aplica un paso. El depósito se encadena solo, porque la segunda mitad lee el estado que dejó la
+   * primera y entre ellas no hay noche.
+   *
+   * Ausente = jornada normal, que es el caso de todas las carreras de hoy: ninguna declara
+   * `doubleAfter`. Con el campo ausente el código es byte a byte el de siempre.
+   */
+  cargaDelDia?: {
+    /** TSS ya corrido hoy por cada uno, de las mitades anteriores. La primera mitad lo ESCRIBE. */
+    banked: Map<string, number>
+    /** ¿Es ésta la última mitad del día? Solo entonces se aplica el paso y se escribe el parte. */
+    aplicaHoy: boolean
+  }
 }
 
 /**
@@ -112,6 +135,77 @@ export interface StageRunSpec {
  */
 function isOneDayRace(spec: StageRunSpec): boolean {
   return spec.isFinal && spec.stageDay === 1
+}
+
+/**
+ * EL DÉFICIT EN LA GENERAL de cada corredor, y —lo que importa aquí— el que le toca a QUIEN NO TIENE
+ * FILA en ella.
+ *
+ * La misma trampa que `gcMissingStage.test.ts` documenta para la clasificación: sin fila, el tiempo
+ * acumulado se leía como cero, **y la ausencia hacía líder**. Aquí salía un déficit NEGATIVO, que es
+ * peor que inútil: el motor lo compara contra cero para saber quién manda en la general, así que un
+ * corredor sin fila entraba al plan del día como el mejor de su equipo —y hasta como líder de la
+ * carrera— por no estar clasificado.
+ *
+ * Quien no está en la general no la lidera: se le da el déficit del ÚLTIMO clasificado. Antes de la
+ * primera etapa no hay filas, todos valen 0, y el motor sabe que ahí no hay general que defender.
+ */
+export function gcDeficitTable(
+  rows: readonly { riderId: string; tiempoTotalS: number }[],
+): (riderId: string) => number {
+  if (rows.length === 0) return () => 0
+  const tiempos = new Map(rows.map((r) => [r.riderId, r.tiempoTotalS]))
+  const lider = Math.min(...rows.map((r) => r.tiempoTotalS))
+  const ultimo = Math.max(...rows.map((r) => r.tiempoTotalS))
+  return (riderId) => (tiempos.get(riderId) ?? ultimo) - lider
+}
+
+/**
+ * Una fila de `stage_orders` tal como sale de la base. Se toma del ESQUEMA, no se reescribe a mano:
+ * un tipo copiado se separa del `schema.ts` en cuanto alguien añade una columna, y el compilador deja
+ * de avisar justo cuando más falta hace.
+ */
+type StageOrderRow = typeof stageOrders.$inferSelect
+
+/**
+ * LA HOJA DE ÓRDENES DEL JUGADOR, TAL COMO ENTRA AL MOTOR. Sin hoja manda el piloto automático, y
+ * sin ninguno de los dos se corre suelto y reservón, que es lo que hace un corredor al que nadie le
+ * ha dicho nada.
+ *
+ * Esta función existe aparte por una lección cara, la de la v58: el jugador rellenaba el esfuerzo y
+ * el kilómetro del ataque, la base los guardaba **y aquí se tiraban**, así que dos de las cinco
+ * palancas de la pantalla no llegaban a la carretera. Una columna que no se lee es peor que no
+ * tenerla, porque miente en la pantalla. Estando suelta y sellada, añadir una palanca sin conectarla
+ * deja de ser un descuido silencioso.
+ *
+ * Las cuatro del paso 17a se pasan **solo cuando la hoja las trae**: `undefined` significa «no hay
+ * preferencia» y decide el motor, que es letra por letra la conducta de las hojas guardadas antes de
+ * la migración. Por eso las columnas son nullable y no hubo que rellenar ni una fila.
+ */
+export function stageOrdersFrom(
+  o: StageOrderRow | undefined,
+  auto: StageOrders | undefined,
+): StageOrders {
+  if (!o) {
+    return (
+      auto ?? { role: 'libre', mentality: 'reservon', contestSprints: false, contestClimbs: false }
+    )
+  }
+  return {
+    role: o.role,
+    mentality: o.mentality,
+    effort: o.effort,
+    triggerKm: o.triggerKm,
+    contestSprints: o.contestSprints,
+    contestClimbs: o.contestClimbs,
+    ...(o.targetRiderId ? { targetRiderId: o.targetRiderId } : {}),
+    ...(o.triggerOn ? { triggerOn: o.triggerOn } : {}),
+    ...(o.chasePolicy ? { chasePolicy: o.chasePolicy } : {}),
+    ...(o.refuseRelayTeams && o.refuseRelayTeams.length > 0
+      ? { refuseRelayTeams: o.refuseRelayTeams }
+      : {}),
+    ...(o.dayGoal ? { dayGoal: o.dayGoal } : {}),
+  }
 }
 
 /** Corre una etapa de una carrera cualquiera desde su roster. Devuelve los corredores que corrieron. */
@@ -194,9 +288,8 @@ export async function runOneStage(
     .leftJoin(raceRosters, gcRosterOn())
     .where(gcFinishersWhere(spec.raceKey))
     .orderBy(...gcOrderBy())
-  const gcTime = new Map(gcRows.map((r) => [r.riderId, r.tiempoTotalS]))
   const gcRank = new Map(gcRows.map((r, i) => [r.riderId, i + 1]))
-  const gcLeader = gcRows.length > 0 ? Math.min(...gcRows.map((r) => r.tiempoTotalS)) : 0
+  const gcDeficit = gcDeficitTable(gcRows)
 
   // Lecturas en lote: corredores, atributos, genoma y órdenes de la etapa.
   const riderRows = await tx.select().from(riders).where(inArray(riders.id, riderIds))
@@ -319,27 +412,7 @@ export async function runOneStage(
     for (const attr of ATTRIBUTES) {
       effResolved[attr] = eff0(attributes[attr], rider.ctl, tsb, rider.health, rider.morale)
     }
-    const o = ordersByRider.get(riderId)
-    const auto = autoOrders.get(riderId)
-    const orders: StageOrders = o
-      ? {
-          role: o.role,
-          mentality: o.mentality,
-          // …Y EL ESFUERZO Y EL KILÓMETRO DEL ATAQUE (v58). El jugador los rellenaba, la base los
-          // guardaba y AQUÍ se tiraban: el contrato del motor no los tenía, así que dos de las cinco
-          // palancas de la pantalla de órdenes no llegaban a la carretera.
-          effort: o.effort,
-          triggerKm: o.triggerKm,
-          contestSprints: o.contestSprints,
-          contestClimbs: o.contestClimbs,
-          ...(o.targetRiderId ? { targetRiderId: o.targetRiderId } : {}),
-        }
-      : (auto ?? {
-          role: 'libre',
-          mentality: 'reservon',
-          contestSprints: false,
-          contestClimbs: false,
-        })
+    const orders: StageOrders = stageOrdersFrom(ordersByRider.get(riderId), autoOrders.get(riderId))
     // Depósito inicial dependiente del ESTADO (docs/motor.md §VI.1): forma (CTL), frescura (TSB) y
     // salud. Antes era `energy: 100` para todos, y por eso la erosión no se activaba jamás y la
     // etapa 18 de una gran vuelta se corría con el mismo tanque que la 1.ª. El arrastre entre etapas
@@ -355,7 +428,7 @@ export async function runOneStage(
       matches: matchCount(effResolved, tsb, deepDepletedYesterday.has(riderId)),
       tsb,
       orders,
-      gcDeficitSeconds: (gcTime.get(riderId) ?? 0) - gcLeader,
+      gcDeficitSeconds: gcDeficit(riderId),
       // EL PUESTO EN LA GENERAL (v19): lo necesita el orden inverso de salida de la contrarreloj,
       // porque el déficit es un tiempo y los empates son la norma. Sale del MISMO orden que la
       // general que ve el jugador (`gcOrderBy`), así que no puede discrepar de ella. `null` antes de
@@ -509,7 +582,10 @@ export async function runOneStage(
       // …y los TRES MAILLOTS con prioridad sobre el corte de la vista: sin esto el tope de 24
       // nombres por grupo caía encima de ellos y solo salía uno, al azar (v47).
       radio: radioForStorage(
-        radio.radio(),
+        // LOS PERCANCES ENTRAN AQUÍ (v70.1) y no al armar el colector, porque la lista solo existe
+        // cuando la etapa ya ha corrido. Sin ellos, el kilómetro en que un hombre se para a cambiar
+        // una rueda se leía como una velocidad —y un solitario salía «a 16,1 km/h» estando parado—.
+        radio.radio({ incidents: output.incidents }),
         radioWatchList,
         [jerseys.gc, jerseys.points, jerseys.kom].filter((id): id is string => id !== null),
       ) as unknown,
@@ -551,6 +627,24 @@ export async function runOneStage(
       .filter((e) => e.plantilla === 'rider_abandons')
       .flatMap((e) => e.protagonistas.map((id) => [id, e.datos?.causa] as const)),
   )
+  /**
+   * EL TSS QUE LE TOCA A ESTE DÍA, o `null` si hoy todavía no se cierra (ver `cargaDelDia`).
+   *
+   * En una jornada normal devuelve el de la etapa y ya está. En una jornada PARTIDA, la primera
+   * mitad apunta lo suyo y devuelve `null` —ni carga ni parte— y la última suma lo apuntado y lo
+   * propio, para que el Banister avance **un día, no dos**.
+   */
+  const tssDelDia = (riderId: string, tss: number): number | null => {
+    const carga = spec.cargaDelDia
+    if (!carga) return tss
+    const total = tss + (carga.banked.get(riderId) ?? 0)
+    if (!carga.aplicaHoy) {
+      carga.banked.set(riderId, total)
+      return null
+    }
+    return total
+  }
+
   const abandonReasonOf = (r: { riderId: string; estado: string }): AbandonReason => {
     if (r.estado !== 'abandon') return 'fuera_control'
     return abandonCause.get(r.riderId) === 'caida' ? 'lesion' : 'colapso'
@@ -562,7 +656,8 @@ export async function runOneStage(
       // Solo la carga del día; el resto de la contabilidad de la etapa no le corresponde.
       const state = riderState.get(result.riderId)
       if (state) {
-        const tss = stageTss(output.workUnits.get(result.riderId) ?? 0)
+        const tss = tssDelDia(result.riderId, stageTss(output.workUnits.get(result.riderId) ?? 0))
+        if (tss === null) continue
         const load = applyDailyLoad({ ctl: state.ctl, atl: state.atl }, tss, state.attributes.REC)
         loadValues.push([result.riderId, load.ctl, load.atl])
         dailyLogValues.push({
@@ -609,8 +704,18 @@ export async function runOneStage(
 
     const state = riderState.get(result.riderId)
     if (!state) continue
-    const tss = stageTss(output.workUnits.get(result.riderId) ?? 0)
-    const load = applyDailyLoad({ ctl: state.ctl, atl: state.atl }, tss, state.attributes.REC)
+    /**
+     * EL TSS QUE CIERRA EL DÍA, o `null` si esta etapa es la PRIMERA MITAD de una jornada partida
+     * (ver `cargaDelDia`). Solo la carga, la tensión y el parte diario esperan a que el día cierre:
+     * **lo que se aprende corriendo NO**, porque eso sí es por etapa —la mitad de la mañana de una
+     * semietapa es una carrera— y saltárselo sería cobrarle al corredor media jornada de
+     * aprendizaje por correr dos veces.
+     */
+    const tss = tssDelDia(result.riderId, stageTss(output.workUnits.get(result.riderId) ?? 0))
+    const load =
+      tss === null
+        ? null
+        : applyDailyLoad({ ctl: state.ctl, atl: state.atl }, tss, state.attributes.REC)
     /**
      * LA TENSIÓN TAMBIÉN CUENTA EL DÍA QUE SE CORRE (docs/entrenamiento.md §5.6), y es justo el caso
      * que importa: las grandes vueltas son DONDE se llega a −35 de depósito. Contarlo solo en el día
@@ -619,27 +724,29 @@ export async function runOneStage(
      * Se mira el depósito de SALIDA —el de antes de la etapa— porque es con el que se tomó la
      * salida; el de después ya lleva el castigo del día y lo contaría dos veces.
      */
-    const tsbSalida = state.ctl - state.atl
-    const tension =
-      tsbSalida < HEALTH.strainTsb
-        ? state.strainDays + 1
-        : Math.max(0, state.strainDays - HEALTH.strainRecovery)
-    const tocado = state.health === 'molestias' || state.health === 'enfermo'
-    strainValues.push([result.riderId, tension, tocado ? state.illDays + 1 : 0])
+    if (load !== null && tss !== null) {
+      const tsbSalida = state.ctl - state.atl
+      const tension =
+        tsbSalida < HEALTH.strainTsb
+          ? state.strainDays + 1
+          : Math.max(0, state.strainDays - HEALTH.strainRecovery)
+      const tocado = state.health === 'molestias' || state.health === 'enfermo'
+      strainValues.push([result.riderId, tension, tocado ? state.illDays + 1 : 0])
 
-    loadValues.push([result.riderId, load.ctl, load.atl])
-    dailyLogValues.push({
-      riderId: result.riderId,
-      gameDay,
-      tss,
-      ctl: load.ctl,
-      atl: load.atl,
-      tsb: load.tsb,
-      activity: `carrera:${spec.raceId}:e${spec.stageDay}`,
-      // EN QUÉ SE LE FUE EL DÍA (v47). Se guarda al correr la etapa, como la crónica y la radio:
-      // una etapa corrida con el motor de ayer no se puede reconstruir con el de hoy.
-      parte: output.efforts.get(result.riderId) ?? null,
-    })
+      loadValues.push([result.riderId, load.ctl, load.atl])
+      dailyLogValues.push({
+        riderId: result.riderId,
+        gameDay,
+        tss,
+        ctl: load.ctl,
+        atl: load.atl,
+        tsb: load.tsb,
+        activity: `carrera:${spec.raceId}:e${spec.stageDay}`,
+        // EN QUÉ SE LE FUE EL DÍA (v47). Se guarda al correr la etapa, como la crónica y la radio:
+        // una etapa corrida con el motor de ayer no se puede reconstruir con el de hoy.
+        parte: output.efforts.get(result.riderId) ?? null,
+      })
+    }
 
     /**
      * LO QUE SE APRENDE CORRIENDO (v54, docs/epics.md «G1»). La regla vivía aquí, en dos constantes

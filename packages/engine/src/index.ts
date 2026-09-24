@@ -22,11 +22,25 @@ export { stageRng, stageSeed, type StageSeedParts } from './stage/rng.js'
 export { blockProbability, rollHazard } from './stage/hazard.js'
 export { simulateStage, stageTss } from './stage/simulate.js'
 export {
+  bearingAt,
+  descentRisk,
+  materialPerfilBonus,
+  rainBudgetGain,
+  roadBearings,
   stageWeather,
+  stageWindStrength,
+  weatherAt,
   weatherForecast,
+  weatherNow,
+  weatherPlan,
+  windComponents,
+  type StageMaterial,
   type StageWeather,
   type WeatherForecast,
+  type WeatherNow,
   type WeatherPlace,
+  type WeatherPlan,
+  type WeatherSegment,
 } from './stage/weather.js'
 export { climateOf, type Clima } from './world/climate.js'
 export { simulateTimeTrial } from './stage/timetrial.js'
@@ -83,8 +97,10 @@ export {
 } from './routes/calendar.js'
 export {
   raceLastDay,
+  overlappingRaces,
   raceOngoingBefore,
   scheduledStageIndex,
+  scheduledStageIndices,
   stageDayOfSeason,
   stagePlace,
 } from './routes/schedule.js'
@@ -225,8 +241,11 @@ export type {
   Banner,
   BannerType,
   Block,
+  PullMotive,
   BlockTerrain,
+  ChasePolicy,
   ClimbCategory,
+  DayGoal,
   Incident,
   Mentality,
   RaceEvent,
@@ -243,6 +262,7 @@ export type {
   StageEffort,
   StageSpend,
   TankState,
+  TriggerCond,
 } from './stage/types.js'
 export {
   simulateRiderDay,

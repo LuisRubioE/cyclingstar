@@ -10,6 +10,18 @@ import type { Block } from './types.js'
 /** Un grupo de corredores rodando juntos, con su reloj y su estado social (SPEC 6.3, 6.10). */
 export interface Group {
   id: string
+  /**
+   * NO ES EL TAMAÑO DEL GRUPO, y creerlo costó un defecto en producción (v83).
+   *
+   * Esta lista **solo crece** en el pelotón: cada fusión hace `[...peloton.riderIds, ...sg.riderIds]`
+   * y nadie borra de ahí al que se descuelga después, así que el que va y vuelve tres veces figura
+   * tres veces. Medido sobre doce reinas, el pelotón llegó a declarar **629 corredores en una
+   * carrera de 176**.
+   *
+   * Quién va HOY en un grupo es `membersOf(id)` —los corredores cuyo `groupId` vivo es ese—, y es
+   * lo único que vale para contar. `eslint.config.js` prohíbe `riderIds.length` en `src/stage`
+   * precisamente para que este error no pueda repetirse.
+   */
   riderIds: string[]
   /** Cronómetro acumulado en segundos desde la salida. */
   tS: number
@@ -80,6 +92,12 @@ export function advanceGroup(
   pullers: number = STAGE.relayPaceReference,
   opts: AccOptions = {},
   dx: number = STAGE.dx,
+  /**
+   * EL VIENTO DE CARA, en [−1,1] (R14.1, paso 20). Es **el único término de todo `docs/tactica.md`
+   * que mueve la LEY DE VELOCIDAD**, y entra aquí porque aquí es donde la ley se evalúa. Ausente = 0
+   * y la ley es dígito a dígito la de la v69.
+   */
+  vientoFrontal = 0,
 ): Group {
   /**
    * …Y EN EL REMATE MANDA EL RÉGIMEN DE SPRINT (v39, `finish.ts::sprintRegimeKmh`). La ley de
@@ -90,7 +108,7 @@ export function advanceGroup(
    * el pelotón SUBE a esa velocidad.
    */
   const vObjetivo = Math.max(
-    targetSpeed(block, p75Perfil, group.compromiso, pullers),
+    targetSpeed(block, p75Perfil, group.compromiso, pullers, vientoFrontal),
     opts.sprintKmh ?? 0,
   )
   // `dt de entrada`: la cota de aceleración usa la velocidad de entrada al bloque (SPEC 6.4).

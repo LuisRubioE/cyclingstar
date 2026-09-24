@@ -9,6 +9,7 @@
  */
 import { analyzeErosion, analyzeFlat, analyzeMountain, analyzeTimeTrial } from './analyze.js'
 import { analyzeClimbs } from './climbs.js'
+import { analyzeGeneral } from './generalBench.js'
 import { abandonMix, analyzeGrandTour } from './grandTour.js'
 import { REAL_QUEENS, analyzeRealQueens, colombiaRegressionTails } from './realQueens.js'
 import { REAL_TIME_TRIALS, analyzeRealTimeTrials } from './timeTrials.js'
@@ -175,8 +176,13 @@ function main(): void {
   )
 
   // ABANDONOS (docs/motor.md §VI.3): la única medida del banco que no sale de una etapa suelta.
-  // Correr una gran vuelta de 21 etapas con 176 corredores cuesta ~22 s, así que el número de
-  // vueltas no escala con `runs`: son unas pocas y su MEDIA, que es lo que el objetivo mide.
+  //
+  // El número de vueltas NO escala con `runs`: son unas pocas y su MEDIA, que es lo que el objetivo
+  // mide. El motivo es el coste — correr una gran vuelta entera son 21 etapas de 176 corredores—, y
+  // aquí había un «~22 s» que ya no vale: `diseno/mapa-bancos.md` §8 anota que el motor se ha ido
+  // encareciendo tanda a tanda (Flandes ×5 pasó de 14,0 s en la v38 a 20,7 s en la v40) y de ahí
+  // salieron los presupuestos ×4 de los nocturnos. Un número de coste sin fecha de medida no
+  // informa: dice «esto es barato» de un motor que ya no es ése.
   const tourRuns = Math.max(4, Math.min(12, Math.round(runs / 60)))
   const gt = analyzeGrandTour(tourRuns)
   // El REPARTO de causas (v20, docs/motor.md §VI.3), agrupado como lo agrupan las listas de
@@ -303,6 +309,29 @@ function main(): void {
     ].join('\n  '),
   )
 
+  /**
+   * LA GENERAL (v79, `sim/generalBench.ts`). El único banco de esta casa que corre con una general
+   * de verdad —un líder, un pelotón escalonado detrás y el día de carrera puesto—. Todo lo demás de
+   * este informe corre SIN contexto de carrera, así que no puede ver ni al maillot ni a la general.
+   *
+   * De sus cuatro estadísticas solo una lleva banda (`TARGETS.general`); las otras tres se imprimen
+   * con su número y su razón, que están escritas en `targets.ts`.
+   */
+  // Tope de 60 semillas: este banco corre TRES etapas por semilla cuando lleva el pareado (una
+  // llana y dos reinas), así que `pnpm sim 500` costaría mil quinientas etapas por un solo techo.
+  const gen = analyzeGeneral(Math.min(runs, 60))
+  const genOk = report(
+    'la general (v79)',
+    gen.runs,
+    [{ target: TARGETS.general.jerseyFrontFlatPct, value: gen.jerseyFrontFlatPct }],
+    [
+      `SIN BANDA (la muestra no la aguanta, ver targets.ts):`,
+      `  el maillot delante en la REINA ${gen.jerseyFrontQueenPct.toFixed(1)}% — es el defecto CONTRARIO (pasarse de frenada); a estas semillas un caso vale 1/${gen.runs}`,
+      `  equipos de general que tiran, etapa 3 ${gen.gcPullTeamsEarly.toFixed(2)} contra etapa 18 ${gen.gcPullTeamsLate.toFixed(2)} (v77) — va en la dirección correcta, pero la diferencia es ~1σ`,
+      `  depósito del maillot al pie del puerto decisivo: p05 ${gen.jerseyTankAtDecisive.p05.toFixed(3)} · mediana ${gen.jerseyTankAtDecisive.p50.toFixed(3)} · por debajo del viejo listón absoluto (0,45) el ${gen.jerseyTankAtDecisive.belowBloodPct.toFixed(1)}% — por eso la v80 lo sustituyó por una comparación relativa (bloodMargin ${STAGE.director.bloodMargin})`,
+    ].join('\n  '),
+  )
+
   // …y el caso de la regresión con el campo con el que se vio (escalón de niveles, no continuo).
   const colombia = colombiaRegressionTails(5)
   const worstColombia = Math.max(...colombia.map((t) => t.lastGroupPct))
@@ -314,7 +343,9 @@ function main(): void {
   )
 
   console.log('')
-  process.exit(flatOk && mtnOk && ttOk && rttOk && eroOk && voiceOk && gtOk && rqOk && stOk ? 0 : 1)
+  process.exit(
+    flatOk && mtnOk && ttOk && rttOk && eroOk && voiceOk && gtOk && rqOk && stOk && genOk ? 0 : 1,
+  )
 }
 
 main()

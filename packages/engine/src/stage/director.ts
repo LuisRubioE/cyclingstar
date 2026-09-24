@@ -89,12 +89,39 @@ export function readState(fraccionReal: number, tacObservador: number, ruido: nu
  * atacan más**. Hoy atacan menos, porque el mecanismo que existe es «ciego a la identidad del que
  * flaquea» —lo dice su propia regla— y vive solo en el ataque final.
  *
- * Devuelve el multiplicador del apetito: 1 si no se le ve sangre, y hasta 1 + `bloodGain` cuanto más
- * vacío se le lea. Como el que lee es falible, esto se dispara a veces sin motivo y a veces no se
- * dispara habiéndolo: es la mitad de la carrera que se juega mirando caras.
+ * Devuelve el multiplicador del apetito: 1 si no se le ve sangre, y hasta 1 + `bloodGain` cuanto
+ * peor se le lea EN COMPARACIÓN CON UNO MISMO. Como el que lee es falible, esto se dispara a veces
+ * sin motivo y a veces no se dispara habiéndolo: es la mitad de la carrera que se juega mirando
+ * caras.
+ *
+ * ---
+ *
+ * **LA COMPARACIÓN ES RELATIVA DESDE LA v80, Y NO ES UN REFINAMIENTO: LA ABSOLUTA NO PODÍA
+ * DISPARARSE.** El listón era `bloodThreshold` = 0,45 contra la lectura cruda, y medido (60
+ * semillas por recorrido, capa apagada) el depósito del maillot al pie del puerto decisivo vale
+ * **p05 0,510 · mediana 0,553** en la reina canónica y **p05 0,426 · mediana 0,479** en una reina
+ * real de tercera semana: el listón estaba **por debajo del percentil 5** en dos de los tres
+ * recorridos. Lo que disparaba la regla no era el estado del líder sino el ERROR DE LECTURA, y se
+ * notaba: con la capa encendida cambiaba el ganador en el **57 %** de las etapas sin mover ni un
+ * agregado de forma medible (Δ de 0,3σ y 0,6σ, pareado por semilla). La firma de un dado.
+ *
+ * Subir el listón no era la salida —0,553 contra 0,479 según el recorrido, porque depende de cuánta
+ * carretera haya antes del último puerto— y la medida lo confirmó: **lo invariante al recorrido es
+ * la DIFERENCIA**. Medida contra el propio depósito del que mira, su mediana vale 0,051 · 0,045 ·
+ * 0,054 en los tres recorridos, contra 0,557 · 0,557 · 0,478 de la absoluta.
+ *
+ * Y la referencia es **el que mira**, no la mediana del pelotón, también por medida: las dos son
+ * igual de invariantes en el centro, pero contra uno mismo la dispersión es **el triple** (IQR
+ * 0,084-0,115 contra 0,028-0,055) porque es POR OBSERVADOR. El mismo día, unos rivales le ven
+ * sangre y otros no —que es literalmente lo que la regla dice querer—, mientras que una mediana del
+ * pelotón emite un veredicto único y todos opinan igual.
+ *
+ * `propia` es EXACTA a propósito: `SelfView` lo es (§3.1) y al rival se le lee con error (R24.5).
+ * La regla que sale de ahí es la que un corredor piensa de verdad: **«hoy no es mejor que yo»**.
  */
-export function bloodFactor(lectura: number): number {
-  const u = STAGE.director.bloodThreshold
-  if (lectura > u) return 1
-  return 1 + STAGE.director.bloodGain * ((u - lectura) / u)
+export function bloodFactor(lectura: number, propia: number): number {
+  const delta = lectura - propia
+  const m = STAGE.director.bloodMargin
+  if (delta > m) return 1
+  return 1 + STAGE.director.bloodGain * clamp((m - delta) / STAGE.director.bloodSpan, 0, 1)
 }

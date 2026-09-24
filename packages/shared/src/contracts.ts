@@ -1026,6 +1026,42 @@ export const teamRacePlanResponseSchema = z.object({ plan: teamRacePlanSchema.nu
 
 // --- Órdenes de etapa (/api/races/test-tour y /api/my-orders) -------------------------------
 
+/**
+ * CUÁNDO LANZA SU MOVIMIENTO ESTE HOMBRE (paso 17a, R22 · S-214/S-321/S-322). Seis formas de decir
+ * «cuándo», y cinco dependen de lo que pase en la carretera — que es toda la diferencia entre una
+ * cita y un despertador. El caso `km` es el `triggerKm` de siempre, que se queda porque las hojas ya
+ * guardadas lo usan y porque a veces un kilómetro es lo que el jugador quiere decir.
+ */
+export const triggerCondSchema = z.discriminatedUnion('at', [
+  z.object({ at: z.literal('km'), km: z.number().int().nonnegative() }),
+  z.object({
+    at: z.literal('climb'),
+    which: z.enum(['last', 'penultimate']),
+    part: z.enum(['pie', 'duro', 'cima']),
+  }),
+  z.object({ at: z.literal('attack'), byRiderId: z.string() }),
+  z.object({ at: z.literal('gap'), overS: z.number().int().nonnegative() }),
+  z.object({ at: z.literal('weather'), cond: z.enum(['lluvia', 'viento']) }),
+  z.object({ at: z.literal('sector'), index: z.number().int().nonnegative() }),
+])
+export type TriggerCond = z.infer<typeof triggerCondSchema>
+
+/** Qué hace su equipo con una fuga (paso 17a · S-215, S-071). */
+export const chasePolicySchema = z.enum(['nunca', 'si_amenaza', 'siempre'])
+export type ChasePolicy = z.infer<typeof chasePolicySchema>
+
+/** A qué sale hoy este hombre (paso 17a · S-216, S-024, S-030). Declara, no negocia. */
+export const dayGoalSchema = z.enum([
+  'ganar',
+  'general',
+  'puntos',
+  'montana',
+  'grupeto',
+  'ahorrar',
+  'servir',
+])
+export type DayGoal = z.infer<typeof dayGoalSchema>
+
 export const stageOrderSchema = z.object({
   stageDay: z.number().int(),
   role: stageRoleSchema,
@@ -1035,6 +1071,19 @@ export const stageOrderSchema = z.object({
   triggerKm: z.number().nullable(),
   contestSprints: z.boolean(),
   contestClimbs: z.boolean(),
+  /**
+   * --- LAS CUATRO PALANCAS DEL PASO 17a --------------------------------------------------------
+   *
+   * Las cuatro son `.nullish()` y NO obligatorias, por las dos puntas a la vez: una hoja guardada
+   * antes de la migración las trae a `null`, y un cliente que aún no se ha desplegado no las manda
+   * en absoluto. Las dos cosas significan lo mismo —«no hay preferencia»— y el motor decide, que es
+   * la conducta de hoy. Si fueran obligatorias, desplegar la API antes que la web rompería la
+   * pantalla de órdenes entera.
+   */
+  triggerOn: triggerCondSchema.nullish(),
+  chasePolicy: chasePolicySchema.nullish(),
+  refuseRelayTeams: z.array(z.string()).nullish(),
+  dayGoal: dayGoalSchema.nullish(),
 })
 export type StageOrder = z.infer<typeof stageOrderSchema>
 
@@ -1094,6 +1143,12 @@ export const raceOrdersResponseSchema = z.object({
   teammates: z.array(rosterRiderSchema),
   /** Rivales en la carrera (a quién marcar/seguir), por fama. */
   rivals: z.array(rosterRiderSchema),
+  /**
+   * LOS EQUIPOS DE LA CARRERA, menos el tuyo (paso 17a). Lo pide `refuseRelayTeams`, que toma
+   * identificadores de EQUIPO: con `teammates` y `rivals` —que son corredores— la pantalla no puede
+   * pintar un selector de equipos. Opcional para que un cliente viejo siga validando.
+   */
+  teams: z.array(rosterRiderSchema).default([]),
 })
 export type RaceOrders = z.infer<typeof raceOrdersResponseSchema>
 
@@ -1299,6 +1354,25 @@ export const pullMotiveSchema = z.enum([
   'equipo_maillot',
   'equipo_general',
   'rol',
+  /**
+   * --- LOS CINCO QUE EL PASO 17c AÑADIÓ AL MOTOR Y AQUÍ FALTABAN (R23.1) ------------------------
+   *
+   * **Y su ausencia costó una radio entera en producción.** El paso 17c amplió `PullMotive` en
+   * `packages/engine` de diez palabras a quince, y este enum —que es contra el que `buildRaceRadio`
+   * VALIDA lo guardado— se quedó con las diez. Resultado: en cuanto un corredor tiraba con uno de
+   * los cinco nuevos, `storedRaceRadioSchema.safeParse` fallaba, `buildRaceRadio` devolvía `null` y
+   * la pantalla decía «esta etapa se corrió antes de que se grabara la radio» — que es **falso**: la
+   * radio estaba guardada entera, con sus ciento ochenta y siete kilómetros.
+   *
+   * El dueño lo vio en Race Solidarnosc, donde `propio` sale ya en el primer kilómetro del banco.
+   * Y explicaba lo que parecía un misterio: unas carreras tenían radio y otras no, el mismo día,
+   * porque solo se rompen las etapas donde alguno de los cinco llega a dispararse.
+   */
+  'propio',
+  'equipo_puntos',
+  'equipo_montana',
+  'infiltrado',
+  'colocando',
 ])
 export type PullMotive = z.infer<typeof pullMotiveSchema>
 
@@ -1322,8 +1396,19 @@ export const radioGroupSchema = z.object({
   gapS: z.number(),
   /** Hueco al grupo INMEDIATAMENTE ANTERIOR, en segundos. 0 en el de cabeza. */
   gapToPrevS: z.number(),
-  /** Velocidad media en este kilómetro (km/h). `null` en el último punto: no hay km siguiente. */
+  /**
+   * Velocidad media en este kilómetro (km/h). `null` en el último punto —no hay km siguiente— y
+   * también cuando el único que podía medirla se PARÓ: un hombre cambiando una rueda gasta reloj sin
+   * cubrir carretera, y dividir el kilómetro entre su tiempo no da una velocidad, da un disparate
+   * (v70.1: el líder en solitario del campeonato de Marruecos marcado a «16,1 km/h»). Cuando pasa
+   * eso, lo que el grupo enseña es `mishap`.
+   */
   speedKmh: z.number().nullable(),
+  /** Qué le pasó a este grupo en este kilómetro y cuántos segundos perdió de pie. */
+  mishap: z
+    .object({ tipo: z.enum(['caida', 'pinchazo', 'averia']), lostS: z.number() })
+    .nullable()
+    .default(null),
   /**
    * A quién se nombra: primero los que TIRAN (todos), luego los que hay que ver aunque vayan a
    * rueda —maillots y jefes de filas—. El resto se cuenta en `unnamed`, no se esconde.
@@ -1331,6 +1416,16 @@ export const radioGroupSchema = z.object({
   riders: z.array(radioRiderSchema),
   /** Cuántos del grupo no se nombran («+56 riders more»). */
   unnamed: z.number().int(),
+  /**
+   * CUÁNTOS SE ESTÁN RELEVANDO, que no es lo mismo que cuántos salen nombrados como que tiran: la
+   * lista se corta en doce y en un grupo mediano se relevan veintisiete (medido). Sin este número,
+   * comparar «12 en el pelotón» con «3 en la fuga» es comparar un tope con una cuenta, que es
+   * justo la incongruencia que el dueño señaló.
+   *
+   * `default` a 0 para las etapas corridas antes de que existiera; la vista usa entonces los
+   * nombrados, que es lo que se enseñaba.
+   */
+  pullingTotal: z.number().int().default(0),
 })
 export type RadioGroup = z.infer<typeof radioGroupSchema>
 
@@ -1490,3 +1585,29 @@ export const worldHealthSchema = z.object({
 })
 export type WorldHealth = z.infer<typeof worldHealthSchema>
 export const worldHealthResponseSchema = z.object({ ok: z.boolean(), health: worldHealthSchema })
+
+/** Quién soy para el panel de admin: 200 si soy admin (con cómo lo soy), 401 si no. */
+export const adminWhoamiResponseSchema = z.object({
+  ok: z.boolean(),
+  via: z.enum(['token', 'session']),
+  userId: z.string().nullable(),
+})
+export type AdminWhoami = z.infer<typeof adminWhoamiResponseSchema>
+
+/** Una cuenta en el panel de administración. */
+export const adminUserSchema = z.object({
+  id: z.string(),
+  email: z.string(),
+  emailVerified: z.boolean(),
+  isAdmin: z.boolean(),
+  isRootAdmin: z.boolean(),
+  premium: z.boolean(),
+  createdAt: z.string(),
+  rider: z.object({ id: z.string(), name: z.string() }).nullable(),
+  team: z.object({ id: z.string(), name: z.string() }).nullable(),
+})
+export type AdminUser = z.infer<typeof adminUserSchema>
+export const adminUsersResponseSchema = z.object({
+  ok: z.boolean(),
+  users: z.array(adminUserSchema),
+})

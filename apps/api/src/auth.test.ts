@@ -1,0 +1,224 @@
+import { describe, expect, it } from 'vitest'
+import type { Database } from '@cyclingstar/db'
+import { createAuth, trustedOriginsFor, withCallbackURL } from './auth.js'
+import type { MailMessage, Mailer } from './mailer.js'
+
+const USER = {
+  id: 'u1',
+  email: 'luis@example.com',
+  name: 'luis',
+  emailVerified: false,
+  createdAt: new Date(0),
+  updatedAt: new Date(0),
+}
+
+/** Mailer de prueba: guarda lo que se le manda y no sale a ninguna parte. */
+function spyMailer(): Mailer & { sent: MailMessage[] } {
+  const sent: MailMessage[] = []
+  return {
+    sent,
+    async send(message) {
+      sent.push(message)
+      return true
+    },
+  }
+}
+
+function auth(mailer: Mailer) {
+  // La base de datos no se toca: sólo se leen las opciones con las que se construyó better-auth,
+  // que es donde viven los tres callbacks de correo.
+  return createAuth({} as unknown as Database, {
+    secret: 's'.repeat(32),
+    baseURL: 'https://www.cyclingstar.app',
+    mailer,
+  })
+}
+
+/*
+  Estas pruebas sellan EL CABLEADO, no las plantillas. Un callback que falta no se ve al compilar
+  ni al arrancar: better-auth registra una línea y devuelve un error al usuario. Así pasó con el
+  cambio de correo, que llevaba respondiendo 400 «Verification email isn't enabled» desde que
+  better-auth 1.6 pidió `sendVerificationEmail` para ese flujo.
+*/
+describe('createAuth: correos', () => {
+  it('manda el enlace de recuperación a la dirección del usuario', async () => {
+    const mailer = spyMailer()
+    const opciones = auth(mailer).options
+    await opciones.emailAndPassword!.sendResetPassword!({
+      user: USER,
+      url: 'https://www.cyclingstar.app/api/auth/reset-password/tok?callbackURL=%2Freset-password',
+      token: 'tok',
+    })
+
+    expect(mailer.sent).toHaveLength(1)
+    expect(mailer.sent[0]!.to).toBe('luis@example.com')
+    expect(mailer.sent[0]!.text).toContain('/reset-password/tok')
+  })
+
+  it('manda el enlace de verificación a la dirección del usuario', async () => {
+    const mailer = spyMailer()
+    const opciones = auth(mailer).options
+    await opciones.emailVerification!.sendVerificationEmail!({
+      user: USER,
+      url: 'https://www.cyclingstar.app/api/auth/verify-email?token=tok&callbackURL=%2Fverify-email',
+      token: 'tok',
+    })
+
+    expect(mailer.sent[0]!.to).toBe('luis@example.com')
+    expect(mailer.sent[0]!.text).toContain('verify-email?token=tok')
+  })
+
+  /* El aviso de cambio va a la dirección ACTUAL: es lo que permite frenar un cambio no pedido. */
+  it('el aviso de cambio de correo va a la dirección vieja y nombra la nueva', async () => {
+    const mailer = spyMailer()
+    const opciones = auth(mailer).options
+    await opciones.user!.changeEmail!.sendChangeEmailConfirmation!({
+      user: USER,
+      newEmail: 'otro@example.com',
+      url: 'https://www.cyclingstar.app/api/auth/verify-email?token=tok&callbackURL=%2Faccount',
+      token: 'tok',
+    })
+
+    expect(mailer.sent[0]!.to).toBe('luis@example.com')
+    expect(mailer.sent[0]!.text).toContain('otro@example.com')
+  })
+
+  /*
+    Verificar SE EXIGE: sin correo confirmado no se entra. El registro manda el enlace, el intento
+    de entrar sin confirmar manda otro, y abrir el enlace abre la sesión.
+  */
+  it('exige verificación para entrar y reenvía el enlace al intentarlo', () => {
+    const opciones = auth(spyMailer()).options
+    expect(opciones.emailAndPassword!.requireEmailVerification).toBe(true)
+    expect(opciones.emailVerification!.sendOnSignUp).toBe(true)
+    expect(opciones.emailVerification!.sendOnSignIn).toBe(true)
+    expect(opciones.emailVerification!.autoSignInAfterVerification).toBe(true)
+  })
+
+  /*
+    El reenvío al entrar llega con `callbackURL=/` (el cliente no manda ninguno): el servidor lo
+    endereza para que el enlace vuelva a la página que dice «confirmado».
+  */
+  it('el enlace de verificación vuelve siempre a /verify-email', async () => {
+    const mailer = spyMailer()
+    await auth(mailer).options.emailVerification!.sendVerificationEmail!({
+      user: USER,
+      url: 'https://www.cyclingstar.app/api/auth/verify-email?token=tok&callbackURL=%2F',
+      token: 'tok',
+    })
+    expect(mailer.sent[0]!.text).toContain('callbackURL=%2Fverify-email')
+    expect(mailer.sent[0]!.text).not.toContain('step%3Dapproved')
+  })
+
+  it('el aviso de cambio vuelve a la página que dice «falta el segundo correo»', async () => {
+    const mailer = spyMailer()
+    await auth(mailer).options.user!.changeEmail!.sendChangeEmailConfirmation!({
+      user: USER,
+      newEmail: 'otro@example.com',
+      url: 'https://www.cyclingstar.app/api/auth/verify-email?token=tok&callbackURL=%2Fverify-email',
+      token: 'tok',
+    })
+    expect(mailer.sent[0]!.text).toContain('callbackURL=%2Fverify-email%3Fstep%3Dapproved')
+  })
+
+  it('las cookies de sesión son seguras tras https y no lo son en local', () => {
+    const https = auth(spyMailer()).options
+    expect(https.advanced!.useSecureCookies).toBe(true)
+    const local = createAuth({} as unknown as Database, {
+      secret: 's'.repeat(32),
+      baseURL: 'http://localhost:3000',
+      mailer: spyMailer(),
+    }).options
+    expect(local.advanced!.useSecureCookies).toBe(false)
+  })
+})
+
+/*
+  La lista de rutas con límite estricto nombraba `/api/auth/forget-password`, que better-auth 1.6
+  ya no sirve: el límite protegía una puerta tapiada. Un nombre de ruta equivocado no lo detecta
+  nadie —Fastify la registra igual y devuelve 404 desde better-auth—, así que se comprueba contra
+  las rutas que la librería REALMENTE publica.
+*/
+describe('CREDENTIAL_AUTH_PATHS', () => {
+  it('todas las rutas con límite estricto existen en better-auth', async () => {
+    const { CREDENTIAL_AUTH_PATHS } = await import('./security.js')
+    const endpoints = auth(spyMailer()).api as Record<string, { path?: string }>
+    const servidas = new Set(
+      Object.values(endpoints)
+        .map((endpoint) => endpoint?.path)
+        .filter((path): path is string => typeof path === 'string'),
+    )
+    for (const url of CREDENTIAL_AUTH_PATHS) {
+      expect(servidas).toContain(url.replace('/api/auth', ''))
+    }
+  })
+})
+
+/*
+  EL DEFECTO, VISTO EN PRODUCCIÓN EL DÍA DE LA MIGRACIÓN. El dueño, estrenando dominio: «al
+  intentar loguearme da este error: Invalid origin». La lista de orígenes de confianza era UNA
+  entrada —la de `APP_URL`—, así que en cuanto la app se sirvió en `www.cyclingstar.app` con la
+  variable todavía apuntando a Railway, el login entero dejó de funcionar con un mensaje que no
+  nombra ningún dominio.
+*/
+describe('trustedOriginsFor', () => {
+  it('confía en la pareja con y sin www, que es la trampa clásica', () => {
+    expect(trustedOriginsFor('https://www.cyclingstar.app')).toEqual([
+      'https://www.cyclingstar.app',
+      'https://cyclingstar.app',
+    ])
+    expect(trustedOriginsFor('https://cyclingstar.app')).toEqual([
+      'https://cyclingstar.app',
+      'https://www.cyclingstar.app',
+    ])
+  })
+
+  it('la barra final no crea un origen distinto', () => {
+    expect(trustedOriginsFor('https://www.cyclingstar.app/')).toContain(
+      'https://www.cyclingstar.app',
+    )
+  })
+
+  /* El dominio viejo durante una migración se escribe: confiar en un origen es una decisión. */
+  it('añade los orígenes extra, y también su pareja', () => {
+    const origins = trustedOriginsFor(
+      'https://www.cyclingstar.app',
+      'https://cyclingstar.up.railway.app, http://localhost:5173',
+    )
+    expect(origins).toContain('https://cyclingstar.up.railway.app')
+    expect(origins).toContain('http://localhost:5173')
+    expect(origins).toContain('https://www.cyclingstar.app')
+  })
+
+  it('sin extras no inventa nada y no deja entradas vacías', () => {
+    expect(trustedOriginsFor('http://localhost:3000', '')).toEqual([
+      'http://localhost:3000',
+      'http://www.localhost:3000',
+    ])
+  })
+
+  it('la instancia de better-auth los lleva puestos', () => {
+    const opciones = createAuth({} as unknown as Database, {
+      secret: 's'.repeat(32),
+      baseURL: 'https://www.cyclingstar.app',
+      mailer: spyMailer(),
+    }).options
+    expect(opciones.trustedOrigins).toContain('https://cyclingstar.app')
+  })
+})
+
+describe('withCallbackURL', () => {
+  it('sustituye el destino y conserva el token', () => {
+    const out = withCallbackURL(
+      'https://x.app/api/auth/verify-email?token=abc&callbackURL=%2F',
+      '/verify-email?step=approved',
+    )
+    const u = new URL(out)
+    expect(u.searchParams.get('token')).toBe('abc')
+    expect(u.searchParams.get('callbackURL')).toBe('/verify-email?step=approved')
+  })
+
+  it('deja intacto lo que no es una URL', () => {
+    expect(withCallbackURL('no es una url', '/x')).toBe('no es una url')
+  })
+})

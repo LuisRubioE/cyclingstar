@@ -15,6 +15,17 @@ import {
   timeCutFraction,
 } from './abandon.js'
 import { chaseField, chaseForce, isFinisher, lerp } from './chase.js'
+import {
+  altitudesDelPerfil,
+  cuerdaDelCircuito,
+  finDelPaseo,
+  hayGeneralEnJuego,
+  kmDeLaCita,
+  kmDelTodoONada,
+  metasDelDia,
+  tramosDelPerfil,
+  ultimoDiaDeVuelta,
+} from './citas.js'
 import { EventLog, announceRebels } from './events.js'
 import {
   type Group,
@@ -46,6 +57,13 @@ import {
 } from './physics.js'
 import { blockProbability, rollHazard } from './hazard.js'
 import { type Train, advanceTrain, orderHelpers, trainSpanKm } from './train.js'
+import {
+  alreadyWonDamp,
+  desperation,
+  desperationAttackGain,
+  moodCentre,
+  moodSpread,
+} from './memory.js'
 import { type MishapKind, caravanPullS, mishapLambda, mishapStopS } from './mishap.js'
 import {
   mateSeesTrouble,
@@ -58,7 +76,7 @@ import {
 import { type RelayQueue, advanceQueue, emptyQueue } from './relayQueue.js'
 import { believedGap, bloodFactor, dirQualityOf, infoLagKm, readState } from './director.js'
 import { type ChaseCandidate, chaseTargetOf, desiredGapOf, frontClaimOf } from './frontAuction.js'
-import { tacticalCostFactor } from './cost.js'
+import { altitudeCost, tacticalCostFactor } from './cost.js'
 import {
   accordionActive,
   accordionTerm,
@@ -77,8 +95,21 @@ import {
   customsProbability,
   jerseyVetoes,
   leashOf,
+  objectionOf,
 } from './customs.js'
-import { stageWeather } from './weather.js'
+import {
+  belowEchelonThreshold,
+  descentRisk,
+  echelonCloses,
+  heatRoadPrice,
+  materialPerfilBonus,
+  rainBudgetGain,
+  rainPlaceTarget,
+  roadBearings,
+  stageWeather,
+  weatherNow,
+  weatherPlan,
+} from './weather.js'
 import {
   type CrashOutcome,
   crashPile,
@@ -284,6 +315,12 @@ interface RiderSim {
   placement: number
   /** Cuánto está empujando hacia delante AHORA, [0,1]. Lo decide `objetivoDeColocacion` (R15b). */
   pushing: number
+  /**
+   * LOS PUNTOS DE PERFIL QUE LE DA (O LE QUITA) EL MATERIAL DE SU EQUIPO EN ESTE BLOQUE (R14.4). Ya
+   * resuelto contra el parte y el terreno, y **simétrico**: el lenticular un día sin viento resta lo
+   * mismo que suma un día de viento. Sin elección vale 0 exacto.
+   */
+  materialPerfil: number
   /** Segundos cedidos al objetivo marcado sin llegar a soltarse (`gives` de SPEC 6.18). */
   markLossS: number
   /**
@@ -443,6 +480,13 @@ function riderPerfil(sim: RiderSim, block: Block): number {
    * era decir dos veces lo mismo, y mal: dejaba al que ataca en el llano sin nada que gastar.
    */
   if (sim.matchBoostS > 0) perfil += STAGE.matchBonus
+  /**
+   * …Y EL MATERIAL DEL DÍA (R14.4, S-430, paso 20). Se guarda YA RESUELTO en el corredor —bloque a
+   * bloque, contra el parte y el terreno— en vez de recalcularse aquí: así los trece sitios que
+   * preguntan por el perfil de un hombre ven el mismo número sin que haya que pasarles el clima, y
+   * el que marca el ritmo lo lleva puesto igual que el que se descuelga. Vale 0 mientras nadie elija.
+   */
+  perfil += sim.materialPerfil
   return perfil
 }
 
@@ -564,8 +608,28 @@ function relayDuty(
   protectedByTeam: boolean,
   teamDriveNow: number,
   sittingOn: boolean,
+  /**
+   * ¿LLEVA ESTE HOMBRE EL MAILLOT? (v86). Va aparte del rol porque son dos cosas distintas y el
+   * defecto vive justo donde se separan: ver la nota de `esLaCartaDelEquipo`.
+   */
+  llevaElMaillot = false,
 ): number {
-  const duty = STAGE.relayDutyByRole[m.input.orders.role]
+  /**
+   * EL QUE VA DE AMARILLO CORRE COMO JEFE DE FILAS, LO DIGA SU HOJA DE ÓRDENES O NO (v86).
+   *
+   * Y esto es lo que de verdad hacía falta, no la exención del empuje de abajo. Lo primero que
+   * probé fue justo eso —sacarle del empuje de equipo como a la carta— y **el banco lo midió y no
+   * servía: 20 fotos tirando pasaban a 18**. El empuje no era quien le subía.
+   *
+   * Lo que le subía es esta línea: el maillot que su equipo escribió como gregario cobra el deber de
+   * un gregario, que es **1,0 —el más alto de la tabla, porque su oficio ES tirar—** contra el 0,1
+   * de un jefe de filas. Con ese punto de partida cruza el listón él solo, sin que nadie le empuje.
+   *
+   * La hoja de órdenes describe el plan del día; el maillot es un HECHO de la carrera, y manda. Un
+   * equipo puede haber salido con otro jefe sobre el papel —un escalador mejor, el que era la carta
+   * cuando se dieron las órdenes— y eso no pone a trabajar al que va de líder.
+   */
+  const duty = STAGE.relayDutyByRole[llevaElMaillot ? 'lider' : m.input.orders.role]
   const freshness = m.energy0 > 0 ? Math.max(0, Math.min(1, m.energy / m.energy0)) : 0
   /**
    * EL EMPUJE DEL EQUIPO ES UNA ORDEN, Y LAS ÓRDENES SE LE DAN A LOS GREGARIOS (v42).
@@ -586,8 +650,38 @@ function relayDuty(
    * dar la cara: le deja su deber de rol, que para un líder es 0,1 y significa «solo tira si no
    * queda nadie más» (`relayDutyByRole`).
    */
+  /**
+   * ————— …Y EL QUE LLEVA EL MAILLOT ES LA CARTA, AUNQUE SU EQUIPO NO LO HAYA ESCRITO (v86) —————
+   *
+   * La v42 arregló esto a medias y la mitad que faltaba es justo la que el dueño ha vuelto a ver,
+   * cuatro versiones después: «y más grave porque vemos al propio líder tirando del grupo».
+   *
+   * La regla de arriba pregunta por el ROL —`lider` o `sprinter`— y por ir arropado, y las dos
+   * cosas salen de las ÓRDENES del día. El maillot no siempre está en ninguna de las dos: basta con
+   * que su equipo tenga escrito como jefe de filas a otro —un escalador mejor sobre el papel, un
+   * hombre que era la carta cuando se dieron las órdenes— para que el que va de amarillo figure como
+   * gregario. Y entonces el empuje de equipo, que existe para mandar al frente a los gregarios, le
+   * manda al frente a ÉL.
+   *
+   * No es hipotético: en el banco de reina con campo de producción, el hombre con `gcRank` 1 sale
+   * con `rol=gregario` —el `lider` de su casa es el tercero de la general, a 50 s— y **el maillot da
+   * la cara en 20 de 1.590 fotos, y en 16 de esas 20 con sus SIETE compañeros al lado**. O sea que
+   * no es el caso de «tira porque no queda nadie», que es el que la v42 dejó abierto a propósito:
+   * es el empuje levantando al hombre por el que se está corriendo.
+   *
+   * En llano la misma medida da CERO, y no porque la regla funcione: porque allí el maillot resulta
+   * ser el sprinter del equipo y cae por el otro lado de la condición. La regla se estaba salvando
+   * por casualidad.
+   *
+   * Dicho entero: la carta del equipo es el hombre por el que se trabaja, y el que va de amarillo lo
+   * es SIEMPRE, lo diga su hoja de órdenes o no. Como en la v42, esto no le veta dar la cara: le
+   * deja su deber de rol, que significa «solo si no queda nadie más».
+   */
   const esLaCartaDelEquipo =
-    protectedByTeam || m.input.orders.role === 'lider' || m.input.orders.role === 'sprinter'
+    protectedByTeam ||
+    llevaElMaillot ||
+    m.input.orders.role === 'lider' ||
+    m.input.orders.role === 'sprinter'
   const empuje = esLaCartaDelEquipo ? 0 : teamDriveNow
   const total =
     duty +
@@ -703,6 +797,27 @@ function relayTurn(
    * de otros corredores, y esta función solo ve el grupo. Vale 0 con el paso apagado.
    */
   seApartaDe: (riderId: string) => number = () => 0,
+  /** ¿Están encendidas las once palancas del paso 17? Ver `STAGE.ordenes.enabled`. */
+  ordenesRef = false,
+  /** Qué equipos van en este grupo, para poder aplicar «con ésos no colaboro». */
+  equiposEnElGrupo: (ids: ReadonlySet<string>) => ReadonlySet<string> = () => new Set<string>(),
+  /**
+   * CUÁNTOS HOMBRES PUEDE PONER LA CASA DE ESTE CORREDOR EN EL TURNO (v84, `relayTeamShare`).
+   *
+   * Es la otra mitad del «si hay 4 equipos colaborando, pues 5 de cada uno» del dueño: el techo de
+   * 20 estaba y el cupo por casa no, así que un solo equipo podía llenar la rotación entera. Se
+   * cobra SOLO al que administra una fuga que no le amenaza —ver `relayTeamShareWatch`, con las dos
+   * hipótesis que los bancos tumbaron antes de llegar a ésta—; para todos los demás vale infinito.
+   *
+   * Viene resuelto de fuera porque depende del plan de equipo, que esta función no ve. Sin él
+   * —fugas, grupetos, campos sin equipos— vale infinito y todo sigue igual que antes.
+   */
+  cupoDeEquipo: (riderId: string) => { equipo: string | null; cupo: number } = () => ({
+    equipo: null,
+    cupo: Number.POSITIVE_INFINITY,
+  }),
+  /** ¿Quién lleva el maillot? (v86). Ver la nota de `esLaCartaDelEquipo` en `relayDuty`. */
+  llevaMaillot: (riderId: string) => boolean = () => false,
 ): Set<string> {
   const scored = members.map((m) => {
     const helpers = domestiquesFor.get(m.input.riderId)
@@ -735,19 +850,47 @@ function relayTurn(
      * segundos, no una rebaja de ese umbral: bajarlo es otro paso, con su huella delante.
      */
     const seAparta = seApartaDe(m.input.riderId)
+    /**
+     * …Y LA SEGUNDA PATA DE `effort` (R22, §6.2, paso 17): **«con ésos no colaboro»** (S-256). Se
+     * cobra donde duele y donde el jugador lo entiende sin que nadie se lo explique —en el deber de
+     * relevo— y solo cuando el rechazado va en este grupo: negarse a relevar a alguien que no está
+     * no significa nada.
+     */
+    const rencor =
+      ordenesRef &&
+      (m.input.orders.refuseRelayTeams ?? []).some((t) => equiposEnElGrupo(idSet).has(t))
+        ? STAGE.ordenes.refuseRelayPenalty
+        : 0
     return {
       id: m.input.riderId,
       // …y si sus hombres trabajan por él. En un abanico es lo ÚNICO que sigue sacando a alguien del
       // turno (ver `cuantos`, más abajo).
       protegido: protectedByTeam,
+      /**
+       * ¿ES ESTE HOMBRE LA CARTA DE SU EQUIPO? (v86). La misma cuenta que `relayDuty` hace para
+       * decidir si el empuje le levanta, sacada aquí porque el RELLENO también la necesita: ver la
+       * nota del orden del relleno, más abajo.
+       */
+      carta:
+        protectedByTeam ||
+        llevaMaillot(m.input.riderId) ||
+        m.input.orders.role === 'lider' ||
+        m.input.orders.role === 'sprinter',
       duty:
-        relayDuty(m, protectedByTeam, drive, sittingOn(m.input.riderId)) -
+        relayDuty(
+          m,
+          protectedByTeam,
+          drive,
+          sittingOn(m.input.riderId),
+          llevaMaillot(m.input.riderId),
+        ) -
         // …Y TAMPOCO VALE «¿PARA QUÉ VOY A TIRAR SI NO PUEDO GANAR?» (v41). En un abanico dar la cara
         // no es colaborar, es seguir en carrera: el que no entra al turno se cae de la fila. Medido
         // sin esto, el corte de trece hombres a 25 km de meta ponía DOS a rotar —los otros once
         // salían con el deber en negativo por no tener opciones— y los 159 de detrás, que sí ponían
         // veinte, se lo comían.
         seAparta -
+        rencor -
         (enAbanico ? 0 : STAGE.relayNoChanceWeight * paraMí * sinOpciones(m.input.riderId)) -
         /**
          * EL MAILLOT NO DA LA CARA AL VIENTO MIENTRAS HAYA OTRO QUE PUEDA (v57).
@@ -862,6 +1005,32 @@ function relayTurn(
           STAGE.relayDutyPaceRelief * Math.max(0, Math.min(1, paceFraction))
   const quieren = scored.filter((s) => s.duty >= listón).length
   /**
+   * …Y CADA CASA PONE LOS SUYOS HASTA SU CUPO (v84). `scored` viene ordenado por deber de mayor a
+   * menor, así que recorrerlo y parar en el listón deja a los que quieren; el cupo va quitando a los
+   * que su casa ya no puede poner.
+   *
+   * **El hueco NO se reasigna**, y es la mitad importante de la regla: el que se pasa del cupo de su
+   * casa deja de querer tirar, y si no quiere nadie más el turno se ENCOGE y el pelotón va más
+   * despacio. Reasignarlo al siguiente por deber solo cambiaría el nombre del que tira —y encima a
+   * uno sin motivo, que es el defecto que la v38 cazó—: no cambiaría la carrera. Lo que hace que
+   * alguien vaya delante igualmente es el suelo de rescate (`minimo`), como siempre.
+   */
+  const conCupo: typeof scored = []
+  {
+    const puestos = new Map<string, number>()
+    for (const sc of scored) {
+      if (sc.duty < listón) break
+      const { equipo, cupo } = cupoDeEquipo(sc.id)
+      if (equipo !== null) {
+        const ya = puestos.get(equipo) ?? 0
+        if (ya >= cupo) continue
+        puestos.set(equipo, ya + 1)
+      }
+      conCupo.push(sc)
+    }
+  }
+  const quierenConCupo = conCupo.length
+  /**
    * …Y ALGUIEN TIENE QUE DAR LA CARA IGUAL: un grupo rueda porque alguien va delante. Son los que
    * menos se resisten, y cuántos depende del tamaño —uno en una fuga de dos, cuatro en un pelotón—.
    * Éste es también el caso del hombre que va SOLO, que da la cara el 100 % del tiempo porque no
@@ -899,15 +1068,22 @@ function relayTurn(
    * protegidos salen en negativo del deber, quedan al final del orden y basta con no contarlos.
    */
   const protegidos = enAbanico ? scored.filter((s) => s.protegido).length : 0
+  /**
+   * EN UN ABANICO NO HAY CUPO POR CASA, y es coherente con lo de arriba: en una fila con el viento
+   * de lado rota la fila entera porque detrás del último que da la cara no hay rueda, hay cuneta.
+   * Ahí no se decide a cuánta gente compromete un equipo: se decide quién cabe en el asfalto.
+   */
+  const disponibles = enAbanico ? quieren : quierenConCupo
   const cuantos = enAbanico
     ? Math.max(minimo, Math.min(techo, members.length - protegidos))
-    : Math.max(minimo, Math.min(quieren, techo))
-  if (cuantos <= quieren) {
-    const candidatos = scored.slice(0, quieren).map((s) => s.id)
+    : Math.max(minimo, Math.min(disponibles, techo))
+  if (cuantos <= disponibles) {
+    const elegibles = enAbanico ? scored.slice(0, quieren) : conCupo
+    const candidatos = elegibles.map((s) => s.id)
     return elTren(
       cola
         ? advanceQueue(cola, candidatos, cuantos, STAGE.dx, terrenoCola)
-        : new Set(scored.slice(0, cuantos).map((s) => s.id)),
+        : new Set(elegibles.slice(0, cuantos).map((s) => s.id)),
       scored,
       lanzando,
     )
@@ -925,20 +1101,67 @@ function relayTurn(
    * la carrera todo el día mantiene a un hombre delante aunque vaya vacío; no se aparta para que
    * tire el que no se juega nada.
    */
+  /**
+   * ————— …PERO LA CARTA DEL EQUIPO ES EL ÚLTIMO RECURSO, NO EL PRIMERO (v86) —————
+   *
+   * Este orden ponía `delDueño` de PRIMER criterio y el deber de segundo, y con eso desmentía la
+   * frase que `relayDutyByRole.lider` lleva escrita desde siempre: «0,1 — el equipo lo lleva; solo
+   * tira si no queda nadie más». No hacía falta que no quedara nadie: bastaba con ser del equipo que
+   * lleva el frente.
+   *
+   * El dueño lo vio en la etapa 19 de producción —«y más grave porque vemos al propio líder tirando
+   * del grupo»— y trazado en el banco sale por aquí, siempre por aquí: **238 de 238 veces**. La
+   * cadena, con los números de una foto real:
+   *
+   * ```
+   * quieren=5  conCupo=3  cuantos=4  min=4  liston=1,50  dutyJefe=-2,68  n=170
+   * ```
+   *
+   * Cinco quieren tirar; el cupo del que administra (v84) los recorta a tres; el suelo de rescate
+   * son cuatro; falta uno y se cae aquí; y aquí el maillot entra **con el deber más bajo de los
+   * ciento setenta**, porque el deber no se mira hasta el tercer criterio.
+   *
+   * Y así se explica por qué los dos arreglos que probé antes no movían nada —quitarle el empuje de
+   * equipo y darle el deber de jefe de filas dejaban las 20 fotos en 18—: los dos tocaban el DEBER,
+   * y el deber aquí no decidía.
+   *
+   * El orden correcto dice lo que la carretera: cuando no queda quien tire, da la cara el equipo que
+   * lleva la carrera —eso se queda— pero **por su gente, y el hombre por el que corren es el último
+   * de la lista**. Si de verdad no queda nadie más, sigue entrando: es un orden, no un veto.
+   */
   const relleno = [...scored].sort(
     (a, b) =>
-      Number(delDueño(b.id)) - Number(delDueño(a.id)) || b.duty - a.duty || (a.id < b.id ? -1 : 1),
+      Number(a.carta) - Number(b.carta) ||
+      Number(delDueño(b.id)) - Number(delDueño(a.id)) ||
+      b.duty - a.duty ||
+      (a.id < b.id ? -1 : 1),
   )
+  /**
+   * …Y LA CARTA NO ES CANDIDATA MIENTRAS HAYA OTROS (v86). Ordenarla la última no bastaba, y el
+   * banco lo dijo: con la carta al final del orden el maillot quedaba el **170 de 174** y aun así
+   * daba la cara en 10 de 1.590 fotos.
+   *
+   * El motivo es la COLA (R18.1): a partir del paso 7 la cola manda sobre el orden y persiste entre
+   * bloques —das tu relevo, te apartas y te vas al final—, así que lo que el orden decide es por
+   * dónde EMPIEZA, no quién entra. Y aquí se le estaba pasando como candidato el grupo entero, los
+   * ciento setenta y cuatro, así que tarde o temprano le tocaba a todo el mundo.
+   *
+   * La regla, dicha como se lee en `relayDutyByRole.lider`: el hombre por el que corre el equipo
+   * tira **solo si no queda nadie más**. O sea que ni siquiera es candidato mientras haya gente
+   * suficiente que no sea la carta de su casa; y cuando no la hay, entra como todos.
+   */
+  const sinCarta = relleno.filter((s) => !s.carta)
+  const candidatos = sinCarta.length >= cuantos ? sinCarta : relleno
   return elTren(
     cola
       ? advanceQueue(
           cola,
-          relleno.map((s) => s.id),
+          candidatos.map((s) => s.id),
           cuantos,
           STAGE.dx,
           terrenoCola,
         )
-      : new Set(relleno.slice(0, cuantos).map((s) => s.id)),
+      : new Set(candidatos.slice(0, cuantos).map((s) => s.id)),
     scored,
     lanzando,
   )
@@ -1109,6 +1332,14 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   // en montaña. Con subflujo propio, una etapa en la que no se retira nadie sale dígito a dígito
   // igual que en la v13.
   const rngAbandon = streams('abandon')
+  /**
+   * ¿Y LAS ONCE PALANCAS DEL JUGADOR DEL PASO 17? Ver `STAGE.ordenes.enabled`. Va arriba del todo
+   * porque una de ellas —el cerillo de más de `a_tope`— se lee al construir el campo, antes de que
+   * la carrera empiece.
+   */
+  const ordenesOn = input.flags?.ordenes === true || STAGE.ordenes.enabled
+  /** ¿Y el depósito entre etapas del paso 18? Ver `STAGE.entreEtapas.enabled`. */
+  const entreEtapasOn = input.flags?.entreEtapas === true || STAGE.entreEtapas.enabled
   const rngCrash = streams('crash')
   /**
    * Subflujo NOMINAL de los PERCANCES MECÁNICOS (R11, SPEC 6.1). Mismo motivo que `rngCrash` y por
@@ -1142,8 +1373,33 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    * ocho grandes vueltas de 2024-2026: la fuga gana ~12 % de las etapas llanas (unas 5 de 41), y el
    * motor con el humor centrado en 1 daba 4 %.
    */
+  /**
+   * …Y DESDE EL PASO 16, EL HUMOR TIENE CAUSA (R09.1). El día después de la reina el pelotón no sale
+   * igual que la víspera de un descanso, y eso no lo decide un dado: lo decide el calendario, que
+   * `packages/db` ya conoce y hace viajar en la memoria.
+   *
+   * **El dado no se retira, se encoge a la mitad**, y eso es deliberado: el dueño pidió con nombre
+   * «la probabilidad de que el pelotón eche la hueva». Un humor sin azar sería otro defecto, no un
+   * arreglo. La tirada se consume igual —el subflujo no se desplaza—, cambia su amplitud y su
+   * centro.
+   */
+  const memoriaOn = input.flags?.memory === true || STAGE.memory.enabled
+  const memoria = memoriaOn ? input.race?.memory : undefined
+  /**
+   * ¿ESTE EQUIPO TIENE MOTIVO PARA ACORTAR LA CUERDA HOY? Dos memorias distintas y las dos cuentan:
+   * **lleva al ganador de ayer** —al que no se le da otra— o **es el equipo al que la fuga le robó
+   * la etapa ayer**, que hoy no le da cuerda a nadie.
+   */
+  const llevaAlGanadorDeAyer = (ids: readonly string[]): boolean => {
+    const ganador = memoria?.yesterdayWinnerId ?? null
+    return ganador !== null && ids.includes(ganador)
+  }
+  const tiradaHumor = 2 * streams('mood')() - 1
   const humorDelPeloton =
-    STAGE.pelotonMoodCentre + STAGE.pelotonMoodSpread * (2 * streams('mood')() - 1)
+    memoria != null
+      ? moodCentre(memoria.moodCause, stageWeather(seed, input.lugar).calor) +
+        moodSpread(true) * tiradaHumor
+      : STAGE.pelotonMoodCentre + STAGE.pelotonMoodSpread * tiradaHumor
   /**
    * EL VIENTO DEL DÍA (v41, docs/motor.md §19). Una propiedad de la etapa, como el humor: se sortea
    * una vez, vale para todo el día y no depende de nadie. Lo que se sortea es cuánto pega DE LADO,
@@ -1156,8 +1412,30 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    */
   const rngViento = streams('viento')
   const vientoBruto = Math.pow(rngViento(), STAGE.windDayShape)
-  const vientoLateral =
+  /**
+   * …Y DESDE EL PASO 20 ESTE NÚMERO CAMBIA DE OFICIO (R14.1). Hasta la v69 **era** el viento lateral
+   * de toda la etapa: se sorteaba una vez y soplaba de lado durante 180 km, que es la mitad de la
+   * frase. La otra mitad la sabe cualquiera que haya visto una etapa de viento: **la carretera
+   * gira**, y cuando gira el mismo viento pasa a ser de cara, de cola o de nada.
+   *
+   * Así que el sorteo es el mismo dígito a dígito —no se desplaza nada— y lo que cambia es qué
+   * significa: ahora es la FUERZA del viento del día, y el lateral y el frontal salen de ella contra
+   * el rumbo de cada bloque. Con el interruptor apagado, `vientoLateral` se queda en la fuerza del
+   * día y no se mueve nunca, que es exactamente la v69.
+   */
+  const fuerzaDelViento =
     vientoBruto < STAGE.windMin ? 0 : (vientoBruto - STAGE.windMin) / (1 - STAGE.windMin)
+  /**
+   * EL INTERRUPTOR DEL PASO 20, y **se puede APAGAR y no solo encender**, que es la diferencia con
+   * los trece anteriores. Todos ellos se leen `flags?.x === true || STAGE.x.enabled`, o sea que una
+   * vez encendida la constante el brazo A deja de ser ejecutable. Para una capa táctica se puede
+   * vivir con eso; para **la única que mueve la LEY DE VELOCIDAD**, no: el invariante 43 se re-ancla
+   * aquí, y re-anclarlo sin poder volver a correr el brazo A es re-anclarlo a ciegas.
+   */
+  const climaOn = input.flags?.weather ?? STAGE.weather.enabled
+  let vientoLateral = fuerzaDelViento
+  /** El de cara, en [−1,1]. Es el único término de todo este documento que toca la LEY (R14.1). */
+  let vientoFrontal = 0
   /**
    * CUÁNTOS CABEN EN LA FILA. Es la capacidad de la carretera con este viento, y es lo único que un
    * abanico necesita saber: cuántos hombres caben a rebufo en diagonal antes de que el que sigue se
@@ -1165,9 +1443,11 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    * doce (`windEchelonRiders`). De aquí salen las dos mitades del abanico —el CORTE que parte la
    * carrera y la CUNETA que la mantiene partida— y por eso se calcula una sola vez, para el día.
    */
-  const cabenEnFila = Math.round(
-    STAGE.windEchelonMax * Math.pow(STAGE.windEchelonRiders / STAGE.windEchelonMax, vientoLateral),
-  )
+  const cabenEnFilaCon = (lateral: number): number =>
+    Math.round(
+      STAGE.windEchelonMax * Math.pow(STAGE.windEchelonRiders / STAGE.windEchelonMax, lateral),
+    )
+  let cabenEnFila = cabenEnFilaCon(vientoLateral)
   /**
    * Y ESTO ES «LA CARRETERA YA HA GIRADO» (v41). El viento de lado sopla todo el día, pero muerde en
    * un SITIO —el cruce donde la carretera se pone de cara al viento y un equipo se coloca—, que es
@@ -1200,7 +1480,17 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    * de correrla. Y puede, porque nunca dependió de la carrera: sale de la semilla, del sitio y de la
    * fecha, que se conocen el día que se publica el calendario.
    */
-  const { lluvia, calor } = stageWeather(seed, input.lugar)
+  const climaDelDia = stageWeather(seed, input.lugar)
+  /**
+   * …Y TAMPOCO LLUEVE IGUAL EN EL KM 5 QUE EN EL 150 (R14.2, paso 20). El parte por segmentos es lo
+   * que permite que el agua entre por el km 90, que es una etapa distinta —el pelotón se pone
+   * nervioso justo donde el recorrido se complica— y lo que el dueño dejó anotado en §20 de
+   * `docs/motor.md` cuando el clima entró siendo un número por día.
+   */
+  let lluvia = climaDelDia.lluvia
+  let calor = climaDelDia.calor
+  /** El frío, que existía en los grados desde la v42 y no lo cobraba nadie (R13.5). */
+  let frio = 0
   /**
    * SER MUCHOS DEJA DE SERVIR, TAMBIÉN PARA EL QUE PERSIGUE (v41). El tamaño de un grupo entra en la
    * física en tres sitios —cuántos reparten el viento en la ley de velocidad, cuánto rebufo hay y a
@@ -1217,11 +1507,78 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
 
   const blocks = sampleProfile(input.profile)
   const totalKm = stageLengthKm(input.profile)
+  /**
+   * EL PARTE DEL DÍA Y EL TRAZADO DE LA CARRETERA (R14, paso 20).
+   *
+   * Dos subflujos NOMINALES nuevos y propios (`parte` y `rumbo`, SPEC 6.1) para lo de siempre: con el
+   * interruptor apagado no se tira ni un dígito y la etapa sale como en la v69. El del viento sigue
+   * siendo el de la v41 y no se toca.
+   *
+   * Y el rumbo es **una suposición declarada, no un dato**: `StageProfile` son kilómetros, pendiente
+   * y terreno, y en todo el repositorio no hay geometría. Se genera determinista por semilla, con un
+   * giro cada `roadTurnKm`. El día que el generador traiga trazado de verdad, se cambia la función y
+   * no se toca nada más.
+   */
+  const parte = climaOn
+    ? weatherPlan(seed, input.lugar, totalKm, fuerzaDelViento)
+    : { reliability: 1, segments: [] }
+  const rumbos = climaOn ? roadBearings(seed, totalKm) : []
+  /**
+   * CUÁNTOS KILÓMETROS SEGUIDOS LLEVA LA CARRETERA AL ABRIGO. Es el único estado que el cierre del
+   * abanico necesita: dos kilómetros por debajo del umbral y la fila se acaba (R14.1, S-324).
+   */
+  let kmAlAbrigo = 0
+  /** Kilómetros de puerto de la etapa: es con lo que se juzga si el desarrollo corto acertó (R14.4). */
+  const kmDePuerto = blocks.filter((b) => b.tipo === 'subida').length * STAGE.dx
+  /**
+   * …Y SI EL EQUIPO HA SUBIDO A TODOS SUS HOMBRES AL FRENTE BAJO EL AGUA (R14.2, S-204). Se apunta
+   * para cobrarlo **mañana**, que es donde el diseño lo pone: el presupuesto del día siguiente.
+   */
+  const subioAlFrenteBajoAgua = new Set<string>()
+  /**
+   * EL KILÓMETRO EN QUE SE CUMPLIÓ LA CITA DEL TIEMPO (R14.3). Se apunta una vez y no se borra: una
+   * cita que se cumple no se «descumple» porque escampe, igual que la del kilómetro no se deshace.
+   */
+  const citaCumplida = new Map<string, number>()
+  /**
+   * LA CITA EFECTIVA DE UN HOMBRE: la del tiempo si ya se cumplió, y si no, la del kilómetro de la
+   * v58. `null` = sin cita, y entonces decide su mentalidad, como siempre.
+   */
+  /**
+   * LAS CITAS POSICIONALES, resueltas una vez sobre el perfil (paso 17b, `citas.ts`). El puerto y el
+   * sector no dependen de lo que hagan los demás, así que se convierten en un kilómetro antes de
+   * empezar y no cuestan nada en el bucle.
+   */
+  const tramosDeHoy = tramosDelPerfil(blocks, STAGE.dx)
+  /** La altitud al final de cada bloque (R28.7, paso 18d). Sin cota de salida, todo a nivel del mar. */
+  const altitudesDeHoy = altitudesDelPerfil(blocks, STAGE.dx, input.profile.startM ?? 0)
+  /**
+   * LA CITA EFECTIVA DE UN HOMBRE, por orden de precedencia: la que ya se CUMPLIÓ en carretera —el
+   * tiempo (R14.3)—, luego la POSICIONAL del perfil —el puerto, el sector, el kilómetro de
+   * `triggerOn`— y por último el `triggerKm` de la v58. `null` = sin cita, y entonces decide su
+   * mentalidad, como siempre.
+   *
+   * El orden importa: una cita cumplida en carretera manda sobre una posicional, porque ya ocurrió.
+   */
+  const citaDe = (m: RiderSim): number | null =>
+    citaCumplida.get(m.input.riderId) ??
+    kmDeLaCita(m.input.orders.triggerOn, tramosDeHoy) ??
+    m.input.orders.triggerKm ??
+    null
+  /** Los que pusieron una cita en el tiempo. Normalmente ninguno, y por eso se hace la lista. */
+  const citasDelTiempo: RiderSim[] = []
   const n = blocks.length
   const log = new EventLog()
 
   const sims = new Map<string, RiderSim>()
-  for (const r of input.riders) {
+  for (const r0 of input.riders) {
+    /**
+     * «HOY ES MI DÍA» / «HOY ME VOY AL GRUPETO» (paso 17b, R22 · S-216, S-024, S-030). `dayGoal`
+     * DECLARA, así que se resuelve UNA VEZ aquí y no en los siete sitios que leen las casillas y el
+     * esfuerzo: normalizar la hoja al entrar es lo que evita que una palanca nueva llegue a unos
+     * sitios y a otros no, que es de lo que este paso viene escarmentado.
+     */
+    const r = { ...r0, orders: { ...r0.orders, ...metasDelDia(r0.orders) } }
     // Piernas del día: un factor por corredor y etapa (acotado a ±3σ) escala su nivel efectivo, así
     // un corredor algo inferior puede ganarle a uno mejor que tiene un mal día (SPEC 6.7).
     const dayFactor = Math.max(
@@ -1247,7 +1604,14 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       bonusS: 0,
       sprintPts: 0,
       climbPts: 0,
-      matches: r.matches,
+      /**
+       * …Y `a_tope` DA UN CERILLO MÁS (R22, §6.2, paso 17). Es la primera de las tres patas nuevas
+       * de una palanca que hasta hoy movía **una sola cosa** —±0,5 en el deber de relevo— y que por
+       * eso se sentía desconectada desde el otro lado de la pantalla.
+       */
+      matches:
+        r.matches +
+        (ordenesOn && r.orders.effort === 'a_tope' ? STAGE.ordenes.aTopeExtraMatches : 0),
       matchBoostS: 0,
       // Subflujo NOMINAL por corredor: el desempate del turno de relevos no depende del orden del
       // array de entrada ni del tamaño del pelotón, solo de la semilla y del id (SPEC 6.1).
@@ -1258,6 +1622,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        */
       placement: initialPlacement(normal(streams(`place:${r.riderId}`), 0, 1)),
       pushing: 0,
+      materialPerfil: 0,
       markLossS: 0,
       driftS: 0,
       reserveS: STAGE.reserveSeconds,
@@ -1275,6 +1640,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       pullFor: null,
       parte: parteEnBlanco(),
     })
+    if (r.orders.triggerOn?.at === 'weather') citasDelTiempo.push(sims.get(r.riderId)!)
   }
   /**
    * Los corredores VIVOS de un grupo: ni han llegado a meta ni se han retirado. El que abandona
@@ -1386,6 +1752,83 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   let splitPhase = 0
   // Quién apretó en el aviso anterior, para no nombrar diez veces al mismo protagonista.
   let lastSplitDriverId: string | null = null
+  /**
+   * EL ÚLTIMO KILÓMETRO EN QUE SE CONTÓ QUE EL LÍDER PERDIÓ LA RUEDA (v81).
+   *
+   * El maillot puede soltarse, volver y soltarse otra vez en la misma rampa; contarlo cada vez
+   * convertiría la noticia del día en una letanía. Se cuenta la primera y luego solo si ha habido
+   * carretera de por medio.
+   */
+  let ultimoAvisoLiderKm = Number.NEGATIVE_INFINITY
+  /**
+   * DESDE QUÉ KM LLEVA CADA GRUPO PEGADO A OTRO (v81, `contactGapSeconds`/`contactHoldKm`).
+   *
+   * La clave es el par de grupos, porque lo que se mide es una relación y no un estado de uno solo.
+   * Se borra en cuanto se separan: el contacto tiene que ser SEGUIDO.
+   */
+  const contactoDesdeKm = new Map<string, number>()
+  const llevaEnContacto = (kmAhora: number, a: string, b: string, juntos: boolean): boolean => {
+    const clave = a < b ? `${a}|${b}` : `${b}|${a}`
+    if (!juntos) {
+      contactoDesdeKm.delete(clave)
+      return false
+    }
+    const desde = contactoDesdeKm.get(clave)
+    if (desde === undefined) {
+      contactoDesdeKm.set(clave, kmAhora)
+      return false
+    }
+    return kmAhora - desde >= STAGE.contactHoldKm
+  }
+  /**
+   * A QUÉ DISTANCIA, EN SEGUNDOS, DOS GRUPOS SE TOCAN (v81).
+   *
+   * `contactGapSeconds` valía dos segundos fijos, y un número fijo de segundos **es una distancia
+   * distinta en cada sitio**: dos segundos a 20 km/h de puerto son once metros y a 45 km/h de
+   * abanico son veinticinco. Es el mismo error que la v39 ya corrigió en el cerillo —medirlo en
+   * metros regalaba el triple de esfuerzo subiendo— dicho al revés.
+   *
+   * Lo que decide si dos grupos son uno no es un reloj: es la CARRETERA que los separa comparada con
+   * la que ellos mismos ocupan. Setenta hombres miden medio centenar de metros; si el hueco es menor
+   * que eso, la cola de uno está dentro del otro y no hay dos grupos que valga.
+   *
+   * Medido sobre sesenta reinas —cruces en los que un grupo pasa a otro y SIGUE delante tres
+   * kilómetros después, o sea los que no son el pulso de la carretera—:
+   *
+   *   regla                        cruces   de ellos, con los dos grupos >= 8 hombres
+   *   2 s fijos (hasta la v81)       51                      9
+   *   4 s fijos                      39                      5
+   *   6 s fijos                      31                      4
+   *   10 s fijos                     13                      4
+   *   16 s fijos                      7                      2
+   *   ésta                           21                      0
+   *
+   * La regla física se lleva los NUEVE y además funde MENOS que el umbral plano que se queda con
+   * dos: arregla lo que estaba roto sin aplanar lo que no lo estaba. Los nueve eran del mismo tipo
+   * —el que el dueño vio en producción, «2 grupos que de repente 20 de atrás adelantan a los 10 de
+   * alante»— y todos resultaron ser grupos de 59 y 72 hombres separados por uno a once segundos,
+   * intercambiándose el sitio kilómetro tras kilómetro.
+   *
+   * `contactGapSeconds` se queda como SUELO: por debajo de dos segundos no se mira el tamaño.
+   */
+  const contactoS = (nA: number, nB: number, kmh: number): number => {
+    /**
+     * LOS DOS TAMAÑOS SON DE `membersOf`, NUNCA DE `g.riderIds.length` (v83, defecto de producción).
+     *
+     * `riderIds` de un grupo es una lista que **solo crece**: cada fusión hace
+     * `[...peloton.riderIds, ...sg.riderIds]` y nadie borra de ahí al que se descuelga después. El
+     * que va y vuelve tres veces figura tres veces. Medido en la reina canónica, un grupo llegaba a
+     * declarar **621 corredores en una carrera de 176**.
+     *
+     * Con ese número aquí, la cuenta se envenena por donde más duele: 621 hombres son 465 metros, y
+     * a 15 km/h eso son **106 segundos de umbral** en vez de los trece que corresponden a un grupo
+     * de verdad. El pelotón se tragaba grupos a más de tres minutos. Ver la nota de la v83 en
+     * `docs/balance.md`.
+     */
+    const metros = Math.max(nA, nB) * STAGE.contactMetresPerRider
+    const ms = Math.max(1, kmh) / 3.6
+    return Math.max(STAGE.contactGapSeconds, metros / ms)
+  }
   /**
    * LA CRIBA LEJOS DE META (v21, docs/motor.md §16). Todo lo de arriba vive dentro del desenlace
    * (`raceThisClimb`), y por buenas razones: con perfiles reales hay relieve por todas partes y un
@@ -1516,6 +1959,28 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   let breakShareReported = false
 
   /**
+   * NADA SE ACABA ANTES DE EMPEZAR (v81). El desenlace de un movimiento se narra con el reloj del
+   * grupo que lo caza, y ese reloj puede ser MENOR que el del movimiento: el pelotón se cuenta por
+   * su primer hombre y el que salta lo hace desde la mitad de la fila, así que sale con veinte o
+   * treinta segundos de reloj MÁS que el grupo del que sale.
+   *
+   * Normalmente da igual, porque la captura llega kilómetros después y manda el km. Pero un
+   * movimiento que nace y muere EN EL MISMO BLOQUE de cien metros deja las dos líneas en el mismo
+   * kilómetro, y entonces manda el reloj: la crónica ordena por km y luego por reloj, así que el
+   * lector leía **primero que le cazan y después que ataca**.
+   *
+   * Medido en `reina-150-18`: `mov-14` nace en el km 110,05 con reloj 10.153 y lo cazan en el mismo
+   * bloque con reloj 10.130 —veintitrés segundos ANTES—, y lo mismo con `mov-15`, `mov-17` y
+   * `mov-19`. Los cuatro son el `ataqueSinCerrar` que el banco de coherencia contaba: el arco SÍ se
+   * cerraba, pero la línea de cierre caía delante de la de salida, y el auditor —que mira hacia
+   * adelante, como el lector— no la encontraba.
+   *
+   * El suelo es el reloj de nacimiento, no el del bloque: lo que se corrige es un artefacto de qué
+   * hombre representa a cada grupo, no una duración.
+   */
+  const noAntesDeNacer = (m: { bornTs: number }, tS: number): number => Math.max(m.bornTs, tS)
+
+  /**
    * Los que más trabajo al frente han hecho, de más a menos, quedándose solo con los que han
    * puesto una parte apreciable de lo que puso el primero: si tiran dos, se nombran dos; si tira
    * uno solo, se nombra uno. El desempate por id hace el orden total (nunca el de inserción).
@@ -1524,7 +1989,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
     ledger: Iterable<[string, number]>,
     max: number,
     minShare: number,
-  ): { ids: string[]; best: number } => {
+  ): { ids: string[]; best: number; total: number } => {
     const ranked = [...ledger]
       .filter(([, w]) => w > 0)
       .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
@@ -1535,6 +2000,10 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         .filter(([, w]) => w >= best * minShare)
         .map(([id]) => id),
       best,
+      // …y EL TRABAJO TOTAL de la ventana, que es lo mismo se reparta como se reparta (v81). El
+      // `best` responde «quién lleva mucho rato delante» y una rotación de verdad hace que la
+      // respuesta sea «nadie»; la suma responde «cuánto se está tirando», que es la pregunta.
+      total: ranked.reduce((a, [, w]) => a + w, 0),
     }
   }
 
@@ -1733,6 +2202,16 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    */
   const bunchFinish = admitsBunchFinish(stageFinishType)
   /**
+   * QUÉ ÚLTIMA ETAPA ES ÉSTA (R28.4, paso 18b · S-075, S-270). Ver `ultimoDiaDeVuelta`: la última de
+   * una vuelta no es un martes cualquiera, y son dos etapas distintas según dónde acabe.
+   *
+   * `'ninguno'` en toda carrera de un día y en cualquier etapa que no sea la última, que es lo que
+   * hace que ningún escenario canónico ni ningún banco lo note: **ninguno pasa `race`**.
+   */
+  const ultimoDia = ultimoDiaDeVuelta(input.race, bunchFinish)
+  /** DÓNDE EMPIEZA EL TODO O NADA, en km desde la salida. Ver `kmDelTodoONada`. */
+  const kmTodoONada = ultimoDia === 'decisiva' ? kmDelTodoONada(tramosDeHoy.puertos) : null
+  /**
    * LA FUERZA DE LA CAZA (`stage/chase.ts`): cuántos trenes tiene el campo, cómo de bueno es su
    * rematador y con cuántos compañeros cuenta. Antes bastaba UN corredor con SPR ≥ 70 para que el
    * pelotón entero persiguiera a tope, en una continental modesta igual que en una gran vuelta.
@@ -1769,11 +2248,23 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
     [...input.riders].filter(isFinisher).sort((a, b) => b.eff0.SPR - a.eff0.SPR)[0]?.riderId ?? null
 
   /**
-   * ¿Hay general en juego? En la etapa 1 de una vuelta y en toda carrera de un día, TODOS llegan
-   * con `gcDeficitSeconds` = 0: leído literalmente, el pelotón entero sería el líder y cualquier
-   * movimiento una amenaza mortal. No hay general que defender hasta que hay diferencias.
+   * ¿HAY GENERAL EN JUEGO? En toda carrera de un día TODOS llegan con `gcDeficitSeconds` = 0: leído
+   * literalmente, el pelotón entero sería el líder y cualquier movimiento una amenaza mortal. No hay
+   * general que defender hasta que hay diferencias.
+   *
+   * …PERO LA ETAPA 1 DE UNA VUELTA SÍ TIENE GENERAL (paso 18b, R28.5 · S-074, S-388, S-158). Ahí
+   * también llegan todos a cero, y hasta aquí eso APAGABA LOS TRES FRENOS DEL MAILLOT justo el día
+   * en que la cuerda es la más larga de la carrera: nadie controlaba, nadie se cuidaba y nadie
+   * miraba a una fuga que, si llega, **se viste el primer maillot con minutos**. Es exactamente lo
+   * que no pasa en carretera: el día 1 de una vuelta se corre nerviosísimo precisamente porque la
+   * general está por estrenar.
+   *
+   * La diferencia entre los dos casos no está en los déficits —son idénticos, todos a cero— sino en
+   * si MAÑANA hay otra etapa. Eso el motor ya lo sabe: `race.stageDay` y `race.totalStages` viajan
+   * desde el paso 2. Con general en juego y todos a cero, el «líder virtual» sale del boquete, que
+   * es lo que R28.5 pide.
    */
-  const hasGcContext = input.riders.some((r) => r.gcDeficitSeconds > 0)
+  const hasGcContext = hayGeneralEnJuego(input.riders, input.race)
 
   // --- EL PLAN DE EQUIPO (v15, docs/motor.md §V.1) -----------------------------------------
   // El motor ya conoce los equipos. Aquí se monta el plan de cada uno y el estado que se GASTA: el
@@ -1794,6 +2285,15 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       // nuevo: es `finishScore` sobre `deriveFinishTerrain`, la misma cuenta del sprint.
       finishScore: finishScore(r.eff0, stageFinishType),
       gcDeficitSeconds: r.gcDeficitSeconds,
+      // Lo que ha puesto en «cuánto quiero gastar hoy» (R22, paso 17): decide el presupuesto de su
+      // equipo, que es donde esa palanca de verdad se paga.
+      ...(r.orders.effort ? { effort: r.orders.effort } : {}),
+      /**
+       * CON CUÁNTO LLEGA HOY (R08.1, paso 18). El depósito de salida contra el nominal de 100, que
+       * es la escala en la que `initialEnergy` lo devuelve: un hombre fresco ronda el 100 y uno que
+       * lleva dos semanas de vuelta baja de ahí. No hay dato nuevo — es el que ya trae.
+       */
+      freshness: r.energy / 100,
     })),
     { bunchFinish, hasGcContext },
   )
@@ -1848,9 +2348,26 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
      * veces»— y su colchón es lo que la contesta.
      */
     const sim = sims.get(riderId)
+    /**
+     * …Y EL ÚLTIMO DÍA DECISIVO EL COLCHÓN NO FRENA A NADIE (R28.4, paso 18b): «el maillot no deja
+     * ir nada». El freno del colchón existe porque quedan etapas que administrar; cuando no queda
+     * ninguna, administrar es perder. Es el mismo caso que `leLoEstanQuitando` —el colchón deja de
+     * protegerle— por un motivo distinto: allí porque se lo están quitando, aquí porque se acaba.
+     *
+     * **Y ESTO HOY NO CORRE, dicho en vez de disimulado**: el freno del colchón entero vive dentro de
+     * `colaOn`, o sea de `STAGE.teamPlay.enabled`, que está en `false`. Así que esta línea no cambia
+     * ni un segundo de ninguna carrera de hoy. Va puesta igualmente y a propósito: el día que se
+     * encienda `teamPlay`, lo que se encendería sin ella es un maillot que la última etapa sigue
+     * administrando para un mañana que no existe. Lo que no se puede es contarla como medida —no lo
+     * es—, y por eso el efecto medido del brazo decisivo es **solo el de la cuerda**.
+     */
     const deJersey =
       colaOn && sim
-        ? jerseyAttackFactor(hasGcContext && sim.input.gcRank === 1, gcCushionOf(riderId))
+        ? jerseyAttackFactor(
+            hasGcContext && sim.input.gcRank === 1,
+            gcCushionOf(riderId),
+            ultimoDia === 'decisiva',
+          )
         : 1
     /**
      * …Y **EL DÍA QUE EL MAILLOT CEDE, SUS RIVALES ATACAN MÁS** (R13.1, el contrario nº 9).
@@ -1870,10 +2387,29 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
      */
     const escaparate =
       colocacionOn && sim?.input.contractYear === true ? 1 + STAGE.placement.showcaseAppetite : 1
+    /**
+     * …Y LA DESESPERACIÓN, QUE ES LA OTRA MITAD DEL MISMO RELOJ (R09.4, paso 16): «el que cumplió
+     * guarda a su gente; el que lleva quince días sin nada mete dos hombres en todos los intentos».
+     *
+     * Escala con los días secos en vez de ser un binario, y su contrario también: el equipo que ya
+     * tiene su etapa deja de quemar hombres. Las dos cosas salen de la memoria que `packages/db`
+     * construye, así que en una carrera de un día valen 1 por construcción.
+     */
+    const suEquipo = sim != null ? (teamOf.get(sim.input.riderId) ?? null) : null
+    const humorDeCarrera =
+      memoria != null
+        ? desperationAttackGain(desperation(memoria, suEquipo)) * alreadyWonDamp(memoria, suEquipo)
+        : 1
     const t = teamOf.get(riderId)
-    if (t == null) return deJersey * olfato * escaparate
+    if (t == null) return deJersey * olfato * escaparate * humorDeCarrera
     const stance = teamNow.get(t)
-    return (stance == null ? 1 : teamAttackFactor(stance, colaOn)) * deJersey * olfato * escaparate
+    return (
+      (stance == null ? 1 : teamAttackFactor(stance, colaOn)) *
+      deJersey *
+      olfato *
+      escaparate *
+      humorDeCarrera
+    )
   }
 
   /**
@@ -1896,7 +2432,14 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
     // Solo los que se juegan algo: un fugado a cuarenta minutos no ataca al maillot por olerle nada.
     if (r.input.gcDeficitSeconds > STAGE.gcControlLeash) return 1
     const fraccion = lider.energy0 > 0 ? lider.energy / lider.energy0 : 0
-    return bloodFactor(readState(fraccion, riderEff(r).TAC, normal(rngPizarra, 0, 1)))
+    /**
+     * Y LA COMPARACIÓN ES CONTRA EL PROPIO DEPÓSITO DEL QUE MIRA (v80). Al líder se le LEE con
+     * error (R24.5); lo suyo lo sabe EXACTO, porque `SelfView` lo es (§3.1). De ahí sale la regla
+     * que un corredor piensa de verdad —«hoy no es mejor que yo»— y, de paso, la única referencia
+     * que no depende del recorrido: ver `bloodFactor` y docs/balance.md v80.
+     */
+    const propia = r.energy0 > 0 ? r.energy / r.energy0 : 0
+    return bloodFactor(readState(fraccion, riderEff(r).TAC, normal(rngPizarra, 0, 1)), propia)
   }
   /**
    * EL COLCHÓN DEL LÍDER: lo que le saca al siguiente de la general. Sin general en juego no hay
@@ -1978,6 +2521,41 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   const percancesOn = input.flags?.mishap === true || STAGE.mishap.enabled
   /** ¿Y el tren como submotor del paso 15? Ver `STAGE.train.enabled`. */
   const trenOn = input.flags?.train === true || STAGE.train.enabled
+  /** ¿Y el relato del paso 17? Ver `STAGE.relato.enabled`. */
+  const relatoOn = input.flags?.relato === true || STAGE.relato.enabled
+  /**
+   * A QUIÉN LE CUESTA ESTE BOQUETE, Y CUÁNTOS PUESTOS (R23.2). Se cuenta con la misma aritmética con
+   * la que R04 decide si hay que perseguir: si los de delante llegan con `gap` segundos, ¿a cuántos
+   * hombres de la general adelantarían?
+   *
+   * Sale como una lista corta de `equipo:puestos` —el formato del diario es plano— y solo nombra a
+   * los que de verdad pierden algo: un equipo al que le cuesta cero no es noticia.
+   */
+  const cuestaAQuien = (delante: readonly RiderSim[], gapS: number): string => {
+    if (!hasGcContext) return ''
+    const porEquipo = new Map<string, number>()
+    for (const m of delante) {
+      const suDeficit = m.input.gcDeficitSeconds - gapS
+      for (const otro of sims.values()) {
+        if (otro.abandonedKm !== null) continue
+        const suyo = teamOf.get(otro.input.riderId)
+        if (suyo == null || suyo === teamOf.get(m.input.riderId)) continue
+        // Le pasa por delante: el de la fuga estaba detrás y con este boquete se le pone delante.
+        if (
+          m.input.gcDeficitSeconds > otro.input.gcDeficitSeconds &&
+          suDeficit < otro.input.gcDeficitSeconds
+        ) {
+          porEquipo.set(suyo, (porEquipo.get(suyo) ?? 0) + 1)
+        }
+      }
+    }
+    return [...porEquipo]
+      .filter(([, n]) => n > 0)
+      .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))
+      .slice(0, STAGE.pullNamesMax)
+      .map(([t, n]) => `${t}:${n}`)
+      .join(',')
+  }
   /**
    * LOS TRENES VIVOS, uno por carta de sprint, **y persistentes**: ésa es la diferencia entre un
    * tren y una foto. Se montan la primera vez que hacen falta y desde ahí llevan su propio estado
@@ -2066,6 +2644,15 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   let treguaDe: string | null = null
   /** Una por etapa y por equipo: nadie pide tregua dos veces el mismo día. */
   const treguaPedidaPor = new Set<string>()
+  /** Los equipos representados en un grupo. Lo necesita «con ésos no colaboro» (S-256). */
+  const equiposDe = (ids: ReadonlySet<string>): ReadonlySet<string> => {
+    const out = new Set<string>()
+    for (const id of ids) {
+      const t = teamOf.get(id)
+      if (t != null) out.add(t)
+    }
+    return out
+  }
   const seApartaDelTurno = (riderId: string): number => {
     if (!rescateOn) return 0
     const m = sims.get(riderId)
@@ -2172,8 +2759,27 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       STAGE.placement.targetCardAlone - STAGE.placement.targetCardPerHelper * manos,
     )
   }
+  /**
+   * ¿ESTE EQUIPO DEFIENDE ALGO EN LA GENERAL? Es la condición de R14.2: el que lleva el maillot o
+   * pelea la general sube a todos sus hombres al frente en cuanto empieza a llover; el equipo de un
+   * velocista, no —tiene otras cosas que hacer con sus ocho hombres—.
+   */
+  const defiendeLaGeneral = (teamId: string | null | undefined): boolean => {
+    if (teamId == null) return false
+    const plan = teamPlans.get(teamId)
+    return plan != null && (plan.purposes.includes('maillot') || plan.purposes.includes('general'))
+  }
   const objetivoDeColocacion = (m: RiderSim, bunchId: string): number => {
     if (m.groupId !== bunchId) return STAGE.placement.targetMove
+    /**
+     * EMPIEZA A LLOVER Y EL EQUIPO DEL MAILLOT SUBE A TODOS SUS HOMBRES (R14.2, S-204). No es un
+     * matiz sobre el objetivo de cada papel: es que **todo el equipo** pasa a querer ir delante,
+     * gregarios incluidos, porque con el agua la carrera se parte donde le da la gana. Y **lo
+     * pagan**: queda apuntado para encarecerles el presupuesto de mañana (`rainCostGain`).
+     */
+    if (climaOn && lluvia > 0 && defiendeLaGeneral(teamOf.get(m.input.riderId))) {
+      return rainPlaceTarget(STAGE.placement.targetPack, lluvia, true)
+    }
     /**
      * …Y EL QUE SE JUEGA EL CONTRATO QUIERE QUE SE LE VEA (R15a.8): baja su umbral de colocarse una
      * décima, o sea que pelea un sitio que su papel no le pedía.
@@ -2297,18 +2903,65 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       })),
       gapSeconds,
       kind,
+      // …Y SI DENTRO VA EL GANADOR DE AYER, AL PELOTÓN ENTERO LE PICA (R09.2, paso 16).
+      hasYesterdayWinner: llevaAlGanadorDeAyer(dentro.map((m) => m.input.riderId)),
     }
   }
 
   /**
    * QUÉ EQUIPOS ESTÁN OCUPADOS CERRANDO (R19.4, el precio que el paso 5 dejó pendiente). Mientras se
    * cierra un movimiento sin cuerda, quien paga ese cierre tiene menos que ofrecer por lo siguiente.
-   * Hoy el cierre lo paga quien lleva el frente; cuando exista la subasta de R20, lo pagará quien la
-   * gane, y esta función es el sitio donde eso se sustituye.
+   *
+   * ————— Y LO PAGAN TODOS LOS QUE LO PAGAN, NO SOLO EL DE LA ETIQUETA (v82) —————
+   *
+   * Esta función devolvía **como mucho un equipo**: el que lleva el frente. Y su propio comentario
+   * dejaba escrito el porqué y la condición de cierre: «hoy el cierre lo paga quien lleva el frente;
+   * cuando exista la subasta de R20, lo pagará quien la gane, y esta función es el sitio donde eso
+   * se sustituye». R20 está encendida, así que la condición se ha cumplido —y al ir a hacerlo
+   * resulta que la sustitución que el comentario pedía **ya está hecha por otro lado**: con
+   * `front.enabled`, `frontTeamId` lo decide `frontClaimOf`, o sea el ganador de la subasta.
+   *
+   * Lo que seguía sin hacerse es la otra mitad, y es la que la regla dice de verdad: **un cierre no
+   * lo paga un equipo, lo pagan todos los que objetan**. `potOf` suma `min(objeción, payable)` equipo
+   * a equipo —ésa es la definición del bote— así que el que pone dinero en ese bote está ocupado,
+   * lleve la etiqueta del frente o no. Con la versión vieja, un equipo que estaba vaciándose en la
+   * persecución llegaba al siguiente movimiento con el bolsillo intacto porque la etiqueta la tenía
+   * otro.
+   *
+   * NO HAY CIRCULARIDAD, y es lo que hace que esto se pueda calcular aquí: `objectionOf` **no lee
+   * `closing`** —solo `payableOf` lo hace—, así que se construyen los equipos con `closing` en falso,
+   * se pregunta quién objeta al movimiento que se está cerrando, y esos son los ocupados.
+   *
+   * MEDIDO, equipos que pagan el cierre por llamada, sobre ocho equipos de cinco:
+   *
+   *   llana-180 ....... 0,94 -> 0,95
+   *   reina ........... 0,96 -> 2,76
+   *
+   * Y el reparto es el que la regla predice: en llano, un movimiento que el pelotón cierra sin
+   * concederle cuerda casi nunca amenaza a nadie más que al que lleva el frente, así que el número no
+   * se mueve. En montaña amenaza a varios equipos de general a la vez, y ahí es donde el precio del
+   * cierre pasaba gratis para todos menos uno. Es también el único sitio donde esto cambia carreras.
    */
   const cerrandoAhora = (): ReadonlySet<string> => {
-    const hay = moves.some((m) => !m.closed) && !moves.some((m) => m.allowed || m.dayBreak)
-    return hay && frontTeamId !== null ? new Set([frontTeamId]) : new Set<string>()
+    const abierto = moves.find((m) => !m.closed)
+    if (abierto === undefined || moves.some((m) => m.allowed || m.dayBreak)) {
+      return new Set<string>()
+    }
+    if (!customsOn) {
+      return frontTeamId !== null ? new Set([frontTeamId]) : new Set<string>()
+    }
+    const dentro = membersOf(abierto.g.id)
+    if (dentro.length === 0) {
+      return frontTeamId !== null ? new Set([frontTeamId]) : new Set<string>()
+    }
+    const mv = customsMoveDe(dentro, Math.max(0, peloton.tS - abierto.g.tS), abierto.kind)
+    const ocupados = new Set<string>()
+    for (const t of customsTeams(gcLeash(), new Set<string>())) {
+      if (objectionOf(t, mv) > 0) ocupados.add(t.teamId)
+    }
+    // El que lleva el frente paga siempre, objete o no: está tirando.
+    if (frontTeamId !== null) ocupados.add(frontTeamId)
+    return ocupados
   }
 
   const customsTeams = (leashAhora: number, cerrandoAhora: ReadonlySet<string>): CustomsTeam[] => {
@@ -2342,6 +2995,16 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         quality: plan.quality,
         leashSeconds: leashAhora,
         closing: cerrandoAhora.has(plan.teamId),
+        /**
+         * …Y LA MEMORIA DE AYER, QUE ES LO QUE FALTABA (R09.2, paso 16). El campo existía desde el
+         * paso 6 con su constante y su test unitario, y **nadie lo rellenaba nunca**: el ganador de
+         * ayer recibía hoy exactamente la misma cuerda que cualquiera, que es la queja del dueño
+         * —«gana dos etapas seguidas»— en su forma más literal.
+         *
+         * Multiplica sobre lo que el equipo está dispuesto a PAGAR por cerrar, no sobre si le
+         * molesta: con la objeción saturada en 1, multiplicarla no movía un dígito.
+         */
+        hasYesterdayWinner: memoria != null && (memoria.burnedTeams ?? []).includes(plan.teamId),
       })
     }
     return out
@@ -2423,6 +3086,79 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       if (m.abandonedKm === null && m.finishTs === null) grupoAntes.set(m.input.riderId, m.groupId)
     }
     const km = kmAt(i)
+    /**
+     * EL TIEMPO DE ESTE KILÓMETRO, resuelto contra el rumbo de este kilómetro (R14.1/R14.2, paso 20).
+     *
+     * Aquí es donde «el viento del día» se convierte en «el viento de aquí»: el parte dice de dónde
+     * sopla y con qué fuerza, el trazado dice hacia dónde se va, y de las dos cosas salen el lateral
+     * —el que rompe la carrera— y el frontal —el que toca la LEY—.
+     *
+     * Y aquí es donde **el abanico se cierra** (S-324, la fila CONTRARIA del catálogo, la que nadie
+     * había escrito): dos kilómetros seguidos de carretera al abrigo y `abanicoAbierto` vuelve a ser
+     * falso. Los cortados no vuelven por decreto —no se les regala un segundo—: vuelven porque su
+     * grupo deja de calcular su ritmo como una fila de doce y vuelve a repartirse el viento entre
+     * todos los que son, que es lo que de verdad pasa cuando la carretera gira.
+     */
+    if (climaOn) {
+      const ahora = weatherNow(parte, rumbos, km, abanicoAbierto)
+      vientoLateral = ahora.vientoLateral
+      vientoFrontal = ahora.vientoFrontal
+      lluvia = ahora.lluvia
+      calor = ahora.calor
+      frio = ahora.frio
+      cabenEnFila = cabenEnFilaCon(vientoLateral)
+      /**
+       * EL MATERIAL, RESUELTO CONTRA EL PARTE DE ESTE BLOQUE (R14.4, S-430). El día que se eligió el
+       * lenticular era un parte, no una certeza: aquí es donde se cobra el acierto o el fallo, y se
+       * cobra **simétrico**, que es lo que convierte la elección en una apuesta y no en un regalo.
+       */
+      if (input.materiales !== undefined) {
+        for (const m of sims.values()) {
+          const mat = input.materiales[teamOf.get(m.input.riderId) ?? '']
+          m.materialPerfil = materialPerfilBonus(mat, block.tipo, vientoLateral, lluvia, kmDePuerto)
+        }
+      }
+      kmAlAbrigo = belowEchelonThreshold(vientoLateral) ? kmAlAbrigo + STAGE.dx : 0
+      /**
+       * …Y SE APUNTA QUIÉN SUBIÓ A TODOS SUS HOMBRES AL FRENTE BAJO EL AGUA (R14.2, S-204), para
+       * cobrárselo **mañana**. El motor no tiene mañana —una etapa no sabe de la siguiente—, así que
+       * lo que hace es lo único honesto que puede hacer: **decirlo**. El hecho sale en el diario con
+       * el equipo y el recargo (`rainBudgetGain`, 1,15), y quien lleva la cuenta entre etapas lo
+       * aplica. Inventarle aquí un estado de mañana sería mover la frontera de sitio.
+       */
+      if (lluvia > 0) {
+        for (const plan of teamPlans.values()) {
+          if (!defiendeLaGeneral(plan.teamId) || subioAlFrenteBajoAgua.has(plan.teamId)) continue
+          subioAlFrenteBajoAgua.add(plan.teamId)
+          log.emit(km, peloton.tS, 'clima', 'rain_front', [], {
+            equipo: plan.teamId,
+            recargo: Math.round(100 * rainBudgetGain(true)),
+            toGo: Math.round(totalKm - km),
+          })
+        }
+      }
+      /**
+       * …Y SE MIRA SI HOY SE CUMPLE LA CITA QUE ALGUIEN PUSO EN EL TIEMPO (R14.3). Se recorre la
+       * lista de los que PUSIERON una, que normalmente está vacía, y no el pelotón entero: un bucle
+       * de 176 por bloque son trescientas mil vueltas por etapa para no hacer nada.
+       */
+      for (const m of citasDelTiempo) {
+        const cond = m.input.orders.triggerOn
+        if (cond?.at !== 'weather' || citaCumplida.has(m.input.riderId)) continue
+        const cumple =
+          cond.cond === 'lluvia'
+            ? lluvia > 0
+            : abanicoAbierto || !belowEchelonThreshold(vientoLateral)
+        if (cumple) citaCumplida.set(m.input.riderId, km)
+      }
+      if (abanicoAbierto && echelonCloses(kmAlAbrigo)) {
+        abanicoAbierto = false
+        log.emit(km, peloton.tS, 'criba', 'echelon_close', [], {
+          toGo: Math.round(totalKm - km),
+          wind: Math.round(100 * vientoLateral),
+        })
+      }
+    }
     // El principio de esta bajada: se marca al ENTRAR, no en cada bloque de ella (v57).
     if (block.tipo === 'descenso' && tipoBloquePrevio !== 'descenso') descentStartKm = km
     tipoBloquePrevio = block.tipo
@@ -2666,7 +3402,22 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             riderEff(p).DES >= STAGE.placement.descenderMin
           )
         })
-        jefe.driftS += descentLossS(bajador, false)
+        /**
+         * …Y CON EL PISO MOJADO ES OTRA BAJADA (R14.5, S-281/S-325, paso 20). Dos cosas que estaban
+         * escritas y no se cobraban:
+         *
+         *  - `descentLossS` lleva desde el paso 14 un segundo argumento —`lluvia`, que dobla lo que
+         *    se cede— y **se le pasaba `false` a pelo**, o sea que en este motor todos los descensos
+         *    eran secos aunque estuviera diluviando;
+         *  - y no todo el mundo baja igual. El que lleva la general con colchón baja PROTEGIDO y
+         *    cede a propósito —es la decisión correcta, no un defecto—; el que necesita ganar baja a
+         *    tumba abierta y no cede nada. Eso es `descentRisk`.
+         */
+        const deficit = jefe.input.gcDeficitSeconds ?? 0
+        const riesgo = climaOn
+          ? descentRisk(deficit <= 0, deficit > 0 && plan.gcLeaderId === carta)
+          : 1
+        jefe.driftS += descentLossS(bajador, climaOn && lluvia > 0) * riesgo
       }
     }
 
@@ -2831,6 +3582,12 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
               // EL BOQUETE DE HOY (v38): la postura se decide mirando la carretera, no solo la
               // general de ayer. Sin nada delante vale `null` y no hay nada que cazar.
               gapSeconds: front ? gap : null,
+              // EL DÍA DE CARRERA (v76.2): un minuto en la etapa 3 se recupera y en la 18 es el
+              // podio. Ver `isThreatened`.
+              ...(input.race?.stageDay !== undefined ? { stageDay: input.race.stageDay } : {}),
+              ...(input.race?.totalStages !== undefined
+                ? { totalStages: input.race.totalStages }
+                : {}),
             }),
           )
         }
@@ -2857,7 +3614,17 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           if (!frontOn || base === 0) return base
           const suyo = equiposAhora.find((e) => e.teamId === plan.teamId)
           if (!suyo) return base
-          return frontClaimOf(suyo, base, gap, kmRestantes)
+          /**
+           * …Y A 38° CERRAR CUESTA MÁS (R14.6, S-238). `frontClaimOf` lleva un `roadPrice` escrito
+           * desde R20.2 —«cerrar en carretera revirada y estrecha cuesta más que en autovía»— que
+           * **no lo pasaba nadie**: el parámetro existía con su valor por defecto y su comentario, y
+           * era letra muerta. El calor es lo primero que lo llena.
+           *
+           * Y no es un sexto multiplicador del coste de bloque: los cinco de §9.1bis están cerrados
+           * y el invariante C1 los vigila uno a uno. Esto es el precio de la carretera, que es otra
+           * cosa y vive en otro sitio.
+           */
+          return frontClaimOf(suyo, base, gap, kmRestantes, climaOn ? heatRoadPrice(calor) : 1)
         }
         const current = frontTeamId ? teamPlans.get(frontTeamId) : undefined
         const relief = [...teamPlans.values()]
@@ -3029,8 +3796,37 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
              */
             const gap = suGrupo.tS - peloton.tS
             if (gap < STAGE.regroupGapSeconds || gap > STAGE.helpBackMaxGapSeconds) continue
+            /**
+             * ¿SE BAJA POR LA GENERAL? Y LA PREGUNTA ES POR **ESTE HOMBRE**, NO POR EL EQUIPO
+             * (corrección de producción, v72).
+             *
+             * Esto preguntaba solo si el EQUIPO tenía motivo de general —`purposes`—, y el hombre al
+             * que se rescata es `plan.leaderId`, que se elige por **votos de los gregarios o por
+             * rol y calidad** (`pickLeader`) y no tiene nada que ver con la general. Los dos pueden
+             * ser personas distintas, y cuando lo son el motor se equivocaba dos veces:
+             *
+             *  - **en la conducta**, que es lo caro: con `porLaGeneral` bajan TODOS los disponibles
+             *    menos uno, contra dos por la etapa. O sea que el equipo entero se sacrificaba por
+             *    un hombre que no era su baza de la general, mientras el que sí lo era seguía
+             *    delante sin nadie;
+             *  - **en la crónica**, que es donde se vio: «the team commits to the general
+             *    classification: N riders drop out of the bunch to drag X back» con una X que no
+             *    figuraba ni entre los mejores de su equipo en la general.
+             *
+             * Lo cazó el dueño en su propio equipo: «dice que hay gente que se queda atrás para
+             * ayudarme porque soy su baza de la general… pero yo ni sabía que era la baza de la
+             * general del equipo; es más, ni siquiera era el mejor en la general de mi equipo antes
+             * de iniciar la etapa 4». Y es exactamente el caso que este fichero ya tenía descrito en
+             * otro sitio: **el jugador humano se pone de líder cuando su equipo ya tiene uno**.
+             *
+             * Así que el motivo de general se le reconoce al hombre de la general: el que lleva el
+             * maillot, o el que el plan señala como su baza (`gcLeaderId`). Al jefe de filas del día
+             * que no es ninguna de las dos cosas se le rescata por la ETAPA, con dos hombres y si el
+             * hueco da, que es lo que un director hace de verdad.
+             */
             const porLaGeneral =
-              plan.purposes.includes('maillot') || plan.purposes.includes('general')
+              (plan.purposes.includes('maillot') || plan.purposes.includes('general')) &&
+              (plan.gcLeaderId === leaderId || (hasGcContext && jefe.input.gcDeficitSeconds <= 0))
             /**
              * …Y POR LA ETAPA CASI NUNCA (v37). El dueño corrigió la v36: «por la etapa yo creo que
              * nadie debería bajarse… salvo que sea un pinchazo/caída y la distancia sea pequeña, y
@@ -3430,7 +4226,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
               // lector pueda seguir a un grupo que se recompone por dentro. Van por NÚMERO y no por
               // nombre porque los nombres ya están todos en la propia lista de protagonistas: lo que
               // falta no es quiénes van delante, es qué ha cambiado desde la última vez que se dijo.
-              ...(lastFrontIds.length > 0 && entran.length > 0 ? { entran: entran.length } : {}),
+              ...(entran.length > 0 ? { entran: entran.length } : {}),
               // …y los que YA NO ESTÁN cuentan aunque el frente haya cambiado de manos entero: es el
               // caso del hombre que iba solo delante y al que se traga la carrera (v40).
 
@@ -3507,6 +4303,15 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             // que se lee, que es lo que convierte un número en una situación de carrera.
             chaseKind,
             toGo: Math.round(kmRestantes),
+            /**
+             * …Y **A QUIÉN LE CUESTA** (R23.2, S-219/S-440, paso 17). Es la pregunta que convierte
+             * un boquete en una noticia: dos minutos de ventaja no significan nada hasta que se
+             * dice **cuántos puestos de la general le cuestan a quién**.
+             *
+             * El motor ya lo calcula —la general virtual de R04 hace exactamente esa cuenta para
+             * decidir si persigue— y lo tiraba. Aquí solo se cuenta.
+             */
+            ...(relatoOn ? { cuesta: cuestaAQuien(lead.members, frontGap) } : {}),
           })
           lastGapReportKm = km
           prevGapS = frontGap
@@ -3570,28 +4375,42 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
          */
         const nombres = pull.ids.join()
         /**
-         * ————— `pullMinWork` MIDE UN SÍNTOMA DEL DEFECTO QUE LA COLA ARREGLA (v64) —————
+         * ————— `pullMinWork` MEDÍA UN SÍNTOMA, Y LA COLA LO DESTAPÓ (v64 lo escribió, v81 lo paga) —————
          *
          * `pull.best` es el trabajo acumulado por **UN HOMBRE** en la ventana que se olvida cada
-         * kilómetro, y el listón de 0,35 está calibrado contra un motor en el que **los mismos
+         * kilómetro, y el listón de 0,35 estaba calibrado contra un motor en el que **los mismos
          * hombres iban al frente todo el día**: por eso uno solo llegaba a acumular tanto.
          *
-         * Con el turno convertido en cola (R18.1, docs/tactica.md paso 7) un hombre da la cara 600
-         * metros y se va al final de la fila, así que **nadie acumula**. Medido en el km 100 de una
-         * etapa sin fuga con la cola encendida: el mejor lleva **0,066** contra el listón de 0,35, y
-         * el parte de relevos pasa de **24 etapas de 24 a 0 de 24**. No es que nadie tire —tiran
-         * todos, y por turnos, que es lo que se quería—: es que el indicador pregunta quién lleva
-         * mucho rato delante, y una rotación de verdad hace que la respuesta sea «nadie».
+         * Con el turno convertido en cola (R18.1, `teamPlay.turnPullKm`) un hombre da la cara 600
+         * metros y se va al final de la fila, así que **nadie acumula**. Medido en el escenario sin
+         * fuga del banco B6, kilómetro a kilómetro, con las cinco capas encendidas contra el mismo
+         * escenario con `teamPlay` apagado:
          *
-         * El arreglo NO es bajar el 0,35, y tampoco medirlo por equipos: se probó, y en el campo de
-         * este banco —que no tiene `teamId`— la suma por casa da exactamente lo mismo que el mejor
-         * hombre. Lo que hay que medir es **el trabajo total al frente**, que es invariante a cómo
-         * se reparta, y eso lleva su propia calibración en los dos brazos. Queda escrito aquí y en
-         * docs/balance.md «v60 §11»; se hace cuando la cola se encienda, no antes.
+         * | km  | `best` sin cola | `best` con cola | hombres con trabajo |
+         * |-----|-----------------|-----------------|---------------------|
+         * | 20  | 0,279           | 0,055           | 20 → 89             |
+         * | 60  | 0,422           | 0,088           | 42 → 80             |
+         * | 100 | 0,608           | 0,016           | 48 → 80             |
+         *
+         * El mismo trabajo, repartido entre el doble de hombres: `best` se hunde cinco veces y el
+         * parte de relevos desaparece. El banco B6 —«el parte no depende de que cuaje la fuga»—
+         * pasaba a CERO partes en una etapa entera, y el de atribución se quedaba en 1,75 por etapa
+         * contra un suelo de 2,5. Un solo defecto, dos bancos rojos. La bisección capa a capa lo
+         * dice sin ambigüedad: con las cinco apagadas el B6 pasa; encendiendo UNA sola, solo
+         * `teamPlay` lo tumba.
+         *
+         * **Lo que se mide ahora es el trabajo TOTAL al frente**, que es invariante a cómo se
+         * reparta, exactamente como dejó escrito la v64. Y el listón NO se elige a ojo: es **el
+         * mínimo que el listón viejo dejaba pasar**. Con el motor calibrado (capas apagadas, puerta
+         * `best >= 0,35`) se registró el total en los 95 partes que emitieron las 24 etapas del
+         * banco de atribución: el suelo de esa distribución es **1,206** (p5 2,26, mediana 3,81).
+         * `pullMinWorkTotal: 1.2` es ese suelo, o sea la misma exigencia dicha donde no depende del
+         * reparto. Con él, el motor calibrado no cambia de régimen (3,96 → 4,54 partes por etapa) y
+         * el de cinco capas deja de estar mudo.
          */
         if (
           pull.ids.length > 0 &&
-          pull.best >= STAGE.pullMinWork &&
+          pull.total >= STAGE.pullMinWorkTotal &&
           km - lastPullReportKm >= STAGE.pullReportMinKmGap &&
           ((identidad !== lastPullLeader && nombres !== lastPullNames) ||
             km - lastPullReportKm >= STAGE.pullReportKmGap)
@@ -4351,6 +5170,41 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             ? 'subida'
             : 'llano',
         seApartaDelTurno,
+        ordenesOn,
+        equiposDe,
+        /**
+         * EL CUPO DE CADA CASA (v84, `relayTeamShare`), resuelto aquí porque es aquí donde se sabe
+         * qué está haciendo cada equipo.
+         *
+         * SOLO EN EL PELOTÓN: en una fuga o un grupeto no hay plan de equipo que reparta nada
+         * —relevan todos, que es lo que una fuga es— y meterles un cupo sería inventarse una
+         * disciplina que ahí no existe. Fuera del pelotón devuelve infinito y nada cambia.
+         */
+        (riderId) => {
+          const eq = teamOf.get(riderId)
+          if (!isBunch || eq == null || rebels.has(riderId)) {
+            return { equipo: null, cupo: Number.POSITIVE_INFINITY }
+          }
+          const stance = teamNow.get(eq)
+          if (stance === undefined) return { equipo: null, cupo: Number.POSITIVE_INFINITY }
+          /**
+           * ADMINISTRAR NO ES CAZAR, y es lo ÚNICO que se capa (v84). Un equipo de velocista que se
+           * pasa la llana entera en `controlar` está haciendo su trabajo del día; el equipo del
+           * maillot poniendo siete hombres contra unos fugados a media hora en la general, no.
+           *
+           * En cuanto lo de delante amenaza de verdad, el cupo desaparece: `threatened` es la misma
+           * cuenta con la que `driveOnFront` decide si ese equipo rueda a tempo o se pone a cazar.
+           */
+          const administra =
+            (stance.purpose === 'maillot' || stance.purpose === 'general') &&
+            stance.intent === 'controlar' &&
+            !stance.threatened
+          return {
+            equipo: eq,
+            cupo: administra ? STAGE.relayTeamShareWatch : Number.POSITIVE_INFINITY,
+          }
+        },
+        (riderId) => hasGcContext && sims.get(riderId)?.input.gcRank === 1,
       )
       /**
        * CUÁNTOS SE REPARTEN EL VIENTO AL FRENTE: LOS QUE TIRAN, y punto (v38).
@@ -4408,10 +5262,15 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         abanicoAbierto && vientoLateral > 0 && block.tipo === 'llano'
           ? gutterShelter(members.length, cabenEnFila)
           : STAGE.shelterProtected
-      const next = advanceGroup(group, block, p75, Math.min(alFrente, techoAbanico), {
-        isFinal,
-        sprintKmh: régimen,
-      })
+      const next = advanceGroup(
+        group,
+        block,
+        p75,
+        Math.min(alFrente, techoAbanico),
+        { isFinal, sprintKmh: régimen },
+        STAGE.dx,
+        vientoFrontal,
+      )
       /**
        * LO QUE VALE UN RELEVO EN ESTE BLOQUE, MEDIDO POR EL VIENTO Y NO POR LA VELOCIDAD (v26).
        *
@@ -4457,7 +5316,10 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        */
       const compromisoReal =
         régimen > 0
-          ? Math.max(group.compromiso, commitmentForSpeed(block, p75, next.vActual, alFrente))
+          ? Math.max(
+              group.compromiso,
+              commitmentForSpeed(block, p75, next.vActual, alFrente, vientoFrontal),
+            )
           : group.compromiso
       const workOf = (shelter: number): number =>
         Math.max(0, riderEffort(block, compromisoReal, shelter) - idle) * STAGE.dx
@@ -4484,6 +5346,24 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        */
       const motivoDelRelevo = (m: RiderSim): { motivo: PullMotive; para: string | null } => {
         if (members.length === 1) return { motivo: 'solo', para: null }
+        /**
+         * …Y **EL QUE TIRA POR SÍ MISMO TIENE UN MOTIVO CON NOMBRE** (R23.1, S-434, paso 17).
+         *
+         * Ocho hombres en el último puerto y el favorito delante marcando tempo: eso no es «libre»
+         * ni «le toca por su papel», que es como salía. Es el motivo más claro que hay en una
+         * carrera, y la crónica lo contaba como si fuera un turno.
+         *
+         * Va arriba del todo porque es el más específico: si este hombre ES la carta de su equipo y
+         * está dando la cara, no hay nada más que preguntar.
+         */
+        if (relatoOn) {
+          const suyo = rebels.has(m.input.riderId) ? null : (teamOf.get(m.input.riderId) ?? null)
+          const plan = suyo != null ? teamPlans.get(suyo) : undefined
+          const esSuCarta =
+            plan != null &&
+            (plan.stageCandidateId === m.input.riderId || plan.gcLeaderId === m.input.riderId)
+          if (esSuCarta && !isBunch) return { motivo: 'propio', para: m.input.riderId }
+        }
         if (abanicoAbierto && vientoLateral > 0 && block.tipo === 'llano')
           return { motivo: 'abanico', para: null }
         if (isBunch && kmToGo <= STAGE.sprintTrainKm) {
@@ -4509,14 +5389,65 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
          * la que el motor mueve la carretera, así que la etiqueta ya no puede contradecir a la
          * carrera que se está viendo.
          */
-        if (!isBunch && group.tS >= relojPrincipal)
-          return {
-            motivo: group.compromiso >= compromisoPrincipal ? 'persecucion' : 'grupeto',
-            para: null,
-          }
         const suEquipo = rebels.has(m.input.riderId) ? null : (teamOf.get(m.input.riderId) ?? null)
         const plan = suEquipo != null ? teamPlans.get(suEquipo) : undefined
         const proposito = purposeOfTeam(suEquipo)
+        if (!isBunch && group.tS >= relojPrincipal) {
+          /**
+           * …PERO SI SU JEFE VA EN ESTE GRUPO, TIRA POR ÉL, AUNQUE EL GRUPO VAYA POR DETRÁS (v81).
+           *
+           * El dueño, con la captura delante: el maillot amarillo descolgado a 1:43, tres compañeros
+           * suyos tirando para devolverlo, y la radio diciéndole a los tres **«just riding — this
+           * group is chasing nothing»**. «Que chingados pasó aquí».
+           *
+           * Y el motor se contradecía a sí mismo con las palabras del dueño de dos versiones
+           * distintas. La regla que bloqueaba esto es de la v47 y su justificación escrita es
+           * **«¿para qué carajos tiran si en ese grupo NO ESTÁ su líder?»** — o sea que se escribió
+           * para el caso contrario a éste—. Y la regla que lo arregla ya existía desde la v58 («SI SU
+           * HOMBRE VA EN ESTE GRUPO, TIRA POR ÉL»), solo que vivía DEBAJO de este retorno temprano y
+           * por tanto era inalcanzable para cualquier grupo que fuera por detrás del grueso.
+           *
+           * Lo que la v47 quiso decir sigue en pie entero: por detrás del grueso no hay plan de
+           * equipo que valga **cuando tu jefe no está ahí**. Cuando está, lo que se ve en carretera
+           * es un gregario dando la cara delante de su líder, que es justo lo que el dueño estaba
+           * mirando.
+           */
+          const cartaDetras =
+            plan == null
+              ? null
+              : proposito === 'etapa'
+                ? plan.stageCandidateId
+                : (plan.leaderId ?? plan.stageCandidateId)
+          if (cartaDetras != null && cartaDetras !== m.input.riderId && idSet.has(cartaDetras)) {
+            switch (proposito) {
+              case 'maillot':
+                return { motivo: 'equipo_maillot', para: cartaDetras }
+              case 'general':
+                return { motivo: 'equipo_general', para: cartaDetras }
+              case 'etapa':
+                return { motivo: 'equipo_etapa', para: cartaDetras }
+            }
+          }
+          /**
+           * …Y «PERSEGUIR» NO SE MIDE CONTRA EL PELOTÓN A TREN DE SPRINT (v81).
+           *
+           * La v59 decidió esto comparando el compromiso del grupo con el del grueso, y a media
+           * etapa es la comparación correcta. En el FINAL se rompe: en la captura del dueño el
+           * pelotón lleva **trece hombres en trenes de sprint**, o sea el compromiso más alto que da
+           * el motor, y cinco corredores persiguiendo a tope no lo superan por mucho que se maten.
+           * Resultado: un grupo que evidentemente persigue sale como «chasing nothing».
+           *
+           * La referencia buena la da el propio motor: `droppedCommit` dice que un grupo descolgado
+           * **«quiere rodar al de un pelotón»** (`shedCommitBunch`), y lo que decide si pelea o se
+           * resigna son el boquete y las piernas, no lo que haga el grueso. Así que persigue el que
+           * rueda al menos a eso —o al ritmo del grueso, si el grueso va más flojo—.
+           */
+          const listonDePersecucion = Math.min(compromisoPrincipal, STAGE.shedCommitBunch)
+          return {
+            motivo: group.compromiso >= listonDePersecucion ? 'persecucion' : 'grupeto',
+            para: null,
+          }
+        }
         /**
          * SI SU HOMBRE VA EN ESTE GRUPO, TIRA POR ÉL — LO DIGA EL PRESUPUESTO O NO (v58).
          *
@@ -4733,15 +5664,46 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
          * es el único punto donde el coste de un bloque se modula por táctica, y por eso la
          * Frontera 2 se puede COMPROBAR en vez de prometer.
          */
-        const tactico = colocacionOn
-          ? tacticalCostFactor(
-              {
-                push: pushTerm(m.pushing),
-                accordion: hayAcordeon ? accordionTerm(m.placement, mediaPlace) : 0,
-              },
-              mediaPush,
-            )
-          : 1
+        /**
+         * …Y DESDE EL PASO 18, EL TERCER MULTIPLICADOR: **el que llega sin ritmo de carrera**
+         * (R08.4). Solo en la primera hora, que es donde se nota de verdad venir de tres semanas sin
+         * dorsal: después el cuerpo ya está en faena.
+         */
+        const ritmo =
+          entreEtapasOn && km <= STAGE.entreEtapas.rhythmFirstHourKm
+            ? STAGE.entreEtapas.rhythmCostGain * (1 - clamp(m.input.raceRhythm ?? 1, 0, 1))
+            : 0
+        /**
+         * …Y DESDE EL PASO 20, EL CUARTO: **el frío** (R13.5). Llega con R14 y no con el paso 13 por
+         * un motivo que hay que decir en voz alta: hasta el parte por segmentos **no había de dónde
+         * sacar un `frio`**. La temperatura del día existe desde la v42, pero solo se leía hacia
+         * arriba —el calor—, así que una etapa a 2° y una a 20° costaban exactamente lo mismo.
+         */
+        const frioTermino = climaOn ? STAGE.truce.coldCostScale * frio : 0
+        /**
+         * …Y EL QUINTO, DESDE EL PASO 18d: **la altitud** (R28.7, S-479). Por encima de 2.000 m un
+         * puerto criba distinto que uno idéntico a 900, y el que peor sube lo paga más.
+         *
+         * Es el único de los cinco que **no es de suma cero por grupo**: los otros cuatro
+         * redistribuyen —el que empuja paga, el que se esconde ahorra— y éste encarece a todo el que
+         * sube. Con los recorridos de hoy vale **0 exacto**, porque ninguno trae cota de salida y un
+         * perfil que arranca a nivel del mar no llega a 2.000 m: la ley está puesta y dormida, y
+         * despierta sola el día que el calendario traiga las cotas.
+         */
+        const alturaTermino = altitudeCost(altitudesDeHoy[i] ?? 0, m.input.eff0.MON)
+        const tactico =
+          colocacionOn || ritmo !== 0 || frioTermino !== 0 || alturaTermino !== 0
+            ? tacticalCostFactor(
+                {
+                  push: colocacionOn ? pushTerm(m.pushing) : 0,
+                  accordion: hayAcordeon ? accordionTerm(m.placement, mediaPlace) : 0,
+                  rhythm: ritmo,
+                  cold: frioTermino,
+                  altitude: alturaTermino,
+                },
+                colocacionOn ? mediaPush : 0,
+              )
+            : 1
         const cost =
           blockCost(block, compromisoReal, pulling, relayers.size, STAGE.dx, arropo) *
           (1 + STAGE.heatCostScale * calor) *
@@ -4812,7 +5774,40 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       // …y para el parte del corredor (v47), el km en que perdió EL GRUESO DE LA CARRERA. Se
       // sobrescribe: lo que interesa es la última vez que lo perdió, no la primera, porque entre
       // medias puede haber vuelto. Perder un grupeto no es perder la carrera y no se apunta.
-      if (group.id === (mainId ?? PELOTON)) m.parte.descuelgueKm = km
+      if (group.id === (mainId ?? PELOTON)) {
+        m.parte.descuelgueKm = km
+        /**
+         * …Y SI EL QUE SE SUELTA ES EL LÍDER DE LA CARRERA, SE CUENTA CON SU NOMBRE (v81).
+         *
+         * El dueño, con la captura del maillot descolgado a 1:43 y sus compañeros rescatándole: «el
+         * Journal es incoherente… y no explica por qué se quedó el líder».
+         *
+         * Y era literal. `peloton_split` nombra a QUIEN APRIETA y cuenta CUÁNTOS se quedan, pero no
+         * nombra a ninguno de los descolgados: cuando el que se cae es el maillot amarillo, la
+         * crónica decía «41 riders dropped» y el hecho más importante de la etapa —que el líder ha
+         * perdido la rueda— no aparecía por ningún lado. La radio lo enseñaba y el diario no.
+         *
+         * Va AQUÍ y no en la criba porque `dropOut` es la puerta ÚNICA por la que pasan las tres
+         * vías de descuelgue —la criba, el que se deja ir y el que se va al suelo—, que es lo que su
+         * propio comentario de la v26 dice y lo que hace imposible que una de las tres se escape.
+         *
+         * Y LLEVA EL PORQUÉ, que es la otra mitad de la queja: el depósito con el que se quedó
+         * —para distinguir al que revienta del que simplemente no aguanta el ritmo—, el terreno, y
+         * los kilómetros que faltaban.
+         */
+        if (
+          hasGcContext &&
+          m.input.gcRank === 1 &&
+          km - ultimoAvisoLiderKm >= STAGE.leaderDropKmGap
+        ) {
+          ultimoAvisoLiderKm = km
+          log.emit(km, group.tS + delayS, 'lider_descolgado', 'leader_dropped', [m.input.riderId], {
+            deposito: Math.round(100 * (m.energy0 > 0 ? clamp(m.energy / m.energy0, 0, 1) : 0)),
+            terreno: block.tipo,
+            toGo: Math.round(totalKm - km),
+          })
+        }
+      }
       // El que acaba de soltarse no está relevando: solo importa para la foto (v28), donde si no un
       // caído —el único descuelgue que ocurre DESPUÉS de `advance()`— saldría tirando de su grupeto.
       m.pulling = false
@@ -5114,16 +6109,35 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         // Los dos relojes se miden con el MISMO turno (v38): lo que se compara es lo que puede el
         // hombre contra lo que puede el grupo, no un turno contra otro.
         const turno = relayRotation(alive.length, paceFraction)
-        const vPace = blockSeconds(targetSpeed(block, pace, group.compromiso, turno))
+        const vPace = blockSeconds(targetSpeed(block, pace, group.compromiso, turno, vientoFrontal))
         for (const m of alive) {
           // Los `dropDeficitTolerance` puntos son lo que uno cubre APRETANDO LOS DIENTES, y eso es
           // justo lo que paga la reserva: sin reserva ya no se cubren, y el corredor cae de golpe a
           // su nivel de verdad. Ese escalón ES el hundimiento (v26).
           // …y el MARCADOR mide su deriva contra su objetivo, no contra el grupo (`markedPerfil`).
-          const own =
-            (markedPerfil(m, block) ?? riderPerfil(m, block)) +
-            (m.reserveS > 0 ? STAGE.dropDeficitTolerance : 0)
-          const drift = blockSeconds(targetSpeed(block, own, group.compromiso, turno)) - vPace
+          /**
+           * …Y LA TERCERA PATA DE `effort` (R22, §6.2, paso 17): **cuánto aguanta uno apretando los
+           * dientes antes de empezar a ceder de verdad**.
+           *
+           * El que sale a vaciarse se muerde la reserva antes —tolera un 25 % más de déficit— y el
+           * que sale a guardarse, después. Es la diferencia entre «hoy lo doy todo» y «hoy llego»,
+           * dicha en la moneda en que el motor la cobra, y hasta hoy la pantalla la prometía sin que
+           * la carretera la cumpliera.
+           */
+          const aguante =
+            m.reserveS > 0
+              ? STAGE.dropDeficitTolerance *
+                (ordenesOn
+                  ? m.input.orders.effort === 'a_tope'
+                    ? 1 + STAGE.ordenes.reserveThresholdShift
+                    : m.input.orders.effort === 'ahorrar'
+                      ? 1 - STAGE.ordenes.reserveThresholdShift
+                      : 1
+                  : 1)
+              : 0
+          const own = (markedPerfil(m, block) ?? riderPerfil(m, block)) + aguante
+          const drift =
+            blockSeconds(targetSpeed(block, own, group.compromiso, turno, vientoFrontal)) - vPace
           if (drift <= 0) {
             // Va sobrado: recupera reserva y cierra el hueco que llevara abierto. Es la otra mitad
             // de la simetría —un bache de un kilómetro no condena a nadie— y es lo que permite que
@@ -5345,7 +6359,41 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
      * sortea por kilómetro y no se aplica de continuo. Y quién se queda dentro lo decide la
      * COLOCACIÓN (v41), que era la otra mitad de este EPIC y hasta aquí no existía en el motor.
      */
-    if (vientoLateral > 0 && block.tipo === 'llano' && !isFinal) {
+    /**
+     * …Y UN ABANICO NO PUEDE ABRIRSE CON UN VIENTO QUE LO CERRARÍA (v83, histéresis al revés).
+     *
+     * Esta puerta pedía `vientoLateral > 0` —cualquier cosa por encima de cero— y la de enfrente,
+     * `echelonCloses`, cierra por debajo de `echelonCloseThreshold` (0,35) sostenido dos kilómetros.
+     * O sea que el motor abría el abanico con un viento que él mismo considera insuficiente para
+     * mantenerlo, y entonces pasaba esto, medido en la semilla 142 del banco del viento:
+     *
+     * ```
+     * km 58,55  echelon_split  before=114 remaining=84 dropped=30 wind=23
+     * km 58,65  echelon_close  wind=23
+     * ```
+     *
+     * Cien metros de abanico. Y como `kmAlAbrigo` llevaba acumulando desde la salida —la carretera
+     * estaba «al abrigo» según el criterio de cierre durante los 58 km anteriores—, el cierre saltaba
+     * en el bloque siguiente al corte. Los treinta cortados volvían cuatro kilómetros después **a
+     * tres segundos**, y la etapa acababa con los 120 en el mismo segundo y CERO de desparrame: una
+     * crónica que anuncia que el viento parte la carrera y un resultado en el que no pasó nada.
+     *
+     * En cualquier sistema con histéresis se abre con MÁS y se cierra con MENOS; aquí estaba del
+     * revés. Se arregla con una frase: el viento que rompe la carrera es, como mínimo, el viento que
+     * la mantiene rota. La única histéresis que queda son los dos kilómetros de carretera al abrigo,
+     * que es la que tiene sentido físico.
+     *
+     * Medido sobre 240 semillas del banco del viento: los días de abanico pasan de 10 a 7 —se caen
+     * justo los de viento flojo, la 142 con lateral 0,23 y la 135 que soltaba 0,78 hombres de 119— y
+     * **los abanicos que se recomponen enteros pasan del 40 % (4 de 10) al 14 % (1 de 7)**. Los que
+     * cortan de verdad ahora aguantan: 38 en cabeza de los 38 que quedaron, 30 de 30, 37 de 37.
+     */
+    if (
+      !belowEchelonThreshold(vientoLateral) &&
+      vientoLateral > 0 &&
+      block.tipo === 'llano' &&
+      !isFinal
+    ) {
       /**
        * …Y SE PARTE TODO LO QUE NO CABE, NO SOLO EL PELOTÓN. Un abanico no es UN corte: es una
        * cascada. La masa que se queda fuera sigue sin caber en la carretera, así que a los pocos
@@ -5556,6 +6604,23 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        * absoluta y en fracción del grupo—, y con el mismo suelo de kilómetros que el corte grande,
        * sin escalar: una criba así merece su frase pase lo que pase, y como mucho cada 3 km.
        */
+      /**
+       * LA CAUSA DE LA CRIBA (R23.3). Se lee del bloque en que ocurre y del estado de la carrera, en
+       * este orden: la caída manda sobre todo —si acaba de haber una, la carrera se partió por eso—,
+       * luego el viento con el abanico abierto, luego el terreno, y si nada de eso explica el corte
+       * es que **alguien está cazando**, que también es una causa y hasta hoy no tenía nombre.
+       */
+      const causaDelCorte = (): string => {
+        // «Acaba de haber una caída» se lee del parte de incidentes, que ya lleva su kilómetro.
+        const caidaReciente = incidents.some(
+          (x) => x.tipo === 'caida' && km - x.km <= STAGE.splitCrashCauseKm,
+        )
+        if (caidaReciente) return 'caida'
+        if (abanicoAbierto && vientoLateral > 0) return 'viento'
+        if (block.tipo === 'paves') return 'sector'
+        if (block.tipo === 'subida') return 'puerto'
+        return 'caza'
+      }
       const decisive =
         lost >= STAGE.splitFarMinDropped &&
         lost >= frontAtLastNotice * STAGE.splitFarMinDropFraction &&
@@ -5589,6 +6654,16 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           // Si la fuga sigue por delante, este grupo NO va en cabeza: es el que persigue. Decir
           // "N left in front" con una fuga en carretera era sencillamente falso.
           chasing: moves.length > 0 ? 1 : 0,
+          /**
+           * …Y **POR QUÉ SE ROMPIÓ** (R23.3, S-441, paso 17). El motor lo sabe en el instante en que
+           * lo decide —el bloque en el que pasa dice si es un puerto, un sector o un día de viento—
+           * y lo tiraba, así que la crónica contaba las mismas cuatro cribas con la misma frase.
+           *
+           * No es adorno: **sin esto ninguna regla nueva se puede diagnosticar**. Todo lo que el
+           * dueño ha cazado este mes lo ha cazado leyendo la radio de carrera, y una criba sin causa
+           * es una criba que no se puede discutir.
+           */
+          causa: causaDelCorte(),
         })
         lastFrontNoticeKm = km
         frontAtLastNotice = front.length
@@ -5724,6 +6799,20 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       return true
     }
 
+    /**
+     * «SI LLUEVE EN EL ADOQUÍN, ME COLOCO DELANTE DESDE EL KM 40» (R14.3, S-032 CONTRARIO, paso 20).
+     *
+     * El parte ya estaba en la pantalla de órdenes desde la v42 —con su fiabilidad y su tooltip—, y
+     * `StageOrders.triggerOn` lleva desde el paso 17 declarado con sus seis formas de decir «cuándo».
+     * Lo que faltaba es que el motor las LEYERA: una cita que solo sabe de kilómetros es la única
+     * forma de decir «cuándo» que no depende de la carrera, que es justo lo que R22 venía a arreglar.
+     *
+     * Aquí se enciende **la del tiempo, y solo ésa**, porque es la que R14 cierra. Cuando la
+     * condición se cumple, el kilómetro en que se cumplió PASA A SER la cita, y de ahí en adelante
+     * manda la maquinaria de `triggerKm` de la v58 sin un caso especial. Las otras cinco formas
+     * —el pie del puerto, el ataque de Z, el hueco, el sector— son de R22 y **siguen sin leerse**:
+     * decirlo es mejor que fingir que un `triggerOn` entero funciona.
+     */
     const asMoveRider = (m: RiderSim, type: FinishType, esPeloton: boolean): MoveRider => ({
       // La casa viaja desde la v65 y no la lee nadie todavía (docs/tactica.md paso 2): es el dato
       // del que cuelga R02, y sin él `chooseInstigator` no puede ni enterarse de que dos de los que
@@ -5733,7 +6822,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       role: m.input.orders.role,
       mentality: m.input.orders.mentality,
       // El kilómetro que el jugador marcó para lanzarse (v58); `null` = decide su mentalidad.
-      triggerKm: m.input.orders.triggerKm ?? null,
+      triggerKm: citaDe(m),
       perfil: riderPerfil(m, block),
       finishScore: finishScore(riderEff(m), type),
       energyFraction: m.energy0 > 0 ? Math.max(0, m.energy / m.energy0) : 0,
@@ -5748,7 +6837,57 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       pulling: esPeloton && m.pulling,
       // …y si viene de que le cacen tras una fuga larga, hoy ya no está para nadie (v42).
       gastado: km < m.gastadoHastaKm,
+      /**
+       * ¿LLEVA EL MAILLOT? (R02.12 · v79). El dueño: «que el del maillot amarillo se fugue o entre
+       * en una fuga debería ser suuuper extraño… en el llano eso ocurre demasiado a menudo».
+       *
+       * Misma fuente que el freno del colchón —`gcRank === 1` con general en juego— y no una
+       * deducción del déficit: en la etapa 1 de una vuelta todos llegan a cero.
+       */
+      esMaillot: hasGcContext && m.input.gcRank === 1,
     })
+
+    /**
+     * LA CUERDA DE LA ÚLTIMA ETAPA (R28.4, paso 18b), que multiplica la intensidad de los intentos.
+     *
+     * En el **paseo** casi nadie se salta: «sin fugas serias ni ataques de general durante ~80 km».
+     * No es cero —siempre hay quien lo intenta, y el diseño dice «serias», no «ninguna»—. Y el paseo
+     * son los ~80 km PRIMEROS, no los que faltan: va del km 0 al circuito, y el circuito es el
+     * resto, donde la cuerda vuelve a 1 y el sprint es el de cualquier día («DE VERDAD»).
+     *
+     * En la **decisiva** es al revés y empieza donde el diseño dice que empieza: el penúltimo
+     * puerto. Antes de ahí no cambia nada — una última etapa con final en alto tampoco se ataca
+     * desde el km 0.
+     */
+    const finPaseo = finDelPaseo(
+      totalKm,
+      STAGE.ultimaEtapa.paseoKm,
+      STAGE.ultimaEtapa.circuitoMinKm,
+    )
+    const cuerdaDelUltimoDia =
+      ultimoDia === 'paseo'
+        ? km < finPaseo
+          ? STAGE.ultimaEtapa.paseoAttack
+          : 1
+        : ultimoDia === 'decisiva' && kmTodoONada !== null && km >= kmTodoONada
+          ? STAGE.ultimaEtapa.decisivaAttack
+          : 1
+    /**
+     * …Y LA DEL CIRCUITO (R28.6, S-227), que se MULTIPLICA con la anterior en vez de competir con
+     * ella. No es pereza: las dos cosas pueden pasar a la vez —la última etapa de una vuelta suele
+     * acabar dando vueltas a un circuito, que es exactamente el caso de los Campos Elíseos— y ahí el
+     * paseo y «la carrera arranca a dos vueltas» dicen lo MISMO por dos caminos. Que se refuercen es
+     * la respuesta correcta; elegir uno sería tirar media regla.
+     */
+    const cuerdaDeHoy =
+      cuerdaDelUltimoDia *
+      cuerdaDelCircuito(
+        km,
+        totalKm,
+        input.profile.laps,
+        STAGE.circuito.antesDeDosVueltas,
+        STAGE.circuito.ultimaVuelta,
+      )
 
     /**
      * Un intento de movimiento desde `source`. Puede no salir, salir y fracasar, o salir y cuajar.
@@ -5866,8 +7005,19 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        * cuerda sino otra clase de movimiento —uno solo, a un kilómetro y pico de meta, del que sabe
        * que a rueda no gana—.
        */
+      /**
+       * LA ÚLTIMA ETAPA ENTRA POR LA INTENSIDAD, Y ESO SE APRENDIÓ MIDIENDO. El primer sitio en que
+       * se puso fue `MoveRider.teamAttack`, que es el apetito de CADA UNO… y ahí es **inerte**:
+       * `chooseInstigator` normaliza los apetitos entre sí (`pick = rng() * total`), así que un
+       * factor que multiplica a TODOS por igual se cancela exacto. La medida lo dijo sin margen de
+       * interpretación: 14,8 intentos por etapa con el paseo encendido y 14,8 sin él.
+       *
+       * Lo que decide CUÁNTOS movimientos salen es la λ, y por eso el paseo y el todo o nada entran
+       * por el mismo sitio que la fase y la pancarta: multiplicando la cuerda.
+       */
       const salta = ventanaFlyer
-        ? dado() < blockProbability(STAGE.phases.lambdaFlyer * lambdaPancarta(km), STAGE.dx)
+        ? dado() <
+          blockProbability(STAGE.phases.lambdaFlyer * lambdaPancarta(km) * cuerdaDeHoy, STAGE.dx)
         : rollMoveAttempt(
             dado,
             ctx,
@@ -5879,6 +7029,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
               : lambdaPancarta(km) === 1
                 ? null
                 : { ...PHASE_TABLE.control, lambdaScale: lambdaPancarta(km) },
+            // …y la última etapa y el circuito van POR FUERA de la fila: ver `rollMoveAttempt`.
+            cuerdaDeHoy,
           )
       if (!salta) return
       lastAttemptKm.set(source.id, km)
@@ -5998,6 +7150,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
               pacemakerP75(quedan, block, fracción),
               source.compromiso,
               relayRotation(quedan.length, fracción),
+              vientoFrontal,
             )
           : 0
       /**
@@ -6017,6 +7170,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         instigator.perfil + STAGE.matchBonus + STAGE.tacticSurgeBonus,
         1,
         relayRotation(Math.max(1, quedan.length), fracción),
+        vientoFrontal,
       )
       const gap = jumpGapSeconds(vAtaque, vGrupo)
       /**
@@ -6273,7 +7427,35 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        * paso 6, cuando `payable` exista. Aquí solo se retira el veto, y `closingNow` viaja como
        * selector de flujo.
        */
-      if (fasesOn || !closingNow) {
+      /**
+       * ————— EL VETO SE QUEDA HASTA QUE SU SUSTITUTO SEA SUFICIENTE (v81) —————
+       *
+       * R19 retiró este veto a propósito —«aquí solo se retira el veto, y `closingNow` viaja como
+       * selector de flujo»— dejando su reemplazo para el paso 6: `closingBusyDamp` sobre `payable`,
+       * «la mitad del cierre que el 5 no podía hacer». El paso 6 ya está encendido. El reemplazo
+       * existe y está vivo. Y NO BASTA.
+       *
+       * MEDIDO, al encender las cinco capas: dos pruebas de conducta se caen —la selección que parte
+       * la carrera a 50 km de meta baja de ≥12 de 24 etapas a **6**, y el mayor corte narrado se
+       * queda en **2** corredores contra un mínimo de 12—. Bisecado capa a capa, es `phases`; y
+       * dentro de `phases`, bisecado enganche a enganche, es ESTA LÍNEA:
+       *
+       *   A · tope GLOBAL de movimientos ........ 2 | 6   no
+       *   B · fila de fase NULA ................. 2 | 6   no
+       *   C · ESTE VETO RESTAURADO .............. LAS DOS PASAN
+       *   D · sin puente desde atrás ............ 3 | 7   no
+       *
+       * Y se ve POR QUÉ no basta el reemplazo: `closingBusyDamp` frena a UN equipo —`cerrandoAhora`
+       * devuelve como mucho el que lleva el frente, y solo si hay `frontTeamId`—, mientras que el
+       * veto paraba el intento ENTERO del pelotón. Con el veto fuera, el pelotón sigue lanzando
+       * ataques mientras caza, la carrera se fragmenta y la ruptura lejana no llega a ocurrir.
+       *
+       * Así que el veto se queda, y la retirada de R19 queda APLAZADA con su medida delante en vez
+       * de dada por hecha. Lo que la desbloquea está escrito: que `closingBusyDamp` frene a todos
+       * los que podrían saltar mientras el pelotón cierra, no solo al que lleva el frente. Eso es
+       * una tanda propia con su propia medición, y hasta entonces esto no se toca.
+       */
+      if (!closingNow) {
         attemptFrom(peloton, kind, bridgeable && head ? head.g : null, closingNow)
       }
     }
@@ -6694,12 +7876,54 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
          * El AUTOBÚS que triplica en número sigue teniendo su puerta más ancha (`shutFor`): no es un
          * regalo de reloj, es que setenta hombres organizados vuelven donde diez no.
          */
+        /**
+         * …Y A UN SEGUNDO NO SE PERSIGUE, SE VA EN LA RUEDA (v81, `contactGapSeconds`).
+         *
+         * Las dos puertas de arriba piden algo MÁS que estar juntos: `caught` pide que el reloj haya
+         * LLEGADO, y la otra pide ir estrictamente más rápido (`cerrando`). Las dos son correctas a
+         * veinte segundos y absurdas a uno: dos grupos que ruedan a la MISMA velocidad separados por
+         * segundo y medio no se funden jamás, porque ninguno de los dos se está acercando.
+         *
+         * El dueño lo vio en producción —«2 grupos a 0 segundos que no se unen»— y medido sobre las
+         * nueve reinas reales salía con ejemplos de 87 corredores a 1,4 s de otros 88, kilómetro
+         * tras kilómetro. Aquí se cierra: por debajo del contacto no hay dos grupos.
+         */
+        const enContacto = llevaEnContacto(
+          km,
+          PELOTON,
+          sg.id,
+          Math.abs(gapSeconds(peloton, sg)) <=
+            contactoS(membersOf(PELOTON).length, mem.length, peloton.vActual),
+        )
         if (
           caught ||
+          enContacto ||
           (!onRough &&
             cerrando &&
             gapSeconds(peloton, sg) <= STAGE.rejoinGapSeconds * shutFor(mem.length))
         ) {
+          /**
+           * …Y FUNDIRSE POR CONTACTO TAMPOCO REGALA SEGUNDOS (v81, la regla de la v76.1 aplicada
+           * aquí).
+           *
+           * Las otras dos puertas pueden entregar el reloj del pelotón sin más: `caught` porque el
+           * reloj ha LLEGADO de verdad, y la de `rejoinGapSeconds` porque está calibrada para eso y
+           * el hueco que perdona es su precio conocido. La del contacto no: perdona lo que midan los
+           * dos grupos de largo, que en un puerto son diez segundos, y entregarlos gratis es
+           * exactamente el regalo que la v58 estrechó y la v76.1 prohibió.
+           *
+           * Medido antes de ponerlo: sin esta línea, la reina canónica de la semilla 1 pasaba de 33
+           * grupos de llegada a 15 y TODO el campo entraba 315 s más rápido. No era una fusión: era
+           * el pelotón repartiendo su reloj cada vez que alcanzaba a alguien.
+           *
+           * La fusión cambia la ETIQUETA del grupo, no el reloj de la gente: se devuelve en `driftS`
+           * exactamente lo que el cambio de referencia le habría dado o quitado, con signo, que es
+           * la misma cuenta que `fusion.test.ts` tiene sellada.
+           */
+          if (!caught && enContacto) {
+            const hueco = gapSeconds(peloton, sg)
+            if (hueco !== 0) for (const m of mem) m.driftS += hueco
+          }
           for (const m of mem) m.groupId = PELOTON
           peloton = { ...peloton, riderIds: [...peloton.riderIds, ...sg.riderIds] }
           continue
@@ -6864,7 +8088,29 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
            * consideran juntos) y que entre los dos haya gente suficiente para que la radio lo
            * enseñe.
            */
-          if (onRough || detras.g.tS > delante.g.tS) {
+          /**
+           * …SALVO EN CONTACTO (v81). El límite que la v56 dejó anotado —«en un puerto dos grupos
+           * todavía pueden cruzarse sin juntarse»— es defendible cuando hay hueco: un grupo que sube
+           * más fuerte te pasa y te deja, y eso la v58 decidió NARRARLO en vez de impedirlo, con
+           * razón. Lo que no es defendible es a cero: veinte que pasan a diez a medio segundo no
+           * pasan de largo, se juntan y luego la subida vuelve a partirlos por piernas.
+           *
+           * Medido: 28 cruces sin fusión en 36 etapas reina reales. Por debajo del contacto se
+           * funden aunque sea puerto; por encima, la regla de la v58 sigue intacta y el rebase se
+           * cuenta como lo que es.
+           */
+          const juntos = llevaEnContacto(
+            km,
+            detras.g.id,
+            delante.g.id,
+            Math.abs(detras.g.tS - delante.g.tS) <=
+              contactoS(
+                membersOf(detras.g.id).length,
+                membersOf(delante.g.id).length,
+                detras.g.vActual,
+              ),
+          )
+          if (!juntos && (onRough || detras.g.tS > delante.g.tS)) {
             // El cruce EN EL PUERTO se apunta para confirmarlo más adelante (ver `rebasesPendientes`
             // y el bloque que los resuelve, unas líneas más arriba).
             if (onRough && detras.g.tS < delante.g.tS) {
@@ -6881,10 +8127,43 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           }
           const mem = membersOf(detras.g.id)
           if (mem.length === 0) continue
+          /**
+           * FUNDIRSE NO REGALA NI ROBA SEGUNDOS (v76.1).
+           *
+           * El dueño lo vio en la etapa 3 del Tour: en el km 130 un grupo de 37 iba a **0:25**, en el
+           * 131 estaban reunificados, y esos 25 segundos habían desaparecido. Y en esa misma foto el
+           * grupo salía **sin velocidad**, con el hueco en blanco.
+           *
+           * Los dos síntomas son UNO. El reloj de un corredor ES EL DE SU GRUPO —la radio lo
+           * construye como `reloj del grupo + markLossS + driftS`—, así que al absorber un grupo sus
+           * hombres adoptaban de golpe el reloj del otro: el hueco dejaba de existir para todos a la
+           * vez, y al medirles el kilómetro siguiente aparecían cubriéndolo 25 s más rápido de lo que
+           * lo cubrieron. Eso son ~92 km/h, `radioMaxKmh` los rechazaba a todos —con razón: no es una
+           * velocidad, es aritmética de otro grupo— y sin ni uno que contar el grupo se quedaba sin
+           * velocidad que enseñar. El hueco en blanco no era un fallo de la radio: era la radio
+           * negándose a enseñar un número imposible.
+           *
+           * La fusión cambia la ETIQUETA del grupo, no el reloj de la gente. El grupo resultante toma
+           * un reloj común y a cada uno se le devuelve en `driftS` exactamente lo que ese cambio de
+           * referencia le habría regalado o quitado. Es la misma pieza con la que el motor ya lleva
+           * los segundos cedidos sin soltarse, usada para lo que es: la diferencia entre el reloj del
+           * grupo y el del hombre.
+           *
+           * Se corrige a LOS DOS LADOS. Solo uno de los ajustes es distinto de cero —el del grupo
+           * cuyo reloj no se conserva— pero escribirlo simétrico es lo que hace imposible que la
+           * cuenta dependa de quién alcanzó a quién.
+           */
+          const relojDelante = delante.g.tS
+          const relojDetras = detras.g.tS
+          const comun = Math.min(relojDelante, relojDetras)
+          if (relojDetras !== comun) for (const m of mem) m.driftS += relojDetras - comun
+          if (relojDelante !== comun) {
+            for (const m of membersOf(delante.g.id)) m.driftS += relojDelante - comun
+          }
           for (const m of mem) m.groupId = delante.g.id
           delante.g.riderIds = [...delante.g.riderIds, ...detras.g.riderIds]
           // El grupo resultante va al reloj del que iba delante: alcanzarle no adelanta a nadie.
-          delante.g.tS = Math.min(delante.g.tS, detras.g.tS)
+          delante.g.tS = comun
           detras.g.riderIds = []
           absorbidos.add(detras.g.id)
           const mv = moves.find((m) => m.g.id === detras.g.id)
@@ -7099,11 +8378,49 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
               ? 'descenso'
               : 'llano'
       /**
-       * ¿HAY COCHES AQUÍ? La caravana va detrás del grupo principal y por carretera abierta. En
-       * cabeza de carrera, en un puerto o con la carrera partida **no hay a quién esperar**, y el
-       * mismo pinchazo cuesta minutos en vez de segundos. Ésa es la mitad de la regla.
+       * ¿HAY COCHES AQUÍ? Y **LA FUGA SÍ LOS TIENE** (corrección de la v70, medida en producción).
+       *
+       * Esto decía «la caravana va detrás del grupo principal; en cabeza de carrera no hay a quién
+       * esperar», y estaba copiado al pie de la letra de la primera mitad de R11.2. El problema es
+       * que **R11.2 se contradice a sí mismo dos líneas más abajo**, y la segunda mitad es la
+       * carretera: «la caravana SE REORDENA cuando la carrera se parte: los comisarios suben los
+       * coches de los equipos con hombres delante. **Colar a uno en la fuga compra además coche,
+       * ruedas y bidones donde se decide la etapa**».
+       *
+       * El dueño lo cazó mirando una foto: «perder 2:19 en un pinchazo cuando vas en frente y tienes
+       * el coche detrás justo, ¿no es demasiado? Te cambian de bici y ya. No es como que tengas que
+       * irte atrás del grupo: estás solo en cabeza». Y tiene razón — es que en cabeza de carrera es
+       * donde MEJOR asistido se está: el coche va a diez metros y no hay ciento setenta hombres en
+       * medio. Con el ×3 y la rueda neutra encima, un pinchazo del escapado costaba 139 s cuando lo
+       * que cuesta de verdad es un cambio de rueda con el mecánico ya fuera del coche.
+       *
+       * Así que el que se queda sin coche no es el de delante: es **el que va en tierra de nadie**
+       * —un descolgado entre dos grupos, al que la caravana ya ha dejado atrás— y el que pincha en
+       * un puerto, donde la carretera no deja pasar a nadie. Eso es lo que queda aquí.
        */
-      const hayCaravana = group.id === (mainId ?? PELOTON) && !onClimb
+      const esMovimiento = moves.some((mv) => mv.g.id === group.id)
+      const hayCaravana = (group.id === (mainId ?? PELOTON) || esMovimiento) && !onClimb
+      /**
+       * …Y LA CARAVANA SE REORDENA (R11.2, segunda mitad). «Los comisarios suben los coches de los
+       * equipos con hombres delante», así que el puesto en la fila de un fugado **no es el que le da
+       * la general**: es el que le da estar delante. De ahí sale la frase entera de la regla —colar
+       * a uno en la fuga compra coche, ruedas y bidones donde se decide la etapa— y sin esto era
+       * letra muerta, porque el escapado del equipo vigésimo seguía esperando como el vigésimo.
+       *
+       * El orden entre los que van delante sigue siendo el de la general: la reordenación sube a los
+       * de la fuga por encima del pelotón, no borra el escalafón entre ellos.
+       */
+      const rangoEnLaFuga = new Map<string, number>()
+      if (esMovimiento) {
+        const equipos = [
+          ...new Set(
+            membersOf(group.id)
+              .map((m) => teamOf.get(m.input.riderId))
+              .filter((t): t is string => t != null),
+          ),
+        ].sort((a, b) => (convoyRank.get(a) ?? 99) - (convoyRank.get(b) ?? 99) || (a < b ? -1 : 1))
+        equipos.forEach((t, i) => rangoEnLaFuga.set(t, i + 1))
+      }
       for (const m of membersOf(group.id)) {
         const lambda = mishapLambda(terreno, lluvia, colocacionOn ? m.placement : 0.5)
         if (!rollHazard(rngPercance, lambda)) continue
@@ -7112,7 +8429,10 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         const equipo = teamOf.get(m.input.riderId)
         const acceso = {
           placement: colocacionOn ? m.placement : 0.5,
-          convoyRank: equipo != null ? (convoyRank.get(equipo) ?? 1) : convoyRank.size + 1,
+          convoyRank:
+            equipo != null
+              ? (rangoEnLaFuga.get(equipo) ?? convoyRank.get(equipo) ?? 1)
+              : convoyRank.size + 1,
           hayCaravana,
         }
         /**
@@ -7277,11 +8597,18 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           // ahorra una línea, deja una historia sin final. Se cuenta cómo acaba TODO lo que se
           // contó cómo empezaba.
           const narra = narraCierre
-          log.emit(km, front.g.tS, 'intento_fallido', 'attack_reeled', attackers.slice(0, 3), {
-            kind: front.kind,
-            km: Math.max(1, Math.round(km - front.bornKm)),
-            narra: narra ? 1 : 0,
-          })
+          log.emit(
+            km,
+            noAntesDeNacer(front, front.g.tS),
+            'intento_fallido',
+            'attack_reeled',
+            attackers.slice(0, 3),
+            {
+              kind: front.kind,
+              km: Math.max(1, Math.round(km - front.bornKm)),
+              narra: narra ? 1 : 0,
+            },
+          )
           // …y con ella, quién lo cerró. Solo de lo que se ha narrado: el epitafio de un intento
           // que no se contó tampoco necesita autor.
           if (narra) attributeChase(front, km, front.g.tS)
@@ -7407,7 +8734,23 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
                 cooperating: m.g.compromiso >= STAGE.breakCoopThreshold ? 1 : 0,
               })
             }
-            lastFrontIds = ids
+            /**
+             * …PERO NO PISA UN PARTE DE CABEZA MÁS NUEVO (v73). `breakaway_formed` se emite
+             * RETROFECHADO a `m.bornKm` —la fuga se fecha en el km en que salió, no en el que se
+             * confirma que ha cuajado, y eso está tres líneas más arriba y es correcto—, pero esta
+             * asignación corre en el kilómetro de la CONFIRMACIÓN, que puede ser mucho más tarde.
+             *
+             * Medido en `reina-150-14`: el parte de cabeza del km 54,1 dice SIETE, la fuga se
+             * confirma en el km 57 con SEIS —el séptimo iba delante sin estar en el movimiento— y
+             * esta línea rebajaba la memoria de siete a seis sin decir nada. Cinco kilómetros
+             * después el parte declaraba «salen: 4» habiéndose ido cinco, y `pel-78` desaparecía de
+             * la historia sin una frase. El auditor lo cazó: «desaparece del grupo de cabeza sin
+             * decirlo».
+             *
+             * La frase de la fuga SÍ fija el frente para el lector cuando es lo último que ha leído.
+             * Lo que no puede es retroceder sobre un parte posterior.
+             */
+            if (lastFrontReportKm < m.bornKm) lastFrontIds = ids
             frontAtLastNotice = membersOf(PELOTON).length
           } else if (km - m.bornKm <= STAGE.tacticStickWindowKm) {
             // Solo se cuenta como «el ataque cuaja» lo que cuaja PRONTO. Un grupo que lleva 80 km
@@ -7483,7 +8826,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             const narra = m.prospered || m.narrated
             log.emit(
               km,
-              peloton.tS,
+              noAntesDeNacer(m, peloton.tS),
               m.prospered ? 'movimiento_cazado' : 'intento_fallido',
               m.prospered ? 'move_caught' : 'attack_reeled',
               ids.slice(0, 3),
@@ -7575,11 +8918,18 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
          * lector esperando una captura que no llegaba nunca. Lo que se abre se cierra.
          */
         if (!m.closed && m.narrated && !m.dayBreak) {
-          log.emit(km, peloton.tS, 'intento_fallido', 'move_faded', m.lastIds.slice(0, 3), {
-            kind: m.kind,
-            km: Math.max(1, Math.round(km - m.bornKm)),
-            toGo: Math.round(totalKm - km),
-          })
+          log.emit(
+            km,
+            noAntesDeNacer(m, peloton.tS),
+            'intento_fallido',
+            'move_faded',
+            m.lastIds.slice(0, 3),
+            {
+              kind: m.kind,
+              km: Math.max(1, Math.round(km - m.bornKm)),
+              toGo: Math.round(totalKm - km),
+            },
+          )
         }
         m.closed = true
         moves.splice(a, 1)
@@ -7961,6 +9311,16 @@ function disputeClimb(
       category: block.climbCategory ?? '',
       points: table[0] ?? 0,
       leads: takesLead ? 1 : 0,
+      /**
+       * LA CIFRA QUE SOSTIENE LA FRASE (v81). El evento decía «pasa a liderar la montaña» y NO
+       * publicaba con qué: solo los puntos del primero en ESTA cima. Con eso el lector no puede
+       * saber si el liderato es de nueve puntos a ocho o de treinta a dos, y el banco que vigila el
+       * invariante —«solo si es de verdad»— tampoco podía: reconstruía la clasificación desde la
+       * crónica y le faltaban los puntos de los segundos y terceros puestos, así que veía empates
+       * donde el motor veía ventaja. Se publican los dos lados de la comparación que el motor hace.
+       */
+      total: winner.climbPts,
+      tras: bestOther,
     })
   }
 }

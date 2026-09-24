@@ -78,7 +78,29 @@ describe('engine: la cola del turno de relevos', () => {
     expect(max / min).toBeLessThan(1.15)
   })
 
-  it('el juego de equipo está encendido (v65)', () => {
-    expect(STAGE.teamPlay.enabled).toBe(false)
+  /**
+   * EL SELLO DEL INTERRUPTOR, Y EL NOMBRE QUE POR FIN DICE LA VERDAD.
+   *
+   * Desde la v65 este caso se llamaba «el juego de equipo está encendido» y afirmaba `false`: el
+   * nombre decía una cosa y el cuerpo la contraria, así que leyendo la lista de pruebas en verde
+   * cualquiera —yo incluido— concluía que la capa corría. No corría. Es la forma más barata que
+   * tiene un repositorio de mentirse: un nombre que promete lo que la afirmación niega.
+   *
+   * Aquí no se enciende nada: lo que se arregla es el NOMBRE, para que la lista de pruebas en verde
+   * deje de leerse como si la capa corriera. El encendido va aparte, con su medida.
+   */
+  /**
+   * ————— ENCENDIDA EN LA v81, POR DECISIÓN DEL DUEÑO —————
+   *
+   * «Enciende director y todos, luego ya vemos si hay que calibrar algo mejor». Las cinco capas
+   * pasan a `true` a la vez, y `ENGINE_VERSION` sube a 80.
+   *
+   * EL SELLO NO SE RETIRA, SE DA LA VUELTA: su trabajo nunca fue mantener la capa apagada sino que
+   * encenderla tuviera que ser una decisión declarada y no un descuido. Ha hecho exactamente eso —
+   * las cinco pruebas se pusieron rojas y obligaron a escribir esto. Ahora vigila lo contrario: que
+   * nadie la apague de vuelta sin decirlo.
+   */
+  it('el juego de equipo está ENCENDIDO desde la v81, y el nombre lo dice', () => {
+    expect(STAGE.teamPlay.enabled).toBe(true)
   })
 })

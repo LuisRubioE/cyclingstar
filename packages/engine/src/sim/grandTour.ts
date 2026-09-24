@@ -5,8 +5,9 @@
  * Existe por una razón concreta: el criterio de éxito de los abandonos —«empezar con ~176 y terminar
  * con entre 140 y 155»— no se puede medir sobre una etapa suelta. Es una propiedad de TRES SEMANAS:
  * la fatiga que se acumula día tras día, el depósito que mengua con el TSB, las caídas que se van
- * sumando y el pelotón que adelgaza. Los escenarios canónicos (`llana-180`, `reina-150`) son etapas
- * sueltas de 40 corredores y no pueden decir nada de eso.
+ * sumando y el pelotón que adelgaza. Los escenarios canónicos (`llana-180`, `reina-canonica`) son
+ * etapas SUELTAS —176 corredores desde la v38, no 40, pero un solo día— y no pueden decir nada de
+ * eso: lo que aquí se mide es lo que pasa ENTRE etapas.
  *
  * **Reproduce lo que hace `packages/db` en el tick**, y a propósito comparte con él las funciones
  * que deciden (`injuryEndsRace`, `raceIllnessProbability`): si producción y el banco no llaman a lo

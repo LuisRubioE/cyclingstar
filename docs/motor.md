@@ -507,6 +507,19 @@ se han validado contra nada. Un motor razonable con un perfil absurdo produce un
 > frente a `grandTour` (v17), `timeTrials` frente a `cri-40` (v19)— y la primera en que lo que
 > faltaba no era el recorrido sino **quién lo corre**.
 
+> **Y UN CUARTO, DEL MISMO ÁRBOL (v79): ningún banco pasaba CONTEXTO DE CARRERA.** Ni `grandTour`,
+> ni `smallTours`, ni los escenarios canónicos mandan `race`; y los canónicos son además carreras de
+> UN DÍA, así que todos los corredores llegan con `gcDeficitSeconds` = 0. Con eso `hasGcContext` sale
+> `false` y **no hay maillot ni general que defender**: cualquier regla que dependa de la general es
+> invisible para la batería entera. Se cobró cuatro reglas antes de que nadie lo notara —v75 (la
+> etapa 1 de una vuelta tiene general), v77 (la etapa 3 no se corre como la 18), v79 (el maillot no
+> se va en la fuga del día) y la mitad principal de la capa `director`, que devuelve 1 de inmediato
+> `if (!hasGcContext)`—, y a `gcClimbRecoverPerKm` la dejó declarada «imposible de calibrar».
+>
+> Eso es `sim/generalBench.ts`: un líder, un pelotón escalonado detrás y el día de carrera puesto. Es
+> la cuarta vez que la batería aprende que el instrumento no veía lo que decía medir, y la primera en
+> que lo que faltaba no era ni el recorrido ni quién lo corre, sino **qué está en juego**.
+
 ---
 
 ## Parte III — Qué hay que cambiarle

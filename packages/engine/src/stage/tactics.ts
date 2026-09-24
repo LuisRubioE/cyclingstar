@@ -101,6 +101,12 @@ export interface MoveRider {
    * cazado, se volvió a escapar, fue cazado otra vez, se escapó una tercera… **y ganó la etapa**.
    */
   gastado: boolean
+  /**
+   * ¿ES EL QUE LLEVA EL MAILLOT? (R02.12 · v79). Sale de `gcRank === 1` con general en juego, que es
+   * la clasificación de verdad y no una deducción del déficit: en la etapa 1 de una vuelta todos
+   * llegan a cero y deducirlo del déficit haría líder a medio pelotón.
+   */
+  esMaillot?: boolean
 }
 
 /** El contexto que parametriza el intento. */
@@ -245,8 +251,17 @@ export function rollMoveAttempt(
   ctx: MoveContext,
   dx: number = STAGE.dx,
   fase?: PhaseRow | null,
+  /**
+   * FACTOR EXTRA SOBRE LA INTENSIDAD, y existe por un motivo concreto (R28.4, paso 18b). La última
+   * etapa de una vuelta da o quita cuerda —el paseo y el todo o nada—, y la tentación es meterlo por
+   * la fila de fase como hace la pancarta. **No se puede**: `moveLambda` solo aplica el refuerzo de
+   * ataque tardío `if (fase == null)`, así que colar una fila falsa para llevar un multiplicador
+   * APAGA la ventana de ataques tardíos, y en la última etapa decisiva eso es justo lo contrario de
+   * lo que se quiere. El factor va aparte y no toca la fila.
+   */
+  escala = 1,
 ): boolean {
-  return rng() < blockProbability(moveLambda(ctx, fase), dx)
+  return rng() < blockProbability(moveLambda(ctx, fase) * escala, dx)
 }
 
 // --- 2. ¿Quién lo intenta? -----------------------------------------------------------------
@@ -267,6 +282,23 @@ const ROLE_APPETITE: Record<StageRole, number> = {
  * a tumba abierta con el grupo ya lejos, no una rueda cómoda. Sin esta corrección medimos puentes
  * de siete corredores que convertían la fuga del día en medio pelotón.
  */
+/**
+ * CUÁNTO SE FRENA AL MAILLOT EN ESTE MOVIMIENTO (R02.12 · v79). Ver `jerseyBreakDampFlat`.
+ *
+ * La distinción es de CLASE de movimiento: el maillot no se va **a por la etapa** —la fuga del día,
+ * el contraataque, el puente— y sí se va **a por la carrera** —ataca en el puerto, responde a un
+ * rival—. Por eso `ataque_grupo` y `ataque_final` valen 1: ésos son su oficio, y quien los dosifica
+ * es el colchón, no esto.
+ *
+ * Y el terreno gradúa lo primero: en el llano irse con la fuga del día es noticia de portada; en un
+ * puerto, un contraataque suyo puede ser carrera de general y no caza de etapa.
+ */
+export function jerseyBreakDamp(esMaillot: boolean, kind: MoveKind, onClimb: boolean): number {
+  if (!esMaillot) return 1
+  if (kind === 'ataque_grupo' || kind === 'ataque_final') return 1
+  return onClimb ? STAGE.jerseyBreakDampClimb : STAGE.jerseyBreakDampFlat
+}
+
 const KIND_FOLLOW: Record<MoveKind, number> = {
   fuga: 1,
   contraataque: 0.7,
@@ -404,6 +436,10 @@ export function attackAppetite(
   // que no tiene baza que jugar hoy es el que la manda. Multiplica, no decide: el rol y la
   // mentalidad siguen mandando, y el que corre por su cuenta entra aquí con un 1 limpio.
   a *= r.teamAttack
+  // …Y EL MAILLOT NO SE VA A POR LA ETAPA (R02.12 · v79). Ver `jerseyBreakDamp`. Va aquí, por
+  // corredor, y no como factor del grupo: `chooseInstigator` normaliza los apetitos entre sí, así
+  // que un factor global se cancelaría —eso está medido— y uno que afecta a UNO solo, no.
+  a *= jerseyBreakDamp(r.esMaillot === true, ctx.kind, ctx.onClimb)
   // Frescura: quien va vaciado no salta aunque quiera.
   a *= clamp(r.energyFraction, 0, 1)
   // …Y EL QUE VA TIRANDO DEL PELOTÓN NO SALTA (v41). No es un veto —de un relevo se puede arrancar, y
@@ -633,7 +669,11 @@ export function followProbability(
         (STAGE.tacticFollowBase + attention + appetite + spirit + legs + stake),
       STAGE.tacticFollowMin,
       STAGE.tacticFollowMax,
-    ) * descuentoCompanero
+    ) *
+    descuentoCompanero *
+    // …Y EL MAILLOT TAMPOCO SALTA A LA RUEDA (R02.12 · v79), que es la mitad que faltaba entera:
+    // «entrar en una fuga» es casi siempre seguir al que se va, no irse uno.
+    jerseyBreakDamp(r.esMaillot === true, ctx.kind, ctx.onClimb)
   )
 }
 

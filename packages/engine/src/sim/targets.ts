@@ -89,10 +89,25 @@ export const TARGETS = {
      * de 26,7 % a 0 % según el puerto pase de 15 a 50 km, así que este 25-45 describe una etapa
      * concreta y no la montaña del juego. Lo que el calendario da está en `calendarQueens`.
      */
+    /**
+     * RE-ANCLADA EN EL PASO 21, y la banda vieja no se afloja: **se declara INVÁLIDA** (decisión 23
+     * del dueño, aceptada el 10-09-2026). El 25-45 se midió sobre `reina-150` —135 km de llano y un
+     * puerto, 1.200 m—, que es lo que la casilla de arriba lleva llamando «una caricatura» desde la
+     * v44, y una banda medida sobre una caricatura no describe la montaña: describe la caricatura.
+     *
+     * El punto de medida es ahora `reina-real` (158 km, 2.933 m, dos puertos y final en alto), y
+     * ahí la fuga gana **25,8 % sobre 120 semillas** (la caricatura daba 29,2 % con las mismas).
+     *
+     * **Y la banda se escribe con HUECO, no pegada a la medida**, que es la lección del defecto V1
+     * de esta casa —«la banda sentada encima de su suelo»—. Con 120 corridas, σ ≈ 4,0 puntos para
+     * una proporción del 26 %: dejar el suelo en 25 haría que el invariante cayera del lado malo
+     * **la mitad de las veces**, o sea un guardarraíl que decide a cara o cruz. El 15-40 deja ~2,7σ
+     * por abajo y ~3,5σ por arriba, que es lo que separa vigilar de sortear.
+     */
     breakawayWinPct: {
-      label: 'Gana la fuga (final en alto canónico)',
-      min: 25,
-      max: 45,
+      label: 'Gana la fuga (reina canónica, final en alto)',
+      min: 15,
+      max: 40,
       unit: '%',
     },
     /**
@@ -212,7 +227,22 @@ export const TARGETS = {
      * France e18): habría exigido mover el TECHO en vez del suelo, porque la reina real erosiona
      * 0,51. Se prefiere conservar el punto de medida y anotar el suelo nuevo.
      */
-    queenFresh: { label: 'Erosión mediana, reina en fresco', min: 0.18, max: 0.5, unit: '' },
+    /**
+     * **EL TECHO SUBE DE 0,50 A 0,62 EN EL PASO 21, y esta misma casilla lo había predicho.** Dos
+     * párrafos más arriba está escrito, desde la v16: «se comprobó la alternativa —re-anclar el
+     * objetivo sobre la etapa reina REAL— … **habría exigido mover el TECHO en vez del suelo, porque
+     * la reina real erosiona 0,51**». Entonces se prefirió conservar el punto de medida; el paso 21
+     * lo cambia, así que la deuda vence.
+     *
+     * Medido: `reina-150` erosiona **0,266** y `reina-real` **0,566** (120 semillas), con un 0,3 %
+     * de pájaras — o sea que el campo sufre sin que el modelo deje de discriminar, que es la
+     * condición. El techo en 0,62 deja hueco por arriba en vez de quedarse pegado al 0,566.
+     *
+     * **El suelo de 0,18 se conserva tal cual** y no es pereza: describe lo que el grupeto AHORRA,
+     * que es una conducta del motor y no del perfil, y sigue siendo el listón por debajo del cual
+     * una reina no habría erosionado a nadie.
+     */
+    queenFresh: { label: 'Erosión mediana, reina en fresco', min: 0.18, max: 0.62, unit: '' },
     // Una CLÁSICA LARGA de un día (monumento de 250+ km) en fresco: más dura que una etapa reina de
     // vuelta (0,20-0,50) porque son 100 km más, y sin llegar a la tercera semana de una gran vuelta,
     // donde la fatiga acumulada viene de casa. Se mide sobre el recorrido REAL del Ronde van
@@ -251,6 +281,20 @@ export const TARGETS = {
    * con equipos de verdad y los roles repartidos por el mismo planificador que usa producción.
    */
   chronicle: {
+    /**
+     * CUÁNTAS VECES CUENTA LA CRÓNICA QUIÉN TIRA, por etapa (v79).
+     *
+     * **Esta banda YA EXISTÍA Y NO VIVÍA AQUÍ**: era una comparación a pelo dentro de
+     * `analyzeAttribution` (`pull.length >= 3 && pull.length <= 6`), imprimida por `tacticsCli` y
+     * leída por una persona. Y eso es exactamente cómo un defecto se queda años: **el banco que
+     * detecta el problema del indicador de relevos no tenía ni banda declarada ni invariante**, así
+     * que el indicador podía romperse con CI en verde. Que fue lo que pasó.
+     *
+     * Ni una ni veinte: tres a seis es cuántas veces cambia de manos el trabajo en una etapa de
+     * verdad. Por debajo, el lector no sabe nunca quién lleva la carrera; por encima, la crónica
+     * repite lo mismo con otros nombres — que es el síntoma que la v79 arregla.
+     */
+    pullsPerStage: { label: 'Partes de «quién tira» por etapa', min: 3, max: 6, unit: '' },
     // POR QUÉ 45-80 % EN LA LLANA, y no más ni menos. En una llana con trenes de sprint el frente
     // tiene dueño casi todo el día: un equipo se pone a tirar, se funde, y otro toma el relevo. Pero
     // NO es el 100 %: en el relevo entre dos equipos, en la primera hora sin nadie interesado y
@@ -390,21 +434,56 @@ export const TARGETS = {
      * techo: lo que hay que impedir no es que el corte se dispare —en la vida no lo hace, 0-4 %—
      * sino que vuelva a quedarse MUDO, que es lo que la v14 midió (1 %, con el corte sin señalar a
      * nadie porque los rezagados no perdían tiempo). Un corte que no elimina jamás a nadie no es un
-     * corte. El techo del 15 % es el otro extremo, el de la v17: un corte que se lleva a medio
-     * pelotón deja de ser un riesgo y pasa a ser una guillotina que solo frena el tope del 4 %.
-     * Medido: **4 %**, que es exactamente lo que hace el ciclismo. Es la única de las tres bandas
-     * que es a la vez el objetivo y el margen.
+     * corte. El techo era el otro extremo, el de la v17: una guillotina que solo frena el tope
+     * del 4 %.
+     *
+     * ————— EL TECHO SE MUEVE EN LA v81, Y ES UN TECHO SOBRE EL INSTRUMENTO EQUIVOCADO —————
+     *
+     * Con las cinco capas encendidas este estadístico se fue a **17,1 %** contra un techo de 15, y
+     * el control dice exactamente por qué. Doce grandes vueltas, mismas semillas, capas apagadas
+     * contra encendidas:
+     *
+     *   causa                capas off   capas on
+     *   lesión                   211        211
+     *   enfermedad               123        124
+     *   colapso                   13         13
+     *   fuera de control          46         69
+     *
+     * **Las caídas y la enfermedad son IDÉNTICAS**, dígito a dígito: son dados y la táctica no los
+     * toca. O sea que el porcentaje no se movió porque el corte se volviera loco, sino porque creció
+     * su numerador —de 3,8 a 5,75 eliminados por gran vuelta, sobre 176 que toman la salida— y el
+     * denominador se quedó donde estaba. Que las carreras seleccionen más es lo que las capas
+     * prometen; que el corte lo refleje es que funciona.
+     *
+     * Y ENSEÑA QUE UN PORCENTAJE ES EL INSTRUMENTO EQUIVOCADO PARA ESTO. Si alguien doblara mañana
+     * la tasa de caídas, este número BAJARÍA a la mitad sin que el corte hubiera cambiado ni un
+     * gramo, y el objetivo daría verde. Lo que de verdad vigila la guillotina es **cuántos elimina
+     * el corte**, no qué fracción de los abandonos representa, y por eso la v81 añade esa medida
+     * directa al lado (ver `invariants.test.ts`, `fueraControl` por vuelta). El techo del reparto se
+     * queda como lo que es —una alarma de forma, no de magnitud— y se ensancha a 20 para que deje de
+     * ponerse rojo por aritmética de fracciones.
      */
-    outOfTimePct: { label: 'Abandonos FUERA DE CONTROL', min: 1, max: 15, unit: '%' },
+    outOfTimePct: { label: 'Abandonos FUERA DE CONTROL', min: 1, max: 20, unit: '%' },
+    /**
+     * …Y LA MEDIDA DIRECTA (v81): cuántos elimina el corte en una gran vuelta de 176 corredores y 21
+     * etapas. Ésta sí es de magnitud y no se mueve porque cambie otra causa.
+     *
+     * Medido: **3,8 con las capas apagadas y 5,75 encendidas**. La banda va de 1 —por debajo, el
+     * corte vuelve a estar mudo, que es el defecto de la v14— a 9, que es donde una gran vuelta
+     * empezaría a eliminar por tiempo a más gente de la que se retira por enfermedad en una semana.
+     * El tope del 4 % por etapa sigue siendo la salvaguarda dura y tiene su propio invariante.
+     */
+    outOfTimePerTour: { label: 'Eliminados por el corte, por vuelta', min: 1, max: 9, unit: '' },
   },
   /**
    * LAS CARRERAS PEQUEÑAS (v23, `sim/smallTours.ts`). El banco con FORMA DE PRODUCCIÓN, y la
    * tercera vez que la batería aprende la misma lección.
    *
-   * POR QUÉ EXISTE SI YA ESTABA `flat.bestSprinterWinPct`. Porque aquél mide `llana-180`, que monta
-   * **tres sprinters con SPR 84, 85 y 86** —un empate a tres— y con eso el ganador lo decide el
-   * ruido: mide 36 % y pasa su 30-45 % sin enterarse de nada. Los campos de producción no tienen esa
-   * forma. El planificador que corre el juego (`world/autoOrders.ts`) nombra sprinter al mejor de
+   * POR QUÉ EXISTE SI YA ESTABA `flat.bestSprinterWinPct`. Porque aquél mide `llana-180`, cuyo campo
+   * de velocistas es **plano por arriba**: desde la v38 son diez en degradado (SPR 88, 82, 80,5 …
+   * 70), o sea un mejor claro y un pelotón de rematadores detrás, y antes de la v38 eran tres
+   * empatados a 84-86. En las dos formas el estadístico sale bonito por motivos que no son los del
+   * juego, y los campos de producción no tienen ninguna de las dos. El planificador que corre el juego (`world/autoOrders.ts`) nombra sprinter al mejor de
    * cada equipo solo si pasa de 68 de SPR, y en un campo generado de verdad **el mejor le saca 2,7
    * puntos de SPR efectivo al segundo**, no uno. Con un mejor claro, en el día de juego 46, Race
    * Arabia dio **cinco victorias del mismo corredor en cinco etapas** y Sharjah 4 de 5, mientras CI
@@ -730,6 +809,138 @@ export const TARGETS = {
       min: 6,
       max: 30,
       unit: '%',
+    },
+  },
+  /**
+   * LA GENERAL (v79, `sim/generalBench.ts`). El banco que no existía, y **una sola banda**.
+   *
+   * Aquí se vigila la regla que el dueño dictó en producción: «el que tiene maillot amarillo debería
+   * ser suuuper extraño que se fugue o que entre en una fuga… en el llano entrar en una fuga, eso
+   * debería ser mucho más raro de lo que ocurre». Antes de la v79 el maillot salía delante en el
+   * **12,5 %** de las llanas; después, en el **2,5 %** (40 semillas).
+   *
+   * LAS OTRAS TRES ESTADÍSTICAS DEL BANCO SE PUBLICAN SIN BANDA, y cada una con su motivo escrito:
+   *
+   *  - `jerseyFrontQueenPct` mide el defecto CONTRARIO —que el freno se pase de frenada y el maillot
+   *    no ataque nunca en montaña— y a 40 semillas vale 2,5 %, es decir **un solo caso**. Con σ ≈ 2,5
+   *    puntos, un suelo no distinguiría un 2,5 % de un 7,5 % ni un 0 % de un 5 %: sellarlo sería
+   *    inventar una garantía que la muestra no da. Queda impreso para que se vea, y para que quien
+   *    suba las semillas pueda ponerle suelo con la medida delante.
+   *  - `gcPullTeamsEarly` / `gcPullTeamsLate` son el pareado de la v77 (la etapa 3 no se corre como
+   *    la 18). Miden **0,50 y 0,675** equipos por etapa: van en la dirección correcta —tarde tira
+   *    más que temprano— pero son 20 casos contra 27 sobre 40 semillas, **~1σ**. Una banda sobre esa
+   *    diferencia sellaría ruido.
+   *
+   * Es la misma regla de la casa que `calendarQueens` y `weather`: se pone banda a lo que la muestra
+   * aguanta, y lo que no la aguanta se publica con el número y la razón, no se sella a ojo.
+   *
+   * ————— Y EN LA v82 EL BANCO GANA DOS INSTRUMENTOS, PORQUE DOS CONSTANTES NO TENÍAN NINGUNO —————
+   *
+   * El barrido del paso 21 dio `ambushGainShare` y `gcClimbRecoverPerKm` **inertes dígito a dígito**
+   * sobre las diez estadísticas de los bancos de un día. Las dos por la misma causa de fondo: sus
+   * caminos exigen contexto de CARRERA —una general con `gcDeficitSeconds` de verdad la primera, y
+   * `race.shape` —lo que queda de carrera— la segunda—, y ese contexto solo lo tiene este banco.
+   *
+   *  - **`truceGrantedPct`** lleva banda (50-85, del diseño) porque la muestra la aguanta: 34-39
+   *    treguas pedidas por celda sobre 150 reinas, y la respuesta a `ambushGainShare` es monótona en
+   *    cinco valores (85,3 · 79,4 · 70,6 · 47,2 · 31,6 · 15,4). Ver `constants.ts`.
+   *  - **`breakMaxGapS`** se publica SIN banda, y el motivo es que no tengo ancla para ella: no hay
+   *    en este repositorio ninguna medida de «cuánto colchón llega a tener la fuga de una etapa de
+   *    gran vuelta», y ponerle una a ojo sería exactamente lo que esta tanda lleva todo el día
+   *    cazando. Lo que sí hace es **existir**, que es lo que le faltaba a `gcClimbRecoverPerKm`:
+   *    medida con la forma de la carrera puesta, la respuesta es monótona y con su control dentro
+   *    —con CERO km de puerto por delante la constante es inerte, que es lo que tiene que ser—.
+   */
+  general: {
+    /**
+     * EL TECHO DEL MAILLOT EN LA FUGA DEL DÍA (R02.12, v79). Es un TECHO y no un rango centrado: el
+     * defecto tiene una sola dirección. El suelo se deja en 0 a propósito —que el maillot no entre
+     * NUNCA en la fuga de una llana no es un defecto en carretera— y el techo en 10 % deja el 12,5 %
+     * de antes de la v79 fuera con ~3σ de margen sobre las 40 semillas del invariante (σ ≈ 2,5 pt).
+     */
+    jerseyFrontFlatPct: { label: 'El maillot, delante en llano', min: 0, max: 10, unit: '%' },
+    /**
+     * ————— LA TREGUA, QUE ES EL OBJETIVO QUE EL DISEÑO PEDÍA Y NO EXISTÍA (v82) —————
+     *
+     * `ambushGainShare` citaba «[calibrar] contra `truceGrantedPct` 50-85 %» desde que nació, y el
+     * paso 21 comprobó que **ese estadístico no estaba en el repositorio**: la banda era del diseño
+     * y el banco no la medía. Aquí se escribe, y la banda es la que el diseño pedía —cuando alguien
+     * se cae y su equipo pide tregua, el pelotón la concede la mayoría de las veces, pero no
+     * siempre: negarla cuesta reputación, y concederla siempre sería un pelotón sin colmillos—.
+     *
+     * Vive en `general` y no en `mountain` porque la emboscada **exige una general de verdad**:
+     * equipos con jefe de GC y `gcDeficitSeconds` distinto de cero. En una carrera de un día ese
+     * camino no se recorre nunca, que es por qué el barrido del paso 21 daba la constante inerte.
+     */
+    truceGrantedPct: { label: 'Treguas concedidas', min: 50, max: 85, unit: '%' },
+    /**
+     * ————— EL EQUIPO DEL MAILLOT NO PONE A TODA LA CASA CONTRA UNA FUGA INOFENSIVA (v84) —————
+     *
+     * % de kilómetros del pelotón de una reina con CINCO O MÁS hombres del equipo del maillot al
+     * frente. El dueño, sobre la etapa 19 de producción: «los escapados están a 33 y 41 minutos en
+     * la general… ¿qué necesidad hay de que el equipo del líder tire tan fuerte?». Siete de ocho
+     * durante cuarenta kilómetros, y en las etapas 13, 15 y 18 del mismo Tour el 62 %, el 63 % y el
+     * 68 % de los kilómetros.
+     *
+     * **ES UN TECHO CON SUELO EN CERO, y el suelo importa tanto como el techo**: que el equipo del
+     * maillot NUNCA ponga cinco sería el defecto contrario —un maillot al que nadie defiende el día
+     * que la fuga sí se lleva el liderato—. Por eso el cupo de `relayTeamShareWatch` solo se cobra
+     * cuando la fuga NO amenaza: en cuanto amenaza, desaparece.
+     *
+     * Medido con el cupo puesto: **10,9 %** sobre un campo con forma de producción. Sin él, 41 %. El
+     * techo se pone en 25 y no pegado al 11: lo que vigila esta banda es que no se vuelva al «toda
+     * la casa todo el día», no el segundo decimal de una muestra corta.
+     */
+    jerseyFrontHeavyPct: {
+      label: 'El maillot, con media casa al frente',
+      min: 0,
+      max: 25,
+      unit: '%',
+    },
+  },
+  /**
+   * EL VIENTO CON DIRECCIÓN (R14, paso 20). Las dos bandas que el paso 20 dejó **medidas y sin
+   * sellar**, y aquí es donde el paso 21 las escribe.
+   *
+   * **No las vigila la CI, y el motivo es de coste, no de pereza.** Un día de viento ocurre en el
+   * 3-4 % de las etapas, así que para ver veinte de ellos hay que correr **seiscientas** llanas
+   * canónicas: cuarenta minutos largos por brazo, sobre un trabajo de bancos que ya son 45-57. El
+   * precedente es `calendarQueens`, que vive aquí por la misma razón.
+   *
+   * Y que hagan falta seiscientas no es una excusa: es **el dato**. La primera versión de la tabla
+   * de la v60 §24 se hizo con doscientas y dio un `windDayGapS` de 4,35× —fuera de banda por
+   * arriba— que con seiscientas resultó ser 3,53×. Con veinte días de viento sobre seiscientas
+   * etapas, una sola carrera rota mueve la mediana entera; con siete, la inventa. El propio §4/R14
+   * lo avisa por escrito: este banco corre con ×3 semillas o no mide nada.
+   */
+  weather: {
+    /**
+     * CUÁNTOS ABANICOS SE CIERRAN ANTES DE META. Es la fila CONTRARIA del catálogo (S-324) y la que
+     * no existía: hasta la v69 medía **0 %**, porque el viento soplaba igual durante 180 km y un
+     * abanico abierto no se cerraba jamás. Con el rumbo de la carretera, **62,5 %** sobre 600.
+     *
+     * La banda tiene las dos puntas por un motivo cada una: por abajo, que un abanico no se cierre
+     * nunca es el motor de la v69; por arriba, que se cierren TODOS es lo que medía la primera
+     * versión del rumbo —un paseo aleatorio, con el que en 180 km de deriva libre siempre aparecen
+     * dos kilómetros al abrigo—. Un día de viento cruzado de verdad aguanta hasta meta.
+     */
+    echelonClosedPct: {
+      label: 'Abanicos que se cierran antes de meta',
+      min: 30,
+      max: 70,
+      unit: '%',
+    },
+    /**
+     * CUÁNTO MÁS REPARTE UN DÍA DE VIENTO que uno normal, en brecha del primero al último. Medido
+     * **3,00×** sobre 600, contra 3,53× del motor de la v69: los abanicos que se cierran dejan
+     * volver a los cortados, así que el día de viento sigue siendo el que más reparte pero deja de
+     * ser una carnicería.
+     */
+    windDayGapS: {
+      label: 'Brecha del día de viento contra la de un día normal',
+      min: 1.5,
+      max: 4,
+      unit: '×',
     },
   },
 } as const satisfies Record<string, Record<string, Target>>

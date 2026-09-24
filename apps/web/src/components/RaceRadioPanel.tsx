@@ -111,9 +111,24 @@ const KIND_DOT: Record<RadioGroupKind, string> = {
 
 /** `m:ss`. El líder de carrera no lleva hueco: va a raya. */
 export function radioGap(seconds: number): string {
-  if (seconds <= 0) return '—'
+  /**
+   * CERO SEGUNDOS NO ES «NO SE SABE» (v70.1). Esto pintaba `—` para todo hueco ≤ 0, y la radio
+   * guarda el hueco REDONDEADO a segundos enteros: un grupo a cuatro décimas del de delante se
+   * guardaba como 0 y salía con los dos huecos en blanco, que es lo que el dueño vio —un tercer
+   * grupo «5:13 detrás del líder y 5:13 detrás del grupo de delante», o sea el de en medio a cero—.
+   * Estar a menos de un segundo es una respuesta, y se dice.
+   */
+  if (seconds < 0) return '—'
+  if (seconds === 0) return '0:00'
   const s = Math.round(seconds)
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+}
+
+/** Cómo se llama en pantalla lo que le ha pasado a un grupo (UI en inglés). */
+const MISHAP_LABEL: Record<'caida' | 'pinchazo' | 'averia', string> = {
+  caida: 'Crash',
+  pinchazo: 'Puncture',
+  averia: 'Mechanical',
 }
 
 /** Cómo va este hombre: o tira o no tira. */
@@ -174,6 +189,27 @@ function motiveLabel(motivo: string, para: string | null): string | undefined {
       return para ? `riding the GC for ${para}` : 'his team rides for the GC'
     case 'rol':
       return 'his job in the team'
+    /**
+     * --- LOS CINCO DEL PASO 17c (R23.1) ---------------------------------------------------------
+     *
+     * El vocabulario tenía diez palabras y la carretera produce quince. Sin estas cinco frases, los
+     * motivos nuevos caían en el `default` y el corredor salía SIN explicación: el motor sabía por
+     * qué tiraba y la pantalla no lo decía.
+     */
+    case 'propio':
+      // S-434: ocho hombres en el último puerto y el favorito delante marcando tempo. Eso no es
+      // «le toca por su papel»: es el motivo más claro que hay en una carrera.
+      return 'setting his own tempo'
+    case 'equipo_puntos':
+      return para ? `riding the points jersey for ${para}` : 'his team rides for the points jersey'
+    case 'equipo_montana':
+      return para ? `riding the mountains jersey for ${para}` : 'his team rides for the KOM'
+    case 'infiltrado':
+      // R03.5, y la gracia es que se narra como que NO tira: su equipo le metió ahí para no tener
+      // que perseguir, así que su trabajo es exactamente no hacer ninguno.
+      return 'sitting on — his team has no reason to chase'
+    case 'colocando':
+      return para ? `keeping ${para} out of trouble` : 'keeping his leader out of trouble'
     default:
       return undefined
   }
@@ -252,9 +288,19 @@ function GroupCard({ g, position, racing }: { g: RadioGroup; position: number; r
         <span className="text-sm text-slate-500">
           {g.size} rider{g.size === 1 ? '' : 's'}
         </span>
-        {g.speedKmh !== null && (
+        {/*
+          LA VELOCIDAD, O LO QUE LA SUSTITUYE (v70.1). Un grupo cuyo único hombre se paró a cambiar
+          una rueda no tiene velocidad que enseñar: tiene un percance, y ésa es la noticia. Antes
+          salía el kilómetro dividido entre el tiempo que estuvo de pie —«16,1 km/h» para un líder
+          en solitario que en realidad estaba parado— y eso no era lento: era falso.
+        */}
+        {g.speedKmh !== null ? (
           <span className="ml-auto font-mono text-sm text-slate-600">{g.speedKmh} km/h</span>
-        )}
+        ) : g.mishap ? (
+          <span className="ml-auto text-sm font-medium text-rose-600">
+            {MISHAP_LABEL[g.mishap.tipo]} — {radioGap(g.mishap.lostS)} lost
+          </span>
+        ) : null}
       </div>
 
       {/* Los DOS huecos, cada uno dicho por su nombre: era la queja exacta. */}
@@ -272,8 +318,16 @@ function GroupCard({ g, position, racing }: { g: RadioGroup; position: number; r
 
       {pulling.length > 0 && (
         <>
+          {/*
+            LA CUENTA, NO EL TOPE. El dueño: «si en 1 km solo pasa 1 al relevo, no tiene sentido que
+            en el pelotón pongamos que pasan 15, porque no es real». Los dos números eran correctos
+            —los dos dicen quiénes están en el turno— y aun así la comparación engañaba, porque la
+            lista se corta en doce nombres y la cuenta no: medido, en un grupo de 31-100 se relevan
+            veintisiete y salían doce. Ahora, cuando se corta, se dice: «Pulling (12 of 27)».
+          */}
           <p className="mt-2 text-[11px] font-semibold tracking-wide text-slate-400 uppercase">
-            Pulling ({pulling.length})
+            Pulling ({pulling.length}
+            {g.pullingTotal > pulling.length ? ` of ${g.pullingTotal}` : ''})
           </p>
           <ul className="mt-0.5 space-y-0.5">
             {pulling.map((r) => (

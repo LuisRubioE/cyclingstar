@@ -233,7 +233,48 @@ export interface RaceMemory {
   winners: string[]
   /** Equipos que ya tienen su día hecho. */
   satisfiedTeams: string[]
+  /**
+   * --- LO QUE EL PASO 16 AÑADE (R09 + R10), Y TODO ES OPCIONAL A PROPÓSITO -------------------
+   *
+   * La memoria la construye `packages/db` leyendo los días anteriores; el motor la **recibe y no
+   * la escribe**, que es lo que mantiene la Frontera 3 y lo que hace que una carrera de un día
+   * —donde no hay ayer— corra exactamente igual que antes sin ninguna guarda especial.
+   */
+  /** El ganador de AYER, para acortarle la cuerda hoy (R09.2, S-423). */
+  yesterdayWinnerId?: string | null
+  /** Y su equipo, que es a quien de verdad se le mira mal en la aduana. */
+  yesterdayWinnerTeamId?: string | null
+  /** Al que la fuga le robó la etapa ayer: hoy no da cuerda a nadie (R09.2, S-106). */
+  burnedTeams?: string[]
+  /** Días que lleva cada equipo sin un resultado. De aquí sale la desesperación (R09.4, S-402). */
+  daysSinceResult?: Record<string, number>
+  /** Parejas que no colaboran, pase lo que pase (R09.5, S-404). */
+  rivalries?: [string, string][]
+  /** Reputación: se gana concediendo treguas y se pierde negándolas (R09.5 + R12.2). */
+  goodwill?: Record<string, number>
+  /** Por qué el pelotón está hoy como está (R09.1, S-224/S-234/S-422). */
+  moodCause?: MoodCause
+  /** Cuánto pesa HOY en el plan de varios días: no todos los días valen igual (R10, S-405). */
+  dayWeight?: number
 }
+
+/**
+ * POR QUÉ EL PELOTÓN ESTÁ HOY COMO ESTÁ (R09.1). El humor deja de ser un dado y pasa a ser una
+ * **consecuencia**, que es la fila literal del catálogo.
+ *
+ * Y el dado NO se retira, se encoge: el dueño pidió explícitamente «la probabilidad de que el
+ * pelotón eche la hueva», así que un humor sin azar sería otro defecto, no un arreglo.
+ */
+export type MoodCause =
+  | 'ninguno'
+  | 'reina_ayer'
+  | 'vispera_reina'
+  | 'post_descanso'
+  | 'vispera_descanso'
+  | 'traslado_largo'
+  | 'calor'
+  | 'tregua'
+  | 'ultima_etapa'
 
 /** Lo que un corredor —su director— sabe de la carrera. Vieja y torcida a propósito. */
 export interface RaceView {

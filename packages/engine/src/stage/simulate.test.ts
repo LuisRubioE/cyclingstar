@@ -297,6 +297,47 @@ describe('los suyos se dejan caer a por él (v36, §V.1)', () => {
     }
   })
 
+  /**
+   * …Y EL RESCATE POR LA GENERAL ES DEL HOMBRE DE LA GENERAL (v72, defecto de producción).
+   *
+   * El dueño, mirando la etapa 4 de Race Solidarnosc con su propio equipo: «dice que hay gente que
+   * se queda atrás para ayudarme porque soy su baza de la general… pero yo ni sabía que era la baza
+   * de la general del equipo; es más, **ni siquiera era el mejor en la general de mi equipo** antes
+   * de iniciar la etapa 4».
+   *
+   * Tenía razón, y el defecto era doble. El hombre al que se rescata es `plan.leaderId`, que sale de
+   * los VOTOS de los gregarios o del rol y la calidad (`pickLeader`); el motivo `porLaGeneral` se
+   * leía del EQUIPO (`purposes`), que se calcula sobre `gcLeaderId`. Dos personas distintas. Cuando
+   * lo eran, **bajaban todos los disponibles menos uno** —contra dos por la etapa— a por quien no
+   * era la baza, y la crónica lo llamaba un compromiso con la general que nadie había tomado.
+   *
+   * Es exactamente el caso que este motor ya tenía descrito en `teamPlan.ts`: el jugador humano que
+   * se pone de líder cuando su equipo ya tiene uno.
+   *
+   * El banco lo monta a mano: el jefe de filas por votos va a 300 s en la general y un compañero
+   * suyo va a 20 s. El equipo tiene motivo de general **por el compañero**, no por él.
+   */
+  it('si el jefe de filas NO es la baza de la general, no baja el equipo entero', () => {
+    const input: StageInput = {
+      ...conJefeQueSeCae(true),
+      riders: conJefeQueSeCae(true).riders.map((r) =>
+        r.riderId === 'jefe'
+          ? { ...r, gcDeficitSeconds: 300 }
+          : r.riderId === 'greg-0'
+            ? { ...r, gcDeficitSeconds: 20 }
+            : r,
+      ),
+    }
+    const avisos = partes(input, 'ayuda-gc-jefe-no-es-la-baza')
+    // La regla sigue existiendo: al jefe se le rescata. Lo que cambia es CON QUÉ MOTIVO y CON CUÁNTOS.
+    for (const e of avisos) {
+      if (e.datos?.jefeId !== 'jefe') continue
+      expect(e.datos?.porQue).not.toBe('general')
+      // Por la etapa bajan dos, no «todos menos uno»: con cinco gregarios, el defecto daba cuatro.
+      expect(Number(e.datos!.cuantos)).toBeLessThanOrEqual(STAGE.helpBackStageHelpers)
+    }
+  })
+
   it('EL QUE LLEVA EL MAILLOT no baja a por nadie (v51)', () => {
     /**
      * El dueño, leyendo la crónica de la etapa 14 del Race Italy: «km 55, 107 Isaac Clark (Beacon
@@ -1102,8 +1143,24 @@ describe('el viento de lado parte la carrera (v41)', () => {
       // Y no se recompone solo: el que se queda en la cuneta pierde tiempo de verdad.
       const t = out.results.map((r) => r.tiempoS).sort((a, b) => a - b)
       expect(t[t.length - 1]! - t[0]!).toBeGreaterThan(20)
-      // El grupo de cabeza en meta no puede ser el pelotón entero.
-      expect(t.filter((x) => x === t[0]).length).toBeLessThan(before)
+      /**
+       * EL GRUPO DE CABEZA EN META SE PARECE A LO QUE QUEDÓ TRAS EL CORTE, NO A LO DE ANTES (v83).
+       *
+       * Esto decía `< before` y **pasaba en verde midiendo lo contrario de lo que promete**: en la
+       * semilla 0, con el motor de producción, el abanico partía la carrera en 64 y al final entraban
+       * 119 de 120 en el mismo segundo. O sea, el abanico se recomponía ENTERO y la afirmación pasaba
+       * porque 119 es menor que 120. El corte no mandaba en nada.
+       *
+       * Lo que la frase significa es que el resultado del día lo decide el corte, así que la cabeza
+       * tiene que estar más cerca de `remaining` que de `before`. Con el punto medio: caza la semilla
+       * 0 (119 contra 92), caza la 142 (120 contra 99) —la que abría cien metros de abanico con
+       * viento de 0,23— y las tres que cortan de verdad pasan con margen (38<79, 33<69, 67<83).
+       *
+       * Queda un resto MEDIDO y declarado: sobre 240 semillas, **1 de cada 7 abanicos todavía se
+       * recompone** (la 102, con 12 s de desparrame). Es un abanico justo en el umbral al que el
+       * pelotón caza, que en carretera pasa; no se tapa, se escribe.
+       */
+      expect(t.filter((x) => x === t[0]).length).toBeLessThan((before + remaining) / 2)
     }
   })
 
@@ -2547,6 +2604,7 @@ describe('cada relevo dice para qué es (v47)', () => {
     let relevosDetras = 0
     let conMotivoDeEquipo = 0
     let deEquipoEnElPeloton = 0
+    let conJefeDentro = 0
     for (const seed of seedsFor('motivo', 6)) {
       for (const km of radioDe(seed).kms) {
         const pel = km.groups.findIndex((g) => g.id === km.mainId)
@@ -2560,7 +2618,22 @@ describe('cada relevo dice para qué es (v47)', () => {
             // `groups` va en orden de CARRETERA, así que ir después del pelotón es ir por detrás.
             if (pel < 0 || i < pel) continue
             relevosDetras += 1
-            if (deEquipo) conMotivoDeEquipo += 1
+            /**
+             * …Y LA DISTINCIÓN QUE ESTE SELLO NO PODÍA HACER CUANDO SE ESCRIBIÓ (v81).
+             *
+             * El sello decía «0 motivos de equipo por detrás», pero su propia justificación —arriba,
+             * con las palabras del dueño— es **«¿para qué carajos tiran si en ese grupo NO ESTÁ su
+             * líder?»**. Cuando su líder SÍ está, tirar por él es exactamente lo que se ve en la
+             * carretera, y el dueño lo reclamó con una captura: el maillot descolgado a 1:43, tres
+             * compañeros suyos rescatándole, y la radio diciéndoles «just riding — this group is
+             * chasing nothing». «Que chingados pasó aquí».
+             *
+             * Así que el sello conserva su significado y gana la distinción: por detrás no se tira
+             * por un jefe que no está, y sí por uno que está. Las dos mitades se cuentan.
+             */
+            const jefeDentro = p.para != null && g.riderIds.includes(p.para)
+            if (deEquipo && jefeDentro) conJefeDentro += 1
+            else if (deEquipo) conMotivoDeEquipo += 1
           }
         })
       }
@@ -2570,8 +2643,14 @@ describe('cada relevo dice para qué es (v47)', () => {
     // Y la evidencia: ninguno de ellos persigue nada por su equipo. Es lo que el dueño no podía ver
     // en la pantalla —«¿para qué carajos tiran si en ese grupo no está su líder?»— y ahora la propia
     // tabla lo dice: van en un grupeto, no persiguen nada.
-    expect(`motivos de equipo por detrás: ${conMotivoDeEquipo}`).toBe(
-      'motivos de equipo por detrás: 0',
+    expect(`motivos de equipo por detrás SIN su jefe: ${conMotivoDeEquipo}`).toBe(
+      'motivos de equipo por detrás SIN su jefe: 0',
+    )
+    // …Y LA MITAD NUEVA (v81), que es la que el dueño reclamó: cuando su jefe VA EN ESE GRUPO, el
+    // que tira lo dice. Sin este control, el arreglo se podría deshacer mañana y este test seguiría
+    // en verde poniendo `grupeto` a todo el mundo otra vez.
+    expect(`tiran por su jefe descolgado: ${conJefeDentro > 0}`).toBe(
+      'tiran por su jefe descolgado: true',
     )
     // …y la otra mitad, sin la cual esto se pasaría poniendo `grupeto` a todo el mundo: dentro del
     // pelotón el frente SÍ tiene dueño y sus hombres lo dicen.
@@ -2731,15 +2810,50 @@ describe('el maillot no releva fuera del pelotón si hay quien lo haga (v57)', (
             )
             if (pueden.length < 3) return
             fueraDelGrueso += 1
-            if (yo.pulling) tirandoConCompañía += 1
+            /**
+             * …Y «CON COMPAÑÍA» SE MIDE CON LAS PALABRAS DE LA REGLA (v81).
+             *
+             * La v57 no dice «el maillot no tira NUNCA fuera del grueso»: dice que queda EL ÚLTIMO
+             * de la fila del deber, y que el suelo de relevistas «lo saca al frente cuando de verdad
+             * no queda nadie —va solo, **o los que le acompañan están peor que él**—».
+             *
+             * El filtro viejo —tres compañeros con más del 5 % de depósito— no distinguía eso, y por
+             * eso este sello se puso rojo con una foto que era EL CASO PREVISTO: grupo de cuatro en
+             * el km 47, él a **0,667** y los suyos a 0,654 · 0,650 · 0,649. El más fresco de los
+             * cuatro era él, y sacarle al frente es justo lo que la regla manda.
+             *
+             * Y apretar el filtro por el otro lado tampoco valía: pedir tres compañeros MÁS FRESCOS
+             * que él deja la muestra en CERO —los que bajan a rescatarle han quemado para llegar, así
+             * que van peor— y un control que no ve ningún caso no vigila nada.
+             *
+             * Así que se cuenta lo que la regla PROHÍBE: que tire habiendo alguien mejor que él.
+             */
+            const hayAlguienMejor = suGrupo.some(
+              (r) => r.riderId !== 'maillot' && r.energy / r.energy0 > yo.energy / yo.energy0,
+            )
+            if (yo.pulling && hayAlguienMejor) tirandoConCompañía += 1
             if (suGrupo.some((r) => r.riderId !== 'maillot' && r.pulling)) otrosTirando += 1
           },
         })
       }
-      // Que el caso EXISTA: si el maillot no se cayera nunca del grueso, esto pasaría sin mirar nada.
-      expect(`el maillot rueda fuera del grueso: ${fueraDelGrueso > 50}`).toBe(
-        'el maillot rueda fuera del grueso: true',
-      )
+      /**
+       * QUE EL CASO EXISTA: si el maillot no se cayera nunca del grueso, esto pasaría sin mirar nada.
+       *
+       * EL LISTÓN BAJA DE 50 A 15 EN LA v79, Y CON SU MEDIDA DELANTE. Aquel 50 se ancló contra un
+       * motor en el que el maillot **se metía en la fuga del día**; desde que no lo hace (R02.12),
+       * las veces que se cae del grueso son la mitad: **medido, 26 fotos en las mismas 8 semillas**.
+       * O sea que el caso sigue existiendo de sobra —26 ocasiones de comprobar la regla— y lo que ha
+       * cambiado es el motor, no la pregunta.
+       *
+       * Bajarlo a 15 y no a 25 es por margen: con 26 medidas, un listón en 25 se rompería el día que
+       * una semilla se mueva, y un guardarraíl intermitente no vigila nada. Lo que este listón tiene
+       * que cazar es que el caso DESAPAREZCA, no dónde cae exactamente.
+       *
+       * Y VA COMO COMPARACIÓN NUMÉRICA, no como la cadena de siempre: una cadena dice «false» y una
+       * cadena larga la trunca el propio vitest, así que al ponerse roja esta prueba **no decía si
+       * habían quedado 49 fotos o ninguna**. Un listón se diagnostica con el número al lado.
+       */
+      expect(fueraDelGrueso).toBeGreaterThan(15)
       // …y que en esos grupos SÍ tira alguien: lo que se prueba es que no es él, no que nadie releve.
       expect(`alguien releva en esos grupos: ${otrosTirando > 0}`).toBe(
         'alguien releva en esos grupos: true',

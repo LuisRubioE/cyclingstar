@@ -10,6 +10,7 @@ import {
   getRaceHistory,
   getRaceRiderIdentities,
   getRaceRivals,
+  getRaceTeams,
   getRosterTeammates,
   getRunStageDays,
   getStageOrders,
@@ -23,6 +24,7 @@ import {
 } from '@cyclingstar/db'
 import {
   ENGINE_VERSION,
+  checkReplay,
   SEASON_CALENDAR,
   type StageInput,
   TEST_TOUR,
@@ -37,8 +39,11 @@ import {
   DAYS_PER_SEASON,
   NO_LEADERS,
   type RaceLeaders,
+  chasePolicySchema,
   currentSeason,
+  dayGoalSchema,
   raceLeaders,
+  triggerCondSchema,
 } from '@cyclingstar/shared'
 import { z } from 'zod'
 import {
@@ -65,6 +70,17 @@ const stageOrderSchema = z.object({
   triggerKm: z.number().int().nonnegative().nullable(),
   contestSprints: z.boolean(),
   contestClimbs: z.boolean(),
+  /**
+   * LAS CUATRO DEL PASO 17a. `.nullish()` por las dos puntas: la hoja guardada antes de la migración
+   * las trae a `null`, y un cliente que aún no se ha desplegado no las manda. Las dos cosas
+   * significan «no hay preferencia», que es la conducta de hoy. Esta validación es la de ENTRADA y
+   * por eso es más estricta que el contrato: aquí sí se acotan los identificadores a UUID y los
+   * vetos a un número razonable de equipos, porque esto lo escribe un cliente cualquiera.
+   */
+  triggerOn: triggerCondSchema.nullish(),
+  chasePolicy: chasePolicySchema.nullish(),
+  refuseRelayTeams: z.array(z.string().uuid()).max(30).nullish(),
+  dayGoal: dayGoalSchema.nullish(),
 })
 const putStageOrdersSchema = z.object({
   orders: z.array(stageOrderSchema).max(TEST_TOUR.length),
@@ -212,8 +228,32 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
         )),
       ]
 
-      // Regenera los eventos ejecutando el motor con la misma entrada y semilla.
-      const output = simulateStage(input, snapshot.seed)
+      /**
+       * EL INFORME DEJA DE RE-SIMULAR (paso 17d, R23.5).
+       *
+       * Esto ejecutaba el motor de HOY sobre la entrada de AYER para «regenerar» los eventos. Con
+       * `ENGINE_VERSION` moviéndose paso a paso —52 → 74 en esta tanda— eso deja de regenerar nada:
+       * cuenta una carrera DISTINTA de la que está en la hoja de resultados, con los mismos
+       * corredores y otro desenlace. El jugador ve un diario que no casa con la clasificación que
+       * tiene al lado, y no hay forma de que sepa cuál de los dos miente.
+       *
+       * Es el mismo defecto que el dueño vio en la Race Radio y por el que la vista dice «esta etapa
+       * se corrió antes de que se grabara la radio» en vez de reconstruirla. La regla es la misma:
+       * **lo que se corrió se lee, no se vuelve a correr.**
+       *
+       * Los eventos se guardan al correr la etapa (`stage_snapshots.events`), así que se leen. Solo
+       * se re-simula cuando NO están —snapshots anteriores a que se guardaran— y además el motor
+       * sigue siendo el mismo (`checkReplay`), que es la única circunstancia en la que volver a
+       * correr devuelve la misma carrera. Si no se cumple, se sirve la etapa sin crónica: una
+       * pestaña vacía es honesta y una crónica inventada no.
+       */
+      const guardados = snapshot.events as ChronicleEvent[] | null
+      const output =
+        guardados && guardados.length > 0
+          ? { events: guardados }
+          : checkReplay(snapshot.engineVersion).faithful
+            ? simulateStage(input, snapshot.seed)
+            : { events: [] as ChronicleEvent[] }
       // La vuelta de prueba no tiene roster de carrera: las identidades salen de los resultados, así
       // que van sin dorsal (y la crónica lo omite, en vez de inventarlo).
       const chronicle = buildChronicle(output.events, chronicleNames(results), {
@@ -309,7 +349,8 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
     const orders = await getStageOrders(db, raceKey, rider.id)
     const teammates = await getRosterTeammates(db, raceKey, rider.id)
     const rivals = await getRaceRivals(db, raceKey, rider.id)
-    return { race: { id: race.id, name: race.name }, stages, orders, teammates, rivals }
+    const teams = await getRaceTeams(db, raceKey, rider.id)
+    return { race: { id: race.id, name: race.name }, stages, orders, teammates, rivals, teams }
   })
 
   app.put('/api/my-orders', async (request, reply) => {

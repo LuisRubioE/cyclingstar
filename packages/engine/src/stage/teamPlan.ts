@@ -35,7 +35,7 @@
  */
 import { STAGE } from '../constants.js'
 import { clamp } from '../random.js'
-import type { Mentality, StageRole } from './types.js'
+import type { Effort, Mentality, StageRole } from './types.js'
 
 /**
  * POR QUÉ gastaría un equipo hoy. Los tres motivos son los que dictó el dueño, y ninguno es una
@@ -89,6 +89,16 @@ export interface TeamPlanRider {
   finishScore: number
   /** Desventaja en la general (SPEC 6.9). 0 con contexto de general = lleva el maillot. */
   gcDeficitSeconds: number
+  /**
+   * CUÁNTO QUIERE GASTAR HOY ESTE HOMBRE (R22, §6.2, paso 17). Lo necesita el presupuesto del
+   * equipo, que es donde `effort` de verdad se paga: ver `escalaDeEsfuerzo`. Ausente = `normal`.
+   */
+  effort?: Effort
+  /**
+   * CON CUÁNTO LLEGA HOY, en [0,1] (R08.1, paso 18). Es lo que hace que un equipo que lleva cuatro
+   * días controlando la carrera deje de llegar. Ausente = 1. Ver `formaDelEquipo`.
+   */
+  freshness?: number
 }
 
 /** El contexto de la etapa que decide qué motivos existen hoy. */
@@ -307,7 +317,30 @@ export function buildTeamPlans(
       quality: candidate ? candidate.finishScore : 0,
       gcDeficitSeconds,
       sprintFinish: ctx.bunchFinish,
-      budget: STAGE.teamBudgetPerRider * Math.max(1, committed),
+      /**
+       * …Y LA CUARTA PATA DE `effort` (R22, §6.2, paso 17): **el presupuesto del día**.
+       *
+       * Es donde la palanca de verdad se paga. Un equipo cuyos hombres salen a vaciarse puede
+       * sostener el frente mucho más rato; uno que sale a guardarse, mucho menos — y eso decide
+       * quién caza y quién no, que es la pregunta más grande de una etapa llana.
+       *
+       * Se toma la media de los leales y no el máximo: un equipo son ocho hombres, y que uno ponga
+       * «a tope» no convierte al equipo entero en otro equipo.
+       */
+      /**
+       * …Y EL PARTE DEL EQUIPO (R08.1, paso 18). Un equipo que ayer tiró ciento veinte kilómetros
+       * hoy tiene menos presupuesto y pone a otros dos; **al cuarto o quinto día de controlar, el
+       * equipo del maillot ya no llega y el maillot cambia de manos**. Ésa es la frase entera del
+       * racimo, y es de las más bonitas del ciclismo por etapas: la vuelta la gana quien todavía
+       * tiene equipo en la tercera semana.
+       *
+       * El suelo del 40 % no es caridad: un equipo agotado sigue teniendo ocho hombres.
+       */
+      budget:
+        STAGE.teamBudgetPerRider *
+        Math.max(1, committed) *
+        escalaDeEsfuerzo(loyal) *
+        formaDelEquipo(loyal),
       rebelIds,
     })
   }
@@ -342,6 +375,12 @@ export interface TeamSituation {
    * que cazar, o aunque el que fuera delante estuviera a quince segundos y se cazara solo.
    */
   gapSeconds: number | null
+  /**
+   * EN QUÉ DÍA DE LA CARRERA ESTAMOS (v76.2). Lo pide `isThreatened`: un minuto en la etapa 3 se
+   * recupera y en la 18 es el podio. Ausentes = carrera de un día, y entonces no se resta nada.
+   */
+  stageDay?: number
+  totalStages?: number
 }
 
 /** Lo que un equipo está haciendo AHORA y por qué. */
@@ -370,8 +409,43 @@ function isThreatened(plan: TeamPlan, sit: TeamSituation): boolean {
    * o sea su desventaja MENOS lo que lleva ganado hoy— contra la de nuestro hombre.
    */
   const virtual = sit.frontThreatDeficit - (sit.gapSeconds ?? 0)
-  // Si al de delante le dan la cuerda entera, ¿se pone por delante de nuestro hombre?
-  return virtual - plan.gcDeficitSeconds <= STAGE.gcThreatFraction * STAGE.gcControlLeash
+  /**
+   * …Y LA OTRA MITAD DE LA PREGUNTA: ¿Y PUEDO RECUPERARLO? (v76.2)
+   *
+   * La cuenta de arriba pregunta «¿se me pone por delante?» y se queda ahí. El dueño, mirando la
+   * etapa 3 del Tour: «se escapa un ciclista peligroso para la general pero solo tiene 1 minuto… no
+   * veo que alguien que quizás acabe luchando por el podio tenga que desgastar a su equipo por eso.
+   * Otra cosa sería si va sacando 20 minutos, o si es la etapa 18».
+   *
+   * Tiene razón, y el motivo es que en la etapa 3 la general está comprimida a SEGUNDOS: cualquier
+   * fugado que se lleve un minuto se pone por delante de medio pelotón, así que medio pelotón se
+   * siente amenazado y se pone a tirar. En la 18 ese mismo minuto es el podio.
+   *
+   * La diferencia no está en quién va delante ni en lo cerca que esté: está en **cuánta carrera
+   * queda para devolverle ese minuto**. Con dieciocho etapas por delante se devuelve en cualquier
+   * puerto de la segunda semana, y quemar el equipo hoy es exactamente cómo se pierde la tercera.
+   *
+   * Así que al listón se le resta lo que todavía es recuperable. En una carrera de un día, o sin
+   * saber en qué día estamos, no se resta nada y la cuenta es la de siempre.
+   */
+  const quedan = Math.max(0, (sit.totalStages ?? 1) - (sit.stageDay ?? 1))
+  const recuperable = STAGE.gcRecoverablePerStage * quedan
+  const ventana = STAGE.gcThreatFraction * STAGE.gcControlLeash
+  /**
+   * …Y HAY DOS PREGUNTAS DISTINTAS, no una (v76.2). La cuenta de siempre —«¿se me acerca?»— vale
+   * mientras el de delante siga POR DETRÁS de nuestro hombre en la general virtual. En cuanto le
+   * PASA, esa misma cuenta responde que sí para cualquier hueco, de un minuto o de veinte, y por eso
+   * medio pelotón se ponía a tirar en la etapa 3: con la general comprimida a segundos, cualquier
+   * fuga que se lleve un minuto adelanta a media parrilla.
+   *
+   * Cuando te pasa, la pregunta ya no es cuánto se te acerca sino **cuánto te saca y si puedes
+   * devolvérselo**. Un minuto en la etapa 3, con dieciocho por delante, se devuelve en cualquier
+   * puerto de la segunda semana; veinte minutos no se devuelven nunca; y en la etapa 18 no se
+   * devuelve ni el minuto.
+   */
+  const ventaja = plan.gcDeficitSeconds - virtual
+  if (ventaja > 0) return ventaja > recuperable
+  return virtual - plan.gcDeficitSeconds <= ventana
 }
 
 /**
@@ -625,4 +699,45 @@ export function jerseyAttackFactor(
   if (!esPortador || leLoEstanQuitando) return 1
   const colchon = Math.max(0, cushionSeconds)
   return 1 - Math.min(1, colchon / STAGE.teamPlay.jerseyCushionS)
+}
+
+/**
+ * CUÁNTO GASTA HOY ESTE EQUIPO, según lo que sus hombres hayan puesto en `effort` (R22, §6.2).
+ *
+ * La media, no el máximo, y con el interruptor apagado vale **1 exacto**: un campo sin órdenes de
+ * esfuerzo —o un banco sintético— corre como corría.
+ */
+function escalaDeEsfuerzo(loyal: readonly { effort?: Effort }[]): number {
+  if (!STAGE.ordenes.enabled || loyal.length === 0) return 1
+  let suma = 0
+  for (const r of loyal) {
+    suma +=
+      r.effort === 'a_tope'
+        ? STAGE.ordenes.aTopeBudget
+        : r.effort === 'ahorrar'
+          ? STAGE.ordenes.ahorrarBudget
+          : 1
+  }
+  return suma / loyal.length
+}
+
+/**
+ * CUÁNTO LE QUEDA HOY A ESTE EQUIPO (R08.1, paso 18). `fitFactor(r) = clamp(0,4 + 0,6·freshness)`,
+ * promediado sobre los leales: el equipo no es su mejor hombre ni su peor hombre.
+ *
+ * `freshness` llega ya calculada de fuera —es la mitad fisiológica, que vive en
+ * `entrenamiento.md`—; aquí solo se lee. Con el interruptor apagado, o sin el dato, vale 1 exacto.
+ */
+function formaDelEquipo(loyal: readonly { freshness?: number }[]): number {
+  if (!STAGE.entreEtapas.enabled || loyal.length === 0) return 1
+  let suma = 0
+  for (const r of loyal) {
+    const f = clamp(r.freshness ?? 1, 0, 1)
+    suma += clamp(
+      STAGE.entreEtapas.fitFloor + STAGE.entreEtapas.fitSlope * f,
+      STAGE.entreEtapas.fitFloor,
+      1,
+    )
+  }
+  return suma / loyal.length
 }

@@ -1,4 +1,4 @@
-import type { StageEffort, StageProfile } from '@cyclingstar/engine'
+import type { StageEffort, StageProfile, TriggerCond } from '@cyclingstar/engine'
 import { desc, sql } from 'drizzle-orm'
 import {
   boolean,
@@ -492,6 +492,24 @@ export const mentalityEnum = pgEnum('stage_mentality', [
 ])
 export const effortEnum = pgEnum('stage_effort', ['ahorrar', 'normal', 'a_tope'])
 
+/**
+ * QUÉ HACE SU EQUIPO CON UNA FUGA (paso 17a, R22 · S-215, S-071). Nullable en `stage_orders`: NULL
+ * es «no hay preferencia», que es exactamente la conducta de hoy —el motor decide—, y por eso la
+ * migración no necesita rellenar ni una fila de las ya guardadas.
+ */
+export const chasePolicyEnum = pgEnum('chase_policy', ['nunca', 'si_amenaza', 'siempre'])
+
+/** A QUÉ SALE HOY ESTE HOMBRE (paso 17a, R22 · S-216, S-024, S-030). Declara, no negocia. */
+export const dayGoalEnum = pgEnum('day_goal', [
+  'ganar',
+  'general',
+  'puntos',
+  'montana',
+  'grupeto',
+  'ahorrar',
+  'servir',
+])
+
 /** Convocatorias: qué corredores corren una carrera (SPEC 6.11, Paso 29). */
 /**
  * EL RECORRIDO DE UNA CARRERA, CONGELADO EL DÍA QUE SE CREA (docs/tactica.md paso 1a).
@@ -568,6 +586,31 @@ export const stageOrders = pgTable(
     triggerKm: integer('trigger_km'),
     contestSprints: boolean('contest_sprints').notNull().default(false),
     contestClimbs: boolean('contest_climbs').notNull().default(false),
+    /**
+     * --- LAS CUATRO PALANCAS DEL PASO 17a (R22) ------------------------------------------------
+     *
+     * Las cuatro son NULLABLE con defecto NULL, y eso NO es pereza de esquema: NULL significa «el
+     * jugador no tiene preferencia», que es letra por letra la conducta de hoy. Por eso la migración
+     * no rellena ni una fila de las hojas ya guardadas, y una vuelta de veintiuna etapas que vaya
+     * por la doce el día del despliegue no ve cambiar nada.
+     *
+     * Y la advertencia que este mismo fichero ya se ganó una vez (v58: «el jugador los rellenaba, la
+     * base los guardaba y en `stageRun.ts` se tiraban»): una columna que no llega a la carretera es
+     * peor que no tenerla, porque miente en la pantalla. Las cuatro se leen en `stageRun.ts` en este
+     * mismo paso.
+     */
+    /** LA CITA DEJA DE SER SOLO UN KILÓMETRO (S-214/S-321/S-322): «al pie del último puerto», «si
+     * salta Z», «si la fuga pasa de dos minutos», «si llueve». Un km es la forma más pobre de decir
+     * cuándo, porque es la única que no depende de la carrera. `triggerKm` se queda: es el caso
+     * `{ at: 'km' }` y las hojas viejas lo usan. */
+    triggerOn: jsonb('trigger_on').$type<TriggerCond>(),
+    /** «SI LA FUGA PASA DE DOS MINUTOS, TIRO» (S-215, S-071). */
+    chasePolicy: chasePolicyEnum('chase_policy'),
+    /** «CON ÉSOS NO COLABORO» (S-256). Se cobra donde duele: en el turno de relevos. Va en `jsonb` y
+     * no en columna de array porque este esquema no usa arrays en ninguna tabla. */
+    refuseRelayTeams: jsonb('refuse_relay_teams').$type<string[]>(),
+    /** «HOY ME VOY AL GRUPETO» / «HOY ES MI DÍA» (S-216, S-024, S-030). */
+    dayGoal: dayGoalEnum('day_goal'),
   },
   (t) => [primaryKey({ columns: [t.riderId, t.raceId, t.stageDay] })],
 )

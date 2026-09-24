@@ -131,8 +131,13 @@ describe('api: guarda de ADMIN_TOKEN', () => {
     await adminApp.close()
   })
 
-  const adminRoutes: { method: 'GET' | 'POST' | 'DELETE'; url: string }[] = [
+  const adminRoutes: { method: 'GET' | 'POST' | 'PATCH' | 'DELETE'; url: string }[] = [
     { method: 'POST', url: '/admin/tick' },
+    // El panel de cuentas: ver, cambiar y borrar cuentas ajenas.
+    { method: 'GET', url: '/api/admin/whoami' },
+    { method: 'GET', url: '/api/admin/users' },
+    { method: 'PATCH', url: `/api/admin/users/${UUID}` },
+    { method: 'DELETE', url: `/api/admin/users/${UUID}` },
     { method: 'POST', url: '/admin/advance?days=1' },
     { method: 'GET', url: '/api/admin/blocklist?kind=team' },
     { method: 'POST', url: '/api/admin/blocklist' },
@@ -227,8 +232,14 @@ describe('api: /api/world/advance ya no basta con tener sesión', () => {
   const summary = { currentDay: 9, daysProcessed: 4 } as unknown as TickSummary
   // Un usuario con sesión válida (pero sin ADMIN_TOKEN) podía avanzar el mundo 10 días de forma
   // irreversible. Este es el test de regresión de esa vulnerabilidad.
+  // La guarda ahora pregunta a la base si el usuario de la sesión es admin: este doble contesta
+  // que no existe (luego no lo es), que es el caso del jugador corriente.
+  const noRows = {
+    select: () => ({ from: () => ({ where: () => ({ limit: async () => [] }) }) }),
+  }
   const sessionApp = buildTestApp({
     session: { user: { id: 'user-1' } },
+    db: noRows as never,
     onAdminAdvance: async () => summary,
   })
   afterAll(async () => {
@@ -431,6 +442,34 @@ describe('api: rate limiting', () => {
       })
     }
     expect(last.statusCode).toBe(429)
+    await rlApp.close()
+  })
+
+  /*
+    La ruta que manda el correo de recuperación es la superficie de abuso NUEVA: quien la
+    encuentre sin límite estricto puede sondear qué direcciones existen y, de paso, llenar buzones
+    ajenos con enlaces que nadie pidió. Llevaba el límite holgado porque la lista de rutas de
+    credenciales nombraba `/forget-password`, que en better-auth 1.6 ya no existe.
+  */
+  it('pedir un correo de recuperación lleva el límite estricto, no el holgado', async () => {
+    const rlApp = buildTestApp({ session: null })
+    const res = await rlApp.inject({
+      method: 'POST',
+      url: '/api/auth/request-password-reset',
+      payload: { email: 'a@b.c' },
+    })
+    expect(res.headers['x-ratelimit-limit']).toBe('10')
+    await rlApp.close()
+  })
+
+  it('reenviar el correo de verificación también lleva el límite estricto', async () => {
+    const rlApp = buildTestApp({ session: null })
+    const res = await rlApp.inject({
+      method: 'POST',
+      url: '/api/auth/send-verification-email',
+      payload: { email: 'a@b.c' },
+    })
+    expect(res.headers['x-ratelimit-limit']).toBe('10')
     await rlApp.close()
   })
 

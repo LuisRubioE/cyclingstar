@@ -141,24 +141,42 @@ describe('B4 · conceder es una decisión, no el arranque de la carrera', () => 
 })
 
 describe('B5 · el liderato de la montaña, solo si es de verdad', () => {
-  it('nunca hay dos coronaciones seguidas cantando el liderato con los mismos puntos', () => {
+  /**
+   * ————— Y SE COMPRUEBA CON LO QUE EL MOTOR COMPARA, NO CON UNA RECONSTRUCCIÓN (v81) —————
+   *
+   * Esta prueba sumaba los puntos del PRIMERO de cada cima y daba por hecho que eso era la
+   * clasificación. No lo es: en una cima puntúan varios, así que al que fue segundo o tercero le
+   * faltaban puntos en la cuenta de aquí y sobraban en la del motor. El resultado es que el banco
+   * veía EMPATES donde el motor tenía ventaja —`expected 2 to be less than 2`, con el motor viendo
+   * 3 contra 2— y se ponía rojo por su propia aritmética.
+   *
+   * Y el fallo de fondo no era del banco: era que **la crónica anunciaba un liderato sin publicar la
+   * cifra que lo sostiene**. Un lector que lee «pasa a liderar la montaña» no puede saber si es de
+   * nueve a ocho o de treinta a dos, y esta prueba estaba en la misma situación que él. Ahora el
+   * evento trae `total` y `tras` —los dos lados de la comparación que el motor hace— y aquí se
+   * comprueba exactamente eso.
+   */
+  it('nunca se canta un liderato de montaña sin ventaja de verdad', () => {
+    let cantados = 0
     for (const out of runs) {
-      const koms = out.events.filter((e) => e.plantilla === 'climb_kom' && e.datos?.leads === 1)
-      // Con la misma puntuación no puede liderar más de uno: si dos cimas dan los mismos puntos,
-      // el segundo en coronarlas empata y no lidera. Lo que se comprueba es que el liderato cantado
-      // pertenece siempre a corredores DISTINTOS y creciente en puntos acumulados.
-      const acumulado = new Map<string, number>()
       for (const e of out.events.filter((x) => x.plantilla === 'climb_kom')) {
-        const id = e.protagonistas[0]!
-        acumulado.set(id, (acumulado.get(id) ?? 0) + Number(e.datos?.points ?? 0))
+        const total = Number(e.datos?.total ?? 0)
+        const tras = Number(e.datos?.tras ?? 0)
+        // El acumulado del que corona nunca puede ser menor que los puntos que acaba de sumar.
+        expect(total).toBeGreaterThanOrEqual(Number(e.datos?.points ?? 0))
         if (e.datos?.leads !== 1) continue
-        const mios = acumulado.get(id)!
-        for (const [otro, pts] of acumulado) {
-          if (otro !== id) expect(pts).toBeLessThan(mios)
-        }
+        cantados += 1
+        // Liderar es ir ESTRICTAMENTE por delante del mejor de los demás. Un empate no lidera.
+        expect(total).toBeGreaterThan(tras)
       }
-      expect(koms.length).toBeGreaterThanOrEqual(0)
+      // Y nadie se proclama dos veces en la misma etapa: conservar el maillot no es noticia nueva.
+      const proclamados = out.events
+        .filter((x) => x.plantilla === 'climb_kom' && x.datos?.leads === 1)
+        .map((x) => x.protagonistas[0]!)
+      expect(new Set(proclamados).size).toBe(proclamados.length)
     }
+    // Y no se ha arreglado apagándolo: en un banco de montaña alguien se proclama.
+    expect(cantados).toBeGreaterThan(0)
   })
 })
 
