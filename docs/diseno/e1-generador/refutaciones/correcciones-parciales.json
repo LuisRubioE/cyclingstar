@@ -685,5 +685,477 @@
    }
   ],
   "lineas": 134
+ },
+ {
+  "resueltos": [
+   "H465",
+   "H466",
+   "H467",
+   "H468",
+   "H469",
+   "H470",
+   "H471",
+   "H472",
+   "H473",
+   "H474",
+   "H475",
+   "H476",
+   "H477",
+   "H493",
+   "H494",
+   "H495",
+   "H496",
+   "H497",
+   "H498",
+   "H525",
+   "H530",
+   "H531",
+   "H537",
+   "H538",
+   "H539",
+   "H540",
+   "H541",
+   "H542",
+   "H543",
+   "H544",
+   "H545",
+   "H546",
+   "H547",
+   "H548",
+   "H549",
+   "H550",
+   "H551",
+   "H552",
+   "H553",
+   "H554",
+   "H555",
+   "H556",
+   "H557",
+   "H570",
+   "H575",
+   "H577",
+   "H598",
+   "H599",
+   "H610",
+   "H611",
+   "H613",
+   "H614",
+   "H625",
+   "H638"
+  ],
+  "desestimados": [
+   {
+    "id": "H496 (parcial)",
+    "motivo": "No adopto la numeración propuesta (§1 galería, §2 cambio, §3 remedición...) porque contradice la cabecera ya corregida (00-cabecera.md l. 81-83: §0 base, §1 cambio, §2 remedición, §3 base y pantalla) y la sección 13, que ya escribe «vN §2» para la remedición (l. 235-258). Publico en 15.1 regla 7 la tabla única, que extiende la de la cabecera sin romperla: §4 galería y revisión del dueño con docs/galeria-revision.json (pasos 5 a 7), §5 respuestas del dueño (sección 18), §6 deudas (sección 17). Para la pasada de coherencia: 09-vetos.md l. 168 «v61 §9» pasa a «vN §2»; 16.6 «su apartado del paso 4» pasa a «vN §4»; 18.12 cita «vN §5»; 17.4 cita «vN §6»; y toda sección que escriba «v61» (2, 9, 11, 12, 14, 16, 17, 18, 19) pasa a «vN»."
+   },
+   {
+    "id": "H557 (parcial)",
+    "motivo": "La galería va en «vN §4», no «§4 para la galería del paso 4»: la galería ya no existe en el paso 4 (H541). La cifra de máquina queda única, la de §13.7: ≈ 85 min por generador, ≈ 3 h con el pareado, presupuesto 4 h, techo 8 h."
+   },
+   {
+    "id": "H498 (parcial)",
+    "motivo": "No fijo un JSON de 178 entradas: la sección 11 (§11.2, dueña de la decisión 28) sella en routes/realFingerprint.sealed.ts 177 filas de etapa más la ESTRUCTURA de las tres grandes vueltas, con huella: null en la e21 de Francia, y el plan la sigue. Sí corrijo el doble conteo («las 177, que incluyen las 62 reales») y quito el «re-sellado de la e21», que la sección 11 no hace. Para la pasada de coherencia: 11-real.md l. 67 dice «239 hashes», que también cuenta dos veces las 62 (son 177 huellas de perfil más 63 estructuras)."
+   },
+   {
+    "id": "H473/H540 (parcial)",
+    "motivo": "No adopto el proceso hijo dentro del test. El fallo era el snippet del plan, que importaba estáticamente calendar/edition; lo sustituyo por el test de §14.4, que solo importa de forma estática ../constants.js y carga ./calendar.js con import() dinámico después de t0. Es válido: packages/engine/src/constants.ts no tiene ningún import (grep '^import' vacío) y vitest aísla cada fichero (isolate por defecto; vitest.config.ts no lo desactiva). El ciclo calendar ↔ edition no existe con §3.11: calendarForSeason vive en calendar.ts y edition.ts no importa calendar.ts. La medida en proceso hijo ya la hace scripts/medir-arranque.mjs (§14.3)."
+   },
+   {
+    "id": "H541 (decisión)",
+    "motivo": "Elijo mover la galería al cierre del paso 5 y adelantar kmDe con ARCH.km a ese paso DENTRO de grammar/tour.ts (donde §3.6 la declara), no en un grammar/km.ts nuevo. Para la pasada de coherencia: 16.7 «Se escribe y se corre por primera vez en el paso 4» pasa a «paso 5», y su frase de «vetos activos V1 a V4, V6, V7 leídos de veto.ts» desaparece (en el 5 los vetos están completos); 03-modelo.md l. 124 («skeletons.test.ts contra los 16 vetos») pasa a «contra V1 a V10 y V15 en veto.test.ts y generate.test.ts (paso 5)»."
+   },
+   {
+    "id": "H530 (parcial)",
+    "motivo": "Aplico la condición del paso 8 (galería con vetos completos, composición y calendario, revisada por el dueño) pero con una sola página nueva, calendario.html (paso 6, con las vueltas compuestas y las notas del Itinerario dentro), en vez de calendario.html y vueltas.html. Para la pasada de coherencia: 16.3 añade la fila de calendario.html (1.418 perfiles, ≈ 3,1 MB por la medida de la propia 16.3) y 16.7 dice que la revisión que abre el paso 8 es la del cierre del paso 6."
+   },
+   {
+    "id": "H547/H548 (decisión)",
+    "motivo": "No renumero los pasos (otras secciones citan «paso 6» para la edición y «paso 7» para la composición): cambia el orden de ejecución, 5 → 7 → 6, y el 3 va después del 2 porque motifs.test.ts dibuja en ZONAS con nombre (04-gramatica.md l. 194-251). El paso 1 crea además los tipos de geo.ts, tour.ts y generate.ts, porque StageRequest (generate.ts) usa StageRole (tour.ts). Para la pasada de coherencia: toda sección que diga «pasos 6 y 7 en paralelo» o suponga el orden 6 → 7 se ajusta; 16.7 «se regenera al cerrar cada paso del 5 al 10» sigue valiendo."
+   },
+   {
+    "id": "H545/H611 (parcial)",
+    "motivo": "No fijo 31 ni 32: el conflicto es entre la sección 3 (unión SkeletonId de 31, 03-modelo.md l. 120-129) y la sección 5 (32 con ud_repecho, 05-esqueletos.md l. 66 y 85), y lo decide la pasada de coherencia. El plan deja de escribir un número (y quita «15 de un día y 17 de etapa», que es falso en las dos) y compara siempre contra SKELETON_IDS."
+   },
+   {
+    "id": "H544/H575 (parcial)",
+    "motivo": "No copio la firma de renderSkeleton de la sección 8 (colocados, geo, desde, rngDe), sino la de §3.9 (colocados, km, geo, rng, desde?), porque §3.9 dice que las secciones 8 y 9 copian sus firmas. Para la pasada de coherencia: 08-algoritmo.md l. 30 y 05-esqueletos.md l. 411 y 426 (renderSkeleton(sk.canonico, req)) se alinean con §3.9. Los auxiliares peticionReina, instanciaMeta y aproximacion desaparecen: el test del muro es el de la sección 4 y el de reina-150 el perfil literal de la sección 9 (reqReina y V8 ya definidos allí); renderCanonico queda definido en el plan como auxiliar local."
+   },
+   {
+    "id": "H549 (premisa)",
+    "motivo": "La premisa es falsa contra el borrador corregido: 03-modelo.md l. 569 dice «`arch` SÍ se congela, en la misma migración y en la misma fila, como jsonb nullable» y define raceStagesForWorld(db, worldId, raceKey, raceId, season): Promise<FrozenStage[]> con arch. Apliqué su alternativa (arch en la migración) y corregí el test a la firma de cinco argumentos con arch?.skeleton."
+   },
+   {
+    "id": "H550 (parcial)",
+    "motivo": "Las columnas nuevas van nullable, no notNull como propone el refutador, porque §3.11 (03-modelo.md l. 555-556) las declara nullable para las filas ya congeladas antes de la migración. El nombre de fichero se conserva con db:generate --name race_routes_kind, que es la convención del repositorio (drizzle/meta/_journal.json: tags 0039_el_recorrido_es_del_mundo y 0040_ordenes_del_paso_17a). Para la pasada de coherencia: §B.1 del esqueleto (packages/db/migrations/, que no existe), 10-identidad.md l. 126 y 11-real.md l. 112 usan esta ruta y este procedimiento."
+   },
+   {
+    "id": "H552 (parcial)",
+    "motivo": "No invento cifras de 60 s y 120 s: adopto la malla que ya fijan las secciones 5 (§5.9, l. 368) y 13 (l. 44 y 248): 20 semillas × 3 zonas × 5 km en test:rapido (< 20 s, medido en el paso 5) y la malla completa en sim/stageKind.completo.test.ts con reloj 4 × lo medido."
+   },
+   {
+    "id": "Propagación (varios)",
+    "motivo": "Cambios aplicados aquí que otras secciones repiten: H494/H556, packages/db/src/callups.ts en vez de world/callups.ts en §B.1 y en cabecera l. 62 si se refiere a db; H542, calendar.test.ts l. 211-221 re-sellada en el paso 8 (19 B12); H471, citas de calendar.test.ts (19.2.1 B12: l. 168-266); H476/H555, stageHistory.test.ts l. 206 (18.3, 19.2.4 H7, 11, 13); H525, cifra de fallback calculada y no afirmada (16.3 «los 77», 16.5, 17.1 riesgo 2, 18.12 pasan a 69 o a «calculada»); H553, media-150 fuera de las canónicas (17.2, 19); H598, calendarQueens 4.000.000 ms tras el paso 9 (14 l. 16, 17 l. 85, 18 l. 78); H610/H570, «69 → 70» en 12.13 l. 276 y 14 l. 114 pasan a N → N + 1; H551, §3.10 l. 513 nombra sim/legacy/calendarLegacy.ts, que la sección 13 y el plan no crean; H531, docs/ops.md y la regla 5 restringen backfillRaceRoutes a carreras empezadas o convocadas."
+   }
+  ],
+  "lineas": 457
+ },
+ {
+  "resueltos": [
+   "H478",
+   "H479",
+   "H480",
+   "H481",
+   "H492",
+   "H499",
+   "H500",
+   "H501",
+   "H502",
+   "H518",
+   "H519",
+   "H520",
+   "H521",
+   "H522",
+   "H524",
+   "H535",
+   "H536",
+   "H558",
+   "H559",
+   "H560",
+   "H561",
+   "H604",
+   "H605"
+  ],
+  "desestimados": [
+   {
+    "id": "H503",
+    "motivo": "El fallo no se sostiene. Primero, el mapa 07 l. 208 sí trae la lista de nombres: «leídas una a una: Omloop, Brugge-De Panne, E3, …, Rutland-Melton (Reino Unido, tierra) y Veneto Classic». Segundo, el 21 de `grep -c \"'cobbles'\" calendar.ts` incluye la línea de código l. 415 (`if (terrain === 'cobbles') return cobbles(km, seed)`). Filas de datos `terrain: 'cobbles'` hay 20, igual que en 8585ca2. Tercero, la corrección propuesta no se puede aplicar tal cual: `RaceRow.terrain` vive en `WT_TABLE`, `PRO_TABLE` y `CON_TABLE`, que no se exportan (calendar.ts l. 945, 1256 y 1629 en f0716fa), y `CalendarRace` no lleva `terrain` (lo comprobé contra el dist, con 0 filas cobbles a la vista). Lo que he hecho es que el script lea `COBBLES_IDS`, exportado por `grammar/regions.ts`: es la misma lista literal que ya usa el test (d) de §6.8. La propagación está anotada en dudas.md."
+   },
+   {
+    "id": "H523",
+    "motivo": "La premisa «si el dueño la marca no hay dato que editar» es falsa. `ARCH.pesoPorClase` es un dato por esqueleto y clase (sección 5 §5.6), y hoy da `et_reina_alto_largo` 0,4 en .2 con D+ [3.500; 5.500]. Bajarlo a 0 elimina la reina de 5.000 m en .2, y el mapa 07 §4.1 fija la .2 por etapas en 2.000 a 3.500 m. No adopto `ARCH.reina.dPlusMaxPorClase`: sería una constante nueva con efecto en las secciones 5, 9, 12 y 13, y la respuesta ya existe como dato. He reescrito el ejemplo de 16.6 como `no_existe_en_clase` → `ARCH.pesoPorClase.et_reina_alto_largo['2']` de 0,4 a 0. Solo va a la sección 18 si el dueño quiere conservar el esqueleto en .2 con menos desnivel, porque eso sí es un D+ por clase que el catálogo no tiene."
+   }
+  ],
+  "lineas": 191
+ },
+ {
+  "resueltos": [
+   "H486",
+   "H487",
+   "H511",
+   "H512",
+   "H513",
+   "H514",
+   "H528",
+   "H529",
+   "H534",
+   "H567",
+   "H568",
+   "H633"
+  ],
+  "desestimados": [
+   {
+    "id": "H514 (parte)",
+    "motivo": "Aplicado lo que es cierto: D6 ya no dice que et_reina_blanda sostiene la cubeta < 1.500; ahora dice que sostiene [1.500; 2.500), da la fracción esperada (20 a 25 % de las reinas generadas, reparto de la muestra 0-10 / 30-40 / 35 / 20 %, sección 13 §13.6) y el re-sellado de facil y de dPlus.min < 1700 (§13.4 punto 4). NO se aplica bajar la blanda a D+ [1.200; 2.000]: contradice la decisión 8 de §C.1 (D+ [1.500; 2.500]) y la aritmética de la sección 13 §13.4 punto 4, según la cual el D+ más bajo que la gramática dibuja anda por 1.400, así que un suelo de 1.200 sería una promesa que no se cumple. Aviso para la pasada de coherencia: la sección 13 (l. 173 y 217) propone recentrar a [2; 12] como valor por defecto de D6, y eso contradice §C.2 (mantener [6; 30]). En 18 se mantiene §C.2 como ley y [2; 12] figura como la alternativa pre-registrada. Además la sección 17 riesgo 10 sigue diciendo que la blanda sostiene la cubeta baja y hay que alinearla."
+   },
+   {
+    "id": "H528 (parte)",
+    "motivo": "Aplicado: tabla D8 con los 30 países de las 12 filas de la sección 6 §6.3 (no 13: la sección 6 ya dio cordillera a PL, JP y US y añadió LU, HU, EE, LT, SE, FI, LV, IE, NZ, KR, TH, IN, SA, OM, QA y África), la excepción AR/CL escrita, el calendario (por defecto en el paso 2, respuesta con vueltas.html delante al cerrar los pasos 6 y 7, §16.7) y la pregunta del Golfo con Jebel Hafeet expuesta con su cambio de datos exacto. NO se aplica como valor por defecto tratar AE como AR/CL: el test «0 reinas en BE, NL, DK, AE, AU» es la decisión 13 de §C.1, que es ley del esqueleto, y la sección 6 l. 73 lo fija así. Queda como respuesta del dueño, con la advertencia de que golfo es también la zona de SA, OM y QA. Nuevo aviso con evidencia (07-vueltas.md l. 62-63): admiteReina es cierto para cualquier zona de relieve montana, así que DE y HU (centroeuropa) y KR, TH e IN (asia_oriental), que la sección 6 l. 115 cuenta como países sin reina, sí admiten reina. La sección 6 o la sección 7 tienen que resolverlo; en 18 se dice tal cual."
+   },
+   {
+    "id": "H529 (parte)",
+    "motivo": "Aplicado: D1 describe la atadura (RACE_REGION[id].skeleton, que ya existe en la sección 6 §6.4 l. 137 y 146, con race-mercantour sellado en regions.test.ts l. 425) y la parte sorteada con su riesgo (puede caer en cualquier .1 de alpes, pirineos, provenza o dolomitas). También añade que routeCensus liste por id las atadas y las sorteadas, y la respuesta «solo atadas» con su cambio exacto. NO se crea la tabla nueva RACE_SKELETON: sobra, porque RACE_REGION.skeleton ya hace eso. Tampoco se pone pesoPorClase.ud_montana_alto a 0 como valor por defecto: la decisión 37 de §C.1 fija 0,02 en .1, y con la condición de candidatos() de §6.4 (pesoPorClase > 0) un 0 anularía también la atadura de race-mercantour. Para la pasada de coherencia: si el dueño elige «solo atadas», hay que cambiar esa condición en §5.7 y §6.4, además de V5 (sección 9) y la banda unDia.finalLargo (sección 13)."
+   },
+   {
+    "id": "H534 (cita)",
+    "motivo": "Aplicado entero, salvo la ubicación del test: tour.test.ts es del paso 7, que es §15.8 y §7.7, no §15.9 (§15.9 es el paso 6). La invariante («toda tirada nominal se consume aunque su p sea 0») se deja escrita en 18.4 como obligación de la sección 7 §7.3, que la pasada de coherencia tiene que copiar allí, junto con el test (a) de conteo de llamadas y el (b) de composición idéntica en las vueltas sin prólogo ni cronoescalada. El test de H534 («papeles 1..n-1 idénticos salvo la etapa 0») no se usa tal cual porque no es exacto: maxCronos y las garantías pueden mover otra crono cuando sale el prólogo."
+   },
+   {
+    "id": "H512/H568 (parte)",
+    "motivo": "Las secciones 7 (l. 102-103) y 12 (l. 91, 217 y 238) ya coinciden: el prólogo solo en TOUR_SKELETONS[id].primera.prologo y la cronoescalada en ARCH.itinerario.cronoescaladaP. prologoP ya no aparece en 12, así que la parte de H512 que pedía retirarlo no hace falta. En 18 se unifican los nombres y el bloque de código se reescribe como campos del literal as const. No se aplica la propuesta de H568 de meter prologoP en §B.3: contradice la casa única que fijan 7 y 12. Lo que sí falta en §B.3 es la clave ARCH.itinerario.cronoescaladaP 0,08 (hoy solo tiene avance y transicion, l. 358-359), y se deja para la pasada de coherencia."
+   },
+   {
+    "id": "H511/H567 (parte)",
+    "motivo": "El ejemplo GB/US se quita porque es falso: britanicas es relieve media, así que no puede ser cordillera según §15.4. Pero la corrección que propone H511 («ninguna zona de sus rutas cumple el test» para toda la lista) también es falsa con la sección 6 actual. US ya tiene cordillera norteamerica (relieve montana, 06 l. 57 y 106), y DE y HU (centroeuropa, montana), KR, TH e IN (asia_oriental, montana) podrían decir «no» con una sola línea de datos. La tabla D8 de 18.9 lo recoge país por país."
+   }
+  ],
+  "lineas": 164
+ },
+ {
+  "resueltos": [
+   "H482",
+   "H483",
+   "H484",
+   "H485",
+   "H505",
+   "H506",
+   "H508",
+   "H509",
+   "H510",
+   "H527",
+   "H532",
+   "H562",
+   "H563",
+   "H564",
+   "H565",
+   "H566",
+   "H576"
+  ],
+  "desestimados": [
+   {
+    "id": "H504",
+    "motivo": "El hecho es cierto: con suelo 1.500 ninguna reina generada puebla la cubeta <1500. Pero la corrección propuesta (bajar et_reina_blanda a [1.200; 2.000]) no se aplica. La sección 13 §13.4 punto 4 ya lo resolvió con aritmética: con sus motivos mínimos y rellenoDplusPorKm la gramática no dibuja una reina por debajo de unos 1.400 m. Y docs/epics.md E3 l. 149-150 dice que una reina de 1.200 m «es media montaña con la etiqueta cambiada». El riesgo 10 se reescribe como en la 13: suelo 1.500, sin banda sobre <1500, banda reina.dplus.blanda [1.500; 2.500) ≥ 15 % y min < 1.700, facil = cubeta más baja poblada, dPlus.min (l. 64) re-sellado a < 1700. PROPAGAR: 18.7 y la tabla 18.1 (D6) dicen todavía «la cubeta < 1.500 la sostiene et_reina_blanda» y «≥ 3 reinas en <1500»; el valor por defecto de D6 pasa a ser el de 13 l. 217 (recentrar a [2; 12] antes del paso 9). 19 H5 y B13 (banda «< 1.500 poblada ≥ 5 %») y 19 cobertura 4 hay que reescribirlos igual."
+   },
+   {
+    "id": "H507",
+    "motivo": "La tabla existe. 11-real.md l. 190-197 define TEXTO_METADATO en apps/api: viento 0 y 1, nada; viento 2 y 3, «llano abierto»; altitud mar, colina y media, nada; alta y altiplano, «puertos de altitud». También trae el test que prohíbe «abanico», «oxígeno», «hipoxia» y «falta de aire». El riesgo 1 cita ahora esa tabla (§11.4) con sus literales, en lugar de inventar otra con textos distintos («llano abierto y expuesto», «etapa en altiplano»). PROPAGAR: 06-geografia.md l. 251 da textos que contradicen la 11 («llano» con viento ≤ 2, «altiplano», «alta montaña», «costa»); la pasada de coherencia debe alinear la 6 con la tabla de la 11."
+   },
+   {
+    "id": "H526",
+    "motivo": "El argumento es falso según el código. allCalendarQueens filtra por el kind DECLARADO (sim/calendarQueens.ts l. 65). En lo real ese kind sale de TERRAIN_KIND (calendar.ts l. 183 en 8585ca2, l. 197 en 02b032d; 11-real.md l. 237), no de stageKindOf. El calendario no llama a stageKindOf: fuera de tests solo lo reexporta index.ts l. 89 y lo usa apps/api/src/stageHistory.ts l. 162. Las 11 reinas reales que stageKindOf lee como media ya están en la muestra y las 16 medias leídas como reina no entran, así que recalibrar D2 no mueve ninguna real en el banco de montaña. La decisión 26 del esqueleto (§C) sigue siendo ley y D2 queda en «no en E1». Sí se añade al riesgo 3, y a la deuda 5 de 17.4, lo que cuesta aplazarla: V6 compara contra stageKindOf, así que abrir D2 después cambia la vara de lo generado y pide un salto de versión propio."
+   },
+   {
+    "id": "H482 (parte de la corrección)",
+    "motivo": "El hecho se aplica: el motor SÍ tiene StageProfile.laps, cuerdaDelCircuito y STAGE.circuito en 02b032d, y en 8585ca2 no existían. La decisión propuesta (laps = vueltas) no se aplica: se decide y se escribe lo contrario, que E1 no escribe laps, sellado en generate.test.ts. Tres razones verificadas. (1) STAGE.circuito está marcado «[calibrar]» y su comentario dice que poner una carrera en circuito «es una decisión de calendario, no de esta tanda». (2) cuerdaDelCircuito calcula la vuelta como totalKm/laps (citas.ts l. 195-203), así que supone que toda la etapa es circuito. En nc_ruta la vuelta se leería de 26,25 km en vez de 20, y en ud_muro_final «a dos vueltas» caería en la salida. (3) Metería dos causas en la tabla pareada del paso 9. Queda como deuda 3 de 17.4. Lo mismo con startM (H483). PROPAGAR: 04-gramatica.md l. 75 dice «El motor no tiene noción de vuelta», y 19.2.3 ejecutabilidad 4 dice «el motor sin noción de vuelta»: hay que reescribirlos citando laps dormido. La sección 3 o la 8 y §B.2 deberían anotar que GeneratedStage.profile no lleva startM ni laps."
+   },
+   {
+    "id": "H484 / H566 (parte de la corrección)",
+    "motivo": "No se refrescan las líneas al HEAD. La cabecera §0.1 y §0.3 (00-cabecera.md l. 49-68 y l. 138-141) fija que toda cita es de 8585ca2, que manda el nombre del símbolo y que el paso 0 recomprueba las citas. Pasar solo esta sección a 02b032d rompería la convención del documento. Contra 8585ca2 son correctas: simulate l. 1157, 1215, 1696-1710; muroMaxKm l. 4462; RELIEF.rollingAmplitude l. 1124-1131; motor.md 19.5 l. 1314; bannerCost l. 3944; reliefKm l. 4131. La única cita errónea era windMin (l. 3617 en 8585ca2, no 3593) y está corregida. Se añaden los nombres de símbolo en todas las citas, más una nota bajo el encabezado. Lo que no existe en 8585ca2 (startM, laps, roadBearings, altitudeCost) se cita contra 02b032d y se dice así. PROPAGAR: 18.10 cita constants.ts l. 3944 y 4131-4134, que son correctas en 8585ca2 y no necesitan cambio. Aparte, al verificar el riesgo 1 salió un error de otra sección: el test viejo era falso también para viento, porque 08-algoritmo.md l. 132 coloca expuesto donde geo.viento ≥ 2 y el relieve es llano. El nuevo test lo recoge. La 2, la 3 y §B.2 (viento como «METADATO: no llega al motor») deben decir que viento entra en el perfil por la regla de expuesto. Otras propagaciones: la nota de balance se llama «vN» y no «v61» (15-plan l. 15), y 16 y 19 aún dicen «v61»; 03-modelo.md l. 398 dice que MAX_TEMPORADAS_EN_MEMORIA es un literal y no ARCH, lo que contradice la 14 (debe ser ARCH.arranque.maxTemporadasEnMemoria en §B.3 y 12.9); la tabla 18.1 no tiene D11 ni D12, que la cabecera y este riesgo 1 y 2 citan; y el riesgo 2 usa ahora las cifras de la sección 6 (31 filas de ZONAS, 64 de TERRITORIOS, 69 países fallback) en lugar de 29/56/77."
+   }
+  ],
+  "lineas": 174
+ },
+ {
+  "resueltos": [
+   "H488",
+   "H489",
+   "H490",
+   "H491",
+   "H515",
+   "H516",
+   "H517",
+   "H533"
+  ],
+  "desestimados": [
+   {
+    "id": "H488 (solo la corrección literal)",
+    "motivo": "El fallo es real (B7 apuntaba a veto.test.ts), pero la corrección que propone el refutador ya no es la del plan. §15.7 (15-plan.md l. 207) pone la comprobación en routes/arranque.test.ts, tercer it (§14.4): lee con fs los fuentes grammar/*.ts, veto.ts incluido, con la expresión /^import (?!type )[^\\n]*from '[^']*\\/stage\\//m, permite import type y prohíbe llamadas a sampleProfile, deriveFinishTerrain, finishType y costBase. B7 cita eso."
+   },
+   {
+    "id": "H517 (solo la corrección literal)",
+    "motivo": "El fallo es real: con et_reina_blanda en [1.500; 2.500] (05-esqueletos.md l. 111 y 118) la cubeta < 1.500 no se puede poblar. Pero bajar la blanda a [1.200; 2.000] contradice la sección 17 ya corregida (riesgo 10, 17-riesgos.md l. 106-107: el suelo no baja, la gramática no dibuja reinas por debajo de unos 1.400 m) y la banda reina.dplus.blanda de 13-banco.md l. 139. H5 queda como: cubeta [1.500; 2.500) ≥ 15 % y D+ mínimo < 1.700, con la aritmética de la cuota (10 % a 25 %). B13 se ajusta igual y D6 pasa a «antes del paso 9», como en 18-dueno.md l. 14."
+   },
+   {
+    "id": "H533 (el paso de resuelto a mitigado)",
+    "motivo": "Se basaba en una sección 16 anterior a su corrección. 16-galeria.md ya trae calendario.html, continentales.html y vueltas.html (l. 81-83), la columna «Ediciones» con la pregunta «¿es la misma carrera otro año?» (l. 36, 61, 117), antes/después y la entrega al cerrar el paso 5 con V5 y V8 activos (l. 174-177). Por eso cobertura 2 sigue como resuelto. Sí se aplicó lo que seguía siendo cierto: la fila decía «paso 4» y se reescribió con el contenido real de la sección 16, y se añadió H9 con el par de la agenda (race-olympia .2 NL en flandes, race-colombia-tour .2 CO en andes; calendar.ts l. 754 y 695) en grammar/calendario.test.ts en el paso 8. H9 es un test nuevo y la pasada de coherencia tiene que llevarlo a §13 y a §15.10 punto 7. Además, la cita de hallazgo es el 3 de agenda §4.18 (agenda.md l. 888-889), no el 1. Y 17-riesgos.md l. 66 y l. 149 siguen diciendo «galería en el paso 4»: hay que propagar «paso 5»."
+   },
+   {
+    "id": "H569",
+    "motivo": "Se basaba en un arranque.test.ts ya superado. Hoy §14.4 (14-rendimiento.md l. 44) y §15.10 punto 9 (15-plan.md l. 322) cargan ./calendar.js con import() dinámico después de t0, con constants.js importado antes y un fichero aislado por vitest, así que el test sí puede fallar. Cobertura 7 sigue como resuelto y en B16, H3 y cobertura 7 se citan los dos instrumentos (el test y scripts/medir-arranque.mjs con procesos hijo sobre dist). Aparte, y por coherencia con 17-riesgos.md l. 118 y l. 159 (la memoria de temporadas está acotada y no resuelta), motor 6 y ejecutabilidad 3 pasan a mitigado. El recuento queda en 13 resueltos, 9 mitigados y 5 aceptados."
+   },
+   {
+    "id": "H490 (propagación)",
+    "motivo": "Aplicado aquí: l. 60-62 las tres aserciones duras, l. 64 stats.dPlus.min y l. 68 la banda de vigilancia, comprobado en calendarQueens.test.ts. La pasada de coherencia tiene que corregirlo también en §15.11 y §18.7, y en 05-esqueletos.md l. 111, que dice «l. 62-63»."
+   },
+   {
+    "id": "H491 (propagación)",
+    "motivo": "Aplicado aquí: B8 y motor 1 remiten a raceStagesForWorld(db, worldId, raceKey, raceId, season): Promise<FrozenStage[]> (03-modelo.md l. 544-551; §15.12 l. 400) y citan las líneas del árbol vivo: calendarRun.ts l. 518 y 1630-1644, con getRaceRoute en l. 1631; callups.ts l. 98; raceContext.ts l. 114-127, con SEASON_CALENDAR.find en l. 114. Todas comprobadas en el código. La migración ya no se llama 00NN_race_routes_kind.sql sino «la que genera db:generate», como en §15.1."
+   },
+   {
+    "id": "H515 (propagación)",
+    "motivo": "Se alinea con el plan tal como está escrito (15-plan.md l. 108 y 117, y l. 178): en el paso 1, motivos pareados en número y orden; en el paso 4, la tabla pareada por routeCensus en grammar/legacy.test.ts. Cambian I-16, I-42, 19.1.3, B17 y la fila de ingeniero de 19.2.2. Si la pasada de coherencia prefiere adelantar renderSkeleton al paso 1, como pedía §D, tiene que cambiar la sección 15 y estas cinco filas."
+   }
+  ],
+  "lineas": 218
+ },
+ {
+  "resueltos": [
+   "H092",
+   "H004",
+   "H634",
+   "H037",
+   "H009"
+  ],
+  "desestimados": [],
+  "lineas": 260
+ },
+ {
+  "resueltos": [
+   "H041",
+   "H042",
+   "H098",
+   "H099"
+  ],
+  "desestimados": [],
+  "lineas": 120
+ },
+ {
+  "resueltos": [
+   "H030",
+   "H031",
+   "H058",
+   "H084",
+   "H036",
+   "H597",
+   "H640",
+   "H033",
+   "H059",
+   "H060",
+   "H080",
+   "H082",
+   "H083",
+   "H087",
+   "H088"
+  ],
+  "desestimados": [
+   {
+    "id": "H062",
+    "motivo": "El hallazgo parte de que «algo que no existe en el calendario real» es un veredicto del dueño, y no lo es. En docs/epics.md G6 la única cita del dueño entre «» son las l. 576-577 («Para las que no se puedan nunca reproducir, el generador es una basura…»). La frase del caso v40 (l. 579-582) es prosa del repositorio, y lo mismo pasa en docs/encargos.md l. 80 y balance.md l. 8114. El mapa 07 l. 42 nombra tres carreras .1 reales con final en un puerto largo (Ventoux Dénivelé, Mercan'Tour, Murcia) «que hay que nombrar para no generalizar». La ley del documento, la decisión 37 de §C.1 del esqueleto (00-esqueleto.md l. 439), fija la rareza en 0,02 solo en .1, y así la escriben las secciones 1 (l. 141), 5 (l. 267 y test l. 465-466), 6 (l. 146, 171 y 425), 12 (l. 209), 13 (l. 145) y 18. Cambiar el valor por defecto solo en la cabecera era justo la incoherencia que señala el auditor. Por eso la cabecera vuelve al valor de la decisión 37 con la atadura de race-mercantour. Además le explica al dueño que la frase no es suya, que sorteado es el 1,8 % de los sorteos mountain de un día en .1 y que con «no» el peso pasa a 0 (D1, §18.2)."
+   }
+  ],
+  "lineas": 285
+ },
+ {
+  "resueltos": [
+   "H025",
+   "H112",
+   "H601"
+  ],
+  "desestimados": [],
+  "lineas": 890
+ },
+ {
+  "resueltos": [
+   "H207",
+   "H172",
+   "H154",
+   "H151",
+   "H200",
+   "NUEVO-test-sector_meta",
+   "NUEVO-expuesto.amp",
+   "NUEVO-propagacion-B3-y-§5"
+  ],
+  "desestimados": [],
+  "lineas": 404
+ },
+ {
+  "resueltos": [
+   "H141",
+   "H163",
+   "H578",
+   "H579",
+   "H164",
+   "H232",
+   "H174",
+   "H168"
+  ],
+  "desestimados": [],
+  "lineas": 455
+ },
+ {
+  "resueltos": [
+   "H137",
+   "H139",
+   "H158",
+   "H160",
+   "H181",
+   "H216",
+   "H221",
+   "H222",
+   "H134",
+   "H228",
+   "H130",
+   "H150",
+   "H175",
+   "H133",
+   "H161",
+   "H223",
+   "H135",
+   "H162",
+   "H189",
+   "H219"
+  ],
+  "desestimados": [],
+  "lineas": 547
+ },
+ {
+  "resueltos": [
+   "H309",
+   "H342",
+   "H341"
+  ],
+  "desestimados": [],
+  "lineas": 354
+ },
+ {
+  "resueltos": [
+   "H239",
+   "H275",
+   "H298",
+   "H300",
+   "H325",
+   "H328",
+   "H329"
+  ],
+  "desestimados": [],
+  "lineas": 429
+ },
+ {
+  "resueltos": [
+   "H372"
+  ],
+  "desestimados": [],
+  "lineas": 319
+ },
+ {
+  "resueltos": [
+   "H457"
+  ],
+  "desestimados": [],
+  "lineas": 399
+ },
+ {
+  "resueltos": [
+   "H544",
+   "H575"
+  ],
+  "desestimados": [],
+  "lineas": 475
+ },
+ {
+  "resueltos": [
+   "H428",
+   "H430",
+   "H463",
+   "H462",
+   "H464",
+   "H626",
+   "H641"
+  ],
+  "desestimados": [],
+  "lineas": 136
+ },
+ {
+  "resueltos": [
+   "H413",
+   "H419",
+   "H443",
+   "H445"
+  ],
+  "desestimados": [
+   {
+    "id": "H588",
+    "motivo": "El auditor leyó una versión anterior de las secciones 5 y 8. Hoy 08-algoritmo.md l. 164 (§8.6 punto 3) dice «Dentro de `cadena` los hijos van separados por enlaces de `ARCH.motivo.cadena.enlace`», y 05-esqueletos.md l. 16 dice «por defecto ARCH.motivo.cadena.enlace [1,5; 6] o racimo.separacion [2; 6]». Un `grep -n \"cadena\\.separacion\"` sobre 0*.md y 1*.md no encuentra nada: solo aparece en dudas.md l. 66 (la duda antigua) y en generador-v0.md. `cadena.enlace` sí está en el literal de 12 (l. 45: `cadena: { hijos: [2, 8], enlace: [1.5, 6] }`), así que la frase de §12.2 es verdadera y la sección 8 compila contra el literal. Además, al revisar todas las claves `ARCH.*` que se leen en las secciones 0 a 19, comprobé que el literal tiene `arranque.maxTemporadasEnMemoria` (con su fila en 12.9). La que faltaba era `edicion.baseSeason`, que leen la 3 y la 10; la he añadido como parte de H445."
+   }
+  ],
+  "lineas": 393
+ },
+ {
+  "resueltos": [
+   "H492",
+   "H499",
+   "H561"
+  ],
+  "desestimados": [],
+  "lineas": 200
  }
 ]

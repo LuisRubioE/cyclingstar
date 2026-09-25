@@ -1,0 +1,1227 @@
+[
+ {
+  "conformes": [
+   "H029",
+   "H032",
+   "H034",
+   "H035",
+   "H061",
+   "H063",
+   "H081",
+   "H085",
+   "H086",
+   "H606",
+   "H612",
+   "H616"
+  ],
+  "no_conformes": [
+   {
+    "id": "H030",
+    "por_que": "La cabecera ahora dice 31 (15 + 16), pero la sección 5 cambió en sentido contrario: 05-esqueletos.md l. 66 dice «son 32 esqueletos, 16 de un día y 16 de etapa», añade `ud_repecho` (fila en l. 85, plantilla canónica en l. 184, pesos en l. 249-261) y pide que la sección 3 y §D pasen a «32 (16 + 16)» (dudas.md l. 160). La sección 3 (l. 131, 133, 145) sigue diciendo 31. El texto no está unificado con la decisión que se tomó en la sección 5, que era justo lo que pedía la corrección."
+   },
+   {
+    "id": "H031",
+    "por_que": "El 0.4 punto 1 dice que la sección 5 «escribe uno a uno» los 31 de la unión, y la fila 5 de 0.5 habla de «El catálogo de 31 (15 de un día, 16 de etapa)». Las dos cosas son falsas frente a 05-esqueletos.md, que escribe 32 (16 + 16) con `ud_repecho`. Además la corrección pedía arreglarlo en todas las secciones y siguen diciendo cosas distintas: 03 dice 31, 05 dice 32, 07 l. 180 dice «catálogo de 32», 08 l. 319 y 09 l. 192 dicen «32 esqueletos» y 19 l. 112 «32 esqueletos». Es el caso que la corrección prohibía: la cifra no cuadra con los miembros de la unión."
+   },
+   {
+    "id": "H058",
+    "por_que": "Por lo mismo que H030/H031: la cabecera pone 31 (15 + 16) y la sección 5 pone 32 (16 + 16) con `ud_repecho` como trigésimo segundo. Lo que el dueño lee en la cabecera no es lo que tiene el catálogo."
+   },
+   {
+    "id": "H084",
+    "por_que": "La cabecera (31) y la unión de §3.3 (31) sí coinciden, pero el catálogo de la sección 5 tiene 32 filas con `ud_repecho`, que no está en `SkeletonId`. Sigue habiendo dos cifras y una unión que las contradice, que es lo que la corrección mandaba evitar."
+   },
+   {
+    "id": "H036",
+    "por_que": "La cabecera escribe «29 `GeoZone` con nombre más `generico` (30 filas en `ZONAS`)» (l. 151) y en la tabla (l. 227) «29 zonas con nombre más `generico`: 30 filas». Pero la sección 6, que es la dueña de ese dato, ahora dice (06-geografia.md l. 17-19) «Las 30 zonas», «31 filas: las 30 zonas con nombre más `generico`», porque añade `montana_sur`. La 17 (l. 64) también dice 31 filas y la 16 (l. 78) duda entre 30 y 31. Lo que resume la cabecera no coincide con la sección que resume."
+   },
+   {
+    "id": "H597",
+    "por_que": "Además de que la cabecera no cuadra con la sección 6 (30 zonas y 31 filas), la corrección pedía arreglar también la 19. 19-apendices.md l. 112 sigue diciendo «29 zonas con diez columnas» y «las 29 filas × 12 columnas de `ZONAS`»."
+   },
+   {
+    "id": "H640",
+    "por_que": "19-apendices.md l. 112 sigue diciendo «las 29 filas × 12 columnas de `ZONAS`». La cifra de la cabecera (30 filas) tampoco coincide con la de las secciones 6 y 17, que ahora dicen 31 filas."
+   },
+   {
+    "id": "H033",
+    "por_que": "El 0.3 fija la forma «(Dn, sección 18)», pero en todo el borrador solo aparece tres veces: 00, 02 (D10) y 17 (D12). El resto de secciones sigue con otras formas: 01 l. 141 «D1 en la sección 18», 01 l. 177 «decisión del dueño D2», 02 l. 50 «decisión del dueño D7», 06 l. 73 «D8 en la sección 18», 08 l. 218 «decisión del dueño D4». Además la cabecera dice que la sección 18 lista D1 a D12, y 18-dueno.md solo tiene D1 a D10 («18.1 Las diez en una tabla», l. 5; subsecciones 18.2 a 18.11)."
+   },
+   {
+    "id": "H059",
+    "por_que": "La cifra está bien (69 × 4 = 276 y 276/1.418 = 19,5 %), pero la cabecera manda la decisión a «D12, sección 18» y 18-dueno.md no tiene ninguna D12 (grep 'D1[12]' da 0 y la tabla es «Las diez»). Tampoco hay en `geo.test.ts` un techo de fallback que se pueda bajar: el test (f) de la sección 6, l. 325, «imprime cuántos (69) sin banda» (l. 84). Lo que la cabecera promete no existe en el cuerpo."
+   },
+   {
+    "id": "H060",
+    "por_que": "La frase de 0.4 punto 4 está bien escrita, pero la corrección pedía sobre todo añadir D11 a la sección 18, y no está: 18-dueno.md solo tiene D1 a D10. La cabecera dice que «es una decisión del dueño (D11, sección 18)» y que las decisiones están «Todas en la sección 18», y eso es falso."
+   },
+   {
+    "id": "H062",
+    "por_que": "Solo se cambió la cabecera. La sección 18 sigue con el valor por defecto antiguo: 18-dueno.md l. 9 «existe: peso 0,02 solo en .1», l. 26 `ud_montana_alto: { ... '1': 0.02 ... }` y l. 37, que ata `race-mercantour` a `ud_montana_alto`. El §1.3.3 (01-diagnostico.md l. 141) tampoco se tocó. La cabecera dice peso 0 en todas las clases y la sección 18 implementa 0,02: quien implemente seguirá la 18."
+   },
+   {
+    "id": "H080",
+    "por_que": "La cabecera arregla el nombre (vN, v87 desde 02b032d) y da una regla para leer «v61 §k» como «vN §k». Pero la corrección pedía sustituir el texto en las secciones 2, 13, 15 y 18, y 18-dueno.md l. 164 sigue diciendo «la nota \"v61 · El generador es una gramática\"». Eso es el nombre completo de la nota, no un «v61 §k», así que la regla de lectura no lo cubre y contradice directamente el «No puede llamarse «v61»» de la cabecera. En 12-constantes.md l. 252 pasa lo mismo («cuyo nombre de esqueleto es «v61 · …»»), y en 14-rendimiento.md l. 40 y l. 134 sigue «v61 §0»."
+   },
+   {
+    "id": "H082",
+    "por_que": "La cabecera pone las cifras de CI (≈ 17 s y ≈ 35 s) y las atribuye a la sección 14, pero en 14-rendimiento.md no hay ninguna cifra de sobrecoste por las 18 cargas (grep de «17 s», «35 s» y «18 cargas» sin resultados), y la corrección pedía escribirla también ahí. Además la cabecera cita «≈ 7,5 s esperados en toda la suite, sección 14», mientras que 14-rendimiento.md l. 114 dice «Suma de topes … 18 s; esperado ≈ 9 s»."
+   },
+   {
+    "id": "H083",
+    "por_que": "La cabecera define la revisión obligatoria como una semilla por par zona × esqueleto más los nacionales de los 56 países (techo de 1.123 perfiles, unas 3 h), y la fila 16 de 0.5 dice «≈ 1.100». Pero la sección 16 (16-galeria.md l. 123) define otra cosa: la fila i = 0 de las diez zonas con más carreras más `generico` (199 perfiles) y el resto de páginas, «En total, unos 380 perfiles, 72 vueltas y 443 filas de lista». Los nacionales de los 56/64 países quedan en la segunda pasada, que es opcional (l. 124). La cabecera y la sección 16 dan tamaños y contenidos distintos para lo que el dueño tiene que revisar sí o sí."
+   },
+   {
+    "id": "H087",
+    "por_que": "La cabecera explica bien por qué WT es 260 y no el 280 del mapa, pero la corrección pedía que las secciones 7, 12 y 18 dieran la misma razón. 07-vueltas.md l. 138 sigue diciendo «se codifican las cifras del mapa 07 §4.1», y 18-dueno.md l. 17, en la fila D9, «se codifican las del mapa 07 §4.1: { WT: 260 … }». Eso contradice lo que dice ahora la cabecera («el 260 de WT no es el techo UCI 280 … del mapa 07 §4.1»)."
+   },
+   {
+    "id": "H088",
+    "por_que": "La cabecera ya cita el HEAD de ensamblaje con desplazamientos y el paso 0 con comprobación mecánica, pero no se corrigieron todas las citas de la lista. 19-apendices.md l. 197 (H7) sigue diciendo «`stageHistory.test.ts` l. 199», y en 8585ca2 `expect(cambian).toBe(49)` está en l. 206 (así lo cita 11-real.md l. 268). Las de `targets.ts` l. 79, `calendar.test.ts` l. 140-152 y `row.km ?? 210` l. 915 sí están corregidas."
+   }
+  ]
+ },
+ {
+  "conformes": [
+   "H001",
+   "H002",
+   "H003",
+   "H005",
+   "H006",
+   "H007",
+   "H008",
+   "H010",
+   "H011",
+   "H012",
+   "H013",
+   "H038",
+   "H039",
+   "H040",
+   "H064",
+   "H065",
+   "H066",
+   "H089",
+   "H090",
+   "H091",
+   "H093",
+   "H094",
+   "H095",
+   "H096",
+   "H618",
+   "H637 (desestimado con motivo válido: race-bruges tiene fila cobbles en calendar.ts l. 1014-1021 a 8585ca2, no l. 1028-1035 como dice el motivo, y edición de una etapa en editions.ts l. 718-721, así que buildRace l. 902-910 la desvía a stagesFromEdition; formas-por-clase.mjs, que he ejecutado, da 178 = hilly 83, flat 60, cobbles 19, mountain 10, classic 5, itt 1, 36 con km, y 20 filas cobbles)",
+   "H013 (cifra 143-151 en lugar de 141-151: desestimación válida, const mountainOneDay está en calendar.ts l. 143 y cierra en l. 151 a 8585ca2)"
+  ],
+  "no_conformes": [
+   {
+    "id": "H092",
+    "por_que": "Las cuatro llamadas élite y sub-23 están bien en §1.1.1, §1.1.3 y §1.2, pero la corrección introduce una cita falsa: §1.1.3 dice «`championshipCategory` (`'elite' | 'u23'`, l. 345)». A 8585ca2, calendar.ts l. 345 es `country: code`. El campo se asigna en l. 344 (`championshipCategory: category`), el parámetro `category: 'elite' | 'u23'` está en l. 331 y el tipo del campo en l. 70 (dudas.md l. 104 ya cita l. 70). Hay que citar l. 70 (tipo) y l. 344 (asignación)."
+   },
+   {
+    "id": "H004",
+    "por_que": "En 01-diagnostico.md §1.3 borde 3 está bien reescrito y comprobado: auto() en calendar.ts l. 93-102, lastClimbKm en finalKind.ts l. 46-48 y l. 50-56. Pero la corrección pedía expresamente quitar la cifra de los defectos medidos del calendario actual «también en §2.4», y 02-principios.md l. 44 (§2.4) sigue diciendo que hoy nadie respeta los bordes y que `CLIMB_MIN_KM` 1,5 «deja 12 de 1.500 clásicas sin última cota», como si fuera un defecto del calendario de hoy."
+   },
+   {
+    "id": "H634",
+    "por_que": "Pedía «l. 194 (medida) y l. 206 (aserción) en todas las secciones y en §B.1/decisión 23». En la sección 1 está aplicado: l. 206 y comentario l. 194-198, comprobado a 8585ca2. En 11, 13 y 15 ya aparece l. 206. Pero siguen con l. 199 02-principios.md l. 44 (§2.4), 00-esqueleto.md l. 73 (§B.1), l. 425 (decisión 23) y l. 524, y dudas.md l. 8, que es la duda de la propia sección 1. No está resuelto en el documento."
+   },
+   {
+    "id": "H037",
+    "por_que": "§1.5 y §1.1 están bien: l. 206, comentario l. 194-198. Falta lo demás: la corrección pedía el cambio también en §2.4 (02-principios.md l. 44 sigue con «l. 199») y avisar a la pasada de coherencia de que §B.1 y §C.23 del esqueleto citan mal la línea. No hay aviso nuevo en dudas.md, y su entrada de la sección 1 (l. 8) repite «l. 199»."
+   },
+   {
+    "id": "H009",
+    "por_que": "Aplicado en la sección 1: `summitFinish` en stageKind.ts l. 84 y la aserción en l. 206, comprobados a 8585ca2. La corrección decía «en §1.5 y §2.4», y §2.4 (02-principios.md l. 44) conserva «stageHistory.test.ts l. 199»."
+   }
+  ]
+ },
+ {
+  "conformes": [
+   "H014: §2.1 l. 7 ya dice que las primitivas conservan su papel con dos retoques de firma (`gMax`; `amp` y `pRompepiernas`), que hoy son privadas y que las exporta el paso 1 (§15.3). Lo he comprobado en profileGen.ts: solo llevan `export` `routeRng` l. 30, `MountainOptions` l. 319 y los `xxxSegments` l. 236-510; `hashInt` 15, `between` 47, `split` 52, `climb` 72, `descent` 85 y `rolling` 100 son privadas. §15.3 l. 113 coincide.",
+   "H015: §2.3 l. 38 cita itt(38)/classic(220) para la élite e itt(30)/classic(180) para los sub-23, l. 351-360. Lo he comprobado en 8585ca2:calendar.ts l. 351-360.",
+   "H016 (desestimado con razón): he comprobado que packages/db/src/callups.ts l. 98 es `raceVocationFit(race.stages.map((s) => s.kind))` y que engine/src/world/callups.ts l. 99 es la definición; la parte de raceContext está aplicada.",
+   "H017 (desestimado con razón): en raceRoutes.ts l. 47 es `profile:`, el comentario ocupa l. 48-50 y el literal está en l. 51. Se ha aplicado 48-51.",
+   "H018: la fila 5 de §2.11 dice ahora que `calendarForSeason(0)` es `SEASON_CALENDAR` (misma referencia memoizada) y que `stagesForSeason(id,0)` es `SEASON_CALENDAR.find(...).stages`.",
+   "H019: §2.2 l. 15 cita 247-248, 273-274, 280-281, 359-360, 362-363, 447-448, 452-454, 477-478 y 496. Las he comprobado todas en profileGen.ts, que no cambia entre 8585ca2 y HEAD.",
+   "H043 (desestimado con razón): duplica H016 con la misma cita equivocada. engine/src/world/callups.ts l. 98 no es el lector.",
+   "H044 (desestimado con razón): el comentario empieza en l. 48, no en l. 47. Se ha aplicado 48-51.",
+   "H067 (desestimado con razón): §D.13 del esqueleto fija 'esqueletos distintos por clase ≥ 8/10/6/9; entropía por zona ≥ 1,5 bits', y 13-banco.md l. 136-137 lo recoge. Subir los umbrales contradiría la ley. La parte compatible, medir sobre el calendario real y ver la página por clase, está aplicada.",
+   "H068 (desestimado con razón): he comprobado que 00-esqueleto.md l. 240 dice `terrain: RouteTerrain // sesgo, nunca orden` y que la l. 500 dice 'si no se degrada a media_alto y se anota'. 06-geografia §6.5 punto 2 escribe la degradación en `arch.frase`, y regions.test.ts (f) (06 l. 428) imprime las dudas sin vetar. §2.3 l. 19 lo dice ya.",
+   "H069: §2.10 y la fila 10 añaden una página por clase .1 y .2 con `stagesForSeason(id, 0)` en orden de calendario y la cuarta pregunta, que apunta a `pesoBase` y `geo.pesos`. La sección 16 tiene continentales.html (l. 177).",
+   "H070: §2.5 cita packages/db/src/callups.ts l. 98 como lector y engine/src/world/callups.ts l. 99 como definición, y aclara que packages/db/src/world/ no existe. Lo he comprobado con ls.",
+   "H071: §2.5 remite a D7 para `kmJitter` 0,06 y `motivoNuevo` 0,35. 18-dueno.md §18.8 l. 116 recoge los dos valores con la alternativa 0,03 y 0,15.",
+   "H072: es el mismo arreglo que H014 y está aplicado.",
+   "H097: el 60 % ha desaparecido. `skeletons.test.ts` sella el catálogo bien formado con `pesoBase > 0` salvo `ud_criterium` (D5) y la matriz esqueleto × 5 km × 60 semillas del paso 4.",
+   "H100: §2.9 pone las bandas en routes/grammar/calendario.test.ts (test:rapido) y sim/routeCensus.test.ts en test:bancos, porque package.json l. 20 excluye sim/**. Lo he comprobado. La nota de balance.md pasa a 'vN §0' con N según la sección 0, así que ya no apunta a la v61 existente.",
+   "H101: §2.5 enumera qué lee cada lector. Lo he comprobado en 8585ca2: calendarRun.ts l. 516, 947 y 1614 leen `kind`; raceContext.ts l. 56-59 y 127 leen `profile` y `timeTrial`; riderSchedule.ts l. 41, 121, 154, 212 y 270 leen `stages.length`, `startDay` y `country`. El texto justifica por qué riderSchedule no cambia.",
+   "H102: §2.6 l. 56 y la fila 6 citan l. 48-51 (comentario 48-50, literal 51). Es correcto.",
+   "H620: está aplicado en §2 con 48-51. Que la l. 385 de 03-modelo.md siga diciendo 47-50 es cosa de la sección 3 y de la pasada de coherencia."
+  ],
+  "no_conformes": [
+   {
+    "id": "H098",
+    "por_que": "No hay una sola definición. §2.3 l. 19 dice que resume la tabla de §6.5, pero el bloque de §2.3 l. 31 la contradice en cuatro puntos. (1) Mantiene la firma vieja `admite(requiere: Partial<GeoSignature>, geo: GeoSignature)`, cuando §6.5 (06-geografia l. 193-213) fija `admite(geo: GeoSignature, sk: Skeleton)`, con `requiere` de tipo `Requiere` en lugar de `Partial<GeoSignature>`, y dice expresamente que la forma de la sección 2 pasa a esa. (2) §2.3 afirma que 'admite no necesita leer slots', y §6.5 (2) dice que admite comprueba todo Slot con n[0] ≥ 1 de puerto, cota o muro, además del rango efectivo y de que la meta quepa (3). (3) §2.3 trata `finalesAlto` y `relieve` por igualdad, y §6.5 define 'corto' ∈ {corto, largo}, `relieveMin` por orden y `relieveEn` y `altitud` por pertenencia a lista, además de `cotaKmMin` y `muro: 'adoquin'`. (4) §2.3 declara `degradar(relieve)`, y §6.5 exporta `degradarPapel(role)`. El implementador vuelve a tener dos definiciones de la misma función."
+   },
+   {
+    "id": "H099",
+    "por_que": "§2.8 l. 88 afirma que el test de pureza es 'la misma que enuncian §3.9 y el paso 5 del plan (§15.7)': `veto.test.ts` leyendo cuatro ficheros. No es verdad. 03-modelo.md l. 447 (§3.9) sigue diciendo que 'veto.test.ts lo comprueba con un grep de imports' solo sobre `verify`, y 15-plan.md §15.7 (l. 207) pone la comprobación en `routes/arranque.test.ts` (tercer `it`, §14.4), que recorre todo `grammar/*.ts` y además prohíbe llamar a `sampleProfile`, `deriveFinishTerrain`, `finishType` o `costBase`. Siguen conviviendo tres enunciados en tres ficheros de test distintos, y la fila 8 de §2.11 repite el de `veto.test.ts`. Hay que alinear §2.8 y la fila 8 con el test que fija §15.7, o al revés, y decirlo en §3.9. Lo mismo invalida la frase del desestimado de H042 'aplicada vía H099 con el mismo enunciado que §3.9 y §15.7'."
+   },
+   {
+    "id": "H041",
+    "por_que": "Quitar el 60 % y sellar el principio 1 con las bandas del censo está bien hecho, pero §2.1 l. 9 y la fila 1 de §2.11 traducen '≥ 8/10/6/9' como '≥ 6 en NC ruta'. 13-banco.md l. 136 dice lo contrario: 'Los nacionales NO entran aquí', porque los 133 nacionales en ruta llevan un solo SkeletonId, `nc_ruta` (decisión 15), y la banda `esqueletos.clase` solo tiene tres valores: ≥ 8 un día WT/Pro, ≥ 10 un día .1/.2 y ≥ 9 papeles. Con un único esqueleto, una banda de ≥ 6 esqueletos distintos en NC es imposible por construcción y no existe en `ROUTE_CENSUS_TARGETS`. Hay que quitar el '≥ 6 en NC ruta' de §2.1 y de la fila 1, o remitir a las filas `nacionales.*` de §13 (firmas ≥ 5, entropía de zona ≥ 2,5 bits)."
+   },
+   {
+    "id": "H042",
+    "por_que": "El rechazo de la parte (b), el espía, está bien argumentado: he comprobado que no hay ningún vi.spyOn en packages ni en apps y que vitest es ^4.1.10 (package.json l. 38). Pero el motivo afirma que la parte (a) está aplicada 'con el mismo enunciado que §3.9 y §15.7', y es falso: §3.9 (03-modelo l. 447) solo mira `verify`, y §15.7 (15-plan l. 207) pone el test en `routes/arranque.test.ts` sobre todo `grammar/*.ts`. La queja de fondo de H042, que dos secciones describen tests distintos para la misma propiedad sin nombrarse entre sí, sigue sin resolver."
+   }
+  ]
+ },
+ {
+  "conformes": [
+   "H020",
+   "H021",
+   "H022",
+   "H023",
+   "H024",
+   "H026",
+   "H027",
+   "H028",
+   "H045",
+   "H046",
+   "H047",
+   "H048",
+   "H049",
+   "H050",
+   "H051",
+   "H052",
+   "H053",
+   "H054",
+   "H055",
+   "H056",
+   "H057",
+   "H073",
+   "H074",
+   "H075",
+   "H076",
+   "H077",
+   "H078",
+   "H079",
+   "H103",
+   "H104",
+   "H105",
+   "H106",
+   "H107",
+   "H108",
+   "H109",
+   "H110",
+   "H111",
+   "H113",
+   "H114",
+   "H115",
+   "H571",
+   "H572",
+   "H573",
+   "H574",
+   "H580",
+   "H582",
+   "H583",
+   "H584",
+   "H585",
+   "H596",
+   "H600",
+   "H609"
+  ],
+  "no_conformes": [
+   {
+    "id": "H025",
+    "por_que": "La dirección de importación se fija (ARCH.edicion.baseSeason en constants.ts, que efectivamente no tiene ningún import; las funciones de temporada y SEASON_CALENDAR pasan a calendar.ts), pero la regla nueva se contradice con la propia sección. §3 l. 5 y §3.8 l. 404 dicen que ningún fichero de routes/grammar/ importa ../calendar.js y que arranque.test.ts lo sella con un grep. Sin embargo, §3.6 l. 291 declara composeTour(...): StageSpec[] en grammar/tour.ts, y StageSpec vive en calendar.ts (l. 33-46), así que tour.ts necesita al menos un import type de ../calendar.js. Además, los tests que la sección coloca en routes/grammar/ usan símbolos de calendar.ts: calendario.test.ts llama a calendarForSeason (l. 592) y regions.test.ts itera SEASON_CALENDAR (l. 232). Con el grep tal como está escrito, arranque.test.ts falla contra el propio diseño. Falta decir que el grep excluye los *.test.ts y los `import type` (que se borran al compilar y no crean ciclo de carga), o bien mover StageSpec a un módulo hoja."
+   },
+   {
+    "id": "H112",
+    "por_que": "Se aplica en lo esencial: routeSource y arch entran en el paso 8, obligatorios, con la lista de lo que hay que retipar, incluido stageHistory.test.ts::fichaDe (l. 106-114, verificado). Pero el texto nuevo dice «los seis constructores de calendar.ts l. 108-172» y a continuación nombra ocho (flat, hilly, hillyUphill, mountain, mountainOneDay, itt, cobbles, classic). Verificado en 8585ca2: son ocho const, en las l. 108-172. Hay que cambiar «seis» por «ocho». La afirmación de que ningún otro fichero construye el tipo se sostiene: apps/api/src/routes/races.ts y calendar.ts, y apps/web/src/api/results.ts, solo lo consumen vía calendarStageSpec."
+   },
+   {
+    "id": "H601",
+    "por_que": "Se añaden la mayoría de los nombres, con su firma: candidatos, skeletonFor, NC_RUTA_CLASICA, SESGO_TERRENO, ESCALON_TERRENO, SKELETON_IDS, Placed, climbKmOutsideLast30, subidaLejanaShare, climbSize/climbMetres, EditionPlan, FrozenStage, RaceRouteSource, Cuantiles, CensusTarget, entropiaBits, FrozenQueen, FROZEN_QUEENS, GENERATED_QUEENS, hardestOneDay, pareado, preRegistro, calendarLegacy, MAX_TEMPORADAS_EN_MEMORIA, y describeProfile, profileCorrelation y kmSubidaShare con firma. Quedan fuera cosas que el hallazgo pedía: StageCardRoute (sección 10) solo aparece nombrado en un comentario (l. 563 y 565), sin su forma TypeScript; routes/realFingerprint.sealed.ts (sección 11) no aparece; y de los tests de la sección 15, grammar/render.test.ts, grammar/legacy.test.ts y sim/legacy/golden.test.ts tampoco (solo regions.test.ts). La regla de lectura de l. 3 promete que toda firma introducida por otra sección está aquí, y no se cumple para esos nombres."
+   }
+  ]
+ },
+ {
+  "conformes": [
+   "H116",
+   "H117",
+   "H118",
+   "H119",
+   "H120",
+   "H121",
+   "H122",
+   "H123",
+   "H124",
+   "H125",
+   "H126",
+   "H127",
+   "H149",
+   "H152",
+   "H153",
+   "H155",
+   "H156",
+   "H157",
+   "H192",
+   "H193",
+   "H194",
+   "H195",
+   "H196",
+   "H199",
+   "H202",
+   "H203",
+   "H204",
+   "H205",
+   "H206",
+   "H208",
+   "H209",
+   "H210",
+   "H211",
+   "H212",
+   "H213",
+   "H608",
+   "H632",
+   "H642 (desestimación válida: en finish.ts l. 168-171 las dos vías a 'alto' están dentro de `if (t.climbKm >= STAGE.finishAltoMinKm && climbHard)`, con finishAltoMinKm 3 en constants.ts l. 3989 del árbol 8585ca2; un muro_meta ≤ 2,2 km no entra nunca)",
+   "H213-firma (desestimación válida: 03-modelo.md l. 54 ya escribe validateMotif(m: Motif, geo?: GeoSignature) y l. 58 renderMotif(m, rng: RngFactory, geo), que es lo que usa §4.5)"
+  ],
+  "no_conformes": [
+   {
+    "id": "H207",
+    "por_que": "§4.2 (l. 67) dice que los compuestos usan la representación que 'las plantillas canónicas de la sección 5 ya usan (CAD([M, E, M, E, M]) …)', con los enlaces como hijos, y que 'Motif no gana ningún campo'. Es falso. 05-esqueletos.md l. 128 y l. 140-145 definen CAD(hijos, sep) y RAC(hijos, sep) con hijos que son SOLO dificultades, y K(kmVuelta, vueltas, hijos, sep) con sep[h] ANTES de cada hijo y el resto cerrando la vuelta. Los tres devuelven un campo nuevo `separaciones: sep` que no está en Motif. Con la regla 3 de §4.5 (entre cada dos dificultades un `enlace` hijo) ninguna CAD/RAC/K de §5.4 valida: por ejemplo, ud_muros tiene cinco `muro` seguidos en hijos. Hay que fijar una sola representación en §4 y en §5 (y en §B.2 si gana `separaciones`)."
+   },
+   {
+    "id": "H172",
+    "por_que": "§4.2 (l. 69) afirma que 'Slot.params no tiene campo para estrechar esa separación … así que ningún esqueleto promete un techo distinto de 6'. Pero 05-esqueletos.md l. 15 añade `separacionRango?: [number, number]` a SlotParams, y ud_muros (l. 78) la usa con [1,5; 5]. Las dos secciones eligieron opciones opuestas de la corrección. Además el nombre no coincide: §4 dice `ARCH.motivo.cadena.enlace` y §5 dice `ARCH.motivo.cadena.separacion`."
+   },
+   {
+    "id": "H154",
+    "por_que": "La regla 2 sí está corregida, pero la regla 5 de §4.5 exige `hijos[0].km` en [1; 2,5] y `Motif.km − hijos[0].km` en aMeta [1; 8], y dos objetos del propio documento la incumplen. (1) El ejemplo Roubaix de §4.7 (l. 335): `sector_meta` km 12 con S(0.3), es decir, sector de 0,3 < 1 y aMeta 11,7 > 8. Aun así §4.7 dice que es 'instancia válida del esqueleto que nombra'. (2) La plantilla canónica de §5.4 (05-esqueletos.md l. 176): `META('sector_meta', 2.1, undefined, [S(0.3, 1)])`, cuando la corrección pedía S(1.0, 1) con km 3,1. La fila de ud_adoquin en §5.2 declara además un sector de [0,3; 2,5], que contradice el [1; 2,5] de §4. validateMotif rechazaría las dos."
+   },
+   {
+    "id": "H151",
+    "por_que": "§4 ya tiene el ARCH ancho y la regla de que place valida contra Slot.params. Pero §4.2 (l. 40, l. 75) y §4.7 (l. 343) afirman que ud_circuito admite × [6; 18] ('que sube a [6; 18] para que Montréal quepa'), y 05-esqueletos.md l. 76 sigue diciendo 'vuelta [10; 18] km × [6; 16]'. La corrección pedía cambiarlo explícitamente. Con §5 tal como está, las 17 vueltas de Montréal no son una instancia válida de ud_circuito, cuando §4.7 afirma que sí."
+   },
+   {
+    "id": "H200",
+    "por_que": "La frase se reescribió al pie de la letra de la corrección ('la plantilla canónica … lleva 20 sectores y 40,7 km'), pero la canónica real de §5.4 suma 13,9 + 15,6 + 10,2 + 0,3 = 40,0 km. Así lo dice su propio comentario (05-esqueletos.md l. 176) y lo repite l. 215. El 40,7 de §4.7 (l. 320) es falso. En el mismo párrafo, '46,8 km de adoquín' excluye el sector de meta, mientras que 'percances ×20 durante 47 km' (l. 341) lo incluye: con él son 47,1."
+   },
+   {
+    "id": "NUEVO-test-sector_meta",
+    "por_que": "En el test de §4.5 (l. 255), el comentario '10,5 km de paves en los últimos 30: fracción 0,35' está mal. Con E60, racimo 24 [S2,E5,S1,5,E5,S2,5,E5,S3], E2 y meta 6 [S1,5 + 4,5], los últimos 30 km contienen 1,5 + 3 + 2,5 + 1,5 = 8,5 km de paves (fracción 0,28). La aserción `pave` sigue siendo correcta, pero el comentario es falso."
+   },
+   {
+    "id": "NUEVO-expuesto.amp",
+    "por_que": "§4.2 (l. 31 y l. 47) fija la amplitud del expuesto en 1,0 (`rolling(rand, km, 1,0, 0)`, 'ARCH.motivo.expuesto.amp'). En cambio 12-constantes.md l. 123 da `expuesto.amp` 0,5 con amplitud efectiva `min(ARCH.motivo.expuesto.amp, geo.amplitud)` y explica que con 1,0 el expuesto sería el tramo más rompepiernas de una etapa flamenca. Las dos secciones dan valores distintos para la misma constante."
+   },
+   {
+    "id": "NUEVO-propagacion-B3-y-§5",
+    "por_que": "§B.3 del esqueleto (00-esqueleto.md l. 323, 327, 329) sigue con enlace.km [1; 60], circuito [8; 30]/[3; 18] y repecho g [4; 7]. H149 y H206 pedían cambiarlo; §4 lo reconoce en l. 26 y la sección 12 sí está al día. Aparte de eso, ud_repecho en §5.2 (05-esqueletos.md l. 85) declara repecho g [4; 7] y 'repecho admite [4; 7] %, §4.2', frente al g [5; 7] que §4.3 fija por H120. Con g < 5, validateMotif rechazaría el repecho de ese esqueleto."
+   }
+  ]
+ },
+ {
+  "conformes": [
+   "H140",
+   "H142",
+   "H143",
+   "H144",
+   "H145",
+   "H146",
+   "H147",
+   "H148",
+   "H165",
+   "H166",
+   "H167",
+   "H170",
+   "H178",
+   "H179",
+   "H180",
+   "H182",
+   "H184",
+   "H186",
+   "H187",
+   "H188",
+   "H191",
+   "H197",
+   "H198",
+   "H231",
+   "H233",
+   "H234",
+   "H235",
+   "H236",
+   "H237",
+   "H238",
+   "H581",
+   "H639"
+  ],
+  "no_conformes": [
+   {
+    "id": "H141",
+    "por_que": "§6.5 (l. 76-91) declara su propia `interface Requiere` en geo.ts, con `relieveMin`, `relieveEn`, `muro: true | 'adoquin'` y `altitud` como lista. La sección 5, ya corregida (05-esqueletos.md l. 28-35), declara OTRA `interface Requiere`, con `relieve` (mínimo), `muro: true | { adoquin: true }` y `altitud` como valor único. El implementador se encuentra dos tipos con el mismo nombre y campos incompatibles. La corrección pedía un solo tipo en todo el documento. Hay que elegir uno y dejar que la otra sección remita a él."
+   },
+   {
+    "id": "H163",
+    "por_que": "§6.5 dice que la columna `requiere` de §5 es la única lista y que esta sección no la duplica, pero después la contradice. Escribe «Nada más lleva relieve», cuando §5 (l. 83, 105-108, 110, 114) da `relieve: 'montana'` a ud_montana, et_reina_alto_largo, _alto_corto, _cima_cerca, _valle, et_montana_corta y et_cronoescalada. §6.2 l. 26 repite que esos esqueletos «exigen puerto y no relieve». Atribuye a §5 «adoquin ≥ 1 es { adoquin: 1 }» para ud_adoquin_ligero, cuando §5 l. 82 dice `[{ adoquin: 2 }, { sterrato: true }]`. Y da a et_media_tendida otras alternativas que §5 l. 104. Resultado: el test (g) `admite(ZONAS.levante, SKELETONS.ud_montana)` es true con §6 y false con §5 (levante es `media`, por debajo de `montana`). Los `requiere` siguen siendo distintos entre las dos secciones."
+   },
+   {
+    "id": "H578",
+    "por_que": "§6 fija `admite(geo: GeoSignature, sk: Skeleton)` como firma única del documento (l. 74, 92). La sección 5 corregida fija justo la contraria: 05-esqueletos.md l. 54 declara `admite(requiere, geo)` y l. 57 dice «`admite` recibe `(requiere, geo)` en ese orden en todo el documento (… la 6 `admite(sk.requiere, geo)`; esta es la firma)». La sección 8 (l. 74) también llama `admite(sk.requiere, req.geo)`. Siguen conviviendo dos firmas canónicas opuestas, justo el conflicto que el hallazgo pedía cerrar."
+   },
+   {
+    "id": "H164",
+    "por_que": "En §6 la semántica de `adoquin` 1 queda cerrada: sector ligero de ≤ 1,5 km y 2★, con V2 alineado. Pero §6.5 cita mal a §5 como «`adoquin ≥ 1` es `{ adoquin: 1 }` (ud_adoquin_ligero)», y §5 l. 82 sigue exigiendo `[{ adoquin: 2 }, { sterrato: true }]`. Con el catálogo de §5, `race-veneto-classic` en italia_norte (adoquin 1, sin sterrato) no admite ud_adoquin_ligero. El test (g) `admite(ZONAS.italia_norte, SKELETONS.ud_adoquin_ligero) === true` y la promesa de §6.2 l. 71 fallan contra §5. Falta llevar `{ adoquin: 1 }` a la fila de §5, o dejarla escrita como enmienda explícita."
+   },
+   {
+    "id": "H232",
+    "por_que": "Mismo defecto que H164. V2 y la regla 4 pasan a aceptar el sector ligero con `adoquin` 1, pero `requiere` de ud_adoquin_ligero en §5 l. 82 sigue siendo `adoquin: 2` o `sterrato`, así que el caso italia_norte/Veneto no se admite. Además no se añadió a (h) la comprobación «todo esqueleto admitido con sector puede instanciar algún firme» que pedía la corrección."
+   },
+   {
+    "id": "H579",
+    "por_que": "El nombre `degradarPapel` sí se adopta, pero §6.5 punto 2 repite la tabla de papeles y la repite distinta. Pone `media_alto → media`, mientras `ESCALON_ROLE` de §5 (l. 286) dice `media_alto: 'media_muro'`, y §5 l. 280 declara que `ESCALON_ROLE` es «la ÚNICA del documento» y que la sección 6 la cita sin repetirla. Tampoco coinciden los nombres: §5 exporta `degradar(role)` (l. 289) y renombra la de relieve a `degradarRelieve`, y §6 mantiene `degradar(relieve)` y llama `degradarPapel` a la de papeles. Hay que quitar la tabla de §6 (o igualarla) y unificar los nombres."
+   },
+   {
+    "id": "H174",
+    "por_que": "El test (h) ampliado falla tal como está escrito, por dos motivos. (1) L. 356 exige que todo id de `z.pesos` esté admitido y l. 28 lo proclama como regla, pero `andes` lleva `et_llana_viento 0` con viento 0 y `montana_sur` lleva `et_llana_viento 0,5` con viento 1, cuando §5 l. 100 da a et_llana_viento `requiere { viento: 2 }`: ninguno de los dos está admitido y el test falla. (2) La comprobación de la meta usa `ARCH.meta[s.meta].km` (l. 365) y `ARCH.meta.alto_largo.km` (l. 344, test g), pero las claves de ARCH.meta en la sección 12 son camelCase (`altoLargo`, `altoCorto`, `muro`, `cimaCerca`, `descensoMeta`, `valle`: 12-constantes.md l. 55, 131-137). `alto_corto`, `alto_largo` y `muro_meta` no existen como claves: no compila en modo estricto y en ejecución da undefined."
+   },
+   {
+    "id": "H168",
+    "por_que": "La tabla de §6.6 queda corregida (`esprint` en todas las filas), pero la frase añadida en l. 243 es falsa contra la sección 5 actual. Dice que `repecho` no lo usa ningún esqueleto del catálogo y que es un hueco de la sección 5, cuando §5 l. 85 ya tiene `ud_repecho` con meta `repecho`. Hay que borrar o reescribir esa frase."
+   }
+  ]
+ },
+ {
+  "conformes": [
+   "H128",
+   "H129",
+   "H131",
+   "H132",
+   "H136",
+   "H138",
+   "H159",
+   "H169",
+   "H171",
+   "H173",
+   "H176",
+   "H177",
+   "H183",
+   "H185",
+   "H190",
+   "H201",
+   "H214",
+   "H215",
+   "H217",
+   "H218",
+   "H220",
+   "H224",
+   "H225",
+   "H226",
+   "H227",
+   "H229",
+   "H230",
+   "H591",
+   "H595",
+   "H631"
+  ],
+  "no_conformes": [
+   {
+    "id": "H130",
+    "por_que": "Pedía un solo modelo de compuesto escrito a la vez en §3/§4.5 y §5.4. §5 eligió el modelo (b): hijos solo dificultades más `Motif.separaciones` (l. 57, constructores CAD/RAC/K l. 143-147). La sección 4, ya corregida, eligió el contrario (a): 04-gramatica.md l. 67 dice que «`hijos` es la secuencia COMPLETA … dificultades y enlaces explícitos alternados … `Motif` no gana ningún campo», y en l. 139 (regla 3) que `km = Σ km de hijos`, con el enlace como hijo en circuito. Con la §4.5 escrita, `validateMotif` rechaza todas las CAD/RAC/K de §5.4 (por ejemplo, la cadena de `ud_muros` no tiene enlaces entre sus muros). Además §4 l. 69 dice que `Slot.params` no puede estrechar la separación, y §5 añade `separacionRango`."
+   },
+   {
+    "id": "H150",
+    "por_que": "Mismo caso que H130: §5 (separaciones fuera de `hijos`) y §4 corregida (enlaces dentro de `hijos`, Σ hijos = km, 04-gramatica.md l. 67, 75 y 139) escriben dos modelos opuestos del mismo `Motif.hijos`. El hallazgo pedía justo lo contrario."
+   },
+   {
+    "id": "H175",
+    "por_que": "Igual que H130 y H150. El test que §5.9 añade (`validateMotif` sobre `motivosPlanos(sk.canonico)`, l. 406) falla contra la regla 3 de §4.5 tal como está hoy en 04-gramatica.md l. 139: esa regla exige un `enlace` entre cada dos dificultades como hijo, y §5 no los pone."
+   },
+   {
+    "id": "H133",
+    "por_que": "En §5 está aplicado (l. 82 y 126: `racimo.km` [10; 60]), pero la sección 4 ya corregida mantiene `racimo` [20; 60] (04-gramatica.md l. 39, 73 y 137) y afirma que «toda plantilla canónica de la sección 5 cabe en ARCH». Los racimos de 14,5, 13,2 y 17,6 km siguen fuera del `validateMotif` que se va a implementar, y el implementador recibe dos valores de la misma constante."
+   },
+   {
+    "id": "H160",
+    "por_que": "Los puntos 1, 3, 4 y 5 están aplicados (Poggio en el 284,0, `cotaFinal` 1,3, `P(14, 7.5)`, 20 sectores y 40,0 km, comprobado a mano). El punto 2 queda sin resolver por la misma contradicción que H133: §5 sube `racimo.km` a [10; 60] y §4.5 regla 1 (04-gramatica.md l. 137) sigue en [20; 60]."
+   },
+   {
+    "id": "H216",
+    "por_que": "Cota, circuito, `unDiaUltimaCota` y la llamada a `validateMotif` en el test están resueltos. Lo del racimo no: §4.5 regla 1 conserva `racimo` [20; 60] (04-gramatica.md l. 137), así que `ud_sterrato` (17,6) y `ud_adoquin_ligero` (14,5 y 13,2) siguen fallando la regla que el test de §5.9 l. 406 invoca."
+   },
+   {
+    "id": "H134",
+    "por_que": "`META` ya admite `hijos` y la aserción de `llana` exceptúa el circuito vacío. Pero la canónica usa `META('sector_meta', 2.1, undefined, [S(0.3, 1)])` y la fila de §5.2 dice «sector [0,3; 2,5]», mientras que §4.5 regla 5 y la tabla de metas de §4 (04-gramatica.md l. 91 y 141) fijan `hijos[0]` con `km` en [1; 2,5]. `validateMotif` rechaza el sector de meta de 0,3 km."
+   },
+   {
+    "id": "H228",
+    "por_que": "La corrección pedía `[S(1.0, 1)]`, y el texto pone `[S(0.3, 1)]` (l. 176), que queda fuera del [1; 2,5] que §4 exige al sector de `sector_meta` (04-gramatica.md l. 91 y 141). La parte del coste de los tests (20 semillas, 3 zonas, cifra en balance.md) sí está aplicada."
+   },
+   {
+    "id": "H135",
+    "por_que": "Sigue habiendo dos tablas. §5.7 (l. 284-288) dice `media_alto → media_muro`. §6.5 punto 2 ya corregida (06-geografia.md l. 220) escribe su propia «tabla cerrada» con `media_alto → media`, en vez de citar la de §5. Las funciones también se llaman distinto: `degradar(role)` en skeletons.ts, y en §6 `degradarPapel(role)` en geo.ts, con `degradar(relieve)` conservando el nombre, cuando §5 dice que se renombra `degradarRelieve`."
+   },
+   {
+    "id": "H162",
+    "por_que": "La tabla de degradación sigue duplicada y con un destino distinto (`media_alto`: `media_muro` en §5, `media` en §6.5, 06-geografia.md l. 220). La fórmula de peso también sigue duplicada: §6.5 punto 4 (l. 224) conserva `pesoBase × geo.pesos × pesoPorClase` sin `SESGO_TERRENO`, y §5.6 l. 239 solo afirma que se alinea."
+   },
+   {
+    "id": "H189",
+    "por_que": "Mismo caso que H135: §6.5 mantiene su tabla, que no coincide con `ESCALON_ROLE` de §5.7. Con la tabla de §6, una etapa `mountain` en Flandes acaba en `et_llana` (media_alto → media → llana) y no en `et_media_muro`, que es lo que sella el test de §5.9 l. 513-516."
+   },
+   {
+    "id": "H219",
+    "por_que": "Pedía una sola tabla, `ESCALON_ROLE`, citada por §6.5 sin repetirla. §6.5 (06-geografia.md l. 220) la repite con otro valor y otro nombre de función (`degradarPapel`). El ejemplo de Flandes solo vale con la tabla de §5."
+   },
+   {
+    "id": "H161",
+    "por_que": "§5 fija `admite(requiere, geo)` en geo.ts (l. 54 y 312). La sección 6 corregida fija lo contrario, `export function admite(geo: GeoSignature, sk: Skeleton): boolean` (06-geografia.md l. 193 y 211), la declara «una sola firma en todo el documento» y la usa así en todos sus tests (l. 333-346). Los tests de 5 y 6 siguen sin compilar contra la misma exportación. Además, §5 l. 57 atribuye a la sección 6 una firma que no es la suya."
+   },
+   {
+    "id": "H223",
+    "por_que": "Igual que H161: dos firmas de `admite` incompatibles, (requiere, geo) en §5 y (geo, sk) en §6. El `Record` de SKELETONS sí coincide."
+   },
+   {
+    "id": "H221",
+    "por_que": "Hay dos tipos `Requiere` distintos. En §5 (l. 29-36): `relieve`, `muro: true | { adoquin: true }`, `altitud` escalar. En §6.5 (06-geografia.md l. 196-208): `relieveMin`/`relieveEn`, `muro: true | 'adoquin'`, `altitud` como lista. Los valores también chocan: §6 exige `cotaKmMin` 3,3 en `et_media_alto` y `et_media_tendida` y §5 no, y el test de §6 l. 336 da `admite(levante, ud_montana)` cierto «sin exigir relieve», mientras §5 pide `relieve: 'montana'` y levante es `media`."
+   },
+   {
+    "id": "H158",
+    "por_que": "La rama NC y `nc_crono` a 1 en todas las clases están aplicadas. Pero §5.7 regla 2 (l. 347) afirma que «la sección 6 (§6.6) lo escribe así», y §6.6 (06-geografia.md l. 232) no fija `terrain: 'classic'`/`'itt'` ni `raceClass: 'NC'` en la petición de los nacionales: usa `role: 'un_dia'` o `'un_dia_u23'`, un papel que `candidatos` de §5 no conoce."
+   },
+   {
+    "id": "H181",
+    "por_que": "Se añade `ud_repecho` y se amplía `SESGO_TERRENO.hilly`, pero la meta del esqueleto nuevo contradice ARCH. §5.2 l. 85 le da `repecho` g [4; 7] y km [1; 2,9], y cita «§4.2» como fuente del 4 %. En cambio, §4 fija `ARCH.meta.repecho` g [5; 7] (04-gramatica.md l. 84 y 279), y para un día `km` en [1; 2,2] por V5(b). La fila no está contenida en ARCH."
+   },
+   {
+    "id": "H137",
+    "por_que": "El contenido está aplicado (RACE_ROWS como concatenación, `for (const { code } of COUNTRIES)`), pero las líneas citadas no son las del código vivo. calendar.ts ganó 14 líneas en l. 79 (commit 48b05d4, `doubleAfter`), y por eso: `RaceRow` está en l. 395-411 (no 381-397), las tablas en l. 945, 1256 y 1629 (no 931, 1242 y 1615), `race-chrono` en l. 3366-3374 (no 3352-3360), `Math.round(cum)` en l. 112 (no 98, citado en §5.4 l. 124) y `nationalChampionships` en l. 330 (no 316-361)."
+   },
+   {
+    "id": "H139",
+    "por_que": "La cita de calendar.test.ts l. 140-152 y los 288 km están bien. Pero §5.2 l. 75 sitúa la fila de Sanremo en «calendar.ts l. 1002», y hoy `race-sanremo` está en l. 1010 (km en l. 1016), por el mismo desfase de 14 líneas."
+   },
+   {
+    "id": "H222",
+    "por_que": "`raceClass`, RACE_CLASSES (uci.ts l. 14, que sí incluye NC) y COUNTRIES están corregidos. Las líneas de calendar.ts que la corrección copió (RaceRow l. 381-397, tablas l. 931, 1242 y 1615) están desfasadas 14 respecto del código vivo: las reales son l. 395, 945, 1256 y 1629."
+   }
+  ]
+ },
+ {
+  "conformes": [
+   "H249",
+   "H250",
+   "H251",
+   "H252",
+   "H253",
+   "H254",
+   "H269",
+   "H270",
+   "H271",
+   "H272",
+   "H273",
+   "H274",
+   "H276",
+   "H296",
+   "H297",
+   "H299",
+   "H301",
+   "H302",
+   "H303",
+   "H324",
+   "H326",
+   "H327",
+   "H330",
+   "H331",
+   "H332",
+   "H586",
+   "H589",
+   "H602"
+  ],
+  "no_conformes": [
+   {
+    "id": "H239",
+    "por_que": "La parte de §8 está bien: §8.5 y §8.15 ya dicen que desnivelDe mide solo los puertos (bloques subida = segmentos puerto) y eligen la opción (b). Pero la corrección pedía además borrar la expectativa «delta < 5 %» y que la sección 13 declarase el cambio de población de las cubetas, y eso sigue sin hacer. 13-banco.md l. 101 y l. 150 mantienen «p90 de |dPlus − dPlusBloques| / dPlusBloques < 0,05», un test que por construcción no puede pasar. 12-constantes.md l. 145 (reina.dPlusIncluyeRelleno) sigue diciendo que desnivelDe mide el total sumando bloques subida, con el «esperado < 5 %». 03-modelo.md l. 516 repite «esperado < 5 %, decisión 9». §8.5 da por corregidas la decisión 9 y la banda de la sección 13 y no lo están."
+   },
+   {
+    "id": "H275",
+    "por_que": "El umbral > 0,5 con residuo y el suelo min(0,8; 0,45·amp) están aplicados, pero el cuerpo nuevo de rolling que escribe §8.7 es incorrecto y la afirmación «golden.test.ts pasa» es falsa. Hoy la línea es `bumpy && rand() < 0.35` (profileGen.ts, 8585ca2, l. 119), que no consume ninguna tirada cuando bumpy es false. §8.7 escribe `tipo = rand() < pRompepiernas ? ...` y dice que los builders legado pasan pRompepiernas 0,35. Con eso un rolling no bumpy emitiría rompepiernas en llano. Aun pasando 0, consumiría un rand() que hoy no se consume y desplazaría la secuencia. Hay que escribir `pRompepiernas > 0 && rand() < pRompepiernas` y que el legado pase `bumpy ? 0.35 : 0`."
+   },
+   {
+    "id": "H298",
+    "por_que": "§8.4 punto 2 adopta la regla por hueco de §10.3, pero la corrección pedía escribirla también en §12 con esas palabras. 12-constantes.md l. 185 sigue diciendo que edicion.motivoNuevo es la «p de que un hueco opcional (Slot.n[0] === 0) aparezca o desaparezca», que es la tercera semántica denunciada. Además §8.4 afirma en falso que «la sección 12 la escribe con estas mismas palabras»."
+   },
+   {
+    "id": "H300",
+    "por_que": "§8.10 ya aplica la regla nueva: en un circuito, una cima por cota ≥ 1,5 km en su último paso, y la banda nPancartas ≤ 6. Pero afirma que «la sección 12 (pancarta.cimaMinKm) y la 18 lo escriben igual», y 12-constantes.md l. 173 sigue diciendo «y una por paso de cota ≥ 1,5 en un circuito». La decisión 25 del esqueleto (00-esqueleto.md l. 427) dice lo mismo. El implementador se encuentra dos reglas contradictorias sobre la misma constante."
+   },
+   {
+    "id": "H325",
+    "por_que": "§8 y §10 ya usan planDeEdicion con semilla por etapa, ed|${claveEtapa(req)}|season. La corrección exigía fijarlo también en §3, y 03-modelo.md sigue con la versión vieja en tres puntos. En l. 382 exporta `editionOf(...)`. En l. 376-381 el EditionPlan no tiene dPlusObjetivo. En l. 389 declara el subflujo como `ed|raceId|season`, «consumido en orden de i», es decir por carrera y no por etapa, que es exactamente el defecto señalado. §8.4 dice «Es el único nombre de la función en el documento», y es falso: 03-modelo.md l. 382 y 15-plan.md l. 302 siguen diciendo editionOf."
+   },
+   {
+    "id": "H328",
+    "por_que": "§8.9 y §8.13 transportan `reglas` como `arch.garantiasClase`, y RouteStats de §3 y §13 ya tiene el campo. Falta lo que la corrección pedía expresamente: el bloque `arch` de GeneratedStage en 03-modelo.md (l. 339-350) no tiene `garantiasClase`. Llega hasta metadatos, sin ese campo. §8.9 solo anota «sección 3: se añade al bloque arch», así que salida() escribiría un campo que el tipo no declara. Además 03-modelo.md l. 467 y 13-banco.md l. 77 citan §8.8 cuando la regla está en §8.9."
+   },
+   {
+    "id": "H329",
+    "por_que": "El renombrado de rendir por renderMotif está hecho, y degradarPapel y degradarMotivo pasan a geo.ts de forma coherente con 06-geografia.md l. 220. Pero la corrección pedía añadir las exportaciones que faltan a la fila de motifs.ts en §B.1 y §3, y no se ha hecho. Ni 00-esqueleto.md l. 51 ni 03-modelo.md exportan instanciar, instanciarFirma, degradarMotivo, opcionDe ni seasonDe. §3 solo tiene `degradar(relieve)` en geo.ts. Además el pseudocódigo de §8.1 llama a `instanciarFirma(...)` sin importarla y sin que ninguna sección la declare. El implementador tiene que inventar dónde vive."
+   }
+  ]
+ },
+ {
+  "conformes": [
+   "H240: §7 l. 3 da 503 etapas (325 de 72 vueltas más 178 de un día). Lo he contado sobre calendar.ts y editions.ts: 72 vueltas fuera de ediciones con 325 etapas, 310 − 60 − 72 = 178. Da 383 de edición, y el grep de 'terrain:' en editions.ts da 383 (95+163+95+26+4), así que la enmienda del 384 del mapa también es correcta.",
+   "H241: §7.2 dice que vu_larga solo sirve a race-colombia-tour (9 etapas). Lo he comprobado: las filas calendar.ts l. 3609 (9) y editions.ts dan colombia 9, tachira 10, guatemala 10 y portugal 11, y las cuatro son ediciones.",
+   "H242: Sanremo 288 (l. 1016) y Flandes 278,2 (l. 1070) están bien citados en l. 1010-1016 y 1064-1070. El techo solo recorta lo generado.",
+   "H243: la firma kmDe(role, raceClass, n, last, rand) ya lleva n. Tiene cri → itt largo si n >= ittLongStages y el papel cri_u23 para la crono nacional.",
+   "H244: §7.6 añade la fila cobbles → llana con fixed.skeleton ud_adoquin_ligero, declarada como excepción a I-9. Las cuatro etapas de editions.ts (l. 86, 217, 225 y 415) están bien citadas.",
+   "H245: dice 6 generadas (sharjah, besseges, provence, victoria, almeria, tramuntana) y 4 de edición. Lo he comprobado contra SMALL_TOURS y RACE_EDITIONS.",
+   "H246: las líneas están actualizadas al árbol vivo: row.km l. 929, buildRace l. 900-939 con la llamada en l. 937, las constantes itt* en l. 1280-1300. Las he verificado. El engine no cambia entre 8553486 y el HEAD actual (git diff vacío).",
+   "H247: ventanaReina(n) = [max(9, floor(2n/3)), n-2] da [10;13] con n = 15, [10;14] con n = 16 y [14;19] con n = 21, así que la ventana nunca incluye la última etapa. maxCronos 3 solo retira cronos interiores, y el test sella n = 15/16/21.",
+   "H248: la semilla del km es firma|${row.id}|km, con la razón mulberry32 explicada. Lo he comprobado en profileGen.ts l. 30-44.",
+   "H263: es el mismo arreglo que H243: n está en la firma y hay columnas crono/cronoU23 para NC.",
+   "H264: es el mismo arreglo que H244, con test de segmentos paves en calendario.test.ts.",
+   "H265: garantias(roles, terrain, n, zonas) filtra con admiteFinalAlto/admiteMuro y recurre a la crono cuando no queda más opción. Explica que DEFAULT_ROUTE_CONTEXT → generico admite et_media_alto (06 l. 63: cota no nula, finalesAlto corto) y que golfo admite media_alto (06 l. 73). Las citas de calendar.test.ts l. 172-173, 200-209, 223-235 y 248-255 son correctas. Queda una laguna menor: no se ha añadido el test de etiqueta rendida por país.",
+   "H266: frase explícita de que se aparta de §D.7 (9-14 vu_larga, 15-21 vu_gran_vuelta), con razón y propagación.",
+   "H267: la sección cita un único juego de líneas comprobado contra el HEAD declarado. El test de km de ediciones es l. 140-152, verificado.",
+   "H268: es el mismo arreglo que H248 (subflujo firma|raceId|km, propagado a §8.1 y §10.4).",
+   "H288: el paso 1 ancla metas[0] = RACE_REGION[raceId]?.default sin dado; el terreno solo elige el sentido. Hay test sobre las 72 vueltas.",
+   "H289: PT y los Balcanes se tratan como montana con cordillera (coincide con 06 l. 49, 53, 95 y 102) y britanicas como null. §7.7 usa GB.",
+   "H290: la excepción cono_sur está en el paso 4 (cordillera null, finalesAlto largo, puerto no nulo, una sola reina_alto → et_reina_blanda), con test AR/CL. El cambio Jebel Hafeet → Fóia queda anotado. Coincide con 06 l. 56 y 76.",
+   "H291: NC crono [35,10] y cronoU23 [25,10], dentro de nc_crono.km [25;45]. Las cronos de hoy de 38/30 km están en calendar.ts l. 365-366, verificado.",
+   "H292: el test se reescribe como min+rango por columna (155 reina, 150 llana/media, 120 corta).",
+   "H293: se mantiene [15;21] y se dice que vu_gran_vuelta se sella solo en sintético y no toca el calendario hasta E12.",
+   "H294: bloqueMontana (b) comprueba la zona de destino zonas[i] y hay segunda pasada de «reina en la cordillera» antes de garantias en el orden de composeTour.",
+   "H295: es el mismo arreglo que H248.",
+   "H314: KmRole = StageRole | 'un_dia' | 'un_dia_u23' | 'cri_u23', la firma lleva n y se declara la propagación a §3/§B.2.",
+   "H315: composeTour(raceId, n, terrain, ctx), RouteContext con raceId? y country string|null, e Itinerario con notas. Coinciden con 03-modelo.md l. 273-304. La omisión de routeSource está justificada, y la sección 3 dice lo mismo.",
+   "H316: es el mismo arreglo que H294.",
+   "H317: la cláusula de 8 llanas sale de llanasEntreBloques y pasa a ser la quinta garantía, por la cola.",
+   "H318: es el mismo arreglo que H247 (ventanaReina relativa a n, test de reina con n = 15/16, V14 a 15-21 anunciado).",
+   "H319: es el mismo arreglo que H289.",
+   "H320: es el mismo arreglo que H290.",
+   "H321: es el mismo arreglo que H244 (cobbles con excepción explícita a I-9 en tres secciones).",
+   "H322: es el mismo arreglo que H248.",
+   "H323: 60 = 3 GV + 54 de semana + 3 clásicas en §7.6; test de .2 corregido.",
+   "H587: se usa ARCH.itinerario.cronoescaladaP y primera.prologo en TOUR_SKELETONS, y se anota la retirada de prologoP de la sección 12.",
+   "H607 (desestimado con motivo válido): calendar.test.ts tiene 266 líneas (wc -l) y el describe de stageMix empieza en l. 168, así que l. 184-277 no existe. La semilla de stagesFromEdition está en l. 235. La unificación se hizo con los números vivos."
+  ],
+  "no_conformes": []
+ },
+ {
+  "conformes": [
+   "H255",
+   "H256",
+   "H257",
+   "H258",
+   "H259",
+   "H277",
+   "H278",
+   "H279",
+   "H280",
+   "H281",
+   "H282",
+   "H304",
+   "H305",
+   "H306",
+   "H307",
+   "H308",
+   "H333",
+   "H334",
+   "H335",
+   "H336",
+   "H337",
+   "H338",
+   "H594",
+   "H630"
+  ],
+  "no_conformes": []
+ },
+ {
+  "conformes": [
+   "H260",
+   "H261",
+   "H262",
+   "H283",
+   "H284",
+   "H285",
+   "H286",
+   "H287",
+   "H310",
+   "H311",
+   "H312",
+   "H313",
+   "H339",
+   "H340",
+   "H343",
+   "H344",
+   "H345",
+   "H590",
+   "H593",
+   "H603",
+   "H619",
+   "H627",
+   "H628"
+  ],
+  "no_conformes": [
+   {
+    "id": "H309",
+    "por_que": "Dentro de §10 la corrección está hecha: `Alternativa` como rangos, `opcionDe(sk, raceId, season)` con `hashInt(alt|raceId)`. Pero la corrección pedía la misma regla en §5, §8.3 y §10, y hoy se contradicen. 05-esqueletos.md l. 51 sigue con `alternativas?: Motif[][]`, y l. 219 dice que la opción es `season % (1 + n)` y que «sus motivos con firma: true SUSTITUYEN». 08-algoritmo.md l. 24, 78 y 91 siguen con `opcionDe(sk, season)`, `season % n`, «la temporada 0 rinde siempre canonico» y la sustitución literal. El implementador sigue teniendo dos reglas y dos firmas de `opcionDe`. Además el test nuevo de §10.9, «dos carreras del mismo esqueleto no comparten firma», con `new Set(firmas).size ≥ ceil(0,98 × n)`, nace en rojo por construcción. Se aplica a TODOS los esqueletos, y en `et_llana`, `ud_esprint`, `et_crono`, `et_prologo` y compañía la única firma es la meta `esprint` sin `cotaFinal` (05 l. 74, 99 y 112), igual o casi igual en cientos de etapas. Hay que restringirlo a los esqueletos con alternativas o con firma parametrizada."
+   },
+   {
+    "id": "H342",
+    "por_que": "§10.3 fija `nivelEfectivo` y se limita a decir que §5 y §12 «dicen lo mismo que aquí o se corrigen a esto». La corrección pedía una sola regla en §5, §10, §12 y §18. La frase contraria sigue viva en 05-esqueletos.md l. 219: «Con el valor por defecto de D7 (`nivel` 1) las alternativas no rotan […] el calendario usa el `canonico`». También en 08-algoritmo.md l. 78: «Con `season % n` la temporada 0 rinde siempre `canonico` y la temporada 1 rinde `alternativas[0]` (test de §10.9)», que cita un test que §10.9 ya no tiene. Siguen existiendo dos reglas."
+   },
+   {
+    "id": "H341",
+    "por_que": "La aserción ya es de agregado, pero sigue naciendo en rojo por culpa de la población. `generadas` filtra por `r.routeSource === 'generado'`, y con `raceRouteSourceOf` (§10.5, 11-*.md l. 34-40) basta con que no haya ninguna etapa 'real' para que la carrera cuente como 'generado'. Así entran las 39 carreras que tienen `RACE_EDITIONS` y ningún rasgo en `STAGE_FEATURES` (medido: 60 carreras en editions.ts, 21 con rasgos). Todas sus etapas son 'edicion', y para ellas `diffMotivos` devuelve `[]` siempre (§10.8), así que nunca difieren. El calendario tiene 842 carreras, 532 nacionales, o sea 310 de equipos; quitando las 41 real o mixto quedan 269 en `equipos`. 39/269 ≈ 14,5 % nunca cumple, así que el tope es ≈ 85,5 %, por debajo del ≥ 90 % exigido. Hay que excluir de `equipos` las carreras sin ninguna etapa `routeSource === 'generado'` (y revisar el mismo filtro en los demás tests que usan `generadas`), o recalcular la cifra."
+   }
+  ]
+ },
+ {
+  "conformes": [
+   "H346",
+   "H347",
+   "H348",
+   "H349",
+   "H350",
+   "H351",
+   "H352",
+   "H371",
+   "H373",
+   "H374",
+   "H375",
+   "H376",
+   "H377",
+   "H378",
+   "H379",
+   "H421",
+   "H422",
+   "H423",
+   "H424",
+   "H425",
+   "H431 (desestimado con motivo válido: §B.2 l. 253 tipa `GeneratedStage.label // = stageKindOf(...).label` y la decisión 38 l. 440 dice lo mismo, así que la propuesta de H431 contradice el esqueleto; `labelDe` en §11.5 regla 3 fija un solo mecanismo que honra las dos cosas)",
+   "H432",
+   "H433",
+   "H434",
+   "H435",
+   "H436",
+   "H437",
+   "H592",
+   "H621"
+  ],
+  "no_conformes": [
+   {
+    "id": "H372",
+    "por_que": "El mecanismo único ya está en §11.5 regla 3 (`labelDe`, con `ETIQUETAS_DE_ESQUELETO` para las cinco etiquetas nuevas), pero §11.6 sigue contradiciéndolo en su primer caso (11-real.md l. 303): «Una Lieja generada (`ud_montana_media` en `ardenas` …) sale `media` con etiqueta `Mountains classic`». En la sección 5 (05-esqueletos.md l. 84) `ud_montana_media` es `media / Hills`, y `Mountains classic` pertenece a `ud_montana`, que es `reina` (l. 83). Así lo dice también la propia regla 3 («`ud_montana` … lleva `Mountains classic`») y así lo repite el corrector al desestimar H431. Con `labelDe`, `Hills` no está en `ETIQUETAS_DE_ESQUELETO`, de modo que la etiqueta de `ud_montana_media` sale de `stageKindOf`: con su valle de [5,7; 17] km da `Hills`, nunca `Mountains classic`. Además, una `media` con `Mountains classic` rompe la garantía de la regla 3 de que «las cinco nuevas están casadas con un `kind` en el catálogo». Otro detalle del mismo caso: las cotas «[2,5; 4,5] km» no cuadran con la fila de la sección 5 («la primera km [3,3; 8,0]», cotaFinal [2,5; 4,2]). Hay que reescribir esa viñeta: o una Lieja generada como `ud_montana_media` sale `media / Hills`, o como `ud_montana` sale `reina / Mountains classic`. En ninguno de los dos casos puede salir `media / Mountains classic`."
+   }
+  ]
+ },
+ {
+  "conformes": [
+   "H358",
+   "H359",
+   "H360",
+   "H361",
+   "H362",
+   "H363",
+   "H364",
+   "H365",
+   "H366",
+   "H367",
+   "H388",
+   "H389",
+   "H390",
+   "H391",
+   "H392",
+   "H393",
+   "H394",
+   "H395",
+   "H400",
+   "H401",
+   "H402",
+   "H403",
+   "H404",
+   "H405",
+   "H406",
+   "H407",
+   "H408",
+   "H409",
+   "H410",
+   "H411",
+   "H448",
+   "H449",
+   "H450",
+   "H451",
+   "H452",
+   "H453",
+   "H454",
+   "H455",
+   "H456",
+   "H458",
+   "H459",
+   "H615",
+   "H617",
+   "H623",
+   "H624"
+  ],
+  "no_conformes": [
+   {
+    "id": "H457",
+    "por_que": "Casi todo está aplicado: `raceDePrueba` se declara en `routeCensus.ts` (13-banco.md l. 93), `BANDAS_SOBRE_GENERADO` en `preRegistro.ts` (l. 206), `estratos` con su tipo `Estrato` en `calendarQueens.ts` (l. 166), los bloques llevan los imports de vitest y la aserción del tiempo pasó a `calendario.test.ts` (l. 267-271). Falta una cosa: en `sim/routeCensus.test.ts` (l. 285) la llamada sigue incompleta, `renderSkeleton(SKELETONS.ud_muro_final.canonico, /* requestDePrueba(ud_muro_final, ZONAS.ardenas), sección 5 */)`. El segundo argumento está dentro de un comentario, así que no se pasa. Además, `requestDePrueba` es un auxiliar local del fichero de test de la sección 5 (05-esqueletos.md l. 368: «auxiliares del propio fichero de test»), no se exporta y no se puede importar desde aquí; tampoco se importan `ZONAS` ni `requestDePrueba`. Y la firma no coincide con la de la sección 8 (08-algoritmo.md l. 34 y l. 141: `renderSkeleton(colocados, geo, desde, rngDib) → { segs, residuo }`). Tal como está, el implementador no puede escribir ese test. Hay que construir el `StageRequest` en el propio test (o exportar un auxiliar compartido) y llamar a `renderSkeleton` con la firma que fija la sección 8."
+   }
+  ]
+ },
+ {
+  "conformes": [
+   "H353",
+   "H354",
+   "H355",
+   "H356",
+   "H357",
+   "H380",
+   "H381",
+   "H382",
+   "H383",
+   "H384",
+   "H385",
+   "H386",
+   "H387",
+   "H412",
+   "H414",
+   "H415",
+   "H416",
+   "H417",
+   "H418",
+   "H420",
+   "H438",
+   "H439",
+   "H440",
+   "H441",
+   "H442",
+   "H444",
+   "H446",
+   "H447",
+   "H629",
+   "H635",
+   "H636"
+  ],
+  "no_conformes": [
+   {
+    "id": "H413",
+    "por_que": "En §12.7 (l. 201) está bien hecho: la fila .1 va a [160, 40], el texto habla de «ETAPAS DE VUELTA» y la banda se parte en dos filas («etapas de vuelta .2: p90 ≤ 150» y «un día .2: p90 ≤ 176, máximo 180»). Pero la banda que señalaba el hallazgo sigue igual donde vive. En 13-banco.md l. 149, `km.clase.p90dos` tiene una sola fila, «p90 de km en .2 ≤ 170», y 07-vueltas.md l. 140 repite «p90 de km de las etapas .2 ≤ 170». La sección 12 dice que la banda de §13.3 «se escribe en dos filas», y hoy es falso: la banda puede seguir naciendo en rojo solo por aritmética."
+   },
+   {
+    "id": "H419",
+    "por_que": "`blandaShare` ya está definida como probabilidad por cada papel `reina_*`, sorteada con el rng `arch`. Pero §12.4 (l. 151) añade una excepción, «con `req.format === 'gran-vuelta'` no se tira», y afirma que «la sección 5 y la 7 lo dicen igual». No lo dicen. 05-esqueletos.md l. 346 (§5.7, regla 1) tira siempre que el papel empiece por `reina_`, sin ninguna excepción por formato. 'gran-vuelta' solo aparece en 07-vueltas.md l. 222, dentro de un test. La corrección pedía escribirlo también en la sección 7, y eso no está hecho."
+   },
+   {
+    "id": "H443",
+    "por_que": "§12.10 (l. 262) retira bien `grandTourStages` y `grandTourLastDecisiveFactor` y los sustituye por `vu_gran_vuelta.ultima`. Además dice que «la sección 7 quita `× grandTourLastDecisiveFactor si n ≥ 15`». Sin embargo 07-vueltas.md sigue con los dos como vigentes. En l. 47: «`lastDecisiveChance` × `grandTourLastDecisiveFactor` si `n ≥ 15`». En l. 84 los lista entre lo que «se conserva, línea por línea» («`grandTourStages` 15, `grandTourLastDecisiveFactor` 0,4»). También 15-plan.md l. 333 la cita. El documento sigue contradiciéndose: la 12 la retira y la 7 la conserva."
+   },
+   {
+    "id": "H445",
+    "por_que": "En §12.6 el mecanismo está resuelto: `interface EdicionCfg` con `activa: boolean`, `calendarForSeason(s, cfg)` y una memo indexada por la referencia de `cfg`. Además §12.6 afirma: «La sección 10 importa `EdicionCfg` de `constants.ts` en vez de derivarlo con `typeof ARCH.edicion`». Es falso. 10-identidad.md l. 45 dice `export type EdicionCfg = typeof ARCH.edicion`. Y su literal de `ARCH.edicion` (l. 36-44) lleva una clave `baseSeason: 0` que no está ni en la interfaz de 12 ni en su literal (12-constantes.md l. 28-34 y l. 83). Si se implementa la 12, el código de la 10 que lee `ARCH.edicion.baseSeason` no compila. Hay dos definiciones incompatibles del mismo tipo."
+   },
+   {
+    "id": "H588",
+    "por_que": "El literal `ARCH` de §12.1 sí tiene ahora todas las claves que faltaban (`cadena`, `descenso.km`, `expuesto.km`, `circuito.maxHijosShare`, `veto.segmentoMinKm`, `kmTolerancia`, `pendientes`, `puertoLargoKm`, `puertoDplusMax`, `llana`, `calendario`, `margenClaseMetros`). Pero §12.2 (l. 111) afirma: «La sección 8 usa este nombre (`cadena.enlace`) para la separación de los hijos, no `cadena.separacion`». Es falso: 08-algoritmo.md l. 131 sigue leyendo `ARCH.motivo.cadena.separacion` [1,5; 6], y 05-esqueletos.md l. 16 también usa `cadena.separacion`. Esa clave no existe en el literal de 12, así que la sección 8 no compila contra ella. La corrección pedía justamente cambiar el nombre en la sección 8."
+   }
+  ]
+ },
+ {
+  "conformes": [
+   "H465",
+   "H466",
+   "H467",
+   "H468",
+   "H469",
+   "H470",
+   "H471",
+   "H472",
+   "H473",
+   "H474",
+   "H475",
+   "H476",
+   "H477",
+   "H493",
+   "H494",
+   "H495",
+   "H496",
+   "H497",
+   "H498",
+   "H525",
+   "H530",
+   "H531",
+   "H537",
+   "H538",
+   "H539",
+   "H540",
+   "H541",
+   "H542",
+   "H543",
+   "H545",
+   "H546",
+   "H547",
+   "H548",
+   "H549",
+   "H550",
+   "H551",
+   "H552",
+   "H553",
+   "H554",
+   "H555",
+   "H556",
+   "H557",
+   "H570",
+   "H577",
+   "H598",
+   "H599",
+   "H610",
+   "H611",
+   "H613",
+   "H614",
+   "H625",
+   "H638"
+  ],
+  "no_conformes": [
+   {
+    "id": "H544",
+    "por_que": "Las llamadas rotas se han quitado, pero el auxiliar nuevo `renderCanonico` (15-plan.md l. 184-193), que el plan manda copiar en skeletons.test.ts y veto.test.ts, no compila. (1) Hace `slot: slotDe(sk, motif)`, pero `Placed.slot` es `number | 'meta'` (03-modelo.md l. 431) y `slotDe` devuelve un `Slot` o `null` («null para enlaces, bajadas y meta», 05-esqueletos.md l. 408, que luego lee `s.ventana`). (2) Su firma es `(sk: Skeleton, geo)`, pero la sección 9, que es la copia de veto.test.ts, lo llama con un id de cadena: `renderCanonico('et_reina_alto_largo', ZONAS.pirineos)` y `renderCanonico('ud_montana', ...)` (09-vetos.md l. 114 y 149). El implementador copia un auxiliar que falla en typecheck en los dos ficheros. Arreglo: calcular el slot como índice de `sk.slots` o `'meta'` para el último motivo (enlaces sin slot, o hacer opcional el campo en `Placed`), y poner una sola firma (id o Skeleton) igual en la 15 y la 9."
+   },
+   {
+    "id": "H575",
+    "por_que": "Ya no queda `routeRng(x)(y)` y `renderMotif` lleva los tres argumentos (l. 158-159). Pero la sustitución de `renderSkeleton` pasa por el mismo auxiliar `renderCanonico` (l. 184-193), que asigna a `Placed.slot` (`number | 'meta'`, 03-modelo.md l. 431) el resultado de `slotDe` (un `Slot` o `null`, 05-esqueletos.md l. 408). Además la sección 9 lo invoca con otra firma, un `SkeletonId` como cadena (09-vetos.md l. 114 y 149). Los tests que usan la plantilla canónica siguen sin compilar tal como están escritos."
+   }
+  ]
+ },
+ {
+  "conformes": [
+   "H368: §14.4 tercer test reescrito. La importación se comprueba con /^import (?!type )[^\\n]*from '[^']*\\/stage\\//m y los nombres con identificador seguido de '(' sobre el fuente sin comentarios (l. 83-87). El párrafo de l. 93 explica por qué: el comentario de veto.ts y las tablas de MetaKind.",
+   "H396: igual que H368, mismo test (l. 81-89) con la variante de import type permitida y justificada.",
+   "H369: §14.3 punto 0 compila y comprueba ENGINE_VERSION y HEAD, y aborta si dist/constants.js es más antiguo que src/constants.ts. Verificado que dist/constants.js es del 14-09 y ENGINE_VERSION es 86 en constants.ts l. 809.",
+   "H398: el criterio del paso 0 (l. 40) toma como línea base la mediana sobre el HEAD de partida. Los 578 ms quedan como referencia de 8585ca2 y una desviación mayor del 20 % no bloquea. §14.1 l. 7 fecha las cifras en 8585ca2 (43 commits hasta e94959b, +944 constants.ts, +1.558 simulate.ts, +14 calendar.ts, verificado con git).",
+   "H427: mismo arreglo. La versión, el HEAD y la máquina se anotan en v61 §0 (l. 40 y l. 134).",
+   "H460: mismo arreglo, y además el cociente sobre la línea base se anota junto a objetivo y techo (l. 26 y l. 38, punto 6).",
+   "H397: §14.5 punto 2: BASE_SEASON nunca se expulsa, el tope cuenta solo s ≠ 0 y la expulsión es LRU. El test de l. 75-78 comprueba calendarForSeason(0) === SEASON_CALENDAR tras nueve temporadas. Se ha seguido a mano la traza del orden LRU ([1,3,2] y luego se expulsa la 1) y es correcta.",
+   "H461: mismo arreglo que H397, con LRU por último acceso y el test en arranque.test.ts.",
+   "H399: §14.6 aplica el mecanismo de §11.5 regla 3 (labelDe, 11-real.md l. 254-265). label y name son inmediatos para las cinco ETIQUETAS_DE_ESQUELETO y getter en el resto. El test de l. 126 cubre label y name en esos esqueletos.",
+   "H429: §14.6 cuarto punto dice dónde se instala el getter: lazyStage sobre el objeto final, después del spread, en stagesFrom y en la rama de un día. Verificado stagesFrom en calendar.ts l. 188-194 con name en l. 192, y la rama de un día en l. 932 (el hallazgo citaba 938).",
+   "H622: §14.1 cita sim/world.ts l. 169-193 (calendarioDe l. 169-187, CALENDARIO l. 189-193), verificado en el fuente, y §14.6 cita l. 169-193.",
+   "H370 (desestimado en parte, motivo válido): en vitest.config.ts de la raíz, ×1,75 y ×2,02 están en la viñeta l. 17-18, el 30 % en l. 19-20 y testTimeout: 30_000 en l. 25, justo lo que cita el borrador. CalendarRace cierra en l. 93 (doubleAfter en l. 92). Sí se aplicaron calendarRun.ts l. 137 y l. 64, las 3.662 líneas y doubleAfter en §14.6.",
+   "H426 (desestimado, motivo válido): 12-constantes.md l. 3 y la tercera regla de §12.1 (l. 97) dicen que constants.ts no reexporta ZONAS, TERRITORIOS, RACE_REGION, SKELETONS ni TOUR_SKELETONS y solo hace import type de routes/grammar/. El test de §12.14 (l. 379-383) lo sella. §14.4 l. 44 añade esa condición de medida."
+  ],
+  "no_conformes": [
+   {
+    "id": "H430",
+    "por_que": "§14.5 (l. 103 y l. 108-109) dice que calendario.test.ts construye 0 + 3 con cuatro censos y que sim/routeCensus.test.ts va 'solo la 0, más 2 censos' y 'no construye ninguna otra'. El código de la sección 13 dice otra cosa. En 13-banco.md l. 323-328, sim/routeCensus.test.ts tiene it('el censo es determinista en las temporadas 0 a 3') con un bucle for s of [0,1,2,3] y dos routeCensus por temporada: cuatro temporadas y ocho censos. Además l. 108 dice 'su determinismo sobre las temporadas 0 a 3'. En calendario.test.ts (l. 285-290) el bucle es [0,1,2,3] y no 1 a 3. Hay un censo al cargar (rows), cuatro en el bucle y uno en 'cabe en un push': seis censos, no cuatro. Las dos secciones siguen dando cifras distintas para el mismo test, que es justo lo que pedía corregir el hallazgo. Hay que fijar una sola versión en 13 y en 14 y rehacer la fila de §14.5 con el conteo real."
+   },
+   {
+    "id": "H463",
+    "por_que": "El motivo del desestimado no se sostiene contra el texto actual. Afirma que 13-banco.md §13.8 muestra sim/routeCensus.test.ts 'sin bucle de temporadas' y con dos routeCensus() sobre la temporada 0. Pero 13-banco.md l. 323-328 tiene un bucle sobre las temporadas 0 a 3, y l. 108 lo dice en prosa. La parte de edition.test.ts sí es válida: 10-identidad.md l. 201 dice ≤ 7,5 s. La incoherencia principal entre 13 y 14 sigue abierta (ver H430)."
+   },
+   {
+    "id": "H428",
+    "por_que": "§14 queda bien: §14.5 punto 2 y la l. 75 usan ARCH.arranque.maxTemporadasEnMemoria. Pero ARCH lo define la sección 12, y en 12-constantes.md l. 93 está `arranque: { objetivoMs: 1500, techoMs: 2500, porTemporadaMs: 1000 }`, sin maxTemporadasEnMemoria. La tabla de §12.9 (l. 246-248) tampoco lo tiene. Tal como está escrito, el test de §14.4 no compila y la constante no tiene intención escrita donde §14.5 dice que la tiene. Falta añadir la clave, su valor 8 y su intención en §12 (l. 93 y tabla 12.9)."
+   },
+   {
+    "id": "H462",
+    "por_que": "El mecanismo de label y name queda alineado con §11.5 (aceptable, aunque sigue la corrección de H399 y no la literal de este hallazgo). Pero la corrección mete una afirmación falsa sobre el código en §14.6 l. 122: 'Fuera del motor nadie lee name de una etapa en código de producción (grep sobre packages/db/src y apps/api/src)'. apps/api/src/stageHistory.ts::calendarStageSpec lee stage.name y stage.label (l. 108 y l. 116), y la llaman apps/api/src/routes/calendar.ts l. 60 y l. 94 y apps/api/src/routes/races.ts l. 314 y l. 402. La conclusión práctica aguanta (esos caminos ya leen stage.profile y ninguno está en el tick), pero la frase tiene que decir quién lee name y por qué eso no cambia el coste."
+   },
+   {
+    "id": "H464",
+    "por_que": "El arreglo de fondo está aplicado: el script imprime la cuenta (§14.3 punto 5), la tabla de §14.5 se escribe con esa cifra, y 22 en e94959b frente a 18 en 8585ca2 es correcto. Pero la lista de ficheros añadidos de §14.1 l. 16 está mal. packages/engine/src/routes/semietapa.test.ts no casa con el grep (no nombra SEASON_CALENDAR ni @cyclingstar/engine). apps/api/src/raceRadio.test.ts no se añadió: ya existía en 8585ca2 y empezó a importar el motor después. Y falta que packages/engine/src/sim/invariants.test.ts dejó de casar. La diferencia real, con git grep sobre 8585ca2 y e94959b, es: +raceRadio.test.ts, +db/semietapa.test.ts, +routes/solapes.test.ts, +sim/invariantsClasicas.test.ts, +sim/invariantsPequenas.test.ts, −sim/invariants.test.ts."
+   },
+   {
+    "id": "H626",
+    "por_que": "Aplicado en 14 (l. 18) y en 15 (l. 352), y 18-dueno.md ya no cita el reloj. En cambio 17-riesgos.md l. 122 sigue diciendo 'calendarQueens 3.600 s con 4 semillas' al hablar del coste de la remedición del paso 9, cuando la sección 13 fija 4.000 s tras el paso 9 (13-banco.md l. 174 y l. 251). El hallazgo pedía alinear 14, 15, 17 y 18."
+   },
+   {
+    "id": "H641",
+    "por_que": "En §14 está bien (l. 124: packages/db/src/callups.ts l. 98, verificado), y 02-principios.md y 11-real.md también. El hallazgo pedía además corregir 19 y §B.1 del esqueleto. 19-apendices.md l. 105 y l. 165 siguen diciendo 'callups.ts l. 98' sin paquete, y 00-esqueleto.md l. 72 sigue diciendo 'world/callups.ts l. 98', que es la definición de raceVocationFit en el motor y no el lector de SEASON_CALENDAR."
+   }
+  ]
+ },
+ {
+  "conformes": [
+   "H486: D2 (18.1 y 18.3) nombra ahora PASS_MIN_KM 8,5 (l. 62), QUEEN_MIN_CLIMB_METRES 3.200 (l. 64) y WALL_MAX_KM 3 (l. 60, clásica en l. 86-88), comprobado en stageKind.ts. Ya no pone 'del final en alto', y separa STAGE.finishAltoMinKm 3 (constants.ts l. 4458, que lee stage/finish.ts l. 168).",
+   "H487: 18.3 dice sin comillas angulares que la clasificación se calibra contra los propios generadores (l. 13, comprobado) y cita la tabla medida en l. 44-58 (comprobado).",
+   "H511: el ejemplo falso de GB/US está quitado. La fila GB, IE de la tabla de 18.9 explica que britanicas (relieve media) no vale por §15.4. Es válido desestimar la corrección genérica: US ya tiene cordillera norteamerica (06 §6.3), y DE, HU (centroeuropa) y KR, TH, IN (asia_oriental) tienen relieve montana (06 l. 50 y 59), así que la frase 'ninguna zona cumple' sería falsa.",
+   "H512: prólogo con una sola casa, TOUR_SKELETONS[id].primera.prologo (18.1, 18.4). La cronoescalada va en ARCH.itinerario.cronoescaladaP. Comprobado que 12-constantes.md l. 91, 217 y 238 y 07-vueltas.md l. 102-103 coinciden y que prologoP ya no está en el literal de 12. 'Tres esqueletos' es correcto porque vu_corta ya es { llana: 1 } (07 l. 42-45).",
+   "H513: igual que H486. 18.3 aclara además que Summit finish cambia en E1 por la decisión 23 (SUMMIT_RUN_IN_KM 5, stageHistory.ts l. 73, comprobado) y que eso no es objeto de D2.",
+   "H514: D6 ya no dice que la blanda sostiene la cubeta < 1.500. Dice que sostiene [1.500; 2.500), con la fracción (20 a 25 %) y el reparto previsto de §13.6, y remite a los re-sellados de §13.4 punto 4. Es válido no bajar la blanda a [1.200; 2.000]: la decisión 8 de §C.1 (esqueleto l. 410) fija D+ [1.500; 2.500], y 13-banco.md l. 173 da unos 1.400 como mínimo que la gramática puede dibujar. Error menor que queda en 18.7 l. 98: cita calendarQueens.test.ts l. 62-63 para facil.races/dura.races, y en el código están en l. 60-61.",
+   "H528: la tabla D8 cubre los 30 países de las 12 filas de 06 §6.3 (comprobado contra 06 l. 88-115; H528 decía 13 países, y el número no es correcto). Recoge la excepción AR/CL, la pregunta del Golfo con su cambio de datos exacto y el calendario de respuesta con vueltas.html delante (§16.7). Es válido no tratar AE como AR/CL por defecto: la decisión 13 de §C.1 (esqueleto l. 415) sella '0 reinas en BE, NL, DK, AE, AU'. El aviso sobre admiteReina y DE/HU/KR/TH/IN está comprobado en 07 l. 62-63.",
+   "H529: D1 describe la atadura RACE_REGION[id].skeleton y la parte sorteada con su riesgo, que puede caer en cualquier .1 de alpes, pirineos, provenza o dolomitas (las cuatro con finalesAlto largo en 06). También describe el listado por id en routeCensus y la respuesta 'solo atadas' con su cambio exacto. Es válido no crear RACE_SKELETON: RACE_REGION.skeleton ya existe (06 l. 137 y 146, sellado en l. 425). Es válido no poner pesoPorClase a 0: lo impide la decisión 37 (esqueleto l. 439), y candidatos() exige pesoPorClase > 0 (06 l. 146), así que un 0 anularía la atadura.",
+   "H534: 18.4 deja de afirmarlo sin respaldo. Escribe la invariante (tirada consumida siempre, nunca 'p > 0 && rand() < p') como obligación de §7.3 y describe el test (a) de conteo de llamadas y el (b) de composición idéntica. Es correcto que tour.test.ts es del paso 7, que es §15.8 y no §15.9 (15-plan.md l. 233 y 264). También es válido no usar 'papeles 1..n-1 idénticos': maxCronos (07 l. 76) puede mover otra crono cuando sale el prólogo. Aviso: la invariante y el test todavía NO están en 07-vueltas.md §7.3 ni en 15-plan.md §15.8 (grep sin resultados), y la pasada de coherencia tiene que copiarlos allí.",
+   "H567: el ejemplo GB/US está quitado. La fila GB, IE dice 'zona nueva (Escocia)' con la razón de §15.4, como pedía la corrección.",
+   "H568: 18 usa un solo nombre para cada valor (TOUR_SKELETONS[id].primera.prologo y ARCH.itinerario.cronoescaladaP), igual que 7 y 12. El bloque de 18.1 está reescrito como campos del literal as const. Es válido no meter prologoP en §B.3: contradice la casa única que ya fijan 7 (l. 102) y 12 (l. 238). Queda pendiente para la pasada de coherencia añadir cronoescaladaP a §B.3 (esqueleto l. 358-359 solo tiene avance y transicion).",
+   "H633: 18.3 separa ya las 72 discrepancias de kind (leído contra declarado) de las 49 etiquetas (label) que reescribe calendarStageSpec. Cita stageHistory.test.ts l. 193-206, comprobado: el comentario dice que spec.kind coincide en las 1.418 y la línea final hace expect(cambian).toBe(49). También dice que son medidas distintas."
+  ],
+  "no_conformes": []
+ },
+ {
+  "conformes": [
+   "H478",
+   "H479",
+   "H480",
+   "H481",
+   "H500",
+   "H501",
+   "H502",
+   "H503",
+   "H518",
+   "H519",
+   "H520",
+   "H521",
+   "H522",
+   "H523",
+   "H524",
+   "H535",
+   "H536",
+   "H558",
+   "H559",
+   "H560",
+   "H604",
+   "H605"
+  ],
+  "no_conformes": [
+   {
+    "id": "H492",
+    "por_que": "La galería ya no corre en el paso 4 (16.7 l. 174, bien), pero lo que se escribió sobre el km contradice la sección 15 tal como está hoy. 16.2 l. 69 dice «`kmDe` es del paso 7 (sección 15, `grammar/tour.ts`)» y manda sortear un km uniforme en los pasos 5 y 6; 16.7 l. 176 lo repite («km por sorteo uniforme [...] hasta el paso 7»). Sin embargo, la tabla de 15.1 (15-plan.md l. 40: «Vetos, `generateStage`, `kmDe` y galería [...] `grammar/tour.ts` (solo `kmDe`)») y 15.7 l. 227 («`kmDe` en `grammar/tour.ts` [...] adelantada del paso 7 porque la galería la necesita») ponen `kmDe` en el paso 5, y 15.6 l. 198 da por hecho que la galería toma el km de `kmDe` desde el paso 5. La sección 16 cita a la 15 para una afirmación que la 15 desmiente, y el implementador se queda con dos reglas para el km de las filas entre los pasos 5 y 7. Hay que elegir una sola: o 16.2 y 16.7 usan `kmDe` desde el paso 5, o la 15 deja de adelantarla."
+   },
+   {
+    "id": "H499",
+    "por_que": "Solo se ha hecho la mitad de la corrección. La sección 3 ya declara `rechazos: Veto[]` (03-modelo.md l. 347). En cambio, 16.4 l. 107 afirma como hecho presente que «lo rellena el bucle de reintento de la sección 8 (`rechazos.push(veto)` [...])» y que `generate.test.ts` (sección 15, paso 5) «sella `rechazos.length === intentos − 1`». `grep rechazos` sobre 08-algoritmo.md y 15-plan.md no devuelve nada: el bucle de la sección 8 (l. 225-227) sigue sin guardar los `Veto`, y el test de 15.7 no tiene esa aserción. Que la propagación esté apuntada en dudas.md l. 194 no basta: el texto de la 16 describe como existente algo que el borrador no contiene, así que la columna «Intentos y rechazos» sigue apoyándose en un dato que nadie produce."
+   },
+   {
+    "id": "H561",
+    "por_que": "Mismo defecto que H499. La corrección pedía añadir el relleno a `generateStage` en la sección 8 y citar ese sitio desde 16.4 y 15.7. La sección 8 no lo contiene (grep vacío en 08-algoritmo.md) y 15.7 tampoco menciona `rechazos` (grep vacío en 15-plan.md). Aun así, 16.4 cita `rechazos.push(veto)` en la sección 8 y el «registro de qué veto disparó cada reintento» de 15.7 como si ya existieran. El campo está en el tipo de la sección 3, pero nadie lo rellena en el texto actual."
+   }
+  ]
+ },
+ {
+  "conformes": [
+   "H482: aplicado. El riesgo 4 ya no dice que el motor «no sabe» de vueltas: cita StageProfile.laps (types.ts l. 61-73 en 02b032d, verificado: laps en l. 73), cuerdaDelCircuito (citas.ts l. 195-203, verificado que calcula vuelta = totalKm/laps) y STAGE.circuito. La decisión contraria (E1 no escribe laps) está escrita y sellada en generate.test.ts (bloque 'E1 no escribe startM ni laps'). Las tres razones se sostienen en el código: el comentario de constants.ts l. 3896-3899 dice «[calibrar]», «no los cobra nadie» y «decisión de calendario, no de esta tanda»; la plantilla nc_ruta de 05-esqueletos l. 187 es K(20, 8) en 210 km; la deuda 3 de 17.4 lo recoge. 17.2 tiene la fila «Despertar las leyes dormidas». Quedan pendientes las propagaciones a 04 l. 75 y 19.2.3.",
+   "H483: aplicado. Se corrige «el único dato geográfico es el país»: ahora dice que son dos, país y cota de salida dormida. Cita startM (types.ts l. 48-60, verificado en l. 59 con el comentario «inventarse altitudes por etapa, que es peor»), altitudesDelPerfil (citas.ts l. 256) y altitudeCost (cost.ts l. 99). La decisión «E1 no escribe startM» tiene su expect(...).toBeUndefined(), y la deuda 2 está reescrita como se pedía.",
+   "H484 y H566: la desestimación parcial es válida. 00-cabecera l. 49-68 y l. 138-141 fijan que las citas son de 8585ca2 y que manda el nombre del símbolo. Comprobado en 8585ca2: streams('viento') está en simulate l. 1157, kmSubida/breakAppeal/gcTerrain en l. 1696-1710, muroMaxKm en l. 4462, bannerCost en l. 3944, reliefKm en l. 4131, RELIEF.rollingAmplitude en l. 1124 y motor.md 19.5 en l. 1314. windMin ya está corregido a l. 3617, que es la correcta. La l. 5 del documento añade la nota de árbol y cita por símbolo. Confirmado además que git diff 02b032d HEAD -- packages/engine sale vacío.",
+   "H485: aplicado. Ahora dice «el complemento de ROUTE.queenHighDplusShare 0,6» (l. 1169 en 8585ca2 y l. 1260 en 02b032d, verificado) y cita queenLowDplusRange {1.200; 2.500}.",
+   "H504: la desestimación es válida. 13-banco.md §13.4 punto 4 (l. 173) da la aritmética del suelo (unos 1.400 m con los motivos mínimos y 5,5 m/km). docs/epics.md l. 149-150 dice literalmente «media montaña con la etiqueta cambiada». El riesgo 10 queda coherente con la sección 13: sin banda sobre <1500, reina.dplus.blanda ≥ 15 % y min < 1.700, facil pasa a ser la cubeta más baja poblada y l. 64 se re-sella a < 1700 (l. 60 y l. 64 verificadas en calendarQueens.test.ts). Quedan las propagaciones a 18.7, 18.1 y 19.",
+   "H505 y H562: aplicado. El test está partido: el de viento cubre tres zonas no llanas más golfo (2 frente a 3) y tiene en cuenta la regla de expuesto de 08 l. 132. El de altitud usa solo esqueletos sin puerto, y V4 lo remite al par dispara/calla de la sección 9, que existe (09 l. 53 y l. 201: puerto de 20 km en colina da V4, en alta da null). La prosa dice que viento es «metadato de ficha con una sola puerta al perfil» y que altitud es «metadato de ficha y veto». La fila 1 de 17.3 está actualizada.",
+   "H506, H532, H565 y H576: aplicado. El bloque de test de 17 se ha quitado y ahora se remite a §15.5 como única fuente. La forma canónica descrita en 17 coincide con 15-plan l. 150-162: enlace de 60 km más renderMotif con km = cotaKm + aproxKm, tres argumentos con ZONAS.ardenas, sin helper aproximacion y sampleProfile({ segments }), coherente con sample.ts l. 68.",
+   "H507: la desestimación es válida. 11-real.md l. 191-200 tiene la tabla TEXTO_METADATO con exactamente los literales que cita 17 y el test que prohíbe abanico, oxígeno, hipoxia y falta de aire. 17 la cita sin inventar otra. Pendiente alinear 06 l. 251.",
+   "H508: aplicado. El riesgo 9 sitúa intentos p95 ≤ 3, degradado ≤ 0,5 % y primer intento ≥ 70 % en generate.test.ts del paso 5, coherente con 15-plan l. 223 y l. 200. Dice explícitamente que skeletons.test.ts del paso 4 no mide intentos. La fila 9 de 17.3 está actualizada. Faltan 19 B5 y H2, que son de otra sección.",
+   "H509 y H564: aplicado en 17. El riesgo 12, la fila 12 de 17.3 y la deuda 7 lo nombran ARCH.arranque.maxTemporadasEnMemoria 8, con la regla 8 de §15.1, y 14-rendimiento l. 100 usa ese mismo nombre. Falta declararlo en §B.3 y 12.9, que no lo recogen (grep sin resultados en 12-constantes), y 03-modelo l. 398 todavía lo llama literal; está señalado como propagación.",
+   "H510: aplicado. Se desglosan Pro 240, .1 200, .2 180 y NC 260, y se dice WT 260 y no 280 para casar con porClase. Coincide con §B.3 l. 354, con 12-constantes l. 86 y con mapa 07 §4.1 (techo 280 WT, 200 .1, 240 Pro).",
+   "H526: la desestimación es válida. Verificado: allCalendarQueens filtra por stage.kind declarado (calendarQueens.ts l. 65, igual en 8585ca2). En lo real, kind sale de TERRAIN_KIND (calendar.ts l. 183 en 8585ca2 y l. 197 en HEAD). stageKindOf solo tiene como consumidores fuera de tests la reexportación de index.ts l. 89 y apps/api/src/stageHistory.ts l. 162. Recalibrar D2 no mueve reales dentro o fuera del banco. El riesgo 3 añade el coste de aplazarla (vara de V6, versión propia) y la deuda 5 lo repite.",
+   "H527 y H563: aplicado. Queda decidido por diseño: suelo de 1.500, ninguna banda sobre <1500 (nacería roja), banda reina.dplus.blanda [1.500; 2.500) ≥ 15 % con min < 1.700, re-sellado de calendarQueens.test.ts l. 60 y l. 64 con su causa (decisión 8 y epics E3) y estratificación por finalKind × cubeta. D6 queda solo para la banda [6; 30], con valor por defecto [2; 12], igual que 13 l. 217. La fila 10 de 17.3 dice «decidido por diseño (D6 solo para la banda)»."
+  ],
+  "no_conformes": []
+ },
+ {
+  "conformes": [
+   "H488: B7 (l. 104) ya cita routes/arranque.test.ts, tercer it, que lee con fs los FUENTES grammar/*.ts con veto.ts incluido; coincide con 15-plan.md l. 207 y 14-rendimiento.md l. 81-86 (la regex /^import (?!type )[^\\n]*from '[^']*\\/stage\\//m). Es válido desestimar la corrección literal.",
+   "H489: B1 (l. 98) usa ya expect(SEASON_CALENDAR).toBe(calendarForSeason(BASE_SEASON)), igual que 15-plan.md l. 321.",
+   "H490: 19.2.3 cobertura 4 y B13 citan l. 60-62 y l. 68; comprobado en calendarQueens.test.ts (l. 60 facil.races, 61 dura.races, 62 facil > dura + 10, 64 dPlus.min, 68 breakawayWinPct). La propagación a §15.11, §18.7 y 05-esqueletos queda anotada para la pasada de coherencia.",
+   "H491: B8 y motor 1 remiten a raceStagesForWorld(db, worldId, raceKey, raceId, season): Promise<FrozenStage[]> (03-modelo.md l. 550-551; 15-plan.md l. 400). Las líneas se comprueban en el código: calendarRun.ts l. 518 raceVocationFit, l. 1630 freezeRaceRoute, l. 1631 getRaceRoute; db/callups.ts l. 98; raceContext.ts l. 114 SEASON_CALENDAR.find; raceRoutes.ts l. 61-80 getRaceRoute solo con profile. Ya no aparece 00NN_race_routes_kind.",
+   "H515: I-16 (l. 32), I-42 (l. 58), 19.1.3 (l. 75), B17 (l. 114) y la fila de ingeniero de 19.2.2 (l. 142) dicen ahora: paso 1 con motivos pareados en número y orden, paso 4 con la tabla pareada por routeCensus en grammar/legacy.test.ts. Coincide con 15-plan.md l. 108, 117 y 178.",
+   "H516: B1 indica paso 6 con it.todo y encendido en el paso 8 (§15.10 punto 8), con la aserción por referencia. Coincide con 15-plan.md l. 321.",
+   "H517: H5 (l. 195) queda con la cubeta [1.500; 2.500) ≥ 15 % y un D+ mínimo < 1.700, y trae la aritmética del 10 % al 25 %. La cubeta < 1.500 se declara fuera de hipótesis por construcción. Coincide con 17-riesgos.md l. 106-107 y 13-banco.md l. 139, y el motivo para no bajar el suelo a 1.200 es válido. B13 y D6 («antes del paso 9», 18-dueno.md l. 14) están alineados.",
+   "H533: el paso a mitigado se desestima con razón. 16-galeria.md ya trae calendario.html, continentales.html y vueltas.html (l. 81-83) y la entrega al cerrar el paso 5 con once vetos, más las páginas de calendario tras los pasos 6 y 7 (l. 172-177). Cobertura 2 (l. 156) se reescribe con ese contenido y H9 se añade (l. 199) con race-olympia NL (calendar.ts l. 754) y race-colombia-tour CO (l. 695), comprobados. La propagación de «paso 5» a 17-riesgos queda anotada.",
+   "H569: la desestimación es válida. 14-rendimiento.md l. 44 y 15-plan.md l. 322 describen un import() dinámico de ./calendar.js después de t0, con constants.js importado antes, así que el test puede fallar. Cobertura 7, B16 y H3 citan los dos instrumentos. Motor 6 y ejecutabilidad 3 pasan a mitigado, coherente con 17-riesgos.md l. 159. El recuento 13/9/5 cuadra con la tabla (l. 155-181)."
+  ],
+  "no_conformes": []
+ },
+ {
+  "conformes": [
+   "H004",
+   "H009",
+   "H037",
+   "H092",
+   "H634"
+  ],
+  "no_conformes": []
+ },
+ {
+  "conformes": [
+   "H041",
+   "H042",
+   "H099"
+  ],
+  "no_conformes": [
+   {
+    "id": "H098",
+    "por_que": "§2.3 (02-principios.md l. 19-31) sigue escribiendo `admite(geo: GeoSignature, sk: Skeleton)` con tres condiciones: (1) requiere, (2) todo Slot obligatorio de puerto/cota/muro no null con rango no vacío, (3) la meta cabe. Además dice que «copia las firmas tal como §6.5 las fija», pero §6.5 punto 1 (06-geografia.md l. 195) y §5.1 (05-esqueletos.md l. 28-36, l. 54 y l. 60) fijan otra firma, `admite(requiere: Requiere | Requiere[] | undefined, geo: GeoSignature): boolean`, que solo lee `requiere`. Las dos secciones dicen expresamente que dibujar los huecos y la meta NO se comprueba en tiempo de ejecución: lo sella el test (h) de §6.8. Las dos citan 02 l. 23-26 como copia de una versión antigua que hay que alinear. El comentario de §2.3 también enumera campos del `Requiere` viejo (`relieveMin`, `relieveEn`) que §5.1 ya no tiene. La semántica por campo existe una sola vez (§5.1, citada en §6.5 punto 1), pero §2.3 no remite a ella: le atribuye a §6.5 una firma y unas condiciones que §6.5 niega. Corrección pendiente: cambiar en §2.3 la firma a `admite(requiere, geo)` de §5.1, quitar las condiciones (2) y (3) de `admite` (y, si se quieren, citarlas como propiedad de tablas del test (h) de §6.8), quitar la lista de campos vieja y remitir a §5.1 y §6.5 punto 1 para la semántica por campo."
+   }
+  ]
+ },
+ {
+  "conformes": [
+   "H030",
+   "H031",
+   "H058",
+   "H084",
+   "H036",
+   "H597",
+   "H640",
+   "H033",
+   "H059",
+   "H060",
+   "H062",
+   "H080",
+   "H082",
+   "H083",
+   "H087",
+   "H088"
+  ],
+  "no_conformes": []
+ },
+ {
+  "conformes": [
+   "H025",
+   "H112",
+   "H601"
+  ],
+  "no_conformes": []
+ },
+ {
+  "conformes": [
+   "H151: §4.5 regla 1, §4.2 (l. 26 y 40), §4.5 cierre y §B.3 (00-esqueleto l. 324) dan circuito [1,5; 30] × [2; 40]; la regla 1 declara que los rangos de Slot.params los aplica place y no validateMotif (desaparece el 'sobrescriben ARCH' de §5); ud_circuito [10; 18] × [6; 18] en §4.2, §4.7 y §5.2 l. 77, así que Montréal (12,3 × 17), Flèche (30 × 2) y el critérium (2,5 × 22) caben",
+   "H154: la regla 2 admite hijos en meta con meta 'sector_meta'; la regla 5 exige un solo sector en hijos[0] con aMeta en [1; 8]; META tiene un cuarto parámetro hijos (§5.4 l. 150-151); ud_adoquin cierra con META('sector_meta', 2.1, undefined, [S(0.3, 1)]) (0,3 + 1,8 a meta, válido) y suma 258,0; los tests l. 194-197 cubren ese caso y el rechazo por aMeta",
+   "H172: SlotParams gana separacionRango (§5.1 l. 16 y 03-modelo l. 115); §5.2 ud_muros declara separacionRango [1,5; 5]; §4.2 l. 69 y la regla 1 explican que place sortea el rango estrecho y validateMotif comprueba el [1,5; 6] de ARCH, que lo contiene. Queda un rezago fuera de la sección 4: el Slot de §B.2 en 00-esqueleto.md l. 117-119 no lleva todavía separacionRango, vueltasRango ni hijos, aunque §5.1 dice que §B.2 se actualiza con ese bloque",
+   "H200: §4.7 dice ahora que la plantilla canónica tiene tres racimos, 20 sectores (19 más el de meta) y 40,0 km, y coincide con §5.4 (6 + 7 + 6 sectores, 39,7 + 0,3 = 40,0 km, comprobado); el ejemplo de §4.7 (4 racimos de 5, 7, 8 y 6 sectores) cabe en racimo×[3; 4] y sector×[5; 8] de §5.2",
+   "H207: se elige una sola representación (hijos solo con dificultades y separaciones: number[] aparte) y aparece igual en §B.2 (00-esqueleto l. 101-102), §4.2 l. 67, la regla 3 de §4.5 (cadena y racimo con hijos.length − 1 separaciones y km = Σ; circuito con hijos.length separaciones, cierre ≥ 1,5, share ≤ 0,8; vuelta vacía válida), el render de l. 146, §4.7 y los constructores CAD/RAC/K de §5.4; comprobado con aritmética en las plantillas de Montréal, Flèche, ud_circuito, ud_muro_final y ud_adoquin"
+  ],
+  "no_conformes": []
+ },
+ {
+  "conformes": [
+   "H141",
+   "H163",
+   "H168",
+   "H174",
+   "H232"
+  ],
+  "no_conformes": [
+   {
+    "id": "H578",
+    "por_que": "La sección 6 no aplica la corrección pedida, `admite(geo: GeoSignature, sk: Skeleton)`. Adopta `admite(requiere, geo)` de §5.1 (06 l. 24, 139, 148, 195 y los tests (g) y (h)), y el documento sigue teniendo dos firmas. La sección 3 declara `admite(geo, sk)` como canónica (03 l. 268 y 276: «la sección 5 escribía admite(requiere, geo) y la pasada de coherencia la alinea»), igual que la 2 (02 l. 26) y la 8 (08 l. 81, `admite(req.geo, sk)`). La 5 y la 6, en cambio, dicen que son las otras las que se alinean con ellas: es una remisión circular, y ninguna firma queda cerrada para el implementador. Además, la justificación de 06 l. 195 es falsa: dice que la sección 8 llama a `admite` con `requiere` primero («`elegirEsqueleto`, 08 l. 74»), pero 08 l. 74 no la llama y 08 l. 81 escribe `admite(req.geo, sk)`."
+   },
+   {
+    "id": "H579",
+    "por_que": "La sección 6 aplica al revés los nombres que pidió la corrección. En 06 l. 204 llama `degradar(role: StageRole)` a la función de papeles («en `skeletons.ts` (05 l. 289)») y `degradarRelieve` a la de relieve. Además afirma que «§5.7 renombra así la `degradar(relieve)` de la sección 3» y que las secciones 2, 3 y 8 se alinean con §5.7. Es falso: §5.7 declara `export function degradarPapel(role)` (05 l. 301) y dice expresamente que «§6.5 punto 2 escribe `degradar(role)` […] la pasada de coherencia pone allí `degradarPapel` y deja `degradar` para el relieve». Las secciones 2 (l. 34-35) y 3 (l. 177 y 270) usan `degradarPapel` y `degradar(relieve)`. La sección 6 es la única que discrepa, y cita mal la sección 5."
+   },
+   {
+    "id": "H164",
+    "por_que": "El caso de los intentos queda resuelto: `adoquin: 1` pasa a ser un metadato, `ud_adoquin_ligero` exige `[{ adoquin: 2 }, { sterrato: true }]`, el firme es `tierra` cuando hay `sterrato` y el test (d) exige `adoquin >= 2 || sterrato`. Lo que no queda resuelto es la parte del fallo que citaba la canónica. La plantilla `ud_adoquin_ligero` (05 l. 178) usa `S(...)` con el `firme` por defecto `'adoquin'` (05 l. 141). `canonica()` no instancia (08 l. 291: «no pasa por colocar […] No se vuelve a verificar en producción»), así que en `italia_norte`, `bretana` y `britanicas` la regla «el firme lo decide la zona al instanciar» (06 l. 29 y l. 210) no se aplica: la canónica dibuja pavé donde V2 lo prohíbe, y el test de §5.9 «la canónica pasa verify en toda zona compatible» fallará en esos pares. §6.5 punto 5 sigue afirmando que V2 está garantizada por el firme de instanciación, sin cubrir este camino. Falta escribir, en §6.5 punto 5 y en la regla del firme, que `renderSkeleton` y `canonica` también reescriben el `firme` de los `sector` según la zona (tierra si `adoquin < 2` y hay `sterrato`)."
+   }
+  ]
+ },
+ {
+  "conformes": [
+   "H309",
+   "H341",
+   "H342"
+  ],
+  "no_conformes": []
+ },
+ {
+  "conformes": [
+   "H239",
+   "H275",
+   "H298",
+   "H300",
+   "H325",
+   "H328",
+   "H329"
+  ],
+  "no_conformes": []
+ },
+ {
+  "conformes": [
+   "H372"
+  ],
+  "no_conformes": []
+ },
+ {
+  "conformes": [
+   "H130",
+   "H133",
+   "H134",
+   "H135",
+   "H137",
+   "H139",
+   "H150",
+   "H158",
+   "H160",
+   "H161",
+   "H162",
+   "H175",
+   "H189",
+   "H216",
+   "H219",
+   "H221",
+   "H222",
+   "H223",
+   "H228"
+  ],
+  "no_conformes": [
+   {
+    "id": "H181",
+    "por_que": "Corregido solo a medias. Se añade ud_repecho (esqueleto hilly sin muro ni circuito) y ud_esprint_capi a SESGO_TERRENO.hilly, pero el propio §5.6 (l. 267) reconoce que en las .2 de siete de las diez zonas con muro: null (anatolia incluida, cota.km[0] = 3 > cotaCortaMax 2,9, así que ud_circuito no cabe) solo hay DOS candidatos, ud_montana_media y ud_repecho: las 8 carreras .2 de Turquía siguen saliendo de dos modelos, que es justo el fallo descrito. La otra parte de la corrección (admitir ud_muro_final con cota corta donde muro: null) no se aplica. Y la banda «≥ 3 esqueletos distintos por (zona, terrain) con ≥ 4 carreras», que §5.6 y §5.9 (l. 547) dan por añadida en la sección 13, no aparece en 13-banco.md (grep sin resultados en 13, 12 y 19). Además, con el catálogo actual esa banda no se podría cumplir por construcción en una (zona, hilly) con ≥ 4 carreras .2 de esas siete zonas. Falta: un tercer candidato hilly que valga en .2 sin muro y con cota ≥ 3 km (o la alternativa de ud_muro_final con cota), y escribir la banda de verdad en §13."
+   }
+  ]
+ },
+ {
+  "conformes": [
+   "H457"
+  ],
+  "no_conformes": []
+ },
+ {
+  "conformes": [
+   "H575"
+  ],
+  "no_conformes": [
+   {
+    "id": "H544",
+    "por_que": "La parte de renderSkeleton está resuelta: la única llamada que queda (auxiliar renderCanonico, l. 205) usa la firma vigente de §3.9 y §8.7, `(colocados, km, geo, rng: RngFactory, desde?)` (03-modelo l. 590, 08-algoritmo l. 175). También han desaparecido instanciaMeta y aproximacion. Pero quedan dos defectos del mismo tipo en los bloques de código que el implementador va a copiar. (1) En §15.7 (l. 237) `peticionReina` se ha cambiado de nombre a `reqReina(150)` y sigue sin definirse: no aparece en ninguna sección, ni en §B.1, ni en 09-vetos, que la usa en l. 146, 149 y 159. La corrección pedía declarar el auxiliar como función local del test, con su cuerpo (una StageRequest completa), y eso no está hecho. (2) En §15.11 (l. 381) la llamada `verify(profile, q.skeleton, frozenRequest(q), q.motivos)` tiene cuatro argumentos, pero `verify` tiene cinco: `(profile, sk, req, motivos, kmObjetivo)` (03-modelo l. 563, 08-algoritmo l. 289). Como falta `kmObjetivo`, no compila; debería ser `q.km`. De paso: en l. 382 se compara `hashInt(JSON.stringify(profile))` con `q.huellaFNV`, cuando §3 (03-modelo l. 848) dice que `huellaFNV` es otra función, así que debería ser `huellaFNV(profile.segments)` o lo que fije §11.3."
+   }
+  ]
+ },
+ {
+  "conformes": [
+   "H428",
+   "H430",
+   "H462",
+   "H463",
+   "H464",
+   "H626",
+   "H641"
+  ],
+  "no_conformes": []
+ },
+ {
+  "conformes": [
+   "H413",
+   "H419",
+   "H443",
+   "H588"
+  ],
+  "no_conformes": [
+   {
+    "id": "H445",
+    "por_que": "La sección 12 ya es coherente: en l. 26-37 declara `EdicionCfg` con `activa: boolean`, en l. 86 escribe `edicion: {...} as EdicionCfg`, y en l. 181 fija `calendarForSeason(season, cfg: EdicionCfg = ARCH.edicion)` con la memoria `Map<EdicionCfg, Map<number, CalendarRace[]>>` indexada por referencia, sin `resetSeasonCache` (esto concuerda con 10-identidad.md l. 107 y l. 331-353). El problema es que la corrección pedía también arreglar §13.2 fila 15 y §14.5, y siguen sin cambiar, así que contradicen a §12.6. En 14-rendimiento.md l. 97 la memoria aparece como un único `Map<number, CalendarRace[]>` del módulo, no como uno indexado por cfg. En l. 101 (punto 3) se lee «Con `ARCH.edicion.activa: false` […] `calendarForSeason(s)`», es decir, se apaga mutando ARCH y se llama sin cfg, justo lo que §12.6 dice que no se puede hacer tipadamente. En 13-banco.md l. 57 (fila 15) se escribe «con `ARCH.edicion.activa` y el mismo perfil con `activa = false`» sin nombrar el paso de `{ ...ARCH.edicion, activa: false }` como cfg. Además, 10-identidad.md l. 123 mantiene la frase «con `cfg === ARCH.edicion` y `ARCH.edicion.activa` false», que da por hecho que ARCH puede mutarse. Hay que ajustar §14.5 (tipo de la memoria y punto 3) y §13.2 fila 15 para que hablen de `calendarForSeason(s, { ...ARCH.edicion, activa: false })`."
+   }
+  ]
+ },
+ {
+  "conformes": [
+   "H492",
+   "H499",
+   "H561"
+  ],
+  "no_conformes": []
+ }
+]

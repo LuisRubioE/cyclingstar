@@ -74,7 +74,7 @@ export interface RouteStats {
   pavesKm: number; nSectores: number; estrellas5: number
   maxG: number; huella: number[]               // g por km
   intentos: number; degradado: boolean
-  garantiasClase: number                       // 0 a 4 (sección 8, §8.8); 0 en las `real`
+  garantiasClase: number                       // 0 a 4 (sección 8, §8.9); 0 en las `real`
   firmaMotivos: string | null                  // MotifKind presentes en arch.motivos (hijos aplanados), sin repetir, ordenados, unidos por '+'; null en las `real`
 }
 type NumericKey = { [K in keyof RouteStats]: RouteStats[K] extends number ? K : never }[keyof RouteStats]
@@ -98,7 +98,7 @@ Los cuantiles se calculan todos igual (orden ascendente e índice `floor(n · p)
 Cómo se calcula cada campo, para que no haya dos censos:
 
 - `finishType`: `finishType(deriveFinishTerrain(sampleProfile(profile)), 50)` (`stage/finish.ts` l. 71 y 142, vía `juicios/motor.md` §1), con `groupSize` 50 aquí y solo aquí. Es la única llamada a `sampleProfile` de todo E1 fuera del motor: `verify` no lo usa (decisión 4) y por eso una recalibración de `STAGE.finish*` mueve el censo y no los perfiles. `sampleProfile` lee la pendiente del tramo con `gradientAt` (`stage/sample.ts` l. 47-58) y colapsa `rompepiernas` a `STAGE.rollingGradient` (l. 101).
-- `dPlus`: `dPlusDe(profile)` de `routes/grammar/geometry.ts` (integración de tramos con g > 0, decisión 9). `dPlusBloques`: la cuenta de `calendarQueens.ts` l. 54-58 (`sampleProfile`, bloques `subida`, `g/100 · STAGE.dx · 1000`). El censo imprime el delta y `calendario.test.ts` exige p90 de |`dPlus − dPlusBloques`| / `dPlusBloques` < 0,05 sobre las reinas: es la comprobación de que `Skeleton.dPlus` persigue lo que `desnivelDe` mide.
+- `dPlus`: `dPlusDe(profile)` de `routes/grammar/geometry.ts` (integración de tramos con g > 0, decisión 9). `dPlusBloques`: la cuenta de `calendarQueens.ts` l. 54-58 (`sampleProfile`, bloques `subida`, `g/100 · STAGE.dx · 1000`). Las dos cifras NO miden lo mismo: `desnivelDe` suma bloques `subida`, que `blockTerrain` (`stage/sample.ts` l. 32-44) solo da a los segmentos `puerto`, así que `dPlusBloques` son los puertos solos, y `dPlus` es el total con relleno que `Skeleton.dPlus` persigue (decisión 9; sección 8 §8.5). Su diferencia es el relleno (unos 500 a 1.400 m), no un error. `calendario.test.ts` exige solo `dPlus ≥ 0,99 × dPlusBloques` en toda etapa generada (el total contiene a los puertos; el 1 % cubre el muestreo a 100 m) y el censo imprime `(dPlus − dPlusBloques) / km` en la fila informativa `dplus.relleno`, que es la cifra con que se recalibra `ARCH.reina.rellenoDplusPorKm`. La precisión de la persecución la sella `generate.test.ts` (sección 8 §8.14).
 - `kmSubidaShare`: km de bloques `subida` sobre el total, la misma cuenta que `simulate.ts` l. 2165 (`kmSubida = blocks.reduce((acc, b) => acc + (b.tipo === 'subida' ? STAGE.dx : 0), 0)`; mapa 03 §4.1). `breakAppealEstimado`: `clamp(STAGE.breakAppealClimbWeight · kmSubidaShare + (finishType ∈ {alto, muro, puncheur} ? STAGE.breakAppealUphillBonus : 0), 0, 1)`, la regla de `simulate.ts` l. 2167-2170 reproducida con las constantes de `STAGE` (hoy 4 y 0,35, mapa 03 §4.1). Se declara «estimado» porque `isUphillFinish` (`finish.ts` l. 239-241: `alto`, `puncheur`, `muro`) es del motor y aquí se aproxima por `finishType`.
 - `climbKmOutsideLast30`: km de bloques `subida` con `kmToGo > STAGE.climbRaceKmToGo` (30, `constants.ts` l. 3820): la variable que separó `reina-150` (0 %, hoy `media-150`) de las nueve reales (del 6 al 38 %) en `balance.md` v43 §7 (mapa 04 §3.2).
 - `nPuertos`: segmentos `puerto` con `climbSize ≥ CLIMB_MIN_KM` 1,5; `nMuros`: segmentos `puerto` con km ≤ `WALL_MAX_KM` 3 y g ≥ 8; `longestClimbKm`: `climbSize` del mayor (`stageKind.ts` l. 36-42); `lastClimbKm`, `lastClimbG`, `kmAfterLastClimb`: de `routes/finalKind.ts`, con la pancarta si la hay (por eso `emitirPancartas` pone SIEMPRE `cima` en el último `puerto`, decisión 25).
@@ -146,8 +146,10 @@ Realismo (población: `routeSource !== 'real'` salvo donde se dice):
 | `muros.cotas.p10`, `.p90` | `nMuros` en `ud_muros` y `ud_muros_adoquin` | esos esqueletos | p10 ≥ 10; p90 ≤ 20 | 4 o 5 (mapa 07 §1.3 contra `classicSegments`) | real un día 4 / 11 / 34 cotas (`datos.md` §1.4) |
 | `adoquin.sectores`, `adoquin.km`, `adoquin.ultimo` | `nSectores`; `pavesKm`; km del último sector a meta | `ud_adoquin` | [15; 30]; [40; 60] km; [1; 8] km (las tres como p10-p90) | 3 sectores, ~40 km (mapa 07 §1.4) | Roubaix 31 / 54,8 km; real 5, 6, 8, 9, 15, 31 sectores |
 | `llana.dplus` | p90 de `dPlus` | `kind === 'llana'` generadas | ≤ 1.500 | [661; 1.413] (mapa 01 §1) | V9 (≤ 1.800 duro) |
-| `km.clase.p90dos`, `km.clase.max` | p90 de km en .2; etapas por encima de `ARCH.km.maxPorClase` | por `raceClass` | ≤ 170; 0 | [145; 195] en cualquier clase (mapa 07 §4.1) | decisión 36; D9 |
-| `dplus.delta` | p90 de |`dPlus − dPlusBloques`| / `dPlusBloques` | reinas generadas | < 0,05 | n/a | decisión 9 |
+| `km.clase.p90dosVuelta` | p90 de km de las etapas de vuelta .2 (papeles `llana`, `media`, `reina_*`, `montana_corta`) | etapas generadas de vueltas .2 | ≤ 155 | [145; 195] en cualquier clase (mapa 07 §4.1) | decisión 36; §12.7: con `kmJitter` el p90 teórico es 151,9 en `reina` .2 y el de una mezcla no pasa del mayor |
+| `km.clase.p50dosUnDia` | p50 de km de los un día .2 | un día .2 generados | [150; 170] | 210 fijo (`row.km ?? 210`, `calendar.ts` l. 929) | decisión 36; §12.7: p50 teórico ~160; el p90 (~177) queda pegado al techo 180 y no es banda |
+| `km.clase.max` | etapas por encima de `ARCH.km.maxPorClase` | por `raceClass` | 0 | [145; 195] en cualquier clase | decisión 36; D9; V13 |
+| `dplus.relleno` | p10, p50 y p90 de (`dPlus − dPlusBloques`) / `km` | `kind === 'llana'` generadas | informativa (se imprime; recalibra `rellenoDplusPorKm` 5,5) | 5,1 a 6,6 m/km (661 a 1.413 m en 130 a 215 km, mapa 01 §1) | decisión 9 |
 | `nacionales.zona`, `nacionales.firmas`, `nacionales.adoquin`, `nacionales.cota`, `nacionales.expuesto` | entropía de `zona` entre los 133 `nc-*-road` (`zonaDe(code)`; los 77 países sin tabla caen a `generico`, decisión 13); firmas distintas de `firmaMotivos` entre esos 133; BE/NL con `sector` o `muro` adoquinado; CO/EC con cota ≥ 5 km; DK/AE con `expuesto` | `nc_ruta` | ≥ 2,5 bits; ≥ 5; ≥ 60 %; 100 %; 100 % | todos por `classic(220)` (mapa 06 §1: 532 por `oneDaySpec`, `calendar.ts` l. 414) | decisión 15; `motor.md` §V.3. La variedad de los nacionales no está en el `SkeletonId` (es uno solo) sino en los motivos que la zona mete en el circuito y en el país; por eso se mide la forma y no el molde |
 | `tactica.kmSubida.circuito`, `.muros` | `kmSubidaShare` por esqueleto (`breakAppealEstimado` se imprime al lado) | `ud_circuito`; `ud_muros` | informativa: ≤ 0,20; ≤ 0,15 | n/a | decisión 25; `juicios/motor.md` §5 riesgo 4 |
 | `identidad.firma`, `identidad.correlacion` | mismo esqueleto, firma igual, km ± 6 %, ≥ 1 diferencia no firma en 4 de 5 temporadas; correlación entre ediciones consecutivas en [0,55; 0,9] | generadas, temporadas 1 a 5 contra 0 | informativa (el test vive en `edition.test.ts`, sección 10; el censo solo imprime) | null | decisiones 20 y 22 |
@@ -168,7 +170,7 @@ Variedad (todas sobre lo generado; mapa 04 §5.2, arquitectura §11.3, `banco.md
 Hoy `calendarQueenSample()` ordena las 157 reinas por `desnivelDe` y toma una de cada `PASO = 6` (`calendarQueens.ts` l. 51, 85-87): 27 etapas, de las que 11 son reales, 5 de edición generada, 2 de un día y 9 de `stageMix` (mapa 06 §3.1). El test corre 4 semillas con reloj 3.600 s (`calendarQueens.test.ts` l. 53-57) y afirma cinco cosas (l. 58-68): las cubetas `<1500` y `2500-3500` pobladas, `facil > dura + 10`, min < 1.500 y max > 2.500, y `wonFromMovePct ∈ [6; 30]` (`targets.ts` l. 806-812). Tres problemas medidos: la banda `<1500` la sostiene hoy un test y no el diseño (mapa 06 §6.3), la muestra cambia de composición con cualquier generador (qué 27 etapas: `juicios/motor.md` §5 riesgo 5), y la banda global se traga la pendiente por cubeta que el propio test ya afirma (mapa 04 §4.3 punto 2). Se decide (decisión 32, en su primera parte; las otras dos quedan sin objeto, puntos 6 y 7):
 
 1. **Muestra estratificada por `finalKind` × `BANDAS_DESNIVEL`** (4 × 4 = 16 estratos, `calendarQueens.ts` l. 90-95), con cuota proporcional y mínimo 1 por estrato no vacío, y `MUESTRA_OBJETIVO = 30`. Dentro de cada estrato se ordena por `dPlus` y se toman SIEMPRE el índice 0 y el último (así la aserción de extremos, `calendarQueens.test.ts` l. 30-31, sigue valiendo: el mínimo y el máximo globales son el primero y el último de su estrato) y el resto por rejilla `i % paso === 0` con `paso = ceil(n_estrato / cuota)`. Sin dado: la composición sale de un criterio escrito, como hoy (l. 22-27). `calendarQueens.ts` exporta `estratos(todas: CalendarQueen[]): Estrato[]` con `Estrato { finalKind: FinalKind; banda: (typeof BANDAS_DESNIVEL)[number]['nombre']; n: number; contiene(q: CalendarQueen): boolean }`, que es lo que la muestra y el test usan.
-2. **`CalendarQueen` gana `skeleton: SkeletonId | null` y `routeSource`**, para que el informe diga por forma y por origen sobre qué habla el número.
+2. **`CalendarQueen` gana `skeleton: SkeletonId | null` y `routeSource`**, para que el informe diga por forma y por origen sobre qué habla el número, **y su `dPlus` pasa de `desnivelDe` a `dPlusDe`** (`calendarQueens.ts` l. 69: `dPlus: dPlusDe(stage.profile)`, importada de `routes/grammar/geometry.ts`). La razón es que `desnivelDe` (l. 54-58) suma bloques `subida`, que `blockTerrain` (`stage/sample.ts` l. 32-44) solo da a los segmentos `puerto`: mide los puertos solos, mientras `Skeleton.dPlus` es el total con relleno (decisión 9; sección 8 §8.5). Es un CAMBIO DE POBLACIÓN de las cubetas de `BANDAS_DESNIVEL`: la misma etapa sube de cubeta en lo que pese su relleno (del orden de 1.000 m en 175 km), también las 54 reales. Se declara aquí, se imprime en el paso 0 (las dos cifras por reina, con el calendario de hoy) para que el desplazamiento se vea antes de D6, y el re-sellado del paso 9 lleva esta causa escrita. `desnivelDe` se conserva solo como la cuenta de `RouteStats.dPlusBloques`.
 3. **`CalendarQueenStats` gana `porFinalKind`** (misma forma que `porBanda`) y `porEstrato` (16 filas); ambos se imprimen y no tienen banda hasta tener σ (informativos en el paso 9).
 4. **Las aserciones y la cubeta baja.** Se conservan las cinco de hoy con dos re-sellados escritos y una decisión adelantada. El hecho es este: `et_reina_blanda` tiene D+ total [1.500; 2.500] (decisión 8; §12.4 `ARCH.reina.blandaShare` {media 0,25; montana 0,25; alta 0,10}; medida 2.138 en la sección 5), y la cubeta `<1500` de hoy (32 de 157) la puebla `ROUTE.queenLowDplusRange` {1.200; 2.500} (`constants.ts` l. 1261), que se retira. Así que en el paso 8 ninguna reina GENERADA cae por debajo de 1.500 por construcción, y prometer lo contrario en un test sería la regla de nacimiento en rojo. Bajar el suelo de la blanda no lo arreglaría: con sus motivos mínimos (una cota de 5 km al 4 % y un `alto_largo` de 9 km al 6 %, 740 m) y el relleno estimado de 5,5 m/km sobre 130 km de enlaces (`ARCH.reina.rellenoDplusPorKm`, decisión 9), el D+ más bajo que la gramática dibuja anda por 1.400, y un suelo escrito en 1.100 sería una promesa que la aritmética no cumple. Por eso: (a) `facil.races > 0` se re-sella como «la cubeta más baja POBLADA de `BANDAS_DESNIVEL` (≥ 3 etapas en la muestra) tiene carreras», con la cubeta escrita en el mensaje: hoy `<1500`, tras el paso 8 previsiblemente `1500-2500`; `dura` es `>3500` si tiene ≥ 3 etapas y si no `2500-3500`; `facil > dura + 10` se espera que siga, porque es física del motor (43,8 / 13,7 / 1,6 / 0 medido por cubeta, `calendarQueens.test.ts` l. 33-38), no forma; (b) `stats.dPlus.min < 1500` (l. 66) se re-sella a `< 1700` con la causa «decisión 8: la reina blanda empieza en 1.500» y `max > 2500` no cambia; (c) la cubeta `[1.500; 2.500)` la sostiene el diseño y el test lo afirma (§13.8: ≥ 3 etapas en la muestra y al menos una `et_reina_blanda`). Lo que NO se decide aquí es qué dos cubetas compara el test a partir del paso 9 (`<2000` contra `>3000`, o las de hoy) ni qué pasa con la banda [6; 30]: es D6, y se decide ANTES del paso 9 con la cifra de §13.6 delante (nota para la sección 18 y el esqueleto §C.2: el valor por defecto de D6 cambia de «la cubeta baja la sostiene `et_reina_blanda`» a lo que dice el pre-registro).
 5. **Reloj**: con la aritmética hecha como en `calendarQueens.test.ts` l. 40-52: 126 s libre y 370 cargada por 27 etapas × 4 semillas; con 30 etapas, 140 y 411; con el factor 2,26 del nocturno, 929 s; ×4 (regla de la casa, l. 46-47; `invariantsDesgaste.test.ts` l. 116-125; `coherence.test.ts` l. 93-100) = 3.716. Reloj nuevo: `{ timeout: 4_000_000 }`, y el comentario se reescribe con estas cifras. Es UNA cifra para todo el documento: la decisión 34 del esqueleto y la sección 15 dicen «3.600 s con 4» y se alinean a 4.000 (nota para la pasada de coherencia); con 12 semillas fuera de CI son de 7 a 21 min (140 × 3 = 420 s libre; 411 × 3 = 1.233 s cargada).
@@ -266,7 +268,8 @@ Tests primero, como todo el plan (sección 15). Los que corren en cada push son 
 import { describe, it, expect } from 'vitest'
 import { routeCensus, aggregate, ROUTE_CENSUS_TARGETS, CENSUS_N_MIN } from '../../sim/routeCensus.js'
 import { ARCH } from '../../constants.js'
-import { calendarForSeason, BASE_SEASON } from './edition.js'
+import { calendarForSeason } from '../calendar.js'          // calendar.ts, no edition.ts (§3.8: edition.ts no importa valores de calendar.ts)
+import { BASE_SEASON } from './edition.js'
 
 const rows = routeCensus(calendarForSeason(BASE_SEASON))
 
@@ -289,10 +292,9 @@ describe('el censo del calendario que el juego corre', () => {
       expect(aggregate(gen, () => 'todo').todo!.num.intentos!.p95, `temporada ${s}`).toBeLessThanOrEqual(ARCH.veto.intentosP95)
     }
   })
-  it('el desnivel por tramos y por bloques cuentan lo mismo dentro del 5 % en las reinas', () => {
-    const reinas = rows.filter((r) => r.kind === 'reina' && r.routeSource !== 'real')
-    const deltas = reinas.map((r) => Math.abs(r.dPlus - r.dPlusBloques) / r.dPlusBloques).sort((a, b) => a - b)
-    expect(deltas[Math.floor(deltas.length * 0.9)]).toBeLessThan(0.05)
+  it('el desnivel total contiene al de los puertos: dPlus ≥ 0,99 × dPlusBloques en toda etapa generada', () => {
+    // dPlusBloques (calendarQueens::desnivelDe) cuenta solo segmentos `puerto`; dPlus (dPlusDe) suma además el relleno (sección 8 §8.5)
+    for (const r of rows.filter((x) => x.routeSource !== 'real')) expect(r.dPlus, `${r.raceId} e${r.stageIndex}`).toBeGreaterThanOrEqual(0.99 * r.dPlusBloques)
   })
   it('el censo de la temporada 0 cabe en un push', () => {
     const t0 = performance.now()
@@ -308,14 +310,32 @@ import { describe, it, expect } from 'vitest'
 import { routeCensus, raceDePrueba } from './routeCensus.js'
 import { mediaScenario, queenScenario } from './scenarios.js'
 import { FROZEN_QUEENS, frozenProfile } from './frozenSkeletons.js'
-import { renderSkeleton } from '../routes/grammar/render.js'
-import { SKELETONS } from '../routes/grammar/skeletons.js'
-import { calendarForSeason } from '../routes/grammar/edition.js'
+import { renderSkeleton, emitirPancartas } from '../routes/grammar/render.js'
+import { ZONAS } from '../routes/grammar/geo.js'
+import { ARCH } from '../constants.js'
+import { routeRng } from '../routes/profileGen.js'
+import { calendarForSeason } from '../routes/calendar.js'
+import type { Motif } from '../routes/grammar/motifs.js'
+import type { Placed } from '../routes/grammar/place.js'
+import type { StageProfile } from '../stage/types.js'
+
+// Auxiliar local de este fichero: un enlace de 150 km y un muro_meta de 1,0 km al 12 %, colocados a mano como hace
+// `canonica` (sección 8, §8.11): el enlace es hueco y no se coloca, la meta es un Placed con slot 'meta'. Firma de
+// renderSkeleton de §3.9 (render.ts): (colocados, km, geo, rng, desde?) → Segment[].
+function muroMetaDePrueba(): StageProfile {
+  const cotaFinal = { km: 1.0, g: 12 }                                   // ≤ ARCH.meta.muro.finishMuroMaxKm (1,0): {muro}, sección 4 §4.3
+  const meta: Motif = { kind: 'meta', meta: 'muro_meta', km: ARCH.meta.muro.aproxKm + cotaFinal.km, cotaFinal, firma: true }
+  const kmEnlace = 150
+  const km = kmEnlace + meta.km
+  const colocados: Placed[] = [{ motif: meta, slot: 'meta', inicioKm: kmEnlace, finKm: km }]
+  const segs = renderSkeleton(colocados, km, ZONAS.ardenas, (sub) => routeRng(`test|censo|muro_meta|${sub}`))
+  return { segments: segs, banners: emitirPancartas(segs, colocados) }
+}
 
 describe('el censo mide como lee el motor', () => {
   it('finishType se mide como lo lee el motor: un muro_meta de 1,0 km al 12 % con 2 km de aproximación a amplitud 2,5 tipa muro', () => {
-    const profile = renderSkeleton(SKELETONS.ud_muro_final.canonico, /* requestDePrueba(ud_muro_final, ZONAS.ardenas), sección 5 */)
-    const [r] = routeCensus([raceDePrueba(profile, 'media')])
+    const profile = muroMetaDePrueba()                                   // no la canónica de ud_muro_final: su muro de meta mide 1,3 (Huy) y tipa puncheur
+    const r = routeCensus([raceDePrueba(profile, 'media')])[0]!
     expect(r.finishType).toBe('muro')
     expect(r.lastClimbKm).toBeCloseTo(1.0, 1)
   })
@@ -325,7 +345,7 @@ describe('el censo mide como lee el motor', () => {
     expect(routeCensus([raceDePrueba(frozenProfile(FROZEN_QUEENS[0]!))])[0]!.climbKmOutsideLast30).toBeGreaterThan(0)
   })
   it('el censo es determinista en las temporadas 0 a 3', () => {
-    for (const s of [0, 1, 2, 3]) {                          // 4 censos de 0,57 s, los que §14.5 presupuesta
+    for (const s of [0, 1, 2, 3]) {                          // 3 temporadas más y 8 censos de 0,57 s (dos por temporada), los que §14.5 presupuesta
       const cal = calendarForSeason(s)
       expect(routeCensus(cal)).toEqual(routeCensus(cal))
     }
