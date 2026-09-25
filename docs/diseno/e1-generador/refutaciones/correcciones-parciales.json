@@ -507,5 +507,183 @@
    }
   ],
   "lineas": 340
+ },
+ {
+  "resueltos": [
+   "H346",
+   "H347",
+   "H348",
+   "H349",
+   "H350",
+   "H351",
+   "H352",
+   "H371",
+   "H372",
+   "H373",
+   "H374",
+   "H375",
+   "H376",
+   "H377",
+   "H378",
+   "H379",
+   "H421",
+   "H422",
+   "H423",
+   "H424",
+   "H425",
+   "H432",
+   "H433",
+   "H434",
+   "H435",
+   "H436",
+   "H437",
+   "H592",
+   "H621"
+  ],
+  "desestimados": [
+   {
+    "id": "H431",
+    "motivo": "Su mecanismo («label = Skeleton.label siempre, stageKindOf solo aporta kind») contradice el esqueleto, que es ley: §B.2 l. 253 tipa `GeneratedStage.label // = stageKindOf(...).label` y la decisión 38 (l. 440) dice «el label de una etapa generada sale de stageKindOf(...).label», y la decisión 23 (l. 425) manda que `stageKindOf` decida `Summit finish` con `SUMMIT_RUN_IN_KM`, regla que con etiqueta fija de catálogo no tendría ningún consumidor en lo generado. Lo que H431 pide de verdad (un solo mecanismo repetido en 3, 5, 8, 11 y 14) se ha resuelto con H372: `labelDe(sk, profile, timeTrial) = ETIQUETAS_DE_ESQUELETO.has(sk.label) ? sk.label : stageKindOf(profile, timeTrial).label`, que honra §B.2 en las ocho etiquetas y solo cede al esqueleto en las cinco que `stageKindOf` no puede deducir (decisión 26 prohíbe enseñárselas). Verificado además contra la sección 5 que con el catálogo actual `labelDe` y `sk.label` coinciden en toda instancia (`et_reina_cima_cerca` Summit finish a [1,2; 4,3] km; `et_reina_valle` Mountains a [5,7; 19,3]; `ud_esprint_capi` Hills a [5,7; 8]; `ud_montana` lleva `Mountains classic`, una de las cinco), así que el cambio en 3 (l. 149, 337, 366), 5 (l. 40, 91), 8 (§8.13 y l. 344) y 14 (§14.6) es de mecanismo, no de resultado: PROPAGAR a esas cuatro secciones que `label = labelDe(...)` y no «`sk.label` tras V6»; §14.6 puede conservar el getter perezoso porque `labelDe` se evalúa sobre el perfil ya dibujado."
+   },
+   {
+    "id": "COHERENCIA",
+    "motivo": "No es un hallazgo: notas para la pasada de coherencia que salen de aplicar los de arriba. (1) Las etapas `cobbles` de edición sin rasgos son TRES, no cuatro: `STAGE_FEATURES['race-spain']` tiene las 21 etapas con rasgos (medido sobre dist/routes/stageFeatures.js), así que Castelló e6 (editions.ts l. 86) es `real`; cambiar «4» por «3» en 01-diagnostico l. 169, 05-esqueletos l. 362, 07-vueltas l. 180 y dudas.md l. 44; el test de §11.4 sella `adoquinDeEdicion === 3`. (2) `RouteStats` gana `kindLeido: StageKind` y `routeCensus` una banda `real.cruces` informativa (§11.6, H376): propagar a 13-banco l. 50-56 y §113, y a §B.2 l. 297. (3) Nombres nuevos que solo define esta sección y deben citarse igual en 3, 10 y 15: `seasonOfRaceKey(raceKey)` (raceRoutes.ts), `reclassifyRouteSource(db, worldId)` y `huellaCanonica` (paso 10, corrida una vez por mundo desde docs/ops.md tras el backfill), `TEXTO_METADATO` (apps/api) con los dos literales «llano abierto» y «puertos de altitud», `labelDe` y `ETIQUETAS_DE_ESQUELETO` (grammar/generate.ts). (4) `freezeRaceRoute` de §11.4 escribe también `arch: stage.arch ?? null`, como ya dicen 03 §3.11 y 10; la migración añade cuatro columnas nullable (`kind`, `label`, `time_trial`, `arch`) y se genera con `pnpm --filter db db:generate` (packages/db/package.json l. 21-22, no l. 17 como cita 03 l. 557). (5) §B.1 l. 71-73 y 15-plan l. 378: la ruta es `packages/db/drizzle/` (última hoy 0040, nueva 0041), `packages/db/src/callups.ts` l. 98 (no existe `world/callups.ts`), `schema.ts` l. 541, `calendarRun.ts` l. 518 y l. 1630-1642, `stageHistory.test.ts` l. 206. (6) `backfillRaceRoutes` no tiene hoy ningún llamante en producción (solo recorridoDelMundo.test.ts l. 90-102 y la exportación en packages/db/src/index.ts l. 203): la regla 5 de 15-plan debe decir con qué se corre (script de una línea sobre dist)."
+   }
+  ],
+  "lineas": 319
+ },
+ {
+  "resueltos": [
+   "H353",
+   "H354",
+   "H355",
+   "H356",
+   "H357",
+   "H380",
+   "H381",
+   "H382",
+   "H383",
+   "H384",
+   "H385",
+   "H386",
+   "H387",
+   "H412",
+   "H413",
+   "H414",
+   "H415",
+   "H416",
+   "H417",
+   "H418",
+   "H419",
+   "H420",
+   "H438",
+   "H439",
+   "H440",
+   "H441",
+   "H442",
+   "H443",
+   "H444",
+   "H445",
+   "H447",
+   "H588",
+   "H629",
+   "H635",
+   "H636"
+  ],
+  "desestimados": [
+   {
+    "id": "H446",
+    "motivo": "El refutador supone que kmDe necesita el esqueleto ELEGIDO para leer Skeleton.km, pero no hace falta: los papeles `prologo` y `cronoescalada` tienen exactamente un esqueleto cada uno en el catálogo (05-esqueletos.md l. 113-114: `et_prologo` es el único con papel `prologo`, `et_cronoescalada` el único con `cronoescalada`), así que kmDe lee `SKELETONS.et_prologo.km` y `SKELETONS.et_cronoescalada.km` por PAPEL, sin sorteo previo, y así lo escribe ya la sección 7 (07-vueltas.md l. 122: «prologo y cronoescalada → SKELETONS.et_prologo.km y SKELETONS.et_cronoescalada.km (sección 5)»). tour.ts importa SKELETONS de grammar/skeletons.ts, sin ciclo con constants.ts. No hace falta `ARCH.km.especiales` ni ampliar la firma de §B.2. Lo que sí se ha corregido en 12.7 es el rango de et_cronoescalada, que la sección 5 fija en [12; 25] y no en [8; 25], y se ha escrito explícitamente cómo kmDe los lee. Nota para H386 y H447 (en resueltos): su FALLO (la razón del 7 no cuadraba con el 8 de wallMinGradient y con km ≤ 2,5 de isWall) se ha aplicado, pero con el valor de H417 ([4; 8] semiabierto, apoyado en Arrate 5 × 7,4 del mapa 07 fila 3.8) y no manteniendo el 7; las correcciones de líneas de H447 (dPlusOf l. 325, Quaremont/Paterberg l. 453-454, wallMaxKm/wallMinGradient l. 1684-1685) sí están aplicadas. H420 se ha resuelto por su segunda opción: la sección 8 §8.10 conserva Math.round(cum) en emitirPancartas, así que el 0,7 se justifica citando esa función y no auto()."
+   }
+  ],
+  "lineas": 387
+ },
+ {
+  "resueltos": [
+   "H358",
+   "H359",
+   "H360",
+   "H361",
+   "H362",
+   "H363",
+   "H364",
+   "H365",
+   "H366",
+   "H367",
+   "H388",
+   "H389",
+   "H390",
+   "H391",
+   "H392",
+   "H393",
+   "H394",
+   "H395",
+   "H400",
+   "H401",
+   "H402",
+   "H403",
+   "H404",
+   "H405",
+   "H406",
+   "H407",
+   "H408",
+   "H409",
+   "H410",
+   "H411",
+   "H448",
+   "H449",
+   "H450",
+   "H451",
+   "H452",
+   "H453",
+   "H454",
+   "H455",
+   "H456",
+   "H457",
+   "H458",
+   "H459",
+   "H615",
+   "H617",
+   "H623",
+   "H624"
+  ],
+  "desestimados": [],
+  "lineas": 381
+ },
+ {
+  "resueltos": [
+   "H368",
+   "H396",
+   "H369",
+   "H398",
+   "H427",
+   "H460",
+   "H397",
+   "H461",
+   "H399",
+   "H462",
+   "H428",
+   "H429",
+   "H430",
+   "H464",
+   "H622",
+   "H626",
+   "H641"
+  ],
+  "desestimados": [
+   {
+    "id": "H370",
+    "motivo": "Aplicado solo en parte. Lo que sí: calendarRun.ts l. 137 (season = Math.floor(gameDay / SEASON_DAYS)) y l. 64 (SEASON_DAYS = 364), calendar.ts 3.662 líneas, doubleAfter añadido a los campos inmediatos de §14.6 (calendar.ts l. 92). Lo que NO: las líneas de vitest.config.ts que propone el refutador (l. 19, 21-22, 26) están corridas una posición; `cat -n vitest.config.ts` en la raíz da «×1,75 y ×2,02» en l. 18 (viñeta l. 17-18), «30 %» en l. 20 (viñeta l. 19-20) y `testTimeout: 30_000` en l. 25, que es exactamente lo que el borrador citaba; se conserva y se añade «de la raíz del repositorio» para que no se busque en packages/engine. Tampoco 48-94 para CalendarRace: la llave de cierre está en l. 93 (l. 48-93)."
+   },
+   {
+    "id": "H426",
+    "motivo": "La premisa es falsa: 12-constantes.md l. 3 y l. 97 (tercera regla) fijan que constants.ts NO reexporta ZONAS, TERRITORIOS, RACE_REGION, SKELETONS ni TOUR_SKELETONS (solo `import type`), precisamente para no cerrar el ciclo ESM y para no sacar la gramática del reloj de arranque.test.ts, y el test de §12.14 (l. 379) lo sella leyendo el fuente. Con eso el `import { ARCH } from '../constants.js'` estático no evalúa ninguna tabla antes de t0, que es la segunda rama de la propia corrección. Se ha añadido en §14.4 una frase que cita esa regla de §12 como condición de la medida (sin cambiar el test)."
+   },
+   {
+    "id": "H463",
+    "motivo": "No se aplica su corrección (routeCensus.test.ts sobre temporadas 0 a 3) porque contradice el código que la sección 13 ya escribe: 13-banco.md §13.8 l. 270-286 muestra sim/routeCensus.test.ts con perfiles literales y dos routeCensus() sobre la temporada 0, sin bucle de temporadas, y dudas.md l. 110 y 123 explican que ese fichero corre con test:bancos; el hallazgo H430 (misma cifra, opción contraria) es el coherente con ese código y es el que se ha aplicado (calendario.test.ts 0 + 3 con cuatro censos; routeCensus.test.ts solo la 0 con dos censos). La otra parte del hallazgo ya no existe: 10-identidad.md l. 201 dice hoy «≤ 7,5 s» para edition.test.ts (2.500 + 5 × 1.000), igual que la tabla de §14.5; el «≤ 6 s» de l. 150 que cita el refutador no está en el borrador actual. Para la coherencia: 10-identidad.md l. 340 dice que calendario.test.ts corre «las bandas del censo y el cero de degradados sobre las temporadas 0 a 3»; §14.5 y §13.8 deben decir «bandas sobre la 0; cero degradados en 1 a 3»."
+   }
+  ],
+  "lineas": 134
  }
 ]
