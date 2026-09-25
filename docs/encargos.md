@@ -74,6 +74,18 @@ abajo va la lista mínima.
 
 **Fichero:** `docs/generador.md` · **Tamaño esperado:** grande
 
+**Estado: ESCRITO (25 de septiembre de 2026), listo para encargar su implementación.** El documento
+tiene veinte secciones y unas once mil líneas, y salió del método de la casa completo: siete mapas del
+código, cinco propuestas independientes, tres jueces, un esqueleto con glosario canónico, veinte
+redactores, veintidós refutadores adversarios (642 hallazgos, de ellos 102 altos), un corrector y un
+auditor por sección con segunda vuelta donde hizo falta (695 hallazgos aplicados, 73 desestimados con la
+prueba escrita), cuatro pasadas de coherencia y un crítico de completitud cuyos 22 huecos se rellenaron.
+Todo el rastro está en `docs/diseno/e1-generador/`. Las decisiones que quedan en manos del dueño están
+en la sección 18 del documento y traen valor por defecto, de modo que se puede implementar sin
+responderlas. Los códigos de esta lista quedan CONGELADOS desde este encargo (ver la tabla de
+equivalencias). La regla de arranque sigue vigente: no se programa hasta que la línea del motor esté en
+producción.
+
 El veredicto del dueño sobre esto es el más duro de todo el proyecto («para las que no se puedan nunca
 reproducir, el generador es una basura») y está confirmado con un caso concreto: el generador le dio a
 una carrera de un día de montaña el perfil de una etapa reina de gran vuelta, con final en alto de
