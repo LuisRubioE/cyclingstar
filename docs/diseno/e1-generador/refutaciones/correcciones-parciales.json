@@ -1,0 +1,193 @@
+[
+ {
+  "resueltos": [
+   "H029",
+   "H030",
+   "H031",
+   "H032",
+   "H033",
+   "H034",
+   "H035",
+   "H036",
+   "H058",
+   "H059",
+   "H060",
+   "H061",
+   "H062",
+   "H063",
+   "H080",
+   "H081",
+   "H082",
+   "H083",
+   "H084",
+   "H085",
+   "H086",
+   "H087",
+   "H088",
+   "H597",
+   "H606",
+   "H612",
+   "H616",
+   "H640"
+  ],
+  "desestimados": [],
+  "lineas": 261
+ },
+ {
+  "resueltos": [
+   "H001",
+   "H002",
+   "H003",
+   "H004",
+   "H005",
+   "H006",
+   "H007",
+   "H008",
+   "H009",
+   "H010",
+   "H011",
+   "H012",
+   "H013",
+   "H037",
+   "H038",
+   "H039",
+   "H040",
+   "H064",
+   "H065",
+   "H066",
+   "H089",
+   "H090",
+   "H091",
+   "H092",
+   "H093",
+   "H094",
+   "H095",
+   "H096",
+   "H618",
+   "H634"
+  ],
+  "desestimados": [
+   {
+    "id": "H637",
+    "motivo": "El grep de 20 filas `terrain: 'cobbles'` es correcto, pero la conclusión no: la vigésima es `race-bruges` (calendar.ts l. 1028-1035, con `km: 205`), que está en RACE_EDITIONS (editions.ts l. 718) como edición de UNA etapa; SEASON_CALENDAR la construye con format 'una-semana' vía `stagesFromEdition`, no como carrera de un día de tabla. Medido con scratchpad/e1/medir/formas-por-clase.mjs sobre el dist de hoy: 178 carreras de un día de tabla = hilly 83, flat 60, cobbles 19, mountain 10, classic 5, itt 1 (suma 178), 36 con km declarado. El mapa 02 §1 contó bien. He añadido en §1.2 un paréntesis que explica la fila 20 para que la decisión 16, 06-geografia (test d, 20 ids) y 16-galeria no vuelvan a tropezar: esas tres cuentan filas de tabla (20), la partición cuenta carreras de un día (19)."
+   },
+   {
+    "id": "H013 (cifra del refutador)",
+    "motivo": "Se aplica el hallazgo (el 149-152 del texto era falso) pero NO con la cifra propuesta: a 8585ca2 `const mountainOneDay` está en calendar.ts l. 143 y cierra en l. 151 (l. 141-142 son el final del comentario), así que el texto cita l. 143-151 en §1.1.1 y §1.4. En el árbol vivo está desplazado a l. 157 (calendar.ts ganó 14 líneas después de 8585ca2), y por eso §1 declara ahora en su cabecera que toda cita de línea es de 8585ca2."
+   }
+  ],
+  "lineas": 260
+ },
+ {
+  "resueltos": [
+   "H014",
+   "H015",
+   "H018",
+   "H019",
+   "H041",
+   "H069",
+   "H070",
+   "H071",
+   "H072",
+   "H097",
+   "H098",
+   "H099",
+   "H100",
+   "H101",
+   "H102",
+   "H620"
+  ],
+  "desestimados": [
+   {
+    "id": "H016",
+    "motivo": "Acierta en raceContext.ts (l. 56-59 lee profile y timeTrial; aplicado vía H101) pero se equivoca de fichero en callups: en 8585ca2 y en HEAD `packages/db/src/callups.ts` l. 98 es `raceVocationFit(race.stages.map((s) => s.kind))` (el lector) y `packages/engine/src/world/callups.ts` l. 99 es `export function raceVocationFit(...)` (la definición). Se ha escrito lo que H070 dice, que es lo que el código muestra."
+   },
+   {
+    "id": "H017",
+    "motivo": "Cita l. 47-50, pero en `packages/db/src/raceRoutes.ts` (sin cambios entre 8585ca2 y HEAD) l. 47 es `profile: stage.profile as StageProfile,`, el comentario ocupa l. 48-50 y `routeSource: 'generado' as const` es la l. 51. Se ha aplicado l. 48-51 (H620/H102), y §3.11 (03-modelo.md l. 385, «l. 47-50») debe cambiar a 48-51 en la pasada de coherencia."
+   },
+   {
+    "id": "H042",
+    "motivo": "Su parte (a), el test estático de imports, está aplicada vía H099 con el mismo enunciado que §3.9 y §15.7, ampliado a veto.ts, generate.ts, render.ts y place.ts (lo que responde a su propia objeción de que un grep sobre veto.ts no cubre la llamada por intento desde otro módulo). Su parte (b), el espía `vi.spyOn(sample, 'sampleProfile')` en generate.test.ts, no se aplica: el repositorio no tiene ningún `vi.spyOn` (grep sobre packages y apps devuelve 0), en vitest 4 (package.json l. 38, ^4.1.10) espiar un export de un módulo ES exige `vi.mock`, y `StageRequest.season` es `number` (§B.2 l. 237) mientras el helper `semillas(300)` del borrador producía cadenas. Dos mecanismos para la misma propiedad es justo lo que H099 señala; se deja uno. Coherencia: §15.7 debe listar los cuatro ficheros."
+   },
+   {
+    "id": "H043",
+    "motivo": "Duplica H016 y comete el mismo error: sitúa el lector de `kind` en `packages/engine/src/world/callups.ts` l. 98, cuando esa línea es un comentario y la l. 99 define `raceVocationFit`; el lector es `packages/db/src/callups.ts` l. 98 (verificado en 8585ca2 y HEAD). La parte de raceContext.ts está aplicada vía H101."
+   },
+   {
+    "id": "H044",
+    "motivo": "Cita «comentario l. 47-50, literal l. 51»; el comentario empieza en l. 48 (l. 47 es `profile:`). Se aplica la cifra exacta de H620/H102: l. 48-51."
+   },
+   {
+    "id": "H067",
+    "motivo": "Lo que comparte con H041 está aplicado: el 60 % desaparece y el principio 1 se sella con bandas medidas sobre el calendario real (`calendario.test.ts` sobre `calendarForSeason(0)`), no sobre 300 semillas sintéticas; y la galería gana la vista por clase del calendario (H069), que es donde el dueño ve si las .2 belgas se parecen. Los umbrales nuevos (≤ 35 % por esqueleto, ≥ 5 esqueletos con ≥ 5 %, entropía ≥ 2,3 bits) no se aplican porque contradicen la ley del documento: §D.13 del esqueleto fija «esqueletos distintos por clase ≥ 8/10/6/9; entropía por zona ≥ 1,5 bits» (tomado de arquitectura.md §11.3 l. 684-685) y 13-banco.md l. 114-115 lo escribe así; además 2,3 bits exige ≥ 5 esqueletos equiprobables en zonas donde `admite` deja pocos (flandes con puerto y cota null, 06-geografia.md l. 24 y 186), de modo que la banda nacería en rojo contra la regla de la decisión 30. La banda por clase (≥ 10 esqueletos distintos en .1/.2 sobre el calendario entero) es la que responde a «tres o cuatro modelos». Si el dueño quiere subir la entropía es decisión de la sección 13, no de esta."
+   },
+   {
+    "id": "H068",
+    "motivo": "Contradice tres piezas de la ley: §B.2 l. 240 (`terrain: RouteTerrain // sesgo, nunca orden`), la decisión 18 (§D.7 l. 500: «reina solo en meta de cordillera o zona montana/alta, si no se degrada a media_alto y se anota») y D8 (18-dueno.md §18.9, valor por defecto «se acepta»: `cordillera: null` degrada la reina en BE, NL, DK, AE, AU), que con la corrección propuesta serían errores de construcción y no carreras. Su premisa «una nota en notas que nadie lee» es falsa en el diseño: 06-geografia.md l. 188 escribe la degradación en `arch.frase`, que la ficha muestra al jugador (D10) y la galería al dueño. Se ha reforzado §2.3 para decirlo explícitamente (escrita en `arch.frase`, contada por `routeCensus`) y para citar que `regions.test.ts` (f) imprime las dudas de curación sin vetar."
+   }
+  ],
+  "lineas": 113
+ },
+ {
+  "resueltos": [
+   "H020",
+   "H021",
+   "H022",
+   "H023",
+   "H024",
+   "H025",
+   "H026",
+   "H027",
+   "H028",
+   "H045",
+   "H046",
+   "H047",
+   "H048",
+   "H049",
+   "H050",
+   "H051",
+   "H052",
+   "H053",
+   "H054",
+   "H055",
+   "H056",
+   "H057",
+   "H073",
+   "H074",
+   "H075",
+   "H076",
+   "H077",
+   "H078",
+   "H079",
+   "H103",
+   "H104",
+   "H105",
+   "H106",
+   "H107",
+   "H108",
+   "H109",
+   "H110",
+   "H111",
+   "H112",
+   "H113",
+   "H114",
+   "H115",
+   "H571",
+   "H572",
+   "H573",
+   "H574",
+   "H580",
+   "H582",
+   "H583",
+   "H584",
+   "H585",
+   "H596",
+   "H600",
+   "H601",
+   "H609"
+  ],
+  "desestimados": [],
+  "lineas": 639
+ }
+]

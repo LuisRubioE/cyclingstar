@@ -4175,5 +4175,1607 @@
   "correccion": "El script de §14.3 imprime también la cuenta de ficheros de test que importan calendar (grep sobre `SEASON_CALENDAR|@cyclingstar/engine`) en el paso 0, y la tabla de 14.5 se escribe con esa cifra medida.",
   "lente": null,
   "grupo": null
+ },
+ {
+  "seccion": 16,
+  "gravedad": "alta",
+  "afirmacion": "16.1: «llama a `generateStage` con `fixed.skeleton`»; 16.2: «el km sale de `kmDe(role, clase, false, routeRng(...))`»; 16.3: el índice muestra «`degradado` y p95 de `intentos` por celda»; 16.7: «Se escribe y se corre por primera vez en el paso 4 del plan».",
+  "fallo": "La galería del paso 4 depende de código de pasos posteriores. `generateStage` y `grammar/generate.ts` se escriben en el paso 5 (15-plan.md 15.7, «Código: grammar/veto.ts ... grammar/generate.ts»), `kmDe` vive en `grammar/tour.ts` y es del paso 7 (15.9 «Código: grammar/tour.ts (..., kmDe)»), y `intentos`, `degradado` y `rechazos` solo existen con el bucle de reintento de `generateStage` (08-algoritmo.md l. 182). El grafo de 15.14 (`4 → 5 → {6 ∥ 7}`) lo confirma: nada del 5 ni del 7 existe al cerrar el 4. Tal como está escrito, el script del paso 4 no compila y el «entregable al dueño» de 15.6 no puede producirse.",
+  "correccion": "Decidir una de dos y escribirla en 16.7 y 15.6: (a) el script nace en el paso 4 con `renderSkeleton(sk, instanciar(sk, rng), rng)` sobre motivos instanciados sin vetos ni reintento (columnas `intentos`, `degradado` y `rechazos` vacías y marcadas «desde el paso 5»), con `km` sorteado en `sk.km` (no `kmDe`) hasta el paso 7, y la ENTREGA al dueño se hace al cerrar el paso 5, que sigue siendo antes del 8; o (b) `generateStage` sin `verify` (los siete pasos de la sección 8 con `verify` devolviendo `null`) se adelanta al paso 4 y el 5 solo añade `veto.ts`. En ambos casos el grafo de 15.14 y la fila del paso 4 de la tabla de 15.1 se corrigen.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "media",
+  "afirmacion": "15.6 «Entregable al dueño. La galería ... Se entrega aquí [paso 4]»; 16.7 «la galería del paso 4 corre con los vetos que `skeletons.test.ts` ya usa (V1 a V4, V6, V7) y su índice lo dice en la cabecera («vetos activos: …»), leído de `veto.ts`».",
+  "fallo": "`veto.ts` se crea en el paso 5 (15.7 «Código: grammar/veto.ts (V1 a V16 como predicados, verify)»), así que en el paso 4 no hay fichero del que leer «vetos activos». Además 15.6 no dice que `skeletons.test.ts` use V1 a V4: solo comprueba `stageKindOf === sk.kind` y `finalKindOf === sk.finalKind` (V6 y V7 por su regla, no por el predicado). Y 03-modelo.md l. 124 afirma que la plantilla canónica se comprueba «en skeletons.test.ts contra los 16 vetos», imposible en el paso 4 y falso para V11 a V14 y V16, que son de calendario o vuelta (decisión 24).",
+  "correccion": "15.6 fija qué comprueba `skeletons.test.ts` en el paso 4 con lo que existe: `stageKindOf`, `finalKindOf`, geometría (`admite`, `dPlus`, Σ km) y nada de `veto.ts`; 16.7 quita la frase de «vetos activos leídos de veto.ts» para el paso 4 y la deja para la regeneración del paso 5 en adelante; 03-modelo.md l. 124 pasa a «contra V1 a V10 y V15 en `veto.test.ts` (paso 5)».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "media",
+  "afirmacion": "15.12: «Test de packages/db para los cuatro lectores: `calendarRun.ts` l. 516 y l. 1603-1616, `world/callups.ts` l. 98 y `raceContext.ts` ...»; tabla de 15.1 paso 10: «`callups.ts`»; §B.1 «`world/callups.ts` l. 98».",
+  "fallo": "No existe `packages/db/src/world/callups.ts` ni en el árbol vivo ni en `8585ca2` (`git show 8585ca2:packages/db/src/world/callups.ts` falla). El lector está en `packages/db/src/callups.ts` l. 97-98 (`raceVocationFit(race.stages.map((s) => s.kind))`), que es lo que cita el juez del motor (`juicios/motor.md` §5 riesgo 1: «callups.ts l. 98»). Un implementador que siga la ruta del documento no encuentra el fichero.",
+  "correccion": "Sustituir `world/callups.ts` por `packages/db/src/callups.ts` l. 98 en 15.12, en la tabla de 15.1 y en §B.1 del esqueleto; comprobar que 10-identidad.md y 11-real.md usan la misma ruta.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "media",
+  "afirmacion": "15.1 regla 2: «69 → 70 (`constants.ts` l. 718, `index.test.ts` l. 381)»; regla 7: «Hoy la última nota es la v60»; 15.12: «hoy la última es `0039_el_recorrido_es_del_mundo.sql`».",
+  "fallo": "Contra el código vivo (HEAD `02b032d`, que trae 30 commits y un merge de `origin/main` posteriores a `8585ca2`): `ENGINE_VERSION = 86` en `packages/engine/src/constants.ts` l. 809 y `expect(ENGINE_VERSION).toBe(86)` en `index.test.ts` l. 459; `docs/balance.md` llega hasta «## v86» (l. 16332) y no existe ningún encabezado «## v61» aunque sí v62 y v63, de modo que una nota llamada «v61» quedaría intercalada entre notas de versiones ya cerradas; la última migración es `packages/db/drizzle/0040_ordenes_del_paso_17a.sql`. Las cláusulas «o el siguiente número libre» existen pero los tres «hoy» son falsos y el implementador no puede preguntar.",
+  "correccion": "Escribir las tres cifras como reglas y no como «hoy»: el salto es `N → N + 1` con `N = ENGINE_VERSION` al abrir el PR del paso 8 (86 en HEAD `02b032d`); la nota se llama «v{N + 1} · El generador es una gramática» (v87 hoy) y va siempre al final de `balance.md`; la migración es la siguiente libre de `packages/db/drizzle/` (0041 hoy). Añadir en 15.1 el HEAD contra el que se comprobó y la instrucción de re-comprobar las tres al empezar.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "media",
+  "afirmacion": "15.1 regla 7: la nota v61 lleva «§0 (línea base, paso 0), §1 (el cambio, paso 8), §2 (remedición, paso 9) y §3 (base y pantalla, paso 10)».",
+  "fallo": "Otras secciones citan apartados que esa estructura no tiene: 13-banco.md l. 231 manda las «previsiones fallidas» a «v61 §9»; 16.6 exige que la nota «resuma en su apartado del paso 4 cuántas filas revisó el dueño ... y qué datos se editaron» y que `docs/galeria-revision.json` quede versionado; 18.12 pide «un apartado propio» con las diez respuestas del dueño. 15.6 (paso 4) no nombra ni `docs/galeria-revision.json` ni apartado alguno de la nota. Sin una tabla única, tres secciones escriben en tres notas distintas.",
+  "correccion": "15.1 regla 7 publica la tabla de apartados de la nota y las demás secciones la citan: §0 línea base (paso 0); §1 galería y revisión del dueño (paso 4/5, con `docs/galeria-revision.json`); §2 cambio de calendario (paso 8); §3 remedición y previsiones fallidas (paso 9); §4 base y pantalla (paso 10); §5 respuestas del dueño D1 a D10 (18.12); §6 deudas (17.4). Corregir 13 l. 231 («§9» → «§3») y añadir a 15.6 el entregable «v{N+1} §1» con el fichero de revisión.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "media",
+  "afirmacion": "15.12: «el test intercepta `SEASON_CALENDAR` y comprueba 0 lecturas directas desde esos cuatro sitios (decisión 23)».",
+  "fallo": "`calendarRun.ts` recorre `SEASON_CALENDAR` para saber qué carreras empiezan cada día (`for (const race of SEASON_CALENDAR)` en l. 140 del árbol vivo, y l. 525 para las grandes vueltas); ese recorrido es legítimo (calendario, fechas, ids son identidad, decisión 20) y no puede dar 0 lecturas. Lo que la decisión 23 prohíbe es leer `kind`, `timeTrial` y `profile` de la etapa desde el código en vez del congelado. Tal como está, la aserción es inimplementable y el implementador la relajará sin criterio.",
+  "correccion": "Reescribir la aserción: se congela una carrera con `freezeRaceRoute` cuyo `kind` y `profile` difieren a propósito de los del código (por ejemplo `season 1`), y se comprueba que `raceVocationFit` en `calendarRun.ts` l. 516 y `callups.ts` l. 98, la fila que escribe l. 1614 y `terrenoRestante` (`raceContext.ts` l. 127) reciben los valores congelados; si no hay fila, los de `calendarForSeason(season)`. El recorrido de `SEASON_CALENDAR` para fechas e ids no se intercepta.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "baja",
+  "afirmacion": "15.10 punto 3: «`routes/realFingerprint.test.ts` sigue verde para las 177 + 62».",
+  "fallo": "Las 62 etapas reales de las tres grandes vueltas ya están dentro de las 177 con rasgos: `STAGE_FEATURES` (`packages/engine/src/routes/stageFeatures.ts` l. 15-19) tiene como claves `race-france`, `race-italy` y `race-spain`. El fichero `realFingerprint.json` de 15.3 tiene por tanto 177 claves más la de la e21 de Francia (178), no 239. La suma «177 + 62» cuenta dos veces.",
+  "correccion": "Decir «las 177 (que incluyen las 62 reales de las tres grandes vueltas) más la e21 de Francia sellada aparte» y fijar en 15.3 el número de entradas del JSON: 178.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 16,
+  "gravedad": "media",
+  "afirmacion": "16.4 y cierre de 16.4: «`rechazos` es el único campo que la galería añade a `GeneratedStage.arch` respecto de §B.2 ... La sección 3 lo incorpora al tipo».",
+  "fallo": "No lo incorpora: `grep rechazos` sobre 03-modelo.md y 08-algoritmo.md no devuelve nada; el tipo `GeneratedStage.arch` de la sección 3 (l. 275, `degradado: boolean`) y el bucle de reintento de la sección 8 (l. 182) no guardan los `Veto` de los intentos fallidos. La columna «Intentos y rechazos» de 16.4 y la señal de `ARCH.veto.intentosP95` que describe se apoyan en un dato que nadie produce.",
+  "correccion": "O bien la sección 3 añade `rechazos: Veto[]` a `GeneratedStage.arch` (§B.2) y la sección 8 lo rellena en cada intento fallido (`rechazos.push(veto)` antes de resembrar `mot`, `pos`, `dib`), con la aserción en `generate.test.ts` de que `rechazos.length === intentos - 1` cuando no hay degradado; o bien 16.4 se queda con `intentos` y `degradado` y quita `rechazos`. La sección 16 no puede legislar sobre el tipo de la 3 con una frase.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 16,
+  "gravedad": "media",
+  "afirmacion": "16.2: «la misma comprobación de disponibilidad que usa `arch|raceId` en la sección 5, exportada por `grammar/geo.ts` como `admite(geo, sk)`».",
+  "fallo": "Tres firmas distintas para la misma función: 16.2 `admite(geo, sk)`; 05-esqueletos.md l. 225 `admite(req.geo, SKELETONS[id].requiere)` (geo primero, `requiere` segundo); 06-geografia.md l. 173 y l. 285 `admite(sk.requiere, geo)` y `admite(reina.requiere, ZONAS.alpes)` (`requiere` primero). §B.1 no lista `admite` entre los exports de `geo.ts` ni fija la firma. Un implementador que escriba el script con la firma de 16 rompe el test de 06.",
+  "correccion": "Fijar en §B.1 y en la sección 6: `export function admite(requiere: Skeleton['requiere'], geo: GeoSignature): boolean` (la forma del test de 06 l. 285), corregir 05 l. 225 al mismo orden y escribir en 16.2 `admite(sk.requiere, ZONAS[zona])`.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 16,
+  "gravedad": "media",
+  "afirmacion": "16.6, fila `no_existe_aqui`: «\"puerto de 12 km en `britanicas`\" → `ZONAS.britanicas.puerto.km` a [5; 9] (mapa 07 §3.18: \"puertos de 15 km\" no existen)».",
+  "fallo": "El ejemplo produce un dato que los propios tests prohíben: 15.4 exige `puerto.km[0] ≥ 9` (o `puerto === null`) y §B.3 fija `ARCH.motivo.puerto.km` en [9; 25], así que [5; 9] falla `geo.test.ts` y queda fuera de la intersección con `ARCH`. Además la fila `britanicas` de 06-geografia.md l. 51 ya tiene `puerto: null` (relieve `media`), luego un «puerto de 12 km en britanicas» no puede aparecer en la galería: el ejemplo es doblemente imposible.",
+  "correccion": "Cambiar el ejemplo por uno legal: «cota de 8 km en `britanicas`» → `ZONAS.britanicas.cota.km` de [2,5; 8] a [2,5; 6]; y añadir a la tabla de 16.6 la regla de edición: `puerto`, `cota` y `muro` solo admiten `null` o un subrango dentro de `ARCH.motivo.*`, nunca un rango que cruce 8,5 km, porque `geo.test.ts` (15.4) lo rechaza.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 16,
+  "gravedad": "baja",
+  "afirmacion": "16.2: «`role` y `format` deducidos del prefijo del esqueleto (... `et_*` → el `StageRole` de su fila en la tabla de la sección 5 y `'una-semana'`) y `terrain` el de la misma tabla».",
+  "fallo": "La tabla de etapas de 05-esqueletos.md (l. 44) tiene las columnas Id, kind/label, finalKind, Papel, Motivos, Meta, D+ total, Km bruto, `requiere`, pesoBase y Referencia: hay columna «Papel» pero no hay columna de `terrain`, y la de un día (l. 20) no tiene ni papel ni terreno. El script no puede leer un terreno «de la misma tabla».",
+  "correccion": "Definir en 16.2 la tabla literal `SESGO_POR_PAPEL: Record<StageRole | 'un_dia', RouteTerrain>` (llana* → 'flat', media* → 'hilly', reina*/montana_corta → 'mountain', cri/prologo/cronoescalada → 'itt', un_dia → el `SESGO_TERRENO` inverso de 05 l. 178 para `ud_adoquin*` 'cobbles' y `ud_montana*` 'mountain') o pedir a la sección 5 una columna `terrain` en las dos tablas.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 16,
+  "gravedad": "baja",
+  "afirmacion": "16.3, fila `adoquin.html`: «las 20 filas `terrain: 'cobbles'` (mapa 07 §3 l. 208: Omloop, Brugge-De Panne, E3, ..., Rutland-Melton y Veneto Classic)».",
+  "fallo": "El mapa 07 l. 208 solo da el recuento («Hoy el calendario tiene 20 filas terrain: 'cobbles' (grep sobre calendar.ts, l. 965-2786)»), no la lista de nombres; los veinte nombres no están en esa línea ni en ninguna otra citada. En el árbol vivo `grep -c \"'cobbles'\" calendar.ts` da 21 (y 5 en `editions.ts`), así que una lista literal de 20 en el script quedará desfasada.",
+  "correccion": "El script deriva la página de adoquín en tiempo de ejecución de `RaceRow.terrain === 'cobbles'` (y de las `EditionStage.terrain === 'cobbles'`), sin lista literal; 16.3 cita el recuento como «20 en el mapa 07 l. 208 sobre 8585ca2» y deja que el script imprima el suyo.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 17,
+  "gravedad": "alta",
+  "afirmacion": "17.1 riesgo 10: «`et_reina_blanda` con `ARCH.reina.blandaShare` ... y D+ total en [1.500; 2.500] (decisión 8)» sostiene «la banda “cubeta < 1.500 poblada ≥ 5 %”» y la exigencia de `calendarQueens` de «≥ 3 reinas en `<1500`».",
+  "fallo": "Por construcción una reina cuyo D+ mínimo es 1.500 m nunca cae en la cubeta «< 1.500»: la plantilla canónica de `et_reina_blanda` mide 2.138 m (05-esqueletos.md l. 139) y `Skeleton.dPlus` [1.500; 2.500] es el objetivo que `verify` persigue (decisión 9). `calendarQueens.test.ts` l. 58-62 exige `facil.races > 0` en la banda `<1500` (medida con `desnivelDe`, cuyo delta con `dPlusDe` se espera < 5 %, H4). La mitigación del riesgo 10, la resolución de cobertura 4 en 19.2.3, la banda «< 1.500 ≥ 5 %» de la sección 13 (13-banco.md l. 117 y l. 150) y el valor por defecto de D6 en 18.7 descansan en un esqueleto que no puede poblar esa cubeta; el estrato quedará vacío salvo por reinas de edición real. La duda ya estaba anotada en dudas.md l. 138 y nadie la resolvió.",
+  "correccion": "Tomar la decisión y escribirla en 17.1 riesgo 10, 5, 13 y 18.7: `et_reina_blanda` con D+ total [1.200; 2.000] (con relleno) y plantilla canónica de ~1.400 m, de modo que el estrato «< 1.500» lo pueble la mitad baja de la blanda; V8a no le aplica (decisión 6) y V8b sí; la banda del censo «cubeta < 1.500 poblada ≥ 5 %» y H5 se conservan. Si se prefiere no bajar el suelo, hay que reescribir la banda y el estrato de `calendarQueens` como «< 1.800» y decirlo en D6.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 17,
+  "gravedad": "media",
+  "afirmacion": "17.1 riesgo 1, test: «viento y altitud son metadatos: no cambian un solo tramo del perfil»; `ventosa = { ...base, geo: { ...base.geo, viento: 3, altitud: 'altiplano' } }` y `expect(b.profile).toEqual(a.profile)`.",
+  "fallo": "`altitud` no es solo metadato: §B.2 la anota «METADATO y veto V4» y la decisión 24 define V4 como «ningún puerto ≥ 15 km fuera de `altitud ∈ {alta, altiplano, media}`; `alto_largo` solo con `finalesAlto: 'largo'`». Cambiar `altitud` de `mar` a `altiplano` cambia qué instanciaciones pasan V4 y, con reintento, el perfil. Tal como está, el test es falso para cualquier esqueleto con `puerto` (`et_reina_*`, `ud_montana`), y si se sella con un solo esqueleto flamenco oculta que altitud SÍ entra en el generador.",
+  "correccion": "Partir el test: (a) `viento` no cambia ningún tramo, sobre todos los esqueletos compatibles de tres zonas; (b) `altitud` entra solo por V4: para esqueletos sin `puerto` ≥ 15 km los perfiles son iguales, y para `et_reina_alto_largo` en `alpes` con `altitud: 'mar'` el veto devuelto es `V4`. Corregir la prosa de 17.1 riesgo 1 y de 17.3 fila 1: «`viento` es metadato; `altitud` es metadato de ficha y veto V4».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 17,
+  "gravedad": "media",
+  "afirmacion": "17.1 riesgo 5, test: `const p = renderMotif({ kind: 'meta', meta: 'muro_meta', km: ..., cotaFinal: ... }, routeRng(...))` y `finishType(deriveFinishTerrain(sampleProfile(p)), 50) === 'muro'`, con el comentario «si falla: aproxKm 2 → 3, después aproxAmp 2,5 → 2,0».",
+  "fallo": "El test no rinde la aproximación: `p` es solo el motivo `meta`, sin los 2 km de `ARCH.meta.muro.aproxKm` a `aproxAmp` 2,5 que son justo lo que el riesgo dice que decide si `deriveFinishTerrain` funde la racha (`finish.ts` l. 94-123, `finishClimbGapBlocks` 5). Un fallo de este test no puede atribuirse a `aproxKm` ni corregirse tocándolo, y contradice la versión del paso 3 en 15.5, que sí antepone `aproximacion(rand, ARCH.meta.muro.aproxKm, ARCH.meta.muro.aproxAmp)`. Dos versiones del mismo test en el mismo documento, una de ellas sin sentido.",
+  "correccion": "Sustituir el bloque de 17.1 riesgo 5 por el de 15.5 (o por `generateStage` con `fixed: { skeleton: 'ud_muro_final' }`, como propone dudas.md l. 139) y dejar escrito que la forma canónica del test es la de 15.5.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 17,
+  "gravedad": "media",
+  "afirmacion": "17.1 riesgo 1: «con `altitud` en `alta` o `altiplano` describe los puertos, no el aire; la tabla de textos vive en la sección 11».",
+  "fallo": "La sección 11 no tiene esa tabla: 11-real.md l. 145 fija solo «llano abierto» para `viento ≥ 2` y no dice nada de `altitud` (`alta`, `altiplano`, `media`, `colina`, `mar`) ni de `viento` 0, 1 y 3. La obligación 3 del encargo de síntesis (§E.3) y el §D de esta sección piden el texto de ficha «que no promete»; delegarlo a una tabla inexistente deja al implementador inventándolo, que es el riesgo 2 de ejecutabilidad («fingidos en el relato»).",
+  "correccion": "Escribir la tabla en 17.1 riesgo 1 (y que la 11 la cite): `viento` 0 y 1: sin texto; 2: «llano abierto»; 3: «llano abierto y expuesto»; `altitud` `mar`, `colina`, `media`: sin texto; `alta`: «puertos de alta montaña»; `altiplano`: «etapa en altiplano» (describe el relieve, no el aire); prohibidos «abanicos», «hipoxia» y «altitud» como efecto. `generate.test.ts` comprueba que `arch.frase` no contiene las palabras prohibidas.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 17,
+  "gravedad": "media",
+  "afirmacion": "17.1 riesgo 9: «si el p95 de `intentos` supera 3 en el paso 4, se estrechan rangos»; «Vigilancia: `grammar/skeletons.test.ts` por esqueleto × 5 km × 60 semillas × zonas compatibles con `intentos` p95 ≤ 3».",
+  "fallo": "En el plan, `intentos` no existe en el paso 4: la aserción «`intentos` p95 ≤ 3 y `degradado` en ≤ 0,5 %» está en `generate.test.ts` del paso 5 (15-plan.md 15.7), y `skeletons.test.ts` del paso 4 solo mide «el PRIMER rendido cumple V6 y V7 en ≥ 70 %» (15.6). El §D del paso 4 pedía el p95 en `skeletons.test.ts`; 19.2.1 B5 y 19.2.4 H2 también lo sitúan ahí. Cuatro sitios, dos ficheros y dos pasos distintos para la misma cota.",
+  "correccion": "Una sola casa: el p95 de `intentos` y el 0,5 % de `degradado` viven en `grammar/generate.test.ts` (paso 5) y 17.1 riesgo 9, 17.3 fila 9, 19.2.1 B5 y 19.2.4 H2 citan ese fichero y ese paso; `skeletons.test.ts` conserva el ≥ 70 % de primer rendido como cota previa, con la aritmética de 15.6 (0,3³ = 2,7 %).",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 17,
+  "gravedad": "baja",
+  "afirmacion": "17.1 riesgo 12: «la sección 14 pone el tope `MAX_TEMPORADAS_EN_MEMORIA = 8` en `edition.ts`».",
+  "fallo": "15.1 regla 8 exige que «toda constante nueva va en `ARCH` con su comentario de intención (sección 12)», y ni §B.3 ni 12-constantes.md (solo `anticlon` y `arranque`, l. 68-69 y 12.9) recogen esa constante: existe solo en 14-rendimiento.md l. 90 como literal suelto en `edition.ts`.",
+  "correccion": "Declararla como `ARCH.arranque.maxTemporadasEnMemoria: 8` en §B.3 y en 12.9 (intención: una temporada por año de mundo; se borra la más antigua; reconstruirla cuesta ≤ `porTemporadaMs`), y que 14 y 17 la citen con ese nombre.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 17,
+  "gravedad": "baja",
+  "afirmacion": "17.1 riesgo 14: «D9 (cifras UCI de `ARCH.km.maxPorClase` «a confirmar») se implementa con las del mapa 07 §4.1».",
+  "fallo": "El mapa 07 §4.1 (l. 220) da «techo UCI 280 salvo excepciones como Sanremo» para el WT de un día; el valor por defecto de D9 es WT 260 (§B.3, 18.10), que no sale del mapa sino de casar el techo con `ARCH.km.porClase` un día WT [200, 60] (18.10). Decir «las del mapa» oculta la única cifra que el documento cambió.",
+  "correccion": "«se implementa con las del mapa 07 §4.1 para Pro, .1, .2 y NC, y WT en 260 (no 280) para casar con `ARCH.km.porClase`, como explica 18.10».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 18,
+  "gravedad": "media",
+  "afirmacion": "18.9 D8: «Donde sí existe (GB con `britanicas`, US con `norteamerica`), la respuesta es una línea de datos y el país sale de la lista sellada».",
+  "fallo": "`geo.test.ts` (15.4) exige que la `cordillera` tenga `ZONAS[cordillera].relieve ∈ {montana, alta}`; en 06-geografia.md la fila `britanicas` (l. 51) tiene `relieve: media` y `puerto: null`, y `norteamerica` (l. 56) tiene `relieve: media`. Ninguna de las dos puede ser cordillera con una «línea de datos»: para GB y US decir «no» a D8 obliga a inventar una zona nueva en `ZONAS`, exactamente lo que el propio párrafo dice que no se hace para BE, NL, DK y AE.",
+  "correccion": "Quitar el ejemplo o reescribirlo: «para todos los países de la lista (BE, NL, DK, AE, AU, NO, GB, PL, DE, JP, US) rechazar D8 significa añadir una zona de relieve `montana` o `alta` a `ZONAS` y a su `ruta`, porque ninguna zona de sus rutas cumple el test de 15.4»; y 18.1 fila D8 lo dice en «Dónde vive el valor».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 18,
+  "gravedad": "media",
+  "afirmacion": "18.1 D3: «Dónde vive el valor: `TOUR_SKELETONS[*].primera.prologo`, `ARCH.itinerario.cronoescaladaP`»; bloque de código de 18.1: `ARCH.itinerario.cronoescaladaP = 0.08` y «tour.ts: TOUR_SKELETONS.vu_semana.primera = { llana: 0.75, prologo: 0.25 }».",
+  "fallo": "12-constantes.md l. 67 y l. 203 declaran `ARCH.itinerario.prologoP` 0,25 además de `cronoescaladaP`, y 07-vueltas.md l. 90 tira el prólogo con `TOUR_SKELETONS[id].primera.prologo`. La misma probabilidad vive en dos constantes (una en `ARCH`, otra en el `TourSkeleton`) y el 0,3 de `vu_gran_vuelta` solo cabe en la segunda. El implementador que apague D3 no sabe cuál poner a 0.",
+  "correccion": "Una sola casa, escrita en 18.1, 7 y 12: el prólogo vive en `TOUR_SKELETONS[id].primera` (`{ llana: 0.75, prologo: 0.25 }` y `{ llana: 0.7, prologo: 0.3 }` en `vu_gran_vuelta`) y `ARCH.itinerario.prologoP` se retira de la sección 12; la cronoescalada vive en `ARCH.itinerario.cronoescaladaP` 0,08. «D3 = no» pone `primera.prologo` a 0 en los cuatro esqueletos y `cronoescaladaP` a 0.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 18,
+  "gravedad": "media",
+  "afirmacion": "18.1 D2: «`PASS_MIN_KM` 8,5, `QUEEN_MIN_CLIMB_METRES` 3.200 y el corte de 3 km de `stageKind.ts`»; 18.3: «3 km del final en alto».",
+  "fallo": "En `packages/engine/src/routes/stageKind.ts` la constante de 3 km es `WALL_MAX_KM = 3` (l. 61) y separa la clásica de muros de la media (`if (!summitFinish && longest <= WALL_MAX_KM) return clasica`, l. 88); el final en alto no se decide por un corte de 3 km sino por «el último segmento es `puerto`» (l. 84-85, `summitFinish`), que es justo lo que la decisión 23 cambia por `SUMMIT_RUN_IN_KM` 5. El «3 km del final en alto» es `STAGE.finishAltoMinKm` 3 de `constants.ts` (l. 4458), una constante del motor que D2 no toca.",
+  "correccion": "D2 nombra los tres umbrales como `PASS_MIN_KM` 8,5, `QUEEN_MIN_CLIMB_METRES` 3.200 y `WALL_MAX_KM` 3 (clásica de muros frente a media), con sus líneas, y aclara que la regla de `Summit finish` ya cambia en E1 (decisión 23) y no es objeto de D2.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 18,
+  "gravedad": "media",
+  "afirmacion": "18.7 D6: «la cubeta baja la sostiene el diseño y no un dado: `ARCH.reina.blandaShare` ... da a `et_reina_blanda` (D+ [1.500; 2.500] con relleno) peso propio, y la estratificación por `finalKind` × cubeta exige ≥ 3 reinas en `<1500`».",
+  "fallo": "Es la misma imposibilidad que el riesgo 10 de la sección 17: un esqueleto con D+ objetivo ≥ 1.500 no puebla la cubeta «< 1.500» (05-esqueletos.md l. 139: plantilla de 2.138 m). El valor por defecto de D6 promete que la banda `<1500` de `calendarQueens.test.ts` l. 60 (`facil.races > 0`) la sostiene un esqueleto que nunca entra en ella, y la alternativa «comparar < 2.000 contra > 3.000» se convertirá en el resultado seguro y no en la excepción.",
+  "correccion": "Alinear D6 con la corrección del riesgo 10: valor por defecto «`et_reina_blanda` con D+ [1.200; 2.000] puebla la cubeta < 1.500; la banda [6; 30] se mantiene como vigilancia»; y decir con cifra qué fracción de la cubeta se espera de la blanda (blandaShare × mitad baja) en el censo del paso 8.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 19,
+  "gravedad": "media",
+  "afirmacion": "19.2.1 B17: «con paso 0 (línea base) y paso 1 (builders legado, tabla pareada «igual dentro del ruido», `golden.test.ts` de 1.418)»; 19.1.2 I-16: «la tabla pareada «igual dentro del ruido» se conserva» en «pasos 0 y 1».",
+  "fallo": "El plan no hace la tabla pareada en el paso 1: 15-plan.md 15.3 dice «La tabla pareada «igual dentro del ruido» de los legado contra los viejos se completa en el paso 4, cuando exista `renderSkeleton` (§15.6)», y 15.6 la sitúa en `grammar/legacy.test.ts` del paso 4 con `routeCensus`. El §D del paso 1 pedía la tabla en el paso 1 (dudas.md l. 124 lo anota como decisión del redactor). El apéndice describe un plan distinto del que la sección 15 escribe.",
+  "correccion": "Elegir y alinear: o `grammar/render.ts` (`renderSkeleton`) se adelanta al paso 1 y la tabla pareada se hace ahí, como pide §D y como afirma 19; o 19.2.1 B17, 19.1.2 I-16 e I-42 pasan a decir «paso 1: motivos pareados en número y orden; paso 4: tabla pareada por `routeCensus`».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 19,
+  "gravedad": "baja",
+  "afirmacion": "19.2.1 B1, columna de test: «`edition.test.ts`: “`stagesForSeason(id, 0) === SEASON_CALENDAR`”».",
+  "fallo": "Ese test no puede pasar hasta el paso 8: 15.8 lo escribe como `it.todo('SEASON_CALENDAR es calendarForSeason(BASE_SEASON) por referencia')` y 15.10 punto 8 lo enciende con `expect(SEASON_CALENDAR).toBe(calendarForSeason(BASE_SEASON))`. El apéndice lo presenta como sellado sin decir que está apagado hasta el cambio de calendario, y usa una forma (`stagesForSeason` por carrera) distinta de la que el plan escribe (referencia del calendario entero).",
+  "correccion": "«`edition.test.ts` (paso 6, `it.todo`; encendido en el paso 8): `expect(SEASON_CALENDAR).toBe(calendarForSeason(BASE_SEASON))`».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 19,
+  "gravedad": "baja",
+  "afirmacion": "19.2.4 H5: «La cubeta de reinas < 1.500 m queda poblada ≥ 5 % con `blandaShare`», con «Si falla: D6: comparar < 2.000 contra > 3.000».",
+  "fallo": "No es una hipótesis que la ejecución pueda confirmar: con `et_reina_blanda` en [1.500; 2.500] (decisión 8, 05-esqueletos.md l. 139) la cubeta «< 1.500» no puede poblarla la blanda por construcción, así que H5 falla seguro salvo por reinas de edición real, y la rama «si falla» pasa a ser el camino normal. El apéndice presenta como apuesta lo que es una certeza aritmética (véase el hallazgo del riesgo 10 en la sección 17).",
+  "correccion": "Tras corregir el suelo de la blanda (o la cubeta), H5 pasa a «con `et_reina_blanda` en [1.200; 2.000] y `blandaShare` {0,25; 0,25; 0,10}, la cubeta < 1.500 recibe ≥ 5 % de las reinas generadas», con la aritmética esperada (fracción de la blanda que cae bajo 1.500 × su peso) en la columna «Afirmación».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "alta",
+  "afirmacion": "§15.1 regla 2 y §15.10: «Un solo salto de ENGINE_VERSION, en el paso 8: 69 → 70 (constants.ts l. 718, index.test.ts l. 381)»; tabla del plan «Versión 69 → 70»; §15.10 paso 1 «index.test.ts l. 381: expect(ENGINE_VERSION).toBe(70)».",
+  "fallo": "En el código vivo `export const ENGINE_VERSION = 86 as const` está en packages/engine/src/constants.ts:809 y `expect(ENGINE_VERSION).toBe(86)` en packages/engine/src/index.test.ts:459 (el 69 en l. 718 / l. 381 es el HEAD 8585ca2 de los mapas, 40 commits atrás). El documento afirma «69 hoy» como hecho y todas sus citas de línea a constants.ts (RELIEF, windMin, climbRaceKmToGo, bannerCost, muroMaxKm) están desplazadas hasta 900 líneas (git diff --stat 8585ca2 HEAD: constants.ts +944).",
+  "correccion": "Escribir en §15.1 y §15.10: «ENGINE_VERSION es 86 en HEAD 02b032d (constants.ts l. 809; index.test.ts l. 459); el paso 8 lo sube al siguiente número libre en producción al empezar (86 → 87 hoy)». Indicar en la cabecera que las líneas citadas son las del HEAD 8585ca2 de los mapas y que el implementador las relocaliza con grep, o refrescar todas las citas a constants.ts contra el HEAD vivo.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "alta",
+  "afirmacion": "§15.1 regla 6: «Todo dado sale de routeRng(seed)(subflujo)»; §15.5 snippet `const rand = routeRng(`muro-${i}`)('mot')`; §15.7 snippet `routeRng('reina-150')('dib')`; §15.11 snippet `routeRng(q.id)('dib')`.",
+  "fallo": "`routeRng(seed: string): () => number` (packages/engine/src/routes/profileGen.ts:30-32, devuelve `rng(seed)`, mulberry32 sin parámetros). `routeRng('x')('mot')` invoca el generador con un argumento ignorado y devuelve UN NÚMERO, no una función `rand`; `instanciaMeta('muro_meta', rand, …)` y `renderSkeleton(..., rand)` recibirían un number y no compilarían con `rand: () => number`. La sección 8 (08-algoritmo.md l. 21-30) usa la forma correcta `routeRng(`arch|${id}`)` con el subflujo dentro de la cadena; el plan la contradice.",
+  "correccion": "Sustituir en §15.1, §15.5, §15.7 y §15.11 por la forma de la sección 8: `routeRng(`mot|muro-${i}`)`, `routeRng('dib|reina-150')`, `routeRng(`dib|${q.id}`)`, y escribir la regla 6 como «todo dado sale de `routeRng(`${subflujo}|${clave}`)` (profileGen.ts l. 30, una secuencia por cadena)».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "alta",
+  "afirmacion": "§15.7 test de vetos puros: «leyendo el fichero fuente con fs y buscando la cadena from '../../stage»; §15.10 `routes/arranque.test.ts`: `expect(fuente).not.toMatch(/from '\\.\\.\\/\\.\\.\\/stage/)` sobre generate.ts.",
+  "fallo": "`verify(profile: StageProfile, …)` y `generateStage(): GeneratedStage { profile: StageProfile }` necesitan el tipo `StageProfile`, que solo existe en `packages/engine/src/stage/types.ts:46`; el propio `routes/finalKind.ts:1` hace `import type { StageProfile } from '../stage/types.js'`. Un `veto.ts` o `generate.ts` correctos llevarán `import type { StageProfile } from '../../stage/types.js'` y el test tal como está escrito los pondría en rojo; el implementador tendría que elegir entre romper el tipado o el test.",
+  "correccion": "Escribir la regla como «`veto.ts` y `generate.ts` no importan `../../stage/sample`, `../../stage/finish`, `../../stage/cost` ni `../../stage/physics`; solo `import type` de `../../stage/types.js`» y el regex como `/from '\\.\\.\\/\\.\\.\\/stage\\/(sample|finish|cost|physics|simulate)/`.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "media",
+  "afirmacion": "§15.12 y tabla de §15.1: «migración 00NN_race_routes_kind.sql (NN = siguiente libre, hoy la última es 0039_el_recorrido_es_del_mundo.sql)».",
+  "fallo": "En packages/db/drizzle/ la última migración es `0040_ordenes_del_paso_17a.sql` (commit c464ff8); 0039 ya no es la última. Un implementador que cree `0040_race_routes_kind.sql` colisiona con la existente.",
+  "correccion": "«hoy la última es 0040_ordenes_del_paso_17a.sql; la nueva toma el siguiente número libre al empezar (0041 hoy)».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "media",
+  "afirmacion": "§15.11 tabla de remedición: «realQueens (invariants.test.ts l. 770-844)», «timeTrials (l. 222-273)», «Saturación de las 8 más duras (l. 511-552)», «Jura … l. 474-479», «smallTours (l. 855-955)», «media.stages > 40 (l. 915)»; §15.1 regla 3 «invariants.test.ts l. 297-298».",
+  "fallo": "`packages/engine/src/sim/invariants.test.ts` tiene 263 líneas: se partió en seis ficheros en la v83 (cabecera l. 11-25). Hoy: realQueens está en `invariantsAbandonos.test.ts` l. 200-215 (timeout 900000 en l. 208); la saturación de las 8 más duras en `invariantsClasicas.test.ts` l. 144 (timeout 1800000) con la cita de Jura en l. 109-110; smallTours en `invariantsPequenas.test.ts` l. 64 (timeout 3900000) y `media.stages > 40` en l. 88; timeTrials en `invariants.test.ts` l. 111-137; la regla «CUATRO VECES» en `coherence.test.ts` l. 95 e `invariantsDesgaste.test.ts` l. 116. Las cifras de reloj coinciden; los ficheros y líneas no.",
+  "correccion": "Reescribir la tabla del paso 9 con fichero y línea vivos por banco (invariantsAbandonos l. 208, invariantsClasicas l. 144, invariantsPequenas l. 64 y 88, invariants l. 111-137) y decir que los bancos corren en la matriz de ocho tramos de `.github/workflows/ci.yml` l. 150-170.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "media",
+  "afirmacion": "§15.1 regla 4: «Los bancos corren en cada push que toque packages/engine/ (ci.yml l. 112)»; §15.2: «sim/routeCensus.test.ts (unidad del censo, corre con test:bancos porque test:rapido excluye packages/engine/src/sim/**)»; §15.11: `sim/frozenSkeletons.test.ts`.",
+  "fallo": "El job de bancos de `.github/workflows/ci.yml` corre una matriz de FICHEROS EXPLÍCITOS (l. 150-170: invariants*, coherence, calendarQueens, world, raceRadio); la puerta «¿Ha cambiado el motor?» está en l. 184, no en l. 112. Un `sim/routeCensus.test.ts` o `sim/frozenSkeletons.test.ts` nuevo no está en ninguna entrada de la matriz y `test:rapido` excluye `sim/**` (package.json l. 20): en CI de push no lo correría nadie; solo `cobertura.yml` (l. 64, `pnpm test:coverage`) de noche.",
+  "correccion": "Añadir al paso 0 y al paso 9 la edición de `ci.yml` (entrada «mundo y radio», l. 166-170) con los dos ficheros nuevos, y citar l. 184 para la puerta de `packages/engine/`. Alternativa: poner `routeCensus.test.ts` bajo `routes/grammar/` para que entre en `test:rapido`.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "media",
+  "afirmacion": "§15.10 paso 6 (y §15.9, 19.2.1 B12): «routes/calendar.test.ts: l. 108-121 (segmentos > 0 y pancartas dentro), l. 162-174 (km de edición exactos al redondeo) y l. 269-277 (Uphill finish acaba en puerto) …; l. 184-246 …; l. 248-258 (dos carreras distintas no componen la misma vuelta)».",
+  "fallo": "`packages/engine/src/routes/calendar.test.ts` (idéntico en 8585ca2 y HEAD): «cada etapa tiene un perfil con segmentos de km positivos» es l. 92-108; «las carreras con recorrido REAL no pasan por la mezcla: sus km son los de la edición» es l. 140-152; el `describe('… stageMix')` empieza en l. 168 y sus seis `it` van de l. 176 a l. 236; «es determinista: la misma carrera compone siempre la misma vuelta» es l. 237-247; «una etapa con final en alto termina cuesta arriba de verdad» es l. 257-266. Ninguna de las cinco citas cae donde el documento dice.",
+  "correccion": "Sustituir por: l. 92-108, l. 140-152, l. 168-236 (garantías de stageMix), l. 237-247 (determinismo), l. 257-266 (Uphill finish acaba en puerto); y en 19.2.1 B12 «l. 168-266».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "media",
+  "afirmacion": "§15.12 test «dos temporadas, dos recorridos, un esqueleto»: `raceStagesForWorld(db, worldId, `${race.id}:s${s}`)` y luego `s0.map(x => x.kind)`, `x.timeTrial`, `x.arch.skeleton`, `s0[0].routeSource`, `s0[0].label`; y «Test de packages/db para los cuatro lectores: … leen kind, timeTrial y profile de raceStagesForWorld».",
+  "fallo": "No existe `raceStagesForWorld` en packages/db: el lector es `getRaceRoute(db, worldId, raceKey, stageDay): Promise<StageProfile | null>` (packages/db/src/raceRoutes.ts:61-80) y devuelve solo `profile`. La migración del paso 10 añade `kind`, `label`, `time_trial` (y `route_source` ya existe, schema.ts l. 541), pero nada congela `arch`: `x.arch.skeleton` leído de la base sería `undefined` y el test no puede pasar tal como está escrito.",
+  "correccion": "Definir en §15.12 el lector nuevo con firma (`raceStagesForWorld(db, worldId, raceKey): Promise<{ stageDay, profile, kind, label, timeTrial, routeSource }[]>` en raceRoutes.ts, junto a `getRaceRoute`) y decidir si `arch` se congela (columna `arch jsonb` en la misma migración) o si el test compara `arch.skeleton` vía `stagesForSeason(race.id, s)` y no vía la base.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "media",
+  "afirmacion": "§15.10 `routes/arranque.test.ts`: `const t0 = performance.now(); await import('./calendar.js') // primera carga del módulo en este worker; const ms = performance.now() - t0` y `expect(ms).toBeLessThanOrEqual(ARCH.arranque.techoMs)`.",
+  "fallo": "El mismo fichero importa `calendarForSeason` (grammar/edition.ts) y `ARCH` (constants.ts) en cabecera para los otros dos `it`; `edition.ts` construye `CalendarRace` y por tanto importa `calendar.ts`, y `calendar.ts` define `SEASON_CALENDAR = calendarForSeason(BASE_SEASON)` importando `edition.ts` (§15.10 código). El módulo ya está cargado cuando llega `t0`: la medida es ≈ 0 ms y el techo de 2.500 nunca falla, además del import circular calendar ↔ edition que el diseño no resuelve.",
+  "correccion": "Medir en proceso hijo: `arranque.test.ts` lanza `node scripts/medir-arranque.mjs` con `child_process.execFileSync` y lee la cifra de su salida; o usar `vi.resetModules()` y solo imports dinámicos en ese `it`. Y decir en §15.10 que `SEASON_CALENDAR` vive en `edition.ts` (o `calendar.ts` reexporta) para evitar el ciclo.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "media",
+  "afirmacion": "§15.1 regla 7: «Hoy la última nota es la v60 (su última subsección es «v60 §18»); si al implementar ya existe una v61, toma el siguiente número libre».",
+  "fallo": "docs/balance.md tiene «## v60 §25 — paso 21, la reina de verdad» (l. 13730) y notas hasta «## v86» (l. 16332): la v61 no es «posible» sino que existe con 25 más detrás; el «hoy» es falso contra el repositorio.",
+  "correccion": "«Hoy la última nota es la v86 (docs/balance.md l. 16332) y la v60 llega a §25; la nota de E1 se llama «vNN · El generador es una gramática» con NN = el número de ENGINE_VERSION que el paso 8 estrene (87 hoy)».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "media",
+  "afirmacion": "§15.12 «Test de packages/db para los cuatro lectores: calendarRun.ts l. 516 y l. 1603-1616, world/callups.ts l. 98 y raceContext.ts l. 56-59 y 127 leen kind, timeTrial y profile … el test intercepta SEASON_CALENDAR y comprueba 0 lecturas directas desde esos cuatro sitios».",
+  "fallo": "raceContext.ts l. 56-59 es la firma de `terrenoRestante`; la lectura de `SEASON_CALENDAR` está en packages/db/src/raceContext.ts:114 (`SEASON_CALENDAR.find((r) => r.id === raceId)`) y el `profile` se usa en l. 121-127. Además `SEASON_CALENDAR` se lee en calendarRun.ts en 11 sitios más (l. 140, 525, 1095, 1123, 1265, 1311, 1343, 1426, 1441, 1543, 1566) y en callups.ts l. 80, 244, 266: un test que «intercepte SEASON_CALENDAR y cuente 0 lecturas» fallaría por esas lecturas legítimas de ids, días y `stages.length`.",
+  "correccion": "Citar raceContext.ts l. 114-127 y callups.ts l. 98 (dentro del bucle de l. 97) y escribir el test como «0 lecturas de `.kind`, `.timeTrial` o `.profile` sobre etapas de SEASON_CALENDAR desde esos cuatro sitios», dejando dicho que las lecturas de ids, días y número de etapas siguen en SEASON_CALENDAR porque son identidad (decisión 20).",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "baja",
+  "afirmacion": "§15.10 paso 5 y 19.2.1 H7: «apps/api/src/stageHistory.test.ts l. 199: cambian se re-sella con la cifra nueva».",
+  "fallo": "`expect(cambian).toBe(49)` está en apps/api/src/stageHistory.test.ts:206 (igual en 8585ca2); l. 199 cae dentro del comentario «Medido: 49 de 1.418» (l. 193-204).",
+  "correccion": "Citar l. 206 para la aserción y l. 193-204 para el comentario que se reescribe con la causa.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "baja",
+  "afirmacion": "§15.11 condición (c): «canónicas (llana-180, reina-150, cri-40, chronicle, las cuatro huellas de attribution, timetrial y raceRadio) sin moverse un dígito»; §15.7 «el escenario canónico reina-150 (sim/scenarios.ts, 135 km llanos y 15 km al 8 %)».",
+  "fallo": "En packages/engine/src/sim/scenarios.ts:440-452 el escenario se rebautizó `media-150` (paso 21, decisión 5: «LA QUE ERA reina-150 … Su huella sellada se retira en vez de re-sellarse: deja de ser canónica») como `mediaScenario()`; `queenScenario()` conserva la forma y su huella sigue sellada en stage/attribution.test.ts:519-520 con el nombre `reina-150` en coherence.test.ts:132. El documento cita un nombre que el código declara retirado sin decir cuál de las dos funciones se sella.",
+  "correccion": "Escribir «`queenScenario()` (la antigua reina-150, hoy también `mediaScenario()` = media-150, scenarios.ts l. 440-452), cuya huella sella attribution.test.ts l. 519-520» en §15.7 y §15.11.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 16,
+  "gravedad": "media",
+  "afirmacion": "§16.4: «rechazos es el único campo que la galería añade a GeneratedStage.arch respecto de §B.2: rechazos: Veto[] … La sección 3 lo incorpora al tipo».",
+  "fallo": "Ni el esqueleto §B.2 (`GeneratedStage.arch` l. 255-265) ni 03-modelo.md contienen `rechazos` (grep vacío en ambos); la sección 16 delega en una sección que no lo hace y el tipo queda con dos formas según el redactor.",
+  "correccion": "Añadir `rechazos: Veto[]` a `GeneratedStage.arch` en §B.2 y en la sección 3 (con «vacío si el primer intento pasa; no entra en la huella FNV de golden/realFingerprint porque no está en profile»), o retirarlo de la galería y mostrar solo `intentos` y `degradado`.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 16,
+  "gravedad": "media",
+  "afirmacion": "§16.7: «Se escribe y se corre por primera vez en el paso 4 … en ese paso verify aún no está completo (paso 5), así que la galería del paso 4 corre con los vetos que skeletons.test.ts ya usa (V1 a V4, V6, V7) y su índice lo dice en la cabecera («vetos activos: …»), leído de veto.ts»; §16.1: «llama a generateStage con fixed.skeleton».",
+  "fallo": "Según la tabla de §15.1 y §15.7, `grammar/veto.ts` y `grammar/generate.ts` (y por tanto `generateStage`) nacen en el paso 5; en el paso 4 no existe ni `veto.ts` para leer ni `generateStage` para llamar. La galería tal como se describe no puede correr en el paso 4.",
+  "correccion": "O bien mover la primera generación de la galería al cierre del paso 5 (y decirlo en §15.7 y §16.7), o bien definir una galería del paso 4 que llame a `renderSkeleton(SKELETONS[id], canonico, rand)` sin `generateStage` ni `veto.ts` y lo diga en su cabecera.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 16,
+  "gravedad": "media",
+  "afirmacion": "§16.5: «la de adoquín entera, porque son 20 y es la única con referencia real al lado»; §16.3 «las 20 carreras cobbles reales al lado de su equivalente generado»; §17.1 (14) «la galería con las 20 cobbles reales al lado».",
+  "fallo": "Medido sobre packages/engine/dist con SEASON_CALENDAR y STAGE_FEATURES: de las 20 filas `terrain: 'cobbles'` solo 6 tienen `STAGE_FEATURES` (perfil real); las otras 14 llevan hoy el `cobblesSegments` generado (etiqueta `Cobbles`, 19 de las 20), que es lo que la propia §16.3 pinta a la izquierda. La «referencia real» existe en 6 de 20, no en 20.",
+  "correccion": "Escribir «6 de las 20 con perfil real (STAGE_FEATURES) y 14 con el cobblesSegments de hoy como referencia de forma» en §16.3, §16.5 y §17.1 (14), y que el índice imprima cuáles.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 16,
+  "gravedad": "baja",
+  "afirmacion": "§16.3: ids de nacionales «calendar.ts l. 351-360»; §16.1: «scripts/inventario-recorridos.mjs (l. 24-27)» y «races.ts l. 128».",
+  "fallo": "En el HEAD vivo los ids `nc-${cc}-itt`, `nc-${cc}-u23-itt`, `nc-${cc}-u23-road`, `nc-${cc}-road` están en packages/engine/src/routes/calendar.ts:365-374; las dos líneas de build y ejecución del inventario en scripts/inventario-recorridos.mjs:22-23; la primera `renderAltimetrySvg` de apps/api/src/routes/races.ts está en l. 144 (y en 216, 263, 338, 414, 469, 496).",
+  "correccion": "Citar calendar.ts l. 365-374, inventario-recorridos.mjs l. 22-23 y races.ts l. 144, o declarar el HEAD de las citas.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 17,
+  "gravedad": "alta",
+  "afirmacion": "§17.1 (4): el motor «no sabe que la vuelta 9 es la misma carretera que la 3 (ingeniero §13.1.2)»; §17.2: «Tocar el motor: … sin … noción de vuelta»; 19.2.3 ejecutabilidad 4: «el motor sin noción de vuelta».",
+  "fallo": "El motor SÍ tiene noción de vuelta: `StageProfile.laps?: number` (packages/engine/src/stage/types.ts:61-73, R28.6 paso 18b: «el pelotón pasa laps veces por los mismos sitios… la carrera arranca a dos vueltas»), `STAGE.circuito = { antesDeDosVueltas: 0.35, ultimaVuelta: 1.6 }` (constants.ts l. 3904-3909), `cuerdaDelCircuito(km, totalKm, laps, …)` (stage/citas.ts l. 195-203, «sin laps o con una sola devuelve 1») y `stage/circuito.test.ts`. El motivo `circuito` de la gramática rinde `vueltas × Segment[]` sin declarar `laps`, así que la ley de circuito del motor nunca se activa en los 532 nacionales `nc_ruta` ni en `ud_circuito`; y si se activa, mueve la saturación y la fuga sin dirección pre-registrada.",
+  "correccion": "Decidir y escribir: `generateStage` pone `profile.laps = vueltas` cuando el esqueleto tiene un motivo `circuito` (y `undefined` en los demás), `GeneratedStage.profile` lo lleva a `race_routes.profile` (JSONB), `routeCensus` lo imprime, la remedición del paso 9 pre-registra su dirección en saturación y smallTours, y el riesgo 4 cita types.ts l. 61-73 y citas.ts l. 195 en lugar de «no sabe».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 17,
+  "gravedad": "alta",
+  "afirmacion": "§17.1 (1): «Segment (types.ts l. 12-48) no lleva altitud … el único dato geográfico que el motor lee hoy es el país»; §17.4 deuda 2: «Altitud en Segment: cambia el contrato de types.ts l. 37-42; hasta entonces GeoSignature.altitud es texto de ficha y veto V4».",
+  "fallo": "El motor ya lee altitud: `StageProfile.startM?: number` (packages/engine/src/stage/types.ts:48-60, R28.7 paso 18d, «cota de salida … 0 por defecto … el día que los recorridos traigan su cota, empieza a cobrar sola»), `altitudesDelPerfil(blocks, dx, startM)` (stage/citas.ts l. 256-258), `altitudeCost(metros, subeBien)` (stage/cost.ts l. 99) y `stage/altitud.test.ts`. El contrato ya tiene el punto de entrada de la altitud (en `StageProfile`, no en `Segment`) y la ley está dormida solo porque nadie escribe `startM`. Si la gramática pone `startM` desde `GeoSignature.altitud` («alta», «altiplano»), la ley cobra y mueve todos los bancos sin previsión; si no lo pone, el documento tiene que decirlo como decisión.",
+  "correccion": "Añadir la decisión: «E1 no escribe `startM` (queda `undefined` = 0): `generate.test.ts` sella `expect(stage.profile.startM).toBeUndefined()` y `realFingerprint` lo cubre por JSON»; reescribir la deuda 2 como «alimentar `StageProfile.startM` desde `GeoSignature.altitud` (types.ts l. 48-60) es un paso propio con versión y remedición, porque `altitudeCost` (cost.ts l. 99) es el único multiplicador que no es de suma cero»; y corregir «el único dato geográfico que lee el motor es el país».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 17,
+  "gravedad": "media",
+  "afirmacion": "Citas de línea de §17.1: «simulate.ts l. 1157-1160» (viento), «constants.ts l. 3593» (windMin), «simulate.ts l. 1696-1710» (kmSubida, breakAppeal, gcTerrain), «constants.ts l. 4462» (muroMaxKm), «constants.ts l. 1124-1131» (RELIEF), «docs/motor.md §19.5 (l. 1314-1318)»; §18.5 «constants.ts l. 3944 y 4131-4134» (bannerCost, relief*), «mapa 03 §6, l. 7850-7853».",
+  "fallo": "En el HEAD vivo: `streams('viento')` está en packages/engine/src/stage/simulate.ts:1413; `windMin: 0.87` en constants.ts:3983; `kmSubida`, `breakAppeal` y `gcTerrain` en simulate.ts:2165-2179; `muroMaxKm: 1` en constants.ts:5346; `export const RELIEF` en constants.ts:1206; «19.5 Lo que queda anotado» en docs/motor.md:1327; `bannerCost: 2` en constants.ts:4413 y `reliefKm/reliefDamp/reliefLambda` en l. 4600-4603; «tres sprints intermedios … vaciaba medio depósito» en simulate.ts:9208; `climbRaceKmToGo: 30` en l. 3820 (el esqueleto cita 3521). Las cifras son correctas; las líneas no lo son en el código contra el que se implementará.",
+  "correccion": "Refrescar las diez citas a las líneas de arriba, o poner una nota única en la cabecera («las líneas son las del HEAD 8585ca2 de los mapas; en 02b032d constants.ts creció 944 líneas y simulate.ts 250») y citar por nombre de constante.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 17,
+  "gravedad": "baja",
+  "afirmacion": "§17.1 (10): «Hoy la sostiene un dado del 40 % (ROUTE.queenHighDplusShare)».",
+  "fallo": "`queenHighDplusShare: 0.6` (packages/engine/src/constants.ts:1260): el dado es del 60 % para el rango alto y el 40 % es su complemento (`queenLowDplusRange` l. 1261). Nombrar la constante con el valor que no tiene confunde al que la retire en el paso 8.",
+  "correccion": "«un dado del 40 % (1 − ROUTE.queenHighDplusShare 0,6, constants.ts l. 1260, con queenLowDplusRange 1.200-2.500 l. 1261)».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 18,
+  "gravedad": "media",
+  "afirmacion": "§18.1 D2: «PASS_MIN_KM 8,5, QUEEN_MIN_CLIMB_METRES 3.200 y el corte de 3 km de stageKind.ts»; §18.3: «los umbrales de stageKind.ts (8,5 km de PASS_MIN_KM, 3.200 m de QUEEN_MIN_CLIMB_METRES, 3 km del final en alto)».",
+  "fallo": "En packages/engine/src/routes/stageKind.ts el 3 es `WALL_MAX_KM = 3` (l. 60) y decide `clasica` («TODO lo que sube son rampas cortas… si muere arriba manda el final», l. 84-87), no el final en alto; el final en alto se decide sin umbral de km por «el último segmento de la etapa es el puerto» (l. 80-82). El «3 km del final en alto» es `STAGE.finishAltoMinKm: 3` (constants.ts l. 4458), que lee `stage/finish.ts` y no `stageKindOf`; recalibrarlo no es D2.",
+  "correccion": "Escribir en D2 «PASS_MIN_KM 8,5, QUEEN_MIN_CLIMB_METRES 3.200 y WALL_MAX_KM 3 (la cota más larga por debajo de la cual una etapa sin final en alto es clásica de muros; stageKind.ts l. 60-64 y 84-87)» y quitar «del final en alto».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 18,
+  "gravedad": "baja",
+  "afirmacion": "§18.3: «que el propio fichero dice calibrados «contra los propios generadores» (l. 44-58, vía datos §1.5)».",
+  "fallo": "La frase «se calibra contra los propios generadores» está en packages/engine/src/routes/stageKind.ts:13; l. 44-58 dice «LOS UMBRALES, MEDIDOS. Sobre 10.800 etapas de cada generador…». Además las «» quedan reservadas por el esqueleto a las cuatro citas del dueño.",
+  "correccion": "«el propio fichero dice que la clasificación se calibra contra los propios generadores (stageKind.ts l. 13) y da la tabla medida (l. 44-58)», sin comillas angulares.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 19,
+  "gravedad": "baja",
+  "afirmacion": "19.2.1 B7, columna «Test o dato que lo sella»: «veto.test.ts no importa stage/».",
+  "fallo": "Lo que §15.7 sella es que el FICHERO FUENTE `veto.ts` no importa `stage/` (leído con fs); `veto.test.ts` importa lo que necesite. Tal como está, un lector haría la comprobación sobre el fichero equivocado.",
+  "correccion": "«veto.test.ts comprueba con fs que veto.ts no importa ../../stage/(sample|finish|cost|physics)».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 19,
+  "gravedad": "baja",
+  "afirmacion": "19.2.1 B1: «edition.test.ts: «stagesForSeason(id, 0) === SEASON_CALENDAR»».",
+  "fallo": "Por §B.2, `stagesForSeason(raceId, season): CalendarStage[]` devuelve las etapas de UNA carrera y `SEASON_CALENDAR` es `CalendarRace[]` (calendar.ts l. 46 y siguientes); la igualdad no tipa. §15.8 y §15.10 lo escriben bien: `expect(SEASON_CALENDAR).toBe(calendarForSeason(BASE_SEASON))`.",
+  "correccion": "Poner en B1 la aserción de §15.8: «SEASON_CALENDAR es calendarForSeason(BASE_SEASON) por referencia».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 19,
+  "gravedad": "baja",
+  "afirmacion": "19.2.3 cobertura 4: «calendarQueens.test.ts l. 58-68 deciden por el diseño»; §15.11: «facil.races > 0 y dura.races > 0 (l. 62-63) … (l. 64)».",
+  "fallo": "En packages/engine/src/sim/calendarQueens.test.ts las tres aserciones están en l. 60 (`facil.races`), l. 61 (`dura.races`) y l. 62 (`facil.wonFromMovePct > dura.wonFromMovePct + 10`); `stats.dPlus.min < 1500` en l. 64 y la banda `breakawayWinPct` en l. 68.",
+  "correccion": "Citar l. 60-62 para las tres duras y l. 68 para la banda de vigilancia, en 19.2.3, §15.11 y §18.7.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 19,
+  "gravedad": "media",
+  "afirmacion": "19.2.3 motor 1: «calendarRun.ts l. 516 y 1614, callups.ts l. 98 y raceContext.ts l. 56-59 leen el congelado y, si no hay fila, calendarForSeason(season)»; B8: «los cuatro lectores leen el congelado».",
+  "fallo": "El lector real de `race_routes` es `getRaceRoute(db, worldId, raceKey, stageDay): Promise<StageProfile | null>` (packages/db/src/raceRoutes.ts:61-80) y solo devuelve `profile`; `raceContext.ts` lee `SEASON_CALENDAR.find(...)` en l. 114 (l. 56-59 es `terrenoRestante`). Ninguna sección define el lector con `kind`, `label`, `timeTrial` y `routeSource` que B8 y motor 1 dan por resuelto.",
+  "correccion": "Que 19.2.3 motor 1 y B8 remitan a la firma nueva definida en §15.12 (ver hallazgo de §15.12) y citen raceContext.ts l. 114-127.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 16,
+  "gravedad": "alta",
+  "afirmacion": "16.2: «El script no toca RACE_REGION para las celdas de zona × esqueleto (...) RACE_REGION entra solo en la página de adoquín»; las filas llevan raceId sintético `gal|${zona}|${esqueleto}|${i}` y `fixed.skeleton`. A la vez 18.12 promete: «Las 310 carreras y las 60 ediciones de RACE_REGION las cura el implementador (...) lo que el dueño revisa es el resultado, en la galería, y no la tabla».",
+  "fallo": "Las dos afirmaciones se contradicen y la que pierde es el dueño. El dueño pidió que el generador sepa DÓNDE está cada carrera (agenda §4.18 hallazgo 3: «una .2 en los Países Bajos y una .2 en Colombia salen de las mismas seis funciones»). La galería enseña celdas abstractas zona × esqueleto y nunca «race-x recibe esta zona y este perfil»; solo 20 carreras (adoquin.html) y los 532 nacionales pasan por `regionOf`/`stagesForSeason` (16.3, 16.7). Para 290 de las 310 carreras de equipos, la asignación de zona de `RACE_REGION` (que 17.1 riesgo 14 y datos §13.5 reconocen como no verificada: «el test solo comprueba que existe, no que sea correcto») no la ve nadie antes del paso 8. Un `race-bretagne` puesto en `alpes` por error de curación pasa la galería sin marca.",
+  "correccion": "Añadir a 16.3 la página `docs/galeria-recorridos/calendario.html`: una fila por carrera de equipos (310) y por etapa de edición (las 60 de `RACE_EDITIONS`), con `regionOf(raceId, i, country)`, la ciudad de `raceRoutes.ts` que justifica la zona, `stagesForSeason(raceId, 0)` (perfil, `arch.frase`, `kind/label`, km, clase) y la altimetría; las tres casillas se aplican por fila y `no_existe_aqui` en esta página edita `RACE_REGION[raceId]` (ya previsto en 16.6 solo para adoquín). Se genera desde el paso 6 (existe `stagesForSeason`) y entra en la condición «galería revisada por el dueño» del paso 8 (15.10). Corregir 18.12 para que remita a esa página.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 16,
+  "gravedad": "alta",
+  "afirmacion": "16.3, tabla de salida: index, 29 páginas de zona, nacionales.html y adoquin.html; todas enseñan etapas sueltas. 16.2 fija `stageIndex: 1` y `format: 'una-semana'` deducido del prefijo `et_*`.",
+  "fallo": "El primer hallazgo del dueño (agenda §4.18, encargos E1) es sobre las VUELTAS: «una vuelta por etapas compone sus etapas sobre `type MixTerrain = 'flat' | 'hilly' | 'mountain'»; son literalmente tres modelos. La respuesta del diseño es `composeTour`, `itinerarioDe`, `TOUR_SKELETONS` y las reglas de bloque (sección 7, paso 7), y nada de eso se ve en la galería: no hay una página donde el dueño vea una vuelta compuesta (papeles en orden, zonas del itinerario, km por etapa, dónde cae la reina, Bélgica sin reina de D8). El dueño solo verá la composición en producción, en el paso 10, que es exactamente el modo «carrera a carrera en producción» que la propia sección 16 dice evitar. Además el 16.7 comprueba los 532 nacionales contra `stagesForSeason` pero no una sola vuelta.",
+  "correccion": "Añadir `docs/galeria-recorridos/vueltas.html` desde el paso 7: por cada vuelta generada del calendario (las 72 que hoy pasan por `mixRoles`, juez motor §1, y las 60 de `RACE_EDITIONS` sin rasgos), la salida de `itinerarioDe` y `composeTour` para `season 0`: tabla etapa × (papel, zona meta, `desde`, km, esqueleto, `kind/label`, `finalKind`, D+) más las altimetrías en fila a 360×100. Tres preguntas propias por vuelta: ¿es un itinerario plausible del país?, ¿cae la reina donde debe?, ¿la general se decide donde en la realidad? Casilla por vuelta que edita `TERRITORIOS[cc].ruta`/`cordillera` o `ARCH.pesosComposicion`. Entra en la condición del paso 8 y 16.7 le añade la comprobación «las 72 vueltas coinciden con `stagesForSeason` en papeles y km».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 16,
+  "gravedad": "media",
+  "afirmacion": "16.2: `GALERIA.season: 0 // BASE_SEASON: la temporada canónica, con sus propios dados`; ninguna página enseña más de una temporada.",
+  "fallo": "El dueño pidió identidad entre ediciones (una carrera es la misma carrera y no la misma etapa, §A punto 3, decisiones 20 a 22, D7). Lo único que lo enseña es la ficha del paso 10 con «Edición N» (18.11), es decir, después de cambiar el calendario y después de decidir D7 («antes del paso 6», 18.1). El dueño decide D7 (cuánto cambia una carrera de un año a otro) sin haber visto dos ediciones juntas; el test de identidad de 15.8 solo mide correlación en [0,55; 0,9], que no es lo que un aficionado juzga.",
+  "correccion": "Añadir a cada celda de zona × esqueleto (y a `calendario.html`) una columna «Ediciones»: `stagesForSeason(raceId, 1)` y `(raceId, 2)` rendidas junto a la 0, con `cambiosRespectoAnterior` de `diffMotivos` impreso (decisión 39), disponible desde el paso 6. Cuarta casilla `no_es_la_misma_carrera`, que edita `ARCH.edicion.{kmJitter, vueltasJitter, motivoNuevo}` o el `firma: true` de los slots del esqueleto (datos); D7 pasa a responderse «tras la galería del paso 6» en 18.1.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 16,
+  "gravedad": "alta",
+  "afirmacion": "16.7: «en ese paso `verify` aún no está completo (paso 5), así que la galería del paso 4 corre con los vetos que `skeletons.test.ts` ya usa (V1 a V4, V6, V7)». 15.6: «Es el paso más largo de código y el primero que el dueño ve. (...) Entregable al dueño. La galería».",
+  "fallo": "V5 es el caso v40 («una carrera de un día no muere en un puerto de 14 km», 15.7), el único veredicto concreto del dueño (epics G6, encargos E1: «algo que no existe en el calendario real»); V8 es la lección de `reina-150` (epics E3), la razón por la que E1 va el primero. La primera vez que el dueño ve el generador nuevo, esos dos vetos no están activos: la galería del paso 4 puede enseñarle un `ud_montana` de `alpes` con la cota final fuera de [3; 17] km o una reina con toda la subida en meta, que es lo que vino a arreglar. Y 15.10 hace de esa revisión la condición para el paso 8. Nada obliga a esperar: V5 y V8 son predicados puros sobre `lastClimbKm`, `climbSize`, `kmAfterLastClimb` y `dPlusDe` (decisión 4), que existen desde el paso 0 (`geometry.ts`) y el paso 4.",
+  "correccion": "Partir la entrega: en el paso 4 la galería es instrumento del implementador (rangos, `intentos`, `degradado`); la revisión del dueño se entrega al cerrar el paso 5, con `verify` completo y la cabecera «vetos activos: V1 a V10 y V15». En 15.14 el grafo `4 → 5` no cambia; cambia la frase de 15.6 («el primero que el dueño ve») y la condición de 15.10 («la galería del paso 5, más `calendario.html` y `vueltas.html` de los pasos 6 y 7, revisadas por el dueño»).",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 16,
+  "gravedad": "media",
+  "afirmacion": "16.5: «una tarde del dueño delante de altimetrías (...) Las páginas de zona se leen enteras; la de nacionales por muestreo (...); la de adoquín entera». 16.3: techo 29 × 32 × 5 = 4.640 más 532 más 40; «el real lo imprime el script».",
+  "fallo": "El documento compromete el tiempo del dueño sin dimensionarlo: el techo son 5.212 perfiles y el número real no se calcula (depende de `requiere`, que la sección 5 ya fija, así que es calculable hoy). A 10 segundos por perfil con tres preguntas, 4.640 perfiles son unas 13 horas, no una tarde; y la instrucción «se leen enteras» convierte la tarde en una obligación que el dueño no ha aceptado. Decidir por él cuánto revisa, sin marcarlo como decisión suya ni darle la cifra, es lo que la sección 18 dice que el documento no hace.",
+  "correccion": "Calcular en 16.3 el número real de celdas con la tabla `requiere` de la sección 5 y `ZONAS` de la 6, e imprimirlo en el índice. Definir dos pasadas: primera pasada obligatoria acotada (por celda, el `canonico` y una semilla; solo las diez zonas de 16.5 y las páginas `calendario` y `vueltas`; cota escrita, por ejemplo ≤ 600 perfiles, que sí es una tarde), y segunda pasada opcional por muestreo (1 de 5 filas del resto). Llevar el tamaño de la primera pasada a 18.12 como lo que se le pide al dueño.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 16,
+  "gravedad": "media",
+  "afirmacion": "16.6, tabla, fila `no_lo_reconozco`: «reina de .2 con 5.000 m» → «`Skeleton.dPlus` de `et_reina_*` por clase no existe; va a la 18».",
+  "fallo": "El propio documento admite que una reina de 5.000 m en una .2 es posible por construcción (`Skeleton.dPlus` no depende de la clase; `ARCH.km.porClase` acota km, no desnivel) y que si el dueño la marca no hay dato que editar. Es la forma v40 con otro disfraz: «algo que no existe en el calendario real» (G6) puesto en la clase donde el dueño dice que los perfiles son penosos; el mapa 07 §4.1 da a las .2 etapas de 140 a 180 km. Responder «va a la sección 18» a un defecto que el dueño ya calificó es diluir su encargo (respeto a lo real por clase).",
+  "correccion": "Añadir `ARCH.reina.dPlusMaxPorClase: Record<RaceClass, number>` (valores a fijar con el mapa 07 §4.1; intención: una .2 no tiene reina de gran vuelta) aplicado en `elegirEsqueleto`/instanciación como techo sobre `Skeleton.dPlus[1]` y comprobado por V13 junto con `maxPorClase`; banda `reina.dplus.clase` en el censo (p90 de D+ de reina en .2 ≤ techo). Quitar de 16.6 el ejemplo o convertirlo en «edita `dPlusMaxPorClase['2']`».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 16,
+  "gravedad": "media",
+  "afirmacion": "16.3, `adoquin.html`: «cada una con dos altimetrías lado a lado: a la izquierda lo que el calendario le da hoy (...) a la derecha `generateStage`». Es la única página con antes y después, y son 20 carreras de adoquín.",
+  "fallo": "La queja del dueño es sobre los perfiles CONTINENTALES (agenda §4.18: «los perfiles de las carreras continentales son penosos, siempre son los mismos tres o cuatro modelos») y su ejemplo literal es una .2 neerlandesa contra una .2 colombiana. La galería solo le enseña antes y después en las 20 `cobbles`, que son WT y .1 flamencas en su mayoría; para las .1 y .2 no hay comparación y el dueño no puede decir «esto era lo penoso y esto es lo nuevo». `sim/legacy/profileGenLegacy.ts` con `legacyCalendar()` existe en los pasos 8 y 9 (15.10) y da el «antes» gratis.",
+  "correccion": "Añadir `docs/galeria-recorridos/continentales.html` en el paso 8: por clase .1 y .2, N carreras de un día y N vueltas del calendario (empezando por una .2 de NL y una .2 de CO, el par de la agenda), columna izquierda `legacyCalendar()` y derecha `calendarForSeason(0)`, con esqueleto, zona y frase. Mientras exista `sim/legacy/` es la foto «antes/después» que la nota «v61 §1» cita; después se conserva el HTML generado en la nota como imagen.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "media",
+  "afirmacion": "15.4, tabla de aserciones: «`TERRITORIOS` tiene las 56 claves (...) sin `fallback`; los 77 restantes de `COUNTRIES` resuelven con `fallback: true` y el test imprime la lista de los 77». Lo mismo en 15.6 («los 4 nacionales de cada uno de los 133 países»), 16.3 («los 77 sin tabla»), 16.5, 17.1 riesgo 2 («77 países en fallback») y 18.12.",
+  "fallo": "La sección 6 (borrador l. 78) cierra otra cifra: 56 países obligatorios más 8 filas voluntarias (AR, CL, NZ, IE, SE, FI, LV, QA) = 64 filas explícitas y 69 países en `FALLBACK`, y dice que el test «imprime cuántos (69) sin banda». Las secciones 15, 16, 17 y 18 escriben 77 como aserción literal de test; el implementador que siga 15.4 escribe un test que falla contra la tabla de la sección 6.",
+  "correccion": "Sustituir 77 por 69 (y 56 por 64 donde se hable de filas explícitas) en 15.4, 16.3, 16.5, 17.1 riesgo 2 y 18.12, o mejor: que el test no lleve la cifra en la aserción sino que la calcule (`COUNTRIES.length - Object.keys(TERRITORIOS).length`) y la imprima, como dice la sección 6, y que la banda sea «0 carreras de equipos en fallback».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 17,
+  "gravedad": "alta",
+  "afirmacion": "17.1 riesgo 3: «Decisión 26: no se mueve en E1 porque es la vara de todo el banco y moverla obliga a remedir todo (...) D2, valor por defecto: no en E1». 18.3 lo repite con recomendación «No en E1».",
+  "fallo": "`packages/engine/src/sim/calendarQueens.ts` l. 65 filtra la muestra de reinas por el `kind` DECLARADO (`if (stage.kind !== 'reina' ...) return`), y 18.3 lo reconoce («la muestra de `calendarQueens` (que filtra por `kind`)»). Con los umbrales actuales, 11 de 54 reinas reales quedan fuera del banco de montaña y 16 medias reales entran en él (datos §1.5): el banco de la fuga en montaña mide media montaña con la etiqueta cambiada, que es palabra por palabra la lección de `reina-150` (epics E3 paso 4) con la que el dueño justificó que E1 fuera el primero («los perfiles son la ENTRADA de la calibración táctica», agenda §4.18). Aplazar D2 a después de E1 contradice esa razón, y además cuesta el doble: el paso 8 ya re-sella `stageHistory` (49), `world.test.ts` y la muestra de `calendarQueens`, y el paso 9 ya remide todos los bancos; hacer D2 después obliga a una segunda remedición completa, que 17.1 riesgo 13 llama «la más fácil de saltarse».",
+  "correccion": "Cambiar la recomendación y el valor por defecto de D2 a «sí, dentro del paso 8»: el paso 0 imprime ya la tabla `kind` declarado × leído sobre las 177 reales por clase y `finalKind` (18.3); con ella se recalibran `PASS_MIN_KM`, `QUEEN_MIN_CLIMB_METRES` y el corte de 3 km de `stageKind.ts` sobre las reales (objetivo escrito: discrepancia ≤ 5 de 113), se mueve el hueco de la gramática a ±0,5 km del nuevo umbral, y todo se re-sella una sola vez en el paso 8 dentro del único salto de versión. Si el dueño dice «no», queda como está; pero la opción que cuesta una remedición menos y sirve a su razón para E1 es «sí», y la sección 17 riesgo 3 y la 18.3 deben decirlo con esta cuenta.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 17,
+  "gravedad": "media",
+  "afirmacion": "17.1 riesgo 10: «Si aun así el estrato `<1500` queda con menos de 3 etapas en la muestra, `calendarQueens.test.ts` falla con el mensaje «cubeta < 1.500 despoblada: decisión D6» y no se cambia solo». 18.7 mantiene la cubeta `<1500` contra `2500-3500` por defecto.",
+  "fallo": "La sección 13 (l. 117) exige «< 1.500 ≥ 5 % del total» de las reinas y `calendarQueens.test.ts` l. 62 y l. 66 exigen `facil.races > 0` y `dPlus.min < 1500`, mientras `et_reina_blanda`, la única cola baja del diseño (decisión 8), tiene D+ [1.500; 2.500] con relleno: por diseño NADIE puebla la cubeta, y el test está escrito para fallar y llevarle la factura al dueño. Pero el dueño ya decidió esto: epics E3 paso 4 dice que una reina de 1.200 m «no es una etapa reina fácil: es media montaña con la etiqueta cambiada» y que «una etapa reina de verdad tiene entre 3.000 y 5.000». Conservar una banda que exige reinas de menos de 1.500 m, sostenida hoy por «un dado del 40 %» que el propio riesgo 10 llama defecto, es decidir contra lo que el dueño ya escribió, y presentarlo como D6 pendiente.",
+  "correccion": "Cerrar por diseño: cubeta `<1500` de `kind: 'reina'` = 0 %; re-sellar `calendarQueens.test.ts` l. 62-63 y l. 66 con la causa (epics E3 paso 4) y estratificar en `[1500; 2500)` (blanda), `[2500; 3500)` y `≥ 3500`; `facil > dura + 10` se mide entre `[1500; 2500)` y `[2500; 3500)`. La banda `reina.dplus.formato` de la sección 13 pasa a «< 1.500: 0; [1.500; 2.500) ≥ 5 %». D6 queda solo para la banda [6; 30], y 17.1 riesgo 10, 18.7 y 19.2.4 H5 se reescriben.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 18,
+  "gravedad": "media",
+  "afirmacion": "18.9 D8: lista BE, NL, DK, AE, AU «y con ellos Noruega, Reino Unido, Polonia, Alemania, Japón y Estados Unidos»; «el papel se degrada a `media_alto` y se anota»; «para BE, NL, DK y AE esa zona no existe en `ZONAS`, así que decir «no» ahí es inventar geografía».",
+  "fallo": "Tres cosas que el dueño no ve. (1) La sección 6 (borrador l. 72 y l. 367) cierra 13 territorios con `cordillera: null`, incluidos AR y CL, que 18.9 no nombra; y para AR/CL la sección 6 abre una excepción (hasta UNA `et_reina_blanda` por vuelta vía `finalesAlto: 'largo'`) que contradice el «se degrada a `media_alto`» de 18.9. (2) Para AE no es «inventar geografía»: la sección 6 l. 70 admite que Jebel Hafeet (10,8 km × 6,6 %) y Jebel Jais (20 km) existen y que `golfo.puerto = null` se pone «porque la decisión 13 de la síntesis sella en test «0 reinas en BE, NL, DK, AE, AU»»: el dato se dobla para cuadrar con un test escrito antes que el dato, y a un UAE Tour real con final en Jebel Hafeet se le niega su puerto. Es lo contrario de «respeto a lo real». (3) 18.1 pide la respuesta «antes del paso 2», cuando el dueño no tiene aún ningún instrumento (galería en el paso 4).",
+  "correccion": "Tabla D8 con los 13 países, la excepción AR/CL escrita, y AE tratado como AR/CL: `golfo.puerto` [10; 20] × [5; 7], `finalesAlto: 'largo'`, `cordillera: null` con ≤ 1 `et_reina_blanda` por vuelta; el test de la decisión 13 sella «0 reinas» solo en BE, NL, DK y AU, y «≤ 1 blanda» en AE, AR y CL. «Cuándo hace falta la respuesta» de D8: «por defecto en el paso 2; el dueño responde con `vueltas.html` delante (paso 7); es dato».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 18,
+  "gravedad": "media",
+  "afirmacion": "18.2 D1: «Con el valor por defecto el esqueleto tiene `pesoBase` 60 × 0,02 = 1,2 (...) solo en las 66 carreras de un día .1 (...) y solo en zonas con `finalesAlto: 'largo'`; en la práctica es del orden de una carrera por calendario o ninguna, y `race-mercantour` (...) es la candidata natural».",
+  "fallo": "Es una lotería, no una curación: `elegirEsqueleto` sortea con `arch|raceId` (sección 8, borrador l. 21 y l. 58) y la sección 6 l. 152 solo marca `race-mercantour` como «`ud_montana_alto` posible (D1)». Con 66 carreras .1 y peso 1,2 frente a pesos enteros, la que reciba el final en alto de [13; 22] km puede ser cualquier .1 de `alpes`, `pirineos` o `dolomitas` y NO Mercan'Tour: es el caso v40 (G6: «algo que no existe en el calendario real») reapareciendo por dados, mientras la carrera real que lo justifica (`raceRoutes.ts` l. 698: Nice → Isola 2000) puede salir sin él. La banda del censo lo tolera: `unDia.finalLargo ≤ 2 %` y «última cota de un día ≤ 4,2 km a [3; 17] en el 98 %» (15.2) admiten hasta 3 carreras de un día con esa forma sin nombre.",
+  "correccion": "Sustituir la lotería por curación, como `RACE_REGION`: `RACE_SKELETON: Partial<Record<string, SkeletonId>>` en `grammar/regions.ts` con `'race-mercantour': 'ud_montana_alto'` (y las que el dueño nombre), consumido por `generateStage` vía `fixed.skeleton` (ruta que ya existe, sección 8 l. 21); `ARCH.pesoPorClase.ud_montana_alto` a 0 en las cinco clases; V5 sin excepción salvo `RACE_SKELETON`; banda del censo «última cota de un día ≤ 4,2 km a [3; 17]: 100 % salvo las carreras de `RACE_SKELETON`, listadas». D1 pasa a ser «qué carreras», con `race-mercantour` por defecto.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "media",
+  "afirmacion": "15.6: «Entregable al dueño. La galería (...) Se entrega aquí y no después del paso 8». 15.10: «Antes de empezar: (...) la galería revisada por el dueño al menos una vez». 15.14: «0 → 1 → { 2 ∥ 3 } → 4 → 5 → { 6 ∥ 7 } → 8».",
+  "fallo": "El plan pone la única revisión del dueño en un paso donde no existen `verify` completo (paso 5), `stagesForSeason` (paso 6) ni `composeTour` (paso 7): el dueño juzga un generador sin el caso v40 (V5) ni la lección de `reina-150` (V8), sin su calendario (qué recibe cada carrera) y sin una sola vuelta compuesta, y esa revisión es la condición para cambiar el calendario. Después del paso 8 cada corrección de `ZONAS` mueve las 1.418 etapas y la tabla pareada (16.7), así que lo que el dueño no vio antes del 8 lo pagará en el 9 o en producción.",
+  "correccion": "Reescribir la condición del paso 8 en 15.10 y la tabla de 15.1: «galería del paso 5 (vetos completos), `calendario.html` del paso 6 y `vueltas.html` del paso 7 revisadas por el dueño; sus ediciones de datos aplicadas y `test:rapido` en verde». En 15.6 el entregable pasa a ser «galería para el implementador»; en 15.7, 15.8 y 15.9 se añade «Entregable al dueño» con la página que cada paso habilita. El grafo de 15.14 no cambia; cambia quién mira qué y cuándo.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "media",
+  "afirmacion": "15.1 regla 5 y 15.10: «`backfillRaceRoutes` antes del paso 8 en cualquier mundo vivo (`db/raceRoutes.ts` l. 86-91: «se corre con el generador ACTUAL a propósito»; decisión 45) (...) si un mundo de pruebas sobrevive, se corre».",
+  "fallo": "`packages/db/src/raceRoutes.ts` l. 80-91 lo confirma: el backfill congela para todas las carreras del mundo «el recorrido que esas carreras ya tienen», es decir, los perfiles del generador viejo. Consecuencia que el documento no dice: en el mundo donde el dueño juega o prueba, tras el paso 8 el calendario que ve sigue siendo el «basura» hasta que el mundo se reinicie, porque `calendarRun.ts`, `callups.ts` y `raceContext.ts` leen el congelado antes que `calendarForSeason` (decisión 23, paso 10). El dueño no vería ninguna diferencia en su calendario y podría concluir que E1 no ha cambiado nada.",
+  "correccion": "Añadir en 15.10 (entregable) y en la nota de `docs/ops.md` del paso 11: «para ver E1 hace falta un mundo creado después del paso 8; en un mundo con backfill las carreras ya congeladas conservan el perfil viejo hasta la temporada siguiente, y las de temporada ≥ 1 salen ya del generador nuevo por `freezeRaceRoute(..., season)` (paso 10)». Y decidir explícitamente si `backfillRaceRoutes` se limita a carreras ya empezadas (`stageDay` corrido) y deja que las no empezadas se congelen con el generador nuevo; hoy congela todas (`raceRoutes.ts` l. 95-108).",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 17,
+  "gravedad": "media",
+  "afirmacion": "17.1 riesgo 5, bloque de test: `renderMotif({ kind: 'meta', meta: 'muro_meta', km: 0.5 + (i % 6) * 0.1, cotaFinal: { km: 0.5 + (i % 6) * 0.1, g: 8 + (i % 9) } }, ...)` y «la única prueba del diseño que llama a sampleProfile».",
+  "fallo": "La sección 4 (borrador l. 83 y l. 97) fija que `muro_meta` se rinde como «2 km de `enlace` con amp ≤ 2,5 (`aproxKm`, `aproxAmp`) + `climb(...)`» y que «`Motif.km` es el total del motivo con aproximación». El test del riesgo 5 pone `km === cotaFinal.km`, o sea un motivo sin aproximación: mide un muro pegado a lo que haya antes (nada), que es justo la condición cuyo fallo el riesgo describe (`finishClimbGapBlocks` 5 fundiendo el relleno con el muro). Además 15.5 escribe el mismo test con `aproximacion(...)` aparte de `renderMotif(m, rand)`: dos versiones incompatibles del test más importante del paso 3.",
+  "correccion": "Una sola forma del test, la de la sección 4: `renderMotif({ kind: 'meta', meta: 'muro_meta', km: ARCH.meta.muro.aproxKm + cotaKm, cotaFinal: { km: cotaKm, g } }, rand)` con `cotaKm ∈ [0,5; 1,0]`, y comprobar `Σ km` del `Segment[]` al 0,1 igual a `aproxKm + cotaKm`. Corregir 15.5 para que use la misma llamada y borrar el helper `aproximacion`.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 19,
+  "gravedad": "media",
+  "afirmacion": "19.2.3: «cobertura 2 | ningún instrumento para que el dueño vea | resuelto | 16 | Decisión 41: `scripts/galeria-recorridos.mjs` en el paso 4, entregada antes del 8, con las tres preguntas por perfil». 19.2.5: «2 galería + consistencia + dato/juicio | 16, 6 | 16, 41».",
+  "fallo": "Se declara «resuelto» un instrumento que no enseña al dueño lo que pidió ver: ni el calendario (qué carrera recibe qué zona y perfil; 16.2), ni una vuelta compuesta (hallazgo 1 de la agenda), ni dos ediciones de la misma carrera (identidad), ni antes/después fuera de las 20 `cobbles`; y se entrega con V5 y V8 apagados (16.7). El apéndice es la trazabilidad para la fase adversaria; marcar «resuelto» donde hay «mitigado con hueco» desactiva justo la refutación que dice preparar.",
+  "correccion": "Cambiar el tipo de cobertura 2 y de ejecutabilidad 1 a «mitigado» hasta que la sección 16 incorpore `calendario.html`, `vueltas.html`, la columna de ediciones y la entrega tras el paso 5; y en 19.2.4 añadir una hipótesis H9 con test: «el par de la agenda (una .2 de NL y una .2 de CO del calendario, nombradas por `raceId`) recibe esqueletos distintos y `profileCorrelation` < `ARCH.anticlon.maxCorrelacion`», sellado en `grammar/calendario.test.ts` en el paso 8; es la única de las hipótesis que habla con las palabras del dueño.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 18,
+  "gravedad": "media",
+  "afirmacion": "18.4 D3: «la tirada de `rand()` se consume igual con p 0, de modo que apagarlo después no vuelve a desplazar las composiciones de las 72 vueltas».",
+  "fallo": "Es una regla de `composeTour` decidida en la sección del dueño y no en la del algoritmo: la sección 7 (borrador l. 90 y l. 93) escribe `if (n ≥ 6 && rand() < primera.prologo)` y advierte que «las 72 composiciones de hoy cambian TODAS» con cualquier tirada; con `prologo: 0` la tirada sigue consumiéndose en esa forma solo si la comparación se hace siempre, lo que no está escrito ni testeado en `tour.test.ts` (15.9). Si el implementador escribe `if (p > 0 && rand() < p)`, apagar D3 recompone las 72 vueltas y el dueño ve cambiar carreras que no tocó (dudas l. 144 lo señala).",
+  "correccion": "Llevar la regla a la sección 7 como invariante de `composeTour` («toda tirada nominal se consume aunque su probabilidad sea 0; la lista de tiradas por etapa es cerrada») y añadir a `tour.test.ts` (15.9): «con `primera.prologo = 0` y `cronoescaladaP = 0`, los papeles 1..n-1 y las metas de las 120 vueltas son idénticos a los obtenidos con 0,25 y 0,08 salvo en la etapa 0 y en la `cri` convertida». 18.4 cita ese test en vez de afirmarlo.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 16,
+  "gravedad": "baja",
+  "afirmacion": "16.4: «`rechazos` es el único campo que la galería añade a `GeneratedStage.arch` respecto de §B.2: `rechazos: Veto[]` (...) La sección 3 lo incorpora al tipo».",
+  "fallo": "§B.2 del esqueleto es la forma canónica de `GeneratedStage` y no lleva `rechazos`; la sección 16 no puede ordenar a la 3 que lo añada (regla de §B: un nombre por concepto, fijado en el esqueleto). Un implementador que siga la sección 3 escribe un tipo sin `rechazos` y el script de 16.4 no compila contra `dist`.",
+  "correccion": "Añadir `rechazos: Veto[]` a `GeneratedStage.arch` en §B.2 y en la sección 3 (con el comentario «uno por intento fallido; vacío si el primer intento pasa»), y que 16.4 lo cite como campo del tipo, no como añadido de la galería.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 16,
+  "gravedad": "baja",
+  "afirmacion": "16.3: «`docs/galeria-recorridos/zona-{zona}.html` (29)». 16.1 y 16.2 hablan de «29 zonas».",
+  "fallo": "`GeoZone` en §B.2 tiene 30 valores (29 con nombre más `generico`) y la sección 6 (borrador l. 15 y l. 367) dice «30 zonas» y «las 30 filas de `ZONAS`». `generico` es la zona de los 69 países `fallback` y de sus 276 nacionales (69 × 4): es justo la que el dueño llamó «los mismos tres o cuatro modelos» y no tiene página propia ni aparece en el orden de lectura de 16.5.",
+  "correccion": "30 páginas de zona, `generico` incluida, con cabecera «zona de los países sin tabla (lista)»; en 16.5 añadirla al orden de lectura después de las diez primeras, porque es la que más nacionales produce; corregir «29» por «30» en 16.1, 16.2 y 16.3 y en 17.1 riesgo 2.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "baja",
+  "afirmacion": "15.7, «El caso v40 con nombre»: «2.000 `generateStage` de `ud_montana` en `alpes` con `raceClass '1'`: 0 con última cota > 4,2 km, 0 con `finalKindOf === 'alto'`».",
+  "fallo": "El test fija el esqueleto (`ud_montana`) y por tanto no prueba lo que el dueño denunció, que es lo que el CALENDARIO le da a una carrera de un día de montaña: con `fixed.skeleton` la lotería de `arch|raceId` (donde `ud_montana_alto` puede salir en .1 con D1) queda fuera del test, y la única guarda de calendario es la banda del 98 % de 15.2, que tolera hasta 3 carreras con la forma v40.",
+  "correccion": "Añadir en `generate.test.ts` la versión sin `fixed`: 2.000 peticiones `un_dia` con `terrain: 'mountain'`, `raceClass` en {'1', '2'} y `geo` en las zonas con `finalesAlto: 'largo'`, exigiendo 0 con última cota > 4,2 km salvo las `raceId` presentes en `RACE_SKELETON` (o, si D1 se mantiene como lotería, imprimiendo cuáles salieron y exigiendo ≤ 1); y en `calendario.test.ts` sustituir «98 %» por «100 % salvo lista nominal».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "alta",
+  "afirmacion": "§15.1 regla 2 y §15.10 punto 1: «Un solo salto de ENGINE_VERSION, en el paso 8: 69 → 70 (constants.ts l. 718, index.test.ts l. 381)» y el test literal «expect(ENGINE_VERSION).toBe(70)»; §15.1 regla 7: «Hoy la última nota es la v60»; §15.12: «hoy la última [migración] es 0039».",
+  "fallo": "El documento está escrito contra el árbol 8585ca2 (donde sí era 69 en l. 718, l. 381 y v60 §18), pero el código vivo ha avanzado: /home/user/cyclingstar/packages/engine/src/constants.ts l. 809 `export const ENGINE_VERSION = 86 as const`; packages/engine/src/index.test.ts l. 459 `expect(ENGINE_VERSION).toBe(86)`; docs/balance.md llega a «## v86» (l. 16332) y ya contiene notas «v61» (l. 11171 y 11241), así que el nombre «v61 · El generador es una gramática» está tomado; packages/db/drizzle/ tiene `0040_ordenes_del_paso_17a.sql` (meta/_journal.json idx 40). Un implementador que copie el test escribe `toBe(70)` y hace RETROCEDER la versión del motor; la cláusula «o el siguiente número libre» no evita que el test literal y las cifras concretas estén mal.",
+  "correccion": "Decir en 15.1 que las cifras son las del árbol 8585ca2 (mapas) y que en el árbol vivo son: salto 86 → 87, test `expect(ENGINE_VERSION).toBe(ENGINE_VERSION_ANTERIOR + 1)` escrito con la cifra que lea `constants.ts` al abrir el paso 8, nota «v87 · El generador es una gramática» (o el siguiente libre) y migración 0041. Sustituir en todo el documento «v61 §n» por «vNN §n» con NN definido una sola vez en 15.1.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "alta",
+  "afirmacion": "§15.1 regla 6: «Todo dado sale de routeRng(seed)(subflujo)»; §15.5: `routeRng(`muro-${i}`)('mot')`; §15.7: `routeRng('reina-150')('dib')`; §15.11: `routeRng(q.id)('dib')`.",
+  "fallo": "`routeRng` no devuelve una función de subflujos: packages/engine/src/routes/profileGen.ts l. 30 `export function routeRng(seed: string): () => number` (devuelve directamente el PRNG mulberry32). §B.1 conserva `routeRng` tal cual entre las primitivas, y las secciones 8 (l. 21-30: `routeRng(`arch|${id}`)`), 16.2 y 17 la usan de un solo nivel. Los cuatro tests de esta sección no compilan (`() => number` no es invocable con un string).",
+  "correccion": "Escribir los subflujos dentro de la semilla: `routeRng(`mot|muro-${i}`)`, `routeRng('dib|reina-150')`, `routeRng(`dib|${q.id}`)`, y en la regla 6 «todo dado sale de routeRng(`${subflujo}|${clave}`) con los subflujos nominales cerrados de la sección 8».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "alta",
+  "afirmacion": "§15.10 punto 9, `routes/arranque.test.ts`: «const t0 = performance.now(); await import('./calendar.js') // primera carga del módulo en este worker; … expect(ms).toBeLessThanOrEqual(ARCH.arranque.techoMs)». «El objetivo avisa, el techo falla.»",
+  "fallo": "El mismo fichero de test usa en su segundo `it` `calendarForSeason(1)` y en todos `ARCH`, así que importa estáticamente `./grammar/edition.js` y `../constants.js` en la cabecera. `calendarForSeason` construye `CalendarRace[]` con `buildRace` de `calendar.ts` (y `calendar.ts` define `SEASON_CALENDAR = calendarForSeason(BASE_SEASON)`), luego `calendar.js` ya está cargado y evaluado antes del primer `performance.now()`; el `await import` devuelve el módulo cacheado en ~0 ms. El techo de 2.500 ms no puede fallar nunca y la obligación 4 (arranque medido con techo) queda sin puerta en CI. El script `scripts/medir-arranque.mjs` en proceso nuevo sí mide, pero no falla nada.",
+  "correccion": "Que el test mida en un proceso hijo: `execFileSync(process.execPath, ['--input-type=module', '-e', \"const t0=performance.now(); await import('<ruta a dist/routes/calendar.js>'); console.log(performance.now()-t0)\"])` (o invocar `scripts/medir-arranque.mjs` con `--json`) y comparar la mediana de tres corridas con `objetivoMs`/`techoMs`; el test no debe importar `edition.js` ni `calendar.js` estáticamente. Decir que exige `pnpm --filter @cyclingstar/engine build` antes, como los scripts de `scripts/`.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "alta",
+  "afirmacion": "§15.6 (paso 4, «sin llamadores»): «scripts/galeria-recorridos.mjs (sección 16), que genera docs/galeria-recorridos/ con 5 perfiles por zona × esqueleto… Entregable al dueño. La galería… se entrega aquí y no después del paso 8».",
+  "fallo": "La galería tal como la define la sección 16 no puede existir en el paso 4: §16.1 y §16.2 dicen que «llama a generateStage con fixed.skeleton» (fichero `grammar/generate.ts`, creado en el paso 5, §15.7), que el km sale de `kmDe(role, clase, false, …)` (fichero `grammar/tour.ts`, paso 7, §15.9) y que el índice lee los vetos activos «de veto.ts» (paso 5). §16.7 reconoce que `verify` no está completo pero da por hecho `generateStage` y `kmDe`. El orden 0 → 1 → {2 ∥ 3} → 4 → 5 → {6 ∥ 7} de §15.14 hace inalcanzable el entregable del paso 4 y el coste de 3 sesiones no cubre escribir un segundo punto de entrada.",
+  "correccion": "O bien mover la galería al cierre del paso 5 (tras `generateStage`) y sacar `kmDe` de `tour.ts` a `grammar/km.ts` creado en el paso 4 (o que la galería tome km del punto medio de `Skeleton.km` recortado por `ARCH.km.maxPorClase`); o bien definir en 16 una galería de paso 4 que llame a `renderSkeleton` sobre `canonico`/`alternativas` con V1 a V4, V6 y V7 puestos en `veto.ts` en el paso 4. Actualizar §15.14 y la tabla de ficheros del paso 4 en consecuencia.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "alta",
+  "afirmacion": "§15.9: «Las seis garantías de calendar.test.ts l. 184-246 … calendar.test.ts l. 184-246 NO se toca»; §15.10 punto 6: «l. 184-246 en verde con stageMix delegando en composeTour».",
+  "fallo": "packages/engine/src/routes/calendar.test.ts l. 211-221 («la primera etapa es siempre llana y nunca es la crono») exige para n ∈ {3, 5, 7, 21}, todos los terrenos y todas las semillas que `stageMix(n, terrain, seed)[0]` tenga `timeTrial` undefined y `label === 'Flat'`. La decisión 42 y D3 (valor por defecto que se implementa, §18.1) ponen `et_prologo` en `roles[0]` con p 0,25 en vueltas ≥ `ROUTE.ittWeekStages` 6 (constants.ts l. 1284): en el paso 8 alrededor de una de cada cuatro vueltas de 7 y 21 etapas empieza con una crono y el test falla. La duda del redactor de la sección 7 ya lo señala; §19 B12 repite la afirmación falsa.",
+  "correccion": "Añadir `calendar.test.ts` l. 211-221 a la lista de re-sellados del paso 8 con la causa («la primera etapa es llana o prólogo: timeTrial solo si label === 'Prologue' y n ≥ 6»), corregir «sin tocar» en 15.9 y 15.10 punto 6 (y B12 en la sección 19), y sumar el re-sellado al coste del paso 8.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "media",
+  "afirmacion": "§15.9, test «una vuelta belga no tiene reina»: `itinerarioDe(`vu-be-${i}`, 'BE', n, 'mountain', '1', 'stage')`.",
+  "fallo": "El último argumento es `format: RaceFormat` (sección 7 l. 18-19 y §B.2) y `RaceFormat = 'gran-vuelta' | 'una-semana' | 'un-dia'` (packages/engine/src/routes/calendar.ts l. 31); `'stage'` no es un valor del tipo y el test no compila. La sección 16.2 usa correctamente `'un-dia'` y `'una-semana'`.",
+  "correccion": "`itinerarioDe(`vu-be-${i}`, 'BE', n, 'mountain', '1', 'una-semana')` (y lo mismo en la llamada de CO).",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "media",
+  "afirmacion": "§15.7: `renderSkeleton(SKELETONS.et_reina_alto_largo, motivos, routeRng('reina-150')('dib'))` y `verify(profile, …, peticionReina('alpes'), motivos)`; §15.11: `renderSkeleton(q.skeleton, q.skeleton.canonico, routeRng(q.id)('dib'))`; §15.5: `instanciaMeta(...)`, `aproximacion(...)`.",
+  "fallo": "La sección 8 (l. 30 del borrador) fija `renderSkeleton(colocados, req.geo, req.desde, (slot) => routeRng(`dib|…|${slot}|…`))`: recibe motivos YA colocados, la firma de zona, la zona de origen y una fábrica de PRNG por slot, no un `Skeleton` ni un único `rand`. Además `peticionReina`, `instanciaMeta` y `aproximacion` no están definidas en ninguna sección ni en §B.1. Los tres bloques de código son los que el implementador copia.",
+  "correccion": "Escribir los tres tests con la firma de la sección 8: colocar con `place.ts` (o usar `canonico`, que ya está colocado por construcción) y pasar `ZONAS.alpes`, `undefined` y `(slot) => routeRng(`dib|reina-150|${slot}`)`; declarar los tres auxiliares como funciones locales del test con su cuerpo (una `StageRequest` completa para `peticionReina`, la instanciación por rangos de `ARCH.meta.muro` para `instanciaMeta`, `rolling` a `aproxAmp` para `aproximacion`).",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "media",
+  "afirmacion": "§15.6: «catálogo bien formado (32 SkeletonId, 15 de un día y 17 de etapa…)… 32 de 32».",
+  "fallo": "La unión `SkeletonId` de §B.2 tiene 15 `ud_*`/`nc_*` y 16 `et_*` (31), y la sección 5 (borrador l. 273) sella `expect(Object.keys(SKELETONS).sort()).toEqual([...SKELETON_IDS].sort()) // 31`. El test de este paso, escrito con 32, nace en rojo o exige inventar un esqueleto que ninguna sección define.",
+  "correccion": "Escribir 31 (15 + 16) en 15.6 y en la tabla de 15.1, o que la pasada de coherencia añada el 32.º con su fila en la sección 5 y en `SkeletonId`; en todo caso que el test compare contra `SKELETON_IDS` y no contra un literal.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "media",
+  "afirmacion": "§15.3: «import sellado from './golden.json' // { \"race-x|1\": 3735928559, … } 1.418 entradas» y «sellada en realFingerprint.json».",
+  "fallo": "tsconfig.base.json no activa `resolveJsonModule` y usa `module: NodeNext` con `verbatimModuleSyntax`; packages/engine/tsconfig.json incluye `src` entero (los tests se compilan con `tsc -b`). Un `import x from './golden.json'` rompe `pnpm typecheck`, que es la condición de cierre de todo paso (§15.1 regla 1; Claude.md § Tests l. 18). La sección 11 ya eligió `routes/realFingerprint.sealed.ts` (literal TypeScript) por este motivo; el plan dice `.json`.",
+  "correccion": "Sellar en `routes/golden.sealed.ts` y `routes/realFingerprint.sealed.ts` (`export const SELLADO: Record<string, number> = {…}`), y citar esos nombres en 15.3, 15.10 y §B.1.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "media",
+  "afirmacion": "§15.8: «raceForSeason construye por la ruta nueva aunque SEASON_CALENDAR siga siendo la vieja hasta el paso 8»; §15.14: «6 y 7 en paralelo: edition.ts y tour.ts no comparten ficheros; los dos dependen del 5».",
+  "fallo": "Construir «por la ruta nueva» las 72 vueltas y las 60 ediciones exige `itinerarioDe`/`composeTour` (`grammar/tour.ts`, paso 7) para los papeles y los km de cada etapa; sin ellos `calendarForSeason(s)` del paso 6 no puede producir `stages` de vuelta y el test de identidad («mismo número de etapas», «mismo kind») no tiene qué comparar. Además los dos pasos tocan `constants.ts` (`ARCH.edicion` en el 6; `ARCH.pesosComposicion`, `bloques`, `itinerario`, `km` en el 7), así que sí comparten fichero.",
+  "correccion": "Orden 5 → 7 → 6 (o 6 limitado a carreras de un día y nacionales con `it.todo` para las vueltas hasta que exista el 7), y en §15.14 sustituir «{6 ∥ 7}» por «7 → 6»; anotar que `constants.ts` es compartido por 3, 4, 5, 6, 7 y 8 y que el paralelismo real es solo 2 ∥ 3 y 9 ∥ 10.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "media",
+  "afirmacion": "§15.14: «2 y 3 en paralelo: geo.ts/regions.ts y motifs.ts no comparten ficheros»; §15.5: «Recalibración de ARCH.reina.rellenoDplusPorKm… se rinden 1.000 enlace con la amplitud de cada zona».",
+  "fallo": "`renderMotif(m, rand, geo: GeoSignature)` (firma fijada por la sección 3) necesita el tipo `GeoSignature` de `grammar/geo.ts`, que el paso 1 no crea (solo `motifs.ts` y `skeletons.ts` con tipos) y el paso 2 escribe en paralelo; y «la amplitud de cada zona» es `ZONAS[*].amplitud`, contenido del paso 2. El paso 3 depende del 2.",
+  "correccion": "Que el paso 1 cree también `grammar/geo.ts` solo con los tipos (`GeoZone`, `GeoSignature`, `Relieve`, `Territorio`), y que la recalibración de `rellenoDplusPorKm` se haga al cerrar el paso 4 (cuando existen `ZONAS` y `renderSkeleton`), o escribir «3 después de 2» en §15.14.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "media",
+  "afirmacion": "§15.12, test «dos temporadas, dos recorridos, un esqueleto»: `expect(s0.map(x => x.arch.skeleton)).toEqual(s1.map(x => x.arch.skeleton))` sobre filas de `raceStagesForWorld`.",
+  "fallo": "La sección 3 (borrador l. 385) decide que «arch NO se congela: race_routes.profile sigue siendo exactamente el StageProfile… la ficha recompone arch llamando a stagesForSeason» y la migración del paso 10 solo añade `kind`, `label`, `time_trial`. Las filas leídas de la base no tienen `arch` y el test no compila o lee `undefined`.",
+  "correccion": "Comparar `stagesForSeason(race.id, 0).map(st => st.arch?.skeleton)` con `stagesForSeason(race.id, 1)…` en ese mismo test, dejando a las filas de la base solo `kind`, `timeTrial`, `label`, `routeSource` y `profile`; o, si se quiere en la base, añadir `arch_skeleton text` a la migración y a la sección 3.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "media",
+  "afirmacion": "§15.12 Código: «Migración 00NN_race_routes_kind.sql (columnas kind, label, time_trial en race_routes; NN = siguiente libre, hoy la última es 0039_el_recorrido_es_del_mundo.sql; el directorio real de drizzle es packages/db/drizzle/)».",
+  "fallo": "Las migraciones de este repositorio las genera drizzle-kit a partir de `schema.ts`: packages/db/package.json l. 21-22 (`db:generate: drizzle-kit generate`, `db:migrate`), y cada una va acompañada de una entrada en `packages/db/drizzle/meta/_journal.json` y un `meta/00NN_snapshot.json`; un `.sql` escrito a mano con nombre propio no se aplica (Claude.md § Despliegue: «las migraciones corren al arrancar el servicio»). Además hoy existe ya `0040_ordenes_del_paso_17a.sql` (journal idx 40).",
+  "correccion": "Escribir el procedimiento: «añadir `kind: text('kind').notNull()`, `label: text('label').notNull()`, `timeTrial: boolean('time_trial').notNull().default(false)` a `raceRoutes` en `schema.ts` junto a `routeSource` (l. 541 hoy) y correr `pnpm --filter @cyclingstar/db db:generate`; drizzle-kit nombra el fichero (hoy sería 0041_…) y actualiza journal y snapshot». Quitar el nombre `00NN_race_routes_kind.sql` de §B.1, 10, 11 y 15.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "media",
+  "afirmacion": "§15.15: «ninguna reescritura de fichero existente salvo profileGen.ts (que se reduce a primitivas) y calendar.ts (que cambia sus tres llamadores y conserva la firma de stageMix), y una sola migración»; §15.11 Código lista solo `sim/frozenSkeletons.ts`, `sim/targets.ts`, `sim/scenarios.ts` y «bancos».",
+  "fallo": "El propio plan reescribe más: `stageKind.test.ts` «reescrito por esqueleto» (15.10 punto 4), `stageKind.ts` (etiquetas nuevas y `SUMMIT_RUN_IN_KM`), `stageHistory.ts`, `constants.ts`, `freezeRaceRoute` con firma nueva (hoy `freezeRaceRoute(db, worldId, raceKey, raceId)`, packages/db/src/raceRoutes.ts l. 35-38, llamada en calendarRun.ts l. 1630 y raceRoutes.ts l. 105), los cuatro lectores, la API y la web. Y la sección 13 (borrador l. 208) exige para el pareado del paso 9 cosas que 15.11 ni lista ni cuesta: `sim/legacy/calendarLegacy.ts` (segundo fichero legado), un parámetro `calendar: CalendarRace[] = SEASON_CALENDAR` en `analyzeCalendarQueens`, `findStage`, `smallTours.ts`, `timeTrials.ts`, la extracción de `sim/saturation.ts::hardestOneDay`, `sim/pareado.ts`, `sim/preRegistro.ts` y el script `pnpm sim:pareado`. Es trabajo del paso 9 sin dueño en la tabla de sesiones.",
+  "correccion": "En 15.11 «Código» añadir esos ficheros y el parámetro `calendar` (con la lista de funciones), y en la tabla de 15.1 poner al paso 9 «2 humanas + 1 de fontanería del pareado»; en 15.15 sustituir la frase por la lista real de ficheros existentes que cambian (profileGen, calendar, stageKind, stageKind.test, stageHistory, constants, raceRoutes, calendarRun, callups, raceContext, api/calendar, web) y decir que `sim/*.ts` de banco ganan un parámetro.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "media",
+  "afirmacion": "§15.1 regla 3: «Los tests de la gramática son de geometría y no simulan; el único que muestrea perfiles es motifs.test.ts (paso 3) y se le pone reloj propio»; §15.6: «por cada esqueleto × KM_ROAD (5 km) × 60 semillas × sus zonas compatibles»; §15.7: «sobre 300 semillas × cada esqueleto × cada zona compatible».",
+  "fallo": "(a) `calendario.test.ts` corre en `test:rapido` y llama a `routeCensus()`, cuyo `finishType` pasa por `sampleProfile` en 1.418 etapas (§B.2 `RouteStats.finishType`, 0,57 s medidos): sí muestrea. (b) `skeletons.test.ts` y `generate.test.ts` son del orden de 31 × 5 × 60 × ~10 zonas ≈ 10⁵ rendidos y 300 × 31 × ~10 ≈ 10⁵ `generateStage` con hasta 8 intentos cada uno, en cada push (`test:rapido`), sin ninguna cifra ni reloj, mientras la sección 14 solo presupuesta ≤ 80 segmentos por etapa. Con 0,4 ms por etapa serían ~40 s y ~5 minutos respectivamente; el documento no lo dice ni lo acota, contra la regla de presupuesto ≥ 4× de la propia regla 3.",
+  "correccion": "Corregir la regla 3 («muestrean motifs.test.ts y, vía routeCensus, calendario.test.ts y sim/routeCensus.test.ts»), y dar a `skeletons.test.ts` y `generate.test.ts` una cifra objetivo medida en el paso 4/5 (por ejemplo ≤ 60 s y ≤ 120 s en local) y un `timeout` 4× explícito, o reducir la malla (20 semillas × 3 km en `test:rapido` y la malla completa en `test:bancos`).",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "media",
+  "afirmacion": "§15.11, condición (c) de borrado: «canónicas (llana-180, reina-150, cri-40, chronicle, las cuatro huellas de attribution, timetrial y raceRadio) sin moverse un dígito»; §15.7: «el escenario canónico reina-150 (sim/scenarios.ts, 135 km llanos y 15 km al 8 %)».",
+  "fallo": "En el árbol vivo packages/engine/src/sim/scenarios.ts l. 440-446: «LA QUE ERA reina-150, con su nombre de verdad: media-150 (paso 21, decisión 5)… Su huella sellada se retira en vez de re-sellarse: deja de ser canónica… Sigue corriendo como banco de forma». La condición (c) exige que no se mueva una huella que ya no existe, y 17.2 y 19 siguen llamando canónica a `reina-150`.",
+  "correccion": "Escribir «media-150 (antes reina-150)» en 15.7, 15.11, 17.2 y 19, quitarla de la lista de huellas de la condición (c) y dejar la lección de E3 como test de V8b con ese nombre; comprobar al abrir el paso 0 qué huellas canónicas siguen selladas en `targets.ts` y copiar esa lista en la nota de línea base.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "baja",
+  "afirmacion": "§15.2, calendario.test.ts: `const enLinea = filas.filter(r => r.routeSource !== 'real' && !r.timeTrial)`.",
+  "fallo": "`RouteStats` (§B.2, sección 3) no tiene campo `timeTrial`; tiene `kind`, `label`, `finalKind`, `finishType`… El filtro no compila.",
+  "correccion": "`!== 'real' && r.kind !== 'cri'`, o añadir `timeTrial: boolean` a `RouteStats` en §B.2 y en la sección 3.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "baja",
+  "afirmacion": "§15.10 punto 5 (y §18.3, §19 H7): «apps/api/src/stageHistory.test.ts l. 199: cambian se re-sella».",
+  "fallo": "La aserción `expect(cambian).toBe(49)` está en la l. 206 tanto en 8585ca2 (`git show 8585ca2:apps/api/src/stageHistory.test.ts`) como hoy; la l. 199 no contiene la cifra.",
+  "correccion": "Citar l. 206 en 15.10, 18.3 y 19.2.4 H7 (y en 11 y 13 si lo repiten).",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "baja",
+  "afirmacion": "§15.12: «world/callups.ts l. 98» (también §B.1 «packages/db/src/… world/callups.ts l. 98») como lector de SEASON_CALENDAR.",
+  "fallo": "No existe `packages/db/src/world/`; el lector es `packages/db/src/callups.ts` (hoy l. 80, 244 y 266 usan `SEASON_CALENDAR`); `packages/engine/src/world/callups.ts` existe pero no lee `SEASON_CALENDAR` en ningún árbol. Un implementador buscaría un fichero que no está.",
+  "correccion": "Citar `packages/db/src/callups.ts` con sus tres lecturas (l. 80 `due`, l. 244, l. 266 `carrera desconocida`) y decidir cuál de las tres pasa a `calendarForSeason(season)`.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "baja",
+  "afirmacion": "§15.10 y §15.11: la nota de balance se subdivide «§0 línea base, §1 el cambio, §2 remedición, §3 base y pantalla» y el paso 9 cierra «v61 §2»; §15.11 «Total estimado por debajo de 2 h de máquina en máquina libre».",
+  "fallo": "La sección 13 (borrador l. 212 y l. 229) llama a la misma tabla pareada «v61 §9» y suma «≈ 85 min por generador; ×2 ≈ 3 h», y la sección 16.6 habla de «su apartado del paso 4». Tres numeraciones de la misma nota y dos estimaciones de máquina (2 h contra 3 h) para el mismo paso.",
+  "correccion": "Fijar en 15.1 regla 7 la estructura de la nota (§0 a §4, con §4 para la galería del paso 4) y que 13 y 16 la citen igual; poner en la tabla de 15.11 la suma de la sección 13 (≈ 3 h ×2 cargada) o corregir la de 13, pero una sola cifra.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 16,
+  "gravedad": "media",
+  "afirmacion": "§16.6, tabla de decisión: «puerto de 12 km en britanicas → ZONAS.britanicas.puerto.km a [5; 9] (mapa 07 §3.18: puertos de 15 km no existen)».",
+  "fallo": "Un `puerto` con `km[0] = 5` viola el test de consistencia del paso 2 (§15.4: «puerto.km[0] ≥ 9 (o puerto === null)») y el rango `ARCH.motivo.puerto.km` [9,0; 25] (§B.3); además la fila `britanicas` de la sección 6 (borrador l. 51) ya tiene `puerto: null`, así que el ejemplo edita un campo que no existe. El ejemplo enseña al implementador una corrección que rompe `test:rapido`, justo lo contrario de lo que 16.6 manda tras cada tanda.",
+  "correccion": "Ejemplo válido: «puerto de 12 km en norteamerica → ZONAS.norteamerica.puerto.km de [10; 25] a [10; 14]» o «→ puerto: null y cota [2,5; 8]»; y añadir a la tabla la regla «nunca por debajo de ARCH.motivo.*: si el rango que pide el dueño sale del motivo, el campo pasa a null».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 16,
+  "gravedad": "media",
+  "afirmacion": "§16.7: «que las 20 filas de adoquín reciben esqueletos con adoquin (ud_adoquin, ud_adoquin_ligero, ud_muros_adoquin) o ud_sterrato para las dos de tierra (Tro Bro Léon, Rutland-Melton)».",
+  "fallo": "El test del paso 2 (§15.4) dice «Las 20 filas terrain: 'cobbles' … caen, vía regionOf, en una zona con adoquin ≥ 2», pero la sección 6 escribe para esas dos carreras `bretana` (adoquin 1, sterrato sí; borrador l. 34) y `britanicas` (adoquin 1, sterrato sí; l. 51) y su test (l. 349) exige `adoquin >= 1 || sterrato`. La aserción del plan y la de la sección 6 no son la misma y con la del plan las dos filas fallan.",
+  "correccion": "Escribir en §15.4 la aserción de la sección 6 («adoquin ≥ 2, o sterrato: true para race-leon y race-rutland, y adoquin ≥ 1 para race-veneto-classic», lista literal) y que 16.7 remita a ella.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 16,
+  "gravedad": "baja",
+  "afirmacion": "§16.3: «Tamaño y coste, medidos al redactar con un script de diez líneas sobre el dist de hoy (no versionado): renderAltimetrySvg sobre las 1.418 etapas tarda 51 ms… 3,1 MB… la galería pesa como mucho unos 12 MB».",
+  "fallo": "La regla de redacción (esqueleto l. 11) exige que cada número medido lleve su procedencia (mapa, propuesta o juicio); aquí la fuente es un script sin nombre que nadie puede volver a correr, y de él dependen dos decisiones (`.gitignore` y «se dibuja en menos de un segundo»).",
+  "correccion": "Dar al script nombre y sitio (`scripts/galeria-recorridos.mjs --medir`, que imprima ms y KB por página) y que el paso 4 escriba la cifra real en la nota de balance; hasta entonces presentar 12 MB como extrapolación y no como medida.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 16,
+  "gravedad": "baja",
+  "afirmacion": "§16.4: «rechazos es el único campo que la galería añade a GeneratedStage.arch respecto de §B.2: rechazos: Veto[]… La sección 3 lo incorpora al tipo».",
+  "fallo": "Ni la sección 3 ni la 8 del borrador contienen `rechazos` (grep vacío en 03-modelo.md y 08-algoritmo.md); §15.7 también lo necesita («el registro de qué veto disparó cada reintento impreso al final del test»). El campo lo usan dos secciones y no lo define ninguna.",
+  "correccion": "Añadir `rechazos: Veto[]` a `GeneratedStage.arch` en §B.2/sección 3 y en el paso 6 de `generateStage` de la sección 8 (`rechazos.push(veto)` por intento fallido), y citar ese sitio desde 16.4 y 15.7.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 17,
+  "gravedad": "media",
+  "afirmacion": "§17.1 riesgo 1, test: «const ventosa = { ...base, geo: { ...base.geo, viento: 3, altitud: 'altiplano' as const } } … expect(b.profile).toEqual(a.profile)» con el título «viento y altitud son metadatos: no cambian un solo tramo del perfil».",
+  "fallo": "`altitud` no es solo metadato: la decisión 24 hace de ella el veto V4 («ningún puerto ≥ 15 km fuera de altitud ∈ {alta, altiplano, media}») y la sección 9 le da `puertoDplusMax` por altitud; cambiar `altitud` cambia qué intentos veta `verify`, luego los reintentos y el perfil. El test sella como invariante algo que el diseño contradice; en `flandes` (`puerto: null`) pasa por casualidad y en `alpes` fallaría.",
+  "correccion": "Partir el test: `viento` no cambia el perfil (cualquier zona); `altitud` solo cambia el perfil a través de V4 (test en `alpes` con un `et_reina_alto_largo` de 20 km: `altitud: 'colina'` dispara V4 y `'alta'` no), y escribir en el riesgo 1 que altitud es «metadato en la ficha y veto en la geografía».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 17,
+  "gravedad": "media",
+  "afirmacion": "§17.1 riesgo 10: «et_reina_blanda con ARCH.reina.blandaShare … y D+ total en [1.500; 2.500] (decisión 8)… la banda «cubeta < 1.500 poblada ≥ 5 %» … Si aun así el estrato <1500 queda con menos de 3 etapas… falla con el mensaje…».",
+  "fallo": "Con el suelo de la blanda en 1.500 m (y `dPlusIncluyeRelleno` true, decisión 9) ningún esqueleto reina puebla «< 1.500» por diseño, y sin embargo packages/engine/src/sim/calendarQueens.test.ts l. 58-61 exige `facil = porBanda('<1500')` con `races > 0`, y la banda del censo pide ≥ 5 %. Es una banda que nace en rojo por construcción, contra §15.11 «Ninguna banda nueva nace en rojo» y contra la regla 4 del mapa 04 §5.3 que el mismo párrafo invoca. El propio redactor lo deja en dudas.md sin resolver, y 19 H5 lo presenta como hipótesis medible cuando es aritmética.",
+  "correccion": "Decidirlo aquí: o `Skeleton.dPlus` de `et_reina_blanda` baja a [1.200; 2.500] (como `ROUTE.queenLowDplusRange` hoy) y la banda se conserva, o la banda del censo y el estrato de `calendarQueens` se escriben sobre «< 2.000» (con `dPlusBloques`) desde el paso 8; escribir la elección en 17.1 riesgo 10, 18.7 (D6) y 19 H5 con la misma cifra.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 17,
+  "gravedad": "baja",
+  "afirmacion": "§17.1 riesgo 12: «la sección 14 pone el tope MAX_TEMPORADAS_EN_MEMORIA = 8 en edition.ts».",
+  "fallo": "§15.1 regla 8: «Toda constante nueva va en ARCH con su comentario de intención». Un literal en `edition.ts` es exactamente lo que la regla prohíbe, y 17.4 punto 6 promete revisarlo «con cifra», que es la definición de constante de intención.",
+  "correccion": "`ARCH.arranque.maxTemporadasEnMemoria: 8 // se expulsa la más antigua; reconstruir cuesta ≤ porTemporadaMs` en §B.3 y sección 12, citado desde 14 y 17.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 17,
+  "gravedad": "baja",
+  "afirmacion": "§17.1 riesgo 5, test: «const p = renderMotif({ kind: 'meta', meta: 'muro_meta', km: 0.5 + …, cotaFinal: … }, routeRng(`muro|${i}`)); if (finishType(deriveFinishTerrain(sampleProfile(p)), 50) === 'muro') muros++».",
+  "fallo": "Es la misma hipótesis H1 que §15.5 prueba con otro fixture: allí el perfil lleva `aproximacion(rand, ARCH.meta.muro.aproxKm, aproxAmp)` delante del muro (que es justamente el mecanismo contra `finishClimbGapBlocks` 5 que el riesgo describe), aquí no; aquí `renderMotif` tiene 2 argumentos y la sección 3 le da 3 (`geo`); y `sampleProfile` recibe un `Segment[]` cuando espera `StageProfile` (packages/engine/src/stage/sample.ts l. 68). Dos tests distintos para una sola afirmación, y este no prueba lo que dice.",
+  "correccion": "Quitar el bloque de 17 y remitir al test de 15.5 (única fuente), o copiarlo idéntico con `{ segments: [...aproximacion(...), ...renderMotif(m, rand, ZONAS.flandes)] }`.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 17,
+  "gravedad": "baja",
+  "afirmacion": "§17.1 riesgo 1: «simulate.ts l. 1157-1160… l. 1215, 4340-4408… l. 1696-1710»; riesgo 5: «muroMaxKm es 1 (constants.ts l. 4462)»; riesgo 1: «windMin 0,87 (… constants.ts l. 3593)», «docs/motor.md §19.5 (l. 1314-1318)».",
+  "fallo": "En el árbol vivo: `rngViento = streams('viento')` en simulate.ts l. 1413, `kmSubida`/`breakAppeal`/`gcTerrain` en l. 2165-2179; `windMin: 0.87` en constants.ts l. 3983, `muroMaxKm: 1` en l. 5346, `bannerCost: 2` en l. 4413, `climbRaceKmToGo: 30` en l. 3820; `**19.5 Lo que queda anotado**` en docs/motor.md l. 1327. Los valores no cambian, las líneas sí; un implementador que abra el fichero por línea no encuentra nada.",
+  "correccion": "Citar por nombre de constante o función además de por línea («`STAGE.windMin` 0,87», «`streams('viento')` en simulate.ts») y añadir en la cabecera del documento el commit (8585ca2) al que corresponden las líneas y la instrucción de verificarlas con `git grep -n` antes de cada paso.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 18,
+  "gravedad": "media",
+  "afirmacion": "§18.9 D8: «Donde sí existe (GB con britanicas, US con norteamerica), la respuesta es una línea de datos y el país sale de la lista sellada».",
+  "fallo": "La sección 6 da a `britanicas` relieve `media` (borrador l. 51) y a `norteamerica` relieve `media` (l. 56), y el test del paso 2 (§15.4) exige que «cordillera, si no es null, está en ruta y ZONAS[cordillera].relieve ∈ {montana, alta}». Poner `TERRITORIOS.GB.cordillera = 'britanicas'` rompe `geo.test.ts`; el ejemplo de «una línea de datos» es falso y es exactamente el caso que 18.9 dice que no es inventar geografía.",
+  "correccion": "Quitar el ejemplo o reescribirlo: «para GB y US haría falta una zona nueva de relieve montana (Escocia, Rocosas) en ZONAS, con su firma; hasta entonces decir «no» a D8 en esos países es la misma invención que en BE».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 18,
+  "gravedad": "baja",
+  "afirmacion": "§18.1 tabla y bloque «Lo que el implementador escribe en el código por cada respuesta es exactamente esto, y nada más»: `ARCH.itinerario.cronoescaladaP = 0.08` y `// tour.ts: TOUR_SKELETONS.vu_semana.primera = { llana: 0.75, prologo: 0.25 }`.",
+  "fallo": "La sección 7 llama a la constante `ARCH.itinerario.cronoescalada` y pone el prólogo en `TOUR_SKELETONS[id].primera.prologo`; la sección 12 declara `ARCH.itinerario.prologoP` 0,25 y `ARCH.itinerario.cronoescaladaP` 0,08; §B.3 no tiene ninguna de las dos. Tres nombres para dos números, y 18 dice que lo suyo es «exactamente esto». Además el bloque está escrito como asignaciones a `ARCH.*`, cuando `ARCH` es un literal constante como el resto de `constants.ts` (`as const`, p. ej. l. 809).",
+  "correccion": "Fijar en §B.3 `ARCH.itinerario.prologoP` 0,25 (0,3 en `vu_gran_vuelta` como `TOUR_SKELETONS.vu_gran_vuelta.primera`) y `ARCH.itinerario.cronoescaladaP` 0,08, usar esos nombres en 7, 12 y 18, y escribir el bloque de 18.1 como campos del literal (`pesoPorClase: { ud_montana_alto: { WT: 0, Pro: 0, '1': 0.02, '2': 0, NC: 0 } }`).",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 19,
+  "gravedad": "baja",
+  "afirmacion": "§19.2.3, cobertura 7 / motor 6 / ejecutabilidad 3 «resuelto» con «Decisión 35: medido, con objetivo, techo»; §19.2.4 H3 «Dónde se prueba: routes/arranque.test.ts».",
+  "fallo": "El test que sella H3 y resuelve esos tres riesgos es el de §15.10 punto 9, que mide un módulo ya cargado (véase el hallazgo sobre `arranque.test.ts`): tal como está escrito no puede fallar, así que el «resuelto» del apéndice y la hipótesis H3 se apoyan en un test vacío; solo `scripts/medir-arranque.mjs` mide de verdad y no está en CI.",
+  "correccion": "Cuando se corrija el test (medida en proceso hijo), citar en 19.2.3 y H3 «routes/arranque.test.ts (proceso hijo sobre dist) y scripts/medir-arranque.mjs», y hasta entonces marcar los tres riesgos como «mitigado» y no «resuelto».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "alta",
+  "afirmacion": "§15.2 regla 2 y paso 8: «`ENGINE_VERSION` 69 → 70»; paso 8 test 1: «`index.test.ts` l. 381: `expect(ENGINE_VERSION).toBe(70)`»; código: «`constants.ts`: `ENGINE_VERSION = 70`». La sección 12 (tabla 12.13, l. 276) repite «69 → 70 una sola vez».",
+  "fallo": "El esqueleto (reglas comunes y §A punto 10) manda que la versión sube UNA vez «al siguiente número libre en producción al empezar», nunca a una cifra fijada. El código vivo ya está en `ENGINE_VERSION = 86` (/home/user/cyclingstar/packages/engine/src/constants.ts:809), así que un `toBe(70)` literal rompería el test. Las secciones 0 (l. 46) y 13 (l. 28) lo dicen bien («al siguiente número libre»).",
+  "correccion": "En 15 y 12 sustituir «69 → 70» y `toBe(70)` por «de N (la de producción al empezar el paso 8) a N + 1, una sola vez»; el test se escribe `expect(ENGINE_VERSION).toBe(N + 1)` con N leído al empezar y anotado en la nota v61 §1. Citar `constants.ts` l. 718 solo como línea del árbol `8585ca2` que fija la cabecera.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 3,
+  "gravedad": "alta",
+  "afirmacion": "§3.6: `export function composeTour(n: number, terrain: RouteTerrain, seedBase: string, ctx: RouteContext): StageSpec[]`.",
+  "fallo": "La sección 7 (l. 136 y 145), dueña de `tour.ts`, declara `composeTour(raceId: string, n: number, terrain: RouteTerrain, ctx: RouteContext)` y `stageMix` delega con `composeTour(seedBase, n, terrain, ctx)`; `buildRace` la llama con `composeTour(row.id, row.stages, ...)` (07-vueltas.md l. 148). Dos firmas para la misma función.",
+  "correccion": "Una sola: `composeTour(raceId: string, n: number, terrain: RouteTerrain, ctx: RouteContext): StageSpec[]` (la de la sección 7, que es la que usan `stageMix` y `buildRace`); la sección 3 corrige su bloque de `tour.ts`.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 3,
+  "gravedad": "alta",
+  "afirmacion": "§3.7 declara en `grammar/generate.ts` `RouteContext { country: string; raceClass; format; season; routeSource: 'edicion' | 'generado' }` y `DEFAULT_ROUTE_CONTEXT = { country: '', raceClass: '2', format: 'una-semana', season: BASE_SEASON, routeSource: 'generado' }`.",
+  "fallo": "La sección 7 (l. 127-134) declara el mismo tipo en `grammar/tour.ts` con otra forma: `{ raceId?: string; country: string | null; raceClass; format; season }` y `DEFAULT_ROUTE_CONTEXT = { country: null, raceClass: '2', format: 'una-semana', season: BASE_SEASON }` (sin `routeSource`, `country` nulo para el territorio fallback). Dos formas y dos ficheros para un mismo nombre; `composeTour` fija `routeSource: 'generado'` él mismo, así que el campo de la sección 3 sobra.",
+  "correccion": "Canónico: la forma de la sección 7 en `grammar/tour.ts` (`raceId?`, `country: string | null`, `raceClass`, `format`, `season`; sin `routeSource`) y ese `DEFAULT_ROUTE_CONTEXT`; la sección 3 mueve el bloque a `tour.ts` y quita `routeSource`; §B.1 lo añade a los exports de `tour.ts`.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 3,
+  "gravedad": "media",
+  "afirmacion": "§3.6: `kmDe(role: StageRole | 'un_dia', raceClass, last, rand)`.",
+  "fallo": "La sección 7 (l. 102) amplía a `StageRole | 'un_dia' | 'un_dia_u23'` y la usa (`kmDe('un_dia_u23', 'NC', …)` l. 120) para la fila sub-23; la sección 12 fija `ARCH.km.porClase.NC` como `{ ruta, sub23 }` elegido por `championshipCategory`. Sin el papel `'un_dia_u23'` la fila `sub23` no tiene quien la lea.",
+  "correccion": "Firma única en 3, 7 y 12: `kmDe(role: StageRole | 'un_dia' | 'un_dia_u23', raceClass: RaceClass, last: boolean, rand: () => number): number`, con `'un_dia'` en NC → `ARCH.km.porClase.NC.ruta` y `'un_dia_u23'` → `.NC.sub23`.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 3,
+  "gravedad": "media",
+  "afirmacion": "§3.2: `validateMotif(m: Motif): string | null`.",
+  "fallo": "La sección 4 (l. 119) declara `validateMotif(m: Motif, geo?: GeoSignature): string | null` y sus tests la llaman con dos argumentos (`validateMotif(m, ZONAS.alpes)`, l. 150-160).",
+  "correccion": "Firma única: `validateMotif(m: Motif, geo?: GeoSignature): string | null` (la de la sección 4); la sección 3 corrige el bloque de `motifs.ts`.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "media",
+  "afirmacion": "Paso 3, test del muro (l. 144): `...renderMotif(m, rand)`; paso 5 (l. 187): `renderSkeleton(SKELETONS.et_reina_alto_largo, motivos, routeRng('reina-150')('dib'))`; paso 9 (l. 337): `renderSkeleton(q.skeleton, q.skeleton.canonico, routeRng(q.id)('dib'))`; l. 142: `routeRng(`muro-${i}`)('mot')`.",
+  "fallo": "`renderMotif` tiene tres parámetros (`m, rand, geo`, secciones 3 l. 48 y 4 l. 123). `routeRng(seed: string): () => number` (/home/user/cyclingstar/packages/engine/src/routes/profileGen.ts:30) devuelve un generador sin argumentos: `routeRng(x)('dib')` no compila. Y `renderSkeleton` es `(colocados: Placed[], geo, desde, rngDe)` en la sección 8 (l. 30 y 104), no `(sk, motivos, rng)`.",
+  "correccion": "En los tres tests escribir `renderMotif(m, rand, ZONAS.ardenas)` y sustituir las llamadas a `renderSkeleton` por `generateStage({ ...req, fixed: { skeleton: 'et_reina_alto_largo' } })` (mecanismo de bancos de §B.2) o por `renderSkeleton(colocar(motivos, km, sk, req, routeRng('reina-150|pos')), geo, undefined, (slot) => routeRng(`reina-150|dib|${slot}`))`; nunca `routeRng(x)(y)`.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 17,
+  "gravedad": "media",
+  "afirmacion": "Riesgo 5, test de ejemplo (l. 48): `renderMotif({ kind: 'meta', meta: 'muro_meta', … }, routeRng(`muro|${i}`))`.",
+  "fallo": "Faltan el tercer parámetro `geo: GeoSignature` (secciones 3 y 4) y la aproximación de 2 km, que la sección 8 rinde en `renderSkeleton` y no en `renderMotif`; el propio redactor lo deja en duda.",
+  "correccion": "El fixture es `generateStage` con `fixed: { skeleton: 'ud_muro_final' }` en `ZONAS.ardenas`, como fija el paso 3 de la sección 15 corregido; si se conserva `renderMotif`, con `ZONAS.ardenas` como tercer argumento.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "media",
+  "afirmacion": "Paso 7, test de itinerario (l. 251 y 253): `itinerarioDe(`vu-be-${i}`, 'BE', n, 'mountain', '1', 'stage')`.",
+  "fallo": "`RaceFormat` es `'gran-vuelta' | 'una-semana' | 'un-dia'` (/home/user/cyclingstar/packages/engine/src/routes/calendar.ts:31); `'stage'` no existe y no compila. La sección 7 usa `'una-semana'` y `'gran-vuelta'` en los mismos tests (l. 165-190).",
+  "correccion": "`itinerarioDe(`vu-be-${i}`, 'BE', n, 'mountain', '1', 'una-semana')` (y `'gran-vuelta'` cuando n ≥ 15).",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 6,
+  "gravedad": "alta",
+  "afirmacion": "§6.5: `admite(sk.requiere, geo)` (l. 173) y en los tests `admite(reina.requiere, ZONAS.alpes)` (l. 285-293).",
+  "fallo": "Tres firmas para la misma función: la sección 2 (l. 24) la declara `admite(geo: GeoSignature, sk: Skeleton): boolean`, la 16 (l. 35) la cita como `admite(geo, sk)` exportada por `grammar/geo.ts`, la 5 (l. 225) la llama `admite(req.geo, SKELETONS[id].requiere)` y la 6 `admite(requiere, geo)`. Ni el orden ni el tipo del segundo argumento coinciden.",
+  "correccion": "Canónica en `grammar/geo.ts`: `export function admite(geo: GeoSignature, sk: Skeleton): boolean` (lee `sk.requiere` y los `Slot` obligatorios cuyo motivo es `null` en la zona, como describe la sección 3 l. 122). Las secciones 5 y 6 reescriben sus llamadas y tests con `(ZONAS.x, SKELETONS.id)`; §B.1 añade `admite` y `degradar` a los exports de `geo.ts`.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 6,
+  "gravedad": "alta",
+  "afirmacion": "§6.5 punto 2: «`degradar(role)` baja UN escalón» con tabla `reina_alto → media_alto`, `media → llana`, `cronoescalada → cri`… sobre `StageRole`.",
+  "fallo": "El mismo nombre significa tres cosas: la sección 2 (l. 26) declara `degradar(relieve: Relieve): Relieve` (cadena `alta → montana → media → ondulado → llano`, decisión 12), la sección 6 lo aplica a papeles, y la sección 8 (§8.5) degrada motivos (`puerto → cota → muro → enlace`) sin nombre propio. La decisión 12 habla de `Relieve`.",
+  "correccion": "`degradar(relieve: Relieve): Relieve` queda para la cadena de relieve (sección 2). La tabla de papeles de la sección 6 se llama `degradarPapel(role: StageRole): StageRole | null` y la de motivos de la sección 8 `degradarMotivo(kind: MotifKind, geo: GeoSignature): MotifKind | 'enlace'`; las tres se exportan de `geo.ts` y la sección 3 las recoge.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 3,
+  "gravedad": "baja",
+  "afirmacion": "§3.4 (l. 170) y la sección 17 (riesgo 2, l. 29): «`degradar()` va siempre hacia abajo (`montana → media → ondulado → llano`)».",
+  "fallo": "`Relieve` tiene cinco valores (`llano | ondulado | media | montana | alta`, §B.2); la cadena de cuatro deja `alta` sin escalón. La sección 2 (l. 25) escribe la de cinco.",
+  "correccion": "En 3 y 17: `alta → montana → media → ondulado → llano`.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 6,
+  "gravedad": "media",
+  "afirmacion": "Tests de `geo.test.ts` (l. 288-293): `SKELETONS.find((s) => s.id === 'ud_sterrato')`, `SKELETONS.filter((s) => admite(...))`.",
+  "fallo": "`SKELETONS` es `Record<SkeletonId, Skeleton>` (sección 3 l. 113; secciones 5, 7 y 8 lo indexan `SKELETONS[id]`, la 5 usa `Object.values(SKELETONS)`). Un `Record` no tiene `.find` ni `.filter`.",
+  "correccion": "`SKELETONS.ud_sterrato` y `Object.values(SKELETONS).filter(...)`, o iterar `SKELETON_IDS` de la sección 5.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 3,
+  "gravedad": "media",
+  "afirmacion": "§3.10: `Summary { n; cuantiles: Partial<Record<keyof RouteStats, { p10; p50; p90; min; max }>>; reparto: Partial<Record<keyof RouteStats, Record<string, number>>> }` y `routeCensus(calendar?: CalendarRace[])`.",
+  "fallo": "La sección 13 (l. 63-72), dueña del censo, declara `Cuantiles { n; min; p10; p50; p90; max; media }`, `Summary { n; num: Partial<Record<keyof RouteStats, Cuantiles>>; cat: Partial<Record<'kind' | 'finalKind' | 'finishType' | 'skeleton' | 'zona' | 'routeSource', Record<string, number>>> }`, `entropiaBits(reparto)` y `routeCensus(calendar: CalendarRace[] = SEASON_CALENDAR)`; `ROUTE_CENSUS_TARGETS` (`CensusTarget`, 13-banco.md l. 91) se escribe sobre `num` y `cat`.",
+  "correccion": "La sección 3 copia el bloque de la 13 tal cual (`Cuantiles`, `Summary` con `num`/`cat`, `entropiaBits`, `routeCensus(calendar: CalendarRace[] = SEASON_CALENDAR)`); §B.2 se corrige igual.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 3,
+  "gravedad": "media",
+  "afirmacion": "§3.10 `RouteStats` termina en `intentos: number; degradado: boolean` (idéntico al de la sección 13).",
+  "fallo": "La sección 8 (§8.8, l. 160) añade al censo una columna `garantias` (etapas que pasan por las reglas 1 a 4 de `garantizaClase`, objetivo < 2 %) que no existe en `RouteStats` ni en la 3 ni en la 13; y el nombre choca con la función `garantias(roles, terrain, n)` de la sección 7 (l. 28).",
+  "correccion": "Añadir a `RouteStats` en 3 y 13 `garantiasClase: number` (0 a 4, cuántas reglas de `garantizaClase` tocaron la etapa) y en 8 llamar así a la columna, con la banda «etapas con `garantiasClase > 0` < 2 %» en `ROUTE_CENSUS_TARGETS`.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 3,
+  "gravedad": "media",
+  "afirmacion": "§3.8 `GeneratedStage.arch` cierra con `metadatos: { viento; altitud }`.",
+  "fallo": "La sección 16 (l. 60-65) lee `stage.arch.rechazos` (`Veto[]`, uno por intento fallido) y dice que es «el único campo que la galería añade respecto de §B.2»; ninguna otra sección lo conoce, y `salida(...)` de la sección 8 (l. 196) no lo rellena.",
+  "correccion": "Añadir a `GeneratedStage.arch` en la sección 3 `rechazos: Veto[]` (vacío cuando el primer intento pasa) y en la sección 8 que `salida` lo rellene con lo que `verify` devolvió en cada intento; §B.2 igual.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 3,
+  "gravedad": "media",
+  "afirmacion": "§3.6: `Itinerario { metas; papeles; km; desde }`.",
+  "fallo": "La sección 7 (l. 16) añade `notas: string[]` (reparaciones anotadas, «e5: reina → media_alto, ventana sin cordillera») que la decisión 18 exige anotar; la sección 3 no lo tiene.",
+  "correccion": "`Itinerario { metas: GeoZone[]; papeles: StageRole[]; km: number[]; desde: GeoZone[]; notas: string[] }` en 3 y §B.2.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 8,
+  "gravedad": "media",
+  "afirmacion": "§8.1 pseudocódigo: `const ed = edicion(sk, firma, req, routeRng(`ed|${id}|${seasonDe(req)}`))` y luego `ed.km`.",
+  "fallo": "La sección 10 (l. 93-100) declara la misma cosa como `editionOf(sk: Skeleton, firma: readonly Motif[], req: StageRequest): EditionPlan`, que tira el subflujo `ed|…` por dentro, con campos `km`, `vueltas?`, `opcion`. Dos nombres y dos firmas; además `editionOf` es el alias de banco en §B.4 y no puede ser nombre canónico.",
+  "correccion": "Una sola función en `edition.ts`: `planDeEdicion(sk: Skeleton, firma: readonly Motif[], req: StageRequest): EditionPlan` (sin `rng` externo: crea `ed|${id}|${seasonDe(req)}` dentro); la sección 8 la llama así y la 10 renombra `editionOf` → `planDeEdicion`; `EditionPlan` entra en §B.2.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 7,
+  "gravedad": "alta",
+  "afirmacion": "§7.2 paso 2: «`rand() < ARCH.itinerario.cronoescalada` (0,08; D3)»; paso 1: p del prólogo en `TOUR_SKELETONS[id].primera.prologo` (0,25; 0,3 en `vu_gran_vuelta`).",
+  "fallo": "La sección 12 declara en el literal `ARCH` (l. 67) `itinerario: { …, prologoP: 0.25, cronoescaladaP: 0.08 }` y la 18 (D3) usa `TOUR_SKELETONS[*].primera.prologo` y `ARCH.itinerario.cronoescaladaP`. La clave `ARCH.itinerario.cronoescalada` de la 7 no existe en 12, y `prologoP` de la 12 no la lee nadie (la 7 y la 18 leen `primera.prologo`, que además vale 0,3 en gran vuelta y no cabe en un escalar).",
+  "correccion": "Canónico: la p del prólogo vive en `TOUR_SKELETONS[id].primera.prologo` (0,25; 0,3 en `vu_gran_vuelta`) y la de la cronoescalada en `ARCH.itinerario.cronoescaladaP` 0,08. La sección 7 renombra `ARCH.itinerario.cronoescalada` → `cronoescaladaP`; la 12 quita `prologoP` y en la fila de D3 remite a `TOUR_SKELETONS`.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 12,
+  "gravedad": "alta",
+  "afirmacion": "§12.1 literal `ARCH`: `motivo` sin `cadena`, `descenso.km`, `expuesto.km` ni `circuito.maxHijosShare`; `veto: { margenClaseKm, margenValleKm, fallbackMaxShare, intentosP95 }`.",
+  "fallo": "Otras secciones leen claves que ese literal no tiene y el código no compilaría: la 4 (§4.5, l. 220) `ARCH.motivo.cadena.hijos` [2; 8], `.cadena.enlace` [1,5; 6], `.descenso.km` [2; 25], `.expuesto.km` [5; 60], `.circuito.maxHijosShare` 0,8; la 8 (§8.6, l. 94) `ARCH.motivo.cadena.separacion` [1; 6]; la 9 (tabla 9.1, l. 32-38 y vetos V4, V9, V10, V11, V15) `ARCH.veto.segmentoMinKm` 0,5, `.kmTolerancia` 0,05, `.pendientes` { gMax 20, gMin −14, subidaGMin 1 }, `.puertoLargoKm` 15, `.puertoDplusMax` { mar 500, colina 800, media 1.300, alta 2.100, altiplano 1.500 }, `.llana` { dPlusMax 1.800, cotaKm 2,5, cotaG 5, ventanaKm 15 }, `.calendario` { muroMin 0,01, puncheurMin 0,08 }; la 5 (§5.1, l. 9 y 65) necesita el margen de 2.900 m para `kind: 'media'` sin constante.",
+  "correccion": "El literal `ARCH` de la sección 12 (y su tabla por bloque) incorpora todas esas claves con esos valores, más `ARCH.veto.margenClaseMetros: 300` (3.200 − 2.900) para la regla de la sección 5; la sección 8 usa `ARCH.motivo.cadena.enlace` (nombre de la 4) y no `cadena.separacion`.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 8,
+  "gravedad": "media",
+  "afirmacion": "§8.3: «con `ARCH.edicion.nivel` 2 y `Skeleton.alternativas` declaradas, la firma es la alternativa `season % alternativas.length` entera».",
+  "fallo": "Las secciones 5 (l. 153) y 10 (l. 49) fijan `[canonico, ...alternativas][season % (1 + alternativas.length)]`: el canónico entra en la rotación y la temporada 0 rinde el canónico (test de la 10, l. 204). Con `season % alternativas.length` el canónico nunca sale y el test de la 10 falla.",
+  "correccion": "En la sección 8: «la instancia de partida es `[sk.canonico, ...sk.alternativas][season % (1 + sk.alternativas.length)]`»; la 12 y la 18 escriben «`season % n` con n = 1 + alternativas» al citar la decisión 22.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 10,
+  "gravedad": "media",
+  "afirmacion": "§10.3 bloque de constantes (l. 39): «`motivoNuevo: 0.35, // p de que un hueco opcional (n[0] === 0) esté AUSENTE en una edición`».",
+  "fallo": "La sección 8 (§8.4 paso 4, l. 71) lo define como p de que un hueco opcional elegido cambie de estado (0 → 1 o ≥ 1 → 0) y la 12 (l. 152) como «p de que aparezca o desaparezca». Con la lectura de la 10 la cardinalidad esperada de un opcional sería 0,65 fija y no una mutación anual.",
+  "correccion": "La sección 10 adopta la semántica de 8 y 12: «con p 0,35 un hueco opcional elegido uniformemente cambia de estado respecto del sorteo del paso 2».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 5,
+  "gravedad": "alta",
+  "afirmacion": "Catálogo §5.2 y §5.3: `ud_circuito` «clasica / Classic», `ud_muro_final` «media / Uphill finish», `et_prologo` «cri / ITT», `et_cronoescalada` «cri / ITT», `ud_montana` «reina / Mountains»; test (l. 294 y 318): `expect(stageKindOf(profile, …)).toEqual({ kind: sk.kind, label: sk.label })`.",
+  "fallo": "La decisión 38 crea cinco etiquetas nuevas (`Circuit`, `Wall finish`, `Prologue`, `Hill climb`, `Mountains classic`) y las secciones 11 (§11.5 regla 3, l. 172) y 15 (paso 8, l. 310) afirman que `generateStage` las pone desde `Skeleton.label` tras V6; pero el catálogo de la 5 no asigna ninguna, su test exige que `sk.label` sea exactamente la de `stageKindOf`, y las secciones 3 (l. 266), 8 (l. 196) y 14 (l. 111) escriben `label = stageKindOf(...).label`. `stageKindOf` solo produce ocho etiquetas (/home/user/cyclingstar/packages/engine/src/routes/stageKind.ts:72-97) y la decisión 26 prohíbe tocarlo.",
+  "correccion": "Un solo mecanismo: `GeneratedStage.label = sk.label`, donde `Skeleton.label` es una de las ocho de `stageKindOf` o una de las cinco nuevas; V6 y `skeletons.test.ts` comparan solo `kind` (`stageKindOf(profile, tt).kind === sk.kind`). El catálogo de la 5 escribe `Circuit` en `ud_circuito` y `nc_ruta`, `Wall finish` en `ud_muro_final` y `et_media_muro`, `Prologue` en `et_prologo`, `Hill climb` en `et_cronoescalada`, `Mountains classic` en `ud_montana`; las secciones 3, 8 y 14 cambian el comentario a `// = sk.label`; §B.2 igual.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 11,
+  "gravedad": "media",
+  "afirmacion": "§11.6 (l. 206): «Un Sanremo generado (`ud_esprint_capi`, km 294 por fila) sale `clasica / Classic` mientras su última cota mida ≤ `WALL_MAX_KM` 3 km […] la plantilla canónica de la sección 5 la deja por debajo».",
+  "fallo": "En la sección 5 `ud_esprint_capi` es `media / Hills` con cotas de [3,3; 5,6] km (fila l. 23) y su canónico lleva `C(5.6, 4.1)` y `C(3.7, 4)` (l. 91): ambas superan 3 km. V6 exige `stageKindOf(...).kind === sk.kind`, así que el Sanremo generado es `media / Hills` siempre.",
+  "correccion": "Reescribir la viñeta: «un Sanremo generado (`ud_esprint_capi`, Poggio de 3,7 y Cipressa de 5,6 km) sale `media / Hills`, como fija el catálogo (banco §9.4.1: superan `WALL_MAX_KM` 3), y V6 lo garantiza».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 10,
+  "gravedad": "media",
+  "afirmacion": "§10.1 (l. 16): «una `et_reina_valle` es `valle_largo` todos los años».",
+  "fallo": "El catálogo de la sección 5 declara `finalKind: 'valle_corto'` para `et_reina_valle` (l. 55) y para `ud_montana` (l. 31), con meta `descenso_meta` y valle [5,7; 19,3] (≤ `FINAL_KIND_CUTS.valleCorto` 20, /home/user/cyclingstar/packages/engine/src/routes/finalKind.ts:30). V7 (`finalKindOf(profile) === sk.finalKind`) la haría fallar siempre con `valle_largo`.",
+  "correccion": "«una `et_reina_valle` es `valle_corto` todos los años» (y `valle_largo` solo existe en la meta `valle` de `et_reina_blanda`/`et_reina_alto_largo` si alguna la declara).",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 9,
+  "gravedad": "media",
+  "afirmacion": "V7 (§9.1): «`ud_montana` y `et_reina_valle` no tienen un único `Skeleton.finalKind` (arquitectura §6.4)», por lo que V7 se define con `finalKindDe(meta)`.",
+  "fallo": "La sección 5 sí declara `finalKind: 'valle_corto'` en ambas filas (l. 31 y 55) y la 10 (l. 16) fija que `finalKind` es del esqueleto y no cambia entre ediciones; la excepción de arquitectura §6.4 fue retirada. `finalKindDe` solo aparece en la sección 9.",
+  "correccion": "V7 se escribe «`finalKindOf(profile) === sk.finalKind` cuando `sk.finalKind` está declarado; sin declarar (cronos, `ud_muros`, `ud_muros_adoquin` con «varía») no se comprueba»; `finalKindDe(meta)` queda como auxiliar de `skeletons.test.ts` que sella que `sk.finalKind`, si existe, coincide con lo que su `meta` promete.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 5,
+  "gravedad": "media",
+  "afirmacion": "Fila `ud_montana_alto` (l. 33): `puerto`×[0; 1]@[0,3; 0,6].",
+  "fallo": "La sección 9 (V8b, l. 127) exige que `ud_montana_alto` lleve su `puerto` con `n: [1; 1]`: con `puerto`×0 sería `reina-150` con 100 km de enlace y V8b (que aplica a todo `kind: 'reina'`) lo vetaría en cada intento, agotando `maxIntentos`.",
+  "correccion": "En la fila y en el `Slot` de `ud_montana_alto`: `puerto`×[1; 1]@[0,3; 0,6].",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 3,
+  "gravedad": "media",
+  "afirmacion": "§3.4 (l. 166 y 174): «`TERRITORIOS` para los 56 países con equipos […] los 77 restantes caen a `fallback`». Lo mismo en 0 (l. 114), 7 (l. 7), 15 (l. 118), 16 (l. 43, 75, 98) y 17 (l. 27, 29).",
+  "fallo": "La sección 6 (l. 78 y 209), dueña de la tabla, escribe 64 filas explícitas (56 países con equipos más AR, CL, NZ, IE, SE, FI, LV, QA, necesarias para `cono_sur` y el bug AR/CL de §D.6) y 69 países en `FALLBACK` (133 − 64). Dos recuentos para la misma tabla.",
+  "correccion": "En 0, 3, 7, 15, 16 y 17: «64 filas (los 56 países con carreras de equipos y 8 voluntarias: AR, CL, NZ, IE, SE, FI, LV, QA); los 69 restantes de los 133 de `COUNTRIES` caen a `FALLBACK`»; el test de la sección 6 sigue exigiendo que ninguno de los 56 sea fallback.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 0,
+  "gravedad": "baja",
+  "afirmacion": "§0.4 punto 2 (l. 112) y tabla (l. 163): «29 zonas», «`ZONAS` con 29 filas»; igual en 12 (l. 3), 16 (l. 3), 17 (l. 27) y 19 (l. 112).",
+  "fallo": "`GeoZone` tiene 30 miembros (29 con nombre más `generico`) y `Record<GeoZone, GeoSignature>` exige 30 filas; la sección 6 (l. 17-19) escribe «29 zonas, 30 filas».",
+  "correccion": "En todas: «29 zonas con nombre más `generico`: 30 filas de `ZONAS`».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "media",
+  "afirmacion": "Paso 9, tabla de remedición (l. 354): «`calendarQueens` […] 3.600 s con 4»; lo mismo en 14 (l. 16), 17 (l. 85) y 18 (l. 78).",
+  "fallo": "La sección 13 (§13.4, l. 151) rehace la aritmética con la muestra estratificada de ~30 etapas (3.716 s por la regla ×4) y fija el reloj nuevo en `{ timeout: 4_000_000 }`; el 3.600 s es el de hoy y deja de valer tras el paso 9.",
+  "correccion": "En 14, 15, 17 y 18: «reloj 3.600 s hoy; 4.000.000 ms tras el paso 9 (sección 13.4, 3.716 s calculados)».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "media",
+  "afirmacion": "Paso 10 (l. 397) y sección 10 (l. 126): «migración `00NN_race_routes_kind.sql` […] hoy la última es `0039_el_recorrido_es_del_mundo.sql`»; la sección 3 (l. 382) cita el fichero sin directorio.",
+  "fallo": "El directorio real es `packages/db/drizzle/` (no existe `packages/db/migrations/`, como dicen §B.1 y el borrador de la 10) y en el código vivo ya existe `0040_ordenes_del_paso_17a.sql` (/home/user/cyclingstar/packages/db/drizzle/), así que «la última es 0039» es falso y el número no puede fijarse en el documento.",
+  "correccion": "En 3, 10 y 15 (y §B.1): «`packages/db/drizzle/00NN_race_routes_kind.sql`, con NN el siguiente número libre al implementar (al escribir esto ya existe `0040_ordenes_del_paso_17a.sql`)»; nunca una cifra concreta.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 3,
+  "gravedad": "baja",
+  "afirmacion": "§3.11: `CalendarRace { … routeSource: 'real' | 'mixto' | 'generado' }`.",
+  "fallo": "La sección 11 (l. 26-36) nombra ese tipo `RaceRouteSource` en `grammar/generate.ts` y la función `raceRouteSourceOf(stages)`; la 3 deja la unión anónima y §B.2 no la nombra.",
+  "correccion": "En 3 y §B.2: `export type RaceRouteSource = 'real' | 'mixto' | 'generado'` y `raceRouteSourceOf(stages: readonly { routeSource: RouteSource }[]): RaceRouteSource` en `generate.ts`; `CalendarRace.routeSource: RaceRouteSource`.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 3,
+  "gravedad": "media",
+  "afirmacion": "§3 reproduce «TODOS los bloques de §B.2» y §B.1 lista los exports por fichero.",
+  "fallo": "Otras secciones introducen nombres exportados que ni la 3 ni §B.1 conocen: `candidatos`, `skeletonFor`, `NC_RUTA_CLASICA`, `SESGO_TERRENO`, `ESCALON_TERRENO`, `SKELETON_IDS` (5, l. 146-273); `Placed` (8, l. 88); `climbKmOutsideLast30`, `subidaLejanaShare` (9, l. 122-124) y la exportación de `climbSize`/`climbMetres` desde `stageKind.ts` (9); `EditionPlan`, `FrozenStage`, `StageCardRoute` (10); `RaceRouteSource`, `routes/realFingerprint.sealed.ts` (11); `Cuantiles`, `CensusTarget`, `entropiaBits`, `FrozenQueen`, `FROZEN_QUEENS`, `GENERATED_QUEENS`, `sim/legacy/calendarLegacy.ts`, `sim/saturation.ts::hardestOneDay`, `sim/pareado.ts`, `sim/preRegistro.ts` (13); `MAX_TEMPORADAS_EN_MEMORIA` (14); `grammar/regions.test.ts`, `grammar/render.test.ts`, `grammar/legacy.test.ts`, `sim/legacy/golden.test.ts` (15).",
+  "correccion": "La sección 3 (y §B.1/§B.2) incorpora cada nombre en la fila de su fichero con su firma TypeScript tal como la escribe la sección que lo introduce; `describeProfile`, `profileCorrelation` y `kmSubidaShare` (§B.1 `geometry.ts`) reciben firma en la sección 8 o 9, porque hoy ninguna sección la escribe.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 8,
+  "gravedad": "baja",
+  "afirmacion": "§8.2 (l. 58): «`elegirEsqueleto(req, rng)` toma los candidatos de `SKELETONS` […] (tabla papel → esqueletos de la sección 7 …)».",
+  "fallo": "La tabla papel → esqueletos (`porPapel`) vive en `candidatos(req)` de la sección 5 (l. 213-237), no en la 7; y la 5 añade `skeletonFor(id, geo)` para el `kind` de `nc_ruta`, que `elegirEsqueleto` debe usar para que V6 compare contra `skeletonFor(...).kind` (sección 9).",
+  "correccion": "«`elegirEsqueleto(req, rng)` = tirada con pesos sobre `candidatos(req)` de `skeletons.ts` (sección 5) y `sk = skeletonFor(id, req.geo)`»; citar la sección 5.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 10,
+  "gravedad": "baja",
+  "afirmacion": "§10.5 (l. 150): «`calendarForSeason(s)` con `s` de 0 a 5 (seis temporadas memoizadas, ≤ 6 s por el techo de `ARCH.arranque`)».",
+  "fallo": "Con `techoMs` 2.500 para la temporada 0 y `porTemporadaMs` 1.000 para cada una de las cinco adicionales el tope es 7,5 s (sección 14, tabla §14.5); además la 14 fija `MAX_TEMPORADAS_EN_MEMORIA = 8` con expulsión de la más antigua, que la 10 no cita.",
+  "correccion": "«≤ 7,5 s (2,5 s la temporada 0 más 1 s por cada una de las cinco adicionales, `ARCH.arranque`)» y una línea remitiendo al tope de 8 temporadas en memoria de la sección 14.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 16,
+  "gravedad": "baja",
+  "afirmacion": "§16.3 (l. 35): «`et_*` → el `StageRole` de su fila en la tabla de la sección 5 y `terrain` el de la misma tabla».",
+  "fallo": "La tabla de etapa de la sección 5 (cabecera l. 44) tiene columna «Papel» pero ninguna de terreno; el terreno de cada esqueleto solo está en `SESGO_TERRENO` (§5.6, l. 175-186), por terreno y no por esqueleto.",
+  "correccion": "La sección 5 añade la columna «Terreno» a las dos tablas del catálogo (o exporta `TERRENO_DE: Record<SkeletonId, RouteTerrain>` en `skeletons.ts`) y la 16 la cita por ese nombre.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 16,
+  "gravedad": "baja",
+  "afirmacion": "§16.4 (l. 45): las respuestas se guardan en `docs/galeria-recorridos/revision-{pagina}.json`; §16.7 (l. 103): lo versionado es `docs/galeria-revision.json`.",
+  "fallo": "Dos rutas para las respuestas del dueño sin decir cómo se relacionan; `docs/galeria-recorridos/` va a `.gitignore` (misma sección), así que los `revision-{pagina}.json` se perderían.",
+  "correccion": "Una sola forma: el script fusiona los `revision-{pagina}.json` (temporales, en la carpeta ignorada) en `docs/galeria-revision.json` (versionado), y la sección 15 paso 4 y la nota v61 nombran solo este último.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 0,
+  "gravedad": "baja",
+  "afirmacion": "§0.3 «cómo leer» (l. 94): «`RouteBrief` es `Skeleton`, `Paisaje` es `GeoZone`, `Papel` es `StageRole`, y así».",
+  "fallo": "Regla del esqueleto: los alias de las propuestas «no se citan en el documento final salvo en el apéndice» (la sección 3 los lleva en nota al pie autorizada por §D.3). Además `Paisaje` es alias de `GeoZone` solo en geografía; en §B.4 la fila es `GeoZone` / `GeoSignature` ↔ `Paisaje` / `PaisajeSpec`.",
+  "correccion": "Sustituir por «los nombres de las propuestas se traducen en la nota al pie de la sección 3 y en el apéndice A» sin citar ningún alias.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 7,
+  "gravedad": "baja",
+  "afirmacion": "§7.5 (l. 148): «`calendar.test.ts` l. 168-266»; sección 3 (l. 227) y 19 (l. 109): «l. 184-277»; secciones 13 (l. 32), 15 (l. 243) y 19 (l. 109): «l. 184-246».",
+  "fallo": "Tres rangos distintos para el mismo bloque de garantías de `stageMix`; el esqueleto (decisión 19 y §D.15) usa «l. 184-277» para «compilan» y «l. 184-246» para «garantías sin tocar». Lo mismo con `calendar.ts` l. 221 (1, l. 21) frente a l. 224 (8 y 10) para la semilla de `stagesFromEdition`, `world.ts` l. 169-186 / 169-193 / 171-181 (10, 11, 13, 14) y `raceRoutes.ts` l. 47-50 (3, l. 385) frente a l. 48-51 (10 y 11).",
+  "correccion": "Fijar una cita por hecho en todo el documento: `calendar.test.ts` l. 184-277 (compilación) y l. 184-246 (garantías), `calendar.ts` l. 224, `world.ts` l. 169-193, `raceRoutes.ts` l. 48-51; la sección 7 cambia 168-266 y la 1 cambia 221.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 4,
+  "gravedad": "baja",
+  "afirmacion": "§4.1 y §4.2 (l. 35 y 55): «`climbRaceKmToGo`, l. 2497».",
+  "fallo": "§B.3 y la sección 12 (l. 125) citan `STAGE.climbRaceKmToGo` en `constants.ts` l. 3521 (árbol `8585ca2`); dos líneas para la misma constante.",
+  "correccion": "En la sección 4: «`STAGE.climbRaceKmToGo` 30, `constants.ts` l. 3521».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 3,
+  "gravedad": "baja",
+  "afirmacion": "§3.6: `BlockRule { id: string // 'reinaTarde', 'bloqueMontana', … }`.",
+  "fallo": "La sección 7 (l. 50) cierra el campo como unión literal `id: 'reinaTarde' | 'bloqueMontana' | 'llanasEntreBloques' | 'maxCronos' | 'maxFinalesAlto' | 'descansos'`, que es lo que sus tests comprueban por nombre.",
+  "correccion": "Adoptar la unión literal de la sección 7 en la 3 y en §B.2.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "alta",
+  "afirmacion": "§15.10 «Paso 8 · El cambio de calendario (`ENGINE_VERSION` 69 → 70)»; tests primero: «`index.test.ts` l. 381: `expect(ENGINE_VERSION).toBe(70)`»; código: «`constants.ts`: `ENGINE_VERSION = 70`» (15-plan.md l. 29, 267, 273, 312); lo mismo en 12-constantes.md l. 276 («69 → 70») y 14-rendimiento.md l. 114.",
+  "fallo": "El esqueleto (cabecera de reglas y decisión 3) dice que la versión sube UNA vez «al siguiente número libre en producción al empezar», y el propio plan lo escribe bien en 15-plan.md l. 8 y 13-banco.md l. 28. El 70 está ya ocupado: en el árbol vivo (HEAD 02b032d) `packages/engine/src/constants.ts` l. 809 dice `export const ENGINE_VERSION = 86 as const` y `packages/engine/src/index.test.ts` l. 459 sella `expect(ENGINE_VERSION).toBe(86)`. Un test que exija `toBe(70)` rompe al implementar.",
+  "correccion": "En 15.10, 15.1 (tabla de pasos), 12.13 y 14 escribir «69 (en 8585ca2) → N + 1, siendo N la versión en producción al empezar el paso 8 (86 a HEAD 02b032d, es decir 87)», y el test como `expect(ENGINE_VERSION).toBe(<N + 1>)` con la cifra escrita el día del paso 8; nunca el literal 70.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "alta",
+  "afirmacion": "Paso 4, `skeletons.test.ts`: «catálogo bien formado (32 `SkeletonId`, 15 de un día y 17 de etapa)» (15-plan.md l. 161, 166, 170, 417); 08-algoritmo.md l. 260 «32 esqueletos × 5 km × 60 semillas»; 13-banco.md l. 29 y 165 «cada uno de los 32 `SkeletonId`»; 09-vetos.md l. 172; 06-geografia.md l. 15; 00-cabecera.md l. 110 y 162; 16-galeria.md l. 42 «29 × 32 × 5 = 4.640»; 19-apendices.md l. 112.",
+  "fallo": "La unión cerrada `SkeletonId` de §B.2 del esqueleto (00-esqueleto.md l. 138-147) y de la sección 3 tiene 15 identificadores `ud_*`/`nc_*` y 16 `et_*`: 31, no 32. La sección 5 escribe los 31 de la unión y lo dice en 05-esqueletos.md l. 14. Un test que afirme `Object.keys(SKELETONS).length === 32` sobre esa unión falla, y la tabla `pesoPorClase` de la sección 12 tampoco tiene 32 filas.",
+  "correccion": "Decidir una cifra: o se añade el 32.º con nombre a `SkeletonId` (§B.2, sección 3 y 5), o se escribe «31 esqueletos (15 de un día, 16 de etapa)» en 0, 6, 8, 9, 13, 15, 16 y 19; en 16.4 el techo pasa a 30 × 31 × 5 = 4.650 (o 29 × 31 × 5 = 4.495 si se cuentan solo zonas con nombre).",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 0,
+  "gravedad": "media",
+  "afirmacion": "«contra HEAD `8585ca2` del 2026-09-14 … `ENGINE_VERSION = 69` en `packages/engine/src/constants.ts` l. 718 … y última migración `0039`» (00-cabecera.md l. 43-45); las secciones 1, 12, 13, 14 y 15 dicen «`ENGINE_VERSION` 69 hoy».",
+  "fallo": "El árbol vivo es HEAD 02b032d y se ha movido desde 8585ca2: `constants.ts` l. 809 `ENGINE_VERSION = 86` (+91 líneas desde la l. 715, así que `ROUTE` pasa de l. 1151 a 1242 y `climbRaceKmToGo` de l. 3521 a 3820); existe `packages/db/drizzle/0040_ordenes_del_paso_17a.sql`; `routes/calendar.ts` gana 14 líneas en l. 79-92 (`doubleAfter`), así que toda cita ≥ 80 se desplaza +14 (semilla de edición l. 221 → 235, `oneDaySpec` 400-407 → 414-421, `MixTerrain` 410 → 424, `mixRoles` 457-519 → 471-533, `buildRace` 886-925 → 900-939, `SEASON_CALENDAR` 3643 → 3657); `engine/src/index.ts` l. 77 → 91; `db/src/schema.ts` l. 523 → 541; `calendarRun.ts` l. 135 → 137, 516 → 518, 783 → 785, 1603 → 1630; `stage/types.ts` l. 12-48 → 13-49; `index.test.ts` l. 381 → 459; `sim/invariants.test.ts` se partió en cinco ficheros (nota v83 (3) de balance.md). Sin cambios: stageKind.ts, finalKind.ts, profileGen.ts, finish.ts, sample.ts, world.ts, callups, raceContext, db/raceRoutes.ts, calendar.test.ts, editions.ts, raceRoutes.ts, countries.ts, stageHistory.ts y su test. Ninguna sección avisa de que sus líneas son de 8585ca2 y no «de hoy».",
+  "correccion": "En 0.3 («cómo leer») una frase: «Todas las citas de línea son del árbol 8585ca2; en 02b032d (HEAD al ensamblar) `calendar.ts` se desplaza +14 desde l. 80, `constants.ts` +91 desde l. 716, `index.ts` l. 91, `schema.ts` l. 541, `calendarRun.ts` +2 hasta l. 900 y +27 después, `types.ts` +1; `ENGINE_VERSION` es 86 (l. 809) y la última migración `0040`». Y sustituir «hoy» por «en 8585ca2» en 1, 12, 13, 14 y 15 cuando se cite el 69.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "media",
+  "afirmacion": "Paso 10: «Migración `00NN_race_routes_kind.sql` … NN = siguiente libre, hoy la última es `0039_el_recorrido_es_del_mundo.sql`» (15-plan.md l. 397; 10-identidad.md l. 126; 00-cabecera.md l. 45); 03-modelo.md l. 382 y 11-real.md l. 112 nombran la migración sin directorio; el esqueleto §B.1 la sitúa en `packages/db/migrations/`.",
+  "fallo": "`packages/db/migrations/` no existe en ningún árbol (`ls` falla); las migraciones viven en `packages/db/drizzle/` (con `drizzle/meta/_journal.json`). A 8585ca2 la última era `0039_el_recorrido_es_del_mundo.sql`, pero a HEAD 02b032d ya existe `0040_ordenes_del_paso_17a.sql` (con `meta/0040_snapshot.json`), así que NN = 40 ya está ocupado.",
+  "correccion": "Ruta única en 3, 10, 11 y 15: `packages/db/drizzle/00NN_race_routes_kind.sql`, «NN = el siguiente libre en `drizzle/meta/_journal.json` al empezar el paso 10 (41 a HEAD 02b032d)»; corregir §B.1 del esqueleto.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "media",
+  "afirmacion": "«Una nota de `docs/balance.md`: «v61 · El generador es una gramática» … Hoy la última nota es la v60 (su última subsección es «v60 §18»); si al implementar ya existe una v61, toma el siguiente número libre» (15-plan.md l. 13); las secciones 2 (l. 95), 9 (l. 148), 11 (l. 175, 193), 12 (l. 217), 13 (l. 24, 185, 208-231), 14 (l. 24, 122), 16 (l. 103), 17 (l. 61, 77, 125-127), 18 (l. 118) y 19 (l. 114, 198) citan «v61» como nombre fijo, sin la salvedad.",
+  "fallo": "A 8585ca2 `docs/balance.md` ya contiene «## v62 — La tanda de etapa…» (l. 11337) y «## v63 — …» (l. 11408) antes de «## v60 §0» (l. 11486); `ENGINE_VERSION` era 69, así que «v61» no es «el siguiente libre» aunque sea la última por posición en el fichero. A HEAD 02b032d la última nota es «## v86 — el que va de amarillo no da relevos…» (l. 16332) con `ENGINE_VERSION` 86: la nota de E1 será, como mínimo, v87.",
+  "correccion": "Fijar en 15.1 y en la cabecera: «la nota se llama «vN · El generador es una gramática», con N = la `ENGINE_VERSION` que el paso 8 pone (87 a HEAD 02b032d)», y en 2, 9, 11, 12, 13, 14, 16, 17, 18 y 19 escribir «vN» (o «la nota de E1») en vez de «v61»; borrar «hoy la última nota es la v60».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 13,
+  "gravedad": "media",
+  "afirmacion": "13.6 y 13.7: la tabla pareada y lo no remedido «queda anotado en «v61 §9»» (13-banco.md l. 208, 212, 229, 231); 09-vetos.md l. 148 «provisional hasta v61 §9».",
+  "fallo": "La sección 15 define la nota con cuatro subsecciones «§0 (línea base, paso 0), §1 (el cambio, paso 8), §2 (remedición, paso 9) y §3 (base y pantalla, paso 10)» (15-plan.md l. 13) y cita la remedición como «v61 §2» (l. 367, 369, 405). «§9» no existe en ese esquema: es el número del paso, no de la subsección.",
+  "correccion": "En 13 y 9 escribir «vN §2 (remedición, paso 9)»; o, si se prefiere numerar las subsecciones por paso, cambiar 15.1 y 15.11 a §0, §1, §9, §10 y decirlo en un sitio.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 0,
+  "gravedad": "baja",
+  "afirmacion": "«Un solo salto de `ENGINE_VERSION` (paso 8), once pasos con tests primero» (00-cabecera.md l. 150; también §A punto 10 y la cabecera de §D.15 del esqueleto).",
+  "fallo": "El plan enumera doce pasos, del 0 al 11 (15-plan.md l. 3: «Doce pasos, del 0 al 11»; tabla 15.1 con filas 0 a 11).",
+  "correccion": "«doce pasos (del 0 al 11)» en la línea 10 del resumen y en el esqueleto §A/§D.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 13,
+  "gravedad": "media",
+  "afirmacion": "Tabla de re-sellado 13.2: «`routes/calendar.test.ts` l. 162-174 (km de las 60 ediciones al 0,1)», «l. 269-277 (`Uphill finish` acaba en `puerto`)», «l. 108-121 (segmentos > 0)» (13-banco.md l. 30-32); las mismas citas en 01 l. 88; 03 l. 225, 227, 251, 287 («l. 184-277»); 08 l. 68, 157; 09 l. 32, 33, 55; 10 l. 85; 11 l. 12; 12 l. 150, 232; 15 l. 243 («l. 184-246»); 19 l. 109, 136. Vienen de mapa 06 §1 (l. 70-75, 162).",
+  "fallo": "`packages/engine/src/routes/calendar.test.ts` tiene 266 líneas desde el commit 6b62db5 (2026-08-13) y no ha cambiado ni en 8585ca2 ni en 02b032d: «l. 269-277» y «l. 184-277» no existen. Los tests están en: «cada etapa tiene un perfil con segmentos de km positivos» l. 92-108; «las carreras con recorrido REAL no pasan por la mezcla: sus km son los de la edición» l. 140-152; `describe` de `stageMix` l. 168-266 con las garantías en l. 176-209 y 223-246 («la primera etapa es siempre llana y nunca es la crono» l. 211-221, `race-sharjah` l. 248-255); «una etapa con final en alto termina cuesta arriba de verdad» l. 257-265. Además la aserción de l. 149 es `expect(Math.round(km)).toBe(edition.stages[i]!.km)`: el contrato es al kilómetro entero, no «al 0,1»; el 0,1 es una regla nueva de V10, no lo que ese test sella. La sección 7 (l. 3, 74, 93, 120, 148) ya cita 140-152, 176-266, 211-221 y 248-255 bien.",
+  "correccion": "En 1, 3, 8, 9, 10, 11, 12, 13, 15 y 19 sustituir: 108-121 → 92-108; 162-174 → 140-152 (y «al km entero, `Math.round`»); 184-246 y 184-277 → 176-266 (o 176-209 y 223-246 si se excluye el test de la primera etapa que el paso 7 re-sella); 269-277 → 257-265. Corregir mapa 06 §1 y §D.15 del esqueleto.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 1,
+  "gravedad": "media",
+  "afirmacion": "«Las tres ramas de construcción de etapas (l. 899-929) le pasan al generador…» (01-diagnostico.md l. 92); «`terrain` ausente cae a `'flat'` (l. 916 y 928)» (l. 126).",
+  "fallo": "En `routes/calendar.ts` a 8585ca2 `buildRace` ocupa l. 886-925: rama de edición l. 902-910, un día l. 911-919, mezcla l. 920-924; l. 899 es el cierre de `common` y l. 929 está dentro del comentario de `WT_TABLE` (l. 927-930). `row.terrain ?? 'flat'` está en l. 914 y l. 923; l. 916 es `STAGE_FEATURES[row.id]?.[0]` y l. 928 es comentario. 11-real.md l. 7 cita bien 886-925 y 916-918.",
+  "correccion": "«las tres ramas (l. 902-924)» y «(l. 914 y 923)»; unificar con arquitectura §1.3 y 11-real.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 10,
+  "gravedad": "baja",
+  "afirmacion": "«se dibujan con la semilla `${from}|${to}|${km}` (`calendar.ts` l. 224)» (10-identidad.md l. 3 y 66); «hoy la semilla entera en `calendar.ts` l. 224» (08-algoritmo.md l. 43).",
+  "fallo": "La línea `const seed = \\`${s.from}|${s.to}|${s.km}\\`` es la l. 221 de `routes/calendar.ts` a 8585ca2 (l. 224 es `}),`); 01-diagnostico.md l. 21 y mapa 01 §0 citan 221; mapa 02 §5 y §7 citan 224.",
+  "correccion": "l. 221 en 8 y 10 (235 en 02b032d).",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 2,
+  "gravedad": "baja",
+  "afirmacion": "«`freezeRaceRoute` escribe `'generado'` a mano para todo (l. 49-52 …)» (02-principios.md l. 49); 03-modelo.md l. 385 «`db/raceRoutes.ts` l. 47-50».",
+  "fallo": "En `packages/db/src/raceRoutes.ts` (sin cambios entre 8585ca2 y HEAD) el comentario ocupa l. 48-50 y el literal `routeSource: 'generado' as const,` es la l. 51; l. 47 es `profile:` y l. 52 es `}))`. 11-real.md l. 112 y 10-identidad.md l. 125 citan bien 48-51.",
+  "correccion": "l. 48-51 en 2 y 3.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 11,
+  "gravedad": "baja",
+  "afirmacion": "Tabla 11.2: «`nationalChampionships` (l. 255-367)» (11-real.md l. 15).",
+  "fallo": "`function nationalChampionships` empieza en l. 316 de `routes/calendar.ts` (8585ca2) y el `flatMap` que la llama cierra en l. 367; l. 255 es `const MONTH_CUM = […]`. Las líneas de `classic(220, …)` e `itt(38, …)` son 351-360, como citan 02 l. 31 y 06 l. 200.",
+  "correccion": "«(l. 316-367)».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 14,
+  "gravedad": "baja",
+  "afirmacion": "«`sim/world.ts` l. 169-186 y l. 188-192» (14-rendimiento.md l. 15 y 112).",
+  "fallo": "En `packages/engine/src/sim/world.ts` (sin cambios hasta HEAD) `calendarioDe` es l. 169-187 (la llave de cierre está en 187) y `const CALENDARIO` es l. 189-193; l. 188 está en blanco. Las secciones 11 (l. 173), 17 (l. 77) y 19 (l. 181) citan 169-193; la 10, l. 171-181 (el bucle).",
+  "correccion": "«l. 169-187 y l. 189-193», o «l. 169-193» como el resto.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 13,
+  "gravedad": "baja",
+  "afirmacion": "Tabla 13.7, fila 3: «`realQueens` … 900 s (`invariants.test.ts` l. 697)» (13-banco.md l. 222).",
+  "fallo": "En `sim/invariants.test.ts` a 8585ca2 la l. 697 es «el último grupo de una etapa reina entra al 8-14%» dentro de «abandonos en una gran vuelta» (l. 609-758); el banco de reinas reales es «la cola en las etapas reina REALES (v17)» l. 770-844 y su `{ timeout: 900000 }` está en l. 781 (15-plan.md l. 352 cita bien 770-844).",
+  "correccion": "«900 s (l. 781)»; y véase el hallazgo sobre el troceo del fichero en HEAD.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 13,
+  "gravedad": "media",
+  "afirmacion": "Citas a `sim/invariants.test.ts`: l. 128-212, 188-200, 222-273, 461-553, 474-479, 486-499, 609-758, 770-844, 855-955 (13-banco.md l. 11-38, 151, 208, 222); 15-plan.md l. 9, 352, 356; 18-dueno.md l. 54. El paso 9 extrae «la selección de las 8 más duras, hoy inline en `invariants.test.ts` l. 486-499» a `sim/saturation.ts::hardestOneDay`.",
+  "fallo": "A HEAD 02b032d el fichero se partió (balance.md «v83 (3) — el job de bancos eran 71 minutos en fila india, y ahora son seis en paralelo»): llano → `sim/invariantsLlano.test.ts` l. 43; erosión/saturación con `oneDayHardest` → `sim/invariantsClasicas.test.ts` l. 94 y 124; abandonos en gran vuelta → `sim/invariantsAbandonos.test.ts` l. 27; reinas reales (v17) → `sim/invariantsAbandonos.test.ts` l. 197; carreras pequeñas (v23, `smallTours`) → `sim/invariantsPequenas.test.ts` l. 28; la regla «CUATRO VECES» → `sim/invariantsDesgaste.test.ts` l. 116 y `sim/coherence.test.ts` l. 95. `invariants.test.ts` conserva solo montaña 6.17 (l. 47). Un implementador que abra `invariants.test.ts` l. 486-499 no encontrará nada que extraer.",
+  "correccion": "Citar cada banco con su fichero en 02b032d (y decir que en 8585ca2 vivían todos en `invariants.test.ts`): saturación de las 8 más duras `invariantsClasicas.test.ts` l. 124-…, `realQueens` `invariantsAbandonos.test.ts` l. 197-…, `smallTours` `invariantsPequenas.test.ts` l. 28-…, llano `invariantsLlano.test.ts` l. 43; actualizar las tablas 13.2, 13.7 y el paso 9 de la sección 15.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "baja",
+  "afirmacion": "Tabla del paso 9, fila 3: «`realQueens` … 6 | 900 s | ~8 min» (15-plan.md l. 352).",
+  "fallo": "La decisión 34 del esqueleto y 13-banco.md l. 222 dicen «6 semillas, ~4 min reales, reloj 900 s»; no hay fuente para 8 min.",
+  "correccion": "«~4 min» (o la cifra medida de mapa 06 §3 con su cita).",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 14,
+  "gravedad": "media",
+  "afirmacion": "«`calendarQueens` 3.600 s (126 s en máquina libre, 370 cargada)» (14-rendimiento.md l. 16); 15-plan.md l. 354 «3.600 s con 4»; 17-riesgos.md l. 85; 18-dueno.md l. 78 «reloj 3.600 s».",
+  "fallo": "La sección 13 decide que tras el paso 9 la muestra estratificada de ~30 etapas da por la regla ×4 «3.716» s y fija «`{ timeout: 4_000_000 }`» (13-banco.md l. 151); hoy el reloj es 3.600 s con `analyzeCalendarQueens(4)` (`calendarQueens.test.ts` l. 55-57). Las cuatro secciones dan cifras distintas para el mismo test después del paso 9.",
+  "correccion": "En 14, 15, 17 y 18: «3.600 s hoy (l. 55); 4.000 s tras el paso 9 (sección 13)», o que 13 mantenga 3.600 s y reduzca la muestra.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 10,
+  "gravedad": "media",
+  "afirmacion": "«`sim/routeCensus.test.ts` (sección 13) corre el censo sobre las temporadas 1 a 3 además de la 0» (10-identidad.md l. 228); 14-rendimiento.md l. 99 «`sim/routeCensus.test.ts` … censo sobre 0 a 3 | 0 + 3, más 4 censos de 0,57 s»; 19-apendices.md l. 170 «tests que generan temporadas 1 a 3».",
+  "fallo": "La sección 13 decide otra cosa: «`sim/routeCensus.test.ts` comprueba el censo mismo sobre perfiles literales … y corre con `test:bancos`» (13-banco.md l. 86, bloque l. 270), y las bandas sobre el calendario van en `grammar/calendario.test.ts` (`test:rapido`); ninguna de las dos dice cuántas temporadas construye. `test:rapido` excluye `packages/engine/src/sim/**` (`package.json` l. 20), así que el coste que 14 atribuye a `sim/routeCensus.test.ts` no cae en cada push.",
+  "correccion": "Fijar en 13 cuántas temporadas construye `grammar/calendario.test.ts` (14.5 usa «0 a 3») y reescribir 10 l. 228, 14 l. 98-99 y 19 l. 170 con ese fichero y esa cifra; `sim/routeCensus.test.ts` sin temporadas.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 10,
+  "gravedad": "baja",
+  "afirmacion": "«`calendarForSeason(s)` con `s` de 0 a 5 (seis temporadas memoizadas, ≤ 6 s por el techo de `ARCH.arranque`)» (10-identidad.md l. 150).",
+  "fallo": "Con `ARCH.arranque` { techoMs 2.500, porTemporadaMs 1.000 } (12-constantes.md l. 69) el tope de seis temporadas es 2.500 + 5 × 1.000 = 7.500 ms, que es lo que pone la tabla 14.5 (14-rendimiento.md l. 104 «esperado ≈ 7,5 s»).",
+  "correccion": "«≤ 7,5 s (techo 2.500 ms de la temporada 0 más 1.000 ms por cada una de las cinco adicionales)».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 12,
+  "gravedad": "media",
+  "afirmacion": "`ARCH.itinerario: { avance: 0.6, transicion: 0.4, prologoP: 0.25, cronoescaladaP: 0.08 }` y las filas «`itinerario.prologoP` 0,25» y «`itinerario.cronoescaladaP` 0,08» (12-constantes.md l. 67, 203, 204).",
+  "fallo": "La sección 7 pone la p del prólogo en `TOUR_SKELETONS[id].primera.prologo` con DOS valores (0,25 en `vu_semana`/`vu_larga`, 0,3 en `vu_gran_vuelta`: 07-vueltas.md l. 42-43 y 90) y la cronoescalada en `ARCH.itinerario.cronoescalada` (l. 91); la sección 18 usa `primera.prologo` (0,25; 0,3) y `ARCH.itinerario.cronoescaladaP` (18-dueno.md l. 11, 26, 54). Un único `prologoP` 0,25 en `ARCH` no puede expresar el 0,3 de la gran vuelta, y hay tres nombres para la misma constante.",
+  "correccion": "Una sola forma en 7, 12 y 18 (y §B.3): prólogo en `TOUR_SKELETONS[*].primera.prologo` (0,25; 0,3 en `vu_gran_vuelta`) y cronoescalada en `ARCH.itinerario.cronoescaladaP` 0,08; en 12 quitar `prologoP` de `ARCH` y dejar la fila que remite a `primera.prologo`; en 7 renombrar `cronoescalada` → `cronoescaladaP`.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 9,
+  "gravedad": "media",
+  "afirmacion": "Tabla V14: «`tour.test.ts`: `vu_gran_vuelta` con n de 9 a 21» (09-vetos.md l. 59); 17-riesgos.md l. 97 «`vu_gran_vuelta` … para 9 a 21 etapas».",
+  "fallo": "La sección 7 fija `vu_larga` [9; 14] y `vu_gran_vuelta` [15; 21] con `aplica: n ≥ 15` (07-vueltas.md l. 42-43), siguiendo `TourSkeletonId` de §B.2 y arquitectura §7.2; el «9-21» viene de §D.7 del esqueleto, que la 7 corrige.",
+  "correccion": "En 9 y 17: «`vu_gran_vuelta` con n de 15 a 21 (y `vu_larga` de 9 a 14)»; corregir §D.7.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 5,
+  "gravedad": "media",
+  "afirmacion": "Fila `ud_montana_alto` del catálogo: «`enlace`@[0; 0,6]; `puerto`×[0; 1]@[0,3; 0,6] | `alto_largo` (firma)» (05-esqueletos.md, tabla de un día).",
+  "fallo": "La sección 9 aplica V8b (≥ 25 % de la subida a más de 30 km de meta) a TODO `kind: 'reina'`, `ud_montana_alto` incluido, y por eso escribe que «lleva su `puerto` con `n: [1; 1]` y no `[0; 1]`: con `puerto`×0 sería literalmente `reina-150`» (09-vetos.md l. 127). Con [0; 1] la mitad de las instancias no pasan `verify` y caen a la plantilla canónica (contra `fallbackMaxShare.calendario` 0).",
+  "correccion": "`puerto`×[1; 1] en la fila de la sección 5 (y en su `canonico`), o eximir a `ud_montana_alto` de V8b cambiando la decisión 6; una sola de las dos en 5, 9 y 12.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 4,
+  "gravedad": "baja",
+  "afirmacion": "Tabla de `MetaKind`: «`repecho` | `climb([1; 2,9], [4; 7])` como último segmento» (04-gramatica.md l. 82); `ARCH.meta.repecho` { km: [1; 2,9] }.",
+  "fallo": "La sección 9 (V5 b) fija que en un esqueleto `ud_*` la meta `repecho` se instancia en [1; 2,2] km (intersección con el techo de muro), y solo en etapa en [1; 2,9] (09-vetos.md l. 76). La tabla de la 4 no lo recoge.",
+  "correccion": "Añadir a la fila `repecho` de 4.3: «[1; 2,2] en esqueletos de un día por V5(b); [1; 2,9] en etapa».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 18,
+  "gravedad": "media",
+  "afirmacion": "D2: «En el calendario entero son 72 discrepancias entre `kind` declarado y leído (juez motor §1, mapa 06 §2.1), 49 de ellas selladas en `stageHistory.test.ts` l. 199» (18-dueno.md l. 44).",
+  "fallo": "Son dos medidas distintas y ninguna contiene a la otra, como advierte 01-diagnostico.md (dudas): el 72 compara `stageKindOf(profile).kind` con `stage.kind` (mapa 06 §2.1); el 49 cuenta etiquetas (`label`, no `kind`) que `calendarStageSpec` reescribe con `SUMMIT_RUN_IN_KM` 5, y el propio test dice que `spec.kind` coincide con `stage.kind` en las 1.418 (`apps/api/src/stageHistory.test.ts` l. 200-201). «49 de ellas» presenta el 49 como subconjunto del 72.",
+  "correccion": "«72 discrepancias de `kind` (leído contra declarado) y, aparte, 49 etiquetas reescritas por `calendarStageSpec` (l. 194 y 206); son medidas distintas».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 1,
+  "gravedad": "baja",
+  "afirmacion": "«`apps/api/src/stageHistory.test.ts` l. 199 sella con `expect(cambian).toBe(49)`» (01-diagnostico.md l. 158); la misma cita «l. 199» en 02 l. 37, 11 l. 166, 13 l. 33, 15 l. 277, 18 l. 44, 19 l. 197 y en el esqueleto.",
+  "fallo": "En ese fichero (sin cambios hasta HEAD) la l. 199 es una línea de comentario en blanco; el «Medido: **49 de 1.418**» está en l. 194 y la aserción `expect(cambian).toBe(49)` en l. 206.",
+  "correccion": "«l. 194 (medida) y l. 206 (aserción)» en todas las secciones y en §B.1/decisión 23.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 12,
+  "gravedad": "baja",
+  "afirmacion": "«la cola baja de desnivel que `calendarQueens.test.ts` l. 62-63 exige («la banda de <1.500 m NO se queda vacía»)» (12-constantes.md l. 126); 18-dueno.md l. 76 «l. 62-63 exige `facil.races > 0` y `dura.races > 0`»; 15-plan.md l. 330 «`facil.races > 0` y `dura.races > 0` (l. 62-63)».",
+  "fallo": "En `sim/calendarQueens.test.ts` a 8585ca2: `facil.races > 0` es l. 60, `dura.races > 0` l. 61, `facil.wonFromMovePct > dura.wonFromMovePct + 10` l. 62, comentario l. 63 y `expect(stats.dPlus.min).toBeLessThan(1500)` (la cubeta < 1.500 poblada) l. 64. 13-banco.md l. 145 cita bien «cinco cosas (l. 60-68)».",
+  "correccion": "«l. 60-64» (o «l. 60-61 y 64» según lo que se cite) en 12, 15 y 18; en la decisión 8 del esqueleto «l. 62-63» → «l. 60-64».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 12,
+  "gravedad": "baja",
+  "afirmacion": "«Hoy el objetivo se persigue solo con los puertos (`dPlusOf`, `profileGen.ts` l. 365)» (12-constantes.md l. 120).",
+  "fallo": "`function dPlusOf` está en l. 325 de `routes/profileGen.ts` y su uso para `dPlusBase` en l. 373; la l. 365 abre un comentario (`/**`).",
+  "correccion": "«(`dPlusOf`, l. 325; `dPlusBase` l. 373)».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 1,
+  "gravedad": "baja",
+  "afirmacion": "«de las 178 carreras de un día de tabla, hilly 83, flat 60, cobbles 19, mountain 10, classic 5, itt 1» (01-diagnostico.md l. 126, de mapa 02 §1 l. 57).",
+  "fallo": "`grep -c \"terrain: 'cobbles'\"` sobre `routes/calendar.ts` a 8585ca2 da 20 filas, ninguna con `stages` (los 20 ids: opening-classic, bruges, harelbeke, wevelgem, across-flanders, flanders, roubaix, kuurne, nokere, denain, leon, flandrien, tours, veneto-classic, samyn, youngster, roubaix-espoirs, rutland, antwerp, muur); la decisión 16, 06-geografia.md (test d, 20 ids) y 16-galeria.md l. 3 dicen 20. Con 20 la partición del mapa suma 179, no 178.",
+  "correccion": "Escribir «cobbles 20 (medido con grep)» y remedir la partición por terreno en el paso 0 (o anotar que el mapa 02 la contó con 19).",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 15,
+  "gravedad": "baja",
+  "afirmacion": "Paso 0, `calendario.test.ts`: «las que hoy pasan, verdes (km de edición exactos, ningún segmento < 0,5 km salvo los 3 de 1.500 documentados, …)» (15-plan.md l. 41).",
+  "fallo": "Los «3 de 1.500» del mapa 01 §5.1 son clasificaciones que cruzan el borde de 8,5 km (`segment.km` redondeado contra la suma de tramos, `mountain 175 semilla-167`), no segmentos menores de 0,5 km; así lo citan 02 l. 37, 08 l. 154 y 12 l. 136.",
+  "correccion": "«ningún segmento < 0,5 km; los 3 de 1.500 cruces de 8,5 km (mapa 01 §5.1) quedan documentados en la banda de V6».",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 6,
+  "gravedad": "media",
+  "afirmacion": "«los 56 países con carreras de equipos … más 8 voluntarias (AR, CL, NZ, IE, SE, FI, LV, QA): 64 filas explícitas. Los 69 países restantes de `COUNTRIES` … caen a `FALLBACK`» (06-geografia.md l. 78, test (f) l. 276); mientras 00 l. 114 y 163, 03 l. 166 y 174, 07 l. 7, 15 l. 118, 16 l. 75, 17 l. 27-29 y 19 dicen «56 territorios y 77 `fallback`».",
+  "fallo": "Las dos particiones suman 133 (`COUNTRIES` a 8585ca2: 133 entradas `{ code:`), pero son distintas: el test del paso 2 escrito en 15-plan.md l. 118 («los 77 restantes de `COUNTRIES` resuelven con `fallback: true`») falla con la tabla de 64 filas de la sección 6, y la galería (16 l. 75) muestrea «los 77 `fallback`».",
+  "correccion": "Unificar en 0, 3, 7, 15, 16, 17 y 19 con la sección 6 (64 filas, 69 `fallback`), porque §D pide corregir el bug AR/CL con `cono_sur` y eso exige filas para AR y CL; si se prefiere 56/77, la 6 debe quitar las ocho voluntarias y decir que AR y CL caen a `generico` (y entonces `cono_sur` queda sin país).",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 0,
+  "gravedad": "baja",
+  "afirmacion": "«`ZONAS` (29 filas × 12 columnas)» (00-cabecera.md l. 163); 17-riesgos.md l. 27 «Las 29 filas de `ZONAS`»; 19-apendices.md l. 112 «las 29 filas × 12 columnas».",
+  "fallo": "`GeoZone` de §B.2 tiene 30 miembros (29 zonas con nombre más `generico`) y `Record<GeoZone, GeoSignature>` exige 30 filas; la sección 6 lo escribe así («30 filas: las 29 zonas con nombre más `generico`», 06-geografia.md l. 19, test (a) l. 235).",
+  "correccion": "«29 zonas con nombre más `generico`: 30 filas de `ZONAS` × 12 columnas» en 0, 17 y 19 (y en §D.6 del esqueleto).",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 14,
+  "gravedad": "baja",
+  "afirmacion": "«`callups.ts` l. 98 y `calendarRun.ts` l. 516 … fuerzan» (14-rendimiento.md l. 112); igual «`callups.ts` l. 98» sin paquete en 02 l. 41, 11 l. 166 y 173, 19 l. 105 y 165; el esqueleto §B.1 dice «`world/callups.ts` l. 98».",
+  "fallo": "El lector de `kind` es `packages/db/src/callups.ts` l. 98 (`const raceFit = raceVocationFit(race.stages.map((s) => s.kind))`); `packages/engine/src/world/callups.ts` l. 98-99 es la DEFINICIÓN de `raceVocationFit` y no lee `SEASON_CALENDAR`. Coinciden en el número de línea por casualidad, y la sección 10 (l. 7 y 127) ya lo cita con el paquete correcto.",
+  "correccion": "«`packages/db/src/callups.ts` l. 98» en 2, 11, 14 y 19 y en §B.1/decisión 23 del esqueleto.",
+  "lente": null,
+  "grupo": null
+ },
+ {
+  "seccion": 4,
+  "gravedad": "baja",
+  "afirmacion": "«`muro_meta` con `cotaFinal.km` en (1,0; 2,2] declara a V16 el conjunto {puncheur, alto} porque `docs/motor.md` §12.1 cita una segunda vía a `alto` («últimos 3 km al ≥ 5 %»)» (04-gramatica.md, tabla 4.3 y nota; dudas del redactor piden verificarlo contra `finish.ts`).",
+  "fallo": "No es un fallo: la vía existe tal cual. `stage/finish.ts` l. 127 calcula `hilltopGradient: mean(tail(STAGE.hilltopFinishKm))` y l. 170 devuelve `'alto'` si `t.hilltopGradient >= STAGE.hilltopFinishGradient`, con `hilltopFinishKm: 3` y `hilltopFinishGradient: 5` (`constants.ts` l. 4652-4653 a 8585ca2), evaluada antes del bloque `muro` (l. 182-189). Un `muro_meta` de 2,2 km al 14 % la activa.",
+  "correccion": "Mantener {puncheur, alto} en 4.3 y en la fila V16 de la sección 9, citando `finish.ts` l. 127 y 170 y `constants.ts` l. 4652-4653 en vez de `docs/motor.md` §12.1.",
+  "lente": null,
+  "grupo": null
  }
 ]
