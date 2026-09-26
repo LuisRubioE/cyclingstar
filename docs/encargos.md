@@ -78,6 +78,13 @@ abajo va la lista mínima.
 paso y con sus desviaciones, está al principio de `docs/generador.md`; las cifras medidas, en las
 notas v87 (§0 a §6) y v88 de `docs/balance.md`.
 
+**Encargo pendiente que sale de E1 (decisión del dueño del 26/09/2026, balance v89): recalibrar el
+clasificador de etapas reales, `stageKindOf` (D2).** Sobre las 177 etapas reales lee mal 28 de 119
+reinas y medias declaradas: llama `media` a 11 de las 54 reinas y `reina` a 17 de las 65 medias
+(balance v87 §2, «Decisiones abiertas», punto 2, con la tabla entera declarado contra leído). Va como
+encargo aparte, con su propio salto de versión del motor, porque mueve la huella de las 177 y las
+bandas que las leen.
+
 **Estado del diseño: ESCRITO (25 de septiembre de 2026).** El documento tiene veinte secciones y unas once mil líneas, y salió del método de la casa completo: siete mapas del
 código, cinco propuestas independientes, tres jueces, un esqueleto con glosario canónico, veinte
 redactores, veintidós refutadores adversarios (642 hallazgos, de ellos 102 altos), un corrector y un
