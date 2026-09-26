@@ -6,9 +6,10 @@
  * desde la v87 es `SEASON_CALENDAR`. En el paso 0 las que fallaban eran `it.todo` con la cifra medida
  * en el nombre (la tabla está en docs/balance.md, «v87 §0»); el paso 8 las encendió todas y dejó seis
  * en `it.todo` para el paso 9. El paso 9 cerró tres (dos corrigiendo la población que la banda medía
- * contra lo que el diseño excluye, una corrigiendo el catálogo) y las otras tres siguen en `it.todo`,
- * con la cifra y la causa en el nombre, en `PENDIENTES`: la banda no se toca y la decide el dueño con
- * la cifra delante (docs/balance.md, v87 §2).
+ * contra lo que el diseño excluye, una corrigiendo el catálogo); después se cerraron dos más en la
+ * gramática (`finales.reparto.valleLargo` y `variedad.dplusCubetaAlta`) y la que queda sigue en
+ * `it.todo`, con la cifra y la causa en el nombre, en `PENDIENTES`: la banda no se toca y la decide el
+ * dueño con la cifra delante (docs/balance.md, v87 §2).
  *
  * Corre en `test:rapido` (está bajo `routes/`) y muestrea vía `routeCensus`, que pasa `sampleProfile`
  * por las 1.418 etapas.
@@ -33,23 +34,23 @@ import type { Motif } from './motifs.js'
 const filas = routeCensus(calendarForSeason(BASE_SEASON)) // 1.418 filas
 
 /**
- * Bandas que el generador de la v87 no alcanza tras el paso 9, con la cifra medida y la causa
- * (docs/balance.md, v87 §2). No se aflojan: son decisiones abiertas del dueño.
+ * Bandas que el generador de la v87 no alcanza, con la cifra medida y la causa (docs/balance.md, v87
+ * §2). No se aflojan: son decisiones abiertas del dueño.
  *
- * Las otras tres del paso 8 se cerraron así: `esqueletos.entropia` mide ya solo las carreras de
+ * Las otras cinco del paso 8 se cerraron así: `esqueletos.entropia` mide ya solo las carreras de
  * equipos (los nacionales llevan dos esqueletos por país por construcción, decisión 15; §13.3 los
  * saca de las bandas de esqueletos): 2,30 bits el peor, `macizo_central`. `km.clase.max` mide solo lo
  * sorteado: el km de una edición real es un contrato (§3.7) y no pasa por el techo (D9, decisión 36):
  * 0. `nacionales.firmas` sube de 4 a 6 corrigiendo `nc_ruta`: un circuito con cota pierde una vuelta
  * antes que su muro, y delante del circuito va un `expuesto` donde la zona tiene viento (§13.3).
+ * `finales.reparto.valleLargo` sube de 4 a 6 de 86 con el peso de las reinas sin final en alto
+ * repartido como en lo real (`et_reina_valle` 15 y `et_reina_cima_cerca` 5, 13 valles por 4 cimas
+ * cercanas en `datos.md` §1.4). `variedad.dplusCubetaAlta` pasa de σ 487 m a 510 m (61 reinas) porque
+ * una reina tira su objetivo en todo `sk.dPlus` y lo factible solo lo recorta (`objetivoFactible`).
  */
 const PENDIENTES: Readonly<Record<string, string>> = {
-  'finales.reparto.valleLargo':
-    'medido 4 de 86 (0,047): et_reina_valle corre el final largo por carrera con p 0,5 donde cabe (paso 9) y el calendario solo tiene 10 et_reina_valle; en el paso 8 era 0',
   'variedad.correlacion.max':
-    'medido 0,993 contra el tope calibrado 0,32 (p90 de 338 pares reales, §9.5): 566 de 2.065 pares generados lo pasan, sobre todo nc_crono, et_crono y reinas con final en alto; previsión fallida H6, decisión del dueño',
-  'variedad.dplusCubetaAlta':
-    'medido σ 474 m en 59 reinas: el objetivo de desnivel se sortea dentro de lo factible en su zona y sus km (§8.5), que estrecha la cola alta; decisión del dueño',
+    'medido 0,965 contra el tope calibrado 0,32 (p90 de 338 pares reales, §9.5) sobre los pares de V12 (mismo esqueleto, misma zona, carreras distintas, km ± 10 %): 203 de 856 lo pasan; los finales en alto de firma (et_media_alto, reinas) y los nc_crono con su cota no bajan de 0,32 ni redibujando con otra semilla de dibujo o de firma; previsión fallida H6, decisión del dueño',
 }
 
 describe('el censo del calendario que el juego corre', () => {

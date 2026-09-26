@@ -352,12 +352,32 @@ export const V11 = (rows: RouteStats[]): Veto | null => {
   return null
 }
 
+/** Tolerancia de km de un par de V12: ± 10 % (mapa 04 §5.2). */
+const PAR_V12_KM = 0.1
+
 /**
- * V12 no se repite (§9.5): ningún par de filas con el mismo esqueleto, la misma zona y km a ± 10 % se
- * parece más que `maxCorrelacion` (Pearson de `RouteStats.huella`, la pendiente por km desde meta).
+ * Un par de V12 (§9.2, fila V12, y §9.5): mismo esqueleto, misma zona, carreras DISTINTAS y km a
+ * ± 10 %. Carreras distintas porque el tope es «tan parecido como dos carreras reales distintas» y
+ * V12 prohíbe que «dos etapas generadas del mismo esqueleto en carreras distintas» se parezcan más
+ * (§12.9): dos etapas de una misma vuelta no son dos carreras. La banda
+ * `variedad.correlacion.max` del censo mide sobre estos mismos pares (`correlacionesIntraEsqueleto`).
+ */
+export function esParV12(a: RouteStats, b: RouteStats): boolean {
+  return (
+    a.skeleton !== null &&
+    a.zona !== null &&
+    a.skeleton === b.skeleton &&
+    a.zona === b.zona &&
+    a.raceId !== b.raceId &&
+    Math.abs(a.km - b.km) <= PAR_V12_KM * Math.min(a.km, b.km)
+  )
+}
+
+/**
+ * V12 no se repite (§9.5): ningún par de V12 (`esParV12`) se parece más que `maxCorrelacion`
+ * (Pearson de `RouteStats.huella`, la pendiente por km desde meta).
  */
 export const V12 = (rows: RouteStats[], maxCorrelacion: number): Veto | null => {
-  const tolerancia = 0.1 // ± 10 % de km (mapa 04 §5.2), la misma de `correlacionesIntraEsqueleto`
   const grupos = new Map<string, RouteStats[]>()
   for (const r of rows) {
     if (r.skeleton === null || r.zona === null) continue
@@ -371,7 +391,7 @@ export const V12 = (rows: RouteStats[], maxCorrelacion: number): Veto | null => 
       for (let j = i + 1; j < g.length; j++) {
         const a = g[i]!
         const b = g[j]!
-        if (Math.abs(a.km - b.km) > tolerancia * Math.min(a.km, b.km)) continue
+        if (!esParV12(a, b)) continue
         const c = correlacionHuellas(a.huella, b.huella)
         if (c >= maxCorrelacion - EPS)
           return veto(
