@@ -5,7 +5,7 @@ import { type TestDb, startTestDb } from './testDb.js'
 
 /**
  * El viaje de IDA (#30). El modelo de viajes siempre cobró el desplazamiento en dinero Y en días,
- * pero los días solo se aplicaban a la VUELTA: `travel_until_day` se escribe al terminar la carrera.
+ * pero los días solo se aplicaban a la VUELTA: `travel_until_day` (que se escribe al congelar la escuadra).
  * La víspera de correr en otro continente el corredor entrenaba con normalidad, y el planificador se
  * lo enseñaba como un día de trabajo más. Aquí se sella el cálculo de los días de ida, que es puro.
  */

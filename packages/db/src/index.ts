@@ -266,6 +266,8 @@ export {
   outboundTravelDays,
   retireFromRace,
   returnTravelDays,
+  returnTravelDaysFor,
+  ridersTravellingBack,
   ridersTravellingOutbound,
   type RetireOutcome,
   type RiderTravelDay,
