@@ -86,8 +86,8 @@ prueba escrita), cuatro pasadas de coherencia y un crítico de completitud cuyos
 Todo el rastro está en `docs/diseno/e1-generador/`. Las decisiones que quedan en manos del dueño están
 en la sección 18 del documento y traen valor por defecto, de modo que se puede implementar sin
 responderlas. Los códigos de esta lista quedan CONGELADOS desde este encargo (ver la tabla de
-equivalencias). La regla de arranque sigue vigente: no se programa hasta que la línea del motor esté en
-producción.
+equivalencias). La línea del motor ya estaba en producción cuando E1 se programó, así que la regla de
+arranque se cumplió.
 
 El veredicto del dueño sobre esto es el más duro de todo el proyecto («para las que no se puedan nunca
 reproducir, el generador es una basura») y está confirmado con un caso concreto: el generador le dio a
