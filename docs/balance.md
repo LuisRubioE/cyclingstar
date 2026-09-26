@@ -16917,6 +16917,12 @@ Previsión de las bandas del censo que el paso 8 debe poner en verde (todas las 
 
 Es una heurística (el símbolo es el de `fichero::símbolo` o el último nombre entre comillas invertidas que precede a la cita en su línea), así que «movida» quiere decir «a revisar». Buena parte de las movidas son citas del árbol `8585ca2` que el documento da con los desplazamientos de su §0.1 (por ejemplo `ENGINE_VERSION`, l. 718 en `8585ca2` y l. 809 hoy), y buena parte de las ausentes son falsos positivos del emparejamiento (el nombre que precede a la cita no es el que la cita localiza). Los ficheros inexistentes son `db/raceRoutes.ts` (se cita sin `packages/`, 3 veces), `dist/constants.js` y `coste-motor.mjs` (del juez, fuera del repositorio). El listado entero sale con `node scripts/comprobar-citas.mjs --todas`. Regla que se mantiene: donde una cita no cuadra, manda el nombre del símbolo.
 
+#### vN §0 · anexo del paso 3: `ARCH.reina.rellenoDplusPorKm`, de 5,5 a 3,0
+
+El paso 3 recalibra el desnivel que aporta el relleno ondulado por kilómetro. Se rindieron 1.000 motivos `enlace` por cada una de las 31 zonas, con km uniforme en [1; 300], y se midió `dPlusDe / km`: la mediana es 2,86 m/km (1,32 en `golfo`, 3,77 en `alpes`), que se redondea al 0,5 y queda en 3,0. Con km en [10; 200] o en [50; 150] sale lo mismo. Un test de `motifs.test.ts` repite la medida y falla si la constante se separa de ella. No cambia ninguna conducta hasta el paso 8, porque nada la lee en producción.
+
+Entran además, con su comentario de intención, claves de `ARCH` que la sección 12 no listaba y que el paso necesita para que ningún número de intención viva en `grammar/`: `motivo.tendida.tramos` [2; 4] y `ruido` 0,7, `motivo.racimo.amp` 0,7, `motivo.sector.estrellasTierra` [2; 3], `meta.esprint.ampMax` 1,5 y `meta.altoLargo.kmSuaveDesde` 17. Y se adelantan `colocacion.enlaceMinimo` 1,5 y `veto.puertoLargoKm` 15, porque `validateMotif` ya las lee (regla «entra en el primer paso que la lee»).
+
 ### vN §5 · Respuestas del dueño
 
 El 25/09/2026 el dueño aceptó las trece decisiones de la sección 18 de `docs/generador.md` con su valor por defecto:
