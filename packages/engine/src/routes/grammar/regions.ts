@@ -49,7 +49,7 @@ export const RACE_REGION: Record<string, RaceRegion> = {
   'race-alsace': { default: 'macizo_central' }, // Colmar: Vosgos (proxy)
   'race-amstel': { default: 'flandes' }, // Valkenburg: Limburgo, bergs (§6.4)
   'race-andalusia': { default: 'andalucia' }, // edición: Pizarra, Otura, Lopera, Pozoblanco, Lucena (§6.4)
-  'race-andorra-classic': { default: 'pirineos', skeleton: 'ud_montana_alto' }, // Arcalís: meta en la cima
+  'race-andorra-classic': { default: 'pirineos' }, // Arcalís: meta en la cima; sin esqueleto fijo, D1 solo ata race-mercantour
   'race-andratx': { default: 'levante' }, // Palma: Mallorca
   'race-anicolor': { default: 'portugal' }, // Porto
   'race-annemasse': { default: 'alpes' }, // Annemasse: Genevois, Alta Saboya
@@ -293,7 +293,7 @@ export const RACE_REGION: Record<string, RaceRegion> = {
   'race-opening-classic': { default: 'flandes' }, // Ninove
   'race-ordizia': { default: 'cantabrico' }, // Ordizia: Gipuzkoa
   // Oropa (1.142 m) está en los Alpes Bielleses: meta en la cima del santuario.
-  'race-oropa': { default: 'alpes', skeleton: 'ud_montana_alto' },
+  'race-oropa': { default: 'alpes' }, // meta en la cima; sin esqueleto fijo, D1 solo ata race-mercantour
   'race-overijssel': { default: 'flandes' }, // Rijssen
   'race-palma': { default: 'levante' }, // Palma
   'race-pantani': { default: 'italia_centro' }, // Monte Carpegna: Montefeltro (Marcas)
