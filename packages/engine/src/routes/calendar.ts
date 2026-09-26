@@ -12,6 +12,7 @@ import type { Division } from '../world/npc.js'
 import type { Segment, StageProfile } from '../stage/types.js'
 import { type RaceEdition, RACE_EDITIONS } from './editions.js'
 import { type RouteTerrain, type StageFeatures, buildFeatureProfile } from './featureProfile.js'
+import type { GeneratedStage, RaceRouteSource, RouteSource } from './grammar/generate.js' // solo tipos (§3.8)
 import {
   classicSegments,
   cobblesSegments,
@@ -37,6 +38,14 @@ export interface StageSpec {
   label: string
   profile: StageProfile
   timeTrial?: boolean
+  /**
+   * De dónde sale el recorrido (§3.11): rasgos reales, edición real o inventado. OPCIONAL hasta el
+   * paso 8 (§15.8): solo lo escribe `composeTour`, y los constructores de hoy no, así que ninguna etapa
+   * de `SEASON_CALENDAR` gana la clave.
+   */
+  routeSource?: RouteSource
+  /** La ficha del generador (esqueleto, zona, motivos, frase): solo en lo no real. Paso 7, opcional. */
+  arch?: GeneratedStage['arch']
 }
 
 export interface CalendarStage extends StageSpec {
@@ -74,6 +83,8 @@ export interface CalendarRace {
    */
   country?: string
   stages: CalendarStage[]
+  /** Origen del recorrido de la carrera, agregado de sus etapas (§3.11). OPCIONAL hasta el paso 8. */
+  routeSource?: RaceRouteSource
   /** Descansos tras estas etapas (solo grandes vueltas). */
   restAfter?: number[]
   /**

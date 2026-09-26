@@ -12,7 +12,8 @@
 import { ARCH, type EdicionCfg } from '../../constants.js'
 import { hashInt, routeRng } from '../profileGen.js'
 import type { StageRequest } from './generate.js'
-import type { Motif } from './motifs.js'
+import { desnivelFactible, type Motif } from './motifs.js'
+import { conVentanasDe } from './place.js'
 import type { Skeleton } from './skeletons.js'
 
 /** La temporada con que nace un mundo: `calendarRun.ts`, `season = floor(gameDay / SEASON_DAYS)`, da 0 el primer año (§10.2). */
@@ -45,6 +46,19 @@ const r1 = (x: number): number => Math.round(x * 10) / 10
 /** Entero uniforme en `[a; b]` (§8.4 punto 2): `a + ⌊rand() · (b − a + 1)⌋`, acotado por si `rand()` diera 1. */
 const entero = (rand: () => number, a: number, b: number): number =>
   Math.min(b, a + Math.floor(rand() * (b - a + 1)))
+
+/**
+ * El desnivel objetivo (§8.4 punto 4) con la tirada `u` ya hecha: uniforme en el cruce de
+ * `sk.dPlus` con lo que la instancia puede dar (`desnivelFactible`). Si no se cruzan, el extremo de
+ * `sk.dPlus` más cercano a lo factible: el objetivo nunca sale del rango del esqueleto, y la
+ * persecución de §8.5 llega hasta donde llegue.
+ */
+function objetivoFactible(sk: Skeleton, [fLo, fHi]: readonly [number, number], u: number): number {
+  const lo = Math.max(sk.dPlus[0], fLo)
+  const hi = Math.min(sk.dPlus[1], fHi)
+  if (lo <= hi) return Math.round(lo + u * (hi - lo))
+  return fHi < sk.dPlus[0] ? sk.dPlus[0] : sk.dPlus[1]
+}
 
 /** El nivel efectivo de un esqueleto (§10.3): la constante fija suelo y techo; con alternativas declaradas rota salvo con 0. */
 const nivelEfectivo = (sk: Skeleton, cfg: EdicionCfg): number =>
@@ -125,7 +139,9 @@ export function semillaDe(
  * maxPorClase)`, salvo en edición real (`req.km`, sin tirada) y en un circuito de firma (se deriva de
  * sus vueltas en 3); (2) la cardinalidad de cada hueco no firma, en el orden de `sk.slots`; (3) las
  * vueltas de cada circuito de firma, ± 1 con p `vueltasJitter`; (4) el desnivel objetivo en `sk.dPlus`
- * (sin tirada si el banco lo fija). La opción no es una tirada: es `opcionDe`.
+ * cruzado con lo que la firma, los huecos con su cardinalidad y el relleno de la zona pueden dar a
+ * esos km (`desnivelFactible`; una tirada, ninguna si el banco lo fija). La opción no es una tirada:
+ * es `opcionDe`.
  */
 export function planDeEdicion(
   sk: Skeleton,
@@ -171,9 +187,19 @@ export function planDeEdicion(
     if (req.routeSource !== 'edicion') km = r1(req.km + (vueltas - base) * circuito.km)
   }
 
-  // (4) desnivel objetivo, TOTAL con relleno
+  // (4) desnivel objetivo, TOTAL con relleno, dentro de lo que la instancia puede dar
   const dPlusObjetivo =
-    req.fixed?.dPlus ?? Math.round(sk.dPlus[0] + rand() * (sk.dPlus[1] - sk.dPlus[0]))
+    req.fixed?.dPlus ??
+    objetivoFactible(
+      sk,
+      desnivelFactible(
+        conVentanasDe(sk, req), // en una transición, con las ventanas con que se colocará (paso 7)
+        firma,
+        { km, n, ...(vueltas !== undefined ? { vueltas } : {}) },
+        req.geo,
+      ),
+      rand(),
+    )
 
   return {
     km,

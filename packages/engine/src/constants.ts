@@ -13,6 +13,7 @@
 // lee este fuente y lo exige).
 import type { GeoSignature, Relieve } from './routes/grammar/geo.js'
 import type { SkeletonId } from './routes/grammar/skeletons.js'
+import type { StageRole } from './routes/grammar/tour.js'
 import type { RaceClass } from './routes/uci.js'
 
 /**
@@ -1615,8 +1616,16 @@ export const ARCH = {
     // §1): con la `amplitud` por zona de `ZONAS` (0,4 a 1,15) el relleno pesa menos. Medido con
     // `dPlusDe` sobre 1.000 `enlace` por zona × 31 zonas, km uniforme en `motivo.enlace.km`: mediana
     // 2,86 m/km (por zona de 1,32 en `golfo` a 3,77 en `alpes`), redondeada al 0,5. `motifs.test.ts`
-    // repite la medida y falla si el valor se separa de ella.
+    // repite la medida y falla si el valor se separa de ella. Desde el anexo del desnivel objetivo
+    // (balance vN §0) la persecución usa el relleno de SU zona (`rellenoPorAmplitud`, abajo); esta
+    // mediana de todas queda como suelo de los techos de la firma (`instanciarFirma`, `ajustaAlTecho`).
     rellenoDplusPorKm: 3.0,
+    // El mismo relleno ZONA A ZONA, por punto de `GeoSignature.amplitud` (m/km por %): `rolling` sube
+    // en la mitad de cada trozo a una pendiente media lineal en la amplitud mientras `0,45 · amp < 0,8`
+    // (todas las zonas; la mayor es 1,15). Medido con `dPlusDe` sobre enlaces rendidos en las 31 zonas:
+    // de 3,25 a 3,32 (1,32 m/km en `golfo`, 3,78 en `alpes`). Lo leen la persecución del desnivel
+    // (§8.5) y `desnivelFactible`, que acota el objetivo a lo que la zona puede dar (§8.4 punto 4).
+    rellenoPorAmplitud: 3.3,
     // Km a meta a partir de los cuales una subida es «lejana»: son los del motor
     // (`STAGE.climbRaceKmToGo`), que solo ataca un puerto a ≤ 30 km de meta; una subida más lejos se
     // sube a tempo y desgasta sin seleccionar, que es lo que le faltaba a `reina-150` (V8b). El test
@@ -1772,14 +1781,102 @@ export const ARCH = {
    */
   pesoPorClase: PESO_POR_CLASE,
   /**
-   * La vuelta (§12.8). El paso 4 adelanta `transicion`, porque `colocar` y `renderSkeleton` ya la
-   * leen (etapa de transición entre dos zonas); `avance` y `cronoescaladaP` llegan en el paso 7.
+   * Los pesos de las etapas de en medio de una vuelta compuesta (§12.8, tabla de §7.3), por el
+   * `Relieve` de la zona de meta de CADA etapa y no por el terreno de la fila: sustituyen a
+   * `ROUTE.mixWeights` (que se retira en el paso 8). Una tirada por etapa sobre los nueve papeles en
+   * línea; `cri`, `prologo` y `cronoescalada` no están (los deciden `ROUTE.itt*`,
+   * `TOUR_SKELETONS[id].primera` y `itinerario.cronoescaladaP`). Cada fila suma 1 (`motifs.test.ts`).
+   * `llano` y `ondulado` no tienen reina: la geografía la veta antes de sortear. Con `viento < 2` el
+   * peso de `llana_viento` va a `llana` (§7.3). Entra en el paso 7 con `itinerarioDe`.
+   */
+  pesosComposicion: {
+    llano: {
+      llana: 0.5,
+      llana_viento: 0.25,
+      media: 0.15,
+      media_alto: 0.07,
+      media_muro: 0.03,
+    },
+    ondulado: {
+      llana: 0.4,
+      llana_viento: 0.1,
+      media: 0.25,
+      media_alto: 0.15,
+      media_muro: 0.1,
+    },
+    media: {
+      llana: 0.28,
+      llana_viento: 0.04,
+      media: 0.28,
+      media_alto: 0.18,
+      media_muro: 0.1,
+      reina_alto: 0.06,
+      reina_valle: 0.04,
+      montana_corta: 0.02,
+    },
+    montana: {
+      llana: 0.2,
+      llana_viento: 0.02,
+      media: 0.22,
+      media_alto: 0.14,
+      media_muro: 0.05,
+      reina_alto: 0.16,
+      reina_valle: 0.12,
+      reina_encadenada: 0.04,
+      montana_corta: 0.05,
+    },
+    alta: {
+      llana: 0.16,
+      media: 0.18,
+      media_alto: 0.1,
+      media_muro: 0.02,
+      reina_alto: 0.22,
+      reina_valle: 0.14,
+      reina_encadenada: 0.1,
+      montana_corta: 0.08,
+    },
+  } as Record<Relieve, Partial<Record<StageRole, number>>>,
+  /**
+   * Las reglas de bloque de una vuelta compuesta (§12.8 y §7.2). Sin `gv.reina`: la ventana de la
+   * reina de una gran vuelta depende de `n` y la calcula `ventanaReina(n)` (`tour.ts`) desde
+   * `descansos`; una clave de `ARCH` solo valdría para n = 21 y no tendría lector. Entra en el paso 7.
+   */
+  bloques: {
+    gv: {
+      // Descansos tras las etapas 9 y 15 de una gran vuelta generada (mapa 07 §2.1 reglas 1 a 4); el
+      // primero es también el suelo de la ventana de la reina y el fin de la primera semana.
+      descansos: [9, 15] as Rango,
+      // Antes del primer descanso, ninguna reina y a lo sumo un final en alto (Galibier 2024 e4,
+      // Tagliacozzo 2025 e7: uno, no dos).
+      primeraSemanaFinalesAlto: 1,
+      // Tope de etapas de alta montaña (reinas) de una gran vuelta generada: Tour y Giro llevan de 4 a
+      // 6; la Vuelta de 8 a 10 finales en alto es real y queda fuera a propósito.
+      maxAltaMontana: 7,
+      // Entre dos bloques de montaña, al menos dos etapas que no lo son (mapa 07 §2.1 regla 4). Lo
+      // aplican `vu_larga` y `vu_gran_vuelta` y lo comprueba V14.
+      minLlanasEntreBloques: 2,
+    },
+    // La quinta garantía de `garantias` (§7.3; mapa 07 §2.1 regla 4: «nunca hay ocho llanas
+    // seguidas»): como mucho siete papeles llanos seguidos; el octavo pasa a `media`. Paso 7, no está
+    // en §12.1: la regla estaba escrita con su cifra en §7.3 y el número vive aquí.
+    llanasSeguidasMax: 7,
+  },
+  /**
+   * La vuelta (§12.8). El paso 4 adelantó `transicion`, porque `colocar` y `renderSkeleton` ya la
+   * leen (etapa de transición entre dos zonas); `avance` y `cronoescaladaP` llegan en el paso 7 con
+   * `itinerarioDe`.
    */
   itinerario: {
+    // Probabilidad de avanzar a la zona siguiente de la ventana de `TERRITORIOS[country].ruta` en cada
+    // etapa; el 0,4 de quedarse es lo que forma bloques de montaña en la misma cordillera (§7.1).
+    avance: 0.6,
     // Fracción inicial de una etapa de transición (`req.desde` distinto de la zona de meta) que se
     // traza con la ondulación de la zona de salida y sin dificultades: una Meseta → Cantábrico es 70
     // km de páramo y 100 de sierra (geografía §7.3).
     transicion: 0.4,
+    // Probabilidad de que la `cri` de una vuelta con cordillera, con meta admisible para una reina,
+    // pase a `cronoescalada` (Peyragudes, Tour 2025 e13; D3). Existe y es rara.
+    cronoescaladaP: 0.08,
   },
 } as const
 
