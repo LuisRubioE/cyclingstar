@@ -119,7 +119,9 @@ export function seasonDe(req: StageRequest, sub: 'ed' | 'mot' | 'pos' | 'dib'): 
 /**
  * TODA semilla de `generateStage` sale de aquí (§8.1 y §10.4; ningún `routeRng` de `grammar/` concatena
  * a mano). `arch` y `firma` sin temporada ni intento; `ed` con temporada; `mot`, `pos` y `dib` con
- * temporada e `i{intento}` (`mot` con hueco e instancia, `dib` con su token).
+ * temporada e `i{intento}` (`mot` con hueco e instancia, `dib` con su token), y `|r{redibujo}` cuando
+ * el anti-clon de la temporada pide otro dibujo (`req.redibujo`, v89): la firma, el esqueleto y el plan
+ * de edición no cambian, así que la identidad entre ediciones (decisión 20) se conserva.
  */
 export function semillaDe(
   sub: Subflujo,
@@ -127,13 +129,20 @@ export function semillaDe(
   x: { slot?: number; j?: number; token?: string; intento?: number } = {},
 ): string {
   const id = claveEtapa(req)
-  const i = `i${x.intento ?? 0}`
+  // El redibujo anti-clon (V12 al generar, balance v89) solo entra en `mot`, `pos` y `dib`, detrás del
+  // intento y solo si no es 0: sin redibujo las semillas son las de siempre, byte a byte.
+  const i = `i${x.intento ?? 0}${req.redibujo ? `|r${req.redibujo}` : ''}`
   switch (sub) {
     case 'arch':
     case 'firma':
       return `${sub}|${id}`
-    case 'ed':
-      return `ed|${id}|${seasonDe(req, 'ed')}`
+    case 'ed': {
+      // Pasados los redibujos de solo dibujo, el anti-clon tira también el plan de la edición (km,
+      // huecos y desnivel objetivo), que ya es de la temporada y no de la identidad (v89).
+      const r = req.redibujo ?? 0
+      const plan = r > ARCH.anticlon.redibujos.dibujo ? `|r${r}` : ''
+      return `ed|${id}|${seasonDe(req, 'ed')}${plan}`
+    }
     case 'mot':
       return `mot|${id}|${seasonDe(req, 'mot')}|${x.slot ?? 0}|${x.j ?? 0}|${i}`
     case 'pos':

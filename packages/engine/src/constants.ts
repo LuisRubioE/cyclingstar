@@ -1881,20 +1881,39 @@ export const ARCH = {
   /**
    * Anti-clon (§12.9; V12, sección 9 §9.5). Entra en la v87 con su lector, la banda
    * `variedad.correlacion.max` del censo (`sim/routeCensus.ts`), que afirma
-   * `grammar/calendario.test.ts` en cada push.
+   * `grammar/calendario.test.ts` en cada push. Desde la v89 (decisión del dueño, balance v89) el tope
+   * es por familia y V12 se cumple AL GENERAR: `grammar/anticlon.ts` redibuja la etapa que clona a
+   * otra ya aceptada de su par.
    */
   anticlon: {
-    // V12: dos etapas generadas del mismo esqueleto en carreras distintas no correlacionan (Pearson
-    // de la huella `g` por km, `profileCorrelation`) por encima de esto; es el ÚNICO tope del máximo
-    // de la banda de variedad. CALIBRADO en el paso 9 (§9.5) como el p90 de los pares de etapas REALES
-    // de carreras distintas con mismo `kind`, mismo `finalKind` y km ± 10 % (`scripts/medir-real.mjs`):
-    // 338 pares, 7 de clásicas de un día, p90 0,317 (máximo 0,651, Emirates e6 / Italy e9). Sustituye
-    // al 0,85 provisional. Lo generado no cabe bajo él: sobre los pares de V12 (mismo esqueleto, misma
-    // zona, carreras distintas, km ± 10 %; `esParV12`) el máximo es 0,965 y 203 de 856 pares pasan de
-    // 0,32, y redibujar la etapa con otra semilla no los baja (los finales en alto de firma y los
-    // `nc_crono` con su cota). Es la previsión fallida H6 de balance v87 §2, y la banda sigue en
-    // `it.todo` hasta que el dueño decida; no se ensancha para que cuadre.
-    maxCorrelacion: 0.32,
+    // V12: dos etapas generadas de un par de V12 (mismo esqueleto, misma zona, carreras distintas, km
+    // ± 10 %; `esParV12`) no se parecen (Pearson de la huella `g` por km, `profileCorrelation`) tanto
+    // como el tope de su FAMILIA (`familiaAnticlon`: crono, final en alto, resto de montaña, llana, y
+    // media o clásica sin final en alto). Cada tope es el p90 al centésimo de los pares de etapas REALES
+    // de carreras distintas de esa familia con km ± 10 % (`scripts/medir-real.mjs`, §9.5: «tan parecido
+    // como dos carreras reales distintas de la misma familia, no más»): alto 0,389 en 307 pares, montaña
+    // 0,269 en 182, llana 0,216 en 117, media 0,145 en 354 y crono 0,492 en solo 5 (las 13 cronos reales
+    // casi nunca casan en km; sin la ventana de km son 76 pares con p90 0,553, que es lo que se midió
+    // como familia propia de las cronos nacionales y no las cierra, balance v89). Sustituye al 0,32
+    // único de la v87 (p90 de los 338 pares de todas las familias juntas), que los finales en alto
+    // reales ya pasaban.
+    porFamilia: { alto: 0.39, montana: 0.27, media: 0.14, llana: 0.22, crono: 0.49 },
+    // Cuántas veces se vuelve a pedir una etapa que clona. Las `dibujo` primeras cambian solo las
+    // semillas de dibujo (`mot`, `pos`, `dib`); las `edicion` siguientes tiran además el plan de la
+    // edición (km ± 6 %, huecos opcionales y desnivel objetivo), que es de la temporada y no de la
+    // identidad, así que la firma y el esqueleto nunca cambian (decisión 20). Medido en la v89: con 40
+    // de solo dibujo seguían sin bajar del tope 12 etapas de equipos en la temporada 0; con 5 + 15 (y
+    // `abandonoChoques`) quedan de 5 a 10 por temporada en las temporadas 0 a 5, todas `et_media_alto`,
+    // `et_media_valle` o reinas en alto de zonas llanas, donde la subida de meta domina la huella. Más
+    // intentos apenas arreglan más y cuestan en el arranque (`ARCH.arranque`): la pasada pide unas
+    // 1.550 etapas por temporada, además de las 1.241 de la temporada.
+    redibujos: { dibujo: 5, edicion: 15 },
+    // Pasados los redibujos de solo dibujo, una etapa cuyo mejor dibujo aún choca con tantas etapas del
+    // grupo como esto deja de insistir: es un grupo lleno, como las `nc_crono` de `generico` (138 cronos
+    // llanas con la cota en el mismo 40 % del recorrido), donde ningún dibujo cabe entre todas. Ahorra un
+    // 28 % de la pasada (2.113 a 1.526 etapas en la temporada 0) a cambio de 0 a 4 etapas de equipos
+    // más sin arreglo por temporada (medido en las temporadas 0 a 5).
+    abandonoChoques: 3,
   },
   /**
    * El coste de construir el calendario (§12.9 y sección 14). Entra en el paso 6, con su primer

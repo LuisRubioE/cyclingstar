@@ -43,7 +43,25 @@ interface Origen {
   p: Placed | null
   vuelta: number | null
 }
-const ORIGEN = new WeakMap<Segment, Origen>()
+/**
+ * El origen de cada segmento rendido, en dos `Map` por generaciones: se escribe en la actual y se lee
+ * en las dos, y cuando la actual llena `ORIGEN_POR_GENERACION` pasa a ser la anterior. Los lectores
+ * (`normalizeEnlaces`, `garantizaClase`, `cuadraComaFlotante`) miran los segmentos de UNA etapa justo
+ * después de rendirla, cientos como mucho, así que nada de lo que se lee ha salido ya de las dos. Era un
+ * `WeakMap`, y con los redibujos del anti-clon (v89) sus inserciones y la recogida de sus efímeros eran
+ * la tercera parte del coste de una temporada; el perfil que sale es el mismo byte a byte, y la memoria
+ * retenida está acotada a dos generaciones.
+ */
+const ORIGEN_POR_GENERACION = 8192
+let origenActual = new Map<Segment, Origen>()
+let origenAnterior = new Map<Segment, Origen>()
+const ponOrigen = (s: Segment, o: Origen): void => {
+  if (origenActual.size >= ORIGEN_POR_GENERACION) {
+    origenAnterior = origenActual
+    origenActual = new Map()
+  }
+  origenActual.set(s, o)
+}
 
 const r1 = (x: number): number => Math.round(x * 10) / 10
 const suma = (segs: readonly Segment[]): number => segs.reduce((a, s) => a + s.km, 0)
@@ -63,10 +81,10 @@ const MARGEN_METROS_REINA = 100
 const DECIMA = 0.1
 
 function anota(segs: Segment[], o: Origen): Segment[] {
-  for (const s of segs) ORIGEN.set(s, o)
+  for (const s of segs) ponOrigen(s, o)
   return segs
 }
-const origen = (s: Segment): Origen | undefined => ORIGEN.get(s)
+const origen = (s: Segment): Origen | undefined => origenActual.get(s) ?? origenAnterior.get(s)
 const esEnlace = (s: Segment): boolean => origen(s)?.enlace === true
 
 /** Reescribe un segmento a `km`, escalando sus tramos y cuadrando el último (guarda `Σ tramos === km`). Hereda el origen. */
@@ -79,7 +97,7 @@ function reescala(s: Segment, km: number): Segment {
     cuadraTramos(nuevo)
   }
   const o = origen(s)
-  if (o) ORIGEN.set(nuevo, o)
+  if (o) ponOrigen(nuevo, o)
   return nuevo
 }
 
@@ -139,7 +157,7 @@ export function renderSkeleton(
     const esEnlaceColocado = p.motif.kind === 'enlace' || p.motif.kind === 'expuesto'
     const porVuelta = p.motif.kind === 'circuito' ? dibujo.length / (p.motif.vueltas ?? 1) : 0
     dibujo.forEach((s, i) =>
-      ORIGEN.set(s, {
+      ponOrigen(s, {
         enlace: esEnlaceColocado,
         p,
         vuelta: porVuelta > 0 ? Math.floor(i / porVuelta) : null,
@@ -148,7 +166,7 @@ export function renderSkeleton(
     segs.push(...dibujo)
     if (p.bajada) {
       const b = descent(rng(`${p.slot}`), p.bajada.km, Math.abs(p.bajada.g ?? 0))
-      ORIGEN.set(b, { enlace: false, p, vuelta: null })
+      ponOrigen(b, { enlace: false, p, vuelta: null })
       segs.push(b)
     }
     cursor = p.finKm + (p.bajada?.km ?? 0)
@@ -208,8 +226,11 @@ export function cuadraComaFlotante(segs: Segment[], km: number): Segment[] {
     for (const a of idx) {
       if (a === de) continue
       const kmA = r1(segs[a]!.km + DECIMA)
-      const prueba = segs.map((s, i) => (i === de ? kmDe : i === a ? kmA : s.km))
-      if (prueba.reduce((x, v) => x + v, 0) !== km) continue
+      // La suma en el mismo orden y con los mismos sumandos que `segs.map(...).reduce(...)`, sin el
+      // array de prueba: la comparación exacta en coma flotante da lo mismo y no se reserva memoria.
+      let prueba = 0
+      for (let i = 0; i < segs.length; i++) prueba += i === de ? kmDe : i === a ? kmA : segs[i]!.km
+      if (prueba !== km) continue
       return segs.map((s, i) => (i === de ? reescala(s, kmDe) : i === a ? reescala(s, kmA) : s))
     }
   }

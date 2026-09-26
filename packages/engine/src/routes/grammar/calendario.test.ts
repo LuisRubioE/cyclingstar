@@ -28,14 +28,15 @@ import { stageKindOf } from '../stageKind.js'
 import { BASE_SEASON } from './edition.js'
 import { raceRouteSourceOf, type RouteSource } from './generate.js'
 import { profileCorrelation } from './geometry.js'
+import { topeAnticlon } from './veto.js'
 import type { Segment } from '../../stage/types.js'
 import type { Motif } from './motifs.js'
 
 const filas = routeCensus(calendarForSeason(BASE_SEASON)) // 1.418 filas
 
 /**
- * Bandas que el generador de la v87 no alcanza, con la cifra medida y la causa (docs/balance.md, v87
- * §2). No se aflojan: son decisiones abiertas del dueño.
+ * Bandas que el generador no alcanza, con la cifra medida y la causa (docs/balance.md, v87 §2 y
+ * v89). No se aflojan: son decisiones abiertas del dueño.
  *
  * Las otras cinco del paso 8 se cerraron así: `esqueletos.entropia` mide ya solo las carreras de
  * equipos (los nacionales llevan dos esqueletos por país por construcción, decisión 15; §13.3 los
@@ -50,14 +51,14 @@ const filas = routeCensus(calendarForSeason(BASE_SEASON)) // 1.418 filas
  */
 const PENDIENTES: Readonly<Record<string, string>> = {
   'variedad.correlacion.max':
-    'medido 0,965 contra el tope calibrado 0,32 (p90 de 338 pares reales, §9.5) sobre los pares de V12 (mismo esqueleto, misma zona, carreras distintas, km ± 10 %): 203 de 856 lo pasan; los finales en alto de firma (et_media_alto, reinas) y los nc_crono con su cota no bajan de 0,32 ni redibujando con otra semilla de dibujo o de firma; previsión fallida H6, decisión del dueño',
+    'v89: 37 de 847 pares de V12 en el tope de su familia o por encima (18 de nacionales, máximo 0,863 en nc_crono de generico; 19 de equipos, máximo 0,541, et_media_alto en zonas llanas y una et_reina_alto_largo), con el anti-clon al generar; en la v88 eran 169 de 856; ni una familia propia de cronos nacionales calibrada sobre las cronos reales (0,553) cierra las nc_crono; decisión del dueño con la cifra',
 }
 
 describe('el censo del calendario que el juego corre', () => {
   for (const t of ROUTE_CENSUS_TARGETS) {
     const pendiente = PENDIENTES[t.id]
     if (pendiente !== undefined) {
-      it.todo(`${t.id}: ${t.label} (v87 §2: ${pendiente})`)
+      it.todo(`${t.id}: ${t.label} (balance ${pendiente})`)
       continue
     }
     const nombre = `${t.id}: ${t.label} (paso 0: ${t.hoy ?? 'sin población'})`
@@ -190,16 +191,20 @@ describe('el censo del calendario que el juego corre', () => {
     expect(colombia.stages.some((st) => kinds(st.arch!.motivos).includes('puerto'))).toBe(true)
   })
 
-  // SALTADO en el paso 9 por la regla «previsión fallida» de §13.7 (docs/balance.md, v87 §2, H6):
-  // con `ARCH.anticlon.maxCorrelacion` calibrado a 0,32 (p90 de pares reales, §9.5) el par más
-  // parecido de las dos vueltas con el mismo esqueleto da 0,57; con el 0,85 provisional pasaba. Qué
-  // tope de clon quiere el dueño queda abierto, y hasta entonces el test no se ensancha: se salta.
-  it.skip('H9: sin clones entre race-olympia y race-colombia-tour (ARCH.anticlon.maxCorrelacion)', () => {
+  // SALTADO en el paso 9 por la regla «previsión fallida» de §13.7 (docs/balance.md, v87 §2, H6). En la
+  // v89 el tope es el de la familia (`topeAnticlon`) y el par más parecido de las dos vueltas con el mismo
+  // esqueleto, sus `et_crono` (e4 y e8), da 0,571 contra el 0,49 de las cronos. No es un par de V12
+  // (zonas distintas: `flandes` y `andes`), así que el anti-clon de la temporada no lo mira; el test no
+  // se ensancha y sigue saltado (balance v89).
+  it.skip('H9: sin clones entre race-olympia y race-colombia-tour (topeAnticlon de su familia)', () => {
     for (const a of olympia.stages)
       for (const b of colombia.stages)
         if (a.arch!.skeleton === b.arch!.skeleton)
           expect(profileCorrelation(a.profile, b.profile)).toBeLessThan(
-            ARCH.anticlon.maxCorrelacion,
+            topeAnticlon(
+              { kind: a.kind, finalKind: a.arch!.finalKind },
+              { kind: b.kind, finalKind: b.arch!.finalKind },
+            ),
           )
   })
 
