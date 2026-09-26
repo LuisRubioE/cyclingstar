@@ -1401,15 +1401,31 @@ export const ARCH = {
     // suelo es `colocacion.enlaceMinimo`: dos dificultades se acercan pero no se tocan). Ronde, Amstel.
     cadena: { hijos: [2, 8] as Rango, enlace: [1.5, 6] as Rango },
     // Sector de adoquín o tierra: Roubaix 0,3-3,7 km; `paves` con estrellas es lo que lee el motor.
-    sector: { km: [0.3, 3.7] as Rango, estrellas: [1, 5] as Rango },
+    // `estrellasTierra` (paso 3): el motor no tiene tierra, tiene adoquín con estrellas, y un sector
+    // de sterrato GENERADO se rinde `paves` con sus estrellas llevadas a [2; 3], la selección de una
+    // pista sin competir con el 5★ de Roubaix (referencia 3★ en `dropPavesStarsReference`; §4.2).
+    sector: {
+      km: [0.3, 3.7] as Rango,
+      estrellas: [1, 5] as Rango,
+      estrellasTierra: [2, 3] as Rango,
+    },
     // Racimo de sectores: de 4 a 10, con [2; 6] km de asfalto entre ellos (por debajo el motor los
     // vería como uno); longitud total [10; 60] km (Denain y Tro Bro Léon 10-22; Roubaix 26-40).
-    racimo: { sectores: [4, 10] as Rango, separacion: [2, 6] as Rango, km: [10, 60] as Rango },
+    // `amp` (paso 3): la ondulación de esas separaciones, fija y no de la zona (§4.2: «rendida con
+    // `rolling` a amplitud 0,7»), porque un racimo solo existe en zonas llanas de adoquín o tierra.
+    racimo: {
+      sectores: [4, 10] as Rango,
+      separacion: [2, 6] as Rango,
+      km: [10, 60] as Rango,
+      amp: 0.7,
+    },
     // El rango ANCHO de un circuito, del critérium (2,5 km × 22) a Montréal (17-18 vueltas); cada
     // esqueleto lo estrecha. Sus dificultades ocupan como mucho el 80 % de la vuelta.
     circuito: { kmVuelta: [1.5, 30] as Rango, vueltas: [2, 40] as Rango, maxHijosShare: 0.8 },
     // Falso llano largo tipado `llano`: desgasta, no selecciona, no suma `kmSubida` (Turchino, Almería).
-    tendida: { km: [5, 30] as Rango, g: [1.5, 3.5] as Rango },
+    // `tramos` y `ruido` (paso 3): se rinde como UN `llano` de 2 a 4 tramos a `g ± 0,7` (§4.2); con el
+    // techo 3,5 sus tramos llegan al 4,2 %, y por eso ninguna tendida termina en los últimos 15 km.
+    tendida: { km: [5, 30] as Rango, g: [1.5, 3.5] as Rango, tramos: [2, 4] as Rango, ruido: 0.7 },
     descenso: {
       // La bajada DECLARADA en el esqueleto (la del Poggio, la de Civiglio). Hoy `descent` no baja de −2.
       km: [2, 25] as Rango,
@@ -1425,6 +1441,51 @@ export const ARCH = {
     // Pólder, desierto, meseta: llano abierto de amplitud fija y baja, min(0,5; geo.amplitud). A 0,5
     // rinde ~1,5 m/km de D+, que es Brugge-De Panne. Techo 120 km (Roubaix hasta Troisvilles, 96).
     expuesto: { km: [5, 120] as Rango, amp: 0.5 },
+  },
+  /**
+   * Los nueve finales (§12.3). Entra en el paso 3, que es el primero que la lee (`validateMotif`,
+   * `renderMotif` y el test de coherencia de `motifs.test.ts`). Todo valle lleva 0,7 km de holgura
+   * sobre los cortes 0,5 / 5 / 20 de `FINAL_KIND_CUTS` (`veto.margenValleKm`): la pancarta `cima`
+   * se escribe al km entero y `lastClimbKm` la lee, así que la distancia medida puede moverse 0,5.
+   */
+  meta: {
+    // `ampMax` (paso 3, no está en §12.1): la llegada al esprint rueda a amplitud ≤ 1,5 en sus últimos
+    // km (tabla de §4.3), así la media de los últimos 5 km queda lejos del `finishDragGradient` 2,5.
+    esprint: { ampMax: 1.5 },
+    // Cota corta y suave en meta: `finishType` la lee `puncheur`, nunca `alto` (queda bajo
+    // `STAGE.finishAltoMinKm` 3). `gMin` 4 mete toda rampa en la racha de subida (≥ 3 %) y `gMax` 7,9
+    // la deja bajo `wallMinGradient` 8: ningún repecho se lee como muro. Cauberg 1,2 km al 5,8 %.
+    repecho: { km: [1, 2.9] as Rango, g: [5, 7] as Rango, gMin: 4, gMax: 7.9 },
+    // Muro de meta. Con ≤ 1,0 km (`finishMuroMaxKm` = `STAGE.muroMaxKm`) `finishType` dice `muro`; de
+    // 1,0 a 2,2 dice `puncheur` (Huy 1,3 y San Luca 2,1, y es correcto). `aproxKm` 2 a amplitud ≤ 2,5
+    // es la aproximación diseñada contra `deriveFinishTerrain`: ningún bloque suyo llega al 3 % que
+    // cuenta como subida, así la racha empieza exactamente al pie del muro.
+    muro: {
+      km: [0.5, 2.2] as Rango,
+      g: [8, 16] as Rango,
+      aproxKm: 2,
+      aproxAmp: 2.5,
+      finishMuroMaxKm: 1.0,
+    },
+    // Final en alto corto: `alto` para `finalKindOf` y para `finishType` (≥ `finishAltoMinKm` 3); ≤ 7
+    // para no rozar la puerta de reina. Planche 5,9 × 8,5, Xorret 3,9 × 11,4, Tre Cime 7,2.
+    altoCorto: { km: [3, 7] as Rango, g: [6, 11] as Rango },
+    // Final en alto de reina: suelo 9 por `PASS_MIN_KM` con 0,5 de holgura; techo de pendiente 12,
+    // global como el de `motivo.puerto.g`. Por encima de `kmSuaveDesde` 17 km la media se recorta a
+    // `gMaxSiMasDe17` 7 (Loze 28,1 × 6, Bondone 21,4 × 6,7: los largos son suaves). `kmSuaveDesde`
+    // entra en el paso 3 (no está en §12.1): es el 17 que el nombre de la otra clave ya fija.
+    altoLargo: { km: [9, 22] as Rango, g: [6, 12] as Rango, gMaxSiMasDe17: 7, kmSuaveDesde: 17 },
+    // Se corona y se baja a meta: `cima_cerca` de `finalKindOf` (0,5 < tras ≤ 5). Hoy [1,5; 5].
+    cimaCerca: { valle: [1.2, 4.3] as Rango },
+    // `valle_corto` (5 < tras ≤ 20). Hoy [6; 20]: 3 de 1.500 cruzaban a `valle_largo`.
+    descensoMeta: { valle: [5.7, 19.3] as Rango },
+    // `valle_largo` (> 20). Hoy [22; 45].
+    valle: { valle: [20.7, 45] as Rango },
+    // Último sector de adoquín a [1; 8] km de meta (Roubaix, el velódromo, a 1,1); hoy cae a ~40 km.
+    sectorMeta: { aMeta: [1, 8] as Rango },
+    // El caso v40 en positivo: en un día la última COTA mide [1,3; 4,2] km al [7; 11] % y corona a
+    // [3; 17] km de meta (Roche-aux-Faucons 1,3 a 13,5; Civiglio 4,2; San Fermo 2,7 a 5,5). Es V5.
+    unDiaUltimaCota: { km: [1.3, 4.2] as Rango, g: [7, 11] as Rango, aMeta: [3, 17] as Rango },
   },
   /**
    * Cómo cambia un recorrido generado de una temporada a otra (sección 10). Nadie lo lee hasta el
@@ -1449,13 +1510,48 @@ export const ARCH = {
     // una cosa al año (Lombardía, 3 de 4 ediciones con cota de remate).
     motivoNuevo: 0.35,
   } as EdicionCfg,
-  /** La etapa reina de verdad (§12.4). En el paso 0 solo entra la ventana que lee el censo. */
+  /**
+   * La etapa reina de verdad (§12.4). En el paso 0 entró la ventana que lee el censo; en el paso 3,
+   * la estimación del desnivel del relleno.
+   */
   reina: {
+    // D+ del relleno (`enlace`) por km, para perseguir el objetivo de desnivel de un esqueleto sin
+    // llamar a `sampleProfile` (§8.5): 100 km de enlace son 300 m. RECALIBRADO en el paso 3 (§15.5)
+    // desde el 5,5 de partida, que era el `rolling` de hoy a amplitud 1,8 (5,1 a 6,6 m/km, mapa 01
+    // §1): con la `amplitud` por zona de `ZONAS` (0,4 a 1,15) el relleno pesa menos. Medido con
+    // `dPlusDe` sobre 1.000 `enlace` por zona × 31 zonas, km uniforme en `motivo.enlace.km`: mediana
+    // 2,86 m/km (por zona de 1,32 en `golfo` a 3,77 en `alpes`), redondeada al 0,5. `motifs.test.ts`
+    // repite la medida y falla si el valor se separa de ella.
+    rellenoDplusPorKm: 3.0,
     // Km a meta a partir de los cuales una subida es «lejana»: son los del motor
     // (`STAGE.climbRaceKmToGo`), que solo ataca un puerto a ≤ 30 km de meta; una subida más lejos se
     // sube a tempo y desgasta sin seleccionar, que es lo que le faltaba a `reina-150` (V8b). El test
     // de coherencia de §12.14 falla si las dos cifras se separan.
     subidaLejanaKm: 30,
+  },
+  /**
+   * Colocación de motivos (§12.5). El paso 3 adelanta `enlaceMinimo`, porque `validateMotif` ya lo lee
+   * (separaciones y cierre de un `circuito`, §4.5 regla 3); el resto entra en el paso 4.
+   */
+  colocacion: {
+    // Dos dificultades nunca se tocan: `finishClimbGapBlocks` 5 son 0,5 km de rellano tolerado dentro
+    // de una cota, y con menos de 1,5 el motor fundiría dos muros en uno; margen ×3. Vieux Quaremont y
+    // Paterberg, 1,7 km entre cimas, es el par más pegado del corpus.
+    enlaceMinimo: 1.5,
+  },
+  /**
+   * Las redes de los vetos (§12.5). El paso 3 trae las dos que leen los `it` de coherencia y
+   * `puertoLargoKm`, que ya lee `validateMotif` (§4.5 regla 4); el resto entra en los pasos 4 y 5.
+   */
+  veto: {
+    // `garantizaClase` lleva el puerto que decide a 8,5 ± 0,3: cubre la diferencia entre `segment.km`
+    // y Σ tramos redondeados a 0,1 (hasta 0,2 medidos, mapa 01 §5.1).
+    margenClaseKm: 0.3,
+    // La misma red sobre los cortes 5 y 20 de `FINAL_KIND_CUTS` cuando se recorta un valle: la holgura
+    // de `ARCH.meta` hecha regla.
+    margenValleKm: 0.7,
+    // V4(b): un `puerto` de 15 km o más solo existe con `geo.altitud` media, alta o altiplano.
+    puertoLargoKm: 15,
   },
 } as const
 

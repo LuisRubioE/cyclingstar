@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { ARCH } from '../constants.js'
 import type { Ramp, Segment } from '../stage/types.js'
 import { between, climb, rolling, routeRng, split } from './profileGen.js'
 
@@ -147,8 +148,13 @@ describe('climb', () => {
     }
   })
 
-  // Lee ARCH.motivo.muro (paso 2) y ARCH.meta.repecho (paso 3): se enciende en el paso 3 (§15.1 regla 1).
-  it.todo(
-    'muro.gMin < muro.gMax, repecho.gMin < repecho.gMax y los cuatro son múltiplos de 0,1 (Math.round(x * 10) === x * 10)',
-  )
+  // Lee ARCH.motivo.muro (paso 2) y ARCH.meta.repecho (paso 3): encendido en el paso 3 (§15.1 regla 1).
+  it('muro.gMin < muro.gMax, repecho.gMin < repecho.gMax y los cuatro son múltiplos de 0,1 (Math.round(x * 10) === x * 10)', () => {
+    const { muro } = ARCH.motivo
+    const { repecho } = ARCH.meta
+    expect(muro.gMin).toBeLessThan(muro.gMax)
+    expect(repecho.gMin).toBeLessThan(repecho.gMax)
+    for (const x of [muro.gMin, muro.gMax, repecho.gMin, repecho.gMax])
+      expect(Math.round(x * 10)).toBe(x * 10)
+  })
 })
