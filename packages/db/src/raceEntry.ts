@@ -20,7 +20,10 @@ export interface EnterableRace {
   raceClass: string
   /** Coste en dinero del viaje (transporte + hotel) desde la residencia del corredor. */
   travelMoney: number
-  /** Días de viaje (no entrena) del desplazamiento. */
+  /**
+   * Días de viaje (no entrena) de UN trayecto. El viaje completo cuesta el DOBLE: los mismos días
+   * para ir que para volver. La web lo enseña así, desglosado (`travelDaysLabel`).
+   */
   travelDays: number
   /** El corredor ya está inscrito. */
   entered: boolean

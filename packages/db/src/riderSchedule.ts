@@ -55,8 +55,8 @@ export async function getRiderRaceDays(
  * ── El viaje de IDA ─────────────────────────────────────────────────────────────────────────────
  * El modelo de viajes (`shared/travel.ts`) siempre ha cobrado el desplazamiento en DOS monedas:
  * dinero (transporte + hotel) y DÍAS de trabajo. El dinero se cobra entero al congelar la
- * convocatoria, pero los días solo se aplicaban a la VUELTA: `riders.travel_until_day` se escribe
- * cuando la carrera TERMINA (`calendarRun.ts`). La ida no existía, y el corredor entrenaba con
+ * convocatoria, pero los días solo se aplicaban a la VUELTA (`riders.travel_until_day`, que `calendarRun.ts`
+ * escribe al congelar la escuadra: último día de carrera + días de viaje). La ida no existía, y el corredor entrenaba con
  * normalidad la víspera de cruzar un océano —y el planificador se lo enseñaba como un día de
  * trabajo más, que es como lo vio el jugador—.
  *
@@ -83,19 +83,76 @@ export function outboundTravelDays(
   return out
 }
 
-/** Un día de viaje del plan: qué día, hacia qué carrera y a cuántos días de la salida. */
+/**
+ * Días de juego que el corredor pasa VIAJANDO de vuelta a casa de una carrera que termina el día
+ * `lastGameDay`: los `k` días POSTERIORES al último día de carrera, con el mismo `k` que la ida. Es
+ * el espejo exacto de `outboundTravelDays` y coincide con lo que `calendarRun.ts` escribe en
+ * `riders.travel_until_day` (`último día de carrera + k`): el viaje se cobra en las dos direcciones.
+ * Pura y determinista.
+ */
+export function returnTravelDays(
+  lastGameDay: number,
+  from: string | null,
+  to: string | null,
+): number[] {
+  const { days } = TRANSPORT_COST[travelTier(from, to)]
+  const out: number[] = []
+  for (let d = lastGameDay + 1; d <= lastGameDay + days; d++) out.push(d)
+  return out
+}
+
+/**
+ * Los días de vuelta de UNA carrera tal como los cobra el tick y los pinta el plan: la previsión de
+ * `returnTravelDays`, salvo que `riders.travel_until_day` caiga dentro de los dos días siguientes a su
+ * último día (el tramo más largo), en cuyo caso manda ese valor escrito. Un solo sitio para las dos
+ * lecturas, para que el plan no enseñe un día que el tick no cobra (ni al revés).
+ */
+export function returnTravelDaysFor(
+  lastGameDay: number,
+  from: string | null,
+  to: string | null,
+  travelUntilDay: number | null,
+): number[] {
+  const longestTrip = TRANSPORT_COST.intercontinental.days
+  if (
+    travelUntilDay != null &&
+    travelUntilDay > lastGameDay &&
+    travelUntilDay <= lastGameDay + longestTrip
+  ) {
+    return Array.from({ length: travelUntilDay - lastGameDay }, (_, i) => lastGameDay + 1 + i)
+  }
+  return returnTravelDays(lastGameDay, from, to)
+}
+
+/** Sentido de un día de viaje: hacia la carrera (`out`) o de vuelta a casa (`back`). */
+export type TravelDirection = 'out' | 'back'
+
+/** Un día de viaje del plan: qué día, de qué carrera y en qué sentido. */
 export interface RiderTravelDay {
   gameDay: number
   raceKey: string
   raceName: string
   country: string | null
+  direction: TravelDirection
 }
 
 /**
- * Días de VIAJE DE IDA del corredor dentro de [fromDay, toDay], deducidos de sus convocatorias ya
- * congeladas. Es lo que el planificador pinta como «Travel» antes de que llegue el día: esos días no
- * se entrena. La VUELTA no se deduce aquí —la escribe `calendarRun.ts` en `travel_until_day` cuando
- * la carrera termina, porque depende de dónde y cuándo acabó realmente el corredor—.
+ * Días de VIAJE del corredor dentro de [fromDay, toDay], en los DOS sentidos, deducidos de sus
+ * convocatorias ya congeladas. Es lo que el planificador (y las órdenes) pintan como «Travel» antes
+ * de que llegue el día: esos días no se entrena.
+ *
+ * - La IDA: los `k` días anteriores a la salida (`outboundTravelDays`).
+ * - La VUELTA: los `k` días posteriores al último día de carrera (`returnTravelDays`). Antes no se
+ *   deducía aquí con el argumento de que depende de dónde y cuándo acaba realmente el corredor, y
+ *   el plan enseñaba medio viaje (docs/agenda.md §4.19). Pero el último día y el país se conocen
+ *   de antemano igual que la salida, así que la vuelta se predice con la misma regla.
+ * - Lo REAL manda sobre lo previsto: si `riders.travel_until_day` ya está escrito para una carrera
+ *   (cae dentro de los dos días siguientes a su último día), la vuelta de ESA carrera llega hasta
+ *   ese día y no hasta la previsión, por si la residencia del corredor cambió desde la convocatoria.
+ *
+ * Sin duplicados: si dos viajes caen el mismo día (una vuelta y la ida a la carrera siguiente), el
+ * día sale una sola vez, y gana la IDA, que es hacia donde va el corredor. Y un día que cae dentro
+ * de otra carrera suya es día de carrera, no de viaje.
  */
 export async function getRiderTravelDays(
   db: Database,
@@ -104,7 +161,11 @@ export async function getRiderTravelDays(
   toDay: number,
 ): Promise<RiderTravelDay[]> {
   const [rider] = await db
-    .select({ residence: riders.residence, country: riders.country })
+    .select({
+      residence: riders.residence,
+      country: riders.country,
+      travelUntilDay: riders.travelUntilDay,
+    })
     .from(riders)
     .where(eq(riders.id, riderId))
   if (!rider) return []
@@ -114,19 +175,36 @@ export async function getRiderTravelDays(
     .from(raceRosters)
     .where(eq(raceRosters.riderId, riderId))
 
-  const out: RiderTravelDay[] = []
+  const byDay = new Map<number, RiderTravelDay>()
+  const add = (day: RiderTravelDay): void => {
+    if (day.gameDay < fromDay || day.gameDay > toDay) return
+    const prev = byDay.get(day.gameDay)
+    // La ida pisa a la vuelta el mismo día; entre dos del mismo sentido se queda la primera.
+    if (!prev || (prev.direction === 'back' && day.direction === 'out')) byDay.set(day.gameDay, day)
+  }
+  // Los días DENTRO de una carrera (de la salida a la última etapa) nunca son de viaje: la carrera
+  // manda, igual que en el tick de entrenamiento. Solo pasa con carreras encadenadas.
+  const racing = new Set<number>()
   for (const { raceId } of rosters) {
     const m = /^(.*):s(\d+)$/.exec(raceId)
     if (!m) continue // la vuelta de prueba no viaja
     const race = SEASON_CALENDAR.find((r) => r.id === m[1])
     if (!race) continue
-    const startGameDay = Number(m[2]) * SEASON_DAYS + race.startDay
-    for (const gameDay of outboundTravelDays(startGameDay, home, race.country ?? null)) {
-      if (gameDay < fromDay || gameDay > toDay) continue
-      out.push({ gameDay, raceKey: raceId, raceName: race.name, country: race.country ?? null })
+    const season = Number(m[2])
+    const startGameDay = season * SEASON_DAYS + race.startDay
+    const lastGameDay = season * SEASON_DAYS + raceLastDay(race)
+    const country = race.country ?? null
+    const base = { raceKey: raceId, raceName: race.name, country }
+    for (const gameDay of outboundTravelDays(startGameDay, home, country)) {
+      add({ ...base, gameDay, direction: 'out' })
     }
+    const back = returnTravelDaysFor(lastGameDay, home, country, rider.travelUntilDay)
+    for (const gameDay of back) add({ ...base, gameDay, direction: 'back' })
+    for (let d = startGameDay; d <= lastGameDay; d++) racing.add(d)
   }
-  return out.sort((a, b) => a.gameDay - b.gameDay)
+  return [...byDay.values()]
+    .filter((t) => !racing.has(t.gameDay))
+    .sort((a, b) => a.gameDay - b.gameDay)
 }
 
 /**
@@ -161,6 +239,48 @@ export async function ridersTravellingOutbound(
       startGameDay,
       homeByRider.get(riderId) ?? null,
       race.country ?? null,
+    )
+    if (days.includes(gameDay)) travelling.add(riderId)
+  }
+  return travelling
+}
+
+/**
+ * Espejo de `ridersTravellingOutbound` para la VUELTA: quién está hoy volviendo a casa de una carrera
+ * que ya terminó. Se deduce de la convocatoria y del último día de la carrera, NO de que
+ * `travel_until_day >= hoy` a secas: esa columna se escribe al CONGELAR la escuadra (~2 semanas antes
+ * de la salida), así que leída sola marcaba de viaje al corredor desde la convocatoria hasta su vuelta
+ * y le quitaba dos semanas de entrenamiento antes de cada carrera fuera de casa.
+ */
+export async function ridersTravellingBack(
+  db: Pick<Database, 'select'>,
+  homeByRider: Map<string, string | null>,
+  travelUntilByRider: Map<string, number | null>,
+  gameDay: number,
+): Promise<Set<string>> {
+  const ids = [...homeByRider.keys()]
+  if (ids.length === 0) return new Set()
+  const rosters = await db
+    .select({ raceId: raceRosters.raceId, riderId: raceRosters.riderId })
+    .from(raceRosters)
+    .where(inArray(raceRosters.riderId, ids))
+
+  const longestTrip = TRANSPORT_COST.intercontinental.days
+  const travelling = new Set<string>()
+  for (const { raceId, riderId } of rosters) {
+    if (travelling.has(riderId)) continue
+    const m = /^(.*):s(\d+)$/.exec(raceId)
+    if (!m) continue
+    const race = SEASON_CALENDAR.find((r) => r.id === m[1])
+    if (!race) continue
+    const lastGameDay = Number(m[2]) * SEASON_DAYS + raceLastDay(race)
+    // Solo las carreras que acabaron en los dos días anteriores pueden tener vuelta hoy.
+    if (lastGameDay >= gameDay || lastGameDay < gameDay - longestTrip) continue
+    const days = returnTravelDaysFor(
+      lastGameDay,
+      homeByRider.get(riderId) ?? null,
+      race.country ?? null,
+      travelUntilByRider.get(riderId) ?? null,
     )
     if (days.includes(gameDay)) travelling.add(riderId)
   }

@@ -162,9 +162,8 @@ export function stagePlanEntry(args: {
   frozen: FrozenStage
   anterior: FrozenStage | null
   run: RacedStage | undefined
-  ends: { from: string; to: string } | null
 }): StagePlanEntry {
-  const { raceId, season, deLaTemporada, frozen, anterior, run, ends } = args
+  const { raceId, season, deLaTemporada, frozen, anterior, run } = args
   const stage = congeladaComoEtapa(deLaTemporada, frozen)
   const spec = calendarStageSpec(stage, stageKm(frozen.profile.segments))
   const head = run ? stageHead(stage.index, spec, run) : { ...spec, staleSpec: false }
@@ -175,8 +174,9 @@ export function stagePlanEntry(args: {
     kind: head.kind,
     km: head.km,
     timeTrial: head.timeTrial,
-    from: ends?.from ?? null,
-    to: ends?.to ?? null,
+    // Las ciudades son las de la etapa de la temporada: el congelado no las guarda (no son recorrido).
+    from: deLaTemporada.from,
+    to: deLaTemporada.to,
     altimetry: renderAltimetrySvg(run?.profile ?? frozen.profile),
     ...stageCardRoute(raceId, season, frozen, anterior),
   }

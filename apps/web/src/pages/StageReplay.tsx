@@ -8,12 +8,13 @@ import {
   type TeamClassEntry,
   fetchCalendarStage,
 } from '../api/results'
-import type { RaceLeaders } from '@cyclingstar/shared'
+import { type RaceLeaders, stageRouteText } from '@cyclingstar/shared'
 import { Flag } from '../components/Flag'
 import { RiderJersey } from '../components/Jersey'
 import { RiderName } from '../components/RiderName'
 import { ShowAllButton, TOP_ROWS } from '../components/ShowAll'
 import { RaceRadioPanel } from '../components/RaceRadioPanel'
+import { StageRoute } from '../components/StageRoute'
 import { StageStory } from '../components/StageStory'
 import { type TabOption, TabPanel, Tabs, useTabParam } from '../components/Tabs'
 import { TeamClassNote, TeamClassTable } from '../components/TeamClassTable'
@@ -426,6 +427,9 @@ export function StageReplay() {
           {data.name || `Stage ${data.day}`}
         </h1>
         <p className="text-sm text-slate-500">
+          {/* De dónde a dónde, antes que los kilómetros: la etapa se reconoce por sus ciudades. */}
+          <StageRoute from={data.from} to={data.to} className="font-medium text-slate-600" />
+          {stageRouteText(data.from, data.to) !== null && ' · '}
           {data.km} km{!data.run ? ' · not raced yet' : ''}
         </p>
       </header>

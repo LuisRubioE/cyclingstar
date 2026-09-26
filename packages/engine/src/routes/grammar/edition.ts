@@ -32,8 +32,20 @@ export interface EditionPlan {
  * Lista CERRADA de subflujos de azar (sección 10, §10.4). Sin `season` (`arch`, `firma`) son la
  * identidad; con `season` (`ed`, `mot`, `pos`, `dib`) la edición. Uno nuevo se declara aquí antes de
  * usarse (§15.1 regla 6).
+ *
+ * `ciudad` (balance, «Ciudades de salida y llegada en todas las etapas»): la ciudad que sale de la
+ * tabla `CIUDADES` para una etapa sin ciudades de autoría, hoy la de cada campeonato nacional. Con
+ * temporada (salvo `activa` false, como `dib`) y SIN intento ni redibujo: la ciudad no es parte del
+ * perfil, no entra en ninguna tirada de las otras seis y ninguna de ellas entra en la suya, así que
+ * añadirla no mueve un solo perfil (lo sella `ciudades.test.ts`).
  */
-export type Subflujo = 'arch' | 'firma' | 'ed' | 'mot' | 'pos' | 'dib'
+export type Subflujo = 'arch' | 'firma' | 'ed' | 'mot' | 'pos' | 'dib' | 'ciudad'
+
+/** Lo que las semillas leen de una petición: la clave de etapa, la temporada, la edición y el redibujo. */
+export type PeticionSemilla = Pick<
+  StageRequest,
+  'raceId' | 'stageIndex' | 'routeSource' | 'editionKey' | 'season' | 'edicion' | 'redibujo'
+>
 
 /** Lo que diffMotivos compara de una etapa: el km viaja aparte porque no es un campo de Motif (sección 10, §10.8). */
 export interface DiffInput {
@@ -108,17 +120,21 @@ export function claveEtapa(
  * suprimen tiradas: solo fijan con qué temporada se tiran. Con `activa` false todo tira en
  * `BASE_SEASON`; en edición real, y con nivel 0, `ed`, `mot` y `pos` también (solo `dib` lleva el año).
  */
-export function seasonDe(req: StageRequest, sub: 'ed' | 'mot' | 'pos' | 'dib'): number {
+export function seasonDe(
+  req: PeticionSemilla,
+  sub: 'ed' | 'mot' | 'pos' | 'dib' | 'ciudad',
+): number {
   const cfg = req.edicion ?? ARCH.edicion
   if (!cfg.activa) return BASE_SEASON
-  if (sub === 'dib') return req.season
+  if (sub === 'dib' || sub === 'ciudad') return req.season
   if (req.routeSource === 'edicion' || cfg.nivel === 0) return BASE_SEASON
   return req.season
 }
 
 /**
  * TODA semilla de `generateStage` sale de aquí (§8.1 y §10.4; ningún `routeRng` de `grammar/` concatena
- * a mano). `arch` y `firma` sin temporada ni intento; `ed` con temporada; `mot`, `pos` y `dib` con
+ * a mano), y también la de la ciudad de una etapa sin ciudades de autoría (`ciudad`, que no es de
+ * `generateStage`: la tira el calendario). `arch` y `firma` sin temporada ni intento; `ed` con temporada; `mot`, `pos` y `dib` con
  * temporada e `i{intento}` (`mot` con hueco e instancia, `dib` con su token), y `|r{redibujo}` cuando
  * el anti-clon de la temporada pide otro dibujo (`req.redibujo`, v89) en los subflujos que ya llevan el
  * año: la firma y el esqueleto no cambian nunca, así que la identidad entre ediciones (decisión 20) se
@@ -126,7 +142,7 @@ export function seasonDe(req: StageRequest, sub: 'ed' | 'mot' | 'pos' | 'dib'): 
  */
 export function semillaDe(
   sub: Subflujo,
-  req: StageRequest,
+  req: PeticionSemilla,
   x: { slot?: number; j?: number; token?: string; intento?: number } = {},
 ): string {
   const id = claveEtapa(req)
@@ -157,6 +173,9 @@ export function semillaDe(
       return `pos|${id}|${seasonDe(req, 'pos')}|${i}${conR('pos')}`
     case 'dib':
       return `dib|${id}|${seasonDe(req, 'dib')}|${x.token ?? ''}|${i}${conR('dib')}`
+    case 'ciudad':
+      // Sin intento ni redibujo: el anti-clon y los reintentos redibujan el perfil, no la ciudad.
+      return `ciudad|${id}|${seasonDe(req, 'ciudad')}`
   }
 }
 

@@ -347,6 +347,8 @@ export function raceDePrueba(profile: StageProfile, kind: StageKind = 'reina'): 
   const stage: CalendarStage = {
     index: 1,
     name: 'Etapa de prueba',
+    from: 'Censo',
+    to: 'Censo',
     kind,
     label: stageKindOf(profile, timeTrial).label,
     profile,

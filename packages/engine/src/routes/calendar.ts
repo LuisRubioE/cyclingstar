@@ -21,7 +21,8 @@ import { type RouteTerrain, type StageFeatures, buildFeatureProfile } from './fe
 // La gramática. Ningún `grammar/*.ts` importa un valor de este fichero (`routes/arranque.test.ts`),
 // así que no hay ciclo de carga.
 import { quitaClones } from './grammar/anticlon.js'
-import { BASE_SEASON } from './grammar/edition.js'
+import { ciudadesDe } from './grammar/ciudades.js'
+import { BASE_SEASON, semillaDe } from './grammar/edition.js'
 import {
   generateStage,
   raceRouteSourceOf,
@@ -30,7 +31,7 @@ import {
   type RouteSource,
   type StageRequest,
 } from './grammar/generate.js'
-import { ZONAS, zonaDe } from './grammar/geo.js'
+import { ZONAS, zonaDe, type GeoZone } from './grammar/geo.js'
 import { regionOf } from './grammar/regions.js'
 import { POR_TERRENO_EDICION, SKELETONS, cabe, type SkeletonId } from './grammar/skeletons.js'
 import {
@@ -40,7 +41,9 @@ import {
   type KmRole,
   type RouteContext,
 } from './grammar/tour.js'
+import { finalKindOf } from './finalKind.js'
 import { routeRng } from './profileGen.js'
+import { RACE_ROUTES } from './raceRoutes.js'
 import { STAGE_FEATURES } from './stageFeatures.js'
 import type { StageKind } from './testTour.js'
 import type { RaceClass } from './uci.js'
@@ -69,6 +72,16 @@ export interface CalendarStage extends StageSpec {
   /** Número de etapa dentro de la carrera (1-based). */
   index: number
   name: string
+  /**
+   * De dónde sale y adónde llega (ciudades reales, ASCII). OBLIGATORIOS, como `routeSource`: toda
+   * pantalla que cita una etapa dice su origen y su destino (encargo del dueño). Salen, en este orden,
+   * de la edición real (`editions.ts`), del recorrido de autoría de la carrera (`raceRoutes.ts`) o, en
+   * un campeonato nacional, de la tabla `CIUDADES` con el subflujo `ciudad` (`ciudadDeCampeonato`).
+   * Iguales si la etapa sale y llega en el mismo sitio (una crono, un circuito, un campeonato). No
+   * entran en ninguna tirada ni en el perfil.
+   */
+  from: string
+  to: string
 }
 
 export interface CalendarRace {
@@ -3363,12 +3376,111 @@ const specDe = (g: GeneratedStage): StageSpec => ({
   arch: g.arch,
 })
 
-/** Nombra y numera una etapa de vuelta como `stagesFrom`. */
-const etapaDe = (spec: StageSpec, i: number): CalendarStage => ({
+/** Nombra y numera una etapa de vuelta como `stagesFrom`, con su salida y su llegada. */
+const etapaDe = (spec: StageSpec, i: number, ciudades: Ciudades): CalendarStage => ({
   ...spec,
   index: i + 1,
   name: `Stage ${i + 1} · ${spec.label}`,
+  ...ciudades,
 })
+
+// ---------------------------------------------------------------------------------------------------
+// SALIDA Y LLEGADA (balance, «Ciudades de salida y llegada en todas las etapas»). Ninguna de estas
+// funciones tira un dado del perfil: la de un campeonato usa su propio subflujo, `ciudad`.
+// ---------------------------------------------------------------------------------------------------
+
+/** De dónde sale y adónde llega una etapa. */
+export interface Ciudades {
+  from: string
+  to: string
+}
+
+/**
+ * Si una etapa de recorrido de autoría (`raceRoutes.ts`) sale y llega en el MISMO sitio, y cuál: una
+ * contrarreloj que no acaba en alto, en su salida (el par de autoría se escribió para una etapa en
+ * línea y la crono la pone después la composición); un circuito de firma, en su meta, que es donde
+ * se dan las vueltas. Una cronoescalada conserva su par, porque subir de un sitio a otro es lo que
+ * es. Todo se lee de la IDENTIDAD de la etapa (esqueleto, firma, crono), que no cambia entre
+ * temporadas; en una etapa `real`, sin ficha, del perfil, que tampoco.
+ */
+function mismaCiudad(spec: StageSpec): 'salida' | 'meta' | null {
+  if (spec.timeTrial) {
+    const subeAMeta = spec.arch
+      ? spec.arch.skeleton === 'et_cronoescalada'
+      : finalKindOf(spec.profile) === 'alto'
+    return subeAMeta ? null : 'salida'
+  }
+  if (spec.arch?.motivos.some((m) => m.kind === 'circuito' && m.firma === true)) return 'meta'
+  return null
+}
+
+/**
+ * La salida y la llegada de la etapa `i` (base 0) de una carrera con recorrido de autoría: el par de
+ * `RACE_ROUTES`, fijo por carrera (identidad entre ediciones), con `mismaCiudad` encima. Sin par
+ * (una carrera nueva que aún no lo tiene: `raceRoutes.test.ts` lo impide) la ciudad sale de la tabla
+ * del país con el subflujo `ciudad`, salida y llegada en ella.
+ */
+function ciudadesDeRuta(
+  raceId: string,
+  i: number,
+  spec: StageSpec,
+  country: string | null,
+  cfg: EdicionCfg,
+): Ciudades {
+  const par = RACE_ROUTES[raceId]?.[i]
+  if (!par) {
+    const c = ciudadSorteada(country, regionOf(raceId, i + 1, country), {
+      raceId,
+      stageIndex: i + 1,
+      routeSource: 'generado',
+      season: BASE_SEASON,
+      ...(cfg === ARCH.edicion ? {} : { edicion: cfg }),
+    })
+    return { from: c, to: c }
+  }
+  const [from, to] = par
+  const misma = mismaCiudad(spec)
+  if (misma === 'salida') return { from, to: from }
+  if (misma === 'meta') return { from: to, to }
+  return { from, to }
+}
+
+/**
+ * Una ciudad de la tabla `CIUDADES` para `country` en la zona `zona`, sorteada con el subflujo
+ * `ciudad` de la petición: una tirada, en su propia corriente. Un país sin lista (el test lo impide)
+ * da su código, que al menos no inventa un sitio.
+ */
+function ciudadSorteada(
+  country: string | null,
+  zona: GeoZone,
+  req: Parameters<typeof semillaDe>[1],
+): string {
+  const lista = country === null ? [] : ciudadesDe(country, zona)
+  if (lista.length === 0) return country ?? 'Unknown'
+  const u = routeRng(semillaDe('ciudad', req))()
+  return lista[Math.min(lista.length - 1, Math.floor(u * lista.length))]!
+}
+
+/**
+ * La ciudad del campeonato nacional de `country` en la temporada `season`: una por país y temporada,
+ * la misma para sus cuatro pruebas (crono y ruta, élite y sub-23), que salen y llegan en ella. Se
+ * sortea en la zona de sus recorridos (`zonaDe`, la de la firma con que la gramática los dibuja) con
+ * el subflujo `ciudad` de `nc-${país}`; con `cfg.activa` false, en `BASE_SEASON`, como todo lo demás.
+ * Pura y barata: la API la llama sin construir la temporada.
+ */
+export function ciudadDeCampeonato(
+  country: string,
+  season: number,
+  cfg: EdicionCfg = ARCH.edicion,
+): string {
+  return ciudadSorteada(country, zonaDe(country), {
+    raceId: `nc-${country.toLowerCase()}`,
+    stageIndex: 1,
+    routeSource: 'generado',
+    season,
+    ...(cfg === ARCH.edicion ? {} : { edicion: cfg }),
+  })
+}
 
 /**
  * Las etapas `real` no dependen de la temporada ni de la configuración (una edición real es un año
@@ -3418,13 +3530,18 @@ function stagesFromEdition(
       ...edicionDe(t),
     }
   }
+  // Las ciudades de una edición real son las suyas, siempre: ni la crono ni el circuito las tocan.
+  const ciudades = (i: number): Ciudades => ({
+    from: edition.stages[i]!.from,
+    to: edition.stages[i]!.to,
+  })
   const stages = edition.stages.map((s, i) => {
     const f = features?.[i]
     if (f)
       return etapaReal(`${id}|${i + 1}`, () =>
-        etapaDe(featureSpec(s.terrain, s.km, f, `${s.from}|${s.to}|${s.km}`), i),
+        etapaDe(featureSpec(s.terrain, s.km, f, `${s.from}|${s.to}|${s.km}`), i, ciudades(i)),
       )
-    return etapaDe(specDe(generateStage(peticion(i))), i)
+    return etapaDe(specDe(generateStage(peticion(i))), i, ciudades(i))
   })
   return conFinalesVariados(stages, peticion)
 }
@@ -3454,7 +3571,8 @@ function conFinalesVariados(
   )
   if (id === undefined) return stages
   const out = [...stages]
-  out[i] = etapaDe(specDe(generateStage({ ...req, fixed: { skeleton: id } })), i)
+  const { from, to } = stages[i]!
+  out[i] = etapaDe(specDe(generateStage({ ...req, fixed: { skeleton: id } })), i, { from, to })
   return out
 }
 
@@ -3538,11 +3656,15 @@ function buildRace(row: RaceRow, season: number, cfg: EdicionCfg): CalendarRace 
     const f = STAGE_FEATURES[row.id]?.[0]
     let stage: CalendarStage
     if (f)
-      stage = etapaReal(`${row.id}|1`, () => ({
-        ...featureSpec(terrain, row.km ?? 210, f, row.id),
-        index: 1,
-        name: row.name,
-      }))
+      stage = etapaReal(`${row.id}|1`, () => {
+        const spec = featureSpec(terrain, row.km ?? 210, f, row.id)
+        return {
+          ...spec,
+          index: 1,
+          name: row.name,
+          ...ciudadesDeRuta(row.id, 0, spec, country ?? null, cfg),
+        }
+      })
     else {
       const km = row.km ?? kmDe('un_dia', row.raceClass, 1, false, routeRng(`firma|${row.id}|km`))
       const g = generateStage({
@@ -3558,7 +3680,13 @@ function buildRace(row: RaceRow, season: number, cfg: EdicionCfg): CalendarRace 
         routeSource: 'generado',
         ...edicionDe(t),
       })
-      stage = { ...specDe(g), index: 1, name: row.name }
+      const spec = specDe(g)
+      stage = {
+        ...spec,
+        index: 1,
+        name: row.name,
+        ...ciudadesDeRuta(row.id, 0, spec, country ?? null, cfg),
+      }
     }
     const stages = [stage]
     return { ...common, format: 'un-dia', stages, routeSource: raceRouteSourceOf(stages) }
@@ -3570,7 +3698,7 @@ function buildRace(row: RaceRow, season: number, cfg: EdicionCfg): CalendarRace 
     format: 'una-semana',
     season,
     ...edicionDe(t),
-  }).map(etapaDe)
+  }).map((spec, i) => etapaDe(spec, i, ciudadesDeRuta(row.id, i, spec, country ?? null, cfg)))
   return {
     ...common,
     format: 'una-semana',
@@ -3613,6 +3741,8 @@ function nationalChampionships(
   const u23IttDay = roadDay - 3 // crono Sub-23: jueves (casi siempre el mismo día que la Elite)
   const u23RoadDay = pattern === 0 ? roadDay : roadDay - 1 // ruta Sub-23: domingo (con Elite) o sábado
   const geo = ZONAS[zonaDe(code)]
+  // Una ciudad por país y temporada: las cuatro pruebas salen y llegan en ella.
+  const ciudad = ciudadDeCampeonato(code, season, cfg)
   const base = (
     id: string,
     label: string,
@@ -3635,7 +3765,7 @@ function nationalChampionships(
       routeSource: 'generado',
       ...edicionDe(t),
     })
-    const stages = [{ ...specDe(g), index: 1, name: raceName }]
+    const stages = [{ ...specDe(g), index: 1, name: raceName, from: ciudad, to: ciudad }]
     return {
       id,
       name: raceName,
@@ -3723,21 +3853,51 @@ export function calendarForSeason(season: number, cfg: EdicionCfg = ARCH.edicion
   return cal
 }
 
-/** La carrera `raceId` de la temporada `season`, por un índice por id; lanza si no existe (un error de datos, no un caso). */
-export function raceForSeason(
-  raceId: string,
-  season: number,
-  cfg: EdicionCfg = ARCH.edicion,
-): CalendarRace {
+/** La carrera `raceId` de la temporada `season` por el índice por id del calendario, o `undefined`. */
+function carreraDe(raceId: string, season: number, cfg: EdicionCfg): CalendarRace | undefined {
   const cal = calendarForSeason(season, cfg)
   let indice = INDICE.get(cal)
   if (!indice) {
     indice = new Map(cal.map((r) => [r.id, r]))
     INDICE.set(cal, indice)
   }
-  const race = indice.get(raceId)
+  return indice.get(raceId)
+}
+
+/** La carrera `raceId` de la temporada `season`, por un índice por id; lanza si no existe (un error de datos, no un caso). */
+export function raceForSeason(
+  raceId: string,
+  season: number,
+  cfg: EdicionCfg = ARCH.edicion,
+): CalendarRace {
+  const race = carreraDe(raceId, season, cfg)
   if (!race) throw new Error(`carrera desconocida: ${raceId}`)
   return race
+}
+
+/**
+ * La salida y la llegada de la etapa `stageIndex` (base 1) de `raceId` en la temporada `season`, SIN
+ * construir esa temporada: es lo que leen las pantallas de historia (palmarés, resultados, el informe
+ * de la última carrera), que citan etapas de temporadas pasadas. Fuera de los campeonatos las
+ * ciudades son identidad (edición real, recorrido de autoría, y la regla de `mismaCiudad` lee solo
+ * identidad), así que salen de la temporada base; en un campeonato, de `ciudadDeCampeonato`. `null`
+ * si la carrera o la etapa no existen (la vuelta de prueba, una clave vieja). Es exactamente lo que
+ * `calendarForSeason(season)` pone en esa etapa (`ciudades.test.ts`).
+ */
+export function stageCities(
+  raceId: string,
+  season: number,
+  stageIndex: number,
+  cfg: EdicionCfg = ARCH.edicion,
+): Ciudades | null {
+  const race = carreraDe(raceId, BASE_SEASON, cfg)
+  const stage = race?.stages[stageIndex - 1]
+  if (!race || !stage) return null
+  if (race.championshipCountry) {
+    const c = ciudadDeCampeonato(race.championshipCountry, Math.max(BASE_SEASON, season), cfg)
+    return { from: c, to: c }
+  }
+  return { from: stage.from, to: stage.to }
 }
 
 /** Las etapas de `raceId` en la temporada `season`: `raceForSeason(raceId, season, cfg).stages`, por referencia. */

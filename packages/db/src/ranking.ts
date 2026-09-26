@@ -1,4 +1,9 @@
-import { type RaceClass, gcPointsByClass, stagePointsByClass } from '@cyclingstar/engine'
+import {
+  type RaceClass,
+  gcPointsByClass,
+  stageCities,
+  stagePointsByClass,
+} from '@cyclingstar/engine'
 import { DAYS_PER_SEASON } from '@cyclingstar/shared'
 import { type SQL, and, asc, desc, eq, gt, gte, isNull, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
@@ -330,11 +335,30 @@ export interface PalmaresRow {
   raceName: string
   kind: string
   detail: string
+  /** En una victoria de etapa, su salida y su llegada; `null` en lo demás. */
+  from: string | null
+  to: string | null
+}
+
+/**
+ * La salida y la llegada de la etapa que cita una fila del palmarés: solo las victorias de etapa, cuyo
+ * `detail` es «Stage N» (`stageRun.ts`). Se calcula al LEER, no se guarda: así la tienen también las
+ * filas escritas antes de que las etapas tuvieran ciudades.
+ */
+export function palmaresCities(row: {
+  season: number
+  raceId: string
+  kind: string
+  detail: string
+}): { from: string | null; to: string | null } {
+  const m = row.kind === 'stage' ? /^Stage (\d+)$/.exec(row.detail) : null
+  const c = m ? stageCities(row.raceId, row.season, Number(m[1])) : null
+  return { from: c?.from ?? null, to: c?.to ?? null }
 }
 
 /** Palmarés de un corredor, lo más reciente primero. */
 export async function getPalmares(db: Database, riderId: string): Promise<PalmaresRow[]> {
-  return db
+  const rows = await db
     .select({
       season: palmares.season,
       raceId: palmares.raceId,
@@ -345,6 +369,7 @@ export async function getPalmares(db: Database, riderId: string): Promise<Palmar
     .from(palmares)
     .where(eq(palmares.riderId, riderId))
     .orderBy(desc(palmares.season), desc(palmares.gameDay))
+  return rows.map((r) => ({ ...r, ...palmaresCities(r) }))
 }
 
 export interface Badge {

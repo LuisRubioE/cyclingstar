@@ -22,6 +22,7 @@ import { Jersey, RiderJersey } from '../components/Jersey'
 import { RiderName } from '../components/RiderName'
 import { ShowAllButton, TOP_ROWS } from '../components/ShowAll'
 import { RaceRadioPanel } from '../components/RaceRadioPanel'
+import { StageRoute } from '../components/StageRoute'
 import { StageStory } from '../components/StageStory'
 import { TeamClassNote, TeamClassTable } from '../components/TeamClassTable'
 import { type TabOption, TabPanel, Tabs, useTabParam } from '../components/Tabs'
@@ -270,11 +271,7 @@ function StageLine({ stage, oneDay }: { stage: RaceStagePlan; oneDay: boolean })
         color del punto, que es para lo que sirve.
       */}
       {!oneDay && <span className="hidden text-xs text-slate-400 sm:inline">{stage.label}</span>}
-      {stage.from && stage.to && (
-        <span className="truncate text-slate-500">
-          {stage.from === stage.to ? stage.from : `${stage.from} → ${stage.to}`}
-        </span>
-      )}
+      <StageRoute from={stage.from} to={stage.to} className="truncate text-slate-500" />
       {stage.timeTrial && <span className="text-xs text-violet-500">ITT</span>}
       <span className="ml-auto shrink-0 tabular-nums text-slate-400">{stage.km} km</span>
     </>

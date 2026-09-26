@@ -23,17 +23,25 @@ export interface NewsData {
   team?: string
   race?: string
   stage?: number
+  /**
+   * De dónde a dónde va esa etapa («Tarragona → Barcelona», o una ciudad si coinciden;
+   * `stageRouteText`): todo titular que cita una etapa la sitúa (encargo del dueño).
+   */
+  route?: string
   detail?: string
 }
+
+/** «stage 4 (Tarragona → Barcelona)», o «stage 4» si no hay ruta. */
+const etapa = (d: NewsData): string => `stage ${d.stage}${d.route ? ` (${d.route})` : ''}`
 
 /**
  * Titulares CONCRETOS y sin florituras (SPEC 39): un hecho por línea —quién, qué, dónde—. El estilo
  * narrativo va en el journal de la etapa, no aquí. Una sola redacción por tipo: la noticia es un dato.
  */
 const TEMPLATES: Record<NewsKind, ((d: NewsData) => string)[]> = {
-  stage_win: [(d) => `${d.rider} wins stage ${d.stage} of the ${d.race}.`],
-  tt_win: [(d) => `${d.rider} wins the stage ${d.stage} time trial at the ${d.race}.`],
-  breakaway_win: [(d) => `${d.rider} wins stage ${d.stage} of the ${d.race} from the breakaway.`],
+  stage_win: [(d) => `${d.rider} wins ${etapa(d)} of the ${d.race}.`],
+  tt_win: [(d) => `${d.rider} wins the ${etapa(d)} time trial at the ${d.race}.`],
+  breakaway_win: [(d) => `${d.rider} wins ${etapa(d)} of the ${d.race} from the breakaway.`],
   one_day_win: [(d) => `${d.rider} wins the ${d.race}.`],
   one_day_tt_win: [(d) => `${d.rider} wins the ${d.race} time trial.`],
   kom: [(d) => `${d.rider} wins the mountains classification at the ${d.race}.`],
@@ -44,7 +52,7 @@ const TEMPLATES: Record<NewsKind, ((d: NewsData) => string)[]> = {
   // de la bici, quedó fuera de control, se lesionó, enfermó, o el jugador decidió retirarse.
   abandon: [
     (d) =>
-      `${d.rider} abandons the ${d.race}${d.stage ? ` on stage ${d.stage}` : ''}${d.detail ? ` — ${d.detail}` : ''}.`,
+      `${d.rider} abandons the ${d.race}${d.stage ? ` on ${etapa(d)}` : ''}${d.detail ? ` — ${d.detail}` : ''}.`,
   ],
   retirement: [(d) => `${d.rider} retires${d.detail ? ` ${d.detail}` : ''}.`],
 }

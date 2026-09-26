@@ -12,6 +12,7 @@ import { fetchOrders } from '../api/training'
 import { authClient } from '../auth/client'
 import { Logo } from '../components/Logo'
 import { InfoRow, Panel, SectionBar } from '../components/Panel'
+import { StageRoute } from '../components/StageRoute'
 import { StarRating } from '../components/StarRating'
 import { TeamLink } from '../components/TeamLink'
 import { WorldClock } from '../components/WorldClock'
@@ -166,6 +167,7 @@ function LastRaceCard() {
     >
       <p className="text-sm font-semibold text-slate-800">
         {data.raceName} — {data.stageName}
+        <StageRoute from={data.from} to={data.to} className="ml-2 font-normal text-slate-500" />
       </p>
       <p className="mt-0.5 text-sm text-slate-600">
         <span className="font-bold tabular-nums text-slate-800">{data.position}</span>

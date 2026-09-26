@@ -1,4 +1,4 @@
-import type { RiderRaceResult } from '@cyclingstar/shared'
+import { type RiderRaceResult, stageRouteText } from '@cyclingstar/shared'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -13,6 +13,7 @@ import {
 // El tope de filas visibles es el común del juego (§7.3); el rótulo del interruptor cambia porque
 // aquí se cuentan CARRERAS ("Show all 31"), no filas de una clasificación.
 import { TOP_ROWS } from './ShowAll'
+import { StageRoute } from './StageRoute'
 
 /**
  * Los resultados de un corredor, tal como se leen en su ficha (docs/navegacion.md §3.6).
@@ -54,6 +55,10 @@ export function RaceResultRow({
           </Link>
           <p className="text-xs text-slate-400">
             {raceResultKind(result)} · Season {result.season + 1}
+            {/* En una carrera de un día la etapa ES la carrera: su de dónde a dónde va aquí. */}
+            {result.isOneDay && stageRouteText(result.stages[0]?.from, result.stages[0]?.to) && (
+              <> · {stageRouteText(result.stages[0]?.from, result.stages[0]?.to)}</>
+            )}
           </p>
         </div>
       </div>
@@ -81,6 +86,7 @@ export function RaceResultRow({
                 >
                   Stage {s.stageDay} of {result.stageCount}
                 </Link>
+                <StageRoute from={s.from} to={s.to} className="truncate text-slate-400" />
               </li>
             ))}
           </ul>

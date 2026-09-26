@@ -938,7 +938,7 @@ direcciones**:
   devuelve los `k` días ANTERIORES a la salida. No se guardan en ninguna columna, se deducen de la
   convocatoria, que se congela con dos semanas de antelación.
 - **La vuelta**: `calendarRun.ts` escribe `riders.travel_until_day = último día de carrera + k`
-  cuando la carrera termina.
+  (al congelar la escuadra, no cuando la carrera termina: ver «Arreglado» al final).
 - **Y las dos bloquean el entrenamiento.** En `packages/db/src/train.ts` el conjunto `travelling` se
   llena con los dos: primero `if (rider.travelUntilDay != null && rider.travelUntilDay >= gameDay)`,
   que es la VUELTA, y luego con `ridersTravellingOutbound(...)`, que es la IDA. Quien está en
@@ -978,6 +978,18 @@ precio.
 planificador tocando también la API. Son pequeños los dos. Y una advertencia de método: **no lo
 compruebo contra lo que la otra línea esté escribiendo ahora mismo**, solo contra el código de esta
 rama, así que si esa línea ya lo ha tocado, esto se contrasta antes de arreglar nada.
+
+**Arreglado (26/09/2026), y con un tercer defecto que el diagnóstico de arriba no vio.** El plan ya
+enseña la vuelta (`getRiderTravelDays` la deduce con `returnTravelDays`) y cada carrera anuncia el
+viaje de ida y vuelta («2 travel days (1 out, 1 back)»). El tercero era del tick, no de la pantalla:
+`travel_until_day` NO se escribe cuando la carrera termina, como decían los comentarios, sino al
+CONGELAR la escuadra, unas dos semanas antes de la salida. Y `train.ts` lo leía como
+`travelUntilDay >= hoy`, así que el corredor convocado a una carrera fuera de casa hacía `viaje` desde
+la convocatoria hasta su vuelta: perdía unas dos semanas de entrenamiento por cada carrera lejana. Ahora
+la vuelta del tick se deduce de la convocatoria igual que la ida (`ridersTravellingBack`), con la misma
+regla que pinta el plan (`returnTravelDaysFor`), y `train.test.ts` lo fija con un corredor convocado a
+una carrera que aún no empieza. `travel_until_day` se queda solo para lo que sí hace bien:
+`homeByStart`, que no deja convocar a quien aún vuelve de otra carrera.
 
 ### 4.20 El entrenador dice tu techo en estrellas, y eso rompe dos cosas
 
