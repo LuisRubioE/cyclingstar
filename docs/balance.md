@@ -16758,3 +16758,181 @@ llega en la mediana de todos los grupos de 9 a 100.
 El motor. Los dos números dicen lo mismo —quién está en el turno— y la diferencia entre 1 y 8 es la
 cooperación y el tamaño, que es lo que la carretera hace. Cambiar `cuantos` para que una fuga de
 tres rote siempre con tres sería borrar la diferencia entre una fuga que colabora y una que no.
+
+## vN (pendiente del paso 8) · El generador es una gramática
+
+Nota del generador de recorridos por gramática (E1, `docs/generador.md`). Se escribe por apartados a medida que avanzan los pasos del plan (sección 15); su número, `N + 1`, solo se confirma en el paso 8, que es el único que sube `ENGINE_VERSION`. Hasta entonces se encabeza «vN (pendiente del paso 8)».
+
+### vN §0 · línea base del generador
+
+Paso 0, medido el 25/09/2026 sobre el árbol `d27e976` (`ENGINE_VERSION` 86, calendario sin tocar: 842 carreras, 1.418 etapas, 46.354 segmentos). Este paso no cambia ningún perfil ni sube la versión: nace `ARCH` con `edicion` y `reina.subidaLejanaKm`, `stageKind.ts` exporta cinco nombres sin tocar cuerpos, nacen el censo (`sim/routeCensus.ts`), la geometría que lee (`routes/grammar/geometry.ts`) y tres scripts de medida.
+
+#### El censo de hoy, banda a banda
+
+Población por defecto: lo no real (`routeSource !== 'real'`, 1.241 etapas: 226 de edición y 1.015 generadas). «En línea» son esas menos las cronos (911). Las bandas cuya población se filtra por `skeleton`, `zona` o `meta` no tienen población hasta el paso 8; donde la forma de hoy que ocupa su lugar se puede medir, se da «por forma» (los un día generados con cota, los que tienen pavés, los `nc-*-road`, las formas por `label`). Estado: verde (es `it` y pasa), roja (es `it.todo` en `routes/grammar/calendario.test.ts` con esta cifra en el nombre y se enciende en el paso 8), sin población (es `it` y hoy no afirma por n insuficiente) o informativa (se imprime, no afirma).
+
+| Banda                                 | Banda exigida                  | Hoy (medido)                                        | Estado        |
+| ------------------------------------- | ------------------------------ | --------------------------------------------------- | ------------- |
+| `vetos.degradado`                     | 0                              | 0 de 1.241 (sin `arch`)                             | verde         |
+| `vetos.intentosP95`                   | ≤ 3                            | sin `arch`                                          | sin población |
+| `garantias.clase`                     | < 2 %                          | 0                                                   | verde         |
+| `esqueletos.clase.udWTPro`            | ≥ 8                            | 3 formas en 32 etapas                               | roja          |
+| `esqueletos.clase.ud12`               | ≥ 10                           | 6 formas en 126                                     | roja          |
+| `esqueletos.clase.papeles`            | ≥ 9                            | 7 formas en 551                                     | roja          |
+| `esqueletos.entropia`                 | ≥ 1,5 bits                     | sin zona                                            | sin población |
+| `finales.reparto.alto`                | [0,45; 0,70]                   | 0,223 (23 de 103 reinas no reales)                  | roja          |
+| `finales.reparto.cimaCerca`           | ≥ 0,05                         | 0,097                                               | verde         |
+| `finales.reparto.valleCorto`          | ≥ 0,05                         | 0,583                                               | verde         |
+| `finales.reparto.valleLargo`          | ≥ 0,05                         | 0,097                                               | verde         |
+| `reina.dplus.semana`                  | p50 ≥ 2.400                    | 3.146 m (94 reinas)                                 | verde         |
+| `reina.dplus.granVuelta`              | p50 ≥ 3.000                    | n = 0                                               | sin población |
+| `reina.dplus.blanda`                  | [1.500; 2.500) ≥ 15 %          | 18,4 %                                              | verde         |
+| `reina.dplus.minimo`                  | < 1.700                        | 1.973 m                                             | roja          |
+| `reina.subidaLejana.cero`             | ninguna reina en 0 %           | 0 de 103                                            | verde         |
+| `reina.subidaLejana.p10`              | ≥ 0,05 del km de etapa         | 0,102                                               | verde         |
+| `reina.puertoFinal.p50`               | se imprime                     | 13,4 km (23 reinas `alto`)                          | informativa   |
+| `finales.muro`                        | ≥ 1 %                          | 0 de 911                                            | roja          |
+| `finales.puncheur`                    | ≥ 8 %                          | 30 de 911 (3,3 %)                                   | roja          |
+| `unDia.ultimaCota.km`                 | 100 % con última cota ≤ 4,2 km | por forma 21 de 85 un día con cota (24,7 %)         | roja          |
+| `unDia.ultimaCota.aMeta`              | ≥ 98 % a [3; 21] km            | por forma 8 de 85 (9,4 %)                           | roja          |
+| `unDia.murosMeta`                     | 100 % a [1; 15] km             | por forma 0 de 1 (el único un día Classic generado) | roja          |
+| `unDia.finalLargo`                    | ≤ 2 %                          | 0 de 690                                            | verde         |
+| `muros.cotas.p10`                     | ≥ 10                           | por forma 4                                         | roja          |
+| `muros.cotas.p90`                     | ≤ 20                           | por forma 4                                         | sin población |
+| `adoquin.sectores.p10`                | ≥ 15                           | por forma 3 (13 un día con pavés)                   | roja          |
+| `adoquin.sectores.p90`                | ≤ 30                           | por forma 3                                         | sin población |
+| `adoquin.km.p10`                      | ≥ 40 km                        | por forma 7,3 km                                    | roja          |
+| `adoquin.km.p90`                      | ≤ 60 km                        | por forma 10,1 km                                   | sin población |
+| `llana.dplus`                         | p90 ≤ 1.500                    | 1.253 m (208 llanas)                                | verde         |
+| `km.clase.p90dosVuelta`               | ≤ 155                          | 189 (221 etapas)                                    | roja          |
+| `km.clase.p50dosUnDia`                | [150; 170]                     | 210 (60 etapas)                                     | roja          |
+| `km.clase.max`                        | 0                              | 176 etapas por encima (120 de un día a 210)         | roja          |
+| `dplus.relleno`                       | se imprime                     | p50 5,9 m/km                                        | informativa   |
+| `nacionales.zona`                     | ≥ 2,5 bits                     | por forma 0 bits (266 en ruta, todos `classic`)     | roja          |
+| `nacionales.firmas`                   | ≥ 5                            | por forma 1                                         | roja          |
+| `nacionales.adoquin`                  | ≥ 60 %                         | por forma 0 de 4 BE/NL                              | roja          |
+| `nacionales.cota`                     | 100 %                          | por forma 0 de 4 CO/EC                              | roja          |
+| `nacionales.expuesto`                 | 100 %                          | por forma 0 de 4 DK/AE                              | roja          |
+| `tactica.kmSubida.circuito`, `.muros` | ≤ 0,20; ≤ 0,15                 | sin esqueleto                                       | informativa   |
+| `pancartas.unDia`                     | ≤ 6                            | máximo 5                                            | informativa   |
+| `variedad.correlacion.mediana`        | < 0,8                          | por forma 0,084                                     | sin población |
+| `variedad.correlacion.max`            | < 0,85                         | por forma 0,910 (pares de crono)                    | roja          |
+| `variedad.dplusCubetaAlta`            | σ > 500 m                      | 521 m (73 reinas)                                   | verde         |
+| `variedad.secuencias`                 | ≤ 25 %                         | 12,2 %                                              | verde         |
+| `variedad.finalesPorVuelta`           | 0                              | 1 (`race-isere`)                                    | roja          |
+| `variedad.kmUnDia.uno`                | σ > 15 km                      | 20,4 km                                             | verde         |
+| `variedad.kmUnDia.dos`                | σ > 15 km                      | 6,8 km                                              | roja          |
+
+Y las afirmaciones del paso 0 que no son bandas, todas verdes: el reparto por origen es 177 real, 226 edición y 1.015 generado; los km de las etapas de edición cuadran al redondeo; ningún segmento de lo no real mide menos de 0,5 km (los 164 que hay son de perfiles reales, de `featureProfile`); `dPlus ≥ 0,99 × dPlusBloques` en toda etapa no real (cero fallos); y el `kind` declarado coincide con `stageKindOf` en 1.346 de 1.418 etapas, 1.232 de las 1.241 no reales (la banda `cruces.kind` al 100 % queda en `it.todo`). El censo entero cuesta 0,41 s en esta máquina.
+
+Cinco bandas de la sección 13 no entran todavía en `ROUTE_CENSUS_TARGETS` porque `RouteStats` no lleva la columna que miden: `vetos.v1a10` (necesita `verify`, llega con el paso 5 y se afirma en `generate.test.ts`), `cruces.finalKind` (necesita `arch.finalKind`), `adoquin.ultimo` (km del último sector a meta), `variedad.primerPuerto.*` (posición del primer puerto) e `identidad.*` (necesita varias temporadas; su test vive en `edition.test.ts`). `cruces.kind` se afirma directamente sobre el calendario en `calendario.test.ts`.
+
+#### Lo que miden las 177 etapas reales (`scripts/medir-real.mjs`)
+
+Origen de las 1.418: 177 real, 226 edición, 532 nacionales, 158 un día y 325 de vueltas generadas. De las 177 reales, 146 tienen puertos publicados, 130 perfil de altitud, 6 pavés y 101 metas volantes; son 41 carreras. Por tipo, sobre las que tienen puertos publicados (p10 / p50 / p90):
+
+| Rasgo                            | Reina (54)          | Media (59)        | Llana (22)      | Clásica (9)         |
+| -------------------------------- | ------------------- | ----------------- | --------------- | ------------------- |
+| km                               | 133 / 157 / 189     | 139 / 178 / 215   | 138 / 173 / 190 | 177 / 221 / 252     |
+| Puertos                          | 2 / 4 / 6           | 1 / 3 / 6         | 1 / 2 / 3       | 4 / 11 / 16         |
+| D+ publicado (m)                 | 848 / 2.043 / 3.079 | 355 / 888 / 1.891 | 128 / 243 / 405 | 471 / 1.046 / 2.406 |
+| Puerto más largo (km)            | 7,3 / 13,6 / 24,0   | 2,5 / 7,8 / 26,5  | 1,1 / 3,0 / 8,8 | 1,3 / 2,5 / 11,5    |
+| Último puerto (km)               | 3,3 / 9,7 / 17,1    | 1,0 / 3,5 / 14,2  | 1,0 / 2,0 / 8,8 | 0,4 / 1,0 / 2,1     |
+| Pendiente del último (%)         | 3,7 / 6,5 / 8,4     | 3,0 / 5,6 / 8,3   | 3,8 / 5,0 / 8,8 | 5,6 / 7,4 / 11,0    |
+| Última cima a meta (km)          | −0,2 / 0,1 / 20,7   | 0,0 / 15,0 / 59,3 | 20 / 43 / 149   | 3,4 / 12,3 / 26,0   |
+| Primer puerto (fracción)         | 0,1 / 0,3 / 0,7     | 0,1 / 0,2 / 0,7   | 0,0 / 0,3 / 0,8 | 0,2 / 0,3 / 0,5     |
+| Km de puerto en los 30 últimos   | 0 / 11,3 / 20,6     | 0 / 2,5 / 11,7    | 0 / 0 / 2,0     | 0 / 2,1 / 5,1       |
+| Km de puerto a más de 60 de meta | 0 / 13,2 / 43,0     | 0 / 7,5 / 28,3    | 0 / 3,2 / 6,0   | 3,8 / 12,4 / 27,3   |
+
+Un día real (18 con puertos): último puerto 0,5 / 1,0 / 2,1 km, a 0 / 7,8 / 20,8 km de meta, con 4 / 11 / 34 cotas. Reinas reales con final en alto (37): último puerto 5,0 / 10,0 / 17,1 km. `finalKindOf` de las 54 reinas reales: 37 `alto`, 4 `cima_cerca`, 6 `valle_corto`, 7 `valle_largo`. Puertos publicados por formato: en gran vuelta 2,0 / 7,1 / 14,5 km (140), en una semana 1,8 / 5,9 / 20,0 (255), en un día 0,6 / 1,1 / 2,7 (259, de ellos 234 de 3 km o menos). Pavé real: Roubaix 31 sectores y 54,8 km con el último a 1,1 km de meta; Strade Bianche 15 y 70,5 km; el resto de 5 a 9 sectores y de 8 a 15 km. Lo generado: un día Pro a 195 / 210 / 210 km, .1 y .2 a 210 fijo en el p10 y el p90; 72 vueltas de la mezcla con 47 secuencias distintas, la más repetida 5 veces.
+
+#### La medida de arranque (`scripts/medir-arranque.mjs`, mediana de 5 procesos hijo)
+
+| Medida                                              | Mediana                                       | Máximo | Fuente                                                         |
+| --------------------------------------------------- | --------------------------------------------- | ------ | -------------------------------------------------------------- |
+| HEAD / `ENGINE_VERSION`                             | `d27e976` / 86                                |        | git, `dist/constants.js`                                       |
+| Máquina                                             | Intel Xeon @ 2,10 GHz × 4, node 22.22.2       |        | `os.cpus()`                                                    |
+| Carga de `routes/calendar.js`                       | 188 ms                                        | 204 ms | cinco cargas: 196, 178, 204, 188 y 176 ms                      |
+| Margen: `objetivoMs` / mediana; `techoMs` / mediana | 7,99; 13,32                                   |        | objetivo 1.500 y techo 2.500 (§12.9)                           |
+| Carreras / etapas / segmentos / por etapa           | 842 / 1.418 / 46.354 / 32,7                   |        | `SEASON_CALENDAR`                                              |
+| Temporadas 1 a 3                                    | n/a                                           |        | `calendarForSeason` no existe hasta el paso 6                  |
+| Pasada de motor                                     | 343 ms; 0,242 ms por etapa; 2.046.087 bloques | 389 ms | `sampleProfile` + `finishType` + `stageKindOf` + `finalKindOf` |
+| Intentos y degradados                               | n/a (sin `arch`)                              |        |                                                                |
+| Cargas directas de test (suelo)                     | 23                                            |        | 22 de antes más `calendario.test.ts`                           |
+
+La referencia del juez del motor era 578 ms de carga y 0,40 ms por etapa, sobre `8585ca2` y otra máquina. La mediana de hoy se aleja más de un 20 % (188 ms, un tercio), en la dirección buena: la causa probable es la máquina y la versión de node, porque el calendario tiene los mismos 46.354 segmentos y los mismos 2.046.087 bloques que midió el juez. No bloquea nada: la línea base es esta mediana, y el paso 8 se compara con ella.
+
+#### Huellas canónicas vivas en `d27e976` (leídas del código)
+
+Las que la condición (c) de §13.6 exige que no se muevan ni un dígito en todo E1. Se da el digest SHA-256 (12 primeros hexadecimales) de la cadena sellada para compararla sin copiarla entera.
+
+| Test                                                       | Clave                                     | Puestos | Ganador y tiempo         | SHA-256 de la cadena |
+| ---------------------------------------------------------- | ----------------------------------------- | ------- | ------------------------ | -------------------- |
+| `stage/attribution.test.ts` (`SEALED_RESULTS`, l. 504-515) | `llana-180-0\|llana-180\|1\|v1`           | 176     | `spr-5` 14.692 s         | `8c501de346a7`       |
+| ídem                                                       | `llana-180-1\|llana-180\|1\|v1`           | 176     | `spr-0` 14.605 s         | `413d823d1d70`       |
+| ídem                                                       | `reina-canonica-0\|reina-canonica\|1\|v1` | 176     | `gc-2` 15.488 s          | `61cf55637024`       |
+| ídem                                                       | `reina-canonica-1\|reina-canonica\|1\|v1` | 176     | `gc-3` 15.877 s          | `c844fc5d94ac`       |
+| `stage/timetrial.test.ts` (`SEALED_ITT`, l. 83-88)         | `cri-40-0\|cri-40\|1\|v1`                 | 40      | `cri-2` 2.895 s          | `3349386e554c`       |
+| ídem                                                       | `cri-40-1\|cri-40\|1\|v1`                 | 40      | `cri-2` 2.888 s          | `206cf978179c`       |
+| `sim/raceRadio.test.ts` (l. 759-764)                       | `reina-canonica`, semilla `radio`         | todos   | igualdad con y sin radio | no es cadena sellada |
+
+#### Dirección pre-registrada de las bandas de simulación (decisión 30, §13.6)
+
+Escrita antes de tocar el generador. La línea base de cada una es la cifra del último CI en verde con las semillas de hoy (4 / 6 / 8 / 3 / 12) y la de este fichero; la medida pareada con 12 semillas del generador viejo y del nuevo se hace en el paso 9, en la misma sesión y la misma máquina.
+
+| Banda                                                                        | Dirección                                                                                      | Por qué                                                                                                                                                                                         |
+| ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `calendarQueens.breakawayWinPct` global                                      | baja, a [5; 10] % desde el 18,1 medido                                                         | la muestra queda con pocas reinas bajo 1.500 (solo reales); con D6 por defecto la banda [6; 30] se mantiene como vigilancia, y si la medida sale fuera es «previsión fallida» y vuelve al dueño |
+| `calendarQueens` por cubeta                                                  | igual (monótona decreciente)                                                                   | es física del motor                                                                                                                                                                             |
+| `realQueens.lastGroupPct`, `worstStagePct`                                   | igual con ruido                                                                                | las tres generadas se congelan por forma; solo cambia el dibujo                                                                                                                                 |
+| `grandTour.*`, `abandonCauses.*`                                             | igual                                                                                          | 20 de 21 etapas reales; si se mueven, hay acoplamiento                                                                                                                                          |
+| `erosion.longClassicFresh`, `.hardestClassicFresh`, `.queenThirdWeek`        | igual                                                                                          | perfiles reales                                                                                                                                                                                 |
+| `smallTours.mediaGroups`                                                     | sube                                                                                           | cotas más cerca de meta en `et_media_*` (real de 0 a 59 km contra 26 a 68 hoy)                                                                                                                  |
+| `smallTours.mediaOneGroupPct`                                                | baja                                                                                           | la misma razón; hoy el campo entero llega junto en el 23 %                                                                                                                                      |
+| `smallTours.flatWinnerGroupPct`                                              | igual                                                                                          | `et_llana` sigue entera con V9                                                                                                                                                                  |
+| `smallTours.photoRepeatTopFive`, `worstRacePhotoRepeat`, `sameWinnerPairPct` | baja o igual                                                                                   | menos llanas seguidas por la composición; la parte de composición se imprime aparte de la del motor                                                                                             |
+| `smallTours.bestSprinterWinPct`, `sweepPct`, `flatMoveWorstMarginS`          | igual                                                                                          | dependen del campo y del motor, no de la forma de la llana                                                                                                                                      |
+| saturación de las 8 más duras                                                | igual (0 de 8)                                                                                 | V5 impide el final de 9 a 15 km; el conjunto cambia y se lista                                                                                                                                  |
+| `timeTrials.tailPct`                                                         | sube, a lo sumo 0,5 puntos                                                                     | `et_crono` con `cota` de hasta 3 km; `worstStagePct` igual                                                                                                                                      |
+| `stageHistory` `cambian`                                                     | baja a solo reales                                                                             | decisión 23                                                                                                                                                                                     |
+| Jaén, Tramuntana                                                             | igual (0)                                                                                      | listón de cero                                                                                                                                                                                  |
+| `world` (reparto de `kind`)                                                  | se anota, sin previsión numérica                                                               | ninguna banda de población se toca en E1                                                                                                                                                        |
+| `medianLeadGroupRiders` (sin banda)                                          | se imprime por `finalKind`                                                                     | deuda de `targets.ts`                                                                                                                                                                           |
+| quién gana por esqueleto (nueva, informativa)                                | `ud_muros` clasicómano, `ud_adoquin` rodador, `et_media_muro` puncheur, `et_reina_*` escalador | es el «mejor» por el lado del juego                                                                                                                                                             |
+
+Previsión de las bandas del censo que el paso 8 debe poner en verde (todas las rojas de la tabla de arriba): `esqueletos.clase.*`, `finales.reparto.alto`, `reina.dplus.minimo`, `finales.muro`, `finales.puncheur`, `unDia.*`, `muros.cotas.*`, `adoquin.*`, `km.clase.*`, `nacionales.*`, `variedad.correlacion.max`, `variedad.finalesPorVuelta` y `variedad.kmUnDia.dos`. Dos previsiones del documento no se cumplieron ya en la línea base: `reina.subidaLejana.cero` está verde hoy (ninguna de las 103 reinas no reales tiene 0 km de subida lejana; `media-150` es un escenario del banco, no una etapa del calendario) y `variedad.correlacion.mediana` por forma es 0,084, lejos de 0,8.
+
+#### Comprobación de citas (`scripts/comprobar-citas.mjs` sobre `docs/generador.md`, árbol `d27e976`)
+
+| Resultado                                                | Citas |
+| -------------------------------------------------------- | ----- |
+| Extraídas (fichero y línea)                              | 772   |
+| Comprobables (fichero único y símbolo reconocible)       | 531   |
+| El símbolo está en la línea citada                       | 243   |
+| El símbolo está en el fichero, en otra línea (a revisar) | 172   |
+| El símbolo no aparece en el fichero                      | 116   |
+| Fichero que no existe en el árbol                        | 7     |
+| Nombre de fichero ambiguo                                | 8     |
+| Sin símbolo reconocible                                  | 226   |
+
+Es una heurística (el símbolo es el de `fichero::símbolo` o el último nombre entre comillas invertidas que precede a la cita en su línea), así que «movida» quiere decir «a revisar». Buena parte de las movidas son citas del árbol `8585ca2` que el documento da con los desplazamientos de su §0.1 (por ejemplo `ENGINE_VERSION`, l. 718 en `8585ca2` y l. 809 hoy), y buena parte de las ausentes son falsos positivos del emparejamiento (el nombre que precede a la cita no es el que la cita localiza). Los ficheros inexistentes son `db/raceRoutes.ts` (se cita sin `packages/`, 3 veces), `dist/constants.js` y `coste-motor.mjs` (del juez, fuera del repositorio). El listado entero sale con `node scripts/comprobar-citas.mjs --todas`. Regla que se mantiene: donde una cita no cuadra, manda el nombre del símbolo.
+
+### vN §5 · Respuestas del dueño
+
+El 25/09/2026 el dueño aceptó las trece decisiones de la sección 18 de `docs/generador.md` con su valor por defecto:
+
+| Decisión | Qué                                            | Valor aceptado                                                                                                              |
+| -------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| D1       | `ud_montana_alto` como rareza                  | existe: peso 0,02 solo en .1, con `finalesAlto: 'largo'` y atado a `race-mercantour`                                        |
+| D2       | Recalibrar `stageKindOf` a la carretera        | no en E1; se abre tras el paso 8 con la tabla del censo                                                                     |
+| D3       | `et_prologo` y `et_cronoescalada`              | entran: prólogo 0,25 (0,3 en gran vuelta), cronoescalada 0,08                                                               |
+| D4       | Metas volantes generadas                       | no: `emitirPancartas` solo emite `cima`                                                                                     |
+| D5       | `ud_criterium` como carrera puntuable          | no: peso 0 en las cinco clases                                                                                              |
+| D6       | Banda de la fuga en montaña y cubetas del test | mantener [6; 30] como vigilancia; la cubeta [1.500; 2.500) la sostiene `et_reina_blanda` y la `<1500` queda para las reales |
+| D7       | `ARCH.edicion.activa` y `nivel`                | activa, nivel 1; nivel 2 donde el esqueleto declare `alternativas`                                                          |
+| D8       | Vueltas de países sin cordillera               | se acepta la lista completa de §18.9                                                                                        |
+| D9       | `ARCH.km.maxPorClase`                          | WT 260, Pro 240, .1 200, .2 180, NC 260                                                                                     |
+| D10      | Qué enseña la ficha de una etapa generada      | la frase de arquitectura y «Edición N» siempre, con los cambios respecto a la anterior                                      |
+| D11      | Qué es «dónde» en E1                           | relieve y firme; viento y altitud como metadatos de la ficha (y altitud como veto V4)                                       |
+| D12      | Los países sin fila en `TERRITORIOS`           | caen a `FALLBACK` (firma `generico`) y `geo.test.ts` los imprime sin banda                                                  |
+| D13      | La arquitectura Superga                        | queda fuera: en meta de un día solo `muro_meta` de hasta 2,2 km                                                             |
