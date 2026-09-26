@@ -341,6 +341,9 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
       return {
         day: dia,
         name: `Stage ${dia}`,
+        // De dónde a dónde se corre: la hoja de órdenes también lo dice (encargo del dueño).
+        from: deLaTemporada.from,
+        to: deLaTemporada.to,
         label: spec.label,
         kind: spec.kind,
         timeTrial: spec.timeTrial,
@@ -416,6 +419,8 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
         country: race.country ?? null,
         stageCount: race.stages.length,
       }
+      // De dónde a dónde va la etapa ESTE año; viaja en las tres ramas, corrida o no.
+      const ciudades = { from: deLaTemporada.from, to: deLaTemporada.to }
       // La etiqueta del final la pone el RECORRIDO, no el terreno declarado (ver stageHistory.ts).
       const spec = calendarStageSpec(stage, km)
       const snapshot = await getStageSnapshot(db, raceKey, day)
@@ -426,6 +431,7 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
           km,
           run: false,
           race: raceInfo,
+          ...ciudades,
           label: spec.label,
           kind: spec.kind,
           timeTrial: spec.timeTrial,
@@ -482,6 +488,7 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
           km: head.km,
           run: true,
           race: raceInfo,
+          ...ciudades,
           kind: head.kind,
           timeTrial: head.timeTrial,
           altimetry: renderAltimetrySvg(racedProfile),
@@ -522,6 +529,7 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
         km: head.km,
         run: true,
         race: raceInfo,
+        ...ciudades,
         kind: head.kind,
         timeTrial: head.timeTrial,
         altimetry,

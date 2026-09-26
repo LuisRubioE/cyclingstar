@@ -151,7 +151,16 @@ function fichaDe(
   profile: StageProfile,
   routeSource: CalendarStage['routeSource'] = 'real',
 ): CalendarStage {
-  return { index, kind, label, name: `Stage ${index} · ${label}`, profile, routeSource }
+  return {
+    index,
+    kind,
+    label,
+    name: `Stage ${index} · ${label}`,
+    profile,
+    routeSource,
+    from: 'Tarragona',
+    to: 'Barcelona',
+  }
 }
 
 const puerto = (km: number, g: number) =>

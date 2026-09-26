@@ -95,10 +95,13 @@ export {
 export {
   SEASON_CALENDAR,
   calendarForSeason,
+  ciudadDeCampeonato,
   raceForSeason,
+  stageCities,
   stagesForSeason,
   type CalendarRace,
   type CalendarStage,
+  type Ciudades,
   type RaceFormat,
   type RaceLevel,
   type StageSpec,

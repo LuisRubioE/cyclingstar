@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { type CalendarRaceSummary, type RaceLevel, fetchCalendar } from '../api/calendar'
 import { Flag } from '../components/Flag'
 import { Panel, SectionBar } from '../components/Panel'
+import { StageRoute } from '../components/StageRoute'
 import { Tabs } from '../components/Tabs'
 import { formatLabel, raceClassLabel } from '../domain/labels'
 import {
@@ -141,11 +142,7 @@ function RaceCard({ race, status }: { race: CalendarRaceSummary; status: RaceTim
                     aria-hidden
                   />
                   <span className="shrink-0 text-slate-700">{stage.name}</span>
-                  {stage.from && stage.to && (
-                    <span className="truncate text-slate-500">
-                      {stage.from === stage.to ? stage.from : `${stage.from} → ${stage.to}`}
-                    </span>
-                  )}
+                  <StageRoute from={stage.from} to={stage.to} className="truncate text-slate-500" />
                   <span className="ml-auto shrink-0 tabular-nums text-slate-400">
                     {stage.km} km
                   </span>
