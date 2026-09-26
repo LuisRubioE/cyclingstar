@@ -58,7 +58,7 @@ import {
   diffMotivos,
   opcionDe,
 } from '../packages/engine/dist/routes/grammar/edition.js'
-import { generateStage } from '../packages/engine/dist/routes/grammar/generate.js'
+import { generateStage, peticionDe } from '../packages/engine/dist/routes/grammar/generate.js'
 import { ZONAS, admite, territorioDe, zonaDe } from '../packages/engine/dist/routes/grammar/geo.js'
 import {
   COBBLES_IDS,
@@ -189,8 +189,12 @@ function edicionesDe(raceId, base, deTemporada, titulo) {
   })
 }
 
-/** Una fila dibujada: la etapa, su `finishType` y su SVG; con `conEdiciones`, las temporadas 1 y 2 de la misma petición. */
-function fila(base, req, titulo, conEdiciones = false) {
+/**
+ * Una fila dibujada: la etapa, su `finishType` y su SVG; con `conEdiciones`, las temporadas 1 y 2 de la
+ * misma petición (o de `deTemporada`, si se da: los nacionales las leen del calendario, que pasa el
+ * anti-clon de cada temporada, v89).
+ */
+function fila(base, req, titulo, conEdiciones = false, deTemporada = null) {
   const stage = generateStage(req)
   return {
     ...base,
@@ -203,7 +207,7 @@ function fila(base, req, titulo, conEdiciones = false) {
           ediciones: edicionesDe(
             req.raceId,
             stage,
-            (s) => generateStage({ ...req, season: s }),
+            deTemporada ?? ((s) => generateStage({ ...req, season: s })),
             titulo,
           ),
         }
@@ -504,12 +508,15 @@ function nacionales(carrerasPorPais) {
         format: 'un-dia',
         routeSource: 'generado',
       } // sin `fixed`: la rama NC de `candidatos` elige nc_ruta o nc_crono (§5.7)
+      // v89: si el anti-clon de la temporada redibujó la etapa, la galería pide el mismo redibujo.
+      const redibujo = peticionDe(stagesForSeason(raceId, 0)[0].arch)?.redibujo
       filas.push(
         fila(
           { raceId, zona, esqueleto: null, clase: 'NC', code, nombre: n.nombre },
-          req,
+          redibujo ? { ...req, redibujo } : req,
           `${code} · ${n.nombre} · ${zona} · ${num(km)} km`,
           true,
+          (s) => stagesForSeason(raceId, s)[0],
         ),
       )
     }

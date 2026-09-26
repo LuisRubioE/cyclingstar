@@ -63,7 +63,7 @@ Clase **2** · VE · día 9 · 10 etapas · recorrido mixto · 🟡 Sin validar 
 | 1 | Llana · Flat | San Cristobal | Socopo | 210 | 🟡 Sin validar | `et_llana` · generico |
 | 2 | Media montaña · Uphill finish | Socopo | San Cristobal | 210 | 🟡 Sin validar | `et_media_alto` · andes |
 | 3 | Media montaña · Uphill finish | San Cristobal | San Cristobal | 117 | 🟡 Sin validar | `et_media_alto` · andes |
-| 4 | Montaña · Summit finish | La Fria | Merida | 163 | 🟡 Sin validar | `et_reina_cima_cerca` · andes |
+| 4 | Montaña · Mountains | La Fria | Merida | 163 | 🟡 Sin validar | `et_reina_valle` · andes |
 | 5 | Media montaña · Hills | Merida | Merida | 121 | 🟡 Sin validar | `et_media_valle` · andes |
 | 6 | Montaña · Summit finish | El Vigia | La Grita | 166 | 🟡 Sin validar | `et_reina_alto_corto` · andes |
 | 7 | Media montaña · Hills | Tariba | San Cristobal | 151 | 🟡 Sin validar | `et_media_valle` · andes |
@@ -77,7 +77,7 @@ Clase **NC** · AU · día 11 · 1 etapa · recorrido generado · 🔴 Inventado
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 173 | 🔴 Inventado | `nc_ruta` · australia |
+| 1 | Media montaña · Circuit | — | — | 157 | 🔴 Inventado | `nc_ruta` · australia |
 
 ### Australia Road Championship `nc-au-road`
 
@@ -85,7 +85,7 @@ Clase **NC** · AU · día 11 · 1 etapa · recorrido generado · 🔴 Inventado
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 219 | 🔴 Inventado | `nc_ruta` · australia |
+| 1 | Media montaña · Circuit | — | — | 239 | 🔴 Inventado | `nc_ruta` · australia |
 
 ### Thailand ITT Championship `nc-th-itt`
 
@@ -109,7 +109,7 @@ Clase **NC** · TH · día 18 · 1 etapa · recorrido generado · 🔴 Inventado
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 189 | 🔴 Inventado | `nc_ruta` · asia_oriental |
+| 1 | Media montaña · Circuit | — | — | 172 | 🔴 Inventado | `nc_ruta` · asia_oriental |
 
 ### Thailand Road Championship `nc-th-road`
 
@@ -117,7 +117,7 @@ Clase **NC** · TH · día 18 · 1 etapa · recorrido generado · 🔴 Inventado
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 203 | 🔴 Inventado | `nc_ruta` · asia_oriental |
+| 1 | Media montaña · Circuit | — | — | 223 | 🔴 Inventado | `nc_ruta` · asia_oriental |
 
 ### Race Pune `race-pune`
 
@@ -197,7 +197,7 @@ Clase **1** · ES · día 28 · 1 etapa · recorrido generado · 🔴 Inventado 
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Hills | — | — | 179 | 🔴 Inventado | `ud_montana_media` · levante |
+| 1 | Media montaña · Hills | — | — | 175 | 🔴 Inventado | `ud_montana_media` · levante |
 
 ### Race Surf Coast `race-surf-coast`
 
@@ -377,7 +377,7 @@ Clase **NC** · UY · día 36 · 1 etapa · recorrido generado · 🔴 Inventado
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Contrarreloj · ITT | — | — | 37 | 🔴 Inventado | `nc_crono` · generico |
+| 1 | Contrarreloj · ITT | — | — | 36 | 🔴 Inventado | `nc_crono` · generico |
 
 ### Uruguay U23 ITT Championship `nc-uy-u23-itt`
 
@@ -417,7 +417,7 @@ Clase **NC** · ZW · día 37 · 1 etapa · recorrido generado · 🔴 Inventado
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 164 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 175 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Race Oman `race-oman`
 
@@ -445,7 +445,7 @@ Clase **NC** · CO · día 38 · 1 etapa · recorrido generado · 🔴 Inventado
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 169 | 🔴 Inventado | `nc_ruta` · andes |
+| 1 | Media montaña · Circuit | — | — | 187 | 🔴 Inventado | `nc_ruta` · andes |
 
 ### New Zealand U23 Road Championship `nc-nz-u23-road`
 
@@ -453,7 +453,7 @@ Clase **NC** · NZ · día 38 · 1 etapa · recorrido generado · 🔴 Inventado
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 160 | 🔴 Inventado | `nc_ruta` · australia |
+| 1 | Media montaña · Circuit | — | — | 177 | 🔴 Inventado | `nc_ruta` · australia |
 
 ### New Zealand Road Championship `nc-nz-road`
 
@@ -469,7 +469,7 @@ Clase **NC** · ZA · día 38 · 1 etapa · recorrido generado · 🔴 Inventado
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 159 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 175 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Uruguay U23 Road Championship `nc-uy-u23-road`
 
@@ -485,7 +485,7 @@ Clase **NC** · NA · día 38 · 1 etapa · recorrido generado · 🔴 Inventado
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 154 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 144 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Zimbabwe Road Championship `nc-zw-road`
 
@@ -493,7 +493,7 @@ Clase **NC** · ZW · día 38 · 1 etapa · recorrido generado · 🔴 Inventado
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 220 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 186 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Race Aveiro `race-aveiro`
 
@@ -525,7 +525,7 @@ Clase **NC** · UY · día 39 · 1 etapa · recorrido generado · 🔴 Inventado
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 212 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 237 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Namibia Road Championship `nc-na-road`
 
@@ -533,7 +533,7 @@ Clase **NC** · NA · día 39 · 1 etapa · recorrido generado · 🔴 Inventado
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 228 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 253 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Race Provence `race-provence`
 
@@ -705,7 +705,7 @@ Clase **NC** · PH · día 57 · 1 etapa · recorrido generado · 🔴 Inventado
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 140 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 156 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Philippines Road Championship `nc-ph-road`
 
@@ -713,7 +713,7 @@ Clase **NC** · PH · día 58 · 1 etapa · recorrido generado · 🔴 Inventado
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 181 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 199 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Race Opening Classic `race-opening-classic`
 
@@ -753,7 +753,7 @@ Clase **NC** · BO · día 59 · 1 etapa · recorrido generado · 🔴 Inventado
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 150 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 163 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Race Drôme `race-drome`
 
@@ -793,7 +793,7 @@ Clase **1** · BE · día 62 · 1 etapa · recorrido generado · 🔴 Inventado 
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Clásica · Cobbles | — | — | 200 | 🔴 Inventado | `ud_adoquin_ligero` · flandes |
+| 1 | Clásica · Cobbles | — | — | 199 | 🔴 Inventado | `ud_adoquin_ligero` · flandes |
 
 ### Race Laigueglia `race-laigueglia`
 
@@ -873,7 +873,7 @@ Clase **NC** · CL · día 66 · 1 etapa · recorrido generado · 🔴 Inventado
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 167 | 🔴 Inventado | `nc_ruta` · cono_sur |
+| 1 | Media montaña · Circuit | — | — | 172 | 🔴 Inventado | `nc_ruta` · cono_sur |
 
 ### Race to the Sun `race-to-the-sun`
 
@@ -920,7 +920,7 @@ Clase **NC** · CL · día 67 · 1 etapa · recorrido generado · 🔴 Inventado
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 174 | 🔴 Inventado | `nc_ruta` · cono_sur |
+| 1 | Media montaña · Circuit | — | — | 192 | 🔴 Inventado | `nc_ruta` · cono_sur |
 
 ### Race Two Seas `race-two-seas`
 
@@ -1468,7 +1468,7 @@ Clase **NC** · AE · día 102 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 193 | 🔴 Inventado | `nc_ruta` · golfo |
+| 1 | Media montaña · Circuit | — | — | 213 | 🔴 Inventado | `nc_ruta` · golfo |
 
 ### Race Galicia `race-galicia`
 
@@ -1591,7 +1591,7 @@ Clase **NC** · CR · día 108 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 162 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 174 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Race Amstel `race-amstel`
 
@@ -1623,7 +1623,7 @@ Clase **NC** · CR · día 109 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 208 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 191 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Race Alps `race-alps`
 
@@ -1654,7 +1654,7 @@ Clase **2** · RS · día 112 · 4 etapas · recorrido generado · 🔴 Inventad
 | 1 | Llana · Flat | — | — | 125 | 🔴 Inventado | `et_llana` · balcanes |
 | 2 | Contrarreloj · ITT | — | — | 22 | 🔴 Inventado | `et_crono` · balcanes |
 | 3 | Media montaña · Hills | — | — | 146 | 🔴 Inventado | `et_media_tendida` · balcanes |
-| 4 | Media montaña · Uphill finish | — | — | 118 | 🔴 Inventado | `et_media_alto` · balcanes |
+| 4 | Media montaña · Uphill finish | — | — | 115 | 🔴 Inventado | `et_media_alto` · balcanes |
 
 ### Egypt ITT Championship `nc-eg-itt`
 
@@ -1678,7 +1678,7 @@ Clase **1** · ES · día 113 · 4 etapas · recorrido mixto · 🟡 Sin validar
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Montaña · Summit finish | Oviedo | Llanes | 164 | 🟡 Sin validar | `et_reina_cima_cerca` · cantabrico |
+| 1 | Montaña · Mountains | Oviedo | Llanes | 164 | 🟡 Sin validar | `et_reina_valle` · cantabrico |
 | 2 | Montaña · Summit finish | Benia de Onis | Pola de Lena | 144 | 🟡 Sin validar | `et_reina_alto_corto` · cantabrico |
 | 3 | Media montaña · Wall finish | Castropol | Vegadeo | 166 | 🟡 Sin validar | `et_media_muro` · cantabrico |
 | 4 | Media montaña · Uphill finish | Navia | Oviedo | 136 | 🟡 Sin validar | `et_media_alto` · cantabrico |
@@ -1790,7 +1790,7 @@ Clase **NC** · PA · día 116 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 172 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 189 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Race Benin `race-benin`
 
@@ -1799,7 +1799,7 @@ Clase **2** · BJ · día 117 · 5 etapas · recorrido generado · 🔴 Inventad
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
 | 1 | Llana · Flat | — | — | 150 | 🔴 Inventado | `et_llana` · africa_llana |
-| 2 | Media montaña · Uphill finish | — | — | 127 | 🔴 Inventado | `et_media_alto` · africa_llana |
+| 2 | Media montaña · Uphill finish | — | — | 133 | 🔴 Inventado | `et_media_alto` · africa_llana |
 | 3 | Contrarreloj · ITT | — | — | 16 | 🔴 Inventado | `et_crono` · africa_llana |
 | 4 | Media montaña · Hills | — | — | 126 | 🔴 Inventado | `et_media_valle` · africa_llana |
 | 5 | Llana · Flat | — | — | 121 | 🔴 Inventado | `et_llana` · africa_llana |
@@ -1827,7 +1827,7 @@ Clase **2** · US · día 119 · 5 etapas · recorrido mixto · 🟡 Sin validar
 | 2 | Montaña · Mountains | Silver City | Mogollon | 117 | 🟡 Sin validar | `et_reina_valle` · norteamerica |
 | 3 | Media montaña · Hills | Fort Bayard | Fort Bayard | 123 | 🟡 Sin validar | `et_media_valle` · norteamerica |
 | 4 | Llana · Flat | Silver City | Silver City | 45 | 🟡 Sin validar | `et_llana_viento` · norteamerica |
-| 5 | Montaña · Summit finish | Silver City | Silver City | 161 | 🟡 Sin validar | `et_reina_cima_cerca` · norteamerica |
+| 5 | Montaña · Mountains | Silver City | Silver City | 161 | 🟡 Sin validar | `et_reina_valle` · norteamerica |
 
 ### Race Guatemala `race-guatemala`
 
@@ -1929,8 +1929,8 @@ Clase **1** · GR · día 126 · 5 etapas · recorrido generado · 🔴 Inventad
 | 1 | Llana · Flat | — | — | 158 | 🔴 Inventado | `et_llana` · balcanes |
 | 2 | Media montaña · Hills | — | — | 167 | 🔴 Inventado | `et_media_valle` · balcanes |
 | 3 | Media montaña · Hills | — | — | 169 | 🔴 Inventado | `et_media_valle` · balcanes |
-| 4 | Montaña · Summit finish | — | — | 131 | 🔴 Inventado | `et_reina_alto_largo` · balcanes |
-| 5 | Media montaña · Uphill finish | — | — | 123 | 🔴 Inventado | `et_media_alto` · balcanes |
+| 4 | Montaña · Summit finish | — | — | 133 | 🔴 Inventado | `et_reina_alto_largo` · balcanes |
+| 5 | Media montaña · Uphill finish | — | — | 122 | 🔴 Inventado | `et_media_alto` · balcanes |
 
 ### Race Fagnes `race-fagnes`
 
@@ -2037,7 +2037,7 @@ Clase **1** · AZ · día 130 · 5 etapas · recorrido generado · 🔴 Inventad
 | 2 | Llana · Flat | — | — | 177 | 🔴 Inventado | `et_llana` · anatolia |
 | 3 | Media montaña · Hills | — | — | 168 | 🔴 Inventado | `et_media_valle` · anatolia |
 | 4 | Media montaña · Hills | — | — | 135 | 🔴 Inventado | `et_media_valle` · anatolia |
-| 5 | Montaña · Summit finish | — | — | 110 | 🔴 Inventado | `et_reina_alto_corto` · anatolia |
+| 5 | Montaña · Summit finish | — | — | 109 | 🔴 Inventado | `et_reina_alto_corto` · anatolia |
 
 ### Race Zagłębie `race-zaglebie`
 
@@ -2300,8 +2300,8 @@ Clase **2** · CM · día 154 · 8 etapas · recorrido generado · 🔴 Inventad
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
 | 1 | Llana · Flat | — | — | 131 | 🔴 Inventado | `et_llana` · africa_llana |
-| 2 | Media montaña · Hills | — | — | 138 | 🔴 Inventado | `et_media_valle` · africa_llana |
-| 3 | Media montaña · Hills | — | — | 140 | 🔴 Inventado | `et_media_valle` · africa_llana |
+| 2 | Media montaña · Hills | — | — | 151 | 🔴 Inventado | `et_media_valle` · africa_llana |
+| 3 | Media montaña · Hills | — | — | 128 | 🔴 Inventado | `et_media_valle` · africa_llana |
 | 4 | Media montaña · Hills | — | — | 131 | 🔴 Inventado | `et_media_valle` · africa_llana |
 | 5 | Media montaña · Hills | — | — | 116 | 🔴 Inventado | `et_media_tendida` · africa_llana |
 | 6 | Media montaña · Uphill finish | — | — | 137 | 🔴 Inventado | `et_media_alto` · africa_llana |
@@ -2369,7 +2369,7 @@ Clase **Pro** · BE · día 158 · 1 etapa · recorrido generado · 🔴 Inventa
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Clásica · Cobbles | — | — | 216 | 🔴 Inventado | `ud_adoquin_ligero` · flandes |
+| 1 | Clásica · Cobbles | — | — | 234 | 🔴 Inventado | `ud_adoquin_ligero` · flandes |
 
 ### Race Visegrad `race-visegrad-cz`
 
@@ -2439,7 +2439,7 @@ Clase **NC** · EC · día 163 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 194 | 🔴 Inventado | `nc_ruta` · andes |
+| 1 | Media montaña · Circuit | — | — | 211 | 🔴 Inventado | `nc_ruta` · andes |
 
 ### Race Copenhagen `race-copenhagen`
 
@@ -2471,7 +2471,7 @@ Clase **1** · BE · día 165 · 1 etapa · recorrido generado · 🔴 Inventado
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Clásica · Cobbles | — | — | 193 | 🔴 Inventado | `ud_muros_adoquin` · flandes |
+| 1 | Clásica · Cobbles | — | — | 192 | 🔴 Inventado | `ud_muros_adoquin` · flandes |
 
 ### Race Switzerland `race-switzerland`
 
@@ -2552,7 +2552,7 @@ Clase **NC** · MO · día 171 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 152 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 164 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Race Andorra Classic `race-andorra-classic`
 
@@ -2688,7 +2688,7 @@ Clase **NC** · IL · día 175 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Contrarreloj · ITT | — | — | 37 | 🔴 Inventado | `nc_crono` · generico |
+| 1 | Contrarreloj · ITT | — | — | 35 | 🔴 Inventado | `nc_crono` · generico |
 
 ### Eritrea ITT Championship `nc-er-itt`
 
@@ -2712,7 +2712,7 @@ Clase **NC** · GE · día 175 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Contrarreloj · ITT | — | — | 41 | 🔴 Inventado | `nc_crono` · generico |
+| 1 | Contrarreloj · ITT | — | — | 40 | 🔴 Inventado | `nc_crono` · generico |
 
 ### Iceland ITT Championship `nc-is-itt`
 
@@ -2728,7 +2728,7 @@ Clase **NC** · SG · día 175 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Contrarreloj · ITT | — | — | 39 | 🔴 Inventado | `nc_crono` · generico |
+| 1 | Contrarreloj · ITT | — | — | 37 | 🔴 Inventado | `nc_crono` · generico |
 
 ### Dominican Republic ITT Championship `nc-do-itt`
 
@@ -2744,7 +2744,7 @@ Clase **NC** · BH · día 175 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Contrarreloj · ITT | — | — | 39 | 🔴 Inventado | `nc_crono` · generico |
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado | `nc_crono` · generico |
 
 ### Kosovo ITT Championship `nc-xk-itt`
 
@@ -2792,7 +2792,7 @@ Clase **NC** · BB · día 175 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Contrarreloj · ITT | — | — | 39 | 🔴 Inventado | `nc_crono` · generico |
+| 1 | Contrarreloj · ITT | — | — | 41 | 🔴 Inventado | `nc_crono` · generico |
 
 ### Belize ITT Championship `nc-bz-itt`
 
@@ -2808,7 +2808,7 @@ Clase **NC** · JO · día 175 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Contrarreloj · ITT | — | — | 39 | 🔴 Inventado | `nc_crono` · generico |
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado | `nc_crono` · generico |
 
 ### Laos ITT Championship `nc-la-itt`
 
@@ -3384,7 +3384,7 @@ Clase **NC** · IL · día 176 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Contrarreloj · ITT | — | — | 33 | 🔴 Inventado | `nc_crono` · generico |
+| 1 | Contrarreloj · ITT | — | — | 31 | 🔴 Inventado | `nc_crono` · generico |
 
 ### South Korea ITT Championship `nc-kr-itt`
 
@@ -3456,7 +3456,7 @@ Clase **NC** · ER · día 176 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Contrarreloj · ITT | — | — | 25 | 🔴 Inventado | `nc_crono` · generico |
+| 1 | Contrarreloj · ITT | — | — | 26 | 🔴 Inventado | `nc_crono` · generico |
 
 ### Luxembourg ITT Championship `nc-lu-itt`
 
@@ -3544,7 +3544,7 @@ Clase **NC** · ET · día 176 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Contrarreloj · ITT | — | — | 44 | 🔴 Inventado | `nc_crono` · generico |
+| 1 | Contrarreloj · ITT | — | — | 45 | 🔴 Inventado | `nc_crono` · generico |
 
 ### Ethiopia U23 ITT Championship `nc-et-u23-itt`
 
@@ -3568,7 +3568,7 @@ Clase **NC** · ID · día 176 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Contrarreloj · ITT | — | — | 32 | 🔴 Inventado | `nc_crono` · generico |
+| 1 | Contrarreloj · ITT | — | — | 29 | 🔴 Inventado | `nc_crono` · generico |
 
 ### Cuba ITT Championship `nc-cu-itt`
 
@@ -3576,7 +3576,7 @@ Clase **NC** · CU · día 176 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Contrarreloj · ITT | — | — | 34 | 🔴 Inventado | `nc_crono` · generico |
+| 1 | Contrarreloj · ITT | — | — | 35 | 🔴 Inventado | `nc_crono` · generico |
 
 ### Cuba U23 ITT Championship `nc-cu-u23-itt`
 
@@ -3640,7 +3640,7 @@ Clase **NC** · TN · día 176 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Contrarreloj · ITT | — | — | 37 | 🔴 Inventado | `nc_crono` · generico |
+| 1 | Contrarreloj · ITT | — | — | 41 | 🔴 Inventado | `nc_crono` · generico |
 
 ### Tunisia U23 ITT Championship `nc-tn-u23-itt`
 
@@ -3656,7 +3656,7 @@ Clase **NC** · VN · día 176 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Contrarreloj · ITT | — | — | 36 | 🔴 Inventado | `nc_crono` · generico |
+| 1 | Contrarreloj · ITT | — | — | 39 | 🔴 Inventado | `nc_crono` · generico |
 
 ### Vietnam U23 ITT Championship `nc-vn-u23-itt`
 
@@ -3672,7 +3672,7 @@ Clase **NC** · AM · día 176 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Contrarreloj · ITT | — | — | 43 | 🔴 Inventado | `nc_crono` · generico |
+| 1 | Contrarreloj · ITT | — | — | 41 | 🔴 Inventado | `nc_crono` · generico |
 
 ### Armenia U23 ITT Championship `nc-am-u23-itt`
 
@@ -3680,7 +3680,7 @@ Clase **NC** · AM · día 176 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Contrarreloj · ITT | — | — | 32 | 🔴 Inventado | `nc_crono` · generico |
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado | `nc_crono` · generico |
 
 ### Iceland U23 ITT Championship `nc-is-u23-itt`
 
@@ -3688,7 +3688,7 @@ Clase **NC** · IS · día 176 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Contrarreloj · ITT | — | — | 26 | 🔴 Inventado | `nc_crono` · generico |
+| 1 | Contrarreloj · ITT | — | — | 28 | 🔴 Inventado | `nc_crono` · generico |
 
 ### Azerbaijan ITT Championship `nc-az-itt`
 
@@ -3720,7 +3720,7 @@ Clase **NC** · UZ · día 176 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Contrarreloj · ITT | — | — | 26 | 🔴 Inventado | `nc_crono` · generico |
+| 1 | Contrarreloj · ITT | — | — | 27 | 🔴 Inventado | `nc_crono` · generico |
 
 ### Saudi Arabia ITT Championship `nc-sa-itt`
 
@@ -3760,7 +3760,7 @@ Clase **NC** · SG · día 176 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Contrarreloj · ITT | — | — | 27 | 🔴 Inventado | `nc_crono` · generico |
+| 1 | Contrarreloj · ITT | — | — | 25 | 🔴 Inventado | `nc_crono` · generico |
 
 ### Dominican Republic U23 ITT Championship `nc-do-u23-itt`
 
@@ -3776,7 +3776,7 @@ Clase **NC** · PY · día 176 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Contrarreloj · ITT | — | — | 43 | 🔴 Inventado | `nc_crono` · generico |
+| 1 | Contrarreloj · ITT | — | — | 45 | 🔴 Inventado | `nc_crono` · generico |
 
 ### Paraguay U23 ITT Championship `nc-py-u23-itt`
 
@@ -3808,7 +3808,7 @@ Clase **NC** · HK · día 176 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Contrarreloj · ITT | — | — | 35 | 🔴 Inventado | `nc_crono` · generico |
+| 1 | Contrarreloj · ITT | — | — | 33 | 🔴 Inventado | `nc_crono` · generico |
 
 ### Hong Kong U23 ITT Championship `nc-hk-u23-itt`
 
@@ -3856,7 +3856,7 @@ Clase **NC** · HN · día 176 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Contrarreloj · ITT | — | — | 37 | 🔴 Inventado | `nc_crono` · generico |
+| 1 | Contrarreloj · ITT | — | — | 39 | 🔴 Inventado | `nc_crono` · generico |
 
 ### Honduras U23 ITT Championship `nc-hn-u23-itt`
 
@@ -4056,7 +4056,7 @@ Clase **NC** · CI · día 176 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado | `nc_crono` · generico |
+| 1 | Contrarreloj · ITT | — | — | 32 | 🔴 Inventado | `nc_crono` · generico |
 
 ### Cape Verde ITT Championship `nc-cv-itt`
 
@@ -4112,7 +4112,7 @@ Clase **NC** · JO · día 176 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Contrarreloj · ITT | — | — | 26 | 🔴 Inventado | `nc_crono` · generico |
+| 1 | Contrarreloj · ITT | — | — | 27 | 🔴 Inventado | `nc_crono` · generico |
 
 ### Cayman Islands ITT Championship `nc-ky-itt`
 
@@ -4128,7 +4128,7 @@ Clase **NC** · KY · día 176 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Contrarreloj · ITT | — | — | 25 | 🔴 Inventado | `nc_crono` · generico |
+| 1 | Contrarreloj · ITT | — | — | 24 | 🔴 Inventado | `nc_crono` · generico |
 
 ### Laos U23 ITT Championship `nc-la-u23-itt`
 
@@ -4160,7 +4160,7 @@ Clase **NC** · LC · día 176 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Contrarreloj · ITT | — | — | 40 | 🔴 Inventado | `nc_crono` · generico |
+| 1 | Contrarreloj · ITT | — | — | 41 | 🔴 Inventado | `nc_crono` · generico |
 
 ### Saint Lucia U23 ITT Championship `nc-lc-u23-itt`
 
@@ -4216,7 +4216,7 @@ Clase **NC** · MT · día 176 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Contrarreloj · ITT | — | — | 31 | 🔴 Inventado | `nc_crono` · generico |
+| 1 | Contrarreloj · ITT | — | — | 32 | 🔴 Inventado | `nc_crono` · generico |
 
 ### Puerto Rico ITT Championship `nc-pr-itt`
 
@@ -4240,7 +4240,7 @@ Clase **NC** · SC · día 176 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Contrarreloj · ITT | — | — | 46 | 🔴 Inventado | `nc_crono` · generico |
+| 1 | Contrarreloj · ITT | — | — | 47 | 🔴 Inventado | `nc_crono` · generico |
 
 ### Seychelles U23 ITT Championship `nc-sc-u23-itt`
 
@@ -4264,7 +4264,7 @@ Clase **NC** · SN · día 176 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Contrarreloj · ITT | — | — | 24 | 🔴 Inventado | `nc_crono` · generico |
+| 1 | Contrarreloj · ITT | — | — | 25 | 🔴 Inventado | `nc_crono` · generico |
 
 ### Suriname ITT Championship `nc-sr-itt`
 
@@ -4328,7 +4328,7 @@ Clase **NC** · TT · día 176 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Contrarreloj · ITT | — | — | 35 | 🔴 Inventado | `nc_crono` · generico |
+| 1 | Contrarreloj · ITT | — | — | 36 | 🔴 Inventado | `nc_crono` · generico |
 
 ### Saint Vincent and the Grenadines ITT Championship `nc-vc-itt`
 
@@ -4352,7 +4352,7 @@ Clase **NC** · ES · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 149 | 🔴 Inventado | `nc_ruta` · cantabrico |
+| 1 | Media montaña · Circuit | — | — | 163 | 🔴 Inventado | `nc_ruta` · cantabrico |
 
 ### France U23 Road Championship `nc-fr-u23-road`
 
@@ -4360,7 +4360,7 @@ Clase **NC** · FR · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Clásica · Circuit | — | — | 159 | 🔴 Inventado | `nc_ruta` · bretana |
+| 1 | Clásica · Circuit | — | — | 136 | 🔴 Inventado | `nc_ruta` · bretana |
 
 ### United Kingdom U23 Road Championship `nc-gb-u23-road`
 
@@ -4376,7 +4376,7 @@ Clase **NC** · DE · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 172 | 🔴 Inventado | `nc_ruta` · centroeuropa |
+| 1 | Media montaña · Circuit | — | — | 192 | 🔴 Inventado | `nc_ruta` · centroeuropa |
 
 ### Portugal U23 Road Championship `nc-pt-u23-road`
 
@@ -4384,7 +4384,7 @@ Clase **NC** · PT · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 151 | 🔴 Inventado | `nc_ruta` · portugal |
+| 1 | Media montaña · Circuit | — | — | 163 | 🔴 Inventado | `nc_ruta` · portugal |
 
 ### Norway U23 Road Championship `nc-no-u23-road`
 
@@ -4408,7 +4408,7 @@ Clase **NC** · SK · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 196 | 🔴 Inventado | `nc_ruta` · centroeuropa |
+| 1 | Media montaña · Circuit | — | — | 179 | 🔴 Inventado | `nc_ruta` · centroeuropa |
 
 ### United States U23 Road Championship `nc-us-u23-road`
 
@@ -4416,7 +4416,7 @@ Clase **NC** · US · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 140 | 🔴 Inventado | `nc_ruta` · norteamerica |
+| 1 | Media montaña · Circuit | — | — | 153 | 🔴 Inventado | `nc_ruta` · norteamerica |
 
 ### Switzerland U23 Road Championship `nc-ch-u23-road`
 
@@ -4424,7 +4424,7 @@ Clase **NC** · CH · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 141 | 🔴 Inventado | `nc_ruta` · alpes |
+| 1 | Media montaña · Circuit | — | — | 155 | 🔴 Inventado | `nc_ruta` · alpes |
 
 ### Argentina U23 Road Championship `nc-ar-u23-road`
 
@@ -4448,7 +4448,7 @@ Clase **NC** · PL · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 153 | 🔴 Inventado | `nc_ruta` · centroeuropa |
+| 1 | Media montaña · Circuit | — | — | 170 | 🔴 Inventado | `nc_ruta` · centroeuropa |
 
 ### Austria U23 Road Championship `nc-at-u23-road`
 
@@ -4456,7 +4456,7 @@ Clase **NC** · AT · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 185 | 🔴 Inventado | `nc_ruta` · alpes |
+| 1 | Media montaña · Circuit | — | — | 168 | 🔴 Inventado | `nc_ruta` · alpes |
 
 ### Czechia U23 Road Championship `nc-cz-u23-road`
 
@@ -4464,7 +4464,7 @@ Clase **NC** · CZ · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 164 | 🔴 Inventado | `nc_ruta` · centroeuropa |
+| 1 | Media montaña · Circuit | — | — | 154 | 🔴 Inventado | `nc_ruta` · centroeuropa |
 
 ### Japan U23 Road Championship `nc-jp-u23-road`
 
@@ -4472,7 +4472,7 @@ Clase **NC** · JP · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 173 | 🔴 Inventado | `nc_ruta` · asia_oriental |
+| 1 | Media montaña · Circuit | — | — | 160 | 🔴 Inventado | `nc_ruta` · asia_oriental |
 
 ### Ukraine U23 Road Championship `nc-ua-u23-road`
 
@@ -4480,7 +4480,7 @@ Clase **NC** · UA · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 184 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 169 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Latvia U23 Road Championship `nc-lv-u23-road`
 
@@ -4488,7 +4488,7 @@ Clase **NC** · LV · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 187 | 🔴 Inventado | `nc_ruta` · escandinavia |
+| 1 | Media montaña · Circuit | — | — | 170 | 🔴 Inventado | `nc_ruta` · escandinavia |
 
 ### Lithuania U23 Road Championship `nc-lt-u23-road`
 
@@ -4536,7 +4536,7 @@ Clase **NC** · RU · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 141 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 156 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Serbia U23 Road Championship `nc-rs-u23-road`
 
@@ -4560,7 +4560,7 @@ Clase **NC** · IL · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 145 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 163 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### South Korea U23 Road Championship `nc-kr-u23-road`
 
@@ -4576,7 +4576,7 @@ Clase **NC** · PE · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 177 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 166 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Eritrea U23 Road Championship `nc-er-u23-road`
 
@@ -4608,7 +4608,7 @@ Clase **NC** · GT · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 159 | 🔴 Inventado | `nc_ruta` · andes |
+| 1 | Media montaña · Circuit | — | — | 167 | 🔴 Inventado | `nc_ruta` · andes |
 
 ### Georgia U23 Road Championship `nc-ge-u23-road`
 
@@ -4616,7 +4616,7 @@ Clase **NC** · GE · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 167 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 156 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Indonesia U23 Road Championship `nc-id-u23-road`
 
@@ -4624,7 +4624,7 @@ Clase **NC** · ID · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 159 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 176 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Nigeria U23 Road Championship `nc-ng-u23-road`
 
@@ -4640,7 +4640,7 @@ Clase **NC** · KE · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 192 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 161 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Tunisia U23 Road Championship `nc-tn-u23-road`
 
@@ -4648,7 +4648,7 @@ Clase **NC** · TN · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 178 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 198 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Vietnam U23 Road Championship `nc-vn-u23-road`
 
@@ -4656,7 +4656,7 @@ Clase **NC** · VN · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 155 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 166 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Iceland U23 Road Championship `nc-is-u23-road`
 
@@ -4664,7 +4664,7 @@ Clase **NC** · IS · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 165 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 155 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Saudi Arabia U23 Road Championship `nc-sa-u23-road`
 
@@ -4696,7 +4696,7 @@ Clase **NC** · DO · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 168 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 158 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Paraguay U23 Road Championship `nc-py-u23-road`
 
@@ -4704,7 +4704,7 @@ Clase **NC** · PY · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 154 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 173 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Hong Kong U23 Road Championship `nc-hk-u23-road`
 
@@ -4720,7 +4720,7 @@ Clase **NC** · GU · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 157 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 167 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Bahrain U23 Road Championship `nc-bh-u23-road`
 
@@ -4736,7 +4736,7 @@ Clase **NC** · XK · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 144 | 🔴 Inventado | `nc_ruta` · balcanes |
+| 1 | Media montaña · Circuit | — | — | 155 | 🔴 Inventado | `nc_ruta` · balcanes |
 
 ### Honduras U23 Road Championship `nc-hn-u23-road`
 
@@ -4744,7 +4744,7 @@ Clase **NC** · HN · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 141 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 151 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Andorra U23 Road Championship `nc-ad-u23-road`
 
@@ -4752,7 +4752,7 @@ Clase **NC** · AD · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 139 | 🔴 Inventado | `nc_ruta` · pirineos |
+| 1 | Media montaña · Circuit | — | — | 154 | 🔴 Inventado | `nc_ruta` · pirineos |
 
 ### Albania U23 Road Championship `nc-al-u23-road`
 
@@ -4784,7 +4784,7 @@ Clase **NC** · AG · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 161 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 177 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Barbados U23 Road Championship `nc-bb-u23-road`
 
@@ -4800,7 +4800,7 @@ Clase **NC** · BM · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 138 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 148 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Belize U23 Road Championship `nc-bz-u23-road`
 
@@ -4808,7 +4808,7 @@ Clase **NC** · BZ · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 155 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 166 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Ivory Coast U23 Road Championship `nc-ci-u23-road`
 
@@ -4816,7 +4816,7 @@ Clase **NC** · CI · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 167 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 178 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Jordan U23 Road Championship `nc-jo-u23-road`
 
@@ -4824,7 +4824,7 @@ Clase **NC** · JO · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 154 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 143 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Laos U23 Road Championship `nc-la-u23-road`
 
@@ -4848,7 +4848,7 @@ Clase **NC** · MC · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 167 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 177 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Montenegro U23 Road Championship `nc-me-u23-road`
 
@@ -4864,7 +4864,7 @@ Clase **NC** · ML · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 173 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 194 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Malta U23 Road Championship `nc-mt-u23-road`
 
@@ -4880,7 +4880,7 @@ Clase **NC** · SN · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 177 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 164 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### El Salvador U23 Road Championship `nc-sv-u23-road`
 
@@ -4888,7 +4888,7 @@ Clase **NC** · SV · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 149 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 167 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Sint Maarten U23 Road Championship `nc-sx-u23-road`
 
@@ -4896,7 +4896,7 @@ Clase **NC** · SX · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 139 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 149 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Eswatini U23 Road Championship `nc-sz-u23-road`
 
@@ -4904,7 +4904,7 @@ Clase **NC** · SZ · día 178 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 150 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 168 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Saint Vincent and the Grenadines U23 Road Championship `nc-vc-u23-road`
 
@@ -4928,7 +4928,7 @@ Clase **NC** · FR · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Clásica · Circuit | — | — | 213 | 🔴 Inventado | `nc_ruta` · bretana |
+| 1 | Clásica · Circuit | — | — | 224 | 🔴 Inventado | `nc_ruta` · bretana |
 
 ### Italy U23 Road Championship `nc-it-u23-road`
 
@@ -4944,7 +4944,7 @@ Clase **NC** · IT · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 170 | 🔴 Inventado | `nc_ruta` · italia_norte |
+| 1 | Media montaña · Circuit | — | — | 181 | 🔴 Inventado | `nc_ruta` · italia_norte |
 
 ### Belgium U23 Road Championship `nc-be-u23-road`
 
@@ -4952,7 +4952,7 @@ Clase **NC** · BE · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Clásica · Circuit | — | — | 154 | 🔴 Inventado | `nc_ruta` · flandes |
+| 1 | Clásica · Circuit | — | — | 144 | 🔴 Inventado | `nc_ruta` · flandes |
 
 ### Belgium Road Championship `nc-be-road`
 
@@ -4960,7 +4960,7 @@ Clase **NC** · BE · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Clásica · Circuit | — | — | 191 | 🔴 Inventado | `nc_ruta` · flandes |
+| 1 | Clásica · Circuit | — | — | 208 | 🔴 Inventado | `nc_ruta` · flandes |
 
 ### Netherlands U23 Road Championship `nc-nl-u23-road`
 
@@ -4968,7 +4968,7 @@ Clase **NC** · NL · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Clásica · Circuit | — | — | 173 | 🔴 Inventado | `nc_ruta` · flandes |
+| 1 | Clásica · Circuit | — | — | 191 | 🔴 Inventado | `nc_ruta` · flandes |
 
 ### Netherlands Road Championship `nc-nl-road`
 
@@ -4976,7 +4976,7 @@ Clase **NC** · NL · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Clásica · Circuit | — | — | 210 | 🔴 Inventado | `nc_ruta` · flandes |
+| 1 | Clásica · Circuit | — | — | 190 | 🔴 Inventado | `nc_ruta` · flandes |
 
 ### United Kingdom Road Championship `nc-gb-road`
 
@@ -4984,7 +4984,7 @@ Clase **NC** · GB · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 223 | 🔴 Inventado | `nc_ruta` · britanicas |
+| 1 | Media montaña · Circuit | — | — | 246 | 🔴 Inventado | `nc_ruta` · britanicas |
 
 ### Germany Road Championship `nc-de-road`
 
@@ -4992,7 +4992,7 @@ Clase **NC** · DE · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 217 | 🔴 Inventado | `nc_ruta` · centroeuropa |
+| 1 | Media montaña · Circuit | — | — | 200 | 🔴 Inventado | `nc_ruta` · centroeuropa |
 
 ### Portugal Road Championship `nc-pt-road`
 
@@ -5000,7 +5000,7 @@ Clase **NC** · PT · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 234 | 🔴 Inventado | `nc_ruta` · portugal |
+| 1 | Media montaña · Circuit | — | — | 215 | 🔴 Inventado | `nc_ruta` · portugal |
 
 ### Denmark U23 Road Championship `nc-dk-u23-road`
 
@@ -5008,7 +5008,7 @@ Clase **NC** · DK · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 142 | 🔴 Inventado | `nc_ruta` · escandinavia |
+| 1 | Media montaña · Circuit | — | — | 153 | 🔴 Inventado | `nc_ruta` · escandinavia |
 
 ### Denmark Road Championship `nc-dk-road`
 
@@ -5016,7 +5016,7 @@ Clase **NC** · DK · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 233 | 🔴 Inventado | `nc_ruta` · escandinavia |
+| 1 | Media montaña · Circuit | — | — | 216 | 🔴 Inventado | `nc_ruta` · escandinavia |
 
 ### Norway Road Championship `nc-no-road`
 
@@ -5024,7 +5024,7 @@ Clase **NC** · NO · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 184 | 🔴 Inventado | `nc_ruta` · escandinavia |
+| 1 | Media montaña · Circuit | — | — | 201 | 🔴 Inventado | `nc_ruta` · escandinavia |
 
 ### Slovenia Road Championship `nc-si-road`
 
@@ -5032,7 +5032,7 @@ Clase **NC** · SI · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 197 | 🔴 Inventado | `nc_ruta` · alpes |
+| 1 | Media montaña · Circuit | — | — | 220 | 🔴 Inventado | `nc_ruta` · alpes |
 
 ### Slovakia Road Championship `nc-sk-road`
 
@@ -5040,7 +5040,7 @@ Clase **NC** · SK · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 197 | 🔴 Inventado | `nc_ruta` · centroeuropa |
+| 1 | Media montaña · Circuit | — | — | 220 | 🔴 Inventado | `nc_ruta` · centroeuropa |
 
 ### United States Road Championship `nc-us-road`
 
@@ -5056,7 +5056,7 @@ Clase **NC** · CH · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 200 | 🔴 Inventado | `nc_ruta` · alpes |
+| 1 | Media montaña · Circuit | — | — | 222 | 🔴 Inventado | `nc_ruta` · alpes |
 
 ### Argentina Road Championship `nc-ar-road`
 
@@ -5072,7 +5072,7 @@ Clase **NC** · MX · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 234 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 216 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Poland Road Championship `nc-pl-road`
 
@@ -5080,7 +5080,7 @@ Clase **NC** · PL · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 168 | 🔴 Inventado | `nc_ruta` · centroeuropa |
+| 1 | Media montaña · Circuit | — | — | 186 | 🔴 Inventado | `nc_ruta` · centroeuropa |
 
 ### Austria Road Championship `nc-at-road`
 
@@ -5088,7 +5088,7 @@ Clase **NC** · AT · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 227 | 🔴 Inventado | `nc_ruta` · alpes |
+| 1 | Media montaña · Circuit | — | — | 205 | 🔴 Inventado | `nc_ruta` · alpes |
 
 ### Ireland U23 Road Championship `nc-ie-u23-road`
 
@@ -5112,7 +5112,7 @@ Clase **NC** · CZ · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 208 | 🔴 Inventado | `nc_ruta` · centroeuropa |
+| 1 | Media montaña · Circuit | — | — | 228 | 🔴 Inventado | `nc_ruta` · centroeuropa |
 
 ### Canada U23 Road Championship `nc-ca-u23-road`
 
@@ -5136,7 +5136,7 @@ Clase **NC** · SE · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 147 | 🔴 Inventado | `nc_ruta` · escandinavia |
+| 1 | Media montaña · Circuit | — | — | 162 | 🔴 Inventado | `nc_ruta` · escandinavia |
 
 ### Sweden Road Championship `nc-se-road`
 
@@ -5144,7 +5144,7 @@ Clase **NC** · SE · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 169 | 🔴 Inventado | `nc_ruta` · escandinavia |
+| 1 | Media montaña · Circuit | — | — | 181 | 🔴 Inventado | `nc_ruta` · escandinavia |
 
 ### Japan Road Championship `nc-jp-road`
 
@@ -5152,7 +5152,7 @@ Clase **NC** · JP · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 231 | 🔴 Inventado | `nc_ruta` · asia_oriental |
+| 1 | Media montaña · Circuit | — | — | 254 | 🔴 Inventado | `nc_ruta` · asia_oriental |
 
 ### Kazakhstan U23 Road Championship `nc-kz-u23-road`
 
@@ -5176,7 +5176,7 @@ Clase **NC** · UA · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 247 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 227 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Estonia U23 Road Championship `nc-ee-u23-road`
 
@@ -5184,7 +5184,7 @@ Clase **NC** · EE · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 149 | 🔴 Inventado | `nc_ruta` · escandinavia |
+| 1 | Media montaña · Circuit | — | — | 163 | 🔴 Inventado | `nc_ruta` · escandinavia |
 
 ### Estonia Road Championship `nc-ee-road`
 
@@ -5192,7 +5192,7 @@ Clase **NC** · EE · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 255 | 🔴 Inventado | `nc_ruta` · escandinavia |
+| 1 | Media montaña · Circuit | — | — | 237 | 🔴 Inventado | `nc_ruta` · escandinavia |
 
 ### Latvia Road Championship `nc-lv-road`
 
@@ -5200,7 +5200,7 @@ Clase **NC** · LV · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 260 | 🔴 Inventado | `nc_ruta` · escandinavia |
+| 1 | Media montaña · Circuit | — | — | 235 | 🔴 Inventado | `nc_ruta` · escandinavia |
 
 ### Lithuania Road Championship `nc-lt-road`
 
@@ -5216,7 +5216,7 @@ Clase **NC** · BY · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 203 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 222 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Brazil Road Championship `nc-br-road`
 
@@ -5232,7 +5232,7 @@ Clase **NC** · VE · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 187 | 🔴 Inventado | `nc_ruta` · andes |
+| 1 | Media montaña · Circuit | — | — | 206 | 🔴 Inventado | `nc_ruta` · andes |
 
 ### Finland Road Championship `nc-fi-road`
 
@@ -5240,7 +5240,7 @@ Clase **NC** · FI · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 247 | 🔴 Inventado | `nc_ruta` · escandinavia |
+| 1 | Media montaña · Circuit | — | — | 230 | 🔴 Inventado | `nc_ruta` · escandinavia |
 
 ### Croatia U23 Road Championship `nc-hr-u23-road`
 
@@ -5248,7 +5248,7 @@ Clase **NC** · HR · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 178 | 🔴 Inventado | `nc_ruta` · balcanes |
+| 1 | Media montaña · Circuit | — | — | 182 | 🔴 Inventado | `nc_ruta` · balcanes |
 
 ### Croatia Road Championship `nc-hr-road`
 
@@ -5256,7 +5256,7 @@ Clase **NC** · HR · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 178 | 🔴 Inventado | `nc_ruta` · balcanes |
+| 1 | Media montaña · Circuit | — | — | 191 | 🔴 Inventado | `nc_ruta` · balcanes |
 
 ### Hungary U23 Road Championship `nc-hu-u23-road`
 
@@ -5264,7 +5264,7 @@ Clase **NC** · HU · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 178 | 🔴 Inventado | `nc_ruta` · centroeuropa |
+| 1 | Media montaña · Circuit | — | — | 199 | 🔴 Inventado | `nc_ruta` · centroeuropa |
 
 ### Hungary Road Championship `nc-hu-road`
 
@@ -5288,7 +5288,7 @@ Clase **NC** · RO · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 243 | 🔴 Inventado | `nc_ruta` · balcanes |
+| 1 | Media montaña · Circuit | — | — | 222 | 🔴 Inventado | `nc_ruta` · balcanes |
 
 ### Russia Road Championship `nc-ru-road`
 
@@ -5296,7 +5296,7 @@ Clase **NC** · RU · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 196 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 184 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Serbia Road Championship `nc-rs-road`
 
@@ -5304,7 +5304,7 @@ Clase **NC** · RS · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 186 | 🔴 Inventado | `nc_ruta` · balcanes |
+| 1 | Media montaña · Circuit | — | — | 200 | 🔴 Inventado | `nc_ruta` · balcanes |
 
 ### Bulgaria Road Championship `nc-bg-road`
 
@@ -5320,7 +5320,7 @@ Clase **NC** · GR · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 164 | 🔴 Inventado | `nc_ruta` · balcanes |
+| 1 | Media montaña · Circuit | — | — | 136 | 🔴 Inventado | `nc_ruta` · balcanes |
 
 ### Greece Road Championship `nc-gr-road`
 
@@ -5328,7 +5328,7 @@ Clase **NC** · GR · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 196 | 🔴 Inventado | `nc_ruta` · balcanes |
+| 1 | Media montaña · Circuit | — | — | 209 | 🔴 Inventado | `nc_ruta` · balcanes |
 
 ### Turkey U23 Road Championship `nc-tr-u23-road`
 
@@ -5336,7 +5336,7 @@ Clase **NC** · TR · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 177 | 🔴 Inventado | `nc_ruta` · anatolia |
+| 1 | Media montaña · Circuit | — | — | 195 | 🔴 Inventado | `nc_ruta` · anatolia |
 
 ### Turkey Road Championship `nc-tr-road`
 
@@ -5344,7 +5344,7 @@ Clase **NC** · TR · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 202 | 🔴 Inventado | `nc_ruta` · anatolia |
+| 1 | Media montaña · Circuit | — | — | 186 | 🔴 Inventado | `nc_ruta` · anatolia |
 
 ### Israel Road Championship `nc-il-road`
 
@@ -5352,7 +5352,7 @@ Clase **NC** · IL · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 233 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 219 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### South Korea Road Championship `nc-kr-road`
 
@@ -5376,7 +5376,7 @@ Clase **NC** · CN · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 196 | 🔴 Inventado | `nc_ruta` · asia_oriental |
+| 1 | Media montaña · Circuit | — | — | 243 | 🔴 Inventado | `nc_ruta` · asia_oriental |
 
 ### Peru Road Championship `nc-pe-road`
 
@@ -5384,7 +5384,7 @@ Clase **NC** · PE · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 246 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 230 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Morocco U23 Road Championship `nc-ma-u23-road`
 
@@ -5392,7 +5392,7 @@ Clase **NC** · MA · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 170 | 🔴 Inventado | `nc_ruta` · montana_sur |
+| 1 | Media montaña · Circuit | — | — | 158 | 🔴 Inventado | `nc_ruta` · montana_sur |
 
 ### Morocco Road Championship `nc-ma-road`
 
@@ -5408,7 +5408,7 @@ Clase **NC** · ER · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 259 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 236 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Luxembourg U23 Road Championship `nc-lu-u23-road`
 
@@ -5416,7 +5416,7 @@ Clase **NC** · LU · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 160 | 🔴 Inventado | `nc_ruta` · ardenas |
+| 1 | Media montaña · Circuit | — | — | 149 | 🔴 Inventado | `nc_ruta` · ardenas |
 
 ### Luxembourg Road Championship `nc-lu-road`
 
@@ -5424,7 +5424,7 @@ Clase **NC** · LU · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 171 | 🔴 Inventado | `nc_ruta` · ardenas |
+| 1 | Media montaña · Circuit | — | — | 184 | 🔴 Inventado | `nc_ruta` · ardenas |
 
 ### Rwanda U23 Road Championship `nc-rw-u23-road`
 
@@ -5432,7 +5432,7 @@ Clase **NC** · RW · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 158 | 🔴 Inventado | `nc_ruta` · montana_sur |
+| 1 | Media montaña · Circuit | — | — | 174 | 🔴 Inventado | `nc_ruta` · montana_sur |
 
 ### Rwanda Road Championship `nc-rw-road`
 
@@ -5440,7 +5440,7 @@ Clase **NC** · RW · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 189 | 🔴 Inventado | `nc_ruta` · montana_sur |
+| 1 | Media montaña · Circuit | — | — | 212 | 🔴 Inventado | `nc_ruta` · montana_sur |
 
 ### Algeria U23 Road Championship `nc-dz-u23-road`
 
@@ -5448,7 +5448,7 @@ Clase **NC** · DZ · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 167 | 🔴 Inventado | `nc_ruta` · africa_llana |
+| 1 | Media montaña · Circuit | — | — | 156 | 🔴 Inventado | `nc_ruta` · africa_llana |
 
 ### Algeria Road Championship `nc-dz-road`
 
@@ -5456,7 +5456,7 @@ Clase **NC** · DZ · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 207 | 🔴 Inventado | `nc_ruta` · africa_llana |
+| 1 | Media montaña · Circuit | — | — | 220 | 🔴 Inventado | `nc_ruta` · africa_llana |
 
 ### Guatemala Road Championship `nc-gt-road`
 
@@ -5464,7 +5464,7 @@ Clase **NC** · GT · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 216 | 🔴 Inventado | `nc_ruta` · andes |
+| 1 | Media montaña · Circuit | — | — | 235 | 🔴 Inventado | `nc_ruta` · andes |
 
 ### Georgia Road Championship `nc-ge-road`
 
@@ -5472,7 +5472,7 @@ Clase **NC** · GE · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 254 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 237 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### India U23 Road Championship `nc-in-u23-road`
 
@@ -5480,7 +5480,7 @@ Clase **NC** · IN · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 159 | 🔴 Inventado | `nc_ruta` · asia_oriental |
+| 1 | Media montaña · Circuit | — | — | 194 | 🔴 Inventado | `nc_ruta` · asia_oriental |
 
 ### India Road Championship `nc-in-road`
 
@@ -5496,7 +5496,7 @@ Clase **NC** · ET · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 157 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 133 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Ethiopia Road Championship `nc-et-road`
 
@@ -5504,7 +5504,7 @@ Clase **NC** · ET · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 204 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 171 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Indonesia Road Championship `nc-id-road`
 
@@ -5512,7 +5512,7 @@ Clase **NC** · ID · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 240 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 215 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Cuba U23 Road Championship `nc-cu-u23-road`
 
@@ -5520,7 +5520,7 @@ Clase **NC** · CU · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 150 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 160 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Cuba Road Championship `nc-cu-road`
 
@@ -5528,7 +5528,7 @@ Clase **NC** · CU · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 248 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 208 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Moldova U23 Road Championship `nc-md-u23-road`
 
@@ -5536,7 +5536,7 @@ Clase **NC** · MD · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 186 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 173 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Moldova Road Championship `nc-md-road`
 
@@ -5552,7 +5552,7 @@ Clase **NC** · NG · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 220 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 245 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Kenya Road Championship `nc-ke-road`
 
@@ -5560,7 +5560,7 @@ Clase **NC** · KE · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 196 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 216 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Tunisia Road Championship `nc-tn-road`
 
@@ -5568,7 +5568,7 @@ Clase **NC** · TN · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 253 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 235 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Vietnam Road Championship `nc-vn-road`
 
@@ -5584,7 +5584,7 @@ Clase **NC** · AM · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 166 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 176 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Armenia Road Championship `nc-am-road`
 
@@ -5616,7 +5616,7 @@ Clase **NC** · AZ · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 217 | 🔴 Inventado | `nc_ruta` · anatolia |
+| 1 | Media montaña · Circuit | — | — | 240 | 🔴 Inventado | `nc_ruta` · anatolia |
 
 ### Uzbekistan U23 Road Championship `nc-uz-u23-road`
 
@@ -5624,7 +5624,7 @@ Clase **NC** · UZ · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 190 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 170 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Uzbekistan Road Championship `nc-uz-road`
 
@@ -5632,7 +5632,7 @@ Clase **NC** · UZ · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 222 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 210 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Saudi Arabia Road Championship `nc-sa-road`
 
@@ -5640,7 +5640,7 @@ Clase **NC** · SA · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 239 | 🔴 Inventado | `nc_ruta` · golfo |
+| 1 | Media montaña · Circuit | — | — | 225 | 🔴 Inventado | `nc_ruta` · golfo |
 
 ### Qatar Road Championship `nc-qa-road`
 
@@ -5648,7 +5648,7 @@ Clase **NC** · QA · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 232 | 🔴 Inventado | `nc_ruta` · golfo |
+| 1 | Media montaña · Circuit | — | — | 215 | 🔴 Inventado | `nc_ruta` · golfo |
 
 ### Singapore Road Championship `nc-sg-road`
 
@@ -5656,7 +5656,7 @@ Clase **NC** · SG · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 230 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 255 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Dominican Republic Road Championship `nc-do-road`
 
@@ -5664,7 +5664,7 @@ Clase **NC** · DO · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 194 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 183 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Paraguay Road Championship `nc-py-road`
 
@@ -5672,7 +5672,7 @@ Clase **NC** · PY · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 194 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 182 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### North Macedonia U23 Road Championship `nc-mk-u23-road`
 
@@ -5680,7 +5680,7 @@ Clase **NC** · MK · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 178 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 194 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### North Macedonia Road Championship `nc-mk-road`
 
@@ -5688,7 +5688,7 @@ Clase **NC** · MK · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 225 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 206 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Hong Kong Road Championship `nc-hk-road`
 
@@ -5696,7 +5696,7 @@ Clase **NC** · HK · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 192 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 211 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Guam Road Championship `nc-gu-road`
 
@@ -5712,7 +5712,7 @@ Clase **NC** · BH · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 190 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 206 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Kosovo Road Championship `nc-xk-road`
 
@@ -5720,7 +5720,7 @@ Clase **NC** · XK · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 189 | 🔴 Inventado | `nc_ruta` · balcanes |
+| 1 | Media montaña · Circuit | — | — | 202 | 🔴 Inventado | `nc_ruta` · balcanes |
 
 ### Honduras Road Championship `nc-hn-road`
 
@@ -5728,7 +5728,7 @@ Clase **NC** · HN · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 217 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 196 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Andorra Road Championship `nc-ad-road`
 
@@ -5744,7 +5744,7 @@ Clase **NC** · AL · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 246 | 🔴 Inventado | `nc_ruta` · balcanes |
+| 1 | Media montaña · Circuit | — | — | 229 | 🔴 Inventado | `nc_ruta` · balcanes |
 
 ### Bosnia and Herzegovina Road Championship `nc-ba-road`
 
@@ -5760,7 +5760,7 @@ Clase **NC** · BF · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 169 | 🔴 Inventado | `nc_ruta` · africa_llana |
+| 1 | Media montaña · Circuit | — | — | 156 | 🔴 Inventado | `nc_ruta` · africa_llana |
 
 ### Burkina Faso Road Championship `nc-bf-road`
 
@@ -5768,7 +5768,7 @@ Clase **NC** · BF · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 255 | 🔴 Inventado | `nc_ruta` · africa_llana |
+| 1 | Media montaña · Circuit | — | — | 240 | 🔴 Inventado | `nc_ruta` · africa_llana |
 
 ### Benin U23 Road Championship `nc-bj-u23-road`
 
@@ -5776,7 +5776,7 @@ Clase **NC** · BJ · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 178 | 🔴 Inventado | `nc_ruta` · africa_llana |
+| 1 | Media montaña · Circuit | — | — | 177 | 🔴 Inventado | `nc_ruta` · africa_llana |
 
 ### Benin Road Championship `nc-bj-road`
 
@@ -5792,7 +5792,7 @@ Clase **NC** · CM · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 154 | 🔴 Inventado | `nc_ruta` · africa_llana |
+| 1 | Media montaña · Circuit | — | — | 143 | 🔴 Inventado | `nc_ruta` · africa_llana |
 
 ### Cameroon Road Championship `nc-cm-road`
 
@@ -5800,7 +5800,7 @@ Clase **NC** · CM · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 193 | 🔴 Inventado | `nc_ruta` · africa_llana |
+| 1 | Media montaña · Circuit | — | — | 214 | 🔴 Inventado | `nc_ruta` · africa_llana |
 
 ### Cyprus Road Championship `nc-cy-road`
 
@@ -5808,7 +5808,7 @@ Clase **NC** · CY · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 214 | 🔴 Inventado | `nc_ruta` · anatolia |
+| 1 | Media montaña · Circuit | — | — | 231 | 🔴 Inventado | `nc_ruta` · anatolia |
 
 ### Mauritius U23 Road Championship `nc-mu-u23-road`
 
@@ -5840,7 +5840,7 @@ Clase **NC** · OM · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 217 | 🔴 Inventado | `nc_ruta` · golfo |
+| 1 | Media montaña · Circuit | — | — | 214 | 🔴 Inventado | `nc_ruta` · golfo |
 
 ### Taiwan U23 Road Championship `nc-tw-u23-road`
 
@@ -5848,7 +5848,7 @@ Clase **NC** · TW · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 157 | 🔴 Inventado | `nc_ruta` · asia_oriental |
+| 1 | Media montaña · Circuit | — | — | 145 | 🔴 Inventado | `nc_ruta` · asia_oriental |
 
 ### Taiwan Road Championship `nc-tw-road`
 
@@ -5872,7 +5872,7 @@ Clase **NC** · BB · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 214 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 194 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Bermuda Road Championship `nc-bm-road`
 
@@ -5880,7 +5880,7 @@ Clase **NC** · BM · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 205 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 216 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Belize Road Championship `nc-bz-road`
 
@@ -5896,7 +5896,7 @@ Clase **NC** · CI · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 181 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 200 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Cape Verde U23 Road Championship `nc-cv-u23-road`
 
@@ -5928,7 +5928,7 @@ Clase **NC** · DM · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 219 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 243 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Guinea-Bissau U23 Road Championship `nc-gw-u23-road`
 
@@ -5936,7 +5936,7 @@ Clase **NC** · GW · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 189 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 172 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Guinea-Bissau Road Championship `nc-gw-road`
 
@@ -5952,7 +5952,7 @@ Clase **NC** · JO · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 226 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 204 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Cayman Islands U23 Road Championship `nc-ky-u23-road`
 
@@ -5960,7 +5960,7 @@ Clase **NC** · KY · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 158 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 171 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Cayman Islands Road Championship `nc-ky-road`
 
@@ -5968,7 +5968,7 @@ Clase **NC** · KY · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 208 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 222 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Laos Road Championship `nc-la-road`
 
@@ -5976,7 +5976,7 @@ Clase **NC** · LA · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 217 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 240 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Lebanon U23 Road Championship `nc-lb-u23-road`
 
@@ -5984,7 +5984,7 @@ Clase **NC** · LB · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 193 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 174 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Lebanon Road Championship `nc-lb-road`
 
@@ -6024,7 +6024,7 @@ Clase **NC** · ML · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 202 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 222 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Malta Road Championship `nc-mt-road`
 
@@ -6040,7 +6040,7 @@ Clase **NC** · PR · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 190 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 179 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Puerto Rico Road Championship `nc-pr-road`
 
@@ -6048,7 +6048,7 @@ Clase **NC** · PR · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 234 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 258 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Seychelles U23 Road Championship `nc-sc-u23-road`
 
@@ -6056,7 +6056,7 @@ Clase **NC** · SC · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 171 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 192 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Seychelles Road Championship `nc-sc-road`
 
@@ -6072,7 +6072,7 @@ Clase **NC** · SN · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 249 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 235 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Suriname U23 Road Championship `nc-sr-u23-road`
 
@@ -6104,7 +6104,7 @@ Clase **NC** · SX · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 215 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 202 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Eswatini Road Championship `nc-sz-road`
 
@@ -6112,7 +6112,7 @@ Clase **NC** · SZ · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 171 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 181 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Trinidad and Tobago U23 Road Championship `nc-tt-u23-road`
 
@@ -6120,7 +6120,7 @@ Clase **NC** · TT · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 168 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 155 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Trinidad and Tobago Road Championship `nc-tt-road`
 
@@ -6128,7 +6128,7 @@ Clase **NC** · TT · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 241 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 226 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Saint Vincent and the Grenadines Road Championship `nc-vc-road`
 
@@ -6136,7 +6136,7 @@ Clase **NC** · VC · día 179 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 228 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 215 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Iran U23 Road Championship `nc-ir-u23-road`
 
@@ -6152,7 +6152,7 @@ Clase **NC** · IR · día 181 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 241 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 224 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Race Lyon `race-lyon`
 
@@ -6161,7 +6161,7 @@ Clase **1** · FR · día 182 · 3 etapas · recorrido generado · 🔴 Inventad
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
 | 1 | Llana · Flat | — | — | 158 | 🔴 Inventado | `et_llana` · macizo_central |
-| 2 | Montaña · Summit finish | — | — | 167 | 🔴 Inventado | `et_reina_cima_cerca` · alpes |
+| 2 | Montaña · Mountains | — | — | 167 | 🔴 Inventado | `et_reina_valle` · alpes |
 | 3 | Media montaña · Uphill finish | — | — | 113 | 🔴 Inventado | `et_media_alto` · alpes |
 
 ### Race Solidarnosc `race-solidarnosc`
@@ -6252,7 +6252,7 @@ Clase **NC** · JM · día 185 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 143 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 157 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Mongolia U23 Road Championship `nc-mn-u23-road`
 
@@ -6268,7 +6268,7 @@ Clase **NC** · MN · día 185 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 218 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 235 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Jamaica Road Championship `nc-jm-road`
 
@@ -6276,7 +6276,7 @@ Clase **NC** · JM · día 186 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 227 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 251 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Race Austria `race-austria`
 
@@ -6324,7 +6324,7 @@ Clase **2** · VE · día 193 · 8 etapas · recorrido generado · 🔴 Inventad
 | 1 | Llana · Flat | — | — | 114 | 🔴 Inventado | `et_llana` · andes |
 | 2 | Media montaña · Hills | — | — | 154 | 🔴 Inventado | `et_media_tendida` · andes |
 | 3 | Media montaña · Hills | — | — | 135 | 🔴 Inventado | `et_media_valle` · andes |
-| 4 | Media montaña · Uphill finish | — | — | 118 | 🔴 Inventado | `et_media_alto` · andes |
+| 4 | Media montaña · Uphill finish | — | — | 112 | 🔴 Inventado | `et_media_alto` · andes |
 | 5 | Media montaña · Hills | — | — | 116 | 🔴 Inventado | `et_media_valle` · andes |
 | 6 | Contrarreloj · ITT | — | — | 21 | 🔴 Inventado | `et_crono` · andes |
 | 7 | Montaña · Summit finish | — | — | 138 | 🔴 Inventado | `et_reina_alto_largo` · andes |
@@ -6441,7 +6441,7 @@ Clase **2** · TR · día 216 · 4 etapas · recorrido generado · 🔴 Inventad
 |---:|---|---|---|---:|---|---|
 | 1 | Llana · Flat | — | — | 144 | 🔴 Inventado | `et_llana` · anatolia |
 | 2 | Contrarreloj · ITT | — | — | 21 | 🔴 Inventado | `et_crono` · anatolia |
-| 3 | Media montaña · Hills | — | — | 128 | 🔴 Inventado | `et_media_valle` · anatolia |
+| 3 | Media montaña · Hills | — | — | 125 | 🔴 Inventado | `et_media_valle` · anatolia |
 | 4 | Media montaña · Uphill finish | — | — | 98 | 🔴 Inventado | `et_media_alto` · anatolia |
 
 ### Race Portugal `race-portugal`
@@ -6484,7 +6484,7 @@ Clase **2** · CO · día 220 · 9 etapas · recorrido generado · 🔴 Inventad
 | 4 | Media montaña · Hills | — | — | 131 | 🔴 Inventado | `et_media_valle` · andes |
 | 5 | Media montaña · Hills | — | — | 142 | 🔴 Inventado | `et_media_valle` · andes |
 | 6 | Media montaña · Uphill finish | — | — | 129 | 🔴 Inventado | `et_media_alto` · andes |
-| 7 | Montaña · Mountains | — | — | 125 | 🔴 Inventado | `et_reina_valle` · andes |
+| 7 | Montaña · Mountains | — | — | 131 | 🔴 Inventado | `et_reina_valle` · andes |
 | 8 | Contrarreloj · ITT | — | — | 25 | 🔴 Inventado | `et_crono` · andes |
 | 9 | Media montaña · Hills | — | — | 110 | 🔴 Inventado | `et_media_tendida` · andes |
 
@@ -6506,7 +6506,7 @@ Clase **Pro** · CZ · día 225 · 4 etapas · recorrido mixto · 🟡 Sin valid
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
 | 1 | Media montaña · Uphill finish | Prague | Karlovy Vary | 163 | 🟡 Sin validar | `et_media_alto` · centroeuropa |
-| 2 | Montaña · Summit finish | Mlada Boleslav | Jested | 155 | 🟡 Sin validar | `et_reina_cima_cerca` · centroeuropa |
+| 2 | Montaña · Mountains | Mlada Boleslav | Jested | 155 | 🟡 Sin validar | `et_reina_valle` · centroeuropa |
 | 3 | Montaña · Summit finish | Pardubice | Dlouhe strane | 171 | 🟡 Sin validar | `et_reina_alto_corto` · centroeuropa |
 | 4 | Montaña · Summit finish | Kromeriz | Pustevny | 160 | 🟡 Sin validar | `et_reina_cima_cerca` · centroeuropa |
 
@@ -6535,7 +6535,7 @@ Clase **1** · FR · día 230 · 4 etapas · recorrido generado · 🔴 Inventad
 | 1 | Llana · Flat | — | — | 153 | 🔴 Inventado | `et_llana` · macizo_central |
 | 2 | Media montaña · Hills | — | — | 140 | 🔴 Inventado | `et_media_tendida` · alpes |
 | 3 | Media montaña · Hills | — | — | 156 | 🔴 Inventado | `et_media_tendida` · provenza |
-| 4 | Montaña · Summit finish | — | — | 115 | 🔴 Inventado | `et_reina_alto_corto` · pirineos |
+| 4 | Montaña · Summit finish | — | — | 113 | 🔴 Inventado | `et_reina_alto_corto` · pirineos |
 
 ### Race Benelux `race-benelux`
 
@@ -6632,7 +6632,7 @@ Clase **NC** · KG · día 235 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 172 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 179 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Kyrgyzstan Road Championship `nc-kg-road`
 
@@ -6640,7 +6640,7 @@ Clase **NC** · KG · día 235 · 1 etapa · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Media montaña · Circuit | — | — | 188 | 🔴 Inventado | `nc_ruta` · generico |
+| 1 | Media montaña · Circuit | — | — | 201 | 🔴 Inventado | `nc_ruta` · generico |
 
 ### Race Aquitaine `race-aquitaine`
 
@@ -6670,7 +6670,7 @@ Clase **2** · BG · día 241 · 6 etapas · recorrido generado · 🔴 Inventad
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Llana · Flat | — | — | 147 | 🔴 Inventado | `et_llana` · balcanes |
+| 1 | Llana · Flat | — | — | 148 | 🔴 Inventado | `et_llana` · balcanes |
 | 2 | Media montaña · Hills | — | — | 116 | 🔴 Inventado | `et_media_valle` · balcanes |
 | 3 | Media montaña · Uphill finish | — | — | 132 | 🔴 Inventado | `et_media_alto` · balcanes |
 | 4 | Contrarreloj · ITT | — | — | 22 | 🔴 Inventado | `et_crono` · balcanes |
@@ -6732,8 +6732,8 @@ Clase **1** · KR · día 243 · 5 etapas · recorrido generado · 🔴 Inventad
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
 | 1 | Llana · Flat | — | — | 145 | 🔴 Inventado | `et_llana` · asia_oriental |
-| 2 | Media montaña · Hills | — | — | 154 | 🔴 Inventado | `et_media_valle` · asia_oriental |
-| 3 | Media montaña · Uphill finish | — | — | 140 | 🔴 Inventado | `et_media_alto` · asia_oriental |
+| 2 | Media montaña · Hills | — | — | 141 | 🔴 Inventado | `et_media_valle` · asia_oriental |
+| 3 | Media montaña · Uphill finish | — | — | 133 | 🔴 Inventado | `et_media_alto` · asia_oriental |
 | 4 | Media montaña · Uphill finish | — | — | 172 | 🔴 Inventado | `et_media_alto` · asia_oriental |
 | 5 | Llana · Flat | — | — | 130 | 🔴 Inventado | `et_llana` · asia_oriental |
 
@@ -6851,7 +6851,7 @@ Clase **2** · EC · día 250 · 6 etapas · recorrido generado · 🔴 Inventad
 |---:|---|---|---|---:|---|---|
 | 1 | Llana · Flat | — | — | 137 | 🔴 Inventado | `et_llana` · andes |
 | 2 | Media montaña · Uphill finish | — | — | 149 | 🔴 Inventado | `et_media_alto` · andes |
-| 3 | Media montaña · Hills | — | — | 117 | 🔴 Inventado | `et_media_valle` · andes |
+| 3 | Media montaña · Hills | — | — | 116 | 🔴 Inventado | `et_media_valle` · andes |
 | 4 | Montaña · Summit finish | — | — | 124 | 🔴 Inventado | `et_reina_alto_corto` · andes |
 | 5 | Contrarreloj · ITT | — | — | 26 | 🔴 Inventado | `et_crono` · andes |
 | 6 | Montaña · Summit finish | — | — | 130 | 🔴 Inventado | `et_reina_alto_largo` · andes |
@@ -6873,7 +6873,7 @@ Clase **2** · RO · día 252 · 5 etapas · recorrido generado · 🔴 Inventad
 | 1 | Llana · Flat | — | — | 137 | 🔴 Inventado | `et_llana` · balcanes |
 | 2 | Media montaña · Uphill finish | — | — | 141 | 🔴 Inventado | `et_media_alto` · balcanes |
 | 3 | Montaña · Mountains | — | — | 145 | 🔴 Inventado | `et_reina_valle` · balcanes |
-| 4 | Contrarreloj · ITT | — | — | 23 | 🔴 Inventado | `et_crono` · balcanes |
+| 4 | Contrarreloj · ITT | — | — | 22 | 🔴 Inventado | `et_crono` · balcanes |
 | 5 | Media montaña · Hills | — | — | 110 | 🔴 Inventado | `et_media_valle` · balcanes |
 
 ### Race Peccioli `race-peccioli`
@@ -6938,10 +6938,10 @@ Clase **1** · CN · día 255 · 5 etapas · recorrido generado · 🔴 Inventad
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
 | 1 | Llana · Flat | — | — | 159 | 🔴 Inventado | `et_llana` · asia_oriental |
-| 2 | Media montaña · Hills | — | — | 151 | 🔴 Inventado | `et_media_valle` · asia_oriental |
+| 2 | Media montaña · Hills | — | — | 159 | 🔴 Inventado | `et_media_valle` · asia_oriental |
 | 3 | Montaña · Mountains | — | — | 156 | 🔴 Inventado | `et_reina_valle` · asia_oriental |
 | 4 | Contrarreloj · ITT | — | — | 15 | 🔴 Inventado | `et_crono` · asia_oriental |
-| 5 | Media montaña · Uphill finish | — | — | 126 | 🔴 Inventado | `et_media_alto` · asia_oriental |
+| 5 | Media montaña · Uphill finish | — | — | 123 | 🔴 Inventado | `et_media_alto` · asia_oriental |
 
 ### Race Montréal `race-montreal`
 
@@ -7024,7 +7024,7 @@ Clase **1** · SK · día 259 · 5 etapas · recorrido generado · 🔴 Inventad
 | 2 | Media montaña · Hills | — | — | 149 | 🔴 Inventado | `et_media_tendida` · centroeuropa |
 | 3 | Media montaña · Hills | — | — | 152 | 🔴 Inventado | `et_media_valle` · centroeuropa |
 | 4 | Media montaña · Hills | — | — | 148 | 🔴 Inventado | `et_media_tendida` · centroeuropa |
-| 5 | Montaña · Summit finish | — | — | 129 | 🔴 Inventado | `et_reina_alto_corto` · centroeuropa |
+| 5 | Montaña · Summit finish | — | — | 137 | 🔴 Inventado | `et_reina_alto_corto` · centroeuropa |
 
 ### Race Serbia `race-serbie`
 
@@ -7051,7 +7051,7 @@ Clase **Pro** · BE · día 262 · 1 etapa · recorrido generado · 🔴 Inventa
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Clásica · Cobbles | — | — | 185 | 🔴 Inventado | `ud_muros_adoquin` · flandes |
+| 1 | Clásica · Cobbles | — | — | 181 | 🔴 Inventado | `ud_muros_adoquin` · flandes |
 
 ### Race Lazio `race-lazio`
 
@@ -7093,7 +7093,7 @@ Clase **2** · CN · día 263 · 6 etapas · recorrido generado · 🔴 Inventad
 |---:|---|---|---|---:|---|---|
 | 1 | Llana · Flat | — | — | 139 | 🔴 Inventado | `et_llana` · asia_oriental |
 | 2 | Llana · Flat | — | — | 127 | 🔴 Inventado | `et_llana` · asia_oriental |
-| 3 | Media montaña · Uphill finish | — | — | 143 | 🔴 Inventado | `et_media_alto` · asia_oriental |
+| 3 | Media montaña · Uphill finish | — | — | 136 | 🔴 Inventado | `et_media_alto` · asia_oriental |
 | 4 | Contrarreloj · ITT | — | — | 23 | 🔴 Inventado | `et_crono` · asia_oriental |
 | 5 | Media montaña · Hills | — | — | 129 | 🔴 Inventado | `et_media_valle` · asia_oriental |
 | 6 | Montaña · Summit finish | — | — | 104 | 🔴 Inventado | `et_reina_alto_corto` · asia_oriental |
@@ -7125,7 +7125,7 @@ Clase **2** · FR · día 268 · 1 etapa · recorrido generado · 🔴 Inventado
 
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
-| 1 | Clásica · Classic | — | — | 166 | 🔴 Inventado | `ud_muros` · macizo_central |
+| 1 | Clásica · Classic | — | — | 164 | 🔴 Inventado | `ud_muros` · macizo_central |
 
 ### Race Cerami `race-cerami`
 
@@ -7261,8 +7261,8 @@ Clase **1** · JP · día 283 · 3 etapas · recorrido generado · 🔴 Inventad
 | # | tipo | origen | destino | km | procedencia | esqueleto · zona |
 |---:|---|---|---|---:|---|---|
 | 1 | Llana · Flat | — | — | 142 | 🔴 Inventado | `et_llana` · asia_oriental |
-| 2 | Media montaña · Uphill finish | — | — | 160 | 🔴 Inventado | `et_media_alto` · asia_oriental |
-| 3 | Media montaña · Hills | — | — | 119 | 🔴 Inventado | `et_media_tendida` · asia_oriental |
+| 2 | Media montaña · Uphill finish | — | — | 170 | 🔴 Inventado | `et_media_alto` · asia_oriental |
+| 3 | Media montaña · Hills | — | — | 123 | 🔴 Inventado | `et_media_tendida` · asia_oriental |
 
 ### Race Tours `race-tours`
 
