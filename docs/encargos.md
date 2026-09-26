@@ -74,8 +74,11 @@ abajo va la lista mínima.
 
 **Fichero:** `docs/generador.md` · **Tamaño esperado:** grande
 
-**Estado: ESCRITO (25 de septiembre de 2026), listo para encargar su implementación.** El documento
-tiene veinte secciones y unas once mil líneas, y salió del método de la casa completo: siete mapas del
+**Estado: IMPLEMENTADO (25 y 26 de septiembre de 2026, motor v87 y v88).** Lo que se hizo, paso a
+paso y con sus desviaciones, está al principio de `docs/generador.md`; las cifras medidas, en las
+notas v87 (§0 a §6) y v88 de `docs/balance.md`.
+
+**Estado del diseño: ESCRITO (25 de septiembre de 2026).** El documento tiene veinte secciones y unas once mil líneas, y salió del método de la casa completo: siete mapas del
 código, cinco propuestas independientes, tres jueces, un esqueleto con glosario canónico, veinte
 redactores, veintidós refutadores adversarios (642 hallazgos, de ellos 102 altos), un corrector y un
 auditor por sección con segunda vuelta donde hizo falta (695 hallazgos aplicados, 73 desestimados con la

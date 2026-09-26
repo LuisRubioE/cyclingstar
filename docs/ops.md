@@ -170,13 +170,43 @@ mundo vivo y **antes de desplegar la v87** (`docs/generador.md` §15.1 regla 5, 
    entero hasta la temporada siguiente y el mundo no vería el generador nuevo.
 4. Despliega la v87. Las carreras no empezadas se congelan solas con el generador nuevo el día de su
    etapa 1.
+5. Con la v87 ya desplegada, llama una vez a `reclassifyRouteSource(db, worldId)`
+   (`packages/db/src/raceRoutes.ts`): antes de la v87 `freezeRaceRoute` escribía `'generado'` en
+   toda fila, y la ficha diría «Generated route» debajo de un recorrido real. Solo reescribe
+   `route_source`, devuelve la cuenta por origen y es idempotente.
 
-La función no tiene llamador en producción: se corre a mano (una consola con `@cyclingstar/db`
-contra la base del mundo). **El mundo de producción se reinicia antes del lanzamiento**, así que en la
-práctica este paso solo aplica a un mundo de pruebas que sobreviva al despliegue; en uno creado
-después de la v87 no hace falta nada. Mientras dure, E1 se ve en las carreras que no estaban
-empezadas ni convocadas al correr el backfill; las congeladas conservan el perfil viejo hasta la
-temporada siguiente.
+Las dos funciones no tienen llamador en producción: se corren a mano (una consola con
+`@cyclingstar/db` contra la base del mundo). Ninguna se ha corrido todavía en ningún mundo. **El
+mundo de producción se reinicia antes del lanzamiento**, así que en la práctica este procedimiento
+solo aplica a un mundo de pruebas que sobreviva al despliegue; en uno creado después de la v87 no
+hace falta nada.
+
+Qué ve un mundo que sobrevive. Para ver E1 hace falta un mundo creado después de la v87, o mirar
+las carreras que no estaban empezadas ni convocadas al correr el backfill: las ya congeladas
+conservan el perfil viejo hasta la temporada siguiente. Desde la temporada 1 cada carrera se
+congela con su edición de esa temporada (`freezeRaceRoute(..., season)`), así que todo el
+recorrido no real sale ya de la gramática.
+
+La v88 cambia el perfil de cinco reinas de la temporada 0 (`docs/balance.md`, v88). En un mundo que
+ya corre la v87 valen los pasos 1 a 4 con el código de la v87 desplegado y la v88 en lugar de la
+v87 en el paso 4; el paso 5 no hace falta otra vez.
+
+## Galería de recorridos (generador E1)
+
+Páginas estáticas con los perfiles que dibuja el generador, zona por zona y carrera por carrera,
+para revisarlos a ojo (`docs/generador.md` sección 16). No se versiona: se regenera cuando se quiere
+mirar.
+
+```bash
+npx tsc -b packages/shared packages/engine      # el script lee los dist
+node scripts/galeria-recorridos.mjs             # escribe docs/galeria-recorridos/
+node scripts/galeria-recorridos.mjs --comprobar # lo mismo y sus cinco comprobaciones (sale 1 si falla alguna)
+```
+
+Se abre `docs/galeria-recorridos/index.html` en el navegador; desde ahí se llega a las 37 páginas
+(unos 25 MB). `--comprobar` compara las etapas del calendario con `docs/galeria-sello-paso6.json`,
+que sí se versiona; `--sellar` lo reescribe y solo se usa en un cambio que mueve perfiles a
+propósito, con la causa en la nota de balance.
 
 ## Monitorización
 

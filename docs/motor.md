@@ -491,6 +491,17 @@ Y hay un segundo agujero: los invariantes solo corren sobre los escenarios canó
 hechos a mano. **1.271 de las 1.418 etapas del calendario (90%) usan perfiles generados** que nunca
 se han validado contra nada. Un motor razonable con un perfil absurdo produce una carrera absurda.
 
+> **LAS CIFRAS DE ESE SEGUNDO AGUJERO, DESPUÉS DE E1 (v87 y v88).** De las 1.418 etapas, 177 corren
+> un recorrido real, 226 las ciudades y los km de una edición real con el relieve generado, y 1.015
+> son enteramente generadas. Las 1.241 no reales salen ya de la gramática de motivos
+> (`docs/generador.md`), y el censo geométrico `sim/routeCensus.ts` las mide en cada push contra
+> bandas sacadas de las 177 reales: finales de muro el 2,6 % de las etapas en línea, finales de
+> puncheur el 38,9 %, 60 de 86 reinas generadas con final en alto (0,698; las reales, 37 de 54) y
+> finales largos en un día el 0,1 % (`docs/balance.md` v87 §1 y v88). Los bancos que leen el
+> calendario se remidieron pareados contra el generador viejo (v87 §2). Validar los perfiles contra
+> PCS sigue pendiente y es E12; lo que cambió es que un perfil absurdo ya no pasa sin que una banda
+> lo diga.
+
 > **Y UN TERCERO, QUE ES EL QUE MÁS CARO SALE (v23): el CAMPO del escenario canónico tampoco es el
 > de producción.** Esta sección da como ejemplo sano «el mejor sprinter gana el 43% de las llanas», y
 > ese número lo produce `llana-180`, que monta **tres sprinters con SPR 84, 85 y 86**. Con un empate
@@ -1627,6 +1638,15 @@ procyclingstats (sobre todo los 532 campeonatos nacionales: un nacional belga es
 adoquines; uno colombiano, de montaña). Es un punto de partida, no el destino: se afina con el
 tiempo. Los 147 perfiles ya existentes **también se validan** contra PCS, porque no hay certeza de
 que estén bien.
+
+> **La promesa de los nacionales por zona, cumplida en la v87 (E1, `docs/generador.md`).** El
+> generador ya sabe dónde está cada carrera: 31 zonas con su relieve y su firma, un territorio por
+> país y la zona de cada carrera y de cada etapa. Los 532 campeonatos nacionales corren por la zona
+> de su país: una crono y una ruta en circuito (`nc_ruta`) cuyos motivos pone el sitio, con sectores
+> de adoquín en Flandes y un tramo expuesto al viento en Dinamarca y el Golfo. Medido
+> (`docs/balance.md` v87 §1 y §2): los nacionales en ruta pasan de una sola forma y 0 bits de
+> entropía de zona en la v86 (todos `classic(220)`) a 2,96 bits y 6 firmas distintas. La parte de
+> «validar contra PCS» sigue abierta: hoy 177 etapas tienen recorrido real, y ampliarlas es E12.
 
 ### V.4 CRE: se implementa, pero no urge
 

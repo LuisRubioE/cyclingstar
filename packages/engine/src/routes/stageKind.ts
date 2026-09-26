@@ -46,18 +46,21 @@ export function climbSize(segment: Segment): { km: number; g: number } {
  * la cota más larga separaba las familias sin solape (clásica 1,4 a 2,5 km; media 3,3 a 8,0; reina
  * 9,1 a 15,0). Desde la v87 el calendario lo dibuja la gramática, que NO los recalibra (decisión 26):
  * cada esqueleto se acota con holgura para caber en ellos (`cota` hasta 8,0 y `puerto` desde 9,0
- * alrededor de `PASS_MIN_KM`; `muro` hasta 2,5 bajo `WALL_MAX_KM`). Medido en el barrido de
- * `stageKind.test.ts` (20 semillas × 3 zonas × 5 km por esqueleto; sin cronos ni pavé, que se
- * clasifican antes de mirar ninguna subida):
+ * alrededor de `PASS_MIN_KM`; `muro` hasta 2,5 bajo `WALL_MAX_KM`). Medido en la v88 con el
+ * barrido de `stageKind.test.ts` (20 semillas × 3 zonas × 5 km por esqueleto; sin cronos ni pavé,
+ * que se clasifican antes de mirar ninguna subida, ni etapas sin puerto, que son llanas). El
+ * desnivel es el que suma `stageKindOf` (`climbMetres` de todos los segmentos):
  *
  * ```
- *              etapas   cota más larga    desnivel de los puertos
- *   clásica       720    0,6 – 2,9 km        929 – 3825 m
- *   media        2500    1,3 – 8,0 km        637 – 2898 m
- *   reina        2700    9,0 – 25,0 km      1194 – 5449 m
+ *              etapas   cota más larga    desnivel acumulado
+ *   clásica       740    0,5 a 2,7 km        857 a 3468 m
+ *   media        2500    1,3 a 8,0 km        637 a 2898 m
+ *   reina        2700    9,0 a 25,0 km      1194 a 5405 m
  * ```
  *
- * El desnivel acumulado se solapa DE PARTE A PARTE (una clásica de muros de 3.825 m contra una reina
+ * Media y reina no se tocan: 8,0 contra 9,0 a los dos lados de `PASS_MIN_KM`. Clásica y media sí se
+ * solapan en la cota más larga, porque una cota corta que muere en meta es media (`meteEnAlto`). El
+ * desnivel acumulado se solapa DE PARTE A PARTE (una clásica de muros de 3.468 m contra una reina
  * blanda de 1.194): por eso no decide, y solo entra como red para los recorridos REALES, que no salen
  * de la gramática y pueden acumular 4000 m sin un puerto largo.
  */
