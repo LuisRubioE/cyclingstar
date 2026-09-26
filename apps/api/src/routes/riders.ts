@@ -50,6 +50,7 @@ import {
   generateRiderGenome,
   planTss,
   projectLoad,
+  stageCities,
 } from '@cyclingstar/engine'
 import {
   PLAYER_START_AGE,
@@ -65,6 +66,17 @@ import { z } from 'zod'
 import { badRequest, notFound, sendError, unauthorized } from '../http.js'
 import type { RoutePlugin } from './context.js'
 import { parseRaceId, parseRaceKey, parseUuid } from './params.js'
+
+/**
+ * De dónde a dónde fue la etapa de un día de CARRERA del registro diario (`carrera:${raceId}:e${n}`,
+ * `stageRun.ts`), con las ciudades de la temporada de ese día; nada si el día no fue de carrera o la
+ * carrera ya no está en el calendario.
+ */
+function ciudadesDelDia(activity: string, gameDay: number): { from?: string; to?: string } {
+  const m = /^carrera:([^:]+):e(\d+)$/.exec(activity)
+  const c = m ? stageCities(m[1]!, currentSeason(gameDay), Number(m[2])) : null
+  return c ? { from: c.from, to: c.to } : {}
+}
 
 /** Horizonte del planificador de entrenamiento (SPEC 5.2: cola de 7 a 28 días). */
 export const TRAINING_HORIZON_DAYS = 28
@@ -427,7 +439,10 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
     if (!userId) return unauthorized(reply)
     const rider = await getRiderForUser(db, userId)
     if (!rider) return { log: [], form: null }
-    const log = await getDailyLog(db, rider.id, 90)
+    const log = (await getDailyLog(db, rider.id, 90)).map((p) => ({
+      ...p,
+      ...ciudadesDelDia(p.activity, p.gameDay),
+    }))
     const latest = log[log.length - 1]
     const form = latest
       ? { stars: formStars(latest.ctl, latest.tsb), freshness: freshnessBar(latest.tsb) }
