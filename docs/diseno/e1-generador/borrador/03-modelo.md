@@ -23,29 +23,45 @@ import type { Segment } from '../../stage/types.js'
 import type { GeoSignature } from './geo.js'
 
 export type MotifKind =
-  | 'enlace' | 'expuesto' | 'tendida' | 'descenso'          // enlaces
-  | 'cota' | 'puerto' | 'muro' | 'cadena' | 'sector' | 'racimo' | 'circuito'   // dificultades
-  | 'meta'                                                  // siempre el último
+  | 'enlace'
+  | 'expuesto'
+  | 'tendida'
+  | 'descenso' // enlaces
+  | 'cota'
+  | 'puerto'
+  | 'muro'
+  | 'cadena'
+  | 'sector'
+  | 'racimo'
+  | 'circuito' // dificultades
+  | 'meta' // siempre el último
 
 export type MetaKind =
-  | 'esprint' | 'repecho' | 'muro_meta' | 'alto_corto' | 'alto_largo'
-  | 'cima_cerca' | 'descenso_meta' | 'valle' | 'sector_meta'
+  | 'esprint'
+  | 'repecho'
+  | 'muro_meta'
+  | 'alto_corto'
+  | 'alto_largo'
+  | 'cima_cerca'
+  | 'descenso_meta'
+  | 'valle'
+  | 'sector_meta'
 
 export interface Motif {
   kind: MotifKind
-  km: number                                   // total del motivo; en `circuito`, el de una vuelta
-  g?: number                                   // dificultades y `tendida`: pendiente media en %
+  km: number // total del motivo; en `circuito`, el de una vuelta
+  g?: number // dificultades y `tendida`: pendiente media en %
   forma?: 'regular' | 'progresiva' | 'irregular'
-  adoquin?: boolean                            // `muro` adoquinado (sigue siendo `puerto`) o `sector` de adoquín (frente a tierra)
-  firme?: 'adoquin' | 'tierra'                 // solo `sector`; tierra se rinde como `paves` 2-3★
-  estrellas?: number                           // solo `sector`: 1..5
-  hijos?: Motif[]                              // `cadena`, `racimo`, `circuito`: SOLO dificultades, nunca enlaces
-  separaciones?: number[]                      // km de enlace interno: hijos.length − 1 en `cadena` y `racimo`; hijos.length en `circuito` (sección 5)
-  vueltas?: number                             // solo `circuito`
-  meta?: MetaKind                              // solo `meta`
-  cotaFinal?: { km: number; g: number }        // `meta` con cota
-  firma?: boolean                              // motivo de FIRMA: no cambia entre ediciones
-  nombre?: string                              // texto para la ficha ("Muro de 1,2 km al 11 %")
+  adoquin?: boolean // `muro` adoquinado (sigue siendo `puerto`) o `sector` de adoquín (frente a tierra)
+  firme?: 'adoquin' | 'tierra' // solo `sector`; tierra se rinde como `paves` 2-3★
+  estrellas?: number // solo `sector`: 1..5
+  hijos?: Motif[] // `cadena`, `racimo`, `circuito`: SOLO dificultades, nunca enlaces
+  separaciones?: number[] // km de enlace interno: hijos.length − 1 en `cadena` y `racimo`; hijos.length en `circuito` (sección 5)
+  vueltas?: number // solo `circuito`
+  meta?: MetaKind // solo `meta`
+  cotaFinal?: { km: number; g: number } // `meta` con cota
+  firma?: boolean // motivo de FIRMA: no cambia entre ediciones
+  nombre?: string // texto para la ficha ("Muro de 1,2 km al 11 %")
 }
 
 /** Fábrica de corrientes de azar por subflujo nominal, al estilo de `stageRng` (stage/rng.ts l. 26-29). */
@@ -59,14 +75,28 @@ export function validateMotif(m: Motif, geo?: GeoSignature): string | null
 export function renderMotif(m: Motif, rng: RngFactory, geo: GeoSignature): Segment[]
 
 /** Un motivo instanciado y el hueco del que sale (índice en `sk.slots`, o 'meta'): `colocar` lo necesita para la ventana y `Motif` no lo lleva. */
-export interface Instancia { slot: number | 'meta'; j: number; motif: Motif }
+export interface Instancia {
+  slot: number | 'meta'
+  j: number
+  motif: Motif
+}
 /** Paso 2 de generateStage (sección 8, §8.3): huecos con `firma: true` y la meta, una vez por etapa con `rand` = routeRng(semillaDe('firma', req)),
  *  dentro de ARCH.motivo ∩ (alternativa.slots?.[k] ?? slot.params) ∩ req.geo; con `opcion` > 0 lee los rangos de sk.alternativas[opcion − 1]. */
-export function instanciarFirma(sk: Skeleton, opcion: number, req: StageRequest, rand: () => number): Instancia[]
+export function instanciarFirma(
+  sk: Skeleton,
+  opcion: number,
+  req: StageRequest,
+  rand: () => number,
+): Instancia[]
 /** Paso 4 (sección 8, §8.5): huecos no firma según plan.n con rngDe(slot, j) = routeRng(semillaDe('mot', req, { slot, j, intento })),
  *  degradación con degradarMotivo (geo.ts) y persecución del desnivel. Devuelve firma + no firma + meta, ordenados por slot y j, meta al final. */
-export function instanciar(sk: Skeleton, firma: readonly Instancia[], plan: EditionPlan, req: StageRequest,
-  rngDe: (slot: number, j: number) => () => number): Instancia[]
+export function instanciar(
+  sk: Skeleton,
+  firma: readonly Instancia[],
+  plan: EditionPlan,
+  req: StageRequest,
+  rngDe: (slot: number, j: number) => () => number,
+): Instancia[]
 // Imports de tipo que estas dos firmas añaden (se borran al compilar, verbatimModuleSyntax): Skeleton de './skeletons.js',
 // EditionPlan de './edition.js', StageRequest de './generate.js'. Los únicos valores nuevos que motifs.ts importa son degradarMotivo y firmeDe de './geo.js'.
 ```
@@ -77,20 +107,20 @@ Un motivo es una pieza de carretera con significado ciclista, y es la unidad que
 
 Cómo se rinde cada motivo a `Segment[]` y qué lee el motor de él (rangos de `ARCH.motivo` copiados del bloque de la sección 12 §12.1, que es su única fuente y manda sobre esta tabla si alguna cifra discrepa; `[a; b)` marca un techo excluido; lecturas del mapa 03 §3 y §4):
 
-| Motivo | `km` | `g` | Rinde a `Segment[]` como | Qué lee el motor |
-| --- | --- | --- | --- | --- |
-| `enlace` | [1; 300] (el enlace de aproximación de una clásica es UN motivo, sección 4 §4.2) | amplitud `geo.amplitud` ≤ 2,4 | `rolling(rand, km, amp, 0)` en trozos de 3 a 6 km (`profileGen.ts` l. 102): varios `llano` con tramos | pendiente en `costBase`; único terreno con abanico y acordeón (`simulate.ts` l. 1215, 4340-4408); `selectionFactor` 0 |
-| `expuesto` | [5; 120] | amplitud `min(ARCH.motivo.expuesto.amp 0,5; geo.amplitud)` | `rolling(rand, km, min(ARCH.motivo.expuesto.amp, geo.amplitud), 0)` | igual; la ficha lo describe como llano abierto, sin prometer abanicos (decisión 17) |
-| `tendida` | [5; 30] | [1,5; 3,5] | UN `llano` con 2 a 4 tramos a `g ± 0,7` | `costBase` 0,24 + 0,135·g; NO suma `kmSubida`; no selecciona |
-| `descenso` | [2; 25] (`ARCH.motivo.descenso.km`); la bajada canónica mide [2; 10] y la calcula `colocar` (`place.ts`, sección 8) desde la dificultad precedente con `ARCH.motivo.descenso.kmPorDesnivel` (`clamp(len·g·10/55, 2, 10)`, la bajada canónica de `mountainClassicSegments` l. 467) y lo guarda en `Motif.km`; un `descenso` sin dificultad delante toma `kmRango` del `Slot` | [−8; −3]; la pendiente la fija la fracción `ARCH.colocacion.bajadaTrasPuerto` de lo subido (sección 8, §8.6) | `descent(rand, km, |g|)`: un `descenso` con tramos | selecciona solo con g ≤ −4 en su primer km o entero a ≤ 25 km de meta (l. 2427, 5083-5089); coste con suelo 0,10. `validateMotif` solo exige `km ∈ [2; 25]` y `g ∈ [−8; −3]` |
-| `cota` | [2,5; 8,0] | [4; 8) (8 = `STAGE.wallMinGradient`, excluido) | `climb(rand, km, g)`: un `puerto` con tramos, pancarta `cima` si ≥ 1,5 km | `subida`: suma a `kmSubida`, deriva, `climbRaceKmToGo` 30, categoría por `deriveClimbCategory` |
-| `puerto` | [9; 25] | [5; 12] (la zona estrecha, sección 6) | `climb`; `forma: 'irregular'` añade una rampa de [0,3; 0,8] km al [11; 13] % | igual; con COL bloque a bloque donde g ≥ 8 (`riderPerfil`, l. 434) |
-| `muro` | [0,4; 2,5] (2,5 = `STAGE.wallMaxKm`) | [8; 16] | con `km < 1,0`, UNA rampa de `km` al `g` declarado; con `km ≥ 1,0`, `climb(rand, km, g, { gMin: 8, gMax: 16 })` con 2 rampas (sección 4 §4.2); `adoquin: true` sigue siendo `puerto` | COL en todos sus bloques; en meta y ≤ 1,0 km, `finishType` da `muro` (`finish.ts` l. 184-185) |
-| `cadena` | Σ hijos + Σ `separaciones`, cada separación en `ARCH.motivo.cadena.enlace` [1,5; 6] km | | de 2 a 8 hijos (`muro` o `cota`); entre cada dos, su separación rendida con `rolling` a `geo.amplitud`, sin valle; el hijo h con `rng(`hijo${h}`)` y la separación h con `rng(`sep${h}`)` (sección 4 §4.5) | nada nuevo: n rachas de `subida` seguidas |
-| `sector` | [0,3; 3,7] | 0 | `{ km, tipo: 'paves', estrellas }`; `firme: 'tierra'` se rinde como `paves` de 2 a 3★ (como Strade en `classicRoutes.ts` l. 594) | `estrellas` en `costBase` 0,55 + 0,06·e, selección y percances ×20 (`constants.ts` l. 4389) |
-| `racimo` | [10; 60] = Σ hijos + Σ `separaciones` | | [4; 10] sectores; entre cada dos, su separación de [2; 6] km (`ARCH.motivo.racimo.separacion`) rendida con `rolling` a amplitud 0,7; el sector h con `rng(`hijo${h}`)` y la separación h con `rng(`sep${h}`)` | `kmToNextPaves` y el peaje de entrada en cada sector (l. 1628-1636, 2611) |
-| `circuito` | vuelta [1,5; 30] × [2; 40] vueltas en `ARCH`; cada `Slot.params` lo estrecha con `kmRango` y `vueltasRango` (sección 5) | | `separaciones[h]` es el enlace ANTES del hijo h y el resto de la vuelta, ≥ 1,5 km, la cierra (sección 4 §4.5, regla 3); los `hijos` rendidos `vueltas` veces; el hijo h se rinde con `rng(`hijo${h}`)` y cada vuelta REUTILIZA la misma corriente (se vuelve a pedir `rng(`hijo${h}`)` por vuelta, que devuelve la misma secuencia) | n pasos por la misma cota; UNA sola pancarta por cota del circuito ≥ 1,5 km, en su último paso, nunca una por paso (decisión 25; sección 8 §8.10) |
-| `meta` | según `MetaKind` | | sección 4 (tabla de los nueve finales) | `finishType` medido en el censo (V16) y `finalKindOf` garantizado (V7) |
+| Motivo     | `km`                                                                                                                                                                                                                                                                                                                                                                        | `g`                                                                                                          | Rinde a `Segment[]` como                                                                                                                                                                                                                                                                                                            | Qué lee el motor                                                                                                                                  |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `enlace`   | [1; 300] (el enlace de aproximación de una clásica es UN motivo, sección 4 §4.2)                                                                                                                                                                                                                                                                                            | amplitud `geo.amplitud` ≤ 2,4                                                                                | `rolling(rand, km, amp, 0)` en trozos de 3 a 6 km (`profileGen.ts` l. 102): varios `llano` con tramos                                                                                                                                                                                                                               | pendiente en `costBase`; único terreno con abanico y acordeón (`simulate.ts` l. 1215, 4340-4408); `selectionFactor` 0                             |
+| `expuesto` | [5; 120]                                                                                                                                                                                                                                                                                                                                                                    | amplitud `min(ARCH.motivo.expuesto.amp 0,5; geo.amplitud)`                                                   | `rolling(rand, km, min(ARCH.motivo.expuesto.amp, geo.amplitud), 0)`                                                                                                                                                                                                                                                                 | igual; la ficha lo describe como llano abierto, sin prometer abanicos (decisión 17)                                                               |
+| `tendida`  | [5; 30]                                                                                                                                                                                                                                                                                                                                                                     | [1,5; 3,5]                                                                                                   | UN `llano` con 2 a 4 tramos a `g ± 0,7`                                                                                                                                                                                                                                                                                             | `costBase` 0,24 + 0,135·g; NO suma `kmSubida`; no selecciona                                                                                      |
+| `descenso` | [2; 25] (`ARCH.motivo.descenso.km`); la bajada canónica mide [2; 10] y la calcula `colocar` (`place.ts`, sección 8) desde la dificultad precedente con `ARCH.motivo.descenso.kmPorDesnivel` (`clamp(len·g·10/55, 2, 10)`, la bajada canónica de `mountainClassicSegments` l. 467) y lo guarda en `Motif.km`; un `descenso` sin dificultad delante toma `kmRango` del `Slot` | [−8; −3]; la pendiente la fija la fracción `ARCH.colocacion.bajadaTrasPuerto` de lo subido (sección 8, §8.6) | `descent(rand, km,                                                                                                                                                                                                                                                                                                                  | g                                                                                                                                                 | )`: un `descenso` con tramos | selecciona solo con g ≤ −4 en su primer km o entero a ≤ 25 km de meta (l. 2427, 5083-5089); coste con suelo 0,10. `validateMotif` solo exige `km ∈ [2; 25]` y `g ∈ [−8; −3]` |
+| `cota`     | [2,5; 8,0]                                                                                                                                                                                                                                                                                                                                                                  | [4; 8) (8 = `STAGE.wallMinGradient`, excluido)                                                               | `climb(rand, km, g)`: un `puerto` con tramos, pancarta `cima` si ≥ 1,5 km                                                                                                                                                                                                                                                           | `subida`: suma a `kmSubida`, deriva, `climbRaceKmToGo` 30, categoría por `deriveClimbCategory`                                                    |
+| `puerto`   | [9; 25]                                                                                                                                                                                                                                                                                                                                                                     | [5; 12] (la zona estrecha, sección 6)                                                                        | `climb`; `forma: 'irregular'` añade una rampa de [0,3; 0,8] km al [11; 13] %                                                                                                                                                                                                                                                        | igual; con COL bloque a bloque donde g ≥ 8 (`riderPerfil`, l. 434)                                                                                |
+| `muro`     | [0,4; 2,5] (2,5 = `STAGE.wallMaxKm`)                                                                                                                                                                                                                                                                                                                                        | [8; 16]                                                                                                      | con `km < 1,0`, UNA rampa de `km` al `g` declarado; con `km ≥ 1,0`, `climb(rand, km, g, { gMin: 8, gMax: 16 })` con 2 rampas (sección 4 §4.2); `adoquin: true` sigue siendo `puerto`                                                                                                                                                | COL en todos sus bloques; en meta y ≤ 1,0 km, `finishType` da `muro` (`finish.ts` l. 184-185)                                                     |
+| `cadena`   | Σ hijos + Σ `separaciones`, cada separación en `ARCH.motivo.cadena.enlace` [1,5; 6] km                                                                                                                                                                                                                                                                                      |                                                                                                              | de 2 a 8 hijos (`muro` o `cota`); entre cada dos, su separación rendida con `rolling` a `geo.amplitud`, sin valle; el hijo h con `rng(`hijo${h}`)` y la separación h con `rng(`sep${h}`)` (sección 4 §4.5)                                                                                                                          | nada nuevo: n rachas de `subida` seguidas                                                                                                         |
+| `sector`   | [0,3; 3,7]                                                                                                                                                                                                                                                                                                                                                                  | 0                                                                                                            | `{ km, tipo: 'paves', estrellas }`; `firme: 'tierra'` se rinde como `paves` de 2 a 3★ (como Strade en `classicRoutes.ts` l. 594)                                                                                                                                                                                                    | `estrellas` en `costBase` 0,55 + 0,06·e, selección y percances ×20 (`constants.ts` l. 4389)                                                       |
+| `racimo`   | [10; 60] = Σ hijos + Σ `separaciones`                                                                                                                                                                                                                                                                                                                                       |                                                                                                              | [4; 10] sectores; entre cada dos, su separación de [2; 6] km (`ARCH.motivo.racimo.separacion`) rendida con `rolling` a amplitud 0,7; el sector h con `rng(`hijo${h}`)` y la separación h con `rng(`sep${h}`)`                                                                                                                       | `kmToNextPaves` y el peaje de entrada en cada sector (l. 1628-1636, 2611)                                                                         |
+| `circuito` | vuelta [1,5; 30] × [2; 40] vueltas en `ARCH`; cada `Slot.params` lo estrecha con `kmRango` y `vueltasRango` (sección 5)                                                                                                                                                                                                                                                     |                                                                                                              | `separaciones[h]` es el enlace ANTES del hijo h y el resto de la vuelta, ≥ 1,5 km, la cierra (sección 4 §4.5, regla 3); los `hijos` rendidos `vueltas` veces; el hijo h se rinde con `rng(`hijo${h}`)` y cada vuelta REUTILIZA la misma corriente (se vuelve a pedir `rng(`hijo${h}`)` por vuelta, que devuelve la misma secuencia) | n pasos por la misma cota; UNA sola pancarta por cota del circuito ≥ 1,5 km, en su último paso, nunca una por paso (decisión 25; sección 8 §8.10) |
+| `meta`     | según `MetaKind`                                                                                                                                                                                                                                                                                                                                                            |                                                                                                              | sección 4 (tabla de los nueve finales)                                                                                                                                                                                                                                                                                              | `finishType` medido en el censo (V16) y `finalKindOf` garantizado (V7)                                                                            |
 
 Dos aclaraciones que las propuestas dejaban ambiguas. `tendida` y `expuesto` se tipan `llano` a propósito y no `rompepiernas`, porque el segundo pierde sus tramos en el muestreo (hecho 1 de §3.1). Y `muro` adoquinado sigue siendo `puerto` (regla de la casa de `fuentes-recorridos.md`, citada por arquitectura §3.1): `adoquin: true` solo cambia el nombre de la ficha y el requisito geográfico (`GeoSignature.muro.adoquin`), nunca `Segment.tipo`.
 
@@ -102,86 +132,116 @@ import type { StageKind } from '../testTour.js'
 import type { FinalKind } from '../finalKind.js'
 import type { RouteTerrain } from '../featureProfile.js'
 import type { RaceClass } from '../uci.js'
-import type { EditionTerrain } from '../editions.js'           // l. 10: 'flat' | 'hilly' | 'mountain' | 'itt' | 'cobbles'
+import type { EditionTerrain } from '../editions.js' // l. 10: 'flat' | 'hilly' | 'mountain' | 'itt' | 'cobbles'
 import type { GeoSignature, Relieve } from './geo.js'
 import type { StageRole } from './tour.js'
 import type { StageRequest } from './generate.js'
 
 /** Lo que el esqueleto exige de la zona (sección 5, §5.1); `admite` (geo.ts, §3.4) es la única función que lo lee. Un campo ausente no exige nada. */
 export interface Requiere {
-  puerto?: true                                // geo.puerto !== null
-  cota?: true                                  // geo.cota !== null
-  muro?: true | { adoquin: true }              // geo.muro !== null; { adoquin: true } además geo.muro.adoquin
-  cotaKmMin?: number                           // geo.cota !== null && geo.cota.km[1] >= n (3,3: una cota que saque de `clasica`)
-  cotaCortaMax?: number                        // geo.cota !== null && geo.cota.km[0] <= n (2,9: una cota que siga siendo `clasica`; solo `ud_circuito`)
-  adoquin?: 1 | 2 | 3                          // geo.adoquin >= n
-  sterrato?: true                              // geo.sterrato
-  viento?: 1 | 2 | 3                           // geo.viento >= n
-  relieve?: Relieve                            // mínimo: orden(geo.relieve) >= orden(r), llano < ondulado < media < montana < alta
-  finalesAlto?: 'corto' | 'largo'              // 'corto': geo.finalesAlto ∈ {corto, largo}; 'largo': === 'largo'
-  altitud?: GeoSignature['altitud']            // igualdad: geo.altitud === a (una disyunción se escribe como lista de Requiere)
+  puerto?: true // geo.puerto !== null
+  cota?: true // geo.cota !== null
+  muro?: true | { adoquin: true } // geo.muro !== null; { adoquin: true } además geo.muro.adoquin
+  cotaKmMin?: number // geo.cota !== null && geo.cota.km[1] >= n (3,3: una cota que saque de `clasica`)
+  cotaCortaMax?: number // geo.cota !== null && geo.cota.km[0] <= n (2,9: una cota que siga siendo `clasica`; solo `ud_circuito`)
+  adoquin?: 1 | 2 | 3 // geo.adoquin >= n
+  sterrato?: true // geo.sterrato
+  viento?: 1 | 2 | 3 // geo.viento >= n
+  relieve?: Relieve // mínimo: orden(geo.relieve) >= orden(r), llano < ondulado < media < montana < alta
+  finalesAlto?: 'corto' | 'largo' // 'corto': geo.finalesAlto ∈ {corto, largo}; 'largo': === 'largo'
+  altitud?: GeoSignature['altitud'] // igualdad: geo.altitud === a (una disyunción se escribe como lista de Requiere)
 }
 
-export interface SlotParams extends Partial<Pick<Motif, 'g' | 'forma' | 'adoquin' | 'estrellas' | 'vueltas' | 'firme'>> {
-  kmRango?: [number, number]                   // km del motivo; en `circuito`, km de la vuelta
+export interface SlotParams extends Partial<
+  Pick<Motif, 'g' | 'forma' | 'adoquin' | 'estrellas' | 'vueltas' | 'firme'>
+> {
+  kmRango?: [number, number] // km del motivo; en `circuito`, km de la vuelta
   gRango?: [number, number]
-  estrellasRango?: [number, number]            // solo `sector`
-  vueltasRango?: [number, number]              // solo `circuito`
-  separacionRango?: [number, number]           // `cadena`, `racimo`, `circuito`: enlace entre hijos (defecto ARCH.motivo.cadena/racimo)
-  adoquinShare?: [number, number]              // `cadena` de muros: fracción de hijos con `adoquin: true`
-  firmaCount?: number                          // `racimo`: hijos 5★ de firma que el esqueleto reparte
+  estrellasRango?: [number, number] // solo `sector`
+  vueltasRango?: [number, number] // solo `circuito`
+  separacionRango?: [number, number] // `cadena`, `racimo`, `circuito`: enlace entre hijos (defecto ARCH.motivo.cadena/racimo)
+  adoquinShare?: [number, number] // `cadena` de muros: fracción de hijos con `adoquin: true`
+  firmaCount?: number // `racimo`: hijos 5★ de firma que el esqueleto reparte
 }
 
 export interface Slot {
   motif: MotifKind
-  n: [number, number]                          // cardinalidad; 0 en el mínimo = hueco opcional
-  ventana: [number, number]                    // fracción de la etapa (o de la vuelta o cadena, en `hijos`) donde EMPIEZA el motivo
+  n: [number, number] // cardinalidad; 0 en el mínimo = hueco opcional
+  ventana: [number, number] // fracción de la etapa (o de la vuelta o cadena, en `hijos`) donde EMPIEZA el motivo
   params?: SlotParams
-  hijos?: Slot[]                               // solo `cadena`, `racimo`, `circuito`; `[]` en `circuito` es una vuelta de solo enlace
+  hijos?: Slot[] // solo `cadena`, `racimo`, `circuito`; `[]` en `circuito` es una vuelta de solo enlace
   firma?: boolean
 }
 
 /** Rotación declarada de nivel 2 (sección 10, §10.3): un juego de RANGOS por hueco de firma más una plantilla literal. */
 export interface Alternativa {
-  nombre: string                               // "Bérgamo", "Angliru", "Lagos": frase y diffMotivos
-  meta?: MetaKind                              // si la opción cambia la meta; V7 exige finalKindDe(meta)
-  metaParams?: { kmRango?: [number, number]; gRango?: [number, number] }   // rango de `cotaFinal` de la opción
-  slots?: Record<number, SlotParams>           // por índice de hueco con firma: sustituyen a los `params` del hueco
-  canonico: Motif[]                            // plantilla de la opción: galería, degradado y skeletons.test.ts
+  nombre: string // "Bérgamo", "Angliru", "Lagos": frase y diffMotivos
+  meta?: MetaKind // si la opción cambia la meta; V7 exige finalKindDe(meta)
+  metaParams?: { kmRango?: [number, number]; gRango?: [number, number] } // rango de `cotaFinal` de la opción
+  slots?: Record<number, SlotParams> // por índice de hueco con firma: sustituyen a los `params` del hueco
+  canonico: Motif[] // plantilla de la opción: galería, degradado y skeletons.test.ts
 }
 
 export interface Skeleton {
   id: SkeletonId
-  kind: StageKind                              // lo que `stageKindOf` TIENE que devolver (V6)
-  label: string                                // la etiqueta de la ficha; OBLIGATORIA y compatible con `kind` (test)
-  timeTrial?: true                             // solo `et_crono`, `et_prologo`, `et_cronoescalada`, `nc_crono`
-  finalKind?: FinalKind                        // reinas y medias con un solo final posible: lo que `finalKindOf` TIENE que devolver (V7)
+  kind: StageKind // lo que `stageKindOf` TIENE que devolver (V6)
+  label: string // la etiqueta de la ficha; OBLIGATORIA y compatible con `kind` (test)
+  timeTrial?: true // solo `et_crono`, `et_prologo`, `et_cronoescalada`, `nc_crono`
+  finalKind?: FinalKind // reinas y medias con un solo final posible: lo que `finalKindOf` TIENE que devolver (V7)
   meta: MetaKind
-  metaParams?: { aMeta?: [number, number]; cotaFinal?: { km: [number, number]; g: [number, number] } }   // columnas "Meta" de la sección 5
+  metaParams?: {
+    aMeta?: [number, number]
+    cotaFinal?: { km: [number, number]; g: [number, number] }
+  } // columnas "Meta" de la sección 5
   slots: Slot[]
-  dPlus: [number, number]                      // objetivo TOTAL, relleno incluido (ARCH.reina.dPlusIncluyeRelleno)
-  km: [number, number]                         // rango bruto antes de ARCH.km.porClase
-  requiere?: Requiere | Requiere[]             // lista = alternativas ("o bien"); lo lee solo admite (geo.ts, §3.4)
-  pesoBase: number                             // peso del catálogo antes de zona y clase
-  canonico: Motif[]                            // instancia fija escrita a mano: pasa todos los vetos por construcción
-  alternativas?: Alternativa[]                 // rotación DECLARADA (ARCH.edicion.nivel 2): opcionDe elige (§3.8)
+  dPlus: [number, number] // objetivo TOTAL, relleno incluido (ARCH.reina.dPlusIncluyeRelleno)
+  km: [number, number] // rango bruto antes de ARCH.km.porClase
+  requiere?: Requiere | Requiere[] // lista = alternativas ("o bien"); lo lee solo admite (geo.ts, §3.4)
+  pesoBase: number // peso del catálogo antes de zona y clase
+  canonico: Motif[] // instancia fija escrita a mano: pasa todos los vetos por construcción
+  alternativas?: Alternativa[] // rotación DECLARADA (ARCH.edicion.nivel 2): opcionDe elige (§3.8)
 }
 
 export type SkeletonId =
   // un día (16)
-  | 'ud_esprint' | 'ud_esprint_capi' | 'ud_circuito' | 'ud_muro_final' | 'ud_muros'
-  | 'ud_muros_adoquin' | 'ud_sterrato' | 'ud_adoquin' | 'ud_adoquin_ligero' | 'ud_montana'
-  | 'ud_montana_media' | 'ud_repecho' | 'ud_montana_alto' | 'ud_criterium' | 'nc_ruta' | 'nc_crono'
+  | 'ud_esprint'
+  | 'ud_esprint_capi'
+  | 'ud_circuito'
+  | 'ud_muro_final'
+  | 'ud_muros'
+  | 'ud_muros_adoquin'
+  | 'ud_sterrato'
+  | 'ud_adoquin'
+  | 'ud_adoquin_ligero'
+  | 'ud_montana'
+  | 'ud_montana_media'
+  | 'ud_repecho'
+  | 'ud_montana_alto'
+  | 'ud_criterium'
+  | 'nc_ruta'
+  | 'nc_crono'
   // etapa de vuelta (16)
-  | 'et_llana' | 'et_llana_viento' | 'et_media_valle' | 'et_media_alto' | 'et_media_muro'
-  | 'et_media_tendida' | 'et_reina_alto_largo' | 'et_reina_alto_corto' | 'et_reina_cima_cerca'
-  | 'et_reina_valle' | 'et_reina_encadenada' | 'et_montana_corta' | 'et_reina_blanda'
-  | 'et_crono' | 'et_prologo' | 'et_cronoescalada'
+  | 'et_llana'
+  | 'et_llana_viento'
+  | 'et_media_valle'
+  | 'et_media_alto'
+  | 'et_media_muro'
+  | 'et_media_tendida'
+  | 'et_reina_alto_largo'
+  | 'et_reina_alto_corto'
+  | 'et_reina_cima_cerca'
+  | 'et_reina_valle'
+  | 'et_reina_encadenada'
+  | 'et_montana_corta'
+  | 'et_reina_blanda'
+  | 'et_crono'
+  | 'et_prologo'
+  | 'et_cronoescalada'
 
-export const SKELETON_IDS: readonly SkeletonId[]              // la unión como lista literal (32); el test la compara con Object.keys(SKELETONS)
+export const SKELETON_IDS: readonly SkeletonId[] // la unión como lista literal (32); el test la compara con Object.keys(SKELETONS)
 export const SKELETONS: Record<SkeletonId, Skeleton>
-export const CANONICO: Record<SkeletonId, Motif[]>            // las 32 plantillas canónicas (Skeleton.canonico se rellena desde aquí)
-export const NC_RUTA_CLASICA: Motif[]                         // plantilla de `nc_ruta` en zonas sin cota ≥ 3,3 km (sección 5)
+export const CANONICO: Record<SkeletonId, Motif[]> // las 32 plantillas canónicas (Skeleton.canonico se rellena desde aquí)
+export const NC_RUTA_CLASICA: Motif[] // plantilla de `nc_ruta` en zonas sin cota ≥ 3,3 km (sección 5)
 /** Traducción de `RaceRow.terrain` a candidatos de un día con multiplicador; sesgo, nunca orden (sección 5, §5.6). */
 export const SESGO_TERRENO: Record<RouteTerrain, Partial<Record<SkeletonId, number>>>
 /** A qué terreno se baja cuando la zona no admite ningún candidato: cobbles → classic → hilly → flat; mountain → hilly; flat e itt no bajan. */
@@ -194,7 +254,10 @@ export function degradarPapel(role: StageRole): StageRole | null
 export const POR_TERRENO_EDICION: Record<EditionTerrain, { ids: SkeletonId[]; papel: StageRole }>
 /** `SKELETONS[id]`, salvo `nc_ruta` en zonas sin `cota` ≥ 3,3 km, que devuelve una copia `clasica / Classic` con `NC_RUTA_CLASICA` (sección 5, §5.7). */
 export function skeletonFor(id: SkeletonId, geo: GeoSignature): Skeleton
-export type Peticion = Pick<StageRequest, 'role' | 'terrain' | 'geo' | 'raceClass' | 'format' | 'km' | 'routeSource'>
+export type Peticion = Pick<
+  StageRequest,
+  'role' | 'terrain' | 'geo' | 'raceClass' | 'format' | 'km' | 'routeSource'
+>
 /** Las tres condiciones de candidato (admite, pesoPorClase > 0, km[0] ≤ maxPorClase); la usan candidatos y la atadura de elegirEsqueleto (sección 8, §8.2 paso 1 bis). */
 export function cabe(id: SkeletonId, req: Peticion): boolean
 /** Candidatos con peso ya multiplicado (pesoBase × SESGO_TERRENO × ARCH.pesoPorClase × geo.pesos); pura (sección 5, §5.7). */
@@ -215,7 +278,7 @@ Un esqueleto es una secuencia de huecos con cardinalidad y ventana de posición,
 - `requiere` es un `Requiere` (o una lista de ellos, que son alternativas: basta con que una se cumpla), tipo propio declarado arriba y no `Partial<GeoSignature>`, porque este no puede decir "no nulo", un umbral ni una disyunción. Lo lee solo `admite(sk.requiere, geo)`: `{ adoquin: 2 }` exige `geo.adoquin ≥ 2`, `{ sterrato: true }` exige `sterrato`, `{ finalesAlto: 'largo' }` exige exactamente ese valor, `{ cota: true, cotaKmMin: 3.3 }` exige una cota de la zona que llegue a 3,3 km. `admite` no mira los `Slot`: que todo hueco obligatorio de `puerto`, `cota` o `muro` tenga su motivo en la zona es una propiedad de las dos tablas que sella el test (h) de §6.8, y por eso `requiere` tiene que decir todo lo que un hueco obligatorio necesita (sección 5, §5.1, consecuencia 2).
 - `pesoBase` existe porque el juez de ejecutabilidad señaló que la ganadora dejó los pesos base del catálogo sin escribir (`juicios/ejecutabilidad.md` §4); los valores van en la tabla de la sección 5 y se multiplican por `SESGO_TERRENO` (un día), `GeoSignature.pesos` y `ARCH.pesoPorClase` en `candidatos`.
 - `canonico` es un `Motif[]` literal por esqueleto, escrito a mano en `CANONICO` y comprobado en `skeletons.test.ts` contra los 16 vetos: es la plantilla a la que cae `generateStage` tras `ARCH.colocacion.maxIntentos` 8 (con `degradado: true`, y cero veces en el calendario por `ARCH.veto.fallbackMaxShare.calendario` 0).
-- `alternativas` es la rotación declarada de `ARCH.edicion.nivel` 2 (decisión 22), como `Alternativa[]` (sección 10, §10.3): la opción de una temporada es `` opcionDe(sk, raceId, season) = (hashInt(`alt|${raceId}`) + season) % (1 + alternativas.length) `` sobre `[canonico, ...alternativas.map((a) => a.canonico)]`, sin consumir tirada; con `hashInt` delante dos carreras del mismo esqueleto no cambian de final el mismo año. La firma se instancia dentro de los RANGOS de la opción (`Alternativa.slots`, `metaParams`), no copiando su plantilla. Solo la tienen los esqueletos que la sección 5 lista (`ud_montana` con Como y Bérgamo; `et_reina_alto_largo` con Angliru y Lagos).
+- `alternativas` es la rotación declarada de `ARCH.edicion.nivel` 2 (decisión 22), como `Alternativa[]` (sección 10, §10.3): la opción de una temporada es ``opcionDe(sk, raceId, season) = (hashInt(`alt|${raceId}`) + season) % (1 + alternativas.length)`` sobre `[canonico, ...alternativas.map((a) => a.canonico)]`, sin consumir tirada; con `hashInt` delante dos carreras del mismo esqueleto no cambian de final el mismo año. La firma se instancia dentro de los RANGOS de la opción (`Alternativa.slots`, `metaParams`), no copiando su plantilla. Solo la tienen los esqueletos que la sección 5 lista (`ud_montana` con Como y Bérgamo; `et_reina_alto_largo` con Angliru y Lagos).
 
 El tipo entero es serializable (solo literales, arrays y strings, sin funciones): es la propiedad que permite congelar las tres reinas de `REAL_QUEENS` como `Skeleton` literal en `sim/frozenSkeletons.ts` y renderizarlas con el renderizador nuevo (decisión 33), en vez de congelar `Segment[]`.
 
@@ -224,15 +287,39 @@ El tipo entero es serializable (solo literales, arrays y strings, sin funciones)
 ```ts
 // packages/engine/src/routes/grammar/geo.ts
 import type { Motif, MotifKind } from './motifs.js'
-import type { Requiere, SkeletonId } from './skeletons.js'   // solo tipos: skeletons.ts ya importa valores de aquí
+import type { Requiere, SkeletonId } from './skeletons.js' // solo tipos: skeletons.ts ya importa valores de aquí
 
 export type GeoZone =
-  | 'flandes' | 'ardenas' | 'bretana' | 'francia_norte' | 'macizo_central' | 'alpes' | 'pirineos'
-  | 'provenza' | 'italia_norte' | 'italia_centro' | 'dolomitas' | 'italia_sur'
-  | 'cantabrico' | 'meseta' | 'andalucia' | 'levante' | 'portugal'
-  | 'centroeuropa' | 'escandinavia' | 'britanicas' | 'balcanes' | 'anatolia'
-  | 'andes' | 'cono_sur' | 'norteamerica' | 'australia' | 'asia_oriental' | 'golfo' | 'africa_llana'
-  | 'montana_sur'                                // MY, RW, MA: sin fila en el mapa 07, juicio (sección 6 §6.2)
+  | 'flandes'
+  | 'ardenas'
+  | 'bretana'
+  | 'francia_norte'
+  | 'macizo_central'
+  | 'alpes'
+  | 'pirineos'
+  | 'provenza'
+  | 'italia_norte'
+  | 'italia_centro'
+  | 'dolomitas'
+  | 'italia_sur'
+  | 'cantabrico'
+  | 'meseta'
+  | 'andalucia'
+  | 'levante'
+  | 'portugal'
+  | 'centroeuropa'
+  | 'escandinavia'
+  | 'britanicas'
+  | 'balcanes'
+  | 'anatolia'
+  | 'andes'
+  | 'cono_sur'
+  | 'norteamerica'
+  | 'australia'
+  | 'asia_oriental'
+  | 'golfo'
+  | 'africa_llana'
+  | 'montana_sur' // MY, RW, MA: sin fila en el mapa 07, juicio (sección 6 §6.2)
   | 'generico'
 
 export type Relieve = 'llano' | 'ondulado' | 'media' | 'montana' | 'alta'
@@ -244,24 +331,24 @@ export interface GeoSignature {
   puerto: { km: [number, number]; g: [number, number]; forma: Motif['forma'] } | null
   cota: { km: [number, number]; g: [number, number] } | null
   muro: { km: [number, number]; g: [number, number]; adoquin: boolean } | null
-  adoquin: 0 | 1 | 2 | 3                       // 0 ninguno · 1 urbano · 2 sectores · 3 masivo
+  adoquin: 0 | 1 | 2 | 3 // 0 ninguno · 1 urbano · 2 sectores · 3 masivo
   sterrato: boolean
-  viento: 0 | 1 | 2 | 3                        // METADATO: no llega al motor (mapa 03 §5.1)
-  altitud: 'mar' | 'colina' | 'media' | 'alta' | 'altiplano'   // METADATO y veto V4; no hay altitud en `Segment`
-  amplitud: number                             // ondulación del `enlace`, en % (tope ARCH.motivo.enlace.ampMax 2,4)
+  viento: 0 | 1 | 2 | 3 // METADATO: no llega al motor (mapa 03 §5.1)
+  altitud: 'mar' | 'colina' | 'media' | 'alta' | 'altiplano' // METADATO y veto V4; no hay altitud en `Segment`
+  amplitud: number // ondulación del `enlace`, en % (tope ARCH.motivo.enlace.ampMax 2,4)
   finalesAlto: 'ninguno' | 'corto' | 'largo'
-  pesos: Partial<Record<SkeletonId, number>>   // multiplican `Skeleton.pesoBase`
+  pesos: Partial<Record<SkeletonId, number>> // multiplican `Skeleton.pesoBase`
 }
 
 export interface Territorio {
-  ruta: readonly { zona: GeoZone; peso: number }[]   // orden = recorrido plausible por el país
-  cordillera: GeoZone | null                   // null = el país no tiene reina; si no, la zona que una vuelta `mountain` tiene que contener
-  fallback?: boolean                           // país sin tabla: territorio genérico, contado en test
+  ruta: readonly { zona: GeoZone; peso: number }[] // orden = recorrido plausible por el país
+  cordillera: GeoZone | null // null = el país no tiene reina; si no, la zona que una vuelta `mountain` tiene que contener
+  fallback?: boolean // país sin tabla: territorio genérico, contado en test
 }
 
-export const ZONAS: Record<GeoZone, GeoSignature>           // 31 filas: 30 zonas con nombre más `generico`
-export const TERRITORIOS: Record<string, Territorio>          // ISO alpha-2, 64 filas explícitas (56 obligatorias + 8 voluntarias)
-export const FALLBACK: Territorio                             // { ruta: [{ zona: 'generico', peso: 1 }], cordillera: null, fallback: true }
+export const ZONAS: Record<GeoZone, GeoSignature> // 31 filas: 30 zonas con nombre más `generico`
+export const TERRITORIOS: Record<string, Territorio> // ISO alpha-2, 64 filas explícitas (56 obligatorias + 8 voluntarias)
+export const FALLBACK: Territorio // { ruta: [{ zona: 'generico', peso: 1 }], cordillera: null, fallback: true }
 /** = TERRITORIOS[country] ?? FALLBACK; `null` (banco sin país) da FALLBACK. */
 export function territorioDe(country: string | null): Territorio
 /** Zona de mayor peso de `territorioDe(country).ruta` (empate: la primera en `ruta`); `generico` si el país es fallback, es desconocido o `country` es null. */
@@ -298,15 +385,15 @@ Las cifras de las dos tablas, que la sección 6 (dueña) fija y que aquí se rep
 // packages/engine/src/routes/grammar/regions.ts
 export interface RaceRegion {
   default: GeoZone
-  stages?: Record<number, GeoZone>             // índice con base 1; solo las 60 ediciones y solo donde difiere de default
-  skeleton?: SkeletonId                        // carrera de un día con meta real en un puerto o muro: único candidato si admite() (sección 6, §6.4)
-  duda?: true                                  // ciudad no reconocida o dato contradictorio: se imprime, no veta
+  stages?: Record<number, GeoZone> // índice con base 1; solo las 60 ediciones y solo donde difiere de default
+  skeleton?: SkeletonId // carrera de un día con meta real en un puerto o muro: único candidato si admite() (sección 6, §6.4)
+  duda?: true // ciudad no reconocida o dato contradictorio: se imprime, no veta
 }
-export const RACE_REGION: Record<string, RaceRegion>          // 310 carreras de equipos, curadas desde raceRoutes.ts
+export const RACE_REGION: Record<string, RaceRegion> // 310 carreras de equipos, curadas desde raceRoutes.ts
 export function regionOf(raceId: string, stageIndex: number, country: string | null): GeoZone
 // = RACE_REGION[raceId]?.stages?.[stageIndex] ?? RACE_REGION[raceId]?.default ?? zonaDe(country)
 // Test: ninguna carrera de equipos (WT_TABLE, PRO_TABLE, CON_TABLE) cae a zonaDe(country); solo los 532 .NC pasan por ahí.
-export const COBBLES_IDS: readonly string[]                  // los 20 ids con terrain 'cobbles' (race-leon incluida): test (d) de §6.8 y galería (sección 16)
+export const COBBLES_IDS: readonly string[] // los 20 ids con terrain 'cobbles' (race-leon incluida): test (d) de §6.8 y galería (sección 16)
 ```
 
 `RaceRow` (`calendar.ts` l. 381-397) no cambia: ni `geo` ni `paisaje` entran en la fila (la sección 6 lo decide igual, contra arquitectura §5.3 e ingeniero §5.2). La propuesta ganadora añadía `geo?: GeoZone` a la fila y sorteaba la zona con `geo|${raceId}` cuando faltaba, para los 125 de 310 casos de FR, IT y ES; la síntesis retira el sorteo (decisión 14) porque una carrera no cambia de cordillera según la semilla, y saca la zona a una tabla aparte, curada a mano desde las ciudades de `raceRoutes.ts`, con dos niveles: `default` para la carrera y `stages` para las etapas de las 60 ediciones reales, donde el país es grueso de más (`race-france` e6 Pau → Gavarnie-Gèdre es `pirineos`, e15/18/19/20 son `alpes`; el resto de etapas caen a `default`). El índice de `stages` es el mismo `CalendarStage.index` con base 1 (`calendar.ts` l. 43-44) y el mismo orden de `RaceEdition.stages` (`editions.ts` l. 17-22).
@@ -319,21 +406,36 @@ Quién llama a `regionOf` y quién no, porque de eso depende que una vuelta reco
 
 ```ts
 // packages/engine/src/routes/grammar/tour.ts
-import { ARCH } from '../../constants.js'                      // BASE_SEASON = ARCH.edicion.baseSeason (§3.8); tour.ts NO importa edition.ts
-import type { EdicionCfg } from '../../constants.js'           // RouteContext.edicion (sección 15, §15.8)
-import type { StageSpec, RaceFormat } from '../calendar.js'    // SOLO tipos, sentencia `import type` entera: se borra al compilar (regla de importación, cabecera de §3)
+import { ARCH } from '../../constants.js' // BASE_SEASON = ARCH.edicion.baseSeason (§3.8); tour.ts NO importa edition.ts
+import type { EdicionCfg } from '../../constants.js' // RouteContext.edicion (sección 15, §15.8)
+import type { StageSpec, RaceFormat } from '../calendar.js' // SOLO tipos, sentencia `import type` entera: se borra al compilar (regla de importación, cabecera de §3)
 
 export type StageRole =
-  | 'llana' | 'llana_viento' | 'media' | 'media_alto' | 'media_muro'
-  | 'reina_alto' | 'reina_valle' | 'reina_encadenada' | 'montana_corta'
-  | 'cri' | 'prologo' | 'cronoescalada'
+  | 'llana'
+  | 'llana_viento'
+  | 'media'
+  | 'media_alto'
+  | 'media_muro'
+  | 'reina_alto'
+  | 'reina_valle'
+  | 'reina_encadenada'
+  | 'montana_corta'
+  | 'cri'
+  | 'prologo'
+  | 'cronoescalada'
 
 export type TourSkeletonId = 'vu_corta' | 'vu_semana' | 'vu_larga' | 'vu_gran_vuelta'
 
 export interface BlockRule {
-  id: 'reinaTarde' | 'bloqueMontana' | 'llanasEntreBloques' | 'maxCronos' | 'maxFinalesAlto' | 'descansos'
+  id:
+    | 'reinaTarde'
+    | 'bloqueMontana'
+    | 'llanasEntreBloques'
+    | 'maxCronos'
+    | 'maxFinalesAlto'
+    | 'descansos'
   aplica: (n: number) => boolean
-  repara: (roles: StageRole[], zonas: GeoZone[]) => StageRole[]   // pura; devuelve copia; de atrás hacia delante
+  repara: (roles: StageRole[], zonas: GeoZone[]) => StageRole[] // pura; devuelve copia; de atrás hacia delante
 }
 export type Weighted<T extends string> = Partial<Record<T, number>>
 
@@ -341,50 +443,83 @@ export interface TourSkeleton {
   id: TourSkeletonId
   n: [number, number]
   bloques: BlockRule[]
-  primera: Weighted<StageRole>                 // `primera.prologo` es la p del prólogo (0,25; D3)
+  primera: Weighted<StageRole> // `primera.prologo` es la p del prólogo (0,25; D3)
   ultima: Weighted<StageRole> | 'ROUTE.lastDecisiveChance'
-  pesos: Record<Relieve, Weighted<StageRole>>  // ARCH.pesosComposicion
+  pesos: Record<Relieve, Weighted<StageRole>> // ARCH.pesosComposicion
 }
 export const TOUR_SKELETONS: Record<TourSkeletonId, TourSkeleton>
 /** Elige el esqueleto de composición por `n` y clase, sin dado (sección 7, §7.2). */
 export function tourSkeletonDe(n: number, raceClass: RaceClass): TourSkeleton
 /** Las garantías de `mixRoles` (`calendar.ts` l. 486-517) como función pura; solo endurece y solo por la cola. `zonas` = `Itinerario.metas`:
  *  el final en alto garantizado salta los huecos cuya zona no lo admite (`media_alto`, si no `media_muro`, si no la crono; sección 7, §7.3). */
-export function garantias(roles: StageRole[], terrain: RouteTerrain, n: number, zonas: GeoZone[]): StageRole[]
+export function garantias(
+  roles: StageRole[],
+  terrain: RouteTerrain,
+  n: number,
+  zonas: GeoZone[],
+): StageRole[]
 
 export interface Itinerario {
-  metas: GeoZone[]                             // zona de la meta de cada etapa
+  metas: GeoZone[] // zona de la meta de cada etapa
   papeles: StageRole[]
-  km: number[]                                 // ya con ARCH.km.porClase, maxPorClase y ROUTE.lastStageKmFactor
-  desde: GeoZone[]                             // desde[0] = metas[0]; desde[i] = metas[i-1]; desde[i] !== metas[i] es transición
-  notas: string[]                              // reparaciones anotadas ("e5: reina → media_alto, ventana sin cordillera"), decisión 18
+  km: number[] // ya con ARCH.km.porClase, maxPorClase y ROUTE.lastStageKmFactor
+  desde: GeoZone[] // desde[0] = metas[0]; desde[i] = metas[i-1]; desde[i] !== metas[i] es transición
+  notas: string[] // reparaciones anotadas ("e5: reina → media_alto, ventana sin cordillera"), decisión 18
 }
-export function itinerarioDe(raceId: string, country: string | null, n: number, terrain: RouteTerrain,
-  raceClass: RaceClass, format: RaceFormat): Itinerario           // subflujo `arch|raceId`, sin season
+export function itinerarioDe(
+  raceId: string,
+  country: string | null,
+  n: number,
+  terrain: RouteTerrain,
+  raceClass: RaceClass,
+  format: RaceFormat,
+): Itinerario // subflujo `arch|raceId`, sin season
 
 /** Lo que `stageMix` y `composeTour` saben de la carrera; `StageRequest` lo extiende por etapa. */
 export interface RouteContext {
-  raceId?: string                              // si falta, `stageMix` usa `seedBase` como raceId
-  country: string | null                       // ISO alpha-2; null → FALLBACK (zona `generico`)
+  raceId?: string // si falta, `stageMix` usa `seedBase` como raceId
+  country: string | null // ISO alpha-2; null → FALLBACK (zona `generico`)
   raceClass: RaceClass
   format: RaceFormat
   season: number
-  edicion?: EdicionCfg                         // ARCH.edicion si falta; composeTour lo copia a cada StageRequest (sección 15, §15.8); DEFAULT_ROUTE_CONTEXT no lo lleva
+  edicion?: EdicionCfg // ARCH.edicion si falta; composeTour lo copia a cada StageRequest (sección 15, §15.8); DEFAULT_ROUTE_CONTEXT no lo lleva
 }
 export const DEFAULT_ROUTE_CONTEXT: RouteContext = {
-  country: null, raceClass: '2', format: 'una-semana', season: ARCH.edicion.baseSeason,
+  country: null,
+  raceClass: '2',
+  format: 'una-semana',
+  season: ARCH.edicion.baseSeason,
 }
 
 /** Lo que hoy hace `stageMix` por dentro. `raceId` es la clave de `arch|raceId`, de `itinerarioDe` y de `RACE_REGION`. */
-export function composeTour(raceId: string, n: number, terrain: RouteTerrain, ctx: RouteContext): StageSpec[]
-export type KmRole = StageRole | 'un_dia' | 'un_dia_u23' | 'cri_u23'   // los tres extra solo los usan buildRace y nationalChampionships
+export function composeTour(
+  raceId: string,
+  n: number,
+  terrain: RouteTerrain,
+  ctx: RouteContext,
+): StageSpec[]
+export type KmRole = StageRole | 'un_dia' | 'un_dia_u23' | 'cri_u23' // los tres extra solo los usan buildRace y nationalChampionships
 /** n = etapas de la vuelta (1 en un día y en los nacionales), lo que mixKm(role, n, last, rand) recibe hoy (calendar.ts l. 522-540). */
-export function kmDe(role: KmRole, raceClass: RaceClass, n: number, last: boolean, rand: () => number): number
+export function kmDe(
+  role: KmRole,
+  raceClass: RaceClass,
+  n: number,
+  last: boolean,
+  rand: () => number,
+): number
 /** Ventana 0-based de la reina en vu_gran_vuelta: [14; 19] con n = 21 (sección 7, §7.2). */
-export const ventanaReina = (n: number): [number, number] => [Math.max(ARCH.bloques.gv.descansos[0], Math.floor((2 * n) / 3)), n - 2]
+export const ventanaReina = (n: number): [number, number] => [
+  Math.max(ARCH.bloques.gv.descansos[0], Math.floor((2 * n) / 3)),
+  n - 2,
+]
 
 // packages/engine/src/routes/calendar.ts: firma pública conservada (decisión 19); delega en composeTour
-export function stageMix(n: number, terrain: RouteTerrain, seedBase: string, ctx: RouteContext = DEFAULT_ROUTE_CONTEXT): StageSpec[]
+export function stageMix(
+  n: number,
+  terrain: RouteTerrain,
+  seedBase: string,
+  ctx: RouteContext = DEFAULT_ROUTE_CONTEXT,
+): StageSpec[]
 ```
 
 `StageRole` amplía el `MixRole` de hoy (`calendar.ts` l. 410-558 vía mapa 02 §4: `cri`, `reina`, `media-alto`, `media`, `llana`) con los papeles que la carretera tiene y el generador no (`llana_viento`, `media_muro`, `reina_valle`, `reina_encadenada`, `montana_corta`, `prologo`, `cronoescalada`). El papel de cada etapa es IDENTIDAD (decisión 20): lo decide `itinerarioDe` en el subflujo `arch|raceId` sin `season`, y la edición no lo mueve.
@@ -403,49 +538,49 @@ El juez del motor objetó que `Weighted<StageRole>` y `BlockRule` estaban sin de
 // packages/engine/src/routes/grammar/generate.ts
 import type { StageKind } from '../testTour.js'
 import type { StageProfile } from '../../stage/types.js'
-import type { RaceFormat } from '../calendar.js'              // solo tipo (regla de importación, cabecera de §3)
+import type { RaceFormat } from '../calendar.js' // solo tipo (regla de importación, cabecera de §3)
 import type { EdicionCfg } from '../../constants.js'
 import { stageKindOf } from '../stageKind.js'
 
-export type RouteSource = 'real' | 'edicion' | 'generado'        // por ETAPA
-export type RaceRouteSource = 'real' | 'mixto' | 'generado'      // por CARRERA: agregado de sus etapas (§3.11)
+export type RouteSource = 'real' | 'edicion' | 'generado' // por ETAPA
+export type RaceRouteSource = 'real' | 'mixto' | 'generado' // por CARRERA: agregado de sus etapas (§3.11)
 /** `real` si todas las etapas son `real`; `generado` si todas son `generado`; `mixto` en cualquier otro caso (una carrera toda `edicion` es `mixto`). */
 export function raceRouteSourceOf(stages: readonly { routeSource: RouteSource }[]): RaceRouteSource
 
 export interface StageRequest {
   raceId: string
-  stageIndex: number                           // con base 1; 1 en un día
-  season: number                               // BASE_SEASON = 0 es la canónica y tira sus propios dados
-  km: number                                   // contrato al 0,1 si `routeSource` es `edicion` (ver abajo)
+  stageIndex: number // con base 1; 1 en un día
+  season: number // BASE_SEASON = 0 es la canónica y tira sus propios dados
+  km: number // contrato al 0,1 si `routeSource` es `edicion` (ver abajo)
   role: StageRole | 'un_dia'
-  terrain: RouteTerrain                        // sesgo, nunca orden
-  geo: GeoSignature                            // un día y edición: ZONAS[regionOf(...)]; vuelta compuesta: ZONAS[itinerario.metas[i-1]]
-  desde?: GeoZone                              // etapa de transición (40 % con la ondulación de `desde`)
+  terrain: RouteTerrain // sesgo, nunca orden
+  geo: GeoSignature // un día y edición: ZONAS[regionOf(...)]; vuelta compuesta: ZONAS[itinerario.metas[i-1]]
+  desde?: GeoZone // etapa de transición (40 % con la ondulación de `desde`)
   raceClass: RaceClass
   format: RaceFormat
   routeSource: 'edicion' | 'generado'
-  editionKey?: string                          // `${from}|${to}|${km}` de editions.ts, para la semilla de edición
-  edicion?: EdicionCfg                         // ARCH.edicion si falta; solo lo rellena buildRace cuando calendarForSeason recibe otro cfg (sección 10, §10.5)
-  fixed?: { skeleton?: SkeletonId; finalKind?: FinalKind; dPlus?: number }   // bancos
+  editionKey?: string // `${from}|${to}|${km}` de editions.ts, para la semilla de edición
+  edicion?: EdicionCfg // ARCH.edicion si falta; solo lo rellena buildRace cuando calendarForSeason recibe otro cfg (sección 10, §10.5)
+  fixed?: { skeleton?: SkeletonId; finalKind?: FinalKind; dPlus?: number } // bancos
 }
 
 export interface GeneratedStage {
   profile: StageProfile
-  kind: StageKind                              // = stageKindOf(profile, timeTrial).kind, garantizado por V6
-  label: string                                // = labelDe(sk, profile, timeTrial), tras V6 (decisión 38 reescrita; §3.3; sección 11 §11.5)
-  timeTrial: boolean                           // = sk.timeTrial ?? false
+  kind: StageKind // = stageKindOf(profile, timeTrial).kind, garantizado por V6
+  label: string // = labelDe(sk, profile, timeTrial), tras V6 (decisión 38 reescrita; §3.3; sección 11 §11.5)
+  timeTrial: boolean // = sk.timeTrial ?? false
   arch: {
     skeleton: SkeletonId
     geo: GeoZone
     motivos: Motif[]
     finalKind: FinalKind | null
-    dPlus: number                              // dPlusDe(profile), relleno incluido
+    dPlus: number // dPlusDe(profile), relleno incluido
     intentos: number
     degradado: boolean
-    garantiasClase: number                     // cuántas reglas 1 a 4 de garantizaClase tocaron la etapa (sección 8, §8.9)
-    rechazos: Veto[]                           // uno por intento fallido, en orden; [] si el primero pasó (galería, sección 16)
-    frase: string                              // "Circuito de 14 km × 9 vueltas con un muro de 1,1 km al 11 %; meta a 2 km del muro"
-    metadatos: { viento: 0|1|2|3; altitud: GeoSignature['altitud'] }   // ficha, no física
+    garantiasClase: number // cuántas reglas 1 a 4 de garantizaClase tocaron la etapa (sección 8, §8.9)
+    rechazos: Veto[] // uno por intento fallido, en orden; [] si el primero pasó (galería, sección 16)
+    frase: string // "Circuito de 14 km × 9 vueltas con un muro de 1,1 km al 11 %; meta a 2 km del muro"
+    metadatos: { viento: 0 | 1 | 2 | 3; altitud: GeoSignature['altitud'] } // ficha, no física
   }
   routeSource: 'edicion' | 'generado'
 }
@@ -453,7 +588,7 @@ export interface GeneratedStage {
 export function generateStage(req: StageRequest): GeneratedStage
 
 /** Las cinco etiquetas de la decisión 38, que `stageKindOf` no puede deducir de un perfil (sección 11, §11.5 regla 3). */
-export const ETIQUETAS_DE_ESQUELETO: ReadonlySet<string>   // 'Circuit', 'Wall finish', 'Prologue', 'Hill climb', 'Mountains classic'
+export const ETIQUETAS_DE_ESQUELETO: ReadonlySet<string> // 'Circuit', 'Wall finish', 'Prologue', 'Hill climb', 'Mountains classic'
 export function labelDe(sk: Skeleton, profile: StageProfile, timeTrial: boolean): string
 // = ETIQUETAS_DE_ESQUELETO.has(sk.label) ? sk.label : stageKindOf(profile, timeTrial).label
 ```
@@ -476,30 +611,48 @@ export function labelDe(sk: Skeleton, profile: StageProfile, timeTrial: boolean)
 //   ARCH.edicion.baseSeason = 0            // calendarRun.ts l. 135: season = floor(gameDay / SEASON_DAYS); el primer día de un mundo es la temporada 0
 //   ARCH.arranque.maxTemporadasEnMemoria = 8   // tope del memo de calendarForSeason (sección 14, §14.5)
 /** Tipo ANCHO a propósito (activa: boolean): un test o el banco pasan `{ ...ARCH.edicion, activa: false }` sin mutar ARCH (sección 12). */
-export interface EdicionCfg { readonly baseSeason: 0; activa: boolean; nivel: 0 | 1 | 2; kmJitter: number; vueltasJitter: number; motivoNuevo: number }   // la de sección 12 §12.1, única
+export interface EdicionCfg {
+  readonly baseSeason: 0
+  activa: boolean
+  nivel: 0 | 1 | 2
+  kmJitter: number
+  vueltasJitter: number
+  motivoNuevo: number
+} // la de sección 12 §12.1, única
 
 // packages/engine/src/routes/grammar/edition.ts   (NO importa valores de calendar.ts)
-export const BASE_SEASON = ARCH.edicion.baseSeason   // 0; reexportado aquí porque es el nombre que el resto del documento usa
+export const BASE_SEASON = ARCH.edicion.baseSeason // 0; reexportado aquí porque es el nombre que el resto del documento usa
 export interface EditionPlan {
-  km: number                                   // al 0,1, ya con jitter y acotado; = req.km si routeSource === 'edicion'; derivado en circuitos de firma
-  n: Record<number, number>                    // cardinalidad por índice de hueco no firma
-  vueltas?: number                             // circuito de firma, tras vueltasJitter
-  opcion: number                               // = opcionDe(sk, req.raceId, season): 0 canonico, k la alternativa k − 1
-  dPlusObjetivo: number                        // metros, TOTAL con relleno (sección 8, §8.4)
+  km: number // al 0,1, ya con jitter y acotado; = req.km si routeSource === 'edicion'; derivado en circuitos de firma
+  n: Record<number, number> // cardinalidad por índice de hueco no firma
+  vueltas?: number // circuito de firma, tras vueltasJitter
+  opcion: number // = opcionDe(sk, req.raceId, season): 0 canonico, k la alternativa k − 1
+  dPlusObjetivo: number // metros, TOTAL con relleno (sección 8, §8.4)
 }
 /** Pura, sin dados: nivel efectivo 2 ? (hashInt(`alt|${raceId}`) + season) % (1 + sk.alternativas.length) : 0 (sección 10, §10.3).
  *  nivelEfectivo = cfg.nivel === 0 ? 0 : (sk.alternativas ? 2 : cfg.nivel). */
-export function opcionDe(sk: Skeleton, raceId: string, season: number, cfg: EdicionCfg = ARCH.edicion): number
+export function opcionDe(
+  sk: Skeleton,
+  raceId: string,
+  season: number,
+  cfg: EdicionCfg = ARCH.edicion,
+): number
 /** Lee req.edicion ?? ARCH.edicion y tira en semillaDe('ed', req). Único nombre de la función (`editionOf` era alias de banco). */
 export function planDeEdicion(sk: Skeleton, firma: readonly Motif[], req: StageRequest): EditionPlan
 
 export type Subflujo = 'arch' | 'firma' | 'ed' | 'mot' | 'pos' | 'dib'
 /** `${raceId}|${stageIndex}` en lo generado (stageIndex 1 en un día); `${raceId}|e${stageIndex}|${editionKey}` en edición real. */
-export function claveEtapa(req: Pick<StageRequest, 'raceId' | 'stageIndex' | 'routeSource' | 'editionKey'>): string
+export function claveEtapa(
+  req: Pick<StageRequest, 'raceId' | 'stageIndex' | 'routeSource' | 'editionKey'>,
+): string
 /** req.season, o BASE_SEASON en ed/mot/pos con nivel 0 o en edición real, y en todo con activa false (tabla de §8.1). */
 export function seasonDe(req: StageRequest, sub: 'ed' | 'mot' | 'pos' | 'dib'): number
 /** TODA semilla de generateStage sale de aquí (sección 8, §8.1 la llama en vez de concatenar). */
-export function semillaDe(sub: Subflujo, req: StageRequest, x: { slot?: number; j?: number; token?: string; intento?: number } = {}): string
+export function semillaDe(
+  sub: Subflujo,
+  req: StageRequest,
+  x: { slot?: number; j?: number; token?: string; intento?: number } = {},
+): string
 // Subflujos (lista CERRADA; tabla completa en la sección 10, §10.4; `id` = claveEtapa(req), `season` = seasonDe(req, sub)):
 //   `arch|${raceId}`                          composición de la vuelta (itinerarioDe), una corriente por carrera
 //   `firma|${raceId}|km`                      km base de una carrera de un día (kmDe en buildRace; sección 7, §7.4)
@@ -510,19 +663,19 @@ export function semillaDe(sub: Subflujo, req: StageRequest, x: { slot?: number; 
 
 /** Lo que diffMotivos compara de una etapa: el km viaja aparte porque no es un campo de Motif (sección 10, §10.8). */
 export interface DiffInput {
-  km: number                                   // Σ segment.km del perfil
-  motivos: readonly Motif[]                    // arch.motivos
-  opcion?: string                              // Alternativa.nombre de la opción de nivel 2; undefined en la canónica
+  km: number // Σ segment.km del perfil
+  motivos: readonly Motif[] // arch.motivos
+  opcion?: string // Alternativa.nombre de la opción de nivel 2; undefined en la canónica
 }
-export function diffMotivos(prev: DiffInput, actual: DiffInput): string[]   // [] en 'edicion' siempre
+export function diffMotivos(prev: DiffInput, actual: DiffInput): string[] // [] en 'edicion' siempre
 
 // packages/engine/src/routes/calendar.ts   (importa todos los grammar/*.ts; ningún fuente de grammar/ le importa un valor)
 export function calendarForSeason(season: number, cfg: EdicionCfg = ARCH.edicion): CalendarRace[]
 // memoizada: Map<EdicionCfg, Map<number, CalendarRace[]>> por REFERENCIA de cfg; el mapa de ARCH.edicion tiene tope
 // ARCH.arranque.maxTemporadasEnMemoria (8) sin contar BASE_SEASON, expulsión por último acceso (LRU), y la 0 nunca se expulsa (§14.5)
-export function raceForSeason(raceId: string, season: number, cfg?: EdicionCfg): CalendarRace   // lanza Error('carrera desconocida') si no existe
-export function stagesForSeason(raceId: string, season: number, cfg?: EdicionCfg): CalendarStage[]   // = raceForSeason(raceId, season, cfg).stages
-export const SEASON_CALENDAR: CalendarRace[] = calendarForSeason(BASE_SEASON)   // el MISMO array memoizado de la temporada 0, no una copia
+export function raceForSeason(raceId: string, season: number, cfg?: EdicionCfg): CalendarRace // lanza Error('carrera desconocida') si no existe
+export function stagesForSeason(raceId: string, season: number, cfg?: EdicionCfg): CalendarStage[] // = raceForSeason(raceId, season, cfg).stages
+export const SEASON_CALENDAR: CalendarRace[] = calendarForSeason(BASE_SEASON) // el MISMO array memoizado de la temporada 0, no una copia
 ```
 
 `BASE_SEASON` vale 0 porque es lo que el mundo calcula: `calendarRun.ts` l. 135 hace `season = Math.floor(gameDay / SEASON_DAYS)`, y el primer día de un mundo es la temporada 0. La propuesta de banco proponía `calendarFor(1)` y la de geografía dejaba la pregunta abierta; la síntesis cierra que `SEASON_CALENDAR = calendarForSeason(BASE_SEASON)` y que la temporada 0 tira sus propios dados con `ed|${id}|0` como cualquier otra (decisión 21), corrigiendo la objeción del juez de ejecutabilidad a la mediana de cardinalidades.
@@ -533,26 +686,38 @@ El sello es un `it` de `routes/arranque.test.ts` además de los tres de la secci
 
 ```ts
 // packages/engine/src/routes/arranque.test.ts (el it de importaciones; los otros tres son los de §14.4)
-import ts from 'typescript'                    // CJS con default: el paquete es ESM ("type": "module") y esModuleInterop está activo
+import ts from 'typescript' // CJS con default: el paquete es ESM ("type": "module") y esModuleInterop está activo
 // y `vi` se añade al `import { describe, expect, it } from 'vitest'` de §14.4
 
-const FUENTES_GRAMMAR = readdirSync(join(import.meta.dirname, 'grammar')).filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts'))
+const FUENTES_GRAMMAR = readdirSync(join(import.meta.dirname, 'grammar')).filter(
+  (f) => f.endsWith('.ts') && !f.endsWith('.test.ts'),
+)
 
 function importaValorDeCalendar(fichero: string, src: string): boolean {
   return ts.createSourceFile(fichero, src, ts.ScriptTarget.Latest).statements.some((st) => {
     if (!ts.isImportDeclaration(st) && !ts.isExportDeclaration(st)) return false
-    if (!st.moduleSpecifier || !ts.isStringLiteral(st.moduleSpecifier) || st.moduleSpecifier.text !== '../calendar.js') return false
-    const soloTipo = ts.isImportDeclaration(st) ? st.importClause?.isTypeOnly === true : st.isTypeOnly
-    return !soloTipo                          // `import '../calendar.js'`, `import { type X }` y `export * from` cuentan como valor
+    if (
+      !st.moduleSpecifier ||
+      !ts.isStringLiteral(st.moduleSpecifier) ||
+      st.moduleSpecifier.text !== '../calendar.js'
+    )
+      return false
+    const soloTipo = ts.isImportDeclaration(st)
+      ? st.importClause?.isTypeOnly === true
+      : st.isTypeOnly
+    return !soloTipo // `import '../calendar.js'`, `import { type X }` y `export * from` cuentan como valor
   })
 }
 
 it('ningún fuente de grammar/ importa un valor de calendar.ts, y cada uno carga el primero', async () => {
   for (const f of FUENTES_GRAMMAR) {
-    expect(importaValorDeCalendar(f, readFileSync(join(import.meta.dirname, 'grammar', f), 'utf8')), f).toBe(false)
+    expect(
+      importaValorDeCalendar(f, readFileSync(join(import.meta.dirname, 'grammar', f), 'utf8')),
+      f,
+    ).toBe(false)
   }
   for (const f of FUENTES_GRAMMAR) {
-    vi.resetModules()                          // registro vacío: `f` es de verdad el primer módulo que se evalúa
+    vi.resetModules() // registro vacío: `f` es de verdad el primer módulo que se evalúa
     await expect(import(`./grammar/${f.replace(/\.ts$/, '.js')}`), f).resolves.toBeDefined()
   }
 })
@@ -566,58 +731,124 @@ Los subflujos son una lista cerrada porque el principio 7 (puro y determinista c
 
 ```ts
 // packages/engine/src/routes/grammar/veto.ts
-export type VetoId = 'V1' | 'V2' | 'V3' | 'V4' | 'V5' | 'V6' | 'V7' | 'V8' | 'V9' | 'V10'
-  | 'V11' | 'V12' | 'V13' | 'V14' | 'V15' | 'V16'
-export interface Veto { id: VetoId; detalle: string }
+export type VetoId =
+  | 'V1'
+  | 'V2'
+  | 'V3'
+  | 'V4'
+  | 'V5'
+  | 'V6'
+  | 'V7'
+  | 'V8'
+  | 'V9'
+  | 'V10'
+  | 'V11'
+  | 'V12'
+  | 'V13'
+  | 'V14'
+  | 'V15'
+  | 'V16'
+export interface Veto {
+  id: VetoId
+  detalle: string
+}
 /** MetaKind → FinalKind que V7 exige cuando `sk.finalKind` no está declarado: repecho, muro_meta, alto_corto, alto_largo → 'alto';
  *  cima_cerca → 'cima_cerca'; descenso_meta → 'valle_corto'; valle → 'valle_largo'; esprint, sector_meta → null (sin comprobación). */
 export function finalKindDe(meta: MetaKind): FinalKind | null
 /** kmObjetivo = km de la INSTANCIA (EditionPlan.km): difiere de req.km hasta ± 6 % en 'generado'; V10 compara contra él (sección 9, §9.1).
  *  colocados = los Placed rendidos (los de `colocar`, o `colocarPlantilla(plantilla)` para una plantilla literal): V10(a) cuenta el enlace sobre ellos. */
-export function verify(profile: StageProfile, sk: Skeleton, req: StageRequest, motivos: Motif[], kmObjetivo: number, colocados: Placed[]): Veto | null
+export function verify(
+  profile: StageProfile,
+  sk: Skeleton,
+  req: StageRequest,
+  motivos: Motif[],
+  kmObjetivo: number,
+  colocados: Placed[],
+): Veto | null
 // Solo lee routes/ (stageKindOf, finalKindOf, climbSize, dPlusDe) y geometría del esqueleto. NUNCA sampleProfile,
 // finishType ni costBase (regla del juez del motor, riesgo 3): eso se mide en routeCensus.
 /** Cada veto por etapa, exportado y puro, para el test "uno que dispara y uno que no" (sección 9). */
-export type VetoFn = (profile: StageProfile, sk: Skeleton, req: StageRequest, motivos: Motif[], kmObjetivo: number, colocados: Placed[]) => Veto | null
+export type VetoFn = (
+  profile: StageProfile,
+  sk: Skeleton,
+  req: StageRequest,
+  motivos: Motif[],
+  kmObjetivo: number,
+  colocados: Placed[],
+) => Veto | null
 export const V1: VetoFn
 // … V2 a V10 y V15 con el mismo tipo (solo V10 lee kmObjetivo y colocados)
 export const V11: (rows: RouteStats[]) => Veto | null
 export const V12: (rows: RouteStats[], maxCorrelacion: number) => Veto | null
-export const V13: (roles: StageRole[], km: number[], raceClass: RaceClass, tour: TourSkeletonId) => Veto | null
+export const V13: (
+  roles: StageRole[],
+  km: number[],
+  raceClass: RaceClass,
+  tour: TourSkeletonId,
+) => Veto | null
 export const V14: (roles: StageRole[], n: number) => Veto | null
 export const V16: (rows: RouteStats[]) => Veto | null
-export function conjuntoV16(r: RouteStats): readonly FinishType[] | null   // la tabla de V16 (sección 9, §9.2); null = la fila no entra
+export function conjuntoV16(r: RouteStats): readonly FinishType[] | null // la tabla de V16 (sección 9, §9.2); null = la fila no entra
 // RouteStats es un `import type` de '../../sim/routeCensus.js' y FinishType de '../../stage/finish.js': se borran al compilar, y veto.ts no importa ningún valor de sim/ ni de stage/
 
 // packages/engine/src/routes/grammar/geometry.ts   (geometría de routes/: tramos, nunca bloques)
-export function dPlusDe(profile: StageProfile): number                       // Σ g·km·10 de los tramos con g > 0 (decisión 9)
-export function kmSubidaShare(profile: StageProfile): number                 // km de segmentos `puerto` / km total
-export function climbKmOutsideLast30(profile: StageProfile, kmToGo = ARCH.reina.subidaLejanaKm): number   // sección 9
-export function subidaLejanaShare(profile: StageProfile): number             // climbKmOutsideLast30 / Σ climbSize(puerto).km; 0 sin puertos
+export function dPlusDe(profile: StageProfile): number // Σ g·km·10 de los tramos con g > 0 (decisión 9)
+export function kmSubidaShare(profile: StageProfile): number // km de segmentos `puerto` / km total
+export function climbKmOutsideLast30(
+  profile: StageProfile,
+  kmToGo = ARCH.reina.subidaLejanaKm,
+): number // sección 9
+export function subidaLejanaShare(profile: StageProfile): number // climbKmOutsideLast30 / Σ climbSize(puerto).km; 0 sin puertos
 export function profileCorrelation(a: StageProfile, b: StageProfile): number // Pearson sobre g por km, eje normalizado desde meta (V12)
-export function describeProfile(profile: StageProfile): Motif[]              // perfil de hoy → Motif[] con las seis reglas y el cuerpo de la sección 13 (§13.5); solo frozenSkeletons
-export function ultimaCota(profile: StageProfile): Segment | null          // el `puerto` cuyo final está a ≤ 0,5 km de finalKind.ts::lastClimbKm (el último si hay dos); sin pancartas, el último `puerto` ≥ CLIMB_MIN_KM; cuerpo en §13.3
-export function huellaDe(profile: StageProfile): number[]                    // g medio por km entero, índice 0 = último km; la leen profileCorrelation y edition.test.ts (sección 10, §10.9)
-export function rachasDeSubida(profile: StageProfile): { km: number; g: number; finKmAMeta: number }[]   // V9(b), sección 9 §9.2
+export function describeProfile(profile: StageProfile): Motif[] // perfil de hoy → Motif[] con las seis reglas y el cuerpo de la sección 13 (§13.5); solo frozenSkeletons
+export function ultimaCota(profile: StageProfile): Segment | null // el `puerto` cuyo final está a ≤ 0,5 km de finalKind.ts::lastClimbKm (el último si hay dos); sin pancartas, el último `puerto` ≥ CLIMB_MIN_KM; cuerpo en §13.3
+export function huellaDe(profile: StageProfile): number[] // g medio por km entero, índice 0 = último km; la leen profileCorrelation y edition.test.ts (sección 10, §10.9)
+export function rachasDeSubida(
+  profile: StageProfile,
+): { km: number; g: number; finKmAMeta: number }[] // V9(b), sección 9 §9.2
 
 // packages/engine/src/routes/grammar/place.ts
-export interface Placed { motif: Motif; slot: number | 'meta'; inicioKm: number; finKm: number; bajada?: Motif }
-export function colocar(motivos: readonly Instancia[], km: number, sk: Skeleton, req: StageRequest, rand: () => number): Placed[] | null
-export function colocarPlantilla(plantilla: readonly Motif[]): Placed[]      // acumulación sin dados de una plantilla literal (canónica §8.11, §15.6, §13.5, fixtures §9.8)
-export function kmNoEnlace(p: Placed): number                              // lo que no es enlace: kmDif de colocar (§8.6 punto 2) y V10(a) (sección 9, §9.2)
+export interface Placed {
+  motif: Motif
+  slot: number | 'meta'
+  inicioKm: number
+  finKm: number
+  bajada?: Motif
+}
+export function colocar(
+  motivos: readonly Instancia[],
+  km: number,
+  sk: Skeleton,
+  req: StageRequest,
+  rand: () => number,
+): Placed[] | null
+export function colocarPlantilla(plantilla: readonly Motif[]): Placed[] // acumulación sin dados de una plantilla literal (canónica §8.11, §15.6, §13.5, fixtures §9.8)
+export function kmNoEnlace(p: Placed): number // lo que no es enlace: kmDif de colocar (§8.6 punto 2) y V10(a) (sección 9, §9.2)
 
 // packages/engine/src/routes/grammar/render.ts
-export function renderSkeleton(colocados: Placed[], km: number, geo: GeoSignature, rng: RngFactory, desde?: GeoSignature): Segment[]
+export function renderSkeleton(
+  colocados: Placed[],
+  km: number,
+  geo: GeoSignature,
+  rng: RngFactory,
+  desde?: GeoSignature,
+): Segment[]
 export function normalizeEnlaces(segs: Segment[], km: number, colocados: Placed[]): Segment[] | null
-export function garantizaClase(segs: Segment[], sk: Skeleton, colocados: Placed[]): { segs: Segment[]; reglas: number } | null   // reglas → arch.garantiasClase
+export function garantizaClase(
+  segs: Segment[],
+  sk: Skeleton,
+  colocados: Placed[],
+): { segs: Segment[]; reglas: number } | null // reglas → arch.garantiasClase
 export function emitirPancartas(segs: Segment[], colocados: Placed[]): Banner[]
 
 // packages/engine/src/routes/stageKind.ts   (paso 0: se añade `export` sin tocar cuerpos, sección 15 §15.2; paso 8: lo de la sección 11, §11.5 regla 2)
-export const WALL_MAX_KM = 3; export const PASS_MIN_KM = 8.5; export const QUEEN_MIN_CLIMB_METRES = 3200   // hoy const sin export, l. 60-64
-export function climbMetres(segment: Segment): number                        // l. 27-33
-export function climbSize(segment: Segment): { km: number; g: number }       // l. 36-42
-export const SUMMIT_RUN_IN_KM = 5                                            // paso 8: sale de apps/api/src/stageHistory.ts (decisión 23)
-export function runInAfterLastClimb(segments: readonly Segment[]): number    // paso 8: cuerpo de stageHistory.ts l. 76-88 movido sin cambios; Infinity sin puertos
+export const WALL_MAX_KM = 3
+export const PASS_MIN_KM = 8.5
+export const QUEEN_MIN_CLIMB_METRES = 3200 // hoy const sin export, l. 60-64
+export function climbMetres(segment: Segment): number // l. 27-33
+export function climbSize(segment: Segment): { km: number; g: number } // l. 36-42
+export const SUMMIT_RUN_IN_KM = 5 // paso 8: sale de apps/api/src/stageHistory.ts (decisión 23)
+export function runInAfterLastClimb(segments: readonly Segment[]): number // paso 8: cuerpo de stageHistory.ts l. 76-88 movido sin cambios; Infinity sin puertos
 // paso 8, dentro de stageKindOf: el booleano de l. 84 se parte en `meteEnAlto` (decide la rama clasica, como hoy) y
 // `cimaCerca = runInAfterLastClimb(segments) <= SUMMIT_RUN_IN_KM` (decide SOLO la etiqueta); `kind` no cambia de regla (decisión 26)
 ```
@@ -631,84 +862,139 @@ El resto del bloque son los nombres que las secciones 8, 9, 10, 11 y 13 introduc
 ```ts
 // packages/engine/src/sim/routeCensus.ts
 export interface RouteStats {
-  raceId: string; stageIndex: number; raceClass: RaceClass; format: RaceFormat; country: string | null   // CalendarRace.country es opcional (calendar.ts l. 898)
-  zona: GeoZone | null; skeleton: SkeletonId | null; routeSource: RouteSource
-  kind: StageKind; label: string; finalKind: FinalKind | null
-  meta: MetaKind | null                        // arch.motivos.at(-1)?.meta ?? null: la meta INSTANCIADA (una alternativa de nivel 2 puede cambiarla); null en las `real`. V16
-  cotaFinalKm: number | null                   // arch.motivos.at(-1)?.cotaFinal?.km ?? null; decide muro/puncheur en muro_meta y alto en cima_cerca (V16, sección 9 §9.2)
-  finishType: FinishType                       // finishType(deriveFinishTerrain(sampleProfile(profile)), 50): aquí sí
-  km: number; dPlus: number; dPlusBloques: number   // dPlusDe (total con relleno) y calendarQueens::desnivelDe (puertos solos): la diferencia es el relleno
-  nPuertos: number; nMuros: number; longestClimbKm: number
-  lastClimbKm: number | null; lastClimbG: number | null   // climbSize(ultimaCota(profile)).km y .g: LONGITUD y pendiente, no la posición de finalKind.ts::lastClimbKm (§13.3)
-  kmAfterLastClimb: number | null              // finalKind.ts::kmAfterLastClimb tal cual
-  climbKmOutsideLast30: number; kmSubidaShare: number; breakAppealEstimado: number
-  pavesKm: number; nSectores: number; estrellas5: number
-  nPancartas: number                           // profile.banners?.length ?? 0 (sección 8, §8.10; banda informativa ≤ 6 en un día generado)
-  maxG: number; huella: number[]               // g por km
-  intentos: number; degradado: boolean
-  garantiasClase: number                       // 0 a 4: = arch.garantiasClase (sección 8, §8.9); 0 en las `real`
-  firmaMotivos: string | null                  // MotifKind de arch.motivos (hijos aplanados, sin enlace ni meta), sin repetir, ordenados, unidos por '+'; null en las `real`
+  raceId: string
+  stageIndex: number
+  raceClass: RaceClass
+  format: RaceFormat
+  country: string | null // CalendarRace.country es opcional (calendar.ts l. 898)
+  zona: GeoZone | null
+  skeleton: SkeletonId | null
+  routeSource: RouteSource
+  kind: StageKind
+  label: string
+  finalKind: FinalKind | null
+  meta: MetaKind | null // arch.motivos.at(-1)?.meta ?? null: la meta INSTANCIADA (una alternativa de nivel 2 puede cambiarla); null en las `real`. V16
+  cotaFinalKm: number | null // arch.motivos.at(-1)?.cotaFinal?.km ?? null; decide muro/puncheur en muro_meta y alto en cima_cerca (V16, sección 9 §9.2)
+  finishType: FinishType // finishType(deriveFinishTerrain(sampleProfile(profile)), 50): aquí sí
+  km: number
+  dPlus: number
+  dPlusBloques: number // dPlusDe (total con relleno) y calendarQueens::desnivelDe (puertos solos): la diferencia es el relleno
+  nPuertos: number
+  nMuros: number
+  longestClimbKm: number
+  lastClimbKm: number | null
+  lastClimbG: number | null // climbSize(ultimaCota(profile)).km y .g: LONGITUD y pendiente, no la posición de finalKind.ts::lastClimbKm (§13.3)
+  kmAfterLastClimb: number | null // finalKind.ts::kmAfterLastClimb tal cual
+  climbKmOutsideLast30: number
+  kmSubidaShare: number
+  breakAppealEstimado: number
+  pavesKm: number
+  nSectores: number
+  estrellas5: number
+  nPancartas: number // profile.banners?.length ?? 0 (sección 8, §8.10; banda informativa ≤ 6 en un día generado)
+  maxG: number
+  huella: number[] // g por km
+  intentos: number
+  degradado: boolean
+  garantiasClase: number // 0 a 4: = arch.garantiasClase (sección 8, §8.9); 0 en las `real`
+  firmaMotivos: string | null // MotifKind de arch.motivos (hijos aplanados, sin enlace ni meta), sin repetir, ordenados, unidos por '+'; null en las `real`
 }
-type NumericKey = { [K in keyof RouteStats]: RouteStats[K] extends number ? K : never }[keyof RouteStats]
-type CatKey = 'kind' | 'finalKind' | 'meta' | 'finishType' | 'skeleton' | 'zona' | 'routeSource' | 'firmaMotivos'
+type NumericKey = {
+  [K in keyof RouteStats]: RouteStats[K] extends number ? K : never
+}[keyof RouteStats]
+type CatKey =
+  | 'kind'
+  | 'finalKind'
+  | 'meta'
+  | 'finishType'
+  | 'skeleton'
+  | 'zona'
+  | 'routeSource'
+  | 'firmaMotivos'
 
-export interface Cuantiles { n: number; min: number; p10: number; p50: number; p90: number; p95: number; max: number; media: number }   // índice floor(n · p)
+export interface Cuantiles {
+  n: number
+  min: number
+  p10: number
+  p50: number
+  p90: number
+  p95: number
+  max: number
+  media: number
+} // índice floor(n · p)
 export interface Summary {
   n: number
-  num: Partial<Record<NumericKey, Cuantiles>>                   // solo las columnas numéricas (el tipo lo impide en el resto)
-  cat: Partial<Record<CatKey, Record<string, number>>>         // fracción [0; 1] por valor
+  num: Partial<Record<NumericKey, Cuantiles>> // solo las columnas numéricas (el tipo lo impide en el resto)
+  cat: Partial<Record<CatKey, Record<string, number>>> // fracción [0; 1] por valor
 }
 export function routeCensus(calendar: CalendarRace[] = SEASON_CALENDAR): RouteStats[]
-export function aggregate(rows: RouteStats[], by: (r: RouteStats) => string): Record<string, Summary>
-export function entropiaBits(reparto: Record<string, number>): number      // Shannon en bits sobre fracciones
-export function correlacion(a: number[], b: number[]): number              // Pearson sobre `huella`, remuestreada a la más corta
-export function raceDePrueba(profile: StageProfile, kind: StageKind = 'reina'): CalendarRace   // una etapa, sin arch; no escribe routeSource hasta el paso 8 (routeSourceDe la lee 'generado'); cuerpo en §13.3
-export function routeSourceDe(race: CalendarRace, stage: CalendarStage): RouteSource   // stage.routeSource si existe; si no, la regla de inventario-recorridos.mjs::provenance (l. 50-55); cuerpo en §13.3
+export function aggregate(
+  rows: RouteStats[],
+  by: (r: RouteStats) => string,
+): Record<string, Summary>
+export function entropiaBits(reparto: Record<string, number>): number // Shannon en bits sobre fracciones
+export function correlacion(a: number[], b: number[]): number // Pearson sobre `huella`, remuestreada a la más corta
+export function raceDePrueba(profile: StageProfile, kind: StageKind = 'reina'): CalendarRace // una etapa, sin arch; no escribe routeSource hasta el paso 8 (routeSourceDe la lee 'generado'); cuerpo en §13.3
+export function routeSourceDe(race: CalendarRace, stage: CalendarStage): RouteSource // stage.routeSource si existe; si no, la regla de inventario-recorridos.mjs::provenance (l. 50-55); cuerpo en §13.3
 
 export interface CensusTarget {
   id: string
   label: string
-  poblacion: (r: RouteStats) => boolean       // subconjunto sobre el que se mide
+  poblacion: (r: RouteStats) => boolean // subconjunto sobre el que se mide
   medida: (rows: RouteStats[]) => number
-  min?: number; max?: number
-  hoy: number | null                          // columna "hoy (medido)" del paso 0; null si la población no existía
-  fuente: string                              // mapa, propuesta o juicio de donde sale la banda
-  estado: 'sellada' | 'informativa'           // informativa = se imprime, no afirma
-  nMin: number                                // población mínima para afirmar; por debajo se imprime "n insuficiente"
+  min?: number
+  max?: number
+  hoy: number | null // columna "hoy (medido)" del paso 0; null si la población no existía
+  fuente: string // mapa, propuesta o juicio de donde sale la banda
+  estado: 'sellada' | 'informativa' // informativa = se imprime, no afirma
+  nMin: number // población mínima para afirmar; por debajo se imprime "n insuficiente"
 }
-export const ROUTE_CENSUS_TARGETS: readonly CensusTarget[]   // la sección 13 rellena los valores
+export const ROUTE_CENSUS_TARGETS: readonly CensusTarget[] // la sección 13 rellena los valores
 export const CENSUS_N_MIN = 10
 
 // packages/engine/src/sim/frozenSkeletons.ts   (decisión 33; sección 13, §13.5)
 export interface FrozenQueen {
-  raceId: string; stageIndex: number          // la entrada de REAL_QUEENS a la que sustituye
-  skeleton: Skeleton                          // literal: `id` de los 32, `canonico` propio, sin `alternativas`
-  motivos: Motif[]                            // la instancia fija (posiciones incluidas: colocación ya hecha)
-  km: number                                  // 232, 200, 166
-  geo: GeoZone                                // `andes` las tres
-  role: StageRole; raceClass: RaceClass; format: RaceFormat   // lo que `verify` necesita en el StageRequest
-  seedDibujo: string                          // `frozen|race-colombia|5`: solo alimenta `dib`
-  huellaFNV: number                           // del perfil rendido; se re-sella con causa si `renderSkeleton` cambia
-  why: string                                 // empieza por "CONGELADA POR FORMA (E1, decisión 33; sustituir por dato real en E12): …"
+  raceId: string
+  stageIndex: number // la entrada de REAL_QUEENS a la que sustituye
+  skeleton: Skeleton // literal: `id` de los 32, `canonico` propio, sin `alternativas`
+  motivos: Motif[] // la instancia fija (posiciones incluidas: colocación ya hecha)
+  km: number // 232, 200, 166
+  geo: GeoZone // `andes` las tres
+  role: StageRole
+  raceClass: RaceClass
+  format: RaceFormat // lo que `verify` necesita en el StageRequest
+  seedDibujo: string // `frozen|race-colombia|5`: solo alimenta `dib`
+  huellaFNV: number // del perfil rendido; se re-sella con causa si `renderSkeleton` cambia
+  why: string // empieza por "CONGELADA POR FORMA (E1, decisión 33; sustituir por dato real en E12): …"
 }
-export const FROZEN_QUEENS: readonly FrozenQueen[]   // exactamente 3
+export const FROZEN_QUEENS: readonly FrozenQueen[] // exactamente 3
 export function frozenProfile(q: FrozenQueen): StageProfile
 export function frozenRequest(q: FrozenQueen): StageRequest
 // = { raceId, stageIndex, season: BASE_SEASON, km, role, terrain: 'mountain', geo: frozenGeo(q), raceClass, format,
 //     routeSource: 'edicion', fixed: { skeleton: q.skeleton.id } }   ('edicion': las tres tienen fila en RACE_EDITIONS)
-export function frozenGeo(q: FrozenQueen): GeoSignature   // { ...ZONAS[q.geo], amplitud: ARCH.motivo.enlace.ampMax }: relleno a 2,4 (sección 13, §13.5, regla 6)
-export const GENERATED_QUEENS: readonly { raceId: string; stageIndex: number; skeleton: SkeletonId; finalKind: FinalKind }[]   // 3, sin banda
+export function frozenGeo(q: FrozenQueen): GeoSignature // { ...ZONAS[q.geo], amplitud: ARCH.motivo.enlace.ampMax }: relleno a 2,4 (sección 13, §13.5, regla 6)
+export const GENERATED_QUEENS: readonly {
+  raceId: string
+  stageIndex: number
+  skeleton: SkeletonId
+  finalKind: FinalKind
+}[] // 3, sin banda
 
 // Bancos que ganan un último parámetro opcional `calendar: CalendarRace[] = SEASON_CALENDAR` (sección 13, §13.6 punto 3), sin cambio de conducta:
 //   sim/calendarQueens.ts analyzeCalendarQueens(runs, calendar?); sim/realQueens.ts findStage(raceId, i, calendar?) (pasa a exportarse);
 //   las funciones de sim/smallTours.ts y sim/timeTrials.ts que leen SEASON_CALENDAR
 
 // packages/engine/src/sim/saturation.ts
-export function hardestOneDay(calendar: CalendarRace[] = SEASON_CALENDAR, n = 8): CalendarRace[]   // extraída de invariantsClasicas.test.ts l. 119-132
+export function hardestOneDay(calendar: CalendarRace[] = SEASON_CALENDAR, n = 8): CalendarRace[] // extraída de invariantsClasicas.test.ts l. 119-132
 
 // packages/engine/src/sim/preRegistro.ts   (sección 13, §13.6 punto 2)
-export const PRE_REGISTRO: readonly { banda: string; direccion: 'sube' | 'baja' | 'igual' | 'igual_ruido'; porQue: string; previsto?: [number, number] }[]
-export const BANDAS_SOBRE_GENERADO: readonly string[]   // las 20 claves LITERALES de TARGETS que leen perfiles generados; cada una con fila en PRE_REGISTRO
+export const PRE_REGISTRO: readonly {
+  banda: string
+  direccion: 'sube' | 'baja' | 'igual' | 'igual_ruido'
+  porQue: string
+  previsto?: [number, number]
+}[]
+export const BANDAS_SOBRE_GENERADO: readonly string[] // las 20 claves LITERALES de TARGETS que leen perfiles generados; cada una con fila en PRE_REGISTRO
 
 // packages/engine/src/sim/pareado.ts   script `pnpm sim:pareado [semillas=12]`: cada banco con SEASON_CALENDAR y con legacyCalendar(),
 //   tabla banda | viejo | nuevo | Δ mediana | previsto | cumple. No exporta nada.
@@ -716,7 +1002,7 @@ export const BANDAS_SOBRE_GENERADO: readonly string[]   // las 20 claves LITERAL
 // packages/engine/src/sim/legacy/profileGenLegacy.ts   UN fichero, del paso 8 al final del paso 9 (decisión 29; sección 13 §13.6 punto 3)
 //   los ocho xxxSegments, normalize y garantizaPuerto movidos de profileGen.ts, más copias de oneDaySpec, del stageMix viejo
 //   (mixRoles, mixKm) y de la rama vieja de buildRace:
-export function legacyCalendar(): CalendarRace[]   // el calendario de antes del paso 8; sim/legacy/golden.test.ts exige sus 1.418 huellas (§3.12)
+export function legacyCalendar(): CalendarRace[] // el calendario de antes del paso 8; sim/legacy/golden.test.ts exige sus 1.418 huellas (§3.12)
 ```
 
 `RouteStats` es una fila por etapa del calendario que el juego corre (1.418 hoy), y es el único sitio del diseño donde se llama a `sampleProfile`, `deriveFinishTerrain` y `finishType` (con `groupSize` 50, `finish.ts` l. 142): por eso `zona` y `skeleton` admiten `null` (las 177 etapas `real` no tienen esqueleto) y por eso lleva `dPlus` y `dPlusBloques` a la vez, para imprimir las dos: `dPlusDe` es el total por tramos, relleno incluido, y `calendarQueens::desnivelDe` solo suma bloques `subida`, que `blockTerrain` (`sample.ts` l. 32-44) solo da a segmentos `puerto`; su diferencia es el relleno, no un error (decisión 9; sección 8 §8.5; sección 13 §13.3). `country` admite `null` porque `CalendarRace.country?` es opcional (`calendar.ts` l. 898 solo lo copia si existe) y el censo no inventa un país. `huella` es la pendiente media por km y alimenta la correlación de V12. `garantiasClase` cuenta cuántas de las reglas 1 a 4 de `garantizaClase` tocaron la etapa (es el `reglas` de §8.9, que viaja en `arch.garantiasClase`; no se llama `garantias` para no chocar con `garantias(roles, terrain, n, zonas)` de `tour.ts`), y la banda de la sección 13 es "etapas con `garantiasClase > 0` < 2 %", porque una red que trabaja mucho es un rango mal puesto. `nPancartas` es `profile.banners?.length ?? 0` y alimenta la banda informativa "≤ 6 en toda etapa generada de un día" de la sección 8 (§8.10), que es la que dice si `ARCH.pancarta.cimaMinKm` tiene que subir.
@@ -734,22 +1020,25 @@ export interface StageSpec {
   label: string
   profile: StageProfile
   timeTrial?: boolean
-  routeSource: RouteSource                     // NUEVO: 'real' | 'edicion' | 'generado'; obligatorio
-  arch?: GeneratedStage['arch']                // NUEVO: solo cuando routeSource !== 'real'
+  routeSource: RouteSource // NUEVO: 'real' | 'edicion' | 'generado'; obligatorio
+  arch?: GeneratedStage['arch'] // NUEVO: solo cuando routeSource !== 'real'
 }
-export interface CalendarStage extends StageSpec { index: number; name: string }   // sin cambios
+export interface CalendarStage extends StageSpec {
+  index: number
+  name: string
+} // sin cambios
 
 export interface CalendarRace {
   // ...los campos de hoy (l. 48-79) sin cambios: id, name, level, raceClass, format, startDay, openTo,
   // region?, championshipCountry?, championshipCategory?, country?, stages, restAfter?
-  routeSource: RaceRouteSource                 // NUEVO: raceRouteSourceOf(stages), calculado en buildRace
+  routeSource: RaceRouteSource // NUEVO: raceRouteSourceOf(stages), calculado en buildRace
 }
 
 // Exportaciones nuevas de calendar.ts, sin cambio de conducta (hoy son `const` o `function` privadas):
-export const RACE_ROWS: readonly RaceRow[]   // = [...WT_TABLE, ...PRO_TABLE, ...CON_TABLE]; paso 4, para skeletons.test.ts (sección 5, §5.9)
-export const RACE_TABLES: { WT_TABLE: RaceRow[]; PRO_TABLE: RaceRow[]; CON_TABLE: RaceRow[] }   // paso 8, para legacyCalendar (sección 13, §13.6)
-export const RACE_COUNTRY: Record<string, string>   // paso 8, ídem (hoy l. 580 en HEAD)
-export function auto(segments: Segment[]): StageProfile   // paso 8, ídem (hoy l. 107 en HEAD)
+export const RACE_ROWS: readonly RaceRow[] // = [...WT_TABLE, ...PRO_TABLE, ...CON_TABLE]; paso 4, para skeletons.test.ts (sección 5, §5.9)
+export const RACE_TABLES: { WT_TABLE: RaceRow[]; PRO_TABLE: RaceRow[]; CON_TABLE: RaceRow[] } // paso 8, para legacyCalendar (sección 13, §13.6)
+export const RACE_COUNTRY: Record<string, string> // paso 8, ídem (hoy l. 580 en HEAD)
+export function auto(segments: Segment[]): StageProfile // paso 8, ídem (hoy l. 107 en HEAD)
 // y, paso 8, ídem: featureSpec, stagesFrom, doy, enrollmentFor, ncHash, NATIONALS_ROAD_DAY y NATIONALS_ROAD_OVERRIDE. NO se exportan para el legado
 // NATIONAL_CHAMPIONSHIPS ni editionGrandTour: tras el renombre del paso 8 son los de la gramática, y profileGenLegacy.ts copia los viejos (sección 15, §15.10).
 // RaceRow (l. 395 en el árbol vivo) se exporta en el paso 4 con RACE_ROWS
@@ -759,25 +1048,54 @@ export function auto(segments: Segment[]): StageProfile   // paso 8, ídem (hoy 
 // packages/db/src/raceRoutes.ts (hoy l. 29: `'real' | 'generado'`)
 export type RouteSource = 'real' | 'edicion' | 'generado'
 export interface FrozenStage {
-  stageDay: number; profile: StageProfile; kind: StageKind; label: string; timeTrial: boolean; routeSource: RouteSource
-  arch: GeneratedStage['arch'] | null          // null en las `real` y en las filas anteriores a la migración
+  stageDay: number
+  profile: StageProfile
+  kind: StageKind
+  label: string
+  timeTrial: boolean
+  routeSource: RouteSource
+  arch: GeneratedStage['arch'] | null // null en las `real` y en las filas anteriores a la migración
 }
-export async function freezeRaceRoute(db: Conn, worldId: string, raceKey: string, raceId: string, season: number): Promise<void>
+export async function freezeRaceRoute(
+  db: Conn,
+  worldId: string,
+  raceKey: string,
+  raceId: string,
+  season: number,
+): Promise<void>
 // escribe, por etapa, desde stagesForSeason(raceId, season): profile, route_source, kind, label, time_trial, arch; idempotente (onConflictDoNothing, l. 54)
-export async function getRaceRoute(db: Conn, worldId: string, raceKey: string, stageDay: number): Promise<StageProfile | null>   // sin cambios
-export async function raceStagesForWorld(db: Conn, worldId: string, raceKey: string, raceId: string, season: number): Promise<FrozenStage[]>
+export async function getRaceRoute(
+  db: Conn,
+  worldId: string,
+  raceKey: string,
+  stageDay: number,
+): Promise<StageProfile | null> // sin cambios
+export async function raceStagesForWorld(
+  db: Conn,
+  worldId: string,
+  raceKey: string,
+  raceId: string,
+  season: number,
+): Promise<FrozenStage[]>
 // filas congeladas ordenadas por stage_day; si no hay ninguna, stagesForSeason(raceId, season) proyectado a FrozenStage;
 // una fila con kind/label/time_trial a null (anterior a la migración) se completa desde stagesForSeason(raceId, season)[stageDay − 1]
-export async function backfillRaceRoutes(db: Conn, worldId: string, raceKeys: readonly string[]): Promise<number>
+export async function backfillRaceRoutes(
+  db: Conn,
+  worldId: string,
+  raceKeys: readonly string[],
+): Promise<number>
 // saca season de raceKey con seasonOfRaceKey y llama a freezeRaceRoute con ella
 /** La temporada del sufijo `:s{n}` del raceKey (`${id}:s${season}`, calendarRun.ts l. 783); 0 si no lo lleva (sección 11, §11.4). */
 export function seasonOfRaceKey(raceKey: string): number
 /** JSON con claves ordenadas: el jsonb no conserva el orden. Se mueve aquí desde recorridoDelMundo.test.ts l. 28-34, que pasa a importarla. */
 export function canonico(x: unknown): string
-export const huellaCanonica: (p: StageProfile) => number   // = hashInt(canonico(p.segments))
+export const huellaCanonica: (p: StageProfile) => number // = hashInt(canonico(p.segments))
 /** Una vez por mundo, tras el backfill: reescribe SOLO route_source ('real' si la huella canónica coincide con la etapa real del calendario,
  *  'edicion' si la carrera está en RACE_EDITIONS, si no 'generado') y devuelve la cuenta por valor (sección 11, §11.4). */
-export async function reclassifyRouteSource(db: Conn, worldId: string): Promise<Record<RouteSource, number>>
+export async function reclassifyRouteSource(
+  db: Conn,
+  worldId: string,
+): Promise<Record<RouteSource, number>>
 
 // packages/db/src/schema.ts, tabla raceRoutes (l. 512-524): columnas nuevas, todas nullable para las filas ya congeladas
 //   kind: text('kind')   label: text('label')   timeTrial: boolean('time_trial')   arch: jsonb('arch').$type<GeneratedStage['arch']>()
@@ -789,9 +1107,9 @@ export async function reclassifyRouteSource(db: Conn, worldId: string): Promise<
 // apps/api/src/routes/calendar.ts: campos que gana cada etapa de `planFrom` (l. 91-105) (sección 10, §10.8)
 interface StageCardRoute {
   routeSource: 'real' | 'edicion' | 'generado'
-  edicion: number                              // season + 1: el primer año de un mundo es "Edición 1"
-  arch: { frase: string; skeleton: SkeletonId; geo: GeoZone } | null   // null en 'real'
-  cambiosRespectoAnterior: string[]            // diffMotivos(prev, actual); [] en 'real', en 'edicion', en season === BASE_SEASON y si nada cambió
+  edicion: number // season + 1: el primer año de un mundo es "Edición 1"
+  arch: { frase: string; skeleton: SkeletonId; geo: GeoZone } | null // null en 'real'
+  cambiosRespectoAnterior: string[] // diffMotivos(prev, actual); [] en 'real', en 'edicion', en season === BASE_SEASON y si nada cambió
 }
 // la ficha lee `frozen.arch ?? stagesForSeason(raceId, season)[i - 1].arch`, y `prev` = stagesForSeason(raceId, season - 1)[i - 1]
 // packages/shared/src/contracts.ts: el esquema zod de etapa (l. 379-382 `label`/`timeTrial`; l. 1042-1043 `stageKindSchema`; l. 1067-1068; l. 1362-1364)
@@ -808,7 +1126,9 @@ interface StageCardRoute {
 El agregado por carrera sigue la regla de I-40 traducida, con un solo enunciado que la prosa, `raceRouteSourceOf` y el test comparten: `real` si todas sus etapas son `real`; `generado` si todas son `generado`; `mixto` en cualquier otro caso, INCLUIDA la carrera cuyas etapas son todas `edicion` (ciudades y distancia reales, relieve generado, que no es ni `real` ni `generado`). No es un caso teórico: medido sobre `editions.ts` y `stageFeatures.ts` en HEAD, 39 de las 60 entradas de `RACE_EDITIONS` no tienen ninguna fila en `STAGE_FEATURES` (`race-portugal`, `race-alentejo`, `race-arabia`, `race-asturias`, `race-belgium`, `race-benelux`, `race-bretagne`, `race-britain`…), así que 39 carreras del calendario son `mixto` por esta vía; el borrador anterior las llamaba `mixto` en la prosa y `generado` en el test. `raceRouteSourceOf` se escribe sobre el conjunto de valores y no contando `real` (una versión anterior de la sección 11, `reales === 0 → 'generado'`, devolvía `generado` a esas 39; la sección 11 §11.1 escribe ya esta misma función y cuenta 41 carreras con alguna etapa `real` más las 39 `mixto` de toda `edicion`):
 
 ```ts
-export function raceRouteSourceOf(stages: readonly { routeSource: RouteSource }[]): RaceRouteSource {
+export function raceRouteSourceOf(
+  stages: readonly { routeSource: RouteSource }[],
+): RaceRouteSource {
   const set = new Set(stages.map((s) => s.routeSource))
   if (set.size === 1 && set.has('real')) return 'real'
   if (set.size === 1 && set.has('generado')) return 'generado'
@@ -825,7 +1145,8 @@ it('routeSource de carrera es el agregado de sus etapas', () => {
   let todasEdicion = 0
   for (const race of calendarForSeason(BASE_SEASON)) {
     const set = new Set(race.stages.map((s) => s.routeSource))
-    const esperado = set.size > 1 || set.has('edicion') ? 'mixto' : set.has('real') ? 'real' : 'generado'
+    const esperado =
+      set.size > 1 || set.has('edicion') ? 'mixto' : set.has('real') ? 'real' : 'generado'
     expect(race.routeSource).toBe(esperado)
     expect(race.routeSource).toBe(raceRouteSourceOf(race.stages))
     if (set.size === 1 && set.has('edicion')) todasEdicion += 1
@@ -834,7 +1155,7 @@ it('routeSource de carrera es el agregado de sus etapas', () => {
       else expect(s.arch?.skeleton).toBeDefined()
     }
   }
-  expect(todasEdicion).toBe(39)   // medido sobre editions.ts y stageFeatures.ts; solo un dato real nuevo puede moverlo
+  expect(todasEdicion).toBe(39) // medido sobre editions.ts y stageFeatures.ts; solo un dato real nuevo puede moverlo
 })
 ```
 
@@ -844,30 +1165,56 @@ Lo que las secciones 11, 13 y 15 introducen fuera de `grammar/` y del censo, con
 
 ```ts
 // packages/engine/src/routes/profileGen.ts   (paso 1: se exportan sin tocar cuerpos, salvo `climb` y `rolling`; sección 15 §15.3 y sección 8 §8.7)
-export function hashInt(s: string): number                                   // hoy l. 15, privada: FNV-1a de una cadena
-export function routeRng(seed: string): () => number                         // l. 30, ya exportada; se conserva (decisión 11)
-export function between(rand: () => number, min: number, max: number): number   // hoy l. 47, privada
-export function split(rand: () => number, total: number, n: number): number[]   // hoy l. 52, privada
-export function climb(rand: () => number, len: number, avg: number, opts: { gMin?: number; gMax?: number } = {}): Segment   // hoy l. 72; gMin/gMax por defecto −Infinity/Infinity; recorte tras el suelo 1 de l. 78 y antes del redondeo a 0,1, sin tiradas nuevas (cuerpo en §8.7)
-export function descent(rand: () => number, len: number, avg: number): Segment  // hoy l. 85, privada
-export function rolling(rand: () => number, km: number, amp: number, pRompepiernas = 0): Segment[]   // hoy l. 100 `(rand, km, bumpy = false)`
+export function hashInt(s: string): number // hoy l. 15, privada: FNV-1a de una cadena
+export function routeRng(seed: string): () => number // l. 30, ya exportada; se conserva (decisión 11)
+export function between(rand: () => number, min: number, max: number): number // hoy l. 47, privada
+export function split(rand: () => number, total: number, n: number): number[] // hoy l. 52, privada
+export function climb(
+  rand: () => number,
+  len: number,
+  avg: number,
+  opts: { gMin?: number; gMax?: number } = {},
+): Segment // hoy l. 72; gMin/gMax por defecto −Infinity/Infinity; recorte tras el suelo 1 de l. 78 y antes del redondeo a 0,1, sin tiradas nuevas (cuerpo en §8.7)
+export function descent(rand: () => number, len: number, avg: number): Segment // hoy l. 85, privada
+export function rolling(rand: () => number, km: number, amp: number, pRompepiernas = 0): Segment[] // hoy l. 100 `(rand, km, bumpy = false)`
 /** Huella de perfil que sella lo real y lo congelado: FNV-1a de JSON.stringify(profile.segments), sin reordenar claves (sección 11, §11.3). */
 export function huellaFNV(profile: StageProfile): number
 
 // packages/engine/src/routes/golden.sealed.ts   (paso 1 → paso 8; literal generado por script y pegado, nunca .json)
-export const GOLDEN: Record<string, number>   // 1.418 entradas `${raceId}:${index}` → hashInt(JSON.stringify(stage.profile)), perfil entero con pancartas
+export const GOLDEN: Record<string, number> // 1.418 entradas `${raceId}:${index}` → hashInt(JSON.stringify(stage.profile)), perfil entero con pancartas
 // En el paso 8 se mueve con `git mv` a sim/legacy/golden.sealed.ts, junto a sim/legacy/golden.test.ts, y se borra con sim/legacy/ en el paso 9.
 
 // packages/engine/src/routes/realFingerprint.sealed.ts   (paso 1; sobrevive para siempre; sección 11 §11.3)
-export interface Sellada { km: number; nSegmentos: number; huella: number }   // km al 0,1; huella = huellaFNV(profile)
-export const SELLADAS: Record<string, Sellada>   // exactamente 177 claves `${raceId}:${index}`, las etapas con rasgos de STAGE_FEATURES
-export interface EtapaSellada { kind: StageKind; label: string; timeTrial: boolean; km: number; huella: number | null }   // null: etapa `edicion`
-export const GRANDES_VUELTAS: Record<'race-france' | 'race-italy' | 'race-spain', { restAfter: number[]; etapas: EtapaSellada[] }>   // 21 etapas cada una
+export interface Sellada {
+  km: number
+  nSegmentos: number
+  huella: number
+} // km al 0,1; huella = huellaFNV(profile)
+export const SELLADAS: Record<string, Sellada> // exactamente 177 claves `${raceId}:${index}`, las etapas con rasgos de STAGE_FEATURES
+export interface EtapaSellada {
+  kind: StageKind
+  label: string
+  timeTrial: boolean
+  km: number
+  huella: number | null
+} // null: etapa `edicion`
+export const GRANDES_VUELTAS: Record<
+  'race-france' | 'race-italy' | 'race-spain',
+  { restAfter: number[]; etapas: EtapaSellada[] }
+> // 21 etapas cada una
 
 // packages/engine/src/routes/grammar/legacy.ts   (paso 1 → paso 8; sección 15 §15.3)
-export type LegacyId = 'lg_flat' | 'lg_hilly' | 'lg_hilly_uphill' | 'lg_mountain' | 'lg_mountain_classic' | 'lg_classic' | 'lg_cobbles' | 'lg_itt'
-export type LegacySkeleton = Omit<Skeleton, 'id'> & { id: LegacyId }   // NO es un Skeleton: no entra en SKELETONS, candidatos ni la galería
-export const LEGACY: Record<LegacyId, LegacySkeleton>   // rangos de hoy (mapa 01 §8); lg_itt es lg_flat, como ittSegments === flatSegments
+export type LegacyId =
+  | 'lg_flat'
+  | 'lg_hilly'
+  | 'lg_hilly_uphill'
+  | 'lg_mountain'
+  | 'lg_mountain_classic'
+  | 'lg_classic'
+  | 'lg_cobbles'
+  | 'lg_itt'
+export type LegacySkeleton = Omit<Skeleton, 'id'> & { id: LegacyId } // NO es un Skeleton: no entra en SKELETONS, candidatos ni la galería
+export const LEGACY: Record<LegacyId, LegacySkeleton> // rangos de hoy (mapa 01 §8); lg_itt es lg_flat, como ittSegments === flatSegments
 /** La secuencia COMPLETA del generador viejo para (id, km, seed): dificultades, bajadas y enlaces con su km, en su orden fijo,
  *  con la cardinalidad por umbral de km de hoy. Pura. */
 export function legacyMotivos(id: LegacyId, km: number, seed: string): Motif[]
@@ -880,23 +1227,23 @@ Cuatro decisiones que las secciones dejaban abiertas. `huellaFNV` vive en `profi
 
 Los ficheros de test nuevos, con el paso en que nacen (sección 15) y la sección que escribe sus aserciones:
 
-| Fichero | Nace | Muere | Aserciones en |
-| --- | --- | --- | --- |
-| `routes/grammar/calendario.test.ts` | 0 (con `it.todo`) | no | 13 (§13.8) y §3.11 |
-| `sim/routeCensus.test.ts` | 0 | no | 13 |
-| `routes/golden.test.ts` | 1 | 8 (sus huellas pasan a `sim/legacy/golden.test.ts`) | 15 (§15.3) |
-| `routes/realFingerprint.test.ts` | 1 | no | 11 (§11.3) |
-| `routes/profileGen.test.ts` | 1 (`rolling` y `climb` con sus firmas nuevas) | no | 8 (§8.14) |
-| `routes/arranque.test.ts` | 1, con el `it` de importaciones de §3.8; el 5 añade el de `stage/` y el 8 los de coste (§14.4) | no | 3, 14 |
-| `routes/grammar/legacy.test.ts` | 1; gana la tabla pareada en el 4 | 8, con `legacy.ts` | 15 (§15.3 y §15.6) |
-| `routes/grammar/geo.test.ts`, `routes/grammar/regions.test.ts` | 2 | no | 6 (§6.8), 15 (§15.4) |
-| `routes/grammar/motifs.test.ts` | 3 | no | 4, 15 (§15.5) |
-| `routes/grammar/skeletons.test.ts`, `place.test.ts`, `render.test.ts`, `geometry.test.ts` | 4 | no | 5 (§5.9), 8, 15 (§15.6) |
-| `routes/grammar/veto.test.ts`, `generate.test.ts`, `sim/stageKind.completo.test.ts` | 5 | no | 9, 8, 15 (§15.7) |
-| `routes/grammar/tour.test.ts` | 7 | no | 7, 15 (§15.8) |
-| `routes/grammar/edition.test.ts` | 6 | no | 10 (§10.9) |
-| `sim/legacy/golden.test.ts` | 8 | 9, con `sim/legacy/` | 15 (§15.10): `legacyCalendar()` reproduce `GOLDEN` |
-| `sim/frozenSkeletons.test.ts`, `sim/preRegistro.test.ts` | 9 | no | 13 (§13.5 y §13.6) |
+| Fichero                                                                                   | Nace                                                                                           | Muere                                               | Aserciones en                                      |
+| ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | --------------------------------------------------- | -------------------------------------------------- |
+| `routes/grammar/calendario.test.ts`                                                       | 0 (con `it.todo`)                                                                              | no                                                  | 13 (§13.8) y §3.11                                 |
+| `sim/routeCensus.test.ts`                                                                 | 0                                                                                              | no                                                  | 13                                                 |
+| `routes/golden.test.ts`                                                                   | 1                                                                                              | 8 (sus huellas pasan a `sim/legacy/golden.test.ts`) | 15 (§15.3)                                         |
+| `routes/realFingerprint.test.ts`                                                          | 1                                                                                              | no                                                  | 11 (§11.3)                                         |
+| `routes/profileGen.test.ts`                                                               | 1 (`rolling` y `climb` con sus firmas nuevas)                                                  | no                                                  | 8 (§8.14)                                          |
+| `routes/arranque.test.ts`                                                                 | 1, con el `it` de importaciones de §3.8; el 5 añade el de `stage/` y el 8 los de coste (§14.4) | no                                                  | 3, 14                                              |
+| `routes/grammar/legacy.test.ts`                                                           | 1; gana la tabla pareada en el 4                                                               | 8, con `legacy.ts`                                  | 15 (§15.3 y §15.6)                                 |
+| `routes/grammar/geo.test.ts`, `routes/grammar/regions.test.ts`                            | 2                                                                                              | no                                                  | 6 (§6.8), 15 (§15.4)                               |
+| `routes/grammar/motifs.test.ts`                                                           | 3                                                                                              | no                                                  | 4, 15 (§15.5)                                      |
+| `routes/grammar/skeletons.test.ts`, `place.test.ts`, `render.test.ts`, `geometry.test.ts` | 4                                                                                              | no                                                  | 5 (§5.9), 8, 15 (§15.6)                            |
+| `routes/grammar/veto.test.ts`, `generate.test.ts`, `sim/stageKind.completo.test.ts`       | 5                                                                                              | no                                                  | 9, 8, 15 (§15.7)                                   |
+| `routes/grammar/tour.test.ts`                                                             | 7                                                                                              | no                                                  | 7, 15 (§15.8)                                      |
+| `routes/grammar/edition.test.ts`                                                          | 6                                                                                              | no                                                  | 10 (§10.9)                                         |
+| `sim/legacy/golden.test.ts`                                                               | 8                                                                                              | 9, con `sim/legacy/`                                | 15 (§15.10): `legacyCalendar()` reproduce `GOLDEN` |
+| `sim/frozenSkeletons.test.ts`, `sim/preRegistro.test.ts`                                  | 9                                                                                              | no                                                  | 13 (§13.5 y §13.6)                                 |
 
 `routes/arranque.test.ts` nace en el paso 1 y no en el 5, porque el `import type` de `calendar.js` que su primer `it` vigila aparece en el paso 1; §15.7 (paso 5) le añade el tercer `it` y §15.10 (paso 8) los de coste.
 
@@ -906,32 +1253,32 @@ No existe `routes/grammar/index.ts` (sección 15, §15.1): la lista pública del
 
 Quien venga de las cinco propuestas encontrará otros nombres para las mismas cosas. Esta es la tabla completa (§B.4 del esqueleto), y es el único sitio del documento donde aparece: el apéndice A (sección 19) es la tabla de los 45 injertos, no la de alias.
 
-| Canónico | arquitectura | banco | geografia | ingeniero | datos |
-| --- | --- | --- | --- | --- | --- |
-| `Motif` / `MotifKind` | igual | `Motif` (unión discriminada) | `Motivo` | `Motif` (unión) | `MotifKind` |
-| `Skeleton` / `SkeletonId` | igual | `RouteBrief` / `ArchetypeId` | `Esqueleto` / `Arquitectura` | `Skeleton` / `FamilyId` | `Archetype` / `ArchFamily` |
-| `MetaKind` | igual | `FinalBrief` | (en `aMeta` de `Hueco`) | `contract.finish` | `finalMix` |
-| `GeoZone` / `GeoSignature` | igual | `GeoKey` / `GeoSignature` | `Paisaje` / `PaisajeSpec` | `GeoKey` / `RouteGeo` | `RegionId` / `GeoSignature` |
-| `Territorio` / `TERRITORIOS` | (no existe) | (no existe) | igual | (no existe) | (no existe) |
-| `RACE_REGION` | `RaceRow.geo` + `RACE_PLACE` (sorteo: retirado) | `RACE_GEO` | `RaceRow.paisaje` | `RACE_GEO_OVERRIDE` | `RACE_REGION` |
-| `zonaDe(country)` | `zonaDe` | `COUNTRY_GEO` | `territorioDe` | `GEO_BY_COUNTRY` | `COUNTRY_REGION` |
-| `StageRole` | igual | `Papel` | `Papel` | `MixRole` | `MixRole` |
-| `TourSkeleton` | igual | `TourCharacter` + `TourTemplate` | `Itinerario` | `mixRoles` + reglas | `TourTemplate` |
-| `routeSource` (`real`/`edicion`/`generado`) | igual | `source` | `origen` | `origen` | `RouteMeta.source` (`mixto` = `edicion`) |
-| `StageRequest` | igual | `RouteRequest` | `ContextoEtapa` | `RouteContext` + request | `GenInput` |
-| `GeneratedStage.arch` | igual | `brief` | `paisaje` + `arquitectura` | `skeleton` | `RouteMeta` |
-| `generateStage` | igual | `stageFor` | `trazarEtapa` | (builders + render) | `generateStage` |
-| `renderSkeleton` | (paso 6) | `render` | `dibujar` | `renderSkeleton` | (draw.ts) |
-| `normalizeEnlaces` + `garantizaClase` | `normalizeEnlaces` | `normalize` + guardas | `normalize` | `normalize` + `garantizaPuerto` | `garantizaClase` |
-| `verify` / `V1..V16` | V1-V15 | `vetoesOf` / V1-V18 | `vetos` / V1-V14 | `verify` / V1-V10 | `vetos` / V1-V12 |
-| `ARCH` | igual | `GEN` | `ROUTE.*` + `VETO` + `GEO` | `ROUTE.motif/families/edition/verify` | `ARCH` + `EDITION` + `GEO_SIGNATURES` |
-| `BASE_SEASON` (0) | `season: 0` | `calendarFor(1)` (error) | `BASE_SEASON` (pregunta) | `season 0` | `season 0` |
-| `calendarForSeason` | `raceForSeason`/`stagesForSeason` | `calendarFor` | `calendarForSeason` | `calendarForSeason` | `seasonCalendar` |
-| `ARCH.edicion.nivel` | (jitter) | `editionOf` | `ROUTE.edicion.activa` | `ROUTE.edition.p*` | `EDITION.level` |
-| `routeCensus` | `calendario.test.ts` | `routeCensus` | `calendarGeometry.test.ts` | `geometry.ts` | `routeFidelity.ts` |
-| `frozenSkeletons` | "perfiles literales" | "cerrar por brief" | `frozenQueens` | `frozenSkeletons` | `frozenQueens` |
-| `dPlusDe` | `desnivelDe` | `desnivelDe` | `climbMetres` | `desnivelDe` | `dPlus` |
-| V8 (reina de verdad, dos cláusulas) | V8 | V6 + V8 | V2 | V2 + §9.2 | V2 |
-| V5 (caso v40) | V5 | V1 | V1 | V1 | V1 |
+| Canónico                                    | arquitectura                                    | banco                            | geografia                    | ingeniero                             | datos                                    |
+| ------------------------------------------- | ----------------------------------------------- | -------------------------------- | ---------------------------- | ------------------------------------- | ---------------------------------------- |
+| `Motif` / `MotifKind`                       | igual                                           | `Motif` (unión discriminada)     | `Motivo`                     | `Motif` (unión)                       | `MotifKind`                              |
+| `Skeleton` / `SkeletonId`                   | igual                                           | `RouteBrief` / `ArchetypeId`     | `Esqueleto` / `Arquitectura` | `Skeleton` / `FamilyId`               | `Archetype` / `ArchFamily`               |
+| `MetaKind`                                  | igual                                           | `FinalBrief`                     | (en `aMeta` de `Hueco`)      | `contract.finish`                     | `finalMix`                               |
+| `GeoZone` / `GeoSignature`                  | igual                                           | `GeoKey` / `GeoSignature`        | `Paisaje` / `PaisajeSpec`    | `GeoKey` / `RouteGeo`                 | `RegionId` / `GeoSignature`              |
+| `Territorio` / `TERRITORIOS`                | (no existe)                                     | (no existe)                      | igual                        | (no existe)                           | (no existe)                              |
+| `RACE_REGION`                               | `RaceRow.geo` + `RACE_PLACE` (sorteo: retirado) | `RACE_GEO`                       | `RaceRow.paisaje`            | `RACE_GEO_OVERRIDE`                   | `RACE_REGION`                            |
+| `zonaDe(country)`                           | `zonaDe`                                        | `COUNTRY_GEO`                    | `territorioDe`               | `GEO_BY_COUNTRY`                      | `COUNTRY_REGION`                         |
+| `StageRole`                                 | igual                                           | `Papel`                          | `Papel`                      | `MixRole`                             | `MixRole`                                |
+| `TourSkeleton`                              | igual                                           | `TourCharacter` + `TourTemplate` | `Itinerario`                 | `mixRoles` + reglas                   | `TourTemplate`                           |
+| `routeSource` (`real`/`edicion`/`generado`) | igual                                           | `source`                         | `origen`                     | `origen`                              | `RouteMeta.source` (`mixto` = `edicion`) |
+| `StageRequest`                              | igual                                           | `RouteRequest`                   | `ContextoEtapa`              | `RouteContext` + request              | `GenInput`                               |
+| `GeneratedStage.arch`                       | igual                                           | `brief`                          | `paisaje` + `arquitectura`   | `skeleton`                            | `RouteMeta`                              |
+| `generateStage`                             | igual                                           | `stageFor`                       | `trazarEtapa`                | (builders + render)                   | `generateStage`                          |
+| `renderSkeleton`                            | (paso 6)                                        | `render`                         | `dibujar`                    | `renderSkeleton`                      | (draw.ts)                                |
+| `normalizeEnlaces` + `garantizaClase`       | `normalizeEnlaces`                              | `normalize` + guardas            | `normalize`                  | `normalize` + `garantizaPuerto`       | `garantizaClase`                         |
+| `verify` / `V1..V16`                        | V1-V15                                          | `vetoesOf` / V1-V18              | `vetos` / V1-V14             | `verify` / V1-V10                     | `vetos` / V1-V12                         |
+| `ARCH`                                      | igual                                           | `GEN`                            | `ROUTE.*` + `VETO` + `GEO`   | `ROUTE.motif/families/edition/verify` | `ARCH` + `EDITION` + `GEO_SIGNATURES`    |
+| `BASE_SEASON` (0)                           | `season: 0`                                     | `calendarFor(1)` (error)         | `BASE_SEASON` (pregunta)     | `season 0`                            | `season 0`                               |
+| `calendarForSeason`                         | `raceForSeason`/`stagesForSeason`               | `calendarFor`                    | `calendarForSeason`          | `calendarForSeason`                   | `seasonCalendar`                         |
+| `ARCH.edicion.nivel`                        | (jitter)                                        | `editionOf`                      | `ROUTE.edicion.activa`       | `ROUTE.edition.p*`                    | `EDITION.level`                          |
+| `routeCensus`                               | `calendario.test.ts`                            | `routeCensus`                    | `calendarGeometry.test.ts`   | `geometry.ts`                         | `routeFidelity.ts`                       |
+| `frozenSkeletons`                           | "perfiles literales"                            | "cerrar por brief"               | `frozenQueens`               | `frozenSkeletons`                     | `frozenQueens`                           |
+| `dPlusDe`                                   | `desnivelDe`                                    | `desnivelDe`                     | `climbMetres`                | `desnivelDe`                          | `dPlus`                                  |
+| V8 (reina de verdad, dos cláusulas)         | V8                                              | V6 + V8                          | V2                           | V2 + §9.2                             | V2                                       |
+| V5 (caso v40)                               | V5                                              | V1                               | V1                           | V1                                    | V1                                       |
 
 Regla de numeración de vetos: los V del documento son los de arquitectura §9 con dos cambios: V7 se parte en V7 (`finalKindOf` por etapa, con reintento) y V16 (`finishType` medido en `routeCensus`, sin reintento); y V8 gana la cláusula (b) de banco (subida fuera de los últimos 30 km). La lista completa está en la sección 9 (decisión 24 de la síntesis). Dos matices que la tabla no puede decir: el `mixto` de datos era un valor de etapa y aquí es solo agregado de carrera (`RaceRouteSource`, §3.11), y `RouteContext` de ingeniero era la petición entera mientras aquí es el contexto de carrera que `composeTour` recibe (§3.6).

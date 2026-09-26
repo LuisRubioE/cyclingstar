@@ -1336,6 +1336,67 @@ export const ROUTE = {
   lastStageKmFactor: 0.85,
 } as const
 
+/**
+ * CONFIGURACIÓN DE EDICIÓN del generador de recorridos (docs/generador.md §12.1 y sección 10).
+ *
+ * Es un TIPO ancho a propósito (`activa: boolean`), para que un test o el dueño puedan pasar
+ * `{ ...ARCH.edicion, activa: false }` a `calendarForSeason(s, cfg)` sin mutar `ARCH` (§10.5). Es la
+ * ÚNICA definición del tipo: `edition.ts` y los tipos de `routes/grammar/` lo importan con
+ * `import type` desde aquí; nadie lo deriva con `typeof ARCH.edicion`.
+ */
+export interface EdicionCfg {
+  /** `BASE_SEASON` (§10.2): tipo literal 0, no es perilla y ninguna cfg de test la cambia. */
+  readonly baseSeason: 0
+  activa: boolean
+  nivel: 0 | 1 | 2
+  kmJitter: number
+  vueltasJitter: number
+  motivoNuevo: number
+}
+
+/**
+ * LAS PERILLAS DEL GENERADOR DE RECORRIDOS POR GRAMÁTICA (E1, docs/generador.md sección 12).
+ *
+ * Las tablas de la gramática (zonas, territorios, esqueletos) son datos de intención y vivirán en
+ * `routes/grammar/`; aquí solo van las perillas. Este objeto nace en el paso 0 con las dos claves que
+ * se leen ya (§15.1, tabla «Lo que existe al cerrar cada paso») y cada paso posterior añade las suyas
+ * a este MISMO literal, nunca un segundo objeto. `constants.ts` no importa ningún valor de
+ * `routes/grammar/` (§14.4 depende de ello). Ningún valor de aquí cambia el calendario hasta el paso 8.
+ */
+export const ARCH = {
+  /**
+   * Cómo cambia un recorrido generado de una temporada a otra (sección 10). Nadie lo lee hasta el
+   * paso 5; entra ya en el paso 0 porque el 5 y el 7 lo leen antes de que llegue el 6.
+   */
+  edicion: {
+    // La temporada con que nace un mundo (`calendarRun.ts`: el primer año es la 0). No es perilla:
+    // vive aquí para que `edition.ts` la reexporte como `BASE_SEASON` sin importar de grammar/.
+    baseSeason: 0,
+    // Interruptor: con `activa: false`, toda temporada devuelve el calendario de la 0. Existe para
+    // el banco y para el dueño, no para producción.
+    activa: true,
+    // 0 fija; 1 jitter acotado (por defecto); 2 rotación declarada. Los esqueletos con alternativas
+    // rotan con el 1 igualmente (§10.3).
+    nivel: 1,
+    // ± 6 % de km entre ediciones de una carrera generada (nunca en ediciones reales, cuyo km es
+    // contrato). Lo real se mueve ± 1-2 % y hasta 7 km; se deja más ancho para carreras inventadas.
+    kmJitter: 0.06,
+    // Probabilidad de que un circuito cambie ± 1 vuelta entre ediciones (Montréal 17-18).
+    vueltasJitter: 0.5,
+    // Probabilidad de que un hueco opcional del esqueleto falte en una edición: una carrera cambia
+    // una cosa al año (Lombardía, 3 de 4 ediciones con cota de remate).
+    motivoNuevo: 0.35,
+  } as EdicionCfg,
+  /** La etapa reina de verdad (§12.4). En el paso 0 solo entra la ventana que lee el censo. */
+  reina: {
+    // Km a meta a partir de los cuales una subida es «lejana»: son los del motor
+    // (`STAGE.climbRaceKmToGo`), que solo ataca un puerto a ≤ 30 km de meta; una subida más lejos se
+    // sube a tempo y desgasta sin seleccionar, que es lo que le faltaba a `reina-150` (V8b). El test
+    // de coherencia de §12.14 falla si las dos cifras se separan.
+    subidaLejanaKm: 30,
+  },
+} as const
+
 /** Salud y enfermedad (SPEC 4.2, 4.3). */
 export const HEALTH = {
   mSano: 1.0,

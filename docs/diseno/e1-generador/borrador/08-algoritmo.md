@@ -8,7 +8,14 @@ Esta sección es el interior de `generateStage` (`packages/engine/src/routes/gra
 // packages/engine/src/routes/grammar/generate.ts
 import { ARCH } from '../../constants.js'
 import { routeRng } from '../profileGen.js'
-import { ESCALON_TERRENO, SESGO_TERRENO, SKELETONS, cabe, candidatos, skeletonFor } from './skeletons.js'
+import {
+  ESCALON_TERRENO,
+  SESGO_TERRENO,
+  SKELETONS,
+  cabe,
+  candidatos,
+  skeletonFor,
+} from './skeletons.js'
 import { ZONAS, admite } from './geo.js'
 import { RACE_REGION } from './regions.js'
 import { instanciarFirma, instanciar, type Instancia } from './motifs.js'
@@ -25,55 +32,114 @@ import type { EditionTerrain } from '../editions.js'
 import type { RouteTerrain } from '../featureProfile.js'
 
 export function generateStage(req: StageRequest): GeneratedStage {
-  const id = claveEtapa(req)                                              // solo para mensajes; toda semilla sale de semillaDe
-  const { sk, sufijo } = elegirEsqueleto(req, routeRng(semillaDe('arch', req)))   // paso 1 (con `fixed.skeleton` o con atadura que cabe no tira; 8.2)
-  const opcion = opcionDe(sk, req.raceId, seasonDe(req, 'ed'), req.edicion ?? ARCH.edicion)   // sin dados (§10.3)
-  const firma = instanciarFirma(sk, opcion, req, routeRng(semillaDe('firma', req)))                          // paso 2
-  const ed = planDeEdicion(sk, firma.map((f) => f.motif), req)            // paso 3: tira dentro en semillaDe('ed', req); ed.opcion === opcion
+  const id = claveEtapa(req) // solo para mensajes; toda semilla sale de semillaDe
+  const { sk, sufijo } = elegirEsqueleto(req, routeRng(semillaDe('arch', req))) // paso 1 (con `fixed.skeleton` o con atadura que cabe no tira; 8.2)
+  const opcion = opcionDe(sk, req.raceId, seasonDe(req, 'ed'), req.edicion ?? ARCH.edicion) // sin dados (§10.3)
+  const firma = instanciarFirma(sk, opcion, req, routeRng(semillaDe('firma', req))) // paso 2
+  const ed = planDeEdicion(
+    sk,
+    firma.map((f) => f.motif),
+    req,
+  ) // paso 3: tira dentro en semillaDe('ed', req); ed.opcion === opcion
   const timeTrial = sk.timeTrial ?? false
   const desde = req.desde !== undefined && req.desde !== req.geo.zona ? ZONAS[req.desde] : undefined
   const rechazos: Veto[] = []
   for (let intento = 0; intento < ARCH.colocacion.maxIntentos; intento++) {
-    const motivos = instanciar(sk, firma, ed, req, (slot, j) => routeRng(semillaDe('mot', req, { slot, j, intento })))   // paso 4
-    const colocados = colocar(motivos, ed.km, sk, req, routeRng(semillaDe('pos', req, { intento })))                    // paso 5
-    if (colocados === null) { rechazos.push({ id: 'V10', detalle: 'colocar: los enlaces no llegan' }); continue }
-    const rng = (token: string) => routeRng(semillaDe('dib', req, { token, intento }))                                  // RngFactory de §3.2
-    const segs = renderSkeleton(colocados, ed.km, req.geo, rng, desde)                                                  // paso 6
+    const motivos = instanciar(sk, firma, ed, req, (slot, j) =>
+      routeRng(semillaDe('mot', req, { slot, j, intento })),
+    ) // paso 4
+    const colocados = colocar(motivos, ed.km, sk, req, routeRng(semillaDe('pos', req, { intento }))) // paso 5
+    if (colocados === null) {
+      rechazos.push({ id: 'V10', detalle: 'colocar: los enlaces no llegan' })
+      continue
+    }
+    const rng = (token: string) => routeRng(semillaDe('dib', req, { token, intento })) // RngFactory de §3.2
+    const segs = renderSkeleton(colocados, ed.km, req.geo, rng, desde) // paso 6
     const cuadrados = normalizeEnlaces(segs, ed.km, colocados)
-    if (cuadrados === null) { rechazos.push({ id: 'V10', detalle: 'normalizeEnlaces: no absorben' }); continue }
+    if (cuadrados === null) {
+      rechazos.push({ id: 'V10', detalle: 'normalizeEnlaces: no absorben' })
+      continue
+    }
     const garantizados = garantizaClase(cuadrados, sk, colocados)
-    if (garantizados === null) { rechazos.push({ id: 'V6', detalle: 'garantizaClase: sin enlace que compense' }); continue }
-    const profile = { segments: garantizados.segs, banners: emitirPancartas(garantizados.segs, colocados) }
-    const veto = verify(profile, sk, req, motivos.map((m) => m.motif), ed.km, colocados)                               // paso 7
-    if (veto === null) return salida(profile, sk, req, motivos, ed, intento + 1, false, timeTrial, garantizados.reglas, rechazos, sufijo)
+    if (garantizados === null) {
+      rechazos.push({ id: 'V6', detalle: 'garantizaClase: sin enlace que compense' })
+      continue
+    }
+    const profile = {
+      segments: garantizados.segs,
+      banners: emitirPancartas(garantizados.segs, colocados),
+    }
+    const veto = verify(
+      profile,
+      sk,
+      req,
+      motivos.map((m) => m.motif),
+      ed.km,
+      colocados,
+    ) // paso 7
+    if (veto === null)
+      return salida(
+        profile,
+        sk,
+        req,
+        motivos,
+        ed,
+        intento + 1,
+        false,
+        timeTrial,
+        garantizados.reglas,
+        rechazos,
+        sufijo,
+      )
     rechazos.push(veto)
   }
-  return canonica(sk, ed, req, timeTrial, rechazos, sufijo)                // plantilla canónica de la opción, `degradado: true`
+  return canonica(sk, ed, req, timeTrial, rechazos, sufijo) // plantilla canónica de la opción, `degradado: true`
 }
 
 /** Paso 1 (8.2). `sufijo` es el texto que `fraseDe` añade al final (8.13): degradación de papel o de terreno, o atadura ignorada; null si no hay. */
-function elegirEsqueleto(req: StageRequest, rand: () => number): { sk: Skeleton; sufijo: string | null } {
-  if (req.fixed?.skeleton) return { sk: skeletonFor(req.fixed.skeleton, req.geo), sufijo: null }                     // 1
-  const atado = req.role === 'un_dia' && req.routeSource === 'generado' ? RACE_REGION[req.raceId]?.skeleton : undefined
+function elegirEsqueleto(
+  req: StageRequest,
+  rand: () => number,
+): { sk: Skeleton; sufijo: string | null } {
+  if (req.fixed?.skeleton) return { sk: skeletonFor(req.fixed.skeleton, req.geo), sufijo: null } // 1
+  const atado =
+    req.role === 'un_dia' && req.routeSource === 'generado'
+      ? RACE_REGION[req.raceId]?.skeleton
+      : undefined
   let aviso: string | null = null
-  if (atado !== undefined) {                                                                                          // 1 bis: sin tirada
+  if (atado !== undefined) {
+    // 1 bis: sin tirada
     if (cabe(atado, req)) return { sk: skeletonFor(atado, req.geo), sufijo: null }
     aviso = `(atadura ${atado} ignorada: no cabe)`
   }
-  const cs = candidatos(req)                                                                                          // 2
-  const reinaBlanda = (req.role.startsWith('reina_') || (req.routeSource === 'edicion' && req.terrain === 'mountain'))
-    && req.format !== 'gran-vuelta' && admite(SKELETONS.et_reina_blanda.requiere, req.geo)
+  const cs = candidatos(req) // 2
+  const reinaBlanda =
+    (req.role.startsWith('reina_') ||
+      (req.routeSource === 'edicion' && req.terrain === 'mountain')) &&
+    req.format !== 'gran-vuelta' &&
+    admite(SKELETONS.et_reina_blanda.requiere, req.geo)
   const share = ARCH.reina.blandaShare[req.geo.relieve] ?? 0
   let id: SkeletonId
-  if (reinaBlanda && share > 0 && rand() < share) id = 'et_reina_blanda'                                              // 3: PRIMERA tirada de `arch`
-  else {                                                                                                              // 4: tirada acumulada
+  if (reinaBlanda && share > 0 && rand() < share)
+    id = 'et_reina_blanda' // 3: PRIMERA tirada de `arch`
+  else {
+    // 4: tirada acumulada
     const u = rand() * cs.reduce((a, c) => a + c.peso, 0)
     let acc = 0
     id = cs[cs.length - 1]!.id
-    for (const c of cs) { acc += c.peso; if (u < acc) { id = c.id; break } }
+    for (const c of cs) {
+      acc += c.peso
+      if (u < acc) {
+        id = c.id
+        break
+      }
+    }
   }
-  const sk = skeletonFor(id, req.geo)                                                                                 // 5
-  return { sk, sufijo: [sufijoDegradado(sk, req), aviso].filter((x) => x !== null).join(' ') || null }
+  const sk = skeletonFor(id, req.geo) // 5
+  return {
+    sk,
+    sufijo: [sufijoDegradado(sk, req), aviso].filter((x) => x !== null).join(' ') || null,
+  }
 }
 ```
 
@@ -83,24 +149,24 @@ La lista de subflujos es cerrada y es la de la sección 10 (§10.4), que `editio
 
 `seasonDe(req, subflujo)` es la única función que decide qué temporada entra en cada semilla, y es la semántica de `ARCH.edicion` que la sección 10 fija (§10.3 y §10.5): ni `activa` ni `nivel` suprimen tiradas nunca; solo fijan la temporada con la que se tiran. Lee `req.edicion ?? ARCH.edicion`.
 
-| `routeSource` | `activa` | `nivel` | `ed`, `mot`, `pos` | `dib` |
-| --- | --- | --- | --- | --- |
-| `generado` | true | 1 o 2 | `req.season` | `req.season` |
-| `generado` | true | 0 | `BASE_SEASON` | `req.season` |
-| `generado` | false | cualquiera | `BASE_SEASON` | `BASE_SEASON` |
-| `edicion` | true | cualquiera | `BASE_SEASON` | `req.season` |
-| `edicion` | false | cualquiera | `BASE_SEASON` | `BASE_SEASON` |
+| `routeSource` | `activa` | `nivel`    | `ed`, `mot`, `pos` | `dib`         |
+| ------------- | -------- | ---------- | ------------------ | ------------- |
+| `generado`    | true     | 1 o 2      | `req.season`       | `req.season`  |
+| `generado`    | true     | 0          | `BASE_SEASON`      | `req.season`  |
+| `generado`    | false    | cualquiera | `BASE_SEASON`      | `BASE_SEASON` |
+| `edicion`     | true     | cualquiera | `BASE_SEASON`      | `req.season`  |
+| `edicion`     | false    | cualquiera | `BASE_SEASON`      | `BASE_SEASON` |
 
 En una etapa de edición real la temporada solo entra en `dib` (§10.5: los motivos de una edición real no cambian entre temporadas, solo su dibujo); con `nivel` 0 pasa lo mismo con toda etapa generada ("arquitectura fija: solo cambia el dibujo", §10.3); con `activa` false todo subflujo tira en la temporada 0, así que `calendarForSeason(s, cfg)` es byte a byte `calendarForSeason(0, cfg)` y §10.5 puede devolver el mismo array memoizado. `arch` y `firma` no llevan temporada nunca.
 
-| Subflujo | Cadena que devuelve `semillaDe` | Decide | `season` | `i{intento}` |
-| --- | --- | --- | --- | --- |
-| `arch` | `arch\|${id}` | el esqueleto de la etapa (y la tirada de la reina blanda, 8.2) | no | no |
-| `firma` | `firma\|${id}` | parámetros de los `Slot.firma` y de la meta (circuito, racimo de 5★, último puerto de una semana) | no | no |
-| `ed` | `ed\|${id}\|${season}` | km ± 6 % (no en circuitos de firma ni en edición real), cardinalidad de huecos no firma, vueltas ± 1, objetivo de desnivel | sí | no |
-| `mot` | `mot\|${id}\|${season}\|${slot}\|${j}\|i${intento}` | km, g, forma, estrellas de la instancia `j` del hueco `slot`; en un compuesto no firma, además su vuelta, sus hijos y sus separaciones (orden fijo en 8.5) | sí | sí |
-| `pos` | `pos\|${id}\|${season}\|i${intento}` | primero la fracción `f` de cada bajada, después el inicio de cada colocable dentro de su ventana, los dos en el orden de colocables (8.6, "Orden de las tiradas de `pos`") | sí | sí |
-| `dib` | `dib\|${id}\|${season}\|${token}\|i${intento}` (`token` es `${slot}` para el motivo, `e${k}` para el k-ésimo enlace, `${slot}\|hijo${h}` dentro de `cadena`, `racimo` y `circuito`) | rampas, ondulación, longitudes exactas | sí | sí |
+| Subflujo | Cadena que devuelve `semillaDe`                                                                                                                                                     | Decide                                                                                                                                                                     | `season` | `i{intento}` |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------ |
+| `arch`   | `arch\|${id}`                                                                                                                                                                       | el esqueleto de la etapa (y la tirada de la reina blanda, 8.2)                                                                                                             | no       | no           |
+| `firma`  | `firma\|${id}`                                                                                                                                                                      | parámetros de los `Slot.firma` y de la meta (circuito, racimo de 5★, último puerto de una semana)                                                                          | no       | no           |
+| `ed`     | `ed\|${id}\|${season}`                                                                                                                                                              | km ± 6 % (no en circuitos de firma ni en edición real), cardinalidad de huecos no firma, vueltas ± 1, objetivo de desnivel                                                 | sí       | no           |
+| `mot`    | `mot\|${id}\|${season}\|${slot}\|${j}\|i${intento}`                                                                                                                                 | km, g, forma, estrellas de la instancia `j` del hueco `slot`; en un compuesto no firma, además su vuelta, sus hijos y sus separaciones (orden fijo en 8.5)                 | sí       | sí           |
+| `pos`    | `pos\|${id}\|${season}\|i${intento}`                                                                                                                                                | primero la fracción `f` de cada bajada, después el inicio de cada colocable dentro de su ventana, los dos en el orden de colocables (8.6, "Orden de las tiradas de `pos`") | sí       | sí           |
+| `dib`    | `dib\|${id}\|${season}\|${token}\|i${intento}` (`token` es `${slot}` para el motivo, `e${k}` para el k-ésimo enlace, `${slot}\|hijo${h}` dentro de `cadena`, `racimo` y `circuito`) | rampas, ondulación, longitudes exactas                                                                                                                                     | sí       | sí           |
 
 `opcion` no es una tirada: es `opcionDe(sk, req.raceId, season) = nivelEfectivo === 2 ? (hashInt(`alt|${raceId}`) + season) % (1 + sk.alternativas.length) : 0` (§10.3; `hashInt` es la de `profileGen.ts` l. 15, exportada en el paso 1), por eso se calcula antes de la firma sin consumir ningún subflujo, y `EditionPlan.opcion` la repite para que la ficha y `diffMotivos` la lean del plan. Con `hashInt` delante la temporada 0 no rinde siempre la canónica: cada carrera empieza en su propia opción. Dos consecuencias que se sellan en `edition.test.ts` (sección 10): `arch` y `firma` no llevan temporada ni intento, así que un veto en la temporada 3 nunca cambia el esqueleto que la temporada 2 fijó (el defecto de banco §4.3, "a partir del tercer reintento el sorteo de arquetipo se repite", no existe aquí); y `ed` no lleva intento, así que reintentar no cambia cuántos motivos tiene la edición, solo cuáles y dónde.
 
@@ -109,7 +175,7 @@ En una etapa de edición real la temporada solo entra en `dib` (§10.5: los moti
 `elegirEsqueleto(req, rand)` (función interna de `generate.ts`, cuerpo entero en el bloque de 8.1) devuelve el esqueleto y un `sufijo` para la frase (8.13). Seis pasos, en este orden, y ninguno consume más tiradas de `arch` que las que se dicen:
 
 1. Si `req.fixed?.skeleton` existe, `sk = skeletonFor(req.fixed.skeleton, req.geo)` sin tirada y `sufijo` null. Es lo que usan la galería (sección 16) y `frozenSkeletons` (sección 13).
-1 bis. **Atadura** (sección 6, §6.4; `RaceRegion.skeleton` de §3.5). Solo si `req.role === 'un_dia'` y `req.routeSource === 'generado'`: si `atado = RACE_REGION[req.raceId]?.skeleton` existe y `cabe(atado, req)`, entonces `sk = skeletonFor(atado, req.geo)` y se devuelve SIN TIRADA, igual que con `fixed.skeleton`. `cabe(id, req)` son las tres condiciones de `candidatos` (§5.7), sin cambiar ninguna: `admite(SKELETONS[id].requiere, req.geo)`, `ARCH.pesoPorClase[id][req.raceClass] > 0` y `SKELETONS[id].km[0] ≤ ARCH.km.maxPorClase[req.raceClass]`. Para que sean las mismas y no una copia, `skeletons.ts` saca la función local `cabe` de `candidatos` a una exportada, `export function cabe(id: SkeletonId, req: Peticion): boolean`, con el mismo cuerpo, y `candidatos` la llama (si el dueño elige la respuesta 2 de D1, sección 18, la condición cambia en ese único sitio). Si `atado` existe y NO cabe, se ignora, `sufijo` recoge `(atadura ${atado} ignorada: no cabe)` y se sigue por el paso 2 con el mismo `rand` intacto. Tres consecuencias que se escriben para que nadie las deduzca: (a) este paso nunca llama a `rand`, ni cuando la atadura vale ni cuando se ignora, así que la secuencia de `arch` que ven los pasos 3 y 4 es la misma con o sin atadura; (b) va ANTES de la reina blanda, y como la reina blanda exige `role` `reina_*` o etapa de edición `mountain` y la atadura exige `role === 'un_dia'` y `routeSource === 'generado'`, las dos nunca concurren: con atadura válida la tirada de la reina blanda no existe; (c) no aplica a etapas de vuelta ni de edición real, aunque la carrera tenga fila en `RACE_REGION` (el test (c) de §6.8 exige que solo las carreras de un día lleven `skeleton`). Con los valores por defecto, `race-huy` (`.2`, `mountain`, ardenas) sale siempre `ud_muro_final` (pesa 0,5 en `.2` y su `km[0]` 180 es `maxPorClase['2']`) y `race-mercantour` (`.1`, alpes) siempre `ud_montana_alto` (0,02 en `.1`).
+   1 bis. **Atadura** (sección 6, §6.4; `RaceRegion.skeleton` de §3.5). Solo si `req.role === 'un_dia'` y `req.routeSource === 'generado'`: si `atado = RACE_REGION[req.raceId]?.skeleton` existe y `cabe(atado, req)`, entonces `sk = skeletonFor(atado, req.geo)` y se devuelve SIN TIRADA, igual que con `fixed.skeleton`. `cabe(id, req)` son las tres condiciones de `candidatos` (§5.7), sin cambiar ninguna: `admite(SKELETONS[id].requiere, req.geo)`, `ARCH.pesoPorClase[id][req.raceClass] > 0` y `SKELETONS[id].km[0] ≤ ARCH.km.maxPorClase[req.raceClass]`. Para que sean las mismas y no una copia, `skeletons.ts` saca la función local `cabe` de `candidatos` a una exportada, `export function cabe(id: SkeletonId, req: Peticion): boolean`, con el mismo cuerpo, y `candidatos` la llama (si el dueño elige la respuesta 2 de D1, sección 18, la condición cambia en ese único sitio). Si `atado` existe y NO cabe, se ignora, `sufijo` recoge `(atadura ${atado} ignorada: no cabe)` y se sigue por el paso 2 con el mismo `rand` intacto. Tres consecuencias que se escriben para que nadie las deduzca: (a) este paso nunca llama a `rand`, ni cuando la atadura vale ni cuando se ignora, así que la secuencia de `arch` que ven los pasos 3 y 4 es la misma con o sin atadura; (b) va ANTES de la reina blanda, y como la reina blanda exige `role` `reina_*` o etapa de edición `mountain` y la atadura exige `role === 'un_dia'` y `routeSource === 'generado'`, las dos nunca concurren: con atadura válida la tirada de la reina blanda no existe; (c) no aplica a etapas de vuelta ni de edición real, aunque la carrera tenga fila en `RACE_REGION` (el test (c) de §6.8 exige que solo las carreras de un día lleven `skeleton`). Con los valores por defecto, `race-huy` (`.2`, `mountain`, ardenas) sale siempre `ud_muro_final` (pesa 0,5 en `.2` y su `km[0]` 180 es `maxPorClase['2']`) y `race-mercantour` (`.1`, alpes) siempre `ud_montana_alto` (0,02 en `.1`).
 2. `cs = candidatos(req)` (`skeletons.ts`, sección 5 §5.7). Esa función ya aplica `cabe`, el sesgo de `req.terrain` para `un_dia`, la rama de los nacionales, la de edición real y la bajada de papel por `ESCALON_ROLE` (`degradarPapel`, siempre hacia abajo) cuando ningún esqueleto del papel pedido cabe en la zona, y nunca devuelve un peso 0.
 3. Reina blanda (sección 5 §5.7 regla 1; sección 12 `ARCH.reina.blandaShare`): si `req.role` empieza por `reina_` (o la etapa es de edición real con terreno `mountain`), `req.format !== 'gran-vuelta'` y `SKELETONS.et_reina_blanda` cabe en la zona (`admite(SKELETONS.et_reina_blanda.requiere, req.geo)`), la PRIMERA tirada de `rand` es `rand() < ARCH.reina.blandaShare[req.geo.relieve]` (media 0,25; montana 0,25; alta 0,10; sin entrada en `llano` ni `ondulado`, que cuenta como 0 y no consume tirada), y si sale, `id = 'et_reina_blanda'`.
 4. Si no, tirada acumulada con pesos sobre `cs`, la de `pickRole` (`calendar.ts` l. 433-443): `u = rand() × Σ peso`, se recorre `cs` en su orden y gana el primero cuya suma acumulada supera `u` (el último de `cs` si el redondeo de coma flotante deja `u` fuera).
@@ -119,25 +185,56 @@ En una etapa de edición real la temporada solo entra en `dib` (§10.5: los moti
 
 ```ts
 const ORDEN_KIND: Record<StageKind, number> = { llana: 0, cri: 0, clasica: 1, media: 2, reina: 3 }
-const KIND_TEXTO: Record<StageKind, string> = { llana: 'llana', cri: 'crono', clasica: 'clásica', media: 'media', reina: 'reina' }
+const KIND_TEXTO: Record<StageKind, string> = {
+  llana: 'llana',
+  cri: 'crono',
+  clasica: 'clásica',
+  media: 'media',
+  reina: 'reina',
+}
 /** El `kind` de los esqueletos de cada papel (columna "Papel" de §5.2 y POR_PAPEL de §5.7: todos los ids de un papel comparten `kind`). */
 const KIND_DE_PAPEL: Record<StageRole, StageKind> = {
-  llana: 'llana', llana_viento: 'llana', media: 'media', media_alto: 'media', media_muro: 'media',
-  reina_alto: 'reina', reina_valle: 'reina', reina_encadenada: 'reina', montana_corta: 'reina',
-  cri: 'cri', prologo: 'cri', cronoescalada: 'cri',
+  llana: 'llana',
+  llana_viento: 'llana',
+  media: 'media',
+  media_alto: 'media',
+  media_muro: 'media',
+  reina_alto: 'reina',
+  reina_valle: 'reina',
+  reina_encadenada: 'reina',
+  montana_corta: 'reina',
+  cri: 'cri',
+  prologo: 'cri',
+  cronoescalada: 'cri',
 }
-const KIND_DE_TERRENO_EDICION: Record<EditionTerrain, StageKind> = { flat: 'llana', hilly: 'media', mountain: 'reina', itt: 'cri', cobbles: 'clasica' }
-const TERRENO_TEXTO: Record<RouteTerrain, string> = { cobbles: 'adoquín', classic: 'clásica', hilly: 'colinas', flat: 'llano', mountain: 'montaña', itt: 'crono' }
+const KIND_DE_TERRENO_EDICION: Record<EditionTerrain, StageKind> = {
+  flat: 'llana',
+  hilly: 'media',
+  mountain: 'reina',
+  itt: 'cri',
+  cobbles: 'clasica',
+}
+const TERRENO_TEXTO: Record<RouteTerrain, string> = {
+  cobbles: 'adoquín',
+  classic: 'clásica',
+  hilly: 'colinas',
+  flat: 'llano',
+  mountain: 'montaña',
+  itt: 'crono',
+}
 
 function sufijoDegradado(sk: Skeleton, req: StageRequest): string | null {
   if (req.fixed?.skeleton || req.raceClass === 'NC') return null
   if (req.routeSource === 'generado' && req.role === 'un_dia') {
     if (sk.id in SESGO_TERRENO[req.terrain]) return null
-    let t = ESCALON_TERRENO[req.terrain]                                   // el primer escalón que contiene el id es el terreno al que bajó
+    let t = ESCALON_TERRENO[req.terrain] // el primer escalón que contiene el id es el terreno al que bajó
     while (t !== null && !(sk.id in SESGO_TERRENO[t])) t = ESCALON_TERRENO[t]
     return `(degradado a ${TERRENO_TEXTO[t ?? 'flat']})`
   }
-  const pedido = req.routeSource === 'edicion' ? KIND_DE_TERRENO_EDICION[req.terrain as EditionTerrain] : KIND_DE_PAPEL[req.role as StageRole]
+  const pedido =
+    req.routeSource === 'edicion'
+      ? KIND_DE_TERRENO_EDICION[req.terrain as EditionTerrain]
+      : KIND_DE_PAPEL[req.role as StageRole]
   return ORDEN_KIND[sk.kind] < ORDEN_KIND[pedido] ? `(degradado a ${KIND_TEXTO[sk.kind]})` : null
 }
 ```
@@ -148,8 +245,17 @@ Se decide así, y no con la lista de ids de cada papel, por dos razones: `POR_PA
 
 ```ts
 // packages/engine/src/routes/grammar/motifs.ts (sección 3, §3.2)
-export interface Instancia { slot: number | 'meta'; j: number; motif: Motif }
-export function instanciarFirma(sk: Skeleton, opcion: number, req: StageRequest, rand: () => number): Instancia[]
+export interface Instancia {
+  slot: number | 'meta'
+  j: number
+  motif: Motif
+}
+export function instanciarFirma(
+  sk: Skeleton,
+  opcion: number,
+  req: StageRequest,
+  rand: () => number,
+): Instancia[]
 ```
 
 La opción elegida es `alt = opcion === 0 ? null : sk.alternativas![opcion − 1]`, con el tipo `Alternativa` de la sección 10 (§10.3): una alternativa NO es una instancia literal que se copie, es un juego de RANGOS por hueco de firma más una plantilla (`alt.canonico`) que solo usan la galería, el degradado (8.11) y `skeletons.test.ts`. Para cada `Slot` con `firma: true`, en el orden de `sk.slots`, y después para la meta, `instanciarFirma` sortea con `rand` (la corriente `firma|${id}`, sin temporada ni intento) los parámetros del motivo dentro de la intersección de tres rangos: `ARCH.motivo[kind]` (sección 12), `alt?.slots?.[k] ?? slot.params` y lo que admite `req.geo` (`geo.puerto.km`, `geo.cota.g`...). La meta es `alt?.meta ?? sk.meta` y su `cotaFinal` sale de `alt.metaParams` (`kmRango`, `gRango`, tipo `Alternativa`) si la opción lo declara y si no de `sk.metaParams?.cotaFinal` (`km`, `g`, tipo `Skeleton`), acotado a `ARCH.meta[meta]`. El orden de las tiradas dentro de cada hueco es el de 8.5 (`km`, `g`, `forma`, `estrellas`, `adoquin`). La semilla de firma no lleva la opción: el puerto de firma que dos opciones comparten (la `ud_montana` de Lombardía sube el mismo puerto largo con final en Como o en Bérgamo) sale con los mismos números en las dos, y lo que cambia es solo lo que la opción declara. Un hueco de firma con `n = [a, b]` instancia `a` copias (la firma no tiene cardinalidad variable).
@@ -163,13 +269,18 @@ En un `circuito` de firma (`ud_circuito`, `nc_ruta`, `ud_criterium`) la firma fi
 ```ts
 // packages/engine/src/routes/grammar/edition.ts (sección 3, §3.8; sección 10, §10.6)
 export interface EditionPlan {
-  km: number                                   // al 0,1; = req.km en edición real; derivado en circuitos de firma
-  n: Record<number, number>                    // cardinalidad por índice de hueco no firma
-  vueltas?: number                             // circuito de firma, tras vueltasJitter
-  opcion: number                               // = opcionDe(sk, req.raceId, season, cfg)
-  dPlusObjetivo: number                        // metros, TOTAL con relleno (decisión 9)
+  km: number // al 0,1; = req.km en edición real; derivado en circuitos de firma
+  n: Record<number, number> // cardinalidad por índice de hueco no firma
+  vueltas?: number // circuito de firma, tras vueltasJitter
+  opcion: number // = opcionDe(sk, req.raceId, season, cfg)
+  dPlusObjetivo: number // metros, TOTAL con relleno (decisión 9)
 }
-export function opcionDe(sk: Skeleton, raceId: string, season: number, cfg: EdicionCfg = ARCH.edicion): number   // pura, sin dados; cfg da nivelEfectivo (§10.3)
+export function opcionDe(
+  sk: Skeleton,
+  raceId: string,
+  season: number,
+  cfg: EdicionCfg = ARCH.edicion,
+): number // pura, sin dados; cfg da nivelEfectivo (§10.3)
 export function planDeEdicion(sk: Skeleton, firma: readonly Motif[], req: StageRequest): EditionPlan
 ```
 
@@ -187,8 +298,13 @@ En una etapa de edición real `semillaDe('ed', req)` es `ed|${raceId}|e${i}|${ed
 
 ```ts
 // packages/engine/src/routes/grammar/motifs.ts (sección 3, §3.2)
-export function instanciar(sk: Skeleton, firma: readonly Instancia[], plan: EditionPlan, req: StageRequest,
-  rngDe: (slot: number, j: number) => () => number): Instancia[]   // firma + no firma + meta; orden: slot, j; meta al final
+export function instanciar(
+  sk: Skeleton,
+  firma: readonly Instancia[],
+  plan: EditionPlan,
+  req: StageRequest,
+  rngDe: (slot: number, j: number) => () => number,
+): Instancia[] // firma + no firma + meta; orden: slot, j; meta al final
 ```
 
 Para cada hueco no firma `slot` con `plan.n[slot]` instancias y cada `j < plan.n[slot]`, `rand = rngDe(slot, j)` (la corriente `mot|${id}|${season}|${slot}|${j}|i${intento}`) sortea, en este orden, `km`, `g`, `forma`, `estrellas`, `adoquin`, cada uno uniforme en la intersección de tres rangos: el del motivo en `ARCH.motivo.*` (sección 12), el `params.kmRango`/`gRango` del hueco, y el de `req.geo` (`geo.puerto.km`, `geo.cota.g`, `geo.muro.adoquin`...). `g` se sortea DESPUÉS de `km` con el techo `ARCH.veto.puertoDplusMax[geo.altitud] / (km × 10)` (V4c, sección 12). Un campo que el motivo no usa no consume tirada. `firme` de un `sector` es `sl.params?.firme ?? firmeDe(req.geo)` (`geo.ts`, §3.4 y sección 6 §6.5 punto 5: `adoquin` si `geo.adoquin ≥ 2`, si no `tierra` si `geo.sterrato`); `forma` de un `puerto` es la de `geo.puerto.forma` si la zona la fija y si no uniforme entre las tres. Un compuesto (`cadena`, `racimo`, `circuito` no firma) tira todo de la corriente de su instancia, `mot|…|${slot}|${j}|i${intento}`, en este orden fijo: (a) en `circuito`, `km` de la vuelta (uniforme en `kmRango` ∩ `ARCH.motivo.circuito.kmVuelta`) y `vueltas` (entero uniforme en `vueltasRango` ∩ `ARCH.motivo.circuito.vueltas`); (b) el número de hijos: por cada `Slot` de `hijos`, en su orden, un entero uniforme en su `n` (una tirada si `n[0] < n[1]`, ninguna si son iguales; en `cadena` y `racimo` sin `hijos` declarados, un entero uniforme en `ARCH.motivo.cadena.hijos` o `ARCH.motivo.racimo.sectores`); (c) cada hijo, en orden, con los campos de arriba (`km`, `g`, `forma`, `estrellas`, `adoquin`); (d) las SEPARACIONES, en orden de índice, que se sortean aquí y no en `pos`. En `cadena` y `racimo`, `separaciones[h]` uniforme en `params.separacionRango ?? ARCH.motivo.cadena.enlace` [1,5; 6] (o `?? ARCH.motivo.racimo.separacion` [2; 6]), redondeada a 0,1, una tirada por separación, y `km = round1(Σ hijos + Σ separaciones)`. En `circuito`, una tirada por hijo: `ini_h = round1(kmVuelta × U(a_h, b_h))` con `[a_h, b_h]` la `ventana` del `Slot` hijo (fracción de la vuelta), corregido a `max(ini_h, fin_{h−1} + enlaceMinimo)` con `fin_{−1} = 0`, y `separaciones[h] = round1(ini_h − fin_{h−1})`; si el cierre `kmVuelta − fin_último` queda por debajo de `enlaceMinimo` 1,5, los hijos se empujan hacia atrás en cascada con el mismo mínimo, y si la cascada deja `separaciones[0] < 1,5`, `instanciar` lanza `Error('circuito sin sitio: …')`, como la firma en 8.3 (`skeletons.test.ts` sella que no ocurre con los rangos del catálogo: una vuelta de ≥ 9 km con ≤ 2 muros de ≤ 2,5 km siempre cabe). Se decide `mot` y no `pos` por tres razones: la firma ya sortea las separaciones de sus compuestos en `firma` (8.3), y así los dos caminos son simétricos; `instanciar` devuelve motivos completos, con `km` exacto, que `validateMotif` (§4.5 regla 3) acepta y que `arch.motivos` y `diffMotivos` (§10.8) ven enteros; y la persecución del desnivel de abajo cuenta las separaciones reales y no una estimación. Las secciones 4 (§4.2, "`place` sortea las separaciones") y 5 (§5.1, consecuencia 1) quedan enmendadas por esta regla: quien las sortea es `instanciar`, con la corriente `mot` del compuesto, y `colocar` ya las recibe hechas.
@@ -214,8 +330,20 @@ Qué mide cada cifra, dicho sin ambigüedad (decisión 9, reescrita así en el e
 
 ```ts
 // packages/engine/src/routes/grammar/place.ts (sección 3, §3.9)
-export interface Placed { motif: Motif; slot: number | 'meta'; inicioKm: number; finKm: number; bajada?: Motif }
-export function colocar(motivos: readonly Instancia[], km: number, sk: Skeleton, req: StageRequest, rand: () => number): Placed[] | null
+export interface Placed {
+  motif: Motif
+  slot: number | 'meta'
+  inicioKm: number
+  finKm: number
+  bajada?: Motif
+}
+export function colocar(
+  motivos: readonly Instancia[],
+  km: number,
+  sk: Skeleton,
+  req: StageRequest,
+  rand: () => number,
+): Placed[] | null
 ```
 
 `colocar` trabaja sobre los COLOCABLES: toda `Instancia` cuyo `motif.kind` no es `enlace` ni `meta` (un hueco degradado a `enlace` en 8.5 ya no es colocable). Son las dificultades (`cota`, `puerto`, `muro`, `cadena`, `sector`, `racimo`, `circuito`) más `expuesto` y `tendida`, que tienen ventana en su `Slot` y se colocan igual, pero cuyo km cuenta como enlace (tabla de §3.2, "enlaces") y no entra en `kmDif`. Su ORDEN, el único que usa este paso para todo, es el `a` de la ventana original del hueco (`sk.slots[slot].ventana[0]`, sin el recorte de transición), con empates por índice de hueco y después por `j`.
@@ -240,7 +368,13 @@ No tiran: el recorte del punto 2, la corrección `max(inicio_i, fin_{i−1} + en
 
 ```ts
 // packages/engine/src/routes/grammar/render.ts (sección 3, §3.9)
-export function renderSkeleton(colocados: Placed[], km: number, geo: GeoSignature, rng: RngFactory, desde?: GeoSignature): Segment[]
+export function renderSkeleton(
+  colocados: Placed[],
+  km: number,
+  geo: GeoSignature,
+  rng: RngFactory,
+  desde?: GeoSignature,
+): Segment[]
 ```
 
 ```
@@ -268,61 +402,72 @@ El umbral es `> 0,5` y no `≥ 0,5` porque la primitiva devuelve `[]` con `km <=
 
 ```ts
 export function rolling(rand: () => number, km: number, amp: number, pRompepiernas = 0): Segment[] {
-  if (km <= 0.5) return []                                           // l. 101, igual
-  const chunk = between(rand, 3, 6)                                  // l. 102-104, igual
+  if (km <= 0.5) return [] // l. 101, igual
+  const chunk = between(rand, 3, 6) // l. 102-104, igual
   const n = Math.max(1, Math.round(km / chunk))
   const lens = split(rand, km, n)
-  const gMin = Math.min(0.8, 0.45 * amp)                             // CAMBIO 1: hoy 0.8 fijo (l. 109); con amp 0,4 el rango [0,8; 0,4] se invertía
+  const gMin = Math.min(0.8, 0.45 * amp) // CAMBIO 1: hoy 0.8 fijo (l. 109); con amp 0,4 el rango [0,8; 0,4] se invertía
   return lens.map((segKm, i): Segment => {
     const half = Math.round((segKm / 2) * 10) / 10
     const rest = Math.round((segKm - half) * 10) / 10
-    const g = between(rand, gMin, amp) * (i % 2 === 0 ? 1 : -1)     // CAMBIO 2: `amp` es el parámetro (hoy `bumpy ? 3.2 : 1.8`, l. 105)
+    const g = between(rand, gMin, amp) * (i % 2 === 0 ? 1 : -1) // CAMBIO 2: `amp` es el parámetro (hoy `bumpy ? 3.2 : 1.8`, l. 105)
     const gg = Math.round(g * 10) / 10
-    const tramos: Ramp[] = rest > 0.1
-      ? [{ km: half, g: gg }, { km: rest, g: -Math.round(gg * between(rand, 0.6, 1) * 10) / 10 }]
-      : [{ km: segKm, g: gg }]
-    const tipo: Segment['tipo'] = pRompepiernas > 0 && rand() < pRompepiernas ? 'rompepiernas' : 'llano'   // CAMBIO 3: hoy `bumpy && rand() < 0.35` (l. 119)
+    const tramos: Ramp[] =
+      rest > 0.1
+        ? [
+            { km: half, g: gg },
+            { km: rest, g: -Math.round(gg * between(rand, 0.6, 1) * 10) / 10 },
+          ]
+        : [{ km: segKm, g: gg }]
+    const tipo: Segment['tipo'] =
+      pRompepiernas > 0 && rand() < pRompepiernas ? 'rompepiernas' : 'llano' // CAMBIO 3: hoy `bumpy && rand() < 0.35` (l. 119)
     return { km: Math.round(segKm * 10) / 10, tipo, tramos }
   })
 }
 ```
 
-  El `pRompepiernas > 0 &&` no es cosmético: hoy `bumpy && rand() < 0.35` NO consume tirada cuando `bumpy` es false, y escribir `rand() < pRompepiernas` a secas consumiría una tirada por segmento que hoy no se consume y desplazaría toda la secuencia de los rolling no `bumpy`. Los builders legado de `legacy.ts` (paso 1, sección 15) llaman `rolling(rand, km, bumpy ? 3.2 : 1.8, bumpy ? 0.35 : 0)`: con `bumpy` false no se tira (como hoy) y con true se tira y se compara con 0,35 (como hoy), y `gMin` es `min(0,8; 0,81) = 0,8` y `min(0,8; 1,44) = 0,8`, así que las secuencias son las mismas tirada a tirada y `golden.test.ts` sigue pasando con las 1.418 huellas. El generador nuevo llama siempre con `pRompepiernas` 0: nunca emite `rompepiernas` y nunca consume esa tirada.
+El `pRompepiernas > 0 &&` no es cosmético: hoy `bumpy && rand() < 0.35` NO consume tirada cuando `bumpy` es false, y escribir `rand() < pRompepiernas` a secas consumiría una tirada por segmento que hoy no se consume y desplazaría toda la secuencia de los rolling no `bumpy`. Los builders legado de `legacy.ts` (paso 1, sección 15) llaman `rolling(rand, km, bumpy ? 3.2 : 1.8, bumpy ? 0.35 : 0)`: con `bumpy` false no se tira (como hoy) y con true se tira y se compara con 0,35 (como hoy), y `gMin` es `min(0,8; 0,81) = 0,8` y `min(0,8; 1,44) = 0,8`, así que las secuencias son las mismas tirada a tirada y `golden.test.ts` sigue pasando con las 1.418 huellas. El generador nuevo llama siempre con `pRompepiernas` 0: nunca emite `rompepiernas` y nunca consume esa tirada.
+
 - `climb(rand: () => number, len: number, avg: number, opts: { gMin?: number; gMax?: number } = {}): Segment`. Es la ÚNICA firma de `climb` del documento (§3.12, §4.1, §4.2, §4.3, §12.12 y §15.3 la usan igual). Cuerpo, con las líneas de hoy (l. 72-82) y dos cambios marcados:
 
 ```ts
-export function climb(rand: () => number, len: number, avg: number, opts: { gMin?: number; gMax?: number } = {}): Segment {
-  const n = Math.max(2, Math.round(len / 2.2))                            // l. 73, igual
-  const lens = split(rand, len, n)                                         // l. 74, igual
-  const gMin = opts.gMin ?? -Infinity                                      // CAMBIO 1: sin opts, recorte neutro
+export function climb(
+  rand: () => number,
+  len: number,
+  avg: number,
+  opts: { gMin?: number; gMax?: number } = {},
+): Segment {
+  const n = Math.max(2, Math.round(len / 2.2)) // l. 73, igual
+  const lens = split(rand, len, n) // l. 74, igual
+  const gMin = opts.gMin ?? -Infinity // CAMBIO 1: sin opts, recorte neutro
   const gMax = opts.gMax ?? Infinity
   const tramos: Ramp[] = lens.map((km, i) => {
-    const prog = (i / Math.max(1, n - 1) - 0.5) * 2                        // l. 77, igual: −1 al pie, +1 en la cima
-    const g = Math.max(1, avg + prog * 1.6 + between(rand, -1.2, 1.2))     // l. 78, igual: el suelo 1 va PRIMERO
-    const recortada = Math.min(gMax, Math.max(gMin, g))                    // CAMBIO 2: recorte después del suelo y del ruido
-    return { km, g: Math.round(recortada * 10) / 10 }                      // l. 79: el redondeo a 0,1 va DESPUÉS del recorte
+    const prog = (i / Math.max(1, n - 1) - 0.5) * 2 // l. 77, igual: −1 al pie, +1 en la cima
+    const g = Math.max(1, avg + prog * 1.6 + between(rand, -1.2, 1.2)) // l. 78, igual: el suelo 1 va PRIMERO
+    const recortada = Math.min(gMax, Math.max(gMin, g)) // CAMBIO 2: recorte después del suelo y del ruido
+    return { km, g: Math.round(recortada * 10) / 10 } // l. 79: el redondeo a 0,1 va DESPUÉS del recorte
   })
-  return { km: Math.round(len * 10) / 10, tipo: 'puerto', tramos }         // l. 81, igual
+  return { km: Math.round(len * 10) / 10, tipo: 'puerto', tramos } // l. 81, igual
 }
 ```
 
-  Orden de las tres operaciones sobre cada rampa, decidido: primero `Math.max(1, …)` de hoy (l. 78), después el recorte `[gMin, gMax]`, y por último el redondeo a 0,1. El suelo 1 va antes porque es la regla de hoy y porque todo `gMin` que se pasa (8 en `muro`, 4 en `repecho`) es mayor que 1, así que con `opts` el suelo nunca decide; el redondeo va después (así lo fija §4.1) y es seguro porque todos los topes que se pasan son múltiplos de 0,1 (8, 16, 4, 7,9): redondear a 0,1 un valor ya acotado entre dos múltiplos de 0,1 no puede sacarlo del intervalo. Un tope que no fuera múltiplo de 0,1 (7,95) sí podría quedar cruzado tras el redondeo, y por eso el test de `climb` (8.14) sella que los cuatro valores lo son. Sin `opts`, `Math.min(Infinity, Math.max(-Infinity, g))` devuelve `g` exacto (no hay aritmética nueva sobre el valor) y el cuerpo llama a `rand` las mismas veces y en el mismo orden que hoy: `split` (l. 74) y un `between` por rampa (l. 78). El recorte no consume tiradas CON `opts` tampoco, así que un muro recortado deja la corriente en el mismo punto que sin recorte. Los ocho generadores viejos de `profileGen.ts` y los builders de `legacy.ts` llaman `climb(rand, len, avg)` sin tercer argumento y `golden.test.ts` sigue pasando con las 1.418 huellas. Qué pasa cada llamador, sin excepciones: `muro` de `km ≥ 1,0` y el muro de `muro_meta` pasan `{ gMin: ARCH.motivo.muro.gMin, gMax: ARCH.motivo.muro.gMax }` (8 y 16); `repecho` pasa `{ gMin: ARCH.meta.repecho.gMin, gMax: ARCH.meta.repecho.gMax }` (4 y 7,9); `cota`, `puerto`, `alto_corto`, `alto_largo` y la `cotaFinal` de `cima_cerca`, `descenso_meta` y `valle` llaman sin `opts` (en puertos V15 acota todo tramo a `g ≤ 20`: sección 12, fila de la l. 78 en la tabla de literales). Nunca se pasa `gMin > gMax`: los dos valores salen de `ARCH`, y el test de `climb` (8.14) sella `muro.gMin < muro.gMax` y `repecho.gMin < repecho.gMax`.
+Orden de las tres operaciones sobre cada rampa, decidido: primero `Math.max(1, …)` de hoy (l. 78), después el recorte `[gMin, gMax]`, y por último el redondeo a 0,1. El suelo 1 va antes porque es la regla de hoy y porque todo `gMin` que se pasa (8 en `muro`, 4 en `repecho`) es mayor que 1, así que con `opts` el suelo nunca decide; el redondeo va después (así lo fija §4.1) y es seguro porque todos los topes que se pasan son múltiplos de 0,1 (8, 16, 4, 7,9): redondear a 0,1 un valor ya acotado entre dos múltiplos de 0,1 no puede sacarlo del intervalo. Un tope que no fuera múltiplo de 0,1 (7,95) sí podría quedar cruzado tras el redondeo, y por eso el test de `climb` (8.14) sella que los cuatro valores lo son. Sin `opts`, `Math.min(Infinity, Math.max(-Infinity, g))` devuelve `g` exacto (no hay aritmética nueva sobre el valor) y el cuerpo llama a `rand` las mismas veces y en el mismo orden que hoy: `split` (l. 74) y un `between` por rampa (l. 78). El recorte no consume tiradas CON `opts` tampoco, así que un muro recortado deja la corriente en el mismo punto que sin recorte. Los ocho generadores viejos de `profileGen.ts` y los builders de `legacy.ts` llaman `climb(rand, len, avg)` sin tercer argumento y `golden.test.ts` sigue pasando con las 1.418 huellas. Qué pasa cada llamador, sin excepciones: `muro` de `km ≥ 1,0` y el muro de `muro_meta` pasan `{ gMin: ARCH.motivo.muro.gMin, gMax: ARCH.motivo.muro.gMax }` (8 y 16); `repecho` pasa `{ gMin: ARCH.meta.repecho.gMin, gMax: ARCH.meta.repecho.gMax }` (4 y 7,9); `cota`, `puerto`, `alto_corto`, `alto_largo` y la `cotaFinal` de `cima_cerca`, `descenso_meta` y `valle` llaman sin `opts` (en puertos V15 acota todo tramo a `g ≤ 20`: sección 12, fila de la l. 78 en la tabla de literales). Nunca se pasa `gMin > gMax`: los dos valores salen de `ARCH`, y el test de `climb` (8.14) sella `muro.gMin < muro.gMax` y `repecho.gMin < repecho.gMax`.
 
-  Como `split` (l. 52-65) fuerza cada trozo a `max(0,5, …)` (l. 58 y l. 61-63), `climb` no puede rendir menos de 1,0 km: con `len` 0,7 devolvería [0,5; 0,5] y `Σ tramos` 1,0 > `km`. Por eso `renderMotif` no llama a `climb` para un `muro` o un `muro_meta` de `km < 1,0`: emite directamente `{ km, tipo: 'puerto', tramos: [{ km, g: Math.min(g, ARCH.motivo.muro.gMax) }] }`, una sola rampa sin tirada (el `g` del motivo ya está en [8; 16], así que `gMin` no hace falta), que es lo que un Paterberg de 400 m es.
+Como `split` (l. 52-65) fuerza cada trozo a `max(0,5, …)` (l. 58 y l. 61-63), `climb` no puede rendir menos de 1,0 km: con `len` 0,7 devolvería [0,5; 0,5] y `Σ tramos` 1,0 > `km`. Por eso `renderMotif` no llama a `climb` para un `muro` o un `muro_meta` de `km < 1,0`: emite directamente `{ km, tipo: 'puerto', tramos: [{ km, g: Math.min(g, ARCH.motivo.muro.gMax) }] }`, una sola rampa sin tirada (el `g` del motivo ya está en [8; 16], así que `gMin` no hace falta), que es lo que un Paterberg de 400 m es.
 
-| Motivo | Rinde | Detalle que decide |
-| --- | --- | --- |
-| `enlace` | `rolling(rand, km, min(geo.amplitud, 2,4), 0)` | `amp` numérica (hoy `bumpy` booleano: false = 1,8, true = 3,2); `pRompepiernas` 0: nunca se emite `rompepiernas` porque `sample.ts` l. 100-101 lo colapsa a g 1,5 e ignora los tramos (mapa 03 §2; sección 2, principio 8). `ampMax` 2,4 impide que el relleno alcance el 3 % que `finish.ts` lee como cota (`finishClimbMinGradient` 3) |
-| `expuesto` | `rolling(rand, km, min(0,5, geo.amplitud), 0)` | pólder, desierto, meseta |
-| `tendida` | UN `Segment` `llano` con `max(2, min(4, round(km/8)))` tramos a `g ± 0,7` | tipada `llano` a propósito: cuesta y frena por `g` pero no suma a `kmSubida` (mapa 03 §4.1) |
-| `descenso` | `descent(rand, km, |g|)` | `max(2, round(km/3))` rampas a `−max(2, avg ± 1,5)` |
-| `cota` | `climb(rand, km, g)` | rampas `max(2, round(km/2,2))`, más dura arriba |
-| `puerto` | `climb(rand, km, g)`; con `forma: 'irregular'`, una rampa de `ARCH.motivo.puerto.rampaIrregular` (0,3 a 0,8 km al 11 a 13 %) sustituye a la rampa central | SPEC §6.17: el irregular abre ≥ 1,5× brecha; a ≥ 8 % el motor usa COL (`wallMinGradient`, mapa 03 §2) |
-| `muro` | `km ≥ 1,0`: `climb(rand, km, g, { gMin: ARCH.motivo.muro.gMin, gMax: ARCH.motivo.muro.gMax })` (2 rampas por construcción para `len ≤ 3`, l. 73); `km < 1,0`: una sola rampa `{ km, g: min(g, gMax) }` | `gMax` 16 acota el ruido ±1,2 y la progresión +1,6 que hoy dan 14,8 % sobre un 12 % (mapa 01 §2.4); `gMin` 8 deja toda rampa en COL (§4.2); un muro `adoquin: true` sigue siendo `puerto` (regla 5 de `fuentes-recorridos.md`) |
-| `sector` | `{ km, tipo: 'paves', estrellas }` como `cobblesSegments` l. 503 | `firme: 'tierra'` → `estrellas` acotadas a [2; 3] |
-| `cadena`, `racimo` | el hijo 0 y, para cada h ≥ 1, `rolling(rng(`sep${h − 1}`), separaciones[h − 1], amp, 0)` y el hijo h con `rng(`hijo${h}`)`; `amp` es `geo.amplitud` en `cadena` y 0,7 en `racimo` (sección 4, §4.5: una corriente por hijo y otra por separación) | las `separaciones` llegan hechas: las sortea `instanciar` en `mot` (8.5), `instanciarFirma` en `firma` (8.3) o las trae la plantilla; ninguna bajada canónica dentro del compuesto |
-| `circuito` | UNA vuelta: para cada h, `rolling(rng(`sep${h}`), separaciones[h], geo.amplitud, 0)` y el hijo h con `rng(`hijo${h}`)`; al final el cierre `km − Σ hijos − Σ separaciones` con `rng('cierre')`; la vuelta se copia `vueltas` veces en copia profunda (sección 4, §4.5) | la vuelta 7 tiene las mismas rampas que la 1: es lo que hace reconocible un circuito (Québec, Montréal, mapa 07 §1.1) |
-| `meta` | según `MetaKind` (tabla de la sección 4): `esprint` nada (el último enlace ya es la meta); `repecho` `climb(rand, cotaFinal.km, cotaFinal.g, { gMin: ARCH.meta.repecho.gMin, gMax: ARCH.meta.repecho.gMax })` (4 y 7,9, §4.3) como ÚLTIMO segmento; `alto_corto`/`alto_largo` `climb(rand, cotaFinal.km, cotaFinal.g)` sin `opts` como ÚLTIMO segmento; `muro_meta` `rolling(rand, 2, 2,5, 0)` + el rendido de `muro` con `gMin` 8 y `gMax` 16 (una rampa si `cotaFinal.km < 1,0`, dos si no); `cima_cerca`/`descenso_meta`/`valle` la cota o puerto + `descent` + `rolling` con el valle sorteado en `ARCH.meta.*.valle`; `sector_meta` `sector` + `rolling(aMeta)` | los 2 km a amplitud ≤ 2,5 del `muro_meta` son para que `finishClimbGapBlocks` 5 no funda la racha con un repecho anterior (`finish.ts` l. 94-123; sección 4) |
+| Motivo             | Rinde                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Detalle que decide                                                                                                                                                                                                                                                                                                                       |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `enlace`           | `rolling(rand, km, min(geo.amplitud, 2,4), 0)`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | `amp` numérica (hoy `bumpy` booleano: false = 1,8, true = 3,2); `pRompepiernas` 0: nunca se emite `rompepiernas` porque `sample.ts` l. 100-101 lo colapsa a g 1,5 e ignora los tramos (mapa 03 §2; sección 2, principio 8). `ampMax` 2,4 impide que el relleno alcance el 3 % que `finish.ts` lee como cota (`finishClimbMinGradient` 3) |
+| `expuesto`         | `rolling(rand, km, min(0,5, geo.amplitud), 0)`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | pólder, desierto, meseta                                                                                                                                                                                                                                                                                                                 |
+| `tendida`          | UN `Segment` `llano` con `max(2, min(4, round(km/8)))` tramos a `g ± 0,7`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | tipada `llano` a propósito: cuesta y frena por `g` pero no suma a `kmSubida` (mapa 03 §4.1)                                                                                                                                                                                                                                              |
+| `descenso`         | `descent(rand, km,                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | g                                                                                                                                                                                                                                                                                                                                        | )`  | `max(2, round(km/3))` rampas a `−max(2, avg ± 1,5)` |
+| `cota`             | `climb(rand, km, g)`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | rampas `max(2, round(km/2,2))`, más dura arriba                                                                                                                                                                                                                                                                                          |
+| `puerto`           | `climb(rand, km, g)`; con `forma: 'irregular'`, una rampa de `ARCH.motivo.puerto.rampaIrregular` (0,3 a 0,8 km al 11 a 13 %) sustituye a la rampa central                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | SPEC §6.17: el irregular abre ≥ 1,5× brecha; a ≥ 8 % el motor usa COL (`wallMinGradient`, mapa 03 §2)                                                                                                                                                                                                                                    |
+| `muro`             | `km ≥ 1,0`: `climb(rand, km, g, { gMin: ARCH.motivo.muro.gMin, gMax: ARCH.motivo.muro.gMax })` (2 rampas por construcción para `len ≤ 3`, l. 73); `km < 1,0`: una sola rampa `{ km, g: min(g, gMax) }`                                                                                                                                                                                                                                                                                                                                                                                                                                                               | `gMax` 16 acota el ruido ±1,2 y la progresión +1,6 que hoy dan 14,8 % sobre un 12 % (mapa 01 §2.4); `gMin` 8 deja toda rampa en COL (§4.2); un muro `adoquin: true` sigue siendo `puerto` (regla 5 de `fuentes-recorridos.md`)                                                                                                           |
+| `sector`           | `{ km, tipo: 'paves', estrellas }` como `cobblesSegments` l. 503                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | `firme: 'tierra'` → `estrellas` acotadas a [2; 3]                                                                                                                                                                                                                                                                                        |
+| `cadena`, `racimo` | el hijo 0 y, para cada h ≥ 1, `rolling(rng(`sep${h − 1}`), separaciones[h − 1], amp, 0)` y el hijo h con `rng(`hijo${h}`)`; `amp` es `geo.amplitud` en `cadena` y 0,7 en `racimo` (sección 4, §4.5: una corriente por hijo y otra por separación)                                                                                                                                                                                                                                                                                                                                                                                                                    | las `separaciones` llegan hechas: las sortea `instanciar` en `mot` (8.5), `instanciarFirma` en `firma` (8.3) o las trae la plantilla; ninguna bajada canónica dentro del compuesto                                                                                                                                                       |
+| `circuito`         | UNA vuelta: para cada h, `rolling(rng(`sep${h}`), separaciones[h], geo.amplitud, 0)` y el hijo h con `rng(`hijo${h}`)`; al final el cierre `km − Σ hijos − Σ separaciones` con `rng('cierre')`; la vuelta se copia `vueltas` veces en copia profunda (sección 4, §4.5)                                                                                                                                                                                                                                                                                                                                                                                               | la vuelta 7 tiene las mismas rampas que la 1: es lo que hace reconocible un circuito (Québec, Montréal, mapa 07 §1.1)                                                                                                                                                                                                                    |
+| `meta`             | según `MetaKind` (tabla de la sección 4): `esprint` nada (el último enlace ya es la meta); `repecho` `climb(rand, cotaFinal.km, cotaFinal.g, { gMin: ARCH.meta.repecho.gMin, gMax: ARCH.meta.repecho.gMax })` (4 y 7,9, §4.3) como ÚLTIMO segmento; `alto_corto`/`alto_largo` `climb(rand, cotaFinal.km, cotaFinal.g)` sin `opts` como ÚLTIMO segmento; `muro_meta` `rolling(rand, 2, 2,5, 0)` + el rendido de `muro` con `gMin` 8 y `gMax` 16 (una rampa si `cotaFinal.km < 1,0`, dos si no); `cima_cerca`/`descenso_meta`/`valle` la cota o puerto + `descent` + `rolling` con el valle sorteado en `ARCH.meta.*.valle`; `sector_meta` `sector` + `rolling(aMeta)` | los 2 km a amplitud ≤ 2,5 del `muro_meta` son para que `finishClimbGapBlocks` 5 no funda la racha con un repecho anterior (`finish.ts` l. 94-123; sección 4)                                                                                                                                                                             |
 
 Todo `km` de segmento y de tramo va redondeado a 0,1 (como `split`). Un tramo nunca baja de 0,5 km salvo la rampa irregular del `puerto` (0,3 a 0,8, dentro de un segmento de ≥ 9 km) y el muro de una sola rampa (0,4 a 0,9 km), que son las dos únicas excepciones.
 
@@ -339,7 +484,11 @@ export function normalizeEnlaces(segs: Segment[], km: number, colocados: Placed[
 ### 8.9 `garantizaClase`: la red de seguridad
 
 ```ts
-export function garantizaClase(segs: Segment[], sk: Skeleton, colocados: Placed[]): { segs: Segment[]; reglas: number } | null
+export function garantizaClase(
+  segs: Segment[],
+  sk: Skeleton,
+  colocados: Placed[],
+): { segs: Segment[]; reglas: number } | null
 ```
 
 Se aplica después de cuadrar y antes de las pancartas. Lee solo `climbSize` (`stageKind.ts` l. 36-42, suma de tramos con g > 0) y `climbMetres` (l. 27-33; las dos exportadas en el paso 0, §3.9 y sección 15 §15.2), la posición del último segmento `puerto` y los cortes; nunca `sampleProfile`. Con `margenClaseKm` 0,3, `margenClaseMetros` 300 y `margenValleKm` 0,7 (`ARCH.veto.*`; 0,7 porque `auto()` redondea el km de la pancarta al entero y `normalize` estiraba hasta un 2 %, contra los 4 de 6.000 del mapa 01 §2.5):
@@ -407,25 +556,42 @@ Los 532 nacionales (`nc_ruta`, `nc_crono`) pasan por aquí y cambian de golpe de
 // packages/engine/src/routes/grammar/generate.ts (sin dados; puro)
 import { FINAL_KIND_CUTS, lastClimbKm, profileKm } from '../finalKind.js'
 
-const PALABRA = ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve', 'diez']
+const PALABRA = [
+  'cero',
+  'uno',
+  'dos',
+  'tres',
+  'cuatro',
+  'cinco',
+  'seis',
+  'siete',
+  'ocho',
+  'nueve',
+  'diez',
+]
 const r1 = (x: number): number => Math.round(x * 10) / 10
 /** Coma decimal sin Intl: `x` ya viene redondeado, y String(4.2) es "4.2". Así la frase no depende de la ICU del proceso. */
 const num = (x: number): string => String(x).replace('.', ',')
-const kmTxt = (x: number): string => num(x >= 10 ? Math.round(x) : r1(x))      // 17,1 → "17"; 4,2 → "4,2"; 2,0 → "2"
-const gTxt = (g: number): string => num(g >= 4 ? Math.round(g) : r1(g))        // 11,3 → "11"; 2,4 → "2,4"
-const cuenta = (n: number, fem: boolean): string => (n === 1 ? (fem ? 'una' : 'un') : n <= 10 ? PALABRA[n]! : String(n))
-const pron = (n: number): string => (n <= 10 ? PALABRA[n]! : String(n))       // "uno", "dos": tras coma, sin sustantivo
-const lista = (xs: readonly string[]): string => (xs.length <= 1 ? (xs[0] ?? '') : `${xs.slice(0, -1).join(', ')} y ${xs.at(-1)!}`)
+const kmTxt = (x: number): string => num(x >= 10 ? Math.round(x) : r1(x)) // 17,1 → "17"; 4,2 → "4,2"; 2,0 → "2"
+const gTxt = (g: number): string => num(g >= 4 ? Math.round(g) : r1(g)) // 11,3 → "11"; 2,4 → "2,4"
+const cuenta = (n: number, fem: boolean): string =>
+  n === 1 ? (fem ? 'una' : 'un') : n <= 10 ? PALABRA[n]! : String(n)
+const pron = (n: number): string => (n <= 10 ? PALABRA[n]! : String(n)) // "uno", "dos": tras coma, sin sustantivo
+const lista = (xs: readonly string[]): string =>
+  xs.length <= 1 ? (xs[0] ?? '') : `${xs.slice(0, -1).join(', ')} y ${xs.at(-1)!}`
 const mayus = (t: string): string => t.charAt(0).toUpperCase() + t.slice(1)
 const firmeTxt = (m: Motif): string => (m.firme === 'tierra' ? 'de tierra' : 'de adoquín')
 
 type Nombrable = Exclude<MotifKind, 'enlace' | 'descenso' | 'meta'>
 const NOMBRE: Record<Nombrable, { s: string; p: string; fem: boolean }> = {
-  cota: { s: 'cota', p: 'cotas', fem: true },           puerto: { s: 'puerto', p: 'puertos', fem: false },
-  muro: { s: 'muro', p: 'muros', fem: false },          sector: { s: 'sector', p: 'sectores', fem: false },
-  expuesto: { s: 'tramo abierto', p: 'tramos abiertos', fem: false },   // "abierto", nunca "abanico" (decisión 17; sección 17, riesgo 1)
+  cota: { s: 'cota', p: 'cotas', fem: true },
+  puerto: { s: 'puerto', p: 'puertos', fem: false },
+  muro: { s: 'muro', p: 'muros', fem: false },
+  sector: { s: 'sector', p: 'sectores', fem: false },
+  expuesto: { s: 'tramo abierto', p: 'tramos abiertos', fem: false }, // "abierto", nunca "abanico" (decisión 17; sección 17, riesgo 1)
   tendida: { s: 'subida tendida', p: 'subidas tendidas', fem: true },
-  cadena: { s: 'cadena', p: 'cadenas', fem: true },     racimo: { s: 'racimo', p: 'racimos', fem: false },
+  cadena: { s: 'cadena', p: 'cadenas', fem: true },
+  racimo: { s: 'racimo', p: 'racimos', fem: false },
   circuito: { s: 'circuito', p: 'circuitos', fem: false },
 }
 
@@ -436,7 +602,13 @@ function grupos(ms: readonly Motif[]): Motif[][] {
     if (m.kind === 'enlace' || m.kind === 'descenso' || m.kind === 'meta') continue
     const ult = out.at(-1)
     const agrupable = m.kind !== 'cadena' && m.kind !== 'racimo' && m.kind !== 'circuito'
-    if (ult && agrupable && ult[0]!.kind === m.kind && (m.kind !== 'sector' || ult[0]!.firme === m.firme)) ult.push(m)
+    if (
+      ult &&
+      agrupable &&
+      ult[0]!.kind === m.kind &&
+      (m.kind !== 'sector' || ult[0]!.firme === m.firme)
+    )
+      ult.push(m)
     else out.push([m])
   }
   return out
@@ -444,21 +616,42 @@ function grupos(ms: readonly Motif[]): Motif[][] {
 
 /** `inicio`: el grupo abre la frase (sin artículo en singular, con mayúscula). */
 function textoGrupo(g: readonly Motif[], inicio: boolean): string {
-  const m = g[0]!, n = g.length, N = NOMBRE[m.kind as Nombrable]
+  const m = g[0]!,
+    n = g.length,
+    N = NOMBRE[m.kind as Nombrable]
   const adoq = m.kind === 'muro' && n === 1 && m.adoquin ? ' adoquinado' : ''
-  const cabeza = n === 1 ? (inicio ? `${N.s}${adoq}` : `${cuenta(1, N.fem)} ${N.s}${adoq}`) : `${cuenta(n, N.fem)} ${N.p}`
+  const cabeza =
+    n === 1
+      ? inicio
+        ? `${N.s}${adoq}`
+        : `${cuenta(1, N.fem)} ${N.s}${adoq}`
+      : `${cuenta(n, N.fem)} ${N.p}`
   let det = ''
   switch (m.kind) {
-    case 'cota': case 'puerto': case 'muro': case 'tendida':
-      det = n === 1 ? ` de ${kmTxt(m.km)} km al ${gTxt(m.g!)} %` : n <= 4 ? ` de ${lista(g.map((x) => kmTxt(x.km)))} km` : ''
-      if (m.kind === 'muro' && n > 1) { const k = g.filter((x) => x.adoquin).length; if (k > 0) det += `, ${pron(k)} adoquinado${k > 1 ? 's' : ''}` }
+    case 'cota':
+    case 'puerto':
+    case 'muro':
+    case 'tendida':
+      det =
+        n === 1
+          ? ` de ${kmTxt(m.km)} km al ${gTxt(m.g!)} %`
+          : n <= 4
+            ? ` de ${lista(g.map((x) => kmTxt(x.km)))} km`
+            : ''
+      if (m.kind === 'muro' && n > 1) {
+        const k = g.filter((x) => x.adoquin).length
+        if (k > 0) det += `, ${pron(k)} adoquinado${k > 1 ? 's' : ''}`
+      }
       break
     case 'expuesto':
       det = n === 1 ? ` de ${kmTxt(m.km)} km` : ` (${kmTxt(g.reduce((a, x) => a + x.km, 0))} km)`
       break
     case 'sector': {
       const k5 = g.filter((x) => x.estrellas === 5).length
-      det = n === 1 ? ` ${firmeTxt(m)} de ${kmTxt(m.km)} km (${m.estrellas}★)` : ` ${firmeTxt(m)}${k5 > 0 ? `, ${pron(k5)} de 5★` : ''}`
+      det =
+        n === 1
+          ? ` ${firmeTxt(m)} de ${kmTxt(m.km)} km (${m.estrellas}★)`
+          : ` ${firmeTxt(m)}${k5 > 0 ? `, ${pron(k5)} de 5★` : ''}`
       break
     }
     case 'cadena': {
@@ -485,7 +678,12 @@ function delUltimaSubida(motivos: readonly Motif[]): string {
   const sube = (m: Motif): boolean => m.kind === 'cota' || m.kind === 'puerto' || m.kind === 'muro'
   for (let i = motivos.length - 1; i >= 0; i--) {
     const m = motivos[i]!
-    const c = m.kind === 'cadena' || m.kind === 'circuito' ? [...(m.hijos ?? [])].reverse().find(sube) : sube(m) ? m : undefined
+    const c =
+      m.kind === 'cadena' || m.kind === 'circuito'
+        ? [...(m.hijos ?? [])].reverse().find(sube)
+        : sube(m)
+          ? m
+          : undefined
     if (c) return c.kind === 'cota' ? 'de la cota' : c.kind === 'puerto' ? 'del puerto' : 'del muro'
   }
   return 'de la última subida'
@@ -494,17 +692,26 @@ function delUltimaSubida(motivos: readonly Motif[]): string {
 function cierre(meta: Motif, motivos: readonly Motif[], dUltima: number | null): string {
   const cf = meta.cotaFinal
   const sube = cf ? ` de ${kmTxt(cf.km)} km al ${gTxt(cf.g)} %` : ''
-  const ultimo = cf && cf.km >= ARCH.motivo.puerto.km[0] ? 'último puerto' : 'última cota'   // 9: cota ≤ 8,0 y puerto ≥ 9,0 no se solapan
-  const v = cf ? r1(meta.km - cf.km) : 0                                                      // el valle: Motif.km = cotaFinal.km + valle (§4.5 regla 5)
+  const ultimo = cf && cf.km >= ARCH.motivo.puerto.km[0] ? 'último puerto' : 'última cota' // 9: cota ≤ 8,0 y puerto ≥ 9,0 no se solapan
+  const v = cf ? r1(meta.km - cf.km) : 0 // el valle: Motif.km = cotaFinal.km + valle (§4.5 regla 5)
   switch (meta.meta!) {
     case 'esprint':
-      return dUltima !== null && dUltima <= FINAL_KIND_CUTS.valleCorto ? `meta a ${kmTxt(dUltima)} km ${delUltimaSubida(motivos)}` : 'esprint'
-    case 'repecho': return `llegada en repecho${sube}`
-    case 'muro_meta': return `llegada en muro${sube}`
-    case 'alto_corto': case 'alto_largo': return `llegada en alto${sube}`
-    case 'cima_cerca': return `${ultimo}${sube} a ${kmTxt(v)} km de meta`
-    case 'descenso_meta': return `${ultimo}${sube}, bajada y llano hasta meta (${kmTxt(v)} km)`
-    case 'valle': return `${ultimo}${sube} y ${kmTxt(v)} km de valle hasta meta`
+      return dUltima !== null && dUltima <= FINAL_KIND_CUTS.valleCorto
+        ? `meta a ${kmTxt(dUltima)} km ${delUltimaSubida(motivos)}`
+        : 'esprint'
+    case 'repecho':
+      return `llegada en repecho${sube}`
+    case 'muro_meta':
+      return `llegada en muro${sube}`
+    case 'alto_corto':
+    case 'alto_largo':
+      return `llegada en alto${sube}`
+    case 'cima_cerca':
+      return `${ultimo}${sube} a ${kmTxt(v)} km de meta`
+    case 'descenso_meta':
+      return `${ultimo}${sube}, bajada y llano hasta meta (${kmTxt(v)} km)`
+    case 'valle':
+      return `${ultimo}${sube} y ${kmTxt(v)} km de valle hasta meta`
     case 'sector_meta': {
       const h = meta.hijos![0]!
       return `sector ${firmeTxt(h)} de ${kmTxt(h.km)} km (${h.estrellas}★) a ${kmTxt(r1(meta.km - h.km))} km de meta`
@@ -512,17 +719,43 @@ function cierre(meta: Motif, motivos: readonly Motif[], dUltima: number | null):
   }
 }
 
-export function fraseDe(sk: Skeleton, km: number, motivos: readonly Motif[], dUltima: number | null,
-  opcion: number, sufijo: string | null, degradado: boolean): string {
+export function fraseDe(
+  sk: Skeleton,
+  km: number,
+  motivos: readonly Motif[],
+  dUltima: number | null,
+  opcion: number,
+  sufijo: string | null,
+  degradado: boolean,
+): string {
   const gs = grupos(motivos)
   const con = gs.length > 0 ? ` con ${lista(gs.map((g) => textoGrupo(g, false)))}` : ''
-  const cuerpo = sk.timeTrial ? `${sk.label === 'Prologue' ? 'Prólogo' : 'Contrarreloj'} de ${kmTxt(km)} km${con}`
-    : sk.kind === 'llana' ? `Llano${con}`
-    : gs.length > 0 ? lista(gs.map((g, i) => textoGrupo(g, i === 0))) : 'Sin dificultades'
-  const partes = [cuerpo, cierre(motivos.find((m) => m.kind === 'meta')!, motivos, dUltima)]
+  const cuerpo = sk.timeTrial
+    ? `${sk.label === 'Prologue' ? 'Prólogo' : 'Contrarreloj'} de ${kmTxt(km)} km${con}`
+    : sk.kind === 'llana'
+      ? `Llano${con}`
+      : gs.length > 0
+        ? lista(gs.map((g, i) => textoGrupo(g, i === 0)))
+        : 'Sin dificultades'
+  const partes = [
+    cuerpo,
+    cierre(
+      motivos.find((m) => m.kind === 'meta')!,
+      motivos,
+      dUltima,
+    ),
+  ]
   if (opcion > 0) partes.push(`final en ${sk.alternativas![opcion - 1]!.nombre}`)
-  const sinSitio = [...new Set(motivos.filter((m) => m.kind === 'enlace' && m.nombre !== undefined).map((m) => `(${m.nombre})`))]
-  const cola = [sufijo, ...sinSitio, degradado ? '(plantilla canónica)' : null].filter((x): x is string => x !== null)
+  const sinSitio = [
+    ...new Set(
+      motivos
+        .filter((m) => m.kind === 'enlace' && m.nombre !== undefined)
+        .map((m) => `(${m.nombre})`),
+    ),
+  ]
+  const cola = [sufijo, ...sinSitio, degradado ? '(plantilla canónica)' : null].filter(
+    (x): x is string => x !== null,
+  )
   return partes.join('; ') + (cola.length > 0 ? ` ${cola.join(' ')}` : '')
 }
 ```
@@ -538,11 +771,11 @@ Las reglas que el código fija, dichas en prosa para la ficha y para quien tenga
 
 Los tres ejemplos que `generate.test.ts` compara literalmente, con su entrada al lado. Los tres usan `opcion` 0, `sufijo` null y `degradado` false, y cada `Motif[]` es un `arch.motivos` posible de su esqueleto (rangos de §5.2):
 
-| Esqueleto, `km`, `dUltima` | `arch.motivos` de entrada | Frase |
-| --- | --- | --- |
-| `ud_circuito`, 200, 2 | `[{ kind: 'enlace', km: 5.5 }, { kind: 'circuito', km: 14, vueltas: 9, hijos: [{ kind: 'muro', km: 1.1, g: 11 }], separaciones: [9.4], firma: true }, { kind: 'meta', meta: 'esprint', km: 2, firma: true }]` (cierre de la vuelta 14 − 9,4 − 1,1 = 3,5 ≥ 1,5) | "Circuito de 14 km × 9 vueltas con un muro de 1,1 km al 11 %; meta a 2 km del muro" |
-| `ud_montana`, 245, 9 | `[{ kind: 'enlace', km: 98 }, { kind: 'puerto', km: 12.4, g: 6.2 }, { kind: 'puerto', km: 17.1, g: 6.6, firma: true }, { kind: 'cota', km: 4.2, g: 7 }, { kind: 'meta', meta: 'descenso_meta', km: 12, cotaFinal: { km: 3, g: 9 }, firma: true }]` (valle 12 − 3 = 9, dentro de [5,7; 17]) | "Dos puertos de 12 y 17 km y una cota de 4,2 km al 7 %; última cota de 3 km al 9 %, bajada y llano hasta meta (9 km)" |
-| `et_llana_viento`, 170, null | `[{ kind: 'expuesto', km: 40 }, { kind: 'expuesto', km: 35 }, { kind: 'expuesto', km: 15 }, { kind: 'meta', meta: 'esprint', km: 3, firma: true }]` (su único hueco es `expuesto`×[2; 3], regla 1 de §5.1: ningún `puerto` en una `llana`) | "Llano con tres tramos abiertos (90 km); esprint" |
+| Esqueleto, `km`, `dUltima`   | `arch.motivos` de entrada                                                                                                                                                                                                                                                                  | Frase                                                                                                                 |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `ud_circuito`, 200, 2        | `[{ kind: 'enlace', km: 5.5 }, { kind: 'circuito', km: 14, vueltas: 9, hijos: [{ kind: 'muro', km: 1.1, g: 11 }], separaciones: [9.4], firma: true }, { kind: 'meta', meta: 'esprint', km: 2, firma: true }]` (cierre de la vuelta 14 − 9,4 − 1,1 = 3,5 ≥ 1,5)                             | "Circuito de 14 km × 9 vueltas con un muro de 1,1 km al 11 %; meta a 2 km del muro"                                   |
+| `ud_montana`, 245, 9         | `[{ kind: 'enlace', km: 98 }, { kind: 'puerto', km: 12.4, g: 6.2 }, { kind: 'puerto', km: 17.1, g: 6.6, firma: true }, { kind: 'cota', km: 4.2, g: 7 }, { kind: 'meta', meta: 'descenso_meta', km: 12, cotaFinal: { km: 3, g: 9 }, firma: true }]` (valle 12 − 3 = 9, dentro de [5,7; 17]) | "Dos puertos de 12 y 17 km y una cota de 4,2 km al 7 %; última cota de 3 km al 9 %, bajada y llano hasta meta (9 km)" |
+| `et_llana_viento`, 170, null | `[{ kind: 'expuesto', km: 40 }, { kind: 'expuesto', km: 35 }, { kind: 'expuesto', km: 15 }, { kind: 'meta', meta: 'esprint', km: 3, firma: true }]` (su único hueco es `expuesto`×[2; 3], regla 1 de §5.1: ningún `puerto` en una `llana`)                                                 | "Llano con tres tramos abiertos (90 km); esprint"                                                                     |
 
 El ejemplo de `et_llana_viento` que traía el borrador ("Llano abierto con dos cotas lejanas") queda retirado: una `cota` se rinde como segmento `puerto` y cualquier `puerto` saca la etapa de `llana` (`stageKind.ts` l. 77-78, regla 1 de §5.1), así que ese esqueleto no puede tener cotas. El de `ud_circuito` es el literal de §B.2 y de §3.7 y no cambia. Las otras frases de ejemplo del documento ("Clásica de muros en Flandes: 16 muros en tres cadenas…" en §5.7, "pedía reina; en flandes no hay puerto: media con muro" en §6.5) son paráfrasis de lo que la ficha dice y no salidas de `fraseDe`; ningún test las compara.
 
@@ -667,18 +900,18 @@ Coste: sin `sampleProfile` por intento (el juez del motor mide 0,40 ms por etapa
 
 ### 8.15 Qué cambia respecto de hoy en este tramo, línea a línea
 
-| Hoy (mapa 01) | Diseño | Dónde |
-| --- | --- | --- |
-| Una semilla por forma (`row.id`, `${row.id}\|${i}`, `${from}\|${to}\|${km}`) y una secuencia para todo: "una tirada más y todos los perfiles cambian" (l. 316-317) | seis familias de subflujo con clave de etapa, todas por `semillaDe`; `arch` y `firma` sin temporada ni intento; `ed` por etapa; `activa` y `nivel` fijan la temporada de la semilla, nunca suprimen tiradas | 8.1 |
-| Número de dificultades por umbral de km (`nWalls = km > 200 ? 5 : 4`, `midClimbs = km > 165 ? 3 : 2`) | cardinalidad sorteada en `ed` dentro de `Slot.n`; cada hueco opcional ausente con p 0,35 y si no `n ∈ [1; n1]`; la temporada 0 tira dados | 8.4 |
-| Objetivo de desnivel comparado con los puertos solos (l. 373-374) y medido por el banco también con los puertos solos (`desnivelDe`: bloques `subida` = segmentos `puerto`) | objetivo TOTAL verificado con `dPlusDe`, relleno estimado a 5,5 m/km, escala [0,7; 1,4] solo sobre longitudes no firma con la firma y la meta restadas; el censo imprime `dPlus` y `dPlusBloques` (su diferencia es el relleno) y `CalendarQueen.dPlus` pasa a `dPlusDe` | 8.5 |
-| Posición por `split(fill, n + 1)`: el último muro a 15,7 a 184 km de meta (§2.4) | ventanas por hueco, `enlaceMinimo` 1,5 km, meta en `km − km_meta` | 8.6 |
-| Bajada `U(5, 8)` km al 6 % fija; solo `mountainClassicSegments` baja por desnivel con techo 0,6·runIn (l. 467) | `clamp(len·g·10/55, 2, 10)` km con media `−clamp(f·subido/km, 3, 6,5)` | 8.6 |
-| `rolling(rand, km, bumpy)` con `rompepiernas` p 0,35 que `sample.ts` colapsa a g 1,5, y suelo de pendiente 0,8 fijo | `rolling(rand, km, amp, pRompepiernas = 0)` con suelo `min(0,8; 0,45·amp)`, la tirada del tipo solo si `pRompepiernas > 0`, tope 2,4; el generador nunca emite `rompepiernas`; el legado reproduce los números de hoy | 8.7 |
-| `climb` sin tope: 14,8 % medido sobre un muro al 12 % (§2.4); `split` no baja de 0,5 por trozo | `climb(rand, len, avg, opts: { gMin?, gMax? } = {})` con recorte tras el suelo 1 y antes del redondeo, sin tiradas nuevas; `{ gMin: 8, gMax: 16 }` en muros y `muro_meta`, `{ gMin: 4, gMax: 7,9 }` en `repecho`; muro < 1,0 km de una sola rampa | 8.7 |
-| `normalize` escala todos los segmentos: 20 → 20,3 y cambia de cubeta (§2.5) | `normalizeEnlaces` escala solo enlaces; V10 si no absorben | 8.8 |
-| `garantizaPuerto` fija `segment.km` y `climbSize` suma tramos: 3 de 1.500 cruzan 8,5 (§5.1); nada vigila los 3.200 m de una media | `garantizaClase` con margen 0,3 / 300 m / 0,7, guarda `Σ tramos === km` y `reglas` en `arch.garantiasClase` | 8.9 |
-| `auto()`: una `cima` por `puerto`, 10 a 20 en una clásica de muros; ninguna si ningún muro llega a 1,5 (12 de 1.500, §2.4) | `cima` en puertos ≥ 1,5 km y SIEMPRE en el último; en circuito, una sola por cota ≥ 1,5 en su último paso; `nPancartas ≤ 6` en un día, informativa (`pancartas.unDia`) | 8.10 |
-| Sin verificación: el 14 % de `mountainClassicSegments` sale `media` (§2.6) y `race-jura` muere en un puerto de 14 km | `verify` puro contra `ed.km`, 8 intentos con `rechazos`, plantilla canónica contada y exigida a 0 en el calendario | 8.11 |
-| Un circuito no existe (`nc-*-road` es `classic(220)`) | `circuito` con vueltas idénticas, km derivado de `kmVuelta` y `vueltas`, aproximación ≥ 1,5 km y `kmSubidaShare` medido | 8.6, 8.12 |
-| `kind` y `label` declarados por el molde y reetiquetados en `stageHistory.ts` l. 73 (72 discrepancias) | `kind` de `stageKindOf(profile)`, garantizado por V6; `label = labelDe(sk, profile, timeTrial)` tras V6 | 8.13 |
+| Hoy (mapa 01)                                                                                                                                                               | Diseño                                                                                                                                                                                                                                                                   | Dónde     |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- |
+| Una semilla por forma (`row.id`, `${row.id}\|${i}`, `${from}\|${to}\|${km}`) y una secuencia para todo: "una tirada más y todos los perfiles cambian" (l. 316-317)          | seis familias de subflujo con clave de etapa, todas por `semillaDe`; `arch` y `firma` sin temporada ni intento; `ed` por etapa; `activa` y `nivel` fijan la temporada de la semilla, nunca suprimen tiradas                                                              | 8.1       |
+| Número de dificultades por umbral de km (`nWalls = km > 200 ? 5 : 4`, `midClimbs = km > 165 ? 3 : 2`)                                                                       | cardinalidad sorteada en `ed` dentro de `Slot.n`; cada hueco opcional ausente con p 0,35 y si no `n ∈ [1; n1]`; la temporada 0 tira dados                                                                                                                                | 8.4       |
+| Objetivo de desnivel comparado con los puertos solos (l. 373-374) y medido por el banco también con los puertos solos (`desnivelDe`: bloques `subida` = segmentos `puerto`) | objetivo TOTAL verificado con `dPlusDe`, relleno estimado a 5,5 m/km, escala [0,7; 1,4] solo sobre longitudes no firma con la firma y la meta restadas; el censo imprime `dPlus` y `dPlusBloques` (su diferencia es el relleno) y `CalendarQueen.dPlus` pasa a `dPlusDe` | 8.5       |
+| Posición por `split(fill, n + 1)`: el último muro a 15,7 a 184 km de meta (§2.4)                                                                                            | ventanas por hueco, `enlaceMinimo` 1,5 km, meta en `km − km_meta`                                                                                                                                                                                                        | 8.6       |
+| Bajada `U(5, 8)` km al 6 % fija; solo `mountainClassicSegments` baja por desnivel con techo 0,6·runIn (l. 467)                                                              | `clamp(len·g·10/55, 2, 10)` km con media `−clamp(f·subido/km, 3, 6,5)`                                                                                                                                                                                                   | 8.6       |
+| `rolling(rand, km, bumpy)` con `rompepiernas` p 0,35 que `sample.ts` colapsa a g 1,5, y suelo de pendiente 0,8 fijo                                                         | `rolling(rand, km, amp, pRompepiernas = 0)` con suelo `min(0,8; 0,45·amp)`, la tirada del tipo solo si `pRompepiernas > 0`, tope 2,4; el generador nunca emite `rompepiernas`; el legado reproduce los números de hoy                                                    | 8.7       |
+| `climb` sin tope: 14,8 % medido sobre un muro al 12 % (§2.4); `split` no baja de 0,5 por trozo                                                                              | `climb(rand, len, avg, opts: { gMin?, gMax? } = {})` con recorte tras el suelo 1 y antes del redondeo, sin tiradas nuevas; `{ gMin: 8, gMax: 16 }` en muros y `muro_meta`, `{ gMin: 4, gMax: 7,9 }` en `repecho`; muro < 1,0 km de una sola rampa                        | 8.7       |
+| `normalize` escala todos los segmentos: 20 → 20,3 y cambia de cubeta (§2.5)                                                                                                 | `normalizeEnlaces` escala solo enlaces; V10 si no absorben                                                                                                                                                                                                               | 8.8       |
+| `garantizaPuerto` fija `segment.km` y `climbSize` suma tramos: 3 de 1.500 cruzan 8,5 (§5.1); nada vigila los 3.200 m de una media                                           | `garantizaClase` con margen 0,3 / 300 m / 0,7, guarda `Σ tramos === km` y `reglas` en `arch.garantiasClase`                                                                                                                                                              | 8.9       |
+| `auto()`: una `cima` por `puerto`, 10 a 20 en una clásica de muros; ninguna si ningún muro llega a 1,5 (12 de 1.500, §2.4)                                                  | `cima` en puertos ≥ 1,5 km y SIEMPRE en el último; en circuito, una sola por cota ≥ 1,5 en su último paso; `nPancartas ≤ 6` en un día, informativa (`pancartas.unDia`)                                                                                                   | 8.10      |
+| Sin verificación: el 14 % de `mountainClassicSegments` sale `media` (§2.6) y `race-jura` muere en un puerto de 14 km                                                        | `verify` puro contra `ed.km`, 8 intentos con `rechazos`, plantilla canónica contada y exigida a 0 en el calendario                                                                                                                                                       | 8.11      |
+| Un circuito no existe (`nc-*-road` es `classic(220)`)                                                                                                                       | `circuito` con vueltas idénticas, km derivado de `kmVuelta` y `vueltas`, aproximación ≥ 1,5 km y `kmSubidaShare` medido                                                                                                                                                  | 8.6, 8.12 |
+| `kind` y `label` declarados por el molde y reetiquetados en `stageHistory.ts` l. 73 (72 discrepancias)                                                                      | `kind` de `stageKindOf(profile)`, garantizado por V6; `label = labelDe(sk, profile, timeTrial)` tras V6                                                                                                                                                                  | 8.13      |

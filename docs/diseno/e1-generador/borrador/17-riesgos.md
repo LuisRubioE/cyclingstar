@@ -21,41 +21,62 @@ El texto de ficha es la tabla `TEXTO_METADATO` de la sección 11 (§11.4, `apps/
 ```ts
 // packages/engine/src/routes/grammar/generate.test.ts (paso 5)
 // requestDe y semillas son los auxiliares del test de la sección 5 (§5.9); conGeo solo sustituye campos de req.geo.
-const conGeo = (req: StageRequest, geo: Partial<GeoSignature>): StageRequest => ({ ...req, geo: { ...req.geo, ...geo } })
+const conGeo = (req: StageRequest, geo: Partial<GeoSignature>): StageRequest => ({
+  ...req,
+  geo: { ...req.geo, ...geo },
+})
 
 it('viento: fuera de la regla de expuesto (relieve llano y viento ≥ 2) no cambia un solo tramo', () => {
   // ardenas (media), flandes (ondulado) y alpes (alta): ninguna es llano, así que 0 y 3 dibujan lo mismo
-  const casos = [[SKELETONS.ud_muro_final, 'ardenas', 200], [SKELETONS.ud_muros, 'flandes', 200], [SKELETONS.et_reina_alto_largo, 'alpes', 160]] as const
-  for (const [sk, zona, km] of casos) for (const s of semillas(20)) {
-    const req = requestDe(sk, zona, km, s, { fixed: { skeleton: sk.id } })
-    const a = generateStage(conGeo(req, { viento: 0 })), b = generateStage(conGeo(req, { viento: 3 }))
-    expect(b.profile).toEqual(a.profile)
-    expect(b.arch.metadatos.viento).toBe(3)
-  }
+  const casos = [
+    [SKELETONS.ud_muro_final, 'ardenas', 200],
+    [SKELETONS.ud_muros, 'flandes', 200],
+    [SKELETONS.et_reina_alto_largo, 'alpes', 160],
+  ] as const
+  for (const [sk, zona, km] of casos)
+    for (const s of semillas(20)) {
+      const req = requestDe(sk, zona, km, s, { fixed: { skeleton: sk.id } })
+      const a = generateStage(conGeo(req, { viento: 0 })),
+        b = generateStage(conGeo(req, { viento: 3 }))
+      expect(b.profile).toEqual(a.profile)
+      expect(b.arch.metadatos.viento).toBe(3)
+    }
   // golfo es llano: 2 y 3 caen del mismo lado de la regla y dibujan lo mismo
   for (const s of semillas(20)) {
     const req = requestDe(SKELETONS.et_llana, 'golfo', 180, s, { fixed: { skeleton: 'et_llana' } })
-    expect(generateStage(conGeo(req, { viento: 3 })).profile).toEqual(generateStage(conGeo(req, { viento: 2 })).profile)
+    expect(generateStage(conGeo(req, { viento: 3 })).profile).toEqual(
+      generateStage(conGeo(req, { viento: 2 })).profile,
+    )
   }
 })
 
 it('altitud: sin puerto no cambia un solo tramo (con puerto decide V4, cuyo par dispara/calla está en la sección 9)', () => {
-  const casos = [[SKELETONS.ud_muros, 'flandes', 200], [SKELETONS.et_llana, 'golfo', 180]] as const
-  for (const [sk, zona, km] of casos) for (const s of semillas(20)) {
-    const req = requestDe(sk, zona, km, s, { fixed: { skeleton: sk.id } })
-    const a = generateStage(conGeo(req, { altitud: 'mar' })), b = generateStage(conGeo(req, { altitud: 'altiplano' }))
-    expect(b.profile).toEqual(a.profile)
-    expect(b.arch.metadatos.altitud).toBe('altiplano')
-    expect(b.arch.frase).not.toMatch(/abanico|oxígeno|hipoxia|falta de aire/i)   // decisión 17
-  }
+  const casos = [
+    [SKELETONS.ud_muros, 'flandes', 200],
+    [SKELETONS.et_llana, 'golfo', 180],
+  ] as const
+  for (const [sk, zona, km] of casos)
+    for (const s of semillas(20)) {
+      const req = requestDe(sk, zona, km, s, { fixed: { skeleton: sk.id } })
+      const a = generateStage(conGeo(req, { altitud: 'mar' })),
+        b = generateStage(conGeo(req, { altitud: 'altiplano' }))
+      expect(b.profile).toEqual(a.profile)
+      expect(b.arch.metadatos.altitud).toBe('altiplano')
+      expect(b.arch.frase).not.toMatch(/abanico|oxígeno|hipoxia|falta de aire/i) // decisión 17
+    }
 })
 
 it('E1 no escribe startM ni laps: las leyes de altitud y de circuito del motor siguen dormidas', () => {
-  for (const id of SKELETON_IDS) for (const zona of TRES_ZONAS(SKELETONS[id])) {
-    const st = generateStage(requestDe(SKELETONS[id], zona, SKELETONS[id].km[0], `dormidas|${id}|${zona}`, { fixed: { skeleton: id } }))
-    expect(st.profile.startM).toBeUndefined()   // riesgo 1: 0 por defecto, altitudeCost no cobra
-    expect(st.profile.laps).toBeUndefined()     // riesgo 4: cuerdaDelCircuito devuelve 1
-  }
+  for (const id of SKELETON_IDS)
+    for (const zona of TRES_ZONAS(SKELETONS[id])) {
+      const st = generateStage(
+        requestDe(SKELETONS[id], zona, SKELETONS[id].km[0], `dormidas|${id}|${zona}`, {
+          fixed: { skeleton: id },
+        }),
+      )
+      expect(st.profile.startM).toBeUndefined() // riesgo 1: 0 por defecto, altitudeCost no cobra
+      expect(st.profile.laps).toBeUndefined() // riesgo 4: cuerdaDelCircuito devuelve 1
+    }
 })
 ```
 
@@ -101,7 +122,7 @@ Un esqueleto cuyo rango roza un umbral del clasificador (`et_media_alto` con una
 
 #### 10. La cola baja de reinas
 
-Hoy la sostiene un dado del 40 %: el complemento de `ROUTE.queenHighDplusShare` 0,6 (`constants.ts` l. 1169, 1260 en `02b032d`), que manda esa fracción de reinas a `ROUTE.queenLowDplusRange` {1.200; 2.500} (l. 1170, 1261 en `02b032d`). Existe "porque `calendarQueens.test.ts` afirma en tres líneas duras que la banda de < 1.500 m no se queda vacía" (mapa 06 §6 punto 3, prosa del repositorio, no del dueño): el test decide por el diseño. El repositorio ya escribió lo contrario (prosa de `docs/epics.md` E3, no del dueño): una reina de 1.200 m *no es una etapa reina fácil: es media montaña con la etiqueta cambiada*, y "una etapa reina de verdad tiene entre 3.000 y 5.000" (`docs/epics.md` E3, l. 149-150). El diseño lo decide en su sitio y con la cifra que da la aritmética, la misma que fija la sección 13 (§13.4 punto 4 y la fila `reina.dplus`):
+Hoy la sostiene un dado del 40 %: el complemento de `ROUTE.queenHighDplusShare` 0,6 (`constants.ts` l. 1169, 1260 en `02b032d`), que manda esa fracción de reinas a `ROUTE.queenLowDplusRange` {1.200; 2.500} (l. 1170, 1261 en `02b032d`). Existe "porque `calendarQueens.test.ts` afirma en tres líneas duras que la banda de < 1.500 m no se queda vacía" (mapa 06 §6 punto 3, prosa del repositorio, no del dueño): el test decide por el diseño. El repositorio ya escribió lo contrario (prosa de `docs/epics.md` E3, no del dueño): una reina de 1.200 m _no es una etapa reina fácil: es media montaña con la etiqueta cambiada_, y "una etapa reina de verdad tiene entre 3.000 y 5.000" (`docs/epics.md` E3, l. 149-150). El diseño lo decide en su sitio y con la cifra que da la aritmética, la misma que fija la sección 13 (§13.4 punto 4 y la fila `reina.dplus`):
 
 - `et_reina_blanda` con `ARCH.reina.blandaShare` {media 0,25; montana 0,25; alta 0,10} y D+ total [1.500; 2.500] con relleno (decisión 8; plantilla canónica 2.138 m, sección 5). El suelo NO baja: con sus motivos mínimos y el relleno de `ARCH.reina.rellenoDplusPorKm` la gramática no dibuja una reina por debajo de unos 1.400 m, así que un suelo más bajo sería una promesa que la aritmética no cumple, y además sería la reina que el dueño llama media montaña.
 - Por construcción, ninguna reina GENERADA cae en `<1500` tras el paso 8; lo que quede ahí son reales. Una banda que exija poblar `<1500` nacería roja (§15.1), así que no se escribe. La banda del censo es `reina.dplus.blanda`: cubeta [1.500; 2.500) ≥ 15 % de las reinas generadas y D+ mínimo de las generadas < 1.700 (sección 13).
@@ -127,38 +148,38 @@ Relojes: `realQueens` 900 s, `calendarQueens` 3.600 s hoy con 4 semillas (`calen
 
 ### 17.2 Lo que E1 no hace, y dónde se hace
 
-| Qué | Por qué no aquí | Dónde |
-| --- | --- | --- |
-| Cargar recorridos reales nuevos | E1 mejora las 1.241 etapas que nunca tendrán recorrido real; cada real nuevo mejora una carrera (agenda §4.18) | E12 (`docs/calendario.md`) |
-| El Mundial, las selecciones y las reglas de los nacionales | son calendario y contenido, no generador | E12 |
-| Una gran vuelta GENERADA en el calendario | `vu_gran_vuelta` existe y se testea en el paso 7 para 15 a 21 etapas (de 9 a 14 va `vu_larga`, sección 7 §7.2); las tres grandes vueltas siguen reales y ninguna carrera nueva entra | E12 |
-| Tocar el motor | `Segment`, `Ramp`, `Banner` intactos (decisión 2); `sample.ts`, `physics.ts` y `simulate.ts` sin cambios; ni exposición por tramo, ni `windMin` por zona, ni contrarreloj por equipos; `rompepiernas` sigue muriendo en `sample.ts` l. 100-101 | un encargo de motor posterior |
-| Despertar las leyes dormidas del motor | E1 no escribe `StageProfile.startM` (altitud, riesgo 1) ni `StageProfile.laps` (circuito, riesgo 4): las dos existen en `02b032d` y siguen a 0 y a 1 | un paso de motor propio, con versión y remedición (§17.4) |
-| Reescribir SPEC §6.17 | el SPEC pide fuga del 25 al 45 % en alta montaña y la decisión vigente es 18,1 % con banda [6; 30] (mapa 05 §11.1); es del dueño | del dueño, fuera de E1: se le lleva con la cifra del paso 9 junto a D6 (sección 18 §18.7; §17.4 punto 6) |
-| Unificar `featureProfile.ts` | riesgo 7 | paso propio posterior, con versión |
-| Validar contra PCS u Overpass | vetados (`docs/fuentes-recorridos.md`) | no se hace; la galería lo sustituye (sección 16) |
-| Metas volantes generadas | 2 de depósito (`STAGE.bannerCost`, `constants.ts` l. 3944) y 5 km de alivio por pancarta (`reliefKm`, l. 4131; mapa 03 §10.8) cambian el ritmo de todas las llanas | D4, valor por defecto "no" (sección 18) |
-| Critérium puntuable | mapa 07 §1.7 | D5, peso 0 (sección 18) |
-| Recalibrar `stageKindOf` | riesgo 3 | D2, tras el paso 8 (sección 18) |
+| Qué                                                        | Por qué no aquí                                                                                                                                                                                                                                | Dónde                                                                                                    |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Cargar recorridos reales nuevos                            | E1 mejora las 1.241 etapas que nunca tendrán recorrido real; cada real nuevo mejora una carrera (agenda §4.18)                                                                                                                                 | E12 (`docs/calendario.md`)                                                                               |
+| El Mundial, las selecciones y las reglas de los nacionales | son calendario y contenido, no generador                                                                                                                                                                                                       | E12                                                                                                      |
+| Una gran vuelta GENERADA en el calendario                  | `vu_gran_vuelta` existe y se testea en el paso 7 para 15 a 21 etapas (de 9 a 14 va `vu_larga`, sección 7 §7.2); las tres grandes vueltas siguen reales y ninguna carrera nueva entra                                                           | E12                                                                                                      |
+| Tocar el motor                                             | `Segment`, `Ramp`, `Banner` intactos (decisión 2); `sample.ts`, `physics.ts` y `simulate.ts` sin cambios; ni exposición por tramo, ni `windMin` por zona, ni contrarreloj por equipos; `rompepiernas` sigue muriendo en `sample.ts` l. 100-101 | un encargo de motor posterior                                                                            |
+| Despertar las leyes dormidas del motor                     | E1 no escribe `StageProfile.startM` (altitud, riesgo 1) ni `StageProfile.laps` (circuito, riesgo 4): las dos existen en `02b032d` y siguen a 0 y a 1                                                                                           | un paso de motor propio, con versión y remedición (§17.4)                                                |
+| Reescribir SPEC §6.17                                      | el SPEC pide fuga del 25 al 45 % en alta montaña y la decisión vigente es 18,1 % con banda [6; 30] (mapa 05 §11.1); es del dueño                                                                                                               | del dueño, fuera de E1: se le lleva con la cifra del paso 9 junto a D6 (sección 18 §18.7; §17.4 punto 6) |
+| Unificar `featureProfile.ts`                               | riesgo 7                                                                                                                                                                                                                                       | paso propio posterior, con versión                                                                       |
+| Validar contra PCS u Overpass                              | vetados (`docs/fuentes-recorridos.md`)                                                                                                                                                                                                         | no se hace; la galería lo sustituye (sección 16)                                                         |
+| Metas volantes generadas                                   | 2 de depósito (`STAGE.bannerCost`, `constants.ts` l. 3944) y 5 km de alivio por pancarta (`reliefKm`, l. 4131; mapa 03 §10.8) cambian el ritmo de todas las llanas                                                                             | D4, valor por defecto "no" (sección 18)                                                                  |
+| Critérium puntuable                                        | mapa 07 §1.7                                                                                                                                                                                                                                   | D5, peso 0 (sección 18)                                                                                  |
+| Recalibrar `stageKindOf`                                   | riesgo 3                                                                                                                                                                                                                                       | D2, tras el paso 8 (sección 18)                                                                          |
 
 ### 17.3 Tabla resumen
 
-| # | Riesgo | Tipo | Dónde se vigila | Sección |
-| --- | --- | --- | --- | --- |
-| 1 | viento, altitud, costa, meseta | sacrificio (D11) | `generate.test.ts` paso 5: `viento` solo por `expuesto`, `altitud` solo por puertos (V4), `startM` sin escribir; ficha con `TEXTO_METADATO` | 6, 8, 9, 11 |
-| 2 | tabla geográfica es juicio | mitigado (D8, D12) | `geo.test.ts`; galería al cerrar el paso 5 | 6, 16 |
-| 3 | `stageKindOf` sin recalibrar | sacrificio (D2) | tabla declarado/leído por origen en `routeCensus` | 11, 18 |
-| 4 | circuitos y `kmSubida` | mitigado | `laps` sin escribir (`generate.test.ts`); banda informativa del censo; saturación paso 9 | 4, 8, 13 |
-| 5 | muro en meta | mitigado | 300 de 300 en `motifs.test.ts` del paso 3 (§15.5); V16 en el censo | 4, 15 |
-| 6 | hueco [8,0; 9,0] | sacrificio | comentario de `ARCH.motivo.puerto` | 12, 19 |
-| 7 | dos rellenos | sacrificio | `realFingerprint.test.ts` | 11 |
-| 8 | varianza en bancos | mitigado | `frozenSkeletons`; pareado 12 semillas | 13 |
-| 9 | reintentos de borde | mitigado | `generate.test.ts` paso 5: p95 ≤ 3, degradado ≤ 0,5 %, primer intento ≥ 70 %; 0 degradados en el censo | 8, 9, 15 |
-| 10 | cola baja de reinas | decidido por diseño (D6 solo para la banda) | `reina.dplus.blanda` del censo; `calendarQueens` re-sellada y estratificada | 5, 13, 18 |
-| 11 | `world.test.ts` y `RACE_DAY_TSS` | mitigado | reparto de `kind` antes/después en el paso 8 | 13 |
-| 12 | coste de arranque | mitigado | `arranque.test.ts` 1.500 / 2.500 / 1.000; `maxTemporadasEnMemoria` 8 | 12, 14 |
-| 13 | remedición cara | mitigado | decisión 29 como condición de borrado | 13, 15 |
-| 14 | `RACE_REGION` con errores | mitigado (D9) | test de existencia; galería; corrección como dato | 6, 16, 18 |
+| #   | Riesgo                           | Tipo                                        | Dónde se vigila                                                                                                                             | Sección     |
+| --- | -------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| 1   | viento, altitud, costa, meseta   | sacrificio (D11)                            | `generate.test.ts` paso 5: `viento` solo por `expuesto`, `altitud` solo por puertos (V4), `startM` sin escribir; ficha con `TEXTO_METADATO` | 6, 8, 9, 11 |
+| 2   | tabla geográfica es juicio       | mitigado (D8, D12)                          | `geo.test.ts`; galería al cerrar el paso 5                                                                                                  | 6, 16       |
+| 3   | `stageKindOf` sin recalibrar     | sacrificio (D2)                             | tabla declarado/leído por origen en `routeCensus`                                                                                           | 11, 18      |
+| 4   | circuitos y `kmSubida`           | mitigado                                    | `laps` sin escribir (`generate.test.ts`); banda informativa del censo; saturación paso 9                                                    | 4, 8, 13    |
+| 5   | muro en meta                     | mitigado                                    | 300 de 300 en `motifs.test.ts` del paso 3 (§15.5); V16 en el censo                                                                          | 4, 15       |
+| 6   | hueco [8,0; 9,0]                 | sacrificio                                  | comentario de `ARCH.motivo.puerto`                                                                                                          | 12, 19      |
+| 7   | dos rellenos                     | sacrificio                                  | `realFingerprint.test.ts`                                                                                                                   | 11          |
+| 8   | varianza en bancos               | mitigado                                    | `frozenSkeletons`; pareado 12 semillas                                                                                                      | 13          |
+| 9   | reintentos de borde              | mitigado                                    | `generate.test.ts` paso 5: p95 ≤ 3, degradado ≤ 0,5 %, primer intento ≥ 70 %; 0 degradados en el censo                                      | 8, 9, 15    |
+| 10  | cola baja de reinas              | decidido por diseño (D6 solo para la banda) | `reina.dplus.blanda` del censo; `calendarQueens` re-sellada y estratificada                                                                 | 5, 13, 18   |
+| 11  | `world.test.ts` y `RACE_DAY_TSS` | mitigado                                    | reparto de `kind` antes/después en el paso 8                                                                                                | 13          |
+| 12  | coste de arranque                | mitigado                                    | `arranque.test.ts` 1.500 / 2.500 / 1.000; `maxTemporadasEnMemoria` 8                                                                        | 12, 14      |
+| 13  | remedición cara                  | mitigado                                    | decisión 29 como condición de borrado                                                                                                       | 13, 15      |
+| 14  | `RACE_REGION` con errores        | mitigado (D9)                               | test de existencia; galería; corrección como dato                                                                                           | 6, 16, 18   |
 
 ### 17.4 Lo que la nota "vN" deja anotado como deuda
 

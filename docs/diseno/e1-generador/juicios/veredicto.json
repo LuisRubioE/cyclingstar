@@ -1,432 +1,417 @@
 {
- "juicios": [
-  {
-   "foco": "Cobertura y fidelidad al dueño: si cada propuesta resuelve con mecanismo y número los tres hallazgos de agenda §4.18, G5, G6, la lección de reina-150 (E3 pasos 3-4) y el caso v40, si responde a las palabras del dueño («siempre son los mismos 3 o 4 modelos», «el generador es una basura») y si el dueño vería la diferencia en el calendario continental. Juicio completo en /tmp/claude-0/-home-user-cyclingstar/3338b186-41e1-5d9d-b1e8-de9516ccdc21/scratchpad/e1/juicios/cobertura.md, con tabla cruzada de 15 ítems × 5 propuestas y cuatro comprobaciones en código (stagesFromEdition → oneDaySpec → mountainOneDay dibuja reinas de vuelta con plantilla de un día; season = floor(gameDay / SEASON_DAYS) así que la temporada base es 0; aserciones de calendarQueens.test.ts l. 58-68; mixWeights.mountain 0,40 y queenHighDplusShare 0,6).",
-   "ganadora": "arquitectura",
-   "puntuaciones": [
+  "juicios": [
     {
-     "propuesta": "arquitectura",
-     "cobertura": 9,
-     "coherencia": 8,
-     "ejecutabilidad": 7,
-     "realismo": 9,
-     "justificacion": "Cubre los quince ítems con mecanismo y número y es la única que mide la queja del dueño en sus propios términos: «esqueletos distintos por clase y formato ≥ 8/10» y «entropía de esqueleto por zona ≥ 1,5 bits» (§11.3) con la cita a agenda §4.18. Tiene el veto más preciso del caso v40 (V5: última cota de un día ≤ 4,2 km, en meta solo muro ≤ 2,1, rareza 2 % solo en .1) y recorre el caso Jura contra V5/V6/V7 (§9). El muro en meta no es intención: `muro_meta` se rinde con 2 km de enlace de amp ≤ 2,5 para que `finishClimbGapBlocks` no pegue la racha, y V7 lo comprueba con `finishType` del motor (§3.2). Cierra los tres bordes sin holgura del mapa 01 §9.4 y resuelve el hallazgo 2 de raíz con `normalizeEnlaces`, que nunca deforma una dificultad (§4.6). Huecos: la lección de reina-150 solo como V8 y banda de calendario, no como veto por etapa; `et_reina_blanda` (§3.3, §7.5) es la forma de reina-150 conservada como cola baja con peso 0,25, honesto pero debe quedar declarado; el 210 km fijo de 142 carreras de un día se conserva en temporada 0 (§4.3); y la zona de FR/IT/ES se SORTEA si la fila no la declara (§3.5), error visible que la síntesis debe sustituir por tabla curada. Ejecutabilidad 7 porque el catálogo (32 esqueletos con ventanas, plantilla canónica a mano por esqueleto, ~40 constantes) es mucho contenido de juicio. El dueño vería la diferencia por la frase de arquitectura en la ficha (§10.2) y por los nacionales con geografía (§11.3)."
+      "foco": "Cobertura y fidelidad al dueño: si cada propuesta resuelve con mecanismo y número los tres hallazgos de agenda §4.18, G5, G6, la lección de reina-150 (E3 pasos 3-4) y el caso v40, si responde a las palabras del dueño («siempre son los mismos 3 o 4 modelos», «el generador es una basura») y si el dueño vería la diferencia en el calendario continental. Juicio completo en /tmp/claude-0/-home-user-cyclingstar/3338b186-41e1-5d9d-b1e8-de9516ccdc21/scratchpad/e1/juicios/cobertura.md, con tabla cruzada de 15 ítems × 5 propuestas y cuatro comprobaciones en código (stagesFromEdition → oneDaySpec → mountainOneDay dibuja reinas de vuelta con plantilla de un día; season = floor(gameDay / SEASON_DAYS) así que la temporada base es 0; aserciones de calendarQueens.test.ts l. 58-68; mixWeights.mountain 0,40 y queenHighDplusShare 0,6).",
+      "ganadora": "arquitectura",
+      "puntuaciones": [
+        {
+          "propuesta": "arquitectura",
+          "cobertura": 9,
+          "coherencia": 8,
+          "ejecutabilidad": 7,
+          "realismo": 9,
+          "justificacion": "Cubre los quince ítems con mecanismo y número y es la única que mide la queja del dueño en sus propios términos: «esqueletos distintos por clase y formato ≥ 8/10» y «entropía de esqueleto por zona ≥ 1,5 bits» (§11.3) con la cita a agenda §4.18. Tiene el veto más preciso del caso v40 (V5: última cota de un día ≤ 4,2 km, en meta solo muro ≤ 2,1, rareza 2 % solo en .1) y recorre el caso Jura contra V5/V6/V7 (§9). El muro en meta no es intención: `muro_meta` se rinde con 2 km de enlace de amp ≤ 2,5 para que `finishClimbGapBlocks` no pegue la racha, y V7 lo comprueba con `finishType` del motor (§3.2). Cierra los tres bordes sin holgura del mapa 01 §9.4 y resuelve el hallazgo 2 de raíz con `normalizeEnlaces`, que nunca deforma una dificultad (§4.6). Huecos: la lección de reina-150 solo como V8 y banda de calendario, no como veto por etapa; `et_reina_blanda` (§3.3, §7.5) es la forma de reina-150 conservada como cola baja con peso 0,25, honesto pero debe quedar declarado; el 210 km fijo de 142 carreras de un día se conserva en temporada 0 (§4.3); y la zona de FR/IT/ES se SORTEA si la fila no la declara (§3.5), error visible que la síntesis debe sustituir por tabla curada. Ejecutabilidad 7 porque el catálogo (32 esqueletos con ventanas, plantilla canónica a mano por esqueleto, ~40 constantes) es mucho contenido de juicio. El dueño vería la diferencia por la frase de arquitectura en la ficha (§10.2) y por los nacionales con geografía (§11.3)."
+        },
+        {
+          "propuesta": "geografia",
+          "cobertura": 8.5,
+          "coherencia": 8,
+          "ejecutabilidad": 7,
+          "realismo": 9,
+          "justificacion": "La más fiel al hallazgo 3, «el más gordo»: `PaisajeSpec` con `null` = «aquí no existe» (§3.1), `Territorio` con `cordillera: null` (§3.2) y consecuencias que el dueño vería sin test: «una vuelta belga no tiene reina», «una colombiana no tiene llana_costa» (§5.2). El itinerario por ventana del territorio con la reina solo en la cordillera (§7.1) y la etapa de transición «70 km de páramo y 100 de sierra» (§7.3) son ideas que nadie más tiene. Sella una huella FNV de las 177 etapas reales antes de tocar calendar.ts (§10.3) y pone la tabla pareada como condición para borrar el generador viejo (§11.4). Huecos: V1 del caso v40 con 6 km (más laxo que 4,2, aunque la plantilla montana_un_dia pone la última cota en 1,3-4,2 a 3-17); la lección de reina-150 solo como banda de calendario; el paisaje se sortea si la fila no lo dice (§4.1, riesgo que ella misma admite en §13.1); la pancarta cima solo en cotas ≥ 1,5 km (§4.5) hace que `lastClimbKm` ignore muros y puede cruzar `finalKindOf` en muros_encadenados; deja como pregunta el número de temporada base (§14.9) cuando calendarRun.ts l. 135 ya dice 0. Ejecutabilidad 7 por el volumen de contenido: 37 paisajes × 13 parámetros, 56 territorios, itinerario. Es la que más haría ver la diferencia en el calendario continental: el nacional belga con bergs y adoquín y el colombiano de altiplano (§13.10)."
+        },
+        {
+          "propuesta": "datos",
+          "cobertura": 8,
+          "coherencia": 7.5,
+          "ejecutabilidad": 7,
+          "realismo": 8,
+          "justificacion": "Aporta cuatro cosas que la síntesis necesita: `RACE_REGION` curada para las 310 carreras de equipos y por ETAPA en las 60 ediciones con test que prohíbe caer al país (§5.2, §7.5), la lección de reina-150 como veto por etapa (V2: un puerto ≥ 6 km a más de 30 km de meta), la identidad con rotación DECLARADA (`EDITION.level` 2, `alternates` por `season % n`, §6.2) y el anti-clon calibrado sobre pares reales de la misma familia (§10.2). Rompe explícitamente el 210 fijo con `kmByClass` (§7.4). Pero su idea central cubre menos donde el dueño mira: el corpus son 177 etapas en 15 países y «en 41 países no existe ni una etapa real» (§1.3); las continentales, que son la queja, están en 56 países casi enteramente generados, así que ahí el extractor cae al manual del mapa 07 como las otras cuatro, y donde hay corpus (WT) ya hay relieve real. La propia propuesta lo admite (§13.1: «un jugador colombiano verá una reina_valle de familia, no de los Andes»). Coherencia 7,5: `TourTemplate` sigue indexada por `MixTerrain` (§7.2), o sea tres modelos de composición; `COUNTRY_REGION` con FR → macizo_central_jura solo se sostiene porque `RACE_REGION` es obligatoria; y hay fricción medida entre corpus y clasificador (§1.5: 11 de 54 reinas reales son media para stageKindOf) que se resuelve empujando el perfil con garantizaClase. Ejecutabilidad 7: extractor determinista y regenerable, pero la curación de 310 carreras más 60 ediciones por etapa es «una o dos tardes» que el test no valida."
+        },
+        {
+          "propuesta": "ingeniero",
+          "cobertura": 7,
+          "coherencia": 9,
+          "ejecutabilidad": 9,
+          "realismo": 7,
+          "justificacion": "La más segura de implementar y la que mejor atribuye causa: paso 0 de línea base con `it.todo` en lo que hoy falla, paso 1 con builders legado que reproducen las formas de hoy para probar «igual dentro del ruido», y luego familias, geografía, composición e identidad con versión y remedición propias (§12). `frozenSkeletons` (§11.2) es la mejor respuesta a las listas cerradas por nombre: esqueleto literal renderizado por un renderizador puro, cerrado por forma y sin museo del generador viejo. `climb` con `gMax` y `DEFAULT_ROUTE_CONTEXT` son detalles útiles. Pero desde la cobertura es la que menos responde al dueño: conserva a propósito `mixWeights.mountain[reina] = 0,40` (§7.3), el 60/40 y `queenFinalMix` (§8), `mixRoles` entero con dos reglas para n ≥ 6, y NO toca el 210 km fijo de las 142 carreras de un día (§7.1 solo escala mixKm). La geografía es la más gruesa: 21 claves, FR cae por defecto en atlantico_colinas y ES en meseta (§5.2), override estimado en 40-60 filas de 167, y ella misma marca como riesgo «alta» el fallback de montana_un_dia en ardenas (§13.2). La lección de reina-150 queda en plausibilidad sin veto (§9.2) y las etapas de edición siguen pasando por oneDaySpec (§10.1). Seis saltos de ENGINE_VERSION y tres remediciones completas de bancos (relojes de 3.600-5.400 s, mapa 06 §3.2) triplican el coste de las otras cuatro; la atribución lo justifica, pero es el precio."
+        },
+        {
+          "propuesta": "banco",
+          "cobertura": 8.5,
+          "coherencia": 8,
+          "ejecutabilidad": 8,
+          "realismo": 8,
+          "justificacion": "La más fiel al argumento por el que E1 va primero (los perfiles son la entrada de la calibración) y con el mejor test de las cinco: «reina-150 expresada como brief NO pasa: es la prueba de que el veto encarna la lección de E3» (paso 2), con V8 por etapa (`queenClimbOutsideLast30Min` 0,25), `queenDplusIncludesFill: true` que cierra la incoherencia objetivo/medida del mapa 01 §2.5, `reina-175-4800` canónica sin banda y el renombrado de mountain.* a forma.* (§11.4). El censo geométrico estratificado con `finishType` calculado como lo lee el motor (§11.1), las bandas de realismo con la columna «hoy (medido)» (§11.2), el pre-registro de la dirección de cada banda de simulación y las cuatro condiciones de «mejor» (§11.5) son el protocolo más completo contra el patrón de seis repeticiones del mapa 04 §3.3. Es la que más claramente arregla el defecto comprobado en código de Colombia e5 («arquetipo DE ETAPA, no de un día», §10.1) y recorre el caso Jura (§9.3). Huecos: la de menos arquitecturas de un día (8, sin sterrato ni circuito urbano propios) y geografía por carrera, no por etapa; error de hecho en §3.2 y §6.2 («SEASON_CALENDAR pasa a ser calendarFor(1)», «season: 1») cuando calendarRun.ts l. 135 hace que un mundo empiece en la temporada 0; y tres excepciones al clasificador (§9.4) honestas pero que dejan «Hills» en un Sanremo generado hasta que el dueño decida etiqueta."
+        }
+      ],
+      "injertos": [
+        {
+          "de": "geografia",
+          "idea": "PaisajeSpec con `null` = «aquí no existe» para cota, muro, puerto, puertoLargo, adoquín y sterrato (§3.1), y Territorio con `cordillera: Paisaje | null` (§3.2).",
+          "por_que": "Es la forma más legible y testeable del hallazgo 3: «Bélgica no tiene reina» deja de ser un peso 0 en una tabla y pasa a ser una propiedad del sitio que el dueño puede leer en una fila."
+        },
+        {
+          "de": "geografia",
+          "idea": "El itinerario de una vuelta como ventana contigua del territorio, con la reina solo en la etapa cuya meta es la cordillera, y la etapa de transición entre dos paisajes (§7.1, §7.3).",
+          "por_que": "Única propuesta en que una vuelta generada recorre el país; los bloques de montaña salen de la geografía y no de una regla de reparación posterior."
+        },
+        {
+          "de": "geografia",
+          "idea": "Huella FNV de las 177 etapas reales y de las 3 grandes vueltas sellada ANTES de tocar calendar.ts y comprobada después (§10.3, paso 7).",
+          "por_que": "Es «lo real manda» hecho test; cuesta un día y protege el 12,5 % del calendario que ya está bien."
+        },
+        {
+          "de": "geografia",
+          "idea": "Tabla pareada viejo/nuevo en `pnpm sim` como CONDICIÓN para borrar el generador viejo, copiado a sim/legacy/ solo durante la medida (§11.4).",
+          "por_que": "Sin esa condición se repite v60 §1b: bandas verdes sin remedición anotada (mapa 04 §3.4)."
+        },
+        {
+          "de": "banco",
+          "idea": "V8 por etapa: fracción mínima de subida a más de 30 km de meta en toda reina (`queenClimbOutsideLast30Min` 0,25) y el test «reina-150 como brief no pasa» (§9.1, paso 2).",
+          "por_que": "Es la lección de E3 escrita como regla del generador; arquitectura y geografia la tienen solo como banda de calendario."
+        },
+        {
+          "de": "banco",
+          "idea": "`routeCensus` estratificado por clase × formato × firma × arquetipo × finalKind, con `finishType` calculado como lo lee el motor, en test:rapido; bandas de realismo con la columna «hoy (medido)»; pre-registro de la dirección de cada banda de simulación y las cuatro condiciones de «mejor» (§11.1-11.5).",
+          "por_que": "Es el protocolo que separa motor de generador, que hoy el banco no puede separar; ninguna otra propuesta escribe la dirección esperada ANTES de correr."
+        },
+        {
+          "de": "banco",
+          "idea": "`calendarQueens` con muestra estratificada por finalKind × desnivel y PASO ajustado; `reina-175-4800` canónica impresa sin banda; `mountain.*` renombrada `forma.*` (§11.4).",
+          "por_que": "Cierra los puntos 1, 2 y 4 del mapa 04 §4.3 en el mismo cambio y evita que nadie vuelva a leer reina-150 como «la montaña»."
+        },
+        {
+          "de": "banco",
+          "idea": "`GEN.queenDplusIncludesFill: true` (§8) y la guarda que iguala `segment.km` a la suma de tramos (§4.5).",
+          "por_que": "El objetivo de desnivel se persigue sobre lo mismo que `calendarQueens::desnivelDe` mide (mapa 01 §2.5), y el borde garantizaPuerto/climbSize del mapa 01 §5.1 deja de existir."
+        },
+        {
+          "de": "banco",
+          "idea": "Las etapas de edición sin rasgos reciben arquetipos DE ETAPA (`etapa_*`), nunca de un día (§10.1).",
+          "por_que": "Comprobado en calendar.ts l. 216-227 y 143-152: hoy stagesFromEdition → oneDaySpec → mountainOneDay; Colombia e5 de REAL_QUEENS es una clásica de montaña disfrazada de reina de vuelta."
+        },
+        {
+          "de": "datos",
+          "idea": "`RACE_REGION` curada a mano para las 310 carreras de equipos desde las ciudades de raceRoutes.ts, con región por ETAPA en las 60 ediciones, y test que prohíbe caer al país (§5.2, §7.5).",
+          "por_que": "Sustituye el sorteo de zona de arquitectura §3.5 y geografia §4.1, que es un error visible en 125 filas de FR/IT/ES; y es lo único que pone el Tour e6 en los Pirineos y no en «Francia»."
+        },
+        {
+          "de": "datos",
+          "idea": "`EDITION.level` 2: rotación DECLARADA por arquetipo (`alternates` elegidas por `season % n`) (§6.2).",
+          "por_que": "Es la variación «deliberada y no aleatoria» más literal del encargo (Como/Bérgamo, Angliru/Lagos) y cabe encima de ARCH.edicion.* sin tocar nada."
+        },
+        {
+          "de": "datos",
+          "idea": "Anti-clon calibrado sobre pares REALES de la misma familia (Ronde/E3, Amstel/Brabant, Lombardía/Lieja), con el tope en el p90 de esos pares (§10.2).",
+          "por_que": "El umbral «< 0,8» de arquitectura V12 es un número sin dueño; el de datos tiene dueño y método."
+        },
+        {
+          "de": "datos",
+          "idea": "El extractor `scripts/extraer-arquetipos.mjs` como INSTRUMENTO DE MEDIDA de fidelidad (bandas p5-p95 por familia contra el corpus real, §11.1 y §11.4), no como fuente de los esqueletos.",
+          "por_que": "Donde hay corpus (reinas, medias, clásicas del norte) da bandas con dato en vez de con memoria; donde no lo hay, no manda."
+        },
+        {
+          "de": "datos",
+          "idea": "Tabla `kmByClass` con la columna «un día» y la frase «desaparece el 210 fijo de las 142 carreras» desde la temporada 0 (§7.4).",
+          "por_que": "Arquitectura lo deja para la edición e ingeniero no lo toca; el dueño lo ve en la ficha de cada .1, y es un «siempre son iguales» tan visible como el perfil."
+        },
+        {
+          "de": "ingeniero",
+          "idea": "`frozenSkeletons`: las tres reinas generadas de REAL_QUEENS congeladas como esqueleto literal y renderizadas por el renderizador puro (§11.2).",
+          "por_que": "Mejor que congelar Segment[]: la lista cerrada lo es por forma, sigue usando el código nuevo y el `why` vuelve a ser verdad."
+        },
+        {
+          "de": "ingeniero",
+          "idea": "Paso 0 de línea base con todas las métricas de geometría escritas y las que hoy fallan en `it.todo` (§12 paso 0), más los builders legado que reproducen las formas de hoy con tabla pareada «igual dentro del ruido» (§12 paso 1).",
+          "por_que": "Deja escrito qué está rojo HOY antes de cambiar nada y separa fontanería de forma, aunque la síntesis mantenga un solo salto de versión."
+        },
+        {
+          "de": "ingeniero",
+          "idea": "`climb(rand, len, avg, { gMax })` para muros (§4.4) y `DEFAULT_ROUTE_CONTEXT` para que los tests existentes compilen entre pasos (§5.1).",
+          "por_que": "Ahorra reintentos por rampas al 14,8 % (mapa 01 §2.4) y una tanda de tests rotos por firma."
+        }
+      ],
+      "riesgos": [
+        "La tabla geográfica es juicio y no dato, y no hay forma de validarla: las cinco la sacan del mapa 07 §3 (orientativo, de memoria), PCS está vetado y 250 carreras de raceRoutes.ts tienen ciudades sin fuente; solo datos cura carrera a carrera y su test comprueba que exista, no que sea correcta.",
+        "Ninguna propone un instrumento para que el dueño VEA el resultado antes de aceptarlo (una galería de altimetrías por zona × esqueleto con renderAltimetrySvg): sin eso, el juicio del dueño sobre 30-40 zonas y 20-30 esqueletos llegará carrera a carrera en producción.",
+        "Viento, altitud, costa y meseta no llegan al motor: las cinco cubren relieve y firme y sacrifican el resto porque el viento es un número por etapa y Segment no lleva altitud; hay que decirle al dueño que la mitad de su lista geográfica es de motor y no de generador.",
+        "La cola baja de reinas y calendarQueens.test.ts l. 58-68 siguen decidiendo por el diseño: todas lo llevan al dueño, ninguna mide ANTES qué produce el calendario nuevo por clase para saber si la cubeta < 1.500 m se despuebla.",
+        "stageKindOf está calibrado contra el generador viejo y clasifica mal 27 de 113 reinas y medias reales (datos §1.5); ninguna lo recalibra en E1, así que un Sanremo generado sale «Hills», una Lieja generada «media», y la etiqueta de las etapas reales sigue mal en stageHistory.ts.",
+        "Los circuitos inflan los puntos de montaña: un muro × 10 vueltas produce 10 pancartas cima cat4 que simulate.ts puntúa; geografia limita la pancarta a ≥ 1,5 km pero entonces lastClimbKm ignora muros; nadie separa la pancarta que sirve a finalKindOf de la que puntúa.",
+        "Coste de arranque no medido: 1.418 etapas × temporadas × reintentos con sampleProfile por intento al cargar el módulo; todas estiman «< 1 s» sin medir.",
+        "La remedición de bancos con 12 semillas fuera de CI (relojes de 3.600-5.400 s) es el paso más caro y el más fácil de saltarse; banco pre-registra la dirección y geografia lo pone como condición, pero ninguna dice quién corre las horas ni cómo se anota un resultado que contradiga la previsión sin ajustar la banda.",
+        "featureProfile.ts no se unifica: las 177 etapas reales siguen con normalizeTotal estirando el último segmento y rollingFill con amplitud por terreno y no por geo, así que la síntesis tendrá dos rellenos distintos para dos poblaciones del mismo calendario.",
+        "La identidad entre ediciones cambia lo que el jugador espera y ninguna la muestra: todas activan la variación por temporada y la llevan al dueño, ninguna propone cómo la interfaz anuncia «edición N» ni cómo se compara con el año anterior, que es lo que haría visible que la misma carrera se parece a sí misma."
+      ]
     },
     {
-     "propuesta": "geografia",
-     "cobertura": 8.5,
-     "coherencia": 8,
-     "ejecutabilidad": 7,
-     "realismo": 9,
-     "justificacion": "La más fiel al hallazgo 3, «el más gordo»: `PaisajeSpec` con `null` = «aquí no existe» (§3.1), `Territorio` con `cordillera: null` (§3.2) y consecuencias que el dueño vería sin test: «una vuelta belga no tiene reina», «una colombiana no tiene llana_costa» (§5.2). El itinerario por ventana del territorio con la reina solo en la cordillera (§7.1) y la etapa de transición «70 km de páramo y 100 de sierra» (§7.3) son ideas que nadie más tiene. Sella una huella FNV de las 177 etapas reales antes de tocar calendar.ts (§10.3) y pone la tabla pareada como condición para borrar el generador viejo (§11.4). Huecos: V1 del caso v40 con 6 km (más laxo que 4,2, aunque la plantilla montana_un_dia pone la última cota en 1,3-4,2 a 3-17); la lección de reina-150 solo como banda de calendario; el paisaje se sortea si la fila no lo dice (§4.1, riesgo que ella misma admite en §13.1); la pancarta cima solo en cotas ≥ 1,5 km (§4.5) hace que `lastClimbKm` ignore muros y puede cruzar `finalKindOf` en muros_encadenados; deja como pregunta el número de temporada base (§14.9) cuando calendarRun.ts l. 135 ya dice 0. Ejecutabilidad 7 por el volumen de contenido: 37 paisajes × 13 parámetros, 56 territorios, itinerario. Es la que más haría ver la diferencia en el calendario continental: el nacional belga con bergs y adoquín y el colombiano de altiplano (§13.10)."
+      "foco": "Juez «motor»: coherencia con lo que el motor consume (Segment/Ramp, stageKindOf, finalKindOf, finishType), pureza y determinismo, banco y tests sellados, y coste real de implementación y riesgo de regresión. Comprobado contra el código y el dist (ENGINE_VERSION 69): carga del calendario 578 ms; una pasada de sampleProfile+finishType+stageKindOf+finalKindOf sobre las 1.418 etapas 569 ms (0,40 ms/etapa; 0,92 ms para un perfil de 120 segmentos); hoy 0 finales muro, 72 discrepancias kind declarado/leído; finish.ts comprueba alto antes que muro y funde rachas con finishClimbGapBlocks; index.ts no exporta los xxxSegments; RouteSource binario en columna text; calendarRun.ts l. 1614, callups.ts l. 98 y raceContext.ts terrenoRestante leen kind/profile de SEASON_CALENDAR y no de race_routes; stageHistory.ts (run-in 5 km) y stageKindOf (último segmento puerto) usan dos reglas de etiqueta distintas. Juicio completo en scratchpad/e1/juicios/motor.md.",
+      "ganadora": "ingeniero",
+      "puntuaciones": [
+        {
+          "propuesta": "arquitectura",
+          "cobertura": 9,
+          "coherencia": 7,
+          "ejecutabilidad": 7,
+          "realismo": 9,
+          "justificacion": "Cobertura casi total: 13 motivos, 32 esqueletos, V5 es el caso v40 en números (última cota ≤ 4,2 km a 3-17 km), V8 reina de verdad, et_reina_blanda convierte la cola baja de calendarQueens.test en una forma con peso, y estima el relleno (rellenoDplusPorKm) para cuadrar el objetivo con desnivelDe. Es la única que diseña el motivo meta contra deriveFinishTerrain (aproxAmp 2,5 en los 2 km previos al muro para que la racha no se funda dentro de finishClimbGapBlocks) y cierra los tres bordes con holguras sin tocar stageKind.ts ni finalKind.ts. Pero acopla el generador al motor más que ninguna: V7 llama a finishType(deriveFinishTerrain(sampleProfile)) en cada intento (medido 0,4-0,9 ms por etapa e intento), así que una recalibración de STAGE.finish* redibujaría perfiles sin tocar routes/; retira normalize, garantizaPuerto, ROUTE.queen* y ROUTE.km*; indexa la composición por relieve mientras afirma que calendar.test.ts sigue verde sin tocarlo sin decir cómo conserva la firma de stageMix; y la edición varía los papeles de en medio, con lo que el kind por temporada deja de ser el que leen callups.ts l. 98 y calendarRun.ts l. 516/1614. Ejecutabilidad alta en el algoritmo (siete pasos con subflujos, colocación por ventanas, plantilla canónica) pero la superficie de contenido es la mayor y Weighted/BlockRule quedan sin definir."
+        },
+        {
+          "propuesta": "geografia",
+          "cobertura": 8,
+          "coherencia": 6,
+          "ejecutabilidad": 7,
+          "realismo": 8,
+          "justificacion": "El modelo geográfico es el más profundo (37 paisajes con null donde algo no existe, 56 territorios como ruta, cordillera, itinerario desde/hasta) y resuelve el hallazgo 3 mejor que nadie; V1 (≤ 6 km) es más laxo que arquitectura y datos, y la lección de reina-150 entra solo como métrica geométrica, no como veto. Coherencia con el contrato bien (no toca Segment, normalize sin cambios, holguras reinaValle, V5 de altitud integrando g·km·10 sin sampleProfile), pero dos decisiones chocan con lectores existentes: la pancarta cima solo en puerto ≥ 1,5 km (§4.5) deja sin pancarta al muro de meta y finalKindOf (finalKind.ts l. 46-57) cae al último puerto ≥ 1,5 km que puede estar a 30 km, y V10 solo aplica a papel reina; y recomponer las etapas de en medio cada temporada con mixRoles más el intercambio de la reina a la cordillera después de las garantías (§7.1 2b) cambia kind por temporada y puede romper las garantías de mixRoles l. 495-517 sin aserción que lo vigile. Cambia la firma de oneDaySpec, stagesFromEdition, stageMix y nationalChampionships y reescribe calendar.test.ts entero en el mismo paso que sube versión. Coste: siete módulos, 37 × 13 parámetros y 56 territorios a escribir y revisar; bien visto lo de BASE_SEASON (§14.9) y el interruptor ROUTE.edicion.activa. Ejecutable en tablas, pero desde/hasta para ediciones y el reparto de esqueletoDe cuando la intersección vacía huecos obligatorios quedan en una línea."
+        },
+        {
+          "propuesta": "datos",
+          "cobertura": 9,
+          "coherencia": 7,
+          "ejecutabilidad": 6,
+          "realismo": 8,
+          "justificacion": "Cobertura fuerte: V1 el más estricto (≤ 2,5 km con ventoux nombrado), V2 encarna la lección de E3 (un puerto ≥ 6 km a más de 30 km de meta), y mide con dato que stageKindOf llama media a 11 de 54 reinas reales, decidiendo bien no recalibrar en E1. Coherencia: garantizaClase generaliza garantizaPuerto con el mismo patrón, declara intocables FINAL_KIND_CUTS, PASS_MIN_KM, WALL_MAX_KM y STAGE.finish*, EDITION.level 1 conserva el arquetipo (kind estable por temporada), y route_source con tres valores es viable porque la columna es text. Lo que resta: V11 exige Σ costBase·dx dentro del generador, o sea sampleProfile más physics.costBase por intento: una recalibración de costBase redibujaría etapas por reparación sin tocar routes/, que es el acoplamiento inverso al que el repositorio quiere; y wallMaxKm 1,5 contra muroMaxKm 1 hace que parte de los muros de meta salgan puncheur a propósito. Ejecutabilidad es donde más pierde: el extractor produce bandas p10-p90 de ≥ 3 fuentes, y montana_un_dia tiene exactamente 3, así que sus bandas son el mínimo y el máximo; el fichero se regenera con cada carga de E12 y el generador deja de ser reproducible entre versiones de dato sin subir versión; RACE_REGION son 310 carreras más región por etapa de 60 ediciones, la carga de contenido más alta. Realismo alto donde hay corpus, y honesto al decir que 18 de 24 familias son manuales."
+        },
+        {
+          "propuesta": "ingeniero",
+          "cobertura": 7,
+          "coherencia": 9,
+          "ejecutabilidad": 9,
+          "realismo": 7,
+          "justificacion": "La más coherente con el motor: una sola capa nueva (Skeleton, PlacedMotif, SkeletonContract) sobre climb, descent, rolling, split, normalize y garantizaPuerto tal cual, con tres cambios pequeños y justificados (rolling con amplitud numérica y sin rompepiernas, climb con gMax, bajada por desnivel como mountainClassicSegments l. 467); el verificador comprueba Σ km, stageKindOf, finalKindOf con 0,7 km de holgura, finishType solo cuando la familia lo promete, y la suma de tramos contra segment.km, cerrando el borde de 8,5 donde nace. stageMix conserva firma con DEFAULT_ROUTE_CONTEXT, así que calendar.test.ts y stageKind.test.ts compilan en el paso 1; comprobado que index.ts no exporta los xxxSegments. origen edicion no varía por temporada por la doctrina de fuentes-recorridos.md; RouteSource sigue binario; kind leído del perfil con contrato y reintento. Subflujos identidad/esqueleto/edicion/relleno/reintento sobre la semilla de hoy. Ejecutabilidad la más alta: tres builders en pseudocódigo con rangos, renderizador entero, orden del verificador, tabla de constantes con el valor actual, siete pasos con tests, versión, remedición y coste. Cobertura la más baja y es lo que la síntesis debe reparar: la lección de reina-150 solo se imprime (§9.2), conserva queenDplusRange 60/40 y queenFinalMix (y con ellos el objetivo solo de puertos contra desnivelDe con relleno y el 60/40 sostenido por un test), mixWeights.mountain 0,40 intacto, solo dos reglas de bloque, V1 ≤ 5 km, y FR cae por defecto a atlantico_colinas. Coste: seis subidas de versión y tres remediciones de bancos, defendidas por atribución; antes del lanzamiento es asumible."
+        },
+        {
+          "propuesta": "banco",
+          "cobertura": 9,
+          "coherencia": 7,
+          "ejecutabilidad": 8,
+          "realismo": 8,
+          "justificacion": "La mejor encarnación de la lección de E3: V8 (≥ 25 % de la subida a más de 30 km de meta) más el test «reina-150 expresada como brief no pasa», y queenDplusIncludesFill, la única que arregla el desfase entre el objetivo de puertos y desnivelDe con relleno diciendo cómo; el caso v40 recorrido paso a paso con race-jura. Coherencia: los vetos van sobre el RouteBrief antes de dibujar (puros, sin sampleProfile) y finishType solo en el censo, que es el reparto de coste correcto y desacopla el generador de STAGE.finish*; conserva normalize y garantizaPuerto parametrizados por el brief con la guarda nueva «toda cota ≤ 2,9 km en clásica»; las tres excepciones de §9.4 son coherentes con el clasificador. Lo que resta: retira mixWeights y MixTerrain y reescribe los seis casos de calendar.test.ts; stageFor vuelve a sortear el arquetipo a partir del tercer reintento mientras §6.2 dice que el arquetipo de un día no se sortea por edición (identidad que se mueve si un veto salta en una temporada); la edición puede cambiar el arquetipo de una etapa de en medio, con lo que kind por temporada difiere del de SEASON_CALENDAR; SEASON_CALENDAR = calendarFor(1) supone la primera temporada sin comprobarla; y el objetivo «cambian ≤ 10» ignora que stageHistory.ts (run-in 5 km) y stageKindOf (último segmento puerto) son dos reglas distintas. El protocolo de «mejor y no solo distinto» (§11.5) y el censo geométrico en cada push (medido: 0,57 s) son lo que el banco necesita. La función skeleton por arquetipo se describe en una fila, no en pseudocódigo; RACE_GEO ~167 carreras es contenido."
+        }
+      ],
+      "injertos": [
+        {
+          "de": "banco",
+          "idea": "V8 como veto duro en SkeletonContract y verify.ts: una reina generada tiene ≥ 25 % de sus km de subida a más de climbRaceKmToGo (30) km de meta, y un test que exige que reina-150 expresada como esqueleto no pase el verificador.",
+          "por_que": "Es la variable que separó la canónica (0 %) de las reales (6-38 %) en balance v43 §7 y la razón de que E1 vaya primero; ingeniero solo la imprime como plausibilidad (§9.2)."
+        },
+        {
+          "de": "banco",
+          "idea": "queenDplusIncludesFill: el objetivo de desnivel de la reina se persigue sobre puertos más relleno, medido como calendarQueens::desnivelDe (o con la estimación rellenoDplusPorKm de arquitectura si se evita sampleProfile en el generador).",
+          "por_que": "Hoy el objetivo son solo puertos (profileGen.ts l. 373) y el banco mide con relleno (~1.000 m de diferencia, mapa 01 §1); ingeniero conserva queenDplusRange sin corregirlo."
+        },
+        {
+          "de": "banco",
+          "idea": "El protocolo «mejor y no solo distinto» de §11.5 (línea base con el generador viejo, dirección pre-registrada por banda, pareado con engineVersion fijo, cuatro condiciones necesarias incluida «las canónicas no se mueven un dígito», dos lecturas de las listas cerradas) y el censo geométrico routeCensus con finishType(t, 50) en test:rapido.",
+          "por_que": "Ingeniero tiene geometry.test y tabla pareada por paso pero no el pre-registro ni la condición sobre las canónicas; medido, el censo cuesta 0,57 s sobre 1.418 etapas y cabe en cada push."
+        },
+        {
+          "de": "arquitectura",
+          "idea": "El motivo meta diseñado contra deriveFinishTerrain (§3.2): muro_meta con 2 km de aproximación a amplitud ≤ 2,5 para que ningún bloque ≥ finishClimbMinGradient (3) se funda con la racha dentro de finishClimbGapBlocks (5); repecho < finishAltoMinKm; alto_corto 3-7 km; holguras 0,5 sobre los cortes 5/20.",
+          "por_que": "finish.ts l. 165-189 comprueba alto antes que muro y funde rachas; sin diseñar la aproximación, media_muro_final de ingeniero paga en reintentos lo que puede resolver por construcción."
+        },
+        {
+          "de": "arquitectura",
+          "idea": "et_reina_blanda como forma de reina con peso propio (ARCH.reinaBlandaShare) en lugar del dado 60/40 de queenHighDplusShare.",
+          "por_que": "Convierte la cola baja que calendarQueens.test.ts l. 62-63 exige en una decisión de diseño (mapa 06 §6.3) sin retirar el test ni dejar que el test decida; ingeniero lo deja al dueño."
+        },
+        {
+          "de": "arquitectura",
+          "idea": "V5 con los números del mapa 07: en un día la última cota mide ≤ 4,2 km y corona a 3-17 km; si muere en meta mide ≤ 2,1 km salvo rareza al 2 % en .1.",
+          "por_que": "Los 5 km de ingeniero y los 6 de banco y geografia dejan pasar finales de 5-6 km que en el WorldTour de un día no existen (mapa 07 §4.3)."
+        },
+        {
+          "de": "datos",
+          "idea": "garantizaClase como generalización de garantizaPuerto parametrizada por el contrato (kind, finalMix, classMarginKm 0,3), más la guarda de banco «toda cota ≤ 2,9 km en clásica» y el recorte del valle a su cubeta con holgura.",
+          "por_que": "garantizaPuerto solo mueve el puerto más largo entre min y max; no cubre la clásica que normalize estira de 2,5 a 3,1 ni el valle que cruza cubeta (4 de 6.000 medidas en mapa 01 §2.5)."
+        },
+        {
+          "de": "datos",
+          "idea": "Región geográfica por etapa para las ediciones (RACE_REGION['race-x'].stages) y no solo por carrera.",
+          "por_que": "Ingeniero lleva geo por carrera con override por id; las 226 etapas de edición sin rasgos (Colombia e5, Pau → Gavarnie) son donde el país más cambia el resultado."
+        },
+        {
+          "de": "datos",
+          "idea": "El extractor medir-real.mjs sobre las 177 etapas reales como instrumento de medida (p10/p50/p90 de nº de puertos, última subida, finalKindOf real 69 % alto, sectores) para las bandas del censo y el anti-clon, sin que el generador dependa de un fichero regenerable.",
+          "por_que": "Son las únicas referencias con dato del repositorio; usarlas como fuente del generador (datos) rompe la reproducibilidad entre cargas de E12, usarlas como vara no."
+        },
+        {
+          "de": "datos",
+          "idea": "Semilla de edición separada de la de identidad (idSeed y idSeed|s{season}), y la semilla de hoy de las ediciones ${from}|${to}|${km} concatenada al raceId.",
+          "por_que": "Cierra el defecto del mapa 02 §7 (dos carreras con misma salida, meta y km dibujan lo mismo) que ingeniero conserva a propósito al no cambiar la semilla."
+        },
+        {
+          "de": "geografia",
+          "idea": "cordillera: null como veto estructural sellado en test (0 reinas en países sin cordillera, decisión explícita al dueño) y el V5 de altitud integrando g·km·10 por tramo, barato y puro.",
+          "por_que": "Ingeniero lo hace con familyBias 0 por tabla, sin un test de calendario que lo afirme; geografia lo sella y lo hace visible como decisión."
+        },
+        {
+          "de": "geografia",
+          "idea": "BASE_SEASON cuadrado con la primera temporada de un mundo (calendarRun.ts l. 135) y ROUTE.edicion.activa = false como interruptor que devuelve el calendario fijo de hoy.",
+          "por_que": "Banco asume temporada 1 y datos e ingeniero 0 sin comprobarlo; si SEASON_CALENDAR y calendarForSeason(primera) no coinciden, el freeze del día 1 congela otra edición que la que los tests sellan."
+        },
+        {
+          "de": "geografia",
+          "idea": "Huella FNV sellada antes de tocar calendar.ts de las 177 etapas con rasgos y las 3 grandes vueltas (y, como arquitectura golden.test, de las 1.418 en el paso sin cambio de conducta).",
+          "por_que": "Es la prueba de que lo real no se toca y de que el paso 1 de ingeniero cambia lo que dice cambiar; ingeniero solo sella 300 semillas por generador."
+        },
+        {
+          "de": "geografia",
+          "idea": "Pancarta cima solo en puerto ≥ CLIMB_MIN_KM, corregida para que el muro de meta y el muro que decide finalKind conserven pancarta (o que lastClimbKm mire también el último puerto corto).",
+          "por_que": "auto() pone una cima por puerto y con 10-20 muros son 10-20 pancartas que cuestan depósito y abren alivio (mapa 03 §10.8) y 10-20 cat4; con la regla de geografia tal cual, finalKindOf de un muro de meta cae a un puerto lejano."
+        }
+      ],
+      "riesgos": [
+        "La temporada frente a los lectores de SEASON_CALENDAR que no pasan por race_routes: calendarRun.ts l. 1614 pasa kind del código con el perfil congelado, callups.ts l. 98 y calendarRun.ts l. 516 leen kind del código, raceContext.ts terrenoRestante lee stage.profile del código, y sim/world.ts calcula CALENDARIO al cargar; las cinco dicen que freezeRaceRoute es la única llamada de db que cambia. Hay que guardar kind/timeTrial en race_routes, leer el congelado en raceContext, y sellar que la variación de edición nunca cambia kind, timeTrial ni el número de etapas.",
+        "Dos reglas de etiqueta: stageKindOf decide Summit finish por último segmento puerto y stageHistory.ts por run-in ≤ 5 km sobre cualquier puerto; una reina cima_cerca cuenta en el 49 aunque kind se lea del perfil, así que los objetivos «≤ 10» o «debería bajar» no son fiables hasta unificar la regla.",
+        "Acoplamiento inverso generador → motor: los vetos que llaman a finishType(deriveFinishTerrain(sampleProfile)) por intento (arquitectura V7, ingeniero cuando hay finish) o a costBase (datos V11) hacen que una recalibración de STAGE.finish* o de physics.ts redibuje perfiles generados sin tocar routes/; falta la regla de que los vetos de generación solo lean routes/ y geometría del esqueleto y que finishType y demanda se midan en el censo.",
+        "Las pancartas cima de auto() sobre 10-20 muros por clásica y los 10-20 segmentos puerto cortos que suman kmSubida, ponen breakAppeal en 0,4 y gcTerrain en verdadero en una clásica flamenca; nadie mide si eso es lo que se quiere.",
+        "El coste de remedir no está presupuestado en reloj: test:bancos corre en cada push a packages/engine (calendarQueens hasta 370 s, smallTours 3.900 s, grandTour 5.400 s de reloj), las remediciones con 12 semillas son horas fuera de CI, ingeniero las multiplica por tres, y la muestra sistemática de calendarQueens cambia de composición con cualquier generador, así que el pareado etapa a etapa solo es posible sobre listas cerradas por forma.",
+        "Arranque del módulo y temporadas en memoria: medido 0,6 s hoy, ~2 s por temporada con verificación por intento y perfiles densos, multiplicado por 18 cargas de test y por las 3-4 temporadas que algunos tests generan; ninguna propone calendario perezoso por carrera ni caché por temporada.",
+        "Las tablas geográficas son juicio sin validación externa posible (PCS vetado); los tests de sanidad comprueban que el mundo actual no contradice la tabla, no que la tabla sea verdad, y no hay mecanismo de corrección con dato más allá de que el dueño la lea.",
+        "Congelar como literales las tres reinas generadas de REAL_QUEENS convierte ese banco en museo del generador viejo; cerrar por brief (banco) pierde la comparabilidad hacia atrás; hay que elegir y escribirlo en targets.ts."
+      ]
     },
     {
-     "propuesta": "datos",
-     "cobertura": 8,
-     "coherencia": 7.5,
-     "ejecutabilidad": 7,
-     "realismo": 8,
-     "justificacion": "Aporta cuatro cosas que la síntesis necesita: `RACE_REGION` curada para las 310 carreras de equipos y por ETAPA en las 60 ediciones con test que prohíbe caer al país (§5.2, §7.5), la lección de reina-150 como veto por etapa (V2: un puerto ≥ 6 km a más de 30 km de meta), la identidad con rotación DECLARADA (`EDITION.level` 2, `alternates` por `season % n`, §6.2) y el anti-clon calibrado sobre pares reales de la misma familia (§10.2). Rompe explícitamente el 210 fijo con `kmByClass` (§7.4). Pero su idea central cubre menos donde el dueño mira: el corpus son 177 etapas en 15 países y «en 41 países no existe ni una etapa real» (§1.3); las continentales, que son la queja, están en 56 países casi enteramente generados, así que ahí el extractor cae al manual del mapa 07 como las otras cuatro, y donde hay corpus (WT) ya hay relieve real. La propia propuesta lo admite (§13.1: «un jugador colombiano verá una reina_valle de familia, no de los Andes»). Coherencia 7,5: `TourTemplate` sigue indexada por `MixTerrain` (§7.2), o sea tres modelos de composición; `COUNTRY_REGION` con FR → macizo_central_jura solo se sostiene porque `RACE_REGION` es obligatoria; y hay fricción medida entre corpus y clasificador (§1.5: 11 de 54 reinas reales son media para stageKindOf) que se resuelve empujando el perfil con garantizaClase. Ejecutabilidad 7: extractor determinista y regenerable, pero la curación de 310 carreras más 60 ediciones por etapa es «una o dos tardes» que el test no valida."
-    },
-    {
-     "propuesta": "ingeniero",
-     "cobertura": 7,
-     "coherencia": 9,
-     "ejecutabilidad": 9,
-     "realismo": 7,
-     "justificacion": "La más segura de implementar y la que mejor atribuye causa: paso 0 de línea base con `it.todo` en lo que hoy falla, paso 1 con builders legado que reproducen las formas de hoy para probar «igual dentro del ruido», y luego familias, geografía, composición e identidad con versión y remedición propias (§12). `frozenSkeletons` (§11.2) es la mejor respuesta a las listas cerradas por nombre: esqueleto literal renderizado por un renderizador puro, cerrado por forma y sin museo del generador viejo. `climb` con `gMax` y `DEFAULT_ROUTE_CONTEXT` son detalles útiles. Pero desde la cobertura es la que menos responde al dueño: conserva a propósito `mixWeights.mountain[reina] = 0,40` (§7.3), el 60/40 y `queenFinalMix` (§8), `mixRoles` entero con dos reglas para n ≥ 6, y NO toca el 210 km fijo de las 142 carreras de un día (§7.1 solo escala mixKm). La geografía es la más gruesa: 21 claves, FR cae por defecto en atlantico_colinas y ES en meseta (§5.2), override estimado en 40-60 filas de 167, y ella misma marca como riesgo «alta» el fallback de montana_un_dia en ardenas (§13.2). La lección de reina-150 queda en plausibilidad sin veto (§9.2) y las etapas de edición siguen pasando por oneDaySpec (§10.1). Seis saltos de ENGINE_VERSION y tres remediciones completas de bancos (relojes de 3.600-5.400 s, mapa 06 §3.2) triplican el coste de las otras cuatro; la atribución lo justifica, pero es el precio."
-    },
-    {
-     "propuesta": "banco",
-     "cobertura": 8.5,
-     "coherencia": 8,
-     "ejecutabilidad": 8,
-     "realismo": 8,
-     "justificacion": "La más fiel al argumento por el que E1 va primero (los perfiles son la entrada de la calibración) y con el mejor test de las cinco: «reina-150 expresada como brief NO pasa: es la prueba de que el veto encarna la lección de E3» (paso 2), con V8 por etapa (`queenClimbOutsideLast30Min` 0,25), `queenDplusIncludesFill: true` que cierra la incoherencia objetivo/medida del mapa 01 §2.5, `reina-175-4800` canónica sin banda y el renombrado de mountain.* a forma.* (§11.4). El censo geométrico estratificado con `finishType` calculado como lo lee el motor (§11.1), las bandas de realismo con la columna «hoy (medido)» (§11.2), el pre-registro de la dirección de cada banda de simulación y las cuatro condiciones de «mejor» (§11.5) son el protocolo más completo contra el patrón de seis repeticiones del mapa 04 §3.3. Es la que más claramente arregla el defecto comprobado en código de Colombia e5 («arquetipo DE ETAPA, no de un día», §10.1) y recorre el caso Jura (§9.3). Huecos: la de menos arquitecturas de un día (8, sin sterrato ni circuito urbano propios) y geografía por carrera, no por etapa; error de hecho en §3.2 y §6.2 («SEASON_CALENDAR pasa a ser calendarFor(1)», «season: 1») cuando calendarRun.ts l. 135 hace que un mundo empiece en la temporada 0; y tres excepciones al clasificador (§9.4) honestas pero que dejan «Hills» en un Sanremo generado hasta que el dueño decida etiqueta."
+      "foco": "Ejecutabilidad y realismo: ¿podría otro modelo programar la propuesta sin preguntar (pasos con tests primero, constantes con intención, engine_version, qué se re-sella y con qué causa) y lo que sale se parece a las carreras reales de su sitio y su clase, medido con el mapa 07 como vara? Citas de las propuestas comprobadas contra el código: finalKind.ts 85 l. (CLIMB_MIN_KM l. 33, finalKindOf l. 78), finish.ts l. 142 finishType(t, groupSize) y l. 182-188 regla muro, constants.ts l. 4462-4463 muroMaxKm/muroMinGradient, sample.ts l. 101 rompepiernas, rng.ts l. 27-28 subflujos, calendar.ts l. 216/400/410/457/546 firmas, raceRoutes.ts l. 48-51, calendarRun.ts l. 783 raceKey por temporada.",
+      "ganadora": "arquitectura",
+      "puntuaciones": [
+        {
+          "propuesta": "arquitectura",
+          "cobertura": 9,
+          "coherencia": 8,
+          "ejecutabilidad": 9,
+          "realismo": 9,
+          "justificacion": "La más completa como especificación de dato: 32 esqueletos en tabla con motivo×n@ventana, meta, D+ y km (§3.3); 29 zonas con los diez campos rellenos (§5.1); ~40 constantes ARCH con valor, intención y apoyo (§8); 15 vetos como predicados con el caso que impiden y un test por veto (§9); subflujos nominales por decisión con la regla de cuál lleva season (§4); 11 pasos con tests primero, golden.test.ts de las 1.418 etapas antes de tocar nada y UN solo salto de ENGINE_VERSION en el paso 8 (§12). Realismo: es la que más se pega al mapa 07 en lo que decidió el caso v40 (ARCH.meta.unDiaUltimaCota 1,3-4,2 km a 3-17 km; V5 muere arriba solo con muro ≤ 2,1 o ud_montana_alto al 0,02 solo en .1), alto_largo 9-22 al 6-9, cadena/racimo/circuito como motivos compuestos (circuito con la misma semilla de detalle por vuelta), muro_meta pensado contra finishClimbGapBlocks, tendida para altiplano, gran vuelta con descansos, reina en [15,20] y bloques (§7.2). Defectos: la temporada 0 «no tira ningún dado» y toma la mediana de cardinalidad (§4.3), justo el calendario que ven tests y bancos, así que la banda de entropía se mediría sobre el calendario menos variado; hueco 8,0-9,0 km entre cota y puerto donde no cabe Ghisallo (8,6); ningún MetaKind entre 1,0 y 3,0 km en meta (San Luca 2,1 no existe); pesos base del catálogo y tabla completa de pesoPorClase sin escribir; normalizeEnlaces es mecanismo nuevo donde normalize ya funcionaba. La lección de reina-150 entra como banda (p10 ≥ 5 % de subida fuera de 30 km) y por construcción, no como veto duro."
+        },
+        {
+          "propuesta": "geografia",
+          "cobertura": 9,
+          "coherencia": 8,
+          "ejecutabilidad": 8,
+          "realismo": 9,
+          "justificacion": "Catálogo de 37 paisajes entero fila a fila con null donde algo no existe (§5.1), 56 territorios con ruta ordenada y cordillera (§5.2), 24 arquitecturas con plantillas medidas desde meta (§4.6), 14 vetos con cómo se miden sobre Segment[] (§9), constantes con intención (§8), 11 pasos con un solo salto en el 8 y un paso 7 con huella FNV de los 177 perfiles reales antes de cablear que ninguna otra tiene. Realismo: el territorio como ventana contigua para una vuelta produce «Bélgica sin reina» (Benelux Tour), bloques por quedarse en el mismo paisaje, transición 40/60 (la Vuelta entrando en Asturias), Huy ×3 en punto_a_punto_muro, montana_un_dia 1,3-4,2 km a 3-17 con remate p 0,4, pólder a 0,4-0,9 con el dato de Brugge-De Panne (~300 m). Lo que falta para no preguntar: la matriz PESOS_ARQ[relieve][papel][clase] solo tiene una celda de ejemplo y es la que decide la variedad; el intercambio de reina hacia la cordillera interactúa con las garantías de mixRoles (l. 486-517) sin prueba escrita; BASE_SEASON se pregunta al dueño cuando es dato del código (calendarRun.ts l. 783); bug de dato: AR/CL declaran cordillera desierto_andino, que tiene puerto null y relieve llano, y admite() exige puerto y relieve montana/alta para reina_* (el test (d) del paso 1 lo cazaría). V1 corta a 6 km (más laxo que el 4,2 medido, la plantilla lo compensa); ondulado hasta 3,0 en cantabrico sin tope de pendiente puede tipar puerto por accidente; cambia auto para marcar cima solo ≥ 1,5 km (decisión de puntos GPM) y «reina solo en cordillera» mueve el reparto de kind y world.test.ts, lo anota."
+        },
+        {
+          "propuesta": "datos",
+          "cobertura": 8,
+          "coherencia": 8,
+          "ejecutabilidad": 7,
+          "realismo": 8,
+          "justificacion": "Tiene lo que ninguna otra: una medida real ya hecha (§1.4, p10/p50/p90 de 177 etapas: puerto final de reina 3,3/9,7/17,1 km; última cota de un día 0,5/1,0/2,1 km a 0/7,8/20,8; sectores 5-31), un extractor con reglas de asignación de familia escritas una a una (§11.1), anti-clon calibrado sobre pares reales de la misma familia, presence por hueco y alternates por año, y la única medida de que stageKindOf clasifica mal 27 de 113 reinas y medias reales (D2). Tipos completos (§3.2), 12 vetos con caso (§9), 20 constantes con apoyo (§8), 12 pasos con un solo salto en el 8. Pero el contenido del generador es emergente: solo 8 familias tienen ≥ 3 fuentes y el resto es manual «con la cita del mapa 07» sin dar las bandas; TOUR_TEMPLATES «extraídas de las 54 ediciones» por nStages × terreno solo tienen una celda escrita y muchas tendrán < 3 fuentes; RACE_REGION son 310 entradas más regiones por etapa en 60 ediciones con test de existencia y no de corrección; cloneMaxCorrelation 0,85 es provisional; classMarginKm 0,3 sobre 8,5 es holgura escasa contra el mismo mecanismo que ingeniero cifra en 0,7. Realismo: bandas medidas y fidelidad rasgo a rasgo contra lo real, pero V1 corta el final en alto de un día en 2,5 km y el mapa 07 §1.2 lista Superga 4,9 ×2 como clásica normal; el corpus es WT europeo (41 países sin ninguna etapa real) y una .2 colombiana será «una reina_valle de familia, no de los Andes» (§13.1); COUNTRY_REGION FR → macizo_central_jura y ES → meseta son defaults gruesos para los nacionales."
+        },
+        {
+          "propuesta": "ingeniero",
+          "cobertura": 7,
+          "coherencia": 9,
+          "ejecutabilidad": 7,
+          "realismo": 7,
+          "justificacion": "La arquitectura de código más sencilla y la más coherente con lo que hay: Skeleton serializable entre «qué quiero» y «qué segmentos salen», renderSkeleton en 20 líneas de pseudocódigo (§4.4), verify en seis comprobaciones ordenadas con finishType(…, 30) (§4.5), tabla RouteGeo entera para 21 claves (§5.2), constantes con valor y apoyo (§8), DEFAULT_ROUTE_CONTEXT para que los tests compilen, kind leído del perfil (R28.1b) con el objetivo de que el 49 de stageHistory baje, finalKindMarginKm 0,7 bien justificado, climb con gMax, bajada por desnivel, frozenSkeletons literales. Pero de 21 familias solo hay tres builders escritos (§4.3) y «los demás siguen el mismo patrón y se listan con sus rangos en §8», donde solo hay rangos de motivo: un modelo tendría que inventar 18 builders, incluidos todos los de vuelta. Coste mayor de las cinco: seis subidas de ENGINE_VERSION (70-74 más una condicional) y tres remediciones de bancos, defendidas por atribución causa a causa pero que doblan el paso más caro. Citas que no son del código: «finalKindOf (finalKind.ts l. 176-183)» y «CLIMB_MIN_KM (finalKind.ts l. 131)» en un fichero de 85 líneas (l. 78 y l. 33 comprobadas); DK aparece en atlantico_colinas y en nordico a la vez. Realismo: montana_un_dia corregido, muros 8-20 con adoquín, adoquín 8-30 por 200 km, circuito 10-30 × 6-18; pero conserva el 60/40 de desnivel («calendarQueens.test.ts exige la cola baja») y mixWeights.mountain[reina] 0,40 («no se toca»), que mapa 06 §6.3 y mapa 07 §2.1 señalan como lo que hay que decidir en el diseño, y la subida fuera de los últimos 30 km queda en «se mide y no se afirma» (§9.2). Geo por carrera, no por etapa; sin cronoescalada; circuitos solo colocación."
+        },
+        {
+          "propuesta": "banco",
+          "cobertura": 9,
+          "coherencia": 8,
+          "ejecutabilidad": 8,
+          "realismo": 8,
+          "justificacion": "Punto de entrada escrito como código (stageFor, §4) con lista cerrada de subflujos; 18 arquetipos en tabla con dificultades, dónde, final y kindEsperado (§4.2); 21 firmas con todos los campos y los pesos de arquetipo de un día por firma (§5.2); TourCharacter con seis pesos por carácter y kmByClass por clase y papel (§7); 34 constantes GEN con intención (§8); 18 vetos en dos tablas con fuente (§9); routeCensus con finishType(…, 50) por etapa y 15 bandas de realismo con «hoy (medido)» al lado (§11.2); 10 pasos, un solo salto en el 7, pasos 1-6 sin llamadores. Es la que mejor responde a «mejor y no solo distinto»: línea base, pre-registro de la dirección de cada banda, pareado con engineVersion fijo, cuatro condiciones simultáneas, doble lectura por nombre y por forma (§11.5); V8 (≥ 25 % de la subida fuera de los últimos 30 km) como veto duro y el test «reina-150 expresada como brief no pasa»; calendarQueens estratificada por finalKind × desnivel; reina-175-4800 canónica sin banda. Lo que un modelo tendría que inventar: los pesos de arquetipo de etapa por firma («se derivan con la misma tabla» sin la tabla), cómo buildBrief traduce «70 % en el último 45 %» a pesos de split, y TourTemplate como dato (§7.2 es una lista de reglas); SEASON_CALENDAR = calendarFor(1) supone una numeración de temporada no comprobada; valleyMargin 0,3 es menos holgura de la que mapa 01 §2.5 sugiere. Realismo: montana_un_dia 1,3-8 km a 3-25 (25 laxo frente al 0-17 WT), muro_final 0,5-2,2 con finish.ts l. 177-180 como apoyo, adoquín 12-30 sectores con primer sector tras el 35 %, muros 10-20 con 70 % en el último 45 %, V15 puerto final > 17 km con g > 7 vetado, queenDplusByFormat 3.200-5.200 gran vuelta; sprint_con_cota clasificado media es honesto y feo; V1 a 6 km; las vueltas de smallTours cambian de forma sin congelar (pierden la comparabilidad que realQueens.ts l. 42-44 promete)."
+        }
+      ],
+      "injertos": [
+        {
+          "de": "banco",
+          "idea": "V8 como veto duro por etapa: una reina tiene ≥ GEN.queenClimbOutsideLast30Min (0,25) de su subida a más de 30 km de meta; y el test del paso de vetos «reina-150 expresada como brief NO pasa».",
+          "por_que": "Es la lección de E3 convertida en regla y no en métrica; arquitectura solo la vigila con una banda p10 ≥ 5 % sobre el calendario (§11.3). climbRaceKmToGo = 30 es donde el motor pasa de tempo a carrera (mapa 03 §4.2), así que la variable es la correcta."
+        },
+        {
+          "de": "banco",
+          "idea": "sim/routeCensus.ts con finishType(deriveFinishTerrain(sampleProfile(profile)), 50) por etapa en test:rapido; línea base anotada en balance.md ANTES del primer cambio; pre-registro de la dirección de cada banda de simulación; las cuatro condiciones de «mejor» y la doble lectura por nombre y por forma (§11.5).",
+          "por_que": "Es lo único que impide repetir v60 §1b (bandas verdes sin remedición anotada, mapa 04 §3.4). Arquitectura tiene métricas pero no el protocolo de antes/después ni el censo de finishType que hoy nadie sabe sin correr balance v60 §12 a mano."
+        },
+        {
+          "de": "banco",
+          "idea": "SEASON_CALENDAR = calendarFor(BASE_SEASON) con la temporada base tirando los mismos dados que cualquier otra; calendarQueens estratificada por finalKind × cubeta de desnivel; reina-175-4800 (plantilla 3 del mapa 07 §5) como escenario canónico impreso sin banda; mountain.* renombrada a control de forma.",
+          "por_que": "Corrige el defecto de arquitectura §4.3 (temporada 0 con cardinalidades en la mediana, justo el calendario que sellan tests y bancos) y da al banco una reina canónica que sí es reina."
+        },
+        {
+          "de": "datos",
+          "idea": "muro_meta ampliado a 0,5-2,2 km al 8-16 %, declarando en la tabla de MetaKind que por encima de muroMaxKm 1,0 finishType dirá puncheur (finish.ts l. 177-180 lo dice de Huy).",
+          "por_que": "Cierra el hueco 1,0-3,0 km en meta de arquitectura §3.2: sin él no existen Emilia (San Luca 2,1) ni el Muro de Huy tal como el motor lo modela (1,4 km). Banco lo tiene igual (muro_final 0,5-2,2)."
+        },
+        {
+          "de": "geografia",
+          "idea": "Territorio como ruta ordenada de paisajes con cordillera, e itinerario de vuelta como ventana contigua (§7.1): la reina solo en etapa con meta en cordillera o relieve montana/alta, degradada a media_alto y anotada si el país no tiene; bloques por quedarse en el mismo paisaje (p 0,6 de avance); etapa de transición 40/60 (§7.3).",
+          "por_que": "Arquitectura tiene una zona por carrera y bloques por reparación; esto produce «Bélgica sin reina» y «la Vuelta entra en Asturias» por construcción. Es la única geografía de las cinco que actúa sobre la composición y no solo sobre el dibujo."
+        },
+        {
+          "de": "geografia",
+          "idea": "Test de huella FNV de los 177 perfiles reales (y de las tres grandes vueltas enteras) antes de cablear, comprobada después (§12 paso 7); fallback contado y sellado a 0 en carreras de equipos; lista explícita de países en generico.",
+          "por_que": "El golden de las 1.418 de arquitectura se borra en el paso 8; esta huella sobrevive al cambio y garantiza G5 («lo real manda») por test."
+        },
+        {
+          "de": "geografia",
+          "idea": "null como «aquí no existe» en la tabla geográfica, con admite() y degradar() siempre hacia abajo (montana → media → ondulado → llana); ondulación del pólder a 0,4-0,9 con el dato de Brugge-De Panne (~300 m); tope de pendiente del relleno (fillMaxGradient 2,4 de datos) para que nunca tipe puerto por accidente.",
+          "por_que": "Arquitectura degrada el hueco (puerto → cota o muro) sin regla de dirección escrita y su amplitud 0,55 para flandes sigue siendo la escala de RELIEF, no una pendiente medida; hoy una llana acumula 661-1.413 m solo de relleno (mapa 01 §1)."
+        },
+        {
+          "de": "datos",
+          "idea": "El extractor (scripts/extraer-arquetipos.mjs) y la tabla p10/p50/p90 real (§1.4) como referencia de las bandas de fidelidad por encima del mapa 07 donde el corpus tenga ≥ 3 fuentes; anti-clon con umbral calibrado sobre pares reales (Ronde/E3, Amstel/Brabant) en vez del 0,9 a ojo de arquitectura V12.",
+          "por_que": "Mapa 07 se declara «orientativo, de memoria»; el corpus es dato con fuente. Es lo único que convierte «se parece a lo real» en una medida y no en un juicio."
+        },
+        {
+          "de": "datos",
+          "idea": "RACE_REGION curada por carrera desde las ciudades de raceRoutes.ts (310 entradas) en vez de sortear la zona de FR/IT/ES con geo|raceId (arquitectura §3.5 y §13.4); source 'mixto' como nombre del 🟡 del inventario.",
+          "por_que": "Sortear la zona de una .2 francesa entre Bretaña y los Alpes es inventar geografía; el dato de ciudades ya existe y la tarde de trabajo es de contenido, no de diseño."
+        },
+        {
+          "de": "datos",
+          "idea": "EDITION.level 2: rotación declarada por arquetipo (alternates elegida por season % n) para Como/Bérgamo, Angliru/Lagos; y D2 (recalibrar stageKindOf, que clasifica mal 27 de 113 reinas y medias reales) como decisión abierta con la cifra medida.",
+          "por_que": "Arquitectura varía con jitter acotado; la rotación declarada es la variación «deliberada y no aleatoria» que pide el encargo. Y la cifra de D2 es la única medida de que el clasificador no coincide con la carretera."
+        },
+        {
+          "de": "ingeniero",
+          "idea": "Paso previo «esqueleto con la arquitectura de hoy»: ocho builders legacy que reproducen número y orden de motivos de cada xxxSegments para 300 semillas × 5 km, y tabla pareada «igual dentro del ruido».",
+          "por_que": "Separa fontanería de forma: si la tabla pareada se mueve en ese paso, el bug es del renderizador y no del diseño. El golden byte a byte de arquitectura no permite ni cambiar subflujos, así que no cubre este caso."
+        },
+        {
+          "de": "ingeniero",
+          "idea": "climb(rand, len, avg, { gMax }) con muroGMax 16; bajada canónica clamp(len·g·10/55, 2, 10); verify.finalKindMarginKm 0,7 con su razón (normalize estira hasta un 2 % y auto redondea el km de la pancarta); fallbackMaxShare 0,005; DEFAULT_ROUTE_CONTEXT para que los tests compilen hasta el cableado; frozenSkeletons como esqueleto literal serializable en vez de perfil literal.",
+          "por_que": "Detalles de ejecución que ahorran preguntas: la holgura 0,7 está justificada contra los 4 de 6.000 del mapa 01 §2.5 (0,3 de datos y 0,5 de arquitectura son menos); el esqueleto congelado es legible y se re-renderiza."
+        },
+        {
+          "de": "ingeniero",
+          "idea": "kind = stageKindOf(profile, timeTrial).kind para toda etapa generada (R28.1b) con el objetivo escrito de que el 49 de stageHistory.test.ts baje y lo que quede sean etapas reales.",
+          "por_que": "Arquitectura lo garantiza vía V6 pero no escribe la consecuencia sobre el 49 sellado; conviene sellarla como objetivo y no solo re-sellar la cifra que salga."
+        },
+        {
+          "de": "banco",
+          "idea": "kmByClass como tabla por clase Y papel (banco §7.3, geografía §8) en lugar del factor único kmFactorPorClase de arquitectura §7.4, con stageMaxKm y la nota «cifras UCI a confirmar» en el comentario de la constante.",
+          "por_que": "Un factor 0,75 sobre el rango WT de un día [200, 260] da [150, 195] para una .2, por encima de los 180 del mapa 07 §4.1; la tabla por clase y papel no tiene ese problema y rompe el 210 fijo de 142 carreras."
+        }
+      ],
+      "riesgos": [
+        "La tabla geográfica es juicio sin fuente y nadie la valida: las cinco la sacan del mapa 07 (orientativo, de memoria), PCS y Overpass están vetados, y los tests solo comprueban existencia y consistencia interna, no que Ruanda sea generico_montana o que atlantico_colinas valga para Dinamarca; un país mal puesto es el defecto de hoy con otro disfraz.",
+        "Viento y altitud no llegan al motor y todas fingen que sí en el relato: expuesto, llana_costa, viento 0,9 en Flandes; el abanico sigue saliendo por rng('viento') en cualquier km de llano (mapa 03 §5.1) y Colombia corre a nivel del mar; ninguna dice qué cuenta la ficha para no prometer un abanico que el motor no coloca.",
+        "Nadie ha medido el coste de arranque ni el de un calendario por temporada en un proceso largo: hasta 11.000 sampleProfile de ~2.000 bloques al cargar el módulo con vetos y reintentos, estimado «por debajo de un segundo» sin medir; calendarForSeason memoizada en apps/api acumula una temporada por año de mundo.",
+        "Los circuitos son colocación repetida y el motor no sabe de vueltas: kmSubida cuenta por tipo, un circuito de 12 vueltas con un muro de 1 km suma 12 km de subida y sube breakAppeal y gcTerrain; los 532 nacionales pasan a circuito de golpe y 5 de las 8 más duras del banco de saturación son hoy nc-*-road; nadie mide antes cuánto selecciona una cota subida 14 veces.",
+        "Las 226 etapas de edición sin rasgos reciben un paisaje arbitrario: no hay tabla ciudad → paisaje en ninguna propuesta (zona de la carrera, ventana del territorio o RACE_REGION por etapa a mano); Colombia e5 puede caer en llanura_tropical, y la doctrina de fuentes-recorridos.md (nada se inventa) choca con inventarle un paisaje a una etapa con nombre real.",
+        "stageKindOf sigue calibrado contra el generador viejo y todas lo conservan: datos midió que llama media a 11 de 54 reinas reales y reina a 16 de 59 medias; lo generado cuadrará con su etiqueta por construcción y lo real no, así que la ficha enseñará dos criterios según el origen; solo datos lo deja como decisión (D2).",
+        "El muro en meta exige precisión de bloque y nadie lo ha probado contra el motor: finishType lee bloques de 100 m con finishClimbGapBlocks 5 y finishSummitKm 0,6; un muro_meta de 0,8 km puede unirse a un repecho anterior o perder la última rampa por Math.round(km / dx); «300 de 300 tipan muro» es hipótesis hasta que corra.",
+        "El coste de remedición de los bancos no tiene dueño ni presupuesto: calendarQueens 3.600 s, smallTours 3.900 s, saturación 1.800 s, realQueens 900 s, con 12 semillas fuera de CI para recentrar; ninguna dice cuántas horas de máquina son ni quién decide la banda si el dueño no contesta; ingeniero lo triplica.",
+        "world.test.ts y RACE_DAY_TSS leen kind por etapa y el reparto de kind cambia con cualquiera de las cinco (Bélgica sin reina, Sanremo media, medias flamencas a clasica, nacionales por circuito); solo geografía y banco lo listan y ninguna mide el efecto en las bandas de población antes de mover."
+      ]
     }
-   ],
-   "injertos": [
-    {
-     "de": "geografia",
-     "idea": "PaisajeSpec con `null` = «aquí no existe» para cota, muro, puerto, puertoLargo, adoquín y sterrato (§3.1), y Territorio con `cordillera: Paisaje | null` (§3.2).",
-     "por_que": "Es la forma más legible y testeable del hallazgo 3: «Bélgica no tiene reina» deja de ser un peso 0 en una tabla y pasa a ser una propiedad del sitio que el dueño puede leer en una fila."
-    },
-    {
-     "de": "geografia",
-     "idea": "El itinerario de una vuelta como ventana contigua del territorio, con la reina solo en la etapa cuya meta es la cordillera, y la etapa de transición entre dos paisajes (§7.1, §7.3).",
-     "por_que": "Única propuesta en que una vuelta generada recorre el país; los bloques de montaña salen de la geografía y no de una regla de reparación posterior."
-    },
-    {
-     "de": "geografia",
-     "idea": "Huella FNV de las 177 etapas reales y de las 3 grandes vueltas sellada ANTES de tocar calendar.ts y comprobada después (§10.3, paso 7).",
-     "por_que": "Es «lo real manda» hecho test; cuesta un día y protege el 12,5 % del calendario que ya está bien."
-    },
-    {
-     "de": "geografia",
-     "idea": "Tabla pareada viejo/nuevo en `pnpm sim` como CONDICIÓN para borrar el generador viejo, copiado a sim/legacy/ solo durante la medida (§11.4).",
-     "por_que": "Sin esa condición se repite v60 §1b: bandas verdes sin remedición anotada (mapa 04 §3.4)."
-    },
-    {
-     "de": "banco",
-     "idea": "V8 por etapa: fracción mínima de subida a más de 30 km de meta en toda reina (`queenClimbOutsideLast30Min` 0,25) y el test «reina-150 como brief no pasa» (§9.1, paso 2).",
-     "por_que": "Es la lección de E3 escrita como regla del generador; arquitectura y geografia la tienen solo como banda de calendario."
-    },
-    {
-     "de": "banco",
-     "idea": "`routeCensus` estratificado por clase × formato × firma × arquetipo × finalKind, con `finishType` calculado como lo lee el motor, en test:rapido; bandas de realismo con la columna «hoy (medido)»; pre-registro de la dirección de cada banda de simulación y las cuatro condiciones de «mejor» (§11.1-11.5).",
-     "por_que": "Es el protocolo que separa motor de generador, que hoy el banco no puede separar; ninguna otra propuesta escribe la dirección esperada ANTES de correr."
-    },
-    {
-     "de": "banco",
-     "idea": "`calendarQueens` con muestra estratificada por finalKind × desnivel y PASO ajustado; `reina-175-4800` canónica impresa sin banda; `mountain.*` renombrada `forma.*` (§11.4).",
-     "por_que": "Cierra los puntos 1, 2 y 4 del mapa 04 §4.3 en el mismo cambio y evita que nadie vuelva a leer reina-150 como «la montaña»."
-    },
-    {
-     "de": "banco",
-     "idea": "`GEN.queenDplusIncludesFill: true` (§8) y la guarda que iguala `segment.km` a la suma de tramos (§4.5).",
-     "por_que": "El objetivo de desnivel se persigue sobre lo mismo que `calendarQueens::desnivelDe` mide (mapa 01 §2.5), y el borde garantizaPuerto/climbSize del mapa 01 §5.1 deja de existir."
-    },
-    {
-     "de": "banco",
-     "idea": "Las etapas de edición sin rasgos reciben arquetipos DE ETAPA (`etapa_*`), nunca de un día (§10.1).",
-     "por_que": "Comprobado en calendar.ts l. 216-227 y 143-152: hoy stagesFromEdition → oneDaySpec → mountainOneDay; Colombia e5 de REAL_QUEENS es una clásica de montaña disfrazada de reina de vuelta."
-    },
-    {
-     "de": "datos",
-     "idea": "`RACE_REGION` curada a mano para las 310 carreras de equipos desde las ciudades de raceRoutes.ts, con región por ETAPA en las 60 ediciones, y test que prohíbe caer al país (§5.2, §7.5).",
-     "por_que": "Sustituye el sorteo de zona de arquitectura §3.5 y geografia §4.1, que es un error visible en 125 filas de FR/IT/ES; y es lo único que pone el Tour e6 en los Pirineos y no en «Francia»."
-    },
-    {
-     "de": "datos",
-     "idea": "`EDITION.level` 2: rotación DECLARADA por arquetipo (`alternates` elegidas por `season % n`) (§6.2).",
-     "por_que": "Es la variación «deliberada y no aleatoria» más literal del encargo (Como/Bérgamo, Angliru/Lagos) y cabe encima de ARCH.edicion.* sin tocar nada."
-    },
-    {
-     "de": "datos",
-     "idea": "Anti-clon calibrado sobre pares REALES de la misma familia (Ronde/E3, Amstel/Brabant, Lombardía/Lieja), con el tope en el p90 de esos pares (§10.2).",
-     "por_que": "El umbral «< 0,8» de arquitectura V12 es un número sin dueño; el de datos tiene dueño y método."
-    },
-    {
-     "de": "datos",
-     "idea": "El extractor `scripts/extraer-arquetipos.mjs` como INSTRUMENTO DE MEDIDA de fidelidad (bandas p5-p95 por familia contra el corpus real, §11.1 y §11.4), no como fuente de los esqueletos.",
-     "por_que": "Donde hay corpus (reinas, medias, clásicas del norte) da bandas con dato en vez de con memoria; donde no lo hay, no manda."
-    },
-    {
-     "de": "datos",
-     "idea": "Tabla `kmByClass` con la columna «un día» y la frase «desaparece el 210 fijo de las 142 carreras» desde la temporada 0 (§7.4).",
-     "por_que": "Arquitectura lo deja para la edición e ingeniero no lo toca; el dueño lo ve en la ficha de cada .1, y es un «siempre son iguales» tan visible como el perfil."
-    },
-    {
-     "de": "ingeniero",
-     "idea": "`frozenSkeletons`: las tres reinas generadas de REAL_QUEENS congeladas como esqueleto literal y renderizadas por el renderizador puro (§11.2).",
-     "por_que": "Mejor que congelar Segment[]: la lista cerrada lo es por forma, sigue usando el código nuevo y el `why` vuelve a ser verdad."
-    },
-    {
-     "de": "ingeniero",
-     "idea": "Paso 0 de línea base con todas las métricas de geometría escritas y las que hoy fallan en `it.todo` (§12 paso 0), más los builders legado que reproducen las formas de hoy con tabla pareada «igual dentro del ruido» (§12 paso 1).",
-     "por_que": "Deja escrito qué está rojo HOY antes de cambiar nada y separa fontanería de forma, aunque la síntesis mantenga un solo salto de versión."
-    },
-    {
-     "de": "ingeniero",
-     "idea": "`climb(rand, len, avg, { gMax })` para muros (§4.4) y `DEFAULT_ROUTE_CONTEXT` para que los tests existentes compilen entre pasos (§5.1).",
-     "por_que": "Ahorra reintentos por rampas al 14,8 % (mapa 01 §2.4) y una tanda de tests rotos por firma."
-    }
-   ],
-   "riesgos": [
-    "La tabla geográfica es juicio y no dato, y no hay forma de validarla: las cinco la sacan del mapa 07 §3 (orientativo, de memoria), PCS está vetado y 250 carreras de raceRoutes.ts tienen ciudades sin fuente; solo datos cura carrera a carrera y su test comprueba que exista, no que sea correcta.",
-    "Ninguna propone un instrumento para que el dueño VEA el resultado antes de aceptarlo (una galería de altimetrías por zona × esqueleto con renderAltimetrySvg): sin eso, el juicio del dueño sobre 30-40 zonas y 20-30 esqueletos llegará carrera a carrera en producción.",
-    "Viento, altitud, costa y meseta no llegan al motor: las cinco cubren relieve y firme y sacrifican el resto porque el viento es un número por etapa y Segment no lleva altitud; hay que decirle al dueño que la mitad de su lista geográfica es de motor y no de generador.",
-    "La cola baja de reinas y calendarQueens.test.ts l. 58-68 siguen decidiendo por el diseño: todas lo llevan al dueño, ninguna mide ANTES qué produce el calendario nuevo por clase para saber si la cubeta < 1.500 m se despuebla.",
-    "stageKindOf está calibrado contra el generador viejo y clasifica mal 27 de 113 reinas y medias reales (datos §1.5); ninguna lo recalibra en E1, así que un Sanremo generado sale «Hills», una Lieja generada «media», y la etiqueta de las etapas reales sigue mal en stageHistory.ts.",
-    "Los circuitos inflan los puntos de montaña: un muro × 10 vueltas produce 10 pancartas cima cat4 que simulate.ts puntúa; geografia limita la pancarta a ≥ 1,5 km pero entonces lastClimbKm ignora muros; nadie separa la pancarta que sirve a finalKindOf de la que puntúa.",
-    "Coste de arranque no medido: 1.418 etapas × temporadas × reintentos con sampleProfile por intento al cargar el módulo; todas estiman «< 1 s» sin medir.",
-    "La remedición de bancos con 12 semillas fuera de CI (relojes de 3.600-5.400 s) es el paso más caro y el más fácil de saltarse; banco pre-registra la dirección y geografia lo pone como condición, pero ninguna dice quién corre las horas ni cómo se anota un resultado que contradiga la previsión sin ajustar la banda.",
-    "featureProfile.ts no se unifica: las 177 etapas reales siguen con normalizeTotal estirando el último segmento y rollingFill con amplitud por terreno y no por geo, así que la síntesis tendrá dos rellenos distintos para dos poblaciones del mismo calendario.",
-    "La identidad entre ediciones cambia lo que el jugador espera y ninguna la muestra: todas activan la variación por temporada y la llevan al dueño, ninguna propone cómo la interfaz anuncia «edición N» ni cómo se compara con el año anterior, que es lo que haría visible que la misma carrera se parece a sí misma."
-   ]
-  },
-  {
-   "foco": "Juez «motor»: coherencia con lo que el motor consume (Segment/Ramp, stageKindOf, finalKindOf, finishType), pureza y determinismo, banco y tests sellados, y coste real de implementación y riesgo de regresión. Comprobado contra el código y el dist (ENGINE_VERSION 69): carga del calendario 578 ms; una pasada de sampleProfile+finishType+stageKindOf+finalKindOf sobre las 1.418 etapas 569 ms (0,40 ms/etapa; 0,92 ms para un perfil de 120 segmentos); hoy 0 finales muro, 72 discrepancias kind declarado/leído; finish.ts comprueba alto antes que muro y funde rachas con finishClimbGapBlocks; index.ts no exporta los xxxSegments; RouteSource binario en columna text; calendarRun.ts l. 1614, callups.ts l. 98 y raceContext.ts terrenoRestante leen kind/profile de SEASON_CALENDAR y no de race_routes; stageHistory.ts (run-in 5 km) y stageKindOf (último segmento puerto) usan dos reglas de etiqueta distintas. Juicio completo en scratchpad/e1/juicios/motor.md.",
-   "ganadora": "ingeniero",
-   "puntuaciones": [
-    {
-     "propuesta": "arquitectura",
-     "cobertura": 9,
-     "coherencia": 7,
-     "ejecutabilidad": 7,
-     "realismo": 9,
-     "justificacion": "Cobertura casi total: 13 motivos, 32 esqueletos, V5 es el caso v40 en números (última cota ≤ 4,2 km a 3-17 km), V8 reina de verdad, et_reina_blanda convierte la cola baja de calendarQueens.test en una forma con peso, y estima el relleno (rellenoDplusPorKm) para cuadrar el objetivo con desnivelDe. Es la única que diseña el motivo meta contra deriveFinishTerrain (aproxAmp 2,5 en los 2 km previos al muro para que la racha no se funda dentro de finishClimbGapBlocks) y cierra los tres bordes con holguras sin tocar stageKind.ts ni finalKind.ts. Pero acopla el generador al motor más que ninguna: V7 llama a finishType(deriveFinishTerrain(sampleProfile)) en cada intento (medido 0,4-0,9 ms por etapa e intento), así que una recalibración de STAGE.finish* redibujaría perfiles sin tocar routes/; retira normalize, garantizaPuerto, ROUTE.queen* y ROUTE.km*; indexa la composición por relieve mientras afirma que calendar.test.ts sigue verde sin tocarlo sin decir cómo conserva la firma de stageMix; y la edición varía los papeles de en medio, con lo que el kind por temporada deja de ser el que leen callups.ts l. 98 y calendarRun.ts l. 516/1614. Ejecutabilidad alta en el algoritmo (siete pasos con subflujos, colocación por ventanas, plantilla canónica) pero la superficie de contenido es la mayor y Weighted/BlockRule quedan sin definir."
-    },
-    {
-     "propuesta": "geografia",
-     "cobertura": 8,
-     "coherencia": 6,
-     "ejecutabilidad": 7,
-     "realismo": 8,
-     "justificacion": "El modelo geográfico es el más profundo (37 paisajes con null donde algo no existe, 56 territorios como ruta, cordillera, itinerario desde/hasta) y resuelve el hallazgo 3 mejor que nadie; V1 (≤ 6 km) es más laxo que arquitectura y datos, y la lección de reina-150 entra solo como métrica geométrica, no como veto. Coherencia con el contrato bien (no toca Segment, normalize sin cambios, holguras reinaValle, V5 de altitud integrando g·km·10 sin sampleProfile), pero dos decisiones chocan con lectores existentes: la pancarta cima solo en puerto ≥ 1,5 km (§4.5) deja sin pancarta al muro de meta y finalKindOf (finalKind.ts l. 46-57) cae al último puerto ≥ 1,5 km que puede estar a 30 km, y V10 solo aplica a papel reina; y recomponer las etapas de en medio cada temporada con mixRoles más el intercambio de la reina a la cordillera después de las garantías (§7.1 2b) cambia kind por temporada y puede romper las garantías de mixRoles l. 495-517 sin aserción que lo vigile. Cambia la firma de oneDaySpec, stagesFromEdition, stageMix y nationalChampionships y reescribe calendar.test.ts entero en el mismo paso que sube versión. Coste: siete módulos, 37 × 13 parámetros y 56 territorios a escribir y revisar; bien visto lo de BASE_SEASON (§14.9) y el interruptor ROUTE.edicion.activa. Ejecutable en tablas, pero desde/hasta para ediciones y el reparto de esqueletoDe cuando la intersección vacía huecos obligatorios quedan en una línea."
-    },
-    {
-     "propuesta": "datos",
-     "cobertura": 9,
-     "coherencia": 7,
-     "ejecutabilidad": 6,
-     "realismo": 8,
-     "justificacion": "Cobertura fuerte: V1 el más estricto (≤ 2,5 km con ventoux nombrado), V2 encarna la lección de E3 (un puerto ≥ 6 km a más de 30 km de meta), y mide con dato que stageKindOf llama media a 11 de 54 reinas reales, decidiendo bien no recalibrar en E1. Coherencia: garantizaClase generaliza garantizaPuerto con el mismo patrón, declara intocables FINAL_KIND_CUTS, PASS_MIN_KM, WALL_MAX_KM y STAGE.finish*, EDITION.level 1 conserva el arquetipo (kind estable por temporada), y route_source con tres valores es viable porque la columna es text. Lo que resta: V11 exige Σ costBase·dx dentro del generador, o sea sampleProfile más physics.costBase por intento: una recalibración de costBase redibujaría etapas por reparación sin tocar routes/, que es el acoplamiento inverso al que el repositorio quiere; y wallMaxKm 1,5 contra muroMaxKm 1 hace que parte de los muros de meta salgan puncheur a propósito. Ejecutabilidad es donde más pierde: el extractor produce bandas p10-p90 de ≥ 3 fuentes, y montana_un_dia tiene exactamente 3, así que sus bandas son el mínimo y el máximo; el fichero se regenera con cada carga de E12 y el generador deja de ser reproducible entre versiones de dato sin subir versión; RACE_REGION son 310 carreras más región por etapa de 60 ediciones, la carga de contenido más alta. Realismo alto donde hay corpus, y honesto al decir que 18 de 24 familias son manuales."
-    },
-    {
-     "propuesta": "ingeniero",
-     "cobertura": 7,
-     "coherencia": 9,
-     "ejecutabilidad": 9,
-     "realismo": 7,
-     "justificacion": "La más coherente con el motor: una sola capa nueva (Skeleton, PlacedMotif, SkeletonContract) sobre climb, descent, rolling, split, normalize y garantizaPuerto tal cual, con tres cambios pequeños y justificados (rolling con amplitud numérica y sin rompepiernas, climb con gMax, bajada por desnivel como mountainClassicSegments l. 467); el verificador comprueba Σ km, stageKindOf, finalKindOf con 0,7 km de holgura, finishType solo cuando la familia lo promete, y la suma de tramos contra segment.km, cerrando el borde de 8,5 donde nace. stageMix conserva firma con DEFAULT_ROUTE_CONTEXT, así que calendar.test.ts y stageKind.test.ts compilan en el paso 1; comprobado que index.ts no exporta los xxxSegments. origen edicion no varía por temporada por la doctrina de fuentes-recorridos.md; RouteSource sigue binario; kind leído del perfil con contrato y reintento. Subflujos identidad/esqueleto/edicion/relleno/reintento sobre la semilla de hoy. Ejecutabilidad la más alta: tres builders en pseudocódigo con rangos, renderizador entero, orden del verificador, tabla de constantes con el valor actual, siete pasos con tests, versión, remedición y coste. Cobertura la más baja y es lo que la síntesis debe reparar: la lección de reina-150 solo se imprime (§9.2), conserva queenDplusRange 60/40 y queenFinalMix (y con ellos el objetivo solo de puertos contra desnivelDe con relleno y el 60/40 sostenido por un test), mixWeights.mountain 0,40 intacto, solo dos reglas de bloque, V1 ≤ 5 km, y FR cae por defecto a atlantico_colinas. Coste: seis subidas de versión y tres remediciones de bancos, defendidas por atribución; antes del lanzamiento es asumible."
-    },
-    {
-     "propuesta": "banco",
-     "cobertura": 9,
-     "coherencia": 7,
-     "ejecutabilidad": 8,
-     "realismo": 8,
-     "justificacion": "La mejor encarnación de la lección de E3: V8 (≥ 25 % de la subida a más de 30 km de meta) más el test «reina-150 expresada como brief no pasa», y queenDplusIncludesFill, la única que arregla el desfase entre el objetivo de puertos y desnivelDe con relleno diciendo cómo; el caso v40 recorrido paso a paso con race-jura. Coherencia: los vetos van sobre el RouteBrief antes de dibujar (puros, sin sampleProfile) y finishType solo en el censo, que es el reparto de coste correcto y desacopla el generador de STAGE.finish*; conserva normalize y garantizaPuerto parametrizados por el brief con la guarda nueva «toda cota ≤ 2,9 km en clásica»; las tres excepciones de §9.4 son coherentes con el clasificador. Lo que resta: retira mixWeights y MixTerrain y reescribe los seis casos de calendar.test.ts; stageFor vuelve a sortear el arquetipo a partir del tercer reintento mientras §6.2 dice que el arquetipo de un día no se sortea por edición (identidad que se mueve si un veto salta en una temporada); la edición puede cambiar el arquetipo de una etapa de en medio, con lo que kind por temporada difiere del de SEASON_CALENDAR; SEASON_CALENDAR = calendarFor(1) supone la primera temporada sin comprobarla; y el objetivo «cambian ≤ 10» ignora que stageHistory.ts (run-in 5 km) y stageKindOf (último segmento puerto) son dos reglas distintas. El protocolo de «mejor y no solo distinto» (§11.5) y el censo geométrico en cada push (medido: 0,57 s) son lo que el banco necesita. La función skeleton por arquetipo se describe en una fila, no en pseudocódigo; RACE_GEO ~167 carreras es contenido."
-    }
-   ],
-   "injertos": [
-    {
-     "de": "banco",
-     "idea": "V8 como veto duro en SkeletonContract y verify.ts: una reina generada tiene ≥ 25 % de sus km de subida a más de climbRaceKmToGo (30) km de meta, y un test que exige que reina-150 expresada como esqueleto no pase el verificador.",
-     "por_que": "Es la variable que separó la canónica (0 %) de las reales (6-38 %) en balance v43 §7 y la razón de que E1 vaya primero; ingeniero solo la imprime como plausibilidad (§9.2)."
-    },
-    {
-     "de": "banco",
-     "idea": "queenDplusIncludesFill: el objetivo de desnivel de la reina se persigue sobre puertos más relleno, medido como calendarQueens::desnivelDe (o con la estimación rellenoDplusPorKm de arquitectura si se evita sampleProfile en el generador).",
-     "por_que": "Hoy el objetivo son solo puertos (profileGen.ts l. 373) y el banco mide con relleno (~1.000 m de diferencia, mapa 01 §1); ingeniero conserva queenDplusRange sin corregirlo."
-    },
-    {
-     "de": "banco",
-     "idea": "El protocolo «mejor y no solo distinto» de §11.5 (línea base con el generador viejo, dirección pre-registrada por banda, pareado con engineVersion fijo, cuatro condiciones necesarias incluida «las canónicas no se mueven un dígito», dos lecturas de las listas cerradas) y el censo geométrico routeCensus con finishType(t, 50) en test:rapido.",
-     "por_que": "Ingeniero tiene geometry.test y tabla pareada por paso pero no el pre-registro ni la condición sobre las canónicas; medido, el censo cuesta 0,57 s sobre 1.418 etapas y cabe en cada push."
-    },
-    {
-     "de": "arquitectura",
-     "idea": "El motivo meta diseñado contra deriveFinishTerrain (§3.2): muro_meta con 2 km de aproximación a amplitud ≤ 2,5 para que ningún bloque ≥ finishClimbMinGradient (3) se funda con la racha dentro de finishClimbGapBlocks (5); repecho < finishAltoMinKm; alto_corto 3-7 km; holguras 0,5 sobre los cortes 5/20.",
-     "por_que": "finish.ts l. 165-189 comprueba alto antes que muro y funde rachas; sin diseñar la aproximación, media_muro_final de ingeniero paga en reintentos lo que puede resolver por construcción."
-    },
-    {
-     "de": "arquitectura",
-     "idea": "et_reina_blanda como forma de reina con peso propio (ARCH.reinaBlandaShare) en lugar del dado 60/40 de queenHighDplusShare.",
-     "por_que": "Convierte la cola baja que calendarQueens.test.ts l. 62-63 exige en una decisión de diseño (mapa 06 §6.3) sin retirar el test ni dejar que el test decida; ingeniero lo deja al dueño."
-    },
-    {
-     "de": "arquitectura",
-     "idea": "V5 con los números del mapa 07: en un día la última cota mide ≤ 4,2 km y corona a 3-17 km; si muere en meta mide ≤ 2,1 km salvo rareza al 2 % en .1.",
-     "por_que": "Los 5 km de ingeniero y los 6 de banco y geografia dejan pasar finales de 5-6 km que en el WorldTour de un día no existen (mapa 07 §4.3)."
-    },
-    {
-     "de": "datos",
-     "idea": "garantizaClase como generalización de garantizaPuerto parametrizada por el contrato (kind, finalMix, classMarginKm 0,3), más la guarda de banco «toda cota ≤ 2,9 km en clásica» y el recorte del valle a su cubeta con holgura.",
-     "por_que": "garantizaPuerto solo mueve el puerto más largo entre min y max; no cubre la clásica que normalize estira de 2,5 a 3,1 ni el valle que cruza cubeta (4 de 6.000 medidas en mapa 01 §2.5)."
-    },
-    {
-     "de": "datos",
-     "idea": "Región geográfica por etapa para las ediciones (RACE_REGION['race-x'].stages) y no solo por carrera.",
-     "por_que": "Ingeniero lleva geo por carrera con override por id; las 226 etapas de edición sin rasgos (Colombia e5, Pau → Gavarnie) son donde el país más cambia el resultado."
-    },
-    {
-     "de": "datos",
-     "idea": "El extractor medir-real.mjs sobre las 177 etapas reales como instrumento de medida (p10/p50/p90 de nº de puertos, última subida, finalKindOf real 69 % alto, sectores) para las bandas del censo y el anti-clon, sin que el generador dependa de un fichero regenerable.",
-     "por_que": "Son las únicas referencias con dato del repositorio; usarlas como fuente del generador (datos) rompe la reproducibilidad entre cargas de E12, usarlas como vara no."
-    },
-    {
-     "de": "datos",
-     "idea": "Semilla de edición separada de la de identidad (idSeed y idSeed|s{season}), y la semilla de hoy de las ediciones ${from}|${to}|${km} concatenada al raceId.",
-     "por_que": "Cierra el defecto del mapa 02 §7 (dos carreras con misma salida, meta y km dibujan lo mismo) que ingeniero conserva a propósito al no cambiar la semilla."
-    },
-    {
-     "de": "geografia",
-     "idea": "cordillera: null como veto estructural sellado en test (0 reinas en países sin cordillera, decisión explícita al dueño) y el V5 de altitud integrando g·km·10 por tramo, barato y puro.",
-     "por_que": "Ingeniero lo hace con familyBias 0 por tabla, sin un test de calendario que lo afirme; geografia lo sella y lo hace visible como decisión."
-    },
-    {
-     "de": "geografia",
-     "idea": "BASE_SEASON cuadrado con la primera temporada de un mundo (calendarRun.ts l. 135) y ROUTE.edicion.activa = false como interruptor que devuelve el calendario fijo de hoy.",
-     "por_que": "Banco asume temporada 1 y datos e ingeniero 0 sin comprobarlo; si SEASON_CALENDAR y calendarForSeason(primera) no coinciden, el freeze del día 1 congela otra edición que la que los tests sellan."
-    },
-    {
-     "de": "geografia",
-     "idea": "Huella FNV sellada antes de tocar calendar.ts de las 177 etapas con rasgos y las 3 grandes vueltas (y, como arquitectura golden.test, de las 1.418 en el paso sin cambio de conducta).",
-     "por_que": "Es la prueba de que lo real no se toca y de que el paso 1 de ingeniero cambia lo que dice cambiar; ingeniero solo sella 300 semillas por generador."
-    },
-    {
-     "de": "geografia",
-     "idea": "Pancarta cima solo en puerto ≥ CLIMB_MIN_KM, corregida para que el muro de meta y el muro que decide finalKind conserven pancarta (o que lastClimbKm mire también el último puerto corto).",
-     "por_que": "auto() pone una cima por puerto y con 10-20 muros son 10-20 pancartas que cuestan depósito y abren alivio (mapa 03 §10.8) y 10-20 cat4; con la regla de geografia tal cual, finalKindOf de un muro de meta cae a un puerto lejano."
-    }
-   ],
-   "riesgos": [
-    "La temporada frente a los lectores de SEASON_CALENDAR que no pasan por race_routes: calendarRun.ts l. 1614 pasa kind del código con el perfil congelado, callups.ts l. 98 y calendarRun.ts l. 516 leen kind del código, raceContext.ts terrenoRestante lee stage.profile del código, y sim/world.ts calcula CALENDARIO al cargar; las cinco dicen que freezeRaceRoute es la única llamada de db que cambia. Hay que guardar kind/timeTrial en race_routes, leer el congelado en raceContext, y sellar que la variación de edición nunca cambia kind, timeTrial ni el número de etapas.",
-    "Dos reglas de etiqueta: stageKindOf decide Summit finish por último segmento puerto y stageHistory.ts por run-in ≤ 5 km sobre cualquier puerto; una reina cima_cerca cuenta en el 49 aunque kind se lea del perfil, así que los objetivos «≤ 10» o «debería bajar» no son fiables hasta unificar la regla.",
-    "Acoplamiento inverso generador → motor: los vetos que llaman a finishType(deriveFinishTerrain(sampleProfile)) por intento (arquitectura V7, ingeniero cuando hay finish) o a costBase (datos V11) hacen que una recalibración de STAGE.finish* o de physics.ts redibuje perfiles generados sin tocar routes/; falta la regla de que los vetos de generación solo lean routes/ y geometría del esqueleto y que finishType y demanda se midan en el censo.",
-    "Las pancartas cima de auto() sobre 10-20 muros por clásica y los 10-20 segmentos puerto cortos que suman kmSubida, ponen breakAppeal en 0,4 y gcTerrain en verdadero en una clásica flamenca; nadie mide si eso es lo que se quiere.",
-    "El coste de remedir no está presupuestado en reloj: test:bancos corre en cada push a packages/engine (calendarQueens hasta 370 s, smallTours 3.900 s, grandTour 5.400 s de reloj), las remediciones con 12 semillas son horas fuera de CI, ingeniero las multiplica por tres, y la muestra sistemática de calendarQueens cambia de composición con cualquier generador, así que el pareado etapa a etapa solo es posible sobre listas cerradas por forma.",
-    "Arranque del módulo y temporadas en memoria: medido 0,6 s hoy, ~2 s por temporada con verificación por intento y perfiles densos, multiplicado por 18 cargas de test y por las 3-4 temporadas que algunos tests generan; ninguna propone calendario perezoso por carrera ni caché por temporada.",
-    "Las tablas geográficas son juicio sin validación externa posible (PCS vetado); los tests de sanidad comprueban que el mundo actual no contradice la tabla, no que la tabla sea verdad, y no hay mecanismo de corrección con dato más allá de que el dueño la lea.",
-    "Congelar como literales las tres reinas generadas de REAL_QUEENS convierte ese banco en museo del generador viejo; cerrar por brief (banco) pierde la comparabilidad hacia atrás; hay que elegir y escribirlo en targets.ts."
-   ]
-  },
-  {
-   "foco": "Ejecutabilidad y realismo: ¿podría otro modelo programar la propuesta sin preguntar (pasos con tests primero, constantes con intención, engine_version, qué se re-sella y con qué causa) y lo que sale se parece a las carreras reales de su sitio y su clase, medido con el mapa 07 como vara? Citas de las propuestas comprobadas contra el código: finalKind.ts 85 l. (CLIMB_MIN_KM l. 33, finalKindOf l. 78), finish.ts l. 142 finishType(t, groupSize) y l. 182-188 regla muro, constants.ts l. 4462-4463 muroMaxKm/muroMinGradient, sample.ts l. 101 rompepiernas, rng.ts l. 27-28 subflujos, calendar.ts l. 216/400/410/457/546 firmas, raceRoutes.ts l. 48-51, calendarRun.ts l. 783 raceKey por temporada.",
-   "ganadora": "arquitectura",
-   "puntuaciones": [
-    {
-     "propuesta": "arquitectura",
-     "cobertura": 9,
-     "coherencia": 8,
-     "ejecutabilidad": 9,
-     "realismo": 9,
-     "justificacion": "La más completa como especificación de dato: 32 esqueletos en tabla con motivo×n@ventana, meta, D+ y km (§3.3); 29 zonas con los diez campos rellenos (§5.1); ~40 constantes ARCH con valor, intención y apoyo (§8); 15 vetos como predicados con el caso que impiden y un test por veto (§9); subflujos nominales por decisión con la regla de cuál lleva season (§4); 11 pasos con tests primero, golden.test.ts de las 1.418 etapas antes de tocar nada y UN solo salto de ENGINE_VERSION en el paso 8 (§12). Realismo: es la que más se pega al mapa 07 en lo que decidió el caso v40 (ARCH.meta.unDiaUltimaCota 1,3-4,2 km a 3-17 km; V5 muere arriba solo con muro ≤ 2,1 o ud_montana_alto al 0,02 solo en .1), alto_largo 9-22 al 6-9, cadena/racimo/circuito como motivos compuestos (circuito con la misma semilla de detalle por vuelta), muro_meta pensado contra finishClimbGapBlocks, tendida para altiplano, gran vuelta con descansos, reina en [15,20] y bloques (§7.2). Defectos: la temporada 0 «no tira ningún dado» y toma la mediana de cardinalidad (§4.3), justo el calendario que ven tests y bancos, así que la banda de entropía se mediría sobre el calendario menos variado; hueco 8,0-9,0 km entre cota y puerto donde no cabe Ghisallo (8,6); ningún MetaKind entre 1,0 y 3,0 km en meta (San Luca 2,1 no existe); pesos base del catálogo y tabla completa de pesoPorClase sin escribir; normalizeEnlaces es mecanismo nuevo donde normalize ya funcionaba. La lección de reina-150 entra como banda (p10 ≥ 5 % de subida fuera de 30 km) y por construcción, no como veto duro."
-    },
-    {
-     "propuesta": "geografia",
-     "cobertura": 9,
-     "coherencia": 8,
-     "ejecutabilidad": 8,
-     "realismo": 9,
-     "justificacion": "Catálogo de 37 paisajes entero fila a fila con null donde algo no existe (§5.1), 56 territorios con ruta ordenada y cordillera (§5.2), 24 arquitecturas con plantillas medidas desde meta (§4.6), 14 vetos con cómo se miden sobre Segment[] (§9), constantes con intención (§8), 11 pasos con un solo salto en el 8 y un paso 7 con huella FNV de los 177 perfiles reales antes de cablear que ninguna otra tiene. Realismo: el territorio como ventana contigua para una vuelta produce «Bélgica sin reina» (Benelux Tour), bloques por quedarse en el mismo paisaje, transición 40/60 (la Vuelta entrando en Asturias), Huy ×3 en punto_a_punto_muro, montana_un_dia 1,3-4,2 km a 3-17 con remate p 0,4, pólder a 0,4-0,9 con el dato de Brugge-De Panne (~300 m). Lo que falta para no preguntar: la matriz PESOS_ARQ[relieve][papel][clase] solo tiene una celda de ejemplo y es la que decide la variedad; el intercambio de reina hacia la cordillera interactúa con las garantías de mixRoles (l. 486-517) sin prueba escrita; BASE_SEASON se pregunta al dueño cuando es dato del código (calendarRun.ts l. 783); bug de dato: AR/CL declaran cordillera desierto_andino, que tiene puerto null y relieve llano, y admite() exige puerto y relieve montana/alta para reina_* (el test (d) del paso 1 lo cazaría). V1 corta a 6 km (más laxo que el 4,2 medido, la plantilla lo compensa); ondulado hasta 3,0 en cantabrico sin tope de pendiente puede tipar puerto por accidente; cambia auto para marcar cima solo ≥ 1,5 km (decisión de puntos GPM) y «reina solo en cordillera» mueve el reparto de kind y world.test.ts, lo anota."
-    },
-    {
-     "propuesta": "datos",
-     "cobertura": 8,
-     "coherencia": 8,
-     "ejecutabilidad": 7,
-     "realismo": 8,
-     "justificacion": "Tiene lo que ninguna otra: una medida real ya hecha (§1.4, p10/p50/p90 de 177 etapas: puerto final de reina 3,3/9,7/17,1 km; última cota de un día 0,5/1,0/2,1 km a 0/7,8/20,8; sectores 5-31), un extractor con reglas de asignación de familia escritas una a una (§11.1), anti-clon calibrado sobre pares reales de la misma familia, presence por hueco y alternates por año, y la única medida de que stageKindOf clasifica mal 27 de 113 reinas y medias reales (D2). Tipos completos (§3.2), 12 vetos con caso (§9), 20 constantes con apoyo (§8), 12 pasos con un solo salto en el 8. Pero el contenido del generador es emergente: solo 8 familias tienen ≥ 3 fuentes y el resto es manual «con la cita del mapa 07» sin dar las bandas; TOUR_TEMPLATES «extraídas de las 54 ediciones» por nStages × terreno solo tienen una celda escrita y muchas tendrán < 3 fuentes; RACE_REGION son 310 entradas más regiones por etapa en 60 ediciones con test de existencia y no de corrección; cloneMaxCorrelation 0,85 es provisional; classMarginKm 0,3 sobre 8,5 es holgura escasa contra el mismo mecanismo que ingeniero cifra en 0,7. Realismo: bandas medidas y fidelidad rasgo a rasgo contra lo real, pero V1 corta el final en alto de un día en 2,5 km y el mapa 07 §1.2 lista Superga 4,9 ×2 como clásica normal; el corpus es WT europeo (41 países sin ninguna etapa real) y una .2 colombiana será «una reina_valle de familia, no de los Andes» (§13.1); COUNTRY_REGION FR → macizo_central_jura y ES → meseta son defaults gruesos para los nacionales."
-    },
-    {
-     "propuesta": "ingeniero",
-     "cobertura": 7,
-     "coherencia": 9,
-     "ejecutabilidad": 7,
-     "realismo": 7,
-     "justificacion": "La arquitectura de código más sencilla y la más coherente con lo que hay: Skeleton serializable entre «qué quiero» y «qué segmentos salen», renderSkeleton en 20 líneas de pseudocódigo (§4.4), verify en seis comprobaciones ordenadas con finishType(…, 30) (§4.5), tabla RouteGeo entera para 21 claves (§5.2), constantes con valor y apoyo (§8), DEFAULT_ROUTE_CONTEXT para que los tests compilen, kind leído del perfil (R28.1b) con el objetivo de que el 49 de stageHistory baje, finalKindMarginKm 0,7 bien justificado, climb con gMax, bajada por desnivel, frozenSkeletons literales. Pero de 21 familias solo hay tres builders escritos (§4.3) y «los demás siguen el mismo patrón y se listan con sus rangos en §8», donde solo hay rangos de motivo: un modelo tendría que inventar 18 builders, incluidos todos los de vuelta. Coste mayor de las cinco: seis subidas de ENGINE_VERSION (70-74 más una condicional) y tres remediciones de bancos, defendidas por atribución causa a causa pero que doblan el paso más caro. Citas que no son del código: «finalKindOf (finalKind.ts l. 176-183)» y «CLIMB_MIN_KM (finalKind.ts l. 131)» en un fichero de 85 líneas (l. 78 y l. 33 comprobadas); DK aparece en atlantico_colinas y en nordico a la vez. Realismo: montana_un_dia corregido, muros 8-20 con adoquín, adoquín 8-30 por 200 km, circuito 10-30 × 6-18; pero conserva el 60/40 de desnivel («calendarQueens.test.ts exige la cola baja») y mixWeights.mountain[reina] 0,40 («no se toca»), que mapa 06 §6.3 y mapa 07 §2.1 señalan como lo que hay que decidir en el diseño, y la subida fuera de los últimos 30 km queda en «se mide y no se afirma» (§9.2). Geo por carrera, no por etapa; sin cronoescalada; circuitos solo colocación."
-    },
-    {
-     "propuesta": "banco",
-     "cobertura": 9,
-     "coherencia": 8,
-     "ejecutabilidad": 8,
-     "realismo": 8,
-     "justificacion": "Punto de entrada escrito como código (stageFor, §4) con lista cerrada de subflujos; 18 arquetipos en tabla con dificultades, dónde, final y kindEsperado (§4.2); 21 firmas con todos los campos y los pesos de arquetipo de un día por firma (§5.2); TourCharacter con seis pesos por carácter y kmByClass por clase y papel (§7); 34 constantes GEN con intención (§8); 18 vetos en dos tablas con fuente (§9); routeCensus con finishType(…, 50) por etapa y 15 bandas de realismo con «hoy (medido)» al lado (§11.2); 10 pasos, un solo salto en el 7, pasos 1-6 sin llamadores. Es la que mejor responde a «mejor y no solo distinto»: línea base, pre-registro de la dirección de cada banda, pareado con engineVersion fijo, cuatro condiciones simultáneas, doble lectura por nombre y por forma (§11.5); V8 (≥ 25 % de la subida fuera de los últimos 30 km) como veto duro y el test «reina-150 expresada como brief no pasa»; calendarQueens estratificada por finalKind × desnivel; reina-175-4800 canónica sin banda. Lo que un modelo tendría que inventar: los pesos de arquetipo de etapa por firma («se derivan con la misma tabla» sin la tabla), cómo buildBrief traduce «70 % en el último 45 %» a pesos de split, y TourTemplate como dato (§7.2 es una lista de reglas); SEASON_CALENDAR = calendarFor(1) supone una numeración de temporada no comprobada; valleyMargin 0,3 es menos holgura de la que mapa 01 §2.5 sugiere. Realismo: montana_un_dia 1,3-8 km a 3-25 (25 laxo frente al 0-17 WT), muro_final 0,5-2,2 con finish.ts l. 177-180 como apoyo, adoquín 12-30 sectores con primer sector tras el 35 %, muros 10-20 con 70 % en el último 45 %, V15 puerto final > 17 km con g > 7 vetado, queenDplusByFormat 3.200-5.200 gran vuelta; sprint_con_cota clasificado media es honesto y feo; V1 a 6 km; las vueltas de smallTours cambian de forma sin congelar (pierden la comparabilidad que realQueens.ts l. 42-44 promete)."
-    }
-   ],
-   "injertos": [
-    {
-     "de": "banco",
-     "idea": "V8 como veto duro por etapa: una reina tiene ≥ GEN.queenClimbOutsideLast30Min (0,25) de su subida a más de 30 km de meta; y el test del paso de vetos «reina-150 expresada como brief NO pasa».",
-     "por_que": "Es la lección de E3 convertida en regla y no en métrica; arquitectura solo la vigila con una banda p10 ≥ 5 % sobre el calendario (§11.3). climbRaceKmToGo = 30 es donde el motor pasa de tempo a carrera (mapa 03 §4.2), así que la variable es la correcta."
-    },
-    {
-     "de": "banco",
-     "idea": "sim/routeCensus.ts con finishType(deriveFinishTerrain(sampleProfile(profile)), 50) por etapa en test:rapido; línea base anotada en balance.md ANTES del primer cambio; pre-registro de la dirección de cada banda de simulación; las cuatro condiciones de «mejor» y la doble lectura por nombre y por forma (§11.5).",
-     "por_que": "Es lo único que impide repetir v60 §1b (bandas verdes sin remedición anotada, mapa 04 §3.4). Arquitectura tiene métricas pero no el protocolo de antes/después ni el censo de finishType que hoy nadie sabe sin correr balance v60 §12 a mano."
-    },
-    {
-     "de": "banco",
-     "idea": "SEASON_CALENDAR = calendarFor(BASE_SEASON) con la temporada base tirando los mismos dados que cualquier otra; calendarQueens estratificada por finalKind × cubeta de desnivel; reina-175-4800 (plantilla 3 del mapa 07 §5) como escenario canónico impreso sin banda; mountain.* renombrada a control de forma.",
-     "por_que": "Corrige el defecto de arquitectura §4.3 (temporada 0 con cardinalidades en la mediana, justo el calendario que sellan tests y bancos) y da al banco una reina canónica que sí es reina."
-    },
-    {
-     "de": "datos",
-     "idea": "muro_meta ampliado a 0,5-2,2 km al 8-16 %, declarando en la tabla de MetaKind que por encima de muroMaxKm 1,0 finishType dirá puncheur (finish.ts l. 177-180 lo dice de Huy).",
-     "por_que": "Cierra el hueco 1,0-3,0 km en meta de arquitectura §3.2: sin él no existen Emilia (San Luca 2,1) ni el Muro de Huy tal como el motor lo modela (1,4 km). Banco lo tiene igual (muro_final 0,5-2,2)."
-    },
-    {
-     "de": "geografia",
-     "idea": "Territorio como ruta ordenada de paisajes con cordillera, e itinerario de vuelta como ventana contigua (§7.1): la reina solo en etapa con meta en cordillera o relieve montana/alta, degradada a media_alto y anotada si el país no tiene; bloques por quedarse en el mismo paisaje (p 0,6 de avance); etapa de transición 40/60 (§7.3).",
-     "por_que": "Arquitectura tiene una zona por carrera y bloques por reparación; esto produce «Bélgica sin reina» y «la Vuelta entra en Asturias» por construcción. Es la única geografía de las cinco que actúa sobre la composición y no solo sobre el dibujo."
-    },
-    {
-     "de": "geografia",
-     "idea": "Test de huella FNV de los 177 perfiles reales (y de las tres grandes vueltas enteras) antes de cablear, comprobada después (§12 paso 7); fallback contado y sellado a 0 en carreras de equipos; lista explícita de países en generico.",
-     "por_que": "El golden de las 1.418 de arquitectura se borra en el paso 8; esta huella sobrevive al cambio y garantiza G5 («lo real manda») por test."
-    },
-    {
-     "de": "geografia",
-     "idea": "null como «aquí no existe» en la tabla geográfica, con admite() y degradar() siempre hacia abajo (montana → media → ondulado → llana); ondulación del pólder a 0,4-0,9 con el dato de Brugge-De Panne (~300 m); tope de pendiente del relleno (fillMaxGradient 2,4 de datos) para que nunca tipe puerto por accidente.",
-     "por_que": "Arquitectura degrada el hueco (puerto → cota o muro) sin regla de dirección escrita y su amplitud 0,55 para flandes sigue siendo la escala de RELIEF, no una pendiente medida; hoy una llana acumula 661-1.413 m solo de relleno (mapa 01 §1)."
-    },
-    {
-     "de": "datos",
-     "idea": "El extractor (scripts/extraer-arquetipos.mjs) y la tabla p10/p50/p90 real (§1.4) como referencia de las bandas de fidelidad por encima del mapa 07 donde el corpus tenga ≥ 3 fuentes; anti-clon con umbral calibrado sobre pares reales (Ronde/E3, Amstel/Brabant) en vez del 0,9 a ojo de arquitectura V12.",
-     "por_que": "Mapa 07 se declara «orientativo, de memoria»; el corpus es dato con fuente. Es lo único que convierte «se parece a lo real» en una medida y no en un juicio."
-    },
-    {
-     "de": "datos",
-     "idea": "RACE_REGION curada por carrera desde las ciudades de raceRoutes.ts (310 entradas) en vez de sortear la zona de FR/IT/ES con geo|raceId (arquitectura §3.5 y §13.4); source 'mixto' como nombre del 🟡 del inventario.",
-     "por_que": "Sortear la zona de una .2 francesa entre Bretaña y los Alpes es inventar geografía; el dato de ciudades ya existe y la tarde de trabajo es de contenido, no de diseño."
-    },
-    {
-     "de": "datos",
-     "idea": "EDITION.level 2: rotación declarada por arquetipo (alternates elegida por season % n) para Como/Bérgamo, Angliru/Lagos; y D2 (recalibrar stageKindOf, que clasifica mal 27 de 113 reinas y medias reales) como decisión abierta con la cifra medida.",
-     "por_que": "Arquitectura varía con jitter acotado; la rotación declarada es la variación «deliberada y no aleatoria» que pide el encargo. Y la cifra de D2 es la única medida de que el clasificador no coincide con la carretera."
-    },
-    {
-     "de": "ingeniero",
-     "idea": "Paso previo «esqueleto con la arquitectura de hoy»: ocho builders legacy que reproducen número y orden de motivos de cada xxxSegments para 300 semillas × 5 km, y tabla pareada «igual dentro del ruido».",
-     "por_que": "Separa fontanería de forma: si la tabla pareada se mueve en ese paso, el bug es del renderizador y no del diseño. El golden byte a byte de arquitectura no permite ni cambiar subflujos, así que no cubre este caso."
-    },
-    {
-     "de": "ingeniero",
-     "idea": "climb(rand, len, avg, { gMax }) con muroGMax 16; bajada canónica clamp(len·g·10/55, 2, 10); verify.finalKindMarginKm 0,7 con su razón (normalize estira hasta un 2 % y auto redondea el km de la pancarta); fallbackMaxShare 0,005; DEFAULT_ROUTE_CONTEXT para que los tests compilen hasta el cableado; frozenSkeletons como esqueleto literal serializable en vez de perfil literal.",
-     "por_que": "Detalles de ejecución que ahorran preguntas: la holgura 0,7 está justificada contra los 4 de 6.000 del mapa 01 §2.5 (0,3 de datos y 0,5 de arquitectura son menos); el esqueleto congelado es legible y se re-renderiza."
-    },
-    {
-     "de": "ingeniero",
-     "idea": "kind = stageKindOf(profile, timeTrial).kind para toda etapa generada (R28.1b) con el objetivo escrito de que el 49 de stageHistory.test.ts baje y lo que quede sean etapas reales.",
-     "por_que": "Arquitectura lo garantiza vía V6 pero no escribe la consecuencia sobre el 49 sellado; conviene sellarla como objetivo y no solo re-sellar la cifra que salga."
-    },
-    {
-     "de": "banco",
-     "idea": "kmByClass como tabla por clase Y papel (banco §7.3, geografía §8) en lugar del factor único kmFactorPorClase de arquitectura §7.4, con stageMaxKm y la nota «cifras UCI a confirmar» en el comentario de la constante.",
-     "por_que": "Un factor 0,75 sobre el rango WT de un día [200, 260] da [150, 195] para una .2, por encima de los 180 del mapa 07 §4.1; la tabla por clase y papel no tiene ese problema y rompe el 210 fijo de 142 carreras."
-    }
-   ],
-   "riesgos": [
-    "La tabla geográfica es juicio sin fuente y nadie la valida: las cinco la sacan del mapa 07 (orientativo, de memoria), PCS y Overpass están vetados, y los tests solo comprueban existencia y consistencia interna, no que Ruanda sea generico_montana o que atlantico_colinas valga para Dinamarca; un país mal puesto es el defecto de hoy con otro disfraz.",
-    "Viento y altitud no llegan al motor y todas fingen que sí en el relato: expuesto, llana_costa, viento 0,9 en Flandes; el abanico sigue saliendo por rng('viento') en cualquier km de llano (mapa 03 §5.1) y Colombia corre a nivel del mar; ninguna dice qué cuenta la ficha para no prometer un abanico que el motor no coloca.",
-    "Nadie ha medido el coste de arranque ni el de un calendario por temporada en un proceso largo: hasta 11.000 sampleProfile de ~2.000 bloques al cargar el módulo con vetos y reintentos, estimado «por debajo de un segundo» sin medir; calendarForSeason memoizada en apps/api acumula una temporada por año de mundo.",
-    "Los circuitos son colocación repetida y el motor no sabe de vueltas: kmSubida cuenta por tipo, un circuito de 12 vueltas con un muro de 1 km suma 12 km de subida y sube breakAppeal y gcTerrain; los 532 nacionales pasan a circuito de golpe y 5 de las 8 más duras del banco de saturación son hoy nc-*-road; nadie mide antes cuánto selecciona una cota subida 14 veces.",
-    "Las 226 etapas de edición sin rasgos reciben un paisaje arbitrario: no hay tabla ciudad → paisaje en ninguna propuesta (zona de la carrera, ventana del territorio o RACE_REGION por etapa a mano); Colombia e5 puede caer en llanura_tropical, y la doctrina de fuentes-recorridos.md (nada se inventa) choca con inventarle un paisaje a una etapa con nombre real.",
-    "stageKindOf sigue calibrado contra el generador viejo y todas lo conservan: datos midió que llama media a 11 de 54 reinas reales y reina a 16 de 59 medias; lo generado cuadrará con su etiqueta por construcción y lo real no, así que la ficha enseñará dos criterios según el origen; solo datos lo deja como decisión (D2).",
-    "El muro en meta exige precisión de bloque y nadie lo ha probado contra el motor: finishType lee bloques de 100 m con finishClimbGapBlocks 5 y finishSummitKm 0,6; un muro_meta de 0,8 km puede unirse a un repecho anterior o perder la última rampa por Math.round(km / dx); «300 de 300 tipan muro» es hipótesis hasta que corra.",
-    "El coste de remedición de los bancos no tiene dueño ni presupuesto: calendarQueens 3.600 s, smallTours 3.900 s, saturación 1.800 s, realQueens 900 s, con 12 semillas fuera de CI para recentrar; ninguna dice cuántas horas de máquina son ni quién decide la banda si el dueño no contesta; ingeniero lo triplica.",
-    "world.test.ts y RACE_DAY_TSS leen kind por etapa y el reparto de kind cambia con cualquiera de las cinco (Bélgica sin reina, Sanremo media, medias flamencas a clasica, nacionales por circuito); solo geografía y banco lo listan y ninguna mide el efecto en las bandas de población antes de mover."
-   ]
+  ],
+  "ranking": [
+    ["arquitectura", 100],
+    ["banco", 97.5],
+    ["geografia", 95.5],
+    ["ingeniero", 94],
+    ["datos", 91.5]
+  ],
+  "votos": {
+    "arquitectura": 2,
+    "ingeniero": 1
   }
- ],
- "ranking": [
-  [
-   "arquitectura",
-   100
-  ],
-  [
-   "banco",
-   97.5
-  ],
-  [
-   "geografia",
-   95.5
-  ],
-  [
-   "ingeniero",
-   94
-  ],
-  [
-   "datos",
-   91.5
-  ]
- ],
- "votos": {
-  "arquitectura": 2,
-  "ingeniero": 1
- }
 }

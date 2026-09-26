@@ -24,7 +24,7 @@ export interface StageShape {
 }
 
 /** Los metros que sube un segmento (solo lo que sube: las bajadas no restan). */
-function climbMetres(segment: Segment): number {
+export function climbMetres(segment: Segment): number {
   const ramps = segment.tramos
   if (!ramps || ramps.length === 0) return 0
   let m = 0
@@ -33,7 +33,7 @@ function climbMetres(segment: Segment): number {
 }
 
 /** Longitud y pendiente media de la parte que sube de un segmento. */
-function climbSize(segment: Segment): { km: number; g: number } {
+export function climbSize(segment: Segment): { km: number; g: number } {
   const ramps = (segment.tramos ?? []).filter((r) => r.g > 0)
   const km = ramps.reduce((a, r) => a + r.km, 0)
   if (km <= 0) return { km: 0, g: 0 }
@@ -57,11 +57,11 @@ function climbSize(segment: Segment): { km: number; g: number } {
  * una reina de 2303 m): por eso no decide, y solo entra como red para los recorridos REALES, que no
  * salen de estos generadores y pueden acumular 4000 m sin un puerto largo.
  */
-const WALL_MAX_KM = 3
+export const WALL_MAX_KM = 3
 /** Puerto de alta montaña: por debajo de la reina más corta (9,1) y por encima de la media más larga (8,0). */
-const PASS_MIN_KM = 8.5
+export const PASS_MIN_KM = 8.5
 /** Desnivel de reina para un recorrido real sin puerto largo: por encima de toda media generada. */
-const QUEEN_MIN_CLIMB_METRES = 3200
+export const QUEEN_MIN_CLIMB_METRES = 3200
 
 /**
  * El tipo de etapa que dibuja un recorrido. `timeTrial` viene del snapshot y no del perfil porque

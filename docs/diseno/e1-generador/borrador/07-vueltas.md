@@ -6,19 +6,25 @@ Las líneas de código de esta sección están comprobadas contra el árbol vivo
 
 ### 7.1 El territorio y la ventana: `itinerarioDe`
 
-`itinerarioDe` (`routes/grammar/tour.ts`) es la primera decisión de una vuelta generada y es identidad: se tira con `routeRng(\`arch|${raceId}\`)`, sin `season`, y por eso una carrera recorre siempre el mismo trozo de su país (decisión 20: los papeles no son edición). Lee `TERRITORIOS[country]` (sección 6 §6.3: 64 filas, los 56 países con carreras de equipos del mapa 02 §10 más 8 voluntarias; los 69 países restantes de `COUNTRIES` caen a un territorio `fallback` de una sola zona `generico`, contado en `geo.test.ts`) y `RACE_REGION[raceId]` (sección 6 §6.4, con el tipo en §3.5: la zona curada a mano de cada una de las 310 carreras de equipos, decisión 14).
+`itinerarioDe` (`routes/grammar/tour.ts`) es la primera decisión de una vuelta generada y es identidad: se tira con `routeRng(\`arch|${raceId}\`)`, sin `season`, y por eso una carrera recorre siempre el mismo trozo de su país (decisión 20: los papeles no son edición). Lee `TERRITORIOS[country]`(sección 6 §6.3: 64 filas, los 56 países con carreras de equipos del mapa 02 §10 más 8 voluntarias; los 69 países restantes de`COUNTRIES`caen a un territorio`fallback`de una sola zona`generico`, contado en `geo.test.ts`) y `RACE_REGION[raceId]` (sección 6 §6.4, con el tipo en §3.5: la zona curada a mano de cada una de las 310 carreras de equipos, decisión 14).
 
 ```ts
 // packages/engine/src/routes/grammar/tour.ts
 export interface Itinerario {
-  metas: GeoZone[]      // zona de la meta de cada etapa; la salida de la i+1 es la meta de la i
+  metas: GeoZone[] // zona de la meta de cada etapa; la salida de la i+1 es la meta de la i
   papeles: StageRole[]
-  km: number[]          // ya con ARCH.km.porClase, maxPorClase y ROUTE.lastStageKmFactor
-  desde: GeoZone[]      // desde[0] = metas[0]; desde[i] = metas[i-1]. desde[i] !== metas[i] es transición
-  notas: string[]       // reparaciones aplicadas ("e5: reina → media_alto, ventana sin cordillera")
+  km: number[] // ya con ARCH.km.porClase, maxPorClase y ROUTE.lastStageKmFactor
+  desde: GeoZone[] // desde[0] = metas[0]; desde[i] = metas[i-1]. desde[i] !== metas[i] es transición
+  notas: string[] // reparaciones aplicadas ("e5: reina → media_alto, ventana sin cordillera")
 }
-export function itinerarioDe(raceId: string, country: string | null, n: number, terrain: RouteTerrain,
-  raceClass: RaceClass, format: RaceFormat): Itinerario
+export function itinerarioDe(
+  raceId: string,
+  country: string | null,
+  n: number,
+  terrain: RouteTerrain,
+  raceClass: RaceClass,
+  format: RaceFormat,
+): Itinerario
 ```
 
 Paso a paso, con el orden de consumo del RNG fijado (todo lo que sigue tira del mismo `rand` y en este orden, para que el test de determinismo de `calendar.test.ts` l. 237-246 sea reproducible):
@@ -37,12 +43,12 @@ Lo que `itinerarioDe` NO hace: no elige esqueleto de etapa (eso es `generateStag
 
 `TOUR_SKELETONS` es un catálogo de cuatro entradas elegidas sin dado por `n` y clase. La frontera entre `vu_corta` y `vu_semana` en `n = 5` la decide la clase (arquitectura §7.2: ".2 y .1 de 3 a 5", "Pro y WT de 5 a 8"); `vu_corta` baja a `n = 2` porque el calendario tiene una vuelta de dos etapas (mapa 02 §2). **Este documento aparta §D.7 del esqueleto ("`vu_gran_vuelta` para 9-21") y lo dice**: las vueltas de 9 a 14 van por `vu_larga` y `vu_gran_vuelta` empieza en 15, porque `descansos` (tras la 9 y la 15), "reina en la tercera semana" y `primeraSemanaFinalesAlto` no tienen sentido con 9 etapas, y porque `ROUTE.grandTourStages` 15 y `ittSecondStages` 15 ya parten el dominio ahí. V14 de la sección 9 (§9.2) y el paso 7 del plan (sección 15 §15.8) lo escriben así: `vu_gran_vuelta` con n de 15 a 21. Consecuencia que el dueño tiene que saber: `vu_gran_vuelta` no sirve hoy a ninguna carrera (las tres de 21 son de edición, mapa 06 §1.2) y `vu_larga` sirve a una sola vuelta generada (`race-colombia-tour`, 9 etapas, .2); las otras cuatro de 9 a 11 del calendario (`race-colombia` 9, `race-tachira` 10, `race-guatemala` 10, `race-portugal` 11, contadas sobre `SEASON_CALENDAR`) son ediciones y no se componen. `vu_gran_vuelta` se sella solo con `itinerarioDe(…, n ∈ [15; 21], …)` sintético en `tour.test.ts` y no toca el calendario hasta E12; las reglas `descansos`, `reinaTarde` de gran vuelta, `maxAltaMontana` y `primeraSemanaFinalesAlto` no producen hoy ninguna etapa distinta en el calendario que el dueño ve, y se escriben igual porque son la mitad del coste de E12 y porque el banco `grandTour` (sección 13) las necesita para medir composiciones de 21 etapas.
 
-| Id | `n` | Se elige cuando | `primera` | `ultima` | Reglas de bloque |
-| --- | --- | --- | --- | --- | --- |
-| `vu_corta` | [2; 5] | `n ≤ 4`, o `n = 5` con clase .1/.2 | `{ llana: 1 }` | `'ROUTE.lastDecisiveChance'` | `maxCronos` 1, `maxFinalesAlto` (≤ 1 reina) |
-| `vu_semana` | [5; 8] | `n = 5` con WT/Pro, o `n ∈ [6; 8]` | `{ llana: 0,75; prologo: 0,25 }` | `'ROUTE.lastDecisiveChance'` | `reinaTarde` (reina en las tres últimas), `maxFinalesAlto` (≤ 3, ≤ 2 seguidos), `maxCronos` 2 |
-| `vu_larga` | [9; 14] | `n ∈ [9; 14]` | `{ llana: 0,75; prologo: 0,25 }` | `'ROUTE.lastDecisiveChance'` | `reinaTarde` (último tercio), `bloqueMontana` (bloques de 2 o 3 seguidas), `llanasEntreBloques` (≥ 2), `maxCronos` 2 |
-| `vu_gran_vuelta` | [15; 21] | `n ≥ 15` | `{ llana: 0,7; prologo: 0,3 }` | `{ llana: 0,85; cri: 0,15 }` (Tour 2024, mapa 07 §2.1 regla 3) | `descansos`, `reinaTarde` (`ventanaReina(n)`, [15; 20] con n = 21), `bloqueMontana`, `llanasEntreBloques`, `maxFinalesAlto` (≤ 7 de alta montaña), `maxCronos` 3 |
+| Id               | `n`      | Se elige cuando                    | `primera`                        | `ultima`                                                       | Reglas de bloque                                                                                                                                                 |
+| ---------------- | -------- | ---------------------------------- | -------------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vu_corta`       | [2; 5]   | `n ≤ 4`, o `n = 5` con clase .1/.2 | `{ llana: 1 }`                   | `'ROUTE.lastDecisiveChance'`                                   | `maxCronos` 1, `maxFinalesAlto` (≤ 1 reina)                                                                                                                      |
+| `vu_semana`      | [5; 8]   | `n = 5` con WT/Pro, o `n ∈ [6; 8]` | `{ llana: 0,75; prologo: 0,25 }` | `'ROUTE.lastDecisiveChance'`                                   | `reinaTarde` (reina en las tres últimas), `maxFinalesAlto` (≤ 3, ≤ 2 seguidos), `maxCronos` 2                                                                    |
+| `vu_larga`       | [9; 14]  | `n ∈ [9; 14]`                      | `{ llana: 0,75; prologo: 0,25 }` | `'ROUTE.lastDecisiveChance'`                                   | `reinaTarde` (último tercio), `bloqueMontana` (bloques de 2 o 3 seguidas), `llanasEntreBloques` (≥ 2), `maxCronos` 2                                             |
+| `vu_gran_vuelta` | [15; 21] | `n ≥ 15`                           | `{ llana: 0,7; prologo: 0,3 }`   | `{ llana: 0,85; cri: 0,15 }` (Tour 2024, mapa 07 §2.1 regla 3) | `descansos`, `reinaTarde` (`ventanaReina(n)`, [15; 20] con n = 21), `bloqueMontana`, `llanasEntreBloques`, `maxFinalesAlto` (≤ 7 de alta montaña), `maxCronos` 3 |
 
 `primera` se tira solo si `n ≥ ROUTE.ittWeekStages` (6): es la tirada nueva del prólogo (decisión 42, D3), y `roles[0]` puede ser por primera vez una crono (`mixRoles` no la toca: la crono del paso 1 cae en índice ≥ 1, l. 480, y el bucle del paso 3 va desde 1, l. 497). `ultima` con el valor `'ROUTE.lastDecisiveChance'` significa "el paso 2 de `mixRoles` tal cual" (`lastDecisiveChance` y `lastSummitShare`; el `× grandTourLastDecisiveFactor` de `calendar.ts` l. 490 no se copia, porque este paso solo corre en `vu_corta`, `vu_semana` y `vu_larga`, todas con `n ≤ 14`, donde el factor valía 1); la reina de ese paso es `reina_alto` sin tirada extra, porque "acaba arriba" es exactamente lo que `lastSummitShare` decide. En `vu_gran_vuelta` el paso 2 se sustituye por una sola tirada sobre `ultima` (`cri` con 0,15, si no `llana`): una gran vuelta se cierra con el paseo o, por excepción anunciada, con una crono, y nunca arriba (así `grandTourLastDecisiveFactor` 0,4 se queda sin lector, porque las tres grandes vueltas reales no pasan por `mixRoles`, y se retira en el paso 8 con nota en `balance.md`, sección 12 §12.10; `grandTourStages` 15 se conserva, porque lo leen la frontera `vu_larga` / `vu_gran_vuelta` y `descansosDe`). La reina blanda no la decide `composeTour`: cada papel `reina_*` que entrega llega a `generateStage`, que tira `rand() < ARCH.reina.blandaShare[geo.relieve]` (media 0,25; montana 0,25; alta 0,10) una vez por etapa con el `rng` del subflujo `arch` de esa etapa, antes del sorteo por pesos (sección 5 §5.7 regla 1; sección 8 §8.2 punto 3). Es una probabilidad por etapa, no una cuota por vuelta: una `vu_corta` con una sola reina en relieve `media` la tiene blanda con p 0,25. Con `format === 'gran-vuelta'` no se tira: sus reinas van por peso entre las formas de reina, y la de la tercera semana tiene que ser de verdad.
 
@@ -50,24 +56,35 @@ Las reglas se aplican como **reparación determinista después del sorteo**, rec
 
 ```ts
 export interface BlockRule {
-  id: 'reinaTarde' | 'bloqueMontana' | 'llanasEntreBloques' | 'maxCronos' | 'maxFinalesAlto' | 'descansos'
+  id:
+    | 'reinaTarde'
+    | 'bloqueMontana'
+    | 'llanasEntreBloques'
+    | 'maxCronos'
+    | 'maxFinalesAlto'
+    | 'descansos'
   aplica: (n: number) => boolean
-  repara: (roles: StageRole[], zonas: GeoZone[]) => StageRole[]   // pura; devuelve copia
+  repara: (roles: StageRole[], zonas: GeoZone[]) => StageRole[] // pura; devuelve copia
 }
-const esReina = (r: StageRole) => r === 'reina_alto' || r === 'reina_valle' || r === 'reina_encadenada' || r === 'montana_corta'
-const acabaArriba = (r: StageRole) => r === 'media_alto' || r === 'reina_alto' || r === 'reina_encadenada' || r === 'montana_corta'
+const esReina = (r: StageRole) =>
+  r === 'reina_alto' || r === 'reina_valle' || r === 'reina_encadenada' || r === 'montana_corta'
+const acabaArriba = (r: StageRole) =>
+  r === 'media_alto' || r === 'reina_alto' || r === 'reina_encadenada' || r === 'montana_corta'
 const esMontana = (r: StageRole) => esReina(r) || r === 'media_alto'
 const esCrono = (r: StageRole) => r === 'cri' || r === 'prologo' || r === 'cronoescalada'
 const esLlana = (r: StageRole) => r === 'llana' || r === 'llana_viento'
 const admiteReina = (z: GeoZone, cordillera: GeoZone | null) =>
   z === cordillera || ZONAS[z].relieve === 'montana' || ZONAS[z].relieve === 'alta'
-const admiteReinaBlanda = (z: GeoZone, cordillera: GeoZone | null) =>            // la excepción de §7.1 paso 4
+const admiteReinaBlanda = (z: GeoZone, cordillera: GeoZone | null) =>
+  // la excepción de §7.1 paso 4
   cordillera === null && ZONAS[z].finalesAlto === 'largo' && ZONAS[z].puerto !== null
-const admiteFinalAlto = (z: GeoZone) => ZONAS[z].cota !== null && ZONAS[z].finalesAlto !== 'ninguno'   // lo que et_media_alto exige (sección 5)
-const admiteMuro = (z: GeoZone) => ZONAS[z].muro !== null                                            // lo que et_media_muro exige
+const admiteFinalAlto = (z: GeoZone) => ZONAS[z].cota !== null && ZONAS[z].finalesAlto !== 'ninguno' // lo que et_media_alto exige (sección 5)
+const admiteMuro = (z: GeoZone) => ZONAS[z].muro !== null // lo que et_media_muro exige
 /** Ventana 0-based de la reina en vu_gran_vuelta: [14; 19] con n = 21 (la [15; 20] 1-based del mapa 07 §2.1 regla 2). */
-export const ventanaReina = (n: number): [number, number] =>
-  [Math.max(ARCH.bloques.gv.descansos[0], Math.floor((2 * n) / 3)), n - 2]
+export const ventanaReina = (n: number): [number, number] => [
+  Math.max(ARCH.bloques.gv.descansos[0], Math.floor((2 * n) / 3)),
+  n - 2,
+]
 ```
 
 - **`reinaTarde`.** Ventana admisible de la reina (índices 0-based): `vu_semana` `[n-3, n-1]`; `vu_larga` `[floor(2n/3), n-1]`; `vu_gran_vuelta` `ventanaReina(n)`, que da `[14; 19]` con n = 21, `[10; 14]` con n = 16 y `[10; 13]` con n = 15 (la ventana nunca incluye la última, que `ultima` reserva al paseo o a la crono, y nunca empieza antes del primer descanso, que `descansos` prohíbe a la reina). La constante `ARCH.bloques.gv.reina` [15; 20] de la sección 12 desaparece del literal: es el valor derivado para n = 21 y no cabe en una constante lo que depende de `n`; la sección 12 y V14 (sección 9) lo escriben como `ventanaReina(n)`. Toda reina fuera de la ventana se intercambia con el hueco admisible más tardío dentro de ella (`admiteReina(zonas[j])` o, en la excepción de §7.1 paso 4, `admiteReinaBlanda`, no crono, no `roles[0]`) que no sea ya reina; si no hay hueco, se degrada a `media_alto`. Es la regla que convierte "la reina cae en la tercera semana" (mapa 07 §2.1 regla 2: Plateau de Beille e15, Loze e17, Tre Cime e19) en propiedad estructural.
@@ -87,13 +104,13 @@ Se conserva, línea por línea y con sus constantes: el paso 1 (crono según `RO
 
 Lo que cambia dentro del paso 3: `pickRole` sortea con una sola tirada por etapa, como hoy, pero sobre los nueve papeles en línea y con la fila de `ARCH.pesosComposicion` del relieve de la meta de ESA etapa (`ZONAS[metas[i]].relieve`), no con `ROUTE.mixWeights[terrain]` (l. 1315-1319, que se retira en el paso 8). La tabla es la de arquitectura §7.3 (las filas suman 1,00):
 
-| relieve | llana | llana_viento | media | media_alto | media_muro | reina_alto | reina_valle | reina_encadenada | montana_corta |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| llano | 0,50 | 0,25 | 0,15 | 0,07 | 0,03 | 0 | 0 | 0 | 0 |
-| ondulado | 0,40 | 0,10 | 0,25 | 0,15 | 0,10 | 0 | 0 | 0 | 0 |
-| media | 0,28 | 0,04 | 0,28 | 0,18 | 0,10 | 0,06 | 0,04 | 0 | 0,02 |
-| montana | 0,20 | 0,02 | 0,22 | 0,14 | 0,05 | 0,16 | 0,12 | 0,04 | 0,05 |
-| alta | 0,16 | 0 | 0,18 | 0,10 | 0,02 | 0,22 | 0,14 | 0,10 | 0,08 |
+| relieve  | llana | llana_viento | media | media_alto | media_muro | reina_alto | reina_valle | reina_encadenada | montana_corta |
+| -------- | ----- | ------------ | ----- | ---------- | ---------- | ---------- | ----------- | ---------------- | ------------- |
+| llano    | 0,50  | 0,25         | 0,15  | 0,07       | 0,03       | 0          | 0           | 0                | 0             |
+| ondulado | 0,40  | 0,10         | 0,25  | 0,15       | 0,10       | 0          | 0           | 0                | 0             |
+| media    | 0,28  | 0,04         | 0,28  | 0,18       | 0,10       | 0,06       | 0,04        | 0                | 0,02          |
+| montana  | 0,20  | 0,02         | 0,22  | 0,14       | 0,05       | 0,16       | 0,12        | 0,04             | 0,05          |
+| alta     | 0,16  | 0            | 0,18  | 0,10       | 0,02       | 0,22       | 0,14        | 0,10             | 0,08          |
 
 Dos ajustes de lectura: `llana_viento` solo existe si `ZONAS[meta].viento ≥ 2`; si no, su peso se suma a `llana` (el papel promete "llano abierto" en la ficha, nunca abanicos: decisión 17). Y los 0,12 de reina de la fila `media` (`ardenas`, `italia_centro`, `levante`, `britanicas`) solo sobreviven cuando la meta es la cordillera del país o una zona `montana`/`alta`, lo que en una zona de relieve `media` solo ocurre si ella misma es la cordillera; en `britanicas` (GB e IE, `cordillera: null`, relieve `media`, sección 6 §6.3) se degradan siempre, y en `ardenas` (BE, LU) también. PT y los Balcanes no son el caso: `portugal` y `balcanes` son zonas `montana` con cordillera propia (sección 6: la Torre es la reina de la Volta), y allí la reina es legítima. En cualquier otra zona `media` la regla de §7.1 paso 4 los degrada a `media_alto`, que es la lectura correcta de "reina en media montaña": un final en alto de 3 a 7 km.
 
@@ -111,8 +128,14 @@ Advertencia que hay que escribir y no esconder (juez del motor §1, l. 44): `mix
 `mixKm` (l. 536-554) da de 145 a 195 km a cualquier clase: una .2 de cinco etapas sale con etapas de 165 a 195 km, "la vuelta .2 más larga de Europa" (mapa 07 §4.1), y las 142 carreras de un día sin `km` miden 210 exactos (`row.km ?? 210`, l. 929; mapa 02 §1). `kmDe` lo sustituye con `ARCH.km.porClase` como TABLA por clase y papel, no como factor (decisión 36, banco §7.3: un factor 0,75 sobre el rango WT de un día da [150; 195] para una .2, por encima de los 180 del mapa 07 §4.1):
 
 ```ts
-export type KmRole = StageRole | 'un_dia' | 'un_dia_u23' | 'cri_u23'    // los tres extra solo los usan buildRace y nationalChampionships
-export function kmDe(role: KmRole, raceClass: RaceClass, n: number, last: boolean, rand: () => number): number
+export type KmRole = StageRole | 'un_dia' | 'un_dia_u23' | 'cri_u23' // los tres extra solo los usan buildRace y nationalChampionships
+export function kmDe(
+  role: KmRole,
+  raceClass: RaceClass,
+  n: number,
+  last: boolean,
+  rand: () => number,
+): number
 // n = número de etapas de la vuelta (1 en un día y en los nacionales de ruta; los nacionales de crono pasan 1 también:
 //     su rango no depende de n, ver abajo). Es lo que mixKm(role, n, last, rand) recibe hoy (l. 536-554) y kmDe conserva.
 // ARCH.km.porClase[raceClass][columna(role)] = [min, rango]; km = min + rand() * rango
@@ -125,34 +148,45 @@ export function kmDe(role: KmRole, raceClass: RaceClass, n: number, last: boolea
 // last && !esCrono(role) → × ROUTE.lastStageKmFactor 0,85; después min(km, ARCH.km.maxPorClase[raceClass]); Math.round
 ```
 
-| Clase | llana | media | reina | corta | un día | Fuente |
-| --- | --- | --- | --- | --- | --- | --- |
-| WT | [160, 30] | [150, 30] | [140, 40] | [120, 20] | [200, 60] | mapa 07 §4.1: una semana de 140 a 170 por etapa; un día de 175 a 295 (mediana ~230) |
-| Pro | [150, 30] | [140, 30] | [140, 35] | [120, 20] | [180, 50] | Pro y .1 por etapas de 130 a 170; un día de 170 a 240 |
-| .1 | [140, 30] | [135, 30] | [135, 35] | [115, 20] | [160, 40] | ídem, techo UCI 200 "a confirmar"; un día [160, 40] y no [170, 40] para que `min + rango` no pase de 200 (sección 12 §12.7) |
-| .2 | [110, 40] | [110, 40] | [115, 40] | [100, 20] | [140, 40] | .2 por etapas de 100 a 160; un día de 140 a 180 |
-| NC | | | | | `ruta` [180, 60]; `rutaU23` [140, 40]; `crono` [35, 10]; `cronoU23` [25, 10] | nacional de 180 a 260 en circuito; sub-23 de 120 a 180; cronos nacionales de 38 y 30 km hoy (`calendar.ts` l. 365-366), dentro de `nc_crono.km` [25; 45] (sección 5) |
+| Clase | llana     | media     | reina     | corta     | un día                                                                       | Fuente                                                                                                                                                               |
+| ----- | --------- | --------- | --------- | --------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| WT    | [160, 30] | [150, 30] | [140, 40] | [120, 20] | [200, 60]                                                                    | mapa 07 §4.1: una semana de 140 a 170 por etapa; un día de 175 a 295 (mediana ~230)                                                                                  |
+| Pro   | [150, 30] | [140, 30] | [140, 35] | [120, 20] | [180, 50]                                                                    | Pro y .1 por etapas de 130 a 170; un día de 170 a 240                                                                                                                |
+| .1    | [140, 30] | [135, 30] | [135, 35] | [115, 20] | [160, 40]                                                                    | ídem, techo UCI 200 "a confirmar"; un día [160, 40] y no [170, 40] para que `min + rango` no pase de 200 (sección 12 §12.7)                                          |
+| .2    | [110, 40] | [110, 40] | [115, 40] | [100, 20] | [140, 40]                                                                    | .2 por etapas de 100 a 160; un día de 140 a 180                                                                                                                      |
+| NC    |           |           |           |           | `ruta` [180, 60]; `rutaU23` [140, 40]; `crono` [35, 10]; `cronoU23` [25, 10] | nacional de 180 a 260 en circuito; sub-23 de 120 a 180; cronos nacionales de 38 y 30 km hoy (`calendar.ts` l. 365-366), dentro de `nc_crono.km` [25; 45] (sección 5) |
 
 Las dos columnas de crono nacional existen porque `kmDe` no tiene otra forma de distinguir la élite de la sub-23 (`nc-xx-itt` 38 km, `nc-xx-u23-itt` 30 km hoy): `n` es 1 en las dos y el rango de `ROUTE.itt*` es el de una crono de vuelta (14 a 26 km en vueltas cortas), no el de un campeonato. `nc_crono.km` [25; 45] de la sección 5 las contiene a las dos, y la acotación de §8.4 paso 1 a `[sk.km[0]; …]` no aplasta nada.
 
-`ARCH.km.maxPorClase` = { WT: 260, Pro: 240, '1': 200, '2': 180, NC: 260 } (D9: Pro, .1, .2 y NC son las cifras del mapa 07 §4.1; WT es 260 y no el "techo UCI 280 salvo excepciones como Sanremo" del mismo mapa porque 260 es el máximo que sortea `ARCH.km.porClase` un día WT [200; 60], y las carreras reales que pasan de 260 van por `km` de fila; todas con "a confirmar" en el comentario de la constante). El techo solo recorta lo GENERADO: las 36 filas con `km` explícito mandan sobre la tabla (Sanremo 288 y Flandes 278,2 van por `km` de fila, `calendar.ts` l. 1010-1016 y l. 1064-1070, las dos por encima del techo WT 260; §B.3 del esqueleto escribía "Sanremo 294"; la fila de `calendar.ts` dice 288, y es la cifra que usan las secciones 0, 12 y 17) y las ediciones reales llevan su km como contrato (`calendar.test.ts` l. 140-152). En un día, `buildRace` hace `km = row.km ?? kmDe('un_dia', row.raceClass, 1, false, routeRng(\`firma|${row.id}|km\`))`: el 210 desaparece desde la temporada 0 y el kilometraje es firma (estable entre ediciones salvo el jitter ± 6 % de `ARCH.edicion.kmJitter`, sección 10). La semilla lleva el sufijo `|km` y no es `firma|${row.id}` a secas porque `routeRng` (`profileGen.ts` l. 30-44) es mulberry32 sobre el hash de la cadena y dos llamadas con la misma cadena dan la MISMA secuencia desde el principio: con `firma|${raceId}`, que es la que §8.3 abre para instanciar los `Slot.firma` de la misma carrera, la primera tirada del km sería numéricamente la primera tirada de la firma (el km del muro de meta, por ejemplo) y las 142 carreras de un día tendrían el km y el primer parámetro de la meta perfectamente correlacionados. `firma|${raceId}|km` es un subflujo propio, sin `season`, y entra en la lista cerrada de §8.1 y en la tabla de §10.4 (fila "Firma": "`km` base con `firma|raceId|km`"). Los cuatro nacionales por país (`nc-xx-road` 220, `nc-xx-u23-road` 180, `nc-xx-itt` 38, `nc-xx-u23-itt` 30 hoy, `calendar.ts` l. 365-374, mapa 02 §3) pasan a `kmDe('un_dia', 'NC', 1, …)` = [180; 240], `kmDe('un_dia_u23', 'NC', 1, …)` = [140; 180], `kmDe('cri', 'NC', 1, …)` = [35; 45] y `kmDe('cri_u23', 'NC', 1, …)` = [25; 35], sembradas con `firma|nc-xx-…|km`. `raceRoutes.test.ts` no cambia porque `n` sigue viniendo de la fila (decisión 44). La firma de `kmDe` es la de aquí y la de la sección 3 (§3.6), con `n` y `KmRole` (`cri_u23` incluido), y `ARCH.km.porClase.NC` tiene las cuatro columnas `ruta`, `rutaU23`, `crono` y `cronoU23` (sección 12).
+`ARCH.km.maxPorClase` = { WT: 260, Pro: 240, '1': 200, '2': 180, NC: 260 } (D9: Pro, .1, .2 y NC son las cifras del mapa 07 §4.1; WT es 260 y no el "techo UCI 280 salvo excepciones como Sanremo" del mismo mapa porque 260 es el máximo que sortea `ARCH.km.porClase` un día WT [200; 60], y las carreras reales que pasan de 260 van por `km` de fila; todas con "a confirmar" en el comentario de la constante). El techo solo recorta lo GENERADO: las 36 filas con `km` explícito mandan sobre la tabla (Sanremo 288 y Flandes 278,2 van por `km` de fila, `calendar.ts` l. 1010-1016 y l. 1064-1070, las dos por encima del techo WT 260; §B.3 del esqueleto escribía "Sanremo 294"; la fila de `calendar.ts` dice 288, y es la cifra que usan las secciones 0, 12 y 17) y las ediciones reales llevan su km como contrato (`calendar.test.ts` l. 140-152). En un día, `buildRace` hace `km = row.km ?? kmDe('un_dia', row.raceClass, 1, false, routeRng(\`firma|${row.id}|km\`))`: el 210 desaparece desde la temporada 0 y el kilometraje es firma (estable entre ediciones salvo el jitter ± 6 % de `ARCH.edicion.kmJitter`, sección 10). La semilla lleva el sufijo `|km` y no es `firma|${row.id}`a secas porque`routeRng` (`profileGen.ts`l. 30-44) es mulberry32 sobre el hash de la cadena y dos llamadas con la misma cadena dan la MISMA secuencia desde el principio: con`firma|${raceId}`, que es la que §8.3 abre para instanciar los `Slot.firma` de la misma carrera, la primera tirada del km sería numéricamente la primera tirada de la firma (el km del muro de meta, por ejemplo) y las 142 carreras de un día tendrían el km y el primer parámetro de la meta perfectamente correlacionados. `firma|${raceId}|km`es un subflujo propio, sin`season`, y entra en la lista cerrada de §8.1 y en la tabla de §10.4 (fila "Firma": "`km`base con`firma|raceId|km`"). Los cuatro nacionales por país (`nc-xx-road`220,`nc-xx-u23-road`180,`nc-xx-itt`38,`nc-xx-u23-itt`30 hoy,`calendar.ts`l. 365-374, mapa 02 §3) pasan a`kmDe('un_dia', 'NC', 1, …)`= [180; 240],`kmDe('un_dia_u23', 'NC', 1, …)`= [140; 180],`kmDe('cri', 'NC', 1, …)`= [35; 45] y`kmDe('cri_u23', 'NC', 1, …)`= [25; 35], sembradas con`firma|nc-xx-…|km`. `raceRoutes.test.ts`no cambia porque`n`sigue viniendo de la fila (decisión 44). La firma de`kmDe`es la de aquí y la de la sección 3 (§3.6), con`n`y`KmRole` (`cri_u23`incluido), y`ARCH.km.porClase.NC`tiene las cuatro columnas`ruta`, `rutaU23`, `crono`y`cronoU23` (sección 12).
 
 Bandas de calendario que esto sostiene (sección 13, `ROUTE_CENSUS_TARGETS`), calculadas con el `kmJitter` ya aplicado y en filas separadas (sección 12 §12.7): p90 de km de las etapas de vuelta .2 ≤ 155 (p90 teórico 151,9 en la columna `reina`, que es la mayor); p50 de km de los un día .2 en [150; 170] (el p90 de un día .2 ronda 177, pegado al techo 180, y no se usa como banda); ninguna etapa generada por encima de `maxPorClase`; y en `tour.test.ts`, 120 semillas × clase × `n ∈ {3, 5, 8}`: todo `km[i]` dentro de `[min·0,85; min + rango]` de su columna (155 en la reina .2, 150 en llana y media .2, 120 en corta .2).
 
 ### 7.5 `composeTour`, `stageMix` con firma conservada y lo que ve `buildRace`
 
 ```ts
-export interface RouteContext {          // lo que hoy stageMix no sabe
-  raceId?: string                        // si falta, stageMix usa seedBase como raceId (y RACE_REGION no lo conoce: ancla en ruta[0])
-  country: string | null                 // null → TERRITORIOS fallback (zona `generico`)
+export interface RouteContext {
+  // lo que hoy stageMix no sabe
+  raceId?: string // si falta, stageMix usa seedBase como raceId (y RACE_REGION no lo conoce: ancla en ruta[0])
+  country: string | null // null → TERRITORIOS fallback (zona `generico`)
   raceClass: RaceClass
   format: RaceFormat
   season: number
-  edicion?: EdicionCfg                   // ARCH.edicion si falta; composeTour lo copia a cada StageRequest (sección 15, §15.8)
+  edicion?: EdicionCfg // ARCH.edicion si falta; composeTour lo copia a cada StageRequest (sección 15, §15.8)
 }
-export const DEFAULT_ROUTE_CONTEXT: RouteContext = { country: null, raceClass: '2', format: 'una-semana', season: ARCH.edicion.baseSeason }   // = BASE_SEASON; tour.ts no importa edition.ts (§3.6)
+export const DEFAULT_ROUTE_CONTEXT: RouteContext = {
+  country: null,
+  raceClass: '2',
+  format: 'una-semana',
+  season: ARCH.edicion.baseSeason,
+} // = BASE_SEASON; tour.ts no importa edition.ts (§3.6)
 
-export function composeTour(raceId: string, n: number, terrain: RouteTerrain, ctx: RouteContext): StageSpec[]
+export function composeTour(
+  raceId: string,
+  n: number,
+  terrain: RouteTerrain,
+  ctx: RouteContext,
+): StageSpec[]
 // 1. sk = tourSkeletonDe(n, ctx.raceClass)          (sin dado)
 // 2. it = itinerarioDe(raceId, ctx.country, n, terrain, ctx.raceClass, ctx.format)
 // 3. it.papeles.map((role, i) => generateStage({ raceId, stageIndex: i + 1, season: ctx.season, km: it.km[i], role,
@@ -160,8 +194,14 @@ export function composeTour(raceId: string, n: number, terrain: RouteTerrain, ct
 //      raceClass: ctx.raceClass, format: ctx.format, routeSource: 'generado' }))
 //    → { kind, label, profile, timeTrial, routeSource, arch } (StageSpec gana routeSource y arch; stagesFrom los conserva)
 
-export function stageMix(n: number, terrain: RouteTerrain, seedBase: string,
-  ctx: RouteContext = DEFAULT_ROUTE_CONTEXT): StageSpec[] { return composeTour(ctx.raceId ?? seedBase, n, terrain, ctx) }
+export function stageMix(
+  n: number,
+  terrain: RouteTerrain,
+  seedBase: string,
+  ctx: RouteContext = DEFAULT_ROUTE_CONTEXT,
+): StageSpec[] {
+  return composeTour(ctx.raceId ?? seedBase, n, terrain, ctx)
+}
 ```
 
 Las tres formas (`composeTour(raceId, n, terrain, ctx)`, `RouteContext` con `raceId?` y `country: string | null`, `Itinerario` con `notas`) son las de la sección 3 §3.6, que es el modelo; esta sección las repite tal cual y no añade `routeSource` a `RouteContext` porque `composeTour` solo produce `'generado'` (la edición no pasa por aquí, §7.6). `stageMix` conserva la firma con el cuarto parámetro por defecto (decisión 19, I-17) para que `calendar.test.ts` l. 168-266 y `stageKind.test.ts` compilen en todos los pasos del plan; con `DEFAULT_ROUTE_CONTEXT` el territorio es el `FALLBACK` (`generico`, ondulado, `cordillera: null`, con `cota` no nula y `finalesAlto: 'corto'`), y por eso `stageMix(5, 'mountain', seed)` sigue cerrando arriba en más de la mitad de las semillas (`lastDecisiveChance.mountain` 0,85 × `lastSummitShare` 0,8 da `reina_alto`, que §7.1 paso 4 degrada a `media_alto`; `generico` admite `et_media_alto`, así que la etiqueta rendida es `Uphill finish`, que es lo que `calendar.test.ts` l. 223-235 mira). `buildRace` (l. 900-939; la rama de `stageMix` en l. 934-938, con la llamada en l. 937) pasa a `stagesFrom(composeTour(row.id, row.stages, row.terrain ?? 'flat', { raceId: row.id, country, raceClass: row.raceClass, format: 'una-semana', season }))` con `restAfter: descansosDe(row.stages)`, y `calendarForSeason` es quien aporta `season` (sección 10). Los papeles, `timeTrial` y `n` son identidad (decisión 20): `edition.test.ts` sella que `itinerarioDe` no lee `season` y que temporadas 0 a 5 devuelven los mismos `papeles` y `metas`.
@@ -172,13 +212,13 @@ Lo que se retira de `ROUTE` con el generador viejo (paso 8): `mixWeights` (l. 13
 
 Las 60 entradas de `RACE_EDITIONS` (3 grandes vueltas, 54 vueltas de una semana y 3 clásicas de un día; `editions.ts` l. 25, mapa 02 §7) conservan composición real: número de etapas, km, terreno por etapa y `restAfter`. Ni `itinerarioDe` ni `composeTour` las tocan: `stagesFromEdition` (`calendar.ts` l. 230-241) deriva el papel del `EditionTerrain` (`'flat' | 'hilly' | 'mountain' | 'itt' | 'cobbles'`, `editions.ts` l. 10) de cada etapa y llama a `generateStage` con `routeSource: 'edicion'`, `km` como contrato al 0,1 y la zona de `regionOf(raceId, i, country)` por etapa (`race-france` e6 → `pirineos`; sección 6 y sección 11). Las cinco filas, cerradas:
 
-| `EditionTerrain` | `role` de la `StageRequest` | Esqueleto | Nota |
-| --- | --- | --- | --- |
-| `mountain` | `reina_alto` | un `et_reina_*` por sorteo `arch` (sección 5 §5.7), con la forma que decida el esqueleto | si la zona no admite reina se degrada por geografía y se anota (Muur del Benelux en `flandes`: `et_media_muro`, sección 5) |
-| `hilly` | `media` | `et_media_*` | |
-| `flat` | `llana` | `et_llana` (`et_llana_viento` si `viento ≥ 2`) | |
-| `itt` | `cri` | `et_prologo` si `km ≤ 8`, si no `et_crono`; nunca `et_cronoescalada` | el `km` es contrato y la edición no declara final en alto |
-| `cobbles` | `llana` | `ud_adoquin_ligero`, fijado con `fixed.skeleton` | las 4 etapas `cobbles` de edición (`editions.ts` l. 86, 217, 225, 415: Castelló, Hoeilaart, Geraardsbergen, Wallers-Arenberg) son la ÚNICA excepción a I-9 ("etapas de edición reciben esqueletos DE ETAPA"), declarada aquí, en la sección 5 §5.8 y en la sección 11: no existe `et_adoquin` en el catálogo de 32, `StageRole` no tiene papel de adoquín, y un adoquín de etapa real es exactamente un Denain. Sigue siendo `routeSource: 'edicion'` con `km` como contrato; `skeletons.test.ts` (sección 5 §5.9) sella que ninguna etapa `edicion` recibe un `ud_*` salvo estas, y `calendario.test.ts` que las 4 rinden segmentos `paves` |
+| `EditionTerrain` | `role` de la `StageRequest` | Esqueleto                                                                                | Nota                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ---------------- | --------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mountain`       | `reina_alto`                | un `et_reina_*` por sorteo `arch` (sección 5 §5.7), con la forma que decida el esqueleto | si la zona no admite reina se degrada por geografía y se anota (Muur del Benelux en `flandes`: `et_media_muro`, sección 5)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `hilly`          | `media`                     | `et_media_*`                                                                             |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `flat`           | `llana`                     | `et_llana` (`et_llana_viento` si `viento ≥ 2`)                                           |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `itt`            | `cri`                       | `et_prologo` si `km ≤ 8`, si no `et_crono`; nunca `et_cronoescalada`                     | el `km` es contrato y la edición no declara final en alto                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `cobbles`        | `llana`                     | `ud_adoquin_ligero`, fijado con `fixed.skeleton`                                         | las 4 etapas `cobbles` de edición (`editions.ts` l. 86, 217, 225, 415: Castelló, Hoeilaart, Geraardsbergen, Wallers-Arenberg) son la ÚNICA excepción a I-9 ("etapas de edición reciben esqueletos DE ETAPA"), declarada aquí, en la sección 5 §5.8 y en la sección 11: no existe `et_adoquin` en el catálogo de 32, `StageRole` no tiene papel de adoquín, y un adoquín de etapa real es exactamente un Denain. Sigue siendo `routeSource: 'edicion'` con `km` como contrato; `skeletons.test.ts` (sección 5 §5.9) sella que ninguna etapa `edicion` recibe un `ud_*` salvo estas, y `calendario.test.ts` que las 4 rinden segmentos `paves` |
 
 El papel de una etapa de edición es también identidad: lo fija el dato, no un dado.
 
@@ -187,61 +227,113 @@ El papel de una etapa de edición es también identidad: lo fija el dato, no un 
 ```ts
 describe('grammar/tour: composición como itinerario', () => {
   const seeds = Array.from({ length: 120 }, (_, i) => `tour-${i}`)
-  const PAISES = { BE: 'llano', XX: 'ondulado', GB: 'media', ES: 'montana', CO: 'alta' }   // XX = fallback; GB: britanicas, cordillera null
+  const PAISES = { BE: 'llano', XX: 'ondulado', GB: 'media', ES: 'montana', CO: 'alta' } // XX = fallback; GB: britanicas, cordillera null
 
   it('las cinco garantías siguen tras bloques y reparación', () => {
-    for (const n of [2, 3, 4, 5, 6, 7, 8, 9, 11, 15, 21]) for (const cc of Object.keys(PAISES)) for (const s of seeds) {
-      const it = itinerarioDe(s, cc, n, 'flat', '2', 'una-semana')
-      expect(it.papeles.some((r) => esCrono(r) || acabaArriba(r) || r === 'media_muro')).toBe(true)   // garantía de fondo
-      if (n >= 4) expect(it.papeles.some(esCrono)).toBe(true)                      // llana de 4+ lleva crono
-      expect(it.papeles[0] === 'llana' || it.papeles[0] === 'prologo').toBe(true)  // re-sellado: prólogo permitido
-      it.papeles.forEach((_, i) => expect(it.papeles.slice(i, i + 8).every(esLlana) && i + 8 <= n).toBe(false))   // nunca 8 llanas
-    }
+    for (const n of [2, 3, 4, 5, 6, 7, 8, 9, 11, 15, 21])
+      for (const cc of Object.keys(PAISES))
+        for (const s of seeds) {
+          const it = itinerarioDe(s, cc, n, 'flat', '2', 'una-semana')
+          expect(it.papeles.some((r) => esCrono(r) || acabaArriba(r) || r === 'media_muro')).toBe(
+            true,
+          ) // garantía de fondo
+          if (n >= 4) expect(it.papeles.some(esCrono)).toBe(true) // llana de 4+ lleva crono
+          expect(it.papeles[0] === 'llana' || it.papeles[0] === 'prologo').toBe(true) // re-sellado: prólogo permitido
+          it.papeles.forEach((_, i) =>
+            expect(it.papeles.slice(i, i + 8).every(esLlana) && i + 8 <= n).toBe(false),
+          ) // nunca 8 llanas
+        }
   })
   it('ninguna reina en un país sin cordillera ni zona de finales largos (BE, NL, DK, AE, AU)', () => {
-    for (const cc of ['BE', 'NL', 'DK', 'AE', 'AU']) for (const n of [4, 6, 8]) for (const s of seeds) {
-      const it = itinerarioDe(s, cc, n, 'mountain', 'Pro', 'una-semana')
-      expect(it.papeles.filter(esReina)).toHaveLength(0)
-    }
+    for (const cc of ['BE', 'NL', 'DK', 'AE', 'AU'])
+      for (const n of [4, 6, 8])
+        for (const s of seeds) {
+          const it = itinerarioDe(s, cc, n, 'mountain', 'Pro', 'una-semana')
+          expect(it.papeles.filter(esReina)).toHaveLength(0)
+        }
   })
   it('AR y CL: como máximo una reina por vuelta, siempre reina_alto (et_reina_blanda)', () => {
-    for (const cc of ['AR', 'CL']) for (const n of [5, 8]) for (const s of seeds) {
-      const reinas = itinerarioDe(s, cc, n, 'mountain', '2', 'una-semana').papeles.filter(esReina)
-      expect(reinas.length).toBeLessThanOrEqual(1); reinas.forEach((r) => expect(r).toBe('reina_alto'))
-    }
+    for (const cc of ['AR', 'CL'])
+      for (const n of [5, 8])
+        for (const s of seeds) {
+          const reinas = itinerarioDe(s, cc, n, 'mountain', '2', 'una-semana').papeles.filter(
+            esReina,
+          )
+          expect(reinas.length).toBeLessThanOrEqual(1)
+          reinas.forEach((r) => expect(r).toBe('reina_alto'))
+        }
   })
   it('la reina cae en una meta de cordillera o de zona montana/alta, y tarde', () => {
     for (const s of seeds) {
       const it = itinerarioDe(s, 'ES', 7, 'mountain', 'WT', 'una-semana')
-      it.papeles.forEach((r, i) => { if (esReina(r)) { expect(admiteReina(it.metas[i], 'pirineos')).toBe(true); expect(i).toBeGreaterThanOrEqual(4) } })
+      it.papeles.forEach((r, i) => {
+        if (esReina(r)) {
+          expect(admiteReina(it.metas[i], 'pirineos')).toBe(true)
+          expect(i).toBeGreaterThanOrEqual(4)
+        }
+      })
     }
   })
   it('gran vuelta generada: descansos tras 9 y 15, reina en ventanaReina(n), ≤ 1 final en alto en la primera semana, ≤ 7 de alta montaña, ≤ 3 cronos', () => {
-    expect(descansosDe(21)).toEqual([9, 15]); expect(descansosDe(15)).toEqual([9]); expect(descansosDe(11)).toEqual([])
-    expect(ventanaReina(21)).toEqual([14, 19]); expect(ventanaReina(16)).toEqual([10, 14]); expect(ventanaReina(15)).toEqual([10, 13])
-    for (const n of [15, 16, 21]) { let conReina = 0
-      for (const s of seeds) { const it = itinerarioDe(s, 'ES', n, 'mountain', 'WT', 'gran-vuelta')
-        it.papeles.forEach((r, i) => { if (esReina(r)) expect(i >= ventanaReina(n)[0] && i <= ventanaReina(n)[1]).toBe(true) })
+    expect(descansosDe(21)).toEqual([9, 15])
+    expect(descansosDe(15)).toEqual([9])
+    expect(descansosDe(11)).toEqual([])
+    expect(ventanaReina(21)).toEqual([14, 19])
+    expect(ventanaReina(16)).toEqual([10, 14])
+    expect(ventanaReina(15)).toEqual([10, 13])
+    for (const n of [15, 16, 21]) {
+      let conReina = 0
+      for (const s of seeds) {
+        const it = itinerarioDe(s, 'ES', n, 'mountain', 'WT', 'gran-vuelta')
+        it.papeles.forEach((r, i) => {
+          if (esReina(r)) expect(i >= ventanaReina(n)[0] && i <= ventanaReina(n)[1]).toBe(true)
+        })
         expect(it.papeles.filter(esCrono).length).toBeLessThanOrEqual(3)
-        if (it.papeles.some(esReina)) conReina++ /* y las demás aserciones de §7.2 */ }
-      expect(conReina).toBeGreaterThan(seeds.length / 2) }                         // n = 15 y 16 no se quedan sin reina por construcción
+        if (it.papeles.some(esReina)) conReina++ /* y las demás aserciones de §7.2 */
+      }
+      expect(conReina).toBeGreaterThan(seeds.length / 2)
+    } // n = 15 y 16 no se quedan sin reina por construcción
   })
-  it('vu_corta lleva como mucho una crono y una reina; el prólogo solo aparece con n ≥ 6', () => { /* n 2..5 × 120 semillas */ })
-  it('km por clase: ninguna etapa .2 supera min + rango de su columna (155 reina, 150 llana y media, 120 corta) ni 180; p90 de las etapas .2 ≤ 155', () => { /* kmDe × 120 semillas × n ∈ {3, 5, 8} */ })
+  it('vu_corta lleva como mucho una crono y una reina; el prólogo solo aparece con n ≥ 6', () => {
+    /* n 2..5 × 120 semillas */
+  })
+  it('km por clase: ninguna etapa .2 supera min + rango de su columna (155 reina, 150 llana y media, 120 corta) ni 180; p90 de las etapas .2 ≤ 155', () => {
+    /* kmDe × 120 semillas × n ∈ {3, 5, 8} */
+  })
   it('la crono nacional distingue élite y sub-23, y la de vuelta larga usa el rango largo', () => {
-    for (const s of seeds) { const r = routeRng(s)
-      expect(kmDe('cri', 'NC', 1, false, r)).toBeGreaterThanOrEqual(35); expect(kmDe('cri_u23', 'NC', 1, false, r)).toBeLessThanOrEqual(35)
-      expect(kmDe('cri', 'WT', 10, false, r)).toBeGreaterThanOrEqual(26); expect(kmDe('cri', 'WT', 5, false, r)).toBeLessThanOrEqual(26) }
+    for (const s of seeds) {
+      const r = routeRng(s)
+      expect(kmDe('cri', 'NC', 1, false, r)).toBeGreaterThanOrEqual(35)
+      expect(kmDe('cri_u23', 'NC', 1, false, r)).toBeLessThanOrEqual(35)
+      expect(kmDe('cri', 'WT', 10, false, r)).toBeGreaterThanOrEqual(26)
+      expect(kmDe('cri', 'WT', 5, false, r)).toBeLessThanOrEqual(26)
+    }
   })
   it('el itinerario es identidad: no lee season, arranca en la zona curada y avanza por una ventana contigua de la ruta', () => {
-    for (const race of SEASON_CALENDAR.filter((r) => !r.championshipCountry && !RACE_EDITIONS[r.id] && r.stages.length > 1)) {   // las 72
-      const it = itinerarioDe(race.id, race.country ?? null, race.stages.length, terrainDe(race.id), race.raceClass, 'una-semana')
-      expect(it.metas[0]).toBe(RACE_REGION[race.id].default)                                     // decisión 14: sin sorteo de zona
+    for (const race of SEASON_CALENDAR.filter(
+      (r) => !r.championshipCountry && !RACE_EDITIONS[r.id] && r.stages.length > 1,
+    )) {
+      // las 72
+      const it = itinerarioDe(
+        race.id,
+        race.country ?? null,
+        race.stages.length,
+        terrainDe(race.id),
+        race.raceClass,
+        'una-semana',
+      )
+      expect(it.metas[0]).toBe(RACE_REGION[race.id].default) // decisión 14: sin sorteo de zona
     }
-    const it = itinerarioDe('race-x', 'ES', 6, 'hilly', '1', 'una-semana')                         // sin RACE_REGION: ancla en ruta[0]
-    const ruta = TERRITORIOS.ES.ruta.map((z) => z.zona), L = ruta.length
+    const it = itinerarioDe('race-x', 'ES', 6, 'hilly', '1', 'una-semana') // sin RACE_REGION: ancla en ruta[0]
+    const ruta = TERRITORIOS.ES.ruta.map((z) => z.zona),
+      L = ruta.length
     expect(it.metas[0]).toBe(ruta[0])
-    it.metas.forEach((z, i) => { if (i > 0) { const k = ruta.indexOf(it.metas[i - 1]); expect([ruta[k], ruta[(k + 1) % L], ruta[(k - 1 + L) % L]]).toContain(z) } })
+    it.metas.forEach((z, i) => {
+      if (i > 0) {
+        const k = ruta.indexOf(it.metas[i - 1])
+        expect([ruta[k], ruta[(k + 1) % L], ruta[(k - 1 + L) % L]]).toContain(z)
+      }
+    })
     expect(it.notas.every((n) => typeof n === 'string')).toBe(true)
   })
 })
