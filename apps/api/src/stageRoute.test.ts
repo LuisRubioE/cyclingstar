@@ -46,7 +46,16 @@ describe('api: el origen y la edición de cada etapa', () => {
     for (const race of SEASON_CALENDAR)
       for (const st of race.stages) {
         const frase = st.arch?.frase ?? ''
-        for (const palabra of ['abanico', 'oxígeno', 'hipoxia', 'falta de aire'])
+        for (const palabra of [
+          'abanico',
+          'oxígeno',
+          'hipoxia',
+          'falta de aire',
+          'echelon',
+          'crosswind',
+          'oxygen',
+          'hypoxia',
+        ])
           expect(frase).not.toContain(palabra)
       }
   })

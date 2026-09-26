@@ -151,7 +151,7 @@ describe('contratos: calendario y carrera', () => {
     altimetry: '<svg/>',
     routeSource: 'edicion',
     edicion: 1,
-    arch: { frase: 'Llano; esprint', skeleton: 'et_llana', geo: 'meseta' },
+    arch: { frase: 'Flat; sprint finish', skeleton: 'et_llana', geo: 'meseta' },
     cambiosRespectoAnterior: [],
   }
 
@@ -241,7 +241,7 @@ describe('contratos: calendario y carrera', () => {
       altimetry: '<svg/>',
       routeSource: 'generado',
       edicion: 3,
-      arch: { frase: 'Llano; esprint', skeleton: 'et_llana', geo: 'meseta' },
+      arch: { frase: 'Flat; sprint finish', skeleton: 'et_llana', geo: 'meseta' },
       cambiosRespectoAnterior: ['192 km → 201 km'],
     }
     expect(raceStagePlanSchema.parse(generada)).toEqual(generada)
@@ -258,7 +258,7 @@ describe('contratos: calendario y carrera', () => {
     const sinCambios: Record<string, unknown> = { ...planStage }
     delete sinCambios.cambiosRespectoAnterior
     expect(raceStagePlanSchema.safeParse(sinCambios).success).toBe(false)
-    expect(raceStagePlanSchema.safeParse({ ...planStage, arch: { frase: 'Llano' } }).success).toBe(
+    expect(raceStagePlanSchema.safeParse({ ...planStage, arch: { frase: 'Flat' } }).success).toBe(
       false,
     )
   })

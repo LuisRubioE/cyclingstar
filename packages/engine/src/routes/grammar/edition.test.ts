@@ -555,9 +555,9 @@ describe('diffMotivos', () => {
       ),
     ).toEqual([
       '192 km → 201 km',
-      '9 vueltas → 10',
-      'final: canónica → Bérgamo',
-      'una cota más: cota de 3,1 km al 5 %',
+      '9 laps → 10',
+      'finish: standard → Bérgamo',
+      'one more hill: hill of 3.1 km at 5%',
     ])
     expect(
       diffMotivos(
@@ -565,8 +565,8 @@ describe('diffMotivos', () => {
         { km: 180.9, motivos: [meta] },
       ),
     ).toEqual([
-      'desaparece la cota de 3,1 km al 5 %',
-      'desaparece el sector de adoquín de 1,8 km (3★)',
+      'the hill of 3.1 km at 5% is dropped',
+      'the cobbled sector of 1.8 km (3★) is dropped',
     ])
   })
   it('lo que no anuncia: menos de 1 km, la firma y los parámetros de un hueco que sigue ahí', () => {

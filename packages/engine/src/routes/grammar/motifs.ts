@@ -69,7 +69,7 @@ export interface Motif {
   meta?: MetaKind // solo `meta`
   cotaFinal?: { km: number; g: number } // `meta` con cota
   firma?: boolean // motivo de FIRMA: no cambia entre ediciones
-  nombre?: string // texto para la ficha ("Muro de 1,2 km al 11 %")
+  nombre?: string // texto para la ficha, en inglés ("no pass here")
 }
 
 /** Fábrica de corrientes de azar por subflujo nominal, al estilo de `stageRng` (stage/rng.ts l. 26-29). */
@@ -702,13 +702,14 @@ const CADENA_DE: Partial<Record<MotifKind, MotifKind[]>> = {
   cota: ['cota', 'muro'],
   muro: ['muro', 'cota'],
 }
+/** El sufijo de la frase (§8.13) cuando un hueco se quedó sin motivo: en inglés, como la frase entera. */
 const NOMBRE_SIN: Partial<Record<MotifKind, string>> = {
-  puerto: 'sin puerto aquí',
-  cota: 'sin cota aquí',
-  muro: 'sin muro aquí',
-  sector: 'sin sector aquí',
-  racimo: 'sin sectores aquí',
-  cadena: 'sin muros aquí',
+  puerto: 'no pass here',
+  cota: 'no hill here',
+  muro: 'no wall here',
+  sector: 'no sector here',
+  racimo: 'no sectors here',
+  cadena: 'no walls here',
 }
 
 interface Ctx {

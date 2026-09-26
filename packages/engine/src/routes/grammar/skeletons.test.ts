@@ -866,7 +866,7 @@ describe('etapas de edición', () => {
       role: 'reina_alto',
     })
     expect(g.arch.skeleton).toBe('et_media_muro')
-    expect(g.arch.frase).toMatch(/degradad/)
+    expect(g.arch.frase).toMatch(/downgraded/)
   })
   it('Colombia e5 de REAL_QUEENS ya no es una clásica de montaña', () => {
     const g = stagesForSeason('race-colombia', BASE_SEASON)[4]!

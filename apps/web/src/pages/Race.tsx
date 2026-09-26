@@ -288,9 +288,9 @@ function StageLine({ stage, oneDay }: { stage: RaceStagePlan; oneDay: boolean })
  * mapa, y lo que cambió respecto de la edición anterior. Una etapa real no lleva ni frase ni edición:
  * no varía de un año a otro.
  *
- * La frase y los cambios los escribe el motor en castellano (`arch.frase`, `diffMotivos`): se
- * enseñan tal cual, marcados `lang="es"`, hasta que el multiidioma (E10) los traduzca motivo a
- * motivo. Traducirlos aquí sería una segunda gramática que mantener al lado de la del motor.
+ * La frase y los cambios los escribe el motor ya en inglés (`arch.frase`, `diffMotivos`; v87 §3),
+ * como el resto de la interfaz del MVP, y se enseñan tal cual. Traducirlos aquí sería una segunda
+ * gramática que mantener al lado de la del motor; el multiidioma (E10) los traducirá allí.
  */
 function StageRouteNote({ stage }: { stage: RaceStagePlan }) {
   const real = stage.routeSource === 'real'
@@ -302,15 +302,11 @@ function StageRouteNote({ stage }: { stage: RaceStagePlan }) {
         </span>
         {!real && <span className="text-slate-400">{editionLabel(stage.edicion)}</span>}
       </p>
-      {!real && stage.arch && (
-        <p lang="es" className="text-slate-600">
-          {stage.arch.frase}
-        </p>
-      )}
+      {!real && stage.arch && <p className="text-slate-600">{stage.arch.frase}</p>}
       {!real && stage.cambiosRespectoAnterior.length > 0 && (
         <div>
           <p className="text-slate-400">Changes from the last edition</p>
-          <ul lang="es" className="list-disc pl-4 text-slate-500">
+          <ul className="list-disc pl-4 text-slate-500">
             {stage.cambiosRespectoAnterior.map((cambio) => (
               <li key={cambio}>{cambio}</li>
             ))}
