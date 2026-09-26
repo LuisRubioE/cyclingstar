@@ -17639,3 +17639,7 @@ La matriz de `.github/workflows/ci.yml` corrida en local con la orden del CI (`p
 ### Deudas de v87 §6 que se mueven
 
 La 5 (D2) pasa a `docs/encargos.md`. La 6 (D6) queda decidida: [6; 30]. La 9 cambia de cifra: 49 de 846 pares en el tope de su familia, por las `nc_crono` de `generico`, y la cierra un cambio de la forma de `nc_crono` o sacar los nacionales del control, que el dueño no eligió. La 10 sigue. La 13 queda medida: ningún techo de catálogo la cierra. La 16 se cierra: el suelo es 15 y se cumple. La 17 queda aceptada.
+
+### Lo que el dueño acepta tal como queda (26/09/2026)
+
+Tras ver el resultado de la v89, el dueño decide dejar las dos cosas que no se cerraron. La banda `variedad.correlacion.max` sigue en `it.todo` con 49 de 846 pares por encima del tope de su familia, casi todos cronos nacionales de `generico`; no se sacan los nacionales del control ni se rediseña `nc_crono`. La dispersión del desnivel de las reinas en las temporadas 1 a 5 sigue por debajo de 500 m, también en `it.todo`. En consecuencia `sim/legacy/` se conserva, porque la condición (b) de la decisión 30 no se cumple, y además `transicionE1` sigue leyendo `legacyCalendar()`. Ninguna de las dos es un error pendiente: son límites aceptados, y reabrirlos es una decisión nueva del dueño.
