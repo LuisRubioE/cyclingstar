@@ -1038,7 +1038,10 @@ export const SKELETONS: Record<SkeletonId, Skeleton> = {
         hijos: [
           { motif: 'cota', n: [1, 1], ventana: [0.05, 0.4], params: { kmRango: [3.3, 6] } },
           { motif: 'muro', n: [0, 2], ventana: [0.4, 0.9] },
-          { motif: 'sector', n: [0, 2], ventana: [0.2, 0.8] },
+          // Paso 9: de una a tres estrellas. Un sector de cinco en cada vuelta (13 pasos por un
+          // Carrefour de l'Arbre, `nc-be-road`) dejaba al pelotón entero sin depósito; el pavé de un
+          // circuito de campeonato es de calle, no de Roubaix (balance v87 §2, saturación).
+          { motif: 'sector', n: [0, 2], ventana: [0.2, 0.8], params: { estrellasRango: [1, 3] } },
         ],
       },
     ],

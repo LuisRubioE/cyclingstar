@@ -40,8 +40,8 @@ const filas = routeCensus(calendarForSeason(BASE_SEASON)) // 1.418 filas
  * equipos (los nacionales llevan dos esqueletos por país por construcción, decisión 15; §13.3 los
  * saca de las bandas de esqueletos): 2,30 bits el peor, `macizo_central`. `km.clase.max` mide solo lo
  * sorteado: el km de una edición real es un contrato (§3.7) y no pasa por el techo (D9, decisión 36):
- * 0. `nacionales.firmas` sube de 4 a 6 corrigiendo `nc_ruta` (el circuito pierde una vuelta antes que
- * un muro, y un `expuesto` delante del circuito donde la zona tiene viento, §13.3).
+ * 0. `nacionales.firmas` sube de 4 a 6 corrigiendo `nc_ruta`: un circuito con cota pierde una vuelta
+ * antes que su muro, y delante del circuito va un `expuesto` donde la zona tiene viento (§13.3).
  */
 const PENDIENTES: Readonly<Record<string, string>> = {
   'finales.reparto.valleLargo':

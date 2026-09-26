@@ -1465,7 +1465,16 @@ export const ARCH = {
     },
     // El rango ANCHO de un circuito, del critérium (2,5 km × 22) a Montréal (17-18 vueltas); cada
     // esqueleto lo estrecha. Sus dificultades ocupan como mucho el 80 % de la vuelta.
-    circuito: { kmVuelta: [1.5, 30] as Rango, vueltas: [2, 40] as Rango, maxHijosShare: 0.8 },
+    circuito: {
+      kmVuelta: [1.5, 30] as Rango,
+      vueltas: [2, 40] as Rango,
+      maxHijosShare: 0.8,
+      // Paso 9: vueltas × (muros y sectores por vuelta), como mucho. Es el techo de la banda
+      // `muros.cotas.p90` (§12.12: una clásica de muros pasa por 10 a 20 cotas). Con 24 pasos por muro
+      // (`nc-nl-u23-road`) o 13 vueltas con un sector y un muro pegados (`nc-be-road`, 26 pasos) el
+      // depósito del pelotón llegaba a cero en el banco de saturación (balance v87 §2).
+      pasosDeClasicaMax: 20,
+    },
     // Falso llano largo tipado `llano`: desgasta, no selecciona, no suma `kmSubida` (Turchino, Almería).
     // `tramos` y `ruido` (paso 3): se rinde como UN `llano` de 2 a 4 tramos a `g ± 0,7` (§4.2); con el
     // techo 3,5 sus tramos llegan al 4,2 %, y por eso ninguna tendida termina en los últimos 15 km.

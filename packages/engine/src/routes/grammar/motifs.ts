@@ -1190,28 +1190,51 @@ export function instanciarFirma(
     // techo, la vuelta pierde pasos (sin dados) y se alarga lo que haga falta para conservar la
     // aproximación: un nacional de 16 vueltas con una cota de 4 km al 5 % son 3.200 m de subida.
     let km = kmVuelta
-    // Paso 9: primero las vueltas y después los hijos. Una vuelta menos quita más desnivel que un muro
-    // y conserva lo que la zona pone en el circuito (§6.5: el nacional genérico o el italiano llevan
-    // cota Y muro); quitando el muro antes, 260 de los 266 nacionales en ruta salían con la misma firma
-    // (`nacionales.firmas`, balance v87 §1). Sin dados: se pregunta sobre una copia de los hijos.
-    const copia = (): Hijo[] => hijos.map((h) => ({ ...h, m: { ...h.m } }))
-    while (
-      v > vR[0] &&
-      !ajustaAlTecho(copia(), Math.min(vR[1], v + 1), req.km, ctx, techoDeDesnivel(sk), true)
-    ) {
+    const unaVueltaMenos = (): boolean => {
       const r2 = rangoKv(v - 1)
-      if (r2 === null) break
+      if (r2 === null) return false
       v--
       km = Math.min(r2[1], Math.max(r2[0], r1((km * (v + 1)) / v)))
+      return true
+    }
+    // Paso 9: en un circuito CON cota (la variante `media` de `nc_ruta`) se quita antes una vuelta que
+    // un hijo. La cota lleva el desnivel y el muro es lo que la zona añade (§6.5: el nacional genérico,
+    // el italiano o el danés llevan cota Y muro); quitando el muro primero, 260 de los 266 nacionales en
+    // ruta salían con la misma firma (`nacionales.firmas`, balance v87 §1). En un circuito de muros
+    // (`ud_circuito`, la variante clásica) el orden no cambia: ahí más muros por vuelta es más castigo
+    // que desnivel y llevaba el depósito a cero (balance v87 §2, saturación). Se pregunta sobre una
+    // copia de los hijos, sin dados.
+    if (hijos.some((h) => h.m.kind === 'cota')) {
+      const copia = (): Hijo[] => hijos.map((h) => ({ ...h, m: { ...h.m } }))
+      while (
+        v > vR[0] &&
+        !ajustaAlTecho(copia(), Math.min(vR[1], v + 1), req.km, ctx, techoDeDesnivel(sk), true) &&
+        unaVueltaMenos()
+      );
     }
     while (
       !ajustaAlTecho(hijos, Math.min(vR[1], v + 1), req.km, ctx, techoDeDesnivel(sk)) &&
-      v > vR[0]
-    ) {
-      const r2 = rangoKv(v - 1)
-      if (r2 === null) break
-      v--
-      km = Math.min(r2[1], Math.max(r2[0], r1((km * (v + 1)) / v)))
+      v > vR[0] &&
+      unaVueltaMenos()
+    );
+    // Paso 9: y los pasos por muros y sectores, como las dificultades de una clásica de muros
+    // (`muros.cotas.p90` ≤ 20, §12.12). Con 24 pasos por muro (`nc-nl-u23-road`, 12 vueltas con dos) o
+    // 13 vueltas con un sector y un muro pegados (`nc-be-road`) el depósito del pelotón llegaba a cero
+    // (balance v87 §2, saturación). Primero vueltas, que conserva lo que la zona pone en la vuelta; si
+    // con las mínimas aún pasa, el hijo opcional del final de la vuelta (nunca la última subida).
+    const esDeClasica = (m: Motif): boolean => m.kind === 'muro' || m.kind === 'sector'
+    const pasos = (): number =>
+      Math.min(vR[1], v + 1) * hijos.filter((h) => esDeClasica(h.m)).length
+    const max = ARCH.motivo.circuito.pasosDeClasicaMax
+    while (pasos() > max && v > vR[0] && unaVueltaMenos());
+    while (pasos() > max) {
+      let i = -1
+      hijos.forEach((h, k) => {
+        const ultimaSubida = sube(h.m) && hijos.filter((x) => sube(x.m)).length <= 1
+        if (!h.obligatorio && esDeClasica(h.m) && !ultimaSubida) i = k
+      })
+      if (i < 0) break
+      hijos.splice(i, 1)
     }
     const cierreMax =
       conAMeta && aMetaValle !== null
@@ -1358,7 +1381,7 @@ function ajustaAlTecho(
   // 1) la pendiente, hacia el suelo del motivo y de la zona
   for (const h of subidas()) h.m.g = suelo(h.m)
   // Con `soloPendiente` (sobre una copia) solo se pregunta si basta con la pendiente: es lo que decide
-  // si el circuito pierde una vuelta antes de perder un hijo (paso 9, `instanciarFirma`).
+  // si un circuito con cota pierde una vuelta antes que un hijo (paso 9, `instanciarFirma`).
   if (soloPendiente) return total() <= objetivo
   // 2) los hijos opcionales, del último hacia atrás, sin quitar la última subida de la vuelta
   while (total() > objetivo && subidas().length > 1) {
