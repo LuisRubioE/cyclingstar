@@ -15,7 +15,14 @@
  *  - **Sin validar** — la etapa viene de una EDICIÓN REAL (`RACE_EDITIONS`): el origen, el destino y
  *    los kilómetros son los de verdad, pero el relieve lo genera el motor a partir del terreno
  *    declarado. La silueta es plausible, no es la de la carretera.
- *  - **Inventado** — no hay edición: el recorrido entero sale del generador (`stageMix` + `profileGen`).
+ *  - **Inventado** — no hay edición: el recorrido entero sale de la gramática de motivos
+ *    (`routes/grammar/`, docs/generador.md).
+ *
+ * Desde la v87 el calendario DECLARA la procedencia de cada etapa (`stage.routeSource`: `real`,
+ * `edicion` o `generado`, docs/generador.md §11.4) y este script la lee en vez de deducirla; de las
+ * no reales imprime además el esqueleto y la zona de la gramática (`arch.skeleton`, `arch.geo`). El
+ * inventario es del calendario BASE (temporada 0): la edición de cada temporada cambia el dibujo de
+ * lo generado, no su procedencia.
  *
  * Genera `docs/inventario-recorridos.md`. Lee del `dist` compilado, como el resto del banco.
  *
@@ -25,7 +32,6 @@
 import { writeFileSync } from 'node:fs'
 import { SEASON_CALENDAR } from '../packages/engine/dist/routes/calendar.js'
 import { RACE_EDITIONS } from '../packages/engine/dist/routes/editions.js'
-import { STAGE_FEATURES } from '../packages/engine/dist/routes/stageFeatures.js'
 import { stageLengthKm } from '../packages/engine/dist/stage/sample.js'
 
 /** Cómo se llama cada tipo de etapa del motor en el documento. */
@@ -37,22 +43,21 @@ const KIND = {
   clasica: 'Clásica',
 }
 
-/** Procedencia de una etapa: la pregunta que el documento viene a responder. */
 /**
- * La procedencia de UNA etapa.
- *
- * OJO CON LA CLAVE, que es donde este documento mintió: `STAGE_FEATURES` se indexa por id de CARRERA
- * y su valor es un ARRAY por etapa (`null` en las que no tienen rasgos). No hay claves `id:n`. Con la
- * clave equivocada, las 145 etapas con relieve real de las grandes vueltas y de las de una semana del
- * WorldTour salían como «inventadas», y el inventario decía que solo el 1,4 % del juego era fiel
- * cuando la cifra de verdad es el 12 %.
+ * La procedencia de UNA etapa: la que declara el calendario (`stage.routeSource`). Antes se deducía
+ * aquí cruzando `STAGE_FEATURES` y `RACE_EDITIONS`, y esa deducción ya se equivocó una vez de clave
+ * (las 145 etapas reales de las vueltas del WorldTour salían «inventadas»). Ahora la pone la rama de
+ * `buildRace` que construye la etapa, y el script no tiene nada que adivinar.
  */
-function provenance(race, index) {
-  const feats = STAGE_FEATURES[race.id]
-  const hit = Array.isArray(feats) ? feats[index - 1] : race.stages.length === 1 ? feats : null
-  if (hit) return 'Real'
-  return RACE_EDITIONS[race.id] ? 'Sin validar' : 'Inventado'
+const PROV = { real: 'Real', edicion: 'Sin validar', generado: 'Inventado' }
+function provenance(stage) {
+  const p = PROV[stage.routeSource]
+  if (!p) throw new Error(`routeSource desconocido: ${stage.routeSource}`)
+  return p
 }
+
+/** El origen de una carrera entera (`CalendarRace.routeSource`, agregado de sus etapas). */
+const RACE_PROV = { real: 'real', mixto: 'mixto', generado: 'generado' }
 
 const MARK = { Real: '✅ Real', 'Sin validar': '🟡 Sin validar', Inventado: '🔴 Inventado' }
 
@@ -76,7 +81,10 @@ for (const race of SEASON_CALENDAR) {
       from: ed?.from ?? '',
       to: ed?.to ?? '',
       km: Math.round(ed?.km ?? stageLengthKm(stage.profile)),
-      prov: provenance(race, index),
+      prov: provenance(stage),
+      // La arquitectura de la gramática en lo que no es real: esqueleto y zona.
+      arch: stage.arch ? `\`${stage.arch.skeleton}\` · ${stage.arch.geo}` : '',
+      raceSource: RACE_PROV[race.routeSource] ?? race.routeSource,
     })
   }
 }
@@ -121,7 +129,7 @@ out.push(
   '|---|---|---|',
   '| ✅ **Real** | rasgos autorizados en `STAGE_FEATURES`, puestos a mano desde fuente citada (`docs/fuentes-recorridos.md`) | los puertos y el pavé están donde están de verdad |',
   '| 🟡 **Sin validar** | viene de una edición real (`RACE_EDITIONS`): origen, destino y km son los de verdad | la distancia y las ciudades; **el relieve lo genera el motor** |',
-  '| 🔴 **Inventado** | no hay edición: recorrido entero del generador | nada: es plausible, no es real |',
+  '| 🔴 **Inventado** | no hay edición: recorrido entero de la gramática de motivos | nada: es plausible, no es real |',
 )
 out.push('')
 out.push('## El estado, en una tabla')
@@ -159,15 +167,15 @@ for (const r of rows) {
     out.push(
       `### ${r.raceName} \`${r.raceId}\``,
       '',
-      `Clase **${r.raceClass}**${r.country ? ` · ${r.country.toUpperCase()}` : ''} · día ${r.startDay} · ${rs.length} etapa${rs.length === 1 ? '' : 's'} · ${resumen}`,
+      `Clase **${r.raceClass}**${r.country ? ` · ${r.country.toUpperCase()}` : ''} · día ${r.startDay} · ${rs.length} etapa${rs.length === 1 ? '' : 's'} · recorrido ${r.raceSource} · ${resumen}`,
       '',
-      '| # | tipo | origen | destino | km | procedencia |',
-      '|---:|---|---|---|---:|---|',
+      '| # | tipo | origen | destino | km | procedencia | esqueleto · zona |',
+      '|---:|---|---|---|---:|---|---|',
     )
   }
   const kind = r.label ? `${r.kind} · ${r.label}` : r.kind
   out.push(
-    `| ${r.index} | ${kind} | ${r.from || '—'} | ${r.to || '—'} | ${r.km} | ${MARK[r.prov]} |`,
+    `| ${r.index} | ${kind} | ${r.from || '—'} | ${r.to || '—'} | ${r.km} | ${MARK[r.prov]} | ${r.arch || '—'} |`,
   )
 }
 out.push('')

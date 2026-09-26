@@ -7,7 +7,15 @@
  * página tradujera y otra mostrara la clave interna en crudo.
  */
 
-import type { Effort, Mentality, RaceClass, RaceFormat, StageRole } from '@cyclingstar/shared'
+import type {
+  Effort,
+  Mentality,
+  RaceClass,
+  RaceFormat,
+  RaceRouteSource,
+  RouteSource,
+  StageRole,
+} from '@cyclingstar/shared'
 
 /**
  * Roles: cubre tanto los del CONTRATO (líder, colíder, gregario, libre) como los de la ORDEN de
@@ -197,6 +205,39 @@ const FORMAT_LABEL: Record<RaceFormat, string> = {
 
 export function formatLabel(format: RaceFormat): string {
   return FORMAT_LABEL[format]
+}
+
+/**
+ * DE DÓNDE SALE EL RECORRIDO DE UNA ETAPA (docs/generador.md §11.4, decisión 39). Los tres textos
+ * del documento, en inglés: lo real manda y se distingue hasta la pantalla, y la marca verde tiene
+ * que significar algo, así que una etapa con ciudades y km reales pero relieve generado no se llama
+ * real.
+ */
+export const ROUTE_SOURCE_LABEL: Record<RouteSource, string> = {
+  real: 'Real route (source cited)',
+  edicion: 'Real towns and distance, generated terrain',
+  generado: 'Generated route',
+}
+
+/**
+ * La marca de una CARRERA, agregada de sus etapas (§11.4). Una carrera `mixto` con alguna etapa real
+ * dice cuántas; una sin ninguna real (todas de ciudades y distancia reales) lo dice con la marca de
+ * esas etapas, porque «0 of 5 stages real» no le cuenta nada al jugador.
+ */
+export function raceRouteSourceLabel(
+  source: RaceRouteSource,
+  stages: readonly { routeSource: RouteSource }[],
+): string {
+  if (source === 'real') return ROUTE_SOURCE_LABEL.real
+  if (source === 'generado') return ROUTE_SOURCE_LABEL.generado
+  const reales = stages.filter((s) => s.routeSource === 'real').length
+  if (reales === 0) return ROUTE_SOURCE_LABEL.edicion
+  return `Partly real route: ${reales} of ${stages.length} stages`
+}
+
+/** «Edition N»: la edición de la carrera en este mundo (su temporada + 1). */
+export function editionLabel(edicion: number): string {
+  return `Edition ${edicion}`
 }
 
 /**

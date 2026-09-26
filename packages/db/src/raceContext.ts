@@ -1,9 +1,10 @@
 import type { RaceContext, RaceMemory, RaceShape, StageProfile } from '@cyclingstar/engine'
-import { SEASON_CALENDAR, finalKindOf, kmAfterLastClimb, lastClimbKm } from '@cyclingstar/engine'
+import { finalKindOf, kmAfterLastClimb, lastClimbKm } from '@cyclingstar/engine'
 import { and, eq, lt } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import type { Database } from './client.js'
 import { getRaceClassifications, standingsByRider } from './classifications.js'
+import { raceStagesForWorld } from './raceRoutes.js'
 import { stageResults } from './schema.js'
 
 /**
@@ -103,18 +104,31 @@ export async function raceMemoryOf(
   return { debts: [], winners: ganadores, satisfiedTeams: [] }
 }
 
-/** El contexto completo de una etapa. */
+/**
+ * El contexto completo de una etapa. Las etapas de la carrera son las que el MUNDO corre
+ * (`raceStagesForWorld`, decisión 23): lo que queda de terreno se cuenta sobre el recorrido
+ * congelado de esta temporada, no sobre el que el código dibuja para la temporada 0.
+ */
 export async function buildRaceContext(
   db: Conn,
+  worldId: string,
   raceKey: string,
   raceId: string,
+  season: number,
   stageDay: number,
   gameDay: number,
 ): Promise<RaceContext> {
-  const race = SEASON_CALENDAR.find((r) => r.id === raceId)
-  const totalStages = race?.stages.length ?? 1
+  // Una carrera fuera del calendario (la de prueba de los tests) no tiene recorrido que contar: se
+  // corre sin forma de carrera, como antes. Cualquier otro error sube.
+  const stages = await raceStagesForWorld(db, worldId, raceKey, raceId, season).catch(
+    (e: unknown) => {
+      if (e instanceof Error && e.message.startsWith('carrera desconocida')) return []
+      throw e
+    },
+  )
+  const totalStages = stages.length > 0 ? stages.length : 1
   const clasif = await getRaceClassifications(db, raceKey, gameDay)
-  const stage = race?.stages[stageDay - 1]
+  const stage = stages[stageDay - 1]
   return {
     stageDay,
     totalStages,
@@ -124,7 +138,7 @@ export async function buildRaceContext(
             stage.profile,
             0,
             Math.max(0, totalStages - stageDay + 1),
-            terrenoRestante(race?.stages ?? [], stageDay),
+            terrenoRestante(stages, stageDay),
           ),
         }
       : {}),

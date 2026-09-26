@@ -15,6 +15,7 @@ import {
   ordersResponseSchema,
   publicRiderDetailResponseSchema,
   raceOrdersResponseSchema,
+  raceStagePlanSchema,
   raceStartlistSchema,
   raceViewSchema,
   rankingResponseSchema,
@@ -144,6 +145,15 @@ describe('contratos: calendario y carrera', () => {
     from: 'Bilbao',
     to: 'Burgos',
   }
+  /** Una etapa del plan de la ficha: la del calendario más su origen y su edición (§3.11). */
+  const planStage = {
+    ...stage,
+    altimetry: '<svg/>',
+    routeSource: 'edicion',
+    edicion: 1,
+    arch: { frase: 'Llano; esprint', skeleton: 'et_llana', geo: 'meseta' },
+    cambiosRespectoAnterior: [],
+  }
 
   it('acepta el calendario de temporada', () => {
     const payload = {
@@ -206,11 +216,12 @@ describe('contratos: calendario y carrera', () => {
         stageCount: 21,
         country: 'FR',
         startDay: 180,
+        routeSource: 'mixto',
       },
       dayOfSeason: null,
       status: 'upcoming',
       runDays: [],
-      stages: [{ ...stage, altimetry: '<svg/>' }],
+      stages: [{ ...planStage, altimetry: '<svg/>' }],
       restAfter: [],
       gc: [],
       points: [],
@@ -222,6 +233,34 @@ describe('contratos: calendario y carrera', () => {
       history: [],
     }
     expect(raceViewSchema.parse(payload)).toEqual(payload)
+  })
+
+  it('la etapa de la ficha trae su origen, su edición, su frase y lo que cambió (§11.4, D10)', () => {
+    const generada = {
+      ...stage,
+      altimetry: '<svg/>',
+      routeSource: 'generado',
+      edicion: 3,
+      arch: { frase: 'Llano; esprint', skeleton: 'et_llana', geo: 'meseta' },
+      cambiosRespectoAnterior: ['192 km → 201 km'],
+    }
+    expect(raceStagePlanSchema.parse(generada)).toEqual(generada)
+    // Lo real no tiene ficha del generador ni cambios que anunciar.
+    const real = { ...planStage, routeSource: 'real', arch: null }
+    expect(raceStagePlanSchema.parse(real)).toEqual(real)
+  })
+
+  it('rechaza un origen fuera de los tres, una edición 0 o una etapa sin la lista de cambios', () => {
+    expect(raceStagePlanSchema.safeParse({ ...planStage, routeSource: 'inventado' }).success).toBe(
+      false,
+    )
+    expect(raceStagePlanSchema.safeParse({ ...planStage, edicion: 0 }).success).toBe(false)
+    const sinCambios: Record<string, unknown> = { ...planStage }
+    delete sinCambios.cambiosRespectoAnterior
+    expect(raceStagePlanSchema.safeParse(sinCambios).success).toBe(false)
+    expect(raceStagePlanSchema.safeParse({ ...planStage, arch: { frase: 'Llano' } }).success).toBe(
+      false,
+    )
   })
 
   it('rechaza un estado de carrera que no sea upcoming/racing/finished', () => {

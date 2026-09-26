@@ -1,5 +1,6 @@
 import {
   ENROLL_LOCK_DAYS,
+  type FrozenStage,
   ensureRaceRosterFrozen,
   getCurrentWorld,
   getKomClassification,
@@ -12,22 +13,22 @@ import {
   getStageWinners,
   getTeamClassifications,
   predictStartlist,
+  raceStagesForWorld,
 } from '@cyclingstar/db'
 import {
+  BASE_SEASON,
   SEASON_CALENDAR,
   type StageProfile,
-  renderAltimetrySvg,
+  calendarForSeason,
   stageEndpoints,
+  stagesForSeason,
 } from '@cyclingstar/engine'
 import { DAYS_PER_SEASON, NO_LEADERS, currentSeason, raceLeaders } from '@cyclingstar/shared'
 import { notFound } from '../http.js'
-import { type RacedStage, calendarStageSpec, stageHead } from '../stageHistory.js'
+import { type RacedStage, calendarStageSpec } from '../stageHistory.js'
+import { frozenFromCalendar, raceRouteSource, stageKm, stagePlanEntry } from '../stageRoute.js'
 import type { RoutePlugin } from './context.js'
 import { parseRaceId } from './params.js'
-
-/** Kilómetros de una etapa a partir de su perfil. */
-const stageKm = (segments: readonly { km: number }[]): number =>
-  Math.round(segments.reduce((sum, s) => sum + s.km, 0))
 
 /** Calendario de temporada (Paso 34): la lista, la ficha de cada carrera y su lista de inscritos. */
 export const calendarRoutes: RoutePlugin = async (app, ctx) => {
@@ -38,7 +39,9 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
     const world = await getCurrentWorld(db)
     const season = world ? currentSeason(world.currentDay) : 0
     const winners = world ? await getSeasonWinners(db, world.worldId, season) : {}
-    const races = SEASON_CALENDAR.map((race) => ({
+    // La edición de la temporada del mundo (docs/generador.md sección 10): mismas carreras, mismos
+    // días y mismas etapas que la temporada 0, con los km y las etiquetas de ESTE año.
+    const races = calendarForSeason(season).map((race) => ({
       id: race.id,
       name: race.name,
       level: race.level,
@@ -80,41 +83,37 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
     const race = raceId ? SEASON_CALENDAR.find((r) => r.id === raceId) : null
     if (!race) return notFound(reply)
     /**
-     * El plan de etapas: la altimetría de autoría de la carrera —relieve, puertos y sus
-     * categorías—, que es lo que de verdad define cada etapa.
+     * El plan de etapas: la altimetría de la carrera —relieve, puertos y sus categorías—, su origen,
+     * su frase de arquitectura y su edición (docs/generador.md §10.8 y §11.4; D10).
      *
-     * Para las que YA SE CORRIERON manda el recorrido congelado en su snapshot y no el que genera
-     * hoy el código, por lo mismo que en la página de etapa (`apps/api/src/stageHistory.ts`): el
-     * calendario se recalcula en cada petición, así que un cambio en el generador de recorridos
-     * reescribiría hacia atrás carreras ya disputadas.
+     * El recorrido es el del MUNDO: lo corrido (el snapshot) manda en las etapas ya disputadas; en
+     * las demás, el congelado en `race_routes` o, si la carrera aún no se ha congelado, la edición de
+     * la temporada del mundo. Nunca el de la temporada 0 a secas: un cambio en el generador, o
+     * simplemente otro año, reescribiría la ficha de lo que se va a correr.
      */
-    const planFrom = (raced: Map<number, RacedStage>) =>
-      race.stages.map((stage) => {
-        const ends = stageEndpoints(race.id, stage.index)
-        const spec = calendarStageSpec(stage, stageKm(stage.profile.segments))
-        const run = raced.get(stage.index)
-        const head = run ? stageHead(stage.index, spec, run) : { ...spec, staleSpec: false }
-        const profile = run?.profile ?? stage.profile
-        return {
-          index: stage.index,
-          name: head.name,
-          label: head.label,
-          kind: head.kind,
-          km: head.km,
-          timeTrial: head.timeTrial,
-          from: ends?.from ?? null,
-          to: ends?.to ?? null,
-          altimetry: renderAltimetrySvg(profile),
-        }
-      })
-    // Sin mundo no hay carrera corrida que consultar: el plan es el del calendario, tal cual.
-    const stagePlan = planFrom(new Map())
+    const planFrom = (
+      season: number,
+      frozen: readonly FrozenStage[],
+      anterior: readonly FrozenStage[] | null,
+      raced: Map<number, RacedStage>,
+    ) =>
+      stagesForSeason(race.id, season).map((deLaTemporada, i) =>
+        stagePlanEntry({
+          raceId: race.id,
+          season,
+          deLaTemporada,
+          frozen: frozen[i] ?? frozenFromCalendar(deLaTemporada),
+          anterior: anterior?.[i] ?? null,
+          run: raced.get(deLaTemporada.index),
+          ends: stageEndpoints(race.id, deLaTemporada.index),
+        }),
+      )
     // Días de descanso: índices de etapa (1-based) tras los que hay descanso (grandes vueltas y
     // alguna carrera por etapas como la Volta a Portugal). Vacío en las que no tienen.
     const restAfter = race.restAfter ?? []
     // Ficha de la carrera, igual haya mundo o no: `startDay` la sitúa en la temporada, y con él la
     // web sabe cuánto falta para la salida sin tener que cruzar con /api/calendar.
-    const raceInfo = {
+    const raceInfo = (frozen: readonly FrozenStage[]) => ({
       id: race.id,
       name: race.name,
       level: race.level,
@@ -123,15 +122,18 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
       stageCount: race.stages.length,
       country: race.country ?? null,
       startDay: race.startDay,
-    }
+      routeSource: raceRouteSource(frozen),
+    })
     const world = await getCurrentWorld(db)
-    if (!world)
+    if (!world) {
+      // Sin mundo no hay carrera corrida ni congelada que consultar: el plan es la temporada base.
+      const base = stagesForSeason(race.id, BASE_SEASON).map(frozenFromCalendar)
       return {
-        race: raceInfo,
+        race: raceInfo(base),
         dayOfSeason: null,
         status: 'upcoming' as const,
         runDays: [],
-        stages: stagePlan,
+        stages: planFrom(BASE_SEASON, base, null, new Map()),
         restAfter,
         gc: [],
         points: [],
@@ -141,7 +143,21 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
         stageWinners: [],
         history: [],
       }
-    const raceKey = `${race.id}:s${currentSeason(world.currentDay)}`
+    }
+    const season = currentSeason(world.currentDay)
+    const raceKey = `${race.id}:s${season}`
+    // Lo que el mundo corre este año y lo que corrió el anterior: congelado, o la edición si aún no.
+    const frozen = await raceStagesForWorld(db, world.worldId, raceKey, race.id, season)
+    const anterior =
+      season > BASE_SEASON
+        ? await raceStagesForWorld(
+            db,
+            world.worldId,
+            `${race.id}:s${season - 1}`,
+            race.id,
+            season - 1,
+          )
+        : null
     // La general va COMPLETA: la web muestra el top 20 y ofrece "Show all" (regla común de tablas,
     // docs/navegacion.md §7.3). Antes se truncaba aquí y no había forma de ver el resto.
     const gc = await getRaceGc(db, raceKey)
@@ -180,12 +196,12 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
     const leaders =
       race.stages.length === 1 ? NO_LEADERS : raceLeaders({ gc, points, kom, teams: teamGc })
     return {
-      race: raceInfo,
+      race: raceInfo(frozen),
       // Día actual de la temporada (0..363): con `startDay` sitúa la carrera en el tiempo.
       dayOfSeason: world.currentDay % DAYS_PER_SEASON,
       status,
       runDays,
-      stages: planFrom(raced),
+      stages: planFrom(season, frozen, anterior, raced),
       restAfter,
       gc,
       points,

@@ -35,7 +35,14 @@ describe('api: una etapa corrida se describe con el recorrido que se corrió', (
   it('la crono de 15 km que en realidad fueron 170 km de carretera', () => {
     const head = stageHead(
       4,
-      { name: 'Stage 4 · ITT', label: 'ITT', kind: 'cri', timeTrial: true, km: 15 },
+      {
+        name: 'Stage 4 · ITT',
+        label: 'ITT',
+        kind: 'cri',
+        timeTrial: true,
+        km: 15,
+        routeSource: 'generado',
+      },
       { profile: carretera, timeTrial: false, km: KM_CORRIDOS },
     )
     expect(head.staleSpec).toBe(true)
@@ -53,7 +60,14 @@ describe('api: una etapa corrida se describe con el recorrido que se corrió', (
     const real = conPuertoFinal(210)
     const head = stageHead(
       1,
-      { name: 'Stage 1 · Hills', label: 'Hills', kind: 'media', timeTrial: false, km: 188 },
+      {
+        name: 'Stage 1 · Hills',
+        label: 'Hills',
+        kind: 'media',
+        timeTrial: false,
+        km: 188,
+        routeSource: 'generado',
+      },
       { profile: real, timeTrial: false, km: 210 },
     )
     expect(head.staleSpec).toBe(true)
@@ -68,7 +82,14 @@ describe('api: una etapa corrida se describe con el recorrido que se corrió', (
     const perfil = conPuertoFinal(200)
     const head = stageHead(
       3,
-      { name: 'Stage 3 · Cobbles', label: 'Cobbles', kind: 'clasica', timeTrial: false, km: 200 },
+      {
+        name: 'Stage 3 · Cobbles',
+        label: 'Cobbles',
+        kind: 'clasica',
+        timeTrial: false,
+        km: 200,
+        routeSource: 'generado',
+      },
       { profile: perfil, timeTrial: false, km: 200 },
     )
     expect(head.staleSpec).toBe(false)
@@ -83,7 +104,14 @@ describe('api: una etapa corrida se describe con el recorrido que se corrió', (
     const perfil = rodado(181)
     const head = stageHead(
       2,
-      { name: 'Stage 2 · Flat', label: 'Flat', kind: 'llana', timeTrial: false, km: 180 },
+      {
+        name: 'Stage 2 · Flat',
+        label: 'Flat',
+        kind: 'llana',
+        timeTrial: false,
+        km: 180,
+        routeSource: 'generado',
+      },
       { profile: perfil, timeTrial: false, km: 181 },
     )
     expect(head.staleSpec).toBe(false)
@@ -95,7 +123,14 @@ describe('api: una etapa corrida se describe con el recorrido que se corrió', (
   it('una crono que sigue siendo crono no se toca', () => {
     const head = stageHead(
       2,
-      { name: 'Stage 2 · ITT', label: 'ITT', kind: 'cri', timeTrial: true, km: 15 },
+      {
+        name: 'Stage 2 · ITT',
+        label: 'ITT',
+        kind: 'cri',
+        timeTrial: true,
+        km: 15,
+        routeSource: 'generado',
+      },
       { profile: crono, timeTrial: true, km: 15 },
     )
     expect(head.staleSpec).toBe(false)

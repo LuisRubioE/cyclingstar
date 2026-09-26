@@ -1,4 +1,10 @@
-import type { StageEffort, StageProfile, TriggerCond } from '@cyclingstar/engine'
+import type {
+  GeneratedStage,
+  StageEffort,
+  StageKind,
+  StageProfile,
+  TriggerCond,
+} from '@cyclingstar/engine'
 import { desc, sql } from 'drizzle-orm'
 import {
   boolean,
@@ -510,6 +516,14 @@ export const dayGoalEnum = pgEnum('day_goal', [
   'servir',
 ])
 
+/**
+ * La ficha del generador que se congela con cada etapa (`race_routes.arch`). Con nombre propio para
+ * que la declaración de la tabla no tenga que nombrar los tipos internos de la gramática.
+ */
+type GrammarArch = GeneratedStage['arch']
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- interfaz y no alias: la declaración emitida la nombra y no despliega los tipos de la gramática
+export interface RaceRouteArch extends GrammarArch {}
+
 /** Convocatorias: qué corredores corren una carrera (SPEC 6.11, Paso 29). */
 /**
  * EL RECORRIDO DE UNA CARRERA, CONGELADO EL DÍA QUE SE CREA (docs/tactica.md paso 1a).
@@ -537,8 +551,28 @@ export const raceRoutes = pgTable(
     raceKey: text('race_key').notNull(),
     stageDay: integer('stage_day').notNull(),
     profile: jsonb('profile').notNull().$type<StageProfile>(),
-    /** `real` si el recorrido viene de datos verificados; `generado` si lo hizo el generador. */
+    /**
+     * De dónde sale el recorrido (docs/generador.md §11.4): `real` (rasgos de fuente citada),
+     * `edicion` (ciudades y km reales, relieve generado) o `generado`. Es `text`, así que el tercer
+     * valor no pidió migración.
+     */
     routeSource: text('route_source').notNull().default('generado'),
+    /**
+     * LO QUE LA FICHA DICE DE LA ETAPA, congelado con el perfil (decisión 23, §3.11). `kind`,
+     * `label` y `time_trial` son los de la temporada que se congeló; nullable porque las filas
+     * anteriores a esta columna no los tienen, y quien lee (`raceStagesForWorld`) los completa desde
+     * `stagesForSeason`.
+     */
+    kind: text('kind').$type<StageKind>(),
+    label: text('label'),
+    timeTrial: boolean('time_trial'),
+    /**
+     * La ficha del generador (esqueleto, zona, motivos, frase). Se congela y no se recompone: la
+     * frase y los cambios de edición que enseña la ficha tienen que describir el perfil que se
+     * corrió aunque el generador cambie después (§3.11). `null` en las etapas `real` y en las filas
+     * anteriores a la columna.
+     */
+    arch: jsonb('arch').$type<RaceRouteArch>(),
   },
   (t) => [primaryKey({ columns: [t.worldId, t.raceKey, t.stageDay] })],
 )

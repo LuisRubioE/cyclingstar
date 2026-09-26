@@ -201,8 +201,14 @@ export {
 export { buildRaceContext, raceMemoryOf, raceShapeOf } from './raceContext.js'
 export {
   backfillRaceRoutes,
+  canonico,
   freezeRaceRoute,
   getRaceRoute,
+  huellaCanonica,
+  raceStagesForWorld,
+  reclassifyRouteSource,
+  seasonOfRaceKey,
+  type FrozenStage,
   type RouteSource,
 } from './raceRoutes.js'
 export {

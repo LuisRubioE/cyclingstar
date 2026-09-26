@@ -16,7 +16,7 @@ import {
   fetchStartlist,
 } from '../api/race'
 import { fetchCalendarStage } from '../api/results'
-import type { RaceLeaders } from '@cyclingstar/shared'
+import type { RaceLeaders, RaceRouteSource, RouteSource } from '@cyclingstar/shared'
 import { Flag } from '../components/Flag'
 import { Jersey, RiderJersey } from '../components/Jersey'
 import { RiderName } from '../components/RiderName'
@@ -26,7 +26,14 @@ import { StageStory } from '../components/StageStory'
 import { TeamClassNote, TeamClassTable } from '../components/TeamClassTable'
 import { type TabOption, TabPanel, Tabs, useTabParam } from '../components/Tabs'
 import { TeamLink } from '../components/TeamLink'
-import { formatLabel, raceClassLabel, raceTeamLabel } from '../domain/labels'
+import {
+  ROUTE_SOURCE_LABEL,
+  editionLabel,
+  formatLabel,
+  raceClassLabel,
+  raceRouteSourceLabel,
+  raceTeamLabel,
+} from '../domain/labels'
 import { RACE_TAB_LABEL, type RaceTabId, raceTabs } from '../domain/raceTabs'
 
 function fmtTime(seconds: number): string {
@@ -49,6 +56,17 @@ const KIND_DOT: Record<string, string> = {
   reina: 'bg-rose-500',
   cri: 'bg-violet-400',
   clasica: 'bg-orange-500',
+}
+
+/**
+ * El color de la marca de origen (docs/generador.md §11.4): verde solo lo real, ámbar lo que tiene
+ * ciudades y distancia reales con el relieve generado, y gris lo inventado.
+ */
+const SOURCE_BADGE: Record<RouteSource | RaceRouteSource, string> = {
+  real: 'bg-emerald-50 text-emerald-700',
+  edicion: 'bg-amber-50 text-amber-700',
+  mixto: 'bg-amber-50 text-amber-700',
+  generado: 'bg-slate-100 text-slate-600',
 }
 
 const DIVISION_LABEL: Record<string, string> = {
@@ -263,6 +281,46 @@ function StageLine({ stage, oneDay }: { stage: RaceStagePlan; oneDay: boolean })
   )
 }
 
+/**
+ * DE DÓNDE SALE EL RECORRIDO Y CÓMO ES, bajo la línea de cada etapa (docs/generador.md §10.8 y
+ * §11.4; D10 con su valor por defecto). Siempre la marca de origen. En lo que no es real, además, la
+ * edición, la frase de arquitectura, que es lo que hace reconocible una carrera un año después sin
+ * mapa, y lo que cambió respecto de la edición anterior. Una etapa real no lleva ni frase ni edición:
+ * no varía de un año a otro.
+ *
+ * La frase y los cambios los escribe el motor en castellano (`arch.frase`, `diffMotivos`): se
+ * enseñan tal cual, marcados `lang="es"`, hasta que el multiidioma (E10) los traduzca motivo a
+ * motivo. Traducirlos aquí sería una segunda gramática que mantener al lado de la del motor.
+ */
+function StageRouteNote({ stage }: { stage: RaceStagePlan }) {
+  const real = stage.routeSource === 'real'
+  return (
+    <div className="mb-1.5 space-y-1 pl-5 text-xs">
+      <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+        <span className={`rounded-full px-2 py-0.5 font-medium ${SOURCE_BADGE[stage.routeSource]}`}>
+          {ROUTE_SOURCE_LABEL[stage.routeSource]}
+        </span>
+        {!real && <span className="text-slate-400">{editionLabel(stage.edicion)}</span>}
+      </p>
+      {!real && stage.arch && (
+        <p lang="es" className="text-slate-600">
+          {stage.arch.frase}
+        </p>
+      )}
+      {!real && stage.cambiosRespectoAnterior.length > 0 && (
+        <div>
+          <p className="text-slate-400">Changes from the last edition</p>
+          <ul lang="es" className="list-disc pl-4 text-slate-500">
+            {stage.cambiosRespectoAnterior.map((cambio) => (
+              <li key={cambio}>{cambio}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  )
+}
+
 /** Pestaña `Route`: las altimetrías, que es donde el jugador las busca (y solo aquí). */
 function RouteTab({ data }: { data: RaceView }) {
   const oneDay = data.stages.length === 1
@@ -276,7 +334,8 @@ function RouteTab({ data }: { data: RaceView }) {
               <div className="mb-1 flex items-center gap-3 text-sm">
                 <StageLine stage={stage} oneDay={oneDay} />
               </div>
-              {/* Altimetría real de autoría de la carrera (relieve + puertos). SVG del backend. */}
+              <StageRouteNote stage={stage} />
+              {/* Altimetría del recorrido que el mundo corre (relieve + puertos). SVG del backend. */}
               <div
                 className="w-full overflow-x-auto rounded-lg bg-slate-50 p-1"
                 role="img"
@@ -649,6 +708,18 @@ export function Race() {
               llama «ITT» en ella, así que no hay que añadírselo detrás. */}
           {single ? ` · ${single.km} km · ${single.label}` : ''}
           {endDay > startDay ? ` · GD ${startDay}–${endDay}` : ` · GD ${startDay}`}
+        </p>
+        {/* La marca de origen de la carrera entera (§11.4) y, si algo en ella se genera, su edición
+            en este mundo: lo real no cambia de un año a otro y no tiene edición que contar. */}
+        <p className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
+          <span
+            className={`rounded-full px-2 py-0.5 font-medium ${SOURCE_BADGE[data.race.routeSource]}`}
+          >
+            {raceRouteSourceLabel(data.race.routeSource, data.stages)}
+          </span>
+          {data.race.routeSource !== 'real' && data.stages[0] && (
+            <span className="text-slate-400">{editionLabel(data.stages[0].edicion)}</span>
+          )}
         </p>
         {status === 'finished' && winner && (
           <p className="mt-2 flex flex-wrap items-center gap-2 text-sm">

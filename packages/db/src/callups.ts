@@ -10,6 +10,7 @@ import {
 import { and, eq, isNotNull, isNull, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import type { Database } from './client.js'
+import { raceStagesForWorld } from './raceRoutes.js'
 import { contracts, raceCallups, raceRosters, riderRacePrefs, riders, teams } from './schema.js'
 
 /**
@@ -95,7 +96,14 @@ export async function runCallups(
   if (playerTeams.length === 0) return
 
   for (const race of due) {
-    const raceFit = raceVocationFit(race.stages.map((s) => s.kind))
+    // La vocación sale de las etapas que el mundo va a correr (decisión 23). La convocatoria va
+    // CALLUP_LEAD_DAYS antes de la salida y el recorrido se congela el día de la etapa 1, así que aquí
+    // se lee casi siempre el fallback de `raceStagesForWorld`: la edición de esta temporada, que es
+    // la misma que luego se congela.
+    const raceKey = `${race.id}:s${season}`
+    const raceFit = raceVocationFit(
+      (await raceStagesForWorld(tx, worldId, raceKey, race.id, season)).map((s) => s.kind),
+    )
     const size = SQUAD_SIZE[race.format]
     for (const team of playerTeams) {
       if (!race.openTo.includes(team.division)) continue
@@ -160,7 +168,6 @@ export async function runCallups(
       // mueve la moral) se DERIVA de esa escuadra, para que coincida con quien realmente corre. Si no,
       // el aviso de convocatoria y el planificador de entrenamiento se contradecían: te decía "no te han
       // elegido" y a la vez "no entrenas porque tienes carrera".
-      const raceKey = `${race.id}:s${season}`
       const frozen = await tx
         .select({ riderId: raceRosters.riderId })
         .from(raceRosters)

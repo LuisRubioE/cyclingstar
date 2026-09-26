@@ -17,6 +17,7 @@
  */
 import {
   type CalendarStage,
+  type RouteSource,
   type StageKind,
   type StageProfile,
   SUMMIT_RUN_IN_KM,
@@ -32,6 +33,8 @@ export interface StageSpecHead {
   kind: StageKind
   timeTrial: boolean
   km: number
+  /** De dónde sale el recorrido (docs/generador.md §11.4): la marca que la ficha enseña. */
+  routeSource: RouteSource
 }
 
 /**
@@ -72,6 +75,7 @@ export function calendarStageSpec(stage: CalendarStage, km: number): StageSpecHe
     kind: stage.kind,
     timeTrial: stage.timeTrial ?? false,
     km,
+    routeSource: stage.routeSource,
   }
   const summit = SUMMIT_FINISH[stage.kind as keyof typeof SUMMIT_FINISH]
   if (stage.routeSource !== 'real' || base.timeTrial || !summit)
