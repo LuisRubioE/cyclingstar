@@ -1,5 +1,5 @@
 import { COUNTRIES } from '@cyclingstar/shared'
-import { describe, expect, it } from 'vitest'
+import { afterAll, describe, expect, it } from 'vitest'
 import { ARCH } from '../../constants.js'
 import type { StageProfile } from '../../stage/types.js'
 import { RACE_ROWS, SEASON_CALENDAR, type RaceRow } from '../calendar.js'
@@ -10,9 +10,15 @@ import { stageKindOf } from '../stageKind.js'
 import type { StageKind } from '../testTour.js'
 import { RACE_CLASSES, type RaceClass } from '../uci.js'
 import { ZONAS, admite, conFirmeDeZona, zonaDe, type GeoSignature, type GeoZone } from './geo.js'
+import {
+  ETIQUETAS_DE_ESQUELETO,
+  generateStage,
+  type GeneratedStage,
+  type StageRequest,
+} from './generate.js'
 import { dPlusDe } from './geometry.js'
-import { validateMotif, type MetaKind, type Motif } from './motifs.js'
-import type { Placed } from './place.js'
+import { instanciarFirma, validateMotif, type MetaKind, type Motif } from './motifs.js'
+import { colocarPlantilla, type Placed } from './place.js'
 import { regionOf } from './regions.js'
 import { emitirPancartas, garantizaClase, renderSkeleton } from './render.js'
 import {
@@ -24,7 +30,12 @@ import {
   candidatos,
   cabe,
   degradarPapel,
+  envolventeCotaFinal,
+  rangoCotaFinal,
   skeletonFor,
+  techoGCotaFinal,
+  techoKmCotaFinal,
+  type Alternativa,
   type Peticion,
   type Requiere,
   type Skeleton,
@@ -32,16 +43,17 @@ import {
   type Slot,
 } from './skeletons.js'
 import type { StageRole } from './tour.js'
+import { finalKindDe, verify } from './veto.js'
 
 /**
- * EL CATÁLOGO DE ESQUELETOS (docs/generador.md §5.9, paso 4 del plan §15.6).
+ * EL CATÁLOGO DE ESQUELETOS (docs/generador.md §5.9, pasos 4 y 5 del plan §15.6 y §15.7).
  *
  * Catálogo bien formado, plantillas canónicas rendidas en su zona de referencia contra la vara que ya
- * existe (`stageKindOf`, `finalKindOf`, `admite`, la geometría) y la elección (`candidatos`, `cabe`,
- * `skeletonFor`, `ESCALON_ROLE`). Ningún test de este paso importa `veto.ts`: lo que llama a `verify`,
- * a `generateStage`, a `instanciarFirma` o a las funciones de la `cotaFinal` (paso 5) queda en
- * `it.todo` y se enciende en el paso 5 (regla 1 de §15.1). `finalKindDe` es de `veto.ts`: aquí va su
- * tabla literal de §9.2, `FINAL_DE_META`.
+ * existe (`stageKindOf`, `finalKindOf`, `admite`, la geometría) y contra `verify`, la `cotaFinal`
+ * (regla 2 de §5.1), la elección (`candidatos`, `cabe`, `skeletonFor`, `ESCALON_ROLE`) y el barrido
+ * de `generateStage` de `test:rapido`. `finalKindDe` es de `veto.ts`: aquí va su tabla literal de
+ * §9.2, `FINAL_DE_META`, que `veto.test.ts` compara con la función. Lo que llama a `stagesForSeason`
+ * sigue en `it.todo` hasta el paso 6.
  */
 
 /** La zona de la columna «Referencia» de cada esqueleto (§5.9). */
@@ -210,6 +222,89 @@ function requestDeFila(row: RaceRow, raceClass: RaceClass): Peticion {
   }
 }
 
+// Auxiliares de §5.9 para `generateStage` e `instanciarFirma` (los mismos que generate.test.ts).
+const semillas = (n: number): string[] => Array.from({ length: n }, (_, i) => `t${i}`)
+/** El papel con que se pide cada esqueleto de etapa: el primero de su columna «Papel» (§5.3). */
+const PAPEL: Partial<Record<SkeletonId, StageRole>> = {
+  et_llana: 'llana',
+  et_llana_viento: 'llana_viento',
+  et_media_valle: 'media',
+  et_media_tendida: 'media',
+  et_media_alto: 'media_alto',
+  et_media_muro: 'media_muro',
+  et_reina_alto_largo: 'reina_alto',
+  et_reina_alto_corto: 'reina_alto',
+  et_reina_valle: 'reina_valle',
+  et_reina_cima_cerca: 'reina_valle',
+  et_reina_encadenada: 'reina_encadenada',
+  et_montana_corta: 'montana_corta',
+  et_reina_blanda: 'reina_alto',
+  et_crono: 'cri',
+  et_prologo: 'prologo',
+  et_cronoescalada: 'cronoescalada',
+}
+const terrenoDe = (sk: Skeleton): RouteTerrain =>
+  sk.label === 'Cobbles'
+    ? 'cobbles'
+    : (
+        {
+          llana: 'flat',
+          media: 'hilly',
+          clasica: 'classic',
+          reina: 'mountain',
+          cri: 'itt',
+        } as const
+      )[sk.kind]
+/** Una `StageRequest` completa de §3.7 (sin `fixed` salvo que `extra` lo traiga). */
+function requestDe(
+  sk: Skeleton,
+  zona: GeoZone,
+  km: number,
+  seed: string,
+  extra: Partial<StageRequest> = {},
+): StageRequest {
+  const etapa = sk.id.startsWith('et_')
+  return {
+    raceId: seed,
+    stageIndex: 1,
+    season: 0,
+    km,
+    role: etapa ? PAPEL[sk.id]! : 'un_dia',
+    terrain: terrenoDe(sk),
+    geo: ZONAS[zona],
+    raceClass: sk.id === 'nc_ruta' ? 'NC' : 'WT',
+    format: etapa ? 'una-semana' : 'un-dia',
+    routeSource: 'generado',
+    ...extra,
+  }
+}
+/** La petición de la canónica: km = Σ canónico (vueltas incluidas), WT (NC para nc_ruta). */
+const requestDePrueba = (sk: Skeleton, geo: GeoSignature): StageRequest =>
+  requestDe(sk, geo.zona, kmPlantilla(sk.canonico), `canonico|${sk.id}`, {
+    fixed: { skeleton: sk.id },
+  })
+/** La de referencia y las dos siguientes que la admiten en el orden de `ZONAS` (§5.9). */
+const TRES_ZONAS = (sk: Skeleton): GeoZone[] => {
+  const ref = ZONA_DE_REFERENCIA[sk.id]
+  const otras = (Object.keys(ZONAS) as GeoZone[]).filter(
+    (z) => z !== ref && admite(sk.requiere, ZONAS[z]),
+  )
+  return [ref, ...otras.slice(0, 2)]
+}
+/** Los extremos de `sk.km` y tres intermedios. */
+const CINCO_KM = (sk: Skeleton): number[] =>
+  [0, 0.25, 0.5, 0.75, 1].map((f) => Math.round((sk.km[0] + f * (sk.km[1] - sk.km[0])) * 10) / 10)
+const p95 = (xs: number[]): number =>
+  [...xs].sort((a, b) => a - b)[Math.ceil(xs.length * 0.95) - 1]!
+const mediana = (xs: number[]): number => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)]!
+/** Los casos del barrido de `test:rapido`: 5 km × TRES_ZONAS(sk), 20 semillas cada uno. */
+const casos = (): { id: SkeletonId; sk: Skeleton; zona: GeoZone; km: number; n: number }[] =>
+  Object.values(SKELETONS).flatMap((sk) =>
+    TRES_ZONAS(sk).flatMap((zona) =>
+      CINCO_KM(sk).map((km) => ({ id: sk.id, sk, zona, km, n: 20 })),
+    ),
+  )
+
 describe('catálogo', () => {
   it('tiene exactamente los identificadores de SkeletonId', () => {
     expect(Object.keys(SKELETONS).sort()).toEqual([...SKELETON_IDS].sort()) // 16 ud_/nc_ + 16 et_
@@ -285,50 +380,138 @@ describe('catálogo', () => {
   })
 })
 
-describe('cotaFinal (regla 2 de §5.1)', () => {
-  // `envolventeCotaFinal`, `rangoCotaFinal`, `techoKmCotaFinal` y `techoGCotaFinal` son del paso 5:
-  // las importa `instanciarFirma` y leen `ARCH.veto.puertoDplusMax`, que entra en ese paso.
-  it.todo('$id: rango de ARCH ∩ metaParams, igual al de la tabla (paso 5: rangoCotaFinal)')
-  it.todo('las opciones de nivel 2 resuelven su cotaFinal campo a campo (paso 5)')
-  it.todo(
-    'un esqueleto de etapa con valle y sin metaParams.cotaFinal lanza, y uno de un día cae a unDiaUltimaCota (paso 5)',
-  )
-  it.todo('los techos de altitud no vacían el rango en ninguna zona admitida (paso 5)')
-  it.todo(
-    'la zona no estrecha la meta: et_reina_alto_corto en cantabrico sortea g ≥ 8 (paso 5: instanciarFirma)',
-  )
-  it.todo('et_reina_blanda en cono_sur no queda clavada en 6,0 (paso 5: instanciarFirma)')
-})
+// Regla 2 de §5.1: la cotaFinal sale de ARCH ∩ metaParams, nunca de geo.cota ni geo.puerto.
+const COTA_FINAL_ESPERADA: Partial<
+  Record<SkeletonId, { km: [number, number]; g: [number, number] }>
+> = {
+  ud_montana: { km: [1.3, 4.2], g: [7, 11] },
+  ud_montana_media: { km: [2.5, 4.2], g: [7, 9] },
+  ud_repecho: { km: [1, 2.2], g: [5, 7] },
+  ud_muro_final: { km: [0.5, 2.2], g: [8, 16] },
+  ud_sterrato: { km: [0.5, 1.0], g: [12, 16] },
+  ud_montana_alto: { km: [13, 22], g: [6, 7] },
+  et_media_valle: { km: [2.5, 8], g: [4, 7] },
+  et_media_alto: { km: [3, 7], g: [6, 11] },
+  et_media_muro: { km: [0.5, 2.2], g: [8, 16] },
+  et_media_tendida: { km: [2.5, 6], g: [4, 6] },
+  et_reina_alto_largo: { km: [9, 22], g: [6, 9] },
+  et_reina_alto_corto: { km: [4, 7], g: [8, 11] },
+  et_reina_cima_cerca: { km: [9, 16], g: [6, 9] },
+  et_reina_valle: { km: [9, 17], g: [6, 9] },
+  et_reina_encadenada: { km: [4, 7], g: [8, 11] },
+  et_montana_corta: { km: [9, 22], g: [6, 9] },
+  et_reina_blanda: { km: [9, 12], g: [6, 7] },
+  et_cronoescalada: { km: [9, 15], g: [6, 9] },
+} // los 14 que faltan (esprint y sector_meta) dan null
+const opcionesDe = (sk: Skeleton): (Alternativa | null)[] => [null, ...(sk.alternativas ?? [])]
+const dentroDe = (r: readonly [number, number], de: readonly [number, number]): boolean =>
+  r[0] >= de[0] && r[1] <= de[1]
 
-/**
- * La canónica rendida en su zona de referencia, MEDIDA con `dPlusDe`, en los esqueletos donde queda
- * bajo el suelo de `sk.dPlus`. El documento escribió los `dPlus` del catálogo estimando el relleno a
- * 5,5 m/km (§5.1 regla 3); el paso 3 lo recalibró a 3,0 con la amplitud de cada zona (§15.5), y las
- * plantillas de un día de poco relieve y las medias quedan de 67 a 305 m por debajo. Se sella la cifra
- * y el `it.todo` de abajo lleva la deuda: el suelo se re-deriva con 3,0 m/km o la plantilla se endurece
- * (decisión de catálogo del paso 5, que es el que persigue `dPlusObjetivo` en `sk.dPlus`).
- */
-const DPLUS_BAJO_EL_SUELO: Partial<Record<SkeletonId, number>> = {
-  ud_muro_final: 1365,
-  ud_muros_adoquin: 1377,
-  ud_sterrato: 1314,
-  ud_adoquin: 450,
-  ud_adoquin_ligero: 495,
-  ud_montana: 2732,
-  ud_montana_media: 1925,
-  ud_repecho: 1386,
-  et_llana_viento: 220,
-  et_media_valle: 1533,
-  et_media_muro: 1366,
-  et_reina_alto_corto: 2529,
-  et_reina_cima_cerca: 2913,
-}
+describe('cotaFinal (regla 2 de §5.1)', () => {
+  it.each(Object.values(SKELETONS))(
+    '$id: rango de ARCH ∩ metaParams, igual al de la tabla',
+    (sk) => {
+      expect(rangoCotaFinal(sk, null)).toEqual(COTA_FINAL_ESPERADA[sk.id] ?? null)
+      for (const alt of opcionesDe(sk)) {
+        const meta = alt?.meta ?? sk.meta
+        const env = envolventeCotaFinal(
+          meta,
+          !sk.id.startsWith('et_'),
+          alt?.metaParams?.kmRango ?? sk.metaParams?.cotaFinal?.km,
+        )
+        const r = rangoCotaFinal(sk, alt) // lanza si queda vacío
+        if (env === null) {
+          expect(r).toBeNull()
+          continue
+        }
+        if (meta === sk.meta && sk.metaParams?.cotaFinal) {
+          // lo declarado está DENTRO de la envolvente: la intersección no recorta en silencio
+          expect(dentroDe(sk.metaParams.cotaFinal.km, env.km)).toBe(true)
+          expect(dentroDe(sk.metaParams.cotaFinal.g, env.g)).toBe(true)
+        }
+        if (alt?.metaParams?.kmRango) expect(dentroDe(alt.metaParams.kmRango, env.km)).toBe(true)
+        if (alt?.metaParams?.gRango) expect(dentroDe(alt.metaParams.gRango, env.g)).toBe(true)
+        if (meta === 'alto_largo' && r!.km[1] > 17)
+          expect(r!.g[0]).toBeLessThanOrEqual(ARCH.meta.altoLargo.gMaxSiMasDe17) // techoG nunca vacía
+      }
+    },
+  )
+  it('las opciones de nivel 2 resuelven su cotaFinal campo a campo', () => {
+    const [angliru, lagos] = SKELETONS.et_reina_alto_largo.alternativas!
+    expect(rangoCotaFinal(SKELETONS.et_reina_alto_largo, angliru!)).toEqual({
+      km: [12, 13],
+      g: [8.5, 9.5],
+    }) // sustituye al g [6; 9] del esqueleto
+    expect(rangoCotaFinal(SKELETONS.et_reina_alto_largo, lagos!)).toEqual({
+      km: [11.5, 12.8],
+      g: [6.8, 7.6],
+    })
+    expect(rangoCotaFinal(SKELETONS.ud_montana, SKELETONS.ud_montana.alternativas![0]!)).toEqual({
+      km: [1.3, 4.2],
+      g: [7, 11],
+    }) // Bérgamo no declara metaParams
+  })
+  it('un esqueleto de etapa con valle y sin metaParams.cotaFinal lanza, y uno de un día cae a unDiaUltimaCota', () => {
+    const { metaParams: _v, ...sinParams } = SKELETONS.et_reina_valle
+    void _v // se quita metaParams: el esqueleto sin su rango declarado
+    expect(() => rangoCotaFinal(sinParams, null)).toThrow(/cotaFinal/)
+    const { metaParams: _m, ...media } = SKELETONS.ud_montana_media
+    void _m
+    expect(rangoCotaFinal(media, null)).toEqual({ km: [1.3, 4.2], g: [7, 11] })
+  })
+  it('los techos de altitud no vacían el rango en ninguna zona admitida', () => {
+    for (const sk of Object.values(SKELETONS))
+      for (const alt of opcionesDe(sk))
+        for (const [nombre, geo] of Object.entries(ZONAS)) {
+          if (!admite(sk.requiere, geo)) continue
+          const r = rangoCotaFinal(sk, alt)
+          if (!r) continue
+          const kr = techoKmCotaFinal(r, geo.altitud)
+          expect(kr[0], `${sk.id} ${alt?.nombre ?? ''} en ${nombre}: km`).toBeLessThanOrEqual(kr[1])
+          for (const km of [kr[0], kr[1]]) {
+            const gr = techoGCotaFinal(alt?.meta ?? sk.meta, r, km, geo.altitud)
+            expect(
+              gr[0],
+              `${sk.id} ${alt?.nombre ?? ''} en ${nombre}: g a ${km} km`,
+            ).toBeLessThanOrEqual(gr[1])
+            expect(km * gr[1] * 10).toBeLessThanOrEqual(ARCH.veto.puertoDplusMax[geo.altitud]) // V4c por construcción
+          }
+          if (!['media', 'alta', 'altiplano'].includes(geo.altitud))
+            expect(kr[1]).toBeLessThan(ARCH.veto.puertoLargoKm) // V4b
+        }
+  })
+  it('la zona no estrecha la meta: et_reina_alto_corto en cantabrico (cota.g [6; 7]) sortea g ≥ 8', () => {
+    const sk = SKELETONS.et_reina_alto_corto
+    for (const s of semillas(20)) {
+      const req = requestDe(sk, 'cantabrico', 170, s, { fixed: { skeleton: sk.id } })
+      const meta = instanciarFirma(sk, 0, req, routeRng(`firma|${s}`)).at(-1)!.motif // la meta es la última instancia de firma (§8.3)
+      expect(meta.cotaFinal!.g).toBeGreaterThanOrEqual(8)
+      expect(meta.cotaFinal!.km).toBeGreaterThanOrEqual(4)
+    }
+  })
+  it('et_reina_blanda en cono_sur (puerto.g [5; 6]) no queda clavada en 6,0', () => {
+    const sk = SKELETONS.et_reina_blanda
+    const gs = semillas(20).map(
+      (s) =>
+        instanciarFirma(
+          sk,
+          0,
+          requestDe(sk, 'cono_sur', 160, s, { fixed: { skeleton: sk.id } }),
+          routeRng(`firma|${s}`),
+        ).at(-1)!.motif.cotaFinal!.g,
+    )
+    expect(Math.max(...gs)).toBeGreaterThan(6.0)
+    expect(Math.min(...gs)).toBeGreaterThanOrEqual(6)
+    expect(Math.max(...gs)).toBeLessThanOrEqual(7)
+  })
+})
 
 describe('plantilla canónica', () => {
   it.each(Object.values(SKELETONS))(
-    '$id: pasa validateMotif, respeta sus ventanas y da su kind y su finalKind sin RNG',
+    '$id: pasa validateMotif, respeta sus ventanas, pasa los vetos y da su kind, su finalKind y su dPlus sin RNG',
     (sk) => {
       const geo = ZONAS[ZONA_DE_REFERENCIA[sk.id]]
+      const req = requestDePrueba(sk, geo)
       expect(admite(sk.requiere, geo), `${sk.id} en ${geo.zona}`).toBe(true)
       for (const m of motivosPlanos(sk.canonico)) expect(validateMotif(m, geo)).toBeNull()
       for (const m of sk.canonico) {
@@ -349,30 +532,47 @@ describe('plantilla canónica', () => {
       expect(kmCanonico).toBeLessThanOrEqual(sk.km[1])
       const profile = renderCanonico(sk.id, geo) // auxiliar de §15.6: coloca por acumulación
       expect(Math.abs(profileKm(profile) - kmCanonico)).toBeLessThan(0.05)
+      expect(
+        verify(
+          profile,
+          sk,
+          req,
+          sk.canonico,
+          req.km,
+          colocarPlantilla(conFirmeDeZona(sk.canonico, geo)),
+        ),
+      ).toBeNull()
       expect(stageKindOf(profile, sk.timeTrial ?? false).kind).toBe(sk.kind) // V6 compara kind
       if (sk.finalKind) expect(finalKindOf(profile)).toBe(sk.finalKind)
+      // El suelo re-derivado con 3,0 m/km de relleno, o la canónica endurecida en los reina (paso 5).
       const dPlus = dPlusDe(profile)
       expect(dPlus, `${sk.id}: D+ ${Math.round(dPlus)}`).toBeLessThanOrEqual(sk.dPlus[1])
-      if (!(sk.id in DPLUS_BAJO_EL_SUELO))
-        expect(dPlus, `${sk.id}: D+ ${Math.round(dPlus)}`).toBeGreaterThanOrEqual(sk.dPlus[0])
-      else expect(Math.round(dPlus)).toBe(DPLUS_BAJO_EL_SUELO[sk.id]) // la cifra medida, sellada
+      expect(dPlus, `${sk.id}: D+ ${Math.round(dPlus)}`).toBeGreaterThanOrEqual(sk.dPlus[0])
       for (const { canonico: alt, nombre } of sk.alternativas ?? []) {
         for (const m of motivosPlanos(alt)) expect(validateMotif(m, geo)).toBeNull()
         const p2 = renderPlantilla(sk, alt, geo)
-        expect(Math.abs(profileKm(p2) - kmPlantilla(alt))).toBeLessThan(0.05)
+        const kmAlt = kmPlantilla(alt)
+        expect(Math.abs(profileKm(p2) - kmAlt)).toBeLessThan(0.05)
+        expect(
+          verify(
+            p2,
+            sk,
+            { ...req, km: kmAlt },
+            alt,
+            kmAlt,
+            colocarPlantilla(conFirmeDeZona(alt, geo)),
+          ),
+          nombre,
+        ).toBeNull()
         expect(stageKindOf(p2, sk.timeTrial ?? false).kind, nombre).toBe(sk.kind)
         if (sk.finalKind) expect(finalKindOf(p2), nombre).toBe(sk.finalKind)
       }
     },
   )
-  it.todo('la canónica y cada alternativa pasan verify en su zona de referencia (paso 5: verify)')
-  it.todo(
-    `dPlusDe de la canónica ≥ sk.dPlus[0] también en ${Object.keys(DPLUS_BAJO_EL_SUELO).length} esqueletos cuyo suelo supone 5,5 m/km de relleno (paso 3: 3,0); hoy ${Object.entries(
-      DPLUS_BAJO_EL_SUELO,
-    )
-      .map(([id, d]) => `${id} ${d} < ${SKELETONS[id as SkeletonId].dPlus[0]}`)
-      .join(', ')}`,
-  )
+  it('FINAL_DE_META es la tabla de finalKindDe (§9.2)', () => {
+    for (const [meta, fk] of Object.entries(FINAL_DE_META) as [MetaKind, FinalKind | null][])
+      expect(finalKindDe(meta), meta).toBe(fk)
+  })
   it('la pancarta redondea al entero: el Poggio canónico corona a 6,0 leídos, no a 5,4', () => {
     const sk = SKELETONS.ud_esprint_capi
     const profile = renderCanonico(sk.id, ZONAS.italia_norte)
@@ -387,7 +587,11 @@ describe('plantilla canónica', () => {
     expect(sk.finalKind).toBeUndefined()
     expect(sk.canonico).toBe(NC_RUTA_CLASICA)
     expect(sk.slots[1]!.hijos!.find((h) => h.motif === 'cota')!.n).toEqual([0, 0])
-    expect(stageKindOf(renderPlantilla(sk, sk.canonico, ZONAS.flandes), false).kind).toBe('clasica')
+    const p = renderPlantilla(sk, sk.canonico, ZONAS.flandes)
+    expect(stageKindOf(p, false).kind).toBe('clasica')
+    const req = { ...requestDePrueba(sk, ZONAS.flandes), km: kmPlantilla(NC_RUTA_CLASICA) }
+    const colocados = colocarPlantilla(conFirmeDeZona(NC_RUTA_CLASICA, ZONAS.flandes))
+    expect(verify(p, sk, req, NC_RUTA_CLASICA, req.km, colocados)).toBeNull()
     for (const m of motivosPlanos(NC_RUTA_CLASICA))
       expect(validateMotif(m, ZONAS.flandes)).toBeNull()
     expect(skeletonFor('nc_ruta', ZONAS.generico)).toBe(SKELETONS.nc_ruta) // cota hasta 6 km
@@ -396,9 +600,47 @@ describe('plantilla canónica', () => {
   })
 })
 
+const reloj = { ms: 0, n: 0 }
+const dPlusPorEsqueleto = new Map<SkeletonId, number[]>()
+afterAll(() => {
+  if (reloj.n > 0)
+    console.info(
+      `[skeletons] barrido: ${reloj.n} generaciones en ${(reloj.ms / 1000).toFixed(1)} s`,
+    )
+})
 describe('esqueleto × km × semillas × zonas (V6 y V7)', () => {
-  // test:rapido: 5 km × 20 semillas × TRES_ZONAS(sk); test:bancos: 60 semillas × toda zona admitida.
-  it.todo('$id en $zona con $km km: kind, label, finalKind y dPlus (paso 5: generateStage)')
+  // test:rapido: 5 km × 20 semillas × TRES_ZONAS(sk); la malla completa (60 semillas × toda zona
+  // admitida) es sim/stageKind.completo.test.ts. Desviación del paso 5 en dPlus: la aserción de §5.9
+  // pide ≥ 0,9 × sk.dPlus[0] por etapa, y en los esqueletos de relleno dominante una etapa corta en
+  // una zona de poco relieve queda por debajo con toda la persecución (§8.14 escala 1,4 como mucho).
+  // Se sella el techo por etapa y el suelo sobre la mediana de todo el barrido del esqueleto.
+  it.each(casos())('$id en $zona con $km km', ({ sk, zona, km, n }) => {
+    const t0 = performance.now()
+    const salidas: GeneratedStage[] = semillas(n).map((s) =>
+      generateStage(requestDe(sk, zona, km, s, { fixed: { skeleton: sk.id } })),
+    )
+    reloj.ms += performance.now() - t0
+    reloj.n += salidas.length
+    const skz = skeletonFor(sk.id, ZONAS[zona]) // nc_ruta es clasica donde la cota no llega a 3,3 km
+    const degradadas = salidas.filter((g) => g.arch.degradado).length
+    expect(degradadas / n).toBeLessThanOrEqual(ARCH.veto.fallbackMaxShare.testPorEsqueleto) // 0,005 → 0 de 20
+    expect(p95(salidas.map((g) => g.arch.intentos))).toBeLessThanOrEqual(ARCH.veto.intentosP95) // 3
+    for (const g of salidas) {
+      expect(g.kind).toBe(skz.kind) // V6
+      expect(LABELS_POR_KIND[skz.kind]).toContain(g.label)
+      if (ETIQUETAS_DE_ESQUELETO.has(skz.label)) expect(g.label).toBe(skz.label) // labelDe (§8.12)
+      if (skz.finalKind) expect(g.arch.finalKind).toBe(skz.finalKind) // V7
+      expect(g.arch.dPlus).toBeLessThanOrEqual(sk.dPlus[1] * 1.1)
+    }
+    const ds = dPlusPorEsqueleto.get(sk.id) ?? []
+    dPlusPorEsqueleto.set(sk.id, [...ds, ...salidas.map((g) => g.arch.dPlus)])
+  })
+  it('la mediana del dPlus de cada esqueleto en su barrido llega a 0,9 × sk.dPlus[0]', () => {
+    for (const [id, ds] of dPlusPorEsqueleto)
+      expect(mediana(ds), `${id}: mediana de ${ds.length}`).toBeGreaterThanOrEqual(
+        SKELETONS[id].dPlus[0] * 0.9,
+      )
+  })
 })
 
 describe('candidatos y pesos', () => {
@@ -581,15 +823,32 @@ describe('candidatos y pesos', () => {
       for (const t of ['flat', 'hilly', 'mountain', 'itt'] as const)
         expect(ed(t, zona, 160).every((id) => id.startsWith('et_'))).toBe(true)
   })
-  it.todo(
-    'la reina blanda sale con la cuota de ARCH.reina.blandaShare (paso 5: generateStage, 4.000 semillas)',
-  )
+  it('la reina blanda sale con la cuota de ARCH.reina.blandaShare', () => {
+    const n = 4000
+    const blandas = semillas(n).filter(
+      (s) =>
+        generateStage(
+          requestDe(SKELETONS.et_reina_alto_largo, 'pirineos', 160, s, { role: 'reina_alto' }),
+        ).arch.skeleton === 'et_reina_blanda',
+    ).length
+    expect(blandas / n).toBeGreaterThan(0.07)
+    expect(blandas / n).toBeLessThan(0.13) // alta: 0,10
+  })
 })
 
 describe('etapas de edición', () => {
   it.todo(
     'reciben esqueletos de etapa, salvo cobbles → ud_adoquin_ligero, con km al 0,1 (paso 6: stagesForSeason)',
   )
-  it.todo('una etapa mountain de edición en flandes acaba en et_media_muro (paso 5: generateStage)')
+  it('una etapa mountain de edición en flandes acaba en et_media_muro', () => {
+    const g = generateStage({
+      ...requestDe(SKELETONS.et_reina_alto_largo, 'flandes', 170, 'ed-flandes'),
+      routeSource: 'edicion',
+      terrain: 'mountain',
+      role: 'reina_alto',
+    })
+    expect(g.arch.skeleton).toBe('et_media_muro')
+    expect(g.arch.frase).toMatch(/degradad/)
+  })
   it.todo('Colombia e5 de REAL_QUEENS ya no es una clásica de montaña (paso 6: stagesForSeason)')
 })

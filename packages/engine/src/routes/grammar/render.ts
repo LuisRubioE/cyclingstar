@@ -16,6 +16,10 @@
  * perfil (es identidad de objeto, no un campo del `Segment`) y no rompe la pureza: misma entrada,
  * misma salida. Con segmentos que no vengan de `renderSkeleton`, `emitirPancartas` cae a la posición
  * de los `Placed` («recorre colocados en paralelo a segs», §8.10) y las otras dos no ven enlaces.
+ *
+ * Paso 5: la regla 4 persigue también el `aMeta` del esqueleto (estrechado medio km por lado, porque
+ * la pancarta se lee al km entero) y puede quitar segmentos enteros del enlace final; si el valle no
+ * se puede mover y ya está en la ventana sin estrechar, se queda como está (la canónica del Poggio).
  */
 import { ARCH } from '../../constants.js'
 import type { Banner, Segment } from '../../stage/types.js'
@@ -199,6 +203,87 @@ function ventanaDeValle(fk: FinalKind): [number, number] | null {
   }
 }
 
+/** La distancia leída en una pancarta se mueve hasta medio km: `emitirPancartas` la escribe al km entero. */
+const REDONDEO_PANCARTA_KM = 0.5
+
+/** Las ventanas del valle de la regla 4: la del `finalKind` declarado ∩ el `aMeta` (la holgada) y la
+ * misma con el `aMeta` estrechado medio km por lado (la estricta, la que se persigue); `null` si no hay
+ * ninguna o si la etapa muere arriba. */
+function ventanasDeLaEtapa(
+  sk: Skeleton,
+): { estricta: [number, number]; holgada: [number, number] } | null {
+  if (sk.finalKind === 'alto') return null
+  const fk = sk.finalKind ? ventanaDeValle(sk.finalKind) : null
+  const a = sk.metaParams?.aMeta
+  if (!a) return fk ? { estricta: fk, holgada: fk } : null
+  const corta = (lo: number, hi: number): [number, number] => {
+    if (!fk) return [lo, hi]
+    const r: [number, number] = [Math.max(fk[0], lo), Math.min(fk[1], hi)]
+    return r[0] <= r[1] ? r : fk
+  }
+  return {
+    estricta: corta(r1(a[0] + REDONDEO_PANCARTA_KM), r1(a[1] - REDONDEO_PANCARTA_KM)),
+    holgada: corta(a[0], a[1]),
+  }
+}
+
+/**
+ * La regla 4 sobre `out`: el enlace final (los segmentos de enlace tras el último puerto, del último
+ * hacia atrás) se alarga o se recorta, sin bajar ninguno de 0,5 km, hasta que el valle cae en
+ * `ventana`; lo que cambia lo paga el enlace más largo ANTERIOR al último puerto, y Σ km no se mueve.
+ * Devuelve `out` tal cual si el valle ya está dentro, y `null` si no se puede mover.
+ */
+function valleA(
+  out: Segment[],
+  ultimo: number,
+  valle: number,
+  ventana: [number, number],
+): Segment[] | null {
+  const objetivo = valle < ventana[0] ? ventana[0] : valle > ventana[1] ? ventana[1] : valle
+  if (Math.abs(objetivo - valle) <= EPS) return out
+  const finales = out.flatMap((s, j) => (j > ultimo && esEnlace(s) ? [j] : [])).reverse()
+  if (finales.length === 0) return null
+  const nuevos = new Map<number, number>()
+  const quitados = new Set<number>()
+  let resto = r1(objetivo - valle)
+  for (const j of finales) {
+    if (Math.abs(resto) < EPS) break
+    const km = out[j]!.km
+    if (resto > 0) {
+      nuevos.set(j, r1(km + resto))
+      resto = 0
+      break
+    }
+    // Paso 5: un enlace largo son varios segmentos de `rolling`, y cada uno baja como mucho a 0,5;
+    // si hay que quitar más, el segmento sale entero (su km lo paga el enlace de antes, como el
+    // resto) y lo que se quita de más se le devuelve al siguiente final que quede.
+    if (km + resto >= ENLACE_MIN_KM - EPS) {
+      nuevos.set(j, r1(km + resto))
+      resto = 0
+      break
+    }
+    quitados.add(j)
+    resto = r1(resto + km)
+  }
+  if (resto > EPS) {
+    const queda = finales.find((j) => !quitados.has(j))
+    if (queda === undefined) return null
+    nuevos.set(queda, r1((nuevos.get(queda) ?? out[queda]!.km) + resto))
+    resto = 0
+  }
+  if (Math.abs(resto) > EPS) return null
+  const delta = r1(objetivo - valle)
+  const anteriores = out.flatMap((s, j) => (j < ultimo && esEnlace(s) ? [j] : []))
+  if (anteriores.length === 0) return null
+  const largo = anteriores.reduce((a, j) => (out[j]!.km > out[a]!.km ? j : a), anteriores[0]!)
+  const compensado = r1(out[largo]!.km - delta)
+  if (compensado < ENLACE_MIN_KM - EPS) return null
+  nuevos.set(largo, compensado)
+  return out
+    .map((s, j) => (nuevos.has(j) ? reescala(s, nuevos.get(j)!) : s))
+    .filter((_, j) => !quitados.has(j))
+}
+
 /** El `km` mínimo de una subida que `garantizaClase` recorta: el del motivo del que sale en `ARCH.motivo`. */
 function kmMinimoDe(o: Origen | undefined): number {
   const kind = o?.p?.motif.kind
@@ -314,37 +399,22 @@ export function garantizaClase(
         tocadas.add(3)
       }
   }
-  // Regla 4: el valle declarado, con holgura sobre los cortes.
-  const ventana = sk.finalKind ? ventanaDeValle(sk.finalKind) : null
+  // Regla 4: el valle declarado, con holgura sobre los cortes. Paso 5: y dentro del `aMeta` que el
+  // esqueleto de un día declara para V5(c), estrechado medio km por lado porque la pancarta se lee al km
+  // entero (un valle de 4,3 puede leerse 4,8); sin `finalKind`, solo el `aMeta` (`ud_muros`). Si el
+  // valle no se puede mover (no hay enlace tras el último puerto, como en la canónica del Poggio) y ya
+  // está en la ventana sin estrechar, se queda como está.
+  const ventanas = ventanasDeLaEtapa(sk)
   const ps = puertos()
-  if (ventana && ps.length > 0) {
+  if (ventanas && ps.length > 0) {
     const ultimo = ps[ps.length - 1]!
     const valle = r1(suma(out.slice(ultimo + 1)))
-    const objetivo = valle < ventana[0] ? ventana[0] : valle > ventana[1] ? ventana[1] : valle
-    if (Math.abs(objetivo - valle) > EPS) {
-      // El enlace final (los segmentos de enlace tras el último puerto, del último hacia atrás) se
-      // alarga o se recorta, sin bajar ninguno de 0,5 km; lo que cambia lo paga el enlace más largo
-      // ANTERIOR al último puerto, y Σ km no se mueve.
-      const finales = out.flatMap((s, j) => (j > ultimo && esEnlace(s) ? [j] : [])).reverse()
-      if (finales.length === 0) return null
-      const nuevos = new Map<number, number>()
-      let resto = r1(objetivo - valle)
-      for (const j of finales) {
-        if (Math.abs(resto) < EPS) break
-        const km = out[j]!.km
-        const nuevo = resto > 0 ? r1(km + resto) : Math.max(ENLACE_MIN_KM, r1(km + resto))
-        nuevos.set(j, nuevo)
-        resto = r1(resto - (nuevo - km))
-      }
-      if (Math.abs(resto) > EPS) return null
-      const delta = r1(objetivo - valle)
-      const anteriores = out.flatMap((s, j) => (j < ultimo && esEnlace(s) ? [j] : []))
-      if (anteriores.length === 0) return null
-      const largo = anteriores.reduce((a, j) => (out[j]!.km > out[a]!.km ? j : a), anteriores[0]!)
-      const compensado = r1(out[largo]!.km - delta)
-      if (compensado < ENLACE_MIN_KM - EPS) return null
-      nuevos.set(largo, compensado)
-      out = out.map((s, j) => (nuevos.has(j) ? reescala(s, nuevos.get(j)!) : s))
+    const movido = valleA(out, ultimo, valle, ventanas.estricta)
+    if (movido === null) {
+      const [lo, hi] = ventanas.holgada
+      if (valle < lo - EPS || valle > hi + EPS) return null
+    } else if (movido !== out) {
+      out = movido
       tocadas.add(4)
     }
   }
