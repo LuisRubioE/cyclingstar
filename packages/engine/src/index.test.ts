@@ -461,6 +461,7 @@ describe('engine: esqueleto', () => {
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
     // v88: las reinas sin final en alto reparten su peso como las reales y tiran su desnivel en todo
     // su rango (docs/balance.md, v88).
-    expect(ENGINE_VERSION).toBe(88)
+    // v89: V12 al generar, con un tope anti-clon por familia (docs/balance.md, v89).
+    expect(ENGINE_VERSION).toBe(89)
   })
 })

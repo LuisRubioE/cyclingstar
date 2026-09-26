@@ -829,8 +829,13 @@ import type { RaceClass } from './routes/uci.js'
  * reinas sin final en alto reparten su peso como las reales (5 `et_reina_cima_cerca`, 15
  * `et_reina_valle`), y una reina tira su objetivo de desnivel en todo `sk.dPlus` y lo factible solo
  * lo recorta. Cambian cinco etapas de esqueleto y el desnivel de las reinas generadas.
+ *
+ * v89: las decisiones del dueño sobre las bandas abiertas de E1 (docs/balance.md, v89). V12 se cumple
+ * al generar con un tope anti-clon por familia (`ARCH.anticlon`, `grammar/anticlon.ts`): la etapa que
+ * clona a otra de su par se redibuja con otra semilla, sin cambiar esqueleto ni firma. Cambian los
+ * perfiles de las etapas redibujadas (unas 200 por temporada); el motor de carrera no se toca.
  */
-export const ENGINE_VERSION = 88 as const
+export const ENGINE_VERSION = 89 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a

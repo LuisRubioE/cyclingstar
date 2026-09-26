@@ -75,6 +75,14 @@ describe('el censo del calendario que el juego corre', () => {
     })
   }
 
+  // Decisión 4 del dueño (balance v89): la cola alta de desnivel de las reinas estable entre
+  // ediciones. La banda se afirma arriba en la temporada 0; en las temporadas 1 a 5 no llega, y subir
+  // los techos del catálogo (`sk.dPlus`, los puertos por zona, `puertoDplusMax` por altitud) no la
+  // sube: se midió en v89 y queda aquí con la cifra, sin ensanchar la banda.
+  it.todo(
+    'variedad.dplusCubetaAlta en las temporadas 1 a 5: σ de dPlus de las reinas en [2.600; 4.600] > 500 m (v89: 511, 475, 463, 456 y 454 m; ningún techo de catálogo lo cierra)',
+  )
+
   it('ninguna etapa generada llega degradada en las temporadas 0 a 3 y el p95 de intentos es ≤ ARCH.veto.intentosP95', () => {
     for (const s of [0, 1, 2, 3]) {
       // las cuatro que §14.5 presupuesta (2,5 + 3 s de tope)
