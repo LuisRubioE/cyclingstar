@@ -120,8 +120,9 @@ export function seasonDe(req: StageRequest, sub: 'ed' | 'mot' | 'pos' | 'dib'): 
  * TODA semilla de `generateStage` sale de aquí (§8.1 y §10.4; ningún `routeRng` de `grammar/` concatena
  * a mano). `arch` y `firma` sin temporada ni intento; `ed` con temporada; `mot`, `pos` y `dib` con
  * temporada e `i{intento}` (`mot` con hueco e instancia, `dib` con su token), y `|r{redibujo}` cuando
- * el anti-clon de la temporada pide otro dibujo (`req.redibujo`, v89): la firma, el esqueleto y el plan
- * de edición no cambian, así que la identidad entre ediciones (decisión 20) se conserva.
+ * el anti-clon de la temporada pide otro dibujo (`req.redibujo`, v89) en los subflujos que ya llevan el
+ * año: la firma y el esqueleto no cambian nunca, así que la identidad entre ediciones (decisión 20) se
+ * conserva.
  */
 export function semillaDe(
   sub: Subflujo,
@@ -129,26 +130,33 @@ export function semillaDe(
   x: { slot?: number; j?: number; token?: string; intento?: number } = {},
 ): string {
   const id = claveEtapa(req)
-  // El redibujo anti-clon (V12 al generar, balance v89) solo entra en `mot`, `pos` y `dib`, detrás del
-  // intento y solo si no es 0: sin redibujo las semillas son las de siempre, byte a byte.
-  const i = `i${x.intento ?? 0}${req.redibujo ? `|r${req.redibujo}` : ''}`
+  // El redibujo anti-clon (V12 al generar, balance v89) va detrás del intento y solo si no es 0: sin
+  // redibujo las semillas son las de siempre, byte a byte. Solo toca subflujos que YA cambian con la
+  // temporada: `dib` siempre; `mot` y `pos` (y `ed`, pasados los de solo dibujo) solo donde la edición
+  // los tira con el año, que no es una etapa de edición real ni el nivel 0 (`seasonDe`). Así una etapa
+  // de edición sigue variando solo el dibujo entre temporadas (§10.4).
+  const r = req.redibujo ?? 0
+  const cfg = req.edicion ?? ARCH.edicion
+  const conAnio = req.routeSource !== 'edicion' && cfg.nivel !== 0
+  const conR = (sub: 'ed' | 'mot' | 'pos' | 'dib'): string => {
+    if (r === 0) return ''
+    if (sub === 'dib') return `|r${r}`
+    if (!conAnio) return ''
+    return sub !== 'ed' || r > ARCH.anticlon.redibujos.dibujo ? `|r${r}` : ''
+  }
+  const i = `i${x.intento ?? 0}`
   switch (sub) {
     case 'arch':
     case 'firma':
       return `${sub}|${id}`
-    case 'ed': {
-      // Pasados los redibujos de solo dibujo, el anti-clon tira también el plan de la edición (km,
-      // huecos y desnivel objetivo), que ya es de la temporada y no de la identidad (v89).
-      const r = req.redibujo ?? 0
-      const plan = r > ARCH.anticlon.redibujos.dibujo ? `|r${r}` : ''
-      return `ed|${id}|${seasonDe(req, 'ed')}${plan}`
-    }
+    case 'ed':
+      return `ed|${id}|${seasonDe(req, 'ed')}${conR('ed')}`
     case 'mot':
-      return `mot|${id}|${seasonDe(req, 'mot')}|${x.slot ?? 0}|${x.j ?? 0}|${i}`
+      return `mot|${id}|${seasonDe(req, 'mot')}|${x.slot ?? 0}|${x.j ?? 0}|${i}${conR('mot')}`
     case 'pos':
-      return `pos|${id}|${seasonDe(req, 'pos')}|${i}`
+      return `pos|${id}|${seasonDe(req, 'pos')}|${i}${conR('pos')}`
     case 'dib':
-      return `dib|${id}|${seasonDe(req, 'dib')}|${x.token ?? ''}|${i}`
+      return `dib|${id}|${seasonDe(req, 'dib')}|${x.token ?? ''}|${i}${conR('dib')}`
   }
 }
 
