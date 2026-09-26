@@ -1936,8 +1936,13 @@ export const ARCH = {
     techoMs: 2500,
     // Coste máximo de una temporada adicional, `calendarForSeason(s)` con `s` distinta de la 0: por
     // debajo del objetivo porque las 177 etapas reales se comparten por referencia entre temporadas y
-    // solo se dibujan las 1.241 generadas y de edición (§14.5 punto 1).
-    porTemporadaMs: 1000,
+    // solo se dibujan las 1.241 generadas y de edición (§14.5 punto 1). RE-SELLADO en la v89 de 1.000
+    // a 1.500 (el objetivo de la temporada 0): la pasada anti-clon (`grammar/anticlon.ts`) redibuja
+    // unas 1.700 etapas más por temporada, y la mediana de las temporadas 1 a 3 pasa de 462 a 652 ms
+    // (`scripts/medir-arranque.mjs`, mediana de 5 procesos, en la misma máquina). Con 1.000 el margen
+    // caía de 2,2 a 1,5 y el `it` de `routes/arranque.test.ts` fallaba con `test:rapido` entero en
+    // paralelo; con 1.500 vuelve a 2,3 (balance v89).
+    porTemporadaMs: 1500,
     // Temporadas distintas de la 0 que el memo de producción guarda a la vez; al pasar se expulsa la
     // de acceso más antiguo (LRU) y, si se vuelve a pedir, se reconstruye por ≤ `porTemporadaMs`. La
     // 0 no cuenta ni se expulsa. Decide la memoria de `apps/api`, que no se reinicia por cambiar de

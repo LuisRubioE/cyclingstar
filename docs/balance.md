@@ -17474,6 +17474,18 @@ El 25/09/2026 el dueño aceptó las trece decisiones de la sección 18 de `docs/
 | D12      | Los países sin fila en `TERRITORIOS`           | caen a `FALLBACK` (firma `generico`) y `geo.test.ts` los imprime sin banda                                                  |
 | D13      | La arquitectura Superga                        | queda fuera: en meta de un día solo `muro_meta` de hasta 2,2 km                                                             |
 
+El 26/09/2026 respondió a las siete decisiones abiertas de §2 («Decisiones abiertas para el dueño»); lo que cambió con cada una, con sus cifras, está en la nota v89:
+
+| Decisión de §2                  | Respuesta                                                                                           | Qué se hizo (v89)                                                                                                |
+| ------------------------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| 1, D6, fuga en montaña          | mantener [6; 30]                                                                                    | sin cambio de código                                                                                             |
+| 2, D2, `stageKindOf`            | se recalibra como encargo aparte                                                                    | línea en `docs/encargos.md` (E1), sin cambio de código                                                           |
+| 3, tope anti-clon               | un listón por familia y V12 al generar, sin sacar los nacionales                                    | `ARCH.anticlon.porFamilia` y `grammar/anticlon.ts`; la banda sigue abierta por las `nc_crono` de `generico`      |
+| 4, `variedad.dplusCubetaAlta`   | subir el techo de desnivel de las reinas por zona para que se cumpla en las temporadas 1 a 5        | medido: ningún techo de catálogo la sube; queda en `it.todo` con la cifra                                        |
+| 5, `finales.reparto.valleLargo` | ya cerrada                                                                                          | nada                                                                                                             |
+| 6, `timeTrials.tailPct`         | cronos con cuesta: se acepta                                                                        | sin cambio de código                                                                                             |
+| 7, `sameWinnerPairPct`          | exigir el 15 % y rehacer la composición de las vueltas pequeñas                                     | el suelo vuelve a 15; el banco da 16,98 % con el anti-clon y la composición no se toca (más llanas lo empeoraba) |
+
 ### v87 §6 · Deudas con nombre
 
 Paso 11 (`docs/generador.md` §15.13 y §17.4), escrito después de la v88. Cada deuda con su cifra y con quién la cierra. Las ocho primeras son las de la sección 17 del documento; las demás aparecieron al implementar.
