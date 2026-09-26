@@ -17,7 +17,7 @@ import { QUEEN_MIN_CLIMB_METRES, WALL_MAX_KM } from '../stageKind.js'
 import type { EditionPlan } from './edition.js'
 import type { StageRequest } from './generate.js'
 import { firmeDe, type GeoSignature } from './geo.js'
-import { llevaBajadas } from './place.js'
+import { conVentanasDe, llevaBajadas } from './place.js'
 import {
   rangoCotaFinal,
   techoDeDibujo,
@@ -1065,11 +1065,12 @@ function valleDeAMeta(sk: Skeleton): R2 | null {
  * `firma: true`, y la edición, el reintento y `garantizaClase` no los tocan.
  */
 export function instanciarFirma(
-  sk: Skeleton,
+  skCatalogo: Skeleton,
   opcion: number,
   req: StageRequest,
   rand: Rand,
 ): Instancia[] {
+  const sk = conVentanasDe(skCatalogo, req) // en una transición, las ventanas con que se colocará
   const alt = opcion === 0 ? null : (sk.alternativas?.[opcion - 1] ?? null)
   const ctx: Ctx = { sk, geo: req.geo, km: req.km, rangos: new Map() }
   const meta: MetaKind = alt?.meta ?? sk.meta
@@ -1422,12 +1423,13 @@ function cabenEnHueco(
  * km vuelve a su rango.
  */
 export function instanciar(
-  sk: Skeleton,
+  skCatalogo: Skeleton,
   firma: readonly Instancia[],
   plan: EditionPlan,
   req: StageRequest,
   rngDe: (slot: number, j: number) => Rand,
 ): Instancia[] {
+  const sk = conVentanasDe(skCatalogo, req) // en una transición, las ventanas con que se colocará
   const ctx: Ctx = { sk, geo: req.geo, km: plan.km, rangos: new Map() }
   const metaFirma = firma.find((f) => f.slot === 'meta')
   const out: Instancia[] = []

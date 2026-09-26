@@ -30,7 +30,7 @@ import { SKELETONS } from './skeletons.js'
  * la gramática, con `routeCensus`, que los llama), la recalibración de `ARCH.reina.rellenoDplusPorKm`
  * y el test de coherencia de `ARCH` de §12.14, escrito por pasos (§15.1): sus cuatro `it` del paso 3,
  * el del paso 4 (referencias al motor y al clasificador), el del paso 5 (`ARCH.km` y `ARCH.veto`) y el
- * del paso 7 en `it.todo`.
+ * del paso 7 (`ARCH.pesosComposicion`).
  *
  * Reloj propio de 120 s en los `it` que muestrean perfiles (regla 3 de §15.1: ≥ 4× lo que cuestan).
  */
@@ -832,5 +832,10 @@ describe('ARCH es coherente con routes/ y STAGE', () => {
     ) // 25 km al 7 % caben en `alta`
   })
   // Paso 7 (ARCH.pesosComposicion).
-  it.todo('pesosComposicion suma 1 por relieve')
+  it('pesosComposicion suma 1 por relieve', () => {
+    for (const [relieve, fila] of Object.entries(ARCH.pesosComposicion)) {
+      const suma = Object.values(fila).reduce((a, b) => a + b, 0)
+      expect(Math.abs(suma - 1), relieve).toBeLessThan(1e-9)
+    }
+  })
 })

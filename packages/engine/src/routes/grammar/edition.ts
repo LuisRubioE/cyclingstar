@@ -13,6 +13,7 @@ import { ARCH, type EdicionCfg } from '../../constants.js'
 import { hashInt, routeRng } from '../profileGen.js'
 import type { StageRequest } from './generate.js'
 import { desnivelFactible, type Motif } from './motifs.js'
+import { conVentanasDe } from './place.js'
 import type { Skeleton } from './skeletons.js'
 
 /** La temporada con que nace un mundo: `calendarRun.ts`, `season = floor(gameDay / SEASON_DAYS)`, da 0 el primer año (§10.2). */
@@ -192,7 +193,7 @@ export function planDeEdicion(
     objetivoFactible(
       sk,
       desnivelFactible(
-        sk,
+        conVentanasDe(sk, req), // en una transición, con las ventanas con que se colocará (paso 7)
         firma,
         { km, n, ...(vueltas !== undefined ? { vueltas } : {}) },
         req.geo,

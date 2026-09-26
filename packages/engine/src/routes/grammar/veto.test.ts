@@ -27,7 +27,7 @@ import { V16, V5, V8, conjuntoV16, finalKindDe, verify, type VetoId } from './ve
  * fixtures de §9.8 (`colocados` por `colocarPlantilla`); V16 como predicado puro sobre filas literales
  * de `RouteStats`; los dos casos con nombre (el v40 de §9.3 y `reina-150` de §9.4). Ningún `routeRng`
  * en los fixtures: todo es literal. V11 y V12 se miden sobre el calendario en `sim/routeCensus.test.ts`
- * (paso 8) y V13 y V14 son del paso 7.
+ * (paso 8), y V13 y V14, de vuelta, en `tour.test.ts` (paso 7).
  */
 
 // Constructores de motivo: copia de los de §5.4 (skeletons.ts no los exporta).

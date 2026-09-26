@@ -7,15 +7,18 @@
  * eso V11, V12 y V16 leen filas de `RouteStats` ya medidas y no perfiles.
  *
  * Tres capas: once por etapa con reintento (V1 a V10 y V15, en `verify`), tres de calendario sobre el
- * censo (V11, V12, V16) y dos de vuelta (V13, V14, paso 7). Paso 1: los tipos. Paso 5: `finalKindDe`,
- * `verify`, V1 a V12, V15, V16 y `conjuntoV16`.
+ * censo (V11, V12, V16) y dos de vuelta (V13, V14). Paso 1: los tipos. Paso 5: `finalKindDe`,
+ * `verify`, V1 a V12, V15, V16 y `conjuntoV16`. Paso 7: V13 y V14, que leen `ventanaReina` y los
+ * predicados de papel de `tour.ts` dentro de la función (el ciclo `tour → generate → veto → tour` es
+ * inocuo: nadie lee un valor del otro en el nivel superior del módulo, §15.8).
  */
-import { ARCH, STAGE } from '../../constants.js'
+import { ARCH, ROUTE, STAGE } from '../../constants.js'
 import type { RouteStats } from '../../sim/routeCensus.js' // solo tipo: se borra al compilar
 import type { FinishType } from '../../stage/finish.js' // solo tipo: la regla de §14.4 lo admite
 import type { Segment, StageProfile } from '../../stage/types.js'
 import { finalKindOf, kmAfterLastClimb, lastClimbKm, type FinalKind } from '../finalKind.js'
 import { PASS_MIN_KM, climbMetres, climbSize, stageKindOf } from '../stageKind.js'
+import type { RaceClass } from '../uci.js'
 import type { StageRequest } from './generate.js'
 import type { GeoSignature } from './geo.js'
 import {
@@ -27,7 +30,16 @@ import {
 } from './geometry.js'
 import type { MetaKind, Motif } from './motifs.js'
 import { kmNoEnlace, type Placed } from './place.js'
-import type { Skeleton, SkeletonId } from './skeletons.js'
+import { SKELETONS, type Skeleton, type SkeletonId } from './skeletons.js'
+import {
+  acabaArriba,
+  esCrono,
+  esReina,
+  huecoCorto,
+  ventanaReina,
+  type StageRole,
+  type TourSkeletonId,
+} from './tour.js'
 
 export type VetoId =
   | 'V1'
@@ -418,5 +430,74 @@ export const V16 = (rows: RouteStats[]): Veto | null => {
         `${r.kmAfterLastClimb ?? 'sin cota'} km tras la última): ${r.finishType} fuera de {${c.join(', ')}}`,
     )
   }
+  return null
+}
+
+// ---------------------------------------------------------------------------------------------------
+// Los de vuelta (paso 7): sobre los papeles y los km de un itinerario. `composeTour` los repara por
+// construcción (reglas de bloque de §7.2) y `tour.test.ts` sella cero violaciones; no hay reintento.
+// ---------------------------------------------------------------------------------------------------
+
+/**
+ * V13 clase (§9.2): ningún km por encima de `ARCH.km.maxPorClase`; el prólogo y la cronoescalada miden
+ * lo de su esqueleto; en `vu_corta` a lo sumo una crono; en `vu_semana` a lo sumo tres finales en alto
+ * y dos seguidos.
+ */
+export const V13 = (
+  roles: StageRole[],
+  km: number[],
+  raceClass: RaceClass,
+  tour: TourSkeletonId,
+): Veto | null => {
+  const max = ARCH.km.maxPorClase[raceClass]
+  for (let i = 0; i < roles.length; i++) {
+    const k = km[i]!
+    if (k > max + EPS) return veto('V13', `e${i + 1} de ${k} km > ${max} (${raceClass})`)
+    const rango =
+      roles[i] === 'prologo'
+        ? SKELETONS.et_prologo.km
+        : roles[i] === 'cronoescalada'
+          ? SKELETONS.et_cronoescalada.km
+          : null
+    if (rango !== null && (k < rango[0] - EPS || k > rango[1] + EPS))
+      return veto('V13', `e${i + 1} ${roles[i]} de ${k} km fuera de [${rango[0]}; ${rango[1]}]`)
+  }
+  if (tour === 'vu_corta' && roles.filter(esCrono).length > 1)
+    return veto('V13', `vu_corta con ${roles.filter(esCrono).length} cronos`)
+  if (tour === 'vu_semana') {
+    const arriba = roles.filter(acabaArriba).length
+    if (arriba > 3) return veto('V13', `vu_semana con ${arriba} finales en alto`)
+    for (let i = 2; i < roles.length; i++)
+      if (acabaArriba(roles[i]!) && acabaArriba(roles[i - 1]!) && acabaArriba(roles[i - 2]!))
+        return veto('V13', `vu_semana con tres finales en alto seguidos hasta la e${i + 1}`)
+  }
+  return null
+}
+
+/**
+ * V14 gran vuelta (§9.2), sobre `ARCH.bloques.gv`: toda reina dentro de `ventanaReina(n)` (y por tanto
+ * ninguna antes del primer descanso); a lo sumo `primeraSemanaFinalesAlto` final en alto antes de él;
+ * a lo sumo `maxAltaMontana` reinas; y al menos `minLlanasEntreBloques` etapas entre dos bloques de
+ * montaña. Los descansos mismos (`descansosDe`) no están en los papeles: los sella `tour.test.ts`.
+ * Fuera de `vu_gran_vuelta` (n < `ROUTE.grandTourStages`) no dice nada.
+ */
+export const V14 = (roles: StageRole[], n: number): Veto | null => {
+  if (n < ROUTE.grandTourStages) return null
+  const gv = ARCH.bloques.gv
+  const [a, b] = ventanaReina(n)
+  for (let i = 0; i < roles.length; i++)
+    if (esReina(roles[i]!) && (i < a || i > b))
+      return veto('V14', `reina en la e${i + 1}, fuera de las etapas ${a + 1} a ${b + 1}`)
+  const primera = roles.slice(0, gv.descansos[0]).filter(acabaArriba).length
+  if (primera > gv.primeraSemanaFinalesAlto)
+    return veto('V14', `${primera} finales en alto antes del primer descanso`)
+  const reinas = roles.filter(esReina).length
+  if (reinas > gv.maxAltaMontana) return veto('V14', `${reinas} etapas de alta montaña`)
+  const h = huecoCorto(roles, gv.minLlanasEntreBloques)
+  if (h !== null)
+    return veto(
+      'V14',
+      `solo ${h[1] - h[0] - 1} etapa entre los bloques de montaña de las e${h[0] + 1} y e${h[1] + 1}`,
+    )
   return null
 }

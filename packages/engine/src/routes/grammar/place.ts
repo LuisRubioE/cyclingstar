@@ -44,6 +44,36 @@ export interface Placed {
 const r1 = (x: number): number => Math.round(x * 10) / 10
 /** El redondeo al 0,1 de un inicio de ventana: la mitad de la resolución de la gramática. */
 const HOLGURA_KM = 0.05
+
+/**
+ * La ventana de un hueco en una etapa de TRANSICIÓN (`req.desde` distinto de la zona de meta): el
+ * primer `ARCH.itinerario.transicion` de la etapa es de la zona de salida y no lleva dificultades, así
+ * que ninguna empieza antes, y la ventana conserva al menos `HOLGURA_KM` de ancho sobre ese borde.
+ */
+export function ventanaColocable(
+  v: readonly [number, number],
+  transicion: boolean,
+): readonly [number, number] {
+  const T = ARCH.itinerario.transicion
+  return transicion ? [Math.max(v[0], T), Math.max(v[1], T + HOLGURA_KM)] : v
+}
+
+/** ¿Es la petición una etapa de transición? */
+export const esTransicion = (req: Pick<StageRequest, 'desde' | 'geo'>): boolean =>
+  req.desde !== undefined && req.desde !== req.geo.zona
+
+/**
+ * El esqueleto con las ventanas con que `colocar` colocará esta petición (paso 7): en una etapa de
+ * transición, `instanciar`, `instanciarFirma` y `desnivelFactible` miden el sitio con ellas, y no con
+ * las del catálogo, o una etapa de 110 km con un 40 % de transición pide dificultades que no caben.
+ */
+export function conVentanasDe(sk: Skeleton, req: Pick<StageRequest, 'desde' | 'geo'>): Skeleton {
+  if (!esTransicion(req)) return sk
+  return {
+    ...sk,
+    slots: sk.slots.map((sl) => ({ ...sl, ventana: [...ventanaColocable(sl.ventana, true)] })),
+  }
+}
 const suma = (xs: readonly number[]): number => xs.reduce((a, b) => a + b, 0)
 
 /** El km que ocupa un motivo en la carretera: en un `circuito`, `km` de la vuelta × `vueltas`. */
@@ -219,12 +249,8 @@ export function colocar(
   // transición). La carretera los pone en el orden de esas tiradas (estable): así dos huecos de
   // ventanas solapadas se intercalan como en las plantillas canónicas (§5.4: sectores entre cadenas en
   // `ud_muros_adoquin`, cotas entre racimos en `ud_sterrato`), cosa que el orden de huecos no permite.
-  const transicion = req.desde !== undefined && req.desde !== req.geo.zona
-  const T = ARCH.itinerario.transicion
-  const ventanas = colocables.map(({ inst }) => {
-    const v = ventanaDe(inst)
-    return transicion ? ([Math.max(v[0], T), Math.max(v[1], T + 0.05)] as const) : v
-  })
+  const transicion = esTransicion(req)
+  const ventanas = colocables.map(({ inst }) => ventanaColocable(ventanaDe(inst), transicion))
   const tiradas = ventanas.map(([a, b]) => r1(km * (a + rand() * (b - a)))) // se consumen todas
   // Paso 5: las instancias de un MISMO hueco van en carretera en el orden de `j` (sus tiradas se
   // reparten ordenadas), así «la primera cota» y «la última» de §5.2 son la `j = 0` y la `j = n − 1`
