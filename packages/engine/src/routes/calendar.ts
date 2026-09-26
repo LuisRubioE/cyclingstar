@@ -392,7 +392,7 @@ function doy(month: number, day: number): number {
 // reconstruido, la amplitud del relieve anónimo entre dificultades (ver featureProfile.ts).
 type Terrain = RouteTerrain
 
-interface RaceRow {
+export interface RaceRow {
   id: string
   name: string
   /** Fecha de arranque real (mes 1-based, día): fija el día de temporada. */
@@ -3648,6 +3648,15 @@ const CON_TABLE: RaceRow[] = [
 ]
 
 const CON_RACES: CalendarRace[] = CON_TABLE.map(buildRace)
+
+/**
+ * Las filas de las tres tablas de carreras de equipos, en su orden (WT, Pro, continentales), SIN los
+ * nacionales, que no tienen fila. Solo la leen los tests de la gramática (`grammar/skeletons.test.ts`,
+ * docs/generador.md §5.9 y §15.6: «para toda fila del calendario y las cinco clases, `candidatos` no
+ * devuelve vacío»). Se escribe aquí, donde las tres tablas ya están inicializadas, y no cambia nada
+ * de lo que el calendario construye.
+ */
+export const RACE_ROWS: readonly RaceRow[] = [...WT_TABLE, ...PRO_TABLE, ...CON_TABLE]
 
 /**
  * Calendario completo de la temporada (SPEC 8): WorldTour real + ProSeries real + circuitos

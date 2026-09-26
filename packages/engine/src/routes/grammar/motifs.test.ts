@@ -7,9 +7,9 @@ import { ARCH, STAGE } from '../../constants.js'
 import { deriveFinishTerrain, finishType, type FinishType } from '../../stage/finish.js'
 import { sampleProfile } from '../../stage/sample.js'
 import type { Segment } from '../../stage/types.js'
-import { FINAL_KIND_CUTS } from '../finalKind.js'
+import { CLIMB_MIN_KM, FINAL_KIND_CUTS } from '../finalKind.js'
 import { routeRng } from '../profileGen.js'
-import { PASS_MIN_KM, WALL_MAX_KM } from '../stageKind.js'
+import { PASS_MIN_KM, QUEEN_MIN_CLIMB_METRES, WALL_MAX_KM } from '../stageKind.js'
 import { ZONAS, type GeoSignature } from './geo.js'
 import { dPlusDe } from './geometry.js'
 import {
@@ -20,6 +20,7 @@ import {
   type MotifKind,
   type RngFactory,
 } from './motifs.js'
+import { SKELETONS } from './skeletons.js'
 
 /**
  * LOS MOTIVOS (docs/generador.md sección 4, paso 3 del plan §15.5).
@@ -27,8 +28,8 @@ import {
  * `validateMotif` y `renderMotif` sobre 300 instancias por motivo y por meta, los bordes de la sección
  * 4 contra el motor real (`sampleProfile` → `deriveFinishTerrain` → `finishType`: es el ÚNICO test de
  * la gramática, con `routeCensus`, que los llama), la recalibración de `ARCH.reina.rellenoDplusPorKm`
- * y el test de coherencia de `ARCH` de §12.14, escrito por pasos (§15.1): sus cuatro `it` del paso 3 y
- * los tres de los pasos 4, 5 y 7 en `it.todo`.
+ * y el test de coherencia de `ARCH` de §12.14, escrito por pasos (§15.1): sus cuatro `it` del paso 3,
+ * el del paso 4 (referencias al motor y al clasificador) y los dos de los pasos 5 y 7 en `it.todo`.
  *
  * Reloj propio de 120 s en los `it` que muestrean perfiles (regla 3 de §15.1: ≥ 4× lo que cuestan).
  */
@@ -787,7 +788,15 @@ describe('ARCH es coherente con routes/ y STAGE', () => {
     for (const linea of deGrammar) expect(linea.startsWith('import type ')).toBe(true)
   })
   // Paso 4 (pancarta, reina, veto.margenClaseMetros, SKELETONS, CLIMB_MIN_KM, QUEEN_MIN_CLIMB_METRES).
-  it.todo('las referencias al motor y al clasificador no se separan de su fuente')
+  it('las referencias al motor y al clasificador no se separan de su fuente', () => {
+    expect(ARCH.pancarta.cimaMinKm).toBe(CLIMB_MIN_KM)
+    expect(ARCH.reina.subidaLejanaKm).toBe(STAGE.climbRaceKmToGo)
+    expect(ARCH.reina.verdad.dPlusMin).toBeGreaterThan(QUEEN_MIN_CLIMB_METRES)
+    const techoMedia = QUEEN_MIN_CLIMB_METRES - ARCH.veto.margenClaseMetros // 2.900
+    for (const sk of Object.values(SKELETONS))
+      if (sk.kind === 'media') expect(sk.dPlus[1], sk.id).toBeLessThanOrEqual(techoMedia)
+    expect(ARCH.reina.blandaShare.alta).toBeLessThan(ARCH.reina.blandaShare.montana!) // sacada del último it de §12.14
+  })
   // Paso 5 (ARCH.km y el resto de ARCH.veto).
   it.todo('km por clase, fallback y desnivel máximo de puerto bien formados')
   // Paso 7 (ARCH.pesosComposicion).
