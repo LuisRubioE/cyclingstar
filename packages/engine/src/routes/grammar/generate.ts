@@ -29,6 +29,7 @@ import { opcionDe, planDeEdicion, seasonDe, semillaDe, type EditionPlan } from '
 import { ZONAS, admite, conFirmeDeZona, type GeoSignature, type GeoZone } from './geo.js'
 import { dPlusDe } from './geometry.js'
 import {
+  cabeLaMeta,
   instanciar,
   instanciarFirma,
   type Instancia,
@@ -148,8 +149,34 @@ export function labelDe(sk: Skeleton, profile: StageProfile, timeTrial: boolean)
  * esqueleto, la firma ni cuántos motivos tiene la edición. Agotados los intentos, la plantilla canónica
  * de la opción con `degradado: true`. Pura: misma petición, misma etapa.
  */
+/**
+ * El esqueleto con el final que corre ESTA carrera (paso 9): si el catálogo declara `metaDeCarrera`,
+ * con su probabilidad la etapa toma esa meta, ese `finalKind` y esa plantilla. La tirada es de la
+ * corriente `firma` (sin temporada ni intento, §8.1) con su propio token, así que no mueve ningún otro
+ * dado de la firma y el final es identidad entre ediciones (decisión 20). Sin `metaDeCarrera`, `sk`;
+ * y tampoco donde el final largo no cabe con los puertos obligatorios en su suelo (`cabeLaMeta`: una
+ * edición real de 117 km con tres puertos y sus bajadas no tiene sitio para 21 km de valle,
+ * `race-gila` e2), que se queda con el corto sin gastar la tirada.
+ */
+export function esqueletoDeCarrera(sk: Skeleton, req: StageRequest): Skeleton {
+  const v = sk.metaDeCarrera
+  if (v === undefined) return sk
+  const largo: Skeleton = {
+    ...sk,
+    meta: v.meta,
+    finalKind: v.finalKind,
+    metaParams: v.metaParams,
+    slots: v.slots,
+    canonico: v.canonico,
+  }
+  if (!cabeLaMeta(largo, req)) return sk
+  return routeRng(`${semillaDe('firma', req)}|meta`)() < v.p ? largo : sk
+}
+
 export function generateStage(req: StageRequest): GeneratedStage {
-  const { sk, sufijo } = elegirEsqueleto(req, routeRng(semillaDe('arch', req))) // paso 1
+  const elegido = elegirEsqueleto(req, routeRng(semillaDe('arch', req))) // paso 1
+  const sk = esqueletoDeCarrera(elegido.sk, req)
+  const sufijo = elegido.sufijo
   const opcion = opcionDe(sk, req.raceId, seasonDe(req, 'ed'), req.edicion ?? ARCH.edicion) // sin dados (§10.3)
   const firma = instanciarFirma(sk, opcion, req, routeRng(semillaDe('firma', req))) // paso 2
   const ed = planDeEdicion(

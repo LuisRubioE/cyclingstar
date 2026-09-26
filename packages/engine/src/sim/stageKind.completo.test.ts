@@ -1,6 +1,7 @@
 import { afterAll, describe, expect, it } from 'vitest'
 import { ARCH } from '../constants.js'
 import {
+  esqueletoDeCarrera,
   generateStage,
   type GeneratedStage,
   type StageRequest,
@@ -104,10 +105,12 @@ describe('malla completa: 60 semillas × 5 km × toda zona admitida (V6 y V7)', 
         const skz = skeletonFor(sk.id, ZONAS[zona]) // nc_ruta es clasica donde la cota no llega a 3,3 km
         for (const km of CINCO_KM(sk))
           for (const s of semillas(60)) {
-            const g = generateStage(requestDe(sk, zona, km, s))
+            const req = requestDe(sk, zona, km, s)
+            const g = generateStage(req)
             if (g.kind !== skz.kind) expect(g.kind, `${sk.id} ${zona} ${km} ${s}`).toBe(skz.kind) // V6
-            if (skz.finalKind && g.arch.finalKind !== skz.finalKind)
-              expect(g.arch.finalKind, `${sk.id} ${zona} ${km} ${s}`).toBe(skz.finalKind) // V7
+            const fk = esqueletoDeCarrera(skz, req).finalKind // el final de esta carrera (paso 9)
+            if (fk && g.arch.finalKind !== fk)
+              expect(g.arch.finalKind, `${sk.id} ${zona} ${km} ${s}`).toBe(fk) // V7
             salidas.push(g)
           }
       }

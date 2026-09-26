@@ -103,6 +103,20 @@ export interface Skeleton {
   pesoBase: number // peso del catálogo antes de zona y clase
   canonico: Motif[] // instancia fija escrita a mano: pasa todos los vetos por construcción
   alternativas?: Alternativa[] // rotación DECLARADA (ARCH.edicion.nivel 2): opcionDe elige (§3.8)
+  /**
+   * El otro final de un esqueleto «con más de un final posible» (§3.3, nota de V7): con probabilidad
+   * `p`, fijada por CARRERA y etapa y no por temporada (`esqueletoDeCarrera`, generate.ts), la etapa
+   * corre esta meta, este `finalKind` y esta plantilla en vez de los del esqueleto. Como la meta es de
+   * firma, es identidad (decisión 20): no cambia entre ediciones. Solo `et_reina_valle` (paso 9).
+   */
+  metaDeCarrera?: {
+    meta: MetaKind
+    finalKind: FinalKind
+    metaParams: NonNullable<Skeleton['metaParams']>
+    slots: Slot[]
+    p: number
+    canonico: Motif[]
+  }
 }
 
 export type SkeletonId =
@@ -561,6 +575,27 @@ export const NC_RUTA_CLASICA: Motif[] = [
   META('esprint', 1),
 ] // 210 km; último muro a 4,0, dentro del aMeta [1,2; 4,3] de V5(c)
 
+/**
+ * `et_reina_valle` con su final LARGO (`metaDeCarrera`, paso 9): los mismos tres puertos y, en vez de
+ * la subida de meta de puerto, una COTA de 6 km al 7,5 % que corona a 24 km de la línea (meta
+ * `valle`, `ARCH.meta.valle.valle` [20,7; 45]); lo que gana el valle y pierde la cota lo pone el
+ * primer enlace. Es la forma de Táchira e6 (congelada: cota de 5,9 km a 20,7, §13.5) y de las reinas
+ * reales `valle_largo` de `datos.md` §1.4 (Alpes, Suiza, Andalucía: de 21 a 94 km tras la última cima).
+ */
+export const REINA_VALLE_LARGO: Motif[] = [
+  E(49),
+  P(10, 7),
+  D(10),
+  E(15),
+  P(13, 7.5),
+  D(10),
+  E(15),
+  P(11, 7.5),
+  D(10),
+  E(12),
+  META('valle', 30, { km: 6, g: 7.5 }),
+] // 185 km; cima a 24; los tres puertos, un km más largos que en la canónica, pagan la cota de meta (D+ ≥ 3.200)
+
 // ---------------------------------------------------------------------------------------------------
 // El catálogo (§5.2 y §5.3).
 // ---------------------------------------------------------------------------------------------------
@@ -982,7 +1017,18 @@ export const SKELETONS: Record<SkeletonId, Skeleton> = {
     meta: 'esprint',
     metaParams: { aMeta: [1.2, 4.3] },
     slots: [
-      { motif: 'enlace', n: [0, 1], ventana: [0, 0.25] },
+      // Paso 9: el llano ABIERTO antes de entrar al circuito donde la zona tiene viento (`viento ≥ 2`:
+      // Dinamarca, el Golfo, Flandes, Bretaña; §13.3, «en golfo `circuito+expuesto`», y la fila
+      // `nacionales.expuesto`); sin viento rinde enlace y no gasta dado. De firma para que el circuito
+      // se dimensione con él (`instanciarFirma`, «lo lineal de firma»). Antes era un `enlace`×[0; 1] que
+      // no se instancia nunca.
+      {
+        motif: 'expuesto',
+        n: [1, 1],
+        ventana: [0, 0.25],
+        firma: true,
+        params: { kmRango: [10, 40] },
+      },
       {
         motif: 'circuito',
         n: [1, 1],
@@ -1241,6 +1287,20 @@ export const SKELETONS: Record<SkeletonId, Skeleton> = {
     requiere: { puerto: true, relieve: 'montana' },
     pesoBase: 10,
     canonico: CANONICO.et_reina_valle,
+    // Paso 9: el final largo, por carrera. La subida de meta es una cota de [4; 8] km y el valle, de
+    // [20,7; 28,5] (`aMeta`), de modo que la meta no ocupa más carretera que la corta (8 + 28,5 contra
+    // 17 + 19,3); y los puertos obligatorios son dos y no tres (V8a pide dos de 9 km o más), con el
+    // tercero y el cuarto opcionales donde caben. Con la subida de puerto, el valle entero de
+    // `ARCH.meta.valle` ([20,7; 45]) y tres puertos obligatorios, `colocar` fallaba en el 2 % de las
+    // etapas de 130 a 150 km. Sección 5, «montaña sin final en alto»: los dos valles son suyos.
+    metaDeCarrera: {
+      meta: 'valle',
+      finalKind: 'valle_largo',
+      metaParams: { cotaFinal: { km: [4, 8], g: [6, 9] }, aMeta: [20.7, 28.5] },
+      slots: [{ motif: 'puerto', n: [2, 4], ventana: [0.2, 0.8] }],
+      p: ARCH.reina.valleLargoShare,
+      canonico: REINA_VALLE_LARGO,
+    },
   },
   // Dolomitas, Pirineos encadenados: `alta` porque cuatro puertos pegados solo existen en cordillera.
   // Los puertos van pegados tras su bajada (`colocar`, §8.6 punto 3).

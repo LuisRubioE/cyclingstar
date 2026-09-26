@@ -857,7 +857,12 @@ function simple(kind0: MotifKind, rand: Rand, ctx: Ctx, o: Opciones): Motif | nu
     case 'expuesto': {
       if (ctx.geo.viento < 2) return null // §4.2: solo con viento; si no, rinde enlace
       const A = ARCH.motivo.expuesto
-      const kmR = cortaR(A.km, p?.kmRango, capDeVentana(ctx, o)) ?? [A.km[0], A.km[0]]
+      // Con `disponible` (lo lineal de firma delante de un circuito, paso 9) no se estira por encima de
+      // lo que cabe: si no cabe ni el suelo del hueco, no hay llano abierto (rinde enlace).
+      if (o.disponible !== undefined && cortaR(A.km, p?.kmRango, [0, o.disponible]) === null)
+        return null
+      const tope: Rango | undefined = o.disponible === undefined ? undefined : [0, o.disponible]
+      const kmR = cortaR(A.km, p?.kmRango, capDeVentana(ctx, o), tope) ?? [A.km[0], A.km[0]]
       return { kind: 'expuesto', km: U1(rand, kmR) }
     }
     default:
@@ -1090,16 +1095,31 @@ export function instanciarFirma(
   /** El km más corto que la edición puede dar a la etapa: el jitter solo recorta por arriba (§8.4). */
   const kmMinimoEtapa = req.km * (1 - cfg.kmJitter)
 
+  // Lo lineal de firma delante de un circuito de firma (paso 9: el `expuesto` de `nc_ruta`) cabe si el
+  // circuito aún puede empezar dentro de su ventana con la vuelta más larga: su aproximación máxima
+  // menos un enlace mínimo a cada lado, lo que puede variar el llano de la meta y el redondeo de la
+  // vuelta al 0,1 en todas las vueltas.
+  const circ = sk.slots.find((sl) => sl.firma && sl.motif === 'circuito')
+  const kvCirc = cortaR(ARCH.motivo.circuito.kmVuelta, circ?.params?.kmRango)
+  const antesDelCircuito =
+    circ === undefined || kvCirc === null
+      ? Infinity
+      : Math.max(enlaceMinimo, circ.ventana[1] * (req.km - kvCirc[1])) -
+        2 * enlaceMinimo -
+        (esprintTrasCircuito.hi - esprintTrasCircuito.lo) -
+        0.1 * (circ.params?.vueltasRango?.[1] ?? ARCH.motivo.circuito.vueltas[1]) // la vuelta va al 0,1
   // Lo lineal de firma: los huecos simples y compuestos que no son circuito (L de §8.3).
   sk.slots.forEach((sl, k) => {
     if (!sl.firma || sl.motif === 'circuito') return
     const params = alt?.slots?.[k] ?? sl.params
     const n = Math.max(1, sl.n[0])
-    const disponible =
+    const disponible = Math.min(
+      antesDelCircuito,
       Math.min(
         (kmMinimoEtapa * (1 - sl.ventana[0]) - enlaceMinimo) / n,
         n > 1 ? (kmMinimoEtapa * (sl.ventana[1] - sl.ventana[0])) / (n - 1) : Infinity,
-      ) - enlaceMinimo
+      ) - enlaceMinimo,
+    )
     for (let j = 0; j < sl.n[0]; j++) {
       const m =
         sl.motif === 'cadena' || sl.motif === 'racimo'
@@ -1140,8 +1160,14 @@ export function instanciarFirma(
     const vueltasBase = enteroEn(rand, vR)
     const minAprox = ARCH.colocacion.enlaceMinimo
     const maxAprox = Math.max(minAprox, sl.ventana[1] * (req.km - kvR[1]))
-    const Lmin = lineales + (esprintPrevio ?? esprintTrasCircuito.lo)
-    const Lmax = lineales + (esprintPrevio ?? esprintTrasCircuito.hi)
+    // Lo lineal de firma va DELANTE del circuito (el circuito acaba en la meta, §8.4): cuenta en el
+    // techo de la vuelta, con su enlace de aproximación, pero no en el suelo, que solo pide que el
+    // circuito empiece dentro de su ventana (`maxAprox`). Paso 9: `nc_ruta` es el único esqueleto con
+    // lineal de firma y circuito (su `expuesto`); con el suelo de antes el circuito podía empezar
+    // fuera de la ventana y `colocar` no llegaba en ningún intento.
+    const nLineales = out.filter((x) => x.motif.kind !== 'enlace').length
+    const Lmin = esprintPrevio ?? esprintTrasCircuito.lo
+    const Lmax = lineales + nLineales * minAprox + (esprintPrevio ?? esprintTrasCircuito.hi)
     const rangoKv = (v: number): R2 | null =>
       cortaR(kvR, [suelo1((req.km - maxAprox - Lmin) / v), techo1((req.km - minAprox - Lmax) / v)])
     // Sin tirada nueva: si el rango queda vacío, una vuelta menos (sin bajar del rango) y, si no, una más.
@@ -1164,6 +1190,20 @@ export function instanciarFirma(
     // techo, la vuelta pierde pasos (sin dados) y se alarga lo que haga falta para conservar la
     // aproximación: un nacional de 16 vueltas con una cota de 4 km al 5 % son 3.200 m de subida.
     let km = kmVuelta
+    // Paso 9: primero las vueltas y después los hijos. Una vuelta menos quita más desnivel que un muro
+    // y conserva lo que la zona pone en el circuito (§6.5: el nacional genérico o el italiano llevan
+    // cota Y muro); quitando el muro antes, 260 de los 266 nacionales en ruta salían con la misma firma
+    // (`nacionales.firmas`, balance v87 §1). Sin dados: se pregunta sobre una copia de los hijos.
+    const copia = (): Hijo[] => hijos.map((h) => ({ ...h, m: { ...h.m } }))
+    while (
+      v > vR[0] &&
+      !ajustaAlTecho(copia(), Math.min(vR[1], v + 1), req.km, ctx, techoDeDesnivel(sk), true)
+    ) {
+      const r2 = rangoKv(v - 1)
+      if (r2 === null) break
+      v--
+      km = Math.min(r2[1], Math.max(r2[0], r1((km * (v + 1)) / v)))
+    }
     while (
       !ajustaAlTecho(hijos, Math.min(vR[1], v + 1), req.km, ctx, techoDeDesnivel(sk)) &&
       v > vR[0]
@@ -1241,7 +1281,9 @@ export function instanciarFirma(
       const clave =
         meta === 'cima_cerca' ? 'cimaCerca' : meta === 'descenso_meta' ? 'descensoMeta' : 'valle'
       const unDia = !sk.id.startsWith('et_')
-      const aMeta = unDia ? (aMetaValle ?? valleDeAMetaPorDefecto()) : undefined
+      // En una etapa de vuelta el valle solo se acota si el esqueleto declara `aMeta` (paso 9: el final
+      // largo de `et_reina_valle`); en un día, V5(c) lo acota siempre.
+      const aMeta = unDia ? (aMetaValle ?? valleDeAMetaPorDefecto()) : aMetaValle
       const vR = cortaR(A[clave].valle, aMeta ?? undefined) ?? [...A[clave].valle]
       // Y el valle, lo que deje la subida de meta dentro de lo que cabe (sin bajar de su suelo).
       const tope = Math.max(vR[0], techo1(metaMaxima - cotaFinal!.km))
@@ -1296,6 +1338,7 @@ function ajustaAlTecho(
   kmEtapa: number,
   ctx: Ctx,
   techo: number,
+  soloPendiente = false,
 ): boolean {
   // Se persigue el techo con la misma holgura de dibujo que V4(c): el ruido de `climb` y el relleno
   // de la zona real (la mediana es 3 m/km, pero varía de 1,3 a 3,8) mueven los metros dibujados.
@@ -1314,6 +1357,9 @@ function ajustaAlTecho(
   }
   // 1) la pendiente, hacia el suelo del motivo y de la zona
   for (const h of subidas()) h.m.g = suelo(h.m)
+  // Con `soloPendiente` (sobre una copia) solo se pregunta si basta con la pendiente: es lo que decide
+  // si el circuito pierde una vuelta antes de perder un hijo (paso 9, `instanciarFirma`).
+  if (soloPendiente) return total() <= objetivo
   // 2) los hijos opcionales, del último hacia atrás, sin quitar la última subida de la vuelta
   while (total() > objetivo && subidas().length > 1) {
     let i = -1
@@ -1333,6 +1379,26 @@ function ajustaAlTecho(
   }
   // Cabe si queda bajo el techo de verdad: la holgura de dibujo es a lo que se apunta, no el veto.
   return total() <= techo
+}
+
+/**
+ * ¿Cabe la meta de `sk` en esta etapa con su subida y su valle en el suelo? Es la cuenta de
+ * `metaMaxima` de `instanciarFirma` (los huecos obligatorios no firma en su suelo, desde su ventana). La usa `esqueletoDeCarrera` (paso 9) para
+ * no sortear el final largo de `et_reina_valle` donde no hay carretera para él. Sin dados.
+ */
+export function cabeLaMeta(sk: Skeleton, req: StageRequest): boolean {
+  const kmMin = req.km * (1 - (req.edicion ?? ARCH.edicion).kmJitter)
+  const r = rangoCotaFinal(sk, null)
+  const A = ARCH.meta
+  const valle =
+    sk.meta === 'cima_cerca'
+      ? A.cimaCerca.valle[0]
+      : sk.meta === 'descenso_meta'
+        ? A.descensoMeta.valle[0]
+        : sk.meta === 'valle'
+          ? A.valle.valle[0]
+          : 0
+  return kmMin - espacioObligatorio(sk, req.geo, kmMin) >= (r?.km[0] ?? 0) + valle
 }
 
 /**

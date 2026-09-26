@@ -542,8 +542,12 @@ export const ROUTE_CENSUS_TARGETS: readonly CensusTarget[] = [
   },
   {
     id: 'esqueletos.entropia',
-    label: 'entropía de esqueleto ≥ 1,5 bits en toda zona con ≥ 8 carreras',
-    poblacion: (r) => generada(r) && r.zona !== null,
+    label: 'entropía de esqueleto ≥ 1,5 bits en toda zona con ≥ 8 carreras de equipos',
+    // Paso 9: sin los campeonatos nacionales. Llevan dos esqueletos por país por construcción
+    // (`nc_crono` y `nc_ruta`, decisión 15), así que una zona poblada solo de nacionales (`cono_sur`,
+    // 1,00 bits; `generico`, 1,09) no puede pasar de 1 bit; §13.3 los saca de las bandas de esqueletos
+    // («los nacionales NO entran aquí») y mide su variedad en `nacionales.*`.
+    poblacion: (r) => generada(r) && r.zona !== null && r.raceClass !== 'NC',
     medida: (rows) => {
       const porZona = new Map<string, RouteStats[]>()
       for (const r of rows) porZona.set(r.zona!, [...(porZona.get(r.zona!) ?? []), r])
@@ -921,12 +925,12 @@ export const ROUTE_CENSUS_TARGETS: readonly CensusTarget[] = [
   {
     id: 'km.clase.max',
     label: 'etapas generadas por encima del máximo de km de su clase: ninguna',
-    poblacion: generada,
-    // Valores de ARCH.km.maxPorClase (§12.1), que entra en el paso 4 y sustituye esta tabla.
-    medida: (rows) => {
-      const tope: Record<RaceClass, number> = { WT: 260, Pro: 240, '1': 200, '2': 180, NC: 260 }
-      return rows.filter((r) => r.km > tope[r.raceClass] + 1e-9).length
-    },
+    // Paso 9: solo lo que la gramática SORTEA (`routeSource === 'generado'`). Una etapa de edición
+    // lleva el km de la edición real, que es un contrato (§3.7) y no pasa por el techo, como las filas
+    // con km explícito (D9: «no pasan por el techo», decisión 36): `race-colombia` e5 son 232 km de
+    // verdad en una .1. V13, que es lo que la banda vigila, solo mira el km tras el jitter.
+    poblacion: (r) => r.routeSource === 'generado',
+    medida: (rows) => rows.filter((r) => r.km > ARCH.km.maxPorClase[r.raceClass] + 1e-9).length,
     max: 0,
     hoy: 176,
     fuente: 'decisión 36; D9; V13',
@@ -1063,10 +1067,10 @@ export const ROUTE_CENSUS_TARGETS: readonly CensusTarget[] = [
   },
   {
     id: 'variedad.correlacion.max',
-    label: 'máximo de la correlación de huella intra-esqueleto < 0,85',
+    label: `máximo de la correlación de huella intra-esqueleto < ${String(ARCH.anticlon.maxCorrelacion).replace('.', ',')} (ARCH.anticlon.maxCorrelacion)`,
     poblacion: (r) => generada(r) && r.skeleton !== null,
     medida: (rows) => cuantil(correlacionesIntraEsqueleto(rows), 'max'),
-    max: ARCH.anticlon.maxCorrelacion - 1e-4, // estricta, < ARCH.anticlon.maxCorrelacion (provisional; calibrado en el paso 9)
+    max: ARCH.anticlon.maxCorrelacion - 1e-4, // estricta, < ARCH.anticlon.maxCorrelacion (calibrado en el paso 9, §9.5)
     hoy: null,
     fuente: 'V12; §9.5',
     estado: 'sellada',

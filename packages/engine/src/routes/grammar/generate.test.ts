@@ -7,6 +7,7 @@ import type { RaceClass } from '../uci.js'
 import { BASE_SEASON, claveEtapa, opcionDe, planDeEdicion, seasonDe, semillaDe } from './edition.js'
 import {
   ETIQUETAS_DE_ESQUELETO,
+  esqueletoDeCarrera,
   fraseDe,
   generateStage,
   labelDe,
@@ -548,8 +549,10 @@ describe('barrido de test:rapido: V6 y V7 al 100 %, p95 de intentos ≤ 3, degra
     for (const zona of TRES_ZONAS(sk))
       for (const km of CINCO_KM(sk))
         for (const s of semillas(20)) {
-          const g = generateStage(requestDe(sk, zona, km, s))
-          const skz = skeletonFor(sk.id, ZONAS[zona])
+          const req = requestDe(sk, zona, km, s)
+          const g = generateStage(req)
+          // El final de ESTA carrera (paso 9: et_reina_valle corre el largo en unas y el corto en otras).
+          const skz = esqueletoDeCarrera(skeletonFor(sk.id, ZONAS[zona]), req)
           expect(g.kind, `${sk.id} ${zona} ${km} ${s}`).toBe(skz.kind) // V6
           if (skz.finalKind)
             expect(g.arch.finalKind, `${sk.id} ${zona} ${km} ${s}`).toBe(skz.finalKind) // V7
@@ -594,7 +597,7 @@ describe('la persecución del desnivel llega: dPlusDe dentro de ± 12 % de dPlus
     let dentroAlcanzables = 0
     for (let i = 0; i < 300; i++) {
       const req = requestDe(sk, zona, kms[i % kms.length]!, `dplus-${i}`)
-      const skz = skeletonFor(sk.id, req.geo)
+      const skz = esqueletoDeCarrera(skeletonFor(sk.id, req.geo), req) // el final de esta carrera (paso 9)
       const firma = instanciarFirma(
         skz,
         opcionDe(skz, req.raceId, seasonDe(req, 'ed')),

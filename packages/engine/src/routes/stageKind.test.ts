@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import type { Segment, StageProfile } from '../stage/types.js'
 import { finalKindOf } from './finalKind.js'
-import { generateStage, type GeneratedStage, type StageRequest } from './grammar/generate.js'
+import {
+  esqueletoDeCarrera,
+  generateStage,
+  type GeneratedStage,
+  type StageRequest,
+} from './grammar/generate.js'
 import { ZONAS, admite, type GeoZone } from './grammar/geo.js'
 import { SKELETONS, skeletonFor, type Skeleton, type SkeletonId } from './grammar/skeletons.js'
 import type { StageRole } from './grammar/tour.js'
@@ -86,11 +91,12 @@ describe('routes: qué clase de etapa dibuja un recorrido', () => {
       const skz = skeletonFor(sk.id, ZONAS[zona]) // nc_ruta es clasica donde la cota no llega a 3,3 km
       for (const km of CINCO_KM(sk))
         for (const s of semillas(20)) {
-          const g: GeneratedStage = generateStage(requestDe(sk, zona, km, s))
+          const req = requestDe(sk, zona, km, s)
+          const g: GeneratedStage = generateStage(req)
           const leido = stageKindOf(g.profile, g.timeTrial)
           expect(leido.kind, `${sk.id} ${zona} ${km} ${s}`).toBe(skz.kind)
-          if (skz.finalKind)
-            expect(finalKindOf(g.profile), `${sk.id} ${zona} ${km} ${s}`).toBe(skz.finalKind)
+          const fk = esqueletoDeCarrera(skz, req).finalKind // el final de esta carrera (paso 9)
+          if (fk) expect(finalKindOf(g.profile), `${sk.id} ${zona} ${km} ${s}`).toBe(fk)
           vistas.set(leido.kind, (vistas.get(leido.kind) ?? new Set()).add(leido.label))
           n++
         }

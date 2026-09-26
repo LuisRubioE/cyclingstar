@@ -1587,6 +1587,13 @@ export const ARCH = {
     // 60/40 del viejo `ROUTE.queenHighDplusShare` (retirado en la v87). `alta` < `montana`: en
     // cordillera la reina es de verdad.
     blandaShare: { media: 0.25, montana: 0.25, alta: 0.1 } as Partial<Record<Relieve, number>>,
+    // Probabilidad de que una `et_reina_valle` corra su final LARGO (`meta: 'valle'`, cima a más de
+    // 20 km de meta, `valle_largo`) en vez del corto (`descenso_meta`, `valle_corto`). Se fija por
+    // carrera y etapa, sin temporada (`Skeleton.metaDeCarrera`, corriente `firma`): es identidad, no
+    // se mueve entre ediciones. Es el reparto de las reinas reales que no mueren arriba: 7 `valle_largo`
+    // de 13 valles (`datos.md` §1.4; balance v87 §0, `medir-real.mjs`), redondeado al 0,5. Paso 9: sin
+    // esto ningún esqueleto de reina coronaba a más de 20 km (`finales.reparto.valleLargo`: 0 → 4 de 86).
+    valleLargoShare: 0.5,
     // D+ del relleno (`enlace`) por km, para perseguir el objetivo de desnivel de un esqueleto sin
     // llamar a `sampleProfile` (§8.5): 100 km de enlace son 300 m. RECALIBRADO en el paso 3 (§15.5)
     // desde el 5,5 de partida, que era el `rolling` de hoy a amplitud 1,8 (5,1 a 6,6 m/km, mapa 01
@@ -1865,11 +1872,13 @@ export const ARCH = {
   anticlon: {
     // V12: dos etapas generadas del mismo esqueleto en carreras distintas no correlacionan (Pearson
     // de la huella `g` por km, `profileCorrelation`) por encima de esto; es el ÚNICO tope del máximo
-    // de la banda de variedad. PROVISIONAL: entre el 0,8 de la mediana del mapa 04 y el 0,9 de
-    // arquitectura. El paso 9 lo calibra como el p90 de los pares de etapas REALES de carreras
-    // distintas con mismo `kind`, mismo `finalKind` y km ± 10 % (`scripts/medir-real.mjs`); con menos
-    // de 30 pares se queda en 0,85 y este comentario escribe con cuántos no se calibró.
-    maxCorrelacion: 0.85,
+    // de la banda de variedad. CALIBRADO en el paso 9 (§9.5) como el p90 de los pares de etapas REALES
+    // de carreras distintas con mismo `kind`, mismo `finalKind` y km ± 10 % (`scripts/medir-real.mjs`):
+    // 338 pares, 7 de clásicas de un día, p90 0,317 (máximo 0,651, Emirates e6 / Italy e9). Sustituye
+    // al 0,85 provisional. Lo generado no cabe bajo él (máximo 0,993, 566 de 2.065 pares por encima):
+    // es la previsión fallida H6 de balance v87 §2, y la banda sigue en `it.todo` hasta que el dueño
+    // decida; no se ensancha para que cuadre.
+    maxCorrelacion: 0.32,
   },
   /**
    * El coste de construir el calendario (§12.9 y sección 14). Entra en el paso 6, con su primer
