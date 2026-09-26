@@ -58,6 +58,21 @@ export type RouteSource = 'real' | 'edicion' | 'generado'
 /** Origen por CARRERA, agregado de sus etapas (§3.11): `mixto` si no son todas del mismo origen. */
 export type RaceRouteSource = 'real' | 'mixto' | 'generado'
 
+/**
+ * El origen de una carrera a partir del de sus etapas (§3.11 y §11.1), sobre el CONJUNTO de valores:
+ * `real` si todas son `real`, `generado` si todas son `generado`, y `mixto` en cualquier otro caso,
+ * incluida la carrera cuyas etapas son todas `edicion` (ciudades y distancia reales, relieve
+ * generado: ni una cosa ni la otra). Es un valor de carrera, nunca de etapa.
+ */
+export function raceRouteSourceOf(
+  stages: readonly { routeSource: RouteSource }[],
+): RaceRouteSource {
+  const set = new Set(stages.map((s) => s.routeSource))
+  if (set.size === 1 && set.has('real')) return 'real'
+  if (set.size === 1 && set.has('generado')) return 'generado'
+  return 'mixto'
+}
+
 export interface StageRequest {
   raceId: string
   stageIndex: number // con base 1; 1 en un día
