@@ -824,8 +824,13 @@ import type { RaceClass } from './routes/uci.js'
  * generadores viejos salen de `profileGen.ts` a `sim/legacy/`, se retiran diez claves de `ROUTE`
  * sin lector y entra `ARCH.anticlon`. La etiqueta «Summit finish» del clasificador pasa a la regla de
  * los 5 km de `SUMMIT_RUN_IN_KM`; `kind` no cambia de regla.
+ *
+ * v88: dos correcciones de la gramática que cierran bandas del censo (docs/balance.md, v88). Las
+ * reinas sin final en alto reparten su peso como las reales (5 `et_reina_cima_cerca`, 15
+ * `et_reina_valle`), y una reina tira su objetivo de desnivel en todo `sk.dPlus` y lo factible solo
+ * lo recorta. Cambian cinco etapas de esqueleto y el desnivel de las reinas generadas.
  */
-export const ENGINE_VERSION = 87 as const
+export const ENGINE_VERSION = 88 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -1884,9 +1889,11 @@ export const ARCH = {
     // de la banda de variedad. CALIBRADO en el paso 9 (§9.5) como el p90 de los pares de etapas REALES
     // de carreras distintas con mismo `kind`, mismo `finalKind` y km ± 10 % (`scripts/medir-real.mjs`):
     // 338 pares, 7 de clásicas de un día, p90 0,317 (máximo 0,651, Emirates e6 / Italy e9). Sustituye
-    // al 0,85 provisional. Lo generado no cabe bajo él (máximo 0,993, 566 de 2.065 pares por encima):
-    // es la previsión fallida H6 de balance v87 §2, y la banda sigue en `it.todo` hasta que el dueño
-    // decida; no se ensancha para que cuadre.
+    // al 0,85 provisional. Lo generado no cabe bajo él: sobre los pares de V12 (mismo esqueleto, misma
+    // zona, carreras distintas, km ± 10 %; `esParV12`) el máximo es 0,965 y 203 de 856 pares pasan de
+    // 0,32, y redibujar la etapa con otra semilla no los baja (los finales en alto de firma y los
+    // `nc_crono` con su cota). Es la previsión fallida H6 de balance v87 §2, y la banda sigue en
+    // `it.todo` hasta que el dueño decida; no se ensancha para que cuadre.
     maxCorrelacion: 0.32,
   },
   /**

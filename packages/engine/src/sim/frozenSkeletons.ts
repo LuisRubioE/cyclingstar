@@ -237,10 +237,13 @@ export function frozenQueenOf(raceId: string, stageIndex: number): FrozenQueen |
 /**
  * LAS TRES REINAS DEL CALENDARIO NUEVO, ELEGIDAS POR FORMA (§13.5, `GENERATED_QUEENS`): una por
  * `finalKind` (`alto`, `cima_cerca`, `valle_largo`) entre las generadas de las vueltas compuestas
- * `vu_semana` y `vu_corta`; en cada `finalKind`, la de `dPlus` más cercano al p50 de su cubeta, y a
- * igualdad el `raceId` menor. Se corren con 6 semillas y se IMPRIMEN sin banda; `preRegistro.test.ts`
- * afirma que siguen teniendo el `finalKind` y el `skeleton` con que se eligieron (si un cambio los
- * mueve, se vuelven a elegir con causa). Elegidas en el paso 9 sobre la v87.
+ * `vu_semana` y `vu_corta` (si ninguna tiene ese `finalKind`, entre las etapas de edición); en cada
+ * `finalKind`, la de `dPlus` más cercano al p50 de su cubeta, y a igualdad el `raceId` menor. Se
+ * corren con 6 semillas y se IMPRIMEN sin banda; `preRegistro.test.ts` afirma que siguen teniendo el
+ * `finalKind` y el `skeleton` con que se eligieron (si un cambio los mueve, se vuelven a elegir con
+ * causa). Elegidas en el paso 9 sobre la v87; la `cima_cerca` se volvió a elegir al repartir el peso de
+ * las reinas sin final en alto como en lo real (balance v87 §2): `race-lyon` e2 pasó a `et_reina_valle`
+ * y ninguna vuelta compuesta conserva una `cima_cerca`.
  */
 export interface GeneratedQueen {
   raceId: string
@@ -249,10 +252,18 @@ export interface GeneratedQueen {
   skeleton: SkeletonId
 }
 export const GENERATED_QUEENS: readonly GeneratedQueen[] = [
-  // p50 de 34 `alto` en las vueltas compuestas: 2.982 m; esta, 2.982 m (vu_corta).
+  // p50 de 34 `alto` en las vueltas compuestas: 2.982 m; esta, 2.982 m (vu_corta). Tras el objetivo de
+  // desnivel recortado de balance v87 §2, 2.969 m contra un p50 de 3.077: sigue `alto` y se queda.
   { raceId: 'race-mersin', stageIndex: 4, finalKind: 'alto', skeleton: 'et_reina_alto_corto' },
-  // La única `cima_cerca` de las vueltas compuestas: 3.954 m (vu_corta).
-  { raceId: 'race-lyon', stageIndex: 2, finalKind: 'cima_cerca', skeleton: 'et_reina_cima_cerca' },
-  // La única `valle_largo` de las vueltas compuestas, el final largo de `et_reina_valle`: 3.650 m.
+  // Ninguna vuelta compuesta tiene ya una `cima_cerca` (la de `race-lyon` e2 es ahora `valle_largo`):
+  // de las 6 de edición, p50 2.948 m; esta, 3.273 m, empatada a distancia con `race-poland` e5 (2.623).
+  {
+    raceId: 'race-langkawi',
+    stageIndex: 5,
+    finalKind: 'cima_cerca',
+    skeleton: 'et_reina_cima_cerca',
+  },
+  // El final largo de `et_reina_valle`: 3.650 m al elegirla, cuando era la única `valle_largo` de las
+  // vueltas compuestas; hoy son dos (con `race-lyon` e2), y esta, 3.658 m, sigue siéndolo.
   { raceId: 'race-taihu', stageIndex: 3, finalKind: 'valle_largo', skeleton: 'et_reina_valle' },
 ]

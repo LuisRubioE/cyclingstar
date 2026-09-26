@@ -3,11 +3,14 @@
  * Geografía" repartidas en los días de competición: 310 de equipos en tres niveles (WT con las tres
  * grandes vueltas, Pro Series y circuitos continentales), con reglas de inscripción por división, y
  * 532 campeonatos nacionales. Todo es autoría pura y determinista sobre el contrato de etapa del
- * motor (StageProfile). Desde la v87 cada etapa sale de una de tres ramas, en este orden (sección 11
- * §11.1): rasgos reales (`STAGE_FEATURES`, `routeSource: 'real'`), edición real sin rasgos (ciudades y
- * km reales, relieve de la gramática, `'edicion'`) o la gramática entera (`routes/grammar/`,
- * `'generado'`). El calendario de cada temporada lo construye `calendarForSeason`, y
- * `SEASON_CALENDAR` es la temporada `BASE_SEASON`.
+ * motor (StageProfile). Desde la v87 cada una de las 1.418 etapas sale de una de tres ramas, en este
+ * orden (sección 11 §11.1): rasgos reales (`STAGE_FEATURES`, `routeSource: 'real'`, 177), edición
+ * real sin rasgos (ciudades y km reales, relieve de la gramática, `'edicion'`, 226) o la gramática
+ * entera (`routes/grammar/`, `'generado'`, 1.015). Cada temporada es una edición de las mismas
+ * carreras: la identidad (esqueleto, firma, `kind`) no cambia y el detalle sí (`ARCH.edicion`). El
+ * calendario de cada temporada lo construye `calendarForSeason`, memoizado por temporada (hasta
+ * `ARCH.arranque.maxTemporadasEnMemoria` además de la 0), y `SEASON_CALENDAR` es la temporada
+ * `BASE_SEASON`, la misma referencia.
  */
 import { COUNTRIES, type Continent } from '@cyclingstar/shared'
 import { ARCH, type EdicionCfg } from '../constants.js'

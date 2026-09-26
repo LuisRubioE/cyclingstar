@@ -33,6 +33,7 @@ import type { GeoZone } from '../routes/grammar/geo.js'
 import type { RouteSource } from '../routes/grammar/generate.js'
 import type { MetaKind } from '../routes/grammar/motifs.js'
 import type { SkeletonId } from '../routes/grammar/skeletons.js'
+import { esParV12 } from '../routes/grammar/veto.js'
 import { routeRng } from '../routes/profileGen.js'
 import { STAGE_FEATURES } from '../routes/stageFeatures.js'
 import { climbSize, stageKindOf, WALL_MAX_KM } from '../routes/stageKind.js'
@@ -419,33 +420,40 @@ function porCarrera(rows: readonly RouteStats[]): RouteStats[][] {
   return [...m.values()].map((g) => [...g].sort((a, b) => a.stageIndex - b.stageIndex))
 }
 
-/** Tope de pares por esqueleto de la banda de correlación (§13.3, tabla «Variedad»). */
+/** Tope de pares por grupo de la banda de correlación (§13.3, tabla «Variedad»). */
 const PARES_POR_ESQUELETO = 200
-/** Tolerancia de km para emparejar dos etapas del mismo esqueleto (± 10 %, mapa 04 §5.2). */
+/** Tolerancia de km para emparejar dos etapas de la misma forma sin `arch` (± 10 %, mapa 04 §5.2). */
 const PAR_KM_TOLERANCIA = 0.1
 
 /**
- * Correlación de `huella` entre pares del mismo esqueleto (o de la misma forma, sin `arch`) y km
- * ± 10 %, con a lo sumo 200 pares deterministas por grupo (`routeRng('censo|' + grupo)`); los
- * circuitos quedan fuera del par porque sus vueltas idénticas se parecen por construcción.
+ * Correlación de `huella` entre los pares de V12 (`esParV12`: mismo esqueleto, misma zona, carreras
+ * distintas y km ± 10 %; §9.2 fila V12, §9.5 y §12.9), con a lo sumo 200 pares deterministas por
+ * grupo esqueleto × zona (`routeRng('censo|' + grupo)`); los circuitos quedan fuera del par porque sus
+ * vueltas idénticas se parecen por construcción (§13.3). Sin `arch` (el calendario de la v86) el grupo
+ * es la FORMA (`label`), con el mismo km y carreras distintas.
+ *
+ * Paso 9 (balance v87 §2): hasta aquí el grupo era solo el esqueleto y entraban pares de una misma
+ * vuelta y de zonas distintas, que no son los pares que V12 prohíbe ni los que calibran su tope.
  */
 export function correlacionesIntraEsqueleto(rows: readonly RouteStats[]): number[] {
   const grupos = new Map<string, RouteStats[]>()
   for (const r of rows) {
     if (r.firmaMotivos?.split('+').includes('circuito')) continue
-    const k = r.skeleton ?? `forma:${r.label}`
+    const k = r.skeleton !== null ? `${r.skeleton}|${r.zona ?? ''}` : `forma:${r.label}`
     const g = grupos.get(k)
     if (g) g.push(r)
     else grupos.set(k, [r])
   }
+  const esPar = (a: RouteStats, b: RouteStats): boolean =>
+    a.skeleton !== null
+      ? esParV12(a, b)
+      : a.raceId !== b.raceId && Math.abs(a.km - b.km) <= PAR_KM_TOLERANCIA * Math.min(a.km, b.km)
   const out: number[] = []
   for (const k of [...grupos.keys()].sort()) {
     const g = grupos.get(k)!
     const pares: [number, number][] = []
     for (let i = 0; i < g.length; i++)
-      for (let j = i + 1; j < g.length; j++)
-        if (Math.abs(g[i]!.km - g[j]!.km) <= PAR_KM_TOLERANCIA * Math.min(g[i]!.km, g[j]!.km))
-          pares.push([i, j])
+      for (let j = i + 1; j < g.length; j++) if (esPar(g[i]!, g[j]!)) pares.push([i, j])
     // Fisher-Yates parcial con el dado del grupo: los mismos pares en cada corrida.
     const rand = routeRng(`censo|${k}`)
     const n = Math.min(PARES_POR_ESQUELETO, pares.length)

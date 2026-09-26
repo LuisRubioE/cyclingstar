@@ -1273,7 +1273,11 @@ export const SKELETONS: Record<SkeletonId, Skeleton> = {
     dPlus: [3000, 4800],
     km: [120, 200],
     requiere: { puerto: true, relieve: 'montana' },
-    pesoBase: 10,
+    // 5 y no el 10 de §5.3: con `et_reina_valle` reparte los 20 de peso de las reinas que no mueren
+    // arriba como las reales, 4 `cima_cerca` por 13 valles de 54 reinas (`datos.md` §1.4, la fila
+    // `finales.reparto` de §13.3): 5 contra 15. La suma no cambia, así que ninguna otra forma gana ni
+    // pierde etapas; con 10 y 10 salían 11 `cima_cerca` y 4 `valle_largo` de 86 (balance v87 §2).
+    pesoBase: 5,
     canonico: CANONICO.et_reina_cima_cerca,
   },
   // «Montaña sin final en alto»: 1 a 3 por gran vuelta. Cada puerto con su bajada.
@@ -1288,7 +1292,7 @@ export const SKELETONS: Record<SkeletonId, Skeleton> = {
     dPlus: [3200, 5000],
     km: [130, 210],
     requiere: { puerto: true, relieve: 'montana' },
-    pesoBase: 10,
+    pesoBase: 15, // 15 contra los 5 de `et_reina_cima_cerca`: el reparto real, 13 valles por 4 (arriba)
     canonico: CANONICO.et_reina_valle,
     // Paso 9: el final largo, por carrera. La subida de meta es una cota de [4; 8] km y el valle, de
     // [20,7; 28,5] (`aMeta`), de modo que la meta no ocupa más carretera que la corta (8 + 28,5 contra

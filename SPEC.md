@@ -306,7 +306,7 @@ simulateStage(input: StageInput, seed: string, probe?: StageProbe)
 
 ### 6.2 Entradas: autoría en tramos, simulación a 100 metros
 
-Los perfiles se diseñan a escala humana (tramos) y el motor los muestrea a la resolución de simulación. Nadie escribe 1,800 números a mano.
+Los perfiles se diseñan a escala humana (tramos) y el motor los muestrea a la resolución de simulación. Nadie escribe 1,800 números a mano. Los perfiles sin dato los escribe una gramática de motivos, ver `docs/generador.md`.
 
 ```
 segmento (autoria) = { km, tipo: llano|rompepiernas|puerto|descenso|paves, tramos?: [{ km, g }], estrellas? }
