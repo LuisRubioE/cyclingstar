@@ -7,7 +7,7 @@
  *
  * Paso 1: solo los tipos `EditionPlan`, `Subflujo` y `DiffInput`. Paso 5: `BASE_SEASON`, `opcionDe`,
  * `planDeEdicion`, `claveEtapa`, `seasonDe` y `semillaDe`, que importa `generateStage` (§8.1); paso 6:
- * `diffMotivos`.
+ * `diffMotivos`, que la ficha usa para `cambiosRespectoAnterior` (§10.8).
  */
 import { ARCH, type EdicionCfg } from '../../constants.js'
 import { hashInt, routeRng } from '../profileGen.js'
@@ -208,4 +208,76 @@ export function planDeEdicion(
     opcion: opcionDe(sk, req.raceId, seasonDe(req, 'ed'), cfg),
     dPlusObjetivo,
   }
+}
+
+// ---------------------------------------------------------------------------------------------------
+// diffMotivos (§10.8): lo que la ficha anuncia de una edición respecto de la anterior (paso 6).
+// ---------------------------------------------------------------------------------------------------
+
+/** Coma decimal sin Intl, como la frase de `generate.ts`: la ficha no depende de la ICU del proceso. */
+const coma = (x: number): string => String(r1(x)).replace('.', ',')
+
+/** Nombre y género de los motivos que la ficha nombra; `enlace`, `descenso` y `meta` no se nombran. */
+const NOMBRE_DIFF: Partial<Record<Motif['kind'], { s: string; fem: boolean }>> = {
+  cota: { s: 'cota', fem: true },
+  puerto: { s: 'puerto', fem: false },
+  muro: { s: 'muro', fem: false },
+  sector: { s: 'sector', fem: false },
+  expuesto: { s: 'tramo abierto', fem: false }, // "abierto", nunca "abanico" (decisión 17)
+  tendida: { s: 'subida tendida', fem: true },
+  cadena: { s: 'cadena', fem: true },
+  racimo: { s: 'racimo', fem: false },
+  circuito: { s: 'circuito', fem: false },
+}
+
+/** "cota de 3,1 km al 5 %", "sector de adoquín de 1,8 km (3★)", o el `nombre` del motivo si lo lleva. */
+function textoMotivo(m: Motif): string {
+  if (m.nombre !== undefined) return m.nombre
+  const n = NOMBRE_DIFF[m.kind]?.s ?? m.kind
+  if (m.kind === 'sector')
+    return `${n} ${m.firme === 'tierra' ? 'de tierra' : 'de adoquín'} de ${coma(m.km)} km${m.estrellas !== undefined ? ` (${m.estrellas}★)` : ''}`
+  if (m.kind === 'cadena' || m.kind === 'racimo') return `${n} de ${m.hijos?.length ?? 0} subidas`
+  return `${n} de ${coma(m.km)} km${m.g !== undefined ? ` al ${coma(m.g)} %` : ''}`
+}
+
+/**
+ * Las diferencias que la ficha enseña entre dos ediciones de la misma etapa (§10.8; decisión 39),
+ * una frase por diferencia y en este orden: (1) el km, si cambia 1 km o más ("192 km → 201 km");
+ * (2) las vueltas del `circuito` de firma, el único campo de un motivo firma que la edición mueve
+ * ("9 vueltas → 10"); (3) la opción de nivel 2, si cambió ("final: canónica → Bérgamo"); (4) los
+ * motivos no firma que la ficha nombra, por clase y en orden de carretera: los que sobran en `actual`
+ * son "una cota más: …" y los que faltan, "desaparece la cota de …". El resto de la firma se ignora,
+ * porque dentro de una opción es igual por construcción (§10.3), y también los parámetros de los
+ * motivos no firma, que la edición redibuja cada año sin que la carrera cambie. Una etapa `edicion`
+ * da `[]`: su km es contrato y sus motivos se tiran con `BASE_SEASON` en toda temporada (§10.4).
+ */
+export function diffMotivos(prev: DiffInput, actual: DiffInput): string[] {
+  const out: string[] = []
+  if (Math.abs(actual.km - prev.km) >= 1)
+    out.push(`${Math.round(prev.km)} km → ${Math.round(actual.km)} km`)
+
+  const circuito = (d: DiffInput): Motif | undefined =>
+    d.motivos.find((m) => m.kind === 'circuito' && m.firma === true)
+  const va = circuito(prev)?.vueltas
+  const vb = circuito(actual)?.vueltas
+  if (va !== undefined && vb !== undefined && va !== vb) out.push(`${va} vueltas → ${vb}`)
+
+  const opA = prev.opcion ?? 'canónica'
+  const opB = actual.opcion ?? 'canónica'
+  if (opA !== opB) out.push(`final: ${opA} → ${opB}`)
+
+  const nombrables = (d: DiffInput): Motif[] =>
+    d.motivos.filter((m) => m.firma !== true && NOMBRE_DIFF[m.kind] !== undefined)
+  const a = nombrables(prev)
+  const b = nombrables(actual)
+  for (const k of new Set([...a, ...b].map((m) => m.kind))) {
+    const ak = a.filter((m) => m.kind === k)
+    const bk = b.filter((m) => m.kind === k)
+    const { s, fem } = NOMBRE_DIFF[k]!
+    for (const m of bk.slice(ak.length))
+      out.push(`${fem ? 'una' : 'un'} ${s} más: ${textoMotivo(m)}`)
+    for (const m of ak.slice(bk.length))
+      out.push(`desaparece ${fem ? 'la' : 'el'} ${textoMotivo(m)}`)
+  }
+  return out
 }

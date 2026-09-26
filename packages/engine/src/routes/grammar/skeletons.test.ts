@@ -2,13 +2,16 @@ import { COUNTRIES } from '@cyclingstar/shared'
 import { afterAll, describe, expect, it } from 'vitest'
 import { ARCH } from '../../constants.js'
 import type { StageProfile } from '../../stage/types.js'
-import { RACE_ROWS, SEASON_CALENDAR, type RaceRow } from '../calendar.js'
+import { RACE_ROWS, SEASON_CALENDAR, stagesForSeason, type RaceRow } from '../calendar.js'
+import { RACE_EDITIONS } from '../editions.js'
 import type { RouteTerrain } from '../featureProfile.js'
 import { finalKindOf, kmAfterLastClimb, profileKm, type FinalKind } from '../finalKind.js'
 import { routeRng } from '../profileGen.js'
+import { STAGE_FEATURES } from '../stageFeatures.js'
 import { stageKindOf } from '../stageKind.js'
 import type { StageKind } from '../testTour.js'
 import { RACE_CLASSES, type RaceClass } from '../uci.js'
+import { BASE_SEASON } from './edition.js'
 import { ZONAS, admite, conFirmeDeZona, zonaDe, type GeoSignature, type GeoZone } from './geo.js'
 import {
   ETIQUETAS_DE_ESQUELETO,
@@ -52,8 +55,8 @@ import { finalKindDe, verify } from './veto.js'
  * existe (`stageKindOf`, `finalKindOf`, `admite`, la geometría) y contra `verify`, la `cotaFinal`
  * (regla 2 de §5.1), la elección (`candidatos`, `cabe`, `skeletonFor`, `ESCALON_ROLE`) y el barrido
  * de `generateStage` de `test:rapido`. `finalKindDe` es de `veto.ts`: aquí va su tabla literal de
- * §9.2, `FINAL_DE_META`, que `veto.test.ts` compara con la función. Lo que llama a `stagesForSeason`
- * sigue en `it.todo` hasta el paso 6.
+ * §9.2, `FINAL_DE_META`, que `veto.test.ts` compara con la función. Las etapas de edición se leen de
+ * `stagesForSeason` (paso 6), la ruta nueva, que `SEASON_CALENDAR` no usa hasta el paso 8.
  */
 
 /** La zona de la columna «Referencia» de cada esqueleto (§5.9). */
@@ -837,9 +840,24 @@ describe('candidatos y pesos', () => {
 })
 
 describe('etapas de edición', () => {
-  it.todo(
-    'reciben esqueletos de etapa, salvo cobbles → ud_adoquin_ligero, con km al 0,1 (paso 6: stagesForSeason)',
-  )
+  it('reciben esqueletos de etapa, salvo cobbles → ud_adoquin_ligero, con km al 0,1', () => {
+    let n = 0
+    let adoquin = 0
+    for (const [id, ed] of Object.entries(RACE_EDITIONS))
+      ed.stages.forEach((st, i) => {
+        if (STAGE_FEATURES[id]?.[i]) return
+        const g = stagesForSeason(id, BASE_SEASON)[i]!
+        const clave = `${id} e${i + 1}`
+        n += 1
+        expect(g.routeSource, clave).toBe('edicion')
+        if (st.terrain === 'cobbles') {
+          adoquin += 1
+          expect(g.arch?.skeleton, clave).toBe('ud_adoquin_ligero')
+        } else expect(g.arch?.skeleton.startsWith('et_'), clave).toBe(true)
+        expect(Math.abs(profileKm(g.profile) - st.km), clave).toBeLessThan(0.05) // contrato al 0,1
+      })
+    expect([n, adoquin]).toEqual([226, 3]) // §11.1: las 226 de edición sin rasgos, tres de adoquín
+  })
   it('una etapa mountain de edición en flandes acaba en et_media_muro', () => {
     const g = generateStage({
       ...requestDe(SKELETONS.et_reina_alto_largo, 'flandes', 170, 'ed-flandes'),
@@ -850,5 +868,10 @@ describe('etapas de edición', () => {
     expect(g.arch.skeleton).toBe('et_media_muro')
     expect(g.arch.frase).toMatch(/degradad/)
   })
-  it.todo('Colombia e5 de REAL_QUEENS ya no es una clásica de montaña (paso 6: stagesForSeason)')
+  it('Colombia e5 de REAL_QUEENS ya no es una clásica de montaña', () => {
+    const g = stagesForSeason('race-colombia', BASE_SEASON)[4]!
+    expect(g.routeSource).toBe('edicion')
+    expect(g.arch?.skeleton).toMatch(/^et_reina_/)
+    expect(g.kind).toBe('reina')
+  })
 })

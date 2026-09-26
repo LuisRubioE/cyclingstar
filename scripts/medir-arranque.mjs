@@ -9,7 +9,10 @@
  *
  * Uso: pnpm --filter @cyclingstar/engine build && node scripts/medir-arranque.mjs [--n 5] [--temporadas 3]
  *
- * Imprime una tabla Markdown lista para pegar en «vN §0» (paso 0, generador viejo) y «vN §1» (paso 8).
+ * Imprime una tabla Markdown lista para pegar en «vN §0» (paso 0, generador viejo; anexo del paso 6) y
+ * «vN §1» (paso 8). Desde el paso 6 lee objetivo, techo y coste por temporada de `ARCH.arranque`, y mide
+ * `calendarForSeason`: la temporada 0 por la ruta nueva mientras `SEASON_CALENDAR` siga siendo la vieja
+ * (pasos 6 y 7), las temporadas 1 a `--temporadas` y la segunda lectura, que es memoizada.
  */
 import { execFileSync } from 'node:child_process'
 import { statSync } from 'node:fs'
@@ -37,8 +40,27 @@ async function una() {
   const cal = mod.SEASON_CALENDAR
   const etapas = cal.flatMap((r) => r.stages)
   const segmentos = etapas.reduce((a, s) => a + s.profile.segments.length, 0)
-  // Tras el paso 8 las etapas generadas llevan `arch`: histograma de intentos y degradados.
-  const conArch = etapas.filter((s) => s.arch)
+
+  // Pasos 6 y 7: `calendarForSeason(0)` existe y NO es `SEASON_CALENDAR` (la ruta nueva no tiene
+  // llamadores hasta el paso 8), así que su primera llamada construye la temporada 0 por la gramática.
+  // Desde el paso 8 es la misma referencia y cuesta cero, porque ya se pagó en la carga.
+  let temporada0 = null
+  let nueva = null
+  if (typeof mod.calendarForSeason === 'function') {
+    const h0 = process.memoryUsage().heapUsed
+    const a = performance.now()
+    nueva = mod.calendarForSeason(0)
+    temporada0 = {
+      ms: performance.now() - a,
+      mb: (process.memoryUsage().heapUsed - h0) / 2 ** 20,
+      misma: nueva === cal,
+    }
+  }
+  // Con `arch` (la ruta nueva): histograma de intentos y degradados. Del calendario que corre el juego
+  // si ya la lleva (paso 8), y si no, de la temporada 0 por la ruta nueva (pasos 6 y 7).
+  const conArch = (
+    etapas.some((s) => s.arch) || !nueva ? etapas : nueva.flatMap((r) => r.stages)
+  ).filter((s) => s.arch)
   const intentos = conArch.map((s) => s.arch.intentos).sort((a, b) => a - b)
   const q = (p) =>
     intentos.length
@@ -46,6 +68,7 @@ async function una() {
       : null
 
   const temporadas = []
+  let memoMs = null
   for (let s = 1; s <= TEMPORADAS; s++) {
     if (typeof mod.calendarForSeason !== 'function') {
       temporadas.push(null) // paso 0: la función no existe todavía; la línea base es la temporada 0
@@ -58,6 +81,11 @@ async function una() {
       ms: performance.now() - a,
       mb: (process.memoryUsage().heapUsed - h0) / 2 ** 20,
     })
+  }
+  if (typeof mod.calendarForSeason === 'function' && TEMPORADAS >= 1) {
+    const a = performance.now()
+    mod.calendarForSeason(1) // segunda lectura: memoizada
+    memoMs = performance.now() - a
   }
 
   // La pasada de motor de referencia (la del juez, `coste-motor.mjs`): no es arranque, es lo que el
@@ -84,6 +112,8 @@ async function una() {
       etapas: etapas.length,
       segmentos,
       temporadas,
+      temporada0,
+      memoMs,
       pasadaMs,
       bloques,
       intentos: intentos.length ? { p50: q(0.5), p95: q(0.95), max: intentos.at(-1) } : null,
@@ -108,9 +138,12 @@ async function padre() {
     }
   }
   const { ENGINE_VERSION, ARCH } = await import(new URL('constants.js', DIST).href)
-  // Hasta el paso 6 `ARCH.arranque` no existe: se usan los valores de la sección 12 (§12.9).
-  const objetivoMs = ARCH?.arranque?.objetivoMs ?? 1500
-  const techoMs = ARCH?.arranque?.techoMs ?? 2500
+  // Desde el paso 6 las tres cifras son las de `ARCH.arranque` (§12.9), no literales del script.
+  if (!ARCH?.arranque) {
+    console.error('dist/constants.js no tiene ARCH.arranque (paso 6): compila el código de hoy.')
+    process.exit(1)
+  }
+  const { objetivoMs, techoMs, porTemporadaMs } = ARCH.arranque
   const head = execFileSync('git', ['rev-parse', '--short', 'HEAD'], { cwd: RAIZ })
     .toString()
     .trim()
@@ -187,6 +220,28 @@ async function padre() {
       'SEASON_CALENDAR',
     ],
   ]
+  const t0s = medidas.map((m) => m.temporada0)
+  if (t0s.some((x) => x === null))
+    filas.push([
+      'Temporada 0 por la ruta nueva (ms; MB de heap)',
+      'n/a',
+      'n/a',
+      'calendarForSeason no existe todavía',
+    ])
+  else if (t0s.every((x) => x.misma))
+    filas.push([
+      'Temporada 0 por la ruta nueva',
+      'es SEASON_CALENDAR',
+      '',
+      'calendarForSeason(0) === SEASON_CALENDAR (paso 8)',
+    ])
+  else
+    filas.push([
+      'Temporada 0 por la ruta nueva (ms; MB de heap)',
+      `${f0(mediana(t0s.map((x) => x.ms)))}; ${f2(mediana(t0s.map((x) => x.mb)))}`,
+      `${f0(maximo(t0s.map((x) => x.ms)))}; ${f2(maximo(t0s.map((x) => x.mb)))}`,
+      `calendarForSeason(0), distinta de SEASON_CALENDAR hasta el paso 8; objetivo ${objetivoMs}, techo ${techoMs}`,
+    ])
   for (let s = 1; s <= TEMPORADAS; s++) {
     const t = medidas.map((m) => m.temporadas[s - 1])
     if (t.some((x) => x === null))
@@ -201,9 +256,17 @@ async function padre() {
         `Temporada ${s} (ms; MB de heap)`,
         `${f0(mediana(t.map((x) => x.ms)))}; ${f2(mediana(t.map((x) => x.mb)))}`,
         `${f0(maximo(t.map((x) => x.ms)))}; ${f2(maximo(t.map((x) => x.mb)))}`,
-        'calendarForSeason(s)',
+        `calendarForSeason(${s}); porTemporadaMs ${porTemporadaMs} (margen ${f2(porTemporadaMs / mediana(t.map((x) => x.ms)))})`,
       ])
   }
+  const memo = medidas.map((m) => m.memoMs)
+  if (!memo.some((x) => x === null))
+    filas.push([
+      'Segunda lectura de una temporada (ms)',
+      f2(mediana(memo)),
+      f2(maximo(memo)),
+      'calendarForSeason(1) otra vez: memoizada, misma referencia',
+    ])
   filas.push([
     'Pasada de motor (ms; ms por etapa; bloques)',
     `${f0(mediana(pasada))}; ${(mediana(pasada) / m0.etapas).toFixed(3)}; ${m0.bloques}`,

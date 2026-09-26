@@ -7,12 +7,25 @@
  * clásica de adoquines) para dar variedad sin imitar recorridos reales.
  */
 import { COUNTRIES, type Continent } from '@cyclingstar/shared'
-import { ROUTE } from '../constants.js'
+import { ARCH, ROUTE, type EdicionCfg } from '../constants.js'
 import type { Division } from '../world/npc.js'
 import type { Segment, StageProfile } from '../stage/types.js'
 import { type RaceEdition, RACE_EDITIONS } from './editions.js'
 import { type RouteTerrain, type StageFeatures, buildFeatureProfile } from './featureProfile.js'
-import type { GeneratedStage, RaceRouteSource, RouteSource } from './grammar/generate.js' // solo tipos (§3.8)
+// La gramática (paso 6): solo la ruta paralela de `calendarForSeason`, al final del fichero, la llama.
+// Ningún `grammar/*.ts` importa un valor de este fichero (`routes/arranque.test.ts`), así que no hay ciclo.
+import { BASE_SEASON } from './grammar/edition.js'
+import {
+  generateStage,
+  raceRouteSourceOf,
+  type GeneratedStage,
+  type RaceRouteSource,
+  type RouteSource,
+} from './grammar/generate.js'
+import { ZONAS, zonaDe } from './grammar/geo.js'
+import { regionOf } from './grammar/regions.js'
+import { POR_TERRENO_EDICION } from './grammar/skeletons.js'
+import { composeTour, kmDe, type KmRole } from './grammar/tour.js'
 import {
   classicSegments,
   cobblesSegments,
@@ -3680,3 +3693,363 @@ export const SEASON_CALENDAR: CalendarRace[] = [
   ...CON_RACES,
   ...NATIONAL_CHAMPIONSHIPS,
 ].sort((a, b) => a.startDay - b.startDay)
+
+// ===================================================================================================
+// LA TEMPORADA POR LA GRAMÁTICA (E1 paso 6, docs/generador.md §3.8, §10.5, §14.5 y §15.9).
+//
+// Del paso 6 al 8 conviven dos calendarios: `SEASON_CALENDAR`, construido arriba por el `buildRace` de
+// hoy e idéntico byte a byte (`routes/golden.test.ts`), y el de `calendarForSeason(s, cfg)`, construido
+// por esta ruta paralela, privada y con otro nombre, que replica las ramas de hoy llamando a la
+// gramática. SIN llamadores en producción: en el paso 8 las funciones `…Gramatica` pierden el sufijo y
+// sustituyen a las viejas, y `SEASON_CALENDAR` pasa a ser `calendarForSeason(BASE_SEASON)`.
+// ===================================================================================================
+
+/** Una temporada y la configuración de edición con que se construye. */
+interface Temporada {
+  season: number
+  cfg: EdicionCfg
+}
+
+/** `edicion` solo viaja si la configuración no es `ARCH.edicion` (§10.5): se esparce en cada `StageRequest`. */
+const edicionDe = (t: Temporada): { edicion?: EdicionCfg } =>
+  t.cfg === ARCH.edicion ? {} : { edicion: t.cfg }
+
+/** Una etapa con su origen ya escrito: lo que construye la ruta nueva (en el paso 8 `routeSource` es obligatorio). */
+type EtapaConOrigen = CalendarStage & { routeSource: RouteSource }
+
+/** El `StageSpec` de una etapa generada: la convención de hoy, `timeTrial` solo cuando es `true`. */
+const specDe = (g: GeneratedStage): StageSpec & { routeSource: RouteSource } => ({
+  kind: g.kind,
+  label: g.label,
+  profile: g.profile,
+  ...(g.timeTrial ? { timeTrial: true } : {}),
+  routeSource: g.routeSource,
+  arch: g.arch,
+})
+
+/** Nombra y numera una etapa como `stagesFrom`, sin copiar el origen fuera del tipo. */
+const etapaDe = (spec: StageSpec & { routeSource: RouteSource }, i: number): EtapaConOrigen => ({
+  ...spec,
+  index: i + 1,
+  name: `Stage ${i + 1} · ${spec.label}`,
+})
+
+/**
+ * Las etapas `real` no dependen de la temporada ni de la configuración (una edición real es un año
+ * concreto, sección 11): se construyen una vez por proceso y se comparten por REFERENCIA entre
+ * temporadas (§14.5 punto 1), así que una temporada adicional solo dibuja lo generado y la edición.
+ */
+const REALES = new Map<string, EtapaConOrigen>()
+function etapaReal(clave: string, construir: () => EtapaConOrigen): EtapaConOrigen {
+  const hecha = REALES.get(clave)
+  if (hecha) return hecha
+  const nueva = construir()
+  REALES.set(clave, nueva)
+  return nueva
+}
+
+/**
+ * La rama de edición (`stagesFromEdition`) por la gramática. Con rasgos en `STAGE_FEATURES`, la
+ * `featureSpec` de hoy con la misma semilla (`${from}|${to}|${km}`) y `routeSource: 'real'`, sin
+ * `arch`; sin rasgos, `generateStage` con el km de la edición como contrato, el papel y los candidatos
+ * de `POR_TERRENO_EDICION`, la zona de la etapa (`regionOf`) y la semilla de edición separada por
+ * carrera (`editionKey`, decisión 22).
+ */
+function stagesFromEditionGramatica(
+  id: string,
+  edition: RaceEdition,
+  country: string | null,
+  raceClass: RaceClass,
+  format: RaceFormat,
+  t: Temporada,
+): EtapaConOrigen[] {
+  const features = STAGE_FEATURES[id]
+  return edition.stages.map((s, i) => {
+    const clave = `${s.from}|${s.to}|${s.km}`
+    const f = features?.[i]
+    if (f)
+      return etapaReal(`${id}|${i + 1}`, () =>
+        etapaDe({ ...featureSpec(s.terrain, s.km, f, clave), routeSource: 'real' }, i),
+      )
+    const g = generateStage({
+      raceId: id,
+      stageIndex: i + 1,
+      season: t.season,
+      km: s.km,
+      role: POR_TERRENO_EDICION[s.terrain].papel,
+      terrain: s.terrain,
+      geo: ZONAS[regionOf(id, i + 1, country)],
+      raceClass,
+      format,
+      routeSource: 'edicion',
+      editionKey: clave,
+      ...edicionDe(t),
+    })
+    return etapaDe(specDe(g), i)
+  })
+}
+
+/** `editionGrandTour` por la gramática: las mismas etapas de la edición, clase WT y formato de gran vuelta. */
+function editionGrandTourGramatica(
+  id: string,
+  name: string,
+  startDay: number,
+  country: string,
+  t: Temporada,
+): CalendarRace {
+  const edition = RACE_EDITIONS[id]
+  if (!edition) throw new Error(`Falta la edición real de ${id}`)
+  const stages = stagesFromEditionGramatica(id, edition, country, 'WT', 'gran-vuelta', t)
+  return {
+    id,
+    name,
+    level: 'WT',
+    raceClass: 'WT',
+    format: 'gran-vuelta',
+    startDay,
+    openTo: enrollmentFor('WT'),
+    country,
+    stages,
+    routeSource: raceRouteSourceOf(stages),
+    restAfter: edition.restAfter,
+  }
+}
+
+/**
+ * `buildRace` por la gramática: el mismo `common` y las tres ramas en el mismo orden (edición real >
+ * rasgos reales > generado, sección 11 §11.1). (1) Con edición, `stagesFromEditionGramatica`. (2) Un
+ * día: con rasgos, la `featureSpec` de hoy (km `row.km ?? 210`) y `real`; sin rasgos, `generateStage`
+ * con `role: 'un_dia'` y el km de la fila o, si no lo tiene, el de `kmDe` en `firma|${id}|km`
+ * (decisión 36). (3) Vuelta: `composeTour`. La carrera lleva `routeSource: raceRouteSourceOf(stages)`.
+ */
+function buildRaceGramatica(row: RaceRow, season: number, cfg: EdicionCfg): CalendarRace {
+  const t: Temporada = { season, cfg }
+  const startDay = doy(row.m, row.d)
+  const level: RaceLevel = row.raceClass === 'WT' ? 'WT' : row.raceClass === 'Pro' ? 'PRS' : 'CON'
+  const country = row.country ?? RACE_COUNTRY[row.id]
+  const common = {
+    id: row.id,
+    name: row.name,
+    level,
+    raceClass: row.raceClass,
+    startDay,
+    openTo: enrollmentFor(level),
+    ...(row.region ? { region: row.region } : {}),
+    ...(country ? { country } : {}),
+  }
+  const edition = RACE_EDITIONS[row.id]
+  if (edition) {
+    const stages = stagesFromEditionGramatica(
+      row.id,
+      edition,
+      country ?? null,
+      row.raceClass,
+      'una-semana',
+      t,
+    )
+    return {
+      ...common,
+      format: 'una-semana',
+      stages,
+      routeSource: raceRouteSourceOf(stages),
+      restAfter: edition.restAfter,
+    }
+  }
+  if (!row.stages || row.stages <= 1) {
+    const terrain = row.terrain ?? 'flat'
+    const f = STAGE_FEATURES[row.id]?.[0]
+    let stage: EtapaConOrigen
+    if (f)
+      stage = etapaReal(`${row.id}|1`, () => ({
+        ...featureSpec(terrain, row.km ?? 210, f, row.id),
+        routeSource: 'real',
+        index: 1,
+        name: row.name,
+      }))
+    else {
+      const km = row.km ?? kmDe('un_dia', row.raceClass, 1, false, routeRng(`firma|${row.id}|km`))
+      const g = generateStage({
+        raceId: row.id,
+        stageIndex: 1,
+        season,
+        km,
+        role: 'un_dia',
+        terrain,
+        geo: ZONAS[regionOf(row.id, 1, country ?? null)],
+        raceClass: row.raceClass,
+        format: 'un-dia',
+        routeSource: 'generado',
+        ...edicionDe(t),
+      })
+      stage = { ...specDe(g), index: 1, name: row.name }
+    }
+    const stages = [stage]
+    return { ...common, format: 'un-dia', stages, routeSource: raceRouteSourceOf(stages) }
+  }
+  const stages = composeTour(row.id, row.stages, row.terrain ?? 'flat', {
+    raceId: row.id,
+    country: country ?? null,
+    raceClass: row.raceClass,
+    format: 'una-semana',
+    season,
+    ...edicionDe(t),
+  }).map((spec, i) => etapaDe({ ...spec, routeSource: spec.routeSource ?? 'generado' }, i))
+  return {
+    ...common,
+    format: 'una-semana',
+    stages,
+    routeSource: raceRouteSourceOf(stages),
+  }
+}
+
+/**
+ * `nationalChampionships` por la gramática: los mismos días, ids y nombres, y en lugar de `itt(38)`,
+ * `itt(30)`, `classic(180)` y `classic(220)` una etapa de `generateStage` en la zona del país
+ * (`zonaDe`), clase `NC`, con el km de `kmDe` en `firma|${id}|km` y el papel de km `cri`, `cri_u23`,
+ * `un_dia_u23` y `un_dia` en ese orden. El esqueleto (`nc_crono` o `nc_ruta`) lo eligen `candidatos` y
+ * el sesgo del terreno (§5.7).
+ */
+function nationalChampionshipsGramatica(
+  code: string,
+  name: string,
+  season: number,
+  cfg: EdicionCfg,
+): CalendarRace[] {
+  const t: Temporada = { season, cfg }
+  const override = NATIONALS_ROAD_OVERRIDE[code]
+  const roadDay = override ? doy(override[0], override[1]) : NATIONALS_ROAD_DAY
+  const pattern = ncHash(code) % 3
+  const eliteIttDay = pattern === 2 ? roadDay - 4 : roadDay - 3
+  const u23IttDay = roadDay - 3
+  const u23RoadDay = pattern === 0 ? roadDay : roadDay - 1
+  const geo = ZONAS[zonaDe(code)]
+  const base = (
+    id: string,
+    label: string,
+    startDay: number,
+    category: 'elite' | 'u23',
+    rolKm: KmRole,
+    ruta: boolean,
+  ): CalendarRace => {
+    const raceName = `${name} ${label}`
+    const g = generateStage({
+      raceId: id,
+      stageIndex: 1,
+      season,
+      km: kmDe(rolKm, 'NC', 1, false, routeRng(`firma|${id}|km`)),
+      role: 'un_dia',
+      terrain: ruta ? 'classic' : 'itt',
+      geo,
+      raceClass: 'NC',
+      format: 'un-dia',
+      routeSource: 'generado',
+      ...edicionDe(t),
+    })
+    const stages = [{ ...specDe(g), index: 1, name: raceName }]
+    return {
+      id,
+      name: raceName,
+      level: 'CON',
+      raceClass: 'NC',
+      format: 'un-dia',
+      startDay,
+      openTo: [],
+      championshipCountry: code,
+      championshipCategory: category,
+      country: code,
+      stages,
+      routeSource: raceRouteSourceOf(stages),
+    }
+  }
+  const cc = code.toLowerCase()
+  return [
+    base(`nc-${cc}-itt`, 'ITT Championship', eliteIttDay, 'elite', 'cri', false),
+    base(`nc-${cc}-u23-itt`, 'U23 ITT Championship', u23IttDay, 'u23', 'cri_u23', false),
+    base(`nc-${cc}-u23-road`, 'U23 Road Championship', u23RoadDay, 'u23', 'un_dia_u23', true),
+    base(`nc-${cc}-road`, 'Road Championship', roadDay, 'elite', 'un_dia', true),
+  ]
+}
+
+/** El calendario entero de una temporada, en el orden de hoy y ordenado por `startDay` con el mismo `sort` estable. */
+function construirTemporada(season: number, cfg: EdicionCfg): CalendarRace[] {
+  const t: Temporada = { season, cfg }
+  const fila = (row: RaceRow): CalendarRace => buildRaceGramatica(row, season, cfg)
+  return [
+    ...WT_TABLE.map(fila),
+    editionGrandTourGramatica('race-italy', 'Race Italy', doy(5, 8), 'IT', t),
+    editionGrandTourGramatica('race-spain', 'Race Spain', doy(8, 22), 'ES', t),
+    editionGrandTourGramatica('race-france', 'Race France', doy(7, 4), 'FR', t),
+    ...PRO_TABLE.map(fila),
+    ...CON_TABLE.map(fila),
+    ...COUNTRIES.flatMap((c) => nationalChampionshipsGramatica(c.code, c.name, season, cfg)),
+  ].sort((a, b) => a.startDay - b.startDay)
+}
+
+/**
+ * El memo de temporadas (§14.5): por REFERENCIA de la configuración y por temporada. El mapa de
+ * `ARCH.edicion` es el de producción; cualquier otra configuración (un test con `activa: false`) tiene
+ * el suyo, así que no hace falta vaciarlo. El índice por id de cada calendario va aparte, en un
+ * `WeakMap`, y se libera con él.
+ */
+const MEMO = new Map<EdicionCfg, Map<number, CalendarRace[]>>()
+const INDICE = new WeakMap<CalendarRace[], Map<string, CalendarRace>>()
+
+/**
+ * El calendario de la temporada `season` (§3.8 y §10.5), determinista y memoizado: dos llamadas con
+ * la misma temporada y la misma configuración devuelven la MISMA referencia. Con `cfg.activa` false,
+ * toda temporada es la `BASE_SEASON` de esa configuración (misma referencia, no copia). Cada lectura
+ * de una temporada distinta de la 0 la lleva al final del memo, y al pasar de
+ * `ARCH.arranque.maxTemporadasEnMemoria` se expulsa la de acceso más antiguo; la 0 nunca se expulsa
+ * (§14.5 punto 2). En el paso 6 no tiene llamadores en producción, y `calendarForSeason(0)` es un array
+ * NUEVO, distinto de `SEASON_CALENDAR`: mismas carreras, ids, días, formato y número de etapas, y otros
+ * perfiles en las etapas no reales.
+ */
+export function calendarForSeason(season: number, cfg: EdicionCfg = ARCH.edicion): CalendarRace[] {
+  if (!Number.isInteger(season) || season < BASE_SEASON)
+    throw new RangeError(`temporada inválida: ${season}`)
+  if (!cfg.activa && season !== BASE_SEASON) return calendarForSeason(BASE_SEASON, cfg)
+  let memo = MEMO.get(cfg)
+  if (!memo) {
+    memo = new Map()
+    MEMO.set(cfg, memo)
+  }
+  const hecho = memo.get(season)
+  if (hecho) {
+    if (season !== BASE_SEASON) {
+      memo.delete(season) // LRU: la lectura la lleva al final
+      memo.set(season, hecho)
+    }
+    return hecho
+  }
+  const cal = construirTemporada(season, cfg)
+  memo.set(season, cal)
+  const otras = [...memo.keys()].filter((s) => s !== BASE_SEASON)
+  if (otras.length > ARCH.arranque.maxTemporadasEnMemoria) memo.delete(otras[0]!)
+  return cal
+}
+
+/** La carrera `raceId` de la temporada `season`, por un índice por id; lanza si no existe (un error de datos, no un caso). */
+export function raceForSeason(
+  raceId: string,
+  season: number,
+  cfg: EdicionCfg = ARCH.edicion,
+): CalendarRace {
+  const cal = calendarForSeason(season, cfg)
+  let indice = INDICE.get(cal)
+  if (!indice) {
+    indice = new Map(cal.map((r) => [r.id, r]))
+    INDICE.set(cal, indice)
+  }
+  const race = indice.get(raceId)
+  if (!race) throw new Error(`carrera desconocida: ${raceId}`)
+  return race
+}
+
+/** Las etapas de `raceId` en la temporada `season`: `raceForSeason(raceId, season, cfg).stages`, por referencia. */
+export function stagesForSeason(
+  raceId: string,
+  season: number,
+  cfg: EdicionCfg = ARCH.edicion,
+): CalendarStage[] {
+  return raceForSeason(raceId, season, cfg).stages
+}

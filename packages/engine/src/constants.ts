@@ -1878,6 +1878,30 @@ export const ARCH = {
     // pase a `cronoescalada` (Peyragudes, Tour 2025 e13; D3). Existe y es rara.
     cronoescaladaP: 0.08,
   },
+  /**
+   * El coste de construir el calendario (§12.9 y sección 14). Entra en el paso 6, con su primer
+   * lector: el memo de `calendarForSeason` (`routes/calendar.ts`) y el test de coste de
+   * `grammar/edition.test.ts`. La medida que los justifica va en `docs/balance.md`: línea base del
+   * paso 0 y anexo del paso 6 en «vN §0» (`scripts/medir-arranque.mjs`), y la del paso 8 en «vN §1».
+   */
+  arranque: {
+    // Carga de `SEASON_CALENDAR` (el módulo `routes/calendar.js`) que se espera cumplir sin hacer
+    // nada: ×2,6 sobre los 578 ms de hoy (juez del motor §1), con la gramática dibujando hasta 80
+    // segmentos y 8 intentos por etapa sin `sampleProfile` (§14.2).
+    objetivoMs: 1500,
+    // Si la mediana del paso 8 pasa de aquí, el calendario se construye perezoso por carrera
+    // (§14.6, decisión tomada, no condicional).
+    techoMs: 2500,
+    // Coste máximo de una temporada adicional, `calendarForSeason(s)` con `s` distinta de la 0: por
+    // debajo del objetivo porque las 177 etapas reales se comparten por referencia entre temporadas y
+    // solo se dibujan las 1.241 generadas y de edición (§14.5 punto 1).
+    porTemporadaMs: 1000,
+    // Temporadas distintas de la 0 que el memo de producción guarda a la vez; al pasar se expulsa la
+    // de acceso más antiguo (LRU) y, si se vuelve a pedir, se reconstruye por ≤ `porTemporadaMs`. La
+    // 0 no cuenta ni se expulsa. Decide la memoria de `apps/api`, que no se reinicia por cambiar de
+    // temporada, en un mundo de ocho años; se revisa con los MB de heap por temporada del script.
+    maxTemporadasEnMemoria: 8,
+  },
 } as const
 
 /** Salud y enfermedad (SPEC 4.2, 4.3). */
