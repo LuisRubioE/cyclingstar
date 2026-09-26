@@ -1908,16 +1908,16 @@ export const ARCH = {
     // edición (km ± 6 %, huecos opcionales y desnivel objetivo), que es de la temporada y no de la
     // identidad, así que la firma y el esqueleto nunca cambian (decisión 20). Medido en la v89: con 40
     // de solo dibujo seguían sin bajar del tope 12 etapas de equipos en la temporada 0; con 5 + 15 (y
-    // `abandonoChoques`) quedan de 5 a 10 por temporada en las temporadas 0 a 5, todas `et_media_alto`,
-    // `et_media_valle` o reinas en alto de zonas llanas, donde la subida de meta domina la huella. Más
-    // intentos apenas arreglan más y cuestan en el arranque (`ARCH.arranque`): la pasada pide unas
-    // 1.550 etapas por temporada, además de las 1.241 de la temporada.
+    // `abandonoChoques`) quedan de 12 a 17 por temporada en las temporadas 0 a 5, sobre todo
+    // `et_media_alto` de zonas llanas, donde la subida de meta domina la huella, y etapas de edición
+    // real, que solo pueden cambiar el dibujo (§10.4). Más intentos apenas arreglan más y cuestan en el
+    // arranque (`ARCH.arranque`): la pasada pide unas 1.700 etapas por temporada, además de las 1.241.
     redibujos: { dibujo: 5, edicion: 15 },
     // Pasados los redibujos de solo dibujo, una etapa cuyo mejor dibujo aún choca con tantas etapas del
     // grupo como esto deja de insistir: es un grupo lleno, como las `nc_crono` de `generico` (138 cronos
     // llanas con la cota en el mismo 40 % del recorrido), donde ningún dibujo cabe entre todas. Ahorra un
-    // 28 % de la pasada (2.113 a 1.526 etapas en la temporada 0) a cambio de 0 a 4 etapas de equipos
-    // más sin arreglo por temporada (medido en las temporadas 0 a 5).
+    // 28 % de la pasada (2.113 a 1.526 etapas en la temporada 0, medido antes de limitar el redibujo de
+    // las etapas de edición al dibujo) a cambio de 0 a 4 etapas de equipos más sin arreglo por temporada.
     abandonoChoques: 3,
   },
   /**

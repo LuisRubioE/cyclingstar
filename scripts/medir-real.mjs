@@ -373,7 +373,9 @@ const paresFam = (tolKm) => {
   return out
 }
 const q3 = (cs, p) => q(cs, p).toFixed(3)
-console.log(`\n== anticlon por familia (familiaAnticlon), pares reales de carreras distintas y km ± 10 % ==`)
+console.log(
+  `\n== anticlon por familia (familiaAnticlon), pares reales de carreras distintas y km ± 10 % ==`,
+)
 for (const [f, cs] of Object.entries(paresFam(0.1)).sort())
   console.log(
     ` ${f.padEnd(8)} pares ${String(cs.length).padStart(4)} p50 ${q3(cs, 0.5)} p90 ${q3(cs, 0.9)} máx ${Math.max(...cs).toFixed(3)} -> ${(Math.round(q(cs, 0.9) * 100) / 100).toFixed(2)}`,

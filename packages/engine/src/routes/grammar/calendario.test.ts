@@ -51,7 +51,7 @@ const filas = routeCensus(calendarForSeason(BASE_SEASON)) // 1.418 filas
  */
 const PENDIENTES: Readonly<Record<string, string>> = {
   'variedad.correlacion.max':
-    'v89: 37 de 847 pares de V12 en el tope de su familia o por encima (18 de nacionales, máximo 0,863 en nc_crono de generico; 19 de equipos, máximo 0,541, et_media_alto en zonas llanas y una et_reina_alto_largo), con el anti-clon al generar; en la v88 eran 169 de 856; ni una familia propia de cronos nacionales calibrada sobre las cronos reales (0,553) cierra las nc_crono; decisión del dueño con la cifra',
+    'v89: 49 de 846 pares de V12 en el tope de su familia o por encima (18 de nacionales, máximo 0,863 en nc_crono de generico; 31 de equipos, máximo 0,638, sobre todo et_media_alto de zonas llanas y etapas de edición, que solo pueden cambiar el dibujo), con el anti-clon al generar; en la v88 eran 169 de 856; ni una familia propia de cronos nacionales calibrada sobre las cronos reales (0,553) cierra las nc_crono; decisión del dueño con la cifra',
 }
 
 describe('el censo del calendario que el juego corre', () => {
