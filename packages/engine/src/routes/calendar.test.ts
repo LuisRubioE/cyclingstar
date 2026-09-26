@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
+import { ROUTE } from '../constants.js'
 import { RACE_CLASSES } from './uci.js'
 import { SEASON_CALENDAR, stageMix } from './calendar.js'
 import { RACE_EDITIONS } from './editions.js'
 import type { RouteTerrain } from './featureProfile.js'
+import { STAGE_FEATURES } from './stageFeatures.js'
+import { stageKindOf } from './stageKind.js'
 import type { StageSpec } from './calendar.js'
 
 describe('engine: calendario de temporada (SPEC 8, Paso 34)', () => {
@@ -151,6 +154,30 @@ describe('engine: calendario de temporada (SPEC 8, Paso 34)', () => {
     }
   })
 
+  it('el kind de toda etapa generada o de edición es el que lee stageKindOf de su perfil (v87)', () => {
+    // Decisión 23: en lo no real `kind` deja de ser una declaración del constructor y pasa a ser una
+    // lectura del perfil (V6 lo garantiza). Lo real conserva el `kind` del terreno de su edición.
+    let n = 0
+    for (const race of SEASON_CALENDAR)
+      for (const stage of race.stages) {
+        if (stage.routeSource === 'real') continue
+        expect(stageKindOf(stage.profile, stage.timeTrial === true).kind, stage.name).toBe(
+          stage.kind,
+        )
+        n++
+      }
+    expect(n).toBe(1241)
+  })
+
+  it('routeSource de toda etapa es uno de los tres, y las de STAGE_FEATURES son real (v87)', () => {
+    for (const race of SEASON_CALENDAR)
+      for (const stage of race.stages) {
+        expect(['real', 'edicion', 'generado']).toContain(stage.routeSource)
+        const conRasgos = Boolean(STAGE_FEATURES[race.id]?.[stage.index - 1]) // null = sin rasgos
+        expect(stage.routeSource === 'real', `${race.id}:${stage.index}`).toBe(conRasgos)
+      }
+  })
+
   it('cubre los tres niveles y los tres formatos', () => {
     const levels = new Set(SEASON_CALENDAR.map((r) => r.level))
     expect(levels).toEqual(new Set(['WT', 'PRS', 'CON']))
@@ -164,6 +191,10 @@ describe('engine: calendario de temporada (SPEC 8, Paso 34)', () => {
  * que se prueba no son los sorteos —eso es azar sembrado— sino las GARANTÍAS: que una vuelta corta
  * pueda llevar crono (antes era imposible), que una vuelta llana no sea una fila de sprints, y que
  * ninguna se quede sin nada con que hacer la general.
+ *
+ * Desde la v87 `stageMix` delega en `composeTour` (la gramática, §7.5) con el contexto por defecto
+ * (país desconocido, zona `generico`): las garantías son las mismas y siguen en verde sin tocar,
+ * salvo la de la primera etapa, re-sellada por el prólogo (decisión 42).
  */
 describe('engine: composición de una vuelta por etapas (stageMix)', () => {
   const TERRAINS: RouteTerrain[] = ['flat', 'hilly', 'mountain']
@@ -208,16 +239,26 @@ describe('engine: composición de una vuelta por etapas (stageMix)', () => {
     }
   })
 
-  it('la primera etapa es siempre llana y nunca es la crono', () => {
+  it('la primera etapa es llana o prólogo: timeTrial solo si es «Prologue» y la vuelta tiene 6 o más', () => {
+    // RE-SELLADO en la v87 (decisión 42, D3). Hasta la v86 la primera etapa era SIEMPRE llana y
+    // nunca la crono. Con `stageMix` delegando en `composeTour`, una vuelta de `n ≥
+    // ROUTE.ittWeekStages` (6) puede abrir con un prólogo de 3 a 8 km en `roles[0]` (p 0,25 en
+    // `vu_semana` y `vu_larga`, 0,3 en `vu_gran_vuelta`), que es crono. Lo que se sigue exigiendo: si
+    // no es el prólogo, es una llana; nunca un final en alto ni una crono en línea.
+    let prologos = 0
     for (const n of [3, 5, 7, 21]) {
       for (const terrain of TERRAINS) {
         for (const seed of seeds) {
           const first = stageMix(n, terrain, seed)[0]!
-          expect(first.timeTrial).toBeUndefined()
-          expect(first.label).toBe('Flat')
+          if (first.timeTrial) {
+            expect(first.label, `${n} ${terrain} ${seed}`).toBe('Prologue')
+            expect(n).toBeGreaterThanOrEqual(ROUTE.ittWeekStages)
+            prologos++
+          } else expect(first.label, `${n} ${terrain} ${seed}`).toBe('Flat')
         }
       }
     }
+    expect(prologos).toBeGreaterThan(0)
   })
 
   it('la última etapa PUEDE ser decisiva, y también puede ser el paseo al sprint', () => {

@@ -25,7 +25,7 @@
  */
 import { ATTRIBUTES, type Attribute, type Vocation, seededRng } from '@cyclingstar/shared'
 import { eff0, initialEnergy } from '../banister.js'
-import { SEASON_CALENDAR } from '../routes/calendar.js'
+import { type CalendarRace, SEASON_CALENDAR } from '../routes/calendar.js'
 import { matchCount } from '../stage/physics.js'
 import { stageSeed } from '../stage/rng.js'
 import { simulateStage } from '../stage/simulate.js'
@@ -177,8 +177,12 @@ export interface TimeTrialTail {
  * 54 a otro). Va por MON a propósito —un campo real no está ordenado igual en la general que contra
  * el reloj— y no toca ni un tiempo: la rampa solo mueve los ALCANCES (v18 §4).
  */
-export function runRealTimeTrial(tt: RealTimeTrial, run: number): TimeTrialTail {
-  const race = SEASON_CALENDAR.find((r) => r.id === tt.raceId)
+export function runRealTimeTrial(
+  tt: RealTimeTrial,
+  run: number,
+  calendar: CalendarRace[] = SEASON_CALENDAR, // paso 9: el pareado la corre con el calendario viejo
+): TimeTrialTail {
+  const race = calendar.find((r) => r.id === tt.raceId)
   if (!race) throw new Error(`Banco de cronos: no existe ${tt.raceId}`)
   const stage = race.stages.find((s) => s.index === tt.stageIndex)
   if (!stage) throw new Error(`Banco de cronos: ${tt.raceId} no tiene etapa ${tt.stageIndex}`)
@@ -299,12 +303,15 @@ export interface RealTimeTrialStats {
 }
 
 /** Corre el banco entero: cada crono con N semillas deterministas. */
-export function analyzeRealTimeTrials(runsPerStage: number): RealTimeTrialStats {
+export function analyzeRealTimeTrials(
+  runsPerStage: number,
+  calendar: CalendarRace[] = SEASON_CALENDAR,
+): RealTimeTrialStats {
   const perStage: { tt: RealTimeTrial; stats: TimeTrialStats }[] = []
   const all: TimeTrialTail[] = []
   for (const tt of REAL_TIME_TRIALS) {
     const rows: TimeTrialTail[] = []
-    for (let i = 0; i < runsPerStage; i++) rows.push(runRealTimeTrial(tt, i))
+    for (let i = 0; i < runsPerStage; i++) rows.push(runRealTimeTrial(tt, i, calendar))
     all.push(...rows)
     perStage.push({ tt, stats: summarize(rows) })
   }

@@ -481,8 +481,10 @@ export async function runOneStage(
    */
   const raceCtx = await buildRaceContext(
     tx,
+    worldId,
     spec.raceKey,
     spec.raceId,
+    spec.season,
     spec.stageDay,
     gameDay,
   ).catch(() => null)

@@ -522,9 +522,43 @@ export type TeamClassEntry = z.infer<typeof teamClassEntrySchema>
 export const raceStatusSchema = z.enum(['upcoming', 'racing', 'finished'])
 export type RaceStatus = z.infer<typeof raceStatusSchema>
 
+/**
+ * De dónde sale el recorrido de una etapa (docs/generador.md §11.4, decisión 39): rasgos reales de
+ * fuente citada, edición real con relieve generado (ciudades y km reales) o inventado entero.
+ */
+export const routeSourceSchema = z.enum(['real', 'edicion', 'generado'])
+export type RouteSource = z.infer<typeof routeSourceSchema>
+
+/** El mismo origen agregado por carrera: `mixto` si sus etapas no son todas reales ni todas inventadas. */
+export const raceRouteSourceSchema = z.enum(['real', 'mixto', 'generado'])
+export type RaceRouteSource = z.infer<typeof raceRouteSourceSchema>
+
+/**
+ * La ficha del generador que enseña la pantalla (§3.11, D10): la frase de arquitectura, el esqueleto
+ * y la zona. `skeleton` y `geo` van como texto porque `shared` no importa el motor.
+ */
+export const stageArchSchema = z.object({
+  frase: z.string(),
+  skeleton: z.string(),
+  geo: z.string(),
+})
+export type StageArch = z.infer<typeof stageArchSchema>
+
 export const raceStagePlanSchema = calendarStageSummarySchema.extend({
   /** Altimetría de la etapa: SVG autocontenido del perfil (relieve, puertos y categorías). */
   altimetry: z.string(),
+  /** Origen del recorrido de ESTA etapa, tal como la tiene el mundo. */
+  routeSource: routeSourceSchema,
+  /** Edición de la carrera: la temporada del mundo + 1 («Edition 1» el primer año). */
+  edicion: z.number().int().min(1),
+  /** La ficha del generador; `null` en las etapas reales, que no la tienen. */
+  arch: stageArchSchema.nullable(),
+  /**
+   * Lo que cambia respecto de la edición anterior, una frase por diferencia. Vacío en las reales,
+   * en las de edición (su relieve se redibuja pero no se anuncia), en la primera temporada y cuando
+   * nada cambió.
+   */
+  cambiosRespectoAnterior: z.array(z.string()),
 })
 export type RaceStagePlan = z.infer<typeof raceStagePlanSchema>
 
@@ -541,6 +575,8 @@ export const raceViewSchema = z.object({
     country: z.string().nullable(),
     /** Día de la temporada (0..363) en el que sale la carrera. */
     startDay: z.number().int(),
+    /** Origen del recorrido agregado de sus etapas (la marca de carrera de la ficha). */
+    routeSource: raceRouteSourceSchema,
   }),
   /** Día actual de la temporada (0..363); null si aún no hay mundo. */
   dayOfSeason: z.number().int().nullable(),

@@ -6,14 +6,17 @@ import {
   MENTALITY_DESC,
   MENTALITY_LABEL,
   MENTALITY_OPTIONS,
+  ROUTE_SOURCE_LABEL,
   STAGE_ROLE_DESC,
   STAGE_ROLE_LABEL,
   STAGE_ROLE_OPTIONS,
+  editionLabel,
   ledgerKindLabel,
   mentalityLabel,
   newsLabel,
   palmaresLabel,
   raceClassLabel,
+  raceRouteSourceLabel,
   roleLabel,
 } from './labels'
 
@@ -66,5 +69,26 @@ describe('web: diccionario de dominio (español interno → inglés de UI)', () 
       expect(EFFORT_LABEL[effort]).toBeTruthy()
       expect(EFFORT_DESC[effort]).toBeTruthy()
     }
+  })
+})
+
+describe('web: el origen del recorrido (docs/generador.md §11.4)', () => {
+  it('tres marcas de etapa, y la de real solo para lo real', () => {
+    expect(ROUTE_SOURCE_LABEL.real).toBe('Real route (source cited)')
+    expect(ROUTE_SOURCE_LABEL.edicion).toBe('Real towns and distance, generated terrain')
+    expect(ROUTE_SOURCE_LABEL.generado).toBe('Generated route')
+  })
+
+  it('la carrera mixta cuenta sus etapas reales, y sin ninguna no promete nada real', () => {
+    const giro = [{ routeSource: 'real' as const }, { routeSource: 'edicion' as const }]
+    expect(raceRouteSourceLabel('mixto', giro)).toBe('Partly real route: 1 of 2 stages')
+    const soloEdicion = [{ routeSource: 'edicion' as const }, { routeSource: 'edicion' as const }]
+    expect(raceRouteSourceLabel('mixto', soloEdicion)).toBe(ROUTE_SOURCE_LABEL.edicion)
+    expect(raceRouteSourceLabel('real', [])).toBe(ROUTE_SOURCE_LABEL.real)
+    expect(raceRouteSourceLabel('generado', [])).toBe(ROUTE_SOURCE_LABEL.generado)
+  })
+
+  it('la edición es la temporada del mundo más uno', () => {
+    expect(editionLabel(1)).toBe('Edition 1')
   })
 })

@@ -20,6 +20,7 @@ import {
   getRiderForUser,
   getTeamClassifications,
   isOnRoster,
+  raceStagesForWorld,
   setStageOrders,
 } from '@cyclingstar/db'
 import {
@@ -33,6 +34,7 @@ import {
   stageDayOfSeason,
   stagePlace,
   stageSeed,
+  stagesForSeason,
   weatherForecast,
 } from '@cyclingstar/engine'
 import {
@@ -55,6 +57,7 @@ import {
 } from '../chronicle.js'
 import { badRequest, notFound, sendError, unauthorized } from '../http.js'
 import { calendarStageSpec, stageHead } from '../stageHistory.js'
+import { congeladaComoEtapa } from '../stageRoute.js'
 import type { RoutePlugin } from './context.js'
 import { parseRaceId, parseRaceKey, parseStageDay } from './params.js'
 
@@ -287,7 +290,7 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
     const parsedKey = parseRaceKey(raceKey)
     const race = parsedKey ? SEASON_CALENDAR.find((r) => r.id === parsedKey.raceId) : null
     // La clave se valida ANTES de consultar la base: una raceKey basura es un 404, no un 500.
-    if (!race) return notFound(reply)
+    if (!parsedKey || !race) return notFound(reply)
     const rider = await getRiderForUser(db, userId)
     if (!rider) return notFound(reply)
     if (!(await isOnRoster(db, raceKey, rider.id))) {
@@ -310,7 +313,14 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
      */
     const hoy = world?.currentDay ?? 0
     const season = currentSeason(hoy)
-    const stages = race.stages.map((stage, i) => {
+    // Las etapas que el mundo va a correr en la temporada de ESTA clave (congeladas, o su edición si
+    // la carrera aún no se ha congelado), no las de la temporada 0 (docs/generador.md §10.7).
+    const frozen = world
+      ? await raceStagesForWorld(db, world.worldId, raceKey, race.id, parsedKey.season)
+      : null
+    const stages = stagesForSeason(race.id, parsedKey.season).map((deLaTemporada, i) => {
+      const congelada = frozen?.[i]
+      const stage = congelada ? congeladaComoEtapa(deLaTemporada, congelada) : deLaTemporada
       const spec = calendarStageSpec(stage, stageKm(stage.profile.segments))
       const dia = i + 1
       const parte =
@@ -383,11 +393,19 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
       // La carrera y la etapa se resuelven contra el calendario (dato del motor) ANTES de tocar la
       // base: un raceId o un día inexistentes son un 404, no un 500 por consulta con basura.
       const race = SEASON_CALENDAR.find((r) => r.id === raceId)
-      const stage = race?.stages[day - 1]
-      if (!race || !stage) return notFound(reply)
+      if (!race || !race.stages[day - 1]) return notFound(reply)
       const world = await getCurrentWorld(db)
       if (!world) return notFound(reply)
-      const raceKey = `${race.id}:s${currentSeason(world.currentDay)}`
+      const season = currentSeason(world.currentDay)
+      const raceKey = `${race.id}:s${season}`
+      // La etapa que el MUNDO corre este año (congelada, o la edición de la temporada si aún no), no
+      // la de la temporada 0: es la que se enseña mientras no se haya corrido (docs/generador.md §10.7).
+      const frozen = (await raceStagesForWorld(db, world.worldId, raceKey, race.id, season))[
+        day - 1
+      ]
+      const deLaTemporada = stagesForSeason(race.id, season)[day - 1]
+      if (!deLaTemporada) return notFound(reply)
+      const stage = frozen ? congeladaComoEtapa(deLaTemporada, frozen) : deLaTemporada
       const km = stageKm(stage.profile.segments)
       // Contexto de la etapa: a qué carrera pertenece y cuántas etapas tiene. Sin esto la página de
       // etapa es un callejón sin salida (docs/navegacion.md §6.3): no sabe ni su carrera ni si hay

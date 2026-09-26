@@ -6,13 +6,10 @@
  * pelotón fresco»— junto con las dos que preguntan por el plan de equipo y por la general.
  */
 import { describe, expect, it } from 'vitest'
-import { costBase } from '../stage/physics.js'
 import { simulateStage } from '../stage/simulate.js'
-import { sampleProfile } from '../stage/sample.js'
 import { analyzeErosion } from './analyze.js'
+import { hardestOneDay, oneDayWorldTour } from './saturation.js'
 import { analyzeGeneral, conGeneral } from './generalBench.js'
-import { SEASON_CALENDAR } from '../routes/calendar.js'
-import { STAGE } from '../constants.js'
 import {
   campaignSeeds,
   flatScenario,
@@ -99,9 +96,7 @@ describe('la erosión no satura en ninguna clásica (docs/motor.md §VI.1)', () 
   //
   // Las carreras de un día del WorldTour son las más largas del calendario (200-290 km) y por tanto
   // el peor caso. Se corren con el campo homogéneo: lo único que explica la erosión es el recorrido.
-  const oneDayWt = SEASON_CALENDAR.filter(
-    (r) => r.level === 'WT' && r.format === 'un-dia' && r.stages[0] && !r.stages[0].timeTrial,
-  ).map((r) => r.id)
+  const oneDayWt = oneDayWorldTour()
 
   /**
    * …Y LAS MÁS DURAS DEL CALENDARIO ENTERO, SEAN DE LA CATEGORÍA QUE SEAN (v40). El filtro `level
@@ -114,22 +109,11 @@ describe('la erosión no satura en ninguna clásica (docs/motor.md §VI.1)', () 
    * Correr las 443 de un día es inviable en CI, y no hace falta: la saturación solo puede pasar en
    * las DURAS, y cuál es dura se sabe sin simular nada —la demanda es la integral del coste base
    * del recorrido, y sale de leer el perfil—. Así que el banco añade las más exigentes del
-   * calendario entero, que es donde vive el riesgo, a coste acotado.
+   * calendario entero, que es donde vive el riesgo, a coste acotado. Desde el paso 9 de E1 la
+   * selección vive en `sim/saturation.ts::hardestOneDay`, para que el pareado la corra con los dos
+   * calendarios; el criterio no cambia.
    */
-  const demandaDe = (id: string): number =>
-    sampleProfile(realRaceScenario(id).input.profile).reduce(
-      (acc, b) => acc + costBase(b) * STAGE.dx,
-      0,
-    )
-  const oneDayHardest = SEASON_CALENDAR.filter(
-    (r) => r.format === 'un-dia' && r.stages[0] && !r.stages[0].timeTrial,
-  )
-    .map((r) => r.id)
-    .filter((id) => !oneDayWt.includes(id))
-    .map((id): [string, number] => [id, demandaDe(id)])
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 8)
-    .map(([id]) => id)
+  const oneDayHardest = hardestOneDay()
 
   it(
     'la clásica más dura del calendario erosiona fuerte pero no satura',

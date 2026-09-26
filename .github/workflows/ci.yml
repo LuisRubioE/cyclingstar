@@ -170,6 +170,9 @@ jobs:
               packages/engine/src/sim/raceRadio.test.ts
               packages/engine/src/sim/routeCensus.test.ts
               packages/engine/src/sim/stageKind.completo.test.ts
+              packages/engine/src/sim/frozenSkeletons.test.ts
+              packages/engine/src/sim/preRegistro.test.ts
+              packages/engine/src/sim/legacy/golden.test.ts
     steps:
       - uses: actions/checkout@v4
         with:

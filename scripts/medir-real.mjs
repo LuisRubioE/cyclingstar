@@ -12,6 +12,7 @@ import { SEASON_CALENDAR } from '../packages/engine/dist/routes/calendar.js'
 import { RACE_EDITIONS } from '../packages/engine/dist/routes/editions.js'
 import { finalKindOf, kmAfterLastClimb } from '../packages/engine/dist/routes/finalKind.js'
 import { stageKindOf } from '../packages/engine/dist/routes/stageKind.js'
+import { profileCorrelation } from '../packages/engine/dist/routes/grammar/geometry.js'
 
 const q = (arr, p) => {
   if (!arr.length) return NaN
@@ -277,4 +278,72 @@ console.log(
     .slice(0, 12)
     .map((e) => `${e[1]}× [${e[0]}]`)
     .join('\n'),
+)
+
+/**
+ * LA CALIBRACIÓN DE `ARCH.anticlon.maxCorrelacion` (docs/generador.md §9.5; paso 9 de §15.11). El
+ * tope de V12 es «tan parecido como dos carreras reales DISTINTAS de la misma familia, no más»: todos
+ * los pares de etapas reales con `raceId` distinto, el mismo `stageKindOf().kind`, el mismo
+ * `finalKindOf()` y km dentro de ± 10 %, medidos con `profileCorrelation`. El p90 es la cifra; con
+ * menos de 30 pares, o menos de 5 en la familia de las clásicas (`clasica` y `media` de un día), se
+ * queda el provisional 0,85. Los tres pares con nombre de datos §10.2 se buscan y, si no existen, se
+ * avisa sin sustituirlos por otros.
+ */
+const PARES_CON_NOMBRE = [
+  ['race-flanders', 'race-e3'],
+  ['race-amstel', 'race-brabant'],
+  ['race-lombardy', 'race-liege'],
+]
+const conRasgos = new Set(Object.keys(STAGE_FEATURES))
+const perfilDe = (id) => SEASON_CALENDAR.find((r) => r.id === id)?.stages[0]?.profile
+for (const [a, b] of PARES_CON_NOMBRE)
+  if (!conRasgos.has(a) || !conRasgos.has(b))
+    console.log(
+      `\nAVISO anticlon: el par ${a} / ${b} no está en STAGE_FEATURES (${[a, b].filter((x) => !conRasgos.has(x)).join(', ')} sin rasgos); no se sustituye`,
+    )
+  else
+    console.log(
+      `\nanticlon, par con nombre ${a} / ${b}: correlación ${profileCorrelation(perfilDe(a), perfilDe(b)).toFixed(3)} (comprobación de sentido, fuera de la población si su familia o su km no casan)`,
+    )
+const fam = (r) => `${r.shape}×${r.fk ?? 'sin_cota'}`
+const pares = []
+for (let i = 0; i < real.length; i++)
+  for (let j = i + 1; j < real.length; j++) {
+    const a = real[i]
+    const b = real[j]
+    if (a.id === b.id || fam(a) !== fam(b)) continue
+    if (Math.abs(a.km - b.km) > 0.1 * Math.min(a.km, b.km)) continue
+    const pa = SEASON_CALENDAR.find((r) => r.id === a.id).stages[a.i - 1].profile
+    const pb = SEASON_CALENDAR.find((r) => r.id === b.id).stages[b.i - 1].profile
+    pares.push({
+      fam: fam(a),
+      unDia: a.format === 'un-dia' && b.format === 'un-dia',
+      c: profileCorrelation(pa, pb),
+      par: `${a.id} e${a.i} / ${b.id} e${b.i}`,
+    })
+  }
+const porFam = pares.reduce((m, p) => {
+  ;(m[p.fam] ??= []).push(p.c)
+  return m
+}, {})
+console.log(`\n== anticlon: pares reales de carreras distintas, misma familia y km ± 10 % ==`)
+for (const [f, cs] of Object.entries(porFam).sort()) console.log(` ${f.padEnd(24)}`, fmt(cs))
+const clasicas = pares.filter((p) => p.unDia && /^(clasica|media)×/.test(p.fam)).length
+const cs = pares.map((p) => p.c)
+console.log(' todas                   ', fmt(cs))
+console.log(
+  ` pares ${pares.length} (mínimo 30); de clásicas de un día ${clasicas} (mínimo 5); p90 ${q(cs, 0.9)?.toFixed(3)}`,
+)
+console.log(
+  ' los cinco más altos:',
+  [...pares]
+    .sort((x, y) => y.c - x.c)
+    .slice(0, 5)
+    .map((p) => `${p.par} ${p.c.toFixed(3)}`)
+    .join('; '),
+)
+console.log(
+  pares.length >= 30 && clasicas >= 5
+    ? ` ARCH.anticlon.maxCorrelacion = ${(Math.round(q(cs, 0.9) * 100) / 100).toFixed(2)} (p90 al centésimo)`
+    : ` ARCH.anticlon.maxCorrelacion se queda en el provisional 0,85: ${pares.length} pares, ${clasicas} de clásicas`,
 )

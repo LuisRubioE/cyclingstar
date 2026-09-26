@@ -15,6 +15,7 @@ import { BASE_SEASON } from './edition.js'
 import { ZONAS, admite, conFirmeDeZona, zonaDe, type GeoSignature, type GeoZone } from './geo.js'
 import {
   ETIQUETAS_DE_ESQUELETO,
+  esqueletoDeCarrera,
   generateStage,
   type GeneratedStage,
   type StageRequest,
@@ -375,7 +376,7 @@ describe('catálogo', () => {
         .map((sk) => sk.id)
         .sort(),
     ).toEqual(['et_reina_alto_largo', 'ud_montana'])
-    expect(SKELETONS.ud_montana.slots[1]!.firma).toBe(true) // `slots: { 1: … }` de Bérgamo es el puerto de firma
+    expect(SKELETONS.ud_montana.slots[1]!.firma).toBe(true) // `slots: { 1: … }` de Bergamo es el puerto de firma
     expect(SKELETONS.et_reina_alto_largo.alternativas!.map((a) => a.nombre)).toEqual([
       'Angliru',
       'Lagos',
@@ -452,7 +453,7 @@ describe('cotaFinal (regla 2 de §5.1)', () => {
     expect(rangoCotaFinal(SKELETONS.ud_montana, SKELETONS.ud_montana.alternativas![0]!)).toEqual({
       km: [1.3, 4.2],
       g: [7, 11],
-    }) // Bérgamo no declara metaParams
+    }) // Bergamo no declara metaParams
   })
   it('un esqueleto de etapa con valle y sin metaParams.cotaFinal lanza, y uno de un día cae a unDiaUltimaCota', () => {
     const { metaParams: _v, ...sinParams } = SKELETONS.et_reina_valle
@@ -570,6 +571,34 @@ describe('plantilla canónica', () => {
         expect(stageKindOf(p2, sk.timeTrial ?? false).kind, nombre).toBe(sk.kind)
         if (sk.finalKind) expect(finalKindOf(p2), nombre).toBe(sk.finalKind)
       }
+      // Paso 9: el final de carrera (`metaDeCarrera`, el largo de `et_reina_valle`) tiene su plantilla,
+      // que pasa lo mismo que la canónica con el esqueleto que la corre.
+      const v = sk.metaDeCarrera
+      if (v) {
+        const skv: Skeleton = {
+          ...sk,
+          meta: v.meta,
+          finalKind: v.finalKind,
+          metaParams: v.metaParams,
+          slots: v.slots,
+          canonico: v.canonico,
+        }
+        for (const m of motivosPlanos(v.canonico)) expect(validateMotif(m, geo)).toBeNull()
+        expect(v.canonico.at(-1)!.meta).toBe(v.meta)
+        const kmV = kmPlantilla(v.canonico)
+        const p3 = renderPlantilla(skv, v.canonico, geo)
+        expect(Math.abs(profileKm(p3) - kmV)).toBeLessThan(0.05)
+        expect(
+          verify(p3, skv, { ...req, km: kmV }, v.canonico, kmV, colocarPlantilla(v.canonico)),
+        ).toBeNull()
+        expect(stageKindOf(p3, false).kind).toBe(sk.kind)
+        expect(finalKindOf(p3)).toBe(v.finalKind)
+        const dV = dPlusDe(p3)
+        expect(dV, `${sk.id} final de carrera: D+ ${Math.round(dV)}`).toBeGreaterThanOrEqual(
+          sk.dPlus[0],
+        )
+        expect(dV).toBeLessThanOrEqual(sk.dPlus[1])
+      }
     },
   )
   it('FINAL_DE_META es la tabla de finalKindDe (§9.2)', () => {
@@ -619,16 +648,16 @@ describe('esqueleto × km × semillas × zonas (V6 y V7)', () => {
   // Se sella el techo por etapa y el suelo sobre la mediana de todo el barrido del esqueleto.
   it.each(casos())('$id en $zona con $km km', ({ sk, zona, km, n }) => {
     const t0 = performance.now()
-    const salidas: GeneratedStage[] = semillas(n).map((s) =>
-      generateStage(requestDe(sk, zona, km, s, { fixed: { skeleton: sk.id } })),
-    )
+    const reqs = semillas(n).map((s) => requestDe(sk, zona, km, s, { fixed: { skeleton: sk.id } }))
+    const salidas: GeneratedStage[] = reqs.map((req) => generateStage(req))
     reloj.ms += performance.now() - t0
     reloj.n += salidas.length
-    const skz = skeletonFor(sk.id, ZONAS[zona]) // nc_ruta es clasica donde la cota no llega a 3,3 km
+    const skZona = skeletonFor(sk.id, ZONAS[zona]) // nc_ruta es clasica donde la cota no llega a 3,3 km
     const degradadas = salidas.filter((g) => g.arch.degradado).length
     expect(degradadas / n).toBeLessThanOrEqual(ARCH.veto.fallbackMaxShare.testPorEsqueleto) // 0,005 → 0 de 20
     expect(p95(salidas.map((g) => g.arch.intentos))).toBeLessThanOrEqual(ARCH.veto.intentosP95) // 3
-    for (const g of salidas) {
+    for (const [i, g] of salidas.entries()) {
+      const skz = esqueletoDeCarrera(skZona, reqs[i]!) // el final de esta carrera (paso 9)
       expect(g.kind).toBe(skz.kind) // V6
       expect(LABELS_POR_KIND[skz.kind]).toContain(g.label)
       if (ETIQUETAS_DE_ESQUELETO.has(skz.label)) expect(g.label).toBe(skz.label) // labelDe (§8.12)
@@ -866,7 +895,7 @@ describe('etapas de edición', () => {
       role: 'reina_alto',
     })
     expect(g.arch.skeleton).toBe('et_media_muro')
-    expect(g.arch.frase).toMatch(/degradad/)
+    expect(g.arch.frase).toMatch(/downgraded/)
   })
   it('Colombia e5 de REAL_QUEENS ya no es una clásica de montaña', () => {
     const g = stagesForSeason('race-colombia', BASE_SEASON)[4]!

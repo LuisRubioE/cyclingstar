@@ -17,9 +17,11 @@
  */
 import {
   type CalendarStage,
-  type Segment,
+  type RouteSource,
   type StageKind,
   type StageProfile,
+  SUMMIT_RUN_IN_KM,
+  runInAfterLastClimb,
   stageKindOf,
 } from '@cyclingstar/engine'
 
@@ -31,69 +33,39 @@ export interface StageSpecHead {
   kind: StageKind
   timeTrial: boolean
   km: number
+  /** De dónde sale el recorrido (docs/generador.md §11.4): la marca que la ficha enseña. */
+  routeSource: RouteSource
 }
 
 /**
  * DÓNDE ESTÁ LA META, dicho por el RECORRIDO y no por el terreno declarado.
  *
- * Una carrera que viene de una edición real (`RACE_EDITIONS`) saca su etiqueta del terreno de la
- * edición —`mountain` → «Summit finish», `hilly` → «Hills»—, y eso describe la CLASE de etapa, no
- * dónde está la línea. Visto en producción, Race Andalucía e2: ficha «Stage 2 · Summit finish»,
- * cat1 a 79 km de meta, un repecho de tercera en la línea y sprint masivo de 113 sobre 118, ganado
- * por un velocista puro (SPR 89). No es un fallo de simulación —esa etapa la gana un rápido en la
- * carretera de verdad—: es la ficha, que promete un final en alto que no existe. Y no es cosmético,
- * porque con esa etiqueta se decide a quién se manda y si se gasta al escalador.
+ * Una carrera con recorrido real (`STAGE_FEATURES`) saca su etiqueta del terreno de la edición
+ * (`mountain` → «Summit finish», `hilly` → «Hills»), y eso describe la CLASE de etapa, no dónde está
+ * la línea. Visto en producción, Race Andalucía e2: ficha «Stage 2 · Summit finish», cat1 a 79 km de
+ * meta, un repecho de tercera en la línea y sprint masivo de 113 sobre 118, ganado por un velocista
+ * puro (SPR 89). No es un fallo de simulación (esa etapa la gana un rápido en la carretera de
+ * verdad): es la ficha, que promete un final en alto que no existe. Y no es cosmético, porque con esa
+ * etiqueta se decide a quién se manda y si se gasta al escalador.
  *
  * Aquí solo se decide EL FINAL. La familia de la etapa (`kind`: reina o media, el color y lo que el
  * motor usa para las órdenes automáticas) la sigue declarando la edición, que para eso está
- * verificada; lo único que se corrige es la mitad de la etiqueta que habla de la meta.
+ * verificada; lo único que se corrige es la mitad de la etiqueta que habla de la meta, entre las DOS
+ * etiquetas de ese `kind`.
  */
 const SUMMIT_FINISH = { reina: 'Summit finish', media: 'Uphill finish' } as const
 const NO_SUMMIT_FINISH = { reina: 'Mountains', media: 'Hills' } as const
 
 /**
- * CUÁNTA CARRETERA TRAS LA ÚLTIMA CIMA deja de ser un final en alto, y no es un número de gusto:
- * sale de correr las etapas del calendario y mirar quién gana (`docs` de esta tanda).
- *
- * No puede ser cero. Los perfiles construidos con los rasgos REALES de la etapa colocan cada puerto
- * en su kilómetro de coronación, así que un final en alto de verdad suele quedar con una cola de
- * redondeo detrás —Race France e15, el Plateau de Solaison, deja 0,1 km— y el test ingenuo de «el
- * último segmento es un puerto» lo degradaría. Y no puede ser grande: por encima de 5 km la etapa
- * deja de comportarse como un final en alto.
- *
- * Medido sobre las 19 etapas del calendario que anuncian final en alto con carretera detrás, 4
- * corridas cada una, contra un control de 24 finales en alto de verdad (mediana 1 juntos en meta,
- * 14 % de victorias de un velocista):
- *
- * ```
- *   cola ≤ 5 km   mediana 3 juntos en meta   velocista gana el 15 %   ← indistinguible del control
- *   cola > 5 km   mediana 17 juntos en meta  velocista gana el 46 %
- * ```
- */
-const SUMMIT_RUN_IN_KM = 5
-
-/** Kilómetros de carretera tras la última cima; `Infinity` si la etapa no tiene ni un puerto. */
-function runInAfterLastClimb(segments: readonly Segment[]): number {
-  let last = -1
-  for (let i = segments.length - 1; i >= 0; i--) {
-    if (segments[i]?.tipo === 'puerto') {
-      last = i
-      break
-    }
-  }
-  if (last < 0) return Number.POSITIVE_INFINITY
-  let km = 0
-  for (let i = last + 1; i < segments.length; i++) km += segments[i]?.km ?? 0
-  return km
-}
-
-/**
  * La ficha de una etapa del CALENDARIO, con la etiqueta del final puesta por el recorrido.
  *
- * Es el mismo criterio que ya aplicaba `stageHead` a una etapa CORRIDA —la etiqueta tiene que
- * describir el recorrido que va debajo, no un rótulo heredado— movido a donde nace la ficha, que es
- * lo que faltaba. El nombre se rehace con el patrón del calendario (`Stage N · etiqueta`) para que
- * nombre y etiqueta no puedan discrepar nunca.
+ * Desde la v87 la etiqueta nace UNA vez (docs/generador.md §11.5 regla 3, decisión 23). Una etapa
+ * generada o de edición (`routeSource !== 'real'`) ya trae la de `labelDe`, que sale del propio
+ * perfil con la misma regla que aquí, y se devuelve tal cual. Una etapa `real` trae la del terreno de
+ * su edición, y si es `reina` o `media` se elige entre las dos etiquetas de ESE `kind` con
+ * `runInAfterLastClimb(segments) <= SUMMIT_RUN_IN_KM`, la regla del clasificador (`stageKind.ts`);
+ * nunca se le pone la etiqueta de otro `kind`. El nombre se rehace con el patrón del calendario
+ * (`Stage N · etiqueta`) para que nombre y etiqueta no puedan discrepar nunca.
  *
  * Las cronos, las llanas y las clásicas no pasan por aquí: su etiqueta no promete nada sobre la
  * meta, así que no hay nada que corregir.
@@ -103,15 +75,17 @@ export function calendarStageSpec(stage: CalendarStage, km: number): StageSpecHe
     kind: stage.kind,
     timeTrial: stage.timeTrial ?? false,
     km,
+    routeSource: stage.routeSource,
   }
   const summit = SUMMIT_FINISH[stage.kind as keyof typeof SUMMIT_FINISH]
-  if (base.timeTrial || !summit) return { ...base, name: stage.name, label: stage.label }
+  if (stage.routeSource !== 'real' || base.timeTrial || !summit)
+    return { ...base, name: stage.name, label: stage.label }
   const label =
     runInAfterLastClimb(stage.profile.segments) <= SUMMIT_RUN_IN_KM
       ? summit
       : NO_SUMMIT_FINISH[stage.kind as keyof typeof NO_SUMMIT_FINISH]
   // El nombre se rehace SOLO si es el que compone el calendario a partir de la etiqueta
-  // (`Stage N · etiqueta`). Una carrera con nombre propio —un campeonato nacional, un monumento—
+  // (`Stage N · etiqueta`). Una carrera con nombre propio (un campeonato nacional, un monumento)
   // se llama como se llama, y renombrarla sería peor mentira que la que se está arreglando.
   const generated = stage.name === `Stage ${stage.index} · ${stage.label}`
   return { ...base, name: generated ? `Stage ${stage.index} · ${label}` : stage.name, label }

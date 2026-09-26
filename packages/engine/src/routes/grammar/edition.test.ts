@@ -32,10 +32,9 @@ import { finalKindDe } from './veto.js'
  *
  * Una carrera es la misma carrera un año y el siguiente, y no la misma etapa: esqueleto, zona, firma,
  * papeles, `timeTrial` y número de etapas son identidad (decisión 20); la edición mueve km, huecos
- * opcionales, vueltas y el dibujo. Todo sobre la ruta nueva, `calendarForSeason(s)`, que en el paso 6
- * no tiene llamadores en producción: `SEASON_CALENDAR` sigue siendo la vieja hasta el paso 8, así que
- * aquí la temporada 0 es `calendarForSeason(BASE_SEASON)` y no `SEASON_CALENDAR`. Seis temporadas (0 a
- * 5), dentro del tope de ocho en memoria.
+ * opcionales, vueltas y el dibujo. Todo sobre `calendarForSeason(s)`; desde el paso 8 (v87) la
+ * temporada 0 es además `SEASON_CALENDAR`, la misma referencia. Seis temporadas (0 a 5), dentro del
+ * tope de ocho en memoria.
  */
 
 const CAL0 = calendarForSeason(BASE_SEASON)
@@ -225,15 +224,12 @@ describe('identidad entre ediciones', () => {
     expect(() => calendarForSeason(-1)).toThrow(RangeError)
   })
 
-  it('calendarForSeason(0) no toca SEASON_CALENDAR: mismas carreras, ids, días, formato y número de etapas', () => {
-    expect(CAL0).not.toBe(SEASON_CALENDAR)
-    expect(CAL0.map((r) => [r.id, r.startDay, r.format, r.raceClass, r.stages.length])).toEqual(
-      SEASON_CALENDAR.map((r) => [r.id, r.startDay, r.format, r.raceClass, r.stages.length]),
-    )
+  it('SEASON_CALENDAR es calendarForSeason(BASE_SEASON) por referencia (encendido en el paso 8)', () => {
+    // Hasta el paso 7 eran dos arrays con las mismas carreras, ids, días, formato y número de etapas
+    // (el `it` que lo sellaba se retira con este encendido): desde la v87 son el mismo.
+    expect(SEASON_CALENDAR).toBe(calendarForSeason(BASE_SEASON))
+    expect(SEASON_CALENDAR).toBe(CAL0)
   })
-  it.todo(
-    'SEASON_CALENDAR es calendarForSeason(BASE_SEASON) por referencia (se enciende en el paso 8)',
-  )
 
   it('routeSource de carrera es el agregado de sus etapas, y las 39 ediciones sin rasgos son mixto', () => {
     const lista = (...xs: RouteSource[]) => xs.map((routeSource) => ({ routeSource }))
@@ -555,13 +551,13 @@ describe('diffMotivos', () => {
     expect(
       diffMotivos(
         { km: 192.4, motivos: [circ(9), meta] },
-        { km: 201, motivos: [circ(10), cota, meta], opcion: 'Bérgamo' },
+        { km: 201, motivos: [circ(10), cota, meta], opcion: 'Bergamo' },
       ),
     ).toEqual([
       '192 km → 201 km',
-      '9 vueltas → 10',
-      'final: canónica → Bérgamo',
-      'una cota más: cota de 3,1 km al 5 %',
+      '9 laps → 10',
+      'finish: standard → Bergamo',
+      'one more hill: hill of 3.1 km at 5%',
     ])
     expect(
       diffMotivos(
@@ -569,8 +565,8 @@ describe('diffMotivos', () => {
         { km: 180.9, motivos: [meta] },
       ),
     ).toEqual([
-      'desaparece la cota de 3,1 km al 5 %',
-      'desaparece el sector de adoquín de 1,8 km (3★)',
+      'the hill of 3.1 km at 5% is dropped',
+      'the cobbled sector of 1.8 km (3★) is dropped',
     ])
   })
   it('lo que no anuncia: menos de 1 km, la firma y los parámetros de un hueco que sigue ahí', () => {

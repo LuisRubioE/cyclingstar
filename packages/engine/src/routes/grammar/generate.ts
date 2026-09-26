@@ -6,11 +6,11 @@
  *
  * Paso 0: nació `RouteSource`, porque `RouteStats` del censo la cita. Paso 1: el resto de tipos. Paso
  * 5: `generateStage` (los siete pasos de la sección 8 con el reintento sobre `mot`, `pos` y `dib`),
- * `labelDe`, `ETIQUETAS_DE_ESQUELETO` y `fraseDe`; paso 6: `raceRouteSourceOf`. Sin llamadores en
- * producción hasta el paso 8: `SEASON_CALENDAR` no cambia un byte.
+ * `labelDe`, `ETIQUETAS_DE_ESQUELETO` y `fraseDe`; paso 6: `raceRouteSourceOf`. Desde el paso 8 (v87)
+ * es el calendario que el juego corre: `routes/calendar.ts` la llama en sus tres ramas no reales.
  */
 import { ARCH, type EdicionCfg } from '../../constants.js'
-import type { StageProfile } from '../../stage/types.js'
+import type { Segment, StageProfile } from '../../stage/types.js'
 import type { RaceFormat } from '../calendar.js' // solo tipo, sentencia `import type` entera (§3.8)
 import type { EditionTerrain } from '../editions.js'
 import type { RouteTerrain } from '../featureProfile.js'
@@ -29,6 +29,7 @@ import { opcionDe, planDeEdicion, seasonDe, semillaDe, type EditionPlan } from '
 import { ZONAS, admite, conFirmeDeZona, type GeoSignature, type GeoZone } from './geo.js'
 import { dPlusDe } from './geometry.js'
 import {
+  cabeLaMeta,
   instanciar,
   instanciarFirma,
   type Instancia,
@@ -38,7 +39,13 @@ import {
 } from './motifs.js'
 import { colocar, colocarPlantilla } from './place.js'
 import { RACE_REGION } from './regions.js'
-import { emitirPancartas, garantizaClase, normalizeEnlaces, renderSkeleton } from './render.js'
+import {
+  cuadraComaFlotante,
+  emitirPancartas,
+  garantizaClase,
+  normalizeEnlaces,
+  renderSkeleton,
+} from './render.js'
 import {
   ESCALON_TERRENO,
   SESGO_TERRENO,
@@ -142,8 +149,34 @@ export function labelDe(sk: Skeleton, profile: StageProfile, timeTrial: boolean)
  * esqueleto, la firma ni cuántos motivos tiene la edición. Agotados los intentos, la plantilla canónica
  * de la opción con `degradado: true`. Pura: misma petición, misma etapa.
  */
+/**
+ * El esqueleto con el final que corre ESTA carrera (paso 9): si el catálogo declara `metaDeCarrera`,
+ * con su probabilidad la etapa toma esa meta, ese `finalKind` y esa plantilla. La tirada es de la
+ * corriente `firma` (sin temporada ni intento, §8.1) con su propio token, así que no mueve ningún otro
+ * dado de la firma y el final es identidad entre ediciones (decisión 20). Sin `metaDeCarrera`, `sk`;
+ * y tampoco donde el final largo no cabe con los puertos obligatorios en su suelo (`cabeLaMeta`: una
+ * edición real de 117 km con tres puertos y sus bajadas no tiene sitio para 21 km de valle,
+ * `race-gila` e2), que se queda con el corto sin gastar la tirada.
+ */
+export function esqueletoDeCarrera(sk: Skeleton, req: StageRequest): Skeleton {
+  const v = sk.metaDeCarrera
+  if (v === undefined) return sk
+  const largo: Skeleton = {
+    ...sk,
+    meta: v.meta,
+    finalKind: v.finalKind,
+    metaParams: v.metaParams,
+    slots: v.slots,
+    canonico: v.canonico,
+  }
+  if (!cabeLaMeta(largo, req)) return sk
+  return routeRng(`${semillaDe('firma', req)}|meta`)() < v.p ? largo : sk
+}
+
 export function generateStage(req: StageRequest): GeneratedStage {
-  const { sk, sufijo } = elegirEsqueleto(req, routeRng(semillaDe('arch', req))) // paso 1
+  const elegido = elegirEsqueleto(req, routeRng(semillaDe('arch', req))) // paso 1
+  const sk = esqueletoDeCarrera(elegido.sk, req)
+  const sufijo = elegido.sufijo
   const opcion = opcionDe(sk, req.raceId, seasonDe(req, 'ed'), req.edicion ?? ARCH.edicion) // sin dados (§10.3)
   const firma = instanciarFirma(sk, opcion, req, routeRng(semillaDe('firma', req))) // paso 2
   const ed = planDeEdicion(
@@ -175,10 +208,8 @@ export function generateStage(req: StageRequest): GeneratedStage {
       rechazos.push({ id: 'V6', detalle: 'garantizaClase: sin enlace que compense' })
       continue
     }
-    const profile: StageProfile = {
-      segments: garantizados.segs,
-      banners: emitirPancartas(garantizados.segs, colocados),
-    }
+    const segments = alContrato(garantizados.segs, ed.km, req)
+    const profile: StageProfile = { segments, banners: emitirPancartas(segments, colocados) }
     const veto = verify(
       profile,
       sk,
@@ -201,6 +232,13 @@ export function generateStage(req: StageRequest): GeneratedStage {
   return canonica(sk, ed, req, timeTrial, rechazos, sufijo) // plantilla canónica de la opción, `degradado: true`
 }
 
+/**
+ * En una etapa de edición el km es un contrato (§3.7) y `profileKm` lo tiene que dar exacto, no solo al
+ * 0,1: `cuadraComaFlotante` (render.ts). Lo generado sale como sale: su km es el de la instancia.
+ */
+const alContrato = (segs: Segment[], km: number, req: StageRequest): Segment[] =>
+  req.routeSource === 'edicion' ? cuadraComaFlotante(segs, km) : segs
+
 /** Paso 1 (§8.2). `sufijo` es el texto que `fraseDe` añade al final: degradación de papel o de terreno, o atadura ignorada; null si no hay. */
 function elegirEsqueleto(
   req: StageRequest,
@@ -215,7 +253,7 @@ function elegirEsqueleto(
   if (atado !== undefined) {
     // 1 bis: sin tirada
     if (cabe(atado, req)) return { sk: skeletonFor(atado, req.geo), sufijo: null }
-    aviso = `(atadura ${atado} ignorada: no cabe)`
+    aviso = `(pinned skeleton ${atado} ignored: does not fit)`
   }
   const cs = candidatos(req) // 2
   const reinaBlanda =
@@ -248,12 +286,13 @@ function elegirEsqueleto(
 }
 
 const ORDEN_KIND: Record<StageKind, number> = { llana: 0, cri: 0, clasica: 1, media: 2, reina: 3 }
+/** El `kind` en las palabras del sufijo de degradación, en inglés como el resto de la frase. */
 const KIND_TEXTO: Record<StageKind, string> = {
-  llana: 'llana',
-  cri: 'crono',
-  clasica: 'clásica',
-  media: 'media',
-  reina: 'reina',
+  llana: 'flat',
+  cri: 'time trial',
+  clasica: 'classic',
+  media: 'hilly',
+  reina: 'mountain',
 }
 /** El `kind` de los esqueletos de cada papel (columna «Papel» de §5.3: todos los ids de un papel comparten `kind`). */
 const KIND_DE_PAPEL: Record<StageRole, StageKind> = {
@@ -278,12 +317,12 @@ const KIND_DE_TERRENO_EDICION: Record<EditionTerrain, StageKind> = {
   cobbles: 'clasica',
 }
 const TERRENO_TEXTO: Record<RouteTerrain, string> = {
-  cobbles: 'adoquín',
-  classic: 'clásica',
-  hilly: 'colinas',
-  flat: 'llano',
-  mountain: 'montaña',
-  itt: 'crono',
+  cobbles: 'cobbles',
+  classic: 'classic',
+  hilly: 'hilly',
+  flat: 'flat',
+  mountain: 'mountain',
+  itt: 'time trial',
 }
 
 /** Si el paso 1 bajó el papel o el terreno (§8.2): sin dados. Una bajada dentro del mismo `kind` no lleva sufijo. */
@@ -293,7 +332,7 @@ function sufijoDegradado(sk: Skeleton, req: StageRequest): string | null {
     if (sk.id in SESGO_TERRENO[req.terrain]) return null
     let t = ESCALON_TERRENO[req.terrain] // el primer escalón que contiene el id es el terreno al que bajó
     while (t !== null && !(sk.id in SESGO_TERRENO[t])) t = ESCALON_TERRENO[t]
-    return `(degradado a ${TERRENO_TEXTO[t ?? 'flat']})`
+    return `(downgraded to ${TERRENO_TEXTO[t ?? 'flat']})`
   }
   const pedido: StageKind | undefined =
     req.routeSource === 'edicion'
@@ -302,7 +341,7 @@ function sufijoDegradado(sk: Skeleton, req: StageRequest): string | null {
         ? undefined
         : KIND_DE_PAPEL[req.role]
   if (pedido === undefined) return null
-  return ORDEN_KIND[sk.kind] < ORDEN_KIND[pedido] ? `(degradado a ${KIND_TEXTO[sk.kind]})` : null
+  return ORDEN_KIND[sk.kind] < ORDEN_KIND[pedido] ? `(downgraded to ${KIND_TEXTO[sk.kind]})` : null
 }
 
 /** Lo que `salida` recibe del bucle además del perfil. */
@@ -380,7 +419,8 @@ function canonica(
   )
   const cuadrados = normalizeEnlaces(segs, ed.km, colocados) ?? segs
   const g = garantizaClase(cuadrados, sk, colocados) ?? { segs: cuadrados, reglas: 0 }
-  const profile: StageProfile = { segments: g.segs, banners: emitirPancartas(g.segs, colocados) }
+  const segments = alContrato(g.segs, ed.km, req)
+  const profile: StageProfile = { segments, banners: emitirPancartas(segments, colocados) }
   const motivos: Instancia[] = colocados.map((p) => ({ slot: p.slot, j: 0, motif: p.motif }))
   return salida(profile, sk, req, motivos, ed, {
     intentos: intento,
@@ -393,48 +433,56 @@ function canonica(
 }
 
 // ---------------------------------------------------------------------------------------------------
-// La frase de arquitectura (§8.13): sin dados, pura. Se exporta solo para `generate.test.ts`.
+// La frase de arquitectura (§8.13): sin dados, pura. Se exporta solo para `generate.test.ts`. La
+// escribe el motor en INGLÉS, como toda la interfaz del MVP (Claude.md; v87 §3): la pantalla la
+// enseña tal cual. La estructura es la de §8.13; solo cambian las palabras.
 // ---------------------------------------------------------------------------------------------------
 
 const PALABRA = [
-  'cero',
-  'uno',
-  'dos',
-  'tres',
-  'cuatro',
-  'cinco',
-  'seis',
-  'siete',
-  'ocho',
-  'nueve',
-  'diez',
+  'zero',
+  'one',
+  'two',
+  'three',
+  'four',
+  'five',
+  'six',
+  'seven',
+  'eight',
+  'nine',
+  'ten',
 ]
 const r1 = (x: number): number => Math.round(x * 10) / 10
-/** Coma decimal sin Intl: `x` ya viene redondeado, y String(4.2) es "4.2". Así la frase no depende de la ICU del proceso. */
-const num = (x: number): string => String(x).replace('.', ',')
-/** Km redondeados al entero desde 10 y al 0,1 por debajo: 17,1 → "17"; 4,2 → "4,2"; 2,0 → "2". */
+/** Punto decimal sin Intl (la interfaz va en inglés en el MVP): `x` ya viene redondeado, y String(4.2) es "4.2". Así la frase no depende de la ICU del proceso. */
+const num = (x: number): string => String(x)
+/** Km redondeados al entero desde 10 y al 0,1 por debajo: 17,1 → "17"; 4,2 → "4.2"; 2,0 → "2". */
 const kmTxt = (x: number): string => num(x >= 10 ? Math.round(x) : r1(x))
-/** Pendientes al entero desde el 4 % y al 0,1 por debajo: 11,3 → "11"; 2,4 → "2,4". */
+/** Pendientes al entero desde el 4 % y al 0,1 por debajo: 11,3 → "11"; 2,4 → "2.4". */
 const gTxt = (g: number): string => num(g >= 4 ? Math.round(g) : r1(g))
-const cuenta = (n: number, fem: boolean): string =>
-  n === 1 ? (fem ? 'una' : 'un') : n <= 10 ? PALABRA[n]! : String(n)
-const pron = (n: number): string => (n <= 10 ? PALABRA[n]! : String(n)) // "uno", "dos": tras coma, sin sustantivo
+/** El artículo indefinido inglés según la palabra que sigue: "an open stretch", "a hill". */
+const art = (palabra: string): string => (/^[aeiou]/i.test(palabra) ? 'an' : 'a')
+const cuenta = (n: number): string => (n <= 10 ? PALABRA[n]! : String(n))
+/**
+ * "(two of them cobbled)", y "(both …)" o "(all …)" si lo son todos. Entre paréntesis y no tras coma,
+ * para que en una lista de grupos no se lea como un grupo más.
+ */
+const deEllos = (k: number, n: number, rasgo: string): string =>
+  k === n ? ` (${n === 2 ? 'both' : 'all'} ${rasgo})` : ` (${cuenta(k)} of them ${rasgo})`
 const lista = (xs: readonly string[]): string =>
-  xs.length <= 1 ? (xs[0] ?? '') : `${xs.slice(0, -1).join(', ')} y ${xs.at(-1)!}`
+  xs.length <= 1 ? (xs[0] ?? '') : `${xs.slice(0, -1).join(', ')} and ${xs.at(-1)!}`
 const mayus = (t: string): string => t.charAt(0).toUpperCase() + t.slice(1)
-const firmeTxt = (m: Motif): string => (m.firme === 'tierra' ? 'de tierra' : 'de adoquín')
+const firmeTxt = (m: Motif): string => (m.firme === 'tierra' ? 'gravel' : 'cobbled')
 
 type Nombrable = Exclude<MotifKind, 'enlace' | 'descenso' | 'meta'>
-const NOMBRE: Record<Nombrable, { s: string; p: string; fem: boolean }> = {
-  cota: { s: 'cota', p: 'cotas', fem: true },
-  puerto: { s: 'puerto', p: 'puertos', fem: false },
-  muro: { s: 'muro', p: 'muros', fem: false },
-  sector: { s: 'sector', p: 'sectores', fem: false },
-  expuesto: { s: 'tramo abierto', p: 'tramos abiertos', fem: false }, // "abierto", nunca "abanico" (decisión 17)
-  tendida: { s: 'subida tendida', p: 'subidas tendidas', fem: true },
-  cadena: { s: 'cadena', p: 'cadenas', fem: true },
-  racimo: { s: 'racimo', p: 'racimos', fem: false },
-  circuito: { s: 'circuito', p: 'circuitos', fem: false },
+const NOMBRE: Record<Nombrable, { s: string; p: string }> = {
+  cota: { s: 'hill', p: 'hills' },
+  puerto: { s: 'pass', p: 'passes' },
+  muro: { s: 'wall', p: 'walls' },
+  sector: { s: 'sector', p: 'sectors' },
+  expuesto: { s: 'open stretch', p: 'open stretches' }, // "open", nunca "echelon" ni "abanico" (decisión 17)
+  tendida: { s: 'long drag', p: 'long drags' },
+  cadena: { s: 'chain', p: 'chains' },
+  racimo: { s: 'cluster', p: 'clusters' },
+  circuito: { s: 'circuit', p: 'circuits' },
 }
 
 /** Motivos CONSECUTIVOS del mismo kind forman un grupo (en `sector`, además del mismo firme); `cadena`, `racimo` y `circuito` van siempre solos; `enlace`, `descenso` y `meta` no se nombran. */
@@ -461,13 +509,15 @@ function textoGrupo(g: readonly Motif[], inicio: boolean): string {
   const m = g[0]!
   const n = g.length
   const N = NOMBRE[m.kind as Nombrable]
-  const adoq = m.kind === 'muro' && n === 1 && m.adoquin ? ' adoquinado' : ''
-  const cabeza =
-    n === 1
-      ? inicio
-        ? `${N.s}${adoq}`
-        : `${cuenta(1, N.fem)} ${N.s}${adoq}`
-      : `${cuenta(n, N.fem)} ${N.p}`
+  // En inglés el firme va delante: "cobbled wall", "gravel sectors".
+  const delante =
+    m.kind === 'sector'
+      ? `${firmeTxt(m)} `
+      : m.kind === 'muro' && n === 1 && m.adoquin
+        ? 'cobbled '
+        : ''
+  const nombre = `${delante}${n === 1 ? N.s : N.p}`
+  const cabeza = n === 1 ? (inicio ? nombre : `${art(nombre)} ${nombre}`) : `${cuenta(n)} ${nombre}`
   let det = ''
   switch (m.kind) {
     case 'cota':
@@ -476,39 +526,37 @@ function textoGrupo(g: readonly Motif[], inicio: boolean): string {
     case 'tendida':
       det =
         n === 1
-          ? ` de ${kmTxt(m.km)} km al ${gTxt(m.g!)} %`
+          ? ` of ${kmTxt(m.km)} km at ${gTxt(m.g!)}%`
           : n <= 4
-            ? ` de ${lista(g.map((x) => kmTxt(x.km)))} km`
+            ? ` of ${lista(g.map((x) => kmTxt(x.km)))} km`
             : ''
       if (m.kind === 'muro' && n > 1) {
         const k = g.filter((x) => x.adoquin).length
-        if (k > 0) det += `, ${pron(k)} adoquinado${k > 1 ? 's' : ''}`
+        if (k > 0) det += deEllos(k, n, 'cobbled')
       }
       break
     case 'expuesto':
-      det = n === 1 ? ` de ${kmTxt(m.km)} km` : ` (${kmTxt(g.reduce((a, x) => a + x.km, 0))} km)`
+      det = n === 1 ? ` of ${kmTxt(m.km)} km` : ` (${kmTxt(g.reduce((a, x) => a + x.km, 0))} km)`
       break
     case 'sector': {
       const k5 = g.filter((x) => x.estrellas === 5).length
-      det =
-        n === 1
-          ? ` ${firmeTxt(m)} de ${kmTxt(m.km)} km (${m.estrellas}★)`
-          : ` ${firmeTxt(m)}${k5 > 0 ? `, ${pron(k5)} de 5★` : ''}`
+      det = n === 1 ? ` of ${kmTxt(m.km)} km (${m.estrellas}★)` : k5 > 0 ? deEllos(k5, n, '5★') : ''
       break
     }
     case 'cadena': {
       const hs = m.hijos!
-      det = ` de ${hs.length} ${hs.every((h) => h.kind === hs[0]!.kind) ? NOMBRE[hs[0]!.kind as Nombrable].p : 'subidas'}`
+      det = ` of ${hs.length} ${hs.every((h) => h.kind === hs[0]!.kind) ? NOMBRE[hs[0]!.kind as Nombrable].p : 'climbs'}`
       break
     }
     case 'racimo': {
-      const k5 = m.hijos!.filter((h) => h.estrellas === 5).length
-      det = ` de ${m.hijos!.length} sectores${k5 > 0 ? `, ${pron(k5)} de 5★` : ''}`
+      const hs = m.hijos!
+      const k5 = hs.filter((h) => h.estrellas === 5).length
+      det = ` of ${hs.length} sectors${k5 > 0 ? deEllos(k5, hs.length, '5★') : ''}`
       break
     }
     case 'circuito': {
       const hs = grupos(m.hijos ?? []).map((h) => textoGrupo(h, false))
-      det = ` de ${kmTxt(m.km)} km × ${m.vueltas} vueltas${hs.length > 0 ? ` con ${lista(hs)}` : ''}`
+      det = ` of ${kmTxt(m.km)} km × ${m.vueltas} laps${hs.length > 0 ? ` with ${lista(hs)}` : ''}`
       break
     }
     default:
@@ -517,7 +565,7 @@ function textoGrupo(g: readonly Motif[], inicio: boolean): string {
   return inicio ? mayus(cabeza + det) : cabeza + det
 }
 
-/** "del muro", "de la cota", "del puerto": la última subida nombrable antes de la meta (en `cadena` y `circuito`, su último hijo que sube). */
+/** "the wall", "the hill", "the pass": la última subida nombrable antes de la meta (en `cadena` y `circuito`, su último hijo que sube). */
 function delUltimaSubida(motivos: readonly Motif[]): string {
   const sube = (m: Motif): boolean => m.kind === 'cota' || m.kind === 'puerto' || m.kind === 'muro'
   for (let i = motivos.length - 1; i >= 0; i--) {
@@ -528,38 +576,46 @@ function delUltimaSubida(motivos: readonly Motif[]): string {
         : sube(m)
           ? m
           : undefined
-    if (c) return c.kind === 'cota' ? 'de la cota' : c.kind === 'puerto' ? 'del puerto' : 'del muro'
+    if (c) return c.kind === 'cota' ? 'the hill' : c.kind === 'puerto' ? 'the pass' : 'the wall'
   }
-  return 'de la última subida'
+  return 'the last climb'
 }
 
-function cierre(meta: Motif, motivos: readonly Motif[], dUltima: number | null): string {
+/** `crono`: en una contrarreloj la meta `esprint` es una llegada llana, no un esprint de grupo. */
+function cierre(
+  meta: Motif,
+  motivos: readonly Motif[],
+  dUltima: number | null,
+  crono: boolean,
+): string {
   const cf = meta.cotaFinal
-  const sube = cf ? ` de ${kmTxt(cf.km)} km al ${gTxt(cf.g)} %` : ''
-  const ultimo = cf && cf.km >= ARCH.motivo.puerto.km[0] ? 'último puerto' : 'última cota' // cota ≤ 8,0 y puerto ≥ 9,0 no se solapan
+  const sube = cf ? ` of ${kmTxt(cf.km)} km at ${gTxt(cf.g)}%` : ''
+  const ultimo = cf && cf.km >= ARCH.motivo.puerto.km[0] ? 'last pass' : 'last hill' // cota ≤ 8,0 y puerto ≥ 9,0 no se solapan
   const v = cf ? r1(meta.km - cf.km) : 0 // el valle: Motif.km = cotaFinal.km + valle (§4.5 regla 5)
   const m: MetaKind = meta.meta ?? 'esprint'
   switch (m) {
     case 'esprint':
       return dUltima !== null && dUltima <= FINAL_KIND_CUTS.valleCorto
-        ? `meta a ${kmTxt(dUltima)} km ${delUltimaSubida(motivos)}`
-        : 'esprint'
+        ? `finish ${kmTxt(dUltima)} km after ${delUltimaSubida(motivos)}`
+        : crono
+          ? 'flat finish'
+          : 'sprint finish'
     case 'repecho':
-      return `llegada en repecho${sube}`
+      return `finish on a rise${sube}`
     case 'muro_meta':
-      return `llegada en muro${sube}`
+      return `finish on a wall${sube}`
     case 'alto_corto':
     case 'alto_largo':
-      return `llegada en alto${sube}`
+      return `summit finish${sube}`
     case 'cima_cerca':
-      return `${ultimo}${sube} a ${kmTxt(v)} km de meta`
+      return `${ultimo}${sube}, cresting at ${kmTxt(v)} km to go`
     case 'descenso_meta':
-      return `${ultimo}${sube}, bajada y llano hasta meta (${kmTxt(v)} km)`
+      return `${ultimo}${sube}, then descent and flat to the finish (${kmTxt(v)} km)`
     case 'valle':
-      return `${ultimo}${sube} y ${kmTxt(v)} km de valle hasta meta`
+      return `${ultimo}${sube}, then ${kmTxt(v)} km of valley to the finish`
     case 'sector_meta': {
       const h = meta.hijos![0]!
-      return `sector ${firmeTxt(h)} de ${kmTxt(h.km)} km (${h.estrellas}★) a ${kmTxt(r1(meta.km - h.km))} km de meta`
+      return `${firmeTxt(h)} sector of ${kmTxt(h.km)} km (${h.estrellas}★) at ${kmTxt(r1(meta.km - h.km))} km to go`
     }
   }
 }
@@ -567,7 +623,8 @@ function cierre(meta: Motif, motivos: readonly Motif[], dUltima: number | null):
 /**
  * La frase de arquitectura de la ficha (§8.13; decisión 39): `cuerpo; cierre[; final en X] [sufijos]`.
  * Sale de los campos numéricos de `arch.motivos` (en orden de carretera), de `dUltima` y de dos
- * cadenas; no lee `Motif.nombre` de las dificultades ni el perfil.
+ * cadenas; no lee `Motif.nombre` de las dificultades ni el perfil. En inglés: "Flat with three open
+ * stretches (90 km); sprint finish", "Time trial of 38 km; flat finish".
  */
 export function fraseDe(
   sk: Skeleton,
@@ -579,21 +636,21 @@ export function fraseDe(
   degradado: boolean,
 ): string {
   const gs = grupos(motivos)
-  const con = gs.length > 0 ? ` con ${lista(gs.map((g) => textoGrupo(g, false)))}` : ''
+  const con = gs.length > 0 ? ` with ${lista(gs.map((g) => textoGrupo(g, false)))}` : ''
   const cuerpo = sk.timeTrial
-    ? `${sk.label === 'Prologue' ? 'Prólogo' : 'Contrarreloj'} de ${kmTxt(km)} km${con}`
+    ? `${sk.label === 'Prologue' ? 'Prologue' : 'Time trial'} of ${kmTxt(km)} km${con}`
     : sk.kind === 'llana'
-      ? `Llano${con}`
+      ? `Flat${con}`
       : gs.length > 0
         ? lista(gs.map((g, i) => textoGrupo(g, i === 0)))
-        : 'Sin dificultades'
+        : 'No difficulties'
   const meta: Motif = motivos.find((m) => m.kind === 'meta') ?? {
     kind: 'meta',
     km: 0,
     meta: sk.meta,
   }
-  const partes = [cuerpo, cierre(meta, motivos, dUltima)]
-  if (opcion > 0) partes.push(`final en ${sk.alternativas![opcion - 1]!.nombre}`)
+  const partes = [cuerpo, cierre(meta, motivos, dUltima, sk.timeTrial === true)]
+  if (opcion > 0) partes.push(`finish at ${sk.alternativas![opcion - 1]!.nombre}`)
   const sinSitio = [
     ...new Set(
       motivos
@@ -601,7 +658,7 @@ export function fraseDe(
         .map((m) => `(${m.nombre})`),
     ),
   ]
-  const cola = [sufijo, ...sinSitio, degradado ? '(plantilla canónica)' : null].filter(
+  const cola = [sufijo, ...sinSitio, degradado ? '(standard template)' : null].filter(
     (x): x is string => x !== null,
   )
   return partes.join('; ') + (cola.length > 0 ? ` ${cola.join(' ')}` : '')

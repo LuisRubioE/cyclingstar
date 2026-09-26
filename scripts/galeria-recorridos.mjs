@@ -18,7 +18,8 @@
  * Tanda del paso 5 (§16.7): `index.html`, una página por zona (`zona-*.html`), `nacionales.html` y
  * `adoquin.html`. Tanda del paso 6: `calendario.html`, `continentales.html`, `vueltas.html` y la
  * columna «Ediciones» (temporadas 1 y 2), que leen `raceForSeason` / `stagesForSeason`, la ruta nueva
- * del calendario, aunque `SEASON_CALENDAR` siga siendo la vieja hasta el paso 8; `adoquin.html` lee
+ * del calendario, que desde el paso 8 es la que el juego corre (`SEASON_CALENDAR`); «hoy» es el calendario
+ * de la v86, `legacyCalendar()` de `sim/legacy/`, que vive hasta el paso 9; `adoquin.html` lee
  * también de ella. `--congelar-antes` es del paso 9. Lee el `dist` por ruta profunda, como
  * `inventario-recorridos.mjs`, y nunca de
  * `dist/index.js`, que no lista la gramática. Determinista: sin `Math.random` y sin reloj en lo
@@ -46,6 +47,7 @@ import {
   stagesForSeason,
 } from '../packages/engine/dist/routes/calendar.js'
 import { RACE_EDITIONS } from '../packages/engine/dist/routes/editions.js'
+import { legacyCalendar } from '../packages/engine/dist/sim/legacy/profileGenLegacy.js'
 import { profileKm } from '../packages/engine/dist/routes/finalKind.js'
 import { huellaFNV, routeRng } from '../packages/engine/dist/routes/profileGen.js'
 import { RACE_ROUTES } from '../packages/engine/dist/routes/raceRoutes.js'
@@ -105,6 +107,9 @@ const MODO = {
   congelar: process.argv.includes('--congelar-antes'),
   sellar: process.argv.includes('--sellar'),
 }
+
+/** «Hoy»: el calendario de la v86, el que el juego corría antes del paso 8 (`sim/legacy/`, hasta el paso 9). */
+const HOY = legacyCalendar()
 
 // ---------------------------------------------------------------------------------------------------
 // La petición de cada fila (§16.2).
@@ -209,7 +214,7 @@ function fila(base, req, titulo, conEdiciones = false) {
 /** Una fila de una página de carreras: la etapa `i` de `stagesForSeason(raceId, 0)`, la de hoy y sus ediciones. */
 function filaCarrera(race, i, titulo) {
   const stage = stagesForSeason(race.id, GALERIA.season)[i]
-  const hoy = SEASON_CALENDAR.find((r) => r.id === race.id).stages[i]
+  const hoy = HOY.find((r) => r.id === race.id).stages[i]
   return {
     raceId: race.id,
     zona: stage.arch.geo,
@@ -548,8 +553,9 @@ function esReal(race) {
 function adoquin() {
   return COBBLES_IDS.map((raceId) => {
     const race = SEASON_CALENDAR.find((r) => r.id === raceId)
+    const hoyRace = HOY.find((r) => r.id === raceId)
     if (!race) throw new Error(`adoquin: ${raceId} no está en SEASON_CALENDAR`)
-    const hoy = race.stages[0]
+    const hoy = hoyRace.stages[0]
     const zona = regionOf(raceId, 1, race.country ?? null)
     const real = esReal(race)
     if (!real) {
@@ -668,7 +674,7 @@ function paginaCalendario(filas) {
   return pagina(
     'calendario',
     'Galería · calendario',
-    `<p class="suave">Las ${EQUIPOS.length} carreras de equipos de <code>calendarForSeason(0)</code> con su zona, y los perfiles de las ${filas.length} carreras de un día WT y Pro generadas: hoy (<code>SEASON_CALENDAR</code>), nuevo (<code>stagesForSeason(raceId, 0)</code>) y las ediciones 1 y 2 con los cambios que anunciaría la ficha. Las vueltas están en <a href="vueltas.html">vueltas.html</a>; las ${reales.length} carreras de un día con perfil real no se dibujan (no cambian). Cuatro preguntas por perfil: ¿existe en ese sitio?, ¿existe en esa clase?, ¿la reconocería un aficionado?, ¿es la misma carrera otro año?</p>
+    `<p class="suave">Las ${EQUIPOS.length} carreras de equipos de <code>calendarForSeason(0)</code> con su zona, y los perfiles de las ${filas.length} carreras de un día WT y Pro generadas: hoy (el calendario de la v86, <code>legacyCalendar()</code>), nuevo (<code>stagesForSeason(raceId, 0)</code>) y las ediciones 1 y 2 con los cambios que anunciaría la ficha. Las vueltas están en <a href="vueltas.html">vueltas.html</a>; las ${reales.length} carreras de un día con perfil real no se dibujan (no cambian). Cuatro preguntas por perfil: ¿existe en ese sitio?, ¿existe en esa clase?, ¿la reconocería un aficionado?, ¿es la misma carrera otro año?</p>
 <h2>Carreras y zonas</h2>${listaDeZonas()}
 <h2>Un día WT y Pro</h2>${tablaUnDia(filas)}`,
   )
@@ -700,7 +706,7 @@ function vuelta(race) {
       )
     : null
   const compuesta = Boolean(fila) && !RACE_EDITIONS[race.id]
-  const hoy = SEASON_CALENDAR.find((r) => r.id === race.id)
+  const hoy = HOY.find((r) => r.id === race.id)
   const mini = (p, t) => renderAltimetrySvg(p, { ...GALERIA.miniatura, title: t })
   const etapas = race.stages.map((st, i) => {
     const h = hoy.stages[i]
@@ -814,7 +820,7 @@ function paginaIndice(porZona, nac, ado, carreras, paisesFallback, primeraPasada
     `<p><b>Vetos activos por etapa: V1 a V10 y V15</b> (los once que reintentan, sección 9).</p>
 <p>${nCeldas} celdas zona × esqueleto y ${nPerfiles} perfiles (${degTotales} degradados), con las ediciones 1 y 2 en la fila 0 de cada celda; ${nac.filas.length} perfiles nacionales; ${ado.length} + ${ado.length} de adoquín; ${carreras.unDia} carreras de un día generadas en <a href="calendario.html">calendario</a> y <a href="continentales.html">continentales</a> y ${carreras.vueltas} vueltas (${carreras.compuestas} compuestas) en <a href="vueltas.html">vueltas</a>, con ${carreras.degradadas} etapas degradadas en las temporadas 0 a 2.
 Primera pasada: ${primeraPasada} perfiles de ${GALERIA.primeraPasada.maxPerfiles} (fila 0 de cada celda en ${GALERIA.primeraPasada.zonas.length} zonas, la columna derecha de adoquín y las carreras de un día generadas del calendario), más ${carreras.compuestas} vueltas compuestas y ${carreras.lista} filas de lista (${carreras.lista - COUNTRIES.length} carreras de equipos y ${COUNTRIES.length} países).</p>
-<p class="suave">Generada del árbol del ${esc(GENERADA_EN)}, temporada ${GALERIA.season} (ediciones ${GALERIA.ediciones.join(' y ')}). Las páginas de carreras leen la ruta nueva del calendario (<code>calendarForSeason</code>), que el juego no corre hasta el paso 8; «hoy» es <code>SEASON_CALENDAR</code>.</p>
+<p class="suave">Generada del árbol del ${esc(GENERADA_EN)}, temporada ${GALERIA.season} (ediciones ${GALERIA.ediciones.join(' y ')}). Las páginas de carreras leen el calendario que el juego corre desde el paso 8 (<code>calendarForSeason</code>); «hoy» es el de la v86, <code>legacyCalendar()</code>.</p>
 <h2>Orden de lectura</h2><ol>${orden
       .map(([href, t, pendiente]) =>
         pendiente ? `<li class="suave">${esc(t)}</li>` : `<li><a href="${href}">${esc(t)}</a></li>`,
@@ -865,7 +871,7 @@ if (MODO.fusionar) {
 }
 if (MODO.congelar) {
   console.error(
-    '[galeria] --congelar-antes es del cierre del paso 9 (§16.3): todavía no existe legacyCalendar().',
+    '[galeria] --congelar-antes es del cierre del paso 9 (§16.3), con sim/frozenSkeletons.ts.',
   )
   process.exit(2)
 }
@@ -967,7 +973,7 @@ function columnaNuevo() {
 
 if (MODO.sellar) {
   const sello = {
-    nota: 'Columna «nuevo» de calendario.html, continentales.html y vueltas.html al cerrar el paso 6 (docs/generador.md §16.7, comprobación 3). Se reescribe con --sellar; no se edita a mano.',
+    nota: 'Columna «nuevo» de calendario.html, continentales.html y vueltas.html (docs/generador.md §16.7, comprobación 3): sellada al cerrar el paso 6 y re-sellada en el paso 8 con las correcciones de la gramática de docs/balance.md v87 §1. Se reescribe con --sellar; no se edita a mano.',
     generadaEn: GENERADA_EN,
     carreras: new Set(Object.keys(columnaNuevo()).map((k) => k.split(':')[0])).size,
     etapas: columnaNuevo(),

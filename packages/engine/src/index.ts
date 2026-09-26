@@ -86,15 +86,34 @@ export {
   type ElevationPoint,
 } from './routes/altimetry.js'
 export { TEST_TOUR, type StageKind, type TourStage } from './routes/testTour.js'
-export { stageKindOf, type StageShape } from './routes/stageKind.js'
+export {
+  SUMMIT_RUN_IN_KM,
+  runInAfterLastClimb,
+  stageKindOf,
+  type StageShape,
+} from './routes/stageKind.js'
 export {
   SEASON_CALENDAR,
+  calendarForSeason,
+  raceForSeason,
+  stagesForSeason,
   type CalendarRace,
   type CalendarStage,
   type RaceFormat,
   type RaceLevel,
   type StageSpec,
 } from './routes/calendar.js'
+export { RACE_EDITIONS } from './routes/editions.js'
+export { hashInt } from './routes/profileGen.js'
+export { BASE_SEASON, diffMotivos, type DiffInput } from './routes/grammar/edition.js'
+// Fuera de las seis líneas de §15.1: la opción de nivel 2 de una temporada ("final: Como → Bergamo")
+// es la tercera diferencia de `diffMotivos`, y para nombrarla la ficha necesita el esqueleto y su
+// opción (docs/generador.md §10.8, `nombreDeOpcion`).
+export { opcionDe } from './routes/grammar/edition.js'
+export { SKELETONS } from './routes/grammar/skeletons.js'
+export type { GeneratedStage, RaceRouteSource, RouteSource } from './routes/grammar/generate.js'
+export type { SkeletonId } from './routes/grammar/skeletons.js'
+export type { GeoZone } from './routes/grammar/geo.js'
 export {
   raceLastDay,
   overlappingRaces,

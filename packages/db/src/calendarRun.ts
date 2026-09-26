@@ -45,7 +45,7 @@ import {
   teamRacePlan,
   teams,
 } from './schema.js'
-import { freezeRaceRoute, getRaceRoute } from './raceRoutes.js'
+import { freezeRaceRoute, raceStagesForWorld } from './raceRoutes.js'
 import { runOneStage } from './stageRun.js'
 import { ownedTeamAttendance } from './teamPlan.js'
 import { worldNeedsRepair } from './worldRepair.js'
@@ -515,7 +515,11 @@ async function convokeField(
         .where(eq(riderRacePrefs.raceId, race.id))
     ).map((r) => r.riderId),
   )
-  const raceFit = raceVocationFit(race.stages.map((s) => s.kind))
+  // La vocación de la carrera sale de las etapas que el mundo va a correr (decisión 23): las
+  // congeladas o, antes de congelarse, las de la edición de esta temporada; nunca las de la 0.
+  const raceFit = raceVocationFit(
+    (await raceStagesForWorld(tx, worldId, raceKey, race.id, season)).map((s) => s.kind),
+  )
 
   // Gran vuelta: prestigio de ESTA (Tour=0, Giro=1, Vuelta=2) y cuántas lleva ya cada corredor esta
   // temporada (para las wildcards Pro, que a lo sumo corren una).
@@ -1616,19 +1620,21 @@ export async function runCalendarDay(
       }
     }
 
-    const stage = race.stages[idx - 1]
-    if (!stage) continue
-
     /**
      * EL RECORRIDO SE CONGELA EL DÍA DE LA SALIDA (docs/tactica.md paso 1a), y se LEE de ahí.
      *
      * Hasta aquí el perfil salía del calendario en el momento de correr la etapa, o sea que era un
      * dato del código: tocar el generador reescribía el recorrido de las carreras ya corridas. Se
-     * escribe una vez, es idempotente, y el `?? stage.profile` de abajo cubre las carreras que
-     * empezaron antes de que esta tabla existiera.
+     * escribe una vez y es idempotente. Desde la v87 lo que se congela es la edición de ESTA
+     * temporada (`stagesForSeason`), y de lo congelado salen también el tipo, la crono y cuántas
+     * etapas tiene (decisión 23): de `race`, que es la temporada 0, solo queda la identidad (id,
+     * nombre, nivel, clase y sitio). Una carrera empezada antes de la tabla cae a la edición de la
+     * temporada, nunca a la 0.
      */
-    if (idx === 1) await freezeRaceRoute(tx, worldId, raceKey, race.id)
-    const congelado = await getRaceRoute(tx, worldId, raceKey, idx)
+    if (idx === 1) await freezeRaceRoute(tx, worldId, raceKey, race.id, season)
+    const frozen = await raceStagesForWorld(tx, worldId, raceKey, race.id, season)
+    const stage = frozen[idx - 1]
+    if (!stage) continue
 
     const r = await runOneStage(tx, worldId, gameDay, worldSeed, {
       raceKey,
@@ -1639,9 +1645,9 @@ export async function runCalendarDay(
       season,
       stageDay: idx,
       kind: stage.kind,
-      profile: congelado ?? stage.profile,
-      timeTrial: stage.timeTrial ?? false,
-      isFinal: idx === race.stages.length,
+      profile: stage.profile,
+      timeTrial: stage.timeTrial,
+      isFinal: idx === frozen.length,
       // El sitio y la fecha de ESTA etapa. La cuenta vive en `stagePlace` y no aquí a propósito: la
       // API da el parte meteorológico de antes con la MISMA función, y si las dos se separaran el
       // parte anunciaría el tiempo de otra carrera (v44).

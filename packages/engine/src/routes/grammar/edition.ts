@@ -183,6 +183,12 @@ export function planDeEdicion(
     if (rand() < cfg.vueltasJitter) {
       const signo = rand() < 0.5 ? -1 : 1
       vueltas = Math.min(hi, Math.max(lo, base + signo))
+      // v87: la vuelta de más no puede pasar el techo de la clase (V13, `ARCH.km.maxPorClase`): una .1
+      // con una vuelta más salía a 201,4 km (`race-reggio`, banda `km.clase.max`). Entonces la
+      // vuelta se quita en vez de ponerse, sin tirada nueva.
+      const tope = ARCH.km.maxPorClase[req.raceClass]
+      if (vueltas > base && r1(req.km + (vueltas - base) * circuito.km) > tope)
+        vueltas = Math.max(lo, base - 1)
     }
     if (req.routeSource !== 'edicion') km = r1(req.km + (vueltas - base) * circuito.km)
   }
@@ -214,39 +220,41 @@ export function planDeEdicion(
 // diffMotivos (§10.8): lo que la ficha anuncia de una edición respecto de la anterior (paso 6).
 // ---------------------------------------------------------------------------------------------------
 
-/** Coma decimal sin Intl, como la frase de `generate.ts`: la ficha no depende de la ICU del proceso. */
-const coma = (x: number): string => String(r1(x)).replace('.', ',')
+/** Punto decimal sin Intl, como la frase de `generate.ts`: la ficha no depende de la ICU del proceso. */
+const dec = (x: number): string => String(r1(x))
 
-/** Nombre y género de los motivos que la ficha nombra; `enlace`, `descenso` y `meta` no se nombran. */
-const NOMBRE_DIFF: Partial<Record<Motif['kind'], { s: string; fem: boolean }>> = {
-  cota: { s: 'cota', fem: true },
-  puerto: { s: 'puerto', fem: false },
-  muro: { s: 'muro', fem: false },
-  sector: { s: 'sector', fem: false },
-  expuesto: { s: 'tramo abierto', fem: false }, // "abierto", nunca "abanico" (decisión 17)
-  tendida: { s: 'subida tendida', fem: true },
-  cadena: { s: 'cadena', fem: true },
-  racimo: { s: 'racimo', fem: false },
-  circuito: { s: 'circuito', fem: false },
+/** Nombre, en inglés como toda la ficha, de los motivos que la ficha nombra; `enlace`, `descenso` y `meta` no se nombran. */
+const NOMBRE_DIFF: Partial<Record<Motif['kind'], string>> = {
+  cota: 'hill',
+  puerto: 'pass',
+  muro: 'wall',
+  sector: 'sector',
+  expuesto: 'open stretch', // "open", nunca "echelon" ni "abanico" (decisión 17)
+  tendida: 'long drag',
+  cadena: 'chain',
+  racimo: 'cluster',
+  circuito: 'circuit',
 }
 
-/** "cota de 3,1 km al 5 %", "sector de adoquín de 1,8 km (3★)", o el `nombre` del motivo si lo lleva. */
+/** "hill of 3.1 km at 5%", "cobbled sector of 1.8 km (3★)", o el `nombre` del motivo si lo lleva. */
 function textoMotivo(m: Motif): string {
   if (m.nombre !== undefined) return m.nombre
-  const n = NOMBRE_DIFF[m.kind]?.s ?? m.kind
+  const n = NOMBRE_DIFF[m.kind] ?? m.kind
   if (m.kind === 'sector')
-    return `${n} ${m.firme === 'tierra' ? 'de tierra' : 'de adoquín'} de ${coma(m.km)} km${m.estrellas !== undefined ? ` (${m.estrellas}★)` : ''}`
-  if (m.kind === 'cadena' || m.kind === 'racimo') return `${n} de ${m.hijos?.length ?? 0} subidas`
-  return `${n} de ${coma(m.km)} km${m.g !== undefined ? ` al ${coma(m.g)} %` : ''}`
+    return `${m.firme === 'tierra' ? 'gravel' : 'cobbled'} ${n} of ${dec(m.km)} km${m.estrellas !== undefined ? ` (${m.estrellas}★)` : ''}`
+  if (m.kind === 'cadena') return `${n} of ${m.hijos?.length ?? 0} climbs`
+  if (m.kind === 'racimo') return `${n} of ${m.hijos?.length ?? 0} sectors`
+  return `${n} of ${dec(m.km)} km${m.g !== undefined ? ` at ${dec(m.g)}%` : ''}`
 }
 
 /**
  * Las diferencias que la ficha enseña entre dos ediciones de la misma etapa (§10.8; decisión 39),
- * una frase por diferencia y en este orden: (1) el km, si cambia 1 km o más ("192 km → 201 km");
- * (2) las vueltas del `circuito` de firma, el único campo de un motivo firma que la edición mueve
- * ("9 vueltas → 10"); (3) la opción de nivel 2, si cambió ("final: canónica → Bérgamo"); (4) los
- * motivos no firma que la ficha nombra, por clase y en orden de carretera: los que sobran en `actual`
- * son "una cota más: …" y los que faltan, "desaparece la cota de …". El resto de la firma se ignora,
+ * una frase por diferencia, en inglés como toda la interfaz del MVP, y en este orden: (1) el km, si
+ * cambia 1 km o más ("192 km → 201 km"); (2) las vueltas del `circuito` de firma, el único campo de
+ * un motivo firma que la edición mueve ("9 laps → 10"); (3) la opción de nivel 2, si cambió
+ * ("finish: standard → Bergamo"); (4) los motivos no firma que la ficha nombra, por clase y en orden
+ * de carretera: los que sobran en `actual` son "one more hill: …" y los que faltan, "the hill of …
+ * is dropped". El resto de la firma se ignora,
  * porque dentro de una opción es igual por construcción (§10.3), y también los parámetros de los
  * motivos no firma, que la edición redibuja cada año sin que la carrera cambie. Una etapa `edicion`
  * da `[]`: su km es contrato y sus motivos se tiran con `BASE_SEASON` en toda temporada (§10.4).
@@ -260,11 +268,11 @@ export function diffMotivos(prev: DiffInput, actual: DiffInput): string[] {
     d.motivos.find((m) => m.kind === 'circuito' && m.firma === true)
   const va = circuito(prev)?.vueltas
   const vb = circuito(actual)?.vueltas
-  if (va !== undefined && vb !== undefined && va !== vb) out.push(`${va} vueltas → ${vb}`)
+  if (va !== undefined && vb !== undefined && va !== vb) out.push(`${va} laps → ${vb}`)
 
-  const opA = prev.opcion ?? 'canónica'
-  const opB = actual.opcion ?? 'canónica'
-  if (opA !== opB) out.push(`final: ${opA} → ${opB}`)
+  const opA = prev.opcion ?? 'standard'
+  const opB = actual.opcion ?? 'standard'
+  if (opA !== opB) out.push(`finish: ${opA} → ${opB}`)
 
   const nombrables = (d: DiffInput): Motif[] =>
     d.motivos.filter((m) => m.firma !== true && NOMBRE_DIFF[m.kind] !== undefined)
@@ -273,11 +281,9 @@ export function diffMotivos(prev: DiffInput, actual: DiffInput): string[] {
   for (const k of new Set([...a, ...b].map((m) => m.kind))) {
     const ak = a.filter((m) => m.kind === k)
     const bk = b.filter((m) => m.kind === k)
-    const { s, fem } = NOMBRE_DIFF[k]!
-    for (const m of bk.slice(ak.length))
-      out.push(`${fem ? 'una' : 'un'} ${s} más: ${textoMotivo(m)}`)
-    for (const m of ak.slice(bk.length))
-      out.push(`desaparece ${fem ? 'la' : 'el'} ${textoMotivo(m)}`)
+    const s = NOMBRE_DIFF[k]!
+    for (const m of bk.slice(ak.length)) out.push(`one more ${s}: ${textoMotivo(m)}`)
+    for (const m of ak.slice(bk.length)) out.push(`the ${textoMotivo(m)} is dropped`)
   }
   return out
 }

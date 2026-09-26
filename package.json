@@ -14,6 +14,7 @@
     "sim": "pnpm --filter @cyclingstar/engine build && node packages/engine/dist/sim/cli.js",
     "sim:tactics": "pnpm --filter @cyclingstar/engine build && node packages/engine/dist/sim/tacticsCli.js",
     "sim:mundo": "pnpm --filter @cyclingstar/engine build && node packages/engine/dist/sim/worldCli.js",
+    "sim:pareado": "pnpm --filter @cyclingstar/engine build && node packages/engine/dist/sim/pareado.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

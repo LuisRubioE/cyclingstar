@@ -815,7 +815,17 @@ import type { RaceClass } from './routes/uci.js'
  * frente: en montaña son 2,76 equipos por llamada contra 0,96. Ver `ambushGainShare` y
  * `cerrandoAhora`.
  */
-export const ENGINE_VERSION = 86 as const
+/**
+ * **v87 — EL GENERADOR ES UNA GRAMÁTICA** (docs/generador.md, paso 8; docs/balance.md v87).
+ *
+ * El calendario que el juego corre sale de `routes/grammar/`: las 1.241 etapas no reales (532
+ * nacionales, 325 de vueltas compuestas, 226 de edición sin rasgos y 158 de un día) cambian de
+ * perfil; las 177 reales no. `SEASON_CALENDAR` es `calendarForSeason(BASE_SEASON)`, los ocho
+ * generadores viejos salen de `profileGen.ts` a `sim/legacy/`, se retiran diez claves de `ROUTE`
+ * sin lector y entra `ARCH.anticlon`. La etiqueta «Summit finish» del clasificador pasa a la regla de
+ * los 5 km de `SUMMIT_RUN_IN_KM`; `kind` no cambia de regla.
+ */
+export const ENGINE_VERSION = 87 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -1234,9 +1244,10 @@ export const RELIEF = {
 } as const
 
 /**
- * COMPOSICIÓN de una vuelta por etapas GENERADA (`routes/calendar.ts::stageMix`). Afecta a las
- * 1.083 continentales y 61 ProSeries con perfil de autoría; NUNCA a las carreras con recorrido real
- * (ediciones verificadas, `classicRoutes.ts` y `STAGE_FEATURES`), que llevan dato curado.
+ * COMPOSICIÓN de una vuelta por etapas GENERADA. Desde la v87 la compone la gramática
+ * (`routes/grammar/tour.ts::composeTour`, `stageMix` delega en ella) y lee estas claves por el mismo
+ * nombre (docs/generador.md §12.11). Afecta a las vueltas generadas del calendario; NUNCA a las
+ * carreras con recorrido real (ediciones verificadas y `STAGE_FEATURES`), que llevan dato curado.
  *
  * Antes esto era un `i % 2` con dos excepciones y producía carreras que no existen: una vuelta de 5
  * etapas NO PODÍA llevar crono jamás (se exigían 6+), con terreno llano tampoco la llevaba nunca
@@ -1247,43 +1258,17 @@ export const RELIEF = {
  * El criterio de dominio (dueño, agosto 2026) es que **una vuelta por etapas tiene que tener algo
  * que morder**: o una crono, o un final en alto, o las dos cosas. Los números de abajo son las
  * proporciones con que se reparte eso; se miden en docs/balance.md, «v10 — Composición y caza».
+ *
+ * La v87 retira diez claves que la gramática sustituye y se quedaron sin lector (§12.10, con su valor
+ * en docs/balance.md, v87 §1): el desnivel y el final de la reina (`queenDplusRange`,
+ * `queenHighDplusShare`, `queenLowDplusRange`, `queenFinalMix`: los deciden los esqueletos de reina y
+ * `ARCH.reina`), los pesos de papel (`mixWeights`: `ARCH.pesosComposicion`), los km por papel
+ * (`kmFlat`, `kmHilly`, `kmUphill`, `kmSummit`: `ARCH.km.porClase`) y `grandTourLastDecisiveFactor`
+ * (la última etapa de una vuelta de 15 o más la decide `TOUR_SKELETONS.vu_gran_vuelta.ultima`). El
+ * generador viejo, que las necesita, las lleva copiadas en `sim/legacy/profileGenLegacy.ts` hasta el
+ * paso 9. `RELIEF`, de arriba, no se toca: es el relleno de las etapas reales.
  */
 export const ROUTE = {
-  /**
-   * EL DESNIVEL DE UNA ETAPA REINA, DIRIGIDO (v64, docs/tactica.md R28.1 y paso 1b).
-   *
-   * Antes el desnivel de una reina era lo que saliera de sortear puertos: el generador elegía dos o
-   * tres cotas con su longitud y su pendiente, y el desnivel acumulado era la CONSECUENCIA. Con eso,
-   * la distribución del calendario es la que es y nadie la decide.
-   *
-   * Ahora se sortea el OBJETIVO y los puertos se ajustan a él, que es como se diseña una vuelta de
-   * verdad: el director decide cuánto va a subir la etapa y después dibuja por dónde.
-   *
-   * **El 60 / 40 no es un adorno**: `calendarQueens.test.ts` afirma en tres líneas duras que la
-   * banda de <1.500 m NO se queda vacía y que en la montaña blanda la fuga llega más que en la dura.
-   * Si todas las reinas se volvieran duras, esas tres afirmaciones perderían su lado fácil y el
-   * banco dejaría de decir nada. Por eso el 40 % de las reinas sale de una cola BAJA explícita.
-   */
-  queenDplusRange: { min: 2600, max: 4600 },
-  /** Qué parte de las reinas va al rango de arriba; el resto, a la cola baja. */
-  queenHighDplusShare: 0.6,
-  queenLowDplusRange: { min: 1200, max: 2500 },
-
-  /**
-   * DÓNDE CAE LA ÚLTIMA CIMA (R28.2). El generador DECIDE el tipo de final en vez de dejarlo al azar.
-   *
-   * El reparto que el diseño propone es `0,45 · 0,20 · 0,25 · 0,10`, y va contra lo que el calendario
-   * de hoy produce —medido en el paso 0 sobre las 157 reinas: **56,7 % alto · 2,5 % cima_cerca ·
-   * 35,0 % valle_corto · 5,7 % valle_largo**—. O sea que el generador de hoy hace demasiados finales
-   * en alto y casi ninguna cima cerca, que es exactamente la forma de etapa que el aficionado
-   * recuerda: se corona a tres kilómetros y se baja a la meta.
-   *
-   * Se aplica **porque la medida (f) del paso 0 encontró la correlación que R28.2 afirmaba**: el
-   * escalador gana el 72,3 % en final en alto y el 50,0 % en valle largo. Sin esa medida este
-   * reparto no estaría justificado y el paso 1 se habría quedado en `normalize()`.
-   */
-  queenFinalMix: { alto: 0.45, cima_cerca: 0.2, valle_corto: 0.25, valle_largo: 0.1 },
-
   // --- La crono ---------------------------------------------------------------------------
   // Por debajo de estas etapas no cabe: una vuelta de dos días es un fin de semana de carreras.
   ittMinStages: 3,
@@ -1309,23 +1294,18 @@ export const ROUTE = {
   ittLongKmRange: 18,
 
   // --- La última etapa --------------------------------------------------------------------
-  // Probabilidad de que la última etapa sea DECISIVA (acabe arriba) en vez del paseo al sprint.
-  // Muchas vueltas cortas se cierran con la etapa reina o con un final en alto; una gran vuelta,
-  // en cambio, casi siempre termina con la etapa de trámite, y por eso lleva su propio factor.
+  // Probabilidad de que la última etapa sea DECISIVA (acabe arriba) en vez del paseo al sprint, en
+  // `vu_corta`, `vu_semana` y `vu_larga`: muchas vueltas cortas se cierran con la etapa reina o con un
+  // final en alto. Una gran vuelta generada (`n ≥ grandTourStages`) usa su propia tirada de
+  // `TOUR_SKELETONS.vu_gran_vuelta.ultima`.
   lastDecisiveChance: { flat: 0.3, hilly: 0.55, mountain: 0.85 },
+  // La frontera `vu_larga` / `vu_gran_vuelta` y el umbral de los descansos de `descansosDe` (§7.2).
   grandTourStages: 15,
-  grandTourLastDecisiveFactor: 0.4,
   // Si la última es decisiva, con qué probabilidad es alta montaña (reina) en vez de un final en
   // alto de media montaña. En terreno llano nunca hay reina: se cierra con una cota, no con un col.
   lastSummitShare: { flat: 0, hilly: 0.35, mountain: 0.8 },
 
-  // --- Las etapas de en medio ---------------------------------------------------------------
-  // Pesos de sorteo por terreno dominante: [llana, media, media con final en alto, reina].
-  mixWeights: {
-    flat: [0.58, 0.27, 0.1, 0.05],
-    hilly: [0.3, 0.36, 0.19, 0.15],
-    mountain: [0.16, 0.26, 0.18, 0.4],
-  },
+  // --- Las garantías ------------------------------------------------------------------------
   // Fracción MÍNIMA de etapas con puertos (media, final en alto o reina). Es la garantía que impide
   // que el sorteo devuelva la carrera de cinco llanas que no existe en la realidad: con 5 etapas de
   // terreno llano salen al menos 2 con puertos, que es justo lo que tenía el Tour de Sharjah real.
@@ -1335,13 +1315,8 @@ export const ROUTE = {
   uphillFinishMinStages: 4,
 
   // --- Kilometrajes -------------------------------------------------------------------------
-  // Rango de km por tipo de etapa (mínimo + amplitud). Antes eran cinco números fijos (180/185/…) y
-  // todas las carreras generadas del calendario median exactamente lo mismo.
-  kmFlat: [165, 30],
-  kmHilly: [160, 30],
-  kmUphill: [150, 30],
-  kmSummit: [145, 35],
-  // La última etapa es más corta que las demás (llegada, circuito, desfile o el muro final).
+  // La última etapa es más corta que las demás (llegada, circuito, desfile o el muro final); lo
+  // aplica `kmDe` sobre la celda de `ARCH.km.porClase`.
   lastStageKmFactor: 0.85,
 } as const
 
@@ -1371,8 +1346,9 @@ export interface EdicionCfg {
 type Rango = readonly [number, number]
 
 /**
- * `[mínimo, amplitud]`, como `ROUTE.kmFlat`: la forma de las celdas de `ARCH.km.porClase` (§12.1),
- * que `kmDe` sortea como `min + rand() · amplitud`. Alias LOCAL del paso 5, como `Rango`.
+ * `[mínimo, amplitud]`, como el viejo `ROUTE.kmFlat` (retirado en la v87): la forma de las celdas de
+ * `ARCH.km.porClase` (§12.1), que `kmDe` sortea como `min + rand() · amplitud`. Alias LOCAL del paso
+ * 5, como `Rango`.
  */
 type MinRango = readonly [number, number]
 
@@ -1489,7 +1465,16 @@ export const ARCH = {
     },
     // El rango ANCHO de un circuito, del critérium (2,5 km × 22) a Montréal (17-18 vueltas); cada
     // esqueleto lo estrecha. Sus dificultades ocupan como mucho el 80 % de la vuelta.
-    circuito: { kmVuelta: [1.5, 30] as Rango, vueltas: [2, 40] as Rango, maxHijosShare: 0.8 },
+    circuito: {
+      kmVuelta: [1.5, 30] as Rango,
+      vueltas: [2, 40] as Rango,
+      maxHijosShare: 0.8,
+      // Paso 9: vueltas × (muros y sectores por vuelta), como mucho. Es el techo de la banda
+      // `muros.cotas.p90` (§12.12: una clásica de muros pasa por 10 a 20 cotas). Con 24 pasos por muro
+      // (`nc-nl-u23-road`) o 13 vueltas con un sector y un muro pegados (`nc-be-road`, 26 pasos) el
+      // depósito del pelotón llegaba a cero en el banco de saturación (balance v87 §2).
+      pasosDeClasicaMax: 20,
+    },
     // Falso llano largo tipado `llano`: desgasta, no selecciona, no suma `kmSubida` (Turchino, Almería).
     // `tramos` y `ruido` (paso 3): se rinde como UN `llano` de 2 a 4 tramos a `g ± 0,7` (§4.2); con el
     // techo 3,5 sus tramos llegan al 4,2 %, y por eso ninguna tendida termina en los últimos 15 km.
@@ -1608,8 +1593,16 @@ export const ARCH = {
     // pesos, según el relieve de la zona de meta (§5.7 regla 1). Sin entrada en `llano` ni `ondulado`:
     // cuenta como 0 y no consume tirada. Es la cola baja de desnivel que `calendarQueens.test.ts` exige
     // («la banda de < 1.500 m NO se queda vacía»), decidida en el diseño y no en el test; sustituye al
-    // 60/40 de `ROUTE.queenHighDplusShare`. `alta` < `montana`: en cordillera la reina es de verdad.
+    // 60/40 del viejo `ROUTE.queenHighDplusShare` (retirado en la v87). `alta` < `montana`: en
+    // cordillera la reina es de verdad.
     blandaShare: { media: 0.25, montana: 0.25, alta: 0.1 } as Partial<Record<Relieve, number>>,
+    // Probabilidad de que una `et_reina_valle` corra su final LARGO (`meta: 'valle'`, cima a más de
+    // 20 km de meta, `valle_largo`) en vez del corto (`descenso_meta`, `valle_corto`). Se fija por
+    // carrera y etapa, sin temporada (`Skeleton.metaDeCarrera`, corriente `firma`): es identidad, no
+    // se mueve entre ediciones. Es el reparto de las reinas reales que no mueren arriba: 7 `valle_largo`
+    // de 13 valles (`datos.md` §1.4; balance v87 §0, `medir-real.mjs`), redondeado al 0,5. Paso 9: sin
+    // esto ningún esqueleto de reina coronaba a más de 20 km (`finales.reparto.valleLargo`: 0 → 4 de 86).
+    valleLargoShare: 0.5,
     // D+ del relleno (`enlace`) por km, para perseguir el objetivo de desnivel de un esqueleto sin
     // llamar a `sampleProfile` (§8.5): 100 km de enlace son 300 m. RECALIBRADO en el paso 3 (§15.5)
     // desde el 5,5 de partida, que era el `rolling` de hoy a amplitud 1,8 (5,1 a 6,6 m/km, mapa 01
@@ -1763,7 +1756,9 @@ export const ARCH = {
         media: [110, 40],
         reina: [115, 40],
         corta: [100, 20],
-        unDia: [140, 40],
+        // v87: [140, 40] daba σ ≈ 11,5 km por construcción (40 / √12) contra la banda
+        // `variedad.kmUnDia.dos` (σ > 15, medido 13,6): [130, 50] da 16,2 medido con el mismo techo.
+        unDia: [130, 50],
       },
       NC: { ruta: [180, 60], rutaU23: [140, 40], crono: [35, 10], cronoU23: [25, 10] },
     } as Record<Exclude<RaceClass, 'NC'>, Record<PapelKm, MinRango>> & {
@@ -1783,7 +1778,7 @@ export const ARCH = {
   /**
    * Los pesos de las etapas de en medio de una vuelta compuesta (§12.8, tabla de §7.3), por el
    * `Relieve` de la zona de meta de CADA etapa y no por el terreno de la fila: sustituyen a
-   * `ROUTE.mixWeights` (que se retira en el paso 8). Una tirada por etapa sobre los nueve papeles en
+   * `ROUTE.mixWeights` (retirado en la v87). Una tirada por etapa sobre los nueve papeles en
    * línea; `cri`, `prologo` y `cronoescalada` no están (los deciden `ROUTE.itt*`,
    * `TOUR_SKELETONS[id].primera` y `itinerario.cronoescaladaP`). Cada fila suma 1 (`motifs.test.ts`).
    * `llano` y `ondulado` no tienen reina: la geografía la veta antes de sortear. Con `viento < 2` el
@@ -1877,6 +1872,22 @@ export const ARCH = {
     // Probabilidad de que la `cri` de una vuelta con cordillera, con meta admisible para una reina,
     // pase a `cronoescalada` (Peyragudes, Tour 2025 e13; D3). Existe y es rara.
     cronoescaladaP: 0.08,
+  },
+  /**
+   * Anti-clon (§12.9; V12, sección 9 §9.5). Entra en la v87 con su lector, la banda
+   * `variedad.correlacion.max` del censo (`sim/routeCensus.ts`), que afirma
+   * `grammar/calendario.test.ts` en cada push.
+   */
+  anticlon: {
+    // V12: dos etapas generadas del mismo esqueleto en carreras distintas no correlacionan (Pearson
+    // de la huella `g` por km, `profileCorrelation`) por encima de esto; es el ÚNICO tope del máximo
+    // de la banda de variedad. CALIBRADO en el paso 9 (§9.5) como el p90 de los pares de etapas REALES
+    // de carreras distintas con mismo `kind`, mismo `finalKind` y km ± 10 % (`scripts/medir-real.mjs`):
+    // 338 pares, 7 de clásicas de un día, p90 0,317 (máximo 0,651, Emirates e6 / Italy e9). Sustituye
+    // al 0,85 provisional. Lo generado no cabe bajo él (máximo 0,993, 566 de 2.065 pares por encima):
+    // es la previsión fallida H6 de balance v87 §2, y la banda sigue en `it.todo` hasta que el dueño
+    // decida; no se ensancha para que cuadre.
+    maxCorrelacion: 0.32,
   },
   /**
    * El coste de construir el calendario (§12.9 y sección 14). Entra en el paso 6, con su primer

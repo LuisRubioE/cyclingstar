@@ -13,6 +13,7 @@ function view(partial: Partial<RaceView> = {}): RaceView {
       stageCount: 7,
       country: 'ES',
       startDay: 100,
+      routeSource: 'generado',
     },
     dayOfSeason: null,
     status: 'upcoming',

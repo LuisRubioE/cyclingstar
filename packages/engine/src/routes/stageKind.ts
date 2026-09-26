@@ -10,9 +10,9 @@
  * sobre una crónica de 170 km con fuga, dos cimas y sprint masivo, y la página anuncia un ganador
  * a 3,5 km/h. Cuando eso pasa, el tipo hay que sacarlo del recorrido que SÍ se corrió.
  *
- * La clasificación no inventa umbrales: se calibra contra los propios generadores
- * (`routes/profileGen.ts`), que es lo que comprueba `stageKind.test.ts` sobre cientos de semillas.
- * Puro y determinista, como todo `routes/`.
+ * La clasificación no inventa umbrales: se calibró contra los generadores de recorridos, y desde la
+ * v87 `stageKind.test.ts` comprueba que cada esqueleto de la gramática cae en su clase sobre cientos
+ * de semillas. Puro y determinista, como todo `routes/`.
  */
 import type { Segment, StageProfile } from '../stage/types.js'
 import type { StageKind } from './testTour.js'
@@ -42,31 +42,79 @@ export function climbSize(segment: Segment): { km: number; g: number } {
 }
 
 /**
- * LOS UMBRALES, MEDIDOS. Sobre 10.800 etapas de cada generador (9 kilometrajes de 130 a 215 km ×
- * 300 semillas), la cota MÁS LARGA de la etapa separa las cuatro familias sin un solo solape:
+ * LOS UMBRALES, MEDIDOS. Se calibraron en la v64 sobre 10.800 etapas de cada generador viejo, donde
+ * la cota más larga separaba las familias sin solape (clásica 1,4 a 2,5 km; media 3,3 a 8,0; reina
+ * 9,1 a 15,0). Desde la v87 el calendario lo dibuja la gramática, que NO los recalibra (decisión 26):
+ * cada esqueleto se acota con holgura para caber en ellos (`cota` hasta 8,0 y `puerto` desde 9,0
+ * alrededor de `PASS_MIN_KM`; `muro` hasta 2,5 bajo `WALL_MAX_KM`). Medido en el barrido de
+ * `stageKind.test.ts` (20 semillas × 3 zonas × 5 km por esqueleto; sin cronos ni pavé, que se
+ * clasifican antes de mirar ninguna subida):
  *
  * ```
- *              cota más larga      desnivel
- *   classic      1,4 – 2,5 km    1541 – 3150 m
- *   hilly        3,3 – 7,0 km    1259 – 2955 m
- *   hillyUphill  4,0 – 8,0 km    1387 – 3078 m
- *   mountain     9,1 – 15,0 km   2303 – 4880 m
+ *              etapas   cota más larga    desnivel de los puertos
+ *   clásica       720    0,6 – 2,9 km        929 – 3825 m
+ *   media        2500    1,3 – 8,0 km        637 – 2898 m
+ *   reina        2700    9,0 – 25,0 km      1194 – 5449 m
  * ```
  *
- * El desnivel acumulado, en cambio, se solapa DE PARTE A PARTE (una media montaña de 2955 m contra
- * una reina de 2303 m): por eso no decide, y solo entra como red para los recorridos REALES, que no
- * salen de estos generadores y pueden acumular 4000 m sin un puerto largo.
+ * El desnivel acumulado se solapa DE PARTE A PARTE (una clásica de muros de 3.825 m contra una reina
+ * blanda de 1.194): por eso no decide, y solo entra como red para los recorridos REALES, que no salen
+ * de la gramática y pueden acumular 4000 m sin un puerto largo.
  */
 export const WALL_MAX_KM = 3
-/** Puerto de alta montaña: por debajo de la reina más corta (9,1) y por encima de la media más larga (8,0). */
+/** Puerto de alta montaña: por debajo de la reina más corta (9,0) y por encima de la media más larga (8,0). */
 export const PASS_MIN_KM = 8.5
 /** Desnivel de reina para un recorrido real sin puerto largo: por encima de toda media generada. */
 export const QUEEN_MIN_CLIMB_METRES = 3200
 
 /**
+ * CUÁNTA CARRETERA TRAS LA ÚLTIMA CIMA deja de ser un final en alto, y no es un número de gusto:
+ * sale de correr las etapas del calendario y mirar quién gana. Vivía en `apps/api/src/stageHistory.ts`
+ * y se mueve aquí sin cambios en la v87 (docs/generador.md §11.5 regla 2, decisión 23), para que la
+ * etiqueta del final tenga UNA sola regla: la del clasificador, la de la ficha y la del etiquetador.
+ *
+ * No puede ser cero. Los perfiles construidos con los rasgos REALES de la etapa colocan cada puerto
+ * en su kilómetro de coronación, así que un final en alto de verdad suele quedar con una cola de
+ * redondeo detrás (Race France e15, el Plateau de Solaison, deja 0,1 km) y el test ingenuo de «el
+ * último segmento es un puerto» lo degradaría. Y no puede ser grande: por encima de 5 km la etapa
+ * deja de comportarse como un final en alto.
+ *
+ * Medido sobre las 19 etapas del calendario que anuncian final en alto con carretera detrás, 4
+ * corridas cada una, contra un control de 24 finales en alto de verdad (mediana 1 juntos en meta,
+ * 14 % de victorias de un velocista):
+ *
+ * ```
+ *   cola ≤ 5 km   mediana 3 juntos en meta   velocista gana el 15 %   ← indistinguible del control
+ *   cola > 5 km   mediana 17 juntos en meta  velocista gana el 46 %
+ * ```
+ */
+export const SUMMIT_RUN_IN_KM = 5
+
+/** Kilómetros de carretera tras la última cima (el último segmento `puerto`, de cualquier longitud); `Infinity` si la etapa no tiene ni un puerto. */
+export function runInAfterLastClimb(segments: readonly Segment[]): number {
+  let last = -1
+  for (let i = segments.length - 1; i >= 0; i--) {
+    if (segments[i]?.tipo === 'puerto') {
+      last = i
+      break
+    }
+  }
+  if (last < 0) return Number.POSITIVE_INFINITY
+  let km = 0
+  for (let i = last + 1; i < segments.length; i++) km += segments[i]?.km ?? 0
+  return km
+}
+
+/**
  * El tipo de etapa que dibuja un recorrido. `timeTrial` viene del snapshot y no del perfil porque
- * una crono y una llana tienen EL MISMO perfil: `ittSegments` y `flatSegments` generan lo mismo
- * (ondulación suave sin puertos), y lo único que las separa es correrla en grupo o contra el reloj.
+ * una crono y una llana pueden tener EL MISMO perfil (ondulación suave sin puertos), y lo único que
+ * las separa es correrla en grupo o contra el reloj.
+ *
+ * Dos variables donde antes había una (v87, §11.5 regla 2): `meteEnAlto` (el último segmento es el
+ * puerto) decide SOLO la rama de la clásica, como siempre; `cimaCerca` (la última cima a
+ * ≤ `SUMMIT_RUN_IN_KM` de meta) decide SOLO la etiqueta del final. `kind` no cambia de regla
+ * (decisión 26), y como `meteEnAlto` implica `cimaCerca`, nada que antes fuera «Summit finish» o
+ * «Uphill finish» deja de serlo.
  */
 export function stageKindOf(profile: StageProfile, timeTrial: boolean): StageShape {
   if (timeTrial) return { kind: 'cri', label: 'ITT' }
@@ -79,20 +127,19 @@ export function stageKindOf(profile: StageProfile, timeTrial: boolean): StageSha
 
   const metres = segments.reduce((a, s) => a + climbMetres(s), 0)
   const longest = climbs.reduce((mx, s) => Math.max(mx, climbSize(s).km), 0)
-  // ¿Muere arriba? El último segmento de la etapa es el puerto, sin bajada ni llano detrás: es lo
-  // que hacen `mountainSegments` y `hillyUphillSegments`, y lo que decide la etiqueta del final.
-  const summitFinish = segments[segments.length - 1]?.tipo === 'puerto'
+  // ¿Muere arriba? El último segmento de la etapa es el puerto, sin bajada ni llano detrás.
+  const meteEnAlto = segments[segments.length - 1]?.tipo === 'puerto'
+  // ¿Corona cerca de la meta? Es lo que decide la etiqueta del final (la regla de la ficha).
+  const cimaCerca = runInAfterLastClimb(segments) <= SUMMIT_RUN_IN_KM
 
   // La clásica de muros: TODO lo que sube son rampas cortas y explosivas, ni una cota de verdad. Si
   // muere arriba ya no es una clásica de muros sino un final en alto, y manda el final.
-  if (!summitFinish && longest <= WALL_MAX_KM) return { kind: 'clasica', label: 'Classic' }
+  if (!meteEnAlto && longest <= WALL_MAX_KM) return { kind: 'clasica', label: 'Classic' }
 
   if (longest >= PASS_MIN_KM || metres >= QUEEN_MIN_CLIMB_METRES) {
-    return summitFinish
+    return cimaCerca
       ? { kind: 'reina', label: 'Summit finish' }
       : { kind: 'reina', label: 'Mountains' }
   }
-  return summitFinish
-    ? { kind: 'media', label: 'Uphill finish' }
-    : { kind: 'media', label: 'Hills' }
+  return cimaCerca ? { kind: 'media', label: 'Uphill finish' } : { kind: 'media', label: 'Hills' }
 }

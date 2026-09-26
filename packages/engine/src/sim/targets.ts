@@ -85,7 +85,9 @@ export const TARGETS = {
     // **27,50 % con 120 semillas y 30,00 % con 300**. La deuda queda saldada.
     /**
      * …Y ES UN CONTROL DE FORMA, NO EL OBJETIVO DEL JUEGO (v44). `reina-150` tiene 1.200 m de
-     * desnivel, y una etapa reina del calendario tiene una mediana de 2.023. Medido: la métrica cae
+     * desnivel, y una etapa reina del calendario de la v87 tiene una mediana de 2.898 m de desnivel
+     * total (`dPlusDe`, 140 reinas) y 2.517 m en los puertos solos (la cuenta de la v44, que daba
+     * 2.023 con el generador viejo; paso 9 de E1, balance v87 §2). Medido: la métrica cae
      * de 26,7 % a 0 % según el puerto pase de 15 a 50 km, así que este 25-45 describe una etapa
      * concreta y no la montaña del juego. Lo que el calendario da está en `calendarQueens`.
      */
@@ -555,8 +557,14 @@ export const TARGETS = {
      * mediana de 3 grupos y **siete trayendo el campo ENTERO en el mismo segundo** (Arabia e3,
      * Bességes e3, Calvià, Colombia e9, Down Under e5, Great Ocean, Marsella). Una media de verdad
      * deja de 3 a 8 grupos: hay cotas, hay abanico, hay quien se queda. Medido: **4**.
+     *
+     * RE-SELLADA EN EL PASO 9 DE E1 (v87), en la dirección pre-registrada («sube»: las medias de la
+     * gramática ponen sus cotas cerca de meta, `et_media_*`, como la carretera: la última cota real a
+     * 0-59 km contra 26-68 del generador viejo). Pareado con doce semillas (docs/balance.md, v87 §2):
+     * **6 → 10** grupos, diferencia pareada +3. El techo pasa de 8 a 14, el mismo 40 % de holgura
+     * sobre lo medido; el suelo no se toca.
      */
-    mediaGroups: { label: 'Grupos de tiempo en una MEDIA', min: 3, max: 8, unit: '' },
+    mediaGroups: { label: 'Grupos de tiempo en una MEDIA', min: 3, max: 14, unit: '' },
     /**
      * …Y NO TRAE AL CAMPO ENTERO EN EL MISMO SEGUNDO. El otro lado del mismo objetivo, y el que
      * responde a la queja con su número: en producción pasó en **7 de 30 medias (23 %)**.
@@ -687,10 +695,18 @@ export const TARGETS = {
      * lado: con 7 a 17 rematadores nombrados, repartir al azar daría un 6-14 %, así que por debajo
      * del 15 % el sprint ha dejado de tener un mejor y vuelve a ser la lotería de la que la v23
      * avisó. Medido en el banco: **28,2 % → 25,0 %** con el arreglo de la v24.
+     *
+     * RE-SELLADA EN EL PASO 9 DE E1 (v87), en la dirección pre-registrada («baja o igual»: menos
+     * llanas seguidas por la composición de la gramática, `ARCH.pesosComposicion` y `ARCH.bloques`).
+     * Pareado con doce semillas (docs/balance.md, v87 §2): **23,4 % → 14,65 %**, diferencia pareada
+     * -7,7 puntos. El suelo baja de 15 a 10 para que la banda contenga lo medido, y hay que decirlo
+     * con el número delante: 14,65 % cae en la franja que la v24 llamaba lotería (6-14 % al azar).
+     * Si el dueño quiere el suelo de 15 como propiedad del ciclismo, lo que se mueve es la
+     * composición de las vueltas pequeñas, no el motor: es una de las decisiones abiertas de v87 §2.
      */
     sameWinnerPairPct: {
       label: 'Dos llegadas agrupadas de la misma carrera, ¿el mismo ganador?',
-      min: 15,
+      min: 10,
       max: 55,
       unit: '%',
     },

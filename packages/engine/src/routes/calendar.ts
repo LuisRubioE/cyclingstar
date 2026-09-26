@@ -1,19 +1,22 @@
 /**
- * Calendario de temporada del MVP (SPEC 8, Paso 34). 28 carreras con nombre "Race + Geografía"
- * repartidas en los días de competición (15..290), en tres niveles (WT, Pro Series, Continental)
- * y con reglas de inscripción por división. Todo es autoría pura y determinista, reutilizando el
- * contrato de etapa del motor (StageProfile). Las tres grandes vueltas y Race France llevan sus
- * 21 etapas; los perfiles se componen de constructores reutilizables (llana, media, reina, crono,
- * clásica de adoquines) para dar variedad sin imitar recorridos reales.
+ * Calendario de temporada (SPEC 8, Paso 34; E1, docs/generador.md). 842 carreras con nombre "Race +
+ * Geografía" repartidas en los días de competición: 310 de equipos en tres niveles (WT con las tres
+ * grandes vueltas, Pro Series y circuitos continentales), con reglas de inscripción por división, y
+ * 532 campeonatos nacionales. Todo es autoría pura y determinista sobre el contrato de etapa del
+ * motor (StageProfile). Desde la v87 cada etapa sale de una de tres ramas, en este orden (sección 11
+ * §11.1): rasgos reales (`STAGE_FEATURES`, `routeSource: 'real'`), edición real sin rasgos (ciudades y
+ * km reales, relieve de la gramática, `'edicion'`) o la gramática entera (`routes/grammar/`,
+ * `'generado'`). El calendario de cada temporada lo construye `calendarForSeason`, y
+ * `SEASON_CALENDAR` es la temporada `BASE_SEASON`.
  */
 import { COUNTRIES, type Continent } from '@cyclingstar/shared'
-import { ARCH, ROUTE, type EdicionCfg } from '../constants.js'
+import { ARCH, type EdicionCfg } from '../constants.js'
 import type { Division } from '../world/npc.js'
 import type { Segment, StageProfile } from '../stage/types.js'
 import { type RaceEdition, RACE_EDITIONS } from './editions.js'
 import { type RouteTerrain, type StageFeatures, buildFeatureProfile } from './featureProfile.js'
-// La gramática (paso 6): solo la ruta paralela de `calendarForSeason`, al final del fichero, la llama.
-// Ningún `grammar/*.ts` importa un valor de este fichero (`routes/arranque.test.ts`), así que no hay ciclo.
+// La gramática. Ningún `grammar/*.ts` importa un valor de este fichero (`routes/arranque.test.ts`),
+// así que no hay ciclo de carga.
 import { BASE_SEASON } from './grammar/edition.js'
 import {
   generateStage,
@@ -21,22 +24,19 @@ import {
   type GeneratedStage,
   type RaceRouteSource,
   type RouteSource,
+  type StageRequest,
 } from './grammar/generate.js'
 import { ZONAS, zonaDe } from './grammar/geo.js'
 import { regionOf } from './grammar/regions.js'
-import { POR_TERRENO_EDICION } from './grammar/skeletons.js'
-import { composeTour, kmDe, type KmRole } from './grammar/tour.js'
+import { POR_TERRENO_EDICION, SKELETONS, cabe, type SkeletonId } from './grammar/skeletons.js'
 import {
-  classicSegments,
-  cobblesSegments,
-  flatSegments,
-  hillySegments,
-  hillyUphillSegments,
-  ittSegments,
-  mountainClassicSegments,
-  mountainSegments,
-  routeRng,
-} from './profileGen.js'
+  DEFAULT_ROUTE_CONTEXT,
+  composeTour,
+  kmDe,
+  type KmRole,
+  type RouteContext,
+} from './grammar/tour.js'
+import { routeRng } from './profileGen.js'
 import { STAGE_FEATURES } from './stageFeatures.js'
 import type { StageKind } from './testTour.js'
 import type { RaceClass } from './uci.js'
@@ -52,12 +52,12 @@ export interface StageSpec {
   profile: StageProfile
   timeTrial?: boolean
   /**
-   * De dónde sale el recorrido (§3.11): rasgos reales, edición real o inventado. OPCIONAL hasta el
-   * paso 8 (§15.8): solo lo escribe `composeTour`, y los constructores de hoy no, así que ninguna etapa
-   * de `SEASON_CALENDAR` gana la clave.
+   * De dónde sale el recorrido (§3.11): rasgos reales (`real`), edición real sin rasgos (`edicion`) o
+   * inventado (`generado`). OBLIGATORIO desde la v87: el compilador es el test de que ninguna etapa
+   * se construye sin decirlo.
    */
-  routeSource?: RouteSource
-  /** La ficha del generador (esqueleto, zona, motivos, frase): solo en lo no real. Paso 7, opcional. */
+  routeSource: RouteSource
+  /** La ficha del generador (esqueleto, zona, motivos, frase): solo en lo no real (§3.11). */
   arch?: GeneratedStage['arch']
 }
 
@@ -96,8 +96,8 @@ export interface CalendarRace {
    */
   country?: string
   stages: CalendarStage[]
-  /** Origen del recorrido de la carrera, agregado de sus etapas (§3.11). OPCIONAL hasta el paso 8. */
-  routeSource?: RaceRouteSource
+  /** Origen del recorrido de la carrera, `raceRouteSourceOf(stages)` (§3.11). */
+  routeSource: RaceRouteSource
   /** Descansos tras estas etapas (solo grandes vueltas). */
   restAfter?: number[]
   /**
@@ -117,7 +117,7 @@ export interface CalendarRace {
 }
 
 /** Quién puede inscribirse según el nivel de la carrera: los inferiores entran como invitados. */
-function enrollmentFor(level: RaceLevel): Division[] {
+export function enrollmentFor(level: RaceLevel): Division[] {
   if (level === 'WT') return ['WT', 'PRS']
   if (level === 'PRS') return ['WT', 'PRS', 'CON']
   return ['PRS', 'CON']
@@ -127,8 +127,12 @@ function enrollmentFor(level: RaceLevel): Division[] {
  * Coloca banners a partir del terreno: una cima al final de cada puerto. NO inventa metas volantes /
  * sprints intermedios: no todas las carreras los tienen y no tenemos el dato real de dónde caen, así
  * que no los fabricamos (solo se marca lo que se deriva del propio recorrido: los puertos).
+ *
+ * Desde la v87 ninguna etapa del calendario la usa: lo generado lleva las pancartas de
+ * `emitirPancartas` (gramática) y lo real las de `bannersFromFeatures`. Se exporta para el generador
+ * viejo de `sim/legacy/profileGenLegacy.ts`, que vive hasta el paso 9 (§15.10).
  */
-function auto(segments: Segment[]): StageProfile {
+export function auto(segments: Segment[]): StageProfile {
   const banners = []
   let cum = 0
   for (const s of segments) {
@@ -139,77 +143,13 @@ function auto(segments: Segment[]): StageProfile {
   return { segments, banners }
 }
 
-// --- Constructores de etapa (km total + semilla -> perfil realista y detallado, ver profileGen). ---
-// La semilla hace que cada etapa dibuje siempre el mismo perfil, pero etapas distintas se vean
-// distintas. Los banners (una cima por puerto) los pone auto() a partir del terreno.
-
-const flat = (km: number, seed: string): StageSpec => ({
-  kind: 'llana',
-  label: 'Flat',
-  profile: auto(flatSegments(km, seed)),
-})
-
-const hilly = (km: number, seed: string): StageSpec => ({
-  kind: 'media',
-  label: 'Hills',
-  profile: auto(hillySegments(km, seed)),
-})
-
 /**
- * Media montaña que MUERE ARRIBA: mismo tipo (y color) que una etapa de cotas, pero la meta está en
- * la cima de la última. Es lo que distingue una etapa que se resuelve al sprint de una que reparte
- * tiempos sin necesidad de alta montaña.
+ * Nombra y numera una lista de specs como las etapas de una carrera. Genérica en el spec para que el
+ * generador viejo de `sim/legacy/`, cuyos constructores no llevan `routeSource`, la comparta.
  */
-const hillyUphill = (km: number, seed: string): StageSpec => ({
-  kind: 'media',
-  label: 'Uphill finish',
-  profile: auto(hillyUphillSegments(km, seed)),
-})
-
-const mountain = (km: number, seed: string): StageSpec => ({
-  kind: 'reina',
-  label: 'Summit finish',
-  profile: auto(mountainSegments(km, seed)),
-})
-
-/**
- * …Y LA DE UN DÍA NO MUERE ARRIBA (v40). Una clásica de montaña corona su último puerto antes de
- * meta; la que termina en la cima de un puerto de catorce kilómetros es una etapa reina de gran
- * vuelta, y meterle ese perfil a una carrera de un día reventaba el pelotón entero (ver
- * `mountainClassicSegments`).
- */
-const mountainOneDay = (km: number, seed: string): StageSpec => ({
-  kind: 'reina',
-  // La etiqueta es «Mountains» y no «Summit finish» porque el recorrido ya NO muere arriba, y quien
-  // manda aquí es el etiquetador de `stageHistory.ts`: para una reina con más de cinco kilómetros
-  // tras la última cima, esto es una etapa de montaña y no un final en alto. Ponerle nombre propio
-  // —«Mountain classic»— hacía que el calendario y el etiquetador dijeran cosas distintas de la
-  // misma etapa, y eso lo caza el banco que vigila que solo cambie la etiqueta y nunca el tipo.
-  label: 'Mountains',
-  profile: auto(mountainClassicSegments(km, seed)),
-})
-
-const itt = (km: number, seed: string): StageSpec => ({
-  kind: 'cri',
-  label: 'ITT',
-  timeTrial: true,
-  profile: { segments: ittSegments(km, seed) },
-})
-
-const cobbles = (km: number, seed: string): StageSpec => ({
-  kind: 'clasica',
-  label: 'Cobbles',
-  profile: auto(cobblesSegments(km, seed)),
-})
-
-const classic = (km: number, seed: string): StageSpec => ({
-  kind: 'clasica',
-  label: 'Classic',
-  profile: auto(classicSegments(km, seed)),
-})
-
-/** Nombra y numera una lista de specs como las etapas de una carrera. */
-function stagesFrom(specs: StageSpec[]): CalendarStage[] {
+export function stagesFrom<S extends { label: string }>(
+  specs: readonly S[],
+): (S & { index: number; name: string })[] {
   return specs.map((spec, i) => ({
     ...spec,
     index: i + 1,
@@ -230,8 +170,10 @@ const TERRAIN_KIND: Record<Terrain, { kind: StageKind; label: string; timeTrial?
 /**
  * Etapa construida con sus RASGOS REALES (puertos y sprints reales): el relieve reproduce la etapa
  * de verdad, no un perfil inventado por terreno. El tipo/etiqueta (color en la web) sigue al terreno.
+ * Es la rama `real` (§11.1): el perfil no pasa por la gramática y la huella de
+ * `routes/realFingerprint.test.ts` lo sella.
  */
-function featureSpec(
+export function featureSpec(
   terrain: Terrain,
   km: number,
   features: StageFeatures,
@@ -243,50 +185,7 @@ function featureSpec(
     label: t.label,
     ...(t.timeTrial ? { timeTrial: true } : {}),
     profile: buildFeatureProfile(km, features, seed, terrain),
-  }
-}
-
-/**
- * Etapas de una edición real: el terreno y la distancia de cada etapa vienen de la edición verificada.
- * Si la etapa tiene RASGOS reales autorizados (STAGE_FEATURES: puertos y sprints de verdad), su perfil
- * se construye a partir de ellos (altimetría fiel); si no, se genera por terreno (verosímil, no real).
- */
-function stagesFromEdition(id: string, edition: RaceEdition): CalendarStage[] {
-  const features = STAGE_FEATURES[id]
-  // Semilla estable por etapa (salida-meta-km): el perfil detallado es siempre el mismo para esa etapa.
-  return stagesFrom(
-    edition.stages.map((s, i) => {
-      const seed = `${s.from}|${s.to}|${s.km}`
-      const f = features?.[i]
-      return f ? featureSpec(s.terrain, s.km, f, seed) : oneDaySpec(s.terrain, s.km, seed)
-    }),
-  )
-}
-
-/**
- * Gran vuelta reconstruida a su edición REAL (Tour/Giro/Vuelta 2026): perfil de cada etapa según el
- * terreno real y los días de descanso reales (el Giro lleva tres por la salida desde Bulgaria). El
- * "de dónde a dónde" de cada etapa sale de la misma edición (ver raceRoutes), así no se desincronizan.
- */
-function editionGrandTour(
-  id: string,
-  name: string,
-  startDay: number,
-  country: string,
-): CalendarRace {
-  const edition = RACE_EDITIONS[id]
-  if (!edition) throw new Error(`Falta la edición real de ${id}`)
-  return {
-    id,
-    name,
-    level: 'WT',
-    raceClass: 'WT',
-    format: 'gran-vuelta',
-    startDay,
-    openTo: enrollmentFor('WT'),
-    country,
-    stages: stagesFromEdition(id, edition),
-    restAfter: edition.restAfter,
+    routeSource: 'real',
   }
 }
 
@@ -298,14 +197,14 @@ const MONTH_CUM = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
  * fecha. Las excepciones de calendario (hemisferio sur / Asia en enero) van en el mapa de abajo.
  */
 /** Día (del año) de la prueba en RUTA Elite. La mayoría cae el último fin de semana de junio. */
-const NATIONALS_ROAD_DAY = doy(6, 28)
+export const NATIONALS_ROAD_DAY = doy(6, 28)
 
 /**
  * Día real (mes, día) de la RUTA Elite de los países cuyo campeonato NO cae el fin de semana de
  * junio: hemisferio sur (enero-febrero) y algún calendario propio. La crono y el sub-23 se colocan
  * en los días previos de la misma semana. El resto de países usan NATIONALS_ROAD_DAY.
  */
-const NATIONALS_ROAD_OVERRIDE: Record<string, [number, number]> = {
+export const NATIONALS_ROAD_OVERRIDE: Record<string, [number, number]> = {
   AU: [1, 11], // Australia
   TH: [1, 18], // Tailandia
   NZ: [2, 7], // Nueva Zelanda
@@ -331,7 +230,7 @@ const NATIONALS_ROAD_OVERRIDE: Record<string, [number, number]> = {
 }
 
 /** Hash entero estable de una cadena (para variar de forma determinista por país). */
-function ncHash(s: string): number {
+export function ncHash(s: string): number {
   let h = 2166136261
   for (let i = 0; i < s.length; i++) {
     h ^= s.charCodeAt(i)
@@ -340,75 +239,11 @@ function ncHash(s: string): number {
   return h >>> 0
 }
 
-/**
- * Campeonatos nacionales de un país: hasta 4 pruebas (Elite y Sub-23, en Crono y en Ruta) durante la
- * semana del campeonato. Cada una es de un día con pelotón individual del país (lo arma la capa de
- * datos con los mejores; el Sub-23 filtra por edad).
- *
- * Como en la realidad, la semana del campeonato reparte las CRONOS entre semana y las RUTAS el fin de
- * semana, con hueco entre unas y otras (no cuatro pruebas en cuatro días seguidos). Que el Sub-23
- * comparta día con la Elite o tenga el suyo propio VARÍA por país (las grandes federaciones lo
- * separan; muchas pequeñas lo juntan): la RUTA Elite es el domingo ancla, y según el país las cronos
- * y la ruta Sub-23 caen el mismo día que la Elite o un día antes. Determinista por código de país.
- */
-function nationalChampionships(code: string, name: string): CalendarRace[] {
-  const override = NATIONALS_ROAD_OVERRIDE[code]
-  const roadDay = override ? doy(override[0], override[1]) : NATIONALS_ROAD_DAY
-  // Tres patrones reales de reparto de la semana (por país):
-  //  0 → todo doblado: Elite y Sub-23 comparten día por disciplina (crono jueves, ruta domingo) = 2 días.
-  //  1 → ruta Sub-23 el sábado; cronos juntas el jueves = 3 días.
-  //  2 → todo separado: crono Elite miércoles, crono Sub-23 jueves, ruta Sub-23 sábado, ruta Elite domingo = 4 días.
-  const pattern = ncHash(code) % 3
-  const eliteIttDay = pattern === 2 ? roadDay - 4 : roadDay - 3 // crono Elite: jueves (miércoles si todo separado)
-  const u23IttDay = roadDay - 3 // crono Sub-23: jueves (casi siempre el mismo día que la Elite)
-  const u23RoadDay = pattern === 0 ? roadDay : roadDay - 1 // ruta Sub-23: domingo (con Elite) o sábado
-  const base = (
-    id: string,
-    label: string,
-    startDay: number,
-    category: 'elite' | 'u23',
-    spec: StageSpec,
-  ): CalendarRace => {
-    const raceName = `${name} ${label}`
-    return {
-      id,
-      name: raceName,
-      level: 'CON',
-      raceClass: 'NC',
-      format: 'un-dia',
-      startDay,
-      openTo: [],
-      championshipCountry: code,
-      championshipCategory: category,
-      country: code,
-      stages: [{ ...spec, index: 1, name: raceName }],
-    }
-  }
-  const cc = code.toLowerCase()
-  return [
-    base(`nc-${cc}-itt`, 'ITT Championship', eliteIttDay, 'elite', itt(38, `nc-${cc}-itt`)),
-    base(`nc-${cc}-u23-itt`, 'U23 ITT Championship', u23IttDay, 'u23', itt(30, `nc-${cc}-u23-itt`)),
-    base(
-      `nc-${cc}-u23-road`,
-      'U23 Road Championship',
-      u23RoadDay,
-      'u23',
-      classic(180, `nc-${cc}-u23-road`),
-    ),
-    base(`nc-${cc}-road`, 'Road Championship', roadDay, 'elite', classic(220, `nc-${cc}-road`)),
-  ]
-}
-
-/** Todos los campeonatos nacionales: hasta 4 por país registrado (Elite/Sub-23 × Crono/Ruta). */
-const NATIONAL_CHAMPIONSHIPS: CalendarRace[] = COUNTRIES.flatMap((c) =>
-  nationalChampionships(c.code, c.name),
-)
-
 // --- Calendario real (estructura 2026) por tabla de datos, con nombres NEUTROS por geografía. ---
 // Solo se copian los HECHOS (fechas, clase, formato); los nombres de marca se sustituyen y los
 // perfiles de etapa son autoría propia. Día de temporada = día del año (temporada ≈ año no bisiesto).
 
-function doy(month: number, day: number): number {
+export function doy(month: number, day: number): number {
   return MONTH_CUM[month - 1]! + day
 }
 
@@ -434,174 +269,30 @@ export interface RaceRow {
   km?: number
 }
 
-/** Perfil de una carrera de un día según su terreno (semilla para el perfil detallado determinista). */
-function oneDaySpec(terrain: Terrain, km: number, seed: string): StageSpec {
-  if (terrain === 'cobbles') return cobbles(km, seed)
-  if (terrain === 'classic') return classic(km, seed)
-  if (terrain === 'mountain') return mountainOneDay(km, seed)
-  if (terrain === 'hilly') return hilly(km, seed)
-  if (terrain === 'itt') return itt(km, seed)
-  return flat(km, seed)
-}
-
-/** Los tres terrenos que sabe componer una vuelta por etapas (el resto se reduce a ellos). */
-type MixTerrain = 'flat' | 'hilly' | 'mountain'
-
-/** El PAPEL de cada etapa dentro de la vuelta, antes de darle kilómetros y dibujarle el perfil. */
-type MixRole = 'llana' | 'media' | 'media-alto' | 'reina' | 'cri'
-
-/** Reduce el terreno de la ficha de la carrera a uno de los tres que compone `stageMix`. */
-function mixTerrain(terrain: Terrain): MixTerrain {
-  if (terrain === 'mountain') return 'mountain'
-  if (terrain === 'hilly' || terrain === 'classic') return 'hilly'
-  return 'flat'
-}
-
-/** ¿Es una etapa con puertos (algo que morder) o una llana más? */
-function isSelective(role: MixRole): boolean {
-  return role === 'media' || role === 'media-alto' || role === 'reina'
-}
-
-/** ¿Muere la etapa cuesta arriba? Es lo que reparte tiempos sin depender de una crono. */
-function isUphill(role: MixRole): boolean {
-  return role === 'media-alto' || role === 'reina'
-}
-
-/** Sorteo con pesos: devuelve el papel cuyo tramo de probabilidad contiene `u` ∈ [0,1). */
-function pickRole(weights: readonly number[], u: number): MixRole {
-  const roles: MixRole[] = ['llana', 'media', 'media-alto', 'reina']
-  const total = weights.reduce((a, b) => a + b, 0)
-  let acc = 0
-  for (let i = 0; i < roles.length; i++) {
-    acc += (weights[i] ?? 0) / total
-    if (u < acc) return roles[i]!
-  }
-  return 'llana'
-}
-
 /**
- * QUÉ ETAPAS tiene una vuelta generada de `n` etapas con un terreno dominante (docs/balance.md,
- * «v10 — Composición y caza»). Determinista por carrera: la misma carrera compone siempre la misma
- * vuelta. Las proporciones viven en `ROUTE`.
- *
- * El orden en que se decide importa, porque es el orden en que lo decide un organizador:
- *   1. la CRONO (cuántas y dónde),
- *   2. la ÚLTIMA etapa (¿se cierra arriba o al sprint?),
- *   3. las de EN MEDIO, por sorteo con pesos del terreno,
- *   4. y las GARANTÍAS: un mínimo de etapas con puertos y, en vueltas de 4+, al menos un final en
- *      alto. Son las dos que impiden que el sorteo devuelva una carrera que no existe.
- * La primera etapa es siempre llana: es la de los sprinters, y ninguna vuelta empieza por el muro.
+ * Una vuelta generada de `n` etapas con sesgo de terreno (docs/generador.md §3.6 y §7.5; decisión 19).
+ * Conserva la firma de siempre y delega en `composeTour`: itinerario por el territorio, papeles,
+ * kilómetros por clase y una `generateStage` por etapa. `raceId` es la identidad de la vuelta
+ * (`arch|raceId`), la clave de `itinerarioDe` y la de `RACE_REGION`; sin `ctx.raceId` es `seedBase`.
+ * Con el contexto por defecto (país desconocido, .2, una semana, temporada base) el territorio es
+ * `generico`: es lo que usan los tests. `buildRace` no pasa por aquí, llama a `composeTour` con el
+ * contexto de la fila.
  */
-function mixRoles(n: number, terrain: MixTerrain, rand: () => number): MixRole[] {
-  const roles: MixRole[] = Array.from({ length: n }, () => 'llana')
-  if (n <= 1) return roles
-
-  // 1. Crono(s).
-  const alwaysItt = terrain === 'flat' && n >= ROUTE.ittAlwaysFlatStages
-  const ittChance = n >= ROUTE.ittWeekStages ? ROUTE.ittChanceWeek : ROUTE.ittChanceShort
-  if (n >= ROUTE.ittMinStages && (alwaysItt || rand() < ittChance)) {
-    const back = rand() < ROUTE.ittEarlierChance ? 2 : 1
-    roles[Math.min(n - 2, Math.max(1, n - 1 - back))] = 'cri'
-    if (n >= ROUTE.ittSecondStages) {
-      const early = Math.min(n - 3, Math.max(1, Math.round(ROUTE.ittSecondPosition * n)))
-      if (roles[early] !== 'cri') roles[early] = 'cri'
-    }
-  }
-
-  // 2. La última etapa: decisiva o de trámite.
-  const lastIdx = n - 1
-  if (roles[lastIdx] !== 'cri') {
-    const factor = n >= ROUTE.grandTourStages ? ROUTE.grandTourLastDecisiveFactor : 1
-    if (rand() < ROUTE.lastDecisiveChance[terrain] * factor) {
-      roles[lastIdx] = rand() < ROUTE.lastSummitShare[terrain] ? 'reina' : 'media-alto'
-    }
-  }
-
-  // 3. Las de en medio, por sorteo con los pesos del terreno.
-  for (let i = 1; i < lastIdx; i++) {
-    if (roles[i] === 'cri') continue
-    roles[i] = pickRole(ROUTE.mixWeights[terrain], rand())
-  }
-
-  // 4. Garantías. Los huecos que se pueden endurecer son todos menos la primera etapa y las cronos;
-  // se recorren de atrás hacia delante porque una vuelta se pone más dura según avanza. La ÚLTIMA va
-  // al final de la cola: si el paso 2 la dejó de trámite fue una decisión, y solo se toca si no
-  // queda otro hueco donde meter los puertos que faltan.
-  const slots: number[] = []
-  for (let i = n - 2; i >= 1; i--) if (roles[i] !== 'cri') slots.push(i)
-  if (roles[lastIdx] !== 'cri') slots.push(lastIdx)
-  const minSelective = Math.min(
-    Math.ceil(ROUTE.selectiveMinFraction[terrain] * n),
-    Math.max(0, slots.length),
-  )
-  for (const i of slots) {
-    if (roles.filter(isSelective).length >= minSelective) break
-    if (!isSelective(roles[i]!)) roles[i] = 'media'
-  }
-  const uphillTarget = (): number | undefined =>
-    slots.find((i) => isSelective(roles[i]!)) ?? slots[0]
-  if (n >= ROUTE.uphillFinishMinStages && !roles.some(isUphill)) {
-    // La más tardía de las que ya tienen puertos pasa a morir arriba; si no hubiera ninguna, el
-    // último hueco disponible.
-    const target = uphillTarget()
-    if (target != null) roles[target] = 'media-alto'
-  }
-  // Y la garantía de fondo, la que cierra la queja del dueño: NINGUNA vuelta por etapas se queda sin
-  // algo con que hacer la general. Si el sorteo no ha dejado ni crono ni final en alto —solo puede
-  // pasar en las vueltas más cortas—, la última cota disponible pasa a morir arriba.
-  if (!roles.some((r) => r === 'cri' || isUphill(r))) {
-    const target = uphillTarget()
-    if (target != null) roles[target] = 'media-alto'
-  }
-  return roles
+export function stageMix(
+  n: number,
+  terrain: Terrain,
+  seedBase: string,
+  ctx: RouteContext = DEFAULT_ROUTE_CONTEXT,
+): StageSpec[] {
+  return composeTour(ctx.raceId ?? seedBase, n, terrain, ctx)
 }
 
-/** Kilometraje de una etapa según su papel, con variación determinista dentro de su rango. */
-function mixKm(role: MixRole, n: number, last: boolean, rand: () => number): number {
-  if (role === 'cri') {
-    const [min, range] =
-      n >= ROUTE.ittLongStages
-        ? [ROUTE.ittLongKmMin, ROUTE.ittLongKmRange]
-        : [ROUTE.ittKmMin, ROUTE.ittKmRange]
-    return Math.round(min + rand() * range)
-  }
-  const [min, range] =
-    role === 'llana'
-      ? ROUTE.kmFlat
-      : role === 'media'
-        ? ROUTE.kmHilly
-        : role === 'media-alto'
-          ? ROUTE.kmUphill
-          : ROUTE.kmSummit
-  const km = (min ?? 160) + rand() * (range ?? 30)
-  return Math.round(last ? km * ROUTE.lastStageKmFactor : km)
-}
-
-/**
- * Mezcla determinista de etapas para una vuelta de n etapas con sesgo de terreno (autoría propia).
- * Exportada para el banco de composición (`routes/calendar.test.ts`), que comprueba las garantías.
- */
-export function stageMix(n: number, terrain: Terrain, seedBase: string): StageSpec[] {
-  const rand = routeRng(`mix|${seedBase}|${n}|${terrain}`)
-  const roles = mixRoles(n, mixTerrain(terrain), rand)
-  return roles.map((role, i) => {
-    const seed = `${seedBase}|${i}`
-    const km = mixKm(role, n, i === n - 1, rand)
-    if (role === 'cri') return itt(km, seed)
-    if (role === 'reina') return mountain(km, seed)
-    if (role === 'media-alto') return hillyUphill(km, seed)
-    if (role === 'media') return hilly(km, seed)
-    return flat(km, seed)
-  })
-}
-
-/** Construye una carrera del calendario real desde su fila de datos. */
 /**
  * País (ISO alpha-2) donde se disputa cada carrera global (WorldTour y ProSeries) y las grandes
  * vueltas, por su geografía real (solo el hecho, no la marca). Base del sistema de viajes. Las
  * continentales llevan su país en la propia fila (o, si falta, se usa el continente).
  */
-const RACE_COUNTRY: Record<string, string> = {
+export const RACE_COUNTRY: Record<string, string> = {
   // WorldTour + grandes vueltas
   'race-down-under': 'AU',
   'race-great-ocean': 'AU',
@@ -921,47 +612,6 @@ const RACE_COUNTRY: Record<string, string> = {
   'race-chrono': 'FR',
 }
 
-function buildRace(row: RaceRow): CalendarRace {
-  const startDay = doy(row.m, row.d)
-  const level: RaceLevel = row.raceClass === 'WT' ? 'WT' : row.raceClass === 'Pro' ? 'PRS' : 'CON'
-  const country = row.country ?? RACE_COUNTRY[row.id]
-  const common = {
-    id: row.id,
-    name: row.name,
-    level,
-    raceClass: row.raceClass,
-    startDay,
-    openTo: enrollmentFor(level),
-    ...(row.region ? { region: row.region } : {}),
-    ...(country ? { country } : {}),
-  }
-  // Carrera por etapas reconstruida a su edición real (p.ej. la Volta a Portugal, con su día de
-  // descanso): el perfil y los descansos salen de la edición verificada, no de la mezcla genérica.
-  const edition = RACE_EDITIONS[row.id]
-  if (edition) {
-    return {
-      ...common,
-      format: 'una-semana',
-      stages: stagesFromEdition(row.id, edition),
-      restAfter: edition.restAfter,
-    }
-  }
-  if (!row.stages || row.stages <= 1) {
-    // Una clásica con rasgos reales autorizados (puertos y cotas de verdad) usa su altimetría fiel;
-    // el resto se genera por terreno. Sigue siendo una prueba de un día.
-    const terrain = row.terrain ?? 'flat'
-    const km = row.km ?? 210
-    const f = STAGE_FEATURES[row.id]?.[0]
-    const spec = f ? featureSpec(terrain, km, f, row.id) : oneDaySpec(terrain, km, row.id)
-    return { ...common, format: 'un-dia', stages: [{ ...spec, index: 1, name: row.name }] }
-  }
-  return {
-    ...common,
-    format: 'una-semana',
-    stages: stagesFrom(stageMix(row.stages, row.terrain ?? 'flat', row.id)),
-  }
-}
-
 /**
  * WorldTour real 2026 (35 carreras + las tres grandes vueltas), con nombres neutros por geografía y
  * fechas reales. Solo hechos; los recorridos son autoría propia.
@@ -1264,13 +914,6 @@ const WT_TABLE: RaceRow[] = [
     stages: 6,
     terrain: 'flat',
   },
-]
-
-const WT_RACES: CalendarRace[] = [
-  ...WT_TABLE.map(buildRace),
-  editionGrandTour('race-italy', 'Race Italy', doy(5, 8), 'IT'),
-  editionGrandTour('race-spain', 'Race Spain', doy(8, 22), 'ES'),
-  editionGrandTour('race-france', 'Race France', doy(7, 4), 'FR'),
 ]
 
 /**
@@ -1642,8 +1285,6 @@ const PRO_TABLE: RaceRow[] = [
     km: 195,
   },
 ]
-
-const PRO_RACES: CalendarRace[] = PRO_TABLE.map(buildRace)
 
 /**
  * Circuitos continentales (.1/.2) por continente, selección representativa de la estructura 2026 con
@@ -3671,37 +3312,31 @@ const CON_TABLE: RaceRow[] = [
   },
 ]
 
-const CON_RACES: CalendarRace[] = CON_TABLE.map(buildRace)
-
 /**
  * Las filas de las tres tablas de carreras de equipos, en su orden (WT, Pro, continentales), SIN los
- * nacionales, que no tienen fila. Solo la leen los tests de la gramática (`grammar/skeletons.test.ts`,
+ * nacionales, que no tienen fila. La leen los tests de la gramática (`grammar/skeletons.test.ts`,
  * docs/generador.md §5.9 y §15.6: «para toda fila del calendario y las cinco clases, `candidatos` no
- * devuelve vacío»). Se escribe aquí, donde las tres tablas ya están inicializadas, y no cambia nada
- * de lo que el calendario construye.
+ * devuelve vacío»). Se escribe aquí, donde las tres tablas ya están inicializadas.
  */
 export const RACE_ROWS: readonly RaceRow[] = [...WT_TABLE, ...PRO_TABLE, ...CON_TABLE]
 
 /**
- * Calendario completo de la temporada (SPEC 8): WorldTour real + ProSeries real + circuitos
- * continentales representativos (estructura 2026, nombres neutros) + los 92 campeonatos nacionales.
- * Ordenado por día de arranque (invariante que asumen los consumidores).
+ * Las tres tablas por separado, para el generador viejo de `sim/legacy/profileGenLegacy.ts`, que
+ * reconstruye el calendario de la v86 en el orden de entonces (§3.11 y §15.10). No cambia nada de lo
+ * que el calendario construye.
  */
-export const SEASON_CALENDAR: CalendarRace[] = [
-  ...WT_RACES,
-  ...PRO_RACES,
-  ...CON_RACES,
-  ...NATIONAL_CHAMPIONSHIPS,
-].sort((a, b) => a.startDay - b.startDay)
+export const RACE_TABLES: { WT_TABLE: RaceRow[]; PRO_TABLE: RaceRow[]; CON_TABLE: RaceRow[] } = {
+  WT_TABLE,
+  PRO_TABLE,
+  CON_TABLE,
+}
 
 // ===================================================================================================
-// LA TEMPORADA POR LA GRAMÁTICA (E1 paso 6, docs/generador.md §3.8, §10.5, §14.5 y §15.9).
+// LA TEMPORADA (docs/generador.md §3.8, §10.5, §14.5 y §15.10).
 //
-// Del paso 6 al 8 conviven dos calendarios: `SEASON_CALENDAR`, construido arriba por el `buildRace` de
-// hoy e idéntico byte a byte (`routes/golden.test.ts`), y el de `calendarForSeason(s, cfg)`, construido
-// por esta ruta paralela, privada y con otro nombre, que replica las ramas de hoy llamando a la
-// gramática. SIN llamadores en producción: en el paso 8 las funciones `…Gramatica` pierden el sufijo y
-// sustituyen a las viejas, y `SEASON_CALENDAR` pasa a ser `calendarForSeason(BASE_SEASON)`.
+// Las tres ramas de `buildRace` (edición real, rasgos reales, generado) llaman a la gramática. Desde la
+// v87 es el ÚNICO calendario: `calendarForSeason(s, cfg)` lo construye por temporada y
+// `SEASON_CALENDAR` es la temporada `BASE_SEASON`, la misma referencia.
 // ===================================================================================================
 
 /** Una temporada y la configuración de edición con que se construye. */
@@ -3714,11 +3349,8 @@ interface Temporada {
 const edicionDe = (t: Temporada): { edicion?: EdicionCfg } =>
   t.cfg === ARCH.edicion ? {} : { edicion: t.cfg }
 
-/** Una etapa con su origen ya escrito: lo que construye la ruta nueva (en el paso 8 `routeSource` es obligatorio). */
-type EtapaConOrigen = CalendarStage & { routeSource: RouteSource }
-
-/** El `StageSpec` de una etapa generada: la convención de hoy, `timeTrial` solo cuando es `true`. */
-const specDe = (g: GeneratedStage): StageSpec & { routeSource: RouteSource } => ({
+/** El `StageSpec` de una etapa generada: `timeTrial` solo cuando es `true`, como en lo real. */
+const specDe = (g: GeneratedStage): StageSpec => ({
   kind: g.kind,
   label: g.label,
   profile: g.profile,
@@ -3727,8 +3359,8 @@ const specDe = (g: GeneratedStage): StageSpec & { routeSource: RouteSource } => 
   arch: g.arch,
 })
 
-/** Nombra y numera una etapa como `stagesFrom`, sin copiar el origen fuera del tipo. */
-const etapaDe = (spec: StageSpec & { routeSource: RouteSource }, i: number): EtapaConOrigen => ({
+/** Nombra y numera una etapa de vuelta como `stagesFrom`. */
+const etapaDe = (spec: StageSpec, i: number): CalendarStage => ({
   ...spec,
   index: i + 1,
   name: `Stage ${i + 1} · ${spec.label}`,
@@ -3739,8 +3371,8 @@ const etapaDe = (spec: StageSpec & { routeSource: RouteSource }, i: number): Eta
  * concreto, sección 11): se construyen una vez por proceso y se comparten por REFERENCIA entre
  * temporadas (§14.5 punto 1), así que una temporada adicional solo dibuja lo generado y la edición.
  */
-const REALES = new Map<string, EtapaConOrigen>()
-function etapaReal(clave: string, construir: () => EtapaConOrigen): EtapaConOrigen {
+const REALES = new Map<string, CalendarStage>()
+function etapaReal(clave: string, construir: () => CalendarStage): CalendarStage {
   const hecha = REALES.get(clave)
   if (hecha) return hecha
   const nueva = construir()
@@ -3749,29 +3381,25 @@ function etapaReal(clave: string, construir: () => EtapaConOrigen): EtapaConOrig
 }
 
 /**
- * La rama de edición (`stagesFromEdition`) por la gramática. Con rasgos en `STAGE_FEATURES`, la
- * `featureSpec` de hoy con la misma semilla (`${from}|${to}|${km}`) y `routeSource: 'real'`, sin
- * `arch`; sin rasgos, `generateStage` con el km de la edición como contrato, el papel y los candidatos
- * de `POR_TERRENO_EDICION`, la zona de la etapa (`regionOf`) y la semilla de edición separada por
- * carrera (`editionKey`, decisión 22).
+ * Etapas de una edición real (sección 11 §11.1): el terreno y la distancia de cada etapa vienen de la
+ * edición verificada. Con rasgos en `STAGE_FEATURES`, `featureSpec` con la semilla
+ * `${from}|${to}|${km}` (`routeSource: 'real'`, sin `arch`); sin rasgos, `generateStage` con el km de
+ * la edición como contrato, el papel y los candidatos de `POR_TERRENO_EDICION`, la zona de la etapa
+ * (`regionOf`) y la semilla de edición separada por carrera (`editionKey`, decisión 22), con
+ * `routeSource: 'edicion'`.
  */
-function stagesFromEditionGramatica(
+function stagesFromEdition(
   id: string,
   edition: RaceEdition,
   country: string | null,
   raceClass: RaceClass,
   format: RaceFormat,
   t: Temporada,
-): EtapaConOrigen[] {
+): CalendarStage[] {
   const features = STAGE_FEATURES[id]
-  return edition.stages.map((s, i) => {
-    const clave = `${s.from}|${s.to}|${s.km}`
-    const f = features?.[i]
-    if (f)
-      return etapaReal(`${id}|${i + 1}`, () =>
-        etapaDe({ ...featureSpec(s.terrain, s.km, f, clave), routeSource: 'real' }, i),
-      )
-    const g = generateStage({
+  const peticion = (i: number): StageRequest => {
+    const s = edition.stages[i]!
+    return {
       raceId: id,
       stageIndex: i + 1,
       season: t.season,
@@ -3782,15 +3410,56 @@ function stagesFromEditionGramatica(
       raceClass,
       format,
       routeSource: 'edicion',
-      editionKey: clave,
+      editionKey: `${s.from}|${s.to}|${s.km}`,
       ...edicionDe(t),
-    })
-    return etapaDe(specDe(g), i)
+    }
+  }
+  const stages = edition.stages.map((s, i) => {
+    const f = features?.[i]
+    if (f)
+      return etapaReal(`${id}|${i + 1}`, () =>
+        etapaDe(featureSpec(s.terrain, s.km, f, `${s.from}|${s.to}|${s.km}`), i),
+      )
+    return etapaDe(specDe(generateStage(peticion(i))), i)
   })
+  return conFinalesVariados(stages, peticion)
 }
 
-/** `editionGrandTour` por la gramática: las mismas etapas de la edición, clase WT y formato de gran vuelta. */
-function editionGrandTourGramatica(
+/** Las reinas que no acaban en alto, en el orden en que se prueban para la de `conFinalesVariados`. */
+const REINAS_SIN_ALTO: readonly SkeletonId[] = ['et_reina_cima_cerca', 'et_reina_valle']
+
+/**
+ * UNA VUELTA DE EDICIÓN NO TIENE TODAS SUS REINAS EN ALTO (v87, banda `variedad.finalesPorVuelta`
+ * del censo, §13.3: «vueltas con ≥ 3 reinas y todas `alto`: 0»; mapa 04 §5.2). Las etapas `edicion`
+ * eligen esqueleto una a una, sin saber de las otras, y tres reinas seguidas en alto salían en
+ * `race-burgos`, `race-portugal` y `race-langkawi`. Las vueltas compuestas no lo necesitan (sus reinas
+ * las reparte `itinerarioDe`). Si una vuelta de edición tiene tres o más reinas generadas y todas
+ * acaban en alto, la ÚLTIMA se dibuja con la primera de `REINAS_SIN_ALTO` que cabe en su zona y su km
+ * (`cabe`), con la misma petición y el esqueleto fijado: sin dados nuevos, y lo real no se toca.
+ */
+function conFinalesVariados(
+  stages: CalendarStage[],
+  peticion: (i: number) => StageRequest,
+): CalendarStage[] {
+  const reinas = stages.filter((s) => s.routeSource === 'edicion' && s.kind === 'reina')
+  if (reinas.length < 3 || reinas.some((s) => s.arch?.finalKind !== 'alto')) return stages
+  const i = reinas.at(-1)!.index - 1
+  const req = peticion(i)
+  const id = REINAS_SIN_ALTO.find(
+    (sk) => cabe(sk, req) && req.km >= SKELETONS[sk].km[0] && req.km <= SKELETONS[sk].km[1],
+  )
+  if (id === undefined) return stages
+  const out = [...stages]
+  out[i] = etapaDe(specDe(generateStage({ ...req, fixed: { skeleton: id } })), i)
+  return out
+}
+
+/**
+ * Gran vuelta reconstruida a su edición REAL (Tour, Giro y Vuelta 2026): las etapas de la edición,
+ * clase WT, formato de gran vuelta y los días de descanso reales (el Giro lleva tres por la salida
+ * desde Bulgaria). El "de dónde a dónde" de cada etapa sale de la misma edición (ver raceRoutes).
+ */
+function editionGrandTour(
   id: string,
   name: string,
   startDay: number,
@@ -3799,7 +3468,7 @@ function editionGrandTourGramatica(
 ): CalendarRace {
   const edition = RACE_EDITIONS[id]
   if (!edition) throw new Error(`Falta la edición real de ${id}`)
-  const stages = stagesFromEditionGramatica(id, edition, country, 'WT', 'gran-vuelta', t)
+  const stages = stagesFromEdition(id, edition, country, 'WT', 'gran-vuelta', t)
   return {
     id,
     name,
@@ -3816,13 +3485,14 @@ function editionGrandTourGramatica(
 }
 
 /**
- * `buildRace` por la gramática: el mismo `common` y las tres ramas en el mismo orden (edición real >
- * rasgos reales > generado, sección 11 §11.1). (1) Con edición, `stagesFromEditionGramatica`. (2) Un
- * día: con rasgos, la `featureSpec` de hoy (km `row.km ?? 210`) y `real`; sin rasgos, `generateStage`
- * con `role: 'un_dia'` y el km de la fila o, si no lo tiene, el de `kmDe` en `firma|${id}|km`
- * (decisión 36). (3) Vuelta: `composeTour`. La carrera lleva `routeSource: raceRouteSourceOf(stages)`.
+ * Construye una carrera del calendario desde su fila de datos, con las tres ramas en su orden (edición
+ * real > rasgos reales > generado, sección 11 §11.1). (1) Con edición, `stagesFromEdition`. (2) Un
+ * día: con rasgos, `featureSpec` (km `row.km ?? 210`, `real`); sin rasgos, `generateStage` con
+ * `role: 'un_dia'` y el km de la fila o, si no lo tiene, el de `kmDe` en `firma|${id}|km` (decisión
+ * 36). (3) Vuelta: `composeTour` con el país y la clase de la fila. La carrera lleva
+ * `routeSource: raceRouteSourceOf(stages)`.
  */
-function buildRaceGramatica(row: RaceRow, season: number, cfg: EdicionCfg): CalendarRace {
+function buildRace(row: RaceRow, season: number, cfg: EdicionCfg): CalendarRace {
   const t: Temporada = { season, cfg }
   const startDay = doy(row.m, row.d)
   const level: RaceLevel = row.raceClass === 'WT' ? 'WT' : row.raceClass === 'Pro' ? 'PRS' : 'CON'
@@ -3837,9 +3507,11 @@ function buildRaceGramatica(row: RaceRow, season: number, cfg: EdicionCfg): Cale
     ...(row.region ? { region: row.region } : {}),
     ...(country ? { country } : {}),
   }
+  // Carrera por etapas reconstruida a su edición real (p.ej. la Volta a Portugal, con su día de
+  // descanso): el km y los descansos salen de la edición verificada, no de la composición.
   const edition = RACE_EDITIONS[row.id]
   if (edition) {
-    const stages = stagesFromEditionGramatica(
+    const stages = stagesFromEdition(
       row.id,
       edition,
       country ?? null,
@@ -3856,13 +3528,14 @@ function buildRaceGramatica(row: RaceRow, season: number, cfg: EdicionCfg): Cale
     }
   }
   if (!row.stages || row.stages <= 1) {
+    // Una clásica con rasgos reales autorizados (puertos y cotas de verdad) usa su altimetría fiel;
+    // el resto lo dibuja la gramática. Sigue siendo una prueba de un día.
     const terrain = row.terrain ?? 'flat'
     const f = STAGE_FEATURES[row.id]?.[0]
-    let stage: EtapaConOrigen
+    let stage: CalendarStage
     if (f)
       stage = etapaReal(`${row.id}|1`, () => ({
         ...featureSpec(terrain, row.km ?? 210, f, row.id),
-        routeSource: 'real',
         index: 1,
         name: row.name,
       }))
@@ -3893,7 +3566,7 @@ function buildRaceGramatica(row: RaceRow, season: number, cfg: EdicionCfg): Cale
     format: 'una-semana',
     season,
     ...edicionDe(t),
-  }).map((spec, i) => etapaDe({ ...spec, routeSource: spec.routeSource ?? 'generado' }, i))
+  }).map(etapaDe)
   return {
     ...common,
     format: 'una-semana',
@@ -3903,13 +3576,22 @@ function buildRaceGramatica(row: RaceRow, season: number, cfg: EdicionCfg): Cale
 }
 
 /**
- * `nationalChampionships` por la gramática: los mismos días, ids y nombres, y en lugar de `itt(38)`,
- * `itt(30)`, `classic(180)` y `classic(220)` una etapa de `generateStage` en la zona del país
+ * Campeonatos nacionales de un país: hasta 4 pruebas (Elite y Sub-23, en Crono y en Ruta) durante la
+ * semana del campeonato. Cada una es de un día con pelotón individual del país (lo arma la capa de
+ * datos con los mejores; el Sub-23 filtra por edad).
+ *
+ * Como en la realidad, la semana del campeonato reparte las CRONOS entre semana y las RUTAS el fin de
+ * semana, con hueco entre unas y otras (no cuatro pruebas en cuatro días seguidos). Que el Sub-23
+ * comparta día con la Elite o tenga el suyo propio VARÍA por país (las grandes federaciones lo
+ * separan; muchas pequeñas lo juntan): la RUTA Elite es el domingo ancla, y según el país las cronos
+ * y la ruta Sub-23 caen el mismo día que la Elite o un día antes. Determinista por código de país.
+ *
+ * El recorrido lo dibuja la gramática (decisión 15): una etapa de `generateStage` en la zona del país
  * (`zonaDe`), clase `NC`, con el km de `kmDe` en `firma|${id}|km` y el papel de km `cri`, `cri_u23`,
- * `un_dia_u23` y `un_dia` en ese orden. El esqueleto (`nc_crono` o `nc_ruta`) lo eligen `candidatos` y
- * el sesgo del terreno (§5.7).
+ * `un_dia_u23` y `un_dia` en ese orden. El esqueleto (`nc_crono` o `nc_ruta`) lo eligen `candidatos`
+ * y el sesgo del terreno (§5.7).
  */
-function nationalChampionshipsGramatica(
+function nationalChampionships(
   code: string,
   name: string,
   season: number,
@@ -3918,10 +3600,14 @@ function nationalChampionshipsGramatica(
   const t: Temporada = { season, cfg }
   const override = NATIONALS_ROAD_OVERRIDE[code]
   const roadDay = override ? doy(override[0], override[1]) : NATIONALS_ROAD_DAY
+  // Tres patrones reales de reparto de la semana (por país):
+  //  0 → todo doblado: Elite y Sub-23 comparten día por disciplina (crono jueves, ruta domingo) = 2 días.
+  //  1 → ruta Sub-23 el sábado; cronos juntas el jueves = 3 días.
+  //  2 → todo separado: crono Elite miércoles, crono Sub-23 jueves, ruta Sub-23 sábado, ruta Elite domingo = 4 días.
   const pattern = ncHash(code) % 3
-  const eliteIttDay = pattern === 2 ? roadDay - 4 : roadDay - 3
-  const u23IttDay = roadDay - 3
-  const u23RoadDay = pattern === 0 ? roadDay : roadDay - 1
+  const eliteIttDay = pattern === 2 ? roadDay - 4 : roadDay - 3 // crono Elite: jueves (miércoles si todo separado)
+  const u23IttDay = roadDay - 3 // crono Sub-23: jueves (casi siempre el mismo día que la Elite)
+  const u23RoadDay = pattern === 0 ? roadDay : roadDay - 1 // ruta Sub-23: domingo (con Elite) o sábado
   const geo = ZONAS[zonaDe(code)]
   const base = (
     id: string,
@@ -3970,18 +3656,23 @@ function nationalChampionshipsGramatica(
   ]
 }
 
-/** El calendario entero de una temporada, en el orden de hoy y ordenado por `startDay` con el mismo `sort` estable. */
+/**
+ * El calendario entero de una temporada (SPEC 8): WorldTour real con las tres grandes vueltas,
+ * ProSeries real, circuitos continentales representativos (estructura 2026, nombres neutros) y los
+ * campeonatos nacionales, en ese orden y ordenado por día de arranque con un `sort` estable
+ * (invariante que asumen los consumidores).
+ */
 function construirTemporada(season: number, cfg: EdicionCfg): CalendarRace[] {
   const t: Temporada = { season, cfg }
-  const fila = (row: RaceRow): CalendarRace => buildRaceGramatica(row, season, cfg)
+  const fila = (row: RaceRow): CalendarRace => buildRace(row, season, cfg)
   return [
     ...WT_TABLE.map(fila),
-    editionGrandTourGramatica('race-italy', 'Race Italy', doy(5, 8), 'IT', t),
-    editionGrandTourGramatica('race-spain', 'Race Spain', doy(8, 22), 'ES', t),
-    editionGrandTourGramatica('race-france', 'Race France', doy(7, 4), 'FR', t),
+    editionGrandTour('race-italy', 'Race Italy', doy(5, 8), 'IT', t),
+    editionGrandTour('race-spain', 'Race Spain', doy(8, 22), 'ES', t),
+    editionGrandTour('race-france', 'Race France', doy(7, 4), 'FR', t),
     ...PRO_TABLE.map(fila),
     ...CON_TABLE.map(fila),
-    ...COUNTRIES.flatMap((c) => nationalChampionshipsGramatica(c.code, c.name, season, cfg)),
+    ...COUNTRIES.flatMap((c) => nationalChampionships(c.code, c.name, season, cfg)),
   ].sort((a, b) => a.startDay - b.startDay)
 }
 
@@ -4000,9 +3691,7 @@ const INDICE = new WeakMap<CalendarRace[], Map<string, CalendarRace>>()
  * toda temporada es la `BASE_SEASON` de esa configuración (misma referencia, no copia). Cada lectura
  * de una temporada distinta de la 0 la lleva al final del memo, y al pasar de
  * `ARCH.arranque.maxTemporadasEnMemoria` se expulsa la de acceso más antiguo; la 0 nunca se expulsa
- * (§14.5 punto 2). En el paso 6 no tiene llamadores en producción, y `calendarForSeason(0)` es un array
- * NUEVO, distinto de `SEASON_CALENDAR`: mismas carreras, ids, días, formato y número de etapas, y otros
- * perfiles en las etapas no reales.
+ * (§14.5 punto 2). `calendarForSeason(BASE_SEASON)` es `SEASON_CALENDAR`, la misma referencia.
  */
 export function calendarForSeason(season: number, cfg: EdicionCfg = ARCH.edicion): CalendarRace[] {
   if (!Number.isInteger(season) || season < BASE_SEASON)
@@ -4053,3 +3742,10 @@ export function stagesForSeason(
 ): CalendarStage[] {
   return raceForSeason(raceId, season, cfg).stages
 }
+
+/**
+ * Calendario completo de la temporada `BASE_SEASON` (SPEC 8), ordenado por día de arranque: la
+ * entrada del memo que se paga al cargar el módulo (§14.5) y la que corre todo mundo que no pide otra
+ * temporada. Va al final del fichero porque `calendarForSeason` lee el memo y las tablas de arriba.
+ */
+export const SEASON_CALENDAR: CalendarRace[] = calendarForSeason(BASE_SEASON)

@@ -151,6 +151,33 @@ mundo (la reparación es idempotente). La comparación ignora mayúsculas y espa
 - Cron del tick: invoca el avance del mundo según `TICK_INTERVAL_MINUTES`.
 - Las migraciones son aditivas (Drizzle) y se aplican solas al arrancar; no hay pasos manuales.
 
+## Cambio de calendario de la v87: congelar antes de desplegar (generador E1, paso 8)
+
+La v87 cambia el recorrido de las 1.241 etapas no reales del calendario (`docs/generador.md` §15.10;
+`docs/balance.md`, v87 §1). Un recorrido se congela en `race_routes` el día de la etapa 1 de su carrera
+(`calendarRun.ts`, `freezeRaceRoute`), así que en un mundo vivo las carreras que ya han empezado o ya
+tienen convocatoria llevan el recorrido VIEJO y no pueden cambiarlo a mitad. Por eso, en cualquier
+mundo vivo y **antes de desplegar la v87** (`docs/generador.md` §15.1 regla 5, decisión 45):
+
+1. Con el código de la **v86** todavía desplegado, calcula el día del mundo: `gameDay` del mundo,
+   `season = floor(gameDay / 364)` y `díaDeTemporada = gameDay % 364` (`SEASON_DAYS`, `calendarRun.ts`).
+2. Elige SOLO las carreras de la temporada en curso que ya han empezado o ya están convocadas:
+   `startDay ≤ díaDeTemporada + 5` (`CALLUP_LEAD_DAYS`, `packages/db/src/callups.ts`), campeonatos
+   nacionales incluidos. Su `raceKey` es `${race.id}:s${season}`.
+3. Llama a `backfillRaceRoutes(db, worldId, raceKeys)` (`packages/db/src/raceRoutes.ts`) con esa
+   lista y con el generador ACTUAL (v86): congela lo que esas carreras ya tienen. Es idempotente (no
+   pisa una carrera ya congelada). NO le pases todas las carreras: congelaría el calendario viejo
+   entero hasta la temporada siguiente y el mundo no vería el generador nuevo.
+4. Despliega la v87. Las carreras no empezadas se congelan solas con el generador nuevo el día de su
+   etapa 1.
+
+La función no tiene llamador en producción: se corre a mano (una consola con `@cyclingstar/db`
+contra la base del mundo). **El mundo de producción se reinicia antes del lanzamiento**, así que en la
+práctica este paso solo aplica a un mundo de pruebas que sobreviva al despliegue; en uno creado
+después de la v87 no hace falta nada. Mientras dure, E1 se ve en las carreras que no estaban
+empezadas ni convocadas al correr el backfill; las congeladas conservan el perfil viejo hasta la
+temporada siguiente.
+
 ## Monitorización
 
 - **Sentry (plan gratuito)** — _pendiente de configurar_: crear proyecto, añadir DSN como variable

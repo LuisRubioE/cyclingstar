@@ -35,7 +35,14 @@ describe('api: una etapa corrida se describe con el recorrido que se corrió', (
   it('la crono de 15 km que en realidad fueron 170 km de carretera', () => {
     const head = stageHead(
       4,
-      { name: 'Stage 4 · ITT', label: 'ITT', kind: 'cri', timeTrial: true, km: 15 },
+      {
+        name: 'Stage 4 · ITT',
+        label: 'ITT',
+        kind: 'cri',
+        timeTrial: true,
+        km: 15,
+        routeSource: 'generado',
+      },
       { profile: carretera, timeTrial: false, km: KM_CORRIDOS },
     )
     expect(head.staleSpec).toBe(true)
@@ -53,7 +60,14 @@ describe('api: una etapa corrida se describe con el recorrido que se corrió', (
     const real = conPuertoFinal(210)
     const head = stageHead(
       1,
-      { name: 'Stage 1 · Hills', label: 'Hills', kind: 'media', timeTrial: false, km: 188 },
+      {
+        name: 'Stage 1 · Hills',
+        label: 'Hills',
+        kind: 'media',
+        timeTrial: false,
+        km: 188,
+        routeSource: 'generado',
+      },
       { profile: real, timeTrial: false, km: 210 },
     )
     expect(head.staleSpec).toBe(true)
@@ -68,7 +82,14 @@ describe('api: una etapa corrida se describe con el recorrido que se corrió', (
     const perfil = conPuertoFinal(200)
     const head = stageHead(
       3,
-      { name: 'Stage 3 · Cobbles', label: 'Cobbles', kind: 'clasica', timeTrial: false, km: 200 },
+      {
+        name: 'Stage 3 · Cobbles',
+        label: 'Cobbles',
+        kind: 'clasica',
+        timeTrial: false,
+        km: 200,
+        routeSource: 'generado',
+      },
       { profile: perfil, timeTrial: false, km: 200 },
     )
     expect(head.staleSpec).toBe(false)
@@ -83,7 +104,14 @@ describe('api: una etapa corrida se describe con el recorrido que se corrió', (
     const perfil = rodado(181)
     const head = stageHead(
       2,
-      { name: 'Stage 2 · Flat', label: 'Flat', kind: 'llana', timeTrial: false, km: 180 },
+      {
+        name: 'Stage 2 · Flat',
+        label: 'Flat',
+        kind: 'llana',
+        timeTrial: false,
+        km: 180,
+        routeSource: 'generado',
+      },
       { profile: perfil, timeTrial: false, km: 181 },
     )
     expect(head.staleSpec).toBe(false)
@@ -95,7 +123,14 @@ describe('api: una etapa corrida se describe con el recorrido que se corrió', (
   it('una crono que sigue siendo crono no se toca', () => {
     const head = stageHead(
       2,
-      { name: 'Stage 2 · ITT', label: 'ITT', kind: 'cri', timeTrial: true, km: 15 },
+      {
+        name: 'Stage 2 · ITT',
+        label: 'ITT',
+        kind: 'cri',
+        timeTrial: true,
+        km: 15,
+        routeSource: 'generado',
+      },
       { profile: crono, timeTrial: true, km: 15 },
     )
     expect(head.staleSpec).toBe(false)
@@ -104,14 +139,19 @@ describe('api: una etapa corrida se describe con el recorrido que se corrió', (
   })
 })
 
-/** Una etapa de calendario de mentira, con el perfil que se le dé. */
+/**
+ * Una etapa de calendario de mentira, con el perfil que se le dé. Por defecto `real`: la corrección
+ * de la etiqueta es de las etapas con recorrido real, cuya etiqueta declara el terreno de la edición
+ * (desde la v87 una generada ya trae la del perfil y no se toca, docs/generador.md §11.5 regla 3).
+ */
 function fichaDe(
   index: number,
   kind: CalendarStage['kind'],
   label: string,
   profile: StageProfile,
+  routeSource: CalendarStage['routeSource'] = 'real',
 ): CalendarStage {
-  return { index, kind, label, name: `Stage ${index} · ${label}`, profile }
+  return { index, kind, label, name: `Stage ${index} · ${label}`, profile, routeSource }
 }
 
 const puerto = (km: number, g: number) =>
@@ -172,10 +212,22 @@ describe('api: la etiqueta del final la pone el recorrido, no el terreno declara
     expect(calendarStageSpec(crono, 20).label).toBe('ITT')
   })
 
+  it('una etapa generada o de edición trae la etiqueta de su perfil y no se reetiqueta', () => {
+    // La etiqueta de lo no real la pone `labelDe` con la MISMA regla de los 5 km (v87): aquí se
+    // devuelve tal cual, también si es una de las cinco del esqueleto («Circuit», «Wall finish»…).
+    const perfil: StageProfile = { segments: [llano(40), puerto(11.5, 6.4), bajada(20), llano(60)] }
+    for (const origen of ['generado', 'edicion'] as const) {
+      const spec = calendarStageSpec(fichaDe(2, 'reina', 'Mountains classic', perfil, origen), 142)
+      expect(spec.label).toBe('Mountains classic')
+      expect(spec.name).toBe('Stage 2 · Mountains classic')
+    }
+  })
+
   it('sobre el calendario entero solo cambia la etiqueta, nunca el tipo de etapa', () => {
     // El tipo alimenta las órdenes automáticas del motor y el banco de simulación: si se moviera,
     // se estaría cambiando cómo se corre la carrera y no cómo se anuncia.
-    let cambian = 0
+    let cambianReales = 0
+    let cambianGeneradas = 0
     for (const race of SEASON_CALENDAR) {
       for (const stage of race.stages) {
         const spec = calendarStageSpec(stage, 0)
@@ -187,22 +239,27 @@ describe('api: la etiqueta del final la pone el recorrido, no el terreno declara
         expect(spec.name).toBe(
           conNombrePropio ? stage.name : `Stage ${stage.index} · ${spec.label}`,
         )
-        if (spec.label !== stage.label) cambian++
+        if (spec.label === stage.label) continue
+        if (stage.routeSource === 'real') cambianReales++
+        else cambianGeneradas++
       }
     }
     /**
-     * Medido: **49 de 1.418** etapas. Eran 30 hasta la v64 (14 dejaban de anunciar final en alto y
-     * 16 pasaban a anunciarlo), y suben porque el generador de recorridos cambió: una reina ya no
-     * acaba SIEMPRE arriba —corona a tres, a doce o a treinta kilómetros de meta según
-     * `ROUTE.queenFinalMix`—, así que más etapas contradicen la etiqueta que el calendario declaró
-     * a mano.
+     * RE-SELLADO en la v87 (docs/generador.md §11.5 y §15.10, test 5). Hasta la v86 eran **49 de
+     * 1.418** etapas de cualquier origen (30 hasta la v64), porque el calendario declaraba la
+     * etiqueta por el constructor y aquí se corregía con otra regla. Con el cambio de calendario la
+     * etiqueta nace UNA vez: la de toda etapa generada o de edición sale de `labelDe`, que lee el
+     * perfil con la misma regla de los 5 km (`SUMMIT_RUN_IN_KM`), así que **generadas = 0** por
+     * construcción. Lo que queda son SOLO etapas reales cuya etiqueta declarada por el terreno de la
+     * edición (`TERRAIN_KIND`, que llama «Summit finish» a toda etapa `mountain`) difiere de la que
+     * dice su recorrido: **30 de 177**. A partir de aquí solo puede moverla un cambio de dato
+     * real (docs/balance.md, v87 §1).
      *
      * **Lo que este centinela vigila de verdad sigue en pie y es la línea de arriba**: `spec.kind`
-     * coincide con `stage.kind` en las 1.418. El TIPO no se mueve —es lo que alimenta las órdenes
-     * automáticas y el banco—, solo la etiqueta con la que se anuncia.
-     *
-     * Si esta cifra se dispara sin que nadie haya tocado el generador, algo se ha movido debajo.
+     * coincide con `stage.kind` en las 1.418. El TIPO no se mueve (es lo que alimenta las órdenes
+     * automáticas y el banco), solo la etiqueta con la que se anuncia.
      */
-    expect(cambian).toBe(49)
+    expect(cambianGeneradas).toBe(0)
+    expect(cambianReales).toBe(30)
   })
 })

@@ -7,6 +7,7 @@ import type { RaceClass } from '../uci.js'
 import { BASE_SEASON, claveEtapa, opcionDe, planDeEdicion, seasonDe, semillaDe } from './edition.js'
 import {
   ETIQUETAS_DE_ESQUELETO,
+  esqueletoDeCarrera,
   fraseDe,
   generateStage,
   labelDe,
@@ -188,23 +189,23 @@ describe('generateStage', () => {
   })
   it('respeta fixed.skeleton, y la frase no está vacía y dice la meta', () => {
     const CIERRE: Record<MetaKind, RegExp> = {
-      esprint: /esprint|meta a/,
-      repecho: /llegada en repecho/,
-      muro_meta: /llegada en muro/,
-      alto_corto: /llegada en alto/,
-      alto_largo: /llegada en alto/,
-      cima_cerca: /a [\d,]+ km de meta/,
-      descenso_meta: /bajada y llano hasta meta/,
-      valle: /de valle hasta meta/,
-      sector_meta: /sector de .* km de meta/,
+      esprint: /sprint finish|flat finish|finish [\d.]+ km after/,
+      repecho: /finish on a rise/,
+      muro_meta: /finish on a wall/,
+      alto_corto: /summit finish/,
+      alto_largo: /summit finish/,
+      cima_cerca: /cresting at [\d.]+ km to go/,
+      descenso_meta: /then descent and flat to the finish/,
+      valle: /km of valley to the finish/,
+      sector_meta: /sector of .* km to go/,
     }
     for (const sk of Object.values(SKELETONS)) {
       const g = generateStage(requestDe(sk, ZONA_DE_REFERENCIA[sk.id], sk.km[0], 'frase'))
       expect(g.arch.skeleton).toBe(sk.id)
       expect(g.arch.frase.length).toBeGreaterThan(0)
       expect(g.arch.frase, sk.id).toMatch(CIERRE[g.arch.motivos.at(-1)!.meta!])
-      if (sk.timeTrial) expect(g.arch.frase).toMatch(/^(Contrarreloj|Prólogo) de /)
-      if (sk.kind === 'llana' && !sk.timeTrial) expect(g.arch.frase).toMatch(/^Llano/)
+      if (sk.timeTrial) expect(g.arch.frase).toMatch(/^(Time trial|Prologue) of /)
+      if (sk.kind === 'llana' && !sk.timeTrial) expect(g.arch.frase).toMatch(/^Flat/)
     }
   })
   it('la temporada no mueve la identidad: mismo esqueleto y misma meta de firma en las temporadas 0 a 3', () => {
@@ -307,7 +308,7 @@ describe('generateStage', () => {
     expect(g.arch.degradado).toBe(true)
     expect(g.arch.intentos).toBe(ARCH.colocacion.maxIntentos)
     expect(g.arch.rechazos).toHaveLength(ARCH.colocacion.maxIntentos)
-    expect(g.arch.frase).toMatch(/\(plantilla canónica\)$/)
+    expect(g.arch.frase).toMatch(/\(standard template\)$/)
   })
   it('label: la del esqueleto si es una de las cinco suyas; si no, la del perfil', () => {
     expect([...ETIQUETAS_DE_ESQUELETO].sort()).toEqual(
@@ -345,7 +346,7 @@ describe('la frase de arquitectura (§8.13)', () => {
         null,
         false,
       ),
-    ).toBe('Circuito de 14 km × 9 vueltas con un muro de 1,1 km al 11 %; meta a 2 km del muro')
+    ).toBe('Circuit of 14 km × 9 laps with a wall of 1.1 km at 11%; finish 2 km after the wall')
     expect(
       fraseDe(
         SKELETONS.ud_montana,
@@ -369,7 +370,7 @@ describe('la frase de arquitectura (§8.13)', () => {
         false,
       ),
     ).toBe(
-      'Dos puertos de 12 y 17 km y una cota de 4,2 km al 7 %; última cota de 3 km al 9 %, bajada y llano hasta meta (9 km)',
+      'Two passes of 12 and 17 km and a hill of 4.2 km at 7%; last hill of 3 km at 9%, then descent and flat to the finish (9 km)',
     )
     expect(
       fraseDe(
@@ -386,22 +387,47 @@ describe('la frase de arquitectura (§8.13)', () => {
         null,
         false,
       ),
-    ).toBe('Llano con tres tramos abiertos (90 km); esprint')
+    ).toBe('Flat with three open stretches (90 km); sprint finish')
   })
   it('sufijos: degradación, sitio sin motivo y plantilla canónica, en ese orden; y el final de la opción', () => {
     const ms: Motif[] = [
       { kind: 'cota', km: 5, g: 6 },
-      { kind: 'enlace', km: 1, nombre: 'sin puerto aquí' },
+      { kind: 'enlace', km: 1, nombre: 'no pass here' },
       { kind: 'meta', meta: 'esprint', km: 3, firma: true },
     ]
-    expect(fraseDe(SKELETONS.et_media_valle, 170, ms, 30, 0, '(degradado a media)', true)).toBe(
-      'Cota de 5 km al 6 %; esprint (degradado a media) (sin puerto aquí) (plantilla canónica)',
+    expect(fraseDe(SKELETONS.et_media_valle, 170, ms, 30, 0, '(downgraded to hilly)', true)).toBe(
+      'Hill of 5 km at 6%; sprint finish (downgraded to hilly) (no pass here) (standard template)',
     )
     const alto: Motif[] = [
       { kind: 'meta', meta: 'alto_largo', km: 12.5, cotaFinal: { km: 12.5, g: 9 }, firma: true },
     ]
     expect(fraseDe(SKELETONS.et_reina_alto_largo, 175, alto, 0, 1, null, false)).toBe(
-      'Sin dificultades; llegada en alto de 13 km al 9 %; final en Angliru',
+      'No difficulties; summit finish of 13 km at 9%; finish at Angliru',
+    )
+  })
+  it('en inglés: firme delante, artículo según la palabra, "(both …)" y llegada llana en la crono', () => {
+    const ms: Motif[] = [
+      { kind: 'cota', km: 3, g: 5 },
+      { kind: 'expuesto', km: 12 },
+      { kind: 'sector', km: 2.3, estrellas: 5, firme: 'adoquin' },
+      { kind: 'sector', km: 1.6, estrellas: 5, firme: 'adoquin' },
+      {
+        kind: 'meta',
+        meta: 'sector_meta',
+        km: 8.4,
+        hijos: [{ kind: 'sector', km: 2.1, estrellas: 4, firme: 'tierra' }],
+        firma: true,
+      },
+    ]
+    expect(fraseDe(SKELETONS.ud_adoquin, 200, ms, null, 0, null, false)).toBe(
+      'Hill of 3 km at 5%, an open stretch of 12 km and two cobbled sectors (both 5★); gravel sector of 2.1 km (4★) at 6.3 km to go',
+    )
+    const crono: Motif[] = [{ kind: 'meta', meta: 'esprint', km: 1, firma: true }]
+    expect(fraseDe(SKELETONS.et_crono, 38, crono, null, 0, null, false)).toBe(
+      'Time trial of 38 km; flat finish',
+    )
+    expect(fraseDe(SKELETONS.et_prologo, 6.2, crono, null, 0, null, false)).toBe(
+      'Prologue of 6.2 km; flat finish',
     )
   })
   it('una etapa mountain de edición en flandes baja a media y la frase lo dice', () => {
@@ -419,7 +445,7 @@ describe('la frase de arquitectura (§8.13)', () => {
       editionKey: 'A|B|170',
     })
     expect(g.arch.skeleton).toBe('et_media_muro')
-    expect(g.arch.frase).toMatch(/\(degradado a media\)/)
+    expect(g.arch.frase).toMatch(/\(downgraded to hilly\)/)
   })
 })
 
@@ -440,7 +466,7 @@ describe('la atadura de RACE_REGION (§8.2 paso 1 bis)', () => {
     for (let season = 0; season <= 5; season++) {
       const g = generateStage(huy(season))
       expect(g.arch.skeleton).toBe('ud_muro_final')
-      expect(g.arch.frase).not.toMatch(/degradad|atadura/)
+      expect(g.arch.frase).not.toMatch(/downgraded|pinned skeleton/)
     }
   })
   it('race-mercantour (.1, alpes) da ud_montana_alto; race-huy en flandes (sin cota) la ignora y lo dice', () => {
@@ -453,7 +479,7 @@ describe('la atadura de RACE_REGION (§8.2 paso 1 bis)', () => {
     expect(merc.arch.skeleton).toBe('ud_montana_alto')
     const g = generateStage(huy(0, ZONAS.flandes))
     expect(g.arch.skeleton).not.toBe('ud_muro_final')
-    expect(g.arch.frase).toMatch(/\(atadura ud_muro_final ignorada: no cabe\)/)
+    expect(g.arch.frase).toMatch(/\(pinned skeleton ud_muro_final ignored: does not fit\)/)
   })
   it('en una etapa de vuelta de una carrera con atadura no se aplica (role !== un_dia)', () => {
     const g = generateStage({ ...huy(0), stageIndex: 2, role: 'media', format: 'una-semana' })
@@ -523,8 +549,10 @@ describe('barrido de test:rapido: V6 y V7 al 100 %, p95 de intentos ≤ 3, degra
     for (const zona of TRES_ZONAS(sk))
       for (const km of CINCO_KM(sk))
         for (const s of semillas(20)) {
-          const g = generateStage(requestDe(sk, zona, km, s))
-          const skz = skeletonFor(sk.id, ZONAS[zona])
+          const req = requestDe(sk, zona, km, s)
+          const g = generateStage(req)
+          // El final de ESTA carrera (paso 9: et_reina_valle corre el largo en unas y el corto en otras).
+          const skz = esqueletoDeCarrera(skeletonFor(sk.id, ZONAS[zona]), req)
           expect(g.kind, `${sk.id} ${zona} ${km} ${s}`).toBe(skz.kind) // V6
           if (skz.finalKind)
             expect(g.arch.finalKind, `${sk.id} ${zona} ${km} ${s}`).toBe(skz.finalKind) // V7
@@ -569,7 +597,7 @@ describe('la persecución del desnivel llega: dPlusDe dentro de ± 12 % de dPlus
     let dentroAlcanzables = 0
     for (let i = 0; i < 300; i++) {
       const req = requestDe(sk, zona, kms[i % kms.length]!, `dplus-${i}`)
-      const skz = skeletonFor(sk.id, req.geo)
+      const skz = esqueletoDeCarrera(skeletonFor(sk.id, req.geo), req) // el final de esta carrera (paso 9)
       const firma = instanciarFirma(
         skz,
         opcionDe(skz, req.raceId, seasonDe(req, 'ed')),
