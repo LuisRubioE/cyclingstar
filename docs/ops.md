@@ -191,6 +191,28 @@ La v88 cambia el perfil de cinco reinas de la temporada 0 (`docs/balance.md`, v8
 ya corre la v87 valen los pasos 1 a 4 con el código de la v87 desplegado y la v88 en lugar de la
 v87 en el paso 4; el paso 5 no hace falta otra vez.
 
+## Transición E1 en el tick: las carreras de los próximos 10 días conservan el recorrido viejo
+
+Desde el despliegue de la v87/v88 toda carrera no congelada se lee (y se correrá) con el generador
+nuevo, también las de la semana siguiente, que ya pueden estar convocadas y vistas con el recorrido
+viejo. El primer tick tras desplegar este cambio lo corrige solo, antes de procesar ningún día
+(`congelarTransicionE1`, `packages/db/src/transicionE1.ts`, llamada al principio de `runTick`):
+
+- congela con el recorrido del generador viejo (`legacyCalendar()`: perfil, `kind`, `label`,
+  `time_trial` y `route_source`; `arch` nulo) toda carrera NO congelada cuya etapa 1 cae en los días
+  de juego `[díaActual, díaActual + 10]`, cada una con la `raceKey` de su temporada (la ventana
+  puede cruzar de temporada);
+- no toca ninguna carrera ya congelada (las empezadas conservan la suya);
+- corre UNA vez por mundo: deja la marca `worlds.e1_transicion_hasta` (migración
+  `0042_transicion_e1`) con el último día de la ventana, y con la marca puesta no hace nada. Un
+  mundo nuevo nace con -1 y no congela nada.
+
+Va en su propia transacción: si falla, se registra en consola y en las notas de `tick_log` y el
+tick sigue; sin la marca, el próximo tick lo reintenta. Si corre bien, `tick_log.notes` dice cuántas
+carreras congeló y en qué ventana. No hay pasos manuales. Es TEMPORAL: cuando se borre
+`packages/engine/src/sim/legacy/` ya habrá corrido, y la operación y la exportación de
+`legacyCalendar` se borran con él.
+
 ## Galería de recorridos (generador E1)
 
 Páginas estáticas con los perfiles que dibuja el generador, zona por zona y carrera por carrera,

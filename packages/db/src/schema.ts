@@ -55,6 +55,13 @@ export const worlds = pgTable('worlds', {
    * nace con la versión actual (no hay nada que reparar).
    */
   repairVersion: integer('repair_version').notNull().default(0),
+  /**
+   * MARCA DE LA TRANSICIÓN E1 (v88; `transicionE1.ts`, docs/ops.md). `null` mientras no ha corrido;
+   * si no, el último día de juego cuya carrera (por el día de su etapa 1) se congeló con el recorrido
+   * del generador viejo. Un mundo nacido con la v88 o después nace con -1: no hay nada que conservar.
+   * TEMPORAL: se borra junto con `sim/legacy/` y la operación, que para entonces ya habrá corrido.
+   */
+  e1TransicionHasta: integer('e1_transicion_hasta'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 

@@ -295,6 +295,13 @@
       "when": 1790398914561,
       "tag": "0041_race_routes_kind",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1790426384080,
+      "tag": "0042_transicion_e1",
+      "breakpoints": true
     }
   ]
 }

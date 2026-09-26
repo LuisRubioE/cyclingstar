@@ -108,6 +108,42 @@ describe('db: runTick registra fallos y respeta el tope de días', () => {
     expect(log?.notes).toContain('quedan 2 días')
   }, 300_000)
 
+  it('transición E1: un mundo nuevo nace marcado; uno sin marca la corre una vez al principio del tick, y un fallo no rompe el tick', async () => {
+    const marca = async () =>
+      (await t.db.select({ m: worlds.e1TransicionHasta }).from(worlds).limit(1))[0]!.m
+    expect(await marca()).toBe(-1)
+    const dia = (await t.db.select({ d: gameState.currentDay }).from(gameState).limit(1))[0]!.d
+    await t.db.update(worlds).set({ e1TransicionHasta: null })
+
+    // Un fallo (la marca no se puede escribir) se registra y el tick sigue; la marca sigue sin poner.
+    await t.client`alter table worlds add constraint e1_envenenado check (e1_transicion_hasta is null)`
+    try {
+      const summary = await tick(0)
+      expect(summary.ran).toBe(true)
+      const [log] = await lastTicks(1)
+      expect(log?.ok).toBe(true)
+      expect(log?.notes).toContain('transición E1 fallida')
+      expect(await marca()).toBeNull()
+      const filas = await t.client`select count(*)::int as n from race_routes`
+      expect(filas[0]?.n).toBe(0)
+    } finally {
+      await t.client`alter table worlds drop constraint e1_envenenado`
+    }
+
+    // Quitado el obstáculo, el tick siguiente la corre y deja la marca.
+    await tick(0)
+    const [log] = await lastTicks(1)
+    expect(log?.notes).toContain(`días ${dia}-${dia + 10}`)
+    expect(await marca()).toBe(dia + 10)
+    const filas = await t.client`select count(*)::int as n from race_routes`
+    expect(filas[0]?.n).toBeGreaterThan(0)
+
+    // Y no vuelve a correr.
+    await tick(0)
+    const [otro] = await lastTicks(1)
+    expect(otro?.notes).toBe('sin días pendientes')
+  }, 300_000)
+
   it('el mundo ya reparado no vuelve a bajar de versión', async () => {
     const rows = await t.db
       .select({ v: worlds.repairVersion })

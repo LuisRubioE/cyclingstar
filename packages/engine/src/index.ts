@@ -104,6 +104,11 @@ export {
   type StageSpec,
 } from './routes/calendar.js'
 export { RACE_EDITIONS } from './routes/editions.js'
+// TEMPORAL (v88): el calendario del generador viejo, SOLO para la transición E1 de `packages/db`
+// (`transicionE1.ts`), que congela con él las carreras de los 10 días de juego siguientes al
+// despliegue. Corre una vez por mundo; el día que se borre `sim/legacy/` ya habrá corrido, y esta
+// exportación y la operación se borran con él.
+export { legacyCalendar } from './sim/legacy/profileGenLegacy.js'
 export { hashInt } from './routes/profileGen.js'
 export { BASE_SEASON, diffMotivos, type DiffInput } from './routes/grammar/edition.js'
 // Fuera de las seis líneas de §15.1: la opción de nivel 2 de una temporada ("final: Como → Bergamo")

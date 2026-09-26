@@ -1,0 +1,1 @@
+ALTER TABLE "worlds" ADD COLUMN "e1_transicion_hasta" integer;

@@ -211,6 +211,12 @@ export {
   type FrozenStage,
   type RouteSource,
 } from './raceRoutes.js'
+// TEMPORAL (v88): la transición E1; se borra con `sim/legacy/` (ver transicionE1.ts).
+export {
+  E1_TRANSICION_DIAS,
+  congelarTransicionE1,
+  type ResultadoTransicionE1,
+} from './transicionE1.js'
 export {
   createRider,
   getAttrTrend,
