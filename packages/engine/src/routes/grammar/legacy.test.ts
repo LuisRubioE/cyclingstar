@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import type { Segment } from '../../stage/types.js'
+import { ARCH } from '../../constants.js'
+import { cuantilesDe, raceDePrueba, routeCensus, type RouteStats } from '../../sim/routeCensus.js'
+import type { Segment, StageProfile } from '../../stage/types.js'
 import {
   classicSegments,
   cobblesSegments,
@@ -9,9 +11,12 @@ import {
   ittSegments,
   mountainClassicSegments,
   mountainSegments,
+  routeRng,
 } from '../profileGen.js'
+import { ZONAS, type GeoSignature } from './geo.js'
 import { colocarLegado, LEGACY, legacyMotivos, type LegacyId } from './legacy.js'
 import type { Motif } from './motifs.js'
+import { emitirPancartas, renderSkeleton } from './render.js'
 
 /**
  * I-42: LA GRAMÁTICA EXPRESA LAS FORMAS DE HOY ANTES DE SUSTITUIRLAS (docs/generador.md §15.3).
@@ -19,7 +24,10 @@ import type { Motif } from './motifs.js'
  * Para cada uno de los ocho generadores viejos, 60 semillas × los km de `stageKind.test.ts`: la lista
  * de motivos del builder legado tiene el MISMO número y orden de dificultades (`puerto`, `paves`) que
  * los segmentos de la función vieja, en 300 de 300. En el paso 4 este fichero gana la tabla pareada
- * (`colocarLegado` + `renderSkeleton` contra los viejos, medidos con `routeCensus`).
+ * (`colocarLegado` + `renderSkeleton` contra los viejos, medidos con `routeCensus`): la fontanería
+ * nueva reproduce la forma vieja dentro del ruido (I-16, I-42), de modo que lo que cambie en el paso
+ * 8 será forma y no fontanería. Su salida es el apéndice «tabla pareada de los legado» de la nota de
+ * balance (vN §0).
  */
 
 const SEEDS = 60
@@ -146,4 +154,94 @@ describe('los ocho builders legado reproducen la forma de los generadores viejos
       expect(x.finKm - x.inicioKm).toBeCloseTo(x.motif.km, 5)
     })
   })
+})
+
+// ---------------------------------------------------------------------------------------------------
+// La tabla pareada (paso 4, §15.6): 300 perfiles por pareja (60 semillas × los 5 km de KM_ROAD).
+// ---------------------------------------------------------------------------------------------------
+
+/** `calendar.ts::auto` (privada): una cima al final de cada `puerto`, al km redondeado. Así llegan los viejos al calendario. */
+function auto(segments: Segment[]): StageProfile {
+  const banners: { km: number; tipo: 'cima' }[] = []
+  let cum = 0
+  for (const s of segments) {
+    cum += s.km
+    if (s.tipo === 'puerto') banners.push({ km: Math.round(cum), tipo: 'cima' })
+  }
+  return { segments, banners: banners.sort((a, b) => a.km - b.km) }
+}
+
+/**
+ * La zona con que se rinden los legado: la firma genérica con la amplitud del relleno viejo, 1,8 en
+ * las formas llanas y 3,2 en las `bumpy` (media, reina y clásicas), topada a `ARCH.motivo.enlace.ampMax`
+ * 2,4, que es lo más que la gramática ondula un enlace (y sin `rompepiernas`, decisión 2).
+ */
+const PLANAS: readonly LegacyId[] = ['lg_flat', 'lg_itt', 'lg_cobbles']
+const geoLegado = (id: LegacyId): GeoSignature => ({
+  ...ZONAS.generico,
+  amplitud: Math.min(ARCH.motivo.enlace.ampMax, PLANAS.includes(id) ? 1.8 : 3.2),
+})
+
+/** Una fila del censo para un perfil suelto (una carrera de prueba de una etapa). */
+const fila = (profile: StageProfile, id: LegacyId): RouteStats =>
+  routeCensus([raceDePrueba(profile, LEGACY[id].kind)])[0]!
+
+function nuevoDe(id: LegacyId, km: number, seed: string): StageProfile {
+  const motivos = legacyMotivos(id, km, seed)
+  const colocados = colocarLegado(motivos)
+  const total = Math.round(motivos.reduce((a, m) => a + m.km, 0) * 10) / 10
+  const segs = renderSkeleton(colocados, total, geoLegado(id), (token) =>
+    routeRng(`legado|${id}|${km}|${seed}|dib|${token}`),
+  )
+  return { segments: segs, banners: emitirPancartas(segs, colocados) }
+}
+
+const p50 = (xs: readonly number[]): number => cuantilesDe(xs)?.p50 ?? 0
+const sd = (xs: readonly number[]): number => {
+  if (xs.length < 2) return 0
+  const m = xs.reduce((a, b) => a + b, 0) / xs.length
+  return Math.sqrt(xs.reduce((a, b) => a + (b - m) ** 2, 0) / (xs.length - 1))
+}
+const histograma = (xs: readonly number[]): Record<number, number> =>
+  xs.reduce<Record<number, number>>((h, x) => ({ ...h, [x]: (h[x] ?? 0) + 1 }), {})
+const r1 = (x: number): number => Math.round(x * 10) / 10
+
+/** Reloj propio (regla 3 de §15.1): la tabla muestrea 4.800 perfiles con `routeCensus`; medido 1,3 s en local (unos 0,15 s por pareja). */
+const RELOJ = { timeout: 60_000 }
+
+describe('tabla pareada: los legado rendidos con renderSkeleton contra los ocho xxxSegments (paso 4)', () => {
+  const tabla: string[] = []
+  it.each(IDS)(
+    '%s: nPuertos idéntico en distribución y |Δ p50| de dPlus, longestClimbKm y kmAfterLastClimb bajo la σ vieja',
+    (id) => {
+      const viejas: RouteStats[] = []
+      const nuevas: RouteStats[] = []
+      for (const km of KM_ROAD)
+        for (const seed of seeds(SEEDS)) {
+          viejas.push(fila(auto(VIEJO[id](km, seed)), id))
+          nuevas.push(fila(nuevoDe(id, km, seed), id))
+        }
+      expect(viejas).toHaveLength(300)
+      // nPuertos: la misma distribución (el legado sortea las mismas subidas que el viejo).
+      expect(histograma(nuevas.map((r) => r.nPuertos))).toEqual(
+        histograma(viejas.map((r) => r.nPuertos)),
+      )
+      const columnas = ['dPlus', 'longestClimbKm', 'kmAfterLastClimb'] as const
+      const celdas: string[] = []
+      for (const col of columnas) {
+        const v = viejas.flatMap((r) => (r[col] === null ? [] : [r[col]]))
+        const n = nuevas.flatMap((r) => (r[col] === null ? [] : [r[col]]))
+        expect(n.length, `${id} ${col}: filas con valor`).toBe(v.length)
+        const delta = Math.abs(p50(n) - p50(v))
+        const sigma = sd(v)
+        celdas.push(`${col} ${r1(p50(v))} → ${r1(p50(n))} (|Δ| ${r1(delta)}, σ ${r1(sigma)})`)
+        if (sigma === 0) expect(delta, `${id} ${col}`).toBe(0)
+        else
+          expect(delta, `${id} ${col}: |Δ p50| ${r1(delta)} ≥ σ ${r1(sigma)}`).toBeLessThan(sigma)
+      }
+      tabla.push(`${id}: ${celdas.join(' · ')}`)
+      if (tabla.length === IDS.length) console.info(`[legado] tabla pareada\n${tabla.join('\n')}`)
+    },
+    RELOJ.timeout,
+  )
 })

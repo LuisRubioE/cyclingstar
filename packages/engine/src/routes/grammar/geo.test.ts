@@ -12,9 +12,18 @@ import {
   firmeDe,
   territorioDe,
   zonaDe,
+  type GeoSignature,
 } from './geo.js'
-import type { Motif } from './motifs.js'
-import type { Requiere } from './skeletons.js'
+import { validateMotif, type Motif } from './motifs.js'
+import {
+  ESCALON_ROLE,
+  SKELETONS,
+  candidatos,
+  skeletonFor,
+  type Skeleton,
+  type Slot,
+} from './skeletons.js'
+import type { StageRole } from './tour.js'
 
 /**
  * LA GEOGRAFÍA NO SE CONTRADICE (docs/generador.md §6.8, paso 2 del plan, §15.4).
@@ -24,10 +33,9 @@ import type { Requiere } from './skeletons.js'
  * dispararse por culpa de la tabla. La forma es la de §6.8, con tres cambios que obliga el árbol:
  *  - `Rango` es `readonly` porque los rangos de `ARCH` lo son (`as const`);
  *  - con `noUncheckedIndexedAccess`, `TERRITORIOS.XX` se lee con `?.` (es `Record<string, …>`);
- *  - lo que lee `SKELETONS`, `candidatos`, `skeletonFor`, `ESCALON_ROLE` (paso 4), `validateMotif` y
- *    `ARCH.meta` (paso 3) se escribe `it.todo` hasta que esos pasos lo enciendan (regla 1 de §15.1).
- *    Mientras, `admite` se prueba con los `Requiere` literales de la columna `requiere` de §5.2 y
- *    §5.3 (solo los de los ejemplos de (g)), y `firmeDe`/`conFirmeDeZona` con plantillas literales.
+ *  - (g), (h) e (i) leen `SKELETONS`, `candidatos`, `skeletonFor` y `ESCALON_ROLE` desde el paso 4,
+ *    que borró la tabla provisional de `Requiere` literales con que el paso 2 probaba `admite`: la
+ *    columna `requiere` de §5.2 y §5.3 vive solo en `SKELETONS`.
  */
 
 type Rango = readonly [number, number]
@@ -124,38 +132,40 @@ const SIN_CORDILLERA = [
   'DZ',
 ]
 
-/**
- * `requiere` de los esqueletos que cita (g), copiado de la columna de §5.2 y §5.3 SOLO para probar
- * `admite` antes de que exista `SKELETONS` (paso 4); el paso 4 borra esta tabla y (g) pasa a leer
- * `SKELETONS.id.requiere`, que es la única lista del documento.
- */
-const REQ: Record<string, Requiere | Requiere[]> = {
-  et_reina_alto_largo: { puerto: true, relieve: 'montana', finalesAlto: 'largo' },
-  ud_montana: { puerto: true, cota: true, relieve: 'montana' },
-  ud_sterrato: { sterrato: true, muro: true, cota: true },
-  et_media_valle: { cota: true, cotaKmMin: 3.3 },
-  et_reina_encadenada: { puerto: true, relieve: 'alta' },
-  ud_esprint_capi: { cota: true, cotaKmMin: 3.3 },
-  ud_adoquin_ligero: [{ adoquin: 2 }, { sterrato: true }],
-  ud_adoquin: { adoquin: 2 },
-  et_llana_viento: { viento: 2 },
-  et_reina_blanda: { puerto: true, cota: true, finalesAlto: 'largo' },
-  et_media_alto: { cota: true, cotaKmMin: 3.3, finalesAlto: 'corto' },
-  ud_muros_adoquin: { adoquin: 2, muro: { adoquin: true } },
-  ud_circuito: [{ muro: true }, { cota: true, cotaCortaMax: 2.9 }],
-  et_media_tendida: [
-    { cota: true, cotaKmMin: 3.3, altitud: 'altiplano' },
-    { cota: true, cotaKmMin: 3.3, altitud: 'media' },
-    { cota: true, cotaKmMin: 3.3, relieve: 'ondulado' },
-  ],
-}
-const req = (id: string): Requiere | Requiere[] => {
-  const r = REQ[id]
-  if (r === undefined) throw new Error(`sin requiere literal para ${id}`)
-  return r
-}
 /** Todos los motivos de una plantilla, hijos de compuestos y de sector_meta incluidos. */
 const planos = (ms: readonly Motif[]): Motif[] => ms.flatMap((m) => [m, ...planos(m.hijos ?? [])])
+const interseca = (a: Rango, b: Rango) => Math.max(a[0], b[0]) <= Math.min(a[1], b[1])
+type MotivoZona = 'puerto' | 'cota' | 'muro'
+const esMotivoZona = (m: string): m is MotivoZona => m === 'puerto' || m === 'cota' || m === 'muro'
+const zonaDeMotivo = (z: GeoSignature, m: MotivoZona) => z[m] // { km, g, ... } o null
+/** Rango propio de la meta (§6.5 punto 3): cotaFinal del esqueleto si la declara; si no, ARCH.meta con las claves de la sección 12. */
+const rangoMeta = (s: Skeleton): Rango | undefined =>
+  s.metaParams?.cotaFinal?.km ??
+  (s.meta === 'alto_largo'
+    ? ARCH.meta.altoLargo.km
+    : s.meta === 'alto_corto'
+      ? ARCH.meta.altoCorto.km
+      : s.meta === 'muro_meta'
+        ? ARCH.meta.muro.km
+        : undefined)
+/** Motivo de la zona contra el que se compara la meta (§6.5 punto 3); null = no se compara. */
+const motivoDeMeta = (s: Skeleton, z: GeoSignature): MotivoZona | null => {
+  if (s.meta === 'alto_largo') return 'puerto'
+  if (s.meta === 'alto_corto') return z.cota ? 'cota' : 'puerto'
+  if (s.meta === 'muro_meta') return 'muro'
+  if (!s.id.startsWith('et_')) return null // un día: cotaFinal de ARCH.meta.unDiaUltimaCota (§5.1 regla 2)
+  if (s.meta === 'cima_cerca' || s.meta === 'descenso_meta' || s.meta === 'valle') {
+    const m = [...s.slots].reverse().find((sl) => sl.n[0] >= 1 && esMotivoZona(sl.motif))?.motif
+    return m && esMotivoZona(m) ? m : null
+  }
+  return null
+}
+/** Huecos obligatorios a cualquier profundidad (un hijo cuenta si él y todos sus padres tienen n[0] ≥ 1); `hijo` marca los de dentro de un compuesto. */
+const obligatorios = (ss: Slot[], hijo = false): { sl: Slot; hijo: boolean }[] =>
+  ss
+    .filter((sl) => sl.n[0] >= 1)
+    .flatMap((sl) => [{ sl, hijo }, ...obligatorios(sl.hijos ?? [], true)])
+const PAPELES = Object.keys(ESCALON_ROLE) as StageRole[] // los 12 de StageRole
 
 describe('grammar/geo: ZONAS cabe en ARCH y no se contradice', () => {
   it('(a) tiene 31 filas y cada rango está dentro del rango del motivo', () => {
@@ -232,7 +242,7 @@ describe('grammar/geo: ZONAS cabe en ARCH y no se contradice', () => {
     expect(territorioDe(null)).toBe(FALLBACK)
     expect(territorioDe('ZW')).toBe(FALLBACK)
   })
-  it('(g) ejemplos que fijan la semántica de zonaDe y admite (con los requiere literales de §5.2 y §5.3)', () => {
+  it('(g) ejemplos que fijan la semántica de zonaDe y admite, leídos de SKELETONS.id.requiere', () => {
     expect(zonaDe('BE')).toBe('flandes')
     expect(zonaDe('CO')).toBe('andes')
     expect(zonaDe('ZW')).toBe('generico')
@@ -240,34 +250,36 @@ describe('grammar/geo: ZONAS cabe en ARCH y no se contradice', () => {
     expect(zonaDe('ES')).toBe('cantabrico')
     expect(zonaDe('AT')).toBe('alpes')
     expect(zonaDe(null)).toBe('generico')
-    expect(admite(req('et_reina_alto_largo'), ZONAS.alpes)).toBe(true)
-    expect(admite(req('et_reina_alto_largo'), ZONAS.flandes)).toBe(false) // puerto null
-    expect(admite(req('et_reina_alto_largo'), ZONAS.levante)).toBe(false) // finalesAlto corto
-    expect(admite(req('ud_montana'), ZONAS.levante)).toBe(true) // puerto y relieve montana (Sa Calobra)
-    expect(admite(req('ud_montana'), ZONAS.ardenas)).toBe(false) // puerto null
-    expect(admite(req('ud_sterrato'), ZONAS.flandes)).toBe(false)
-    expect(admite(req('et_media_valle'), ZONAS.bretana)).toBe(false) // cotaKmMin 3,3 > 3,0
-    expect(admite(req('et_reina_encadenada'), ZONAS.cantabrico)).toBe(false) // relieve montana < alta
-    expect(admite(req('ud_esprint_capi'), ZONAS.italia_norte)).toBe(true)
-    expect(admite(req('ud_adoquin_ligero'), ZONAS.italia_norte)).toBe(true) // por { sterrato: true }: sectores de tierra (Veneto Classic)
-    expect(admite(req('ud_adoquin'), ZONAS.italia_norte)).toBe(false) // adoquin 1 < 2
-    expect(admite(req('ud_adoquin_ligero'), ZONAS.ardenas)).toBe(false) // adoquin 1 y sin sterrato: el 1 es metadato
-    expect(admite(req('et_llana_viento'), ZONAS.andes)).toBe(false) // viento 0 < 2
-    expect(admite(req('et_reina_blanda'), ZONAS.cono_sur)).toBe(true)
-    expect(admite(req('et_reina_blanda'), ZONAS.golfo)).toBe(false) // finalesAlto corto (D8)
-    expect(admite(req('et_media_alto'), ZONAS.golfo)).toBe(true) // race-sharjah: final en alto
+    expect(admite(SKELETONS.et_reina_alto_largo.requiere, ZONAS.alpes)).toBe(true)
+    expect(admite(SKELETONS.et_reina_alto_largo.requiere, ZONAS.flandes)).toBe(false) // puerto null
+    expect(admite(SKELETONS.et_reina_alto_largo.requiere, ZONAS.levante)).toBe(false) // finalesAlto corto
+    expect(admite(SKELETONS.ud_montana.requiere, ZONAS.levante)).toBe(true) // puerto y relieve montana (Sa Calobra)
+    expect(admite(SKELETONS.ud_montana.requiere, ZONAS.ardenas)).toBe(false) // puerto null
+    expect(admite(SKELETONS.ud_sterrato.requiere, ZONAS.flandes)).toBe(false)
+    expect(admite(SKELETONS.et_media_valle.requiere, ZONAS.bretana)).toBe(false) // cotaKmMin 3,3 > 3,0
+    expect(admite(SKELETONS.et_reina_encadenada.requiere, ZONAS.cantabrico)).toBe(false) // relieve montana < alta
+    expect(admite(SKELETONS.ud_esprint_capi.requiere, ZONAS.italia_norte)).toBe(true)
+    expect(admite(SKELETONS.ud_adoquin_ligero.requiere, ZONAS.italia_norte)).toBe(true) // por { sterrato: true }: sectores de tierra (Veneto Classic)
+    expect(admite(SKELETONS.ud_adoquin.requiere, ZONAS.italia_norte)).toBe(false) // adoquin 1 < 2
+    expect(admite(SKELETONS.ud_adoquin_ligero.requiere, ZONAS.ardenas)).toBe(false) // adoquin 1 y sin sterrato: el 1 es metadato
+    expect(admite(SKELETONS.et_llana_viento.requiere, ZONAS.andes)).toBe(false) // viento 0 < 2
+    expect(admite(SKELETONS.et_reina_blanda.requiere, ZONAS.cono_sur)).toBe(true)
+    expect(interseca(rangoMeta(SKELETONS.et_reina_blanda)!, ZONAS.cono_sur.puerto!.km)).toBe(true)
+    expect(interseca(rangoMeta(SKELETONS.et_reina_blanda)!, ZONAS.andes.puerto!.km)).toBe(true) // suelo 11 (§6.2)
+    expect(admite(SKELETONS.et_reina_blanda.requiere, ZONAS.golfo)).toBe(false) // finalesAlto corto (D8)
+    expect(admite(SKELETONS.et_media_alto.requiere, ZONAS.golfo)).toBe(true) // race-sharjah: final en alto
     // Los campos que los ejemplos de §6.8 no tocan, uno a uno (§6.5 punto 1).
     expect(admite(undefined, ZONAS.golfo)).toBe(true) // requiere ausente siempre cabe
     expect(admite({}, ZONAS.golfo)).toBe(true) // un campo ausente no exige nada
-    expect(admite(req('ud_muros_adoquin'), ZONAS.flandes)).toBe(true)
-    expect(admite(req('ud_muros_adoquin'), ZONAS.francia_norte)).toBe(true)
+    expect(admite(SKELETONS.ud_muros_adoquin.requiere, ZONAS.flandes)).toBe(true)
+    expect(admite(SKELETONS.ud_muros_adoquin.requiere, ZONAS.francia_norte)).toBe(true)
     expect(admite({ muro: { adoquin: true } }, ZONAS.ardenas)).toBe(false) // muro sin adoquín
-    expect(admite(req('ud_circuito'), ZONAS.golfo)).toBe(true) // sin muro, por la cota corta (2,5 ≤ 2,9)
-    expect(admite(req('ud_circuito'), ZONAS.alpes)).toBe(false) // sin muro y cota desde 4 km
-    expect(admite(req('et_media_tendida'), ZONAS.andes)).toBe(true) // altitud altiplano
-    expect(admite(req('et_media_tendida'), ZONAS.macizo_central)).toBe(true) // altitud media
-    expect(admite(req('et_media_tendida'), ZONAS.australia)).toBe(true) // relieve ondulado ≥ ondulado
-    expect(admite(req('et_media_tendida'), ZONAS.bretana)).toBe(false) // cotaKmMin en las tres alternativas
+    expect(admite(SKELETONS.ud_circuito.requiere, ZONAS.golfo)).toBe(true) // sin muro, por la cota corta (2,5 ≤ 2,9)
+    expect(admite(SKELETONS.ud_circuito.requiere, ZONAS.alpes)).toBe(false) // sin muro y cota desde 4 km
+    expect(admite(SKELETONS.et_media_tendida.requiere, ZONAS.andes)).toBe(true) // altitud altiplano
+    expect(admite(SKELETONS.et_media_tendida.requiere, ZONAS.macizo_central)).toBe(true) // altitud media
+    expect(admite(SKELETONS.et_media_tendida.requiere, ZONAS.australia)).toBe(true) // relieve ondulado ≥ ondulado
+    expect(admite(SKELETONS.et_media_tendida.requiere, ZONAS.bretana)).toBe(false) // cotaKmMin en las tres alternativas
     expect(admite({ relieve: 'media' }, ZONAS.ardenas)).toBe(true) // mínimo, no igualdad
     expect(admite({ relieve: 'media' }, ZONAS.flandes)).toBe(false)
     expect(admite({ finalesAlto: 'corto' }, ZONAS.alpes)).toBe(true) // largo cumple corto
@@ -275,9 +287,6 @@ describe('grammar/geo: ZONAS cabe en ARCH y no se contradice', () => {
     expect(admite({ adoquin: 3 }, ZONAS.francia_norte)).toBe(false)
     expect(admite({ altitud: 'media' }, ZONAS.alpes)).toBe(false) // igualdad
   })
-  it.todo(
-    '(g) los mismos ejemplos leídos de SKELETONS.id.requiere, y la meta de et_reina_blanda dentro del puerto de cono_sur y de andes (paso 4)',
-  )
   it('degradar baja un escalón y nunca sube; degradarMotivo cae por la cadena de §8.5', () => {
     expect(degradar('alta')).toBe('montana')
     expect(degradar('montana')).toBe('media')
@@ -300,9 +309,72 @@ describe('grammar/geo: ZONAS cabe en ARCH y no se contradice', () => {
         expect(d === 'enlace' || z[d as 'puerto' | 'cota' | 'muro'] !== null).toBe(true) // nunca a un motivo que no existe
       }
   })
-  it.todo(
-    '(h) todo esqueleto admitido se puede dibujar en la zona y todo papel tiene salida (paso 4: SKELETONS, candidatos, skeletonFor, ESCALON_ROLE; ARCH.meta del paso 3)',
-  )
+  it('(h) todo esqueleto admitido se puede dibujar en la zona y todo papel tiene salida', () => {
+    const todos = Object.values(SKELETONS)
+    let gVacios = 0
+    for (const [nombre, z] of Object.entries(ZONAS)) {
+      const admitidos = todos.filter((s) => admite(s.requiere, z))
+      const ids = admitidos.map((s) => s.id)
+      expect(ids).toContain('ud_esprint')
+      expect(ids).toContain('et_llana')
+      expect(ids).toContain('et_crono')
+      expect(ids.some((id) => id.startsWith('et_media_'))).toBe(true) // hilly de edición nunca degrada a llana (§5.8)
+      for (const id of Object.keys(z.pesos))
+        expect(ids, `${nombre}: peso sobre ${id}`).toContain(id) // ningún peso sobre un esqueleto no admitido (§6.2)
+      for (const s of admitidos) {
+        const sk = skeletonFor(s.id, z) // nc_ruta clásica deja su cota en n = [0, 0] (§5.7 regla 2)
+        for (const { sl, hijo } of obligatorios(sk.slots)) {
+          // huecos obligatorios, hijos de compuestos incluidos
+          if (!esMotivoZona(sl.motif)) continue
+          const m = hijo ? degradarMotivo(sl.motif, z) : sl.motif // un hijo degrada (§8.5: los muros de ud_circuito son cotas donde muro es null)
+          expect(esMotivoZona(m), `${nombre} × ${s.id}: hijo ${sl.motif} sin motivo`).toBe(true)
+          if (!esMotivoZona(m)) continue
+          const zm = zonaDeMotivo(z, m)
+          expect(zm, `${nombre} × ${s.id}: hueco ${m} sin motivo`).not.toBeNull()
+          if (zm && sl.params?.kmRango)
+            expect(
+              interseca(zm.km, sl.params.kmRango),
+              `${nombre} × ${s.id}: km vacío en ${m}`,
+            ).toBe(true)
+          if (zm && sl.params?.gRango && !interseca(zm.g, sl.params.gRango)) gVacios++ // manda el g del esqueleto (§6.5 punto 3): se cuenta, no falla
+        }
+        const m = motivoDeMeta(s, z),
+          r = rangoMeta(s)
+        if (m && r) {
+          const zm = zonaDeMotivo(z, m)
+          expect(zm, `${nombre} × ${s.id}: meta sin ${m}`).not.toBeNull()
+          if (zm) expect(interseca(zm.km, r), `${nombre} × ${s.id}: meta vacía`).toBe(true)
+        }
+        if (
+          obligatorios(sk.slots).some(({ sl }) => sl.motif === 'sector' || sl.motif === 'racimo') ||
+          s.meta === 'sector_meta'
+        )
+          expect(firmeDe(z), `${nombre} × ${s.id}: sector sin firme posible`).not.toBeNull() // V2 y V3 (§6.5 punto 5)
+      }
+      const salidas: string[] = []
+      for (const role of PAPELES) {
+        const out = candidatos({
+          role,
+          terrain: 'hilly',
+          geo: z,
+          raceClass: 'WT',
+          format: 'una-semana',
+          km: 160,
+          routeSource: 'generado',
+        })
+        expect(out.length).toBeGreaterThan(0) // con la degradación de ESCALON_ROLE (§5.7)
+        if (role === 'llana' || role === 'cri' || role === 'prologo')
+          expect(out.map((c) => c.id)).toEqual([
+            role === 'llana' ? 'et_llana' : role === 'cri' ? 'et_crono' : 'et_prologo',
+          ]) // no degradan
+        salidas.push(`${role} → ${out.map((c) => c.id).join(' ')}`)
+      }
+      console.info(`[geo] ${nombre}: ${salidas.join('; ')}`) // la galería y la sección 18 leen las degradaciones de aquí
+    }
+    console.info(
+      `[geo] pares (zona, hueco) con g vacío, resueltos con el g del esqueleto: ${gVacios}`,
+    ) // sin banda
+  })
   it('(i) firmeDe y conFirmeDeZona sobre plantillas literales', () => {
     expect(firmeDe(ZONAS.francia_norte)).toBe('adoquin')
     expect(firmeDe(ZONAS.flandes)).toBe('adoquin')
@@ -345,7 +417,19 @@ describe('grammar/geo: ZONAS cabe en ARCH y no se contradice', () => {
     expect(plantilla).toEqual(copia) // pura: no toca la entrada
     expect(conFirmeDeZona(plantilla, ZONAS.italia_norte)[2]?.hijos).not.toBe(plantilla[2]?.hijos)
   })
-  it.todo(
-    '(i) ningún sector de una plantilla canónica ni de sus alternativas cae en V2 o V3 en una zona que admite su esqueleto (paso 4: SKELETONS; validateMotif del paso 3)',
-  )
+  it('(i) ningún sector de una plantilla canónica ni de sus alternativas cae en V2 o V3 en una zona que admite su esqueleto', () => {
+    for (const z of Object.values(ZONAS)) {
+      for (const s of Object.values(SKELETONS).filter((sk) => admite(sk.requiere, z))) {
+        for (const plantilla of [s.canonico, ...(s.alternativas ?? []).map((a) => a.canonico)]) {
+          for (const m of planos(conFirmeDeZona(plantilla, z)).filter((x) => x.kind === 'sector'))
+            expect(validateMotif(m, z), `${z.zona} × ${s.id}: sector ${m.firme}`).toBeNull() // regla 4 de §4.5 = V2 y V3
+        }
+      }
+    }
+    const veneto = planos(
+      conFirmeDeZona(SKELETONS.ud_adoquin_ligero.canonico, ZONAS.italia_norte),
+    ).filter((x) => x.kind === 'sector')
+    expect(veneto.length).toBeGreaterThan(0)
+    expect(veneto.every((m) => m.firme === 'tierra')).toBe(true)
+  })
 })

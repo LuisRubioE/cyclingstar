@@ -7,6 +7,14 @@
  * drafting, cerillos, erosión, intensidades de riesgo y finales.
  */
 
+// Solo TIPOS de la gramática de recorridos (bloque `ARCH`, docs/generador.md §12.1): `import type`
+// se borra al compilar, así que no hay ciclo `constants.ts → routes/grammar/ → constants.ts`. Ningún
+// valor de `routes/grammar/` entra aquí ni se reexporta (el test de coherencia de `motifs.test.ts`
+// lee este fuente y lo exige).
+import type { Relieve } from './routes/grammar/geo.js'
+import type { SkeletonId } from './routes/grammar/skeletons.js'
+import type { RaceClass } from './routes/uci.js'
+
 /**
  * Versión del comportamiento del motor. Se incrementa ante CUALQUIER cambio de
  * comportamiento del motor (CLAUDE.md) y entra en la semilla del RNG (SPEC 6.1:
@@ -1362,6 +1370,53 @@ export interface EdicionCfg {
 type Rango = readonly [number, number]
 
 /**
+ * Multiplicador por clase del peso de cada esqueleto (docs/generador.md §5.6, que da la razón de cada
+ * celda; §12.7). Tabla COMPLETA: una fila por `SkeletonId` y las cinco clases en cada fila, sin
+ * `Partial`: `pnpm typecheck` falla si falta un esqueleto o una clase, y `candidatos` lee
+ * `ARCH.pesoPorClase[id][raceClass]` como `number`. No hay valor por defecto: 0 veta la clase.
+ * Regla que `skeletons.test.ts` sella: si `SKELETONS[id].km[0] > ARCH.km.maxPorClase[clase]`, la
+ * celda es 0 (V13 vetaría esa etapa en los ocho intentos). Decisiones y no juicio: `ud_montana_alto`
+ * 0,02 solo en .1 (decisión 37 y D1, aceptada por el dueño), `ud_criterium` 0 en todas (D5),
+ * `nc_ruta` 1 solo en NC y `nc_crono` 1 en todas (es la crono de un día del calendario entero). El
+ * resto (los 0,5, 0,25, 0,7 y 0,4) es juicio que corrige la galería, aquí y en §5.6 a la vez.
+ */
+const PESO_POR_CLASE: Record<SkeletonId, Record<RaceClass, number>> = {
+  //                    WT     Pro     '1'        '2'        NC
+  ud_esprint: { WT: 1, Pro: 1, '1': 1, '2': 1, NC: 0 },
+  ud_esprint_capi: { WT: 1, Pro: 1, '1': 0.5, '2': 0, NC: 0 }, // km[0] 200: cabe en .1 por el techo justo
+  ud_circuito: { WT: 1, Pro: 1, '1': 1, '2': 1, NC: 0 },
+  ud_muro_final: { WT: 1, Pro: 1, '1': 1, '2': 0.5, NC: 0 },
+  ud_muros: { WT: 1, Pro: 1, '1': 1, '2': 1, NC: 0 },
+  ud_muros_adoquin: { WT: 1, Pro: 1, '1': 1, '2': 0.5, NC: 0 },
+  ud_sterrato: { WT: 1, Pro: 1, '1': 0.5, '2': 0.25, NC: 0 }, // tres carreras reales
+  ud_adoquin: { WT: 1, Pro: 1, '1': 0.5, '2': 0, NC: 0 }, // km[0] 200 > 180
+  ud_adoquin_ligero: { WT: 1, Pro: 1, '1': 1, '2': 1, NC: 0 },
+  ud_montana: { WT: 1, Pro: 1, '1': 1, '2': 0, NC: 0 }, // km[0] 200 > maxPorClase['2'] 180
+  ud_montana_media: { WT: 1, Pro: 1, '1': 1, '2': 1, NC: 0 },
+  ud_repecho: { WT: 1, Pro: 1, '1': 1, '2': 1, NC: 0 },
+  ud_montana_alto: { WT: 0, Pro: 0, '1': 0.02, '2': 0, NC: 0 }, // rareza: decisión 37 y D1
+  ud_criterium: { WT: 0, Pro: 0, '1': 0, '2': 0, NC: 0 }, // D5: peso 0 hasta decisión del dueño
+  nc_ruta: { WT: 0, Pro: 0, '1': 0, '2': 0, NC: 1 }, // solo campeonatos
+  nc_crono: { WT: 1, Pro: 1, '1': 1, '2': 1, NC: 1 }, // toda crono de un día
+  et_llana: { WT: 1, Pro: 1, '1': 1, '2': 1, NC: 0 },
+  et_llana_viento: { WT: 1, Pro: 1, '1': 1, '2': 1, NC: 0 },
+  et_media_valle: { WT: 1, Pro: 1, '1': 1, '2': 1, NC: 0 },
+  et_media_alto: { WT: 1, Pro: 1, '1': 1, '2': 1, NC: 0 },
+  et_media_muro: { WT: 1, Pro: 1, '1': 1, '2': 0.7, NC: 0 },
+  et_media_tendida: { WT: 1, Pro: 1, '1': 1, '2': 1, NC: 0 },
+  et_reina_alto_largo: { WT: 1, Pro: 1, '1': 0.7, '2': 0.4, NC: 0 }, // finales de 15-22 km: gran vuelta y WT
+  et_reina_alto_corto: { WT: 1, Pro: 1, '1': 1, '2': 1, NC: 0 },
+  et_reina_cima_cerca: { WT: 1, Pro: 1, '1': 1, '2': 1, NC: 0 },
+  et_reina_valle: { WT: 1, Pro: 1, '1': 1, '2': 0.7, NC: 0 },
+  et_reina_encadenada: { WT: 1, Pro: 0.7, '1': 0.4, '2': 0, NC: 0 }, // Dolomitas no baja de Pro
+  et_montana_corta: { WT: 1, Pro: 1, '1': 0.7, '2': 0.4, NC: 0 },
+  et_reina_blanda: { WT: 1, Pro: 1, '1': 1, '2': 1, NC: 0 },
+  et_crono: { WT: 1, Pro: 1, '1': 1, '2': 1, NC: 0 },
+  et_prologo: { WT: 1, Pro: 1, '1': 1, '2': 1, NC: 0 },
+  et_cronoescalada: { WT: 1, Pro: 0.7, '1': 0.4, '2': 0, NC: 0 }, // Peyragudes no baja de Pro
+}
+
+/**
  * LAS PERILLAS DEL GENERADOR DE RECORRIDOS POR GRAMÁTICA (E1, docs/generador.md sección 12).
  *
  * Las tablas de la gramática (zonas, territorios, esqueletos) son datos de intención y vivirán en
@@ -1512,9 +1567,32 @@ export const ARCH = {
   } as EdicionCfg,
   /**
    * La etapa reina de verdad (§12.4). En el paso 0 entró la ventana que lee el censo; en el paso 3,
-   * la estimación del desnivel del relleno.
+   * la estimación del desnivel del relleno; en el paso 4, el resto (lo leen `skeletons.ts`,
+   * `render.ts` y el test de coherencia de `motifs.test.ts`).
    */
   reina: {
+    // `Skeleton.dPlus` es el desnivel TOTAL, relleno incluido, medido con `dPlusDe(profile)` (Σ
+    // `climbMetres` de todos los segmentos): la cifra `metres` que `stageKindOf` compara con 3.200
+    // (`stageKind.ts`). No es `calendarQueens::desnivelDe`, que suma solo los bloques `subida` (los
+    // puertos): la diferencia es el relleno, no un error (decisión 9).
+    dPlusIncluyeRelleno: true,
+    // Cuánto se alargan o acortan las dificultades NO firma para perseguir el desnivel objetivo (§8.5).
+    // Hoy [0,55; 1,8] (profileGen.ts): con 1,8 un final de 15 km llegaba a 27 y con 0,55 un puerto de 9
+    // se quedaba en 5 y la reina dejaba de serlo. Con [0,7; 1,4] ningún puerto sale de su rango.
+    escalaDificultades: [0.7, 1.4] as Rango,
+    // V8a: una reina lo es por un puerto ≥ 9 km en meta, o dos puertos ≥ 9 km, o D+ ≥ 3.400 m (200
+    // sobre `QUEEN_MIN_CLIMB_METRES` 3.200). No aplica a `et_reina_blanda`. Contra `reina-150`.
+    verdad: { puertoMetaMinKm: 9, dPlusMin: 3400 },
+    // V8b: al menos el 25 % de los km de subida a más de `subidaLejanaKm` de meta. Es la variable que
+    // separó `reina-150` de las reales (0 % contra 6-38 %, mapa 04 §3.2). Aplica a TODA reina.
+    subidaLejanaMin: 0.25,
+    // Probabilidad, por etapa cuyo papel empieza por `reina_` (o de edición `mountain`) y fuera de una
+    // gran vuelta, de que el esqueleto sea `et_reina_blanda` (D+ [1.500; 2.500]) antes del sorteo por
+    // pesos, según el relieve de la zona de meta (§5.7 regla 1). Sin entrada en `llano` ni `ondulado`:
+    // cuenta como 0 y no consume tirada. Es la cola baja de desnivel que `calendarQueens.test.ts` exige
+    // («la banda de < 1.500 m NO se queda vacía»), decidida en el diseño y no en el test; sustituye al
+    // 60/40 de `ROUTE.queenHighDplusShare`. `alta` < `montana`: en cordillera la reina es de verdad.
+    blandaShare: { media: 0.25, montana: 0.25, alta: 0.1 } as Partial<Record<Relieve, number>>,
     // D+ del relleno (`enlace`) por km, para perseguir el objetivo de desnivel de un esqueleto sin
     // llamar a `sampleProfile` (§8.5): 100 km de enlace son 300 m. RECALIBRADO en el paso 3 (§15.5)
     // desde el 5,5 de partida, que era el `rolling` de hoy a amplitud 1,8 (5,1 a 6,6 m/km, mapa 01
@@ -1531,17 +1609,31 @@ export const ARCH = {
   },
   /**
    * Colocación de motivos (§12.5). El paso 3 adelanta `enlaceMinimo`, porque `validateMotif` ya lo lee
-   * (separaciones y cierre de un `circuito`, §4.5 regla 3); el resto entra en el paso 4.
+   * (separaciones y cierre de un `circuito`, §4.5 regla 3); el resto entra en el paso 4 con `colocar`.
    */
   colocacion: {
     // Dos dificultades nunca se tocan: `finishClimbGapBlocks` 5 son 0,5 km de rellano tolerado dentro
     // de una cota, y con menos de 1,5 el motor fundiría dos muros en uno; margen ×3. Vieux Quaremont y
     // Paterberg, 1,7 km entre cimas, es el par más pegado del corpus.
     enlaceMinimo: 1.5,
+    // Fracción mínima de la etapa que es enlace: si las dificultades (con sus bajadas) no dejan el 12 %,
+    // `colocar` recorta la no firma más larga y, si no basta, devuelve null (V10 antes de dibujar). Hoy
+    // 0,15 solo en la reina (profileGen.ts) y 0,35 / 0,3 / 0,5 en las demás formas (mapa 01 §2).
+    enlaceMinimoTotal: 0.12,
+    // FRACCIÓN del desnivel de un puerto o cota que su bajada canónica devuelve, sorteada en `pos`; fija
+    // la PENDIENTE (−clamp(f·km·g / kmBaj, 3, 6,5)) y no la longitud, que es la de
+    // `motivo.descenso.kmPorDesnivel`. El techo 6,5 deja que el ruido ±1,5 de `descent` no cruce el −8
+    // de `motivo.descenso.g`. En lo real se baja el 85 % de lo subido (`featureProfile.ts`).
+    bajadaTrasPuerto: [0.6, 0.9] as Rango,
+    // Reintentos (`mot`, `pos`, `dib` con el intento en la semilla) antes de caer a la plantilla
+    // canónica con `degradado: true`. El paso 5 mide el p95 y, si sobra, se recorta; nunca se sube
+    // (se estrechan rangos, riesgo 9 de la sección 17).
+    maxIntentos: 8,
   },
   /**
    * Las redes de los vetos (§12.5). El paso 3 trae las dos que leen los `it` de coherencia y
-   * `puertoLargoKm`, que ya lee `validateMotif` (§4.5 regla 4); el resto entra en los pasos 4 y 5.
+   * `puertoLargoKm`, que ya lee `validateMotif` (§4.5 regla 4); el paso 4, `margenClaseMetros`
+   * (`garantizaClase`) y las dos claves de `llana` que lee `rachasDeSubida`; el resto, el paso 5.
    */
   veto: {
     // `garantizaClase` lleva el puerto que decide a 8,5 ± 0,3: cubre la diferencia entre `segment.km`
@@ -1550,8 +1642,52 @@ export const ARCH = {
     // La misma red sobre los cortes 5 y 20 de `FINAL_KIND_CUTS` cuando se recorta un valle: la holgura
     // de `ARCH.meta` hecha regla.
     margenValleKm: 0.7,
+    // La red de `QUEEN_MIN_CLIMB_METRES` 3.200 (`stageKind.ts`) vista desde una media: una etapa
+    // `media` no pasa de 3.200 − 300 = 2.900 m de `Σ climbMetres` (relleno incluido), o `stageKindOf`
+    // la llamaría reina por desnivel. 2.900 es el techo de `Skeleton.dPlus` de todo esqueleto `media`
+    // del catálogo, y `garantizaClase` (regla 2b) y la persecución del desnivel (§8.5) lo hacen cumplir.
+    margenClaseMetros: 300,
     // V4(b): un `puerto` de 15 km o más solo existe con `geo.altitud` media, alta o altiplano.
     puertoLargoKm: 15,
+    // V9 (§9.2), la racha de `deriveFinishTerrain` escrita sobre tramos: un tramo sube si g ≥ 3
+    // (= `STAGE.finishClimbMinGradient`) y un rellano de hasta 0,5 km (= `finishClimbGapBlocks` 5 × `dx`
+    // 0,1) no corta la racha. Entran en el paso 4 porque las lee `rachasDeSubida` (geometry.ts); el
+    // resto de la clave (`dPlusMax`, `cotaKm`, `cotaG`, `ventanaKm`) llega en el paso 5 con V9.
+    llana: { rachaGMin: 3, rellanoKm: 0.5 },
+  },
+  /**
+   * Pancartas (§12.5 y §8.10). `emitirPancartas` pone `cima` al final de todo `puerto` ≥ 1,5 km
+   * (= `CLIMB_MIN_KM` de `finalKind.ts`, y el test de coherencia lo exige), SIEMPRE en el último
+   * `puerto` de la etapa (así `lastClimbKm` ve el muro de meta, decisión 25) y, dentro de un
+   * `circuito`, UNA sola por cota ≥ 1,5 km en su último paso: 17 pasos por un muro serían 17
+   * pancartas, 34 de depósito y 85 km de alivio en una carrera sin GPM. Un muro de 400 m no es GPM.
+   */
+  pancarta: { cimaMinKm: 1.5 },
+  /**
+   * Kilómetros por clase (§12.7). El paso 4 trae el techo, que leen `cabe` y `skeletons.test.ts`;
+   * la tabla `porClase` llega en el paso 5 con `kmDe`.
+   */
+  km: {
+    // El techo que V13 comprueba y al que `kmDe` y el jitter de edición recortan antes (mapa 07 §4.1:
+    // «techo UCI 280 salvo excepciones como Sanremo» en WT, 200 en .1, 240 en Pro; §2.3, en torno a
+    // 200 en .2). WT a 260: la única de un día generada por encima sería una rareza sin nombre (las
+    // reales van por `km` de fila). D9 del dueño: a confirmar con el art. 2.6 del reglamento UCI.
+    maxPorClase: { WT: 260, Pro: 240, '1': 200, '2': 180, NC: 260 } as Record<RaceClass, number>,
+  },
+  /**
+   * Tercer factor de la fórmula única del peso de un esqueleto (§5.6): `pesoBase × SESGO_TERRENO ×
+   * ARCH.pesoPorClase[id][raceClass] × (geo.pesos[id] ?? 1)`. Es la tabla `PESO_POR_CLASE` de arriba.
+   */
+  pesoPorClase: PESO_POR_CLASE,
+  /**
+   * La vuelta (§12.8). El paso 4 adelanta `transicion`, porque `colocar` y `renderSkeleton` ya la
+   * leen (etapa de transición entre dos zonas); `avance` y `cronoescaladaP` llegan en el paso 7.
+   */
+  itinerario: {
+    // Fracción inicial de una etapa de transición (`req.desde` distinto de la zona de meta) que se
+    // traza con la ondulación de la zona de salida y sin dificultades: una Meseta → Cantábrico es 70
+    // km de páramo y 100 de sierra (geografía §7.3).
+    transicion: 0.4,
   },
 } as const
 
