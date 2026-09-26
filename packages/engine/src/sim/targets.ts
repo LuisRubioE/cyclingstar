@@ -85,7 +85,9 @@ export const TARGETS = {
     // **27,50 % con 120 semillas y 30,00 % con 300**. La deuda queda saldada.
     /**
      * …Y ES UN CONTROL DE FORMA, NO EL OBJETIVO DEL JUEGO (v44). `reina-150` tiene 1.200 m de
-     * desnivel, y una etapa reina del calendario tiene una mediana de 2.023. Medido: la métrica cae
+     * desnivel, y una etapa reina del calendario de la v87 tiene una mediana de 2.898 m de desnivel
+     * total (`dPlusDe`, 140 reinas) y 2.517 m en los puertos solos (la cuenta de la v44, que daba
+     * 2.023 con el generador viejo; paso 9 de E1, balance v87 §2). Medido: la métrica cae
      * de 26,7 % a 0 % según el puerto pase de 15 a 50 km, así que este 25-45 describe una etapa
      * concreta y no la montaña del juego. Lo que el calendario da está en `calendarQueens`.
      */

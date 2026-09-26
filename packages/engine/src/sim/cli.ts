@@ -11,6 +11,7 @@ import { analyzeErosion, analyzeFlat, analyzeMountain, analyzeTimeTrial } from '
 import { analyzeClimbs } from './climbs.js'
 import { analyzeGeneral } from './generalBench.js'
 import { abandonMix, analyzeGrandTour } from './grandTour.js'
+import { frozenQueenOf } from './frozenSkeletons.js'
 import { REAL_QUEENS, analyzeRealQueens, colombiaRegressionTails } from './realQueens.js'
 import { REAL_TIME_TRIALS, analyzeRealTimeTrials } from './timeTrials.js'
 import { SMALL_TOURS, analyzeSmallTours } from './smallTours.js'
@@ -232,7 +233,11 @@ function main(): void {
     rq.perStage
       .map(
         (row) =>
-          `${`${row.queen.raceId} e${row.queen.stageIndex}`.padEnd(24)} último grupo ${row.stats.medianLastGroupPct.toFixed(1).padStart(5)}% (peor ${row.stats.maxLastGroupPct.toFixed(1)}%) · ${row.stats.medianGroups} grupos · con el ganador ${row.stats.medianWinnerGroupPct.toFixed(0)}% · 1.º-10.º ${row.stats.medianTop10GapSeconds}s`,
+          `${`${row.queen.raceId} e${row.queen.stageIndex}`.padEnd(24)} último grupo ${row.stats.medianLastGroupPct.toFixed(1).padStart(5)}% (peor ${row.stats.maxLastGroupPct.toFixed(1)}%) · ${row.stats.medianGroups} grupos · con el ganador ${row.stats.medianWinnerGroupPct.toFixed(0)}% · 1.º-10.º ${row.stats.medianTop10GapSeconds}s` +
+          // Deuda con nombre (§13.5): tres de las nueve no tienen recorrido real.
+          (frozenQueenOf(row.queen.raceId, row.queen.stageIndex)
+            ? ' · congelada por forma, sustituir por dato real en E12'
+            : ''),
       )
       .join('\n  '),
   )
