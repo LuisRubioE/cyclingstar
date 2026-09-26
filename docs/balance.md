@@ -17471,3 +17471,16 @@ El 25/09/2026 el dueño aceptó las trece decisiones de la sección 18 de `docs/
 | D11      | Qué es «dónde» en E1                           | relieve y firme; viento y altitud como metadatos de la ficha (y altitud como veto V4)                                       |
 | D12      | Los países sin fila en `TERRITORIOS`           | caen a `FALLBACK` (firma `generico`) y `geo.test.ts` los imprime sin banda                                                  |
 | D13      | La arquitectura Superga                        | queda fuera: en meta de un día solo `muro_meta` de hasta 2,2 km                                                             |
+
+## v88 · Dos bandas del censo cerradas en la gramática
+
+La v87 llegó a producción con tres bandas de variedad abiertas (v87 §2). Dos se cierran corrigiendo su causa en la gramática, y como cambian perfiles del calendario la versión del motor sube.
+
+| Banda                        | v87             | v88             | Causa y corrección                                                                                                                                                                                                                                          |
+| ---------------------------- | --------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `finales.reparto.valleLargo` | 4 de 86 (0,047) | 6 de 86 (0,070) | El papel `reina_valle` y las etapas de montaña de edición repartían su peso 10 y 10 entre `et_reina_valle` y `et_reina_cima_cerca`; en las reinas reales hay 13 finales en valle por 4 cima cerca. `pesoBase` pasa a 15 y 5, con la misma suma.             |
+| `variedad.dplusCubetaAlta`   | σ 474 m         | σ 510 m         | El objetivo de desnivel de una reina se estiraba sobre el intervalo factible y comprimía la cola alta. Ahora se tira en todo `sk.dPlus`, como dice §8.4, y lo factible solo lo recorta. La precisión de ±12 % sigue entre el 97 % y el 100 % por esqueleto. |
+
+Cambian de esqueleto cinco etapas: `race-asturias` e1, `race-czechia` e2, `race-tachira` e4, `race-gila` e5 y `race-lyon` e2. `finales.reparto.alto` sigue en 0,698 (60 de 86), bajo el tope de 0,70. Ninguna banda de banco se movió y ninguna huella canónica del motor cambió. `GENERATED_QUEENS` sustituye `race-lyon` e2, que ya no acaba cima cerca, por `race-langkawi` e5.
+
+La tercera, `variedad.correlacion.max`, se redefine para medir la población del diseño (los pares de V12: mismo esqueleto, misma zona, distinta carrera y km a ±10 %) y sigue abierta: 0,965 sobre 856 pares frente al tope de 0,32. Reintentar el dibujo no la cierra, porque los finales en alto reales de esas familias ya pasan de 0,32 (p90 0,4). Queda como decisión del dueño, con las opciones en v87 §2. Mientras siga abierta no se cumple la condición (b) de la decisión 30, y `sim/legacy/` se conserva.

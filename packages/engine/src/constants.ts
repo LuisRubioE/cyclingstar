@@ -824,8 +824,13 @@ import type { RaceClass } from './routes/uci.js'
  * generadores viejos salen de `profileGen.ts` a `sim/legacy/`, se retiran diez claves de `ROUTE`
  * sin lector y entra `ARCH.anticlon`. La etiqueta «Summit finish» del clasificador pasa a la regla de
  * los 5 km de `SUMMIT_RUN_IN_KM`; `kind` no cambia de regla.
+ *
+ * v88: dos correcciones de la gramática que cierran bandas del censo (docs/balance.md, v88). Las
+ * reinas sin final en alto reparten su peso como las reales (5 `et_reina_cima_cerca`, 15
+ * `et_reina_valle`), y una reina tira su objetivo de desnivel en todo `sk.dPlus` y lo factible solo
+ * lo recorta. Cambian cinco etapas de esqueleto y el desnivel de las reinas generadas.
  */
-export const ENGINE_VERSION = 87 as const
+export const ENGINE_VERSION = 88 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
