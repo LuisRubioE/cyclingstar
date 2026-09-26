@@ -64,6 +64,8 @@ export function analyzeClimberWinRate(runsPerStage: number): ClimberWinRateStats
       const { input, seed } = realQueenSetup(
         { raceId: q.raceId, stageIndex: q.stageIndex, why: '' },
         i,
+        undefined,
+        false, // la etapa que trae el calendario, no la congelada del banco de reinas reales
       )
       const umbral = climberThreshold(input.riders.map((r) => r.eff0.MON as number))
       const out = simulateStage(input, seed)

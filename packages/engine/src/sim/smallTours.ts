@@ -35,7 +35,7 @@ import {
 } from '@cyclingstar/shared'
 import { applyDailyLoad, eff0, initialEnergy, raceIllnessProbability } from '../banister.js'
 import { STAGE } from '../constants.js'
-import { SEASON_CALENDAR } from '../routes/calendar.js'
+import { type CalendarRace, SEASON_CALENDAR } from '../routes/calendar.js'
 import { injuryEndsRace } from '../stage/abandon.js'
 import { deriveFinishTerrain, finishScore, finishType } from '../stage/finish.js'
 import { matchCount } from '../stage/physics.js'
@@ -277,8 +277,8 @@ export interface SmallTourRun {
 }
 
 /** Busca una carrera del calendario, con un error que dice qué falta si no está. */
-function findRace(raceId: string) {
-  const race = SEASON_CALENDAR.find((r) => r.id === raceId)
+function findRace(raceId: string, calendar: CalendarRace[] = SEASON_CALENDAR) {
+  const race = calendar.find((r) => r.id === raceId)
   if (!race) throw new Error(`Banco de carreras pequeñas: no existe ${raceId}`)
   return race
 }
@@ -288,8 +288,12 @@ function findRace(raceId: string) {
  * tick de producción y el mismo de `sim/grandTour.ts`: armar el campo del día con su estado,
  * simular, aplicar la carga y decidir quién no toma la salida mañana.
  */
-export function runSmallTour(tour: SmallTour, run: number): SmallTourRun {
-  const race = findRace(tour.raceId)
+export function runSmallTour(
+  tour: SmallTour,
+  run: number,
+  calendar: CalendarRace[] = SEASON_CALENDAR, // paso 9: el pareado la corre con el calendario viejo
+): SmallTourRun {
+  const race = findRace(tour.raceId, calendar)
   const worldSeed = `carrera-pequena-${tour.raceId}-${run}`
   const field = buildField(worldSeed, race.level)
   const alive = new Map(field.map((r) => [r.riderId, { ...r }]))
@@ -752,12 +756,15 @@ export interface SmallTourStats {
 }
 
 /** Corre el banco entero: cada carrera con N semillas deterministas. */
-export function analyzeSmallTours(runsPerRace: number): SmallTourStats {
+export function analyzeSmallTours(
+  runsPerRace: number,
+  calendar: CalendarRace[] = SEASON_CALENDAR,
+): SmallTourStats {
   const perRace: SmallTourStats['perRace'] = []
   const allRuns: SmallTourRun[] = []
   for (const tour of SMALL_TOURS) {
     const runs: SmallTourRun[] = []
-    for (let i = 0; i < runsPerRace; i++) runs.push(runSmallTour(tour, i))
+    for (let i = 0; i < runsPerRace; i++) runs.push(runSmallTour(tour, i, calendar))
     allRuns.push(...runs)
     perRace.push({
       tour,

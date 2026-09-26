@@ -20,7 +20,7 @@
 import { ATTRIBUTES, type Attribute, type Vocation, seededRng } from '@cyclingstar/shared'
 import { STAGE } from '../constants.js'
 import { eff0, initialEnergy } from '../banister.js'
-import { SEASON_CALENDAR } from '../routes/calendar.js'
+import { type CalendarRace, SEASON_CALENDAR } from '../routes/calendar.js'
 import { matchCount } from '../stage/physics.js'
 import { sampleProfile, stageLengthKm } from '../stage/sample.js'
 import { stageSeed } from '../stage/rng.js'
@@ -28,6 +28,7 @@ import { simulateStage } from '../stage/simulate.js'
 import type { SnapshotRider, StageInput, StageOrders, StageRider } from '../stage/types.js'
 import { autoStageOrders } from '../world/autoOrders.js'
 import { type Division, generateNpcRider, sampleNpcAge } from '../world/npc.js'
+import { frozenProfile, frozenQueenOf, GENERATED_QUEENS } from './frozenSkeletons.js'
 import { type StageTail, type TailStats, biggestClockPct, tailStats } from './grandTour.js'
 
 /** Una etapa del banco: la carrera, la etapa y por qué está aquí. */
@@ -156,13 +157,35 @@ function buildField(worldSeed: string, level: string): BenchRider[] {
   return field
 }
 
-/** Busca una etapa del calendario, con un error que dice qué falta si no está. */
-function findStage(raceId: string, stageIndex: number) {
-  const race = SEASON_CALENDAR.find((r) => r.id === raceId)
+/** El perfil de cada congelada, dibujado una vez por proceso: es puro y lo piden todas las semillas. */
+const CONGELADAS = new Map<string, ReturnType<typeof frozenProfile>>()
+
+/**
+ * Busca una etapa del calendario, con un error que dice qué falta si no está (paso 9: exportada y con
+ * `calendar`, para que el pareado corra el banco sobre el calendario viejo y sobre el nuevo). Las tres
+ * de `FROZEN_QUEENS` (`frozenSkeletons.ts`, §13.5) devuelven su perfil congelado por forma en lugar del
+ * que dibuje el calendario, con cualquier calendario: el banco mide la misma forma en los dos. Con
+ * `congeladas` false, la etapa del calendario tal cual (los bancos que preguntan qué trae el calendario).
+ */
+export function findStage(
+  raceId: string,
+  stageIndex: number,
+  calendar: CalendarRace[] = SEASON_CALENDAR,
+  congeladas = true,
+) {
+  const race = calendar.find((r) => r.id === raceId)
   if (!race) throw new Error(`Banco de reinas reales: no existe ${raceId}`)
   const stage = race.stages.find((s) => s.index === stageIndex)
   if (!stage) throw new Error(`Banco de reinas reales: ${raceId} no tiene etapa ${stageIndex}`)
-  return { race, stage }
+  const q = congeladas ? frozenQueenOf(raceId, stageIndex) : undefined
+  if (q === undefined) return { race, stage }
+  const clave = `${raceId}|${stageIndex}`
+  let profile = CONGELADAS.get(clave)
+  if (profile === undefined) {
+    profile = frozenProfile(q)
+    CONGELADAS.set(clave, profile)
+  }
+  return { race, stage: { ...stage, kind: 'reina' as const, profile } }
 }
 
 /** Corre una etapa con un campo dado y mide cómo llegó la COLA de la carrera. */
@@ -172,8 +195,10 @@ function runStage(
   stageIndex: number,
   riders: StageRider[],
   worldSeed: string,
+  calendar: CalendarRace[] = SEASON_CALENDAR,
+  congeladas = true,
 ): StageTail {
-  const { stage } = findStage(raceId, stageIndex)
+  const { stage } = findStage(raceId, stageIndex, calendar, congeladas)
   const out = simulateStage(
     { profile: stage.profile, riders },
     // `engineVersion: 1` FIJO en la semilla, como el resto del banco: el objetivo mide el
@@ -214,8 +239,10 @@ function runStage(
 export function realQueenSetup(
   queen: RealQueen,
   run: number,
+  calendar: CalendarRace[] = SEASON_CALENDAR,
+  congeladas = true, // false: la etapa tal cual la dibuja el calendario (`calendarQueens`, `climberWinRate`)
 ): { input: StageInput; seed: string; worldSeed: string } {
-  const { race, stage } = findStage(queen.raceId, queen.stageIndex)
+  const { race, stage } = findStage(queen.raceId, queen.stageIndex, calendar, congeladas)
   const worldSeed = `reina-real-${queen.raceId}-${run}`
   const field = buildField(worldSeed, race.level)
   const orders = autoStageOrders(
@@ -253,14 +280,21 @@ export function realQueenSetup(
 }
 
 /** Corre una etapa del banco con una semilla y devuelve cómo llegó la cola de la carrera. */
-export function runRealQueen(queen: RealQueen, run: number): StageTail {
-  const { input, worldSeed } = realQueenSetup(queen, run)
+export function runRealQueen(
+  queen: RealQueen,
+  run: number,
+  calendar: CalendarRace[] = SEASON_CALENDAR,
+  congeladas = true, // false en el lado viejo del pareado: las tres como las dibujaba la v86
+): StageTail {
+  const { input, worldSeed } = realQueenSetup(queen, run, calendar, congeladas)
   return runStage(
     `${queen.raceId}-e${queen.stageIndex}`,
     queen.raceId,
     queen.stageIndex,
     input.riders,
     worldSeed,
+    calendar,
+    congeladas,
   )
 }
 
@@ -375,12 +409,15 @@ export interface RealQueenStats {
 }
 
 /** Corre el banco entero: cada etapa con N semillas deterministas. */
-export function analyzeRealQueens(runsPerStage: number): RealQueenStats {
+export function analyzeRealQueens(
+  runsPerStage: number,
+  calendar: CalendarRace[] = SEASON_CALENDAR,
+): RealQueenStats {
   const perStage: { queen: RealQueen; stats: TailStats }[] = []
   const all: StageTail[] = []
   for (const queen of REAL_QUEENS) {
     const tails: StageTail[] = []
-    for (let i = 0; i < runsPerStage; i++) tails.push(runRealQueen(queen, i))
+    for (let i = 0; i < runsPerStage; i++) tails.push(runRealQueen(queen, i, calendar))
     all.push(...tails)
     perStage.push({ queen, stats: tailStats(tails) })
   }
@@ -478,4 +515,31 @@ export function mountainRejoins(runsPerStage: number): HuecoDeMontana[] {
     }
   }
   return out
+}
+
+/**
+ * LAS TRES REINAS GENERADAS ELEGIDAS POR FORMA (`GENERATED_QUEENS`, §13.5): el mismo banco de cola
+ * sobre una `alto`, una `cima_cerca` y una `valle_largo` del calendario nuevo, con 6 semillas. Se
+ * IMPRIMEN sin banda (§13.7: un estrato de una etapa × 6 semillas no sella nada); la previsión de la
+ * tabla v19 es `alto > cima_cerca > valle_corto > valle_largo` en la cola del último.
+ */
+export function analyzeGeneratedQueens(
+  runsPerStage: number,
+  calendar: CalendarRace[] = SEASON_CALENDAR,
+): { finalKind: string; raceId: string; stageIndex: number; stats: TailStats }[] {
+  return GENERATED_QUEENS.map((g) => {
+    const queen: RealQueen = {
+      raceId: g.raceId,
+      stageIndex: g.stageIndex,
+      why: `generada, elegida por forma: ${g.finalKind}`,
+    }
+    const tails: StageTail[] = []
+    for (let i = 0; i < runsPerStage; i++) tails.push(runRealQueen(queen, i, calendar))
+    return {
+      finalKind: g.finalKind,
+      raceId: g.raceId,
+      stageIndex: g.stageIndex,
+      stats: tailStats(tails),
+    }
+  })
 }

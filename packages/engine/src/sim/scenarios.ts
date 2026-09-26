@@ -5,7 +5,7 @@
  */
 import type { Attribute } from '@cyclingstar/shared'
 import { initialEnergy } from '../banister.js'
-import { SEASON_CALENDAR } from '../routes/calendar.js'
+import { type CalendarRace, SEASON_CALENDAR } from '../routes/calendar.js'
 import { stageSeed } from '../stage/rng.js'
 import type { StageInput, StageOrders, StageProfile, StageRider } from '../stage/types.js'
 
@@ -515,8 +515,12 @@ function uniformField(): StageRider[] {
  * el desgaste —una llana canónica es g = 0 durante 180 km, y ningún recorrido real lo es—, y por eso
  * las clásicas largas saturaron la erosión sin que ningún invariante se enterase.
  */
-export function realRaceScenario(raceId: string, stageIndex = 1): Scenario {
-  const race = SEASON_CALENDAR.find((r) => r.id === raceId)
+export function realRaceScenario(
+  raceId: string,
+  stageIndex = 1,
+  calendar: CalendarRace[] = SEASON_CALENDAR, // paso 9: el pareado la corre con el calendario viejo
+): Scenario {
+  const race = calendar.find((r) => r.id === raceId)
   if (!race) throw new Error(`Escenario: no existe la carrera ${raceId}`)
   const stage = race.stages.find((s) => s.index === stageIndex)
   if (!stage) throw new Error(`Escenario: ${raceId} no tiene etapa ${stageIndex}`)
