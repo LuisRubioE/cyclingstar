@@ -11,6 +11,7 @@ import { raceWorldDay } from './race.js'
 import { backfillRosters, runRollover } from './rollover.js'
 import { gameState, riderAttrLog, tickLog, worlds } from './schema.js'
 import { trainWorldDay } from './train.js'
+import { congelarTransicionE1 } from './transicionE1.js'
 import {
   clusterTeamNationalities,
   reconcileBotResidences,
@@ -130,6 +131,9 @@ async function ensureGenesis(
       engineVersion: opts.engineVersion,
       // Un mundo recién creado nace con todo bien: no hay nada que reparar (ver worldRepair.ts).
       repairVersion: WORLD_REPAIR_VERSION,
+      // Y nace después de la transición E1 (v88): no tiene carreras vistas con el generador viejo
+      // que conservar, así que `congelarTransicionE1` no hace nada en él (ver transicionE1.ts).
+      e1TransicionHasta: -1,
     })
     .returning()
   const world = inserted[0]
@@ -173,6 +177,30 @@ export async function purgeAttrLog(tx: TxTick, gameDay: number): Promise<void> {
   await tx.delete(riderAttrLog).where(lt(riderAttrLog.gameDay, gameDay - ATTR_LOG_DIAS))
 }
 
+/**
+ * Corre la transición E1 (`transicionE1.ts`) en su propia transacción: congelado y marca van juntos.
+ * NUNCA rompe el tick: un fallo se registra y se devuelve como nota, y como la marca no se ha
+ * escrito, el próximo tick lo reintenta. Devuelve la nota para `tick_log`, o `null` si no había nada
+ * que hacer (marca ya puesta).
+ */
+async function transicionE1(
+  db: ReturnType<typeof drizzle>,
+  worldId: string,
+  currentDay: number,
+): Promise<string | null> {
+  try {
+    const r = await db.transaction((tx) => congelarTransicionE1(tx, worldId, currentDay))
+    if (r === null) return null
+    const nota = `transición E1: ${r.congeladas.length} carreras con etapa 1 en los días ${r.desde}-${r.hasta} congeladas con el recorrido viejo`
+    console.log(`tick: ${nota}: ${r.congeladas.join(', ')}`)
+    return nota
+  } catch (err) {
+    console.error('tick: la transición E1 falló (se reintentará en el próximo tick)', err)
+    const message = err instanceof Error ? err.message : String(err)
+    return `transición E1 fallida, se reintentará: ${message}`.slice(0, 500)
+  }
+}
+
 export async function runTick(databaseUrl: string, opts: RunTickOptions): Promise<TickSummary> {
   const startedAtMs = Date.now()
   const client = postgres(databaseUrl, { max: 1 })
@@ -189,6 +217,10 @@ export async function runTick(databaseUrl: string, opts: RunTickOptions): Promis
     }
     try {
       const genesis = await ensureGenesis(db, opts)
+      // TRANSICIÓN E1 (v88, una vez por mundo): antes de procesar ningún día, las carreras que
+      // empiezan en los próximos 10 días de juego se congelan con el recorrido del generador viejo.
+      // Si falla se registra y el tick sigue: sin la marca, el próximo tick lo vuelve a intentar.
+      const notaE1 = await transicionE1(db, genesis.worldId, genesis.currentDay)
       // Génesis del mundo NPC (SPEC 10, Paso 33): equipos y ~1.600 corredores. Idempotente, así
       // que rellena también un mundo creado antes de este paso; solo hace trabajo una vez.
       await db.transaction((tx) => seedWorld(tx, genesis.worldId, opts.worldSeed))
@@ -302,11 +334,17 @@ export async function runTick(databaseUrl: string, opts: RunTickOptions): Promis
         daysProcessed,
         durationMs,
         ok: true,
-        notes: capped
-          ? `tope de ${maxDays} días por ejecución: quedan ${wanted - day} días pendientes`
-          : daysProcessed === 0
-            ? 'sin días pendientes'
-            : null,
+        notes:
+          [
+            notaE1,
+            capped
+              ? `tope de ${maxDays} días por ejecución: quedan ${wanted - day} días pendientes`
+              : daysProcessed === 0
+                ? 'sin días pendientes'
+                : null,
+          ]
+            .filter((n) => n !== null)
+            .join(' · ') || null,
       })
 
       return { ran: true, daysProcessed, currentDay: day, durationMs }

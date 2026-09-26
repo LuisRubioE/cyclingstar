@@ -12,7 +12,9 @@
  * copia es el generador viejo y no otra cosa), y el paso 9 corre cada banco dos veces, con el
  * calendario viejo y con el nuevo, para medir la diferencia pareada.
  *
- * Es UN fichero y se borra con `sim/legacy/` al cerrar el paso 9. Nada de producción lo importa.
+ * Es UN fichero y se borra con `sim/legacy/` al cerrar el paso 9. En producción solo lo lee la
+ * transición E1 de `packages/db` (`transicionE1.ts`, v88), que corre una vez por mundo en el primer
+ * tick tras el despliegue; cuando se borre este directorio ya habrá corrido y se borra con él.
  *
  * Los literales de `ROUTE` que la v87 retira (sin lector en producción, §12.10) se copian aquí con su
  * valor de la v86, con el nombre de la clave: el generador viejo los necesita y `constants.ts` ya no
