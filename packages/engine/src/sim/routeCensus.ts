@@ -16,7 +16,7 @@
  * `degradado` `false`. `arch` se lee con el tipo estructural `ArchLeido`, al que
  * `GeneratedStage['arch']` será asignable: el paso 8 no toca este fichero.
  */
-import { STAGE } from '../constants.js'
+import { ARCH, STAGE } from '../constants.js'
 import { SEASON_CALENDAR } from '../routes/calendar.js'
 import type { CalendarRace, CalendarStage, RaceFormat } from '../routes/calendar.js'
 import { RACE_EDITIONS } from '../routes/editions.js'
@@ -339,8 +339,8 @@ export function routeSourceDe(race: CalendarRace, stage: CalendarStage): RouteSo
 }
 
 /** Una carrera de una etapa para los tests del censo. Su id no está en `STAGE_FEATURES` ni en
- *  `RACE_EDITIONS`, así que `routeSourceDe` la lee 'generado' en todos los pasos. NO escribe
- *  `routeSource` hasta el paso 8: antes el tipo no lo tiene. */
+ *  `RACE_EDITIONS`, así que `routeSourceDe` la leería 'generado'; desde el paso 8 el campo es
+ *  obligatorio y se escribe con ese mismo valor. */
 export function raceDePrueba(profile: StageProfile, kind: StageKind = 'reina'): CalendarRace {
   const timeTrial = kind === 'cri'
   const stage: CalendarStage = {
@@ -349,6 +349,7 @@ export function raceDePrueba(profile: StageProfile, kind: StageKind = 'reina'): 
     kind,
     label: stageKindOf(profile, timeTrial).label,
     profile,
+    routeSource: 'generado',
   }
   if (timeTrial) stage.timeTrial = true // exactOptionalPropertyTypes: el campo se omite, no se pone a false
   return {
@@ -360,6 +361,7 @@ export function raceDePrueba(profile: StageProfile, kind: StageKind = 'reina'): 
     startDay: 100,
     openTo: [],
     stages: [stage],
+    routeSource: 'generado',
   }
 }
 
@@ -1064,7 +1066,7 @@ export const ROUTE_CENSUS_TARGETS: readonly CensusTarget[] = [
     label: 'máximo de la correlación de huella intra-esqueleto < 0,85',
     poblacion: (r) => generada(r) && r.skeleton !== null,
     medida: (rows) => cuantil(correlacionesIntraEsqueleto(rows), 'max'),
-    max: 0.8499, // ARCH.anticlon.maxCorrelacion provisional (paso 8; calibrado en el 9)
+    max: ARCH.anticlon.maxCorrelacion - 1e-4, // estricta, < ARCH.anticlon.maxCorrelacion (provisional; calibrado en el paso 9)
     hoy: null,
     fuente: 'V12; §9.5',
     estado: 'sellada',

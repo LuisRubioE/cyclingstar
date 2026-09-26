@@ -183,6 +183,12 @@ export function planDeEdicion(
     if (rand() < cfg.vueltasJitter) {
       const signo = rand() < 0.5 ? -1 : 1
       vueltas = Math.min(hi, Math.max(lo, base + signo))
+      // v87: la vuelta de más no puede pasar el techo de la clase (V13, `ARCH.km.maxPorClase`): una .1
+      // con una vuelta más salía a 201,4 km (`race-reggio`, banda `km.clase.max`). Entonces la
+      // vuelta se quita en vez de ponerse, sin tirada nueva.
+      const tope = ARCH.km.maxPorClase[req.raceClass]
+      if (vueltas > base && r1(req.km + (vueltas - base) * circuito.km) > tope)
+        vueltas = Math.max(lo, base - 1)
     }
     if (req.routeSource !== 'edicion') km = r1(req.km + (vueltas - base) * circuito.km)
   }

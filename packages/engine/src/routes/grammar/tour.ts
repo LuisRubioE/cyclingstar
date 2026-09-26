@@ -6,8 +6,8 @@
  *
  * Paso 1: solo los tipos. Paso 5: `kmDe`; paso 7: `TOUR_SKELETONS`, `tourSkeletonDe`, `garantias`,
  * `itinerarioDe`, `DEFAULT_ROUTE_CONTEXT`, `ventanaReina` y `composeTour`, más `descansosDe` y los
- * predicados de papel que comparten V13 y V14 (`veto.ts`) y `tour.test.ts`. Sin llamadores en
- * producción hasta el paso 8: `stageMix` no delega todavía y `SEASON_CALENDAR` no cambia un byte.
+ * predicados de papel que comparten V13 y V14 (`veto.ts`) y `tour.test.ts`. Desde el paso 8 (v87)
+ * `stageMix` delega en `composeTour` y el calendario compone con ella sus vueltas generadas.
  *
  * Ciclo de importación declarado (§15.8): `tour.ts → generate.ts → veto.ts → tour.ts`. Es inocuo
  * porque ninguno de los tres lee un valor de los otros en el nivel superior del módulo, solo dentro
@@ -798,10 +798,10 @@ export const DEFAULT_ROUTE_CONTEXT: RouteContext = {
 }
 
 /**
- * Lo que `stageMix` hará por dentro desde el paso 8 (§7.5): el itinerario y una `generateStage` por
+ * Lo que `stageMix` hace por dentro desde el paso 8 (§7.5): el itinerario y una `generateStage` por
  * etapa con su papel, sus km, la zona de su meta y la de su salida si es de transición. `raceId` es la
- * identidad (`arch|raceId`), la clave de `itinerarioDe` y la de `RACE_REGION`. Sin llamadores en
- * producción hasta el paso 8.
+ * identidad (`arch|raceId`), la clave de `itinerarioDe` y la de `RACE_REGION`. La llaman `stageMix` y
+ * la rama de vuelta de `buildRace` (`routes/calendar.ts`).
  */
 export function composeTour(
   raceId: string,

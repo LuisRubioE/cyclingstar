@@ -673,6 +673,9 @@ export const SKELETONS: Record<SkeletonId, Skeleton> = {
     canonico: CANONICO.ud_muro_final,
   },
   // Ronde, Omloop, E3, Amstel, Brabantse: 12 a 20 muros, los tres últimos en los últimos 30 km.
+  // v87: `cadena`×[2; 3] con `muro`×[5; 7] (eran [2; 4] y [3; 8]): da de 10 a 21 muros, la banda
+  // `muros.cotas` del censo (p10 ≥ 10, p90 ≤ 20; §12.12 «[10; 20] en ud_muros»), que con [2; 4] × [3; 8]
+  // bajaba a 6 por construcción (p10 medido 8 en las 16 del calendario). Las canónicas ya cabían.
   ud_muros: {
     id: 'ud_muros',
     kind: 'clasica',
@@ -683,13 +686,13 @@ export const SKELETONS: Record<SkeletonId, Skeleton> = {
       { motif: 'enlace', n: [1, 1], ventana: [0, 0.45] },
       {
         motif: 'cadena',
-        n: [2, 4],
+        n: [2, 3],
         ventana: [0.45, 0.97],
         params: { separacionRango: [1.5, 5] },
         hijos: [
           {
             motif: 'muro',
-            n: [3, 8],
+            n: [5, 7],
             ventana: TODA,
             params: { kmRango: [0.4, 2.5], gRango: [8, 13] },
           },
@@ -718,14 +721,15 @@ export const SKELETONS: Record<SkeletonId, Skeleton> = {
         params: { kmRango: [1, 2.5], estrellasRango: [2, 3] },
       },
       {
+        // v87: [2; 3] × [5; 7], como `ud_muros` (la banda `muros.cotas` los mide juntos).
         motif: 'cadena',
-        n: [2, 4],
+        n: [2, 3],
         ventana: [0.45, 0.97],
         params: { separacionRango: [1.5, 5], adoquinShare: [0.4, 0.7] },
         hijos: [
           {
             motif: 'muro',
-            n: [3, 8],
+            n: [5, 7],
             ventana: TODA,
             params: { kmRango: [0.4, 2.5], gRango: [8, 13] },
           },

@@ -1,9 +1,10 @@
 /**
- * SELLO DEL CALENDARIO DE HOY (docs/generador.md §15.3, paso 1): una huella por etapa de
- * `SEASON_CALENDAR`, `hashInt(JSON.stringify(stage.profile))` (perfil entero, pancartas incluidas),
- * con clave `${raceId}:${index}`. Literal GENERADO POR SCRIPT sobre el árbol anterior al paso 1 y
- * pegado; no se regenera para tapar un fallo. Vive hasta el paso 8, en que pasa con `git mv` a
- * `sim/legacy/golden.sealed.ts`.
+ * SELLO DEL CALENDARIO DE LA v86 (docs/generador.md §15.3, paso 1): una huella por etapa del
+ * `SEASON_CALENDAR` de entonces, `hashInt(JSON.stringify(stage.profile))` (perfil entero, pancartas
+ * incluidas), con clave `${raceId}:${index}`. Literal GENERADO POR SCRIPT sobre el árbol anterior al
+ * paso 1 y pegado; no se regenera para tapar un fallo. Vivió en `routes/` hasta el paso 8, que lo
+ * movió aquí con `git mv`: desde entonces lo exige `sim/legacy/golden.test.ts` a `legacyCalendar()`,
+ * y se borra con `sim/legacy/` al final del paso 9.
  */
 export const GOLDEN: Record<string, number> = {
   'nc-au-itt:1': 2003238205,

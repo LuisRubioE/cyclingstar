@@ -6,11 +6,11 @@
  *
  * Paso 0: nació `RouteSource`, porque `RouteStats` del censo la cita. Paso 1: el resto de tipos. Paso
  * 5: `generateStage` (los siete pasos de la sección 8 con el reintento sobre `mot`, `pos` y `dib`),
- * `labelDe`, `ETIQUETAS_DE_ESQUELETO` y `fraseDe`; paso 6: `raceRouteSourceOf`. Sin llamadores en
- * producción hasta el paso 8: `SEASON_CALENDAR` no cambia un byte.
+ * `labelDe`, `ETIQUETAS_DE_ESQUELETO` y `fraseDe`; paso 6: `raceRouteSourceOf`. Desde el paso 8 (v87)
+ * es el calendario que el juego corre: `routes/calendar.ts` la llama en sus tres ramas no reales.
  */
 import { ARCH, type EdicionCfg } from '../../constants.js'
-import type { StageProfile } from '../../stage/types.js'
+import type { Segment, StageProfile } from '../../stage/types.js'
 import type { RaceFormat } from '../calendar.js' // solo tipo, sentencia `import type` entera (§3.8)
 import type { EditionTerrain } from '../editions.js'
 import type { RouteTerrain } from '../featureProfile.js'
@@ -38,7 +38,13 @@ import {
 } from './motifs.js'
 import { colocar, colocarPlantilla } from './place.js'
 import { RACE_REGION } from './regions.js'
-import { emitirPancartas, garantizaClase, normalizeEnlaces, renderSkeleton } from './render.js'
+import {
+  cuadraComaFlotante,
+  emitirPancartas,
+  garantizaClase,
+  normalizeEnlaces,
+  renderSkeleton,
+} from './render.js'
 import {
   ESCALON_TERRENO,
   SESGO_TERRENO,
@@ -175,10 +181,8 @@ export function generateStage(req: StageRequest): GeneratedStage {
       rechazos.push({ id: 'V6', detalle: 'garantizaClase: sin enlace que compense' })
       continue
     }
-    const profile: StageProfile = {
-      segments: garantizados.segs,
-      banners: emitirPancartas(garantizados.segs, colocados),
-    }
+    const segments = alContrato(garantizados.segs, ed.km, req)
+    const profile: StageProfile = { segments, banners: emitirPancartas(segments, colocados) }
     const veto = verify(
       profile,
       sk,
@@ -200,6 +204,13 @@ export function generateStage(req: StageRequest): GeneratedStage {
   }
   return canonica(sk, ed, req, timeTrial, rechazos, sufijo) // plantilla canónica de la opción, `degradado: true`
 }
+
+/**
+ * En una etapa de edición el km es un contrato (§3.7) y `profileKm` lo tiene que dar exacto, no solo al
+ * 0,1: `cuadraComaFlotante` (render.ts). Lo generado sale como sale: su km es el de la instancia.
+ */
+const alContrato = (segs: Segment[], km: number, req: StageRequest): Segment[] =>
+  req.routeSource === 'edicion' ? cuadraComaFlotante(segs, km) : segs
 
 /** Paso 1 (§8.2). `sufijo` es el texto que `fraseDe` añade al final: degradación de papel o de terreno, o atadura ignorada; null si no hay. */
 function elegirEsqueleto(
@@ -380,7 +391,8 @@ function canonica(
   )
   const cuadrados = normalizeEnlaces(segs, ed.km, colocados) ?? segs
   const g = garantizaClase(cuadrados, sk, colocados) ?? { segs: cuadrados, reglas: 0 }
-  const profile: StageProfile = { segments: g.segs, banners: emitirPancartas(g.segs, colocados) }
+  const segments = alContrato(g.segs, ed.km, req)
+  const profile: StageProfile = { segments, banners: emitirPancartas(segments, colocados) }
   const motivos: Instancia[] = colocados.map((p) => ({ slot: p.slot, j: 0, motif: p.motif }))
   return salida(profile, sk, req, motivos, ed, {
     intentos: intento,

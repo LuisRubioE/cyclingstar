@@ -86,7 +86,12 @@ export {
   type ElevationPoint,
 } from './routes/altimetry.js'
 export { TEST_TOUR, type StageKind, type TourStage } from './routes/testTour.js'
-export { stageKindOf, type StageShape } from './routes/stageKind.js'
+export {
+  SUMMIT_RUN_IN_KM,
+  runInAfterLastClimb,
+  stageKindOf,
+  type StageShape,
+} from './routes/stageKind.js'
 export {
   SEASON_CALENDAR,
   type CalendarRace,

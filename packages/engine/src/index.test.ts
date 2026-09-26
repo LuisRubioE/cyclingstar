@@ -3,6 +3,9 @@ import { ENGINE_VERSION } from './index.js'
 
 describe('engine: esqueleto', () => {
   it('expone una engine_version sellada', () => {
+    // v87: EL GENERADOR ES UNA GRAMÁTICA (docs/generador.md, paso 8). Re-sellado por esa causa: el
+    // calendario sale de routes/grammar/, las 1.241 etapas no reales cambian de perfil y las 177
+    // reales no. Es el único salto de versión de todo E1 (docs/generador.md §15.1 regla 2).
     // v76: EL PASO 18d — LA ALTITUD (R28.7, S-479). El quinto multiplicador del coste del bloque,
     // y el UNICO QUE NO ES DE SUMA CERO POR GRUPO: los otros cuatro redistribuyen —el que empuja
     // paga, el que se esconde ahorra— y este encarece a todo el que sube. Por eso va en PR propio,
@@ -456,6 +459,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(86)
+    expect(ENGINE_VERSION).toBe(87)
   })
 })

@@ -26,7 +26,12 @@ type Conn = Database | Parameters<Parameters<Db['transaction']>[0]>[0]
  * FUTURAS. Que es lo que tiene que pasar.
  */
 
-export type RouteSource = 'real' | 'generado'
+/**
+ * De dónde sale el recorrido de una etapa, copiado del calendario (`StageSpec.routeSource`, v87):
+ * rasgos reales, edición real sin rasgos (ciudades y km reales, relieve de la gramática) o inventado.
+ * La columna es `text`, así que el tercer valor no pide migración (docs/generador.md §3.11).
+ */
+export type RouteSource = 'real' | 'edicion' | 'generado'
 
 /**
  * Congela el recorrido de una carrera. **Idempotente**: si ya está escrito no se toca, porque
@@ -45,10 +50,8 @@ export async function freezeRaceRoute(
     raceKey,
     stageDay: i + 1,
     profile: stage.profile as StageProfile,
-    // El calendario no declara todavía de dónde viene cada recorrido: `routeSource` nace en el 1b
-    // con el campo que lo dice. Hasta entonces todo entra como `generado`, que es lo honesto —hay
-    // seis carreras con datos reales y no hay forma de distinguirlas sin el campo—.
-    routeSource: 'generado' as const,
+    // El calendario declara de dónde viene cada recorrido desde la v87, y se congela tal cual.
+    routeSource: stage.routeSource satisfies RouteSource,
   }))
   if (filas.length === 0) return
   await db.insert(raceRoutes).values(filas).onConflictDoNothing()

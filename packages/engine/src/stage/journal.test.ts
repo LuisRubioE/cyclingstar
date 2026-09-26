@@ -108,7 +108,12 @@ function hardRaceInput(raceId = 'race-tramuntana'): StageInput {
   return { profile: stage.profile, riders: teamField() }
 }
 
-const TOTAL_KM = 210
+/**
+ * Los km de la carrera, leídos de su perfil. Eran un 210 fijo, el km por defecto de toda carrera de un
+ * día del calendario hasta la v86; desde la v87 (el calendario sale de la gramática) `kmDe` sortea el
+ * de cada una, y con 210 escritos a mano el umbral de esta prueba ya no era el del motor.
+ */
+const TOTAL_KM = hardRaceInput().profile.segments.reduce((a, s) => a + s.km, 0)
 
 const seeds = Array.from({ length: 12 }, (_, i) =>
   stageSeed({ worldSeed: `journal-${i}`, raceId: 'journal', stageDay: 1, engineVersion: 1 }),

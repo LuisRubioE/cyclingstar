@@ -16759,11 +16759,11 @@ El motor. Los dos números dicen lo mismo —quién está en el turno— y la di
 cooperación y el tamaño, que es lo que la carretera hace. Cambiar `cuantos` para que una fuga de
 tres rote siempre con tres sería borrar la diferencia entre una fuga que colabora y una que no.
 
-## vN (pendiente del paso 8) · El generador es una gramática
+## v87 · El generador es una gramática
 
-Nota del generador de recorridos por gramática (E1, `docs/generador.md`). Se escribe por apartados a medida que avanzan los pasos del plan (sección 15); su número, `N + 1`, solo se confirma en el paso 8, que es el único que sube `ENGINE_VERSION`. Hasta entonces se encabeza «vN (pendiente del paso 8)».
+Nota del generador de recorridos por gramática (E1, `docs/generador.md`). Se escribe por apartados a medida que avanzan los pasos del plan (sección 15); su número, `N + 1`, se confirmó en el paso 8, que es el único que sube `ENGINE_VERSION`: de 86 a 87. Hasta entonces se encabezaba «vN (pendiente del paso 8)», y las citas «vN §n» de `docs/generador.md` se leen «v87 §n».
 
-### vN §0 · línea base del generador
+### v87 §0 · línea base del generador
 
 Paso 0, medido el 25/09/2026 sobre el árbol `d27e976` (`ENGINE_VERSION` 86, calendario sin tocar: 842 carreras, 1.418 etapas, 46.354 segmentos). Este paso no cambia ningún perfil ni sube la versión: nace `ARCH` con `edicion` y `reina.subidaLejanaKm`, `stageKind.ts` exporta cinco nombres sin tocar cuerpos, nacen el censo (`sim/routeCensus.ts`), la geometría que lee (`routes/grammar/geometry.ts`) y tres scripts de medida.
 
@@ -16917,13 +16917,13 @@ Previsión de las bandas del censo que el paso 8 debe poner en verde (todas las 
 
 Es una heurística (el símbolo es el de `fichero::símbolo` o el último nombre entre comillas invertidas que precede a la cita en su línea), así que «movida» quiere decir «a revisar». Buena parte de las movidas son citas del árbol `8585ca2` que el documento da con los desplazamientos de su §0.1 (por ejemplo `ENGINE_VERSION`, l. 718 en `8585ca2` y l. 809 hoy), y buena parte de las ausentes son falsos positivos del emparejamiento (el nombre que precede a la cita no es el que la cita localiza). Los ficheros inexistentes son `db/raceRoutes.ts` (se cita sin `packages/`, 3 veces), `dist/constants.js` y `coste-motor.mjs` (del juez, fuera del repositorio). El listado entero sale con `node scripts/comprobar-citas.mjs --todas`. Regla que se mantiene: donde una cita no cuadra, manda el nombre del símbolo.
 
-#### vN §0 · anexo del paso 3: `ARCH.reina.rellenoDplusPorKm`, de 5,5 a 3,0
+#### v87 §0 · anexo del paso 3: `ARCH.reina.rellenoDplusPorKm`, de 5,5 a 3,0
 
 El paso 3 recalibra el desnivel que aporta el relleno ondulado por kilómetro. Se rindieron 1.000 motivos `enlace` por cada una de las 31 zonas, con km uniforme en [1; 300], y se midió `dPlusDe / km`: la mediana es 2,86 m/km (1,32 en `golfo`, 3,77 en `alpes`), que se redondea al 0,5 y queda en 3,0. Con km en [10; 200] o en [50; 150] sale lo mismo. Un test de `motifs.test.ts` repite la medida y falla si la constante se separa de ella. No cambia ninguna conducta hasta el paso 8, porque nada la lee en producción.
 
 Entran además, con su comentario de intención, claves de `ARCH` que la sección 12 no listaba y que el paso necesita para que ningún número de intención viva en `grammar/`: `motivo.tendida.tramos` [2; 4] y `ruido` 0,7, `motivo.racimo.amp` 0,7, `motivo.sector.estrellasTierra` [2; 3], `meta.esprint.ampMax` 1,5 y `meta.altoLargo.kmSuaveDesde` 17. Y se adelantan `colocacion.enlaceMinimo` 1,5 y `veto.puertoLargoKm` 15, porque `validateMotif` ya las lee (regla «entra en el primer paso que la lee»).
 
-#### vN §0 · anexo del paso 4: tabla pareada de los legado
+#### v87 §0 · anexo del paso 4: tabla pareada de los legado
 
 El paso 4 escribe la fontanería nueva (`colocar`, `renderSkeleton`, `normalizeEnlaces`, `garantizaClase`, `emitirPancartas`) y la prueba contra la vieja antes de que nadie la llame. Los ocho `LegacySkeleton` de `grammar/legacy.ts` se colocan con `colocarLegado`, se rinden con `renderSkeleton` y llevan las pancartas de `emitirPancartas`; enfrente, los ocho `xxxSegments` de `profileGen.ts` con las pancartas de `auto()`, que es como llegan hoy al calendario. Son 300 perfiles por pareja (60 semillas por cada uno de los km 130, 155, 175, 195 y 215) y se miden con `routeCensus`. El relleno se rinde en la firma `generico` con la amplitud del relleno viejo: 1,8 en las formas llanas y 3,2 en las `bumpy`, topada a 2,4 (`ARCH.motivo.enlace.ampMax`) y sin `rompepiernas`, porque es lo que la gramática sabe dibujar. El criterio es el de §15.6: `nPuertos` con la misma distribución, y la diferencia de medianas de `dPlus`, `longestClimbKm` y `kmAfterLastClimb` por debajo de la desviación típica entre semillas de la pareja vieja (I-16, I-42). Lo sella `grammar/legacy.test.ts`.
 
@@ -16946,7 +16946,7 @@ Una deuda de catálogo que el paso deja medida y sellada en `skeletons.test.ts`:
 
 Reloj de los barridos del paso (regla 3 de §15.1), medido en local: la tabla pareada, 1,3 s (4.800 perfiles por `routeCensus`, reloj de 60 s); el dibujo de 300 semillas por seis canónicas de `render.test.ts`, 5,2 s (reloj de 60 s); `normalizeEnlaces` sobre 1.000 semillas, 0,7 s; `colocar` sobre 1.000 esqueletos instanciados, 0,16 s (906 colocados, 94 `null` por enlace o por ventana). Los barridos de `generateStage` son del paso 5. No cambia ninguna conducta: `SEASON_CALENDAR` sale byte a byte igual y `routes/golden.test.ts` sigue en verde.
 
-#### vN §0 · anexo del paso 5: vetos, `generateStage`, `kmDe` y galería
+#### v87 §0 · anexo del paso 5: vetos, `generateStage`, `kmDe` y galería
 
 El paso 5 escribe el generador entero de una etapa y todavía no lo llama nadie en producción. Entran `grammar/veto.ts` (`finalKindDe`, `verify`, V1 a V12, V15, V16 y `conjuntoV16`; V13 y V14 son del paso 7), `grammar/generate.ts` (`generateStage` con sus siete pasos y el reintento sobre `mot`, `pos` y `dib`, `labelDe`, `ETIQUETAS_DE_ESQUELETO` y la frase), `grammar/edition.ts` (`BASE_SEASON`, `opcionDe`, `planDeEdicion`, `claveEtapa`, `seasonDe`, `semillaDe`; `diffMotivos` es del paso 6), `instanciarFirma` e `instanciar` en `grammar/motifs.ts`, las cuatro funciones de la `cotaFinal` en `grammar/skeletons.ts` y `kmDe` en `grammar/tour.ts`, adelantada del paso 7 porque la galería la necesita. En `ARCH` entran el resto de `veto` (`fallbackMaxShare` {calendario 0; testPorEsqueleto 0,005}, `intentosP95` 3, `segmentoMinKm` 0,5, `kmTolerancia` 0,05, `pendientes`, `puertoDplusMax`, el resto de `llana` y `calendario`) y `km.porClase` con los valores de §12.1. `SEASON_CALENDAR` no cambia un byte y `routes/golden.test.ts` sigue en verde.
 
@@ -17003,7 +17003,7 @@ Medido en local, con `vitest run` y el reportero por defecto.
 
 Los dos ficheros de `test:rapido` cuestan 3,3 y 3,8 s enteros. La malla completa corre en `test:bancos` y en la entrada «mundo y radio» de la matriz de `ci.yml`; sobre el `dist` y sin vitest la misma malla tarda 19,8 s, y corriendo en paralelo con el resto de `routes/` sube a 40,2 s, lejos de los 140 s. Los intervalos de la tabla son el reloj a solas y el de la corrida de `routes/` entera.
 
-#### vN §0 · anexo: el desnivel objetivo depende de la zona y de los km
+#### v87 §0 · anexo: el desnivel objetivo depende de la zona y de los km
 
 Salda la desviación 10 del paso 5. `planDeEdicion` sorteaba `dPlusObjetivo` uniforme en todo `sk.dPlus` sin mirar la zona ni los km, y la persecución de §8.5 (que solo escala las longitudes no firma entre 0,7 y 1,4) no llegaba: una reina de 110 km con un objetivo de 5.300 m, o una `ud_montana` cuyos dos puertos son de firma, no tienen qué escalar. Ahora la tirada (la misma, una sola, en el mismo lugar de la corriente `ed`) cae dentro del cruce de `sk.dPlus` con lo que la instancia puede dar: `desnivelFactible` (en `grammar/motifs.ts`) suma la firma y la meta tal cual, cada hueco no firma con la cardinalidad del plan que cabe en la etapa (`cabenEnHueco`, la misma regla que `instanciar`) y sus longitudes medias llevadas al suelo y al techo de `escalaDificultades` dentro de su rango y de lo que cabe hasta meta, y el relleno de la zona sobre los km que quedan de enlace. Si el cruce está vacío, el objetivo es el extremo de `sk.dPlus` más cercano a lo factible: nunca sale del rango del esqueleto.
 
@@ -17027,7 +17027,7 @@ Precisión, sobre 300 semillas por esqueleto reina en su zona de referencia, con
 
 Reintentos, sin cambio: en el barrido de `test:rapido` 328 rechazos en 9.400 generaciones (3,5 %, antes 331: 326 «colocar: los enlaces no llegan» y 2 «garantizaClase: sin enlace que compense»); en la malla completa reintentan 4.354 de 194.400 (2,2 %, antes 4.417) y siguen saliendo 2 degradadas. `SEASON_CALENDAR` no cambia: `routes/golden.test.ts` sigue en verde.
 
-#### vN §0 · anexo del paso 7: composición de las vueltas por etapas
+#### v87 §0 · anexo del paso 7: composición de las vueltas por etapas
 
 El paso 7 escribe la composición entera de una vuelta generada y todavía no la llama nadie: `stageMix` no delega hasta el paso 8, así que `SEASON_CALENDAR` sale byte a byte igual y `routes/golden.test.ts` sigue en verde. Entran `grammar/tour.ts` completo (`TOUR_SKELETONS`, `tourSkeletonDe`, `garantias`, `itinerarioDe`, `DEFAULT_ROUTE_CONTEXT`, `ventanaReina`, `composeTour`), V13 y V14 en `grammar/veto.ts`, y en `routes/calendar.ts` los tres campos opcionales `StageSpec.routeSource?`, `StageSpec.arch?` y `CalendarRace.routeSource?`, que ningún constructor de hoy escribe. En `constants.ts` entran `ARCH.pesosComposicion` (la tabla de §7.3 y §12.8, cada fila suma 1 y lo sella el `it` del paso 7 de `motifs.test.ts`), `ARCH.bloques.gv` (`descansos` [9; 15], `primeraSemanaFinalesAlto` 1, `maxAltaMontana` 7, `minLlanasEntreBloques` 2, sin `reina`: la ventana es `ventanaReina(n)`) y `ARCH.itinerario.avance` 0,6 y `cronoescaladaP` 0,08, con `import type { StageRole }`. Ninguna constante se recalibra.
 
@@ -17049,7 +17049,7 @@ Desviaciones del documento, con su razón.
 12. V14 mira los papeles y no los días de descanso, que no están en ellos: `descansosDe` se sella aparte.
 13. El test de la ventana de §7.7 con FR y cuatro etapas no discrimina (las dos ventanas contienen los Alpes); se escribe con ES y dos etapas desde `cantabrico`: `mountain` va hacia `pirineos` y `flat` hacia `meseta`.
 
-#### vN §0 · anexo del paso 6: identidad entre ediciones y temporada
+#### v87 §0 · anexo del paso 6: identidad entre ediciones y temporada
 
 El paso 6 escribe la temporada y todavía no la llama nadie en producción: `SEASON_CALENDAR` sigue construido por el `buildRace` de hoy y sale byte a byte igual (`routes/golden.test.ts` y `routes/realFingerprint.test.ts` en verde). Entran en `routes/calendar.ts` `calendarForSeason`, `raceForSeason` y `stagesForSeason`, con su memo por configuración y temporada (LRU de `ARCH.arranque.maxTemporadasEnMemoria` temporadas distintas de la 0, que no se expulsa), y la ruta paralela privada (`stagesFromEditionGramatica`, `editionGrandTourGramatica`, `buildRaceGramatica`, `nationalChampionshipsGramatica` y `construirTemporada`), que en el paso 8 pierde el sufijo; `diffMotivos` en `grammar/edition.ts`; `raceRouteSourceOf` en `grammar/generate.ts`; y `ARCH.arranque` entero en `constants.ts` (`objetivoMs` 1.500, `techoMs` 2.500, `porTemporadaMs` 1.000, `maxTemporadasEnMemoria` 8). Ninguna constante se recalibra.
 
@@ -17088,7 +17088,166 @@ Desviaciones del documento, con su razón.
 10. El memo aplica el tope LRU a toda configuración, no solo a la de producción: una configuración de test nunca pide más de ocho temporadas, y así ningún mapa crece sin límite. `calendarForSeason` lanza `RangeError` con una temporada negativa o no entera.
 11. En `buildRaceGramatica` las etapas `real` se construyen una vez por proceso y se comparten por referencia entre temporadas y configuraciones (§14.5 punto 1); el test lo sella con `toBe`.
 
-### vN §4 · Galería
+### v87 §1 · El cambio de calendario
+
+Paso 8 del plan (`docs/generador.md` §15.10), sobre el árbol `68a0ebc` (pasos 0 a 7). Es el único paso de E1 que cambia el calendario que el juego corre, y por eso el único que sube `ENGINE_VERSION`: de 86 a 87. `SEASON_CALENDAR` es ahora `calendarForSeason(BASE_SEASON)`, la misma referencia; las funciones `…Gramatica` del paso 6 perdieron el sufijo y sustituyeron a las viejas; `stageMix` conserva su firma y delega en `composeTour`; `StageSpec.routeSource` y `CalendarRace.routeSource` son obligatorios. Las 1.241 etapas no reales (532 nacionales, 325 de vueltas compuestas, 226 de edición sin rasgos y 158 de un día) cambian de perfil; las 177 reales no cambian un byte (`routes/realFingerprint.test.ts` en verde sin tocarlo). Los ocho generadores viejos, `normalize`, `garantizaPuerto`, los constructores de `calendar.ts`, `oneDaySpec`, `mixRoles`, `mixKm` y las cuatro ramas viejas de carrera viven en `sim/legacy/profileGenLegacy.ts` hasta el paso 9, y `sim/legacy/golden.test.ts` exige que su `legacyCalendar()` reproduzca las 1.418 huellas selladas en el paso 1 (las reproduce). `grammar/legacy.ts` y su test se borraron.
+
+#### El censo del calendario, antes y después
+
+La tabla de `routes/grammar/calendario.test.ts`: la columna «paso 0» es la de v87 §0 (calendario de la v86) y la columna «v87» es la medida sobre `SEASON_CALENDAR` de hoy. Estado «paso 9» quiere decir que la banda sigue en `it.todo`, con su cifra y su causa en el nombre, porque el generador de la v87 no la alcanza por construcción; la banda no se ha tocado.
+
+| Banda                                 | Banda exigida                  | Paso 0 (medido)                                     | Estado        | v87 (medido)     | Estado        |
+| ------------------------------------- | ------------------------------ | --------------------------------------------------- | ------------- | ---------------- | ------------- |
+| `vetos.degradado`                     | 0                              | 0 de 1.241 (sin `arch`)                             | verde         | 0 de 1.241       | verde         |
+| `vetos.intentosP95`                   | ≤ 3                            | sin `arch`                                          | sin población | 1                | verde         |
+| `garantias.clase`                     | < 2 %                          | 0                                                   | verde         | 0,8 %            | verde         |
+| `esqueletos.clase.udWTPro`            | ≥ 8                            | 3 formas en 32 etapas                               | roja          | 10 en 32         | verde         |
+| `esqueletos.clase.ud12`               | ≥ 10                           | 6 formas en 126                                     | roja          | 12 en 126        | verde         |
+| `esqueletos.clase.papeles`            | ≥ 9                            | 7 formas en 551                                     | roja          | 16 en 551        | verde         |
+| `esqueletos.entropia`                 | ≥ 1,5 bits                     | sin zona                                            | sin población | 1,00 bits        | paso 9        |
+| `finales.reparto.alto`                | [0,45; 0,70]                   | 0,223 (23 de 103 reinas no reales)                  | roja          | 0,698 (60 de 86) | verde         |
+| `finales.reparto.cimaCerca`           | ≥ 0,05                         | 0,097                                               | verde         | 0,128            | verde         |
+| `finales.reparto.valleCorto`          | ≥ 0,05                         | 0,583                                               | verde         | 0,174            | verde         |
+| `finales.reparto.valleLargo`          | ≥ 0,05                         | 0,097                                               | verde         | 0 de 86          | paso 9        |
+| `reina.dplus.semana`                  | p50 ≥ 2.400                    | 3.146 m (94 reinas)                                 | verde         | 3.170 m (80)     | verde         |
+| `reina.dplus.granVuelta`              | p50 ≥ 3.000                    | n = 0                                               | sin población | n = 0            | sin población |
+| `reina.dplus.blanda`                  | [1.500; 2.500) ≥ 15 %          | 18,4 %                                              | verde         | 20,9 %           | verde         |
+| `reina.dplus.minimo`                  | < 1.700                        | 1.973 m                                             | roja          | 1.312 m          | verde         |
+| `reina.subidaLejana.cero`             | ninguna reina en 0 %           | 0 de 103                                            | verde         | 0 de 86          | verde         |
+| `reina.subidaLejana.p10`              | ≥ 0,05 del km de etapa         | 0,102                                               | verde         | 0,077            | verde         |
+| `reina.puertoFinal.p50`               | se imprime                     | 13,4 km (23 reinas `alto`)                          | informativa   | 9,8 km (60)      | informativa   |
+| `finales.muro`                        | ≥ 1 %                          | 0 de 911                                            | roja          | 2,6 %            | verde         |
+| `finales.puncheur`                    | ≥ 8 %                          | 30 de 911 (3,3 %)                                   | roja          | 38,9 %           | verde         |
+| `unDia.ultimaCota.km`                 | 100 % con última cota ≤ 4,2 km | por forma 21 de 85 un día con cota (24,7 %)         | roja          | 100 % (30)       | verde         |
+| `unDia.ultimaCota.aMeta`              | ≥ 98 % a [3; 21] km            | por forma 8 de 85 (9,4 %)                           | roja          | 100 % (30)       | verde         |
+| `unDia.murosMeta`                     | 100 % a [1; 15] km             | por forma 0 de 1 (el único un día Classic generado) | roja          | 100 % (16)       | verde         |
+| `unDia.finalLargo`                    | ≤ 2 %                          | 0 de 690                                            | verde         | 0,1 %            | verde         |
+| `muros.cotas.p10`                     | ≥ 10                           | por forma 4                                         | roja          | 11               | verde         |
+| `muros.cotas.p90`                     | ≤ 20                           | por forma 4                                         | sin población | 18               | verde         |
+| `adoquin.sectores.p10`, `.p90`        | ≥ 15; ≤ 30                     | por forma 3 (13 un día con pavés)                   | roja          | n = 2            | sin población |
+| `adoquin.km.p10`, `.p90`              | ≥ 40 km; ≤ 60 km               | por forma 7,3 y 10,1 km                             | roja          | n = 2            | sin población |
+| `llana.dplus`                         | p90 ≤ 1.500                    | 1.253 m (208 llanas)                                | verde         | 756 m (199)      | verde         |
+| `km.clase.p90dosVuelta`               | ≤ 155                          | 189 (221 etapas)                                    | roja          | 153 (220)        | verde         |
+| `km.clase.p50dosUnDia`                | [150; 170]                     | 210 (60 etapas)                                     | roja          | 157 (60)         | verde         |
+| `km.clase.max`                        | 0                              | 176 etapas por encima (120 de un día a 210)         | roja          | 11               | paso 9        |
+| `dplus.relleno`                       | se imprime                     | p50 5,9 m/km                                        | informativa   | 3,1 m/km         | informativa   |
+| `nacionales.zona`                     | ≥ 2,5 bits                     | por forma 0 bits (266 en ruta, todos `classic`)     | roja          | 2,96 bits        | verde         |
+| `nacionales.firmas`                   | ≥ 5                            | por forma 1                                         | roja          | 4                | paso 9        |
+| `nacionales.adoquin`                  | ≥ 60 %                         | por forma 0 de 4 BE/NL                              | roja          | n = 4            | sin población |
+| `nacionales.cota`                     | 100 %                          | por forma 0 de 4 CO/EC                              | roja          | n = 4            | sin población |
+| `nacionales.expuesto`                 | 100 %                          | por forma 0 de 4 DK/AE                              | roja          | n = 4            | sin población |
+| `tactica.kmSubida.circuito`, `.muros` | ≤ 0,20; ≤ 0,15                 | sin esqueleto                                       | informativa   | 0,113; 0,100     | informativa   |
+| `pancartas.unDia`                     | ≤ 6                            | máximo 5                                            | informativa   | máximo 10        | informativa   |
+| `variedad.correlacion.mediana`        | < 0,8                          | por forma 0,084                                     | sin población | 0,140            | verde         |
+| `variedad.correlacion.max`            | < 0,85                         | por forma 0,910 (pares de crono)                    | roja          | 0,993            | paso 9        |
+| `variedad.dplusCubetaAlta`            | σ > 500 m                      | 521 m (73 reinas)                                   | verde         | 481 m (60)       | paso 9        |
+| `variedad.secuencias`                 | ≤ 25 %                         | 12,2 %                                              | verde         | 7,3 %            | verde         |
+| `variedad.finalesPorVuelta`           | 0                              | 1 (`race-isere`)                                    | roja          | 0                | verde         |
+| `variedad.kmUnDia.uno`                | σ > 15 km                      | 20,4 km                                             | verde         | 20,2 km          | verde         |
+| `variedad.kmUnDia.dos`                | σ > 15 km                      | 6,8 km                                              | roja          | 16,4 km          | verde         |
+
+De las 24 rojas del paso 0 se encendieron todas: 16 pasan, 5 no tienen población suficiente para afirmar (adoquín y los tres nacionales por país, que se imprimen) y 3 siguen rojas (`km.clase.max`, `nacionales.firmas` y `variedad.correlacion.max`). Con el generador tal como salió del paso 7 quedaban diez bandas afirmadas en rojo; cuatro tenían una causa en la gramática y se corrigieron allí (abajo), y las seis que quedan en `PARA_EL_PASO_9` no se alcanzan por construcción:
+
+1. `esqueletos.entropia`, 1,00 bits en `cono_sur` y 1,09 en `generico`. Son zonas pobladas por nacionales, que llevan dos esqueletos por país (`nc_crono` y `nc_ruta`, decisión 15): una zona con solo nacionales no pasa de 1 bit. La propia §0 del documento dice que los nacionales no tienen banda de esqueletos; la población de esta banda los incluye.
+2. `finales.reparto.valleLargo`, 0 de 86. Ningún esqueleto de reina corona a más de 20 km de meta: `et_reina_valle` es `valle_corto` con el valle a [5,7; 19,3] km. Hace falta un esqueleto o una alternativa con meta `valle` en el catálogo.
+3. `km.clase.max`, 11. Todas son etapas de edición cuyo km es el de la edición real (un contrato, §3.7) por encima de `ARCH.km.maxPorClase` (D9): `race-colombia` e5 de 232 km en una .1, `race-bretagne` e3 de 206 en una .2. La única generada que pasaba (`race-reggio`, 201,4 km en una .1) se corrigió.
+4. `nacionales.firmas`, 4 de 5. El circuito de `nc_ruta` solo admite `cota`, `muro` y `sector`, solo `flandes` da sector, y el techo de desnivel (`ajustaAlTecho`) quita el muro antes que una vuelta: 260 de los 266 salen `circuito+cota`. Tampoco hay `expuesto` en `nc_ruta`, que la banda `nacionales.expuesto` pide para DK y AE.
+5. `variedad.correlacion.max`, 0,993: dos `et_prologo` de 3 km (una huella de tres valores) y, en la muestra, 25 de 2.096 pares por encima de 0,85, casi todos `nc_crono` con su cota en [0,3; 0,7]. `ARCH.anticlon.maxCorrelacion` se calibra en el paso 9.
+6. `variedad.dplusCubetaAlta`, σ 481 m en 60 reinas: el objetivo de desnivel se sortea dentro de lo factible en la zona y los km de cada etapa (§8.5, anexo del desnivel), que estrecha la cola alta.
+
+Y las afirmaciones que no son bandas: cero degradadas en las temporadas 0 a 3 con el p95 de intentos en 1; el reparto por origen sigue en 177 real, 226 edición y 1.015 generado; el `kind` de las 1.241 no reales coincide con `stageKindOf` en las 1.241 (`cruces.kind`, 1.232 en el paso 0); 39 carreras de toda `edicion` salen `mixto`; `race-olympia` va entera por `flandes` sin puerto ni reina y `race-colombia-tour` por `andes` con puertos, sin clones entre las dos (máximo 0,57); y ninguna etapa generada de equipos cae en `generico`: las cuatro de edición que sí caen están curadas así en `RACE_REGION` (Yopal, Socopó, Puerto Barrios y Coatepeque, llanos tropicales sin zona).
+
+#### Lo que se corrigió en la gramática para que las bandas pasaran
+
+| Qué                                                         | Antes → v87                       | Banda o test                                                             | Etapas que cambian en la temporada 0                                                                                |
+| ----------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `ARCH.km.porClase['2'].unDia`                               | [140, 40] → [130, 50]             | `variedad.kmUnDia.dos`: σ 13,6 → 16,4 (p50 157, techo 180)               | 49 carreras de un día .2                                                                                            |
+| `ud_muros` y `ud_muros_adoquin`: `cadena`×n, `muro`×n       | [2; 4] × [3; 8] → [2; 3] × [5; 7] | `muros.cotas.p10`: 8 → 11 (p90 18); §12.12 pedía [10; 20]                | 15                                                                                                                  |
+| `conFinalesVariados` en la rama de edición (`calendar.ts`)  | nueva                             | `variedad.finalesPorVuelta` 3 → 0 y `finales.reparto.alto` 0,733 → 0,698 | 3: la última reina de `race-burgos` (e5), `race-portugal` (e10) y `race-langkawi` (e5) pasa a `et_reina_cima_cerca` |
+| La vuelta de más de un circuito no pasa `maxPorClase`       | `planDeEdicion`, paso 3           | `km.clase.max` (V13): `race-reggio` 201,4 km en una .1                   | 1                                                                                                                   |
+| `cuadraComaFlotante` (`render.ts`) en las etapas de edición | nueva                             | `realFingerprint.test.ts`: Race France e21 sumaba 130,00000000000003     | 94 de edición (una décima entre dos enlaces)                                                                        |
+
+La regla de las finales: si una vuelta de edición tiene tres o más reinas generadas y todas acaban en alto, la última se dibuja con la primera de `et_reina_cima_cerca` y `et_reina_valle` que cabe en su zona y su km, con la misma petición y sin dados nuevos. El cuadre en coma flotante: `normalizeEnlaces` cuadra el km al 0,1, pero sumar décimas en binario deja restos, y `routes/realFingerprint.test.ts` sella con igualdad exacta los km de la estructura de las grandes vueltas; si la suma no es exacta se pasa una décima de un enlace a otro (los dos antes del último puerto, para no mover el valle); en 32 de las 226 etapas de edición ninguna pareja cuadra y quedan a 1e-13 km, sin efecto en el motor.
+
+#### Constantes retiradas y añadidas
+
+Retiradas de `ROUTE` (sin lector en producción, §12.10), con su valor de la v86; el generador viejo las lleva copiadas en `sim/legacy/profileGenLegacy.ts` hasta el paso 9:
+
+| Clave de `ROUTE`                            | Valor de la v86                                                                         | La sustituye                                                           |
+| ------------------------------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `queenDplusRange`                           | { min 2.600, max 4.600 }, uniforme en logaritmo                                         | `Skeleton.dPlus` de cada esqueleto de reina                            |
+| `queenHighDplusShare`                       | 0,6                                                                                     | `ARCH.reina.blandaShare` por relieve                                   |
+| `queenLowDplusRange`                        | { min 1.200, max 2.500 }                                                                | `et_reina_blanda`, D+ [1.500; 2.500]                                   |
+| `queenFinalMix`                             | alto 0,45; cima_cerca 0,20; valle_corto 0,25; valle_largo 0,10                          | los pesos de los esqueletos de reina; como medida, `finales.reparto.*` |
+| `mixWeights`                                | flat [0,58 0,27 0,10 0,05]; hilly [0,30 0,36 0,19 0,15]; mountain [0,16 0,26 0,18 0,40] | `ARCH.pesosComposicion`                                                |
+| `kmFlat`, `kmHilly`, `kmUphill`, `kmSummit` | [165, 30], [160, 30], [150, 30], [145, 35]                                              | `ARCH.km.porClase`                                                     |
+| `grandTourLastDecisiveFactor`               | 0,4                                                                                     | `TOUR_SKELETONS.vu_gran_vuelta.ultima`                                 |
+
+Se conservan `ROUTE.itt*`, `lastDecisiveChance`, `grandTourStages`, `lastSummitShare`, `selectiveMinFraction`, `uphillFinishMinStages`, `lastStageKmFactor` y todo `RELIEF`. Añadidas: `ARCH.anticlon.maxCorrelacion` 0,85 (provisional, se calibra en el paso 9; su lector es la banda `variedad.correlacion.max`, que pasa a leer la clave) y `SUMMIT_RUN_IN_KM` 5, que no es nueva: sale de `apps/api/src/stageHistory.ts` a `routes/stageKind.ts` con `runInAfterLastClimb`, sin cambiar el cuerpo, y se exporta por `packages/engine/src/index.ts`. Cambiada: `ARCH.km.porClase['2'].unDia`, de [140, 40] a [130, 50] (arriba).
+
+`stageKindOf` gana la regla única de la etiqueta del final (§11.5 regla 2): `meteEnAlto` decide solo la rama de la clásica, como antes, y `cimaCerca` (la última cima a ≤ `SUMMIT_RUN_IN_KM` de meta) decide solo «Summit finish» o «Uphill finish». `kind` no cambia de regla (decisión 26). `calendarStageSpec` ya no reetiqueta lo generado: con `routeSource !== 'real'` devuelve la etiqueta de `labelDe`, y con `real` elige entre las dos del `kind` declarado con esa misma regla.
+
+#### `stageHistory`, re-sellado
+
+`apps/api/src/stageHistory.test.ts`: la cifra de «solo cambia la etiqueta» era **49 de 1.418** en la v86 (etapas de cualquier origen). En la v87 se parte en dos y se sella con su causa en el test: **generadas 0** (por construcción: la etiqueta ya sale del perfil con la misma regla) y **reales 30 de 177**, las etapas con recorrido real cuya etiqueta declarada por el terreno de la edición (`TERRAIN_KIND`, que llama «Summit finish» a toda etapa `mountain`) difiere de la que dice su recorrido. A partir de aquí solo un cambio de dato real la mueve.
+
+#### `kind` × `raceClass`, antes y después
+
+`routeCensus` con `aggregate(filas, (r) => r.raceClass)`, en etapas. Antes es el `SEASON_CALENDAR` de la v86 (hoy `legacyCalendar()`); después, el de la v87.
+
+| Clase | Etapas | llana   | media     | reina   | clásica | crono     |
+| ----- | ------ | ------- | --------- | ------- | ------- | --------- |
+| WT    | 161    | 34 → 34 | 56 → 56   | 46 → 46 | 12 → 12 | 13 → 13   |
+| Pro   | 174    | 46 → 43 | 85 → 84   | 27 → 27 | 9 → 13  | 7 → 7     |
+| .1    | 230    | 65 → 62 | 107 → 90  | 34 → 35 | 3 → 23  | 21 → 20   |
+| .2    | 321    | 97 → 94 | 134 → 143 | 50 → 32 | 4 → 15  | 36 → 37   |
+| NC    | 532    | 0 → 0   | 0 → 260   | 0 → 0   | 266 → 6 | 266 → 266 |
+
+Solo lo no real (1.241 etapas) cambia; en el WT, las 22 no reales conservan el reparto (8, 8, 3, 1, 2). Tres lecturas: las .2 pierden 18 reinas (50 → 32: la geografía veta la reina en los países sin cordillera, D8, y la composición reparte menos finales de montaña que `mixWeights`); las clásicas suben de 16 a 51 en Pro, .1 y .2 (muros y adoquín por zona); y los 266 nacionales en ruta pasan de clásica a media, salvo 6 (`flandes`, `bretana`), porque su circuito lleva una cota de [3,3; 6] km (`nc_ruta`, §5.7). Es la medida previa que el riesgo 9 de la ejecutabilidad pide para `world.test.ts` y `RACE_DAY_TSS` antes de remedir (paso 9).
+
+#### El arranque (`scripts/medir-arranque.mjs`, mediana de 5 procesos hijo)
+
+| Medida                                              | Mediana                                       | Máximo          | Fuente                                            |
+| --------------------------------------------------- | --------------------------------------------- | --------------- | ------------------------------------------------- |
+| HEAD / `ENGINE_VERSION`                             | `68a0ebc` más el paso 8 / 87                  |                 | git, `dist/constants.js`                          |
+| Máquina                                             | Intel Xeon @ 2,10 GHz × 4, node 22.22.2       |                 | `os.cpus()`                                       |
+| Carga de `routes/calendar.js`                       | 559 ms                                        | 571 ms          | cinco cargas: 549, 560, 534, 571 y 559 ms         |
+| Margen: `objetivoMs` / mediana; `techoMs` / mediana | 2,68; 4,47                                    |                 | `ARCH.arranque`: verde, sin modo perezoso (§14.6) |
+| Carreras / etapas / segmentos / por etapa           | 842 / 1.418 / 44.676 / 31,5                   |                 | `SEASON_CALENDAR` (46.354 y 32,7 en la v86)       |
+| Temporada 0                                         | es `SEASON_CALENDAR`                          |                 | `calendarForSeason(0) === SEASON_CALENDAR`        |
+| Temporada 1                                         | 353 ms; 14,0 MB de heap                       | 407 ms; 23,8 MB | margen 2,83 sobre `porTemporadaMs`                |
+| Temporada 2                                         | 304 ms; 13,7 MB                               | 318 ms; 26,0 MB | margen 3,29                                       |
+| Temporada 3                                         | 277 ms; 14,4 MB                               | 297 ms; 27,2 MB | margen 3,60                                       |
+| Segunda lectura de una temporada                    | 0,01 ms                                       | 0,01 ms         | memoizada, misma referencia                       |
+| Pasada de motor                                     | 250 ms; 0,176 ms por etapa; 1.874.175 bloques | 350 ms          | sobre el calendario de la v87                     |
+| Intentos p50 / p95 / máx; degradados                | 1 / 1 / 6; 0                                  |                 | `arch` de la temporada 0                          |
+| Cargas directas de test (suelo)                     | 30                                            |                 | 31 en el paso 6; se borró `routes/golden.test.ts` |
+
+La carga pasa de 188 ms (paso 0) y 202 ms (paso 6, sin dibujar la temporada) a 559 ms, lo que el anexo del paso 6 preveía («del orden de 570 ms»): verde contra el objetivo de 1.500 con margen 2,7, así que el calendario perezoso de §14.6 no se dispara. Los MB de heap por temporada (unos 14 de mediana) sostienen `maxTemporadasEnMemoria` 8: ocho temporadas en memoria son del orden de 110 MB. En vitest, que transforma el TypeScript al vuelo, los dos `it` nuevos de `routes/arranque.test.ts` miden la carga contra `techoMs` y la temporada adicional contra `porTemporadaMs`, y `test:rapido` entero tarda 10 min 6 s en esta máquina (18,5 min de CPU sumada).
+
+#### Tests re-sellados y adaptados, con su causa
+
+1. `index.test.ts`: `ENGINE_VERSION` 87.
+2. `routes/golden.test.ts` se borra; `golden.sealed.ts` pasa con `git mv` a `sim/legacy/`, y `sim/legacy/golden.test.ts` (nuevo, en la entrada «mundo y radio» de la matriz de `ci.yml`) exige las 1.418 huellas a `legacyCalendar()` y el reparto 177 / 226 / 1.015 de su origen.
+3. `routes/stageKind.test.ts`, reescrito por esqueleto con el barrido de `test:rapido` (20 semillas × 3 zonas × 5 km): `kind` y, donde se declara, `finalKind` al 100 % en los 32; las dos etiquetas de reina aparecen; la regla de los 5 km sobre perfiles literales; `ud_muros` en 300 semillas sigue clásica; una crono llana sin `timeTrial` es llana. Desviación: §15.10 pedía «una cronoescalada sin `timeTrial` es media»; con su puerto de meta de [9; 15] km (V8a) el clasificador la lee reina, y así se sella.
+4. `apps/api/src/stageHistory.test.ts`: 49 → reales 30 y generadas 0 (arriba). `fichaDe` gana `routeSource` con `real` por defecto (la corrección de etiqueta es de lo real; §3.11 decía `generado`, que dejaría esos casos sin comprobar) y un caso nuevo sella que lo no real no se reetiqueta.
+5. `routes/calendar.test.ts`: la primera etapa pasa a «llana o prólogo: `timeTrial` solo si es `Prologue` y la vuelta tiene 6 o más» (decisión 42); gana «el `kind` de toda etapa no real es el de `stageKindOf`» y «`routeSource` es uno de los tres y las de `STAGE_FEATURES` son `real`». El resto, sin tocar.
+6. `routes/grammar/calendario.test.ts`: encendidas las 24 del paso 0 y `cruces.kind`; nuevos el de degradados e intentos en las temporadas 0 a 3, el agregado de `routeSource` (39), H9 y el de `generico`. Re-sellado con causa «ningún segmento generado bajo 0,5 km»: V10(b) admite por escrito el muro de una rampa desde 0,4 km y el sector desde 0,3, y la gramática los dibuja (8 etapas).
+7. `routes/grammar/edition.test.ts`: encendido «`SEASON_CALENDAR` es `calendarForSeason(BASE_SEASON)` por referencia»; se retira el `it` que sellaba que eran arrays distintos.
+8. `routes/arranque.test.ts`: los dos `it` de coste de §14.4, primeros en el fichero para medir la carga con el registro de módulos limpio.
+9. Fuera de la lista de §15.10, dos adaptaciones por la misma causa (el calendario de la v86 ya no es `SEASON_CALENDAR`): `routes/grammar/geometry.test.ts` lee sus tres reinas congeladas por forma de `legacyCalendar()`, y `stage/journal.test.ts` toma los km de `race-tramuntana` de su perfil en vez del 210 fijo de la v86.
+
+`routes/realFingerprint.test.ts`, `raceRoutes.test.ts`, `finalKind.test.ts`, `featureProfile.test.ts`, `classicRoutes.test.ts`, `altimetry.test.ts`, `schedule.test.ts`, `uci.test.ts` y `packages/db/src/recorridoDelMundo.test.ts`, en verde sin tocar. En `packages/db/src/raceRoutes.ts` `RouteSource` pasa a tres valores y `freezeRaceRoute` copia `stage.routeSource` del calendario (la columna es `text`: sin migración).
+
+#### Los bancos
+
+Este paso los pone en rojo a propósito y el paso 9 los re-sella con el pareado; aquí no se remide ninguno. Los que leen perfiles generados y es de esperar que se muevan: `calendarQueens.test.ts` (la muestra de reinas sale del calendario entero: 86 reinas no reales en vez de 103, otras formas y otro desnivel), `world.test.ts` (reparte por `kind` y cambia el reparto de la tabla de arriba, con los nacionales en media), `invariantsPequenas.test.ts` (las vueltas pequeñas de `smallTours`: seis generadas y cuatro de edición, recompuestas), `invariantsClasicas.test.ts` (las de un día WT y las ocho más duras salen de `SEASON_CALENDAR`) y `invariantsAbandonos.test.ts` en lo que lea de la e21 de Race France. No deberían moverse los que corren solo recorridos reales (`realQueens`, `timeTrials`, los escenarios de `scenarios.ts` sobre `race-france`, `race-flanders` y `race-lombardy`). `sim/routeCensus.test.ts`, `sim/stageKind.completo.test.ts` y `sim/legacy/golden.test.ts` están en verde.
+
+#### Precondiciones del paso
+
+`backfillRaceRoutes` no se ha corrido en ningún mundo (este paso no tiene acceso a producción): la instrucción exacta, con qué `raceKey` y con qué criterio, está en `docs/ops.md`, «Cambio de calendario de la v87», y el mundo se reinicia antes del lanzamiento. La galería del paso 6 no tiene revisión del dueño: aceptó las trece decisiones por defecto (§5) y pidió seguir; se le entrega después. Advertencia para quien mire un mundo: E1 se ve en un mundo creado después de este paso, o en las carreras que no estaban empezadas ni convocadas al correr el backfill; las congeladas conservan el perfil viejo hasta la temporada siguiente, y las de temporada 1 o más saldrán del generador nuevo por `freezeRaceRoute(..., season)` en el paso 10.
+
+### v87 §4 · Galería
 
 Se abre al cerrar el paso 5 con la primera tanda de §16.7: `index.html`, una página por fila de `ZONAS` (31), `nacionales.html` y `adoquin.html`, generadas por `node scripts/galeria-recorridos.mjs` en `docs/galeria-recorridos/`, que no se versiona. La primera medida de `--medir`: 34 páginas y 12,6 MB en 1,9 s; 617 celdas zona × esqueleto con 3.085 perfiles (el documento calculaba 622 y 3.110), 532 perfiles nacionales y 20 + 20 de adoquín. Las páginas de zona pesan de 221 a 476 KB y la de nacionales 1.571 KB. La primera pasada pide 220 perfiles de los 600 de `maxPerfiles`: la fila 0 de cada celda en las once zonas y la columna derecha de adoquín; las carreras de un día del calendario se suman al cerrar el paso 6. `--comprobar` pasa las tres comprobaciones que ya existen (ningún perfil degradado, las filas de adoquín reciben un esqueleto de adoquín donde la zona lo admite, la primera pasada cabe); solo `race-leon` baja, a `ud_repecho` en `meseta`, y `race-veneto-classic` recibe `ud_adoquin_ligero` en `italia_norte`, al revés de lo que preveía §16.7. Las comprobaciones 2 y 3 esperan a `stagesForSeason`. La galería es determinista (dos generaciones seguidas dan los mismos bytes). Las revisiones del dueño y los datos que se editen se escriben aquí cuando lleguen.
 
@@ -17096,7 +17255,9 @@ Segunda tanda, al cerrar el paso 6: `calendario.html` (la lista de las 310 carre
 
 `--comprobar` pasa las cinco. La 2 compara los 532 nacionales de la página con `stagesForSeason(raceId, 0)` en `kind`, `label`, km y esqueleto: para que sea la misma petición, la página pide ya el km en `firma|id|km` sin recortar, como `nationalChampionshipsGramatica` (en el paso 5 lo pedía en `id|km` recortado al esqueleto, así que los perfiles nacionales cambian respecto de la primera tanda). La 3 compara la columna «nuevo» de las páginas de carreras (709 etapas no reales, huella `huellaFNV`) con `docs/galeria-sello-paso6.json`, que se escribe con `--sellar` al cerrar este paso y se versiona: el paso 8 conecta el calendario y no puede cambiar ninguna fila salvo las de las carreras que la revisión del dueño edite. En la 4, `race-bruges` recibe `et_llana` porque su edición real es `flat` y manda sobre el `cobbles` de la tabla (ya sale `Flat` hoy); se imprime aparte con `race-leon`, sin fallar.
 
-### vN §5 · Respuestas del dueño
+Al cerrar el paso 8 la galería se regenera sobre la v87: las páginas de carreras leen ya el calendario que el juego corre, y la columna «hoy» pasa a ser el calendario de la v86, `legacyCalendar()` de `sim/legacy/` (hasta el paso 9). La comprobación 3 no pasaba tal cual: 162 de las 709 etapas de la columna «nuevo» cambian respecto del sello del paso 6, y ninguna por una revisión del dueño, sino por las correcciones de la gramática de v87 §1 (49 carreras de un día .2 por el km, 97 etapas de edición, 94 por el cuadre en coma flotante y 3 por la regla de las finales, 15 `ud_muros` y `ud_muros_adoquin` por la cardinalidad de los muros y `race-reggio` por la vuelta de más). Se re-sella con `--sellar` (el fichero conserva su nombre, `docs/galeria-sello-paso6.json`, y su nota dice que se re-selló en el paso 8), y `--comprobar` vuelve a pasar las cinco: 37 páginas y 25,6 MB en 3,3 s, las mismas cifras que en el paso 6.
+
+### v87 §5 · Respuestas del dueño
 
 El 25/09/2026 el dueño aceptó las trece decisiones de la sección 18 de `docs/generador.md` con su valor por defecto:
 

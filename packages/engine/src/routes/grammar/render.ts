@@ -187,6 +187,35 @@ export function normalizeEnlaces(
   return segs.map((s, i) => (nuevos.has(i) ? reescala(s, nuevos.get(i)!) : s))
 }
 
+/**
+ * EL KM DE UNA ETAPA DE EDICIÓN ES UN CONTRATO, TAMBIÉN EN COMA FLOTANTE (v87, docs/balance.md v87
+ * §1). `normalizeEnlaces` cuadra `Σ km` al 0,1, pero sumar decimales en binario deja restos: una
+ * etapa de 130 km cuyos 28 enlaces suman 130 al 0,1 puede leerse 130,00000000000003 en
+ * `profileKm`, y `routes/realFingerprint.test.ts` sella la estructura de las grandes vueltas con el km
+ * de la edición exacto (Race France e21). Si la suma de izquierda a derecha no es exactamente `km`, se
+ * pasa una décima de un enlace a otro (el primer par que la cuadra, en el orden del perfil), los dos
+ * ANTERIORES al último `puerto` para no mover el valle de meta y sin bajar ninguno de 0,5 km. Todos
+ * los km siguen siendo décimas limpias; si ningún par cuadra (cuando el resto lo ponen los últimos
+ * sumandos, pasa en 32 de las 226 etapas de edición, a 1e-13 km), la etapa sale como estaba. Sin dados.
+ */
+export function cuadraComaFlotante(segs: Segment[], km: number): Segment[] {
+  if (suma(segs) === km) return segs
+  const ultimoPuerto = segs.reduce((a, s, i) => (s.tipo === 'puerto' ? i : a), segs.length)
+  const idx = segs.flatMap((s, i) => (i < ultimoPuerto && esEnlace(s) ? [i] : []))
+  for (const de of idx) {
+    const kmDe = r1(segs[de]!.km - DECIMA)
+    if (kmDe < ENLACE_MIN_KM - EPS) continue
+    for (const a of idx) {
+      if (a === de) continue
+      const kmA = r1(segs[a]!.km + DECIMA)
+      const prueba = segs.map((s, i) => (i === de ? kmDe : i === a ? kmA : s.km))
+      if (prueba.reduce((x, v) => x + v, 0) !== km) continue
+      return segs.map((s, i) => (i === de ? reescala(s, kmDe) : i === a ? reescala(s, kmA) : s))
+    }
+  }
+  return segs
+}
+
 /** El valle de cada `FinalKind` con la holgura `margenValleKm` sobre los cortes de `FINAL_KIND_CUTS` (§8.9 regla 4). */
 function ventanaDeValle(fk: FinalKind): [number, number] | null {
   const m = ARCH.veto.margenValleKm

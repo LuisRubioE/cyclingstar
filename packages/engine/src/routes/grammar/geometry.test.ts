@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ARCH } from '../../constants.js'
 import type { Segment, StageProfile } from '../../stage/types.js'
-import { SEASON_CALENDAR } from '../calendar.js'
+import { legacyCalendar } from '../../sim/legacy/profileGenLegacy.js'
 import { profileKm } from '../finalKind.js'
 import { ZONAS } from './geo.js'
 import { describeProfile, rachasDeSubida } from './geometry.js'
@@ -71,9 +71,14 @@ describe('rachasDeSubida (V9, §9.2)', () => {
   })
 })
 
-/** Las tres reinas congeladas por forma (decisión 33), tal como las dibuja hoy el calendario. */
+/**
+ * Las tres reinas congeladas por forma (decisión 33), tal como las dibujaba el calendario de la v86.
+ * Desde el paso 8 ese calendario es `legacyCalendar()` (`sim/legacy/`, hasta el paso 9, que las congela
+ * en `sim/frozenSkeletons.ts`): el de hoy sale de la gramática y ya no las dibuja.
+ */
+const VIEJO = legacyCalendar()
 function etapa(raceId: string, index: number): StageProfile {
-  const st = SEASON_CALENDAR.find((r) => r.id === raceId)?.stages.find((s) => s.index === index)
+  const st = VIEJO.find((r) => r.id === raceId)?.stages.find((s) => s.index === index)
   if (!st) throw new Error(`${raceId} e${index} no está en el calendario`)
   return st.profile
 }
