@@ -17,6 +17,15 @@
  *    sí («se empuja hacia atrás en cascada con el mismo mínimo»), también en `et_reina_encadenada`;
  *  - el recorte del punto 2 actúa sobre UNA dificultad, la no firma más larga, hasta su mínimo (el
  *    del hueco o el de `ARCH.motivo`, el mayor); si con eso no llega, `null`.
+ *
+ * Y cuatro del paso 5, medidas con el barrido de `generateStage`:
+ *  - las tiradas de un mismo hueco se reparten en el orden de sus instancias (`j`), para que la
+ *    primera y la última de §8.5 caigan donde el hueco las pide;
+ *  - un `circuito` de firma acaba en la meta, sin enlace entre medias (su cierre de vuelta es el
+ *    valle), y los circuitos se colocan los últimos;
+ *  - en un esqueleto con `aMeta` y meta `esprint`, la última subida se coloca la última: es la que
+ *    V5(c) mide desde la meta;
+ *  - la cascada arranca con hueco 0 si el último colocable es ese circuito de firma.
  */
 import { ARCH } from '../../constants.js'
 import type { StageRequest } from './generate.js'
@@ -100,8 +109,8 @@ export function colocarPlantilla(plantilla: readonly Motif[]): Placed[] {
   return colocados
 }
 
-/** Los esqueletos cuyos puertos y cotas llevan bajada canónica (§8.6 punto 1): todo `et_*` y `ud_montana*`. */
-const llevaBajadas = (sk: Skeleton): boolean =>
+/** Los esqueletos cuyos puertos y cotas llevan bajada canónica (§8.6 punto 1): todo `et_*` y `ud_montana*`. Exportada en el paso 5: `instanciar` estima esas bajadas al perseguir el desnivel (§8.5). */
+export const llevaBajadas = (sk: Skeleton): boolean =>
   sk.id.startsWith('et_') || sk.id.startsWith('ud_montana')
 
 /** La bajada canónica de un puerto o cota de `km` × `g` con la fracción `f` sorteada (§8.6 punto 1). */
@@ -217,14 +226,57 @@ export function colocar(
     return transicion ? ([Math.max(v[0], T), Math.max(v[1], T + 0.05)] as const) : v
   })
   const tiradas = ventanas.map(([a, b]) => r1(km * (a + rand() * (b - a)))) // se consumen todas
-  const orden = colocables.map((_, i) => i).sort((i, j) => tiradas[i]! - tiradas[j]! || i - j)
+  // Paso 5: las instancias de un MISMO hueco van en carretera en el orden de `j` (sus tiradas se
+  // reparten ordenadas), así «la primera cota» y «la última» de §5.2 son la `j = 0` y la `j = n − 1`
+  // que `instanciar` acota. Entre huecos distintos sigue mandando la tirada.
+  const porSlot = new Map<number | 'meta', number[]>()
+  colocables.forEach(({ inst }, i) =>
+    porSlot.set(inst.slot, [...(porSlot.get(inst.slot) ?? []), i]),
+  )
+  for (const idx of porSlot.values()) {
+    const ordenadas = idx.map((i) => tiradas[i]!).sort((a, b) => a - b)
+    idx.forEach((i, k) => (tiradas[i] = ordenadas[k]!))
+  }
+  // Paso 5: un circuito de FIRMA acaba donde empieza la meta. El km de la etapa se derivó de él (§8.4),
+  // así que la aproximación es lo que queda delante y no hay llano entre el circuito y la meta: el
+  // cierre de la vuelta (≥ `enlaceMinimo`) ya separa la última subida de la línea. Su tirada se
+  // consume y se descarta, como en la reina encadenada.
+  const deFirma = (i: number): boolean =>
+    colocables[i]!.motif.kind === 'circuito' && colocables[i]!.motif.firma === true
+  const kmMeta = meta.motif.km
+  colocables.forEach((c, i) => {
+    if (deFirma(i)) tiradas[i] = r1(km - kmMeta - kmTotalDe(c.motif))
+  })
+  // Paso 5: un circuito es el final de la etapa (la vuelta de Huy de la Flèche, el circuito de un
+  // nacional): va el último en carretera aunque la tirada de una cota caiga detrás de la suya; la
+  // cota se coloca delante y la cascada contra la meta la ajusta.
+  const esCircuito = (i: number): number => (colocables[i]!.motif.kind === 'circuito' ? 1 : 0)
+  const orden = colocables
+    .map((_, i) => i)
+    .sort((i, j) => esCircuito(i) - esCircuito(j) || tiradas[i]! - tiradas[j]! || i - j)
+  // Paso 5: en un día con meta `esprint` y `aMeta` (V5(c): la última subida corona a esa distancia de
+  // la línea), la última subida va la última: un racimo o una tendida que la tirada pusiera detrás
+  // dejaría la cota a 40 km de meta y ningún enlace que recortar. Se adelantan los que no suben.
+  if (sk.metaParams?.aMeta && meta.motif.meta === 'esprint') {
+    const subeC = (i: number): boolean => {
+      const m = colocables[i]!.motif
+      return ['cota', 'puerto', 'muro', 'cadena', 'circuito'].includes(m.kind)
+    }
+    let k = -1
+    orden.forEach((i, pos) => {
+      if (subeC(i)) k = pos
+    })
+    if (k >= 0 && k < orden.length - 1) orden.push(...orden.splice(k, 1))
+  }
   const pegado = sk.id === 'et_reina_encadenada' // los puertos van pegados tras su bajada (§8.6 punto 3)
   const inicios = new Map<number, number>()
   const finDe = (i: number): number =>
     inicios.get(i)! + kmTotalDe(colocables[i]!.motif) + (bajadas[i]?.km ?? 0)
   orden.forEach((i, pos) => {
     let inicio = tiradas[i]!
-    if (pos === 0) {
+    if (deFirma(i)) {
+      // ya está: acaba donde empieza la meta
+    } else if (pos === 0) {
       if (colocables[i]!.motif.kind === 'circuito') inicio = Math.max(inicio, enlaceMinimo)
     } else {
       const prev = orden[pos - 1]!
@@ -238,7 +290,8 @@ export function colocar(
 
   // La meta empieza en km − km_meta; lo que la invada se empuja hacia atrás en cascada.
   const inicioMeta = r1(km - meta.motif.km)
-  let tope = inicioMeta - enlaceMinimo
+  const ultimo = orden.at(-1)
+  let tope = inicioMeta - (ultimo !== undefined && deFirma(ultimo) ? 0 : enlaceMinimo)
   for (let pos = orden.length - 1; pos >= 0; pos--) {
     const i = orden[pos]!
     const exceso = finDe(i) - tope

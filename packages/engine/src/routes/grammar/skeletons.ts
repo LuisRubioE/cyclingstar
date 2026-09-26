@@ -9,7 +9,11 @@
  * `SKELETON_IDS`. Paso 4: el catálogo (`SKELETONS`, `CANONICO`, `NC_RUTA_CLASICA`), las tablas de
  * elección (`SESGO_TERRENO`, `ESCALON_TERRENO`, `ESCALON_ROLE`, `POR_TERRENO_EDICION`) y las
  * funciones que las leen (`degradarPapel`, `skeletonFor`, `cabe`, `candidatos`). Paso 5: las cuatro
- * funciones de la `cotaFinal` (regla 2 de §5.1), que leen claves de `ARCH.veto` de ese paso.
+ * funciones de la `cotaFinal` (regla 2 de §5.1), que leen claves de `ARCH.veto` de ese paso, y la
+ * deuda de `dPlus` del paso 4 saldada (docs/balance.md, vN §0, anexo del paso 5): el suelo de los
+ * esqueletos no reina se re-deriva con 3,0 m/km de relleno en vez de 5,5; en los reina el suelo no
+ * baja y la canónica se endurece dentro de `ARCH.motivo` (`ud_montana`, `et_reina_alto_corto`,
+ * `et_reina_cima_cerca`), y `ud_montana_alto` baja su Ventoux al 6 % para caber en V4c.
  *
  * Las tablas son DATOS de intención (sección 12): se corrigen como dato cuando la galería (sección
  * 16) diga que algo no se parece a lo real. Las filas son las de §5.2 y §5.3; las plantillas, las de
@@ -368,10 +372,10 @@ export const CANONICO: Record<SkeletonId, Motif[]> = {
   ], // 13,2 km; 195 km; 13 sectores; último muro a 8
   ud_montana: [
     E(98),
-    P(9.0, 6.2),
+    P(9.0, 7.5),
     D(10),
     E(20),
-    P(13, 6.6, true),
+    P(13, 8, true),
     D(10),
     E(37),
     C(4, 7),
@@ -381,7 +385,7 @@ export const CANONICO: Record<SkeletonId, Motif[]> = {
     D(5.3),
     E(1.5),
     META('descenso_meta', 8.4, { km: 2.7, g: 7.2 }),
-  ], // 245 km; Como: Ghisallo (8,6 → 9,0), Sormano, Civiglio (9,7 → 7), San Fermo a 5,7
+  ], // 245 km; Como: Ghisallo (8,6 → 9,0), Sormano, Civiglio (9,7 → 7), San Fermo a 5,7. Paso 5: endurecida para llegar al suelo de 3.000 m (6,2 → 7,5 y 6,6 → 8, dentro de ARCH.motivo.puerto.g)
   ud_montana_media: [
     E(80.5),
     C(6, 6),
@@ -410,13 +414,7 @@ export const CANONICO: Record<SkeletonId, Motif[]> = {
     E(36.5),
     META('repecho', 2.0, { km: 2.0, g: 6 }),
   ], // 190 km
-  ud_montana_alto: [
-    E(93.5),
-    P(15, 6.5),
-    D(10),
-    E(30),
-    META('alto_largo', 21.5, { km: 21.5, g: 7 }),
-  ], // 170 km; Ventoux por Bédoin
+  ud_montana_alto: [E(93.5), P(15, 7), D(10), E(30), META('alto_largo', 21.5, { km: 21.5, g: 6 })], // 170 km; Ventoux por Bédoin, a la media del 6 %: 21,5 × 6 × 10 = 1.290 m ≤ puertoDplusMax.media 1.300 (V4c; al 7 % eran 1.505)
   ud_criterium: [E(2.5), K(2.5, 22, [], [], true), META('esprint', 2.5)], // 60 km
   nc_ruta: [E(47.5), K(20, 8, [C(3.5, 4), M(1.0, 8)], [3.0, 11.0], true), META('esprint', 2.5)], // 210 km; media: 1.760 m en dificultades; último muro a 4,0
   nc_crono: [E(20), C(2.5, 4), D(2), E(7.5), META('esprint', 3)], // 35 km
@@ -479,24 +477,24 @@ export const CANONICO: Record<SkeletonId, Motif[]> = {
   ], // 175 km; plantilla 3 (Pirineos, 4.800 m)
   et_reina_alto_corto: [
     E(79.1),
-    P(11, 7),
+    P(11, 7.5),
     D(10),
     E(20),
-    P(14, 6.5),
+    P(14, 7),
     D(10),
     E(15),
     META('alto_corto', 5.9, { km: 5.9, g: 8.5 }),
-  ], // 165 km; Planche
+  ], // 165 km; Planche. Paso 5: endurecida para llegar al suelo de 2.600 m (7 → 7,5 y 6,5 → 7)
   et_reina_cima_cerca: [
-    E(75),
-    P(10, 7),
+    E(73),
+    P(12, 7),
     D(10),
     E(22),
-    P(13, 6.8),
+    P(13, 7.2),
     D(10),
     E(15),
     META('cima_cerca', 15, { km: 12, g: 7.5 }),
-  ], // 170 km; cima a 3
+  ], // 170 km; cima a 3. Paso 5: endurecida para llegar al suelo de 3.000 m (10 × 7 → 12 × 7 y 6,8 → 7,2)
   et_reina_valle: [
     E(57),
     P(9, 6.5),
@@ -558,10 +556,10 @@ export const CANONICO: Record<SkeletonId, Motif[]> = {
  * km, §6.2), y `bretana` tiene `muro.adoquin` falso.
  */
 export const NC_RUTA_CLASICA: Motif[] = [
-  E(15),
+  E(17),
   K(16, 12, [M(1.0, 9), M(0.5, 10)], [4, 7.5], true),
-  META('esprint', 3),
-] // 210 km; último muro a 6,0
+  META('esprint', 1),
+] // 210 km; último muro a 4,0, dentro del aMeta [1,2; 4,3] de V5(c)
 
 // ---------------------------------------------------------------------------------------------------
 // El catálogo (§5.2 y §5.3).
@@ -668,7 +666,7 @@ export const SKELETONS: Record<SkeletonId, Skeleton> = {
         ],
       },
     ],
-    dPlus: [1500, 2900],
+    dPlus: [1100, 2900],
     km: [180, 215],
     requiere: { muro: true, cota: true },
     pesoBase: 10,
@@ -734,7 +732,7 @@ export const SKELETONS: Record<SkeletonId, Skeleton> = {
         ],
       },
     ],
-    dPlus: [1500, 2800],
+    dPlus: [1050, 2800],
     km: [180, 275],
     requiere: { adoquin: 2, muro: { adoquin: true } },
     pesoBase: 12,
@@ -776,7 +774,7 @@ export const SKELETONS: Record<SkeletonId, Skeleton> = {
         params: { kmRango: [0.4, 2], gRango: [10, 16] },
       },
     ],
-    dPlus: [1600, 2800],
+    dPlus: [1250, 2800],
     km: [180, 215],
     requiere: { sterrato: true, muro: true, cota: true },
     pesoBase: 8,
@@ -806,7 +804,7 @@ export const SKELETONS: Record<SkeletonId, Skeleton> = {
         ],
       },
     ],
-    dPlus: [600, 1200],
+    dPlus: [300, 1200],
     km: [200, 260],
     requiere: { adoquin: 2 },
     pesoBase: 10,
@@ -841,7 +839,7 @@ export const SKELETONS: Record<SkeletonId, Skeleton> = {
         params: { kmRango: [0.4, 1.5], gRango: [8, 12] },
       },
     ],
-    dPlus: [800, 1800],
+    dPlus: [450, 1800],
     km: [170, 215],
     requiere: [{ adoquin: 2 }, { sterrato: true }],
     pesoBase: 8,
@@ -907,7 +905,7 @@ export const SKELETONS: Record<SkeletonId, Skeleton> = {
       { motif: 'cota', n: [3, 5], ventana: [0.3, 0.95] },
       { motif: 'muro', n: [0, 2], ventana: [0.4, 0.9] },
     ],
-    dPlus: [2000, 2900],
+    dPlus: [1600, 2900],
     km: [170, 215],
     requiere: { cota: true, cotaKmMin: COTA_MEDIA_KM },
     pesoBase: 12,
@@ -922,7 +920,7 @@ export const SKELETONS: Record<SkeletonId, Skeleton> = {
     finalKind: 'alto',
     meta: 'repecho',
     slots: [{ motif: 'cota', n: [2, 4], ventana: [0.3, 0.9] }],
-    dPlus: [1500, 2900],
+    dPlus: [1150, 2900],
     km: [160, 215],
     requiere: { cota: true, cotaKmMin: COTA_MEDIA_KM },
     pesoBase: 12,
@@ -964,7 +962,7 @@ export const SKELETONS: Record<SkeletonId, Skeleton> = {
         hijos: [],
       },
     ],
-    dPlus: [0, 300],
+    dPlus: [0, 450],
     km: [45, 100],
     pesoBase: 1,
     canonico: CANONICO.ud_criterium,
@@ -986,7 +984,7 @@ export const SKELETONS: Record<SkeletonId, Skeleton> = {
         n: [1, 1],
         ventana: [0, 0.25],
         firma: true,
-        params: { kmRango: [10, 20], vueltasRango: [8, 16] },
+        params: { kmRango: [10, 25], vueltasRango: [8, 16] },
         hijos: [
           { motif: 'cota', n: [1, 1], ventana: [0.05, 0.4], params: { kmRango: [3.3, 6] } },
           { motif: 'muro', n: [0, 2], ventana: [0.4, 0.9] },
@@ -1047,7 +1045,7 @@ export const SKELETONS: Record<SkeletonId, Skeleton> = {
     label: 'Flat',
     meta: 'esprint',
     slots: [{ motif: 'expuesto', n: [2, 3], ventana: [0.3, 0.95] }],
-    dPlus: [300, 900],
+    dPlus: [150, 900],
     km: [110, 210],
     requiere: { viento: 2 },
     pesoBase: 12,
@@ -1065,7 +1063,7 @@ export const SKELETONS: Record<SkeletonId, Skeleton> = {
       { motif: 'cota', n: [2, 4], ventana: [0.25, 0.8] },
       { motif: 'muro', n: [0, 2], ventana: [0.4, 0.85] },
     ],
-    dPlus: [1600, 2900],
+    dPlus: [1250, 2900],
     km: [120, 200],
     requiere: { cota: true, cotaKmMin: COTA_MEDIA_KM },
     pesoBase: 25,
@@ -1080,7 +1078,7 @@ export const SKELETONS: Record<SkeletonId, Skeleton> = {
     meta: 'alto_corto',
     metaParams: { cotaFinal: { km: [3, 7], g: [6, 11] } },
     slots: [{ motif: 'cota', n: [1, 2], ventana: [0.3, 0.8], params: { kmRango: [3.3, 8.0] } }],
-    dPlus: [1600, 2900],
+    dPlus: [1300, 2900],
     km: [110, 190],
     requiere: { cota: true, cotaKmMin: COTA_MEDIA_KM, finalesAlto: 'corto' },
     pesoBase: 20,
@@ -1109,7 +1107,7 @@ export const SKELETONS: Record<SkeletonId, Skeleton> = {
         ],
       },
     ],
-    dPlus: [1500, 2900],
+    dPlus: [1150, 2900],
     km: [120, 200],
     requiere: { muro: true },
     pesoBase: 12,
@@ -1541,4 +1539,101 @@ export function candidatos(req: Peticion): { id: SkeletonId; peso: number }[] {
     ) // imposible: ud_esprint no requiere nada y pesa > 0 en las cuatro clases de equipos
   }
   return porPapel(req.role)
+}
+
+// ---------------------------------------------------------------------------------------------------
+// La cotaFinal de la meta (regla 2 de §5.1, paso 5): sale de ARCH ∩ lo declarado, nunca de la zona.
+// Las lee `instanciarFirma` (motifs.ts) y las sella `skeletons.test.ts`.
+// ---------------------------------------------------------------------------------------------------
+
+type R = [number, number]
+const corta = (a: readonly [number, number], b: readonly [number, number]): R => [
+  Math.max(a[0], b[0]),
+  Math.min(a[1], b[1]),
+]
+const vacio = (r: R): boolean => r[0] > r[1]
+/** Techo redondeado hacia abajo al 0,1: el sorteo redondeado a 0,1 nunca lo pasa. */
+const floor1 = (x: number): number => Math.floor(x * 10 + 1e-9) / 10
+/** La resolución de la gramática (km y pendientes al 0,1): el techo de V4b es `puertoLargoKm − 0,1`. */
+const DECIMA = 0.1
+/** Las altitudes en las que existe un puerto de `ARCH.veto.puertoLargoKm` o más (V4(b)). */
+const ALTITUD_DE_PUERTO_LARGO: readonly GeoSignature['altitud'][] = ['media', 'alta', 'altiplano']
+
+/** Envolvente de la cotaFinal por MetaKind. Lee solo ARCH. null = MetaKind sin subida (esprint, sector_meta). */
+export function envolventeCotaFinal(
+  meta: MetaKind,
+  unDia: boolean,
+  kmDeclarado?: readonly [number, number],
+): { km: R; g: R } | null {
+  const A = ARCH.meta
+  switch (meta) {
+    case 'esprint':
+    case 'sector_meta':
+      return null
+    case 'repecho':
+      return {
+        km: unDia ? corta(A.repecho.km, [0, A.muro.km[1]]) : [...A.repecho.km],
+        g: [...A.repecho.g],
+      } // un día: ≤ 2,2 (V5b)
+    case 'muro_meta':
+      return { km: [...A.muro.km], g: [...A.muro.g] }
+    case 'alto_corto':
+      return { km: [...A.altoCorto.km], g: [...A.altoCorto.g] }
+    case 'alto_largo':
+      return { km: [...A.altoLargo.km], g: [...A.altoLargo.g] } // gMaxSiMasDe17 se aplica tras sortear km (techoG)
+    case 'cima_cerca':
+    case 'descenso_meta':
+    case 'valle': {
+      if (unDia) return { km: [...A.unDiaUltimaCota.km], g: [...A.unDiaUltimaCota.g] }
+      if (!kmDeclarado) throw new Error(`cotaFinal: ${meta} de etapa sin metaParams.cotaFinal`) // ARCH.meta.<clave> solo trae el valle
+      const m = kmDeclarado[0] >= ARCH.motivo.puerto.km[0] ? ARCH.motivo.puerto : ARCH.motivo.cota
+      return { km: [...m.km], g: [...m.g] }
+    }
+  }
+}
+
+/** Rango de la cotaFinal de la opción elegida: envolvente ∩ lo declarado, km y g por separado. Sin zona. */
+export function rangoCotaFinal(sk: Skeleton, alt: Alternativa | null): { km: R; g: R } | null {
+  const meta = alt?.meta ?? sk.meta
+  const propio = meta === sk.meta ? sk.metaParams?.cotaFinal : undefined // si la opción cambia la meta, el rango del esqueleto no vale
+  const kmDecl = alt?.metaParams?.kmRango ?? propio?.km
+  const gDecl = alt?.metaParams?.gRango ?? propio?.g
+  const env = envolventeCotaFinal(meta, !sk.id.startsWith('et_'), kmDecl)
+  if (!env) return null
+  const r = { km: corta(env.km, kmDecl ?? env.km), g: corta(env.g, gDecl ?? env.g) }
+  if (vacio(r.km) || vacio(r.g))
+    throw new Error(`cotaFinal: rango vacío en ${sk.id}${alt ? ` (${alt.nombre})` : ''}`)
+  return r
+}
+
+/** Techo de km por altitud (V4b y V4c, este con el techo de dibujo), antes de sortear km: con g en su suelo, el producto tiene que caber. */
+export function techoKmCotaFinal(r: { km: R; g: R }, altitud: GeoSignature['altitud']): R {
+  let hi = r.km[1]
+  if (!ALTITUD_DE_PUERTO_LARGO.includes(altitud))
+    hi = Math.min(hi, ARCH.veto.puertoLargoKm - DECIMA) // V4b: < 15
+  hi = Math.min(hi, techoDeDibujo(altitud) / (r.g[0] * 10)) // V4c con g = suelo (× 10: % a m/km)
+  return [r.km[0], floor1(hi)]
+}
+
+/** Techo de g con el km ya sorteado: `gMaxSiMasDe17` de alto_largo y V4c. */
+export function techoGCotaFinal(
+  meta: MetaKind,
+  r: { km: R; g: R },
+  km: number,
+  altitud: GeoSignature['altitud'],
+): R {
+  let hi = r.g[1]
+  if (meta === 'alto_largo' && km > ARCH.meta.altoLargo.kmSuaveDesde)
+    hi = Math.min(hi, ARCH.meta.altoLargo.gMaxSiMasDe17)
+  hi = Math.min(hi, techoDeDibujo(altitud) / (km * 10))
+  return [r.g[0], floor1(hi)]
+}
+
+/**
+ * El techo de V4(c) con el que se sortea (paso 5): `puertoDplusMax × puertoDplusDibujo`, porque el
+ * dibujo de `climb` sube los metros de lo sorteado hasta un 10-20 % (p95 1,06 a 1,17). Lo leen los dos
+ * techos de la cotaFinal e `instanciar` para los puertos; V4(c) sigue midiendo contra el techo entero.
+ */
+export function techoDeDibujo(altitud: GeoSignature['altitud']): number {
+  return ARCH.veto.puertoDplusMax[altitud] * ARCH.veto.puertoDplusDibujo
 }

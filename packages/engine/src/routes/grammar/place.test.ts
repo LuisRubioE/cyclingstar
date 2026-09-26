@@ -15,6 +15,9 @@ import { SKELETONS, SKELETON_IDS, type Skeleton, type SkeletonId } from './skele
  * zona`, y los compuestos y la meta copiados de la plantilla canónica del esqueleto. No reproduce el
  * sorteo del paso 5 (ni la persecución del desnivel ni la regla de la primera cota): solo da a
  * `colocar` listas de motivos plausibles, con la meta al final, para medir la colocación.
+ *
+ * Paso 5: el circuito de firma acaba en la meta sin enlace entre medias, así que los casos con
+ * circuito de firma piden el km que sale del circuito (§8.4) y no uno cualquiera de `sk.km`.
  */
 
 const r1 = (x: number): number => Math.round(x * 10) / 10
@@ -153,7 +156,12 @@ describe('colocar', () => {
       for (let i = 1; i < p.length; i++) {
         const hueco = r1(p[i]!.inicioKm - finDe(p[i - 1]!))
         const pegado =
-          sk.id === 'et_reina_encadenada' && p[i - 1]!.bajada !== undefined && p[i]!.slot !== 'meta'
+          (sk.id === 'et_reina_encadenada' &&
+            p[i - 1]!.bajada !== undefined &&
+            p[i]!.slot !== 'meta') ||
+          (p[i]!.slot === 'meta' &&
+            p[i - 1]!.motif.kind === 'circuito' &&
+            p[i - 1]!.motif.firma === true) // paso 5: el circuito de firma acaba en la meta
         expect(hueco, `${sk.id} ${seed} #${i}`).toBeGreaterThanOrEqual(
           pegado ? 0 : ARCH.colocacion.enlaceMinimo - 1e-9,
         ) // dos dificultades nunca se tocan salvo dentro de cadena y de reina encadenada
@@ -282,16 +290,19 @@ describe('colocar', () => {
     ).toEqual([12, 14, 16.2]) // solo el de 20 se recortó
     expect(motivos[0]!.motif.km).toBe(20) // la entrada no se toca
   })
-  it('circuito: la aproximación mide ≥ 1,5 km y el circuito de firma no cambia de km', () => {
+  it('circuito: la aproximación mide ≥ 1,5 km, el circuito de firma no cambia de km y acaba en la meta', () => {
     for (const id of ['ud_circuito', 'nc_ruta', 'ud_criterium'] as const) {
       const sk = SKELETONS[id]
       const geo = ZONAS[zonaDe(sk)]
       for (const seed of semillas(50)) {
         const motivos = instanciaDePrueba(sk, geo, seed)
-        const km = r1(motivos.reduce((a, m) => a + kmTotal(m.motif), 0) + 8)
+        // El km de la etapa sale del circuito de firma (§8.4): la aproximación es lo que queda delante,
+        // 3 km aquí, dentro de la ventana [0; 0,1] de ud_criterium.
+        const km = r1(motivos.reduce((a, m) => a + kmTotal(m.motif), 0) + 3)
         const p = colocar(motivos, km, sk, reqDe(id, geo, km), routeRng(`pos|c|${seed}`))!
         const c = p.find((x) => x.motif.kind === 'circuito')!
         expect(c.inicioKm, `${id} ${seed}`).toBeGreaterThanOrEqual(ARCH.colocacion.enlaceMinimo)
+        expect(c.finKm).toBeCloseTo(p.at(-1)!.inicioKm, 6) // paso 5: sin enlace entre el circuito y la meta
         expect(c.finKm - c.inicioKm).toBeCloseTo(
           kmTotal(motivos.find((m) => m.motif.kind === 'circuito')!.motif),
           6,
@@ -355,7 +366,10 @@ describe('colocar', () => {
       const sk = SKELETONS[id]
       const geo = ZONAS[zonaDe(sk)]
       const motivos = instanciaDePrueba(sk, geo, 't3')
-      const p = colocar(motivos, sk.km[1], sk, reqDe(id, geo, sk.km[1]), routeRng('pos|sep'))!
+      // Con circuito de firma el km sale de él (§8.4) y la aproximación cabe en su ventana; sin él, km[1].
+      const conFirma = motivos.some((m) => m.motif.kind === 'circuito' && m.motif.firma === true)
+      const km = conFirma ? r1(motivos.reduce((a, m) => a + kmTotal(m.motif), 0) + 3) : sk.km[1]
+      const p = colocar(motivos, km, sk, reqDe(id, geo, km), routeRng('pos|sep'))!
       for (const m of motivos.filter((x) => x.motif.hijos)) {
         const x = p.find((q) => q.slot === m.slot && q.motif.kind === m.motif.kind)!
         expect(x.motif.hijos).toEqual(m.motif.hijos)

@@ -169,6 +169,7 @@ jobs:
               packages/engine/src/sim/world.test.ts
               packages/engine/src/sim/raceRadio.test.ts
               packages/engine/src/sim/routeCensus.test.ts
+              packages/engine/src/sim/stageKind.completo.test.ts
     steps:
       - uses: actions/checkout@v4
         with:

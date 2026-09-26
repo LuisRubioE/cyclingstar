@@ -29,7 +29,8 @@ import { SKELETONS } from './skeletons.js'
  * 4 contra el motor real (`sampleProfile` → `deriveFinishTerrain` → `finishType`: es el ÚNICO test de
  * la gramática, con `routeCensus`, que los llama), la recalibración de `ARCH.reina.rellenoDplusPorKm`
  * y el test de coherencia de `ARCH` de §12.14, escrito por pasos (§15.1): sus cuatro `it` del paso 3,
- * el del paso 4 (referencias al motor y al clasificador) y los dos de los pasos 5 y 7 en `it.todo`.
+ * el del paso 4 (referencias al motor y al clasificador), el del paso 5 (`ARCH.km` y `ARCH.veto`) y el
+ * del paso 7 en `it.todo`.
  *
  * Reloj propio de 120 s en los `it` que muestrean perfiles (regla 3 de §15.1: ≥ 4× lo que cuestan).
  */
@@ -798,7 +799,19 @@ describe('ARCH es coherente con routes/ y STAGE', () => {
     expect(ARCH.reina.blandaShare.alta).toBeLessThan(ARCH.reina.blandaShare.montana!) // sacada del último it de §12.14
   })
   // Paso 5 (ARCH.km y el resto de ARCH.veto).
-  it.todo('km por clase, fallback y desnivel máximo de puerto bien formados')
+  it('km por clase, fallback y desnivel máximo de puerto bien formados', () => {
+    // min + rango ≤ techo: el jitter de edición (× 1,06) se recorta a maxPorClase ANTES de V13 (12.6), por
+    // eso aquí no hace falta holgura sobre el techo; lo que sí falla es una fila que lo supere sin jitter.
+    for (const clase of ['WT', 'Pro', '1', '2'] as const)
+      for (const [col, [min, rango]] of Object.entries(ARCH.km.porClase[clase]))
+        expect(min + rango, `${clase} ${col}`).toBeLessThanOrEqual(ARCH.km.maxPorClase[clase])
+    for (const [col, [min, rango]] of Object.entries(ARCH.km.porClase.NC))
+      expect(min + rango, `NC ${col}`).toBeLessThanOrEqual(ARCH.km.maxPorClase.NC)
+    expect(ARCH.veto.fallbackMaxShare.calendario).toBe(0)
+    expect(ARCH.veto.puertoDplusMax.alta).toBeGreaterThanOrEqual(
+      ARCH.motivo.puerto.km[1] * ARCH.meta.altoLargo.gMaxSiMasDe17 * 10,
+    ) // 25 km al 7 % caben en `alta`
+  })
   // Paso 7 (ARCH.pesosComposicion).
   it.todo('pesosComposicion suma 1 por relieve')
 })

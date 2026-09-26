@@ -7,10 +7,11 @@
  * Paso 1: solo los tipos. Paso 5: `kmDe`; paso 7: `TOUR_SKELETONS`, `tourSkeletonDe`, `garantias`,
  * `itinerarioDe`, `DEFAULT_ROUTE_CONTEXT`, `ventanaReina` y `composeTour`.
  */
-import type { EdicionCfg } from '../../constants.js' // RouteContext.edicion (sección 15, §15.8)
+import { ARCH, ROUTE, type EdicionCfg } from '../../constants.js' // EdicionCfg: RouteContext.edicion (§15.8)
 import type { RaceFormat } from '../calendar.js' // SOLO tipos, sentencia `import type` entera: se borra al compilar (§3.8)
 import type { RaceClass } from '../uci.js'
 import type { GeoZone, Relieve } from './geo.js'
+import { SKELETONS } from './skeletons.js'
 
 export type StageRole =
   | 'llana'
@@ -73,3 +74,86 @@ export interface RouteContext {
 
 /** Papeles que `kmDe` admite: los de vuelta más tres que solo usan `buildRace` y `nationalChampionships`. */
 export type KmRole = StageRole | 'un_dia' | 'un_dia_u23' | 'cri_u23'
+
+/** Las cronos no se acortan en la última etapa (hoy `mixKm` tampoco lo hace). */
+const esCrono = (role: KmRole): boolean =>
+  role === 'cri' || role === 'cri_u23' || role === 'prologo' || role === 'cronoescalada'
+
+/** `[min, amplitud]` de la crono de vuelta, la de `mixKm` de hoy: larga desde `ROUTE.ittLongStages` etapas. */
+const cronoDeVuelta = (n: number): readonly [number, number] =>
+  n >= ROUTE.ittLongStages
+    ? [ROUTE.ittLongKmMin, ROUTE.ittLongKmRange]
+    : [ROUTE.ittKmMin, ROUTE.ittKmRange]
+
+/** El rango bruto de un esqueleto como `[min, amplitud]`: prólogo y cronoescalada miden lo de su esqueleto, no lo de la clase. */
+const deEsqueleto = (km: readonly [number, number]): readonly [number, number] => [
+  km[0],
+  km[1] - km[0],
+]
+
+/**
+ * Km de una etapa por clase y papel (sección 7, §7.4; decisión 36): `min + rand() · amplitud` de la
+ * celda de `ARCH.km.porClase`, la última etapa de una vuelta × `ROUTE.lastStageKmFactor` (salvo
+ * cronos), recortada a `ARCH.km.maxPorClase` y redondeada al km. Una tirada de `rand`. La crono de
+ * vuelta sigue en `ROUTE.itt*` como hoy (por `n`); prólogo y cronoescalada miden lo de su esqueleto;
+ * los cuatro nacionales tienen su columna en `NC`. Un papel sub-23 fuera de `NC`, o uno de vuelta en
+ * `NC`, lanza: esa carrera no existe. Adelantada del paso 7 al 5 porque la galería la necesita.
+ */
+export function kmDe(
+  role: KmRole,
+  raceClass: RaceClass,
+  n: number,
+  last: boolean,
+  rand: () => number,
+): number {
+  let celda: readonly [number, number]
+  if (raceClass === 'NC') {
+    const nc = ARCH.km.porClase.NC
+    if (role === 'un_dia') celda = nc.ruta
+    else if (role === 'un_dia_u23') celda = nc.rutaU23
+    else if (role === 'cri') celda = nc.crono
+    else if (role === 'cri_u23') celda = nc.cronoU23
+    else throw new Error(`kmDe: el papel ${role} no existe en un campeonato nacional`)
+  } else {
+    if (role === 'un_dia_u23' || role === 'cri_u23')
+      throw new Error(
+        `kmDe: ${role} solo existe en los campeonatos nacionales (clase ${raceClass})`,
+      )
+    const fila = ARCH.km.porClase[raceClass]
+    switch (role) {
+      case 'llana':
+      case 'llana_viento':
+        celda = fila.llana
+        break
+      case 'media':
+      case 'media_alto':
+      case 'media_muro':
+        celda = fila.media
+        break
+      case 'reina_alto':
+      case 'reina_valle':
+      case 'reina_encadenada':
+        celda = fila.reina
+        break
+      case 'montana_corta':
+        celda = fila.corta
+        break
+      case 'un_dia':
+        celda = fila.unDia
+        break
+      case 'cri':
+        celda = cronoDeVuelta(n)
+        break
+      case 'prologo':
+        celda = deEsqueleto(SKELETONS.et_prologo.km)
+        break
+      case 'cronoescalada':
+        celda = deEsqueleto(SKELETONS.et_cronoescalada.km)
+        break
+    }
+  }
+  const [min, amplitud] = celda
+  let km = min + rand() * amplitud
+  if (last && !esCrono(role)) km *= ROUTE.lastStageKmFactor
+  return Math.round(Math.min(km, ARCH.km.maxPorClase[raceClass]))
+}

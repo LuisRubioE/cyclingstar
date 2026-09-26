@@ -11,7 +11,7 @@
 // se borra al compilar, así que no hay ciclo `constants.ts → routes/grammar/ → constants.ts`. Ningún
 // valor de `routes/grammar/` entra aquí ni se reexporta (el test de coherencia de `motifs.test.ts`
 // lee este fuente y lo exige).
-import type { Relieve } from './routes/grammar/geo.js'
+import type { GeoSignature, Relieve } from './routes/grammar/geo.js'
 import type { SkeletonId } from './routes/grammar/skeletons.js'
 import type { RaceClass } from './routes/uci.js'
 
@@ -1370,6 +1370,18 @@ export interface EdicionCfg {
 type Rango = readonly [number, number]
 
 /**
+ * `[mínimo, amplitud]`, como `ROUTE.kmFlat`: la forma de las celdas de `ARCH.km.porClase` (§12.1),
+ * que `kmDe` sortea como `min + rand() · amplitud`. Alias LOCAL del paso 5, como `Rango`.
+ */
+type MinRango = readonly [number, number]
+
+/** Las cinco columnas de `ARCH.km.porClase` en las clases de equipos (§12.7). Alias LOCAL del paso 5. */
+type PapelKm = 'llana' | 'media' | 'reina' | 'corta' | 'unDia'
+
+/** La altitud de una zona (`GeoSignature.altitud`): la clave de `ARCH.veto.puertoDplusMax`. Alias LOCAL del paso 5. */
+type Altitud = GeoSignature['altitud']
+
+/**
  * Multiplicador por clase del peso de cada esqueleto (docs/generador.md §5.6, que da la razón de cada
  * celda; §12.7). Tabla COMPLETA: una fila por `SkeletonId` y las cinco clases en cada fila, sin
  * `Partial`: `pnpm typecheck` falla si falta un esqueleto o una clase, y `candidatos` lee
@@ -1506,7 +1518,11 @@ export const ARCH = {
   meta: {
     // `ampMax` (paso 3, no está en §12.1): la llegada al esprint rueda a amplitud ≤ 1,5 en sus últimos
     // km (tabla de §4.3), así la media de los últimos 5 km queda lejos del `finishDragGradient` 2,5.
-    esprint: { ampMax: 1.5 },
+    // `km` (paso 5, no está en §12.1): el llano de la meta `esprint` que `instanciarFirma` sortea, de 1
+    // (el suelo de `motivo.enlace.km`, que `validateMotif` exige) a 5 (`finishWindowKm`, la ventana
+    // en la que `finishType` mira el arrastre). Lo que queda entre la última dificultad y la línea lo
+    // pone la colocación, y `garantizaClase` (regla 4) lo lleva a la ventana del final declarado.
+    esprint: { ampMax: 1.5, km: [1, 5] as Rango },
     // Cota corta y suave en meta: `finishType` la lee `puncheur`, nunca `alto` (queda bajo
     // `STAGE.finishAltoMinKm` 3). `gMin` 4 mete toda rampa en la racha de subida (≥ 3 %) y `gMax` 7,9
     // la deja bajo `wallMinGradient` 8: ningún repecho se lee como muro. Cauberg 1,2 km al 5,8 %.
@@ -1647,13 +1663,50 @@ export const ARCH = {
     // la llamaría reina por desnivel. 2.900 es el techo de `Skeleton.dPlus` de todo esqueleto `media`
     // del catálogo, y `garantizaClase` (regla 2b) y la persecución del desnivel (§8.5) lo hacen cumplir.
     margenClaseMetros: 300,
+    // Cuántas etapas pueden caer a la plantilla canónica (`degradado: true`): CERO en las 1.418 del
+    // calendario (un degradado ahí es un rango mal puesto, no una salida válida) y ≤ 0,5 % en el barrido
+    // de 300 semillas por esqueleto y zona, donde una combinación de borde puede tocar el tope.
+    fallbackMaxShare: { calendario: 0, testPorEsqueleto: 0.005 },
+    // p95 de `intentos` por esqueleto y zona: si pasa de 3 se ESTRECHAN los rangos del hueco que dispara
+    // (el histograma de `arch.rechazos` dice cuál), nunca se sube `colocacion.maxIntentos` (riesgo 9).
+    intentosP95: 3,
+    // V10(b): ningún segmento por debajo de 0,5 km (el suelo de `split` y el umbral de `rolling`), salvo
+    // el muro de UNA rampa de ≥ `motivo.muro.km[0]` y el sector de ≥ `motivo.sector.km[0]`.
+    segmentoMinKm: 0.5,
+    // V10(c): Σ km igual al km de la instancia al 0,1 (±0,05). Más fino que el contrato de hoy, que es
+    // al entero (`calendar.test.ts`).
+    kmTolerancia: 0.05,
+    // V15: salidas del ruido de `climb`. Ningún tramo por encima del 20 % ni por debajo del −14 %, y
+    // ningún tramo de un `puerto` bajo el 1 % (`Math.max(1, …)` de `climb` ya lo garantiza).
+    pendientes: { gMax: 20, gMin: -14, subidaGMin: 1 },
     // V4(b): un `puerto` de 15 km o más solo existe con `geo.altitud` media, alta o altiplano.
     puertoLargoKm: 15,
-    // V9 (§9.2), la racha de `deriveFinishTerrain` escrita sobre tramos: un tramo sube si g ≥ 3
-    // (= `STAGE.finishClimbMinGradient`) y un rellano de hasta 0,5 km (= `finishClimbGapBlocks` 5 × `dx`
-    // 0,1) no corta la racha. Entran en el paso 4 porque las lee `rachasDeSubida` (geometry.ts); el
-    // resto de la clave (`dPlusMax`, `cotaKm`, `cotaG`, `ventanaKm`) llega en el paso 5 con V9.
-    llana: { rachaGMin: 3, rellanoKm: 0.5 },
+    // V4(c): techo de desnivel de UN puerto por altitud, integrado por tramos (`climbMetres`), porque
+    // una intersección de rangos acota `km` y `g` por separado y nunca su producto: Alpe d'Huez 1.118,
+    // Angliru 1.225 en `media`, Loze 1.686 en `alta`. `instanciar` y `instanciarFirma` sortean `g`
+    // DESPUÉS de `km` con este techo, así que V4(c) no dispara en el calendario.
+    puertoDplusMax: {
+      mar: 500,
+      colina: 800,
+      media: 1300,
+      alta: 2100,
+      altiplano: 1500,
+    } as Record<Altitud, number>,
+    // Paso 5, no está en §12.1: la fracción del techo de V4(c) con la que se SORTEAN el km y la pendiente
+    // de un puerto (y de la subida de meta). El dibujo de `climb` mete ruido de ±1,2 por tramo y la
+    // rampa de un puerto irregular, y sube los metros de lo sorteado: medido sobre 2.000 dibujos por
+    // forma, p95 de 1,06 a 1,17 y máximo 1,25. Con 0,9 el veto queda como red y no como sorteo.
+    puertoDplusDibujo: 0.9,
+    // V9 (§9.2): una llana sube ≤ 1.800 m (una de 2.500 es media) y no tiene ninguna racha de ≥ 2,5 km
+    // a ≥ 5 % que acabe en los últimos 15 km (= `STAGE.finishClimbSearchKm`). La racha es la de
+    // `deriveFinishTerrain` escrita sobre tramos: sube si g ≥ 3 (= `finishClimbMinGradient`) y un
+    // rellano de hasta 0,5 km (= `finishClimbGapBlocks` 5 × `dx` 0,1) no la corta; `veto.test.ts` sella
+    // las tres igualdades. `rachaGMin` y `rellanoKm` entraron en el paso 4 con `rachasDeSubida`.
+    llana: { dPlusMax: 1800, cotaKm: 2.5, cotaG: 5, ventanaKm: 15, rachaGMin: 3, rellanoKm: 0.5 },
+    // V11, sobre las etapas en línea generadas del calendario: `finishType` `muro` en ≥ 1 % y
+    // `puncheur` en ≥ 8 % (hoy 0 de 1.075 tipan `muro`, balance v60 §12). Se mide en `routeCensus`,
+    // nunca por intento.
+    calendario: { muroMin: 0.01, puncheurMin: 0.08 },
   },
   /**
    * Pancartas (§12.5 y §8.10). `emitirPancartas` pone `cima` al final de todo `puerto` ≥ 1,5 km
@@ -1664,10 +1717,49 @@ export const ARCH = {
    */
   pancarta: { cimaMinKm: 1.5 },
   /**
-   * Kilómetros por clase (§12.7). El paso 4 trae el techo, que leen `cabe` y `skeletons.test.ts`;
+   * Kilómetros por clase (§12.7). El paso 4 trajo el techo, que leen `cabe` y `skeletons.test.ts`;
    * la tabla `porClase` llega en el paso 5 con `kmDe`.
    */
   km: {
+    // `[mínimo, amplitud]` por clase y papel (tabla de banco §7.3 sobre el mapa 07 §4.1): una .2 por
+    // etapas corre de 100 a 160 km y no de 165 a 195, y el 210 fijo de las carreras de un día desaparece.
+    // `llana` es `llana` y `llana_viento`; `media`, las tres medias; `reina`, `reina_*`; `corta`,
+    // `montana_corta`; `unDia`, la carrera de un día. La crono sigue en `ROUTE.itt*`, y `prologo` y
+    // `cronoescalada` miden lo de su esqueleto. `min + amplitud ≤ maxPorClase` en toda celda (el .1 de un
+    // día es [160, 40] y no [170, 40] por eso). NC, los cuatro campeonatos por `championshipCategory`.
+    porClase: {
+      WT: {
+        llana: [160, 30],
+        media: [150, 30],
+        reina: [140, 40],
+        corta: [120, 20],
+        unDia: [200, 60],
+      },
+      Pro: {
+        llana: [150, 30],
+        media: [140, 30],
+        reina: [140, 35],
+        corta: [120, 20],
+        unDia: [180, 50],
+      },
+      '1': {
+        llana: [140, 30],
+        media: [135, 30],
+        reina: [135, 35],
+        corta: [115, 20],
+        unDia: [160, 40],
+      },
+      '2': {
+        llana: [110, 40],
+        media: [110, 40],
+        reina: [115, 40],
+        corta: [100, 20],
+        unDia: [140, 40],
+      },
+      NC: { ruta: [180, 60], rutaU23: [140, 40], crono: [35, 10], cronoU23: [25, 10] },
+    } as Record<Exclude<RaceClass, 'NC'>, Record<PapelKm, MinRango>> & {
+      NC: { ruta: MinRango; rutaU23: MinRango; crono: MinRango; cronoU23: MinRango }
+    },
     // El techo que V13 comprueba y al que `kmDe` y el jitter de edición recortan antes (mapa 07 §4.1:
     // «techo UCI 280 salvo excepciones como Sanremo» en WT, 200 en .1, 240 en Pro; §2.3, en torno a
     // 200 en .2). WT a 260: la única de un día generada por encima sería una rareza sin nombre (las

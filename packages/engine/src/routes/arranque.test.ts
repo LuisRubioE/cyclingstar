@@ -14,7 +14,7 @@ import { describe, expect, it, vi } from 'vitest'
  * evalúa `SEASON_CALENDAR` al cargar, así que un fuente de `grammar/` que importara un VALOR de
  * `calendar.ts` cerraría un ciclo de carga que arranca con `ReferenceError`. Solo vale la sentencia
  * `import type` entera, que `verbatimModuleSyntax` borra al compilar. El paso 5 añade el `it` de
- * `stage/` y el 8 los de coste.
+ * `stage/` (el tercero) y el 8 los de coste.
  */
 
 const FUENTES_GRAMMAR = readdirSync(join(import.meta.dirname, 'grammar')).filter(
@@ -64,6 +64,21 @@ describe('routes/arranque: el calendario se construye sin ciclos de carga', () =
       // porque los fuentes son `.ts`) y se resuelve en tiempo de ejecución, `.js` → `.ts`.
       const ruta = `./grammar/${f.replace(/\.ts$/, '.js')}`
       await expect(import(/* @vite-ignore */ ruta), f).resolves.toBeDefined()
+    }
+  })
+
+  it('grammar/ no importa nada de stage/ ni llama a sampleProfile, deriveFinishTerrain, finishType o costBase', () => {
+    // Paso 5 (§14.4): los vetos son puros (decisión 4). Se buscan llamadas sobre el fuente SIN
+    // comentarios, porque las palabras prohibidas sí salen en comentarios obligatorios (la cabecera de
+    // `veto.ts`); `import type` de stage/types.js sí vale (se borra al compilar).
+    const dir = join(import.meta.dirname, 'grammar')
+    const sinComentarios = (s: string): string => s.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '')
+    for (const f of FUENTES_GRAMMAR) {
+      const src = readFileSync(join(dir, f), 'utf8')
+      expect(src, f).not.toMatch(/^import (?!type )[^\n]*from '[^']*\/stage\//m)
+      expect(sinComentarios(src), f).not.toMatch(
+        /\b(sampleProfile|deriveFinishTerrain|finishType|costBase)\s*\(/,
+      )
     }
   })
 })
