@@ -17529,3 +17529,113 @@ Cambian de esqueleto cinco etapas: `race-asturias` e1, `race-czechia` e2, `race-
 La tercera, `variedad.correlacion.max`, se redefine para medir la población del diseño (los pares de V12: mismo esqueleto, misma zona, distinta carrera y km a ±10 %) y sigue abierta: 0,965 sobre 856 pares frente al tope de 0,32. Reintentar el dibujo no la cierra, porque los finales en alto reales de esas familias ya pasan de 0,32 (p90 0,4). Queda como decisión del dueño, con las opciones en v87 §2. Mientras siga abierta no se cumple la condición (b) de la decisión 30, y `sim/legacy/` se conserva.
 
 Transición en los mundos vivos (sin cambio de motor ni de `ENGINE_VERSION`): el primer tick tras el despliegue congela una vez por mundo, con el recorrido del generador viejo (`legacyCalendar()`), las carreras no congeladas cuya etapa 1 cae en los 10 días de juego siguientes; las demás no empezadas se ven y se corren con el generador nuevo (`packages/db/src/transicionE1.ts`, `docs/ops.md`). Es la única lectura de `sim/legacy/` en producción: cuando se borre el directorio la transición ya habrá corrido, y su exportación en `index.ts` y la operación se borran con él.
+
+## v89 · Decisiones del dueño aplicadas
+
+El 26/09/2026 el dueño respondió a las siete decisiones abiertas de la v87 (§2, «Decisiones abiertas para el dueño», y la nota v88). Seis tienen número en su respuesta; la quinta de §2, `finales.reparto.valleLargo`, ya estaba cerrada y no pedía nada. Sobre el árbol `014d15b` (motor v88). `ENGINE_VERSION` sube de 88 a 89 porque la primera cambia perfiles del calendario en producción. Ninguna huella canónica de v87 §0 se mueve: `stage/attribution.test.ts` y `stage/timetrial.test.ts` pasan en `test:rapido` sin tocarlos, y la igualdad con y sin radio de `sim/raceRadio.test.ts` pasa en la entrada «mundo y radio». El motor de carrera no se ha tocado.
+
+| #   | Decisión                                    | Respuesta del dueño                                                           | Qué cambió                                                                                                           | Antes (v88)                                                                   | Después (v89)                                                                    |
+| --- | ------------------------------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| 1   | Tope anti-clon (`variedad.correlacion.max`) | un listón por familia y V12 al generar, sin sacar los nacionales del control  | `ARCH.anticlon.porFamilia`, `grammar/anticlon.ts` y la banda, que cuenta pares en el tope de su familia              | 169 de 856 pares en el tope de su familia (máximo 0,965 contra el 0,32 único) | 49 de 846 (18 de `nc_crono` de `generico`, máximo 0,863); la banda sigue abierta |
+| 2   | D6, fuga en montaña                         | mantener la banda [6; 30]                                                     | nada                                                                                                                 | 7,32 % con 12 semillas                                                        | igual; `calendarQueens` en verde con las semillas del CI                         |
+| 3   | D2, `stageKindOf`                           | se recalibra como encargo aparte                                              | una línea en `docs/encargos.md`, en la entrada de E1, con la cifra                                                   | 28 de 119                                                                     | igual                                                                            |
+| 4   | `variedad.dplusCubetaAlta` entre ediciones  | subir el techo de desnivel de las reinas por zona para que se cumpla en 1 a 5 | se midió; ningún techo de catálogo la sube, y no se cambia; la afirmación de las temporadas 1 a 5 entra en `it.todo` | 505, 511, 475, 463, 456 y 454 m (t0 a t5)                                     | igual                                                                            |
+| 5   | `timeTrials.tailPct`, cronos con cuesta     | se acepta                                                                     | nada                                                                                                                 | +0,98 puntos                                                                  | igual                                                                            |
+| 6   | `smallTours.sameWinnerPairPct`              | exigir el 15 % y rehacer la composición de las vueltas pequeñas               | el suelo vuelve de 10 a 15; la composición se probó y no se toca                                                     | 14,65 % (v87, 12 semillas)                                                    | 16,98 % con 12 semillas                                                          |
+
+### 1 · El tope anti-clon por familia y V12 al generar
+
+**Las familias.** `familiaAnticlon(kind, finalKind)` (`grammar/veto.ts`): `crono` para toda crono; `alto` para un final en alto, sea reina o media, porque la subida de meta domina la huella de las dos; `montana` para el resto de las reinas; `llana`; y `media` para media y clásica sin final en alto. Se lee igual en lo real (`stageKindOf` y `finalKindOf` del perfil) que en lo generado (el `kind` y el `finalKind` de la etapa, que V6 y V7 igualan a los del perfil). Un par de V12 se juzga con el tope mayor de sus dos familias (el mismo esqueleto solo cambia de familia por la meta de carrera).
+
+**La calibración.** `scripts/medir-real.mjs` gana el bloque «anticlon por familia»: los pares de etapas reales de carreras distintas, la misma familia y km a ± 10 %, y el p90 al centésimo de cada una.
+
+| Familia   | Pares reales | p50   | p90   | Máximo | Tope (`ARCH.anticlon.porFamilia`) |
+| --------- | ------------ | ----- | ----- | ------ | --------------------------------- |
+| `alto`    | 307          | 0,126 | 0,389 | 0,651  | 0,39                              |
+| `montana` | 182          | 0,046 | 0,269 | 0,561  | 0,27                              |
+| `llana`   | 117          | 0,013 | 0,216 | 0,576  | 0,22                              |
+| `media`   | 354          | 0,000 | 0,145 | 0,424  | 0,14                              |
+| `crono`   | 5            | 0,195 | 0,492 | 0,553  | 0,49                              |
+
+La crono se calibra con solo cinco pares: las trece cronos reales casi nunca casan en km. `ARCH.anticlon.maxCorrelacion` (el 0,32 único, p90 de los 338 pares de todas las familias juntas) se retira: su único lector era la banda, y el `it.skip` de H9 lee ahora `topeAnticlon`.
+
+**V12 al generar.** `calendar.ts` pasa cada temporada por `quitaClones` (`grammar/anticlon.ts`): recorre el calendario en su orden y, cuando una etapa generada llega al tope de su familia frente a otra ya aceptada de su par V12, la vuelve a pedir con `StageRequest.redibujo` de 1 a 20 (`ARCH.anticlon.redibujos`: 5 de solo dibujo y 15 que tiran además el plan de la edición) y se queda la primera que baja del tope o, si ninguna, la que menos se parece. El redibujo va detrás del intento en las semillas (`semillaDe`) y solo toca los subflujos que ya cambian con la temporada: en lo generado `mot`, `pos`, `dib` y, pasados los de solo dibujo, `ed`; en una etapa de edición real y en el nivel 0, solo `dib`, para que una etapa de edición siga variando solo el dibujo entre temporadas (§10.4). El esqueleto y la firma no cambian nunca, así que la identidad entre ediciones (decisión 20) se conserva; sin redibujo, las semillas son las de siempre byte a byte. Una etapa cuyo mejor dibujo aún choca con tres o más del grupo tras los de solo dibujo deja de insistir (`ARCH.anticlon.abandonoChoques`): es el grupo lleno de las `nc_crono` de `generico`, y ahorra un 28 % de la pasada. `grammar/anticlon.test.ts` sella las familias, las semillas, que un redibujo conserva esqueleto, firma, `kind` y final, y que todo par que queda en el tope tiene una de sus dos etapas en el informe `sinArreglo`.
+
+| Temporada | Etapas redibujadas | `generateStage` de la pasada | Sin bajar del tope: equipos | Sin bajar: `nc_crono` | Pares en el tope (censo) | Máximo equipos | Máximo nacionales |
+| --------- | ------------------ | ---------------------------- | --------------------------- | --------------------- | ------------------------ | -------------- | ----------------- |
+| 0         | 222                | 1.708                        | 17                          | 67                    | 49 de 846                | 0,638          | 0,863             |
+| 1         | 229                | 1.754                        | 16                          | 64                    | 29 de 853                | 0,596          | 0,833             |
+| 2         | 204                | 1.651                        | 14                          | 63                    | 34 de 841                | 0,806          | 0,859             |
+| 3         | 212                | 1.653                        | 12                          | 60                    | 34 de 861                | 0,643          | 0,842             |
+| 4         | 209                | 1.664                        | 12                          | 65                    | 34 de 870                | 0,608          | 0,825             |
+| 5         | 216                | 1.773                        | 15                          | 65                    | 39 de 829                | 0,567          | 0,879             |
+
+Sin la pasada, la temporada 0 tiene 208 etapas en el tope frente a otra ya aceptada (111 `nc_crono`) y 169 pares en el censo. La mediana de la correlación baja de 0,070 a 0,029. Lo que queda en equipos son sobre todo `et_media_alto` de zonas llanas (`africa_llana`, `asia_oriental`, `balcanes`), donde la subida de meta domina la huella y no hay otros puertos que la separen, y etapas de edición real, que solo pueden cambiar el dibujo; más intentos apenas arreglan más (con 5 + 40, de 2 a 4 etapas de equipos menos, al doble de coste).
+
+**Las cronos nacionales.** No lo cumplen: 138 `nc_crono` en `generico` con km parecido y la cota en el mismo 40 % del recorrido, o sin cota y con el relleno ondulado a trozos de 3 a 6 km, que correlaciona por azar con alguna de las 40 parejas de cada una. Se midió una familia propia para las cronos nacionales calibrada sobre las cronos reales sin la ventana de km (76 pares, p90 0,553): siguen sin bajar 44 a 50 `nc_crono` por temporada y 12 pares en el censo de la temporada 0. Hace falta un tope de 0,7 para que casi todas bajen (de 8 a 22 por temporada), muy por encima de cualquier crono real. No se adopta: la familia `crono` es una. La banda `variedad.correlacion.max` sigue en `it.todo` con la cifra en el nombre.
+
+**`sim/legacy/` no se borra.** De las cuatro condiciones de la decisión 30 (§15.11), (a) se cumple (ninguna banda del censo verde en el paso 0 pasa a roja), (c) también (ninguna huella canónica se mueve) y (d) también; (b) falla, porque `variedad.correlacion.max` sigue abierta por las `nc_crono`. `sim/legacy/`, `sim/pareado.ts`, la línea `sim:pareado` y `sim/legacy/golden.test.ts` en `ci.yml` se quedan; `packages/db/src/transicionE1.ts` sigue leyendo `legacyCalendar()` desde `@cyclingstar/engine`, así que el día que se borre el directorio habrá que mover esa función fuera de `sim/` o esperar a que la transición haya corrido en todos los mundos.
+
+**El coste.** La pasada pide unas 1.700 etapas por temporada además de las 1.241. Para pagarla sin cambiar un byte del perfil, el origen de los segmentos rendidos (`render.ts`) pasa de un `WeakMap` a dos `Map` por generaciones y `cuadraComaFlotante` deja de reservar un array por prueba (el calendario de las temporadas 0 a 2 sale con el mismo SHA-256 antes y después). Medido con `scripts/medir-arranque.mjs` (mediana de 5 procesos, misma máquina): carga de `calendar.js` 896 ms en la v88 y 1.162 ms en la v89 (objetivo 1.500, techo 2.500); temporadas 1 a 3, 599 / 451 / 462 ms en la v88 y 816 / 652 / 625 ms en la v89. `ARCH.arranque.porTemporadaMs` se re-sella de 1.000 a 1.500: con 1.000 el margen caía de 2,2 a 1,5 y el `it` de `routes/arranque.test.ts` fallaba con `test:rapido` entero en paralelo.
+
+**Perfiles que cambian.** Los de las etapas redibujadas: 222 en la temporada 0 (de ellas, 100 de las 709 etapas no reales de las páginas de carreras de la galería, que se re-sella con `--sellar`; `--comprobar` pasa las cinco), y las de cada temporada siguiente. Ninguna etapa cambia de esqueleto, de `kind` ni de familia. La galería pide para los nacionales el mismo redibujo que el calendario y lee sus ediciones de `stagesForSeason`. `docs/inventario-recorridos.md` regenerado.
+
+### 4 · El techo de desnivel de las reinas
+
+`variedad.dplusCubetaAlta` (σ del desnivel de las reinas generadas en [2.600; 4.600] > 500 m) sigue cumpliéndose en la temporada 0 (505 m) y no en las 2 a 5. Se midió cada palanca de catálogo sobre las seis temporadas (σ en m, t0 a t5):
+
+| Cambio                                                                       | t0  | t1  | t2  | t3  | t4  | t5  |
+| ---------------------------------------------------------------------------- | --- | --- | --- | --- | --- | --- |
+| Hoy                                                                          | 505 | 511 | 475 | 463 | 456 | 454 |
+| Techo de `sk.dPlus` de las reinas + 600 m                                    | 483 | 475 | 464 | 450 | 444 | 436 |
+| Suelo de `sk.dPlus` de valle, cima cerca y alto largo a 2.600, 2.600 y 3.000 | 490 | 495 | 470 | 448 | 440 | 437 |
+| `puerto.km` de toda zona + 3 km                                              | 502 | 508 | 477 | 458 | 459 | 452 |
+| `puertoDplusMax.colina` 800 → 1.000                                          | 496 | 494 | 461 | 450 | 453 | 439 |
+| `puertoDplusMax.media` 1.300 → 1.500                                         | 498 | 512 | 473 | 462 | 438 | 426 |
+| Pirineos y Dolomitas + 4 km de puerto, `alta` 2.400, `altiplano` 1.900       | 496 | 513 | 477 | 464 | 455 | 461 |
+| Zonas + 3 km, `media` 1.600 y `altiplano` 1.800                              | 494 | 513 | 482 | 463 | 439 | 426 |
+| `ARCH.reina.escalaDificultades` [0,7; 1,6]                                   | 496 | 503 | 489 | 468 | 438 | 439 |
+| Puertos de las reinas de [2; 3] a [2; 4]                                     | 506 | 512 | 474 | 471 | 423 | 484 |
+
+Ninguna llega. La causa, medida etapa a etapa sobre la temporada 4: el objetivo de una reina se sortea uniforme en `sk.dPlus` y lo recorta lo factible de su zona, así que la mitad cae en su techo o en su suelo factible, entre 3.000 y 3.500 m; subir los techos lleva esa masa hacia el centro de la ventana o por encima de 4.600 (fuera de la cubeta), y la σ de la ventana no crece. Con unas 60 reinas en la cubeta, el error de la σ de una temporada es de unos 45 m: para que las seis pasen de 500 haría falta una σ verdadera de unos 560 m, cerca de los 577 de un reparto uniforme en toda la ventana, y eso no es un techo sino otra forma de sortear el objetivo. El catálogo no se toca; `grammar/calendario.test.ts` gana la afirmación de las temporadas 1 a 5 como `it.todo`, con estas cifras en el nombre. `finales.reparto.alto` sigue en 0,698 (60 de 86) y la precisión de ± 12 % de `generate.test.ts` no se ha tocado.
+
+### 6 · El mismo sprinter en las vueltas pequeñas
+
+`TARGETS.smallTours.sameWinnerPairPct` vuelve a [15; 55]. Medido con doce corridas por carrera (`analyzeSmallTours(12)`, las del banco del CI):
+
+| Medida                 | Banda    | v87 (paso 9) | v89, anti-clon | v89 con más llanas (probado, no se queda) |
+| ---------------------- | -------- | ------------ | -------------- | ----------------------------------------- |
+| `sameWinnerPairPct`    | [15; 55] | 14,65        | 16,98          | 16,36                                     |
+| `bestSprinterWinPct`   | [25; 60] | 26,3         | 26,64          | 24,19 (fuera)                             |
+| `mediaGroups`          | [3; 14]  | 10           | 9              | 11,5                                      |
+| `worstRacePhotoRepeat` | [0; 4,1] |              | 2,35           | 2,20                                      |
+| `photoRepeatTopFive`   | [1; 3,6] |              | 1,76           | 1,73                                      |
+| `sweepPct`             | [0; 30]  |              | 0              | 0                                         |
+
+La composición que se probó, la palanca que v87 §2 nombraba: más `llana` en las filas `llano`, `ondulado`, `media` y `montana` de `ARCH.pesosComposicion` y `ROUTE.selectiveMinFraction` de 0,55 a 0,4 en `hilly` y de 0,7 a 0,6 en `mountain` (la de `flat` no puede bajar sin romper la garantía «cinco etapas llanas no son cinco sprints» de `tour.test.ts`). Las vueltas compuestas de hasta nueve etapas pasan de 25,2 % a 31,7 % de llanas y los finales al sprint, de 52,3 % a 53,5 % de las etapas (las reales de esas vueltas, 57,9 %). En el banco solo cambia `race-victoria`, que gana una llana, y el efecto es el contrario del buscado: el mejor rematador reparte más sprints, `race-victoria` pasa de ganarlo el 50 % a el 29,6 %, `bestSprinterWinPct` cae bajo su suelo y `sameWinnerPairPct` baja. No se queda. Con el anti-clon, que redibuja medias y finales en alto del banco, `sameWinnerPairPct` ya da 16,98 %, así que el suelo de 15 se exige sin tocar la composición.
+
+### Los bancos, entrada a entrada
+
+La matriz de `.github/workflows/ci.yml` corrida en local con la orden del CI (`pnpm exec vitest run <ficheros>`) sobre el árbol final, en una máquina de 4 núcleos (Xeon a 2,8 GHz) y a menudo con varias entradas a la vez:
+
+| Entrada       | Resultado   | Reloj local | Nota                                                                                                                                                                                                                                                            |
+| ------------- | ----------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| invariantes   | verde (13)  | 630 s       | lee las cronos del calendario                                                                                                                                                                                                                                   |
+| llano y fases | verde (6)   | 1.629 s     | no lee el calendario                                                                                                                                                                                                                                            |
+| desgaste      | verde (6)   | 1.007 s     |                                                                                                                                                                                                                                                                 |
+| clásicas      | verde (13)  | 904 s       | saturación de las 8 más duras en verde                                                                                                                                                                                                                          |
+| abandonos     | verde (11)  | 1.509 s     | con las `GENERATED_QUEENS` de siempre                                                                                                                                                                                                                           |
+| pequeñas      | verde (8)   | 1.546 s     | `sameWinnerPairPct` 16,98 con el suelo en 15                                                                                                                                                                                                                    |
+| coherencia    | verde (11)  | 1.734 s     |                                                                                                                                                                                                                                                                 |
+| mundo y radio | verde (107) | 602 s       | sola; con otras tres entradas a la vez, «la etapa sale idéntica con radio y sin radio» pasa del límite de 30 s y el censo, de 2 s, por reloj y no por resultado (el mismo banco sobre `main`, solo, 619 s y verde). `calendarQueens`: fuga 8,3 % con 4 semillas |
+
+### Bandas re-selladas
+
+- `smallTours.sameWinnerPairPct` [10; 55] → [15; 55] (decisión 6).
+- `variedad.correlacion.max`: la misma banda, redefinida (pares de V12 en el tope de su familia, `max` 0) y en `it.todo` con la cifra.
+- `ARCH.arranque.porTemporadaMs` 1.000 → 1.500 (coste de la pasada).
+- Nuevas en `it.todo`: `variedad.dplusCubetaAlta` en las temporadas 1 a 5.
+
+### Deudas de v87 §6 que se mueven
+
+La 5 (D2) pasa a `docs/encargos.md`. La 6 (D6) queda decidida: [6; 30]. La 9 cambia de cifra: 49 de 846 pares en el tope de su familia, por las `nc_crono` de `generico`, y la cierra un cambio de la forma de `nc_crono` o sacar los nacionales del control, que el dueño no eligió. La 10 sigue. La 13 queda medida: ningún techo de catálogo la cierra. La 16 se cierra: el suelo es 15 y se cumple. La 17 queda aceptada.
