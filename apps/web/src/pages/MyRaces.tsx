@@ -9,6 +9,7 @@ import { fetchMyRider, fetchMyUpcomingRaces, fetchRiderSummary, retireFromRace }
 import { Flag } from '../components/Flag'
 import { Panel, SectionBar } from '../components/Panel'
 import { ShowAllButton, TOP_ROWS } from '../components/ShowAll'
+import { StageRoute } from '../components/StageRoute'
 import { type TabOption, TabPanel, Tabs, useTabParam } from '../components/Tabs'
 import { raceClassLabel } from '../domain/labels'
 import {
@@ -420,6 +421,14 @@ function ResultsTab({ riderId }: { riderId: string | null }) {
                     {r.raceName}
                   </Link>
                   <span className="ml-2 text-xs text-slate-400">Season {r.season + 1}</span>
+                  {/* Un día: la etapa ES la carrera, y su de dónde a dónde va junto al nombre. */}
+                  {r.isOneDay && (
+                    <StageRoute
+                      from={r.stages[0]?.from}
+                      to={r.stages[0]?.to}
+                      className="ml-2 text-xs text-slate-400"
+                    />
+                  )}
                   {/* El desglose de etapas cuelga de la carrera, plegado: el titular es la general. */}
                   {hasStageBreakdown(r) && (
                     <details className="mt-0.5">
@@ -444,6 +453,11 @@ function ResultsTab({ riderId }: { riderId: string | null }) {
                             >
                               Stage {s.stageDay} of {r.stageCount}
                             </Link>
+                            <StageRoute
+                              from={s.from}
+                              to={s.to}
+                              className="truncate text-slate-400"
+                            />
                           </li>
                         ))}
                       </ul>

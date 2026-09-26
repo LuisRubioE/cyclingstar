@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { fetchLastRace } from '../api/lastRace'
 import { mentalityLabel, roleLabel } from '../domain/labels'
 import { personalNarration, raceVerdict } from '../domain/narration'
+import { StageRoute } from './StageRoute'
 
 /**
  * Panel "Your last race" (backlog extra): compara lo que el corredor ordenó con lo que ocurrió,
@@ -28,7 +29,10 @@ export function LastRaceReport() {
         </h2>
         <span className="text-xs text-slate-400">{data.raceName}</span>
       </div>
-      <p className="mt-1 text-sm font-semibold text-slate-800">{data.stageName}</p>
+      <p className="mt-1 text-sm font-semibold text-slate-800">
+        {data.stageName}
+        <StageRoute from={data.from} to={data.to} className="ml-2 font-normal text-slate-500" />
+      </p>
       <p className="mt-0.5 text-sm text-indigo-700">{raceVerdict(data)}</p>
 
       <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">

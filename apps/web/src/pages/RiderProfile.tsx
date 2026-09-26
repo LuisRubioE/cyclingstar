@@ -27,6 +27,7 @@ import { LastRaceReport } from '../components/LastRaceReport'
 import { InfoRow, Panel, SectionBar } from '../components/Panel'
 import { RaceResultList } from '../components/RaceResults'
 import { RoleEditor } from '../components/RoleEditor'
+import { StageRoute } from '../components/StageRoute'
 import { StarRating } from '../components/StarRating'
 import { TeamLink } from '../components/TeamLink'
 import { conditionBars, conditionLabel } from '../domain/condition'
@@ -481,6 +482,8 @@ export function RiderProfile() {
                   {palmaresLabel(p.kind)}
                   {p.detail && ` · ${p.detail}`}
                 </span>
+                {/* Una victoria de etapa dice también de dónde a dónde fue. */}
+                <StageRoute from={p.from} to={p.to} className="truncate text-slate-400" />
               </li>
             ))}
           </ul>
