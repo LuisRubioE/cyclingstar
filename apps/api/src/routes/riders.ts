@@ -236,9 +236,9 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
       world.currentDay + 1,
       world.currentDay + TRAINING_HORIZON_DAYS,
     )
-    // Días con carrera: no se entrenan (la carrera es su carga). Y días de VIAJE DE IDA: tampoco se
-    // entrenan, y el plan tiene que enseñarlos ANTES de que lleguen —el jugador planifica su semana
-    // contando con ellos, igual que cuenta con las etapas—.
+    // Días con carrera: no se entrenan (la carrera es su carga). Y días de VIAJE, de ida y de vuelta:
+    // tampoco se entrenan, y el plan tiene que enseñarlos ANTES de que lleguen —el jugador planifica
+    // su semana contando con ellos, igual que cuenta con las etapas—.
     const raceDays = await getRiderRaceDays(
       db,
       rider.id,

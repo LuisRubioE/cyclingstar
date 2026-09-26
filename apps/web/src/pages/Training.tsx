@@ -37,7 +37,8 @@ const HORIZON_POR_DEFECTO = 28
 const DIAS_POR_SEMANA = 7
 
 // "Travel" no se elige a mano: lo marca el sistema de viajes automáticamente los días de
-// desplazamiento a una carrera lejana (y el día de competición tampoco se entrena).
+// desplazamiento a una carrera lejana, a la ida y a la vuelta (y el día de competición tampoco se
+// entrena).
 const SELECTABLE_SESSIONS = SESSIONS.filter((s) => s !== 'viaje')
 
 /** Human-readable summary of what a session trains and how hard it is (#7). */
@@ -205,7 +206,8 @@ export function Training() {
                     </div>
                   )
                 }
-                // Día de VIAJE DE IDA: el plan lo enseña por adelantado, con destino. No se entrena.
+                // Día de VIAJE, de ida o de vuelta: el plan lo enseña por adelantado, con la carrera.
+                // No se entrena. Antes solo salía la ida y el plan enseñaba medio viaje.
                 const trip = travelByDay.get(gameDay)
                 if (trip) {
                   return (
@@ -218,7 +220,8 @@ export function Training() {
                       </span>
                       <span className="text-sm font-semibold text-sky-700">✈️ Travel day</span>
                       <span className="text-xs text-sky-600">
-                        On your way to {trip.raceName}
+                        {trip.direction === 'back' ? 'Heading home from' : 'On your way to'}{' '}
+                        {trip.raceName}
                         {trip.country ? ` (${trip.country.toUpperCase()})` : ''} — no training.
                       </span>
                     </div>

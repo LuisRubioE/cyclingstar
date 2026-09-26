@@ -18,17 +18,41 @@ describe('web: plan semanal de entrenamiento', () => {
   })
 
   it('salta también los días de VIAJE DE IDA: ese día se vuela, no se entrena', () => {
+    const trip = {
+      raceKey: 'race-x:s0',
+      raceName: 'Race X',
+      country: 'co',
+      direction: 'out' as const,
+    }
     const plan = buildServerPlan(
       response({
         raceDays: [14],
         travelDays: [
-          { gameDay: 12, raceKey: 'race-x:s0', raceName: 'Race X', country: 'co' },
-          { gameDay: 13, raceKey: 'race-x:s0', raceName: 'Race X', country: 'co' },
+          { ...trip, gameDay: 12 },
+          { ...trip, gameDay: 13 },
         ],
       }),
       5,
     )
     expect(plan.map((d) => d.gameDay)).toEqual([11, 15])
+  })
+
+  it('y los de VUELTA: tras la última etapa el corredor vuelve a casa, tampoco entrena', () => {
+    // Intercontinental: dos días para ir (12, 13), la carrera (14) y dos para volver (15, 16).
+    const trip = { raceKey: 'race-x:s0', raceName: 'Race X', country: 'co' }
+    const plan = buildServerPlan(
+      response({
+        raceDays: [14],
+        travelDays: [
+          { ...trip, gameDay: 12, direction: 'out' },
+          { ...trip, gameDay: 13, direction: 'out' },
+          { ...trip, gameDay: 15, direction: 'back' },
+          { ...trip, gameDay: 16, direction: 'back' },
+        ],
+      }),
+      7,
+    )
+    expect(plan.map((d) => d.gameDay)).toEqual([11, 17])
   })
 
   it('respeta las órdenes ya guardadas y rellena el resto con el plan del entrenador', () => {

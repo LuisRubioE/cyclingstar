@@ -147,6 +147,18 @@ export function ledgerKindLabel(kind: string): string {
   return LEDGER_KIND_LABEL[kind] ?? kind
 }
 
+/**
+ * Días de viaje de una carrera, anunciados como lo que cuestan de verdad: IDA Y VUELTA. El dato que
+ * llega (`TRANSPORT_COST[tramo].days`) es de UN trayecto, y enseñarlo tal cual anunciaba una carrera
+ * continental como «1d» cuando cuesta dos días sin entrenar, y una intercontinental como «2d» cuando
+ * cuesta cuatro (docs/agenda.md §4.19). En casa no hay viaje: cadena vacía.
+ */
+export function travelDaysLabel(oneWayDays: number): string {
+  if (oneWayDays <= 0) return ''
+  const total = oneWayDays * 2
+  return `${total} travel days (${oneWayDays} out, ${oneWayDays} back)`
+}
+
 /** Tipos de entrada del palmarés. */
 const PALMARES_KIND_LABEL: Record<string, string> = {
   gc: 'Overall win',

@@ -341,12 +341,16 @@ export const trainingOrderSchema = z.object({
 })
 export type TrainingOrder = z.infer<typeof trainingOrderSchema>
 
-/** Un día de VIAJE DE IDA del plan: hacia qué carrera vuela el corredor ese día. */
+/**
+ * Un día de VIAJE del plan: de qué carrera y en qué sentido (`out` hacia la carrera, `back` de vuelta
+ * a casa). `direction` con `default` para que una API anterior, que solo mandaba la ida, siga valiendo.
+ */
 export const travelDaySchema = z.object({
   gameDay: z.number().int(),
   raceKey: z.string(),
   raceName: z.string(),
   country: z.string().nullable(),
+  direction: z.enum(['out', 'back']).default('out'),
 })
 export type TravelDay = z.infer<typeof travelDaySchema>
 
@@ -357,8 +361,9 @@ export const ordersResponseSchema = z.object({
   /** Días de juego (absolutos) del horizonte en los que el corredor tiene carrera (#6). */
   raceDays: z.array(z.number().int()),
   /**
-   * Días de IDA a una carrera lejana: tampoco se entrenan. Con `default` a propósito, para que un
-   * despliegue en el que la web va por delante de la API no reviente el planificador entero.
+   * Días de VIAJE a una carrera lejana, de ida y de vuelta: tampoco se entrenan. Con `default` a
+   * propósito, para que un despliegue en el que la web va por delante de la API no reviente el
+   * planificador entero.
    */
   travelDays: z.array(travelDaySchema).default([]),
 })
@@ -989,6 +994,7 @@ export const enterableRaceSchema = z.object({
   startDay: z.number().int(),
   raceClass: z.string(),
   travelMoney: z.number(),
+  /** Días de viaje de UN trayecto; el viaje completo cuesta el doble (ida y vuelta). */
   travelDays: z.number(),
   entered: z.boolean(),
   enrolled: z.boolean(),

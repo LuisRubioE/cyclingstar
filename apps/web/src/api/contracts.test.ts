@@ -91,12 +91,25 @@ describe('contratos: entrenamiento', () => {
   // que la web va por delante de la API dejaría el campo ausente, y perder el plan entero por eso
   // sería peor que no enseñar el viaje.
   it('acepta los días de viaje y rellena la lista vacía si la API aún no los manda', () => {
+    const trip = { raceKey: 'race-x:s0', raceName: 'Race X', country: 'co' }
     const viaje = {
       ...payload,
-      travelDays: [{ gameDay: 14, raceKey: 'race-x:s0', raceName: 'Race X', country: 'co' }],
+      travelDays: [
+        { ...trip, gameDay: 14, direction: 'out' },
+        { ...trip, gameDay: 18, direction: 'back' },
+      ],
     }
     expect(ordersResponseSchema.parse(viaje)).toEqual(viaje)
     expect(ordersResponseSchema.parse(payload).travelDays).toEqual([])
+  })
+
+  // Una API anterior solo mandaba la IDA y sin sentido: se lee como ida, no se rechaza.
+  it('un día de viaje sin sentido se lee como IDA', () => {
+    const viejo = {
+      ...payload,
+      travelDays: [{ gameDay: 14, raceKey: 'race-x:s0', raceName: 'Race X', country: 'co' }],
+    }
+    expect(ordersResponseSchema.parse(viejo).travelDays[0]?.direction).toBe('out')
   })
 
   it('rechaza una sesión de entrenamiento desconocida', () => {

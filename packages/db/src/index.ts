@@ -265,9 +265,11 @@ export {
   getRiderUpcomingRaces,
   outboundTravelDays,
   retireFromRace,
+  returnTravelDays,
   ridersTravellingOutbound,
   type RetireOutcome,
   type RiderTravelDay,
+  type TravelDirection,
   type RiderUpcomingRace,
 } from './riderSchedule.js'
 export {
