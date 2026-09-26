@@ -1355,6 +1355,13 @@ export interface EdicionCfg {
 }
 
 /**
+ * Rango cerrado `[min; max]` de las perillas de `ARCH` (docs/generador.md §12.1). Alias LOCAL: nace en
+ * el paso 2 con `ARCH.motivo`, que es su primer lector, y no se exporta (quien lo lee trabaja con la
+ * tupla `readonly [number, number]`).
+ */
+type Rango = readonly [number, number]
+
+/**
  * LAS PERILLAS DEL GENERADOR DE RECORRIDOS POR GRAMÁTICA (E1, docs/generador.md sección 12).
  *
  * Las tablas de la gramática (zonas, territorios, esqueletos) son datos de intención y vivirán en
@@ -1364,6 +1371,61 @@ export interface EdicionCfg {
  * `routes/grammar/` (§14.4 depende de ello). Ningún valor de aquí cambia el calendario hasta el paso 8.
  */
 export const ARCH = {
+  /**
+   * Los rangos GLOBALES de cada motivo de la gramática (§12.2). La geografía (`ZONAS`, grammar/geo.ts)
+   * solo puede ESTRECHARLOS por zona, nunca ampliarlos, y `geo.test.ts` lo sella. Entra en el paso 2
+   * porque ese test compara las zonas con estos rangos; nadie más lo lee hasta el paso 3.
+   */
+  motivo: {
+    // Cota de media montaña. Techo 8,0: medio km bajo el `PASS_MIN_KM` 8,5 con el que `stageKindOf`
+    // llama reina a una etapa; suelo 2,5 = `STAGE.wallMaxKm`, así una subida es muro o cota, nunca
+    // ambas. Pendiente [4; 8): al 8 % (`STAGE.wallMinGradient`) empieza el muro (`between` es
+    // semiabierto, el techo nunca sale). Hoy [3; 7] × [4,5; 6,5] en profileGen.ts.
+    cota: { km: [2.5, 8.0] as Rango, g: [4, 8] as Rango },
+    puerto: {
+      // Suelo 9,0 (0,5 sobre 8,5) para que un puerto sea reina por construcción y no por redondeo;
+      // techo 25 (Croix de Fer 29 es rareza). El hueco [8,0; 9,0] se asume (Ghisallo sale 9,0).
+      km: [9.0, 25] as Rango,
+      // Techo GLOBAL 12: con 9 no cabían Angliru (9,8) ni Zoncolan (11,9). La zona estrecha.
+      g: [5, 12] as Rango,
+      // La rampa que abre brecha en un puerto `forma: 'irregular'` (SPEC §6.17: el irregular abre
+      // ≥ 1,5× la brecha del regular); a ≥ 8 % el motor ya corre con COL.
+      rampaIrregular: { km: [0.3, 0.8] as Rango, g: [11, 13] as Rango },
+    },
+    // Muro: techo 2,5 = `STAGE.wallMaxKm` (SPEC 6.4, `isWall`); suelo 0,4 = `STAGE.finishClimbMinKm`,
+    // por debajo el motor no lo lee como cota. Pendiente media [8; 16] (8 = `STAGE.wallMinGradient`,
+    // 16 ≈ Sormano); `gMin`/`gMax` recortan cada rampa en `climb`, así todo el muro corre con COL y
+    // ningún tramo de 0,5 km promedia una punta de 100 m. Sacrificio: el muro vasco de 3-4 km no existe.
+    muro: { km: [0.4, 2.5] as Rango, g: [8, 16] as Rango, gMin: 8, gMax: 16 },
+    // De 2 a 8 cotas o muros seguidos sin valle; entre cada dos, UNA separación de [1,5; 6] km (el
+    // suelo es `colocacion.enlaceMinimo`: dos dificultades se acercan pero no se tocan). Ronde, Amstel.
+    cadena: { hijos: [2, 8] as Rango, enlace: [1.5, 6] as Rango },
+    // Sector de adoquín o tierra: Roubaix 0,3-3,7 km; `paves` con estrellas es lo que lee el motor.
+    sector: { km: [0.3, 3.7] as Rango, estrellas: [1, 5] as Rango },
+    // Racimo de sectores: de 4 a 10, con [2; 6] km de asfalto entre ellos (por debajo el motor los
+    // vería como uno); longitud total [10; 60] km (Denain y Tro Bro Léon 10-22; Roubaix 26-40).
+    racimo: { sectores: [4, 10] as Rango, separacion: [2, 6] as Rango, km: [10, 60] as Rango },
+    // El rango ANCHO de un circuito, del critérium (2,5 km × 22) a Montréal (17-18 vueltas); cada
+    // esqueleto lo estrecha. Sus dificultades ocupan como mucho el 80 % de la vuelta.
+    circuito: { kmVuelta: [1.5, 30] as Rango, vueltas: [2, 40] as Rango, maxHijosShare: 0.8 },
+    // Falso llano largo tipado `llano`: desgasta, no selecciona, no suma `kmSubida` (Turchino, Almería).
+    tendida: { km: [5, 30] as Rango, g: [1.5, 3.5] as Rango },
+    descenso: {
+      // La bajada DECLARADA en el esqueleto (la del Poggio, la de Civiglio). Hoy `descent` no baja de −2.
+      km: [2, 25] as Rango,
+      g: [-8, -3] as Rango,
+      // Longitud de la bajada canónica tras un puerto o cota que no sea de meta: lo subido se pierde a
+      // 55 m por km, entre 2 y 10 km; lo que no cabe se queda arriba (Galibier a Lautaret).
+      kmPorDesnivel: { perdidaPorKm: 55, kmMin: 2, kmMax: 10 },
+    },
+    // Enlace (relleno) de 1 a 300 km: la aproximación de una clásica es UN motivo. `ampMax` 2,4: el
+    // relleno nunca alcanza el 3 % que `finish.ts` lee como cota (`STAGE.finishClimbMinGradient`);
+    // `GeoSignature.amplitud` es el valor por zona y este es su tope (geo.test.ts).
+    enlace: { km: [1, 300] as Rango, ampMax: 2.4 },
+    // Pólder, desierto, meseta: llano abierto de amplitud fija y baja, min(0,5; geo.amplitud). A 0,5
+    // rinde ~1,5 m/km de D+, que es Brugge-De Panne. Techo 120 km (Roubaix hasta Troisvilles, 96).
+    expuesto: { km: [5, 120] as Rango, amp: 0.5 },
+  },
   /**
    * Cómo cambia un recorrido generado de una temporada a otra (sección 10). Nadie lo lee hasta el
    * paso 5; entra ya en el paso 0 porque el 5 y el 7 lo leen antes de que llegue el 6.
