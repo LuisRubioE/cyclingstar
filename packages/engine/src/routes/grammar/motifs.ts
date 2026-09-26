@@ -1371,12 +1371,55 @@ function valleDeAMetaPorDefecto(): R2 {
 const metros = (m: Motif): number => ((m.g ?? 0) > 0 ? m.km * m.g! * 10 : 0)
 
 /**
+ * Los km de carretera de UNA instancia del hueco con su bajada, si el hueco tiene `n`: lo que cabe
+ * entre el inicio de su ventana y la meta (de `metaKm`), repartido entre las `n`, y lo que deja el
+ * final de la ventana a las `n − 1` primeras (la última tiene que EMPEZAR dentro de ella, §8.6).
+ */
+function disponibleEnHueco(sl: Slot, n: number, km: number, metaKm: number): number {
+  const min = ARCH.colocacion.enlaceMinimo
+  const hastaMeta = (km * (1 - sl.ventana[0]) - metaKm - min) / Math.max(1, n)
+  const enVentana = n > 1 ? (km * (sl.ventana[1] - sl.ventana[0])) / (n - 1) : Infinity
+  return Math.min(hastaMeta, enVentana) - min
+}
+
+/**
+ * La cardinalidad que cabe (paso 5): el plan decide cuántas instancias pide un hueco, pero si la
+ * etapa no tiene sitio ni para las más cortas, las opcionales sobrantes no se instancian (una reina
+ * de 130 km no lleva cuatro puertos con sus bajadas). Nunca baja de `n[0]`: una obligatoria que no
+ * cabe se degrada, como en la zona.
+ */
+function cabenEnHueco(
+  sk: Skeleton,
+  sl: Slot,
+  pedidas: number,
+  km: number,
+  metaKm: number,
+  geo: GeoSignature,
+): number {
+  if (sl.motif !== 'puerto' && sl.motif !== 'cota' && sl.motif !== 'muro') return pedidas
+  const z = geo[sl.motif]
+  if (z === null) return pedidas
+  const A = ARCH.motivo[sl.motif]
+  const kmLo = Math.max(A.km[0], z.km[0], sl.params?.kmRango?.[0] ?? -Infinity)
+  const gLo = Math.max(A.g[0], z.g[0], sl.params?.gRango?.[0] ?? -Infinity)
+  const conBajada = llevaBajadas(sk) && sl.motif !== 'muro'
+  let n = pedidas
+  while (
+    n > sl.n[0] &&
+    kmQueCabe(disponibleEnHueco(sl, n, km, metaKm), gLo, conBajada) < kmLo - EPS
+  )
+    n--
+  return n
+}
+
+/**
  * Paso 4 (§8.5): los huecos no firma con `plan.n[slot]` instancias, cada una con su corriente
  * `mot|…|${slot}|${j}|i${intento}` (`rngDe(slot, j)`), más la firma (el circuito con las vueltas del
  * plan) y la meta al final; orden: hueco, `j`. Después, en una sola pasada y sin iterar, la persecución
  * del desnivel: escala la LONGITUD de las dificultades no firma (en una `cadena`, la de cada hijo) por
- * `clamp((objetivo − R − D_firma − D_meta) / D_noFirma, 0,7, 1,4)`, con `R` el relleno estimado a
- * `rellenoDplusPorKm` y, en una `media`, con el techo de 2.900 m; cada km vuelve a su rango.
+ * `clamp((objetivo − R − D_firma − D_meta) / D_noFirma, 0,7, 1,4)`, con `R` el relleno de la zona
+ * (`rellenoPorAmplitud` × amplitud por km de enlace) y, en una `media`, con el techo de 2.900 m; cada
+ * km vuelve a su rango.
  */
 export function instanciar(
   sk: Skeleton,
@@ -1390,35 +1433,9 @@ export function instanciar(
   const out: Instancia[] = []
   const primeraCota = sk.slots.findIndex((s) => s.motif === 'cota' && !s.firma)
   const metaKm = metaFirma?.motif.km ?? 0
-  const min = ARCH.colocacion.enlaceMinimo
-  /**
-   * Los km de carretera de UNA instancia del hueco con su bajada, si el hueco tiene `n`: lo que cabe
-   * entre el inicio de su ventana y la meta, repartido entre las `n`, y lo que deja el final de la
-   * ventana a las `n − 1` primeras (la última tiene que EMPEZAR dentro de ella, §8.6).
-   */
-  const disponibleDe = (sl: Slot, n: number): number => {
-    const hastaMeta = (plan.km * (1 - sl.ventana[0]) - metaKm - min) / Math.max(1, n)
-    const enVentana = n > 1 ? (plan.km * (sl.ventana[1] - sl.ventana[0])) / (n - 1) : Infinity
-    return Math.min(hastaMeta, enVentana) - min
-  }
-  /**
-   * La cardinalidad que cabe (paso 5): el plan decide cuántas instancias pide un hueco, pero si la
-   * etapa no tiene sitio ni para las más cortas, las opcionales sobrantes no se instancian (una reina
-   * de 130 km no lleva cuatro puertos con sus bajadas). Nunca baja de `n[0]`: una obligatoria que no
-   * cabe se degrada, como en la zona.
-   */
-  const cabenDe = (sl: Slot, pedidas: number): number => {
-    if (sl.motif !== 'puerto' && sl.motif !== 'cota' && sl.motif !== 'muro') return pedidas
-    const z = req.geo[sl.motif]
-    if (z === null) return pedidas
-    const A = ARCH.motivo[sl.motif]
-    const kmLo = Math.max(A.km[0], z.km[0], sl.params?.kmRango?.[0] ?? -Infinity)
-    const gLo = Math.max(A.g[0], z.g[0], sl.params?.gRango?.[0] ?? -Infinity)
-    const conBajada = llevaBajadas(sk) && sl.motif !== 'muro'
-    let n = pedidas
-    while (n > sl.n[0] && kmQueCabe(disponibleDe(sl, n), gLo, conBajada) < kmLo - EPS) n--
-    return n
-  }
+  const disponibleDe = (sl: Slot, n: number): number => disponibleEnHueco(sl, n, plan.km, metaKm)
+  const cabenDe = (sl: Slot, pedidas: number): number =>
+    cabenEnHueco(sk, sl, pedidas, plan.km, metaKm, req.geo)
   sk.slots.forEach((sl, k) => {
     if (sl.firma) {
       for (const f of firma)
@@ -1481,7 +1498,7 @@ export function instanciar(
   })
   if (metaFirma) out.push(metaFirma)
   persigueDesnivel(sk, plan, out, ctx)
-  return quitaLoQueNoCabe(sk, plan, out)
+  return quitaLoQueNoCabe(sk, plan, out, req.geo)
 }
 
 /**
@@ -1492,7 +1509,12 @@ export function instanciar(
  * opcionales (`j ≥ n[0]`) empezando por el último hueco y la última `j`; las obligatorias se quedan y
  * la colocación y los vetos dirán. Sin dados.
  */
-function quitaLoQueNoCabe(sk: Skeleton, plan: EditionPlan, ms: Instancia[]): Instancia[] {
+function quitaLoQueNoCabe(
+  sk: Skeleton,
+  plan: EditionPlan,
+  ms: Instancia[],
+  geo: GeoSignature,
+): Instancia[] {
   const { perdidaPorKm, kmMin, kmMax } = ARCH.motivo.descenso.kmPorDesnivel
   const conBajada = llevaBajadas(sk)
   const colocable = (x: Instancia): boolean =>
@@ -1513,7 +1535,7 @@ function quitaLoQueNoCabe(sk: Skeleton, plan: EditionPlan, ms: Instancia[]): Ins
     return cs.reduce((t, x) => t + carretera(x.motif), 0) <= plan.km * (1 - a) - meta + EPS
   }
   const pasaDelTecho = (): boolean => {
-    const d = medidas(sk, plan, out)
+    const d = medidas(sk, plan.km, geo, out)
     return d.R + d.dFirma + d.dMeta + d.dNoFirma + d.dFijo > techoDeDesnivel(sk)
   }
   while (!cabe() || pasaDelTecho()) {
@@ -1529,16 +1551,32 @@ function quitaLoQueNoCabe(sk: Skeleton, plan: EditionPlan, ms: Instancia[]): Ins
   return out
 }
 
+/**
+ * Lo que sube un km de enlace en la zona, para las cuentas del desnivel (§8.5): `rolling` sube en la
+ * mitad de cada trozo a una pendiente media lineal en la amplitud mientras `0,45 · amp < 0,8` (todas
+ * las zonas: la mayor es 1,15), así que el relleno es `ARCH.reina.rellenoPorAmplitud × amplitud`.
+ * `rellenoDplusPorKm` sigue siendo la mediana de todas las zonas juntas (lo que mide el censo).
+ */
+function rellenoDeZona(amplitud: number): number {
+  return ARCH.reina.rellenoPorAmplitud * Math.min(amplitud, ARCH.motivo.enlace.ampMax)
+}
+
+/** Los km de la bajada canónica de una subida de `km` × `g` (`motivo.descenso.kmPorDesnivel`), sin tirada. */
+function kmDeBajada(km: number, g: number): number {
+  const { perdidaPorKm, kmMin, kmMax } = ARCH.motivo.descenso.kmPorDesnivel
+  return Math.min(kmMax, Math.max(kmMin, (km * g * 10) / perdidaPorKm))
+}
+
 /** Las cuentas de la persecución del desnivel (§8.5): metros de firma, de meta, no firma y fijos, y el relleno estimado. */
 interface Medidas {
   dFirma: number
   dMeta: number
   dNoFirma: number
-  dFijo: number // las `tendida`: suben por su pendiente y no son relleno a 3 m/km
-  R: number
+  dFijo: number // las `tendida` y los `expuesto`: suben por su pendiente o su amplitud, no a la de la zona
+  R: number // el relleno de la zona sobre los km que no son dificultad
+  kmLibre: number // esos km: los de enlace
 }
-function medidas(sk: Skeleton, plan: EditionPlan, ms: readonly Instancia[]): Medidas {
-  const { perdidaPorKm, kmMin, kmMax } = ARCH.motivo.descenso.kmPorDesnivel
+function medidas(sk: Skeleton, km: number, geo: GeoSignature, ms: readonly Instancia[]): Medidas {
   const conBajada = llevaBajadas(sk)
   let dFirma = 0
   let dMeta = 0
@@ -1552,6 +1590,12 @@ function medidas(sk: Skeleton, plan: EditionPlan, ms: readonly Instancia[]): Med
         if (m.cotaFinal) {
           dMeta += m.cotaFinal.km * m.cotaFinal.g * 10
           kmDif += m.cotaFinal.km
+          // En una meta con valle, la bajada canónica tampoco es relleno; el llano que resta, sí.
+          if (m.meta === 'cima_cerca' || m.meta === 'descenso_meta' || m.meta === 'valle')
+            kmDif += Math.min(
+              Math.max(0, m.km - m.cotaFinal.km),
+              kmDeBajada(m.cotaFinal.km, m.cotaFinal.g),
+            )
         } else kmDif += m.hijos?.[0]?.km ?? 0
         break
       case 'cota':
@@ -1560,8 +1604,7 @@ function medidas(sk: Skeleton, plan: EditionPlan, ms: readonly Instancia[]): Med
         if (m.firma) dFirma += metros(m)
         else dNoFirma += metros(m)
         kmDif += m.km
-        if (conBajada && m.kind !== 'muro' && slot !== 'meta')
-          kmDif += Math.min(kmMax, Math.max(kmMin, (m.km * (m.g ?? 0) * 10) / perdidaPorKm))
+        if (conBajada && m.kind !== 'muro' && slot !== 'meta') kmDif += kmDeBajada(m.km, m.g ?? 0)
         break
       case 'cadena':
         for (const h of m.hijos ?? []) {
@@ -1582,17 +1625,21 @@ function medidas(sk: Skeleton, plan: EditionPlan, ms: readonly Instancia[]): Med
         dFijo += metros(m)
         kmFijo += m.km
         break
+      case 'expuesto':
+        dFijo += rellenoDeZona(Math.min(ARCH.motivo.expuesto.amp, geo.amplitud)) * m.km
+        kmFijo += m.km
+        break
       default:
         break
     }
   }
-  const R = ARCH.reina.rellenoDplusPorKm * Math.max(0, plan.km - kmDif - kmFijo)
-  return { dFirma, dMeta, dNoFirma, dFijo, R }
+  const kmLibre = Math.max(0, km - kmDif - kmFijo)
+  return { dFirma, dMeta, dNoFirma, dFijo, R: rellenoDeZona(geo.amplitud) * kmLibre, kmLibre }
 }
 
 /** §8.5, la persecución del desnivel total: una sola pasada sobre las longitudes no firma. */
 function persigueDesnivel(sk: Skeleton, plan: EditionPlan, ms: Instancia[], ctx: Ctx): void {
-  const { dFirma, dMeta, dNoFirma, dFijo, R } = medidas(sk, plan, ms)
+  const { dFirma, dMeta, dNoFirma, dFijo, R } = medidas(sk, plan.km, ctx.geo, ms)
   if (dNoFirma <= 0) return
   const [lo, hi] = ARCH.reina.escalaDificultades
   const fijo = R + dFirma + dMeta + dFijo
@@ -1618,4 +1665,228 @@ function persigueDesnivel(sk: Skeleton, plan: EditionPlan, ms: Instancia[], ctx:
       )
     }
   }
+}
+
+// ---------------------------------------------------------------------------------------------------
+// El desnivel que la instancia puede dar (§8.4 punto 4): lo lee `planDeEdicion` para sortear un
+// objetivo alcanzable, sin dados y sin mirar el intento.
+// ---------------------------------------------------------------------------------------------------
+
+/** Lo que aporta un hueco no firma a las cuentas de §8.5, en el suelo y en el techo de la escala. */
+interface Aporte {
+  dLo: number // metros escalables con toda longitud a `escalaDificultades[0]` (sin bajar de su rango)
+  dHi: number // y a `escalaDificultades[1]` (sin pasar de su rango)
+  kmLo: number // sus km de carretera que no son relleno (bajadas incluidas) en el suelo de la escala
+  kmHi: number // y en el techo
+  dFijo: number // metros que la escala no toca (tendida, expuesto, hijos de circuito)
+  kmFijo: number // y sus km
+}
+const NADA: Aporte = { dLo: 0, dHi: 0, kmLo: 0, kmHi: 0, dFijo: 0, kmFijo: 0 }
+const medio = ([a, b]: Rango): number => (a + b) / 2
+const sumaAporte = (x: Aporte, y: Aporte, k: number): Aporte => ({
+  dLo: x.dLo + k * y.dLo,
+  dHi: x.dHi + k * y.dHi,
+  kmLo: x.kmLo + k * y.kmLo,
+  kmHi: x.kmHi + k * y.kmHi,
+  dFijo: x.dFijo + k * y.dFijo,
+  kmFijo: x.kmFijo + k * y.kmFijo,
+})
+
+/** `E[min(b, e·x)]` con `x` uniforme en `[a; b]` y `e ≥ 1`: la longitud media tras escalar hacia arriba. */
+function mediaEscaladaArriba([a, b]: Rango, e: number): number {
+  if (b - a < EPS) return Math.min(b, e * a)
+  const t = b / e
+  if (t <= a) return b
+  return ((e * (t * t - a * a)) / 2 + b * (b - t)) / (b - a)
+}
+/** `E[max(a, e·x)]` con `x` uniforme en `[a; b]` y `e ≤ 1`: la longitud media tras escalar hacia abajo. */
+function mediaEscaladaAbajo([a, b]: Rango, e: number): number {
+  if (b - a < EPS) return Math.max(a, e * b)
+  const t = a / e
+  if (t >= b) return a
+  return (a * (t - a) + (e * (b * b - t * t)) / 2) / (b - a)
+}
+
+/**
+ * Los rangos de km y pendiente con que `subida` sortearía un hueco en la zona, siguiendo la cadena de
+ * degradación de §8.5 (`puerto → cota → muro`) y con lo que cabe en la etapa (`disponible`, si se da:
+ * lo que no cabe se queda en su suelo); `null` si baja a enlace. Sin `kmExtra`: es la estimación del
+ * plan, no la instancia.
+ */
+function rangosDeSubida(
+  kind0: MotifKind,
+  params: SlotParams | undefined,
+  sk: Skeleton,
+  geo: GeoSignature,
+  disponible?: number,
+): { kind: 'cota' | 'puerto' | 'muro'; km: R2; g: R2 } | null {
+  const techo = techoDeDibujo(geo.altitud)
+  for (const k of CADENA_DE[kind0] ?? []) {
+    const kind = k as 'cota' | 'puerto' | 'muro'
+    const z = geo[kind]
+    if (z === null) continue
+    const A = ARCH.motivo[kind]
+    const gA = kind === 'cota' ? COTA_G : A.g
+    const largo: Rango | undefined =
+      kind === 'puerto' && !ALTITUD_LARGA.includes(geo.altitud)
+        ? [0, r1(ARCH.veto.puertoLargoKm - 0.1)]
+        : undefined
+    const clasica: Rango | undefined =
+      kind === 'cota' && sk.kind === 'clasica' ? [0, r1(WALL_MAX_KM - 0.1)] : undefined
+    for (const p of kind === kind0 && params !== undefined ? [params, undefined] : [undefined]) {
+      const g = cortaR(gA, p?.gRango, z.g) ?? cortaR(gA, z.g)
+      if (g === null) break
+      const km = cortaR(A.km, p?.kmRango, z.km, largo, clasica, [0, techo1(techo / (g[0] * 10))])
+      if (km === null) continue
+      if (disponible === undefined) return { kind, km, g }
+      const cabe = techo1(kmQueCabe(disponible, g[0], llevaBajadas(sk) && kind !== 'muro'))
+      return { kind, km: cortaR(km, [0, cabe]) ?? [km[0], km[0]], g }
+    }
+  }
+  return null
+}
+
+/** Una subida no firma: longitud media escalada al suelo y al techo de `escalaDificultades`, a su pendiente media. */
+function aporteDeSubida(
+  kind0: MotifKind,
+  params: SlotParams | undefined,
+  sk: Skeleton,
+  geo: GeoSignature,
+  conBajada: boolean,
+  disponible?: number,
+): Aporte {
+  const r = rangosDeSubida(kind0, params, sk, geo, disponible)
+  if (r === null) return NADA
+  const [eLo, eHi] = ARCH.reina.escalaDificultades
+  const g = Math.min(medio(r.g), techoDeDibujo(geo.altitud) / (medio(r.km) * 10))
+  const lo = mediaEscaladaAbajo(r.km, eLo)
+  const hi = mediaEscaladaArriba(r.km, eHi)
+  const baja = conBajada && r.kind !== 'muro'
+  return {
+    ...NADA,
+    dLo: lo * g * 10,
+    dHi: hi * g * 10,
+    kmLo: lo + (baja ? kmDeBajada(lo, g) : 0),
+    kmHi: hi + (baja ? kmDeBajada(hi, g) : 0),
+  }
+}
+
+/**
+ * Lo que aporta UNA instancia de un hueco no firma con `n` instancias (la media de lo que
+ * `instanciar` sortea en él), con `metaKm` los km de la meta de firma.
+ */
+function aporteDeHueco(
+  sk: Skeleton,
+  sl: Slot,
+  geo: GeoSignature,
+  km: number,
+  n: number,
+  metaKm: number,
+): Aporte {
+  const p = sl.params
+  switch (sl.motif) {
+    case 'cota':
+    case 'puerto':
+    case 'muro':
+      return aporteDeSubida(
+        sl.motif,
+        p,
+        sk,
+        geo,
+        llevaBajadas(sk),
+        disponibleEnHueco(sl, n, km, metaKm),
+      )
+    case 'cadena': {
+      // Los hijos se escalan (§8.5); las separaciones no.
+      const hijos: Slot[] = sl.hijos?.length
+        ? sl.hijos
+        : [
+            {
+              motif: geo.muro ? 'muro' : 'cota',
+              n: [ARCH.motivo.cadena.hijos[0], ARCH.motivo.cadena.hijos[1]],
+              ventana: [0, 1],
+            },
+          ]
+      let a = NADA
+      let cuantos = 0
+      for (const h of hijos) {
+        a = sumaAporte(a, aporteDeSubida(h.motif, h.params, sk, geo, false), medio(h.n))
+        cuantos += medio(h.n)
+      }
+      const sep = medio(p?.separacionRango ?? ARCH.motivo.cadena.enlace)
+      return { ...a, kmFijo: a.kmFijo + Math.max(0, cuantos - 1) * sep }
+    }
+    case 'racimo':
+    case 'sector': {
+      if (sk.kind !== 'clasica' || firmeDe(geo) === null) return NADA
+      const sector = medio(cortaR(ARCH.motivo.sector.km, p?.kmRango) ?? ARCH.motivo.sector.km)
+      if (sl.motif === 'sector') return { ...NADA, kmFijo: sector }
+      const cuantos = medio(ARCH.motivo.racimo.sectores)
+      const sep = medio(p?.separacionRango ?? ARCH.motivo.racimo.separacion)
+      return { ...NADA, kmFijo: cuantos * sector + (cuantos - 1) * sep }
+    }
+    case 'tendida': {
+      const A = ARCH.motivo.tendida
+      const tope: Rango = [0, (km * (sl.ventana[1] - sl.ventana[0])) / Math.max(1, n)]
+      const kmT = medio(cortaR(A.km, p?.kmRango, tope) ?? [A.km[0], A.km[0]])
+      return { ...NADA, dFijo: kmT * medio(cortaR(A.g, p?.gRango) ?? A.g) * 10, kmFijo: kmT }
+    }
+    case 'expuesto': {
+      if (geo.viento < 2) return NADA
+      const A = ARCH.motivo.expuesto
+      const tope: Rango = [0, (km * (sl.ventana[1] - sl.ventana[0])) / Math.max(1, n)]
+      const kmX = medio(cortaR(A.km, p?.kmRango, tope) ?? [A.km[0], A.km[0]])
+      return { ...NADA, dFijo: rellenoDeZona(Math.min(A.amp, geo.amplitud)) * kmX, kmFijo: kmX }
+    }
+    case 'circuito': {
+      // Los hijos de un circuito no se escalan nunca (§8.5): suben lo mismo en cada vuelta.
+      const C = ARCH.motivo.circuito
+      const vueltas = medio(cortaR(C.vueltas, p?.vueltasRango) ?? C.vueltas)
+      const kmVuelta = medio(cortaR(C.kmVuelta, p?.kmRango) ?? C.kmVuelta)
+      let d = 0
+      for (const h of sl.hijos ?? []) {
+        const a = aporteDeSubida(h.motif, h.params, sk, geo, false)
+        d += (medio(h.n) * (a.dLo + a.dHi)) / 2
+      }
+      return { ...NADA, dFijo: vueltas * d, kmFijo: vueltas * kmVuelta }
+    }
+    default:
+      return NADA
+  }
+}
+
+/**
+ * El intervalo de desnivel TOTAL (relleno incluido, el de `dPlusDe`) que la instancia puede dar en
+ * esta zona y a estos km (§8.4 punto 4): la firma y la meta tal cual, cada hueco no firma con su
+ * cardinalidad del plan y sus longitudes llevadas al suelo y al techo de `escalaDificultades` (la
+ * persecución de §8.5 no puede ir más allá), y el relleno de la zona sobre los km que quedan de
+ * enlace. Es una estimación en media, sin dados: la instancia concreta cae alrededor. `planDeEdicion`
+ * sortea el objetivo dentro de su cruce con `sk.dPlus`.
+ */
+export function desnivelFactible(
+  sk: Skeleton,
+  firma: readonly Motif[],
+  plan: Pick<EditionPlan, 'km' | 'n' | 'vueltas'>,
+  geo: GeoSignature,
+): R2 {
+  const fijas: Instancia[] = firma.map((m) => ({
+    slot: m.kind === 'meta' ? 'meta' : 0,
+    j: 0,
+    motif:
+      m.kind === 'circuito' && plan.vueltas !== undefined ? { ...m, vueltas: plan.vueltas } : m,
+  }))
+  // Las cuentas de la firma sobre una etapa sin huecos: su relleno dice qué km deja libres.
+  const f = medidas(sk, plan.km, geo, fijas)
+  const relleno = rellenoDeZona(geo.amplitud)
+  const metaKm = firma.find((m) => m.kind === 'meta')?.km ?? 0
+  let a = NADA
+  sk.slots.forEach((sl, k) => {
+    if (sl.firma) return
+    const n = cabenEnHueco(sk, sl, plan.n[k] ?? 0, plan.km, metaKm, geo)
+    if (n > 0) a = sumaAporte(a, aporteDeHueco(sk, sl, geo, plan.km, n, metaKm), n)
+  })
+  const base = f.dFirma + f.dMeta + f.dNoFirma + f.dFijo + a.dFijo
+  const lo = base + a.dLo + relleno * Math.max(0, f.kmLibre - a.kmFijo - a.kmLo)
+  const hi = base + a.dHi + relleno * Math.max(0, f.kmLibre - a.kmFijo - a.kmHi)
+  return [Math.min(lo, hi), Math.max(lo, hi)]
 }

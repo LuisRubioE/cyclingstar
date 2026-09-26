@@ -14,7 +14,7 @@ import {
   type StageRequest,
 } from './generate.js'
 import { ZONAS, admite, type GeoZone } from './geo.js'
-import { instanciarFirma, type MetaKind, type Motif } from './motifs.js'
+import { desnivelFactible, instanciarFirma, type MetaKind, type Motif } from './motifs.js'
 import { SKELETONS, skeletonFor, type Skeleton, type SkeletonId } from './skeletons.js'
 import type { StageRole } from './tour.js'
 
@@ -546,14 +546,56 @@ describe('barrido de test:rapido: V6 y V7 al 100 %, p95 de intentos ≤ 3, degra
   })
 })
 
-// §8.14: la persecución del desnivel, medida. Hoy no llega: los reina de firma pesada (ud_montana) no
-// tienen qué escalar, y el objetivo se sortea en todo sk.dPlus sin mirar la zona ni el km. Cifras del
-// paso 5 (300 semillas en la zona de referencia): ud_montana 24 %, ud_montana_alto 32 %,
-// et_reina_alto_largo 64 %, et_reina_alto_corto 58 %, et_reina_cima_cerca 77 %, et_reina_valle 68 %,
-// et_reina_encadenada 77 %, et_montana_corta 93 %, et_reina_blanda 55 %.
-it.todo(
-  'dPlusDe(profile) dentro de ± 12 % de dPlusObjetivo en el 90 % de 300 semillas por esqueleto reina (hoy de 24 a 93 %: ud_montana 24, et_montana_corta 93)',
-)
+// §8.14: la persecución del desnivel, medida. El objetivo se sortea dentro de lo que la instancia puede
+// dar en su zona y a sus km (`desnivelFactible`, §8.4 punto 4) y la persecución llega. Cifras del paso 5,
+// con el objetivo en todo sk.dPlus: ud_montana 24 %, ud_montana_alto 32 %, et_reina_alto_largo 64 %,
+// et_reina_alto_corto 58 %, et_reina_cima_cerca 77 %, et_reina_valle 68 %, et_reina_encadenada 77 %,
+// et_montana_corta 93 %, et_reina_blanda 55 %.
+/**
+ * Los reina que NO llegan por construcción, con la tasa medida que se sella en su lugar. `ud_montana`
+ * en `italia_norte`: sus dos puertos son de firma (no se escalan) y la zona da puertos de [9; 13] km
+ * al [6; 8] %, así que la firma, las cotas no firma a 1,4 y el relleno dan un techo factible de 2.891 m
+ * de mediana, bajo el suelo de 3.000 en 203 de 300 semillas: ahí el objetivo es el suelo y la etapa se
+ * queda en su techo. Medido: 260 de 300 dentro de ± 12 % (87 %), y 97 de 97 donde el techo cruza sk.dPlus.
+ */
+const POR_CONSTRUCCION: Partial<Record<SkeletonId, number>> = { ud_montana: 0.85 }
+describe('la persecución del desnivel llega: dPlusDe dentro de ± 12 % de dPlusObjetivo (§8.4 punto 4, §8.14)', () => {
+  const reinas = Object.values(SKELETONS).filter((sk) => sk.kind === 'reina')
+  it.each(reinas)('$id: en el 90 % de 300 semillas en su zona de referencia', (sk) => {
+    const zona = ZONA_DE_REFERENCIA[sk.id]
+    const kms = CINCO_KM(sk)
+    let dentro = 0
+    let alcanzables = 0
+    let dentroAlcanzables = 0
+    for (let i = 0; i < 300; i++) {
+      const req = requestDe(sk, zona, kms[i % kms.length]!, `dplus-${i}`)
+      const skz = skeletonFor(sk.id, req.geo)
+      const firma = instanciarFirma(
+        skz,
+        opcionDe(skz, req.raceId, seasonDe(req, 'ed')),
+        req,
+        routeRng(semillaDe('firma', req)),
+      ).map((f) => f.motif)
+      const plan = planDeEdicion(skz, firma, req)
+      expect(plan.dPlusObjetivo).toBeGreaterThanOrEqual(skz.dPlus[0])
+      expect(plan.dPlusObjetivo).toBeLessThanOrEqual(skz.dPlus[1])
+      const [lo, hi] = desnivelFactible(skz, firma, plan, req.geo)
+      const cruza = hi >= skz.dPlus[0] && lo <= skz.dPlus[1]
+      const g = generateStage(req)
+      const ok = Math.abs(g.arch.dPlus / plan.dPlusObjetivo - 1) <= 0.12
+      if (ok) dentro++
+      if (cruza) {
+        alcanzables++
+        if (ok) dentroAlcanzables++
+      }
+    }
+    console.info(
+      `[generate] dPlus ${sk.id} en ${zona}: ${dentro} de 300 dentro de ± 12 %; ${dentroAlcanzables} de ${alcanzables} donde lo factible cruza sk.dPlus`,
+    )
+    expect(dentroAlcanzables / Math.max(1, alcanzables)).toBeGreaterThanOrEqual(0.9)
+    expect(dentro / 300).toBeGreaterThanOrEqual(POR_CONSTRUCCION[sk.id] ?? 0.9)
+  })
+})
 
 it('instanciarFirma y planDeEdicion son puras y el plan no depende del intento', () => {
   const sk = SKELETONS.ud_montana

@@ -17003,6 +17003,30 @@ Medido en local, con `vitest run` y el reportero por defecto.
 
 Los dos ficheros de `test:rapido` cuestan 3,3 y 3,8 s enteros. La malla completa corre en `test:bancos` y en la entrada «mundo y radio» de la matriz de `ci.yml`; sobre el `dist` y sin vitest la misma malla tarda 19,8 s, y corriendo en paralelo con el resto de `routes/` sube a 40,2 s, lejos de los 140 s. Los intervalos de la tabla son el reloj a solas y el de la corrida de `routes/` entera.
 
+#### vN §0 · anexo: el desnivel objetivo depende de la zona y de los km
+
+Salda la desviación 10 del paso 5. `planDeEdicion` sorteaba `dPlusObjetivo` uniforme en todo `sk.dPlus` sin mirar la zona ni los km, y la persecución de §8.5 (que solo escala las longitudes no firma entre 0,7 y 1,4) no llegaba: una reina de 110 km con un objetivo de 5.300 m, o una `ud_montana` cuyos dos puertos son de firma, no tienen qué escalar. Ahora la tirada (la misma, una sola, en el mismo lugar de la corriente `ed`) cae dentro del cruce de `sk.dPlus` con lo que la instancia puede dar: `desnivelFactible` (en `grammar/motifs.ts`) suma la firma y la meta tal cual, cada hueco no firma con la cardinalidad del plan que cabe en la etapa (`cabenEnHueco`, la misma regla que `instanciar`) y sus longitudes medias llevadas al suelo y al techo de `escalaDificultades` dentro de su rango y de lo que cabe hasta meta, y el relleno de la zona sobre los km que quedan de enlace. Si el cruce está vacío, el objetivo es el extremo de `sk.dPlus` más cercano a lo factible: nunca sale del rango del esqueleto.
+
+Clave nueva: `ARCH.reina.rellenoPorAmplitud` 3,3 (m/km por punto de `GeoSignature.amplitud`). `rolling` sube en la mitad de cada trozo a una pendiente media lineal en la amplitud mientras `0,45 · amp < 0,8`, que se cumple en las 31 zonas; medido con `dPlusDe` sobre enlaces rendidos, el cociente va de 3,25 a 3,32 (1,32 m/km en `golfo`, 3,78 en `alpes`) y `motifs.test.ts` lo repite zona a zona. La persecución de §8.5 y `quitaLoQueNoCabe` pasan a estimar el relleno con él en vez de con los 3,0 m/km de `rellenoDplusPorKm`, que sigue siendo la mediana de todas las zonas y el suelo de los techos de la firma. Dos cuentas de `medidas` se afinan a la vez: la bajada canónica de una meta con valle no cuenta como relleno, y un `expuesto` sube a la amplitud de su motivo (0,5) y no a la de la zona.
+
+Precisión, sobre 300 semillas por esqueleto reina en su zona de referencia, con los cinco km de `CINCO_KM` en rueda (el `it` que era `it.todo` en `generate.test.ts`), fracción con `dPlusDe` dentro de ± 12 % del objetivo:
+
+| Esqueleto             | Zona           | Antes | Después |
+| --------------------- | -------------- | ----- | ------- |
+| `ud_montana`          | `italia_norte` | 18 %  | 87 %    |
+| `ud_montana_alto`     | `provenza`     | 34 %  | 100 %   |
+| `et_reina_alto_largo` | `pirineos`     | 65 %  | 100 %   |
+| `et_reina_alto_corto` | `cantabrico`   | 55 %  | 100 %   |
+| `et_reina_cima_cerca` | `alpes`        | 79 %  | 99 %    |
+| `et_reina_valle`      | `alpes`        | 69 %  | 96 %    |
+| `et_reina_encadenada` | `dolomitas`    | 74 %  | 100 %   |
+| `et_montana_corta`    | `pirineos`     | 93 %  | 100 %   |
+| `et_reina_blanda`     | `portugal`     | 57 %  | 100 %   |
+
+`ud_montana` no llega al 90 % por construcción, y el test lo sella con su cifra (≥ 85 %) en vez de esconderlo: sus dos puertos son de firma y no se escalan, `italia_norte` da puertos de [9; 13] km al [6; 8] %, y la firma, las cotas no firma a 1,4 y el relleno dan un techo factible de 2.891 m de mediana, bajo el suelo de 3.000 en 203 de las 300 semillas. En esas el objetivo es 3.000 y la etapa se queda en su techo; en las 97 donde el techo cruza `sk.dPlus`, llegan las 97. Cerrarlo es una decisión de catálogo (bajar el suelo de `ud_montana` o endurecer su firma en zonas de puerto corto), no de la persecución, y se deja a la galería.
+
+Reintentos, sin cambio: en el barrido de `test:rapido` 328 rechazos en 9.400 generaciones (3,5 %, antes 331: 326 «colocar: los enlaces no llegan» y 2 «garantizaClase: sin enlace que compense»); en la malla completa reintentan 4.354 de 194.400 (2,2 %, antes 4.417) y siguen saliendo 2 degradadas. `SEASON_CALENDAR` no cambia: `routes/golden.test.ts` sigue en verde.
+
 ### vN §4 · Galería
 
 Se abre al cerrar el paso 5 con la primera tanda de §16.7: `index.html`, una página por fila de `ZONAS` (31), `nacionales.html` y `adoquin.html`, generadas por `node scripts/galeria-recorridos.mjs` en `docs/galeria-recorridos/`, que no se versiona. La primera medida de `--medir`: 34 páginas y 12,6 MB en 1,9 s; 617 celdas zona × esqueleto con 3.085 perfiles (el documento calculaba 622 y 3.110), 532 perfiles nacionales y 20 + 20 de adoquín. Las páginas de zona pesan de 221 a 476 KB y la de nacionales 1.571 KB. La primera pasada pide 220 perfiles de los 600 de `maxPerfiles`: la fila 0 de cada celda en las once zonas y la columna derecha de adoquín; las carreras de un día del calendario se suman al cerrar el paso 6. `--comprobar` pasa las tres comprobaciones que ya existen (ningún perfil degradado, las filas de adoquín reciben un esqueleto de adoquín donde la zona lo admite, la primera pasada cabe); solo `race-leon` baja, a `ud_repecho` en `meseta`, y `race-veneto-classic` recibe `ud_adoquin_ligero` en `italia_norte`, al revés de lo que preveía §16.7. Las comprobaciones 2 y 3 esperan a `stagesForSeason`. La galería es determinista (dos generaciones seguidas dan los mismos bytes). Las revisiones del dueño y los datos que se editen se escriben aquí cuando lleguen.

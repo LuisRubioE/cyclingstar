@@ -749,6 +749,25 @@ describe('ARCH.reina.rellenoDplusPorKm es la medida del relleno (recalibración 
     expect(mediana).toBeLessThan(3.25)
     expect(Math.round(mediana * 2) / 2).toBe(ARCH.reina.rellenoDplusPorKm)
   })
+  it(
+    'y zona a zona es rellenoPorAmplitud × amplitud: la mediana por zona, a ± 0,1 m/km por punto',
+    RELOJ,
+    () => {
+      for (const [nombre, geo] of Object.entries(ZONAS)) {
+        const porKm: number[] = []
+        for (let i = 0; i < 201; i++) {
+          const km = U(routeRng(`test|rellenoZona|${nombre}|${i}|km`), ARCH.motivo.enlace.km)
+          const segs = renderMotif(E(km), rngDe(`test|rellenoZona|${nombre}|${i}`), geo)
+          porKm.push(dPlusDe({ segments: segs }) / km)
+        }
+        porKm.sort((a, b) => a - b)
+        const porAmplitud = porKm[100]! / geo.amplitud // medido al escribirlo: de 3,25 a 3,32
+        expect(Math.abs(porAmplitud - ARCH.reina.rellenoPorAmplitud), nombre).toBeLessThanOrEqual(
+          0.1,
+        )
+      }
+    },
+  )
 })
 
 describe('ARCH es coherente con routes/ y STAGE', () => {

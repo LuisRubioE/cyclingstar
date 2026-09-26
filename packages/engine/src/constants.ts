@@ -1615,8 +1615,16 @@ export const ARCH = {
     // §1): con la `amplitud` por zona de `ZONAS` (0,4 a 1,15) el relleno pesa menos. Medido con
     // `dPlusDe` sobre 1.000 `enlace` por zona × 31 zonas, km uniforme en `motivo.enlace.km`: mediana
     // 2,86 m/km (por zona de 1,32 en `golfo` a 3,77 en `alpes`), redondeada al 0,5. `motifs.test.ts`
-    // repite la medida y falla si el valor se separa de ella.
+    // repite la medida y falla si el valor se separa de ella. Desde el anexo del desnivel objetivo
+    // (balance vN §0) la persecución usa el relleno de SU zona (`rellenoPorAmplitud`, abajo); esta
+    // mediana de todas queda como suelo de los techos de la firma (`instanciarFirma`, `ajustaAlTecho`).
     rellenoDplusPorKm: 3.0,
+    // El mismo relleno ZONA A ZONA, por punto de `GeoSignature.amplitud` (m/km por %): `rolling` sube
+    // en la mitad de cada trozo a una pendiente media lineal en la amplitud mientras `0,45 · amp < 0,8`
+    // (todas las zonas; la mayor es 1,15). Medido con `dPlusDe` sobre enlaces rendidos en las 31 zonas:
+    // de 3,25 a 3,32 (1,32 m/km en `golfo`, 3,78 en `alpes`). Lo leen la persecución del desnivel
+    // (§8.5) y `desnivelFactible`, que acota el objetivo a lo que la zona puede dar (§8.4 punto 4).
+    rellenoPorAmplitud: 3.3,
     // Km a meta a partir de los cuales una subida es «lejana»: son los del motor
     // (`STAGE.climbRaceKmToGo`), que solo ataca un puerto a ≤ 30 km de meta; una subida más lejos se
     // sube a tempo y desgasta sin seleccionar, que es lo que le faltaba a `reina-150` (V8b). El test
