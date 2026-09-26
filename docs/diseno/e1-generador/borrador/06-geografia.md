@@ -28,39 +28,39 @@ Reglas de lectura de la tabla, que son también las reglas del fichero:
 - `pesos` multiplica `Skeleton.pesoBase` (sección 5); lo que no aparece vale 1; 0 prohíbe. Ningún peso distinto de 1 se escribe sobre un esqueleto que la zona no admite (el test (h) de §6.8 lo comprueba).
 - `adoquin` tiene cuatro valores, y su semántica es la de la regla 4 de `validateMotif` (§4.5), la de V2 y V3 (§9.2) y la del `firme` de §5.2 (notación de la columna de motivos), que esta sección NO cambia: 0 nada; 1 "adoquín urbano", un METADATO como `viento` (llega a la ficha y no dibuja nada: ningún esqueleto pide `adoquin: 1`, un `sector` con `firme: 'adoquin'` exige `geo.adoquin ≥ 2` y un muro adoquinado exige `geo.muro.adoquin`, que el test (c) de §6.8 solo permite con `adoquin ≥ 2`); 2 sectores de cualquier longitud y estrellas, y muros adoquinados; 3 masivo (Flandes). Lo que dibuja sectores donde `adoquin < 2` es `sterrato`: el `firme` de un `sector` lo decide la zona con `firmeDe(geo)` (§6.5 punto 5), `'adoquin'` si `geo.adoquin ≥ 2` y `'tierra'` si no y `geo.sterrato`, tanto al instanciar como en la plantilla canónica, y `ud_adoquin_ligero` se admite con `[{ adoquin: 2 }, { sterrato: true }]` (§5.2, fila `ud_adoquin_ligero`). Por eso las filas `cobbles` que no están en Flandes ni en el norte de Francia caen en zonas con `sterrato` (test (d) de `regions.test.ts`, §6.8).
 
-| Zona (fila mapa 07) | relieve | puerto km × %, forma | cota km × % | muro km × %, adoquín | adoquín | sterrato | viento | altitud | amplitud | finalesAlto | pesos (≠ 1) |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `flandes` (3.1: BE, NL) | ondulado | null | null | [0,4; 2,2] × [8; 14], sí | 3 | no | 3 | mar | 0,55 | ninguno | ud_muros_adoquin 3, ud_muros 2, et_media_muro 2, et_llana_viento 2, ud_circuito 0,5 |
-| `ardenas` (3.2: BE sur, LU) | media | null | [2,5; 4,5] × [5; 7] | [0,8; 2,0] × [8; 13], no | 1 | no | 1 | colina | 0,85 | corto | ud_muro_final 2, ud_montana_media 1,5, et_media_muro 1,5, et_media_alto 1,2 |
-| `bretana` (3.13) | ondulado | null | [2,5; 3,0] × [5; 7] | [0,5; 2,0] × [8; 10], no | 1 | sí (tierra) | 3 | colina | 0,7 | ninguno | ud_circuito 1,5, ud_adoquin_ligero 1,5, et_llana_viento 1,5 |
-| `francia_norte` (3.1, 1.4) | llano | null | null | [0,5; 1,5] × [8; 10], sí | 2 | no | 2 | mar | 0,55 | ninguno | ud_adoquin 3, ud_adoquin_ligero 2, ud_esprint 1,5, et_llana_viento 1,5 |
-| `macizo_central` (3.14) | montana | [9; 17] × [6; 8], irregular | [2,5; 6] × [5; 7] | [1; 2] × [8; 12], no | 0 | no | 1 | media | 1,0 | largo | et_media_valle 1,5, et_media_alto 1,5, ud_montana_media 1,5, et_reina_alto_corto 1,2 |
-| `alpes` (3.5: FR, IT, CH, AT) | alta | [12; 25] × [5,5; 8,5], regular | [4; 8] × [5; 7] | null | 0 | no | 0 | alta | 1,15 | largo | et_reina_alto_largo 2, et_reina_valle 1,3, et_reina_encadenada 1,2, et_llana 0,5 |
-| `pirineos` (3.6: FR, ES, AD) | alta | [10; 17] × [7; 8,5], regular | [4; 8] × [6; 7] | null | 0 | no | 0 | alta | 1,15 | largo | et_reina_encadenada 2, et_reina_alto_largo 1,5, et_reina_alto_corto 1,2 |
-| `provenza` (3.15) | montana | [11; 22] × [6,5; 7,5], regular | [2,5; 8] × [5; 7] | [1; 2] × [8; 9], no | 0 | no | 3 | media | 0,9 | largo | et_llana_viento 2, et_media_valle 1,3 |
-| `italia_norte` (3.3) | montana | [9; 13] × [6; 8], irregular | [4; 8] × [4; 7] | [1; 2] × [10; 16], no | 1 | sí (tierra) | 0 | media | 1,0 | corto | ud_montana 2, ud_esprint_capi 2, ud_montana_media 1,5, et_reina_alto_corto 1,3, ud_sterrato 0,5 |
-| `italia_centro` (3.4) | media | null | [2,5; 6] × [5; 7] | [0,5; 2,1] × [9; 14], no | 0 | sí | 1 | colina | 0,9 | corto | ud_sterrato 3, ud_muro_final 2, et_media_muro 1,5, ud_circuito 1,3 |
-| `dolomitas` (3.7) | alta | [9; 14] × [7,5; 9], progresiva | [4; 8] × [6; 7] | null | 0 | no | 0 | alta | 1,15 | largo | et_reina_alto_corto 2, et_reina_encadenada 1,5, et_montana_corta 1,5 |
-| `italia_sur` (3.4 Abruzos; Lazio, Calabria, Cerdeña) | montana | [9; 16] × [5; 8], progresiva | [2,5; 7] × [5; 7] | [0,5; 2] × [8; 12], no | 0 | no | 2 | media | 0,9 | largo | et_media_valle 1,3, ud_montana_media 1,3, et_reina_alto_largo 1,2 |
-| `cantabrico` (3.8) | montana | [9; 15] × [7; 9], irregular | [3; 8] × [6; 7] | [1; 2,5] × [10; 15], no | 0 | no | 1 | media | 1,1 | largo | et_reina_alto_corto 2, et_media_muro 1,5, ud_montana 1,5, et_llana 0,3 |
-| `meseta` (3.9) | ondulado | null | [3; 8] × [4; 6] | null | 0 | no | 3 | altiplano | 0,6 | corto | et_llana_viento 2, et_media_tendida 2, ud_esprint 1,5 |
-| `andalucia` (3.10) | montana | [9; 20] × [6; 8], regular | [4; 8] × [5; 7] | [1; 2] × [8; 11], no | 0 | no | 2 | alta | 0,9 | largo | et_media_alto 1,5, et_reina_alto_largo 1,3, et_llana 1,2 |
-| `levante` (3.11) | montana | [9; 22] × [5; 7], regular | [3; 6] × [6; 7] | [1; 2,5] × [10; 12], no | 0 | no | 1 | media | 0,9 | corto | et_media_alto 2, ud_muro_final 1,3, et_media_muro 1,2 |
-| `portugal` (3.12) | montana | [9; 20] × [5; 7], regular | [3; 8] × [6; 7] | [1; 2,5] × [8; 10], no | 1 | no | 2 | media | 0,9 | largo | et_media_alto 1,3, et_reina_alto_largo 1,2, et_llana_viento 1,2 |
-| `centroeuropa` (3.16) | montana | [9; 13] × [5; 8], regular | [2,5; 6] × [5; 7] | [1; 2] × [8; 10], no | 1 | no | 1 | colina | 0,85 | corto | et_media_valle 1,5, ud_circuito 1,3, et_media_alto 1,2, et_reina_alto_corto 1,2 |
-| `escandinavia` (3.17) | ondulado | null | [2,5; 7] × [5; 7] | [0,5; 1,0] × [8; 10], no | 1 | no | 3 | mar | 0,6 | corto | et_llana_viento 2, ud_esprint 1,5, ud_circuito 1,3 |
-| `britanicas` (3.18) | media | null | [2,5; 8] × [6; 7] | [0,4; 1,0] × [10; 16], no | 1 | sí (tierra) | 3 | colina | 0,9 | corto | ud_circuito 1,5, et_media_alto 1,3, et_media_muro 1,3 |
-| `balcanes` (3.19) | montana | [10; 23] × [5; 7], regular | [3; 8] × [5; 7] | null | 0 | no | 2 | media | 0,9 | largo | et_reina_alto_largo 1,3, et_llana 1,2, et_media_valle 1,2 |
-| `anatolia` (3.19: TR, CY, AZ) | montana | [11; 21] × [6; 7], regular | [3; 8] × [5; 7] | null | 0 | no | 2 | media | 0,8 | largo | et_reina_alto_largo 1,5, et_llana 1,5, et_llana_viento 1,2 |
-| `andes` (3.20) | alta | [11; 25] × [5; 7], regular | [2,5; 8] × [5; 7] | null | 0 | no | 0 | altiplano | 1,0 | largo | et_reina_valle 2, et_reina_alto_largo 1,5, et_media_tendida 1,5, et_llana 0,3 |
-| `cono_sur` (3.21) | ondulado | [9; 25] × [5; 6], regular | [4; 8] × [4; 6] | null | 0 | no | 3 | media | 0,6 | largo | et_llana_viento 2, et_llana 1,5, et_media_tendida 1,2, et_reina_blanda 1 |
-| `norteamerica` (3.22) | montana | [10; 25] × [5; 9], regular | [2,5; 6] × [6; 7] | [0,4; 1,8] × [8; 10], no | 0 | no | 2 | media | 0,9 | largo | ud_circuito 2, et_media_alto 1,3, et_reina_alto_largo 1,2, et_llana 1,2 |
-| `australia` (3.23) | ondulado | null | [2,5; 3,5] × [6; 7] | [0,5; 1,1] × [9; 11], no | 0 | no | 3 | colina | 0,7 | corto | ud_circuito 2, et_media_alto 1,5, et_llana_viento 1,5 |
-| `asia_oriental` (3.24) | montana | [9; 14] × [6; 9], regular | [2,5; 5] × [6; 7] | [0,5; 1,5] × [8; 10], no | 0 | no | 1 | colina | 0,8 | corto | ud_circuito 2, et_llana 1,5, et_media_alto 1,2, et_reina_alto_corto 1,2 |
-| `golfo` (3.25) | llano | null | [2,5; 7] × [5; 7] | null | 0 | no | 3 | mar | 0,4 | corto | et_llana_viento 3, et_llana 2, et_media_alto 1, et_media_valle 0,2 |
-| `montana_sur` (sin fila; Genting de la 3.25; Atlas y Ruanda por juicio) | montana | [9; 22] × [5; 9], regular | [2,5; 8] × [5; 7] | [0,4; 1,5] × [8; 12], no | 1 | no | 1 | media | 1,0 | largo | et_reina_alto_largo 1,3, et_media_alto 1,3 |
-| `africa_llana` (sin fila; juicio: BJ, BF, CM, MU, DZ) | ondulado | null | [2,5; 4] × [4; 7] | null | 0 | no | 2 | colina | 0,7 | corto | et_llana 1,5, ud_esprint 1,5, et_llana_viento 1,2 |
-| `generico` (sin fila) | ondulado | null | [2,5; 6] × [4; 7] | [1; 2] × [8; 10], no | 0 | no | 1 | colina | 0,85 | corto | (todo 1) |
+| Zona (fila mapa 07)                                                     | relieve  | puerto km × %, forma           | cota km × %         | muro km × %, adoquín      | adoquín | sterrato    | viento | altitud   | amplitud | finalesAlto | pesos (≠ 1)                                                                                     |
+| ----------------------------------------------------------------------- | -------- | ------------------------------ | ------------------- | ------------------------- | ------- | ----------- | ------ | --------- | -------- | ----------- | ----------------------------------------------------------------------------------------------- |
+| `flandes` (3.1: BE, NL)                                                 | ondulado | null                           | null                | [0,4; 2,2] × [8; 14], sí  | 3       | no          | 3      | mar       | 0,55     | ninguno     | ud_muros_adoquin 3, ud_muros 2, et_media_muro 2, et_llana_viento 2, ud_circuito 0,5             |
+| `ardenas` (3.2: BE sur, LU)                                             | media    | null                           | [2,5; 4,5] × [5; 7] | [0,8; 2,0] × [8; 13], no  | 1       | no          | 1      | colina    | 0,85     | corto       | ud_muro_final 2, ud_montana_media 1,5, et_media_muro 1,5, et_media_alto 1,2                     |
+| `bretana` (3.13)                                                        | ondulado | null                           | [2,5; 3,0] × [5; 7] | [0,5; 2,0] × [8; 10], no  | 1       | sí (tierra) | 3      | colina    | 0,7      | ninguno     | ud_circuito 1,5, ud_adoquin_ligero 1,5, et_llana_viento 1,5                                     |
+| `francia_norte` (3.1, 1.4)                                              | llano    | null                           | null                | [0,5; 1,5] × [8; 10], sí  | 2       | no          | 2      | mar       | 0,55     | ninguno     | ud_adoquin 3, ud_adoquin_ligero 2, ud_esprint 1,5, et_llana_viento 1,5                          |
+| `macizo_central` (3.14)                                                 | montana  | [9; 17] × [6; 8], irregular    | [2,5; 6] × [5; 7]   | [1; 2] × [8; 12], no      | 0       | no          | 1      | media     | 1,0      | largo       | et_media_valle 1,5, et_media_alto 1,5, ud_montana_media 1,5, et_reina_alto_corto 1,2            |
+| `alpes` (3.5: FR, IT, CH, AT)                                           | alta     | [12; 25] × [5,5; 8,5], regular | [4; 8] × [5; 7]     | null                      | 0       | no          | 0      | alta      | 1,15     | largo       | et_reina_alto_largo 2, et_reina_valle 1,3, et_reina_encadenada 1,2, et_llana 0,5                |
+| `pirineos` (3.6: FR, ES, AD)                                            | alta     | [10; 17] × [7; 8,5], regular   | [4; 8] × [6; 7]     | null                      | 0       | no          | 0      | alta      | 1,15     | largo       | et_reina_encadenada 2, et_reina_alto_largo 1,5, et_reina_alto_corto 1,2                         |
+| `provenza` (3.15)                                                       | montana  | [11; 22] × [6,5; 7,5], regular | [2,5; 8] × [5; 7]   | [1; 2] × [8; 9], no       | 0       | no          | 3      | media     | 0,9      | largo       | et_llana_viento 2, et_media_valle 1,3                                                           |
+| `italia_norte` (3.3)                                                    | montana  | [9; 13] × [6; 8], irregular    | [4; 8] × [4; 7]     | [1; 2] × [10; 16], no     | 1       | sí (tierra) | 0      | media     | 1,0      | corto       | ud_montana 2, ud_esprint_capi 2, ud_montana_media 1,5, et_reina_alto_corto 1,3, ud_sterrato 0,5 |
+| `italia_centro` (3.4)                                                   | media    | null                           | [2,5; 6] × [5; 7]   | [0,5; 2,1] × [9; 14], no  | 0       | sí          | 1      | colina    | 0,9      | corto       | ud_sterrato 3, ud_muro_final 2, et_media_muro 1,5, ud_circuito 1,3                              |
+| `dolomitas` (3.7)                                                       | alta     | [9; 14] × [7,5; 9], progresiva | [4; 8] × [6; 7]     | null                      | 0       | no          | 0      | alta      | 1,15     | largo       | et_reina_alto_corto 2, et_reina_encadenada 1,5, et_montana_corta 1,5                            |
+| `italia_sur` (3.4 Abruzos; Lazio, Calabria, Cerdeña)                    | montana  | [9; 16] × [5; 8], progresiva   | [2,5; 7] × [5; 7]   | [0,5; 2] × [8; 12], no    | 0       | no          | 2      | media     | 0,9      | largo       | et_media_valle 1,3, ud_montana_media 1,3, et_reina_alto_largo 1,2                               |
+| `cantabrico` (3.8)                                                      | montana  | [9; 15] × [7; 9], irregular    | [3; 8] × [6; 7]     | [1; 2,5] × [10; 15], no   | 0       | no          | 1      | media     | 1,1      | largo       | et_reina_alto_corto 2, et_media_muro 1,5, ud_montana 1,5, et_llana 0,3                          |
+| `meseta` (3.9)                                                          | ondulado | null                           | [3; 8] × [4; 6]     | null                      | 0       | no          | 3      | altiplano | 0,6      | corto       | et_llana_viento 2, et_media_tendida 2, ud_esprint 1,5                                           |
+| `andalucia` (3.10)                                                      | montana  | [9; 20] × [6; 8], regular      | [4; 8] × [5; 7]     | [1; 2] × [8; 11], no      | 0       | no          | 2      | alta      | 0,9      | largo       | et_media_alto 1,5, et_reina_alto_largo 1,3, et_llana 1,2                                        |
+| `levante` (3.11)                                                        | montana  | [9; 22] × [5; 7], regular      | [3; 6] × [6; 7]     | [1; 2,5] × [10; 12], no   | 0       | no          | 1      | media     | 0,9      | corto       | et_media_alto 2, ud_muro_final 1,3, et_media_muro 1,2                                           |
+| `portugal` (3.12)                                                       | montana  | [9; 20] × [5; 7], regular      | [3; 8] × [6; 7]     | [1; 2,5] × [8; 10], no    | 1       | no          | 2      | media     | 0,9      | largo       | et_media_alto 1,3, et_reina_alto_largo 1,2, et_llana_viento 1,2                                 |
+| `centroeuropa` (3.16)                                                   | montana  | [9; 13] × [5; 8], regular      | [2,5; 6] × [5; 7]   | [1; 2] × [8; 10], no      | 1       | no          | 1      | colina    | 0,85     | corto       | et_media_valle 1,5, ud_circuito 1,3, et_media_alto 1,2, et_reina_alto_corto 1,2                 |
+| `escandinavia` (3.17)                                                   | ondulado | null                           | [2,5; 7] × [5; 7]   | [0,5; 1,0] × [8; 10], no  | 1       | no          | 3      | mar       | 0,6      | corto       | et_llana_viento 2, ud_esprint 1,5, ud_circuito 1,3                                              |
+| `britanicas` (3.18)                                                     | media    | null                           | [2,5; 8] × [6; 7]   | [0,4; 1,0] × [10; 16], no | 1       | sí (tierra) | 3      | colina    | 0,9      | corto       | ud_circuito 1,5, et_media_alto 1,3, et_media_muro 1,3                                           |
+| `balcanes` (3.19)                                                       | montana  | [10; 23] × [5; 7], regular     | [3; 8] × [5; 7]     | null                      | 0       | no          | 2      | media     | 0,9      | largo       | et_reina_alto_largo 1,3, et_llana 1,2, et_media_valle 1,2                                       |
+| `anatolia` (3.19: TR, CY, AZ)                                           | montana  | [11; 21] × [6; 7], regular     | [3; 8] × [5; 7]     | null                      | 0       | no          | 2      | media     | 0,8      | largo       | et_reina_alto_largo 1,5, et_llana 1,5, et_llana_viento 1,2                                      |
+| `andes` (3.20)                                                          | alta     | [11; 25] × [5; 7], regular     | [2,5; 8] × [5; 7]   | null                      | 0       | no          | 0      | altiplano | 1,0      | largo       | et_reina_valle 2, et_reina_alto_largo 1,5, et_media_tendida 1,5, et_llana 0,3                   |
+| `cono_sur` (3.21)                                                       | ondulado | [9; 25] × [5; 6], regular      | [4; 8] × [4; 6]     | null                      | 0       | no          | 3      | media     | 0,6      | largo       | et_llana_viento 2, et_llana 1,5, et_media_tendida 1,2, et_reina_blanda 1                        |
+| `norteamerica` (3.22)                                                   | montana  | [10; 25] × [5; 9], regular     | [2,5; 6] × [6; 7]   | [0,4; 1,8] × [8; 10], no  | 0       | no          | 2      | media     | 0,9      | largo       | ud_circuito 2, et_media_alto 1,3, et_reina_alto_largo 1,2, et_llana 1,2                         |
+| `australia` (3.23)                                                      | ondulado | null                           | [2,5; 3,5] × [6; 7] | [0,5; 1,1] × [9; 11], no  | 0       | no          | 3      | colina    | 0,7      | corto       | ud_circuito 2, et_media_alto 1,5, et_llana_viento 1,5                                           |
+| `asia_oriental` (3.24)                                                  | montana  | [9; 14] × [6; 9], regular      | [2,5; 5] × [6; 7]   | [0,5; 1,5] × [8; 10], no  | 0       | no          | 1      | colina    | 0,8      | corto       | ud_circuito 2, et_llana 1,5, et_media_alto 1,2, et_reina_alto_corto 1,2                         |
+| `golfo` (3.25)                                                          | llano    | null                           | [2,5; 7] × [5; 7]   | null                      | 0       | no          | 3      | mar       | 0,4      | corto       | et_llana_viento 3, et_llana 2, et_media_alto 1, et_media_valle 0,2                              |
+| `montana_sur` (sin fila; Genting de la 3.25; Atlas y Ruanda por juicio) | montana  | [9; 22] × [5; 9], regular      | [2,5; 8] × [5; 7]   | [0,4; 1,5] × [8; 12], no  | 1       | no          | 1      | media     | 1,0      | largo       | et_reina_alto_largo 1,3, et_media_alto 1,3                                                      |
+| `africa_llana` (sin fila; juicio: BJ, BF, CM, MU, DZ)                   | ondulado | null                           | [2,5; 4] × [4; 7]   | null                      | 0       | no          | 2      | colina    | 0,7      | corto       | et_llana 1,5, ud_esprint 1,5, et_llana_viento 1,2                                               |
+| `generico` (sin fila)                                                   | ondulado | null                           | [2,5; 6] × [4; 7]   | [1; 2] × [8; 10], no      | 0       | no          | 1      | colina    | 0,85     | corto       | (todo 1)                                                                                        |
 
 Diferencias respecto de la tabla de `arquitectura.md` §5.1, con su porqué, para que nadie las tome por erratas:
 
@@ -85,41 +85,45 @@ Un territorio es la ruta ordenada de zonas por las que pasa un país y la zona d
 
 Regla de cobertura: los 56 países con carreras de equipos (mapa 02 §10, lista literal en el test) llevan fila escrita y el test exige que ninguno sea `fallback`. Se añaden 8 filas voluntarias para países cuya zona existe con nombre en `ZONAS` (AR, CL, NZ, IE, SE, FI, LV, QA; los ocho existen en `packages/shared/src/countries.ts`): 64 filas explícitas. Los 69 países restantes de `COUNTRIES` (`packages/shared/src/countries.ts` l. 13, 133 entradas medidas con grep `^  { code:`) caen a `FALLBACK = { ruta: [{ zona: 'generico', peso: 1 }], cordillera: null, fallback: true }` y el test imprime cuántos (69) sin banda. La decisión 13 del esqueleto (§C.1) y §D.6 dicen "56 filas y 77 restantes": este documento la enmienda a 64 filas explícitas (56 obligatorias más 8 voluntarias) y 69 en `FALLBACK`, porque §D pide corregir el bug AR/CL con `cono_sur` y eso exige filas para AR y CL; las secciones 0, 3, 7, 15, 16, 17 y 19 usan 64/69. El fallback es deliberadamente mediocre: un país del que no se sabe nada produce carreras del montón, y la marca lo hace visible. Deducir el relieve de `PAIS_ZONA` de `climate.ts` (l. 66) se descarta porque `tropical` junta a Colombia con Benín (`geografia.md` §5.4).
 
-| Países | `ruta` (zona × peso, en orden de recorrido) | `cordillera` |
-| --- | --- | --- |
-| FR | bretana 3, francia_norte 3, macizo_central 2, alpes 3, provenza 2, pirineos 2 | alpes |
-| BE | flandes 4, ardenas 3 | null |
-| NL | flandes 1 | null |
-| LU | ardenas 1 | null |
-| IT | italia_norte 3, dolomitas 2, italia_centro 3, italia_sur 2 | dolomitas |
-| ES | cantabrico 3, meseta 3, andalucia 2, levante 3, pirineos 2 | pirineos |
-| AD | pirineos 1 | pirineos |
-| PT | portugal 1 | portugal |
-| DE, HU | centroeuropa 1 | null |
-| CZ, SK, PL | centroeuropa 1 | centroeuropa |
-| AT, SI, CH | alpes 2, centroeuropa 2 | alpes |
-| DK, EE, LT, SE, FI, LV | escandinavia 1 | null |
-| NO | escandinavia 1 | null |
-| GB, IE | britanicas 1 | null |
-| HR, BA, RS, RO, BG, AL, XK, GR | balcanes 1 | balcanes |
-| TR, CY, AZ | anatolia 1 | anatolia |
-| CO, EC, VE, GT | andes 1 | andes |
-| AR, CL | cono_sur 1 | null (reina blanda por excepción, §6.2) |
-| US, CA | norteamerica 1 | norteamerica |
-| AU, NZ | australia 1 | null |
-| JP, TW, CN | asia_oriental 1 | asia_oriental |
-| KR, TH, IN | asia_oriental 1 | null |
-| MY, RW, MA | montana_sur 1 | montana_sur |
-| AE, SA, OM, QA | golfo 1 | null |
-| BJ, BF, CM, MU, DZ | africa_llana 1 | null |
-| los otros 69 de `COUNTRIES` | `FALLBACK` | null |
+| Países                         | `ruta` (zona × peso, en orden de recorrido)                                   | `cordillera`                            |
+| ------------------------------ | ----------------------------------------------------------------------------- | --------------------------------------- |
+| FR                             | bretana 3, francia_norte 3, macizo_central 2, alpes 3, provenza 2, pirineos 2 | alpes                                   |
+| BE                             | flandes 4, ardenas 3                                                          | null                                    |
+| NL                             | flandes 1                                                                     | null                                    |
+| LU                             | ardenas 1                                                                     | null                                    |
+| IT                             | italia_norte 3, dolomitas 2, italia_centro 3, italia_sur 2                    | dolomitas                               |
+| ES                             | cantabrico 3, meseta 3, andalucia 2, levante 3, pirineos 2                    | pirineos                                |
+| AD                             | pirineos 1                                                                    | pirineos                                |
+| PT                             | portugal 1                                                                    | portugal                                |
+| DE, HU                         | centroeuropa 1                                                                | null                                    |
+| CZ, SK, PL                     | centroeuropa 1                                                                | centroeuropa                            |
+| AT, SI, CH                     | alpes 2, centroeuropa 2                                                       | alpes                                   |
+| DK, EE, LT, SE, FI, LV         | escandinavia 1                                                                | null                                    |
+| NO                             | escandinavia 1                                                                | null                                    |
+| GB, IE                         | britanicas 1                                                                  | null                                    |
+| HR, BA, RS, RO, BG, AL, XK, GR | balcanes 1                                                                    | balcanes                                |
+| TR, CY, AZ                     | anatolia 1                                                                    | anatolia                                |
+| CO, EC, VE, GT                 | andes 1                                                                       | andes                                   |
+| AR, CL                         | cono_sur 1                                                                    | null (reina blanda por excepción, §6.2) |
+| US, CA                         | norteamerica 1                                                                | norteamerica                            |
+| AU, NZ                         | australia 1                                                                   | null                                    |
+| JP, TW, CN                     | asia_oriental 1                                                               | asia_oriental                           |
+| KR, TH, IN                     | asia_oriental 1                                                               | null                                    |
+| MY, RW, MA                     | montana_sur 1                                                                 | montana_sur                             |
+| AE, SA, OM, QA                 | golfo 1                                                                       | null                                    |
+| BJ, BF, CM, MU, DZ             | africa_llana 1                                                                | null                                    |
+| los otros 69 de `COUNTRIES`    | `FALLBACK`                                                                    | null                                    |
 
 Consecuencias que conviene leer en voz alta antes de aceptarlas. D8 (§C.2) dice "Vueltas belgas, neerlandesas, danesas, del Golfo y australianas sin reina"; esta tabla lo extiende, y la sección 18 (§18.9) reescribe D8 con la lista completa para que el dueño decida con la cifra delante: son 12 filas y 30 países (BE, NL, LU, DE, HU, DK, EE, LT, SE, FI, LV, NO, GB, IE, AR, CL, AU, NZ, KR, TH, IN, AE, SA, OM, QA, BJ, BF, CM, MU, DZ). Las ediciones reales que pierden etapas `mountain` por ello (contadas en `editions.ts` con `RACE_COUNTRY`): `race-britain` 1 de 6, `race-emirates` 2 de 7, `race-hungary` 1 de 5, `race-oman` 1 de 5 y `race-thailand` 1 de 6 (6 etapas en 5 ediciones, que salen `media_alto`), más `race-fleche-sud` (LU, 5 etapas por `stageMix` con `terrain: 'mountain'`). Al revés, con cordillera nueva respecto del borrador anterior conservan sus reinas `race-czechia` (3 de 4), `race-poland` (3 de 7), `race-gila` (2 de 5), `race-kumano` (1 de 4), `race-guangxi` (1 de 6), `race-qinghai` (1 de 8), `race-langkawi` (3 de 8) y `race-rwanda` (1 de 8). Otras dos consecuencias: una vuelta colombiana no tiene etapa llana de pólder (`andes` lleva `viento: 0` y `et_llana_viento` exige `{ viento: 2 }`, §5.3: el papel `llana_viento` baja a `llana`); una vuelta argentina tiene como mucho un final largo por edición.
 
 ```ts
 // packages/engine/src/routes/grammar/geo.ts
-export const FALLBACK: Territorio = { ruta: [{ zona: 'generico', peso: 1 }], cordillera: null, fallback: true }
-export function territorioDe(country: string | null): Territorio   // TERRITORIOS[country] ?? FALLBACK; null (banco sin país) da FALLBACK
+export const FALLBACK: Territorio = {
+  ruta: [{ zona: 'generico', peso: 1 }],
+  cordillera: null,
+  fallback: true,
+}
+export function territorioDe(country: string | null): Territorio // TERRITORIOS[country] ?? FALLBACK; null (banco sin país) da FALLBACK
 export function zonaDe(country: string | null): GeoZone
 // = la zona de mayor `peso` de territorioDe(country).ruta; empate: la primera en `ruta`; `generico` si fallback.
 // zonaDe('FR') = 'bretana', zonaDe('ES') = 'cantabrico', zonaDe('BE') = 'flandes', zonaDe('CO') = 'andes'.
@@ -135,13 +139,15 @@ export function zonaDe(country: string | null): GeoZone
 // packages/engine/src/routes/grammar/regions.ts
 export interface RaceRegion {
   default: GeoZone
-  stages?: Record<number, GeoZone>   // índice 1-based; solo las 60 ediciones y solo donde difiere de default
-  skeleton?: SkeletonId              // carrera de un día con meta real en un puerto o muro: único candidato si admite(SKELETONS[skeleton].requiere, geo)
-  duda?: true                        // la ciudad no se reconoció o el dato se contradice: se imprime, no veta
+  stages?: Record<number, GeoZone> // índice 1-based; solo las 60 ediciones y solo donde difiere de default
+  skeleton?: SkeletonId // carrera de un día con meta real en un puerto o muro: único candidato si admite(SKELETONS[skeleton].requiere, geo)
+  duda?: true // la ciudad no se reconoció o el dato se contradice: se imprime, no veta
 }
 export const RACE_REGION: Record<string, RaceRegion>
 export function regionOf(raceId: string, stageIndex: number, country: string | null): GeoZone {
-  return RACE_REGION[raceId]?.stages?.[stageIndex] ?? RACE_REGION[raceId]?.default ?? zonaDe(country)
+  return (
+    RACE_REGION[raceId]?.stages?.[stageIndex] ?? RACE_REGION[raceId]?.default ?? zonaDe(country)
+  )
 }
 /** Los 20 ids con `terrain: 'cobbles'` en las tablas de calendar.ts (grep), `race-leon` incluida: una sola lista para el test (d) de §6.8 y la galería (sección 16). */
 export const COBBLES_IDS: readonly string[]
@@ -157,34 +163,34 @@ export const COBBLES_IDS: readonly string[]
 
 Ejemplos obligados (ciudades de `raceRoutes.ts`, medidas en la lista de 310 claves). El esqueleto §D cita "`race-fleche` → ardenas": ese id no existe; la Flecha Valona es `race-walloon-wall` (WT, `calendar.ts` l. 1086-1094, Namur → Huy, `raceRoutes.ts` l. 1139) y tiene recorrido REAL en `classicRoutes.ts` l. 249 y 713, así que nunca pasa por la gramática y su fila de `RACE_REGION` solo sirve a la ficha; `race-huy` (Charleroi → Huy, `.2`, `terrain: 'mountain'`, l. 2166-2173) es la carrera generada con meta en el Mur de Huy. Las secciones 4 (§4.7, que escribe la Flèche como `ud_muro_final` generada: es un ejemplo de escritura de una carrera real, no una etapa que el calendario genere), 15 y 19 deben usar estos dos ids.
 
-| Carrera | Ciudades (`RACE_ROUTES`) | `default` | Por qué |
-| --- | --- | --- | --- |
-| `race-liege` | Liège → Liège | ardenas | fila 3.2 |
-| `race-walloon-wall` | Namur → Huy | ardenas | real (`classicRoutes.ts`), la fila solo etiqueta |
-| `race-huy` | Charleroi → Huy | ardenas, `skeleton: 'ud_muro_final'` | Mur de Huy 1,3 × 9,6; sin `skeleton`, `mountain` en `ardenas` (`puerto: null`) bajaría a `hilly` y saldría `ud_muros` |
-| `race-flanders` | Antwerpen → Oudenaarde | flandes | fila `cobbles` |
-| `race-roubaix` | Compiègne → Roubaix | francia_norte | fila `cobbles`, `adoquin` 2 |
-| `race-tours` | Chartres → Tours | bretana | fila `cobbles` por los chemins de vigne de tierra del Loira; `bretana` es la firma más cercana (tierra, côtes de 1 km, viento) y no hay zona propia en E1; `francia_norte` lo convertiría en pavé |
-| `race-leon` | Leon → Leon | meseta, `duda: true` | conflicto de dato (§6.1): cae por `ESCALON_TERRENO` de `cobbles` a `classic` (sección 5) |
-| `race-amstel` | Maastricht → Valkenburg | flandes | Limburgo: bergs (fila 3.1) |
-| `race-lombardy` | Como → Bergamo | italia_norte | fila 3.3 |
-| `race-sanremo` | Milano → Sanremo | italia_norte | Cipressa y Poggio son `cota` al [4; 5] % (sección 5) |
-| `race-white-roads` | Siena → Siena | italia_centro | `sterrato` |
-| `race-abruzzo` | Pescara → Vasto | italia_sur | Blockhaus |
-| `race-jura` | Lons-le-Saunier → Les Rousses | macizo_central | el caso v40 (sección 9); Jura y Vosgos se asignan a `macizo_central` como proxy de media montaña continental (no hay zona propia en E1) |
-| `race-mercantour` | Nice → Isola 2000 | alpes, `skeleton: 'ud_montana_alto'` | meta real en la cima (D1) |
-| `race-alpes-maritimes` | Nice → Nice | provenza | prealpes de Niza, fila 3.15 |
-| `race-bretagne` | Hirel → La Fresnais | bretana | fila 3.13 |
-| `race-tramuntana` | Sóller → Sa Calobra | levante | Sa Calobra 9,4 × 7 se baja hasta la cala: `ud_montana` con `descenso_meta` |
-| `race-basque-country` | Bilbao → Bilbao | cantabrico | muros vascos (fila 3.8: [1; 4] km al [10; 15] %, topados a 2,5 km por `ARCH.motivo.muro.km`) |
-| `race-asturias` | Oviedo → Llanes | cantabrico | fila 3.8 |
-| `race-andalusia` | Benahavís → Pizarra | andalucia | fila 3.10 |
-| `race-castilla-leon` | Valladolid → Segovia | meseta | fila 3.9 |
-| `race-down-under` | Tanunda → Tanunda | australia | Willunga 3 × 7,5 |
-| `race-colombia` | Yopal → Yopal | andes, `stages: { 1: 'generico' }` | fila 3.20; Yopal está en los Llanos a 350 m y la e1 es `flat` (`editions.ts` l. 278): la mayoría de metas de la edición (Alto del Porvenir, La Línea, Alto del Vino) es andina |
-| `race-langkawi` | Shah Alam → Kampar (e1) | montana_sur | Genting Highlands (e5, `raceRoutes.ts` l. 603) |
-| `race-emirates` | Madinat Zayed → Liwa | golfo | fila 3.25 |
-| `race-quebec`, `race-montreal` | Québec, Montréal | norteamerica | `ud_circuito` ×2 |
+| Carrera                        | Ciudades (`RACE_ROUTES`)      | `default`                            | Por qué                                                                                                                                                                                           |
+| ------------------------------ | ----------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `race-liege`                   | Liège → Liège                 | ardenas                              | fila 3.2                                                                                                                                                                                          |
+| `race-walloon-wall`            | Namur → Huy                   | ardenas                              | real (`classicRoutes.ts`), la fila solo etiqueta                                                                                                                                                  |
+| `race-huy`                     | Charleroi → Huy               | ardenas, `skeleton: 'ud_muro_final'` | Mur de Huy 1,3 × 9,6; sin `skeleton`, `mountain` en `ardenas` (`puerto: null`) bajaría a `hilly` y saldría `ud_muros`                                                                             |
+| `race-flanders`                | Antwerpen → Oudenaarde        | flandes                              | fila `cobbles`                                                                                                                                                                                    |
+| `race-roubaix`                 | Compiègne → Roubaix           | francia_norte                        | fila `cobbles`, `adoquin` 2                                                                                                                                                                       |
+| `race-tours`                   | Chartres → Tours              | bretana                              | fila `cobbles` por los chemins de vigne de tierra del Loira; `bretana` es la firma más cercana (tierra, côtes de 1 km, viento) y no hay zona propia en E1; `francia_norte` lo convertiría en pavé |
+| `race-leon`                    | Leon → Leon                   | meseta, `duda: true`                 | conflicto de dato (§6.1): cae por `ESCALON_TERRENO` de `cobbles` a `classic` (sección 5)                                                                                                          |
+| `race-amstel`                  | Maastricht → Valkenburg       | flandes                              | Limburgo: bergs (fila 3.1)                                                                                                                                                                        |
+| `race-lombardy`                | Como → Bergamo                | italia_norte                         | fila 3.3                                                                                                                                                                                          |
+| `race-sanremo`                 | Milano → Sanremo              | italia_norte                         | Cipressa y Poggio son `cota` al [4; 5] % (sección 5)                                                                                                                                              |
+| `race-white-roads`             | Siena → Siena                 | italia_centro                        | `sterrato`                                                                                                                                                                                        |
+| `race-abruzzo`                 | Pescara → Vasto               | italia_sur                           | Blockhaus                                                                                                                                                                                         |
+| `race-jura`                    | Lons-le-Saunier → Les Rousses | macizo_central                       | el caso v40 (sección 9); Jura y Vosgos se asignan a `macizo_central` como proxy de media montaña continental (no hay zona propia en E1)                                                           |
+| `race-mercantour`              | Nice → Isola 2000             | alpes, `skeleton: 'ud_montana_alto'` | meta real en la cima (D1)                                                                                                                                                                         |
+| `race-alpes-maritimes`         | Nice → Nice                   | provenza                             | prealpes de Niza, fila 3.15                                                                                                                                                                       |
+| `race-bretagne`                | Hirel → La Fresnais           | bretana                              | fila 3.13                                                                                                                                                                                         |
+| `race-tramuntana`              | Sóller → Sa Calobra           | levante                              | Sa Calobra 9,4 × 7 se baja hasta la cala: `ud_montana` con `descenso_meta`                                                                                                                        |
+| `race-basque-country`          | Bilbao → Bilbao               | cantabrico                           | muros vascos (fila 3.8: [1; 4] km al [10; 15] %, topados a 2,5 km por `ARCH.motivo.muro.km`)                                                                                                      |
+| `race-asturias`                | Oviedo → Llanes               | cantabrico                           | fila 3.8                                                                                                                                                                                          |
+| `race-andalusia`               | Benahavís → Pizarra           | andalucia                            | fila 3.10                                                                                                                                                                                         |
+| `race-castilla-leon`           | Valladolid → Segovia          | meseta                               | fila 3.9                                                                                                                                                                                          |
+| `race-down-under`              | Tanunda → Tanunda             | australia                            | Willunga 3 × 7,5                                                                                                                                                                                  |
+| `race-colombia`                | Yopal → Yopal                 | andes, `stages: { 1: 'generico' }`   | fila 3.20; Yopal está en los Llanos a 350 m y la e1 es `flat` (`editions.ts` l. 278): la mayoría de metas de la edición (Alto del Porvenir, La Línea, Alto del Vino) es andina                    |
+| `race-langkawi`                | Shah Alam → Kampar (e1)       | montana_sur                          | Genting Highlands (e5, `raceRoutes.ts` l. 603)                                                                                                                                                    |
+| `race-emirates`                | Madinat Zayed → Liwa          | golfo                                | fila 3.25                                                                                                                                                                                         |
+| `race-quebec`, `race-montreal` | Québec, Montréal              | norteamerica                         | `ud_circuito` ×2                                                                                                                                                                                  |
 
 **La forma por etapa**, con `race-france` como se lee en `editions.ts` l. 26-50 (salida en Barcelona, 21 etapas): `default: 'francia_norte'` (Bordeaux, Bergerac, Nevers, Chalon-sur-Saône, París son llano de fila 3.1 y 1.4) y `stages: { 1: 'levante', 2: 'levante', 3: 'pirineos', 4: 'pirineos', 6: 'pirineos', 9: 'macizo_central', 10: 'macizo_central', 13: 'macizo_central', 14: 'macizo_central', 15: 'alpes', 16: 'alpes', 17: 'alpes', 18: 'alpes', 19: 'alpes', 20: 'alpes' }`. Así la etapa 6 (Pau → Gavarnie-Gèdre, `terrain: 'mountain'`, l. 34) se dibuja con puertos pirenaicos de [10; 17] km al [7; 8,5] % y no con la firma de Francia entera; la 13 y la 14 (Belfort, Le Markstein: Vosgos) van a `macizo_central` como proxy, igual que el Jura; y la 19 y la 20 (Alpe d'Huez dos veces) con `alpes`. Segundo ejemplo que muestra que la zona no es el país: `race-italy` sale de Bulgaria (Nessebar → Burgas, `editions.ts` l. 52-55): `stages: { 1: 'balcanes', 2: 'balcanes', 3: 'balcanes' }` y el resto por la bota, con `default: 'italia_sur'` para las etapas de Calabria y Campania y `stages` en `italia_centro`, `italia_norte` y `dolomitas` según la meta. Una etapa de edición sin `stages` toma `default`; nunca `zonaDe(country)`.
 
@@ -213,7 +219,7 @@ La firma que recibe `generateStage` es `req.geo = ZONAS[regionOf(raceId, stageIn
 
    ```ts
    // packages/engine/src/routes/grammar/geo.ts
-   import type { Motif } from './motifs.js'   // solo tipo: motifs.ts ya importa degradarMotivo de aquí
+   import type { Motif } from './motifs.js' // solo tipo: motifs.ts ya importa degradarMotivo de aquí
    /** El firme que la zona da a un `sector`: 'adoquin' si geo.adoquin ≥ 2; si no, 'tierra' si geo.sterrato; si no, null (el hueco degrada a enlace, §8.5). */
    export function firmeDe(geo: GeoSignature): 'adoquin' | 'tierra' | null
    /** Copia de una plantilla en la que todo `sector`, a cualquier profundidad de `hijos` (racimo, circuito, sector_meta), cuyo firme
@@ -230,14 +236,14 @@ Lo que la geografía NO hace: no elige el papel de la etapa (eso es la composici
 
 Los 532 campeonatos son 133 países × 4 pruebas (`calendar.ts` l. 349-360: `cc = code.toLowerCase()` en l. 349 y las cuatro pruebas en l. 351-360, `nc-${cc}-road` con `classic(220)`, `nc-${cc}-u23-road` con `classic(180)`, `nc-${cc}-itt` con `itt(38)`, `nc-${cc}-u23-itt` con `itt(30)`; los ids van en minúsculas), hoy idénticos salvo la semilla. Con esta sección `nationalChampionships` llama a `generateStage` con `geo = ZONAS[zonaDe(code)]`, `raceClass: 'NC'`, `role: 'un_dia'` en las cuatro pruebas (`StageRequest.role` es `StageRole | 'un_dia'`, §3.7; `'un_dia_u23'` y `'cri_u23'` son `KmRole` que solo lee `kmDe` para elegir la columna de km, sección 7 §7.4) y `terrain: 'classic'` en las rutas y `'itt'` en las cronos (sección 5 §5.7), y el esqueleto es `nc_ruta` (circuito de [10; 20] km × [8; 16] vueltas con los motivos que la zona dé; `kind` por zona con `skeletonFor`, §5.7 regla 2) para las dos rutas y `nc_crono` para las dos cronos (sección 5). La meta de `nc_ruta` es una sola, `esprint` a [1,2; 4,3] km del último paso (§5.1 regla 2: una `meta` por esqueleto); lo que cambia por zona son los hijos del circuito, con los rangos efectivos del punto 3 de §6.5. Es la promesa de `docs/motor.md` §V.3 l. 1613 ("un nacional belga es llano y de adoquines; uno colombiano, de montaña") hecha función (el mapa 05 §2 la da por decidida en agosto de 2026 y nunca implementada):
 
-| País | `zonaDe` | Lo que da `nc_ruta` |
-| --- | --- | --- |
-| BE | flandes | `clasica / Classic` (sin cota): circuito con uno o dos `muro` adoquinados por vuelta y hasta dos `sector`, meta `esprint` |
-| CO | andes | `media / Hills`: circuito con `cota` de [3,3; 6] ∩ [2,5; 8] = [3,3; 6] km, meta `esprint`; ficha "altiplano" |
-| DK | escandinavia | `media / Hills`: circuito con `cota` de [3,3; 6] km y `muro` corto, `viento` 3 en la ficha ("llano abierto") |
-| IT | italia_norte | `media / Hills`: circuito con `cota` de [4; 6] km y `muro` al [10; 16] %, meta `esprint` |
-| FR | bretana | `clasica / Classic` (`cota.km[1]` 3,0 < 3,3): circuito con `muro` de [0,5; 2] km, meta `esprint` |
-| los 69 de `FALLBACK` | generico | `media / Hills`: circuito con `cota` de [3,3; 6] km y `muro` [8; 10] %, meta `esprint` |
+| País                 | `zonaDe`     | Lo que da `nc_ruta`                                                                                                       |
+| -------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| BE                   | flandes      | `clasica / Classic` (sin cota): circuito con uno o dos `muro` adoquinados por vuelta y hasta dos `sector`, meta `esprint` |
+| CO                   | andes        | `media / Hills`: circuito con `cota` de [3,3; 6] ∩ [2,5; 8] = [3,3; 6] km, meta `esprint`; ficha "altiplano"              |
+| DK                   | escandinavia | `media / Hills`: circuito con `cota` de [3,3; 6] km y `muro` corto, `viento` 3 en la ficha ("llano abierto")              |
+| IT                   | italia_norte | `media / Hills`: circuito con `cota` de [4; 6] km y `muro` al [10; 16] %, meta `esprint`                                  |
+| FR                   | bretana      | `clasica / Classic` (`cota.km[1]` 3,0 < 3,3): circuito con `muro` de [0,5; 2] km, meta `esprint`                          |
+| los 69 de `FALLBACK` | generico     | `media / Hills`: circuito con `cota` de [3,3; 6] km y `muro` [8; 10] %, meta `esprint`                                    |
 
 `repecho` y `muro_meta` no aparecen porque `nc_ruta` no los declara: `repecho` es la meta de `ud_repecho` (§5.2) y `muro_meta` la de `ud_muro_final`, `ud_sterrato` y `et_media_muro`, y un nacional no los sortea porque su único candidato de ruta es `nc_ruta` (§5.7).
 
@@ -258,7 +264,17 @@ Lo que sí se hace: `GeoSignature.viento` y `.altitud` viajan en `GeneratedStage
 import { describe, expect, it } from 'vitest'
 import { ARCH } from '../../constants.js'
 import { COUNTRIES } from '@cyclingstar/shared'
-import { FALLBACK, TERRITORIOS, ZONAS, admite, conFirmeDeZona, degradarMotivo, firmeDe, territorioDe, zonaDe } from './geo.js'
+import {
+  FALLBACK,
+  TERRITORIOS,
+  ZONAS,
+  admite,
+  conFirmeDeZona,
+  degradarMotivo,
+  firmeDe,
+  territorioDe,
+  zonaDe,
+} from './geo.js'
 import { ESCALON_ROLE, SKELETONS, candidatos, skeletonFor } from './skeletons.js'
 import { validateMotif } from './motifs.js'
 import type { GeoSignature } from './geo.js'
@@ -269,20 +285,83 @@ import type { StageRole } from './tour.js'
 type Rango = [number, number]
 const dentro = (r: Rango, de: Rango) => r[0] <= r[1] && r[0] >= de[0] && r[1] <= de[1]
 const interseca = (a: Rango, b: Rango) => Math.max(a[0], b[0]) <= Math.min(a[1], b[1])
-const PAISES_CON_EQUIPOS = ['FR','BE','IT','ES','NL','TR','PT','PL','DE','CN','SI','GR','AU','DK','NO','CZ','HR','JP','CH','CA','US','AT','RO','AE','OM','GB','LU','RS','LT','VE','CO','SA','HU','MY','CY','BA','AZ','AL','EE','AD','BG','XK','SK','IN','TW','TH','KR','RW','DZ','BJ','MU','CM','MA','BF','GT','EC'] // mapa 02 §10
+const PAISES_CON_EQUIPOS = [
+  'FR',
+  'BE',
+  'IT',
+  'ES',
+  'NL',
+  'TR',
+  'PT',
+  'PL',
+  'DE',
+  'CN',
+  'SI',
+  'GR',
+  'AU',
+  'DK',
+  'NO',
+  'CZ',
+  'HR',
+  'JP',
+  'CH',
+  'CA',
+  'US',
+  'AT',
+  'RO',
+  'AE',
+  'OM',
+  'GB',
+  'LU',
+  'RS',
+  'LT',
+  'VE',
+  'CO',
+  'SA',
+  'HU',
+  'MY',
+  'CY',
+  'BA',
+  'AZ',
+  'AL',
+  'EE',
+  'AD',
+  'BG',
+  'XK',
+  'SK',
+  'IN',
+  'TW',
+  'TH',
+  'KR',
+  'RW',
+  'DZ',
+  'BJ',
+  'MU',
+  'CM',
+  'MA',
+  'BF',
+  'GT',
+  'EC',
+] // mapa 02 §10
 type MotivoZona = 'puerto' | 'cota' | 'muro'
 const esMotivoZona = (m: string): m is MotivoZona => m === 'puerto' || m === 'cota' || m === 'muro'
-const zonaDeMotivo = (z: GeoSignature, m: MotivoZona) => z[m]                     // { km, g, ... } o null
+const zonaDeMotivo = (z: GeoSignature, m: MotivoZona) => z[m] // { km, g, ... } o null
 /** Rango propio de la meta (§6.5 punto 3): cotaFinal del esqueleto si la declara; si no, ARCH.meta con las claves de la sección 12. */
 const rangoMeta = (s: Skeleton): Rango | undefined =>
   s.metaParams?.cotaFinal?.km ??
-  (s.meta === 'alto_largo' ? ARCH.meta.altoLargo.km : s.meta === 'alto_corto' ? ARCH.meta.altoCorto.km : s.meta === 'muro_meta' ? ARCH.meta.muro.km : undefined)
+  (s.meta === 'alto_largo'
+    ? ARCH.meta.altoLargo.km
+    : s.meta === 'alto_corto'
+      ? ARCH.meta.altoCorto.km
+      : s.meta === 'muro_meta'
+        ? ARCH.meta.muro.km
+        : undefined)
 /** Motivo de la zona contra el que se compara la meta (§6.5 punto 3); null = no se compara. */
 const motivoDeMeta = (s: Skeleton, z: GeoSignature): MotivoZona | null => {
   if (s.meta === 'alto_largo') return 'puerto'
   if (s.meta === 'alto_corto') return z.cota ? 'cota' : 'puerto'
   if (s.meta === 'muro_meta') return 'muro'
-  if (!s.id.startsWith('et_')) return null                                          // un día: cotaFinal de ARCH.meta.unDiaUltimaCota (§5.1 regla 2)
+  if (!s.id.startsWith('et_')) return null // un día: cotaFinal de ARCH.meta.unDiaUltimaCota (§5.1 regla 2)
   if (s.meta === 'cima_cerca' || s.meta === 'descenso_meta' || s.meta === 'valle') {
     const m = [...s.slots].reverse().find((sl) => sl.n[0] >= 1 && esMotivoZona(sl.motif))?.motif
     return m && esMotivoZona(m) ? m : null
@@ -291,40 +370,53 @@ const motivoDeMeta = (s: Skeleton, z: GeoSignature): MotivoZona | null => {
 }
 /** Huecos obligatorios a cualquier profundidad (un hijo cuenta si él y todos sus padres tienen n[0] ≥ 1); `hijo` marca los de dentro de un compuesto. */
 const obligatorios = (ss: Slot[], hijo = false): { sl: Slot; hijo: boolean }[] =>
-  ss.filter((sl) => sl.n[0] >= 1).flatMap((sl) => [{ sl, hijo }, ...obligatorios(sl.hijos ?? [], true)])
+  ss
+    .filter((sl) => sl.n[0] >= 1)
+    .flatMap((sl) => [{ sl, hijo }, ...obligatorios(sl.hijos ?? [], true)])
 /** Todos los motivos de una plantilla, hijos de compuestos y de sector_meta incluidos. */
 const planos = (ms: readonly Motif[]): Motif[] => ms.flatMap((m) => [m, ...planos(m.hijos ?? [])])
-const PAPELES = Object.keys(ESCALON_ROLE) as StageRole[]                            // los 12 de StageRole
+const PAPELES = Object.keys(ESCALON_ROLE) as StageRole[] // los 12 de StageRole
 
 describe('grammar/geo: ZONAS cabe en ARCH y no se contradice', () => {
   it('(a) tiene 31 filas y cada rango está dentro del rango del motivo', () => {
     expect(Object.keys(ZONAS)).toHaveLength(31)
     for (const z of Object.values(ZONAS)) {
-      if (z.puerto) { expect(dentro(z.puerto.km, ARCH.motivo.puerto.km)).toBe(true); expect(dentro(z.puerto.g, ARCH.motivo.puerto.g)).toBe(true) }
-      if (z.cota) { expect(dentro(z.cota.km, ARCH.motivo.cota.km)).toBe(true); expect(dentro(z.cota.g, ARCH.motivo.cota.g)).toBe(true) }
-      if (z.muro) { expect(dentro(z.muro.km, ARCH.motivo.muro.km)).toBe(true); expect(dentro(z.muro.g, ARCH.motivo.muro.g)).toBe(true) }
-      expect(z.amplitud).toBeLessThanOrEqual(ARCH.motivo.enlace.ampMax)   // 2,4
+      if (z.puerto) {
+        expect(dentro(z.puerto.km, ARCH.motivo.puerto.km)).toBe(true)
+        expect(dentro(z.puerto.g, ARCH.motivo.puerto.g)).toBe(true)
+      }
+      if (z.cota) {
+        expect(dentro(z.cota.km, ARCH.motivo.cota.km)).toBe(true)
+        expect(dentro(z.cota.g, ARCH.motivo.cota.g)).toBe(true)
+      }
+      if (z.muro) {
+        expect(dentro(z.muro.km, ARCH.motivo.muro.km)).toBe(true)
+        expect(dentro(z.muro.g, ARCH.motivo.muro.g)).toBe(true)
+      }
+      expect(z.amplitud).toBeLessThanOrEqual(ARCH.motivo.enlace.ampMax) // 2,4
     }
   })
   it('(b) los bordes con nombre: puerto ≥ 9, cota ≤ 8, muro ≤ 2,5', () => {
     for (const z of Object.values(ZONAS)) {
       if (z.puerto) expect(z.puerto.km[0]).toBeGreaterThanOrEqual(9)
       if (z.cota) expect(z.cota.km[1]).toBeLessThanOrEqual(8)
-      if (z.muro) expect(z.muro.km[1]).toBeLessThanOrEqual(ARCH.motivo.muro.km[1])   // 2,5 = STAGE.wallMaxKm (sección 12)
+      if (z.muro) expect(z.muro.km[1]).toBeLessThanOrEqual(ARCH.motivo.muro.km[1]) // 2,5 = STAGE.wallMaxKm (sección 12)
     }
   })
   it('(c) adoquín y sterrato son coherentes con el muro y con V2', () => {
     for (const z of Object.values(ZONAS)) {
-      if (z.muro?.adoquin) expect(z.adoquin).toBeGreaterThanOrEqual(2)   // un muro adoquinado solo donde hay sectores (§6.2): V2 no puede dispararse
+      if (z.muro?.adoquin) expect(z.adoquin).toBeGreaterThanOrEqual(2) // un muro adoquinado solo donde hay sectores (§6.2): V2 no puede dispararse
       if (z.adoquin === 0) expect(z.muro?.adoquin ?? false).toBe(false)
     }
   })
   it('(d) V4 no puede dispararse desde la tabla: puerto ≥ 15 km solo con altitud media/alta/altiplano; largo exige puerto', () => {
     for (const z of Object.values(ZONAS)) {
-      if (z.puerto && z.puerto.km[1] >= 15) expect(['media', 'alta', 'altiplano']).toContain(z.altitud)
+      if (z.puerto && z.puerto.km[1] >= 15)
+        expect(['media', 'alta', 'altiplano']).toContain(z.altitud)
       if (z.finalesAlto === 'largo') expect(z.puerto).not.toBeNull()
       if (z.finalesAlto === 'ninguno') expect(['llano', 'ondulado']).toContain(z.relieve)
-      if (z.puerto && z.relieve !== 'montana' && z.relieve !== 'alta') expect(z.finalesAlto).toBe('largo')   // puerto sin relieve de montaña: solo lo usan et_reina_blanda y ud_montana_alto (§6.2)
+      if (z.puerto && z.relieve !== 'montana' && z.relieve !== 'alta')
+        expect(z.finalesAlto).toBe('largo') // puerto sin relieve de montaña: solo lo usan et_reina_blanda y ud_montana_alto (§6.2)
     }
   })
   it('(e) cordillera está en la ruta y es montana o alta con puerto', () => {
@@ -335,38 +427,42 @@ describe('grammar/geo: ZONAS cabe en ARCH y no se contradice', () => {
         expect(['montana', 'alta']).toContain(ZONAS[t.cordillera].relieve)
         expect(ZONAS[t.cordillera].puerto).not.toBeNull()
       }
-      expect(t.fallback ?? false).toBe(false)   // nada explícito lleva la marca
+      expect(t.fallback ?? false).toBe(false) // nada explícito lleva la marca
     }
     expect(Object.keys(TERRITORIOS)).toHaveLength(64)
-    expect(TERRITORIOS.AR.cordillera).toBeNull(); expect(TERRITORIOS.BE.cordillera).toBeNull()
-    expect(TERRITORIOS.PL.cordillera).toBe('centroeuropa'); expect(TERRITORIOS.MY.cordillera).toBe('montana_sur')
+    expect(TERRITORIOS.AR.cordillera).toBeNull()
+    expect(TERRITORIOS.BE.cordillera).toBeNull()
+    expect(TERRITORIOS.PL.cordillera).toBe('centroeuropa')
+    expect(TERRITORIOS.MY.cordillera).toBe('montana_sur')
   })
   it('(f) los 56 países con equipos tienen territorio; el resto cae a FALLBACK y se cuenta', () => {
     for (const cc of PAISES_CON_EQUIPOS) expect(territorioDe(cc).fallback ?? false).toBe(false)
     const enFallback = COUNTRIES.map((c) => c.code).filter((cc) => territorioDe(cc) === FALLBACK)
-    console.info(`[geo] países en FALLBACK: ${enFallback.length} (${enFallback.join(' ')})`)   // hoy 69, sin banda
+    console.info(`[geo] países en FALLBACK: ${enFallback.length} (${enFallback.join(' ')})`) // hoy 69, sin banda
     for (const c of COUNTRIES) expect(Object.keys(ZONAS)).toContain(zonaDe(c.code))
   })
   it('(g) ejemplos que fijan la semántica de zonaDe y admite', () => {
-    expect(zonaDe('BE')).toBe('flandes'); expect(zonaDe('CO')).toBe('andes'); expect(zonaDe('ZW')).toBe('generico')
+    expect(zonaDe('BE')).toBe('flandes')
+    expect(zonaDe('CO')).toBe('andes')
+    expect(zonaDe('ZW')).toBe('generico')
     expect(admite(SKELETONS.et_reina_alto_largo.requiere, ZONAS.alpes)).toBe(true)
-    expect(admite(SKELETONS.et_reina_alto_largo.requiere, ZONAS.flandes)).toBe(false)     // puerto null
-    expect(admite(SKELETONS.et_reina_alto_largo.requiere, ZONAS.levante)).toBe(false)     // finalesAlto corto
-    expect(admite(SKELETONS.ud_montana.requiere, ZONAS.levante)).toBe(true)               // puerto y relieve montana (Sa Calobra)
-    expect(admite(SKELETONS.ud_montana.requiere, ZONAS.ardenas)).toBe(false)              // puerto null
+    expect(admite(SKELETONS.et_reina_alto_largo.requiere, ZONAS.flandes)).toBe(false) // puerto null
+    expect(admite(SKELETONS.et_reina_alto_largo.requiere, ZONAS.levante)).toBe(false) // finalesAlto corto
+    expect(admite(SKELETONS.ud_montana.requiere, ZONAS.levante)).toBe(true) // puerto y relieve montana (Sa Calobra)
+    expect(admite(SKELETONS.ud_montana.requiere, ZONAS.ardenas)).toBe(false) // puerto null
     expect(admite(SKELETONS.ud_sterrato.requiere, ZONAS.flandes)).toBe(false)
-    expect(admite(SKELETONS.et_media_valle.requiere, ZONAS.bretana)).toBe(false)          // cotaKmMin 3,3 > 3,0
-    expect(admite(SKELETONS.et_reina_encadenada.requiere, ZONAS.cantabrico)).toBe(false)  // relieve montana < alta
+    expect(admite(SKELETONS.et_media_valle.requiere, ZONAS.bretana)).toBe(false) // cotaKmMin 3,3 > 3,0
+    expect(admite(SKELETONS.et_reina_encadenada.requiere, ZONAS.cantabrico)).toBe(false) // relieve montana < alta
     expect(admite(SKELETONS.ud_esprint_capi.requiere, ZONAS.italia_norte)).toBe(true)
-    expect(admite(SKELETONS.ud_adoquin_ligero.requiere, ZONAS.italia_norte)).toBe(true)   // por { sterrato: true }: sectores de tierra (Veneto Classic)
-    expect(admite(SKELETONS.ud_adoquin.requiere, ZONAS.italia_norte)).toBe(false)         // adoquin 1 < 2
-    expect(admite(SKELETONS.ud_adoquin_ligero.requiere, ZONAS.ardenas)).toBe(false)       // adoquin 1 y sin sterrato: el 1 es metadato
-    expect(admite(SKELETONS.et_llana_viento.requiere, ZONAS.andes)).toBe(false)           // viento 0 < 2
+    expect(admite(SKELETONS.ud_adoquin_ligero.requiere, ZONAS.italia_norte)).toBe(true) // por { sterrato: true }: sectores de tierra (Veneto Classic)
+    expect(admite(SKELETONS.ud_adoquin.requiere, ZONAS.italia_norte)).toBe(false) // adoquin 1 < 2
+    expect(admite(SKELETONS.ud_adoquin_ligero.requiere, ZONAS.ardenas)).toBe(false) // adoquin 1 y sin sterrato: el 1 es metadato
+    expect(admite(SKELETONS.et_llana_viento.requiere, ZONAS.andes)).toBe(false) // viento 0 < 2
     expect(admite(SKELETONS.et_reina_blanda.requiere, ZONAS.cono_sur)).toBe(true)
     expect(interseca(rangoMeta(SKELETONS.et_reina_blanda)!, ZONAS.cono_sur.puerto!.km)).toBe(true)
-    expect(interseca(rangoMeta(SKELETONS.et_reina_blanda)!, ZONAS.andes.puerto!.km)).toBe(true)   // suelo 11 (§6.2)
-    expect(admite(SKELETONS.et_reina_blanda.requiere, ZONAS.golfo)).toBe(false)           // finalesAlto corto (D8)
-    expect(admite(SKELETONS.et_media_alto.requiere, ZONAS.golfo)).toBe(true)              // race-sharjah: final en alto
+    expect(interseca(rangoMeta(SKELETONS.et_reina_blanda)!, ZONAS.andes.puerto!.km)).toBe(true) // suelo 11 (§6.2)
+    expect(admite(SKELETONS.et_reina_blanda.requiere, ZONAS.golfo)).toBe(false) // finalesAlto corto (D8)
+    expect(admite(SKELETONS.et_media_alto.requiere, ZONAS.golfo)).toBe(true) // race-sharjah: final en alto
   })
   it('(h) todo esqueleto admitido se puede dibujar en la zona y todo papel tiene salida', () => {
     const todos = Object.values(SKELETONS)
@@ -374,54 +470,82 @@ describe('grammar/geo: ZONAS cabe en ARCH y no se contradice', () => {
     for (const [nombre, z] of Object.entries(ZONAS)) {
       const admitidos = todos.filter((s) => admite(s.requiere, z))
       const ids = admitidos.map((s) => s.id)
-      expect(ids).toContain('ud_esprint'); expect(ids).toContain('et_llana'); expect(ids).toContain('et_crono')
-      expect(ids.some((id) => id.startsWith('et_media_'))).toBe(true)                  // hilly de edición nunca degrada a llana (§5.8)
-      for (const id of Object.keys(z.pesos)) expect(ids).toContain(id)                // ningún peso sobre un esqueleto no admitido (§6.2)
+      expect(ids).toContain('ud_esprint')
+      expect(ids).toContain('et_llana')
+      expect(ids).toContain('et_crono')
+      expect(ids.some((id) => id.startsWith('et_media_'))).toBe(true) // hilly de edición nunca degrada a llana (§5.8)
+      for (const id of Object.keys(z.pesos)) expect(ids).toContain(id) // ningún peso sobre un esqueleto no admitido (§6.2)
       for (const s of admitidos) {
-        const sk = skeletonFor(s.id, z)                                               // nc_ruta clásica deja su cota en n = [0, 0] (§5.7 regla 2)
-        for (const { sl, hijo } of obligatorios(sk.slots)) {                          // huecos obligatorios, hijos de compuestos incluidos
+        const sk = skeletonFor(s.id, z) // nc_ruta clásica deja su cota en n = [0, 0] (§5.7 regla 2)
+        for (const { sl, hijo } of obligatorios(sk.slots)) {
+          // huecos obligatorios, hijos de compuestos incluidos
           if (!esMotivoZona(sl.motif)) continue
-          const m = hijo ? degradarMotivo(sl.motif, z) : sl.motif                     // un hijo degrada (§8.5: los muros de ud_circuito son cotas donde muro es null)
+          const m = hijo ? degradarMotivo(sl.motif, z) : sl.motif // un hijo degrada (§8.5: los muros de ud_circuito son cotas donde muro es null)
           expect(esMotivoZona(m), `${nombre} × ${s.id}: hijo ${sl.motif} sin motivo`).toBe(true)
           if (!esMotivoZona(m)) continue
           const zm = zonaDeMotivo(z, m)
           expect(zm, `${nombre} × ${s.id}: hueco ${m} sin motivo`).not.toBeNull()
-          if (zm && sl.params?.kmRango) expect(interseca(zm.km, sl.params.kmRango), `${nombre} × ${s.id}: km vacío en ${m}`).toBe(true)
-          if (zm && sl.params?.gRango && !interseca(zm.g, sl.params.gRango)) gVacios++   // manda el g del esqueleto (§6.5 punto 3): se cuenta, no falla
+          if (zm && sl.params?.kmRango)
+            expect(
+              interseca(zm.km, sl.params.kmRango),
+              `${nombre} × ${s.id}: km vacío en ${m}`,
+            ).toBe(true)
+          if (zm && sl.params?.gRango && !interseca(zm.g, sl.params.gRango)) gVacios++ // manda el g del esqueleto (§6.5 punto 3): se cuenta, no falla
         }
-        const m = motivoDeMeta(s, z), r = rangoMeta(s)
+        const m = motivoDeMeta(s, z),
+          r = rangoMeta(s)
         if (m && r) {
           const zm = zonaDeMotivo(z, m)
           expect(zm, `${nombre} × ${s.id}: meta sin ${m}`).not.toBeNull()
           if (zm) expect(interseca(zm.km, r), `${nombre} × ${s.id}: meta vacía`).toBe(true)
         }
-        if (obligatorios(sk.slots).some(({ sl }) => sl.motif === 'sector' || sl.motif === 'racimo') || s.meta === 'sector_meta')
-          expect(firmeDe(z), `${nombre} × ${s.id}: sector sin firme posible`).not.toBeNull()   // V2 y V3 (§6.5 punto 5)
+        if (
+          obligatorios(sk.slots).some(({ sl }) => sl.motif === 'sector' || sl.motif === 'racimo') ||
+          s.meta === 'sector_meta'
+        )
+          expect(firmeDe(z), `${nombre} × ${s.id}: sector sin firme posible`).not.toBeNull() // V2 y V3 (§6.5 punto 5)
       }
       for (const role of PAPELES) {
-        const out = candidatos({ role, terrain: 'hilly', geo: z, raceClass: 'WT', format: 'una-semana', km: 160, routeSource: 'generado' })
-        expect(out.length).toBeGreaterThan(0)                                         // con la degradación de ESCALON_ROLE (§5.7)
+        const out = candidatos({
+          role,
+          terrain: 'hilly',
+          geo: z,
+          raceClass: 'WT',
+          format: 'una-semana',
+          km: 160,
+          routeSource: 'generado',
+        })
+        expect(out.length).toBeGreaterThan(0) // con la degradación de ESCALON_ROLE (§5.7)
         if (role === 'llana' || role === 'cri' || role === 'prologo')
-          expect(out.map((c) => c.id)).toEqual([role === 'llana' ? 'et_llana' : role === 'cri' ? 'et_crono' : 'et_prologo'])   // no degradan
-        console.info(`[geo] ${nombre} ${role} → ${out.map((c) => c.id).join(' ')}`)   // la galería y la sección 18 leen las degradaciones de aquí
+          expect(out.map((c) => c.id)).toEqual([
+            role === 'llana' ? 'et_llana' : role === 'cri' ? 'et_crono' : 'et_prologo',
+          ]) // no degradan
+        console.info(`[geo] ${nombre} ${role} → ${out.map((c) => c.id).join(' ')}`) // la galería y la sección 18 leen las degradaciones de aquí
       }
     }
-    console.info(`[geo] pares (zona, hueco) con g vacío, resueltos con el g del esqueleto: ${gVacios}`)   // sin banda
+    console.info(
+      `[geo] pares (zona, hueco) con g vacío, resueltos con el g del esqueleto: ${gVacios}`,
+    ) // sin banda
   })
   it('(i) firmeDe y conFirmeDeZona: ningún sector de una plantilla canónica cae en V2 o V3 en una zona que admite su esqueleto', () => {
-    expect(firmeDe(ZONAS.francia_norte)).toBe('adoquin'); expect(firmeDe(ZONAS.flandes)).toBe('adoquin')
-    expect(firmeDe(ZONAS.italia_norte)).toBe('tierra'); expect(firmeDe(ZONAS.britanicas)).toBe('tierra')   // Veneto Classic, Rutland-Melton
-    expect(firmeDe(ZONAS.ardenas)).toBeNull()                                         // adoquin 1 y sin sterrato: el 1 es metadato
+    expect(firmeDe(ZONAS.francia_norte)).toBe('adoquin')
+    expect(firmeDe(ZONAS.flandes)).toBe('adoquin')
+    expect(firmeDe(ZONAS.italia_norte)).toBe('tierra')
+    expect(firmeDe(ZONAS.britanicas)).toBe('tierra') // Veneto Classic, Rutland-Melton
+    expect(firmeDe(ZONAS.ardenas)).toBeNull() // adoquin 1 y sin sterrato: el 1 es metadato
     for (const z of Object.values(ZONAS)) {
       for (const s of Object.values(SKELETONS).filter((sk) => admite(sk.requiere, z))) {
         for (const plantilla of [s.canonico, ...(s.alternativas ?? []).map((a) => a.canonico)]) {
           for (const m of planos(conFirmeDeZona(plantilla, z)).filter((x) => x.kind === 'sector'))
-            expect(validateMotif(m, z), `${z.zona} × ${s.id}: sector ${m.firme}`).toBeNull()   // regla 4 de §4.5 = V2 y V3
+            expect(validateMotif(m, z), `${z.zona} × ${s.id}: sector ${m.firme}`).toBeNull() // regla 4 de §4.5 = V2 y V3
         }
       }
     }
-    const veneto = planos(conFirmeDeZona(SKELETONS.ud_adoquin_ligero.canonico, ZONAS.italia_norte)).filter((x) => x.kind === 'sector')
-    expect(veneto.length).toBeGreaterThan(0); expect(veneto.every((m) => m.firme === 'tierra')).toBe(true)
+    const veneto = planos(
+      conFirmeDeZona(SKELETONS.ud_adoquin_ligero.canonico, ZONAS.italia_norte),
+    ).filter((x) => x.kind === 'sector')
+    expect(veneto.length).toBeGreaterThan(0)
+    expect(veneto.every((m) => m.firme === 'tierra')).toBe(true)
   })
 })
 ```
@@ -437,20 +561,25 @@ import { ZONAS, zonaDe } from './geo.js'
 
 describe('grammar/regions: RACE_REGION cubre las 310 carreras de equipos y ninguna cae al país', () => {
   it('(a) las claves son exactamente las de RACE_ROUTES', () => {
-    expect(Object.keys(RACE_REGION).sort()).toEqual(Object.keys(RACE_ROUTES).sort())   // 310
+    expect(Object.keys(RACE_REGION).sort()).toEqual(Object.keys(RACE_ROUTES).sort()) // 310
   })
   it('(b) ninguna carrera de equipos pasa por zonaDe(country); solo los .NC', () => {
-    for (const id of Object.keys(RACE_ROUTES)) expect(regionOf(id, 1, null)).toBe(RACE_REGION[id].stages?.[1] ?? RACE_REGION[id].default)
+    for (const id of Object.keys(RACE_ROUTES))
+      expect(regionOf(id, 1, null)).toBe(RACE_REGION[id].stages?.[1] ?? RACE_REGION[id].default)
     expect(Object.keys(RACE_REGION).some((id) => id.startsWith('nc-'))).toBe(false)
     expect(regionOf('nc-be-road', 1, 'BE')).toBe(zonaDe('BE'))
   })
   it('(c) stages solo en las 60 ediciones, con índice 1-based dentro de n y zona distinta de default; skeleton solo en un día', () => {
     for (const [id, r] of Object.entries(RACE_REGION)) {
-      if (r.skeleton) { expect(RACE_EDITIONS[id]).toBeUndefined(); expect(RACE_ROUTES[id]).toHaveLength(1) }
+      if (r.skeleton) {
+        expect(RACE_EDITIONS[id]).toBeUndefined()
+        expect(RACE_ROUTES[id]).toHaveLength(1)
+      }
       if (!r.stages) continue
       expect(RACE_EDITIONS[id]).toBeDefined()
       for (const [i, zona] of Object.entries(r.stages)) {
-        expect(Number(i)).toBeGreaterThanOrEqual(1); expect(Number(i)).toBeLessThanOrEqual(RACE_EDITIONS[id].stages.length)
+        expect(Number(i)).toBeGreaterThanOrEqual(1)
+        expect(Number(i)).toBeLessThanOrEqual(RACE_EDITIONS[id].stages.length)
         expect(zona).not.toBe(r.default)
       }
     }
@@ -470,23 +599,37 @@ describe('grammar/regions: RACE_REGION cubre las 310 carreras de equipos y ningu
     expect(COBBLES).toHaveLength(19)
     for (const id of COBBLES) {
       const z = ZONAS[regionOf(id, 1, null)]
-      expect(z.adoquin >= 2 || z.sterrato).toBe(true)   // algún candidato cobbles cabe (§5.2); race-rutland, race-tours y race-veneto-classic por tierra (sterrato)
+      expect(z.adoquin >= 2 || z.sterrato).toBe(true) // algún candidato cobbles cabe (§5.2); race-rutland, race-tours y race-veneto-classic por tierra (sterrato)
     }
     // La vigésima, race-leon, es un conflicto de dato (§6.1): país ES y ciudades León con terrain cobbles. Manda el dato.
     expect(RACE_REGION['race-leon']).toEqual({ default: 'meseta', duda: true })
   })
   it('(e) los ejemplos obligados', () => {
-    const esperado: Record<string, string> = { 'race-liege': 'ardenas', 'race-walloon-wall': 'ardenas', 'race-huy': 'ardenas',
-      'race-lombardy': 'italia_norte', 'race-jura': 'macizo_central', 'race-tramuntana': 'levante', 'race-roubaix': 'francia_norte',
-      'race-white-roads': 'italia_centro', 'race-tours': 'bretana', 'race-colombia': 'andes', 'race-emirates': 'golfo',
-      'race-down-under': 'australia', 'race-langkawi': 'montana_sur', 'race-mercantour': 'alpes' }
+    const esperado: Record<string, string> = {
+      'race-liege': 'ardenas',
+      'race-walloon-wall': 'ardenas',
+      'race-huy': 'ardenas',
+      'race-lombardy': 'italia_norte',
+      'race-jura': 'macizo_central',
+      'race-tramuntana': 'levante',
+      'race-roubaix': 'francia_norte',
+      'race-white-roads': 'italia_centro',
+      'race-tours': 'bretana',
+      'race-colombia': 'andes',
+      'race-emirates': 'golfo',
+      'race-down-under': 'australia',
+      'race-langkawi': 'montana_sur',
+      'race-mercantour': 'alpes',
+    }
     for (const [id, zona] of Object.entries(esperado)) expect(RACE_REGION[id].default).toBe(zona)
     expect(RACE_REGION['race-mercantour'].skeleton).toBe('ud_montana_alto')
     expect(RACE_REGION['race-huy'].skeleton).toBe('ud_muro_final')
   })
   it('(f) las dudas de curación se imprimen y no vetan', () => {
-    const dudas = Object.entries(RACE_REGION).filter(([, r]) => r.duda).map(([id]) => id)
-    console.info(`[regions] DUDA: ${dudas.length} carreras (${dudas.join(' ')})`)   // objetivo sin banda: 0, salvo race-leon mientras el dato no cambie
+    const dudas = Object.entries(RACE_REGION)
+      .filter(([, r]) => r.duda)
+      .map(([id]) => id)
+    console.info(`[regions] DUDA: ${dudas.length} carreras (${dudas.join(' ')})`) // objetivo sin banda: 0, salvo race-leon mientras el dato no cambie
   })
 })
 ```

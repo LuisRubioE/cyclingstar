@@ -8,14 +8,14 @@ Doce `MotifKind` en tres familias: cuatro enlaces (`enlace`, `expuesto`, `tendid
 
 `profileGen.ts` queda reducido a sus primitivas exportadas (§B.1, paso 1 del plan, sección 15). Son las mismas funciones que hoy dibujan bien (mapa 01 §1: "el llano ondula, cada puerto se parte en rampas de pendiente variable"), con tres cambios de firma decididos (decisión 11) y un cambio de visibilidad que hay que escribir porque hoy solo `routeRng` lleva `export` (l. 30): `hashInt` (l. 15), `between` (l. 47), `split` (l. 52), `climb` (l. 72), `descent` (l. 85) y `rolling` (l. 100) son `function` sin `export` y lo ganan en el paso 1.
 
-| Primitiva | Líneas hoy (mapa 01 §1) | Qué hace | Qué cambia en E1 |
-| --- | --- | --- | --- |
-| `hashInt(s)`, `routeRng(seed)` | 15-22, 30-44 | FNV-1a y mulberry32; una secuencia por cadena de semilla | `hashInt` gana `export`; todos los subflujos de la gramática (`arch`, `firma`, `ed`, `mot`, `pos`, `dib`) pasan por `routeRng` |
-| `between(rand, min, max)`, `split(rand, total, n)` | 47-49, 52-65 | uniforme en `[min, max)`; reparto con pesos `U(0,7; 1,3)`, redondeo a 0,1 y SUELO de 0,5 km por trozo (`Math.max(0.5, …)` en cada trozo, l. 58, y otra vez en el último tras cuadrar la suma, l. 60-63) | ganan `export`. El suelo tiene una consecuencia que la gramática tiene que respetar: `split(rand, total, 2)` devuelve trozos que suman como mínimo 1,0 km aunque `total` sea 0,5, y entonces `Σ trozos ≠ total`. Por eso ningún motivo de menos de 1,0 km pasa por `split` (§4.2, `muro`) |
-| `climb(rand, len, avg, opts?)` | 72-82 | UN `puerto` de `len` km en `max(2, round(len / 2,2))` rampas a `max(1, avg + prog·1,6 + U(−1,2; 1,2))`, con `prog` de −1 al pie a +1 en la cima: más dura arriba; `km: round(len)` y `tramos` de `split` (con su suelo) | gana `export` y `opts: { gMin?, gMax? }`: cada rampa se recorta a `clamp(g, gMin, gMax)` después del ruido. Sin `opts` se comporta como hoy (el golden de 1.418 del paso 1 lo exige). `gMin` existe porque `deriveFinishTerrain` y `finishType` leen la MEDIA de las rampas y un muro declarado al 8 % con una rampa al 5,2 % no es un muro para el motor (§4.3) |
-| `descent(rand, len, avg)` | 85-93 | UN `descenso` en `max(2, round(len / 3))` rampas a `−max(2, avg + U(−1,5; 1,5))` | gana `export`; el suelo de −2 % se conserva |
-| `rolling(rand, km, amp, pRompepiernas = 0)` | 100-122 | relleno en trozos de `U(3, 6)` km que suben la primera mitad a `U(0,8; amp)` y bajan la segunda a entre el 60 y el 100 % de eso, alternando por paridad | gana `export`; `amp` pasa de `bumpy: boolean` a número (`false` era 1,8 y `true` 3,2, ingeniero §4.4) y `pRompepiernas` vale 0 por defecto: la gramática nunca emite `rompepiernas` (decisión 2) |
-| sector literal | como `cobblesSegments` l. 503 | `{ km, tipo: 'paves', estrellas }` sin tramos (pendiente 0) | se emite desde `renderMotif`, no desde una función propia |
+| Primitiva                                          | Líneas hoy (mapa 01 §1)       | Qué hace                                                                                                                                                                                                                | Qué cambia en E1                                                                                                                                                                                                                                                                                                                                                 |
+| -------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `hashInt(s)`, `routeRng(seed)`                     | 15-22, 30-44                  | FNV-1a y mulberry32; una secuencia por cadena de semilla                                                                                                                                                                | `hashInt` gana `export`; todos los subflujos de la gramática (`arch`, `firma`, `ed`, `mot`, `pos`, `dib`) pasan por `routeRng`                                                                                                                                                                                                                                   |
+| `between(rand, min, max)`, `split(rand, total, n)` | 47-49, 52-65                  | uniforme en `[min, max)`; reparto con pesos `U(0,7; 1,3)`, redondeo a 0,1 y SUELO de 0,5 km por trozo (`Math.max(0.5, …)` en cada trozo, l. 58, y otra vez en el último tras cuadrar la suma, l. 60-63)                 | ganan `export`. El suelo tiene una consecuencia que la gramática tiene que respetar: `split(rand, total, 2)` devuelve trozos que suman como mínimo 1,0 km aunque `total` sea 0,5, y entonces `Σ trozos ≠ total`. Por eso ningún motivo de menos de 1,0 km pasa por `split` (§4.2, `muro`)                                                                        |
+| `climb(rand, len, avg, opts?)`                     | 72-82                         | UN `puerto` de `len` km en `max(2, round(len / 2,2))` rampas a `max(1, avg + prog·1,6 + U(−1,2; 1,2))`, con `prog` de −1 al pie a +1 en la cima: más dura arriba; `km: round(len)` y `tramos` de `split` (con su suelo) | gana `export` y `opts: { gMin?, gMax? }`: cada rampa se recorta a `clamp(g, gMin, gMax)` después del ruido. Sin `opts` se comporta como hoy (el golden de 1.418 del paso 1 lo exige). `gMin` existe porque `deriveFinishTerrain` y `finishType` leen la MEDIA de las rampas y un muro declarado al 8 % con una rampa al 5,2 % no es un muro para el motor (§4.3) |
+| `descent(rand, len, avg)`                          | 85-93                         | UN `descenso` en `max(2, round(len / 3))` rampas a `−max(2, avg + U(−1,5; 1,5))`                                                                                                                                        | gana `export`; el suelo de −2 % se conserva                                                                                                                                                                                                                                                                                                                      |
+| `rolling(rand, km, amp, pRompepiernas = 0)`        | 100-122                       | relleno en trozos de `U(3, 6)` km que suben la primera mitad a `U(0,8; amp)` y bajan la segunda a entre el 60 y el 100 % de eso, alternando por paridad                                                                 | gana `export`; `amp` pasa de `bumpy: boolean` a número (`false` era 1,8 y `true` 3,2, ingeniero §4.4) y `pRompepiernas` vale 0 por defecto: la gramática nunca emite `rompepiernas` (decisión 2)                                                                                                                                                                 |
+| sector literal                                     | como `cobblesSegments` l. 503 | `{ km, tipo: 'paves', estrellas }` sin tramos (pendiente 0)                                                                                                                                                             | se emite desde `renderMotif`, no desde una función propia                                                                                                                                                                                                                                                                                                        |
 
 Una regla de tipado atraviesa todo el rendido y la fija `datos.md` §3.3 (resuelve R28.1(c) del mapa 05 §9): **todo lo que quiere contar como subida en la táctica se escribe `puerto`**, porque `kmSubida`, `breakAppeal`, `gcTerrain` y `shortMountain` cuentan bloques por tipo y no por pendiente (`simulate.ts` l. 1696-1719, mapa 03 §4.1); lo que sube y no debe contar (la `tendida`, el relleno) se escribe `llano` con tramos, que la física sí lee por `g` (`sample.ts` l. 32-44 y 50-54). Y el relleno tiene la amplitud topada en `ARCH.motivo.enlace.ampMax` 2,4 para que ningún tramo suyo alcance el 3 % que `deriveFinishTerrain` funde en una racha de subida (`finishClimbMinGradient` 3, `constants.ts` l. 3977; juicio motor §1): hoy `rolling` en modo `bumpy` llega a 3,2 (l. 105) y por eso un muro de meta podía salir `puncheur` o `alto`. La `tendida` es la excepción consciente a ese tope (sus tramos llegan a 3,5 + 0,7 = 4,2 %) y por eso lleva una regla de colocación propia (§4.2).
 
@@ -25,20 +25,20 @@ Cada `cota`, `puerto` y `muro` se rinde como UN solo `Segment` de tipo `puerto`.
 
 La tabla resume; los párrafos que siguen dan el detalle por familia. Los rangos son los del bloque `ARCH` de la sección 12 §12.1, que es su ÚNICA fuente y manda sobre esta sección y sobre §B.3 si alguna cifra discrepa; en particular `cota.g` es [4; 8) (techo excluido), `puerto.g` [5; 12], `muro.km` [0,4; 2,5] y `meta.altoLargo.g` [6; 12], y no los [4; 7], [5; 9], [0,4; 3,0] y [6; 9] de §B.3. Los valores que esta sección fijó y que la sección 12 recoge son: `enlace.km` [1; 300], `expuesto.km` [5; 120] y `expuesto.amp` 0,5, `racimo.km` [10; 60], `circuito.kmVuelta` [1,5; 30] y `.vueltas` [2; 40], `muro.gMin` 8 y `meta.repecho.g` [5; 7]. "Lo que lee el motor" sale del mapa 03 §3 (`physics.ts`) y §4 (`simulate.ts`).
 
-| Motivo | `km` | `g` (%) | Rinde como | Lo que lee el motor | Caso real (mapa 07) |
-| --- | --- | --- | --- | --- | --- |
-| `enlace` | [1; 300] | amp = `geo.amplitud` ≤ 2,4 | `rolling(rand, km, geo.amplitud, 0)`: `llano` con tramos | `vRef` 42 km/h, `draftMax` 0,42, `selectionFactor` 0 (`simulate.ts` l. 474-511: `case 'llano'` devuelve 0, l. 497-510); único terreno del abanico y el acordeón (l. 1215, 3898) | el llano entre cotas de cualquier carrera; el enlace de aproximación de una clásica es UN motivo (Lombardía 116,8; Flèche 140) |
-| `expuesto` | [5; 120] | amp `min(0,5; geo.amplitud)` | `rolling(rand, km, min(ARCH.motivo.expuesto.amp, geo.amplitud), 0)` | idéntico a `enlace`: es metadato de ficha, no física | Brugge-De Panne (~300 m de D+ en 200 km, §1.5), pólder, Crau, desierto del Golfo; Roubaix hasta Troisvilles (96 km) |
-| `tendida` | [5; 30] | [1,5; 3,5] | UN `llano` con 2 a 4 tramos a `g ± 0,7`; nunca termina a menos de `finishClimbSearchKm` 15 km de meta (regla de colocación, `place`) | `costBase` 0,24 + 0,135·g (l. 239-249): a 2,5 % cuesta 2,4 veces el llano; no suma a `kmSubida`, no selecciona | Feldberg 12 km al 4 % (§1.1), altiplano andino, meseta |
-| `descenso` | [2; 25] | [−8; −3] | `descent(rand, km, |g|)` | selecciona solo con `g ≤ −4` y solo su primer km, o entera a ≤ 25 km de meta (l. 2427, 5083-5089); caída 0,0018/km (`crash.ts` l. 25-36); coste con suelo 0,10 a `g ≤ −3` | Poggio, Civiglio, San Fermo |
-| `cota` | [2,5; 8,0] | [4; 8) | `climb(rand, km, g)` → `puerto` | `subida`: `climbWeight`, deriva, `kmSubida`; pancarta cat3 o cat2 | Rosier 4,4 × 5,9; Jaizkibel 7,9 × 5,6; Cipressa 5,6 × 4,1 |
-| `puerto` | [9,0; 25] | [5; 12] | `climb(rand, km, g)`; con `forma: 'irregular'`, una rampa de [0,3; 0,8] km al [11; 13] % | `subida`; a ≤ 30 km de meta se sube a tope (`STAGE.climbRaceKmToGo` 30, `constants.ts` l. 3521); en la rampa ≥ 8 el perfil usa COL (l. 434); cat1 o HC | Alpe d'Huez 13,8 × 8,1; Tourmalet 17,1 × 7,3; Galibier 23 × 5,1 |
-| `muro` | [0,4; 2,5] | [8; 16], `gMin` 8, `gMax` 16 | `km < 1,0`: UNA rampa de `km` al `g` declarado; `km ≥ 1,0`: `climb(rand, km, g, { gMin: 8, gMax: 16 })` con 2 rampas; adoquinado sigue siendo `puerto` | `subida` con COL en cada bloque `g ≥ 8` (`wallMinGradient`, `constants.ts` l. 1594); pancarta solo si ≥ 1,5 km o si es el último puerto | Paterberg 0,36 × 12,9; Koppenberg 0,6 × 11,6; Mur de Huy 1,3 × 9,6; Sormano 1,9 × 15,8 |
-| `cadena` | Σ hijos + Σ `separaciones` | (de los hijos) | `hijos`: de 2 a 8 dificultades (`cota` o `muro`); `separaciones`: los `hijos.length − 1` enlaces entre ellas, de [1,5; 6] km, rendidos con `rolling` a `geo.amplitud`; sin bajada canónica | n subidas sin valle; nada especial: el motor ve n segmentos `puerto` seguidos | Ronde [16; 19] cotas, Amstel [33; 34], el tríptico final de Lieja (§1.3, §1.6) |
-| `sector` | [0,3; 3,7] | 0 | `{ km, tipo: 'paves', estrellas }`; `firme: 'tierra'` se rinde `paves` de 2 o 3★ | `costBase` 0,55 + 0,06·★; `selectionFactor` 0,6·★/3·(1 + 0,5·lluvia); percances ×20 (`STAGE.mishap.terrainFactor.paves`, `constants.ts` l. 4370-4389); caída 0,0025/km; aproximación de 2 km (`pavesApproachKm`, l. 1628-1636); `draftMax` 0,18 | Arenberg 2,3 km 5★, Carrefour de l'Arbre 2,1 km, Roubaix 0,3 km (§1.4) |
-| `racimo` | [10; 60] = Σ hijos + Σ `separaciones` | | `hijos`: de 4 a 10 `sector`; `separaciones`: los `hijos.length − 1` enlaces entre ellos, de [2; 6] km, rendidos con `rolling` a amp 0,7 | lo mismo que `sector`, sin reagrupar entre uno y otro | Roubaix: de 29 a 31 sectores en 3 a 6 racimos (§1.4); Denain y Tro Bro Léon, racimos de 10 a 22 km (sección 5, `ud_adoquin_ligero`) |
-| `circuito` | `km` = UNA vuelta, [1,5; 30] en `ARCH` (`Slot.params.kmRango` lo estrecha: `ud_circuito` [10; 18]) × `vueltas` [2; 40] en `ARCH` (`Slot.params.vueltasRango`: `ud_circuito` [6; 18], `ud_muro_final` [2; 3], `ud_criterium` [20; 40]) | | `hijos`: las dificultades de la vuelta (`cota`, `muro`, `sector`, `tendida`; ninguna en el critérium); `separaciones[h]`: el enlace ANTES del hijo h; lo que resta hasta `km` es el enlace que cierra la vuelta (≥ 1,5). La vuelta se rinde UNA vez y se copia `vueltas` veces; la `meta` va DETRÁS de la última vuelta completa | n pasos por la misma cota; UNA sola pancarta por cota ≥ 1,5 km, en su último paso (sección 8 §8.10) | Québec 12,6 × 16; Montréal 12,3 × [17; 18]; Mundial [12; 27] × [7; 14] (§1.1) |
-| `meta` | §4.3 | | | | |
+| Motivo     | `km`                                                                                                                                                                                                                                  | `g` (%)                      | Rinde como                                                                                                                                                                                                                                                                                                                       | Lo que lee el motor                                                                                                                                                                                                                             | Caso real (mapa 07)                                                                                                                 |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `enlace`   | [1; 300]                                                                                                                                                                                                                              | amp = `geo.amplitud` ≤ 2,4   | `rolling(rand, km, geo.amplitud, 0)`: `llano` con tramos                                                                                                                                                                                                                                                                         | `vRef` 42 km/h, `draftMax` 0,42, `selectionFactor` 0 (`simulate.ts` l. 474-511: `case 'llano'` devuelve 0, l. 497-510); único terreno del abanico y el acordeón (l. 1215, 3898)                                                                 | el llano entre cotas de cualquier carrera; el enlace de aproximación de una clásica es UN motivo (Lombardía 116,8; Flèche 140)      |
+| `expuesto` | [5; 120]                                                                                                                                                                                                                              | amp `min(0,5; geo.amplitud)` | `rolling(rand, km, min(ARCH.motivo.expuesto.amp, geo.amplitud), 0)`                                                                                                                                                                                                                                                              | idéntico a `enlace`: es metadato de ficha, no física                                                                                                                                                                                            | Brugge-De Panne (~300 m de D+ en 200 km, §1.5), pólder, Crau, desierto del Golfo; Roubaix hasta Troisvilles (96 km)                 |
+| `tendida`  | [5; 30]                                                                                                                                                                                                                               | [1,5; 3,5]                   | UN `llano` con 2 a 4 tramos a `g ± 0,7`; nunca termina a menos de `finishClimbSearchKm` 15 km de meta (regla de colocación, `place`)                                                                                                                                                                                             | `costBase` 0,24 + 0,135·g (l. 239-249): a 2,5 % cuesta 2,4 veces el llano; no suma a `kmSubida`, no selecciona                                                                                                                                  | Feldberg 12 km al 4 % (§1.1), altiplano andino, meseta                                                                              |
+| `descenso` | [2; 25]                                                                                                                                                                                                                               | [−8; −3]                     | `descent(rand, km,                                                                                                                                                                                                                                                                                                               | g                                                                                                                                                                                                                                               | )`                                                                                                                                  | selecciona solo con `g ≤ −4` y solo su primer km, o entera a ≤ 25 km de meta (l. 2427, 5083-5089); caída 0,0018/km (`crash.ts` l. 25-36); coste con suelo 0,10 a `g ≤ −3` | Poggio, Civiglio, San Fermo |
+| `cota`     | [2,5; 8,0]                                                                                                                                                                                                                            | [4; 8)                       | `climb(rand, km, g)` → `puerto`                                                                                                                                                                                                                                                                                                  | `subida`: `climbWeight`, deriva, `kmSubida`; pancarta cat3 o cat2                                                                                                                                                                               | Rosier 4,4 × 5,9; Jaizkibel 7,9 × 5,6; Cipressa 5,6 × 4,1                                                                           |
+| `puerto`   | [9,0; 25]                                                                                                                                                                                                                             | [5; 12]                      | `climb(rand, km, g)`; con `forma: 'irregular'`, una rampa de [0,3; 0,8] km al [11; 13] %                                                                                                                                                                                                                                         | `subida`; a ≤ 30 km de meta se sube a tope (`STAGE.climbRaceKmToGo` 30, `constants.ts` l. 3521); en la rampa ≥ 8 el perfil usa COL (l. 434); cat1 o HC                                                                                          | Alpe d'Huez 13,8 × 8,1; Tourmalet 17,1 × 7,3; Galibier 23 × 5,1                                                                     |
+| `muro`     | [0,4; 2,5]                                                                                                                                                                                                                            | [8; 16], `gMin` 8, `gMax` 16 | `km < 1,0`: UNA rampa de `km` al `g` declarado; `km ≥ 1,0`: `climb(rand, km, g, { gMin: 8, gMax: 16 })` con 2 rampas; adoquinado sigue siendo `puerto`                                                                                                                                                                           | `subida` con COL en cada bloque `g ≥ 8` (`wallMinGradient`, `constants.ts` l. 1594); pancarta solo si ≥ 1,5 km o si es el último puerto                                                                                                         | Paterberg 0,36 × 12,9; Koppenberg 0,6 × 11,6; Mur de Huy 1,3 × 9,6; Sormano 1,9 × 15,8                                              |
+| `cadena`   | Σ hijos + Σ `separaciones`                                                                                                                                                                                                            | (de los hijos)               | `hijos`: de 2 a 8 dificultades (`cota` o `muro`); `separaciones`: los `hijos.length − 1` enlaces entre ellas, de [1,5; 6] km, rendidos con `rolling` a `geo.amplitud`; sin bajada canónica                                                                                                                                       | n subidas sin valle; nada especial: el motor ve n segmentos `puerto` seguidos                                                                                                                                                                   | Ronde [16; 19] cotas, Amstel [33; 34], el tríptico final de Lieja (§1.3, §1.6)                                                      |
+| `sector`   | [0,3; 3,7]                                                                                                                                                                                                                            | 0                            | `{ km, tipo: 'paves', estrellas }`; `firme: 'tierra'` se rinde `paves` de 2 o 3★                                                                                                                                                                                                                                                 | `costBase` 0,55 + 0,06·★; `selectionFactor` 0,6·★/3·(1 + 0,5·lluvia); percances ×20 (`STAGE.mishap.terrainFactor.paves`, `constants.ts` l. 4370-4389); caída 0,0025/km; aproximación de 2 km (`pavesApproachKm`, l. 1628-1636); `draftMax` 0,18 | Arenberg 2,3 km 5★, Carrefour de l'Arbre 2,1 km, Roubaix 0,3 km (§1.4)                                                              |
+| `racimo`   | [10; 60] = Σ hijos + Σ `separaciones`                                                                                                                                                                                                 |                              | `hijos`: de 4 a 10 `sector`; `separaciones`: los `hijos.length − 1` enlaces entre ellos, de [2; 6] km, rendidos con `rolling` a amp 0,7                                                                                                                                                                                          | lo mismo que `sector`, sin reagrupar entre uno y otro                                                                                                                                                                                           | Roubaix: de 29 a 31 sectores en 3 a 6 racimos (§1.4); Denain y Tro Bro Léon, racimos de 10 a 22 km (sección 5, `ud_adoquin_ligero`) |
+| `circuito` | `km` = UNA vuelta, [1,5; 30] en `ARCH` (`Slot.params.kmRango` lo estrecha: `ud_circuito` [10; 18]) × `vueltas` [2; 40] en `ARCH` (`Slot.params.vueltasRango`: `ud_circuito` [6; 18], `ud_muro_final` [2; 3], `ud_criterium` [20; 40]) |                              | `hijos`: las dificultades de la vuelta (`cota`, `muro`, `sector`, `tendida`; ninguna en el critérium); `separaciones[h]`: el enlace ANTES del hijo h; lo que resta hasta `km` es el enlace que cierra la vuelta (≥ 1,5). La vuelta se rinde UNA vez y se copia `vueltas` veces; la `meta` va DETRÁS de la última vuelta completa | n pasos por la misma cota; UNA sola pancarta por cota ≥ 1,5 km, en su último paso (sección 8 §8.10)                                                                                                                                             | Québec 12,6 × 16; Montréal 12,3 × [17; 18]; Mundial [12; 27] × [7; 14] (§1.1)                                                       |
+| `meta`     | §4.3                                                                                                                                                                                                                                  |                              |                                                                                                                                                                                                                                                                                                                                  |                                                                                                                                                                                                                                                 |                                                                                                                                     |
 
 #### Enlaces: `enlace`, `expuesto`, `tendida`, `descenso`
 
@@ -78,17 +78,17 @@ Los tres compuestos comparten una representación, la que la sección 5 fija en 
 
 `meta` es siempre el último motivo. Cada `MetaKind` está definido por tres lecturas del motor y por la regla que las garantiza. `deriveFinishTerrain` (`finish.ts` l. 94-123): media de `g` en los últimos 5 km (`avgGradient`), última racha de subida de los últimos 15 km con bloques `g ≥ 3` y hasta 5 bloques de respiro (`climbKm`, `climbGradient` como MEDIA de los bloques de la racha, `climbKmToFinish`), media de los últimos 3 km (`hilltopGradient`, l. 127), fracción de descenso de los últimos 3 km y fracción de pavé de los últimos 30. `finishType` (l. 165-196) comprueba en este orden y devuelve el primero que cuadra: `alto` si `climbKm ≥ finishAltoMinKm` 3 y la cota es dura (`climbGradient ≥ 4` o `climbKm·climbGradient·10 ≥ 300`) y además o muere en la línea (`climbKmToFinish ≤ finishSummitKm` 0,6) o los últimos 3 km promedian ≥ 5 (`hilltopFinishGradient`; las dos vías están DENTRO del `if` de los 3 km, l. 168-171); `muro` si `0 < climbKm ≤ muroMaxKm` 1, `climbGradient ≥ muroMinGradient` 8 y `climbKmToFinish ≤ 0,6` (l. 182-189, "EL MURO, ANTES QUE EL PUNCHEUR"); `puncheur` si `climbKmToFinish ≤ finishPuncheurKmToGo` 5 y `climbScore = climbKm·climbGradient² ≥ finishPuncheurScore` 15, o si `avgGradient ≥ finishDragGradient` 2,5 (l. 191-193); `descenso` si la fracción de descenso de los últimos 3 km es ≥ 0,5 (l. 194); `pave` si la fracción de pavé de los últimos 30 km es ≥ `finishPaveFraction` 0,1 (l. 195); y si nada cuadra, `sprint_masivo` o `sprint_reducido` según `groupSize` contra `finishBunchMinRiders` 15 (l. 196). Las constantes son de `constants.ts` l. 3971-4028, 4462-4463 y 4652-4653. `finalKindOf` (`finalKind.ts` l. 78-85) mide `kmAfterLastClimb` contra `FINAL_KIND_CUTS` {alto 0,5; cimaCerca 5; valleCorto 20} (l. 30). La columna `finalKindOf` es lo que V7 garantiza por etapa con reintento; la columna `finishType` es lo que V16 mide en `routeCensus` y en `motifs.test.ts`, nunca por intento (decisión 4).
 
-| `MetaKind` | Cómo se rinde (últimos km) | `finishType` prometido a V16 | `finalKindOf` | Regla que lo garantiza |
-| --- | --- | --- | --- | --- |
-| `esprint` | `enlace` o `expuesto` con amp ≤ 1,5 en los últimos 5 km | `{puncheur}` si `kmAfterLastClimb ≤ 4,3` (`ud_circuito`, `nc_ruta`, y `ud_muros` cuando el último muro queda cerca); `{sprint_masivo, sprint_reducido}` si no hay cota o `kmAfterLastClimb ≥ 5,7`; `{puncheur, sprint_masivo, sprint_reducido}` en la franja (4,3; 5,7) | `null` (llana) o el de la última cota (`cima_cerca` en `ud_circuito` y `nc_ruta`) | media de `g` en los últimos 5 km (`finishWindowKm`, l. 3971) < 2,5 (`finishDragGradient`): con amp ≤ 1,5 y alternancia sube/baja queda cerca de 0. Con una cota a ≤ 5 km el motor dice `puncheur` siempre, porque la dificultad más pequeña de la gramática (muro 0,4 × 8) puntúa 25,6 ≥ 15 y `puncheur` se comprueba antes que el esprint; V16 lee `RouteStats.kmAfterLastClimb` para saber qué conjunto aplica |
-| `repecho` | `climb(cotaFinal, { gMin: 4, gMax: 7,9 })` como último segmento, tipo `puerto`; `ARCH.meta.repecho` = { km: [1; 2,9], g: [5; 7], gMin: 4, gMax: 7,9 }; en esqueletos de un día `km` se instancia en [1; 2,2] por V5(b) (sección 9), en etapa en [1; 2,9] | `{puncheur}` | `alto` (0 km tras la cima) | `gMin` 4 mete toda rampa en la racha (≥ 3), así `climbKm = km ≥ 1` y `climbScore ≥ 1·4,7² > 15` (`validateMotif` comprueba `cotaFinal.km·g² ≥ STAGE.finishPuncheurScore`); `gMax` 7,9 deja la media < 8 y la aparta de `muro`; `km < finishAltoMinKm` 3 la aparta de `alto`. Sin `gMin`, un repecho de 1 km al 4 % nacía con su primera rampa al 1,2 %, fuera de la racha, y salía `sprint_masivo` |
-| `muro_meta` | 2 km de `enlace` con amp ≤ 2,5 (`aproxKm`, `aproxAmp`) + muro de `cotaFinal` ([0,5; 2,2] × [8; 16], `ARCH.meta.muro`) rendido como todo `muro` (§4.2: 1 rampa si `km < 1,0`, 2 rampas con `gMin` 8 y `gMax` 16 si no) | `{muro}` si `cotaFinal.km ≤ 1,0` (`finishMuroMaxKm` = `STAGE.muroMaxKm`); `{puncheur}` por encima | `alto` | `muro`: `climbKm ≤ 1`, media de bloques ≥ 8 (por `gMin`) y `climbKmToFinish` 0 ≤ 0,6; `puncheur`: `climbScore ≥ 1,1·8² = 70 ≥ 15` a 0 km; `alto` imposible porque `climbKm ≤ 2,2 < 3` (la aproximación a amp ≤ 2,5 no aporta ningún bloque ≥ 3 % a la racha) y `finishClimbGapBlocks` 5 (l. 3980) no la une con un repecho anterior |
-| `alto_corto` | `climb([3; 7], [6; 11])` último (`ARCH.meta.altoCorto`) | `{alto}` | `alto` | ≥ 3 km (toda rampa ≥ 6 − 2,8 = 3,2 % entra en la racha) y media ≥ 4 (`finishAltoMinGradient`, l. 4007), muriendo en la línea |
-| `alto_largo` | `climb([9; 22], [6; 12])` último; si `km > 17`, `g ≤ 7` (`gMaxSiMasDe17`) | `{alto}` | `alto` | idem; y `stageKindOf` reina por `PASS_MIN_KM` 8,5 con 0,5 de margen; solo con `geo.finalesAlto === 'largo'` (V4) |
-| `cima_cerca` | `cotaFinal` + bajada + llano, con valle total en [1,2; 4,3] (`ARCH.meta.cimaCerca.valle`; reparto del valle en la nota 3) | `{puncheur}`; `{puncheur, alto}` solo si `cotaFinal.km ≥ 3` | `cima_cerca` | `climbKmToFinish ≤ 4,3 ≤ 5` y `climbScore ≥ 1,3·7² = 64 ≥ 15`: `puncheur` (l. 191-192) se comprueba antes que `descenso` (l. 194), que por tanto es inalcanzable. `alto` solo puede entrar por la vía de los últimos 3 km (l. 170) y esa exige `climbKm ≥ 3`: con `cotaFinal < 3` no existe; con `cotaFinal ≥ 3`, valle en el suelo y rampas de cima ≥ 11 % puede darse (1,8 km al 11 % menos 1,2 de bajada al 4 % promedian 5,0) y V16 lo admite. Holgura 0,7 sobre los cortes 0,5 y 5 (`ARCH.veto.margenValleKm`) |
-| `descenso_meta` | `cotaFinal` + bajada + llano, valle en [5,7; 19,3] (`ARCH.meta.descensoMeta.valle`) | `{descenso, sprint_masivo, sprint_reducido}` | `valle_corto` | `climbKmToFinish ≥ 5,7 > 5` aparta `puncheur`; `descenso` si la bajada cubre ≥ 1,5 de los últimos 3 km (llano final ≤ 1,5), si no esprint del grupo que llegue. Holgura 0,7 sobre 5 y 20 |
-| `valle` | `cotaFinal` + bajada + llano, valle en [20,7; 45] (`ARCH.meta.valle.valle`) | `{sprint_masivo, sprint_reducido}` | `valle_largo` | la cota queda fuera de los 15 km de `finishClimbSearchKm`; los últimos 5 km son enlace a amp ≤ 2,4; holgura 0,7 sobre 20 |
-| `sector_meta` | `hijos[0]` es un `sector`, el único hijo (`km` en `ARCH.motivo.sector.km` [0,3; 3,7]; `ud_adoquin` lo estrecha a [0,3; 2,5] en su columna Meta, §5.2), y detrás `rolling` de `Motif.km − hijos[0].km` en `ARCH.meta.sectorMeta.aMeta` [1; 8] | `{pave}` | `null` | `Σ km de paves en los últimos 30 km ≥ 3,0` (`finishPaveFraction` 0,1 × `finishPaveKm` 30, l. 4024-4025). El motivo aporta como mucho 3,7 km y a menudo 0,3 (el sector de Roubaix, a 1,1 km de meta, mapa 07 §1.4): la garantía la da el esqueleto, cuyo último `racimo` termina a ≤ 30 km de meta con ≥ 3 km de sectores dentro de la ventana (`ud_adoquin`, `ud_adoquin_ligero`; sección 5), y `routeCensus` mide `pavesKm` en los últimos 30. Ningún `descenso` en los últimos 3 km (l. 194 va antes que l. 195) |
+| `MetaKind`      | Cómo se rinde (últimos km)                                                                                                                                                                                                                               | `finishType` prometido a V16                                                                                                                                                                                                                                            | `finalKindOf`                                                                     | Regla que lo garantiza                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `esprint`       | `enlace` o `expuesto` con amp ≤ 1,5 en los últimos 5 km                                                                                                                                                                                                  | `{puncheur}` si `kmAfterLastClimb ≤ 4,3` (`ud_circuito`, `nc_ruta`, y `ud_muros` cuando el último muro queda cerca); `{sprint_masivo, sprint_reducido}` si no hay cota o `kmAfterLastClimb ≥ 5,7`; `{puncheur, sprint_masivo, sprint_reducido}` en la franja (4,3; 5,7) | `null` (llana) o el de la última cota (`cima_cerca` en `ud_circuito` y `nc_ruta`) | media de `g` en los últimos 5 km (`finishWindowKm`, l. 3971) < 2,5 (`finishDragGradient`): con amp ≤ 1,5 y alternancia sube/baja queda cerca de 0. Con una cota a ≤ 5 km el motor dice `puncheur` siempre, porque la dificultad más pequeña de la gramática (muro 0,4 × 8) puntúa 25,6 ≥ 15 y `puncheur` se comprueba antes que el esprint; V16 lee `RouteStats.kmAfterLastClimb` para saber qué conjunto aplica                                                                                                    |
+| `repecho`       | `climb(cotaFinal, { gMin: 4, gMax: 7,9 })` como último segmento, tipo `puerto`; `ARCH.meta.repecho` = { km: [1; 2,9], g: [5; 7], gMin: 4, gMax: 7,9 }; en esqueletos de un día `km` se instancia en [1; 2,2] por V5(b) (sección 9), en etapa en [1; 2,9] | `{puncheur}`                                                                                                                                                                                                                                                            | `alto` (0 km tras la cima)                                                        | `gMin` 4 mete toda rampa en la racha (≥ 3), así `climbKm = km ≥ 1` y `climbScore ≥ 1·4,7² > 15` (`validateMotif` comprueba `cotaFinal.km·g² ≥ STAGE.finishPuncheurScore`); `gMax` 7,9 deja la media < 8 y la aparta de `muro`; `km < finishAltoMinKm` 3 la aparta de `alto`. Sin `gMin`, un repecho de 1 km al 4 % nacía con su primera rampa al 1,2 %, fuera de la racha, y salía `sprint_masivo`                                                                                                                  |
+| `muro_meta`     | 2 km de `enlace` con amp ≤ 2,5 (`aproxKm`, `aproxAmp`) + muro de `cotaFinal` ([0,5; 2,2] × [8; 16], `ARCH.meta.muro`) rendido como todo `muro` (§4.2: 1 rampa si `km < 1,0`, 2 rampas con `gMin` 8 y `gMax` 16 si no)                                    | `{muro}` si `cotaFinal.km ≤ 1,0` (`finishMuroMaxKm` = `STAGE.muroMaxKm`); `{puncheur}` por encima                                                                                                                                                                       | `alto`                                                                            | `muro`: `climbKm ≤ 1`, media de bloques ≥ 8 (por `gMin`) y `climbKmToFinish` 0 ≤ 0,6; `puncheur`: `climbScore ≥ 1,1·8² = 70 ≥ 15` a 0 km; `alto` imposible porque `climbKm ≤ 2,2 < 3` (la aproximación a amp ≤ 2,5 no aporta ningún bloque ≥ 3 % a la racha) y `finishClimbGapBlocks` 5 (l. 3980) no la une con un repecho anterior                                                                                                                                                                                 |
+| `alto_corto`    | `climb([3; 7], [6; 11])` último (`ARCH.meta.altoCorto`)                                                                                                                                                                                                  | `{alto}`                                                                                                                                                                                                                                                                | `alto`                                                                            | ≥ 3 km (toda rampa ≥ 6 − 2,8 = 3,2 % entra en la racha) y media ≥ 4 (`finishAltoMinGradient`, l. 4007), muriendo en la línea                                                                                                                                                                                                                                                                                                                                                                                        |
+| `alto_largo`    | `climb([9; 22], [6; 12])` último; si `km > 17`, `g ≤ 7` (`gMaxSiMasDe17`)                                                                                                                                                                                | `{alto}`                                                                                                                                                                                                                                                                | `alto`                                                                            | idem; y `stageKindOf` reina por `PASS_MIN_KM` 8,5 con 0,5 de margen; solo con `geo.finalesAlto === 'largo'` (V4)                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `cima_cerca`    | `cotaFinal` + bajada + llano, con valle total en [1,2; 4,3] (`ARCH.meta.cimaCerca.valle`; reparto del valle en la nota 3)                                                                                                                                | `{puncheur}`; `{puncheur, alto}` solo si `cotaFinal.km ≥ 3`                                                                                                                                                                                                             | `cima_cerca`                                                                      | `climbKmToFinish ≤ 4,3 ≤ 5` y `climbScore ≥ 1,3·7² = 64 ≥ 15`: `puncheur` (l. 191-192) se comprueba antes que `descenso` (l. 194), que por tanto es inalcanzable. `alto` solo puede entrar por la vía de los últimos 3 km (l. 170) y esa exige `climbKm ≥ 3`: con `cotaFinal < 3` no existe; con `cotaFinal ≥ 3`, valle en el suelo y rampas de cima ≥ 11 % puede darse (1,8 km al 11 % menos 1,2 de bajada al 4 % promedian 5,0) y V16 lo admite. Holgura 0,7 sobre los cortes 0,5 y 5 (`ARCH.veto.margenValleKm`) |
+| `descenso_meta` | `cotaFinal` + bajada + llano, valle en [5,7; 19,3] (`ARCH.meta.descensoMeta.valle`)                                                                                                                                                                      | `{descenso, sprint_masivo, sprint_reducido}`                                                                                                                                                                                                                            | `valle_corto`                                                                     | `climbKmToFinish ≥ 5,7 > 5` aparta `puncheur`; `descenso` si la bajada cubre ≥ 1,5 de los últimos 3 km (llano final ≤ 1,5), si no esprint del grupo que llegue. Holgura 0,7 sobre 5 y 20                                                                                                                                                                                                                                                                                                                            |
+| `valle`         | `cotaFinal` + bajada + llano, valle en [20,7; 45] (`ARCH.meta.valle.valle`)                                                                                                                                                                              | `{sprint_masivo, sprint_reducido}`                                                                                                                                                                                                                                      | `valle_largo`                                                                     | la cota queda fuera de los 15 km de `finishClimbSearchKm`; los últimos 5 km son enlace a amp ≤ 2,4; holgura 0,7 sobre 20                                                                                                                                                                                                                                                                                                                                                                                            |
+| `sector_meta`   | `hijos[0]` es un `sector`, el único hijo (`km` en `ARCH.motivo.sector.km` [0,3; 3,7]; `ud_adoquin` lo estrecha a [0,3; 2,5] en su columna Meta, §5.2), y detrás `rolling` de `Motif.km − hijos[0].km` en `ARCH.meta.sectorMeta.aMeta` [1; 8]             | `{pave}`                                                                                                                                                                                                                                                                | `null`                                                                            | `Σ km de paves en los últimos 30 km ≥ 3,0` (`finishPaveFraction` 0,1 × `finishPaveKm` 30, l. 4024-4025). El motivo aporta como mucho 3,7 km y a menudo 0,3 (el sector de Roubaix, a 1,1 km de meta, mapa 07 §1.4): la garantía la da el esqueleto, cuyo último `racimo` termina a ≤ 30 km de meta con ≥ 3 km de sectores dentro de la ventana (`ud_adoquin`, `ud_adoquin_ligero`; sección 5), y `routeCensus` mide `pavesKm` en los últimos 30. Ningún `descenso` en los últimos 3 km (l. 194 va antes que l. 195)  |
 
 La columna "`finishType` prometido a V16" es copia literal de la tabla de V16 de la sección 9 (§9.2, `conjuntoV16`), que manda si alguna vez difieren, y la lee sobre la fila del censo con cuatro campos: `RouteStats.meta` y `.cotaFinalKm` (la meta instanciada, `arch.motivos.at(-1)`, §3.10), `.kmAfterLastClimb` (las tres ramas de `esprint`) y `.pavesKm`. Dos reglas generales de allí completan la columna: todo conjunto que contiene `sprint_masivo` gana `pave` si la etapa tiene algún sector (`pave` se comprueba justo antes del esprint, l. 195), y las cronos (`kind === 'cri'`) y las etapas `real` quedan fuera de V16. La franja (4,3; 5,7) de `esprint` admite los dos resultados porque `kmAfterLastClimb` sale de una pancarta redondeada al entero y el corte del motor (`finishPuncheurKmToGo` 5) cae dentro.
 
@@ -104,11 +104,11 @@ Tres notas sobre la tabla, porque son las que un implementador va a discutir.
 
 El diagnóstico (sección 1, mapa 01 §9 punto 4) midió tres cruces de clasificación que no son azar sino falta de holgura entre quien dibuja y quien lee. La gramática los cierra por construcción, no con reintentos:
 
-| Borde | Lo medido hoy (mapa 01) | Quién dibuja y quién lee | Cómo se cierra en la gramática |
-| --- | --- | --- | --- |
-| 8,5 km (`PASS_MIN_KM`) | 3 de 1.500 con `finalKind: 'alto'` forzado (§5.1): `garantizaPuerto` fija `segment.km` a 8,6 y `climbSize` suma tramos que dan 8,4, o al revés (8,4 contra 8,5) | `garantizaPuerto` l. 192-233 escribe `s.km`; `climbSize` `stageKind.ts` l. 36-42 suma tramos redondeados a 0,1 | `cota.km ≤ 8,0` y `puerto.km ≥ 9,0` (0,5 a cada lado); `normalizeEnlaces` no toca dificultades (decisión 10); la guarda `segment.km === Σ tramos` de I-8 en `renderMotif`; `garantizaClase` con `margenClaseKm` 0,3 como red. El hueco [8,0; 9,0] se asume: Ghisallo 8,6 sale 9,0 |
-| 5 y 20 km (`FINAL_KIND_CUTS`) | 4 de 6.000 cubetas cruzadas (§2.5): `valleyKmFor` daba [1,5; 5] y [6; 20] y `normalize` estiraba un valle de 20 a 20,3 | `normalize` escala todos los segmentos; `finalKindOf` corta con `≤` en 5 y 20 sobre un km de pancarta redondeado al entero | rangos de `ARCH.meta.*.valle` con holgura 0,7; el valle es parte del motivo `meta` y `normalizeEnlaces` no lo toca; `garantizaClase` con `margenValleKm` 0,7 |
-| 1,5 km (`CLIMB_MIN_KM`) | 12 de 1.500 `classicSegments()` desnudos, sin pancartas (semillas 91, 153, 202), en los que ningún muro llega a 1,5 y `lastClimbKm` devuelve `null` (§2.4). No es un defecto del calendario de hoy: con `auto()` toda clásica lleva pancarta en cada `puerto` y `lastClimbKm` la ve | `auto()` l. 93-102 pone `cima` al final de todo `puerto` sin mirar su longitud (l. 98); `lastClimbKm` (`finalKind.ts` l. 46-57) devuelve la última pancarta `cima` (l. 46-48) y solo sin pancartas cae a los `puerto` ≥ `CLIMB_MIN_KM` (l. 50-56) | Es un borde del diseño y no de hoy: se abriría si `emitirPancartas` pancartara solo las cotas ≥ 1,5 km. Por eso pone `cima` en todo `puerto` ≥ 1,5 km y SIEMPRE en el último `puerto` de la etapa (decisión 25): el muro de meta de 0,8 km tiene pancarta, `lastClimbKm` lo ve y `finalKindOf` dice `alto` |
+| Borde                         | Lo medido hoy (mapa 01)                                                                                                                                                                                                                                                             | Quién dibuja y quién lee                                                                                                                                                                                                                          | Cómo se cierra en la gramática                                                                                                                                                                                                                                                                             |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 8,5 km (`PASS_MIN_KM`)        | 3 de 1.500 con `finalKind: 'alto'` forzado (§5.1): `garantizaPuerto` fija `segment.km` a 8,6 y `climbSize` suma tramos que dan 8,4, o al revés (8,4 contra 8,5)                                                                                                                     | `garantizaPuerto` l. 192-233 escribe `s.km`; `climbSize` `stageKind.ts` l. 36-42 suma tramos redondeados a 0,1                                                                                                                                    | `cota.km ≤ 8,0` y `puerto.km ≥ 9,0` (0,5 a cada lado); `normalizeEnlaces` no toca dificultades (decisión 10); la guarda `segment.km === Σ tramos` de I-8 en `renderMotif`; `garantizaClase` con `margenClaseKm` 0,3 como red. El hueco [8,0; 9,0] se asume: Ghisallo 8,6 sale 9,0                          |
+| 5 y 20 km (`FINAL_KIND_CUTS`) | 4 de 6.000 cubetas cruzadas (§2.5): `valleyKmFor` daba [1,5; 5] y [6; 20] y `normalize` estiraba un valle de 20 a 20,3                                                                                                                                                              | `normalize` escala todos los segmentos; `finalKindOf` corta con `≤` en 5 y 20 sobre un km de pancarta redondeado al entero                                                                                                                        | rangos de `ARCH.meta.*.valle` con holgura 0,7; el valle es parte del motivo `meta` y `normalizeEnlaces` no lo toca; `garantizaClase` con `margenValleKm` 0,7                                                                                                                                               |
+| 1,5 km (`CLIMB_MIN_KM`)       | 12 de 1.500 `classicSegments()` desnudos, sin pancartas (semillas 91, 153, 202), en los que ningún muro llega a 1,5 y `lastClimbKm` devuelve `null` (§2.4). No es un defecto del calendario de hoy: con `auto()` toda clásica lleva pancarta en cada `puerto` y `lastClimbKm` la ve | `auto()` l. 93-102 pone `cima` al final de todo `puerto` sin mirar su longitud (l. 98); `lastClimbKm` (`finalKind.ts` l. 46-57) devuelve la última pancarta `cima` (l. 46-48) y solo sin pancartas cae a los `puerto` ≥ `CLIMB_MIN_KM` (l. 50-56) | Es un borde del diseño y no de hoy: se abriría si `emitirPancartas` pancartara solo las cotas ≥ 1,5 km. Por eso pone `cima` en todo `puerto` ≥ 1,5 km y SIEMPRE en el último `puerto` de la etapa (decisión 25): el muro de meta de 0,8 km tiene pancarta, `lastClimbKm` lo ve y `finalKindOf` dice `alto` |
 
 La guarda `segment.km === Σ tramos` (I-8) vive en `renderMotif` y no en una pasada posterior, y hay que decir de qué protege porque `split` no la cumple sola: cuadra el último trozo (l. 60-63) pero con suelo 0,5 por trozo, así que para `len < 1,0` dos rampas suman 1,0 y no `len`. La gramática no le pide nunca eso a `split` (todo motivo de menos de 1,0 km es una sola rampa, §4.2), y con `len ≥ 1,0` y dos rampas, o `len ≥ 2,2` y más, la suma coincide por construcción; la guarda es un `assert` en desarrollo y una corrección del último tramo en producción (mismo mecanismo que `normalize` l. 169-173, ingeniero §4.4) para que un redondeo nunca la rompa en silencio. `sampleProfile` avisa de por qué importa: si los tramos suman más que `km`, la cola nunca se muestrea; si menos, el último se estira (`sample.ts` l. 55-56, mapa 03 §2).
 
@@ -159,11 +159,16 @@ import { deriveFinishTerrain, finishType } from '../../stage/finish.js'
 import { ARCH, STAGE } from '../../constants.js'
 import type { Segment } from '../../stage/types.js'
 
-const rngDe = (seed: string): RngFactory => (sub) => routeRng(`${seed}|${sub}`)
-const E = (km: number) => ({ kind: 'enlace', km } as const)
-const S = (km: number, estrellas = 3) => ({ kind: 'sector', km, estrellas, firme: 'adoquin' } as const)
-const M = (km: number, g: number) => ({ kind: 'muro', km, g } as const)
-const ft = (segs: Segment[]) => finishType(deriveFinishTerrain(sampleProfile({ segments: segs })), 50)
+const rngDe =
+  (seed: string): RngFactory =>
+  (sub) =>
+    routeRng(`${seed}|${sub}`)
+const E = (km: number) => ({ kind: 'enlace', km }) as const
+const S = (km: number, estrellas = 3) =>
+  ({ kind: 'sector', km, estrellas, firme: 'adoquin' }) as const
+const M = (km: number, g: number) => ({ kind: 'muro', km, g }) as const
+const ft = (segs: Segment[]) =>
+  finishType(deriveFinishTerrain(sampleProfile({ segments: segs })), 50)
 
 describe('validateMotif', () => {
   it('acepta un puerto de 12 km al 7 % en alpes y lo rechaza en flandes', () => {
@@ -179,26 +184,63 @@ describe('validateMotif', () => {
   })
   it('rechaza estrellas fuera de sector, un racimo con separaciones fuera de [2; 6], una cadena con dos muros a 0,5 km y un compuesto sin separaciones', () => {
     expect(validateMotif({ kind: 'muro', km: 1, g: 10, estrellas: 3 } as any)).toMatch(/estrellas/)
-    const racimo = { kind: 'racimo', km: 30, hijos: [S(2), S(2), S(2), S(2)], separaciones: [7.3, 7.3, 7.4] } as const   // 8 + 22 = 30; 7,3 > 6
+    const racimo = {
+      kind: 'racimo',
+      km: 30,
+      hijos: [S(2), S(2), S(2), S(2)],
+      separaciones: [7.3, 7.3, 7.4],
+    } as const // 8 + 22 = 30; 7,3 > 6
     expect(validateMotif(racimo, ZONAS.flandes)).toMatch(/separaci/)
-    const cadena = { kind: 'cadena', km: 2.7, hijos: [M(1, 10), M(1.2, 9)], separaciones: [0.5] } as const          // 0,5 < 1,5
+    const cadena = {
+      kind: 'cadena',
+      km: 2.7,
+      hijos: [M(1, 10), M(1.2, 9)],
+      separaciones: [0.5],
+    } as const // 0,5 < 1,5
     expect(validateMotif(cadena, ZONAS.flandes)).toMatch(/separaci/)
-    expect(validateMotif({ kind: 'cadena', km: 2.2, hijos: [M(1, 10), M(1.2, 9)] } as any, ZONAS.flandes)).toMatch(/separaciones/)
+    expect(
+      validateMotif(
+        { kind: 'cadena', km: 2.2, hijos: [M(1, 10), M(1.2, 9)] } as any,
+        ZONAS.flandes,
+      ),
+    ).toMatch(/separaciones/)
   })
   it('circuito: acepta la vuelta de Montréal y la del critérium; rechaza un cierre de menos de 1,5 km', () => {
-    const montreal = { kind: 'circuito', km: 12.3, vueltas: 17, hijos: [M(1.8, 8), M(0.4, 9)], separaciones: [1.5, 6.1] } as const   // cierre 2,5
+    const montreal = {
+      kind: 'circuito',
+      km: 12.3,
+      vueltas: 17,
+      hijos: [M(1.8, 8), M(0.4, 9)],
+      separaciones: [1.5, 6.1],
+    } as const // cierre 2,5
     expect(validateMotif(montreal, ZONAS.norteamerica)).toBeNull()
-    expect(validateMotif({ kind: 'circuito', km: 2.5, vueltas: 22, hijos: [], separaciones: [] })).toBeNull()
-    expect(validateMotif({ ...montreal, separaciones: [1.5, 7.4] }, ZONAS.norteamerica)).toMatch(/cierre/)            // 12,3 − 2,2 − 8,9 = 1,2
+    expect(
+      validateMotif({ kind: 'circuito', km: 2.5, vueltas: 22, hijos: [], separaciones: [] }),
+    ).toBeNull()
+    expect(validateMotif({ ...montreal, separaciones: [1.5, 7.4] }, ZONAS.norteamerica)).toMatch(
+      /cierre/,
+    ) // 12,3 − 2,2 − 8,9 = 1,2
   })
   it('meta: esprint sin cotaFinal, sector_meta con un sector en hijos[0] y aMeta en [1; 8], muro_meta con km = aproxKm + cotaFinal.km', () => {
-    expect(validateMotif({ kind: 'meta', meta: 'esprint', km: 4, cotaFinal: { km: 1, g: 5 } })).toMatch(/cotaFinal/)
+    expect(
+      validateMotif({ kind: 'meta', meta: 'esprint', km: 4, cotaFinal: { km: 1, g: 5 } }),
+    ).toMatch(/cotaFinal/)
     expect(validateMotif({ kind: 'meta', meta: 'sector_meta', km: 3.1 })).toMatch(/hijos/)
-    expect(validateMotif({ kind: 'meta', meta: 'sector_meta', km: 3.1, hijos: [S(1.0, 1)] })).toBeNull()
-    expect(validateMotif({ kind: 'meta', meta: 'sector_meta', km: 2.1, hijos: [S(0.3, 1)] })).toBeNull()        // la de ud_adoquin (§5.4)
-    expect(validateMotif({ kind: 'meta', meta: 'sector_meta', km: 12, hijos: [S(0.3, 1)] })).toMatch(/aMeta/)    // 11,7 > 8
-    expect(validateMotif({ kind: 'meta', meta: 'muro_meta', km: 2.0, cotaFinal: { km: 1.3, g: 9.6 } })).toMatch(/km/)
-    expect(validateMotif({ kind: 'meta', meta: 'repecho', km: 1, cotaFinal: { km: 1, g: 5 } })).toBeNull()
+    expect(
+      validateMotif({ kind: 'meta', meta: 'sector_meta', km: 3.1, hijos: [S(1.0, 1)] }),
+    ).toBeNull()
+    expect(
+      validateMotif({ kind: 'meta', meta: 'sector_meta', km: 2.1, hijos: [S(0.3, 1)] }),
+    ).toBeNull() // la de ud_adoquin (§5.4)
+    expect(
+      validateMotif({ kind: 'meta', meta: 'sector_meta', km: 12, hijos: [S(0.3, 1)] }),
+    ).toMatch(/aMeta/) // 11,7 > 8
+    expect(
+      validateMotif({ kind: 'meta', meta: 'muro_meta', km: 2.0, cotaFinal: { km: 1.3, g: 9.6 } }),
+    ).toMatch(/km/)
+    expect(
+      validateMotif({ kind: 'meta', meta: 'repecho', km: 1, cotaFinal: { km: 1, g: 5 } }),
+    ).toBeNull()
   })
 })
 
@@ -206,27 +248,37 @@ describe('renderMotif', () => {
   it('muro: 1 rampa si km < 1,0 y 2 si no; ninguna fuera de [gMin 8; gMax 16]; un solo segmento puerto; km = Σ tramos en 300 de 300', () => {
     for (let i = 0; i < 300; i++) {
       const r = routeRng(`test|muro|${i}|sorteo`)
-      const km = 0.4 + Math.round(r() * 21) / 10, g = 8 + Math.round(r() * 80) / 10   // km en [0,4; 2,5] = ARCH.motivo.muro.km
+      const km = 0.4 + Math.round(r() * 21) / 10,
+        g = 8 + Math.round(r() * 80) / 10 // km en [0,4; 2,5] = ARCH.motivo.muro.km
       const segs = renderMotif({ kind: 'muro', km, g }, rngDe(`test|muro|${i}`), ZONAS.flandes)
       expect(segs).toHaveLength(1)
       expect(segs[0].tipo).toBe('puerto')
       expect(segs[0].tramos).toHaveLength(km < 1 ? 1 : 2)
-      for (const t of segs[0].tramos!) { expect(t.g).toBeGreaterThanOrEqual(ARCH.motivo.muro.gMin); expect(t.g).toBeLessThanOrEqual(ARCH.motivo.muro.gMax) }
+      for (const t of segs[0].tramos!) {
+        expect(t.g).toBeGreaterThanOrEqual(ARCH.motivo.muro.gMin)
+        expect(t.g).toBeLessThanOrEqual(ARCH.motivo.muro.gMax)
+      }
       expect(segs[0].tramos!.reduce((s, t) => s + t.km, 0)).toBeCloseTo(segs[0].km, 1)
       expect(segs[0].km).toBeCloseTo(km, 1)
     }
   })
   it('tendida: un llano con tramos; ningún bloque muestreado es subida (no cuenta en kmSubida)', () => {
-    const segs = renderMotif({ kind: 'tendida', km: 20, g: 2.5 }, rngDe('test|tendida|0'), ZONAS.meseta)
-    expect(segs.every(s => s.tipo === 'llano')).toBe(true)
+    const segs = renderMotif(
+      { kind: 'tendida', km: 20, g: 2.5 },
+      rngDe('test|tendida|0'),
+      ZONAS.meseta,
+    )
+    expect(segs.every((s) => s.tipo === 'llano')).toBe(true)
     const blocks = sampleProfile({ segments: segs })
-    expect(blocks.every(b => b.tipo !== 'subida')).toBe(true)
-    expect(blocks.some(b => b.g >= 1.8)).toBe(true)          // pero la pendiente sí se lee
+    expect(blocks.every((b) => b.tipo !== 'subida')).toBe(true)
+    expect(blocks.some((b) => b.g >= 1.8)).toBe(true) // pero la pendiente sí se lee
   })
   it('enlace: ningún tramo alcanza el 3 % que deriveFinishTerrain lee como cota', () => {
     for (let i = 0; i < 300; i++) {
       const segs = renderMotif({ kind: 'enlace', km: 30 }, rngDe(`test|enlace|${i}`), ZONAS.ardenas)
-      expect(Math.max(...segs.flatMap(s => s.tramos!.map(t => t.g)))).toBeLessThan(STAGE.finishClimbMinGradient)
+      expect(Math.max(...segs.flatMap((s) => s.tramos!.map((t) => t.g)))).toBeLessThan(
+        STAGE.finishClimbMinGradient,
+      )
     }
   })
   it('muro_meta: finishType muro en 300 de 300 con cotaFinal ≤ 1,0 km y puncheur en 300 de 300 por encima', () => {
@@ -234,18 +286,32 @@ describe('renderMotif', () => {
       const r = routeRng(`test|muro_meta|${i}|sorteo`)
       const km = i < 300 ? 0.5 + Math.round(r() * 5) / 10 : 1.1 + Math.round(r() * 11) / 10
       const g = 8 + Math.round(r() * 80) / 10
-      const meta = { kind: 'meta', meta: 'muro_meta', km: km + ARCH.meta.muro.aproxKm, cotaFinal: { km, g } } as const
-      const segs = [...renderMotif(E(60), rngDe(`test|muro_meta|${i}|enlace`), ZONAS.ardenas),
-                    ...renderMotif(meta, rngDe(`test|muro_meta|${i}|meta`), ZONAS.ardenas)]
+      const meta = {
+        kind: 'meta',
+        meta: 'muro_meta',
+        km: km + ARCH.meta.muro.aproxKm,
+        cotaFinal: { km, g },
+      } as const
+      const segs = [
+        ...renderMotif(E(60), rngDe(`test|muro_meta|${i}|enlace`), ZONAS.ardenas),
+        ...renderMotif(meta, rngDe(`test|muro_meta|${i}|meta`), ZONAS.ardenas),
+      ]
       expect(ft(segs)).toBe(km <= ARCH.meta.muro.finishMuroMaxKm ? 'muro' : 'puncheur')
     }
   })
   it('repecho → puncheur en 300 de 300 (rampas en [gMin 4; gMax 7,9])', () => {
     for (let i = 0; i < 300; i++) {
       const r = routeRng(`test|repecho|${i}|sorteo`)
-      const km = 1 + Math.round(r() * 19) / 10, g = 5 + Math.round(r() * 20) / 10
-      const segs = [...renderMotif(E(40), rngDe(`test|repecho|${i}|enlace`), ZONAS.flandes),
-                    ...renderMotif({ kind: 'meta', meta: 'repecho', km, cotaFinal: { km, g } }, rngDe(`test|repecho|${i}|meta`), ZONAS.flandes)]
+      const km = 1 + Math.round(r() * 19) / 10,
+        g = 5 + Math.round(r() * 20) / 10
+      const segs = [
+        ...renderMotif(E(40), rngDe(`test|repecho|${i}|enlace`), ZONAS.flandes),
+        ...renderMotif(
+          { kind: 'meta', meta: 'repecho', km, cotaFinal: { km, g } },
+          rngDe(`test|repecho|${i}|meta`),
+          ZONAS.flandes,
+        ),
+      ]
       expect(ft(segs)).toBe('puncheur')
     }
   })
@@ -254,27 +320,50 @@ describe('renderMotif', () => {
       const r = routeRng(`test|esprint|${i}|sorteo`)
       const lejos = i < 150
       const valle = lejos ? 5.7 + Math.round(r() * 93) / 10 : 1 + Math.round(r() * 40) / 10
-      const segs = [...renderMotif(E(40), rngDe(`test|esprint|${i}|enlace`), ZONAS.flandes),
-                    ...renderMotif({ kind: 'muro', km: 0.8, g: 10 }, rngDe(`test|esprint|${i}|muro`), ZONAS.flandes),
-                    ...renderMotif({ kind: 'meta', meta: 'esprint', km: valle }, rngDe(`test|esprint|${i}|meta`), ZONAS.flandes)]
+      const segs = [
+        ...renderMotif(E(40), rngDe(`test|esprint|${i}|enlace`), ZONAS.flandes),
+        ...renderMotif(
+          { kind: 'muro', km: 0.8, g: 10 },
+          rngDe(`test|esprint|${i}|muro`),
+          ZONAS.flandes,
+        ),
+        ...renderMotif(
+          { kind: 'meta', meta: 'esprint', km: valle },
+          rngDe(`test|esprint|${i}|meta`),
+          ZONAS.flandes,
+        ),
+      ]
       expect(ft(segs)).toBe(lejos ? 'sprint_masivo' : 'puncheur')
     }
   })
   it('sector_meta → pave cuando el racimo anterior deja ≥ 3 km de paves en los últimos 30 km', () => {
-    const racimo = { kind: 'racimo', km: 24, hijos: [S(2), S(1.5), S(2.5), S(3)], separaciones: [5, 5, 5] } as const   // paves 9
-    const meta = { kind: 'meta', meta: 'sector_meta', km: 6, hijos: [S(1.5, 1)] } as const                            // sector y 4,5 km a meta
+    const racimo = {
+      kind: 'racimo',
+      km: 24,
+      hijos: [S(2), S(1.5), S(2.5), S(3)],
+      separaciones: [5, 5, 5],
+    } as const // paves 9
+    const meta = { kind: 'meta', meta: 'sector_meta', km: 6, hijos: [S(1.5, 1)] } as const // sector y 4,5 km a meta
     for (let i = 0; i < 300; i++) {
-      const segs = [...renderMotif(E(60), rngDe(`test|sector_meta|${i}|enlace`), ZONAS.francia_norte),
-                    ...renderMotif(racimo, rngDe(`test|sector_meta|${i}|racimo`), ZONAS.francia_norte),
-                    ...renderMotif(E(2), rngDe(`test|sector_meta|${i}|e2`), ZONAS.francia_norte),
-                    ...renderMotif(meta, rngDe(`test|sector_meta|${i}|meta`), ZONAS.francia_norte)]
-      expect(ft(segs)).toBe('pave')       // 92 km; en los últimos 30 (del 62 al 92): 1,5 + 2,5 + 3 + 1,5 = 8,5 km de paves, fracción 0,28 ≥ 0,1
+      const segs = [
+        ...renderMotif(E(60), rngDe(`test|sector_meta|${i}|enlace`), ZONAS.francia_norte),
+        ...renderMotif(racimo, rngDe(`test|sector_meta|${i}|racimo`), ZONAS.francia_norte),
+        ...renderMotif(E(2), rngDe(`test|sector_meta|${i}|e2`), ZONAS.francia_norte),
+        ...renderMotif(meta, rngDe(`test|sector_meta|${i}|meta`), ZONAS.francia_norte),
+      ]
+      expect(ft(segs)).toBe('pave') // 92 km; en los últimos 30 (del 62 al 92): 1,5 + 2,5 + 3 + 1,5 = 8,5 km de paves, fracción 0,28 ≥ 0,1
     }
   })
   it('circuito: la vuelta 7 tiene las mismas rampas que la 1 y Σ km = vueltas × km de vuelta', () => {
-    const vuelta = { kind: 'circuito', km: 14, vueltas: 9, hijos: [M(1.1, 11)], separaciones: [2] } as const   // cierre 10,9
+    const vuelta = {
+      kind: 'circuito',
+      km: 14,
+      vueltas: 9,
+      hijos: [M(1.1, 11)],
+      separaciones: [2],
+    } as const // cierre 10,9
     const segs = renderMotif(vuelta, rngDe('test|circuito|0'), ZONAS.flandes)
-    const muros = segs.filter(s => s.tipo === 'puerto')
+    const muros = segs.filter((s) => s.tipo === 'puerto')
     expect(muros).toHaveLength(9)
     expect(muros[6].tramos).toEqual(muros[0].tramos)
     expect(segs.reduce((a, s) => a + s.km, 0)).toBeCloseTo(126, 1)
@@ -302,7 +391,7 @@ Dicho en lista para que nadie lo busque en el catálogo ni lo eche en falta en u
 2. **Metas volantes.** Ninguna `meta_volante` generada (regla de la casa, `calendar.ts` l. 89-91): cada una cuesta 2 de depósito a quien la disputa y abre 5 km de alivio (mapa 03 §10.8). Es la decisión D4 del dueño con valor por defecto "no" (sección 18).
 3. **Altitud, viento, costa y meseta como física.** `GeoSignature.altitud` y `.viento` viajan en `arch.metadatos` y en la ficha (decisión 17); `Segment` no tiene altitud ni exposición (`types.ts` l. 12-48) y el abanico sigue saliendo de `streams('viento')` en cualquier km de llano. `expuesto` y `tendida` son la parte honesta de esa frontera (§4.2).
 4. **Puertos de más de 25 km, cotas entre 8,0 y 9,0 km, cotas intermedias de 3 a 5 km al [8; 11] % y bergs intermedios de menos de 2,5 km al [5; 8) %.** Los cuatro huecos están escritos en §4.2 y en la sección 17, con lo que la realidad pone en cada uno (Croix de Fer, Ghisallo, Civiglio y Cauberg como intermedias).
-5. **Finales en alto de un día de más de 2,2 km en meta, y últimas cotas de un día de más de 4,2 km.** V5 (decisión 5): la última cota de un día mide ≤ 4,2 y corona a [3; 17] km, o muere en meta como `muro_meta` ≤ 2,2; ningún esqueleto `ud_*` lleva `alto_corto` y la única excepción es `ud_montana_alto` (peso 0,02, solo .1, solo `finalesAlto: 'largo'`; D1). Quedan fuera los finales en alto de un día de 2,2 a 5 km del mapa 07 §1.2 (Superga 4,9 × 9,1 en Milano-Torino), que se anotan en la sección 17 con el resto de huecos. Es el caso del encargo: *un final en alto de catorce kilómetros, algo que no existe en el calendario real*.
+5. **Finales en alto de un día de más de 2,2 km en meta, y últimas cotas de un día de más de 4,2 km.** V5 (decisión 5): la última cota de un día mide ≤ 4,2 y corona a [3; 17] km, o muere en meta como `muro_meta` ≤ 2,2; ningún esqueleto `ud_*` lleva `alto_corto` y la única excepción es `ud_montana_alto` (peso 0,02, solo .1, solo `finalesAlto: 'largo'`; D1). Quedan fuera los finales en alto de un día de 2,2 a 5 km del mapa 07 §1.2 (Superga 4,9 × 9,1 en Milano-Torino), que se anotan en la sección 17 con el resto de huecos. Es el caso del encargo: _un final en alto de catorce kilómetros, algo que no existe en el calendario real_.
 6. **Adoquín y sterrato donde no existen.** `sector` con `firme: 'adoquin'` solo con `geo.adoquin ≥ 2`; con `firme: 'tierra'` solo con `geo.sterrato` (V2, V3). Las 20 filas `terrain: 'cobbles'` de hoy caen todas en zonas con adoquín (mapa 07 §3), así que ningún dato del calendario se pierde.
 7. **Pendientes imposibles.** Ningún tramo con `g > 20` ni `g < −14`, ningún bloque de `subida` con `g < 1` (V15); `muro.gMax` 16 y el suelo 1 de `climb` lo garantizan antes de que V15 lo mire.
 8. **Dos dificultades pegadas.** Entre dos dificultades hay siempre ≥ 1,5 km de enlace (`ARCH.colocacion.enlaceMinimo`), también dentro de un compuesto: las separaciones de una `cadena` empiezan en 1,5, las de un `racimo` en 2, y las de un `circuito` y su cierre en 1,5. La razón es doble: `deriveFinishTerrain` funde rachas separadas por menos de 5 bloques, y un puerto pegado a otro es, para `climbSize`, dos segmentos y no uno.
@@ -317,15 +406,27 @@ Para que el implementador vea la gramática entera en una etapa y no motivo a mo
 
 ```ts
 const lombardia: Motif[] = [
-  { kind: 'enlace',  km: 116.8 },
-  { kind: 'puerto',  km: 9.0,  g: 6.2, forma: 'progresiva', nombre: 'Ghisallo 9,0 km al 6,2 %' },   // (+ bajada canónica 10,0)
-  { kind: 'enlace',  km: 30 },
-  { kind: 'puerto',  km: 13.0, g: 6.6, forma: 'irregular',  nombre: 'Colma di Sormano 13 km al 6,6 % con muro' },   // (+ bajada 10,0)
-  { kind: 'enlace',  km: 30 },
-  { kind: 'cota',    km: 4.2,  g: 7.0, forma: 'progresiva', nombre: 'Civiglio 4,2 km al 7 %' },     // (+ bajada 5,3)
-  { kind: 'enlace',  km: 3.3 },
-  { kind: 'meta',    meta: 'descenso_meta', km: 8.4, cotaFinal: { km: 2.7, g: 7.2 }, firma: true,
-    nombre: 'San Fermo della Battaglia 2,7 km al 7,2 %, cima a 5,7 km' },   // 2,7 de subida + 3,5 de bajada canónica + 2,2 de llano
+  { kind: 'enlace', km: 116.8 },
+  { kind: 'puerto', km: 9.0, g: 6.2, forma: 'progresiva', nombre: 'Ghisallo 9,0 km al 6,2 %' }, // (+ bajada canónica 10,0)
+  { kind: 'enlace', km: 30 },
+  {
+    kind: 'puerto',
+    km: 13.0,
+    g: 6.6,
+    forma: 'irregular',
+    nombre: 'Colma di Sormano 13 km al 6,6 % con muro',
+  }, // (+ bajada 10,0)
+  { kind: 'enlace', km: 30 },
+  { kind: 'cota', km: 4.2, g: 7.0, forma: 'progresiva', nombre: 'Civiglio 4,2 km al 7 %' }, // (+ bajada 5,3)
+  { kind: 'enlace', km: 3.3 },
+  {
+    kind: 'meta',
+    meta: 'descenso_meta',
+    km: 8.4,
+    cotaFinal: { km: 2.7, g: 7.2 },
+    firma: true,
+    nombre: 'San Fermo della Battaglia 2,7 km al 7,2 %, cima a 5,7 km',
+  }, // 2,7 de subida + 3,5 de bajada canónica + 2,2 de llano
 ]
 // Σ = 116,8 + 9 + 10 + 30 + 13 + 10 + 30 + 4,2 + 5,3 + 3,3 + 8,4 = 240,0. Enlaces 180,1 km (75 % ≥ 12 %).
 // Cimas a 114,2 (Ghisallo), 61,2 (Sormano), 17,0 (Civiglio) y 5,7 km (San Fermo) de meta: V5 en positivo.
@@ -336,27 +437,76 @@ Lo que el motor lee: Sormano se sube a tempo (a 61 km, `climbRaceKmToGo` 30) per
 **Paris-Roubaix, 257 km, `ud_adoquin` en `francia_norte`** (mapa 07 §1.4). Cuatro racimos (el esqueleto admite `racimo`×[3; 4]) de 5, 7, 8 y 6 sectores, dentro del `sector`×[5; 8] por racimo. Los tres 5★ son los de firma (`firmaCount` 3) y empiezan donde el mapa los pone: Arenberg a 95 km de meta, Mons-en-Pévèle a 48 y Carrefour de l'Arbre a 17; el sector de Roubaix (0,3 km) termina a 1,1. Son 26 sectores más el de meta, 27, y 50,6 km de adoquín (50,3 en los racimos y 0,3 en el de meta) contra los 29 a 31 sectores y [54; 57] km reales. La plantilla canónica de `ud_adoquin` (sección 5, §5.4) es más corta: tres racimos, 20 sectores (19 más el de meta) y 40,0 km de adoquín. Las dos caben en los [15; 32] sectores más el de meta que la fila del esqueleto da.
 
 ```ts
-const S = (km: number, estrellas: number, nombre?: string, firma = false): Motif =>
-  ({ kind: 'sector', km, estrellas, firme: 'adoquin', nombre, firma })
+const S = (km: number, estrellas: number, nombre?: string, firma = false): Motif => ({
+  kind: 'sector',
+  km,
+  estrellas,
+  firme: 'adoquin',
+  nombre,
+  firma,
+})
 const E = (km: number): Motif => ({ kind: 'enlace', km })
 const roubaix: Motif[] = [
   { kind: 'expuesto', km: 96, nombre: 'Llano abierto de Compiègne a Troisvilles' },
-  { kind: 'racimo', km: 26.2, hijos: [S(2.2, 3, 'Troisvilles'), S(1.6, 3), S(2.5, 4), S(1.4, 2), S(2.0, 3)],
-    separaciones: [4, 4, 4.5, 4] },                                                               // sectores 9,7 + separaciones 16,5
+  {
+    kind: 'racimo',
+    km: 26.2,
+    hijos: [S(2.2, 3, 'Troisvilles'), S(1.6, 3), S(2.5, 4), S(1.4, 2), S(2.0, 3)],
+    separaciones: [4, 4, 4.5, 4],
+  }, // sectores 9,7 + separaciones 16,5
   E(5),
-  { kind: 'racimo', km: 37.1, hijos: [S(1.7, 3), S(2.4, 3), S(1.2, 2), S(2.0, 3), S(2.6, 4), S(1.8, 3),
-                                      S(2.3, 5, 'Trouée d’Arenberg', true)],
-    separaciones: [4, 4, 4, 4, 3.6, 3.5] },                                                       // 14,0 + 23,1
+  {
+    kind: 'racimo',
+    km: 37.1,
+    hijos: [
+      S(1.7, 3),
+      S(2.4, 3),
+      S(1.2, 2),
+      S(2.0, 3),
+      S(2.6, 4),
+      S(1.8, 3),
+      S(2.3, 5, 'Trouée d’Arenberg', true),
+    ],
+    separaciones: [4, 4, 4, 4, 3.6, 3.5],
+  }, // 14,0 + 23,1
   E(8),
-  { kind: 'racimo', km: 39.7, hijos: [S(1.4, 3), S(2.6, 3), S(1.1, 2), S(3.7, 4), S(1.4, 2), S(2.0, 3), S(1.5, 3),
-                                      S(3.0, 5, 'Mons-en-Pévèle', true)],
-    separaciones: [3, 3.5, 3, 3.5, 3, 3.5, 3.5] },                                                // 16,7 + 23,0
+  {
+    kind: 'racimo',
+    km: 39.7,
+    hijos: [
+      S(1.4, 3),
+      S(2.6, 3),
+      S(1.1, 2),
+      S(3.7, 4),
+      S(1.4, 2),
+      S(2.0, 3),
+      S(1.5, 3),
+      S(3.0, 5, 'Mons-en-Pévèle', true),
+    ],
+    separaciones: [3, 3.5, 3, 3.5, 3, 3.5, 3.5],
+  }, // 16,7 + 23,0
   E(11.2),
-  { kind: 'racimo', km: 27.3, hijos: [S(1.8, 3), S(2.5, 3), S(1.0, 2), S(2.1, 5, 'Carrefour de l’Arbre', true),
-                                      S(1.1, 2), S(1.4, 2)],
-    separaciones: [4, 4, 3.5, 2, 3.9] },                                                          // 9,9 + 17,4
+  {
+    kind: 'racimo',
+    km: 27.3,
+    hijos: [
+      S(1.8, 3),
+      S(2.5, 3),
+      S(1.0, 2),
+      S(2.1, 5, 'Carrefour de l’Arbre', true),
+      S(1.1, 2),
+      S(1.4, 2),
+    ],
+    separaciones: [4, 4, 3.5, 2, 3.9],
+  }, // 9,9 + 17,4
   E(5.1),
-  { kind: 'meta', meta: 'sector_meta', km: 1.4, hijos: [S(0.3, 1, 'Roubaix')], nombre: 'Último sector a 1,1 km de meta' },
+  {
+    kind: 'meta',
+    meta: 'sector_meta',
+    km: 1.4,
+    hijos: [S(0.3, 1, 'Roubaix')],
+    nombre: 'Último sector a 1,1 km de meta',
+  },
 ]
 // Σ = 96 + 26,2 + 5 + 37,1 + 8 + 39,7 + 11,2 + 27,3 + 5,1 + 1,4 = 257,0. Racimos en el 0,37, 0,49, 0,67 y 0,87 de la etapa (ventana [0,35; 0,97]).
 // Inicio de sector a meta: Troisvilles 161,0; Arenberg 95,0; Mons-en-Pévèle 48,0; Carrefour 17,0; Roubaix 1,4 (termina a 1,1).
@@ -370,12 +520,23 @@ Lo que el motor lee: 27 entradas a `paves` con peaje de colocación, 27 aproxima
 ```ts
 const montreal: Motif[] = [
   E(1.5),
-  { kind: 'circuito', km: 12.3, vueltas: 17, firma: true,
+  {
+    kind: 'circuito',
+    km: 12.3,
+    vueltas: 17,
+    firma: true,
     hijos: [
-      { kind: 'muro', km: 1.8, g: 8.0, forma: 'progresiva', nombre: 'Camillien-Houde 1,8 km al 8 %' },
+      {
+        kind: 'muro',
+        km: 1.8,
+        g: 8.0,
+        forma: 'progresiva',
+        nombre: 'Camillien-Houde 1,8 km al 8 %',
+      },
       { kind: 'muro', km: 0.4, g: 9.0, nombre: 'Pagnuelo 400 m al 9 %' },
     ],
-    separaciones: [1.5, 6.1] },   // Camillien-Houde empieza en el 0,12 de la vuelta y Pagnuelo en el 0,76; cierre 12,3 − 2,2 − 7,6 = 2,5
+    separaciones: [1.5, 6.1],
+  }, // Camillien-Houde empieza en el 0,12 de la vuelta y Pagnuelo en el 0,76; cierre 12,3 − 2,2 − 7,6 = 2,5
   { kind: 'meta', meta: 'esprint', km: 1.5, nombre: 'Meta a 4 km del último muro' },
 ]
 // Σ = 1,5 + 17 × 12,3 + 1,5 = 212,1.
@@ -388,16 +549,33 @@ Lo que el motor lee: 34 pasos por `puerto` con las mismas rampas cada vuelta (Pa
 ```ts
 const fleche: Motif[] = [
   E(100),
-  { kind: 'cota', km: 3.0, g: 5.5, forma: 'progresiva' },   // (+ bajada canónica 3,0)
+  { kind: 'cota', km: 3.0, g: 5.5, forma: 'progresiva' }, // (+ bajada canónica 3,0)
   E(34),
-  { kind: 'circuito', km: 30, vueltas: 2,
+  {
+    kind: 'circuito',
+    km: 30,
+    vueltas: 2,
     hijos: [
-      { kind: 'muro', km: 1.3, g: 9.6, forma: 'progresiva', firma: true, nombre: 'Mur de Huy 1,3 km al 9,6 %' },
+      {
+        kind: 'muro',
+        km: 1.3,
+        g: 9.6,
+        forma: 'progresiva',
+        firma: true,
+        nombre: 'Mur de Huy 1,3 km al 9,6 %',
+      },
       { kind: 'muro', km: 1.3, g: 8.0, nombre: 'Côte de Cherave 1,3 km al 8 %' },
     ],
-    separaciones: [1.5, 24] },   // Huy empieza en el 0,05 de la vuelta y Cherave en el 0,89; cierre 30 − 2,6 − 25,5 = 1,9
-  { kind: 'meta', meta: 'muro_meta', km: 3.3, cotaFinal: { km: 1.3, g: 9.6 }, firma: true,
-    nombre: 'Mur de Huy 1,3 km al 9,6 %, meta en la cima' },   // 2,0 km de aproximación a amp ≤ 2,5 + 1,3 de muro
+    separaciones: [1.5, 24],
+  }, // Huy empieza en el 0,05 de la vuelta y Cherave en el 0,89; cierre 30 − 2,6 − 25,5 = 1,9
+  {
+    kind: 'meta',
+    meta: 'muro_meta',
+    km: 3.3,
+    cotaFinal: { km: 1.3, g: 9.6 },
+    firma: true,
+    nombre: 'Mur de Huy 1,3 km al 9,6 %, meta en la cima',
+  }, // 2,0 km de aproximación a amp ≤ 2,5 + 1,3 de muro
 ]
 // Σ = 100 + 3 + 3 + 34 + 2 × 30 + 3,3 = 203,3. La cota empieza en el 0,49 de la etapa y el circuito en el 0,69 (ventanas [0,3; 0,8] y [0,55; 0,75]).
 // Huy corona a 60,5, 30,5 y 0 km de meta, como en la carrera real; Cherave a 35,2 y 5,2; la cota a 100,3.

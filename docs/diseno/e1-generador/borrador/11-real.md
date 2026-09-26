@@ -8,13 +8,13 @@ Las líneas de código que cita esta sección están contadas sobre el HEAD `855
 
 `buildRace` (`calendar.ts` l. 900-939) mira `RACE_EDITIONS[row.id]` antes que `row.stages` y `row.terrain` (l. 916-924), y dentro de `stagesFromEdition` (l. 230-240) mira `STAGE_FEATURES[id][i]` antes que el generador (l. 237: `f ? featureSpec(...) : oneDaySpec(...)`). Para una carrera de un día de tabla, `STAGE_FEATURES[row.id]?.[0]` decide entre `featureSpec` y `oneDaySpec` (l. 930-931). Ese orden (edición real > rasgos reales > generado) se conserva tal cual; lo que cambia es que cada rama declara de dónde viene y a qué gramática va:
 
-| Rama de `buildRace` | Condición | `routeSource` de la etapa | Quién dibuja | Esqueleto | Semilla de dibujo |
-| --- | --- | --- | --- | --- | --- |
-| `featureSpec` (l. 210-223), en edición o en un día | `STAGE_FEATURES[id][i]` existe | `real` | `buildFeatureProfile` (`featureProfile.ts` l. 362-375), sin cambios | ninguno; `arch` es `undefined` | `${from}\|${to}\|${km}` o `row.id`, como hoy; `season` no entra |
-| `stagesFromEdition` sin rasgos (l. 237, rama `oneDaySpec`) | edición en `RACE_EDITIONS`, `features?.[i]` nulo | `edicion` | `generateStage` con `km` de la edición como contrato: hoy al kilómetro entero (`calendar.test.ts` l. 140-152, `expect(Math.round(km)).toBe(edition.stages[i].km)`), y desde el paso 8 al 0,1 (`toBeCloseTo(edition.stages[i].km, 1)`), porque `normalizeEnlaces` cuadra al 0,1 y las reales ya cuadran por `normalizeTotal` | uno de ETAPA por `EditionTerrain`: `flat → et_llana`, `hilly → et_media_*`, `mountain → et_reina_*`, `itt → et_crono`; `cobbles → ud_adoquin_ligero` (única excepción, tres etapas, abajo; tabla completa en la sección 5) | `${raceId}\|e${i}\|${editionKey}` con `editionKey = ${from}\|${to}\|${km}`; `season` solo en `dib` (decisión de abajo) |
-| un día de tabla sin rasgos (l. 925-933) | sin edición, `row.stages ≤ 1`, sin rasgos | `generado` | `generateStage` con `role: 'un_dia'` y `km` de `ARCH.km.porClase` salvo fila con `km` explícito (`row.km ?? 210`, l. 929) | los 16 de un día por `regionOf(raceId, 1, country)` | `arch\|raceId\|1`, `firma\|raceId\|1`, `ed\|raceId\|1\|season` |
-| vuelta de tabla (l. 934-938) | sin edición, `row.stages ≥ 2` | `generado` | `composeTour` y `generateStage` por etapa | los 16 de etapa por `itinerarioDe` | ídem, por etapa |
-| `nationalChampionships` (l. 330-376; `flatMap` sobre `COUNTRIES` en l. 379-381) | los 532 `.NC` | `generado` | `generateStage` con `nc_ruta` o `nc_crono` y `zonaDe(code)` | `nc_ruta`, `nc_crono` | ídem |
+| Rama de `buildRace`                                                             | Condición                                        | `routeSource` de la etapa | Quién dibuja                                                                                                                                                                                                                                                                                                                | Esqueleto                                                                                                                                                                                                                  | Semilla de dibujo                                                                                                      |
+| ------------------------------------------------------------------------------- | ------------------------------------------------ | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `featureSpec` (l. 210-223), en edición o en un día                              | `STAGE_FEATURES[id][i]` existe                   | `real`                    | `buildFeatureProfile` (`featureProfile.ts` l. 362-375), sin cambios                                                                                                                                                                                                                                                         | ninguno; `arch` es `undefined`                                                                                                                                                                                             | `${from}\|${to}\|${km}` o `row.id`, como hoy; `season` no entra                                                        |
+| `stagesFromEdition` sin rasgos (l. 237, rama `oneDaySpec`)                      | edición en `RACE_EDITIONS`, `features?.[i]` nulo | `edicion`                 | `generateStage` con `km` de la edición como contrato: hoy al kilómetro entero (`calendar.test.ts` l. 140-152, `expect(Math.round(km)).toBe(edition.stages[i].km)`), y desde el paso 8 al 0,1 (`toBeCloseTo(edition.stages[i].km, 1)`), porque `normalizeEnlaces` cuadra al 0,1 y las reales ya cuadran por `normalizeTotal` | uno de ETAPA por `EditionTerrain`: `flat → et_llana`, `hilly → et_media_*`, `mountain → et_reina_*`, `itt → et_crono`; `cobbles → ud_adoquin_ligero` (única excepción, tres etapas, abajo; tabla completa en la sección 5) | `${raceId}\|e${i}\|${editionKey}` con `editionKey = ${from}\|${to}\|${km}`; `season` solo en `dib` (decisión de abajo) |
+| un día de tabla sin rasgos (l. 925-933)                                         | sin edición, `row.stages ≤ 1`, sin rasgos        | `generado`                | `generateStage` con `role: 'un_dia'` y `km` de `ARCH.km.porClase` salvo fila con `km` explícito (`row.km ?? 210`, l. 929)                                                                                                                                                                                                   | los 16 de un día por `regionOf(raceId, 1, country)`                                                                                                                                                                        | `arch\|raceId\|1`, `firma\|raceId\|1`, `ed\|raceId\|1\|season`                                                         |
+| vuelta de tabla (l. 934-938)                                                    | sin edición, `row.stages ≥ 2`                    | `generado`                | `composeTour` y `generateStage` por etapa                                                                                                                                                                                                                                                                                   | los 16 de etapa por `itinerarioDe`                                                                                                                                                                                         | ídem, por etapa                                                                                                        |
+| `nationalChampionships` (l. 330-376; `flatMap` sobre `COUNTRIES` en l. 379-381) | los 532 `.NC`                                    | `generado`                | `generateStage` con `nc_ruta` o `nc_crono` y `zonaDe(code)`                                                                                                                                                                                                                                                                 | `nc_ruta`, `nc_crono`                                                                                                                                                                                                      | ídem                                                                                                                   |
 
 Dos consecuencias que hoy no se cumplen y a partir del paso 8 sí. La primera: una etapa de edición sin rasgos ya no pasa por `oneDaySpec` (l. 414-422) ni por `mountainOneDay` (l. 157-166), que es la causa del defecto de Colombia e5 (una reina de vuelta dibujada con plantilla de un día, con 18 km tras la cota contra los "47 km rodadores" que declara el `why` de `REAL_QUEENS`, mapa 06 §1 y §6.1); recibe un esqueleto de etapa y la zona por etapa de `RACE_REGION[raceId].stages[i]` (sección 6). La segunda: dos etapas de carreras distintas con la misma salida, meta y distancia ya no dibujan lo mismo, porque la semilla lleva el `raceId` delante (mapa 02 §7 documenta la colisión de hoy con `${from}|${to}|${km}` a secas).
 
@@ -28,11 +28,13 @@ Por carrera, el origen se agrega con tres valores, y `mixto` es SOLO de carrera,
 
 ```ts
 // packages/engine/src/routes/grammar/generate.ts
-export type RouteSource = 'real' | 'edicion' | 'generado'          // por etapa
-export type RaceRouteSource = 'real' | 'mixto' | 'generado'        // por carrera, agregado
+export type RouteSource = 'real' | 'edicion' | 'generado' // por etapa
+export type RaceRouteSource = 'real' | 'mixto' | 'generado' // por carrera, agregado
 
-export function raceRouteSourceOf(stages: readonly { routeSource: RouteSource }[]): RaceRouteSource {
-  const set = new Set(stages.map((s) => s.routeSource))          // la misma de §3.11: una carrera toda `edicion` es `mixto`
+export function raceRouteSourceOf(
+  stages: readonly { routeSource: RouteSource }[],
+): RaceRouteSource {
+  const set = new Set(stages.map((s) => s.routeSource)) // la misma de §3.11: una carrera toda `edicion` es `mixto`
   if (set.size === 1 && set.has('real')) return 'real'
   if (set.size === 1 && set.has('generado')) return 'generado'
   return 'mixto'
@@ -47,13 +49,13 @@ Decisión 27: ninguna línea de `featureProfile.ts`, `classicRoutes.ts`, `stageF
 
 El coste de no tocarlo es tener dos rellenos distintos para dos poblaciones del mismo calendario (riesgo 9 de cobertura), y se escribe con sus números para que nadie lo descubra después:
 
-| | Etapas reales (177) | Etapas generadas y de edición (1.241) |
-| --- | --- | --- |
-| Función de relleno | `rollingFill(gap, seed, amplitud)` (`featureProfile.ts` l. 158-176): tramos de `1,4 + U·2,2` km a `±(0,4 + U·2,4)·amplitud` %, signo al 50 % (mapa 01 §6) | motivo `enlace` rendido con `rolling(rand, km, amp, 0)` y `amp = GeoSignature.amplitud` (sección 4) |
-| De dónde sale la amplitud | `RELIEF.rollingAmplitude` por TERRENO: flat 0,55, itt 0,55, cobbles 0,7, hilly 0,85, classic 1,0, mountain 1,15 (`constants.ts` l. 1215-1222, mapa 01 §3) | `ZONAS[zona].amplitud` por ZONA, con tope `ARCH.motivo.enlace.ampMax` 2,4 (sección 6) |
-| Cuadre de la distancia | `normalizeTotal` (l. 179-188) estira o encoge el ÚLTIMO segmento, que es relleno de cola salvo en final en alto, donde es el puerto (lo que `profileGen::normalize` dejó de hacer en la v64) | `normalizeEnlaces` reparte solo entre enlaces, residuo al enlace más largo, y `garantizaClase` con la guarda `segment.km === Σ tramos` (decisión 10) |
-| Bajadas | `descentSegment` (l. 145) de `min(0,65·hueco, max(1, prevGainM/55))` km al 85 % de lo subido, topada a −12 % (`MAX_DESCENT_GRADIENT`, l. 142) | motivo `descenso` con `ARCH.motivo.descenso.kmPorDesnivel` `clamp(len·g·10/55, 2, 10)` y `g` en [−8; −3] |
-| Quién decide la clase | nadie: `stageKindOf` sobre un perfil real usa la red de 3.200 m (`stageKind.ts` l. 56-58 y l. 90) y la etiqueta es la declarada por `TERRAIN_KIND` (`calendar.ts` l. 197-204) | V6 y V7: `stageKindOf(profile).kind === Skeleton.kind` por construcción o reintento |
+|                           | Etapas reales (177)                                                                                                                                                                          | Etapas generadas y de edición (1.241)                                                                                                                |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Función de relleno        | `rollingFill(gap, seed, amplitud)` (`featureProfile.ts` l. 158-176): tramos de `1,4 + U·2,2` km a `±(0,4 + U·2,4)·amplitud` %, signo al 50 % (mapa 01 §6)                                    | motivo `enlace` rendido con `rolling(rand, km, amp, 0)` y `amp = GeoSignature.amplitud` (sección 4)                                                  |
+| De dónde sale la amplitud | `RELIEF.rollingAmplitude` por TERRENO: flat 0,55, itt 0,55, cobbles 0,7, hilly 0,85, classic 1,0, mountain 1,15 (`constants.ts` l. 1215-1222, mapa 01 §3)                                    | `ZONAS[zona].amplitud` por ZONA, con tope `ARCH.motivo.enlace.ampMax` 2,4 (sección 6)                                                                |
+| Cuadre de la distancia    | `normalizeTotal` (l. 179-188) estira o encoge el ÚLTIMO segmento, que es relleno de cola salvo en final en alto, donde es el puerto (lo que `profileGen::normalize` dejó de hacer en la v64) | `normalizeEnlaces` reparte solo entre enlaces, residuo al enlace más largo, y `garantizaClase` con la guarda `segment.km === Σ tramos` (decisión 10) |
+| Bajadas                   | `descentSegment` (l. 145) de `min(0,65·hueco, max(1, prevGainM/55))` km al 85 % de lo subido, topada a −12 % (`MAX_DESCENT_GRADIENT`, l. 142)                                                | motivo `descenso` con `ARCH.motivo.descenso.kmPorDesnivel` `clamp(len·g·10/55, 2, 10)` y `g` en [−8; −3]                                             |
+| Quién decide la clase     | nadie: `stageKindOf` sobre un perfil real usa la red de 3.200 m (`stageKind.ts` l. 56-58 y l. 90) y la etiqueta es la declarada por `TERRAIN_KIND` (`calendar.ts` l. 197-204)                | V6 y V7: `stageKindOf(profile).kind === Skeleton.kind` por construcción o reintento                                                                  |
 
 Unificar los dos rellenos es un paso propio POSTERIOR a E1 y se anota como riesgo 7 en la sección 17. Lo que ese paso movería, para que se presupueste con la cifra delante: la huella de las 177 (§11.3, que habría que re-sellar entera con causa), `erosion.longClassicFresh` y `erosion.hardestClassicFresh` (el relleno de Flandes y Lombardía cambia de amplitud y por tanto el desgaste), `realQueenThirdWeek`, y la comparación de desnivel de `classicRoutes.test.ts` (entre 4 y 30 m/km). El único punto de contacto que E1 sí abre es de lectura: `routeCensus` (sección 13) mide a las 177 reales las mismas columnas que a las generadas (`dPlus`, `lastClimbKm`, `kmAfterLastClimb`, `finishType`, y `kindLeido`, §11.6), para que la tabla p10/p50/p90 de `scripts/medir-real.mjs` (decisión 40) y la del censo hablen el mismo idioma. La columna `kmAfterLastClimb` del censo es la de `finalKind.ts` l. 65-69 (lee pancartas `cima` y devuelve `null` sin cota), la misma que usa `finalKindOf`; no es la regla de la etiqueta (§11.5, regla 2), y las dos conviven a propósito.
 
@@ -68,20 +70,19 @@ El fichero de huellas es un literal TypeScript generado por script y pegado (no 
 
 ```ts
 // packages/engine/src/routes/realFingerprint.test.ts (paso 1; sobrevive al paso 8)
-import { describe, expect, it } from 'vitest'                  // vitest.config.ts no activa `globals`
+import { describe, expect, it } from 'vitest' // vitest.config.ts no activa `globals`
 import { SEASON_CALENDAR } from './calendar.js'
-import { profileKm } from './finalKind.js'                      // l. 60-63: Σ s.km
-import { huellaFNV } from './profileGen.js'                     // exportada en este mismo paso (§3.12): FNV-1a de JSON.stringify(profile.segments)
-import { STAGE_FEATURES } from './stageFeatures.js'             // Record<string, (StageFeatures | null)[]>, l. 15
+import { profileKm } from './finalKind.js' // l. 60-63: Σ s.km
+import { huellaFNV } from './profileGen.js' // exportada en este mismo paso (§3.12): FNV-1a de JSON.stringify(profile.segments)
+import { STAGE_FEATURES } from './stageFeatures.js' // Record<string, (StageFeatures | null)[]>, l. 15
 import { GRANDES_VUELTAS, SELLADAS } from './realFingerprint.sealed.js'
-
 
 describe('lo real no se mueve', () => {
   it('las 177 etapas con rasgos tienen la huella sellada', () => {
     const vistas: string[] = []
     for (const race of SEASON_CALENDAR) {
       for (const stage of race.stages) {
-        const hit = STAGE_FEATURES[race.id]?.[stage.index - 1]   // un día: índice 0; edición: índice i
+        const hit = STAGE_FEATURES[race.id]?.[stage.index - 1] // un día: índice 0; edición: índice i
         if (!hit) continue
         const key = `${race.id}:${stage.index}`
         vistas.push(key)
@@ -101,7 +102,12 @@ describe('lo real no se mueve', () => {
       expect(race.restAfter).toEqual(gv.restAfter)
       race.stages.forEach((st, i) => {
         const e = gv.etapas[i]!
-        expect([st.kind, st.label, st.timeTrial ?? false, profileKm(st.profile)]).toEqual([e.kind, e.label, e.timeTrial, e.km])
+        expect([st.kind, st.label, st.timeTrial ?? false, profileKm(st.profile)]).toEqual([
+          e.kind,
+          e.label,
+          e.timeTrial,
+          e.km,
+        ])
         if (e.huella !== null) expect(huellaFNV(st.profile), `${id}:${i + 1}`).toBe(e.huella)
       })
     }
@@ -118,7 +124,7 @@ Hoy `race_routes.route_source` recibe `'generado'` fijo (`db/raceRoutes.ts` l. 4
 ```ts
 // packages/db/src/raceRoutes.ts (paso 10)
 import { RACE_EDITIONS, hashInt, raceForSeason, stagesForSeason } from '@cyclingstar/engine'
-export type RouteSource = 'real' | 'edicion' | 'generado'     // mismo tipo que grammar/generate.ts, reexportado
+export type RouteSource = 'real' | 'edicion' | 'generado' // mismo tipo que grammar/generate.ts, reexportado
 
 /** La temporada del sufijo `:s{n}` del raceKey (`calendarRun.ts` l. 144, 785, 1585); 0 si no lo lleva. */
 export function seasonOfRaceKey(raceKey: string): number {
@@ -126,17 +132,25 @@ export function seasonOfRaceKey(raceKey: string): number {
 }
 
 export async function freezeRaceRoute(
-  db: Conn, worldId: string, raceKey: string, raceId: string, season: number,
+  db: Conn,
+  worldId: string,
+  raceKey: string,
+  raceId: string,
+  season: number,
 ): Promise<void> {
-  const race = raceForSeason(raceId, season)              // nunca SEASON_CALENDAR (decisión 23); lanza
-                                                          // Error('carrera desconocida') si el id no existe (sección 10):
-                                                          // un raceKey huérfano es un error de datos, no un caso
+  const race = raceForSeason(raceId, season) // nunca SEASON_CALENDAR (decisión 23); lanza
+  // Error('carrera desconocida') si el id no existe (sección 10):
+  // un raceKey huérfano es un error de datos, no un caso
   const filas = race.stages.map((stage, i) => ({
-    worldId, raceKey, stageDay: i + 1,
+    worldId,
+    raceKey,
+    stageDay: i + 1,
     profile: stage.profile,
-    routeSource: stage.routeSource,                          // 'real' | 'edicion' | 'generado'
-    kind: stage.kind, label: stage.label, timeTrial: stage.timeTrial ?? false,
-    arch: stage.arch ?? null,                                // null en las `real` (FrozenStage, sección 10)
+    routeSource: stage.routeSource, // 'real' | 'edicion' | 'generado'
+    kind: stage.kind,
+    label: stage.label,
+    timeTrial: stage.timeTrial ?? false,
+    arch: stage.arch ?? null, // null en las `real` (FrozenStage, sección 10)
   }))
   if (filas.length === 0) return
   await db.insert(raceRoutes).values(filas).onConflictDoNothing()
@@ -150,24 +164,38 @@ Lo que el backfill deja escrito no es honesto y hay que decirlo con las palabras
 ```ts
 // packages/db/src/raceRoutes.ts (paso 10)
 /** Igual que `canonico()` de recorridoDelMundo.test.ts l. 28-34 (claves ordenadas): el jsonb no conserva el orden. */
-export function canonico(x: unknown): string { /* se mueve aquí desde el test, que pasa a importarla */ }
+export function canonico(x: unknown): string {
+  /* se mueve aquí desde el test, que pasa a importarla */
+}
 export const huellaCanonica = (p: StageProfile) => hashInt(canonico(p.segments))
 
-export async function reclassifyRouteSource(db: Conn, worldId: string): Promise<Record<RouteSource, number>> {
+export async function reclassifyRouteSource(
+  db: Conn,
+  worldId: string,
+): Promise<Record<RouteSource, number>> {
   const cuenta = { real: 0, edicion: 0, generado: 0 }
   const filas = await db.select().from(raceRoutes).where(eq(raceRoutes.worldId, worldId))
   for (const fila of filas) {
     const raceId = fila.raceKey.split(':')[0]!
     const st = stagesForSeason(raceId, seasonOfRaceKey(fila.raceKey))[fila.stageDay - 1]
     const nuevo: RouteSource =
-      st?.routeSource === 'real' && huellaCanonica(fila.profile) === huellaCanonica(st.profile) ? 'real'
-      : RACE_EDITIONS[raceId] ? 'edicion'
-      : 'generado'
+      st?.routeSource === 'real' && huellaCanonica(fila.profile) === huellaCanonica(st.profile)
+        ? 'real'
+        : RACE_EDITIONS[raceId]
+          ? 'edicion'
+          : 'generado'
     cuenta[nuevo] += 1
     if (nuevo !== fila.routeSource)
-      await db.update(raceRoutes).set({ routeSource: nuevo }).where(and(
-        eq(raceRoutes.worldId, worldId), eq(raceRoutes.raceKey, fila.raceKey), eq(raceRoutes.stageDay, fila.stageDay),
-      ))                                                    // la clave primaria (schema.ts l. 543)
+      await db
+        .update(raceRoutes)
+        .set({ routeSource: nuevo })
+        .where(
+          and(
+            eq(raceRoutes.worldId, worldId),
+            eq(raceRoutes.raceKey, fila.raceKey),
+            eq(raceRoutes.stageDay, fila.stageDay),
+          ),
+        ) // la clave primaria (schema.ts l. 543)
   }
   return cuenta
 }
@@ -177,21 +205,21 @@ La regla es la de §11.1 aplicada al pasado: una fila es `real` solo si su perfi
 
 De ahí hacia fuera, cuatro lectores y un texto por valor:
 
-| Dónde | Qué expone | Regla |
-| --- | --- | --- |
+| Dónde                                                    | Qué expone                                                                                                                                                                                                                                                                                                                                                                                                                | Regla                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `apps/api/src/routes/calendar.ts` l. 91-109 (`planFrom`) | por etapa: `routeSource`, `arch.frase`, `arch.skeleton`, `arch.geo`, `arch.metadatos`, `edicion` (= `season + 1`) y `cambiosRespectoAnterior: string[]` = `diffMotivos(prevArch.motivos, arch.motivos)` (sección 10 §10.8, decisión 39: los motivos no firma que difieren de la temporada anterior, una frase por diferencia; `[]` en `real`, en toda `edicion` y en la temporada 0); por carrera: `routeSource` agregado | la altimetría de una etapa NO corrida lee `run?.profile ?? frozen?.profile ?? stagesForSeason(raceId, season)[i - 1].profile`, con `frozen` de `raceStagesForWorld` (función NUEVA del paso 10, definida en la sección 10: `raceStagesForWorld(db, worldId, raceKey, raceId, season)`; hoy solo existe `getRaceRoute(db, worldId, raceKey, stageDay)` por etapa, `raceRoutes.ts` l. 61), nunca `stage.profile` de `SEASON_CALENDAR` a secas (hoy l. 97 enseña el perfil del código, que puede no ser el congelado si el generador cambió en medio, mapa 03 §9 caso 4) |
-| `apps/web/src/pages/Race.tsx` | una marca por etapa y una por carrera | tres textos exactos: `real` → "Recorrido real (fuente citada)", con la fuente de `classicRoutes.ts` cuando la hay; `edicion` → "Ciudades y distancia reales, relieve generado"; `generado` → "Recorrido generado". La carrera `mixto` dice "Recorrido parcialmente real: N de M etapas" |
-| ficha de una etapa `edicion` o `generado` | la frase de arquitectura y "Edición N" | D10 con su valor por defecto (sección 18): siempre, no como opción; `real` no lleva frase ni edición (no varía) |
-| `scripts/inventario-recorridos.mjs` | ✅ / 🟡 / 🔴 | `provenance()` (l. 50-55) deja de deducir con `STAGE_FEATURES` y `RACE_EDITIONS` y lee `stage.routeSource`; el mapa es `real → ✅ Real`, `edicion → 🟡 Sin validar`, `generado → 🔴 Inventado`, y el script imprime además `arch.skeleton` y `arch.geo` en las no reales |
+| `apps/web/src/pages/Race.tsx`                            | una marca por etapa y una por carrera                                                                                                                                                                                                                                                                                                                                                                                     | tres textos exactos: `real` → "Recorrido real (fuente citada)", con la fuente de `classicRoutes.ts` cuando la hay; `edicion` → "Ciudades y distancia reales, relieve generado"; `generado` → "Recorrido generado". La carrera `mixto` dice "Recorrido parcialmente real: N de M etapas"                                                                                                                                                                                                                                                                               |
+| ficha de una etapa `edicion` o `generado`                | la frase de arquitectura y "Edición N"                                                                                                                                                                                                                                                                                                                                                                                    | D10 con su valor por defecto (sección 18): siempre, no como opción; `real` no lleva frase ni edición (no varía)                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `scripts/inventario-recorridos.mjs`                      | ✅ / 🟡 / 🔴                                                                                                                                                                                                                                                                                                                                                                                                              | `provenance()` (l. 50-55) deja de deducir con `STAGE_FEATURES` y `RACE_EDITIONS` y lee `stage.routeSource`; el mapa es `real → ✅ Real`, `edicion → 🟡 Sin validar`, `generado → 🔴 Inventado`, y el script imprime además `arch.skeleton` y `arch.geo` en las no reales                                                                                                                                                                                                                                                                                              |
 
 El texto de la ficha no promete lo que el motor no hace (decisión 17): `arch.metadatos = { viento, altitud }` (§B.2) son metadatos y no física, y el texto que sale de cada uno es este y no otro, en una tabla `TEXTO_METADATO` de `apps/api` que la web no reinterpreta:
 
-| Metadato | Valor | Texto de ficha | Por qué así |
-| --- | --- | --- | --- |
-| `viento` | 0, 1 | nada | no hay nada que anunciar |
-| `viento` | 2, 3 | "llano abierto" | describe la carretera; el abanico sigue saliendo de `streams('viento')` en cualquier km de `llano` (mapa 03 §5.1) y no de este metadato |
-| `altitud` | `mar`, `colina`, `media` | nada | |
-| `altitud` | `alta`, `altiplano` | "puertos de altitud" | describe los puertos, no el aire: no hay altitud en `Segment` y el motor no simula el oxígeno (riesgo 1 de la sección 17) |
+| Metadato  | Valor                    | Texto de ficha       | Por qué así                                                                                                                             |
+| --------- | ------------------------ | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `viento`  | 0, 1                     | nada                 | no hay nada que anunciar                                                                                                                |
+| `viento`  | 2, 3                     | "llano abierto"      | describe la carretera; el abanico sigue saliendo de `streams('viento')` en cualquier km de `llano` (mapa 03 §5.1) y no de este metadato |
+| `altitud` | `mar`, `colina`, `media` | nada                 |                                                                                                                                         |
+| `altitud` | `alta`, `altiplano`      | "puertos de altitud" | describe los puertos, no el aire: no hay altitud en `Segment` y el motor no simula el oxígeno (riesgo 1 de la sección 17)               |
 
 Un test de `apps/api` (`routes/calendar.test.ts`) recorre las respuestas de las 1.418 etapas de la temporada 0 y afirma que ninguna `frase` ni texto de ficha contiene "abanico", "oxígeno", "hipoxia" ni "falta de aire", y que los únicos textos derivados de `metadatos` son los dos literales de la tabla. Y el inventario regenerado sobre la temporada 0 tiene que dar 177 / 226 / 1.015: es una aserción de `grammar/calendario.test.ts` en el paso 8, no una lectura.
 
@@ -220,7 +248,7 @@ it('el origen de cada etapa es el de su rama, y el recuento es el del inventario
     expect(race.routeSource).toBe(raceRouteSourceOf(race.stages))
   }
   expect(cuenta).toEqual({ real: 177, edicion: 226, generado: 1015 })
-  expect(adoquinDeEdicion).toBe(3)   // race-belgium e5, race-benelux e3, race-hauts-de-france e3
+  expect(adoquinDeEdicion).toBe(3) // race-belgium e5, race-benelux e3, race-hauts-de-france e3
 })
 ```
 
@@ -236,29 +264,41 @@ Decisión 23, en cuatro reglas:
    ```ts
    // packages/engine/src/routes/stageKind.ts (paso 8)
    export const SUMMIT_RUN_IN_KM = 5
-   export function runInAfterLastClimb(segments: readonly Segment[]): number { /* el cuerpo de stageHistory.ts l. 76-88, sin cambios */ }
+   export function runInAfterLastClimb(segments: readonly Segment[]): number {
+     /* el cuerpo de stageHistory.ts l. 76-88, sin cambios */
+   }
    // dentro de stageKindOf, en lugar de l. 84:
-   const meteEnAlto = segments[segments.length - 1]?.tipo === 'puerto'          // decide SOLO la rama clasica (l. 88), como hoy
-   const cimaCerca = runInAfterLastClimb(segments) <= SUMMIT_RUN_IN_KM          // decide SOLO la etiqueta (l. 91-97)
+   const meteEnAlto = segments[segments.length - 1]?.tipo === 'puerto' // decide SOLO la rama clasica (l. 88), como hoy
+   const cimaCerca = runInAfterLastClimb(segments) <= SUMMIT_RUN_IN_KM // decide SOLO la etiqueta (l. 91-97)
    if (!meteEnAlto && longest <= WALL_MAX_KM) return { kind: 'clasica', label: 'Classic' }
    if (longest >= PASS_MIN_KM || metres >= QUEEN_MIN_CLIMB_METRES)
-     return cimaCerca ? { kind: 'reina', label: 'Summit finish' } : { kind: 'reina', label: 'Mountains' }
+     return cimaCerca
+       ? { kind: 'reina', label: 'Summit finish' }
+       : { kind: 'reina', label: 'Mountains' }
    return cimaCerca ? { kind: 'media', label: 'Uphill finish' } : { kind: 'media', label: 'Hills' }
    ```
 
    `kind` NO cambia de regla: 8,5 / 3.200 / 3 siguen donde están (decisión 26), y `meteEnAlto` implica `cimaCerca` (cola 0), así que ninguna etapa que hoy es `Summit finish` deja de serlo. La otra función con nombre parecido, `kmAfterLastClimb(profile): number | null` de `finalKind.ts` l. 65-69, NO cambia y no se usa para la etiqueta: lee primero las pancartas `cima` (`lastClimbKm`, l. 46-57; `auto()` las redondea al km entero, `calendar.ts` l. 107-116) y solo sin pancartas cae al último `puerto` de ≥ `CLIMB_MIN_KM` 1,5, y devuelve `null` sin cota. Conviven porque miden cosas distintas: la etiqueta mira el último segmento que sube (un muro de meta de 1,2 km sin pancarta es "final en alto" para la ficha, y así lo corre el motor), y la cubeta de `finalKindOf` mira el GPM anunciado (decisión 25: `emitirPancartas` pone `cima` en el último `puerto`, y esa pancarta redondeada puede desplazar hasta 0,5 km la cola medida, que `margenValleKm` 0,7 cubre). `stageKind.test.ts` se reescribe en el mismo paso 8 (sus generadores desaparecen) con perfiles literales: un perfil que acaba en `puerto` de 1 km con 2 km de llano detrás sigue siendo `clasica / Classic`; una reina con 3 km de valle tras el último puerto es `Summit finish` y con 6 km `Mountains`; una media con 4 km de valle es `Uphill finish`; y la plantilla canónica de `ud_muros` con 300 semillas sigue `clasica` (V6 lo garantiza, el test lo mide).
+
 3. **La etiqueta nace una sola vez y `calendarStageSpec` deja de reetiquetar por su cuenta.** Un solo mecanismo, que las secciones 3, 5, 8, 9 y 14 repiten: `generateStage` calcula `label = labelDe(sk, profile, timeTrial)` DESPUÉS de que V6 haya igualado el `kind`, donde
 
    ```ts
    // packages/engine/src/routes/grammar/generate.ts
    /** Las cinco etiquetas de la decisión 38, que `stageKindOf` no puede deducir de un perfil. */
-   export const ETIQUETAS_DE_ESQUELETO: ReadonlySet<string> = new Set(['Circuit', 'Wall finish', 'Prologue', 'Hill climb', 'Mountains classic'])
+   export const ETIQUETAS_DE_ESQUELETO: ReadonlySet<string> = new Set([
+     'Circuit',
+     'Wall finish',
+     'Prologue',
+     'Hill climb',
+     'Mountains classic',
+   ])
    export function labelDe(sk: Skeleton, profile: StageProfile, timeTrial: boolean): string {
      return ETIQUETAS_DE_ESQUELETO.has(sk.label) ? sk.label : stageKindOf(profile, timeTrial).label
    }
    ```
 
    Es decir: las cinco etiquetas nuevas las pone el esqueleto (solo él puede saber que hay un circuito), y las ocho de `stageKindOf` las dicta el perfil con la regla 2. Para toda instancia válida del catálogo las dos cosas coinciden, y no por casualidad: los esqueletos con etiqueta de las ocho llevan la meta a más de 0,7 km de los 5 km por el lado que su etiqueta dice (`et_reina_cima_cerca`, `Summit finish`, corona a [1,2; 4,3] km; `et_reina_valle`, `Mountains`, a [5,7; 19,3]; `ud_esprint_capi`, `Hills`, a [5,7; 8]; sección 5), y `ud_montana` (`aMeta` [3; 17]) lleva `Mountains classic`, una de las cinco, así que su etiqueta no depende de dónde caiga la cota. `labelDe` existe para que esa coincidencia sea CALCULADA y no confiada: si un jitter de edición o una plantilla degradada dejara una cota a 5,5 km de meta, la ficha diría `Mountains` y el motor correría eso mismo, en vez de heredar un `Summit finish` de catálogo. `Skeleton.label` sigue siendo la etiqueta del catálogo y `skeletons.test.ts` sella su compatibilidad: para los esqueletos con etiqueta de las ocho, `stageKindOf(canonico, timeTrial).label === sk.label` (y lo mismo en cada alternativa); para los de las cinco, solo `kind`. Ninguna etapa generada puede tener una etiqueta que contradiga su `kind`, porque las cinco nuevas están casadas con un `kind` en el catálogo y las ocho salen del propio clasificador. `stageKindOf` no aprende ninguna etiqueta (decisión 26). Las secciones 3 (§3.3 y `GeneratedStage.label`), 5 (`Skeleton.label`), 8 (§8.13) y 14 (§14.6) escriben hoy "`label = sk.label` puesta tras V6"; con el catálogo de la sección 5 eso da el mismo resultado que `labelDe` en todas las instancias, pero el mecanismo es este, y esas cuatro secciones lo citan como `labelDe(sk, profile, timeTrial)` (la coincidencia sellada en `skeletons.test.ts` es lo que permite a §14.6 seguir tratando `label` como perezosa sin coste: el getter llama a `labelDe` sobre el perfil ya dibujado). Con eso `calendarStageSpec` queda así: para una etapa con `routeSource !== 'real'` devuelve `stage.label` tal cual (ya es la de `labelDe`, congelada en `race_routes.label`); para una `real` hace lo que hace hoy y ni una cosa más: si `stage.kind ∉ {reina, media}` (`SUMMIT_FINISH`, l. 51) devuelve `stage.label`, y si está, elige entre las DOS etiquetas del `kind` declarado con la regla importada (`runInAfterLastClimb(profile.segments) <= SUMMIT_RUN_IN_KM ? SUMMIT_FINISH[kind] : NO_SUMMIT_FINISH[kind]`). Nunca aplica a una real la etiqueta de OTRO `kind` (una `mountain` de edición que `stageKindOf` lee `media`, 11 de 54 en §11.6, seguiría diciendo `reina / Hills`, que es la contradicción que el test de abajo vigila; y una llana real con una cota corta pasaría a `Classic` cambiando lo que el jugador ve en carreras reales que el dueño pidió respetar).
+
 4. **Los cuatro lectores leen el congelado**: `calendarRun.ts` l. 1641-1642 pasa `kind: congelado?.kind ?? stage.kind`, `timeTrial: congelado?.timeTrial ?? stage.timeTrial` y `profile: congelado?.profile ?? stage.profile` con `stage` de `stagesForSeason(race.id, season)`; `packages/db/src/callups.ts` l. 98, `calendarRun.ts` l. 518 y `raceContext.ts` l. 127 reciben las etapas de `raceStagesForWorld(db, worldId, raceKey, raceId, season)` (nueva, sección 10) y solo si no hay fila, o la fila no tiene `kind` (congelada antes del paso 10), caen a `stagesForSeason(raceId, season)`, nunca a `SEASON_CALENDAR` a secas. `sim/world.ts` l. 169-193, que calcula `CALENDARIO` al cargar el módulo leyendo `st.kind`, se queda como está (es un banco de población, no un mundo vivo) y su reparto se mide antes y después del paso 8 (riesgo 9 de ejecutabilidad, sección 13).
 
 El 49 se re-sella con objetivo escrito. Hoy `expect(cambian).toBe(49)` (`stageHistory.test.ts` l. 206) cuenta etapas de cualquier origen cuya etiqueta corregida difiere de la declarada, "eran 30 hasta la v64" (comentario l. 193-205). Con las reglas 2 y 3, en las 1.241 no reales la cifra es 0 por construcción (la etiqueta ya salió de la misma regla), y el test lo afirma por separado; en las 177 reales queda la cifra que dé la regla única sobre las etiquetas declaradas por `TERRAIN_KIND` (que llama `Summit finish` a TODA etapa `mountain` de edición, `calendar.ts` l. 200, tenga o no carretera detrás). Esa cifra se mide en el paso 8, se escribe en el test con su causa ("solo etapas reales cuya etiqueta declarada por el terreno de la edición difiere de la que dice su recorrido; generadas = 0") y se anota en `balance.md` "vN §1". No se promete que baje de un número concreto porque ninguna previsión sobre ella era fiable con dos reglas (juez motor §5 riesgo 2); lo que se promete es que a partir de ahí SOLO puede moverla un cambio de dato real.
@@ -282,9 +322,9 @@ it('sobre el calendario entero solo cambia la etiqueta, nunca el tipo de etapa',
       else cambianGeneradas++
     }
   }
-  expect(cambianGeneradas).toBe(0)   // regla 3: la etiqueta generada ya es la del perfil
-  expect(cambianReales).toBe(0)      // cifra medida en el paso 8 y escrita aquí con su causa (balance.md vN §1);
-                                     // el 0 es un marcador de redacción, no una previsión
+  expect(cambianGeneradas).toBe(0) // regla 3: la etiqueta generada ya es la del perfil
+  expect(cambianReales).toBe(0) // cifra medida en el paso 8 y escrita aquí con su causa (balance.md vN §1);
+  // el 0 es un marcador de redacción, no una previsión
 })
 ```
 
