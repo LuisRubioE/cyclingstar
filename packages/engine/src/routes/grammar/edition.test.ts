@@ -387,7 +387,7 @@ describe('identidad entre ediciones', () => {
     // «< 0,6 en cada par» de §10.9 nacería en rojo: 21 de los 200 pares pasan de 0,6 (medido en el
     // paso 6: p50 0,17, p90 0,65, máx 0,97), todos cronos, prólogos, cronoescaladas y reinas con final
     // en alto, cuya huella la domina la subida o el llano de firma. Se sella la mediana; el máximo por
-    // par es V12 (`ARCH.anticlon.maxCorrelacion`, paso 8) sobre el censo.
+    // par es V12 (`ARCH.anticlon.porFamilia` desde la v89) sobre el censo.
     expect(cuantil(cs, 0.5)).toBeLessThan(0.6)
     expect(cuantil(cs, 0.9)).toBeLessThan(0.75)
   })

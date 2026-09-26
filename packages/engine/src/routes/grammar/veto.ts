@@ -355,6 +355,9 @@ export const V11 = (rows: RouteStats[]): Veto | null => {
 /** Tolerancia de km de un par de V12: ± 10 % (mapa 04 §5.2). */
 const PAR_V12_KM = 0.1
 
+/** Lo que un par de V12 lee de una etapa: el censo pasa filas enteras y el anti-clon de la temporada, lo mínimo. */
+export type EtapaV12 = Pick<RouteStats, 'skeleton' | 'zona' | 'raceId' | 'km'>
+
 /**
  * Un par de V12 (§9.2, fila V12, y §9.5): mismo esqueleto, misma zona, carreras DISTINTAS y km a
  * ± 10 %. Carreras distintas porque el tope es «tan parecido como dos carreras reales distintas» y
@@ -362,7 +365,7 @@ const PAR_V12_KM = 0.1
  * (§12.9): dos etapas de una misma vuelta no son dos carreras. La banda
  * `variedad.correlacion.max` del censo mide sobre estos mismos pares (`correlacionesIntraEsqueleto`).
  */
-export function esParV12(a: RouteStats, b: RouteStats): boolean {
+export function esParV12(a: EtapaV12, b: EtapaV12): boolean {
   return (
     a.skeleton !== null &&
     a.zona !== null &&
@@ -374,10 +377,46 @@ export function esParV12(a: RouteStats, b: RouteStats): boolean {
 }
 
 /**
- * V12 no se repite (§9.5): ningún par de V12 (`esParV12`) se parece más que `maxCorrelacion`
- * (Pearson de `RouteStats.huella`, la pendiente por km desde meta).
+ * La familia de una etapa para el tope anti-clon (§9.5: «tan parecido como dos carreras reales
+ * distintas DE LA MISMA FAMILIA»; decisión del dueño, balance v89). Se lee igual en lo real
+ * (`stageKindOf` y `finalKindOf` del perfil, `scripts/medir-real.mjs`) que en lo generado (el `kind` y
+ * el `finalKind` de la etapa, que V6 y V7 igualan a los del perfil), en este orden: una crono es
+ * `crono` acabe donde acabe; un final `alto` es `alto` sea reina o media (la subida de meta domina la
+ * huella de las dos); el resto de reinas es `montana`; `llana` es `llana`; y `media` y `clasica` sin
+ * final en alto son `media`.
  */
-export const V12 = (rows: RouteStats[], maxCorrelacion: number): Veto | null => {
+export type FamiliaAnticlon = keyof typeof ARCH.anticlon.porFamilia
+
+export function familiaAnticlon(
+  kind: RouteStats['kind'],
+  finalKind: FinalKind | null,
+): FamiliaAnticlon {
+  if (kind === 'cri') return 'crono'
+  if (finalKind === 'alto') return 'alto'
+  if (kind === 'reina') return 'montana'
+  if (kind === 'llana') return 'llana'
+  return 'media'
+}
+
+/**
+ * El tope de un par de V12: el de la familia de cada etapa, el mayor de los dos si difieren (el mismo
+ * esqueleto solo cambia de familia por la meta de carrera, `metaDeCarrera`, y el par se juzga con la
+ * vara más ancha de las suyas, simétrica para el censo y para la generación).
+ */
+export function topeAnticlon(
+  a: Pick<RouteStats, 'kind' | 'finalKind'>,
+  b: Pick<RouteStats, 'kind' | 'finalKind'>,
+): number {
+  const t = ARCH.anticlon.porFamilia
+  return Math.max(t[familiaAnticlon(a.kind, a.finalKind)], t[familiaAnticlon(b.kind, b.finalKind)])
+}
+
+/**
+ * V12 no se repite (§9.5): ningún par de V12 (`esParV12`) se parece tanto como el tope de su familia
+ * (`topeAnticlon`; Pearson de `RouteStats.huella`, la pendiente por km desde meta). Desde la v89 se
+ * cumple AL GENERAR: `routes/grammar/anticlon.ts` redibuja la etapa que choca con otra ya aceptada.
+ */
+export const V12 = (rows: RouteStats[]): Veto | null => {
   const grupos = new Map<string, RouteStats[]>()
   for (const r of rows) {
     if (r.skeleton === null || r.zona === null) continue
@@ -393,10 +432,11 @@ export const V12 = (rows: RouteStats[], maxCorrelacion: number): Veto | null => 
         const b = g[j]!
         if (!esParV12(a, b)) continue
         const c = correlacionHuellas(a.huella, b.huella)
-        if (c >= maxCorrelacion - EPS)
+        const tope = topeAnticlon(a, b)
+        if (c >= tope - EPS)
           return veto(
             'V12',
-            `${a.raceId} e${a.stageIndex} y ${b.raceId} e${b.stageIndex} (${k}): correlación ${c.toFixed(2)} ≥ ${maxCorrelacion}`,
+            `${a.raceId} e${a.stageIndex} y ${b.raceId} e${b.stageIndex} (${k}): correlación ${c.toFixed(2)} ≥ ${tope}`,
           )
       }
   return null

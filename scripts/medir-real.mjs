@@ -347,3 +347,40 @@ console.log(
     ? ` ARCH.anticlon.maxCorrelacion = ${(Math.round(q(cs, 0.9) * 100) / 100).toFixed(2)} (p90 al centésimo)`
     : ` ARCH.anticlon.maxCorrelacion se queda en el provisional 0,85: ${pares.length} pares, ${clasicas} de clásicas`,
 )
+
+/**
+ * EL TOPE ANTI-CLON POR FAMILIA (balance v89; decisión del dueño sobre §9.5, «de la misma familia»).
+ * Las familias de `familiaAnticlon` (`routes/grammar/veto.ts`): `crono`, `alto` (reina o media con
+ * final en alto), `montana` (el resto de reinas), `llana` y `media` (media y clásica sin final en
+ * alto). Los mismos pares de arriba (carreras distintas, km ± 10 %) pero agrupados por familia; el p90
+ * al centésimo de cada una es `ARCH.anticlon.porFamilia`. Se imprime además la de las cronos sin la
+ * ventana de km, que es la calibración de una familia propia para los nacionales que se midió (v89).
+ */
+const { familiaAnticlon } = await import('../packages/engine/dist/routes/grammar/veto.js')
+const famAC = (r) => familiaAnticlon(r.shape, r.fk)
+const paresFam = (tolKm) => {
+  const out = {}
+  for (let i = 0; i < real.length; i++)
+    for (let j = i + 1; j < real.length; j++) {
+      const a = real[i]
+      const b = real[j]
+      if (a.id === b.id || famAC(a) !== famAC(b)) continue
+      if (Math.abs(a.km - b.km) > tolKm * Math.min(a.km, b.km)) continue
+      const pa = SEASON_CALENDAR.find((r) => r.id === a.id).stages[a.i - 1].profile
+      const pb = SEASON_CALENDAR.find((r) => r.id === b.id).stages[b.i - 1].profile
+      ;(out[famAC(a)] ??= []).push(profileCorrelation(pa, pb))
+    }
+  return out
+}
+const q3 = (cs, p) => q(cs, p).toFixed(3)
+console.log(
+  `\n== anticlon por familia (familiaAnticlon), pares reales de carreras distintas y km ± 10 % ==`,
+)
+for (const [f, cs] of Object.entries(paresFam(0.1)).sort())
+  console.log(
+    ` ${f.padEnd(8)} pares ${String(cs.length).padStart(4)} p50 ${q3(cs, 0.5)} p90 ${q3(cs, 0.9)} máx ${Math.max(...cs).toFixed(3)} -> ${(Math.round(q(cs, 0.9) * 100) / 100).toFixed(2)}`,
+  )
+const cronosTodas = paresFam(Infinity).crono ?? []
+console.log(
+  ` crono sin ventana de km: pares ${cronosTodas.length} p90 ${q3(cronosTodas, 0.9)} máx ${Math.max(...cronosTodas).toFixed(3)}`,
+)

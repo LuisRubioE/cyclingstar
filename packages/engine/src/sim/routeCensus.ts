@@ -33,7 +33,7 @@ import type { GeoZone } from '../routes/grammar/geo.js'
 import type { RouteSource } from '../routes/grammar/generate.js'
 import type { MetaKind } from '../routes/grammar/motifs.js'
 import type { SkeletonId } from '../routes/grammar/skeletons.js'
-import { esParV12 } from '../routes/grammar/veto.js'
+import { esParV12, topeAnticlon } from '../routes/grammar/veto.js'
 import { routeRng } from '../routes/profileGen.js'
 import { STAGE_FEATURES } from '../routes/stageFeatures.js'
 import { climbSize, stageKindOf, WALL_MAX_KM } from '../routes/stageKind.js'
@@ -436,6 +436,17 @@ const PAR_KM_TOLERANCIA = 0.1
  * vuelta y de zonas distintas, que no son los pares que V12 prohíbe ni los que calibran su tope.
  */
 export function correlacionesIntraEsqueleto(rows: readonly RouteStats[]): number[] {
+  return paresIntraEsqueleto(rows).map((p) => p.c)
+}
+
+/**
+ * Los mismos pares que `correlacionesIntraEsqueleto`, cada uno con el tope anti-clon de su familia
+ * (`topeAnticlon`, `ARCH.anticlon.porFamilia`; balance v89). La banda `variedad.correlacion.max`
+ * cuenta los que llegan al tope.
+ */
+export function paresIntraEsqueleto(
+  rows: readonly RouteStats[],
+): { c: number; tope: number; par: string }[] {
   const grupos = new Map<string, RouteStats[]>()
   for (const r of rows) {
     if (r.firmaMotivos?.split('+').includes('circuito')) continue
@@ -448,7 +459,7 @@ export function correlacionesIntraEsqueleto(rows: readonly RouteStats[]): number
     a.skeleton !== null
       ? esParV12(a, b)
       : a.raceId !== b.raceId && Math.abs(a.km - b.km) <= PAR_KM_TOLERANCIA * Math.min(a.km, b.km)
-  const out: number[] = []
+  const out: { c: number; tope: number; par: string }[] = []
   for (const k of [...grupos.keys()].sort()) {
     const g = grupos.get(k)!
     const pares: [number, number][] = []
@@ -461,7 +472,13 @@ export function correlacionesIntraEsqueleto(rows: readonly RouteStats[]): number
       const s = t + Math.floor(rand() * (pares.length - t))
       ;[pares[t], pares[s]] = [pares[s]!, pares[t]!]
       const [i, j] = pares[t]!
-      out.push(correlacionHuellas(g[i]!.huella, g[j]!.huella))
+      const a = g[i]!
+      const b = g[j]!
+      out.push({
+        c: correlacionHuellas(a.huella, b.huella),
+        tope: topeAnticlon(a, b),
+        par: `${a.raceId} e${a.stageIndex} / ${b.raceId} e${b.stageIndex} (${k})`,
+      })
     }
   }
   return out
@@ -1074,11 +1091,15 @@ export const ROUTE_CENSUS_TARGETS: readonly CensusTarget[] = [
     nMin: CENSUS_N_MIN,
   },
   {
+    // v89: el tope es por familia (`ARCH.anticlon.porFamilia`, decisión del dueño sobre §9.5) y la
+    // banda cuenta los pares de V12 que llegan al de la suya; hasta la v88 era el máximo contra un
+    // único 0,32.
     id: 'variedad.correlacion.max',
-    label: `máximo de la correlación de huella intra-esqueleto < ${String(ARCH.anticlon.maxCorrelacion).replace('.', ',')} (ARCH.anticlon.maxCorrelacion)`,
+    label:
+      'pares de V12 con la correlación de huella en el tope de su familia o por encima: 0 (ARCH.anticlon.porFamilia)',
     poblacion: (r) => generada(r) && r.skeleton !== null,
-    medida: (rows) => cuantil(correlacionesIntraEsqueleto(rows), 'max'),
-    max: ARCH.anticlon.maxCorrelacion - 1e-4, // estricta, < ARCH.anticlon.maxCorrelacion (calibrado en el paso 9, §9.5)
+    medida: (rows) => paresIntraEsqueleto(rows).filter((p) => p.c >= p.tope).length,
+    max: 0, // V12 (§9.5): ningún par tan parecido como el p90 real de su familia
     hoy: null,
     fuente: 'V12; §9.5',
     estado: 'sellada',

@@ -829,8 +829,13 @@ import type { RaceClass } from './routes/uci.js'
  * reinas sin final en alto reparten su peso como las reales (5 `et_reina_cima_cerca`, 15
  * `et_reina_valle`), y una reina tira su objetivo de desnivel en todo `sk.dPlus` y lo factible solo
  * lo recorta. Cambian cinco etapas de esqueleto y el desnivel de las reinas generadas.
+ *
+ * v89: las decisiones del dueño sobre las bandas abiertas de E1 (docs/balance.md, v89). V12 se cumple
+ * al generar con un tope anti-clon por familia (`ARCH.anticlon`, `grammar/anticlon.ts`): la etapa que
+ * clona a otra de su par se redibuja con otra semilla, sin cambiar esqueleto ni firma. Cambian los
+ * perfiles de las etapas redibujadas (unas 200 por temporada); el motor de carrera no se toca.
  */
-export const ENGINE_VERSION = 88 as const
+export const ENGINE_VERSION = 89 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -1881,20 +1886,39 @@ export const ARCH = {
   /**
    * Anti-clon (§12.9; V12, sección 9 §9.5). Entra en la v87 con su lector, la banda
    * `variedad.correlacion.max` del censo (`sim/routeCensus.ts`), que afirma
-   * `grammar/calendario.test.ts` en cada push.
+   * `grammar/calendario.test.ts` en cada push. Desde la v89 (decisión del dueño, balance v89) el tope
+   * es por familia y V12 se cumple AL GENERAR: `grammar/anticlon.ts` redibuja la etapa que clona a
+   * otra ya aceptada de su par.
    */
   anticlon: {
-    // V12: dos etapas generadas del mismo esqueleto en carreras distintas no correlacionan (Pearson
-    // de la huella `g` por km, `profileCorrelation`) por encima de esto; es el ÚNICO tope del máximo
-    // de la banda de variedad. CALIBRADO en el paso 9 (§9.5) como el p90 de los pares de etapas REALES
-    // de carreras distintas con mismo `kind`, mismo `finalKind` y km ± 10 % (`scripts/medir-real.mjs`):
-    // 338 pares, 7 de clásicas de un día, p90 0,317 (máximo 0,651, Emirates e6 / Italy e9). Sustituye
-    // al 0,85 provisional. Lo generado no cabe bajo él: sobre los pares de V12 (mismo esqueleto, misma
-    // zona, carreras distintas, km ± 10 %; `esParV12`) el máximo es 0,965 y 203 de 856 pares pasan de
-    // 0,32, y redibujar la etapa con otra semilla no los baja (los finales en alto de firma y los
-    // `nc_crono` con su cota). Es la previsión fallida H6 de balance v87 §2, y la banda sigue en
-    // `it.todo` hasta que el dueño decida; no se ensancha para que cuadre.
-    maxCorrelacion: 0.32,
+    // V12: dos etapas generadas de un par de V12 (mismo esqueleto, misma zona, carreras distintas, km
+    // ± 10 %; `esParV12`) no se parecen (Pearson de la huella `g` por km, `profileCorrelation`) tanto
+    // como el tope de su FAMILIA (`familiaAnticlon`: crono, final en alto, resto de montaña, llana, y
+    // media o clásica sin final en alto). Cada tope es el p90 al centésimo de los pares de etapas REALES
+    // de carreras distintas de esa familia con km ± 10 % (`scripts/medir-real.mjs`, §9.5: «tan parecido
+    // como dos carreras reales distintas de la misma familia, no más»): alto 0,389 en 307 pares, montaña
+    // 0,269 en 182, llana 0,216 en 117, media 0,145 en 354 y crono 0,492 en solo 5 (las 13 cronos reales
+    // casi nunca casan en km; sin la ventana de km son 76 pares con p90 0,553, que es lo que se midió
+    // como familia propia de las cronos nacionales y no las cierra, balance v89). Sustituye al 0,32
+    // único de la v87 (p90 de los 338 pares de todas las familias juntas), que los finales en alto
+    // reales ya pasaban.
+    porFamilia: { alto: 0.39, montana: 0.27, media: 0.14, llana: 0.22, crono: 0.49 },
+    // Cuántas veces se vuelve a pedir una etapa que clona. Las `dibujo` primeras cambian solo las
+    // semillas de dibujo (`mot`, `pos`, `dib`); las `edicion` siguientes tiran además el plan de la
+    // edición (km ± 6 %, huecos opcionales y desnivel objetivo), que es de la temporada y no de la
+    // identidad, así que la firma y el esqueleto nunca cambian (decisión 20). Medido en la v89: con 40
+    // de solo dibujo seguían sin bajar del tope 12 etapas de equipos en la temporada 0; con 5 + 15 (y
+    // `abandonoChoques`) quedan de 12 a 17 por temporada en las temporadas 0 a 5, sobre todo
+    // `et_media_alto` de zonas llanas, donde la subida de meta domina la huella, y etapas de edición
+    // real, que solo pueden cambiar el dibujo (§10.4). Más intentos apenas arreglan más y cuestan en el
+    // arranque (`ARCH.arranque`): la pasada pide unas 1.700 etapas por temporada, además de las 1.241.
+    redibujos: { dibujo: 5, edicion: 15 },
+    // Pasados los redibujos de solo dibujo, una etapa cuyo mejor dibujo aún choca con tantas etapas del
+    // grupo como esto deja de insistir: es un grupo lleno, como las `nc_crono` de `generico` (138 cronos
+    // llanas con la cota en el mismo 40 % del recorrido), donde ningún dibujo cabe entre todas. Ahorra un
+    // 28 % de la pasada (2.113 a 1.526 etapas en la temporada 0, medido antes de limitar el redibujo de
+    // las etapas de edición al dibujo) a cambio de 0 a 4 etapas de equipos más sin arreglo por temporada.
+    abandonoChoques: 3,
   },
   /**
    * El coste de construir el calendario (§12.9 y sección 14). Entra en el paso 6, con su primer
@@ -1912,8 +1936,13 @@ export const ARCH = {
     techoMs: 2500,
     // Coste máximo de una temporada adicional, `calendarForSeason(s)` con `s` distinta de la 0: por
     // debajo del objetivo porque las 177 etapas reales se comparten por referencia entre temporadas y
-    // solo se dibujan las 1.241 generadas y de edición (§14.5 punto 1).
-    porTemporadaMs: 1000,
+    // solo se dibujan las 1.241 generadas y de edición (§14.5 punto 1). RE-SELLADO en la v89 de 1.000
+    // a 1.500 (el objetivo de la temporada 0): la pasada anti-clon (`grammar/anticlon.ts`) redibuja
+    // unas 1.700 etapas más por temporada, y la mediana de las temporadas 1 a 3 pasa de 462 a 652 ms
+    // (`scripts/medir-arranque.mjs`, mediana de 5 procesos, en la misma máquina). Con 1.000 el margen
+    // caía de 2,2 a 1,5 y el `it` de `routes/arranque.test.ts` fallaba con `test:rapido` entero en
+    // paralelo; con 1.500 vuelve a 2,3 (balance v89).
+    porTemporadaMs: 1500,
     // Temporadas distintas de la 0 que el memo de producción guarda a la vez; al pasar se expulsa la
     // de acceso más antiguo (LRU) y, si se vuelve a pedir, se reconstruye por ≤ `porTemporadaMs`. La
     // 0 no cuenta ni se expulsa. Decide la memoria de `apps/api`, que no se reinicia por cambiar de

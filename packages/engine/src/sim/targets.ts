@@ -703,10 +703,17 @@ export const TARGETS = {
      * con el número delante: 14,65 % cae en la franja que la v24 llamaba lotería (6-14 % al azar).
      * Si el dueño quiere el suelo de 15 como propiedad del ciclismo, lo que se mueve es la
      * composición de las vueltas pequeñas, no el motor: es una de las decisiones abiertas de v87 §2.
+     *
+     * VUELVE A 15 EN LA v89, por decisión del dueño: el 15 es propiedad del ciclismo (el borde de la
+     * lotería). Con el anti-clon al generar (V12) el banco da **16,98 %** con doce corridas. Se probó
+     * además la palanca que v87 §2 nombraba, más llanas en la composición de las vueltas pequeñas
+     * (`ARCH.pesosComposicion` y `ROUTE.selectiveMinFraction`), y va al revés: con una llana más en
+     * `race-victoria` el mejor rematador reparte más sprints, `sameWinnerPairPct` baja a 16,36 % y
+     * `bestSprinterWinPct` cae a 24,19 %, bajo su suelo de 25. No se tocó (balance v89).
      */
     sameWinnerPairPct: {
       label: 'Dos llegadas agrupadas de la misma carrera, ¿el mismo ganador?',
-      min: 10,
+      min: 15,
       max: 55,
       unit: '%',
     },

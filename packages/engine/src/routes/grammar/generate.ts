@@ -95,6 +95,7 @@ export interface StageRequest {
   editionKey?: string // `${from}|${to}|${km}` de editions.ts, para la semilla de edición
   edicion?: EdicionCfg // ARCH.edicion si falta; solo lo rellena buildRace cuando calendarForSeason recibe otro cfg (§10.5)
   fixed?: { skeleton?: SkeletonId; finalKind?: FinalKind; dPlus?: number } // bancos
+  redibujo?: number // 1..ARCH.anticlon.maxRedibujos: otro dibujo (`mot`, `pos`, `dib`) de la misma etapa, lo pide el anti-clon de la temporada (v89)
 }
 
 export interface GeneratedStage {
@@ -354,6 +355,18 @@ interface Cierre {
   sufijo: string | null
 }
 
+/**
+ * La petición con que se dibujó cada ficha (`GeneratedStage.arch`, por referencia): el anti-clon de la
+ * temporada (`anticlon.ts`) la necesita para pedir otro dibujo de la misma etapa sin rehacer la carrera.
+ * `WeakMap`: se va con la etapa y no viaja a la base ni a la API.
+ */
+const PETICIONES = new WeakMap<GeneratedStage['arch'], StageRequest>()
+
+/** La petición de una ficha salida de `generateStage`; `undefined` si la ficha no es de aquí (una fila congelada). */
+export function peticionDe(arch: GeneratedStage['arch']): StageRequest | undefined {
+  return PETICIONES.get(arch)
+}
+
 /** §8.13: el `GeneratedStage` campo a campo. `kind` y `finalKind` salen del perfil (V6 y V7 garantizan que son los prometidos). */
 function salida(
   profile: StageProfile,
@@ -366,24 +379,26 @@ function salida(
   const ms = motivos.map((m) => m.motif)
   const ult = lastClimbKm(profile)
   const dUltima = ult === null ? null : Math.round((profileKm(profile) - ult) * 10) / 10
+  const arch: GeneratedStage['arch'] = {
+    skeleton: sk.id,
+    geo: req.geo.zona,
+    motivos: ms,
+    finalKind: finalKindOf(profile),
+    dPlus: dPlusDe(profile),
+    intentos: c.intentos,
+    degradado: c.degradado,
+    garantiasClase: c.reglas,
+    rechazos: [...c.rechazos],
+    frase: fraseDe(sk, ed.km, ms, dUltima, ed.opcion, c.sufijo, c.degradado),
+    metadatos: { viento: req.geo.viento, altitud: req.geo.altitud },
+  }
+  PETICIONES.set(arch, req)
   return {
     profile,
     kind: stageKindOf(profile, c.timeTrial).kind,
     label: labelDe(sk, profile, c.timeTrial),
     timeTrial: c.timeTrial,
-    arch: {
-      skeleton: sk.id,
-      geo: req.geo.zona,
-      motivos: ms,
-      finalKind: finalKindOf(profile),
-      dPlus: dPlusDe(profile),
-      intentos: c.intentos,
-      degradado: c.degradado,
-      garantiasClase: c.reglas,
-      rechazos: [...c.rechazos],
-      frase: fraseDe(sk, ed.km, ms, dUltima, ed.opcion, c.sufijo, c.degradado),
-      metadatos: { viento: req.geo.viento, altitud: req.geo.altitud },
-    },
+    arch,
     routeSource: req.routeSource,
   }
 }

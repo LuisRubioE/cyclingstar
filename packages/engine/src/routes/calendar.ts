@@ -20,6 +20,7 @@ import { type RaceEdition, RACE_EDITIONS } from './editions.js'
 import { type RouteTerrain, type StageFeatures, buildFeatureProfile } from './featureProfile.js'
 // La gramática. Ningún `grammar/*.ts` importa un valor de este fichero (`routes/arranque.test.ts`),
 // así que no hay ciclo de carga.
+import { quitaClones } from './grammar/anticlon.js'
 import { BASE_SEASON } from './grammar/edition.js'
 import {
   generateStage,
@@ -3668,15 +3669,17 @@ function nationalChampionships(
 function construirTemporada(season: number, cfg: EdicionCfg): CalendarRace[] {
   const t: Temporada = { season, cfg }
   const fila = (row: RaceRow): CalendarRace => buildRace(row, season, cfg)
-  return [
-    ...WT_TABLE.map(fila),
-    editionGrandTour('race-italy', 'Race Italy', doy(5, 8), 'IT', t),
-    editionGrandTour('race-spain', 'Race Spain', doy(8, 22), 'ES', t),
-    editionGrandTour('race-france', 'Race France', doy(7, 4), 'FR', t),
-    ...PRO_TABLE.map(fila),
-    ...CON_TABLE.map(fila),
-    ...COUNTRIES.flatMap((c) => nationalChampionships(c.code, c.name, season, cfg)),
-  ].sort((a, b) => a.startDay - b.startDay)
+  return quitaClones(
+    [
+      ...WT_TABLE.map(fila),
+      editionGrandTour('race-italy', 'Race Italy', doy(5, 8), 'IT', t),
+      editionGrandTour('race-spain', 'Race Spain', doy(8, 22), 'ES', t),
+      editionGrandTour('race-france', 'Race France', doy(7, 4), 'FR', t),
+      ...PRO_TABLE.map(fila),
+      ...CON_TABLE.map(fila),
+      ...COUNTRIES.flatMap((c) => nationalChampionships(c.code, c.name, season, cfg)),
+    ].sort((a, b) => a.startDay - b.startDay),
+  ) // V12 al generar (v89): redibuja en su orden las etapas que clonan a otra ya aceptada
 }
 
 /**
