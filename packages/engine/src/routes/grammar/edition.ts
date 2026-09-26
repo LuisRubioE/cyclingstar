@@ -48,16 +48,27 @@ const entero = (rand: () => number, a: number, b: number): number =>
   Math.min(b, a + Math.floor(rand() * (b - a + 1)))
 
 /**
- * El desnivel objetivo (§8.4 punto 4) con la tirada `u` ya hecha: uniforme en el cruce de
- * `sk.dPlus` con lo que la instancia puede dar (`desnivelFactible`). Si no se cruzan, el extremo de
- * `sk.dPlus` más cercano a lo factible: el objetivo nunca sale del rango del esqueleto, y la
- * persecución de §8.5 llega hasta donde llegue.
+ * El desnivel objetivo (§8.4 punto 4) con la tirada `u` ya hecha, dentro del cruce de `sk.dPlus` con
+ * lo que la instancia puede dar (`desnivelFactible`). Si no se cruzan, el extremo de `sk.dPlus` más
+ * cercano a lo factible: el objetivo nunca sale del rango del esqueleto, y la persecución de §8.5
+ * llega hasta donde llegue.
+ *
+ * Dentro del cruce, una reina tira su objetivo en TODO `sk.dPlus`, como escribe §8.4, y lo factible
+ * solo lo recorta: donde la zona llega al techo del esqueleto el reparto es el suyo entero, y donde no
+ * llega la tirada que lo pasaba se queda en el techo de la zona. Las demás formas estiran la tirada
+ * sobre el cruce. Balance v87 §2: estirarla también en las reinas metía el reparto de cada esqueleto
+ * en la ventana de su zona y estrechaba la cola alta (`variedad.dplusCubetaAlta`, σ 487 m contra
+ * > 500); la precisión de la persecución no cambia (`generate.test.ts`, ± 12 %).
  */
 function objetivoFactible(sk: Skeleton, [fLo, fHi]: readonly [number, number], u: number): number {
   const lo = Math.max(sk.dPlus[0], fLo)
   const hi = Math.min(sk.dPlus[1], fHi)
-  if (lo <= hi) return Math.round(lo + u * (hi - lo))
-  return fHi < sk.dPlus[0] ? sk.dPlus[0] : sk.dPlus[1]
+  if (lo > hi) return fHi < sk.dPlus[0] ? sk.dPlus[0] : sk.dPlus[1]
+  if (sk.kind === 'reina') {
+    const delEsqueleto = sk.dPlus[0] + u * (sk.dPlus[1] - sk.dPlus[0])
+    return Math.round(Math.min(hi, Math.max(lo, delEsqueleto)))
+  }
+  return Math.round(lo + u * (hi - lo))
 }
 
 /** El nivel efectivo de un esqueleto (§10.3): la constante fija suelo y techo; con alternativas declaradas rota salvo con 0. */
