@@ -33,6 +33,7 @@ import type { Block, StageRider } from '../stage/types.js'
 import { analyzeMountain, analyzeTimeTrial } from './analyze.js'
 import { REAL_TIME_TRIALS, type RealTimeTrialStats, analyzeRealTimeTrials } from './timeTrials.js'
 import { STAGE } from '../constants.js'
+import { SEASON_CALENDAR } from '../routes/calendar.js'
 import { campaignSeeds, queenScenario, timeTrialScenario } from './scenarios.js'
 import { TARGETS, type Target } from './targets.js'
 
@@ -159,11 +160,30 @@ describe('la cola de una CONTRARRELOJ real (v19)', () => {
       // El síntoma con el que se vio el defecto: en producción el último de una crono llana de 33 km
       // entraba a 32,2 km/h. Un profesional, por flojo que sea, rueda una crono llana por encima de
       // 40; y el mejor de una crono no pasa de 56, que es el récord de la hora con casco aerodinámico.
+      //
+      // RE-SELLADO EN EL PASO 9 DE E1 (docs/balance.md, v87 §2): el suelo de 40 km/h es de una crono
+      // LLANA, y desde la v87 las tres cronos generadas del banco llevan la cota que el catálogo da a
+      // `et_crono` y `nc_crono` (§5.3: [2,5; 5] km al [4; 6] %): el último sube a 36,6-39,2 km/h y el
+      // ganador a 42-44. El suelo se afirma donde vale, en las cronos sin puerto (las dos reales de
+      // gran vuelta), y el techo y el orden en todas; no se baja el número.
       for (const row of bench().perStage) {
-        expect(row.stats.medianLastKmh).toBeGreaterThanOrEqual(40)
+        const etapa = SEASON_CALENDAR.find((r) => r.id === row.tt.raceId)!.stages.find(
+          (s) => s.index === row.tt.stageIndex,
+        )!
+        if (!etapa.profile.segments.some((s) => s.tipo === 'puerto'))
+          expect(row.stats.medianLastKmh, row.tt.raceId).toBeGreaterThanOrEqual(40)
         expect(row.stats.medianWinnerKmh).toBeLessThanOrEqual(56)
         expect(row.stats.medianWinnerKmh).toBeGreaterThan(row.stats.medianLastKmh)
       }
+      // Y la regla no se queda vacía: el banco sigue teniendo cronos llanas que la cumplen.
+      expect(
+        bench().perStage.filter(
+          (row) =>
+            !SEASON_CALENDAR.find((r) => r.id === row.tt.raceId)!
+              .stages.find((s) => s.index === row.tt.stageIndex)!
+              .profile.segments.some((s) => s.tipo === 'puerto'),
+        ).length,
+      ).toBeGreaterThanOrEqual(2)
     },
   )
 })
