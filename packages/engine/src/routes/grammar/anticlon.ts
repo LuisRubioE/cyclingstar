@@ -137,7 +137,8 @@ function redibuja(
 
 /**
  * La pasada anti-clon sobre una temporada recién construida, en su orden (día de arranque y, dentro
- * de una vuelta, etapa). Sustituye en su sitio las etapas redibujadas y devuelve el mismo array. Pura: la misma temporada da la misma pasada.
+ * de una vuelta, etapa). Sustituye en su sitio las etapas redibujadas y devuelve el mismo array.
+ * Pura: la misma temporada da la misma pasada.
  */
 export function quitaClones(cal: CalendarRace[]): CalendarRace[] {
   const grupos = new Map<string, Entrada[]>()
