@@ -551,12 +551,12 @@ describe('diffMotivos', () => {
     expect(
       diffMotivos(
         { km: 192.4, motivos: [circ(9), meta] },
-        { km: 201, motivos: [circ(10), cota, meta], opcion: 'Bérgamo' },
+        { km: 201, motivos: [circ(10), cota, meta], opcion: 'Bergamo' },
       ),
     ).toEqual([
       '192 km → 201 km',
       '9 laps → 10',
-      'finish: standard → Bérgamo',
+      'finish: standard → Bergamo',
       'one more hill: hill of 3.1 km at 5%',
     ])
     expect(

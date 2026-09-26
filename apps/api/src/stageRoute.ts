@@ -70,7 +70,7 @@ function archDe(raceId: string, season: number, st: FrozenStage): Arch | null {
   return st.arch ?? stagesForSeason(raceId, season)[st.stageDay - 1]?.arch ?? null
 }
 
-/** El nombre de la opción de nivel 2 de una temporada ("Bérgamo"); sin nombre en la canónica. */
+/** El nombre de la opción de nivel 2 de una temporada ("Bergamo"); sin nombre en la canónica. */
 function nombreDeOpcion(arch: Arch, raceId: string, season: number): string | undefined {
   const sk = SKELETONS[arch.skeleton]
   const opcion = opcionDe(sk, raceId, season)

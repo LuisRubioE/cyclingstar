@@ -106,7 +106,7 @@ export {
 export { RACE_EDITIONS } from './routes/editions.js'
 export { hashInt } from './routes/profileGen.js'
 export { BASE_SEASON, diffMotivos, type DiffInput } from './routes/grammar/edition.js'
-// Fuera de las seis líneas de §15.1: la opción de nivel 2 de una temporada ("final: Como → Bérgamo")
+// Fuera de las seis líneas de §15.1: la opción de nivel 2 de una temporada ("final: Como → Bergamo")
 // es la tercera diferencia de `diffMotivos`, y para nombrarla la ficha necesita el esqueleto y su
 // opción (docs/generador.md §10.8, `nombreDeOpcion`).
 export { opcionDe } from './routes/grammar/edition.js'

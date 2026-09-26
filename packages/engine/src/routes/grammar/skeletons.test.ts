@@ -375,7 +375,7 @@ describe('catálogo', () => {
         .map((sk) => sk.id)
         .sort(),
     ).toEqual(['et_reina_alto_largo', 'ud_montana'])
-    expect(SKELETONS.ud_montana.slots[1]!.firma).toBe(true) // `slots: { 1: … }` de Bérgamo es el puerto de firma
+    expect(SKELETONS.ud_montana.slots[1]!.firma).toBe(true) // `slots: { 1: … }` de Bergamo es el puerto de firma
     expect(SKELETONS.et_reina_alto_largo.alternativas!.map((a) => a.nombre)).toEqual([
       'Angliru',
       'Lagos',
@@ -452,7 +452,7 @@ describe('cotaFinal (regla 2 de §5.1)', () => {
     expect(rangoCotaFinal(SKELETONS.ud_montana, SKELETONS.ud_montana.alternativas![0]!)).toEqual({
       km: [1.3, 4.2],
       g: [7, 11],
-    }) // Bérgamo no declara metaParams
+    }) // Bergamo no declara metaParams
   })
   it('un esqueleto de etapa con valle y sin metaParams.cotaFinal lanza, y uno de un día cae a unDiaUltimaCota', () => {
     const { metaParams: _v, ...sinParams } = SKELETONS.et_reina_valle

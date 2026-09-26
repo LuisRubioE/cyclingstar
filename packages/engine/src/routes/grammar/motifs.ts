@@ -779,7 +779,7 @@ function subida(
     techo1(techo / (gBase[0] * 10)),
   ])
   if (sinTope === null) {
-    // Los rangos del hueco (o de la alternativa: la Valcava de Bérgamo, 11,6 × 8) contra el techo de
+    // Los rangos del hueco (o de la alternativa: la Valcava de Bergamo, 11,6 × 8) contra el techo de
     // una zona baja: el motivo se queda en su kind con los rangos del motivo y de la zona.
     if (propio && p !== undefined) return subida(kind, false, rand, ctx, o)
     return null

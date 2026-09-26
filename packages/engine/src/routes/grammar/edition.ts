@@ -252,7 +252,7 @@ function textoMotivo(m: Motif): string {
  * una frase por diferencia, en inglés como toda la interfaz del MVP, y en este orden: (1) el km, si
  * cambia 1 km o más ("192 km → 201 km"); (2) las vueltas del `circuito` de firma, el único campo de
  * un motivo firma que la edición mueve ("9 laps → 10"); (3) la opción de nivel 2, si cambió
- * ("finish: standard → Bérgamo"); (4) los motivos no firma que la ficha nombra, por clase y en orden
+ * ("finish: standard → Bergamo"); (4) los motivos no firma que la ficha nombra, por clase y en orden
  * de carretera: los que sobran en `actual` son "one more hill: …" y los que faltan, "the hill of …
  * is dropped". El resto de la firma se ignora,
  * porque dentro de una opción es igual por construcción (§10.3), y también los parámetros de los

@@ -78,7 +78,7 @@ export interface Slot {
 
 /** Rotación declarada de nivel 2 (sección 10, §10.3): un juego de RANGOS por hueco de firma más una plantilla literal. */
 export interface Alternativa {
-  nombre: string // "Bérgamo", "Angliru", "Lagos": frase y diffMotivos
+  nombre: string // "Bergamo", "Angliru", "Lagos": frase y diffMotivos
   meta?: MetaKind // si la opción cambia la meta; V7 exige finalKindDe(meta)
   metaParams?: { kmRango?: [number, number]; gRango?: [number, number] } // rango de `cotaFinal` de la opción
   slots?: Record<number, SlotParams> // por índice de hueco con firma: sustituyen a los `params` del hueco
@@ -874,7 +874,7 @@ export const SKELETONS: Record<SkeletonId, Skeleton> = {
     // Rotación de nivel 2 (§5.5): el puerto de firma es la Valcava (11,6 × 8); la canónica, Sormano.
     alternativas: [
       {
-        nombre: 'Bérgamo',
+        nombre: 'Bergamo',
         slots: { 1: { kmRango: [10.5, 12.5], gRango: [7.5, 8.5] } },
         // Roncola, Valcava, Ganda; Colle Aperto (1,2 km al 7 %, subido a 1,3, el suelo de
         // unDiaUltimaCota.km) a 5,7 km (real 3, subido al suelo de descensoMeta.valle).
