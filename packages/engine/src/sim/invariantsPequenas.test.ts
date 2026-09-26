@@ -39,8 +39,15 @@ describe('las carreras PEQUEÑAS con forma de producción (v23)', () => {
    * Y la dirección importa: lo que se sube es la MUESTRA, no se baja el suelo. Ese 15 % es la línea
    * de la lotería —con 7 a 17 rematadores nombrados, repartir al azar da un 6-14 %— y describe una
    * propiedad del ciclismo, no una preferencia. Cuesta unos minutos más de banco, y se pagan.
+   *
+   * …Y DOCE Y NO OCHO DESDE EL PASO 9 DE E1 (v87), por la misma razón y en la misma dirección. Con el
+   * calendario de la gramática, `bestSprinterWinPct` mide 21,5 % con ocho corridas y 26,3 % con doce
+   * (el pareado de docs/balance.md, v87 §2: 28,4 % con el calendario viejo, diferencia pareada de
+   * -3,2 puntos, dentro del ruido): con ocho, cuatro semillas movían cinco puntos una banda de suelo
+   * 25. Doce son las del pareado, así que el banco de CI mide exactamente lo que se anotó. Cuesta
+   * medio banco más (de ~11 a ~17 minutos en local), y el reloj de 3.900 s lo cubre.
    */
-  const bench = (): SmallTourStats => (shared ??= analyzeSmallTours(8))
+  const bench = (): SmallTourStats => (shared ??= analyzeSmallTours(12))
 
   it('el banco cubre formas distintas, y las carreras de la queja están dentro', () => {
     // No es decorado: el defecto se coló porque el banco no tenía ningún campo con esta forma.
