@@ -1,0 +1,407 @@
+[
+ {
+  "id": "Rdueno-001",
+  "seccion": "§12.10",
+  "linea": 6249,
+  "gravedad": "alta",
+  "afirmacion": "`scripts/race-radio.mjs --db` gana la misma fuente: hoy re-simula desde `stage_snapshots` y se niega si la versión del motor no coincide (l. 23-32); con la línea grabada lee `stage_timelines` y pinta `radioFromTimeline`, así que una etapa se puede depurar después de subir la versión del motor, y solo re-simula si la etapa no tiene fila.",
+  "fallo": "Cambia sin decirlo, y empobrece, el instrumento con el que se reproducen los defectos que el dueño caza en producción. Hoy `--db` re-simula la etapa con el motor de hoy y pinta la radio entera del motor: el depósito medio de cada grupo (`scripts/race-radio.mjs` l. 347, leyenda «[n] grupo · tamaño · depósito medio», y l. 368, `g.energyPct`) y una foto cada `--every` km aunque sea menos de uno (l. 47 y 92). `radioFromTimeline` devuelve el contrato `raceRadioSchema` (`packages/shared/src/contracts.ts` l. 1427-1480), que no tiene `energyPct`, con una foto por bloque de `photoBlocksOf` (los de `radioKmPoints`, una por km; borrador l. 1468) y a lo sumo doce relevistas guardados por grupo (`STORED_PULLERS_MAX`, `packages/engine/src/sim/raceRadio.ts` l. 591). Con el defecto de DD-11 toda etapa con fila deja de re-simularse aunque la versión coincida, que es justo cuando la re-simulación es fiel. Contradice cuatro sitios del diseño: D-09 («no lee la radio guardada… sigue siendo el microscopio del dueño en producción», `00-decisiones.md` l. 135); la fila de DD-11 que cerró la síntesis («`race-radio.mjs --db` no se entera (re-simula)», `00-decisiones.md` l. 653), cambiada por la sección sin evidencia nueva; §11.15 l. 5515 («sigue existiendo para la radio re-simulada»), y §20.5 punto 3 l. 9591 («que sigue fiel porque la versión no se mueve»). El dueño trabaja con los números de la foto de un km: «es que la foto de la radio no es un instante, es 1 km entero… si fuera un instante, en el pelotón saldría solo ese 1 que da la cara» (`docs/balance.md` l. 16714-16715, nota de radio posterior a la v86) y «si lo que hace el motor está bien ahí, no cambies el motor, cambia el race radio» (l. 16557-16558). El mapa 05 lo fija como [DUEÑO 10]: «Rehacerla para el espectador sin conservar ese detalle deja al dueño sin su instrumento» (`mapas/05-dueno-docs.md` l. 184).",
+  "correccion": "En §12.10, párrafo DD-11, sustituir la frase por: «`scripts/race-radio.mjs --db` no cambia de fuente cuando puede ser fiel: si `stage_snapshots.engine_version` es la de hoy, re-simula como hasta ahora (depósito por grupo, `--every`, todos los relevistas); solo si la versión no coincide, en lugar de negarse, pinta `radioFromTimeline` sobre la fila de `stage_timelines` y lo dice en su cabecera (`fuente: línea grabada · sin depósitos · una foto por km`)». Cambiar igual §17.14 (l. 8701), la fila del guion en §17.20 (l. 8876), DD-11 en §20.2 (l. 9545: «`race-radio.mjs --db` gana una salida para las etapas de otra versión y sigue re-simulando las de la versión de hoy»), §20.3 (l. 9570) y §20.8 (l. 9642). D-09, §11.15 y §20.5 quedan como están."
+ },
+ {
+  "id": "Rdueno-002",
+  "seccion": "§20.5",
+  "linea": 9591,
+  "gravedad": "alta",
+  "afirmacion": "Y en todo momento, el modo diagnóstico `?diag=1`, que le sirve la etapa sin velo y sin gastarla (D-40, §11.15)",
+  "fallo": "No es en todo momento. `SPOILER_MODE` pasa a `admins` en el 7a (§17.18, l. 8762) y el 7b deja al dueño, en toda etapa que no ha visto, con lo que dice §17.10: «la web de hoy pinta pestañas vacías (`No result for this stage.`, pantalla, `StageReplay.tsx` l. 454) hasta el 9a» (l. 8608), también `Race Radio`, que enseña la puerta porque «la ruta de etapa no manda `radio`» (§11.16, l. 5526). El `?diag=1` del 7b es solo de la API: la web de hoy no lo reenvía, porque `fetchCalendarStage` pide `/api/races/${raceId}/stages/${day}` sin parámetros (`apps/web/src/api/results.ts` l. 51-55), y pasar `diag` a las rutas es código del 9a (§11.15, l. 5509: «La web pasa `diag=1` a las cuatro rutas de etapa»; §17.12). Entre el 7b y el 9a, nueve sesiones con un solo implementador (32,5 y 41,5 en §17.22), el dueño no puede mirar la radio de producción de una etapa sin verla o revelarla, y así es como ha cazado sus defectos: «en race radio ahora dice por qué tiran… pero dice algo así como his team's card for this finish… pero no dice quién es, wey» (`docs/balance.md` l. 9594, v57) o «¿qué me dices de este tercer grupo que va a 94 km/h cuando están just riding?» (l. 9480, v58).",
+  "correccion": "Adelantar al 7b la parte mínima de D-40 en la web: `fetchCalendarStage(raceId, day, opts)` añade `?diag=1` cuando la URL de la página lo lleva (la API ya lo ignora para quien no es administrador, 11-h), con su test; el botón `Diagnostic view` sigue en el 9a. Si no se adelanta, `SPOILER_MODE` pasa a `admins` al fusionar el 9a y no en el 7a (tabla de §17.18, §17.10 y §20.5). En §20.5 punto 3, decir desde qué PR funciona `?diag=1` en la web."
+ },
+ {
+  "id": "Rdueno-003",
+  "seccion": "§6.7",
+  "linea": 3151,
+  "gravedad": "alta",
+  "afirmacion": "Con la cola llena, la ronda es lo primero que se descarta (clase 0).",
+  "fallo": "El requisito literal del dueño es que se vean los maillots de los cinco: «Y un requisito concreto del dueño que es puro lenguaje de televisión: cuando se escapan cinco, que se vean sus maillots» (`docs/encargos.md` l. 153-154; `docs/agenda.md` l. 736-739). En el propio caso literal de §7.6 (l. 3576-3600) el maillot de cada escapado solo se ve en la ronda de la moto: la fila de la barra lleva los cinco nombres y un único `[KOM]` (l. 3583), porque la barra pinta solo los maillots de líder (`GroupNow.jerseys`, §6.2 l. 2761), y el cuadro de diferencias igual (l. 3598); `[IT*]` y `[kit]` salen solo en la ronda o tocando la fila. La ronda es de clase 0, sale «Una vez por fuga» (l. 3151) y es la primera que se descarta justo cuando la cola más se llena: al formarse la fuga coinciden `attack`, `break_formed` y `break_presented` (clase 2, 5 s de pared cada uno) y el cuadro de diferencias (clase 1, cada 25 s), y 6-h (l. 3200) hace caducar todo `Cue` de clase ≤ 2 que espere más de 6 s. Nadie ha medido cuántas rondas salen enteras: la única medida de la cola es la de la crono (9-d), y la prueba de lectura no pregunta por maillots (§16.5, punto 6, l. 8186).",
+  "correccion": "En `cueClassOf` (§6.5) y 6-g: la ronda de la moto (`context: 'break_round'`) es de clase 2 y no caduca por esperar; se quita «Con la cola llena, la ronda es lo primero que se descarta». En la barra (§6.2), la fila de un grupo de hasta `BROADCAST.nameWholeGroupUpTo` corredores lleva junto a cada nombre su `WornJerseyIcon` (líder, campeón o equipo), y en el móvil también la fila 1. B17 (§16.4) gana una medida: en las etapas congeladas, el porcentaje de fugas cuya ronda sale entera, con umbral 100 %."
+ },
+ {
+  "id": "Rdueno-004",
+  "seccion": "§20.8",
+  "linea": 9636,
+  "gravedad": "alta",
+  "afirmacion": "Sin evidencia de los jueces (D-24): la mide la prueba de lectura.",
+  "fallo": "La prueba de lectura no la mide, ni mide el requisito literal del dueño. Sus preguntas son cuatro: «Quién va delante (los nombres si son tres o menos; si no, qué grupo y cuántos), con cuánta ventaja, sobre quién y cuánto queda» (§16.5, punto 6, l. 8186), y la verdad sale de `pl-truth.mjs` con el grupo 1, `mainGap` y los km (punto 7, l. 8187). Ninguna mira maillots, títulos, notoriedad ni delegación, y aun así el apéndice C da por aceptadas en ella D-25 (`Champion of Italy`) y D-26 (la notoriedad) (l. 9925-9926), y 6-h dice de la cola «lo acepta la prueba de lectura» (l. 3200). Es el único examen humano antes de encender y deja fuera las dos peticiones del dueño que más pesan en `Watch`: «cuando se escapan cinco, que se vean sus maillots» (`docs/encargos.md` l. 153-154) y «Cada vez que alguien tire del pelotón, tienes que mencionar por qué» (`docs/balance.md` l. 1843, v13).",
+  "correccion": "En §16.5, punto 6, dos preguntas más en todo punto en que el grupo 1 tenga de 4 a `nameWholeGroupUpTo` corredores: «¿Qué lleva cada uno de los de delante: maillot de líder, de campeón o el de su equipo?» y «¿Quién tira detrás y por qué?», con la verdad de `pl-truth.mjs` (el `worn` de cada miembro y `pullingLineOf` con su motivo). Si en los nueve puntos no sale ninguna fuga así, se añade un punto sorteado entre los km en que la haya. Corregir el apéndice C (l. 9923-9927), 6-h y DD-05 en §20.8 para que digan quién mide de verdad cada decisión."
+ },
+ {
+  "id": "Rdueno-005",
+  "seccion": "§5.1",
+  "linea": 2035,
+  "gravedad": "alta",
+  "afirmacion": "**La regla para quien venga después** (H-02): toda subida de `ENGINE_VERSION`, de E2 o de otro documento, va DETRÁS del paso 17d de la táctica",
+  "fallo": "Se escribe como regla, aquí, en §0.4 punto 3 (l. 74), en §2.3 (l. 545) y en §19.5 (l. 9412), lo que §20 dice que es una decisión del dueño sin contestar (DD-25), y es más dura que la doctrina que dice seguir. La v85 decide no subir cuando nada de la carrera cambia: «`ENGINE_VERSION` NO sube, y es una decisión, no un olvido» y «Este cambio no altera un segundo de ninguna carrera» (`docs/balance.md` l. 16319-16321); no dice que no se suba cuando la carrera sí cambia. La D7 que el borrador cita es condicional, «si lo que hace el motor está bien ahí, no cambies el motor» (l. 16557-16558), y cuando el motor estaba mal el dueño lo ha arreglado subiendo la versión: de la v69 (`025efbe`, 14 de septiembre) a la v89 (`c39f450`, 26 de septiembre) hay veinte subidas, entre ellas la v83 «Dos defectos de producción», la v84, la v86 «El que va de amarillo no da relevos» y la v89 «las decisiones del dueño sobre el generador, aplicadas» (`git log` de `packages/engine/src/constants.ts`). La regla lo para todo hasta que se haga el 17d, y el orden de trabajo lo fijan los encargos al revés: E2 espera a la línea del motor, no la línea del motor a E2 (`docs/encargos.md` l. 17-19).",
+  "correccion": "En §0.4 punto 3, §2.3, §5.1 y §19.5, sustituir la regla por: «E2 no sube la versión (D-09). Si otra línea la sube antes del 17d de la táctica, la «Last race» de las etapas ya corridas cuenta otra carrera (C16); qué hacer con eso es DD-25, del dueño». Reescribir DD-25 como dice Rdueno-006."
+ },
+ {
+  "id": "Rdueno-006",
+  "seccion": "§20.2",
+  "linea": 9559,
+  "gravedad": "media",
+  "afirmacion": "a la táctica le quedan R23.4, R23.7 y R23.8, que cambian lo que el motor emite (§1.10), y su tabla pone subida de versión en casi todos sus pasos (`tactica.md` l. 7435; duda de §19)",
+  "fallo": "La consecuencia no es la que el dueño va a pagar. De la tabla de `docs/tactica.md` l. 7435 ya están hechos los pasos 0 a 21, como dice el propio borrador («Los pasos 0 a 21 están fusionados», §1.10 l. 466), así que «casi todos sus pasos» está pasado. Lo que el defecto frena hoy son las subidas que vienen de otra parte: las tandas de defectos que el dueño abre mirando la radio (v83, v84 y v86, 21 y 22 de septiembre) y las del generador (v87 a v89, 26 de septiembre), que el borrador conoce («de la v86 el 22-09 a la v89 el 26-09», l. 466). El título, «La táctica y su paso 17d», y el cierre, «a E2 no le afecta», esconden que se decide si el dueño puede seguir arreglando el motor como hasta ahora; la D7 dice cuándo NO tocarlo, «si lo que hace el motor está bien ahí, no cambies el motor, cambia el race radio» (`docs/balance.md` l. 16557-16558), no que no se toque cuando está mal. Tampoco pone el precio de la salida que lo desbloquea todo: hacer ya el 17d, «el informe deja de re-simular, cruza orden con hecho y el aviso etapa a etapa» (`docs/tactica.md` l. 6979), que toca `apps/api` y `domain/dashboard.ts` y no el motor.",
+  "correccion": "DD-25 pasa a llamarse «Las subidas de `ENGINE_VERSION` antes del 17d de la táctica». Consecuencia: «el defecto frena toda subida, también las tandas de defectos del dueño y las de otras líneas: veinte entre el 14 y el 26 de septiembre (v69 a v89)». Respuestas: (a) adelantar el 17d, un PR sin motor (`docs/tactica.md` l. 6979); (b) subir cuando haga falta y aceptar que la «Last race» de lo ya corrido cambie, con un aviso en la ficha; (c) no subir hasta el 17d. Por defecto, (a). Quitar «casi todos sus pasos» y «a E2 no le afecta», y cambiar igual §20.6, §20.7 y §20.8."
+ },
+ {
+  "id": "Rdueno-007",
+  "seccion": "§20.4",
+  "linea": 9578,
+  "gravedad": "media",
+  "afirmacion": "Es la que hace de E2 un encargo de observación (D-09) y la que decide qué hace con los defectos del motor que la retransmisión deja ver: tolerarlos y escribirlos para él (DD-23), no arreglarlos.",
+  "fallo": "La D7 es condicional y no habla de defectos: «si lo que hace el motor está bien ahí, no cambies el motor, cambia el race radio» (`docs/balance.md` l. 16557-16558, nota de radio posterior a la v86). Cuando lo que hacía el motor estaba mal, el dueño lo arregló en el motor en esos mismos días: v83 «Dos defectos de producción», v84 y v86 «El que va de amarillo no da relevos», el 21 y el 22 de septiembre (`git log` de `packages/engine/src/constants.ts`). Y el salto de 138 s es, para el propio borrador, un defecto: «el defecto del motor se tolera en pantalla (en tránsito) y se anota para el dueño» (§0.4 punto 2, l. 73). Que E2 no lo arregle se sigue de D-09 (E2 no sube la versión), no de la D7; presentar DD-23 como «la D7 aplicada» (§20.8, l. 9654) empuja al dueño a tolerarlo con una cita suya que dice otra cosa.",
+  "correccion": "En §2.13 (l. 624, que dice lo mismo: «tolerarlos en pantalla y escribirlos para el dueño, no arreglarlos») y en §20.4: «La D7 dice que lo que el motor hace bien no se cambia para contarlo mejor: se cambia la radio. Por eso E2 cuenta sin tocar el motor (D-09). Lo que el motor hace mal no lo decide la D7: el dueño lo ha arreglado en el motor, y el salto de 138 s E2 se lo deja escrito para que decida (DD-23)». En §20.8, DD-23 deja de ser «la D7 aplicada» y dice «E2 no lo arregla porque no sube la versión (D-09)»."
+ },
+ {
+  "id": "Rdueno-008",
+  "seccion": "§12.10",
+  "linea": 6245,
+  "gravedad": "media",
+  "afirmacion": "Sin lista de seguimiento: con la pertenencia completa en cada instante, nombrar ya no depende de lo que se guardó (§7.7).",
+  "fallo": "En una etapa CONOCIDA no hay nada que destripar y, aun así, desde el paso 11 la radio deja de nombrar en su grupo, km a km, a los diez primeros de la etapa (§11.16, fila «conocida», l. 5525: «`radioFromTimeline` (§12.10) si la etapa tiene línea, sin lista de seguimiento»). Esa lista existe para quien depura: «A quién hay que poder seguir por la radio aunque no esté tirando: los tres maillots, los diez primeros de la general con la que se salió hoy y los diez primeros de la etapa recién corrida» (`packages/db/src/stageRun.ts` l. 558-559). Con `namedRidersOf` (§7.7), en un grupo de más de doce solo salen los que tiran, los maillots, el top 10 de salida, los propios y los protagonistas ya revelados: el ganador que viajó escondido en el pelotón no aparece hasta que hace algo, y el contrato `RaceRadio` no trae la lista entera, solo `riders` y `unnamed` (`packages/shared/src/contracts.ts` l. 1452 y 1454). B16 está hecho para aceptar la pérdida: compara con `radioForStorage(radio, ∅, [])`. El dueño sigue corredores concretos en la radio: «Hay un ciclista suelto que se quedó descolgado del pelotón… ¿cómo es posible que vaya tan rápido como el pelotón?» (`docs/balance.md` l. 7898-7899, banco de huecos) y «pero no dice quién es, wey» (l. 9594, v57).",
+  "correccion": "En §12.10 y §11.16: «En una etapa conocida (letras `W`, `S`, `R` o `A`) y en `?diag=1`, `radioFromTimeline(tl, names, watch)` recibe además los diez primeros de la etapa del paquete de meta y los nombra en su grupo en cada foto, como hoy; en una etapa no conocida `watch` va vacío y rige §7.7». B16 compara las conocidas con `buildRaceRadio(radioForStorage(radio, watchList, …))`, con la misma lista."
+ },
+ {
+  "id": "Rdueno-009",
+  "seccion": "§17.6",
+  "linea": 8455,
+  "gravedad": "media",
+  "afirmacion": "El dueño lo verá, que es para lo que se le enseña.",
+  "fallo": "El dueño caza defectos del motor mirando los grupos de detrás, no solo la cabeza: «¿qué me dices de este tercer grupo que va a 94 km/h cuando están just riding?» (`docs/balance.md` l. 9480, v58) y «Hay un ciclista suelto que se quedó descolgado del pelotón… ¿cómo es posible que vaya tan rápido como el pelotón?» (l. 7898-7899). En el 3c el adaptador «pinta mal a los grupos que no son la cabeza: sin identidad ni marcas de composición, interpolar entre fotos llega a errar kilómetros», y B22 solo mide la cabeza (esta misma línea, l. 8455). Enseñarle esas posiciones sin marca es invitarle a dar por defectos del motor los errores de una pieza provisional; el aviso `Recorded before full race data` (pantalla) es uno para toda la etapa y no dice qué cursor es fiable.",
+  "correccion": "En §3.8 y en el 3c: con `clock: 'estimated'`, `ProfileStrip` pinta hueco (sin relleno) el cursor de todo grupo que no sea la cabeza, la barra escribe su km con `~` y el aviso dice `Positions of the groups behind are estimated` (pantalla). Se quita en el 6a con la línea grabada. `GroupBar.test.tsx` del 3c gana el caso."
+ },
+ {
+  "id": "Rdueno-010",
+  "seccion": "§17.6",
+  "linea": 8471,
+  "gravedad": "media",
+  "afirmacion": "Con el reloj estimado y los grupos por su posición; sin rótulos de suceso (6a) ni de corredor (6b).",
+  "fallo": "El primer `Watch` que ve el dueño no enseña su única petición literal, «Y un requisito concreto del dueño que es puro lenguaje de televisión: cuando se escapan cinco, que se vean sus maillots» (`docs/encargos.md` l. 153-154; [DUEÑO 3]), y no la verá hasta el 6b, quince sesiones después (12,5 y 27,5 en §17.22), tras los dos PR que pagan los ocho tramos de bancos. No hace falta esperar tanto: para una fuga, la radio guardada ya nombra a todos los de un grupo de hasta doce (`NAME_WHOLE_GROUP_UP_TO`, `packages/engine/src/sim/raceRadio.ts` l. 611) con su maillot de líder (el campo `jersey` que ya lee `RaceRadioPanel.tsx`, l. 96-98), el campeón sale de `palmares` (`palmaresTitleSource`, 7-k) y la equipación de `teams.jersey_seed`; `breakHeadline` y la ronda de la moto leen `RiderCard`s (§7.6), no la línea grabada. El corte «tras el 3c» de §17.17 (l. 8750) deja al dueño sin [DUEÑO 3].",
+  "correccion": "Añadir al 3c, o a un 3d (S, API y web), las cartas del adaptador para los grupos de hasta `nameWholeGroupUpTo`: `RiderCard` con dorsal, equipo y `worn` sacado de la radio guardada y de `palmaresTitleSource`, marcadas provisionales; con ellas, `break_presented` y la ronda de la moto. El 6b sustituye la fuente por el reparto congelado. En §17.17, el corte tras el 3c contesta [DUEÑO 3] en parte."
+ },
+ {
+  "id": "Rdueno-011",
+  "seccion": "§20.7",
+  "linea": 9615,
+  "gravedad": "media",
+  "afirmacion": "| el paso 5 | DD-05, DD-13 | el reparto congelado se graba desde el 5 y lo guardado no se reescribe (D-10, D-15, 17-k) |",
+  "fallo": "El dueño tiene que contestar qué lleva el rótulo (el maillot delegado cuando hay un campeón, el dorsal amarillo) antes del paso 5, y el primer rótulo que ve es el del 6b («Qué ve el dueño: cada corredor con su carta y el maillot que lleva», §17.9 l. 8569): decide a ciegas, y lo que conteste después solo vale «para las etapas grabadas después» (DD-05, l. 9539). Es la pieza de su requisito: «Y un requisito concreto del dueño que es puro lenguaje de televisión: cuando se escapan cinco, que se vean sus maillots» (`docs/encargos.md` l. 153-154), que el encargo llama «exactamente el rótulo con el que la televisión presenta a cada corredor» (l. 156-157).",
+  "correccion": "Una de dos, escrita en §20.7 y 17-k: el dueño ve el rótulo antes del 5 (las cartas del adaptador en el 3c, Rdueno-010), o `distinctions` y la delegación de `wornJerseys` se calculan al servir hasta el 6b y se congelan desde el primer paso después de que el dueño las haya visto."
+ },
+ {
+  "id": "Rdueno-012",
+  "seccion": "§7.4",
+  "linea": 3484,
+  "gravedad": "media",
+  "afirmacion": "No usa la silueta del maillot a propósito",
+  "fallo": "El dueño pide maillots, y el de campeón por su nombre: «cuando se escapan cinco, que se vean sus maillots» (`docs/encargos.md` l. 153-154), «el maillot que el dueño pide por su nombre» (`docs/agenda.md` l. 718-719, el arcoíris) y, para los de líder, «debería mencionarlo como con una imagen de maillot amarillo» (el dueño, `docs/navegacion.md` l. 412-413, agosto de 2026). Mientras E3 no dibuje su señal, el campeón de la fuga no lleva maillot sino una bandera con una estrella (7-h), y el caso literal del dueño, «se escapa el campeón de Italia con cuatro más», se ve como cuatro maillots y una bandera. El motivo que se da (una banda con la bandera se confundiría en gris con la banda del verde) descarta la banda, no la silueta: una estrella en el pecho es una marca que no lleva ninguno de los tres de líder, que se distinguen por liso, banda y lunares (`apps/web/src/components/Jersey.tsx` l. 62-64 y 72-74). Es una decisión sobre lo que ve el dueño, tomada sin fila en §20.",
+  "correccion": "7-h y §7.4: «`ChampionMark` provisional: la silueta de `Jersey`, sin banda ni lunares, con una estrella en el pecho como marca de forma y la bandera pequeña al lado, con el mismo `aria-label` y `<title>` que ya lleva `LeaderJersey`. No imita el arcoíris (SPEC.md l. 841)». Si se prefiere la bandera con estrella, subir la elección a §20 como decisión del dueño, con esta alternativa."
+ },
+ {
+  "id": "Rdueno-013",
+  "seccion": "§6.2",
+  "linea": 2720,
+  "gravedad": "media",
+  "afirmacion": "y es la lista que el dueño dio como norte ([DUEÑO 1], `docs/agenda.md` l. 510-515",
+  "fallo": "La lista no es del dueño. Lo suyo es el norte: «D13 se reescribe con el norte que dio el dueño: la retransmisión de televisión» (mensaje del commit `eee1b93`, 14 de septiembre); la lista la escribe la agenda (`docs/agenda.md` l. 505-515), como dice el propio borrador en §0.1 (l. 19: «la lista de lo que la tele enseña es de `docs/agenda.md` l. 505-515»). Las palabras del dueño en su lista de puntos son otras: «News + Race Radio + journal, y sin destripe» (`docs/encargos.md` l. 680). Rompe la regla 5 del encargo (`00-encargo.md` l. 87). Y el diseño se aparta de esa lista sin decirlo: la agenda la da como lo que la tele enseña «permanentemente y sin que se lo pidas» (l. 508), con «Quién va en cada grupo, con nombre y equipo, y cuántos son» (l. 512), y en `Watch` el nombre y el equipo de los corredores de un grupo de más de tres salen al tocar la fila («Tocar una fila despliega el grupo», §6.2 l. 2761), y en el móvil también los de la fuga («la lista de la fila se abre al tocarla», §7.6 l. 3603).",
+  "correccion": "Sustituir por: «y es la lista con que la agenda desarrolla el norte que dio el dueño ([DUEÑO 1]: el norte es suyo, commit `eee1b93`; la lista es de `docs/agenda.md` l. 505-515)». Y añadir a §6.2 una frase que diga en qué se aparta de esa lista y por qué: los nombres y equipos de los grupos de más de tres, a un toque, por espacio."
+ },
+ {
+  "id": "Rdueno-014",
+  "seccion": "§8.5",
+  "linea": 4112,
+  "gravedad": "media",
+  "afirmacion": "Los mandos no se esconden mientras se reproduce: la pantalla es de datos y no de vídeo, y esconderlos costaría un toque más para cada cosa.",
+  "fallo": "Contradice el norte que dio el dueño, «la retransmisión de televisión» (commit `eee1b93`), con el que el encargo traduce su punto «News + Race Radio + journal, y sin destripe» (`docs/encargos.md` l. 680: «con la retransmisión de televisión como norte»; l. 139: «y no como adorno»), y la cabecera del propio borrador, «La pantalla es televisión» (§0.4 punto 4, l. 75). No es solo una frase: en escritorio la columna derecha de `Watch` es `Commentary` desplegado, la lista de lo ya dicho (§6.1 l. 2676 y su dibujo), cuando la agenda que desarrolla ese norte dice que «Una retransmisión no es una lista» (`docs/agenda.md` l. 517-518) y cierra su lista con «Nada más. Lo que no ayuda a entender la carrera no está» (l. 515); y la segunda línea de la capa fija (reloj, velocidad, pendiente y temperatura) va «siempre abierta en escritorio» (6-f, l. 3198).",
+  "correccion": "Quitar «la pantalla es de datos y no de vídeo» de §8.5 y de 8-p. Decidir, como en un reproductor de vídeo, que los mandos se esconden a los 3 s sin tocar y vuelven con cualquier toque; que en escritorio `Commentary` nace plegado, como en el móvil; y que la segunda línea de la capa fija sale con el cuadro de diferencias (§6.7) y al tocar. Cambiar el dibujo y el texto de §6.1 y 6-f."
+ },
+ {
+  "id": "Rdueno-015",
+  "seccion": "§6.4",
+  "linea": 2926,
+  "gravedad": "media",
+  "afirmacion": "El motivo de cada relevista no sale en `Watch`: es el microscopio del dueño y vive en `Race Radio` ([DUEÑO 10]).",
+  "fallo": "Lo que el dueño pidió lo pidió para lo que se lee de la carrera, que ahora es `Watch`, y no para su microscopio: «Cada vez que alguien tire del pelotón, tienes que mencionar por qué: está trabajando para alguien, ¿no? Si no, no debería desgastarse a lo wey» (`docs/balance.md` l. 1843-1844, v13) y «no es solo saber qué equipo(s) participan de la persecución... también es saber POR QUÉ!!» (l. 2571-2574, v15). La línea permanente `Pulling:` solo lleva el porqué si dos relevistas del equipo comparten destinatario (`forOf`, 6-d), y en el propio ejemplo de §6.4 el equipo que más tira, cuatro del `rq-team-17`, sale como `Team Rho` sin razón (l. 2926). La voz lo dice una vez (`peloton_pull` y `chase_work` son `voice_only`, §6.6, y `dropRepeatedPulls` quita la repetición, §12.2 l. 5793), pero la línea sigue en pantalla kilómetro tras kilómetro sin porqué.",
+  "correccion": "`PullingLine.teams[]` gana `motive: PullMotive | null`, el motivo mayoritario de los relevistas del equipo (`Puller.motive`, §4.2), y el componente lo escribe cuando no hay `forRider`, con las palabras que ya usa el journal: `Team Rho (chasing the break)`, `Team Rho (for the overall)`, `Team Rho (no leader to work for)`. Cambia 6-d, y `names.test.ts` gana los casos."
+ },
+ {
+  "id": "Rdueno-016",
+  "seccion": "§6.1",
+  "linea": 2669,
+  "gravedad": "media",
+  "afirmacion": "Voss, Silva and Ekdal chase at 20 seconds.",
+  "fallo": "La línea de la voz del dibujo no lleva dorsal, equipo ni bandera, y tampoco la de `Commentary` en escritorio («km 62  Moreno, Leroy and Kahn…», l. 2685) ni la barra (`MORENO · LEROY · KAHN`, l. 2657; «los apellidos en mayúsculas», §6.3 l. 2853). La regla del dueño es «Cada vez que menciones un ciclista, pon su dorsal, su equipo entre paréntesis y su bandera» (`docs/balance.md` l. 1842, v13), y la reafirmó al rechazar un umbral: «siguen saliendo entradas sin dorsal y nombre de equipo» (`apps/web/src/domain/stageJournal.ts` l. 192-193). El borrador no cita la B1 en ningún sitio ni dice si vale para la voz y la barra; «chase at 20 seconds» no es ninguna plantilla (`stageJournal.ts` no tiene esa frase), y los rótulos escriben `21 L. BERTOLINI` (l. 2970) contra la decisión 7-a, que descarta esa forma (l. 3687).",
+  "correccion": "En §12.2: «La voz nombra con `riderFull` (dorsal, nombre, equipo entre paréntesis y bandera): la B1 del dueño (`docs/balance.md` l. 1842)». Rehacer los dibujos de §6.1 con una línea que la voz diga de verdad (§12.5), con la identidad entera. Escribir en §6.3 que la barra es la única excepción a la B1, por espacio, y que al tocar la fila sale la identidad entera. Unificar la forma del nombre con 7-a en §6.5, §6.6 y §6.7."
+ },
+ {
+  "id": "Rdueno-017",
+  "seccion": "§6.3",
+  "linea": 2853,
+  "gravedad": "media",
+  "afirmacion": "El grupo del maillot solo existe en la barra y en la radio servida: la voz nombra ese grupo por su papel (`the chase group`), porque su vocabulario vigilado son cuatro nombres",
+  "fallo": "El mismo grupo tiene dos nombres a la vez en la misma pantalla: `RACE LEADER’S GROUP` en la barra y en la capa fija (`on the race leader’s group`, 6-b, l. 3194) y «the chase group» en la voz de debajo. Es lo que prohíbe la regla que el borrador invoca, «Un solo concepto, con el mismo nombre, en el motor y en la Race Radio» (`docs/balance.md` l. 6740-6741, v34), y lo que §20.4 da por cumplido: «un solo vocabulario de grupos en la barra, la radio, la voz y el acta» (l. 9579). El nombre del grupo del maillot lo pidió el dueño: «el grupo del líder, en caso de que no sea el pelotón ni la cabeza de carrera, podría llamarse grupo del maillot amarillo en vez de grupo 3» (`apps/web/src/components/RaceRadioPanel.tsx` l. 50-52, v58). La razón que se da, el vocabulario vigilado, es una lista de `coherence.ts` que el 4a ya amplía para `the gruppetto` (§12.6).",
+  "correccion": "En el 4a, `the race leader’s group`, `the points leader’s group` y `the KOM leader’s group` entran en `GROUP_NOUNS` y `WATCHED_GROUP_NOUNS` como `the gruppetto`, `withGroupRoles` (§12.6) anota `jersey_group` además del papel y la voz dice la palabra de la barra. Cambiar 6-b, §6.3 y §12.6. Si se prefiere no ampliar el vocabulario vigilado, que la barra tampoco use `jersey_group` y ponga el icono del maillot junto a `CHASE GROUP`."
+ },
+ {
+  "id": "Rdueno-018",
+  "seccion": "§6.3",
+  "linea": 2890,
+  "gravedad": "media",
+  "afirmacion": "La tele sigue llamando pelotón al grupo del líder aunque sea de 40 (mapa 06 §1.3); el motor se lo quita por debajo de dos tercios, y aquí manda el motor por C7.",
+  "fallo": "La C7 no elige palabra ni criterio: «Binario: o tiras o no tiras. Se acabó el tercer estado intermedio. Un solo concepto, con el mismo nombre, en el motor y en la Race Radio» (`docs/balance.md` l. 6740-6741, v34), y trataba del relevo. Si «manda el motor», su palabra es la otra: el grupo se llama `peloton` en el código (`radioGroupKindSchema`, `packages/shared/src/contracts.ts` l. 1346) y en cinco plantillas (`peloton_pull`, `peloton_split`, `peloton_concedes`, `peloton_selection` y `peloton_regroup`, `packages/engine/src/stage/simulate.ts`); la radio de hoy dice `Peloton`, y el dueño dice «pelotón»: «Cada vez que alguien tire del pelotón» (l. 1843, v13) y «tenemos el pelotón con 129 ciclistas, etiquetado como lead group y no como pelotón» (`apps/web/src/components/raceRadioNames.test.tsx` l. 13-14). DD-04 en §20.2 (l. 9538) y su porqué en §20.8 (l. 9635) repiten la lectura y no le dicen al dueño que el motor y él mismo usan esa palabra.",
+  "correccion": "En §6.3, DD-04 de §20.2 y §20.8: «La C7 pide una sola palabra, no cuál. `Bunch` es la de SPEC §6.15 y del journal (140 tests); `Peloton` es la de la tele, la del código del motor (`kind: 'peloton'` y cinco plantillas `peloton_*`), la de la radio de hoy y la del dueño («pelotón»). El corte de dos tercios decide cuándo un grupo es el grueso, no cómo se llama»."
+ },
+ {
+  "id": "Rdueno-019",
+  "seccion": "§12.6",
+  "linea": 6008,
+  "gravedad": "media",
+  "afirmacion": "así que el test nocturno «el vocabulario de grupos no pasa de tres nombres» (`coherence.test.ts` l. 347-360) sigue en verde.",
+  "fallo": "SPEC §6.15, la regla que nació de la queja del dueño («si lees todo el Journal no SABES quién va ganando, quién va persiguiendo… es un lío los últimos mensajes», `docs/balance.md` l. 5975-5976, v27), dice «En la carretera hay TRES cosas, y por tanto hay tres nombres» y que «`the bunch` queda para lo que ya no decide» (`SPEC.md` l. 604 y 614-615). El borrador pone un cuarto, `Gruppetto` / `the gruppetto`, en la barra de todo grupo de detrás del grueso y en la voz de `crash` (D-18, §6.3), y cambia el criterio de SPEC (`chaseKind` del motor) por el de dos tercios; SPEC no se corrige en ningún paso y no hay fila en §20 (DD-04 solo decide `Bunch` o `Peloton`). La regla de la casa es que «SPEC.md es la fuente de verdad del diseño… Ante conflicto, SPEC.md manda» (`Claude.md` l. 4). Y el test que vigila la regla de SPEC sigue en verde porque solo mira lo que emite el motor, no lo que ve el jugador: una guarda que ya no guarda nada de la pantalla.",
+  "correccion": "Añadir a §20 una decisión, «El cuarto nombre de grupo (`Gruppetto`) y el corte de dos tercios, que cambian SPEC §6.15», por defecto sí, con su consecuencia y lo contrario (con tres nombres, lo que va detrás del grueso es `the bunch` o se nombra por su papel, como dice SPEC). El paso 12 reescribe SPEC §6.15 (l. 604-615) con lo que se conteste. Y B7 (§16.4) comprueba también la unión de palabras de grupo de la VOZ servida (las líneas de la API tras `withGroupRoles`), no solo las del motor."
+ },
+ {
+  "id": "Rdueno-020",
+  "seccion": "§20.2",
+  "linea": 9552,
+  "gravedad": "media",
+  "afirmacion": "apagados para siempre: la regla B3 del dueño la cumplen la cuenta de la barra y el acta (`groupRuns`)",
+  "fallo": "La B3 es sobre lo que se cuenta, no sobre la barra: «No menciones uno a uno todos los ciclistas que se van descolgando: puedes mencionar muchos juntos con número» (`docs/balance.md` l. 1845-1846, v13). Con `liveClusters` apagada, «los descuelgues sueltos de corredores con rótulo salen uno a uno» en la voz (§12.3, l. 5840), y con rótulo va, por §7.7, todo el que corre en un grupo de hasta doce, más los que tiran, los maillots, el top 10 de salida, los propios y los protagonistas: en una reina, el grupo de favoritos que se deshace de uno en uno se cuenta de uno en uno. Nadie ha medido cuántas líneas `rider_sits_up` dice la voz tras `inVoice`; la v13 midió el caso que dio origen a la regla, Race Muscat, que gastaba «15 de sus 40 líneas» en descuelgues de uno en uno (l. 1974-1975). Y el defecto de la fila («sí, si B19 sigue en 0») no es lo que se implementa: `liveClusters` nace apagada y alguien la tiene que encender (12-d).",
+  "correccion": "Medir con `l8/voz.mjs` más `inVoice` las líneas `rider_sits_up` por etapa en las 18 corridas con `liveClusters` apagada y ponerlo en DD-18 (§12.3, §20.2 y §20.3). Reescribir lo contrario: «apagados para siempre: la voz nombra uno a uno los descuelgues de corredores con rótulo (N por etapa, medido), contra la B3; la barra solo cuenta los que no tienen rótulo». Y escribir en el valor por defecto que, hasta que se encienda, rige lo apagado."
+ },
+ {
+  "id": "Rdueno-021",
+  "seccion": "§6.10",
+  "linea": 3175,
+  "gravedad": "media",
+  "afirmacion": "conocida (vista, revelada o arrastrada: letras `W`, `S`, `R` y `A`, D-28, 10-e) | `Report`, `Result`, `Classifications`, `Race Radio`, `Profile`, `Watch`",
+  "fallo": "Con 10-a, «Ver la etapa N arrastra con `A` las anteriores no conocidas en el PRIMER progreso» (l. 5003). Quien descubre una carrera fuera de guardia por la etapa 5, pulsa `▶` y vuelve después a la etapa 1 para verla desde el principio, la encuentra abierta en `Report`: el acta con el ganador, sin haberla visto ni pedido. Es lo que el encargo quita, «entrar en una etapa debe ser sentarse a verla, no leer el acta» (`docs/encargos.md` l. 144), para el punto del dueño «News + Race Radio + journal, y sin destripe» (l. 680). Una etapa con `A` no se ha visto: se conoce por deducción (la N+1 sale con la general de la N), y de ella el espectador sabe tanto como de una caducada, que sí abre en `Watch` (10-e, l. 5007).",
+  "correccion": "En §6.10 y en la tabla de §10.2 (fila «arrastrada», l. 4502): una etapa con letra `A` abre en `Watch`, sin puerta, con `Report` a un toque, como la `X`; solo `W`, `S` y `R` abren en `Report`. `raceTabs` (9b) y su test ganan el caso."
+ },
+ {
+  "id": "Rdueno-022",
+  "seccion": "§11.17",
+  "linea": 5582,
+  "gravedad": "media",
+  "afirmacion": "con el ganador si quien mira conoce la última etapa; si no, `Finished · ready to watch` (pantalla)",
+  "fallo": "Lo que se implementa no es eso. `sup. C1` y `sup. C4` se cierran con P sobre el velo (§11.1), y fuera de guardia el velo está vacío: la tabla de §10.2 da para esa etapa «`Watch`, sin puerta; `Report` a un toque, sin confirmación | todo: se ve al día (D-30)» (l. 4504). Así, en toda carrera que no sea propia, seguida ni una de las ocho de cabecera, que son casi todas las 842 del calendario (`docs/balance.md` l. 16768), la cabecera de la ficha enseña el ganador y la pestaña `Stages` el de cada etapa a quien no las conoce, en la pantalla por la que se entra a verlas. La agenda que el encargo asume promete que «entrar en una etapa es sentarse a verla, no leer el acta» (`docs/agenda.md` l. 521-522), para el punto del dueño «News + Race Radio + journal, y sin destripe» (`docs/encargos.md` l. 680).",
+  "correccion": "La ficha de carrera (`sup. C1`, `sup. C3` y `sup. C4`) lee `race_watch` de esa carrera sea cual sea su guardia: enseña el ganador solo de las etapas con letra `W`, `S`, `R` o `A`, y `Finished · ready to watch` o `Ready to watch` en las demás; el resto del producto sigue a horizonte como dice DD-01. Si no se hace, que §11.17 diga «si la etapa no está en su velo» y que DD-01 cuente esta consecuencia."
+ },
+ {
+  "id": "Rdueno-023",
+  "seccion": "§10.4",
+  "linea": 4601,
+  "gravedad": "media",
+  "afirmacion": "o automáticamente al empezar a ver cualquiera de sus etapas (quien se sienta a ver la etapa 3 quiere que la 4 no se la cuenten)",
+  "fallo": "Un toque en `▶` en una carrera fuera de guardia la pone en guardia entera: desde ese momento la portada, el feed, las clasificaciones, los rankings y las fichas esconden sus etapas siguientes hasta 56 días de juego después de la última (DD-02), y el primer progreso arrastra con `A` las anteriores (10-a, l. 5003). Es una decisión sobre el alcance del velo, la misma materia que DD-01 («Qué carreras se protegen sin pedirlo»), y no está en §20: DD-01 solo ofrece `guarded` u `own_only`, y §11.20 lo da por hecho («al empezar a verla la sigue (`follow = 1`, D-30)», l. 5675). Lo que el dueño pidió es «News + Race Radio + journal, y sin destripe» (`docs/encargos.md` l. 680); qué le pasa al resto del producto de quien mira una etapa suelta lo decide aquí el documento.",
+  "correccion": "Añadir a DD-01, o como decisión propia en §20: «Seguir una carrera al empezar a ver una de sus etapas». Por defecto sí; consecuencia: esa carrera entra en el velo en todas las pantallas hasta su caducidad y el ranking de quien la mira va por detrás en ella; lo contrario: solo `Follow without spoilers` protege, y ver la etapa 3 no protege la 4 del feed."
+ },
+ {
+  "id": "Rdueno-024",
+  "seccion": "§10.4",
+  "linea": 4604,
+  "gravedad": "media",
+  "afirmacion": "El resto del mundo se ve al día, porque el mundo no espera a nadie: «races happen whether you are watching or not» (`docs/captacion.md` l. 101).",
+  "fallo": "La cita no dice eso ni es de producto: es una frase del mensaje de reclutamiento para un foro sobre el ritmo del mundo («The world runs on its own: one game day every six hours, so races happen whether you are watching or not», `docs/captacion.md` l. 100-101), en un documento que se declara «plan operativo. No es diseño de producto» (l. 3). Con ella se justifica el límite del alcance del velo, que es lo que el dueño decide en DD-01, y DD-01 solo le ofrece `guarded` u `own_only` (§20.2, l. 9535): no le pone delante la lectura literal de su punto, «News + Race Radio + journal, y sin destripe» (`docs/encargos.md` l. 680), ni la del encargo, «que ninguna otra pantalla se lo reviente por detrás» (l. 145-146), que sería proteger toda etapa que el espectador no conoce, con su coste.",
+  "correccion": "Quitar la cita de `captacion.md` y escribir el porqué propio: un ranking o un feed que esperan a todo lo no visto se quedan parados para quien no mira nada. En DD-01 (§20.2 y §20.3) añadir la tercera respuesta, «todas las carreras», con su consecuencia medida con el mismo `e2prod/headline.mjs` sobre las 842 carreras, para que el dueño elija entre las tres."
+ },
+ {
+  "id": "Rdueno-025",
+  "seccion": "§20.2",
+  "linea": 9546,
+  "gravedad": "media",
+  "afirmacion": "con el ganador, marcada `Spoiler` (pantalla), solo si la etapa está fuera del velo de quien pide la página (14-k)",
+  "fallo": "La condición no protege a nadie en el caso para el que existe. Quien pide la página para la vista previa es el robot del chat, sin cookie y con horizonte `anon`, cuyo velo está siempre vacío: «el robot de vista previa no lleva cookie y su horizonte es `anon`, así que la ve» (§11.10, l. 5376). Cuando un jugador comparte el acta en el canal de su equipo, todos los que lo leen ven `Spoiler · Winner: …` antes de decidir si quieren ver la etapa, la tengan velada o no. La consecuencia de la fila no lo dice («es lo que vende en captación»), y el dueño decide sobre una protección que no existe. Su punto es «News + Race Radio + journal, y sin destripe» (`docs/encargos.md` l. 680), y el encargo pide que «ninguna otra pantalla se lo reviente por detrás» (l. 145-146).",
+  "correccion": "Reescribir la consecuencia de DD-12: «la vista previa lleva el ganador para todo el que vea el enlace en un chat, jugador o no, porque el robot no tiene velo; la condición de 14-k solo cuenta cuando la página la pide un navegador con sesión». El valor por defecto lo decide el dueño con esa consecuencia delante; cambiar igual §20.8 y 14-k."
+ },
+ {
+  "id": "Rdueno-026",
+  "seccion": "§11.13",
+  "linea": 5415,
+  "gravedad": "media",
+  "afirmacion": "el de antes de los premios de equipo de las etapas veladas",
+  "fallo": "La regla que la sección aplica es la de D-41, «se enseña sin velo lo que hace falta para decidir y no cuenta el resultado» (l. 5397), y con ella DD-08 deja visible la condición del corredor aunque filtre una pista. Al presupuesto del equipo le da la respuesta contraria sin pasar por §20, y es un dato para decidir: la página del calendario del equipo enseña `Budget` y `Planned travel cost` para elegir qué carreras añadir, con el aviso de que el viaje «is charged to the team budget per rider when each race convokes» (`apps/web/src/pages/TeamCalendar.tsx` l. 132-133, 140 y 152). El tick cobra sobre el presupuesto real. Y la economía de los equipos es la primera decisión del dueño en la agenda: «La economía INTERNA. Que el salario le sirva de algo al corredor y, sobre todo, el dinero de los equipos: patrocinadores, premios y todo tipo de gastos» (`docs/agenda.md` l. 34).",
+  "correccion": "Subir a §20 una decisión nueva, «El presupuesto del equipo con etapas veladas», con dos respuestas: velado (R, lo que hoy dice §11.13: el mánager decide viajes sobre una cifra menor que la real) o visible (L en la lista blanca de B1b, como DD-08: un premio grande deja adivinar una victoria). Por defecto, visible, por coherencia con DD-08; cambiar la fila de §11.13, `sup. P6`, `sup. X8` y §11.18."
+ },
+ {
+  "id": "Rdueno-027",
+  "seccion": "§17.4",
+  "linea": 8398,
+  "gravedad": "media",
+  "afirmacion": "**Qué ve el dueño**, y cualquier jugador: dos titulares nuevos en el feed desde la primera etapa corrida con el 1a (`X takes the overall lead at the Race Y.`, pantalla, y los de puntos y montaña)",
+  "fallo": "El punto del dueño es «News + Race Radio + journal, y sin destripe» (`docs/encargos.md` l. 680), y el encargo cuenta el feed entre las pantallas que no pueden reventar nada (l. 145-147). El 1a pone en el feed de todos dos titulares nuevos que solo cuentan resultados (quién pasa a liderar la general, los puntos o la montaña) semanas antes de que exista el velo: el 1a va a las 3 sesiones y el encendido a las 48,5 (§17.22), sin interruptor y sin que el dueño los haya visto antes, contra §2.10 («ningún comportamiento visible llega al jugador sin encenderlo a mano (D-53)», l. 598) y §20.5 («Nada llega al jugador sin que el dueño lo haya visto antes», l. 9587). No está en §20.",
+  "correccion": "El 1a escribe `gc_lead_taken` y `jersey_taken` con su `payload`, pero `GET /api/news` y `/api/teams/:id/news` no los sirven hasta `SPOILER_MODE=on` (un filtro por `kind` en `packages/db/src/news.ts`, con su test). Si se quieren antes, subirlo a §20: «Titulares nuevos de cambio de líder», por defecto «desde el encendido del 10b»."
+ },
+ {
+  "id": "Rdueno-028",
+  "seccion": "§20.5",
+  "linea": 9587,
+  "gravedad": "media",
+  "afirmacion": "Nada llega al jugador sin que el dueño lo haya visto antes con los interruptores en `admins` (D-53, §17.18):",
+  "fallo": "El plan dice lo contrario en cuatro pasos. 6b: «Cualquier jugador ve, en el acta de siempre, frases donde había una clave cruda y `the chase group` en 40 de cada 210 líneas que antes decían `the bunch`» (l. 8569), también en las crónicas ya corridas, que se redactan al leer. 9a: «El jugador, aun con los interruptores en `admins`: la pestaña `Story` se llama `Report`» (l. 8662). 9b: «la carrera de un día terminada abre en `Report` en lugar de `Result`» (l. 8670). 12: «algunas frases de etapas viejas cambian de variante» (l. 8715). §17.18 los deja a un `git revert` (l. 8767). Son cambios en lo que el dueño lee y con lo que trabaja: «el Journal me gustaría que tuviera aún más detalle… por ejemplo quién tira del pelotón» (`docs/balance.md` l. 1431-1432, v11) y «si lees todo el Journal no SABES quién va ganando» (l. 5975, v27).",
+  "correccion": "Poner detrás de `BROADCAST_WATCH` lo que se pueda: el acta usa `withGroupRoles` solo con `broadcastOn()`, y la pestaña se llama `Story` y la clásica abre en `Result` hasta el encendido. Lo que no se pueda (las variantes del 12), escribirlo en §20.5 como excepción, con la cifra de líneas que cambian."
+ },
+ {
+  "id": "Rdueno-029",
+  "seccion": "§20.2",
+  "linea": 9555,
+  "gravedad": "media",
+  "afirmacion": "`SPOILER_MODE` no pasa a `on` hasta que el mánager de un equipo de 30 pase el p95 ≤ 5 ms contra Postgres",
+  "fallo": "La consecuencia no dice a quién retiene el defecto. Por las decisiones del dueño, el mánager es una «Cuenta premium. Regalada a quien MÁS HA APORTADO (no a quien más ha ganado), y solo por invitación hasta que el juego esté implementado y probado» y «el mánager es por invitación hasta que D5 y D6 estén implementados y probados, no solo diseñados» (`docs/agenda.md` l. 36 y 39, decisiones 3 y 6). Con el defecto, el sin destripe de todos los jugadores espera a la latencia de un perfil que al principio tendrán unos pocos invitados, cuando lo que ese perfil paga es de 8,6 a 9,3 ms en PGlite una vez por minuto, por el memo de 60 s (§10.7). El dueño contesta sin ver ese reparto.",
+  "correccion": "En DD-21 (§20.2 y §20.3), consecuencia: «el mánager es por invitación (decisiones 3 y 6 del dueño, `docs/agenda.md` l. 36 y 39): con el defecto, el encendido para todos espera a unos pocos invitados». Y ofrecer la tercera respuesta: encender para todos con el jugador dentro del listón y el mánager pagando sus milisegundos una vez por minuto mientras se optimiza la cuarta consulta (16-k)."
+ },
+ {
+  "id": "Rdueno-030",
+  "seccion": "§6.2",
+  "linea": 2725,
+  "gravedad": "baja",
+  "afirmacion": "pero «sobre quién» es una de las cuatro preguntas del dueño ([DUEÑO 4]; «quién va delante, con cuánta ventaja, sobre quién y cuánto queda», `docs/balance.md` l. 6000-6002, v27) y la causa madre de aquel diario ilegible fue que «se medía contra el grupo equivocado» (l. 6004)",
+  "fallo": "Las dos citas son del asistente, no del dueño. La regla la escribe la v27 como suya: «LA REGLA QUE ORDENA LA TANDA, y que queda escrita en SPEC 6.15: en cualquier punto del diario, un lector que haya leído desde el principio tiene que poder responder cuatro cosas» (`docs/balance.md` l. 6000-6002), y «se medía contra el grupo equivocado» es el título de su análisis («2. La causa madre: se medía contra el grupo equivocado, y es del motor», l. 6004). Lo del dueño es la queja: «si lees todo el Journal no SABES quién va ganando, quién va persiguiendo… es un lío los últimos mensajes» (l. 5975-5976). §3.5 (l. 825) sí separa queja y regla, pero también las llama «las cuatro preguntas del dueño». Regla 5 del encargo (`00-encargo.md` l. 87).",
+  "correccion": "«…pero «sobre quién» es una de las cuatro preguntas de la regla del diario (SPEC §6.15, l. 598-600), con la que la v27 contestó a la queja del dueño («si lees todo el Journal no SABES quién va ganando, quién va persiguiendo… es un lío los últimos mensajes», `docs/balance.md` l. 5975-5976); la v27 encontró que el hueco «se medía contra el grupo equivocado» (l. 6004)». Igual en §3.5 (l. 825) y en 6-f."
+ },
+ {
+  "id": "Rdueno-031",
+  "seccion": "§16.5",
+  "linea": 8179,
+  "gravedad": "baja",
+  "afirmacion": "y el del dueño en la v27: «La prueba de esta tanda es leer el diario… El criterio no es un porcentaje» (`docs/balance.md` l. 6236-6237)",
+  "fallo": "No es del dueño: es la última línea de la lista de lo que la v27 no hace, escrita por el asistente: «No mide si el lector ENTIENDE. Las cuatro medidas son aproximaciones honestas; la prueba de esta tanda es leer el diario del §7 de arriba abajo. El criterio no es un porcentaje» (`docs/balance.md` l. 6236-6237). Lo del dueño en la v27 es la queja: «si lees todo el Journal no SABES quién va ganando, quién va persiguiendo… es un lío los últimos mensajes» (l. 5975-5976). D-60 la cita bien, como «el de la v27» (`00-decisiones.md` l. 595). La misma frase del borrador cita SPEC §6.15 en «l. 596-599» y la regla está en l. 598-600 (l. 596 es el cursor por grupo); §20.5 punto 5 dice «l. 597-599» (l. 9593). Y lo que la cita pide es leer el diario de arriba abajo, cuando la prueba pregunta en nueve puntos sorteados con un umbral de nueve de nueve. Regla 5 del encargo (`00-encargo.md` l. 87).",
+  "correccion": "«…y el que la propia v27 se puso: «la prueba de esta tanda es leer el diario del §7 de arriba abajo. El criterio no es un porcentaje» (`docs/balance.md` l. 6236-6237)». SPEC §6.15, l. 598-600, aquí y en §20.5 punto 5."
+ },
+ {
+  "id": "Rdueno-032",
+  "seccion": "§12.8",
+  "linea": 6060,
+  "gravedad": "baja",
+  "afirmacion": "El plazo es del dueño: «El plazo queda en: **antes del reset**, añadir `seed` y `data` a `news` y mover el renderizado al momento de leer.",
+  "fallo": "El texto citado es de la agenda, que habla en primera persona justo antes: «Lo que sí cambia es la urgencia, y lo dije de más. Escribí que cada titular escrito desde hoy es intraducible «para siempre»» (`docs/agenda.md` l. 127-128), y deduce el plazo de una decisión del dueño que es otra: «Uno y para siempre, con un reset al pasar de pruebas a juego de verdad» (decisión 2, l. 35). §0.1 del borrador separa lo del dueño de lo de la agenda (l. 19); aquí no. Regla 5 del encargo (`00-encargo.md` l. 87).",
+  "correccion": "«El plazo sale de la decisión 2 del dueño («Uno y para siempre, con un reset al pasar de pruebas a juego de verdad», `docs/agenda.md` l. 35), y la agenda lo fija así: «El plazo queda en: …» (l. 131-133)»."
+ },
+ {
+  "id": "Rdueno-033",
+  "seccion": "§2.13",
+  "linea": 625,
+  "gravedad": "baja",
+  "afirmacion": "«lo que hay que hacer si acaso es mejorar la granularidad de las instrucciones, con más escenarios hipotéticos quizás» (`docs/epics.md` l. 701-702",
+  "fallo": "La cita del dueño está en `docs/epics.md` l. 700-701 («El dueño: «lo que hay que hacer si acaso es mejorar la granularidad de las instrucciones, con más» y, en la línea siguiente, «escenarios hipotéticos quizás»»); l. 702 está en blanco. §8.10 la cita bien (l. 4029, «`docs/epics.md` l. 700-701») y §20.4 repite el error (l. 9581). Regla 5 del encargo: la cita del dueño, textual y con su línea (`00-encargo.md` l. 87).",
+  "correccion": "`docs/epics.md` l. 700-701 en §2.13 (l. 625) y en §20.4 (l. 9581)."
+ },
+ {
+  "id": "Rdueno-034",
+  "seccion": "§20.2",
+  "linea": 9537,
+  "gravedad": "baja",
+  "afirmacion": "seguir una gran vuelta cuesta de 28 a 49 min por día real (de llanas a reinas como la e18) y hasta 73 con reinas largas",
+  "fallo": "DD-01 y DD-03 se contestan juntas y el documento no da su coste junto. Con `guarded`, un jugador que no mira tiene «7 a la vez en la mediana, 29 en el p90 y 42 como máximo» etapas veladas (DD-01, l. 9535), y cada una cuesta a ×1 de 7:39 a 13:28, hasta 19:59 (§8.3). Derivado de esas cifras: ponerse al día cuesta de 54 a 94 min en la mediana y de 3,7 a 6,5 h en el p90, o pasar por el digest. DD-03 solo da el precio de seguir una gran vuelta día a día, que no es el caso del que vuelve. Lo que cuesta no destripar a quien no mira todos los días es el precio del punto del dueño, «News + Race Radio + journal, y sin destripe» (`docs/encargos.md` l. 680), y es lo que necesita ver al contestar las dos.",
+  "correccion": "En §20.3, dentro de DD-01 y DD-03: «Ponerse al día con el velo de la mediana (7 etapas) cuesta de 54 a 94 min en `Watch`; con el del p90 (29), de 3,7 a 6,5 h (derivado de §8.3 y §10.4; el digest lo baja a lo de §8.4)»."
+ },
+ {
+  "id": "Rdueno-035",
+  "seccion": "§20.2",
+  "linea": 9547,
+  "gravedad": "baja",
+  "afirmacion": "se queda en la clasificación por equipos de `Report`: el cierre no tiene tabla por equipos (§8.6, duda de §8)",
+  "fallo": "La consecuencia no dice que, con el defecto, el equipo líder no se ve en ningún sitio de `Watch` (ni rótulo, ni barra, ni cierre), y el porqué de §20.8 (l. 9644) cita solo la medida de la navegación para la crónica (`docs/navegacion.md` l. 452-453), no lo que pidió el dueño: tras los maillots «en todas las clasificaciones», «Ah, falta la clasificación por equipos» (el dueño, `docs/navegacion.md` l. 412-415, agosto de 2026), que la navegación resolvió con el dorsal amarillo en todas las tablas (l. 444-448).",
+  "correccion": "Consecuencia de DD-13: «con el defecto, el equipo líder no aparece en `Watch` ni en su cierre; solo en la clasificación por equipos de `Report`». En §20.8, citar la petición del dueño junto a la medida de la navegación."
+ },
+ {
+  "id": "Rdueno-036",
+  "seccion": "§6.10",
+  "linea": 3169,
+  "gravedad": "baja",
+  "afirmacion": "«journal», «crónica», «diario» y `Story` dejan de ser nombres de pantalla",
+  "fallo": "Los nombres de las pantallas son de producto, y los cambia una decisión cerrada (D-48) sin fila en §20: `Story` pasa a `Report` para todos los jugadores en el 9a, sin interruptor (l. 8662), y aparece `Commentary`. El dueño llama a esa pieza «Journal» en todas sus peticiones: «el Journal me gustaría que tuviera aún más detalle» (`docs/balance.md` l. 1431-1432, v11), «si lees todo el Journal no SABES quién va ganando» (l. 5975, v27) y «es solo un tema del journal» (l. 8095, v39).",
+  "correccion": "Subir a §20 una decisión, «Los nombres de pantalla» (`Watch`, `Report`, `Commentary` y `Race Radio`), con el defecto de D-48 y la alternativa `Journal` para el acta, que es la palabra del dueño; su último momento barato es el 9a."
+ },
+ {
+  "id": "Rdueno-037",
+  "seccion": "§6.8",
+  "linea": 3157,
+  "gravedad": "baja",
+  "afirmacion": "El dueño la aparcó para el diario: «es solo un tema del journal, no me preocupa de momento» (`docs/balance.md` l. 8094-8095, v39, con una cobertura del 58 % contra el 75 % pedido).",
+  "fallo": "La aparcó con una condición: la cobertura de la criba lejana «queda para cuando se mejore el diario: «es solo un tema del journal, no me preocupa de momento»» (`docs/balance.md` l. 8094-8095, v39). E2 es esa mejora del diario (encargo: «Rehacer de arriba abajo lo que el jugador lee de una carrera: el Race Radio, el journal de etapa, la crónica», `docs/encargos.md` l. 138-139), y el acta de E2 «es la de hoy» (§0.4 punto 8, l. 79), así que en el acta, que es lo que se comparte y se lee después, la cobertura sigue en el 58 % sin que nadie lo decida: ni una medida en §16 ni una fila en §20. `Watch` la enseña como estado; el acta no.",
+  "correccion": "En §6.8 y §20.4: «En el acta, la cobertura de la criba lejana sigue en el 58 % de la v39 (no se remide aquí); E2 no la toca». Y una fila en §20, «La criba lejana en el acta», por defecto no, con lo que costaría: una frase del motor, que sube la versión, o una pasada de `buildChronicle` que la lea del estado de la línea grabada."
+ },
+ {
+  "id": "Rdueno-038",
+  "seccion": "§7.1",
+  "linea": 3219,
+  "gravedad": "media",
+  "afirmacion": "`RiderName` si enlaza a la ficha",
+  "fallo": "El enlace del nombre a la ficha queda en un «si» sin regla, y en `Watch` tocar un nombre no lleva a la ficha sino a un rótulo (`rider 'focus'`, «al tocar un nombre: sale enseguida, fuera de la cola», §6.5 l. 3004). El dueño lo pidió dos veces: «cuando salga el nombre de un ciclista, que tenga enlace a su ficha» (`apps/web/src/domain/stageJournal.ts` l. 170-171, v58) y «te pedí que pusieras link desde los nombres de los ciclistas a su perfil… y nada» (`apps/web/src/components/RiderName.tsx` l. 7-8, v59). Tampoco dice el borrador si la voz y `Commentary` conservan la marca de corredor de `chronicleParts`, que es la que hoy pone el enlace en el journal.",
+  "correccion": "En §7.1: «el nombre del rótulo es siempre `RiderName`, con su enlace a la ficha; seguirlo pausa la reproducción e informa de lo alcanzado antes de salir (§8.5)». En §12.2: «la voz y `Commentary` se pintan con `chronicleParts`, con la marca de corredor y su enlace, como el journal». La ficha de otro corredor ya se sirve con el horizonte de quien mira (§11.14), así que el enlace no destripa."
+ },
+ {
+  "id": "Rdueno-039",
+  "seccion": "§11.15",
+  "linea": 5509,
+  "gravedad": "media",
+  "afirmacion": "La web pasa `diag=1` a las cuatro rutas de etapa (`stageQuerySchema.diag`, §14.2).",
+  "fallo": "El diagnóstico solo abre la etapa. Las clasificaciones de la carrera, el feed, los rankings y las fichas quedan a su horizonte para el dueño desde que `SPOILER_MODE=admins` (7a, §17.18) y después del encendido, sin salida de diagnóstico, y ahí también caza defectos: «un corredor ganó 3 etapas… luego resulta que dice en noticias que se enfermó… y en las clasificaciones, incluso tras la etapa 1, pone DNF» (`docs/balance.md` l. 9173-9175, v45) y «los DNF no salen en la clasificación de la etapa» (`apps/api/src/routes/races.ts` l. 447-448, v50). Con el alcance `guarded`, esas pantallas le enseñan lo de antes en toda carrera suya, seguida o de cabecera que no haya visto (§11.5), y §11.15 no le dice cómo verlas sin gastar la etapa.",
+  "correccion": "En §11.15: «`?diag=1` vale también, para un administrador con sesión, en la ficha de carrera (clasificaciones y `Stages`) y en el feed, servidos con `worldHorizon` y con la franja `Diagnostic view · not counted as watched`». O, si no, escribir que para depurar agregados el dueño pone su alcance en `off` (§10.4) y lo que eso le cuesta como espectador."
+ },
+ {
+  "id": "Rdueno-040",
+  "seccion": "§20.2",
+  "linea": 9540,
+  "gravedad": "media",
+  "afirmacion": "E12 siembra los títulos por la misma interfaz y E2 no cambia; el Giro de la temporada 0 puede traer al campeón de Italia",
+  "fallo": "La respuesta contraria no tiene quién la haga a tiempo. Para que el Giro de la temporada 0 traiga al campeón de Italia, E12 tiene que estar hecho antes del reinicio, y los encargos van en orden, «E2 primero, E13 último» (`docs/encargos.md` l. 6-7), con E12 el penúltimo. Si el dueño dice «sí», o se reordenan los encargos o E2 siembra, y el borrador descarta lo segundo sin ofrecerlo («Inventar un campeón que no ha corrido ningún nacional sería contar algo que no pasó», §20.8 l. 9637). Mientras, el caso que el dueño pone como su requisito, la diferencia entre «se escapan cinco» y «se escapa el campeón de Italia con cuatro más» (`docs/encargos.md` l. 153-155), no puede darse hasta el día 179 de la temporada 0 salvo en 17 países.",
+  "correccion": "En DD-06, la respuesta contraria dice lo que exige: «E12 antes del reinicio, fuera del orden de los encargos (`docs/encargos.md` l. 6-7), o una siembra en E2 detrás de `ChampionTitleSource` (por ejemplo, un sorteo sembrado entre los corredores de cada país, marcado provisional)», y su plazo es «antes del reinicio»."
+ },
+ {
+  "id": "Rdueno-041",
+  "seccion": "§20.1",
+  "linea": 9523,
+  "gravedad": "baja",
+  "afirmacion": "se cambia con un PR que no corre los bancos, en cualquier momento. Son DD-02, DD-16 (la cuenta), DD-18 y DD-22.",
+  "fallo": "Para DD-02 no es verdad del todo: su propia fila dice que con otra caducidad «`knownWins` empieza a contar antes, solo en las etapas grabadas después (7-e, 7-g)» (l. 9536), porque la notoriedad se congela en el reparto al grabar (D-15). Si el dueño cambia de idea sobre la caducidad, que es la mitad de lo que pidió con «y sin destripe» (`docs/encargos.md` l. 680), el velo cambia al momento pero no los rótulos de lo ya grabado, y §20.1 le dice que no hay coste.",
+  "correccion": "En §20.1, DD-02 va también en la lista de «Lo que se congela al grabar la etapa»: «el velo cambia en cualquier momento; la notoriedad de los rótulos, solo en las etapas grabadas después (7-e, 7-g)»."
+ },
+ {
+  "id": "Rdueno-042",
+  "seccion": "§20.2",
+  "linea": 9553,
+  "gravedad": "baja",
+  "afirmacion": "antes del reinicio rompe las pestañas abiertas, que validan `text: z.string()` (X-20)",
+  "fallo": "DD-19 no es una decisión de producto: una de sus respuestas contrarias rompe pestañas abiertas y la otra deja una columna muerta, y ningún jugador ve la diferencia. Lo mismo DD-15, cuyo valor lo impone el tick («NO se trocea: la atomicidad por día es un requisito de diseño», `packages/db/src/tick.ts` l. 260) y cuya alternativa es «un diseño propio». El dueño dejó escrito qué quiere que se le pregunte: «Pausar y avisar SOLO para lo que requiere al usuario: clics en Railway, cuentas/compras externas, verificación visual en producción, o decisiones de producto grandes. Las decisiones razonables no cubiertas por SPEC se toman y se documentan (en vez de esperar)» (`Claude.md` l. 26). Meterlas entre las veinticinco diluye las que sí son suyas, algunas de las cuales el borrador toma fuera de §20 (Rdueno-019, Rdueno-023, Rdueno-026 y Rdueno-036).",
+  "correccion": "DD-19 pasa a ser una decisión de diseño de §12.8 con su valor, y DD-15 se escribe en §8.10 como lo que no se hace y por qué. §20 se queda con las que cambian lo que el dueño o el jugador ven, y gana las que hoy están fuera."
+ },
+ {
+  "id": "Rdueno-043",
+  "seccion": "§11.10",
+  "linea": 5366,
+  "gravedad": "media",
+  "afirmacion": "el acta, pública e indexable",
+  "fallo": "Que el acta sea indexable no lo pide nadie. El requisito es que «un visitante sin cuenta debe poder ver el resultado de una carrera» (`docs/motor.md` l. 1504-1505, requisito recogido del dueño, [DUEÑO 8]), y para eso basta con que sea pública. Indexada, el buscador, que es un robot sin cookie y con horizonte `anon` como el de la vista previa (§11.10, l. 5376), guarda el acta y su `og:description` con `Spoiler · Winner: …` (DD-12, 14-k), y quien busca la etapa ve el ganador en la lista de resultados sin haber entrado en el juego. El punto del dueño es «News + Race Radio + journal, y sin destripe» (`docs/encargos.md` l. 680). No hay fila en §20: se decide de pasada en la razón de DD-07 («El acta sigue siendo pública e indexable en `/report`», §20.8 l. 9638).",
+  "correccion": "En §11.10 y §14.10: `/report` se sirve con la cabecera `X-Robots-Tag: noindex`, y la tabla de §11.10 dice «el acta, pública y sin indexar». Si se quiere indexar por captación, subirlo a §20 como decisión del dueño («El acta en los buscadores»), por defecto sin indexar, con lo que se ve en un buscador si dice que sí."
+ },
+ {
+  "id": "Rdueno-044",
+  "seccion": "§20.4",
+  "linea": 9581,
+  "gravedad": "baja",
+  "afirmacion": "La retransmisión se mira: ningún mando de `Watch` cambia la carrera, la etapa ya está corrida, y por eso no hay estreno a hora fija (DD-15, §8.10).",
+  "fallo": "La cita del dueño no dice eso. Según `docs/epics.md` (l. 696-697), lo que tumbó fue decidir durante la carrera «estilo radio», por ser «incompatible con avanzar un día cada seis horas», y lo que pidió, con sus palabras, fue: «lo que hay que hacer si acaso es mejorar la granularidad de las instrucciones, con más escenarios hipotéticos quizás» (l. 700-701). Un estreno a hora fija no decide nada en vivo: es ver a la vez una etapa ya corrida. El valor de DD-15 lo pone el tick («NO se trocea», `packages/db/src/tick.ts` l. 260), como dice la propia fila (l. 9549), no la [DUEÑO 9]; atarlo a sus palabras le presenta como suya una respuesta que no ha dado.",
+  "correccion": "Quitar «y por eso no hay estreno a hora fija (DD-15, §8.10)» de §20.4. En DD-15 y en §8.10, el porqué es solo el del tick."
+ },
+ {
+  "id": "Rdueno-045",
+  "seccion": "§17.11",
+  "linea": 8630,
+  "gravedad": "media",
+  "afirmacion": "con la web de hoy, listas cortadas hasta lo que conoce, ganadores a null y los marcadores con su `text` neutro",
+  "fallo": "Del 7b al 9b (de la sesión 32,5 a la 44,5 de §17.22, con un implementador) el dueño juega y mira producción con una web que no sabe pintar lo que le llega: pestañas vacías (7b, l. 8608), «ganadores a null» y listas cortadas (8a, aquí) y los agregados a su horizonte sin los avisos que los explican, que llegan con el 9b (§17.12). El plan lo apunta como «Qué ve el dueño», pero no dice qué hace él con ello, y el dueño informa como defecto lo que ve roto en producción, como con la radio que decía no existir: «Una carrera que se acaba de correr hace unos minutos, la Race Solidarnosc… sale este error, y las otras del mismo día o anteriores sí tienen Race Radio» (`docs/balance.md` l. 13818-13819, v72). Doce sesiones de huecos y nulos sabidos en su cuenta son una fuente de falsos defectos, o un motivo para poner `SPOILER_MODE=off` y no probar el velo.",
+  "correccion": "Encender `SPOILER_MODE=admins` al fusionar el 9b y no en el 7a (tabla de §17.18, §17.10, §17.11 y §20.5): el 7a, el 7b, el 8a y el 8b se prueban con sus bancos (B1a a B1c, B12, B13 y B18) sin tocar la cuenta del dueño, y el dueño estrena el velo con la web que lo pinta. Es compatible con Rdueno-002 (el `?diag=1` de la web va entonces con el 9a, antes del encendido). Si se prefiere antes, que §17.10 y §17.11 le digan qué pantallas verá rotas y hasta qué PR."
+ }
+]
