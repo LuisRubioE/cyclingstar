@@ -112,3 +112,23 @@ otros lotes. La pasada de coherencia tiene que cerrarlos uno a uno (o dejarlos e
   mayor ≤ 0,54 ms; tick del día 179 de 15,5 a 18,9 s y del 176 de 0,7 a 0,8 s; primera visita a una
   etapa 334 KB comprimidos (85 del motor). La LRU queda en 16 entradas (coincide con L3).
 - 11.18 es la lista blanca entera de B1b, que L8 copia: una sola fuente en el ensamblado.
+
+## De L8 (cierre) y L9 (§17 y §19)
+
+- L8 (cierre): `withGroupRoles` devuelve copias y §14.3 ata cada suceso a su hora por identidad,
+  así que las copias perdían su hora; lo cierra 12-n. La lista blanca de B1b se cita de §11.18 y
+  `strip` gana `[veiledDay]` (16-o). B11 ya no exige `onEvent` en las cronos (§5.2). B10 importa
+  `realRaceScenario`, que el motor no exporta: lo exporta el PR 4b. B6 repartido (16-n). B14 (16-k),
+  B15 (16-l) y B8 (16-m) con umbrales nuevos. Bloques «Dudas del cierre (lote L8)» al final de
+  `12-voz.md` (4) y `16-bancos.md` (8): piden cambios en §14.3, §13.2, §5.10, §17, §18.10 y §20.
+- L9: decisiones que corrigen a otras secciones: 17-b (B1d en el 8a), 17-i (tests de banco solo en
+  4a y 4b), 17-k (reparto congelado en el 5), 17-l (B16 largo en `apps/api`), 17-m (B18 en el 7b),
+  17-n (`PENDING_ROUTES` vacía en el 8b), 17-t (B13 en `apps/api`: `shared` solo depende de zod y
+  no puede importar `veilCast`), 17-r (equipo del día desde `input.riders[].teamId`).
+- L9, dudas abiertas: los topes de D-11 dejan B6 en rojo y hay que fijarlos antes del 4b (L3 ya
+  propuso 96 KB, 640 KB, 256 KB y 32 KB); si el mánager de B14 no pasa contra Postgres decide el
+  dueño y §20 debe recogerlo; B1c depende de 8-g; §14.3 no llama a `withGroupRoles` ni a
+  `liveClusters`; la firma de `emitNews` no está en §G; la cifra de CI del esqueleto está mal (los
+  73 min son pruebas en serie, no tiempo real); si a la táctica le quedan subidas de versión, D-09
+  le pide hacer antes el 17d. 19-b: `getBlockReport` va a `docs/balance.md` en el paso 12.
+- Coste estimado del plan: unas 52 sesiones en total y 34 hasta el encendido (estimado, no medido).
