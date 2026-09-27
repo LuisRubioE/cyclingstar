@@ -1,0 +1,2724 @@
+{
+  "cabecera": {
+    "fase": "E2 · fase 3a (arquitecto)",
+    "head": "9c21885",
+    "engine_version": 89,
+    "ultima_migracion": "0042_transicion_e1"
+  },
+  "juicios": [
+    {
+      "foco": "Cobertura y fidelidad al dueño: si cada propuesta resuelve con mecanismo, tipo y número los seis puntos del encargo, los [DUEÑO 1-10] y [DOC 1-7] del mapa 05, sus 15 contradicciones y las fronteras con E3, E6, E10, E12 y E13, y si conserva la radio del dueño y pullFor.",
+      "ganadora": "producto",
+      "resumen": "Gana producto por ser la única diseñada desde la propiedad sin destripe: las 48 superficies una a una, nueve puertas más comprobadas en código (upcoming-races, report/trend, free-agents, alreadyOut), Horizon en la firma y los bancos B1b (diferencial) y B1c (dos desenlaces); es la única que ve que la sesión caduca a los 7 días. Sus defectos son injertables: las fotos de 100 m por la misma sonda cambian el aprendizaje, sube a v90 sin necesidad, deja la crónica en vivo a un test sin la longitud de etapa y promete el campeón «desde el primer día», falso tras el reinicio. Ingeniero queda a un paso y la síntesis tiene que ser casi tanto de ella (plan, interruptores, microscopio) como de la ganadora. Comprobó en código 14 afirmaciones: palmarés cierta, «desde el primer día» falsa, LIKE nc-%-road falsa, las cinco pasadas de ingeniero ciertas, respecto y juntos causales, sesión de 7 días cierta, fame muerta, subir versión no tira las crónicas sino la Last race.",
+      "ficheros": [
+        "juicios/cobertura.md",
+        "juicios/cobertura.json"
+      ],
+      "puntuaciones": [
+        {
+          "propuesta": "producto",
+          "cobertura": 9,
+          "coherencia": 6,
+          "ejecutabilidad": 7,
+          "experiencia": 9,
+          "suma": 31
+        },
+        {
+          "propuesta": "ingeniero",
+          "cobertura": 7.5,
+          "coherencia": 9,
+          "ejecutabilidad": 9,
+          "experiencia": 7.5,
+          "suma": 33.0
+        },
+        {
+          "propuesta": "television",
+          "cobertura": 7,
+          "coherencia": 7.5,
+          "ejecutabilidad": 7,
+          "experiencia": 9,
+          "suma": 30.5
+        },
+        {
+          "propuesta": "estado",
+          "cobertura": 7,
+          "coherencia": 8,
+          "ejecutabilidad": 7,
+          "experiencia": 8,
+          "suma": 30
+        },
+        {
+          "propuesta": "datos",
+          "cobertura": 6.5,
+          "coherencia": 8.5,
+          "ejecutabilidad": 7,
+          "experiencia": 7,
+          "suma": 29.0
+        }
+      ],
+      "cuentas": {
+        "injertos": 17,
+        "objeciones": 13,
+        "huecos": 9,
+        "comprobaciones": 14
+      }
+    },
+    {
+      "foco": "Coherencia con el motor y los datos, y coste: si cada propuesta cuenta bien lo que el motor sabe y cuándo (reloj, grupos, sucesos, sonda), si guarda lo justo en el sitio justo sin tocar la carrera (Frontera 3, ENGINE_VERSION, foto por km, pullFor, radio del dueño) y cuánto cuesta en CPU, disco, red, consultas, caché y CI.",
+      "ganadora": "estado",
+      "resumen": "Gana estado: la única que mide su estado contra la foto del motor (I1, 0 discrepancias en 3.246 fotos) y la única que entiende el reloj entero: tS es un eje común pero no continuo por corredor, y el motor llega a mover a un corredor 138 s (C2, C4). Le sobran una v90 evitable y el almacén en json; le faltan bytea gzip y la visibilidad por dato (datos), onBanner (television), constantes y reductor fuera del motor con interruptores (ingeniero) y la caché y la sesión (producto). Midió él mismo: sonda en cada bloque idéntica en 20 de 20 etapas, +3,8 % de CPU de mediana, bytea gzip 1,6-2,4 veces menor que jsonb, race_rosters sin índice por corredor (19,6 ms contra 0,11), días pico 176 y 179, y tres huecos que nadie vio: el índice, el world_id de las tablas de lo visto y el salto de 138 s.",
+      "ficheros": [
+        "juicios/motor.md",
+        "juicios/motor.json"
+      ],
+      "puntuaciones": [
+        {
+          "propuesta": "estado",
+          "cobertura": 8,
+          "coherencia": 9,
+          "ejecutabilidad": 7,
+          "experiencia": 8,
+          "suma": 32
+        },
+        {
+          "propuesta": "datos",
+          "cobertura": 8.5,
+          "coherencia": 8,
+          "ejecutabilidad": 8,
+          "experiencia": 7.5,
+          "suma": 32.0
+        },
+        {
+          "propuesta": "ingeniero",
+          "cobertura": 7.5,
+          "coherencia": 7.5,
+          "ejecutabilidad": 9,
+          "experiencia": 6.5,
+          "suma": 30.5
+        },
+        {
+          "propuesta": "producto",
+          "cobertura": 9.5,
+          "coherencia": 6.5,
+          "ejecutabilidad": 6.5,
+          "experiencia": 8,
+          "suma": 30.5
+        },
+        {
+          "propuesta": "television",
+          "cobertura": 7.5,
+          "coherencia": 7,
+          "ejecutabilidad": 6.5,
+          "experiencia": 9,
+          "suma": 30.0
+        }
+      ],
+      "cuentas": {
+        "injertos": 16,
+        "objeciones": 12,
+        "huecos": 9,
+        "comprobaciones": 20
+      }
+    },
+    {
+      "foco": "Ejecutabilidad y experiencia del jugador: si un agente sin nadie a quien preguntar puede implementar la propuesta (tipos, constantes, plan con tests delante, coste por PR, primer paso visible, paso que cierra el destripe, contrato de hoy intacto, marcha atrás) y si entrar en una etapa es sentarse a verla, también en un teléfono, al volver tras una semana, en una crono, con previa, cierre y acta compartible.",
+      "ganadora": "ingeniero",
+      "resumen": "Gana ingeniero: el único plan que llega a main PR a PR sin romper el contrato de hoy, con dos interruptores (BROADCAST_WATCH, SPOILER_MODE) y «se revierte con» en cada paso, lo primero visible en el PR 4 y la crónica en vivo medida con 0 violaciones de prefijo. Sus defectos de experiencia viven en la capa de presentación, donde injertar es barato: ritmo en segundos de pared por km (último km a ×5,7-8,9 en finales en alto), dos vocabularios en la misma pantalla, previa y cierre mínimos, crono sin tipo, sesión de 7 días ignorada, tramo de 20 km que lleva la meta. Midió la duración de las cinco curvas en siete etapas: la base de producto 7:39-19:59 sin pausas, y el coste diario de 3,6 etapas por día real en una gran vuelta (datos «13 min al día» es falso: unos 46).",
+      "ficheros": [
+        "juicios/ejecutabilidad.md",
+        "juicios/ejecutabilidad.json"
+      ],
+      "puntuaciones": [
+        {
+          "propuesta": "ingeniero",
+          "cobertura": 6,
+          "coherencia": 8,
+          "ejecutabilidad": 9,
+          "experiencia": 6,
+          "suma": 29
+        },
+        {
+          "propuesta": "television",
+          "cobertura": 8,
+          "coherencia": 7,
+          "ejecutabilidad": 6,
+          "experiencia": 8,
+          "suma": 29
+        },
+        {
+          "propuesta": "estado",
+          "cobertura": 7,
+          "coherencia": 9,
+          "ejecutabilidad": 7,
+          "experiencia": 6,
+          "suma": 29
+        },
+        {
+          "propuesta": "producto",
+          "cobertura": 9,
+          "coherencia": 6,
+          "ejecutabilidad": 5,
+          "experiencia": 8,
+          "suma": 28
+        },
+        {
+          "propuesta": "datos",
+          "cobertura": 7,
+          "coherencia": 8,
+          "ejecutabilidad": 6,
+          "experiencia": 5,
+          "suma": 26
+        }
+      ],
+      "cuentas": {
+        "injertos": 18,
+        "objeciones": 14,
+        "huecos": 8,
+        "comprobaciones": 20
+      }
+    }
+  ],
+  "ganadora": {
+    "propuesta": "ingeniero",
+    "metodo": "suma de puntuaciones: no hay mayoría, cada juez eligió una propuesta distinta (cobertura, producto; motor, estado; ejecutabilidad, ingeniero)",
+    "votos": {
+      "producto": 1,
+      "estado": 1,
+      "ingeniero": 1,
+      "datos": 0,
+      "television": 0
+    },
+    "sumas_por_juez": {
+      "producto": {
+        "cobertura": 31,
+        "motor": 30.5,
+        "ejecutabilidad": 28
+      },
+      "ingeniero": {
+        "cobertura": 33.0,
+        "motor": 30.5,
+        "ejecutabilidad": 29
+      },
+      "television": {
+        "cobertura": 30.5,
+        "motor": 30.0,
+        "ejecutabilidad": 29
+      },
+      "estado": {
+        "cobertura": 30,
+        "motor": 32,
+        "ejecutabilidad": 29
+      },
+      "datos": {
+        "cobertura": 29.0,
+        "motor": 32.0,
+        "ejecutabilidad": 26
+      }
+    },
+    "total": {
+      "ingeniero": 92.5,
+      "estado": 91,
+      "producto": 89.5,
+      "television": 89.5,
+      "datos": 87.0
+    },
+    "calculo": "Cada juez puntúa cada propuesta en cuatro ejes de 1 a 10 (cobertura, coherencia con el motor y los datos, ejecutabilidad, experiencia del jugador); se suman los cuatro ejes de los tres juicios, con un máximo posible de 120. ingeniero: 33 (juez de cobertura) + 30,5 (juez del motor) + 29 (juez de ejecutabilidad) = 92,5; estado: 30 (juez de cobertura) + 32 (juez del motor) + 29 (juez de ejecutabilidad) = 91; producto: 31 (juez de cobertura) + 30,5 (juez del motor) + 28 (juez de ejecutabilidad) = 89,5; television: 30,5 (juez de cobertura) + 30 (juez del motor) + 29 (juez de ejecutabilidad) = 89,5; datos: 29 (juez de cobertura) + 32 (juez del motor) + 26 (juez de ejecutabilidad) = 87. Gana ingeniero por 1,5 puntos sobre estado.",
+    "nota": "El juez de cobertura eligió producto aunque dio más puntos a ingeniero (33 frente a 31): pesó el punto 3 del encargo, «lo difícil», por encima de la suma. producto y television empatan en 89,5, sin efecto. Sumados por eje, la mejor en cobertura es producto (27,5), en coherencia estado (26), en ejecutabilidad ingeniero (27) y en experiencia television (26): por eso la base es ingeniero pero el documento es una fusión.",
+    "fusion": {
+      "ingeniero (base)": "el plan PR a PR con los interruptores BROADCAST_WATCH y SPOILER_MODE y «se revierte con» en cada paso; Watch para el dueño sobre la radio de hoy en el paso 3; la voz por truncado de la entrada con la longitud de etapa y cinco pasadas apagadas; el horizonte en un solo punto (tipo obligatorio, predicado SQL único, registro onRoute que lanza, canario); constantes fuera del motor; la política de a quién se nombra.",
+      "estado": "el modelo de estado: línea temporal con catálogo de grupos, fotos clave, sucesos de estado por bloque, marcas de reloj en cuatro sitios y capa de detalle; el reductor puro; el corte diagonal; la identidad con sucesor; la sonda onEvent con el bloque de emisión; los invariantes I1 a I5; los tipos de la crono.",
+      "producto": "la propiedad sin destripe: el horizonte por espectador y el velo, los grados de lo visto y el prefijo, lo alcanzado frente a lo servido, el alcance y la caducidad de 56 días, los cuatro mecanismos y la existencia que informa, las 48 superficies una a una y las nueve puertas de fuera, B1b y B1c, la sesión de 7 días y la cookie cs_viewer, la caché de la web, revelar sin castigo, While you were away, la curva de ritmo sin pausas, la regla para E9.",
+      "datos": "la codificación: stage_timelines en bytea con gzip 9, game_day, format y bytes; la visibilidad escrita en cada dato y el corte por visibilidad; la procedencia del reparto congelado; el colector aparte; el formato de red de enteros; news con seed y data, el teamId del día, breakaway_win bien comprobado y text de compatibilidad, como primera migración; pickVariant con since; la meta solo por POST.",
+      "television": "la gramática de la tele: la regla UCI completa del maillot con disciplina y categoría, la notoriedad sin fama, la cola de rótulos por clase, Next action, la previa de cuatro cuadros y el cierre, REVEAL_RULES, el gancho onBanner, el tiempo congelado, PreStageInfo para títulos y avisos, los titulares de cambio de líder."
+    }
+  },
+  "ranking": [
+    [
+      "ingeniero",
+      92.5
+    ],
+    [
+      "estado",
+      91
+    ],
+    [
+      "producto",
+      89.5
+    ],
+    [
+      "television",
+      89.5
+    ],
+    [
+      "datos",
+      87.0
+    ]
+  ],
+  "votos": {
+    "producto": 1,
+    "estado": 1,
+    "ingeniero": 1,
+    "datos": 0,
+    "television": 0
+  },
+  "injertos": [
+    {
+      "id": "I-01",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "estado",
+        "seccion": "§3.1-3.3, §3.7"
+      },
+      "fuentes": [
+        "orquestador",
+        "I-cobertura-08",
+        "I-cobertura-10"
+      ],
+      "que": "La línea temporal de estado: catálogo de grupos, fotos clave cada 10 km, sucesos de estado por bloque (move, out, main, clock, mishap), sucesos narrables con su bloque de emisión, capa de detalle; el reductor puro reducePhoto, photoAt y el corte diagonal instantAt.",
+      "porque": "Es la única propuesta que convierte «el estado es la reducción de los sucesos» en un invariante probado contra el motor (juez del motor §4) y la que sobrevive a los saltos de reloj medidos (C2, C4).",
+      "destino": [
+        "§3",
+        "§4"
+      ],
+      "decision": [
+        "D-02"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-02",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "estado",
+        "seccion": "§3.9, §11"
+      },
+      "fuentes": [
+        "I-cobertura-08",
+        "I-ejecutabilidad-05"
+      ],
+      "que": "Invariantes I1 (la foto reducida es la foto del motor en cada km de radioKmPoints, con la regla del título por bloque), I2, I3 e I5, y la autocomprobación de I1 al grabar.",
+      "porque": "Estado midió 0 discrepancias en 3.246 fotos (69 copiando mainId sin la regla); el B2 de ingeniero «sella lo medido» sin listón.",
+      "destino": [
+        "§4",
+        "§5",
+        "§16"
+      ],
+      "decision": [
+        "D-02",
+        "D-12"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-03",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "estado",
+        "seccion": "§3.6"
+      },
+      "fuentes": [
+        "I-cobertura-08",
+        "I-ejecutabilidad-06"
+      ],
+      "que": "Marcas de reloj en cada foto de km, en el nacimiento y la muerte de cada grupo, en el bloque de cada cambio de su composición y el anterior, y en cada bloque del último km.",
+      "porque": "Error de posición p99 de 3 a 196 m medido; sin las marcas de cambio de composición, Flandes llega a 3,5 km y el cursor por grupo ([DOC 2]) no sirve.",
+      "destino": [
+        "§3",
+        "§4",
+        "§5"
+      ],
+      "decision": [
+        "D-01"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-04",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "estado",
+        "seccion": "§3.5"
+      },
+      "fuentes": [
+        "I-cobertura-09"
+      ],
+      "que": "Identidad por el id del motor con sucesor por mayoría, histéresis del papel de 1 km, título de pelotón por bloque con la regla de la radio y el grupo del maillot.",
+      "porque": "La barra no parpadea y el «grupo del maillot amarillo» que pidió el dueño (B6, RaceRadioPanel.tsx l. 50-52) sale en la barra y no solo en la radio.",
+      "destino": [
+        "§3",
+        "§6"
+      ],
+      "decision": [
+        "D-03"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-05",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "estado",
+        "seccion": "§3.1, §8.1"
+      },
+      "fuentes": [
+        "I-cobertura-10"
+      ],
+      "que": "Foto (un km, la definición del dueño) frente a instante (la tele), escrito; la radio del dueño construida desde el estado con el contrato RaceRadio de hoy y sin lista de seguimiento.",
+      "porque": "Conserva el microscopio sin la lista que nombra desde el km 0 a los diez primeros de la etapa (stageRun.ts l. 558-568).",
+      "destino": [
+        "§3",
+        "§11",
+        "§12"
+      ],
+      "decision": [
+        "D-16"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-06",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "estado",
+        "seccion": "§11"
+      },
+      "fuentes": [
+        "orquestador",
+        "I-motor-07"
+      ],
+      "que": "Sonda StageProbe.onEvent: el grabador fecha cada suceso con el bloque en que el motor lo emitió (bEmit) y el reloj de su primer protagonista al final de ese bloque.",
+      "porque": "Fecha exactas la (a) y la (f) sin heurística y sin subir versión (C9, C10).",
+      "destino": [
+        "§4",
+        "§5"
+      ],
+      "decision": [
+        "D-05"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-07",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "estado",
+        "seccion": "§3.5, §8.1"
+      },
+      "fuentes": [
+        "I-ejecutabilidad-07"
+      ],
+      "que": "Un código de papel de grupo (GroupRole) que leen barra, radio y voz; la palabra, decisión del dueño.",
+      "porque": "Ingeniero pinta PELOTON en la barra y deja «the bunch» en la voz: dos nombres del mismo grupo en la misma pantalla, contra la regla C7 del dueño (balance l. 6740-6741).",
+      "destino": [
+        "§6",
+        "§12"
+      ],
+      "decision": [
+        "D-18"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-08",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "estado",
+        "seccion": "§9 (y datos §9, television §9)"
+      },
+      "fuentes": [
+        "I-ejecutabilidad-08",
+        "I-cobertura-15"
+      ],
+      "que": "Tipos de la crono (TimeTrialTrace, TimeTrialInstant) y la traza por km de cada corredor por la sonda (onTimeTrialRide).",
+      "porque": "Parciales en cualquier km, sillón y alcances, lo que pidió el dueño de la crono (mapa 05 F1); el §9 de ingeniero es prosa sin tipo.",
+      "destino": [
+        "§9"
+      ],
+      "decision": [
+        "D-23"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-09",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "datos",
+        "seccion": "§10.1, §10.5-10.6"
+      },
+      "fuentes": [
+        "I-motor-01",
+        "I-motor-03"
+      ],
+      "que": "stage_timelines.body en bytea con gzip 9, con game_day, engine_version, format, finish_s y bytes, índice por game_day, y un LRU de líneas decodificadas en la API.",
+      "porque": "Medido: 1,6-2,4 veces menos que jsonb y 1,3-1,6 menos que json, inmune a pglz o lz4; decodificar y cortar 1,3-4,7 ms; ninguna tabla de etapa lleva hoy día de juego.",
+      "destino": [
+        "§5",
+        "§13",
+        "§14"
+      ],
+      "decision": [
+        "D-10"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-10",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "datos",
+        "seccion": "§3.4, §7.2, B9"
+      },
+      "fuentes": [
+        "I-motor-02",
+        "I-cobertura-06"
+      ],
+      "que": "La visibilidad escrita en cada dato y el corte de lo servido por visibilidad (no por bloques ni por espacio), con la propiedad instantAt(cutTimeline(tl, T), T) = instantAt(tl, T).",
+      "porque": "Los tramos por espacio entregan el paso del grupeto minutos antes de que ocurra (O-motor-08); la propiedad es comprobable (B9).",
+      "destino": [
+        "§4",
+        "§10",
+        "§14",
+        "§16"
+      ],
+      "decision": [
+        "D-06"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-11",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "datos",
+        "seccion": "§6.1, §7.4, B13"
+      },
+      "fuentes": [
+        "I-cobertura-06"
+      ],
+      "que": "Procedencia from en cada campo del reparto congelado y su degradado al servir cuando esa etapa está velada.",
+      "porque": "Hace comprobable campo a campo la previa de N+1 que destripa la N (B13).",
+      "destino": [
+        "§7",
+        "§10",
+        "§11"
+      ],
+      "decision": [
+        "D-15",
+        "D-37"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-12",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "datos",
+        "seccion": "§11 punto 2, B10, B11"
+      },
+      "fuentes": [
+        "I-cobertura-05",
+        "I-motor-04"
+      ],
+      "que": "El colector aparte: la radio y el aprendizaje ven solo las fotos de radioKmPoints; B10 (mismo conjunto de trabajaronParaOtro) y B11 (huella idéntica con sonda por bloque y los ganchos).",
+      "porque": "trabajaronParaOtro mira toda foto (stageRun.ts l. 527-536) y TURNO_KM cuenta fotos (raceRadio.ts l. 883): sin colector aparte cambian el aprendizaje y el turno sin subir versión.",
+      "destino": [
+        "§5",
+        "§16"
+      ],
+      "decision": [
+        "D-08",
+        "D-09"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-13",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "datos",
+        "seccion": "§8.3, §10.2, §10.7"
+      },
+      "fuentes": [
+        "I-cobertura-07"
+      ],
+      "que": "NewsPayload con el teamId del día, breakaway_win solo si el ganador iba en la fuga, text de compatibilidad durante una versión y la migración de noticias como primera de E2.",
+      "porque": "DOC 1 tiene plazo (agenda l. 131-133, antes del reinicio) y el titular tiene que decir el equipo con el que se ganó.",
+      "destino": [
+        "§12",
+        "§13",
+        "§17"
+      ],
+      "decision": [
+        "D-45"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-14",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "datos",
+        "seccion": "§8.2"
+      },
+      "fuentes": [
+        "I-cobertura-07",
+        "I-ejecutabilidad-17"
+      ],
+      "que": "pickVariant(seed, variants, rev) con since y tpl_rev; semilla neutra de idioma.",
+      "porque": "Añadir una redacción re-sortea hoy el pasado (h % n); esto lo impide por construcción.",
+      "destino": [
+        "§12"
+      ],
+      "decision": [
+        "D-46"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-15",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "datos",
+        "seccion": "§3.4, §10.3"
+      },
+      "fuentes": [
+        "I-ejecutabilidad-16"
+      ],
+      "que": "Llegadas, resultado y acta nunca en un tramo: solo por POST …/broadcast/finish o al revelar.",
+      "porque": "El último tramo de 20 km de ingeniero lleva finish y stage_win al navegador hasta 20 km antes.",
+      "destino": [
+        "§8",
+        "§14"
+      ],
+      "decision": [
+        "D-06"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-16",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "datos",
+        "seccion": "§10.7"
+      },
+      "fuentes": [
+        "I-ejecutabilidad-18"
+      ],
+      "que": "Toda respuesta nueva validada con schema.parse en su test y satisfies en el código; la ruta vieja solo pierde opcionales y news sigue mandando text.",
+      "porque": "Hoy ninguna ruta valida lo que devuelve (mapa 07 §2) y la web valida toda respuesta con ContractError.",
+      "destino": [
+        "§14"
+      ],
+      "decision": [
+        "D-50"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-17",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "datos",
+        "seccion": "§10.4 (y H-motor-04)"
+      },
+      "fuentes": [
+        "orquestador",
+        "H-motor-04"
+      ],
+      "que": "Formato por la red plano de enteros; format en cada fila con un decodificador por versión; guarda de tipos entre la sonda y el grabador.",
+      "porque": "Parse y Zod del corte entero 0,8-6 ms medidos; el motor cambia cada pocos días y lo guardado no se reescribe.",
+      "destino": [
+        "§4",
+        "§14"
+      ],
+      "decision": [
+        "D-10"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-18",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "television",
+        "seccion": "§11.1"
+      },
+      "fuentes": [
+        "I-motor-05"
+      ],
+      "que": "StageProbe.onBanner: el orden, los puntos y el reloj del grupo del primero que puntúa en cada pancarta, sin tocar el contenido de ningún suceso.",
+      "porque": "Es observación y no sube ENGINE_VERSION; añadir claves a un suceso sí la sube (v73) y, antes del 17d, cambiaría la Last race (C16).",
+      "destino": [
+        "§5"
+      ],
+      "decision": [
+        "D-09"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-19",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "television",
+        "seccion": "§3.3, §11.2"
+      },
+      "fuentes": [
+        "I-motor-06"
+      ],
+      "que": "El tiempo congelado en la línea con stageWeather, weatherPlan y roadBearings sobre la semilla.",
+      "porque": "Viento y lluvia son datos de la señal UCI (mapa 06 §1.1) y salen de funciones puras sin tocar el motor.",
+      "destino": [
+        "§5",
+        "§6",
+        "§8"
+      ],
+      "decision": [
+        "D-14"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-20",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "television",
+        "seccion": "§11.3 (y estado §11, datos §3.4)"
+      },
+      "fuentes": [
+        "I-cobertura-12",
+        "I-motor-07",
+        "I-cobertura-13"
+      ],
+      "que": "REVEAL_RULES por plantilla con regla por defecto para lo desconocido, fundida con bEmit; las caídas sacadas de incidents al grabar, sin días de baja.",
+      "porque": "Sustituye los cambios del motor que subían a v90; R23.8 traerá plantillas nuevas que no pueden quedar sin regla; la tele no sabe el diagnóstico en carretera.",
+      "destino": [
+        "§4",
+        "§5"
+      ],
+      "decision": [
+        "D-05",
+        "D-13"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-21",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "television",
+        "seccion": "§3.5, §5.3, §12"
+      },
+      "fuentes": [
+        "I-ejecutabilidad-01"
+      ],
+      "que": "Cola de rótulos por clase 0-3, un rótulo de corredor a la vez, tiempo en pantalla por clase, Next action ×20 hasta el siguiente de clase ≥ 2 sin decir dónde, While you skipped y Previously.",
+      "porque": "Ingeniero prohíbe todo «siguiente suceso» y sus tarjetas no tienen prioridad: esto da el salto que el jugador pide sin delatar dónde pasa algo.",
+      "destino": [
+        "§6",
+        "§8"
+      ],
+      "decision": [
+        "D-20",
+        "D-21"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-22",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "television",
+        "seccion": "§5.2, §6.4, §8.3, §10.2"
+      },
+      "fuentes": [
+        "I-cobertura-11",
+        "I-ejecutabilidad-02"
+      ],
+      "que": "La previa de cuatro cuadros (perfil y puertos, parte y viento, maillots en juego, favoritos sin fama) y el cierre (podio, general con flechas, maillots de mañana, Most kilometres out front, abandonos, mañana), la moto que rodea la fuga y el cuadro de diferencias generales, con tipos.",
+      "porque": "La señal UCI empieza y acaba así (mapa 06 §8); ingeniero abre en frío y cierra con tablas.",
+      "destino": [
+        "§6",
+        "§8"
+      ],
+      "decision": [
+        "D-22"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-23",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "television",
+        "seccion": "§6.4"
+      },
+      "fuentes": [
+        "I-ejecutabilidad-03"
+      ],
+      "que": "Escala de notoriedad para la frase de la fuga sin el escalón de fama, y el corredor propio siempre nombrado.",
+      "porque": "breakHeadline de ingeniero no nombra al propio ([DUEÑO 5], R23.7) y riders.fame no se escribe (C14).",
+      "destino": [
+        "§7"
+      ],
+      "decision": [
+        "D-26"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-24",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "television",
+        "seccion": "§6.1-6.3"
+      },
+      "fuentes": [
+        "orquestador",
+        "I-cobertura-14"
+      ],
+      "que": "La regla UCI completa del maillot llevado (wornJerseys, distinctions): día 1, prioridad de líderes, delegación, título solo en su disciplina y categoría (un sub-23 nunca de campeón en élite).",
+      "porque": "UCI 1.3.071, 2.6.018, 1.3.063 y 1.3.068 (mapa 06 §2.2); arregla O-cobertura-03.",
+      "destino": [
+        "§7"
+      ],
+      "decision": [
+        "D-24"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-25",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "television",
+        "seccion": "§8.3 (y estado §8.2)"
+      },
+      "fuentes": [
+        "I-cobertura-16"
+      ],
+      "que": "Titulares gc_lead_taken y jersey_taken, con carrera y etapa, bajo el horizonte.",
+      "porque": "MVP paso 39 («tras una etapa reina, el feed cuenta la historia»); hoy no hay titular de cambio de líder (mapa 02 §3).",
+      "destino": [
+        "§12"
+      ],
+      "decision": [
+        "D-45"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-26",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "television",
+        "seccion": "§5.5"
+      },
+      "fuentes": [
+        "I-ejecutabilidad-04"
+      ],
+      "que": "Esconder BottomNav mientras se reproduce, como propuesta a E6.",
+      "porque": "En 360 px la barra fija de 56 px y la hoja de mandos dejan la barra de grupos en tres filas.",
+      "destino": [
+        "§18",
+        "§19"
+      ],
+      "decision": [
+        "D-56"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-27",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "television",
+        "seccion": "§7.5 (y producto §7.10-7.11)"
+      },
+      "fuentes": [
+        "orquestador"
+      ],
+      "que": "PreStageInfo como única entrada de títulos de pestaña, avisos y miniaturas (pageTitle, stageReadyNotice); la decisión de enviar un aviso no mira el resultado.",
+      "porque": "Sin campos de resultado en la entrada, un destripe en el título o en el correo no compila; un aviso que solo sale si tu corredor hizo algo destripa por existir.",
+      "destino": [
+        "§11"
+      ],
+      "decision": [
+        "D-42"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-28",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "producto",
+        "seccion": "§7.1-7.4"
+      },
+      "fuentes": [
+        "orquestador"
+      ],
+      "que": "El horizonte por espectador y el velo: grados de lo visto con su letra, prefijo y arrastre, lo alcanzado frente a lo servido, carreras en guardia y alcances guarded, own_only y off, caducidad de 56 días de juego, VeilDelta y los cuatro mecanismos P, R, F y M.",
+      "porque": "Es la única propuesta diseñada desde la propiedad que el encargo llama «lo difícil» (00-encargo §1.3).",
+      "destino": [
+        "§10",
+        "§11"
+      ],
+      "decision": [
+        "D-28",
+        "D-30",
+        "D-31",
+        "D-32"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-29",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "producto",
+        "seccion": "§1.7, §7.5, §7.6"
+      },
+      "fuentes": [
+        "orquestador",
+        "I-ejecutabilidad-11"
+      ],
+      "que": "Las 48 superficies del mapa 03 una a una con su mecanismo, y las nueve puertas de fuera del inventario (X1 aprendizaje por resultado en report y trend, X2 upcoming-races y my-orders, X3 sesión, X4 free-agents, X5 caché, X6 historial, X7 vista previa de enlaces, X8 calendario de equipo, X9 alreadyOut).",
+      "porque": "Comprobadas en código por los jueces (learning.ts l. 106-110, riderSchedule.ts l. 217, routes/riders.ts l. 648, browse.ts l. 234) y fuera del canario de ingeniero.",
+      "destino": [
+        "§11"
+      ],
+      "decision": [
+        "D-41"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-30",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "producto",
+        "seccion": "§13, §14"
+      },
+      "fuentes": [
+        "I-motor-15",
+        "I-ejecutabilidad-12"
+      ],
+      "que": "B1b diferencial (correr la etapa no cambia un byte para quien no la ha visto, salvo una lista blanca con motivo) y B1c de dos desenlaces, con una lista de rutas pendientes que cada paso vacía.",
+      "porque": "Cazan lo que el canario y las firmas no ven: la existencia de un aviso o de una fila también informa; y mantienen la suite en verde del paso 7 al 8b.",
+      "destino": [
+        "§16",
+        "§17"
+      ],
+      "decision": [
+        "D-54"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-31",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "producto",
+        "seccion": "§7.8"
+      },
+      "fuentes": [
+        "I-motor-13",
+        "I-ejecutabilidad-09"
+      ],
+      "que": "La cookie cs_viewer firmada con HMAC que solo restringe (horizonte en lectura sin sesión).",
+      "porque": "better-auth caduca la sesión a los 7 días (create-context.mjs l. 146-147) y /news, /world y los rankings son públicos: quien vuelve tras una semana llega sin sesión.",
+      "destino": [
+        "§10"
+      ],
+      "decision": [
+        "D-34"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-32",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "producto",
+        "seccion": "§7.4, §7.5 (X5), §10.2"
+      },
+      "fuentes": [
+        "I-motor-12"
+      ],
+      "que": "rev del horizonte en las claves de React Query, queryClient.clear() al entrar y salir de la cuenta y Cache-Control private, no-store con Vary: Cookie.",
+      "porque": "Hoy signOut no limpia la caché (Account.tsx l. 311-314) y las claves del mundo no llevan usuario con 30 min de vida (queryClient.ts l. 17-46).",
+      "destino": [
+        "§10",
+        "§14"
+      ],
+      "decision": [
+        "D-35"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-33",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "producto",
+        "seccion": "§7.4 (y datos §10.1)"
+      },
+      "fuentes": [
+        "I-motor-16"
+      ],
+      "que": "Horizonte memorizado por (usuario, día, rev) 60 s en proceso y users.last_seen_at escrito como mucho una vez por hora.",
+      "porque": "Una consulta más por petición autenticada solo es asumible memorizada; last_seen_at lo pide también E7.",
+      "destino": [
+        "§10",
+        "§13"
+      ],
+      "decision": [
+        "D-33"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-34",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "producto",
+        "seccion": "§10.1 (0045)"
+      },
+      "fuentes": [
+        "I-motor-14"
+      ],
+      "que": "Referencia de etapa en rider_points, palmares y transactions, y stage_team_results.prize.",
+      "porque": "El horizonte deja de depender de la suposición «una etapa por carrera y día» y el presupuesto del equipo gana libro (sup. P6).",
+      "destino": [
+        "§11",
+        "§13"
+      ],
+      "decision": [
+        "D-41",
+        "D-49"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-35",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "producto",
+        "seccion": "§7.7"
+      },
+      "fuentes": [
+        "I-ejecutabilidad-13"
+      ],
+      "que": "Revelar sin castigo como test (nada de premio, logro, moral ni dinero lee lo visto), Don't ask again guardado en la cuenta y Watch anyway.",
+      "porque": "Ingeniero registra el revelado pero no fija que sea gratis ni cómo se evita la confirmación repetida.",
+      "destino": [
+        "§11",
+        "§16"
+      ],
+      "decision": [
+        "D-38"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-36",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "producto",
+        "seccion": "§7.10, §7.12"
+      },
+      "fuentes": [
+        "I-ejecutabilidad-14"
+      ],
+      "que": "Título y etiquetas og: neutros inyectados por el fallback de la SPA, y las dos formas de compartir (invitar a ver siempre; el acta solo si se conoce, marcada Spoiler).",
+      "porque": "El fallback sirve index.html tal cual (app.ts l. 205-210) y la vista previa de un enlace no ejecuta JavaScript.",
+      "destino": [
+        "§11",
+        "§14"
+      ],
+      "decision": [
+        "D-36",
+        "D-42"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-37",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "producto",
+        "seccion": "§7.8-7.9, §12"
+      },
+      "fuentes": [
+        "I-ejecutabilidad-10"
+      ],
+      "que": "La portada con Continue watching, Ready to watch y While you were away: la carrera en 30 minutos con digestBudgetS por tipo y Key stages elegidas por el perfil.",
+      "porque": "Catch up at ×4 de ingeniero pasa la final a 3 s por km; el resumen de datos cuesta unas 2 h por gran vuelta.",
+      "destino": [
+        "§8",
+        "§11"
+      ],
+      "decision": [
+        "D-39"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-38",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "producto",
+        "seccion": "§5, §12"
+      },
+      "fuentes": [
+        "I-ejecutabilidad-15"
+      ],
+      "que": "Ritmo en segundos de carrera por segundo de pared por zona de km a meta (pace, summaryPace), sin pausas: los rótulos no paran el reloj.",
+      "porque": "Medido: la reina e18 pasa de 7:51 a 13:21-13:35 y su último km de ×5,7 a ×1,5; la duración sigue sin depender de los sucesos.",
+      "destino": [
+        "§8"
+      ],
+      "decision": [
+        "D-19"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-39",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "producto",
+        "seccion": "§2 principio 4, §7.4"
+      },
+      "fuentes": [
+        "orquestador"
+      ],
+      "que": "La existencia también informa: un marcador neutro por etapa velada en toda lista, se haya escrito una noticia o cinco; todo aviso depende solo del horizonte y es igual en todas las fichas.",
+      "porque": "Un aviso de resultados ocultos solo en las fichas de quien ganó dice quién ganó; B1c lo prueba.",
+      "destino": [
+        "§11"
+      ],
+      "decision": [
+        "D-32",
+        "D-45"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-40",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "producto",
+        "seccion": "§7.15"
+      },
+      "fuentes": [
+        "orquestador",
+        "H-cobertura-08"
+      ],
+      "que": "Lo que se ve de otros jugadores con el horizonte de quien mira; lo visto es privado; regla para E9: el contenido de un jugador colgado de una etapa lleva sellado el horizonte de su autor.",
+      "porque": "Es la única propuesta que da regla a E9 (mapa 05 §9: dos jugadores que comentan la misma etapa vista hasta km distintos).",
+      "destino": [
+        "§11",
+        "§19"
+      ],
+      "decision": [
+        "D-41"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-41",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "producto",
+        "seccion": "§8.4"
+      },
+      "fuentes": [
+        "orquestador"
+      ],
+      "que": "Los narradores sobrantes: narrate() se borra; personalNarration y raceVerdict leen los sucesos guardados de la última etapa conocida.",
+      "porque": "narrate() no tiene llamadas en producción (ejecutabilidad #5) y personalNarration imprime claves crudas (mapa 03 §2.5); contradicción 9 del mapa 05.",
+      "destino": [
+        "§12"
+      ],
+      "decision": [
+        "D-47"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-42",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "producto",
+        "seccion": "§7.14"
+      },
+      "fuentes": [
+        "orquestador"
+      ],
+      "que": "Todo agregado lleva su fecha de horizonte (World ranking · as you know it · 3 stages hidden · Manage; After stage 9 of 21 · stages 10-12 ready to watch) y la ficha de carrera en curso se sirve hasta lo conocido.",
+      "porque": "Un ranking a horizonte no es «el de hace N días»: incluye todo lo que el jugador conoce, y el jugador tiene que saber por qué va por detrás.",
+      "destino": [
+        "§11"
+      ],
+      "decision": [
+        "D-32",
+        "D-41"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-43",
+      "tipo": "base",
+      "origen": {
+        "propuesta": "ingeniero",
+        "seccion": "§8.2"
+      },
+      "fuentes": [
+        "I-cobertura-01",
+        "I-motor-09"
+      ],
+      "que": "La voz como buildChronicle con la entrada truncada por revelado, orden por reloj, la longitud de etapa como dato y exactamente cinco pasadas retroactivas apagadas (markConcession l. 319, dropUndoneSelections l. 361, groupGapRuns l. 362, foldQuickAttacks l. 371, groupRuns l. 375), con la prueba de prefijo sobre cinco etapas congeladas.",
+      "porque": "Lista comprobada línea a línea por el juez de cobertura (§2.3) y medida con 0 violaciones en 15 corridas; mantiene respecto, juntos y desenlace, el hilo del líder que el dueño pidió en la v27.",
+      "destino": [
+        "§12"
+      ],
+      "decision": [
+        "D-43"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-44",
+      "tipo": "base",
+      "origen": {
+        "propuesta": "ingeniero",
+        "seccion": "§8.2 (tabla, fila 4)"
+      },
+      "fuentes": [
+        "I-cobertura-02"
+      ],
+      "que": "Racimos en vivo publicados al cerrar su ventana de 5 km, para cumplir en directo la regla B3 del dueño.",
+      "porque": "B3: «puedes mencionar muchos juntos con número» (balance l. 1845-1846, v13); detrás de BROADCAST.liveClusters y de B19 (D-43).",
+      "destino": [
+        "§12"
+      ],
+      "decision": [
+        "D-43"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-45",
+      "tipo": "base",
+      "origen": {
+        "propuesta": "ingeniero",
+        "seccion": "§7.4, §14"
+      },
+      "fuentes": [
+        "I-cobertura-03",
+        "I-motor-10"
+      ],
+      "que": "Interruptores BROADCAST_WATCH y SPOILER_MODE (off, admins, on) en env.ts y /health.features, y Watch sobre la radio de hoy en el paso 3 con reloj estimado.",
+      "porque": "El dueño caza defectos mirando (catorce tandas desde la radio, mapa 05 §2.8): tiene que ser el primero en ver la retransmisión, tras pocos PR; todo se apaga sin desplegar.",
+      "destino": [
+        "§14",
+        "§17"
+      ],
+      "decision": [
+        "D-07",
+        "D-53",
+        "D-54"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-46",
+      "tipo": "base",
+      "origen": {
+        "propuesta": "ingeniero",
+        "seccion": "§4.2, §6.4"
+      },
+      "fuentes": [
+        "I-cobertura-04"
+      ],
+      "que": "Una línea por grupo que tira en Watch (Pulling: Team Beta (for 11 S. CARTER)) y la política de a quién se nombra en cada grupo.",
+      "porque": "Lleva a la pantalla por defecto el porqué y el para quién que exigió el dueño («pero no dice quién es, wey», balance l. 9594, v57) y nombra sin anticipar.",
+      "destino": [
+        "§6",
+        "§7"
+      ],
+      "decision": [
+        "D-27"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-47",
+      "tipo": "base",
+      "origen": {
+        "propuesta": "ingeniero",
+        "seccion": "§6.3"
+      },
+      "fuentes": [
+        "I-cobertura-17"
+      ],
+      "que": "Icono de campeón con forma, no solo color, mientras E3 no dibuje la señal.",
+      "porque": "DOC 6 (navegacion.md l. 455-457); el texto del chip se cambia por Champion of Italy (O-30).",
+      "destino": [
+        "§7"
+      ],
+      "decision": [
+        "D-25"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-48",
+      "tipo": "base",
+      "origen": {
+        "propuesta": "ingeniero",
+        "seccion": "§12"
+      },
+      "fuentes": [
+        "I-motor-08"
+      ],
+      "que": "BROADCAST y el reductor en packages/shared; en packages/engine solo los ganchos de la sonda, el grabador puro y TIMELINE.",
+      "porque": "No son constantes de juego y cualquier cambio bajo packages/engine/ corre los ocho tramos de bancos (ci.yml l. 189, unos 73 min).",
+      "destino": [
+        "§15"
+      ],
+      "decision": [
+        "D-52"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-49",
+      "tipo": "base",
+      "origen": {
+        "propuesta": "ingeniero",
+        "seccion": "§7.2, §7.4"
+      },
+      "fuentes": [
+        "I-motor-11"
+      ],
+      "que": "Horizon como parámetro obligatorio sin defecto en las lecturas de packages/db, un único predicado SQL (veilSql) y un registro onRoute que lanza al arrancar si una ruta no declara política.",
+      "porque": "Convierte el olvido en error de compilación o de arranque en vez de en destripe en producción.",
+      "destino": [
+        "§10",
+        "§14"
+      ],
+      "decision": [
+        "D-32"
+      ],
+      "estado": "pendiente"
+    }
+  ],
+  "objeciones": [
+    {
+      "id": "O-01",
+      "fuentes": [
+        "O-cobertura-01"
+      ],
+      "contra": "producto",
+      "seccion_objetada": "§11 cambio 2, §3.4",
+      "que": "Las fotos cada 100 m de los últimos 3 km van por la misma sonda y el mismo colector: cambian trabajaronParaOtro (y con él raceLearning) sin subir versión, y el turno del relevista, que cuenta fotos, pasa de 3 km a 300 m.",
+      "evidencia": "stageRun.ts l. 515-536 y 791-802; raceRadio.ts l. 597 y 883.",
+      "resolucion": "Colector aparte despachado por índice de bloque; la radio y el aprendizaje ven las fotos de hoy (B10).",
+      "decision": [
+        "D-08"
+      ],
+      "destino": [
+        "§5"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-02",
+      "fuentes": [
+        "O-cobertura-02"
+      ],
+      "contra": "producto",
+      "seccion_objetada": "§8.1",
+      "que": "La clasificación de pasadas queda a un test y sin la longitud de etapa como dato: followTheLeader, clockTheGaps y markReunion caerían al acta con respecto, que es causal.",
+      "evidencia": "chronicle.ts l. 545, 637 y 945; l. 546-601.",
+      "resolucion": "La lista de cinco pasadas de ingeniero y la longitud como dato; respecto, juntos y desenlace siguen en la voz.",
+      "decision": [
+        "D-43"
+      ],
+      "destino": [
+        "§12"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-03",
+      "fuentes": [
+        "O-cobertura-03"
+      ],
+      "contra": "producto",
+      "seccion_objetada": "§6.1-6.2",
+      "que": "El proveedor provisional lee nc-<cc>-u23-* y el rótulo solo mira la disciplina: un campeón sub-23 vestiría de campeón en carreras élite.",
+      "evidencia": "UCI 1.3.068 (mapa 06 §2.2 punto 8); calendar.ts l. 3656-3659.",
+      "resolucion": "El título se lleva solo en su disciplina y su categoría; consulta con expresión exacta, nunca LIKE nc-%-road.",
+      "decision": [
+        "D-24",
+        "D-25"
+      ],
+      "destino": [
+        "§7"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-04",
+      "fuentes": [
+        "O-cobertura-04"
+      ],
+      "contra": "producto",
+      "seccion_objetada": "§6.3 y decisión 10",
+      "que": "«Champion of Italy desde el primer día» es falso tras el reinicio: no hay títulos hasta el primer nacional.",
+      "evidencia": "palmares solo lo escribe stageRun.ts (l. 1280 y 1298); NATIONALS_ROAD_DAY = doy(6, 28), calendar.ts l. 204; Giro días 128-151.",
+      "resolucion": "Sin campeones hasta el día 179 de la temporada 0 (salvo los 22 países con fecha propia); ni marcador ni aviso; E12 puede sembrarlos (DD-06).",
+      "decision": [
+        "D-25"
+      ],
+      "destino": [
+        "§7",
+        "§20"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-05",
+      "fuentes": [
+        "O-cobertura-05",
+        "O-motor-03"
+      ],
+      "contra": "producto, estado",
+      "seccion_objetada": "producto §11 cambios 4-7; estado §11",
+      "que": "Suben a v90 cambios que se pueden derivar al grabar; y cualquier subida antes del 17d cambia la Last race, que re-simula sin mirar la versión.",
+      "evidencia": "raceReport.ts l. 148; balance l. 14036-14038 (v73); doctrina D7, balance l. 16555-16558.",
+      "resolucion": "ENGINE_VERSION no sube en E2: onEvent, onBanner, incidents y startS + tS dan lo mismo por observación; toda subida va detrás del 17d.",
+      "decision": [
+        "D-09"
+      ],
+      "destino": [
+        "§5",
+        "§19"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-06",
+      "fuentes": [
+        "O-cobertura-06",
+        "O-motor-11"
+      ],
+      "contra": "producto, estado",
+      "seccion_objetada": "producto §14 paso 6; estado §10.1",
+      "que": "La migración de news va sexta o tercera y sin el plazo del reinicio; DOC 1 la exige antes.",
+      "evidencia": "docs/agenda.md l. 131-133; docs/ops.md l. 179-182.",
+      "resolucion": "0043_noticias_con_datos es la primera migración de E2, paso 1, antes del reinicio.",
+      "decision": [
+        "D-45",
+        "D-49"
+      ],
+      "destino": [
+        "§13",
+        "§17"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-07",
+      "fuentes": [
+        "O-cobertura-07"
+      ],
+      "contra": "producto",
+      "seccion_objetada": "§8.3",
+      "que": "renderNews resuelve nombre y equipo de HOY: un traspaso reescribe titulares viejos.",
+      "evidencia": "mapa 07 §3; results.ts l. 191-207.",
+      "resolucion": "teamId del día en el payload; identidad del día también en la crónica.",
+      "decision": [
+        "D-45",
+        "D-46"
+      ],
+      "destino": [
+        "§12"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-08",
+      "fuentes": [
+        "O-cobertura-08"
+      ],
+      "contra": "producto",
+      "seccion_objetada": "§7.4, decisión 14",
+      "que": "El visitante sin cuenta abre la clásica «conocida» en el acta: para él entrar sería leer el acta.",
+      "evidencia": "producto §7.5 fila C3; 00-encargo §1.3.",
+      "resolucion": "Toda etapa que el espectador no conoce abre en Watch, visitante incluido; el acta a un toque y en /report.",
+      "decision": [
+        "D-36"
+      ],
+      "destino": [
+        "§11"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-09",
+      "fuentes": [
+        "O-cobertura-09"
+      ],
+      "contra": "producto",
+      "seccion_objetada": "§7.3, decisiones 1 y 3",
+      "que": "Las 8 carreras de cabecera protegidas para todos no son palabra del dueño.",
+      "evidencia": "mapa 05 §1; producto §7.3 (42 etapas ocultas como máximo, medido).",
+      "resolucion": "Se implementan por defecto y se llevan a decisión del dueño con la cifra y el retraso del ranking.",
+      "decision": [
+        "D-30"
+      ],
+      "destino": [
+        "§10",
+        "§20"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-10",
+      "fuentes": [
+        "O-cobertura-10",
+        "O-ejecutabilidad-02"
+      ],
+      "contra": "producto, ingeniero",
+      "seccion_objetada": "producto §3.3; ingeniero §4.3, §8.2",
+      "que": "Dos vocabularios del mismo grupo: GroupName conserva no_mans_land y nth, e ingeniero pinta PELOTON en la barra y «the bunch» en la voz.",
+      "evidencia": "mapa 06 §1.3; balance l. 6740-6741 (v34); stageJournal.ts y GROUP_NOUNS.",
+      "resolucion": "Un código GroupRole y una lista cerrada de palabras para barra, radio, voz y acta; se re-sellan raceRadioNames y GROUP_NOUNS.",
+      "decision": [
+        "D-18"
+      ],
+      "destino": [
+        "§6",
+        "§12"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-11",
+      "fuentes": [
+        "O-cobertura-11",
+        "O-ejecutabilidad-10"
+      ],
+      "contra": "producto, ingeniero",
+      "seccion_objetada": "producto §9; ingeniero §9",
+      "que": "Crono con dos controles y meta (producto) o en prosa sin tipo, con una velocidad nominal sin definir y un prólogo que dura menos de lo que dice (ingeniero).",
+      "evidencia": "estado §9 (14,7-20,3 KB la traza por km); ejecutabilidad §2.1 (2:51 medidos frente a 4-6 min).",
+      "resolucion": "TimeTrialTrace por km por la sonda, TimeTrialInstant y el ritmo de crono de producto (medido 6:24-11:23).",
+      "decision": [
+        "D-23"
+      ],
+      "destino": [
+        "§9"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-12",
+      "fuentes": [
+        "O-cobertura-12",
+        "O-ejecutabilidad-01"
+      ],
+      "contra": "producto, ingeniero",
+      "seccion_objetada": "producto §5; ingeniero §5.1, §12",
+      "que": "Ritmo estimado sin medir (producto) y ritmo en segundos de pared por km que comprime los finales en alto (ingeniero: último km a ×5,7-8,9).",
+      "evidencia": "ejecutabilidad §2.1; estado §5; datos §5.",
+      "resolucion": "La curva de producto sin pausas, medida por el juez (7:39-19:59); B17 la mide en las 24 etapas antes de fijar; prueba de lectura.",
+      "decision": [
+        "D-19"
+      ],
+      "destino": [
+        "§8"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-13",
+      "fuentes": [
+        "O-cobertura-13",
+        "O-ejecutabilidad-05"
+      ],
+      "contra": "producto, ingeniero",
+      "seccion_objetada": "producto §3.1; ingeniero §3.1, §11.1, paso 3",
+      "que": "Reloj solo por punto de km, sin marcas en los cambios de composición, y un reloj estimado cuyo error no se ha medido: el primer Watch del dueño enseñará cursores mal puestos.",
+      "evidencia": "estado §3.6 (sin las marcas, Flandes a 3,5 km de error).",
+      "resolucion": "Marcas de reloj en cuatro sitios; el adaptador de la radio lleva clock estimated y B22 decide si esas etapas abren en Watch.",
+      "decision": [
+        "D-01",
+        "D-07"
+      ],
+      "destino": [
+        "§3",
+        "§4"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-14",
+      "fuentes": [
+        "O-motor-01"
+      ],
+      "contra": "estado",
+      "seccion_objetada": "§3.8",
+      "que": "El motivo de relevo se guarda por índice en PullMotive: se rompe en cuanto R23.1 añada equipo_joven, equipo_equipos o aliado.",
+      "evidencia": "contracts.ts l. 1376; apps/api/src/raceRadio.test.ts l. 148-152; mapa 03 §8.",
+      "resolucion": "Los códigos se guardan como cadena, nunca como índice de un enum.",
+      "decision": [
+        "D-10"
+      ],
+      "destino": [
+        "§4"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-15",
+      "fuentes": [
+        "O-motor-02"
+      ],
+      "contra": "estado",
+      "seccion_objetada": "§10.1",
+      "que": "stage_timelines.linea en json en vez de bytea con gzip.",
+      "evidencia": "C8: bytea gzip 1,3-1,6 veces menos que json y 1,6-2,4 menos que jsonb; PGlite sin lz4.",
+      "resolucion": "body bytea con gzip 9.",
+      "decision": [
+        "D-10"
+      ],
+      "destino": [
+        "§5",
+        "§13"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-16",
+      "fuentes": [
+        "O-motor-04"
+      ],
+      "contra": "estado",
+      "seccion_objetada": "§3.9, §10.1",
+      "que": "I1 no cubre la capa de detalle: antes de dejar de escribir stage_snapshots.radio hace falta probar que la radio servida desde la línea es la de radioForStorage.",
+      "evidencia": "raceRadio.ts l. 776-963; mapa 05 §2.8.",
+      "resolucion": "B16 sobre las 24 etapas; la radio guardada se sigue escribiendo hasta que B16 esté en verde (paso 11, DD-11).",
+      "decision": [
+        "D-16"
+      ],
+      "destino": [
+        "§16",
+        "§17"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-17",
+      "fuentes": [
+        "O-motor-05"
+      ],
+      "contra": "estado",
+      "seccion_objetada": "§7.2",
+      "que": "El horizonte no cuesta menos de 5 ms sin índice por corredor en race_rosters.",
+      "evidencia": "schema.ts l. 609; medido 19,6 ms frente a 0,11 ms con índice.",
+      "resolucion": "Índice race_rosters_rider_idx en la 0045, memo de 60 s y B14 con listón de 5 ms.",
+      "decision": [
+        "D-33"
+      ],
+      "destino": [
+        "§10",
+        "§13",
+        "§16"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-18",
+      "fuentes": [
+        "O-motor-06",
+        "O-ejecutabilidad-06"
+      ],
+      "contra": "estado, ingeniero",
+      "seccion_objetada": "estado §5, §7; ingeniero §7",
+      "que": "No tratan la caché de React Query ni la sesión de 7 días: el que vuelve tras una semana llega sin sesión.",
+      "evidencia": "Account.tsx l. 311-314; queryClient.ts l. 17-46; create-context.mjs l. 146-147; auth.ts l. 102-114.",
+      "resolucion": "cs_viewer que solo restringe; rev en las claves, clear() al cambiar de sesión, Cache-Control private.",
+      "decision": [
+        "D-34",
+        "D-35"
+      ],
+      "destino": [
+        "§10"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-19",
+      "fuentes": [
+        "O-motor-07"
+      ],
+      "contra": "estado",
+      "seccion_objetada": "§3.2, §12",
+      "que": "broadcast/ y BROADCAST dentro de packages/engine hacen pagar los bancos por cada ajuste de ritmo o de rótulo.",
+      "evidencia": "ci.yml l. 189; mapa 07 §4.",
+      "resolucion": "BROADCAST, SPOILER y el reductor en packages/shared; en el motor solo ganchos, grabador y TIMELINE.",
+      "decision": [
+        "D-52"
+      ],
+      "destino": [
+        "§15"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-20",
+      "fuentes": [
+        "O-motor-08"
+      ],
+      "contra": "estado",
+      "seccion_objetada": "§7.1, §10.2",
+      "que": "Los tramos de 10 km por espacio entregan futuro a la escala del hueco, y entregadoHastaB cuenta como visto lo que el jugador no ha visto.",
+      "evidencia": "group.ts l. 121-124.",
+      "resolucion": "Tramos por reloj de carrera cortados por la visibilidad de cada dato; lo servido no cuenta como visto, solo lo alcanzado.",
+      "decision": [
+        "D-06",
+        "D-28"
+      ],
+      "destino": [
+        "§10",
+        "§14"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-21",
+      "fuentes": [
+        "O-motor-09"
+      ],
+      "contra": "estado",
+      "seccion_objetada": "§3.3, §15",
+      "que": "I2 no acota el salto de un corredor: hasta 138 s, 0-36 por etapa de más de 60 s.",
+      "evidencia": "simulate.ts l. 8678 y 8783; medido por el juez (reloj2.mjs, saltos.mjs).",
+      "resolucion": "Tránsito en pantalla, nunca el reloj de un corredor como su hueco; el defecto va a balance.md para el dueño.",
+      "decision": [
+        "D-01",
+        "D-58"
+      ],
+      "destino": [
+        "§3",
+        "§19"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-22",
+      "fuentes": [
+        "O-motor-10"
+      ],
+      "contra": "estado",
+      "seccion_objetada": "§2, §11",
+      "que": "«Una línea que no cumple I1 no se guarda» necesita nota, contador y el acta como salida.",
+      "evidencia": "El motor cambia cada pocos días (v86 el 22-09, v89 el 26-09).",
+      "resolucion": "Nota en tick_log.notes, contador del día, la etapa abre en Report; interruptor TIMELINE_RECORD.",
+      "decision": [
+        "D-12"
+      ],
+      "destino": [
+        "§5"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-23",
+      "fuentes": [
+        "O-motor-12"
+      ],
+      "contra": "estado",
+      "seccion_objetada": "§11",
+      "que": "La cifra de CPU (+10 % de mediana, +27 % en el peor caso) está inflada por el ruido; el presupuesto se sella con un banco del día pico.",
+      "evidencia": "C6: medido +3,8 % de mediana, grabador 38-51 ms por etapa grande; C15.",
+      "resolucion": "B15 sobre los días 176 y 179 con grabador y escritura.",
+      "decision": [
+        "D-12"
+      ],
+      "destino": [
+        "§16"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-24",
+      "fuentes": [
+        "O-ejecutabilidad-03"
+      ],
+      "contra": "ingeniero",
+      "seccion_objetada": "§0, §8.2, §13 B7",
+      "que": "«Ninguna frase nueva, ningún case nuevo» contradice su propio B7.",
+      "evidencia": "stageJournal.ts l. 1602-1603 (puncture, mechanical, truce_granted y truce_denied caen al default).",
+      "resolucion": "Se escriben los case que faltan y las plantillas nuevas de la tele; el default deja de imprimir la clave.",
+      "decision": [
+        "D-44"
+      ],
+      "destino": [
+        "§12"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-25",
+      "fuentes": [
+        "O-ejecutabilidad-04"
+      ],
+      "contra": "ingeniero",
+      "seccion_objetada": "§10.2, §3.3",
+      "que": "El servidor adelanta un tramo de 20 km y el último contiene la meta: el resultado llega al navegador antes de verlo.",
+      "evidencia": "BroadcastChunk con overlays hasta la meta; mapa 06 §7.2 regla 2.",
+      "resolucion": "La meta nunca va en un tramo: solo por POST …/broadcast/finish.",
+      "decision": [
+        "D-06"
+      ],
+      "destino": [
+        "§14"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-26",
+      "fuentes": [
+        "O-ejecutabilidad-07"
+      ],
+      "contra": "ingeniero",
+      "seccion_objetada": "§7.8, §16.3",
+      "que": "Catch up at ×4 no se puede ver y revelar a los 28 días de juego deja revelado el Tour a quien se fue dos semanas.",
+      "evidencia": "A ×4 la final va a 3 s por km; una gran vuelta dura unos 6 días reales (mapa 04 §2).",
+      "resolucion": "Caducidad de 56 días de juego; While you were away con digest de 30 min y Key stages.",
+      "decision": [
+        "D-31",
+        "D-39"
+      ],
+      "destino": [
+        "§10",
+        "§11"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-27",
+      "fuentes": [
+        "O-ejecutabilidad-09"
+      ],
+      "contra": "ingeniero",
+      "seccion_objetada": "§3.3, §13 B7",
+      "que": "Falta la tabla de plantilla a tipo de rótulo para las 54 plantillas del motor.",
+      "evidencia": "OverlayKind con 20 valores contra 54 plantillas (mapa 01 §1.1).",
+      "resolucion": "CUE_OF_TEMPLATE con destino para cada plantilla (CueKind, voice_only o report_only), vigilada por B7.",
+      "decision": [
+        "D-21"
+      ],
+      "destino": [
+        "§6"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-28",
+      "fuentes": [
+        "O-ejecutabilidad-11"
+      ],
+      "contra": "ingeniero",
+      "seccion_objetada": "§7.1, §10.2",
+      "que": "El progreso al cerrar va por sendBeacon a una ruta PUT, y sendBeacon solo hace POST.",
+      "evidencia": "ingeniero §7.1.",
+      "resolucion": "POST /api/me/watch/:raceKey/:day; fetch con keepalive y sendBeacon con un Blob application/json.",
+      "decision": [
+        "D-51"
+      ],
+      "destino": [
+        "§14"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-29",
+      "fuentes": [
+        "O-ejecutabilidad-12"
+      ],
+      "contra": "ingeniero",
+      "seccion_objetada": "§4.1, §7.7",
+      "que": "Previa y cierre mínimos: una página Preview estática y, tras la meta, resultado y tablas.",
+      "evidencia": "mapa 06 §8.1 y §8.2.",
+      "resolucion": "Previa de cuatro cuadros y cierre de la señal UCI como parte de la emisión.",
+      "decision": [
+        "D-22"
+      ],
+      "destino": [
+        "§8"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-30",
+      "fuentes": [
+        "O-ejecutabilidad-13"
+      ],
+      "contra": "ingeniero",
+      "seccion_objetada": "§6.3",
+      "que": "El chip ITA CHAMP no es texto de televisión.",
+      "evidencia": "mapa 06 §2.1; navegacion.md l. 455-457.",
+      "resolucion": "Champion of Italy (no hay gentilicios en COUNTRIES) y la forma en el icono, no en el texto.",
+      "decision": [
+        "D-25"
+      ],
+      "destino": [
+        "§7"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-31",
+      "fuentes": [
+        "O-ejecutabilidad-14"
+      ],
+      "contra": "ingeniero",
+      "seccion_objetada": "§7.4",
+      "que": "El registro solo clasifica GET bajo /api: las respuestas de escritura quedan fuera del canario.",
+      "evidencia": "registerSpoilerGuard vuelve si el método no es GET; routes/riders.ts l. 648 (alreadyOut).",
+      "resolucion": "config.spoiler obligatorio en toda ruta que devuelva cuerpo, de cualquier método.",
+      "decision": [
+        "D-32"
+      ],
+      "destino": [
+        "§14"
+      ],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-32",
+      "fuentes": [
+        "O-ejecutabilidad-08"
+      ],
+      "contra": "ingeniero",
+      "seccion_objetada": "§7.3",
+      "que": "Faltan puertas en la tabla de mecanismos (X1, X2, X5, X7, X9) y el presupuesto del equipo se acepta como fuga sin medirla.",
+      "evidencia": "learning.ts l. 106-110; riderSchedule.ts l. 217; routes/riders.ts l. 648.",
+      "resolucion": "Las nueve puertas de producto en la tabla; el presupuesto se vela con stage_team_results.prize.",
+      "decision": [
+        "D-41"
+      ],
+      "destino": [
+        "§11"
+      ],
+      "estado": "pendiente"
+    }
+  ],
+  "huecos": [
+    {
+      "id": "H-01",
+      "fuentes": [
+        "H-cobertura-01"
+      ],
+      "que": "Campeones antes del primer nacional de un mundo reiniciado.",
+      "resolucion": "No hay campeones hasta el día 179 de la temporada 0 (salvo los 22 países de NATIONALS_ROAD_OVERRIDE); sin marcador; E12 puede sembrarlos detrás de ChampionTitleSource.",
+      "decision": [
+        "D-25"
+      ],
+      "destino": [
+        "§7",
+        "§20"
+      ],
+      "sin_evidencia_de_los_jueces": false,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-02",
+      "fuentes": [
+        "H-cobertura-02"
+      ],
+      "que": "La contradicción 5 del mapa 05 entera: balance.md l. 14684-14686 y atar toda subida de versión al 17d.",
+      "resolucion": "Ninguna subida en E2; toda subida detrás del 17d; el paso 12 corrige balance.md.",
+      "decision": [
+        "D-09",
+        "D-58"
+      ],
+      "destino": [
+        "§5",
+        "§17",
+        "§19"
+      ],
+      "sin_evidencia_de_los_jueces": false,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-03",
+      "fuentes": [
+        "H-cobertura-03"
+      ],
+      "que": "[DUEÑO 7] La criba lejana aparcada «para cuando se mejore el diario».",
+      "resolucion": "La barra la enseña como estado aunque la voz no la narre; B2 incluye peloton_selection.",
+      "decision": [
+        "D-59"
+      ],
+      "destino": [
+        "§6"
+      ],
+      "sin_evidencia_de_los_jueces": false,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-04",
+      "fuentes": [
+        "H-cobertura-04",
+        "H-ejecutabilidad-07"
+      ],
+      "que": "[DOC 7] Una prueba de lectura como aceptación de la pantalla y de las constantes de ritmo.",
+      "resolucion": "Protocolo PL: tres etapas, tres puntos cada una, las cuatro preguntas de SPEC §6.15; nueve de nueve para encender.",
+      "decision": [
+        "D-60"
+      ],
+      "destino": [
+        "§16",
+        "§17"
+      ],
+      "sin_evidencia_de_los_jueces": true,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-05",
+      "fuentes": [
+        "H-cobertura-05"
+      ],
+      "que": "Notoriedad sin fame.",
+      "resolucion": "knownWins: victorias de palmarés con game_day fuera del alcance de cualquier velo.",
+      "decision": [
+        "D-26"
+      ],
+      "destino": [
+        "§7"
+      ],
+      "sin_evidencia_de_los_jueces": true,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-06",
+      "fuentes": [
+        "H-cobertura-06",
+        "H-ejecutabilidad-03"
+      ],
+      "que": "El dueño como espectador y como depurador a la vez.",
+      "resolucion": "Modo diagnóstico ?diag=1 para administradores: sin horizonte y sin escribir race_watch.",
+      "decision": [
+        "D-40"
+      ],
+      "destino": [
+        "§11"
+      ],
+      "sin_evidencia_de_los_jueces": true,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-07",
+      "fuentes": [
+        "H-cobertura-07"
+      ],
+      "que": "Lugares, avituallamiento y tiempo en pantalla.",
+      "resolucion": "El tiempo sí (congelado); lugares y avituallamiento no: el motor no los tiene.",
+      "decision": [
+        "D-14",
+        "D-59"
+      ],
+      "destino": [
+        "§6"
+      ],
+      "sin_evidencia_de_los_jueces": false,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-08",
+      "fuentes": [
+        "H-cobertura-08"
+      ],
+      "que": "Dos jugadores que comentan la misma etapa vista hasta km distintos (E9).",
+      "resolucion": "La regla de producto: el contenido lleva sellado el horizonte de su autor.",
+      "decision": [
+        "D-41"
+      ],
+      "destino": [
+        "§11",
+        "§19"
+      ],
+      "sin_evidencia_de_los_jueces": false,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-09",
+      "fuentes": [
+        "H-cobertura-09",
+        "H-ejecutabilidad-02"
+      ],
+      "que": "Móvil medido en un navegador.",
+      "resolucion": "Medición manual en el paso 10 con umbrales escritos (no hay Playwright ni Puppeteer en el repositorio).",
+      "decision": [
+        "D-56"
+      ],
+      "destino": [
+        "§18"
+      ],
+      "sin_evidencia_de_los_jueces": true,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-10",
+      "fuentes": [
+        "H-motor-01"
+      ],
+      "que": "Índice y presupuesto de lectura del horizonte.",
+      "resolucion": "race_rosters_rider_idx, memo de 60 s, B14 con p95 ≤ 5 ms.",
+      "decision": [
+        "D-33"
+      ],
+      "destino": [
+        "§10",
+        "§13",
+        "§16"
+      ],
+      "sin_evidencia_de_los_jueces": false,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-11",
+      "fuentes": [
+        "H-motor-02"
+      ],
+      "que": "El reinicio frente a las tablas por usuario sin world_id.",
+      "resolucion": "race_watch lleva world_id en la clave y el reinicio la borra.",
+      "decision": [
+        "D-29"
+      ],
+      "destino": [
+        "§10",
+        "§13"
+      ],
+      "sin_evidencia_de_los_jueces": false,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-12",
+      "fuentes": [
+        "H-motor-03"
+      ],
+      "que": "El salto de hasta 138 s, defecto del motor.",
+      "resolucion": "E2 lo tolera (tránsito) y lo anota en balance.md para el dueño.",
+      "decision": [
+        "D-01",
+        "D-58"
+      ],
+      "destino": [
+        "§3",
+        "§19"
+      ],
+      "sin_evidencia_de_los_jueces": false,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-13",
+      "fuentes": [
+        "H-motor-04"
+      ],
+      "que": "Guarda de tipos entre la sonda y el grabador, y decodificador por format.",
+      "resolucion": "Mapeo exhaustivo con satisfies; decodeTimeline por format.",
+      "decision": [
+        "D-10"
+      ],
+      "destino": [
+        "§4",
+        "§5"
+      ],
+      "sin_evidencia_de_los_jueces": false,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-14",
+      "fuentes": [
+        "H-motor-05"
+      ],
+      "que": "Banco del coste del tick en los días 176 y 179.",
+      "resolucion": "B15 en el paso 5.",
+      "decision": [
+        "D-12"
+      ],
+      "destino": [
+        "§16"
+      ],
+      "sin_evidencia_de_los_jueces": false,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-15",
+      "fuentes": [
+        "H-motor-06"
+      ],
+      "que": "Versión de Postgres de producción y su compresión TOAST.",
+      "resolucion": "Con bytea gzip deja de importar para la línea; se anota como no comprobado para la radio de hoy.",
+      "decision": [
+        "D-10"
+      ],
+      "destino": [
+        "§5",
+        "§19"
+      ],
+      "sin_evidencia_de_los_jueces": false,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-16",
+      "fuentes": [
+        "H-motor-07"
+      ],
+      "que": "Qué se enseña de las etapas corridas entre el despliegue y el reinicio.",
+      "resolucion": "Adaptador de la radio con reloj estimado; B22 decide si abren en Watch o solo en Report.",
+      "decision": [
+        "D-07",
+        "D-61"
+      ],
+      "destino": [
+        "§3",
+        "§17"
+      ],
+      "sin_evidencia_de_los_jueces": true,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-17",
+      "fuentes": [
+        "H-motor-08"
+      ],
+      "que": "Qué segundo se enseña como diferencia de un corredor.",
+      "resolucion": "El de su grupo en el último punto común, nunca su reloj de foto.",
+      "decision": [
+        "D-01",
+        "D-27"
+      ],
+      "destino": [
+        "§3",
+        "§6"
+      ],
+      "sin_evidencia_de_los_jueces": false,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-18",
+      "fuentes": [
+        "H-motor-09"
+      ],
+      "que": "La carga de escritura del progreso.",
+      "resolucion": "Se escribe solo si lo alcanzado creció 60 s de carrera o cambia el estado; del orden de una escritura por minuto real.",
+      "decision": [
+        "D-55"
+      ],
+      "destino": [
+        "§10",
+        "§18"
+      ],
+      "sin_evidencia_de_los_jueces": true,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-19",
+      "fuentes": [
+        "H-ejecutabilidad-01"
+      ],
+      "que": "Cuánto tiempo al día cuesta seguir tu vuelta.",
+      "resolucion": "Tabla medida: 28-49 min al día con la curva elegida, 8-24 en Highlights; el modo por defecto es DD-03.",
+      "decision": [
+        "D-19"
+      ],
+      "destino": [
+        "§8",
+        "§20"
+      ],
+      "sin_evidencia_de_los_jueces": false,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-20",
+      "fuentes": [
+        "H-ejecutabilidad-04"
+      ],
+      "que": "Ver una cola seguida.",
+      "resolucion": "Next: Stage 8 · Watch sin reproducción automática; la más antigua primero; carreras del mismo día en filas separadas.",
+      "decision": [
+        "D-39"
+      ],
+      "destino": [
+        "§8",
+        "§11"
+      ],
+      "sin_evidencia_de_los_jueces": true,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-21",
+      "fuentes": [
+        "H-ejecutabilidad-05"
+      ],
+      "que": "Fallos de red a mitad de etapa.",
+      "resolucion": "Pausa y reintento; lo alcanzado es lo pintado, nunca lo descargado.",
+      "decision": [
+        "D-57"
+      ],
+      "destino": [
+        "§10",
+        "§18"
+      ],
+      "sin_evidencia_de_los_jueces": true,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-22",
+      "fuentes": [
+        "H-ejecutabilidad-06"
+      ],
+      "que": "Accesibilidad de la pantalla viva.",
+      "resolucion": "aria-live, movimiento reducido, parciales con signo y maillots por forma.",
+      "decision": [
+        "D-57"
+      ],
+      "destino": [
+        "§18"
+      ],
+      "sin_evidencia_de_los_jueces": true,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-23",
+      "fuentes": [
+        "H-ejecutabilidad-08"
+      ],
+      "que": "Dos dispositivos viendo la misma etapa.",
+      "resolucion": "Gana el máximo; rev al enfocar; aviso en la segunda pestaña.",
+      "decision": [
+        "D-57"
+      ],
+      "destino": [
+        "§10"
+      ],
+      "sin_evidencia_de_los_jueces": true,
+      "estado": "pendiente"
+    }
+  ],
+  "contradicciones": [
+    {
+      "id": "X-01",
+      "tema": "¿Hay reloj absoluto?",
+      "posturas": {
+        "mapa 01 §0": "no hay reloj absoluto",
+        "producto, ingeniero, datos, television": "tS es tiempo de carrera absoluto"
+      },
+      "resultado": "cierta, con matiz",
+      "resolucion": "Hay un eje común (segundos desde la salida común); lo que no existe es el instante.",
+      "evidencia": "group.ts l. 26-27 y 56; simulate.ts l. 7249 y 8817; al primer bloque nadie pasa de 9,2-9,6 s.",
+      "juez": "motor (C1), ejecutabilidad (§2.3)",
+      "decision": [
+        "D-01"
+      ]
+    },
+    {
+      "id": "X-02",
+      "tema": "Monotonía del reloj",
+      "posturas": {
+        "television §3.1, §3.4": "el reloj de cabeza y los cambios de corredor son monótonos",
+        "estado §3.1, §3.3": "la cabeza, salvo 0-2 bloques; el corredor no es causal"
+      },
+      "resultado": "cabeza: a medias (las dos); corredor: falsa la de television",
+      "resolucion": "Por km la cabeza no baja; por bloque baja 0-2 veces, 2,8 s como mucho. Un corredor retrocede hasta 77 s por km y 138 s por bloque.",
+      "evidencia": "simulate.ts l. 7863, 5536, 8678, 8783; race-colombia e5 semilla 0 km 183,25.",
+      "juez": "motor (C2, C3, C4)",
+      "decision": [
+        "D-01"
+      ]
+    },
+    {
+      "id": "X-03",
+      "tema": "¿Guardar desde la sonda sube ENGINE_VERSION?",
+      "posturas": {
+        "ingeniero, datos, television, estado": "no",
+        "producto": "no para la radio v2, pero sus fotos finas cambian el aprendizaje"
+      },
+      "resultado": "cierta, con una condición",
+      "resolucion": "No sube; la condición es que el aprendizaje y la radio vean las mismas fotos que hoy.",
+      "evidencia": "balance l. 16319-16323, 16604-16606, 16708; Claude.md l. 13; stageRun.ts l. 527-533 y 802; 20 de 20 etapas idénticas con sonda en cada bloque.",
+      "juez": "motor (C5, C11), cobertura (§2.6)",
+      "decision": [
+        "D-08",
+        "D-09"
+      ]
+    },
+    {
+      "id": "X-04",
+      "tema": "¿Hace falta subir ENGINE_VERSION?",
+      "posturas": {
+        "estado": "v90 por el orden de pancartas",
+        "producto": "v90 obligatoria con cuatro cambios, uno un suceso crash",
+        "ingeniero, datos": "opcional",
+        "television": "nunca"
+      },
+      "resultado": "nada de E2 la necesita",
+      "resolucion": "Con onBanner, bEmit (onEvent), incidents y startS + tS no hace falta; cambiar el contenido de un suceso sí sube (v73) y, antes del 17d, cambia la Last race.",
+      "evidencia": "balance l. 14036-14038; raceReport.ts l. 148.",
+      "juez": "motor (C16, §2.3.2), cobertura (§2.8)",
+      "decision": [
+        "D-09"
+      ]
+    },
+    {
+      "id": "X-05",
+      "tema": "¿Subir la versión tira las crónicas guardadas?",
+      "posturas": {
+        "docs/balance.md l. 14684-14686": "sí",
+        "routes/races.ts l. 474-477": "las lee sin mirar la versión"
+      },
+      "resultado": "falsa",
+      "resolucion": "La crónica guardada no se tira; lo que se rompe es la Last race de raceReport.ts, que re-simula.",
+      "evidencia": "routes/races.ts l. 474-477; raceReport.ts l. 30-39 y 148.",
+      "juez": "cobertura (§2.8)",
+      "decision": [
+        "D-58"
+      ]
+    },
+    {
+      "id": "X-06",
+      "tema": "Tamaño de la línea temporal",
+      "posturas": {
+        "datos": "17,5 KB en disco",
+        "estado": "5,5-39 KB en disco",
+        "ingeniero": "+52-74 KB de JSON",
+        "producto": "106-178 KB, y 3-9 KB en disco"
+      },
+      "resultado": "ciertas, miden objetos distintos; falsa la de producto en disco",
+      "resolucion": "bytea gzip de la línea por km; json de la línea con detalle; JSON añadido a la radio; la retransmisión servida. Lo que la radio v2 añade en jsonb es +4,7 a +53 KB.",
+      "evidencia": "juez del motor §2.1, tamano.mjs sobre 9 etapas en PGlite.",
+      "juez": "motor (C7)",
+      "decision": [
+        "D-11"
+      ]
+    },
+    {
+      "id": "X-07",
+      "tema": "json, jsonb o bytea",
+      "posturas": {
+        "estado": "json ocupa un 26-32 % menos que jsonb",
+        "datos": "por eso bytea con gzip"
+      },
+      "resultado": "ciertas",
+      "resolucion": "json entre un 15 % y un 44 % menos que jsonb; bytea gzip 1,6-2,4 veces menos que jsonb; PGlite no admite lz4.",
+      "evidencia": "tamano.mjs.",
+      "juez": "motor (C8)",
+      "decision": [
+        "D-10"
+      ]
+    },
+    {
+      "id": "X-08",
+      "tema": "Coste de CPU de la sonda en cada bloque",
+      "posturas": {
+        "estado": "+4 a +27 %, mediana +10 %",
+        "mapa 01": "+1,5 a +4 % cada 100 m",
+        "datos": "59-81 ms por etapa"
+      },
+      "resultado": "a medias",
+      "resolucion": "Medido de −7,7 a +11,6 %, mediana +3,8 %; grabador de diferencias 38-51 ms por etapa grande y 8 ms por nacional; gzip 3-15 ms.",
+      "evidencia": "huella.mjs, grabador.mjs.",
+      "juez": "motor (C6)",
+      "decision": [
+        "D-12"
+      ]
+    },
+    {
+      "id": "X-09",
+      "tema": "¿La carrera sale idéntica con la sonda en cada bloque?",
+      "posturas": {
+        "estado": "15 de 15",
+        "datos": "4 etapas"
+      },
+      "resultado": "cierta",
+      "resolucion": "20 de 20 (10 etapas por 2 semillas, un nacional incluido) comparando results, events, efforts e incidents enteros.",
+      "evidencia": "huella.mjs.",
+      "juez": "motor (C5)",
+      "decision": [
+        "D-09"
+      ]
+    },
+    {
+      "id": "X-10",
+      "tema": "¿Las fotos finas por la misma sonda son inocuas?",
+      "posturas": {
+        "producto §11": "observación, no sube, foto por km y pullFor intactos",
+        "estado, datos": "cambian el aprendizaje"
+      },
+      "resultado": "falsa la de producto",
+      "resolucion": "trabajaronParaOtro apunta en cada foto y TURNO_KM cuenta fotos: el aprendizaje cambia y el turno del final pasa a 300 m.",
+      "evidencia": "stageRun.ts l. 515-536, 791-802; raceRadio.ts l. 597 y 883.",
+      "juez": "cobertura (§2.6), motor (C11)",
+      "decision": [
+        "D-08"
+      ]
+    },
+    {
+      "id": "X-11",
+      "tema": "¿El horizonte cuesta menos de 5 ms?",
+      "posturas": {
+        "estado §7.2": "sí (estimado)"
+      },
+      "resultado": "falsa sin índice",
+      "resolucion": "19,6 ms de recorrido secuencial con 249.232 filas; 0,11 ms con índice por rider_id.",
+      "evidencia": "schema.ts l. 609; rosters.mjs en PGlite.",
+      "juez": "motor (C12)",
+      "decision": [
+        "D-33"
+      ]
+    },
+    {
+      "id": "X-12",
+      "tema": "riders.fame",
+      "posturas": {
+        "producto, ingeniero": "no se escribe",
+        "television": "notoriedad por percentil de fame",
+        "datos": "CastRider.fame"
+      },
+      "resultado": "cierta: no se escribe",
+      "resolucion": "Todos empatan a 0; la notoriedad por fama no ordena nada y W6 no destripa.",
+      "evidencia": "rollover.ts l. 58-60 y 291-295; columnasVivas.test.ts l. 34-38.",
+      "juez": "motor (C14), cobertura (§2.7), ejecutabilidad (#10)",
+      "decision": [
+        "D-26"
+      ]
+    },
+    {
+      "id": "X-13",
+      "tema": "El campeón nacional",
+      "posturas": {
+        "estado, producto, datos, ingeniero": "derivable de palmares",
+        "television": "derivable de race_gc con la consulta del dorsal 1",
+        "television, estado, producto, datos": "desde el primer día",
+        "estado": "LIKE 'nc-%-road' deja fuera a los sub-23"
+      },
+      "resultado": "palmares cierta; race_gc a medias; «desde el primer día» falsa; el LIKE falsa",
+      "resolucion": "palmares con kind gc e índice palmares_race_idx, una consulta para todos; race_gc sin world_id ni game_day y solo para carreras con equipos; tras el reinicio no hay campeones hasta doy(6, 28); el LIKE casa con nc-it-u23-road.",
+      "evidencia": "stageRun.ts l. 1297-1306; schema.ts l. 785; calendarRun.ts l. 976-1007; calendar.ts l. 204, 3655-3660.",
+      "juez": "cobertura (§2.1, §2.2), motor (C18), ejecutabilidad (#12)",
+      "decision": [
+        "D-25"
+      ]
+    },
+    {
+      "id": "X-14",
+      "tema": "¿Qué pasadas de la crónica miran el futuro?",
+      "posturas": {
+        "ingeniero": "cinco exactas, más la longitud de etapa",
+        "television, estado, datos": "también respecto y juntos",
+        "producto": "la lista la fija un test"
+      },
+      "resultado": "cierta la de ingeniero; falsa la otra",
+      "resolucion": "markConcession, dropUndoneSelections, groupGapRuns, foldQuickAttacks y groupRuns miran el futuro; respecto y juntos son causales; desenlace solo necesita la longitud.",
+      "evidencia": "chronicle.ts l. 297, 319, 361, 362, 371, 375, 545, 637, 945, 546-601, 937-1005.",
+      "juez": "cobertura (§2.3), ejecutabilidad (#8)",
+      "decision": [
+        "D-43"
+      ]
+    },
+    {
+      "id": "X-15",
+      "tema": "Las fechas trucadas (a) y (f)",
+      "posturas": {
+        "ingeniero §1.3": "(f) climb_kom queda bien revelado por su tS",
+        "datos §3.4": "(a) visible cuando el hueco al mainGroup pasa de 45 s",
+        "estado": "bEmision por onEvent"
+      },
+      "resultado": "(f) falsa; (a) a medias; bEmision exacto",
+      "resolucion": "climb_kom lleva el reloj del primer grupo que corona y el ganador puede ir en otro; breakaway_formed se emite contra el grupo de origen, que no siempre es el mainGroup.",
+      "evidencia": "simulate.ts l. 9287, 9310, 8693, 8708, 8727.",
+      "juez": "motor (C9, C10)",
+      "decision": [
+        "D-05"
+      ]
+    },
+    {
+      "id": "X-16",
+      "tema": "Sesión de 7 días y caché",
+      "posturas": {
+        "producto": "la sesión caduca a los 7 días; la caché sobrevive al cambio de cuenta; la portada de invitado, las noticias y el ranking destripan"
+      },
+      "resultado": "sesión y caché ciertas; portada de invitado a medias",
+      "resolucion": "GuestHome no enseña resultados; la fuga son /news, /world y los rankings, públicos.",
+      "evidencia": "create-context.mjs l. 146-147; auth.ts l. 102-114; Account.tsx l. 311-314; queryClient.ts l. 17-46; Home.tsx l. 44-72.",
+      "juez": "cobertura (§2.5), motor (C13), ejecutabilidad (#7)",
+      "decision": [
+        "D-34",
+        "D-35"
+      ]
+    },
+    {
+      "id": "X-17",
+      "tema": "Las 48 superficies y las rutas",
+      "posturas": {
+        "las cinco": "el destripe está en las 48 superficies del mapa 03",
+        "ingeniero": "unas 50 rutas GET"
+      },
+      "resultado": "a medias; cierta la cuenta de rutas",
+      "resolucion": "48 filas exactas, pero siete no destripan hoy (C6, T1, T2, T4, T5, T6, W6) y hay fugas fuera (upcoming-races, report y trend, free-agents, alreadyOut); 52 rutas GET contadas con perl.",
+      "evidencia": "riderSchedule.ts l. 217; routes/riders.ts l. 447, 469, 648; browse.ts l. 234; learning.ts l. 107-111.",
+      "juez": "cobertura (§2.4), ejecutabilidad (#11, #14)",
+      "decision": [
+        "D-32",
+        "D-41"
+      ]
+    },
+    {
+      "id": "X-18",
+      "tema": "Duración de la reproducción",
+      "posturas": {
+        "television": "≈ 10 min Highlights y ≈ 30 Full",
+        "estado": "5:02 a 15:03",
+        "producto": "≈ 8 y ≈ 14 min",
+        "datos": "7,8-20,4 min, mediana 12,7",
+        "ingeniero": "≈ 6,5 y ≈ 8 min, último km a ×1"
+      },
+      "resultado": "datos cierta; producto cierta sin pausas; television, estado e ingeniero a medias; crono: solo producto",
+      "resolucion": "Medido a pasos de 0,02 s en siete etapas y dos semillas: tabla de D-19.",
+      "evidencia": "juez-ejec/ritmo.mjs, crono.mjs, crono_gc.mjs.",
+      "juez": "ejecutabilidad (§2.1, §2.3)",
+      "decision": [
+        "D-19"
+      ]
+    },
+    {
+      "id": "X-19",
+      "tema": "Coste diario de seguir una gran vuelta",
+      "posturas": {
+        "datos §16.3": "unos 13 min al día"
+      },
+      "resultado": "falsa",
+      "resolucion": "21 etapas en 23 días de juego de 6 h son unas 3,6 etapas por día real: unos 46 min con su mediana.",
+      "evidencia": "mapa 02 §1.1; mapa 04 §2.",
+      "juez": "ejecutabilidad (#15)",
+      "decision": [
+        "D-19"
+      ]
+    },
+    {
+      "id": "X-20",
+      "tema": "Qué plan rompe la web de hoy",
+      "posturas": {
+        "producto": "StageCard en la ruta de etapa",
+        "estado": "/api/news sin text",
+        "television": "403 sin interruptor",
+        "datos, ingeniero": "intacta"
+      },
+      "resultado": "rompen producto, estado y television",
+      "resolucion": "StageCard no trae run y la web valida con stageReplaySchema (ContractError); una SPA cargada valida text: z.string(); los opcionales de stageReplaySchema se pueden omitir.",
+      "evidencia": "apps/web/src/api/results.ts l. 51-55; request.ts l. 91-111; contracts.ts l. 790, 1483-1531.",
+      "juez": "ejecutabilidad (§2.3, #1, #2, #3)",
+      "decision": [
+        "D-50",
+        "D-45"
+      ]
+    },
+    {
+      "id": "X-21",
+      "tema": "Plantillas y narradores",
+      "posturas": {
+        "ingeniero": "55 plantillas y 272 redacciones sin cambiar una frase ni añadir un case",
+        "producto": "narrate() no tiene llamadas en producción"
+      },
+      "resultado": "ingeniero a medias; producto cierta",
+      "resolucion": "Cuatro plantillas caen al default que imprime la clave y su propio B7 exige frase; narrate solo lo usa su test.",
+      "evidencia": "stageJournal.ts l. 1602-1603; narration.ts l. 118.",
+      "juez": "ejecutabilidad (#5, #6)",
+      "decision": [
+        "D-44",
+        "D-47"
+      ]
+    },
+    {
+      "id": "X-22",
+      "tema": "Qué PR pagan los bancos y cuál es la próxima migración",
+      "posturas": {
+        "ingeniero": "solo los que tocan packages/engine/",
+        "las cinco": "la próxima libre es la 0043"
+      },
+      "resultado": "ciertas",
+      "resolucion": "El filtro de ci.yml l. 189 mira ^packages/engine/: no depende de subir la versión. _journal.json tiene 43 entradas, la última 0042_transicion_e1.",
+      "evidencia": "ci.yml l. 189; packages/db/drizzle/meta/_journal.json.",
+      "juez": "ejecutabilidad (#9), motor (C17)",
+      "decision": [
+        "D-52",
+        "D-49"
+      ]
+    },
+    {
+      "id": "X-23",
+      "tema": "El formato guardado de la línea",
+      "posturas": {
+        "datos": "StoredTimelineV1 (citado en l. 663 y 809)"
+      },
+      "resultado": "falsa: nunca se define",
+      "resolucion": "El tipo lo define ahora el glosario (§G.3.1) y lo escribe entero §4.",
+      "evidencia": "datos.md l. 663 y 809.",
+      "juez": "ejecutabilidad (#1 de la tabla y comprobación final)",
+      "decision": [
+        "D-10"
+      ]
+    },
+    {
+      "id": "X-24",
+      "tema": "Picos del tick",
+      "posturas": {
+        "mapas 02 y 04": "hasta 187 etapas en un día"
+      },
+      "resultado": "cierta",
+      "resolucion": "Día 176: 187 cronos nacionales (11-30 ms cada una con 40 corredores); día 179: 153 nacionales en línea (0,3-0,8 s cada una); E2 les suma del orden de 2-8 s (estimado).",
+      "evidencia": "dias.mjs con scheduledStageIndices.",
+      "juez": "motor (C15)",
+      "decision": [
+        "D-12"
+      ]
+    }
+  ],
+  "decisiones_sin_evidencia_de_los_jueces": {
+    "ids": [
+      "D-04",
+      "D-07",
+      "D-12",
+      "D-21",
+      "D-24",
+      "D-25",
+      "D-26",
+      "D-39",
+      "D-40",
+      "D-43",
+      "D-55",
+      "D-56",
+      "D-57",
+      "D-60"
+    ],
+    "nota": "Decisiones de borrador/00-decisiones.md que la síntesis tomó sin que ningún juez las midiera o las pidiera con mecanismo; el documento lo dice en cada una y el plan las mide (B14, B15, B17, B19, B21, B22, la medida del móvil a mano y la prueba de lectura PL) antes de encender. D-39 solo en su parte de la cola seguida (H-20)."
+  },
+  "ficheros_de_la_sintesis": [
+    "borrador/00-glosario.md",
+    "borrador/00-decisiones.md",
+    "borrador/00-esqueleto.md"
+  ]
+}
