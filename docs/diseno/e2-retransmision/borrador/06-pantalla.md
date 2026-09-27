@@ -532,8 +532,9 @@ D-48, escrito como hecho: `Watch` es la retransmisión; `Report` es el acta, la 
 
 | La etapa, para ese espectador | Pestañas (pantalla), la primera por defecto |
 | --- | --- |
-| no conocida (a medias o sin tocar) | `Watch`, `Profile` sin marcas; `Report`, `Result`, `Classifications` y `Race Radio` enseñan la puerta (§11) |
-| conocida (vista, revelada, arrastrada o caducada, D-28) | `Report`, `Result`, `Classifications`, `Race Radio`, `Profile`, `Watch` |
+| no conocida y en el velo (a medias o sin tocar) | `Watch`, `Profile` sin marcas; `Report`, `Result`, `Classifications` y `Race Radio` enseñan la puerta (§11) |
+| no conocida y fuera del velo (caducada, o de una carrera fuera de guardia; §10.2, decisión 10-e) | `Watch`, sin puerta; las demás, a un toque y sin confirmación |
+| conocida (vista, revelada o arrastrada: letras `W`, `S`, `R` y `A`, D-28, 10-e) | `Report`, `Result`, `Classifications`, `Race Radio`, `Profile`, `Watch` |
 | aún no corrida | `Preview`, `Profile` |
 
 [DOC 4], pregunta 4 de `docs/navegacion.md` §9 (l. 494-495: «Vista de espectador de la etapa: cuánto de la telemetría nueva del motor cabe aquí sin abrumar»): la vista de espectador es `Watch`, y la respuesta es la de esta sección, dos números, la barra, el perfil y un rótulo; la telemetría entera (motivo de cada relevista, velocidades, los dos huecos por grupo) sigue en `Race Radio`. La carrera de un día, que hoy abre en `Result` con el ganador en la cabecera (`raceTabs.ts` l. 47-51; `Race.tsx` l. 720-729), es §11.5 y §11.17.

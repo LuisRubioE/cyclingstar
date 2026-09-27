@@ -3,7 +3,8 @@
     "fase": "E2 · fase 3a (arquitecto)",
     "head": "9c21885",
     "engine_version": 89,
-    "ultima_migracion": "0042_transicion_e1"
+    "ultima_migracion": "0042_transicion_e1",
+    "estados_fase_3c": "Marcados por el ensamblador (fase 3c, 2026-09-27): cada injerto, objeción y hueco está «aplicado» si su id aparece en el bloque de cierre «Injertos aplicados», «Objeciones resueltas» o «Huecos rellenados» de alguna sección de borrador/; aplicado_en da las secciones de esos bloques y las subsecciones que citan. Lo comprueba borrador/ensamblar.sh --comprobar."
   },
   "juicios": [
     {
@@ -283,7 +284,20 @@
       "decision": [
         "D-02"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§3",
+          "§4"
+        ],
+        "subsecciones": [
+          "§3.1",
+          "§3.3",
+          "§4.2",
+          "§4.4",
+          "§4.5"
+        ]
+      }
     },
     {
       "id": "I-02",
@@ -307,7 +321,20 @@
         "D-02",
         "D-12"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§4",
+          "§5",
+          "§16"
+        ],
+        "subsecciones": [
+          "§4.4",
+          "§5.5",
+          "§5.10",
+          "§16.2"
+        ]
+      }
     },
     {
       "id": "I-03",
@@ -330,7 +357,21 @@
       "decision": [
         "D-01"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§3",
+          "§4",
+          "§5"
+        ],
+        "subsecciones": [
+          "§3.4",
+          "§4.2",
+          "§4.4",
+          "§4.6",
+          "§5.4"
+        ]
+      }
     },
     {
       "id": "I-04",
@@ -351,7 +392,18 @@
       "decision": [
         "D-03"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§3",
+          "§6"
+        ],
+        "subsecciones": [
+          "§3.7",
+          "§6.2",
+          "§6.3"
+        ]
+      }
     },
     {
       "id": "I-05",
@@ -373,7 +425,19 @@
       "decision": [
         "D-16"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§3",
+          "§11",
+          "§12"
+        ],
+        "subsecciones": [
+          "§3.2",
+          "§11.16",
+          "§12.10"
+        ]
+      }
     },
     {
       "id": "I-06",
@@ -395,7 +459,19 @@
       "decision": [
         "D-05"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§4",
+          "§5"
+        ],
+        "subsecciones": [
+          "§4.2",
+          "§4.7",
+          "§5.2",
+          "§5.4"
+        ]
+      }
     },
     {
       "id": "I-07",
@@ -416,7 +492,17 @@
       "decision": [
         "D-18"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§6",
+          "§12"
+        ],
+        "subsecciones": [
+          "§6.3",
+          "§12.6"
+        ]
+      }
     },
     {
       "id": "I-08",
@@ -437,7 +523,17 @@
       "decision": [
         "D-23"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§9"
+        ],
+        "subsecciones": [
+          "§9.2",
+          "§9.3",
+          "§9.5"
+        ]
+      }
     },
     {
       "id": "I-09",
@@ -460,7 +556,19 @@
       "decision": [
         "D-10"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§5",
+          "§13",
+          "§14"
+        ],
+        "subsecciones": [
+          "§5.6",
+          "§13.3",
+          "§14.4"
+        ]
+      }
     },
     {
       "id": "I-10",
@@ -484,7 +592,23 @@
       "decision": [
         "D-06"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§4",
+          "§10",
+          "§14",
+          "§16"
+        ],
+        "subsecciones": [
+          "§4.5",
+          "§4.6",
+          "§10.2",
+          "§10.11",
+          "§14.3",
+          "§16.4"
+        ]
+      }
     },
     {
       "id": "I-11",
@@ -507,7 +631,19 @@
         "D-15",
         "D-37"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§7",
+          "§10",
+          "§11"
+        ],
+        "subsecciones": [
+          "§7.8",
+          "§10.10",
+          "§11.12"
+        ]
+      }
     },
     {
       "id": "I-12",
@@ -530,7 +666,18 @@
         "D-08",
         "D-09"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§5",
+          "§16"
+        ],
+        "subsecciones": [
+          "§5.3",
+          "§5.10",
+          "§16.4"
+        ]
+      }
     },
     {
       "id": "I-13",
@@ -552,7 +699,20 @@
       "decision": [
         "D-45"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§12",
+          "§13",
+          "§17"
+        ],
+        "subsecciones": [
+          "§4.12",
+          "§12.8",
+          "§13.2",
+          "§17.4"
+        ]
+      }
     },
     {
       "id": "I-14",
@@ -573,7 +733,15 @@
       "decision": [
         "D-46"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§12"
+        ],
+        "subsecciones": [
+          "§12.7"
+        ]
+      }
     },
     {
       "id": "I-15",
@@ -594,7 +762,18 @@
       "decision": [
         "D-06"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§8",
+          "§14"
+        ],
+        "subsecciones": [
+          "§8.7",
+          "§14.2",
+          "§14.3"
+        ]
+      }
     },
     {
       "id": "I-16",
@@ -614,7 +793,16 @@
       "decision": [
         "D-50"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§14"
+        ],
+        "subsecciones": [
+          "§14.1",
+          "§14.7"
+        ]
+      }
     },
     {
       "id": "I-17",
@@ -636,7 +824,18 @@
       "decision": [
         "D-10"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§4",
+          "§14"
+        ],
+        "subsecciones": [
+          "§4.3",
+          "§4.11",
+          "§14.8"
+        ]
+      }
     },
     {
       "id": "I-18",
@@ -656,7 +855,15 @@
       "decision": [
         "D-09"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§5"
+        ],
+        "subsecciones": [
+          "§5.2"
+        ]
+      }
     },
     {
       "id": "I-19",
@@ -678,7 +885,20 @@
       "decision": [
         "D-14"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§5",
+          "§6",
+          "§8"
+        ],
+        "subsecciones": [
+          "§5.4",
+          "§6.2",
+          "§6.8",
+          "§8.6"
+        ]
+      }
     },
     {
       "id": "I-20",
@@ -702,7 +922,17 @@
         "D-05",
         "D-13"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§4",
+          "§5"
+        ],
+        "subsecciones": [
+          "§4.7",
+          "§5.4"
+        ]
+      }
     },
     {
       "id": "I-21",
@@ -724,7 +954,18 @@
         "D-20",
         "D-21"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§6",
+          "§8"
+        ],
+        "subsecciones": [
+          "§6.5",
+          "§8.5",
+          "§8.11"
+        ]
+      }
     },
     {
       "id": "I-22",
@@ -746,7 +987,18 @@
       "decision": [
         "D-22"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§6",
+          "§8"
+        ],
+        "subsecciones": [
+          "§6.7",
+          "§6.11",
+          "§8.6"
+        ]
+      }
     },
     {
       "id": "I-23",
@@ -766,7 +1018,16 @@
       "decision": [
         "D-26"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§7"
+        ],
+        "subsecciones": [
+          "§7.5",
+          "§7.6"
+        ]
+      }
     },
     {
       "id": "I-24",
@@ -787,7 +1048,15 @@
       "decision": [
         "D-24"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§7"
+        ],
+        "subsecciones": [
+          "§7.2"
+        ]
+      }
     },
     {
       "id": "I-25",
@@ -807,7 +1076,15 @@
       "decision": [
         "D-45"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§12"
+        ],
+        "subsecciones": [
+          "§12.8"
+        ]
+      }
     },
     {
       "id": "I-26",
@@ -828,7 +1105,17 @@
       "decision": [
         "D-56"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§18",
+          "§19"
+        ],
+        "subsecciones": [
+          "§18.6",
+          "§19.2"
+        ]
+      }
     },
     {
       "id": "I-27",
@@ -848,7 +1135,16 @@
       "decision": [
         "D-42"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§11"
+        ],
+        "subsecciones": [
+          "§11.8",
+          "§11.9"
+        ]
+      }
     },
     {
       "id": "I-28",
@@ -872,7 +1168,21 @@
         "D-31",
         "D-32"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§10",
+          "§11"
+        ],
+        "subsecciones": [
+          "§10.2",
+          "§10.4",
+          "§10.5",
+          "§10.6",
+          "§11.1",
+          "§11.5"
+        ]
+      }
     },
     {
       "id": "I-29",
@@ -893,7 +1203,16 @@
       "decision": [
         "D-41"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§11"
+        ],
+        "subsecciones": [
+          "§11.1",
+          "§11.2"
+        ]
+      }
     },
     {
       "id": "I-30",
@@ -915,7 +1234,19 @@
       "decision": [
         "D-54"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§16",
+          "§17"
+        ],
+        "subsecciones": [
+          "§11.18",
+          "§16.3",
+          "§17.10",
+          "§17.11"
+        ]
+      }
     },
     {
       "id": "I-31",
@@ -936,7 +1267,15 @@
       "decision": [
         "D-34"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§10"
+        ],
+        "subsecciones": [
+          "§10.8"
+        ]
+      }
     },
     {
       "id": "I-32",
@@ -957,7 +1296,18 @@
       "decision": [
         "D-35"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§10",
+          "§14"
+        ],
+        "subsecciones": [
+          "§10.9",
+          "§14.9",
+          "§14.11"
+        ]
+      }
     },
     {
       "id": "I-33",
@@ -978,7 +1328,17 @@
       "decision": [
         "D-33"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§10",
+          "§13"
+        ],
+        "subsecciones": [
+          "§10.7",
+          "§13.4"
+        ]
+      }
     },
     {
       "id": "I-34",
@@ -1000,7 +1360,17 @@
         "D-41",
         "D-49"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§11",
+          "§13"
+        ],
+        "subsecciones": [
+          "§11.13",
+          "§13.5"
+        ]
+      }
     },
     {
       "id": "I-35",
@@ -1021,7 +1391,18 @@
       "decision": [
         "D-38"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§11",
+          "§16"
+        ],
+        "subsecciones": [
+          "§11.11",
+          "§16.4",
+          "§16.6"
+        ]
+      }
     },
     {
       "id": "I-36",
@@ -1043,7 +1424,18 @@
         "D-36",
         "D-42"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§11",
+          "§14"
+        ],
+        "subsecciones": [
+          "§11.8",
+          "§11.10",
+          "§14.10"
+        ]
+      }
     },
     {
       "id": "I-37",
@@ -1064,7 +1456,17 @@
       "decision": [
         "D-39"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§8",
+          "§11"
+        ],
+        "subsecciones": [
+          "§8.8",
+          "§11.4"
+        ]
+      }
     },
     {
       "id": "I-38",
@@ -1084,7 +1486,16 @@
       "decision": [
         "D-19"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§8"
+        ],
+        "subsecciones": [
+          "§8.2",
+          "§8.3"
+        ]
+      }
     },
     {
       "id": "I-39",
@@ -1105,7 +1516,16 @@
         "D-32",
         "D-45"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§11"
+        ],
+        "subsecciones": [
+          "§11.6",
+          "§11.7"
+        ]
+      }
     },
     {
       "id": "I-40",
@@ -1127,7 +1547,17 @@
       "decision": [
         "D-41"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§11",
+          "§19"
+        ],
+        "subsecciones": [
+          "§11.14",
+          "§19.2"
+        ]
+      }
     },
     {
       "id": "I-41",
@@ -1147,7 +1577,15 @@
       "decision": [
         "D-47"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§12"
+        ],
+        "subsecciones": [
+          "§12.9"
+        ]
+      }
     },
     {
       "id": "I-42",
@@ -1168,7 +1606,15 @@
         "D-32",
         "D-41"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§11"
+        ],
+        "subsecciones": [
+          "§11.5"
+        ]
+      }
     },
     {
       "id": "I-43",
@@ -1189,7 +1635,15 @@
       "decision": [
         "D-43"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§12"
+        ],
+        "subsecciones": [
+          "§12.2"
+        ]
+      }
     },
     {
       "id": "I-44",
@@ -1209,7 +1663,15 @@
       "decision": [
         "D-43"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§12"
+        ],
+        "subsecciones": [
+          "§12.3"
+        ]
+      }
     },
     {
       "id": "I-45",
@@ -1233,7 +1695,18 @@
         "D-53",
         "D-54"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§14",
+          "§17"
+        ],
+        "subsecciones": [
+          "§14.6",
+          "§17.6",
+          "§17.18"
+        ]
+      }
     },
     {
       "id": "I-46",
@@ -1254,7 +1727,17 @@
       "decision": [
         "D-27"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§6",
+          "§7"
+        ],
+        "subsecciones": [
+          "§6.4",
+          "§7.7"
+        ]
+      }
     },
     {
       "id": "I-47",
@@ -1274,7 +1757,15 @@
       "decision": [
         "D-25"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§7"
+        ],
+        "subsecciones": [
+          "§7.4"
+        ]
+      }
     },
     {
       "id": "I-48",
@@ -1294,7 +1785,17 @@
       "decision": [
         "D-52"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§15"
+        ],
+        "subsecciones": [
+          "§15.1",
+          "§15.3",
+          "§15.4"
+        ]
+      }
     },
     {
       "id": "I-49",
@@ -1315,7 +1816,17 @@
       "decision": [
         "D-32"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§10",
+          "§14"
+        ],
+        "subsecciones": [
+          "§10.6",
+          "§14.5"
+        ]
+      }
     }
   ],
   "objeciones": [
@@ -1335,7 +1846,15 @@
       "destino": [
         "§5"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§5"
+        ],
+        "subsecciones": [
+          "§5.3"
+        ]
+      }
     },
     {
       "id": "O-02",
@@ -1353,7 +1872,15 @@
       "destino": [
         "§12"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§12"
+        ],
+        "subsecciones": [
+          "§12.2"
+        ]
+      }
     },
     {
       "id": "O-03",
@@ -1372,7 +1899,16 @@
       "destino": [
         "§7"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§7"
+        ],
+        "subsecciones": [
+          "§7.2",
+          "§7.4"
+        ]
+      }
     },
     {
       "id": "O-04",
@@ -1391,7 +1927,18 @@
         "§7",
         "§20"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§7",
+          "§20"
+        ],
+        "subsecciones": [
+          "§7.4",
+          "§20.2",
+          "§20.3"
+        ]
+      }
     },
     {
       "id": "O-05",
@@ -1411,7 +1958,18 @@
         "§5",
         "§19"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§5",
+          "§19"
+        ],
+        "subsecciones": [
+          "§5.1",
+          "§19.1",
+          "§19.5"
+        ]
+      }
     },
     {
       "id": "O-06",
@@ -1432,7 +1990,20 @@
         "§13",
         "§17"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§12",
+          "§13",
+          "§17"
+        ],
+        "subsecciones": [
+          "§12.8",
+          "§13.1",
+          "§13.2",
+          "§17.4"
+        ]
+      }
     },
     {
       "id": "O-07",
@@ -1451,7 +2022,16 @@
       "destino": [
         "§12"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§12"
+        ],
+        "subsecciones": [
+          "§12.7",
+          "§12.8"
+        ]
+      }
     },
     {
       "id": "O-08",
@@ -1469,7 +2049,15 @@
       "destino": [
         "§11"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§11"
+        ],
+        "subsecciones": [
+          "§11.10"
+        ]
+      }
     },
     {
       "id": "O-09",
@@ -1488,7 +2076,19 @@
         "§10",
         "§20"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§10",
+          "§20"
+        ],
+        "subsecciones": [
+          "§10.1",
+          "§10.4",
+          "§20.2",
+          "§20.3"
+        ]
+      }
     },
     {
       "id": "O-10",
@@ -1508,7 +2108,17 @@
         "§6",
         "§12"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§6",
+          "§12"
+        ],
+        "subsecciones": [
+          "§6.3",
+          "§12.6"
+        ]
+      }
     },
     {
       "id": "O-11",
@@ -1527,7 +2137,16 @@
       "destino": [
         "§9"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§9"
+        ],
+        "subsecciones": [
+          "§9.2",
+          "§9.4"
+        ]
+      }
     },
     {
       "id": "O-12",
@@ -1546,7 +2165,16 @@
       "destino": [
         "§8"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§8"
+        ],
+        "subsecciones": [
+          "§8.2",
+          "§8.3"
+        ]
+      }
     },
     {
       "id": "O-13",
@@ -1567,7 +2195,20 @@
         "§3",
         "§4"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§3",
+          "§4"
+        ],
+        "subsecciones": [
+          "§3.4",
+          "§3.8",
+          "§4.2",
+          "§4.5",
+          "§4.11"
+        ]
+      }
     },
     {
       "id": "O-14",
@@ -1585,7 +2226,16 @@
       "destino": [
         "§4"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§4"
+        ],
+        "subsecciones": [
+          "§4.3",
+          "§4.11"
+        ]
+      }
     },
     {
       "id": "O-15",
@@ -1604,7 +2254,17 @@
         "§5",
         "§13"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§5",
+          "§13"
+        ],
+        "subsecciones": [
+          "§5.6",
+          "§13.3"
+        ]
+      }
     },
     {
       "id": "O-16",
@@ -1623,7 +2283,17 @@
         "§16",
         "§17"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§16",
+          "§17"
+        ],
+        "subsecciones": [
+          "§16.4",
+          "§17.14"
+        ]
+      }
     },
     {
       "id": "O-17",
@@ -1643,7 +2313,19 @@
         "§13",
         "§16"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§10",
+          "§13",
+          "§16"
+        ],
+        "subsecciones": [
+          "§10.7",
+          "§13.4",
+          "§16.4"
+        ]
+      }
     },
     {
       "id": "O-18",
@@ -1663,7 +2345,16 @@
       "destino": [
         "§10"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§10"
+        ],
+        "subsecciones": [
+          "§10.8",
+          "§10.9"
+        ]
+      }
     },
     {
       "id": "O-19",
@@ -1681,7 +2372,15 @@
       "destino": [
         "§15"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§15"
+        ],
+        "subsecciones": [
+          "§15.1"
+        ]
+      }
     },
     {
       "id": "O-20",
@@ -1701,7 +2400,18 @@
         "§10",
         "§14"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§10",
+          "§14"
+        ],
+        "subsecciones": [
+          "§10.2",
+          "§10.11",
+          "§14.3"
+        ]
+      }
     },
     {
       "id": "O-21",
@@ -1721,7 +2431,18 @@
         "§3",
         "§19"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§3",
+          "§19"
+        ],
+        "subsecciones": [
+          "§3.6",
+          "§19.1",
+          "§19.7"
+        ]
+      }
     },
     {
       "id": "O-22",
@@ -1739,7 +2460,15 @@
       "destino": [
         "§5"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§5"
+        ],
+        "subsecciones": [
+          "§5.5"
+        ]
+      }
     },
     {
       "id": "O-23",
@@ -1757,7 +2486,15 @@
       "destino": [
         "§16"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§16"
+        ],
+        "subsecciones": [
+          "§16.4"
+        ]
+      }
     },
     {
       "id": "O-24",
@@ -1775,7 +2512,15 @@
       "destino": [
         "§12"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§12"
+        ],
+        "subsecciones": [
+          "§12.5"
+        ]
+      }
     },
     {
       "id": "O-25",
@@ -1793,7 +2538,15 @@
       "destino": [
         "§14"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§14"
+        ],
+        "subsecciones": [
+          "§14.3"
+        ]
+      }
     },
     {
       "id": "O-26",
@@ -1813,7 +2566,17 @@
         "§10",
         "§11"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§10",
+          "§11"
+        ],
+        "subsecciones": [
+          "§10.5",
+          "§11.4"
+        ]
+      }
     },
     {
       "id": "O-27",
@@ -1831,7 +2594,15 @@
       "destino": [
         "§6"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§6"
+        ],
+        "subsecciones": [
+          "§6.6"
+        ]
+      }
     },
     {
       "id": "O-28",
@@ -1849,7 +2620,15 @@
       "destino": [
         "§14"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§14"
+        ],
+        "subsecciones": [
+          "§14.2"
+        ]
+      }
     },
     {
       "id": "O-29",
@@ -1867,7 +2646,15 @@
       "destino": [
         "§8"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§8"
+        ],
+        "subsecciones": [
+          "§8.6"
+        ]
+      }
     },
     {
       "id": "O-30",
@@ -1885,7 +2672,16 @@
       "destino": [
         "§7"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§7"
+        ],
+        "subsecciones": [
+          "§7.1",
+          "§7.4"
+        ]
+      }
     },
     {
       "id": "O-31",
@@ -1903,7 +2699,15 @@
       "destino": [
         "§14"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§14"
+        ],
+        "subsecciones": [
+          "§14.5"
+        ]
+      }
     },
     {
       "id": "O-32",
@@ -1921,7 +2725,16 @@
       "destino": [
         "§11"
       ],
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§11"
+        ],
+        "subsecciones": [
+          "§11.2",
+          "§11.13"
+        ]
+      }
     }
   ],
   "huecos": [
@@ -1940,7 +2753,17 @@
         "§20"
       ],
       "sin_evidencia_de_los_jueces": false,
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§7",
+          "§20"
+        ],
+        "subsecciones": [
+          "§7.4",
+          "§20.3"
+        ]
+      }
     },
     {
       "id": "H-02",
@@ -1959,7 +2782,19 @@
         "§19"
       ],
       "sin_evidencia_de_los_jueces": false,
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§5",
+          "§17",
+          "§19"
+        ],
+        "subsecciones": [
+          "§5.1",
+          "§17.15",
+          "§19.5"
+        ]
+      }
     },
     {
       "id": "H-03",
@@ -1975,7 +2810,15 @@
         "§6"
       ],
       "sin_evidencia_de_los_jueces": false,
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§6"
+        ],
+        "subsecciones": [
+          "§6.8"
+        ]
+      }
     },
     {
       "id": "H-04",
@@ -1993,7 +2836,17 @@
         "§17"
       ],
       "sin_evidencia_de_los_jueces": true,
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§16",
+          "§17"
+        ],
+        "subsecciones": [
+          "§16.5",
+          "§17.13"
+        ]
+      }
     },
     {
       "id": "H-05",
@@ -2009,7 +2862,15 @@
         "§7"
       ],
       "sin_evidencia_de_los_jueces": true,
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§7"
+        ],
+        "subsecciones": [
+          "§7.5"
+        ]
+      }
     },
     {
       "id": "H-06",
@@ -2026,7 +2887,15 @@
         "§11"
       ],
       "sin_evidencia_de_los_jueces": true,
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§11"
+        ],
+        "subsecciones": [
+          "§11.15"
+        ]
+      }
     },
     {
       "id": "H-07",
@@ -2043,7 +2912,15 @@
         "§6"
       ],
       "sin_evidencia_de_los_jueces": false,
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§6"
+        ],
+        "subsecciones": [
+          "§6.8"
+        ]
+      }
     },
     {
       "id": "H-08",
@@ -2060,7 +2937,17 @@
         "§19"
       ],
       "sin_evidencia_de_los_jueces": false,
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§11",
+          "§19"
+        ],
+        "subsecciones": [
+          "§11.14",
+          "§19.2"
+        ]
+      }
     },
     {
       "id": "H-09",
@@ -2077,7 +2964,15 @@
         "§18"
       ],
       "sin_evidencia_de_los_jueces": true,
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§18"
+        ],
+        "subsecciones": [
+          "§18.5"
+        ]
+      }
     },
     {
       "id": "H-10",
@@ -2095,7 +2990,19 @@
         "§16"
       ],
       "sin_evidencia_de_los_jueces": false,
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§10",
+          "§13",
+          "§16"
+        ],
+        "subsecciones": [
+          "§10.7",
+          "§13.4",
+          "§16.4"
+        ]
+      }
     },
     {
       "id": "H-11",
@@ -2112,7 +3019,18 @@
         "§13"
       ],
       "sin_evidencia_de_los_jueces": false,
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§10",
+          "§13"
+        ],
+        "subsecciones": [
+          "§10.3",
+          "§13.4",
+          "§13.9"
+        ]
+      }
     },
     {
       "id": "H-12",
@@ -2130,7 +3048,17 @@
         "§19"
       ],
       "sin_evidencia_de_los_jueces": false,
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§3",
+          "§19"
+        ],
+        "subsecciones": [
+          "§3.6",
+          "§19.7"
+        ]
+      }
     },
     {
       "id": "H-13",
@@ -2147,7 +3075,18 @@
         "§5"
       ],
       "sin_evidencia_de_los_jueces": false,
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§4",
+          "§5"
+        ],
+        "subsecciones": [
+          "§4.3",
+          "§5.4",
+          "§5.6"
+        ]
+      }
     },
     {
       "id": "H-14",
@@ -2163,7 +3102,15 @@
         "§16"
       ],
       "sin_evidencia_de_los_jueces": false,
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§16"
+        ],
+        "subsecciones": [
+          "§16.4"
+        ]
+      }
     },
     {
       "id": "H-15",
@@ -2180,7 +3127,18 @@
         "§19"
       ],
       "sin_evidencia_de_los_jueces": false,
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§5",
+          "§19"
+        ],
+        "subsecciones": [
+          "§5.6",
+          "§19.1",
+          "§19.6"
+        ]
+      }
     },
     {
       "id": "H-16",
@@ -2198,7 +3156,17 @@
         "§17"
       ],
       "sin_evidencia_de_los_jueces": true,
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§3",
+          "§17"
+        ],
+        "subsecciones": [
+          "§3.8",
+          "§17.19"
+        ]
+      }
     },
     {
       "id": "H-17",
@@ -2216,7 +3184,17 @@
         "§6"
       ],
       "sin_evidencia_de_los_jueces": false,
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§3",
+          "§6"
+        ],
+        "subsecciones": [
+          "§3.5",
+          "§6.2"
+        ]
+      }
     },
     {
       "id": "H-18",
@@ -2233,7 +3211,17 @@
         "§18"
       ],
       "sin_evidencia_de_los_jueces": true,
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§10",
+          "§18"
+        ],
+        "subsecciones": [
+          "§10.3",
+          "§18.4"
+        ]
+      }
     },
     {
       "id": "H-19",
@@ -2250,7 +3238,17 @@
         "§20"
       ],
       "sin_evidencia_de_los_jueces": false,
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§8",
+          "§20"
+        ],
+        "subsecciones": [
+          "§8.4",
+          "§20.3"
+        ]
+      }
     },
     {
       "id": "H-20",
@@ -2267,7 +3265,17 @@
         "§11"
       ],
       "sin_evidencia_de_los_jueces": true,
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§8",
+          "§11"
+        ],
+        "subsecciones": [
+          "§8.8",
+          "§11.4"
+        ]
+      }
     },
     {
       "id": "H-21",
@@ -2284,7 +3292,17 @@
         "§18"
       ],
       "sin_evidencia_de_los_jueces": true,
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§10",
+          "§18"
+        ],
+        "subsecciones": [
+          "§10.12",
+          "§18.7"
+        ]
+      }
     },
     {
       "id": "H-22",
@@ -2300,7 +3318,15 @@
         "§18"
       ],
       "sin_evidencia_de_los_jueces": true,
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§18"
+        ],
+        "subsecciones": [
+          "§18.8"
+        ]
+      }
     },
     {
       "id": "H-23",
@@ -2316,7 +3342,15 @@
         "§10"
       ],
       "sin_evidencia_de_los_jueces": true,
-      "estado": "pendiente"
+      "estado": "aplicado",
+      "aplicado_en": {
+        "secciones": [
+          "§10"
+        ],
+        "subsecciones": [
+          "§10.12"
+        ]
+      }
     }
   ],
   "contradicciones": [
@@ -2719,6 +3753,9 @@
   "ficheros_de_la_sintesis": [
     "borrador/00-glosario.md",
     "borrador/00-decisiones.md",
-    "borrador/00-esqueleto.md"
+    "borrador/00-esqueleto.md",
+    "borrador/retransmision-v0.md",
+    "borrador/ensamblar.sh",
+    "borrador/dudas.md"
   ]
 }

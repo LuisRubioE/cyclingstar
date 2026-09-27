@@ -17,7 +17,7 @@ El motivo es de coste y está medido. El CI corre los ocho tramos de bancos cuan
 La desviación tiene tres costes, y cada uno tiene su defensa:
 1. **Las copias.** `shared` no importa el motor (su única dependencia es `zod`, `packages/shared/package.json` l. 18-20), así que tres reglas del motor viven copiadas en `BROADCAST` y una cuarta en `photoBlocksOf`; las ata un test de la suite rápida (§15.5).
 2. **La deriva hacia la carrera.** El motor importa `@cyclingstar/shared` (`packages/engine/package.json` l. 18-20) y podría leer `BROADCAST`: entonces un ajuste cambiaría carreras sin bancos. Lo impide una regla de ESLint (decisión 15-b).
-3. **Lo que se lee al grabar.** `packages/db` arma el reparto congelado al grabar y lee `SPOILER.expiryGameDays` para `knownWins` (§4.2): lo grabado queda con el valor de su día y cambiar la constante no reescribe líneas (ver Dudas).
+3. **Lo que se lee al grabar.** `packages/db` arma el reparto congelado al grabar y lee `SPOILER.expiryGameDays` para `knownWins` (§4.2): lo grabado queda con el valor de su día y cambiar la constante no reescribe líneas; la cuenta de `knownWins` es la de §7.5 (decisión 7-e).
 
 Un cambio de valor en cualquiera de los tres bloques se anota en `docs/balance.md`, como las del motor, con la medida que lo justifica (B17, B22, B14 o la prueba de lectura), y no sube `ENGINE_VERSION` (D-09; decisión 15-h).
 
@@ -41,16 +41,18 @@ export const TIMELINE = {
    *  STAGE.dx 0,1 son el último km, el de los carteles de 500, 300, 200 y 100 m. Derivado, no medido. */
   lastKmMarkBlocks: 10,
   /** Nivel de gzip de stage_timelines.bytes; lo aplica packages/db (el motor no importa Node). Medido con 9: 17,5 KB de
-   *  mediana por etapa en línea (8-23, datos.md §10.5, 28 etapas), de 1,6 a 2,4 veces menos que jsonb (juez del motor, C7). */
+   *  mediana por etapa en línea con el formato de datos (8-23, datos.md §10.5, 28 etapas), de 1,6 a 2,4 veces menos que jsonb
+   *  (juez del motor, C7); con el formato de §4.3, de 20,9 a 70,0 KB, mediana 38,8 (§5.7, l3/grabador.mjs). */
   gzipLevel: 9,
-  /** bytes. Tope de stage_timelines.bytes de una etapa en línea: el doble del máximo medido (23 KB, datos.md §10.5). */
-  maxStoredBytes: 49_152,
-  /** bytes. Tope del JSON antes de gzip: estado midió 24-104 KB (estado.md §3.8, 5 etapas × 3 semillas). */
-  maxJsonBytes: 131_072,
-  /** bytes. Mediana exigida al JSON en las 24 etapas. */
-  medianJsonBytes: 65_536,
-  /** bytes. Tope de una crono en bytea: datos midió 2,5-10 KB (datos.md §9 y §10.5). */
-  ttMaxStoredBytes: 16_384,
+  /** bytes. Tope de stage_timelines.bytes de una etapa en línea: 1,4 veces el máximo medido con el formato de §4.3 (70,0 KB;
+   *  de 20,9 a 70,0, mediana 38,8; §5.7, 23 etapas × 2 semillas). D-11. */
+  maxStoredBytes: 98_304,
+  /** bytes. Tope del JSON antes de gzip: medido de 123 a 464 KB (§5.7). D-11. */
+  maxJsonBytes: 655_360,
+  /** bytes. Mediana exigida al JSON en las 24 etapas: medida, 222 KB (§5.7). D-11. */
+  medianJsonBytes: 262_144,
+  /** bytes. Tope de una crono en bytea: medido de 18,8 a 24,2 KB con 176 corredores (§5.7). D-11. */
+  ttMaxStoredBytes: 32_768,
 } as const
 ```
 
@@ -85,7 +87,8 @@ export const BROADCAST = {
   /** s de pared por etapa en el digest de While you were away, por tipo de etapa: fijo, no mira lo que pasó. E (ver abajo). */
   digestBudgetS: { llana: 60, media: 90, reina: 150, cri: 120, clasica: 150 } as const satisfies Readonly<Record<StageKind, number>>,
   /** Crono: s de carrera por s de pared mientras la fracción de salidos (de 0 a 1) es ≤ upToStarted.
-   *  M: 6:24-6:33 un prólogo de 176 a 60 s y 11:21-11:23 una crono con general a 120 s (ejecutabilidad §2.1). */
+   *  M: 6:24-6:33 un prólogo de 176 a 60 s (6:55-7:06 con el último km real, §9.4) y 11:21-11:23 una crono con general a 120 s
+   *  (ejecutabilidad §2.1). */
   ttPace: [{ upToStarted: 0.6, x: 120 }, { upToStarted: 0.9, x: 40 }, { upToStarted: 1, x: 12 }] as const satisfies readonly { readonly upToStarted: number; readonly x: number }[],
   /** s de carrera por s de pared en el último km del último en salir. */
   ttLastKmX: 2,
@@ -100,6 +103,8 @@ export const BROADCAST = {
   skippedMinClass: 2 satisfies CueClass,       // While you skipped enseña, al volver de un salto, los Cue saltados de clase ≥ esta
   seekStepKm: 5,                               // km de los saltos −5 km y +5 km
   seekFinalKm: 20,                             // km a meta del salto Final 20 km
+  ttSeekStepS: 600,                            // s de carrera de los saltos −10 min y +10 min de la crono (9-g, §9.4). Entra en el 10a
+  ttSeekLastStarters: 20,                      // corredores del salto Last 20 starters de la crono (9-g, §9.4). Entra en el 10a
   resumeBackS: 60,                             // s de carrera que se retrocede al reanudar, con Previously
 
   // RÓTULOS Y CAPA FIJA (§6.2, §6.5, §7, §8.6; D-17, D-21, D-22). S/E salvo donde se dice: los acepta la prueba de lectura.
@@ -117,6 +122,10 @@ export const BROADCAST = {
   previewGcTop: 3,                             // favoritos de la previa: los 3 primeros de la general de salida...
   previewAttrTop: 3,                           // ...y los 3 mejores inscritos por el atributo del tipo de etapa (SPR, COL, MON, CRI, PAV)
   closingResultTop: 10,                        // puestos del resultado en el cierre, más el corredor propio
+  closingCardS: 6,                             // s de pared de cada cuadro del cierre antes de pasar solo (§6.11, §8.6). S/E. Entra en el 10a
+  previewThreatsMax: 3,                        // corredores que el cuadro de maillots de la previa nombra por maillot (§8.6). Entra en el 10a
+  recapMaxCues: 5,                             // rótulos de clase ≥ 2 que enseñan While you skipped y Previously (8-i, §8.5). Entra en el 10a
+  cardRowsMax: 5,                              // filas de un cuadro de diferencias o de la general virtual en el móvil (§6.7). S/E. Entra en el 6a
   cardLinesMax: 3,                             // líneas del rótulo de corredor además del nombre (§4.8; lo exige riderCardSchema, §4.11)
   gcLineTop: 20,                               // puesto de salida hasta el que la general gana una línea del rótulo: 14th overall +4:02
   sameTimeS: 5,                                // s de carrera por debajo de los cuales la diferencia principal es s.t.
@@ -129,6 +138,12 @@ export const BROADCAST = {
   prefetchRaceS: 900,                          // s de carrera por delante de lo alcanzado que se sirven como mucho; más allá, 409 (B18)
   progressEveryRealS: 15,                      // s de pared entre dos informes de lo alcanzado (y siempre al pausar, ocultarse y salir). S/E
   progressMinDeltaS: 60,                       // s de carrera que tiene que crecer lo alcanzado para escribir race_watch (o cambia el estado). S/E: B14, paso 7
+
+  // TOPES DE RED DE B6 (§14.8, §16.4; decisión 16-h): con gzip 6, el doble de lo estimado o medido. S/E. Entran en el 6a
+  maxHeadGzipBytes: 16_384,                    // bytes: la cabecera (BroadcastHead). M: 7,1-9,0 KB (§18.1)
+  maxChunkGzipBytes: 12_288,                   // bytes: el tramo mayor. M: hasta 4,72 KB (§18.1)
+  maxFinishGzipBytes: 40_960,                  // bytes: el paquete de meta (BroadcastFinish). E: 10-20 KB (§14.8)
+  maxVeiledStageGzipBytes: 4_096,              // bytes: la ruta de etapa sin los opcionales de resultado. M: 0,46-2,1 KB (§14.8)
 
   // NOMBRES (§6.3, §7.5, §7.7; D-18, D-26, D-27)
   nameWholeGroupUpTo: 12,                      // corredores: un grupo de hasta 12 se nombra entero. Copia de NAME_WHOLE_GROUP_UP_TO, atada (§15.5)
@@ -151,7 +166,7 @@ export const BROADCAST = {
   // MÓVIL Y CACHÉ (§6.2, §10, §18; D-17, D-35, D-56)
   mobileGroupRows: 4,                          // filas de la barra de grupos en móvil; el resto, +N groups
   overlayHz: 10, barHz: 4,                     // repintados por segundo de la capa fija y de la barra. S/E: la medida a mano del paso 10 puede bajar barHz
-  decodedCacheEntries: 64,                     // entradas del LRU de líneas decodificadas por (raceKey, stageDay) en la API: unos 20 MB (E, datos.md §12)
+  decodedCacheEntries: 16,                     // entradas del LRU de líneas decodificadas por (raceKey, stageDay) en la API. M: de 8 a 30 MB (con 64, de 33 a 121: §5.6, 18-d)
   chunkCacheMaxAgeS: 3600,                     // s de Cache-Control: private, max-age de un tramo: el dato es inmutable y solo se sirve dentro de lo permitido
 } as const
 ```
@@ -168,7 +183,7 @@ Los tipos se comprueban al compilar, no en un test: `as const satisfies` conserv
 
 Error de la estimación con los valores redondeados, en las 44 corridas: mediana 29 s (5,8 %), p90 55 s, sesgo medio −2 s; ajustando con la semilla 0 y midiendo en la 1, mediana 29 s y p90 54 s. El peor caso es `race-colombia` e5: estima 15:36 para 19:38-19:59 (−22 %), porque tras 222 km sube los últimos 10 al 5-8 % hasta 2.274 m y la cabeza va más despacio que la media de su banda. Con una sola velocidad de 44 km/h para todo, el p90 sube a 5:11 y el máximo a 10:31: por eso hay bandas. La pantalla nunca enseña cuánto queda (D-19), así que el error solo afecta a la ficha; B17 lo vuelve a medir.
 
-**El digest** de `While you were away` (pantalla) no depende de lo que pasó, pero suma más de lo que dice D-39 («21 etapas son unos 30 min»). Medido aquí (`l2/digest.mjs`, los tipos del calendario): `race-italy` 34,5 min (7 llanas, 7 medias, 6 reinas, 1 crono), `race-france` 36,5 min y `race-spain` 39,5 min. El valor de §G.7 se escribe como está y la frase queda en Dudas.
+**El digest** de `While you were away` (pantalla) no depende de lo que pasó, pero suma más de lo que dice D-39 («21 etapas son unos 30 min»). Medido aquí (`l2/digest.mjs`, los tipos del calendario): `race-italy` 34,5 min (7 llanas, 7 medias, 6 reinas, 1 crono), `race-france` 36,5 min y `race-spain` 39,5 min. El valor de §G.7 se escribe como está, y el botón dice el número calculado con él y con los cuadros: 38, 40 y 43 min (decisión 8-b, §8.8; D-39 corregida, DD-22).
 
 ### 15.4 `SPOILER`
 
@@ -252,16 +267,18 @@ Cambiar una constante de `shared` es un PR normal, sin bancos (`typecheck` y `te
 | `pace`, `summaryPace` | M (7:39-19:59; 2:12-6:37) | B17 y la prueba de lectura (PL) | 0 y 10 | se cambia el valor y se vuelve a medir |
 | `ttPace`, `ttLastKmX` | M (6:24-11:23) | B17 | 0 y 10 | ídem |
 | `nominalKmh` | M aquí (p90 55 s) | B17: `estimateS` contra la duración medida | 0 y 10 | ídem; nunca con datos de la carrera |
-| `digestBudgetS` | E (34,5-39,5 min por gran vuelta) | B17 con el digest como una curva más | 10 | ídem, y el texto de la portada (Dudas) |
+| `digestBudgetS` | E (34,5-39,5 min por gran vuelta) | B17 con el digest como una curva más | 10 | ídem; el botón dice siempre el número calculado (8-b) |
 | `cueHoldS`, `cueQueueMax`, `crashNamesDelayS`, `breakRoundEveryS`, `gapsTableEveryRealS`, `previewCardS`, `finishFreezeS` | S/E | PL | 10 | se ajustan antes de `BROADCAST_WATCH=on` |
 | `estimatedClockMaxErrKm` | S/E (D-07) | B22 | 6 | las etapas sin línea abren solo en `Report` (pantalla) |
 | `horizonBudgetMs`, `horizonMemoS` | M (C12) y E | B14 | 7 | `SPOILER_MODE=off` sin desplegar (D-53) |
-| `progressEveryRealS`, `progressMinDeltaS` | S/E (D-55) | B14, que incluye `recordProgress` | 7 | se sube `progressMinDeltaS` |
+| `progressEveryRealS`, `progressMinDeltaS` | S/E (D-55, 10-l) | B14, que mide `recordProgress` aparte (16-k) | 7 | se sube `progressMinDeltaS` |
 | `overlayHz`, `barHz`, `mobileGroupRows` | S/E (D-56) | la medida a mano del móvil (§18.5) | 10 | se baja `barHz` y se simplifica el perfil antes de encender |
 | `liveClusters` | apagada | B19 con racimos | 2 | sigue apagada (DD-18) |
 | topes de `TIMELINE` (en el motor: cambiarlos paga los bancos) | sobre lo medido | B6 | 5 | se mira qué creció antes de subir el tope (decisión 15-g) |
 | `expiryGameDays`, `headlineRaces` | M (coste, producto) | el dueño (DD-01) | 10 | el defecto es el de §G.7 |
-| `decodedCacheEntries` | E (unos 20 MB) | la memoria de la API (§18.2) | 6 | se baja |
+| `decodedCacheEntries` | M (16: de 8 a 30 MB; con 64, de 33 a 121) | la memoria de la API (§18.2) | 6 | se baja más o se topa por bytes |
+| `cardRowsMax`, `closingCardS`, `previewThreatsMax`, `recapMaxCues`, `ttSeekStepS`, `ttSeekLastStarters` | S/E | PL | 10 | se ajustan antes de `BROADCAST_WATCH=on` |
+| `maxHeadGzipBytes`, `maxChunkGzipBytes`, `maxFinishGzipBytes`, `maxVeiledStageGzipBytes` | S/E (16-h), con holgura sobre lo medido | B6 | 6 y 7 | se sube el tope con la cifra en el PR |
 
 ### 15.7 Las constantes que E2 lee y no toca
 
@@ -278,7 +295,7 @@ Cambiar una constante de `shared` es un PR normal, sin bancos (`typecheck` y `te
 | `PELOTON_MIN_SHARE` | l. 91 | 2/3 | copiada en `bunchMinShare` |
 | `STORED_PULLERS_MAX`, `TURNO_KM` | l. 591, 597 | 12, 3 km | la capa de detalle guarda los relevistas que ellas deciden (`GroupDetail.pullers`); E2 no las copia |
 | `NAME_WHOLE_GROUP_UP_TO` | l. 611 | 12 | copiada en `nameWholeGroupUpTo`; el PR 4a le añade `export` y nada más (15-c) |
-| `NATIONALS_ROAD_DAY`, `NATIONALS_ROAD_OVERRIDE` | `packages/engine/src/routes/calendar.ts` l. 204, 211-234 | `doy(6, 28)`, día 179; 22 países antes | desde cuándo hay campeones en un mundo reiniciado (D-25, §7.4) |
+| `NATIONALS_ROAD_DAY`, `NATIONALS_ROAD_OVERRIDE` | `packages/engine/src/routes/calendar.ts` l. 204, 211-234 | `doy(6, 28)`, día 179; 22 países con excepción, 17 de ellos antes (§7.4) | desde cuándo hay campeones en un mundo reiniciado (D-25, §7.4) |
 | `SEASON_CALENDAR` | `packages/engine/src/index.ts` l. 96 | el calendario | los ids de `headlineRaces` (§15.5) |
 | `JERSEY_PRIORITY` | `packages/shared/src/jerseys.ts` l. 22 | `gc`, `points`, `kom` | el orden de los maillots de líder y del grupo del maillot (D-18, D-24) |
 | `DAYS_PER_SEASON` | `packages/shared/src/time.ts` l. 8 | 364 | la vigencia por defecto de un título (`ChampionTitle.validToDay`, §4.8) |

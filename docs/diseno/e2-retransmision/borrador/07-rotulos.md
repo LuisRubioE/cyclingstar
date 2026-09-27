@@ -327,7 +327,7 @@ WHERE p.world_id = $1
 GROUP BY p.rider_id;
 ```
 
-Una carrera en curso no tiene fila `gc`, así que sus etapas no cuentan (y el nivel 6 ya las recoge si el espectador las conoce); una de un día cuenta 56 días después de correrse; un nacional es una victoria como otra. Se usa `EXISTS` y no una unión para que una fila repetida no duplique la cuenta. La sirven `palmares_rider_idx` y `palmares_race_idx` (`schema.ts` l. 784-785). El comentario de `CastRider.knownWins` en §4.2 cambia en ese sentido (Dudas). B3 y la prueba de lectura aceptan el umbral de 3 (D-26, sin evidencia de los jueces).
+Una carrera en curso no tiene fila `gc`, así que sus etapas no cuentan (y el nivel 6 ya las recoge si el espectador las conoce); una de un día cuenta 56 días después de correrse; un nacional es una victoria como otra. Se usa `EXISTS` y no una unión para que una fila repetida no duplique la cuenta. La sirven `palmares_rider_idx` y `palmares_race_idx` (`schema.ts` l. 784-785). El comentario de `CastRider.knownWins` en §4.2 lo dice así. B3 y la prueba de lectura aceptan el umbral de 3 (D-26, sin evidencia de los jueces).
 
 ### 7.6 «Cuando se escapan cinco»
 

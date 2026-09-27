@@ -83,10 +83,10 @@ export const news = pgTable(
 )
 ```
 
-`l3/generar.py` usó `Record<string, unknown>` en lugar de `NewsPayload`, que aún no existe; el tipo no cambia el SQL (el `generate` de comprobación no encuentra nada). **Lo que `emitNews` inserta** desde el PR 1a (hoy solo inserta `text`, l. 41-48; la firma nueva, el render y la semilla neutra son §12.7 y §12.8):
+`l3/generar.py` usó `Record<string, unknown>` en lugar de `NewsPayload`, que aún no existe; el tipo no cambia el SQL (el `generate` de comprobación no encuentra nada). **Lo que `emitNews` inserta** desde el PR 1a (hoy solo inserta `text`, l. 41-48; la firma nueva es la de §12.8, con `opts.seed`, `opts.payload` y `opts.raceKey`, y el render y la semilla neutra, §12.7 y §12.8):
 
 ```ts
-// packages/db/src/news.ts, emitNews: p es el NewsPayload (§4.12) y text, el titular de hoy carácter a carácter (§12.8)
+// packages/db/src/news.ts, emitNews: p es opts.payload, el NewsPayload (§4.12), y text, el titular de hoy carácter a carácter (§12.8)
 await tx.insert(news).values({
   worldId: opts.worldId,
   gameDay: opts.gameDay,
@@ -182,7 +182,7 @@ export const stageTimelines = pgTable(
 
 **Por qué una tabla nueva y por qué `bytea`.** `stage_snapshots` no gana columnas (`docs/tactica.md` l. 7589: «`stage_snapshots` **no gana columnas**»), y D-10 descarta con eso los campos nuevos dentro de `stage_snapshots.radio` (`ingeniero.md`, `producto.md`), `stage_timelines.linea json` (`estado.md` §10.1) y `stage_feeds.feed jsonb` (`television.md` §10.1). Con el mismo contenido, `bytea` con gzip ocupa de 1,6 a 2,4 veces menos que `jsonb` y de 1,3 a 1,6 menos que `json` (juez del motor, C8, `tamano.mjs`), y es la única de las tres cuyo tamaño no depende de la compresión TOAST del servidor: PGlite no admite `lz4` y la de producción no está en el repositorio (O-15, X-07; H-15 en §5.6). Lo que ocupa cada etapa con el formato de §4.3, medido, está en §5.7: de 20,9 a 70,0 KB en línea y de 7,2 a 24,2 KB en crono.
 
-**Quién escribe y quién lee.** Escriben `writeStageTimeline` y `writeStageTimelineFailure` (§5.6), llamadas por `recordStageTimeline` justo después del `insert` de `stage_snapshots` (`stageRun.ts` l. 570-595) y, como él, con `onConflictDoNothing`: la transacción del día es atómica (`tick.ts` l. 259-262) y un tick que se reintenta vuelve a escribir las dos o ninguna. Lee `readStageTimeline` (§5.6), por clave primaria y detrás del LRU de `BROADCAST.decodedCacheEntries` (64) líneas. Comprobado con `l3/aplicar2.mjs`: el `bytea` vuelve como `Buffer`, igual byte a byte, y se descomprime (`gunzipSync`) a lo escrito.
+**Quién escribe y quién lee.** Escriben `writeStageTimeline` y `writeStageTimelineFailure` (§5.6), llamadas por `recordStageTimeline` justo después del `insert` de `stage_snapshots` (`stageRun.ts` l. 570-595) y, como él, con `onConflictDoNothing`: la transacción del día es atómica (`tick.ts` l. 259-262) y un tick que se reintenta vuelve a escribir las dos o ninguna. Lee `readStageTimeline` (§5.6), por clave primaria y detrás del LRU de `BROADCAST.decodedCacheEntries` (16, decisión 18-d) líneas. Comprobado con `l3/aplicar2.mjs`: el `bytea` vuelve como `Buffer`, igual byte a byte, y se descomprime (`gunzipSync`) a lo escrito.
 
 ### 13.4 `0045_lo_visto`
 
@@ -408,7 +408,7 @@ Las filas escritas antes del PR 8a se quedan con null o con 0. Donde no hay `sta
 | `news`, lo que añade la `0043` | de 2.000 a 3.000 por temporada (mapa 04 §5, no medido) | unos 200 B más: el `jsonb` de un titular de etapa, con dos uuid, y la semilla | menos de 1 MB por temporada | estimado |
 | `race_rosters_rider_idx` | 249.600 (la cota de C12) | | 1,7 MB por año real | medido, `l3/aplicar2.mjs` |
 
-La cota de `race_watch` sube por la caducidad (§10.5): un jugador en `guarded` que no mira nada recibe igualmente una fila con `X` por cada carrera de cabecera que acaba (8 por temporada, 32 por año real), además de las de su corredor que cuenta la forma B. La carga de escritura, del orden de una escritura por minuto real y espectador mientras se mira (D-55; §10.3 la precisa), no añade filas: `race_watch` no tiene más índice que su clave y la clave no cambia nunca, así que cada `update` puede hacerse sin tocar el índice (HOT) y la versión vieja la recoge el `autovacuum`. `stage_timelines` escribe una fila por etapa dentro del tick (el coste de CPU es §5.8) y `users.last_seen_at`, como mucho una vez por hora y jugador. Los dos índices de la `0046` añaden una entrada por fila de `rider_points` y de `transactions`, del tamaño de los que ya tienen (no medido). Todo junto es menor que lo que ya escribe `stage_snapshots` (unos 340 MB por año real, mapa 04 §5), y ninguna de estas tablas se purga, como ninguna de las de hoy salvo `rider_attr_log`.
+La cota de `race_watch` sube por la caducidad (§10.5): un jugador en `guarded` que no mira nada recibe igualmente una fila con `X` por cada carrera de cabecera que acaba (8 por temporada, 32 por año real), además de las de su corredor que cuenta la forma B. La carga de escritura, unas cuatro escrituras por minuto real y espectador mientras se mira en `Watch` y como mucho una cada 15 s de pared por usuario y carrera (D-55 con la decisión 10-l de §10.3; estimado en §18.4), no añade filas: `race_watch` no tiene más índice que su clave y la clave no cambia nunca, así que cada `update` puede hacerse sin tocar el índice (HOT) y la versión vieja la recoge el `autovacuum`. `stage_timelines` escribe una fila por etapa dentro del tick (el coste de CPU es §5.8) y `users.last_seen_at`, como mucho una vez por hora y jugador. Los dos índices de la `0046` añaden una entrada por fila de `rider_points` y de `transactions`, del tamaño de los que ya tienen (no medido). Todo junto es menor que lo que ya escribe `stage_snapshots` (unos 340 MB por año real, mapa 04 §5), y ninguna de estas tablas se purga, como ninguna de las de hoy salvo `rider_attr_log`.
 
 ### 13.9 El reinicio
 

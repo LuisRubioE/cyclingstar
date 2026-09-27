@@ -1,6 +1,6 @@
 ## 21. Apéndices: injertos, objeciones, cobertura y vocabulario
 
-Estos apéndices son la trazabilidad del documento y el material de partida de la fase adversaria. Nada de lo que hay aquí es nuevo respecto de las secciones 0 a 20: es el índice inverso, para que un refutador que llegue con una propuesta, un juicio, un requisito del dueño o una superficie en la mano encuentre en una fila dónde está resuelto y con qué decisión. Salen de `juicios/veredicto.json` (injertos, objeciones, huecos y contradicciones de hecho, con sus fuentes en los tres juicios), de `borrador/00-decisiones.md`, del mapa 05 §5 y §6, del mapa 03 §4 y de los bloques de cierre de cada sección, contrastados con el texto: cada injerto se ha buscado en el cuerpo de las secciones donde dice haber caído, no solo en su bloque «Injertos aplicados».
+Estos apéndices son la trazabilidad del documento y el material de partida de la fase adversaria. Nada de lo que hay aquí es nuevo respecto de las secciones 0 a 20: es el índice inverso, para que un refutador que llegue con una propuesta, un juicio, un requisito del dueño o una superficie en la mano encuentre en una fila dónde está resuelto y con qué decisión. Salen de `juicios/veredicto.json` (injertos, objeciones, huecos y contradicciones de hecho, con sus fuentes en los tres juicios), de las decisiones cerradas por la síntesis (`D-01` a `D-62` y `DD-01` a `DD-25`), del mapa 05 §5 y §6, del mapa 03 §4 y de los bloques de cierre de cada sección, contrastados con el texto: cada injerto se ha buscado en el cuerpo de las secciones donde dice haber caído, no solo en su bloque «Injertos aplicados».
 
 Son seis apéndices: A, los 49 injertos y dónde cayeron (21.1); B, las 32 objeciones y lo desestimado (21.2); C, los 23 huecos y las decisiones sin evidencia de los jueces (21.3); D, la cobertura del encargo, del dueño, de los documentos, de las superficies, de los maillots, de la crono y de E10 (21.4); E, las 24 contradicciones de hecho entre propuestas (21.5); y F, el vocabulario que no está en el cuerpo (21.6).
 
@@ -147,7 +147,7 @@ Por propuesta de origen: 8 de `estado` (`I-01` a `I-08`), 9 de `datos` (`I-09` a
 | O-31 | eje 14 | `ingeniero` §7.4 | el registro solo clasifica `GET` bajo `/api`: las respuestas de escritura quedan fuera del canario | `config.spoiler` en toda ruta que devuelva cuerpo, sea del método que sea | §14.5 | D-32 |
 | O-32 | eje 08 | `ingeniero` §7.3 | faltan puertas en la tabla de mecanismos y el presupuesto del equipo se acepta como fuga | las nueve puertas de `producto` y una décima, cada una con su mecanismo; el presupuesto, velado con `stage_team_results.prize` | §11.2, §11.13 | D-41 |
 
-**Lo desestimado de las propuestas.** Lo que las propuestas decían y el documento no hace, agregado por decisión (los «Descartado» de `borrador/00-decisiones.md`); lo que cada sección descartó al decidir está en su bloque «Decisión tomada aquí».
+**Lo desestimado de las propuestas.** Lo que las propuestas decían y el documento no hace, agregado por decisión (los «Descartado» de las decisiones cerradas por la síntesis); lo que cada sección descartó al decidir está en su bloque «Decisión tomada aquí».
 
 | Decisión | Lo que se descartó, y por qué | § |
 | --- | --- | --- |
@@ -420,7 +420,7 @@ Dos propuestas que afirmaban cosas incompatibles sobre el código, con el veredi
 
 ### 21.6 Apéndice F · El vocabulario
 
-La parte del glosario que no está en el cuerpo del documento, para que se lea sin `borrador/`: las palabras de la prosa, dónde vive cada familia de nombres, las funciones con su firma final, los textos de pantalla y los identificadores del proceso. Los tipos están enteros en §4, las constantes en §15, las tablas y columnas en §13, las rutas en §14.2 y §11.3, los interruptores en §14.6, los bancos en §16.9, los pasos y los PR en §17.2 y los ficheros, PR a PR, en §17.20. Los nombres que las secciones añadieron al escribirse están en su bloque de cierre «Propuesto para el glosario»; la pasada de coherencia los funde en el glosario, y aquí se recogen los que cambian una firma o una palabra de la prosa.
+La parte del glosario que no está en el cuerpo del documento, para que se lea sin los ficheros de trabajo del diseño: las palabras de la prosa, dónde vive cada familia de nombres, las funciones con su firma final, los textos de pantalla y los identificadores del proceso. Los tipos están enteros en §4, las constantes en §15, las tablas y columnas en §13, las rutas en §14.2 y §11.3, los interruptores en §14.6, los bancos en §16.9, los pasos y los PR en §17.2 y los ficheros, PR a PR, en §17.20. Los nombres que las secciones añadieron al escribirse están fundidos en el glosario del diseño; aquí se recogen los que cambian una firma, una palabra de la prosa o un texto de pantalla.
 
 **F.1 Las palabras de la prosa** (glosario §G.1, más las cinco que acuñaron las secciones, al final):
 
@@ -494,7 +494,7 @@ La parte del glosario que no está en el cuerpo del documento, para que se lea s
 | `profileStripOf(profile, at)`, `freezeStageWeather(input, seed)` y `ttTraceOf` | ídem | el perfil y el tiempo congelados; la traza de la crono | §5.4, §9.2 |
 | `radioGroupDetails` | `packages/engine/src/sim/raceRadio.ts` | la capa de detalle, compartida por la radio y el grabador (5-g) | §5.4 |
 | `encodeTimeline(tl): StoredTimelineV1` y `decodeTimeline(s: unknown): StageTimeline` | `packages/shared/src/broadcast/codec.ts` | inversas; `decodeTimeline` despacha por `format` | §4.3 |
-| `reducePhoto(p: Photo, e: StateEvent): Photo` y `photoAt(tl: TimelineCore, b: Block): Photo` | `packages/shared/src/broadcast/reduce.ts` | el reductor y la foto de un bloque | §4.4 |
+| `reducePhoto(p: Photo, e: StateEvent): Photo`, `photoAt(tl: TimelineCore, b: Block): Photo` y `clockMarksOf(tl, g: GroupIx): readonly (readonly [Block, Ds])[]` | `packages/shared/src/broadcast/reduce.ts` | el reductor, la foto de un bloque y las marcas de reloj de un grupo por bloque creciente (la `marcasDe` del primer borrador, §3.3) | §3.3, §4.4 |
 | `instantAt(tl: TimelineCore, t: RaceS, ctx: InstantContext): Instant`, `groupRoleOf`, `groupLabelOf`, `mainGapOf` | `packages/shared/src/broadcast/instant.ts` | el corte diagonal, causal; el papel, la etiqueta y la diferencia principal | §4.5, §6.2, §6.3 |
 | `timeTrialInstantAt(tl: TimelineCore, t, ctx): TimeTrialInstant` | `packages/shared/src/broadcast/timeTrial.ts` | el estado de la crono en `t` | §9.3 |
 | `visibilityOf(tl: TimelineCore)`, `cutTimeline(tl, toS): TimelineCore` y `chunkOf(tl, fromDs, toDs): Omit<BroadcastChunk, 'lines'>` (4-b, 4-r) | `packages/shared/src/broadcast/cut.ts` | la visibilidad de cada dato, la línea cortada y el tramo sin la voz, que pone la ruta | §4.6 |
@@ -523,7 +523,7 @@ La parte del glosario que no está en el cuerpo del documento, para que se lea s
 | `shellMetaFor`, `injectShellMeta` y `sendGate(reply, gate)` | `apps/api/src/spaShell.ts`, `apps/api/src/http.ts` | el título y las `og:` del fallback de la SPA; el 403 de la puerta | §14.10, §14.2 |
 | `usePageTitle(p, page)`, `playerInit(view, reachedS, known)`, `playerStep(s, a, ctx)`, `raceTabs(status, stageCount, known)` y `useHideBottomNav(hidden)` | `apps/web/src/domain/pageTitle.ts`, `domain/broadcast/player.ts`, `domain/raceTabs.ts`, `components/BottomNav.tsx` | el único escritor del título, el reproductor, las pestañas y la barra inferior (propuesta a E6) | §11.8, §8.11, §11.17, §18.6 |
 
-**F.3 Los textos de pantalla** (glosario §G.11, en inglés). Los que añadieron las secciones (§6, §7, §8, §9, §11 y §12, en sus bloques «Propuesto para el glosario») son del mismo registro y se funden al ensamblar.
+**F.3 Los textos de pantalla** (glosario §G.11, en inglés). Los que añadieron las secciones al escribirse van en las filas del final, con la sección que los fija.
 
 | Contexto | Texto |
 | --- | --- |
@@ -534,9 +534,9 @@ La parte del glosario que no está en el cuerpo del documento, para que se lea s
 | Grupos (vocabulario único, §D-18) | `Lead group`, `Chase group`, `Bunch`, `Gruppetto`, `Bunch together`, `Race leader’s group`, `Points leader’s group`, `KOM leader’s group`; tres o menos, por sus nombres |
 | Voz (mismo vocabulario) | `the lead group`, `the chase group`, `the bunch`, `the gruppetto` |
 | Capa fija | `54.3 km to go`, `3 laps to go`, `+2:14 ▲`, `s.t.`, `Bunch together`, reloj `3:12:40` |
-| Barra | `1 · LEAD GROUP · 5`, `+0:45`, `+143 riders`, `+2 groups`, `Pulling: Team Beta (for 11 S. CARTER)` |
+| Barra | `1 · LEAD GROUP · 5`, `+0:45`, `+143 riders`, `+2 groups`, `Pulling: Team Beta (for 11 S. CARTER)` (la forma del nombre está abierta: 7-a escribe el nombre tal como está guardado) |
 | Tu corredor | `Your rider · in the bunch · +2:14`; con varios, `Your team · 1 in front · 5 in the bunch` (6-l) |
-| Rótulos de suceso | `ATTACK`, `CRASH`, `PUNCTURE`, `MECHANICAL`, `CAUGHT`, `SPLIT IN THE BUNCH`, `ECHELONS`, `DROPPED`, `ABANDON`, `KOM`, `INTERMEDIATE SPRINT`, `VIRTUAL GC`, `FLAMME ROUGE`, `1 KM`, `STAGE WINNER`, `PHOTO FINISH`, `TIME CUT` |
+| Rótulos de suceso | `ATTACK`, `CRASH`, `PUNCTURE`, `MECHANICAL`, `CAUGHT`, `SPLIT IN THE BUNCH`, `ECHELONS`, `DROPPED`, `ABANDON`, `KOM`, `INTERMEDIATE SPRINT`, `VIRTUAL GC`, `FLAMME ROUGE`, `1 KM`, `STAGE WINNER`, `TIME CUT` (`PHOTO FINISH` no se usa: el motor no mide lo ajustado dentro de un grupo, 8-h) |
 | Crono | `ON COURSE`, `SPLIT 1`, `SPLIT 2`, `FINISH`, `HOT SEAT`, `38 on course · 71 finished · 67 to start` |
 | Rótulo de corredor | `Leader, general classification`, `Also leads the mountains`, `Points jersey (2nd in the classification)`, `Champion of Italy`, `Time trial champion of Italy`, `14th overall +4:02` |
 | Frase de la fuga | `The mountains leader and the champion of Italy go clear with three others.`, `…with your rider Iñigo Arrieta and two others.`, `Five riders go clear.` |
@@ -556,6 +556,21 @@ La parte del glosario que no está en el cuerpo del documento, para que se lea s
 | Título de pestaña | `Stage 7 · Race France · Cycling Star`; `Stage 7 report · Race France · Cycling Star` |
 | Correo | asunto `Stage 7 of Race France is ready to watch`; `187 km · mountain stage · your rider is on the start list`; botón `Watch` |
 | Red | `Connection lost · Retry`; `You finished this stage on another device · Watch anyway · Show report` |
+| Capa fija (§6.2) | `on the bunch` (y las demás referencias: `on the race leader’s group`, `on the chase group`), `Last lap · 8.2 km to go`, `850 m to go`, `Next: Côte des Terrasses · Cat. 3 · in 26.5 km` |
+| Barra (§6.3, §6.4) | `↓ 3 dropping back`, `↑ 2 bridging across`, `+3 groups · 41 riders`, `Pulling: all 3 in turn`, `Pulling: both in turn`, `Pulling: 4 of 5 in turn`, `+2 teams` |
+| Tu corredor (§6.2, 6-l) | `Your rider · dropping back from the bunch`, `Your rider · bridging to the lead group`, `Your rider · out of the race` |
+| Rótulos y cuadros de carretera (§6.5, §6.7) | `BREAKAWAY · 5 riders · +0:48 on the bunch`, `TIME CHECK · 98.5 km to go`, `+3 groups behind · 41 riders`, `CONTACT · 2 riders bridge across`, `3 of the 5 remain`, `BACK TOGETHER · 38 riders rejoin the bunch`, `FLAMME ROUGE · 1 KM`; causas del corte: `after a crash`, `in the crosswind`, `on the cobbles`, `on the climb`, `in the chase` |
+| Rótulo de corredor (§7.1, §7.4) | `Leader, points classification`, `Leader, mountains classification`, `Also leads the points classification`, `Mountains jersey (3rd in the classification)`, `U23 time trial champion of Italy`, `Champion of the Netherlands`, `Won stage 3`, `Won stages 3 and 7` |
+| Frase de la fuga (§7.6) | `The champion of Italy goes clear with four others.`, `Five riders go clear, two of them from Team Delta.`, `Your rider Iñigo Arrieta goes clear with four others.`, `Tom Hargreaves and Pierre Lambert go clear.`; `+143 riders` abre la lista del grupo |
+| Modos y saltos (§8.1, §8.5) | `Highlights · about 4 min`, `Skipping to 20 km to go…`, `Loading`, `WHILE YOU SKIPPED`, `PREVIOUSLY` |
+| Previa (§8.6) | `STAGE 18 · SUMMIT FINISH · 185 km`, `Cat. 2 climb`, `Intermediate sprint · km 129`, `3 laps of 14.2 km`, `+2 more climbs`, `WEATHER`, `dry`, `rain`, `rain from km 120`, `Wind 18 km/h`, `No wind`, `Crosswind: km 40-65`, `JERSEYS IN PLAY`, `closest:`, `Finish bonus: 10, 6, 4 s`, `45 points at stake today`, `within reach:`, `No mountain points today`, `Stage 1 · the stage winner takes the first leader’s jersey`, `FAVOURITES`, `General classification:`, `Sprinters`, `Puncheurs`, `Climbers`, `Time triallists`, `Cobbles specialists` |
+| Cierre (§8.6) | `STAGE 18 · RESULT`, `(your rider)`, `GENERAL CLASSIFICATION · after stage 18`, `JERSEYS TOMORROW`, `FINAL JERSEYS`, `new`, `MOST KILOMETRES OUT FRONT`, `OUT OF THE RACE`, `Tomorrow`, `Final stage` |
+| Crono (§9.4, §9.5, §9.7) | `2:55:00 · 22 on course · 66 finished · 88 to start`, `HOT SEAT · Jan Novák 39:27`, `Start order: reverse general classification, every 2:00 · 176 riders`, `Start order: race numbers, every 1:00 · 176 riders`, `ON COURSE · 62 Iñigo Arrieta (ES) · km 19.9 · +0:38 at split 2`, `fastest at split 1`, `SPLIT 1 · km 9 · …`, `FINISH · 62 Iñigo Arrieta 39:12 · 2nd · +1:08`, `FINISH · HOT SEAT · 71 Mads Olsen 38:04 · −1:23 on Jan Novák`, `VIRTUAL GC · after split 1 · …`, `PUNCTURE · 132 Tom Hargreaves · km 13`, `−10 min`, `+10 min`, `Last 20 starters`, `Last starter`, `Split 1 · km 9`, `The first leader’s jersey is decided today`, `Mads Olsen held the hot seat for 1:25:38` |
+| Alcance del velo (§10.4, DD-16) | `Only protect your own races?`, `Switch`, `Keep protecting` |
+| Superficies bajo el velo (§11) | `Race Radio · up to km 142 · as far as you've watched`, `Standings after stage 5 · Watch stage 6 to update`, `Your last race · Race France, Stage 8 · Ready to watch`, `Race France is under way · Stage 10 of 21 · Watch from the start`, `Your rider raced`, `Watch stage 10`, `Watch →`, `Report →`, `This also reveals stages 3 and 4.`, `Results stay hidden until you watch the stage.`, `Watch it here:`, `Stage 8 · Race France · Watch the race`, `Spoiler · Winner: …`, `Diagnostic view` |
+| Títulos de pestaña de otras páginas (§11.8) | `Rider · Cycling Star`, `Team · Cycling Star`, `News · Cycling Star`, `Rankings · Cycling Star`; la ficha de carrera, `Race France · Cycling Star` y `21 stages` en la vista previa (14-k) |
+| Voz (§12.5) | `Puncture for …`, `Mechanical trouble for …`, `A truce for …`, `No truce for …` (con sus seis motivos), `Crash in the gruppetto!`, `… are on the ground.`, `The gap has fallen by 40 seconds in five kilometres.` |
+| Noticias (§12.8) | titulares `takes the overall lead`, `takes the points lead` y `takes the mountains lead`; etiquetas del feed `Leader`, `Jersey` y `Watch` |
 
 **F.4 Los identificadores del proceso** (glosario §G.12, al día):
 
@@ -565,10 +580,10 @@ La parte del glosario que no está en el cuerpo del documento, para que se lea s
 | `O-01` a `O-32` | las objeciones | ídem; §21.2 |
 | `H-01` a `H-23` | los huecos | ídem; §21.3 |
 | `X-01` a `X-24` | las contradicciones de hecho entre propuestas | ídem; §21.5 |
-| `D-01` a `D-62` | las decisiones cerradas por la síntesis | `borrador/00-decisiones.md`; cada sección las escribe como hechos |
+| `D-01` a `D-62` | las decisiones cerradas por la síntesis | el fichero de decisiones de `docs/diseno/e2-retransmision/`; cada sección las escribe como hechos |
 | `DD-01` a `DD-25` | las decisiones del dueño, con su valor por defecto | §20 |
 | `3-a` a `19-c` | las 218 decisiones que tomaron las secciones | el bloque de cierre de cada sección |
-| `§0` a `§21`; `L1` a `L10` | las secciones del documento; los lotes que las escribieron | `borrador/00-esqueleto.md` |
+| `§0` a `§21`; `L1` a `L10` | las secciones del documento; los lotes que las escribieron | §0.5; el esqueleto de la síntesis, en `docs/diseno/e2-retransmision/` |
 | `[DUEÑO 1]` a `[DUEÑO 10]`, `[DOC 1]` a `[DOC 7]`, contradicción 1 a 15 | los requisitos y las contradicciones del mapa 05 §5 y §6 | §21.4 |
 | A1 a G3 | las citas y reglas del dueño del mapa 05 §2 (la B3 de los racimos, la C7 del vocabulario, la D7 de «cambia el race radio») | `mapas/05-dueno-docs.md` §2 |
 | `C1` a `C18` | las comprobaciones del juez del motor | `juicios/motor.md` §2 |
