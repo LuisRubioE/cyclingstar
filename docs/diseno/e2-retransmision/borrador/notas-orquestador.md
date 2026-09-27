@@ -75,3 +75,23 @@ otros lotes. La pasada de coherencia tiene que cerrarlos uno a uno (o dejarlos e
   se enmascara la retirada voluntaria (10-i).
 - Sin comprobar: `sendBeacon` con un `Blob` JSON en Chrome (respaldo `text/plain`), B14 con datos
   reales, Postgres de producción.
+
+## De L3 (§5 y §13)
+
+- El formato de §4.3 no cabe en los topes de D-11: 20,9-70,0 KB en `bytea` (mediana 38,8) y 222 KB
+  de JSON de mediana. L3 propone topes de 96 KB, 640 KB, 256 KB y 32 KB. Por temporada unos 36 MB,
+  no 11-20. Afecta a §4, §15 y §18.
+- El LRU de 64 líneas ocupa 33-121 MB, no 20; L3 propone 16 entradas. Afecta a §15 y §18.
+- La regla `emit`/`incident` de §4.7 retrasa el rótulo de las caídas 70,6 s de mediana y el de los
+  pinchazos 141,6 s; arreglo propuesto: usar el grupo al final de b−1. Afecta a §4.7 y §6.
+- I1 necesita que la tolerancia de relojes iguales cubra también el `kind`: sin ella falla 1 foto
+  de 8.656. Afecta a §4 y §16.
+- D-49 es falsa contra el código: `columnasVivas.test.ts` solo vería `prize`, no `follow`,
+  `known_through` ni `horizon_rev`; la decisión 13-a amplía su expresión. Las escrituras de
+  `watch.ts` en §10.3, hoy en SQL, tienen que ir con `.set({…})` de Drizzle o el test las da por
+  muertas. Afecta a §10.3 y §00-decisiones (D-49).
+- Firmas de §G.4 que cambian: `timelineRecorder`, `selfCheckI1` y `readStageTimeline` (recibe
+  `Horizon`). El glosario tiene que actualizarse.
+- El reinicio vacía `stage_timelines` y reinicia `web`, porque el LRU no distingue mundos.
+- El encargo nombra `apps/api/src/tick/stageRun.ts`, que no existe: el fichero real es
+  `packages/db/src/stageRun.ts`. Corregir en todas las secciones que lo citen.
