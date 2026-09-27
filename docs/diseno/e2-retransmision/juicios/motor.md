@@ -1,0 +1,169 @@
+# Juicio E2 · juez «motor»: coherencia con el motor y los datos, y coste
+
+Foco: si cada propuesta cuenta bien lo que el motor sabe y cuándo lo sabe (reloj, grupos, sucesos, sonda), si guarda lo justo en el sitio justo sin tocar la carrera (Frontera 3, `ENGINE_VERSION`, foto por km, `pullFor`, radio del dueño) y cuánto cuesta de verdad: CPU en el tick, bytes en disco y por la red, consultas por petición, caché de la web y horas de CI. He leído enteras las cinco propuestas (`television.md` 949 l., `estado.md` 945, `producto.md` 933, `datos.md` 949, `ingeniero.md` 835), los siete mapas y el código que cito. **Las medidas son mías**: scripts en `scratchpad/juez-motor/` (`reloj`, `saltos`, `traza`, `huella`, `tamano`, `grabador`, `aprendizaje`, `rosters`, `dias`) sobre el `dist` del motor v89 sin tocar el repositorio, con el campo del banco de `scripts/race-radio.mjs` y PGlite 0.5.4 (PostgreSQL 18.3, TOAST `pglz`) para el disco.
+
+---
+
+## 0. Veredicto en cinco líneas
+
+1. **Gana `estado`** para este foco: es la única que midió su estado contra la foto del motor (I1) y la única que entendió el reloj entero; he reproducido sus afirmaciones discutidas (C2, C3, C5, C8, C11).
+2. Le sobran una subida de versión evitable y un almacén en `json`, y le faltan cuatro cosas que están en otras: `bytea` con gzip y visibilidad por dato (`datos`), el gancho `onBanner` (`television`), constantes y reductor fuera del motor con interruptores (`ingeniero`), y la caché de la web y la sesión de 7 días (`producto`).
+3. El reloj no es un debate de palabras: `tS` es un eje absoluto común, pero **no es continuo por corredor**, y el motor llega a teletransportar a un corredor 138 s (C2, C4). Eso tumba una frase de `television` y da la razón a `estado`.
+4. Guardar desde la sonda no sube `ENGINE_VERSION` (20 de 20 etapas idénticas con foto en cada bloque); cambiar el contenido de un suceso sí (v73). `producto` es la única que obliga a subirla (y la única que antes deja de re-simular la «Last race»); cualquier otra subida antes del paso 17d cambia esa tarjeta (C16).
+5. Tres huecos no los ve nadie: `race_rosters` no tiene índice por corredor (19,6 ms por petición a un año de mundo, medido), las tablas por usuario no llevan `world_id` frente al reinicio, y el salto de 138 s es un defecto del motor que la pantalla tiene que tolerar.
+
+## 1. Tabla cruzada
+
+| # | Ítem | television | estado | producto | datos | ingeniero |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | Qué es `tS` y el instante | eje común; instante = último cruce extrapolado; dice monótono por corredor (falso, C4) | eje común por bloque; corte diagonal; relojes de corredor no causales (cierto, C2) | eje común; interpola con el km siguiente; sin tránsito | eje común; a estima sin pasar la foto siguiente; lista `dropping` | eje común; interpola con el km siguiente; sin tránsito |
+| 2 | Resolución del estado | 1 km | bloque de 100 m con marcas de reloj en 4 sitios, error p99 3-196 m (suyo) | 1 km y 100 m en los 3 últimos | 1 km, 200 m en los 5 últimos y pancartas | 1 km |
+| 3 | Identidad de grupos | id del motor; número y papel en T. Vale | id del motor y sucesor por mayoría. La mejor | id y linaje derivado. Vale | `groupIds` y título aparte. Vale | id opcional; sin él, la posición. Vale |
+| 4 | Pertenencia completa (B3, R23.7) | deltas por foto, 100 % | cambios por bloque y claves cada 10 km, 100 % | cadena `m` por foto, 100 % | carreras por corredor, 100 % | cadena `g` por km, 100 % |
+| 5 | Fechas trucadas (a)-(g) del mapa 01 §1.2 | `REVEAL_RULES` al grabar; (a) por hueco «al de detrás» | `bEmision` por `onEvent`: (a) y (f) exactas sin heurística. La mejor | cambia el motor (`aT`, reloj de `climb_kom`, pinchazos de crono) | `revealS` por plantilla; (a) contra el `mainGroup` (a medias, C10) | revela por `tS`; (f) «queda bien» es falso (C9) |
+| 6 | Caídas | de `incidents`, reloj interpolado; gravedad solo en el acta | `percance` en su bloque, sin días de baja | suceso `crash` nuevo: versión y tope de 100 líneas | suceso sintetizado, sin `diasBaja` | `incidents` con corredor en la radio |
+| 7 | `ENGINE_VERSION` | no sube nunca: `onBanner`, `onTimeTrialRide` | no por la sonda; v90 por el orden de pancartas (evitable) | sube por los cambios 4-7, obligatorio | no; v90 opcional (paso 10) | no; paso 11 opcional sube |
+| 8 | Frontera 3 (`tactica.md` l. 246-249) | intacta; sonda ampliada | intacta; `onEvent` toca `EventLog` | intacta, pero añade sucesos y cambia el reloj de uno | intacta | intacta, lo mínimo |
+| 9 | Foto por km, `pullFor`, aprendizaje | `everyKm = 1` intacto | sonda por bloque y `trabajaronParaOtro` solo en km. Vale (C11) | fotos de 100 m en la misma sonda: turno contado en fotos y envoltorio del aprendizaje | B10: radio y aprendizaje ven lo de hoy | nada cambia |
+| 10 | Radio del dueño | `Radio` sobre `relevos`; deja de escribir `radio` sin prueba de igualdad | `fotoEn(b_k)` más detalle; I1 sella partición y huecos, no el detalle | radio v2 aditiva; redefine `riders` | vista `Radio` «con todos los relevistas», sin prueba | la de hoy más opcionales. La más conservadora |
+| 11 | Lista de seguimiento que destripa | muere con la señal | muere | sale el top 10 de la etapa (paso 8) | muere | filtra `watching` |
+| 12 | Contrarreloj | `onTimeTrialRide`, ~25 KB estimado | `onRiderTrace`, 14,7-20,3 KB medido, I5 | reloj en 2 controles, 2-3 KB estimado: pierde el km a km | `onRide` por km, 2,5-10 KB e identidad medidas | `onTimeTrial`, ~30 KB estimado |
+| 13 | Almacén | `stage_feeds.feed jsonb` | `stage_timelines.linea json` | dentro de `stage_snapshots.radio` | `stage_timelines.body bytea` gzip, con `game_day` | dentro de `stage_snapshots.radio` |
+| 14 | Disco por etapa (C7) | no medido; relevos 55-135 KB de JSON | 5,5-39 KB: coherente | «3-9 KB» añadidos: falso | 17,5 KB de mediana: coherente | +52-74 KB de JSON: coherente; la radio crece 35-66 % en disco |
+| 15 | Red y compresión | tramos de 10 min por reloj | tramos de 10 km por espacio (futuro de minutos para los de detrás) | tramos de 15 min por reloj | corte por visibilidad de cada dato, LRU, cabeceras HTTP | tramos de 20 km por espacio |
+| 16 | Coste en el tick | no medido | dice +10 % de mediana; medido +3,8 % y 38-51 ms de grabador | no medido | 59-81 ms por etapa, coherente | casi cero |
+| 17 | Lecturas con horizonte | una consulta; sin índices | «< 5 ms» estimado; sin índice, 19,6 ms (C12) | 4 consultas y `HorizonDelta`, memo 60 s | `getVeil`, memo 30 s | una consulta perezosa y `hiddenSql` único |
+| 18 | Caché de React Query | no la trata | no la trata | `rev` en las claves y `clear()` al cambiar de sesión. La única | invalida al revelar | invalida al revelar |
+| 19 | Sesión de 7 días | no | no | cookie `cs_viewer` que solo restringe | no (sí `last_seen_at`) | no |
+| 20 | Migraciones y reinicio | noticias en 0045 pero «primero» | noticias en 0045 pero «antes del reinicio» | noticias en 0044, tras el horizonte | noticias en 0043, la del plazo. La mejor ordenada | noticias y `transactions` en 0043 |
+| 21 | Dónde viven las constantes | motor | motor | motor | motor | `shared`: no dispara los bancos. La única |
+| 22 | Vocabularios que crecen (R23.1, R23.8) | motivos como texto; `own_clock` por defecto | motivo por índice posicional: frágil | degrada ante lo desconocido | guarda de tipos por vocabulario duplicado | `.nullish()` y B7 |
+| 23 | Línea de táctica (17d, R23.4, joven) | deja 17d; R23.8 cae en `own_clock` | v90 antes de 17d rompe «Last race»; joven como `JerseyKind` | hace la parte de 17d; sus sucesos chocan con R23 | `young` previsto; `raceReport` sigue re-simulando | deja 17d; paso 11 antes del reinicio |
+| 24 | Etapas sin línea | «Raced before live coverage» | ruta vieja solo si visible | reloj estimado por `speedKmh` | aviso y nunca re-simula | reloj estimado, error sin medir |
+| 25 | Datos muertos | notoriedad por percentil de `fame` (muerta, C14) | no la usa | dice bien que no se escribe | `CastRider.fame` (muerta) | dice bien que no se escribe |
+
+## 2. Comprobaciones en código y medidas
+
+| # | Afirmación (de quién) | Resultado | Evidencia |
+| --- | --- | --- | --- |
+| C1 | «Hay reloj absoluto común» (producto §3.1, ingeniero §1.3, datos §3.1, television §3.1) frente a «no hay reloj absoluto» (mapa 01 §0) | cierta, con matiz | `Group.tS` es «cronómetro acumulado en segundos desde la salida» (group.ts l. 26-27) y nace en 0 (l. 56); el ataque nace con el reloj de su origen menos el salto (simulate.ts l. 7249); la captura se queda con el menor (l. 8817). Medido: al primer bloque nadie pasa de 9,2-9,6 s. Lo que no existe es el instante (mapa 01 acierta en eso) |
+| C2 | «El que salta adopta el reloj del grupo nuevo; reducir por reloj no reproduce la foto» (estado §3.3) | cierta | El motor lo dice: «El corredor que entra en un grupo adopta el reloj de ese grupo» (simulate.ts l. 7863); la deriva vuelve a 0 en el llano (l. 5536). Medido en 21 corridas con foto en cada bloque: el reloj de corredor retrocede en el 0,001-0,31 % de los pares de bloques (estado dijo 0,003-0,17 %) y 0-138 veces por etapa más de 22 s |
+| C3 | «El reloj de cabeza es monótono» (television §3.1) frente a «salvo en 0-2 bloques» (estado §3.1) | a medias: las dos | Medido: mirado por km, 0 bajadas en 21 corridas; por bloque, 0-2 por etapa, 2,8 s como mucho |
+| C4 | «Los cambios de un corredor ocurren al reloj de su grupo nuevo (monótono)» (television §3.4) | falsa | Por km, 0-33 retrocesos por etapa y hasta 77 s; por bloque, hasta 138 s. Causa: el hueco con que el pelotón caza un movimiento es reloj del pelotón menos reloj del movimiento (l. 8678) y la condición `gap <= captureGapSeconds` (l. 8783) se cumple con hueco negativo: un ataque que sale de un grupo que va DETRÁS del grupo `peloton` se da por cazado en el mismo bloque. `race-colombia` e5, semilla 0, km 183,25: `rq-6-5` pasa de `shed-56` a `peloton` 138 s por delante, con `attack_go` `puente` y `attack_reeled` en ese km |
+| C5 | «Con la sonda en cada bloque la carrera sale idéntica» (estado 15 de 15; datos 4 etapas) | cierta | Medido 20 de 20 (10 etapas por 2 semillas, un nacional de 40 incluido), comparando `results`, `events`, `efforts` e `incidents` enteros |
+| C6 | «La sonda por bloque cuesta de +4 a +27 %, mediana +10 %» (estado §11) | a medias | Medido en el motor: de −7,7 a +11,6 %, mediana +3,8 % (máquina compartida); un grabador de diferencias, 38-51 ms por etapa grande y 8 ms por nacional; gzip, 3-15 ms. Los 59-81 ms de datos cuadran |
+| C7 | Tamaño de la línea: 17,5 KB (datos), 5,5-39 KB (estado), +52-74 KB (ingeniero), 106-178 KB (producto) | ciertas, miden cosas distintas; falsa la de producto «3-9 KB en disco» | §2.1. La de producto es la retransmisión servida entera, no lo guardado; lo que añade a la radio en `jsonb` es +4,7 a +53 KB medido con campos equivalentes |
+| C8 | «`json` ocupa 26-32 % menos que `jsonb`» (estado §3.8); «por eso `bytea`» (datos §10.5) | ciertas | Mismo contenido: `json` entre un 15 % y un 44 % menos que `jsonb`; `bytea` con gzip, 1,6-2,4 veces menos que `jsonb`. PGlite no admite `lz4`: los tamaños de `json` y `jsonb` dependen de la compresión de producción, los de `bytea` no |
+| C9 | «(f) `climb_kom` queda bien revelado por su `tS`» (ingeniero §1.3) | falsa | Se emite con el reloj del primer grupo que corona (simulate.ts l. 9310) y el ganador es el primero de los que la disputan (l. 9287), que puede ir en otro grupo: revelarlo en `tS` lo anuncia antes de que corone |
+| C10 | `breakaway_formed` visible cuando el hueco al `mainGroup` pasa de 45 s (datos §3.4) | a medias | El motor lo emite cuando el hueco sobre el grupo de ORIGEN pasa de `tacticBreakGapSeconds` y el origen es el grupo `peloton` (l. 8693, 8708, 8727), que no siempre es el `mainGroup`. El `bEmision` de estado da el bloque exacto |
+| C11 | «Guardar desde la sonda no sube `ENGINE_VERSION`» (las cinco, salvo lo que emite producto) | cierta, con una condición | Doctrina: balance l. 16319-16323, 16604-16606, 16708; Claude.md l. 13 habla de comportamiento. Cambiar el contenido de un suceso sí sube (v73, balance l. 14036-14038). La condición: `trabajaronParaOtro` (stageRun.ts l. 527-533, usado en l. 802) mira TODA foto de la sonda; con fotos por bloque cambian 0-2 corredores por etapa (3 de 12 corridas), con fotos de 100 m en los 3 últimos km, 0 de 12 |
+| C12 | «El horizonte cuesta menos de 5 ms» (estado §7.2, estimado) | falsa sin índice | `race_rosters` solo tiene la clave `(race_id, rider_id)` (schema.ts l. 609). Medido en PGlite con 249.232 filas sintéticas (cota superior de cuatro temporadas, un año real): las carreras de un corredor, recorrido secuencial de 19,6 ms; con índice por `rider_id`, 0,11 ms. El CI usa `postgres:17` (ci.yml l. 35) |
+| C13 | «La caché sobrevive al cambio de cuenta» y «la sesión caduca a los 7 días» (producto §1, X5 y X3) | ciertas | `signOut` sin limpiar la caché (Account.tsx l. 311-314); claves de mundo sin usuario y 30 min (queryClient.ts l. 17-46); `expiresIn` 7 días y `updateAge` 1 día (better-auth `create-context.mjs` l. 146-147); `auth.ts` solo mapea la tabla (l. 110) |
+| C14 | «`fame` no se escribe» (producto §1, ingeniero §7.3) frente a su uso (datos §3.3, television §6.4) | cierta | Primera de `MUERTAS_CONOCIDAS` (columnasVivas.test.ts l. 34-38; rollover.ts l. 60): todos empatan a 0 |
+| C15 | Picos del tick | medido | Con `scheduledStageIndices`: día 176, 187 cronos nacionales (11-30 ms cada una con 40); día 179, 153 nacionales en línea (0,3-0,8 s cada una). E2 les suma del orden de 2-8 s (estimado con C6) |
+| C16 | «`raceReport` re-simula sin mirar la versión» (mapa 02 §8) | cierta | `simulateStage(input, snap.seed)` sin `checkReplay` (raceReport.ts l. 148): toda subida antes de 17d cambia la «Last race» de las etapas anteriores |
+| C17 | «La próxima migración es la 0043» (todas) | cierta | `_journal.json` con 43 entradas, la última `0042_transicion_e1` |
+| C18 | «El campeón nacional es derivable hoy» (todas) | cierta, por dos vías | `palmares` con `kind 'gc'` (stageRun.ts l. 1297-1306, índice `palmares_race_idx`), una consulta para todos los países; `race_gc` (calendarRun.ts l. 991-1007), una por carrera, que es la que elige television §6.3 |
+
+### 2.1 Tamaño medido (9 etapas: llanas e5 y e7, media e13, reinas e18 y e20 de `race-france`, `race-italy` e9, Flandes, `race-colombia` e5, nacional de España)
+
+| Contenido | JSON | gzip | `jsonb` | `json` | `bytea` gzip |
+| --- | --- | --- | --- | --- | --- |
+| Radio de hoy (`radioForStorage`, lista de seguimiento de producción) | 126-559 KB | 4,8-25,8 | 10,7-146,4 | | |
+| Radio de hoy más `id`, `tS`, cadena `g` y catálogo (ingeniero) | +33 a +95 KB | | 15,4-199,5 (+35-66 %) | | |
+| Núcleo por km: relojes, clase, tamaño, pertenencia completa en cadena, todos los relevistas | 40-176 KB | 4,6-22,7 | 8,5-55,0 | 6,4-30,6 | 4,6-22,7 |
+| Núcleo por bloque: cambios de pertenencia por bloque y relojes por km, sin relevos | 6-53 KB | 2,2-18,0 | 4,0-31,4 | 3,4-24,4 | 2,2-18,0 |
+| `events` de hoy, de referencia | | | 3,9-9,7 | | |
+
+Lectura: el estado completo cuesta en disco menos que la radio de hoy en cualquier codificación salvo la de ingeniero, que la engorda; a 1.418 etapas por temporada, el núcleo en `bytea` son del orden de 11 MB por temporada (estimado) contra unos 40 MB de radio (mapa 04 §5).
+
+### 2.2 El reloj medido (3 semillas por etapa, foto en cada bloque; `reloj.mjs`, `saltos.mjs`)
+
+| Etapa | Retrocesos del reloj de corredor, por bloque (pares) | de más de 22 s | de más de 60 s | por km (máximo) | Bajadas del reloj de cabeza por bloque (máximo) | por km |
+| --- | --- | --- | --- | --- | --- | --- |
+| `race-france` e7, llana | 4-10 (307.824) | 0 | 0 | 0 | 0-1 (1,1 s) | 0 |
+| `race-france` e13, media | 364-416 (362.384) | 3-6 | 1-2 | 2-3 (58,7 s) | 0-2 (1,3 s) | 0 |
+| `race-france` e18, reina | 419-559 (325.424) | 7-87 | 2-5 | 2 (51,5 s) | 1-2 (1,5 s) | 0 |
+| `race-flanders` e1 | 540-1.527 (489.456) | 77-138 | 0-36 | 0-33 (39,7 s) | 1-2 (2,7 s) | 0 |
+| `race-colombia` e5, 126 corredores | 172-277 (292.194) | 5-10 | 3-6 | 2-3 (77,3 s) | 1 (1,9 s) | 0 |
+| `race-italy` e9, reina | 103-172 (323.664) | 1-3 | 0-2 | 0 | 1-2 (2,0 s) | 0 |
+| `nc-es-road`, 40 corredores | 144-232 (73.160) | 1-11 | 1-7 | 0-6 (53,3 s) | 1-2 (2,8 s) | 0 |
+
+Clasificados en `race-colombia` e5 (`saltos.mjs`): la mayoría son `shed` a `shed` (la fusión de grupetos a 22 s, `mergeGap`) y la deriva que se anula en el llano dentro del mismo grupo; los de más de 60 s son `shed` a `peloton` por el ataque cazado de C4. Las 7 uniones por la puerta de reenganche que registré en esa etapa van todas a 21,9 s o menos (copia parcheada del `dist`, `joinlog.mjs`): los saltos mayores no salen de ahí.
+
+### 2.3 Las contradicciones del foco, resueltas
+
+1. **Reloj.** Hay un eje absoluto común (C1): tienen razón producto, television, ingeniero y datos. Lo que el mapa 01 llama «reloj de cada grupo» es la hora de paso de ese grupo por el bloque en curso. Pero el eje no es continuo por corredor (C2, C4, §2.2): tiene razón estado y la síntesis no puede reducir cambios de corredor en orden de reloj ni prometer monotonía por corredor.
+2. **`ENGINE_VERSION`.** Guardar lo que la sonda ya ve no sube (C11); añadir claves a un suceso, un suceso nuevo o cambiar su `tS`, sí (v73). Con `onBanner` (television) y `bEmision` (estado) nada de E2 necesita subirla; si se sube, después de 17d (C16).
+3. **Huella con sonda por bloque.** Idéntica en 20 de 20 incluidos `events`, `efforts` e `incidents` (C5). La condición es que el aprendizaje siga mirando solo las fotos de `radioKmPoints` (C11).
+4. **Tamaño y codificación.** Las cuatro cifras son ciertas y miden objetos distintos (C7, §2.1), salvo la estimación de disco de producto. Gana `bytea` con gzip; `json` es segundo; `jsonb` es lo peor para listas de enteros.
+5. **Frontera 3.** Las cinco la respetan: nadie añade campos a `StageOutput`. Solo producto emite sucesos nuevos, que la frontera admite (`tactica.md` l. 314-322) pero que suben versión y compiten con el tope de 100 líneas narrables.
+6. **Foto por km, `pullFor` y radio.** Se conservan en las cinco si la radio y el aprendizaje ven las mismas fotos que hoy; el turno de relevo cuenta fotos, no km (`raceRadio.ts` l. 883), así que las fotos finas van en un canal aparte.
+7. **Tick.** Coste pequeño en todas: +3,8 % de mediana y decenas de ms por etapa (C6); en el día 179 del orden de segundos (C15).
+8. **Lecturas.** Una consulta por petición sí, pero con índice (C12), memoria por `(usuario, día, rev)` y la caché de la web atada al horizonte (C13).
+
+## 3. Puntuaciones
+
+| Propuesta | cobertura | coherencia | ejecutabilidad | experiencia |
+| --- | --- | --- | --- | --- |
+| estado | 8 | 9 | 7 | 8 |
+| datos | 8,5 | 8 | 8 | 7,5 |
+| ingeniero | 7,5 | 7,5 | 9 | 6,5 |
+| producto | 9,5 | 6,5 | 6,5 | 8 |
+| television | 7,5 | 7 | 6,5 | 9 |
+
+- **estado**. Todas sus afirmaciones discutidas sobre el motor resisten la medida (C2, C3, C5, C8, C11), sella con I1 que su estado es la foto del motor (0 discrepancias en 3.246 fotos, medida suya), fecha (a) y (f) exactas con `bEmision` y deja el aprendizaje en la foto por km. Le restan el motivo por índice posicional, una v90 evitable, un I1 que no cubre la capa de detalle, tramos por espacio y un coste de lectura subestimado (C12). Cobertura sin la caché ni la sesión (C13); ejecutabilidad pesada (reductor, empaquetado, cuatro clases de marca de reloj, autocomprobación).
+- **datos**. El mejor contrato de datos: visibilidad por dato con propiedad `vis ≤ T`, `bytea` gzip (C8), formato de red de enteros, B10 y B11, `game_day` en la tabla y la migración con plazo primero. Pierde en coherencia por el km como resolución con estima entre fotos, la heurística de (a) (C10), `fame` en el reparto (C14) y una vista `Radio` distinta de la del dueño sin prueba. 25 PR es el plan más caro.
+- **ingeniero**. La más barata de construir y la que menos arriesga el motor: la radio de hoy con cuatro opcionales, dos PR de motor, constantes fuera, interruptores, reversibilidad por paso y la crónica en vivo por truncado con prefijo medido. Pero guarda en `jsonb` lo que más ocupa (+35-66 % en disco), se queda en 1 km, interpola con el punto siguiente, su (f) es falso (C9) y el error del reloj estimado no lo midió. La experiencia se resiente de la resolución.
+- **producto**. La que más superficie cierra y la única que ve la caché, la sesión y la procedencia de cada fila (referencias de etapa en `rider_points`, `palmares`, `transactions`, `prize`). En motor es la peor: cambios de emisión obligatorios con v90, fotos finas en la misma sonda (turno contado en fotos, `raceRadio.ts` l. 883), radio v2 que redefine `riders`, una cifra de disco falsa (C7) y la lectura más cara por petición (memorizada).
+- **television**. La mejor gramática de pantalla y el mejor truco de motor (`onBanner`: podio de cada pancarta sin subir versión), con reglas de revelado y tiempo congelado. Pero afirma una monotonía falsa (C4), apoya la notoriedad en `fame` (C14), guarda el artefacto más pesado en `jsonb` y retira la radio sin prueba de igualdad; muchos ajustes a ojo.
+
+## 4. Ganadora: `estado`
+
+Por este foco, la base es `estado`. Es la única que trata el tiempo del motor como lo que es: un eje absoluto común que solo es exacto en un punto y grupo a grupo (C1), no continuo por corredor (C2, C4), con la cabeza casi monótona (C3). Su respuesta (espacio canónico, instante proyectado, corredores en tránsito) es la que sobrevive a los saltos que he medido; las demás proyectan por km y no dicen qué hacer con un corredor que aparece 2 min por delante. Es la única que convierte «el estado es la reducción de los sucesos» en un invariante probado contra el motor (I1, I3, I4, I5), y por eso la única que puede retirar `stage_snapshots.radio` sin dejar al dueño sin su microscopio si se amplía I1 (O4). Su coste es asumible y está medido (C5, C6, §2.1), y con el injerto de `bytea` queda por debajo de `datos`. Lo que no es suyo pero la síntesis necesita está en §5.
+
+## 5. Injertos
+
+1. **I-motor-01 · de `datos` §10.1 y §10.5-10.6**: `stage_timelines.body bytea` con gzip 9 en vez de `linea json`, y LRU de líneas decodificadas. Medido: 1,6-2,4 veces menos que `jsonb` y 1,3-1,6 menos que `json`, inmune a `pglz` o `lz4`; decodificar y cortar, 1,3-4,7 ms (suyo).
+2. **I-motor-02 · de `datos` §3.4 y §7.2**: los tramos se cortan por la visibilidad de cada dato (paso del grupo por la foto, `revealS` del suceso), no por bloques. Con tramos de 10 km por espacio el cliente recibe el paso del grupeto por el km 120 cuando la cabeza llega allí, minutos antes de que ocurra.
+3. **I-motor-03 · de `datos` §10.1**: `game_day`, `engine_version`, `format` y `bytes` en `stage_timelines`, con índice por `game_day`. Es la primera tabla de etapa con día de juego (mapa 04 §0) y el horizonte, el correo y B6 la necesitan.
+4. **I-motor-04 · de `datos` §13 (B10, B11)**: dos pruebas selladas: el conjunto de `trabajaronParaOtro` es el de la foto por km (C11) y la huella con sonda por bloque, `onEvent` y traza de crono es idéntica en `results`, `events`, `efforts` e `incidents` (C5).
+5. **I-motor-05 · de `television` §11.1**: `StageProbe.onBanner` para el orden y los puntos de cada pancarta con el reloj del grupo del ganador, en lugar de la v90 de estado §11. Es observación (doctrina de C11) y evita subir versión antes de 17d (C16).
+6. **I-motor-06 · de `television` §3.3 y §11.2**: el tiempo congelado en la línea (`stageWeather`, `weatherPlan`, `roadBearings` sobre la semilla), sin tocar el motor: viento y lluvia son datos permanentes de la UCI (mapa 06 §1.1).
+7. **I-motor-07 · de `television` §11.3 y `datos` §3.4**: tabla de revelado por plantilla con regla por defecto `tS` para lo desconocido, fundida con `bEmision`: (a) y (f) por emisión, (e) `startS + tS`, caídas desde `incidents` sin días de baja. R23.8 traerá plantillas nuevas y no pueden quedar sin regla.
+8. **I-motor-08 · de `ingeniero` §12**: `BROADCAST` y el reductor de pantalla en `packages/shared`; en el motor solo los ganchos y el grabador puro. No son constantes de juego y cada cambio bajo `packages/engine/` corre los ocho tramos de bancos (ci.yml l. 189).
+9. **I-motor-09 · de `ingeniero` §8.2**: la crónica en vivo como `buildChronicle` con la entrada truncada, la longitud de etapa como dato y cinco pasadas apagadas, con la prueba de prefijo que midió en 0 violaciones. Es la implementación de las `pasadasVivas` y del B9 de estado sin reescribir veinte pasadas.
+10. **I-motor-10 · de `ingeniero` §7.4 y §14**: interruptores `BROADCAST_WATCH` y `SPOILER_MODE` (`off`, `admins`, `on`) en `env.ts` y `/health.features`: se fusiona a `main` sin que el jugador lo note y se apaga sin desplegar.
+11. **I-motor-11 · de `ingeniero` §7.2 y §7.4**: `Horizon` como parámetro obligatorio sin defecto en las lecturas de `packages/db`, un único predicado SQL y un registro `onRoute` que lanza al arrancar si una ruta GET no declara política.
+12. **I-motor-12 · de `producto` §7.4, §7.5 y §10.2**: `rev` del horizonte en las claves de React Query, `queryClient.clear()` al entrar y salir, y `Cache-Control: private, no-store` con `Vary: Cookie` en lo que depende del horizonte (C13).
+13. **I-motor-13 · de `producto` §7.8**: la cookie `cs_viewer` firmada que solo restringe, para quien vuelve tras 7 días sin sesión y aterriza en páginas públicas con resultados (C13); o que E4 alargue la sesión, como decisión escrita.
+14. **I-motor-14 · de `producto` §10.1 (0045)**: referencia de etapa en `rider_points`, `palmares` y `transactions`, y `stage_team_results.prize`: el horizonte deja de depender de «una etapa por carrera y día» y el presupuesto del equipo gana libro (P6).
+15. **I-motor-15 · de `producto` §13 (B1b, B1c)**: la prueba diferencial (correr la etapa no cambia ni un byte para quien no la vio, fuera de una lista blanca) y la de dos desenlaces: cazan lo que el canario no ve.
+16. **I-motor-16 · de `producto` §7.4 y `datos` §10.1**: horizonte memorizado por `(usuario, día, rev)` 60 s en proceso, y `users.last_seen_at` escrito como mucho una vez por hora (también lo pide E7).
+
+## 6. Objeciones a la ganadora
+
+1. **O-motor-01 · §3.8**: el motivo de relevo «por índice en `PullMotive`» se rompe en cuanto R23.1 añada `equipo_joven`, `equipo_equipos` o `aliado`: el orden del `z.enum` de `contracts.ts` (l. 1376) no es un contrato. Códigos de una tabla que solo crece, sellada con la prueba de tipos de `raceRadio.test.ts` l. 148-152, o texto.
+2. **O-motor-02 · §10.1**: `json` en vez de `bytea` con gzip (C8, I-motor-01).
+3. **O-motor-03 · §11**: la v90 por el orden de pancartas sobra con `onBanner` (I-motor-05); y cualquier subida tiene que ir detrás de 17d, porque `raceReport.ts` l. 148 re-simula sin mirar la versión (C16).
+4. **O-motor-04 · §3.9 y §10.1**: I1 no cubre la capa de detalle (velocidad, relevistas con tope 12, `pullingTotal`, motivos, destinatarios, percance). Antes de dejar de escribir `radio` (paso 10), prueba sellada sobre las 24 etapas del mapa 07 §7: la radio servida desde la línea es igual a la de `radioForStorage`.
+5. **O-motor-05 · §7.2**: el coste del horizonte no es «< 5 ms» sin índice (C12). La migración añade `race_rosters (rider_id)` o el horizonte lee `race_callups`, cuya clave empieza por `rider_id` (schema.ts l. 990-991); y B8 gana un listón de latencia de lectura.
+6. **O-motor-06 · §5 y §7**: no trata la caché de la web ni la sesión de 7 días (C13): I-motor-12 e I-motor-13.
+7. **O-motor-07 · §3.2 y §12**: `broadcast/` y `BROADCAST` dentro de `packages/engine` hacen pagar los bancos (unos 73 min, mapa 07 §4) por cada ajuste de ritmo (I-motor-08).
+8. **O-motor-08 · §7.1 y §10**: los tramos de 10 km por espacio entregan futuro a la escala del hueco (I-motor-02), y `entregadoHastaB` pasa por «visto» de la etapa lo que el jugador no ha visto.
+9. **O-motor-09 · §3.3 y §15**: I2 mide el tránsito cada 30 s (p90 0-2), pero no acota el salto de un corredor: hasta 138 s (C4), 0-36 por etapa de más de 60 s. La síntesis fija su tratamiento en pantalla (tránsito, nunca un reloj de corredor como hueco propio) y el defecto va a `balance.md` para el dueño.
+10. **O-motor-10 · §2 y §11**: «una línea que no cumple I1 no se guarda» necesita nota en `tick_log`, contador y el acta como salida, o un cambio del motor de la táctica deja etapas sin retransmisión en silencio.
+11. **O-motor-11 · §10.1**: la migración de `news` es la única con plazo (reinicio, `agenda.md` l. 131-133) y va la tercera; tiene que ser la primera de E2.
+12. **O-motor-12 · §11**: la cifra de CPU (+10 % de mediana, +27 % en el peor) está inflada por el ruido: medido +3,8 % más el grabador (C6). La síntesis sella el presupuesto con un banco del día 179 (153 nacionales en línea), no con esa cifra.
+
+## 7. Lo que ninguna propuesta resuelve
+
+1. **H-motor-01**: el índice y el presupuesto de lectura del horizonte: nadie midió una petición ni vio que `race_rosters` no se puede buscar por corredor (C12).
+2. **H-motor-02**: el reinicio frente a las tablas por usuario: `stage_views`, `race_follows` y `race_watch` van por `race_key` sin `world_id`; si las cuentas sobreviven (nadie lo sabe, mapa 04 §8) y las claves de temporada se repiten, el mundo nuevo nace «visto». Borrarlas en el reinicio o llevar el mundo en la clave.
+3. **H-motor-03**: el salto de hasta 138 s de C4 es un defecto del motor (un ataque desde detrás del grupo `peloton` se da por cazado); nadie lo vio y la retransmisión lo hará visible.
+4. **H-motor-04**: una guarda entre los tipos de la sonda (`SnapshotRider`, `StageProbe`) y el grabador, y un decodificador por `format`: el motor cambia cada pocos días (de la v86 el 22-09 a la v89 el 26-09, táctica y generador) y lo guardado no se reescribe.
+5. **H-motor-05**: un banco de coste del tick en los días 176 (187 cronos) y 179 (153 nacionales en línea) con el grabador y la escritura; mi cifra (2-8 s más) es estimada.
+6. **H-motor-06**: la versión de Postgres de producción y su compresión TOAST; con `bytea` gzip deja de importar para lo nuevo, pero no para la radio de hoy.
+7. **H-motor-07**: qué se enseña de las etapas corridas entre el despliegue y el reinicio: ingeniero y producto estiman el reloj integrando `speedKmh` sin medir el error; o se mide o esas etapas van solo con acta.
+8. **H-motor-08**: qué segundo se enseña como diferencia de UN corredor (el propio, `Your rider · +2:14`): su reloj de foto suma la deriva, que vuelve a 0 en el llano, y el marcaje acumulado (simulate.ts l. 5536, 9012); tiene que ser el de su grupo en el último punto común, y nadie lo dice.
+9. **H-motor-09**: la carga de escritura del progreso (`PUT` cada 10-15 s por espectador, más el tramo) no está medida ni acotada.
