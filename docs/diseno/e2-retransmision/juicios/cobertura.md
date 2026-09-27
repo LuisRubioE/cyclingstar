@@ -1,0 +1,182 @@
+# Juicio E2 · Cobertura y fidelidad al dueño
+
+Juez: «cobertura». Pregunta única: ¿resuelve cada propuesta, con mecanismo, tipo y número, los seis puntos del encargo (`00-encargo.md` §1), los [DUEÑO 1-10] y [DOC 1-7] del mapa 05 §5, las 15 contradicciones del mapa 05 (están en su §6; el encargo de este juicio las llama §3), las fronteras con E3, E6, E10, E12 y E13, y conserva la radio como instrumento del dueño y `pullFor`? ¿Vería el dueño la diferencia al entrar en una etapa?
+
+Leído entero: `00-encargo.md`, `01-fase-propuestas.md`, `02-fase-juicios.md`, los siete mapas y las cinco propuestas (`television.md` 949 l., `estado.md` 945, `producto.md` 933, `datos.md` 949, `ingeniero.md` 835).
+Comprobado contra el código en HEAD `0d94884` todo lo que decide una celda (§2); lo que no he podido medir lo digo.
+Leyenda: ● resuelto con mecanismo y número; ◐ a medias, o con un defecto que la síntesis tiene que corregir; ○ ausente o contrario a lo que pidió el dueño.
+Los textos en inglés entre comillas invertidas son de pantalla y salen de las propuestas.
+
+---
+
+## 1. Tabla cruzada
+
+| # | Ítem | television | estado | producto | datos | ingeniero |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | P1 · La tele como norte: dos números fijos, grupos, perfil, rótulo y «nada más» (agenda l. 510-515) | ● capa fija UCI, barra ≤ 4 filas, perfil con un cursor por grupo, un solo plano; previa de 4 cuadros y `Closing` (§4, §5.2): la más fiel al mapa 06 | ● capa fija con reloj y barra permanente, y el porqué (a ×60 la diferencia cambia cada 1,5 s, §4); sin previa ni cierre propios | ● §4 con `MainGap` y su referencia, cuadro cada 25 s reales, nada en los últimos 300 m; cierre = acta resumida; previa solo en la ficha | ◐ «un tablero y no un vídeo» (§4): filas por grupo y cuadro cada 180 s de carrera; sin previa ni cierre | ● capa fija y barra con una línea `Pulling: Team Beta (for 11 S. CARTER)` por grupo que tira (§4.2); sin previa ni cierre |
+| 2 | P2 · Estado con tipos, reloj e identidad; de dónde sale cada campo | ● `StoredPaso` (grupo, reloj en décimas, clase, tamaño) y deltas de pertenencia; `stateAt` causal; tabla de origen §3.6 | ● la mejor: reductor puro, I1 medido (0 discrepancias en 3.246 fotos), marcas de reloj con error p99 de 3-196 m, foto frente a instante | ● radio v2 aditiva (`t`, `g`, `m`), `GroupFrame` con `in/out`, `RaceMoment`; reloj solo por km, sin marcas en los cambios de composición | ● `StageTimeline` con la visibilidad de cada dato (§3.4) y la propiedad `estadoEn(cortar(tl,T),T) = estadoEn(tl,T)` | ◐ «el estado ES la radio»: cuatro opcionales en `StoredRaceRadio`, sin reductor; antes del paso 4, reloj estimado con error «no medido» (§3.1) |
+| 3 | P3 · Modelo de «visto» y qué se protege por defecto | ● `stage_views` (`watching/seen/revealed`, lo servido es lo visto); parrilla = corredor, equipo o `follow`; caduca a 40 días de juego | ● `stage_views` con `vistoHastaB` y `entregadoHastaB`; protege su carrera y las empezadas; caduca a 7 días reales del final | ● `race_watch` por prefijo con procedencia (`how` W/S/R/A/X), modos `guarded/own_only/off`, 8 carreras de cabecera, 56 días; cuenta nueva y oferta adaptativa | ● `stage_views`, `race_follows` y `spoiler_scope`; velo de 56 días de juego | ● `seenThrough` en prefijo y `race_follows` (★ y abiertas); se revela solo a los 28 días de juego del final |
+| 4 | P3 · Las 48 superficies del mapa 03 §4 y las que faltan | ◐ por bloques; W6 «no lo sé»; P5 por la noticia de lesión; nada fuera del inventario | ● las 48 una a una con cuatro políticas (P0-P3); nada fuera del inventario | ● las 48 una a una con su mecanismo y nueve más (X1-X9) que he comprobado (§2.4, §2.5); cierra W6 | ◐ las 48 por mecanismo, pero P6 (presupuesto) sin velar y W6 abierta | ● siete mecanismos y un predicado SQL único (`hiddenSql`); cierra W6; declara el presupuesto como fuga |
+| 5 | P3 · La propiedad hecha test | ● `config.spoiler` obligatorio que para el arranque, canario B1, `PreStageInfo` sin campos de resultado | ● `POLITICA_DE_RUTAS` y canario por `onRoute` que renderiza correo y títulos | ● `Horizon` en la firma de toda lectura, canario B1a, **diferencial B1b** y **B1c** (dos desenlaces, respuestas idénticas byte a byte): la única que caza que la existencia de un aviso también informa | ● `veil` obligatorio en `packages/db`, canario y B13 (procedencia del reparto) | ● `Horizon` sin valor por defecto (no compila sin decidir), `onRoute` que lanza y canario con fichas únicas |
+| 6 | P3 · Volver tras una semana (mapa 04 §2) | ◐ `Ready to watch` y `Highlights of all`; no ve que la sesión caduca a los 7 días | ◐ `To watch` con `Watch from stage 8`, `Highlights` y `Reveal all`; misma ceguera | ● `While you were away`, la carrera en 30 min (`digestBudgetS`), `Key stages` por perfil y cookie `cs_viewer` porque la sesión caduca (§2.5) | ◐ cola `To watch` y `Reveal all but the last 3`; sesión ignorada | ◐ `Catch up at ×4` y `Reveal all`; sesión ignorada |
+| 7 | P3 · Pestaña, correo, previa de N+1, visitante y acta pública (DUEÑO 8) | ● `pageTitle` y `stageReadyNotice` sobre `PreStageInfo`; puerta N+1; `/result` pública e indexable; visitante en `Watch` | ● título con partes cerradas; correo tras `runTick`; puerta; `/report` pública; visitante en modo ver | ◐ título neutro antes del JS y `og:`; el aviso «no decide mirando el resultado»; pero el visitante `anon` abre la clásica «conocida» en el acta (C3) | ● `tabTitle` sellado con `expectTypeOf`; correo apagado hasta E4; `/report` con `og:title` neutro | ● `usePageTitle` y un test que prohíbe `document.title`; `stageReadyEmail`; órdenes con tres salidas |
+| 8 | P4 · Ritmo, y la comprobación de «reproducir es barato» | ● presupuesto por tramo de carretera: `Highlights` ≈ 10 min, `Full` ≈ 30 (estimados); freno de cola causal | ● curva por km a meta medida en 5 etapas (5:02 a 15:03); coste medido (+10 % de CPU, 24-104 KB) | ◐ zonas ×60/30/12/4/1,5 (≈ 8 y ≈ 14 min) estimadas sin medir; B11 sella que no dependen de los sucesos | ● regla medida en 28 etapas: mediana 12,7 min (7,8-20,4), resumen 5,3 | ◐ segundos de pared por km (≈ 6,5 y ≈ 8 min) estimados; duración anunciable porque solo depende del recorrido |
+| 9 | P5 · `news` con `seed`, `data`, carrera y etapa, antes del reinicio (DOC 1) | ● columnas, unión con códigos, render al leer; `gc_lead_taken`, `jersey_taken`; va primero (P3) por el plazo | ● `NoticiaDatos` sin inglés, `gc_leader`, orden estable del día; paso 3 «antes del reinicio» | ◐ `NewsPayload` con `prevHealth` y marcadores `stage_ready`; pero paso 6 de 13 sin el plazo, y nombres con el equipo de HOY | ● la mejor: `teamId` del día, variantes `since`, `breakaway_win` solo si el ganador iba en la fuga, `text` de compatibilidad; paso 1 | ● `NewsDataV2` en `shared` sin tocar el motor; `transactions` con carrera y etapa; paso 6 en paralelo |
+| 10 | P6 · «Cuando se escapan cinco»: rótulo y cinco categorías | ● `wornJerseys` con la regla UCI y `TitlesPort`; sub-23 fuera; la notoriedad usa `fame`, que vale 0 (§2.7) | ◐ `maillotLlevado`, `distinciones` y el caso paso a paso; su `LIKE 'nc-%-road'` mete a los sub-23 que dice excluir | ◐ `riderLabel` (reglas 1-6) y `ChampionTitleSource`; incluye `nc-<cc>-u23-*` sin regla de categoría | ● `wornJerseys` congelado con procedencia `from` y delegación UCI; sub-23 solo como distinción; cola de notoriedad con `fame` | ◐ `wornKit`, chip con forma, R23.4 en `breakHeadline`; sub-23 sin regla de categoría |
+| 11 | DUEÑO 4 y A4 · El hilo del líder y las pasadas v21-v27 en la voz en vivo | ○ la voz solo aplica «ids, `narra: 0`, duplicados» y apaga `respecto` y `desenlace`: el directo pierde lo que nació de las quejas del dueño | ◐ `pasadasVivas` no nombra las de coherencia y manda `respecto` y `juntos` al acta, aunque son causales (§2.3) | ◐ método correcto (test de prefijo por pasada), pero sin la longitud de la etapa `followTheLeader` caería al acta | ◐ corren las causales, pero `respecto`, `juntos` y `desenlace` solo en `report` | ● entrada truncada, longitud de etapa, cinco pasadas apagadas (l. 319, 361, 362, 371, 375); prefijo medido 0 en 15 corridas |
+| 12 | B3 · Racimos con número también en vivo | ○ racimos `riders_*` apagados en la voz: los descuelgues saldrían uno a uno | ● el racimo se emite al cerrarse, en el bloque de su último miembro | ● «con retraso»: el racimo se revela al cerrar su ventana de 5 km | ● «un racimo en vivo es una línea abierta que crece» | ◐ sin racimos en vivo; los sin rótulo los cuenta la fila `GRUPPETTO · 23` y los demás salen sueltos (16.11) |
+| 13 | DUEÑO 5 · El corredor propio, siempre (R23.7) | ● `ownRider` y `◆you` en la barra; rótulo `own` | ● línea permanente `You · in the bunch` | ● `ownRiders` siempre nombrados; `Your rider raced` en la guía | ● pertenencia completa; «los del jugador» en el pelotón | ◐ `Your rider · Peloton` solo desde el paso 4; antes, `watching` |
+| 14 | DUEÑO 7 · Cobertura de la criba lejana, aparcada «para cuando se mejore el diario» | ○ | ○ | ○ | ○ | ○ |
+| 15 | DUEÑO 9 · Nada de decidir en vivo | ● cada uno cuando entra (decisión 11) | ● reproducción personal | ● revelar sin premio ni castigo, con test | ● «reproducción personal, no directo compartido» | ● «no hay directo»; órdenes con tres salidas |
+| 16 | DUEÑO 10 · La radio sigue siendo el microscopio; foto por km y `pullFor` intactos | ● foto por km y `trabajaronParaOtro` intactos; `relevos` en la señal; `Radio` recortada al horizonte | ● `trabajaronParaOtro` solo en fotos de km, con test; radio desde la línea con el contrato de hoy; D2 escrito | ○ fotos cada 100 m en los últimos 3 km por la MISMA sonda: cambian `trabajaronParaOtro` sin versión y el turno de 3 km, que cuenta fotos (§2.6) | ● B10: la envoltura solo pasa las fotos de `radioKmPoints` a la radio y al aprendizaje | ● `RaceRadioPanel` y `race-radio.mjs` sin tocar; el dueño ve Watch el primero (`admins`) |
+| 17 | C7 · Un solo nombre por concepto (contradicción 7) | ● `bunch/lead/chase/dropped` en pantalla y voz; `Bunch` o `Peloton`, al dueño | ● `PapelDeGrupo` común a barra, radio y journal | ◐ un solo sitio y decisión 9, pero `GroupName` conserva `no_mans_land` y `nth` de la radio de hoy | ○ decisión 8: el tablero dice `Peloton` y las frases «the bunch» | ◐ Watch y Radio comparten `groupName`; journal y Report siguen con «the bunch» |
+| 18 | Contradicciones 8 y 9 · Cuatro nombres de un artefacto, narradores sobrantes | ◐ `Watch/Radio/Story/News`; `narrate`, `personalNarration` y `raceVerdict` sin tratar | ◐ `Commentary` y `report`; narradores sin tratar | ● §8.4: `narrate` se borra y los otros dos leen los sucesos guardados de la última etapa conocida | ○ no los trata | ◐ `Watch/Report/Race Radio` (§8.1) y `narrate` fuera; el resto, a 17d |
+| 19 | D7 y contradicción 5 · ¿Sube `ENGINE_VERSION`? ¿Se re-simula lo congelado? | ● no sube (dos ganchos, B10): `last-race` sigue fiel porque la versión no cambia; su reescritura, al 17d | ◐ v90 por el orden de pancartas, y `last-race` sigue re-simulando hasta 17d (§2.8) | ○ v90 con cuatro cambios, uno un suceso `crash` nuevo; tres son derivables al guardar | ● núcleo sin versión; v90 opcional y aparte | ● paso 4 sin versión (doctrina v85); v90 opcional |
+| 20 | DOC 6 y DOC 7 · Maillot distinguible por forma; «un tercero entiende qué pasó» | ◐ bandera sobre la equipación; sin prueba de lectura | ◐ banda de la bandera; sin prueba de lectura | ◐ sin forma propia (espera a E3); sin prueba de lectura | ◐ bandera en el rótulo; sin prueba de lectura | ◐ chip con forma, no solo color (navegación l. 455-457); sin prueba de lectura |
+| 21 | Fronteras con E3, E6, E10, E12 y E13 | ● todas; `TitlesPort` para E12 | ● todas; `genero` y `users.locale` para E10 | ● todas, más una regla para E9 (comentario sellado con el horizonte del autor) y E13 a horizonte | ● todas; la mejor para E10 | ● todas; la regla de E3 («la API no manda lo que la pantalla no enseña») cumplida por tramos |
+| 22 | ¿Vería el dueño la diferencia al entrar? ¿En qué paso? | ● sí, la más televisiva; en P8, tras unos 14 PR | ● sí; en el paso 8, tras unos 10 PR | ● sí, y también en la portada; reproductor en el paso 11, tras unos 10 PR (el destripe se cierra antes, pasos 2-7) | ● sí, como tablero; paso 7, tras unos 12 PR | ● sí, y antes que nadie: paso 3, tras 3 PR, con `admins` y reloj estimado |
+
+**Lectura de la tabla.** Las cinco cubren los seis puntos del encargo; ninguna deja uno sin mecanismo.
+La cobertura se separa en tres sitios.
+(a) El punto 3, que el encargo llama «lo difícil» («Es una propiedad del producto entero», §1.3): solo producto sale del inventario de 48 y convierte en test que un aviso también destripa por existir.
+(b) La voz en vivo: television, estado y datos apagan pasadas causales que el dueño pidió (A4 y la v27; B3 en television), porque clasificaron mal lo que mira el futuro; ingeniero lo midió.
+(c) El microscopio: producto lo toca sin verlo; las otras cuatro lo protegen, datos y estado con test.
+
+**Recuento de las 15 contradicciones del mapa 05 §6** (◐ cuenta media):
+
+| Propuesta | Cerradas | Abiertas o contrarias |
+| --- | --- | --- |
+| producto | 11 | 5 y 7 a medias; 11, 13 y 14 sin tratar |
+| television | 9,5 | 5, 8 y 14 a medias; 9, 11, 13 y 15 sin tratar |
+| ingeniero | 9,5 | 5, 7, 8, 9 y 15 a medias; 11, 13 y 14 sin tratar |
+| estado | 8,5 | 8 a medias; 5, 9, 11, 13, 14 y 15 sin tratar |
+| datos | 8 | 5 y 8 a medias; 7 contraria (decisión 8); 9, 11, 13, 14 y 15 sin tratar |
+
+Ninguna cierra la 5 entera (§2.8), la 11 (el mánager elige entre 12 semillas: es de E3), la 13 (códigos que chocan, y «radio» con dos sentidos) ni la 14 (feed personal contra «sin personalizar»).
+
+---
+
+## 2. Comprobaciones en código
+
+1. **Campeón nacional por `race_gc` y «la consulta del dorsal 1 del campeón defensor»** (television §0 y §6.3): **a medias**.
+   La consulta existe en `packages/db/src/calendarRun.ts` l. 991-1007 (general de la edición anterior, `prevKey`, con `gcFinishersWhere` y `gcOrderBy`), pero solo para carreras con equipos: en un nacional el código numera por puntos y sale antes (l. 976-988).
+   `race_gc` no lleva `world_id` ni `game_day`, así que «vigente el día D» exige aritmética de calendario. Derivable, pero no es «la misma consulta».
+2. **Campeón nacional por `palmares`** (estado §6.2, producto §6.2, datos §6.2, ingeniero §6.3): **cierta**: `stageRun.ts` l. 1297-1306 escribe `kind: 'gc'`, `raceId` sin temporada y `gameDay` en la etapa final, también en un día; índice `palmares_race_idx (world_id, race_id)` (`schema.ts` l. 785).
+   Pero **«desde el primer día»** (television §0, estado decisión 8, producto decisión 10, datos decisión 6) es **falsa** tras el reinicio: `palmares` solo lo escribe `stageRun.ts` (l. 1280 y 1298; grep de `recordPalmares`) y el nacional de ruta es `NATIONALS_ROAD_DAY = doy(6, 28)` (`packages/engine/src/routes/calendar.ts` l. 204). El primer Giro de un mundo nuevo (días 128-151) sale sin campeones, salvo los países de `NATIONALS_ROAD_OVERRIDE` (l. 211-234).
+   Y estado filtra con `LIKE 'nc-%-road'`, que casa con `nc-it-u23-road`; su `Titulo` no tiene categoría para separarlos.
+3. **Qué pasadas de la crónica miran el futuro** (ingeniero §8.2): **cierta**, línea a línea en `apps/api/src/chronicle.ts`: `markConcession` (l. 319, con `caughtLaterKm` de l. 297), `dropUndoneSelections` (l. 361; recorre las líneas posteriores, l. 856-866), `groupGapRuns` (l. 362; borra partes ya contados), `foldQuickAttacks` (l. 371; funde un ataque con su captura posterior) y `groupRuns` (l. 375); y tres pasadas sacan la longitud del último suceso (l. 545, 637, 945).
+   Lo que dicen television §8.1, estado §8.1 y datos §8.1 es **falso** para `respecto` y `juntos`: `followTheLeader` solo usa el `front` de las líneas anteriores (l. 546-601) y `markReunion` acumula `maxFront` hasta la propia captura (l. 937-1005); `desenlace` solo necesita la longitud, que se sabe antes de salir.
+   Apagarlas quita del directo lo que el dueño pidió: «si lees todo el Journal no SABES quién va ganando, quién va persiguiendo… es un lío los últimos mensajes» (`docs/balance.md` l. 5975-5976, v27). Nadie cita `dropLoneChaseGaps` (l. 396-410), que calcula `field` sobre toda la etapa; no he medido si rompe el prefijo.
+4. **«Las 48 superficies»** (mapa 03 §4; las cinco lo usan): **a medias**. Son 48 filas exactas (9 E, 6 C, 4 I, 4 N, 7 H, 6 P, 6 W, 6 T), pero siete no destripan hoy (C6, T1, T2, T4, T5, T6 y W6, porque `riders.fame` no se escribe: `rollover.ts` l. 60 y 293).
+   Y hay fugas fuera del inventario: `getRiderUpcomingRaces` quita la carrera si tu corredor abandonó (`riderSchedule.ts` l. 217); `/api/riders/me/report` y `/trend` (`routes/riders.ts` l. 469 y 447) suman un aprendizaje que multiplica TAC por 1,8 al ganar y 1,4 en el top 10 (`learning.ts` l. 107-111; `constants.ts` l. 2095-2096); `getFreeAgents` ordena por `seasonPoints` (`browse.ts` l. 234); la retirada responde `alreadyOut` (`routes/riders.ts` l. 648). Solo producto las lista (X1-X9).
+   La API tiene 52 rutas GET (contadas con perl sobre `routes/*.ts`, registros de varias líneas incluidos): el «unas 50» de ingeniero es cierto, y es por lo que el canario tiene que recorrer `onRoute` y no una lista.
+5. **La sesión caduca a los 7 días** (producto §1.7 X3 y §7.8): **cierta**. `better-auth/dist/context/create-context.mjs` l. 146-147 (`updateAge` de un día, `expiresIn: 3600 * 24 * 7`) y `apps/api/src/auth.ts` no pasa opciones de sesión (l. 110 es solo la tabla).
+   Quien vuelve tras una semana llega sin sesión, que es el caso del mapa 04 §2, y las otras cuatro lo diseñan sin verlo.
+6. **Las fotos de la sonda y el aprendizaje** (estado §11, datos §11.2): **cierta**: `stageRun.ts` l. 515-536 envuelve la sonda y apunta `pullFor` en CADA foto de `radio.probe.atKm`, y `raceLearning` lo lee (l. 791-802).
+   Por eso producto §11, cambio 2 («fotos cada 100 m en los últimos 3 km… observación… no sube») es **falsa en su consecuencia**: más fotos, otro aprendizaje, sin versión.
+   Además el turno del relevista cuenta FOTOS, no km (`raceRadio.ts` l. 883, las `TURNO_KM` fotos anteriores): en el final pasaría de tres km a 300 m, contra lo que el dueño fijó («sale cada km que tira uno diferente», balance l. 16615-16616, nota de radio posterior a la v86).
+7. **`fame` no se escribe** (producto W6, ingeniero §7.3): **cierta** (`rollover.ts` l. 60 y 293; `schema.ts` l. 306, defecto 0; `calendarRun.ts` l. 977 lo repite). La notoriedad de television (nivel 7, `fameNotablePctl` 0,9) y la cola de la de datos (`CastRider.fame`) ordenan por una columna que vale 0 para todos.
+8. **Contradicción 5 del mapa 05**: la ruta de etapa lee los sucesos congelados sin mirar la versión (`routes/races.ts` l. 474-477), así que `docs/balance.md` l. 14684-14686 («moverla tira todas las crónicas guardadas») es **falsa** para la crónica.
+   Lo que sí se rompe con cada subida es `packages/db/src/raceReport.ts`, que re-simula (l. 148) sin comparar `engine_version` (l. 30-39): con la v90 obligatoria de estado, «What happened to you» contaría otra carrera hasta que llegue el 17d.
+9. **Pestaña, almacenamiento y sucesos fechados** (las cinco): **cierta**: `apps/web/index.html` l. 7 fijo, ningún `document.title` ni `localStorage` en uso (grep); la crono ignora la sonda (`simulate.ts` l. 1264) y `breakaway_formed` va a `bornKm/bornTs` (l. 8727-8733). El «el motor ya guarda los sucesos fechados» del encargo §1.4 es cierto a medias, como dicen las cinco.
+
+---
+
+## 3. Puntuaciones
+
+| Propuesta | Cobertura | Coherencia | Ejecutabilidad | Experiencia |
+| --- | --- | --- | --- | --- |
+| producto | 9 | 6 | 7 | 9 |
+| ingeniero | 7,5 | 9 | 9 | 7,5 |
+| television | 7 | 7,5 | 7 | 9 |
+| estado | 7 | 8 | 7 | 8 |
+| datos | 6,5 | 8,5 | 7 | 7 |
+
+**producto.** Es la única que trata el punto 3 como lo que el encargo dice que es: las 48 superficies una a una con su mecanismo, nueve puertas más que he comprobado en el código (§2.4, §2.5), `Horizon` en la firma y los bancos B1b y B1c.
+Es la que más contradicciones cierra (narradores sobrantes, documentos con estado falso) y la única que da regla a E9.
+Coherencia baja por dos cosas que tocan al dueño: las fotos de 100 m por la misma sonda cambian el aprendizaje y el turno del microscopio (§2.6), y sube a v90 con un suceso `crash` que no hace falta.
+Su crónica en vivo queda a un test que, sin la longitud de la etapa, tiraría `followTheLeader` al acta.
+
+**ingeniero.** La más fiel a cómo trabaja el dueño: la radio sigue siendo el microscopio sin tocar (`RaceRadioPanel`, `race-radio.mjs`) y el dueño ve Watch el primero y tras 3 PR (`BROADCAST_WATCH=admins`).
+Es la única que identifica con su línea las cinco pasadas que miran el futuro y lo mide (prefijo 0 en 15 corridas).
+Pierde cobertura en el punto 3: no ve la sesión ni las fugas de `upcoming-races` y `report/trend`, acepta el presupuesto como fuga y deja dos vocabularios (Watch dice `PELOTON`, el Report «the bunch»).
+Ritmo estimado; reloj estimado sin error medido antes del paso 4.
+
+**television.** La que mejor cumple el norte: capa fija de la UCI, la moto que rodea la fuga, diferencias generales, previa, cierre y `REVEAL_RULES` para las siete fechas trucadas, sin tocar la versión.
+Pero su voz en vivo solo aplica «ids, `narra: 0`, duplicados» y apaga `respecto`, `desenlace` y los racimos: el directo perdería las pasadas de v21-v27 que nacieron de las quejas del dueño (A3, A4, B3).
+El sin destripe va por bloques, sin sesión ni X1-X9; la notoriedad usa `fame`; el campeón por `race_gc` no filtra mundo ni día.
+
+**estado.** El mejor modelo de estado con diferencia: reductor puro, I1 con 0 discrepancias en 3.246 fotos, marcas de reloj con el error medido, y la foto del dueño («la foto de la radio no es un instante, es 1 km entero», balance l. 16714, nota de radio posterior a la v86) separada del instante.
+Cubre las 48 con cuatro políticas y protege el aprendizaje.
+Pero su voz manda `respecto` y `juntos` al acta, no trata los narradores sobrantes, sube a v90 sin quitar la re-simulación de `last-race` (§2.8), su `LIKE 'nc-%-road'` mete a los sub-23 y cuesta +10 a +27 % de CPU en el tick.
+
+**datos.** La mejor en contrato y almacenamiento (17,5 KB en disco y 27 KB gzip por la red, medidos en 31 etapas), con la visibilidad escrita en cada dato, B10 que protege el aprendizaje y B13 la procedencia; la mejor para E10.
+En fidelidad es la más floja: su decisión 8 mantiene dos vocabularios contra la regla del dueño («Un solo concepto, con el mismo nombre, en el motor y en la Race Radio», balance l. 6740-6741, v34).
+Deja sin velar el presupuesto y W6, manda `respecto` y `juntos` al acta y cierra la notoriedad con `fame`; su pantalla es un tablero, la menos televisiva.
+
+---
+
+## 4. Ganadora: `producto.md`
+
+Por cobertura y fidelidad. El encargo dice dónde está la dificultad: «Lo difícil no es la pantalla: exige saber qué ha visto cada jugador y que ninguna otra pantalla se lo reviente por detrás… Es una propiedad del producto entero» (`00-encargo.md` §1.3).
+Producto es la única diseñada desde esa propiedad y la única que la hace falsable: B1b (correr la etapa no cambia un byte para quien no la ha visto, salvo una lista blanca con motivo) y B1c (dos desenlaces, respuestas idénticas).
+Es la única que vio, y lo he comprobado, que el caso «vuelvo tras una semana» (mapa 04 §2) se rompe en la puerta de entrada porque la sesión caduca a los 7 días, y la única que sale del inventario del mapa 03 con fugas reales (`upcoming-races`, `report/trend`, `free-agents`, `alreadyOut`).
+Es la que más contradicciones del mapa 05 §6 cierra y la que más cambia lo que el dueño ve: no solo la pantalla de etapa, también la portada (`Continue watching`, `Ready to watch`, `While you were away`).
+Sus defectos son injertables: la crónica en vivo de ingeniero, la separación de fotos de datos, el estado de estado y la gramática de la tele de television.
+Ingeniero queda a un paso, y la síntesis tiene que ser casi tanto de ella (plan, interruptores, microscopio) como de la ganadora.
+
+---
+
+## 5. Injertos
+
+| Id | De | Sección | Qué | Por qué |
+| --- | --- | --- | --- | --- |
+| I-cobertura-01 | ingeniero | §8.2 | Crónica en vivo: entrada truncada por reloj, `stageKm` como dato y exactamente cinco pasadas apagadas (`markConcession` l. 319, `dropUndoneSelections` l. 361, `groupGapRuns` l. 362, `foldQuickAttacks` l. 371, `groupRuns` l. 375), con el test P de prefijo sobre 5 etapas congeladas | Sustituye el «la lista la fija el test» de producto §8.1 por una lista comprobada (§2.3) y mantiene `respecto` y `desenlace`, el hilo del líder que el dueño pidió en la v27 (A4) |
+| I-cobertura-02 | ingeniero | §8.2, tabla fila 4 | Racimos publicados al cerrar su ventana de 5 km (0 violaciones medidas revelando por km) | Cumple B3 del dueño en vivo («puedes mencionar muchos juntos con número», balance l. 1845-1846, v13) sin romper el prefijo; es el «con retraso» de producto, con número |
+| I-cobertura-03 | ingeniero | §7.4, §14 | Interruptores `SPOILER_MODE` y `BROADCAST_WATCH` (`off/admins/on`) en `env.ts` y Watch sobre la radio de hoy en el paso 3 con `clock: 'estimated'` | El dueño caza defectos mirando (catorce tandas desde la radio, mapa 05 §2.8): tiene que ser el primero en ver la retransmisión, tras 3 PR y no tras 10; y todo se apaga sin desplegar |
+| I-cobertura-04 | ingeniero | §4.2, §6.4 | Una línea por grupo que tira en Watch (`Pulling: Team Beta (for 11 S. CARTER)`) y la política de a quién se nombra (≤ 12 todos; en el pelotón maillots, top 10, propios y protagonistas de sucesos YA revelados) | Lleva a la pantalla por defecto el «por qué» y el «para quién» del dueño (C2, C6: «pero no dice quién es, wey», balance l. 9594, v57) y nombra sin anticipar |
+| I-cobertura-05 | datos | §11 punto 2, B10 | La envoltura de la sonda solo pasa las fotos de `radioKmPoints` a `raceRadioCollector` y a `trabajaronParaOtro`; las fotos finas van a otro colector | Arregla O-cobertura-01 (§2.6): el aprendizaje y el turno de 3 km no cambian, y la foto sigue siendo «1 km entero» (D2) |
+| I-cobertura-06 | datos | §3.4, B9, B13 | Visibilidad escrita en cada dato (`vis ≤ T`), tabla `revealS` por plantilla y procedencia `from` de cada campo del reparto | Hace comprobable campo a campo la regla del prefijo y la previa de N+1 de producto §7.13 |
+| I-cobertura-07 | datos | §8.3, §10.7 | `NewsPayload` con el `teamId` del día, variantes `since` (`tpl_rev`), `breakaway_win` solo si el ganador iba en la fuga, y `text` de compatibilidad durante una versión; migración en el paso 1 | DOC 1 tiene plazo (agenda l. 131-133: «antes del reset»); la identidad del titular es la de aquel día (B1 del dueño) y no la que deja un traspaso |
+| I-cobertura-08 | estado | §3.6, §3.9 | Marcas de reloj en nacimiento, muerte, cambio de composición y cada bloque del último km, y los invariantes I1 e I4 con autocomprobación al grabar | Error de posición p99 de 3-196 m medido; sin las marcas de cambio, Flandes llega a 3,5 km: el cursor por grupo (DOC 2) no puede saltar km |
+| I-cobertura-09 | estado | §3.5 | Identidad por id del motor con sucesor por mayoría, histéresis de nombre de 1 km y `delMaillot` | La barra no parpadea y el «grupo del maillot amarillo» que pidió el dueño (B6, `RaceRadioPanel.tsx` l. 50-52) sale en la barra, no solo en la radio |
+| I-cobertura-10 | estado | §3.1, §8.1 | Foto (un km, la definición del dueño) frente a instante (la tele), escrito; la radio del dueño construida desde el estado con el contrato `RaceRadio` de hoy y sin lista de seguimiento | Conserva el microscopio sin la lista que nombra desde el km 0 a los diez primeros de la etapa (mapa 07 §5.2.1) |
+| I-cobertura-11 | television | §5.2, §6.4, §10.2 | Previa en 4 cuadros (perfil, parte, maillots en juego, favoritos), la moto que rodea la fuga (`breakRoundEveryB`), `time_check` y el cierre `Closing` (podio, general con flechas, maillots de mañana, abandonos, mañana) | Producto deja la previa en la ficha y cierra con el acta resumida; television los hace parte de la emisión, en el orden de la señal UCI (pliego §11.3, mapa 06 §8), que es como empieza y acaba el norte de la agenda (l. 510-515) |
+| I-cobertura-12 | television | §11.3 | `REVEAL_RULES` por plantilla para las siete fechas trucadas, derivadas de la radio | Sustituye los cambios 4, 5 y 7 de producto §11, que suben a v90 para algo que se deriva al guardar |
+| I-cobertura-13 | estado / datos | §11 / §3.4 | La caída sacada de `output.incidents` al guardar, sin `diasBaja`, en vez del suceso `crash` del motor | Quita el cambio 6 de producto y su riesgo de pasar de 100 narrables; es la doctrina del dueño: «si lo que hace el motor está bien ahí, no cambies el motor, cambia el race radio» (balance l. 16555-16558, nota de radio posterior a la v86) |
+| I-cobertura-14 | television / estado | §6.3 / §6.1 | El título se lleva solo en su categoría: un campeón sub-23 nunca viste de campeón en carrera élite | UCI 1.3.068 (mapa 06 §2.2 punto 8); arregla O-cobertura-03 |
+| I-cobertura-15 | datos / television | §9 | Traza por km de cada corredor en la crono (15-30 KB), no solo dos controles | Parciales en cualquier km, sillón y alcances: lo que el dueño pidió de la crono («quién hace el mejor tiempo y quién le supera… cuando alguien dobla a otro», mapa 05 F1) |
+| I-cobertura-16 | television / estado | §8.3 / §8.2 | Titulares `gc_lead_taken` (o `gc_leader`) y `jersey_taken`, con etapa y bajo el horizonte | MVP paso 39 («tras una etapa reina, el feed cuenta la historia»); hoy no hay titular de cambio de líder (mapa 02 §3) |
+| I-cobertura-17 | ingeniero | §6.3 | Chip de campeón con forma, no solo color, mientras E3 no dibuje | DOC 6 (navegación l. 455-457); el campeón provisional de producto es solo texto |
+
+---
+
+## 6. Objeciones a la ganadora
+
+1. **§11 cambio 2 y §3.4: las fotos cada 100 m van por la misma sonda.** `trabajaronParaOtro` apunta en cada foto (`stageRun.ts` l. 527-536) y `TURNO_KM` cuenta fotos (`raceRadio.ts` l. 883): el aprendizaje cambia sin subir versión y el turno del final pasa a 300 m. Colector aparte (I-cobertura-05).
+2. **§8.1: la clasificación de pasadas queda a un test.** Sin la longitud de la etapa como dato, `followTheLeader` (l. 545), `clockTheGaps` (l. 637) y `markReunion` (l. 945) fallan el prefijo y caerían al acta con `respecto`, que es causal. La síntesis fija la lista y el dato (I-cobertura-01).
+3. **§6.1-6.2: sub-23 sin regla de categoría.** El proveedor lee `nc-<cc>-u23-*` y `riderLabel` solo mira la disciplina: un campeón sub-23 vestiría de campeón en carreras élite.
+4. **§6.3 y decisión 10: «Champion of Italy desde el primer día» es falso tras el reinicio** (§2.2). Decidir y escribir qué se enseña hasta el primer nacional de la temporada 0: sembrar títulos al crear el mundo (tocaría a E12) o decirlo en pantalla.
+5. **§11: v90 con cuatro cambios, uno un suceso nuevo.** Tres son derivables al guardar (I-cobertura-12) y la caída sale de `incidents` (I-cobertura-13). Sin subir, `checkReplay` y `race-radio.mjs --db` siguen sirviendo para las etapas recientes, que es con lo que el dueño caza defectos.
+6. **§14 paso 6: `news` va sexto y sin el plazo.** DOC 1 exige hacerlo antes del reinicio (agenda l. 131-133): paso 1, como datos.
+7. **§8.3: `renderNews` con el nombre y el equipo de HOY.** Un traspaso reescribe titulares viejos (mapa 07 §3); el titular tiene que decir el equipo con el que se ganó.
+8. **§7.4 y decisión 14: el visitante `anon` abre la clásica «conocida» en el acta (C3).** Las otras cuatro abren en ver para todos y dejan el acta a un toque; DUEÑO 8 se cumple igual y entrar sigue siendo sentarse a verla.
+9. **§7.3 y decisiones 1 y 3: las 8 carreras de cabecera protegidas para todos no son palabra del dueño** (el «por defecto» y las puertas traseras son de la agenda, mapa 05 §1). Llevarlo a decisión con la cifra medida (42 etapas ocultas como máximo) y el retraso del ranking de quien no mira.
+10. **§3.3: `GroupName` conserva `no_mans_land` y `nth`** («No man's land» y «2nd group» de la radio de hoy), que motor y tele definen distinto (mapa 06 §1.3). Con la decisión 9, una sola lista cerrada en pantalla, radio y relato, re-sellando `GROUP_NOUNS` y `raceRadioNames` a propósito.
+11. **§9: crono con dos controles y meta.** «ON COURSE» se interpola entre controles (I-cobertura-15).
+12. **§5: ritmo estimado (≈ 8 y ≈ 14 min), no medido.** Estado y datos lo midieron (5-15 y 7,8-20,4 min); «medir antes de construir» (mapa 05 §10.7): la síntesis mide la curva elegida en las 24 etapas del mapa 07 §7 antes de fijar constantes.
+13. **§3.1: reloj solo por punto de km.** Sin las marcas de estado, el cursor puede errar kilómetros en pavé (I-cobertura-08).
+
+---
+
+## 7. Lo que ninguna propuesta resuelve
+
+1. **Campeones antes del primer nacional.** Cuatro de las cinco prometen el rótulo de campeón «desde el primer día» (ingeniero es la única que escribe cómo se presenta la fuga sin campeones); en un mundo recién reiniciado no hay ninguno hasta el día `doy(6, 28)` (§2.2). Nadie decide qué hacer en la primera mitad de la temporada 0.
+2. **La contradicción 5 del mapa 05, entera.** Nadie corrige `docs/balance.md` l. 14684-14686 ni ata cualquier subida de versión a que `last-race` deje de re-simular sin comparar `engine_version` (§2.8).
+3. **[DUEÑO 7] La criba lejana** (58 % contra 75 %, balance l. 8094-8095), aparcada «para cuando se mejore el diario»: ninguna la cita, ni dice si la barra de estado la cubre, ni la mide en el acta.
+4. **[DOC 7] Una prueba de lectura.** Ninguna usa el criterio del MVP paso 31 («un tercero entiende qué pasó en la etapa sin que nadie se lo explique») ni la regla de la v27 («La prueba de esta tanda es leer el diario… El criterio no es un porcentaje», balance l. 6236-6237) como aceptación de la pantalla. Todo lo que miden lo miden máquinas.
+5. **Notoriedad sin `fame`.** `riders.fame` vale 0 siempre (§2.7); nadie propone el dato real de «nombre conocido» (victorias en `palmares`, puntos de la temporada) para ordenar la frase de la fuga.
+6. **El dueño como espectador y como depurador a la vez.** Con el sin destripe por defecto, abrir el microscopio de una etapa de producción que no ha visto la revela; solo ingeniero (`admins`) y producto (modo `off`) lo rozan, y nadie define una vista de administración que no marque la etapa como vista.
+7. **Lugares, avituallamiento y tiempo en pantalla** (mapa 06 §9, filas 12, 13 y 25): el «dónde estamos» de la tele; solo television guarda el tiempo, nadie los lugares, y nadie dice qué se enseña en su sitio.
+8. **Dos jugadores que comentan la misma etapa vista hasta km distintos** (mapa 05 §9): solo producto da una regla, y es para E9; la síntesis tiene que adoptarla o dejarla escrita en la frontera.
+9. **Móvil medido.** Anchos, barra de 4 filas y coste por fotograma son estimados sobre clases de Tailwind en las cinco; nadie propone medirlos en un navegador antes de fijar la maqueta.

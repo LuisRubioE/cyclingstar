@@ -1,0 +1,371 @@
+{
+  "foco": "cobertura y fidelidad al dueño",
+  "ganadora": "producto",
+  "puntuaciones": [
+    {
+      "propuesta": "producto",
+      "cobertura": 9,
+      "coherencia": 6,
+      "ejecutabilidad": 7,
+      "experiencia": 9,
+      "justificacion": "La única que trata el punto 3 como lo que el encargo dice que es (§1.3, «una propiedad del producto entero»): las 48 superficies una a una con su mecanismo, nueve puertas más comprobadas en el código (sesión de 7 días, upcoming-races tras un abandono, report/trend por raceLearning, free-agents, alreadyOut), Horizon en la firma y los bancos B1b (diferencial) y B1c (dos desenlaces, respuestas idénticas). La que más contradicciones del mapa 05 §6 cierra (11) y la única con regla para E9. Coherencia baja por dos cosas que tocan al dueño: las fotos de 100 m por la misma sonda cambian trabajaronParaOtro (aprendizaje sin versión) y el turno de 3 km del microscopio, que cuenta fotos; y sube a v90 con un suceso crash que no hace falta. Su crónica en vivo queda a un test que, sin la longitud de la etapa, tiraría followTheLeader al acta."
+    },
+    {
+      "propuesta": "ingeniero",
+      "cobertura": 7.5,
+      "coherencia": 9,
+      "ejecutabilidad": 9,
+      "experiencia": 7.5,
+      "justificacion": "La más fiel a cómo trabaja el dueño: RaceRadioPanel y race-radio.mjs sin tocar, y el dueño ve Watch el primero tras 3 PR (BROADCAST_WATCH=admins). La única que identifica con su línea las cinco pasadas que miran el futuro (chronicle.ts l. 319, 361, 362, 371, 375) y lo mide (prefijo 0 en 15 corridas), conservando respecto y desenlace. Pierde cobertura en el punto 3: no ve la sesión de 7 días ni las fugas de upcoming-races y report/trend, acepta el presupuesto como fuga y deja dos vocabularios (Watch dice PELOTON, el Report «the bunch»). Ritmo estimado; reloj estimado sin error medido antes del paso 4."
+    },
+    {
+      "propuesta": "television",
+      "cobertura": 7,
+      "coherencia": 7.5,
+      "ejecutabilidad": 7,
+      "experiencia": 9,
+      "justificacion": "La que mejor cumple el norte de la tele: capa fija UCI, la moto que rodea la fuga, diferencias generales, previa, cierre y REVEAL_RULES para las siete fechas trucadas, sin subir ENGINE_VERSION. Pero su voz en vivo solo aplica «ids, narra: 0, duplicados» y apaga respecto, desenlace y los racimos: el directo perdería las pasadas v21-v27 que nacieron de las quejas del dueño (A3, A4, B3). El sin destripe va por bloques de superficies, sin sesión ni X1-X9; la notoriedad usa fame, que vale 0; el campeón por race_gc no filtra mundo ni día."
+    },
+    {
+      "propuesta": "estado",
+      "cobertura": 7,
+      "coherencia": 8,
+      "ejecutabilidad": 7,
+      "experiencia": 8,
+      "justificacion": "El mejor modelo de estado: reductor puro, I1 con 0 discrepancias en 3.246 fotos, marcas de reloj con error medido, y la foto del dueño («es 1 km entero», balance l. 16714, nota de radio posterior a la v86) separada del instante. Cubre las 48 con cuatro políticas y protege el aprendizaje (trabajaronParaOtro solo en fotos de km). Pero su voz manda respecto y juntos al acta aunque son causales, no trata los narradores sobrantes, sube a v90 sin quitar la re-simulación de last-race, su LIKE 'nc-%-road' mete a los sub-23 que dice excluir y cuesta +10 a +27 % de CPU en el tick."
+    },
+    {
+      "propuesta": "datos",
+      "cobertura": 6.5,
+      "coherencia": 8.5,
+      "ejecutabilidad": 7,
+      "experiencia": 7,
+      "justificacion": "La mejor en contrato y almacenamiento (17,5 KB en disco y 27 KB gzip por la red, medidos en 31 etapas), con la visibilidad escrita en cada dato, B10 que protege el aprendizaje y B13 la procedencia; la mejor para E10 (teamId del día, variantes since). En fidelidad es la más floja: su decisión 8 mantiene dos vocabularios contra la regla v34 del dueño («Un solo concepto, con el mismo nombre, en el motor y en la Race Radio», balance l. 6740-6741), deja sin velar el presupuesto y W6, manda respecto y juntos al acta y cierra la notoriedad con fame. Su pantalla es un tablero, la menos televisiva."
+    }
+  ],
+  "injertos": [
+    {
+      "id": "I-cobertura-01",
+      "de": "ingeniero",
+      "seccion": "§8.2",
+      "que": "Crónica en vivo: entrada truncada por reloj, stageKm como dato y exactamente cinco pasadas apagadas (markConcession l. 319, dropUndoneSelections l. 361, groupGapRuns l. 362, foldQuickAttacks l. 371, groupRuns l. 375 de apps/api/src/chronicle.ts), con el test P de prefijo sobre 5 etapas congeladas en fixtures.",
+      "porque": "Sustituye el «la lista la fija el test» de producto §8.1 por una lista comprobada línea a línea y mantiene respecto y desenlace (el hilo del líder que el dueño pidió en la v27, A4), que son causales si la longitud entra como dato."
+    },
+    {
+      "id": "I-cobertura-02",
+      "de": "ingeniero",
+      "seccion": "§8.2 (tabla, fila 4)",
+      "que": "Racimos publicados al cerrar su ventana de 5 km, revelando por km (0 violaciones medidas).",
+      "porque": "Cumple en vivo B3 del dueño («puedes mencionar muchos juntos con número», balance l. 1845-1846, v13) sin romper el prefijo; es el «con retraso» de producto, con número."
+    },
+    {
+      "id": "I-cobertura-03",
+      "de": "ingeniero",
+      "seccion": "§7.4 y §14",
+      "que": "Interruptores SPOILER_MODE y BROADCAST_WATCH (off/admins/on) en env.ts y Watch sobre la radio de hoy en el paso 3, con clock: 'estimated'.",
+      "porque": "El dueño caza defectos mirando (catorce tandas desde la radio, mapa 05 §2.8): tiene que ser el primero en ver la retransmisión, tras 3 PR y no tras 10; todo se apaga sin desplegar."
+    },
+    {
+      "id": "I-cobertura-04",
+      "de": "ingeniero",
+      "seccion": "§4.2 y §6.4",
+      "que": "Una línea por grupo que tira en Watch (Pulling: Team Beta (for 11 S. CARTER)) y la política de a quién se nombra: grupos de 12 o menos enteros; en el pelotón maillots, top 10 de salida, los del jugador y los protagonistas de sucesos ya revelados.",
+      "porque": "Lleva a la pantalla por defecto el porqué y el para quién que el dueño exigió (C2, C6: «pero no dice quién es, wey», balance l. 9594, v57) y nombra sin anticipar."
+    },
+    {
+      "id": "I-cobertura-05",
+      "de": "datos",
+      "seccion": "§11 punto 2 y B10",
+      "que": "La envoltura de la sonda solo pasa las fotos de radioKmPoints a raceRadioCollector y a trabajaronParaOtro; las fotos finas del final van a otro colector.",
+      "porque": "Arregla la objeción O-cobertura-01: stageRun.ts l. 527-536 apunta pullFor en cada foto y raceRadio.ts l. 883 cuenta el turno por fotos; así el aprendizaje y el turno de 3 km no cambian y la foto sigue siendo «1 km entero» (D2)."
+    },
+    {
+      "id": "I-cobertura-06",
+      "de": "datos",
+      "seccion": "§3.4, B9 y B13",
+      "que": "Visibilidad escrita en cada dato (vis ≤ T), tabla revealS por plantilla y procedencia from en cada campo del reparto.",
+      "porque": "Hace comprobable campo a campo la regla del prefijo y la previa de N+1 de producto §7.13."
+    },
+    {
+      "id": "I-cobertura-07",
+      "de": "datos",
+      "seccion": "§8.3 y §10.7",
+      "que": "NewsPayload con el teamId del día, variantes since (tpl_rev), breakaway_win solo si el ganador iba en la fuga y text de compatibilidad durante una versión; migración en el paso 1.",
+      "porque": "DOC 1 tiene plazo (agenda l. 131-133: «antes del reset»); el titular lleva el equipo de aquel día (B1 del dueño) y no el que deja un traspaso."
+    },
+    {
+      "id": "I-cobertura-08",
+      "de": "estado",
+      "seccion": "§3.6 y §3.9",
+      "que": "Marcas de reloj en nacimiento, muerte, cambio de composición y cada bloque del último km, más los invariantes I1 e I4 con autocomprobación al grabar.",
+      "porque": "Error de posición p99 de 3-196 m medido; sin las marcas de cambio, Flandes llega a 3,5 km de error: el cursor por grupo (DOC 2) no puede saltar kilómetros."
+    },
+    {
+      "id": "I-cobertura-09",
+      "de": "estado",
+      "seccion": "§3.5",
+      "que": "Identidad por id del motor con sucesor por mayoría, histéresis de nombre de 1 km y delMaillot.",
+      "porque": "La barra no parpadea y el «grupo del maillot amarillo» que pidió el dueño (B6, RaceRadioPanel.tsx l. 50-52) sale en la barra y no solo en la radio."
+    },
+    {
+      "id": "I-cobertura-10",
+      "de": "estado",
+      "seccion": "§3.1 y §8.1",
+      "que": "Foto (un km, la definición del dueño) frente a instante (la tele), escrito; la radio del dueño construida desde el estado con el contrato RaceRadio de hoy y sin lista de seguimiento.",
+      "porque": "Conserva el microscopio sin la lista que nombra desde el km 0 a los diez primeros de la etapa (stageRun.ts l. 558-568, mapa 07 §5.2.1)."
+    },
+    {
+      "id": "I-cobertura-11",
+      "de": "television",
+      "seccion": "§5.2, §6.4 y §10.2",
+      "que": "Previa en 4 cuadros (perfil, parte, maillots en juego, favoritos), la moto que rodea la fuga (breakRoundEveryB), time_check y el cierre Closing (podio, general con flechas, maillots de mañana, abandonos, mañana) como parte de la emisión.",
+      "porque": "Producto deja la previa en la ficha y cierra con el acta resumida; la señal UCI (pliego §11.3, mapa 06 §8) empieza y acaba así, y es el norte de la agenda (l. 510-515)."
+    },
+    {
+      "id": "I-cobertura-12",
+      "de": "television",
+      "seccion": "§11.3",
+      "que": "REVEAL_RULES por plantilla para las siete fechas trucadas del mapa 01 §1.2, derivadas de la radio al guardar.",
+      "porque": "Sustituye los cambios 4, 5 y 7 de producto §11 (aT/aKm, reloj de climb_kom, pinchazos de crono), que suben a v90 para algo que se deriva."
+    },
+    {
+      "id": "I-cobertura-13",
+      "de": "estado",
+      "seccion": "§11 (y datos §3.4)",
+      "que": "La caída sacada de output.incidents al guardar, sin diasBaja, en vez del suceso crash del motor.",
+      "porque": "Quita el cambio 6 de producto y su riesgo de pasar de 100 narrables; es la doctrina del dueño: «si lo que hace el motor está bien ahí, no cambies el motor, cambia el race radio» (balance l. 16555-16558, nota de radio posterior a la v86)."
+    },
+    {
+      "id": "I-cobertura-14",
+      "de": "television",
+      "seccion": "§6.3 (y estado §6.1)",
+      "que": "El título se lleva solo en su categoría: un campeón sub-23 nunca viste de campeón en carrera élite.",
+      "porque": "UCI 1.3.068 (mapa 06 §2.2 punto 8); arregla O-cobertura-03."
+    },
+    {
+      "id": "I-cobertura-15",
+      "de": "datos",
+      "seccion": "§9 (y television §9)",
+      "que": "Traza por km de cada corredor en la crono (del orden de 15-30 KB), no solo los dos controles y la meta.",
+      "porque": "Parciales en cualquier km, sillón y alcances: lo que el dueño pidió de la crono («quién hace el mejor tiempo y quién le supera… cuando alguien dobla a otro», mapa 05 F1)."
+    },
+    {
+      "id": "I-cobertura-16",
+      "de": "television",
+      "seccion": "§8.3 (y estado §8.2)",
+      "que": "Titulares gc_lead_taken (o gc_leader) y jersey_taken, con carrera y etapa, bajo el horizonte.",
+      "porque": "MVP paso 39 («tras una etapa reina, el feed cuenta la historia»); hoy no hay titular de cambio de líder (mapa 02 §3)."
+    },
+    {
+      "id": "I-cobertura-17",
+      "de": "ingeniero",
+      "seccion": "§6.3",
+      "que": "Chip de campeón con forma, no solo color, mientras E3 no dibuje la señal.",
+      "porque": "DOC 6 (navegación l. 455-457); el campeón provisional de producto es solo una línea de texto."
+    }
+  ],
+  "objeciones": [
+    {
+      "id": "O-cobertura-01",
+      "seccion_ganadora": "§11 cambio 2 y §3.4",
+      "que": "Las fotos cada 100 m de los últimos 3 km van por la misma sonda y el mismo colector: cambian trabajaronParaOtro (y con él raceLearning) sin subir versión, y el turno del relevista, que cuenta fotos, pasa de tres km a 300 m en el final.",
+      "evidencia": "packages/db/src/stageRun.ts l. 515-536 (envoltura que apunta pullFor en cada foto) y l. 791-802 (raceLearning); packages/engine/src/sim/raceRadio.ts l. 883 (las TURNO_KM fotos anteriores)."
+    },
+    {
+      "id": "O-cobertura-02",
+      "seccion_ganadora": "§8.1",
+      "que": "La clasificación de las pasadas queda a un test sin la longitud de la etapa como dato: followTheLeader, clockTheGaps y markReunion fallarían el prefijo y caerían al acta con respecto, que es causal.",
+      "evidencia": "apps/api/src/chronicle.ts l. 545, 637 y 945 (lastKm del último suceso); l. 546-601 (front solo de líneas anteriores); medida de ingeniero §8.2 (94 a 40 violaciones al pasar la longitud)."
+    },
+    {
+      "id": "O-cobertura-03",
+      "seccion_ganadora": "§6.1 y §6.2",
+      "que": "El proveedor provisional lee nc-<cc>-u23-* y riderLabel solo mira la disciplina: un campeón sub-23 vestiría de campeón en carreras élite.",
+      "evidencia": "UCI 1.3.068 («category in which they won their title, and no other event», mapa 06 §2.2 punto 8); calendar.ts l. 3656-3659 (cuatro nacionales por país, dos sub-23)."
+    },
+    {
+      "id": "O-cobertura-04",
+      "seccion_ganadora": "§6.3 y decisión 10",
+      "que": "«Champion of Italy desde el primer día» es falso tras el reinicio: no hay títulos hasta que se corre el primer nacional. Decidir y escribir qué se enseña hasta entonces (sembrar títulos al crear el mundo, que tocaría a E12, o decirlo en pantalla).",
+      "evidencia": "palmares solo lo escribe stageRun.ts (l. 1280 y 1298); NATIONALS_ROAD_DAY = doy(6, 28) en packages/engine/src/routes/calendar.ts l. 204; Giro días 128-151 (mapa 04 §2)."
+    },
+    {
+      "id": "O-cobertura-05",
+      "seccion_ganadora": "§11 cambios 4 a 7",
+      "que": "Sube a v90 con cuatro cambios de lo que se emite, uno de ellos un suceso nuevo (crash) que añade narrables. Tres son derivables al guardar y la caída sale de incidents; sin subir, checkReplay y race-radio.mjs --db siguen sirviendo para las etapas recientes, que es con lo que el dueño caza defectos.",
+      "evidencia": "producto §11 tabla y riesgo 7; scripts/race-radio.mjs (cabecera: solo reconstruye con el motor de hoy); doctrina D7, balance l. 16555-16558 (nota de radio posterior a la v86)."
+    },
+    {
+      "id": "O-cobertura-06",
+      "seccion_ganadora": "§14 paso 6",
+      "que": "La migración de news va sexta y sin el plazo del reinicio; DOC 1 la exige antes. Pasarla al paso 1.",
+      "evidencia": "docs/agenda.md l. 131-133 («antes del reset, añadir seed y data a news»)."
+    },
+    {
+      "id": "O-cobertura-07",
+      "seccion_ganadora": "§8.3",
+      "que": "renderNews resuelve nombre y equipo de HOY: un traspaso reescribe titulares viejos; el titular tiene que decir el equipo con el que se ganó.",
+      "evidencia": "mapa 07 §3 (la identidad con el equipo actual reescribe el pasado); packages/db/src/results.ts l. 191-207."
+    },
+    {
+      "id": "O-cobertura-08",
+      "seccion_ganadora": "§7.4 y decisión 14",
+      "que": "El visitante anon no tiene horizonte y la clásica «conocida» le abre en el acta (C3): para él entrar sería leer el acta. Las otras cuatro abren en ver para todos con el acta a un toque, y DUEÑO 8 se cumple igual.",
+      "evidencia": "producto §7.4 (anon: no se oculta nada) y §7.5 fila C3; 00-encargo.md §1.3 («Entrar en una etapa debe ser sentarse a verla»)."
+    },
+    {
+      "id": "O-cobertura-09",
+      "seccion_ganadora": "§7.3 y decisiones 1 y 3",
+      "que": "Las 8 carreras de cabecera protegidas para todos no son palabra del dueño: el «por defecto» y las puertas traseras son de la agenda. Llevarlo a decisión con la cifra medida (42 etapas ocultas como máximo) y el retraso del ranking de quien no mira.",
+      "evidencia": "mapa 05 §1 (procedencia de los pilares); producto §7.3 (medido con e2prod/headline.mjs)."
+    },
+    {
+      "id": "O-cobertura-10",
+      "seccion_ganadora": "§3.3",
+      "que": "GroupName conserva no_mans_land y nth («No man's land», «2nd group» de la radio de hoy), que motor y tele definen distinto; con la decisión 9 hace falta una sola lista cerrada en pantalla, radio y relato, re-sellando GROUP_NOUNS y raceRadioNames a propósito.",
+      "evidencia": "mapa 06 §1.3 (tierra de nadie no coincide); balance l. 6740-6741, v34 (un solo concepto, un solo nombre)."
+    },
+    {
+      "id": "O-cobertura-11",
+      "seccion_ganadora": "§9",
+      "que": "Crono guardada solo en dos controles y meta: «ON COURSE» se interpola entre controles; las demás guardan cada km.",
+      "evidencia": "producto §9 (176 × 3 números); estado §9 midió 14,7-20,3 KB por la traza por km."
+    },
+    {
+      "id": "O-cobertura-12",
+      "seccion_ganadora": "§5",
+      "que": "Ritmo estimado (≈ 8 y ≈ 14 min) y no medido; estado y datos lo midieron. La síntesis mide la curva elegida en las 24 etapas del mapa 07 §7 antes de fijar constantes.",
+      "evidencia": "estado §5 (5:02 a 15:03 medido); datos §5 (mediana 12,7 min en 28 etapas); mapa 05 §10.7 («medir antes de construir»)."
+    },
+    {
+      "id": "O-cobertura-13",
+      "seccion_ganadora": "§3.1",
+      "que": "Reloj guardado solo por punto de km: sin marcas en los cambios de composición el cursor puede errar kilómetros en pavé.",
+      "evidencia": "estado §3.6 (sin las marcas de cambio, Flandes llega a 3,5 km de error máximo)."
+    }
+  ],
+  "huecos": [
+    {
+      "id": "H-cobertura-01",
+      "que": "Campeones antes del primer nacional de un mundo reiniciado: cuatro propuestas prometen el rótulo «desde el primer día» y no hay ninguno hasta doy(6, 28) (calendar.ts l. 204); nadie decide qué hacer en la primera mitad de la temporada 0."
+    },
+    {
+      "id": "H-cobertura-02",
+      "que": "La contradicción 5 del mapa 05 entera: nadie corrige docs/balance.md l. 14684-14686 (la ruta de etapa lee lo congelado sin mirar la versión, routes/races.ts l. 474-477) ni ata cualquier subida de versión a que last-race deje de re-simular sin comparar engine_version (raceReport.ts l. 30-39 y 148)."
+    },
+    {
+      "id": "H-cobertura-03",
+      "que": "[DUEÑO 7] La cobertura de la criba lejana (58 % contra 75 %, balance l. 8094-8095), aparcada «para cuando se mejore el diario»: ninguna la cita, ni dice si la barra de estado la cubre, ni la mide en el acta."
+    },
+    {
+      "id": "H-cobertura-04",
+      "que": "[DOC 7] Una prueba de lectura: ninguna usa el criterio del MVP paso 31 («un tercero entiende qué pasó en la etapa sin que nadie se lo explique») ni la regla de la v27 («La prueba de esta tanda es leer el diario… El criterio no es un porcentaje», balance l. 6236-6237) como aceptación de la pantalla."
+    },
+    {
+      "id": "H-cobertura-05",
+      "que": "Notoriedad sin fame: riders.fame vale 0 siempre (rollover.ts l. 60 y 293); nadie propone el dato real de «nombre conocido» (victorias en palmares, puntos de la temporada) para ordenar la frase de la fuga."
+    },
+    {
+      "id": "H-cobertura-06",
+      "que": "El dueño como espectador y como depurador a la vez: con el sin destripe por defecto, abrir el microscopio de una etapa de producción no vista la revela; solo ingeniero (admins) y producto (modo off) lo rozan, y nadie define una vista de administración que no marque la etapa como vista."
+    },
+    {
+      "id": "H-cobertura-07",
+      "que": "Lugares, avituallamiento y tiempo en pantalla (mapa 06 §9, filas 12, 13 y 25): solo television guarda el tiempo, nadie los lugares, y nadie dice qué se enseña en su sitio."
+    },
+    {
+      "id": "H-cobertura-08",
+      "que": "Dos jugadores que comentan la misma etapa vista hasta km distintos (mapa 05 §9): solo producto da una regla, y es para E9; la síntesis tiene que adoptarla o dejarla escrita en la frontera."
+    },
+    {
+      "id": "H-cobertura-09",
+      "que": "Móvil medido: anchos, barra de 4 filas y coste por fotograma son estimados sobre clases de Tailwind en las cinco; nadie propone medirlos en un navegador antes de fijar la maqueta."
+    }
+  ],
+  "comprobaciones": [
+    {
+      "afirmacion": "El campeón nacional vigente es derivable de race_gc con la consulta que da el dorsal 1 al campeón defensor (calendarRun.ts l. 991-1007).",
+      "propuesta": "television",
+      "resultado": "a medias",
+      "evidencia": "packages/db/src/calendarRun.ts l. 991-1007 existe (general de la edición anterior con gcFinishersWhere y gcOrderBy) pero solo para carreras con equipos: en un nacional numera por puntos y sale antes (l. 976-988); race_gc no lleva world_id ni game_day."
+    },
+    {
+      "afirmacion": "El campeón nacional vigente es derivable de palmares (kind 'gc', race_id nc-<cc>-road, índice palmares_race_idx).",
+      "propuesta": "estado, producto, datos, ingeniero",
+      "resultado": "cierta",
+      "evidencia": "packages/db/src/stageRun.ts l. 1297-1306 (recordPalmares con kind 'gc', raceId sin temporada y gameDay en la etapa final, también en un día); packages/db/src/schema.ts l. 785 (palmares_race_idx)."
+    },
+    {
+      "afirmacion": "«Se escapa el campeón de Italia» sale desde el primer día.",
+      "propuesta": "television, estado, producto, datos",
+      "resultado": "falsa",
+      "evidencia": "palmares solo lo escribe stageRun.ts (l. 1280 y 1298; grep de recordPalmares); NATIONALS_ROAD_DAY = doy(6, 28) en packages/engine/src/routes/calendar.ts l. 204: tras el reinicio el primer Giro (días 128-151) no tiene campeones."
+    },
+    {
+      "afirmacion": "Los títulos sub-23 no se ven nunca en carreras élite, con la consulta LIKE 'nc-%-road' OR LIKE 'nc-%-itt'.",
+      "propuesta": "estado",
+      "resultado": "falsa",
+      "evidencia": "'nc-%-road' casa con 'nc-it-u23-road' (calendar.ts l. 3658-3659) y el tipo Titulo de estado §6.1 no tiene categoría para separarlos."
+    },
+    {
+      "afirmacion": "La crónica en vivo solo necesita la entrada truncada, la longitud de la etapa y apagar cinco pasadas retroactivas.",
+      "propuesta": "ingeniero",
+      "resultado": "cierta",
+      "evidencia": "apps/api/src/chronicle.ts: markConcession l. 319 (caughtLaterKm l. 297), dropUndoneSelections l. 361 (mira líneas posteriores, l. 856-866), groupGapRuns l. 362, foldQuickAttacks l. 371, groupRuns l. 375; lastKm del último suceso en l. 545, 637 y 945."
+    },
+    {
+      "afirmacion": "respecto y juntos miran el futuro y solo pueden ir en el acta.",
+      "propuesta": "television, estado, datos",
+      "resultado": "falsa",
+      "evidencia": "apps/api/src/chronicle.ts l. 546-601 (followTheLeader: front solo de las líneas anteriores; desenlace depende de lastKm, sustituible por la longitud) y l. 937-1005 (markReunion acumula maxFront hasta la propia captura)."
+    },
+    {
+      "afirmacion": "El destripe está en 48 superficies (mapa 03 §4).",
+      "propuesta": "las cinco (producto la amplía)",
+      "resultado": "a medias",
+      "evidencia": "48 filas exactas, pero C6, T1, T2, T4, T5, T6 y W6 no destripan hoy (fame no se escribe, rollover.ts l. 60 y 293) y hay fugas fuera: riderSchedule.ts l. 217 (upcoming-races quita la carrera tras un abandono), routes/riders.ts l. 447 y 469 (trend y report; learning.ts l. 107-111, constants.ts l. 2095-2096), browse.ts l. 234 (free-agents por seasonPoints), routes/riders.ts l. 648 (alreadyOut)."
+    },
+    {
+      "afirmacion": "La sesión caduca a los 7 días y quien vuelve tras una semana llega sin sesión.",
+      "propuesta": "producto",
+      "resultado": "cierta",
+      "evidencia": "apps/api/node_modules/better-auth/dist/context/create-context.mjs l. 146-147 (updateAge 1 día, expiresIn 3600 * 24 * 7); apps/api/src/auth.ts no pasa opciones de sesión (l. 110 es solo la tabla)."
+    },
+    {
+      "afirmacion": "trabajaronParaOtro muestrea cada foto de la sonda: con más fotos cambiaría el aprendizaje.",
+      "propuesta": "estado, datos",
+      "resultado": "cierta",
+      "evidencia": "packages/db/src/stageRun.ts l. 515-536 (envoltura de onSnapshot sobre radio.probe.atKm) y l. 791-802 (raceLearning con trabajoParaOtro)."
+    },
+    {
+      "afirmacion": "Las fotos cada 100 m en los últimos 3 km son observación, no suben versión y la foto por km y pullFor se conservan tal cual.",
+      "propuesta": "producto",
+      "resultado": "falsa",
+      "evidencia": "Pasan por la misma envoltura (stageRun.ts l. 515-536), así que cambian raceLearning sin versión; y el turno del relevista cuenta fotos (packages/engine/src/sim/raceRadio.ts l. 883), así que en el final pasa de 3 km a 300 m."
+    },
+    {
+      "afirmacion": "riders.fame no se escribe en ninguna parte (W6 no destripa).",
+      "propuesta": "producto, ingeniero",
+      "resultado": "cierta",
+      "evidencia": "packages/db/src/rollover.ts l. 60 y 293; schema.ts l. 306 (defecto 0); calendarRun.ts l. 977. Consecuencia: la notoriedad por fame de television (fameNotablePctl) y datos (CastRider.fame) no ordena nada."
+    },
+    {
+      "afirmacion": "Subir ENGINE_VERSION tira todas las crónicas guardadas (docs/balance.md l. 14684-14686; contradicción 5 del mapa 05).",
+      "propuesta": "ninguna la resuelve; estado sube a v90 sin quitar la re-simulación de last-race",
+      "resultado": "falsa",
+      "evidencia": "apps/api/src/routes/races.ts l. 474-477 lee los sucesos congelados sin mirar la versión; packages/db/src/raceReport.ts re-simula (l. 148) sin comparar engine_version (l. 30-39): lo que se rompe con una subida es «What happened to you»."
+    },
+    {
+      "afirmacion": "La API tiene unas 50 rutas GET.",
+      "propuesta": "ingeniero",
+      "resultado": "cierta",
+      "evidencia": "52 rutas GET contadas con perl sobre apps/api/src/routes/*.ts, incluidos los registros de varias líneas (p. ej. /api/races/:raceId/stages/:day en races.ts l. 387-388 y /api/free-agents en rankings.ts l. 92-93)."
+    },
+    {
+      "afirmacion": "El título de la pestaña es fijo, la web no usa almacenamiento del navegador y los sucesos están fechados a medias (la crono ignora la sonda y breakaway_formed se fecha donde nació).",
+      "propuesta": "las cinco",
+      "resultado": "cierta",
+      "evidencia": "apps/web/index.html l. 7; grep de document.title y localStorage en apps/web/src (solo comentarios); packages/engine/src/stage/simulate.ts l. 1264 y l. 8727-8733."
+    }
+  ]
+}
