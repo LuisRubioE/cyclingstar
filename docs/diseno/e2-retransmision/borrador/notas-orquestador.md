@@ -95,3 +95,20 @@ otros lotes. La pasada de coherencia tiene que cerrarlos uno a uno (o dejarlos e
 - El reinicio vacía `stage_timelines` y reinicia `web`, porque el LRU no distingue mundos.
 - El encargo nombra `apps/api/src/tick/stageRun.ts`, que no existe: el fichero real es
   `packages/db/src/stageRun.ts`. Corregir en todas las secciones que lo citen.
+
+## De L7 (§11 y §18)
+
+- Puerta nueva `sup. X10`: el planificador y `plan/preview` delatan el abandono (`riderSchedule.ts`
+  l. 47).
+- La consulta 2 de §10.6 recorre `race_rosters` entera (23-40 ms); §18 la deja en la «forma D»
+  (`= any(ids)`, la cuarta una vez por `currentDay`). Coordinar con §10.6 y §13 (índice por corredor).
+- B14 no pasa con el perfil de mánager (p95 de 8,6 a 9,3 ms en PGlite) ni con el jugador si cuenta
+  `recordProgress`; B15 no pasa su cláusula de «15 s más». Los umbrales los fija §16.4 (L8).
+- `getBlockReport` cuenta siempre 0 días de carrera: defecto de hoy, ajeno a E2 (anotar en riesgos
+  o en `balance.md`, no arreglar aquí).
+- La ruta `/api/teams/me/race-plan` es `safe`, contra lo que dice §10.6.
+- §6.10 cuenta la etapa caducada entre las conocidas, contra la decisión 10-e.
+- Medidas: cabecera 7,1-9,2 KB gzip, tramo ≤ 4,8 KB, etapa entera 28-82 KB; parse más Zod del tramo
+  mayor ≤ 0,54 ms; tick del día 179 de 15,5 a 18,9 s y del 176 de 0,7 a 0,8 s; primera visita a una
+  etapa 334 KB comprimidos (85 del motor). La LRU queda en 16 entradas (coincide con L3).
+- 11.18 es la lista blanca entera de B1b, que L8 copia: una sola fuente en el ensamblado.
