@@ -1,0 +1,407 @@
+[
+ {
+  "id": "Rcoste-001",
+  "seccion": "§0.4",
+  "linea": 81,
+  "gravedad": "media",
+  "afirmacion": "Unas 52 sesiones de trabajo, 34 hasta el encendido por el camino crítico (estimado, §17.22).",
+  "fallo": "El 34 solo vale con implementadores en paralelo: es la columna «Camino crítico» de §17.22, que suma «si lo que puede ir en paralelo va en paralelo»; con un solo implementador el encendido (10b) cae a las 48,5 sesiones de la columna «En orden» de la misma tabla (l. 8982), y el documento no dice en ningún sitio quién hace en paralelo el 1a, el 1b, el 3b, el 3c, el 4a, el 7a y el 9a. Y la unidad no está calibrada aunque el repositorio tiene el precedente medido: E1 estimó «24 sesiones de código y 1 de contenido» (`docs/generador.md` l. 10249) y se fusionó entero en 12 PR, del #250 (`b3f3797`, 26-09-2026 01:25) al #261 (`c39f450`, 20:08), unas 19 horas de reloj según `git log`. Sin esa vara, 52 sesiones no dicen si E2 son dos días o dos meses.",
+  "correccion": "Sustituir en §0.4 (punto 10) y en §17.16 (l. 8738) por: «Unas 52 sesiones de trabajo (estimado, §17.22): 48,5 hasta el encendido con un solo implementador, 34 si un segundo lleva en paralelo el 1a, el 1b, el 4a, el 7a, el 9a y el 11. Como vara, E1 estimó 24 sesiones y se implementó en 12 PR en unas 19 horas de reloj (#250 a #261, 26-09-2026).» En §17.22 añadir la misma vara bajo la tabla, o la frase «la sesión no tiene duración medida» si no se quiere calibrar."
+ },
+ {
+  "id": "Rcoste-002",
+  "seccion": "§0.7",
+  "linea": 148,
+  "gravedad": "media",
+  "afirmacion": "el 179 (153 nacionales en línea), de +15,5 a +18,9 s sobre 103,8-109,0 s (un 15-17 %); el 176 (187 cronos nacionales), de +0,7 a +0,8 s | la cadena entera de E2 sin la escritura | medido, `l7/tick.mjs`, dos corridas",
+  "fallo": "No es la medida de un día: `l7/tick.mjs` simula 30 nacionales élite (filtra `^nc-[a-z]{2}-road$`, l. 16 del guion) y multiplica su media por 153, pero el día 179 son 111 nacionales élite y 42 sub-23 en línea (calendario del motor: 111 `nc-XX-road` y 42 `nc-XX-u23-road`, contado aquí con `coste/dias.mjs`), que no se muestrearon; el grabador del prototipo usa un reparto sintético (§5.4, l. 2397), así que falta `buildTimelineCast` con sus lecturas de la base por etapa (D-15); y faltan la escritura y los 153 puntos de guardado. La escritura sí se puede medir ya: en PostgreSQL 16.13 local, 153 filas de unos 21 KB en una transacción cuestan de 68 a 85 ms sin punto de guardado y de 122 a 153 ms con uno por fila (`coste/pgm/subxact.mjs`). Llamar «medido» a una proyección de media cadena es presentar una estimación como medida.",
+  "correccion": "En §0.7 cambiar la procedencia por «proyectado: 153 veces la media de 30 nacionales élite simulados con el prototipo y reparto sintético (`l7/tick.mjs`, dos corridas); sin los 42 sub-23, sin `buildTimelineCast` y sin escribir; la escritura de 153 filas, medida aparte en Postgres 16 local, de 0,07 a 0,15 s». En la tabla de §18.3 (l. 9107-9108) renombrar las dos últimas columnas a «El día, proyectado, hoy» y «El día, proyectado, con E2». En §18.10 (l. 9230-9231) cambiar «M» por «proyectado». En B15 (§16.4) exigir que la medida corra el día 179 entero, sub-23 incluidos, con `buildTimelineCast` real."
+ },
+ {
+  "id": "Rcoste-003",
+  "seccion": "§0.7",
+  "linea": 150,
+  "gravedad": "alta",
+  "afirmacion": "parse y Zod del tramo mayor, 0,54 ms; `instantAt`, p99 de 0,036 a 0,056 ms",
+  "fallo": "La aproximación de `l7/instante.mjs` no implementa el paso 9 de §4.5 (l. 1502-1504): el papel con histéresis exige `crudo(g, s_g)`, es decir, el instante en otra hora `s_g` por cada grupo vivo, además del de `t`. Medido aquí con la misma aproximación y el paso 9 añadido sin memo (`coste/instante-hist.mjs`, las seis etapas de §18.1 a pasos de 1 s): en dos corridas, media de 0,027 a 0,297 ms, p50 de 0,017 a 0,251, p95 de 0,082 a 0,804 y p99 de 0,135 a 1,153 ms (race-colombia e5: p95 0,804 y p99 1,153; race-france e20: p95 0,524 y p99 0,753), de tres a diecisiete veces las cifras de la tabla; sin el paso 9, en las mismas corridas, p95 de 0,023 a 0,039 y p99 de 0,040 a 0,064 ms (`coste/instante-hist2.out`). Con la CPU a un cuarto del protocolo de §18.5, el p99 de las dos reinas va de 2,9 a 4,6 ms por fotograma, y el p95 de la e20 y de Colombia (0,52 y 0,80 ms) dobla y triplica el umbral de B8 (p95 ≤ 0,25 ms). El coste de cliente que sostienen §18.1, B8 y el riesgo 14 es el de un algoritmo al que le falta su paso más caro.",
+  "correccion": "Añadir al paso 9 de §4.5: «`crudo(g, s_g)` se guarda por `(g, k_g)`: `s_g` solo cambia cuando `g` cruza un punto de foto, así que el instante en `s_g` se calcula una vez por grupo y km y no en cada fotograma». En §0.7 y en la tabla de §18.1 escribir «p99 de 0,036 a 0,056 ms sin el paso 9; con el paso 9 sin memo, p95 de 0,082 a 0,804 ms y p99 de 0,135 a 1,153 ms (`coste/instante-hist.mjs`)». En §18.1, que el reproductor calcule el instante a `BROADCAST.overlayHz` (10 por segundo) y no a 60, interpolando solo los cursores del perfil. B8 (§16.4) mide `instantAt` con el paso 9 implementado."
+ },
+ {
+  "id": "Rcoste-004",
+  "seccion": "§4.3",
+  "linea": 1270,
+  "gravedad": "media",
+  "afirmacion": "cuesta un parse de más al leer, pero el LRU de `BROADCAST.decodedCacheEntries` (16, decisión 18-d) lo paga una vez por etapa y proceso (D-10)",
+  "fallo": "El parse de Zod no lo ha medido nadie: §5.6 (l. 2544) mide la decodificación «sin el `parse` de Zod». Medido aquí con el Zod 4.4.3 del repositorio y un esquema con la forma de `StoredTimelineV1` (§4.3), 30 veces sobre las ocho líneas de `l7/stored` (`coste/zod/decode.mjs`): gunzip de 0,23 a 1,05 ms, `JSON.parse` de 0,36 a 3,38 ms y Zod de 0,43 a 14,47 ms de mediana, hasta 43,6 ms la primera llamada (race-colombia e5). En las líneas pesadas Zod es de tres a cuatro veces el `JSON.parse`, no «un parse de más»: leer en frío la e20 son unos 14 ms de Zod más los 7,1 ms de §5.6, unos 21 ms síncronos en el bucle de eventos de la web. Y «una vez por etapa y proceso» solo vale mientras lo que se mira quepa en 16 entradas, que 18-d eligió por memoria sin medir la tasa de acierto: el día 176 corre 187 etapas y el 179, 153 (§1.6, l. 403), y cada despliegue o reinicio vacía el LRU.",
+  "correccion": "Sustituir por: «cuesta al leer de 0,4 a 14,5 ms de Zod (mediana; hasta 44 ms la primera llamada) sobre 0,6 a 4,4 ms de gunzip y `JSON.parse` (medido, `coste/zod/decode.mjs`), y el LRU de `BROADCAST.decodedCacheEntries` lo ahorra mientras las etapas que se miran quepan en él». En §5.6 sumar la cifra a la de «2,7 a 7,1 ms», en §18.9 añadir como medida pendiente la tasa de acierto del LRU un día pico y tras un despliegue, y en 18-d la regla: si baja del 90 %, se sube el tope o se topa por bytes."
+ },
+ {
+  "id": "Rcoste-005",
+  "seccion": "§4.11",
+  "linea": 1923,
+  "gravedad": "media",
+  "afirmacion": "la línea por la red comprime y valida barato (`datos.md` §10.5, medido: 11-36 KB gzip la etapa entera, parse y Zod del corte entero de 0,8 a 6 ms en Node",
+  "fallo": "Son cifras de OTRO formato: `datos.md` midió su línea (pertenencia en carreras, estado por series de grupo; §5.7 lo dice en l. 2552), no los tramos de §4.11. El formato de este documento, medido por §18.1 con `l7/red.mjs`, baja de 27,9 a 81,5 KB con gzip la etapa entera sin la meta (l. 149 y l. 9047): hasta 2,3 veces el techo que se cita. La misma cifra de `datos` reaparece como medida del formato de E2 en §14.8 (l. 7174: «la línea entera | | 11-36 KB … | medido por `datos`»), y el rango estimado de l. 7177 (de 25 a 65 KB con la meta) queda por debajo de lo medido sin ella.",
+  "correccion": "En §4.11 sustituir el paréntesis por «(medido por §18.1 sobre las líneas del prototipo, `l7/red.mjs`: la etapa entera de 27,9 a 81,5 KB con gzip sin la meta, el tramo mayor de 0,23 a 4,72 KB, y parse y Zod del tramo mayor de 0,11 a 0,54 ms en Node)». En §14.8 borrar la fila «la línea entera | 11-36 KB» o marcarla «otro formato, `datos.md`», y cambiar l. 7177 a «de 28 a 82 KB sin la meta (medido, §18.1) más la meta (estimada en 10-20 KB)»."
+ },
+ {
+  "id": "Rcoste-006",
+  "seccion": "§5.5",
+  "linea": 2409,
+  "gravedad": "media",
+  "afirmacion": "dentro de la transacción del día y en un punto de guardado propio (`tx.transaction`, que drizzle 0.45 con postgres.js hace con `SAVEPOINT`): un fallo de la grabación deshace solo la grabación y nunca la transacción del día",
+  "fallo": "Un punto de guardado que escribe es una subtransacción con su propio xid, y Postgres guarda en la caché de cada backend como mucho 64 (PGPROC_MAX_CACHED_SUBXIDS); con más, la transacción queda desbordada y toda instantánea tomada mientras siga abierta tiene que consultar `pg_subtrans` para la visibilidad de las filas recientes. El día 176 abre 187 y el 179, 153. Medido en PostgreSQL 16.13 local, mirando desde otra sesión con `pg_stat_get_backend_subxact` mientras la transacción sigue abierta (`coste/pgm/subxact.mjs`): 153 y 187 puntos de guardado dan `subxact_count` 64 y `subxact_overflowed` verdadero; sin ellos, 0. La transacción del día 179 dura de 104 a 128 s (§18.3), con la web leyendo todo ese tiempo, y el tick de hoy no abre puntos de guardado por etapa (`tick.ts` l. 262: una transacción por día). No está en §19. Y el punto de guardado por etapa no hace falta: uno que solo lee no toma xid (153 de solo lectura: `subxact_count` 0, `coste/pgm/subxact2.mjs`), y las 153 líneas en un solo `INSERT` dentro de un único punto de guardado cuestan 86 ms y una subtransacción.",
+  "correccion": "Sustituir por: «El cierre, el gzip y `selfCheckI1` corren en JavaScript y sus errores se capturan sin tocar la base; `buildTimelineCast` lee dentro de un punto de guardado que solo lee (no toma xid). Las líneas del día se guardan en la memoria del tick y se escriben al final del día en un solo `INSERT … ON CONFLICT DO NOTHING` dentro de un único punto de guardado: un fallo de la escritura deshace solo las líneas y nunca la transacción del día, y la transacción no pasa de una subtransacción (con una por etapa, los días 176 y 179 la desbordan: 64 en caché y `subxact_overflowed`, medido en Postgres 16).» Añadir el riesgo a §19.1 con B15 como vigilante y cambiar el pseudocódigo de `recordStageTimeline` (l. 2412-2426) en consecuencia."
+ },
+ {
+  "id": "Rcoste-007",
+  "seccion": "§5.7",
+  "linea": 2576,
+  "gravedad": "media",
+  "afirmacion": "`ttMaxStoredBytes` 32.768 (32 KB) por crono",
+  "fallo": "El tope se fijó con las cronos de las 24 etapas del banco (`race-france` e1 y e16, hasta 26 km: 24,2 KB), pero el calendario tiene cronos más largas con 176 corredores. Medido con el prototipo de L3 (`rcod/cronos2.mjs`, `rcod/crono40.json`): `race-italy` e10 (42 km, 176 corredores), 31.436 y 31.178 bytes con gzip 9 en las semillas 0 y 1, el 96 % del tope; `race-spain` e18 (33 km), 26.987 y 27.113; `race-chrono` e1 (47,6 km, 126 corredores), 23.857. El margen es de 1,04 veces, contra el 1,4 que §5.7 da al tope en línea, y B6 no lo verá nunca porque ninguna de sus 24 etapas pasa de 26 km: el primer aviso sería una nota `timeline size:` del tick en producción. El riesgo 10 de §19.1 (l. 9279) lo da por «baja» con «24,2 KB por crono» como máximo. Es la duda 1.4 de `dudas.md`, que estimaba de 19 a 20 KB para una crono de 40 km: medida, son 31,4 KB.",
+  "correccion": "Poner `ttMaxStoredBytes` en 49.152 (48 KB, 1,5 veces los 31,4 KB de `race-italy` e10) en §15.2 y §5.7; añadir `race-italy` e10 a la medida a mano de B6 del paso 5 (`scripts/broadcast-fixtures.mjs --sizes`) y a la fila de §0.7 («de 18,8 a 31,4 KB con 176 corredores»); y en el riesgo 10 cambiar «24,2 KB por crono» por «31,4 KB por crono (`race-italy` e10, 42 km)» y la probabilidad a «media»."
+ },
+ {
+  "id": "Rcoste-008",
+  "seccion": "§5.7",
+  "linea": 2576,
+  "gravedad": "media",
+  "afirmacion": "`maxJsonBytes` 655.360 (640 KB) de JSON como máximo y `medianJsonBytes` 262.144 (256 KB) de mediana",
+  "fallo": "La mediana exigida deja un 15 % sobre la medida (222 KB, l. 7338), y B6 del JSON corre en `timeline.test.ts`, en el tramo «mundo y radio» de todo PR que toque `packages/engine` (l. 8216; l. 7317: «que es lo que tiene que pasar»), es decir, en cada PR de la línea de táctica. El JSON depende de cuántos grupos y cambios de grupo produce el motor (e18: 269,0 KB con la semilla 0 y 216,7 con la 1, un 20 % de diferencia solo por la semilla, tabla de §5.7): un paso de táctica que haga la carrera un 15 % más movida pone en rojo su propio PR por un tope de E2. Y el arreglo toca el motor: `TIMELINE` vive en `packages/engine/src/constants.ts` (l. 7297; l. 7563: «en el motor: cambiarlos paga los bancos»), contra la regla 4 de §17.1, que dice que ningún PR posterior al 4b toca `packages/engine`.",
+  "correccion": "En §15.2 y §5.7 poner `medianJsonBytes` en 327.680 (320 KB, 1,44 veces lo medido, el margen de `maxStoredBytes`). En §16.4 decidir: «en `timeline.test.ts` (tramo del motor) B6 del JSON imprime y no falla; falla en la rápida sobre las seis congeladas y en el nocturno, y el PR del motor que lo mueva lo apunta en su descripción»; o mover los topes de B6 a `packages/shared`, porque son umbrales de banco y no deciden lo que se graba. Añadir al riesgo 1 de §19.1 que la táctica paga I1, I3, B6 y B11 de E2 en cada PR suyo."
+ },
+ {
+  "id": "Rcoste-009",
+  "seccion": "§8.5",
+  "linea": 3857,
+  "gravedad": "baja",
+  "afirmacion": "Un salto de 125 km (`Final 20 km` desde el km 30 de la llana e7) son unos 12 tramos, 24 peticiones seguidas; con 150 ms de ida y vuelta, unos 3,6 s (estimado)",
+  "fallo": "El salto encadena un `POST` y un `GET` por tramo porque el servidor solo sirve hasta lo informado más `prefetchRaceS` (§10.11), así que dura 24 veces la ida y vuelta, y la cifra usa 150 ms. El propio documento da 560 ms de latencia a `Slow 4G` (§18.7, l. 9169): unos 13 s de `Skipping to 20 km to go…`. §18.9 no mide el salto: su única medida de red es «un tramo por una red móvil de verdad ≤ 0,75 s». Y D-20 dice que el salto mueve lo alcanzado al destino, lo que permitiría un solo informe al empezar y los tramos en paralelo.",
+  "correccion": "En §8.5 escribir «unos 3,6 s con 150 ms de ida y vuelta y unos 13 s con los 560 ms de `Slow 4G` (estimado)». Añadir a §18.9 la medida «un salto de 125 km con `Slow 4G`, ≤ 5 s», y a §8.5: «si no cumple, el salto informa una vez `{ reachedS: tDestino − 1 km, mode: 'seek' }` antes de pedir y pide los tramos en paralelo (D-20)»."
+ },
+ {
+  "id": "Rcoste-010",
+  "seccion": "§10.3",
+  "linea": 4594,
+  "gravedad": "media",
+  "afirmacion": "Los informes que `Highlights` a ×4, `Next action` (pantalla) y los saltos mandan antes de cada tramo (§8.5), hasta uno cada 0,75 s, no suben esa cifra: la guarda de 15 s los deja en memoria.",
+  "fallo": "La guarda ahorra la escritura, no la petición. Cada informe y cada tramo es una petición con sesión que pasa por `auth.api.getSession` (`apps/api/src/routes/context.ts` l. 51), y better-auth lee `sessions` y `users` en la base en cada una porque `apps/api/src/auth.ts` no configura `session.cookieCache` (la llamada a `betterAuth`, l. 102-223, no tiene clave `session`); y cada una hace además la consulta 1 de `computeHorizon` aunque el memo acierte (§10.7: «cuesta la consulta 1 y nada más»). Con la tabla de §18.7 (l. 9177-9178), `Highlights` ×4 y `Next action` sobre ×1 piden un `POST` y un `GET` cada 0,75 s de pared, y `Next action` sobre ×4, cada 0,19 s: de 2,7 a 10 peticiones por segundo y espectador, con dos o tres lecturas cada una. §18.4 solo cuenta escrituras («400 por minuto … el 1,1 % de un núcleo») y ningún banco mide la carga de lectura de un espectador ni la de cien.",
+  "correccion": "Añadir a la tabla de §18.4 la fila «lecturas por espectador: `getSession` (sesión y usuario) y la consulta 1 del horizonte en cada informe y cada tramo; de 2,7 a 10 peticiones por segundo en `Highlights` ×4 y `Next action` (estimado con §18.7)» y decidir en §10.3: `session.cookieCache` de better-auth con `maxAge` de 60 s en `auth.ts`, para que la sesión se lea de la cookie firmada y no de la base; y en el paso 10, medir el p95 de un tramo con cien espectadores sintéticos en `Next action`."
+ },
+ {
+  "id": "Rcoste-011",
+  "seccion": "§10.7",
+  "linea": 4696,
+  "gravedad": "alta",
+  "afirmacion": "memo.set(memoKey, { h, untilMs: Date.now() + SPOILER.horizonMemoS * 1000 })",
+  "fallo": "El memo del horizonte no se vacía nunca: `computeHorizon` solo hace `memo.get` y `memo.set` (l. 4676 y 4696), la entrada caducada se queda en el `Map`, y la clave cambia con cada día de juego (cuatro por día real) y con cada subida de `horizon_rev` (revelar, llegar a meta, seguir, cambiar el alcance). El memo de `veilDelta` (18-c, l. 9250) tiene la misma clave y la misma vida. Medido aquí con objetos de la forma de `buildHorizon` y con las filas de la tabla de §18.2 (`coste/memo/memo.mjs` y `veildelta.mjs`, `heapUsed` tras `gc`): 9 KB por entrada del horizonte de un jugador, 35 KB la de un mánager y unos 200 KB la de `veilDelta` con las 940 filas de un mánager. Con 200 jugadores activos y una decena de claves nuevas por jugador y día real, son de 18 a 470 MB al día en el proceso de `web`, que solo se vacían al reiniciar. El riesgo 13 de §19.1 (la memoria de la API) solo cuenta el LRU de líneas. Y la memoria de lo alcanzado por `(userId, raceKey)` (§18.4: «100 KB por 1.000 espectadores») tampoco se poda: crece con cada carrera vista, no con los espectadores que miran a la vez.",
+  "correccion": "En §10.7 y en 18-c: «Los dos memos son LRU con tope (`SPOILER.horizonMemoEntries`, 2.000 entradas), borran la entrada caducada al leerla y se vacían enteros al cambiar `currentDay`». En el código de l. 4674-4696, `memo.delete(memoKey)` cuando `hit.untilMs <= Date.now()` y la poda por tope tras `memo.set`, como el LRU de §5.6. La memoria de lo alcanzado se poda con la misma regla (la entrada de una carrera acabada se borra al escribirla). B12 gana el caso «mil espectadores y dos días de juego dejan el memo por debajo de su tope», y el riesgo 13 cuenta los dos memos y la memoria de lo alcanzado."
+ },
+ {
+  "id": "Rcoste-012",
+  "seccion": "§18.2",
+  "linea": 9082,
+  "gravedad": "media",
+  "afirmacion": "PGlite es Postgres compilado a WASM en un solo hilo, y el juez del motor midió con él (C12): las cifras de producción deberían ser menores (estimado; B14 se repite una vez contra Postgres en el paso 7).",
+  "fallo": "Se puede medir ya y cambia la decisión. Contra PostgreSQL 16.13 nativo (socket Unix local, `shared_buffers` de 256 MB), con el mismo mundo y las mismas consultas de `l7/horizonte2.mjs` (`coste/pgm/horizonte-pg.mjs`, 300 repeticiones): forma D, p95 de 2,16 ms el jugador, 3,88 ms el mánager de un equipo de 30 y 2,60 ms la población de 200; forma B, 5,31 y 9,04 ms. El mánager pasa en Postgres con un 22 % de margen: DD-21 y el riesgo 8 (probabilidad «media») descansan en una cifra de PGlite que no es la de producción. Lo que esta medida no tiene es la red: la web y la base son servicios distintos de Railway y la forma D hace tres idas y vueltas por cálculo. Y la medida que se promete, «B14 contra Postgres de producción» (§18.9, l. 9202), no se puede hacer con las 250.000 filas sintéticas de B14 sin escribirlas en la base del mundo. Sin el índice de la `0045`, en Postgres, de 15,6 a 20,4 ms de p50: el índice sí es imprescindible.",
+  "correccion": "Sustituir por «En PostgreSQL 16 nativo, sin red, la forma D da p95 de 2,16 ms el jugador y 3,88 ms el mánager (medido, `coste/pgm/horizonte-pg.mjs`); falta la ida y vuelta de Railway, tres por cálculo». Poner la misma cifra en §0.7 (l. 151), en la tabla de bancos de §16.4 (l. 8261), en §18.10 (l. 9226), en el riesgo 8 (probabilidad «baja: 3,88 ms en Postgres sin red») y en DD-21. En §18.9 cambiar «B14 contra Postgres de producción» por «B14 desde el servicio `web` de Railway contra una copia de la base de producción rellenada hasta 250.000 filas de `race_rosters`, una vez»."
+ },
+ {
+  "id": "Rcoste-013",
+  "seccion": "§16.4",
+  "linea": 8293,
+  "gravedad": "baja",
+  "afirmacion": "lo primero que se optimiza es la cuarta consulta",
+  "fallo": "En la forma D (18-a), que es la que mide B14, la cuarta consulta ya no está en la petición: se hace una vez por día de juego para todas las carreras (`lastRunStages`). Quedan la 1, la 2 y la 3, y medido consulta a consulta en PostgreSQL 16 sobre el mundo de `l7` (`coste/pgm/desglose.mjs`, 300 veces), la que pesa en el mánager es la 2, `race_rosters` por los 31 corredores del equipo: p50 de 1,39 ms y p95 de 2,50, con 252 carreras; la 1, p95 de 0,98; la 3, de 1,11. En el jugador las tres quedan por debajo de 0,9 ms. La misma frase está en DD-21 (l. 9555).",
+  "correccion": "En 16-k y en DD-21 cambiar por «lo primero que se optimiza es la consulta 2 (las carreras de la plantilla en `race_rosters`: p95 de 2,50 ms en el mánager, Postgres 16): la lista de carreras de la plantilla se memoriza por `(teamId, currentDay)`, porque solo cambia con el mercado y con las convocatorias del tick»."
+ },
+ {
+  "id": "Rcoste-014",
+  "seccion": "§14.9",
+  "linea": 7192,
+  "gravedad": "media",
+  "afirmacion": "su contenido no cambia nunca y solo se sirve dentro de lo permitido, así que volver a la página no pide otra vez lo ya servido. `Vary: Cookie` hace que otra cuenta en el mismo navegador no lo reutilice.",
+  "fallo": "Con `Vary: Cookie`, el navegador solo reutiliza el tramo guardado si la cabecera `Cookie` de la petición nueva es idéntica a la de la que lo guardó, y el propio tramo la cambia: la tabla de §14.9 (l. 7187) le pone `Set-Cookie` con `cs_viewer` («ídem»: «firmada de nuevo si hay sesión»), 10-g (l. 5009) la re-firma «en cada respuesta con horizonte», y la firma lleva la hora de emisión en segundos (`signViewerCookie`, l. 4847: `v1.<userId>.<nowS>.<firma>`). Cada respuesta cambia la cookie, así que ningún tramo guardado con `private, max-age=3600` casa con la petición siguiente: al volver a la página se baja todo otra vez, y lo único que evita la segunda descarga es la caché de React Query dentro de la misma pestaña. El ahorro que la sección atribuye a `max-age` no existe.",
+  "correccion": "En §10.8 y 10-g: «`cs_viewer` se re-firma como mucho una vez al día: solo si la que llega tiene más de 24 h (`nowS − issuedAtS > 86.400`) o no llega»; así la cabecera `Cookie` es la misma durante el día y `Vary: Cookie` separa cuentas sin anular la caché. En §14.9 escribir que la reutilización del tramo depende de eso, y añadir a `routes/broadcast.test.ts` el caso «dos tramos seguidos de la misma sesión, con la cookie de hace una hora, no llevan `Set-Cookie`»."
+ },
+ {
+  "id": "Rcoste-015",
+  "seccion": "§11.5",
+  "linea": 5240,
+  "gravedad": "baja",
+  "afirmacion": "cuesta 70 ms en PGlite (p50; `l7/horizonte.mjs`, §18.2) y se hace una vez al día",
+  "fallo": "«Una vez al día» por proceso solo si alguien la deduplica: tras cada tick (cuatro por día real) llegan a la vez las primeras peticiones con R del día nuevo, y el documento no dice que las concurrentes esperen a la misma cuenta; sin una promesa compartida, cada una paga los 70 ms (104 el máximo, §18.2) más `lastRunStages` (de 2,8 a 16,4 ms de p50 y p95 en PostgreSQL 16, `coste/pgm/horizonte-pg.mjs`), y además su `computeHorizon` y su `veilDelta` sin memo, porque la clave de los dos lleva el día. Lo mismo vale para `lastRunStages` en §10.7 (forma D).",
+  "correccion": "En §11.5 y §10.7 añadir: «La cuenta del día (el total del ranking y `lastRunStages`) se guarda como una promesa por `(worldId, currentDay)`: la primera petición la lanza y las que llegan mientras tanto esperan la misma; si falla, se borra y la siguiente la repite». Y un caso en B12: veinte peticiones a la vez el día nuevo hacen una sola cuenta."
+ },
+ {
+  "id": "Rcoste-016",
+  "seccion": "§13.1",
+  "linea": 6321,
+  "gravedad": "baja",
+  "afirmacion": "sobre un mundo vivo (una fila escrita con la `0042` en `news`, `stage_team_results`, `transactions`, `rider_points`, `palmares` y `users`), las cuatro se aplican en 44 ms en PGlite",
+  "fallo": "Un mundo con una fila por tabla no dice cuánto tardan los cuatro `CREATE INDEX` (`news_race_stage_idx`, `race_rosters_rider_idx` y los dos de la `0046`), que recorren tablas enteras con el bloqueo de escritura puesto, ni cuánto esperan los `ALTER TABLE` a un tick abierto (hallazgo sobre la regla 9 de §17.1). Medido en PostgreSQL 16.13 con tamaños de un año: la `0046` sola sobre 1.000.000 de filas de `transactions`, 258 ms (`coste/pgm/cola.mjs`); `race_rosters_rider_idx` sobre 249.600 filas, 139 ms en PGlite (el propio §13.4, l. 6592). Son cifras pequeñas, pero son las que hay que escribir.",
+  "correccion": "Sustituir por «sobre un mundo con una fila por tabla, las cuatro se aplican en 44 ms en PGlite; con tamaños de un año, la `0046` tarda 258 ms en PostgreSQL 16 con 1.000.000 de transacciones (`coste/pgm/cola.mjs`) y `race_rosters_rider_idx`, 139 ms con 249.600 filas (§13.4); lo que puede costar más es la espera a un tick abierto (§17.1, regla 9)»."
+ },
+ {
+  "id": "Rcoste-017",
+  "seccion": "§14.4",
+  "linea": 6969,
+  "gravedad": "media",
+  "afirmacion": "decodificar, cortar y comprimir una petición cuesta de 1,3 a 4,7 ms (medido por `datos`, `datos.md` §10.5; §18.2)",
+  "fallo": "Es la cifra del formato de `datos`, no del de §4.3, y la tabla de §18.10 (l. 9224) la repite como medida («1,3-4,7 sin ella (`datos`)»). Con el formato de este documento, leer una línea que no está en el LRU cuesta de 2,7 a 7,1 ms de gunzip, parse y decodificación (§5.6) más de 0,4 a 14,5 ms de Zod (medido aquí, `coste/zod/decode.mjs`), es decir, de 3,1 a 21,6 ms antes de cortar y comprimir, y hasta unos 50 ms la primera llamada del proceso. Una petición de tramo que falla en el LRU cuesta de dos a cinco veces lo escrito.",
+  "correccion": "En §14.4 y en §18.10 sustituir por «servir un tramo con la línea en el LRU, de 0,23 a 1,00 ms (medido, `l7/red.mjs`); sin ella, de 3 a 22 ms más el corte (medido por partes: §5.6 y `coste/zod/decode.mjs`)», y cambiar la etiqueta M de la fila de §18.10 por «M, por partes»."
+ },
+ {
+  "id": "Rcoste-018",
+  "seccion": "§14.11",
+  "linea": 7255,
+  "gravedad": "baja",
+  "afirmacion": "mira el id de usuario de `authClient.useSession()` y llama a `queryClient.clear()` cuando cambia, en cualquier sentido (regla 4)",
+  "fallo": "Al cargar la web, `useSession()` empieza sin datos y con `isPending` (así lo usa `apps/web/src/components/ProtectedRoute.tsx` l. 7-9) y luego da el id: para un vigilante que actúa «cuando cambia, en cualquier sentido», eso es un cambio, y `clear()` tira lo que ya se había pedido. Y mientras `['horizon']` no ha respondido, `useHorizonRev()` devuelve `'anon'` (la misma línea), así que toda consulta con horizonte sale primero con la clave `'anon'` y se repite al llegar el `rev` bueno. En cada visita con sesión, cada consulta de la página se pide dos o tres veces, y cada una paga en el servidor su `getSession`, su `computeHorizon` y, en las rutas con R o M, su `veilDelta`.",
+  "correccion": "En §10.9 (regla 4) y §14.11: «el vigilante ignora el paso de `isPending` al primer id resuelto y solo llama a `clear()` cuando un id ya resuelto cambia a otro o a null; `useHorizonRev()` devuelve `undefined` mientras `['horizon']` está pendiente, y las consultas de `HORIZON_KEYS` llevan `enabled: rev !== undefined`». `queryKeys.test.ts` gana el caso «la primera carga con sesión pide cada consulta una sola vez»."
+ },
+ {
+  "id": "Rcoste-019",
+  "seccion": "§15.6",
+  "linea": 7560,
+  "gravedad": "media",
+  "afirmacion": "| `progressEveryRealS`, `progressMinDeltaS` | S/E (D-55, 10-l) | B14, que mide `recordProgress` aparte (16-k) | 7 | se sube `progressMinDeltaS` |",
+  "fallo": "`progressMinDeltaS` es una constante de `packages/shared` (`BROADCAST`, l. 7426), así que «se sube» es un PR y un despliegue, contra la regla 9 de §17.1 («Todo se apaga sin desplegar», l. 8317). Y ningún interruptor frena la escritura del progreso: `SPOILER_MODE=off` deja funcionando las escrituras de `/api/me/*` a propósito (§10.13: «las escrituras de `/api/me/*` siguen funcionando»), `TIMELINE_RECORD` es del tick, y el único freno sin desplegar es `BROADCAST_WATCH=off`, que apaga la retransmisión entera. Si las cuatro escrituras por minuto y espectador de §18.4 pesan en producción, la elección es apagar el producto o desplegar.",
+  "correccion": "Añadir a §14.6 una variable `PROGRESS_MIN_DELTA_S` que lee el servicio `web` al arrancar y que, si está, sustituye a `BROADCAST.progressMinDeltaS` (como `TICK_INTERVAL_MINUTES` en `apps/api/src/env.ts` l. 32); en §15.6, «Si no pasa: se sube `PROGRESS_MIN_DELTA_S` en Railway, sin desplegar código»; y si no se añade la variable, nombrar la excepción en la regla 9 de §17.1."
+ },
+ {
+  "id": "Rcoste-020",
+  "seccion": "§16.4",
+  "linea": 7991,
+  "gravedad": "alta",
+  "afirmacion": "Medido por L7 en PGlite (`l7/horizonte.mjs` y `l7/horizonte2.mjs`, §18.2 y §18.4): `computeHorizon` en la forma D, p95 de 3,1 a 3,7 ms el jugador y de 8,6 a 9,3 ms el mánager",
+  "fallo": "Las cifras son de `l7/horizonte2.mjs`, que llama a PGlite dentro del mismo proceso (`db.query`), pero `horizonLatency.test.ts` vivirá en `packages/db` y usará `startTestDb()` (`packages/db/src/testDb.ts` l. 55-66): PGlite detrás de `PGLiteSocketServer` y el cliente de producción, postgres.js, por TCP. Medido aquí con ese mismo camino sobre el mismo mundo (`coste/pgm/horizonte-socket.mjs`, dos corridas de 300): el jugador en la forma D da p95 de 4,97 y 2,55 ms, y `recordProgress` (`coste/pgm/progreso-socket.mjs`), de 4,57 y 2,63 ms. La puerta de 5 ms queda a 0,03 ms en una corrida, y el p95 se duplica de una corrida a otra en la misma máquina; en el runner de GitHub, que según `vitest.config.ts` varía un 30 % de una noche a otra, y en el nocturno con cobertura (×1,75 a ×2,02), B14 será una puerta intermitente de la suite que corre en TODO PR, los de la táctica incluidos.",
+  "correccion": "En §16.4 (B14) y 16-k: «B14 mide contra el Postgres de servicio que el job `test` de `.github/workflows/ci.yml` ya levanta (`postgres:17-alpine`, l. 33-48): el job gana `TEST_DATABASE_URL` hacia una base propia de B14, `horizonLatency.test.ts` la prepara con `resetRealTestDb` y la lee con `realTestDatabaseUrl()` (`packages/db/src/testDb.ts` l. 102-124), y sin ella se salta; en PGlite, B14 imprime los p95 del jugador, del mánager y de `recordProgress` y falla solo por encima de 15 ms (tres veces el presupuesto), que caza la pérdida del índice (de 15 a 40 ms sin él) y no el ruido del runner». Y cambiar las cifras de la fila por las del camino real: «jugador, p95 de 2,55 a 4,97 ms por el socket de `testDb.ts`; en Postgres 16 nativo, 2,16 ms»."
+ },
+ {
+  "id": "Rcoste-021",
+  "seccion": "§16.4",
+  "linea": 8295,
+  "gravedad": "media",
+  "afirmacion": "El PR 6a mide el `instantAt` de verdad y, si su p95 pasa de 0,05 ms, el umbral es cinco veces lo medido.",
+  "fallo": "Un umbral que se fija en el mismo PR como cinco veces lo que ese PR mide no es una puerta: cualquier coste pasa, incluido el del paso 9 sin memo, que con la aproximación de L7 da p95 de 0,524 ms en la e20 y de 0,804 ms en Colombia e5 (`coste/instante-hist.mjs`, hallazgo de §0.7). Con esta regla el umbral quedaría entre 2,6 y 4,0 ms de p95 por fotograma en Node, de 10 a 16 ms con la CPU del móvil a un cuarto: casi todo el presupuesto de un fotograma de 60 Hz (16,7 ms) para una sola función. B8 dejaría pasar justo la regresión que existe para cazar.",
+  "correccion": "Sustituir por: «El PR 6a mide el `instantAt` de verdad, con el paso 9 memorizado por `(g, k_g)`. El umbral es fijo, p95 ≤ 0,25 ms en Node: si la implementación no cabe, se optimiza antes de fusionar o se decide con la cifra en el PR, y el umbral nunca se deriva de la medida del mismo PR»."
+ },
+ {
+  "id": "Rcoste-022",
+  "seccion": "§12.6",
+  "linea": 5982,
+  "gravedad": "baja",
+  "afirmacion": "así que el coste es una llamada a `instantAt` por línea anotada: de 9 a 36 por etapa en la muestra de `l8/rol.mjs` más los partes de ventaja del acta, con el presupuesto de `instantAt` que fija B8 (estimado, sin medir)",
+  "fallo": "Cada anotación es un `instantAt` entero, y el papel que se anota es el del paso 9 de §4.5 (la histéresis), que pide además el instante en `s_g` de cada grupo vivo: con el paso 9 sin memo, de 0,135 a 1,153 ms de p99 por instante en Node (`coste/instante-hist.mjs`). De 9 a 36 anotaciones más los partes de ventaja, a entre 0,03 y 1,15 ms cada una, son hasta unos 40 ms por línea, que el servidor paga la primera vez que un proceso sirve la línea, encima de la lectura en frío (de 3 a 22 ms, hallazgo de §14.4), y la web al montar el acta. «Con el presupuesto que fija B8» no acota nada mientras B8 derive su umbral de su propia medida (16-m).",
+  "correccion": "Sustituir «(estimado, sin medir)» por «(estimado: hasta unos 40 ms por línea con el paso 9 sin memo, a partir de lo medido por instante en `coste/instante-hist.mjs`; del orden de 1 ms con el paso 9 memorizado por `(g, k_g)`)», y que B8 mida también `withGroupRoles` sobre las seis congeladas, con umbral fijo."
+ },
+ {
+  "id": "Rcoste-023",
+  "seccion": "§14.4",
+  "linea": 7283,
+  "gravedad": "baja",
+  "afirmacion": "Las etapas del adaptador se guardan en un LRU propio con el mismo tope.",
+  "fallo": "El coste de construir la línea degradada no está en ninguna tabla de §18: el adaptador lee `stage_snapshots.radio` (de 126 a 559 KB de JSON y de 10,7 a 146,4 KB en `jsonb`, juez del motor, citado en §5.7 l. 2556), la valida (la radio guardada se valida con `storedRaceRadioSchema`, `apps/api/src/chronicle.ts` l. 1257), lee los maillots y la general de salida (`leadersThroughStage`, §11, l. 5569) y construye la `StageTimeline`. Sirve todas las etapas corridas antes del paso 5 y las de `TIMELINE_RECORD=off`: todo lo que el dueño ve en `Watch` desde el 3c hasta el 5 y todo el mundo de pruebas hasta el reinicio. Y este segundo LRU de 16 no está en la cuenta de memoria de 18-d («de 8 a 30 MB») ni en el riesgo 13, que cuentan uno solo.",
+  "correccion": "Añadir a §18.2 la medida del adaptador en frío (leer, validar y construir la línea de las seis congeladas desde su `radio.json.gz`, con `leadersThroughStage` sobre PGlite) y a §18.9 como pendiente del paso 3a; y en 18-d y en el riesgo 13: «dos LRU de 16 entradas, el de las líneas y el del adaptador: hasta el doble de memoria»."
+ },
+ {
+  "id": "Rcoste-024",
+  "seccion": "§16.4",
+  "linea": 8546,
+  "gravedad": "baja",
+  "afirmacion": "la meta ≤ `maxFinishGzipBytes` (40 KB; estimado 10-20), sobre la etapa corrida de `routes/broadcast.test.ts`, la única con resultado, general y noticias.",
+  "fallo": "El tope de 40 KB se apoya en una estimación (el acta sin radio, de 77 a 100 KB, más resultado, cierre y noticias; §14.8, l. 7175) y se comprueba en una sola etapa, la que corra el mundo de prueba de `routes/broadcast.test.ts`, cuyo recorrido y campo el documento no fija. El paquete de meta crece con los corredores (`result`, `gcAfter`, `arrivals`) y con la longitud del acta: la etapa que decide el tope es una reina de 176 corredores al final de una gran vuelta, y ni la rápida ni la medida a mano de B6 del paso 5 la miden.",
+  "correccion": "En §16.4 (B6) y en el PR 6a: «el paquete de meta se mide además a mano en el paso 6 sobre las 24 etapas por dos semillas (`scripts/broadcast-fixtures.mjs --sizes`, con el acta sin radio de la etapa corrida) y el máximo se escribe en §18.10; la etapa de `routes/broadcast.test.ts` es la prueba de humo»."
+ },
+ {
+  "id": "Rcoste-025",
+  "seccion": "§16.4",
+  "linea": 7983,
+  "gravedad": "baja",
+  "afirmacion": "el `bytea` con gzip 9, en la rápida sobre los seis `<etapa>.timeline.gz` (`broadcastFixtures.test.ts`) y a mano sobre las 24 × 2 en el paso 5 con `scripts/broadcast-fixtures.mjs --sizes`",
+  "fallo": "Los seis `.timeline.gz` están congelados (§16.2: se regeneran en un PR propio, nunca con un cambio del motor), así que la rápida mide siempre los mismos bytes, y la medida sobre lo que el motor graba hoy, las 24 × 2, se hace una vez a mano en el paso 5. Después ningún banco mira el `bytea` de lo que graba el motor: la táctica puede hacer crecer la línea sin que nada se ponga en rojo hasta la nota `timeline size:` del tick en producción, que solo sale por encima de `maxStoredBytes`. El motor no puede comprimir en sus tests (16-n), pero el nocturno ya corre las 24 × 2 con `startStageTimeline` en `apps/api` para B16 largo (§17.14), donde comprimir cuesta una línea.",
+  "correccion": "En §16.4 (B6) y 16-n: «B16 largo del nocturno (`CS_BANCOS=1`, `apps/api/src/broadcastFixtures.test.ts`) comprueba además, en cada una de las 24 × 2, el `bytea` con gzip 9 contra `maxStoredBytes` y `ttMaxStoredBytes`; la medida a mano del paso 5 queda como línea base»."
+ },
+ {
+  "id": "Rcoste-026",
+  "seccion": "§16.4",
+  "linea": 8122,
+  "gravedad": "baja",
+  "afirmacion": "La rápida paga tres etapas por tres envolturas, del orden de medio minuto (estimado: de 0,5 a 3 s por etapa simulada con el campo del escenario).",
+  "fallo": "El campo de `realRaceScenario` es de 176 corredores en 22 equipos (`uniformField`, `packages/engine/src/sim/scenarios.ts` l. 491-501) y las tres etapas de QUICK son dos reinas del Tour y Flandes. Medido aquí con el motor v89 del repositorio y el código de B10 de §16.4 (`coste/b10/b10.mjs`): de 3,27 a 4,82 s por simulación con la envoltura de hoy y de 3,75 a 5,54 s con la ingenua, que además rompe en las tres. La parte rápida son unas 33 s (seis simulaciones de `same` y dos de «no es vacío», que para en la primera): el medio minuto sale bien por casualidad, pero el coste por etapa está por encima del máximo estimado, y es el que multiplica la versión larga del nocturno.",
+  "correccion": "Sustituir el paréntesis por «(medido: de 3,3 a 4,8 s por etapa simulada con los 176 del escenario, y de 3,8 a 5,5 con la envoltura ingenua, `coste/b10/b10.mjs`; unas 33 s en total)»."
+ },
+ {
+  "id": "Rcoste-027",
+  "seccion": "§16.7",
+  "linea": 8217,
+  "gravedad": "baja",
+  "afirmacion": "| nocturno | cada día a las 04:15 UTC | toda la suite con cobertura | todo lo anterior, más B10 y B16 largos (`CS_BANCOS=1`) |",
+  "fallo": "La tabla da coste a todo menos a lo que E2 añade al nocturno. B10 largo son 22 etapas en línea por dos semillas y dos envolturas: 88 simulaciones de 3,3 a 4,8 s (medido en `coste/b10/b10.mjs`), de 5 a 7 min; B16 largo, 24 por dos con `startStageTimeline`, 48 más (44 en línea), de 2,5 a 3,5 min. Con la cobertura, que `.github/workflows/cobertura.yml` mide en ×1,76 y `vitest.config.ts` en ×1,75 a ×2,02, son de 13 a 21 min de CPU más cada noche, y B10 largo va en un solo fichero, que vitest corre en serie: pasa a ser de los ficheros más largos de un job que hoy tarda de 17 a 22 min (`vitest.config.ts`).",
+  "correccion": "Añadir a la fila del nocturno: «B10 largo, de 5 a 7 min, y B16 largo, de 2,5 a 3,5 min, sin cobertura (estimado con lo medido por etapa en `coste/b10/b10.mjs`); con ella, de 13 a 21 min de CPU», y partir B10 largo en dos ficheros (las once primeras etapas y el resto) para que corran en paralelo."
+ },
+ {
+  "id": "Rcoste-028",
+  "seccion": "§16.7",
+  "linea": 8216,
+  "gravedad": "baja",
+  "afirmacion": "| bancos, ocho tramos | solo si el PR toca `packages/engine/` | 4.365 s sumados (`ci.yml` l. 103), en paralelo | «mundo y radio»: I1, I2, I3, I5, B2, B6 (el JSON), B11 y B21 en `timeline.test.ts` |",
+  "fallo": "Los 4.365 s son los de hoy: `timeline.test.ts` añade al tramo «mundo y radio» I1 en las 24 etapas por dos semillas con el grabador (48 simulaciones) y B11 en doce etapas por dos semillas con y sin sonda (24 simulaciones en línea más las cronos, baratas): unas 68 simulaciones en línea, de 3,7 a 5,4 min con los 3,3 a 4,8 s por etapa medidos en `coste/b10/b10.mjs`. El tramo tardaba 5,5 min en CI (`.github/workflows/ci.yml` l. 130) y pasa a unos 9 a 11: sigue por debajo de «invariantes» (33,1 min) y no alarga el reloj, pero lo pagan todos los PR del motor, que son los de la táctica, y los pone detrás de una puerta nueva de E2 (I1, B6 y B11) sin que el riesgo 1 de §19.1 lo cuente como coste para ellos.",
+  "correccion": "Añadir a la fila: «`timeline.test.ts` suma de 3,7 a 5,4 min al tramo «mundo y radio» (5,5 min hoy, `ci.yml` l. 130; estimado con lo medido por etapa)», y al riesgo 1 de §19.1: «cada PR de la táctica paga y tiene que pasar I1, I3, B6 del JSON y B11 de E2»."
+ },
+ {
+  "id": "Rcoste-029",
+  "seccion": "§17.1",
+  "linea": 8311,
+  "gravedad": "media",
+  "afirmacion": "sigue en 89 (`packages/engine/src/constants.ts` l. 838) y `packages/engine/src/index.test.ts` l. 465 (`expect(ENGINE_VERSION).toBe(89)`) no se toca en ningún PR de E2",
+  "fallo": "El documento acepta en l. 27 la regla de arranque (`docs/encargos.md` l. 15-26): no se abre código hasta que la línea de la táctica y el entrenamiento esté en producción, y entonces se parte de la última versión de producción. Esa línea sube `ENGINE_VERSION` en casi todos sus pasos (riesgo 4, l. 9273; «de la v86 del 22-09 a la v89 del 26-09», l. 1272), así que E2 arrancará con otra versión: la regla 3 tal como está escrita obliga a un `toBe(89)` que ya no será verdad, y todas las cifras del motor (B11 «20 de 20» y «24 de 24», los tamaños de §5.7, el tick de §18.3, los picos) son de la v89 y no de la versión sobre la que se implemente.",
+  "correccion": "Sustituir por «`ENGINE_VERSION` no se mueve en ningún PR de E2: se queda en la versión con la que arranque E2 (hoy 89, `packages/engine/src/constants.ts` l. 838), y `index.test.ts` l. 465 no se toca». Añadir al PR 0: «re-medir sobre la versión de arranque B11, los tamaños de §5.7 y el tick de §18.3 con `l3/grabador.mjs` y `l7/tick.mjs`, y escribir las cifras nuevas en §18.9 antes del 4a»."
+ },
+ {
+  "id": "Rcoste-030",
+  "seccion": "§17.1",
+  "linea": 8317,
+  "gravedad": "alta",
+  "afirmacion": "las migraciones solo añaden y son inertes si nadie las lee",
+  "fallo": "Aplicarlas no es inerte. Corren al arrancar la web (`apps/api/src/index.ts`: `runMigrations` antes de `listen`) y antes de cada tick del cron (`railway.tick.json`: `node scripts/migrate.mjs && …`); drizzle las aplica todas en UNA transacción (`drizzle-orm` 0.45.2, `pg-core/dialect.js` l. 60-71); y su candado es de otra clase que el del tick (`packages/db/src/migrate.ts` l. 24, `tick.ts` l. 214), así que una migración puede empezar con un día del tick abierto. Su `ALTER TABLE` pide entonces un bloqueo exclusivo, espera al tick y, mientras espera, pone en cola detrás a toda lectura de esa tabla. Medido en PostgreSQL 16.13 con una transacción «del tick» abierta 8 s (`coste/pgm/cola.mjs` y `cola45.mjs`): una lectura del feed durante la `0043` espera 7,4 s; una de `transactions` durante la `0046`, 7,9 s; y durante la `0045`, que hace `ALTER TABLE users` y después `CREATE INDEX` sobre `race_rosters` (que el tick escribe: `stageRun.ts` l. 1065, `calendarRun.ts`), una lectura de `users` espera 7,5 s. Better-auth lee `users` en cada petición con sesión (`auth.ts` l. 109, sin `cookieCache`): la web entera se para lo que quede del día del tick, que el 179 son de 104 a 128 s (§18.3). §13.1 midió las cuatro en 44 ms sobre una fila por tabla, y §19.1 no tiene el riesgo.",
+  "correccion": "En §17.1 (regla 9) y §13.1 (regla 7): «Aplicar una migración no es inerte: `runMigrations` toma antes el candado del tick (`pg_advisory_lock(LOCK_CLASS.tick, 1)`, el de `tick.ts` l. 214) y fija `SET lock_timeout = '10s'`, de modo que nunca coincide con un día del tick y, si una tabla está ocupada, falla y el arranque reintenta en vez de parar la web». Añadir el riesgo a §19.1, y a `migrations.test.ts` el caso «con el candado del tick tomado, `runMigrations` espera y no toca ninguna tabla»."
+ },
+ {
+  "id": "Rcoste-031",
+  "seccion": "§17.7",
+  "linea": 8477,
+  "gravedad": "baja",
+  "afirmacion": "**PR 4a** · M · motor · no depende de nada: puede ir en paralelo con los pasos 1 a 3.",
+  "fallo": "El 4a toca los ficheros que la línea de la táctica cambia en casi todos sus pasos: `stage/simulate.ts` (`onEvent` en la emisión, `onBanner` en `disputeBanner` y `disputeClimb`, la sonda a `simulateTimeTrial`), `stage/events.ts`, `stage/timetrial.ts`, `stage/types.ts`, `sim/coherence.ts` y `sim/raceRadio.ts` (l. 8487-8489), y el riesgo 1 de §19.1 da por «alta» que la táctica mueva el motor a la vez. Cada vez que la táctica fusione antes, el 4a y el 4b se rebasan, pasan otra vez los ocho tramos (unos 73 min de runner, regla 4) y B11 se vuelve a sellar; el coste de §17.22 (2 y 4 sesiones) no cuenta ningún rebase, y el plan no dice cómo se coordina con la otra línea más allá de la regla de arranque.",
+  "correccion": "Añadir a §17.7: «El 4a y el 4b se fusionan en una ventana acordada con la línea del motor (sin PR de la táctica abierto sobre `stage/simulate.ts`, `stage/timetrial.ts` y `sim/coherence.ts`), y cada rebase sobre un cambio del motor repite los ocho tramos y B11»; y en §17.22 sumar una sesión por rebase previsto."
+ },
+ {
+  "id": "Rcoste-032",
+  "seccion": "§1.10",
+  "linea": 474,
+  "gravedad": "media",
+  "afirmacion": "| 17d, el informe deja de re-simular | no: `raceReport.ts` l. 148 re-simula sin mirar la versión (C16) | es de la táctica; E2 no lo hace y, al no subir la versión, no lo rompe (D-09) |",
+  "fallo": "E2 sí toca lo que el 17d reescribe. El 8a cambia la firma de `getRiderLastRaceReport` (`packages/db/src/raceReport.ts` l. 78) para que reciba el `Horizon` y elija la última etapa CONOCIDA (§12.9, l. 6237; tabla de §10.6, l. 4649, mecanismos P y G) y registra `/api/riders/me/last-race` con política `horizon` (l. 5152). El 17d de la táctica reescribe esa misma función: deja de re-simular y cruza orden con hecho (mapa 02 §8, `docs/tactica.md` l. 6979). Si el 17d llega después del 8b, su PR tiene que conservar el `Horizon`, declarar la política de su ruta (o el registro no deja arrancar, §14.5) y pasar B1a, B1b y B1c, que barren esa ruta; si llega antes, el 8a se rebasa sobre él. Ninguno de los dos costes está en §17 ni en el riesgo 1 de §19.1.",
+  "correccion": "Cambiar la última columna por «es de la táctica; E2 no sube la versión, pero el 8a cambia la firma de `getRiderLastRaceReport` y pone su ruta bajo el velo: si el 17d llega después, conserva el `Horizon` y pasa B1a, B1b y B1c; si llega antes, el 8a se rebasa sobre él». Añadir el cruce al riesgo 1 de §19.1 y a las dependencias de §17.16."
+ },
+ {
+  "id": "Rcoste-033",
+  "seccion": "§16.4",
+  "linea": 7991,
+  "gravedad": "baja",
+  "afirmacion": "`packages/db/src/horizonLatency.test.ts` llena `race_rosters` con 250.000 filas por `generate_series` (3.900 corredores, como L3)",
+  "fallo": "Montar ese mundo no cabe en el tiempo por defecto de un `beforeAll`: `vitest.config.ts` solo sube `testTimeout` (30.000 ms) y deja `hookTimeout` en los 10 s de vitest, y en PGlite aplicar las 47 migraciones costó de 2,4 a 6,8 s y llenar 249.274 filas de `race_rosters` con su `analyze`, unos 8 s (`l7/horizonte2.out` y `coste/pgm/horizonte-socket.out`). El repositorio ya lo resuelve con tiempos explícitos (`tickRun.test.ts` l. 22: `beforeAll(…, 180_000)`), pero §16.4 no lo dice, y un B14 que muere en el montaje en un runner lento es otra forma de puerta intermitente.",
+  "correccion": "Añadir a B14 en §16.4 y en el PR 7a: «el mundo se monta en un `beforeAll` con tiempo explícito de 120.000 ms, como `tickRun.test.ts` l. 22, y la medida empieza después de un calentamiento de 20 llamadas»."
+ },
+ {
+  "id": "Rcoste-034",
+  "seccion": "§17.14",
+  "linea": 8703,
+  "gravedad": "media",
+  "afirmacion": "**Se revierte con** revert, que vuelve a escribir la radio; las etapas corridas entre medias tienen la línea, de la que sale la misma radio (B16).",
+  "fallo": "`radioFromTimeline` nace en el mismo PR 11 (`packages/shared/src/broadcast/radio.ts`, l. 8701), y la pestaña la lee en las etapas con línea en ese mismo PR. Un `git revert` del 11 quita a la vez la escritura de la radio y el código que la saca de la línea: las etapas corridas entre el 11 y el revert se quedan sin `stage_snapshots.radio` (null desde el 11) y sin quien la derive, y `Race Radio` (pantalla) no tiene nada que enseñar en ellas hasta que se vuelva a fusionar el 11. La marcha atrás que la sección promete no existe con un revert entero, y §17.18 (l. 8767) cuenta el 11 entre los que se revierten con `git revert`.",
+  "correccion": "Partir el 11 en dos PR: «11a: `radioFromTimeline`, B16 y la pestaña que lee la línea en las etapas con línea (se revierte con revert: no deja de escribir nada); 11b: `stageRun.ts` deja de escribir `stage_snapshots.radio` (una línea y su test). El 11b se revierte volviendo a escribir la radio, y las etapas de entre medias siguen servidas por el código del 11a, que no se revierte con él». En §17.18, el 11b va en «se revierte hacia delante»."
+ },
+ {
+  "id": "Rcoste-035",
+  "seccion": "§17.15",
+  "linea": 8715,
+  "gravedad": "baja",
+  "afirmacion": "**Se revierte con** revert; los documentos se quedan.",
+  "fallo": "El 12 re-sortea una vez las variantes de las frases de las etapas viejas para todos los jugadores y cambia el equipo que nombran las crónicas viejas (la misma línea: «una sola vez, algunas frases de etapas viejas cambian de variante»; regla 11 de §17.1). Un revert no deja lo que ve el jugador como estaba antes del 12 sin que se note: vuelve a cambiar esas mismas frases, un segundo re-sorteo visible para todos, y el equipo de las crónicas vuelve a ser el de hoy. En lo que ve el jugador el 12 no es reversible gratis, y la sección lo trata como un revert sin coste.",
+  "correccion": "Sustituir por: «**Se revierte con** revert, pero no sin que se note: el revert vuelve a cambiar las variantes de las frases viejas para todos; por eso el 12 va el último, tras la prueba de lectura, y solo se revierte por un fallo de corrección»."
+ },
+ {
+  "id": "Rcoste-036",
+  "seccion": "§17.18",
+  "linea": 8767,
+  "gravedad": "baja",
+  "afirmacion": "El 4a y el 4b dejan, a lo sumo, código que nadie llama.",
+  "fallo": "Solo hasta el 5: desde él `recordStageTimeline` (`packages/db/src/timelines.ts`, §5.5) llama al grabador y a los ganchos que traen el 4a y el 4b, y el colector aparte del tick depende de ellos (§17.8). Revertir el 4a o el 4b con el 5 fusionado deja `packages/db` sin compilar; la marcha atrás real es `TIMELINE_RECORD=off` y el código se queda. Y todo revert de los dos toca `packages/engine`: paga otra vez los ocho tramos (unos 73 min de runner, regla 4 de §17.1).",
+  "correccion": "Sustituir por: «El 4a y el 4b se revierten con `git revert` solo antes del 5; después, su marcha atrás es `TIMELINE_RECORD=off`, y el revert exige revertir antes el 5. Todo revert de los dos paga los ocho tramos (regla 4)»."
+ },
+ {
+  "id": "Rcoste-037",
+  "seccion": "§17.19",
+  "linea": 8783,
+  "gravedad": "alta",
+  "afirmacion": "Solo una cosa tiene que ir antes: la `0043` y su PR, el 1a, para que las noticias del mundo nuevo nazcan con `seed` y `data` ([DOC 1], D-45).",
+  "fallo": "El plan no casa esa fecha con la regla de arranque que el propio documento acepta (l. 27; `docs/encargos.md` l. 15-26): no se abre código de ninguna épica hasta que la línea de la táctica y el entrenamiento esté en producción. El reinicio lo fija el dueño al pasar de pruebas a juego de verdad (`docs/agenda.md` l. 35), y nada impide que llegue antes de que la regla deje empezar el 1a, o en la misma semana. Si llega antes, las noticias del mundo nuevo nacen sin datos y, según §19.8 (l. 9473), eso «no tiene arreglo». Ni §17.19 ni §19.1 dicen qué se hace en ese caso, y el 1a no es mínimo: son 2 sesiones con `renderNews` en `shared`, dos titulares nuevos y `text` de compatibilidad (§17.4). La Oleada 0 de `docs/agenda.md` (l. 1411-1417) ya pedía el arreglo de `news` antes del reinicio como tarea suelta.",
+  "correccion": "Añadir a §17.19 y como riesgo en §19.1: «Si el reinicio se fecha antes de que la regla de arranque abra el código, el 1a se adelanta como excepción declarada, reducido a la `0043` y a `emitNews` escribiendo `seed` y `data` (sin `renderNews` ni los titulares nuevos, que siguen en su paso); si el dueño no acepta la excepción, el reinicio espera al 1a. Lo decide el dueño (una DD nueva en §20), con el defecto de adelantar el 1a mínimo, que es la Oleada 0 de `docs/agenda.md`»."
+ },
+ {
+  "id": "Rcoste-038",
+  "seccion": "§17.19",
+  "linea": 8783,
+  "gravedad": "media",
+  "afirmacion": "el reinicio hace en cada caso lo que §13.9 escribe y el paso 12 deja en `docs/ops.md`",
+  "fallo": "El procedimiento se escribe en `docs/ops.md` en el paso 12, el último (§17.15), pero hace falta desde el 5: desde entonces `stage_timelines` tiene filas por `race_key` sin mundo y se escribe con `onConflictDoNothing`, así que un reinicio que no la vacíe hace que el mundo nuevo sirva, sin error y sin lápida, la línea del viejo en `race-france:s0` y siguientes (§13.9, l. 6714), y el grabador del mundo nuevo ni siquiera escribe la suya. Entre el 5 y el 12 van unas 30 sesiones (§17.22), el riesgo 20 de §19.1 lo deja «sin vigilante: es un procedimiento», y además exige reiniciar a mano el servicio `web`, porque el LRU va por `raceKey` sin mundo (13-h).",
+  "correccion": "En §17.8 (PR 5) añadir: «este PR escribe en `docs/ops.md` que el reinicio vacía `stage_timelines` con `stage_snapshots` y reinicia `web`»; en §17.10 (PR 7a), lo mismo para `race_watch`. En §5.6, la clave del LRU pasa a ser `${worldId}|${raceKey}|${stageDay}`, con lo que reiniciar el servicio deja de ser un paso del procedimiento. Y `timelines.test.ts` gana el caso «si la escritura no inserta fila porque ya hay una de otro mundo, la nota del tick lo dice»."
+ },
+ {
+  "id": "Rcoste-039",
+  "seccion": "§18.3",
+  "linea": 9112,
+  "gravedad": "media",
+  "afirmacion": "el tick del día 179 pasa de unos 106 s a unos 124 s de simular, en una transacción que tiene seis horas para acabar",
+  "fallo": "El tick no corre solo en el cron: el servicio `web` lo corre dentro de su propio proceso (`apps/api/src/index.ts` l. 55-85: `autoTick` cada `pollMs` y al arrancar; el documento lo sabe, l. 7073), y simular es JavaScript síncrono. Mientras corre un nacional (de 0,7 a 0,8 s) o una etapa grande (de 3,3 a 4,8 s con 176 corredores, medido en `coste/b10/b10.mjs`), la web no contesta, y E2 alarga cada bloque con el grabador, el cierre, el gzip síncrono y I1 (de 94 a 123 ms por nacional, §18.3; unos 100 ms por etapa grande, §5.8). Eso cae sobre la retransmisión, que en `Watch` ×1 a más de 50 km tiene 7,5 s de pared de colchón (450 s de carrera a ×60, §8.5) y en `Highlights` ×4, 0,75 s. Ni las seis horas ni el p95 del tick dicen nada de esto, y §19.1 no lo tiene.",
+  "correccion": "Añadir a §18.3 y como riesgo en §19.1: «el tick que corre dentro de `web` congela las peticiones de tramo mientras simula». Defensa: una variable `AUTO_TICK` (por defecto `on`, como hoy) que Railway pone a `off` en `web` cuando el servicio `tick` existe, o que el tick ceda el bucle entre etapas (`await setImmediate`) y comprima con `zlib.gzip` asíncrono. Medida en el paso 5: el p95 de un tramo servido durante el tick del día 179."
+ },
+ {
+  "id": "Rcoste-040",
+  "seccion": "§18.5",
+  "linea": 9145,
+  "gravedad": "baja",
+  "afirmacion": "La cuenta dice que los 2 s están al alcance y sin mucho margen.",
+  "fallo": "La cuenta pesa la web de HEAD (`l7/webdist/`: 334 KB comprimidos antes de la primera petición a la API), sin nada de E2: la página de `Watch` añade el reproductor, el corte, el reductor, `instantAt`, el ritmo, los esquemas de la cabecera y los tramos, la cola de rótulos y los componentes de §6 a §9, y ninguna parte de §18 estima su peso. Con «sin mucho margen» y ese código fuera, los 2 s no están ni medidos ni estimados.",
+  "correccion": "Añadir: «la cuenta no incluye el código de E2; el PR 3c pesa la página de etapa compilada (los módulos que carga `/world/races/:raceId/stages/:day`, con gzip 6) y apunta el crecimiento en su descripción; si pasa de 40 KB comprimidos, `Watch` se carga con `import()` diferido»."
+ },
+ {
+  "id": "Rcoste-041",
+  "seccion": "§18.1",
+  "linea": 9252,
+  "gravedad": "baja",
+  "afirmacion": "- **18-e. El digest guarda como mucho dos etapas en memoria**, la que se reproduce y la siguiente, y suelta los tramos y la línea de la anterior al empezar una",
+  "fallo": "La regla solo se comprueba a mano en el 10b, en un navegador (§18.9: «montón de JavaScript tras un digest de diecisiete etapas», pendiente), y ningún test de §16 ni de §17 la fija, aunque el reproductor es un reductor puro que devuelve las peticiones que hay que hacer (`playerStep`, §8.11) y la liberación es una llamada con clave conocida (`queryClient.removeQueries` con la clave de los tramos, §18.1). Si un PR posterior la rompe, el digest vuelve a los 17 a 23 MB sin que nada se ponga en rojo.",
+  "correccion": "Añadir a `player.test.ts` (PR 10a): «al empezar la etapa k + 1 del digest, `playerStep` pide soltar los tramos y la línea de la etapa k − 1 y nunca tiene más de dos etapas cargadas», y citarlo en §18.1 y en 18-e como el test que vigila la regla, con la medida a mano del 10b como cifra."
+ },
+ {
+  "id": "Rcoste-042",
+  "seccion": "§19.1",
+  "linea": 9288,
+  "gravedad": "baja",
+  "afirmacion": "| 19 | más de una instancia de la API | baja: `railway.json` no pide réplicas | la memoria de lo alcanzado no se comparte y un tramo legítimo da 409 |",
+  "fallo": "La memoria de lo alcanzado también se pierde sin réplicas: cada despliegue reinicia el proceso de `web` (y el arranque migra y corre el tick, `apps/api/src/index.ts` l. 84), y los tres interruptores se leen de `env.ts` al arrancar (§14.6), así que cambiarlos en Railway solo surte efecto con un reinicio. Tras cada uno la admisión de §10.11 cae a `race_watch.reached_s`, que puede ir hasta 60 s de carrera y 15 s de pared por detrás (10-l), y los espectadores que estén en el borde reciben 409 y reintentan. El plan son 22 despliegues más los de la táctica: la probabilidad no es «baja» ni depende de las réplicas.",
+  "correccion": "Riesgo 19: «probabilidad media: cada despliegue y cada cambio de interruptor reinician `web` y vacían la memoria de lo alcanzado; la admisión cae a `race_watch.reached_s` y el borde da 409 hasta el informe siguiente». Defensa: la web, ante un 409 `beyond_reached`, informa y reintenta una vez sin pausar (§14.3), y B18 gana el caso «con la memoria del proceso vacía, un tramo en el borde se sirve tras un informe»."
+ },
+ {
+  "id": "Rcoste-043",
+  "seccion": "§19.1",
+  "linea": 9304,
+  "gravedad": "media",
+  "afirmacion": "El 8, porque del mánager depende que el velo se encienda, y la cifra que lo decide solo sale contra Postgres.",
+  "fallo": "La cifra ya sale: en PostgreSQL 16 nativo el mánager da p95 de 3,88 ms en la forma D (hallazgo de §18.2, `coste/pgm/horizonte-pg.mjs`), así que el 8 no es de los que más cuestan. Y la lista deja fuera cinco riesgos medidos que no están en la tabla o están como defensa: el memo del horizonte y el de `veilDelta` sin vaciar (de 9 a 200 KB por entrada, con claves nuevas cada día de juego), las migraciones que esperan a un tick abierto con un bloqueo exclusivo puesto (lecturas de `users`, `news` y `transactions` paradas lo que dure el día; 7,5 s en la prueba de 8 s), la puerta de B14 a 0,03 ms de su umbral en la suite de todo PR, el paso 9 de `instantAt`, que multiplica por hasta diecisiete el coste del fotograma, y el límite global de 300 peticiones por minuto e IP, que el riesgo 31 pone de defensa y que dos espectadores en `Highlights` ×4 detrás de la misma IP ya pasan (320).",
+  "correccion": "Reescribir el párrafo: «Los que más pueden costar: el memo del horizonte sin tope (la memoria de `web`), las migraciones que coinciden con un tick (una parada de la web), la puerta de B14 en la rápida (un CI intermitente para todos), el límite de peticiones que corta los modos rápidos y el 1, porque la táctica seguirá moviendo el motor. El 8 baja: en Postgres 16 el mánager da 3,88 ms de p95». Y añadir los cuatro primeros como filas de la tabla de §19.1, con su defensa y su banco."
+ },
+ {
+  "id": "Rcoste-044",
+  "seccion": "§19.1",
+  "linea": 9300,
+  "gravedad": "alta",
+  "afirmacion": "el límite global de 300 peticiones por minuto e IP (`apps/api/src/security.ts` l. 10, `datos.md` §15) y los tramos solo dentro de lo alcanzado (B18)",
+  "fallo": "El límite que aquí es defensa frena al propio reproductor. `GLOBAL_RATE_LIMIT` son 300 peticiones por minuto e IP para todas las rutas (`security.ts` l. 10; `app.ts` l. 108-121, `global: true`, con la IP real por `trustProxy`). Con la cadencia de §18.7 (l. 9177-9178), `Highlights` ×4 y `Next action` sobre ×1 piden un `POST` y un `GET` cada 0,75 s de pared a más de 50 km de meta: 160 peticiones por minuto y espectador, más los informes de 15 s. Dos espectadores detrás de la misma IP (una casa, una oficina, un operador móvil con CGNAT, o la misma persona con el teléfono y el ordenador en la misma red) pasan de 320 y reciben 429; y `Next action` sobre ×4 pide un par cada 0,19 s, 640 por minuto mientras dura. El 429 es un fallo de petición: el reproductor pausa con `Connection lost · Retry` (§8.5). Ningún banco ni medida de §18.9 cruza la cadencia de los tramos con el límite.",
+  "correccion": "En §14.3 y §14.5: «las rutas de los tramos (`GET …/broadcast/…/chunk`) y del progreso (`POST /api/me/watch`) llevan su propio límite (`config.rateLimit` de `@fastify/rate-limit`: 1.200 por minuto) con la clave del usuario cuando hay sesión (`keyGenerator`: el id de la sesión o, sin ella, la IP), porque B18 ya acota lo que se puede pedir; un 429 no pausa: el reproductor espera lo que diga `retry-after` con `Loading`». En el riesgo 31, la defensa pasa a ser B18 y ese límite propio, y B18 gana el caso «dos sesiones desde la misma IP piden 320 tramos en un minuto sin un 429»."
+ },
+ {
+  "id": "Rcoste-045",
+  "seccion": "§16.4",
+  "linea": 7985,
+  "gravedad": "media",
+  "afirmacion": "y `instantAt` en 600 fotogramas seguidos, en Node",
+  "fallo": "600 fotogramas seguidos son 10 s de pantalla, y el documento no dice de qué parte de la etapa. El coste de `instantAt` depende de cuántos grupos hay vivos, y al principio de una etapa hay uno o dos. Medido con la aproximación de L7 y el paso 9 sin memo (`coste/instante-first.mjs`, a 1 s de carrera por fotograma como `Watch` ×1 a ×60): en los 600 primeros fotogramas de las seis etapas de §18.1 hay como mucho 2 grupos y el p95 va de 0,038 a 0,178 ms, por debajo del umbral de 0,25; en la etapa entera, el p95 de la e20 es 0,524 ms y el de Colombia e5, 0,804, con 20 y 23 grupos (`coste/instante-hist2.out`). Un B8 que mida los 600 primeros pasa con el algoritmo sin memo que en el final de una reina triplica el umbral: no prueba lo que dice.",
+  "correccion": "Sustituir por «y `instantAt` en 600 fotogramas por etapa repartidos por toda ella (uno cada `finishS / 600` de carrera) sobre las seis congeladas, con el p95 sobre todos, más 600 seguidos en el tramo de más grupos vivos de la e20», en §16.4, en 16-m y en el PR 6a (`clientCost.test.ts`)."
+ }
+]
