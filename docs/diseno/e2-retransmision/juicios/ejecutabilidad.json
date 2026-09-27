@@ -1,0 +1,416 @@
+{
+ "foco": "ejecutabilidad y experiencia del jugador",
+ "ganadora": "ingeniero",
+ "puntuaciones": [
+  {
+   "propuesta": "ingeniero",
+   "cobertura": 6,
+   "coherencia": 8,
+   "ejecutabilidad": 9,
+   "experiencia": 6,
+   "justificacion": "La más ejecutable: contrato tipado, código del registro de rutas y del predicado, citas exactas (todas las de chronicle.ts comprobadas), crónica en vivo medida con 0 violaciones de prefijo, constantes fuera del motor (solo 2 PR pagan bancos), interruptores SPOILER_MODE y BROADCAST_WATCH, «se revierte con» por paso, primer paso visible en el PR 4 y canario en verde en el 8b, sin romper el contrato de hoy. Cobertura fina: mecanismos y no superficies, sin la sesión de 7 días, sin X1 ni X2, presupuesto de equipo aceptado como fuga, cierre mínimo. Experiencia: duración fija medida 6:42-9:09, pero el último km va a ×1,5-8,9 (promete ×1), el final en alto se comprime ×15, dos vocabularios en la misma pantalla y chip ITA CHAMP."
+  },
+  {
+   "propuesta": "television",
+   "cobertura": 8,
+   "coherencia": 7,
+   "ejecutabilidad": 6,
+   "experiencia": 8,
+   "justificacion": "La mejor gramática de realizador: dos números fijos, cola de rótulos por clases, Next action que acelera sin decir dónde, previa y cierre en orden UCI, cuatro rótulos de crono, PreStageInfo que impide por tipo un título o aviso con resultado. Highlights mide 9:54-10:21 en llano y 15:02 en Colombia (último km a 1:1). En ejecución: previa, acta, cierre y cola sin tipo; ritmo de crono sin presupuesto entre la primera hora y los 20 últimos; voz que apaga respecto y desenlace sin medir; 403 sin interruptor; lo primero visible hacia el PR 15; notoriedad por fame, que vale 0."
+  },
+  {
+   "propuesta": "estado",
+   "cobertura": 7,
+   "coherencia": 9,
+   "ejecutabilidad": 7,
+   "experiencia": 6,
+   "justificacion": "Modelo más riguroso y demostrado (I1: 0 discrepancias en 3.246 fotos) y tipos más completos. Exigente de implementar: sonda en cada bloque con diferencia y autocomprobación en el tick (+10 % de CPU, +27 % en el peor caso), formato empaquetado a mano, reductor y proyecciones en packages/engine (toda la presentación paga bancos), B1 en rojo del paso 6 al 10 y /api/news sin text. Experiencia: la curva reproduce sus cifras (5:32-14:20 aquí frente a 5:02-15:03) pero el 35-45 % son frenos; no hay previa ni cierre; crono 2:31-4:45; el 0:06 del último km en llano contradice su ×4."
+  },
+  {
+   "propuesta": "producto",
+   "cobertura": 9,
+   "coherencia": 6,
+   "ejecutabilidad": 5,
+   "experiencia": 8,
+   "justificacion": "La mejor cobertura del destripe: 48 superficies una a una y nueve puertas más (X1, X2, X3, X9 comprobadas), diferencial y dos desenlaces, revelar sin castigo, cs_viewer, digest de 30 min, og: neutros. Plan no fusionable paso a paso: resta agregados desde el paso 4 y pone StageCard (sin run, obligatorio) en la ruta de hoy en el 7 mientras el reproductor llega en el 11, sin interruptor; Horizon en todo packages/db en un PR M. Experiencia: base 7:39 y 13:21-13:35 como dice, pero las pausas de 3 s por rótulo suben un 27-37 % (hasta 27:14) y About 9 min no las cuenta; Skip the quiet part delata."
+  },
+  {
+   "propuesta": "datos",
+   "cobertura": 7,
+   "coherencia": 8,
+   "ejecutabilidad": 6,
+   "experiencia": 5,
+   "justificacion": "Contrato por la red mejor medido (31 etapas, 11-36 KB gzip, Zod 0,8-6 ms) y la única que escribe la convivencia con la web de ayer. Pero StoredTimelineV1, el artefacto central, no tiene tipo, ni BroadcastHead, BroadcastFinish y ToWatch; GET slice cambia estado; PUT progress con sendBeacon no funciona; VEIL y el resto de constantes en el motor. Experiencia: duración por defecto más larga (8:46-21:00, cierta), coste diario contado mal (dice 13 min, son unos 46), Next action delata, dos vocabularios, sin cierre."
+  }
+ ],
+ "injertos": [
+  {
+   "id": "I-ejecutabilidad-01",
+   "de": "television",
+   "seccion": "§3.5, §5.3, §12",
+   "que": "Cola de rótulos por cueClass (0-3), uno de corredor a la vez, cueHoldB por clase, y Next action a ×20 hasta el siguiente rótulo de clase ≥ 2 sin saber dónde; While you skipped y Previously",
+   "porque": "ingeniero prohíbe todo «siguiente suceso» y sus tarjetas no tienen prioridad; esto da el salto que pide el jugador sin delatar dónde pasa algo"
+  },
+  {
+   "id": "I-ejecutabilidad-02",
+   "de": "television",
+   "seccion": "§5.2, §8.3",
+   "que": "Previa de cuatro cuadros (perfil y puertos, parte y viento lateral, maillots en juego, favoritos sin fame) y cierre (podio, general con flechas, maillots de mañana, Most kilometres out front, abandonos y fuera de control, la etapa de mañana), con tipos",
+   "porque": "ingeniero abre en frío y cierra con tablas; la tele empieza y acaba así (mapa 06 §8)"
+  },
+  {
+   "id": "I-ejecutabilidad-03",
+   "de": "television",
+   "seccion": "§6.4",
+   "que": "Escala de notoriedad para la frase de la fuga sin el escalón de fama, y el corredor propio siempre nombrado (…with your rider Iñigo Arrieta and two others., pantalla)",
+   "porque": "breakHeadline no nombra al corredor propio ([DUEÑO 5], R23.7) y riders.fame no se escribe"
+  },
+  {
+   "id": "I-ejecutabilidad-04",
+   "de": "television",
+   "seccion": "§5.5",
+   "que": "Esconder BottomNav mientras se reproduce (propuesta a E6)",
+   "porque": "en 360 px la barra fija de 56 px y la hoja de controles dejan la barra de grupos en tres filas"
+  },
+  {
+   "id": "I-ejecutabilidad-05",
+   "de": "estado",
+   "seccion": "§3.9 (I1)",
+   "que": "Test de que el estado derivado en cada foto de km iguala a radioKmFrom del motor (orden, tamaños, huecos, mainId con la regla del título por bloque)",
+   "porque": "el B2 de ingeniero sella lo medido sin listón; estado midió 0 discrepancias con la regla y 69 copiando mainId sin ella"
+  },
+  {
+   "id": "I-ejecutabilidad-06",
+   "de": "estado",
+   "seccion": "estado §3.6 y producto §11 n.º 2",
+   "que": "Marcas de reloj en cada cambio de composición de un grupo y fotos cada 100 m en los últimos 3 km, como campos opcionales de la radio guardada sin subir versión",
+   "porque": "sin esas marcas estado midió hasta 3,5 km de error del cursor en Flandes, e ingeniero tiene una sola foto en el último km"
+  },
+  {
+   "id": "I-ejecutabilidad-07",
+   "de": "estado",
+   "seccion": "§3.5, §8.1",
+   "que": "Un código de papel de grupo que leen barra, radio y crónica; la palabra (SPEC 6.15 o tele) es decisión del dueño",
+   "porque": "ingeniero pinta PELOTON en la barra y deja the bunch en el ticker: dos nombres del mismo grupo en la misma pantalla (C7, balance.md l. 6740-6741)"
+  },
+  {
+   "id": "I-ejecutabilidad-08",
+   "de": "estado",
+   "seccion": "§9",
+   "que": "Tipos LineaDeCrono e InstanteDeCrono para la crono",
+   "porque": "el §9 de ingeniero es prosa y el implementador tendría que inventar el tipo del sillón, los parciales y quién va en ruta"
+  },
+  {
+   "id": "I-ejecutabilidad-09",
+   "de": "producto",
+   "seccion": "§7.8",
+   "que": "Cookie cs_viewer firmada con HMAC que solo restringe (horizonte en lectura sin sesión)",
+   "porque": "better-auth caduca a los 7 días (create-context.mjs l. 147) y /news, /world y los rankings son públicos: el que vuelve tras una semana llega sin sesión"
+  },
+  {
+   "id": "I-ejecutabilidad-10",
+   "de": "producto",
+   "seccion": "§7.8, §12",
+   "que": "While you were away: la carrera en 30 minutos con digestBudgetS por tipo de etapa y Key stages elegidas por el perfil",
+   "porque": "Catch up at ×4 de ingeniero pasa la final a 3 s por km; el resumen de datos cuesta unas 2 h por gran vuelta"
+  },
+  {
+   "id": "I-ejecutabilidad-11",
+   "de": "producto",
+   "seccion": "§1.7, §7.5",
+   "que": "Puertas X1 (kResultado), X2 (upcoming-races y my-orders), X5 (queryClient.clear() al cambiar de sesión), X7 (og:) y X9 (alreadyOut) en la tabla de mecanismos",
+   "porque": "comprobadas en código (learning.ts l. 106-110, riderSchedule.ts l. 217, routes/riders.ts l. 648) y fuera del canario de ingeniero"
+  },
+  {
+   "id": "I-ejecutabilidad-12",
+   "de": "producto",
+   "seccion": "§13, §14",
+   "que": "B1b diferencial y B1c de dos desenlaces con lista de rutas pendientes que cada paso vacía",
+   "porque": "mantiene la suite en verde del paso 3 al 8 y prueba que la existencia de un aviso no informa"
+  },
+  {
+   "id": "I-ejecutabilidad-13",
+   "de": "producto",
+   "seccion": "§7.7",
+   "que": "Revelar sin castigo como test (ningún premio, logro, moral ni dinero lee lo visto), Don't ask again guardado en la cuenta y Watch anyway",
+   "porque": "ingeniero registra el Reveal pero no fija que sea gratis ni cómo se evita la confirmación repetida"
+  },
+  {
+   "id": "I-ejecutabilidad-14",
+   "de": "producto",
+   "seccion": "§7.10, §7.12",
+   "que": "Título y etiquetas og: neutros inyectados por el fallback de la SPA, y las dos formas de compartir (invitar a ver siempre; el acta solo si se conoce, marcada Spoiler)",
+   "porque": "el fallback sirve index.html tal cual (app.ts l. 205-210) y la vista previa de un enlace no ejecuta JavaScript"
+  },
+  {
+   "id": "I-ejecutabilidad-15",
+   "de": "producto",
+   "seccion": "§5, §12",
+   "que": "Ritmo en segundos de carrera por segundo de pared por zona de km a meta (pace), sin pausas: las tarjetas no paran el reloj, como en ingeniero",
+   "porque": "medido: la reina e18 pasa de 7:51 a 13:21-13:35 y su último km de ×5,7 a ×1,5; la duración sigue sin depender de los sucesos"
+  },
+  {
+   "id": "I-ejecutabilidad-16",
+   "de": "datos",
+   "seccion": "§3.4, §10.3",
+   "que": "Llegadas, resultado y acta nunca en un tramo: solo por POST …/finish o Reveal",
+   "porque": "el tramo de 20 km de ingeniero que contiene la meta lleva finish y stage_win al navegador hasta 20 km antes de verlos"
+  },
+  {
+   "id": "I-ejecutabilidad-17",
+   "de": "datos",
+   "seccion": "§8.2",
+   "que": "pickVariant(seed, variants, rev) con since y tpl_rev",
+   "porque": "el B5 de ingeniero detecta que añadir una redacción re-sortea el pasado; esto lo impide por construcción"
+  },
+  {
+   "id": "I-ejecutabilidad-18",
+   "de": "datos",
+   "seccion": "§10.7 n.º 4",
+   "que": "Toda respuesta nueva validada con schema.parse en su test y con satisfies en el código",
+   "porque": "hoy ninguna ruta valida lo que devuelve (mapa 07 §2) y las rutas nuevas de ingeniero no lo exigen"
+  }
+ ],
+ "objeciones": [
+  {
+   "id": "O-ejecutabilidad-01",
+   "seccion_ganadora": "§5.1, §5.2, §12",
+   "que": "El ritmo en segundos de pared por km promete «el último km siempre a ×1» y lo fija en 40 s: las etapas más vistosas son las más comprimidas",
+   "evidencia": "medido en el scratchpad: último km a ×1,5 (llana e7), ×5,7 (reina e18) y ×8,7-8,9 (Colombia e5); los 10 km finales a unos ×6 en llano y ×15 en un puerto"
+  },
+  {
+   "id": "O-ejecutabilidad-02",
+   "seccion_ganadora": "§4.3, §8.2",
+   "que": "Dos vocabularios en la misma pantalla: PELOTON en la barra y the bunch en el ticker",
+   "evidencia": "stageJournal.ts intacto usa GROUP_NOUNS (the lead group, the chase group, the bunch); regla C7 del dueño, balance.md l. 6740-6741"
+  },
+  {
+   "id": "O-ejecutabilidad-03",
+   "seccion_ganadora": "§0, §8.2, §13 B7",
+   "que": "«Ninguna frase nueva, ningún case nuevo» contradice su B7: hay que escribir casos",
+   "evidencia": "puncture, mechanical, truce_granted y truce_denied caen al default que imprime la clave (stageJournal.ts l. 1602-1603); breakHeadline es fraseo nuevo"
+  },
+  {
+   "id": "O-ejecutabilidad-04",
+   "seccion_ganadora": "§10.2, §3.3",
+   "que": "El servidor adelanta un tramo de 20 km y el último contiene la meta: el resultado llega al navegador antes de verlo",
+   "evidencia": "BroadcastChunk lleva overlays y ticker con revealS en (fromKm, toKm] y last = toKm es la meta (§3.3); regla 2 del mapa 06 §7.2"
+  },
+  {
+   "id": "O-ejecutabilidad-05",
+   "seccion_ganadora": "§3.1, §11.1, §14 paso 3",
+   "que": "Una foto por km sin marcas en los cambios de composición y un reloj estimado antes del paso 4 cuyo error no se ha medido: el primer Watch del dueño enseñará cursores mal puestos",
+   "evidencia": "§3.1: «El error no lo he medido»; estado §3.6 midió hasta 3,5 km de error sin marcas de composición en Flandes"
+  },
+  {
+   "id": "O-ejecutabilidad-06",
+   "seccion_ganadora": "§7",
+   "que": "No trata la caducidad de la sesión: el que vuelve tras una semana llega sin sesión y las rutas públicas le enseñan resultados",
+   "evidencia": "create-context.mjs l. 146-147 (expiresIn 7 días, updateAge 1 día) y auth.ts l. 102-114 sin session; /news y /world públicas (mapa 03 §4.1)"
+  },
+  {
+   "id": "O-ejecutabilidad-07",
+   "seccion_ganadora": "§7.8, §16.3",
+   "que": "Catch up at ×4 no se puede ver y la auto-revelación a los 28 días de juego (7 reales) del final deja revelado el Tour a quien se fue dos semanas",
+   "evidencia": "a ×4 el final va a 3 s por km y el último km a 10 s; una gran vuelta dura unos 6 días reales (mapa 04 §2)"
+  },
+  {
+   "id": "O-ejecutabilidad-08",
+   "seccion_ganadora": "§7.3",
+   "que": "Faltan puertas en la tabla de mecanismos: X1, X2, X5, X7, X9, y el presupuesto de equipo se acepta como fuga sin medir",
+   "evidencia": "learning.ts l. 106-110 (resultTacWin, resultTacTop10); riderSchedule.ts l. 217; routes/riders.ts l. 648"
+  },
+  {
+   "id": "O-ejecutabilidad-09",
+   "seccion_ganadora": "§3.3, §13 B7",
+   "que": "Falta la tabla plantilla a OverlayKind (o ticker-only) para las plantillas que emite el motor",
+   "evidencia": "OverlayKind tiene 20 valores y el motor emite 54 plantillas (mapa 01 §1.1); B7 depende de esa tabla"
+  },
+  {
+   "id": "O-ejecutabilidad-10",
+   "seccion_ganadora": "§9",
+   "que": "La crono no tiene tipo de estado, playbackS usa «una velocidad nominal» sin definir, y el prólogo dura menos de lo que dice",
+   "evidencia": "medido: 2:51-2:54 en race-france e1 (176 a 60 s) frente a los 4-6 min estimados; 5:18-5:19 con general a 120 s"
+  },
+  {
+   "id": "O-ejecutabilidad-11",
+   "seccion_ganadora": "§7.1, §10.2",
+   "que": "El progreso al cerrar va por sendBeacon a una ruta PUT, y sendBeacon solo hace POST",
+   "evidencia": "§7.1 «PUT /api/views/… al cerrar (sendBeacon)»; la ruta tiene que aceptar POST o usar fetch con keepalive"
+  },
+  {
+   "id": "O-ejecutabilidad-12",
+   "seccion_ganadora": "§4.1, §7.7",
+   "que": "Previa y cierre mínimos: Preview estático y, tras meta, resultado y tablas",
+   "evidencia": "mapa 06 §8.1 y §8.2 (orden de la señal UCI); television §5.2 lo escribe entero"
+  },
+  {
+   "id": "O-ejecutabilidad-13",
+   "seccion_ganadora": "§6.3",
+   "que": "El chip ITA CHAMP / ITA TT CHAMP no es texto de televisión",
+   "evidencia": "la tele dice Italian Champion (mapa 06 §2.1); la forma para el daltonismo va en el icono, no en el texto (navegacion.md l. 455-457)"
+  },
+  {
+   "id": "O-ejecutabilidad-14",
+   "seccion_ganadora": "§7.4",
+   "que": "El registro solo clasifica GET bajo /api: las respuestas de escritura quedan fuera del canario",
+   "evidencia": "registerSpoilerGuard vuelve si el método no es GET; POST /api/riders/me/races/:raceKey/retire devuelve alreadyOut (routes/riders.ts l. 648)"
+  }
+ ],
+ "huecos": [
+  {
+   "id": "H-ejecutabilidad-01",
+   "que": "Cuánto tiempo al día cuesta seguir tu vuelta: con unas 3,6 etapas por día real, los modos por defecto piden de 20 a 63 min diarios (llana a reina e18); ninguna fija el modo por defecto por ese coste ni lo pregunta al dueño con la cifra (datos la da mal)"
+  },
+  {
+   "id": "H-ejecutabilidad-02",
+   "que": "Nadie ha medido la reproducción en un teléfono: repintado por fotograma, perfil SVG con cursores, batería y visibilitychange son estimados"
+  },
+  {
+   "id": "H-ejecutabilidad-03",
+   "que": "El microscopio del dueño bajo su propio horizonte: con el sin destripe encendido para administradores, el dueño que caza defectos en la radio de producción se revela etapas o no puede mirarlas; falta un modo diagnóstico que no destripe ni cuente como visto"
+  },
+  {
+   "id": "H-ejecutabilidad-04",
+   "que": "Ver una cola seguida: autoplay de la etapa siguiente, orden entre dos carreras del mismo día y la puerta de N+1 al encadenar"
+  },
+  {
+   "id": "H-ejecutabilidad-05",
+   "que": "Fallos de red a mitad de etapa: reintento, pausa, y qué pasa con «lo servido es lo visto» si el tramo servido no llegó a pintarse"
+  },
+  {
+   "id": "H-ejecutabilidad-06",
+   "que": "Accesibilidad de la pantalla viva: aria-live para los rótulos, movimiento reducido para los cursores, parciales de crono solo por color"
+  },
+  {
+   "id": "H-ejecutabilidad-07",
+   "que": "Un protocolo para validar el ritmo con el dueño antes de sellar las constantes (tipo MVP paso 31: tres etapas vistas y las cuatro preguntas de SPEC §6.15 respondidas sin ayuda)"
+  },
+  {
+   "id": "H-ejecutabilidad-08",
+   "que": "Dos dispositivos o pestañas viendo la misma etapa: el progreso gana por máximo, pero nadie dice qué ve la segunda ni cómo se invalida su caché"
+  }
+ ],
+ "comprobaciones": [
+  {
+   "afirmacion": "Todos los campos pesados de stageReplaySchema son .optional()",
+   "propuesta": "ingeniero",
+   "resultado": "cierta",
+   "evidencia": "packages/shared/src/contracts.ts l. 1499-1531; day, name, km, run y altimetry obligatorios (l. 1483-1486, 1498)"
+  },
+  {
+   "afirmacion": "StageCard puede sustituir a StageReplay en GET /api/races/:raceId/stages/:day en el paso 7 con la web adaptada en el 11-12",
+   "propuesta": "producto",
+   "resultado": "falsa",
+   "evidencia": "StageCard no trae run; fetchCalendarStage valida con stageReplaySchema (apps/web/src/api/results.ts l. 51-55) y request lanza ContractError (apps/web/src/api/request.ts l. 91-111)"
+  },
+  {
+   "afirmacion": "Una SPA ya cargada valida text: z.string(), así que la API tiene que seguir mandando text",
+   "propuesta": "datos",
+   "resultado": "cierta",
+   "evidencia": "packages/shared/src/contracts.ts l. 790; estado §8.2 devuelve la noticia sin text y rompe esas pestañas"
+  },
+  {
+   "afirmacion": "buildRaceRadio valida lo guardado con un z.object sin .strict(): los campos nuevos se ignoran",
+   "propuesta": "ingeniero",
+   "resultado": "cierta",
+   "evidencia": "apps/api/src/chronicle.ts l. 1257-1317 y 1341-1342; motivos con .catch(null) en l. 1306"
+  },
+  {
+   "afirmacion": "narrate() no tiene llamadas en producción",
+   "propuesta": "producto",
+   "resultado": "cierta",
+   "evidencia": "solo apps/web/src/domain/narration.ts l. 118 y narration.test.ts"
+  },
+  {
+   "afirmacion": "Las 55 plantillas y 272 redacciones de stageJournal.ts se reutilizan sin cambiar una frase ni añadir un case",
+   "propuesta": "ingeniero",
+   "resultado": "a medias",
+   "evidencia": "AST: 55 case, 90 pick con 226 elementos y 46 retornos directos = 272; pero puncture, mechanical y truce_* caen al default (apps/web/src/domain/stageJournal.ts l. 1602-1603) y su B7 exige frase"
+  },
+  {
+   "afirmacion": "La sesión caduca a los 7 días y la portada de invitado, las noticias y el ranking cuentan quién ganó",
+   "propuesta": "producto",
+   "resultado": "a medias",
+   "evidencia": "apps/api/node_modules/better-auth/dist/context/create-context.mjs l. 146-147; auth.ts l. 102-114 sin session; GuestHome no enseña resultados (apps/web/src/pages/Home.tsx l. 44-72)"
+  },
+  {
+   "afirmacion": "Las pasadas que miran el futuro y las que deducen la longitud están en chronicle.ts l. 297, 319, 361, 362, 371, 375, 545, 637 y 945",
+   "propuesta": "ingeniero",
+   "resultado": "cierta",
+   "evidencia": "apps/api/src/chronicle.ts en esas líneas exactas"
+  },
+  {
+   "afirmacion": "Tocar packages/engine/ dispara los ocho tramos de bancos del CI",
+   "propuesta": "ingeniero",
+   "resultado": "cierta",
+   "evidencia": ".github/workflows/ci.yml l. 189"
+  },
+  {
+   "afirmacion": "riders.fame no se escribe en ninguna parte (W6 no destripa)",
+   "propuesta": "producto",
+   "resultado": "cierta",
+   "evidencia": "packages/db/src/rollover.ts l. 58-60 y 291-295; ninguna escritura en packages/db ni apps/api; deja muertos fameNotablePctl (television) y CastRider.fame (datos)"
+  },
+  {
+   "afirmacion": "El aprendizaje por resultado y upcoming-races delatan una etapa no vista",
+   "propuesta": "producto",
+   "resultado": "cierta",
+   "evidencia": "packages/engine/src/world/learning.ts l. 106-110; packages/db/src/riderSchedule.ts l. 217"
+  },
+  {
+   "afirmacion": "El campeón nacional vigente es derivable de race_gc con la consulta del dorsal 1 del campeón defensor",
+   "propuesta": "television",
+   "resultado": "cierta",
+   "evidencia": "packages/db/src/calendarRun.ts l. 991-1007 (race_gc, gcFinishersWhere, gcOrderBy); los nacionales no la usan hoy (salen antes, l. 978-989)"
+  },
+  {
+   "afirmacion": "Highlights dura unos 10 min y Full coverage unos 30 en una etapa de 5 h",
+   "propuesta": "television",
+   "resultado": "a medias",
+   "evidencia": "scratchpad juez-ejec/ritmo.mjs: Highlights 9:54-10:21 en llana, media y Flandes, 12:52-12:55 en la reina e18 y 14:53-15:02 en Colombia e5 (último km a 1:1: 227-357 s); Full 25:40-31:12; sin la cola de rótulos"
+  },
+  {
+   "afirmacion": "La curva da 5:02 (llana e7) a 15:03 (Colombia e5)",
+   "propuesta": "estado",
+   "resultado": "a medias",
+   "evidencia": "ritmo.mjs y estado_mueve.mjs: curva sola 3:26-8:13, con frenos aproximados por km 5:32-14:20; el último km de su tabla (0:06 en llano) contradice [0, 4]: 61 s a ×4 son 15 s"
+  },
+  {
+   "afirmacion": "Unos 8 min una llana y 14 una reina; resumen 2,5 y 4,5",
+   "propuesta": "producto",
+   "resultado": "a medias",
+   "evidencia": "ritmo.mjs: base 7:39-7:41 y 13:21-13:35, resumen 2:12 y 4:29-4:31 (ciertos); con la pausa de 3 s por rótulo que su §5 añade, 9:44-9:48 y 16:57-17:35 (Colombia e5 hasta 27:14)"
+  },
+  {
+   "afirmacion": "Completo 7,8-20,4 min (mediana 12,7); resumen 3,4-8,9",
+   "propuesta": "datos",
+   "resultado": "cierta",
+   "evidencia": "ritmo.mjs en cinco etapas y dos semillas: completo 8:46-21:00, resumen 3:36-9:14"
+  },
+  {
+   "afirmacion": "Una llana dura unos 6,5 min y una reina unos 8 a ×1; el último km va siempre a ×1",
+   "propuesta": "ingeniero",
+   "resultado": "a medias",
+   "evidencia": "ritmo.mjs: 6:42 y 7:51, iguales con las dos semillas; el último km va a ×1,5-8,9 con pace.lastKm de 40 s"
+  },
+  {
+   "afirmacion": "Una gran vuelta seguida a diario son unos 13 min al día",
+   "propuesta": "datos",
+   "resultado": "falsa",
+   "evidencia": "21 etapas en 23 días de juego de 6 h (mapa 02 §1.1, mapa 04 §2) son unas 3,6 etapas por día real: unos 46 min con su mediana"
+  },
+  {
+   "afirmacion": "Duración de la crono: producto 6-11 min, datos unos 10, ingeniero 4-6",
+   "propuesta": "producto",
+   "resultado": "cierta",
+   "evidencia": "crono.mjs y crono_gc.mjs: producto 6:24-6:33 (prólogo) y 11:21-11:23 (con general); datos 2:51-2:54 y 8:09-8:12; ingeniero 2:51-2:54 y 5:18-5:19; television deja sin presupuesto 5.760 s y 15.120 s de carrera"
+  },
+  {
+   "afirmacion": "El formato guardado de la línea temporal es StoredTimelineV1",
+   "propuesta": "datos",
+   "resultado": "falsa",
+   "evidencia": "datos.md l. 663 y 809 lo citan y ninguna línea lo define"
+  }
+ ]
+}
