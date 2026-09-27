@@ -50,3 +50,28 @@ otros lotes. La pasada de coherencia tiene que cerrarlos uno a uno (o dejarlos e
 - Propuesto para §4: `checkClockDs`, `BroadcastHead.tt`, `tt.checks` en el chunk, avisos
   `tt_split` y `tt_finish`. Para §15: `ttSeekStepS`, `ttSeekLastStarters`.
 - Cronos largas frente a `ttMaxStoredBytes`: unos 19-20 KB estimados para 40 km, por encima de 16 KB.
+
+## De L6 (§10 y §14)
+
+- drizzle expande un array dentro de `sql` a `($1, $2)`: `veilSql` con una lista falla; con
+  `sql.param` funciona (medido en PGlite y postgres-js 3.4.9).
+- Si `contracts.ts` importa algo de `wire.ts`, aunque sea la reexportación de §G.2, el paquete no
+  carga («Cannot access before initialization», medido). Decisión 14-a: los cuatro esquemas de E2
+  que necesitan las ampliaciones pasan a `contracts.ts` y la reexportación va en `index.ts`. §4.11
+  y §4.13 tienen que moverse.
+- Aplicar D-50 al pie de la letra rompe la web de ayer: `leaders` tiene que omitirse entero. La
+  ruta de etapa omite el resultado cuando la pantalla no lo va a enseñar (`stageAccessOf`), no solo
+  cuando la etapa está velada.
+- Registro medido en Fastify 5.11.2: 140 registros (87 rutas propias más 53 `HEAD` que heredan el
+  `config`). Hay rutas fuera de `/api`; un `onRoute` que lanza impide arrancar. `healthSchema` vive
+  en el `index.ts` de shared, no en `contracts.ts`; `features` va opcional.
+- Ruta de etapa sin los opcionales de resultado: 0,46-2,1 KB con gzip (medido); la cabecera unos
+  6,7 KB con gzip (estimado). `@fastify/compress` entra en el paso 0, registrado antes de
+  `@fastify/static`. Faltan en §15 los topes de red para B6 (sin evidencia de los jueces).
+- Alineado con L3: la lápida de 5-k sustituye al corte por fecha; `timelineForStage` recibe el
+  `Horizon` como `readStageTimeline` en 5-p (§10 cambia 10-c). L3 midió el LRU de 64 líneas en
+  33-121 MB, no 20.
+- D-55 corregido en §10.3 con 10-l: como mucho una escritura cada 15 s por usuario y carrera. No
+  se enmascara la retirada voluntaria (10-i).
+- Sin comprobar: `sendBeacon` con un `Blob` JSON en Chrome (respaldo `text/plain`), B14 con datos
+  reales, Postgres de producción.
