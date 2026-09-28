@@ -416,7 +416,6 @@ Distinciones, como mucho `BROADCAST.cardLinesMax` (3), en este orden: `wears_for
 
 > Versión anterior: B14: p95 ≤ `SPOILER.horizonBudgetMs` (5 ms), con `computeHorizon` y `recordProgress` medidos por separado y dos espectadores (16-k): el jugador pasa (de 3,1 a 3,7 ms en PGlite) y es puerta en la suite rápida; el mánager de un equipo de 30 da de 8,6 a 9,3 ms en PGlite y es puerta contra Postgres en el paso 7; si no pasa, decide el dueño y `SPOILER_MODE` no pasa a `on` (DD-21).
 
-
 ### D-34 · La sesión de 7 días y la cookie de espectador
 
 **Decisión.** better-auth caduca la sesión a los 7 días y la renueva como mucho una vez al día (`apps/api/node_modules/better-auth/dist/context/create-context.mjs` l. 146-147; `apps/api/src/auth.ts` no configura `session`): quien vuelve tras una semana llega sin sesión y hoy `/news`, `/world` y los rankings son públicos (la portada de invitado no enseña resultados, `Home.tsx` l. 44-72). Al entrar, el servidor pone `cs_viewer`: el id de usuario firmado con HMAC (`SESSION_SECRET`), `httpOnly`, `Secure`, `SameSite=Lax`, de `SPOILER.viewerCookieDays` (90). Una petición sin sesión y con `cs_viewer` válida recibe el horizonte de ese jugador en lectura (`readOnly: true`: no escribe progreso) y el aviso `Sign in to see results as you know them` (pantalla). Solo restringe: no autentica ni abre ninguna ruta privada (test en B12). Se borra con un cierre de sesión explícito. Alargar la sesión es de E4 y ayuda, pero no basta.
@@ -440,7 +439,6 @@ Distinciones, como mucho `BROADCAST.cardLinesMax` (3), en este orden: `wears_for
 **Precisada en la corrección, fase 5** (L7: §11.10; hallazgo Rdueno-043). Indexar el acta no es el requisito del dueño, que pide que sea pública ([DUEÑO 8]), sino la propuesta de `docs/motor.md` para la vista de espectador (l. 1510); y el buscador, con horizonte `anon`, deja el ganador en la lista de resultados. Se queda indexable por defecto y la elección va con DD-12; la otra cara es `X-Robots-Tag: noindex` en `/report`.
 
 > Versión anterior: El acta vive en `/world/races/:raceId/stages/:day/report`, pública e indexable (la vista de espectador de `docs/motor.md` Parte IV; «El mejor activo que tiene este juego hoy es la crónica de una etapa», `docs/captacion.md` l. 39-42).
-
 
 ### D-37 · La previa de N+1 y las órdenes
 
@@ -476,7 +474,6 @@ Distinciones, como mucho `BROADCAST.cardLinesMax` (3), en este orden: `wears_for
 
 > Versión anterior: Es como el dueño sigue cazando defectos en la radio de producción sin revelarse las etapas que quiere ver como espectador ni quedarse sin mirarlas.
 
-
 ### D-41 · Lo que no se vela, y lo que se ve de otros
 
 **Decisión.** Se enseñan sin velo la condición y los atributos del corredor propio (frescura, estrellas, cerillos, forma y `FormChart`, sup. H3: se necesitan para ordenar, DD-08), y los atributos de la ficha de cualquier corredor y las notas del preparador, que mueve lo aprendido en la etapa (sup. X11, 11-r); pero su `parte` de los días de carrera velados va a null (sup. H4) y el informe del bloque y la tendencia (`/api/riders/me/report` y `/trend`, `routes/riders.ts` l. 447-477, que suman un aprendizaje que multiplica TAC por 1,8 al ganar y 1,4 en el top 10, `learning.ts` l. 106-110) filtran esos días (sup. X1). `upcoming-races` y `my-orders` enmascaran un abandono velado (sup. X2; hoy la carrera desaparece, `riderSchedule.ts` l. 217); `/api/free-agents` resta los puntos velados (sup. X4, `browse.ts` l. 234). Una décima puerta, `sup. X10`: el planificador (`GET /api/riders/me/orders`) y su proyección (`POST /api/riders/me/plan/preview`) dejan de contar como de carrera, tras un abandono, los días que quedaban (`riderSchedule.ts` l. 47), y se enmascaran con `VeilDelta.abandons`, a la vez que `sup. X2` (11-b). `GET /api/teams/me/race-plan` no lee dinero y es `safe` (11-k). El presupuesto del equipo SÍ se vela por defecto: `stage_team_results.prize` le da libro (resta R, sup. P6), y la elección es del dueño (DD-26, 11-t), porque el premio de equipo solo lo cobra el equipo que gana la etapa o la general y el dinero de los equipos es su primera decisión de economía. Lo que el jugador ve de otros jugadores se ve con SU horizonte, nunca con el del dueño de esos corredores; lo visto por cada uno es privado: ninguna ruta devuelve `race_watch` de otro y no existe «3 players watching». Regla para E9: todo contenido de jugador colgado de una etapa lleva sellado el horizonte de su autor al escribirlo y solo se enseña a quien ha llegado a ese punto.
@@ -491,7 +488,6 @@ Distinciones, como mucho `BROADCAST.cardLinesMax` (3), en este orden: `wears_for
 
 > Versión anterior: Se enseñan sin velo la condición y los atributos del corredor propio (frescura, estrellas, cerillos, forma y `FormChart`, sup. H3: se necesitan para ordenar, DD-08);
 > Versión anterior: El presupuesto del equipo SÍ se vela: `stage_team_results.prize` le da libro (resta R, sup. P6).
-
 
 ### D-42 · Título de pestaña, historial, vista previa y correo
 
@@ -606,7 +602,6 @@ Distinciones, como mucho `BROADCAST.cardLinesMax` (3), en este orden: `wears_for
 **Precisada en la corrección, fase 5** (L7: §18.3, decisión 18-k; hallazgo Rcoste-039; medido con `coste/b10/b10.mjs`). El servicio `web` corre el tick en su proceso (`apps/api/src/index.ts` l. 56-85) y simular es síncrono: una etapa grande lo deja sin contestar de 3,3 a 4,8 s, más que el colchón de los modos rápidos. `AUTO_TICK` lo apaga sin tocar el servicio `tick`.
 
 > Versión anterior: `BROADCAST_WATCH` y `SPOILER_MODE` (`off`, `admins`, `on`) en `apps/api/src/env.ts`, publicados en `/health.features`; `TIMELINE_RECORD` (D-12).
-
 
 ### D-54 · El plan
 
@@ -726,7 +721,6 @@ Cada una con el valor por defecto, que es el que se implementa, y su consecuenci
 > | # | Decisión | Por defecto (se implementa) | Consecuencia y cifra |
 > | --- | --- | --- | --- |
 > | DD-01 | Qué carreras se protegen sin pedirlo | `guarded`: propias, de su equipo, seguidas y las 8 de cabecera | con `own_only`, la portada y las noticias pueden contar el Tour a quien no lo siguió a mano; con `guarded`, un jugador que no mira nada tiene como mucho 42 etapas veladas a la vez y su ranking va por detrás en esas carreras (medido por producto) |
-
 
 **Corregida en la corrección, fase 5** (L7: §11.2, §11.5, §11.10, §11.13 y §18.2; decisiones 11-r, 11-t, 11-u y 18-j; hallazgos Rcodigo-061, Rdueno-022, Rdueno-026, Rdueno-043 y Rcoste-012). DD-08 cubre también los atributos de la ficha de cualquier corredor (`sup. X11`, medido); DD-12, el acta en los buscadores, cuyo robot tampoco lleva cookie; DD-21 lleva la cifra de PostgreSQL 16 sin red y se mide desde Railway; la fila de DD-01 dice lo que enseña la ficha de una carrera fuera de guardia; y nace DD-26, el presupuesto del equipo con etapas veladas, que §11.13 velaba sin pasar por el dueño. §20.2 tiene que recogerlas.
 

@@ -1,0 +1,134 @@
+[
+ {
+  "id": "Rcobertura-037",
+  "estado": "aplicado",
+  "donde": "borrador/10-horizonte.md l. 21 (fila «revelada»), l. 26 (frase nueva) y l. 66 (comentario de LETTER_OF_MODE)",
+  "motivo": "Comprobado: 8-j (v0 l. 4152) y la comprobación 4 del reductor (l. 4107) impiden que un salto pase de lengthKm − 1, y 8-e (l. 4147) dice que un `seek` solo quedaría `R` si un cliente lo informara. La fila dice ahora «`Show result` (pantalla) o la tercera salida de la puerta», y una frase tras la tabla explica el `R` de `seek` como anotación defensiva."
+ },
+ {
+  "id": "Rcobertura-046",
+  "estado": "aplicado",
+  "donde": "borrador/14-api.md l. 157-158 (fila de riderRaceReportSchema.moments), l. 71 (paso 12 de la tabla de §14.1) y l. 447 (yesterday.test.ts con el omit anidado)",
+  "motivo": "Comprobado en `packages/shared/src/contracts.ts`: `riderRaceReportSchema` está en l. 1554-1569 y `chronicleEntrySchema`, declarado antes (l. 1262-1276), así que la ampliación carga sin tocar el orden. Se añade la fila `+ moments: z.array(chronicleEntrySchema).optional()` (12-k, PR 12), el paso 12 de la tabla de la web de ayer, y en §14.7 el `.omit` anidado, porque un `.omit` de `lastRaceResponseSchema` no llega a `report`. El caso del PR 12 en §17.15 va a cruzadas."
+ },
+ {
+  "id": "Rcobertura-047",
+  "estado": "aplicado",
+  "donde": "borrador/14-api.md l. 171-207 (bloque de la voz reescrito) y l. 210 («Por qué ese orden», en lugar de la frase de v0 l. 6939); borrador/10-horizonte.md l. 183 y 186-246 (computeHorizon en la forma D y lastRunStages), l. 252-262 (buildHorizon) y l. 265 (párrafo que sustituye a la frase de v0 l. 4717)",
+  "motivo": "Los dos bloques contradecían su prosa (dudas 2.1 y 2.2). §14.3: la ruta construye los sucesos con su hora, anota con `withGroupRoles` antes de atar las horas y ata `revealOf` sobre la copia, posición a posición (12-n), mete los racimos de `liveClusters` con su hora y quita sus sueltos, y solo el paso 4 depende del tramo; los pasos 1-3 usan `finishS` y no `toS` para poder guardarse por línea (§12.6). §10.6: la consulta 1 trae los ids del corredor y de la plantilla, la 2 filtra con `= any(sql.param(ids)::uuid[])` y la cuarta es `lastRunStages`, una vez por (worldId, currentDay), con la SQL de `l7/horizonte2.mjs` (releído); `tick.ts` l. 262-284 comprobado. B12 gana el caso del mapa del día (§10.14). El tipo de lo que devuelve `liveClusters` va a §12.3 por cruzada."
+ },
+ {
+  "id": "Rcobertura-048",
+  "estado": "aplicado",
+  "donde": "borrador/14-api.md l. 560 (StageWatch.tsx); borrador/10-horizonte.md l. 467 (regla 3 de §10.9)",
+  "motivo": "Comprobado: el último tramo acaba en `finishDs − 1` (§10.11), el reproductor no pinta más allá (v0 l. 3773) y `recordProgress` solo escribe la letra con `reachedS ≥ finishS`: el informe del borde devuelve `watching` y es `POST …/broadcast/finish` quien escribe la letra (§8.7, v0 l. 3986). Además, el paquete de meta no lleva `rev` (§4.11), así que la regla 3 decía algo que no pasa: la web invalida `['horizon']` al recibir el paquete, que es lo que ya dice D-35 («revelar o llegar a meta invalida ['horizon']»)."
+ },
+ {
+  "id": "Rcodigo-003",
+  "estado": "aplicado",
+  "donde": "borrador/14-api.md l. 101",
+  "motivo": "Comprobado: la cabecera de wire.ts en §4.11 (v0 l. 1795-1801) ya importa `z`, `stageGateSchema` y `BROADCAST`; repetir `stageGateSchema` da TS2300. El bloque de §14.2 importa solo `apiErrorBodySchema` (contracts.ts l. 32, comprobado) y lo dice en el comentario."
+ },
+ {
+  "id": "Rcodigo-019",
+  "estado": "aplicado",
+  "donde": "borrador/14-api.md l. 322-323 (viewer()); borrador/10-horizonte.md l. 403 (§10.7) y l. 590 (10-k)",
+  "motivo": "Comprobado: `package.json` l. 7-9 exige Node ≥ 22 (el entorno, v22.22.2), `apps/api/src/index.ts` no instala `unhandledRejection` (solo `main().catch`, l. 88-91) y el auto-tick va con try/catch (l. 63-80). La llamada es `void touchLastSeen(db, userId).catch((err) => request.log.warn(…))`, y §10.7 dice que vale para toda escritura lanzada sin esperar (también la del barrido de lo alcanzado); me.test.ts gana el caso."
+ },
+ {
+  "id": "Rcodigo-021",
+  "estado": "aplicado",
+  "donde": "borrador/14-api.md l. 250-251",
+  "motivo": "Comprobado: el bloque de §14.1 (l. 18-20) ya importa `type Horizon` en el mismo `spoiler.ts`. La importación de §14.5 lo quita y lo dice en un comentario; de paso importa `TtlMemo`, `SPOILER` y `getSessionCookie`, que usa el memo de la sesión (Rcoste-010)."
+ },
+ {
+  "id": "Rcodigo-034",
+  "estado": "aplicado",
+  "donde": "borrador/14-api.md l. 455, 467, 473, 475 y 572 (14-b)",
+  "motivo": "Releído `scratchpad/medida-etapas.json.txt`: las 22 etapas en línea van de 870,6 a 2.949 KB y de 22,2 a 100,1 KB con gzip (e20 2.941,6 y 100,1; Colombia e5 2.949 y 74,9), como dice el mapa 07 §7. Una precisión: el mapa 02 §7 midió cuatro etapas, no cinco. Se corrigen la frase de la compresión, la tabla, la frase final de §14.8 y 14-b (la radio es del 88 al 96 % y de 0,77 a 2,84 MB); la fila del paquete de meta avisa de que su estimación sale del acta del mapa 02 y que con el mapa 07 el acta sin radio va de 103 a 136 KB. B6 en §16.4 y §17.3 van a cruzadas."
+ },
+ {
+  "id": "Rcodigo-035",
+  "estado": "aplicado",
+  "donde": "borrador/14-api.md l. 218 (entrada de §14.4), l. 223 (firma), l. 228-237 (pseudocódigo), l. 240 (última frase) y l. 586 (14-p)",
+  "motivo": "Comprobado en v0: nadie lee `StageTimelineRead.known` (la ruta del tramo usa `tl`, la admisión y `stageAccessOf` leen `race_watch` y `stageGateOf`, `BroadcastHead.view.known` es la semántica de `WatchState`). `timelineForStage` devuelve `Promise<StageTimeline | null>` y conserva `h` (D-32), que sigue usando al llamar a `readStageTimeline`. Se descarta `unveiled`, que deja un campo sin lector. Cierra la duda 1.8. Quitar el tipo de §5.6 (con `_h`, porque `noUnusedParameters` está en `tsconfig.base.json` l. 19), §G.4 y §21.6 va a cruzadas."
+ },
+ {
+  "id": "Rcodigo-049",
+  "estado": "parcial",
+  "donde": "borrador/10-horizonte.md l. 179 (el test y las cuatro exclusiones) y l. 582 (10-c)",
+  "motivo": "Comprobado: `l6/lecturas.mjs` es texto, solo ve `export function` y no tiene `stageTimelines`; releído sobre `packages/db/src`, 57 lecturas y ningún `export const` con métodos. Prototipo nuevo con el AST y el comprobador de tipos (`c-l6/lecturas-ast2.mjs`): 61 lecturas, incluye los ayudantes no exportados, resuelve el tipo del segundo parámetro de un método tipado por contexto y ve las dos formas que el texto no ve (0 de 2 frente a 2 de 2 en un fichero sintético); unos 5 s. Encontró además `draftRace` y `undraftRace` (leen `teams.budget` por `ownedTeam`, `teamPlan.ts` l. 205-219, sin devolverlo), que van a la lista con su motivo. Parcial porque no se añade `raceWatch` a las fuentes: `race_watch` no es una fuente de D-32 (no guarda resultados), `readWatch` solo lee la fila del propio espectador por `WatchKey`, y exigirle `Horizon` no protege nada. Cierra la duda 1.9. §17.11 va a cruzadas."
+ },
+ {
+  "id": "Rcodigo-052",
+  "estado": "aplicado",
+  "donde": "borrador/14-api.md l. 95, l. 449 (§14.7) y l. 577 (14-g)",
+  "motivo": "Re-medido con el Fastify 5.11.2 del repositorio (`c-l6/fplain.mjs`, copia de `rcod/n/fplain.mjs`): con `application/json`, `typeof request.body` es `object`; con `text/plain;charset=UTF-8`, `string`. La frase de §14.2 dice ahora que llega como cadena y el manejador la pasa por `JSON.parse` en un `try` antes del `safeParse`; una cadena que no es JSON da 400 `validacion` (y me.test.ts lo prueba)."
+ },
+ {
+  "id": "Rcodigo-057",
+  "estado": "aplicado",
+  "donde": "borrador/14-api.md l. 558 y l. 588 (14-r)",
+  "motivo": "Comprobado: `apps/web/src/main.tsx` l. 11 crea el cliente y el `QueryClientProvider` está en l. 22-26. El vigilante es un componente `<HorizonWatcher />` dentro del proveedor, junto a `<BrowserRouter>`, porque `authClient.useSession()` es un hook."
+ },
+ {
+  "id": "Rcoste-010",
+  "estado": "parcial",
+  "donde": "borrador/10-horizonte.md l. 118 («Las lecturas») y l. 120 («Las dos caras»), l. 593 (10-n); borrador/14-api.md l. 318-324 (viewer() con el memo de la sesión)",
+  "motivo": "Comprobado: `routes/context.ts` l. 51 llama a `getSession` en cada petición y `auth.ts` no configura `session`; better-auth 1.6.25 va a la base con `findSession` (`session.mjs` l. 179). Aplicado el diagnóstico con cifras acotadas: el pico de 2,7 a 10,5 peticiones por segundo dura lo que la zona, y un modelo (`c-l6/peticiones.mjs`) da de 33 a 60 peticiones por etapa y 58 en el peor minuto con `Highlights` ×4 o `Next action`. El remedio no es el propuesto, y las dos caras van escritas en §10.3: `createCurrentUserId` llama a `getSession` sin `returnHeaders`, así que better-call tira la cookie que renueva `cookieCache` (better-call 1.3.7, `dist/endpoint.mjs` l. 38-52; `session.mjs` l. 249) y la caché solo vive mientras la web llama a `/api/auth/get-session`; cuando se renueva cambia la cabecera `Cookie` contra `Vary: Cookie` (lo que pide Rcoste-014); y es configuración de E4. Se elige un memo de 60 s de la sesión en `request.viewer()` (10-n), con el mismo coste de revocación. La fila de §18.4 y la medida de cien espectadores del paso 10 (§18.9) van a cruzadas."
+ },
+ {
+  "id": "Rcoste-011",
+  "estado": "aplicado",
+  "donde": "borrador/10-horizonte.md l. 376-400 («Los memos no crecen» y `TtlMemo`), l. 186-228 (computeHorizon usa el memo), l. 322 (veilDelta), l. 116 (memoria de lo alcanzado), l. 564 (B12) y l. 592 (10-m)",
+  "motivo": "Comprobado: el código de v0 l. 4676-4696 solo hace `get` y `set`. Re-medido: `coste/memo/memo.mjs` da 9 y 35 KB por entrada, y `c-l6/veildelta-forma.mjs`, con la forma de `VeilDelta` (Maps agregados), 180 KB el mánager y 75 KB el jugador. Los memos son un `TtlMemo` (borra la caducada al leer, barre las caducadas en cada `set`, tope) y la memoria de lo alcanzado se borra al conocer la etapa y se barre a los 60 s sin informe, escribiendo antes lo que falta; la clase compila con `tsconfig.base.json` y cumple las tres reglas en una prueba (`c-l6/ts/memo.ts`). Dos cambios sobre la propuesta, con su porqué: el tope es 500 y no 2.000 (con 180 KB por `VeilDelta` serían 351 MB en el peor caso), y no se vacía al cambiar `currentDay` porque el barrido ya quita las claves de otro día en un minuto. La constante, 18-c, §18.4, B12 en §16.4 y el riesgo 13 van a cruzadas."
+ },
+ {
+  "id": "Rcoste-014",
+  "estado": "aplicado",
+  "donde": "borrador/10-horizonte.md l. 409 (§10.8), l. 455 (tabla), l. 469 (regla 5) y l. 586 (10-g); borrador/14-api.md l. 334-335 (onSend), l. 484 y 490 (§14.9), l. 445 (test) y l. 583 (14-m)",
+  "motivo": "Comprobado: `signViewerCookie` lleva la hora de emisión en segundos, y la tabla de §14.9 y 10-g la re-firmaban en cada respuesta; con `Vary: Cookie` (RFC 9111 §4.1) ningún tramo guardado casaba con la petición siguiente. `cs_viewer` se renueva solo si falta, no vale, es de otro usuario o tiene más de un día (`readViewerCookie` ya devuelve `issuedAtS`), y broadcast.test.ts fija que dos tramos seguidos con una cookie de hace una hora no llevan `Set-Cookie`. D-35 precisada."
+ },
+ {
+  "id": "Rcoste-017",
+  "estado": "aplicado",
+  "donde": "borrador/14-api.md l. 240",
+  "motivo": "Re-medido `coste/zod/decode.mjs` sobre las ocho líneas de `l7/stored`: Zod de 0,33 a 13,4 ms de mediana (el refutador, de 0,4 a 14,5) y 60,7 ms la primera llamada del proceso. Con los 2,7-7,1 ms de §5.6, servir un tramo sin la línea en el LRU cuesta de 3 a 22 ms antes de cortar, y de 50 a 60 ms la primera vez; el 1,3-4,7 ms de `datos` es de su formato. §18.10 y §18.2 van a cruzadas."
+ },
+ {
+  "id": "Rcoste-018",
+  "estado": "aplicado",
+  "donde": "borrador/10-horizonte.md l. 468 (regla 4); borrador/14-api.md l. 545-550 (`horizonKey` con `rev` opcional, `cacheOwnerChanged`, `SessionSeen`), l. 558 y l. 588 (14-r)",
+  "motivo": "Comprobado: `ProtectedRoute.tsx` l. 7-9 usa `isPending`, y la regla decía «cuando cambia, en cualquier sentido». El vigilante compara con el último valor resuelto (`cacheOwnerChanged`, pura) y `useHorizonRev()` devuelve `undefined` mientras `['horizon']` no responde, con `enabled: rev !== undefined`; el coste es un viaje de ida y vuelta, escrito. El caso «la primera carga pide cada consulta una vez» no se puede renderizar sin DOM (§18.5): lo garantizan la prueba de `cacheOwnerChanged` con sus cinco pasos y la comprobación estática del `enabled` en `queryKeys.test.ts`."
+ },
+ {
+  "id": "Rcoste-023",
+  "estado": "aplicado",
+  "donde": "borrador/14-api.md l. 240 y l. 586 (14-p)",
+  "motivo": "Comprobado: el adaptador valida la radio con `storedRaceRadioSchema` (`chronicle.ts` l. 1257) y lee los maillots con `leadersThroughStage` (`routes/races.ts` l. 108). §14.4 dice ahora que son dos LRU de 16, hasta el doble de memoria (de 16 a 60 MB, estimado), y que el adaptador en frío no se ha medido (el adaptador no existe): del orden de decenas de ms, estimado con los 10-27 ms de `buildRaceRadio` del mapa 02 §7, que lo mide el paso 3a. §18.2, §18.9, 18-d y el riesgo 13 van a cruzadas."
+ },
+ {
+  "id": "Rdueno-023",
+  "estado": "aplicado",
+  "donde": "borrador/10-horizonte.md l. 127 (§10.4, punto 2); borrador/00-decisiones.md D-30 (decisión y bloque «Corregida en la corrección, fase 5») y fila de DD-01",
+  "motivo": "Comprobado: seguir al empezar a ver lo decide D-30 y no está en §20; el dueño pidió «News + Race Radio + journal, y sin destripe» (`docs/encargos.md` l. 680). Se escribe como defecto que se implementa, con su consecuencia y su contraria, y va al dueño dentro de DD-01 (la fila de DD-01 de 00-decisiones.md ya lo lleva). §20.2 y §11.20 van a cruzadas."
+ },
+ {
+  "id": "Rdueno-024",
+  "estado": "aplicado",
+  "donde": "borrador/10-horizonte.md l. 130 (§10.4); borrador/00-decisiones.md D-30 y fila de DD-01",
+  "motivo": "Comprobado: `docs/captacion.md` l. 100-101 es el mensaje de captación de un foro y l. 3 dice «plan operativo. No es diseño de producto». Se quita la cita y se escribe el porqué propio, con la cifra de la tercera respuesta medida con la cuenta de `e2prod/headline.mjs` sobre las 842 carreras (`c-l6/todas.mjs`): todas en guardia dan 202 etapas veladas a la vez en la mediana, 601 en el p90 y 669 como máximo, alguna en 356 días de 364, y un velo de hasta 669 entradas (contra 7, 29 y 42 con las de cabecera, que reproduce la cifra de `producto`). D-30 corregida con la versión anterior en cita. §20.2 y §20.3 van a cruzadas."
+ },
+ {
+  "id": "Rcoste-044",
+  "estado": "parcial",
+  "donde": "borrador/14-api.md l. 214 (§14.3), l. 350-367 (§14.5, límite propio y `PLAYER_RATE_LIMIT`), l. 537 (`ApiError.retryAfterS`), l. 445 (tests) y l. 587 (14-q); borrador/10-horizonte.md l. 527 (§10.12, el 429)",
+  "motivo": "Es del lote L9 por su `seccion` (§19.1); el orquestador lo asignó también a L6, y aquí se aplica solo lo que cae en §10 y §14. Comprobado: `GLOBAL_RATE_LIMIT` es 300 por minuto e IP (`security.ts` l. 10; `app.ts` l. 108-121, `global: true`, `trustProxy` en l. 73), y en `@fastify/rate-limit` 11.2.0 una ruta con `config.rateLimit` propio lleva su contador y su gancho en lugar del global (`index.js` l. 172-186); el plugin pone `retry-after` en todo 429 (l. 359). La cuenta del refutador exagera: 160 por minuto es un ritmo que dura lo que la zona (unos 10 s), y el modelo `c-l6/peticiones.mjs` da como mucho 58 peticiones en el peor minuto por espectador, así que dos espectadores de una etapa no llegan a 320; el riesgo es de varias personas tras la misma IP con navegación y reanudaciones, y de un 429 que nadie decía cómo tratar. Aplicado: límite propio por usuario (1.200) o IP (300) y 429 con `retry-after` y `Loading`. El riesgo 31 de §19.1 y el caso de B18 en §16.4 van a cruzadas."
+ },
+ {
+  "id": "Rdueno-002",
+  "estado": "parcial",
+  "donde": "borrador/14-api.md l. 66 (paso 7b de la tabla de §14.1), l. 535 (`fetchCalendarStage` con `diag`) y l. 589 (14-s); borrador/10-horizonte.md l. 538 (§10.13, fila `admins`)",
+  "motivo": "Es del lote L10 por su `seccion` (§20.5); el orquestador lo asignó también a L6, y aquí se aplica solo lo que cae en §10 y §14, con la corrección principal del hallazgo (adelantar al 7b la parte mínima de D-40). Comprobado: `fetchCalendarStage` pide `/api/races/${raceId}/stages/${day}` sin parámetros (`apps/web/src/api/results.ts` l. 51-55), y la llaman `StageReplay.tsx` l. 338-339 y `Race.tsx` l. 515 y 531. El 7b hace que reenvíe `?diag=1` de la página, con `diag` en la clave y su test; el botón `Diagnostic view` sigue en el 9a. §17.10, §17.18, §20.5 y §11.15 van a cruzadas."
+ }
+]
