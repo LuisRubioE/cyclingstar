@@ -1,0 +1,242 @@
+[
+ {
+  "id": "Rcobertura-038",
+  "seccion_destino": "§16.6",
+  "que": "Fila nueva en la tabla de §16.6: «| `?tab=` y `?cls=` de una etapa no conocida pintan la puerta y no la tabla, y `?tab=story` abre `report` (`sup. E9`) | `apps/web/src/pages/stageTables.test.tsx` (9a) y `apps/web/src/domain/raceTabs.test.ts` (9b) | §11.8, §11.17 | 9a y 9b |»."
+ },
+ {
+  "id": "Rcobertura-038",
+  "seccion_destino": "§17.12",
+  "que": "PR 9a, «Tests primero»: «`apps/web/src/pages/stageTables.test.tsx` se amplía: con la etapa no conocida y la URL con `?tab=result&cls=kom`, o con `?tab=classifications`, la ficha de etapa pinta `StageGateCard` y no la tabla (`sup. E9`, §11.19)»."
+ },
+ {
+  "id": "Rcobertura-038",
+  "seccion_destino": "§21 (D.5)",
+  "que": "Fila de `sup. E9`: «Cierra» pasa a «7b · 9a y 9b» y «Banco» a «`stageTables.test.tsx` (9a) y `raceTabs.test.ts` (9b)», como §11.1."
+ },
+ {
+  "id": "Rcobertura-039",
+  "seccion_destino": "§21 (D.5)",
+  "que": "Fila de `sup. C3`: «8a · 9a» pasa a «8a · 9b», como §11.1."
+ },
+ {
+  "id": "Rcobertura-041",
+  "seccion_destino": "§21 (D.5)",
+  "que": "Filas de `sup. W3` y `sup. W6`: el banco «lista blanca de B1b» pasa a «B1d (L con motivo; su respuesta no cambia con la etapa, §11.18)», como §11.1."
+ },
+ {
+  "id": "Rcobertura-058",
+  "seccion_destino": "§19.1 (riesgo 13)",
+  "que": "Probabilidad: «media: con 16 entradas, de 8 a 30 MB, y hasta el doble con la LRU del adaptador (18-d); un LRU de 64 ocuparía de 33 a 121 MB (L3)». Defensa: «`decodedCacheEntries` nace en 16 (§15.3), y su tasa de acierto se mide un día pico y tras un despliegue (§18.9)». Paso: «3a y 6». Recoge también Rcoste-023 (dos LRU de 16)."
+ },
+ {
+  "id": "Rcodigo-029",
+  "seccion_destino": "§21 (apéndice A, I-09)",
+  "que": "«el LRU baja de 64 a 16 entradas (18-d)» pasa a «el LRU es de 16 entradas desde que nace (18-d)»."
+ },
+ {
+  "id": "Rcodigo-029",
+  "seccion_destino": "dudas.md (1.11)",
+  "que": "La duda 1.11 queda cerrada: `decodedCacheEntries` es 16 desde que existe (§15.3); 18-d dice «nace en 16» y §18.2 y §18.10 lo siguen (paso 3a)."
+ },
+ {
+  "id": "Rcodigo-037",
+  "seccion_destino": "§17.12 y §17.20",
+  "que": "PR 9b, «Código»: `raceTabs.ts` como el bloque de §11.17 (`RACE_TAB_LABEL` con `watch` y `report` y sin `story`, `ONE_DAY_TABS` sin `finished`, `defaultRaceTab(status, stageCount, known)`, `oneDayStageTab` que da null sin pestaña pedida y `oneDayStageTarget` que entonces no pone `tab`), y `Race.tsx` l. 595 pasa `known = watch?.known ?? true`. «Tests primero»: los casos de `raceTabs.test.ts` que esperan `story` (l. 33-34, 46-47, 67-68 y 84-86) se re-sellan. La fila de `raceTabs.ts` en §17.20 nombra las mismas funciones."
+ },
+ {
+  "id": "Rcodigo-061",
+  "seccion_destino": "§16.3",
+  "que": "`B1B_WHITELIST` copia la tabla de §11.18 fila a fila, que ahora lleva la columna «Campos (`strip`)» y dos filas nuevas: `['GET /api/riders/me/coach-view', ['coachView.notes']]` y `['GET /api/riders/:id', ['rider.attributes']]`; B1C_WHITELIST las hereda. Y el barrido de B1b quita además lo de la segunda tabla de §11.18 (Rcodigo-063)."
+ },
+ {
+  "id": "Rcodigo-061",
+  "seccion_destino": "§20 (§20.2, DD-08)",
+  "que": "Fila de DD-08: «Condición y atributos del corredor propio, y atributos de cualquier corredor en su ficha | visibles (L, en la lista blanca de B1b) | … en la ficha ajena, la etapa velada sube TAC de +0,37 a +0,41 y el ganador no es el que más sube (medido en el mundo de B1, `rcod/n/b1/attrs.mjs`; `sup. X11`); velarla exigiría restar `rider_attr_log`, que se purga a los 60 días (`tick.ts` l. 171-178) | `GET /api/riders/me`, `/form`, `/coach-view` y los atributos de `GET /api/riders/:id` (§11.13, §11.18)», como la fila ya corregida en `00-decisiones.md`."
+ },
+ {
+  "id": "Rcodigo-061",
+  "seccion_destino": "§0",
+  "que": "Las cuentas de puertas: «las 48 superficies y las diez puertas de fuera» pasa a «las once», y «`sup. X1` a `sup. X10`» a «`sup. X1` a `sup. X11`», con `sup. X11`, los atributos de la ficha de cualquier corredor (§11.2)."
+ },
+ {
+  "id": "Rcodigo-061",
+  "seccion_destino": "§1 (§1.6)",
+  "que": "Donde §11.2 «añade una décima, `sup. X10`», añadir «y una undécima, `sup. X11`: la ficha de cualquier corredor manda sus atributos, que mueve lo aprendido en la etapa velada (TAC de +0,37 a +0,41 en el mundo de B1, medido)»."
+ },
+ {
+  "id": "Rcodigo-061",
+  "seccion_destino": "§2 (§2.5)",
+  "que": "«41 de 48 superficies, diez puertas de fuera y 52 rutas `GET`» pasa a «once puertas de fuera»."
+ },
+ {
+  "id": "Rcodigo-061",
+  "seccion_destino": "§21",
+  "que": "I-29: «con cambio: una décima puerta, `sup. X10` (11-b)» gana «y una undécima, `sup. X11` (11-r)»; O-32 y la fila del punto 3 del encargo, «diez puertas» a «once»; D.5, el título a «las once puertas de fuera» y una fila «| `sup. X11` | los atributos de la ficha de cualquier corredor | L (DD-08) | 8a | lista blanca de B1b; B1c |»; y la tabla final de identificadores, `sup. X1` a `sup. X11`."
+ },
+ {
+  "id": "Rcodigo-061",
+  "seccion_destino": "§10.6",
+  "que": "En la tabla de lectores, la fila de `browse.ts` (`getPublicRider`) gana «L para los atributos (DD-08, `sup. X11`)», y la de `packages/db/src/riders.ts`, si nombra `getCoachView`, «L para las notas del preparador (DD-08)»."
+ },
+ {
+  "id": "Rcoste-012",
+  "seccion_destino": "§0 (§0.7)",
+  "que": "La cifra de B14 gana «en PostgreSQL 16 nativo, sin red, 2,16 ms el jugador y 3,88 el mánager (medido, `coste/pgm/horizonte-pg.mjs`); falta la red de Railway, tres idas y vueltas por cálculo (§18.2)»."
+ },
+ {
+  "id": "Rcoste-012",
+  "seccion_destino": "§19.1 (riesgo 8)",
+  "que": "Probabilidad: «baja: el mánager da 3,88 ms en PostgreSQL 16 sin red y de 8,6 a 9,3 en PGlite (§18.2); falta la red de Railway». Defensa: «la puerta de DD-21 es la medida desde el servicio `web` de Railway contra una copia de producción (§18.9, 18-j)»."
+ },
+ {
+  "id": "Rcoste-012",
+  "seccion_destino": "§20 (§20.2 y el párrafo de DD-21)",
+  "que": "Por defecto: «`SPOILER_MODE` no pasa a `on` hasta que el mánager de un equipo de 30 pase el p95 ≤ 5 ms medido desde el servicio `web` de Railway contra una copia de la base de producción rellenada hasta 250.000 filas de `race_rosters`». Consecuencia: añadir «en PostgreSQL 16 sin red, 2,16 ms el jugador y 3,88 el mánager (§18.2); falta la red». Como la fila de `00-decisiones.md`."
+ },
+ {
+  "id": "Rcoste-012",
+  "seccion_destino": "§17.10 y §17.13",
+  "que": "La medida de B14 del paso 7 es «desde el servicio `web` de Railway contra una copia de la base de producción rellenada hasta 250.000 filas de `race_rosters`, una vez» (§18.9), no «contra Postgres de producción»; y el punto 5 del 10b dice «el mánager de B14 dentro en esa medida»."
+ },
+ {
+  "id": "Rcoste-015",
+  "seccion_destino": "§10.6 y §10.7",
+  "que": "El total del mundo del día de R (el ranking) se guarda como `lastRunStages`, que §10.6 ya escribe así: una promesa por `(worldId, currentDay)` que comparten las peticiones que llegan a la vez tras el tick y que se borra si falla (11-s)."
+ },
+ {
+  "id": "Rcoste-015",
+  "seccion_destino": "§16.4 (B12) y §17.11",
+  "que": "B12 gana el caso «veinte peticiones a la vez el día nuevo hacen una sola cuenta del total del ranking y de `lastRunStages`; si la cuenta falla, la siguiente petición la repite» (11-s), en el 8b."
+ },
+ {
+  "id": "Rcoste-039",
+  "seccion_destino": "§19.1",
+  "que": "Riesgo nuevo: «el tick que corre dentro de `web` congela las peticiones mientras simula | media: una etapa grande deja la web sin contestar de 3,3 a 4,8 s, un nacional de 0,7 a 0,8 (§18.3) | `Loading` en `Highlights` ×4 y `Next action` | `AUTO_TICK=off` en `web` cuando existe el servicio `tick` (18-k) | el tramo servido durante el tick del 179 (§18.9) | 5»."
+ },
+ {
+  "id": "Rcoste-039",
+  "seccion_destino": "§14.6 y §15.8",
+  "que": "Interruptor nuevo `AUTO_TICK` (`on` | `off`, `on` por defecto, como hoy) en `apps/api/src/env.ts`: `index.ts` solo arranca `autoTick` (l. 56-85) con `on`, y Railway lo pone a `off` en `web` cuando existe el servicio `tick` (18-k, D-53 precisada)."
+ },
+ {
+  "id": "Rcoste-039",
+  "seccion_destino": "§17.8",
+  "que": "PR 5, «Código»: `AUTO_TICK` en `env.ts` e `index.ts`. «Medidas»: el p95 de `GET …/broadcast/chunk` servido mientras `web` corre el día 179, con `AUTO_TICK` en `on` y en `off` (§18.9)."
+ },
+ {
+  "id": "Rcoste-040",
+  "seccion_destino": "§17.6",
+  "que": "PR 3c: «pesa la página de etapa compilada (los módulos que carga `/world/races/:raceId/stages/:day`, con gzip 6) antes y después, y escribe el crecimiento en su descripción y en §18.9; si pasa de 40 KB comprimidos, `Watch` se carga con `import()` diferido» (§18.5)."
+ },
+ {
+  "id": "Rcoste-041",
+  "seccion_destino": "§8.11 y §8.12",
+  "que": "`PlayerEffect` gana `{ readonly k: 'release'; readonly stageDay: number }` (o lo devuelve la función que encadena el digest), y `player.test.ts` (10a) comprueba que, al empezar la etapa k + 1 del digest, se pide soltar los tramos y la línea de la k − 1 y nunca hay más de dos etapas cargadas (18-e)."
+ },
+ {
+  "id": "Rcoste-041",
+  "seccion_destino": "§17.13",
+  "que": "PR 10a, «Tests primero»: `player.test.ts` gana el caso de 18-e (al empezar la etapa k + 1 del digest suelta la k − 1; nunca más de dos cargadas)."
+ },
+ {
+  "id": "Rdueno-022",
+  "seccion_destino": "§20 (DD-01)",
+  "que": "La consecuencia de DD-01 gana: «fuera de guardia, la ficha de carrera enseña el ganador de la carrera y el de cada etapa aunque no se hayan visto, mientras la etapa abre en `Watch` (§11.5, 11-u); la tercera respuesta, todas las carreras, lo evita», como la fila de `00-decisiones.md`."
+ },
+ {
+  "id": "Rdueno-026",
+  "seccion_destino": "§20",
+  "que": "Decisión nueva DD-26, ya en `00-decisiones.md`: «| DD-26 | El presupuesto del equipo con etapas veladas | velado: el de antes de los premios de equipo de las etapas veladas (R, §11.13, 11-t) | el mánager planifica con menos dinero del que tiene, sin que nada se le bloquee (`draftRace` no mira el presupuesto); visible, como DD-08, dejaría legible la victoria, porque el premio de equipo solo lo cobra el equipo que gana la etapa (3.000, 1.500 o 500) o la general | `VeilDelta.budget` en el 8b (§11.13) |». La cuenta de §20 pasa de veinticinco a veintiséis decisiones, y DD-26 va con las que son «un texto o un comportamiento de la web o de la API»."
+ },
+ {
+  "id": "Rdueno-039",
+  "seccion_destino": "§14.2",
+  "que": "`GET /api/calendar/:raceId`, `GET /api/news` y `GET /api/teams/:id/news` aceptan `?diag=1` (esquema con `diag: z.literal('1').optional()`, como `stageQuerySchema`): para un administrador con sesión se sirven con `worldHorizon`; para cualquier otro el parámetro se ignora y la respuesta es la misma byte a byte (11-h)."
+ },
+ {
+  "id": "Rdueno-039",
+  "seccion_destino": "§10.9",
+  "que": "Las claves de React Query de la ficha de carrera y de los feeds llevan `diag`, como las de las rutas de etapa."
+ },
+ {
+  "id": "Rdueno-039",
+  "seccion_destino": "§17.11 y §17.12",
+  "que": "8a: el `?diag=1` de la ficha de carrera y del feed en la API y `apps/api/src/diagMode.test.ts` (nuevo; §11.19). 9b: la franja `Diagnostic view · not counted as watched` y el botón `Diagnostic view`, solo para administradores, en la ficha de carrera y en el feed."
+ },
+ {
+  "id": "Rdueno-039",
+  "seccion_destino": "§20 (§20.5)",
+  "que": "Donde dice el modo diagnóstico `?diag=1` «que le sirve la etapa sin velo y sin gastarla», añadir «y la ficha de carrera y el feed (11-h)»."
+ },
+ {
+  "id": "Rdueno-043",
+  "seccion_destino": "§14.10",
+  "que": "Tras el `og:description` de DD-12: «el robot de un buscador tampoco lleva cookie, así que indexa el acta con el ganador; si el dueño elige no indexarla (DD-12), `/report` se sirve con `X-Robots-Tag: noindex`» (§11.10)."
+ },
+ {
+  "id": "Rdueno-043",
+  "seccion_destino": "§20 (DD-12 y §20.8)",
+  "que": "Fila de DD-12: «Vista previa del acta compartida, y el acta en los buscadores | … ; el acta, indexable | … el robot de un buscador tampoco lleva cookie y guarda el acta con el ganador; la alternativa es no poner nunca un resultado en una vista previa, y `X-Robots-Tag: noindex` en `/report` (§11.10)». En §20.8, «pública e indexable en `/report`» pasa a «pública, e indexable por defecto (DD-12)»."
+ },
+ {
+  "id": "Rcoste-003",
+  "seccion_destino": "§4.5 (paso 9)",
+  "que": "Añadir: «`crudo(g, s_g)` se guarda por `(g, k_g)`: `s_g` solo cambia cuando `g` cruza un punto de foto, así que el instante en `s_g` se calcula una vez por grupo y km y no en cada fotograma (con la aproximación de §18.1: sin memo, p95 de 0,064 a 0,804 ms por fotograma; con él, de 0,017 a 0,052)»."
+ },
+ {
+  "id": "Rcoste-003",
+  "seccion_destino": "§0 (§0.7)",
+  "que": "La cifra de `instantAt`: «p99 de 0,036 a 0,056 ms sin el paso 9; con el paso 9 memorizado por `(g, k_g)`, p95 de 0,017 a 0,052 ms, y sin memo de 0,064 a 0,804 (§18.1)»."
+ },
+ {
+  "id": "Rcoste-021",
+  "seccion_destino": "§16.4 (B8), 16-m y §16.9",
+  "que": "Umbral fijo: p95 de `instantAt` ≤ 0,25 ms en Node, con el paso 9 memorizado por `(g, k_g)`; se borra «si su p95 pasa de 0,05 ms, el umbral pasa a cinco veces lo medido»: si la implementación del 6a no cabe, se optimiza antes de fusionar o se decide con la cifra en el PR (18-l)."
+ },
+ {
+  "id": "Rcoste-045",
+  "seccion_destino": "§16.4 (B8), 16-m y §17.9",
+  "que": "La muestra de `instantAt`: todos los fotogramas de las seis congeladas a pasos de 1 s de carrera, con el p95 sobre todos, y aparte los 600 seguidos del tramo de más grupos vivos de la e20; no 600 seguidos sin decir de dónde, ni 600 repartidos uno cada `finishS / 600`, que el memo no aprovecha (§18.1, 18-l). En el PR 6a (`clientCost.test.ts`), lo mismo."
+ },
+ {
+  "id": "Rcoste-020",
+  "seccion_destino": "§16.4 (B14), 16-k y §16.9",
+  "que": "B14 mide contra el Postgres de servicio del job `test` (`postgres:17-alpine`, `ci.yml` l. 33-48) en una base propia con `TEST_DATABASE_URL` (propia porque `calendarConcurrency.test.ts` usa esa variable y vacía el esquema), preparada con `resetRealTestDb` y leída con `realTestDatabaseUrl()` (`testDb.ts` l. 102-124): el jugador y `recordProgress`, puerta a 5 ms; el mánager, impreso. Sin esa base, en PGlite, imprime los p95 y falla solo por encima de 15 ms. Cifras de la fila: por el socket de `testDb.ts`, jugador de 2,55 a 4,97 ms y `recordProgress` de 2,63 a 5,08; en PostgreSQL 16 sin red, 2,16 y de 2,44 a 3,25 (18-j)."
+ },
+ {
+  "id": "Rcoste-020",
+  "seccion_destino": "§17.10",
+  "que": "PR 7a: el job `test` de `.github/workflows/ci.yml` crea una base para B14 en el Postgres de servicio y exporta `TEST_DATABASE_URL` hacia ella; `horizonLatency.test.ts` la usa como dice §16.4 (18-j)."
+ },
+ {
+  "id": "Rcoste-020",
+  "seccion_destino": "§10.7",
+  "que": "«B14 lo sella en el paso 7 … el jugador es la puerta en la suite rápida (p95 de 3,1 a 3,7 ms…)» pasa a «B14 lo sella desde el 7a contra el Postgres del CI (18-j): el jugador y `recordProgress` son puerta; en PGlite solo informa»."
+ },
+ {
+  "id": "Rcoste-030",
+  "seccion_destino": "§19.1 y §17.1",
+  "que": "§18.3 remite la defensa a §17.1 (regla 9) y §13.1: que las dos la lleven (`runMigrations` toma antes el candado del tick y fija un `lock_timeout`), y que §19.1 tenga el riesgo «una migración al arrancar con un día del tick abierto para la web el resto del día», con la cola medida (de 7,4 a 7,9 s tras 8 s de tick, `coste/pgm/cola.mjs`)."
+ },
+ {
+  "id": "Rcoste-004",
+  "seccion_destino": "§5.6",
+  "que": "A los «2,7 a 7,1 ms» de leer una línea en frío, sumar el `parse` de Zod: de 0,4 a 14,5 ms de mediana y hasta unos 50 ms la primera llamada (`coste/zod/decode.mjs`): de 3 a 22 ms, como §18.2."
+ },
+ {
+  "id": "Rcoste-017",
+  "seccion_destino": "§14.4",
+  "que": "«de 1,3 a 4,7 ms (medido por `datos`)» pasa a «con la línea en la LRU, de 0,23 a 1,00 ms; sin ella, de 3 a 22 ms más el corte (medido por partes, §18.2)»."
+ },
+ {
+  "id": "Rcoste-002",
+  "seccion_destino": "§0 (§0.7) y §16.4 (B15)",
+  "que": "La cifra del tick es «proyectada: 153 veces la media de 30 nacionales élite con el prototipo y reparto sintético, sin sub-23, sin `buildTimelineCast` y sin escribir; la escritura de las 153 filas, medida aparte, de 0,07 a 0,15 s» (§18.3); y B15 corre los días 176 y 179 enteros, sub-23 incluidos, con `buildTimelineCast` y la escritura reales."
+ },
+ {
+  "id": "Rcodigo-055",
+  "seccion_destino": "dudas.md (1.12)",
+  "que": "La duda 1.12 queda cerrada: la tabla de §11.18 lleva la columna «Campos (`strip`)» fila a fila, y `B1B_WHITELIST` la copia."
+ }
+]

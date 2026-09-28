@@ -76,7 +76,7 @@ Base del documento: `propuestas/ingeniero.md` (suma de puntuaciones, 92,5 puntos
 | el reparto servido | el reparto congelado ya degradado por el velo de quien mira (`veilCast`) y convertido en rótulos (`serveCast`; §7.8, §10.10) |
 | la forma D | cómo consulta `computeHorizon`: los ids del espectador por delante, `rider_id = any(ids)` y la última etapa corrida de cada carrera una vez por día de juego (18-a, §18.2) |
 | el sello | la posición del autor en una carrera, en segundos de carrera, que lleva el contenido de un jugador para E9 (`AuthorStamp`, 11-n) |
-| la puerta de fuera | una pantalla o ruta que filtra un resultado sin estar entre las 48 superficies del mapa 03 (`sup. X1` a `sup. X10`, §11.2) |
+| la puerta de fuera | una pantalla o ruta que filtra un resultado sin estar entre las 48 superficies del mapa 03 (`sup. X1` a `sup. X11`, §11.2) |
 
 ---
 
@@ -125,7 +125,7 @@ Base del documento: `propuestas/ingeniero.md` (suma de puntuaciones, 92,5 puntos
 | `apps/api/src/routes/me.ts` | `/api/me/watch`, `/reveal`, `/follow`, `/spoiler-scope`, `/horizon` | nuevo |
 | `apps/api/src/chronicle.ts` | `BuildChronicleOptions.live` | tocado |
 | `apps/api/src/emails.ts` | `stageReadyEmail(p, ownRiderOnStartlist, url): MailBody` (11-d) | tocado |
-| `apps/api/src/env.ts` | `BROADCAST_WATCH`, `SPOILER_MODE` (web) y `TIMELINE_RECORD` (web y tick); `PROGRESS_MIN_DELTA_S` (web, opcional: 15-j) | tocado |
+| `apps/api/src/env.ts` | `BROADCAST_WATCH`, `SPOILER_MODE` (web) y `TIMELINE_RECORD` (web y tick); `PROGRESS_MIN_DELTA_S` (web, opcional: 15-j); `AUTO_TICK` (web, 18-k) | tocado |
 | `apps/api/src/app.ts` | `@fastify/compress`; el fallback de la SPA inyecta título y `og:` neutros | tocado |
 | `apps/web/src/pages/StageWatch.tsx` | la pantalla `Watch` | nuevo |
 | `apps/web/src/components/broadcast/` | `FixedOverlay`, `GroupBar`, `ProfileStrip`, `CueCard`, `VoiceTicker`, `PlayerControls`, `StagePreviewCards`, `StageClosingCards`, `StageGateCard` | nuevos |
@@ -178,7 +178,7 @@ Añadidos al escribirse las secciones (fundidos en el ensamblado v0):
 | `apps/web/src/domain/broadcast/player.ts` | `ViewMode` (`'watch' | 'highlights' | 'digest'`, la curva; distinto de `WatchMode`), `PlayerPhase`, `Speed`, `PlayerState`, `PlayerContext`, `PlayerAction`, `PlayerEffect`, `REPORT_MODE`, `playerInit` y `playerStep` | §8.11 |
 | `apps/web/src/domain/voice.ts` | nuevo: `inVoice` | §12.2 |
 | `apps/web/src/domain/stageJournal.ts` | gana `groupNounOf`, `linesOf`, `variantSeed` y el tipo `Phrasing` | §12.6 |
-| `apps/web/src/domain/raceTabs.ts` | `RaceTabId` gana `watch` y `report` y pierde `story`; `raceTabs(status, stageCount, known)` y `LEGACY_TAB` | §11.17 |
+| `apps/web/src/domain/raceTabs.ts` | `RaceTabId` gana `watch` y `report` y pierde `story`; `raceTabs(status, stageCount, known)`, `defaultRaceTab(status, stageCount, known)`, `oneDayStageTab(stageTab)`, que da `null` sin pestaña pedida, y `LEGACY_TAB` | §11.17 |
 | `apps/web/src/domain/raceStages.ts` | nuevo: `StageRowState` y `stageRowState` | §11.5 |
 | `apps/web/src/components/Jersey.tsx`, `apps/web/src/components/broadcast/` | `ChampionMark` (la señal provisional de campeón, 7-h); `WornJerseyIcon` y `TimeTrialBoard` | §7.4, §9.5 |
 | `apps/web/src/components/BottomNav.tsx` | `useHideBottomNav` (propuesta a E6) | §18.6 |
@@ -701,7 +701,7 @@ Las firmas finales, como quedaron al escribirse las secciones: donde la síntesi
 | `throughStage(h, raceKey, lastRun): number`, `isVeiled(h, raceKey, stageDay): boolean`, `stageGateOf(h, raceKey, stageDay): StageGate \| null` y `stageGameDay(raceKey, stageDay): number` | ídem | sus gemelos para lo que va por número de etapa; la puerta; el día de juego de una etapa | `stageGateOf` y `stageGameDay`, nuevas |
 | `veilCast(cast: TimelineCast, h: Horizon): TimelineCast` | ídem | el reparto degradado por el velo | nueva (§10.10) |
 | `worldHorizon: Horizon` y `anonHorizon(): Horizon` | ídem | el del tick, la administración y los bancos; el del visitante | `anonHorizon`, nueva |
-| `lastRunStages(db, world: WorldRef): Promise<ReadonlyMap<string, number>>` y `touchLastSeen(db, userId)` | ídem | la última etapa corrida de cada carrera, una vez por día de juego (18-a); `users.last_seen_at`, como mucho una vez por hora | nuevas |
+| `lastRunStages(db, world: WorldRef): Promise<ReadonlyMap<string, number>>` y `touchLastSeen(db, userId)` | ídem | la última etapa corrida de cada carrera, una vez por día de juego, como promesa que comparten las peticiones de ese día (18-a, 11-s); `users.last_seen_at`, como mucho una vez por hora | nuevas |
 | `recordProgress(db, k, stageDay, reachedS, mode, finishS)`, `revealStage(db, k, stageDay, expired)`, `setFollow(db, k, follow)`, `setSpoilerScope(db, userId, scope, revealConfirm)` y `readWatch(db, k)`; `LETTER_OF_MODE` | `db/src/watch.ts` | las escrituras de `race_watch` y `users` (con `.set` de Drizzle, 13-a; como mucho una cada 15 s, 10-l) y la fila de una carrera | `readWatch`, nueva |
 | `veiledRaceDays(h: Horizon, d: VeilDelta, riderId: string): ReadonlyMap<number, string>` y `veilDailyLog(rows, veiled): DailyLogRow[]` | `db/src/riders.ts` | los días de carrera velados y la serie de forma enmascarada | nuevas (§11.13) |
 | `emitNews(tx: NewsWriter, opts: { worldId; gameDay; seed; payload: NewsPayload; raceKey?; riderId?; personal? }): Promise<void>` y `newsNames(db, payloads): Promise<NameResolver>` | `db/src/news.ts` | la noticia con semilla y datos; los nombres al leer | la de §12.8 |
@@ -715,7 +715,7 @@ Las firmas finales, como quedaron al escribirse las secciones: donde la síntesi
 | `preStageInfoFor(db, raceId, stageDay, season)`, `shellMetaFor(db, h, url)`, `injectShellMeta(html, meta)` y `sendGate(reply, gate)` | `apps/api/src/spaShell.ts`, `apps/api/src/http.ts` | el título y las `og:` del fallback de la SPA; el 403 de la puerta | nuevas (§14.10, 14-h) |
 | `usePageTitle(p: PreStageInfo \| null, page: PageKind): void` | `apps/web/src/domain/pageTitle.ts` | el único escritor de `document.title` | no |
 | `playerInit(view, reachedS, known)` y `playerStep(s, a, ctx)` | `apps/web/src/domain/broadcast/player.ts` | el reproductor, un reductor puro (8-q) | nuevas |
-| `raceTabs(status, stageCount, known)` y `stageRowState(stage, winnerOf, runDays): StageRowState` | `apps/web/src/domain/raceTabs.ts`, `apps/web/src/domain/raceStages.ts` | las pestañas de carrera y qué enseña cada fila de `Stages` | nuevas (11-o) |
+| `raceTabs(status, stageCount, known)`, `defaultRaceTab(status, stageCount, known)`, `oneDayStageTab(stageTab)`, que da `null` sin pestaña pedida, y `stageRowState(stage, winnerOf, runDays): StageRowState` | `apps/web/src/domain/raceTabs.ts`, `apps/web/src/domain/raceStages.ts` | las pestañas de carrera y qué enseña cada fila de `Stages` | nuevas (11-o) |
 | `inVoice(line, unnamed)`, `groupNounOf(role)`, `linesOf(e)` y `variantSeed(e)` | `apps/web/src/domain/voice.ts`, `apps/web/src/domain/stageJournal.ts` | qué dice la voz y con qué palabra | nuevas (§12.2, §12.6) |
 | `useHideBottomNav(hidden: boolean): void` | `apps/web/src/components/BottomNav.tsx` | esconde la barra inferior mientras se reproduce; propuesta a E6 | nueva (18-f) |
 | `stampReached(s: AuthorStamp, h: Horizon): boolean` | `packages/shared/src/broadcast/` | el sello de E9; se propone, no se implementa en E2 | nueva (11-n) |
@@ -871,6 +871,7 @@ Rutas web: `/world/races/:raceId/stages/:day` (abre `Watch` si la etapa no es co
 | `BROADCAST_WATCH` | `off`, `admins`, `on` | `off` | la pestaña `Watch` y las rutas de retransmisión (`admins`: quien `isUserAdmin` da por administrador, `users.is_admin` o el correo de `ADMIN_EMAIL`, `adminUsers.ts` l. 53-61; §14.6) |
 | `SPOILER_MODE` | `off`, `admins`, `on` | `off` | el velo (`off`: `Horizon` es siempre `world` o `anon`, como hoy) |
 | `TIMELINE_RECORD` | `off`, `on` | `on` | que el tick grabe `stage_timelines` (en `envSchema` y `tickEnvSchema`) |
+| `AUTO_TICK` | `off`, `on` | `on` | que el servicio `web` avance el mundo en su propio proceso, como hoy; `off` en `web` cuando existe el servicio `tick` (18-k) |
 | `PROGRESS_MIN_DELTA_S` | entero, s de carrera | sin definir: manda `BROADCAST.progressMinDeltaS` | no apaga nada: sustituye al umbral de escritura del progreso, para frenar esa carga sin desplegar (en `envSchema`, servicio `web`; §15.8, 15-j) |
 
 Los dos primeros viajan a la web en `/health.features`. `SwitchMode` = `'off' | 'admins' | 'on'`. No confundir `SPOILER_MODE` (del servidor) con `users.spoiler_scope` (del jugador).
@@ -895,14 +896,14 @@ Los dos primeros viajan a la web en `/health.features`. `SwitchMode` = `'off' | 
 | B5 | estabilidad | hash de un corpus congelado; añadir una variante no reescribe el pasado |
 | B6 | tamaño | `stage_timelines.bytes` y el JSON contra `TIMELINE` (D-11); cabecera, tramo, meta y etapa velada contra los topes de red de `BROADCAST` (16-h) |
 | B7 | cobertura | toda plantilla que emite el motor tiene render de voz y de acta, regla de `REVEAL_RULES` y destino en `CUE_OF_TEMPLATE` |
-| B8 | cliente | parse y Zod: mediana ≤ 2 ms el tramo mayor y ≤ 3 ms la cabecera; `instantAt` p95 ≤ 0,25 ms (16-m) |
+| B8 | cliente | parse y Zod: mediana ≤ 2 ms el tramo mayor y ≤ 3 ms la cabecera; `instantAt`, con el paso 9 memorizado por `(g, k_g)`, p95 ≤ 0,25 ms en la etapa entera a pasos de 1 s y en el tramo de más grupos de la e20; umbrales fijos (16-m, 18-l) |
 | B9 | corte causal | `instantAt(cutTimeline(tl, T), T) = instantAt(tl, T)`; todo dato de un tramo tiene visibilidad ≤ su `toDs`; el ritmo no depende de los sucesos |
 | B10 | foto por km y aprendizaje | `trabajaronParaOtro` y la radio ven las mismas fotos que hoy, en las 22 etapas en línea de las 24 |
 | B11 | observar no toca la carrera | huella idéntica en `results`, `events`, `efforts`, `incidents` con sonda en cada bloque, `onEvent`, `onBanner` y `onTimeTrialRide` |
 | B12 | aritmética del horizonte | prefijo, arrastre, caducidad, fuentes de guardia, alcances, cookie que solo restringe |
 | B13 | procedencia | ningún campo del reparto con `from` velado viaja |
-| B14 | latencia del horizonte | `computeHorizon` y `recordProgress` por separado, p95 ≤ `SPOILER.horizonBudgetMs` con 250.000 filas de `race_rosters`; el jugador, puerta en la rápida; el mánager de un equipo de 30, contra Postgres en el paso 7 (16-k, DD-21) |
-| B15 | coste del tick | los días 176 (187 cronos nacionales) y 179 (153 nacionales en línea) con grabador y escritura: falla con más de un 25 % y más de 15 s a la vez, o con una lápida (16-l) |
+| B14 | latencia del horizonte | `computeHorizon` y `recordProgress` por separado, p95 ≤ `SPOILER.horizonBudgetMs` con 250.000 filas de `race_rosters`; contra el Postgres de servicio del CI (base propia con `TEST_DATABASE_URL`): el jugador y `recordProgress`, puerta en la rápida; en PGlite, solo informa y falla por encima de 15 ms; el mánager de un equipo de 30, desde Railway contra una copia de producción en el paso 7 (16-k, 18-j, DD-21) |
+| B15 | coste del tick | los días 176 (187 cronos nacionales) y 179 (153 nacionales en línea) enteros, sub-23 incluidos, con grabador, `buildTimelineCast` y escritura: falla con más de un 25 % y más de 15 s a la vez, o con una lápida (16-l) |
 | B16 | radio desde la línea | `radioFromTimeline` = `buildRaceRadio(radioForStorage(radio, ∅, []))` en la capa de detalle (5-g); la larga, en el nocturno de `apps/api` (17-l) |
 | B17 | ritmo medido | la duración de cada curva en las 24 etapas, dentro de sus bandas |
 | B18 | el servidor no adelanta | un tramo más allá de lo alcanzado más la precarga da 409 |
