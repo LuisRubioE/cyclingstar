@@ -1,0 +1,38 @@
+[
+ {
+  "id": "Rcobertura-003",
+  "estado": "aplicado",
+  "donde": "borrador/01-diagnostico.md l. 134 (§1.4) y l. 279 (§1.9)",
+  "motivo": "Comprobado en apps/api/src/chronicle.ts: l. 353-375 hacen veinte llamadas (dedupeSitUps, normalizeKomLeads, normalizeSplits, dropImpossibleLines, dropRetiredWorkers, dropLoneChaseGaps, retellCatch, markReunion, dropUndoneSelections, groupGapRuns, followTheLeader, clockTheGaps, foldSameFailure, markFrontDelta, dropAttackEcho, foldQuickAttacks, dropRepeatedPulls, markAgreement, markChaseWork, groupRuns) y markConcession corre en el map, l. 319: veintiuna, como dice ya D-43 corregida (00-decisiones.md l. 450). §1.4 dice ahora «veintiuna pasadas (las veinte llamadas de l. 353-375 y markConcession, que corre dentro del map, l. 319)» y §1.9, «veintiuna pasadas de coherencia». La l. 5772 del v0 es §12.2 y va a cruzadas-L1.json."
+ },
+ {
+  "id": "Rcobertura-004",
+  "estado": "aplicado",
+  "donde": "borrador/03-reloj.md l. 70-109 (§3.3, frase y bloque), l. 3 (los tipos de §4) y l. 376-379 (bloque de cierre)",
+  "motivo": "Cierto: TimelineCore = Omit<StageTimeline, 'cast' | 'weather' | 'finish'> (04-modelo.md, §4.2, y decisión 4-b) es lo que recibe instantAt y devuelve cutTimeline (4-b). Compilado en el scratchpad con tsconfig.base.json, primero con los tipos que usa (corr-l1/gba) y después junto a los bloques de §4.1, §4.2, §4.5 y §4.8 tal como están en 04-modelo.md (corr-l1/full): el bloque tal cual da el TS2345 del hallazgo al llamarlo con la línea cortada y, además, errores de noUncheckedIndexedAccess (TS2532 en cut.groups[g] dos veces y en marks[j + 1][1]; TS2488 en la desestructuración de pair, y en la de marks[j] en cuanto se corrigen las otras); corregido y extraído del fichero, compila sin errores. cut pasa a TimelineCore en groupBlockAt y speedFrom, y en las firmas de originOf, lastTwoMarks y clockMarksOf; las lecturas por índice llevan ! (g sale de cut.groups y j no pasa de marks.length − 1). En lugar del import type { TimelineCore } que pide el hallazgo, que chocaría con el de §4.5 en el mismo fichero (instant.ts, TS2300), el bloque dice que §4.5 ya lo importa y añade lo que faltaba: import { toDs, type Ds } de './timeline.js' e import { clockMarksOf } de './reduce.js'. El título pasa de «en pseudocódigo» a «en TypeScript». Glosario y decisiones no cambian (el glosario da clockMarksOf(tl, g) sin tipo)."
+ },
+ {
+  "id": "Rcodigo-001",
+  "estado": "aplicado",
+  "donde": "borrador/01-diagnostico.md l. 287-288 (§1.9)",
+  "motivo": "Comprobado: apps/api/src/chronicle.ts l. 1257 es const storedRaceRadioSchema = z.object(, el esquema de la radio GUARDADA (cierra en l. 1317; el .catch(null) está en l. 1306), y la tolerancia de la web de ayer es la de stageReplaySchema (packages/shared/src/contracts.ts l. 1482-1533, z.object sin .strict()) con la convención de l. 10-11. La fila cita ahora contracts.ts l. 1499-1531 y l. 10-11 y 1482-1533, y una fila nueva, «La tolerancia de lo guardado», lleva chronicle.ts l. 1257-1317 y 1306, que casa con D-50 punto 5 y con §14.1 regla 5 (14-api.md l. 13). D-50 no cambia."
+ },
+ {
+  "id": "Rcodigo-042",
+  "estado": "aplicado",
+  "donde": "borrador/03-reloj.md l. 285-320 (§3.8, frase y bloque) y l. 380 (bloque de cierre)",
+  "motivo": "Reproducidos los seis errores en el scratchpad (rcod/n/ehc). El bloque reescrito compila con tsconfig.base.json contra el StoredRadioKm real, importado de @cyclingstar/engine (packages/engine/src/index.ts l. 222), y firstKnownSpeed queda definida (corr-l1/ehc, compilado tal como está en el fichero). Da el mismo reloj que el de l1/corte.mjs, el que produjo la tabla de §3.8, en 19.999 radios sintéticas con huecos de velocidad (corr-l1/ehc/eq2.mjs), así que la medida sigue valiendo. Dos diferencias con la corrección propuesta: la primera velocidad conocida se calcula una vez (firstKnownSpeed(kms), con headSpeed, que no acepta 0, como corte.mjs), y sin ninguna velocidad de cabeza no lanza un error, que en timelineForStage sería un 500, sino que devuelve null y la etapa abre en Report con Broadcast unavailable for this stage, como las demás sin retransmisión; eso pide una línea en §14.4 (cruzadas-L1.json). Al tocar la frase se corrige también la cita de groupSpeedKmh: raceRadio.ts l. 679-764 y no 679-753, que dejaba fuera el return null de l. 757 y el cálculo de l. 758-763."
+ },
+ {
+  "id": "Rcoste-032",
+  "estado": "aplicado",
+  "donde": "borrador/01-diagnostico.md l. 301 (§1.10)",
+  "motivo": "Cierto: el 8a da el Horizon a getRiderLastRaceReport (packages/db/src/raceReport.ts l. 78; §12.9 y la fila de raceReport.ts en la tabla de §10.6) y registra GET /api/riders/me/last-race con política horizon (11-superficies.md l. 135, §11.3), y el 17d de la táctica («el informe deja de re-simular», docs/tactica.md l. 6979) reescribe esa misma función. La última columna dice ahora el cruce en los dos órdenes, con el texto del hallazgo. Lo de §19.1 (riesgo 1) y §17.16 va a cruzadas-L1.json. D-09 y D-47 siguen ciertas (E2 ni sube la versión ni reescribe el informe) y no cambian."
+ },
+ {
+  "id": "Rdueno-033",
+  "estado": "desestimado",
+  "donde": "borrador/02-principios.md l. 122 (§2.13, sin cambio)",
+  "motivo": "La evidencia dice lo contrario. En docs/epics.md, en 9c21885 (el HEAD de las citas), en af953b9 y en el HEAD de hoy, l. 700 está en blanco, l. 701 es «> El dueño: «lo que hay que hacer si acaso es mejorar la granularidad de las instrucciones, con más» y l. 702, «> escenarios hipotéticos quizás».» (git show 9c21885:docs/epics.md | sed -n 700,702p). §2.13 y §20.4 citan bien l. 701-702; la que está mal es §8.10 (l. 700-701), que es lo que dice Rcodigo-040 del lote L4, el hallazgo que contradice a éste con la línea buena. No es una contradicción de diseño con dos caras, sino un número que se comprueba."
+ }
+]

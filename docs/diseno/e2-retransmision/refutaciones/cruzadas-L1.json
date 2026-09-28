@@ -1,0 +1,42 @@
+[
+ {
+  "id": "Rcobertura-003",
+  "seccion_destino": "§12.2",
+  "que": "12-voz.md l. 57 (v0 l. 5772): «D-43 habla de «veinte pasadas»: son las veinte llamadas de l. 353-375 más `markConcession`, que corre dentro del `map` (l. 319).» pasa a «D-43 habla de veintiuna pasadas: son las veinte llamadas de l. 353-375 más `markConcession`, que corre dentro del `map` (l. 319).». D-43 ya dice veintiuna (00-decisiones.md l. 450) y §1.4 y §1.9 también."
+ },
+ {
+  "id": "Rcoste-032",
+  "seccion_destino": "§19.1",
+  "que": "Riesgo 1 (19-riesgos.md l. 11): añadir el cruce con el 17d de la táctica. El 8a cambia la firma de `getRiderLastRaceReport` (`packages/db/src/raceReport.ts` l. 78: gana el `Horizon` y elige la última etapa CONOCIDA, D-47) y registra `/api/riders/me/last-race` con política `horizon`; el 17d («el informe deja de re-simular», `docs/tactica.md` l. 6979) reescribe esa función. Si el 17d llega después del 8b, conserva el `Horizon` y la política de su ruta (sin política el registro no deja arrancar, §14.5) y pasa B1a, B1b y B1c; si llega antes, el 8a se rebasa sobre él. Es lo que dice ya la fila del 17d en §1.10 (01-diagnostico.md l. 301)."
+ },
+ {
+  "id": "Rcoste-032",
+  "seccion_destino": "§17.16",
+  "que": "Añadir a la lista de dependencias: el 8a y el 17d de la táctica tocan la misma función, `getRiderLastRaceReport` (`raceReport.ts` l. 78); el que llegue segundo se rebasa sobre el otro, y si es el 17d conserva el `Horizon` y la política `horizon` de `/api/riders/me/last-race` y pasa B1a, B1b y B1c."
+ },
+ {
+  "id": "Rcodigo-042",
+  "seccion_destino": "§14.4",
+  "que": "En el pseudocódigo de `timelineForStage` (14-api.md l. 215), la línea `tl ← adaptadorDeLaRadio(snap, resultados de la etapa)` puede dar null: `estimatedHeadClock` devuelve null cuando ninguna foto de la radio guardada tiene velocidad de cabeza (§3.8, 03-reloj.md l. 285-320). Añadir «si tl es null: devolver null» antes de `adaptadas.set`, que es 404 `broadcast_unavailable` y `Report` con `Broadcast unavailable for this stage` (pantalla)."
+ },
+ {
+  "id": "Rcodigo-042",
+  "seccion_destino": "§17.5",
+  "que": "El PR 2 hace nacer `estimatedHeadClock` (17-plan.md l. 123) sin test propio. Propuesta para «Tests primero»: `apps/api/src/broadcastSource.test.ts` (nuevo) con tres casos: con huecos de velocidad toma la última conocida y, antes de la primera, la primera; la meta cae en `winnerS`; una radio sin ninguna velocidad de cabeza da null."
+ },
+ {
+  "id": "Rcodigo-042",
+  "seccion_destino": "§4.2",
+  "que": "Hallado al comprobar Rcodigo-042: el comentario de `GroupDetail.speedKmh` (04-modelo.md l. 78) cita `groupSpeedKmh` en «l. 679-753»; la función ocupa `packages/engine/src/sim/raceRadio.ts` l. 679-764 (el `return null` sin medida está en l. 757 y el cálculo en l. 758-763). §3.8 ya cita l. 679-764."
+ },
+ {
+  "id": "Rdueno-033",
+  "seccion_destino": "§20.4",
+  "que": "Nada que cambiar: la cita `docs/epics.md` l. 701-702 de 20-dueno.md l. 67 es la buena (l. 700 está en blanco en 9c21885 y hoy) y Rdueno-033, que pedía l. 700-701 también aquí, queda desestimado. Si Rdueno-044 (lote L10) reescribe esa frase, la cita sigue siendo l. 701-702 y no la l. 700-701 que da su fallo."
+ },
+ {
+  "id": "Rdueno-033",
+  "seccion_destino": "§8.10",
+  "que": "La cita de 08-ritmo.md l. 329 («`docs/epics.md` l. 700-701») es la que está mal: pasa a l. 701-702, como pide Rcodigo-040 (lote L4). Rdueno-033, que la daba por buena, queda desestimado con `git show 9c21885:docs/epics.md` (l. 700 en blanco, la cita en l. 701-702)."
+ }
+]

@@ -1,6 +1,6 @@
 ## 3. El reloj, el espacio y la identidad
 
-Esta sección fija qué es la hora de una retransmisión, dónde está cada grupo a esa hora, qué hueco se enseña y cómo se sigue a un grupo de un punto de la carretera al siguiente. Escribe como hechos cuatro decisiones cerradas (D-01, D-03, D-04 y D-07) y decide lo que dejan abierto (al final, «Decisión tomada aquí»). Los tipos son de §4 (`Photo`, `StageTimeline` y `GroupCatalogEntry` en §4.2; `Instant`, `GroupNow`, `GapReading`, `InTransit`, `InstantContext` e `instantAt` en §4.5) y aquí solo se citan. Las cifras tienen tres procedencias: el juez del motor (C1 a C4, `juicios/motor.md` §2); `estado.md` §3.5 y §3.6; y las medidas del redactor de esta sección, hechas en el scratchpad con los scripts de `l1/` que nombra cada cifra (el banco común es `l1/banco.mjs`) sobre el `dist` del motor v89, el campo de `scripts/race-radio.mjs` y quince corridas (`race-france` e7, e13 y e18, `race-flanders` y `race-colombia` e5, semillas 0 a 2), con la foto de la sonda en cada bloque y el despacho por índice a la radio de producción de D-08. Esas medidas replican las marcas de reloj de §3.4 sobre el reloj exacto de cada bloque; no son el grabador de §5.4, que medirá B21 en el paso 6.
+Esta sección fija qué es la hora de una retransmisión, dónde está cada grupo a esa hora, qué hueco se enseña y cómo se sigue a un grupo de un punto de la carretera al siguiente. Escribe como hechos cuatro decisiones cerradas (D-01, D-03, D-04 y D-07) y decide lo que dejan abierto (al final, «Decisión tomada aquí»). Los tipos son de §4 (`Photo`, `StageTimeline`, `TimelineCore` y `GroupCatalogEntry` en §4.2; `Instant`, `GroupNow`, `GapReading`, `InTransit`, `InstantContext` e `instantAt` en §4.5) y aquí solo se citan. Las cifras tienen tres procedencias: el juez del motor (C1 a C4, `juicios/motor.md` §2); `estado.md` §3.5 y §3.6; y las medidas del redactor de esta sección, hechas en el scratchpad con los scripts de `l1/` que nombra cada cifra (el banco común es `l1/banco.mjs`) sobre el `dist` del motor v89, el campo de `scripts/race-radio.mjs` y quince corridas (`race-france` e7, e13 y e18, `race-flanders` y `race-colombia` e5, semillas 0 a 2), con la foto de la sonda en cada bloque y el despacho por índice a la radio de producción de D-08. Esas medidas replican las marcas de reloj de §3.4 sobre el reloj exacto de cada bloque; no son el grabador de §5.4, que medirá B21 en el paso 6.
 
 ### 3.1 Tres relojes y un eje
 
@@ -67,38 +67,45 @@ La radio del dueño, por tanto, se construye desde el mismo estado: `radioFromTi
 
 **La regla (D-02, D-04).** `instantAt` es causal: solo usa datos con visibilidad ≤ `t` (D-06), y por eso se define sobre `cutTimeline(tl, t)` (§4.5, §4.6). Cada grupo está en el bloque donde su reloj vale `t`: desde su última marca de reloj con valor ≤ `t`, se extrapola a la velocidad entre sus dos últimas marcas, sin pasar el siguiente punto de foto de km (el calendario de fotos es público: sale de la longitud, `radioKmPoints`, `raceRadio.ts` l. 230-236) y sin volver nunca atrás en pantalla: se pinta lo más lejos que llegó a pintarse, que es una cuenta pura sobre la línea y no una memoria de la pantalla (§4.5). La composición de cada grupo es la de `photoAt` en el bloque al que llega la extrapolación desde su última marca, sin ese máximo, con lo visible. Un corredor que aparece en dos grupos se pinta en el de ATRÁS, porque en su punto el cambio aún no ha pasado; uno que no aparece en ninguno va a `inTransit` con su origen y su destino. El error de posición es menor que un km por construcción; el típico no está medido por los jueces (lo mide B21 en el paso 6; aquí va la medida del redactor).
 
-**La posición de un grupo en `t`, en pseudocódigo.** Es el paso 2 de `instantAt` (§4.5), escrito aquí entero con las decisiones 3-a (un grupo con una sola marca) y 3-f (la salida):
+**La posición de un grupo en `t`, en TypeScript.** Es el paso 2 de `instantAt` (§4.5), escrito aquí entero con las decisiones 3-a (un grupo con una sola marca) y 3-f (la salida). Recibe la línea cortada, que es un `TimelineCore` como el que recibe `instantAt` (4-b), y compila con el `tsconfig.base.json` del repositorio (`strict`, `noUncheckedIndexedAccess`) junto al bloque de §4.5 y los tipos de §4.1, §4.2 y §4.8, con `clockMarksOf(tl: TimelineCore, g)` declarada como la da F.2 (§21.6) y `originOf` y `lastTwoMarks` como dicen sus comentarios (comprobado en el scratchpad, `corr-l1/full`):
 
 ```ts
-// packages/shared/src/broadcast/instant.ts, privada: el paso 2 de instantAt (§4.5) para un grupo.
-// `cut` = cutTimeline(tl, t): solo lo visible a la hora t (D-06). Pura: no recuerda lo pintado.
-function groupBlockAt(cut: StageTimeline, g: GroupIx, t: RaceS, ctx: InstantContext): { readonly real: number; readonly painted: number } | null {
+// packages/shared/src/broadcast/instant.ts, privada: el paso 2 de instantAt (§4.5) para un grupo. Mismo fichero que el bloque de §4.5,
+// que ya importa Block, GroupIx, RaceS y TimelineCore de './timeline.js'; este bloque añade:
+import { toDs, type Ds } from './timeline.js'
+import { clockMarksOf } from './reduce.js'
+
+// `cut` = cutTimeline(tl, t), un TimelineCore (4-b): solo lo visible a la hora t (D-06). Pura: no recuerda lo pintado.
+function groupBlockAt(cut: TimelineCore, g: GroupIx, t: RaceS, ctx: InstantContext): { readonly real: number; readonly painted: number } | null {
   const T = toDs(t)
-  if (cut.groups[g].diedB !== null) return null                // su muerte ya se ve (§4.6): sus corredores van en el sucesor
+  const entry = cut.groups[g]!                                 // g sale de cut.groups (paso 1 de instantAt)
+  if (entry.diedB !== null) return null                        // su muerte ya se ve (§4.6): sus corredores van en el sucesor
   const marks = clockMarksOf(cut, g)                           // [bloque, reloj en Ds] visibles, por bloque creciente
   if (marks.length === 0)                                      // antes de su primera marca: solo el de salida existe (decisión 3-f)
-    return cut.groups[g].origin === 'start' ? { real: 0, painted: -0.5 } : null
+    return entry.origin === 'start' ? { real: 0, painted: -0.5 } : null
   const reach = (j: number, s: Ds): number => {                // E_j(s): desde la marca j, sin pasar el siguiente punto de foto
-    const [bj, dj] = marks[j]
+    const [bj, dj] = marks[j]!
     const cap = ctx.photoBlocks.find((p) => p > bj) ?? cut.blocks - 1
     return Math.min(cap, bj + speedFrom(cut, g, marks, j, s) * (s - dj))
   }
   const last = marks.length - 1
   const real = reach(last, T)                                  // donde está según lo visible: da su composición
   let painted = real
-  for (let j = 0; j < last; j++) painted = Math.max(painted, reach(j, marks[j + 1][1]))  // lo más lejos que llegó a pintarse
+  for (let j = 0; j < last; j++) painted = Math.max(painted, reach(j, marks[j + 1]![1]))  // lo más lejos que llegó a pintarse
   return { real, painted }                                     // km en pantalla: máx(0, (painted + 0,5) · dx)
 }
 
 // Bloques por décima desde la marca j: los de sus marcas j − 1 y j; con una sola, los de su grupo de origen (decisión 3-a).
-function speedFrom(cut: StageTimeline, g: GroupIx, marks: readonly (readonly [Block, Ds])[], j: number, s: Ds): number {
-  const pair = j >= 1 ? [marks[j - 1], marks[j]] as const : lastTwoMarks(cut, originOf(cut, g), s)
+function speedFrom(cut: TimelineCore, g: GroupIx, marks: readonly (readonly [Block, Ds])[], j: number, s: Ds): number {
+  const pair = j >= 1 ? ([marks[j - 1]!, marks[j]!] as const) : lastTwoMarks(cut, originOf(cut, g), s)
   if (pair === null) return 0                                  // sin origen o sin dos marcas suyas: se queda en su marca
   const [[b0, d0], [b1, d1]] = pair
   return d1 > d0 ? (b1 - b0) / (d1 - d0) : 0
 }
-// originOf(cut, g): el grupo de la mayoría de los corredores de g en photoAt(cut, bornB − 1); null si g es el de salida.
-// lastTwoMarks(cut, o, s): las dos últimas marcas de o con reloj ≤ s, o null si o es null o no tiene dos.
+// originOf(cut: TimelineCore, g: GroupIx): GroupIx | null
+//   el grupo de la mayoría de los corredores de g en photoAt(cut, bornB − 1); null si g es el de salida.
+// lastTwoMarks(cut: TimelineCore, o: GroupIx | null, s: Ds): readonly [readonly [Block, Ds], readonly [Block, Ds]] | null
+//   las dos últimas marcas de o con reloj ≤ s, o null si o es null o no tiene dos.
 ```
 
 La cabeza es el grupo pintado más adelante y los km a meta son la longitud menos su km; el reloj de la cabeza que se enseña es `t`. La composición y el tránsito son los pasos 3 y 4 de `instantAt`:
@@ -275,21 +282,40 @@ Los `shed` de la e18 y de Flandes viven de mediana uno o dos km: el grupeto se h
 
 Las etapas corridas antes de que se grabe la línea (paso 5) no tienen reloj de grupo ni identidad (§1.1): el mundo de pruebas entre el despliegue y el reinicio, y todas las que el dueño mira en el paso 3 (hueco H-16). Para ellas, la API sirve la retransmisión con el mismo formato que para las demás (`BroadcastHead`, `BroadcastChunk`) desde el **adaptador de la radio**: `timelineForStage` (`apps/api/src/broadcastSource.ts`, §14.4) devuelve la línea grabada si existe y, si no, una `StageTimeline` degradada que construye desde `stage_snapshots.radio` y `.events` (D-07):
 
-- **El reloj de la cabeza, estimado.** Se integra la velocidad del grupo en cabeza de cada foto (`speedKmh`, medida por sus hombres, con techo de 75 km/h y `null` si no se puede medir; `raceRadio.ts` l. 679-753 y 940-944) y se reescala para que la meta caiga en el tiempo del ganador:
+- **El reloj de la cabeza, estimado.** Se integra la velocidad del grupo en cabeza de cada foto (`speedKmh`, medida por sus hombres, con techo de 75 km/h y `null` si no se puede medir; `raceRadio.ts` l. 679-764 y 940-944) y se reescala para que la meta caiga en el tiempo del ganador. Una foto sin velocidad toma la última conocida, y las anteriores a la primera que la tiene, la de ésa; si ninguna la tiene no hay reloj que estimar: `estimatedHeadClock` da null, el adaptador no construye la línea y la etapa abre en `Report` con `Broadcast unavailable for this stage` (pantalla), como toda etapa para la que `timelineForStage` da null (§14.4). El bloque compila con el `tsconfig.base.json` del repositorio contra `StoredRadioKm` (`raceRadio.ts` l. 575-580), y da el mismo reloj que el de `l1/corte.mjs`, el de la tabla de abajo, en toda radio con alguna velocidad (comprobado en el scratchpad, `corr-l1/ehc`, sobre 19.999 radios sintéticas con huecos de velocidad):
 
 ```ts
 // apps/api/src/broadcastSource.ts (§14.4). kms: StoredRaceRadio.kms, una foto por km; winnerS: `results` del ganador.
-function estimatedHeadClock(kms: readonly StoredRadioKm[], totalKm: number, winnerS: number): number[] {
-  const raw = [0]
-  let lastV: number | null = null
+import type { StoredRadioKm } from '@cyclingstar/engine'        // exportado en engine/src/index.ts l. 222
+
+/** El reloj de la cabeza en cada foto y en meta; null si ninguna foto tiene velocidad de cabeza: no hay reloj que estimar. */
+function estimatedHeadClock(kms: readonly StoredRadioKm[], totalKm: number, winnerS: number): number[] | null {
+  let v = firstKnownSpeed(kms)                                   // antes de la primera foto con velocidad, la de ésa
+  if (v === null) return null
+  const raw: number[] = [0]
   for (let k = 0; k < kms.length; k++) {
-    const nextKm = k + 1 < kms.length ? kms[k + 1].km : totalKm
-    const v = kms[k].groups[0]?.speedKmh ?? lastV ?? firstKnownSpeed(kms, k)    // null: la última conocida
-    lastV = v
-    raw.push(raw[raw.length - 1] + ((nextKm - kms[k].km) / v) * 3600)
+    const here = kms[k]!
+    const nextKm = k + 1 < kms.length ? kms[k + 1]!.km : totalKm
+    v = headSpeed(here) ?? v                                     // sin velocidad: la última conocida
+    raw.push(raw[raw.length - 1]! + ((nextKm - here.km) / v) * 3600)
   }
-  const scale = winnerS / raw[raw.length - 1]      // la meta, en el tiempo del ganador
-  return raw.map((s) => s * scale)                 // el índice k es la foto kms[k]; el último, la meta
+  const scale = winnerS / raw[raw.length - 1]!                   // la meta, en el tiempo del ganador
+  return raw.map((s) => s * scale)                               // el índice k es la foto kms[k]; el último, la meta
+}
+
+/** La velocidad del grupo en cabeza de una foto, o null si la radio no pudo medirla; 0 no se acepta. */
+function headSpeed(photo: StoredRadioKm): number | null {
+  const v = photo.groups[0]?.speedKmh ?? null
+  return v !== null && v > 0 ? v : null
+}
+
+/** La primera velocidad de cabeza de la etapa, o null si ninguna foto la tiene. */
+function firstKnownSpeed(kms: readonly StoredRadioKm[]): number | null {
+  for (const photo of kms) {
+    const v = headSpeed(photo)
+    if (v !== null) return v
+  }
+  return null
 }
 ```
 
@@ -347,11 +373,11 @@ Lo que no se guardó no se inventa: «una crónica que miente es peor que una mu
 
 **Propuesto para el glosario:**
 
-- `groupBlockAt(cut: StageTimeline, g: GroupIx, t: RaceS, ctx: InstantContext): { readonly real: number; readonly painted: number } | null`: el paso 2 de `instantAt` para un grupo, con el bloque real (da la composición) y el pintado (lo más lejos que llegó); privada de `packages/shared/src/broadcast/instant.ts`. Fichero: `borrador/03-reloj.md` §3.3.
+- `groupBlockAt(cut: TimelineCore, g: GroupIx, t: RaceS, ctx: InstantContext): { readonly real: number; readonly painted: number } | null`: el paso 2 de `instantAt` para un grupo, con el bloque real (da la composición) y el pintado (lo más lejos que llegó); privada de `packages/shared/src/broadcast/instant.ts`. Fichero: `borrador/03-reloj.md` §3.3.
 - `speedFrom` y `lastTwoMarks`: sus dos auxiliares privadas (la velocidad desde una marca; las dos últimas marcas de un grupo hasta una hora). Fichero: `borrador/03-reloj.md` §3.3.
-- `originOf(cut: StageTimeline, g: GroupIx): GroupIx | null`: el grupo de la mayoría de los corredores de `g` en el bloque anterior a su nacimiento, sobre la línea cortada; privada del mismo fichero. Fichero: `borrador/03-reloj.md` §3.3.
-- `clockMarksOf(tl: StageTimeline, g: GroupIx): readonly (readonly [Block, Ds])[]`: las marcas de reloj de `g` por bloque creciente; es la `marcasDe` del borrador de §4.4, con nombre en inglés como el resto del código. Fichero: `borrador/03-reloj.md` §3.3.
-- `estimatedHeadClock(kms, totalKm, winnerS): number[]`: el reloj de la cabeza del adaptador de la radio (D-07); privada de `apps/api/src/broadcastSource.ts`. Fichero: `borrador/03-reloj.md` §3.8.
+- `originOf(cut: TimelineCore, g: GroupIx): GroupIx | null`: el grupo de la mayoría de los corredores de `g` en el bloque anterior a su nacimiento, sobre la línea cortada; privada del mismo fichero. Fichero: `borrador/03-reloj.md` §3.3.
+- `clockMarksOf(tl: TimelineCore, g: GroupIx): readonly (readonly [Block, Ds])[]`: las marcas de reloj de `g` por bloque creciente; es la `marcasDe` del borrador de §4.4, con nombre en inglés como el resto del código. Fichero: `borrador/03-reloj.md` §3.3.
+- `estimatedHeadClock(kms, totalKm, winnerS): number[] | null`: el reloj de la cabeza del adaptador de la radio (D-07), null si ninguna foto tiene velocidad de cabeza; privada de `apps/api/src/broadcastSource.ts`, con sus dos auxiliares, `headSpeed(photo: StoredRadioKm): number | null` (la velocidad de cabeza de una foto, positiva) y `firstKnownSpeed(kms: readonly StoredRadioKm[]): number | null` (la primera de la etapa). Fichero: `borrador/03-reloj.md` §3.8.
 
 **Dudas para el ensamblador:**
 
