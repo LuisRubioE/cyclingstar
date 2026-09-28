@@ -11,7 +11,7 @@ Esta sección dice a qué velocidad corre la hora de la retransmisión, cuánto 
 | el digest | `digestPace`: `summaryPace` escalada para que cada etapa dure `BROADCAST.digestBudgetS` de su tipo (§8.2) | `Watch the race in 40 minutes` (pantalla) en `While you were away` (§8.8, §11.4) | pausa, `Show results` | `S` |
 | la crono | `BROADCAST.ttPace` por fracción de salidos y el último km del último en salir a ×`BROADCAST.ttLastKmX` (2) (§9.4) | igual que `Watch` en una etapa `cri` | los de `Watch` salvo los saltos de recorrido, que en crono son de reloj (§9.4) | `W` o `S` |
 
-En una crono, `Highlights` y el digest son una sola curva (decisión 8-m): `ttPaceAt` (§9.4) multiplicado por `ttPlaybackEstimateS(profile, plan) / BROADCAST.digestBudgetS.cri`, para que la estimación nominal dure 120 s. Medida con el motor real en las cuatro cronos de §9.4 y tres semillas (`l4/cronoDigest.mjs`, sobre el banco de `l5/crono2.mjs`): de 1:56 a 2:03. Una crono en `Watch` dura de 5:20 a 11:23 (§9.4), y una curva propia de `Highlights` entre ese digest y `Watch` no compraría nada que no den `×2` y `×4`.
+En una crono, `Highlights` y el digest son una sola curva (decisión 8-m): `ttPaceAt` (§9.4) multiplicado por `ttPlaybackEstimateS(profile, plan) / BROADCAST.digestBudgetS.cri`, para que la estimación nominal dure 120 s. Medida con el motor real en las cuatro cronos de §9.4 y tres semillas (`l4/cronoDigest.mjs`, sobre el banco de `l5/crono2.mjs`): de 1:56 a 2:03. Una crono en `Watch` dura de 5:20 (una nacional de 40 km con 12 corredores) a 11:23 (la e16, 176 corredores a 120 s; §9.4), y una curva propia de `Highlights` entre ese digest y `Watch` no compraría nada que no den `×2` y `×4`.
 
 La letra de lo visto (`KnowledgeLetter`, D-28) la pone el modo con el que lo alcanzado llega a meta, es decir el `mode` del informe de progreso que la cruza (`POST /api/me/watch/:raceKey/:day`, D-51): `play` da `W`; `summary` y `digest`, `S` (DD-20: el resumen cuenta como visto; decisión 8-e), con la tabla `LETTER_OF_MODE` de §10.3. Un informe `seek` no llega nunca a meta, porque ningún salto pasa de un km antes (decisión 8-j); si llegara, esa tabla lo anota `R`. Se puede cambiar de `Watch` a `Highlights` a mitad de etapa sin perder nada: cambia la curva, no la hora. Las cuatro velocidades de `BROADCAST.speeds` (`×½ ×1 ×2 ×4`, pantalla) valen en `Watch` y en `Highlights` y multiplican el factor de la zona; el digest va siempre a ×1 de su curva, porque su duración es su promesa.
 
@@ -33,7 +33,7 @@ La duración depende solo del recorrido y del tiempo que la cabeza tarda en cada
 // packages/shared/src/broadcast/pace.ts. Ninguna función recibe la línea ni los sucesos (B9).
 import type { StageKind } from '../contracts.js'
 import { BROADCAST } from './constants.js'
-import type { ProfileStrip } from './timeline.js'
+import type { ProfileStrip, RaceS } from './timeline.js'                // RaceS: la de ttPaceAt, que vive en este fichero (§9.4)
 import type { PaceZone } from './wire.js'
 
 /** s de carrera por s de pared con la cabeza a toGoKm de meta: la primera zona con toGoKm > aboveKm (zonas por aboveKm decreciente, la última 0). */
@@ -107,7 +107,7 @@ Es lo que la curva compra: en una llana o en Flandes, la carrera de verdad son l
 
 ### 8.4 El coste diario
 
-Seguir una gran vuelta etapa a etapa (H-19; X-19). Una vuelta de 21 etapas y dos descansos dura 23 días de juego (Italia, días 128 a 151; Francia, 185 a 207; España, 234 a 256; mapa 04 §2), y un día de juego son 6 h reales (`TICK_INTERVAL_MINUTES` 360, `apps/api/src/env.ts` l. 32; mapa 02 §1.1): 5,75 días reales, unas 3,65 etapas por día real. Con la curva elegida y las duraciones medidas de §8.3:
+Seguir una gran vuelta etapa a etapa (H-19; X-19). Una vuelta de 21 etapas dura 23 días de juego con dos descansos (Francia, días 185 a 207; España, 234 a 256) y 24 con tres (Italia, días 128 a 151: descansa tras las etapas 3, 9 y 15, `packages/engine/src/routes/editions.ts` l. 52-53, contra `[9, 15]` de Francia y España, l. 27 y 79; medido con `scheduledStageIndices` del `dist`, `rcod/n/gt2.mjs`; mapa 04 §2), y un día de juego son 6 h reales (`TICK_INTERVAL_MINUTES` 360, `apps/api/src/env.ts` l. 32; mapa 02 §1.1): de 5,75 a 6 días reales, unas 3,65 etapas por día real en Francia y en España y 3,5 en Italia. Con la curva elegida y las duraciones medidas de §8.3:
 
 | Modo | Una llana (e7) | Una media (e13) | Una reina (e18) | Una reina larga (Colombia e5) | Un día real, de llanas a reinas como la e18 | Con reinas largas |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -115,7 +115,7 @@ Seguir una gran vuelta etapa a etapa (H-19; X-19). Una vuelta de 21 etapas y dos
 | `Highlights` | 2:12 | 2:30-2:34 | 4:29-4:31 | 6:32-6:37 | de 8 a 16 min | hasta 24 min |
 | el digest | 1:00 de presupuesto (0:54-0:55 medido) | 1:30 (1:26-1:28) | 2:30 (2:32-2:34) | 2:30 (3:19-3:21) | de 3 a 9 min | hasta 12 min |
 
-Las cifras por día multiplican por 3,65 las de una etapa (una llana, 7:39 × 3,65 = 28 min; una reina como la e18, 13:28 × 3,65 = 49 min; Colombia, 19:59 × 3,65 = 73 min), como D-19; son un orden de magnitud, porque un día real mezcla tipos. El digest, medido con `l4/zonas.mjs` (la columna entre paréntesis), se desvía de su presupuesto del −9 % en la llana al +34 % en Colombia, porque la estimación nominal que lo escala (§8.2) se queda corta en los finales en alto largos; no depende de lo que pasa en la etapa, y así la promesa `Watch the race in 40 minutes` (§8.8) es una cuenta del recorrido.
+Las cifras por día multiplican por 3,65 las de una etapa (una llana, 7:39 × 3,65 = 28 min; una reina como la e18, 13:28 × 3,65 = 49 min; Colombia, 19:59 × 3,65 = 73 min), como D-19; en Italia, por 3,5, de 27 a 47 min y hasta 70. Son un orden de magnitud, porque un día real mezcla tipos. El digest, medido con `l4/zonas.mjs` (la columna entre paréntesis), se desvía de su presupuesto del −9 % en la llana al +34 % en Colombia, porque la estimación nominal que lo escala (§8.2) se queda corta en los finales en alto largos; no depende de lo que pasa en la etapa, y así la promesa `Watch the race in 40 minutes` (§8.8) es una cuenta del recorrido.
 
 Por eso el modo con que se entra es una decisión del dueño con esa cifra delante, DD-03: por defecto, `Watch` a ×1 con `BROADCAST.pace`; la alternativa es `Highlights` por defecto, de 8 a 24 min al día. `datos.md` §16.3 decía «unos 13 min al día» con su mediana de 12,7 min por etapa, y es falso: son unos 46 (ejecutabilidad #15).
 
@@ -127,7 +127,7 @@ D-20, escrito como hecho (I-21). Pausa, cuatro velocidades, `Next action`, salto
 | --- | --- | --- | --- | --- |
 | `▶` / `❚❚` | el botón, tocar el plano (8-p) o la barra espaciadora | para o sigue; los rótulos en pantalla se quedan | nada; al pausar se informa | un `POST /api/me/watch/:raceKey/:day` con el `mode` del modo |
 | `×½ ×1 ×2 ×4` | el selector | multiplica el factor de la zona (`BROADCAST.speeds`); no mueve las zonas | nada | ninguna; el colchón de tramos, en pared, se divide (tabla de abajo) |
-| `Next action` | un toque | multiplica por `BROADCAST.nextActionSpeedup` (20) hasta que ENTRA en la cola un `Cue` de clase ≥ `BROADCAST.nextActionMinClass` (2); luego vuelve a la velocidad anterior. Apagado desde `last_km`: el último km no se acelera (8-o) | crece con lo pintado | tramos a ×20 (tabla de abajo) |
+| `Next action` | un toque | multiplica por `BROADCAST.nextActionSpeedup` (20) hasta que ENTRA en la cola un `Cue` de clase ≥ `BROADCAST.nextActionMinClass` (2) que no sea de la ronda de la moto (6-m: la ronda presenta un suceso, no lo es); luego vuelve a la velocidad anterior. Apagado desde `last_km`: el último km no se acelera (8-o) | crece con lo pintado | tramos a ×20 (tabla de abajo) |
 | `−5 km` | un toque | vuelve a la hora en que la cabeza estaba 5 km antes (bisección sobre la línea en memoria) | nada: lo alcanzado no baja | ninguna |
 | `+5 km`, `Next climb`, `Final 20 km`, `Last km` | un toque | salta a la hora en que la cabeza llega al km destino | pasa al destino (`mode: 'seek'`) | los tramos intermedios (algoritmo de abajo) |
 | tocar la barra de progreso o el perfil | un toque en un km | delante: como un salto a ese km; detrás: como `−5 km` a ese km | delante, al destino; detrás, nada | delante, los tramos intermedios |
@@ -152,9 +152,10 @@ saltar(kmDestino):                                                        // app
   saltados ← los Cue de (t, tDestino] con clase ≥ skippedMinClass (2), de cuesBetween y del reproductor
   t ← tDestino; alcanzado ← máx(alcanzado, tDestino); POST { reachedS: tDestino, mode: 'seek' }
   enseñar While you skipped con los recapMaxCues (5) de saltados, en orden de carrera, y después el cuadro de diferencias (§6.7)
+  y, si una fuga formada en lo saltado sigue por delante del pelotón, su presentación entera: la lista, la frase y la ronda (6-m, §6.7)
 ```
 
-Lo alcanzado durante el salto es lo servido y no lo pintado, y es a propósito: el salto es el acto explícito de dar esos km por pasados (D-20: los saltos «mueven lo alcanzado al destino»). Si la pestaña se cierra a mitad, lo alcanzado se queda en un punto anterior al destino y la etapa sigue a medias, que para el resto del producto es oculta (D-28): el salto no puede convertir una etapa en vista, porque nunca pasa de un km antes de meta. `While you skipped` (pantalla) es el corte de la tele (mapa 06 §5.4): lo que ha cambiado mientras no mirabas, y enseguida dónde estamos. Un salto de 125 km (`Final 20 km` desde el km 30 de la llana e7) son unos 12 tramos, 24 peticiones seguidas; con 150 ms de ida y vuelta, unos 3,6 s (estimado), con `Skipping to 20 km to go…` (pantalla) en el plano.
+Lo alcanzado durante el salto es lo servido y no lo pintado, y es a propósito: el salto es el acto explícito de dar esos km por pasados (D-20: los saltos «mueven lo alcanzado al destino»). Si la pestaña se cierra a mitad, lo alcanzado se queda en un punto anterior al destino y la etapa sigue a medias, que para el resto del producto es oculta (D-28): el salto no puede convertir una etapa en vista, porque nunca pasa de un km antes de meta. `While you skipped` (pantalla) es el corte de la tele (mapa 06 §5.4): lo que ha cambiado mientras no mirabas, y enseguida dónde estamos. Un salto de 125 km (`Final 20 km` desde el km 30 de la llana e7) son unos 12 tramos, 24 peticiones seguidas, porque cada tramo espera al informe que lo permite (§10.11): con `Fast 4G`, a unos 0,17 s cada una, unos 4 s; con `Slow 4G`, a unos 0,6 s (560 ms de latencia, §18.7), de 13 a 15 s (estimado), con `Skipping to 20 km to go…` (pantalla) en el plano. Lo mide el paso 10 con `Slow 4G`, con umbral de 5 s (§18.9). Si no lo cumple, no sirve informar de una vez la hora de destino y pedir los tramos en paralelo: esa hora es futuro y el cliente no la tiene (D-06), y una estimada que se pasara de la meta revelaría la etapa con un salto, que es lo que 8-j prohíbe. Sirve que el salto lo haga el servidor, que tiene la línea entera: un `POST …/broadcast/seek` con el km destino, que calcula la hora con la misma bisección, escribe lo alcanzado con `mode: 'seek'` y devuelve los tramos intermedios en una respuesta, una ida y vuelta en lugar de 24. Es una ruta más en §14.2 y en el registro de §14.5, y se decide con la cifra del paso 10 (decisión 8-t).
 
 ```
 (pantalla · While you skipped · tras Final 20 km en la e18; los sucesos son ilustrativos)
@@ -166,7 +167,7 @@ km 141  CAUGHT · the chase group
 km 164  KOM · Côte de Saint-Léger-les-Mélèzes · 1. KAHN
 ```
 
-`Previously` (pantalla) es lo mismo al reanudar: los `recapMaxCues` (5, propuesta) últimos `Cue` de clase ≥ 2 anteriores a lo alcanzado, en orden de carrera, y después el cuadro de diferencias. Los dos se quedan `BROADCAST.cueHoldS[3]` (6 s) o hasta que se tocan, fuera de la cola. Hacia atrás, en cambio, no hay red ni cuenta nueva: el reproductor guarda en memoria la línea servida (`cutTimeline(tl, servido)`, §4.6), vuelve a calcular el instante, vacía la cola y lo que se vuelve a ver se vuelve a rotular, como una repetición.
+`Previously` (pantalla) es lo mismo al reanudar: los `recapMaxCues` (5, propuesta) últimos `Cue` de clase ≥ 2 anteriores a lo alcanzado, en orden de carrera, y después el cuadro de diferencias y, si hay una fuga por delante del pelotón cuya lista no se ha pintado en esta reproducción, su presentación entera (6-m, §6.7). Los dos se quedan `BROADCAST.cueHoldS[3]` (6 s) o hasta que se tocan, fuera de la cola. Hacia atrás, en cambio, no hay red ni cuenta nueva: el reproductor guarda en memoria la línea servida (`cutTimeline(tl, servido)`, §4.6), vuelve a calcular el instante, vacía la cola y lo que se vuelve a ver se vuelve a rotular, como una repetición.
 
 **La red al reproducir** (decisión 8-d). Fuera de un salto, el reproductor mantiene servida la carrera por delante de lo que pinta, dentro de lo que el servidor permite (D-06, D-55):
 
@@ -177,7 +178,8 @@ cada fotograma:
     GET chunk (servido, mín(servido + chunkRaceS, informado + prefetchRaceS)]
   además, cada progressEveryRealS (15 s de pared), al pausar, al ocultarse y al salir: POST { reachedS: alcanzado, mode }
   si t llega a servido sin tramo nuevo: el reloj espera en el último fotograma pintado, con `Loading` en los mandos
-  si una petición falla: pausa con `Connection lost · Retry` (pantalla; D-57)
+  si una petición falla (red caída, 5xx): pausa con `Connection lost · Retry` (pantalla; D-57)
+  si responde 429: espera los segundos de su `retry-after` con `Loading` en los mandos y la repite; no es un fallo (§10.12, 14-q)
 ```
 
 El servidor escribe `race_watch` solo si lo alcanzado creció al menos `BROADCAST.progressMinDeltaS` (60 s de carrera) o cambia el estado (D-55; §10.3); pedir un tramo no escribe nada. Lo que da de sí la precarga depende del modo: son 900 s de carrera, y en pared duran 900 / (factor · velocidad):
@@ -188,7 +190,7 @@ El servidor escribe `race_watch` solo si lo alcanzado creció al menos `BROADCAS
 | `Watch` ×4 | 3,8 s | 7,5 s | 19 s | 56 s | 150 s |
 | `Highlights` ×1 | 3 s | 7,5 s | 22,5 s | 90 s | 300 s |
 | `Highlights` ×4 | 0,75 s | 1,9 s | 5,6 s | 22,5 s | 75 s |
-| `Next action` desde `Watch` ×1 | 0,75 s | 1,5 s | 3,8 s | 11 s | 30 s |
+| `Next action` desde `Watch` ×1 | 0,75 s | 1,5 s | 3,8 s | 11 s | 600 s (apagado, 8-o: va a `Watch` ×1) |
 
 En los tres casos más rápidos, cada recarga (un `POST` y un `GET`) tiene menos de un segundo, y con una red lenta la imagen se queda quieta un momento en el último fotograma pintado: nunca se adelanta nada ni se salta un rótulo, porque el reloj espera. Una etapa son de 16 a 32 tramos (medido, `l4/zonas.mjs`: la llana e7, 16; Colombia e5, 31-32). El móvil con «Fast 4G» lo mide a mano el paso 10 (§18.5, §18.7).
 
@@ -227,10 +229,10 @@ De `StageWeather` (D-14, I-19): la temperatura, `dry` si ningún tramo lleva llu
 ```
 (pantalla · previa, cuadro 3 · los maillots en juego)
 JERSEYS IN PLAY
-[GC]  11 S. CARTER · closest: ARRIETA +0:04 · OLSEN +0:09 · LAMBERT +0:31
+[GC]  11 Sam Carter · closest: Iñigo Arrieta +0:04 · Mads Olsen +0:09 · Pierre Lambert +0:31
       Finish bonus: 10, 6, 4 s
-[PTS] 7 R. DIAZ · 45 points at stake today · within reach: VOSS, EKDAL
-[KOM] 45 J. VERHOEVEN · 29 points at stake today · within reach: LEROY
+[PTS] 7 Rafael Díaz · 45 points at stake today · within reach: Erik Voss, Pelle Ekdal
+[KOM] 45 Jonas Verhoeven · 29 points at stake today · within reach: Antoine Leroy
 ```
 
 `StagePreview.jerseysInPlay` lo arma la API al servir la cabecera, con las clasificaciones tras la N−1, que ya se cortan por etapa (`getPointsClassification`, `getKomClassification`, `leadersThroughStage`; mapa 02 §9, punto 5): quién LLEVA cada maillot (`StartState.leaders`) y quién puede quitárselo hoy (decisión 8-f). En la general, los `BROADCAST.previewThreatsMax` (3, propuesta) siguientes de la general de salida con su diferencia (`StartState.gcTop`), y la bonificación de meta (`STAGE.timeBonuses`, 10, 6 y 4 s, `constants.ts` l. 6285) si es una etapa en línea de una vuelta: la crono no bonifica (`timetrial.ts` l. 362). En los puntos y en la montaña, los puntos en juego hoy, que salen del recorrido (la meta, `STAGE.finishPoints[0]`, 25, más `STAGE.sprintPoints[0]`, 20, por volante: 45 en la e18; en la montaña, el primer premio de cada cima por su categoría en `STAGE.climbPoints`, l. 5036-5042: 10 + 5 + 2 + 2 + 10 = 29 en la e18), y como mucho tres corredores de esa clasificación a menos de esos puntos del líder; sin puertos, `No mountain points today`. En la primera etapa de una vuelta nadie lleva maillot (UCI 2.6.018, D-24): el cuadro dice `Stage 1 · the stage winner takes the first leader’s jersey` y los puntos en juego. En una carrera de un día no hay maillots y el cuadro no sale: la previa tiene tres (15 s).
@@ -238,43 +240,43 @@ JERSEYS IN PLAY
 ```
 (pantalla · previa, cuadro 4 · los favoritos)
 FAVOURITES
-General classification: CARTER · ARRIETA · OLSEN
-Climbers: MORENO · LEROY · KAHN
+General classification: Sam Carter · Iñigo Arrieta · Mads Olsen
+Climbers: Nicolás Moreno · Antoine Leroy · Jonas Kahn
 ```
 
-Sin `fame` (D-22, D-26: `riders.fame` no se escribe en ninguna parte). Los `BROADCAST.previewGcTop` (3) primeros de la general de salida (`why: 'gc'`; no hay en la primera etapa ni en una carrera de un día) y los `BROADCAST.previewAttrTop` (3) mejores inscritos por el atributo del tipo de etapa, que es público (`publicRiderDetailSchema.attributes`, `packages/shared/src/contracts.ts` l. 713-737): llana SPR (`Sprinters`), media COL (`Puncheurs`), reina MON (`Climbers`), crono CRI (`Time triallists`) y clásica PAV (`Cobbles specialists`) si su recorrido tiene algún segmento `paves` (`SegmentTerrain`, `types.ts` l. 13), MON si tiene un puerto HC o de 1.ª y COL si no (decisión 8-f; D-22 no decía qué hacer con una clásica sin pavés, como Lieja o Lombardía). El atributo que se ordena es el del día de la etapa, congelado al grabarla, y no el de hoy: el aprendizaje de carrera cambia los atributos de todos los que corren después de cada etapa, con el puesto y el abandono dentro (`raceLearning`, llamada en `packages/db/src/stageRun.ts` l. 791-805; el abandono y el puesto pesan en `packages/engine/src/world/learning.ts` l. 99-111), así que ordenar con los de hoy haría depender la previa de la N de cómo acabó la N y de las siguientes (B1c, §16.3). Congelarlo pide un campo que §4.2 no tiene (decisión 8-g; propuesto abajo); en las etapas del adaptador de la radio, sin línea, solo salen los favoritos de la general.
+Sin `fame` (D-22, D-26: `riders.fame` no se escribe en ninguna parte). Los `BROADCAST.previewGcTop` (3) primeros de la general de salida (`why: 'gc'`; no hay en la primera etapa ni en una carrera de un día) y los `BROADCAST.previewAttrTop` (3) mejores inscritos por el atributo del tipo de etapa, que es público (`publicRiderDetailSchema.attributes`, `packages/shared/src/contracts.ts` l. 713-737): llana SPR (`Sprinters`), media COL (`Puncheurs`), reina MON (`Climbers`), crono CRI (`Time triallists`) y clásica PAV (`Cobbles specialists`) si su recorrido tiene algún segmento `paves` (`SegmentTerrain`, `types.ts` l. 13), MON si tiene un puerto HC o de 1.ª y COL si no (decisión 8-f; D-22 no decía qué hacer con una clásica sin pavés, como Lieja o Lombardía). El atributo que se ordena es el del día de la etapa, congelado al grabarla, y no el de hoy: el aprendizaje de carrera cambia los atributos de todos los que corren después de cada etapa, con el puesto y el abandono dentro (`raceLearning`, llamada en `packages/db/src/stageRun.ts` l. 791-805; el abandono y el puesto pesan en `packages/engine/src/world/learning.ts` l. 99-111), así que ordenar con los de hoy haría depender la previa de la N de cómo acabó la N y de las siguientes (B1c, §16.3). Congelarlo es `TimelineCast.favourites` (§4.2, 4-u): cada favorito con el atributo que lo puso ahí (`why`: `sprint`, `hills`, `climb`, `tt` o `cobbles`), leído por `buildTimelineCast` antes del aprendizaje de la etapa (decisión 8-g). La API arma `StagePreview.favourites` con los `previewGcTop` de `StartState.gcTop` (`why: 'gc'`) seguidos de los de `cast.favourites`; en las etapas del adaptador de la radio, sin línea, solo salen los de la general, y con la anterior velada la cabecera no sirve ninguno (8-f).
 
-Con la anterior velada (`BroadcastHead.gate`, `previous_unseen`), la previa no se pinta (§6.11), y la cabecera la sirve solo con `route` y `weather`: los maillots, la general de salida y los atributos de después de la N−1 dependen de cómo acabó (decisión 8-f). En el digest, solo sale el cuadro 1 (§8.8).
+Con la anterior velada (`BroadcastHead.gate`, `previous_unseen`), la previa no se pinta (§6.11), y la cabecera la sirve solo con `route` y `weather`: los maillots, la general de salida y los atributos de después de la N−1 dependen de cómo acabó (decisión 8-f). En el digest, solo sale el cuadro 1 (§8.8). El horario de paso a tres medias, que la previa de la tele enseña (mapa 06 §9, fila 35), no sale: la etapa ya está corrida y cada espectador la reproduce cuando entra (DD-15, §8.10), así que una hora de reloj no le dice nada; su equivalente es la duración que anuncia la ficha, `About 13 min` (§8.2) (decisión 8-r).
 
 **El cierre**, tras la llegada (§8.7), cuadros de `BROADCAST.closingCardS` (6 s de pared, propuesta, sin evidencia de los jueces) que pasan solos o con el dedo; el último se queda. De `BroadcastFinish.result` y `BroadcastFinish.closing` (`StageClosing`, §4.11):
 
 ```
 (pantalla · cierre)
-STAGE 18 · RESULT                                   GENERAL CLASSIFICATION · after stage 18
-1   15 N. MORENO      Team Alpha    4:59:38         1  ▲2  15 N. MORENO             78:12:04
-2  225 J. KAHN        Team Omega      +0:12         2  ▼1  11 S. CARTER               +0:21
-3   18 A. LEROY       Team Alpha      +0:31         3  ▼1  88 I. ARRIETA              +0:48
-…                                                   …
-10 152 P. EKDAL       Team Nu         +2:02         10  =  152 P. EKDAL                +6:40
-64  88 I. ARRIETA (your rider)       +14:10
+STAGE 18 · RESULT                                  GENERAL CLASSIFICATION · after stage 18
+1   15 Nicolás Moreno  Team Alpha   4:59:38        1  ▲2  15 Nicolás Moreno        78:12:04
+2  225 Jonas Kahn      Team Omega     +0:12        2  ▼1  11 Sam Carter              +0:21
+3   18 Antoine Leroy   Team Alpha     +0:31        3  ▼1  88 Iñigo Arrieta           +0:48
+…                                                  …
+10 152 Pelle Ekdal     Team Nu        +2:02        10  =  152 Pelle Ekdal            +6:40
+64  88 Iñigo Arrieta (your rider)    +14:10
 
-JERSEYS TOMORROW                                    MOST KILOMETRES OUT FRONT
-[GC]  15 N. MORENO · new                            15 N. MORENO · 142 km
-[PTS]  7 R. DIAZ
-[KOM] 18 A. LEROY · new                             OUT OF THE RACE
-                                                    ABANDON · 45 J. MOREAU
-Next: Stage 19 · 204 km · Hills · [Watch]           TIME CUT · 12 riders
+JERSEYS TOMORROW                                   MOST KILOMETRES OUT FRONT
+[GC]  15 Nicolás Moreno · new                      15 Nicolás Moreno · 142 km
+[PTS]  7 Rafael Díaz
+[KOM] 18 Antoine Leroy · new                       OUT OF THE RACE
+                                                   ABANDON · 45 Jules Moreau
+Next: Stage 19 · 204 km · Hills · [Watch]          TIME CUT · 12 riders
 [Report]
 ```
 
-1. **El resultado**: los `BROADCAST.closingResultTop` (10) primeros y los corredores del espectador con su puesto; el podio resaltado; con los que no acabaron y su motivo al final, como hoy (`StageResultEntry`, `contracts.ts` l. 1278-1306).
+1. **El resultado**: los `BROADCAST.closingResultTop` (10) primeros y los corredores del espectador con su puesto; el podio resaltado; con los que no acabaron y su motivo al final, como hoy (`StageResultEntry`, `contracts.ts` l. 1278-1306). El corredor al que la regla de los 3 km dejó con el tiempo de su grupo lleva `same time (3 km rule)` (pantalla) junto a su tiempo (§6.8, decisión 6-o).
 2. **La general tras la etapa**, con flechas (`StageClosing.gcAfter.move`: `▲2`, `▼1`, `=`) y el corredor propio. No sale en una carrera de un día: su general es una copia del resultado (SPEC §6.15).
 3. **Los maillots de mañana**, con `new` donde cambian (`jerseysTomorrow.changed`); tras la última etapa, `FINAL JERSEYS`. No sale en una carrera de un día.
 4. **`Most kilometres out front`**: el mayor `kmEnFuga` de `StageEffort` (`packages/engine/src/stage/types.ts` l. 549: «Kilómetros rodando por DELANTE del grupo principal»), un hecho y no el premio de un jurado (DD-14, por defecto sí). No sale si nadie rodó delante.
 5. **Fuera de carrera**: abandonos y fuera de control (`StageClosing.outOfRace`). No sale si no hay.
 6. **La siguiente**: `Next: Stage 19 · 204 km · Hills` (pantalla) de `StageClosing.tomorrow` (`PreStageInfo`) con `Watch` si ya se ha corrido o `Tomorrow` si no; tras la última, `Final stage`. Y siempre `Report`: la etapa ya es conocida y el acta está a un toque (§8.8).
 
-La clasificación por equipos no tiene cuadro: vive en `Report` → `Classifications` (pantalla), como hoy.
+La clasificación por equipos no tiene cuadro: vive en `Report` → `Classifications` (pantalla), como hoy. Las tablas de puntos y de montaña tampoco lo tienen: el cuadro 3 dice quién lleva cada maillot mañana y si cambia (`jerseysTomorrow`), y las tablas enteras, con sus cambios, están a un toque en `Report` → `Classifications`. El mapa 06 §9 (fila 34) pide en el cierre la general, los puntos, la montaña y los equipos con sus cambios; aquí solo la general tiene tabla, porque el cierre ya son seis cuadros, 36 s si pasan solos, y el que sube en los puntos sin llevar el maillot no sale en ninguno (decisión 8-s, sin evidencia de los jueces). Si el dueño las quiere, `StageClosing` gana `pointsAfter` y `komAfter` con la forma de `gcAfter` y dos cuadros detrás del 3.
 
 ### 8.7 La llegada
 
@@ -283,13 +285,13 @@ Nada de la llegada viaja antes de tiempo (D-06, I-15). Los tramos solo llevan da
 La secuencia, en el reproductor:
 
 1. **Los últimos 500 m** (`BROADCAST.quietFinalM`): solo la distancia (§6.9). La capa fija baja en metros, el plano se vacía, la voz calla.
-2. **La línea.** Cuando el último tramo trae `atFinish` y el km pintado de la cabeza llega a su último bloque (el tope de su extrapolación, §4.5, porque su marca de meta es `finishDs` y no se sirve), el reloj se para con `0 m` en la capa fija y el reproductor informa (`POST /api/me/watch` con `reachedS` en el borde) y llama a `POST …/broadcast/finish`, que marca la etapa como vista con la letra del modo (§8.1). Si falla, `Connection lost · Retry` (pantalla; D-57), y la etapa sigue a medias hasta que llegue.
-3. **El ganador** (`finish`, clase 3): `STAGE WINNER · 15 N. MORENO · Team Alpha · 4:59:38` (pantalla), `BROADCAST.finishFreezeS` (3 s) de pared, el plano del ganador de la tele. La voz dice las líneas de la llegada (`bunch_sprint`, `final_km`, `stage_win`), que vienen en el acta del paquete (§12.2, §6.6).
-4. **Los grupos que llegan** (`group_finish`, clase 1): uno por cada grupo de `BroadcastFinish.arrivals` detrás del ganador que lleve un corredor del espectador, un maillot de líder o a uno de los `BROADCAST.namedGcTop` (10) primeros de la general de salida, en orden de llegada, cada uno `cueHoldS[1]` (4 s): `BUNCH · +2:14`, `GRUPPETTO · +27:40`, `CARTER · ROSSI · +0:47` (pantalla), con la palabra de §6.3 del grupo que llevaba a la mayoría de los suyos en el último instante. Los demás grupos están en el resultado; la tele tampoco espera al último.
+2. **La línea.** Cuando el último tramo trae `atFinish` y el km pintado de la cabeza llega a su último bloque (el tope de su extrapolación, §4.5, porque su marca de meta es `finishDs` y no se sirve), el reloj se para con `0 m` en la capa fija y el reproductor informa (`POST /api/me/watch` con `reachedS` en el borde), que devuelve `{ status: 'watching', rev }` con el `rev` de antes, porque el último tramo acaba en `finishDs − 1` y el borde no es la meta (`recordProgress` solo escribe la letra con `reachedS ≥ finishS`, §10.3); después llama a `POST …/broadcast/finish` con `{ mode: REPORT_MODE[view] }` (14-f, §8.11), y es esa llamada la que marca la etapa como vista con la letra del modo (§8.1). Como su paquete no lleva `rev` (§4.11), la web invalida `['horizon']` al recibirlo y lo pide otra vez (regla 3 de §10.9, §14.11). Si falla, `Connection lost · Retry` (pantalla; D-57), y la etapa sigue a medias hasta que llegue.
+3. **El ganador** (`finish`, clase 3): `STAGE WINNER · 15 Nicolás Moreno · Team Alpha · 4:59:38` (pantalla), `BROADCAST.finishFreezeS` (3 s) de pared, el plano del ganador de la tele. La voz dice las líneas de la llegada (`bunch_sprint`, `final_km`, `stage_win`), que vienen en el acta del paquete (§12.2, §6.6).
+4. **Los grupos que llegan** (`group_finish`, clase 1): uno por cada grupo de `BroadcastFinish.arrivals` detrás del ganador que lleve un corredor del espectador, un maillot de líder o a uno de los `BROADCAST.namedGcTop` (10) primeros de la general de salida, en orden de llegada, cada uno `cueHoldS[1]` (4 s): `BUNCH · +2:14`, `GRUPPETTO · +27:40`, `Sam Carter · Andrea Rossi · +0:47` (pantalla), con la palabra de §6.3 del grupo que llevaba a la mayoría de los suyos en el último instante. Los demás grupos están en el resultado; la tele tampoco espera al último. Si en uno de esos grupos llega un corredor al que la regla de los 3 km le dejó el tiempo del grupo tras caerse, su nombre lleva `same time (3 km rule)` (§6.8, 6-o).
 5. **El fuera de control** (`time_cut`, clase 2), si lo hay: `TIME CUT · 12 riders outside the limit`.
 6. **El cierre** (§8.6).
 
-`PHOTO FINISH` (§G.11) no sale: el motor no mide lo ajustado de una llegada dentro de un grupo. El `margin` de `stage_win` es el hueco al grupo SIGUIENTE en segundos enteros (`simulate.ts` l. 9675-9676), y la cercanía entre el primero y el segundo de un mismo grupo no existe (mapa 06 §9, fila 27; decisión 8-h). Tras `Show result` (§8.5), la secuencia empieza en el paso 3 y se salta el 4: quien revela quiere el resultado, no la llegada.
+`PHOTO FINISH` (los textos de §21.6 F.3) no sale: el motor no mide lo ajustado de una llegada dentro de un grupo. El `margin` de `stage_win` es el hueco al grupo SIGUIENTE en segundos enteros (`simulate.ts` l. 9675-9676), y la cercanía entre el primero y el segundo de un mismo grupo no existe (mapa 06 §9, fila 27; decisión 8-h). Tras `Show result` (§8.5), la secuencia empieza en el paso 3 y se salta el 4: quien revela quiere el resultado, no la llegada.
 
 ### 8.8 Ver una cola seguida
 
@@ -319,20 +321,20 @@ Con las 21 etapas de cada gran vuelta y los presupuestos de §15.3 (`l2/digest.m
 
 Los valores de `BROADCAST.pace`, `summaryPace`, `ttPace`, `ttLastKmX`, `nominalKmh` y `digestBudgetS` son iniciales (§15.6). Viven en `packages/shared`, así que ajustarlos es un PR sin bancos (`typecheck` y `test:rapido`, D-52), y se aceptan con dos pruebas antes de encender (D-19, D-60):
 
-- **B17** (§16.4) corre la curva en las 24 etapas del mapa 07 §7 en el paso 0, como línea base con un script que lleva su propia copia de la curva y su propio reloj estimado de la cabeza, porque `paceAt` y el adaptador de la radio aún no existen (decisión 17-c), y otra vez en el paso 10 con la línea grabada, y falla si una duración sale de su banda. Las bandas (decisión 8-k), con margen sobre lo medido en §8.3: `Watch` de toda etapa en línea entre 6:00 y 22:00 (medido, 7:39-19:59); `Highlights`, entre 1:45 y 7:30 (2:12-6:37); los últimos 5 km, al menos el 15 % de la duración de `Watch` en toda etapa y el 35 % en los finales en alto (medido, 18-24 % y 45-47 %); una crono, entre 5:30 y 13:00 (6:24-11:23); el digest de cada etapa, a menos del 40 % de su presupuesto (de −9 a +34 %); y el error de `estimateS`, con p90 por debajo de 60 s fuera de los finales en alto (55 s, §15.3).
+- **B17** (§16.4) corre la curva en las 24 etapas del mapa 07 §7 en el paso 0, como línea base con un script que lleva su propia copia de la curva y su propio reloj estimado de la cabeza, porque `paceAt` y el adaptador de la radio aún no existen (decisión 17-c), y otra vez en el paso 10 con la línea grabada, y falla si una duración sale de su banda. Las bandas (decisión 8-k), con margen sobre lo medido en §8.3: `Watch` de toda etapa en línea entre 6:00 y 22:00 (medido, 7:39-19:59); `Highlights`, entre 1:45 y 7:30 (2:12-6:37); los últimos 5 km, al menos el 15 % de la duración de `Watch` en toda etapa y el 35 % en los finales en alto (medido, 18-24 % y 45-47 %); una crono, entre 5:00 y 13:00 (medido de 5:20 a 11:23: el prólogo de 176 corredores, de 6:24 a 7:06; la e16, de 11:14 a 11:23; las nacionales de 35 y 40 km con 30 y 12 corredores, de 5:20 a 5:52; §9.4); el digest de cada etapa, a menos del 40 % de su presupuesto (de −9 a +34 %); y el error de `estimateS`, con p90 por debajo de 60 s fuera de los finales en alto (55 s, §15.3).
 - **La prueba de lectura** (PL, §16.5): el dueño y una persona que no conozca el diseño ven tres etapas (una llana, una reina y una clásica) con `BROADCAST_WATCH=admins` y, en tres puntos al azar de cada una, contestan sin ayuda las cuatro preguntas de SPEC §6.15. Aceptación, nueve de nueve. Es el criterio del MVP paso 31, «un tercero entiende qué pasó en la etapa sin que nadie se lo explique» (`MVP.md` l. 140), y valida también el ritmo: si la carrera pasa demasiado deprisa para contestar, se baja la curva y se vuelve a medir con B17; nunca se toca el motor.
 
 ### 8.10 Lo que no se hace
 
 **Un estreno a hora fija para todos** (DD-15, por defecto no: cada uno ve cuando entra). El tick corre todas las etapas de un día de juego en una transacción que no se trocea («NO se trocea: la atomicidad por día es un requisito de diseño», `packages/db/src/tick.ts` l. 259-261; la transacción, l. 262-284), y la hora real de cada día la marca el ancla del mundo, no un horario (mapa 02 §9, puntos 1 y 2). Estrenar a las 18:00 para todos obligaría a retener un resultado que ya existe o a partir esa transacción. Con la etapa entera guardada, «ver la etapa a ritmo es una decisión de presentación sobre datos ya cerrados» (mapa 02 §9, punto 1), y cada espectador tiene su hora.
 
-**Decidir en vivo** ([DUEÑO 9]). La retransmisión se mira, no se juega: ningún mando cambia la carrera, que ya está corrida. El dueño tumbó decidir durante la carrera por incompatible con avanzar un día cada seis horas, y pidió lo contrario: «lo que hay que hacer si acaso es mejorar la granularidad de las instrucciones, con más escenarios hipotéticos quizás» (`docs/epics.md` l. 700-701); la táctica lo mantiene, «no como radio en vivo, que sigue prohibida» (`docs/tactica.md` l. 6323). Las órdenes de la etapa siguiente se dan antes, desde su página (§11.12).
+**Decidir en vivo** ([DUEÑO 9]). La retransmisión se mira, no se juega: ningún mando cambia la carrera, que ya está corrida. El dueño tumbó decidir durante la carrera por incompatible con avanzar un día cada seis horas, y pidió lo contrario: «lo que hay que hacer si acaso es mejorar la granularidad de las instrucciones, con más escenarios hipotéticos quizás» (`docs/epics.md` l. 701-702); la táctica lo mantiene, «no como radio en vivo, que sigue prohibida» (`docs/tactica.md` l. 6323). Las órdenes de la etapa siguiente se dan antes, desde su página (§11.12).
 
 Tampoco se enseña la duración ni lo que queda (§6.9), ni se ve una etapa «a la vez» con otros jugadores: lo visto es privado y la regla para lo que un jugador cuelgue de una etapa es de E9 (D-41, §11.14).
 
 ### 8.11 El reproductor por dentro
 
-Todo lo anterior vive en un reductor puro, `playerStep`, en `apps/web/src/domain/broadcast/player.ts` (§G.2), como las demás piezas de `apps/web/src/domain/`, que llevan su prueba de vitest al lado (`raceTimeline.ts` y `raceTimeline.test.ts`, por ejemplo). No sabe de React ni de la red: recibe una acción y devuelve el estado siguiente y las peticiones que hay que hacer. `StageWatch.tsx` le da los fotogramas con `requestAnimationFrame`, calcula el instante (`instantAt`, §4.5) que pintan todos los componentes y ejecuta las peticiones en orden, cada una tras la respuesta de la anterior: un tramo que sigue a un informe no sale hasta que el informe ha respondido, porque el servidor autoriza el tramo con lo último informado (§10.11, §14.3). Así se prueba entero sin navegador (§8.12), y se ve de un vistazo que la hora no lee los sucesos: la única acción que los mira es `cueAdmitted`, y solo apaga `Next action` (B9).
+Todo lo anterior vive en un reductor puro, `playerStep`, en `apps/web/src/domain/broadcast/player.ts` (§17.20), como las demás piezas de `apps/web/src/domain/`, que llevan su prueba de vitest al lado (`raceTimeline.ts` y `raceTimeline.test.ts`, por ejemplo). No sabe de React ni de la red: recibe una acción y devuelve el estado siguiente y las peticiones que hay que hacer. `StageWatch.tsx` le da los fotogramas con `requestAnimationFrame`, calcula el instante (`instantAt`, §4.5) que pintan todos los componentes y ejecuta las peticiones en orden, cada una tras la respuesta de la anterior: un tramo que sigue a un informe no sale hasta que el informe ha respondido, porque el servidor autoriza el tramo con lo último informado (§10.11, §14.3). Así se prueba entero sin navegador (§8.12), y se ve de un vistazo que la hora no lee los sucesos: la única acción que los mira es `cueAdmitted`, y solo apaga `Next action` (B9), salvo con un rótulo de la ronda de la moto (6-m).
 
 ```ts
 // apps/web/src/domain/broadcast/player.ts (nuevo). Puro: sin React, sin fetch, sin Date.now.
@@ -346,7 +348,7 @@ export interface PlayerState {
   readonly phase: PlayerPhase
   readonly view: ViewMode
   readonly speed: Speed                   // en el digest, siempre 1
-  readonly nextAction: boolean            // ×nextActionSpeedup hasta que entra un Cue de clase ≥ nextActionMinClass
+  readonly nextAction: boolean            // ×nextActionSpeedup hasta que entra un Cue de clase ≥ nextActionMinClass que no sea de la ronda (6-m)
   readonly t: RaceS                       // la hora pintada, la del instante de este fotograma
   readonly reachedS: RaceS                // lo alcanzado: máx. de lo pintado y de los destinos de salto; nunca baja (D-57)
   readonly reportedS: RaceS               // lo último informado; más prefetchRaceS, el tope de lo que se puede pedir (§10.11)
@@ -355,32 +357,39 @@ export interface PlayerState {
   readonly seekKm: number | null          // el km destino del salto en curso, ya recortado a lengthKm − 1
   readonly inFlight: boolean              // una petición de tramo o de meta en vuelo
   readonly notice: 'loading' | 'offline' | null // `Loading`, `Connection lost · Retry` (pantalla)
+  readonly idleS: number                  // s de pared desde el último toque, movimiento o tecla; en playing, con idleS ≥ BROADCAST.controlsHideS los mandos se esconden (8-p)
+  readonly stageDay: number               // la etapa que se reproduce; en el digest cambia al encadenar (8-c)
+  readonly loaded: readonly number[]      // las etapas con tramos y línea en memoria; en el digest, como mucho dos (18-e)
 }
 
-/** Lo que el reductor no puede saber solo: la curva del modo y la longitud. En carretera, baseX es paceAt(toGoKm, zonas del modo); en crono, ttPaceAt (§9.4). */
-export interface PlayerContext { readonly baseX: (view: ViewMode, t: RaceS, toGoKm: number) => number; readonly lengthKm: number }
+/** Lo que el reductor no puede saber solo: la curva del modo, la longitud y, en el digest, la etapa siguiente. En carretera, baseX es
+ *  paceAt(toGoKm, zonas del modo); en crono, ttPaceAt (§9.4). digestNext: la siguiente etapa velada del digest, o null en la última y fuera de él. */
+export interface PlayerContext { readonly baseX: (view: ViewMode, t: RaceS, toGoKm: number) => number; readonly lengthKm: number; readonly digestNext: number | null }
 
 export type PlayerAction =
   | { readonly k: 'frame'; readonly dtS: number; readonly toGoKm: number; readonly atLine: boolean } // del instante pintado
   | { readonly k: 'play' } | { readonly k: 'pause' } | { readonly k: 'hidden' } | { readonly k: 'leave' } | { readonly k: 'retry' }
+  | { readonly k: 'touch' }                                                     // un toque, el ratón o una tecla: idleS vuelve a 0 y los mandos salen (8-p)
   | { readonly k: 'speed'; readonly x: Speed } | { readonly k: 'view'; readonly view: ViewMode } | { readonly k: 'nextAction' }
-  | { readonly k: 'cueAdmitted'; readonly cls: CueClass; readonly kind: CueKind }
+  | { readonly k: 'cueAdmitted'; readonly cls: CueClass; readonly kind: CueKind; readonly round: boolean } // round: un rider de la ronda de la moto, que no apaga Next action (6-m)
   | { readonly k: 'seek'; readonly km: number; readonly headKmAtEnd: number }  // headKmAtEnd: el km de la cabeza en servedS
   | { readonly k: 'back'; readonly toS: RaceS }                               // el hook biseca en la línea servida, sin red
   | { readonly k: 'chunk'; readonly toS: RaceS; readonly atFinish: boolean; readonly headKmAtEnd: number }
   | { readonly k: 'landed'; readonly toS: RaceS; readonly skipped: number }   // fin de un salto: la hora destino y los Cue de clase ≥ 2 saltados
   | { readonly k: 'failed' } | { readonly k: 'finished' } | { readonly k: 'cardDone' } | { readonly k: 'showResult' }
+  | { readonly k: 'throttled'; readonly retryAfterS: number }                 // un 429: waiting con `Loading`; el hook repite la petición a los retryAfterS de pared (14-q); no es failed
 
 export type PlayerEffect =
   | { readonly k: 'report'; readonly reachedS: RaceS; readonly mode: WatchMode; readonly beacon: boolean } // POST /api/me/watch; beacon en pagehide
   | { readonly k: 'chunk'; readonly fromS: RaceS; readonly toS: RaceS }                                   // GET …/broadcast/chunk
-  | { readonly k: 'finish' }                                                                               // POST …/broadcast/finish
+  | { readonly k: 'finish'; readonly mode: WatchMode }                                                     // POST …/broadcast/finish con { mode }: es la que escribe la letra (14-f)
   | { readonly k: 'reveal' }                                                                               // POST /api/me/reveal/:raceKey/:day
+  | { readonly k: 'release'; readonly stageDay: number }                                                   // soltar los tramos (removeQueries) y la línea decodificada de esa etapa (18-e)
 
 export const REPORT_MODE = { watch: 'play', highlights: 'summary', digest: 'digest' } as const satisfies Record<ViewMode, WatchMode> // en un salto, 'seek'
 
 /** La entrada: la previa en 0, o lo alcanzado menos resumeBackS con `Previously` y los tramos de 0 a lo alcanzado más la precarga (8-l). */
-export function playerInit(view: ViewMode, reachedS: RaceS | null, known: boolean): { readonly next: PlayerState; readonly effects: readonly PlayerEffect[] }
+export function playerInit(view: ViewMode, stageDay: number, reachedS: RaceS | null, known: boolean): { readonly next: PlayerState; readonly effects: readonly PlayerEffect[] }
 export function playerStep(s: PlayerState, a: PlayerAction, ctx: PlayerContext): { readonly next: PlayerState; readonly effects: readonly PlayerEffect[] }
 ```
 
@@ -406,10 +415,13 @@ Los informes llevan siempre `reachedS`, nunca `t`: tras volver atrás, `t` está
 3. `t` solo avanza en `playing`.
 4. Un salto aterriza como mucho en la hora en que la cabeza pasa por `lengthKm − 1`; ningún salto emite `finish`, y ningún `report` con `mode: 'seek'` lleva la hora de la meta.
 5. `finish` solo sale con `atFinish` y `atLine`, o tras `reveal`; `arrival` y `closing`, solo tras `finished`.
-6. El `report` que acompaña a `finish` lleva `REPORT_MODE[view]`, y con él la letra (§8.1).
+6. El `finish` lleva `REPORT_MODE[view]` en su cuerpo, y con él la letra (§8.1); el `report` del borde, justo antes, no la escribe, porque su `reachedS` es el borde (`finishDs − 1`) y no la meta (§10.3, §14.11).
 7. En el digest, `speed` es 1 y `nextAction` es falso; en `watch` y `highlights`, desde `closing` no se pide nunca otra etapa (§8.8, regla 1).
+8. En el digest, al empezar la etapa k + 1 sale `release` de la k − 1, y `loaded` nunca tiene más de dos etapas (18-e).
+9. Un `cueAdmitted` con `round` no apaga `nextAction` (6-m), y un `throttled` deja la fase en `waiting` con `Loading`, nunca en `paused` con `Connection lost` (14-q).
+10. `touch` pone `idleS` a 0; los mandos solo se esconden en `playing` (8-p).
 
-**Dónde está cada mando** (decisión 8-p). En el teléfono, la fila de los mandos de §6.1 lleva `❚❚`, la velocidad (`×1`; cada toque pasa a la siguiente de `×½ ×1 ×2 ×4`), `Next action`, `Commentary` y `⋯`, y debajo la barra de progreso en km. `⋯` abre una hoja desde abajo con los saltos (`−5 km`, `+5 km`, `Next climb`, `Final 20 km` y `Last km`; en crono, los de §9.4), el conmutador `Highlights` / `Watch` y, separado al final, `Show result`. En escritorio todo va en la fila (§6.1); además de la barra espaciadora de D-20, `←` y `→` son `−5 km` y `+5 km`, como los segundos de un reproductor de vídeo (sin evidencia de los jueces). Los mandos no se esconden mientras se reproduce: la pantalla es de datos y no de vídeo, y esconderlos costaría un toque más para cada cosa. «Tocar la pantalla» (D-20) es tocar el plano, el rótulo y la voz, porque las demás zonas tienen su toque propio: la capa fija abre su segunda línea (§6.2), una fila abre su grupo (§6.3), un nombre abre su ficha (§6.5) y la barra y el perfil saltan (§8.5). En `recap` y en los cuadros de la previa y del cierre, un toque en el plano pasa al siguiente en vez de pausar.
+**Dónde está cada mando** (decisión 8-p). En el teléfono, la fila de los mandos de §6.1 lleva `❚❚`, la velocidad (`×1`; cada toque pasa a la siguiente de `×½ ×1 ×2 ×4`), `Next action`, `Commentary` y `⋯`, y debajo la barra de progreso en km. `⋯` abre una hoja desde abajo con los saltos (`−5 km`, `+5 km`, `Next climb`, `Final 20 km` y `Last km`; en crono, los de §9.4), el conmutador `Highlights` / `Watch` y, separado al final, `Show result`. En escritorio todo va en la fila (§6.1); además de la barra espaciadora de D-20, `←` y `→` son `−5 km` y `+5 km`, como los segundos de un reproductor de vídeo (sin evidencia de los jueces). **Los mandos se esconden**, como en un reproductor de vídeo: a los `BROADCAST.controlsHideS` (3 s de pared) sin tocar la pantalla, mover el ratón ni pulsar una tecla, la fila de los mandos y la barra de progreso se desvanecen y la pantalla queda para la carrera; la capa fija, el perfil, la barra de grupos, el rótulo y la voz no se esconden nunca (D-17). Vuelven con cualquier toque, movimiento o tecla, y no se esconden mientras la hora no avanza (`paused`, `waiting`, `seeking`, `recap`, la previa, la llegada y el cierre), con la hoja de `⋯` abierta ni con el foco del teclado dentro de ellos. Se esconden con opacidad y siguen en el árbol de accesibilidad, así que el lector de pantalla y el tabulador los encuentran siempre (D-57, §18.8). Con los mandos escondidos, el primer toque en el plano pausa, como fija D-20, y los enseña. La versión anterior los dejaba fijos porque «la pantalla es de datos y no de vídeo», que contradice el norte que dio el dueño, la retransmisión de televisión (commit `eee1b93`; «La pantalla es televisión», §0.4, punto 4), y dejaba 48 px de los 800 del teléfono ocupados toda la etapa (§6.1). «Tocar la pantalla» (D-20) es tocar el plano, el rótulo y la voz, porque las demás zonas tienen su toque propio: la capa fija abre su segunda línea (§6.2), una fila abre su grupo (§6.3), un nombre saca su rótulo (§6.5) y el nombre del rótulo abre su ficha (§7.1; antes de salir, el reproductor pausa e informa de lo alcanzado), y la barra y el perfil saltan (§8.5). En `recap` y en los cuadros de la previa y del cierre, un toque en el plano pasa al siguiente en vez de pausar.
 
 ### 8.12 Las pruebas
 
@@ -421,12 +433,14 @@ Tests primero: cada fila se escribe en el paso que la necesita (§17), antes que
 | `playbackEstimateS`, con los `altM` de las cinco etapas de §8.3 congelados en un fixture, da al segundo lo medido con `l4/estHighlights.mjs` (8:12, 9:08, 13:10, 11:06 y 15:36; §8.2), y la de `Highlights` de la e18, 4:25 | `pace.test.ts` | 3a |
 | `digestPace` multiplica todas las zonas por un mismo factor y `playbackEstimateS(p, digestPace(p, kind))` da `digestBudgetS[kind]` con menos de 1 s de error; `digestMinutes` da 38, 40 y 43 con los tipos de las tres grandes vueltas | `pace.test.ts` | 10 |
 | La parte del ritmo de B9: la misma línea con sus sucesos y con `events` vacío da la misma `t` fotograma a fotograma, a 60 fotogramas por segundo y con `Next action` apagado | `player.test.ts` | 3b |
-| Las siete comprobaciones de §8.11, en cada paso de 1.000 secuencias de acciones al azar | `player.test.ts` | 3b (y 10 para los saltos y los modos) |
+| Las diez comprobaciones de §8.11, en cada paso de 1.000 secuencias de acciones al azar | `player.test.ts` | 3b (y 10 para los saltos, los modos, el digest y los mandos) |
 | La red al reproducir (8-d): con un servidor falso que aplica la admisión de §10.11 y responde a los 150 ms, las cinco etapas de §8.3 enteras a `Watch` ×1 y ×4 sin un solo 409, y el reloj en `waiting` solo cuando el colchón de la tabla de §8.5 es menor que la respuesta | `player.test.ts` | 3b (y 10 para `Highlights` y `Next action`) |
 | Los saltos: `Final 20 km` desde el km 30 de la e7 emite sus `report` con `mode: 'seek'` y sus `chunk` de 900 s en orden, cada `chunk` tras su `report`, y aterriza en el km 155; `Last km` aterriza en el 174 y no emite `finish`; `Next climb` sin puertos por delante no hace nada | `player.test.ts` | 10 |
 | El resumen para el reloj (8-n): tras `Next climb`, el primer fotograma de `playing` está a `climbCardLeadKm` del pie y `climb_ahead` entra en la cola; al reanudar, `resumeBackS` antes de lo alcanzado | `player.test.ts` | 10 |
-| `Next action` se apaga al entrar un `Cue` de clase ≥ 2 y vuelve a la velocidad de antes; con uno de clase 1 sigue; desde `last_km` no se enciende (8-o) | `player.test.ts` | 10 |
-| La letra: el `report` de la línea lleva `play` en `watch`, `summary` en `highlights` y `digest` en el digest; un digest de tres etapas emite tres `finish` en orden, con el cuadro 1 de la siguiente entre ellas | `player.test.ts` | 10 |
+| `Next action` se apaga al entrar un `Cue` de clase ≥ 2 y vuelve a la velocidad de antes; con uno de clase 1 sigue, y con uno de la ronda de la moto también (6-m); desde `last_km` no se enciende (8-o) | `player.test.ts` | 10 |
+| Un 429 en un tramo (`throttled` con `retryAfterS`): la fase queda en `waiting` con `Loading` y el hook repite a los `retryAfterS` de pared; nunca `Connection lost` (14-q) | `player.test.ts` | 10 |
+| Los mandos (8-p): en `playing`, tras `controlsHideS` de `frame` sin `touch`, quedan escondidos; un `touch` los enseña; en `paused`, `recap`, la previa y el cierre no se esconden | `player.test.ts` | 10 |
+| La letra: el `finish` de la línea lleva `mode: 'play'` en `watch`, `'summary'` en `highlights` y `'digest'` en el digest, y el `report` del borde, justo antes, no llega a `finishS` (Rcobertura-030); un digest de tres etapas emite tres `finish` con `mode: 'digest'` en orden, con el cuadro 1 de la siguiente entre ellas, y al empezar la tercera sale `release` de la primera (18-e) | `player.test.ts` | 10 |
 | `PlayerControls` a 360 px: `❚❚`, `×1`, `Next action`, `Commentary` y `⋯` en la fila; con `view: 'digest'`, solo `❚❚` y `Show results` | `apps/web/src/components/broadcast/PlayerControls.test.tsx` | 10 |
 
 Lo que estas pruebas no ven, lo ven otras: B17 las duraciones de las 24 etapas dentro de las bandas de 8-k (§8.9, §16.4), B18 el 409 del servidor (§16.4) y el paso 10 el móvil con «Fast 4G», a mano (§18.5). Ninguna mira el motor: el ritmo se ajusta cambiando constantes de `packages/shared` y volviendo a medir (§8.9).
@@ -441,36 +455,39 @@ Lo que estas pruebas no ven, lo ven otras: B17 las duraciones de las 24 etapas d
 
 **Decisión tomada aquí.**
 - 8-a. `digestPace` escala `summaryPace` con la estimación NOMINAL de la etapa (`playbackEstimateS`), no con el reloj de la cabeza: es causal y no necesita saber lo que tarda la carrera. Medido: de −9 a +34 % sobre el presupuesto. Descartado: escalar con el reloj real, que exige el futuro de la carrera en la cabecera (D-06).
-- 8-b. El botón del digest calcula sus minutos con los presupuestos de las etapas veladas y los cuadros fijos (38, 40 y 43 para las tres grandes vueltas enteras) en lugar del «30» de §G.11. Descartado: un número redondo que no se cumple.
+- 8-b. El botón del digest calcula sus minutos con los presupuestos de las etapas veladas y los cuadros fijos (38, 40 y 43 para las tres grandes vueltas enteras) en lugar del «30» que llevaban D-39 y los textos de §21.6 F.3 (D-39 ya está corregida). Descartado: un número redondo que no se cumple.
 - 8-c. El digest encadena las etapas solo, con el cuadro del recorrido entre una y otra; `Watch` y `Highlights` no encadenan nunca. El digest es un acto explícito sobre la carrera entera.
 - 8-d. La red al reproducir: el reproductor pide el tramo siguiente cuando le quedan menos de `chunkRaceS / 2` de carrera servida, e informa antes de lo alcanzado (lo pintado) si el último informe no le deja pedirlo; si el tramo no llega a tiempo, el reloj espera en el último fotograma. En `Highlights` ×4 y en `Next action` el colchón es de 0,75 s de pared en la hora muerta; lo mide el paso 10 en el móvil.
 - 8-e. La letra de lo visto la pone el `mode` del informe que cruza la meta, con `LETTER_OF_MODE` (§10.3): `play`, `W`; `summary` y `digest`, `S`. Un `seek` no cruza nunca la meta (8-j); si un cliente lo informara, la tabla lo anota `R`.
 - 8-f. Los maillots en juego: en la general, los tres siguientes con su diferencia y la bonificación de meta si la hay; en puntos y montaña, los puntos en juego hoy según el recorrido y quién está a menos de ellos; la primera etapa y la carrera de un día tienen su texto o no tienen cuadro. Una clásica sin pavés ordena sus favoritos por MON si tiene un puerto HC o de 1.ª y por COL si no. Con la anterior velada, la cabecera lleva la previa solo con recorrido y parte.
-- 8-g. Los favoritos por atributo se ordenan con los atributos del día de la etapa, congelados al grabarla, y no con los de hoy, que ya llevan el aprendizaje de esa etapa y de las siguientes. Pide `TimelineCast.favourites` (propuesto abajo); sin línea, solo los de la general.
+- 8-g. Los favoritos por atributo se ordenan con los atributos del día de la etapa, congelados al grabarla, y no con los de hoy, que ya llevan el aprendizaje de esa etapa y de las siguientes. Es `TimelineCast.favourites` (§4.2, 4-u: `{ rider, why }`), que la API sirve detrás de los `previewGcTop` de la general de salida (`why: 'gc'`); sin línea, solo los de la general; con la anterior velada, ninguno (8-f).
 - 8-h. La llegada: el ganador, los grupos que llevan un corredor propio, un maillot o un top 10 de salida, el fuera de control y el cierre, con cuadros de `closingCardS` que pasan solos. `PHOTO FINISH` no se usa: el motor no mide lo ajustado dentro de un grupo.
 - 8-i. `While you skipped` y `Previously` enseñan como mucho `recapMaxCues` (5) rótulos de clase ≥ 2, en orden de carrera, y después el cuadro de diferencias; salen fuera de la cola y duran `cueHoldS[3]` o hasta un toque.
 - 8-j. Ningún salto pasa de un km antes de meta; durante un salto, lo alcanzado que se informa es lo servido, porque saltar es dar los km por pasados, y aun así una etapa solo pasa a vista cruzando la meta. Los destinos (`+5 km`, `Next climb`, `Final 20 km`, `Last km`, un toque en la barra o en el perfil) son siempre del recorrido.
-- 8-k. Las bandas de B17 de §8.9, con margen sobre lo medido. Descartado: fijarlas sin margen, que haría fallar el banco por una semilla.
+- 8-k. Las bandas de B17 de §8.9, con margen sobre lo medido. La de la crono empieza en 5:00 para que quepan las nacionales que midió §9.4 (5:20-5:52; Rcobertura-026). Descartado: fijarlas sin margen, que haría fallar el banco por una semilla.
 - 8-l. Al reanudar, el reproductor pide los tramos de 0 a lo alcanzado más la precarga de cuatro en cuatro, porque `Previously` y `Commentary` necesitan lo anterior.
 - 8-m. En una crono, `Highlights` y el digest son una sola curva: `ttPaceAt` por `ttPlaybackEstimateS / digestBudgetS.cri`, medida con el motor real de 1:56 a 2:03 en cuatro cronos y tres semillas. Descartado: una curva de `Highlights` propia de la crono, que no compra nada que no den `×2` y `×4` sobre sus 5:20 a 11:23.
 - 8-n. `While you skipped` y `Previously` paran el reloj mientras están en pantalla. A ×60, seis segundos son 4,4 km: la ficha del puerto de `Next climb` caducaría bajo el resumen y el espectador saldría de `Previously` cinco minutos de carrera más allá de lo visto. No es un freno de la cola (D-21): solo sigue a un acto del espectador y dura lo mismo pase lo que pase.
 - 8-o. `Next action` se apaga desde el rótulo `last_km`: el último km se ve a su ritmo, como en la tele, y para ir más deprisa quedan `×2` y `×4`.
-- 8-p. En el móvil, la fila lleva `❚❚`, la velocidad, `Next action`, `Commentary` y `⋯`, y la hoja de `⋯` los saltos, el conmutador de modo y `Show result`; los mandos no se esconden; «tocar la pantalla» de D-20 es tocar el plano. En escritorio, `←` y `→` son `−5 km` y `+5 km`.
-- 8-q. El reproductor es un reductor puro, `playerStep`, cuyos efectos ejecuta el hook en orden y cada uno tras la respuesta del anterior; los informes llevan siempre lo alcanzado y nunca `t`. Descartado: la lógica dentro del componente, que no se prueba sin navegador.
+- 8-p. En el móvil, la fila lleva `❚❚`, la velocidad, `Next action`, `Commentary` y `⋯`, y la hoja de `⋯` los saltos, el conmutador de modo y `Show result`. Los mandos se esconden a los `BROADCAST.controlsHideS` (3 s de pared) sin tocar, como en un reproductor de vídeo, y vuelven con cualquier toque, movimiento o tecla; no se esconden mientras la hora no avanza ni con el foco dentro, y siguen en el árbol de accesibilidad. «Tocar la pantalla» de D-20 es tocar el plano: pausa y enseña los mandos. En escritorio, `←` y `→` son `−5 km` y `+5 km`. Sin evidencia de los jueces. Descartado: los mandos fijos de la versión anterior («la pantalla es de datos y no de vídeo»), que contradice el norte de la televisión (Rdueno-014).
+- 8-q. El reproductor es un reductor puro, `playerStep`, cuyos efectos ejecuta el hook en orden y cada uno tras la respuesta del anterior; los informes llevan siempre lo alcanzado y nunca `t`; la meta la escribe el efecto `finish` con su `mode`, no el informe del borde. Descartado: la lógica dentro del componente, que no se prueba sin navegador.
+- 8-r. La previa no enseña el horario de paso a tres medias de la tele (mapa 06 §9, fila 35): la etapa está corrida y cada uno la ve cuando entra (DD-15), así que una hora de reloj no dice nada; lo que se anuncia es la duración de la reproducción en la ficha (§8.2).
+- 8-s. El cierre no tiene cuadro de puntos ni de montaña (mapa 06 §9, fila 34): dice quién lleva cada maillot mañana, y las tablas con sus cambios están en `Report` → `Classifications`. Sin evidencia de los jueces; si el dueño las quiere, `StageClosing` gana `pointsAfter` y `komAfter`.
+- 8-t. El salto de recorrido va tramo a tramo, un informe y un tramo por vuelta, porque la hora de destino es futuro y el cliente no la tiene (D-06). Si el paso 10 mide más de 5 s con `Slow 4G` para un salto de 125 km (§18.9), el salto pasa al servidor: `POST …/broadcast/seek` con el km destino, que calcula la hora, escribe lo alcanzado con `mode: 'seek'` y devuelve los tramos intermedios en una respuesta (§14.2). Descartado: informar de una vez una hora de destino estimada y pedir los tramos en paralelo (Rcoste-009), que con una estimación larga pasaría de la meta y revelaría la etapa (8-j).
 
 **Propuesto para el glosario.**
 - `BROADCAST.recapMaxCues` (5): rótulos que enseñan `While you skipped` y `Previously`; `BROADCAST.previewThreatsMax` (3): corredores que el cuadro de maillots nombra por maillot; `BROADCAST.closingCardS` (6 s de pared, también propuesta en §6): lo que dura cada cuadro del cierre. En `packages/shared/src/broadcast/constants.ts`.
-- `TimelineCast.favourites: readonly RiderIx[]`: los `previewAttrTop` mejores inscritos por el atributo del tipo de etapa, con los atributos públicos del día leídos por `buildTimelineCast` antes del aprendizaje de la etapa (§4.2, §5.4; `packages/db/src/cast.ts`).
-- `digestPace(profile: ProfileStrip, kind: StageKind): readonly PaceZone[]`, la firma de la función que §G.2 nombraba en `packages/shared/src/broadcast/pace.ts`, y a su lado `digestMinutes(kinds: readonly StageKind[]): number` (8-b).
+- `TimelineCast.favourites` ya está en §4.2 con su forma final, `readonly { rider, why }[]` (4-u), leída por `buildTimelineCast` antes del aprendizaje de la etapa (§5.4; `packages/db/src/cast.ts`); la versión anterior de este bloque la proponía como `RiderIx[]`.
+- `digestPace(profile: ProfileStrip, kind: StageKind): readonly PaceZone[]`, la firma de la función que la síntesis nombraba en `packages/shared/src/broadcast/pace.ts`, y a su lado `digestMinutes(kinds: readonly StageKind[]): number` (8-b).
+- `BROADCAST.controlsHideS` (3): s de pared sin tocar tras los que los mandos se esconden en `playing` (8-p); sin evidencia de los jueces.
+- En `player.ts`: `PlayerState.idleS`, `stageDay` y `loaded`; `PlayerContext.digestNext`; las acciones `touch` y `throttled` y el campo `round` de `cueAdmitted`; los efectos `finish` con `mode` y `release` (18-e); `playerInit` gana `stageDay`.
+- `POST …/broadcast/seek`, solo si el paso 10 lo pide (8-t).
 - En `apps/web/src/domain/broadcast/player.ts` (§8.11): `ViewMode` (`'watch' | 'highlights' | 'digest'`, la curva, distinta de `WatchMode`, que es el modo del informe), `PlayerPhase`, `Speed`, `PlayerState`, `PlayerContext`, `PlayerAction`, `PlayerEffect`, `REPORT_MODE`, `playerInit` y `playerStep`.
-- Textos de pantalla: `Highlights · about 4 min`, `Watch the race in 40 minutes` (calculado), `Skipping to 20 km to go…`, `Loading`, `WHILE YOU SKIPPED`, `PREVIOUSLY`, `STAGE 18 · SUMMIT FINISH · 185 km`, `Cat. 2 climb`, `Intermediate sprint · km 129`, `3 laps of 14.2 km`, `+2 more climbs`, `WEATHER`, `dry`, `rain`, `rain from km 120`, `Wind 18 km/h`, `No wind`, `Crosswind: km 40-65`, `JERSEYS IN PLAY`, `closest:`, `Finish bonus: 10, 6, 4 s`, `45 points at stake today`, `within reach:`, `No mountain points today`, `Stage 1 · the stage winner takes the first leader’s jersey`, `FAVOURITES`, `General classification:`, `Sprinters`, `Puncheurs`, `Climbers`, `Time triallists`, `Cobbles specialists`, `STAGE 18 · RESULT`, `(your rider)`, `GENERAL CLASSIFICATION · after stage 18`, `JERSEYS TOMORROW`, `FINAL JERSEYS`, `new`, `MOST KILOMETRES OUT FRONT`, `OUT OF THE RACE`, `Tomorrow`, `Final stage`.
+- Textos de pantalla: `Highlights · about 4 min`, `Watch the race in 40 minutes` (calculado), `Skipping to 20 km to go…`, `Loading`, `WHILE YOU SKIPPED`, `PREVIOUSLY`, `STAGE 18 · SUMMIT FINISH · 185 km`, `Cat. 2 climb`, `Intermediate sprint · km 129`, `3 laps of 14.2 km`, `+2 more climbs`, `WEATHER`, `dry`, `rain`, `rain from km 120`, `Wind 18 km/h`, `No wind`, `Crosswind: km 40-65`, `JERSEYS IN PLAY`, `closest:`, `Finish bonus: 10, 6, 4 s`, `45 points at stake today`, `within reach:`, `No mountain points today`, `Stage 1 · the stage winner takes the first leader’s jersey`, `FAVOURITES`, `General classification:`, `Sprinters`, `Puncheurs`, `Climbers`, `Time triallists`, `Cobbles specialists`, `STAGE 18 · RESULT`, `(your rider)`, `GENERAL CLASSIFICATION · after stage 18`, `JERSEYS TOMORROW`, `FINAL JERSEYS`, `new`, `MOST KILOMETRES OUT FRONT`, `OUT OF THE RACE`, `Tomorrow`, `Final stage`, `same time (3 km rule)`.
 
-**Dudas para el ensamblador.**
-- D-39 y §G.11 dicen `Watch the race in 30 minutes` y «21 etapas son unos 30 min»; con `digestBudgetS` una gran vuelta entera son 38, 40 o 43 minutos con los cuadros (§8.8). Aquí el número se calcula (8-b); si el dueño quiere 30, los presupuestos tienen que bajar un cuarto (§15.3, §20).
-- D-55 dice «del orden de una escritura por minuto real y espectador», pero con informes cada 15 s de pared y la curva de §8.2, cada informe hace crecer lo alcanzado más de `progressMinDeltaS` (60 s) en todas las zonas salvo el último km (a ×60, 900 s por informe): unas cuatro escrituras por minuto en `Watch`, y más en `Highlights` y en los saltos, que informan antes de cada tramo (8-d). §10.3 y §18.4 deberían limitar la escritura en base a una por `progressEveryRealS` y por (usuario, carrera), con el último valor en memoria para autorizar tramos, que es lo que D-55 ya guarda.
+**Dudas para el ensamblador.** (estado tras la corrección L4, fase 5)
+- Cerradas: el «30» de D-39 (D-39 corregida, `dudas.md` C-33); la carga de escritura de D-55 (10-l, D-55 corregida); las bandas de B17 (§16.4 usa las de 8-k; la de la crono baja a 5:00, cruzada a §16.4); `TimelineCast.favourites` (4-u, §4.2, corrección L2); la curva de la crono en §9.4 y su `+10 min` (C-37, C-135); y la tabla por equipos de DD-13 (20-c).
 - Para §14.3: en `Highlights` ×4 y en `Next action`, cada tramo cuesta un `POST` de progreso y un `GET` con 0,75 s de colchón (8-d). Un `GET` que llevara lo alcanzado ahorraría la mitad de las idas y vueltas, pero D-51 prohíbe que un `GET` cambie estado; aquí se deja como está.
-- Para §16.4: B17 necesita bandas; las de 8-k son una propuesta con margen sobre lo medido.
-- Para §4.2 y §5.4: `TimelineCast` no tiene dónde guardar los favoritos por atributo congelados (8-g); sin ese campo, la previa de la N depende del aprendizaje de la propia N y B1c puede fallar.
-- Para §9.4: el digest y `Highlights` de una crono son la curva de 8-m, que §9.4 no nombra; y el `+10 min` de la crono tiene que quedarse antes de la meta del último en salir, como los saltos de carretera se quedan a un km (8-j), algo que §9.4 no dice.
-- Para §17: las pruebas de §8.12 se reparten entre los pasos 3a, 3b y 10; la lista de tests primero de esos pasos debería llevarlas.
-- DD-13 dice que el dorsal amarillo del equipo líder «sigue en la tabla por equipos del cierre», pero `StageClosing` (§4.11) no tiene tabla por equipos: aquí la clasificación por equipos se queda en `Report`.
+- Para §14.2 y §18.9: el salto de 125 km con `Slow 4G` (umbral 5 s) y, si no lo cumple, la ruta `POST …/broadcast/seek` de 8-t.
+- Para §15.3 y el glosario: `BROADCAST.controlsHideS` (3, 8-p).
+- Para §17: las pruebas de §8.12 se reparten entre los pasos 3a, 3b y 10; la lista de tests primero de esos pasos debería llevarlas, con las filas nuevas de la corrección (el 429, los mandos que se esconden, el `finish` con su modo y el `release` del digest).
