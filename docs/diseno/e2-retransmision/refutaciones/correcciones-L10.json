@@ -7,15 +7,15 @@
  },
  {
   "id": "Rcobertura-002",
-  "estado": "parcial",
+  "estado": "aplicado",
   "donde": "borrador/21-apendices.md l. 557 (F.3, `Pulling:`); borrador/00-glosario.md G.11; borrador/00-cabecera.md l. 63 (§0.3)",
-  "motivo": "Cierto en el v0. Lo de este lote: F.3 y G.11 dejan de decir que «la forma del nombre está abierta» y el ejemplo pasa al nombre tal como está guardado (`Pulling: Team Beta (for 11 Sam Carter)`, 7-a, como pide Rcobertura-020); §0.3 conserva «Nada queda «a definir»». Lo demás no es de estas secciones y ya lo hicieron o lo tienen pedido otros lotes: 4-u escribe en §4 `favourites`, `checkClockDs`, `tt`, `tplRev` y `housingCovered` (L2), L5 cerró 9-b, 9-d y 9-i, y las cruzadas de L2 (Rcobertura-005 y -009) piden quitar el condicional de 17-a, §17.8 y los riesgos 22 y 24. Parcial porque 12-c de §12.7 sigue diciendo «se propone la columna» (cruzada de L10) y §0.3 solo será cierto cuando la coherencia aplique esas cruzadas."
+  "motivo": "Cierto en el v0. Lo de este lote: F.3 y G.11 dejan de decir que «la forma del nombre está abierta» y el ejemplo pasa al nombre tal como está guardado (`Pulling: Team Beta (for 11 Sam Carter)`, 7-a, como pide Rcobertura-020); §0.3 conserva «Nada queda «a definir»». Lo demás no es de estas secciones y ya lo hicieron o lo tienen pedido otros lotes: 4-u escribe en §4 `favourites`, `checkClockDs`, `tt`, `tplRev` y `housingCovered` (L2), L5 cerró 9-b, 9-d y 9-i, y las cruzadas de L2 (Rcobertura-005 y -009) piden quitar el condicional de 17-a, §17.8 y los riesgos 22 y 24. Parcial porque 12-c de §12.7 sigue diciendo «se propone la columna» (cruzada de L10) y §0.3 solo será cierto cuando la coherencia aplique esas cruzadas. Cierre de L10: lo que faltaba ya está en el texto de hoy, comprobado. 12-c (§12.7) dice que la revisión se guarda en `stage_timelines.tpl_rev`, en la `0044`, sin «se propone» (L8); 17-a y §17.8 escriben `tpl_rev` sin condicional (L9); el riesgo 22 va en «baja: decidido en 8-g» y el 24 se cerró con 4-v y su número no se usa (L9, `19-riesgos.md` l. 32 y 48); 8-g, 9-b, 9-d y 9-i están escritos como decididos (L4 y L5); y ninguna sección dice ya «si el ensamblador lo acepta», «si se acepta 12-c», «pendiente del ensamblador» ni que la forma del nombre esté abierta (búsqueda en `borrador/`). Así §0.3 («Nada queda «a definir»») es cierto, y el hallazgo pasa de parcial a aplicado."
  },
  {
   "id": "Rcobertura-060",
   "estado": "aplicado",
-  "donde": "borrador/21-apendices.md l. 476 (F.1) y l. 630 (21-g); borrador/00-glosario.md G.1",
-  "motivo": "Cierto: §10.2 y 10-e dicen que la caducada no es conocida (`WatchState.known` solo con `W`, `S`, `R` o `A`) y F.1 y G.1 la contaban. La fila dice ahora «vista, revelada o arrastrada: `WatchState.known` (10-e); la caducada está fuera del velo pero no es conocida y abre en `Watch`», y que `known_through` cuenta el prefijo de letras, `X` incluida, que es lo que hace `recordProgress` en §10.3. §2.6, la frase del prefijo de §10.2 y el `status: 'known'` de §10.3 van a cruzadas."
+  "donde": "borrador/21-apendices.md l. 476 (F.1) y l. 630 (21-g); borrador/00-glosario.md G.1; cierre: borrador/00-glosario.md l. 747 (G.5, `race_watch.how`)",
+  "motivo": "Cierto: §10.2 y 10-e dicen que la caducada no es conocida (`WatchState.known` solo con `W`, `S`, `R` o `A`) y F.1 y G.1 la contaban. La fila dice ahora «vista, revelada o arrastrada: `WatchState.known` (10-e); la caducada está fuera del velo pero no es conocida y abre en `Watch`», y que `known_through` cuenta el prefijo de letras, `X` incluida, que es lo que hace `recordProgress` en §10.3. §2.6, la frase del prefijo de §10.2 y el `status: 'known'` de §10.3 van a cruzadas. Cierre de L10: G.5 decía que `how` lleva «una `KnowledgeLetter` por etapa conocida»; ahora, por etapa del prefijo, la caducada `X` incluida (21-g)."
  },
  {
   "id": "Rcoste-001",
@@ -44,8 +44,8 @@
  {
   "id": "Rdueno-004",
   "estado": "aplicado",
-  "donde": "borrador/20-dueno.md l. 25 (DD-05), l. 82 (§20.5, punto 5) y l. 129 (§20.8, DD-05); borrador/21-apendices.md l. 188 (H-04) y l. 217-219 (D-24, D-25 y D-26)",
-  "motivo": "Cierto: las cuatro preguntas de §16.5 no miran maillots ni quién tira, y el apéndice C daba por medidas en la prueba de lectura D-25 y D-26. La prueba gana las dos preguntas del hallazgo, que L8 escribió en §16.5 (16-w) donde el grupo de delante es de 4 a `nameWholeGroupUpTo` (qué lleva cada uno y quién tira detrás y por qué, con la verdad de `pl-truth.mjs`), y §20.5 las cuenta. Cada decisión dice quién la mide de verdad: DD-05, nadie, porque la prueba pregunta qué lleva cada uno y no a quién pasa el delegado, y llega en el 10b, después de la respuesta: la juzga el dueño con el rótulo delante tras el 6b; D-25, la pregunta de los maillots donde salga un campeón; D-24, `jerseys.test.ts` fija la regla y B3 que el maillot se resuelve; D-25, B3 con su cláusula de no vacío y la pregunta de los maillots; D-26, los tests de la frase de la fuga fijan el orden, y que sea el bueno lo juzga el dueño al verla (con la cruzada de L8 a §21). 6-h va a cruzadas (L4). Corregida de paso la cita de SPEC en §20.5, que era l. 597-599: la regla del diario está en `SPEC.md` l. 598-600 (lo que pide Rdueno-031 para §16.5)."
+  "donde": "borrador/20-dueno.md l. 25 (DD-05), l. 82 (§20.5, punto 5) y l. 129 (§20.8, DD-05); borrador/21-apendices.md l. 188 (H-04) y l. 217-219 (D-24, D-25 y D-26); cierre: borrador/21-apendices.md l. 189 (H-05) y l. 216 (D-21); borrador/20-dueno.md l. 85 (§20.5, punto 5: el punto sorteado y diez de diez)",
+  "motivo": "Cierto: las cuatro preguntas de §16.5 no miran maillots ni quién tira, y el apéndice C daba por medidas en la prueba de lectura D-25 y D-26. La prueba gana las dos preguntas del hallazgo, que L8 escribió en §16.5 (16-w) donde el grupo de delante es de 4 a `nameWholeGroupUpTo` (qué lleva cada uno y quién tira detrás y por qué, con la verdad de `pl-truth.mjs`), y §20.5 las cuenta. Cada decisión dice quién la mide de verdad: DD-05, nadie, porque la prueba pregunta qué lleva cada uno y no a quién pasa el delegado, y llega en el 10b, después de la respuesta: la juzga el dueño con el rótulo delante tras el 6b; D-25, la pregunta de los maillots donde salga un campeón; D-24, `jerseys.test.ts` fija la regla y B3 que el maillot se resuelve; D-25, B3 con su cláusula de no vacío y la pregunta de los maillots; D-26, los tests de la frase de la fuga fijan el orden, y que sea el bueno lo juzga el dueño al verla (con la cruzada de L8 a §21). 6-h va a cruzadas (L4). Corregida de paso la cita de SPEC en §20.5, que era l. 597-599: la regla del diario está en `SPEC.md` l. 598-600 (lo que pide Rdueno-031 para §16.5). Cierre de L10: faltaban dos filas del apéndice C que la cruzada de L8 nombra (la cola y la notoriedad): D-21 decía «B17 y la prueba de lectura», y ahora dice B17 y la segunda parte de B3 (la presentación de la fuga, 6-m, §16.4) con la medida de la cola de §6.5 y §6.7 (`l4c/cola.mjs`: 33 de 34 listas y frases y 157 de 158 rótulos de la ronda a ×1; del resto, el 69 % de la clase 2 y el 35 % de la clase 1), y que la prueba de lectura solo dice si con eso se entiende la etapa; y H-05 decía «sí: B3 y la prueba de lectura», contra la fila de D-26 de la misma página, y ahora dice lo mismo que ella. Y §20.5 (punto 5) dice ya la regla de aceptación de §16.5 (puntos 6 y 9): si en los nueve puntos no sale una fuga de 4 a 12, se sortea uno más, un punto cuenta si las dos personas aciertan todas sus preguntas, y hace falta diez de diez cuando hubo que sortearlo."
  },
  {
   "id": "Rdueno-006",
@@ -68,14 +68,14 @@
  {
   "id": "Rdueno-020",
   "estado": "aplicado",
-  "donde": "borrador/20-dueno.md l. 37 (DD-18), l. 58 (§20.3) y l. 142 (§20.8); borrador/00-decisiones.md, fila de DD-18",
-  "motivo": "Cierto, y medido aquí como pide el hallazgo: `l10/descuelgues.mjs` graba las 18 corridas de §12.2 con el prototipo de `l8/grab.mjs`, corre la voz como V1 de `l8/voz.mjs` con `liveClusters` apagada y aproxima la política de §7.7 (grupo de hasta 12 en el bloque anterior al de emisión, los que tiran en la capa de detalle y los protagonistas ya revelados; sin maillots ni general real, que nombrarían a más). La voz dice uno a uno de 63 a 74 descuelgues en la e20 (de 108 a 118 sueltos) y de 59 a 61 en Colombia e5 (de 61 a 63), y de 0 a 1 en las otras cuatro; desglose en `l10/descuelgues-desglose.mjs` (de 520 sueltos en las reinas, 235 salen de grupos de hasta 12, 246 tiraban y 115 ya eran protagonistas). Y como `liveClusters` solo junta a los que no tienen rótulo (§12.3), esos salen uno a uno con racimos o sin ellos. DD-18 lo dice en su consecuencia y en la contraria («apagados para siempre: la voz no dice nunca los de corredores sin rótulo y dice uno a uno los de corredores con rótulo, contra la B3»), y el defecto añade «hasta que se encienda, rige lo apagado». La medida y el hueco de la B3 van a cruzadas a §12.3 (L8)."
+  "donde": "borrador/20-dueno.md l. 37 (DD-18), l. 58 (§20.3) y l. 142 (§20.8); borrador/00-decisiones.md, fila de DD-18; cierre: borrador/21-apendices.md l. 58 (I-44)",
+  "motivo": "Cierto, y medido aquí como pide el hallazgo: `l10/descuelgues.mjs` graba las 18 corridas de §12.2 con el prototipo de `l8/grab.mjs`, corre la voz como V1 de `l8/voz.mjs` con `liveClusters` apagada y aproxima la política de §7.7 (grupo de hasta 12 en el bloque anterior al de emisión, los que tiran en la capa de detalle y los protagonistas ya revelados; sin maillots ni general real, que nombrarían a más). La voz dice uno a uno de 63 a 74 descuelgues en la e20 (de 108 a 118 sueltos) y de 59 a 61 en Colombia e5 (de 61 a 63), y de 0 a 1 en las otras cuatro; desglose en `l10/descuelgues-desglose.mjs` (de 520 sueltos en las reinas, 235 salen de grupos de hasta 12, 246 tiraban y 115 ya eran protagonistas). Y como `liveClusters` solo junta a los que no tienen rótulo (§12.3), esos salen uno a uno con racimos o sin ellos. DD-18 lo dice en su consecuencia y en la contraria («apagados para siempre: la voz no dice nunca los de corredores sin rótulo y dice uno a uno los de corredores con rótulo, contra la B3»), y el defecto añade «hasta que se encienda, rige lo apagado». La medida y el hueco de la B3 van a cruzadas a §12.3 (L8). Cierre de L10: I-44, el injerto de los racimos, dice ya que el racimo solo junta a los que no tienen rótulo y que los de corredores con rótulo salen uno a uno (§12.3, DD-18)."
  },
  {
   "id": "Rdueno-025",
   "estado": "aplicado",
-  "donde": "borrador/20-dueno.md l. 32 (DD-12) y l. 136 (§20.8); borrador/00-decisiones.md, fila de DD-12",
-  "motivo": "Cierto: el robot de vista previa no lleva cookie y su horizonte es `anon` (§11.10 l. 360 lo dice), así que la condición de 14-k no protege a quien lee el enlace en un chat. La consecuencia de DD-12 lo dice («la vista previa lleva el ganador para todo el que vea el enlace, jugador o no, tenga la etapa velada o no») junto al acta en los buscadores de L7, y §20.8 lo pone como el precio. 14-k va a cruzadas (§14.10)."
+  "donde": "borrador/20-dueno.md l. 32 (DD-12) y l. 136 (§20.8); borrador/00-decisiones.md, fila de DD-12; cierre: borrador/21-apendices.md l. 50 (I-36)",
+  "motivo": "Cierto: el robot de vista previa no lleva cookie y su horizonte es `anon` (§11.10 l. 360 lo dice), así que la condición de 14-k no protege a quien lee el enlace en un chat. La consecuencia de DD-12 lo dice («la vista previa lleva el ganador para todo el que vea el enlace, jugador o no, tenga la etapa velada o no») junto al acta en los buscadores de L7, y §20.8 lo pone como el precio. 14-k va a cruzadas (§14.10). Cierre de L10: I-36 decía solo «fuera del velo de quien pide (14-k)»; ahora dice que la vista previa la pide un robot sin cookie y con el velo vacío, y que por eso la ve todo el que vea el enlace (DD-12)."
  },
  {
   "id": "Rdueno-028",
@@ -117,7 +117,7 @@
   "id": "Rdueno-042",
   "estado": "aplicado",
   "donde": "borrador/20-dueno.md l. 46 («Dos números retirados»), l. 3 (entrada) y l. 196 (20-g); borrador/00-decisiones.md, tabla §DD, nota y bloque de la corrección L10",
-  "motivo": "Cierto: ningún jugador ve la diferencia entre las respuestas de DD-19, y el valor de DD-15 lo impone el tick («NO se trocea», `packages/db/src/tick.ts` l. 260, comprobado); la regla de la casa (`Claude.md` l. 26, comprobado) pide tomar y documentar lo razonable. DD-15 y DD-19 se retiran como del dueño y conservan su número, que no se reutiliza, para que no se rompan las remisiones de §8, §12, §13, §14, §17, §19 y §21: quedan decididas en §8.10 y §12.8. Y §20 gana las que el borrador tomaba fuera: DD-26 (L7, el presupuesto), seguir al empezar a ver (DD-01, L6), el cuarto nombre y el corte que cambian SPEC (DD-04, L8, 12-r) y el acta en los buscadores (DD-12, L7); los titulares nuevos del 1a no hace falta subirlos, porque L9 los dejó sin servir hasta el velo (17-x). §20 queda con veinticuatro. §8.10, 8-r y §12.8 van a cruzadas."
+  "motivo": "Cierto: ningún jugador ve la diferencia entre las respuestas de DD-19, y el valor de DD-15 lo impone el tick («NO se trocea», `packages/db/src/tick.ts` l. 260, comprobado); la regla de la casa (`Claude.md` l. 26, comprobado) pide tomar y documentar lo razonable. DD-15 y DD-19 se retiran como del dueño y conservan su número, que no se reutiliza, para que no se rompan las remisiones de §8, §12, §13, §14, §17, §19 y §21: quedan decididas en §8.10 y §12.8. Y §20 gana las que el borrador tomaba fuera: DD-26 (L7, el presupuesto), seguir al empezar a ver (DD-01, L6), el cuarto nombre y el corte que cambian SPEC (DD-04, L8, 12-r) y el acta en los buscadores (DD-12, L7); los titulares nuevos del 1a no hace falta subirlos, porque L9 los dejó sin servir hasta el velo (17-x). §20 queda con veinticuatro. §8.10, 8-r y §12.8 van a cruzadas. Cierre de L10: la cuenta de «veinticuatro» es la de cuando se aplicó este hallazgo; con DD-27, DD-28 y DD-29 (Rcoste-037, Rdueno-036 y Rdueno-037), §20 queda con veintisiete, que es lo que dicen su entrada, §0.3, §0.4 (punto 10), §0.5 y la procedencia."
  },
  {
   "id": "Rdueno-044",
@@ -261,7 +261,7 @@
   "id": "Rdueno-026",
   "estado": "aplicado",
   "donde": "borrador/20-dueno.md l. 44 (DD-26), l. 10 (§20.1), l. 95 (§20.6), l. 111 (§20.7), l. 148 (§20.8) y l. 179 (§20.9)",
-  "motivo": "Cruzada de L7: DD-26 entra con la fila de `00-decisiones.md` (velado por defecto, 11-t) entre las que son «un texto o un comportamiento de la web o de la API», con su porqué, su plazo (antes del 8b, `VeilDelta.budget`) y sus tests. La cuenta de §20 no pasa a veintiséis sino a veinticuatro, porque DD-15 y DD-19 se retiran (Rdueno-042)."
+  "motivo": "Cruzada de L7: DD-26 entra con la fila de `00-decisiones.md` (velado por defecto, 11-t) entre las que son «un texto o un comportamiento de la web o de la API», con su porqué, su plazo (antes del 8b, `VeilDelta.budget`) y sus tests. La cuenta de §20 no pasa a veintiséis sino a veinticuatro, porque DD-15 y DD-19 se retiran (Rdueno-042). Cierre de L10: «veinticuatro» es la cuenta de ese momento; con DD-27, DD-28 y DD-29, veintisiete."
  },
  {
   "id": "Rdueno-039",
@@ -302,8 +302,8 @@
  {
   "id": "Rdueno-037",
   "estado": "aplicado",
-  "donde": "borrador/20-dueno.md, fila de DD-29, §20.4 ([DUEÑO 7]), §20.6, §20.7, §20.8 y §20.9; borrador/00-decisiones.md, fila de DD-29",
-  "motivo": "Cruzada de L4: §6.8 (06-pantalla.md l. 612) ya dice que en el acta la cobertura sigue en el 58 % de la v39 y deja la fila a §20. DD-29, por defecto no, con lo que costaría (una pasada de `buildChronicle` sobre la línea grabada, o una frase del motor que sube la versión y depende de DD-25), y §20.4 lo dice en el punto de [DUEÑO 7]. La cita del dueño es «es solo un tema del journal, no me preocupa de momento» (l. 8095); «para cuando se mejore el diario» es de la v39 (l. 8094), y la fila no se la atribuye a él."
+  "donde": "borrador/20-dueno.md, fila de DD-29, §20.4 ([DUEÑO 7]), §20.6, §20.7, §20.8 y §20.9; borrador/00-decisiones.md, fila de DD-29; cierre: borrador/21-apendices.md l. 253 (D.2, [DUEÑO 7])",
+  "motivo": "Cruzada de L4: §6.8 (06-pantalla.md l. 612) ya dice que en el acta la cobertura sigue en el 58 % de la v39 y deja la fila a §20. DD-29, por defecto no, con lo que costaría (una pasada de `buildChronicle` sobre la línea grabada, o una frase del motor que sube la versión y depende de DD-25), y §20.4 lo dice en el punto de [DUEÑO 7]. La cita del dueño es «es solo un tema del journal, no me preocupa de momento» (l. 8095); «para cuando se mejore el diario» es de la v39 (l. 8094), y la fila no se la atribuye a él. Cierre de L10: la fila de [DUEÑO 7] del apéndice D remite también a DD-29."
  },
  {
   "id": "Rdueno-018",
@@ -338,8 +338,8 @@
  {
   "id": "Rcobertura-026",
   "estado": "aplicado",
-  "donde": "borrador/21-apendices.md, O-11 y D.7; borrador/00-cabecera.md, §0.7 (la crono)",
-  "motivo": "Cruzada de L4, comprobada en la tabla de §9.4: la crono va de 5:20 (la nacional de 40 km con 12 corredores, `nc-es-itt`) a 11:23; el prólogo de 176, de 6:24 a 7:06. O-11 y D.7 lo dicen, y §0.7 gana las nacionales (de 5:20 a 5:52)."
+  "donde": "borrador/21-apendices.md, O-11 y D.7; borrador/00-cabecera.md, §0.7 (la crono); cierre: borrador/00-glosario.md l. 809 (G.7, `BROADCAST.ttPace`)",
+  "motivo": "Cruzada de L4, comprobada en la tabla de §9.4: la crono va de 5:20 (la nacional de 40 km con 12 corredores, `nc-es-itt`) a 11:23; el prólogo de 176, de 6:24 a 7:06. O-11 y D.7 lo dicen, y §0.7 gana las nacionales (de 5:20 a 5:52). Cierre de L10: G.7 daba `ttPace` «medida 6:24-11:23»; ahora de 5:20 a 11:23, con la nacional de 40 km y el prólogo de §9.4. La tabla de aceptación de §15.3, que dice lo mismo («M (6:24-11:23)»), va a cruzadas."
  },
  {
   "id": "Rcobertura-019 (cruzada de L4 a F.3 y al glosario)",
@@ -350,8 +350,8 @@
  {
   "id": "Rcobertura-012 (cruzada de L4 a F.2 y al glosario)",
   "estado": "aplicado",
-  "donde": "borrador/21-apendices.md, F.2 (`cues.ts`, `names.ts`, `player.ts`); borrador/00-glosario.md G.4 y G.7",
-  "motivo": "Cruzada de L4 (con Rcobertura-033, -022, -030, Rdueno-015, -023 y Rcoste-041): `isPresentation(cue)` y `aheadOfPeloton(i, r)` en `cues.ts`; `breakRoundOf(riders, cast)`, `PULL_MOTIVE_WORDS`, `PullingLine` con `motive` y `GROUP_WORDS.jersey` en pares en `names.ts`; `playerInit(view, stageDay, reachedS, known)` y los campos, acciones y efectos nuevos de `player.ts`. En G.7, `breakRoundEveryS` (clase 2, reservado), `cueQueueMax` (la presentación no cuenta), `cardRowsMax` (la lista de una fuga) y la nueva `controlsHideS` (3, 8-p)."
+  "donde": "borrador/21-apendices.md, F.2 (`cues.ts`, `names.ts`, `player.ts`); borrador/00-glosario.md G.4 y G.7; cierre: borrador/00-glosario.md l. 697 (G.4, la fila de `cues.ts`) y l. 154-155 (G.2)",
+  "motivo": "Cruzada de L4 (con Rcobertura-033, -022, -030, Rdueno-015, -023 y Rcoste-041): `isPresentation(cue)` y `aheadOfPeloton(i, r)` en `cues.ts`; `breakRoundOf(riders, cast)`, `PULL_MOTIVE_WORDS`, `PullingLine` con `motive` y `GROUP_WORDS.jersey` en pares en `names.ts`; `playerInit(view, stageDay, reachedS, known)` y los campos, acciones y efectos nuevos de `player.ts`. En G.7, `breakRoundEveryS` (clase 2, reservado), `cueQueueMax` (la presentación no cuenta), `cardRowsMax` (la lista de una fuga) y la nueva `controlsHideS` (3, 8-p). Cierre de L10: F.2 y G.7 lo llevaban, pero G.4 no tenía `isPresentation` ni `aheadOfPeloton` (0 apariciones en el glosario): la fila de `cues.ts` gana `isPresentation(cue: Cue): boolean` y `aheadOfPeloton(i: Instant, r: RiderIx): boolean`, con las firmas de §6.5 y §6.7 (06-pantalla.md l. 356 y 583), y en G.2 la fila de `cues.ts` gana las dos y la de `names.ts`, `breakRoundOf` y `PULL_MOTIVE_WORDS`."
  },
  {
   "id": "Rcobertura-044",
@@ -410,8 +410,8 @@
  {
   "id": "Rcodigo-042",
   "estado": "aplicado",
-  "donde": "borrador/00-glosario.md G.4 (las privadas)",
-  "motivo": "Cruzada de L9: `estimatedHeadClock` deja de ser privada, se exporta de `apps/api/src/broadcastSource.ts` para su test del PR 2."
+  "donde": "borrador/00-glosario.md G.4 (las privadas); cierre: borrador/00-glosario.md l. 172 (G.2, la fila de `broadcastSource.ts`)",
+  "motivo": "Cruzada de L9: `estimatedHeadClock` deja de ser privada, se exporta de `apps/api/src/broadcastSource.ts` para su test del PR 2. Cierre de L10: la fila de `apps/api/src/broadcastSource.ts` de G.2 seguía diciendo «la privada `estimatedHeadClock`»; ahora dice que se exporta para su test del PR 2, como G.4."
  },
  {
   "id": "Rcoste-034",
@@ -424,5 +424,53 @@
   "estado": "aplicado",
   "donde": "borrador/00-cabecera.md §0.4 (punto 3); borrador/00-decisiones.md, DD-25",
   "motivo": "Cruzada de L9, la misma que la de L3: §0.4 y DD-25 ya lo dicen; D-09 lo corrigió L3."
+ },
+ {
+  "id": "Rcobertura-032 (cruzada de L5 a §4.9, que pide lo mismo en §G.3)",
+  "estado": "aplicado",
+  "donde": "borrador/00-glosario.md l. 490 (G.3.4, `RiderCueContext`) y l. 661 (G.3.8)",
+  "motivo": "Cruzada de L5 sin entrada hasta el cierre. Comprobado en el glosario de hoy: `RiderCueContext` lleva `'tt_round'` con su comentario, «la ronda ON COURSE de la crono (9-k)», y no 9-n, que es la clase de `VIRTUAL GC` en crono; y la fila de G.3.8 dice «(9-i, 9-k)». Lo escribió la corrección L2 (4-u); nada que cambiar."
+ },
+ {
+  "id": "Rcobertura-021, Rdueno-021 (cruzada de L4 a §20 y §19)",
+  "estado": "aplicado",
+  "donde": "borrador/20-dueno.md (sin fila nueva); borrador/21-apendices.md l. 478 (F.1, «el arrastre»); borrador/00-glosario.md l. 53 (G.1)",
+  "motivo": "Cruzada de L4 sin entrada hasta el cierre. Comprobado: 6-o (la regla de los 3 km, que se explica en la llegada) y 6-r (la etapa arrastrada abre en `Watch`) no tienen nada del dueño, y lo que sí era suyo va en filas aparte, DD-28 y DD-29 (Rdueno-036 y Rdueno-037, arriba). La parte de §19 (citar la medida de la cola en un riesgo, si lo hay) es de L9. Lo que sí toca a este lote es la palabra de la prosa: F.1 y G.1 decían del arrastre solo «conocer la etapa N porque el jugador aceptó ver o revelar una posterior», y ahora añaden que la etapa arrastrada no se ha visto y abre en `Watch`, con `Report` a un toque, como la caducada (6-r), como ya dice F.3."
+ },
+ {
+  "id": "Glosario de L4 (Rcobertura-023, Rdueno-003, Rdueno-014, Rdueno-015, Rcobertura-019, Rdueno-017)",
+  "estado": "aplicado",
+  "donde": "borrador/00-glosario.md G.2 (l. 154 y 155), G.4 (l. 697), G.7 (sin cambio) y G.11 (sin cambio); G.14, párrafo «Cierre de L10»",
+  "motivo": "Cruzadas de L4 al glosario (§G.2, §G.4, §G.7 y §G.11), que el corrector aplicó bajo Rcobertura-012 y Rcobertura-019 sin una entrada propia. Comprobado contra §6 de hoy: G.7 lleva `controlsHideS` (3, 8-p) y los comentarios nuevos de `breakRoundEveryS`, `cueQueueMax` y `cardRowsMax`; G.11, `Mountains leader’s group`, las tres palabras del grupo del maillot en la voz, las quince de `PULL_MOTIVE_WORDS` y `same time (3 km rule)`, y ningún ejemplo con apellido en mayúsculas o inicial; G.4, `breakRoundOf`, `PULL_MOTIVE_WORDS`, `PullingLine` con `motive`, `GROUP_WORDS.jersey` en pares y `playerInit(view, stageDay, reachedS, known)` con lo nuevo de `player.ts`. Faltaban `isPresentation` y `aheadOfPeloton` en G.4 y en G.2, y las dos de `names.ts` en G.2: añadidas con las firmas de §6.5 y §6.7. El registro de G.14 lo anota."
+ },
+ {
+  "id": "Rdueno-045 (su efecto en §20.5, corrección L9)",
+  "estado": "aplicado",
+  "donde": "borrador/20-dueno.md l. 83 (§20.5, punto 3)",
+  "motivo": "L9 aplicó la segunda cara de Rdueno-045 en §17.10 y §17.11 (lo que el dueño verá roto del 7b al 9b, y hasta qué PR), y §20.5 decía todavía que tras el 7b el dueño ve «la puerta, el acta en `/report`», que llegan con el 9a (§17.12). El punto 3 dice ahora lo mismo que §17.10: pestañas vacías (`No result for this stage.`) del 7b al 9a, listas cortadas, ganadores a null y marcadores neutros del 8a al 9b, y agregados sin aviso del 8b al 9b, escritos en la descripción de cada PR; el modo diagnóstico y `race-radio.mjs --db` siguen como estaban (Rdueno-002, Rdueno-039, Rdueno-001)."
+ },
+ {
+  "id": "Rcobertura-055, Rcodigo-047 (16-s, lo que le llega al dueño)",
+  "estado": "aplicado",
+  "donde": "borrador/20-dueno.md l. 104 (§20.6) y l. 212 (20-l)",
+  "motivo": "Buscados en `correcciones-L*.json` y `cruzadas-L*.json` los «decide el dueño» de los correctores: todos están en §20 salvo 16-s (L8, `16-bancos.md` l. 444 y 785), que manda al dueño, antes de abrir en `Watch` las etapas del adaptador, un p99 del reloj estimado en todos los grupos por encima de 1 km (medido, de 0,84 a 0,89 km). §20.6 lo pone con la pregunta de la prueba de lectura que falla dos veces (16-i), entre lo que le llega si pasa y no es una decisión con valor por defecto, y 20-l dice por qué no se numera: lo medido no lo da, la puerta sigue siendo la cabeza (D-07, D-61) y por encima de 2 km el perfil se protege solo."
+ },
+ {
+  "id": "Rcodigo-038 (el Giro en 24 días, trazado en §0, §20 y §21)",
+  "estado": "aplicado",
+  "donde": "borrador/00-cabecera.md l. 75 (§0.4, punto 6) y l. 143 (§0.7); borrador/20-dueno.md l. 57 (§20.3, DD-03); borrador/21-apendices.md l. 203 (H-19) y l. 415 (X-19)",
+  "motivo": "L4 precisó D-19 y §8.4 con Rcodigo-038: el Giro descansa tres días, corre en 24 días de juego y 3,5 etapas por día real, y seguirlo cuesta de 27 a 47 min en `Watch` y hasta 70 (`rcod/n/gt2.mjs`). §0.4, §0.7, §20.3, H-19 y X-19 daban solo las 3,65 etapas de Francia y España; ahora dicen las dos cifras. El valor por defecto de DD-03 no cambia."
+ },
+ {
+  "id": "Rdueno-017, Rdueno-015, Rcodigo-028, Rdueno-003, Rcobertura-023 (trazado en §21)",
+  "estado": "aplicado",
+  "donde": "borrador/21-apendices.md l. 36 (I-22), l. 60 (I-46) y l. 126 (O-10)",
+  "motivo": "§21 traza contra las secciones de hoy, y la corrección L4 cambió en §6 tres cosas que el apéndice no decía: la moto rodea la fuga con un rótulo de clase 2 reservado con la lista y la frase, solo en `Watch` a ×½, ×1 y ×2 (6-m; I-22), la línea `Pulling:` lleva el porqué de cada equipo (6-d; I-46) y el grupo del maillot se llama igual en la barra, la capa fija y la voz (6-b; O-10). Ninguna subsección cambió de número al corregir (comparados los encabezados `###` del v0 con los de hoy: solo cambian cinco títulos, §6.7, §11.2, §15.5, §17.14 y §20.6), y los 49 injertos siguen donde dice la columna Dónde cayó (comprobado con los nombres de cada uno en el cuerpo de cada subsección citada, `check_sub.py`); siguen siendo 30 enteros y 19 con cambio."
+ },
+ {
+  "id": "Cierre L10 (§0.5, §20.2, §20.5 y §20.8: cuentas, plazos y lo que no tiene interruptor)",
+  "estado": "aplicado",
+  "donde": "borrador/00-cabecera.md l. 106 (§0.5, fila de §19) y l. 177 (dudas); borrador/20-dueno.md l. 81, l. 82 y l. 89 (§20.5); l. 153 (§20.8); borrador/21-apendices.md l. 444 y l. 506 (F.1); borrador/20-dueno.md l. 30, 39, 41 y 42 (§20.2, filas de DD-10, DD-21, DD-23 y DD-24)",
+  "motivo": "Cifras de §0 contra las secciones de hoy: §19.1 tiene treinta y seis riesgos, del 1 al 37 sin el 24, que cerró 4-v (L9), y §0.5 decía treinta y uno, los del v0; los topes (96, 640, 256 y 48 KB), los 17 países, las once puertas, las veintisiete decisiones del dueño, los veintitrés PR y las 56, 52,5 y 37 sesiones casan con §15.2, §7.4, §11.2, §20.2 y §17.22, y la duda de §0 dice que la mediana del JSON puede subir a 320 KB si §15.2 aplica la cruzada de L3 (Rcoste-008). En §20.5, el punto 1 dice lo que el 3c enseña de los grupos de detrás (`Positions of the groups behind are estimated`, Rdueno-009, §17.6), el 2 la presentación de la fuga (6-m), y «Lo que no tiene interruptor» gana el paso 0, que la regla 11 de §17.1 cuenta entre las cinco cosas que nota el jugador. §20.8 pone DD-26 en su orden, antes de DD-27. Y en `00-decisiones.md`, el bloque de la corrección L10 lleva la línea en blanco que le faltaba antes de la raya horizontal (sin ella el párrafo «Añadidas en la corrección» se pintaba como título). F.1 no tenía «la puerta de fuera», que G.1 lleva desde el ensamblado v0 (la acuñó §11) y que §0, §11 y §21 usan: entra al final, y la entrada de F.1 pasa a «las seis que acuñaron las secciones». Y en §20.2, que cada decisión diga antes de qué PR hace falta la respuesta: DD-10, DD-23 y DD-24 decían solo dónde se cambian y ahora dicen «cuando quiera», como §20.7; DD-21, «antes del encendido del 10b, con la medida delante». Las veintisiete filas llevan así valor por defecto, consecuencia con su cifra, dónde y cuándo, y lo que cambia con la contraria."
  }
 ]
