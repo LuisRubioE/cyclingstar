@@ -1,0 +1,237 @@
+[
+ {
+  "id": "Rcobertura-042",
+  "seccion_destino": "§4.13 (y §21.6 F.2)",
+  "que": "`RadioNames` deja de ser `{ readonly riderOf: ReadonlyMap<string, ChronicleRider> }` y pasa a `export interface RadioNames { readonly riderOf: ReadonlyMap<string, ChronicleRider> /* la forma de ChronicleNames, chronicle.ts l. 193-195 */; readonly own: ReadonlySet<RiderIx> /* los del espectador, nombrados siempre en su grupo (R23.7) */; readonly nameableAt: (km: number) => ReadonlySet<RiderIx> /* los nombrables en la foto de ese km: la política de §7.7 y, en una etapa conocida o con ?diag=1, además los diez primeros de la etapa */ }`, como describe §12.10 (12-o). F.2: `radioFromTimeline(tl: TimelineCore, names: RadioNames): RaceRadio`."
+ },
+ {
+  "id": "Rcobertura-042",
+  "seccion_destino": "§17.14 (PR 11)",
+  "que": "«Tests primero» del 11 gana: «`radioFromTimeline` nombra en `riders` a todo corredor de `own` en todas las fotos en que corre (R23.7), en las seis congeladas; y, con los diez primeros de la etapa en `nameableAt` (la etapa conocida), cada uno va en `riders` de su grupo en toda foto en que corre, igual que en `buildRaceRadio(radioForStorage(radio, esaLista, []), …)`» (B16, §16.4). En «Código», la ruta de etapa de una etapa conocida y `?diag=1` construyen `nameableAt` con la política de §7.7 más los diez primeros de la etapa (Rdueno-008)."
+ },
+ {
+  "id": "Rcobertura-043",
+  "seccion_destino": "§6.3, §7.4, §7.6, §11.8, §11.9 y §21.6 F.2",
+  "que": "Cada render nace con `locale` delante, con el nombre `_locale: 'en'` mientras no lo lea (`noUnusedParameters`; 12-q, D-62): `groupLabelText(_locale, …)` (§6.3), `championTitleText(_locale, t, n)` (§7.4), `breakHeadline(_locale, cards, ownIx)` (§7.6), `pageTitle(_locale, p, page)` y `stageReadyNotice(_locale, p, ownRiderOnStartlist)` (§11.8, §11.9), `stageReadyEmail(_locale, p, ownRiderOnStartlist, url)` (§11.9), y `gapTrendLine(_locale, trend)`, `chronicleParts(_locale, e, rev)` y `chronicleLine(_locale, e, rev)` (§12). F.2 con las firmas nuevas; los tests de §11.19 llaman con `'en'`. El código de B1a (§16.3) ya llama a `pageTitle('en', …)` y `stageReadyEmail('en', …)`."
+ },
+ {
+  "id": "Rcobertura-043",
+  "seccion_destino": "§19.9",
+  "que": "Borrar la fila «`locale` como parámetro de cada render | cuando E10 añada la segunda lengua | E10 | §12.11»: los renders nacen con él (12-q). Y en la fila de E10 de §19.3 (19-riesgos.md l. 72), «`locale` en cada punto de render» ya está hecho en E2."
+ },
+ {
+  "id": "Rcodigo-022",
+  "seccion_destino": "§10.6 (punto 1) y §17.4 (PR 1a)",
+  "que": "§10.6, punto 1: `getGcThroughStage`, `getPointsClassification` y `getKomClassification` (`results.ts` l. 236, 320, 379) reciben primero `q: Queryable` (`Database | Tx`, el de `titles.ts`, §7.4) en lugar de `db: Database`, porque `awardOutcome` las llama dentro de la transacción del tick (§12.8) y un `PgTransaction` no es asignable a `Database` (TS2379, medido por el refutador de código); las rutas las siguen llamando con `db`, y el 8a les añade `worldHorizon` detrás de `q`. §17.4, PR 1a: «`results.ts`: las tres lecturas de clasificación reciben `q: Queryable` (§12.8)»."
+ },
+ {
+  "id": "Rcodigo-027",
+  "seccion_destino": "§17.14 (PR 11) y 17-l",
+  "que": "«en las 24 etapas por dos semillas» pasa a «en las 22 etapas en línea por dos semillas, y en las dos cronos comprueba que las dos radios son vacías (`kms.length === 0`): la crono ignora la sonda y la radio guardada no tiene km (medido, `rcod/n/ws/ttradio.mjs`)»; y en `radioFromTimeline`, «en una crono (`tl.timeTrial`) devuelve la radio vacía». Lo mismo en 17-l («la versión larga de B16 (24 etapas por dos semillas)»)."
+ },
+ {
+  "id": "Rcodigo-027",
+  "seccion_destino": "dudas.md (1.10, 1.6 y 1.12)",
+  "que": "Cerradas en la corrección L8: la 1.10 (B16 compara las 22 en línea y las dos cronos dan radio vacía, §12.10, §16.4), la 1.6 (B22 informa de todos los grupos con la medida del refutador de código, 16-s) y la 1.12 (la lista blanca de B1b lleva sus rutas de campos en §11.18, corrección L7, y §16.3 las copia). De la 1.1 quedan solo `stage_timelines.tpl_rev` en la `0044` de §13.3 y `tplRev` en `stageReplaySchema` de §14.2 (cruzadas de Rcodigo-046)."
+ },
+ {
+  "id": "Rcodigo-046",
+  "seccion_destino": "§13.3",
+  "que": "12-c escrito como hecho: en la `0044`, `\"tpl_rev\" smallint DEFAULT 0 NOT NULL` dentro del `CREATE TABLE \"stage_timelines\"`, y en su tabla de Drizzle `tplRev: smallint('tpl_rev').notNull().default(0)`, regenerando la `0044` con drizzle-kit (17-a: en la `0044`, no en una quinta migración). La escribe `recordStageTimeline` con el `TEMPLATE_REV` del tick (§12.7)."
+ },
+ {
+  "id": "Rcodigo-046",
+  "seccion_destino": "§14.2 (y §14.1)",
+  "que": "Ampliación de `stageReplaySchema`: `+ tplRev: z.number().int().min(0).optional()   // stage_timelines.tpl_rev (12-c): la revisión de plantillas con que se lee el acta; opcional por la web de ayer (D-50); 0 sin línea`, que es el `StageReport` de §4.11 («con watch y tplRev, que gana en §14.2»). `yesterday.test.ts` lo omite con `watch`."
+ },
+ {
+  "id": "Rcodigo-046",
+  "seccion_destino": "§5.6",
+  "que": "`readStageTimeline` devuelve también `tplRev` de la fila (o lo lleva la línea decodificada), porque la cabecera (`BroadcastHead.tplRev`) y el acta lo sirven (§12.7, 12-c); `recordStageTimeline` escribe `tpl_rev` con `TEMPLATE_REV` de `packages/shared/src/render/variants.ts`."
+ },
+ {
+  "id": "Rcodigo-050",
+  "seccion_destino": "§4.5 y §21.6 F.2",
+  "que": "Junto a `GroupRole` (§4.5): «`GROUP_ROLES` y la guarda `isGroupRole(x: unknown): x is GroupRole` viven en `instant.ts` y se escriben en §12.6: `mainRole` y `groupRole` llegan en `datos`, sin tipo». F.2 gana la fila `isGroupRole(x: unknown): x is GroupRole` y `GROUP_ROLES`, en `packages/shared/src/broadcast/instant.ts`, §12.6."
+ },
+ {
+  "id": "Rcodigo-060",
+  "seccion_destino": "§17.15 (PR 12), §17.20 y §17.21",
+  "que": "PR 12: «Tests primero» gana `apps/api/src/routes/lastRace.test.ts` (nuevo, PGlite con una etapa corrida por `runOneStage`): con la etapa conocida, `report.moments` lleva las líneas del acta en que el corredor es protagonista o destinatario, en el orden del acta; con la última corrida velada, el informe es el de la anterior conocida y `ready` lleva la velada. «Código»: el manejador de `GET /api/riders/me/last-race` (`routes/riders.ts` l. 198-204) produce `moments` con `stage_snapshots.events`, los nombres del día y `buildChronicle` (no `raceReport.ts`, que no puede importar `apps/api`). §17.20: fila «`apps/api/src/routes/riders.ts` | hoy | 8a, 12 | la última etapa CONOCIDA y `ready` (8a); `moments` (12, 12-k)». §17.21: fila «`apps/api/src/routes/lastRace.test.ts` | 12 | | `moments` y `ready` | rápida»."
+ },
+ {
+  "id": "Rdueno-001",
+  "seccion_destino": "§17.14 (PR 11) y §17.20",
+  "que": "«`scripts/race-radio.mjs --db` lee `stage_timelines` y solo re-simula una etapa sin fila» pasa a «`scripts/race-radio.mjs --db` sigue re-simulando si `stage_snapshots.engine_version` es la de hoy (el depósito por grupo, `--every`, todos los relevistas) y, solo si la versión no coincide y la etapa tiene fila en `stage_timelines`, pinta `radioFromTimeline` en vez de negarse y lo dice en su cabecera (`fuente: línea grabada · sin depósitos · una foto por km`); sin fila, se sigue negando» (12-p). La fila del guion en §17.20: «`--db` gana una salida para las etapas de otra versión (§12.10)»."
+ },
+ {
+  "id": "Rdueno-001",
+  "seccion_destino": "§20.2, §20.3 y §20.8 (DD-11)",
+  "que": "La fila de DD-11 ya no dice que `race-radio.mjs --db` pasa a leer la línea: «sigue re-simulando las etapas corridas con la versión de hoy (con el depósito por grupo, `--every` y todos los relevistas) y, con otra versión, pinta `radioFromTimeline` sobre la fila de `stage_timelines` en lugar de negarse (12-p)», como `00-decisiones.md` (DD-11 corregida en la fase 5, L8). En §20.3 y §20.8, lo que compra DD-11 ya no es «una sola fuente de verdad para `race-radio.mjs --db`»: el microscopio sigue re-simulando cuando es fiel. §20.5, punto 3, y §11.15 quedan como están."
+ },
+ {
+  "id": "Rdueno-008",
+  "seccion_destino": "§11.16",
+  "que": "Fila «conocida», columna «Desde el paso 11»: «`radioFromTimeline` (§12.10) si la etapa tiene línea, con `nameableAt` igual a la política de §7.7 más los diez primeros de la etapa (la lista de seguimiento de hoy, aplicada al leer: en una etapa conocida no destripa); la guardada si no». Y el último párrafo («B16 compara `radioFromTimeline` con `radioForStorage` sin lista de seguimiento…») gana: «y, para la etapa conocida, con los diez primeros en los dos lados (16-t)»."
+ },
+ {
+  "id": "Rdueno-008",
+  "seccion_destino": "§3.2 y §5.4",
+  "que": "03-reloj.md l. 64 («sin la lista de seguimiento que hoy nombra desde el km 0 a los diez primeros de la etapa») y 05-motor.md l. 321 («la radio que se reconstruya de la línea es la de `radioForStorage` con la lista de seguimiento vacía»): añadir «en una etapa no conocida; en una conocida y con `?diag=1`, la ruta añade al leer los diez primeros de la etapa (§12.10, 12-o)»."
+ },
+ {
+  "id": "Rdueno-019",
+  "seccion_destino": "§20.2 y §20.8 (DD-04)",
+  "que": "DD-04 recoge, como `00-decisiones.md` (precisada en la fase 5, L8), que el cuarto nombre (`Gruppetto`) y el reparto de papeles con el corte de dos tercios de §6.3 cambian SPEC §6.15, que dice tres nombres y reparte con `chaseKind` (`SPEC.md` l. 604-615): lo contrario son tres nombres, con lo de detrás del grueso llamado `the bunch` o por su papel. SPEC es la fuente de verdad del diseño («Ante conflicto, SPEC.md manda», `Claude.md` l. 4)."
+ },
+ {
+  "id": "Rdueno-019",
+  "seccion_destino": "§17.15 (paso 12) y D-58",
+  "que": "El paso 12 reescribe SPEC §6.15 (l. 604-615, «El vocabulario de grupos (v27)») con lo que conteste el dueño en DD-04: por defecto, cuatro nombres y el corte de dos tercios de §6.3 (12-r). D-58 y la lista de documentos que se corrigen ganan `SPEC.md`."
+ },
+ {
+  "id": "Rcobertura-051",
+  "seccion_destino": "§7.7",
+  "que": "El párrafo «B3 exige rótulo para el 100 %… Con esta política el 100 % se cumple por construcción» pasa a: «B3 (§16.4) exige que en todo grupo de hasta `nameWholeGroupUpTo` se nombre a todos (`others = 0`) con su maillot resuelto, con una cláusula de no vacío sobre una fuga sintética con un campeón y un líder (16-p): `named.length + others = size` lo cumple cualquier política, también una que no nombre a nadie (Rcobertura-051)»."
+ },
+ {
+  "id": "Rcobertura-051",
+  "seccion_destino": "§8.12, §17.9 (PR 6b) y §17.21",
+  "que": "La segunda parte de B3 (la presentación de la fuga de 6-m) va en `apps/web/src/domain/broadcast/breakPresentation.test.ts` (nuevo, 6b, rápida, con `/// <reference types=\"node\" />` porque lee los `.timeline.gz` congelados): con una fuga de cinco con el campeón y el líder y la cola llena, a ×1 salen enteras la lista, la frase y los cinco rótulos de la ronda; a ×4 y en `Highlights`, la lista y la frase; y sobre las cinco en línea congeladas, a ×1, toda fuga con algún fotograma pintado antes de su caza tiene su lista y su frase y cada escapado que sigue delante, su rótulo (16-p). Fila en §17.21 y en la tabla de §8.12 si se prefiere tenerlo allí. El 6b también gana la cabecera sintética de la primera parte de B3 en `broadcastFixtures.test.ts`."
+ },
+ {
+  "id": "Rcobertura-052",
+  "seccion_destino": "§15.3 y §14.8",
+  "que": "`BROADCAST.maxKnownStageGzipBytes: 112_640,  // bytes: la ruta de etapa CONOCIDA (StageReplay entero, con la radio). M: de 22,2 a 100,1 KB con gzip en las 22 en línea del banco (mapa 07 §7); el máximo más un 10 %. Tope de banco, no de escritura (B6, 15-g)` junto a los otros cuatro topes de red; la tabla de aceptación de §15 con su fila. En §14.8, el párrafo de los topes nombra el quinto: «y `maxKnownStageGzipBytes` (110 KB, la ruta de etapa conocida, la más pesada; Rcobertura-052)», medida sobre la etapa corrida de `routes/broadcast.test.ts` y a mano en las 24 × 2 en el paso 6."
+ },
+ {
+  "id": "Rcobertura-052",
+  "seccion_destino": "§17.9 (PR 6a) y §18.10",
+  "que": "6a, B6 de lo servido: además la ruta de etapa conocida ≤ `maxKnownStageGzipBytes` (110 KB; medido de 22,2 a 100,1 KB) sobre la etapa corrida de `routes/broadcast.test.ts`, y B8 su parse más `stageReplaySchema.safeParse`, mediana ≤ 40 ms. En el paso 6, a mano, `scripts/broadcast-fixtures.mjs --sizes` mide el paquete de meta y la ruta conocida en las 24 × 2 (Rcoste-024), y el máximo va a la tabla de §18.10 con dos filas nuevas."
+ },
+ {
+  "id": "Rcobertura-053",
+  "seccion_destino": "§8.9, §17 y §18",
+  "que": "Cada umbral de banco tiene una sola fuente escrita, §16.4 (las bandas de B17, 8-k en §8.9, que §16.4 cita), y en el código una sola constante en el fichero de test que lo usa (16-v): donde §8.9, §17 (6a, 10b) y §18 repiten un umbral de §16.4, lo citan por §16.4 en vez de copiarlo. §15.3 no gana un bloque `BENCH` (16-v explica por qué)."
+ },
+ {
+  "id": "Rcodigo-047",
+  "seccion_destino": "§3.8",
+  "que": "03-reloj.md, donde dice que la posición de los grupos que no son la cabeza «el adaptador además no la tiene» (v0 l. 949): sustituir por la medida del refutador de código (`rcod/n/adapt.mjs`, cuatro corridas): la cabeza, p99 de 0,32 a 0,60 km; todos los grupos, p99 de 0,84 a 0,89 km y máximos de 2,17 y 2,62; la misma posición es otro grupo en el 15-30 % de los pares de fotos; B22 la informa y lo que se hace con ella es 16-s."
+ },
+ {
+  "id": "Rcodigo-058",
+  "seccion_destino": "§11 (introducción) y §17.10 (8a)",
+  "que": "11-superficies.md l. 3: «las 53 `HEAD` automáticas» pasa a «las `HEAD` automáticas, una por cada ruta con `GET`: 53 hoy y 57 con los cuatro `GET` nuevos de §14.2»; §17.10 (l. 330 del plan): «las 53 `HEAD` heredan el `config`» pasa a «cada `HEAD` registrado tiene un `GET` con la misma `url` y el mismo `config`, sin fijar el número (57 con E2)», como B1d en §16.3."
+ },
+ {
+  "id": "Rcodigo-062",
+  "seccion_destino": "§14.7 y §17.3 (paso 0)",
+  "que": "`apps/api/src/routes/broadcast.test.ts` y `apps/api/src/routes/yesterday.test.ts`, que piden la ruta de etapa de una etapa corrida con `app.inject` sobre PGlite, ponen `process.env.DB_POOL_MAX = '1'` antes de `startTestDb()` (PGlite admite una sesión, `testDb.ts` l. 15-19; la ruta hace cuatro consultas a la vez, `routes/races.ts` l. 114-119; sin ello, 500 con `ECONNRESET`, medido por el refutador de código, `rcod/n/b1/dbg500.mjs`), como `startSpoilerWorld` (§16.3)."
+ },
+ {
+  "id": "Rcodigo-063",
+  "seccion_destino": "§14.2 y §11.6",
+  "que": "`riderRaceResultSchema` (`contracts.ts` l. 900-911) gana `stagesToWatch: z.number().int().min(1).optional()   // §11.6, punto 2: las etapas veladas de esa carrera; la fila «Race France · 3 stages to watch» (sup. P4, H7)`, y §11.6 lo nombra: es lo que `[toWatch]` quita en B1b (§11.18, §16.3). Si se prefiere otro nombre, `strip` (§16.3) lo sigue."
+ },
+ {
+  "id": "Rcodigo-065",
+  "seccion_destino": "§17.7 (PR 4b), §17.8 (paso 5), §17.2 y §17.20",
+  "que": "4b: `timeline.test.ts` mide también el `bytea` con gzip 9 de las 24 × 2 y de la crono más larga de 176 corredores del calendario (`gzipSync` de `node:zlib` al nivel `TIMELINE.gzipLevel`, importado con `// eslint-disable-next-line @typescript-eslint/no-restricted-imports`, como `routes/arranque.test.ts` l. 3-6) contra `maxStoredBytes` y `ttMaxStoredBytes`; se quita «el motor no comprime ni en sus tests, 16-n». Paso 5: se quita «B6, a mano: `scripts/broadcast-fixtures.mjs --sizes` mide el `bytea` de las 24 etapas por dos semillas» y de §17.2 «B6 a mano (el `bytea` de las 24 × 2)». §17.20, fila de `scripts/broadcast-fixtures.mjs`: `--sizes` mide el paquete de meta y la ruta de etapa conocida de las 24 × 2 en el paso 6 (Rcoste-024), no el `bytea`."
+ },
+ {
+  "id": "Rcodigo-077",
+  "seccion_destino": "§4.6 (y §3.8)",
+  "que": "Pseudocódigo de `cutTimeline`: «events ← los de vis.eventDs ≤ T; banners ← los de vis.bannerDs ≤ T; detail ← las filas con su marca ≤ T», para que todo el corte vaya por Ds con el mismo `toDs` que `chunkOf`; y en §4.6 (o §3.8): «el adaptador de la radio redondea a décimas los `revealS` que calcula sobre el reloj estimado (`toDs(revealS) / 10`) al construir la línea, como la línea grabada (§4.3)». Sin eso, B9 (§16.4) falla por redondeo con un suceso del adaptador cuyo `revealS` cae entre `to / 10` y `to / 10 + 0,05` s."
+ },
+ {
+  "id": "Rcodigo-082",
+  "seccion_destino": "§13.6 y §17.8 (PR 5)",
+  "que": "El comentario nuevo de `schema.ts` (l. 754, «~22 KB por etapa») dice las dos cifras con su unidad: «de 100 a 510 KB de JSON por etapa, de 11 a 146 KB en disco con la compresión TOAST de `jsonb`» (mapa 07 y juez del motor, D-11), no una sola sin decir qué mide."
+ },
+ {
+  "id": "Rcodigo-084",
+  "seccion_destino": "§17.10 (PR 7a)",
+  "que": "El 7a gana `packages/db/src/watchConcurrency.test.ts` (B12, «dos dispositivos», con `describe.skipIf(realTestDatabaseUrl() == null)`) y `realTestDbFor(nombre)` en `packages/db/src/testDb.ts` (con `TEST_DATABASE_URL`, crea la base `nombre` en ese servidor si no existe, la deja con `resetRealTestDb` y devuelve su URL; sin ella, `undefined`); el job `test` de `.github/workflows/ci.yml` exporta `TEST_DATABASE_URL` (18-j). Cada fichero con Postgres de verdad usa su base (`cyclingstar_b14`, `cyclingstar_watch`, y la de `TEST_DATABASE_URL` para `calendarConcurrency.test.ts`, que empieza a correr en todo PR), porque vitest corre los ficheros en paralelo y `resetRealTestDb` vacía el esquema (16-r)."
+ },
+ {
+  "id": "Rcodigo-084",
+  "seccion_destino": "§10.14 y §18.2 (18-j)",
+  "que": "§10.14, fila «dos dispositivos»: «corre contra el Postgres de servicio del CI, no en PGlite, que con un solo backend lo haría pasar sin el `for update` (§16.4, 16-r)». 18-j: la base propia de B14 se crea con `realTestDbFor('cyclingstar_b14')`, porque con `TEST_DATABASE_URL` en el job también corren `calendarConcurrency.test.ts` y el caso de dos dispositivos de B12, y los tres vacían el esquema en paralelo."
+ },
+ {
+  "id": "Rcodigo-087",
+  "seccion_destino": "§10.6 y §17.10 (PR 7a)",
+  "que": "`horizon.ts` exporta, solo para los tests, `clearHorizonCaches(): void`, que vacía el memo de `computeHorizon` y el mapa de `lastRunStages`, como `clearStageTimelineCache` (§5.6): en el mundo de B1 el día de juego no cambia al correr la etapa velada y las dos cachés van por el día (§16.3). Se exporta desde `packages/db/src/index.ts` en el 7a."
+ },
+ {
+  "id": "Rcodigo-091",
+  "seccion_destino": "§17.7 (PR 4b) y §17.21",
+  "que": "4b: «`packages/engine/src/stage/probeHooks.test.ts` pasa a enganchar el grabador de verdad (`timelineRecorder` de `../sim/timeline.js`) en sus dos etapas, con la huella de cuatro campos y las cuentas de ganchos: un cambio en `packages/shared/src/broadcast/` que haga al grabador tocar lo que el motor lee cae en la rápida del mismo PR». §17.21, fila de `probeHooks.test.ts`: «Crece en: 4b»."
+ },
+ {
+  "id": "Rcodigo-092",
+  "seccion_destino": "§17.1 (regla 4) y §17.7",
+  "que": "Tras «4.365 s … 73 min» y «5,5 min»: «(medidos el 21/09/2026, motor v83, con cinco ficheros y con tres; desde el 26/09 «mundo y radio» lleva además `routeCensus`, `stageKind.completo`, `frozenSkeletons`, `preRegistro` y `legacy/golden`, que suman 35,8 s en local, medido, `rc4/mundo_extra.log`; el PR 4a apunta en su descripción el reloj de cada uno de los ocho tramos)»; y en §17.7: «“Mundo y radio” (5,5 min medidos con tres ficheros, unos 6,1 con los ocho de hoy, estimado) crece de 3,7 a 5,4 min con `timeline.test.ts` (Rcoste-028)»."
+ },
+ {
+  "id": "Rcodigo-093",
+  "seccion_destino": "§17.10 (PR 7a)",
+  "que": "B20 (`revealFree.test.ts`): la lista es literal y cerrada, «`schema.ts`, `horizon.ts`, `watch.ts` y los `*.test.ts`»; el reinicio no tiene código (§13.9) y, si algún día lo tiene, entra en la lista en el mismo PR con su motivo."
+ },
+ {
+  "id": "Rcodigo-096",
+  "seccion_destino": "§17.14 (PR 11)",
+  "que": "B16: «`radioFromTimeline(tl, names)` contra `buildRaceRadio(radioForStorage(radio, lista, []), chronicleNames)`, con el mismo `riderOf` en los dos lados: en la rápida, el que `load.ts` arma desde `manifest.json`; en la larga, uno sintético `Rider <índice>`; y un `it` de no vacío: al menos un km con relevistas nombrados en cada etapa en línea» (16-t)."
+ },
+ {
+  "id": "Rcoste-013",
+  "seccion_destino": "§20.2 (DD-21)",
+  "que": "En la fila de DD-21, «lo primero que se optimiza es la cuarta consulta» pasa a «la consulta 2, las carreras de la plantilla en `race_rosters`: en la forma D la cuarta ya no va en la petición (`lastRunStages`, 18-a), y en PostgreSQL 16 la 2 es la que pesa en el mánager, p95 de 2,50 ms», como `00-decisiones.md` (corregida en la fase 5, L8) y 16-k."
+ },
+ {
+  "id": "Rcoste-024",
+  "seccion_destino": "§17.9 (PR 6a) y §18.10",
+  "que": "En el paso 6, a mano, `scripts/broadcast-fixtures.mjs --sizes` mide sobre las 24 × 2, con el acta sin radio de la etapa corrida, el paquete de meta contra `maxFinishGzipBytes` y la ruta de etapa conocida contra `maxKnownStageGzipBytes`; el máximo de cada uno va a la tabla de §18.10. La etapa de `routes/broadcast.test.ts` es la prueba de humo."
+ },
+ {
+  "id": "Rcoste-027",
+  "seccion_destino": "§17.7 (PR 4b) y §17.21",
+  "que": "B10 va en tres ficheros: `packages/db/src/timelineCollectorBench.ts` (el ayudante con `watch`, `seedOf`, `same`, `QUICK` y `LONG`), `timelineCollector.test.ts` (la rápida) y, para el nocturno, `timelineCollector.long1.test.ts` y `timelineCollector.long2.test.ts` (las once primeras etapas en línea por dos semillas y el resto), para que corran en paralelo. Filas en §17.21. Coste del nocturno que añade E2: de 7,5 a 10,5 min de CPU sin cobertura y de 13 a 21 con ella (estimado)."
+ },
+ {
+  "id": "Rcoste-028",
+  "seccion_destino": "§19.1 (riesgo 1)",
+  "que": "Añadir: «desde el 4b, cada PR de la táctica paga `timeline.test.ts` en «mundo y radio», de 3,7 a 5,4 min más (estimado con lo medido por etapa), y tiene que pasar I1, I3, B6 del JSON y del `bytea` y B11 de E2»."
+ },
+ {
+  "id": "Rcoste-033",
+  "seccion_destino": "§17.10 (PR 7a)",
+  "que": "`horizonLatency.test.ts`: el mundo se monta en un `beforeAll` con tiempo explícito de 120.000 ms, como `tickRun.test.ts` l. 22 (los ganchos de vitest se quedan en 10 s y montar el mundo en PGlite cuesta de 10 a 15 s), y la medida empieza tras 20 llamadas de calentamiento."
+ },
+ {
+  "id": "Rdueno-004",
+  "seccion_destino": "§20.8 (DD-05), §21 (apéndice C) y §6 (6-h)",
+  "que": "La prueba de lectura pregunta ya por los maillots de la fuga y por quién tira y por qué (§16.5, 16-w), pero no mide la delegación con un campeón (DD-05) ni la notoriedad (D-26) ni la cola (6-h): donde el apéndice C (v0 l. 9923-9927), 6-h (v0 l. 3200: «lo acepta la prueba de lectura») y DD-05 en §20.8 dan una decisión por aceptada en la prueba, que digan qué la mide de verdad: los maillots y `Pulling:`, la prueba (preguntas 5 y 6 del punto 6); D-24 y D-25, B3 y su segunda parte; D-26 y la cola, los tests de §6.7 y §7.6 y la medida de `l4c/cola.mjs`."
+ },
+ {
+  "id": "Rdueno-004",
+  "seccion_destino": "§8.9",
+  "que": "El párrafo de la prueba de lectura («contestan sin ayuda las cuatro preguntas de SPEC §6.15») gana: «y, con una fuga de 4 a 12 delante, qué lleva cada uno y quién tira detrás y por qué (§16.5, 16-w)»."
+ },
+ {
+  "id": "Rdueno-031",
+  "seccion_destino": "§20.5 (punto 5)",
+  "que": "SPEC §6.15 se cita en l. 598-600 (la regla del diario), no en l. 597-599; y la frase «La prueba de esta tanda es leer el diario… El criterio no es un porcentaje» (`docs/balance.md` l. 6236-6237) es del registro de la v27, no del dueño, cuya queja es la de l. 5975-5976."
+ },
+ {
+  "id": "Rcoste-020",
+  "seccion_destino": "§18.2 (18-j)",
+  "que": "La base propia de B14 se crea con `realTestDbFor('cyclingstar_b14')` (§16.4, 16-r): con `TEST_DATABASE_URL` en el job, `calendarConcurrency.test.ts` y el caso de dos dispositivos de B12 también corren, y vitest corre los ficheros en paralelo; cada uno necesita su base porque `resetRealTestDb` vacía el esquema."
+ },
+ {
+  "id": "Rcobertura-042, Rcobertura-043, Rcobertura-047, Rcobertura-051, Rcobertura-052, Rcodigo-050, Rcodigo-063, Rcodigo-084, Rcodigo-087",
+  "seccion_destino": "00-glosario.md (§G.2, §G.3, §G.4, §G.7, §G.9, §G.11)",
+  "que": "Nombres nuevos de la corrección L8. §G.4: `RadioNames` con `own` y `nameableAt` (12-o); `isGroupRole(x): x is GroupRole` y `GROUP_ROLES` (12.6); `liveClusters(events, tl, revealS): readonly LiveCluster[]` y `LiveCluster` (`event`, `revealS`, `members`); la implementación de `buildChronicle`, que devuelve `ChronicleEntry[] | LiveLine[]`; `chronicleParts(_locale, e, rev)`, `chronicleLine(_locale, e, rev)`, `gapTrendLine(_locale, trend)` y el `_locale` de los demás renders (12-q); `clearHorizonCaches()` (§10.6) y `realTestDbFor(nombre)` (`testDb.ts`); `serverErrors`, `SKIP`, `B1B_SKIP` y `B1B_VEIL` en `spoilerWorld.ts`. §G.7: `BROADCAST.maxKnownStageGzipBytes` (112.640). §G.2: `packages/db/src/timelineCollectorBench.ts`, `timelineCollector.long1.test.ts` y `long2.test.ts`, `watchConcurrency.test.ts`, `apps/web/src/domain/broadcast/breakPresentation.test.ts`, `apps/api/src/routes/lastRace.test.ts`. §G.3: `riderRaceResultSchema.stagesToWatch`. §G.9: B1a («valores plantados en campos que la API sirve: el tiempo, un premio insertado, los puntos, el `detail` del palmarés y la etapa de las noticias; ningún 5xx»), B3 («todo grupo de hasta 12 nombrado entero con su maillot resuelto, con cláusula de no vacío; y la presentación de la fuga entera»), B6 (el `bytea` en el banco; cinco topes de red), B8 (`withGroupRoles` y la ruta conocida), B12 (veinte casos; dos dispositivos contra Postgres), B16 (las 22 en línea, la lista de la etapa conocida, R23.7, cronos vacías), B22 (todos los grupos, informativo, 16-s) y PL (los maillots y quién tira). §G.11: `fuente: línea grabada · sin depósitos · una foto por km` (cabecera de `race-radio.mjs`)."
+ }
+]

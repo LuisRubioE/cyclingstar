@@ -1,0 +1,107 @@
+[
+  {
+    "id": "Rcodigo-066",
+    "seccion_destino": "§16.4 (código de B9 y frase de load.ts)",
+    "que": "En el comentario de cabecera del bloque de B9 añadir «(en el 3a sobre ROAD_FIXTURES y con instantAt; la crono y timeTrialInstantAt, en el 6b)», y la frase de load.ts pasa a «FIXTURES con los seis nombres y ROAD_FIXTURES con los cinco en línea», y dice que hasta el 6a loadTimeline construye la línea del adaptador desde <etapa>.radio.json.gz y .events.json.gz (§17.6)."
+  },
+  {
+    "id": "Rcodigo-079, Rcodigo-080",
+    "seccion_destino": "§16.2 y 16-a (los fixtures) y §16.4 (B13)",
+    "que": "Decisión 17-u: los seis fixtures salen de un mundo de PGlite sembrado con el campo del banco bajo ids uuid deterministas (00000000-0000-4000-8000- y el índice en doce cifras, como idDe de packages/db/src/stageRun.test.ts l. 44: corredores del 1 por dorsal, equipos del 1001), en el que runOneStage corre antes las etapas 1 a N − 1 de la carrera; manifest.json guarda por uuid dorsal, país, equipo y un nombre de prueba (Rider 012). El 2 escribe sucesos, radio y acta; el 5 (no el 4b) escribe .timeline.gz (el stage_timelines.body, con el reparto de buildTimelineCast sobre la N − 1) e .i1.json.gz de la misma corrida con spec.timeline, y falla si sucesos o radio difieren en un byte; en race-flanders e1, race-colombia e5 y la crono e16 el script escribe antes en palmares un nacional para dos corredores de la salida, para que haya un from de campeón. load.ts gana ROAD_FIXTURES (2) y seedFixtureWorld(t, name) (6a: mundo, game_state, equipos y corredores del manifiesto, la fila de stage_timelines y la de stage_snapshots). broadcastFixtures.test.ts nace en el 5. B13 gana su cláusula de no vacío: en los 500 velos, al menos 100 campos con from velado existían en el reparto sin velar y ninguno viaja."
+  },
+  {
+    "id": "Rcodigo-073",
+    "seccion_destino": "§4.13, §4.9, §4.11 y §15.3 (bloque de constants.ts)",
+    "que": "Decisión 17-z: PaceZone y CueClass se declaran en broadcast/timeline.ts (no en wire.ts y cues.ts), y el bloque de constants.ts de §15.3 los importa de ./timeline.js (con StageKind de ../contracts.js); la fila de §4.13 de timeline.ts los lista, y las de constants.ts, wire.ts y cues.ts importan de timeline.ts. Los tipos de §4.8 nacen en el PR 2 y los de §4.9 y el tipo StoredTimelineV1 con los seis esquemas compartidos, en el 3a (§17.5, §17.6)."
+  },
+  {
+    "id": "Rdueno-009",
+    "seccion_destino": "§3.8, §6 (§6.2 y §6.3) y glosario (§G.11)",
+    "que": "Con clock estimated (el adaptador), ProfileStrip pinta hueco (sin relleno) el cursor de todo grupo que no sea la cabeza, la barra escribe su km con ~ y el aviso Recorded before full race data (pantalla) lleva debajo Positions of the groups behind are estimated (pantalla); con la línea grabada (clock exact), nada de eso. Nace en el 3c con su caso en GroupBar.test.tsx (§17.6). Término de pantalla nuevo para §G.11."
+  },
+  {
+    "id": "Rdueno-010",
+    "seccion_destino": "§3.8, §14.4 y §7.8",
+    "que": "El adaptador de la radio construye un reparto provisional (17-k): los corredores de snap.input con dorsal, país, género y el equipo del día (input.riders[].teamId) con su jerseySeed de hoy, y worn de jerseyOf(leadersThroughStage(N − 1), riderId) como leader con from en la N − 1, o la equipación; sin títulos, distinciones ni knownWins. leadersThroughStage sale de routes/races.ts (l. 108-121) a broadcastSource.ts, exportada. serveCast nace en el 3a sin velo, porque BroadcastHead.cast es un RiderCard[] obligatorio (§4.11); el 6b le da líneas y notoriedad y el 7b el velo. Con él, la fila de una fuga de hasta nameWholeGroupUpTo dice en el 3c quién va y con qué maillot ([DUEÑO 3] en parte, §17.17)."
+  },
+  {
+    "id": "Rcodigo-042",
+    "seccion_destino": "§3.8 y glosario (§G.4, estimatedHeadClock)",
+    "que": "estimatedHeadClock se exporta de apps/api/src/broadcastSource.ts (no es privada) para su test, apps/api/src/broadcastSource.test.ts del PR 2, con los tres casos de la cruzada de L1."
+  },
+  {
+    "id": "Rcodigo-086",
+    "seccion_destino": "§16.3 (startSpoilerWorld) y §14.4",
+    "que": "startSpoilerWorld vacía al montarse las dos LRU de líneas, clearStageTimelineCache() y clearAdaptedTimelineCache(), porque van por ${raceKey}|${stageDay} sin mundo y B1c monta dos mundos con la misma carrera en el mismo proceso; §14.4 exporta clearAdaptedTimelineCache(): void de broadcastSource.ts, solo para los tests, como clearStageTimelineCache de §5.6."
+  },
+  {
+    "id": "Rcodigo-075",
+    "seccion_destino": "§10.14 (caso «lo servido no es visto» de B12)",
+    "que": "El montaje pasa a «tramos pedidos hasta el borde de la meta con el progreso informado hasta finishS − 1 y sin POST …/finish»: desde el 7b el tope de lo alcanzado da 409 a todo tramo más allá de 0 + prefetchRaceS, y el 7b re-sella el caso (§17.10)."
+  },
+  {
+    "id": "Rcodigo-078",
+    "seccion_destino": "§16.1 (fila de narration.test.ts) y §12.9",
+    "que": "narration.test.ts tiene cuatro it y el cuarto (l. 41-59) es la única prueba de raceVerdict, que E2 no borra (LastRaceReport.tsx l. 4, Home.tsx l. 19): en el 12 se borran los tres de narrate y personalNarration (l. 24-39) y se queda el de raceVerdict. La fila de §16.1 («narrate y la clave cruda de personalNarration | 12 | se borran con narrate()») tiene que decirlo, y la de §12.9 «se borra, con sus casos de narration.test.ts» también."
+  },
+  {
+    "id": "Rcoste-030",
+    "seccion_destino": "§13.1 (regla 7)",
+    "que": "Aplicar una migración no es inerte: desde el 1a runMigrations toma antes, con su sesión, el candado del tick (pg_advisory_lock(LOCK_CLASS.tick, 1)) y fija SET lock_timeout = '10s'; nunca coincide con un día del tick y, si una tabla sigue ocupada, falla y el servicio reintenta (regla 9 de §17.1, 17-w). Su test, migrateLock.test.ts, necesita Postgres de verdad (TEST_DATABASE_URL, desde el 1a)."
+  },
+  {
+    "id": "Rcoste-038",
+    "seccion_destino": "§5.6 y §14.4 (clave de las LRU), §5.5 (nota de la fila que ya estaba) y §13.9 (13-h)",
+    "que": "Tres cosas. (1) Si las dos LRU de líneas van por ${worldId}|${raceKey}|${stageDay}, el reinicio deja de tener que reiniciar web; mientras vayan sin mundo, sigue haciéndolo (13-h). (2) Cuando writeStageTimeline no inserta fila porque ya había una (onConflictDoNothing), recordStageTimeline lo apunta en el TimelineTickLog: timeline error: <raceKey> e<n> ya tenía fila; timelines.test.ts lo prueba en el 5. (3) 13-h: el texto de docs/ops.md no espera al paso 12: el 5 escribe que el reinicio vacía stage_timelines con stage_snapshots y reinicia web, y el 7a que borra race_watch (17-y)."
+  },
+  {
+    "id": "Rcoste-037",
+    "seccion_destino": "§20 (§20.2 y la tabla de DD) y 00-decisiones.md",
+    "que": "DD nueva, DD-27, «El 1a antes de la regla de arranque, si el reinicio llega antes»: por defecto se adelanta el 1a mínimo (la 0043, runMigrations con el candado del tick y emitNews escribiendo seed, data, race_key, stage_day y text), como excepción declarada a la regla de arranque de docs/encargos.md l. 15-26; consecuencia: sin él, o el reinicio espera al 1a o las noticias del mundo nuevo nacen sin datos para siempre (§19.8); con él, un PR de E2 se abre antes de que la línea del motor esté en producción y el 1a completo se rebasa sobre él. Es lo que pedía la Oleada 0 de docs/agenda.md (l. 1411-1417). §17.19 y el riesgo 36 de §19.1 la citan; 00-decisiones.md ya la lleva."
+  },
+  {
+    "id": "Rdueno-027",
+    "seccion_destino": "§12.8, §14.2 y §11 (sup. N1 y la tabla de §11.3 de /api/news y /api/teams/:id/news)",
+    "que": "Decisión 17-x: gc_lead_taken y jersey_taken se escriben desde el 1a, y getGlobalNews, getTeamNews y getRiderNews no los devuelven sin opts.leaderNews; las rutas de noticias pasan leaderNews: request.spoilerApplies() desde el 8a, así que solo los ve quien tiene el velo, y con él filtrados por F. newsVeil.test.ts (8a) y news.test.ts de packages/db (1a) lo prueban."
+  },
+  {
+    "id": "Rcoste-042",
+    "seccion_destino": "§16.4 (B18)",
+    "que": "B18 gana el caso: con la memoria de lo alcanzado del proceso vacía, como tras un reinicio de web o un cambio de interruptor, un tramo en el borde se sirve tras un informe del progreso (§19.1, riesgo 19; §17.10)."
+  },
+  {
+    "id": "Rdueno-005",
+    "seccion_destino": "00-decisiones.md (D-09 y DD-25), §0.4 punto 3 y §2.3",
+    "que": "La regla «toda subida de versión va detrás del 17d» deja de escribirse como regla de E2: E2 no sube la versión (D-09) y qué hacer con las subidas de otras líneas antes del 17d es DD-25, del dueño (§19.5 reescrito con la evidencia: veinte subidas de la v69 a la v89 por git log de constants.ts, la D7 condicional de docs/balance.md l. 16557-16558 y el orden de docs/encargos.md l. 15-26). Si L3 y L10 no lo han cambiado ya, D-09 lo dice así en 00-decisiones.md (este lote lo actualiza al cerrar, ver correcciones-L9); §0.4 punto 3 y §2.3 tienen que decir lo mismo."
+  },
+  {
+    "id": "Rcoste-034",
+    "seccion_destino": "glosario (§G.10), 00-decisiones.md (D-54), 00-cabecera.md (§0), §14.1 y §16.9",
+    "que": "El paso 11 son dos PR (17-v): 11a (radioFromTimeline, B16 y la pestaña que lee la línea) y 11b (stageRun.ts deja de escribir stage_snapshots.radio). §G.10 lo lista; D-54 dice unos 23 PR; la cabecera dice veintitrés PR y el coste nuevo de §17.22 (unas 56 sesiones, 52,5 hasta el encendido en orden y 37 por el camino crítico, con un rebase previsto del 4a y el 4b); la fila del 11 de §14.1 y la de B16 en §16.9 dicen 11a, y «deja de escribirse en el paso 11» sigue siendo cierto (el 11b es del paso 11)."
+  },
+  {
+    "id": "Rcoste-020, Rcoste-030",
+    "seccion_destino": "§16.4 (B14) y §18.2 (18-j)",
+    "que": "TEST_DATABASE_URL llega al CI en el 1a y no en el 7a, porque migrateLock.test.ts la necesita antes; y como resetRealTestDb (testDb.ts l. 114-124) vacía el esquema entero y vitest corre los ficheros en paralelo, cada fichero que la usa trabaja en su propia base, que crea con realTestDbFor(name) (testDb.ts, 1a): migrateLock.test.ts, watchConcurrency.test.ts y horizonLatency.test.ts. Con la variable definida, calendarConcurrency.test.ts empieza a correr en el CI."
+  },
+  {
+    "id": "Rcodigo-085",
+    "seccion_destino": "§11.19 (pageTitle.test.ts) y §14.11 (queryKeys.test.ts)",
+    "que": "Los dos empiezan por /// <reference types=\"node\" /> y leen los fuentes con readdirSync y readFileSync, porque apps/web/tsconfig.json tiene \"types\": [] (l. 9); comprobado en el scratchpad: sin la directiva TS2307, con ella compila, y con un fichero que la lleve Node queda cargado para todo el programa de la web. Son cinco los tests de la web que la llevan (§17.21)."
+  },
+  {
+    "id": "Rcodigo-070",
+    "seccion_destino": "§5.10 (tests del grabador)",
+    "que": "El grabador que falla se prueba en timelines.test.ts con un vi.mock parcial de @cyclingstar/engine que sustituye timelineRecorder por uno que lanza cuando el caso lo pide (el mock vale para todo el fichero), y la fila de tick_log con ok y la nota en tickRun.test.ts; stageRun.test.ts no ve tick_log (§17.8)."
+  },
+  {
+    "id": "Rcodigo-068",
+    "seccion_destino": "§7 (decisión 7-b y §7.2)",
+    "que": "El test de 7-b en cast.test.ts compara wornJerseys sin títulos con raceLeaders({ gc, points, kom, teams: teams.overall }) de shared sobre getGcThroughStage, getPointsClassification, getKomClassification y getTeamClassifications con la etapa N − 1, que es lo que hace leadersThroughStage, privada de la API: packages/db no puede importar de apps/api."
+  },
+  {
+    "id": "Rcoste-036",
+    "seccion_destino": "00-decisiones.md (D-53)",
+    "que": "D-53 dice «Los PR del motor (4a, 4b) se revierten como cualquier PR y dejan datos que nadie lee»: solo antes del 5; después su marcha atrás es TIMELINE_RECORD=off y el código se queda (§17.18). Este lote lo precisa en D-53 al cerrar, con la migración que no es inerte al aplicarse (Rcoste-030)."
+  }
+]
