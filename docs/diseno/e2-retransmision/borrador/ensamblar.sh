@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
-# Ensamblado de E2 (fase 3c de docs/diseno/e2-retransmision/03-fase-sintesis.md).
+# Ensamblado de E2: el v0 de la fase 3c (03-fase-sintesis.md) y, desde la pasada de coherencia (fase 6 de
+# 04-fase-refutacion.md), el v1.
 #
-# Reproduce borrador/retransmision-v0.md a partir de los ficheros de sección, en el orden de la
+# Reproduce borrador/retransmision-v1.md a partir de los ficheros de sección, en el orden de la
 # tabla de §B de 00-esqueleto.md: la cabecera primero, con la línea de estado bajo el título, y
 # después §1 a §21, separadas por una línea `---`. De cada sección quita los bloques de cierre
 # «Propuesto para el glosario» (fundidos en 00-glosario.md), «Dudas para el ensamblador» y
-# «Dudas del cierre» (su estado está en dudas.md). No toca los ficheros de sección.
+# «Dudas del cierre» (su estado está en dudas.md). No toca los ficheros de sección. El glosario de la síntesis
+# (00-glosario.md) no se concatena: entra como apéndice F, que es §21.6 de 21-apendices.md, con la tabla de
+# dónde vive cada una de sus partes en el documento (decisión 21-f).
 #
 # Uso:  bash docs/diseno/e2-retransmision/borrador/ensamblar.sh [--comprobar]
 # Con --comprobar, además, revisa el resultado (bloques quitados, referencias a borrador/, rayas y
@@ -17,7 +20,7 @@ python3 - "$DIR" "${1:-}" <<'PY'
 import json, os, re, sys
 
 d, modo = sys.argv[1], sys.argv[2]
-ESTADO = 'Estado: borrador v0, antes de la refutación adversaria.'
+ESTADO = 'Estado: borrador v1, tras la refutación adversaria y la corrección, antes de la auditoría.'
 QUITAR = ('Propuesto para el glosario', 'Dudas para el ensamblador', 'Dudas del cierre')
 ETIQUETA = re.compile(r'^\*\*(Injertos aplicados|Objeciones resueltas|Huecos rellenados|Contradicciones de hecho|'
                       r'Decisi[oó]n tomada aqu[ií]|Propuesto para el glosario|Dudas)')
@@ -59,10 +62,10 @@ for n, fichero in orden:
     else:
         assert texto.startswith(f'## {n}. '), f'{fichero} no empieza por «## {n}.»'
     partes.append(texto)
-salida = os.path.join(d, 'retransmision-v0.md')
+salida = os.path.join(d, 'retransmision-v1.md')
 open(salida, 'w', encoding='utf-8').write('\n\n---\n\n'.join(partes) + '\n')
 total = sum(1 for _ in open(salida, encoding='utf-8'))
-print(f'retransmision-v0.md: {total} líneas, {len(partes)} secciones')
+print(f'retransmision-v1.md: {total} líneas, {len(partes)} secciones')
 
 if modo != '--comprobar':
     sys.exit(0)

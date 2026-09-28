@@ -481,6 +481,8 @@ import type { StartState } from './wire.js'
 
 /** UN código de papel para la barra, la radio servida, la voz y el acta (D-18); las palabras y sus condiciones son de §6.3. */
 export type GroupRole = 'lead' | 'chase' | 'bunch' | 'gruppetto'
+// GROUP_ROLES y la guarda isGroupRole(x: unknown): x is GroupRole viven en este fichero y se escriben en §12.6: mainRole y groupRole
+// llegan a la voz en `datos`, sin tipo.
 /** Cómo se rotula una fila (§6.3). */
 export type GroupLabel =
   | { readonly k: 'role' }                                        // la palabra de su papel: `Lead group`, `Chase group`, `Bunch`, `Gruppetto` (pantalla)
@@ -593,11 +595,13 @@ export function instantAt(tl: TimelineCore, t: RaceS, ctx: InstantContext): Inst
      detail ← la fila de g en v.detail.get(k_g)
 9. Papel (4-q): crudo(g, s) es el papel por las condiciones de §6.3 sobre el instante en s; s_g ← la marca de g, o de su antecesor por
      la cadena de successor, en la foto roleHysteresisKm antes de k_g. role ← crudo(g, t) si crudo(g, t) = crudo(g, s_g), si no hay s_g,
-     o si un move de más de un corredor tocó g en (s_g, t]; si no, crudo(g, s_g). label por §6.3
+     o si un move de más de un corredor tocó g en (s_g, t]; si no, crudo(g, s_g). label por §6.3.
+     crudo(g, s_g) se guarda por (g, k_g): s_g solo cambia cuando g cruza un punto de foto, así que el instante en s_g se calcula
+     una vez por grupo y km, no en cada fotograma (§18.1)
 10. mainGap por D-17 (ref bunch, jersey_group o second); virtualGc por mapa 06 §3.3; banners de v; racing, gone, jerseys, own
 ```
 
-Tres propiedades salen del algoritmo y las comprueban tests de §16. La posición nunca va por delante de la verdad más allá del siguiente punto de foto, porque ahí el grupo tiene marca y `tope` no deja pasarlo: el error por construcción es menor que un km; el típico no lo midieron los jueces (D-04): el redactor de §3 midió un p99 de 52 a 508 m con 3-a (`l1/corte.mjs`, 15 corridas), y B21 lo mide con el grabador real en el paso 6. La composición se toma en `real_g` y no en `pintado_g` para que I2 sea exacta: en `t = d_g(k)` el grupo está en `k` y su composición es la de la foto. Y el instante no usa nunca un reloj de corredor como hueco (su reloj de foto suma deriva y marcaje, `simulate.ts` l. 9012): el hueco del corredor del espectador es el de su grupo y, en tránsito, `InTransit.gap` (D-01, punto 4; H-17; 3-c; su pantalla es §3.5 y §6.2). `RaceS` es coma flotante solo aquí: `t` viene del reloj de reproducción de la web (§8), y todo lo que se compara con la línea pasa antes por `toDs`.
+Tres propiedades salen del algoritmo y las comprueban tests de §16. La posición nunca va por delante de la verdad más allá del siguiente punto de foto, porque ahí el grupo tiene marca y `tope` no deja pasarlo: el error por construcción es menor que un km; el típico no lo midieron los jueces (D-04): el redactor de §3 midió un p99 de 52 a 508 m con 3-a (`l1/corte.mjs`, 15 corridas), y B21 lo mide con el grabador real en el paso 6. La composición se toma en `real_g` y no en `pintado_g` para que I2 sea exacta: en `t = d_g(k)` el grupo está en `k` y su composición es la de la foto. Y el instante no usa nunca un reloj de corredor como hueco (su reloj de foto suma deriva y marcaje, `simulate.ts` l. 9012): el hueco del corredor del espectador es el de su grupo y, en tránsito, `InTransit.gap` (D-01, punto 4; H-17; 3-c; su pantalla es §3.5 y §6.2). `RaceS` es coma flotante solo aquí: `t` viene del reloj de reproducción de la web (§8), y todo lo que se compara con la línea pasa antes por `toDs`. El paso 9 es el más caro, porque pide el instante en otra hora por cada grupo vivo: con la aproximación de §18.1, sin el memo por `(g, k_g)` el fotograma cuesta un p95 de 0,064 a 0,804 ms, y con él, de 0,017 a 0,052 ms (medido, `coste/instante-hist.mjs` y `corr-l7/instante-memo.mjs`).
 
 ### 4.6 La visibilidad y el corte
 
@@ -650,13 +654,13 @@ cutTimeline(tl, toS):
   T ← toDs(toS);  vis ← visibilityOf(tl)
   groups       ← el prefijo de tl.groups con groupBornDs ≤ T (es prefijo por 4-a); en cada uno, si groupDiedDs > T: diedB ← null, successor ← null
   stateEvents  ← los de stateEventDs ≤ T; en un `clock`, solo sus marcas ≤ T
-  events       ← los de revealS ≤ toS;  banners ← los de revealS ≤ toS;  detail ← las filas con su marca ≤ T
+  events       ← los de vis.eventDs ≤ T;  banners ← los de vis.bannerDs ≤ T;  detail ← las filas con su marca ≤ T
   keys         ← []                     una foto clave lleva pertenencias que aún no se ven
   tt           ← kmClockDs[r] cortado a sus entradas con startDs[r] + reloj ≤ T, y checkClockDs[r] igual; mishaps con su suceso revelado; startDs entero
   lo demás (format, engineVersion, dx, blocks, lengthKm, timeTrial, clock, riderIds, profile) igual
 ```
 
-`chunkOf` es el mismo filtro con dos bordes, `fromDs < vis ≤ toDs` y `vis < finishDs`, con los grupos nacidos en el tramo en `groupsBorn` y, en crono, los pasos por control en `tt.checks`; lo que la web junta tramo a tramo es exactamente `cutTimeline(tl, lo servido)`. La propiedad sellada (B9, I-10), para todo `T` anterior a `finishDs`: `instantAt(cutTimeline(tl, T), T, ctx) = instantAt(tl, T, ctx)`; todo dato de un tramo tiene visibilidad en su intervalo; la unión de los tramos `(0, T]` es `cutTimeline(tl, T)`; y el ritmo no depende de los sucesos (`paceAt` y `playbackEstimateS` no reciben la línea, §8.2). Los tramos son por reloj de carrera y no por espacio porque un grupo a 5 min pasa por el final de un tramo de km 5 min después que la cabeza (`group.ts` l. 121-124): un tramo por km entregaría su futuro (D-06, O-20).
+Todo el corte va por `Ds`, con el mismo `toDs` que `chunkOf`: un suceso se compara por `vis.eventDs`, no por su `revealS` en coma flotante. Por eso el adaptador de la radio redondea a décimas los `revealS` que calcula sobre el reloj estimado (`toDs(revealS) / 10`) al construir la línea, como la línea grabada (§4.3, §3.8); sin eso, B9 (§16.4) fallaría por redondeo con un suceso del adaptador cuyo `revealS` cayera entre `to / 10` y `to / 10 + 0,05` s. `chunkOf` es el mismo filtro con dos bordes, `fromDs < vis ≤ toDs` y `vis < finishDs`, con los grupos nacidos en el tramo en `groupsBorn` y, en crono, los pasos por control en `tt.checks`; lo que la web junta tramo a tramo es exactamente `cutTimeline(tl, lo servido)`. La propiedad sellada (B9, I-10), para todo `T` anterior a `finishDs`: `instantAt(cutTimeline(tl, T), T, ctx) = instantAt(tl, T, ctx)`; todo dato de un tramo tiene visibilidad en su intervalo; la unión de los tramos `(0, T]` es `cutTimeline(tl, T)`; y el ritmo no depende de los sucesos (`paceAt` y `playbackEstimateS` no reciben la línea, §8.2). Los tramos son por reloj de carrera y no por espacio porque un grupo a 5 min pasa por el final de un tramo de km 5 min después que la cabeza (`group.ts` l. 121-124): un tramo por km entregaría su futuro (D-06, O-20).
 
 ### 4.7 Cuándo se enseña cada suceso
 
@@ -800,18 +804,25 @@ export interface RiderCard {
 Lo eventual (D-17, D-21): la cola de rótulos por clase, que nunca frena la carrera. `CUE_CLASS`, `CUE_OF_TEMPLATE` (las 54 plantillas del motor más `crash`) y `cuesBetween` son §6.5 y §6.6; aquí, los tipos. Todo `Cue` se deriva al leer, en la web: del paso de un instante al siguiente y de los sucesos revelados entre los dos (`cuesBetween`), o lo programa el reproductor cuando depende del espectador, del recorrido o del reloj de pared (decisión 6-i, §6.5). Los tres de la crono (`tt_start_order`, `tt_split`, `tt_finish`; 9-d, 4-u) salen del plan público y del paso de un `TimeTrialInstant` al siguiente (§9.5), y sus plantillas del motor siguen yendo solo a la voz (§6.6).
 
 ```ts
+// packages/shared/src/broadcast/timeline.ts (sigue a §4.2). CueClass se declara aquí y no en cues.ts, porque la importan constants.ts,
+// cues.ts y el reproductor, y el tipo nace en el PR 2 antes que la cola (decisión 17-z).
+/** Importancia de un rótulo (D-21): 3 meta, caza de la fuga, corte, cambio de líder virtual, caída o abandono de un maillot o de un top
+ *  BROADCAST.cueTopStart (5) de salida; 2 ataque, fuga, su frase, pancarta, caída, llama roja, fuera de control y la ronda de la moto,
+ *  reservada (6-m); 1 diferencias, grupo cambiado, percance, rótulo de corredor; 0 ficha del puerto, la ronda ON COURSE de la crono
+ *  (9-k) y datos. Dura cueHoldS[clase] s de pared sin parar el reloj (la ronda de la moto, cueHoldS[0]). */
+export type CueClass = 0 | 1 | 2 | 3
+```
+
+```ts
 // packages/shared/src/broadcast/cues.ts
 import type { ChronicleEntry } from '../contracts.js' // l. 1262-1276: la entrada de la crónica, sin texto redactado
 import type { JerseyKind } from '../jerseys.js'
-import type { VirtualGcRow } from './instant.js'
-import type { GroupIx, RaceS, RiderIx } from './timeline.js'
+import type { Instant, VirtualGcRow } from './instant.js' // Instant, para aheadOfPeloton (§6.7)
+import type { CueClass, GroupIx, RaceS, RiderIx } from './timeline.js'
 
-/** Importancia de un rótulo (D-21): 3 meta, caza de la fuga, corte, cambio de líder virtual, caída o abandono de un maillot o de un top
- *  BROADCAST.cueTopStart (5) de salida; 2 ataque, fuga, pancarta, caída, llama roja, fuera de control; 1 diferencias, grupo cambiado,
- *  percance, rótulo de corredor; 0 ronda de la moto, ficha del puerto, datos. Dura cueHoldS[clase] s de pared sin parar el reloj. */
-export type CueClass = 0 | 1 | 2 | 3
-/** Por qué sale un rótulo de corredor (uno a la vez, mapa 06 §5.3). */
-export type RiderCueContext = 'attack' | 'break_round' | 'dropped' | 'banner' | 'focus' | 'own' | 'tt_round' // tt_round: la ronda ON COURSE de la crono, de clase 0 (§9.5, 9-k)
+/** Por qué sale un rótulo de corredor (uno a la vez, mapa 06 §5.3). No hay contexto 'attack': el rótulo ATTACK lleva la ficha del
+ *  primer atacante y no se programa un rider aparte (6-p). */
+export type RiderCueContext = 'break_round' | 'dropped' | 'banner' | 'focus' | 'own' | 'tt_round' // tt_round: la ronda ON COURSE de la crono, de clase 0 (§9.5, 9-k)
 /** Una fila del cuadro de diferencias generales (`gapsTableEveryRealS`). */
 export interface TimeCheckRow { // number: el de carretera en t; gapS: GroupNow.gap.toHeadS; names: los que se nombran (§7.7), null si el grupo solo se cuenta
   readonly number: number; readonly group: GroupIx; readonly size: number; readonly gapS: number; readonly jerseys: readonly JerseyKind[]; readonly names: readonly RiderIx[] | null
@@ -900,6 +911,12 @@ export interface WorldRef { readonly worldId: string; readonly currentDay: numbe
 Lo que viaja entre la API y la web (D-06, D-50, D-51; las rutas son §14.2). De la política de `contracts.ts` (l. 1-14) se conserva lo que dice de la red: objetos *strip*, y un campo nuevo no rompe la web. De una cosa se aparta a sabiendas (decisión 4-j): su cabecera (l. 4-5) manda derivar los tipos del esquema con `z.infer` y no declararlos a mano, y aquí se escriben a mano, con `readonly`, porque `z.infer` no da `readonly` y `.readonly()` de Zod 4 congela cada tramo con `Object.freeze`. Cada esquema se ata a su tipo en los dos sentidos. Con `satisfies z.ZodType<T>`, como `PublicRider` (`contracts.ts` l. 77; `RaceLeaders`, l. 431, usa una anotación, que además ensancha el tipo del esquema), que solo falla si al esquema le falta un campo obligatorio de `T` o se lo da de otro tipo: un campo de más compila (medido con tsc 5.9.3 y zod 4.4.3). Y con `WIRE_MATCH`, que exige con `SchemaMatches` (§4.3) que la salida de cada esquema de respuesta y su tipo sean asignables en los dos sentidos, en todos los niveles: un campo de más, una variante de más o un opcional donde el tipo pide un nulo no compilan (decisión 4-x).
 
 ```ts
+// packages/shared/src/broadcast/timeline.ts (sigue): PaceZone se declara aquí y no en wire.ts, porque la importan constants.ts, pace.ts
+// y wire.ts, y nace en el PR 2, antes que la red (decisión 17-z).
+export interface PaceZone { readonly aboveKm: number; readonly x: number } // s de carrera por s de pared mientras quedan más de aboveKm (§8.2)
+```
+
+```ts
 // packages/shared/src/broadcast/wire.ts (sigue)
 import { z } from 'zod'
 import { chronicleEntrySchema, genderSchema, jerseyKindSchema, newsItemSchema, preStageInfoSchema, stageGateSchema, stageKindSchema, stageReplaySchema, stageResultEntrySchema } from '../contracts.js'
@@ -910,7 +927,7 @@ import type { JerseyKind, RiderCard } from '../jerseys.js'
 import { distinctionSchema, profileStripSchema, stageWeatherSchema, wornJerseySchema, type SchemaMatches, type StoredTimelineV1 } from './codec.js' // 4-x
 import { BROADCAST } from './constants.js'
 import type { LiveLine } from './cues.js'
-import type { Ds, GroupIx, GroupOrigin, MishapKind, ProfileStrip, RiderIx, StageWeather } from './timeline.js'
+import type { Ds, GroupIx, GroupOrigin, MishapKind, PaceZone, ProfileStrip, RiderIx, StageWeather } from './timeline.js'
 
 export type SwitchMode = 'off' | 'admins' | 'on' // BROADCAST_WATCH y SPOILER_MODE (§14.6), publicados en /health.features
 export interface StartState {                     // la salida, tras la N−1, degradada por el velo como el reparto (B13)
@@ -918,7 +935,6 @@ export interface StartState {                     // la salida, tras la N−1, d
   readonly gcTop: readonly { readonly rider: RiderIx; readonly rank: number; readonly gapS: number }[]           // los BROADCAST.virtualGcTop (10) primeros de salida
   readonly racingAtStart: number
 }
-export interface PaceZone { readonly aboveKm: number; readonly x: number } // s de carrera por s de pared mientras quedan más de aboveKm (§8.2)
 export interface BroadcastHead {                  // GET …/broadcast: recorrido, reparto y salida; nada de la carrera
   readonly stage: { readonly raceKey: string; readonly raceId: string; readonly day: number; readonly name: string; readonly km: number; readonly kind: StageKind; readonly timeTrial: boolean; readonly label: string } // label: la del recorrido (stageHistory.ts l. 73-91)
   readonly profile: ProfileStrip
@@ -959,6 +975,9 @@ export interface BroadcastChunk {                 // GET …/broadcast/chunk: lo
 export interface BroadcastFinish {                // POST …/broadcast/finish: el paquete de meta (D-06, I-15). arrivals: FinishRecord.arrivals en huecos al primero;
   readonly arrivals: readonly { readonly gapS: number; readonly riders: readonly RiderIx[] }[] // result: con DNF y motivo como hoy (contracts.ts l. 1278-1306)
   readonly result: readonly StageResultEntry[]; readonly closing: StageClosing; readonly report: StageReport; readonly news: readonly NewsItem[] // news: las de esta etapa
+  // los que se cayeron dentro de STAGE.truce.threeKmRuleKm de una etapa en que el motor aplica la regla y llegan con el tiempo de su
+  // grupo: `same time (3 km rule)` (pantalla) en group_finish y en el cierre (6-o). Lo arma la ruta con threeKmRule del motor (§14.1)
+  readonly threeKmRule: readonly RiderIx[]
 }
 export type StageReport = StageReplay             // el acta: el stageReplaySchema de hoy (contracts.ts l. 1482-1533), con watch y tplRev, que gana en §14.2 (12-c)
 export interface StagePreview {                   // la previa: cuatro cuadros de BROADCAST.previewCardS (5) s (D-22, I-22)
@@ -982,7 +1001,10 @@ export interface HorizonSummary {                 // GET /api/me/horizon
 }
 /** Lo ÚNICO que un título, un aviso o una miniatura saben de una etapa: por tipo no cabe un resultado (D-42, I-27). */
 export interface PreStageInfo { readonly raceName: string; readonly season: number; readonly stageDay: number; readonly stageCount: number; readonly km: number; readonly label: string; readonly stageKind: StageKind }
-export interface WatchState { readonly known: boolean; readonly reachedS: number | null; readonly gate: StageGate | null } // StageReplay.watch (D-50)
+export interface WatchState { // StageReplay.watch (D-50)
+  readonly known: boolean; readonly reachedS: number | null; readonly gate: StageGate | null
+  readonly seen: boolean   // true con W, S o R; false con A (arrastrada), que abre en Watch como la caducada (6-r, §6.10)
+}
 
 /** Los tres códigos numéricos de los tramos: tablas explícitas que solo crecen, atadas a su unión (4-m). 0 significa que no hay dato. */
 export const MISHAP_CODE = { caida: 1, pinchazo: 2, averia: 3 } as const satisfies Record<MishapKind, number>
@@ -1019,7 +1041,7 @@ export const broadcastChunkSchema = z.object({
   fromDs: int, toDs: int, groupsBorn: z.array(z.tuple([ix, z.string(), z.enum(['start', 'attack', 'shed'])])), moves: ints, main: ints, clocks: ints, mishaps: ints, details: ints,
   events: z.array(timelineEventWireSchema), lines: z.array(liveLineSchema), banners: ints, tt: z.object({ starts: ints, km: ints, checks: ints }).nullable(), atFinish: z.boolean(),
 }) satisfies z.ZodType<BroadcastChunk>
-export const broadcastFinishSchema = z.object({ arrivals: z.array(z.object({ gapS: z.number().min(0), riders: z.array(ix) })), result: z.array(stageResultEntrySchema), closing: stageClosingSchema, report: stageReplaySchema, news: z.array(newsItemSchema) }) satisfies z.ZodType<BroadcastFinish>
+export const broadcastFinishSchema = z.object({ arrivals: z.array(z.object({ gapS: z.number().min(0), riders: z.array(ix) })), result: z.array(stageResultEntrySchema), closing: stageClosingSchema, report: stageReplaySchema, news: z.array(newsItemSchema), threeKmRule: z.array(ix) }) satisfies z.ZodType<BroadcastFinish>
 export const horizonSummarySchema = z.object({
   rev: z.string(), scope: z.enum(['guarded', 'own_only', 'off']), expiredSinceLastVisit: z.array(z.string()),
   ready: z.array(z.object({ raceKey: z.string(), raceName: z.string(), stages: z.array(int.min(1)), reason: z.enum(['own_rider', 'own_team', 'follow', 'headline']), expiresOnDay: int })),
@@ -1074,14 +1096,14 @@ export interface Variant<D> { readonly since: number; readonly render: (d: D, n:
 
 | Fichero | Tipos (y lo que otras secciones escriben en él) | Importa |
 | --- | --- | --- |
-| `packages/shared/src/broadcast/timeline.ts` | las unidades y los cuatro redondeos (4.1), toda la línea (4.2), `TimelineCore` | tipos de `contracts.ts` y `jerseys.ts` |
+| `packages/shared/src/broadcast/timeline.ts` | las unidades y los cuatro redondeos (4.1), toda la línea (4.2), `TimelineCore`; `CueClass` (4.9) y `PaceZone` (4.11), que se declaran aquí porque los importan `constants.ts`, `pace.ts`, `wire.ts`, `cues.ts` y el reproductor (17-z) | tipos de `contracts.ts` y `jerseys.ts` |
 | `…/broadcast/codec.ts` | `StoredTimelineV1`, `ORIGIN_CODE`, `BANNER_CODE`, `TimelineFormatError`, `encodeTimeline`, `decodeTimeline`, `storedTimelineV1Schema`, `STORED_MATCH`, `SchemaMatches` y los seis esquemas que el formato comparte con la red (`stageRefSchema`, `championTitleSchema`, `wornJerseySchema`, `distinctionSchema`, `profileStripSchema`, `stageWeatherSchema`; 4-x) | `zod`, `contracts.ts`; tipos de `timeline.ts` y `jerseys.ts` |
 | `…/broadcast/reduce.ts`, `cut.ts`, `reveal.ts` | `reducePhoto`, `photoAt`; `TimelineVisibility`, `visibilityOf`, `cutTimeline`, `chunkOf`; `RevealRule`, `REVEAL_RULES`, `TT_REVEAL_RULES`, `RevealInput`, `RecorderView`, `revealSOf` | `timeline.ts`; `cut.ts` el tipo de `wire.ts` |
 | `…/broadcast/instant.ts`, `timeTrial.ts` | 4.5 entero, `photoBlocksOf`, `instantAt`, `groupRoleOf` y `mainGapOf` (§6.2, §6.3); `timeTrialInstantAt` (§9.3) | `timeline.ts`, `reduce.ts`, `cut.ts`; tipos de `wire.ts` |
-| `…/broadcast/cues.ts` | 4.9 entero; `CUE_CLASS`, `CUE_OF_TEMPLATE`, `cuesBetween` (§6.5, §6.6) | `contracts.ts`, `jerseys.ts`, `instant.ts` |
-| `…/broadcast/wire.ts` | `SwitchMode`, `GuardReason`, `SpoilerScope`, `StageGate` y 4.11 entero con sus esquemas y `WIRE_MATCH`, salvo cuatro esquemas que declara `contracts.ts` (`stageGateSchema`, `preStageInfoSchema`, `watchStateSchema` y `switchModeSchema`; este fichero importa los dos primeros, 14-a, §14.2) y los seis que comparte con el formato guardado, que importa de `codec.ts` (4-x) | `zod`, `contracts.ts`, `codec.ts`, `constants.ts`; tipos de `jerseys.ts`, `cues.ts`, `timeline.ts` |
-| `…/broadcast/radio.ts` | `RadioNames` = `{ readonly riderOf: ReadonlyMap<string, ChronicleRider> }` (la forma de `ChronicleNames`, `apps/api/src/chronicle.ts` l. 193-195, que cabe en ella), `radioFromTimeline` (§12.10) | `contracts.ts`, `timeline.ts`, `reduce.ts` |
-| `…/broadcast/constants.ts`, `pace.ts`, `names.ts`, `pageTitle.ts` | `BROADCAST`, `SPOILER` (§15); `paceAt`, `playbackEstimateS` (§8.2); `GROUP_WORDS`, `breakHeadline` (§6.3, §7.6); `pageTitle`, `stageReadyNotice` (§11.8, §11.9) | `constants.ts`, tipos de `wire.ts`, `cues.ts` y `contracts.ts`; `pace.ts`, `constants.ts` y tipos de `timeline.ts`, `wire.ts` y `contracts.ts` (no importa `cues.ts`); `names.ts` y `pageTitle.ts`, los de §6.3 y §11.8 |
+| `…/broadcast/cues.ts` | 4.9 entero salvo `CueClass`; `CUE_CLASS`, `CUE_OF_TEMPLATE`, `cuesBetween`, `cueClassOf`, `isPresentation`, `aheadOfPeloton` (§6.5, §6.6, §6.7) | `constants.ts`; tipos de `contracts.ts`, `jerseys.ts`, `instant.ts` (`Instant`, `VirtualGcRow`), `timeline.ts` (`CueClass`, 17-z) y `wire.ts` |
+| `…/broadcast/wire.ts` | `SwitchMode`, `GuardReason`, `SpoilerScope`, `StageGate` y 4.11 entero con sus esquemas y `WIRE_MATCH`, salvo cuatro esquemas que declara `contracts.ts` (`stageGateSchema`, `preStageInfoSchema`, `watchStateSchema` y `switchModeSchema`; este fichero importa los dos primeros, 14-a, §14.2) y los seis que comparte con el formato guardado, que importa de `codec.ts` (4-x) | `zod`, `contracts.ts`, `codec.ts`, `constants.ts`; tipos de `jerseys.ts`, `cues.ts` y `timeline.ts` (con `PaceZone`, 17-z) |
+| `…/broadcast/radio.ts` | `export interface RadioNames { readonly riderOf: ReadonlyMap<string, ChronicleRider> /* la forma de ChronicleNames, apps/api/src/chronicle.ts l. 193-195, que cabe en ella */; readonly own: ReadonlySet<RiderIx> /* los del espectador, nombrados siempre en su grupo (R23.7) */; readonly nameableAt: (km: number) => ReadonlySet<RiderIx> /* los nombrables en la foto de ese km: la política de §7.7 y, en una etapa conocida o con ?diag=1, además los diez primeros de la etapa */ }` (12-o) y `radioFromTimeline(tl: TimelineCore, names: RadioNames): RaceRadio` (§12.10) | `contracts.ts`, `timeline.ts`, `reduce.ts` |
+| `…/broadcast/constants.ts`, `pace.ts`, `names.ts`, `pageTitle.ts` | `BROADCAST`, `SPOILER` (§15); `paceAt`, `playbackEstimateS` (§8.2); `GROUP_WORDS`, `breakHeadline` (§6.3, §7.6); `pageTitle`, `stageReadyNotice` (§11.8, §11.9) | `constants.ts`: tipos de `timeline.ts` (`CueClass`, `PaceZone`; 17-z) y `contracts.ts` (`StageKind`); `pace.ts`: `constants.ts` y tipos de `timeline.ts` y `contracts.ts` (no importa `cues.ts` ni `wire.ts`); `names.ts` y `pageTitle.ts`, los de §6.3 y §11.8 |
 | `…/broadcast/index.ts` | reexporta los anteriores; `packages/shared/src/index.ts` (l. 8-17) gana `./broadcast/index.js`, `./news.js` y `./render/variants.js` | |
 | `packages/shared/src/jerseys.ts` | 4.8 entero; `wornJerseys`, `distinctions`, `notorietyOf` (§7.2, §7.5) | tipos de `broadcast/timeline.ts` |
 | `packages/shared/src/news.ts`, `render/variants.ts` | 4.12 entero; `newsPayloadSchema`, `renderNews`, `NEWS_VARIANTS` (§12.8); `pickVariant`, `TEMPLATE_REV` (§12.7) | `rider.ts` |

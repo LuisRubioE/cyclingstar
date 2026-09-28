@@ -1,6 +1,6 @@
 ## 2. Principios
 
-Doce reglas. Salen de §2 de las cinco propuestas, con la base de `ingeniero.md` §2 y las decisiones cerradas de la síntesis (`00-decisiones.md`), y cada una lleva tres cosas: lo que dice, qué lo viola hoy (la cifra está en §1; aquí, la referencia) y qué pieza del diseño lo hace cumplir, en qué sección. No son aspiraciones: cuando un principio y una línea del plan se contradigan, manda el principio y la línea se reescribe. Las cierra la doctrina del dueño que acota a todas (§2.13).
+Doce reglas. Salen de §2 de las cinco propuestas, con la base de `ingeniero.md` §2 y las decisiones cerradas de la síntesis (D-nn, §0.3), y cada una lleva tres cosas: lo que dice, qué lo viola hoy (la cifra está en §1; aquí, la referencia) y qué pieza del diseño lo hace cumplir, en qué sección. No son aspiraciones: cuando un principio y una línea del plan se contradigan, manda el principio y la línea se reescribe. Las cierra la doctrina del dueño que acota a todas (§2.13).
 
 | # | Principio | Qué lo viola hoy (§1) | Qué lo cumple, y dónde |
 | --- | --- | --- | --- |
@@ -8,7 +8,7 @@ Doce reglas. Salen de §2 de las cinco propuestas, con la base de `ingeniero.md`
 | 2.2 | El espacio es canónico; el instante es una proyección | el reloj de un corredor no es continuo: retrocede hasta 138 s en un bloque (§1.2) | D-01 y el corte diagonal, con el corredor en tránsito (§3.1, §3.3) |
 | 2.3 | Observar no cambia la carrera | nada hoy; lo arriesgan las propuestas que cambian sucesos para fecharlos (§1.1, §1.10) | `ENGINE_VERSION` no sube; tres ganchos de la sonda y el colector aparte; B10 y B11 (D-09; §5) |
 | 2.4 | Nada del futuro sale del servidor antes de su hora | la etapa entera en una respuesta pública, 30 min en caché (§1.3) | visibilidad por dato, tramos por reloj, la meta solo por `POST`; B9 y B18 (D-06; §4.6, §14.3) |
-| 2.5 | Sin destripe es una propiedad del producto | 41 de 48 superficies, diez puertas de fuera y 52 rutas `GET` (§1.6, §11.2) | un horizonte en un solo punto: tipo obligatorio, `veilSql`, registro de rutas y canario (D-32; §10, §11) |
+| 2.5 | Sin destripe es una propiedad del producto | 41 de 48 superficies, once puertas de fuera y 52 rutas `GET` (§1.6, §11.2) | un horizonte en un solo punto: tipo obligatorio, `veilSql`, registro de rutas y canario (D-32; §10, §11) |
 | 2.6 | Lo visto es lo alcanzado, y lo conocido es un prefijo | nadie sabe qué ha visto nadie (§1.6) | `race_watch` con `known_through` y una letra por etapa (D-28; §10.2) |
 | 2.7 | Un código, un vocabulario y un nombre por artefacto | dos vocabularios del mismo grupo y cuatro nombres para el acta (§1.4) | `GroupRole` y `GroupLabel`; `Watch`, `Report` y `Race Radio` (D-18, D-48; §6.3, §12.1) |
 | 2.8 | El ritmo depende del recorrido, no de lo que pasa | no hay reproducción; las propuestas con frenos hacían depender de los sucesos hasta el 45 % de la duración | `BROADCAST.pace` por zona de km a meta, sin pausas; la cola no frena (D-19, D-21; §8.2) |
@@ -39,7 +39,7 @@ El motor avanza por bloques de 100 m con un reloj por grupo, y el reloj de un co
 - Todo lo nuevo llega por observación: `onEvent`, `onBanner`, `onTimeTrialRide` y el colector aparte que da a la radio y al aprendizaje solo las fotos de hoy (§5.2, §5.3).
 - `StageOutput` no gana campos (Frontera 3, `docs/tactica.md` l. 246-249).
 - B10 sella que la radio y el aprendizaje ven las mismas fotos que hoy; B11, que la carrera sale idéntica con los tres ganchos (§16.4).
-- Toda subida futura de versión va detrás del paso 17d de la táctica, porque `raceReport.ts` l. 148 re-simula la «Last race» sin mirar la versión (C16; §19.5).
+- E2 no sube la versión (D-09). Si otra línea la sube antes del 17d de la táctica, la «Last race» de las etapas ya corridas cuenta otra carrera, porque `raceReport.ts` l. 148 re-simula sin mirar la versión (C16); qué hacer con eso es del dueño (DD-25, §20; por defecto, adelantar el 17d), no una regla de E2 (§19.5).
 
 ### 2.4 Nada del futuro sale del servidor antes de su hora
 
@@ -52,7 +52,7 @@ El motor avanza por bloques de 100 m con un reloj por grupo, y el reloj de un co
 
 ### 2.5 Sin destripe es una propiedad del producto
 
-El punto 3 del encargo: que «ninguna otra pantalla se lo reviente por detrás (portada, ranking, clasificaciones, feed, correo de aviso y hasta el título de la pestaña del navegador), o sea que es una propiedad del producto entero» (`docs/encargos.md` l. 145-147). Hoy destripan 41 de las 48 superficies inventariadas y diez puertas de fuera (la décima, `sup. X10`, la encontró §11.2), servidas por 52 rutas `GET` (§1.6). En el diseño hay un horizonte por espectador calculado en el servidor en un solo punto, con cuatro piezas que se vigilan entre sí: el tipo `Horizon` obligatorio, el predicado único `veilSql`, el registro de rutas que no arranca si una no declara su política y el canario B1 que las recorre todas (D-32).
+El punto 3 del encargo: que «ninguna otra pantalla se lo reviente por detrás (portada, ranking, clasificaciones, feed, correo de aviso y hasta el título de la pestaña del navegador), o sea que es una propiedad del producto entero» (`docs/encargos.md` l. 145-147). Hoy destripan 41 de las 48 superficies inventariadas y once puertas de fuera (la décima, `sup. X10`, y la undécima, `sup. X11`, las encontró §11.2), servidas por 52 rutas `GET` (§1.6). En el diseño hay un horizonte por espectador calculado en el servidor en un solo punto, con cuatro piezas que se vigilan entre sí: el tipo `Horizon` obligatorio, el predicado único `veilSql`, el registro de rutas que no arranca si una no declara su política y el canario B1 que las recorre todas (D-32).
 
 - Ninguna función de `packages/db` que lea una fuente con resultado se llama sin horizonte; el tick, la administración y los bancos pasan `worldHorizon`, explícito (§10.6).
 - La existencia también informa: un marcador neutro por etapa velada en toda lista, se haya escrito sobre ella una noticia o cinco, y ningún aviso mira el contenido que esconde (§11.6).
@@ -62,7 +62,7 @@ El punto 3 del encargo: que «ninguna otra pantalla se lo reviente por detrás (
 
 Hoy nadie sabe qué ha visto nadie: ni tabla, ni columna, ni almacenamiento del navegador (§1.6). En el diseño una etapa es vista cuando la reproducción llega a la meta, en directo o en resumen; lo servido no cuenta; y lo conocido de una carrera es siempre un prefijo 1..k, porque la N+1 sale con los maillots y la general de la N (D-28). Confiar en el cliente es correcto: quien miente solo se destripa a sí mismo.
 
-- `race_watch` guarda `known_through` y, por etapa conocida, una letra: `W` en directo, `S` en resumen, `R` revelada, `A` arrastrada, `X` caducada (§10.2, §13.4).
+- `race_watch` guarda `known_through` y, por etapa del prefijo, una letra: `W` en directo, `S` en resumen, `R` revelada, `A` arrastrada, `X` caducada; la `X` está fuera del velo pero no es conocida y abre en `Watch` (10-e; §10.2, §13.4).
 - Ver o revelar la N arrastra las anteriores y se dice antes: `This also reveals stages 3 and 4.` (pantalla).
 - Cerrar la pestaña con el último tramo descargado y sin reproducir no convierte la etapa en vista (§10.11).
 
@@ -118,7 +118,7 @@ El criterio del MVP para el relato es que «un tercero entiende qué pasó en la
 
 Dos decisiones del dueño cierran el espacio en que se mueven los doce principios (mapa 05 §2.7).
 
-- **La D7: no se cambia el motor para contar mejor.** «¿por qué no dice la velocidad? eso está mal… podrías calcular cuánto es la velocidad real a la que iba ese grupo sin contar el regalo por alcanzar a un grupo que va muy estirado, y poner ésa en race radio… o sea si lo que hace el motor está bien ahí, no cambies el motor, cambia el race radio» (`docs/balance.md` l. 16555-16558, nota de radio posterior a la v86). Es la regla que hace de E2 un encargo de observación y de presentación (§2.3), y la que decide qué hace E2 con los defectos del motor que la retransmisión hace visibles, como el salto de 138 s: tolerarlos en pantalla y escribirlos para el dueño, no arreglarlos (§3.6, D-58).
+- **La D7: lo que el motor hace bien no se cambia para contarlo mejor.** «¿por qué no dice la velocidad? eso está mal… podrías calcular cuánto es la velocidad real a la que iba ese grupo sin contar el regalo por alcanzar a un grupo que va muy estirado, y poner ésa en race radio… o sea si lo que hace el motor está bien ahí, no cambies el motor, cambia el race radio» (`docs/balance.md` l. 16555-16558, nota de radio posterior a la v86). Es condicional: lo que el motor hace bien se cuenta cambiando la radio, y por eso E2 cuenta sin tocar el motor (D-09, §2.3). Lo que el motor hace mal no lo decide la D7: el dueño lo ha arreglado en el motor subiendo la versión (la v83, la v84 y la v86, el 21 y el 22 de septiembre), y el salto de 138 s E2 lo tolera en pantalla y se lo deja escrito para que decida (§3.6, D-58, DD-23).
 - **[DUEÑO 9]: nada de decidir en vivo.** Tras tumbar la radio de equipo en directo, que era incompatible con un día de juego cada seis horas: «lo que hay que hacer si acaso es mejorar la granularidad de las instrucciones, con más escenarios hipotéticos quizás» (`docs/epics.md` l. 701-702). La retransmisión se mira, no se juega: ningún mando de `Watch` cambia la carrera, y la etapa que se ve está ya corrida (§1.3; §8.10). La radio de equipo en vivo sigue prohibida (`docs/tactica.md` l. 6323; mapa 05 §2.7).
 
 ---
@@ -129,7 +129,7 @@ Dos decisiones del dueño cierran el espacio en que se mueven los doce principio
 
 **Huecos rellenados:** ninguno asignado.
 
-**Decisión tomada aquí:** ninguna. Los doce principios escriben decisiones cerradas de `00-decisiones.md` (D-01, D-04, D-06, D-09, D-18, D-19, D-21, D-28, D-32, D-38, D-45, D-46, D-48, D-50, D-53, D-56, D-60) y la DD-09.
+**Decisión tomada aquí:** ninguna. Los doce principios escriben decisiones cerradas de la síntesis (D-01, D-04, D-06, D-09, D-18, D-19, D-21, D-28, D-32, D-38, D-45, D-46, D-48, D-50, D-53, D-56, D-60) y la DD-09.
 
 **Propuesto para el glosario:** nada.
 

@@ -132,3 +132,53 @@ otros lotes. La pasada de coherencia tiene que cerrarlos uno a uno (o dejarlos e
   73 min son pruebas en serie, no tiempo real); si a la táctica le quedan subidas de versión, D-09
   le pide hacer antes el 17d. 19-b: `getBlockReport` va a `docs/balance.md` en el paso 12.
 - Coste estimado del plan: unas 52 sesiones en total y 34 hasta el encendido (estimado, no medido).
+
+## Estado tras la coherencia (fase 6)
+
+- Cruzadas: las 299 de `refutaciones/cruzadas-L1.json` a `-L10.json` tienen su entrada en
+  `refutaciones/coherencia.json`: 129 aplicadas en esta pasada, 170 que ya estaban (el lote de
+  destino las registró en su `correcciones-L<n>.json` y sus nombres y cifras clave están hoy en el
+  fichero de sección) y ninguna desestimada. Una que el destino daba por aplicada no lo estaba
+  entera (L9, Rcoste-044: B18 seguía naciendo solo en el 7b) y se aplicó aquí.
+- Las que el orquestador marcó como importantes, todas aplicadas: `rolesCtx` de §14.3 con los
+  líderes de `tl.cast.riders`; `startSpoilerWorld` vacía las dos LRU de líneas y §14.4 exporta
+  `clearAdaptedTimelineCache` (Rcodigo-086); `TEST_DATABASE_URL` en el 1a en §13.10, §16.4 (B12),
+  §16.7 y §18.2 (17-w); `ROAD_FIXTURES`, `seedFixtureWorld` y la cláusula de no vacío de B13 en
+  §16 (17-u); D-58 con `SPEC.md`; 6-h y §12.3 (decisión nueva 12-s); la cita de D-18 entera;
+  `estimatedHeadClock` que devuelve null y §14.4 que lo recoge.
+- Decisiones nuevas de la coherencia: 15-l (`TIMELINE.medianJsonBytes` a 320 KB, 1,44 veces la
+  medida; D-11 corregida en la fase 6) y 12-s (el racimo en vivo junta a todo corredor salvo la
+  fuga, los maillots y los propios; D-43 precisada en la fase 6). D-58 precisada (`SPEC.md` y
+  `docs/ops.md` en el 5 y el 7a). El registro de `00-decisiones.md` gana las filas de D-09 (fase 5),
+  D-53 (L9), D-11, D-43 y D-58 (fase 6), y quince citas de «Versión anterior» dejan de pegarse
+  entre sí o al párrafo siguiente.
+- Coherencia transversal: el glosario declara `CueClass` y `PaceZone` en `timeline.ts` (17-z),
+  `RiderCueContext` sin `attack` (6-p), `BroadcastFinish.threeKmRule` y `WatchState.seen`, como §4;
+  gana los nombres que las secciones usaban y él no tenía (`leadersThroughStage`,
+  `clearAdaptedTimelineCache`, `viewerCookieHeader`, `isJerseyKind`, `oneDayStageTarget`,
+  `mainJersey` y `groupJersey`, las exportaciones de `spoilerWorld.ts` y
+  `timelineCollectorBench.ts`) y G.9 sigue a §16.4 (B3, B6, B13, B15, B18 y PL); F.2 lo sigue. Las
+  remisiones `§G.n` (29) y a `00-decisiones.md` (8) del documento pasan a su sitio (21-f): en el v1
+  solo queda la de 21-f, que las pone de ejemplo. «Diez puertas» pasa a once en §10 y §17; la
+  mediana de 320 KB llega a §0.7, §16.4 y §19 (riesgos 1 y 10); D-23 mide la e10 en el banco
+  desde el 4b (16-n); §19.7 gana el comentario de
+  `SnapshotRider.tS`, que corrige el 4a. Comprobado sin cambios: las 298 decisiones de sección que
+  se citan existen; D-01 a D-62, DD-01 a DD-29, I, O, H y X dentro de su rango; los tipos del
+  glosario iguales a los de §4; 27 decisiones del dueño, 13 pasos y 23 PR, 56 sesiones (52,5 hasta
+  el encendido en orden, 37 por el camino crítico), once puertas, 17 de 22 países y 5:20 a 11:23 la
+  crono, iguales en todas las secciones.
+- Dudas (`dudas.md`, tabla de §0): de las 27, 19 cerradas con su evidencia; abiertas solo las que
+  pide una medida, con su paso: `sendBeacon` (7a), B14 del mánager desde Railway (7a), TOAST en
+  producción (5), B15 del día entero (5 y 10b), B21 y B22 contra una línea grabada (4b y 6a) y el
+  móvil (10b), más dos que salen de lo cerrado: la crono más larga con el grabador de verdad (4b) y
+  el racimo de 12-s con nombres (6b, B19). La 2.5 (fundir los bloques de cierre) es de la fase 7 y
+  la 4.3 (85 KB del motor en la página de etapa) sigue fuera de E2.
+- Ensamblado: `ensamblar.sh` escribe `retransmision-v1.md` con la cabecera «Estado: borrador v1,
+  tras la refutación adversaria y la corrección, antes de la auditoría»; el glosario entra como
+  apéndice F, que es §21.6 (21-f: no se concatena `00-glosario.md`, que duplicaría §4, §13, §14.2
+  y §15). v1: 11.411 líneas; `--comprobar`, 0 fallos y 0 avisos (49 injertos, 32 objeciones y 23
+  huecos en algún bloque de cierre).
+- Para la auditoría: las notas de arriba son de las fases 3 y 5 y varias ya no valen (los topes de
+  D-11 están fijados; el coste es de 56 sesiones y 37 por el camino crítico, no 52 y 34). Conviene
+  mirar contra el texto de hoy las 170 cruzadas «ya_estaba», porque se aceptó el registro del lote
+  de destino con una comprobación automática de nombres; y la cabecera (§0.8) espera al cierre.

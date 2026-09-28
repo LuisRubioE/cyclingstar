@@ -49,8 +49,10 @@ export const TIMELINE = {
   maxStoredBytes: 98_304,
   /** bytes. Tope del JSON antes de gzip: medido de 123 a 464 KB (§5.7). D-11. */
   maxJsonBytes: 655_360,
-  /** bytes. Mediana exigida al JSON en las 24 etapas: medida, 222 KB (§5.7). D-11. */
-  medianJsonBytes: 262_144,
+  /** bytes. Mediana exigida al JSON en las 24 etapas: medida, 222 KB (227.516 B, §5.7); 1,44 veces lo medido, el margen de maxStoredBytes.
+   *  El 15 % de antes (256 KB) era menor que lo que cambia una etapa con la semilla (e18, 269,0 y 216,7 KB, §5.7), y B6 del JSON corre
+   *  en cada PR del motor (en su tramo solo se imprime, 16-n). D-11, 15-l. */
+  medianJsonBytes: 327_680,
   /** bytes. Tope de una crono en bytea: 1,5 veces el máximo medido, la e10 de race-italy (42 km, 176 corredores, la crono WorldTour
    *  más larga del calendario): 31.436 bytes, y 32.203 con checkClockDs (rcod/n/grab2.mjs). Las de 20 y 26 km, de 18,8 a 24,2 KB (§5.7). D-11, 15-i. */
   ttMaxStoredBytes: 49_152,
@@ -63,9 +65,9 @@ export const TIMELINE = {
 | `keyPhotoKm` | km | medida | I3 (`clave(k + 10)` es la reducción de `clave(k)`) y B6 |
 | `lastKmMarkBlocks` | bloques de `STAGE.dx` | derivada | `timeline.test.ts`: todo grupo vivo en el último km tiene marca en cada uno de esos bloques; I2 en el último km |
 | `gzipLevel` | nivel de zlib, de 0 a 9 | medida | B6 |
-| `maxStoredBytes`, `maxJsonBytes`, `medianJsonBytes`, `ttMaxStoredBytes` | bytes | topes sobre lo medido (D-11) | B6, en las 24 etapas (§16.4) y, para `ttMaxStoredBytes`, en la e10 de `race-italy`, que ninguna de las 24 iguala (15-i) |
+| `maxStoredBytes`, `maxJsonBytes`, `medianJsonBytes`, `ttMaxStoredBytes` | bytes | topes sobre lo medido (D-11) | B6, en las 24 etapas (§16.4) y, para `ttMaxStoredBytes`, en la e10 de `race-italy`, que ninguna de las 24 iguala (15-i): los del `bytea` fallan en el banco de todo PR del motor; los del JSON fallan en el nocturno y en la rápida sobre las seis congeladas, y en el tramo del PR solo se imprimen (16-n) |
 
-Los topes son umbrales de banco, no de escritura (decisión 15-g): en producción una línea que pase de `maxStoredBytes` se escribe igual y el tick apunta `timeline size: <raceKey> e<N> <bytes>` en `tick_log.notes`, la columna que ya usa D-12 (`packages/db/src/schema.ts` l. 156-173). Perder la retransmisión de una etapa por 50 KB sería peor que guardarlos. Los tests del grabador viven en `packages/engine/src/sim/timeline.test.ts`, y ahí hay una trampa: `test:rapido` excluye `packages/engine/src/sim/**` (`package.json` l. 21) y la matriz de bancos lista sus ficheros uno a uno (`ci.yml` l. 150-175), así que un test nuevo en `sim/` no corre en ningún PR, solo por la noche en `cobertura.yml` (`pnpm test:coverage`, l. 64). El PR 4b lo añade al tramo `mundo y radio` (l. 166-175), el de `sim/raceRadio.test.ts`, que tardó 5,5 min en la corrida de seis tramos (l. 128) (decisión 15-d).
+Los topes son umbrales de banco, no de escritura (decisión 15-g): en producción una línea que pase de `maxStoredBytes` (o de `ttMaxStoredBytes`, si es una crono) se escribe igual y el tick apunta `timeline size: <raceKey> e<N> <bytes>` en `tick_log.notes`, la columna que ya usa D-12 (`packages/db/src/schema.ts` l. 156-173). Perder la retransmisión de una etapa por 50 KB sería peor que guardarlos. Los tests del grabador viven en `packages/engine/src/sim/timeline.test.ts`, y ahí hay una trampa: `test:rapido` excluye `packages/engine/src/sim/**` (`package.json` l. 21) y la matriz de bancos lista sus ficheros uno a uno (`ci.yml` l. 150-175), así que un test nuevo en `sim/` no corre en ningún PR, solo por la noche en `cobertura.yml` (`pnpm test:coverage`, l. 64). El PR 4b lo añade al tramo `mundo y radio` (l. 166-175), el de `sim/raceRadio.test.ts`, que tardó 5,5 min en la corrida de seis tramos (l. 128) (decisión 15-d).
 
 ### 15.3 `BROADCAST`
 
@@ -75,8 +77,7 @@ Unidades: s de carrera es reloj de carrera (`RaceS`, §4.1) y s de pared, el tie
 // packages/shared/src/broadcast/constants.ts (nuevo): BROADCAST y SPOILER. Las leen la API y la web; ni el motor ni los
 // ficheros de shared que usa el grabador pueden importarlas (15-b). Tocarlas corre typecheck y test:rapido, no los bancos.
 import type { StageKind } from '../contracts.js'
-import type { CueClass } from './cues.js'
-import type { PaceZone } from './wire.js'
+import type { CueClass, PaceZone } from './timeline.js' // los dos se declaran en timeline.ts (17-z)
 
 export const BROADCAST = {
   // RITMO (§8.2, §9.4; D-19). Iniciales: B17 los mide en los pasos 0 y 10 y la prueba de lectura los acepta (D-60).
@@ -88,8 +89,8 @@ export const BROADCAST = {
   /** s de pared por etapa en el digest de While you were away, por tipo de etapa: fijo, no mira lo que pasó. E (ver abajo). */
   digestBudgetS: { llana: 60, media: 90, reina: 150, cri: 120, clasica: 150 } as const satisfies Readonly<Record<StageKind, number>>,
   /** Crono: s de carrera por s de pared mientras la fracción de salidos (de 0 a 1) es ≤ upToStarted.
-   *  M: 6:24-6:33 un prólogo de 176 a 60 s (6:55-7:06 con el último km real, §9.4) y 11:21-11:23 una crono con general a 120 s
-   *  (ejecutabilidad §2.1). */
+   *  M: 6:24-6:33 un prólogo de 176 a 60 s (6:55-7:06 con el último km real, §9.4), 11:21-11:23 una crono con general a 120 s
+   *  (ejecutabilidad §2.1) y 5:20-5:52 las nacionales de 35 y 40 km, con 30 y 12 corredores (§9.4): de 5:20 a 11:23. */
   ttPace: [{ upToStarted: 0.6, x: 120 }, { upToStarted: 0.9, x: 40 }, { upToStarted: 1, x: 12 }] as const satisfies readonly { readonly upToStarted: number; readonly x: number }[],
   /** s de carrera por s de pared en el último km del último en salir. */
   ttLastKmX: 2,
@@ -107,13 +108,17 @@ export const BROADCAST = {
   ttSeekStepS: 600,                            // s de carrera de los saltos −10 min y +10 min de la crono (9-g, §9.4)
   ttSeekLastStarters: 20,                      // corredores del salto Last 20 starters de la crono (9-g, §9.4)
   resumeBackS: 60,                             // s de carrera que se retrocede al reanudar, con Previously
+  controlsHideS: 3,                            // s de pared sin tocar tras los que los mandos y la barra de progreso se esconden en playing; vuelven con
+                                               // cualquier toque, movimiento o tecla, y no se esconden con el foco dentro (8-p, §18.8). S/E: la prueba de lectura
 
   // RÓTULOS Y CAPA FIJA (§6.2, §6.5, §7, §8.6; D-17, D-21, D-22). S/E salvo donde se dice: los acepta la prueba de lectura.
   cueHoldS: [3, 4, 5, 6] as const satisfies Readonly<Record<CueClass, number>>, // s de pared que ocupa un Cue según su clase 0-3; no paran el reloj
-  cueQueueMax: 3,                              // Cue esperando como mucho; con la cola llena se descartan los de clase 0 y 1: la carrera no se frena
+  cueQueueMax: 3,                              // Cue esperando como mucho; con la cola llena se descartan los de clase 0 y 1, salvo la presentación de
+                                               // la fuga, que no cuenta (6-m): la carrera no se frena
   cueTopStart: 5,                              // puesto de salida hasta el que la caída o el abandono de un corredor es de clase 3
   crashNamesDelayS: 3,                         // s de pared entre CRASH y los nombres de los caídos
-  breakRoundEveryS: 6,                         // s de pared de cada rótulo de clase 0 de la moto que rodea la fuga, uno por escapado
+  breakRoundEveryS: 6,                         // s de pared entre dos rótulos de la moto que rodea la fuga, de clase 2 y reservados (6-m), uno por
+                                               // escapado de breakRoundOf; solo en Watch a ×½, ×1 y ×2
   gapsTableEveryRealS: 25,                     // s de pared entre dos cuadros de diferencias generales
   quietFinalKm: 5,                             // km a meta desde los que ya no sale el cuadro de diferencias
   quietFinalM: 500,                            // m a meta desde los que no sale un rótulo de corredor: solo la distancia
@@ -126,7 +131,8 @@ export const BROADCAST = {
   closingCardS: 6,                             // s de pared de cada cuadro del cierre antes de pasar solo (§6.11, §8.6). S/E
   previewThreatsMax: 3,                        // corredores que el cuadro de maillots de la previa nombra por maillot (§8.6)
   recapMaxCues: 5,                             // rótulos de clase ≥ 2 que enseñan While you skipped y Previously (8-i, §8.5)
-  cardRowsMax: 5,                              // filas de un cuadro de diferencias o de la general virtual en el móvil (§6.7). S/E
+  cardRowsMax: 5,                              // filas de un cuadro de diferencias, de la general virtual o de la lista de una fuga (dos corredores
+                                               // por fila) en el móvil (§6.7). S/E
   cardLinesMax: 3,                             // líneas del rótulo de corredor además del nombre (§4.8; lo exige riderCardSchema, §4.11)
   gcLineTop: 20,                               // puesto de salida hasta el que la general gana una línea del rótulo: 14th overall +4:02
   sameTimeS: 5,                                // s de carrera por debajo de los cuales la diferencia principal es s.t.
@@ -145,6 +151,8 @@ export const BROADCAST = {
   maxChunkGzipBytes: 12_288,                   // bytes: el tramo mayor. M: hasta 4,72 KB (§18.1)
   maxFinishGzipBytes: 40_960,                  // bytes: el paquete de meta (BroadcastFinish). E: 10-20 KB (§14.8)
   maxVeiledStageGzipBytes: 4_096,              // bytes: la ruta de etapa sin los opcionales de resultado. M: 0,46-2,1 KB (§14.8)
+  maxKnownStageGzipBytes: 112_640,             // bytes: la ruta de etapa CONOCIDA (StageReplay entero, con la radio). M: de 22,2 a 100,1 KB con gzip
+                                               // en las 22 en línea del banco (mapa 07 §7); el máximo más un 10 %, no el doble. Tope de banco (B6, 15-g)
 
   // NOMBRES (§6.3, §7.5, §7.7; D-18, D-26, D-27)
   nameWholeGroupUpTo: 12,                      // corredores: un grupo de hasta 12 se nombra entero. Copia de NAME_WHOLE_GROUP_UP_TO, atada (§15.5)
@@ -280,10 +288,10 @@ Cambiar una constante de `shared` es un PR normal, sin bancos (`typecheck` y `te
 | Constantes | Estado | Quién las acepta | Paso | Si no pasa |
 | --- | --- | --- | --- | --- |
 | `pace`, `summaryPace` | M (7:39-19:59; 2:12-6:37) | B17 y la prueba de lectura (PL) | 0 y 10 | se cambia el valor y se vuelve a medir |
-| `ttPace`, `ttLastKmX` | M (6:24-11:23) | B17 | 0 y 10 | ídem |
+| `ttPace`, `ttLastKmX` | M (5:20-11:23) | B17 | 0 y 10 | ídem |
 | `nominalKmh` | M aquí (p90 55 s) | B17: `estimateS` contra la duración medida | 0 y 10 | ídem; nunca con datos de la carrera |
 | `digestBudgetS` | E (34,5-39,5 min por gran vuelta) | B17 con el digest como una curva más | 10 | ídem; el botón dice siempre el número calculado (8-b) |
-| `cueHoldS`, `cueQueueMax`, `crashNamesDelayS`, `breakRoundEveryS`, `gapsTableEveryRealS`, `previewCardS`, `finishFreezeS` | S/E | PL | 10 | se ajustan antes de `BROADCAST_WATCH=on` |
+| `cueHoldS`, `cueQueueMax`, `crashNamesDelayS`, `breakRoundEveryS`, `gapsTableEveryRealS`, `previewCardS`, `finishFreezeS`, `controlsHideS` | S/E | PL | 10 | se ajustan antes de `BROADCAST_WATCH=on` |
 | `estimatedClockMaxErrKm` | S/E (D-07) | B22 | 6 | las etapas sin línea abren solo en `Report` (pantalla) |
 | `horizonBudgetMs`, `horizonMemoS`, `horizonMemoEntries` | M (C12), E y S/E (10-m) | B14; el tope, B12 (`TtlMemo.size`, §10.7) | 7 | `SPOILER_MODE=off` sin desplegar (D-53) |
 | `progressEveryRealS`, `progressMinDeltaS` | S/E (D-55, 10-l) | B14, que mide `recordProgress` aparte (16-k) | 7 | se sube `PROGRESS_MIN_DELTA_S` en Railway, sin desplegar (§15.8, 15-j); el valor de la constante, en el PR siguiente |
@@ -294,6 +302,7 @@ Cambiar una constante de `shared` es un PR normal, sin bancos (`typecheck` y `te
 | `decodedCacheEntries` | M (16: de 8 a 30 MB; con 64, de 33 a 121) | la memoria de la API (§18.2) | 6 | se baja más o se topa por bytes |
 | `cardRowsMax`, `closingCardS`, `previewThreatsMax`, `recapMaxCues`, `ttSeekStepS`, `ttSeekLastStarters` | S/E | PL | 10 | se ajustan antes de `BROADCAST_WATCH=on` |
 | `maxHeadGzipBytes`, `maxChunkGzipBytes`, `maxFinishGzipBytes`, `maxVeiledStageGzipBytes` | S/E (16-h), con holgura sobre lo medido | B6 | 6 y 7 | se sube el tope con la cifra en el PR |
+| `maxKnownStageGzipBytes` | M (22,2-100,1 KB), el máximo más un 10 % | B6, sobre la etapa corrida de `routes/broadcast.test.ts` y a mano en las 24 × 2 en el paso 6 | 6 | ídem |
 
 ### 15.7 Las constantes que E2 lee y no toca
 
@@ -317,7 +326,7 @@ Cambiar una constante de `shared` es un PR normal, sin bancos (`typecheck` y `te
 
 ### 15.8 Los interruptores no son constantes
 
-`BROADCAST_WATCH` y `SPOILER_MODE` (`off`, `admins`, `on`) y `TIMELINE_RECORD` (`off`, `on`) viven en `apps/api/src/env.ts` (`envSchema` l. 20, `tickEnvSchema` l. 65) y se cambian en Railway sin desplegar (§14.6, D-53); los dos primeros viajan a la web en `/health.features`. Una constante cambia con un PR que pasa el CI; un interruptor, con una variable de entorno, en caliente. La regla para elegir: es interruptor lo que hay que poder apagar en minutos ante un fallo en producción (una pantalla rota, un destripe, un tick que se resiente) y constante todo lo demás. Por eso `BROADCAST.liveClusters` es constante: encenderlo exige B19 en verde con racimos (DD-18), un banco y no una decisión de operación.
+`BROADCAST_WATCH` y `SPOILER_MODE` (`off`, `admins`, `on`), `TIMELINE_RECORD` (`off`, `on`) y `AUTO_TICK` (`off`, `on`; `on` por defecto, como hoy: `index.ts` solo arranca `autoTick`, l. 56-85, con `on`, y Railway lo pone a `off` en `web` cuando existe el servicio `tick`, 18-k) viven en `apps/api/src/env.ts` (`envSchema` l. 20, `tickEnvSchema` l. 65) y se cambian en Railway sin desplegar (§14.6, D-53); los dos primeros viajan a la web en `/health.features`. Una constante cambia con un PR que pasa el CI; un interruptor, con una variable de entorno, en caliente. La regla para elegir: es interruptor lo que hay que poder apagar en minutos ante un fallo en producción (una pantalla rota, un destripe, un tick que se resiente) y constante todo lo demás. Por eso `BROADCAST.liveClusters` es constante: encenderlo exige B19 en verde con racimos (DD-18), un banco y no una decisión de operación.
 
 Una variable de entorno más no apaga nada, pero se cambia igual: `PROGRESS_MIN_DELTA_S`, en el `envSchema` del servicio `web` (§14.6), un entero de segundos de carrera, opcional, que se lee al arrancar como `TICK_INTERVAL_MINUTES` (`apps/api/src/env.ts` l. 32). Si está, sustituye a `BROADCAST.progressMinDeltaS` en el umbral de escritura del progreso (§10.3, D-55); si no, manda la constante (decisión 15-j). Existe porque la carga de escritura del progreso es lo único de E2 que puede pesar en producción sin un freno propio: `SPOILER_MODE=off` deja funcionando las escrituras de `/api/me/*` a propósito (§10.13), `TIMELINE_RECORD` es del tick y `BROADCAST_WATCH=off` apaga la retransmisión entera, y la regla 9 de §17.1 pide que todo se apague sin desplegar (D-53). Con la curva de §8.2, un informe de 15 s de pared hace crecer lo alcanzado 900 s de carrera a ×60 y 450 a ×30, así que para escribir menos en esas zonas el valor tiene que pasar de esas cifras, y lo que se paga es que lo guardado pueda quedar hasta ese tanto por detrás de lo visto (cuenta, no medida).
 
@@ -338,9 +347,10 @@ Una variable de entorno más no apaga nada, pero se cambia igual: `PROGRESS_MIN_
 - 15-f. Las tablas se tipan con `as const satisfies` (`PaceZone`, `Record<StageKind, number>`, `Record<CueClass, number>`): el compilador vigila que no falte un tipo de etapa ni una clase. Comprobado con TypeScript 5.9.3 en `l2/tipos/`, también en negativo.
 - 15-g. Los topes de tamaño son umbrales de B6, no de escritura: una línea mayor se escribe y se apunta en `tick_log.notes`. Descartado: perder la etapa por su tamaño.
 - 15-h. Un cambio de valor de los tres bloques se anota en `docs/balance.md` con su medida, sin subir `ENGINE_VERSION`. Descartado: anotar solo las del motor.
-- 15-i. `TIMELINE.ttMaxStoredBytes` pasa de 32 a 48 KB (49.152 bytes): la e10 de `race-italy`, 42 km con 176 corredores, ocupa 31.436 y 31.178 bytes con el prototipo del grabador (`l3/grabador.mjs`, semillas 0 y 1) y 32.203 con `checkClockDs` (`rcod/n/grab2.mjs`), el 98 % del tope anterior, y B6 no lo veía porque ninguna de sus 24 etapas pasa de 26 km. Descartado: guardar `kmClockDs` por diferencias por km, que baja la e10 a 15.614 bytes (`l5c/deltas.mjs`, §9.2) pero cambia el formato 1 y su decodificador para ahorrar, en las 77 cronos por temporada fuera de los nacionales, menos de 1,3 MB (cota: 77 veces los 16.589 bytes que se ahorran en la más larga).
+- 15-i. `TIMELINE.ttMaxStoredBytes` pasa de 32 a 48 KB (49.152 bytes): la e10 de `race-italy`, 42 km con 176 corredores, ocupa 31.436 y 31.178 bytes con el prototipo del grabador (`l3/grabador.mjs`, semillas 0 y 1) y 32.203 con `checkClockDs` (`rcod/n/grab2.mjs`), el 98 % del tope anterior, y B6 no lo veía porque ninguna de sus 24 etapas pasa de 26 km. Descartado: guardar `kmClockDs` por diferencias por km, que baja la e10 a 15.614 bytes (`l5c/deltas.mjs`, §9.2) pero cambia el formato 1 y su decodificador para ahorrar de 6.032 a 16.589 bytes por crono (las cuatro medidas de §9.2, con `checkClockDs`), menos de 1,3 MB en las 77 cronos por temporada fuera de los nacionales (cota: 77 veces los 16.589 bytes de la más larga). La traza sola por diferencias ocupa de 3.152 a 6.402 bytes en esas cuatro, y la línea entera de 13.853 a 19.037: los «unos 5 KB en 40 km» de `estado.md` §9 eran de la traza sola.
 - 15-j. `PROGRESS_MIN_DELTA_S`, variable de entorno opcional del servicio `web`, sustituye a `BROADCAST.progressMinDeltaS` sin desplegar. Descartado: nombrar en la regla 9 de §17.1 una excepción, la escritura del progreso, que solo se frenaría apagando `Watch`.
 - 15-k. `PULLERS_KEPT` se exporta y se ata a 12 desde el 3a; en el 4b la API importa `STORED_PULLERS_MAX`, que el motor exporta ese mismo PR (§5.4), y la copia muere. Descartado: la copia sin atar, que dejaría a la radio servida cortando a 12 lo que el motor guarde con otro tope.
+- 15-l. (Coherencia, fase 6; cruzada de L3, Rcoste-008.) `TIMELINE.medianJsonBytes` pasa de 256 KB a 320 KB (327.680 bytes), 1,44 veces la mediana medida (227.516 B), el mismo margen que `maxStoredBytes`: con un 15 % bastaba que la táctica hiciera las carreras un poco más movidas para poner en rojo el B6 del JSON, cuando una misma etapa cambia un 20 % solo con la semilla (`race-france` e18, 269,0 y 216,7 KB, §5.7). Con 16-n (en el tramo del PR el JSON solo se imprime) es la salida que eligió §16.4. Descartado: sacar los topes de `TIMELINE` a `packages/shared`, que no quita el rojo (16-n).
 
 **Propuesto para el glosario.**
 - En `BROADCAST` (`packages/shared/src/broadcast/constants.ts`): `nominalKmh` (km/h por banda de pendiente para `playbackEstimateS`), `skippedMinClass` (clase mínima de `While you skipped`, pantalla), `seekStepKm` y `seekFinalKm` (los saltos de recorrido), `cueTopStart` (puesto de salida de las caídas de clase 3), `previewCardS`, `previewGcTop` y `previewAttrTop` (la previa), `mainGapTopStart` (la referencia de la diferencia principal), `gcThreatTop` (nivel 5 de notoriedad) y `chunkCacheMaxAgeS` (la caché de un tramo).

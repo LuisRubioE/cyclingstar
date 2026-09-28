@@ -17,9 +17,11 @@ Estas decisiones las corrigieron o precisaron las secciones con evidencia al esc
 | D-04 | precisada | Se completa con lo que midió §3 y adoptó §4 (4-t); la decisión no cambia | §3.3, §4.5; decisiones 3-a, 3-b, 3-f y 4-t; medido por L1 con `l1/corte.mjs` y `l1/variantes.mjs` |
 | D-05 | corregida | La fila del pinchazo de crono dice en qué km se lee el reloj propio, y se añaden el máximo de 4-g y las dos filas de 4-r | §4.7 (4-g, 4-r) y §9.6; duda de §9 |
 | D-05 | corregida (fase 5) | La caída, y el pinchazo y la avería de carretera, se revelan con el grupo en que iba el corredor al final del bloque anterior (el rótulo salía 70,6 s tarde de mediana); `tt_catches` va a meta | §4.7 (4-v, 4-w); corrección L2, Rcobertura-009, Rcodigo-026, Rcodigo-025 |
+| D-09 | corregida (fase 5) | La doctrina de no subir la versión es condicional y el dueño la subió de la v69 a la v89 en catorce commits para arreglar defectos: la regla de ir detrás del 17d deja D-09 y pasa a ser la decisión del dueño DD-25 | §5.1; corrección L3, Rdueno-005 |
 | D-10 | corregida | El LRU baja de 64 a 16 entradas con la memoria medida | §5.6, §18.2; decisión 18-d; duda 3 de §5 |
 | D-11 | corregida | Los topes pasan a 96, 640, 256 y 32 KB y el volumen por temporada, a unos 36 MB: los de la síntesis salían de formatos que no son el de §4.3, que no cabía en ellos (B6 habría nacido en rojo) | §5.7 y §15.2; duda 1 y 2 de §5, dudas de §13, §16 y §17; medido por L3 |
 | D-11 | corregida (fase 5) | El tope de la crono pasa de 32 a 48 KB: la e10 de `race-italy` (42 km, 176 corredores) ocupa 32.203 bytes con `checkClockDs`, el 98,3 % del anterior | §15.2 (15-i); corrección L2, Rcodigo-014; `l3/grabador.mjs`, `rcod/n/grab2.mjs` |
+| D-11 | corregida (fase 6) | La mediana del JSON pasa de 256 a 320 KB (1,44 veces la medida): con un 15 % de margen, la semilla sola la movía un 20 % | §15.2 (15-l), §16.4 (16-n); coherencia, cruzada de L3, Rcoste-008 |
 | D-12 | precisada | Se añaden la lápida, que hace cierta la salida a `Report`, y la tolerancia del `kind` medida | §5.5; decisiones 5-i y 5-k |
 | D-15 | precisada (fase 5) | El reparto lleva los favoritos por atributo de la previa, congelados con los atributos de antes del aprendizaje de la etapa | §4.2 (8-g, 4-u); corrección L2, Rcobertura-005, Rcodigo-036 |
 | D-19 | precisada | El prólogo lleva también la medida de §9.4 con el último km real | §9.4, `l5/crono.mjs`; duda de §9 |
@@ -42,15 +44,18 @@ Estas decisiones las corrigieron o precisaron las secciones con evidencia al esc
 | D-41 | precisada | Se añade la décima puerta que encontró §11.2 y la clase de la ruta del plan del equipo | §11.2 (11-b) y §11.3 (11-k) |
 | D-41 | precisada (fase 5) | Los atributos de la ficha de cualquier corredor y las notas del preparador quedan libres por DD-08 (`sup. X11`, medido); el presupuesto del equipo se vela por defecto y la elección pasa al dueño (DD-26) | §11.2, §11.3 y §11.13 (11-r, 11-t); corrección L7, Rcodigo-061 y Rdueno-026; `rcod/n/b1/attrs.mjs` |
 | D-43 | corregida | El orden de la voz es el de revelado (medido) y las pasadas son veintiuna; la regla del racimo gana la guarda de 12-d (nunca antes del revelado de ninguno de sus miembros), medida sin rótulos con 0 violaciones | §12.2 (12-a) y §12.3 (12-d); dudas de §12 |
+| D-43 | precisada (fase 6) | El racimo en vivo, encendido, junta también a los corredores con rótulo, salvo la fuga, los maillots y los propios: con la regla anterior la voz decía uno a uno de 59 a 74 descuelgues por reina | §12.3 (12-s); coherencia, cruzada de L10, Rdueno-020; `l10/descuelgues.mjs` |
 | D-49 | corregida | Lo que D-49 decía del test no era cierto contra el código: la expresión de hoy solo ve `prize` | §13.7 (13-a); duda 1 y 4 de §13; medido por L3 con `l3/vivas.mjs` |
 | D-50 | corregida | La lectura literal (`leaders` sin `afterStage`) rompía la web de ayer, y el resultado se omite cuando la pantalla no lo enseña | §14.1 (14-e) y §10.2 (10-e); nota del orquestador (L6) |
 | D-51 | precisada | Se añaden el respaldo `text/plain` y el cuerpo de la meta | §14.2 (14-f, 14-g) |
 | D-52 | precisada | Los 73 min son pruebas en serie, no tiempo de reloj ni de runner | §17.1, regla 4; nota del orquestador (L9) |
 | D-53 | precisada (fase 5) | `PROGRESS_MIN_DELTA_S` frena sin desplegar la carga de escritura del progreso, que ningún interruptor frenaba sin apagar `Watch` | §15.8 (15-j); corrección L2, Rcoste-019 |
 | D-53 | precisada (fase 5) | `AUTO_TICK` saca el tick del proceso del servicio `web` cuando existe el servicio `tick`: una etapa grande deja la web sin contestar de 3,3 a 4,8 s | §18.3 (18-k); corrección L7, Rcoste-039; `coste/b10/b10.mjs` |
+| D-53 | precisada (fase 5) | Aplicar una migración no es inerte: `runMigrations` toma antes el candado del tick y fija `lock_timeout`; los PR del motor se revierten con `git revert` solo antes del 5; cambiar un interruptor reinicia el servicio | §17.1 regla 9, §17.18 (17-w, 17-v); corrección L9, Rcoste-030, Rcoste-036 y Rcoste-042 |
 | D-54 | precisada | Se añaden las fechas de B1d y de `PENDING_ROUTES` que fijó §17 | §17 (17-b, 17-n) |
 | D-54 | precisada (fase 5) | El paso 11 son dos PR (11a y 11b): unos 23 PR | §17.14, §17.22 (17-v); cruzada de L9, Rcoste-034 |
 | D-55 | corregida | No es una escritura por minuto sino unas cuatro: el umbral de 60 s no limita con la curva de §8.2, y 10-l añade el límite de una cada 15 s | §10.3 (10-l), §8.5 (8-d), §18.4; dudas de §8 y §18; nota del orquestador (L4, L6) |
+| D-58 | precisada (fase 6) | La lista de documentos que corrige el paso 12 gana `SPEC.md` (§6.15, con la respuesta de DD-04), y `docs/ops.md` lo escriben el 5 y el 7a, con las tablas que crean; el 12 lo relee | §17.15 (17-y); coherencia, cruzada de L8, Rdueno-019 |
 | §DD | corregida | cinco decisiones nuevas del dueño (DD-21 a DD-25) y cifras de DD-06, DD-11, DD-12 y DD-13 | §20.2, §20.6 (20-a a 20-d) |
 | §DD | corregida (fase 5) | DD-01 gana la tercera respuesta, todas las carreras, con su cifra, y seguir al empezar a ver una etapa | §10.4; corrección L6, Rdueno-023 y Rdueno-024; `c-l6/todas.mjs` |
 | §DD | corregida (fase 5) | DD-08 cubre también los atributos de la ficha ajena; DD-12, el acta en los buscadores; DD-21 lleva la cifra de Postgres y se mide desde Railway; DD-01 dice lo que enseña la ficha de una carrera fuera de guardia; nace DD-26, el presupuesto del equipo con etapas veladas | §11.2, §11.5, §11.10, §11.13 y §18.2; corrección L7, Rcodigo-061, Rdueno-022, Rdueno-026, Rdueno-043 y Rcoste-012 |
@@ -132,11 +137,13 @@ En carretera, `revealS = máx(tS, regla)` (4-g: con la regla sola, `peloton_conc
 **Corregida en el ensamblado v0** (§4.7 (4-g, 4-r) y §9.6; duda de §9). La fila del pinchazo de crono dice en qué km se lee el reloj propio, y se añaden el máximo de 4-g y las dos filas de 4-r.
 
 > Versión anterior: | crono: `puncture`, `mechanical` | `startS` del corredor + su reloj propio (`timetrial.ts` l. 321-329) | (e) |
+>
 > Versión anterior: Los días de baja de una caída no se enseñan nunca en la retransmisión.
 
 **Corregida en la corrección, fase 5** (§4.7, decisiones 4-v y 4-w; hallazgos Rcobertura-007, Rcobertura-009, Rcodigo-025 y Rcodigo-026; `simulate.ts` l. 8266-8291 y 8471; medido por L3 con `l3/grabador.mjs`, 627 caídas, y en `rcod/n/ws/ttborde.mjs`, 154 cronos). La regla `incident` tomaba el grupo del caído al final de su bloque, y el motor lo saca de ese grupo en el mismo bloque: el rótulo salía 70,6 s de carrera tarde de mediana (máximo 290 s), y los pinchazos y averías de carretera, que iban por la regla por defecto, 141,6 s. Ahora las tres toman el grupo del final del bloque anterior. `tt_catches` va a meta porque lleva la hora de la última llegada, que es el borde de una crono (4-w; en 30 de 154 corridas alguien llega después que el último en salir).
 
 > Versión anterior: | caída sintetizada de `incidents` (D-13) | el reloj interpolado del grupo del caído en su km | |
+>
 > Versión anterior: | `bunch_sprint`, `final_km`, `stage_win`, `stage_win_itt`, `time_cut`, `time_cut_readmitted` | NUNCA en un tramo: van al paquete de meta | (c), (d) |
 
 ### D-06 · La visibilidad de cada dato y el tramo por reloj de carrera
@@ -183,6 +190,7 @@ En carretera, `revealS = máx(tS, regla)` (4-g: con la regla sola, `peloton_conc
 **Corregida en el ensamblado v0** (§5.6, §18.2; decisión 18-d; duda 3 de §5). El LRU baja de 64 a 16 entradas con la memoria medida.
 
 > Versión anterior: La API guarda un LRU de `BROADCAST.decodedCacheEntries` (64) líneas decodificadas: el dato es inmutable.
+
 **Precisada en la corrección, fase 5** (L3: §5.5, §5.6 y §13.3, decisiones 5-l y 13-j; hallazgos Rcobertura-044 y Rcoste-006; regenerada la `0044` con drizzle-kit en `c-l3/dbcopy3`; la caché de subtransacciones, medida por el refutador de coste en PostgreSQL 16, `coste/pgm/subxact.mjs`). La tabla gana `tpl_rev`, que 12-c pedía y §13.3 no tenía, y la escritura deja de ir en un punto de guardado por etapa, que los días 176 y 179 desbordaba la caché de 64 subtransacciones.
 
 > Versión anterior (ensamblado v0): … `format`, `engine_version`, `finish_s`, `bytes` y `created_at`; índice por `game_day`.
@@ -199,7 +207,7 @@ En carretera, `revealS = máx(tS, regla)` (4-g: con la regla sola, `peloton_conc
 | 106 a 178 KB | `producto.md` §3.5 | la retransmisión SERVIDA entera en JSON, no lo guardado | cierta como red; su «3-9 KB en disco» es falsa: +4,7 a +53 KB en `jsonb` |
 | 126-559 KB en JSON, 10,7-146,4 KB en `jsonb` | juez del motor §2.1 | la radio de hoy | referencia |
 
-Ninguna de esas cifras mide el formato que se guarda, el de §4.3; lo midió L3 con el prototipo del grabador (§5.7, `l3/grabador.mjs`, 23 etapas en línea × 2 semillas): de 20,9 a 70,0 KB por etapa en línea en `bytea` gzip 9 (mediana 38,8, p90 53,3; llana 22,7, media 35,6, reina 47,7, clásica 44,9), de 123 a 464 KB de JSON (mediana 222) y de 18,8 a 24,2 KB una crono de 176 corredores. Topes (constantes de §15.2), sobre esa medida: `TIMELINE.maxStoredBytes` 96 KB (98.304 bytes, 1,4 veces el máximo medido) por etapa en línea; JSON ≤ 640 KB de máximo y ≤ 256 KB de mediana; crono ≤ 48 KB (49.152 bytes, 1,5 veces la crono más larga medida: la e10 de `race-italy`, 42 km y 176 corredores, 32.203 bytes con `checkClockDs`; 15-i). Son umbrales de B6, no de escritura (15-g). Por temporada, del orden de 36 MB de `stage_timelines` (estimado con las medianas medidas por tipo y 176 corredores en todas las etapas que no son nacionales: cota superior) contra unos 40 MB de radio en disco (mapa 04 §5).
+Ninguna de esas cifras mide el formato que se guarda, el de §4.3; lo midió L3 con el prototipo del grabador (§5.7, `l3/grabador.mjs`, 23 etapas en línea × 2 semillas): de 20,9 a 70,0 KB por etapa en línea en `bytea` gzip 9 (mediana 38,8, p90 53,3; llana 22,7, media 35,6, reina 47,7, clásica 44,9), de 123 a 464 KB de JSON (mediana 222) y de 18,8 a 24,2 KB una crono de 176 corredores. Topes (constantes de §15.2), sobre esa medida: `TIMELINE.maxStoredBytes` 96 KB (98.304 bytes, 1,4 veces el máximo medido) por etapa en línea; JSON ≤ 640 KB de máximo y ≤ 320 KB de mediana (327.680 bytes, 1,44 veces la medida, 15-l); crono ≤ 48 KB (49.152 bytes, 1,5 veces la crono más larga medida: la e10 de `race-italy`, 42 km y 176 corredores, 32.203 bytes con `checkClockDs`; 15-i). Son umbrales de B6, no de escritura (15-g). Por temporada, del orden de 36 MB de `stage_timelines` (estimado con las medianas medidas por tipo y 176 corredores en todas las etapas que no son nacionales: cota superior) contra unos 40 MB de radio en disco (mapa 04 §5).
 **Evidencia.** C7, C8, §2.1 del juez del motor; X-06.
 **Sección.** §5, §13, §16.
 **Corregida en el ensamblado v0** (§5.7 y §15.2; duda 1 y 2 de §5, dudas de §13, §16 y §17; medido por L3). Los topes pasan a 96, 640, 256 y 32 KB y el volumen por temporada, a unos 36 MB: los de la síntesis salían de formatos que no son el de §4.3, que no cabía en ellos (B6 habría nacido en rojo).
@@ -209,6 +217,10 @@ Ninguna de esas cifras mide el formato que se guarda, el de §4.3; lo midió L3 
 **Corregida en la corrección, fase 5** (§15.2, decisión 15-i; hallazgo Rcodigo-014; medido con el prototipo del grabador de L3, `l3/grabador.mjs`, y con `checkClockDs`, `rcod/n/grab2.mjs`; las cronos del calendario, `rcod/cronos2.mjs`). El tope de la crono se fijó sobre las dos cronos del banco, de 20 y 26 km, y el calendario tiene tres WorldTour más largas con 176 corredores: la e10 de `race-italy` (42 km) ocupa 31.436 y 31.178 bytes, y 32.203 con `checkClockDs`, el 98,3 % de 32 KB; B6 no lo veía porque ninguna de sus 24 etapas pasa de 26 km.
 
 > Versión anterior: crono ≤ 32 KB.
+
+**Corregida en la coherencia, fase 6** (§15.2, decisión 15-l; cruzada de L3, Rcoste-008; §16.4, 16-n). La mediana del JSON tenía un 15 % de margen sobre lo medido (227.516 B contra 262.144), cuando una misma etapa cambia un 20 % solo con la semilla (`race-france` e18, 269,0 y 216,7 KB, §5.7) y B6 del JSON corre en todo PR del motor, también los de la táctica. Pasa a 327.680 bytes, el margen de `maxStoredBytes`; y en el tramo del PR el JSON solo se imprime (16-n).
+
+> Versión anterior: JSON ≤ 640 KB de máximo y ≤ 256 KB de mediana.
 
 ### D-12 · La autocomprobación al grabar y el interruptor de grabación
 
@@ -265,7 +277,8 @@ Ninguna de esas cifras mide el formato que se guarda, el de §4.3; lo midió L3 
 
 **Corregida en la corrección, fase 5** (§6.3, decisión 6-b; hallazgos Rcobertura-019 y Rdueno-017). Evidencia nueva: el maillot de la montaña se llama «Mountains leader» en el `aria-label` de hoy (`JERSEY_LABEL`, `packages/shared/src/jerseys.ts` l. 133-137), en el rótulo (`Leader, mountains classification`, §7.1) y en la frase de la fuga (`the mountains leader`, §7.5), mientras `KOM` es en la misma pantalla la pancarta de montaña; y con la voz nombrando el grupo del maillot por su papel (`the chase group`) el mismo grupo tenía dos nombres a la vez, que es lo que la C7 que esta decisión cita prohíbe.
 
-> Versión anterior: El grupo del maillot conserva los nombres que la radio ya usa y el dueño pidió (`Race leader’s group`, `Points leader’s group`, `KOM leader’s group`, `RaceRadioPanel.tsx` l. 85-89;
+> Versión anterior: El grupo del maillot conserva los nombres que la radio ya usa y el dueño pidió (`Race leader’s group`, `Points leader’s group`, `KOM leader’s group`, `RaceRadioPanel.tsx` l. 85-89; «podría llamarse grupo del maillot amarillo en vez de grupo 3», l. 50-52, v58), elegido con `JERSEY_PRIORITY` (gc > points > kom, `jerseys.ts` l. 22) y no con el orden de la radio (gc > kom > points, `RaceRadioPanel.tsx` l. 102).
+>
 > Versión anterior: Se re-sellan a propósito `raceRadioNames.test.tsx` y `GROUP_NOUNS` gana `the gruppetto`.
 
 ### D-19 · La curva de ritmo, su duración medida y el coste diario
@@ -328,10 +341,12 @@ Coste diario de seguir una gran vuelta: 21 etapas en 23 días de juego de 6 h so
 **Corregida en el ensamblado v0** (§4.2 (4-f), §9.2 (9-a), §9.4 y §9.6; dudas de §4 y §9). El km del pinchazo de crono no sale de la traza (el motor solo tiene `finishKm / 2`), la meta de la traza es entera y el prólogo lleva las dos medidas.
 
 > Versión anterior: se guarda `TimeTrialTrace` (14,7-20,3 KB de JSON medido por estado con una copia parcheada, resultados idénticos en 3 de 3; 2,5-10 KB en `bytea` medido por datos).
+>
 > Versión anterior: medido 6:24-6:33 un prólogo de 176 a 60 s
+>
 > Versión anterior: El pinchazo se revela en `startS + tS` y su km verdadero sale de la traza (hoy `meta / 2`, mapa 01 §1.2 e).
 
-**Precisada en la corrección, fase 5** (§9.2; hallazgos Rcobertura-031, Rcoste-007 y Rcodigo-014; medido con el prototipo del grabador de L3 más `checkClockDs`, `rcod/n/grab2.mjs`, y re-medido por L5 con los mismos bytes). Las cifras de 18,8 a 24,2 KB son las de las dos cronos del banco (20 y 26 km). La crono más larga de 176 corredores del calendario, `race-italy` e10 (42 km), ocupa 31.436 B (31.178 con la semilla 1) sin `checkClockDs` y 32.203 B con él: el 98,3 % de los 32.768 B que tenía `ttMaxStoredBytes`, que §15.2 sube a 49.152 (15-i, D-11 corregida). Con `kmClockDs` por diferencias por km, la salida que 15-i descarta, su línea bajaría a 15.614 B (`l5c/deltas.mjs`); B6 mide la e10 en el paso 5 (§9.8).
+**Precisada en la corrección, fase 5** (§9.2; hallazgos Rcobertura-031, Rcoste-007 y Rcodigo-014; medido con el prototipo del grabador de L3 más `checkClockDs`, `rcod/n/grab2.mjs`, y re-medido por L5 con los mismos bytes). Las cifras de 18,8 a 24,2 KB son las de las dos cronos del banco (20 y 26 km). La crono más larga de 176 corredores del calendario, `race-italy` e10 (42 km), ocupa 31.436 B (31.178 con la semilla 1) sin `checkClockDs` y 32.203 B con él: el 98,3 % de los 32.768 B que tenía `ttMaxStoredBytes`, que §15.2 sube a 49.152 (15-i, D-11 corregida). Con `kmClockDs` por diferencias por km, la salida que 15-i descarta, su línea bajaría a 15.614 B (`l5c/deltas.mjs`); B6 mide la e10 en el banco, desde el 4b (§9.8, 16-n).
 
 ---
 
@@ -358,6 +373,7 @@ Distinciones, como mucho `BROADCAST.cardLinesMax` (3), en este orden: `wears_for
 **Corregida en el ensamblado v0** (§7.4; decisión 7-c; duda de §7; medido por L5 con `l5/nacionales.mjs`). Son 17 países con nacional antes del día 179, no 22, y la vigencia usa la cota inferior estricta de 7-c.
 
 > Versión anterior: toma la edición con mayor `game_day` ≤ el día;
+>
 > Versión anterior: solo los 22 países de `NATIONALS_ROAD_OVERRIDE` (l. 211-234: Australia, Colombia, Nueva Zelanda y otros) lo corren antes. El Giro de la temporada 0 (días 128-151) sale sin campeón de Italia.
 
 ### D-26 · La notoriedad sin `fame`
@@ -408,6 +424,7 @@ Distinciones, como mucho `BROADCAST.cardLinesMax` (3), en este orden: `wears_for
 **Corregida en la corrección, fase 5** (§10.4; hallazgos Rdueno-023 y Rdueno-024; medido con `c-l6/todas.mjs`, la cuenta de `e2prod/headline.mjs` sobre las 842 carreras del calendario). La cita de `docs/captacion.md` l. 100-101 es un mensaje de captación, en un documento que se declara «plan operativo. No es diseño de producto» (l. 3), y no puede justificar el alcance del velo: el porqué es propio y va con la cifra de la lectura literal del encargo («que ninguna otra pantalla se lo reviente por detrás», `docs/encargos.md` l. 145-146), todas las carreras en guardia, que es la tercera respuesta de DD-01. Y seguir una carrera al empezar a ver una de sus etapas es una decisión sobre el alcance del velo, la misma materia que DD-01, que el borrador tomaba sin decirlo: se implementa por defecto y va al dueño dentro de DD-01.
 
 > Versión anterior: El resto del mundo se ve al día: «races happen whether you are watching or not» (`docs/captacion.md` l. 101).
+>
 > Versión anterior: si la sigue (`follow = 1`: el botón `Follow without spoilers`, o automáticamente al empezar a ver cualquiera de sus etapas)
 
 ### D-31 · La caducidad
@@ -429,8 +446,11 @@ Distinciones, como mucho `BROADCAST.cardLinesMax` (3), en este orden: `wears_for
 **Precisada en el ensamblado v0** (§5.6 (5-p), §10.6 (10-c, 10-d), §14.4 (14-p) y §14.5 (14-d)). Se añaden las firmas con `Horizon` que fijaron §5 y §14, el cuarto parámetro de `veilSql` y el registro medido.
 
 > Versión anterior: El tick, la administración y los bancos pasan `worldHorizon`, explícito. Una llamada nueva no compila sin decidir.
+>
 > Versión anterior: `veilSql(h, raceKey, gameDay)` es la ÚNICA forma de escribir el corte en SQL:
+>
 > Versión anterior: `registerSpoilerGuard` exige `config.spoiler` en TODA ruta que devuelva cuerpo,
+>
 > Versión anterior: (hay 52 rutas GET, cobertura §2.4)
 
 ### D-33 · El coste del horizonte: un índice y un memo
@@ -520,6 +540,7 @@ Distinciones, como mucho `BROADCAST.cardLinesMax` (3), en este orden: `wears_for
 **Precisada en la corrección, fase 5** (L7: §11.2, §11.3 y §11.13, decisiones 11-r y 11-t; hallazgos Rcodigo-061 y Rdueno-026; medido con `rcod/n/b1/attrs.mjs`). `GET /api/riders/:id` manda los atributos de cualquier corredor y la etapa velada los mueve (TAC de +0,37 a +0,41 en el mundo de B1, y el ganador no es el que más sube); `GET /api/riders/me/coach-view` saca sus notas de los atributos de hoy. Quedan L por DD-08, en la lista blanca de B1b. Y el presupuesto se vela por defecto, pero con la elección en §20: el velado es una cota inferior del real y `draftRace` no lo mira.
 
 > Versión anterior: Se enseñan sin velo la condición y los atributos del corredor propio (frescura, estrellas, cerillos, forma y `FormChart`, sup. H3: se necesitan para ordenar, DD-08);
+>
 > Versión anterior: El presupuesto del equipo SÍ se vela: `stage_team_results.prize` le da libro (resta R, sup. P6).
 
 ### D-42 · Título de pestaña, historial, vista previa y correo
@@ -540,7 +561,7 @@ Distinciones, como mucho `BROADCAST.cardLinesMax` (3), en este orden: `wears_for
 3. La longitud de la etapa entra como dato: hoy la deducen del último suceso `followTheLeader` (l. 545), `clockTheGaps` (l. 637) y `markReunion` (l. 945), y truncado el último suceso es «ahora».
 4. Se apagan exactamente cinco pasadas retroactivas, las que cambian o borran una línea ya dicha por algo que pasa después: `markConcession` (l. 319), `dropUndoneSelections` (l. 361, mira líneas posteriores en l. 856-866), `groupGapRuns` (l. 362), `foldQuickAttacks` (l. 371) y los racimos de `groupRuns` (l. 375).
 5. La web quita de la voz lo que ya dice el estado (`time_gap`, `time_gap_run`, `front_group`) y los descuelgues sueltos de corredores sin rótulo, que cuenta la barra (`GRUPPETTO · 23`, pantalla).
-`respecto`, `juntos` y `desenlace` SON causales y siguen en la voz: `followTheLeader` solo usa el `front` de las líneas anteriores (l. 546-601), `markReunion` acumula `maxFront` hasta la propia captura (l. 937-1005) y `desenlace` solo necesita la longitud. Medido por ingeniero (`prefijo.mjs`, 5 etapas × 3 semillas, 54-296 sucesos por etapa): revelando por reloj sin racimos, la voz a la hora `t` es prefijo exacto de la de `t + 30 s` en las 15 corridas, y en 18 con el `revealS` real (§12.2); truncar sin más da 94 violaciones. B19 lo sella sobre cinco etapas congeladas en `apps/api/src/__fixtures__/` (no dependen de la versión del motor). `dropLoneChaseGaps` (l. 396-410) calcula `field` con la etapa entera y nadie ha medido si rompe el prefijo: B19 lo dice, y si lo rompe también se apaga en vivo. Los racimos en vivo (la regla B3 del dueño: «No menciones uno a uno todos los ciclistas que se van descolgando: puedes mencionar muchos juntos con número», `docs/balance.md` l. 1845-1846, v13) van detrás de `BROADCAST.liveClusters` (apagado): un racimo de `liveClusterMin` (3) descuelgues de corredores sin rótulo dentro de `liveClusterWindowKm` (5) km se publica UNA vez, a la hora en que el grupo de su último miembro cruza el final de la ventana, y sus miembros nunca salen sueltos antes; se enciende solo si B19 sigue en 0 con él (DD-18). El acta es `buildChronicle` sin `live`, como hoy, con sus veintiuna pasadas; `chronicle.test.ts` (62) y `stageJournal.test.ts` (140) no se tocan por esto.
+`respecto`, `juntos` y `desenlace` SON causales y siguen en la voz: `followTheLeader` solo usa el `front` de las líneas anteriores (l. 546-601), `markReunion` acumula `maxFront` hasta la propia captura (l. 937-1005) y `desenlace` solo necesita la longitud. Medido por ingeniero (`prefijo.mjs`, 5 etapas × 3 semillas, 54-296 sucesos por etapa): revelando por reloj sin racimos, la voz a la hora `t` es prefijo exacto de la de `t + 30 s` en las 15 corridas, y en 18 con el `revealS` real (§12.2); truncar sin más da 94 violaciones. B19 lo sella sobre cinco etapas congeladas en `apps/api/src/__fixtures__/` (no dependen de la versión del motor). `dropLoneChaseGaps` (l. 396-410) calcula `field` con la etapa entera y nadie ha medido si rompe el prefijo: B19 lo dice, y si lo rompe también se apaga en vivo. Los racimos en vivo (la regla B3 del dueño: «No menciones uno a uno todos los ciclistas que se van descolgando: puedes mencionar muchos juntos con número», `docs/balance.md` l. 1845-1846, v13) van detrás de `BROADCAST.liveClusters` (apagado): un racimo de `liveClusterMin` (3) descuelgues dentro de `liveClusterWindowKm` (5) km, de todo corredor salvo los de la fuga, los que llevan un maillot y los del espectador (12-s), se publica UNA vez, a la hora en que el grupo de su último miembro cruza el final de la ventana, y sus miembros nunca salen sueltos antes; se enciende solo si B19 sigue en 0 con él (DD-18). El acta es `buildChronicle` sin `live`, como hoy, con sus veintiuna pasadas; `chronicle.test.ts` (62) y `stageJournal.test.ts` (140) no se tocan por esto.
 **Evidencia.** I-43 (I-cobertura-01, I-motor-09); I-44 (I-cobertura-02); O-02 (O-cobertura-02); cobertura §2.3 (línea a línea, cierta); ejecutabilidad #8; X-14.
 **Sin evidencia de los jueces.** La regla del racimo en vivo publicado a la hora del cierre de su ventana para el grupo de su último miembro: ingeniero midió 0 violaciones con racimos revelando POR KM (descartado porque adelanta el descuelgue de un grupeto hasta 20 min) y 17 con una ventana de 1.200 s de reloj; esta regla no estaba medida. §12.3 la midió después sin rótulos, con la guarda de 12-d: 0 violaciones y una espera de 1.493 s de carrera de mediana (`l8/voz2.mjs`); falta medirla con la política de nombres real (B19 en el 6b, DD-18).
 **Descartado.** Apagar `respecto`, `juntos` y `desenlace` o mandarlos al acta (`television.md` §8.1, `estado.md` §8.1, `datos.md` §8.1): son causales y el directo perdería el hilo del líder que el dueño pidió («si lees todo el Journal no SABES quién va ganando, quién va persiguiendo… es un lío los últimos mensajes», `docs/balance.md` l. 5975-5976, v27). «La lista exacta la fija el test» (`producto.md` §8.1).
@@ -548,9 +569,16 @@ Distinciones, como mucho `BROADCAST.cardLinesMax` (3), en este orden: `wears_for
 **Corregida en el ensamblado v0** (§12.2 (12-a) y §12.3 (12-d); dudas de §12). El orden de la voz es el de revelado (medido) y las pasadas son veintiuna; la regla del racimo gana la guarda de 12-d (nunca antes del revelado de ninguno de sus miembros), medida sin rótulos con 0 violaciones.
 
 > Versión anterior: y ninguna de las veinte pasadas se reescribe:
+>
 > Versión anterior: 2. Orden por reloj: la rama `byClock` que ya existe para la crono (l. 323-327).
+>
 > Versión anterior: revelando por reloj sin racimos, la voz a la hora `t` es prefijo exacto de la de `t + 30 s` en las 15 corridas;
+>
 > Versión anterior: El acta es `buildChronicle` sin `live`, como hoy, con sus veinte pasadas;
+
+**Precisada en la coherencia, fase 6** (§12.3, decisión 12-s; cruzada de L10, Rdueno-020; medido con `l10/descuelgues.mjs`). El racimo en vivo, encendido, junta los descuelgues de todo corredor salvo los de la fuga, los que llevan un maillot y los del espectador, tengan o no rótulo: con la regla anterior la voz decía uno a uno de 59 a 74 descuelgues por reina, contra la B3 del dueño. La medida de 12-d, que trata a todos como sin rótulo, es la cota de esta regla (0 violaciones del prefijo).
+
+> Versión anterior: un racimo de `liveClusterMin` (3) descuelgues de corredores sin rótulo dentro de `liveClusterWindowKm` (5) km se publica UNA vez,
 
 ### D-44 · Las plantillas que se escriben
 
@@ -598,6 +626,7 @@ Distinciones, como mucho `BROADCAST.cardLinesMax` (3), en este orden: `wears_for
 **Corregida en el ensamblado v0** (§13.7 (13-a); duda 1 y 4 de §13; medido por L3 con `l3/vivas.mjs`). Lo que D-49 decía del test no era cierto contra el código: la expresión de hoy solo ve `prize`.
 
 > Versión anterior: `columnasVivas.test.ts` exige escribir `race_watch.follow`, `known_through`, `users.horizon_rev` y `stage_team_results.prize`: los escriben `watch.ts` y `awardRacePrizes`.
+
 **Precisada en la corrección, fase 5** (L3: §13.1 y §13.7, decisión 13-a; hallazgos Rcodigo-011 y Rcoste-030; medido con `c-l3/vivas/vivas3.mjs` y `vivasD.mjs`; la cola de la migración, por el refutador de coste en PostgreSQL 16, `coste/pgm/cola.mjs`). La expresión ampliada sola no hacía cierto lo que D-49 dice del test: `Horizon.knownThrough`, `worldHorizon`, `WatchRow.follow`, el parámetro de `setFollow` y el `horizonRev` de `recordProgress` pasan el criterio de hoy; hace falta la segunda regla. Y una migración aplicada con un día del tick abierto dejaba en cola las lecturas de su tabla hasta el final del día.
 
 > Versión anterior (ensamblado v0): … con la expresión del test ampliada en el PR 1a a dos o cuatro espacios y a `smallint` (13-a): con la de hoy solo vigilaría `prize` (medido, `l3/vivas.mjs`, §13.7). Las escrituras van con `.set({ … })` o `.values({ … })` de Drizzle, que es lo que el test reconoce, y no con SQL crudo.
@@ -667,6 +696,7 @@ Distinciones, como mucho `BROADCAST.cardLinesMax` (3), en este orden: `wears_for
 **Corregida en el ensamblado v0** (§10.3 (10-l), §8.5 (8-d), §18.4; dudas de §8 y §18; nota del orquestador (L4, L6)). No es una escritura por minuto sino unas cuatro: el umbral de 60 s no limita con la curva de §8.2, y 10-l añade el límite de una cada 15 s.
 
 > Versión anterior: del orden de una escritura por minuto real y espectador.
+>
 > Versión anterior: Se mide en el paso 7 (B14 incluye el coste de `recordProgress`).
 
 ### D-56 · El móvil, medido a mano
@@ -685,9 +715,13 @@ Distinciones, como mucho `BROADCAST.cardLinesMax` (3), en este orden: `wears_for
 
 ### D-58 · Los documentos que se corrigen
 
-**Decisión.** El paso 12 corrige `docs/balance.md` l. 14684-14686: subir `ENGINE_VERSION` NO tira las crónicas guardadas (`routes/races.ts` l. 474-477 las lee sin mirar la versión); lo que se rompe es la «Last race» que re-simula `raceReport.ts` (C16). Deja en `balance.md`, para el dueño, el defecto del salto de hasta 138 s (D-01, punto 6; `simulate.ts` l. 8678 y 8783; `race-colombia` e5, semilla 0, km 183,25, medido por el juez del motor): E2 no lo arregla y lo tolera. Actualiza `docs/navegacion.md` §7.1-7.4 (pestañas, cabecera con ganador, clásica que abre en `Result`) para E6 y anota en `docs/ops.md` que el reinicio borra `race_watch`.
+**Decisión.** El paso 12 corrige `docs/balance.md` l. 14684-14686: subir `ENGINE_VERSION` NO tira las crónicas guardadas (`routes/races.ts` l. 474-477 las lee sin mirar la versión); lo que se rompe es la «Last race» que re-simula `raceReport.ts` (C16). Deja en `balance.md`, para el dueño, el defecto del salto de hasta 138 s (D-01, punto 6; `simulate.ts` l. 8678 y 8783; `race-colombia` e5, semilla 0, km 183,25, medido por el juez del motor): E2 no lo arregla y lo tolera. Actualiza `docs/navegacion.md` §7.1-7.4 (pestañas, cabecera con ganador, clásica que abre en `Result`) para E6 y reescribe SPEC §6.15 (l. 604-615, «El vocabulario de grupos (v27)») con lo que conteste el dueño en DD-04: por defecto, los siete nombres (los cuatro papeles de D-18 y los tres del grupo del maillot de 6-b) y el corte de dos tercios de §6.3. `docs/ops.md` cuenta qué hace el reinicio con lo de E2 desde el PR que lo hace necesario, el 5 (`stage_timelines`) y el 7a (`race_watch`), y el 12 lo relee contra el procedimiento entero de §13.9 (17-y).
 **Evidencia.** H-02 (H-cobertura-02); H-12 (H-motor-03); mapa 05 §6 contradicciones 1 y 5; X-05.
 **Sección.** §17, §19.
+
+**Precisada en la coherencia, fase 6** (§17.15, decisiones 17-y y 12-r; cruzada de L8, Rdueno-019). La lista de documentos no tenía `SPEC.md`, aunque DD-04 cambia su §6.15 y el paso 12 lo reescribe; y `docs/ops.md` no espera al paso 12, porque el reinicio que llegue entre el 5 y el 12 tiene que saber ya qué vaciar.
+
+> Versión anterior: Actualiza `docs/navegacion.md` §7.1-7.4 (pestañas, cabecera con ganador, clásica que abre en `Result`) para E6 y anota en `docs/ops.md` que el reinicio borra `race_watch`.
 
 ### D-59 · Lo que la pantalla enseña de lo que no es suceso
 
@@ -734,13 +768,13 @@ Cada una con el valor por defecto, que es el que se implementa, y su consecuenci
 | DD-08 | Condición y atributos del corredor propio, y atributos de cualquier corredor en su ficha | visibles | una pista débil (la frescura, el `kResultado`) a cambio de poder dar órdenes; en la ficha ajena, la etapa velada sube TAC de +0,37 a +0,41 y el ganador no es el que más sube (medido, `sup. X11`); velarla exigiría `rider_attr_log`, que se purga a los 60 días |
 | DD-09 | ¿Hay que ver la N para dar órdenes de la N+1? | no: aviso con tres salidas | quien tiene prisa ordena sin saber; nadie queda bloqueado |
 | DD-10 | Correo de «lista para ver» | plantilla y test en E2; envío de E4, apagado | nadie recibe correo de juego hasta E4 |
-| DD-11 | Dejar de escribir `stage_snapshots.radio` | sí, en el paso 11, cuando B16 esté en verde | la pestaña `Race Radio` lee la línea; la radio son unos 40 MB por temporada en disco, pero la línea ocupa del orden de 36 MB (§5.7, estimado), así que el ahorro neto es pequeño; `race-radio.mjs --db` sigue re-simulando las etapas corridas con la versión de hoy (con el depósito por grupo, `--every` y todos los relevistas) y, con otra versión, pinta `radioFromTimeline` sobre la fila de `stage_timelines` en lugar de negarse (12-p) |
+| DD-11 | Dejar de escribir `stage_snapshots.radio` | sí, en el 11b, cuando B16 esté en verde (el paso 11 son dos PR, 17-v) | la pestaña `Race Radio` lee la línea; la radio son unos 40 MB por temporada en disco, pero la línea ocupa del orden de 36 MB (§5.7, estimado), así que el ahorro neto es pequeño; `race-radio.mjs --db` sigue re-simulando las etapas corridas con la versión de hoy (con el depósito por grupo, `--every` y todos los relevistas) y, con otra versión, pinta `radioFromTimeline` sobre la fila de `stage_timelines` en lugar de negarse (12-p) |
 | DD-12 | Vista previa del acta compartida, y el acta en los buscadores | con el ganador, marcada `Spoiler`, solo si la etapa está fuera del velo de quien pide la página (14-k); el acta, indexable | es lo que vende en captación, pero la condición de 14-k solo cuenta cuando la página la pide un navegador con sesión: el robot de vista previa de un chat no lleva cookie y su horizonte es `anon`, con el velo vacío, así que la vista previa lleva el ganador para todo el que vea el enlace, jugador o no (§11.10); el robot de un buscador tampoco lleva cookie y guarda el acta con el ganador; la alternativa es no poner nunca un resultado en una vista previa, y `X-Robots-Tag: noindex` en `/report` (§11.10) |
 | DD-13 | Dorsal amarillo del equipo líder en el rótulo | no | con el defecto, el equipo líder no aparece en `Watch`: ni en el rótulo, ni en la barra, ni en el cierre, que no tiene tabla por equipos (`StageClosing`, §4.11; 20-c); solo en la clasificación por equipos de `Report` |
 | DD-14 | `Most kilometres out front` en el cierre | sí, como hecho | no es el premio de combatividad de un jurado |
 | DD-16 | Oferta adaptativa de `own_only` | sí, una vez, tras 2 carreras de cabecera ignoradas | sin ella, quien no mira nunca vive con un mundo retrasado sin saber por qué |
 | DD-17 | Confirmar al revelar | sí, con `Don't ask again` | sin confirmación, un toque accidental no tiene vuelta |
-| DD-18 | Racimos en la voz | sí, si B19 sigue en 0 con ellos; `BROADCAST.liveClusters` nace apagada y, hasta que se encienda, rige lo apagado | el racimo solo junta los descuelgues de corredores sin rótulo, que sin él no salen en la voz y los cuenta la barra; los de corredores con rótulo salen uno a uno con racimos o sin ellos: al menos de 59 a 74 por etapa en las dos reinas del banco que los tienen (medido, `l10/descuelgues.mjs`, 18 corridas, con la política de §7.7 aproximada), contra la B3 del dueño; el acta los junta (`groupRuns`) |
+| DD-18 | Racimos en la voz | sí, si B19 sigue en 0 con ellos; `BROADCAST.liveClusters` nace apagada y, hasta que se encienda, rige lo apagado | encendido, el racimo junta los descuelgues de todo corredor salvo la fuga, los maillots y los propios (12-s); apagado, los de corredores sin rótulo no salen en la voz y los cuenta la barra, y los de corredores con rótulo salen uno a uno: al menos de 59 a 74 por etapa en las dos reinas del banco que los tienen (medido, `l10/descuelgues.mjs`, 18 corridas, con la política de §7.7 aproximada), contra la B3 del dueño; el acta los junta (`groupRuns`) |
 | DD-20 | ¿El resumen cuenta como visto? | sí (letra `S`) | quien ve `Highlights` ya no tiene la etapa velada en ninguna superficie |
 | DD-21 | El horizonte del mánager contra Postgres (B14) | `SPOILER_MODE` no pasa a `on` hasta que el mánager de un equipo de 30 pase el p95 ≤ 5 ms medido desde el servicio `web` de Railway contra una copia de la base de producción; lo primero que se optimiza es la consulta 2, las carreras de la plantilla en `race_rosters`: en la forma D la cuarta ya no va en la petición (`lastRunStages`, 18-a), y en PostgreSQL 16 la 2 es la que pesa en el mánager, p95 de 2,50 ms (16-k, 18-j) | en PGlite, con la forma D, el jugador da de 3,1 a 3,7 ms y el mánager de 8,6 a 9,3 ms; en PostgreSQL 16 sin red, 2,16 y 3,88 ms (§18.2); falta la red, tres idas y vueltas por cálculo. El mánager es por invitación hasta que el juego esté implementado y probado (decisiones 3 y 6 del dueño, `docs/agenda.md` l. 36 y 39): con el defecto, el encendido para todos espera a un perfil que al principio tendrán unos pocos invitados; la tercera respuesta es encender para todos con el jugador dentro del listón y el mánager pagando sus milisegundos una vez por minuto mientras se optimiza |
 | DD-22 | Los minutos del digest | se calculan con `digestBudgetS` y los cuadros: 38, 40 y 43 min para las tres grandes vueltas (8-b) | para 30 min, los cinco presupuestos bajan un cuarto y cada etapa del digest se ve más deprisa |
