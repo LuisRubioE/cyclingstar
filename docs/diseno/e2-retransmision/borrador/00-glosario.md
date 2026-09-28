@@ -125,7 +125,7 @@ Base del documento: `propuestas/ingeniero.md` (suma de puntuaciones, 92,5 puntos
 | `apps/api/src/routes/me.ts` | `/api/me/watch`, `/reveal`, `/follow`, `/spoiler-scope`, `/horizon` | nuevo |
 | `apps/api/src/chronicle.ts` | `BuildChronicleOptions.live` | tocado |
 | `apps/api/src/emails.ts` | `stageReadyEmail(p, ownRiderOnStartlist, url): MailBody` (11-d) | tocado |
-| `apps/api/src/env.ts` | `BROADCAST_WATCH`, `SPOILER_MODE` (web) y `TIMELINE_RECORD` (web y tick) | tocado |
+| `apps/api/src/env.ts` | `BROADCAST_WATCH`, `SPOILER_MODE` (web) y `TIMELINE_RECORD` (web y tick); `PROGRESS_MIN_DELTA_S` (web, opcional: 15-j) | tocado |
 | `apps/api/src/app.ts` | `@fastify/compress`; el fallback de la SPA inyecta título y `og:` neutros | tocado |
 | `apps/web/src/pages/StageWatch.tsx` | la pantalla `Watch` | nuevo |
 | `apps/web/src/components/broadcast/` | `FixedOverlay`, `GroupBar`, `ProfileStrip`, `CueCard`, `VoiceTicker`, `PlayerControls`, `StagePreviewCards`, `StageClosingCards`, `StageGateCard` | nuevos |
@@ -142,12 +142,12 @@ Añadidos al escribirse las secciones (fundidos en el ensamblado v0):
 | `packages/engine/src/sim/raceRadio.ts` | `RadioGroupDetail` y `radioGroupDetails` (la capa de detalle antes de indexar, 5-g); exporta `STORED_PULLERS_MAX` y `NAME_WHOLE_GROUP_UP_TO` (15-c) | §5.4, §15.5 |
 | `packages/engine/src/index.ts` | exporta `TIMELINE`, el grabador y sus tipos (§5.9), `NAME_WHOLE_GROUP_UP_TO` y `chaseReferenceIndex` (4a), `realRaceScenario` (4b, 17-j); deja de exportar `NewsKind`, `renderNews` y `NewsData` (4-p) | §5.9, §17.7 |
 | `packages/shared/src/broadcast/timeline.ts` | gana `TimelineCore` y los cuatro redondeos del formato, `toDs`, `fromDs`, `toKm10` y `fromKm10` | §4.1, §4.2 |
-| `packages/shared/src/broadcast/codec.ts` | gana `TimelineFormatError`, `storedTimelineV1Schema`, `ORIGIN_CODE` y `BANNER_CODE` | §4.3 |
+| `packages/shared/src/broadcast/codec.ts` | gana `TimelineFormatError`, `storedTimelineV1Schema`, `ORIGIN_CODE` y `BANNER_CODE`; en la corrección L2, `SchemaMatches` (el atado de un esquema con su tipo en los dos sentidos), `STORED_MATCH`, `fromStoredV1` (privada) y los seis esquemas que el formato comparte con la red, que `wire.ts` importa de aquí: `stageRefSchema`, `championTitleSchema`, `wornJerseySchema`, `distinctionSchema`, `profileStripSchema` y `stageWeatherSchema` (4-x) | §4.3 |
 | `packages/shared/src/broadcast/reduce.ts` | gana `clockMarksOf` (las marcas de un grupo por bloque) | §3.3, §4.4 |
-| `packages/shared/src/broadcast/instant.ts` | gana `InstantContext`, `photoBlocksOf`, `groupLabelOf`, `isGroupRole` y las privadas `groupBlockAt`, `speedFrom`, `lastTwoMarks`, `originOf` y `chaseRefOf` | §3.3, §4.5, §6.3 |
+| `packages/shared/src/broadcast/instant.ts` | gana `InstantContext`, `photoBlocksOf`, `groupLabelOf`, `isGroupRole`, `chaseRefOf` (exportada para el test de §15.5, 15-k) y las privadas `groupBlockAt`, `speedFrom`, `lastTwoMarks` y `originOf` | §3.3, §4.5, §6.3 |
 | `packages/shared/src/broadcast/cut.ts` | gana `TimelineVisibility` | §4.6 |
 | `packages/shared/src/broadcast/reveal.ts` | gana `RevealRule`, `TT_REVEAL_RULES`, `RevealInput` y `RecorderView` | §4.7 |
-| `packages/shared/src/broadcast/wire.ts` | gana `GuardReason`, `SpoilerScope`, `StageGate` y `PreStageInfo` (4-k, 4-l), `TimelineEventWire`, `MISHAP_CODE`, `PULL_MOTIVE_CODE`, `WatchMode` y `watchModeSchema`, y los esquemas de entrada de §14.2: `stageQuerySchema`, `chunkQuerySchema`, `watchProgressBodySchema`, `finishBodySchema`, `revealBodySchema`, `followBodySchema`, `spoilerScopeBodySchema`, `watchResponseSchema`, `revResponseSchema` y `stageGateErrorSchema` | §4.10, §4.11, §14.2 |
+| `packages/shared/src/broadcast/wire.ts` | gana `GuardReason`, `SpoilerScope`, `StageGate` y `PreStageInfo` (4-k, 4-l), `TimelineEventWire`, `MISHAP_CODE`, `PULL_MOTIVE_CODE`, `WatchMode` y `watchModeSchema`, y los esquemas de entrada de §14.2: `stageQuerySchema`, `chunkQuerySchema`, `watchProgressBodySchema`, `finishBodySchema`, `revealBodySchema`, `followBodySchema`, `spoilerScopeBodySchema`, `watchResponseSchema`, `revResponseSchema` y `stageGateErrorSchema`; en la corrección L2, `WIRE_MATCH` (el otro sentido del atado de las cuatro respuestas nuevas, 4-x) | §4.10, §4.11, §14.2 |
 | `packages/shared/src/broadcast/radio.ts` | gana `RadioNames` (la forma de `ChronicleNames`) | §4.13 |
 | `packages/shared/src/broadcast/names.ts` | gana `PullingLine` (`in_turn` o `teams`), `pullingLineOf`, `cardCaption`, `cardLineText`, `championTitleText`, `ordinal`, `gapText`, `listAnd` y `gapTrendLine` | §6.4, §7, §12.6 |
 | `packages/shared/src/broadcast/cues.ts` | gana `cueClassOf` | §6.5 |
@@ -168,13 +168,13 @@ Añadidos al escribirse las secciones (fundidos en el ensamblado v0):
 | `packages/db/src/columnasVivas.test.ts` | tocado: la expresión pasa a dos o cuatro espacios y a `smallint` (13-a) | §13.7 |
 | `apps/api/src/spoiler.ts` | gana `VeilSpec`, `RouteEntry`, `SpoilerGuardDeps`, `STATIC_ROUTES`, `StageAccessInput` y `stageAccessOf`; los métodos `request.viewer()`, `request.horizon()`, `request.spoilerApplies()` y `request.broadcastOn()`; `app.spoilerRegistry`; y la clave de ruta `config.veil` | §14.1, §14.5 |
 | `apps/api/src/broadcastSource.ts` | gana `serveCast` y la privada `estimatedHeadClock` | §3.8, §7.8 |
-| `apps/api/src/chronicle.ts` | gana `LiveChronicle` (`untilS`, `stageKm`, `revealS`), las dos firmas de `buildChronicle` y `veilStoredRadio` | §11.16, §12.2 |
+| `apps/api/src/chronicle.ts` | gana `LiveChronicle` (`untilS`, `stageKm`, `revealS`), las dos firmas de `buildChronicle` y `veilStoredRadio`; `PULLERS_KEPT`, copia exportada de `STORED_PULLERS_MAX` del 3a al 4b, atada por test (15-k) | §11.16, §12.2, §15.5 |
 | `apps/api/src/voiceRoles.ts` | nuevo: `withGroupRoles` y `MAIN_GROUP_TEMPLATES`; las claves de datos `mainRole` y `groupRole`, que se anotan al leer y nunca se guardan | §12.6 |
 | `apps/api/src/liveClusters.ts` | nuevo: `liveClusters` | §12.3 |
 | `apps/api/src/http.ts` | tocado: `sendGate` | §14.2 |
 | `apps/api/src/spaShell.ts` | nuevo: `ShellMeta`, `SHELL_PATH`, `preStageInfoFor`, `shellMetaFor` e `injectShellMeta` | §14.10 |
 | `apps/api/src/app.ts`, `apps/api/src/routes/health.ts` | `AppDeps.switches`, `AppDeps.viewerSecret`, `AppDeps.secureCookies`; `HealthRouteContext.features` | §14.6 |
-| `apps/api/src/broadcastConstants.test.ts` | nuevo: las copias atadas por test | §15.5 |
+| `apps/api/src/broadcastConstants.test.ts` | nuevo: las copias atadas por test (cinco, más `PULLERS_KEPT` hasta el 4b; 15-a, 15-k) | §15.5 |
 | `apps/web/src/domain/broadcast/player.ts` | `ViewMode` (`'watch' | 'highlights' | 'digest'`, la curva; distinto de `WatchMode`), `PlayerPhase`, `Speed`, `PlayerState`, `PlayerContext`, `PlayerAction`, `PlayerEffect`, `REPORT_MODE`, `playerInit` y `playerStep` | §8.11 |
 | `apps/web/src/domain/voice.ts` | nuevo: `inVoice` | §12.2 |
 | `apps/web/src/domain/stageJournal.ts` | gana `groupNounOf`, `linesOf`, `variantSeed` y el tipo `Phrasing` | §12.6 |
@@ -290,7 +290,7 @@ export interface CastRider {
 export interface TimelineCast {
   readonly riders: readonly CastRider[]
   readonly teams: readonly CastTeam[]
-  readonly favourites: readonly RiderIx[]         // PROPUESTO (8-g): los previewAttrTop mejores inscritos por el atributo del tipo de etapa, con los atributos del día; §4.2 no lo tiene aún (§G.3.8)
+  readonly favourites: readonly { readonly rider: RiderIx; readonly why: 'sprint' | 'hills' | 'climb' | 'tt' | 'cobbles' }[]   // los previewAttrTop mejores por el atributo del tipo de etapa, con los de rider_attrs antes del aprendizaje de la etapa (8-g, 4-u)
 }
 
 export interface TimeTrialTrace {                  // la crono (I-08); `onTimeTrialRide`
@@ -299,12 +299,12 @@ export interface TimeTrialTrace {                  // la crono (I-08); `onTimeTr
   readonly checksKm: readonly number[]             // los de `ttSplitChecks` (constants.ts l. 6177-6179)
   readonly startDs: readonly Ds[]                  // por RiderIx
   readonly kmClockDs: readonly (readonly Ds[])[]   // por RiderIx: reloj propio en cada km entero y en meta, percance incluido; la de meta vale 10 · Math.round(tS) (9-a)
-  readonly checkClockDs: readonly (readonly Ds[])[] // PROPUESTO (9-b): por RiderIx, reloj propio en cada control de checksKm, 10 · Math.round(raw[idx] · noise); §4.2 no lo tiene aún (§G.3.8)
+  readonly checkClockDs: readonly (readonly Ds[])[] // por RiderIx, reloj propio en cada control de checksKm, 10 · Math.round(raw[idx] · noise): el splitS de tt_split (9-b, 4-u)
   readonly mishaps: readonly { readonly rider: RiderIx; readonly km: number; readonly kind: MishapKind; readonly lostDs: Ds }[]
 }
 
 export interface FinishRecord {                    // SOLO para el paquete de meta
-  readonly finishS: RaceS                          // llegada del primero (crono: del último en salir)
+  readonly finishS: RaceS                          // llegada del primero (crono: la última llegada, 4-w)
   readonly arrivals: readonly (readonly [Ds, readonly RiderIx[]])[]   // grupos en meta por tiempo (UCI 2.3.040)
 }
 
@@ -417,6 +417,7 @@ export interface TimeTrialInstant {
   readonly t: RaceS
   readonly onCourse: readonly { readonly rider: RiderIx; readonly km: number; readonly lastSplitKm: number | null; readonly deltaS: number | null }[]
   readonly hotSeat: { readonly rider: RiderIx; readonly timeS: number } | null
+  readonly arrivals: readonly { readonly rider: RiderIx; readonly timeS: number }[]   // los llegados antes de t, por tiempo y hora de llegada (9-i, §4.5)
   readonly splits: readonly { readonly km: number; readonly board: readonly { readonly rider: RiderIx; readonly timeS: number }[] }[]
   readonly virtualGc: readonly VirtualGcRow[] | null
   readonly toStart: number
@@ -464,6 +465,7 @@ export interface RiderCard {                // el rótulo servido (tras el velo)
   readonly name: string
   readonly bib: number | null
   readonly country: string
+  readonly gender: 'M' | 'F'               // CastRider.gender: la concordancia de E10 en la web (D-62, 4-u)
   readonly team: { readonly id: string; readonly name: string; readonly jerseySeed: string } | null
   readonly worn: WornJersey
   readonly lines: readonly Distinction[]   // como mucho `BROADCAST.cardLinesMax`
@@ -476,7 +478,7 @@ export interface RiderCard {                // el rótulo servido (tras el velo)
 
 ```ts
 export type CueClass = 0 | 1 | 2 | 3
-export type RiderCueContext = 'attack' | 'break_round' | 'dropped' | 'banner' | 'focus' | 'own'
+export type RiderCueContext = 'attack' | 'break_round' | 'dropped' | 'banner' | 'focus' | 'own' | 'tt_round'   // tt_round: la ronda ON COURSE de la crono (9-k)
 export interface TimeCheckRow { readonly number: number; readonly group: GroupIx; readonly size: number; readonly gapS: number; readonly jerseys: readonly JerseyKind[]; readonly names: readonly RiderIx[] | null }
 export type Cue =
   | { readonly kind: 'attack'; readonly t: RaceS; readonly riders: readonly RiderIx[]; readonly fromGroup: GroupIx }
@@ -494,8 +496,9 @@ export type Cue =
   | { readonly kind: 'virtual_gc'; readonly t: RaceS; readonly rows: readonly VirtualGcRow[] }
   | { readonly kind: 'last_km'; readonly t: RaceS; readonly leadGapS: number | null }
   | { readonly kind: 'finish' | 'group_finish' | 'time_cut'; readonly t: RaceS; readonly finishIx: number }   // solo tras `BroadcastFinish`
-  | { readonly kind: 'tt_split'; readonly t: RaceS; readonly check: number; readonly rider: RiderIx; readonly rank: number; readonly deltaS: number }                        // PROPUESTO (9-d)
-  | { readonly kind: 'tt_finish'; readonly t: RaceS; readonly rider: RiderIx; readonly rank: number; readonly deltaS: number; readonly hotSeat: boolean }             // PROPUESTO (9-d)
+  | { readonly kind: 'tt_start_order'; readonly t: RaceS }                                                                                                              // crono, en t = 0, del plan público (9-d, 4-u)
+  | { readonly kind: 'tt_split'; readonly t: RaceS; readonly check: number; readonly rider: RiderIx; readonly timeS: number; readonly rank: number; readonly deltaS: number | null; readonly board: readonly { readonly rider: RiderIx; readonly timeS: number }[] }   // 9-d, 4-u
+  | { readonly kind: 'tt_finish'; readonly t: RaceS; readonly rider: RiderIx; readonly timeS: number; readonly rank: number; readonly deltaS: number | null; readonly hotSeat: boolean; readonly prev: RiderIx | null }   // 9-d, 4-u
 export type CueKind = Cue['kind']
 export type TemplateTarget = CueKind | 'voice_only' | 'report_only'
 export type LiveLine = ChronicleEntry & { readonly revealS: RaceS }         // una línea de la voz
@@ -554,8 +557,8 @@ export interface BroadcastHead {                  // `GET …/broadcast`
   readonly preview: StagePreview
   readonly view: { readonly reachedS: number | null; readonly known: boolean } | null
   readonly gate: StageGate | null
-  readonly tt: { readonly order: 'gc' | 'bib'; readonly intervalS: number; readonly checksKm: readonly number[] } | null   // PROPUESTO (9-i): la preparación pública de la crono
-  readonly tplRev: number                          // PROPUESTO (12-c): la revisión de plantillas de la etapa (stage_timelines.tpl_rev)
+  readonly tt: { readonly order: 'gc' | 'bib'; readonly intervalS: number; readonly checksKm: readonly number[] } | null   // la preparación pública de la crono, sin relojes (9-i, 4-u)
+  readonly tplRev: number                          // la revisión de plantillas de la etapa: stage_timelines.tpl_rev; 0 con el adaptador (12-c, 4-u)
 }
 export interface BroadcastChunk {                 // `GET …/broadcast/chunk`: listas planas de enteros (formato de datos §10.4)
   readonly fromDs: Ds
@@ -569,7 +572,7 @@ export interface BroadcastChunk {                 // `GET …/broadcast/chunk`: 
   readonly events: readonly TimelineEventWire[]
   readonly lines: readonly LiveLine[]              // la voz del tramo, ya construida
   readonly banners: readonly number[]
-  readonly tt: { readonly starts: readonly number[]; readonly km: readonly number[]; readonly checks: readonly number[] } | null   // checks, PROPUESTO (9-i): tríos [rider, control, relojDs]
+  readonly tt: { readonly starts: readonly number[]; readonly km: readonly number[]; readonly checks: readonly number[] } | null   // checks: tríos [rider, control, checkClockDs] (9-i, 4-u)
   readonly atFinish: boolean                       // el tramo llega al borde de la meta: lo siguiente es `POST …/finish`
 }
 export interface BroadcastFinish {                // `POST …/broadcast/finish`
@@ -579,7 +582,7 @@ export interface BroadcastFinish {                // `POST …/broadcast/finish`
   readonly report: StageReport
   readonly news: readonly NewsItem[]
 }
-export type StageReport = StageReplay              // el acta: el `stageReplaySchema` de hoy (contracts.ts l. 1482-1533); con tplRev, PROPUESTO (12-c)
+export type StageReport = StageReplay              // el acta: el `stageReplaySchema` de hoy (contracts.ts l. 1482-1533), con `watch` y `tplRev`, que gana en §14.2 (12-c)
 export type WatchMode = 'play' | 'seek' | 'summary' | 'digest'   // el modo con que se llega a un punto: la letra de lo visto sale de él (LETTER_OF_MODE, §10.3; §14.2)
 export interface StagePreview {                   // la previa: cuatro cuadros (I-22)
   readonly route: ProfileStrip
@@ -626,7 +629,7 @@ export type NewsPayload =
   | (OfRace & { readonly kind: 'jersey_taken'; readonly stageDay: number; readonly riderId: string; readonly teamId: string | null; readonly jersey: 'points' | 'kom' })
   | (OfRace & { readonly kind: 'abandon'; readonly stageDay: number | null; readonly riderId: string; readonly teamId: string | null; readonly reason: AbandonReason })
   | (OfRace & { readonly kind: 'injury'; readonly stageDay: number; readonly riderId: string; readonly teamId: string | null; readonly days: number; readonly prevHealth: HealthState; readonly prevUntilDay: number | null })
-  | { readonly kind: 'contract'; readonly riderId: string; readonly toTeamId: string; readonly fromTeamId: string | null; readonly relocateCountry: string | null; readonly housingCovered: boolean }   // housingCovered, PROPUESTO (12-j)
+  | { readonly kind: 'contract'; readonly riderId: string; readonly toTeamId: string; readonly fromTeamId: string | null; readonly relocateCountry: string | null; readonly housingCovered: boolean }   // housingCovered: offer.payHousing, db/src/contracts.ts l. 328 (12-j, 4-u)
   | { readonly kind: 'retirement'; readonly riderId: string; readonly teamId: string | null; readonly age: number }
 export type NewsKind = NewsPayload['kind']                  // los 11 de hoy más `gc_lead_taken` y `jersey_taken`
 export interface StageReadyItem { readonly kind: 'stage_ready'; readonly raceId: string; readonly season: number; readonly stageDay: number; readonly gameDay: number }   // solo en lectura
@@ -634,22 +637,25 @@ export interface NameResolver { rider(id: string): string; team(id: string): str
 export interface Variant<D> { readonly since: number; readonly render: (d: D, n: NameResolver) => string }
 ```
 
-### G.3.8 Lo que proponen las secciones y §4, §13 o §14 aún no escriben
+### G.3.8 Lo que proponían las secciones y dónde quedó
 
-Son campos y variantes que una sección necesita, propone con su forma exacta y no puede escribir en el bloque de otra (regla 7 del esqueleto). El ensamblado v0 los funde aquí para que tengan un solo nombre; su entrada en §4, §13 y §14 es de la fase de corrección (`dudas.md`), y §17 dice dónde entran si se aceptan (17-a: en el formato 1, en el 4b, y en la `0044` del 5, sin quinta migración).
+Son campos y variantes que una sección necesitaba y no podía escribir en el bloque de otra. El ensamblado v0 los fundió aquí como propuestos; en la corrección (lote L2, decisión 4-u) §4 escribe enteros, con su procedencia, los que son de §4, y la última columna dice dónde está cada uno. Las formas de arriba (§G.3.1 a §G.3.7) son ya las finales.
 
-| Nombre | Forma | Lo propone | Por qué | Dónde entraría |
+| Nombre | Forma final | Lo pedía | Por qué | Dónde está |
 | --- | --- | --- | --- | --- |
-| `TimelineCast.favourites` | `readonly RiderIx[]` | §8 (8-g) | la previa de la N con los atributos de la N congelados; sin él B1c nace en rojo | §4.2, §4.3, §5.4; PR 4b y 5 |
-| `TimeTrialTrace.checkClockDs` | `readonly (readonly Ds[])[]` | §9 (9-b) | el tablero de la crono igual a `bestChain` y a cada `tt_split` | §4.2, §4.3; PR 4b |
+| `TimelineCast.favourites` | `readonly { rider: RiderIx; why: 'sprint' \| 'hills' \| 'climb' \| 'tt' \| 'cobbles' }[]` (la síntesis la proponía `RiderIx[]`) | §8 (8-g) | la previa de la N con los atributos de la N congelados antes del aprendizaje; sin él B1c nace en rojo | §4.2 y su esquema en §4.3 (formato 1, PR 4b); lo llena `buildTimelineCast` (§5.4, §7.8; PR 5) |
+| `TimeTrialTrace.checkClockDs` | `readonly (readonly Ds[])[]` | §9 (9-b) | el tablero de la crono igual a `bestChain` y a cada `tt_split` | §4.2, §4.3, I5 en §4.4; PR 4b |
 | `TimelineVisibility.ttCheckDs` | `readonly (readonly Ds[])[] \| null` | §9 | la hora de visibilidad de cada paso por control | §4.6 |
-| `BroadcastHead.tt` | `{ order; intervalS; checksKm } \| null` | §9 (9-i) | la previa y la barra de la crono antes de que salga nadie | §4.11 |
-| `BroadcastChunk.tt.checks` | tríos `[rider, control, relojDs]` | §9 (9-i) | los pasos por control, visibles a su hora | §4.11 |
-| `Cue` `tt_split` y `tt_finish` | las dos variantes de §G.3.4 | §9 (9-d) | los rótulos de la crono en la misma cola que los de carretera | §4.9, §6.6 |
-| `stage_timelines.tpl_rev` | `smallint not null default 0` | §12 (12-c) | la revisión de plantillas de cada etapa, para la semilla neutra | §13.3; `0044` |
-| `BroadcastHead.tplRev`, `StageReport.tplRev` | `number` | §12 (12-c) | ídem, por la red | §4.11 |
-| `NewsPayload` `contract.housingCovered` | `boolean` | §12 (12-j) | el titular de hoy dice ` with housing covered` (`contracts.ts` l. 328) | §4.12, §G.3.7 |
-| `riderRaceReportSchema.moments` | `ChronicleEntry[]`, opcional | §12 (12-k) | sustituye a `personalNarration` | §14.2 |
+| `BroadcastHead.tt` | `{ order; intervalS; checksKm } \| null` | §9 (9-i) | la previa, el ritmo y los saltos de la crono antes de que salga nadie | §4.11 |
+| `BroadcastChunk.tt.checks` | tríos `[rider, control, checkClockDs]` | §9 (9-i) | los pasos por control, visibles a su hora | §4.11; los llena `chunkOf` (§4.6) |
+| `Cue` `tt_start_order`, `tt_split` y `tt_finish` | las tres de §G.3.4, con `timeS`, `board` y `prev` además de lo que se proponía | §9 (9-d) | los rótulos de la crono en la misma cola que los de carretera | §4.9; su clase, en `CUE_CLASS` y `cueClassOf` de §6.5 |
+| `TimeTrialInstant.arrivals`, `RiderCueContext` `tt_round` | `readonly { rider; timeS }[]`; `'tt_round'` | la corrección de §9 (9-i, 9-k) | el tablero de llegados, el puesto de `FINISH` y la ronda `ON COURSE` de clase 0 | §4.5, §4.9 |
+| `stage_timelines.tpl_rev` | `smallint not null default 0` | §12 (12-c) | la revisión de plantillas de cada etapa, para la semilla neutra | §13.3; `0044` (no es de §4) |
+| `BroadcastHead.tplRev` | `number` | §12 (12-c) | ídem, por la red | §4.11 |
+| `StageReport.tplRev` | `stageReplaySchema` + `tplRev` | §12 (12-c) | la revisión con que se redacta el acta | §14.2 (`StageReport` es `StageReplay`, §4.11) |
+| `NewsPayload` `contract.housingCovered` | `boolean` | §12 (12-j) | el titular de hoy dice ` with housing covered` (`contracts.ts` l. 328) | §4.12 |
+| `RiderCard.gender` | `'M' \| 'F'` | D-62 (la concordancia de E10) | la web recibe `RiderCard`, no `CastRider` | §4.8; lo copia `serveCast` (§7.8) |
+| `riderRaceReportSchema.moments` | `ChronicleEntry[]`, opcional | §12 (12-k) | sustituye a `personalNarration` | §14.2 (no es de §4) |
 
 ---
 
@@ -665,7 +671,7 @@ Las firmas finales, como quedaron al escribirse las secciones: donde la síntesi
 | `selfCheckI5(tl, output)` | ídem | I5 al grabar una crono: `kmClockDs[r].at(−1) = 10 · tiempoS` | nueva (5-j) |
 | `profileStripOf(profile, at)`, `freezeStageWeather(input, seed)` y `ttTraceOf(…)` | ídem | el perfil y el tiempo congelados; la traza de la crono | nuevas (5-o, §9.2) |
 | `radioGroupDetails(…)` | `engine/src/sim/raceRadio.ts` | la capa de detalle antes de indexar, compartida por la radio y el grabador | nueva (5-g) |
-| `encodeTimeline(tl: StageTimeline): StoredTimelineV1` y `decodeTimeline(s: unknown): StageTimeline` | `shared/src/broadcast/codec.ts` | inversas; `decodeTimeline` despacha por `format` y lanza `TimelineFormatError` | no |
+| `encodeTimeline(tl: StageTimeline): StoredTimelineV1` y `decodeTimeline(s: unknown): StageTimeline` | `shared/src/broadcast/codec.ts` | inversas; `decodeTimeline` despacha por `format`, valida con `storedTimelineV1Schema` y lanza `TimelineFormatError`; la conversión del formato 1 es la privada `fromStoredV1(s: StoredTimelineV1): StageTimeline` | no (`fromStoredV1`, escrita en la corrección L2, 4-x) |
 | `reducePhoto(p: Photo, e: StateEvent): Photo` | `shared/src/broadcast/reduce.ts` | el reductor, un `case` por variante | no |
 | `photoAt(tl: TimelineCore, b: Block): Photo` | ídem | foto clave anterior más los sucesos hasta `b` | 4-b (`TimelineCore`) |
 | `clockMarksOf(tl, g: GroupIx): readonly (readonly [Block, Ds])[]` | ídem | las marcas de reloj de un grupo por bloque creciente; se construye una vez por línea (§3.3, §4.4) | nueva (el primer borrador de §4.4 la llamaba `marcasDe`) |
@@ -677,7 +683,7 @@ Las firmas finales, como quedaron al escribirse las secciones: donde la síntesi
 | `visibilityOf(tl: TimelineCore): TimelineVisibility` | `shared/src/broadcast/cut.ts` | la hora de visibilidad de cada dato (§D-06) | 4-b |
 | `cutTimeline(tl: TimelineCore, toS: RaceS): TimelineCore` | ídem | la línea cortada: solo lo visible hasta `toS`, sin reparto, tiempo ni meta (B9) | 4-b, 4-r |
 | `chunkOf(tl: TimelineCore, fromDs: Ds, toDs: Ds): Omit<BroadcastChunk, 'lines'>` | ídem | el tramo sin la voz, que pone la ruta (§14.3) | 4-r |
-| `revealSOf(e: RevealInput, source: number, bEmit: Block, tl: RecorderView): RaceS` | `shared/src/broadcast/reveal.ts` | aplica `REVEAL_RULES` (`TT_REVEAL_RULES` en crono) | 4-r (gana `source`) |
+| `revealSOf(e: RevealInput, source: number, bEmit: Block, tl: RecorderView): RaceS` | `shared/src/broadcast/reveal.ts` | aplica `REVEAL_RULES` (`TT_REVEAL_RULES` en crono); `incident` (la caída, y el pinchazo y la avería de carretera) con el grupo en que iba el corredor al final de `b − 1` | 4-r (gana `source`); 4-v (`incident`) |
 | `cuesBetween(prev: Instant, next: Instant, events: readonly TimelineEvent[]): readonly Cue[]` y `cueClassOf(cue, start, lastVirtualLeader): CueClass` | `shared/src/broadcast/cues.ts` | los rótulos que produce el paso de un instante al siguiente (los demás los programa el reproductor, 6-i) y su clase | `cueClassOf` nueva (6-g) |
 | `paceAt(toGoKm, zones)`, `playbackEstimateS(profile, zones)`, `digestPace(profile: ProfileStrip, kind: StageKind): readonly PaceZone[]`, `digestMinutes(kinds: readonly StageKind[]): number`, `ttPaceAt(t, plan, lastKmFromS)` y `ttPlaybackEstimateS(profile, plan): number` | `shared/src/broadcast/pace.ts` | las curvas y las duraciones, siempre con velocidades nominales | `digestMinutes`, `ttPaceAt` y `ttPlaybackEstimateS`, nuevas (8-b, 9-h) |
 | `radioFromTimeline(tl, names: RadioNames): RaceRadio` | `shared/src/broadcast/radio.ts` | el microscopio desde la línea, con el contrato de hoy (B16); acepta una línea cortada (11-i) | no |
@@ -686,7 +692,7 @@ Las firmas finales, como quedaron al escribirse las secciones: donde la síntesi
 | `pageTitle(p: PreStageInfo \| null, page: PageKind): string` y `stageReadyNotice(p: PreStageInfo, ownRiderOnStartlist: boolean): { subject: string; text: string }` | `shared/src/broadcast/pageTitle.ts` | títulos y avisos que no pueden llevar resultado por tipo | no (`PreStageInfo` vive en `wire.ts`, 4-l) |
 | `renderNews(locale: 'en', p: NewsPayload, seed: string, rev: number, n: NameResolver): string` | `shared/src/news.ts` | la noticia al leer | no |
 | `pickVariant<D>(seed: string, variants: readonly Variant<D>[], rev: number): Variant<D>` y `fnv1a` | `shared/src/render/variants.ts` | solo elige entre variantes con `since ≤ rev`; el hash de la semilla | `fnv1a`, nueva |
-| `buildTimelineCast(tx, …): Promise<TimelineCast>` | `db/src/cast.ts` | el reparto congelado con procedencia, en el tick; lee además los ganadores de etapa hasta la N−1 y usa `gcLineTop` | la de §5.4 y §7.8 |
+| `buildTimelineCast(tx, …): Promise<TimelineCast>` | `db/src/cast.ts` | el reparto congelado con procedencia, en el tick; lee además los ganadores de etapa hasta la N−1 y usa `gcLineTop`; congela `favourites` con los atributos de antes del aprendizaje de la etapa (8-g, 4-u) | la de §5.4 y §7.8 |
 | `palmaresTitleSource: ChampionTitleSource` con `titlesOn(q: Queryable, worldId: string, gameDay: number): Promise<ReadonlyMap<string, readonly ChampionTitle[]>>` | `db/src/titles.ts` | el proveedor provisional de títulos (§D-25) | 7-k (`q: Queryable`) |
 | `startStageTimeline(…)`, `recordStageTimeline(tx, run, log, ctx)`, `writeStageTimeline(tx, tl, meta)`, `writeStageTimelineFailure(tx, meta, failure)`, `readStageTimeline(db, h: Horizon, raceKey, stageDay): Promise<StageTimelineRead \| null>` y `clearStageTimelineCache()` | `db/src/timelines.ts` | el colector aparte, el cierre y la escritura con gzip 9, la lápida y la lectura con el LRU; la lectura lanza `TimelineUnavailableError` ante una lápida | 5-d, 5-k, 5-p (`Horizon`) |
 | `computeHorizon(db, viewer: Viewer, world: WorldRef): Promise<Horizon>` y `horizonSummary(db, viewer, world): Promise<HorizonSummary>` | `db/src/horizon.ts` | en la forma D (18-a), memorizado por `(userId, currentDay, horizonRev)` `SPOILER.horizonMemoS` | forma D (18-a); `horizonSummary` nueva |
@@ -714,7 +720,7 @@ Las firmas finales, como quedaron al escribirse las secciones: donde la síntesi
 | `useHideBottomNav(hidden: boolean): void` | `apps/web/src/components/BottomNav.tsx` | esconde la barra inferior mientras se reproduce; propuesta a E6 | nueva (18-f) |
 | `stampReached(s: AuthorStamp, h: Horizon): boolean` | `packages/shared/src/broadcast/` | el sello de E9; se propone, no se implementa en E2 | nueva (11-n) |
 
-Privadas que las secciones nombran: `groupBlockAt(cut, g, t, ctx)`, `speedFrom`, `lastTwoMarks` y `originOf(cut, g)` (el paso 2 de `instantAt` y sus auxiliares, en `instant.ts`, §3.3); `chaseRefOf(behind, mainFraction)` (copia de `chaseReferenceIndex`, en `instant.ts`, 6-a); `estimatedHeadClock(kms, totalKm, winnerS)` (el reloj de la cabeza del adaptador de la radio, en `broadcastSource.ts`, §3.8).
+Privadas que las secciones nombran: `groupBlockAt(cut, g, t, ctx)`, `speedFrom`, `lastTwoMarks` y `originOf(cut, g)` (el paso 2 de `instantAt` y sus auxiliares, en `instant.ts`, §3.3); `chaseRefOf(behind, mainFraction)` (copia de `chaseReferenceIndex`, en `instant.ts`, 6-a; deja de ser privada: se exporta para el test de §15.5, 15-k); `estimatedHeadClock(kms, totalKm, winnerS)` (el reloj de la cabeza del adaptador de la radio, en `broadcastSource.ts`, §3.8).
 
 `PageKind` = `'watch' | 'report' | 'race' | 'rider' | 'team' | 'news' | 'rankings' | 'home' | 'other'`.
 
@@ -779,7 +785,7 @@ Rutas web: `/world/races/:raceId/stages/:day` (abre `Watch` si la etapa no es co
 | `TIMELINE.maxStoredBytes` | 98_304 | tope de `stage_timelines.bytes` en línea (B6): 1,4 veces el máximo medido con el formato de §4.3 (70,0 KB; §5.7). D-11 corregida; antes 49_152 |
 | `TIMELINE.maxJsonBytes` | 655_360 | tope del JSON antes de gzip: medido de 123 a 464 KB (§5.7). D-11 corregida; antes 131_072 |
 | `TIMELINE.medianJsonBytes` | 262_144 | mediana exigida en el banco de 24 etapas: medida, 222 KB (§5.7). D-11 corregida; antes 65_536 |
-| `TIMELINE.ttMaxStoredBytes` | 32_768 | tope de una crono en `bytea`: medida de 18,8 a 24,2 KB con 176 corredores (§5.7). D-11 corregida; antes 16_384 |
+| `TIMELINE.ttMaxStoredBytes` | 49_152 | tope de una crono en `bytea`: 1,5 veces el máximo medido, la e10 de `race-italy` (42 km, 176 corredores): 31.436 bytes, y 32.203 con `checkClockDs` (15-i). Antes 32_768 (D-11 corregida en el v0) y 16_384 (síntesis) |
 
 ### `BROADCAST` (`packages/shared/src/broadcast/constants.ts`: la leen la API y la web; tocarla NO corre los bancos)
 
@@ -853,6 +859,7 @@ Rutas web: `/world/races/:raceId/stages/:day` (abre `Watch` si la etapa no es co
 | `SPOILER.newsGroupAbove` | 3 | con más etapas veladas de una carrera, una sola línea en noticias |
 | `SPOILER.adaptiveAskAfterRaces` | 2 | tras dos carreras de cabecera ignoradas, ofrecer `own_only` una vez |
 | `SPOILER.horizonMemoS` | 60 | memo del horizonte por `(userId, currentDay, horizonRev)` |
+| `SPOILER.horizonMemoEntries` | 500 | tope de entradas de cada memo del proceso (`TtlMemo`: horizonte, `veilDelta` y sesión); sin evidencia de los jueces (10-m, §15.4) |
 | `SPOILER.horizonBudgetMs` | 5 | p95 de `computeHorizon` en B14 |
 
 ---
@@ -864,6 +871,7 @@ Rutas web: `/world/races/:raceId/stages/:day` (abre `Watch` si la etapa no es co
 | `BROADCAST_WATCH` | `off`, `admins`, `on` | `off` | la pestaña `Watch` y las rutas de retransmisión (`admins`: quien `isUserAdmin` da por administrador, `users.is_admin` o el correo de `ADMIN_EMAIL`, `adminUsers.ts` l. 53-61; §14.6) |
 | `SPOILER_MODE` | `off`, `admins`, `on` | `off` | el velo (`off`: `Horizon` es siempre `world` o `anon`, como hoy) |
 | `TIMELINE_RECORD` | `off`, `on` | `on` | que el tick grabe `stage_timelines` (en `envSchema` y `tickEnvSchema`) |
+| `PROGRESS_MIN_DELTA_S` | entero, s de carrera | sin definir: manda `BROADCAST.progressMinDeltaS` | no apaga nada: sustituye al umbral de escritura del progreso, para frenar esa carga sin desplegar (en `envSchema`, servicio `web`; §15.8, 15-j) |
 
 Los dos primeros viajan a la web en `/health.features`. `SwitchMode` = `'off' | 'admins' | 'on'`. No confundir `SPOILER_MODE` (del servidor) con `users.spoiler_scope` (del jugador).
 
@@ -876,7 +884,7 @@ Los dos primeros viajan a la web en `/health.features`. `SwitchMode` = `'off' | 
 | I1 | la foto reducida es la foto del motor | en cada km de `radioKmPoints`, `photoAt` proyectada = `radioKmFrom` de la foto del motor, con la tolerancia de igual reloj en Ds extendida al `kind` (5-i: sin ella, 1 fallo en 8.656); medido 0 en 3.246 (estado) y en 8.656 (§5.5) |
 | I2 | el instante coincide con la foto donde se mide | la igualdad en el km de foto, exacta; en tránsito, p90 ≤ 15 por etapa y ≤ 4 en el conjunto (16-b; el p90 ≤ 2 de la síntesis fallaba en 23 de 44 corridas) |
 | I3 | claves y empaquetado | `clave(k + 10) = reducción de clave(k)`; `decodeTimeline(encodeTimeline(tl)) = tl` |
-| I5 | la traza de la crono cuadra con el resultado | `kmClockDs[r].at(−1) = 10 · results[r].tiempoS`, igualdad exacta (9-a, 16-c); la salida en `startDs[r]` |
+| I5 | la traza de la crono cuadra con el resultado | `kmClockDs[r].at(−1) = 10 · results[r].tiempoS`, igualdad exacta (9-a, 16-c); la salida en `startDs[r]`; y `checkClockDs[r][c] = 10 · splitS` de cada `tt_split` del motor (9-b, §4.4) |
 | B1a | canario | ningún valor plantado en las filas del desenlace de una etapa velada (tiempo, premio, puntos e ids) sale en ninguna respuesta; el nombre del ganador no sale en el título, las `og:`, el correo ni el aviso (16-d) |
 | B1b | diferencial | correr la etapa no cambia un byte para quien no la ha visto, salvo la lista blanca con motivo |
 | B1c | dos desenlaces | dos semillas con desenlaces distintos dan respuestas idénticas byte a byte |
@@ -1074,3 +1082,5 @@ Los bloques «Propuesto para el glosario» de las secciones, uno por uno, y dón
 | §21 | «la lápida», «la línea cortada», «el reparto servido», «la forma D» y «el sello»; las decisiones `3-a` a `21-e`; A1 a G3 | §G.1, §G.12 |
 
 Firmas que cambiaron al escribirse y que este glosario ya lleva (§G.4): `timelineRecorder` (5-e), `selfCheckI1` (5-i), `readStageTimeline` y `timelineForStage` con `Horizon` (5-p, 14-p), `emitNews` (§12.8), `titlesOn` (7-k), `veilSql` (10-d), `registerSpoilerGuard` (14-c), `stageReadyEmail` (11-d), `chunkOf`, `cutTimeline` y `revealSOf` (4-b, 4-r), y `clockMarksOf` (antes `marcasDe`). Campos y constantes: `checkClockDs` (9-b, propuesto), `ttSeekStepS` y `ttSeekLastStarters` (9-g), los topes de `TIMELINE` (D-11 corregida) y `decodedCacheEntries` en 16 (18-d).
+
+**Corrección L2 (fase 5, §4 y §15).** Tipos escritos con su forma final en §4 y aquí: `TimelineCast.favourites` (con `why`), `TimeTrialTrace.checkClockDs`, `TimelineVisibility.ttCheckDs`, `BroadcastHead.tt` y `tplRev`, `BroadcastChunk.tt.checks`, los `Cue` `tt_start_order`, `tt_split` y `tt_finish`, `TimeTrialInstant.arrivals`, el contexto `tt_round`, `RiderCard.gender` y `contract.housingCovered` (4-u); `SchemaMatches`, `STORED_MATCH`, `WIRE_MATCH`, `fromStoredV1` y los seis esquemas compartidos en `codec.ts` (4-x); la regla `incident` con el grupo de `b − 1`, también para `puncture` y `mechanical` de carretera (4-v); el borde de la meta de una crono en la última llegada y `tt_catches` en `finish` (4-w). Constantes y variables: `TIMELINE.ttMaxStoredBytes` en 49_152 (15-i), `PROGRESS_MIN_DELTA_S` (15-j), `chaseRefOf` exportada y `PULLERS_KEPT` atada (15-k); y `SPOILER.horizonMemoEntries` (500), que pide 10-m, escrita en §15.4.
