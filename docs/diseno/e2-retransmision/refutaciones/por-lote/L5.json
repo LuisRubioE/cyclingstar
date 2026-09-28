@@ -1,0 +1,145 @@
+[
+ {
+  "id": "Rcobertura-025",
+  "seccion": "§7.1",
+  "linea": 3214,
+  "gravedad": "baja",
+  "afirmacion": "la UCI exige dorsal, apellido, nombre, nacionalidad y equipo",
+  "fallo": "El mapa 06 §9, fila 14, pide para el rótulo de corredor «dorsal, nombre, nacionalidad, equipo, edad, puesto y hueco en la general» (`mapas/06-television.md` l. 362). `RiderCard` (l. 1684-1695) y `CastRider` (l. 1131-1142) no llevan edad y §7.1 no la descarta; el dato existe (`riders.birth_season`, `packages/db/src/schema.ts` l. 286, que el fixture de B1 rellena en l. 7740).",
+  "correccion": "Decidir en §7.1: o `RiderCard` gana `readonly age: number // temporada de la etapa menos riders.birth_season, al servir`, con su campo en `riderCardSchema` y `24 years` (pantalla) en la primera línea del rótulo, o se escribe como decisión 7-x «la edad no va en el rótulo: no cambia la lectura de la carrera».",
+  "_fuente": "hallazgos-cobertura.json",
+  "_lote": 5
+ },
+ {
+  "id": "Rcobertura-031",
+  "seccion": "§9.2",
+  "linea": 4245,
+  "gravedad": "baja",
+  "afirmacion": "y la de una crono de 40 km con 176 corredores se estima en 19-20 KB con relojes absolutos",
+  "fallo": "El tope de la línea de una crono es `TIMELINE.ttMaxStoredBytes` (32 KB, D-11), y con esta estimación una crono de 40 km con 176 corredores se queda al borde: 19-20 KB de traza más unos 11 KB del resto de la línea (duda 1.4 de `borrador/dudas.md`), antes de sumar `checkClockDs` (l. 4240: 22,1 KB frente a 19,8 sin él en la e1). Ninguna de las 24 etapas del banco pasa de 26 km (§19.6, l. 9435), así que B6, el banco que dice vigilar el tope, nunca mide el caso que lo puede romper.",
+  "correccion": "Añadir a B6 (§16.4) y a `scripts/broadcast-fixtures.mjs --sizes` (paso 5) la crono individual más larga con 176 corredores que tenga `SEASON_CALENDAR` (un test la busca), medida en el 4b con el grabador real y `checkClockDs`. Si pasa de 28 KB, §4.3 guarda `kmClockDs` por diferencias por km (unos 5 KB, `estado.md` §9) en el formato 1, que 17-a cierra en el 4b.",
+  "_fuente": "hallazgos-cobertura.json",
+  "_lote": 5
+ },
+ {
+  "id": "Rcobertura-032",
+  "seccion": "§9.5",
+  "linea": 4367,
+  "gravedad": "media",
+  "afirmacion": "0 (`rider`, `focus`); 1 si es del espectador (`own`)",
+  "fallo": "`cueClassOf` solo baja a 0 la ronda de la fuga: `case 'rider': return cue.context === 'break_round' ? 0 : CUE_CLASS.rider` (l. 2954), y `CUE_CLASS.rider` es 1. Un `rider` con contexto `focus` (que además es el de tocar un nombre, que «sale enseguida, fuera de la cola», l. 3004) es de clase 1, no 0. Las rondas `ON COURSE` son casi la mitad de los rótulos de una crono (l. 4381-4382: 41-43 y 56 rondas de 85-106) y, en clase 1, compiten con los parciales en lugar de descartarse antes: la cola medida en `l5/cola.mjs` no es la que este código produce.",
+  "correccion": "En §4.9, `RiderCueContext` gana `'tt_round'`; en §6.5 (l. 2954), `case 'rider': return cue.context === 'break_round' || cue.context === 'tt_round' ? 0 : CUE_CLASS.rider`; en §9.5 (l. 4367), «0 (`rider`, `tt_round`); 1 si es del espectador (`own`)». `cues.test.ts` gana el caso.",
+  "_fuente": "hallazgos-cobertura.json",
+  "_lote": 5
+ },
+ {
+  "id": "Rcobertura-033",
+  "seccion": "§9.5",
+  "linea": 4371,
+  "gravedad": "media",
+  "afirmacion": "2; 3 si el líder virtual no es el líder (D-21)",
+  "fallo": "§6.5 da a `virtual_gc` clase 1 y la sube a 3 solo si cambia el líder virtual (l. 2943, `virtual_gc: 1`; l. 2957, `cue.rows[0].rider !== lastVirtualLeader ? 3`; l. 2983), que es lo que dice D-21: «cambio de líder virtual» (`borrador/00-decisiones.md` l. 252). §9.5 da otra clase base (2) y otra regla (el líder virtual no es el líder) citando la misma D-21. Con un solo `cueClassOf` la crono no puede cumplir las dos, y la cola medida para la crono (l. 4381-4382) se hizo con una regla que el código no tendrá.",
+  "correccion": "l. 4371: «1; 3 si cambia el líder virtual (D-21, `cueClassOf`)», la misma regla de §6.5 para carretera y crono. Si la crono quiere la suya, escribirla en `cueClassOf` (l. 2957) con una decisión nueva y su caso en `cues.test.ts`, y no citar D-21.",
+  "_fuente": "hallazgos-cobertura.json",
+  "_lote": 5
+ },
+ {
+  "id": "Rcobertura-034",
+  "seccion": "§9.5",
+  "linea": 4373,
+  "gravedad": "baja",
+  "afirmacion": "| `TIME CUT` | tras `BroadcastFinish` | el paquete de meta | 3 |",
+  "fallo": "`CUE_CLASS` da a `time_cut` clase 2 (l. 2942), como D-21 («2, … fuera de control», l. 2932; `borrador/00-decisiones.md` l. 252), la tabla de §6.5 (l. 2976), la fila 45 de §6.6 (l. 3109) y §8.7 (l. 3989: «(`time_cut`, clase 2)»). La tabla de la crono le da 3, y ningún caso de `cueClassOf` sube `time_cut`.",
+  "correccion": "l. 4373: «| `TIME CUT` | tras `BroadcastFinish` | el paquete de meta | 2 |».",
+  "_fuente": "hallazgos-cobertura.json",
+  "_lote": 5
+ },
+ {
+  "id": "Rcobertura-035",
+  "seccion": "§9.5",
+  "linea": 4388,
+  "gravedad": "media",
+  "afirmacion": "`tt_catches` y `tt_last_home`, `report_only` (su hora es la meta)",
+  "fallo": "Esta frase da a `CUE_OF_TEMPLATE` destinos que §6.6 contradice: allí `tt_catches` y `tt_last_home` son `voice_only` (l. 3059; filas 53 y 54, l. 3117-3118: «regla `finish` (§4.7): en el paquete de meta») y `time_cut_readmitted` es `voice_only` (l. 3056; fila 46, l. 3110: «la readmisión se cuenta, no se rotula»), mientras aquí `time_cut_readmitted` va a `time_cut`. B7 exige un destino por plantilla (D-21) y `cues.test.ts` sella la tabla de §6.6: las dos versiones no pueden estar en verde a la vez.",
+  "correccion": "Reescribir el final de l. 4388 como la tabla de §6.6: «`tt_catches`, `voice_only`; `tt_last_home`, `voice_only` (con la regla `finish`, su línea llega con el paquete de meta, como `bunch_sprint`); `stage_win_itt`, `finish`; `puncture` y `mechanical`, `mishap`; `time_cut`, `time_cut`; `time_cut_readmitted`, `voice_only`».",
+  "_fuente": "hallazgos-cobertura.json",
+  "_lote": 5
+ },
+ {
+  "id": "Rcobertura-036",
+  "seccion": "§9.7",
+  "linea": 4410,
+  "gravedad": "baja",
+  "afirmacion": "con sus amenazas (los `BROADCAST.previewGcTop` siguientes de la general de salida)",
+  "fallo": "Las amenazas al maillot de la general se cuentan con `BROADCAST.previewThreatsMax` (§8.6, l. 3936: «los `BROADCAST.previewThreatsMax` (3, propuesta) siguientes de la general de salida»; §15.3, l. 7412: «corredores que el cuadro de maillots de la previa nombra por maillot»). `previewGcTop` es la constante de los favoritos por la general (l. 3945; l. 7408). Hoy valen las dos 3, así que el error solo se verá cuando la prueba de lectura mueva una (§15.6: «se ajustan antes de `BROADCAST_WATCH=on`»).",
+  "correccion": "l. 4410: «con sus amenazas (los `BROADCAST.previewThreatsMax` siguientes de la general de salida)».",
+  "_fuente": "hallazgos-cobertura.json",
+  "_lote": 5
+ },
+ {
+  "id": "Rcodigo-041",
+  "seccion": "§7.8",
+  "linea": 3658,
+  "gravedad": "baja",
+  "afirmacion": "team: c.team === null ? null : { id, name, jerseySeed } de cast.teams[c.team]",
+  "fallo": "`CastTeam` (§4.2, l. 1128) es `{ teamId, jerseySeed }`: no tiene `id` ni `name`, así que `RiderCard.team.name` (§4.8, l. 1690) no puede salir de `cast.teams[c.team]`. El nombre del equipo solo puede salir de `NameResolver.team` al servir (l. 1950), como el del corredor, y eso quiere decir que un cambio de nombre posterior sí se ve en la retransmisión vieja: hoy el nombre se edita con `PUT /api/teams/me` (`apps/api/src/routes/teams.ts` l. 18-22; `packages/db/src/teamControl.ts` l. 170-189). La frase de l. 3661 («Un traspaso o un cambio de equipación posteriores no reescriben el pasado») no dice qué pasa con el nombre.",
+  "correccion": "Escribir la línea como `team: c.team === null ? null : { id: t.teamId, name: nombres.team(t.teamId), jerseySeed: t.jerseySeed }` con `t = cast.teams[c.team]`, y añadir a l. 3661: «El nombre del equipo, como el del corredor, se resuelve al servir: un cambio de nombre posterior sí se ve; el equipo y su equipación, no.»",
+  "_fuente": "hallazgos-codigo.json",
+  "_lote": 5
+ },
+ {
+  "id": "Rcodigo-045",
+  "seccion": "§9 (decisión 9-i)",
+  "linea": 4473,
+  "gravedad": "media",
+  "afirmacion": "- 9-i. Se propone que `BroadcastHead` lleve la preparación pública de la crono (`order`, `intervalS`, `checksKm`), porque la previa, la barra y el primer rótulo la necesitan antes de que salga nadie, y que `BroadcastChunk.tt` lleve los pasos por control, visibles a su hora.",
+  "fallo": "Cierra la parte de la crono de la duda abierta 1.1 con dónde se rompe el código. Con los tipos de §4, que son los que compilan (§4.2, §4.6, §4.9, §4.11), la pantalla de §9 no se puede escribir: (1) `BroadcastHead` (l. 1812-1830) no tiene `tt`, y sin `intervalS` el reproductor no puede llamar a `ttPaceAt(t, plan, …)` (l. 4333; `PlayerContext.baseX`, l. 4061) en `t = 0`, ni pintar `Start order: …, every 2:00` (l. 4366) ni los controles del cuadro 1 de la previa (l. 4416); (2) `BroadcastChunk.tt` (l. 1840) solo lleva `starts` y `km`, así que `timeTrialInstantAt` no puede calcular `lastSplitKm`, `deltaS` ni `splits` (l. 4268-4271) con lo servido, y el rótulo `SPLIT` no sale; (3) `TimelineVisibility` (l. 1537-1546) tiene `ttKmDs` pero no la hora de cada paso por control, y `chunkOf` no sabe en qué tramo va; (4) `Cue` (l. 1719-1736) no tiene `tt_split` ni `tt_finish` (9-d, l. 4468), y `CUE_CLASS` (l. 2938-2944) está atado con `satisfies Readonly<Record<CueKind, CueClass>>`: añadir las variantes sin sus filas no compila; (5) `TimeTrialTrace` (l. 1146-1153) no tiene `checkClockDs` (9-b). Sin los cinco, B9 en la crono (§16.4) no tiene qué comparar.",
+  "correccion": "Escribir en §4 los cinco campos con su esquema y quitar «propuesto» de §9: en `TimeTrialTrace`, `readonly checkClockDs: readonly (readonly Ds[])[] // se graba: por RiderIx y control, 10 · Math.round(raw[idx] · noise) (9-b)`; en `TimelineVisibility`, `readonly ttCheckDs: readonly (readonly Ds[])[] | null // crono: startDs + checkClockDs`; en `BroadcastHead`, `readonly tt: { readonly order: 'gc' | 'bib'; readonly intervalS: number; readonly checksKm: readonly number[] } | null`; en `BroadcastChunk.tt`, `readonly checks: readonly number[] // tríos [rider, índice de control, relojDs]`; en `Cue`, `| { readonly kind: 'tt_split'; readonly t: RaceS; readonly check: number; readonly rider: RiderIx } | { readonly kind: 'tt_finish'; readonly t: RaceS; readonly rider: RiderIx; readonly hotSeat: boolean }`, y en `CUE_CLASS`, `tt_split: 1, tt_finish: 1` (cueClassOf los sube a 2 y 3 como dice la tabla de §9.5). Los mismos campos en `storedTimelineV1Schema` (§4.3) y en los esquemas de §4.11, dentro del formato 1 (17-a).",
+  "_fuente": "hallazgos-codigo.json",
+  "_lote": 5
+ },
+ {
+  "id": "Rcodigo-048",
+  "seccion": "§9.4",
+  "linea": 4333,
+  "gravedad": "baja",
+  "afirmacion": "export function ttPaceAt(t: RaceS, plan: { readonly riders: number; readonly intervalS: number }, lastKmFromS: RaceS | null): number {",
+  "fallo": "Los bloques de §9.4 siguen a los de §8.2 en `packages/shared/src/broadcast/pace.ts` («(sigue)», l. 4318 y 4332), y el único bloque de importaciones de ese fichero (l. 3734-3737) trae `StageKind`, `BROADCAST`, `ProfileStrip` y `PaceZone`, pero no `RaceS`. Montado el fichero con sus cuatro bloques y compilado con el `tsconfig.base.json` del repositorio (`rcod/n/ws`): `TS2304: Cannot find name 'RaceS'` en las dos firmas de `ttPaceAt` (cuatro errores). Además §4.13 (l. 1970) dice que `pace.ts` importa «tipos de `wire.ts`, `cues.ts` y `contracts.ts`», y el bloque importa `ProfileStrip` de `./timeline.js`.",
+  "correccion": "En el bloque de §8.2 (l. 3736), `import type { ProfileStrip, RaceS } from './timeline.js'`; y en la fila de `pace.ts` de §4.13, «importa `timeline.ts` (tipos), `wire.ts` (tipos), `contracts.ts` (tipos) y `constants.ts`».",
+  "_fuente": "hallazgos-codigo.json",
+  "_lote": 5
+ },
+ {
+  "id": "Rcodigo-051",
+  "seccion": "§7.1",
+  "linea": 3261,
+  "gravedad": "baja",
+  "afirmacion": "case 'stage_wins': return `Won ${d.stages.length === 1 ? 'stage' : 'stages'} ${listAnd(d.stages.map((r) => String(r.stageDay)))}`   // «3, 7 and 12»",
+  "fallo": "`listAnd` no existe: no se define en ningún bloque del documento (grep: solo esta línea) ni en el repositorio (`grep -rn 'function listAnd' packages apps`: nada). La función que hace «3, 7 and 12» hoy es `listNames` de `apps/web/src/domain/stageJournal.ts` (l. 133-137), que `packages/shared` no puede importar (§4, l. 992: `shared` no importa nada de la web ni del motor). `cardLineText` vive en `packages/shared/src/broadcast/names.ts` (l. 3243), así que no compila tal cual: en el montaje del scratchpad hubo que declararla aparte para compilar `names.ts`.",
+  "correccion": "Añadir al bloque de §7.1, antes de `cardLineText`: `/** «3», «3 and 7», «3, 7 and 12»: la lista en inglés (E10 la recibe como punto de render). */ export function listAnd(xs: readonly string[]): string { return xs.length <= 1 ? (xs[0] ?? '') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]!}` }`, y nombrarla en F.2 con `ordinal` y `gapText`.",
+  "_fuente": "hallazgos-codigo.json",
+  "_lote": 5
+ },
+ {
+  "id": "Rdueno-012",
+  "seccion": "§7.4",
+  "linea": 3484,
+  "gravedad": "media",
+  "afirmacion": "No usa la silueta del maillot a propósito",
+  "fallo": "El dueño pide maillots, y el de campeón por su nombre: «cuando se escapan cinco, que se vean sus maillots» (`docs/encargos.md` l. 153-154), «el maillot que el dueño pide por su nombre» (`docs/agenda.md` l. 718-719, el arcoíris) y, para los de líder, «debería mencionarlo como con una imagen de maillot amarillo» (el dueño, `docs/navegacion.md` l. 412-413, agosto de 2026). Mientras E3 no dibuje su señal, el campeón de la fuga no lleva maillot sino una bandera con una estrella (7-h), y el caso literal del dueño, «se escapa el campeón de Italia con cuatro más», se ve como cuatro maillots y una bandera. El motivo que se da (una banda con la bandera se confundiría en gris con la banda del verde) descarta la banda, no la silueta: una estrella en el pecho es una marca que no lleva ninguno de los tres de líder, que se distinguen por liso, banda y lunares (`apps/web/src/components/Jersey.tsx` l. 62-64 y 72-74). Es una decisión sobre lo que ve el dueño, tomada sin fila en §20.",
+  "correccion": "7-h y §7.4: «`ChampionMark` provisional: la silueta de `Jersey`, sin banda ni lunares, con una estrella en el pecho como marca de forma y la bandera pequeña al lado, con el mismo `aria-label` y `<title>` que ya lleva `LeaderJersey`. No imita el arcoíris (SPEC.md l. 841)». Si se prefiere la bandera con estrella, subir la elección a §20 como decisión del dueño, con esta alternativa.",
+  "_fuente": "hallazgos-dueno.json",
+  "_lote": 5
+ },
+ {
+  "id": "Rdueno-038",
+  "seccion": "§7.1",
+  "linea": 3219,
+  "gravedad": "media",
+  "afirmacion": "`RiderName` si enlaza a la ficha",
+  "fallo": "El enlace del nombre a la ficha queda en un «si» sin regla, y en `Watch` tocar un nombre no lleva a la ficha sino a un rótulo (`rider 'focus'`, «al tocar un nombre: sale enseguida, fuera de la cola», §6.5 l. 3004). El dueño lo pidió dos veces: «cuando salga el nombre de un ciclista, que tenga enlace a su ficha» (`apps/web/src/domain/stageJournal.ts` l. 170-171, v58) y «te pedí que pusieras link desde los nombres de los ciclistas a su perfil… y nada» (`apps/web/src/components/RiderName.tsx` l. 7-8, v59). Tampoco dice el borrador si la voz y `Commentary` conservan la marca de corredor de `chronicleParts`, que es la que hoy pone el enlace en el journal.",
+  "correccion": "En §7.1: «el nombre del rótulo es siempre `RiderName`, con su enlace a la ficha; seguirlo pausa la reproducción e informa de lo alcanzado antes de salir (§8.5)». En §12.2: «la voz y `Commentary` se pintan con `chronicleParts`, con la marca de corredor y su enlace, como el journal». La ficha de otro corredor ya se sirve con el horizonte de quien mira (§11.14), así que el enlace no destripa.",
+  "_fuente": "hallazgos-dueno.json",
+  "_lote": 5
+ }
+]

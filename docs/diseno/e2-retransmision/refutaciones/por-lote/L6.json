@@ -1,0 +1,222 @@
+[
+ {
+  "id": "Rcobertura-037",
+  "seccion": "§10.2",
+  "linea": 4501,
+  "gravedad": "baja",
+  "afirmacion": "la tercera salida de la puerta o un salto de recorrido hasta la meta",
+  "fallo": "8-j (l. 4152) prohíbe ese salto: «Ningún salto pasa de un km antes de meta; … una etapa solo pasa a vista cruzando la meta», y la comprobación 4 del reductor lo sella (l. 4107: «Un salto aterriza como mucho en la hora en que la cabeza pasa por `lengthKm − 1`; ningún salto emite `finish`»). Ningún salto revela con `R`.",
+  "correccion": "l. 4501: «| revelada | `Show result` (pantalla) o la tercera salida de la puerta | `R` | no | `Report` | todo |».",
+  "_fuente": "hallazgos-cobertura.json",
+  "_lote": 6
+ },
+ {
+  "id": "Rcobertura-046",
+  "seccion": "§14.2",
+  "linea": 6906,
+  "gravedad": "baja",
+  "afirmacion": "lastRaceResponseSchema (l. 1571): + ready: preStageInfoSchema.nullish()",
+  "fallo": "§14.2 es la lista de ampliaciones de los esquemas de hoy y no trae `riderRaceReportSchema.moments`, que §12.9 decide (l. 6235: «`riderRaceReportSchema` (`contracts.ts` l. 1554-1569) gana `moments`, opcional»; 12-k, l. 6291), §17.15 programa en el PR 12 (l. 8709) y §17.20 pone en `contracts.ts` (l. 8804). Sin su fila, el tipo de cada momento no está escrito en ninguna parte y `yesterday.test.ts`, que exige un `.omit` por cada campo nuevo (regla 8 de §17.1, l. 8316), no lo cubre.",
+  "correccion": "Añadir tras l. 6906: «`riderRaceReportSchema` (l. 1554-1569): `+ moments: z.array(chronicleEntrySchema).optional()` // las líneas del acta de la última etapa conocida en que el corredor es protagonista, con el esquema de `ChronicleEntry` de hoy (12-k)», y en §17.15 el `.omit({ moments: true })` de `yesterday.test.ts`.",
+  "_fuente": "hallazgos-cobertura.json",
+  "_lote": 6
+ },
+ {
+  "id": "Rcobertura-047",
+  "seccion": "§14.3",
+  "linea": 6939,
+  "gravedad": "media",
+  "afirmacion": "dos pasos de §12 que el código de arriba no enseña",
+  "fallo": "Dos bloques de código que el texto de al lado desmiente, en un documento que se implementa copiando. El de la ruta del tramo (§14.3) no llama a `withGroupRoles` antes de construir `revealOf` ni a `liveClusters` antes de `buildChronicle`, y esta línea lo reconoce. El de `computeHorizon` (§10.6, l. 4683) sigue con la consulta 2 que recorre `race_rosters` entera (`rr.rider_id = ${u.rider_id} or rr.rider_id in (select id from riders where team_id = …)`) y la cuarta por espectador, y l. 4717 lo reconoce: «Tal como están aquí, la consulta 2 no usa `race_rosters_rider_idx` … El código usa la forma D». La forma D es la que pasa B14 (18-a: de 23-40 ms a 3,1-3,7 ms de p95). Son las dudas 2.1 y 2.2 de `borrador/dudas.md`.",
+  "correccion": "Reescribir los dos bloques. En §14.3: `const anotados = withGroupRoles(sucesos, tl, revealS, ctx)` antes de `revealOf`; el mapa de horas, sobre `anotados`; y, con `BROADCAST.liveClusters`, los racimos de `liveClusters(anotados, tl, revealS)` añadidos antes de `buildChronicle` (12-n, §12.3). En §10.6: la consulta 1 trae los ids del corredor propio y de la plantilla, la 2 filtra con `rr.rider_id = any(${ids})`, y la cuarta se sustituye por `lastRunStages(db, world)` (18-a). Después, borrar la frase de l. 6939 y la de l. 4717.",
+  "_fuente": "hallazgos-cobertura.json",
+  "_lote": 6
+ },
+ {
+  "id": "Rcobertura-048",
+  "seccion": "§14.11",
+  "linea": 7257,
+  "gravedad": "baja",
+  "afirmacion": "el progreso en el borde, que devuelve `{ status: 'known', rev }`",
+  "fallo": "El progreso del borde no hace conocida la etapa: el último tramo acaba en `vis.finishDs − 1` (l. 4939), el reproductor no pinta más allá de lo servido (l. 3773), y `recordProgress` solo escribe la letra «si reachedS ≥ finishS» (l. 4581); con un `reachedS` menor devuelve `'watching'` (l. 4587). La que la hace conocida es `POST …/broadcast/finish` (§8.7, l. 3986: «que marca la etapa como vista con la letra del modo»; §14.2, l. 6832: «`recordProgress` hasta `finishS`»). Una web escrita según esta frase esperaría `known` del informe y trataría la respuesta real como un fallo.",
+  "correccion": "l. 7257: «… y, al llegar al borde de la meta, el progreso en el borde, que devuelve `{ status: 'watching', rev }`, y después `POST …/broadcast/finish`, que escribe la letra (§10.3) y cuyo paquete pinta la llegada y el cierre (§8.7 y §8.6)».",
+  "_fuente": "hallazgos-cobertura.json",
+  "_lote": 6
+ },
+ {
+  "id": "Rcodigo-003",
+  "seccion": "§14.2",
+  "linea": 6851,
+  "gravedad": "baja",
+  "afirmacion": "import { apiErrorBodySchema, stageGateSchema } from '../contracts.js'   // l. 32: { ok?: false, error: string }; stageGateSchema, por 14-a",
+  "fallo": "El bloque dice que sigue a §4.11 en `packages/shared/src/broadcast/wire.ts`, y el de §4.11 (l. 1796) ya importa `stageGateSchema` de `../contracts.js`. Copiados los dos bloques en el mismo fichero, tsc da `TS2300: Duplicate identifier 'stageGateSchema'` dos veces (medido en el scratchpad, `rcod/ws1`: `src/broadcast/wire.ts(12,86)` y `(135,30)`). Con eso fuera, los bloques de §4 y §14 compilan juntos salvo `fromStoredV1` y `storedTimelineV1Schema` (ver el hallazgo de §4.3).",
+  "correccion": "En el bloque de §14.2 escribir `import { apiErrorBodySchema } from '../contracts.js'   // l. 32: { ok?: false, error: string }` y en el comentario: «`stageGateSchema` ya lo importa la cabecera de wire.ts (§4.11)».",
+  "_fuente": "hallazgos-codigo.json",
+  "_lote": 6
+ },
+ {
+  "id": "Rcodigo-019",
+  "seccion": "§14.5",
+  "linea": 7046,
+  "gravedad": "media",
+  "afirmacion": "si userId:  touchLastSeen(db, userId) sin esperar (§10.7);  devolver { userId, readOnly: false }   y marcar «de sesión»",
+  "fallo": "Una promesa lanzada sin esperar y sin `.catch` tumba el proceso si rechaza: el repositorio exige Node ≥ 22 (`package.json` l. 7-9; en el entorno, v22.22.2), cuyo modo por defecto ante un rechazo no atendido es lanzar y salir, y `apps/api/src/index.ts` no instala `process.on('unhandledRejection')` (solo `main().catch`, l. 88-91). Un fallo pasajero de la base en el `update users set last_seen_at` de §10.7 (l. 4828) reiniciaría el servicio `web`, que además corre el auto-tick (l. 56-86). El código de hoy envuelve lo que lanza sin esperar en `try/catch` (`autoTick`, `index.ts` l. 63-80); ni §14.5 ni §10.7 lo dicen.",
+  "correccion": "En el pseudocódigo de §14.5 escribir «si userId: `void touchLastSeen(db, userId).catch((err) => request.log.warn({ err }, 'touchLastSeen'))` (§10.7): sin `.catch`, un rechazo no atendido tumba el proceso en Node 22»; y en §10.7 añadir que `touchLastSeen` nunca propaga: captura y registra su error.",
+  "_fuente": "hallazgos-codigo.json",
+  "_lote": 6
+ },
+ {
+  "id": "Rcodigo-021",
+  "seccion": "§14.5",
+  "linea": 6979,
+  "gravedad": "baja",
+  "afirmacion": "import { type Database, type Horizon, type Viewer, type WorldRef, anonHorizon, computeHorizon, getCurrentWorld, touchLastSeen, worldHorizon } from '@cyclingstar/db'",
+  "fallo": "El bloque de §14.1 (l. 6768: «apps/api/src/spoiler.ts (sigue en §14.5)») ya importa `type Horizon` de `@cyclingstar/db` (l. 6770). En el mismo fichero, tsc da `TS2300: Duplicate identifier 'Horizon'` en las dos líneas (medido en `rcod/n/ws`, los dos bloques en `apps/api/src/spoiler.ts`). Es el mismo defecto que el `stageGateSchema` de §14.2 y el `SnapshotRider` de §5.4.",
+  "correccion": "En el bloque de §14.5 quitar `type Horizon` de la importación y añadir al comentario de cabecera «`Horizon`, `WatchRow` y `stageGateOf` los importa ya §14.1»; o fundir las dos importaciones en la de §14.1.",
+  "_fuente": "hallazgos-codigo.json",
+  "_lote": 6
+ },
+ {
+  "id": "Rcodigo-034",
+  "seccion": "§14.8",
+  "linea": 7169,
+  "gravedad": "baja",
+  "afirmacion": "| la ruta de etapa de hoy | 950-2.159 KB | 22,2-50,0 KB (gzip) | medido, mapa 02 §7 |",
+  "fallo": "El documento da dos rangos medidos para lo mismo y usa el corto donde decide. El mapa 02 §7 midió cinco etapas (0,95 a 2,16 MB, gzip hasta 50,0 KB); el mapa 07 §7 midió las 22 en línea del banco (`scratchpad/medida-etapas.json.txt`, releído aquí: de 870,6 a 2.949 KB y de 22,2 a 100,1 KB con gzip; `race-france` e20 da 2.941,6 KB y 100,1 KB, `race-colombia` e5 2.949 KB y 74,9 KB, e3 2.149,9 KB y 72,1 KB). §1.3 (l. 286) y §18.1 (l. 9047) citan los dos, pero §14.8 (l. 7157 y la tabla), la frase de l. 7177, la línea base de B6 en §16.4 (l. 7983: «medida, 22,2-50,0 KB con gzip, mapa 02 §7») y §17.3 (l. 8368: «de 0,95-2,16 MB a 22-50 KB comprimidos») solo dan el corto, que se queda a la mitad del máximo medido.",
+  "correccion": "En §14.8, la tabla y l. 7177, en B6 (§16.4) y en §17.3 escribir «de 0,87 a 2,95 MB de JSON y de 22,2 a 100,1 KB con gzip (mapa 07 §7, las 22 etapas en línea del banco; el mapa 02 §7 midió de 0,95 a 2,16 MB en cinco)».",
+  "_fuente": "hallazgos-codigo.json",
+  "_lote": 6
+ },
+ {
+  "id": "Rcodigo-035",
+  "seccion": "§14.4",
+  "linea": 6969,
+  "gravedad": "baja",
+  "afirmacion": "`StageTimelineRead.known` es «fuera del velo», no «conocida» en el sentido de `WatchState.known` (10-e): las rutas no la usan para el límite de lo alcanzado, que sale de `race_watch` (§10.11).",
+  "fallo": "Cierra la duda abierta 1.8: además del nombre repetido, el campo no tiene lector. Lo producen `readStageTimeline` (§5.6, l. 2536) y `timelineForStage` (l. 6966), y ningún código del documento lo lee: la ruta del tramo usa `tl` (l. 6919-6936), la admisión (`admitirTramo`, l. 4936-4943) y `stageAccessOf` (l. 6782-6790) leen `race_watch` y `stageGateOf`, y `BroadcastHead.view.known` (l. 1824) es la semántica de `WatchState` (letras W, S, R, A). Un `known` que nadie lee y que significa otra cosa que el `known` de al lado es una trampa para el implementador.",
+  "correccion": "Quitar el campo: `readStageTimeline` y `timelineForStage` devuelven `Promise<StageTimeline | null>` (el `Horizon` se queda como parámetro por D-32), se borra `StageTimelineRead` de §5.6, §14.4, §G.4 y §21.6, y la frase de §14.4 dice «el velo de la etapa lo deciden `stageGateOf` y `race_watch`, no la lectura»; si se prefiere conservarlo, renombrarlo a `unveiled` en los mismos sitios. Dar la duda 1.8 por cerrada.",
+  "_fuente": "hallazgos-codigo.json",
+  "_lote": 6
+ },
+ {
+  "id": "Rcodigo-049",
+  "seccion": "§10.6",
+  "linea": 4653,
+  "gravedad": "media",
+  "afirmacion": "Un test de la suite rápida, `packages/db/src/horizonReaders.test.ts`, hace de esta tabla una regla: recorre las funciones exportadas de `packages/db/src` con el mismo criterio que `l6/lecturas.mjs` y falla si una nombra una fuente y su segundo parámetro no es `Horizon`",
+  "fallo": "Cierra la duda abierta 1.9 con lo que el test puede ver. El criterio de `l6/lecturas.mjs` (releído aquí) es textual: solo encuentra `^export (?:async )?function (\\w+)` y busca en su cuerpo trece patrones de tabla (`stageResults`, `raceGc`, …, `riderDailyLog`), sin `stageTimelines`. Con él: (1) `palmaresTitleSource.titlesOn` es un método de un objeto exportado con `export const palmaresTitleSource: ChampionTitleSource = { async titlesOn(q, worldId, gameDay) { … } }` (§7.4, l. 3401-3402) y el test no lo ve nunca, así que la excepción de 10-c para ella no hace nada, y la fuente de E12 que la sustituya (§7.9) podría leer títulos para un espectador sin `Horizon` sin que el test salte; (2) `stage_timelines`, que D-32 punto 1 pone entre las fuentes (`00-decisiones.md` l. 356), no está en la lista de patrones, así que `readStageTimeline` sin `Horizon` pasaría el test. Corrido hoy sobre `packages/db/src`, el criterio da 57 lecturas y ninguna es un `export const`: el hueco solo lo abre E2.",
+  "correccion": "Escribir en 10-c y en §17.11 (l. 8618) que `horizonReaders.test.ts` recorre con el AST de TypeScript (como `l8/plantillas.mjs`) las funciones exportadas Y los métodos de los objetos exportados, y que su lista de fuentes es la de D-32 punto 1 entera, con `stageTimelines` y `raceWatch`; y cerrar la duda 1.9 dejando la excepción de `buildTimelineCast` y `titlesOn` por su nombre (`cast.ts:buildTimelineCast`, `titles.ts:palmaresTitleSource.titlesOn`) en la lista escrita del test, con su motivo, para que una fuente nueva de títulos entre en rojo.",
+  "_fuente": "hallazgos-codigo.json",
+  "_lote": 6
+ },
+ {
+  "id": "Rcodigo-052",
+  "seccion": "§14.2",
+  "linea": 6845,
+  "gravedad": "baja",
+  "afirmacion": "La ruta acepta además el mismo JSON como `text/plain`: Fastify interpreta los dos tipos sin configurar nada, y así un navegador que rechace el `Blob` JSON en `sendBeacon` puede mandar una cadena.",
+  "fallo": "La frase dice que Fastify «interpreta» los dos tipos, y no los interpreta igual: el analizador que trae de serie para `text/plain` entrega el cuerpo como CADENA. Medido con el Fastify 5.11.2 del repositorio (`rcod/n/fplain.mjs`, `app.inject` con el mismo cuerpo): con `application/json`, `typeof request.body` es `object`; con `text/plain;charset=UTF-8`, es `string` (`\"{\\\"reachedS\\\":12,\\\"mode\\\":\\\"play\\\"}\"`). §14.7 (l. 7152) lo dice bien («llega como cadena … y se pasa por `JSON.parse` dentro de un `try` antes del `safeParse`»), pero §14.2, que es la sección de la ruta y la que lee quien la implementa, afirma lo contrario y no remite a §14.7: con esta frase, el manejador haría `watchProgressBodySchema.safeParse(request.body)` (l. 6868, un `z.object`) sobre la cadena y el respaldo de 14-g daría 400 `validacion` siempre, justo en el navegador para el que existe.",
+  "correccion": "Sustituir la frase por: «La ruta acepta además el mismo JSON como `text/plain`: Fastify lo entrega como cadena, y el manejador la pasa por `JSON.parse` dentro de un `try` antes del `safeParse` (§14.7; una cadena que no es JSON da 400 `validacion`), y así un navegador que rechace el `Blob` JSON en `sendBeacon` puede mandar una cadena.»",
+  "_fuente": "hallazgos-codigo.json",
+  "_lote": 6
+ },
+ {
+  "id": "Rcodigo-057",
+  "seccion": "§14.11",
+  "linea": 7255,
+  "gravedad": "baja",
+  "afirmacion": "Un único vigilante, montado una vez junto al `QueryClientProvider` (`main.tsx` l. 11)",
+  "fallo": "`apps/web/src/main.tsx` l. 11 es `const queryClient = createQueryClient()`; el `QueryClientProvider` se monta en l. 22-26 (`<QueryClientProvider client={queryClient}>` … `</QueryClientProvider>`, dentro de `ErrorBoundary`, con `BrowserRouter` y `App` dentro). El vigilante usa `authClient.useSession()`, que es un hook, así que tiene que ser un componente dentro de ese árbol (l. 22-26), no una sentencia junto a la l. 11.",
+  "correccion": "Escribir «Un único vigilante, un componente `<HorizonWatcher />` montado una vez dentro del `QueryClientProvider` (`main.tsx` l. 22-26, junto a `<BrowserRouter>`), que usa el `queryClient` creado en l. 11».",
+  "_fuente": "hallazgos-codigo.json",
+  "_lote": 6
+ },
+ {
+  "id": "Rcoste-010",
+  "seccion": "§10.3",
+  "linea": 4594,
+  "gravedad": "media",
+  "afirmacion": "Los informes que `Highlights` a ×4, `Next action` (pantalla) y los saltos mandan antes de cada tramo (§8.5), hasta uno cada 0,75 s, no suben esa cifra: la guarda de 15 s los deja en memoria.",
+  "fallo": "La guarda ahorra la escritura, no la petición. Cada informe y cada tramo es una petición con sesión que pasa por `auth.api.getSession` (`apps/api/src/routes/context.ts` l. 51), y better-auth lee `sessions` y `users` en la base en cada una porque `apps/api/src/auth.ts` no configura `session.cookieCache` (la llamada a `betterAuth`, l. 102-223, no tiene clave `session`); y cada una hace además la consulta 1 de `computeHorizon` aunque el memo acierte (§10.7: «cuesta la consulta 1 y nada más»). Con la tabla de §18.7 (l. 9177-9178), `Highlights` ×4 y `Next action` sobre ×1 piden un `POST` y un `GET` cada 0,75 s de pared, y `Next action` sobre ×4, cada 0,19 s: de 2,7 a 10 peticiones por segundo y espectador, con dos o tres lecturas cada una. §18.4 solo cuenta escrituras («400 por minuto … el 1,1 % de un núcleo») y ningún banco mide la carga de lectura de un espectador ni la de cien.",
+  "correccion": "Añadir a la tabla de §18.4 la fila «lecturas por espectador: `getSession` (sesión y usuario) y la consulta 1 del horizonte en cada informe y cada tramo; de 2,7 a 10 peticiones por segundo en `Highlights` ×4 y `Next action` (estimado con §18.7)» y decidir en §10.3: `session.cookieCache` de better-auth con `maxAge` de 60 s en `auth.ts`, para que la sesión se lea de la cookie firmada y no de la base; y en el paso 10, medir el p95 de un tramo con cien espectadores sintéticos en `Next action`.",
+  "_fuente": "hallazgos-coste.json",
+  "_lote": 6
+ },
+ {
+  "id": "Rcoste-011",
+  "seccion": "§10.7",
+  "linea": 4696,
+  "gravedad": "alta",
+  "afirmacion": "memo.set(memoKey, { h, untilMs: Date.now() + SPOILER.horizonMemoS * 1000 })",
+  "fallo": "El memo del horizonte no se vacía nunca: `computeHorizon` solo hace `memo.get` y `memo.set` (l. 4676 y 4696), la entrada caducada se queda en el `Map`, y la clave cambia con cada día de juego (cuatro por día real) y con cada subida de `horizon_rev` (revelar, llegar a meta, seguir, cambiar el alcance). El memo de `veilDelta` (18-c, l. 9250) tiene la misma clave y la misma vida. Medido aquí con objetos de la forma de `buildHorizon` y con las filas de la tabla de §18.2 (`coste/memo/memo.mjs` y `veildelta.mjs`, `heapUsed` tras `gc`): 9 KB por entrada del horizonte de un jugador, 35 KB la de un mánager y unos 200 KB la de `veilDelta` con las 940 filas de un mánager. Con 200 jugadores activos y una decena de claves nuevas por jugador y día real, son de 18 a 470 MB al día en el proceso de `web`, que solo se vacían al reiniciar. El riesgo 13 de §19.1 (la memoria de la API) solo cuenta el LRU de líneas. Y la memoria de lo alcanzado por `(userId, raceKey)` (§18.4: «100 KB por 1.000 espectadores») tampoco se poda: crece con cada carrera vista, no con los espectadores que miran a la vez.",
+  "correccion": "En §10.7 y en 18-c: «Los dos memos son LRU con tope (`SPOILER.horizonMemoEntries`, 2.000 entradas), borran la entrada caducada al leerla y se vacían enteros al cambiar `currentDay`». En el código de l. 4674-4696, `memo.delete(memoKey)` cuando `hit.untilMs <= Date.now()` y la poda por tope tras `memo.set`, como el LRU de §5.6. La memoria de lo alcanzado se poda con la misma regla (la entrada de una carrera acabada se borra al escribirla). B12 gana el caso «mil espectadores y dos días de juego dejan el memo por debajo de su tope», y el riesgo 13 cuenta los dos memos y la memoria de lo alcanzado.",
+  "_fuente": "hallazgos-coste.json",
+  "_lote": 6
+ },
+ {
+  "id": "Rcoste-014",
+  "seccion": "§14.9",
+  "linea": 7192,
+  "gravedad": "media",
+  "afirmacion": "su contenido no cambia nunca y solo se sirve dentro de lo permitido, así que volver a la página no pide otra vez lo ya servido. `Vary: Cookie` hace que otra cuenta en el mismo navegador no lo reutilice.",
+  "fallo": "Con `Vary: Cookie`, el navegador solo reutiliza el tramo guardado si la cabecera `Cookie` de la petición nueva es idéntica a la de la que lo guardó, y el propio tramo la cambia: la tabla de §14.9 (l. 7187) le pone `Set-Cookie` con `cs_viewer` («ídem»: «firmada de nuevo si hay sesión»), 10-g (l. 5009) la re-firma «en cada respuesta con horizonte», y la firma lleva la hora de emisión en segundos (`signViewerCookie`, l. 4847: `v1.<userId>.<nowS>.<firma>`). Cada respuesta cambia la cookie, así que ningún tramo guardado con `private, max-age=3600` casa con la petición siguiente: al volver a la página se baja todo otra vez, y lo único que evita la segunda descarga es la caché de React Query dentro de la misma pestaña. El ahorro que la sección atribuye a `max-age` no existe.",
+  "correccion": "En §10.8 y 10-g: «`cs_viewer` se re-firma como mucho una vez al día: solo si la que llega tiene más de 24 h (`nowS − issuedAtS > 86.400`) o no llega»; así la cabecera `Cookie` es la misma durante el día y `Vary: Cookie` separa cuentas sin anular la caché. En §14.9 escribir que la reutilización del tramo depende de eso, y añadir a `routes/broadcast.test.ts` el caso «dos tramos seguidos de la misma sesión, con la cookie de hace una hora, no llevan `Set-Cookie`».",
+  "_fuente": "hallazgos-coste.json",
+  "_lote": 6
+ },
+ {
+  "id": "Rcoste-017",
+  "seccion": "§14.4",
+  "linea": 6969,
+  "gravedad": "media",
+  "afirmacion": "decodificar, cortar y comprimir una petición cuesta de 1,3 a 4,7 ms (medido por `datos`, `datos.md` §10.5; §18.2)",
+  "fallo": "Es la cifra del formato de `datos`, no del de §4.3, y la tabla de §18.10 (l. 9224) la repite como medida («1,3-4,7 sin ella (`datos`)»). Con el formato de este documento, leer una línea que no está en el LRU cuesta de 2,7 a 7,1 ms de gunzip, parse y decodificación (§5.6) más de 0,4 a 14,5 ms de Zod (medido aquí, `coste/zod/decode.mjs`), es decir, de 3,1 a 21,6 ms antes de cortar y comprimir, y hasta unos 50 ms la primera llamada del proceso. Una petición de tramo que falla en el LRU cuesta de dos a cinco veces lo escrito.",
+  "correccion": "En §14.4 y en §18.10 sustituir por «servir un tramo con la línea en el LRU, de 0,23 a 1,00 ms (medido, `l7/red.mjs`); sin ella, de 3 a 22 ms más el corte (medido por partes: §5.6 y `coste/zod/decode.mjs`)», y cambiar la etiqueta M de la fila de §18.10 por «M, por partes».",
+  "_fuente": "hallazgos-coste.json",
+  "_lote": 6
+ },
+ {
+  "id": "Rcoste-018",
+  "seccion": "§14.11",
+  "linea": 7255,
+  "gravedad": "baja",
+  "afirmacion": "mira el id de usuario de `authClient.useSession()` y llama a `queryClient.clear()` cuando cambia, en cualquier sentido (regla 4)",
+  "fallo": "Al cargar la web, `useSession()` empieza sin datos y con `isPending` (así lo usa `apps/web/src/components/ProtectedRoute.tsx` l. 7-9) y luego da el id: para un vigilante que actúa «cuando cambia, en cualquier sentido», eso es un cambio, y `clear()` tira lo que ya se había pedido. Y mientras `['horizon']` no ha respondido, `useHorizonRev()` devuelve `'anon'` (la misma línea), así que toda consulta con horizonte sale primero con la clave `'anon'` y se repite al llegar el `rev` bueno. En cada visita con sesión, cada consulta de la página se pide dos o tres veces, y cada una paga en el servidor su `getSession`, su `computeHorizon` y, en las rutas con R o M, su `veilDelta`.",
+  "correccion": "En §10.9 (regla 4) y §14.11: «el vigilante ignora el paso de `isPending` al primer id resuelto y solo llama a `clear()` cuando un id ya resuelto cambia a otro o a null; `useHorizonRev()` devuelve `undefined` mientras `['horizon']` está pendiente, y las consultas de `HORIZON_KEYS` llevan `enabled: rev !== undefined`». `queryKeys.test.ts` gana el caso «la primera carga con sesión pide cada consulta una sola vez».",
+  "_fuente": "hallazgos-coste.json",
+  "_lote": 6
+ },
+ {
+  "id": "Rcoste-023",
+  "seccion": "§14.4",
+  "linea": 7283,
+  "gravedad": "baja",
+  "afirmacion": "Las etapas del adaptador se guardan en un LRU propio con el mismo tope.",
+  "fallo": "El coste de construir la línea degradada no está en ninguna tabla de §18: el adaptador lee `stage_snapshots.radio` (de 126 a 559 KB de JSON y de 10,7 a 146,4 KB en `jsonb`, juez del motor, citado en §5.7 l. 2556), la valida (la radio guardada se valida con `storedRaceRadioSchema`, `apps/api/src/chronicle.ts` l. 1257), lee los maillots y la general de salida (`leadersThroughStage`, §11, l. 5569) y construye la `StageTimeline`. Sirve todas las etapas corridas antes del paso 5 y las de `TIMELINE_RECORD=off`: todo lo que el dueño ve en `Watch` desde el 3c hasta el 5 y todo el mundo de pruebas hasta el reinicio. Y este segundo LRU de 16 no está en la cuenta de memoria de 18-d («de 8 a 30 MB») ni en el riesgo 13, que cuentan uno solo.",
+  "correccion": "Añadir a §18.2 la medida del adaptador en frío (leer, validar y construir la línea de las seis congeladas desde su `radio.json.gz`, con `leadersThroughStage` sobre PGlite) y a §18.9 como pendiente del paso 3a; y en 18-d y en el riesgo 13: «dos LRU de 16 entradas, el de las líneas y el del adaptador: hasta el doble de memoria».",
+  "_fuente": "hallazgos-coste.json",
+  "_lote": 6
+ },
+ {
+  "id": "Rdueno-023",
+  "seccion": "§10.4",
+  "linea": 4601,
+  "gravedad": "media",
+  "afirmacion": "o automáticamente al empezar a ver cualquiera de sus etapas (quien se sienta a ver la etapa 3 quiere que la 4 no se la cuenten)",
+  "fallo": "Un toque en `▶` en una carrera fuera de guardia la pone en guardia entera: desde ese momento la portada, el feed, las clasificaciones, los rankings y las fichas esconden sus etapas siguientes hasta 56 días de juego después de la última (DD-02), y el primer progreso arrastra con `A` las anteriores (10-a, l. 5003). Es una decisión sobre el alcance del velo, la misma materia que DD-01 («Qué carreras se protegen sin pedirlo»), y no está en §20: DD-01 solo ofrece `guarded` u `own_only`, y §11.20 lo da por hecho («al empezar a verla la sigue (`follow = 1`, D-30)», l. 5675). Lo que el dueño pidió es «News + Race Radio + journal, y sin destripe» (`docs/encargos.md` l. 680); qué le pasa al resto del producto de quien mira una etapa suelta lo decide aquí el documento.",
+  "correccion": "Añadir a DD-01, o como decisión propia en §20: «Seguir una carrera al empezar a ver una de sus etapas». Por defecto sí; consecuencia: esa carrera entra en el velo en todas las pantallas hasta su caducidad y el ranking de quien la mira va por detrás en ella; lo contrario: solo `Follow without spoilers` protege, y ver la etapa 3 no protege la 4 del feed.",
+  "_fuente": "hallazgos-dueno.json",
+  "_lote": 6
+ },
+ {
+  "id": "Rdueno-024",
+  "seccion": "§10.4",
+  "linea": 4604,
+  "gravedad": "media",
+  "afirmacion": "El resto del mundo se ve al día, porque el mundo no espera a nadie: «races happen whether you are watching or not» (`docs/captacion.md` l. 101).",
+  "fallo": "La cita no dice eso ni es de producto: es una frase del mensaje de reclutamiento para un foro sobre el ritmo del mundo («The world runs on its own: one game day every six hours, so races happen whether you are watching or not», `docs/captacion.md` l. 100-101), en un documento que se declara «plan operativo. No es diseño de producto» (l. 3). Con ella se justifica el límite del alcance del velo, que es lo que el dueño decide en DD-01, y DD-01 solo le ofrece `guarded` u `own_only` (§20.2, l. 9535): no le pone delante la lectura literal de su punto, «News + Race Radio + journal, y sin destripe» (`docs/encargos.md` l. 680), ni la del encargo, «que ninguna otra pantalla se lo reviente por detrás» (l. 145-146), que sería proteger toda etapa que el espectador no conoce, con su coste.",
+  "correccion": "Quitar la cita de `captacion.md` y escribir el porqué propio: un ranking o un feed que esperan a todo lo no visto se quedan parados para quien no mira nada. En DD-01 (§20.2 y §20.3) añadir la tercera respuesta, «todas las carreras», con su consecuencia medida con el mismo `e2prod/headline.mjs` sobre las 842 carreras, para que el dueño elija entre las tres.",
+  "_fuente": "hallazgos-dueno.json",
+  "_lote": 6
+ }
+]

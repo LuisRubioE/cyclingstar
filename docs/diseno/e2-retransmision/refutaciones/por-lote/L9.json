@@ -1,0 +1,200 @@
+[
+ {
+  "id": "Rcobertura-057",
+  "seccion": "§17.10",
+  "linea": 8601,
+  "gravedad": "baja",
+  "afirmacion": "No en `packages/shared/src/broadcast/veilCast.test.ts`, como dice §16.4",
+  "fallo": "§16.4 ya no lo dice: su B13 corre «en `apps/api/src/broadcastFixtures.test.ts`, junto a B3, … (decisión 17-t)» (l. 7990). Pasa lo mismo con otras decisiones de §17 que corrigen a §16 cuando §16 ya está corregido: 17-t (l. 9016: «como dice §16.4»), 17-b (l. 8998: «Descartado: B1d en el 7a, como dice §16.9», con §16.9 diciendo «0 (inventario) y 8a (17-b)», l. 8248), 17-i (l. 9005: «que §16.9 fechaba en el 6a», con §16.9 en «4b el banco (17-i)», l. 8242) 17-l (l. 9008: «como dicen §16.4 y §16.7», con B16 ya en el nocturno de `apps/api`, l. 7993) y 17-m (l. 9009: «y no en el 7a como dice §16.9», con §16.9 en «7b (17-m)», l. 8265). Son remisiones que afirman lo contrario de lo que hay en el sitio citado.",
+  "correccion": "Quitar «, como dice §16.4» de l. 8601 y de 17-t; en 17-b, 17-i, 17-l y 17-m, sustituir la referencia a §16 por «como decía el esqueleto», o borrar el «Descartado» que ya no describe ninguna alternativa del documento.",
+  "_fuente": "hallazgos-cobertura.json",
+  "_lote": 9
+ },
+ {
+  "id": "Rcodigo-016",
+  "seccion": "§17.20",
+  "linea": 8825,
+  "gravedad": "baja",
+  "afirmacion": "los payloads de `contract.ts` l. 332, con `housingCovered`, y de `rollover.ts` l. 326",
+  "fallo": "No existe `contract.ts`: el fichero es `packages/db/src/contracts.ts` (lo nombra la primera columna de la misma fila), y su `emitNews` del fichaje empieza en l. 332 (l. 332-339). El dato de `housingCovered` sale de `offer.payHousing` en l. 328.",
+  "correccion": "Sustituir «de `contract.ts` l. 332» por «de `contracts.ts` l. 332-339 (`housingCovered` = `offer.payHousing`, l. 328)».",
+  "_fuente": "hallazgos-codigo.json",
+  "_lote": 9
+ },
+ {
+  "id": "Rcodigo-044",
+  "seccion": "§17.20",
+  "linea": 8869,
+  "gravedad": "baja",
+  "afirmacion": "las filas de la pestaña `Stages` (pantalla; `Race.tsx` l. 358-369)",
+  "fallo": "`apps/web/src/pages/Race.tsx` l. 358-364 es el comentario de `StagesTab` y l. 365-369 su cabecera (`function StagesTab…`, `winnerOf`, `<div>`, `<h2>`, `<ol>`); las filas están en el `map` de l. 371-409, con `Not raced yet` en l. 397. El propio documento lo cita bien en otros sitios: `Race.tsx` l. 365-414 (la pestaña) y l. 380-397 (§11.17, l. 5595).",
+  "correccion": "Cambiar `Race.tsx` l. 358-369 por `Race.tsx` l. 365-414 (`StagesTab`; las filas, l. 371-409).",
+  "_fuente": "hallazgos-codigo.json",
+  "_lote": 9
+ },
+ {
+  "id": "Rcoste-029",
+  "seccion": "§17.1",
+  "linea": 8311,
+  "gravedad": "media",
+  "afirmacion": "sigue en 89 (`packages/engine/src/constants.ts` l. 838) y `packages/engine/src/index.test.ts` l. 465 (`expect(ENGINE_VERSION).toBe(89)`) no se toca en ningún PR de E2",
+  "fallo": "El documento acepta en l. 27 la regla de arranque (`docs/encargos.md` l. 15-26): no se abre código hasta que la línea de la táctica y el entrenamiento esté en producción, y entonces se parte de la última versión de producción. Esa línea sube `ENGINE_VERSION` en casi todos sus pasos (riesgo 4, l. 9273; «de la v86 del 22-09 a la v89 del 26-09», l. 1272), así que E2 arrancará con otra versión: la regla 3 tal como está escrita obliga a un `toBe(89)` que ya no será verdad, y todas las cifras del motor (B11 «20 de 20» y «24 de 24», los tamaños de §5.7, el tick de §18.3, los picos) son de la v89 y no de la versión sobre la que se implemente.",
+  "correccion": "Sustituir por «`ENGINE_VERSION` no se mueve en ningún PR de E2: se queda en la versión con la que arranque E2 (hoy 89, `packages/engine/src/constants.ts` l. 838), y `index.test.ts` l. 465 no se toca». Añadir al PR 0: «re-medir sobre la versión de arranque B11, los tamaños de §5.7 y el tick de §18.3 con `l3/grabador.mjs` y `l7/tick.mjs`, y escribir las cifras nuevas en §18.9 antes del 4a».",
+  "_fuente": "hallazgos-coste.json",
+  "_lote": 9
+ },
+ {
+  "id": "Rcoste-030",
+  "seccion": "§17.1",
+  "linea": 8317,
+  "gravedad": "alta",
+  "afirmacion": "las migraciones solo añaden y son inertes si nadie las lee",
+  "fallo": "Aplicarlas no es inerte. Corren al arrancar la web (`apps/api/src/index.ts`: `runMigrations` antes de `listen`) y antes de cada tick del cron (`railway.tick.json`: `node scripts/migrate.mjs && …`); drizzle las aplica todas en UNA transacción (`drizzle-orm` 0.45.2, `pg-core/dialect.js` l. 60-71); y su candado es de otra clase que el del tick (`packages/db/src/migrate.ts` l. 24, `tick.ts` l. 214), así que una migración puede empezar con un día del tick abierto. Su `ALTER TABLE` pide entonces un bloqueo exclusivo, espera al tick y, mientras espera, pone en cola detrás a toda lectura de esa tabla. Medido en PostgreSQL 16.13 con una transacción «del tick» abierta 8 s (`coste/pgm/cola.mjs` y `cola45.mjs`): una lectura del feed durante la `0043` espera 7,4 s; una de `transactions` durante la `0046`, 7,9 s; y durante la `0045`, que hace `ALTER TABLE users` y después `CREATE INDEX` sobre `race_rosters` (que el tick escribe: `stageRun.ts` l. 1065, `calendarRun.ts`), una lectura de `users` espera 7,5 s. Better-auth lee `users` en cada petición con sesión (`auth.ts` l. 109, sin `cookieCache`): la web entera se para lo que quede del día del tick, que el 179 son de 104 a 128 s (§18.3). §13.1 midió las cuatro en 44 ms sobre una fila por tabla, y §19.1 no tiene el riesgo.",
+  "correccion": "En §17.1 (regla 9) y §13.1 (regla 7): «Aplicar una migración no es inerte: `runMigrations` toma antes el candado del tick (`pg_advisory_lock(LOCK_CLASS.tick, 1)`, el de `tick.ts` l. 214) y fija `SET lock_timeout = '10s'`, de modo que nunca coincide con un día del tick y, si una tabla está ocupada, falla y el arranque reintenta en vez de parar la web». Añadir el riesgo a §19.1, y a `migrations.test.ts` el caso «con el candado del tick tomado, `runMigrations` espera y no toca ninguna tabla».",
+  "_fuente": "hallazgos-coste.json",
+  "_lote": 9
+ },
+ {
+  "id": "Rcoste-031",
+  "seccion": "§17.7",
+  "linea": 8477,
+  "gravedad": "baja",
+  "afirmacion": "**PR 4a** · M · motor · no depende de nada: puede ir en paralelo con los pasos 1 a 3.",
+  "fallo": "El 4a toca los ficheros que la línea de la táctica cambia en casi todos sus pasos: `stage/simulate.ts` (`onEvent` en la emisión, `onBanner` en `disputeBanner` y `disputeClimb`, la sonda a `simulateTimeTrial`), `stage/events.ts`, `stage/timetrial.ts`, `stage/types.ts`, `sim/coherence.ts` y `sim/raceRadio.ts` (l. 8487-8489), y el riesgo 1 de §19.1 da por «alta» que la táctica mueva el motor a la vez. Cada vez que la táctica fusione antes, el 4a y el 4b se rebasan, pasan otra vez los ocho tramos (unos 73 min de runner, regla 4) y B11 se vuelve a sellar; el coste de §17.22 (2 y 4 sesiones) no cuenta ningún rebase, y el plan no dice cómo se coordina con la otra línea más allá de la regla de arranque.",
+  "correccion": "Añadir a §17.7: «El 4a y el 4b se fusionan en una ventana acordada con la línea del motor (sin PR de la táctica abierto sobre `stage/simulate.ts`, `stage/timetrial.ts` y `sim/coherence.ts`), y cada rebase sobre un cambio del motor repite los ocho tramos y B11»; y en §17.22 sumar una sesión por rebase previsto.",
+  "_fuente": "hallazgos-coste.json",
+  "_lote": 9
+ },
+ {
+  "id": "Rcoste-034",
+  "seccion": "§17.14",
+  "linea": 8703,
+  "gravedad": "media",
+  "afirmacion": "**Se revierte con** revert, que vuelve a escribir la radio; las etapas corridas entre medias tienen la línea, de la que sale la misma radio (B16).",
+  "fallo": "`radioFromTimeline` nace en el mismo PR 11 (`packages/shared/src/broadcast/radio.ts`, l. 8701), y la pestaña la lee en las etapas con línea en ese mismo PR. Un `git revert` del 11 quita a la vez la escritura de la radio y el código que la saca de la línea: las etapas corridas entre el 11 y el revert se quedan sin `stage_snapshots.radio` (null desde el 11) y sin quien la derive, y `Race Radio` (pantalla) no tiene nada que enseñar en ellas hasta que se vuelva a fusionar el 11. La marcha atrás que la sección promete no existe con un revert entero, y §17.18 (l. 8767) cuenta el 11 entre los que se revierten con `git revert`.",
+  "correccion": "Partir el 11 en dos PR: «11a: `radioFromTimeline`, B16 y la pestaña que lee la línea en las etapas con línea (se revierte con revert: no deja de escribir nada); 11b: `stageRun.ts` deja de escribir `stage_snapshots.radio` (una línea y su test). El 11b se revierte volviendo a escribir la radio, y las etapas de entre medias siguen servidas por el código del 11a, que no se revierte con él». En §17.18, el 11b va en «se revierte hacia delante».",
+  "_fuente": "hallazgos-coste.json",
+  "_lote": 9
+ },
+ {
+  "id": "Rcoste-035",
+  "seccion": "§17.15",
+  "linea": 8715,
+  "gravedad": "baja",
+  "afirmacion": "**Se revierte con** revert; los documentos se quedan.",
+  "fallo": "El 12 re-sortea una vez las variantes de las frases de las etapas viejas para todos los jugadores y cambia el equipo que nombran las crónicas viejas (la misma línea: «una sola vez, algunas frases de etapas viejas cambian de variante»; regla 11 de §17.1). Un revert no deja lo que ve el jugador como estaba antes del 12 sin que se note: vuelve a cambiar esas mismas frases, un segundo re-sorteo visible para todos, y el equipo de las crónicas vuelve a ser el de hoy. En lo que ve el jugador el 12 no es reversible gratis, y la sección lo trata como un revert sin coste.",
+  "correccion": "Sustituir por: «**Se revierte con** revert, pero no sin que se note: el revert vuelve a cambiar las variantes de las frases viejas para todos; por eso el 12 va el último, tras la prueba de lectura, y solo se revierte por un fallo de corrección».",
+  "_fuente": "hallazgos-coste.json",
+  "_lote": 9
+ },
+ {
+  "id": "Rcoste-036",
+  "seccion": "§17.18",
+  "linea": 8767,
+  "gravedad": "baja",
+  "afirmacion": "El 4a y el 4b dejan, a lo sumo, código que nadie llama.",
+  "fallo": "Solo hasta el 5: desde él `recordStageTimeline` (`packages/db/src/timelines.ts`, §5.5) llama al grabador y a los ganchos que traen el 4a y el 4b, y el colector aparte del tick depende de ellos (§17.8). Revertir el 4a o el 4b con el 5 fusionado deja `packages/db` sin compilar; la marcha atrás real es `TIMELINE_RECORD=off` y el código se queda. Y todo revert de los dos toca `packages/engine`: paga otra vez los ocho tramos (unos 73 min de runner, regla 4 de §17.1).",
+  "correccion": "Sustituir por: «El 4a y el 4b se revierten con `git revert` solo antes del 5; después, su marcha atrás es `TIMELINE_RECORD=off`, y el revert exige revertir antes el 5. Todo revert de los dos paga los ocho tramos (regla 4)».",
+  "_fuente": "hallazgos-coste.json",
+  "_lote": 9
+ },
+ {
+  "id": "Rcoste-037",
+  "seccion": "§17.19",
+  "linea": 8783,
+  "gravedad": "alta",
+  "afirmacion": "Solo una cosa tiene que ir antes: la `0043` y su PR, el 1a, para que las noticias del mundo nuevo nazcan con `seed` y `data` ([DOC 1], D-45).",
+  "fallo": "El plan no casa esa fecha con la regla de arranque que el propio documento acepta (l. 27; `docs/encargos.md` l. 15-26): no se abre código de ninguna épica hasta que la línea de la táctica y el entrenamiento esté en producción. El reinicio lo fija el dueño al pasar de pruebas a juego de verdad (`docs/agenda.md` l. 35), y nada impide que llegue antes de que la regla deje empezar el 1a, o en la misma semana. Si llega antes, las noticias del mundo nuevo nacen sin datos y, según §19.8 (l. 9473), eso «no tiene arreglo». Ni §17.19 ni §19.1 dicen qué se hace en ese caso, y el 1a no es mínimo: son 2 sesiones con `renderNews` en `shared`, dos titulares nuevos y `text` de compatibilidad (§17.4). La Oleada 0 de `docs/agenda.md` (l. 1411-1417) ya pedía el arreglo de `news` antes del reinicio como tarea suelta.",
+  "correccion": "Añadir a §17.19 y como riesgo en §19.1: «Si el reinicio se fecha antes de que la regla de arranque abra el código, el 1a se adelanta como excepción declarada, reducido a la `0043` y a `emitNews` escribiendo `seed` y `data` (sin `renderNews` ni los titulares nuevos, que siguen en su paso); si el dueño no acepta la excepción, el reinicio espera al 1a. Lo decide el dueño (una DD nueva en §20), con el defecto de adelantar el 1a mínimo, que es la Oleada 0 de `docs/agenda.md`».",
+  "_fuente": "hallazgos-coste.json",
+  "_lote": 9
+ },
+ {
+  "id": "Rcoste-038",
+  "seccion": "§17.19",
+  "linea": 8783,
+  "gravedad": "media",
+  "afirmacion": "el reinicio hace en cada caso lo que §13.9 escribe y el paso 12 deja en `docs/ops.md`",
+  "fallo": "El procedimiento se escribe en `docs/ops.md` en el paso 12, el último (§17.15), pero hace falta desde el 5: desde entonces `stage_timelines` tiene filas por `race_key` sin mundo y se escribe con `onConflictDoNothing`, así que un reinicio que no la vacíe hace que el mundo nuevo sirva, sin error y sin lápida, la línea del viejo en `race-france:s0` y siguientes (§13.9, l. 6714), y el grabador del mundo nuevo ni siquiera escribe la suya. Entre el 5 y el 12 van unas 30 sesiones (§17.22), el riesgo 20 de §19.1 lo deja «sin vigilante: es un procedimiento», y además exige reiniciar a mano el servicio `web`, porque el LRU va por `raceKey` sin mundo (13-h).",
+  "correccion": "En §17.8 (PR 5) añadir: «este PR escribe en `docs/ops.md` que el reinicio vacía `stage_timelines` con `stage_snapshots` y reinicia `web`»; en §17.10 (PR 7a), lo mismo para `race_watch`. En §5.6, la clave del LRU pasa a ser `${worldId}|${raceKey}|${stageDay}`, con lo que reiniciar el servicio deja de ser un paso del procedimiento. Y `timelines.test.ts` gana el caso «si la escritura no inserta fila porque ya hay una de otro mundo, la nota del tick lo dice».",
+  "_fuente": "hallazgos-coste.json",
+  "_lote": 9
+ },
+ {
+  "id": "Rcoste-042",
+  "seccion": "§19.1",
+  "linea": 9288,
+  "gravedad": "baja",
+  "afirmacion": "| 19 | más de una instancia de la API | baja: `railway.json` no pide réplicas | la memoria de lo alcanzado no se comparte y un tramo legítimo da 409 |",
+  "fallo": "La memoria de lo alcanzado también se pierde sin réplicas: cada despliegue reinicia el proceso de `web` (y el arranque migra y corre el tick, `apps/api/src/index.ts` l. 84), y los tres interruptores se leen de `env.ts` al arrancar (§14.6), así que cambiarlos en Railway solo surte efecto con un reinicio. Tras cada uno la admisión de §10.11 cae a `race_watch.reached_s`, que puede ir hasta 60 s de carrera y 15 s de pared por detrás (10-l), y los espectadores que estén en el borde reciben 409 y reintentan. El plan son 22 despliegues más los de la táctica: la probabilidad no es «baja» ni depende de las réplicas.",
+  "correccion": "Riesgo 19: «probabilidad media: cada despliegue y cada cambio de interruptor reinician `web` y vacían la memoria de lo alcanzado; la admisión cae a `race_watch.reached_s` y el borde da 409 hasta el informe siguiente». Defensa: la web, ante un 409 `beyond_reached`, informa y reintenta una vez sin pausar (§14.3), y B18 gana el caso «con la memoria del proceso vacía, un tramo en el borde se sirve tras un informe».",
+  "_fuente": "hallazgos-coste.json",
+  "_lote": 9
+ },
+ {
+  "id": "Rcoste-043",
+  "seccion": "§19.1",
+  "linea": 9304,
+  "gravedad": "media",
+  "afirmacion": "El 8, porque del mánager depende que el velo se encienda, y la cifra que lo decide solo sale contra Postgres.",
+  "fallo": "La cifra ya sale: en PostgreSQL 16 nativo el mánager da p95 de 3,88 ms en la forma D (hallazgo de §18.2, `coste/pgm/horizonte-pg.mjs`), así que el 8 no es de los que más cuestan. Y la lista deja fuera cinco riesgos medidos que no están en la tabla o están como defensa: el memo del horizonte y el de `veilDelta` sin vaciar (de 9 a 200 KB por entrada, con claves nuevas cada día de juego), las migraciones que esperan a un tick abierto con un bloqueo exclusivo puesto (lecturas de `users`, `news` y `transactions` paradas lo que dure el día; 7,5 s en la prueba de 8 s), la puerta de B14 a 0,03 ms de su umbral en la suite de todo PR, el paso 9 de `instantAt`, que multiplica por hasta diecisiete el coste del fotograma, y el límite global de 300 peticiones por minuto e IP, que el riesgo 31 pone de defensa y que dos espectadores en `Highlights` ×4 detrás de la misma IP ya pasan (320).",
+  "correccion": "Reescribir el párrafo: «Los que más pueden costar: el memo del horizonte sin tope (la memoria de `web`), las migraciones que coinciden con un tick (una parada de la web), la puerta de B14 en la rápida (un CI intermitente para todos), el límite de peticiones que corta los modos rápidos y el 1, porque la táctica seguirá moviendo el motor. El 8 baja: en Postgres 16 el mánager da 3,88 ms de p95». Y añadir los cuatro primeros como filas de la tabla de §19.1, con su defensa y su banco.",
+  "_fuente": "hallazgos-coste.json",
+  "_lote": 9
+ },
+ {
+  "id": "Rcoste-044",
+  "seccion": "§19.1",
+  "linea": 9300,
+  "gravedad": "alta",
+  "afirmacion": "el límite global de 300 peticiones por minuto e IP (`apps/api/src/security.ts` l. 10, `datos.md` §15) y los tramos solo dentro de lo alcanzado (B18)",
+  "fallo": "El límite que aquí es defensa frena al propio reproductor. `GLOBAL_RATE_LIMIT` son 300 peticiones por minuto e IP para todas las rutas (`security.ts` l. 10; `app.ts` l. 108-121, `global: true`, con la IP real por `trustProxy`). Con la cadencia de §18.7 (l. 9177-9178), `Highlights` ×4 y `Next action` sobre ×1 piden un `POST` y un `GET` cada 0,75 s de pared a más de 50 km de meta: 160 peticiones por minuto y espectador, más los informes de 15 s. Dos espectadores detrás de la misma IP (una casa, una oficina, un operador móvil con CGNAT, o la misma persona con el teléfono y el ordenador en la misma red) pasan de 320 y reciben 429; y `Next action` sobre ×4 pide un par cada 0,19 s, 640 por minuto mientras dura. El 429 es un fallo de petición: el reproductor pausa con `Connection lost · Retry` (§8.5). Ningún banco ni medida de §18.9 cruza la cadencia de los tramos con el límite.",
+  "correccion": "En §14.3 y §14.5: «las rutas de los tramos (`GET …/broadcast/…/chunk`) y del progreso (`POST /api/me/watch`) llevan su propio límite (`config.rateLimit` de `@fastify/rate-limit`: 1.200 por minuto) con la clave del usuario cuando hay sesión (`keyGenerator`: el id de la sesión o, sin ella, la IP), porque B18 ya acota lo que se puede pedir; un 429 no pausa: el reproductor espera lo que diga `retry-after` con `Loading`». En el riesgo 31, la defensa pasa a ser B18 y ese límite propio, y B18 gana el caso «dos sesiones desde la misma IP piden 320 tramos en un minuto sin un 429».",
+  "_fuente": "hallazgos-coste.json",
+  "_lote": 9
+ },
+ {
+  "id": "Rdueno-009",
+  "seccion": "§17.6",
+  "linea": 8455,
+  "gravedad": "media",
+  "afirmacion": "El dueño lo verá, que es para lo que se le enseña.",
+  "fallo": "El dueño caza defectos del motor mirando los grupos de detrás, no solo la cabeza: «¿qué me dices de este tercer grupo que va a 94 km/h cuando están just riding?» (`docs/balance.md` l. 9480, v58) y «Hay un ciclista suelto que se quedó descolgado del pelotón… ¿cómo es posible que vaya tan rápido como el pelotón?» (l. 7898-7899). En el 3c el adaptador «pinta mal a los grupos que no son la cabeza: sin identidad ni marcas de composición, interpolar entre fotos llega a errar kilómetros», y B22 solo mide la cabeza (esta misma línea, l. 8455). Enseñarle esas posiciones sin marca es invitarle a dar por defectos del motor los errores de una pieza provisional; el aviso `Recorded before full race data` (pantalla) es uno para toda la etapa y no dice qué cursor es fiable.",
+  "correccion": "En §3.8 y en el 3c: con `clock: 'estimated'`, `ProfileStrip` pinta hueco (sin relleno) el cursor de todo grupo que no sea la cabeza, la barra escribe su km con `~` y el aviso dice `Positions of the groups behind are estimated` (pantalla). Se quita en el 6a con la línea grabada. `GroupBar.test.tsx` del 3c gana el caso.",
+  "_fuente": "hallazgos-dueno.json",
+  "_lote": 9
+ },
+ {
+  "id": "Rdueno-010",
+  "seccion": "§17.6",
+  "linea": 8471,
+  "gravedad": "media",
+  "afirmacion": "Con el reloj estimado y los grupos por su posición; sin rótulos de suceso (6a) ni de corredor (6b).",
+  "fallo": "El primer `Watch` que ve el dueño no enseña su única petición literal, «Y un requisito concreto del dueño que es puro lenguaje de televisión: cuando se escapan cinco, que se vean sus maillots» (`docs/encargos.md` l. 153-154; [DUEÑO 3]), y no la verá hasta el 6b, quince sesiones después (12,5 y 27,5 en §17.22), tras los dos PR que pagan los ocho tramos de bancos. No hace falta esperar tanto: para una fuga, la radio guardada ya nombra a todos los de un grupo de hasta doce (`NAME_WHOLE_GROUP_UP_TO`, `packages/engine/src/sim/raceRadio.ts` l. 611) con su maillot de líder (el campo `jersey` que ya lee `RaceRadioPanel.tsx`, l. 96-98), el campeón sale de `palmares` (`palmaresTitleSource`, 7-k) y la equipación de `teams.jersey_seed`; `breakHeadline` y la ronda de la moto leen `RiderCard`s (§7.6), no la línea grabada. El corte «tras el 3c» de §17.17 (l. 8750) deja al dueño sin [DUEÑO 3].",
+  "correccion": "Añadir al 3c, o a un 3d (S, API y web), las cartas del adaptador para los grupos de hasta `nameWholeGroupUpTo`: `RiderCard` con dorsal, equipo y `worn` sacado de la radio guardada y de `palmaresTitleSource`, marcadas provisionales; con ellas, `break_presented` y la ronda de la moto. El 6b sustituye la fuente por el reparto congelado. En §17.17, el corte tras el 3c contesta [DUEÑO 3] en parte.",
+  "_fuente": "hallazgos-dueno.json",
+  "_lote": 9
+ },
+ {
+  "id": "Rdueno-027",
+  "seccion": "§17.4",
+  "linea": 8398,
+  "gravedad": "media",
+  "afirmacion": "**Qué ve el dueño**, y cualquier jugador: dos titulares nuevos en el feed desde la primera etapa corrida con el 1a (`X takes the overall lead at the Race Y.`, pantalla, y los de puntos y montaña)",
+  "fallo": "El punto del dueño es «News + Race Radio + journal, y sin destripe» (`docs/encargos.md` l. 680), y el encargo cuenta el feed entre las pantallas que no pueden reventar nada (l. 145-147). El 1a pone en el feed de todos dos titulares nuevos que solo cuentan resultados (quién pasa a liderar la general, los puntos o la montaña) semanas antes de que exista el velo: el 1a va a las 3 sesiones y el encendido a las 48,5 (§17.22), sin interruptor y sin que el dueño los haya visto antes, contra §2.10 («ningún comportamiento visible llega al jugador sin encenderlo a mano (D-53)», l. 598) y §20.5 («Nada llega al jugador sin que el dueño lo haya visto antes», l. 9587). No está en §20.",
+  "correccion": "El 1a escribe `gc_lead_taken` y `jersey_taken` con su `payload`, pero `GET /api/news` y `/api/teams/:id/news` no los sirven hasta `SPOILER_MODE=on` (un filtro por `kind` en `packages/db/src/news.ts`, con su test). Si se quieren antes, subirlo a §20: «Titulares nuevos de cambio de líder», por defecto «desde el encendido del 10b».",
+  "_fuente": "hallazgos-dueno.json",
+  "_lote": 9
+ },
+ {
+  "id": "Rdueno-045",
+  "seccion": "§17.11",
+  "linea": 8630,
+  "gravedad": "media",
+  "afirmacion": "con la web de hoy, listas cortadas hasta lo que conoce, ganadores a null y los marcadores con su `text` neutro",
+  "fallo": "Del 7b al 9b (de la sesión 32,5 a la 44,5 de §17.22, con un implementador) el dueño juega y mira producción con una web que no sabe pintar lo que le llega: pestañas vacías (7b, l. 8608), «ganadores a null» y listas cortadas (8a, aquí) y los agregados a su horizonte sin los avisos que los explican, que llegan con el 9b (§17.12). El plan lo apunta como «Qué ve el dueño», pero no dice qué hace él con ello, y el dueño informa como defecto lo que ve roto en producción, como con la radio que decía no existir: «Una carrera que se acaba de correr hace unos minutos, la Race Solidarnosc… sale este error, y las otras del mismo día o anteriores sí tienen Race Radio» (`docs/balance.md` l. 13818-13819, v72). Doce sesiones de huecos y nulos sabidos en su cuenta son una fuente de falsos defectos, o un motivo para poner `SPOILER_MODE=off` y no probar el velo.",
+  "correccion": "Encender `SPOILER_MODE=admins` al fusionar el 9b y no en el 7a (tabla de §17.18, §17.10, §17.11 y §20.5): el 7a, el 7b, el 8a y el 8b se prueban con sus bancos (B1a a B1c, B12, B13 y B18) sin tocar la cuenta del dueño, y el dueño estrena el velo con la web que lo pinta. Es compatible con Rdueno-002 (el `?diag=1` de la web va entonces con el 9a, antes del encendido). Si se prefiere antes, que §17.10 y §17.11 le digan qué pantallas verá rotas y hasta qué PR.",
+  "_fuente": "hallazgos-dueno.json",
+  "_lote": 9
+ }
+]
