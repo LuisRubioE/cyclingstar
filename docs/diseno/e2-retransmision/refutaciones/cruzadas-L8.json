@@ -32,12 +32,12 @@
  {
   "id": "Rcodigo-027",
   "seccion_destino": "dudas.md (1.10, 1.6 y 1.12)",
-  "que": "Cerradas en la corrección L8: la 1.10 (B16 compara las 22 en línea y las dos cronos dan radio vacía, §12.10, §16.4), la 1.6 (B22 informa de todos los grupos con la medida del refutador de código, 16-s) y la 1.12 (la lista blanca de B1b lleva sus rutas de campos en §11.18, corrección L7, y §16.3 las copia). De la 1.1 quedan solo `stage_timelines.tpl_rev` en la `0044` de §13.3 y `tplRev` en `stageReplaySchema` de §14.2 (cruzadas de Rcodigo-046)."
+  "que": "Cerradas en la corrección L8: la 1.10 (B16 compara las 22 en línea y las dos cronos dan radio vacía, §12.10, §16.4), la 1.6 (B22 informa de todos los grupos con la medida del refutador de código, 16-s) y la 1.12 (la lista blanca de B1b lleva sus rutas de campos en §11.18, corrección L7, y §16.3 las copia). De la 1.1 queda solo `tplRev` en `stageReplaySchema` de §14.2 (cruzada de Rcodigo-046); `stage_timelines.tpl_rev` ya está en la `0044` de §13.3 (13-j, corrección L3; actualizada en el cierre de L8)."
  },
  {
   "id": "Rcodigo-046",
   "seccion_destino": "§13.3",
-  "que": "12-c escrito como hecho: en la `0044`, `\"tpl_rev\" smallint DEFAULT 0 NOT NULL` dentro del `CREATE TABLE \"stage_timelines\"`, y en su tabla de Drizzle `tplRev: smallint('tpl_rev').notNull().default(0)`, regenerando la `0044` con drizzle-kit (17-a: en la `0044`, no en una quinta migración). La escribe `recordStageTimeline` con el `TEMPLATE_REV` del tick (§12.7)."
+  "que": "(Superada en el cierre de L8: no aplicar.) §13.3 ya tiene `tpl_rev` en la `0044` como `smallint not null` y sin defecto (13-j, corrección L3, con la cruzada de L3 Rcobertura-044), con su porqué: la tabla no tiene filas de antes que rellenar y, con `default 0`, un escritor que la olvidara dejaría todas las etapas en la revisión 0 sin que nada fallara. §12.7 y 12-c ya lo dicen así. Decía: «en la `0044`, `\"tpl_rev\" smallint DEFAULT 0 NOT NULL` dentro del `CREATE TABLE \"stage_timelines\"`, y en su tabla de Drizzle `tplRev: smallint('tpl_rev').notNull().default(0)`»."
  },
  {
   "id": "Rcodigo-046",
@@ -47,7 +47,7 @@
  {
   "id": "Rcodigo-046",
   "seccion_destino": "§5.6",
-  "que": "`readStageTimeline` devuelve también `tplRev` de la fila (o lo lleva la línea decodificada), porque la cabecera (`BroadcastHead.tplRev`) y el acta lo sirven (§12.7, 12-c); `recordStageTimeline` escribe `tpl_rev` con `TEMPLATE_REV` de `packages/shared/src/render/variants.ts`."
+  "que": "(Superada en el cierre de L8: no aplicar.) §5.6 ya resuelve la lectura con `readStageTemplateRev(db, _h, raceKey, stageDay)`, que da el `tpl_rev` de la fila desde la misma entrada del LRU, y `readStageTimeline` devuelve la línea sola (5-p, corrección L3); la fila la arma `stageTimelineRow` con el `meta.tplRev` que `recordStageTimeline` toma de `TEMPLATE_REV`, y la escribe `flush` (§5.5). §12.7 y 12-c ya lo dicen así. Decía: «`readStageTimeline` devuelve también `tplRev` de la fila (o lo lleva la línea decodificada)»."
  },
  {
   "id": "Rcodigo-050",
@@ -82,12 +82,12 @@
  {
   "id": "Rdueno-019",
   "seccion_destino": "§20.2 y §20.8 (DD-04)",
-  "que": "DD-04 recoge, como `00-decisiones.md` (precisada en la fase 5, L8), que el cuarto nombre (`Gruppetto`) y el reparto de papeles con el corte de dos tercios de §6.3 cambian SPEC §6.15, que dice tres nombres y reparte con `chaseKind` (`SPEC.md` l. 604-615): lo contrario son tres nombres, con lo de detrás del grueso llamado `the bunch` o por su papel. SPEC es la fuente de verdad del diseño («Ante conflicto, SPEC.md manda», `Claude.md` l. 4)."
+  "que": "(Actualizada en el cierre de L8, con la cruzada de L4 Rdueno-017.) DD-04 recoge, como `00-decisiones.md` (precisada en la fase 5 por L8 y en su cierre), que el cuarto nombre (`Gruppetto`), los tres nombres del grupo del maillot en la voz (`the race leader’s group`, `the points leader’s group` y `the mountains leader’s group`; D-18 y 6-b) y el reparto de papeles con el corte de dos tercios de §6.3 cambian SPEC §6.15, que dice tres nombres y reparte con `chaseKind` (`SPEC.md` l. 604-615): lo contrario son tres nombres, con lo de detrás del grueso llamado `the bunch` o por su papel y el grupo del maillot nombrado por su papel. SPEC es la fuente de verdad del diseño («Ante conflicto, SPEC.md manda», `Claude.md` l. 4). Si §20 ya aplicó la versión anterior de esta cruzada, lo que falta son los tres nombres del grupo del maillot."
  },
  {
   "id": "Rdueno-019",
   "seccion_destino": "§17.15 (paso 12) y D-58",
-  "que": "El paso 12 reescribe SPEC §6.15 (l. 604-615, «El vocabulario de grupos (v27)») con lo que conteste el dueño en DD-04: por defecto, cuatro nombres y el corte de dos tercios de §6.3 (12-r). D-58 y la lista de documentos que se corrigen ganan `SPEC.md`."
+  "que": "(Actualizada en el cierre de L8, con la cruzada de L4 Rdueno-017.) El paso 12 reescribe SPEC §6.15 (l. 604-615, «El vocabulario de grupos (v27)») con lo que conteste el dueño en DD-04: por defecto, los siete nombres (los cuatro papeles de D-18 y los tres del grupo del maillot de 6-b) y el corte de dos tercios de §6.3 (12-r). D-58 y la lista de documentos que se corrigen ganan `SPEC.md`."
  },
  {
   "id": "Rcobertura-051",
@@ -96,8 +96,8 @@
  },
  {
   "id": "Rcobertura-051",
-  "seccion_destino": "§8.12, §17.9 (PR 6b) y §17.21",
-  "que": "La segunda parte de B3 (la presentación de la fuga de 6-m) va en `apps/web/src/domain/broadcast/breakPresentation.test.ts` (nuevo, 6b, rápida, con `/// <reference types=\"node\" />` porque lee los `.timeline.gz` congelados): con una fuga de cinco con el campeón y el líder y la cola llena, a ×1 salen enteras la lista, la frase y los cinco rótulos de la ronda; a ×4 y en `Highlights`, la lista y la frase; y sobre las cinco en línea congeladas, a ×1, toda fuga con algún fotograma pintado antes de su caza tiene su lista y su frase y cada escapado que sigue delante, su rótulo (16-p). Fila en §17.21 y en la tabla de §8.12 si se prefiere tenerlo allí. El 6b también gana la cabecera sintética de la primera parte de B3 en `broadcastFixtures.test.ts`."
+  "seccion_destino": "§8.12, §17.9 (PR 6b), §17.13 (PR 10b) y §17.21",
+  "que": "(Actualizada en el cierre de L8, con la cruzada de L4 Rcobertura-023 y Rdueno-003.) La segunda parte de B3 (la presentación de la fuga de 6-m) va en `apps/web/src/domain/broadcast/breakPresentation.test.ts` (nuevo, 6b, rápida, con `/// <reference types=\"node\" />` porque lee los fixtures congelados) y corre el reproductor de verdad sin navegador (`cuesBetween`, la programación de §6.5, `admitir` y el fotograma de la cola, `isPresentation`, `aheadOfPeloton` y `breakRoundOf`) a 60 fotogramas por segundo de pared: primero, una fuga de cinco con el campeón y el líder y la cola llena (a ×1, la lista, la frase y los cinco rótulos de la ronda; a ×4 y en `Highlights`, la lista y la frase); después, las cinco en línea congeladas en `Watch` a ×½, ×1 y ×2 y en `Highlights` a ×1, con el 100 % de listas y frases, de la ronda a ×½ y ×1 y de rótulos que no empiezan con su corredor ya cazado (16-p). «Tests primero» del 6b en §17.9 (hoy, «sobre las cinco en línea, toda fuga pintada antes de su caza tiene su lista y su frase») lo dice así. El 10b (§17.13) gana lo mismo a mano sobre las 24 × 2 con la línea grabada, con el 99 % de la ronda y la cifra en su descripción. Fila en §17.21, y en la tabla de §8.12 si se prefiere tenerlo allí. El 6b también gana la cabecera sintética de la primera parte de B3 en `broadcastFixtures.test.ts`."
  },
  {
   "id": "Rcobertura-052",
@@ -202,7 +202,7 @@
  {
   "id": "Rcoste-028",
   "seccion_destino": "§19.1 (riesgo 1)",
-  "que": "Añadir: «desde el 4b, cada PR de la táctica paga `timeline.test.ts` en «mundo y radio», de 3,7 a 5,4 min más (estimado con lo medido por etapa), y tiene que pasar I1, I3, B6 del JSON y del `bytea` y B11 de E2»."
+  "que": "(Actualizada en el cierre de L8, con la cruzada de L3 Rcoste-008.) Añadir: «desde el 4b, cada PR de la táctica paga `timeline.test.ts` en «mundo y radio», de 3,7 a 5,4 min más (estimado con lo medido por etapa), y tiene que pasar I1, I3, B6 del `bytea` y B11 de E2; B6 del JSON solo se imprime en ese tramo y falla en el nocturno y en la rápida sobre las seis congeladas (16-n), así que el 15 % de margen de su mediana no pone en rojo un PR de la táctica»."
  },
  {
   "id": "Rcoste-033",
@@ -217,7 +217,7 @@
  {
   "id": "Rdueno-004",
   "seccion_destino": "§8.9",
-  "que": "El párrafo de la prueba de lectura («contestan sin ayuda las cuatro preguntas de SPEC §6.15») gana: «y, con una fuga de 4 a 12 delante, qué lleva cada uno y quién tira detrás y por qué (§16.5, 16-w)»."
+  "que": "(Actualizada en el cierre de L8, con la cruzada de L4 Rdueno-003.) El párrafo de la prueba de lectura («contestan sin ayuda las cuatro preguntas de SPEC §6.15») gana: «y, con una fuga de hasta 12 delante del pelotón, qué lleva cada uno, contestado mirando la barra, y quién tira detrás y por qué (§16.5, 16-w)»."
  },
  {
   "id": "Rdueno-031",
@@ -233,5 +233,35 @@
   "id": "Rcobertura-042, Rcobertura-043, Rcobertura-047, Rcobertura-051, Rcobertura-052, Rcodigo-050, Rcodigo-063, Rcodigo-084, Rcodigo-087",
   "seccion_destino": "00-glosario.md (§G.2, §G.3, §G.4, §G.7, §G.9, §G.11)",
   "que": "Nombres nuevos de la corrección L8. §G.4: `RadioNames` con `own` y `nameableAt` (12-o); `isGroupRole(x): x is GroupRole` y `GROUP_ROLES` (12.6); `liveClusters(events, tl, revealS): readonly LiveCluster[]` y `LiveCluster` (`event`, `revealS`, `members`); la implementación de `buildChronicle`, que devuelve `ChronicleEntry[] | LiveLine[]`; `chronicleParts(_locale, e, rev)`, `chronicleLine(_locale, e, rev)`, `gapTrendLine(_locale, trend)` y el `_locale` de los demás renders (12-q); `clearHorizonCaches()` (§10.6) y `realTestDbFor(nombre)` (`testDb.ts`); `serverErrors`, `SKIP`, `B1B_SKIP` y `B1B_VEIL` en `spoilerWorld.ts`. §G.7: `BROADCAST.maxKnownStageGzipBytes` (112.640). §G.2: `packages/db/src/timelineCollectorBench.ts`, `timelineCollector.long1.test.ts` y `long2.test.ts`, `watchConcurrency.test.ts`, `apps/web/src/domain/broadcast/breakPresentation.test.ts`, `apps/api/src/routes/lastRace.test.ts`. §G.3: `riderRaceResultSchema.stagesToWatch`. §G.9: B1a («valores plantados en campos que la API sirve: el tiempo, un premio insertado, los puntos, el `detail` del palmarés y la etapa de las noticias; ningún 5xx»), B3 («todo grupo de hasta 12 nombrado entero con su maillot resuelto, con cláusula de no vacío; y la presentación de la fuga entera»), B6 (el `bytea` en el banco; cinco topes de red), B8 (`withGroupRoles` y la ruta conocida), B12 (veinte casos; dos dispositivos contra Postgres), B16 (las 22 en línea, la lista de la etapa conocida, R23.7, cronos vacías), B22 (todos los grupos, informativo, 16-s) y PL (los maillots y quién tira). §G.11: `fuente: línea grabada · sin depósitos · una foto por km` (cabecera de `race-radio.mjs`)."
+ },
+ {
+  "id": "Rdueno-017 (cruzada de L4, aplicada en §12.6)",
+  "seccion_destino": "§14.3 (14-api.md, el código de la ruta del tramo: `rolesCtx`)",
+  "que": "`rolesCtx.start.leaders` deja de ser `{ gc: null, points: null, kom: null }` y lleva los maillots de salida del reparto congelado sin degradar (quién lleva puesto cada `leader` en `tl.cast`, como arma la cabecera su `StartState`, §10.10): de ellos sale `GroupNow.jerseys`, y con él la etiqueta `jersey_group` que `withGroupRoles` anota en `mainJersey` y `groupJersey` (§12.6, 6-b). Con todo `null`, la voz no diría nunca el grupo del maillot y la barra sí: dos nombres para el mismo grupo en la misma pantalla. La anotación sigue sin depender de quien mira, y no destripa: a quien tiene velada una etapa anterior la ruta le da 403 `previous_unseen` (§14.2). El comentario de `rolesCtx` («ni `own` ni `start` cambian grupos ni papeles») pasa a «ni `own` ni el resto de `start` cambian grupos ni papeles; los líderes de salida deciden la etiqueta del grupo del maillot (§12.6)»."
+ },
+ {
+  "id": "Rdueno-017 (cruzada de L4, aplicada en §12.6)",
+  "seccion_destino": "§17.7 (PR 4a, «Bancos») y §17.21 («Lo que se re-sella, por PR»)",
+  "que": "En «Lo que se re-sella, por PR», el test de los tres nombres de `stageJournal.test.ts` (l. 1646-1650) pasa en el 4a a siete (los cuatro papeles de D-18 y los tres del grupo del maillot de 6-b), no a cuatro, como ya dice §17.7 en «Tests primero». Y los «Bancos» del 4a dejan de ser condicionales: §12.6 pone los tres nombres del grupo del maillot en filas de plantillas que el motor emite (las de `mainNoun` y `time_gap`), así que `coherence.test.ts` l. 347-360 («el vocabulario de grupos no pasa de tres nombres») se re-sella en el 4a con el tope de seis, a propósito y con la causa, y la cifra de `storyMetrics` remedida sobre sus 60 etapas va en la descripción del PR (§12.6, §16.1)."
+ },
+ {
+  "id": "Rcoste-008 (cruzada de L3, aplicada en §16.4)",
+  "seccion_destino": "§17.7 (PR 4b), §17.8 (paso 5) y §17.21 (las filas de `timeline.test.ts` y `broadcastFixtures.test.ts`)",
+  "que": "`timeline.test.ts` (4b): B6 del `bytea` falla en el tramo «mundo y radio»; B6 del JSON (`maxJsonBytes` y `medianJsonBytes`) imprime sus cifras en el tramo y solo falla con `CS_BANCOS=1`, en el nocturno, y el PR del motor que lo mueva lo apunta en su descripción (16-n). `broadcastFixtures.test.ts`: B6 del `bytea` y del JSON (el `.timeline.gz` descomprimido) de las seis congeladas, que sí fallan. En la fila de `timeline.test.ts` de §17.21 («B6 del JSON»), lo mismo."
+ },
+ {
+  "id": "Rcoste-008 (cruzada de L3, aplicada en §16.4)",
+  "seccion_destino": "§5.7 (05-motor.md, «El tope de la crono, corregido» y «El margen de la mediana del JSON») y §15.2 (la fila de los topes de `TIMELINE`)",
+  "que": "§5.7, «El tope de la crono, corregido»: «y B6 la mide a mano en el paso 5 (§16.4, §17.8)» pasa a «y B6 la mide en el banco, en `timeline.test.ts` (16-n)», porque el `bytea` pasó al banco en la corrección L8 (Rcodigo-065). «El margen de la mediana del JSON»: §16.4 eligió la primera salida, sin mover `TIMELINE` (16-n: B6 del JSON no falla en el tramo de un PR, y falla en el nocturno y en la rápida sobre las seis); la cifra de la mediana sigue siendo de §15.2. §15.2, la fila de `maxStoredBytes`, `maxJsonBytes`, `medianJsonBytes` y `ttMaxStoredBytes` («B6, en las 24 etapas»): los del `bytea` fallan en el banco de todo PR del motor; los del JSON, en el nocturno y en la rápida, y en el tramo del PR solo se imprimen (16-n)."
+ },
+ {
+  "id": "Rcoste-006, Rcoste-008 (cruzadas de L3, aplicadas en §16.4)",
+  "seccion_destino": "§19.1 (el riesgo nuevo de las subtransacciones y el riesgo 1)",
+  "que": "El riesgo nuevo que pidió L3 (volver a un punto de guardado por etapa desborda la caché de subtransacciones de Postgres) ya tiene su vigilante escrito: B15 lee `pg_stat_get_backend_subxact` del proceso del tick durante los días 176 y 179 y falla si `subxact_overflowed` sale verdadero (§16.4); la defensa es 5-l. En el riesgo 1, B6 del JSON ya no pone en rojo un PR de la táctica, porque en su tramo solo se imprime y falla de noche (16-n): lo que cada PR del motor tiene que pasar es I1, I3, B6 del `bytea` y B11 (la cruzada de L8 Rcoste-028, actualizada)."
+ },
+ {
+  "id": "Rdueno-017, Rcobertura-044, Rcobertura-023, Rdueno-003, Rcoste-006, Rcoste-008 (cruzadas de L3 y L4, aplicadas en §12 y §16)",
+  "seccion_destino": "00-glosario.md (§G.2, §G.4 y §G.9)",
+  "que": "§G.2: la fila de `apps/api/src/voiceRoles.ts` gana las claves `mainJersey` y `groupJersey`; `packages/shared/src/jerseys.ts` gana `isJerseyKind(x): x is JerseyKind` (6b, §12.6); `packages/db/src/index.ts` exporta también el tipo `TimelineTickLog` (§16.3). §G.4: `groupNounOf(role)` pasa a `groupNounOf(role, jersey)` (§12.6), con `isJerseyKind` al lado. §G.9: B3, «y la presentación de la fuga: el reproductor de verdad sobre las cinco congeladas a ×½, ×1 y ×2 y en `Highlights`, 100 % de listas y frases, de la ronda a ×½ y ×1 y de rótulos sin su corredor cazado; a mano en el paso 10, sobre las 24 × 2, el 99 % de la ronda»; B6, «el JSON, impreso en el tramo del PR, falla en el nocturno y en la rápida sobre las seis (16-n)»; B15, «y ninguna transacción del día con las subtransacciones desbordadas (`pg_stat_get_backend_subxact`)»; PL, «con una fuga de hasta 12 delante», no «de 4 a 12»."
  }
 ]

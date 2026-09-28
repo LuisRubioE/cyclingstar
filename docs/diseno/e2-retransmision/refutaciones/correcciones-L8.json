@@ -460,5 +460,89 @@
   "estado": "aplicado",
   "donde": "borrador/16-bancos.md l. 3, 38, 365, 431 y 16-b; borrador/12-voz.md l. 576",
   "motivo": "Cruzada de L2 para todas las secciones. En el cuerpo de §12 y §16 no queda ninguna remisión a §G.n: la tabla de bancos es §16.9, `radioFromTimeline` y `RadioNames` son §4.13, y «el p90 ≤ 2 de §G.9» pasa a «el que fijó la síntesis». Las que quedan están en los bloques de dudas, que el ensamblado quita."
+ },
+ {
+  "id": "Rcobertura-044 (cruzada de L3)",
+  "estado": "aplicado",
+  "donde": "borrador/12-voz.md l. 393 (§12.7, «La revisión de cada etapa»), l. 639 (12-c), l. 661 (glosario propuesto) y l. 669 (dudas para el ensamblador)",
+  "motivo": "Cruzada de L3 (§12.7, 12-c y la lista de cierre). Comprobado contra §13.3 y §5 vigentes: la `0044` lleva `\"tpl_rev\" smallint NOT NULL`, sin defecto (13-esquema.md l. 133 y 175, 13-j); la fila la arma `stageTimelineRow` con el `meta.tplRev` que `recordStageTimeline` toma de `TEMPLATE_REV`, la lápida lleva 0 (05-motor.md l. 414, 509 y 522), la escribe `flush` y la lee `readStageTemplateRev` (l. 582), no `readStageTimeline`, que desde 5-p devuelve la línea sola. §12.7 y 12-c lo dicen así, 12-c descarta `default 0` con el porqué de 13-j, la lista de nombres dice `smallint not null` sin defecto y la duda de §13.3 se borra; queda la de `tplRev` en `stageReplaySchema` de §14.2 (cruzada de L8). Las cruzadas de L8 a §13.3 y §5.6, que pedían `DEFAULT 0` y que `readStageTimeline` devolviera `tplRev`, quedan marcadas como superadas en `cruzadas-L8.json`."
+ },
+ {
+  "id": "Rcoste-006 (cruzada de L3, §16.3)",
+  "estado": "aplicado",
+  "donde": "borrador/16-bancos.md l. 57 (la importación), l. 132-143 (`specOf` con el diario y `runStage`), l. 160 y 178 (las etapas 1 y 2 y la velada), l. 287 (las exportaciones), l. 289 («La fila de cada etapa») y l. 803 (glosario propuesto)",
+  "motivo": "Cruzada de L3. §5.5 vigente (5-l) dice que la fila de `stage_timelines` no la escribe `runOneStage` sino `flush` del diario, y que un test que corre etapas fuera de `runTick` con `spec.timeline` llama a `flush(tx)` en la misma transacción, detrás de la etapa (05-motor.md l. 433-468). El mundo de B1 creaba el diario dentro de `specOf` y no llamaba a `flush`: las etapas 1 a 3 quedaban sin fila y la retransmisión salía del adaptador sin que ningún B1 lo notara. `specOf` recibe el diario y `runStage` corre cada etapa como el tick, en su transacción, con su diario y su `flush`; el tipo `TimelineTickLog` se exporta con `timelineTickLog`. La cruzada de L9 Rcodigo-086 (vaciar las dos LRU de líneas en `startSpoilerWorld`) toca la misma función y queda para la coherencia."
+ },
+ {
+  "id": "Rcoste-006 (cruzada de L3, §16.4 B15)",
+  "estado": "aplicado",
+  "donde": "borrador/16-bancos.md l. 444 (B15) y l. 754 (§16.9)",
+  "motivo": "Cruzada de L3; el riesgo nuevo de §19.1 es de L9, y va una cruzada con el vigilante ya escrito. Comprobado en §5.5: el refutador de coste midió en PostgreSQL 16.13, mirando desde otra sesión con `pg_stat_get_backend_subxact`, que 153 y 187 puntos de guardado que escriben dan `subxact_count` 64 y `subxact_overflowed` verdadero (`coste/pgm/subxact.mjs`). B15 gana ese vigilante durante los días 176 y 179 y falla si el desbordamiento aparece; la fila de §16.9 lo dice."
+ },
+ {
+  "id": "Rcoste-008 (cruzada de L3)",
+  "estado": "aplicado",
+  "donde": "borrador/16-bancos.md l. 435 (B6), l. 708, 709 y 712 (§16.7: el tramo, el nocturno y «Quién paga los bancos»), l. 745 (§16.9), l. 781 (16-g) y l. 788 (16-n)",
+  "motivo": "Cruzada de L3, que pedía elegir entre las dos salidas de §5.7 para la mediana del JSON, con un 15 % de margen sobre lo medido cuando una misma etapa cambia hasta un 20 % con la semilla. Se elige la primera: en `timeline.test.ts`, en el tramo «mundo y radio» de un PR, B6 del JSON imprime sus cifras sin fallar, y falla en el nocturno sobre las 24 × 2 (`CS_BANCOS=1`) y en la rápida sobre las seis congeladas, que no cambian con el motor; el `bytea` sigue fallando en el banco, que es lo que pedían Rcodigo-065 y Rcoste-025. Es la única de las dos con la que un PR de la táctica no se pone en rojo por un umbral de E2: con la otra, sacar los cuatro topes a `packages/shared`, `timeline.test.ts` seguiría corriendo en su tramo con la constante viva donde viva. La cifra de la mediana es de §15.2, que tiene pendiente la cruzada de L3 que la sube a 320 KB. §5.7, §15.2, §17.7, §17.8, §17.21 y §19.1 van a cruzadas."
+ },
+ {
+  "id": "Rcodigo-010 (cruzada de L3)",
+  "estado": "aplicado",
+  "donde": "borrador/16-bancos.md l. 553-554 (el comentario de `QUICK`, en el código de B10)",
+  "motivo": "Cruzada de L3. Re-medido en el cierre con `c-l3/b10uniforme.mjs` sobre el `dist` parcheado de L3 (salida en `cierre-l8/b10uniforme.out`): con el campo de `realRaceScenario` (`uniformField`, 176 corredores) y las semillas del test, el colector aparte ve lo mismo que hoy en las tres etapas de `QUICK` y la ingenua rompe en las tres, con 6, 1 y 2 corredores en `trabajaronParaOtro` y la radio distinta. El comentario, que mezclaba el campo del juez del motor («hasta 20 corredores», L3), da esas cifras. La estimación de la rápida ya era la medida del refutador de coste (unas 33 s, Rcoste-026)."
+ },
+ {
+  "id": "Rcobertura-023, Rdueno-003 (cruzada de L4, §16.4 B3 y §16.9)",
+  "estado": "aplicado",
+  "donde": "borrador/16-bancos.md l. 432 (B3, las dos partes), l. 710 (§16.7, a mano), l. 742 (§16.9), l. 781 (16-g) y l. 790 (16-p)",
+  "motivo": "Cruzada de L4. La segunda parte de B3 que escribió el corrector sellaba una fuga sintética y, sobre las congeladas, solo a ×1. Ahora corre el reproductor de verdad sin navegador sobre las cinco en línea congeladas a ×½, ×1 y ×2 y en `Highlights`, con los tres umbrales de 100 % de la cruzada; imprime la ronda a ×2, el resto de la cola por clase y el retraso del último rótulo de cada ronda (36 s como mucho, por lo que el tope de 30 s de Rcobertura-023 queda descartado en 16-p); y se repite a mano en el paso 10 sobre las 24 × 2 con el 99 % en la ronda. Cifras de L4 comprobadas en `l4c/cola3.json` y `cola.json`: en las congeladas, 21 de 21 rótulos a ×½ y ×1 y 20 de 21 a ×2, y 5 de 5 listas y frases en todos los modos, contra 9 de 21 y 2 de 5 con la cola de antes; en las 44 corridas, 157 de 158 a ×1 y un retraso máximo de 36 s. El fichero conserva el nombre `breakPresentation.test.ts`, que ya usan §17 y el glosario (la cruzada decía `presentation.test.ts`), y B3 sigue siendo una sola fila de §16.9 con sus dos partes. §17.9, §17.13, §17.21 y el glosario van a cruzadas."
+ },
+ {
+  "id": "Rdueno-003 (cruzada de L4, §16.5)",
+  "estado": "aplicado",
+  "donde": "borrador/16-bancos.md l. 675 y 678 (§16.5, puntos 6 y 9), l. 783 (16-i) y l. 797 (16-w)",
+  "motivo": "Cruzada de L4. La pregunta de los maillots ya estaba desde Rdueno-004 (puntos 6 a 9, con la verdad de `scripts/pl-truth.mjs` y el `worn` del grupo 1), pero solo con un grupo 1 de 4 a 12; la cruzada la pide para toda fuga de hasta doce por delante del pelotón, contestada mirando la barra. Se amplía a las de uno a tres, que también llevan maillot, porque el requisito del dueño es de la fuga (`docs/encargos.md` l. 153-154), y cuenta para el nueve de nueve como las otras. 16-i y 16-w lo dicen; la cruzada de L8 a §8.9 y el glosario, por cruzada."
+ },
+ {
+  "id": "Rcobertura-008, Rcobertura-023 (cruzada de L4, §16.6)",
+  "estado": "aplicado",
+  "donde": "borrador/16-bancos.md l. 688, 689, 691, 692 y 697 (§16.6)",
+  "motivo": "Cruzada de L4. La fila de la barra gana, en `GroupBar.test.tsx`, la línea de corredores de un grupo de cuatro a doce con su icono (en el móvil, solo iconos y solo bajo la fila 1 y las del espectador) y los nombres guardados cortados con `…` (§6.2, 6-c); la de la cola, `isPresentation`, `aheadOfPeloton` y la cola con una fuga (6-m); y la del reproductor, las filas nuevas de §8.12 (el 429 con `Loading`, los mandos que se esconden, el `finish` con su `mode` y el `release` del digest) y `PlayerControls.test.tsx`. `breakRoundOf` va en la fila del rótulo, con `names.test.ts`, y no en `cues.test.ts` como decía la cruzada, porque §6.7 la escribe en `packages/shared/src/broadcast/names.ts`. La fila de la voz gana los tres maillots (Rdueno-017)."
+ },
+ {
+  "id": "Rdueno-016 (cruzada de L4)",
+  "estado": "aplicado",
+  "donde": "borrador/12-voz.md l. 105 (§12.2, «Cómo se pinta»)",
+  "motivo": "Cruzada de L4. Comprobado: la regla B1 del dueño está en `docs/balance.md` l. 1842 (v13) y su rechazo del umbral de identidad, en el comentario de `NAMED_IN_SUMMARY` (`apps/web/src/domain/stageJournal.ts` l. 186-195: «siguen saliendo entradas sin dorsal y nombre de equipo»). §12.2 ya decía `riderFull` y la B1 (Rdueno-038); gana la reafirmación y que la barra es la única pieza de `Watch` que no lleva la identidad entera, por espacio, y que tocar una fila la da, como dicen §6.2 (06-pantalla.md l. 126) y §6.3."
+ },
+ {
+  "id": "Rdueno-017 (cruzada de L4)",
+  "estado": "aplicado",
+  "donde": "borrador/12-voz.md l. 257, 274-291 (`withGroupRoles`), 313-327 (`groupNounOf` y `isJerseyKind`) y 329-346 (las tablas del motor, el test nocturno y SPEC); en el cierre, l. 177, 217-218, 233 y 246 (§12.5), l. 304-311 (la guarda `isJerseyKind`), l. 617 (§12.11), l. 630 y 632, l. 638 (12-b), l. 654 (12-r) y l. 658-659; borrador/16-bancos.md l. 14, 15 y 23 (§16.1), l. 436 (B7) y l. 697 (§16.6); borrador/00-decisiones.md l. 57, 730 y 786 (DD-04)",
+  "motivo": "Cruzada de L4. El corrector la aplicó en §12.6 y §16.1 (`corr-l8/p12j.py` y `p16r.py`) sin dejar entrada, y quedaban tres restos: el `case 'crash'` de §12.5 llamaba a `groupNounOf` con un solo argumento, que con la firma nueva da TS2554; `isJerseyKind` se usaba sin escribirse y no existe hoy en `packages/shared/src/jerseys.ts`, lo mismo que le pasaba a `isGroupRole` (Rcodigo-050); y la tabla de §12.5, §12.11, 12-b, 12-r, los bloques de cierre, B7 y §16.6 seguían con los cuatro papeles. Compilado en `cierre-l8/ws3` con el `GROUP_WORDS` literal de §6.3 y el `tsconfig.base.json` del repositorio: con `isJerseyKind` sobre `JERSEY_PRIORITY` (l. 22) y los dos argumentos, sin errores; con uno, TS2554. DD-04 recoge los tres nombres del grupo del maillot, como ya hacía 12-r. §14.3 (su `rolesCtx` pone a `null` los líderes de salida y con eso `mainJersey` no saldría nunca), §17.7, §20 y el glosario van a cruzadas."
+ },
+ {
+  "id": "Rcobertura-026 (cruzada de L4)",
+  "estado": "aplicado",
+  "donde": "borrador/16-bancos.md l. 446 (B17)",
+  "motivo": "Cruzada de L4, que el corrector ya había aplicado sin dejar entrada: la banda de la crono es de 5:00 a 13:00 y la medida, de 5:20 a 11:23, con las nacionales (5:20-5:52), el prólogo (6:24-7:06) y la e16 (11:14-11:23), como 8-k y §8.9 vigentes (08-ritmo.md l. 324 y 467). La fila de §16.9 remite a las bandas de 8-k. La parte de §17.9 es de L9."
+ },
+ {
+  "id": "Cierre L8, sincronía 1 (el paso 11 son dos PR, 17-v)",
+  "estado": "aplicado",
+  "donde": "borrador/12-voz.md l. 13 (§12.1), l. 591 y 605 (§12.10); borrador/16-bancos.md l. 21 (§16.1), l. 445 (B16), l. 720 y 725 (§16.8) y l. 755 (§16.9)",
+  "motivo": "El glosario vigente (`00-glosario.md` l. 947) parte el paso 11 en el 11a (`radioFromTimeline`, B16 y la pestaña que lee la línea) y el 11b (deja de escribirse `stage_snapshots.radio`), 17-v, como §17.14 y §20 (DD-11). §12 y §16 lo dicen: B16 nace en el 11a, la radio deja de escribirse y `stageRun.test.ts` se re-sella en el 11b, y `race-radio.mjs --db` gana su salida en el 11a (§17.20). Coincide con la parte de §16.9 de la cruzada de L9 Rcoste-034."
+ },
+ {
+  "id": "Cierre L8, sincronía 2 (nombres y cifras de §6, §11 y §18)",
+  "estado": "aplicado",
+  "donde": "borrador/12-voz.md l. 294 (§12.6, la cifra de `coste/instante-hist.mjs`) y l. 589 (§12.10, `veilStoredRadio`); borrador/16-bancos.md l. 432 (B3, primera parte)",
+  "motivo": "§18.1 vigente da el p99 del instante con el paso 9 y sin memo en dos corridas, de 0,134 a 1,153 ms (18-rendimiento.md l. 48-53), y §12.6 decía 0,135; el corte de la radio guardada que §12.10 describía sin nombre es `veilStoredRadio` (§11.16; glosario, l. 723); y §6.5 (6-i) dice que el `break_presented` lo programa el reproductor en cuanto sale el `break_formed`, no `cuesBetween`, que solo conoce la línea, como decía la primera parte de B3."
+ },
+ {
+  "id": "Cierre L8, dudas ya resueltas",
+  "estado": "aplicado",
+  "donde": "borrador/12-voz.md l. 669, 671, 672 y 675-678; borrador/16-bancos.md l. 809-814 y 818-823",
+  "motivo": "Dudas de los bloques de cierre que las secciones vigentes ya resuelven, marcadas con su evidencia y sin borrarlas, porque el ensamblado quita esos bloques: §13.3 con `tpl_rev` (13-j), §G.9 con B19 en 18 corridas, §14.3 con `withGroupRoles` y `liveClusters` (corrección L6), la firma de `emitNews` de 12.8 en §13.2, §G.2 y §G.4, 17-r para el equipo del día en `awardOutcome` la tabla de cobertura de §21 para [DUEÑO 4], [DUEÑO 6], [DUEÑO 10] y [DOC 3], y las filas de 12.6 con `storyMetrics` en el 4a de §17.7; los topes de L3 en §5.7 y §15.2, I5 exacta en §4.4, los topes de red en §15.3, la introducción de §11, §5.10 con las 22 en línea, B14 en DD-21, §15.6 y §18.10, los umbrales de §16.4 en §18, `realRaceScenario` en 17-j y B12 en 17-s. La de `--sizes` en el paso 5 queda marcada como superada por 16-n corregida."
  }
 ]
