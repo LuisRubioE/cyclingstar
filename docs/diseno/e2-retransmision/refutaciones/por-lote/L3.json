@@ -110,6 +110,17 @@
   "_lote": 3
  },
  {
+  "id": "Rcodigo-069",
+  "seccion": "§13.10",
+  "linea": 6723,
+  "gravedad": "baja",
+  "afirmacion": "copia `drizzle/` a un directorio temporal con `_journal.json` cortado en `0042_transicion_e1`, migra, escribe una fila en cada tabla que tocan las cuatro, migra con la carpeta entera",
+  "fallo": "Con los ayudantes de hoy no se puede migrar desde otra carpeta: `runMigrations(databaseUrl)` fija `migrationsFolder` a `../drizzle` (`packages/db/src/migrate.ts` l. 15 y 21-29) y `startTestDb()` aplica siempre la carpeta entera antes de devolver la base (`packages/db/src/testDb.ts` l. 58-65). `l3/aplicar2.mjs`, que es lo que el test copia, no usa ninguno de los dos: arranca PGlite y su socket a mano y llama a `migrate` de `drizzle-orm/postgres-js/migrator` con su propio `migrationsFolder`. Ni §13.10 ni el PR 1a (§17.4, l. 8387) ni §17.20 dicen qué cambia en `migrate.ts` o en `testDb.ts`, y quien implemente tiene que inventarlo.",
+  "correccion": "Añadir a §13.10, punto 2: «Para migrar desde la copia, `runMigrations` gana un segundo parámetro opcional, `runMigrations(databaseUrl, folder = migrationsFolder)` (`migrate.ts` l. 21), y `testDb.ts` exporta `startEmptyTestDb()`, igual que `startTestDb` (l. 58-65) pero sin llamar a `runMigrations`; el test migra con `runMigrations(url, copia)` y después con `runMigrations(url)`, dentro de `detached` (l. 29-33)». Añadir a §17.20 la fila «`packages/db/src/migrate.ts` y `testDb.ts` | hoy | 1a | `runMigrations(url, folder?)` y `startEmptyTestDb()` para el mundo vivo (§13.10)».",
+  "_fuente": "hallazgos-codigo.json",
+  "_lote": 3
+ },
+ {
   "id": "Rcoste-006",
   "seccion": "§5.5",
   "linea": 2409,
