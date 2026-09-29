@@ -1,36 +1,31 @@
 # E2 · Estado del proceso de diseño (nota para reanudar)
 
-Última actualización: 28 de septiembre de 2026, en pausa a petición del dueño.
+Última actualización: 29 de septiembre de 2026, 04:25 UTC, en pausa a petición del dueño (cuota).
 
 ## Hecho
 
-- Fase 0, mapas: 7 de 7 (`mapas/`).
-- Fase 1, propuestas: 5 de 5 (`propuestas/`).
-- Fase 2, juicios: 3 de 3 más `juicios/veredicto.json` (base `ingeniero` por suma de puntuaciones).
-- Fase 3, síntesis: esqueleto, glosario, decisiones cerradas, 22 secciones en `borrador/` y el
-  ensamblado `borrador/retransmision-v0.md` (10.314 líneas), con `borrador/ensamblar.sh` y
-  `borrador/dudas.md` (27 dudas).
-- Fase 4, refutación: `refutaciones/hallazgos-cobertura.json` (60), `-dueno.json` (45),
-  `-coste.json` (45) completos; `-codigo.json` PARCIAL (cubre §1 a §15 y §18; §16 a medias; §13 y
-  §17 con pocas entradas; §19 a §21 sin mirar). Reparto por lote en `refutaciones/por-lote/L*.json`
-  (regenerable con el script `repartir.py` del scratchpad; su lógica: lote por número de §).
-- Fase 5, corrección: L1, L2, L5, L6 y L7 aplicados (`refutaciones/correcciones-L<n>.json` y
-  `cruzadas-L<n>.json`); las secciones corregidas están en `borrador/` y en la rama.
+- Fases 0 a 3 completas (mapas, propuestas, juicios, síntesis y v0).
+- Fase 4, refutación: completa. 246 hallazgos (cobertura 60, dueño 45, coste 45, código 96),
+  repartidos en `refutaciones/por-lote/L*.json`.
+- Fase 5, corrección: completa en los diez lotes. 466 entradas (424 aplicadas, 39 parciales, 3
+  desestimadas) en `correcciones-L*.json`; 299 cruzadas en `cruzadas-L*.json`.
+- Fase 6a, coherencia: completa. `refutaciones/coherencia.json` (299 cruzadas: 129 aplicadas, 170 ya
+  estaban); glosario y decisiones fundidos; `borrador/retransmision-v1.md` (11.411 líneas,
+  `ensamblar.sh --comprobar` con 0 fallos); `dudas.md` con 19 de 27 cerradas.
+- Fase 6b, auditorías: instrucciones en `05-fase-auditoria.md`. La tanda 1 (L1 a L5) se lanzó dos
+  veces y murió por cuota las dos; NO hay ningún `auditorias-L*.json` escrito. Quedan en la rama
+  unos arreglos pequeños que los auditores hicieron en §2, §3, §6, §8, glosario y decisiones.
 
 ## Pendiente, en este orden
 
-1. Refutador de código, resto: §16 desde 16.4, §17, §19, §20, §21 y segunda pasada de §13 y §17;
-   continuar `hallazgos-codigo.json` desde el último id. Después regenerar `por-lote/`.
-2. Correctores L4 (§6, §8: incluye el hallazgo más grave, los maillots de la fuga en la ronda de
-   la moto), L3 (§5, §13), L8 (§12, §16), L9 (§17, §19) y L10 (§0, §20, §21), según
-   `04-fase-refutacion.md` §5, cada uno con su `por-lote/L<n>.json` y con las `cruzadas-*.json`
-   de los demás lotes que apunten a sus secciones.
-3. Pasada de coherencia (fase 6): aplicar todas las `cruzadas-*.json`, fundir glosario y
-   decisiones, cerrar `dudas.md`, reensamblar con `ensamblar.sh` en `retransmision-v1.md`.
-4. Auditorías por lote contra el texto de hoy (`auditorias-<lote>.json`), cierre
-   (`resultado-final.json` y `borrador/00-cabecera.md` definitiva con el recuento).
-5. Ensamblado final en `docs/retransmision.md`; actualizar `docs/encargos.md` (E2: diseño escrito,
-   sin implementar) y `docs/diseno/README.md` (nuevo directorio `e2-retransmision/`).
+1. Auditorías por lote (fase 6b): L1 a L5 y luego L6 a L10, según `05-fase-auditoria.md`, cada
+   una escribiendo `refutaciones/auditorias-L<n>.json` por partes desde el principio. Cinco a la
+   vez como máximo; conviene arrancar justo tras un reinicio de la ventana de Opus.
+2. Cierre (fase 6c, `04-fase-refutacion.md` §6): fundir las auditorías en
+   `refutaciones/resultado-final.json` (formato del de E1) y escribir la cabecera definitiva
+   `borrador/00-cabecera.md` con la procedencia y el recuento.
+3. Ensamblado final (fase 7): `ensamblar.sh` a `docs/retransmision.md`; comprobar; actualizar
+   `docs/encargos.md` (E2: diseño escrito, sin implementar) y `docs/diseno/README.md`.
 
 ## Avisos
 
