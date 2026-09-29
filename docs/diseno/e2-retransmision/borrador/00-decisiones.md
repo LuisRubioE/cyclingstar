@@ -63,6 +63,8 @@ Estas decisiones las corrigieron o precisaron las secciones con evidencia al esc
 | §DD | corregida (fase 5) | DD-25 cambia de título y de defecto (adelantar el 17d); DD-15 y DD-19 se retiran porque no son del dueño; DD-03, DD-06, DD-12, DD-13, DD-18 y DD-21 dicen lo que cuesta su defecto o su contraria | §20; corrección L10, Rdueno-006, Rdueno-042, Rdueno-034, Rdueno-040, Rdueno-025, Rdueno-035, Rdueno-020 y Rdueno-029; `l10/descuelgues.mjs` |
 | D-18 | corregida (fase 5) | El grupo del maillot de la montaña es `Mountains leader’s group` (como `JERSEY_LABEL`), y la voz dice la palabra del grupo del maillot como la barra: `GROUP_NOUNS` gana sus tres nombres | §6.3 (6-b); corrección L4, Rcobertura-019 y Rdueno-017 |
 | D-19 | precisada (fase 5) | Italia descansa tres días: 24 días de juego y 3,5 etapas por día real, contra 23 y 3,65 de Francia y España | §8.4; corrección L4, Rcodigo-038; `rcod/n/gt2.mjs` |
+| D-20 | precisada (fase 5) | `Next action` no se corta con la ronda de la moto ni se enciende desde `last_km`; «tocar la pantalla» es tocar el plano, y los mandos se esconden a los 3 s sin tocar | §8.5, §8.11 (6-m, 8-o, 8-p); corrección L4, Rcobertura-023, Rdueno-003 y Rdueno-014; registrada en la auditoría L4 |
+| D-36 | precisada (fase 5) | La etapa arrastrada (`A`) abre en `Watch`, como la caducada; solo la vista o revelada abre en `Report` | §6.10 (6-r); corrección L4, Rdueno-021; registrada en la auditoría L4 |
 | D-21 | corregida (fase 5) | La ronda de la moto pasa de clase 0 a 2 y va reservada con la lista y la frase de la fuga: con la clase 0 salían enteras 4 de 34 rondas y 20 de 34 frases (medido) | §6.5, §6.7 (6-m); corrección L4, Rcobertura-023 y Rdueno-003; `l4c/cola.mjs` |
 | D-22 | precisada (fase 5) | La moto rodea la fuga solo en `Watch` a ×½, ×1 y ×2; en los demás modos presentan la fuga la lista y la frase | §6.7 (6-m); corrección L4 |
 | D-27 | cerrada (fase 5) | La forma del nombre en la barra, en `Pulling:` y en los cuadros es la de 7-a, el nombre guardado; la línea `Pulling:` lleva además el porqué de cada equipo | §6.1 a §6.7, §8.6, §8.7 (6-c, 6-d); corrección L4, Rcodigo-028, Rcobertura-020 y Rdueno-015 |
@@ -312,6 +314,8 @@ Coste diario de seguir una gran vuelta: 21 etapas en 23 días de juego de 6 h so
 **Descartado.** `Skip the quiet part` (`producto.md` §5) y el `Next action` de `datos.md` §5, que sirven hasta el siguiente suceso: revelan dónde pasa algo.
 **Sección.** §8.
 
+**Precisada en la corrección, fase 5** (§8.5, §8.11 y §6.5; decisiones 6-m, 8-o y 8-p; hallazgos Rcobertura-023, Rdueno-003 y Rdueno-014; registrada en la auditoría L4). `Next action` se corta con el primer `Cue` de clase ≥ 2 que entra en la cola y no es de la ronda de la moto: la ronda es de clase 2 pero presenta un suceso, no lo es (6-m); desde el rótulo `last_km` no se enciende (8-o). «Tocar la pantalla» es tocar el plano, el rótulo y la voz, porque las demás zonas tienen su toque propio; los mandos se esconden a los `BROADCAST.controlsHideS` (3 s de pared) sin tocar mientras la hora avanza, siguen en el árbol de accesibilidad, y el primer toque en el plano pausa y los enseña (8-p).
+
 ### D-21 · La cola de rótulos, sin freno
 
 **Decisión.** Cada `Cue` tiene clase (`CUE_CLASS`): 3, meta, caza de la fuga, corte, cambio de líder virtual, caída o abandono de un maillot o de un top 5 de salida; 2, ataque, fuga formada, pancarta, caída, llama roja, fuera de control; 1, diferencias generales, grupo cambiado, percance, rótulo de corredor; 0, ficha del puerto, datos. La ronda de la moto es de clase 2 y va reservada con la lista y la frase de la fuga (§6.7, 6-m). Un rótulo de corredor a la vez (mapa 06 §5.3); cada `Cue` ocupa `BROADCAST.cueHoldS[clase]` segundos de pared sin parar el reloj; con `cueQueueMax` esperando, se descartan los de clase 0 y 1, salvo la presentación de la fuga, que no cuenta ni se descarta. La carrera nunca se frena por la cola. La tabla `CUE_OF_TEMPLATE` lleva las 54 plantillas que emite el motor (45 de carretera contando `rider_defies_team` y 9 de crono, mapa 01 §1.1) más `crash`, cada una a un `CueKind`, a `voice_only` o a `report_only`; B7 exige que ninguna quede sin destino.
@@ -330,7 +334,7 @@ Coste diario de seguir una gran vuelta: 21 etapas en 23 días de juego de 6 h so
 **Evidencia.** I-22 (I-cobertura-11, I-ejecutabilidad-02); O-29 (O-ejecutabilidad-12); `television.md` §5.2.
 **Sección.** §6, §8.
 
-**Precisada en la corrección, fase 5** (§6.7, decisión 6-m). La moto rodea la fuga solo en `Watch` a ×½, ×1 y ×2: a ×4, en `Highlights` y en el digest seis segundos de pared son de 12 a 30 minutos de carrera en la hora muerta, y medida allí presentaba al 80 % de los escapados que seguían delante (en Flandes, a ninguno). En esos modos presentan la fuga la lista, con el maillot de cada uno, y la frase, que salen en 33 de 34 fugas, y la barra, que lleva el maillot de cada corredor de un grupo de hasta doce (§6.2).
+**Precisada en la corrección, fase 5** (§6.7, decisión 6-m). La moto rodea la fuga solo en `Watch` a ×½, ×1 y ×2: a ×4, en `Highlights` y en el digest seis segundos de pared son de 12 a 30 minutos de carrera en la hora muerta, y medida a ×4 y en `Highlights` presentaba al 80 y al 83 % de los escapados que seguían delante (en Flandes, con la semilla 0, a ninguno; el digest, más deprisa, no se midió). En esos modos presentan la fuga la lista, con el maillot de cada uno, y la frase, que salen en 33 de 34 fugas, y la barra, que lleva el maillot de cada corredor de un grupo de hasta doce (§6.2).
 
 ### D-23 · La contrarreloj
 
@@ -388,12 +392,14 @@ Distinciones, como mucho `BROADCAST.cardLinesMax` (3), en este orden: `wears_for
 
 ### D-27 · A quién se nombra en cada grupo
 
-**Decisión.** Sobre la pertenencia completa, la política de `ingeniero.md` §6.4: un grupo de hasta `nameWholeGroupUpTo` (12) se nombra entero (el mismo umbral que la radio, `raceRadio.ts` l. 611); en uno mayor, los que tiran, los que llevan un maillot que no es el de su equipo, el top `namedGcTop` (10) de la general de salida, los del espectador y los protagonistas de sucesos YA revelados (el que ataca en el km 40 se nombra en el pelotón desde el km 40, no antes); el resto se cuenta (`+143 riders`, pantalla). Cada grupo que tira lleva una línea: `Pulling: Team Beta (for 11 S. CARTER)` (pantalla). El hueco de un corredor es el de su grupo (D-01, punto 4). B3 exige rótulo para el 100 % de los corredores de todo grupo en todo instante (hoy, fuera del pelotón en reinas, el 47-64 %, mapa 01 §2.3).
+**Decisión.** Sobre la pertenencia completa, la política de `ingeniero.md` §6.4: un grupo de hasta `nameWholeGroupUpTo` (12) se nombra entero (el mismo umbral que la radio, `raceRadio.ts` l. 611); en uno mayor, los que tiran, los que llevan un maillot que no es el de su equipo, el top `namedGcTop` (10) de la general de salida, los del espectador y los protagonistas de sucesos YA revelados (el que ataca en el km 40 se nombra en el pelotón desde el km 40, no antes); el resto se cuenta (`+143 riders`, pantalla). Cada grupo que tira lleva una línea: `Pulling: Team Beta (for 11 Sam Carter)` (pantalla). El hueco de un corredor es el de su grupo (D-01, punto 4). B3 exige rótulo para el 100 % de los corredores de todo grupo en todo instante (hoy, fuera del pelotón en reinas, el 47-64 %, mapa 01 §2.3).
 **Evidencia.** I-46 (I-cobertura-04: «pero no dice quién es, wey», `docs/balance.md` l. 9594, v57); H-17; [DUEÑO 5] y R23.7 (`tactica.md` l. 4875-4876).
 **Sección.** §6, §7.
 **Pendiente en el ensamblado v0** (duda de §7; decisión 7-a). La línea de ejemplo `Pulling: Team Beta (for 11 S. CARTER)` supone un apellido que el esquema no guarda (`riders` solo guarda `name`); 7-a escribe el nombre del rótulo tal como está guardado. La forma del nombre en la barra, en `Pulling:` y en los cuadros queda abierta para la fase adversaria (`dudas.md`).
 
 **Cerrada en la corrección, fase 5** (§6.1 a §6.7, §8.6 y §8.7; decisiones 6-c y 6-d; hallazgos Rcodigo-028, Rcobertura-020 y Rdueno-015). La barra, `Pulling:` y los cuadros escriben el nombre tal como está guardado (7-a), cortado con `…` en la fila del móvil si no cabe: `riders` solo guarda `name` y 382 de los 8.965 apellidos de las listas de nombres tienen espacio o guion (Rcodigo-028). La línea es `Pulling: Team Beta (for 11 Sam Carter)` y, sin destinatario, lleva el motivo del equipo (`Pulling: Team Rho (chasing)`), que el dueño pidió en la v13 y la v15.
+
+> Versión anterior: Cada grupo que tira lleva una línea: `Pulling: Team Beta (for 11 S. CARTER)` (pantalla).
 
 ---
 
@@ -490,6 +496,8 @@ Distinciones, como mucho `BROADCAST.cardLinesMax` (3), en este orden: `wears_for
 **Sección.** §11.
 
 **Precisada en la corrección, fase 5** (L7: §11.10; hallazgo Rdueno-043). Indexar el acta no es el requisito del dueño, que pide que sea pública ([DUEÑO 8]), sino la propuesta de `docs/motor.md` para la vista de espectador (l. 1510); y el buscador, con horizonte `anon`, deja el ganador en la lista de resultados. Se queda indexable por defecto y la elección va con DD-12; la otra cara es `X-Robots-Tag: noindex` en `/report`.
+
+**Precisada en la corrección, fase 5** (L4: §6.10, decisión 6-r; hallazgo Rdueno-021; registrada en la auditoría L4). «Un espectador que la conoce» es el que la ha visto o revelado (`W`, `S` o `R`): la etapa arrastrada (`A`), que conoce por deducción al ver o revelar una posterior (D-28), abre en `Watch`, sin puerta y con `Report` a un toque, como la caducada; `WatchState.seen` las distingue (§4.11, 10-e). Abrirla en `Report` ponía el ganador delante de quien vuelve a la etapa 1 tras ver la 5 de una carrera fuera de guardia.
 
 > Versión anterior: El acta vive en `/world/races/:raceId/stages/:day/report`, pública e indexable (la vista de espectador de `docs/motor.md` Parte IV; «El mejor activo que tiene este juego hoy es la crónica de una etapa», `docs/captacion.md` l. 39-42).
 

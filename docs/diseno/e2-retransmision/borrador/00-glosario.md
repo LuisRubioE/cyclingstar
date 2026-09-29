@@ -188,6 +188,7 @@ Añadidos al escribirse las secciones (fundidos en el ensamblado v0):
 | `scripts/broadcast-fixtures.mjs`, `bench-tick.mjs`, `bench-pace.mjs`, `pl-truth.mjs` | los fixtures (con `--sizes`), B15, B17 y la verdad de la prueba de lectura | §16 |
 | `apps/api/src/__fixtures__/broadcast/`, `apps/api/src/__fixtures__/spoilerWorld.ts` | las seis etapas congeladas (`<etapa>.timeline.gz`, `.events.json.gz`, `.radio.json.gz`, `.i1.json.gz`, `.acta.json.gz`, `manifest.json` y `load.ts` con `FIXTURES`, `ROAD_FIXTURES`, `loadTimeline` y, desde el 6a, `seedFixtureWorld`); el mundo de B1 (`startSpoilerWorld`, `SpoilerWorld`, `Swept`, `sweep`, `strip` con su token `[veiledDay]`, `normalize`, `routeOf`, `pendingFor`, `PENDING_ROUTES`, `B1B_WHITELIST` y `B1C_WHITELIST`) | §16.2, §16.3 |
 | tests nuevos de §14, §16 y §17 | `apps/api/src/routes/broadcast.test.ts`, `me.test.ts`, `yesterday.test.ts`, `stageRoute.test.ts`, `spoilerCanary.test.ts`, `spoilerDiff.test.ts`, `spoilerOutcomes.test.ts`, `spoilerRegistry.test.ts` (inventario desde el paso 0, 17-b), `broadcastCut.test.ts`, `broadcastFixtures.test.ts`, `broadcastPace.test.ts`, `voicePrefix.test.ts` y `radioAdapter.test.ts`; `packages/db/src/timelineCollector.test.ts`, `horizonLatency.test.ts`, `revealFree.test.ts`, `horizonReaders.test.ts` y `cast.test.ts`; `packages/engine/src/stage/probeHooks.test.ts`; `apps/web/src/domain/templateCoverage.test.ts`, `stageJournal.corpus.test.ts`, `broadcast/clientCost.test.ts`, `queryKeys.test.ts`, `components/broadcast/FixedOverlay.test.tsx` y `GroupBar.test.tsx` | §14.7, §16, §17 |
+| tests nuevos de §6 a §8 (auditoría L4) | `packages/shared/src/broadcast/instant.test.ts` (`groupRoleOf`, `groupLabelOf` y `mainGapOf`, 3a), `cues.test.ts` (la cola, `CUE_OF_TEMPLATE`, `isPresentation` y `aheadOfPeloton`, 6a y 6b), `names.test.ts` (§7, `breakRoundOf` y `pullingLineOf`, 6b) y `pace.test.ts` (3a y 10); `apps/web/src/domain/broadcast/player.test.ts` (3b y 10) y `apps/web/src/components/broadcast/PlayerControls.test.tsx` (10) | §6.3, §6.5, §6.7, §7, §8.12, §16.6, §17 |
 | `.github/workflows/ci.yml`, `cobertura.yml`, `eslint.config.js` | `timeline.test.ts` en el tramo «mundo y radio» (15-d); `CS_BANCOS: '1'` en el nocturno; la regla que impide al motor y al lado del grabador de `shared` leer `BROADCAST` y `SPOILER` (15-b) | §15.1, §16.7 |
 | `packages/db/src/horizon.ts` (corrección) | `TtlMemo<V>`, el memo con vida, barrido y tope de los memos del proceso (10-m) | §10.7 |
 | `apps/api/src/security.ts` | `PLAYER_RATE_LIMIT`, el límite propio del tramo y del progreso (14-q) | §14.5 |
@@ -777,6 +778,7 @@ Los números son los que tocan hoy (la última es `0042_transicion_e1`, `_journa
 | `GET /api/races/:raceId/stages/:day/broadcast` | `watch` | `?season=` | `BroadcastHead` |
 | `GET /api/races/:raceId/stages/:day/broadcast/chunk` | `watch` | `?season=&fromDs=&toDs=` | `BroadcastChunk`; 409 `beyond_reached` si `toDs` pasa de lo alcanzado más la precarga |
 | `POST /api/races/:raceId/stages/:day/broadcast/finish` | `watch` | `?season=`; cuerpo `{ mode: WatchMode }` (14-f) | `BroadcastFinish`; marca la etapa como vista o revelada con la letra de su modo (`LETTER_OF_MODE`) |
+| `POST /api/races/:raceId/stages/:day/broadcast/seek` (solo si el paso 10 mide más de 5 s con `Slow 4G` para un salto de 125 km; si no, no se escribe: 8-t, §14.2) | `watch` | `?season=`; cuerpo `{ km }` | la hora de destino (nunca más allá de `lengthKm − 1`) y los tramos intermedios en una respuesta; escribe lo alcanzado con `mode: 'seek'` |
 | `GET /api/races/:raceId/stages/:day/report` | `watch` | `?season=` | `StageReport`; 403 si está velada para ese espectador, con el formato único de error: `error` igual a la `k` de la puerta y `gate` al lado (`sendGate`, 14-h) |
 | `POST /api/me/watch/:raceKey/:day` | `watch` | `{ reachedS: number; mode: WatchMode }` (acepta `sendBeacon`, y el mismo JSON en `text/plain`, 14-g) | `{ status: 'watching' \| 'known'; rev: string }`; 403 `previous_unseen` |
 | `POST /api/me/reveal/:raceKey/:day` | `watch` | `{}` | `{ rev: string }` |
@@ -789,7 +791,7 @@ Los números son los que tocan hoy (la última es `0042_transicion_e1`, `_journa
 
 Toda ruta declara además su mecanismo, `config.veil` (`VeilSpec`, 14-d), y `GET /api/teams/me/race-plan` es `safe` (11-k). Códigos de error nuevos: `broadcast_off`, `broadcast_unavailable`, `not_seen`, `previous_unseen` y `beyond_reached` (§14.2).
 
-Rutas web: `/world/races/:raceId/stages/:day` (abre `Watch` si la etapa no es conocida, `Report` si lo es) y `/world/races/:raceId/stages/:day/report` (el acta, pública e indexable, con la puerta si está velada).
+Rutas web: `/world/races/:raceId/stages/:day` (abre `Watch` si la etapa no se ha visto ni revelado, también la arrastrada, `A`, que se conoce por deducción; `Report` si se ha visto o revelado, `W`, `S` o `R`: 6-r, 10-e) y `/world/races/:raceId/stages/:day/report` (el acta, pública e indexable, con la puerta si está velada).
 
 ---
 

@@ -159,11 +159,11 @@ Lo alcanzado durante el salto es lo servido y no lo pintado, y es a propósito: 
 ```
 (pantalla · While you skipped · tras Final 20 km en la e18; los sucesos son ilustrativos)
 WHILE YOU SKIPPED
-km 37   KOM · Côte d'Engins · 1. LEROY
+km 37   KOM · Côte d'Engins · 1. Antoine Leroy
 km 62   BREAKAWAY · 3 riders
-km 92   KOM · Côte de Monteynard · 1. MORENO
+km 92   KOM · Côte de Monteynard · 1. Nicolás Moreno
 km 141  CAUGHT · the chase group
-km 164  KOM · Côte de Saint-Léger-les-Mélèzes · 1. KAHN
+km 164  KOM · Côte de Saint-Léger-les-Mélèzes · 1. Jonas Kahn
 ```
 
 `Previously` (pantalla) es lo mismo al reanudar: los `recapMaxCues` (5, propuesta) últimos `Cue` de clase ≥ 2 anteriores a lo alcanzado, en orden de carrera, y después el cuadro de diferencias y, si hay una fuga por delante del pelotón cuya lista no se ha pintado en esta reproducción, su presentación entera (6-m, §6.7). Los dos se quedan `BROADCAST.cueHoldS[3]` (6 s) o hasta que se tocan, fuera de la cola. Hacia atrás, en cambio, no hay red ni cuenta nueva: el reproductor guarda en memoria la línea servida (`cutTimeline(tl, servido)`, §4.6), vuelve a calcular el instante, vacía la cola y lo que se vuelve a ver se vuelve a rotular, como una repetición.

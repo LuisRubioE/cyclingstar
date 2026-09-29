@@ -34,7 +34,7 @@ El motor avanza por bloques de 100 m con un reloj por grupo, y el reloj de un co
 
 ### 2.3 Observar no cambia la carrera
 
-«si lo que hace el motor está bien ahí, no cambies el motor, cambia el race radio» (el dueño, `docs/balance.md` l. 16557-16558, nota de radio posterior a la v86). Guardar lo que la sonda ya ve no cambia una carrera (20 de 20 etapas idénticas en `results`, `events`, `efforts` e `incidents` con foto en cada bloque, C5) y no sube `ENGINE_VERSION`; cambiar el contenido de un suceso sí la sube (v73, `docs/balance.md` l. 14036-14038). E2 no la sube en ningún paso (D-09).
+«si lo que hace el motor está bien ahí, no cambies el motor, cambia el race radio» (el dueño, `docs/balance.md` l. 16557-16558, nota de radio posterior a la v86). Guardar lo que la sonda ya ve no cambia una carrera (20 de 20 etapas idénticas en `results`, `events`, `efforts` e `incidents` con foto en cada bloque, C5) y no sube `ENGINE_VERSION`; cambiar el contenido de un suceso sí la sube (v73, `docs/balance.md` l. 14035-14036). E2 no la sube en ningún paso (D-09).
 
 - Todo lo nuevo llega por observación: `onEvent`, `onBanner`, `onTimeTrialRide` y el colector aparte que da a la radio y al aprendizaje solo las fotos de hoy (§5.2, §5.3).
 - `StageOutput` no gana campos (Frontera 3, `docs/tactica.md` l. 246-249).
@@ -70,7 +70,7 @@ Hoy nadie sabe qué ha visto nadie: ni tabla, ni columna, ni almacenamiento del 
 
 «Binario: o tiras o no tiras. Se acabó el tercer estado intermedio. Un solo concepto, con el mismo nombre, en el motor y en la Race Radio.» (el dueño, `docs/balance.md` l. 6740-6741, v34). Hoy la crónica y la radio llaman de dos maneras al mismo grupo, eligen el grupo del maillot en dos órdenes distintos y el mismo artefacto tiene cuatro nombres (§1.4). En el diseño hay un código de papel, `GroupRole`, y una etiqueta, `GroupLabel`, que leen la barra, la radio servida, la voz y el acta con las palabras de SPEC §6.15 (D-18), y un nombre por producto: `Watch` es la retransmisión, `Report` el acta y `Race Radio` el microscopio (pantalla; D-48).
 
-- Se retiran `Peloton`, `No man’s land`, `2nd group`, `Group` y la grafía `Grupetto` (pantalla); `GROUP_NOUNS` gana `the gruppetto` (§6.3, §12.6).
+- Se retiran `Peloton`, `No man’s land`, `2nd group`, `Group` y la grafía `Grupetto` (pantalla); `GROUP_NOUNS` gana `the gruppetto` y los tres nombres del grupo del maillot (`the race leader’s group`, `the points leader’s group` y `the mountains leader’s group`), que la voz dice como la barra (D-18; §6.3, §12.6).
 - El grupo del maillot se elige con `JERSEY_PRIORITY`, no con el orden de la radio (§6.3).
 - Las dos reglas del motor que la pantalla necesita se copian a `packages/shared` con un test que falla si divergen (`bunchMinShare`, `chaseMinShare`; §15.5).
 
