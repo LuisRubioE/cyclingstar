@@ -247,3 +247,7 @@ propósito, con la causa en la nota de balance.
   persiste; el correo se usa para la cuenta). Revisar con la legislación aplicable antes del
   lanzamiento público.
 - **Sentry** — ver arriba.
+
+## Migración 0043: topes del arquetipo en el mundo vivo
+
+Se aplica sola con el `migrate.mjs` del tick. Baja a 83 el techo y el atributo de los físicos que el arquetipo de cada BOT penaliza (offset ≤ −14 en `ARCHETYPE_CEILING_OFFSETS`, sin TAC). No toca a los corredores con `user_id`. Es de un solo sentido: los valores anteriores no se guardan, así que si hiciera falta deshacerla habría que restaurar la copia de seguridad previa (`scripts/backup.sh`). El porqué, en `docs/balance.md`.

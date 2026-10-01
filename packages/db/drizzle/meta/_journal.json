@@ -302,6 +302,13 @@
       "when": 1790426384080,
       "tag": "0042_transicion_e1",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1790629147035,
+      "tag": "0043_topes_de_arquetipo",
+      "breakpoints": true
     }
   ]
 }
