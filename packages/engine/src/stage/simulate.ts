@@ -1767,6 +1767,15 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    * Se borra en cuanto se separan: el contacto tiene que ser SEGUIDO.
    */
   const contactoDesdeKm = new Map<string, number>()
+  /**
+   * EL MAYOR HUECO QUE HA LLEGADO A TENER CADA DESCOLGADO CON EL PELOTÓN (v90).
+   *
+   * Distingue al que cuelga de la cola de su propio grupo —nunca se ha ido más allá de
+   * `regroupGapSeconds`, es el pelotón estirado y vuelve por la puerta ancha— del GRUPO DE VERDAD,
+   * el que llegó a ir por detrás a más de eso: ese ya es otra carrera y para volver tiene que cerrar
+   * el hueco en carretera, hasta `captureGapSeconds`. Ver la puerta del reenganche, más abajo.
+   */
+  const huecoMaxDescolgado = new Map<string, number>()
   const llevaEnContacto = (kmAhora: number, a: string, b: string, juntos: boolean): boolean => {
     const clave = a < b ? `${a}|${b}` : `${b}|${a}`
     if (!juntos) {
@@ -7895,13 +7904,30 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           Math.abs(gapSeconds(peloton, sg)) <=
             contactoS(membersOf(PELOTON).length, mem.length, peloton.vActual),
         )
-        if (
-          caught ||
-          enContacto ||
-          (!onRough &&
-            cerrando &&
-            gapSeconds(peloton, sg) <= STAGE.rejoinGapSeconds * shutFor(mem.length))
-        ) {
+        /**
+         * …Y LA PUERTA ANCHA ES SOLO PARA EL QUE NUNCA SE FUE (v90).
+         *
+         * El dueño, en la etapa 3 de la Vuelta: tres grupos separados por 33 s se juntan entre el km
+         * 149 y el 150, en un tramo casi llano, con la radio marcando 68 km/h. Medido: el grupo de 61
+         * cerró en carretera 5 a 7 s de ese kilómetro y la puerta de `rejoinGapSeconds` le regaló
+         * los otros 20 a 22. Ese grupo eran los descolgados del puerto anterior: llevaban kilómetros
+         * siendo OTRO grupo, no la cola estirada del pelotón.
+         *
+         * Así que la puerta depende de la historia del grupo. Si nunca pasó de `regroupGapSeconds`
+         * por detrás, es el pelotón estirado y entra como siempre (y con ello el fuerte que vuelve en
+         * el adoquín, la objeción de la v58). Si alguna vez la pasó, es un grupo establecido y entra
+         * al llegar a `captureGapSeconds`, como cualquier caza. Medido sobre diez etapas 3 sintéticas
+         * con el campo real: las fusiones con más de 10 s de hueco pasan de 15 a 0, y la mediana de
+         * PAV del ganador del banco del pavé no se mueve (72).
+         */
+        const huecoAhora = sg.tS - peloton.tS
+        const huecoMax = Math.max(huecoMaxDescolgado.get(sg.id) ?? huecoAhora, huecoAhora)
+        huecoMaxDescolgado.set(sg.id, huecoMax)
+        const puerta =
+          huecoMax > STAGE.regroupGapSeconds
+            ? STAGE.captureGapSeconds
+            : STAGE.rejoinGapSeconds * shutFor(mem.length)
+        if (caught || enContacto || (!onRough && cerrando && gapSeconds(peloton, sg) <= puerta)) {
           /**
            * …Y FUNDIRSE POR CONTACTO TAMPOCO REGALA SEGUNDOS (v81, la regla de la v76.1 aplicada
            * aquí).
@@ -8780,7 +8806,15 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             })
           }
         }
-        if (gap <= STAGE.captureGapSeconds) {
+        /**
+         * …Y CAZAR ES LLEGAR POR DETRÁS, NO IR DETRÁS (v90). Esta comparación solo miraba un lado:
+         * un movimiento que nace POR DETRÁS del pelotón —el `puente` que lanza un grupo descolgado
+         * hacia él— tenía `gap` negativo y se daba por cazado en el mismo bloque en que salía,
+         * heredando el reloj del pelotón. Medido en diez etapas 3 sintéticas: 28 casos, con regalos de
+         * hasta 137 s y algunos en plena subida. Ahora hace falta estar a menos de
+         * `captureGapSeconds` por los dos lados.
+         */
+        if (gap <= STAGE.captureGapSeconds && gap >= -STAGE.captureGapSeconds) {
           /**
            * AL QUE LE CAZAN DESPUÉS DE UNA FUGA LARGA, SE LE ACABÓ EL DÍA (v42).
            *
