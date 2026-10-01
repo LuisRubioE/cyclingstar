@@ -8807,15 +8807,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             })
           }
         }
-        /**
-         * …Y CAZAR ES LLEGAR POR DETRÁS, NO IR DETRÁS (v90). Esta comparación solo miraba un lado:
-         * un movimiento que nace POR DETRÁS del pelotón —el `puente` que lanza un grupo descolgado
-         * hacia él— tenía `gap` negativo y se daba por cazado en el mismo bloque en que salía,
-         * heredando el reloj del pelotón. Medido en diez etapas 3 sintéticas: 28 casos, con regalos de
-         * hasta 137 s y algunos en plena subida. Ahora hace falta estar a menos de
-         * `captureGapSeconds` por los dos lados.
-         */
-        if (gap <= STAGE.captureGapSeconds && gap >= -STAGE.captureGapSeconds) {
+        if (gap <= STAGE.captureGapSeconds) {
           /**
            * AL QUE LE CAZAN DESPUÉS DE UNA FUGA LARGA, SE LE ACABÓ EL DÍA (v42).
            *
