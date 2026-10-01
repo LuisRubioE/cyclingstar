@@ -16,7 +16,10 @@ const PHYSICAL: Attribute[] = ['RES', 'LLA', 'MON', 'COL', 'CRI', 'SPR', 'DES', 
 
 // --- 6.4 La ley de velocidad ---------------------------------------------------------------
 
-/** Peso del atributo de subida frente al de llano: w(g) = clamp((g - 2) / 6, 0.15, 1.0). */
+/**
+ * Peso del atributo de subida frente al de llano: w(g) = clamp(g / 5,5, 0.15, 1.0) desde la v90
+ * (antes `(g - 2) / 6`, que dejaba el llano mandando hasta el 5 %; ver `STAGE.wGradientOffset`).
+ */
 export function climbWeight(g: number): number {
   return clamp((g - STAGE.wGradientOffset) / STAGE.wGradientScale, STAGE.wMin, STAGE.wMax)
 }

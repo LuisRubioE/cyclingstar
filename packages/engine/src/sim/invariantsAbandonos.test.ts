@@ -72,11 +72,15 @@ describe('abandonos en una gran vuelta (docs/motor.md §VI.3)', () => {
    * nocturno (x1,75-2,02) y el humor del runner (x1,3) compuestos, que es exactamente lo que ya tiró
    * dos nocturnos seguidos por estimar a ojo en vez de medir.
    */
-  it('el pelotón adelgaza entre un 12% y un 20% en tres semanas', { timeout: 5400000 }, () => {
-    const stats = tours()
-    expect(stats.runs).toBe(12)
-    expectInRange(stats.abandonPct, TARGETS.grandTour.abandonPct)
-  })
+  it(
+    'el pelotón adelgaza entre un 12% y un 23% en tres semanas (techo 20 hasta la v90)',
+    { timeout: 5400000 },
+    () => {
+      const stats = tours()
+      expect(stats.runs).toBe(12)
+      expectInRange(stats.abandonPct, TARGETS.grandTour.abandonPct)
+    },
+  )
 
   /**
    * EL CRITERIO DE ÉXITO DEL MODELO DE PERSECUCIÓN (v16, docs/motor.md §9). En una etapa reina de

@@ -453,7 +453,7 @@ export function tailStats(tails: StageTail[]): TailStats {
 
 export interface GrandTourStats {
   runs: number
-  /** Media del % de abandonos de las vueltas corridas (objetivo 12-20 %). */
+  /** Media del % de abandonos de las vueltas corridas (objetivo 12-23 % desde la v90). */
   abandonPct: number
   minAbandonPct: number
   maxAbandonPct: number

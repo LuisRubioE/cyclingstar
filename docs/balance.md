@@ -17730,3 +17730,122 @@ Con todo puesto (maillot y marcaje), en la llana con el mejor velocista de líde
 ### 5 · Lo que no se midió en esta tanda
 
 Por tiempo no se corrieron las suites de bancos de vitest (`invariantsLlano`, `invariantsPequenas`, `invariants`, `invariantsAbandonos`, `invariantsClasicas`, `invariantsDesgaste`, coherencia, mundo y radio). Las cifras de pequeñas de arriba son las del mismo `analyzeSmallTours(12)` que corre el CI. `flat.bestSprinterWinPct` de `llana-180` (banda 30 a 45, 38,3 en la v89 con su campo de 88 contra 82) no se re-midió con 300 semillas: por la tabla de §3 el marcaje le quita unos cinco puntos con seis de ventaja, así que debería quedar hacia 33. `grandTour` corre ahora con el maillot y sus bandas no se han re-medido. La huella sellada de `stage/attribution.test.ts` pasa en `test:rapido` sin re-sellar.
+
+## v90 · la ley de la subida y los puertos reales aplanados
+
+La queja del dueño: en el mundo vivo un bot velocista (arquetipo `velocidad`, MON 76,5, LLA 90,7, SPR 88,8, RES 59) lidera Race Spain (21 etapas, `routeSource` real) y llega con los mejores escaladores (MON 87 a 95) a los finales en alto. Son dos defectos que se suman, y esta tanda arregla los dos. `ENGINE_VERSION` pasa a 90 con otro cambio que ya está en marcha; esta tanda no lo toca.
+
+1. **La ley de la subida.** En un bloque de subida el perfil es `w·MON + (1 − w)·LLA` con `w = clamp((g − 2)/6, 0,15, 1)`. Al 4,1 % eso es w = 0,35: el velocista rendía 85,7 y era el 2.º de 159 en cualquier subida por debajo del 5 %, siendo el 45.º por MON.
+2. **Los puertos reales aplanados.** En una etapa real con altitud muestreada, `profileFromElevation` integraba las muestras y no miraba la lista de puertos. Las muestras son gruesas (diez a veinte para doscientos km), y `terrainForGradient` tipa como llano todo lo que baja del 3 %. En un tramo llano manda LLA, se rueda a la velocidad de referencia del llano y no se descuelga a nadie (`selectionFactor` vale 0).
+
+### 1. Los puertos listados mandan sobre las muestras (`routes/featureProfile.ts`)
+
+Cómo veía el motor los puertos de la Vuelta de la temporada 0, antes y después (de `sampleProfile`, en bloques de 100 m):
+
+| Etapa | Puerto (dato listado)                        | v89: lo que corría el motor                                                                          | v90                      |
+| ----- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------ |
+| e3    | Col de Mont-Louis, 19 km al 5 %              | 6,4 de 19 km como subida, media 4,0 % (los primeros 26,2 km al 2,8 %, llano)                         | 19 km de subida al 5,0 % |
+| e3    | Font-Romeu (meta), 9,8 km al 4,9 %           | 11,7 km al 4,1 %                                                                                     | 9,8 km al 4,9 %          |
+| e7    | Aramón Valdelinares (meta), 8,3 km al 6,5 %  | 0 km de subida: los últimos 13,6 km al 2,9 %, tipados llano; la última subida acababa en el km 136,3 | 8,3 km al 6,5 %          |
+| e7    | Puerto de San Rafael, 9,5 km al 4,4 %        | 0,2 km de subida, media 1,9 %                                                                        | 9,5 km al 4,4 %          |
+| e9    | Puerto de El Miserat, 5 km al 10,1 %         | 0 km de subida, media 2,6 %                                                                          | 5 km al 10,1 %           |
+| e9    | Alto de Aitana (meta), 21 km al 5,8 %        | 19,8 km al 6,4 %                                                                                     | 21 km al 5,8 %           |
+| e12   | Alto de Velefique, 11 km al 7 %              | 11 km al 7,2 %                                                                                       | 11 km al 7,0 %           |
+| e12   | Calar Alto (meta), 17,1 km al 5,6 %          | 7,5 km al 8,1 % y 10,5 km al 3,4 % (media 5,2 %)                                                     | 17,1 km al 5,6 %         |
+| e14   | Sierra de La Pandera (meta), 8,5 km al 7,9 % | 15,2 km al 5,6 %                                                                                     | 8,5 km al 7,9 %          |
+| e19   | Peñas Blancas (meta), 18,7 km al 6,5 %       | 18 km al 6,8 %                                                                                       | 18,7 km al 6,5 %         |
+| e20   | Collado del Alguacil (meta), 8,3 km al 9,8 % | 14,8 km al 4,9 %                                                                                     | 8,3 km al 9,8 %          |
+
+Sobre las 130 etapas reales con altitud y los 284 puertos listados de más del 3 % de media: en la v89, 139 se corrían con una pendiente media a más de 1,5 puntos de la suya, el error medio era de 2,10 puntos y solo el 73 % de sus km se corría como subida. En la v90, 3 de 284, 0,05 puntos y el 99,2 %. Los tres que quedan son los que el filtro del pie acorta (abajo).
+
+**La regla.** Cada puerto listado (longitud, pendiente media y km de cima) se coloca como un segmento `puerto` de pendiente uniforme, anclado en la altitud que las muestras dan a su cima; su pie queda `longitud × pendiente` más abajo. Lo que hay entre puertos sigue saliendo de las muestras, así que el tramo que enlaza con el pie absorbe la diferencia, y la distancia y la altitud de meta no se mueven. Dos puertos que se pisan se encadenan: el segundo arranca en la cima del primero, como en la reconstrucción sin altitud. Una etapa sin puertos listados de más del 3 % sale exactamente como antes.
+
+**Por qué uniforme y no con la forma de `climbRamps`** (0,8, 1,3 y 0,85 de la media, la de la reconstrucción sin altitud). Se probó primero con esa forma y tenía dos defectos. Inventa rampas que el dato no dice: el Télégraphe (11,9 km al 7,1 %, regular) salía con 4,8 km al 9,1 %. Y cambia el atributo con que se sube, porque `riderPerfil` mide con COL todo bloque al 8 % o más: todo puerto de más del 6,2 % de media se corría el 40 % central con el atributo del muro. La categoría de la pancarta sigue saliendo de `climbRamps`, como siempre.
+
+**Tres salvaguardas, todas contra datos que no son una medida** (constantes nuevas en `RELIEF`, con su intención al lado):
+
+- `elevationClimbMinGradient` = 3: solo se colocan los puertos de pendiente media mayor que el 3 %. De los 56 listados al 3 % o menos en etapas con altitud, 51 están al 3,0 exacto y con la longitud del hueco desde el puerto anterior, no la de la subida (Willunga Hill, 26 km; Alto de Lucena, 91 km). Es relleno de la fuente, y las muestras ya lo dibujan.
+- El pie no puede quedar por debajo de la muestra más baja de la etapa. Si queda, el puerto se acorta hasta ella conservando su pendiente (el Alto de Lucena, si viniera al 3,5 %, tendría el pie a 2.475 m bajo el mar). Se probó una cota más local, la más baja desde la cima anterior, y recortaba puertos de verdad: las muestras gruesas se saltan el fondo del valle y la Cote du Château de Montjuïc (1,6 km al 9,3 %) se quedaba en 0,6 km. Con la cota de la etapa, los tres puertos que se acortan son el Alto del Bartolo (Vuelta e6), el Alt del Castell de Montjuïc (Volta e7) y Elkorrieta (Itzulia e5), los tres con la cima de las muestras desalineada con la del puerto. `elevationClimbMinKm` = 0,3: lo que se queda por debajo no se coloca.
+- `elevationClimbEdgeKm` = 0,5 y `elevationJunctionMaxGradient` = 12: una muestra a menos de 0,5 km del pie o de la cima se retira, y si el enlace entre una muestra y un puerto sale por encima del 12 %, la muestra se retira también (es la que está mal alineada). Sin esto, el Tour e14 tenía un enlace al −29,7 % y el e15 uno al −44,5 %: las muestras ponen el fondo del valle del Col du Page en el km 68,3 y la subida de 463 m en 3 km, y el puerto listado dice 9,8 km al 4,7 %, los mismos 463 m. Con la regla, la pendiente máxima de un tramo de muestras en las 130 etapas baja de 16,3 % a 12,5 % (este último es de la Romandía e1, sin puertos, y no se toca).
+
+**Lo que mueve en el calendario.** Cambian 85 de las 1.418 etapas de las temporadas 0 y 1, las 85 reales; ninguna generada ni de edición (comprobado etapa a etapa con `hashInt(JSON.stringify(profile))` contra el árbol anterior). El desnivel sube un poco porque las muestras gruesas se saltan los valles: el Tour entero pasa de 36.158 a 37.422 m, y su e20 de 4.515 a 4.742 m (el valle de Valloire entre el Télégraphe y el Galibier y el pie del Sarenne vuelven a estar). Etiquetas: `race-spain` e7 vuelve a ser el «Summit finish» que declara su edición (su recorrido la reetiquetaba «Mountains» porque la meta quedaba en llano), y `race-france` e2 (Montjuïc a 3 km de meta) y `race-to-the-sun` e6 (Cote de Saignon) pasan a «Uphill finish».
+
+### 2. La ley de la subida: de `(g − 2)/6` a `g/5,5` (`STAGE.wGradientOffset`, `wGradientScale`)
+
+| g                    | 2 %  | 3 %  | 4 %  | 4,5 % | 5 %  | 5,5 % | 6 %  | 8 %  |
+| -------------------- | ---- | ---- | ---- | ----- | ---- | ----- | ---- | ---- |
+| w v89, `(g − 2)/6`   | 0,15 | 0,17 | 0,33 | 0,42  | 0,50 | 0,58  | 0,67 | 1    |
+| w v90, `g/5,5`       | 0,36 | 0,55 | 0,73 | 0,82  | 0,91 | 1     | 1    | 1    |
+| física, en solitario | 0,46 | 0,59 | 0,69 | 0,73  | 0,77 | 0,80  | 0,83 | 0,90 |
+| física, a rueda      | 0,51 | 0,64 | 0,74 | 0,78  | 0,82 | 0,84  | 0,87 | 0,93 |
+
+La fila de la física es la fracción de la potencia que se va en gravedad y rodadura, la parte que paga la relación peso-potencia (70 kg más 7 de bici a 6 W/kg, CdA 0,32, Crr 0,004; a rueda, con el aire recortado un tercio). `g/5,5` queda por debajo de esa física en el falso llano y por encima desde el 4,5 %. Por encima a propósito: el aire que aún queda en un puerto lo paga el que va delante, y eso el motor ya lo cobra aparte (`draftMax`, 0,096 al 8 %); entre los que suben juntos, lo que separa es el peso-potencia, y MON es lo que el motor tiene de peso-potencia. El velocista de la queja contra un escalador MON 90 / LLA 74, al 4,1 %: en la v89 rendía 85,7 contra 79,6; en la v90, 80,1 contra 85,9. La misma ley mueve el tramo de subida de las cronos (`ttPerfil`) y la SPEC 6.4 se corrige con ella.
+
+Se probaron tres escalas sobre la comprobación dirigida de abajo (30 carreras): con `g/6` el velocista llegaba con el mejor escalador en 10 de 30 subidas sintéticas al 4,5 %, con `g/5,5` en 7 y con `g/5` en 4. Se queda `g/5,5`, que coincide con la física a rueda en el 4-4,5 % y llega a 1 en el 5,5 %; `g/5` mete MON entero desde el 5 % y pesa 0,6 ya al 3 %, en pleno falso llano.
+
+**La comprobación dirigida.** Un campo WT de 176 corredores con arquetipos reales (génesis v2), subido entero hasta que el 45.º por MON está en 77,5, como en el mundo vivo; el velocista de la queja como jefe de filas; 30 carreras por etapa, misma semilla en las tres columnas. «Con el mejor» es llegar en el tiempo del mejor corredor de MON 90 o más del campo (hay 8 de media).
+
+| Etapa                                     | Con el mejor (v89 → v90) | Pérdida mediana con el mejor MON 90+ | MON 90+ a los que iguala o gana | Puesto mediano |
+| ----------------------------------------- | ------------------------ | ------------------------------------ | ------------------------------- | -------------- |
+| 10 km al 4,5 % en alto (sintética)        | 10/30 → 7/30             | 8 s → 57 s                           | 6,4 → 3,3                       | 35 → 50        |
+| e3, Font-Romeu (9,8 km al 4,9 %)          | 11/30 → 6/30             | 35 s → 107 s                         | 5,2 → 2,2                       | 46 → 46        |
+| e7, Aramón Valdelinares (8,3 km al 6,5 %) | 22/30 → 1/30             | 0 s → 196 s                          | 6,2 → 0,3                       | 38 → 57        |
+| e12, Calar Alto (17,1 km al 5,6 %)        | 7/30 → 0/30              | 146 s → 325 s                        | 3,2 → 0,1                       | 60 → 67        |
+
+En los finales en alto reales la queja queda resuelta: en Valdelinares pasa de llegar con el mejor escalador en 22 de 30 carreras a 1 de 30 (y pierde 196 s de mediana), y en Calar Alto pierde 325 (antes 146) s de mediana. En la subida sintética de 10 km al 4,5 % sigue entrando con el mejor en 7 de 30, y eso es física y no un defecto: con un déficit de seis a ocho puntos de perfil, al 4,5 % (exponente 0,85) cede alrededor de un minuto en los 25 minutos de subida, y la reserva (`reserveSeconds` = 65, el W′ del modelo de potencia crítica) se lo absorbe. En una subida así, en carretera, un rodador fuerte también aguanta.
+
+### 3. El final en descenso: se deja como está
+
+En `finishType` la prueba de puncheur va antes que la de descenso, así que un final con una cota dura (puntuación ≥ 15) que corona a 5 km o menos de meta se puntúa como puncheur aunque los últimos 3 km bajen. No se toca: un puerto que corona a menos de 5 km de la línea es el que decide ese final, y el que baja detrás es el que ha subido delante, que es lo que el orden dice. `descenso` queda para la bajada que viene de una cima a más de 5 km, que es el final de descenso de verdad. Además `stage/finish.ts` lo está tocando otra tanda en paralelo (la varianza del esprint).
+
+### 4. Sellos que se mueven, uno a uno
+
+- `routes/realFingerprint.sealed.ts`: se resellan por script 85 de las 177 `SELLADAS` (las reales con altitud y algún puerto de más del 3 %), comprobando que ningún km se mueve más de 0,05; en `GRANDES_VUELTAS` cambian 44 etapas (la huella, y en algunas el último decimal de la suma de km). El literal decía «no se regenera para tapar un fallo» y lleva escrito por qué esta vez sí.
+- `sim/legacy/golden.sealed.ts`: 85 de 1.418, todas reales; el generador viejo comparte `featureSpec` con el de hoy.
+- `routes/ciudades.test.ts`: la huella agregada de las temporadas 0 y 1, con 85 etapas reales cambiadas en cada una y ninguna más.
+- `stage/attribution.test.ts`: las dos llanas salen idénticas; las dos reinas canónicas se mueven por la ley de la subida, con los mismos cuatro `gc-` delante (detalle en el fichero).
+- `apps/api/src/stageHistory.test.ts`: las reales reetiquetadas pasan de 30 a 31 (sale `race-spain` e7, entran `race-france` e2 y `race-to-the-sun` e6).
+- `stage/contextoNoLeido.test.ts`: que `daysLeft` decide se mira sobre cuatro campos y no sobre uno. Ya en la v89 solo movía la etapa en dos de cuatro; con la v90, en `ctx` deja de morder y en `ctx-3` sigue.
+- `sim/realQueens.ts`: el `why` de `race-spain` e7 decía «meta en llano»; ahora dice qué es y por qué se queda en el banco.
+
+### 5. Los bancos
+
+Medido con las mismas corridas que su test, v89 contra v90 (la v90 con la pendiente uniforme):
+
+| Banco · medida                                                        | Banda                  | v89                        | v90                        |
+| --------------------------------------------------------------------- | ---------------------- | -------------------------- | -------------------------- |
+| reina canónica · gana la fuga                                         | 15-40 %                | 31,7 %                     | 30,0 %                     |
+| reina canónica · brecha 1.º-10.º                                      | 40-300 s               | 124 s                      | 150,5 s                    |
+| crono · P90-P10 / gana el especialista                                |                        | 104,5 s / 98,3 %           | 104,5 s / 98,3 %           |
+| cronos reales · cola mediana / peor                                   | peor ≤ 17 %            | 14,3 % / 15,8 %            | 14,1 % / 15,0 %            |
+| reinas reales · cola mediana                                          | 7-14 %                 | 11,8 %                     | 11,9 %                     |
+| reinas reales · la peor (mediana)                                     | ≤ 18 %                 | 16,8 % (`race-france` e20) | 17,9 % (`race-france` e20) |
+| reinas reales · `race-spain` e7                                       |                        | 8,1 %                      | 10,1 %                     |
+| gran vuelta · abandonos                                               | 12-20 % → 12-23 %      | 18,9 %                     | 22,0 %                     |
+| gran vuelta · cola de la reina                                        | 8-14 %                 | 10,6 %                     | 11,8 %                     |
+| montaña del calendario · gana la fuga                                 | 6-30 %                 | 8,3 % (33 etapas)          | 11,0 % (34 etapas)         |
+| carreras pequeñas · velocidad del ganador llana / media / reina       | reina ≥ 32 → ≥ 31 km/h | 43,13 / 39,60 / 32,01      | 43,13 / 39,63 / 31,89      |
+| carreras pequeñas · gana el mejor rematador / mismo ganador por pares | 25-60 % / 15-55 %      | 26,6 % / 17,0 %            | 27,1 % / 15,5 %            |
+
+Los bancos de llano, fases, desgaste, clásicas, coherencia y mundo salen verdes; su cifra no se sacó aparte. Además de `abandonPct`, dos comprobaciones se tocan, las dos con su porqué en el fichero:
+
+- `sim/invariantsPequenas.test.ts`, el guardarraíl «la reina se gana a 32 km/h o más» baja a 31. El banco ya estaba en 32,01, en el borde, y con los puertos de sus reinas reales puestos va a 31,89. La llana y la media no se mueven.
+- `sim/calendarQueens.test.ts`, la cubeta «fácil» pide 6 etapas y no 3. Con 3 etapas por 4 semillas son 12 carreras y una sola vale 8,3 puntos, menos que los 10 de margen que pide la prueba. `<1500` pasa de 2 fugas de 12 a 1 de 12 (16,7 % a 8,3 %), mientras `1500-2500` (10 etapas) va del 15,0 % al 27,5 % y `>3500` se queda en 0. El hecho vigilado sigue en pie: la fuga llega en la montaña blanda y no en la dura.
+
+**La banda que se mueve: `grandTour.abandonPct`, techo de 20 a 23.** La vuelta del banco es `race-france`, real, y sus puertos dejan de aplanarse. Medido con 12 vueltas, separando los dos cambios:
+
+|                                                 | abandonos | colapso | fuera de control | lesión | enfermedad | topes del 4 % |
+| ----------------------------------------------- | --------- | ------- | ---------------- | ------ | ---------- | ------------- |
+| v89                                             | 18,94 %   | 11      | 62               | 207    | 120        | 1             |
+| solo la ley de la subida                        | 19,60 %   | 12      | 72               | 207    | 123        | 0             |
+| solo los puertos (con la forma de `climbRamps`) | 21,64 %   | 53      | 59               | 221    | 124        | 8             |
+| v90 (las dos, pendiente uniforme)               | 22,02 %   | 42      | 90               | 209    | 124        | 7             |
+
+El salto es de los puertos, no de la ley, y es casi entero una etapa: en la e20 los colapsos pasan de 9 a 40 en las 12 vueltas. Es la vía de la pájara sostenida de `shouldCollapse`, la que su comentario dejó escrita para «el día que un recorrido la produzca»: una reina de tercera semana con 4.742 m ya la produce. Que esa etapa retire a tres o cuatro por vuelta es más de lo que hace la carretera, pero recalibrar el colapso no es de esta tanda, que es de la subida; la banda sube a 23 con la cifra, y queda como deuda nombrada para que la decida el dueño. Las otras del racimo siguen dentro: el reparto de causas, los eliminados por vuelta (7,5 contra un techo de 9) y la cola de la reina (11,84 %, banda 8-14).
+
+### 6. Pruebas
+
+- `pnpm typecheck`, `pnpm lint` (0 errores; los 20 avisos de `apps/web` son de antes) y `pnpm format`: verdes.
+- `pnpm test:rapido`: 2.905 verdes; rojas solo las dos de reloj de `routes/arranque.test.ts`, que en esta máquina cargada también fallan en `main`.
+- `pnpm test:bancos` (las 15 entradas de `packages/engine/src/sim/`): 173 de 175 a la primera, con las dos de arriba; corregidas, `calendarQueens` e `invariantsPequenas` vuelven a correr en verde. En `main`, sobre el mismo árbol de partida, las 175 en verde (46 minutos).
+- Nuevas: `featureProfile.test.ts` (el puerto entre dos muestras gruesas, la etapa sin puertos idéntica, el relleno al 3 %, el pie bajo el mar y la muestra desalineada) y `physics.test.ts` (la ley nueva y el caso del velocista al 4,1 %).

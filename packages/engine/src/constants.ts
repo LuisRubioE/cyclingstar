@@ -1259,6 +1259,24 @@ export const RELIEF = {
   },
   // Amplitud de una etapa sin terreno declarado: la de referencia.
   rollingAmplitudeDefault: 1.0,
+  /**
+   * PUERTOS LISTADOS SOBRE LA ALTITUD MUESTREADA (v90, `profileFromElevation`). En una etapa real con
+   * altitud, cada puerto listado se coloca con su longitud y su pendiente media en vez de salir de
+   * las muestras gruesas, que lo aplanaban. `elevationClimbMinGradient`: solo se colocan los puertos
+   * de pendiente media MAYOR que esto (en %); por debajo es un falso llano que las muestras ya
+   * dibujan, y es donde la fuente pone su relleno (51 puertos al 3,0 exacto con la longitud del
+   * hueco). Coincide con el umbral de `terrainForGradient` para tipar un tramo de puerto. `elevationClimbMinKm`: un puerto que, recortado contra
+   * el anterior, se queda en menos de esto no se coloca (el mismo mínimo que la reconstrucción sin
+   * altitud). `elevationClimbEdgeKm`: una muestra de altitud a menos de esto del pie o de la cima de
+   * un puerto se retira, para que el enlace con el pie recalculado no sea un tramo de metros con una
+   * pendiente imposible. `elevationJunctionMaxGradient`: si el enlace entre una muestra y el pie o
+   * la cima de un puerto sale más empinado que esto (en %), la muestra está mal alineada con el
+   * puerto y se retira; es el mismo tope que el descenso reconstruido (`MAX_DESCENT_GRADIENT`).
+   */
+  elevationClimbMinGradient: 3,
+  elevationClimbMinKm: 0.3,
+  elevationClimbEdgeKm: 0.5,
+  elevationJunctionMaxGradient: 12,
 } as const
 
 /**
@@ -2298,9 +2316,22 @@ export const STAGE = {
   dx: 0.1,
 
   // 6.4 — Ley de velocidad.
-  // w(g) = clamp((g - 2) / 6, 0.15, 1.0): peso del atributo de subida frente al de llano.
-  wGradientOffset: 2,
-  wGradientScale: 6,
+  // w(g) = clamp((g - offset) / scale, 0.15, 1.0): peso del atributo de subida frente al de llano.
+  //
+  // LA LEY DE LA SUBIDA (v90): de (g - 2) / 6 a g / 5,5. Con la vieja, al 4 % el atributo de llano
+  // pesaba aún el 67 %, y un velocista del mundo vivo (MON 76,5, LLA 90,7) era el 2.º de 159 en
+  // cualquier subida por debajo del 5 % siendo el 45.º por MON: subía con los escaladores de MON
+  // 87-95 y lideraba la Vuelta. En carretera, desde el 3-4 % sostenido manda la relación
+  // peso-potencia. La fracción de la potencia que se va en gravedad y rodadura (70 kg más 7 de bici
+  // a 6 W/kg, CdA 0,32, Crr 0,004) es 0,46 al 2 %, 0,59 al 3 %, 0,73 al 4,5 % y 0,83 al 6 % en
+  // solitario, y 0,51, 0,64, 0,78 y 0,87 a rueda con el aire recortado un tercio. g / 5,5 da 0,36,
+  // 0,55, 0,82 y 1 (0,73 al 4 %, 0,91 al 5 %; antes 0,15, 0,17, 0,42 y 0,67): por debajo de esa
+  // física en el falso llano y por encima desde el 4,5 %. Por encima a propósito: el aire que aún
+  // queda en un puerto lo paga el que va delante, y eso el motor ya lo cobra aparte (`draftMax`,
+  // 0,096 al 8 %); entre los que suben juntos, lo que separa es el peso-potencia. Se probaron g / 6 y
+  // g / 5 (balance.md «v90»).
+  wGradientOffset: 0,
+  wGradientScale: 5.5,
   wMin: 0.15,
   wMax: 1.0,
   // Muro: subida total <= 2,5 km con g >= 8 -> el atributo de subida es COL en vez de MON.

@@ -44,10 +44,22 @@ const block = (tipo: Block['tipo'], g: number, estrellas = 0): Block => ({ tipo,
 describe('ley de velocidad (6.4)', () => {
   it('en subida mezcla escalada y llano según w(g)', () => {
     const climber = eff(40, { MON: 80, LLA: 40 })
-    // g = 8 -> w = clamp((8-2)/6) = 1.0: manda la escalada.
+    // g = 8 -> w = clamp(8/5,5) = 1.0: manda la escalada. Desde la v90 ya al 5,5 %.
     expect(blockPerfil(climber, block('subida', 8))).toBeCloseTo(80)
-    // g = 2 -> w = 0.15: casi todo llano.
-    expect(blockPerfil(climber, block('subida', 2))).toBeCloseTo(0.15 * 80 + 0.85 * 40)
+    expect(blockPerfil(climber, block('subida', 6))).toBeCloseTo(80)
+    // g = 3 -> w = 3/5,5 = 0,55: algo más de la mitad (hasta la v89, 0,17).
+    expect(blockPerfil(climber, block('subida', 3))).toBeCloseTo((3 / 5.5) * 80 + (2.5 / 5.5) * 40)
+    // g = 0.6 -> w = 0.15, el suelo: casi todo llano.
+    expect(blockPerfil(climber, block('subida', 0.6))).toBeCloseTo(0.15 * 80 + 0.85 * 40)
+  })
+
+  it('LA LEY DE LA SUBIDA (v90): al 4,1 % el velocista de la queja ya no sube con los escaladores', () => {
+    // MON 76,5 / LLA 90,7 contra un escalador MON 90 / LLA 74. Con (g-2)/6 el velocista rendía 85,7
+    // contra 79,6; con g/5,5 rinde 80,1 contra 85,9.
+    const sprinter = eff(60, { MON: 76.5, LLA: 90.7 })
+    const climber = eff(60, { MON: 90, LLA: 74 })
+    const b = block('subida', 4.1)
+    expect(blockPerfil(climber, b)).toBeGreaterThan(blockPerfil(sprinter, b) + 5)
   })
 
   it('en muros usa COL en vez de MON', () => {

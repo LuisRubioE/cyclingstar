@@ -309,10 +309,152 @@ function bannersFromFeatures(climbs: StageClimb[], sprints: StageSprint[]): Bann
   return banners
 }
 
+/** Altitud interpolada en `km` sobre muestras ordenadas (fuera de rango, la del extremo). */
+function elevationAt(pts: StageElevation[], km: number): number {
+  if (km <= pts[0]!.km) return pts[0]!.elevM
+  for (let i = 1; i < pts.length; i++) {
+    const b = pts[i]!
+    if (km <= b.km) {
+      const a = pts[i - 1]!
+      const dk = b.km - a.km
+      return dk <= 0 ? b.elevM : a.elevM + ((b.elevM - a.elevM) * (km - a.km)) / dk
+    }
+  }
+  return pts[pts.length - 1]!.elevM
+}
+
+/** Un puerto listado colocado sobre el trazado: del pie (`fromKm`) a la cima (`toKm`), con sus cotas. */
+interface ClimbWindow {
+  fromKm: number
+  toKm: number
+  avgGradient: number
+  baseM: number
+  summitM: number
+}
+
+/**
+ * Los puertos listados colocados sobre las muestras, en km creciente, recortados al recorrido y SIN
+ * SOLAPARSE: si el pie de un puerto cae antes de la cima del anterior (dos puertos encadenados, o un
+ * dato de la fuente que se pisa), arranca en esa cima, como hace la reconstrucción sin altitud
+ * (`buildRelief`). Cada puerto se ancla en la altitud de su cima (la de las muestras) y su pie queda
+ * `longitud × pendiente` más abajo.
+ *
+ * Dos filtros, los dos contra datos que no son una medida. Uno: solo se colocan los puertos de
+ * pendiente media mayor que `RELIEF.elevationClimbMinGradient`. Por debajo es un falso llano que las
+ * muestras ya dibujan, y sobre todo es donde vive el relleno de la fuente: de los 56 puertos listados
+ * al 3 % o menos en etapas con altitud, 51 están al 3,0 exacto y con la longitud del hueco desde el
+ * puerto anterior, no la de la subida (Willunga Hill, 26 km; el Alto de Lucena, 91 km). Dos: el pie
+ * no puede quedar por debajo de la muestra más baja de toda la etapa; si queda, el puerto se acorta
+ * hasta ella conservando su pendiente (es lo que pasa cuando la cima de las muestras va desalineada
+ * con la del puerto). Un puerto que se queda en menos de `RELIEF.elevationClimbMinKm` se descarta: no
+ * hay subida que poner. Una cota más local (la más baja desde la cima anterior) se probó y recortaba
+ * puertos de verdad, porque las muestras gruesas se saltan el fondo del valle: dejaba la Cote du
+ * Château de Montjuïc (1,6 km al 9,3 %) en 0,6 km.
+ */
+function climbWindows(
+  samples: StageElevation[],
+  climbs: StageClimb[],
+  totalKm: number,
+): ClimbWindow[] {
+  const out: ClimbWindow[] = []
+  const floorM = Math.min(...samples.map((p) => p.elevM))
+  let cursor = 0
+  for (const c of [...climbs].sort((a, b) => a.summitKm - b.summitKm)) {
+    if (c.avgGradient <= RELIEF.elevationClimbMinGradient) continue
+    const toKm = Math.min(totalKm, c.summitKm)
+    const summitM = elevationAt(samples, toKm)
+    const maxLenKm = Math.max(0, (summitM - floorM) / (c.avgGradient * 10))
+    const fromKm = Math.max(cursor, toKm - Math.min(c.lengthKm, maxLenKm))
+    if (toKm - fromKm < RELIEF.elevationClimbMinKm) continue
+    const baseM = summitM - (toKm - fromKm) * c.avgGradient * 10
+    out.push({ fromKm, toKm, avgGradient: c.avgGradient, baseM, summitM })
+    cursor = toKm
+  }
+  return out
+}
+
+/** Un nodo del trazado: una muestra de altitud, o el pie (con su puerto) o la cima de un puerto. */
+interface TraceNode extends StageElevation {
+  /** El puerto que ARRANCA en este nodo (solo en el pie). */
+  climb?: ClimbWindow
+  /** Muestra de altitud retirable (ni la salida, ni la meta, ni un nodo de puerto). */
+  sample?: boolean
+  /** Pie o cima de un puerto listado. */
+  puerto?: boolean
+}
+
+/**
+ * Los nodos del trazado: las muestras que caen fuera de todo puerto listado, más el pie y la cima de
+ * cada puerto. Una muestra pegada al borde de un puerto (`RELIEF.elevationClimbEdgeKm`) se retira
+ * para no dejar un tramo de metros entre ella y el pie recalculado; y si aun así el enlace entre una
+ * muestra y un puerto sale más empinado que `RELIEF.elevationJunctionMaxGradient`, la muestra se
+ * retira también y el enlace se reparte con la siguiente. Es la muestra la que está mal alineada con
+ * el puerto (medido en el Tour, etapa 14: la muestra pone el fondo del valle del Col du Page en el km
+ * 68,3 y la subida de 463 m en 3 km, al 15 %; el puerto listado dice 9,8 km al 4,7 %, los mismos
+ * 463 m), y retirarla deja el desnivel donde las dos fuentes coinciden.
+ */
+function traceNodes(samples: StageElevation[], windows: ClimbWindow[]): TraceNode[] {
+  const margin = RELIEF.elevationClimbEdgeKm
+  const last = samples.length - 1
+  const nodes: TraceNode[] = []
+  samples.forEach((p, i) => {
+    const edge = i === 0 || i === last
+    if (edge || windows.every((w) => p.km < w.fromKm - margin || p.km > w.toKm + margin))
+      nodes.push({ km: p.km, elevM: p.elevM, ...(edge ? {} : { sample: true }) })
+  })
+  for (const w of windows) {
+    nodes.push({ km: w.fromKm, elevM: w.baseM, climb: w, puerto: true })
+    nodes.push({ km: w.toKm, elevM: w.summitM, puerto: true })
+  }
+  // A igual km, el pie de un puerto va DESPUÉS de lo que llega a él (la cima del anterior, si se
+  // encadenan): así el tramo de longitud cero entre ambos se descarta y el puerto empieza en su pie.
+  nodes.sort((a, b) => a.km - b.km || (a.climb ? 1 : 0) - (b.climb ? 1 : 0))
+
+  const steep = (a: TraceNode, b: TraceNode): boolean =>
+    b.km - a.km >= 0.02 &&
+    Math.abs((b.elevM - a.elevM) / ((b.km - a.km) * 10)) > RELIEF.elevationJunctionMaxGradient
+  for (let changed = true; changed;) {
+    changed = false
+    for (let i = 0; i < nodes.length - 1; i++) {
+      const a = nodes[i]!
+      const b = nodes[i + 1]!
+      if (!steep(a, b)) continue
+      // Solo se retira una muestra que enlaza con un nodo de puerto (pie o cima).
+      const victim = a.sample && b.puerto ? i : b.sample && a.puerto ? i + 1 : -1
+      if (victim < 0) continue
+      nodes.splice(victim, 1)
+      changed = true
+      break
+    }
+  }
+  return nodes
+}
+
 /**
  * Trazado REAL a partir de muestras de altitud: entre dos muestras consecutivas la pendiente es
  * (Δaltitud / Δdistancia), así el relieve reproduce el perfil de verdad (no un relleno inventado). Los
  * puertos y sprints se marcan igual como banners (su categoría es la oficial o la derivada de la subida).
+ *
+ * …PERO LOS PUERTOS LISTADOS MANDAN SOBRE LAS MUESTRAS (v90). Las muestras de altitud son gruesas
+ * (diez o veinte puntos para doscientos km) y un puerto que cae entre dos de ellas se aplana con
+ * todo el tramo: medido en la Vuelta de la temporada 0, el Aramón Valdelinares (8,3 km al 6,5 %, final
+ * en alto) salía como los últimos 13,6 km al 2,9 %, tipados llano, o sea un final en alto que el motor
+ * corría como una llegada llana; el Col de Mont-Louis (19 km al 5 %) quedaba en 26,2 km al 2,8 %; y
+ * en las 130 etapas reales con altitud, de los 284 puertos listados de más del 3 %, 139 se corrían
+ * con una pendiente media a más de 1,5 puntos de la suya y solo el 73 % de sus km como subida (con
+ * esto, 3 de 284 y el 99 %: los tres que el pie recorta). El puerto listado (longitud, pendiente media y km de cima) es el dato fino y verificado, la
+ * muestra es el grueso: cada puerto se coloca como un segmento `puerto` con su longitud y su pendiente
+ * media, anclado en la altitud de su cima, y su pie queda donde lo dice la pendiente.
+ *
+ * La pendiente va UNIFORME, y no con la forma de `climbRamps` (0,8/1,3/0,85 de la media) que usa la
+ * reconstrucción sin altitud. Se probó con esa forma y tiene dos defectos medidos. Inventa rampas que
+ * el dato no dice: el Télégraphe (11,9 km al 7,1 %, regular de pie a cima) salía con 4,8 km al 9,1 %.
+ * Y, peor, cambia el atributo con que se sube: el motor mide con COL todo bloque de subida al 8 % o
+ * más (`riderPerfil`), así que todo puerto de más del 6,2 % de media se corría el 40 % central con
+ * el atributo del muro. La media es lo único que se sabe, y lo más fiel es no adornarla. La categoría
+ * de la pancarta sigue saliendo de `climbRamps` (`bannersFromFeatures`), como siempre. Lo que hay entre puertos sigue saliendo de las muestras,
+ * así que el tramo que enlaza con el pie absorbe la diferencia y la altitud total sigue cuadrando. La
+ * distancia no se mueve. Una etapa sin puertos listados sale exactamente como antes.
  */
 function profileFromElevation(
   totalKm: number,
@@ -321,17 +463,21 @@ function profileFromElevation(
   sprints: StageSprint[],
 ): StageProfile {
   // Muestras dentro de [0, totalKm], en km creciente, sin duplicados de km (se queda la última).
-  const pts: StageElevation[] = []
+  const samples: StageElevation[] = []
   for (const p of [...elevation].sort((a, b) => a.km - b.km)) {
     const km = Math.min(totalKm, Math.max(0, p.km))
-    const prev = pts[pts.length - 1]
+    const prev = samples[samples.length - 1]
     if (prev && km - prev.km < 0.02) prev.elevM = p.elevM
-    else pts.push({ km, elevM: p.elevM })
+    else samples.push({ km, elevM: p.elevM })
   }
   // Ancla los extremos a la salida (0) y a la meta (totalKm) manteniendo su altitud.
-  if (pts.length > 0 && pts[0]!.km > 0.02) pts.unshift({ km: 0, elevM: pts[0]!.elevM })
-  const lastPt = pts[pts.length - 1]
-  if (lastPt && lastPt.km < totalKm - 0.02) pts.push({ km: totalKm, elevM: lastPt.elevM })
+  if (samples.length > 0 && samples[0]!.km > 0.02)
+    samples.unshift({ km: 0, elevM: samples[0]!.elevM })
+  const lastPt = samples[samples.length - 1]
+  if (lastPt && lastPt.km < totalKm - 0.02) samples.push({ km: totalKm, elevM: lastPt.elevM })
+
+  const windows = samples.length > 0 ? climbWindows(samples, climbs, totalKm) : []
+  const pts = traceNodes(samples, windows)
 
   const segments: Segment[] = []
   for (let i = 0; i < pts.length - 1; i++) {
@@ -339,6 +485,12 @@ function profileFromElevation(
     const b = pts[i + 1]!
     const dk = b.km - a.km
     if (dk < 0.02) continue
+    if (a.climb) {
+      // Pendiente UNIFORME, no la forma de `climbRamps`: ver la nota de arriba.
+      const g = r1(a.climb.avgGradient)
+      segments.push({ km: r2(dk), tipo: 'puerto', tramos: [{ km: r2(dk), g }] })
+      continue
+    }
     const g = r1((b.elevM - a.elevM) / (dk * 10))
     segments.push({ km: r2(dk), tipo: terrainForGradient(g), tramos: [{ km: r2(dk), g }] })
   }
