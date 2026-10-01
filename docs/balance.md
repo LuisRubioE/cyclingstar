@@ -17661,3 +17661,72 @@ El dueño: «cada vez que mencione una etapa, por ejemplo desde donde se ven los
 El dueño vio a un «crono», Francisco Alves (Welle Team), ganar el prólogo y tres esprints de Race Germany en la temporada 0: CRI 95,1 (el mejor del mundo, seis puntos por delante del segundo del top 100) y SPR 90,4 (el mejor esprínter de ese pelotón, cinco por delante del segundo). La génesis v2 no puede crear ese corredor: a un atributo que el arquetipo penaliza de verdad (offset ≤ −14) le pone un techo de 83 (`NPC.ceilingCapOffTrade`), y al crono le penaliza el esprint con −22. Pero el mundo vivo nació con la génesis legacy, que no conocía arquetipos (en esa carrera no hay un solo gregario, puncheur ni rodador), y la 0032 reabrió después los techos de todos los corredores en todos los atributos, +17 en los físicos de los de 23 años o menos. El entrenamiento hizo el resto.
 
 La 0043 aplica los topes de la v2 una vez, solo a los bots (`user_id` nulo): en los físicos que su arquetipo penaliza, techo y atributo bajan a 83 si lo pasan. TAC queda fuera, porque es oficio y se aprende corriendo. Nadie sube. Los corredores de los jugadores no se tocan (decisión del dueño, opción A). Medido sobre datos públicos antes de aplicarla: en el top 100 del ranking solo la pasan dos clasicómanos, con MON 84,5 y 84,7, además de Alves, que no está en el top 100. No cambia ninguna constante ni `ENGINE_VERSION`. `topesArquetipo.test.ts` vigila que la lista de pares del SQL siga siendo la de `ARCHETYPE_CEILING_OFFSETS`.
+
+## v90 · El maillot da alas para defenderlo, y el favorito claro del sprint sale marcado
+
+Dos encargos del dueño. El primero: «que el mejor sprinter de una carrera gane tres sprints seguidos es excesivo; hace falta más variabilidad». El caso de producción es Francisco Alves (SPR 90,4 contra 85,2 del segundo del campo), que ganó la 2, la 3 y la 4 de una vuelta de cinco etapas, las tres al sprint. El segundo: el líder de la general debe tener un poco menos de probabilidad de ganar la etapa, un poco más de rendir lo justo para conservar el maillot (en montaña o en la crono el maillot «da alas») y menos ganas de meterse en fugas salvo en montaña respondiendo a un rival. `ENGINE_VERSION` sube de 89 a 90.
+
+### 1 · La causa de la bola de nieve estaba fuera del motor
+
+`packages/db/src/stageRun.ts` multiplicaba por 1,04 (`LEADER_JERSEY_BOOST`) los diez atributos, SPR incluido, de todo corredor con déficit 0 cuando la general tenía diferencias. El velocista que gana una etapa se viste de líder por la bonificación y desde ese día esprinta un 4 % más rápido: 90,4 de SPR pasa a 94. La constante no estaba en `constants.ts` ni la corría ningún banco, así que ninguna banda la veía.
+
+Medido en la llana canónica (`llana-180`, 200 semillas por celda, mismas semillas), con el segundo velocista fijo en SPR 85 y el mejor en 85 más la ventaja. «Base» es la llana sin general; «líder» pone la general en juego con el mejor velocista de líder (déficit 0, puesto 1; el resto de velocistas a 4 s y el pelotón a 30 s). La cifra es el % de llegadas agrupadas (grupo del ganador de 15 o más) que gana el mejor velocista.
+
+| Ventaja de SPR | Base v89 | Líder v89 sin empujón | Líder v89 con el 1,04 (producción) | Líder v90 |
+| -------------- | -------- | --------------------- | ---------------------------------- | --------- |
+| 0              | 29,5     | 30,3                  | 52,8                               | 20,2      |
+| 2              | 40,0     | 37,2                  | 61,4                               | 31,7      |
+| 5              | 51,9     | 56,4                  | 68,5                               | 44,6      |
+| 8              | 66,3     | 66,1                  | 78,4                               | 51,0      |
+
+Con el 1,04 un velocista empatado con su rival gana más de la mitad de los sprints en cuanto se viste de líder, y con cinco puntos de ventaja casi siete de cada diez: es el «70 % o más» de la queja. En el banco de carreras pequeñas, emulando el 1,04 de producción, aparecen los barridos que el banco sin maillot no tenía (`sweepPct` de 0 a 3,23 %, una racha de tres llegadas agrupadas seguidas del mismo corredor) y el mejor rematador con 6 o más puntos de ventaja pasa de ganar el 32,6 % de las llegadas agrupadas al 41,7 %.
+
+### 2 · El maillot, dentro del motor
+
+`stage/maillot.ts` (`hayMaillot`, `llevaMaillot`, `alasDelMaillot`, `applyLeaderJersey`) y `STAGE.jersey`. Lo lleva el puesto 1 de la general (`gcRank` 1) y solo cuando la general tiene diferencias, el mismo criterio que `esMaillot` en la capa táctica; antes eran todos los que tenían déficit 0. Lo llaman `stageRun` y, para que los bancos corran lo mismo que producción, `sim/smallTours.ts` y `sim/grandTour.ts`.
+
+- **Las alas** (`alas` 0,015 sobre `alasAtributos`): solo RES, REC, MON, COL y CRI, el esfuerzo sostenido con el que se defiende una general. Fuera SPR y TAC (el remate y la colocación del sprint), LLA (pesa 0,18 en el sprint masivo y es la etapa del velocista), DES y PAV (destreza y riesgo).
+- **El remate** (`remate` 0,99): en cualquier llegada en grupo el maillot remata a ese tanto de su nivel; marca a sus rivales en vez de jugársela por la bonificación. En un final en alto compensa las alas en la línea: le sirven para llegar con el grupo, no para ganarlo.
+- **El sitio en el sprint** (`sitioSprint` 0,05): en un final al sprint va por fuera, lejos del roce de las ruedas, y eso se suma a su colocación para el remate (`placeFinishWeight` y el encajonado).
+
+Cuánto dar de alas, medido en la crono de 40 km (`cri-40`, 400 semillas): líder con CRI 83 y 15 s de colchón sobre un rival con 84.
+
+| Alas               | Conserva el maillot | Gana la etapa | Segundos que le saca al rival (media) |
+| ------------------ | ------------------- | ------------- | ------------------------------------- |
+| ninguna            | 56,5 %              | 17,8 %        | -3,4                                  |
+| 1 %                | 62,8 %              | 22,8 %        | 1,2                                   |
+| 1,5 % (la elegida) | 64,8 %              | 24,3 %        | 3,5                                   |
+| 2 %                | 67,5 %              | 26,8 %        | 5,8                                   |
+| 4 % en todo (v89)  | 77,0 %              | 39,5 %        | 17,5                                  |
+
+En la crono no hay remate que compense, así que conservar y ganar suben juntos; el 1,5 % sube 8 puntos lo primero y 6,5 lo segundo, contra los 21,7 de ganar del 4 % viejo. Queda anotado como límite: en la crono el líder gana algo más que sin maillot, y mucho menos que en la v89.
+
+En la reina canónica (`reina-canonica`, 160 semillas, líder `gc-1` con MON 85 y 4 s de colchón sobre `gc-2` con 86): sin efecto conserva el 74,4 % y gana el 40,0 %; con el 1,04 de la v89, 80,0 % y 50,6 %; con la v90, 73,1 % y 40,6 %, sacando 7,5 s de media al rival contra 1,8 s sin alas. La etapa no se le abre más, y la diferencia en conservar queda dentro del ruido de 160 semillas porque en esta reina los hombres de la general llegan casi siempre juntos y la decide el remate.
+
+El primer tanteo fue `alas` 0,02, `remate` 0,98 y `sitioSprint` 0,10: el velocista líder con un rival igual ganaba el 17,7 % de los sprints contra el 30,3 % sin maillot, y con cinco puntos de ventaja el 40,5 %. Era demasiado para «un poco menos»; se dejaron en la mitad.
+
+**El maillot y las fugas** existe desde la v79 (`jerseyBreakDamp`) y funciona. Medido en la llana con un cazaetapas combativo de líder (60 semillas): inicia un movimiento en 2 etapas de 60, contra 14 de 60 cuando el puesto 1 lo tiene otro. No se toca.
+
+### 3 · El favorito claro del sprint sale marcado
+
+Sin el empujón, la llana canónica seguía dando al mejor velocista con cinco puntos de ventaja el 51,9 % de los sprints, por encima de la franja de 40 a 50 que pide el dueño. Se midieron dos palancas: la que el dueño prefería de entrada, más desorden de colocación para todos (`placementSdMax`), y una nueva, `STAGE.favoritoMarcado`. Con ella el favorito de un sprint (el mejor remate del grupo con el peso del rol) sale peor colocado en proporción a su ventaja sobre el segundo por encima de un punto de remate (`margenLibre`), con tope. Todos quieren su rueda y los trenes rivales le encierran; cobra por la colocación y el encajonado, no por un dado.
+
+| Palanca                    | 0 pts | 2 pts | 5 pts | 8 pts | Pequeñas: `bestSprinterWinPct` | Pequeñas: `sameWinnerPairPct` |
+| -------------------------- | ----- | ----- | ----- | ----- | ------------------------------ | ----------------------------- |
+| v89                        | 29,5  | 40,0  | 51,9  | 66,3  | 26,64                          | 16,98                         |
+| `placementSdMax` 0,08      | 30,1  | 39,4  | 49,4  | 64,3  | 27,75                          | 18,78                         |
+| `placementSdMax` 0,09      | 28,9  |       | 47,4  |       | 25,36                          | 13,78 (fuera)                 |
+| marcaje 0,05               | 27,2  |       | 43,6  |       | 24,88 (fuera)                  | 13,13 (fuera)                 |
+| marcaje 0,025 (el elegido) | 28,9  | 39,4  | 46,2  | 59,2  | 26,79                          | 16,24                         |
+
+Llana: % de llegadas agrupadas que gana el mejor velocista, sin general, 200 semillas. Pequeñas: `analyzeSmallTours(12)` repartido en cuatro procesos, con el maillot v90 puesto salvo en la fila v89; el reparto reproduce la v89 al decimal (26,64 y 16,98).
+
+El desorden para todos castiga igual al favorito de un sprint parejo, y por eso, al quitar cuatro puntos y medio al favorito claro, saca de banda las carreras pequeñas, cuyos campos tienen al mejor rematador con 3,19 puntos de ventaja de mediana. El marcaje solo muerde cuando hay un favorito claro: con 0,025 el de cinco puntos baja de 51,9 a 46,2, el de dos no se mueve y el de cero tampoco (dentro del ruido). `placementSdMax` no se toca.
+
+### 4 · El conjunto, y lo que se pagó
+
+Con todo puesto (maillot y marcaje), en la llana con el mejor velocista de líder: ventaja 0, **20,2 %**; 2, **31,7 %**; 5, **44,6 %**; 8, **51,0 %**, contra 52,8, 61,4, 68,5 y 78,4 en producción v89. El banco de carreras pequeñas con todo puesto: `bestSprinterWinPct` **25,36** (banda 25 a 60), `sameWinnerPairPct` **15,76** (banda 15 a 55), `sweepPct` 2,38, `worstRepeatTopFive` 2,44, `photoRepeatTopFive` 1,67, `flatWinnerGroupPct` 97,8 y `mediaGroups` 9,5: todo en banda, pero las dos primeras pegadas al suelo. Es la tensión que hay que decir con el número delante: el dueño pide menos dominio del mejor y esas dos bandas, que él mismo re-selló en la v89, ponen un suelo al dominio. En el banco de producción el mejor rematador ya ganaba poco (el 26 % de las llegadas agrupadas y ningún barrido de tres sin el empujón); el dominio que vio el dueño salía casi entero del 1,04.
+
+### 5 · Lo que no se midió en esta tanda
+
+Por tiempo no se corrieron las suites de bancos de vitest (`invariantsLlano`, `invariantsPequenas`, `invariants`, `invariantsAbandonos`, `invariantsClasicas`, `invariantsDesgaste`, coherencia, mundo y radio). Las cifras de pequeñas de arriba son las del mismo `analyzeSmallTours(12)` que corre el CI. `flat.bestSprinterWinPct` de `llana-180` (banda 30 a 45, 38,3 en la v89 con su campo de 88 contra 82) no se re-midió con 300 semillas: por la tabla de §3 el marcaje le quita unos cinco puntos con seis de ventaja, así que debería quedar hacia 33. `grandTour` corre ahora con el maillot y sus bandas no se han re-medido. La huella sellada de `stage/attribution.test.ts` pasa en `test:rapido` sin re-sellar.

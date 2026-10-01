@@ -7,6 +7,8 @@
  * drafting, cerillos, erosión, intensidades de riesgo y finales.
  */
 
+import type { Attribute } from '@cyclingstar/shared'
+
 // Solo TIPOS de la gramática de recorridos (bloque `ARCH`, docs/generador.md §12.1): `import type`
 // se borra al compilar, así que no hay ciclo `constants.ts → routes/grammar/ → constants.ts`. Ningún
 // valor de `routes/grammar/` entra aquí ni se reexporta (el test de coherencia de `motifs.test.ts`
@@ -834,8 +836,14 @@ import type { RaceClass } from './routes/uci.js'
  * al generar con un tope anti-clon por familia (`ARCH.anticlon`, `grammar/anticlon.ts`): la etapa que
  * clona a otra de su par se redibuja con otra semilla, sin cambiar esqueleto ni firma. Cambian los
  * perfiles de las etapas redibujadas (unas 200 por temporada); el motor de carrera no se toca.
+ *
+ * v90: el maillot de líder entra en el motor (docs/balance.md, v90). Las alas dejan de ser un 4 %
+ * sobre los diez atributos puesto en `packages/db` y pasan a `STAGE.jersey`: un 1,5 % solo en el
+ * esfuerzo sostenido (RES, REC, MON, COL, CRI), y en la línea el maillot remata por debajo de su
+ * nivel y en el sprint va peor colocado. Y el favorito claro de un sprint sale marcado
+ * (`STAGE.favoritoMarcado`): con 5 puntos de SPR de ventaja gana el 46 % de los sprints y no el 52.
  */
-export const ENGINE_VERSION = 89 as const
+export const ENGINE_VERSION = 90 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -4917,6 +4925,48 @@ export const STAGE = {
    */
   jerseyBreakDampFlat: 0.02,
   jerseyBreakDampClimb: 0.25,
+  /**
+   * EL MAILLOT DA ALAS PARA DEFENDERLO, NO PARA GANAR ETAPAS (v90, `stage/maillot.ts`).
+   *
+   * Sustituye a `LEADER_JERSEY_BOOST` = 1,04, que vivía en `packages/db/src/stageRun.ts` fuera de
+   * toda banda y subía los diez atributos del líder, SPR incluido: el velocista que se vestía de
+   * líder por la bonificación esprintaba desde ese día un 4 % más rápido. El dueño pidió lo
+   * contrario: «un poco menos de probabilidad de ganar la etapa, y un poco más de rendir lo justo
+   * para conservar el maillot».
+   */
+  jersey: {
+    /**
+     * LAS ALAS, Y SOLO EN EL ESFUERZO SOSTENIDO CON EL QUE SE DEFIENDE UNA GENERAL: el fondo (RES),
+     * la recuperación entre esfuerzos (REC), el puerto (MON), la cota (COL) y la crono (CRI). Fuera
+     * a propósito: SPR y TAC, que son el remate y la colocación del sprint (justo la bola de nieve);
+     * LLA, que pesa un 0,18 en el sprint masivo y es la etapa del velocista, no la del líder; DES y
+     * PAV, que son destreza y riesgo, y el maillot no te hace bajar mejor sino con más miedo.
+     */
+    alasAtributos: ['RES', 'REC', 'MON', 'COL', 'CRI'] as readonly Attribute[],
+    /**
+     * Cuánto. Un 1,5 % y no el 4 % de antes. Medido en la crono de 40 km (`cri-40`, 400 semillas,
+     * docs/balance.md «v90»): el líder con CRI 83 y 15 s de colchón sobre un rival de 84 conserva el
+     * maillot el 56,5 % de las veces sin alas, el 64,8 % con el 1,5 %, el 67,5 % con el 2 % y el 77 %
+     * con el 4 % viejo; y gana la etapa el 17,8 %, 24,3 %, 26,8 % y 39,5 %. El 1,5 % es el que más
+     * sube conservar por cada punto que sube ganar: un hombre un punto peor aguanta, no arrasa.
+     */
+    alas: 0.015,
+    /**
+     * Y EN LA LÍNEA, NO SE VACÍA POR LA ETAPA. En cualquier llegada en grupo el que lleva el maillot
+     * remata a este tanto de su nivel: marca a sus rivales en vez de jugársela, y no arriesga la
+     * caída del último kilómetro por una bonificación. Es del orden de las alas, así que en un final
+     * en alto las alas le sirven para LLEGAR con el grupo y no para ganarlo. Con el 0,98 y el doble
+     * de `sitioSprint` el velocista líder con un rival igual ganaba el 17,7 % de los sprints contra
+     * el 30,3 % sin maillot: demasiado para «un poco menos». La mitad.
+     */
+    remate: 0.99,
+    /**
+     * …y en un SPRINT se coloca peor: va por fuera, lejos del roce de las ruedas, que es donde se
+     * cae un líder. Se suma a su colocación (0 = cabeza, 1 = cola) solo para el remate, y cobra por
+     * las dos vías de la colocación: `placeFinishWeight` y el encajonado.
+     */
+    sitioSprint: 0.05,
+  },
   pullNamesMax: 3,
   pullNamesMinShare: 0.55,
   /**
@@ -6062,6 +6112,30 @@ export const STAGE = {
   // …y el suelo del desorden: ni el mejor tren del mundo te garantiza la rueda buena. Con tope de
   // alivio 0,55 un sprinter con dos lanzadores y TAC 90 sigue corriendo un 3,1% de desorden.
   placementReliefMax: 0.55,
+  /**
+   * EL FAVORITO MARCADO (v90, `finishStage`). El dueño: «que el mejor sprinter de la carrera gane
+   * tres sprints seguidos es excesivo». Cuanto más claro es el favorito de un sprint, peor sale
+   * colocado: todos quieren su rueda, los trenes rivales se le cruzan y le encierran. Es colocación
+   * y no dado, así que cobra por las dos vías de la colocación (`placeFinishWeight` y el encajonado).
+   *
+   * Por qué esto y no más desorden para todos (`placementSdMax`): medido en docs/balance.md «v90»,
+   * subir el desorden de todo el pelotón a 0,09 quita 4,5 puntos al favorito con 5 de SPR de ventaja
+   * y saca de banda las carreras pequeñas (`sameWinnerPairPct` 13,8 contra un suelo de 15), porque
+   * castiga igual al favorito de un sprint parejo. El marcaje solo muerde cuando hay un favorito
+   * CLARO: con 0,025 el de 5 puntos baja de 51,9 % a 46,2 % de los sprints, el de 2 puntos no se
+   * mueve (40,0 y 39,4) y las carreras pequeñas siguen en banda (26,8 % y 16,2 %).
+   */
+  favoritoMarcado: {
+    /** Colocación perdida por cada punto de remate de ventaja sobre el segundo del grupo. */
+    sitioPorPunto: 0.025,
+    /**
+     * La ventaja que no se marca: un punto de remate, unos 1,5 de SPR en un sprint masivo. Entre dos
+     * velocistas parejos nadie marca a nadie.
+     */
+    margenLibre: 1,
+    /** Tope: un favorito marcado sale peor colocado, no último. */
+    sitioMax: 0.3,
+  },
   // (RETIRADO en v8) `finishTieBreakSeconds` sumaba 1 ms por puesto al reloj del grupo para
   // desempatar el orden. No era inocuo: al redondear a segundos, un grupo que cruzaba en X,477
   // repartía X a los 23 primeros y X+1 al resto — un corte inventado por el redondeo que la general

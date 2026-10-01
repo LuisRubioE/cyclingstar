@@ -41,6 +41,7 @@ import { deriveFinishTerrain, finishScore, finishType } from '../stage/finish.js
 import { matchCount } from '../stage/physics.js'
 import { stageSeed } from '../stage/rng.js'
 import { sampleProfile } from '../stage/sample.js'
+import { applyLeaderJersey } from '../stage/maillot.js'
 import { simulateStage, stageTss } from '../stage/simulate.js'
 import type { Incident, StageOrders, StageRider } from '../stage/types.js'
 import { autoStageOrders } from '../world/autoOrders.js'
@@ -376,7 +377,9 @@ export function runSmallTour(
     const out = simulateStage(
       {
         profile: stage.profile,
-        riders,
+        // EL MAILLOT (v90), como en `packages/db/src/stageRun.ts`: las alas del líder, que hasta la
+        // v89 vivían en la capa de datos y ningún banco corría.
+        riders: applyLeaderJersey(riders),
         ...(stage.timeTrial === true ? { timeTrial: true } : {}),
       },
       // `engineVersion: 1` FIJO en la semilla, como el resto del banco: el objetivo mide el
