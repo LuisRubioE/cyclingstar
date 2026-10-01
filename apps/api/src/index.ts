@@ -1,4 +1,4 @@
-import { createDb, runMigrations, runTick } from '@cyclingstar/db'
+import { GENESIS_WORLD_SEED, createDb, runMigrations, runTick } from '@cyclingstar/db'
 import { ENGINE_VERSION } from '@cyclingstar/engine'
 import { buildApp } from './app.js'
 import { createAuth } from './auth.js'
@@ -38,14 +38,14 @@ async function main(): Promise<void> {
       runTick(env.DATABASE_URL, {
         now: new Date(),
         msPerGameDay,
-        worldSeed: 'cyclingstar',
+        worldSeed: GENESIS_WORLD_SEED,
         engineVersion: ENGINE_VERSION,
       }),
     onAdminAdvance: (days) =>
       runTick(env.DATABASE_URL, {
         now: new Date(),
         msPerGameDay,
-        worldSeed: 'cyclingstar',
+        worldSeed: GENESIS_WORLD_SEED,
         engineVersion: ENGINE_VERSION,
         forceDays: days,
       }),
@@ -67,7 +67,7 @@ async function main(): Promise<void> {
       const summary = await runTick(env.DATABASE_URL, {
         now: new Date(),
         msPerGameDay,
-        worldSeed: 'cyclingstar',
+        worldSeed: GENESIS_WORLD_SEED,
         engineVersion: ENGINE_VERSION,
       })
       if (summary.daysProcessed > 0) {

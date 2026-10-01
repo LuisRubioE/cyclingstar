@@ -1,4 +1,4 @@
-import { runTick } from '@cyclingstar/db'
+import { GENESIS_WORLD_SEED, runTick } from '@cyclingstar/db'
 import { ENGINE_VERSION } from '@cyclingstar/engine'
 import { loadTickEnv } from '../env.js'
 
@@ -11,7 +11,7 @@ async function main(): Promise<void> {
   const summary = await runTick(env.DATABASE_URL, {
     now: new Date(),
     msPerGameDay: env.TICK_INTERVAL_MINUTES * 60_000,
-    worldSeed: 'cyclingstar',
+    worldSeed: GENESIS_WORLD_SEED,
     engineVersion: ENGINE_VERSION,
   })
   console.log(`tick: ${JSON.stringify(summary)}`)
