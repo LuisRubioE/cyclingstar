@@ -58,7 +58,7 @@ export const REAL_QUEENS: readonly RealQueen[] = [
   {
     raceId: 'race-spain',
     stageIndex: 7,
-    why: 'Reina de gran vuelta con la meta en llano (3 km de subida en los últimos 50): el caso en el que la cola NO la explica el puerto final.',
+    why: 'Reina de gran vuelta con cinco puertos y final en el Aramón Valdelinares (8,3 km al 6,5 %). Entró en la v17 como «meta en llano»: las muestras de altitud aplanaban el puerto final y la etapa se corría con 3 km de subida en los últimos 50. Desde la v90 los puertos listados mandan sobre las muestras y es el final en alto que es; se queda en el banco, con su forma de verdad, para que el banco siga siendo comparable entre versiones.',
   },
   {
     raceId: 'race-france',

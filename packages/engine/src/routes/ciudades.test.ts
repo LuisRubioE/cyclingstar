@@ -14,10 +14,14 @@ import { RACE_ROUTES } from './raceRoutes.js'
  * Lo primero es lo que NO puede cambiar: los perfiles. Las ciudades salen de datos de autoría y, en
  * los campeonatos, de un subflujo propio (`ciudad`); si alguna tirada se hubiera movido, la huella
  * de todas las etapas de las temporadas 0 y 1 dejaría de ser la sellada antes del cambio.
+ *
+ * Resellada en la v90 (docs/balance.md «v90»): los puertos listados mandan sobre la altitud
+ * muestreada. Comprobado etapa a etapa contra el árbol anterior: en cada temporada cambian 85 de
+ * 1.418, todas `real`, y ninguna generada ni de edición.
  */
 const HUELLA_SELLADA: Record<number, { etapas: number; huella: number }> = {
-  0: { etapas: 1418, huella: 1575594318 },
-  1: { etapas: 1418, huella: 3687512453 },
+  0: { etapas: 1418, huella: 1382737522 },
+  1: { etapas: 1418, huella: 2572817953 },
 }
 
 const ASCII = /^[\x20-\x7e]+$/

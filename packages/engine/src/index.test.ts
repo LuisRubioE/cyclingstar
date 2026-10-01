@@ -462,6 +462,8 @@ describe('engine: esqueleto', () => {
     // v88: las reinas sin final en alto reparten su peso como las reales y tiran su desnivel en todo
     // su rango (docs/balance.md, v88).
     // v89: V12 al generar, con un tope anti-clon por familia (docs/balance.md, v89).
-    expect(ENGINE_VERSION).toBe(89)
+    // v90: el maillot de líder entra en el motor y solo da alas al esfuerzo sostenido
+    // (docs/balance.md, v90).
+    expect(ENGINE_VERSION).toBe(90)
   })
 })

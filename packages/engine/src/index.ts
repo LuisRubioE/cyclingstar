@@ -21,6 +21,7 @@ export { deriveClimbCategory, isWall, sampleProfile, stageLengthKm } from './sta
 export { stageRng, stageSeed, type StageSeedParts } from './stage/rng.js'
 export { blockProbability, rollHazard } from './stage/hazard.js'
 export { simulateStage, stageTss } from './stage/simulate.js'
+export { alasDelMaillot, applyLeaderJersey, hayMaillot, llevaMaillot } from './stage/maillot.js'
 export {
   bearingAt,
   descentRisk,

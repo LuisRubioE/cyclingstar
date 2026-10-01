@@ -132,6 +132,7 @@ import {
   sprintRegimeKmh,
 } from './finish.js'
 import { markingMargin, resolveMarking, wheelProbability } from './marcaje.js'
+import { hayMaillot, llevaMaillot } from './maillot.js'
 import {
   type MoveContext,
   type MoveKind,
@@ -1767,6 +1768,15 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    * Se borra en cuanto se separan: el contacto tiene que ser SEGUIDO.
    */
   const contactoDesdeKm = new Map<string, number>()
+  /**
+   * EL MAYOR HUECO QUE HA LLEGADO A TENER CADA DESCOLGADO CON EL PELOTÓN (v90).
+   *
+   * Distingue al que cuelga de la cola de su propio grupo —nunca se ha ido más allá de
+   * `regroupGapSeconds`, es el pelotón estirado y vuelve por la puerta ancha— del GRUPO DE VERDAD,
+   * el que llegó a ir por detrás a más de eso: ese ya es otra carrera y para volver tiene que cerrar
+   * el hueco en carretera, hasta `captureGapSeconds`. Ver la puerta del reenganche, más abajo.
+   */
+  const huecoMaxDescolgado = new Map<string, number>()
   const llevaEnContacto = (kmAhora: number, a: string, b: string, juntos: boolean): boolean => {
     const clave = a < b ? `${a}|${b}` : `${b}|${a}`
     if (!juntos) {
@@ -7895,13 +7905,30 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           Math.abs(gapSeconds(peloton, sg)) <=
             contactoS(membersOf(PELOTON).length, mem.length, peloton.vActual),
         )
-        if (
-          caught ||
-          enContacto ||
-          (!onRough &&
-            cerrando &&
-            gapSeconds(peloton, sg) <= STAGE.rejoinGapSeconds * shutFor(mem.length))
-        ) {
+        /**
+         * …Y LA PUERTA ANCHA ES SOLO PARA EL QUE NUNCA SE FUE (v90).
+         *
+         * El dueño, en la etapa 3 de la Vuelta: tres grupos separados por 33 s se juntan entre el km
+         * 149 y el 150, en un tramo casi llano, con la radio marcando 68 km/h. Medido: el grupo de 61
+         * cerró en carretera 5 a 7 s de ese kilómetro y la puerta de `rejoinGapSeconds` le regaló
+         * los otros 20 a 22. Ese grupo eran los descolgados del puerto anterior: llevaban kilómetros
+         * siendo OTRO grupo, no la cola estirada del pelotón.
+         *
+         * Así que la puerta depende de la historia del grupo. Si nunca pasó de `regroupGapSeconds`
+         * por detrás, es el pelotón estirado y entra como siempre (y con ello el fuerte que vuelve en
+         * el adoquín, la objeción de la v58). Si alguna vez la pasó, es un grupo establecido y entra
+         * al llegar a `captureGapSeconds`, como cualquier caza. Medido sobre diez etapas 3 sintéticas
+         * con el campo real: las fusiones con más de 10 s de hueco pasan de 15 a 0, y la mediana de
+         * PAV del ganador del banco del pavé no se mueve (72).
+         */
+        const huecoAhora = sg.tS - peloton.tS
+        const huecoMax = Math.max(huecoMaxDescolgado.get(sg.id) ?? huecoAhora, huecoAhora)
+        huecoMaxDescolgado.set(sg.id, huecoMax)
+        const puerta =
+          huecoMax > STAGE.regroupGapSeconds
+            ? STAGE.captureGapSeconds
+            : STAGE.rejoinGapSeconds * shutFor(mem.length)
+        if (caught || enContacto || (!onRough && cerrando && gapSeconds(peloton, sg) <= puerta)) {
           /**
            * …Y FUNDIRSE POR CONTACTO TAMPOCO REGALA SEGUNDOS (v81, la regla de la v76.1 aplicada
            * aquí).
@@ -9376,6 +9403,8 @@ function finishStage(
   // Contador del orden de llegada. Los grupos ya van ordenados por reloj, así que basta con ir
   // repartiéndolo grupo a grupo y, dentro de cada uno, por el ranking del remate.
   let order = 0
+  // EL MAILLOT EN LA LÍNEA (v90, `stage/maillot.ts`): quién lo lleva hoy, si es que hay maillot.
+  const hayLider = hayMaillot([...sims.values()].map((s) => s.input))
 
   withMembers.forEach(({ group, members }, gi) => {
     const idSet = new Set(members.map((m) => m.input.riderId))
@@ -9482,6 +9511,32 @@ function finishStage(
       (a, l, i) => (aspirantes.has(i) ? Math.max(a, l.metros) : a),
       0,
     )
+    /**
+     * EL FAVORITO MARCADO (v90). Cuanto más claro es el favorito del sprint, más se le marca: todos
+     * quieren su rueda, los trenes rivales se le cruzan y le encierran, y sale peor colocado. Se mide
+     * contra el segundo rematador del grupo, con el peso del rol (el favorito es el que va a por la
+     * etapa), y solo cuenta la ventaja por encima de `margenLibre`: entre dos velocistas parejos
+     * nadie marca a nadie. Ver `STAGE.favoritoMarcado`.
+     */
+    let favoritoId: string | null = null
+    let mejorConRol = Number.NEGATIVE_INFINITY
+    let segundoConRol = Number.NEGATIVE_INFINITY
+    members.forEach((m, i) => {
+      const v = remates[i]! * (STAGE.finishRoleWeight[m.input.orders.role] ?? 1)
+      if (v > mejorConRol) {
+        segundoConRol = mejorConRol
+        mejorConRol = v
+        favoritoId = m.input.riderId
+      } else if (v > segundoConRol) segundoConRol = v
+    })
+    const marcajeFavorito =
+      sprintFinish && Number.isFinite(segundoConRol)
+        ? Math.min(
+            STAGE.favoritoMarcado.sitioMax,
+            STAGE.favoritoMarcado.sitioPorPunto *
+              Math.max(0, mejorConRol - segundoConRol - STAGE.favoritoMarcado.margenLibre),
+          )
+        : 0
     const ranked = members
       .map((m, i) => {
         const e = erosion(m.energy, m.energy0, m.input.eff0.RES)
@@ -9495,6 +9550,12 @@ function finishStage(
          * tocaba por número. Ver `finishRoleWeight`.
          */
         score *= STAGE.finishRoleWeight[m.input.orders.role] ?? 1
+        /**
+         * …Y EL QUE LLEVA EL MAILLOT NO SE VACÍA POR LA ETAPA (v90). Marca a sus rivales en vez de
+         * jugársela en la línea: las alas le sirven para llegar con el grupo, no para ganarlo. Ver
+         * `STAGE.jersey.remate`.
+         */
+        if (llevaMaillot(m.input, hayLider)) score *= STAGE.jersey.remate
         // Peaje del trabajo del día (docs/motor.md §12): `workUnits` ya se calculaba y no se usaba
         // para nada en el resultado.
         if (meanWork > 0) {
@@ -9584,7 +9645,19 @@ function finishStage(
           const amortiguada = 1 + (draw - 1) * STAGE.placement.residualLuck
           score *=
             residual === 0 ? 1 : Math.max(1 - 3 * residual, Math.min(1 + 3 * residual, amortiguada))
-          score *= placeFinishWeight(m.placement)
+          /**
+           * EL MAILLOT VA POR FUERA EN EL SPRINT (v90): lejos del roce de las ruedas, que es donde se
+           * cae un líder. Y EL FAVORITO CLARO VA ENCERRADO: todos quieren su rueda. Las dos cosas son
+           * colocación solo para el remate y solo en un final al sprint (`marcajeFavorito` es 0 en
+           * los demás); la colocación de carrera no se toca. Ver `STAGE.jersey.sitioSprint` y
+           * `STAGE.favoritoMarcado`.
+           */
+          const sitioDe = (o: RiderSim): number =>
+            o.placement +
+            (sprintFinish && llevaMaillot(o.input, hayLider) ? STAGE.jersey.sitioSprint : 0) +
+            (o.input.riderId === favoritoId ? marcajeFavorito : 0)
+          const sitio = sitioDe(m)
+          score *= placeFinishWeight(sitio)
           /**
            * «Los carriles están llenos» se cuenta con los ASPIRANTES que van delante, no con el
            * pelotón entero: lo que te tapa la salida es otro velocista abriendo, no el gregario que
@@ -9594,10 +9667,10 @@ function finishStage(
           const delante = members.filter(
             (o) =>
               o.input.riderId !== m.input.riderId &&
-              o.placement < m.placement &&
+              sitioDe(o) < sitio &&
               (STAGE.finishRoleWeight[o.input.orders.role] ?? 1) >= 1,
           ).length
-          if (sprintFinish && isBoxed(m.placement, delante, STAGE.placement.lanes)) {
+          if (sprintFinish && isBoxed(sitio, delante, STAGE.placement.lanes)) {
             score *= STAGE.placement.boxedEffect
           }
         } else {

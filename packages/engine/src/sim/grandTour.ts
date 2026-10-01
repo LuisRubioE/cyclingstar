@@ -22,6 +22,7 @@ import { SEASON_CALENDAR } from '../routes/calendar.js'
 import { injuryEndsRace } from '../stage/abandon.js'
 import { matchCount } from '../stage/physics.js'
 import { stageSeed } from '../stage/rng.js'
+import { applyLeaderJersey } from '../stage/maillot.js'
 import { simulateStage, stageTss } from '../stage/simulate.js'
 import type { Incident, StageOrders, StageRider } from '../stage/types.js'
 import { autoStageOrders } from '../world/autoOrders.js'
@@ -290,7 +291,9 @@ export function runGrandTour(worldSeed: string): GrandTourResult {
     const out = simulateStage(
       {
         profile: stage.profile,
-        riders,
+        // EL MAILLOT (v90), como en `packages/db/src/stageRun.ts`: las alas del líder, que hasta la
+        // v89 vivían en la capa de datos y ningún banco corría.
+        riders: applyLeaderJersey(riders),
         ...(stage.timeTrial === true ? { timeTrial: true } : {}),
         // …Y SE CORRE DONDE Y CUANDO SE CORRE (v42). Una gran vuelta de tres semanas en julio en
         // Francia no tiene el clima de un sitio cualquiera: llueve el 17 % de los días y hace 23°.
@@ -450,7 +453,7 @@ export function tailStats(tails: StageTail[]): TailStats {
 
 export interface GrandTourStats {
   runs: number
-  /** Media del % de abandonos de las vueltas corridas (objetivo 12-20 %). */
+  /** Media del % de abandonos de las vueltas corridas (objetivo 12-23 % desde la v90). */
   abandonPct: number
   minAbandonPct: number
   maxAbandonPct: number

@@ -1524,25 +1524,42 @@ describe('una criba sostenida no genera diez frases clónicas (v8)', () => {
     },
   )
 
+  /**
+   * LAS CRIBAS, PARTIDAS POR LOS REAGRUPAMIENTOS (v90). Un `peloton_regroup` cierra la criba en
+   * curso —el motor reinicia la fase y el protagonista, porque el grupo vuelve a estar entero—, así
+   * que las dos reglas de abajo se miden DENTRO de cada criba. Hasta la v89 este banco no tenía
+   * ningún reagrupamiento a mitad de la escalera porque la puerta de 22 s fundía los grupos antes de
+   * que se pudieran contar; con la puerta estrecha para los grupos establecidos aparece alguno.
+   */
+  const cribas = (out: (typeof runs)[number]) => {
+    const evs = out.events
+      .filter((e) => e.plantilla === 'peloton_split' || e.plantilla === 'peloton_regroup')
+      .sort((a, b) => a.km - b.km || a.tS - b.tS)
+    const tandas: (typeof evs)[] = [[]]
+    for (const e of evs) {
+      if (e.plantilla === 'peloton_regroup') tandas.push([])
+      else tandas.at(-1)!.push(e)
+    }
+    return tandas
+  }
+
   it('no se nombra al mismo protagonista en dos avisos seguidos', { timeout: 60000 }, () => {
     for (const out of runs) {
-      const splits = out.events
-        .filter((e) => e.plantilla === 'peloton_split')
-        .sort((a, b) => a.km - b.km)
-      for (let i = 1; i < splits.length; i++) {
-        const prev = splits[i - 1]!.protagonistas[0]
-        const now = splits[i]!.protagonistas[0]
-        if (prev && now) expect(now).not.toBe(prev)
+      for (const splits of cribas(out)) {
+        for (let i = 1; i < splits.length; i++) {
+          const prev = splits[i - 1]!.protagonistas[0]
+          const now = splits[i]!.protagonistas[0]
+          if (prev && now) expect(now).not.toBe(prev)
+        }
       }
     }
   })
 
   it('el primer aviso presenta la criba y los siguientes cuentan la progresión', () => {
     for (const out of runs) {
-      const splits = out.events
-        .filter((e) => e.plantilla === 'peloton_split')
-        .sort((a, b) => a.km - b.km)
-      splits.forEach((e, i) => expect(Number(e.datos!.phase)).toBe(i))
+      for (const splits of cribas(out)) {
+        splits.forEach((e, i) => expect(Number(e.datos!.phase)).toBe(i))
+      }
     }
   })
 
@@ -2493,7 +2510,11 @@ describe('el parte distingue al que ataca del que se esconde (v47)', () => {
     let cerillos = 0
     let gastoCerillos = 0
     let kmFuga = 0
-    for (let s = 0; s < 10; s++) {
+    // VEINTE ETAPAS, NO DIEZ (v90). Con la ley de la subida nueva el reservón y el supercombativo
+    // salían EMPATADOS en diez semillas (11 ataques y 13,5 de gasto cada uno), y antes 8 contra 12:
+    // el reservón ataca menos (apetito 0,3), no nunca, y con diez etapas la diferencia es del orden
+    // del ruido. Con veinte se mide la tendencia, que es lo que esta prueba vigila.
+    for (let s = 0; s < 20; s++) {
       const out = simulateStage(
         campo(mentality),
         stageSeed({ worldSeed: `parte-${s}`, raceId: 'agresivo', stageDay: 1, engineVersion: 1 }),

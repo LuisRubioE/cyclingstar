@@ -17661,3 +17661,201 @@ El dueño: «cada vez que mencione una etapa, por ejemplo desde donde se ven los
 El dueño vio a un «crono», Francisco Alves (Welle Team), ganar el prólogo y tres esprints de Race Germany en la temporada 0: CRI 95,1 (el mejor del mundo, seis puntos por delante del segundo del top 100) y SPR 90,4 (el mejor esprínter de ese pelotón, cinco por delante del segundo). La génesis v2 no puede crear ese corredor: a un atributo que el arquetipo penaliza de verdad (offset ≤ −14) le pone un techo de 83 (`NPC.ceilingCapOffTrade`), y al crono le penaliza el esprint con −22. Pero el mundo vivo nació con la génesis legacy, que no conocía arquetipos (en esa carrera no hay un solo gregario, puncheur ni rodador), y la 0032 reabrió después los techos de todos los corredores en todos los atributos, +17 en los físicos de los de 23 años o menos. El entrenamiento hizo el resto.
 
 La 0043 aplica los topes de la v2 una vez, solo a los bots (`user_id` nulo): en los físicos que su arquetipo penaliza, techo y atributo bajan a 83 si lo pasan. TAC queda fuera, porque es oficio y se aprende corriendo. Nadie sube. Los corredores de los jugadores no se tocan (decisión del dueño, opción A). Medido sobre datos públicos antes de aplicarla: en el top 100 del ranking solo la pasan dos clasicómanos, con MON 84,5 y 84,7, además de Alves, que no está en el top 100. No cambia ninguna constante ni `ENGINE_VERSION`. `topesArquetipo.test.ts` vigila que la lista de pares del SQL siga siendo la de `ARCHETYPE_CEILING_OFFSETS`.
+
+## v90 · El maillot da alas para defenderlo, y el favorito claro del sprint sale marcado
+
+Dos encargos del dueño. El primero: «que el mejor sprinter de una carrera gane tres sprints seguidos es excesivo; hace falta más variabilidad». El caso de producción es Francisco Alves (SPR 90,4 contra 85,2 del segundo del campo), que ganó la 2, la 3 y la 4 de una vuelta de cinco etapas, las tres al sprint. El segundo: el líder de la general debe tener un poco menos de probabilidad de ganar la etapa, un poco más de rendir lo justo para conservar el maillot (en montaña o en la crono el maillot «da alas») y menos ganas de meterse en fugas salvo en montaña respondiendo a un rival. `ENGINE_VERSION` sube de 89 a 90.
+
+### 1 · La causa de la bola de nieve estaba fuera del motor
+
+`packages/db/src/stageRun.ts` multiplicaba por 1,04 (`LEADER_JERSEY_BOOST`) los diez atributos, SPR incluido, de todo corredor con déficit 0 cuando la general tenía diferencias. El velocista que gana una etapa se viste de líder por la bonificación y desde ese día esprinta un 4 % más rápido: 90,4 de SPR pasa a 94. La constante no estaba en `constants.ts` ni la corría ningún banco, así que ninguna banda la veía.
+
+Medido en la llana canónica (`llana-180`, 200 semillas por celda, mismas semillas), con el segundo velocista fijo en SPR 85 y el mejor en 85 más la ventaja. «Base» es la llana sin general; «líder» pone la general en juego con el mejor velocista de líder (déficit 0, puesto 1; el resto de velocistas a 4 s y el pelotón a 30 s). La cifra es el % de llegadas agrupadas (grupo del ganador de 15 o más) que gana el mejor velocista.
+
+| Ventaja de SPR | Base v89 | Líder v89 sin empujón | Líder v89 con el 1,04 (producción) | Líder v90 |
+| -------------- | -------- | --------------------- | ---------------------------------- | --------- |
+| 0              | 29,5     | 30,3                  | 52,8                               | 20,2      |
+| 2              | 40,0     | 37,2                  | 61,4                               | 31,7      |
+| 5              | 51,9     | 56,4                  | 68,5                               | 44,6      |
+| 8              | 66,3     | 66,1                  | 78,4                               | 51,0      |
+
+Con el 1,04 un velocista empatado con su rival gana más de la mitad de los sprints en cuanto se viste de líder, y con cinco puntos de ventaja casi siete de cada diez: es el «70 % o más» de la queja. En el banco de carreras pequeñas, emulando el 1,04 de producción, aparecen los barridos que el banco sin maillot no tenía (`sweepPct` de 0 a 3,23 %, una racha de tres llegadas agrupadas seguidas del mismo corredor) y el mejor rematador con 6 o más puntos de ventaja pasa de ganar el 32,6 % de las llegadas agrupadas al 41,7 %.
+
+### 2 · El maillot, dentro del motor
+
+`stage/maillot.ts` (`hayMaillot`, `llevaMaillot`, `alasDelMaillot`, `applyLeaderJersey`) y `STAGE.jersey`. Lo lleva el puesto 1 de la general (`gcRank` 1) y solo cuando la general tiene diferencias, el mismo criterio que `esMaillot` en la capa táctica; antes eran todos los que tenían déficit 0. Lo llaman `stageRun` y, para que los bancos corran lo mismo que producción, `sim/smallTours.ts` y `sim/grandTour.ts`.
+
+- **Las alas** (`alas` 0,015 sobre `alasAtributos`): solo RES, REC, MON, COL y CRI, el esfuerzo sostenido con el que se defiende una general. Fuera SPR y TAC (el remate y la colocación del sprint), LLA (pesa 0,18 en el sprint masivo y es la etapa del velocista), DES y PAV (destreza y riesgo).
+- **El remate** (`remate` 0,99): en cualquier llegada en grupo el maillot remata a ese tanto de su nivel; marca a sus rivales en vez de jugársela por la bonificación. En un final en alto compensa las alas en la línea: le sirven para llegar con el grupo, no para ganarlo.
+- **El sitio en el sprint** (`sitioSprint` 0,05): en un final al sprint va por fuera, lejos del roce de las ruedas, y eso se suma a su colocación para el remate (`placeFinishWeight` y el encajonado).
+
+Cuánto dar de alas, medido en la crono de 40 km (`cri-40`, 400 semillas): líder con CRI 83 y 15 s de colchón sobre un rival con 84.
+
+| Alas               | Conserva el maillot | Gana la etapa | Segundos que le saca al rival (media) |
+| ------------------ | ------------------- | ------------- | ------------------------------------- |
+| ninguna            | 56,5 %              | 17,8 %        | -3,4                                  |
+| 1 %                | 62,8 %              | 22,8 %        | 1,2                                   |
+| 1,5 % (la elegida) | 64,8 %              | 24,3 %        | 3,5                                   |
+| 2 %                | 67,5 %              | 26,8 %        | 5,8                                   |
+| 4 % en todo (v89)  | 77,0 %              | 39,5 %        | 17,5                                  |
+
+En la crono no hay remate que compense, así que conservar y ganar suben juntos; el 1,5 % sube 8 puntos lo primero y 6,5 lo segundo, contra los 21,7 de ganar del 4 % viejo. Queda anotado como límite: en la crono el líder gana algo más que sin maillot, y mucho menos que en la v89.
+
+En la reina canónica (`reina-canonica`, 160 semillas, líder `gc-1` con MON 85 y 4 s de colchón sobre `gc-2` con 86): sin efecto conserva el 74,4 % y gana el 40,0 %; con el 1,04 de la v89, 80,0 % y 50,6 %; con la v90, 73,1 % y 40,6 %, sacando 7,5 s de media al rival contra 1,8 s sin alas. La etapa no se le abre más, y la diferencia en conservar queda dentro del ruido de 160 semillas porque en esta reina los hombres de la general llegan casi siempre juntos y la decide el remate.
+
+El primer tanteo fue `alas` 0,02, `remate` 0,98 y `sitioSprint` 0,10: el velocista líder con un rival igual ganaba el 17,7 % de los sprints contra el 30,3 % sin maillot, y con cinco puntos de ventaja el 40,5 %. Era demasiado para «un poco menos»; se dejaron en la mitad.
+
+**El maillot y las fugas** existe desde la v79 (`jerseyBreakDamp`) y funciona. Medido en la llana con un cazaetapas combativo de líder (60 semillas): inicia un movimiento en 2 etapas de 60, contra 14 de 60 cuando el puesto 1 lo tiene otro. No se toca.
+
+### 3 · El favorito claro del sprint sale marcado
+
+Sin el empujón, la llana canónica seguía dando al mejor velocista con cinco puntos de ventaja el 51,9 % de los sprints, por encima de la franja de 40 a 50 que pide el dueño. Se midieron dos palancas: la que el dueño prefería de entrada, más desorden de colocación para todos (`placementSdMax`), y una nueva, `STAGE.favoritoMarcado`. Con ella el favorito de un sprint (el mejor remate del grupo con el peso del rol) sale peor colocado en proporción a su ventaja sobre el segundo por encima de un punto de remate (`margenLibre`), con tope. Todos quieren su rueda y los trenes rivales le encierran; cobra por la colocación y el encajonado, no por un dado.
+
+| Palanca                    | 0 pts | 2 pts | 5 pts | 8 pts | Pequeñas: `bestSprinterWinPct` | Pequeñas: `sameWinnerPairPct` |
+| -------------------------- | ----- | ----- | ----- | ----- | ------------------------------ | ----------------------------- |
+| v89                        | 29,5  | 40,0  | 51,9  | 66,3  | 26,64                          | 16,98                         |
+| `placementSdMax` 0,08      | 30,1  | 39,4  | 49,4  | 64,3  | 27,75                          | 18,78                         |
+| `placementSdMax` 0,09      | 28,9  |       | 47,4  |       | 25,36                          | 13,78 (fuera)                 |
+| marcaje 0,05               | 27,2  |       | 43,6  |       | 24,88 (fuera)                  | 13,13 (fuera)                 |
+| marcaje 0,025 (el elegido) | 28,9  | 39,4  | 46,2  | 59,2  | 26,79                          | 16,24                         |
+
+Llana: % de llegadas agrupadas que gana el mejor velocista, sin general, 200 semillas. Pequeñas: `analyzeSmallTours(12)` repartido en cuatro procesos, con el maillot v90 puesto salvo en la fila v89; el reparto reproduce la v89 al decimal (26,64 y 16,98).
+
+El desorden para todos castiga igual al favorito de un sprint parejo, y por eso, al quitar cuatro puntos y medio al favorito claro, saca de banda las carreras pequeñas, cuyos campos tienen al mejor rematador con 3,19 puntos de ventaja de mediana. El marcaje solo muerde cuando hay un favorito claro: con 0,025 el de cinco puntos baja de 51,9 a 46,2, el de dos no se mueve y el de cero tampoco (dentro del ruido). `placementSdMax` no se toca.
+
+### 4 · El conjunto, y lo que se pagó
+
+Con todo puesto (maillot y marcaje), en la llana con el mejor velocista de líder: ventaja 0, **20,2 %**; 2, **31,7 %**; 5, **44,6 %**; 8, **51,0 %**, contra 52,8, 61,4, 68,5 y 78,4 en producción v89. El banco de carreras pequeñas con todo puesto: `bestSprinterWinPct` **25,36** (banda 25 a 60), `sameWinnerPairPct` **15,76** (banda 15 a 55), `sweepPct` 2,38, `worstRepeatTopFive` 2,44, `photoRepeatTopFive` 1,67, `flatWinnerGroupPct` 97,8 y `mediaGroups` 9,5: todo en banda, pero las dos primeras pegadas al suelo. Es la tensión que hay que decir con el número delante: el dueño pide menos dominio del mejor y esas dos bandas, que él mismo re-selló en la v89, ponen un suelo al dominio. En el banco de producción el mejor rematador ya ganaba poco (el 26 % de las llegadas agrupadas y ningún barrido de tres sin el empujón); el dominio que vio el dueño salía casi entero del 1,04.
+
+### 5 · Lo que no se midió en esta tanda
+
+Por tiempo no se corrieron las suites de bancos de vitest (`invariantsLlano`, `invariantsPequenas`, `invariants`, `invariantsAbandonos`, `invariantsClasicas`, `invariantsDesgaste`, coherencia, mundo y radio). Las cifras de pequeñas de arriba son las del mismo `analyzeSmallTours(12)` que corre el CI. `flat.bestSprinterWinPct` de `llana-180` (banda 30 a 45, 38,3 en la v89 con su campo de 88 contra 82) no se re-midió con 300 semillas: por la tabla de §3 el marcaje le quita unos cinco puntos con seis de ventaja, así que debería quedar hacia 33. `grandTour` corre ahora con el maillot y sus bandas no se han re-medido. La huella sellada de `stage/attribution.test.ts` pasa en `test:rapido` sin re-sellar.
+
+## v90 · la ley de la subida y los puertos reales aplanados
+
+La queja del dueño: en el mundo vivo un bot velocista (arquetipo `velocidad`, MON 76,5, LLA 90,7, SPR 88,8, RES 59) lidera Race Spain (21 etapas, `routeSource` real) y llega con los mejores escaladores (MON 87 a 95) a los finales en alto. Son dos defectos que se suman, y esta tanda arregla los dos. `ENGINE_VERSION` pasa a 90 con otro cambio que ya está en marcha; esta tanda no lo toca.
+
+1. **La ley de la subida.** En un bloque de subida el perfil es `w·MON + (1 − w)·LLA` con `w = clamp((g − 2)/6, 0,15, 1)`. Al 4,1 % eso es w = 0,35: el velocista rendía 85,7 y era el 2.º de 159 en cualquier subida por debajo del 5 %, siendo el 45.º por MON.
+2. **Los puertos reales aplanados.** En una etapa real con altitud muestreada, `profileFromElevation` integraba las muestras y no miraba la lista de puertos. Las muestras son gruesas (diez a veinte para doscientos km), y `terrainForGradient` tipa como llano todo lo que baja del 3 %. En un tramo llano manda LLA, se rueda a la velocidad de referencia del llano y no se descuelga a nadie (`selectionFactor` vale 0).
+
+### 1. Los puertos listados mandan sobre las muestras (`routes/featureProfile.ts`)
+
+Cómo veía el motor los puertos de la Vuelta de la temporada 0, antes y después (de `sampleProfile`, en bloques de 100 m):
+
+| Etapa | Puerto (dato listado)                        | v89: lo que corría el motor                                                                          | v90                      |
+| ----- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------ |
+| e3    | Col de Mont-Louis, 19 km al 5 %              | 6,4 de 19 km como subida, media 4,0 % (los primeros 26,2 km al 2,8 %, llano)                         | 19 km de subida al 5,0 % |
+| e3    | Font-Romeu (meta), 9,8 km al 4,9 %           | 11,7 km al 4,1 %                                                                                     | 9,8 km al 4,9 %          |
+| e7    | Aramón Valdelinares (meta), 8,3 km al 6,5 %  | 0 km de subida: los últimos 13,6 km al 2,9 %, tipados llano; la última subida acababa en el km 136,3 | 8,3 km al 6,5 %          |
+| e7    | Puerto de San Rafael, 9,5 km al 4,4 %        | 0,2 km de subida, media 1,9 %                                                                        | 9,5 km al 4,4 %          |
+| e9    | Puerto de El Miserat, 5 km al 10,1 %         | 0 km de subida, media 2,6 %                                                                          | 5 km al 10,1 %           |
+| e9    | Alto de Aitana (meta), 21 km al 5,8 %        | 19,8 km al 6,4 %                                                                                     | 21 km al 5,8 %           |
+| e12   | Alto de Velefique, 11 km al 7 %              | 11 km al 7,2 %                                                                                       | 11 km al 7,0 %           |
+| e12   | Calar Alto (meta), 17,1 km al 5,6 %          | 7,5 km al 8,1 % y 10,5 km al 3,4 % (media 5,2 %)                                                     | 17,1 km al 5,6 %         |
+| e14   | Sierra de La Pandera (meta), 8,5 km al 7,9 % | 15,2 km al 5,6 %                                                                                     | 8,5 km al 7,9 %          |
+| e19   | Peñas Blancas (meta), 18,7 km al 6,5 %       | 18 km al 6,8 %                                                                                       | 18,7 km al 6,5 %         |
+| e20   | Collado del Alguacil (meta), 8,3 km al 9,8 % | 14,8 km al 4,9 %                                                                                     | 8,3 km al 9,8 %          |
+
+Sobre las 130 etapas reales con altitud y los 284 puertos listados de más del 3 % de media: en la v89, 139 se corrían con una pendiente media a más de 1,5 puntos de la suya, el error medio era de 2,10 puntos y solo el 73 % de sus km se corría como subida. En la v90, 3 de 284, 0,05 puntos y el 99,2 %. Los tres que quedan son los que el filtro del pie acorta (abajo).
+
+**La regla.** Cada puerto listado (longitud, pendiente media y km de cima) se coloca como un segmento `puerto` de pendiente uniforme, anclado en la altitud que las muestras dan a su cima; su pie queda `longitud × pendiente` más abajo. Lo que hay entre puertos sigue saliendo de las muestras, así que el tramo que enlaza con el pie absorbe la diferencia, y la distancia y la altitud de meta no se mueven. Dos puertos que se pisan se encadenan: el segundo arranca en la cima del primero, como en la reconstrucción sin altitud. Una etapa sin puertos listados de más del 3 % sale exactamente como antes.
+
+**Por qué uniforme y no con la forma de `climbRamps`** (0,8, 1,3 y 0,85 de la media, la de la reconstrucción sin altitud). Se probó primero con esa forma y tenía dos defectos. Inventa rampas que el dato no dice: el Télégraphe (11,9 km al 7,1 %, regular) salía con 4,8 km al 9,1 %. Y cambia el atributo con que se sube, porque `riderPerfil` mide con COL todo bloque al 8 % o más: todo puerto de más del 6,2 % de media se corría el 40 % central con el atributo del muro. La categoría de la pancarta sigue saliendo de `climbRamps`, como siempre.
+
+**Tres salvaguardas, todas contra datos que no son una medida** (constantes nuevas en `RELIEF`, con su intención al lado):
+
+- `elevationClimbMinGradient` = 3: solo se colocan los puertos de pendiente media mayor que el 3 %. De los 56 listados al 3 % o menos en etapas con altitud, 51 están al 3,0 exacto y con la longitud del hueco desde el puerto anterior, no la de la subida (Willunga Hill, 26 km; Alto de Lucena, 91 km). Es relleno de la fuente, y las muestras ya lo dibujan.
+- El pie no puede quedar por debajo de la muestra más baja de la etapa. Si queda, el puerto se acorta hasta ella conservando su pendiente (el Alto de Lucena, si viniera al 3,5 %, tendría el pie a 2.475 m bajo el mar). Se probó una cota más local, la más baja desde la cima anterior, y recortaba puertos de verdad: las muestras gruesas se saltan el fondo del valle y la Cote du Château de Montjuïc (1,6 km al 9,3 %) se quedaba en 0,6 km. Con la cota de la etapa, los tres puertos que se acortan son el Alto del Bartolo (Vuelta e6), el Alt del Castell de Montjuïc (Volta e7) y Elkorrieta (Itzulia e5), los tres con la cima de las muestras desalineada con la del puerto. `elevationClimbMinKm` = 0,3: lo que se queda por debajo no se coloca.
+- `elevationClimbEdgeKm` = 0,5 y `elevationJunctionMaxGradient` = 12: una muestra a menos de 0,5 km del pie o de la cima se retira, y si el enlace entre una muestra y un puerto sale por encima del 12 %, la muestra se retira también (es la que está mal alineada). Sin esto, el Tour e14 tenía un enlace al −29,7 % y el e15 uno al −44,5 %: las muestras ponen el fondo del valle del Col du Page en el km 68,3 y la subida de 463 m en 3 km, y el puerto listado dice 9,8 km al 4,7 %, los mismos 463 m. Con la regla, la pendiente máxima de un tramo de muestras en las 130 etapas baja de 16,3 % a 12,5 % (este último es de la Romandía e1, sin puertos, y no se toca).
+
+**Lo que mueve en el calendario.** Cambian 85 de las 1.418 etapas de las temporadas 0 y 1, las 85 reales; ninguna generada ni de edición (comprobado etapa a etapa con `hashInt(JSON.stringify(profile))` contra el árbol anterior). El desnivel sube un poco porque las muestras gruesas se saltan los valles: el Tour entero pasa de 36.158 a 37.422 m, y su e20 de 4.515 a 4.742 m (el valle de Valloire entre el Télégraphe y el Galibier y el pie del Sarenne vuelven a estar). Etiquetas: `race-spain` e7 vuelve a ser el «Summit finish» que declara su edición (su recorrido la reetiquetaba «Mountains» porque la meta quedaba en llano), y `race-france` e2 (Montjuïc a 3 km de meta) y `race-to-the-sun` e6 (Cote de Saignon) pasan a «Uphill finish».
+
+### 2. La ley de la subida: de `(g − 2)/6` a `g/5,5` (`STAGE.wGradientOffset`, `wGradientScale`)
+
+| g                    | 2 %  | 3 %  | 4 %  | 4,5 % | 5 %  | 5,5 % | 6 %  | 8 %  |
+| -------------------- | ---- | ---- | ---- | ----- | ---- | ----- | ---- | ---- |
+| w v89, `(g − 2)/6`   | 0,15 | 0,17 | 0,33 | 0,42  | 0,50 | 0,58  | 0,67 | 1    |
+| w v90, `g/5,5`       | 0,36 | 0,55 | 0,73 | 0,82  | 0,91 | 1     | 1    | 1    |
+| física, en solitario | 0,46 | 0,59 | 0,69 | 0,73  | 0,77 | 0,80  | 0,83 | 0,90 |
+| física, a rueda      | 0,51 | 0,64 | 0,74 | 0,78  | 0,82 | 0,84  | 0,87 | 0,93 |
+
+La fila de la física es la fracción de la potencia que se va en gravedad y rodadura, la parte que paga la relación peso-potencia (70 kg más 7 de bici a 6 W/kg, CdA 0,32, Crr 0,004; a rueda, con el aire recortado un tercio). `g/5,5` queda por debajo de esa física en el falso llano y por encima desde el 4,5 %. Por encima a propósito: el aire que aún queda en un puerto lo paga el que va delante, y eso el motor ya lo cobra aparte (`draftMax`, 0,096 al 8 %); entre los que suben juntos, lo que separa es el peso-potencia, y MON es lo que el motor tiene de peso-potencia. El velocista de la queja contra un escalador MON 90 / LLA 74, al 4,1 %: en la v89 rendía 85,7 contra 79,6; en la v90, 80,1 contra 85,9. La misma ley mueve el tramo de subida de las cronos (`ttPerfil`) y la SPEC 6.4 se corrige con ella.
+
+Se probaron tres escalas sobre la comprobación dirigida de abajo (30 carreras): con `g/6` el velocista llegaba con el mejor escalador en 10 de 30 subidas sintéticas al 4,5 %, con `g/5,5` en 7 y con `g/5` en 4. Se queda `g/5,5`, que coincide con la física a rueda en el 4-4,5 % y llega a 1 en el 5,5 %; `g/5` mete MON entero desde el 5 % y pesa 0,6 ya al 3 %, en pleno falso llano.
+
+**La comprobación dirigida.** Un campo WT de 176 corredores con arquetipos reales (génesis v2), subido entero hasta que el 45.º por MON está en 77,5, como en el mundo vivo; el velocista de la queja como jefe de filas; 30 carreras por etapa, misma semilla en las tres columnas. «Con el mejor» es llegar en el tiempo del mejor corredor de MON 90 o más del campo (hay 8 de media).
+
+| Etapa                                     | Con el mejor (v89 → v90) | Pérdida mediana con el mejor MON 90+ | MON 90+ a los que iguala o gana | Puesto mediano |
+| ----------------------------------------- | ------------------------ | ------------------------------------ | ------------------------------- | -------------- |
+| 10 km al 4,5 % en alto (sintética)        | 10/30 → 7/30             | 8 s → 57 s                           | 6,4 → 3,3                       | 35 → 50        |
+| e3, Font-Romeu (9,8 km al 4,9 %)          | 11/30 → 6/30             | 35 s → 107 s                         | 5,2 → 2,2                       | 46 → 46        |
+| e7, Aramón Valdelinares (8,3 km al 6,5 %) | 22/30 → 1/30             | 0 s → 196 s                          | 6,2 → 0,3                       | 38 → 57        |
+| e12, Calar Alto (17,1 km al 5,6 %)        | 7/30 → 0/30              | 146 s → 325 s                        | 3,2 → 0,1                       | 60 → 67        |
+
+En los finales en alto reales la queja queda resuelta: en Valdelinares pasa de llegar con el mejor escalador en 22 de 30 carreras a 1 de 30 (y pierde 196 s de mediana), y en Calar Alto pierde 325 (antes 146) s de mediana. En la subida sintética de 10 km al 4,5 % sigue entrando con el mejor en 7 de 30, y eso es física y no un defecto: con un déficit de seis a ocho puntos de perfil, al 4,5 % (exponente 0,85) cede alrededor de un minuto en los 25 minutos de subida, y la reserva (`reserveSeconds` = 65, el W′ del modelo de potencia crítica) se lo absorbe. En una subida así, en carretera, un rodador fuerte también aguanta.
+
+### 3. El final en descenso: se deja como está
+
+En `finishType` la prueba de puncheur va antes que la de descenso, así que un final con una cota dura (puntuación ≥ 15) que corona a 5 km o menos de meta se puntúa como puncheur aunque los últimos 3 km bajen. No se toca: un puerto que corona a menos de 5 km de la línea es el que decide ese final, y el que baja detrás es el que ha subido delante, que es lo que el orden dice. `descenso` queda para la bajada que viene de una cima a más de 5 km, que es el final de descenso de verdad. Además `stage/finish.ts` lo está tocando otra tanda en paralelo (la varianza del esprint).
+
+### 4. Sellos que se mueven, uno a uno
+
+- `routes/realFingerprint.sealed.ts`: se resellan por script 85 de las 177 `SELLADAS` (las reales con altitud y algún puerto de más del 3 %), comprobando que ningún km se mueve más de 0,05; en `GRANDES_VUELTAS` cambian 44 etapas (la huella, y en algunas el último decimal de la suma de km). El literal decía «no se regenera para tapar un fallo» y lleva escrito por qué esta vez sí.
+- `sim/legacy/golden.sealed.ts`: 85 de 1.418, todas reales; el generador viejo comparte `featureSpec` con el de hoy.
+- `routes/ciudades.test.ts`: la huella agregada de las temporadas 0 y 1, con 85 etapas reales cambiadas en cada una y ninguna más.
+- `stage/attribution.test.ts`: las dos llanas salen idénticas; las dos reinas canónicas se mueven por la ley de la subida, con los mismos cuatro `gc-` delante (detalle en el fichero).
+- `apps/api/src/stageHistory.test.ts`: las reales reetiquetadas pasan de 30 a 31 (sale `race-spain` e7, entran `race-france` e2 y `race-to-the-sun` e6).
+- `stage/contextoNoLeido.test.ts`: que `daysLeft` decide se mira sobre cuatro campos y no sobre uno. Ya en la v89 solo movía la etapa en dos de cuatro; con la v90, en `ctx` deja de morder y en `ctx-3` sigue.
+- `sim/realQueens.ts`: el `why` de `race-spain` e7 decía «meta en llano»; ahora dice qué es y por qué se queda en el banco.
+
+### 5. Los bancos
+
+Medido con las mismas corridas que su test, v89 contra v90 (la v90 con la pendiente uniforme):
+
+| Banco · medida                                                        | Banda                  | v89                        | v90                        |
+| --------------------------------------------------------------------- | ---------------------- | -------------------------- | -------------------------- |
+| reina canónica · gana la fuga                                         | 15-40 %                | 31,7 %                     | 30,0 %                     |
+| reina canónica · brecha 1.º-10.º                                      | 40-300 s               | 124 s                      | 150,5 s                    |
+| crono · P90-P10 / gana el especialista                                |                        | 104,5 s / 98,3 %           | 104,5 s / 98,3 %           |
+| cronos reales · cola mediana / peor                                   | peor ≤ 17 %            | 14,3 % / 15,8 %            | 14,1 % / 15,0 %            |
+| reinas reales · cola mediana                                          | 7-14 %                 | 11,8 %                     | 11,9 %                     |
+| reinas reales · la peor (mediana)                                     | ≤ 18 %                 | 16,8 % (`race-france` e20) | 17,9 % (`race-france` e20) |
+| reinas reales · `race-spain` e7                                       |                        | 8,1 %                      | 10,1 %                     |
+| gran vuelta · abandonos                                               | 12-20 % → 12-23 %      | 18,9 %                     | 22,0 %                     |
+| gran vuelta · cola de la reina                                        | 8-14 %                 | 10,6 %                     | 11,8 %                     |
+| montaña del calendario · gana la fuga                                 | 6-30 %                 | 8,3 % (33 etapas)          | 11,0 % (34 etapas)         |
+| carreras pequeñas · velocidad del ganador llana / media / reina       | reina ≥ 32 → ≥ 31 km/h | 43,13 / 39,60 / 32,01      | 43,13 / 39,63 / 31,89      |
+| carreras pequeñas · gana el mejor rematador / mismo ganador por pares | 25-60 % / 15-55 %      | 26,6 % / 17,0 %            | 27,1 % / 15,5 %            |
+
+Los bancos de llano, fases, desgaste, clásicas, coherencia y mundo salen verdes; su cifra no se sacó aparte. Además de `abandonPct`, dos comprobaciones se tocan, las dos con su porqué en el fichero:
+
+- `sim/invariantsPequenas.test.ts`, el guardarraíl «la reina se gana a 32 km/h o más» baja a 31. El banco ya estaba en 32,01, en el borde, y con los puertos de sus reinas reales puestos va a 31,89. La llana y la media no se mueven.
+- `sim/calendarQueens.test.ts`, la cubeta «fácil» pide 6 etapas y no 3. Con 3 etapas por 4 semillas son 12 carreras y una sola vale 8,3 puntos, menos que los 10 de margen que pide la prueba. `<1500` pasa de 2 fugas de 12 a 1 de 12 (16,7 % a 8,3 %), mientras `1500-2500` (10 etapas) va del 15,0 % al 27,5 % y `>3500` se queda en 0. El hecho vigilado sigue en pie: la fuga llega en la montaña blanda y no en la dura.
+
+**La banda que se mueve: `grandTour.abandonPct`, techo de 20 a 23.** La vuelta del banco es `race-france`, real, y sus puertos dejan de aplanarse. Medido con 12 vueltas, separando los dos cambios:
+
+|                                                 | abandonos | colapso | fuera de control | lesión | enfermedad | topes del 4 % |
+| ----------------------------------------------- | --------- | ------- | ---------------- | ------ | ---------- | ------------- |
+| v89                                             | 18,94 %   | 11      | 62               | 207    | 120        | 1             |
+| solo la ley de la subida                        | 19,60 %   | 12      | 72               | 207    | 123        | 0             |
+| solo los puertos (con la forma de `climbRamps`) | 21,64 %   | 53      | 59               | 221    | 124        | 8             |
+| v90 (las dos, pendiente uniforme)               | 22,02 %   | 42      | 90               | 209    | 124        | 7             |
+
+El salto es de los puertos, no de la ley, y es casi entero una etapa: en la e20 los colapsos pasan de 9 a 40 en las 12 vueltas. Es la vía de la pájara sostenida de `shouldCollapse`, la que su comentario dejó escrita para «el día que un recorrido la produzca»: una reina de tercera semana con 4.742 m ya la produce. Que esa etapa retire a tres o cuatro por vuelta es más de lo que hace la carretera, pero recalibrar el colapso no es de esta tanda, que es de la subida; la banda sube a 23 con la cifra, y queda como deuda nombrada para que la decida el dueño. Las otras del racimo siguen dentro: el reparto de causas, los eliminados por vuelta (7,5 contra un techo de 9) y la cola de la reina (11,84 %, banda 8-14).
+
+### 6. Pruebas
+
+- `pnpm typecheck`, `pnpm lint` (0 errores; los 20 avisos de `apps/web` son de antes) y `pnpm format`: verdes.
+- `pnpm test:rapido`: 2.905 verdes; rojas solo las dos de reloj de `routes/arranque.test.ts`, que en esta máquina cargada también fallan en `main`.
+- `pnpm test:bancos` (las 15 entradas de `packages/engine/src/sim/`): 173 de 175 a la primera, con las dos de arriba; corregidas, `calendarQueens` e `invariantsPequenas` vuelven a correr en verde. En `main`, sobre el mismo árbol de partida, las 175 en verde (46 minutos).
+- Nuevas: `featureProfile.test.ts` (el puerto entre dos muestras gruesas, la etapa sin puertos idéntica, el relleno al 3 %, el pie bajo el mar y la muestra desalineada) y `physics.test.ts` (la ley nueva y el caso del velocista al 4,1 %).
+
+## v90 · la puerta del reenganche y la velocidad de la radio
+
+**El dueño, en la etapa 3 de la Vuelta:** tres grupos separados por 33 s se juntan entre el km 149 y el 150, en un tramo casi llano entre dos puertos, con la radio marcando 68 km/h. Medido: el grupo de 61 cerró en carretera 5 a 7 s de ese kilómetro y la puerta de `rejoinGapSeconds` (22 s) le regaló los otros 20 a 22. Ese grupo eran los descolgados del puerto anterior, que llevaban kilómetros siendo otro grupo.
+
+**Qué cambia.** La puerta ancha queda para quien nunca se fue más allá de `regroupGapSeconds` por detrás: el pelotón estirado, y con él el fuerte que vuelve en el adoquín (la objeción de la v58). Un grupo que llegó a ir más atrás es un grupo establecido y entra al llegar a `captureGapSeconds` (5 s), como cualquier caza (`huecoMaxDescolgado` en `simulate.ts`). Medido sobre diez etapas 3 sintéticas con el campo real: las fusiones con más de 10 s de hueco pasan de 15 a 0, los segundos absorbidos de 305 a 42, y la mediana de PAV del ganador del banco del pavé no se mueve (72). La huella de `llana-180` queda idéntica; la de la reina se resella (ver `attribution.test.ts`).
+
+**La radio mide el kilómetro recorrido.** En la cima de Calar Alto la radio enseñaba la velocidad de la bajada que aún no se había hecho (58 km/h) junto al grupo del líder a 20,7, que era la medida de reserva del kilómetro anterior porque ese grupo se fundía con el de delante. Desde la v90 la velocidad de una foto es la del kilómetro que acaba de recorrer; la de reserva, la del siguiente, y la primera foto mide el siguiente.
+
+**Defecto abierto: la caza por un solo lado.** `move_caught` da por cazada una escapada con `peloton.tS − m.g.tS ≤ captureGapSeconds`, sin suelo, así que un `puente` que nace detrás del pelotón se caza en su mismo bloque y hereda su reloj (medido: 28 casos en diez etapas 3 sintéticas, regalos de hasta 137 s). Exigir el hueco por los dos lados se probó y se retiró: movía las huellas del llano y adelantaba cuatro minutos al ganador de la reina, porque una escapada que va por detrás seguía contando como fuga que perseguir. El arreglo bueno es que un puente por detrás del pelotón no cuente como fuga para la persecución, y queda pendiente. Relacionado: las fusiones de la v76.1 y la v81 devuelven el hueco en `driftS`, que `advance()` pone a cero en cada bloque de llano.

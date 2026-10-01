@@ -340,7 +340,7 @@ Consecuencia central del cambio: los boquetes ya no se estiman, se integran. Un 
 ### 6.4 La ley de velocidad (una sola para todo el juego)
 
 ```
-w(g)   = clamp( (g - 2) / 6 , 0.15, 1.0 )
+w(g)   = clamp( g / 5.5 , 0.15, 1.0 )        // v90; hasta la v89, (g - 2) / 6 (docs/balance.md «v90»)
 muro   = subida total <= 2.5 km con g >= 8  -> el atributo de subida es COL en vez de MON
 
 perfil_i(bloque):

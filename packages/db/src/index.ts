@@ -9,6 +9,7 @@ export { runMigrations } from './migrate.js'
 export {
   DEFAULT_MAX_DAYS_PER_RUN,
   POISON_PILL_ATTEMPTS,
+  GENESIS_WORLD_SEED,
   runTick,
   targetGameDay,
   type RunTickOptions,

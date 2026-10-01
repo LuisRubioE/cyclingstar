@@ -296,7 +296,7 @@ clamp(mTankFitness(ctl) · mTankFreshness(tsb) · mHealth, 0.70, 1.08)`, con `mT
 3. **Cerillos** `matchCount(effResolved, tsb, vaciadoProfundoAyer)` (l.332; `physics.ts:672`): comp
    = 0,5·max(MON,COL) + 0,3·RES + 0,2·LLA; base 2 + umbrales 55/72/88; −1 si tsb < −25; −1 si ayer
    terminó bajo el 12 % del depósito (reconstruido del diario, l.230-255); mínimo 1, máximo 5.
-4. Maillot de líder: `eff0 × 1.04` en todo (l.357-364).
+4. Maillot de líder: `eff0 × 1.04` en todo (l.357-364). Hasta la v89; desde la v90, `applyLeaderJersey` del motor (2 % en RES, REC, MON, COL y CRI).
 5. Tras la etapa: `tss = stageTss(workUnits) = workUnits · 5` (`simulate.ts:6036`, `tssPerWorkUnit`;
    el SPEC 5.1 decía `40 + 2.5·unidades`), `applyDailyLoad` con el REC del corredor, tanto para
    finishers (l.540) como para no finishers (l.493). La moral NO cambia por correr.

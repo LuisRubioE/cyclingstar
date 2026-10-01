@@ -247,8 +247,20 @@ describe('engine: qué parte del contexto de carrera decide y qué parte solo vi
     expect(`nextClimbKm inerte: ${igual({ shape: { ...CONTEXTO.shape!, nextClimbKm: 12 } })}`).toBe(
       'nextClimbKm inerte: true',
     )
-    expect(`daysLeft DECIDE: ${!igual({ shape: { ...CONTEXTO.shape!, daysLeft: 9 } })}`).toBe(
-      'daysLeft DECIDE: true',
-    )
+    /**
+     * …Y `daysLeft` SE MIRA SOBRE CUATRO CAMPOS, NO SOBRE UNO (v90). La correa solo muerde si la
+     * carrera la pone a prueba, y eso depende del campo: medido antes de la v90, de los campos
+     * `ctx`, `ctx-1`, `ctx-2` y `ctx-3`, cambiar `daysLeft` de 3 a 9 movía la etapa en dos (`ctx` y
+     * `ctx-3`). La v90 cambia la ley de la subida (w = g/5,5) y el puerto de 9 km al 6 % de este
+     * perfil pasa a correrse con MON entero: en `ctx` ya no muerde y en `ctx-3` sí. Lo que se exige
+     * es lo que la prueba quería decir: que `daysLeft` DECIDA en algún campo.
+     */
+    const decide = ['ctx', 'ctx-1', 'ctx-2', 'ctx-3'].some((seed) => {
+      const rs = campo(seed)
+      return (
+        huella(rs, { ...base, shape: { ...CONTEXTO.shape!, daysLeft: 9 } }) !== huella(rs, base)
+      )
+    })
+    expect(`daysLeft DECIDE: ${decide}`).toBe('daysLeft DECIDE: true')
   })
 })

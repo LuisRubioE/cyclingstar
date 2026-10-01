@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { sampleProfile, stageLengthKm } from '../stage/sample.js'
+import type { Segment, StageProfile } from '../stage/types.js'
 import { buildFeatureProfile } from './featureProfile.js'
 
 describe('routes: perfil a partir de rasgos reales (puertos y sprints reales)', () => {
@@ -45,6 +46,28 @@ describe('routes: perfil a partir de rasgos reales (puertos y sprints reales)', 
   })
 })
 
+/** Altitud en `target` km integrando todos los tramos del perfil desde `startM`. */
+function elevAt(profile: StageProfile, startM: number, target: number): number {
+  let e = startM
+  let c = 0
+  for (const s of profile.segments) {
+    const ramps = s.tramos ?? [{ km: s.km, g: 0 }]
+    for (const r of ramps) {
+      if (c + r.km >= target) return e + r.g * (target - c) * 10
+      e += r.g * r.km * 10
+      c += r.km
+    }
+  }
+  return e
+}
+
+/** Pendiente media de un segmento, ponderada por km. */
+function meanGradient(s: Segment): number {
+  const ramps = s.tramos ?? []
+  const km = ramps.reduce((acc, r) => acc + r.km, 0)
+  return ramps.reduce((acc, r) => acc + r.km * r.g, 0) / km
+}
+
 describe('routes: trazado a partir de la ALTITUD REAL muestreada', () => {
   // Perfil real: sube de 100 m a 900 m (cima, km 20) y baja a 300 m en meta (km 40).
   const features = {
@@ -67,28 +90,17 @@ describe('routes: trazado a partir de la ALTITUD REAL muestreada', () => {
 
   it('integra la pendiente entre muestras: el desnivel reproduce las altitudes reales', () => {
     // Reconstruye la altitud integrando los tramos y compárala con las muestras.
-    const elevAtKm = (target: number): number => {
-      let e = 100
-      let c = 0
-      for (const s of profile.segments) {
-        const g = s.tramos?.[0]?.g ?? 0
-        if (c + s.km >= target) return e + g * (target - c) * 10
-        e += g * s.km * 10
-        c += s.km
-      }
-      return e
-    }
-    expect(elevAtKm(20)).toBeCloseTo(900, -1) // cima ~900 m
-    expect(elevAtKm(40)).toBeCloseTo(300, -1) // meta ~300 m
+    // Integra TODOS los tramos de cada segmento (un puerto listado lleva tres, `climbRamps`).
+    expect(elevAt(profile, 100, 20)).toBeCloseTo(900, -1) // cima ~900 m
+    expect(elevAt(profile, 100, 40)).toBeCloseTo(300, -1) // meta ~300 m
   })
 
   it('el tramo de subida hasta la cima tiene la pendiente real (800 m en 10 km = 8%)', () => {
     // El segmento que corona en km 20 sube 800 m en 10 km.
-    const climbSeg = profile.segments.find(
-      (s) => s.tipo === 'puerto' && (s.tramos?.[0]?.g ?? 0) > 5,
-    )
+    const climbSeg = profile.segments.find((s) => s.tipo === 'puerto')
     expect(climbSeg).toBeDefined()
-    expect(climbSeg!.tramos![0]!.g).toBeCloseTo(8, 0)
+    expect(climbSeg!.km).toBeCloseTo(10, 1)
+    expect(meanGradient(climbSeg!)).toBeCloseTo(8, 1)
   })
 
   it('mantiene los banners: cima (categoría oficial) y meta volante en su km real', () => {
@@ -102,6 +114,84 @@ describe('routes: trazado a partir de la ALTITUD REAL muestreada', () => {
     const descentSeg = profile.segments.find((s) => s.tipo === 'descenso')
     expect(descentSeg).toBeDefined()
     expect(descentSeg!.tramos![0]!.g).toBeLessThan(0)
+  })
+})
+
+/**
+ * LOS PUERTOS LISTADOS MANDAN SOBRE LAS MUESTRAS GRUESAS (v90). Es el caso del Aramón Valdelinares de
+ * la Vuelta: dos muestras a 13,6 km dejaban el final en alto (8,3 km al 6,5 %) en un falso llano al
+ * 2,9 % tipado llano.
+ */
+describe('routes: un puerto listado entre dos muestras gruesas no se aplana (v90)', () => {
+  const elevation = [
+    { km: 0, elevM: 250 },
+    { km: 136.3, elevM: 1561 },
+    { km: 150, elevM: 1961 },
+  ]
+  const climbs = [{ name: 'Valdelinares', summitKm: 150, lengthKm: 8.3, avgGradient: 6.5 }]
+  const profile = buildFeatureProfile(150, { climbs, elevation }, 'seed')
+  const blocks = sampleProfile(profile)
+
+  it('el final en alto es un puerto con su longitud y su pendiente media listadas', () => {
+    const last = profile.segments[profile.segments.length - 1]!
+    expect(last.tipo).toBe('puerto')
+    expect(last.km).toBeCloseTo(8.3, 2)
+    expect(meanGradient(last)).toBeCloseTo(6.5, 1)
+    // Los últimos 83 bloques son subida, y antes no lo eran.
+    expect(blocks.slice(-83).every((b) => b.tipo === 'subida')).toBe(true)
+  })
+
+  it('la distancia y la altitud de meta no se mueven: el enlace absorbe la diferencia', () => {
+    expect(stageLengthKm(profile)).toBeCloseTo(150, 1)
+    // La pendiente de cada tramo se redondea a la décima: en el enlace de 141,7 km eso son hasta
+    // 70 m de deriva, la misma que el trazado de muestras ya tenía.
+    expect(Math.abs(elevAt(profile, 250, 150) - 1961)).toBeLessThan(80)
+  })
+
+  it('sin puertos listados el trazado es exactamente el de las muestras', () => {
+    const solo = buildFeatureProfile(150, { elevation }, 'seed')
+    expect(solo.segments.map((s) => [s.km, s.tipo, s.tramos?.[0]?.g])).toEqual([
+      [136.3, 'llano', 1],
+      [13.7, 'llano', 2.9],
+    ])
+  })
+
+  it('un puerto listado al 3 % o menos es relleno de la fuente y se deja a las muestras', () => {
+    const relleno = [{ name: 'Willunga', summitKm: 150, lengthKm: 26, avgGradient: 3 }]
+    const p = buildFeatureProfile(150, { climbs: relleno, elevation }, 'seed')
+    expect(p.segments).toEqual(buildFeatureProfile(150, { elevation }, 'seed').segments)
+  })
+
+  it('un pie por debajo de la muestra más baja de la etapa acorta el puerto, no lo hunde', () => {
+    // 91 km al 3,5 % desde 710 m son 3.185 m de desnivel: el pie quedaría a 2.475 m bajo el mar.
+    const lucena = [{ name: 'Lucena', summitKm: 140, lengthKm: 91, avgGradient: 3.5 }]
+    const elev = [
+      { km: 0, elevM: 415 },
+      { km: 50, elevM: 230 },
+      { km: 140, elevM: 710 },
+    ]
+    const p = buildFeatureProfile(140, { climbs: lucena, elevation: elev }, 'seed')
+    const puerto = p.segments.find((s) => s.tipo === 'puerto')!
+    expect(puerto.km).toBeCloseTo((710 - 230) / 35, 1)
+    expect(meanGradient(puerto)).toBeCloseTo(3.5, 1)
+  })
+
+  it('una muestra desalineada con el pie de un puerto se retira en vez de dar un muro', () => {
+    // La muestra del km 60,2 pone 884 m; el pie del puerto listado queda a 498 m en el km 61,5:
+    // enlazarlos sería bajar 386 m en 1,3 km, un −29,7 %.
+    const elev = [
+      { km: 0, elevM: 226 },
+      { km: 43.9, elevM: 1192 },
+      { km: 60.2, elevM: 884 },
+      { km: 68.3, elevM: 496 },
+      { km: 71.3, elevM: 959 },
+      { km: 80, elevM: 600 },
+    ]
+    const page = [{ name: 'Col du Page', summitKm: 71.3, lengthKm: 9.8, avgGradient: 4.7 }]
+    const p = buildFeatureProfile(80, { climbs: page, elevation: elev }, 'seed')
+    const maxG = Math.max(...p.segments.flatMap((s) => (s.tramos ?? []).map((r) => Math.abs(r.g))))
+    expect(maxG).toBeLessThanOrEqual(12)
+    expect(Math.abs(elevAt(p, 226, 71.3) - 959)).toBeLessThan(20) // redondeo a la décima
   })
 })
 
