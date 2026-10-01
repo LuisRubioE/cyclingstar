@@ -2510,7 +2510,11 @@ describe('el parte distingue al que ataca del que se esconde (v47)', () => {
     let cerillos = 0
     let gastoCerillos = 0
     let kmFuga = 0
-    for (let s = 0; s < 10; s++) {
+    // VEINTE ETAPAS, NO DIEZ (v90). Con la ley de la subida nueva el reservón y el supercombativo
+    // salían EMPATADOS en diez semillas (11 ataques y 13,5 de gasto cada uno), y antes 8 contra 12:
+    // el reservón ataca menos (apetito 0,3), no nunca, y con diez etapas la diferencia es del orden
+    // del ruido. Con veinte se mide la tendencia, que es lo que esta prueba vigila.
+    for (let s = 0; s < 20; s++) {
       const out = simulateStage(
         campo(mentality),
         stageSeed({ worldSeed: `parte-${s}`, raceId: 'agresivo', stageDay: 1, engineVersion: 1 }),
