@@ -148,7 +148,7 @@ import {
   DAY_BREAK_KINDS,
   pelotonAllowsWithDie,
   rankOf,
-  reservonDecisivo,
+  reservonSeGuarda,
   rollMoveAttempt,
   sustainsJump,
   PHASE_TABLE,
@@ -7082,27 +7082,20 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       if (instigator === null) return
       /**
        * …Y EL RESERVÓN ELEGIDO SE LO PIENSA (v91). `chooseInstigator` reparte el intento entre los
-       * apetitos del grupo, así que la mentalidad solo pesa CONTRA LOS DEMÁS: en una fuga de
-       * reservones, o en un grupo donde el resto tiene aún menos ganas, el 0,3 del reservón se
-       * cancela y ataca como cualquiera. Lo que la SPEC 6.18 le pide es absoluto —no gasta un
-       * cerillo sin motivo—, así que aquí se le pregunta a él: fuera de lo decisivo
-       * (`reservonDecisivo`) solo se lanza con `iniciativa`, y si no, el intento se queda en nada y
+       * apetitos del grupo, así que la mentalidad solo pesa CONTRA LOS DEMÁS: en un grupo de
+       * reservones, o donde el resto tiene aún menos ganas, el 0,3 del reservón se cancela y el
+       * cazaetapas ataca como si fuera supercombativo. Lo que la SPEC 6.18 le pide es absoluto (no
+       * gasta un cerillo sin motivo), así que aquí se le pregunta a él: si se guarda
+       * (`reservonSeGuarda`), solo se lanza con `iniciativa`, y si no, el intento se queda en nada y
        * no cuenta como intento (el grupo no tiene por qué respirar después de un ataque que no hubo).
        *
        * El dado sale de su propio flujo nominal (`rngReservon`): solo se tira cuando el elegido es un
-       * reservón fuera de lo suyo, y no corre la secuencia de los demás intentos.
+       * reservón que se guarda, y no corre la secuencia de los demás intentos.
        */
-      if (!reservonDecisivo(instigator, ctx)) {
-        // La fuga del día se le abre en la medida en que la etapa sea de fuga (`breakAppeal`): en
-        // la montaña es el día de todo el que no se juega la general; en el llano no lo es.
-        const iniciativa =
-          STAGE.reservon.iniciativa +
-          (kind === 'fuga' ? (1 - STAGE.reservon.iniciativa) * breakAppeal : 0)
-        if (rngReservon() >= iniciativa) {
-          if (intentoAnterior === undefined) lastAttemptKm.delete(source.id)
-          else lastAttemptKm.set(source.id, intentoAnterior)
-          return
-        }
+      if (reservonSeGuarda(instigator, ctx) && rngReservon() >= STAGE.reservon.iniciativa) {
+        if (intentoAnterior === undefined) lastAttemptKm.delete(source.id)
+        else lastAttemptKm.set(source.id, intentoAnterior)
+        return
       }
       // Regla 2: **algunos van atentos y saltan detrás**, y regla 3: **muchos de los que lo intentan
       // no lo consiguen**. Los que no sostienen se quedan donde estaban; no es un fallo del modelo,

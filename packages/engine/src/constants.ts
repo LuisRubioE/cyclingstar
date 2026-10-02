@@ -848,7 +848,7 @@ import type { RaceClass } from './routes/uci.js'
  *
  * El puente que salta de un grupo de descolgados hacia el pelotón deja de ser un movimiento: nace
  * en `shed` y vuelve al pelotón llegando, sin heredar su reloj (ver `desdeAtras` en `simulate.ts`).
- * Y el reservón fuera de lo decisivo casi no lanza ni sigue movimientos (`STAGE.reservon`).
+ * Y el cazaetapas reservón, fuera de lo suyo, casi no lanza ni sigue movimientos (`STAGE.reservon`).
  */
 export const ENGINE_VERSION = 91 as const
 
@@ -4964,31 +4964,22 @@ export const STAGE = {
   jerseyBreakDampFlat: 0.02,
   jerseyBreakDampClimb: 0.25,
   /**
-   * EL RESERVÓN, DE VERDAD (v91, `reservonDecisivo` en `stage/tactics.ts`). La SPEC 6.18 le da un
+   * EL RESERVÓN, DE VERDAD (v91, `reservonSeGuarda` en `stage/tactics.ts`). La SPEC 6.18 le da un
    * multiplicador de ataque personal de 0: guarda los cerillos y solo los gasta cuando hay algo que
-   * defender. El motor le daba 0,3 de apetito y 0,105 menos de probabilidad de salto, y las dos cosas
-   * se perdían por el camino: el apetito es RELATIVO (`chooseInstigator` reparte el intento entre los
-   * apetitos del grupo, así que en un grupo de reservones el 0,3 se cancela entero) y el salto es una
-   * suma donde el rol de cazaetapas (0,3) se come la mentalidad. Medido en el banco del parte: el
-   * cazaetapas reservón hacía 19 ataques y saltos en veinte etapas contra 26 del supercombativo.
+   * defender. El motor le daba 0,3 de apetito y 0,105 menos de probabilidad de salto, y en el
+   * cazaetapas las dos cosas se perdían por el camino: el apetito es RELATIVO (`chooseInstigator`
+   * reparte el intento entre los apetitos del grupo, y entre gregarios y líderes el cazaetapas sigue
+   * siendo el que más ganas tiene) y el salto es una suma donde su rol (0,3) se come la mentalidad.
+   * Medido en el banco del parte: el cazaetapas reservón hacía 19 ataques y saltos en veinte etapas
+   * contra 26 del supercombativo, y gastaba 21,6 en cerillos contra 33,3.
    *
-   * Fuera de lo decisivo para él (su cita, la general en juego, el desenlace si es la carta del
-   * equipo), el reservón elegido para atacar solo se lanza con `iniciativa` (si no, el intento se
-   * queda en nada, con un dado de su propio flujo), y salta a la rueda de otro con `seguir` veces su
-   * probabilidad. Lo decisivo no se toca: el líder sigue defendiendo y respondiendo.
-   *
-   * LA FUGA DEL DÍA VA APARTE, y por una razón que no es de doctrina sino del campo: `reservon` es la
-   * mentalidad por defecto de casi todo el pelotón (`autoOrders` se la pone a gregarios, velocistas,
-   * lanzadores y líderes, y los escenarios canónicos a sus 160 anónimos), así que lo que se le quite
-   * al reservón se le quita a la carrera entera. Saltar a la fuga del día no se frena (es ir a rueda
-   * del que se va, con las piernas llenas), y lanzarla se abre con `breakAppeal`: en el llano frena
-   * entero, en la montaña nada, que es el día de todo el que no se juega la general. Medido con 120
-   * semillas: frenar también el salto a la fuga sacaba la llana canónica de banda (la fuga ganaba el
-   * 20,8 % contra un techo de 16), y frenar su salida en la montaña bajaba la fuga de la reina del 35
-   * al 20 %. Con esta forma la llana queda en 14,2 % y la reina en 28,3 %.
+   * Fuera de lo suyo (su cita, la general si se la juega), el elegido para atacar solo se lanza con
+   * `iniciativa` (si no, el intento se queda en nada, con un dado de su propio flujo), y salta a la
+   * rueda de otro con `seguir` veces su probabilidad. Con estos dos números son 7 contra 26 y 6,3
+   * contra 33,3. Solo muerde en el cazaetapas: ver `reservonSeGuarda`.
    */
   reservon: {
-    iniciativa: 0.3,
+    iniciativa: 0.15,
     seguir: 0.25,
   },
   /**

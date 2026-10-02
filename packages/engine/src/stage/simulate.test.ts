@@ -2541,9 +2541,10 @@ describe('el parte distingue al que ataca del que se esconde (v47)', () => {
     /**
      * …Y NO «MENOS»: LA MITAD O MENOS (v91). Con el listón en «menos» la prueba pasaba con 21
      * ataques y saltos del reservón contra 24 del supercombativo: el apetito de 0,3 del reservón es
-     * relativo a su grupo y se cancelaba, y su salto era dos tercios del de un supercombativo. Desde
-     * la v91, fuera de lo decisivo casi no lanza ni sigue (`STAGE.reservon`), y medido son 8 contra
-     * 23 y 9,0 de gasto contra 33,3. La mitad deja sitio de sobra al ruido de veinte etapas.
+     * relativo a su grupo y entre gregarios y líderes el cazaetapas sigue siendo el que más ganas
+     * tiene, y su salto era dos tercios del de un supercombativo. Desde la v91, fuera de lo suyo casi
+     * no lanza ni sigue (`STAGE.reservon`), y medido son 7 contra 26 y 6,3 de gasto contra 33,3. La
+     * mitad deja sitio de sobra al ruido de veinte etapas.
      */
     expect(escondido.ataques, 'ataques y saltos del reservón').toBeLessThanOrEqual(
       agresivo.ataques / 2,
@@ -2909,19 +2910,12 @@ describe('el maillot no releva fuera del pelotón si hay quien lo haga (v57)', (
  * con su reloj: en la reina canónica, un hombre a 81 s del pelotón en el km 85 iba dentro en el 86.
  *
  * Ahora es un grupo de descolgados que persigue, y en la foto siguiente sigue fuera: un minuto no
- * se cierra en un kilómetro. El campo va entero `combativo` para que haya puentes que mirar (el
- * reservón, desde la v91, casi no los lanza).
+ * se cierra en un kilómetro.
  */
 describe('el puente desde atrás no hereda el reloj del pelotón (v91)', () => {
   it('quien salta desde un grupo de descolgados sigue detrás un kilómetro después', () => {
     const scenario = queenScenario()
-    const input: StageInput = {
-      ...scenario.input,
-      riders: scenario.input.riders.map((r) => ({
-        ...r,
-        orders: { ...r.orders, mentality: 'combativo' },
-      })),
-    }
+    const input = scenario.input
     const totalKm = input.profile.segments.reduce((acc, sg) => acc + sg.km, 0)
     const kms = Array.from({ length: Math.floor(totalKm) }, (_, i) => i + 1)
     let puentes = 0
@@ -2944,7 +2938,7 @@ describe('el puente desde atrás no hereda el reloj del pelotón (v91)', () => {
         }
       }
     }
-    // Que la prueba mire algo: con el campo combativo hay nueve en estas dos semillas.
-    expect(puentes).toBeGreaterThan(3)
+    // Que la prueba mire algo: en las dos semillas selladas hay más de una docena.
+    expect(puentes).toBeGreaterThan(8)
   })
 })
