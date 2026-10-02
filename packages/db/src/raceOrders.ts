@@ -138,11 +138,6 @@ export async function isOnRoster(db: Database, raceId: string, riderId: string):
   return rows.length > 0
 }
 
-/** Convoca a un corredor a una carrera (idempotente). */
-export async function addToRoster(db: Database, raceId: string, riderId: string): Promise<void> {
-  await db.insert(raceRosters).values({ raceId, riderId }).onConflictDoNothing()
-}
-
 export async function getStageOrders(
   db: Database,
   raceId: string,

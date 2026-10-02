@@ -141,6 +141,8 @@ Paso 31. Resultados y replay. Tablas de resultados y clasificaciones, crónica c
 
 Paso 32. Ensayo integral. Con dos cuentas de prueba y NPC de relleno, disputar la vuelta completa de 5 etapas a lo largo de 5 días de juego reales acelerados (ver paso 43), corrigiendo la fricción de integración. Hecho cuando: el bucle convocatoria, órdenes, relato, general funciona sin tocar la base de datos a mano.
 
+Nota (02/10/2026): la vuelta de prueba de los pasos 28 a 32 se retiró del juego por decisión del dueño. El tick ya no la corre, la API ya no la sirve y la migración 0045 borró sus datos del mundo vivo (ver docs/ops.md). Sus cinco perfiles (`TEST_TOUR`) siguen en el motor solo como datos de los tests.
+
 ### Fase 7 - El mundo vivo (pasos 33 a 37, 5 o 6 sesiones)
 
 Paso 33. Génesis del mundo. Script `seed-world.ts`: equipos NPC en tres divisiones con filosofía, presupuesto, instalaciones y maillot SVG por semilla; unos 1,600 corredores con el servicio de nombres, edades sesgadas y techos NPC (SPEC 10). Hecho cuando: el mundo se genera reproducible desde `worldSeed` en menos de un minuto.

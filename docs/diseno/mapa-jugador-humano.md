@@ -46,7 +46,8 @@ Ficheros leídos enteros: `apps/web/src/pages/RaceOrders.tsx`, `apps/web/src/dom
 - Existe además la «vuelta de prueba» (`/api/races/test-tour`, `/api/races/test-tour/orders`,
   `races.ts:118-153`) con su propio cliente (`api/raceOrders.ts:27-39`), pero **ya no tiene ruta en
   la web** (`App.tsx` no la monta; navegación §1.1 borró `/routes`). Es un endpoint huérfano que
-  inscribe en un GET (deuda anotada en el propio comentario, `races.ts:109-114`).
+  inscribe en un GET (deuda anotada en el propio comentario, `races.ts:109-114`). Retirada el
+  02/10/2026 por decisión del dueño: ya no hay rutas `test-tour` ni el tick la corre (migración 0045).
 
 ## 2. Qué puede decidir hoy un humano ANTES de una etapa
 
@@ -377,6 +378,7 @@ que los humanos».
    ignora (`engine/stage/types.ts`).
 5. **Vuelta de prueba huérfana**: endpoints `/api/races/test-tour*` vivos, «ESCRITURA EN UN GET…
    deuda conocida de la herramienta de pruebas de la alfa» (`races.ts:109-114`), sin ruta web.
+   Resuelto el 02/10/2026: la vuelta de prueba se retiró entera (decisión del dueño, migración 0045).
 6. **Orden de entrada del motor** («ESTO TAPA EL SÍNTOMA Y NO LA CAUSA… Queda anotado en
    docs/balance.md», `stageRun.ts:129-146`): afecta a la reproducibilidad, no al jugador directamente.
 7. **`effort` y `triggerKm` no llegaban al motor hasta la v58** (varios comentarios) — ya resuelto,

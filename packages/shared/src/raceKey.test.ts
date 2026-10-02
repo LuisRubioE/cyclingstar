@@ -14,14 +14,14 @@ describe('clave de carrera frente a identificador', () => {
     expect(parseRaceKey('race-france:s12')).toEqual({ raceId: 'race-france', season: 12 })
   })
 
-  it('deja intacta una clave sin temporada (la vuelta de prueba)', () => {
-    expect(parseRaceKey('test-tour')).toEqual({ raceId: 'test-tour', season: null })
-    expect(raceIdFromKey('test-tour')).toBe('test-tour')
+  it('deja intacta una clave sin temporada (ya es un id)', () => {
+    expect(parseRaceKey('race-flanders')).toEqual({ raceId: 'race-flanders', season: null })
+    expect(raceIdFromKey('race-flanders')).toBe('race-flanders')
   })
 
   it('el id resultante siempre tiene forma de slug, que es lo que valida la API', () => {
     const slug = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
-    for (const key of ['race-flanders:s0', 'race-roubaix:s3', 'test-tour', 'race-france:s99']) {
+    for (const key of ['race-flanders:s0', 'race-roubaix:s3', 'race-flanders', 'race-france:s99']) {
       expect(raceIdFromKey(key)).toMatch(slug)
     }
   })

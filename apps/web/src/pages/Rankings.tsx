@@ -3,10 +3,8 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   type AwardWinner,
-  type RaceHonour,
   type RankingRow,
   type SeasonAwards,
-  fetchRaceHistory,
   fetchRankings,
   fetchSeasonAwards,
   fetchYoungRankings,
@@ -108,23 +106,6 @@ function AwardsPanel({ awards }: { awards: SeasonAwards }) {
   )
 }
 
-function RollOfHonour({ history }: { history: RaceHonour[] }) {
-  if (history.length === 0) return null
-  return (
-    <Panel title="Test tour · roll of honour">
-      <ol className="space-y-1.5">
-        {history.map((h) => (
-          <li key={h.season} className="flex items-center gap-3 text-sm">
-            <span className="w-20 shrink-0 text-slate-400">Season {h.season + 1}</span>
-            <Flag code={h.winnerCountry} size={16} />
-            <span className="font-medium text-slate-700">{h.winnerName}</span>
-          </li>
-        ))}
-      </ol>
-    </Panel>
-  )
-}
-
 export function Rankings() {
   const [tab, setTab] = useState<'overall' | 'young'>('overall')
   const ranking = useQuery({ queryKey: ['rankings'], queryFn: fetchRankings })
@@ -133,7 +114,6 @@ export function Rankings() {
     queryFn: fetchYoungRankings,
     enabled: tab === 'young',
   })
-  const history = useQuery({ queryKey: ['race-history'], queryFn: fetchRaceHistory })
   const awards = useQuery({ queryKey: ['season-awards'], queryFn: fetchSeasonAwards })
 
   if (ranking.isPending) return <p className="text-slate-500">Loading…</p>
@@ -162,13 +142,10 @@ export function Rankings() {
       <p className="text-sm text-slate-500">
         {tab === 'young'
           ? 'Points scored by riders aged 23 and under in the current season.'
-          : 'Points scored over the last 12 months of racing — results drop out a year to the day after they were won.'}{' '}
-        Below, the roll of honour of past winners.
+          : 'Points scored over the last 12 months of racing — results drop out a year to the day after they were won.'}
       </p>
 
       {awards.data && <AwardsPanel awards={awards.data} />}
-
-      {history.data && <RollOfHonour history={history.data} />}
 
       <Panel title="Ranking" action={rankingTabs} bodyClassName="p-0">
         {tab === 'young' && young.isPending ? (

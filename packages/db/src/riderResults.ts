@@ -83,7 +83,7 @@ export function buildRiderRaceResults(
   const byRace = new Map<string, { sortKey: number; result: RiderRaceResult }>()
   for (const row of stageRows) {
     const m = /^(.*):s(\d+)$/.exec(row.raceId)
-    if (!m) continue // la vuelta de prueba no cuenta como carrera del calendario
+    if (!m) continue // una clave sin temporada no es del calendario
     const baseId = m[1]!
     const season = Number(m[2])
     const race = SEASON_CALENDAR.find((rc) => rc.id === baseId)

@@ -7,7 +7,6 @@ import { dedupeWorldNames } from './dedupeNames.js'
 import { runMarket } from './contracts.js'
 import { runPayroll, runTeamFinances } from './economy.js'
 import { LOCK_CLASS } from './locks.js'
-import { raceWorldDay } from './race.js'
 import { backfillRosters, runRollover } from './rollover.js'
 import { gameState, riderAttrLog, tickLog, worlds } from './schema.js'
 import { trainWorldDay } from './train.js'
@@ -36,8 +35,9 @@ import { WORLD_REPAIR_VERSION, markWorldRepaired, worldNeedsRepair } from './wor
  */
 
 /**
- * Clave del advisory lock del tick, en su propia clase (ver locks.ts). Exportada porque la migración
- * 0044 la escribe a mano (`pg_advisory_xact_lock(2, 1)`) y su test vigila que siga casando.
+ * Clave del advisory lock del tick, en su propia clase (ver locks.ts). Exportada porque las
+ * migraciones 0044 y 0045 la escriben a mano (`pg_advisory_xact_lock(2, 1)`) y sus tests vigilan que
+ * siga casando.
  */
 export const TICK_LOCK_KEY = 1
 
@@ -291,11 +291,9 @@ export async function runTick(databaseUrl: string, opts: RunTickOptions): Promis
           await lockCalendarDay(tx, genesis.worldId, next, { repairWorld: needsRepair })
           // Al cruzar a una temporada nueva, primero el rollover (retiros, neopros, ascensos).
           await runRollover(tx, genesis.worldId, next, worldSeed)
-          const racedTest = await raceWorldDay(tx, genesis.worldId, next, worldSeed)
-          const racedCal = await runCalendarDay(tx, genesis.worldId, next, worldSeed, {
+          const raced = await runCalendarDay(tx, genesis.worldId, next, worldSeed, {
             repairWorld: needsRepair,
           })
-          const raced = new Set([...racedTest, ...racedCal])
           await trainWorldDay(tx, genesis.worldId, next, worldSeed, raced)
           await runCallups(tx, genesis.worldId, next, worldSeed)
           await runMarket(tx, genesis.worldId, next, worldSeed)

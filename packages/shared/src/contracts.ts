@@ -515,7 +515,7 @@ export type RaceHonour = z.infer<typeof raceHonourSchema>
 
 /**
  * Fila de una clasificación por puntos: metas volantes (`points`) o montaña (`kom`). La comparten
- * la ficha de carrera, el replay de etapa y los resultados de la vuelta de prueba.
+ * la ficha de carrera y el replay de etapa.
  */
 export const pointsEntrySchema = z.object({
   riderId: z.string(),
@@ -903,17 +903,6 @@ export const allTimeRecordsSchema = z.object({
 export type AllTimeRecords = z.infer<typeof allTimeRecordsSchema>
 export const recordsResponseSchema = z.object({ records: allTimeRecordsSchema.nullable() })
 
-/** Historial de ganadores de una carrera (incluye el nombre de la carrera, a diferencia de RaceHonour). */
-export const raceHistoryHonourSchema = z.object({
-  season: z.number().int(),
-  raceName: z.string(),
-  winnerId: z.string(),
-  winnerName: z.string(),
-  winnerCountry: z.string(),
-})
-export type RaceHistoryHonour = z.infer<typeof raceHistoryHonourSchema>
-export const raceHistoryResponseSchema = z.object({ history: z.array(raceHistoryHonourSchema) })
-
 export const palmaresRowSchema = z.object({
   season: z.number().int(),
   raceId: z.string(),
@@ -1105,7 +1094,7 @@ export const teamRacePlanSchema = z.object({
 export type TeamRacePlan = z.infer<typeof teamRacePlanSchema>
 export const teamRacePlanResponseSchema = z.object({ plan: teamRacePlanSchema.nullable() })
 
-// --- Órdenes de etapa (/api/races/test-tour y /api/my-orders) -------------------------------
+// --- Órdenes de etapa (/api/my-orders) ------------------------------------------------------
 
 /**
  * CUÁNDO LANZA SU MOVIMIENTO ESTE HOMBRE (paso 17a, R22 · S-214/S-321/S-322). Seis formas de decir
@@ -1199,13 +1188,13 @@ export const raceStageSchema = z.object({
   km: z.number(),
   altimetry: z.string(),
   /**
-   * Opcional porque la VUELTA DE PRUEBA comparte este esquema y no está en ningún sitio del mapa:
-   * sin país ni fecha no hay clima que prever, y eso es un hecho de ese escenario y no un fallo.
+   * Opcional: sin mundo no hay día de juego desde el que prever, y entonces no hay parte. (Lo
+   * compartía también la vuelta de prueba del MVP, retirada el 02/10/2026, que no estaba en el mapa.)
    */
   forecast: stageForecastSchema.nullable().optional(),
   /**
    * Salida y llegada de la etapa: la hoja de órdenes también dice de dónde a dónde se corre. Ausentes
-   * en la vuelta de prueba, que no está en ningún sitio del mapa.
+   * si la etapa no tiene ciudades.
    */
   from: z.string().nullish(),
   to: z.string().nullish(),
@@ -1214,13 +1203,6 @@ export type RaceStage = z.infer<typeof raceStageSchema>
 
 export const rosterRiderSchema = z.object({ id: z.string(), name: z.string() })
 export type RosterRider = z.infer<typeof rosterRiderSchema>
-
-export const testTourResponseSchema = z.object({
-  stages: z.array(raceStageSchema),
-  orders: z.array(stageOrderSchema),
-  roster: z.array(rosterRiderSchema),
-})
-export type TestTour = z.infer<typeof testTourResponseSchema>
 
 export const raceOrdersResponseSchema = z.object({
   race: z.object({ id: z.string(), name: z.string() }),
@@ -1249,25 +1231,6 @@ export type GcEntry = z.infer<typeof raceResultsGcEntrySchema>
 
 /** Misma forma que `PointsEntry`: clasificación de puntos/montaña tras una etapa. */
 export type StageClassEntry = PointsEntry
-
-export const stageStatusSchema = z.object({
-  day: z.number().int(),
-  name: z.string(),
-  kind: z.string(),
-  km: z.number(),
-  run: z.boolean(),
-})
-export type StageStatus = z.infer<typeof stageStatusSchema>
-
-export const raceResultsSchema = z.object({
-  gc: z.array(raceResultsGcEntrySchema),
-  points: z.array(pointsEntrySchema),
-  kom: z.array(pointsEntrySchema),
-  /** Clasificación por equipos acumulada de la vuelta. */
-  teamGc: z.array(teamClassEntrySchema),
-  stages: z.array(stageStatusSchema),
-})
-export type RaceResults = z.infer<typeof raceResultsSchema>
 
 /**
  * IDENTIDAD de un corredor citado en la crónica. El encargo del dueño fue literal: «cada vez que
@@ -1536,13 +1499,13 @@ export const stageReplaySchema = z.object({
   km: z.number(),
   run: z.boolean(),
   /**
-   * Carrera de la etapa. Ausente en la vuelta de prueba (`/api/races/test-tour/stages/:day`), que
-   * vive fuera del calendario de temporada; las etapas de calendario SIEMPRE la traen.
+   * Carrera de la etapa. Las etapas de calendario SIEMPRE la traen; opcional porque la vuelta de
+   * prueba del MVP (retirada el 02/10/2026) vivía fuera del calendario y no la llevaba.
    */
   race: stageRaceContextSchema.optional(),
-  /** Tipo de etapa (llana, media, reina, cri, clasica). Ausente en la vuelta de prueba. */
+  /** Tipo de etapa (llana, media, reina, cri, clasica). */
   kind: stageKindSchema.optional(),
-  /** Salida y llegada de la etapa. Ausentes en la vuelta de prueba. */
+  /** Salida y llegada de la etapa. Ausentes si la etapa no tiene ciudades. */
   from: z.string().nullish(),
   to: z.string().nullish(),
   /** Contrarreloj: el journal cuenta la historia del crono (mejor tiempo, diferencias). */
@@ -1610,7 +1573,7 @@ export const riderRaceReportSchema = z.object({
   stageName: z.string(),
   raceId: z.string(),
   stageDay: z.number().int(),
-  /** Salida y llegada de la etapa; `null` en la vuelta de prueba. */
+  /** Salida y llegada de la etapa; `null` si la etapa no tiene ciudades. */
   from: z.string().nullish(),
   to: z.string().nullish(),
   orders: raceReportOrdersSchema.nullable(),
