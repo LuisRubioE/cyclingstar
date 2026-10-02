@@ -1,0 +1,482 @@
+[
+  {
+    "id": "Rcobertura-023",
+    "tipo": "hallazgo",
+    "veredicto": "cerrado",
+    "evidencia": "Corrección mejor que la pedida, con motivo y medida. Pedía la ronda de la moto de clase 2 solo para los de maillot o título y de clase 0 para el resto, una cláusula de B3 con tope de `breakRoundEveryS` × tamaño + 30 s y el maillot de cada nombrado en la barra. El texto de hoy: 6-m entera en 06-pantalla.md l. 665 (la lista, la frase y la ronda reservadas: no cuentan para `cueQueueMax`, no se descartan, no se desplazan ni caducan; la ronda de clase 2 detrás de los demás de clase 2 y con `cueHoldS[0]`; se tiran solo cuando ya no presentan nada; tras un salto o al reanudar, la fuga viva sin lista se presenta entera; no apaga `Next action`; en una fuga de más de doce, los de maillot o título, los del espectador y por notoriedad; la medida, el sello de B3 y los descartes con su cifra), escrita como hecho en §6.5 (l. 318; `cueClassOf` con `break_round` a 2, l. 343; `isPresentation`, l. 353-356; `admitir` y el fotograma, l. 416-431; `Next action`, l. 434) y en §6.7 (l. 558-604: las tres piezas; `breakRoundOf`, l. 568-576; `aheadOfPeloton`, l. 581-587; la garantía, l. 590; la medida, l. 592-604), con 6-g (l. 659) y 6-h (l. 660). El maillot de cada corredor de un grupo de hasta 12 en la barra está en §6.2 (l. 125 y la fila de l. 139) y en 6-c (l. 655); D.2 cita los dos sitios (21-apendices.md l. 249) y el caso literal de §7.6 lo enseña (07-rotulos.md l. 385-404). Lo propuesto se descarta en 6-m con la misma medida (P1A: salva 58 de 60 rótulos de maillot pero deja enteras 12 de 34 rondas y la frase en 20 de 34) y el tope de 30 s en 16-p (16-bancos.md l. 796: 36 s medidos en el peor caso sin perder ningún rótulo). §16 lo sella: la segunda parte de B3 en 16-bancos.md l. 437 (`breakPresentation.test.ts`, una fuga sintética con el campeón y el líder y la cola llena, y las cinco congeladas a ×½, ×1 y ×2 y en `Highlights` con umbral de 100 % en la lista y la frase, en la ronda a ×½ y ×1 y en ningún rótulo de un cazado; 99 % a mano en el 10b), las filas de l. 696, 716 y 748, 16-g (l. 787) y 16-p; §8.12 (08-ritmo.md l. 444) y §17 (17-plan.md l. 38, 280 y 711) la ponen en el 6b. Medida reproducida hoy por el auditor: `l4c/cola.mjs` sin cambios (sha256 aa0de540…), con `l8/grab.mjs` y el motor v89 de `l3/eng`, en `aud4/rep-cola.json` (14 políticas, unos 2 min): la salida es idéntica, campo a campo y etapa a etapa, a la de `l4c/cola.json` a `cola5.json`. En `Watch` ×1, 33 de 34 listas y frases y 157 de 158 rótulos de los que seguían delante (cardsDue 158, 99,4 %); 59 de 60 de maillot o título; 0 rótulos de cazados; el resto de la clase 2 y de la 1, 69,2 % y 35,3 % contra 70,0 % y 35,8 %; la cola de antes, 31, 20 y 102 de 189. En las congeladas, 5 de 5 listas y frases en todos los modos, 21 de 21 rótulos a ×½ y ×1 y 20 de 21 a ×2, contra 9 de 21 y 2 de 5 frases antes; retraso máximo del último rótulo sobre su hora prevista, 36 s, el de B3. La fuga que falta es `race-france` e20 s1 (`l4c/diag.mjs`, corrido hoy: revelada a 4.799,9 s, caída a 4.855,9 y cazada a 4.864,3, 64 s después; `attack_go` en el km 41,3). Las decisiones: D-21 corregida y D-22 y D-20 precisadas (00-decisiones.md, registro y bloques de la fase 5).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-003",
+    "tipo": "hallazgo",
+    "veredicto": "cerrado",
+    "evidencia": "Lo que pedía está, con una forma mejor y medida: (1) la ronda de clase 2 (`cueClassOf`, 06-pantalla.md l. 343; 6-g, l. 659) que no caduca por esperar (reservada, §6.5 l. 318 y 418; 6-m, l. 665); la frase «Con la cola llena, la ronda es lo primero que se descarta» ya no está en ninguna sección (grep en 06, 07, 08, 16, 19, 20, 21 y la cabecera: cero). La ronda sin caducidad de la propuesta se descarta en 6-m con su cifra (P2A: las da todas pero enseña 15 rótulos de escapados ya cazados, deja la frase en 20 de 34 y baja el resto de la clase 2 del 70,0 al 64,3 %): 6-m la tira solo cuando el escapado ya no va delante del pelotón (`aheadOfPeloton`, l. 581-587). (2) La barra: la fila de un grupo de hasta 12 lleva el `WornJerseyIcon` de cada corredor (§6.2 l. 125, la fila de la tabla de l. 139 y 6-c, l. 655), en escritorio con nombre y en el móvil bajo la fila 1 y las del espectador; los dibujos de §6.1 (l. 19-25 y 50-61) y el caso literal de §7.6 (07-rotulos.md l. 385-404) lo enseñan. (3) La medida que pedía para B17 va donde mejor sella el requisito: la segunda parte de B3 (16-bancos.md l. 437 y 16-p, l. 796), con umbral de 100 % en las cinco congeladas sobre todo escapado que sigue delante cuando le toca (no «la ronda entera», que exigiría rótulos de cazados), y 99 % a mano sobre las 24 × 2 en el 10b. La prueba de lectura pregunta además qué lleva cada escapado mirando la barra (§8.9, 08-ritmo.md l. 324; 16-w). Medida reproducida hoy (`aud4/rep-cola.json`, idéntica a la de la corrección): ver Rcobertura-023.",
+    "accion": "nada"
+  },
+  {
+    "id": "A-L4-001",
+    "tipo": "comprobacion",
+    "origen": "aviso A-L2-002 de la auditoría L2 (compilación de §4 y §15 con §6), reenviado por el orquestador",
+    "veredicto": "cerrado",
+    "evidencia": "Regla 3, bloques de código. Reproducido en el scratchpad con el armado de L2 copiado a `aud4/h` (`build.py` y `tsc.py`: `packages/shared` de HEAD más los bloques ```ts de 03, 04, 15 y 06, tsc 5.9.3 con `tsconfig.base.json`, estricto): los dos bloques de §6 que amplían `instant.ts` repetían lo que el bloque de §4.5 (04-modelo.md l. 476-480) ya importa o declara, `TS2300` por `StartState`, `RadioGroupKind` y `BROADCAST` (este, dos veces entre los dos bloques de §6) y `TS2440` por importar `GroupNow`, `MainGap` y `GroupRole` de `./instant.js` dentro del propio `instant.ts` (06-pantalla.md l. 96-99 y 155-158 de antes); `names.ts` usaba `BROADCAST` sin importarlo en ningún bloque (`TS2304` en l. 285, 572 y 577 de antes; la prosa de l. 314 lo decía, pero el bloque no). La prosa tras `groupLabelOf` mandaba además importar `JerseyKind` de `../jerseys.js` y `GroupLabel` de `./instant.js`, otra vez lo que §4.5 ya trae, y el comentario del bloque de `aheadOfPeloton` («Importa además `Instant` de ./instant.js») repetía la importación que §4.9 ya hace (04-modelo.md l. 820). Tras el arreglo, el mismo armado con 04, 15, 06 y 08 da un solo aviso, `TS6196` por `RaceS` en `pace.ts` (08-ritmo.md l. 36), que usa `ttPaceAt` de §9.4 en el mismo fichero (09-crono.md l. 164-165 y 178-179), como dice el comentario de la línea; con 03 quedan solo los cuatro de §3.3 (`clockMarksOf`, `originOf`, `lastTwoMarks` y `groupBlockAt` sin uso), que A-L1 ya explicó (se declaran como en F.2). `player.ts` de §8.11, compilado aparte contra ese `shared` armado con `moduleResolution: Bundler`, no da ningún error suyo.",
+    "accion": "lo he cerrado yo en 06-pantalla.md: l. 3 (la entradilla dice que la auditoría lo recompiló así), l. 96-98 (el bloque de `mainGapOf` dice que es el mismo fichero que §4.5 y solo añade `import { BROADCAST } from './constants.js'`), l. 154-155 (el de `chaseRefOf`, `groupRoleOf` y `groupLabelOf` no importa nada y dice de dónde le llegan `RadioGroupKind`, `JerseyKind`, `GroupRole`, `GroupLabel` y `BROADCAST`), l. 193 (la prosa de `groupLabelOf`), l. 198 (la cabecera de `names.ts` importa `BROADCAST`), l. 312 («`BROADCAST` lo importa la cabecera de `names.ts` (§6.3)») y l. 578 (`Instant` ya lo importa §4.9)."
+  },
+  {
+    "id": "Rcobertura-019",
+    "tipo": "hallazgo",
+    "veredicto": "cerrado",
+    "evidencia": "06-pantalla.md l. 215 (`kom: ['Mountains leader’s group', 'the mountains leader’s group']`, con su porqué en el comentario: `JERSEY_LABEL`, `jerseys.ts` l. 133-137), l. 222 (el porqué en prosa: `KOM` es la pancarta, «Mountains leader» el `aria-label`, el rótulo y la frase), l. 233 (la fila de la tabla cerrada) y 6-b (l. 654). F.3 dice lo mismo (21-apendices.md l. 556-557) y D-18 está corregida (00-decisiones.md, su fila del registro y su bloque de la fase 5, con la versión anterior). `KOM leader’s group` solo queda donde se cita lo de hoy (l. 222 y la columna «Hoy en la radio» de l. 233; `RaceRadioPanel.tsx` l. 87, comprobado).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-020",
+    "tipo": "hallazgo",
+    "veredicto": "cerrado",
+    "evidencia": "7-a en toda la pantalla de §6 y §8: el instante de §6.1 con los nombres tal como están guardados (06-pantalla.md l. 7, los dibujos de l. 19-21 y 50-61 y la regla del corte con `…`, l. 38), §6.3 (l. 222: «con el nombre tal como está guardado (7-a): en la barra, separados por `·` y cada uno con su maillot … y cortado con `…` el que no quepa»; tabla, l. 234: «los nombres, cada uno con su maillot»), §6.4 (l. 262 y 312: `(for 107 Andrea Rossi)`), la tabla de §6.5 (l. 363-384: `STAGE WINNER · 21 Luca Bertolini …`, `CRASH · 45 Jules Moreau · 88 Iñigo Arrieta`, `DROPPED · 11 Sam Carter · …`), §6.7 (l. 539-541, 553-555 y 606: `1. Antoine Leroy 10 pts`), §8.6 (08-ritmo.md l. 231-243 y 255-267) y §8.7 (l. 288-289); 6-c descarta los apellidos en mayúsculas (l. 655). Ninguna forma `S. CARTER`, `MORENO · LEROY` ni `1. LEROY` en las secciones que se ensamblan (grep; solo quedan en la historia de D-27 y en las dudas de §7, que el ensamblado quita). F.3 sin el paréntesis de «la forma del nombre está abierta» y con `Pulling: Team Beta (for 11 Sam Carter)` (21-apendices.md l. 559; 00-glosario.md l. 982); la barra del móvil se mide con nombres enteros en el paso 10 (18-rendimiento.md l. 152); duda 1.5 cerrada (dudas.md l. 19) y D-27 cerrada (00-decisiones.md, su fila del registro y su bloque «Cerrada en la corrección, fase 5»).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-021",
+    "tipo": "hallazgo",
+    "veredicto": "cerrado",
+    "evidencia": "§6.8, «La regla de los 3 km» (06-pantalla.md l. 612): sin rótulo en carrera, explicada en la llegada con `same time (3 km rule)` en `group_finish` y en el resultado del cierre, marcada por la API en `BroadcastFinish.threeKmRule` con la función del motor y su caso en `routes/broadcast.test.ts`; 6-o (l. 667); §8.6 punto 1 (08-ritmo.md l. 271) y §8.7 punto 4 (l. 289). Fuera de L4 también está: `threeKmRule: readonly RiderIx[]` en §4.11 (04-modelo.md l. 978-980), la derivación y el test en §14 (14-api.md l. 270 y 489) y la exportación en el 4a (17-plan.md l. 202 y 17-j). Comprobado en el motor (sin cambios desde 9c21885): `threeKmRule` en `truce.ts` l. 136-143, `reglaTresKm` y `dropOut(…, reglaTresKm ? 0 : perdidaS)` en `simulate.ts` l. 8289-8291, pero el `incidents.push(…, perdidaS)` con la pérdida nominal está en l. 8269 y no en la l. 8268 que citaba §6.8.",
+    "accion": "lo he cerrado yo: 06-pantalla.md l. 612, «(l. 8269)» en lugar de «(l. 8268)»."
+  },
+  {
+    "id": "Rcobertura-022",
+    "tipo": "hallazgo",
+    "veredicto": "cerrado",
+    "evidencia": "El fondo del hallazgo con otro mecanismo, medido: el rótulo `ATTACK` (clase 2) lleva el rótulo de corredor del primer atacante por notoriedad sea cual sea su nivel, y no hay `rider` con contexto `attack` aparte (06-pantalla.md l. 366, tabla de §6.5; fila 3 de §6.6, l. 474; la lista del reproductor de l. 397-410 sin `rider 'attack'`; 6-p, l. 668). `RiderCueContext` ya no tiene `attack` (04-modelo.md l. 825; 00-glosario.md l. 502). La medida de 6-p reproducida hoy con `l4c/cola.mjs` (`aud4/rep-cola.json`): el `ATTACK` sale entero en 98 de 123 ataques (`w1:MN`), y el `rider` aparte de clase 1 salía en 16 de 62 con el filtro (`w1:P0A`) y en 30 de 123 sin él (`w1:M`): la corrección literal doblaba lo que se tira.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-024",
+    "tipo": "hallazgo",
+    "veredicto": "cerrado",
+    "evidencia": "Segunda salida del hallazgo, escrita como decisión con su motivo: 06-pantalla.md l. 606 («El rótulo no lleva el hueco en la cima que la tele da del segundo grupo (mapa 06 §9, fila 23): la pancarta se revela con el reloj del grupo del primero que puntúa (D-05, regla `banner`), y el paso de un grupo de detrás por la cima es una marca suya que se ve más tarde (D-06), así que ponerlo en el rótulo adelantaría un dato; ese hueco sale en la barra y en el cuadro de diferencias cuando ese grupo pasa») y 6-n (l. 666). El motivo se sostiene: la primera salida (`GroupNow.gap` en el `revealS` de la pancarta) daría el hueco del último km de foto del grupo de detrás, no el de la cima, y con D-06 ese paso aún no está servido.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-015",
+    "tipo": "hallazgo",
+    "veredicto": "cerrado",
+    "evidencia": "06-pantalla.md l. 149: «Hoy la barra de la radio usa once textos de nueve formas (`groupName` y `JERSEY_GROUP_NAME`, `apps/web/src/components/RaceRadioPanel.tsx` l. 58-89: …)». Comprobado en el código (sin cambios desde 9c21885): `Bunch together` y `Peloton` en l. 68, `Lead group` l. 70, `Chase group` l. 72, `No man’s land` l. 73, `Grupetto` l. 74, el ordinal l. 77, `Group` l. 78 (no l. 79, que cierra la función) y `JERSEY_GROUP_NAME` en l. 85-89; el orden gc, kom, points de `JERSEY_ORDEN` en l. 102, como dice la tabla de l. 233.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-023",
+    "tipo": "hallazgo",
+    "veredicto": "cerrado",
+    "evidencia": "06-pantalla.md l. 159: `export function chaseRefOf(…)`, con el comentario de l. 157-158 («Se exporta para ese test, y broadcast/index.ts la reexporta») y 6-a (l. 653). §15.5 ata la quinta copia con otra forma de test, mejor que la del hallazgo y con motivo: 10.000 carreteras generadas con `seededRng`, de 0 a 20 grupos, contra `chaseReferenceIndex` (15-constantes.md l. 18, 236, 255-259 y 15-a, l. 342; medido por la corrección L2 con 0 diferencias, `corr-l2/chaseref.mjs`), en vez de las 11.111 entradas exhaustivas de hasta cuatro grupos. El 4a exporta `chaseReferenceIndex` del motor (17-plan.md l. 197 y 17-j); la duda 1.7 está cerrada (dudas.md l. 21). El armado de `aud4/h` compila `chaseRefOf` y `groupRoleOf` sin errores.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-028",
+    "tipo": "hallazgo",
+    "veredicto": "parcial",
+    "evidencia": "Lo de §6 y §8 está, como en Rcobertura-020 (los ejemplos con el nombre guardado en §6.1 a §6.7, §8.6 y §8.7; 6-c, 06-pantalla.md l. 655; F.3, 21-apendices.md l. 559; la barra del móvil medida con nombres enteros en el paso 10, 18-rendimiento.md l. 152; duda 1.5 cerrada; D-27 cerrada). Falta una pieza que el hallazgo pedía fuera de L4: «dejar escrito en 7-a que un nombre corto exigiría guardar `firstName` y `surname` (una columna nueva, fuera de E2)». 7-a (07-rotulos.md l. 506) explica por qué no hay apellido, pero no lo que costaría tenerlo. Las cifras de apellidos compuestos (382 de 8.965) no se re-midieron en la corrección y solo están en D-27 (00-decisiones.md, bloque «Cerrada en la corrección, fase 5»).",
+    "accion": "necesita otra sección: §7.1, 7-a (07-rotulos.md l. 506), que añada «Un nombre corto (`L. Bertolini` o `BERTOLINI`) exigiría guardar `firstName` y `surname` en `riders`, una columna nueva fuera de E2». No lo toco: es de L5."
+  },
+  {
+    "id": "Rdueno-013",
+    "tipo": "hallazgo",
+    "veredicto": "cerrado",
+    "evidencia": "06-pantalla.md l. 85 (§6.2): «es la lista con que la agenda desarrolla el norte que dio el dueño ([DUEÑO 1]: el norte, la retransmisión de televisión, es suyo, commit `eee1b93`; la lista es de `docs/agenda.md` l. 505-515 …)», y la frase que dice en qué se aparta `Watch` de esa lista y por qué: los nombres y equipos de los grupos de cuatro a doce a un toque (en la fila, el maillot de cada uno y en escritorio el nombre), porque en 360 px no caben veinte datos. Comprobado: el mensaje de `eee1b93` (14 de septiembre) dice «D13 se reescribe con el norte que dio el dueño: la retransmisión de televisión», y la lista es de `docs/agenda.md` l. 505-515.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-015",
+    "tipo": "hallazgo",
+    "veredicto": "cerrado",
+    "evidencia": "§6.4 (06-pantalla.md l. 271-309): `PullingLine.teams[]` gana `motive: PullMotive | null` (l. 273), `motiveOf` da el motivo mayoritario con el desempate por orden de `detail.pullers` (l. 292-299), `PULL_MOTIVE_WORDS` con las quince palabras atadas a `Record<PullMotive, string>` (l. 305-309) y el texto que el componente escribe (`Team Rho (chasing)`, `(for the GC)`, `(defending the jersey)`, l. 312), con las dos citas del dueño (`docs/balance.md` l. 1843-1844 y 2571-2574) y el ejemplo medido de §6.1 (`l4c/motivos.mjs`); 6-d (l. 656). `names.test.ts` gana `pullingLineOf` con el motivo de cada equipo (17-plan.md l. 278), y G.4 y G.11 lo recogen (00-glosario.md l. 154, 716 y 1005). Compila en el armado de `aud4/h`.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-016",
+    "tipo": "hallazgo",
+    "veredicto": "cerrado",
+    "evidencia": "La voz con `riderFull` y la B1 citada está en §12.2 (12-voz.md l. 105) y en §6.1 (06-pantalla.md l. 7); los dibujos de §6.1 llevan una línea que la voz dice de verdad (el `peloton_pull` del km 82,1 en la redacción «An alliance on the front…» de `stageJournal.ts` l. 968-981, comprobada, con dorsal, nombre, equipo y bandera; l. 31 y 49-53); la forma del nombre de 7-a está en §6.5 a §6.7. Pero la frase que pedía el hallazgo quedó escrita de más: §6.2 decía «La fila es la única pieza de `Watch` que nombra sin equipo ni dorsal, por espacio», y no es la única: el cuadro de diferencias (l. 539-543), la general virtual (l. 553-555), la pancarta (`1. Antoine Leroy 10 pts`, l. 606), los parciales de la crono (`SPLIT 1 · … 1. Mads Olsen 18:03`), los grupos que llegan (`Sam Carter · Andrea Rossi · +0:47`, 08-ritmo.md l. 289), la capa fija (`on Sam Carter`) y los cuadros de la previa (08-ritmo.md l. 231-243) también nombran sin equipo, y varios sin dorsal.",
+    "accion": "lo he cerrado yo: 06-pantalla.md l. 125 (§6.2), la frase dice ahora qué piezas nombran sin dorsal ni equipo (la fila y los cuadros de varias filas, por espacio) y dónde está la identidad entera que pidió el dueño (la voz con `riderFull`, §12.2; el rótulo de corredor, §7.1; el grupo desplegado al tocar la fila y el rótulo de un nombre al tocarlo, `rider 'focus'`, §6.5)."
+  },
+  {
+    "id": "Rdueno-017",
+    "tipo": "hallazgo",
+    "veredicto": "cerrado",
+    "evidencia": "Primera salida del hallazgo: `GROUP_WORDS.jersey` en pares [barra, voz] (06-pantalla.md l. 212-216), la prosa de l. 222 (el grupo del maillot se llama igual en la barra, la radio servida, la capa fija y la voz; el PR 4a añade sus tres nombres a `GROUP_NOUNS` y `WATCHED_GROUP_NOUNS` y la voz los dice cuando el grupo de su protagonista lleva esa etiqueta en `instantAt(revealS)`) y 6-b (l. 654). §12.6 lo hace (12-voz.md l. 322 y 332), D-18 está corregida (00-decisiones.md, su fila del registro y su bloque de la fase 5) y el glosario lleva `coherence.ts` con lo que ganan las dos tablas (fila de G.2 de la auditoría L1). La segunda salida (quitar `jersey_group` de la barra) iba contra la v58 del dueño (`RaceRadioPanel.tsx` l. 50-52).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-018",
+    "tipo": "hallazgo",
+    "veredicto": "cerrado",
+    "evidencia": "06-pantalla.md l. 259 (DD-04 en §6.3): «La C7 del dueño pide una sola palabra, no cuál … `Bunch` es la de SPEC §6.15 y la del journal (140 tests); `Peloton` es la de la tele, la del código del motor (`kind: 'peloton'` en `radioGroupKindSchema`, `contracts.ts` l. 1346, y cinco plantillas …), la de la radio de hoy y la del propio dueño … El corte de dos tercios decide cuándo un grupo es el grueso, no cómo se llama». Lo mismo en la fila de DD-04 de §20.2 (20-dueno.md l. 24), en su porqué de §20.8 (l. 133) y en la tabla de las decisiones del dueño de 00-decisiones.md (DD-04). La frase «aquí manda el motor por C7» ya no está.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-021",
+    "tipo": "hallazgo",
+    "veredicto": "cerrado",
+    "evidencia": "§6.10 (06-pantalla.md l. 633, fila «arrastrada»: `Watch`, sin puerta, y `Report` a un toque, como la caducada; l. 636, el porqué con la cita del encargo) y 6-r (l. 670). `WatchState.seen` en §4.11 (04-modelo.md l. 1006) y en G.3 (00-glosario.md l. 640); la fila de la arrastrada de §10.2 (10-horizonte.md l. 22) y 10-e (l. 613); D-36 precisada (00-decisiones.md, su fila del registro y su bloque de la fase 5) y las rutas web del glosario («abre `Watch` si la etapa no se ha visto ni revelado, también la arrastrada»).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-030",
+    "tipo": "hallazgo",
+    "veredicto": "cerrado",
+    "evidencia": "06-pantalla.md l. 90 (§6.2): «“sobre quién” es una de las cuatro preguntas de la regla del diario (SPEC §6.15, l. 598-600 …), con la que la v27 contestó a la queja del dueño («si lees todo el Journal no SABES quién va ganando…», `docs/balance.md` l. 5975-5976; [DUEÑO 4]); y la v27 encontró que el hueco de aquel diario «se medía contra el grupo equivocado» (l. 6004)»; 6-f (l. 658) igual. §3.5 lo dice ya (03-reloj.md l. 194, cerrado por la auditoría L1).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-036",
+    "tipo": "hallazgo",
+    "veredicto": "cerrado",
+    "evidencia": "§6.10 (06-pantalla.md l. 626) da los nombres de pantalla por defecto y pasa la elección al dueño con `Journal` como alternativa para el acta y el 9a como último momento barato, con las tres citas del dueño (`docs/balance.md` l. 1431-1432, 5975 y 8095, comprobadas en la corrección). La fila está en §20 como DD-28 (20-dueno.md l. 46, numerada en 20-k) y D-48 precisada (00-decisiones.md, su fila del registro y su bloque de la fase 5). §6.10 la citaba solo por su título («§20, «Los nombres de pantalla»»), sin el número que le dio §20.",
+    "accion": "lo he cerrado yo: 06-pantalla.md l. 626, «(DD-28, §20, «Los nombres de pantalla», …)»."
+  },
+  {
+    "id": "Rdueno-037",
+    "tipo": "hallazgo",
+    "veredicto": "cerrado",
+    "evidencia": "§6.8 (06-pantalla.md l. 610): la cita con su condición («para cuando se mejore el diario», `docs/balance.md` l. 8094-8095), que E2 es esa mejora, que en el acta la cobertura sigue en el 58 % de la v39 sin remedir y lo que costaría subirla. La fila está en §20 como DD-29, por defecto no (20-dueno.md l. 47), y §20.4 lo dice (l. 72: «En el acta, la cobertura sigue en el 58 % de la v39, sin remedir, y subirla es DD-29»); D-59 precisada (00-decisiones.md, bloque de la fase 5). §6.8 la citaba solo por su título, sin el número.",
+    "accion": "lo he cerrado yo: 06-pantalla.md l. 610, «Lo decide el dueño (DD-29, §20, «La criba lejana en el acta», por defecto no; Rdueno-037)»."
+  },
+  {
+    "id": "Rcobertura-026",
+    "tipo": "hallazgo",
+    "veredicto": "cerrado",
+    "evidencia": "La banda de la crono de B17 es 5:00-13:00 en §8.9 (08-ritmo.md l. 323, con la cifra medida y sus extremos: «medido de 5:20 a 11:23: el prólogo de 176 corredores, de 6:24 a 7:06; la e16, de 11:14 a 11:23; las nacionales de 35 y 40 km con 30 y 12 corredores, de 5:20 a 5:52; §9.4») y en 8-k (l. 467, con su porqué); §8.1 (l. 14) y 8-m (l. 469) dicen de 5:20 a 11:23. Fuera de L4 casan: B17 en §16.4 (16-bancos.md l. 451), O-11 y D.7 (21-apendices.md l. 127 y 371) y la cabecera (00-cabecera.md l. 142); ningún «5:30» ni «6:24 a 11:23» queda en las secciones (grep). Las cifras salen de §9.4 (09-crono.md, tabla de las cuatro cronos: 6:24-6:33 y 6:55-7:06, 11:21-11:23 y 11:14-11:19, 5:41-5:52 y 5:20-5:24).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-027",
+    "tipo": "hallazgo",
+    "veredicto": "cerrado",
+    "evidencia": "§8.6 (08-ritmo.md l. 248): «El horario de paso a tres medias, que la previa de la tele enseña (mapa 06 §9, fila 35), no sale: la etapa ya está corrida y cada espectador la reproduce cuando entra … así que una hora de reloj no le dice nada; su equivalente es la duración que anuncia la ficha, `About 13 min` (§8.2) (decisión 8-r)», y 8-r (l. 474). La frase remitía aún a «DD-15», que §20 retiró como decisión del dueño (20-g; la impone el tick, §8.10); 8-r ya cita §8.10.",
+    "accion": "lo he cerrado yo: 08-ritmo.md l. 248, «(§8.10: la impone el tick)» en lugar de «(DD-15, §8.10)» (la misma corrección que la cruzada de L10 n.º 12 pedía para 8-r)."
+  },
+  {
+    "id": "Rcobertura-028",
+    "tipo": "hallazgo",
+    "veredicto": "cerrado",
+    "evidencia": "§8.6 (08-ritmo.md l. 278): «Las tablas de puntos y de montaña tampoco lo tienen: el cuadro 3 dice quién lleva cada maillot mañana y si cambia (`jerseysTomorrow`), y las tablas enteras, con sus cambios, están a un toque en `Report` → `Classifications`», con el porqué (seis cuadros, 36 s) y la alternativa para el dueño (`StageClosing` gana `pointsAfter` y `komAfter` con la forma de `gcAfter`), y 8-s (l. 475), sin evidencia de los jueces, dicho.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-029",
+    "tipo": "hallazgo",
+    "veredicto": "cerrado",
+    "evidencia": "§6.8 (06-pantalla.md l. 614): «El fuera de control, en vivo, no … el límite sale del tiempo del ganador, que solo existe en la meta (`time_cut` es de la regla `finish`, §4.7, y el motor lo emite al cerrar, `simulate.ts` l. 9135), y adelantarlo destriparía la llegada. El corte sale tras `BroadcastFinish` (§8.7) (decisión 6-q)», y 6-q (06-pantalla.md l. 669); §8.7 punto 5 (08-ritmo.md l. 290). Comprobado: el `log.emit` del `time_cut` empieza en `simulate.ts` l. 9135 (la plantilla, l. 9139).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-030",
+    "tipo": "hallazgo",
+    "veredicto": "cerrado",
+    "evidencia": "`PlayerEffect` `finish` lleva `mode: WatchMode` (08-ritmo.md l. 384, «POST …/broadcast/finish con { mode }: es la que escribe la letra (14-f)»); la comprobación 6 (l. 417) dice que la letra la escribe el `finish` con `REPORT_MODE[view]` y que el `report` del borde no llega a `finishS`; §8.7 punto 2 (l. 287) lo cuenta en el reproductor; el test de la letra con el digest está en §8.12 (l. 442: `mode: 'play'`, `'summary'` y `'digest'`, y el `report` del borde que no llega a `finishS`). Casa con 14-f (`finishBodySchema`, §14.2) y con `recordProgress` de §10.3. `player.ts` compila con el `shared` armado (`aud4/h`).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-038",
+    "tipo": "hallazgo",
+    "veredicto": "cerrado",
+    "evidencia": "§8.4 (08-ritmo.md l. 109): 23 días de juego con dos descansos (Francia 185-207, España 234-256) y 24 con tres (Italia 128-151, tras las etapas 3, 9 y 15), con `editions.ts` l. 52-53 contra l. 27 y 79, 5,75 a 6 días reales y 3,65 o 3,5 etapas por día real; l. 117, Italia de 27 a 47 min y hasta 70; D-19 precisada (00-decisiones.md, su fila del registro y su bloque de la fase 5). Re-medido hoy con `rcod/n/gt2.mjs` (`scheduledStageIndices` del `dist`): Italia corre en 24 días (128-151, sin 131, 138 y 145), Francia y España en 23; `editions.ts` l. 53 `restAfter: [3, 9, 15]`, l. 27 y 79 `[9, 15]`. Las cuentas casan: 7:39 × 3,5 = 27, 13:28 × 3,5 = 47, 19:59 × 3,5 = 70.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-039",
+    "tipo": "hallazgo",
+    "veredicto": "cerrado",
+    "evidencia": "08-ritmo.md l. 192, la última celda de la fila de `Next action`: «600 s (apagado, 8-o: va a `Watch` ×1)», que casa con la tabla de §8.5 (l. 129: «Apagado desde `last_km`») y con 8-o (l. 471).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-040",
+    "tipo": "hallazgo",
+    "veredicto": "cerrado",
+    "evidencia": "08-ritmo.md l. 330: «(`docs/epics.md` l. 701-702)». Comprobado: l. 700 en blanco y la cita en l. 701-702 («> El dueño: «lo que hay que hacer si acaso es mejorar la granularidad de las instrucciones, con más» / «> escenarios hipotéticos quizás»»); la de `docs/tactica.md` l. 6323 también es exacta.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-009",
+    "tipo": "hallazgo",
+    "veredicto": "cerrado",
+    "evidencia": "El corrector lo registró «parcial», pero las tres piezas del hallazgo están, la tercera sustituida por una mejor con motivo: (1) la cifra con `Slow 4G` en §8.5 (08-ritmo.md l. 157: «con `Fast 4G`, a unos 0,17 s cada una, unos 4 s; con `Slow 4G`, a unos 0,6 s (560 ms de latencia, §18.7), de 13 a 15 s (estimado)»); (2) la medida del paso 10 con umbral de 5 s en §18.9 (18-rendimiento.md l. 220); (3) la salida «informar una vez `tDestino − 1 km` y pedir en paralelo» se descarta porque la hora de destino es futuro y el cliente no la tiene (D-06) y una estimada que pasara de la meta revelaría la etapa (8-j): el motivo se sostiene, porque el cliente solo sabe esa hora tras recibir los tramos. En su lugar, 8-t (l. 476): si el paso 10 no cumple, el salto lo hace el servidor con `POST …/broadcast/seek`, que está en §14.2 (14-api.md l. 99) y en G.6 del glosario como ruta condicional.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-014",
+    "tipo": "hallazgo",
+    "veredicto": "cerrado",
+    "evidencia": "Los mandos se esconden a los `BROADCAST.controlsHideS` (3 s) sin tocar y vuelven con cualquier toque: §6.1 (06-pantalla.md l. 33, 40 y 64, y la tabla de l. 77), §8.11 (08-ritmo.md l. 359 `idleS`, l. 371 la acción `touch`, la comprobación 10 en l. 421 y el párrafo «Dónde está cada mando», l. 423, que dice además cuándo no se esconden y que siguen en el árbol de accesibilidad), el test de l. 441 y 8-p (l. 472); `Commentary` nace plegado en escritorio (06-pantalla.md l. 40 y el dibujo de l. 43-66) y la segunda línea de la capa fija sale con el cuadro de diferencias y al tocar (l. 91, 6-f en l. 658). «La pantalla es de datos y no de vídeo» solo queda citada como la versión descartada (l. 423 y 8-p). La constante está en §15.3 (15-constantes.md l. 111) y en G.7 (00-glosario.md l. 875), la accesibilidad en §18.8 (18-rendimiento.md l. 201) y D-20 precisada (00-decisiones.md, su fila del registro y su bloque de la fase 5). Sin evidencia de los jueces, dicho en 8-p.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-033",
+    "tipo": "cruzada",
+    "origen": "L1, n.º 8 de cruzadas-L1.json; coherencia.json fila 8 (ya_estaba)",
+    "veredicto": "cerrado",
+    "evidencia": "08-ritmo.md l. 330 (§8.10): «(`docs/epics.md` l. 701-702)»; comprobado en `docs/epics.md` (l. 700 en blanco, la cita en l. 701-702). Es la misma corrección que Rcodigo-040.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-005",
+    "tipo": "cruzada",
+    "origen": "L2, n.º 1 de cruzadas-L2.json; coherencia.json fila 9 (ya_estaba)",
+    "veredicto": "cerrado",
+    "evidencia": "8-g (08-ritmo.md l. 463) ya no dice «(propuesto abajo)» y nombra `TimelineCast.favourites` como `{ rider, why }` (§4.2, 4-u); §8.6 (l. 246) dice cómo arma la API `StagePreview.favourites`: los `previewGcTop` de `StartState.gcTop` con `why: 'gc'` seguidos de los de `cast.favourites`; sin línea, solo los de la general; con la anterior velada, ninguno (8-f). El bloque del glosario (l. 480) dice que la forma final está en §4.2 y que la versión anterior la proponía como `RiderIx[]`. Casa con 04-modelo.md (`TimelineCast.favourites`, l. 157-167, según la auditoría L2).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-008",
+    "tipo": "cruzada",
+    "origen": "L2, n.º 11 de cruzadas-L2.json; coherencia.json fila 19 (ya_estaba)",
+    "veredicto": "cerrado",
+    "evidencia": "Cada nombre de la barra lleva delante su `WornJerseyIcon` leído de `BroadcastHead.cast` por `RiderIx` (`worn`, `team.jerseySeed`), sin campo nuevo en `GroupNow` (06-pantalla.md l. 125, «El maillot de cada corredor»; tabla de l. 74 y fila de l. 139; 6-c, l. 655); los dibujos de §6.1 lo llevan con la forma de nombre de 7-a (`[k]Nicolás Moreno · [k]Antoine Leroy · …`, l. 19-21 y 50-61). Va más lejos que la cruzada: la fila de un grupo de cuatro a doce gana la línea de sus corredores con su icono. `GroupBar.test.tsx` comprueba el icono de cada nombrado (16-bancos.md l. 694; 17-plan.md l. 176).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-010",
+    "tipo": "cruzada",
+    "origen": "L2, n.º 15 de cruzadas-L2.json; coherencia.json fila 23 (ya_estaba)",
+    "veredicto": "cerrado",
+    "evidencia": "Destino «todas las secciones (§0 a §21)»; en las de L4, ninguna remisión `§G.n` queda en 06-pantalla.md ni en 08-ritmo.md, tampoco en sus bloques de cierre (grep de «§G»: cero). Donde la frase contrasta con la firma que fijó la síntesis, la cita en su sitio: `cuesBetween(prev, next, events)` «(la firma de §21.6 F.2)» (06-pantalla.md l. 386) y 6-i (l. 661).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-012",
+    "tipo": "cruzada",
+    "origen": "L2, n.º 18 de cruzadas-L2.json; coherencia.json fila 26 (ya_estaba)",
+    "veredicto": "cerrado",
+    "evidencia": "`CUE_CLASS` lleva `tt_start_order: 1, tt_split: 1, tt_finish: 1` (06-pantalla.md l. 330) y `cueClassOf` los casos `tt_split` (`rank === 1 ? 2`) y `tt_finish` (`hotSeat ? 3`) (l. 347-348); la tabla de clases gana sus tres filas (l. 382-384) y la fila 47 de §6.6 dice que el rótulo `Start order` lo programa el reproductor en `t = 0` con `BroadcastHead.tt`, además del cuadro de la previa de crono (l. 518). Compilado hoy con los `Cue` de §4.9 en el armado de `aud4/h`: sin errores (sin las tres claves, `TS1360`).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-050",
+    "tipo": "cruzada",
+    "origen": "L2, n.º 23 de cruzadas-L2.json; coherencia.json fila 31 (ya_estaba)",
+    "veredicto": "cerrado",
+    "evidencia": "06-pantalla.md l. 159 (`export function chaseRefOf`, con «broadcast/index.ts la reexporta» en su comentario, l. 157-158) y 6-a (l. 653). Lo mismo que Rcodigo-023.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-032",
+    "tipo": "cruzada",
+    "origen": "L5, n.º 7 de cruzadas-L5.json; coherencia.json fila 112 (ya_estaba; el corrector L4 la registró «parcial»)",
+    "veredicto": "cerrado",
+    "evidencia": "Lo de la crono está: `cueClassOf` pone `tt_round` en 0 (06-pantalla.md l. 343), la fila `rider` dice «0 en la ronda `ON COURSE` de la crono, 9-k» (l. 376) y la lista del reproductor programa la ronda `ON COURSE` (`rider 'tt_round'`, l. 406) remitiendo a §9.5, que da su cadencia (09-crono.md l. 213: uno cada `breakRoundEveryS` entre los candidatos en ruta, en orden de salida); `cues.test.ts` gana el caso (09-crono.md l. 308). Lo de la fuga (`break_round` en 0) se sustituye por 6-m con medida, y el motivo se sostiene: con la clase 0 salían enteras 4 de 34 rondas y 20 de 34 frases (reproducido hoy, `aud4/rep-cola.json`); 9-k ya no dice «como la ronda de la fuga» (09-crono.md l. 339).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-033",
+    "tipo": "cruzada",
+    "origen": "L5, n.º 8 de cruzadas-L5.json; coherencia.json fila 113 (ya_estaba)",
+    "veredicto": "cerrado",
+    "evidencia": "06-pantalla.md l. 337 (`cueClassOf(cue, start, lastVirtualLeader, timeTrial)`), l. 335-336 (el primero de la etapa contra `start.leaders.gc`), l. 346 (el caso de `virtual_gc`: 3 si cambia el primero, 2 en crono, si no `CUE_CLASS.virtual_gc`) y la fila de la tabla (l. 379: «1 (2 en crono, 9-n; 3 si cambia el líder virtual)»); 6-g (l. 659); los casos de `cues.test.ts` en §9.8 (09-crono.md l. 308). Compila.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-045",
+    "tipo": "cruzada",
+    "origen": "L5, n.º 11 de cruzadas-L5.json; coherencia.json fila 116 (ya_estaba)",
+    "veredicto": "cerrado",
+    "evidencia": "Lo mismo que Rcobertura-012 (06-pantalla.md l. 330, 347-348 y 382-384), y la lista del reproductor remite a §9.5 para la crono: «la crono (§9.5) Start order en t = 0; SPLIT y FINISH del paso de un TimeTrialInstant al siguiente; la ronda ON COURSE» (l. 406). Compila con los `Cue` de §4.9.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-048",
+    "tipo": "cruzada",
+    "origen": "L5, n.º 13 de cruzadas-L5.json; coherencia.json fila 118 (ya_estaba)",
+    "veredicto": "cerrado",
+    "evidencia": "08-ritmo.md l. 36: `import type { PaceZone, ProfileStrip, RaceS } from './timeline.js'`, con el comentario de que `RaceS` es la de `ttPaceAt` (§9.4) y `PaceZone` viene de `timeline.ts` (17-z). En el armado de `aud4/h`, sin §9 da solo `TS6196` por `RaceS` sin uso, y §9.4 la usa en el mismo fichero (09-crono.md l. 164-165 y 178-179): con el fichero entero no hay error.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-038",
+    "tipo": "cruzada",
+    "origen": "L5, n.º 19 de cruzadas-L5.json; coherencia.json fila 124 (ya_estaba)",
+    "veredicto": "cerrado",
+    "evidencia": "08-ritmo.md l. 423 (§8.11, «Dónde está cada mando»): «un nombre saca su rótulo (§6.5) y el nombre del rótulo abre su ficha (§7.1; antes de salir, el reproductor pausa e informa de lo alcanzado)», como 7-m y como `rider 'focus'` de §6.5 (06-pantalla.md l. 405).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-048",
+    "tipo": "cruzada",
+    "origen": "L6, n.º 5 de cruzadas-L6.json; coherencia.json fila 130 (ya_estaba)",
+    "veredicto": "cerrado",
+    "evidencia": "08-ritmo.md l. 287 (§8.7, punto 2): el informe del borde devuelve `{ status: 'watching', rev }` con el `rev` de antes, porque el último tramo acaba en `finishDs − 1` y `recordProgress` solo escribe la letra con `reachedS ≥ finishS` (§10.3); la letra la escribe `POST …/broadcast/finish` con `{ mode: REPORT_MODE[view] }`, y como su paquete no lleva `rev` la web invalida `['horizon']` (regla 3 de §10.9, §14.11).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-044",
+    "tipo": "cruzada",
+    "origen": "L6, n.º 22 de cruzadas-L6.json; coherencia.json fila 147 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "§8.5: «si responde 429: espera los segundos de su `retry-after` con `Loading` en los mandos y la repite; no es un fallo (§10.12, 14-q)» (08-ritmo.md l. 181), con la acción `throttled` (l. 379), la comprobación 9 (l. 420) y el test (l. 440). La parte de §18.7 la puso la coherencia: la cadencia la acota la etapa, de 33 a 60 peticiones y 58 en el peor minuto (18-rendimiento.md l. 136 y 191).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-041",
+    "tipo": "cruzada",
+    "origen": "L7, n.º 27 de cruzadas-L7.json; coherencia.json fila 176 (ya_estaba)",
+    "veredicto": "cerrado",
+    "evidencia": "08-ritmo.md l. 386 (`{ readonly k: 'release'; readonly stageDay: number }`), l. 360-361 y 366 (`stageDay`, `loaded`, `digestNext`), la comprobación 8 (l. 419: al empezar la k + 1 sale `release` de la k − 1 y `loaded` nunca tiene más de dos) y el test de la letra con el digest (l. 442), como 18-e (18-rendimiento.md l. 274). `player.ts` compila con el `shared` armado.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-043",
+    "tipo": "cruzada",
+    "origen": "L8, n.º 3 de cruzadas-L8.json; coherencia.json fila 200 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "06-pantalla.md l. 222 (§6.3): «El texto de una etiqueta lo da `groupLabelText(_locale, …)` en `names.ts`, que nace con el `locale` delante, con el tipo literal `'en'` y el nombre `_locale` mientras no lo lea (`noUnusedParameters`; 12-q, D-62)». Es la única de las firmas de la cruzada que vive en §6; G.4 la recoge (00-glosario.md l. 716).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-051",
+    "tipo": "cruzada",
+    "origen": "L8, n.º 20 de cruzadas-L8.json; coherencia.json fila 217 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "08-ritmo.md l. 444 (§8.12): fila de la segunda parte de B3 en `apps/web/src/domain/broadcast/breakPresentation.test.ts`, que corre el reproductor sin navegador (`cuesBetween`, la programación de §6.5, `admitir` y el fotograma de la cola, `isPresentation`, `aheadOfPeloton` y `breakRoundOf`) a 60 fotogramas por segundo sobre una fuga sintética con el campeón y el líder y sobre las cinco en línea congeladas en `Watch` a ×½, ×1 y ×2 y en `Highlights` a ×1, con los umbrales de §16.4 (16-p), en el 6b y a mano en el 10b sobre las 24 × 2. Casa con 16-bancos.md l. 437 y 696 y con 17-plan.md l. 38.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-053",
+    "tipo": "cruzada",
+    "origen": "L8, n.º 23 de cruzadas-L8.json; coherencia.json fila 220 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "08-ritmo.md l. 323 (§8.9): las bandas de B17 son «decisión 8-k, su única fuente escrita, que §16.4 cita: 16-v», y 8-k (l. 467) las fija; §16.4 las cita como «las bandas de 8-k (§8.9, que es su fuente)» (16-bancos.md l. 451). La prueba de lectura de §8.9 (l. 324) remite sus umbrales a §16.5 y 16-w.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-004",
+    "tipo": "cruzada",
+    "origen": "L8, n.º 43 de cruzadas-L8.json; coherencia.json fila 240 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "6-h (06-pantalla.md l. 660): «La prueba de lectura no la mide: pregunta quién va delante, con cuánta ventaja, sobre quién y cuánto queda y, con 16-w, qué maillot lleva cada escapado y quién tira detrás y por qué (§16.5), y todo eso lo contestan la capa fija y la barra aunque la cola tire un rótulo. Lo que mide la cola es la medida de `l4c/cola.mjs` de §6.5, los tests de §6.7 (`cues.test.ts` y la segunda parte de B3, §16.4) y el dueño al verla desde el 6a.» Las otras dos partes de la cruzada (DD-05 en §20.8 y el apéndice C) son de L10.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-004",
+    "tipo": "cruzada",
+    "origen": "L8, n.º 44 de cruzadas-L8.json; coherencia.json fila 241 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "08-ritmo.md l. 324 (§8.9, la prueba de lectura): «contestan sin ayuda las cuatro preguntas de SPEC §6.15 y, con una fuga de hasta 12 delante del pelotón, qué lleva cada uno, contestado mirando la barra, y quién tira detrás y por qué (§16.5, 16-w)». Casa con 16-w (16-bancos.md l. 803).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-009",
+    "tipo": "cruzada",
+    "origen": "L9, n.º 4 de cruzadas-L9.json; coherencia.json fila 254 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "06-pantalla.md l. 127 (§6.2, el perfil con cursores): con `BroadcastHead.clock` `estimated`, el cursor de todo grupo que no sea la cabeza se pinta hueco, la barra escribe su km con `~` y el aviso `Recorded before full race data` lleva debajo `Positions of the groups behind are estimated` (pantalla, las dos); con la línea grabada, nada de eso; nace en el 3c con su caso en `GroupBar.test.tsx` (§17.6). El término está en G.11 y F.3 (cerrado por la coherencia) y en §3.8.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-044",
+    "tipo": "cruzada",
+    "origen": "L9, n.º 28 de cruzadas-L9.json; coherencia.json fila 278 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "08-ritmo.md l. 440 (§8.12): la fila del 429 (`throttled` con `retryAfterS`, `waiting` con `Loading`, nunca `Connection lost`) va en el paso 3b, con su porqué («`PLAYER_RATE_LIMIT` existe desde el 3a y el dueño ve `Watch` desde el 3c»); casa con §16.6 («3b y 10», 16-bancos.md l. 698).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-004",
+    "tipo": "cruzada",
+    "origen": "L10, n.º 4 de cruzadas-L10.json; coherencia.json fila 282 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "La misma corrección que la cruzada n.º 43 de L8: 6-h (06-pantalla.md l. 660) dice quién mide de verdad la cola (la medida de `l4c/cola.mjs`, los tests de §6.7 y la segunda parte de B3, y el dueño desde el 6a) y que la prueba de lectura no la mide.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-042",
+    "tipo": "cruzada",
+    "origen": "L10, n.º 12 de cruzadas-L10.json; coherencia.json fila 290 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "08-ritmo.md l. 328 (§8.10): «(DD-15, retirada como decisión del dueño en la fase 5: la impone el tick, §20.2)», con el porqué solo en el tick; 8-r (l. 474) cita §8.10. Quedaba en §8.6 (l. 248) un «(DD-15, §8.10)» que remitía a la decisión retirada.",
+    "accion": "lo he cerrado yo: 08-ritmo.md l. 248 dice «(§8.10: la impone el tick)» (también en Rcobertura-027)."
+  },
+  {
+    "id": "Rcobertura-010",
+    "tipo": "cruzada",
+    "origen": "L10, n.º 15 de cruzadas-L10.json; coherencia.json fila 293 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "La tabla de conversión de §21.6 (21-f); en §6 y §8 no queda ninguna remisión `§G.n`, ni en el cuerpo ni en los bloques de cierre (grep), como ya dijo la coherencia («§3, §5 a §8 … ya no tenían»).",
+    "accion": "nada"
+  },
+  {
+    "id": "A-L4-002",
+    "tipo": "comprobacion",
+    "veredicto": "cerrado",
+    "evidencia": "Regla 3, «Decisión tomada aquí» de §6 en 00-decisiones.md. Estaban 6-b (D-18), 6-c y 6-d (D-27, D-22), 6-m (D-20, D-21, D-22) y 6-r (D-36). Faltaban dos que cambian lo que dice D-21 (grep de «6-g» y «6-h»: cero): 6-g sube a clase 3 el descolgado de un maillot o de un top 5 de salida, que la lista de clases de D-21 no tiene («El descolgado no está en D-21; se añade por coherencia», 06-pantalla.md l. 659, y l. 359), y 6-h añade a la cola tres reglas que D-21 no dice (con la cola llena, un `Cue` de clase 2 desplaza al de clase 2 más viejo; uno de clase ≤ 2 caduca a los `cueHoldS[3]`, 6 s, de pared; la clase 3 no se descarta y corta al de clase ≤ 1 en pantalla; l. 660). Las demás de §6 no cambian ninguna D: 6-a es la regla de DD-04 y D-52 (el corte de dos tercios y `chaseRefOf`, ya registradas); 6-e, 6-f, 6-i, 6-j, 6-k, 6-l y 6-n concretan sin contradecir D-04, D-17, D-14, D-21 y D-23; 6-p es local (ninguna D hablaba del rótulo de corredor del ataque). 6-o y 6-q van en A-L4-003.",
+    "accion": "lo he cerrado yo en 00-decisiones.md: bloque «Precisada al escribirse §6, registrada en la auditoría L4» al final de D-21 (6-g y 6-h) y su fila en el registro del principio."
+  },
+  {
+    "id": "A-L4-003",
+    "tipo": "comprobacion",
+    "veredicto": "cerrado",
+    "evidencia": "Regla 3, decisiones y nombres compartidos con §20. D-59 («Lo que la pantalla enseña de lo que no es suceso») no recogía 6-o (la regla de los 3 km, explicada en la llegada con `same time (3 km rule)` y `BroadcastFinish.threeKmRule`) ni 6-q (el fuera de control no se enseña en vivo), que §6.8 añade a lo que no es suceso (06-pantalla.md l. 612-614, 667 y 669). Y las dos precisiones de la fase 5 que mandan una decisión al dueño la citaban solo por su título, sin el número que §20 les dio (20-k): D-48 («§20, «Los nombres de pantalla»», es DD-28) y D-59 («§20, «La criba lejana en el acta»», es DD-29); §6.10 y §6.8 las citaban igual (arreglado en Rdueno-036 y Rdueno-037).",
+    "accion": "lo he cerrado yo en 00-decisiones.md: bloque «Precisada al escribirse §6 y en la corrección, fase 5; registrada en la auditoría L4» al final de D-59 (6-o y 6-q) con su fila en el registro, y «DD-28» y «DD-29» en las precisiones de D-48 y D-59."
+  },
+  {
+    "id": "A-L4-004",
+    "tipo": "comprobacion",
+    "veredicto": "cerrado",
+    "evidencia": "Regla 3, «Decisión tomada aquí» de §8 en 00-decisiones.md. Estaban 8-b (D-39), 8-d (D-55), 8-e, 8-g (D-15, 4-u), 8-o y 8-p (D-20). Faltaban las que concretan o hacen una excepción a lo que dice una D (grep: cero): de D-20, 8-j (ningún salto pasa de un km antes de meta; durante un salto, lo alcanzado es lo servido, y una etapa solo pasa a vista cruzando la meta), 8-i (cinco rótulos y el cuadro de diferencias), 8-n (`While you skipped` y `Previously` paran el reloj, cuando D-19 y D-21 dicen que nada lo para) y 8-t (el salto por el servidor si el paso 10 lo mide lento); de D-39, 8-a (la escala nominal del digest, de −9 a +34 % sobre el presupuesto), 8-c (el digest encadena las etapas, contra el «sin reproducción automática» de D-39) y 8-m (la curva del digest de crono); de D-22, 8-f (la clásica sin pavés, que D-22 no decía, la primera etapa, la carrera de un día y la previa con la anterior velada) y 8-s (el cierre sin tablas de puntos ni de montaña); de D-19, 8-k (las bandas de B17, con la de la crono en 5:00). 8-h, 8-l, 8-q y 8-r son locales: no cambian ninguna D.",
+    "accion": "lo he cerrado yo en 00-decisiones.md: bloques «Precisada al escribirse §8 … registrada en la auditoría L4» al final de D-19 (8-k), D-20 (8-i, 8-j, 8-n y 8-t), D-22 (8-f y 8-s) y D-39 (8-a, 8-c y 8-m), con sus cuatro filas en el registro."
+  },
+  {
+    "id": "A-L4-005",
+    "tipo": "comprobacion",
+    "veredicto": "cerrado",
+    "evidencia": "Regla compartida: la prueba de lectura de §8.9 (08-ritmo.md l. 324) pregunta, además de las cuatro de SPEC §6.15, qué lleva cada escapado de una fuga de hasta 12, mirando la barra, y quién tira detrás y por qué (16-w, 16-bancos.md l. 803; la tabla de §16.9, l. 768: «nueve de nueve, con los maillots de la fuga y quién tira»), y D-60 (00-decisiones.md) seguía diciendo solo «las cuatro preguntas de SPEC §6.15», sin precisión de la fase 5. Quien lea D-60 no sabría que la puerta del encendido pregunta por el requisito del dueño de los maillots de la fuga.",
+    "accion": "lo he cerrado yo en 00-decisiones.md: bloque «Precisada en la corrección, fase 5; registrada en la auditoría L4» al final de D-60 (16-w, con lo que la prueba no mide: la cola, 6-h) y su fila en el registro. Es una decisión de §16: L8 puede rehacer el texto si lo prefiere."
+  },
+  {
+    "id": "A-L4-006",
+    "tipo": "comprobacion",
+    "veredicto": "cerrado",
+    "evidencia": "Regla 3, grafía de los nombres: el bloque «Propuesto para el glosario» de §6 (06-pantalla.md l. 675) proponía `breakRoundOf(g, cast, ctx): readonly RiderIx[]`, cuando el código de §6.7 (l. 568) y G.4 (00-glosario.md l. 716) dicen `breakRoundOf(riders: readonly RiderIx[], cast: readonly RiderCard[])`, y no nombraba `aheadOfPeloton(i, r)`, que el glosario sí tiene (G.2 l. 155 y G.4 l. 713). El bloque no se ensambla, pero se lee para fundir el glosario. Los demás nombres de tipo, constante, banco, test y ruta de §6 y §8 están en 00-glosario.md con la misma grafía (cruce de los nombres entre comillas invertidas de los dos ficheros: los que faltan son código de hoy que el diseño no toca, plantillas del motor, campos de tipos que sí están, scripts del scratchpad y textos de pantalla), y las constantes de §6 y §8 tienen el valor de §15.3 y G.7 (`cueHoldS` [3, 4, 5, 6], `cueQueueMax` 3, `breakRoundEveryS` 6, `nameWholeGroupUpTo` 12, `cardRowsMax` 5, `closingCardS` 6, `controlsHideS` 3, `recapMaxCues` 5, `previewThreatsMax` 3, las dos curvas y `digestBudgetS`). Las comprobaciones mecánicas del ensamblado (rayas, guiones entre espacios, viñetas sangradas, comillas invertidas sin pareja, frases cortadas, remisiones a §N.m inexistentes y bloques sin cerrar), corridas sobre §6 y §8 tal como se ensamblan (`aud4/comprobar.py`), dan 0 fallos.",
+    "accion": "lo he cerrado yo: 06-pantalla.md l. 675, `breakRoundOf(riders, cast): readonly RiderIx[]` y `aheadOfPeloton(i, r): boolean`."
+  },
+  {
+    "id": "A-L4-007",
+    "tipo": "comprobacion",
+    "veredicto": "cerrado",
+    "evidencia": "Regla 3, nombres y sitio del código: la cola de §6.5 se escribe solo en pseudocódigo (`admitir(c)` y «cada fotograma», 06-pantalla.md l. 413-432) «en el reproductor», sin fichero; pero sus reglas las prueba `packages/shared/src/broadcast/cues.test.ts` (6-h, l. 660; §16.6, 16-bancos.md l. 697: «la cola de rótulos … y la cola con una fuga»; §17.9, 17-plan.md l. 266), que no puede importar código de `apps/web`, y la segunda parte de B3 llama a «`admitir` y el fotograma de la cola» como funciones puras del reproductor (16-bancos.md l. 437; 08-ritmo.md l. 444). El glosario no tenía ni `admitir` ni dónde vive la cola. Quien implemente tenía que elegir entre poner la cola en la web (y mover los tests de `cues.test.ts`) o en `shared`.",
+    "accion": "lo he cerrado yo: 06-pantalla.md l. 413 dice que los dos pasos de la cola, `admitir` y el fotograma, son funciones puras sobre su estado y viven en `packages/shared/src/broadcast/cues.ts`, junto a `cueClassOf` e `isPresentation`, que el reproductor guarda el estado y las llama en cada fotograma, y que así las prueban `cues.test.ts` y la segunda parte de B3; 00-glosario.md, fila de `cues.ts` en G.2 (l. 155). Necesita otra sección: §17.20 (17-plan.md l. 567, la fila de `cues.ts`) y el código del 6a en §17.9 (l. 271: «la cola de rótulos en el reproductor») tienen que nombrar las dos funciones en `cues.ts`."
+  },
+  {
+    "id": "A-L4-008",
+    "tipo": "comprobacion",
+    "veredicto": "abierto",
+    "evidencia": "Regla 3, tipos contra lo que §6 programa: `RiderCueContext` (04-modelo.md l. 825; 00-glosario.md l. 502) tiene el miembro `'dropped'`, y ninguna sección produce un `rider` con ese contexto: la lista de §6.5 (06-pantalla.md l. 397-410) programa `break_round`, `banner`, `own`, `focus` y `tt_round`, y el descolgado ya es su propio `Cue` (`DROPPED · 11 Sam Carter · Race leader · +0:25`, clase 1 o 3). Viene así desde el v0. Es el mismo caso que el contexto `attack` que 6-p quitó: un rótulo de corredor aparte repetiría el del suceso.",
+    "accion": "necesita otra sección: §4.9 (04-modelo.md l. 825) y G.3.4 (00-glosario.md l. 502), que quiten `'dropped'` de `RiderCueContext` (o que §6.5 diga quién lo programa). No lo toco: el tipo es de L2 y el glosario lo copia."
+  },
+  {
+    "id": "A-L4-009",
+    "tipo": "comprobacion",
+    "veredicto": "abierto",
+    "evidencia": "Regla compartida: `Next action` se corta con el primer `Cue` de clase ≥ 2 que entra en la cola y no es de la ronda de la moto (§8.5, 08-ritmo.md l. 129; §8.11, l. 350, 373 y 420; 6-m; D-20 precisada; §15.3, 15-constantes.md l. 104; G.7). Dos sitios de otras secciones lo siguen diciendo sin la excepción: §4.9 (04-modelo.md l. 864, «`Next action` acelera hasta el siguiente `Cue` de clase ≥ `BROADCAST.nextActionMinClass` (2)») y §18.7 (18-rendimiento.md l. 191, «`Next action` corre hasta que se revela un rótulo de clase 2 o más (§8.5)»). En §9.4 (09-crono.md l. 175) no importa: en crono no hay ronda de la moto.",
+    "accion": "necesita otra sección: §4.9 (04-modelo.md l. 864) y §18.7 (18-rendimiento.md l. 191), que añadan «que no sea de la ronda de la moto (6-m)»."
+  },
+  {
+    "id": "A-L4-010",
+    "tipo": "comprobacion",
+    "veredicto": "cerrado",
+    "evidencia": "Cifra compartida: §8.5 decía «Una etapa son de 16 a 32 tramos (medido, `l4/zonas.mjs`: la llana e7, 16; Colombia e5, 31-32)», y §14.3 (14-api.md l. 231) «con sus 14 a 32 tramos (§18.1)»: la tabla de §18.1 (18-rendimiento.md l. 20-27) da 16 a 32 en las etapas en línea y 14 y 15 en las dos cronos. Las dos cifras son ciertas para su alcance, pero §8.5 no decía que era el de las etapas en línea.",
+    "accion": "lo he cerrado yo: 08-ritmo.md l. 194, «Una etapa en línea son de 16 a 32 tramos (…); una crono, 14 o 15 (§18.1)»."
+  },
+  {
+    "id": "A-L4-011",
+    "tipo": "comprobacion",
+    "veredicto": "parcial",
+    "evidencia": "Regla 3, intención de una constante: `BROADCAST.cueTopStart` se describe como «puesto de salida hasta el que la caída o el abandono de un corredor es de clase 3» en §15.3 (15-constantes.md l. 118) y en G.7 (00-glosario.md l. 868), y 6-g (06-pantalla.md l. 659) y `cueClassOf` (l. 345) le suben a 3 también el descolgado (`dropped`).",
+    "accion": "lo he cerrado yo en 00-glosario.md l. 868 («la caída, el descolgado o el abandono»). Necesita otra sección: el comentario de §15.3 (15-constantes.md l. 118), que es de L2."
+  },
+  {
+    "id": "A-L4-012",
+    "tipo": "comprobacion",
+    "veredicto": "abierto",
+    "evidencia": "Regla compartida, la de 6-m: los rótulos reservados de la presentación se tiran «solo cuando ya no presentan nada (el escapado ya no va por delante del grupo con el título de pelotón; la fuga, sin ninguno)» (06-pantalla.md l. 665; el fotograma de la cola, l. 426-427; `aheadOfPeloton`, l. 581-587), y no solo cuando lo cazan: también si se queda, y en tránsito cuenta el grupo que dejó. Es la regla que mide `l4c/cola.mjs` (la política `aheadRule`). Dos descripciones de los tests en otras secciones conservan la forma anterior: §16.6 (16-bancos.md l. 697, la fila de `cues.test.ts`: «y se tiran al cazarse el escapado (6-m)») y §17.9 (17-plan.md l. 280: «se tiran al cazarse el escapado (6-m)»). Un test escrito así no cubre al escapado que se queda sin que lo cacen.",
+    "accion": "necesita otra sección: §16.6 (16-bancos.md l. 697) y §17.9 (17-plan.md l. 280), «se tiran cuando el escapado ya no va por delante del pelotón (`aheadOfPeloton`), porque lo han cazado o se ha quedado»."
+  }
+]
