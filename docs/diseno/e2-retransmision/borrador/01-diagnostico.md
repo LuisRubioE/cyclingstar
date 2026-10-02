@@ -305,7 +305,7 @@ No todo es defecto. Lo que sigue funciona, está probado o medido, y el diseño 
 
 ### 1.11 Lo que esta sección no ha podido comprobar
 
-- **Tamaños y compresión de producción.** Todas las cifras de disco son de PGlite 0.5.4 (PostgreSQL 18.3 con TOAST `pglz`); el CI usa `postgres:17` (`ci.yml` l. 35) y la compresión de producción, `pglz` o `lz4`, no la sé (mapa 04, juez del motor C8).
+- **Tamaños y compresión de producción.** Todas las cifras de disco son de PGlite 0.5.4 (PostgreSQL 18.3 con TOAST `pglz`); el CI usa `postgres:17-alpine` (`ci.yml` l. 35) y la compresión de producción, `pglz` o `lz4`, no la sé (mapa 04, juez del motor C8).
 - **Si el borde de Railway comprime las respuestas**: en el código no hay compresión; fuera del código, no lo sé (mapa 07 §8).
 - **Cuántos jugadores hay y cuántas etapas miran**: las cifras por visita de §1.6 son del calendario; las del corredor propio, supuestos.
 - **Si las cuentas (`users`, `sessions`) sobreviven al reinicio**: ningún documento lo dice (mapa 04 §8).

@@ -129,7 +129,7 @@ Dos decisiones del dueño cierran el espacio en que se mueven los doce principio
 
 **Huecos rellenados:** ninguno asignado.
 
-**Decisión tomada aquí:** ninguna. Los doce principios escriben decisiones cerradas de la síntesis (D-01, D-04, D-06, D-09, D-18, D-19, D-21, D-28, D-32, D-38, D-45, D-46, D-48, D-50, D-53, D-56, D-60) y la DD-09.
+**Decisión tomada aquí:** ninguna. Los doce principios escriben decisiones cerradas de la síntesis (D-01, D-04, D-06, D-09, D-18, D-19, D-21, D-28, D-32, D-38, D-45, D-46, D-48, D-50, D-53, D-56, D-58, D-60) y la DD-09; §2.3 y §2.13 remiten además a dos decisiones del dueño, DD-25 y DD-23 (§20).
 
 **Propuesto para el glosario:** nada.
 
