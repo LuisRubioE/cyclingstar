@@ -182,3 +182,24 @@ otros lotes. La pasada de coherencia tiene que cerrarlos uno a uno (o dejarlos e
   D-11 están fijados; el coste es de 56 sesiones y 37 por el camino crítico, no 52 y 34). Conviene
   mirar contra el texto de hoy las 170 cruzadas «ya_estaba», porque se aceptó el registro del lote
   de destino con una comprobación automática de nombres; y la cabecera (§0.8) espera al cierre.
+
+## Abiertos de la auditoría que cruzan secciones (para el cierre)
+
+- A-L1-009 (de L1 a §5.4): `05-motor.md` dice «de 418 a 3.617 marcas… las mismas cifras que §3.4» y
+  §3.4 da de 558 a 3.617. L3 corrigió §5.4 a «10-22 KB» pero no consta la cifra de marcas.
+- L1 avisa: `17-plan.md` l. 122 aún dice que §3.8 daba privada `estimatedHeadClock`; «About N min»
+  no está en G.11 ni en F.3.
+- A-L3-002 (de L3 a §17): §17.8 y §17.20 no nombran `race.ts` (`raceWorldDay`). A-L3-005: §17 y
+  §19.5 dicen «de 100 a 514 KB»; el mapa 07 midió 102,5.
+- Rcobertura-014 (parcial en L2): falta `tplRev` en el `.omit` de `yesterday.test.ts` en §14 y en
+  §17 (17-plan.md l. 330). A-L2-003 (de L2 a §10.6): `anonHorizon`, `first`, `guardCandidates` y
+  `buildHorizon` sin declarar (pasado a L6).
+- A-L4-008 (de L4 a §4.9 y G.3.4): `RiderCueContext` tiene el contexto `'dropped'` que nadie produce.
+  A-L4-009: la regla de `Next action` sin la excepción de la ronda de la moto en §4.9 l. 864 y
+  §18.7 l. 191 (pasado a L7 para §18). A-L4-012: §16.6 y §17.9 dicen «se tiran al cazarse» en vez
+  de «cuando el escapado ya no va por delante del pelotón»; §17.20 y §17.9 tienen que nombrar las
+  dos funciones de la cola. Rcodigo-028 (parcial): 7-a no dice lo que costaría un nombre corto.
+- De L5 (auditoría): §6.5 (parcial), `admitir` no lleva la sustitución de `tt_split` y `tt_finish`
+  de 9-d; §4.8, dos comentarios contradicen 7-b y `staticNotoriety`; §16.4, B17 atribuye a L4 las
+  medidas de la crono (son del juez y de L5); §17.17 y §21 (X-13) dicen que no hay campeones hasta
+  el día 179 y en 17 países los hay antes.

@@ -19,7 +19,7 @@ El rótulo es lo que la tele pone debajo de un corredor: la UCI exige dorsal, ap
 
 No hay código de tres letras (`ITA`) porque no existe en los datos: `COUNTRIES` solo tiene `{ code, name, flag }` con el código ISO-2 (`packages/shared/src/countries.ts` l. 6-11); la bandera con su nombre accesible hace ese papel. Tampoco va la edad, aunque la tabla del mapa 06 §9 la cuente entre los datos del rótulo (fila 14; decisión 7-l): el propio mapa observa que la tele da la edad, las victorias y la especialidad «solo en fases tranquilas (previa, hora muerta)», y que en carrera el rótulo lleva dorsal, nombre, bandera y equipo (mapa 06 §2.1, l. 101); en carrera la edad no cambia la lectura de nada, y la ficha la enseña a un toque (`Age`, `apps/web/src/pages/RiderProfile.tsx` l. 399-400). Si E3 la quiere en el rótulo, sale de `riderAge(birthSeason, season)` (`packages/shared/src/time.ts` l. 38-40, con `RIDER_AGE_EPOCH` 20), no de restar a la temporada de la etapa la de nacimiento, que daría veinte años menos.
 
-El nombre del rótulo es siempre `RiderName`, con su enlace a la ficha (decisión 7-m). El dueño lo pidió dos veces: «cuando salga el nombre de un ciclista, que tenga enlace a su ficha» (`apps/web/src/domain/stageJournal.ts` l. 170-171, v58) y «te pedí que pusieras link desde los nombres de los ciclistas a su perfil… y nada» (`apps/web/src/components/RiderName.tsx` l. 7-8, v59). En `Watch`, tocar un nombre de la barra o de la lista de un grupo saca su rótulo (`rider` con contexto `focus`, §6.5), y el nombre del rótulo lleva a la ficha; seguirlo pausa la reproducción e informa de lo alcanzado antes de salir (§8.5). No destripa: la ficha de cualquier corredor se sirve con el horizonte de quien mira (§11.14).
+El nombre del rótulo es siempre `RiderName`, con su enlace a la ficha (decisión 7-m). El dueño lo pidió dos veces: «cuando salga el nombre de un ciclista, que tenga enlace a su ficha» (`apps/web/src/domain/stageJournal.ts` l. 170-171, v58) y «te pedí que pusieras link desde los nombres de los ciclistas a su perfil… y nada» (`apps/web/src/components/RiderName.tsx` l. 7-8, v59). En `Watch`, tocar un nombre de la barra o de la lista de un grupo saca su rótulo (`rider` con contexto `focus`, §6.5), y el nombre del rótulo lleva a la ficha; seguirlo pausa la reproducción e informa de lo alcanzado antes de salir (§8.11). No destripa: la ficha de cualquier corredor se sirve con el horizonte de quien mira (§11.14).
 
 Los textos, todos (pantalla), en el orden en que salen:
 
@@ -38,6 +38,8 @@ El titular sale de `worn` y no es una línea: un líder que lleva su maillot no 
 
 ```ts
 // packages/shared/src/broadcast/names.ts (sigue). Reciben la carta ya servida: el velo no se decide aquí.
+import type { ChampionTitle, Distinction, WornJersey } from '../jerseys.js'   // con JerseyKind (§6.3) y RiderCard (§6.4), que ya trae el fichero
+import type { NameResolver } from '../news.js'                                    // §4.12
 const JERSEY_NAME = { gc: 'Leader’s jersey', points: 'Points jersey', kom: 'Mountains jersey' } as const satisfies Record<JerseyKind, string>
 const CLASS_NAME = { gc: 'general classification', points: 'points classification', kom: 'mountains classification' } as const satisfies Record<JerseyKind, string>
 export function ordinal(n: number): string       // 1st 2nd 3rd 4th … 11th 12th 13th … 21st
@@ -71,7 +73,7 @@ Cinco rótulos de ejemplo (pantalla), escritos en una línea como en escritorio;
 
 ```
 (pantalla)
-[GC]   1   Sam Carter        (GB)  [kit] Team Beta     Leader, general classification · Also leads the points classification
+[GC]   11  Sam Carter        (GB)  [kit] Team Beta     Leader, general classification · Also leads the points classification
 [PTS]  33  Mads Olsen        (DK)  [kit] Team Kappa    Points jersey (2nd in the classification) · 6th overall +1:12
 [IT*]  21  Luca Bertolini    (IT)  [kit] Team Alpha    Champion of Italy
 [kit]  88  Iñigo Arrieta     (ES)  [kit] Team Delta    14th overall +4:02
@@ -265,7 +267,7 @@ La sirve `palmares_race_idx (world_id, race_id)` (`schema.ts` l. 785) por su pri
 
 El Giro de la temporada 0 sale, pues, sin campeón de Italia pero puede traer al campeón de Colombia (ruta el día 39). En ese hueco el rótulo no dice nada y el maillot es el del equipo: sin marcador provisional ni aviso (D-25, O-04, H-01). Sembrar títulos al crear el mundo es de E12 (DD-06, por defecto no), y entraría por la misma interfaz. La respuesta contraria del dueño exige, antes del reinicio, o sacar E12 del orden de los encargos («E2 primero, E13 último», `docs/encargos.md` l. 6-7) o una siembra en E2 detrás de `ChampionTitleSource`, por ejemplo un sorteo sembrado entre los corredores de cada país, marcado provisional (§20.2). No hay Mundial ni continentales: no existen en el calendario (mapa 04 §4; `docs/encargos.md` l. 625-628), así que `scope` es siempre `national` hasta E12.
 
-**El texto** (pantalla): `Champion of Italy`, `Time trial champion of Italy`, `U23 champion of Italy` y `U23 time trial champion of Italy`, con el nombre de `COUNTRIES` (`countries.ts` l. 13 y siguientes). No `Italian champion`, que pidió el juez de ejecutabilidad: `COUNTRIES` no tiene gentilicios para sus 133 países y E10 tendría que traducir esa tabla a cada idioma (D-25, sin evidencia de los jueces); y nunca `ITA CHAMP`, que no es televisión (O-30). Ocho nombres de `COUNTRIES` llevan artículo en inglés (decisión 7-d): `Netherlands`, `United Kingdom`, `United States`, `Philippines`, `United Arab Emirates`, `Dominican Republic`, `Cayman Islands` y `Seychelles` dan `Champion of the Netherlands`. Lo escribe `championTitleText(title, n)` en `packages/shared/src/broadcast/names.ts`, con el nombre del país que da el `NameResolver` de §4.12 (hoy, el de `COUNTRIES`; el de cada idioma, con E10), con la lista cerrada y un test que exige que cada nombre de la lista exista en `COUNTRIES`.
+**El texto** (pantalla): `Champion of Italy`, `Time trial champion of Italy`, `U23 champion of Italy` y `U23 time trial champion of Italy`, con el nombre de `COUNTRIES` (`countries.ts` l. 13 y siguientes). No `Italian champion`, que pidió el juez de ejecutabilidad: `COUNTRIES` no tiene gentilicios para sus 133 países y E10 tendría que traducir esa tabla a cada idioma (D-25, sin evidencia de los jueces); y nunca `ITA CHAMP`, que no es televisión (O-30). Ocho nombres de `COUNTRIES` llevan artículo en inglés (decisión 7-d): `Netherlands`, `United Kingdom`, `United States`, `Philippines`, `United Arab Emirates`, `Dominican Republic`, `Cayman Islands` y `Seychelles` dan `Champion of the Netherlands`. Lo escribe `championTitleText(_locale, t, n)` en `packages/shared/src/broadcast/names.ts`, con el nombre del país que da el `NameResolver` de §4.12 (hoy, el de `COUNTRIES`; el de cada idioma, con E10), con la lista cerrada y un test que exige que cada nombre de la lista exista en `COUNTRIES`.
 
 ```ts
 // packages/shared/src/broadcast/names.ts (sigue). Los nombres de COUNTRIES que en inglés llevan artículo: lista cerrada, atada por test.
@@ -388,9 +390,9 @@ Los casos de la tabla son los tests de `packages/shared/src/broadcast/names.test
 [barra, permanente]         1 · LEAD GROUP · 5                              [KOM]
                               [IT*] Luca Bertolini · [KOM] Jonas Verhoeven · [kit] Pierre Lambert · [kit] Iñigo Arrieta · [kit] Tom Hargreaves
                             2 · BUNCH · 171                        +0:22    [GC] [PTS]
-[capa fija]                 131.9 km to go · +0:22 ▲
+[capa fija]                 131.9 km to go · +0:22 ▲ on the bunch
 
-[break_formed, clase 2]     BREAKAWAY · 5 riders · +0:48 on the bunch, con los cinco por dorsal, cada uno con su icono (§6.7)
+[break_formed, clase 2]     BREAKAWAY · 5 riders · +0:48 on the bunch, con los cinco por dorsal, cada uno con su icono, su dorsal y su nombre (§6.7)
 [break_presented, clase 2]  The mountains leader and the champion of Italy go clear with three others.
                             (los dos se revelan con breakaway_formed: el bloque en que el hueco sobre el grupo de ORIGEN pasa de 45 s, §4.7)
 
@@ -402,8 +404,10 @@ Los casos de la tabla son los tests de `packages/shared/src/broadcast/names.test
 [kit]  112 Tom Hargreaves    (GB)  [kit] Team Zeta     Won stage 3
 
 [cuadro de diferencias, clase 1, cada 25 s de pared: su forma es §6.7]
-1  LEAD GROUP  5            [KOM]        Luca Bertolini, Jonas Verhoeven, Pierre Lambert, Iñigo Arrieta, Tom Hargreaves
-2  BUNCH       171   +2:14  [GC] [PTS]
+TIME CHECK · 121.5 km to go
+1  LEAD GROUP · 5                       [KOM]               0:00
+     [IT*] Luca Bertolini · [KOM] Jonas Verhoeven · [kit] Pierre Lambert · [kit] Iñigo Arrieta · [kit] Tom Hargreaves
+2  BUNCH · 171                          [GC] [PTS]         +2:14
 ```
 
 Hargreaves es nivel 6 y no entra en la frase porque los dos huecos son de Verhoeven (2) y Bertolini (4); Arrieta, 14.º, no llega a `gcThreatTop` (10) y es nivel 8. Si el espectador es el dueño de Arrieta, su rótulo añade `Your rider`, la frase pasa a `…with your rider Iñigo Arrieta and two others.` y la capa fija gana su línea de §6.2. En un teléfono de 360 px la barra enseña como mucho `BROADCAST.mobileGroupRows` (4) filas, bajo la fila 1 van los iconos de los cinco, y la lista con nombres se abre al tocarla (§6.2); cada rótulo va en dos renglones:
@@ -414,14 +418,17 @@ Hargreaves es nivel 6 y no entra en la frase porque los dos huecos son de Verhoe
       Team Alpha · Champion of Italy
 ```
 
-**Lo que se enseña mientras E3 y E12 no existan** es exactamente lo de arriba, con tres condiciones. Primera: `[IT*]` es el `ChampionMark` provisional (7.4) y `[kit]` la equipación de `Jersey`; cuando E3 dibuje la señal y el editor, cambia el dibujo detrás de `WornJerseyIcon` y no el dato. Segunda: el título sale de `palmares` con `provisional: true`, que la pantalla no distingue: es un título de verdad, el de un campeonato que se corrió. Tercera: sin Mundial nadie es `World champion`, y antes del primer nacional nadie es campeón: en el Giro de la temporada 0 (días 128-151) la misma fuga, con Bertolini sin título y en el maillot de su equipo, dice `The mountains leader goes clear with four others.`, que sigue siendo otra carrera que `Five riders go clear.`
+**Lo que se enseña mientras E3 y E12 no existan** es exactamente lo de arriba, con tres condiciones. Primera: `[IT*]` es el `ChampionMark` provisional (7.4) y `[kit]` la equipación de `Jersey`; cuando E3 dibuje la señal y el editor, cambia el dibujo detrás de `WornJerseyIcon` y no el dato. Segunda: el título sale de `palmares` con `provisional: true`, que la pantalla no distingue: es un título de verdad, el de un campeonato que se corrió. Tercera: sin Mundial nadie es `World champion`, y antes del primer nacional nadie es campeón: en el Giro de la temporada 0 (días 128-151) la misma fuga, con Bertolini sin título y en el maillot de su equipo, dice `The mountains leader and stage 3 winner Tom Hargreaves go clear with three others.` (el segundo hueco de la frase pasa a Hargreaves, nivel 6), que sigue siendo otra carrera que `Five riders go clear.`
 
 ### 7.7 A quién se nombra en cada grupo
 
 Nombrar ya no depende de lo que se guardó sino de lo que se decide al pintar, porque la pertenencia está completa en cada instante (§4.2, §4.5). La política es la de `ingeniero.md` §6.4 (D-27, I-46):
 
 ```ts
-// packages/shared/src/broadcast/names.ts
+// packages/shared/src/broadcast/names.ts (sigue)
+import type { GroupNow, InstantContext } from './instant.js'
+import type { TimelineEvent } from './timeline.js'
+
 /** A QUIÉN SE NOMBRA en un grupo a la hora del instante; el resto se cuenta. `named` va por RiderIx creciente (dorsal). */
 export function namedRidersOf(
   g: GroupNow,
@@ -450,7 +457,7 @@ Cada dato del rótulo que sale de una etapa lleva la etapa de la que sale (`from
 | `knownWins` | ninguno | nunca velado: solo cuenta carreras cuyo velo ya caducó para todos (7.5) |
 | dorsal, país, género, equipo y equipación | ninguno | la lista de salida de la N+1 es pública |
 
-El orden importa y es este: se degrada, después se cortan las líneas a `cardLinesMax` y después se calcula la notoriedad. Así una línea velada no ocupa un hueco ni sube de nivel a nadie. Un ejemplo que no pasa por la puerta de la N+1 (D-37 obliga a resolver la N antes de ver la N+1 de la misma carrera): el corredor del espectador corrió `nc-it-road` el día 179 y el espectador no lo ha visto, así que esa carrera está en guardia (propia, D-30). En la etapa 7 de Race France (día 191) Bertolini sale con la equipación de su equipo, sin `Champion of Italy`, y la frase de 7.6 dice `The mountains leader goes clear with four others.` En cuanto el espectador ve o revela el nacional, cambia `Horizon.rev` y la cabecera siguiente trae el título. B13 comprueba que ningún campo con `from` velado viaja (§16.4).
+El orden importa y es este: se degrada, después se cortan las líneas a `cardLinesMax` y después se calcula la notoriedad. Así una línea velada no ocupa un hueco ni sube de nivel a nadie. Un ejemplo que no pasa por la puerta de la N+1 (D-37 obliga a resolver la N antes de ver la N+1 de la misma carrera): el corredor del espectador corrió `nc-it-road` el día 179 y el espectador no lo ha visto, así que esa carrera está en guardia (propia, D-30). En la etapa 7 de Race France (día 191) Bertolini sale con la equipación de su equipo, sin `Champion of Italy`, y la frase de 7.6 dice `The mountains leader and stage 3 winner Tom Hargreaves go clear with three others.` (la etapa 3 sí la conoce: D-37 le hizo resolver las seis anteriores). En cuanto el espectador ve o revela el nacional, cambia `Horizon.rev` y la cabecera siguiente trae el título. B13 comprueba que ningún campo con `from` velado viaja (§16.4).
 
 ```
 serveCast(cast, h, nombres, ctx):                               // la API, al montar BroadcastHead.cast; §10.10 lo aplica
@@ -500,7 +507,7 @@ Lo que E12 tiene que respetar para no romper a E2: la vigencia (`validFromDay < 
 - 7-b. `buildTimelineCast` arma las clasificaciones de salida con `gcRows` (`stageRun.ts` l. 278-290) y, para puntos y montaña, solo las filas con más de cero puntos, de más a menos y a igualdad por la general. Así el rótulo dice lo que la API y el acta (`results.ts` l. 344 y 403) y no lo que la lista de seguimiento del tick (l. 551-557), que tras un prólogo viste de verde y azul al 2.º y al 3.º de la general. Un test (`packages/db/src/cast.test.ts`) compara `wornJerseys` sin títulos con `raceLeaders({ gc, points, kom, teams: teams.overall })` de `shared` sobre `getGcThroughStage`, `getPointsClassification`, `getKomClassification` y `getTeamClassifications` con la etapa N − 1, que es lo que hace `leadersThroughStage` (privada de la API, y `packages/db` no puede importar de `apps/api`), en las etapas del banco, salvo empates exactos a puntos. Descartado: copiar las clasificaciones del tick tal cual.
 - 7-c. Un título vale el día `d` si `validFromDay < d ≤ validToDay`, con `validToDay = validFromDay + 364`. La cota inferior estricta da lo mismo que el «≤» de D-25 con el orden actual del tick, que corre los nacionales detrás de toda otra carrera del día (`calendarRun.ts` l. 1570-1588 recorre `SEASON_CALENDAR`, ordenado por día de salida con los nacionales al final, `calendar.ts` l. 3669-3681), pero no depende de ese orden y deja al tick pedir los títulos una vez por día. Descartado: «≤», cuyo resultado cambia a mitad de un día si se reordena el bucle.
 - 7-d. Ocho nombres de `COUNTRIES` llevan artículo en inglés (`Champion of the Netherlands`), en una lista cerrada que un test ata a `COUNTRIES`. Descartado: `Champion of Netherlands`, y los gentilicios (D-25).
-- 7-e. `knownWins` cuenta las victorias (`gc` o `stage`) de carreras cuya fila `gc` tiene `game_day ≤` día de la etapa − `expiryGameDays`, con la consulta de §7.5. Cierra la duda de §4.2 y §15.4 sobre D-26 sin cambiar su intención: ningún velo puede ocultar lo que cuenta. Descartado: la cuenta por el día de cada victoria, que en una vuelta cuenta etapas aún veladas hasta 20 días.
+- 7-e. `knownWins` cuenta las victorias (`gc` o `stage`) de carreras cuya fila `gc` tiene `game_day ≤` día de la etapa − `expiryGameDays`, con la consulta de §7.5. Cierra la duda de §4.2 y §15.4 sobre D-26 sin cambiar su intención: ningún velo puede ocultar lo que cuenta. Descartado: la cuenta por el día de cada victoria, que en una vuelta cuenta etapas aún veladas hasta 23 días (la etapa 1 del Giro: suma desde el día 184 y sigue velada hasta el 206).
 - 7-f. El nivel 4 de notoriedad es para los títulos de la categoría del día (un título sub-23 en una carrera de élite es una línea, no un titular); el nivel 5 durante la carrera solo se calcula con el déficit que el rótulo trae (hasta el puesto `gcLineTop`). Descartado: añadir al rótulo el déficit de todos, que no está en `RiderCard` (§4.8).
 - 7-g. `distinctions` recibe `gcLineTop` como parámetro (`jerseys.ts` no importa `BROADCAST`); se calcula al grabar y se corta a `cardLinesMax` al servir, tras el velo. Cambiar `gcLineTop` no reescribe las líneas grabadas, como `expiryGameDays` con `knownWins` (§15.1, punto 3). Las líneas `champion` van por categoría del día, disciplina del día y alcance.
 - 7-h. `ChampionMark` provisional: un maillot, la silueta de `Jersey` (`TORSO`) en un color neutro, sin banda ni lunares, con una estrella en el pecho como marca de forma y la bandera del país pequeña a su lado; `role="img"`, `aria-label` y `<title>` con el texto del título, en `Jersey.tsx`; `WornJerseyIcon` es el único que elige dibujo por `WornJersey`. Es un maillot porque el dueño pide ver maillots (`docs/encargos.md` l. 153-154; `docs/navegacion.md` l. 412-413), y la estrella es una marca que no lleva ninguno de los de líder ni ninguna equipación. Descartados: el maillot del equipo con una banda de bandera, que en gris se confunde con el verde; y la bandera con una estrella encima, que era la versión anterior de esta decisión y enseñaba al campeón de la fuga como una bandera entre cuatro maillots.
@@ -508,7 +515,7 @@ Lo que E12 tiene que respetar para no romper a E2: la vigencia (`validFromDay < 
 - 7-j. La moto recorre la fuga por dorsal, el orden de la lista; tocar `+143 riders` abre la lista entera de ese grupo por dorsal.
 - 7-k. `titlesOn` recibe primero el manejador de base (`q: Queryable`), porque el tick la llama dentro de su transacción; E12 implementa la misma firma.
 - 7-l. La edad no va en el rótulo: la tele la da solo en fases tranquilas (mapa 06 §2.1, l. 101), en carrera no cambia la lectura y la ficha la enseña a un toque (7-m). Si E3 la pide, sale de `riderAge(birthSeason, season)` (`packages/shared/src/time.ts` l. 38-40). Descartado: `RiderCard.age` en la primera línea del rótulo (la fila 14 del mapa 06 §9), y calcularla como la temporada de la etapa menos `riders.birth_season`, que da veinte años menos.
-- 7-m. El nombre del rótulo es siempre `RiderName`, con su enlace a la ficha (el dueño, v58 y v59); tocar un nombre fuera del rótulo saca el rótulo (`focus`, §6.5) y seguir el del rótulo pausa e informa de lo alcanzado (§8.5). La ficha se sirve con el horizonte de quien mira (§11.14). Descartado: el «si enlaza» sin regla de la versión anterior.
+- 7-m. El nombre del rótulo es siempre `RiderName`, con su enlace a la ficha (el dueño, v58 y v59); tocar un nombre fuera del rótulo saca el rótulo (`focus`, §6.5) y seguir el del rótulo pausa e informa de lo alcanzado (§8.11). La ficha se sirve con el horizonte de quien mira (§11.14). Descartado: el «si enlaza» sin regla de la versión anterior.
 
 **Propuesto para el glosario.**
 - `cardCaption(worn, n)`, `cardLineText(d, n)`, `championTitleText(_locale, t, n)`, `ordinal(n)`, `gapText(s)` y `listAnd(xs: readonly string[]): string` (los textos del rótulo, la frase y los títulos; `listAnd`, escrita entera en 7.1), en `packages/shared/src/broadcast/names.ts`.
