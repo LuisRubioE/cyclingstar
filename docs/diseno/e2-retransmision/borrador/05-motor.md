@@ -142,7 +142,7 @@ function disputeClimb(groups: { tS: number; members: RiderSim[] }[], block: Bloc
   // … el winner y el log.emit de l. 9310, sin cambios …
 }
 
-// packages/engine/src/stage/timetrial.ts
+// packages/engine/src/stage/timetrial.ts (su importación de tipos de './types.js', l. 40-48, gana `StageProbe`, que hoy no trae)
 export function simulateTimeTrial(input: StageInput, seed: string, probe?: StageProbe): StageOutput {   // l. 219
   // … dentro de input.riders.map, por corredor:
   let percance: { kind: 'pinchazo' | 'averia'; km: number; lostS: number } | null = null
@@ -173,7 +173,7 @@ Por qué cada uno tiene esa forma:
 La envoltura de la sonda de `packages/db/src/stageRun.ts` (hoy l. 515-536) cambia así (D-08, I-12, O-01): pide `atKm` con el centro de CADA bloque, reconoce por el ÍNDICE de bloque las fotos que caen en un punto de `radioKmPoints` y hace con ellas EXACTAMENTE lo de hoy (anotar `trabajaronParaOtro` y dárselas a `raceRadioCollector`), y da todas al grabador. El despacho es por índice y no por km porque el motor no devuelve el km pedido sino el centro del bloque que le corresponde: construye `probeAt` con `Math.round(target / STAGE.dx − 0,5)` (`simulate.ts` l. 1946-1948) y llama a `onSnapshot` con `probeAt.get(i)` (l. 9023). La envoltura hace la misma cuenta con `photoBlocksOf` (§4.5; la ata al motor el test de §15.5 en las 1.418 etapas del calendario).
 
 ```ts
-// packages/db/src/stageRun.ts, en lugar de l. 515-536
+// packages/db/src/stageRun.ts, en lugar de l. 515-536; la importación de '@cyclingstar/engine' (l. 1-30) gana `type StageProbe` (el índice lo exporta desde 5.9) y el fichero importa `startStageTimeline` y `type TimelineTickLog` de './timelines.js'
 const lengthKm = stageLengthKm(spec.profile)
 const radio = raceRadioCollector(radioKmPoints(lengthKm))
 const trabajaronParaOtro = new Set<string>()
@@ -250,7 +250,7 @@ export function startStageTimeline(opts: {
 
 ### 5.4 El grabador puro
 
-`timelineRecorder` vive en `packages/engine/src/sim/timeline.ts`, el fichero nuevo que ya lleva la guarda de tipos de §4.3 (`SNAPSHOT_FIELDS`, `PROBE_HOOKS`, `CODES_MATCH`, `ORIGIN_OF_PREFIX`) y el informe de I1 (`I1Mismatch`, §4.4). Es puro como `raceRadio.ts`: no lee reloj ni azar, no importa Node (el gzip es de `packages/db`, `eslint.config.js` l. 80-137) y usa de `@cyclingstar/shared`, que el motor ya importa (`packages/engine/package.json` l. 19), los tipos de §4, `photoAt` y `revealSOf`. Nace en el PR 4b, que es el que paga los ocho tramos de bancos (D-54). Guarda en memoria la foto anterior y la actual, no la etapa (D-02): lo que acumula son las diferencias, que es lo que se escribe, más un reloj de cabeza por bloque (un `Float64Array` de `blocks`, de 12 a 22 KB en las etapas medidas) para la vista de revelado.
+`timelineRecorder` vive en `packages/engine/src/sim/timeline.ts`, el fichero nuevo que ya lleva la guarda de tipos de §4.3 (`SNAPSHOT_FIELDS`, `PROBE_HOOKS`, `CODES_MATCH`, `ORIGIN_OF_PREFIX`) y el informe de I1 (`I1Mismatch`, §4.4). Es puro como `raceRadio.ts`: no lee reloj ni azar, no importa Node (el gzip es de `packages/db`, `eslint.config.js` l. 80-137) y usa de `@cyclingstar/shared`, que el motor ya importa (`packages/engine/package.json` l. 19), los tipos de §4, `photoAt` y `revealSOf`. Nace en el PR 4b, que es el que paga los ocho tramos de bancos (D-54). Guarda en memoria la foto anterior y la actual, no la etapa (D-02): lo que acumula son las diferencias, que es lo que se escribe, más un reloj de cabeza por bloque (un `Float64Array` de `blocks`, de 10 a 22 KB en las etapas medidas, de 1.280 a 2.782 bloques) para la vista de revelado.
 
 ```ts
 // packages/engine/src/sim/timeline.ts (sigue a la guarda de §4.3)
@@ -273,7 +273,7 @@ export interface RecorderFinishInput {
   readonly input: StageInput                 // la entrada congelada: el orden de salida de la crono (timeTrialStartOrder)
   readonly output: StageOutput               // events, results e incidents, tal cual
   readonly radio: RaceRadio | null           // la radio COMPLETA que stageRun ya construye (radio.radio({ incidents })); null en crono
-  readonly cast: TimelineCast                // buildTimelineCast (packages/db/src/cast.ts, D-15; su contenido es §7), con favourites (§4.2, 8-f)
+  readonly cast: TimelineCast                // buildTimelineCast (packages/db/src/cast.ts, D-15; su contenido es §7), con favourites (§4.2, 4-u; 8-f y 8-g)
                                              // de los attrsByRider que runOneStage leyó al empezar (stageRun.ts l. 298-310), antes de que el
                                              // aprendizaje los reescriba (l. 891-897): por eso se cierra justo tras stage_snapshots (l. 570-595)
   readonly profile: ProfileStrip             // profileStripOf, abajo
@@ -464,7 +464,7 @@ export interface RunTickOptions { /* … lo de hoy (l. 60-72) … */ readonly ti
 //   en la transacción del día (l. 262-284): raceWorldDay(tx, worldId, next, seed, timelineLog) (l. 269) y
 //   runCalendarDay(tx, worldId, next, seed, { repairWorld, timeline: timelineLog }) (l. 270-272); justo detrás, await timelineLog?.flush(tx)
 //   notas de l. 337-347: [notaE1, timelineLog?.summary() ?? null, capped ? … : …]
-// packages/db/src/stageRun.ts: StageRunSpec gana `timeline?: TimelineTickLog`; packages/db/src/calendarRun.ts: CalendarDayOptions también
+// packages/db/src/stageRun.ts: StageRunSpec gana `timeline?: TimelineTickLog`; packages/db/src/calendarRun.ts: CalendarDayOptions también; packages/db/src/race.ts: raceWorldDay (l. 25-30) gana un quinto parámetro, `timeline?: TimelineTickLog`, que pasa en el spec de su runOneStage (l. 46-58), y la vuelta de prueba también se graba
 ```
 
 Un test que corre etapas con `runOneStage` fuera de `runTick` y con `spec.timeline` (el mundo de B1, §16.3; `stageRun.test.ts`, §17.8) llama a `flush(tx)` en la misma transacción, detrás de la etapa: sin él, la etapa no deja fila y la retransmisión sale del adaptador sin que el test lo note.
