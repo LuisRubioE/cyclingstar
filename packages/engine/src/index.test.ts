@@ -464,6 +464,8 @@ describe('engine: esqueleto', () => {
     // v89: V12 al generar, con un tope anti-clon por familia (docs/balance.md, v89).
     // v90: el maillot de líder entra en el motor y solo da alas al esfuerzo sostenido
     // (docs/balance.md, v90).
-    expect(ENGINE_VERSION).toBe(90)
+    // v91: el puente desde atrás no hereda el reloj del pelotón y el reservón guarda los cerillos
+    // fuera de lo decisivo (docs/balance.md, v91).
+    expect(ENGINE_VERSION).toBe(91)
   })
 })

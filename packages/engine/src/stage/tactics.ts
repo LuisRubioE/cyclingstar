@@ -299,6 +299,40 @@ export function jerseyBreakDamp(esMaillot: boolean, kind: MoveKind, onClimb: boo
   return onClimb ? STAGE.jerseyBreakDampClimb : STAGE.jerseyBreakDampFlat
 }
 
+/**
+ * ¿ES DECISIVO ESTE MOVIMIENTO PARA UN RESERVÓN? (v91). Para cualquier otra mentalidad, siempre.
+ *
+ * El reservón guarda los cerillos (SPEC 6.18: multiplicador de ataque personal 0) y solo los gasta
+ * cuando hay algo que defender o que jugarse de verdad:
+ *
+ * - **su cita**: el jugador le marcó el kilómetro, y una orden explícita manda sobre la mentalidad;
+ * - **la general**, si se la juega (la misma ventana de `ataque_final`): en el desenlace o dentro de
+ *   un grupo, en el terreno de la general, y siempre que el que se mueve sea otro hombre de la
+ *   general. Es lo que hace que el líder siga defendiendo y respondiendo a sus rivales;
+ * - **el desenlace, si es la carta del equipo** (`lider`): en una carrera sin general el final es su
+ *   momento, el que lleva guardándose todo el día.
+ *
+ * Todo lo demás —la fuga del día, el contraataque, el puente, el ataque de dentro de una fuga que no
+ * le va nada, el desenlace de un cazaetapas que se ha guardado— no es asunto suyo.
+ */
+export function reservonDecisivo(
+  r: MoveRider,
+  ctx: MoveContext,
+  instigator: MoveRider | null = null,
+): boolean {
+  if (r.mentality !== 'reservon') return true
+  if (r.triggerKm != null && ctx.km != null) {
+    if (Math.abs(ctx.km - r.triggerKm) <= STAGE.triggerWindowKm) return true
+  }
+  const ventana = STAGE.gcThreatFraction * STAGE.gcControlLeash
+  if (ctx.hasGcContext && r.gcDeficitSeconds <= ventana) {
+    if (ctx.kind === 'ataque_final' || ctx.kind === 'ataque_grupo') return true
+    if (ctx.gcTerrain) return true
+    if (instigator !== null && instigator.gcDeficitSeconds <= ventana) return true
+  }
+  return ctx.kind === 'ataque_final' && r.role === 'lider'
+}
+
 const KIND_FOLLOW: Record<MoveKind, number> = {
   fuga: 1,
   contraataque: 0.7,
@@ -673,7 +707,12 @@ export function followProbability(
     descuentoCompanero *
     // …Y EL MAILLOT TAMPOCO SALTA A LA RUEDA (R02.12 · v79), que es la mitad que faltaba entera:
     // «entrar en una fuga» es casi siempre seguir al que se va, no irse uno.
-    jerseyBreakDamp(r.esMaillot === true, ctx.kind, ctx.onClimb)
+    jerseyBreakDamp(r.esMaillot === true, ctx.kind, ctx.onClimb) *
+    // …Y EL RESERVÓN SOLO SALTA A LO QUE LE VA (v91). La mentalidad entraba como un sumando
+    // (`spirit`, −0,105) al lado del rol (0,3 para un cazaetapas), y ahí se perdía: su probabilidad
+    // de salto era dos tercios de la del supercombativo. Ver `reservonDecisivo`. La fuga del día
+    // queda fuera del freno: ver `STAGE.reservon`.
+    (reservonDecisivo(r, ctx, instigator) || ctx.kind === 'fuga' ? 1 : STAGE.reservon.seguir)
   )
 }
 
