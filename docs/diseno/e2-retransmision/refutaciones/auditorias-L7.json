@@ -1,0 +1,642 @@
+[
+ {
+  "id": "Rcobertura-038",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L7.json; correcciones-L7.json: parcial",
+  "veredicto": "cerrado",
+  "evidencia": "Corrección mejor que la pedida, con un motivo que se sostiene. 11-superficies.md l. 21 (fila `sup. E9`): «Cierra» es «7b · 9a (la etapa) y 9b (la carrera de un día)» y el banco, `stageTables.test.tsx` con `?tab=result&cls=kom` (9a) y `raceTabs.test.ts` (9b); §11.19 (l. 740-741) da los dos tests con sus casos (`?tab=result&cls=kom`, `?tab=classifications` y `?tab=story` pintan la puerta; la redirección de `/stages/1` sin `?tab=` conserva `?cls=`). El motivo de no llevarlo entero al 9b, como pedía el hallazgo, es cierto: el `?tab=` y el `?cls=` de una etapa de vuelta los lee `StageReplay.tsx` (l. 346 y 265, con `useTabParam`, `Tabs.tsx` l. 263-282; comprobado en HEAD), que cambia en el 9a, y solo la ficha de la carrera de un día (`Race.tsx` l. 442 y 599) es del 9b. Lo que el corrector mandó por cruzada está: §16.6 (16-bancos.md l. 700, la fila nueva con los dos ficheros y «9a y 9b»), §17.12 (17-plan.md l. 387, `stageTables.test.tsx` en el 9a), §17.21 (l. 717) y D.5 (21-apendices.md l. 302).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-039",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L7.json; correcciones-L7.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "11-superficies.md l. 24 (fila `sup. C3`): «8a · 9b»; l. 64 pone la ficha de la carrera de un día en el 9b («con `raceTabs` y su redirección: `sup. C3` y la mitad de `sup. E9`»). Casa con el bloque de §11.17 (l. 605, «cambia en el 9b»), con §17.2 (17-plan.md l. 44, `raceTabs.test.ts` en el 9b) y con D.5 (21-apendices.md l. 305, «8a · 9b»).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-040",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L7.json; correcciones-L7.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "11-superficies.md l. 522-528: `export const PULLERS_KEPT = 12` con el comentario que la ata a `STORED_PULLERS_MAX` hasta el 4b, que la exporta (5-g) y la importa; comprobado en HEAD que `STORED_PULLERS_MAX` es `const` sin `export` y vale 12 (`packages/engine/src/sim/raceRadio.ts` l. 591). l. 522 dice que nace en el 3a con el adaptador (17-f) y que el 7b añade los casos de la pestaña; l. 558 explica la copia con fecha de muerte y su test, `broadcastConstants.test.ts` (§15.5, 15-k); §11.19 (l. 733) pone el test de `veilStoredRadio` en el 3a. Lo de las demás secciones está: §15.5 (15-constantes.md l. 238 y 262-263, el caso del test), 15-k (l. 352), la tabla de §15 (l. 320), §5.4 (05-motor.md l. 313), §17 (17-plan.md l. 148, 216, 222, 597 y 654) y el glosario (00-glosario.md l. 175 y 181).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-041",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L7.json; correcciones-L7.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "11-superficies.md l. 51 y 54: el banco de `sup. W3` y `sup. W6` es «B1d (L con motivo; su respuesta no cambia con la etapa, §11.18)»; l. 236 separa lo L (con su motivo en el registro, B1d) de lo que además entra en la lista blanca de B1b (el calendario, la condición y los atributos); l. 5 dice qué es la lista blanca («los campos de las rutas L cuya respuesta cambia al correrse una etapa, y lo que cambia solo porque el velo gana esa etapa») y que las L que no cambian las vigila B1d; §11.18 (l. 722) las nombra con su `why`. D.5 lo copia (21-apendices.md l. 332 y 335), y `B1B_WHITELIST` de §16.3 (16-bancos.md l. 91-99) tiene las siete filas de la primera tabla de §11.18, en el mismo orden, sin la lista de salida, `my-orders` ni la vuelta de prueba.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-058",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L7.json; correcciones-L7.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "18-rendimiento.md l. 65: «`BROADCAST.decodedCacheEntries` es 16 desde que existe (§15.3; nace en el 3a con el adaptador, §17.20), no los 64 de `datos.md` §12»; 18-d (l. 273): «nace en 16»; §18.10 (l. 246): «16 entradas desde que nace … | 3a; el acierto, 6». Coincide con §15.3 (15-constantes.md l. 178 y 302), §5.6 (05-motor.md l. 601), §17.9 (17-plan.md l. 271) y el glosario (00-glosario.md l. 880). Lo que fue por cruzada también está: el riesgo 13 de §19.1 (19-riesgos.md l. 23: «con 16 entradas, de 8 a 30 MB … cuando un LRU de 64 ocuparía de 33 a 121 MB»), I-09 (21-apendices.md l. 23: «el LRU es de 16 entradas desde que nace») y la duda 1.11, cerrada (dudas.md l. 25 y 67).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-059",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L7.json; correcciones-L7.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "18-rendimiento.md l. 216: «| B21, la posición extrapolada | contra la línea entera (§16.4) | 4b (17-i) |». Casa con 17-i, con §16.9 (16-bancos.md l. 766, «4b (17-i)», y l. 770) y con §19 (19-riesgos.md l. 169, «B21, en el 4b»).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-024",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L7.json; correcciones-L7.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "11-superficies.md l. 342 (§11.9) y 11-d (l. 777): «`emails.ts` l. 58». Comprobado en HEAD, en `9c21885` y en `dc6cf4b`: `export type MailBody = Omit<MailMessage, 'to'>` está en `apps/api/src/emails.ts` l. 58; l. 61 es el comentario de `resetPasswordEmail`.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-029",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L7.json; correcciones-L7.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "El mismo cambio que Rcobertura-058, con la cifra de L3: 18-rendimiento.md l. 65 («L3 midió cada línea decodificada … de 33 a 121 MB las 64 … Con 16, de 8 a 30 MB, y hasta el doble con la del adaptador de la radio») y 18-d (l. 273, «nace en 16, no en 64 … de 8 a 30 MB en lugar de 33 a 121»). Lo que pedía fuera de §18 está: el riesgo 13 de §19.1 (19-riesgos.md l. 23, con las dos cifras y la defensa), I-09 (21-apendices.md l. 23) y la duda 1.11 cerrada con el valor de §15.3 (dudas.md l. 25 y 67). Ninguna sección dice ya que el LRU nace en 64 o baja en el paso 6 (grep de «64 a 16», «LRU de 64» y «64 líneas» en las secciones: solo quedan el registro histórico de D-10 en 00-decisiones.md l. 21 y 229, que cuenta la corrección, y una duda vieja de §5, 05-motor.md l. 713, que el ensamblado quita).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-037",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L7.json; correcciones-L7.json: parcial",
+  "veredicto": "cerrado",
+  "evidencia": "El bloque de §11.17 (11-superficies.md l. 605-692) sustituye `raceTabs.ts` entero salvo `STAGE_RACE_TABS`, ya con la firma de la coherencia (`raceTabs(status, stageCount, seen, watchOn)`, Rdueno-021 y Rdueno-028), y compila: armado en el scratchpad (`aud7/rt/`: `STAGE_RACE_TABS` de HEAD, l. 31-35, más el bloque de hoy) con tsc 5.9.3 y el `tsconfig.base.json` estricto, 0 errores. La prosa de l. 695 dice qué pasa `Race.tsx` l. 595 (comprobada: hoy `raceTabs(status, data.race.stageCount)`) y qué casos de `raceTabs.test.ts` cambian (l. 33-34, 46-47, 67-68 y 84-86, comprobados). El detalle que el corrector dejó como parcial se sostiene: `oneDayStageTab` devuelve null y no `report` en su rama por defecto, porque con `report` el enlace de un marcador a `/stages/1` abriría la puerta en lugar de `Watch` a quien no la conoce (11-o). Faltaban dos cosas para que lo escrito compilara y se viera: las demás llamadas de `raceTabs.test.ts` (l. 12-13, 17-19, 24, 39, 44-47, 52, 59, 95, 106-107 y 111) pasan dos argumentos y la firma nueva pide cuatro (TS2554), y `Race.tsx` l. 600 rotula con `RACE_TAB_LABEL[id]`, que con `Watch` apagado ya no llamaría `Story` a `report` (`raceTabLabel`).",
+  "accion": "lo he cerrado yo: 11-superficies.md l. 695, las llamadas de hoy con dos argumentos ganan `seen` y `watchOn` (`true, true`) sin cambiar lo que esperan, y `Race.tsx` l. 600 rotula con `raceTabLabel(id, watchOn)`."
+ },
+ {
+  "id": "Rcodigo-059",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L7.json; correcciones-L7.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "11-superficies.md l. 722: «las doce de administración y `POST /api/world/advance`, trece en total». Comprobado en HEAD: `apps/api/src/routes/admin.ts` registra doce (l. 60, 67, 74, 88, 108, 119, 129, 136, 145, 154, 160 y 186) y `routes/world.ts` l. 21 es la decimotercera; casa con la tabla de §11.3 (l. 99-111) y con la nota de l. 185 («el motivo es el mismo en las trece»).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-061",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L7.json; correcciones-L7.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "Aplicado como `sup. X11` de §11.2 y no como `sup. P7` de §11.1, con un motivo que se sostiene (§11.1 son las 48 del mapa 03, X-17): 11-superficies.md l. 68 y 82 (la fila, con L por DD-08, la medida, el porqué de no velar y la purga de 60 días), l. 84, la fila de §11.3 (l. 164: «R, M y L (los atributos, DD-08)», con `sup. X11`), §11.13 (l. 387-389 y 407), la primera tabla de §11.18 (l. 707, `rider.attributes` con su `why`) y 11-r (l. 791); y cerró la misma fuga en `GET /api/riders/me/coach-view` (l. 147, 389 y 706, `coachView.notes`). Citas comprobadas en HEAD: `getPublicRider` lee `rider_attrs.value` en `packages/db/src/browse.ts` l. 297-303; la columna es `real` (`schema.ts` l. 351); el panel `Attributes` está en `RiderProfile.tsx` l. 451-458; `coachNotes` en `packages/engine/src/coachView.ts` l. 73-85 y su llamada en `packages/db/src/riders.ts` l. 468-477; `purgeAttrLog` y sus 60 días en `packages/db/src/tick.ts` l. 171-178; el TAC por el puesto en `world/learning.ts` l. 106-110. Medida reproducida hoy con `rcod/n/b1/attrs.mjs` sin cambios y los `dist` del repositorio (`aud7/attrs-aud7.out`, 7 s): TAC +0,4143 en `OWN_RIDER`, +0,3735 en `idDe(5)` y +0,391 en el ganador; LLA, MON y DES, de +0,037 a +0,303; idéntica a la del corrector. Lo de otras secciones está: `B1B_WHITELIST` (16-bancos.md l. 93-96), DD-08 en §20 (20-dueno.md l. 28) y en 00-decisiones.md (D-41 y el registro, l. 46 y 63), y la cuenta de once puertas en §0 (00-cabecera.md l. 76, 98 y 166), §1 (01-diagnostico.md l. 5 y 199), §2 (02-principios.md l. 11 y 55) y §21 (21-apendices.md l. 43, 290 y 614).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-012",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L7.json; correcciones-L7.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "18-rendimiento.md l. 77-85: la tabla de los tres caminos (PGlite en el proceso, PGlite por el socket de `testDb.ts` y PostgreSQL 16.13 nativo sin red) y «Lo que esa cifra no tiene es la red … la forma D hace tres idas y vueltas por cálculo»; §18.9 (l. 215) cambia «B14 contra Postgres de producción» por la medida desde el servicio `web` de Railway contra una copia de producción rellenada hasta 250.000 filas de `race_rosters`, y lo repiten 18-j (l. 279) y §18.10 (l. 247). Fuera de §18 también está: §0.7 (00-cabecera.md l. 149), §16.4 y §16.9 (16-bancos.md l. 448 y 759), el riesgo 8 (19-riesgos.md l. 18, que se queda en «media … hasta medirla no es baja» por 19-a, de L9) y DD-21 (20-dueno.md l. 39 y 62; 00-decisiones.md l. 878). Medida reproducida hoy, donde el corrector no pudo: PostgreSQL 16.13 levantado como `postgres` fuera de `/tmp/claude-0` (`/tmp/pgaud7`, socket `/tmp:5433`, `shared_buffers` 256 MB) y `coste/pgm/horizonte-pg.mjs` sin cambios, dos corridas (`aud7/horizonte-pg-aud7.out` y `aud7/horizonte-pg-aud7b.out`, unos 40 s cada una): forma D, p95 de 1,70 y 1,96 ms el jugador, de 4,75 y 4,11 ms el mánager y de 2,33 y 2,69 ms la población; sin el índice, de 24,5 a 27,7 ms. El mánager pasa en las tres corridas (de 3,88 a 4,75 ms con la del refutador), pero el margen no es el 22 % que decía §18.2 sino de un 5 a un 22 % según la corrida.",
+  "accion": "lo he cerrado yo en 18-rendimiento.md: la fila de PostgreSQL 16 de §18.2 (l. 83) y la de §18.10 (l. 247) con las dos corridas de la auditoría, l. 85 («con un margen de un 5 a un 22 % según la corrida») y §18.9 (l. 215). Las demás secciones citan 3,88 ms como medida del refutador, que sigue siendo cierta; si el cierre quiere el rango, es «de 3,88 a 4,75 ms en tres corridas» en 00-cabecera.md l. 149, 16-bancos.md l. 448 y 759, 19-riesgos.md l. 18 y 52, 20-dueno.md l. 39 y 62 y D-33 (00-decisiones.md l. 40 y 551)."
+ },
+ {
+  "id": "Rcoste-015",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L7.json; correcciones-L7.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "11-superficies.md l. 224 (§11.5: el total del ranking y `lastRunStages` se guardan como una promesa por `(worldId, currentDay)` que comparten las peticiones que llegan a la vez y que se borra si falla) y 11-s (l. 792); 18-rendimiento.md l. 102 y 18-a (l. 270); el caso de B12 propuesto en §11.19 (l. 744). Fuera de §11 y §18 está: el mecanismo R de §10.6 (10-horizonte.md l. 387) y `lastRunStages` en §10.7 (l. 399), el caso en la tabla de B12 de §10.14 (l. 594), en §16.4 (16-bancos.md l. 446, «en el 8b») y en §17.11 (17-plan.md l. 368).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-039",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L7.json; correcciones-L7.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "18-rendimiento.md l. 119 (§18.3, «Lo que el día del tick le cuesta a la web»: el `autoTick` del servicio `web`, el bloque síncrono de una etapa grande, de 3,3 a 4,8 s, y el colchón del reproductor en `Watch` ×1 y en `Highlights` ×4), 18-k (l. 280, `AUTO_TICK`, con el porqué de no bastar con ceder el bucle), §18.9 (l. 225, el tramo servido durante el tick del día 179, paso 5) y §18.10 (l. 253). Comprobado en HEAD: `apps/api/src/index.ts` l. 56-85 (el comentario del auto-tick, `pollMs`, `autoTick` y el `void autoTick()` al arrancar) y `runMigrations` en l. 16. Lo de fuera está: `AUTO_TICK` en §14 (14-api.md), §15 (15-constantes.md), el código del paso 5 en §17 (17-plan.md), el riesgo en §19 (19-riesgos.md), el glosario y D-53 en 00-decisiones.md.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-040",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L7.json; correcciones-L7.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "18-rendimiento.md l. 156 (§18.5): la cuenta de la primera pintura «es la de la web de HEAD: no incluye el código de E2 que la página de `Watch` añade», el PR 3c pesa la página de etapa compilada con gzip 6 y escribe el crecimiento, y «si pasa de 40 KB comprimidos, `Watch` se carga con `import()` diferido»; §18.9 (l. 222) lleva la medida del 3c con su umbral. El paso del 3c en §17.6 está (17-plan.md l. 180).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-041",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L7.json; correcciones-L7.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "18-rendimiento.md l. 59 (§18.1: la regla la vigila `player.test.ts` del 10a, al empezar la etapa k + 1 del digest pide soltar la k − 1 y nunca tiene más de dos cargadas, y la medida a mano del 10b da la cifra) y 18-e (l. 274). Lo de §8 y §17 está: el efecto `release` del reductor (08-ritmo.md l. 386), el caso 8 de `player.test.ts` (l. 419) y el 10a de §17.13 (17-plan.md l. 406).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-022",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L7.json; correcciones-L7.json: parcial",
+  "veredicto": "cerrado",
+  "evidencia": "Está la forma que el propio hallazgo da como alternativa («que §11.17 diga si la etapa no está en su velo y que DD-01 cuente esta consecuencia»): 11-superficies.md l. 226 (§11.5: «P corta por el velo, no por lo conocido … la ficha de una carrera fuera de guardia … es la de hoy, con el ganador de la carrera y el de cada etapa aunque quien mira no las haya visto, y la etapa, en cambio, le abre en `Watch`»), l. 574 (la fila de `docs/navegacion.md` §7.1 l. 337: «si la última etapa no está en el velo de quien mira») y 11-u (l. 794). DD-01 cuenta la consecuencia en §20 (20-dueno.md l. 21) y en 00-decisiones.md (l. 860). El motivo para no leer `race_watch` fuera de guardia se sostiene: contradiría D-30, dejaría la ficha distinta del índice de carreras y del feed, que fuera de guardia siguen al día (`sup. I1`, `sup. N1`), y como una carrera nunca mirada no tiene fila en `race_watch`, escondería el ganador de todas las no vistas, que es la tercera respuesta de DD-01 y la decide el dueño.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-026",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L7.json; correcciones-L7.json: parcial",
+  "veredicto": "cerrado",
+  "evidencia": "Lo que pedía, subir la elección al dueño con sus dos respuestas, está: DD-26 en §20 (20-dueno.md l. 44, 99, 116, 153 y 187) y en 00-decisiones.md (l. 865; D-41 precisada, l. 46), explicada en §11.13 (11-superficies.md l. 402 y 455) y en 11-t (l. 793). El defecto se queda en velado y no en visible con un motivo que se sostiene y que he comprobado en HEAD: el premio de equipo solo lo cobran el equipo del ganador de la etapa (`creditTeam(stageWinnerId, teamStagePrize(level))`, `packages/db/src/economy.ts` l. 174) y los de la general final (l. 183), con importes fijos (`TEAM_STAGE_PRIZE` de 3.000, 1.500 y 500, `packages/engine/src/world/prizes.ts` l. 31 y 35-37), así que el presupuesto de hoy dice «tu corredor ganó», no una pista débil como las de DD-08; y velado es una cota inferior que no bloquea nada, porque añadir una carrera no mira el presupuesto. Las citas de la pantalla, comprobadas: `TeamCalendar.tsx` l. 133 (el aviso del viaje), l. 140 (`Planned travel cost`) y l. 152 (`Budget`). Una estaba corrida: «`draftRace`, que solo comprueba el equipo, la categoría y la fecha, `teamPlan.ts` l. 323-336» es el cuerpo de `setAttend`, al que `draftRace` (l. 363-371) delega.",
+  "accion": "lo he cerrado yo: 11-superficies.md l. 455, «llama a `draftRace` (`teamPlan.ts` l. 363-371), que delega en `setAttend` y solo comprueba el equipo, la categoría y la fecha (l. 323-336)»."
+ },
+ {
+  "id": "Rdueno-039",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L7.json; correcciones-L7.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "11-superficies.md l. 501 (§11.15, «Más allá de la etapa»: `?diag=1` vale también, para un administrador con sesión, en `GET /api/calendar/:raceId`, `GET /api/news` y `GET /api/teams/:id/news`, con `worldHorizon`, la misma franja y las mismas reglas, y la otra salida, el alcance `off`, con su coste), 11-h (l. 781), §11.19 (l. 735, `diagMode.test.ts` en el 8a) y §11.20 (l. 760). Las citas del dueño, comprobadas: `docs/balance.md` l. 9173-9175 (v45, Race Guatemala) y el comentario de `routes/races.ts` l. 447-448 (v50). Lo de fuera está: §14.2 (14-api.md l. 92-93 y 97), §10.9 (10-horizonte.md l. 493, `diag` en las claves de la ficha y de los feeds), §17.11 (17-plan.md l. 41, 346 y 356) y §17.12 (l. 398, la web los reenvía desde el 9b), con D-40 precisada en 00-decisiones.md. A §11.15 le faltaba decir desde qué PR la web pide esas tres rutas con `diag`.",
+  "accion": "lo he cerrado yo: 11-superficies.md l. 501, «(la API, desde el 8a; la web las pide con `diag` desde el 9b, §17.12)»."
+ },
+ {
+  "id": "Rdueno-043",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L7.json; correcciones-L7.json: parcial",
+  "veredicto": "cerrado",
+  "evidencia": "La premisa del hallazgo («Que el acta sea indexable no lo pide nadie») es falsa y el corrector lo desestima con razón: `docs/motor.md` l. 1510 dice de la vista de espectador «Es la que se comparte y la que indexa Google» (comprobado), aunque el requisito del dueño ([DUEÑO 8], l. 1504-1505) es solo que sea pública. Lo demás está, en la forma que el propio hallazgo da como alternativa (subirlo al dueño): 11-superficies.md l. 352 («el acta, pública e indexable por defecto (DD-12)») y l. 359 (el precio, con el robot sin cookie y el `og:description` con `Spoiler · Winner: …`, y la otra cara, `/report` con `X-Robots-Tag: noindex`, §14.10); DD-12 en §20 (20-dueno.md l. 32 y 175, con el caso de `noindex` en `spoilerCanary.test.ts`), §14.10 (14-api.md l. 538) y D-36 y DD-12 precisadas en 00-decisiones.md (l. 42, 563 y 853). El defecto indexable es el que el documento de origen propone y lo decide el dueño con el precio delante.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-010 · cruzada L2 n.º 15",
+  "tipo": "cruzada",
+  "origen": "L2, n.º 15 de cruzadas-L2.json; coherencia.json fila 23 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino «todas las secciones (§0 a §21)». En lo que se ensambla de §11 y §18 no queda ninguna remisión `§G.n`: las dos de 11-superficies.md están en «Propuesto para el glosario» (l. 807, «§G.11») y en «Dudas para el ensamblador» (l. 817, «§G.4»), que `ensamblar.sh` quita (`QUITAR`, l. 25); 18-rendimiento.md no tiene ninguna (grep de «§G» y de «G.n»).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-050 · cruzada L2 n.º 24",
+  "tipo": "cruzada",
+  "origen": "L2, n.º 24 de cruzadas-L2.json; coherencia.json fila 32 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "11-superficies.md l. 526-528: `export const PULLERS_KEPT = 12` con el comentario «Copia de `STORED_PULLERS_MAX` (raceRadio.ts l. 591) hasta el 4b, que la exporta (5-g): entonces esta línea pasa a importarla de @cyclingstar/engine. Hasta ese día la ata broadcastConstants.test.ts (§15.5, 15-k)»; l. 558 lo explica. Es lo mismo que Rcobertura-040.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-004 · cruzada L2 n.º 32",
+  "tipo": "cruzada",
+  "origen": "L2, n.º 32 de cruzadas-L2.json; coherencia.json fila 40 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "18-rendimiento.md l. 223 (§18.9: «la tasa de acierto de la LRU de líneas | los aciertos de `timelineForStage` un día pico (176 o 179) y el día de un despliegue | 6 | ≥ 90 %; si no, se sube el tope o se topa por bytes (18-d)»), 18-d (l. 273, la misma regla con el coste de cada fallo) y §18.2 (l. 65).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-019 · cruzada L2 n.º 36",
+  "tipo": "cruzada",
+  "origen": "L2, n.º 36 de cruzadas-L2.json; coherencia.json fila 44 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "18-rendimiento.md l. 127 (el umbral es `env.PROGRESS_MIN_DELTA_S ?? BROADCAST.progressMinDeltaS`, 15-j) y l. 139 («Si en producción pesara, se sube `PROGRESS_MIN_DELTA_S`, sin desplegar (15-j, §15.6)»); la fila de §19.6 dice lo mismo (19-riesgos.md l. 219).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-045 · cruzada L3 n.º 6",
+  "tipo": "cruzada",
+  "origen": "L3, n.º 6 de cruzadas-L3.json; coherencia.json fila 50 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "11-superficies.md l. 455 (§11.13, párrafo del presupuesto): «llevan `race_key` y `stage_day` nulos y se ven siempre, como un premio de una etapa corrida antes del 8a, que no tiene cómo decir su etapa y cuenta como conocido (§13.5, 13-l)».",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-006 · cruzada L3 n.º 17",
+  "tipo": "cruzada",
+  "origen": "L3, n.º 17 de cruzadas-L3.json; coherencia.json fila 61 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "18-rendimiento.md l. 115 (§18.3): tras «de 122 a 153 ms con un punto de guardado por fila (`coste/pgm/subxact.mjs`)», «E2 no abre uno por etapa: escribe las filas del día en un solo `INSERT` y un punto de guardado al acabar sus carreras (5-l), 86 ms las 153 del 179 (`subxact2.mjs`), y la transacción del día no pasa de dos subtransacciones que escriben, frente a las 153 y 187 que desbordaban la caché de 64 (§5.5, §19.1)». Casa con B15 en §16.4 (16-bancos.md l. 449, `subxact_overflowed`).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-004 · cruzada L3 n.º 22",
+  "tipo": "cruzada",
+  "origen": "L3, n.º 22 de cruzadas-L3.json; coherencia.json fila 66 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "18-rendimiento.md l. 63 (§18.2, «Servir un tramo»: el esquema que se implementa, `storedTimelineV1Schema` de §4.3, de 0,9 a 21 ms de mediana y 61 ms la primera llamada, re-medido por L3 de 1,1 a 28,7 ms, así que una línea en frío cuesta de unos 8 a unos 28 ms y de 50 a 80 ms la primera del proceso), 18-d (l. 273, «de unos 8 a unos 28 ms con el esquema de §4.3») y §18.10 (l. 245, la fila «servir un tramo» con las dos caras).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-021 · cruzada L4 n.º 11",
+  "tipo": "cruzada",
+  "origen": "L4, n.º 11 de cruzadas-L4.json; coherencia.json fila 87 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "§11.17 lo tiene: `raceTabs` y `defaultRaceTab` con `seen` (11-superficies.md l. 628-641), `stagePageTabs(seen, watchOn)` con la arrastrada en `watch` (l. 649-656), el párrafo de l. 695 (la página de etapa toma sus pestañas de `stagePageTabs`; el caso de la cruzada en `raceTabs.test.ts`), §11.19 (l. 740: «una vuelta fuera de guardia, se ve la etapa 5 y la 1 abre en `Watch`») y 11-o (l. 788); §17.12 (17-plan.md l. 396) lleva el test. Pero cuatro sitios de §11 seguían diciendo que la etapa conocida abre en `Report`, con la arrastrada dentro: la tabla de §11.10 (l. 350-351: «quien la conoce (`W`, `S`, `R` o `A`) | `Report`», y «`WatchState.known` falso o sin `watch`» para abrir en `Watch`, cuando sin `watch`, con `SPOILER_MODE=off`, la etapa se trata como vista, l. 695; l. 354-355 para la carrera de un día), la tabla de §11.17 (l. 577-579) y el comentario de `oneDayStageTab` (l. 663, «según `known`»), además de 11-o (l. 788, «a quien no la conoce»). Contradecían a 6-r, 10-e y `stageAccessOf` (14-api.md l. 35-41: abre en `Report` solo con `W`, `S` o `R`).",
+  "accion": "lo he cerrado yo en 11-superficies.md: l. 350-351 y 354-355 (quien no la ha visto, con la arrastrada, `WatchState.seen` falso; quien la vio o la reveló, `W`, `S` o `R`, y sin `watch` con `SPOILER_MODE=off`), l. 577-579 y 788 (vista y no vista en lugar de conocida) y l. 663 («según `seen` y `watchOn`»)."
+ },
+ {
+  "id": "Rcoste-009 · cruzada L4 n.º 19",
+  "tipo": "cruzada",
+  "origen": "L4, n.º 19 de cruzadas-L4.json; coherencia.json fila 95 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "18-rendimiento.md l. 220 (§18.9): «un salto de recorrido de 125 km (`Final 20 km` desde el km 30 de una llana) | la pestaña `Network` de Chrome con `Slow 4G`, del toque al primer fotograma tras `Skipping…` | 10 | ≤ 5 s; si no, `POST …/broadcast/seek` (8-t, §14.2) | pendiente (estimado: unos 4 s con `Fast 4G` y de 13 a 15 s con `Slow 4G`, 24 peticiones seguidas)», como pedía la cruzada.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-014 · cruzada L4 n.º 20",
+  "tipo": "cruzada",
+  "origen": "L4, n.º 20 de cruzadas-L4.json; coherencia.json fila 96 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "18-rendimiento.md l. 201 (los mandos se esconden a los `BROADCAST.controlsHideS` (3 s) con opacidad y siguen en el árbol de accesibilidad; el foco dentro no los deja esconderse) y l. 202 (el resumen accesible lleva la segunda línea, 6-f).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-028, Rcobertura-020 · cruzada L4 n.º 21",
+  "tipo": "cruzada",
+  "origen": "L4, n.º 21 de cruzadas-L4.json; coherencia.json fila 97 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "18-rendimiento.md l. 152 (§18.5, punto 6 del protocolo): los nombres enteros de 7-a cortados con `…`, la línea de iconos bajo la fila 1 de un grupo de cuatro a doce (20 px, §6.1) y los mandos a la vista y escondidos (unos 430 y unos 380 px de 800, 8-p).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-047 · cruzada L6 n.º 3",
+  "tipo": "cruzada",
+  "origen": "L6, n.º 3 de cruzadas-L6.json; coherencia.json fila 128 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "18-rendimiento.md l. 71 (la fila es «las cuatro consultas por espectador (la forma descartada)»), l. 75 («La consulta 2 tal como la escribía §10.6 antes de la forma D … §10.6 escribe ya la forma D») y l. 77 (`computeHorizon` usa la forma D, 18-a). Casa con §10.6 (10-horizonte.md l. 184, «tres consultas por espectador y el mapa del día»).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-010 · cruzada L6 n.º 10",
+  "tipo": "cruzada",
+  "origen": "L6, n.º 10 de cruzadas-L6.json; coherencia.json fila 135 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "18-rendimiento.md l. 136 (§18.4, fila «lecturas por espectador», con `getSession` del memo de 60 s de `request.viewer()`, 10-n, y de 33 a 60 peticiones por etapa y 58 en el peor minuto, estimado con `c-l6/peticiones.mjs`) y l. 221 (§18.9, el tramo con cien espectadores sintéticos en `Next action`, paso 10). El paso 10 de §17 lo tiene (17-plan.md l. 417 y 757).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-011 · cruzada L6 n.º 12",
+  "tipo": "cruzada",
+  "origen": "L6, n.º 12 de cruzadas-L6.json; coherencia.json fila 137 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "18-rendimiento.md 18-c (l. 272: el memo de `veilDelta` es un `TtlMemo` con las reglas y el tope de 10-m, §10.7, y sin ellas guardaba cada clave vieja, de 18 a 470 MB al día) y §18.4 (l. 135, «la memoria del proceso»: una entrada por `(userId, raceKey)` que informó en el último minuto, borrada al conocer la etapa y barrida a los 60 s, del orden de 100 B por espectador).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-017 · cruzada L6 n.º 16",
+  "tipo": "cruzada",
+  "origen": "L6, n.º 16 de cruzadas-L6.json; coherencia.json fila 141 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "18-rendimiento.md l. 245 (§18.10, «servir un tramo | M, por partes: 0,23-1,00 ms con la línea en la LRU; sin ella, de 3 a 22 ms más el corte … y de 50 a 80 ms la primera llamada del proceso»; la cruzada decía de 50 a 60, y la de L3, Rcoste-004, lo subió a 80 con el esquema que se implementa) y l. 63 («Los 1,3 a 4,7 ms de `datos.md` §10.5 eran de otro formato»).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-018 · cruzada L6 n.º 17",
+  "tipo": "cruzada",
+  "origen": "L6, n.º 17 de cruzadas-L6.json; coherencia.json fila 142 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "18-rendimiento.md l. 156 (§18.5, «Lo que se puede estimar ya»: «con uno más para quien tiene sesión, porque la primera visita espera a `GET /api/me/horizon` antes de pedir la cabecera (14-r): unos 0,17 s con `Fast 4G`»). Los tests del 9a están en §17.12 (L9).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-023 · cruzada L6 n.º 18",
+  "tipo": "cruzada",
+  "origen": "L6, n.º 18 de cruzadas-L6.json; coherencia.json fila 143 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "18-rendimiento.md l. 65 («Con 16, de 8 a 30 MB, y hasta el doble con la del adaptador de la radio (§3.8), que tiene la suya del mismo tamaño»), 18-d (l. 273) y §18.9 (l. 224: el adaptador de la radio en frío sobre las seis congeladas, paso 3a, informativo).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-023 · cruzada L6 n.º 19",
+  "tipo": "cruzada",
+  "origen": "L6, n.º 19 de cruzadas-L6.json; coherencia.json fila 144 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "11-superficies.md l. 753 (§11.20, el jugador ante una carrera fuera de guardia): «al empezar a verla la sigue (`follow = 1`, D-30; el defecto de DD-01)». DD-01 lo dice en §20 (20-dueno.md l. 21).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-044 · cruzada L6 n.º 22",
+  "tipo": "cruzada",
+  "origen": "L6, n.º 22 de cruzadas-L6.json; coherencia.json fila 147 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "18-rendimiento.md l. 191 (§18.7, tras la tabla de la cadencia): «La tabla da el ritmo de cada zona, y lo acota la etapa: con `Highlights` ×4 o `Next action`, de 33 a 60 peticiones por etapa y 58 en el peor minuto, contra 9 en `Watch` ×1 (estimado, `c-l6/peticiones.mjs`, §10.3)».",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-002 · cruzada L6 n.º 23",
+  "tipo": "cruzada",
+  "origen": "L6, n.º 23 de cruzadas-L6.json; coherencia.json fila 148 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "11-superficies.md l. 496 (§11.15, «Cómo se entra»): «La web pasa `diag=1` a las cuatro rutas de etapa (`stageQuerySchema.diag`, §14.2): a la ruta de etapa desde el 7b (`fetchCalendarStage` con `diag`, 14-s), y a la cabecera, los tramos y el acta con el 9a». Casa con §17.10 (17-plan.md l. 40 y 333) y §14.11 (14-api.md l. 579).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-043 · cruzada L8 n.º 3",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 3 de cruzadas-L8.json; coherencia.json fila 200 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "11-superficies.md: `pageTitle(_locale: 'en', p, page)` (l. 269), `stageReadyNotice(_locale: 'en', p, ownRiderOnStartlist)` (l. 313) y `stageReadyEmail(_locale: 'en', p, ownRiderOnStartlist, url)` (l. 326), con el comentario de 12-q (l. 267-268); `usePageTitle` y `stageReadyEmail` llaman con `'en'` (l. 288 y 327); 11-c (l. 776), 11-d (l. 777), l. 342 («Los tests de §11.19 llaman con `'en'`») y la lista de nombres (l. 806). Los tres bloques compilan en el `packages/shared` armado con §4, §15, §6, §8 y §11 (`aud7/h`, tsc 5.9.3 estricto): ningún error de §11.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-008 · cruzada L8 n.º 15",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 15 de cruzadas-L8.json; coherencia.json fila 212 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "11-superficies.md l. 513 (fila «conocida», «Desde el paso 11»: `radioFromTimeline` si la etapa tiene línea, con `nameableAt` igual a la política de §7.7 más los diez primeros de la etapa, 12-o; la guardada si no) y l. 564 («y, para la etapa conocida, con los diez primeros de la etapa en los dos lados (16-t)»).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-052 · cruzada L8 n.º 22",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 22 de cruzadas-L8.json; coherencia.json fila 219 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "18-rendimiento.md l. 236-238 (§18.10): el paquete de meta y la ruta de etapa conocida con su máximo de las 24 × 2 a mano en el paso 6 (`scripts/broadcast-fixtures.mjs --sizes`), `maxKnownStageGzipBytes` (110 KB) sobre la etapa corrida de `routes/broadcast.test.ts` en el 6a, y el parse con `stageReplaySchema.safeParse` con el umbral de B8 (§16.4); l. 178 (§18.7) nombra el quinto tope.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-053 · cruzada L8 n.º 23",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 23 de cruzadas-L8.json; coherencia.json fila 220 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "§18 cita los umbrales por §16.4: B8 en §18.1 (l. 57, «Los umbrales de B8 son los de §16.4, su única fuente escrita (16-v …)», sin copiar las medianas) y en §18.10 (l. 238 y 241-243, «el umbral de B8 (§16.4)»); B15 en §18.9 y §18.10 (l. 214 y 251-252); B6 con su tope y §16.4 (l. 233-237). Donde §18 repite un valor lo hace porque es la decisión de la que §16.4 lo toma (18-j, 18-l) o junto a la cita, y coincide con 16-bancos.md l. 442, 448, 449 y 753-760: B8, p95 de `instantAt` ≤ 0,25 ms; B14, 5 ms contra Postgres y 15 ms en PGlite; B15, más de un 25 % y más de 15 s a la vez. Lo único que no casaba: la copia de B15 en §18.3 (l. 123) dejaba fuera su tercera condición, las subtransacciones desbordadas (`subxact_overflowed`, 16-bancos.md l. 449), y la fila de §18.9 (l. 214) decía «paso 5» cuando B15 se corre en el 5 y en el 10.",
+  "accion": "lo he cerrado yo en 18-rendimiento.md: l. 123 (la tercera condición de B15, con 5-l) y l. 214 («5 y 10» y la condición entera)."
+ },
+ {
+  "id": "Rcodigo-058 · cruzada L8 n.º 25",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 25 de cruzadas-L8.json; coherencia.json fila 222 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "11-superficies.md l. 3: «las `HEAD` automáticas, una por cada ruta con `GET`, 53 hoy y 57 con los cuatro `GET` nuevos de §14.2, heredan el `config` de su `GET`, §14.5»; §11.3 (l. 88) da las 53 de hoy. Contado en la tabla de §11.3: 96 rutas (87 de hoy y 9 nuevas), 56 `GET`, 24 `POST`, 10 `PUT`, 4 `DELETE`, un `PATCH` y el comodín, que con 52 `GET` de hoy y 4 nuevos dan las 57 `HEAD`. §17.10 lo dice sin fijar el número (17-plan.md l. 344).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-063 · cruzada L8 n.º 27",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 27 de cruzadas-L8.json; coherencia.json fila 224 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "11-superficies.md l. 233 (§11.6, punto 2): «la cuenta viaja en `riderRaceResultSchema.stagesToWatch`, §14.2, que es lo que `[toWatch]` quita en B1b, §11.18, §16.3».",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-084 · cruzada L8 n.º 32",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 32 de cruzadas-L8.json; coherencia.json fila 229 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "18-rendimiento.md 18-j (l. 279): la base propia de B14 se crea con `realTestDbFor('cyclingstar_b14')`, porque en el mismo job corren en paralelo `calendarConcurrency.test.ts`, el caso de dos dispositivos de B12 y los de dos sesiones de `migrations.test.ts`, y `resetRealTestDb` vacía el esquema (16-r); lo mismo en §18.2 (l. 85).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-024 · cruzada L8 n.º 39",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 39 de cruzadas-L8.json; coherencia.json fila 236 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "18-rendimiento.md l. 236-237 (§18.10): el paquete de meta contra `maxFinishGzipBytes` y la ruta de etapa conocida contra `maxKnownStageGzipBytes`, «el máximo de las 24 × 2, a mano en el paso 6 con `scripts/broadcast-fixtures.mjs --sizes` (pendiente)»; la etapa de `routes/broadcast.test.ts` es la prueba del 6a.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-020 · cruzada L8 n.º 46",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 46 de cruzadas-L8.json; coherencia.json fila 243 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "18-rendimiento.md l. 85 (§18.2) y 18-j (l. 279): la base propia de B14 con `realTestDbFor('cyclingstar_b14')` (16-r), con el porqué (vitest corre los ficheros en paralelo y `resetRealTestDb` vacía el esquema).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-027 · cruzada L9 n.º 13",
+  "tipo": "cruzada",
+  "origen": "L9, n.º 13 de cruzadas-L9.json; coherencia.json fila 263 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "11-superficies.md l. 32 (`sup. N1`: «`gc_lead_taken` y `jersey_taken` solo a quien le aplica el velo, y con él filtrados (17-x)»), l. 128 y l. 173 (§11.3: «F; `leaderNews: request.spoilerApplies()` (17-x)» en `/api/news` y `/api/teams/:id/news`) y l. 247 (§11.7: se escriben desde el 1a, se sirven con `opts.leaderNews` desde el 8a, y los prueban `newsVeil.test.ts` y `packages/db/src/news.test.ts`).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-020, Rcoste-030 · cruzada L9 n.º 17",
+  "tipo": "cruzada",
+  "origen": "L9, n.º 17 de cruzadas-L9.json; coherencia.json fila 267 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "18-rendimiento.md l. 85 (§18.2: `TEST_DATABASE_URL`, «que el job exporta desde el PR 1a (17-w)», y las bases propias: `cyclingstar_b14` para `horizonLatency.test.ts`, `cyclingstar_watch` para `watchConcurrency.test.ts` y `cyclingstar_migrate` para `migrations.test.ts`, con `calendarConcurrency.test.ts` en la de la variable) y 18-j (l. 279, «con `TEST_DATABASE_URL` desde el 1a (17-w)»). La parte de §16.4 y §16.7 es de L8.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-085 · cruzada L9 n.º 18",
+  "tipo": "cruzada",
+  "origen": "L9, n.º 18 de cruzadas-L9.json; coherencia.json fila 268 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "11-superficies.md l. 731 (§11.19, fila de `apps/web/src/domain/pageTitle.test.ts`): «Empieza por `/// <reference types=\"node\" />` y lee los fuentes con `readdirSync` y `readFileSync`, porque `apps/web/tsconfig.json` pone `\"types\": []` (l. 9) … como en los otros cinco tests que la llevan (§17.21)».",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-028 · cruzada L10 n.º 10",
+  "tipo": "cruzada",
+  "origen": "L10, n.º 10 de cruzadas-L10.json; coherencia.json fila 288 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "11-superficies.md l. 619-647 (§11.17: `ONE_DAY_FINISHED.off`, las pestañas de hoy con `Result` primero; `raceTabs(status, stageCount, seen, watchOn)`; `raceTabLabel(id, watchOn)`, que llama `Story` a `report` mientras `Watch` no esté encendido), l. 695 (`watchOn` sale de `features.broadcastWatch`, lo que decide `request.broadcastOn()`, y el cambio llega con el encendido, §20.5) y 11-o (l. 788). El bloque compila (ver Rcodigo-037).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-010 · cruzada L10 n.º 15",
+  "tipo": "cruzada",
+  "origen": "L10, n.º 15 de cruzadas-L10.json; coherencia.json fila 293 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino «todas las secciones (§1 a §19), para la coherencia»: la tabla de conversión G.n → sitio del documento. Como en la cruzada de L2 n.º 15: §11 y §18 no remiten a ningún `§G.n` en lo que se ensambla (las dos de 11-superficies.md, l. 807 y 817, están en bloques que `ensamblar.sh` quita).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-003 · parte de L7 (§18)",
+  "tipo": "hallazgo de otro lote",
+  "origen": "correcciones-L7.json (parcial; su lote es L10): se audita aquí solo lo que cae en §18",
+  "veredicto": "cerrado",
+  "evidencia": "18-rendimiento.md l. 44-55 (§18.1, «El paso 9, el más caro»: la tabla sin el paso 9, con él sin memo y con el memo por `(g, k_g)`, y el coste por segundo en Node y en el móvil), l. 57 (B8 mide con el paso 9 memorizado) y l. 243 (§18.10, las tres cifras); el escalón de calcular el instante a `overlayHz` queda en §18.5 (l. 158) y no como diseño, con su motivo (con el memo cuesta de 0,5 a 1,6 ms por segundo en Node). Las cifras casan con las salidas de la corrección (`corr-l7/instante-memo-all.out`): con memo, p95 de 0,017 (e13) a 0,052 (e20) y 0,042 sobre todas; sin memo, de 0,064 a 0,747 en esa corrida (la tabla da 0,744-0,804 en Colombia con dos). El memo está en §4.5 (L2) y en §0.7 (L10).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-021 · parte de L7 (§18)",
+  "tipo": "hallazgo de otro lote",
+  "origen": "correcciones-L7.json (aplicado; su lote es L8): se audita aquí solo lo que cae en §18",
+  "veredicto": "cerrado",
+  "evidencia": "18-rendimiento.md l. 57 (§18.1, «B8 y sus umbrales»: fijos, en Node, con el paso 9 memorizado, y «El umbral no se deriva nunca de la medida del mismo PR … (decisión 18-l)»), 18-l (l. 281: p95 ≤ 0,25 ms, el porqué y lo descartado) y §18.10 (l. 243). Coincide con §16.4 (16-bancos.md l. 442, «Umbrales fijos (decisiones 16-m y 18-l)») y §16.9 (l. 753). Las cifras, contra `corr-l7/instante-memo-all.out` y `…-muestreos.out`: con memo 0,042 sobre las seis y 0,053 en el tramo denso de la e20; sin memo, 0,510 y 0,663.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-045 · parte de L7 (§18)",
+  "tipo": "hallazgo de otro lote",
+  "origen": "correcciones-L7.json (parcial; su lote es L8): se audita aquí solo lo que cae en §18",
+  "veredicto": "cerrado",
+  "evidencia": "18-rendimiento.md l. 57 y 18-l (l. 281): las dos muestras que el documento fija (todos los fotogramas de las seis congeladas a pasos de 1 s, con el p95 sobre todos, y los 600 seguidos del tramo de más grupos vivos de la e20), y las dos descartadas con su cifra: los 600 primeros pasan sin memo (p95 de 0,04 a 0,18 ms, `coste/instante-first.mjs`) y los 600 repartidos no aprovechan el memo (p95 de 0,19 ms sobre las seis y 0,37 en Colombia). Comprobadas en `corr-l7/instante-memo-muestreos.out`: repartidos con memo, 0,192 sobre todas y 0,369 en Colombia; densos con memo, 0,053 en la e20. §16.4 lo dice igual (16-bancos.md l. 442).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-020 · parte de L7 (§18)",
+  "tipo": "hallazgo de otro lote",
+  "origen": "correcciones-L7.json (aplicado; su lote es L8): se audita aquí solo lo que cae en §18",
+  "veredicto": "cerrado",
+  "evidencia": "18-rendimiento.md l. 79-85 (la tabla de los tres caminos y la primera consecuencia: B14 mide contra el Postgres de servicio del job `test`, en una base propia, y en PGlite solo informa y falla por encima de 15 ms) y 18-j (l. 279). Las cifras del socket casan con las salidas de la corrección: `corr-l7/horizonte-socket-l7.out` (jugador 3,58 ms de p95 en la tercera corrida, mánager 6,60, población 6,29) y `corr-l7/progreso-socket-l7.out` (`recordProgress`, 4,96 y 5,08). §16.4 y §16.9 lo copian (16-bancos.md l. 448 y 759).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-030 · parte de L7 (§18.3)",
+  "tipo": "hallazgo de otro lote",
+  "origen": "correcciones-L7.json (parcial; su lote es L9): se audita aquí solo lo que cae en §18.3",
+  "veredicto": "cerrado",
+  "evidencia": "18-rendimiento.md l. 121 (§18.3): la migración que se aplica al arrancar con un día del tick abierto, con la cola medida por el refutador (de 7,4 a 7,9 s con una transacción abierta 8 s, `coste/pgm/cola.mjs` y `cola45.mjs`) y la defensa en §17.1 (regla 9) y §13.1. Citas comprobadas en HEAD: `runMigrations` antes de `listen` (`apps/api/src/index.ts` l. 16); `LOCK_CLASS` en `packages/db/src/locks.ts` l. 15-24, el de migración en `migrate.ts` l. 24 y el del tick en `tick.ts` l. 214; drizzle 0.45.2 aplica las pendientes en una sola transacción (`pg-core/dialect.js` l. 60-71).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-004 · parte de L7 (§18)",
+  "tipo": "hallazgo de otro lote",
+  "origen": "correcciones-L7.json (parcial; su lote es L2): se audita aquí solo lo que cae en §18",
+  "veredicto": "cerrado",
+  "evidencia": "18-rendimiento.md l. 63 (§18.2: el `parse` de Zod, de 0,4 a 14,5 ms de mediana y repetido en la corrección de 0,39 a 13,6, hasta unos 50 ms la primera llamada; y el del esquema que se implementa, de unos 8 a unos 28 ms en frío), l. 65 y 18-d (l. 273: la tasa de acierto y la regla del 90 %) y §18.9 (l. 223). Lo de §4.3 y §5.6 es de L2.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-017 · parte de L7 (§18)",
+  "tipo": "hallazgo de otro lote",
+  "origen": "correcciones-L7.json (parcial; su lote es L6): se audita aquí solo lo que cae en §18",
+  "veredicto": "cerrado",
+  "evidencia": "18-rendimiento.md l. 245 (§18.10, «M, por partes») y l. 63 (los 1,3 a 4,7 ms de `datos.md` §10.5 «eran de otro formato»). Ver la cruzada de L6 n.º 16.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-002 · parte de L7 (§18)",
+  "tipo": "hallazgo de otro lote",
+  "origen": "correcciones-L7.json (parcial; su lote es L10): se audita aquí solo lo que cae en §18",
+  "veredicto": "cerrado",
+  "evidencia": "18-rendimiento.md l. 106 («Medido por nacional y proyectado al día»), la tabla de l. 108-111 («El día, proyectado»), l. 115 (los 111 élite y 42 sub-23 del 179 y los 76 y 111 del 176, `coste/dias.mjs`; la escritura medida de 0,07 a 0,15 s), l. 117, B15 en l. 123 (los días enteros, sub-23 incluidos, con `buildTimelineCast`) y §18.9 y §18.10 (l. 214, 251 y 252, «proyectado»). §0.7 y §16.4 lo dicen igual (00-cabecera.md; 16-bancos.md l. 449).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-023 · parte de L7 (§18)",
+  "tipo": "hallazgo de otro lote",
+  "origen": "correcciones-L7.json (parcial; su lote es L6): se audita aquí solo lo que cae en §18",
+  "veredicto": "cerrado",
+  "evidencia": "18-rendimiento.md l. 65 y 18-d (l. 273): hasta el doble de memoria con la LRU del adaptador, del mismo tope; §18.9 (l. 224): el adaptador en frío, paso 3a. El riesgo 13 de §19.1 lo lleva (19-riesgos.md l. 23).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-055 · parte de L7 (§11.18)",
+  "tipo": "hallazgo de otro lote",
+  "origen": "correcciones-L7.json (parcial; su lote es L8): se audita aquí solo lo que cae en §11.18",
+  "veredicto": "cerrado",
+  "evidencia": "11-superficies.md l. 699-709 (§11.18): la primera tabla gana la columna «Campos (`strip`)» con la gramática de §16.3, y `B1B_WHITELIST` (16-bancos.md l. 91-99) la copia fila a fila y en el mismo orden. Las rutas de campos, comprobadas contra las respuestas de HEAD: `status` y `runDays` en la raíz de `GET /api/calendar/:raceId` (`routes/calendar.ts` l. 202-203); `{ rider }` en `GET /api/riders/me` y `GET /api/riders/:id` (`routes/riders.ts` l. 130 y 686), con `attributes` dentro (`browse.ts` l. 297-303); `{ log, form, health }` en `/form` (l. 436); `{ coachView }` en `/coach-view` (l. 464), con `notes` (`packages/db/src/riders.ts` l. 468); `races[].callup` en `/race-prefs` (`packages/db/src/callups.ts` l. 261); `{ offers, contract }` en `/offers` (l. 539).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-063 · parte de L7 (§11.18)",
+  "tipo": "hallazgo de otro lote",
+  "origen": "correcciones-L7.json (parcial; su lote es L8): se audita aquí solo lo que cae en §11.18",
+  "veredicto": "cerrado",
+  "evidencia": "11-superficies.md l. 711-718 (§11.18, la segunda tabla: `news.[stageReady]`, `results.[toWatch]`, `ready` de `last-race` y `report.sessions` y `report.trainingDays`, medido por el refutador con `rcod/n/b1/sweep.mjs`) y l. 720 (las rutas que salen del barrido con su motivo en `SKIP`). `B1B_VEIL` de §16.3 (16-bancos.md l. 104-110) la copia, y `B1B_SKIP` saca esas rutas; los tokens `[stageReady]` y `[toWatch]` los define `strip` en §16.3.",
+  "accion": "nada"
+ },
+ {
+  "id": "A-L7-001",
+  "tipo": "comprobacion",
+  "origen": "aviso A-L4-009 de la auditoría L4, reenviado por el orquestador",
+  "veredicto": "cerrado",
+  "evidencia": "Regla compartida: `Next action` se corta con el primer `Cue` de clase ≥ 2 que entra en la cola y no es de la ronda de la moto (§8.5, 08-ritmo.md l. 129; §8.11, l. 336 y 373; `BROADCAST.nextActionMinClass` en §15.3, 15-constantes.md l. 104, y en G.7, 00-glosario.md l. 830). §18.7 (18-rendimiento.md l. 191) decía «`Next action` corre hasta que se revela un rótulo de clase 2 o más (§8.5)», sin la excepción de 6-m.",
+  "accion": "lo he cerrado yo: 18-rendimiento.md l. 191, «corre hasta que entra en la cola un rótulo de clase 2 o más que no sea de la ronda de la moto (§8.5, 6-m)». Necesita otra sección, como ya decía A-L4-009: §4.9 (04-modelo.md l. 864), que es de L2."
+ },
+ {
+  "id": "A-L7-002",
+  "tipo": "comprobacion",
+  "origen": "aviso A-L6-011 de la auditoría L6, reenviado por el orquestador",
+  "veredicto": "cerrado",
+  "evidencia": "§11.15 («Quién», 11-superficies.md l. 495) y D-40 (00-decisiones.md) daban el modo diagnóstico a «un usuario con `users.is_admin`», mientras la guarda de sesión de administración, que es la de `GET /api/admin/whoami` (`apps/api/src/app.ts` l. 127-134, comprobado en HEAD), §10.13 (10-horizonte.md l. 567, `SPOILER_MODE=admins`) y §14.6 (14-api.md l. 472, `BROADCAST_WATCH=admins`) cuentan como administrador a quien da `isUserAdmin` (`packages/db/src/adminUsers.ts` l. 53-61): `users.is_admin` o el correo de `ADMIN_EMAIL`, el administrador raíz. Si el dueño entra solo por ese correo, se le aplica el velo y no tendría diagnóstico. El resto de §11 ya se apoya en `whoami` (l. 495 y 695), que sí cuenta el correo.",
+  "accion": "lo he cerrado yo: 11-superficies.md l. 495 («Un administrador con sesión: `users.is_admin` … o el correo de `ADMIN_EMAIL` …, lo que da `isUserAdmin` …») y D-40 en 00-decisiones.md (la frase de la decisión, con su versión anterior, el bloque «Precisada en la auditoría L7» y su fila en el registro)."
+ },
+ {
+  "id": "A-L7-003",
+  "tipo": "comprobacion",
+  "origen": "aviso del auditor de L6, reenviado por el orquestador (§11.10 l. 350-351)",
+  "veredicto": "cerrado",
+  "evidencia": "La tabla de §11.10 abría en `Report` la etapa arrastrada (`A`) y en `Watch` a quien venía «sin `watch`», al revés que 6-r, 10-e, `stageAccessOf` (14-api.md l. 35-41: `Report` solo con `W`, `S` o `R`) y el propio §11.17 (`stagePageTabs`; sin `watch`, con `SPOILER_MODE=off`, la etapa se trata como vista, l. 695). Es la parte que faltaba de la cruzada de L4 n.º 11 (Rdueno-021); ver su entrada.",
+  "accion": "lo he cerrado yo en 11-superficies.md l. 350-351 y 354-355, y con ellas l. 577-579, 663 y 788 (ver «Rdueno-021 · cruzada L4 n.º 11»)."
+ },
+ {
+  "id": "A-L7-004",
+  "tipo": "comprobacion",
+  "origen": "pedido por el orquestador: la tabla de las 48 superficies más X1 a X11",
+  "veredicto": "cerrado",
+  "evidencia": "La tabla sigue entera: 48 filas en §11.1 (11-superficies.md l. 13-60: E1 a E9, C1 a C6, I1 a I4, N1 a N4, H1 a H7, P1 a P6, W1 a W6 y T1 a T6, sin repetidos y en el orden del mapa) y 11 en §11.2 (l. 72-82, X1 a X11), contadas con un guion (`aud7/tabla.py`). Mecanismos: 53 filas citan una letra de los ocho de §10.6 (P, R, F, M, G, B, N y L: 10-horizonte.md l. 384-393) y los pasos de las 57 que tienen paso existen en §17.2 con ese nombre (7a, 7b, 8a, 8b, 9a, 9b; 17-plan.md l. 39-44). No citaban ninguna letra `sup. X3` (la cookie), `sup. X5` (la caché), `sup. X6` (el historial) ni `sup. X7` (la vista previa), y `sup. T6` no tenía paso. X6 y X7 son N por construcción (`pageTitle` y `shellMetaFor` con `PreStageInfo`), y la excepción del acta de X7 es la puerta: `shellMetaFor` solo pone el ganador si `stageGateOf` de quien pide es nulo (14-api.md, pseudocódigo de §14.10); X3 no tiene mecanismo propio, son los de cada ruta (P, R, F, M, G o B) con el horizonte en lectura de `cs_viewer`; X5 no es una respuesta y su defensa es de §10.9 y §14.9. `sup. T3` remite a la tabla de cada `<title>` a propósito y se queda así. Tras el arreglo, solo `sup. X5` (que dice «ninguno de los ocho de §10.6») y `sup. T3` no citan una letra, y solo `sup. T3` y `sup. T6` (E2 no crea nada; E4 hereda la regla) no citan un paso. D.5 (21-apendices.md l. 338-348) copia esas cinco filas como estaban.",
+  "accion": "lo he cerrado yo en 11-superficies.md: la columna de mecanismo de `sup. X3` (l. 74), `sup. X5` (l. 76), `sup. X6` (l. 77) y `sup. X7` (l. 78), y «Qué ve», «Cierra» y «Banco» de `sup. T6` (l. 60). Necesita otra sección: D.5 (21-apendices.md l. 341, 344 y 346-348), de L10, si quiere las mismas palabras."
+ },
+ {
+  "id": "A-L7-005",
+  "tipo": "comprobacion",
+  "origen": "auditor de L7, al comprobar las filas X2 y X10 contra §10.6",
+  "veredicto": "parcial",
+  "evidencia": "Cifra compartida con §10.6: la fila de `riderSchedule.ts` de la tabla de lecturas (10-horizonte.md l. 174) dice que `getRiderRaceDays` la llama `/api/riders/me/form` con F, y que `getRiderUpcomingRaces` la llaman `upcoming-races` y `my-orders`. En HEAD, `getRiderRaceDays` solo la llaman `GET /api/riders/me/orders` (`routes/riders.ts` l. 242) y `POST /api/riders/me/plan/preview` (l. 347), que §11.2 y §11.3 enmascaran con M (`sup. X10`, 11-b; el parte de `/form` es `getDailyLog`, la fila siguiente), y `getRiderUpcomingRaces` solo `upcoming-races` (l. 140): `GET /api/my-orders` usa `isOnRoster` (`raceOrders.ts` l. 132-139), que no mira el abandono, y §11.3 la deja `safe`. D-41 repetía lo de `my-orders` («`upcoming-races` y `my-orders` enmascaran un abandono velado»).",
+  "accion": "lo he cerrado yo en D-41 (00-decisiones.md: «`upcoming-races`, que alimenta la portada y el acceso a las órdenes, enmascara un abandono velado», con su versión anterior, dentro del bloque de A-L7-006). Necesita otra sección: §10.6 (10-horizonte.md l. 174), de L6: `getRiderRaceDays` con `/api/riders/me/orders` y `/plan/preview` y M (`sup. X10`), y `getRiderUpcomingRaces` solo con `upcoming-races`."
+ },
+ {
+  "id": "A-L7-006",
+  "tipo": "comprobacion",
+  "origen": "regla 3: cada «Decisión tomada aquí» de §11 y §18 en 00-decisiones.md",
+  "veredicto": "cerrado",
+  "evidencia": "Estaban: 11-b y 11-k (D-41, ensamblado v0), 11-h (D-40), 11-r y 11-t (D-41 y DD-26), 11-u (DD-01), 18-a, 18-c, 18-d, 18-j y 18-k (D-33, D-10, D-53). Faltaban las que cambian o completan lo que dice una D (grep de cada número: cero): de D-16, 11-i y 11-l (la radio de una etapa no conocida enseña la puerta hasta el paso 10 y desde el 11 solo las fotos cerradas en lo pintado, cuando D-16 decía «la política de nombrado de D-27, y el deslizador llega solo hasta lo alcanzado»; y el adaptador corta igual para todos); de D-41, 11-e (la actividad de un día de carrera velado lleva la clave de su etapa, corriera o no: una máscara que D-41 no tenía); de D-45, 11-g (dónde va el `stage_ready` en el orden estable y el marcador del feed de un equipo por su lista de salida); de D-39, 11-q (las etapas de una carrera terminada no se repiten en `Ready to watch`, cuando D-39 decía «una tarjeta por etapa velada»); de D-55, 18-i (con más de una instancia, lo alcanzado pasa a la base); de D-56, 18-g (el protocolo mide también la crono e16, que D-56 no nombraba). Las demás concretan sin contradecir: 11-a (D-54), 11-c y 11-d (D-42), 11-f, 11-m y 11-s (D-32 y D-33), 11-j (D-41), 11-n (D-41, la regla para E9), 11-o (D-36 y D-48), 11-p (D-36 ya lo dice), 18-b, 18-e, 18-f, 18-h y 18-l.",
+  "accion": "lo he cerrado yo en 00-decisiones.md: bloques «Precisada al escribirse §11 (o §18), registrada en la auditoría L7» al final de D-16, D-39, D-41, D-45, D-55 y D-56, y sus seis filas en el registro del principio."
+ },
+ {
+  "id": "A-L7-007",
+  "tipo": "comprobacion",
+  "origen": "regla 3: bloques de código",
+  "veredicto": "cerrado",
+  "evidencia": "Los nueve bloques de §11 y el de §18 están cerrados (`aud7/comprobar.py`, sobre lo que se ensambla: 0 fallos) y no hay ninguno cortado. Compilados con tsc 5.9.3 y el `tsconfig.base.json` estricto sobre HEAD (`aud7/h`, el armado de L6 con el `packages/shared` de §4, §6, §8, §11 y §15): `pageTitle.ts` de shared, `usePageTitle` y `raceStages.ts` de la web, el `raceTabs.ts` de §11.17 (`aud7/rt`), y `emails.ts` y `chronicle.ts` de la API ampliados con sus bloques, sin ningún error de §11 (el único aviso del armado es el `TS6196` de `RaceS` en `pace.ts`, que A-L4-001 ya explicó). Dos fallos: el bloque de `packages/db/src/riders.ts` (§11.13) usa `Horizon` y `VeilDelta` sin importarlos (TS2304 en l. 416); y el de `AuthorStamp` y `stampReached` (§11.14) decía que iría en `packages/shared/src/broadcast/`, «junto a los tipos del horizonte», pero `Horizon` vive en `packages/db/src/horizon.ts` (§4.10, 04-modelo.md l. 878-892: «el resto, solo en el servidor») y no se serializa nunca, y `shared` no puede importar `db`. Con la importación y el sitio corregidos, los dos compilan añadidos a `riders.ts` y a `horizon.ts` de `packages/db`.",
+  "accion": "lo he cerrado yo en 11-superficies.md: l. 414 (`import type { Horizon, VeilDelta } from './horizon.js'`, con el comentario de que el 8a ya trae `Horizon`), l. 468 y la lista de nombres (l. 802): `AuthorStamp` y `stampReached` irían en `packages/db/src/horizon.ts`, junto a `Horizon`; y en 00-glosario.md, la fila de `stampReached` de G.4."
+ },
+ {
+  "id": "A-L7-008",
+  "tipo": "comprobacion",
+  "origen": "regla 3: citas de código",
+  "veredicto": "cerrado",
+  "evidencia": "Comprobadas en HEAD, por muestreo, unas cuarenta citas de §11 y §18 (las de las filas E1 a E9, C1, C4, C5, I1, N1, N2, H1 y la portada de §11.1; las de X1, X2, X9, X10 y X11 de §11.2; `riderSchedule.ts` l. 47, 217 y 283; `routes/riders.ts` l. 242, 376 y 648; `browse.ts` l. 234; `teamPlan.ts` l. 263; `app.ts` l. 204-213; `LEARNING` en `constants.ts` l. 2093-2096; `stageRun.ts` l. 558-568, 672, 746 y 826; los `Tabs.tsx`, `BottomNav.tsx`, `App.tsx` l. 122, 125 y 323, `env.ts` l. 32, `railway.tick.json`, `tick.ts` l. 262-284, `testDb.ts` l. 55-66 y 102-124, `ci.yml` l. 33-48 y las cuatro importaciones de `@cyclingstar/engine` de la web de §18), además de las de cada hallazgo: todas casan salvo dos. El comentario del bloque de `emails.ts` situaba `layout` en l. 33-56, y es l. 34-55 (l. 29-33 es su comentario y l. 57-58, `MailBody`); y la de `draftRace`, que va con Rdueno-026.",
+  "accion": "lo he cerrado yo: 11-superficies.md l. 321, «`layout`, l. 34-55»."
+ },
+ {
+  "id": "A-L7-009",
+  "tipo": "comprobacion",
+  "origen": "regla 3: nombres en 00-glosario.md con la misma grafía",
+  "veredicto": "cerrado",
+  "evidencia": "Cruzados los nombres entre comillas invertidas de §11 y §18 con 00-glosario.md: los tipos, las funciones, las constantes de `BROADCAST` y `SPOILER` (`barHz`, `overlayHz`, `decodedCacheEntries`, `horizonBudgetMs`, `progressMinDeltaS`, `controlsHideS`, los cinco topes de B6 y las demás), los interruptores (`AUTO_TICK`, `PROGRESS_MIN_DELTA_S`), los bancos y las rutas nuevas están con la misma grafía; lo que falta es código de hoy que el diseño no toca, campos de tipos que sí están, scripts del scratchpad y textos de pantalla. Faltaban los tests de §11.19 (`packages/shared/src/broadcast/pageTitle.test.ts`, `apps/web/src/domain/pageTitle.test.ts`, `raceStages.test.ts`, `packages/db/src/newsVeil.test.ts`, y los que se amplían: `emails.test.ts`, `raceRadio.test.ts`, `fichaCorredor.test.ts`, `abandon.test.ts`, `ranking365.test.ts`, `raceTabs.test.ts` y `stageTables.test.tsx`); la fila de `apps/web/src/domain/raceStages.ts` de G.2 remitía a §11.5 cuando el bloque está en §11.17; la de `stampReached` de G.4 lo ponía en `packages/shared/src/broadcast/` (A-L7-007); y 18-b escribía `veilDelta.raceDays` donde §11 y G.3.5 escriben el campo del tipo, `VeilDelta.raceDays`.",
+  "accion": "lo he cerrado yo: 00-glosario.md, una fila de G.2 con los tests nuevos y ampliados de §11 (auditoría L7), «§11.17» en la fila de `raceStages.ts` y el sitio de `stampReached`; 18-rendimiento.md l. 271 (18-b), `VeilDelta.raceDays`."
+ },
+ {
+  "id": "A-L7-010",
+  "tipo": "comprobacion",
+  "origen": "pedido por el orquestador: los umbrales de B8, B14 y B15 de §18 contra §16",
+  "veredicto": "cerrado",
+  "evidencia": "Coinciden con §16.4 y §16.9 (16-bancos.md l. 442, 448, 449 y 753-760). B8: §18.1 (l. 57) remite a §16.4 sin copiar las medianas (≤ 2 ms el tramo, ≤ 3 ms la cabecera) y da lo medido, 0,54 y 0,71 ms, que casa con la tabla de l. 18-27 (0,07 + 0,47 y 0,16 + 0,55); 18-l (l. 281) fija el p95 de `instantAt` en ≤ 0,25 ms sobre las mismas dos muestras que §16.4; §18.10 (l. 238 y 241-243) cita «el umbral de B8 (§16.4)». B14: §18.2 (l. 67 y 85), 18-j (l. 279), §18.9 (l. 215) y §18.10 (l. 247-248): p95 ≤ `SPOILER.horizonBudgetMs` (5 ms) el jugador y `recordProgress` contra el Postgres del CI, en PGlite solo por encima de 15 ms, y el mánager impreso y decidido desde Railway (DD-21), como §16.4 y 16-k. B15: §18.3 (l. 123) y §18.9 (l. 214), más de un 25 % y más de 15 s a la vez y ninguna lápida, como 16-l; faltaba la tercera condición de §16.4, las subtransacciones desbordadas, y el paso 10 en la fila de §18.9, que he cerrado en la cruzada de L8 n.º 23 (Rcobertura-053).",
+  "accion": "nada (lo de B15 está cerrado en «Rcobertura-053 · cruzada L8 n.º 23»)."
+ },
+ {
+  "id": "A-L7-011",
+  "tipo": "comprobacion",
+  "origen": "regla 3: cifras compartidas con otras secciones",
+  "veredicto": "cerrado",
+  "evidencia": "Comprobadas las que §11 y §18 comparten: la cuenta del digest de §11.4 (1.800 s de carrera más 172 s de cuadros, 33 min) sale de `digestBudgetS` (15-constantes.md l. 90) y de `digestMinutes` (08-ritmo.md l. 310-314: (5 + 3) × 17 + 6 × 6 = 172), y las 17 etapas de la 5 a la 21 son seis llanas, tres medias, siete reinas y una crono en `SEASON_CALENDAR` (comprobado con el motor compilado, días 185 a 207); el ranking del día, 70 ms y 104 el máximo, y la resta de 1 ms, iguales en §11.5, 11-s y §18.2; las noticias con el filtro, 1,6 ms contra 0,5, en §11.7 y §18.2; los tramos por etapa, de 16 a 32 en línea y 14 o 15 en crono (§18.1, §18.7 y §8.5); la etapa entera por tramos, de 27,9 a 81,5 KB, y §14.8 (14-api.md l. 519); las 87 rutas de hoy, 52 `GET` y 53 `HEAD`, en §11.3, §14.5 (14-api.md l. 276) y §17.3 (17-plan.md l. 60); el día 179, de 15,5 a 18,9 s, en §18.3, §16.4, §5.8 (05-motor.md l. 655) y §19. Dos no casaban del todo: §11.6 (l. 230) dice que B1c exige respuestas idénticas byte a byte, y `B1C_WHITELIST` (16-bancos.md l. 111-115) deja pasar el tiempo de la cabecera, que la semilla también decide y se sabe antes de salir; y la fila de B21 de §18.9 (l. 216) lo daba solo como «informativo», cuando §16.4 y §16.9 (16-bancos.md l. 455 y 766) lo hacen fallar si llega a 1 km.",
+  "accion": "lo he cerrado yo: 11-superficies.md l. 230, «salvo el tiempo de la cabecera de la retransmisión, que la semilla también decide y se sabe antes de salir (§16.3)»; 18-rendimiento.md l. 216, «informativo; falla solo si llega a 1 km (D-04, §16.4)»."
+ },
+ {
+  "id": "A-L7-012",
+  "tipo": "comprobacion",
+  "origen": "dudas del fichero de sección que quedaron viejas",
+  "veredicto": "cerrado",
+  "evidencia": "Las «Dudas para el ensamblador» de §11 (l. 811-818) y de §18 (l. 291-299) las quita el ensamblado, pero el fichero de sección también se lee (como A-L6-005). Todas salvo una están resueltas en el texto de hoy: §10.6 ya da la ruta del plan del equipo como `safe` (10-horizonte.md l. 177) y escribe la forma D (l. 184); §6.10 abre la caducada en `Watch` (06-pantalla.md l. 633); el defecto de `getBlockReport` es DD-24; DD-08 nombra la sobrecompensación y `dnfFactor` (20-dueno.md l. 28); B1b con dos cuentas está en §16.3 (16-bancos.md l. 377) y `diagMode.test.ts` en §17.11; §16.3 copia la lista blanca (l. 91-110); G.4 tiene la firma de `stageReadyEmail` (00-glosario.md l. 741); §12.10 y §17.14 aceptan la línea cortada (12-voz.md l. 594 y 600; 17-plan.md l. 431); B14 se mide por separado y contra Postgres (16-k, 18-j), B15 con las dos cotas a la vez (16-l) y B8 con umbrales fijos (16-m, 18-l); `decodedCacheEntries` es 16 en §15.3; §5.8 y §14.8 citan ya lo medido (05-motor.md l. 655; 14-api.md l. 519); D-55 dice cuatro escrituras. Sigue abierta, sin contradicción, la última de §18: que E6 quiera adelantar el corte de las importaciones de `@cyclingstar/engine`.",
+  "accion": "lo he cerrado yo: 11-superficies.md l. 811-818 y 18-rendimiento.md l. 291-299, cada duda marcada como resuelta y con dónde, salvo la última de §18."
+ },
+ {
+  "id": "A-L7-013",
+  "tipo": "comprobacion",
+  "origen": "regla 3: rayas, guiones y frases cortadas",
+  "veredicto": "cerrado",
+  "evidencia": "Las comprobaciones mecánicas de `ensamblar.sh --comprobar` (rayas, guiones entre espacios fuera del código, viñetas sangradas, comillas invertidas sin pareja, líneas que no acaban en puntuación, paréntesis y comillas desparejados, remisiones a §N.m inexistentes y bloques sin cerrar), corridas sobre §11 y §18 tal como se ensamblan (`aud7/comprobar.py`, la de L4 apuntada a estas dos secciones), dan 0 fallos y 0 avisos, antes y después de los arreglos de esta auditoría.",
+  "accion": "nada"
+ },
+ {
+  "id": "A-L7-014",
+  "tipo": "comprobacion",
+  "origen": "auditor de L7, al comprobar Rcodigo-061 contra la definición de las clases de §14.5",
+  "veredicto": "cerrado",
+  "evidencia": "§14.5 define `safe` como la ruta que «no devuelve nada nacido de una etapa, o solo lo que el propio jugador acaba de escribir» (14-api.md l. 290), y solo las `horizon` y `watch` llevan `private, no-store` y `Vary: Cookie` (§14.9, l. 526-527); por eso las de administración son `horizon` con L y no `safe` (l. 383). En la tabla de §11.3, `GET /api/riders/me` es `horizon` con L (DD-08), pero `GET /api/riders/me/coach-view`, `/race-prefs` y `/offers` seguían `safe` con L, y las tres devuelven algo que se mueve al correrse una etapa: es justo por lo que están en la primera tabla de §11.18 y en `B1B_WHITELIST` (las notas del preparador miran REC y el atributo de la carta, que mueve lo aprendido; las convocatorias y las ofertas, los puntos, el rating y los presupuestos del mundo). Ninguna otra sección fija su clase (grep en §10, §14, §16, §17 y §20), y el `it` de B1b solo exige que estén en el registro con L y su `why`.",
+  "accion": "lo he cerrado yo: 11-superficies.md l. 147, 149 y 154 (`horizon`) y la nota de l. 185 (por qué no son `safe` y que llevan `private, no-store`)."
+ },
+ {
+  "id": "A-L7-015",
+  "tipo": "comprobacion",
+  "origen": "auditor de L7, al cruzar los tests de §11.19 con §17.2, §17.12 y §17.21",
+  "veredicto": "parcial",
+  "evidencia": "Los PR de los trece tests de §11.19 casan con la tabla de tests de §17.21 (17-plan.md l. 640-730) salvo uno. `stagePageTabs` y `raceTabLabel` nacen en el 9a, con la página de etapa: §17.12 los pone en el código del 9a (17-plan.md l. 390) y §11.19 (11-superficies.md l. 740) pone su test en «9a (`stagePageTabs`, `raceTabLabel`) y 9b». Pero el bloque de §11.17 decía «`raceTabs.ts` (cambia en el 9b)», y §17 prueba esas dos funciones en el 9b: la lista de tests del 9a (§17.2, l. 43; §17.12, l. 381-388) no tiene `raceTabs.test.ts`, el caso de la etapa arrastrada que abre en `watch`, que es de `stagePageTabs`, está en los tests del 9b (l. 396), y la fila de §17.21 (l. 718) dice solo «9b». Así el 9a entraría con código sin su test, contra la regla de §17.1 de escribir el test en el mismo PR y antes.",
+  "accion": "lo he cerrado yo en 11-superficies.md l. 605: el comentario del bloque dice que el 9a trae ya `watch` y `report` a `RaceTabId`, `raceTabLabel`, `StagePageTabId` y `stagePageTabs`, y el 9b, lo demás (compila igual, `aud7/rt`). Necesita otra sección: §17.2 (17-plan.md l. 43), §17.12 (l. 381-388 y 396) y §17.21 (l. 718, la fila de `raceTabs.test.ts`), de L9, que pongan `raceTabs.test.ts` también en el 9a con los casos de `stagePageTabs` y `raceTabLabel`."
+ }
+]

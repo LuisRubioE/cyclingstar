@@ -207,3 +207,9 @@ otros lotes. La pasada de coherencia tiene que cerrarlos uno a uno (o dejarlos e
   mientras §10.13, §14.6 y `whoami` aceptan también el correo de `ADMIN_EMAIL` (pasado a L7);
   §17.10 (17-plan.md l. 330) sin `tplRev` en el `.omit`; §17.20 no dice en qué PR gana
   `stageReplaySchema` `watch` y `tplRev`; §11.10 aún abre la etapa `A` en `Report` (debe ser `Watch`, 6-r).
+- De L7 (auditoría): §10.6 l. 174, `getRiderRaceDays` no lo llama `/form` sino las órdenes y la
+  previsión del plan (que son M), y `my-orders` no usa `getRiderUpcomingRaces`; §17.2, §17.12 y
+  §17.21, `stagePageTabs` y `raceTabLabel` nacen en el 9a pero su test está en el 9b (pasado a
+  L9); §4.9 l. 864, falta la excepción de `Next action` para la ronda de la moto. Opcional para el
+  cierre: D.5 de §21 puede copiar las filas X3, X5, X6, X7 y T6 tal como quedan; donde se dé
+  «3,88 ms» puede darse el rango de las tres corridas (4,11 a 4,75 en PostgreSQL 16).
