@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   ATTRIBUTES,
+  ATTR_STAR_CUTS,
   type Attribute,
   RIDER_ARCHETYPES,
   VOCATION_PROFILES,
@@ -32,21 +33,39 @@ describe('shared: formStarsScale, la escala de la FORMA (SPEC 3.2)', () => {
     expect(formStarsScale(46)).toBe(2.5) // round(4.6)=5 -> 2.5
   })
 
-  it('attrStarsWhole: estrellas enteras por bandas (0-16→0 … 84-100→5)', () => {
-    // Las doce aserciones heredadas viven ahora en `attrStarsWhole`, que es la escala con la que se
-    // cuenta el mundo. `attrStars` pasó a tener medias porque es la que ve el jugador.
-    expect(attrStarsWhole(16)).toBe(0)
-    expect(attrStarsWhole(17)).toBe(1)
-    expect(attrStarsWhole(33)).toBe(1)
-    expect(attrStarsWhole(34)).toBe(2)
-    expect(attrStarsWhole(50)).toBe(2)
-    expect(attrStarsWhole(51)).toBe(3)
-    expect(attrStarsWhole(66)).toBe(3)
-    expect(attrStarsWhole(67)).toBe(4)
-    expect(attrStarsWhole(83)).toBe(4)
-    expect(attrStarsWhole(84)).toBe(5)
-    expect(attrStarsWhole(94)).toBe(5) // ahora 94 = 5 estrellas, como querías
+  it('attrStarsWhole: estrellas enteras por bandas (0-21→0 … 92-100→5)', () => {
+    // Las bandas recalibradas de octubre de 2026 (`ATTR_STAR_CUTS`): más anchas abajo y la quinta
+    // estrella reservada para 92 o más.
+    expect(attrStarsWhole(21)).toBe(0)
+    expect(attrStarsWhole(22)).toBe(1)
+    expect(attrStarsWhole(41)).toBe(1)
+    expect(attrStarsWhole(42)).toBe(2)
+    expect(attrStarsWhole(57)).toBe(2)
+    expect(attrStarsWhole(58)).toBe(3)
+    expect(attrStarsWhole(73)).toBe(3)
+    expect(attrStarsWhole(74)).toBe(4)
+    expect(attrStarsWhole(91)).toBe(4)
+    expect(attrStarsWhole(92)).toBe(5)
     expect(attrStarsWhole(100)).toBe(5)
+    expect(ATTR_STAR_CUTS).toEqual([22, 42, 58, 74, 92])
+  })
+
+  it('attrStars: lo que el dueño espera leer en la ficha', () => {
+    // «~90 son cuatro estrellas y media y ~76,5 son cuatro». Con las bandas viejas el 76,5 salía
+    // 4,5 y el 84 ya era 5.
+    expect(attrStars(76.5)).toBe(4)
+    expect(attrStars(82.9)).toBe(4)
+    expect(attrStars(83)).toBe(4.5)
+    expect(attrStars(90)).toBe(4.5)
+    expect(attrStars(91.9)).toBe(4.5)
+    expect(attrStars(92)).toBe(5)
+    // Las medias, en la mitad de cada banda.
+    expect(attrStars(10.9)).toBe(0)
+    expect(attrStars(11)).toBe(0.5)
+    expect(attrStars(31.9)).toBe(1)
+    expect(attrStars(32)).toBe(1.5)
+    expect(attrStars(50)).toBe(2.5)
+    expect(attrStars(66)).toBe(3.5)
   })
 })
 
@@ -75,9 +94,10 @@ describe('shared: arquetipo derivado de los atributos', () => {
     // entera. Si esto se rompiera, la ficha del jugador y el recuento del mundo dirían cosas
     // distintas del mismo corredor, que es exactamente lo que separar las dos funciones evita.
     for (let x = 0; x <= 100; x++) expect(Math.floor(attrStars(x))).toBe(attrStarsWhole(x))
+    for (let x = 0; x <= 100; x += 0.25) expect(Math.floor(attrStars(x))).toBe(attrStarsWhole(x))
     // Y la media estrella existe de verdad: a mitad de banda sube medio punto.
-    expect(attrStars(76)).toBe(4.5)
-    expect(attrStarsWhole(76)).toBe(4)
+    expect(attrStars(84)).toBe(4.5)
+    expect(attrStarsWhole(84)).toBe(4)
   })
 
   it('son ocho y ninguno se repite', () => {
@@ -158,9 +178,9 @@ describe('shared: el catálogo de sesiones cubre todos los atributos (v55)', () 
  */
 describe('shared: la marca de progreso dentro de la banda', () => {
   it('parte de cero al entrar en la banda y llega a tres antes de salir', () => {
-    expect(attrProgress(17)).toBe(0) // recién llegado a 1★
-    expect(attrProgress(33)).toBe(3) // a punto de ser 2★
-    expect(attrProgress(34)).toBe(0) // y vuelta a empezar
+    expect(attrProgress(22)).toBe(0) // recién llegado a 1★
+    expect(attrProgress(41)).toBe(3) // a punto de ser 2★
+    expect(attrProgress(42)).toBe(0) // y vuelta a empezar
   })
 
   it('reparte la banda en cuatro cuartos y nunca se sale de 0..3', () => {
@@ -168,26 +188,28 @@ describe('shared: la marca de progreso dentro de la banda', () => {
       const p = attrProgress(x)
       expect(`${x}: ${Number.isInteger(p) && p >= 0 && p <= 3}`).toBe(`${x}: true`)
     }
-    // Los cuatro cuartos de la banda de 3★ (51..66): 51-54 · 55-58 · 59-62 · 63-66.
-    expect([51, 55, 59, 63].map(attrProgress)).toEqual([0, 1, 2, 3])
+    // Los cuatro cuartos de la banda de 3★ (58..73): 58-61 · 62-65 · 66-69 · 70-73.
+    expect([58, 62, 66, 70].map(attrProgress)).toEqual([0, 1, 2, 3])
+    // Y los de la de 4★ (74..91), que es más ancha: 74-78 · 79-82 · 83-87 · 88-91.
+    expect([74, 78, 79, 82, 83, 87, 88, 91].map(attrProgress)).toEqual([0, 0, 1, 1, 2, 2, 3, 3])
   })
 
   it('las cinco estrellas se pintan llenas: no hay banda por encima', () => {
-    expect(attrProgress(84)).toBe(3)
+    expect(attrProgress(92)).toBe(3)
     expect(attrProgress(100)).toBe(3)
   })
 
   it('LA MARCA NO PUEDE RESOLVER EL NÚMERO, que es su razón de ser', () => {
-    // Con estrella + marca hay 4 valores por banda de 16-17 puntos: el jugador nunca puede deducir
+    // Con estrella + marca hay 4 valores por banda de 16 a 22 puntos: el jugador nunca puede deducir
     // el atributo a menos de cuatro puntos. Una barra continua lo habría resuelto a menos de uno.
     const porCelda = new Map<string, number>()
-    for (let x = 0; x < 84; x += 1) {
+    for (let x = 0; x < 92; x += 1) {
       const clave = `${attrStars(x)}|${attrProgress(x)}`
       porCelda.set(clave, (porCelda.get(clave) ?? 0) + 1)
     }
     const minimo = Math.min(...porCelda.values())
-    expect(`nunca resuelve a menos de 3 puntos: ${minimo >= 3}`).toBe(
-      'nunca resuelve a menos de 3 puntos: true',
+    expect(`nunca resuelve a menos de 4 puntos: ${minimo >= 4}`).toBe(
+      'nunca resuelve a menos de 4 puntos: true',
     )
   })
 })

@@ -295,6 +295,8 @@ ciego a todo). Un solo reloj de edad para la misma persona (cierra 1.3.12).
 | 17-24 | 1   | 51-58 | 3   | 84+   | 5   |
 | 25-33 | 1½  | 59-66 | 3½  |       |     |
 
+> **Recalibrada en octubre de 2026.** Los cortes enteros pasan a 22 / 42 / 58 / 74 / 92 y las medias a 11 / 32 / 50 / 66 / 83, para que un 90 se lea como cuatro y media y un 76,5 como cuatro. El banco de mundo conserva la escala de esta tabla para sus listones (`BENCH_STAR_CUTS`). Detalle en `docs/balance.md` «La escala de estrellas de los atributos, recalibrada».
+
 ```ts
 export function attrStars(x: number): number // 0..5 en pasos de 0,5 (CAMBIA de escala)
 export function attrStarsWhole(x: number): number // Math.floor(attrStars(x)): sim/world.ts y toda banda ya escrita
@@ -348,6 +350,9 @@ inicioBanda)/anchoBanda)`, pintada como cuatro segmentos bajo las estrellas). La
   `${worldSeed}:${riderId}:ojeador:${season}`: determinista y con ruido, para que sea una opinión y no
   el techo leído. El ruido baja a N(0, 3) a partir de los 24 (el entrenador ya te ha visto correr).
   Enseñar el techo mata la exploración; no enseñar nada deja la queja «no sé si mejoro».
+
+  > **Sustituida en octubre de 2026** (`docs/agenda.md` §4.20): el entrenador ya no habla en estrellas. La opinión es RELATIVA (el puesto de cada techo dentro del propio corredor), se afina con la edad (una sola pista y «es pronto» a los 18-19; arriba, medio y abajo con reservas de los 20 a los 22; claro desde los 23) y puede equivocarse, con un error fijo por corredor y atributo que encoge de σ 9 a los 19 a σ 1,5 a los 27. Los códigos que cruzan la API son las frases de la pantalla y ninguno nombra un nivel. Ver `packages/engine/src/coachView.ts`.
+
 - **Frases por regla**, una por bloque de 28 días en el informe (§4.6), generadas de los ocultos sin
   enseñarlos: talento > 65 y edad ≤ 23 → «Progresas más deprisa de lo que esperaba a tu edad»; REC
   ≥ 70 → «Recuperas rápido: puedes afinar más corto»; fragilidad > 1,3 → «Eres propenso a caer

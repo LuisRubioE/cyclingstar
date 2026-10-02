@@ -81,10 +81,11 @@ export const myRiderResponseSchema = z.object({ rider: publicRiderSchema.nullabl
 // --- La ficha del corredor: tendencia, opinión e informe (docs/entrenamiento.md §2.3 y §4.6) ---
 
 /**
- * NINGÚN OCULTO CRUZA ESTOS TRES CONTRATOS, y por eso están juntos. El techo viaja como una de tres
- * frases, el talento y la fragilidad como códigos de frase, y el gimnasio como «bajo/normal/alto».
- * Si algún día alguien añade aquí un `ceiling: z.number()`, habrá roto la promesa de `MVP.md:114`
- * —«nunca números internos»— en el único sitio del repositorio donde se puede romper de una vez.
+ * NINGÚN OCULTO CRUZA ESTOS TRES CONTRATOS, y por eso están juntos. El techo viaja como una opinión
+ * RELATIVA (dónde tiene el corredor más margen y dónde menos, nunca a qué nivel llega), el talento y
+ * la fragilidad como códigos de frase, y el gimnasio como «bajo/normal/alto». Si algún día alguien
+ * añade aquí un `ceiling: z.number()`, habrá roto la promesa de `MVP.md:114` —«nunca números
+ * internos»— en el único sitio del repositorio donde se puede romper de una vez.
  */
 
 export const attrTrendRowSchema = z.object({
@@ -94,7 +95,32 @@ export const attrTrendRowSchema = z.object({
 export type AttrTrendRow = z.infer<typeof attrTrendRowSchema>
 export const trendResponseSchema = z.object({ trend: z.array(attrTrendRowSchema) })
 
-export const ceilingOpinionSchema = z.enum(['tres', 'cuatro', 'cinco'])
+/**
+ * LO QUE EL ENTRENADOR DICE DE CADA ATRIBUTO (docs/agenda.md §4.20). Eran tres códigos que se
+ * llamaban `tres`, `cuatro` y `cinco`: el techo en estrellas, redondeado a tres cajones y legible en
+ * la pestaña de red del navegador. La frontera se respetaba en la forma y se cruzaba en el fondo.
+ *
+ * Ahora cada código dice dos cosas y ninguna es un nivel: el PUESTO del atributo dentro del propio
+ * corredor (su mejor sitio, de los buenos, del montón, de los flojos) y lo SEGURO que está el
+ * entrenador, que depende de cuánto tiempo le ha visto correr. Dos cuentas no pueden compararse con
+ * esto: el «lo tuyo» de un corredor mediocre y el de un fenómeno son el mismo código.
+ *
+ * - Primera lectura (el chaval recién llegado): `asoma` en un solo atributo y `pronto` en el resto.
+ * - Lectura que se forma: `apunta` arriba, `quiza` en medio y `no_parece` abajo.
+ * - Lectura clara: `lo_tuyo`, `fuerte`, `normal` y `flojo`.
+ */
+export const CEILING_OPINIONS = [
+  'pronto',
+  'asoma',
+  'apunta',
+  'quiza',
+  'no_parece',
+  'lo_tuyo',
+  'fuerte',
+  'normal',
+  'flojo',
+] as const
+export const ceilingOpinionSchema = z.enum(CEILING_OPINIONS)
 export type CeilingOpinion = z.infer<typeof ceilingOpinionSchema>
 export const coachNoteSchema = z.enum([
   'progresa_rapido',

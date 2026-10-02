@@ -942,9 +942,9 @@ export const NPC = {
    * …Y CINCO ESTRELLAS TIENEN QUE SER RARAS (v58). El dueño, mirando el mundo: «creo que entre los
    * bots hay algunos demasiado pro». Medido sobre 4.000 bots con los números de antes (78 y una
    * desviación de 8): **el 46,8 % de los corredores del WorldTour tenía al menos un atributo de
-   * cinco estrellas** (84+ en la escala de `attrStars`) y el 1 % superior estaba clavado en el techo
-   * de 95. Casi uno de cada dos, cuando cinco estrellas debería querer decir «de los mejores del
-   * mundo en esto».
+   * cinco estrellas** (84+, la escala de entonces y la que conserva el banco) y el 1 % superior
+   * estaba clavado en el techo de 95. Casi uno de cada dos, cuando cinco estrellas debería querer
+   * decir «de los mejores del mundo en esto».
    *
    * El dueño fijó la banda: «claramente menos del 15 % de momento (y cuando haya humanos buenos
    * bajaremos eso a 0)» —lo segundo es G9, y no se hace aquí—.

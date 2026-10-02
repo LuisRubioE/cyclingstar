@@ -291,6 +291,11 @@ describe('api: gating de sesión', () => {
     // la carrera de un corredor, así que jamás puede quedar abierta sin sesión.
     { method: 'POST', url: '/api/riders/me/races/race-france:s0/retire' },
     { method: 'PUT', url: '/api/riders/me/archetype' },
+    // La ficha propia: la opinión del entrenador habla del potencial del corredor, y eso solo se le
+    // cuenta a él (docs/agenda.md §4.20). Sin sesión no sale nada.
+    { method: 'GET', url: '/api/riders/me/trend' },
+    { method: 'GET', url: '/api/riders/me/coach-view' },
+    { method: 'GET', url: '/api/riders/me/report' },
     { method: 'POST', url: '/api/riders' },
     { method: 'GET', url: '/api/me/team-control' },
     { method: 'GET', url: '/api/me/team-training' },

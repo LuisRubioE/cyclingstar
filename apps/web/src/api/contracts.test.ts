@@ -8,6 +8,7 @@ import {
   ATTRIBUTES,
   type Attribute,
   calendarResponseSchema,
+  coachViewResponseSchema,
   enterableRacesResponseSchema,
   formResponseSchema,
   ledgerResponseSchema,
@@ -121,6 +122,32 @@ describe('contratos: entrenamiento', () => {
     const roto: Record<string, unknown> = { ...payload }
     delete roto.raceDays
     expect(ordersResponseSchema.safeParse(roto).success).toBe(false)
+  })
+})
+
+describe('contratos: la opinión del entrenador', () => {
+  const vista = (opinion: string) => ({
+    coachView: {
+      ceilings: ATTRIBUTES.map((attr) => ({ attr, opinion })),
+      notes: ['techo_cerca'],
+      declining: false,
+      facilities: 'normal',
+      season: 3,
+    },
+  })
+
+  it('acepta las opiniones relativas de hoy', () => {
+    for (const o of ['pronto', 'asoma', 'apunta', 'quiza', 'no_parece', 'lo_tuyo', 'flojo']) {
+      expect(coachViewResponseSchema.safeParse(vista(o)).success).toBe(true)
+    }
+  })
+
+  // docs/agenda.md §4.20: la API no manda lo que la pantalla no enseña. Si alguien vuelve a meter
+  // el techo en estrellas en el contrato, esto se pone rojo.
+  it('rechaza las opiniones en estrellas de antes', () => {
+    for (const o of ['tres', 'cuatro', 'cinco']) {
+      expect(coachViewResponseSchema.safeParse(vista(o)).success).toBe(false)
+    }
   })
 })
 

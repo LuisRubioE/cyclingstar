@@ -1,4 +1,4 @@
-import { ATTRIBUTES, VOCATIONS } from '@cyclingstar/shared'
+import { ATTRIBUTES, VOCATIONS, VOCATION_PROFILES } from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
 import { CREATION } from './constants.js'
 import { generateRiderGenome } from './creation.js'
@@ -56,6 +56,29 @@ describe('engine: creación del genoma (SPEC 3.4-3.5)', () => {
       const mejorTecho = Math.max(...ATTRIBUTES.map((a) => g.hidden.ceilings[a]))
       expect(`${i}: ${mejorTecho >= 82}`).toBe(`${i}: true`)
     }
+  })
+
+  /**
+   * EL DON VA A LA ESPECIALIDAD ELEGIDA (docs/balance.md «Creación: el don va a la especialidad
+   * elegida»). El caso del dueño: creó un velocista y el único potencial de élite le salió en la
+   * táctica, porque el don elevaba el mejor techo de los diez, fuera el que fuera.
+   */
+  it('el don garantiza la élite en un atributo PRIMARIO de la vocación, no en cualquiera', () => {
+    let fueraAntes = 0
+    for (let i = 0; i < 400; i++) {
+      const vocation = VOCATIONS[i % VOCATIONS.length] ?? 'velocidad'
+      const g = generateRiderGenome(`don-${i}`, vocation)
+      const primarios = VOCATION_PROFILES[vocation].primary
+      const mejorPrimario = Math.max(...primarios.map((a) => g.hidden.ceilings[a]))
+      expect(`${i}: ${mejorPrimario >= CREATION.giftThreshold}`).toBe(`${i}: true`)
+      const mejorTodos = Math.max(...ATTRIBUTES.map((a) => g.hidden.ceilings[a]))
+      if (mejorTodos > mejorPrimario) fueraAntes++
+    }
+    // Que el mejor techo del corredor caiga FUERA de su vocación sigue pudiendo pasar (la vocación
+    // sesga, no encarcela), pero ya es la excepción: medido, ~3 % contra ~42 % con el don viejo.
+    expect(`fuera de su vocación: ${fueraAntes / 400 < 0.1} (${fueraAntes})`).toBe(
+      `fuera de su vocación: true (${fueraAntes})`,
+    )
   })
 
   it('respeta rangos e invariantes en muchos corredores y vocaciones', () => {

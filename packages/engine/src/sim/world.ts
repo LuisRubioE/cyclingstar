@@ -40,7 +40,6 @@ import {
   VOCATIONS,
   type Vocation,
   archetypeFromAttributes,
-  attrStarsWhole,
   coachPlan,
   defaultCoachPlan,
   seededRng,
@@ -116,9 +115,27 @@ const CARTAS: Attribute[] = ['SPR', 'MON', 'COL', 'PAV', 'CRI', 'LLA']
 const cartaDe = (r: { attributes: Record<Attribute, number> }): number =>
   Math.max(...CARTAS.map((a) => r.attributes[a]))
 
+/**
+ * LAS ESTRELLAS DEL BANCO NO SON LAS DE LA FICHA, a propósito (octubre de 2026).
+ *
+ * La ficha del jugador recalibró sus bandas (`ATTR_STAR_CUTS` en packages/shared: la quinta estrella
+ * pasa de 84 a 92 y la cuarta de 67 a 74) porque el dueño leía mal los atributos altos. Pero los
+ * listones de este banco —«menos del 15 % del WorldTour con cinco estrellas», «nadie sin pasar de
+ * cuatro en nada»— y toda la bitácora de mediciones de `docs/balance.md` se tomaron con los cortes
+ * viejos. Si el banco siguiera a la ficha, `cincoEstrellasWTPct` caería a casi cero de un día para
+ * otro sin que el mundo hubiera cambiado en nada, y la alarma dejaría de vigilar.
+ *
+ * Así que el banco conserva su propia escala, la vieja, y sigue midiendo lo que medía: un atributo
+ * de 84 o más es «de los mejores del mundo en esto» y uno por debajo de 67 no llega a «muy bueno».
+ */
+const BENCH_STAR_CUTS = [17, 34, 51, 67, 84] as const
+
+/** Estrellas enteras con la escala del banco (0..5). */
+const estrellasBanco = (x: number): number => BENCH_STAR_CUTS.filter((c) => x >= c).length
+
 /** Sin cuatro estrellas en NADA físico: la otra mitad del miedo del dueño. */
 const sinCuatroEstrellas = (r: { attributes: Record<Attribute, number> }): boolean =>
-  FISICOS.every((a) => attrStarsWhole(r.attributes[a]) < 4)
+  FISICOS.every((a) => estrellasBanco(r.attributes[a]) < 4)
 
 /** Las tres cohortes de edad con las que se leen el margen y lo aprendido. */
 const cohorteDe = (age: number): 'joven' | 'medio' | 'veterano' =>
@@ -526,7 +543,7 @@ function foto(
 ): WorldSeasonRow {
   const medias = field.map((r) => media(FISICOS.map((a) => r.attributes[a])))
   const cincos = field.map(
-    (r) => FISICOS.filter((a) => attrStarsWhole(r.attributes[a]) >= 5).length,
+    (r) => FISICOS.filter((a) => estrellasBanco(r.attributes[a]) >= 5).length,
   )
   const cracks = cincos.filter((n) => n >= 3).length
   const medianias = field.filter((r) => sinCuatroEstrellas(r)).length
@@ -546,7 +563,7 @@ function foto(
   const wt = field.filter((r) => r.division === 'WT')
   const wtMaduros = wt.filter((r) => r.age >= 26 && r.age <= 31)
   const tieneCinco = (r: WorldRider): boolean =>
-    FISICOS.some((a) => attrStarsWhole(r.attributes[a]) >= 5)
+    FISICOS.some((a) => estrellasBanco(r.attributes[a]) >= 5)
 
   const repartoArq = Object.fromEntries(
     RIDER_ARCHETYPES.map((a) => [

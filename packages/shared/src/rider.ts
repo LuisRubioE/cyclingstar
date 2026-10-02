@@ -180,30 +180,54 @@ export interface PublicRider {
  *
  * SE LLAMABA `stars` Y HABÍA QUE RENOMBRARLA (docs/entrenamiento.md §2.3). Con `attrStars` en
  * la casa conviven dos funciones de medias estrellas que dan números DISTINTOS para el mismo valor
- * —`stars(84) = 4`, `attrStars(84) = 5`— y con el nombre genérico era cuestión de tiempo que
+ * —`stars(92) = 4.5`, `attrStars(92) = 5`— y con el nombre genérico era cuestión de tiempo que
  * alguien pintara un atributo con la escala de la forma sin enterarse.
  *
  * No es un descuido que sean distintas: la forma es una magnitud continua de 0 a 100 sin umbrales
  * de dominio, y su suelo de media estrella dice «siempre hay algo». Un atributo, en cambio, lleva
- * los umbrales con los que el dueño midió su «menos del 15 % con cinco estrellas» (17/34/51/67/84),
- * y ahí el 0 existe: se puede no saber esprintar.
+ * sus propias bandas (`ATTR_STAR_CUTS`), y ahí el 0 existe: se puede no saber esprintar.
  */
 export function formStarsScale(x: number): number {
   return Math.min(5, Math.max(0.5, Math.round(x / 10) / 2))
 }
 
 /**
- * Estrellas ENTERAS de un atributo (0..5). Bandas: 0-16→0, 17-33→1, 34-50→2, 51-66→3, 67-83→4,
- * 84-100→5. Es la escala con la que se cuenta el mundo: «cinco estrellas» son 84 o más, y ése es el
- * listón del que habla el dueño.
+ * DÓNDE EMPIEZA CADA ESTRELLA ENTERA DE UN ATRIBUTO (1★, 2★, 3★, 4★ y 5★).
+ *
+ * RECALIBRADA EN OCTUBRE DE 2026 por petición del dueño. Las bandas eran lineales (17/34/51/67/84)
+ * y en la ficha eso se leía mal arriba: un 76,5 enseñaba cuatro y media y un 84 ya era cinco, así
+ * que la quinta estrella se quedaba corta para separar al bueno del mejor del mundo. El dueño espera
+ * que ~90 se lea como cuatro y media y ~76,5 como cuatro, y de ahí salen estas bandas: más anchas
+ * abajo (no saber hacer algo y saber poco se parecen) y la quinta reservada para 92 o más.
+ *
+ * | estrellas | banda    | media estrella desde |
+ * | --------: | :------- | -------------------: |
+ * |         0 | 0 – 21   |                   11 |
+ * |         1 | 22 – 41  |                   32 |
+ * |         2 | 42 – 57  |                   50 |
+ * |         3 | 58 – 73  |                   66 |
+ * |         4 | 74 – 91  |                   83 |
+ * |         5 | 92 o más |                    — |
+ *
+ * El banco de mundo NO usa esta escala para sus listones: los del dueño («menos del 15 % del
+ * WorldTour con cinco estrellas») se midieron con la vieja, y el banco la conserva aparte
+ * (`BENCH_STAR_CUTS` en packages/engine/src/sim/world.ts) para seguir midiendo lo mismo.
+ */
+export const ATTR_STAR_CUTS = [22, 42, 58, 74, 92] as const
+
+/** Inicio y fin de la banda entera `entero` (0..4): la quinta no tiene fin. */
+function attrBand(entero: number): { desde: number; hasta: number } {
+  return { desde: entero === 0 ? 0 : ATTR_STAR_CUTS[entero - 1]!, hasta: ATTR_STAR_CUTS[entero]! }
+}
+
+/**
+ * Estrellas ENTERAS de un atributo (0..5), por las bandas de `ATTR_STAR_CUTS`: 0-21→0, 22-41→1,
+ * 42-57→2, 58-73→3, 74-91→4, 92-100→5. Es la escala gruesa, la que no tiene medias.
  */
 export function attrStarsWhole(x: number): number {
-  if (x < 17) return 0
-  if (x < 34) return 1
-  if (x < 51) return 2
-  if (x < 67) return 3
-  if (x < 84) return 4
-  return 5
+  let estrellas = 0
+  for (const corte of ATTR_STAR_CUTS) if (x >= corte) estrellas++
+  return estrellas
 }
 
 /**
@@ -219,12 +243,9 @@ export function attrStarsWhole(x: number): number {
  */
 export function attrStars(x: number): number {
   const entero = attrStarsWhole(x)
-  if (entero === 0) return x < 9 ? 0 : 0.5
   if (entero === 5) return 5
-  // Los cortes enteros son 17, 34, 51, 67, 84: el medio de cada banda es su punto de partida + 8.
-  const inicios = [0, 17, 34, 51, 67]
-  const siguiente = [17, 34, 51, 67, 84]
-  const mitad = (inicios[entero]! + siguiente[entero]!) / 2
+  const { desde, hasta } = attrBand(entero)
+  const mitad = (desde + hasta) / 2
   return x >= mitad ? entero + 0.5 : entero
 }
 
@@ -235,22 +256,20 @@ export function attrStars(x: number): number {
  * 0..3: en qué cuarto de su banda ENTERA está el atributo, para pintar cuatro segmentos bajo las
  * estrellas.
  *
- * Cuatro pasos y no una barra continua, a propósito: con bandas de 16-17 puntos una barra continua
- * resolvería el atributo a menos de medio punto, o sea MÁS resolución que las medias estrellas que
- * se acaban de introducir, y eso es enseñar el número interno por la puerta de atrás
- * (`MVP.md:114`, `SPEC.md:40`).
+ * Cuatro pasos y no una barra continua, a propósito: con bandas de 16 a 22 puntos una barra continua
+ * resolvería el atributo a menos de medio punto, o sea MÁS resolución que las medias estrellas, y
+ * eso es enseñar el número interno por la puerta de atrás (`MVP.md:114`, `SPEC.md:40`). La media
+ * estrella cae justo en la frontera del segundo cuarto, así que estrella y marca juntas nunca
+ * resuelven el atributo a menos de cuatro puntos.
  *
- * Las cinco estrellas no tienen banda superior —84 es el suelo y no hay techo—, así que se pinta
+ * Las cinco estrellas no tienen banda superior —92 es el suelo y no hay techo—, así que se pinta
  * siempre lleno: un 5★ está en lo más alto de la escala que el jugador conoce.
  */
 export function attrProgress(x: number): number {
   const entero = attrStarsWhole(x)
   if (entero === 5) return 3
-  const inicios = [0, 17, 34, 51, 67]
-  const siguiente = [17, 34, 51, 67, 84]
-  const desde = inicios[entero]!
-  const ancho = siguiente[entero]! - desde
-  return Math.min(3, Math.max(0, Math.floor((4 * (x - desde)) / ancho)))
+  const { desde, hasta } = attrBand(entero)
+  return Math.min(3, Math.max(0, Math.floor((4 * (x - desde)) / (hasta - desde))))
 }
 
 /** Los cinco niveles de la flecha de tendencia (docs/entrenamiento.md §2.3). */
@@ -476,7 +495,12 @@ const CARTA_DE_ARQUETIPO: readonly (readonly [Attribute, RiderArchetype])[] = [
 
 /** Cuánto tiene que despuntar la carta sobre la media del corredor para que sea una especialidad. */
 const ARCHETYPE_EDGE = 8
-/** Por debajo de cuatro estrellas en todo no hay oficio de especialista: hay gregario. */
+/**
+ * Por debajo de esto en todo no hay oficio de especialista: hay gregario. Era el corte de la cuarta
+ * estrella de la escala vieja (67) y SE QUEDA en 67 al recalibrar `ATTR_STAR_CUTS`: decide el
+ * arquetipo con el que el banco de mundo y el relleno de arquetipos (`backfillArchetypes`) leen a
+ * cada corredor, y moverlo cambiaría ese reparto por una razón que es solo de presentación.
+ */
 const ARCHETYPE_DOMESTIQUE_MAX = 67
 
 export function archetypeFromAttributes(attrs: Record<Attribute, number>): RiderArchetype {

@@ -17859,3 +17859,38 @@ El salto es de los puertos, no de la ley, y es casi entero una etapa: en la e20 
 **La radio mide el kilómetro recorrido.** En la cima de Calar Alto la radio enseñaba la velocidad de la bajada que aún no se había hecho (58 km/h) junto al grupo del líder a 20,7, que era la medida de reserva del kilómetro anterior porque ese grupo se fundía con el de delante. Desde la v90 la velocidad de una foto es la del kilómetro que acaba de recorrer; la de reserva, la del siguiente, y la primera foto mide el siguiente.
 
 **Defecto abierto: la caza por un solo lado.** `move_caught` da por cazada una escapada con `peloton.tS − m.g.tS ≤ captureGapSeconds`, sin suelo, así que un `puente` que nace detrás del pelotón se caza en su mismo bloque y hereda su reloj (medido: 28 casos en diez etapas 3 sintéticas, regalos de hasta 137 s). Exigir el hueco por los dos lados se probó y se retiró: movía las huellas del llano y adelantaba cuatro minutos al ganador de la reina, porque una escapada que va por detrás seguía contando como fuga que perseguir. El arreglo bueno es que un puente por detrás del pelotón no cuente como fuga para la persecución, y queda pendiente. Relacionado: las fusiones de la v76.1 y la v81 devuelven el hueco en `driftS`, que `advance()` pone a cero en cada bloque de llano.
+
+## Creación: el don va a la especialidad elegida
+
+**El dueño:** creó un velocista y el entrenador le dijo que solo veía potencial de élite en la táctica. No era el entrenador; era el genoma. El don global de `generateRiderGenome` elevaba a 82-90 el MEJOR TECHO DE LOS DIEZ si ninguno llegaba a `CREATION.giftThreshold` (82), y ese mejor techo podía ser cualquier atributo. El velocista se quedaba con su único techo de élite en la táctica y con un esprint corriente.
+
+**Qué cambia.** El don mira solo los atributos PRIMARIOS de la vocación (`categoryOf(...) === 'primary'`, dos por vocación): si el mejor de ellos no llega a 82, se eleva ese. Los umbrales y la banda del don no se mueven (`giftThreshold` 82, `giftMin` 82, `giftMax` 90), y la garantía de siempre («el mejor techo del corredor es 82 o más») se sigue cumpliendo, ahora además dentro de su especialidad. Un adyacente o un atributo del resto puede seguir saliendo alto por suerte: la vocación sesga, no encarcela.
+
+**Medido** sobre 5.000 genomas, 1.000 por vocación:
+
+|                                           | don viejo (argmax) | don nuevo (mejor primario) |
+| ----------------------------------------- | -----------------: | -------------------------: |
+| mejor techo FUERA de los primarios        |             42,6 % |                      3,0 % |
+| mejor techo en la táctica                 |              5,0 % |                      0,3 % |
+| velocista con el esprint como mejor techo |             26,1 % |                     44,1 % |
+
+El velocista tiene dos primarios, esprint y llano, y el don va al mejor de los dos, así que el otro 56 % lo tiene en el llano: sigue siendo su especialidad.
+
+**Determinismo.** La llamada al azar del don es la misma y está en el mismo sitio. Lo que cambia es cuándo se consume: un corredor cuyo mejor techo ya pasaba de 82 fuera de su vocación pero no en ella antes no recibía don y ahora sí, y eso desplaza el talento, la fragilidad y las edades que se sortean después. El 42 % de los genomas de una misma semilla salen distintos que antes. Solo afecta a corredores NUEVOS: los ya creados tienen su genoma guardado en `rider_hidden`. No se sube `ENGINE_VERSION` en este cambio porque va en otra tanda en vuelo; el banco de mundo usa este generador para el humano de referencia y no para los bots.
+
+## La escala de estrellas de los atributos, recalibrada
+
+**El dueño** esperaba leer un 90 como cuatro estrellas y media y un 76,5 como cuatro. Con las bandas lineales de antes (17/34/51/67/84) el 76,5 enseñaba cuatro y media y el 84 ya era cinco, así que la quinta estrella no separaba al muy bueno del mejor del mundo.
+
+| estrellas | banda vieja | banda nueva | media estrella desde |
+| --------: | :---------- | :---------- | -------------------: |
+|         0 | 0 a 16      | 0 a 21      |         11 (antes 9) |
+|         1 | 17 a 33     | 22 a 41     |      32 (antes 25,5) |
+|         2 | 34 a 50     | 42 a 57     |      50 (antes 42,5) |
+|         3 | 51 a 66     | 58 a 73     |        66 (antes 59) |
+|         4 | 67 a 83     | 74 a 91     |        83 (antes 75) |
+|         5 | 84 o más    | 92 o más    |            sin media |
+
+Los cortes viven en `ATTR_STAR_CUTS` (packages/shared/src/rider.ts). Se mantiene el invariante `attrStarsWhole(x) === Math.floor(attrStars(x))`, y la marca de progreso de cuatro pasos (`attrProgress`) sigue partiendo cada banda en cuartos: con la media estrella en la frontera del segundo cuarto, estrella y marca juntas nunca resuelven el atributo a menos de cuatro puntos.
+
+**Lo que NO cambia, a propósito.** El banco de mundo (`sim/world.ts`) cuenta «cinco estrellas» y «sin nada sobre cuatro» con su propia escala, la vieja (`BENCH_STAR_CUTS`, 84 y 67). Los listones del dueño, «menos del 15 % del WorldTour con cinco estrellas» y compañía, y toda la bitácora de este documento se midieron con ella; si el banco siguiera a la ficha, `cincoEstrellasWTPct` caería a casi cero sin que el mundo cambiara. Tampoco se mueve `ARCHETYPE_DOMESTIQUE_MAX` (67), el corte de gregario de `archetypeFromAttributes`: decide el arquetipo con el que leen al corredor el banco de mundo y el relleno de arquetipos (`backfillArchetypes`), y moverlo sería cambiar ese reparto por una razón de presentación. Es un cambio de pantalla y no de motor.

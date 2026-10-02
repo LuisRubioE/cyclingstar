@@ -1058,6 +1058,15 @@ un aviso de calendario: **esto es una decisión de la pantalla de entrenamiento,
 línea está implementando ahora mismo**, así que conviene que le llegue antes de que termine, igual que
 lo del gregario (§4.16.3).
 
+**Estado (octubre de 2026): implementado**, tras una segunda queja del dueño: creó un velocista y el entrenador le dijo que no pasaría de tres estrellas en nada, ni en el esprint, y que donde tenía cinco era en la táctica. Las cuatro condiciones se cumplen así:
+
+1. **Relativa.** `ceilingOpinions` (packages/engine/src/coachView.ts) ordena los diez techos del corredor y habla del puesto de cada uno. Sumar lo mismo a todos los techos no cambia ninguna opinión, y todo corredor tiene exactamente un «lo tuyo».
+2. **Se afina.** Tres lecturas por edad: a los 18-19 una sola pista («There seems to be something here. Too early to be sure, though.») y «Too early to say.» en el resto; de los 20 a los 22, arriba, medio y abajo con reservas; desde los 23 habla claro («This is your thing: your biggest potential is here.», «Not where your future is. Your room is elsewhere.»).
+3. **Puede equivocarse.** Un error fijo por corredor y atributo, sembrado sin la temporada, que encoge de σ 9 a los 19 a σ 1,5 a los 27. Medido: acierta el mejor sitio del corredor un 72 % de las veces en la primera lectura y un 98 % a los 27.
+4. **La API no manda lo que la pantalla no enseña.** `ceilingOpinionSchema` ya no es `tres | cuatro | cinco` sino los nueve códigos de las frases (`CEILING_OPINIONS`), y la prueba del contrato rechaza los viejos.
+
+La otra mitad de la queja era del genoma y no del entrenador: el don de creación iba al mejor techo de los diez, que podía ser la táctica. Ahora va al mejor primario de la vocación (`docs/balance.md` «Creación: el don va a la especialidad elegida»). La defensa contra las cuentas desechables sigue en E7.
+
 ### 4.21 El staff: existe como ATRIBUTO del equipo, no como DECISIÓN del mánager
 
 Pregunta del dueño: ¿está el staff en alguna parte? Su modelo mental es el correcto (NPC que el
