@@ -1,4 +1,4 @@
-import { COUNTRIES, VOCATION_LABELS, type Vocation } from '@cyclingstar/shared'
+import { COUNTRIES } from '@cyclingstar/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { fetchTeam, fetchTeamControl, fetchTeamNews, takeOverTeam } from '../api/browse'
@@ -7,6 +7,7 @@ import { Jersey } from '../components/Jersey'
 import { Panel, SectionBar } from '../components/Panel'
 import { RiderName } from '../components/RiderName'
 import { TeamManager } from '../components/TeamManager'
+import { archetypeLabel } from '../domain/labels'
 
 const DIVISION_LABEL: Record<string, string> = {
   WT: 'World Tour',
@@ -121,9 +122,7 @@ export function Team() {
                     </span>
                   )}
                 </td>
-                <td className="py-1.5 text-slate-500">
-                  {VOCATION_LABELS[r.archetype as Vocation] ?? r.archetype}
-                </td>
+                <td className="py-1.5 text-slate-500">{archetypeLabel(r.archetype)}</td>
                 <td className="py-1.5 pr-4 text-right tabular-nums text-slate-400">
                   {r.seasonPoints} pts
                 </td>

@@ -1,4 +1,3 @@
-import { VOCATION_LABELS, type Vocation } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -16,6 +15,7 @@ import { Flag } from '../components/Flag'
 import { Panel, SectionBar } from '../components/Panel'
 import { RiderName } from '../components/RiderName'
 import { TeamLink } from '../components/TeamLink'
+import { archetypeLabel } from '../domain/labels'
 
 function RankingTable({ rows }: { rows: RankingRow[] }) {
   if (rows.length === 0) {
@@ -84,8 +84,7 @@ function AwardCard({
             </Link>
           </p>
           <p className="mt-0.5 text-xs text-slate-400">
-            {VOCATION_LABELS[winner.archetype as Vocation] ?? winner.archetype} ·{' '}
-            {winner.points.toLocaleString('en-US')} pts
+            {archetypeLabel(winner.archetype)} · {winner.points.toLocaleString('en-US')} pts
           </p>
         </>
       ) : (

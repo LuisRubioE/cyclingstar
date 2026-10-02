@@ -7,6 +7,7 @@
  * página tradujera y otra mostrara la clave interna en crudo.
  */
 
+import { ARCHETYPE_LABELS } from '@cyclingstar/shared'
 import type {
   Effort,
   Mentality,
@@ -355,3 +356,13 @@ export const CLIMB_PART_LABEL = {
   cima: 'near the top',
 }
 export const WEATHER_COND_LABEL = { lluvia: 'it rains', viento: 'the wind picks up' }
+
+/**
+ * EL NOMBRE EN INGLÉS DE UN ARQUETIPO. Las pantallas leían `VOCATION_LABELS`, que solo conoce las
+ * cinco vocaciones de siempre, y para los tres arquetipos de la génesis v2 (puncheur, rodador,
+ * gregario) caían al código interno en español: el ranking nacional enseñaba «rodador» y «gregario».
+ * `ARCHETYPE_LABELS` nombra los ocho; si llegara un código desconocido se enseña tal cual.
+ */
+export function archetypeLabel(code: string): string {
+  return (ARCHETYPE_LABELS as Record<string, string>)[code] ?? code
+}
