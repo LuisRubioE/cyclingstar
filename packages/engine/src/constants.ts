@@ -843,7 +843,14 @@ import type { RaceClass } from './routes/uci.js'
  * nivel y en el sprint va peor colocado. Y el favorito claro de un sprint sale marcado
  * (`STAGE.favoritoMarcado`): con 5 puntos de SPR de ventaja gana el 46 % de los sprints y no el 52.
  */
-export const ENGINE_VERSION = 90 as const
+/**
+ * **v91 — EL PUENTE DESDE ATRÁS Y EL RESERVÓN DE VERDAD** (docs/balance.md, v91).
+ *
+ * El puente que salta de un grupo de descolgados hacia el pelotón deja de ser un movimiento: nace
+ * en `shed` y vuelve al pelotón llegando, sin heredar su reloj (ver `desdeAtras` en `simulate.ts`).
+ * Y el cazaetapas reservón, fuera de lo suyo, casi no lanza ni sigue movimientos (`STAGE.reservon`).
+ */
+export const ENGINE_VERSION = 91 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -942,9 +949,9 @@ export const NPC = {
    * …Y CINCO ESTRELLAS TIENEN QUE SER RARAS (v58). El dueño, mirando el mundo: «creo que entre los
    * bots hay algunos demasiado pro». Medido sobre 4.000 bots con los números de antes (78 y una
    * desviación de 8): **el 46,8 % de los corredores del WorldTour tenía al menos un atributo de
-   * cinco estrellas** (84+ en la escala de `attrStars`) y el 1 % superior estaba clavado en el techo
-   * de 95. Casi uno de cada dos, cuando cinco estrellas debería querer decir «de los mejores del
-   * mundo en esto».
+   * cinco estrellas** (84+, la escala de entonces y la que conserva el banco) y el 1 % superior
+   * estaba clavado en el techo de 95. Casi uno de cada dos, cuando cinco estrellas debería querer
+   * decir «de los mejores del mundo en esto».
    *
    * El dueño fijó la banda: «claramente menos del 15 % de momento (y cuando haya humanos buenos
    * bajaremos eso a 0)» —lo segundo es G9, y no se hace aquí—.
@@ -4956,6 +4963,25 @@ export const STAGE = {
    */
   jerseyBreakDampFlat: 0.02,
   jerseyBreakDampClimb: 0.25,
+  /**
+   * EL RESERVÓN, DE VERDAD (v91, `reservonSeGuarda` en `stage/tactics.ts`). La SPEC 6.18 le da un
+   * multiplicador de ataque personal de 0: guarda los cerillos y solo los gasta cuando hay algo que
+   * defender. El motor le daba 0,3 de apetito y 0,105 menos de probabilidad de salto, y en el
+   * cazaetapas las dos cosas se perdían por el camino: el apetito es RELATIVO (`chooseInstigator`
+   * reparte el intento entre los apetitos del grupo, y entre gregarios y líderes el cazaetapas sigue
+   * siendo el que más ganas tiene) y el salto es una suma donde su rol (0,3) se come la mentalidad.
+   * Medido en el banco del parte: el cazaetapas reservón hacía 19 ataques y saltos en veinte etapas
+   * contra 26 del supercombativo, y gastaba 21,6 en cerillos contra 33,3.
+   *
+   * Fuera de lo suyo (su cita, la general si se la juega), el elegido para atacar solo se lanza con
+   * `iniciativa` (si no, el intento se queda en nada, con un dado de su propio flujo), y salta a la
+   * rueda de otro con `seguir` veces su probabilidad. Con estos dos números son 7 contra 26 y 6,3
+   * contra 33,3. Solo muerde en el cazaetapas: ver `reservonSeGuarda`.
+   */
+  reservon: {
+    iniciativa: 0.15,
+    seguir: 0.25,
+  },
   /**
    * EL MAILLOT DA ALAS PARA DEFENDERLO, NO PARA GANAR ETAPAS (v90, `stage/maillot.ts`).
    *

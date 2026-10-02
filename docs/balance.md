@@ -17859,3 +17859,112 @@ El salto es de los puertos, no de la ley, y es casi entero una etapa: en la e20 
 **La radio mide el kilómetro recorrido.** En la cima de Calar Alto la radio enseñaba la velocidad de la bajada que aún no se había hecho (58 km/h) junto al grupo del líder a 20,7, que era la medida de reserva del kilómetro anterior porque ese grupo se fundía con el de delante. Desde la v90 la velocidad de una foto es la del kilómetro que acaba de recorrer; la de reserva, la del siguiente, y la primera foto mide el siguiente.
 
 **Defecto abierto: la caza por un solo lado.** `move_caught` da por cazada una escapada con `peloton.tS − m.g.tS ≤ captureGapSeconds`, sin suelo, así que un `puente` que nace detrás del pelotón se caza en su mismo bloque y hereda su reloj (medido: 28 casos en diez etapas 3 sintéticas, regalos de hasta 137 s). Exigir el hueco por los dos lados se probó y se retiró: movía las huellas del llano y adelantaba cuatro minutos al ganador de la reina, porque una escapada que va por detrás seguía contando como fuga que perseguir. El arreglo bueno es que un puente por detrás del pelotón no cuente como fuga para la persecución, y queda pendiente. Relacionado: las fusiones de la v76.1 y la v81 devuelven el hueco en `driftS`, que `advance()` pone a cero en cada bloque de llano.
+
+## Creación: el don va a la especialidad elegida
+
+**El dueño:** creó un velocista y el entrenador le dijo que solo veía potencial de élite en la táctica. No era el entrenador; era el genoma. El don global de `generateRiderGenome` elevaba a 82-90 el MEJOR TECHO DE LOS DIEZ si ninguno llegaba a `CREATION.giftThreshold` (82), y ese mejor techo podía ser cualquier atributo. El velocista se quedaba con su único techo de élite en la táctica y con un esprint corriente.
+
+**Qué cambia.** El don mira solo los atributos PRIMARIOS de la vocación (`categoryOf(...) === 'primary'`, dos por vocación): si el mejor de ellos no llega a 82, se eleva ese. Los umbrales y la banda del don no se mueven (`giftThreshold` 82, `giftMin` 82, `giftMax` 90), y la garantía de siempre («el mejor techo del corredor es 82 o más») se sigue cumpliendo, ahora además dentro de su especialidad. Un adyacente o un atributo del resto puede seguir saliendo alto por suerte: la vocación sesga, no encarcela.
+
+**Medido** sobre 5.000 genomas, 1.000 por vocación:
+
+|                                           | don viejo (argmax) | don nuevo (mejor primario) |
+| ----------------------------------------- | -----------------: | -------------------------: |
+| mejor techo FUERA de los primarios        |             42,6 % |                      3,0 % |
+| mejor techo en la táctica                 |              5,0 % |                      0,3 % |
+| velocista con el esprint como mejor techo |             26,1 % |                     44,1 % |
+
+El velocista tiene dos primarios, esprint y llano, y el don va al mejor de los dos, así que el otro 56 % lo tiene en el llano: sigue siendo su especialidad.
+
+**Determinismo.** La llamada al azar del don es la misma y está en el mismo sitio. Lo que cambia es cuándo se consume: un corredor cuyo mejor techo ya pasaba de 82 fuera de su vocación pero no en ella antes no recibía don y ahora sí, y eso desplaza el talento, la fragilidad y las edades que se sortean después. El 42 % de los genomas de una misma semilla salen distintos que antes. Solo afecta a corredores NUEVOS: los ya creados tienen su genoma guardado en `rider_hidden`. No se sube `ENGINE_VERSION` en este cambio porque va en otra tanda en vuelo; el banco de mundo usa este generador para el humano de referencia y no para los bots.
+
+## La escala de estrellas de los atributos, recalibrada
+
+**El dueño** esperaba leer un 90 como cuatro estrellas y media y un 76,5 como cuatro. Con las bandas lineales de antes (17/34/51/67/84) el 76,5 enseñaba cuatro y media y el 84 ya era cinco, así que la quinta estrella no separaba al muy bueno del mejor del mundo.
+
+| estrellas | banda vieja | banda nueva | media estrella desde |
+| --------: | :---------- | :---------- | -------------------: |
+|         0 | 0 a 16      | 0 a 21      |         11 (antes 9) |
+|         1 | 17 a 33     | 22 a 41     |      32 (antes 25,5) |
+|         2 | 34 a 50     | 42 a 57     |      50 (antes 42,5) |
+|         3 | 51 a 66     | 58 a 73     |        66 (antes 59) |
+|         4 | 67 a 83     | 74 a 91     |        83 (antes 75) |
+|         5 | 84 o más    | 92 o más    |            sin media |
+
+Los cortes viven en `ATTR_STAR_CUTS` (packages/shared/src/rider.ts). Se mantiene el invariante `attrStarsWhole(x) === Math.floor(attrStars(x))`, y la marca de progreso de cuatro pasos (`attrProgress`) sigue partiendo cada banda en cuartos: con la media estrella en la frontera del segundo cuarto, estrella y marca juntas nunca resuelven el atributo a menos de cuatro puntos.
+
+**Lo que NO cambia, a propósito.** El banco de mundo (`sim/world.ts`) cuenta «cinco estrellas» y «sin nada sobre cuatro» con su propia escala, la vieja (`BENCH_STAR_CUTS`, 84 y 67). Los listones del dueño, «menos del 15 % del WorldTour con cinco estrellas» y compañía, y toda la bitácora de este documento se midieron con ella; si el banco siguiera a la ficha, `cincoEstrellasWTPct` caería a casi cero sin que el mundo cambiara. Tampoco se mueve `ARCHETYPE_DOMESTIQUE_MAX` (67), el corte de gregario de `archetypeFromAttributes`: decide el arquetipo con el que leen al corredor el banco de mundo y el relleno de arquetipos (`backfillArchetypes`), y moverlo sería cambiar ese reparto por una razón de presentación. Es un cambio de pantalla y no de motor.
+
+## La escala de estrellas, otra vez: medias estrellas cada diez puntos (02/10/2026)
+
+El dueño fija la escala él mismo: hasta 5 son cero estrellas, de más de 5 a 15 media, de más de 15 a 25 una, y así de diez en diez hasta de más de 85 a 95 cuatro y media; por encima de 95, cinco. Es `ceil((x − 5) / 10) / 2` (`attrStars` en packages/shared/src/rider.ts, con `ATTR_STAR_STEP` 10 y `ATTR_STAR_OFFSET` 5) y sustituye a las bandas 22/42/58/74/92 de la entrada anterior, que no llegaron a producción. Las estrellas enteras son el suelo de las medias (4★ es de más de 75 a 95) y la marca de progreso parte cada banda entera de 20 puntos en cuartos de 5. El banco de mundo sigue midiendo con su escala propia (`BENCH_STAR_CUTS`), por la misma razón que antes.
+
+## v91 · El puente desde atrás no hereda el reloj, y el cazaetapas reservón guarda los cerillos
+
+Dos defectos del motor. El primero es el «defecto abierto» de la v90: un puente que salta desde un grupo de descolgados hacia el pelotón se daba por cazado en su mismo bloque y sus hombres entraban en el pelotón con el reloj del pelotón. El segundo: la mentalidad `reservon` apenas frenaba a un cazaetapas (21 ataques y saltos contra 24 del supercombativo en la prueba del parte). `ENGINE_VERSION` sube de 90 a 91.
+
+### 1 · El puente desde atrás
+
+**La causa.** La caza de los movimientos (`peloton.tS − m.g.tS ≤ captureGapSeconds`) solo mira un lado, y eso vale mientras todo movimiento nazca por delante de su grupo. El puente de R19.7 nace de un `shed-N` que va de 30 a 150 s por detrás del pelotón: el hueco sale negativo, el pelotón lo «caza» en el bloque en que nace y le entrega `Math.min` de los dos relojes, el suyo.
+
+**Medido**, con el mismo instrumento antes y después (un apunte en la caza de cada movimiento con hueco por debajo de −5 s):
+
+| Banco                                                               | v90                                                                         | v91 |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------------- | --- |
+| Vuelta e3 sintética, 10 carreras (campo WT de 176 con `autoOrders`) | 49 puentes cazados al nacer, 34 en puerto, 3.594 s regalados, el peor 132 s | 0   |
+| `reina-canonica`, 120 semillas                                      | 554 (4,6 por etapa)                                                         | 0   |
+| huellas selladas de `llana-180`                                     | 2 (35 y 44 s)                                                               | 0   |
+| huellas selladas de `reina-canonica`                                | 17 (el peor 145 s, ocho en puerto)                                          | 0   |
+
+**El arreglo** (`desdeAtras` en `attemptFrom`). El puente desde atrás no nace como `Move`: nace en `shed`, como lo que es, un grupo de descolgados que persigue. Rueda a `tacticBridgeCommit` mientras dura el esfuerzo (`tacticBridgeKm`, mapa `puenteDesdeAtras`); mientras puentea no se funde con el grupo del que acaba de saltar (que le tiene a segundos y se lo tragaría en el mismo bloque) y no lanza otro puente. Hereda el hueco máximo de su grupo de origen, así que vuelve al pelotón por la puerta de los grupos establecidos de la v90: llegando a `captureGapSeconds`, o en contacto con el reloj conservado. Si el esfuerzo se acaba sin llegar, es un descolgado más y se funde con el de atrás si le alcanza. No cuenta como fuga para nada (persecución, correa, aduana, parte de cabeza, `time_gap`), porque nada de eso mira `shed`. Los cerillos, el dado y la tirada de `moveCooperation` se gastan igual que antes, así que los flujos no se corren; el `attack_go` sale como telemetría (`detras: 1`, `narra: 0`) porque la crónica cuenta ataques del pelotón y de la fuga, y no abre `fugaDesdeKm`.
+
+Por qué no el arreglo que se probó en la v90 (exigir el hueco por los dos lados): el puente seguía siendo un movimiento por detrás del pelotón y todo lo que pregunta «¿hay algo delante?» lo contaba como fuga que perseguir. Con el puente en `shed` no hay que auditar cada uso de `moves`: ninguno lo ve.
+
+**Lo que mueve en los bancos** (el cambio del §2 no los toca):
+
+| Banco · medida                                       | Banda           | v90      | v91      |
+| ---------------------------------------------------- | --------------- | -------- | -------- |
+| llana canónica, 300 semillas · gana la fuga          | 5-16 %          | 13,7 %   | 14,0 %   |
+| llana canónica · gana el mejor sprinter              | 30-45 %         | 40,0 %   | 42,0 %   |
+| llana canónica · captura mediana (km a meta)         | 8-25            | 19,8     | 19,7     |
+| fases, 120 llanas · contraataque tras la captura     | 25-60 %         | 28,6 %   | 25,3 %   |
+| reina canónica, 120 · gana la fuga                   | 15-40 %         | 29,2 %   | 35,0 %   |
+| reina canónica · brecha 1.º-10.º                     | 40-300 s        | 173,5 s  | 174,5 s  |
+| reina canónica · ganador medio                       |                 | 15.787 s | 15.800 s |
+| carreras pequeñas (12) · gana el mejor rematador     | 25-60 → 22-60 % | 25,25 %  | 23,83 %  |
+| carreras pequeñas · mismo ganador por pares          | 15-55 %         | 18,3 %   | 26,3 %   |
+| carreras pequeñas · peor margen de una fuga en llano | ≤ 900 s         | 686 s    | 648 s    |
+| carreras pequeñas · barrido                          | 0-30 %          | 0 %      | 3,3 %    |
+
+El ganador de la reina no sale más rápido: el regalo que desaparece es de descolgados, y la persecución no cambia. La fuga de la reina sube seis puntos, dentro de banda (con 120 semillas la desviación típica es de unos cuatro). **La banda que se mueve es `smallTours.bestSprinterWinPct`, suelo de 25 a 22.** La v90 la dejó en 25,25, pegada al suelo a propósito (el dueño pidió menos dominio del mejor); la v91 no toca el sprint, pero sin el regalo de reloj las carreras del banco siguen otro camino y el número cae a 23,83 sobre 193 llegadas agrupadas, donde la desviación típica es de unos tres puntos. 22 sigue muy por encima de la lotería (6-14 %), que es lo que el suelo vigila. Queda como deuda para el dueño: un suelo de 25 de verdad pide más muestra, no otro número.
+
+### 2 · El cazaetapas reservón
+
+**La causa, en dos caminos que ignoraban la mentalidad.**
+
+1. **El apetito es relativo.** `chooseInstigator` reparte cada intento entre los apetitos del grupo, así que el 0,3 del reservón solo pesa contra los demás. Entre gregarios y líderes reservones el cazaetapas sigue siendo el que más ganas tiene (0,3 contra 0,06 y 0,09): en el pelotón le toca uno de cada diez intentos, y en un grupo pequeño casi todos.
+2. **El salto es una suma.** `followProbability` suma la mentalidad (`spirit`, −0,105) al rol (+0,3 un cazaetapas): la probabilidad de salto del reservón era 0,37 contra 0,57 del supercombativo.
+
+Desglose de la prueba del parte (20 etapas, con el arreglo del §1 puesto): el reservón hacía 5 ataques (3 en el desenlace, uno a la fuga y uno dentro de ella) y 14 saltos (5 a contraataques, 4 a la fuga, 4 en el desenlace, 1 a un puente), contra 11 y 15 del supercombativo; 21,6 de gasto en cerillos contra 33,3. No hay probabilidad saturada ni final forzado: es la mentalidad entrando donde no puede morder.
+
+**El arreglo** (`reservonSeGuarda` en `stage/tactics.ts`, `STAGE.reservon`). Un cazaetapas reservón, fuera de lo suyo (su cita, o la general si se la juega: desenlace, dentro de un grupo, terreno de la general o un rival de la general que se mueve), se guarda: el elegido para atacar solo se lanza con `iniciativa` 0,15 (si no, el intento se queda en nada y no cuenta como intento; el dado sale de un flujo nominal nuevo, `reservon`), y salta a la rueda de otro con `seguir` 0,25 veces su probabilidad. Medido: **7 ataques y saltos contra 26, 6,3 de gasto contra 33,3, 578 km de fuga contra 1.408.** La prueba vuelve a pedir lo que dice su nombre: la mitad o menos.
+
+**Por qué solo el cazaetapas.** `reservon` es la mentalidad por defecto de todo el que no tiene otra: `autoOrders` se la pone a gregarios, velocistas, lanzadores y líderes, y la consola del jugador y los escenarios canónicos, a todos. Frenar a todos los reservones es cambiar la carrera del pelotón entero, y se midió:
+
+| Alcance del freno                  | Lo que se rompe                                                                                                                                         |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| todos, con la fuga del día frenada | llana canónica: gana la fuga el 20,8 % (techo 16)                                                                                                       |
+| todos, con la fuga del día abierta | contraataque tras la captura 16,3 % (suelo 25); una fuga gana una llana de las pequeñas por 1.043 s (techo 900); relevo contra rueda 1,080 (suelo 1,10) |
+| cazaetapas y líderes               | carreras pequeñas: mismo ganador por pares 14,0 % (suelo 15)                                                                                            |
+| solo el cazaetapas (el elegido)    | nada: los bancos son los del §1 dígito a dígito                                                                                                         |
+
+Al líder ya lo frenan su rol (0,3) y, con el maillot, `jerseyBreakDamp`; así conserva intacto defender y responder a sus rivales.
+
+**Una consecuencia que decide el dueño.** La consola pone `reservon` por defecto. Un jugador que elige `cazaetapas` y no toca la mentalidad tiene desde la v91 un cazaetapas que espera, no uno que se va. Es lo que dice la SPEC 6.18 (multiplicador personal 0), pero quizá la consola deba proponer otra mentalidad al elegir ese rol. Por lo mismo, la palanca `role` cazaetapas de `sim/ordersBench.ts` (que hereda la mentalidad por defecto) medirá menos que en su última medida; no se ha vuelto a correr.
+
+### 3 · Huellas y pruebas
+
+- `stage/attribution.test.ts`: las cuatro huellas reselladas, solo por el §1 (el detalle está en el fichero). `llana-180-0` solo mueve un segundo al último; `llana-180-1` sigue otro camino desde el km 83 (mediano −3 s); las reinas, mediano −75 y −11 s.
+- `stage/simulate.test.ts`: prueba nueva, el que salta desde un grupo de descolgados no está en el pelotón en la foto del kilómetro siguiente (en la v90 sí: un hombre a 81 s en el km 85 iba dentro en el 86). Y la del parte pide la mitad o menos de ataques y de gasto.
+- `sim/targets.ts`: el suelo de `smallTours.bestSprinterWinPct`, de 25 a 22 (§1).
+- `pnpm typecheck`, `pnpm lint` (0 errores; los 20 avisos de `apps/web` son de antes), `pnpm format`, `pnpm test:rapido` y `pnpm test:bancos` en verde.

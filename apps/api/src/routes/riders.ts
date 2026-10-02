@@ -453,9 +453,16 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
 
   /**
    * LA FICHA DEL CORREDOR (docs/entrenamiento.md §2.3 y §4.6). Tres rutas, una regla: **ningún
-   * oculto cruza esta frontera**. El techo sale como una de tres frases, el talento y la fragilidad
-   * como códigos, y `facilities` como «bajo / normal / alto». Nada de lo que devuelven permite
-   * reconstruir un número interno, que es la condición que `MVP.md:114` pone a toda esta pantalla.
+   * oculto cruza esta frontera**. El techo sale como una opinión RELATIVA del entrenador (dónde
+   * tiene el corredor más margen y dónde menos, cada vez más segura con los años), el talento y la
+   * fragilidad como códigos, y `facilities` como «bajo / normal / alto». Nada de lo que devuelven
+   * permite reconstruir un número interno, que es la condición que `MVP.md:114` pone a toda esta
+   * pantalla.
+   *
+   * Y la regla tiene una segunda mitad que se aprendió por las malas (docs/agenda.md §4.20): **la
+   * API no manda lo que la pantalla no enseña**. La opinión viajaba como `tres` / `cuatro` /
+   * `cinco`, que no es un número crudo pero ES el techo en estrellas, y cualquiera lo leía en la
+   * pestaña de red. Los códigos de hoy son exactamente las frases de la pantalla.
    */
 
   // Flecha de tendencia: Δ28 por atributo (SPEC 3.2, con la ventana y los niveles de §2.3).
@@ -468,7 +475,7 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
     return { trend: await getAttrTrend(db, rider.id, world.currentDay) }
   })
 
-  // Opinión del entrenador: una vez por temporada, difusa a propósito (SPEC 5.6).
+  // Opinión del entrenador: una vez por temporada, relativa y borrosa al principio (SPEC 5.6).
   app.get('/api/riders/me/coach-view', async (request, reply) => {
     const userId = await currentUserId(request)
     if (!userId) return unauthorized(reply)

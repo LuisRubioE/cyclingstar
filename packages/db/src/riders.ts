@@ -6,13 +6,12 @@ import {
   seasonPosition,
   type Gender,
   type PublicRider,
-  seededRng,
   type Vocation,
 } from '@cyclingstar/shared'
 import {
   BANISTER,
   type CeilingOpinion,
-  ceilingOpinion,
+  ceilingOpinions,
   type CoachNote,
   coachNotes,
   facilitiesTier,
@@ -391,7 +390,10 @@ export interface CoachViewRow {
 }
 
 export interface CoachView {
-  /** Una opinión por atributo, estable durante toda la temporada. */
+  /**
+   * Una opinión por atributo, RELATIVA al propio corredor y estable durante toda la temporada
+   * (docs/agenda.md §4.20). Ninguna dice un nivel: dicen dónde tiene más margen y dónde menos.
+   */
   ceilings: CoachViewRow[]
   /** Las frases por regla, en código: la UI las traduce. */
   notes: CoachNote[]
@@ -404,10 +406,11 @@ export interface CoachView {
 /**
  * LA OPINIÓN DEL ENTRENADOR, UNA VEZ POR TEMPORADA.
  *
- * «Una vez por temporada» se consigue **sin guardar nada**: la semilla lleva la temporada dentro
- * (`${worldSeed}:${riderId}:ojeador:${season}:${attr}`), así que la misma pregunta hecha cien veces
- * el mismo año da la misma respuesta y al pasar de año cambia sola. Una tabla para esto habría sido
- * una tabla que purgar, que migrar y que mantener a cambio de nada.
+ * «Una vez por temporada» se consigue **sin guardar nada**: el error del entrenador sale de una
+ * semilla del corredor (`${worldSeed}:${riderId}:ojeador:${attr}`) que no cambia nunca, y lo único
+ * que se mueve es su tamaño, que depende de la edad. Así la misma pregunta hecha cien veces el mismo
+ * año da la misma respuesta, y al pasar de año se afina sola en vez de resortearse. Una tabla para
+ * esto habría sido una tabla que purgar, que migrar y que mantener a cambio de nada.
  */
 export async function getCoachView(
   db: Database,
@@ -456,15 +459,9 @@ export async function getCoachView(
     if (t[0]) facilities = facilitiesTier(t[0].facilities)
   }
 
+  const opiniones = ceilingOpinions(ceilings, age, `${worldSeed}:${riderId}:ojeador`)
   return {
-    ceilings: ATTRIBUTES.map((attr) => ({
-      attr,
-      opinion: ceilingOpinion(
-        ceilings[attr],
-        age,
-        seededRng(`${worldSeed}:${riderId}:ojeador:${season}:${attr}`),
-      ),
-    })),
+    ceilings: ATTRIBUTES.map((attr) => ({ attr, opinion: opiniones[attr] })),
     notes: coachNotes({
       age,
       declineAge: r.declineAge,

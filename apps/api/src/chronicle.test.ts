@@ -354,7 +354,7 @@ describe('el maillot en la identidad', () => {
     expect(names.riderOf.get('r4')?.jersey).toBeUndefined()
   })
 
-  it('sin líderes —etapa 1, carrera de un día, vuelta de prueba— nadie lleva maillot', () => {
+  it('sin líderes —etapa 1, carrera de un día— nadie lleva maillot', () => {
     const names = chronicleNames([source('r1')])
     expect(names.riderOf.get('r1')?.jersey).toBeUndefined()
   })

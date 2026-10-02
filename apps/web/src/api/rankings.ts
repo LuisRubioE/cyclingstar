@@ -3,14 +3,12 @@ import {
   type AwardWinner,
   type HallOfFameRow,
   type PalmaresRow,
-  type RaceHistoryHonour,
   type RankingRow,
   type RecordEntry,
   type RiderRaceResult,
   type SeasonAwards,
   hallOfFameResponseSchema,
   palmaresResponseSchema,
-  raceHistoryResponseSchema,
   rankingResponseSchema,
   recordsResponseSchema,
   riderResultsResponseSchema,
@@ -28,8 +26,6 @@ export type {
   RiderRaceResult,
   SeasonAwards,
 }
-/** Historial de ganadores de una carrera (nombre de la carrera incluido). */
-export type { RaceHistoryHonour as RaceHonour }
 
 export async function fetchRankings(): Promise<RankingRow[]> {
   const data = await request('/api/rankings', rankingResponseSchema, {
@@ -64,13 +60,6 @@ export async function fetchRecords(): Promise<AllTimeRecords | null> {
     errorMessage: 'Could not load records.',
   })
   return data.records
-}
-
-export async function fetchRaceHistory(): Promise<RaceHistoryHonour[]> {
-  const data = await request('/api/races/test-tour/history', raceHistoryResponseSchema, {
-    errorMessage: 'Could not load the race history.',
-  })
-  return data.history
 }
 
 export async function fetchPalmares(): Promise<PalmaresRow[]> {

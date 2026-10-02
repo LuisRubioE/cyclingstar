@@ -2,6 +2,10 @@
  * La vuelta de prueba de 5 etapas con variedad (SPEC, Paso 28): llana, media montaña, reina,
  * contrarreloj y llana. Autoría a escala humana (tramos y banners); el motor la muestrea a
  * bloques de 100 m y las categorías de las cimas se derivan solas de la dureza de cada puerto.
+ *
+ * YA NO SE CORRE EN EL MUNDO (decisión del dueño, 02/10/2026): el tick dejó de disputarla y sus
+ * rutas de la API desaparecieron. Queda solo como DATOS DE PRUEBA: perfiles escritos a mano que usan
+ * los tests (altimetrías, `gcOrder`, `stageRun`), y aquí vive también el tipo `StageKind`.
  */
 import type { StageProfile } from '../stage/types.js'
 

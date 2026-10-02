@@ -1,4 +1,4 @@
-import { SEASON_CALENDAR, TEST_TOUR, raceLastDay, stageDayOfSeason } from '@cyclingstar/engine'
+import { SEASON_CALENDAR, raceLastDay, stageDayOfSeason } from '@cyclingstar/engine'
 import { TRANSPORT_COST, travelTier } from '@cyclingstar/shared'
 import { and, eq, inArray, isNull } from 'drizzle-orm'
 import type { Database } from './client.js'
@@ -7,7 +7,7 @@ import { raceRosters, riders } from './schema.js'
 
 /**
  * Días de juego en los que un corredor tiene carrera (#6): de sus convocatorias (race_rosters),
- * traducidas a días de juego absolutos según la vuelta de prueba o el calendario. Sirve para no
+ * traducidas a días de juego absolutos según el calendario. Sirve para no
  * dejar entrenar un día de carrera en el planificador.
  */
 
@@ -27,13 +27,7 @@ export async function getRiderRaceDays(
 
   const days = new Set<number>()
   for (const { raceId, abandonedDay } of rosters) {
-    if (raceId === 'test-tour') {
-      for (const stage of TEST_TOUR) {
-        if (stage.day >= fromDay && stage.day <= toDay) days.add(stage.day)
-      }
-      continue
-    }
-    // Clave del calendario: `${raceId}:s${season}`.
+    // Clave del calendario: `${raceId}:s${season}`. Una clave sin temporada no es del calendario.
     const m = /^(.*):s(\d+)$/.exec(raceId)
     if (!m) continue
     const baseId = m[1]!
@@ -187,7 +181,7 @@ export async function getRiderTravelDays(
   const racing = new Set<number>()
   for (const { raceId } of rosters) {
     const m = /^(.*):s(\d+)$/.exec(raceId)
-    if (!m) continue // la vuelta de prueba no viaja
+    if (!m) continue // una clave sin temporada no es del calendario
     const race = SEASON_CALENDAR.find((r) => r.id === m[1])
     if (!race) continue
     const season = Number(m[2])
@@ -326,7 +320,7 @@ export async function getRiderUpcomingRaces(
   const out: RiderUpcomingRace[] = []
   for (const { raceId, bib, abandonedDay } of rosters) {
     const m = /^(.*):s(\d+)$/.exec(raceId)
-    if (!m) continue // la vuelta de prueba (test-tour) no cuenta como carrera del calendario
+    if (!m) continue // una clave sin temporada no es del calendario
     const baseId = m[1]!
     const season = Number(m[2])
     const race = SEASON_CALENDAR.find((r) => r.id === baseId)

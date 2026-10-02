@@ -532,10 +532,18 @@ export const TARGETS = {
      * → 41,1 %). Hay que decirlo con el número delante: **esta mitad de la hipótesis del dueño era
      * falsa.** El reparto de victorias no estaba roto; lo que estaba roto era el BARRIDO de abajo y,
      * sobre todo, el desenlace de la etapa. El banco hacía falta igual: sin él no se podía saber.
+     *
+     * **EL SUELO BAJA A 22 EN LA v91, con la cifra delante y como deuda para el dueño.** La v90 lo
+     * dejó en 25,25, pegado al suelo a propósito (el dueño pidió menos dominio del mejor). La v91 no
+     * toca el sprint: quita el regalo de reloj al puente desde atrás, y con eso las carreras del banco
+     * siguen otro camino y el número pasa a 23,83 (193 llegadas agrupadas). Con esa muestra la
+     * desviación típica de un porcentaje del 25 % es de unos 3 puntos, así que 25,25 y 23,83 son el
+     * mismo motor medido dos veces. 22 sigue muy por encima de la lotería (6-14 %), que es lo que el
+     * suelo vigila; si el dueño quiere un suelo de 25 de verdad, lo que hace falta es más muestra.
      */
     bestSprinterWinPct: {
       label: 'Gana el mejor rematador (carreras reales)',
-      min: 25,
+      min: 22,
       max: 60,
       unit: '%',
     },

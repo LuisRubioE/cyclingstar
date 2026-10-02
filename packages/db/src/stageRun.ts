@@ -82,8 +82,8 @@ const ENGINE_VERSION_NUM: number = ENGINE_VERSION
 
 /**
  * De dónde a dónde va la etapa de `spec`, para los titulares que la citan (el dueño: «cada vez que
- * mencione una etapa, que diga siempre el origen y destino»). Vacío fuera del calendario (la vuelta
- * de prueba), donde no hay ciudades.
+ * mencione una etapa, que diga siempre el origen y destino»). Vacío fuera del calendario, donde no
+ * hay ciudades.
  */
 function rutaDe(spec: Pick<StageRunSpec, 'raceId' | 'season' | 'stageDay'>): { route?: string } {
   const c = stageCities(spec.raceId, spec.season, spec.stageDay)
@@ -111,8 +111,8 @@ export interface StageRunSpec {
    * DÓNDE Y CUÁNDO SE CORRE, que es lo único que el clima necesita saber de una etapa (v43). País
    * ISO del calendario y día del año; sin esto `simulateStage` cae al clima de referencia y toda la
    * geografía de la v42 —la corrección que el dueño pidió: «el clima debería depender del país y del
-   * GD»— no llegaba a ninguna carrera real. Opcional porque la vuelta de prueba no está en ninguna
-   * parte del mapa.
+   * GD»— no llegaba a ninguna carrera real. Opcional porque una etapa fuera del calendario (los tests
+   * con perfiles escritos a mano) no está en ninguna parte del mapa.
    */
   lugar?: { pais?: string; dia: number }
   /**

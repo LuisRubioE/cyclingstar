@@ -150,7 +150,8 @@ mundo (la reparación es idempotente). La comparación ignora mayúsculas y espa
 - Servicio web: `node apps/api/dist/index.js` (aplica migraciones al arrancar con advisory lock).
 - Cron del tick: invoca el avance del mundo según `TICK_INTERVAL_MINUTES`.
 - Las migraciones son aditivas (Drizzle) y se aplican solas al arrancar; no hay pasos manuales. La
-  excepción es la 0044, que reinicia el mundo (ver «Migración 0044» más abajo).
+  excepción es la 0044, que reinicia el mundo (ver «Migración 0044» más abajo). La 0045 borra los
+  datos de la vuelta de prueba (ver «Migración 0045»).
 
 ## Cambio de calendario de la v87: congelar antes de desplegar (generador E1, paso 8)
 
@@ -315,3 +316,9 @@ Tal cual (con las 29 líneas) lo corre el test de la 0044 y deja el mundo 1 idé
 ### Borrar la copia
 
 Cuando el dueño dé el mundo nuevo por bueno, otra migración custom con `DROP SCHEMA respaldo_mundo_1 CASCADE;` libera el espacio. Hasta entonces no estorba: ningún código la lee.
+
+## Migración 0045: sin vuelta de prueba
+
+Decisión del dueño (02/10/2026): la vuelta de prueba del MVP (clave `test-tour`) desaparece del juego. El tick ya no la corre (`race.ts` y `npc.ts` de packages/db se borraron) y la API ya no sirve `/api/races/test-tour*`. La migración `0045_sin_vuelta_de_prueba.sql` limpia lo que el mundo nuevo llegó a escribir en su GD1: rosters, órdenes, resultados, general, clasificación por equipos, snapshots y palmarés con `race_id = 'test-tour'`; sus puntos de ranking (descontados también de `season_points` si son de la temporada en curso); los premios del corredor con nota «Test tour · …» (descontados de `riders.money`); el parte diario `carrera:test-tour:eN`, y los titulares que nombran la vuelta. El premio de equipo no deja rastro por carrera y se queda en el presupuesto. La fisiología de esos días tampoco se toca. Lo comprueba `sinVueltaDePrueba.test.ts`.
+
+Si algún día se restaura el mundo 1 desde `respaldo_mundo_1`, sus filas de la vuelta de prueba vuelven con él: la migración de restauración puede repetir las sentencias de la 0045 al final.

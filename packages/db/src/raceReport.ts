@@ -1,7 +1,6 @@
 import {
   SEASON_CALENDAR,
   type StageInput,
-  TEST_TOUR,
   simulateStage,
   stageCities,
   stageDayOfSeason,
@@ -17,7 +16,6 @@ import { riders, stageResults, stageSnapshots } from './schema.js'
  */
 
 const SEASON_DAYS = 364
-const TEST_TOUR_KEY = 'test-tour'
 
 export interface RaceReportOrders {
   role: string
@@ -36,7 +34,7 @@ export interface RiderRaceReport {
   stageName: string
   raceId: string
   stageDay: number
-  /** Salida y llegada de la etapa (de su temporada); `null` en la vuelta de prueba. */
+  /** Salida y llegada de la etapa (de su temporada); `null` si la etapa no tiene ciudades. */
   from: string | null
   to: string | null
   orders: RaceReportOrders | null
@@ -54,7 +52,6 @@ export interface RiderRaceReport {
 
 /** Día de juego absoluto de una etapa (para ordenar por recencia). */
 function absoluteDay(raceId: string, stageDay: number): number {
-  if (raceId === TEST_TOUR_KEY) return stageDay
   const m = /^(.*):s(\d+)$/.exec(raceId)
   if (!m) return stageDay
   const race = SEASON_CALENDAR.find((r) => r.id === m[1])
@@ -67,15 +64,6 @@ function raceMeta(
   raceId: string,
   stageDay: number,
 ): { raceName: string; stageName: string; from: string | null; to: string | null } {
-  if (raceId === TEST_TOUR_KEY) {
-    const st = TEST_TOUR.find((s) => s.day === stageDay)
-    return {
-      raceName: 'Test Tour',
-      stageName: st?.name ?? `Stage ${stageDay}`,
-      from: null,
-      to: null,
-    }
-  }
   const m = /^(.*):s(\d+)$/.exec(raceId)
   const race = m ? SEASON_CALENDAR.find((r) => r.id === m[1]) : undefined
   const stg = race?.stages[stageDay - 1]

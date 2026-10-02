@@ -5,7 +5,7 @@ import { fetchCountryRiders } from '../api/browse'
 import { Flag } from '../components/Flag'
 import { Panel, SectionBar } from '../components/Panel'
 import { RiderName } from '../components/RiderName'
-import { archetypeLabel } from './Countries'
+import { archetypeLabel } from '../domain/labels'
 
 /** Ranking nacional (#7): corredores de un país por puntos de temporada. */
 export function Country() {

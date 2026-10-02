@@ -1311,7 +1311,7 @@ async function backfillWorldData(tx: Tx, worldId: string, gameDay: number): Prom
     .where(isNull(raceRosters.bib))
   for (const { raceId } of nullBib) {
     const m = /^(.*):s(\d+)$/.exec(raceId)
-    if (!m) continue // la vuelta de prueba no lleva dorsales de calendario
+    if (!m) continue // una clave sin temporada no es del calendario: no lleva dorsales
     const race = SEASON_CALENDAR.find((r) => r.id === m[1])
     if (race) await assignBibs(tx, race, Number(m[2]))
   }

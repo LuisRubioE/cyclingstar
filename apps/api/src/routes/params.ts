@@ -19,7 +19,7 @@ export function parseUuid(value: string): string | null {
 
 /**
  * Id de carrera del calendario: un slug estable de autoría del motor ('tour-de-france',
- * 'test-tour'). Se valida por FORMA aquí y, cuando la ruta lo necesita, por pertenencia al
+ * 'race-flanders'). Se valida por FORMA aquí y, cuando la ruta lo necesita, por pertenencia al
  * calendario con `isCalendarRaceId`.
  */
 const raceSlugSchema = z

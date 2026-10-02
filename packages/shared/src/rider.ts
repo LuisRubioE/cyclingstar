@@ -180,52 +180,73 @@ export interface PublicRider {
  *
  * SE LLAMABA `stars` Y HABÍA QUE RENOMBRARLA (docs/entrenamiento.md §2.3). Con `attrStars` en
  * la casa conviven dos funciones de medias estrellas que dan números DISTINTOS para el mismo valor
- * —`stars(84) = 4`, `attrStars(84) = 5`— y con el nombre genérico era cuestión de tiempo que
+ * —`stars(92) = 4.5`, `attrStars(92) = 5`— y con el nombre genérico era cuestión de tiempo que
  * alguien pintara un atributo con la escala de la forma sin enterarse.
  *
  * No es un descuido que sean distintas: la forma es una magnitud continua de 0 a 100 sin umbrales
  * de dominio, y su suelo de media estrella dice «siempre hay algo». Un atributo, en cambio, lleva
- * los umbrales con los que el dueño midió su «menos del 15 % con cinco estrellas» (17/34/51/67/84),
- * y ahí el 0 existe: se puede no saber esprintar.
+ * sus propias bandas (`attrStars`), y ahí el 0 existe: se puede no saber esprintar.
  */
 export function formStarsScale(x: number): number {
   return Math.min(5, Math.max(0.5, Math.round(x / 10) / 2))
 }
 
 /**
- * Estrellas ENTERAS de un atributo (0..5). Bandas: 0-16→0, 17-33→1, 34-50→2, 51-66→3, 67-83→4,
- * 84-100→5. Es la escala con la que se cuenta el mundo: «cinco estrellas» son 84 o más, y ése es el
- * listón del que habla el dueño.
+ * LA ESCALA DE ESTRELLAS DE UN ATRIBUTO: MEDIAS ESTRELLAS CADA DIEZ PUNTOS (dueño, 02/10/2026).
+ *
+ * Cada media estrella es un tramo de diez puntos centrado en su valor, con el extremo de arriba
+ * DENTRO del tramo: hasta 5 son cero estrellas, de más de 5 a 15 media, de más de 15 a 25 una, y así
+ * hasta de más de 85 a 95 cuatro y media; por encima de 95, cinco. O sea, `ceil((x − 5) / 10) / 2`.
+ *
+ * | estrellas | valor              |
+ * | --------: | :----------------- |
+ * |         0 | 0 a 5              |
+ * |       0,5 | más de 5 a 15      |
+ * |         1 | más de 15 a 25     |
+ * |       ... | ...                |
+ * |       4,5 | más de 85 a 95     |
+ * |         5 | más de 95          |
+ *
+ * Sustituye a dos escalas anteriores: la lineal de 17/34/51/67/84 (un 76,5 salía cuatro y media y un
+ * 84 ya era cinco) y la de bandas 22/42/58/74/92 que duró un día. Con esta el 76,5 se lee cuatro y el
+ * 90 cuatro y media, que es lo que el dueño espera, y las cinco estrellas quedan para lo excepcional.
+ *
+ * El banco de mundo NO usa esta escala para sus listones: los del dueño («menos del 15 % del
+ * WorldTour con cinco estrellas») se midieron con la vieja, y el banco la conserva aparte
+ * (`BENCH_STAR_CUTS` en packages/engine/src/sim/world.ts) para seguir midiendo lo mismo.
  */
-export function attrStarsWhole(x: number): number {
-  if (x < 17) return 0
-  if (x < 34) return 1
-  if (x < 51) return 2
-  if (x < 67) return 3
-  if (x < 84) return 4
-  return 5
+export const ATTR_STAR_STEP = 10
+export const ATTR_STAR_OFFSET = 5
+
+/** Medias estrellas (0..10) de un valor: `ceil((x − 5) / 10)`, acotado. */
+function attrHalfStars(x: number): number {
+  return Math.min(10, Math.max(0, Math.ceil((x - ATTR_STAR_OFFSET) / ATTR_STAR_STEP)))
 }
 
 /**
- * …Y LAS MEDIAS, QUE SON LAS QUE VE EL JUGADOR (docs/entrenamiento.md §2.3).
- *
- * Seis escalones enteros para diez atributos y un rango de 99 puntos es demasiado grueso: dos
- * corredores separados por dieciséis puntos —la diferencia entre un gregario y un líder— pueden
- * enseñar exactamente las mismas cuatro estrellas, y la ficha deja de informar. Con medias hay once
- * escalones y la silueta de dos arquetipos vecinos se distingue.
- *
- * La media estrella cae en la mitad de cada banda entera, así que `attrStarsWhole(x) ==
+ * Estrellas ENTERAS de un atributo (0..5): 0 hasta 15, 1 de más de 15 a 35, 2 hasta 55, 3 hasta 75,
+ * 4 hasta 95 y 5 por encima. Es la escala gruesa, sin medias.
+ */
+export function attrStarsWhole(x: number): number {
+  return Math.floor(attrHalfStars(x) / 2)
+}
+
+/**
+ * …Y LAS MEDIAS, QUE SON LAS QUE VE EL JUGADOR (docs/entrenamiento.md §2.3). `attrStarsWhole(x) ==
  * Math.floor(attrStars(x))` para todo x: la escala fina NUNCA contradice a la gruesa, solo la parte.
  */
 export function attrStars(x: number): number {
-  const entero = attrStarsWhole(x)
-  if (entero === 0) return x < 9 ? 0 : 0.5
-  if (entero === 5) return 5
-  // Los cortes enteros son 17, 34, 51, 67, 84: el medio de cada banda es su punto de partida + 8.
-  const inicios = [0, 17, 34, 51, 67]
-  const siguiente = [17, 34, 51, 67, 84]
-  const mitad = (inicios[entero]! + siguiente[entero]!) / 2
-  return x >= mitad ? entero + 0.5 : entero
+  return attrHalfStars(x) / 2
+}
+
+/**
+ * Inicio (excluido) y fin (incluido) de la banda entera `entero` (0..4). Todas miden 20 puntos; la de
+ * cero estrellas empieza en −5 a propósito, para que su media estrella (5) caiga en la frontera de un
+ * cuarto como en las demás y la marca no resuelva ahí el atributo mejor que en el resto.
+ */
+function attrBand(entero: number): { desde: number; hasta: number } {
+  const hasta = ATTR_STAR_OFFSET + ATTR_STAR_STEP * (2 * entero + 1)
+  return { desde: hasta - 2 * ATTR_STAR_STEP, hasta }
 }
 
 /**
@@ -233,24 +254,18 @@ export function attrStars(x: number): number {
  *
  * Responde a la queja del dueño —«hice descanso activo y no mejoró»— sin dibujar el número. Devuelve
  * 0..3: en qué cuarto de su banda ENTERA está el atributo, para pintar cuatro segmentos bajo las
- * estrellas.
+ * estrellas. Cuatro pasos y no una barra continua, a propósito: una barra resolvería el atributo a
+ * menos de medio punto, que es enseñar el número interno por la puerta de atrás (`MVP.md:114`,
+ * `SPEC.md:40`). Con bandas de 20 puntos cada cuarto son 5, y la media estrella cae justo en la
+ * frontera del segundo cuarto, así que estrella y marca juntas nunca bajan de cinco puntos.
  *
- * Cuatro pasos y no una barra continua, a propósito: con bandas de 16-17 puntos una barra continua
- * resolvería el atributo a menos de medio punto, o sea MÁS resolución que las medias estrellas que
- * se acaban de introducir, y eso es enseñar el número interno por la puerta de atrás
- * (`MVP.md:114`, `SPEC.md:40`).
- *
- * Las cinco estrellas no tienen banda superior —84 es el suelo y no hay techo—, así que se pinta
- * siempre lleno: un 5★ está en lo más alto de la escala que el jugador conoce.
+ * Las cinco estrellas son la cima de la escala que el jugador conoce: se pintan siempre llenas.
  */
 export function attrProgress(x: number): number {
   const entero = attrStarsWhole(x)
   if (entero === 5) return 3
-  const inicios = [0, 17, 34, 51, 67]
-  const siguiente = [17, 34, 51, 67, 84]
-  const desde = inicios[entero]!
-  const ancho = siguiente[entero]! - desde
-  return Math.min(3, Math.max(0, Math.floor((4 * (x - desde)) / ancho)))
+  const { desde, hasta } = attrBand(entero)
+  return Math.min(3, Math.max(0, Math.ceil((4 * (x - desde)) / (hasta - desde)) - 1))
 }
 
 /** Los cinco niveles de la flecha de tendencia (docs/entrenamiento.md §2.3). */
@@ -476,7 +491,12 @@ const CARTA_DE_ARQUETIPO: readonly (readonly [Attribute, RiderArchetype])[] = [
 
 /** Cuánto tiene que despuntar la carta sobre la media del corredor para que sea una especialidad. */
 const ARCHETYPE_EDGE = 8
-/** Por debajo de cuatro estrellas en todo no hay oficio de especialista: hay gregario. */
+/**
+ * Por debajo de esto en todo no hay oficio de especialista: hay gregario. Era el corte de la cuarta
+ * estrella de la escala vieja (67) y SE QUEDA en 67 al recalibrar la escala de estrellas: decide el
+ * arquetipo con el que el banco de mundo y el relleno de arquetipos (`backfillArchetypes`) leen a
+ * cada corredor, y moverlo cambiaría ese reparto por una razón que es solo de presentación.
+ */
 const ARCHETYPE_DOMESTIQUE_MAX = 67
 
 export function archetypeFromAttributes(attrs: Record<Attribute, number>): RiderArchetype {

@@ -5,7 +5,7 @@ import { stageRouteText } from '@cyclingstar/shared'
  * por ejemplo desde donde se ven los resultados o desde las race orders, que diga siempre el origen y
  * destino». Toda pantalla que cita una etapa concreta lo pinta con esto, para que se lea igual en
  * todas: «Tarragona → Barcelona», o una sola ciudad si salida y llegada coinciden. No pinta nada si
- * la etapa no tiene ciudades (la vuelta de prueba).
+ * la etapa no tiene ciudades.
  */
 export function StageRoute({
   from,

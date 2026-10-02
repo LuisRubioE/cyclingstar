@@ -1,11 +1,4 @@
-import {
-  CONTINENTS,
-  COUNTRIES,
-  type Continent,
-  VOCATION_LABELS,
-  type Vocation,
-  continentForCountry,
-} from '@cyclingstar/shared'
+import { CONTINENTS, COUNTRIES, type Continent, continentForCountry } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { type CountrySummary, fetchCountries } from '../api/browse'
@@ -79,9 +72,4 @@ export function Countries() {
       ))}
     </section>
   )
-}
-
-/** Etiqueta de la vocación de un corredor. */
-export function archetypeLabel(archetype: string): string {
-  return VOCATION_LABELS[archetype as Vocation] ?? archetype
 }

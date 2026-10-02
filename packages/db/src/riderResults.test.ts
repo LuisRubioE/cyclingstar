@@ -130,7 +130,7 @@ describe('buildRiderRaceResults', () => {
     ])
   })
 
-  it('ignora la vuelta de prueba y las carreras que no están en el calendario', () => {
+  it('ignora las claves sin temporada (la vieja vuelta de prueba) y las que no están en el calendario', () => {
     const out = buildRiderRaceResults(
       [
         { raceId: 'test-tour', stageDay: 1, puesto: 1 },
