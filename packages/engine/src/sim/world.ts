@@ -118,8 +118,8 @@ const cartaDe = (r: { attributes: Record<Attribute, number> }): number =>
 /**
  * LAS ESTRELLAS DEL BANCO NO SON LAS DE LA FICHA, a propósito (octubre de 2026).
  *
- * La ficha del jugador recalibró sus bandas (`ATTR_STAR_CUTS` en packages/shared: la quinta estrella
- * pasa de 84 a 92 y la cuarta de 67 a 74) porque el dueño leía mal los atributos altos. Pero los
+ * La ficha del jugador recalibró sus bandas (`attrStars` en packages/shared: la quinta estrella
+ * pasa de 84 a más de 95 y la cuarta de 67 a más de 75) porque el dueño leía mal los atributos altos. Pero los
  * listones de este banco —«menos del 15 % del WorldTour con cinco estrellas», «nadie sin pasar de
  * cuatro en nada»— y toda la bitácora de mediciones de `docs/balance.md` se tomaron con los cortes
  * viejos. Si el banco siguiera a la ficha, `cincoEstrellasWTPct` caería a casi cero de un día para

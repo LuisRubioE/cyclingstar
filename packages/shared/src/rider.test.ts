@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   ATTRIBUTES,
-  ATTR_STAR_CUTS,
+  ATTR_STAR_OFFSET,
+  ATTR_STAR_STEP,
   type Attribute,
   RIDER_ARCHETYPES,
   VOCATION_PROFILES,
@@ -33,39 +34,46 @@ describe('shared: formStarsScale, la escala de la FORMA (SPEC 3.2)', () => {
     expect(formStarsScale(46)).toBe(2.5) // round(4.6)=5 -> 2.5
   })
 
-  it('attrStarsWhole: estrellas enteras por bandas (0-21→0 … 92-100→5)', () => {
-    // Las bandas recalibradas de octubre de 2026 (`ATTR_STAR_CUTS`): más anchas abajo y la quinta
-    // estrella reservada para 92 o más.
-    expect(attrStarsWhole(21)).toBe(0)
-    expect(attrStarsWhole(22)).toBe(1)
-    expect(attrStarsWhole(41)).toBe(1)
-    expect(attrStarsWhole(42)).toBe(2)
-    expect(attrStarsWhole(57)).toBe(2)
-    expect(attrStarsWhole(58)).toBe(3)
-    expect(attrStarsWhole(73)).toBe(3)
-    expect(attrStarsWhole(74)).toBe(4)
-    expect(attrStarsWhole(91)).toBe(4)
-    expect(attrStarsWhole(92)).toBe(5)
-    expect(attrStarsWhole(100)).toBe(5)
-    expect(ATTR_STAR_CUTS).toEqual([22, 42, 58, 74, 92])
+  it('attrStars: medias estrellas cada diez puntos, con el extremo de arriba dentro (dueño)', () => {
+    // «0-5: 0 · más de 5 a 15: 0,5 · más de 15 a 25: 1 · … · más de 85 a 95: 4,5 · más de 95: 5».
+    expect(attrStars(0)).toBe(0)
+    expect(attrStars(5)).toBe(0)
+    expect(attrStars(5.0001)).toBe(0.5)
+    expect(attrStars(15)).toBe(0.5)
+    expect(attrStars(15.0001)).toBe(1)
+    expect(attrStars(25)).toBe(1)
+    expect(attrStars(25.0001)).toBe(1.5)
+    expect(attrStars(50)).toBe(2.5)
+    expect(attrStars(76.5)).toBe(4)
+    expect(attrStars(85)).toBe(4)
+    expect(attrStars(85.0001)).toBe(4.5)
+    expect(attrStars(90)).toBe(4.5)
+    expect(attrStars(95)).toBe(4.5)
+    expect(attrStars(95.0001)).toBe(5)
+    expect(attrStars(100)).toBe(5)
+    expect(ATTR_STAR_STEP).toBe(10)
+    expect(ATTR_STAR_OFFSET).toBe(5)
   })
 
-  it('attrStars: lo que el dueño espera leer en la ficha', () => {
-    // «~90 son cuatro estrellas y media y ~76,5 son cuatro». Con las bandas viejas el 76,5 salía
-    // 4,5 y el 84 ya era 5.
-    expect(attrStars(76.5)).toBe(4)
-    expect(attrStars(82.9)).toBe(4)
-    expect(attrStars(83)).toBe(4.5)
-    expect(attrStars(90)).toBe(4.5)
-    expect(attrStars(91.9)).toBe(4.5)
-    expect(attrStars(92)).toBe(5)
-    // Las medias, en la mitad de cada banda.
-    expect(attrStars(10.9)).toBe(0)
-    expect(attrStars(11)).toBe(0.5)
-    expect(attrStars(31.9)).toBe(1)
-    expect(attrStars(32)).toBe(1.5)
-    expect(attrStars(50)).toBe(2.5)
-    expect(attrStars(66)).toBe(3.5)
+  it('attrStarsWhole: la escala gruesa es el suelo de la fina', () => {
+    expect(attrStarsWhole(15)).toBe(0)
+    expect(attrStarsWhole(15.0001)).toBe(1)
+    expect(attrStarsWhole(35)).toBe(1)
+    expect(attrStarsWhole(55.5)).toBe(3)
+    expect(attrStarsWhole(95)).toBe(4)
+    expect(attrStarsWhole(96)).toBe(5)
+  })
+
+  it('attrProgress: cuatro cuartos de cinco puntos dentro de la banda entera', () => {
+    // La banda de 4★ es (75, 95]: cuartos (75,80] (80,85] (85,90] (90,95].
+    expect(attrProgress(75.5)).toBe(0)
+    expect(attrProgress(80)).toBe(0)
+    expect(attrProgress(81)).toBe(1)
+    expect(attrProgress(85)).toBe(1)
+    expect(attrProgress(86)).toBe(2)
+    expect(attrProgress(95)).toBe(3)
+    expect(attrProgress(99)).toBe(3)
+    expect(attrProgress(0)).toBe(0)
   })
 })
 
@@ -96,8 +104,8 @@ describe('shared: arquetipo derivado de los atributos', () => {
     for (let x = 0; x <= 100; x++) expect(Math.floor(attrStars(x))).toBe(attrStarsWhole(x))
     for (let x = 0; x <= 100; x += 0.25) expect(Math.floor(attrStars(x))).toBe(attrStarsWhole(x))
     // Y la media estrella existe de verdad: a mitad de banda sube medio punto.
-    expect(attrStars(84)).toBe(4.5)
-    expect(attrStarsWhole(84)).toBe(4)
+    expect(attrStars(86)).toBe(4.5)
+    expect(attrStarsWhole(86)).toBe(4)
   })
 
   it('son ocho y ninguno se repite', () => {
@@ -178,9 +186,9 @@ describe('shared: el catálogo de sesiones cubre todos los atributos (v55)', () 
  */
 describe('shared: la marca de progreso dentro de la banda', () => {
   it('parte de cero al entrar en la banda y llega a tres antes de salir', () => {
-    expect(attrProgress(22)).toBe(0) // recién llegado a 1★
-    expect(attrProgress(41)).toBe(3) // a punto de ser 2★
-    expect(attrProgress(42)).toBe(0) // y vuelta a empezar
+    expect(attrProgress(15.5)).toBe(0) // recién llegado a 1★
+    expect(attrProgress(35)).toBe(3) // a punto de ser 2★
+    expect(attrProgress(35.5)).toBe(0) // y vuelta a empezar
   })
 
   it('reparte la banda en cuatro cuartos y nunca se sale de 0..3', () => {
@@ -188,28 +196,28 @@ describe('shared: la marca de progreso dentro de la banda', () => {
       const p = attrProgress(x)
       expect(`${x}: ${Number.isInteger(p) && p >= 0 && p <= 3}`).toBe(`${x}: true`)
     }
-    // Los cuatro cuartos de la banda de 3★ (58..73): 58-61 · 62-65 · 66-69 · 70-73.
-    expect([58, 62, 66, 70].map(attrProgress)).toEqual([0, 1, 2, 3])
-    // Y los de la de 4★ (74..91), que es más ancha: 74-78 · 79-82 · 83-87 · 88-91.
-    expect([74, 78, 79, 82, 83, 87, 88, 91].map(attrProgress)).toEqual([0, 0, 1, 1, 2, 2, 3, 3])
+    // Los cuatro cuartos de la banda de 3★ (más de 55 a 75): de cinco en cinco.
+    expect([56, 61, 66, 71].map(attrProgress)).toEqual([0, 1, 2, 3])
+    // Y los de la de 4★ (más de 75 a 95), con los bordes de cada cuarto dentro.
+    expect([76, 80, 81, 85, 86, 90, 91, 95].map(attrProgress)).toEqual([0, 0, 1, 1, 2, 2, 3, 3])
   })
 
   it('las cinco estrellas se pintan llenas: no hay banda por encima', () => {
-    expect(attrProgress(92)).toBe(3)
+    expect(attrProgress(96)).toBe(3)
     expect(attrProgress(100)).toBe(3)
   })
 
   it('LA MARCA NO PUEDE RESOLVER EL NÚMERO, que es su razón de ser', () => {
-    // Con estrella + marca hay 4 valores por banda de 16 a 22 puntos: el jugador nunca puede deducir
-    // el atributo a menos de cuatro puntos. Una barra continua lo habría resuelto a menos de uno.
+    // Con estrella + marca hay 4 valores por banda de 20 puntos: el jugador nunca puede deducir el
+    // atributo a menos de cinco puntos. Se recorre desde 1 porque ningún atributo baja de ahí.
     const porCelda = new Map<string, number>()
-    for (let x = 0; x < 92; x += 1) {
+    for (let x = 1; x <= 95; x += 1) {
       const clave = `${attrStars(x)}|${attrProgress(x)}`
       porCelda.set(clave, (porCelda.get(clave) ?? 0) + 1)
     }
     const minimo = Math.min(...porCelda.values())
-    expect(`nunca resuelve a menos de 4 puntos: ${minimo >= 4}`).toBe(
-      'nunca resuelve a menos de 4 puntos: true',
+    expect(`nunca resuelve a menos de 5 puntos: ${minimo >= 5}`).toBe(
+      'nunca resuelve a menos de 5 puntos: true',
     )
   })
 })
