@@ -12,7 +12,7 @@ La regla de la casa es una línea de `Claude.md` (l. 12): «Toda constante de ju
 | `BROADCAST` | `packages/shared/src/broadcast/constants.ts` | las funciones de lectura de `shared` (`instant.ts`, `cues.ts`, `pace.ts`, `names.ts`, `wire.ts`), que corren en la API y en la web, y `domain/broadcast/player.ts` | no | no cambia una carrera ni lo grabado (decisión 15-b) |
 | `SPOILER` | el mismo fichero | `packages/db/src/horizon.ts`, `cast.ts`, la API y la web | no | ídem |
 
-El motivo es de coste y está medido. El CI corre los ocho tramos de bancos cuando el diff toca `^packages/engine/` (`.github/workflows/ci.yml` l. 189), sin mirar la versión; los bancos suman 4.365 s de runner, unos 73 min (`ci.yml` l. 103-110, mapa 07 §4). Un PR que solo toca `packages/shared`, `apps/api` o `apps/web` corre `typecheck` (37,4 s) y `test:rapido` (562 y 529 s en dos corridas, mapa 07 §4). Con `BROADCAST` en el motor, como proponía `estado.md` §12, cada ajuste de ritmo o de rótulo pagaría los 73 min (O-19, O-motor-07). Ya hay precedentes de constantes de presentación junto a su código: `SIT_UP_WINDOW_KM` (`apps/api/src/chronicle.ts` l. 254), `NAMED_IN_SUMMARY` (`apps/web/src/domain/stageJournal.ts` l. 197) y `STALE_TIME` (`apps/web/src/queryClient.ts` l. 17). Queda resuelta la contradicción X-22: paga los bancos quien toca el camino `packages/engine/`, suba o no `ENGINE_VERSION`, y E2 solo lo toca en el paso 4 (PR 4a y 4b); la próxima migración libre es la `0043` (`packages/db/drizzle/meta/_journal.json`, 43 entradas; §13).
+El motivo es de coste y está medido. El CI corre los ocho tramos de bancos cuando el diff toca `^packages/engine/` (`.github/workflows/ci.yml` l. 189), sin mirar la versión; los bancos suman 4.365 s de pruebas en serie, unos 73 min, que la matriz reparte en ocho tramos en paralelo (`ci.yml` l. 103-110, mapa 07 §4; D-52). Un PR que solo toca `packages/shared`, `apps/api` o `apps/web` corre `typecheck` (37,4 s) y `test:rapido` (562 y 529 s en dos corridas, mapa 07 §4). Con `BROADCAST` en el motor, como proponía `estado.md` §12, cada ajuste de ritmo o de rótulo pagaría los 73 min (O-19, O-motor-07). Ya hay precedentes de constantes de presentación junto a su código: `SIT_UP_WINDOW_KM` (`apps/api/src/chronicle.ts` l. 254), `NAMED_IN_SUMMARY` (`apps/web/src/domain/stageJournal.ts` l. 197) y `STALE_TIME` (`apps/web/src/queryClient.ts` l. 17). Queda resuelta la contradicción X-22: paga los bancos quien toca el camino `packages/engine/`, suba o no `ENGINE_VERSION`, y E2 solo lo toca en el paso 4 (PR 4a y 4b); la próxima migración libre es la `0043` (`packages/db/drizzle/meta/_journal.json`, 43 entradas; §13).
 
 La desviación tiene tres costes, y cada uno tiene su defensa:
 1. **Las copias.** `shared` no importa el motor (su única dependencia es `zod`, `packages/shared/package.json` l. 18-20), así que tres reglas del motor viven copiadas en `BROADCAST`, una cuarta en `photoBlocksOf` y una quinta en `chaseRefOf`; las ata un test de la suite rápida (§15.5).
@@ -40,7 +40,7 @@ export const TIMELINE = {
   /** Bloques del final en los que cada grupo vivo lleva marca de reloj en cada uno (el cuarto sitio de §3.4): con
    *  STAGE.dx 0,1 son el último km, el de los carteles de 500, 300, 200 y 100 m. Derivado, no medido. */
   lastKmMarkBlocks: 10,
-  /** Nivel de gzip de stage_timelines.bytes; lo aplica packages/db (el motor no importa Node). Medido con 9: 17,5 KB de
+  /** Nivel de gzip de stage_timelines.body (su tamaño va en stage_timelines.bytes); lo aplica packages/db (el motor no importa Node). Medido con 9: 17,5 KB de
    *  mediana por etapa en línea con el formato de datos (8-23, datos.md §10.5, 28 etapas), de 1,6 a 2,4 veces menos que jsonb
    *  (juez del motor, C8); con el formato de §4.3, de 20,9 a 70,0 KB, mediana 38,8 (§5.7, l3/grabador.mjs). */
   gzipLevel: 9,
@@ -101,7 +101,7 @@ export const BROADCAST = {
   // MANDOS (§8.5; D-20)
   speeds: [0.5, 1, 2, 4],                      // ×½ ×1 ×2 ×4: multiplican el factor de la zona, no mueven las zonas
   nextActionSpeedup: 20,                       // Next action multiplica el factor por 20 hasta que se revela un Cue de clase ≥ nextActionMinClass: causal
-  nextActionMinClass: 2 satisfies CueClass,
+  nextActionMinClass: 2 satisfies CueClass,    // clase de Cue: Next action se corta cuando entra en la cola el primero de clase ≥ esta que no sea de la ronda de la moto (6-m, §8.5)
   skippedMinClass: 2 satisfies CueClass,       // While you skipped enseña, al volver de un salto, los Cue saltados de clase ≥ esta
   seekStepKm: 5,                               // km de los saltos −5 km y +5 km
   seekFinalKm: 20,                             // km a meta del salto Final 20 km
