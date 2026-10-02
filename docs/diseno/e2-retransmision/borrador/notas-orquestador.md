@@ -203,3 +203,7 @@ otros lotes. La pasada de coherencia tiene que cerrarlos uno a uno (o dejarlos e
   de 9-d; §4.8, dos comentarios contradicen 7-b y `staticNotoriety`; §16.4, B17 atribuye a L4 las
   medidas de la crono (son del juez y de L5); §17.17 y §21 (X-13) dicen que no hay campeones hasta
   el día 179 y en 17 países los hay antes.
+- De L6 (auditoría): A-L6-011, §11.15 y D-40 dicen que `?diag=1` es solo para `users.is_admin`
+  mientras §10.13, §14.6 y `whoami` aceptan también el correo de `ADMIN_EMAIL` (pasado a L7);
+  §17.10 (17-plan.md l. 330) sin `tplRev` en el `.omit`; §17.20 no dice en qué PR gana
+  `stageReplaySchema` `watch` y `tplRev`; §11.10 aún abre la etapa `A` en `Report` (debe ser `Watch`, 6-r).
