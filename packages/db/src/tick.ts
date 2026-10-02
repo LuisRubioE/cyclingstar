@@ -35,8 +35,11 @@ import { WORLD_REPAIR_VERSION, markWorldRepaired, worldNeedsRepair } from './wor
  * engineVersion como parámetros para no depender de packages/engine.
  */
 
-/** Clave del advisory lock del tick, en su propia clase (ver locks.ts). */
-const TICK_LOCK_KEY = 1
+/**
+ * Clave del advisory lock del tick, en su propia clase (ver locks.ts). Exportada porque la migración
+ * 0044 la escribe a mano (`pg_advisory_xact_lock(2, 1)`) y su test vigila que siga casando.
+ */
+export const TICK_LOCK_KEY = 1
 
 /** Días de juego por temporada (debe casar con calendarRun.ts / rollover.ts). */
 const SEASON_DAYS = 364

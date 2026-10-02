@@ -115,6 +115,9 @@ export async function resetRealTestDb(url: string): Promise<void> {
   const admin = postgres(url, { max: 1 })
   try {
     await admin.unsafe('drop schema if exists drizzle cascade')
+    // La copia que deja la migración 0044 vive fuera de `public`: si sobreviviera, la 0044 fallaría
+    // al volver a crearla (lo hace sin IF NOT EXISTS a propósito).
+    await admin.unsafe('drop schema if exists respaldo_mundo_1 cascade')
     await admin.unsafe('drop schema if exists public cascade')
     await admin.unsafe('create schema public')
   } finally {
