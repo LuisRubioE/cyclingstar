@@ -75,5 +75,27 @@ export function withOrderPatch(
 ): OrdersDraft {
   const base = draft && draft.raceKey === raceKey ? draft.orders : {}
   const current = base[stageDay] ?? serverOrders[stageDay] ?? defaultOrder(stageDay)
-  return { raceKey, orders: { ...base, [stageDay]: { ...current, ...patch } } }
+  return {
+    raceKey,
+    orders: { ...base, [stageDay]: { ...current, ...mentalidadDelRol(current, patch) } },
+  }
+}
+
+/**
+ * EL CAZAETAPAS NO SALE RESERVÓN (dueño, 02/10/2026). Desde el motor v91 un cazaetapas `reservon`
+ * se guarda de verdad: casi no inicia ni sigue movimientos. Y `reservon` es la mentalidad por defecto
+ * de la consola, así que quien elegía «cazaetapas» y no tocaba nada se encontraba con un cazador que
+ * espera. Al elegir el rol se le propone `combativo`, solo si la mentalidad seguía en la de defecto:
+ * si el jugador ya había escogido otra se respeta, y después puede volver a cambiarla a mano.
+ */
+function mentalidadDelRol(current: StageOrder, patch: Partial<StageOrder>): Partial<StageOrder> {
+  if (
+    patch.role === 'cazaetapas' &&
+    current.role !== 'cazaetapas' &&
+    patch.mentality === undefined &&
+    current.mentality === 'reservon'
+  ) {
+    return { ...patch, mentality: 'combativo' }
+  }
+  return patch
 }
