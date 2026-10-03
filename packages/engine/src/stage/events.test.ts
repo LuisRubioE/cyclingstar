@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { announceRebels } from './events.js'
+import { EventLog, announceRebels } from './events.js'
 import type { RaceEvent } from './types.js'
 
 const ev = (km: number, plantilla: string, protagonistas: string[]): RaceEvent => ({
@@ -63,5 +63,52 @@ describe('announceRebels: la desobediencia se cuenta donde se ve', () => {
       [10, 'a'],
       [90, 'b'],
     ])
+  })
+})
+
+/**
+ * EL OYENTE DEL REGISTRO (docs/retransmision.md §5.2; E2, paso 4a). El motor emite desde muchas
+ * funciones que reciben el registro, así que el único sitio que ve TODAS las emisiones es el propio
+ * registro: `listen` le pone un oyente, que es como `onEvent` de la sonda sabe en qué bloque se emitió
+ * cada suceso. Observa y nada más: el registro queda como sin él.
+ */
+describe('EventLog.listen: ve cada suceso al añadirse, y no toca el registro', () => {
+  it('en el orden de emisión, y el MISMO objeto que queda en el registro', () => {
+    const log = new EventLog()
+    const vistos: Readonly<RaceEvent>[] = []
+    log.listen((e) => vistos.push(e))
+    log.emit(30, 900, 'x', 'attack_go', ['a'], { toGo: 10 })
+    log.emit(10, 300, 'x', 'peloton_pull', ['b'])
+    log.add(ev(20, 'time_gap', []))
+    expect(vistos.map((e) => e.plantilla)).toEqual(['attack_go', 'peloton_pull', 'time_gap'])
+    // `toArray` ordena por reloj una copia del array con los mismos objetos: se reconocen por identidad.
+    const salida = log.toArray()
+    expect(salida.map((e) => e.plantilla)).toEqual(['peloton_pull', 'attack_go', 'time_gap'])
+    expect(vistos.every((e) => salida.includes(e))).toBe(true)
+  })
+
+  it('con oyente o sin él, el registro es el mismo', () => {
+    const llena = (log: EventLog): RaceEvent[] => {
+      log.emit(5, 150, 'x', 'attack_go', ['a'])
+      log.emit(5, 160, 'x', 'attack_reeled', ['a'], { km: 1 })
+      return log.toArray()
+    }
+    const con = new EventLog()
+    let n = 0
+    con.listen(() => n++)
+    expect(llena(con)).toEqual(llena(new EventLog()))
+    expect(con.sameKm(5).map((e) => e.plantilla)).toEqual(['attack_reeled', 'attack_go'])
+    expect(n).toBe(2)
+  })
+
+  it('un oyente como mucho: el segundo sustituye al primero', () => {
+    const log = new EventLog()
+    const a: string[] = []
+    const b: string[] = []
+    log.listen((e) => a.push(e.plantilla))
+    log.emit(1, 10, 'x', 'attack_go')
+    log.listen((e) => b.push(e.plantilla))
+    log.emit(2, 20, 'x', 'attack_reeled')
+    expect([a, b]).toEqual([['attack_go'], ['attack_reeled']])
   })
 })

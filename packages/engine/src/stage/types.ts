@@ -450,7 +450,12 @@ export interface SnapshotRider {
   riderId: string
   /** En qué grupo va: el pelotón, un movimiento o un grupeto. */
   groupId: string
-  /** Reloj de SU grupo al cruzar el punto, en segundos desde la salida. Ordena la carrera. */
+  /**
+   * SU reloj al cruzar el punto, en segundos desde la salida: el de su grupo más lo que lleva cedido
+   * en carretera sin haberse soltado (`markLossS` y `driftS`), la misma cuenta con que se le da el
+   * tiempo en meta. No es el reloj del grupo: el de un grupo es el mínimo de los de sus corredores,
+   * como lo calcula la radio (docs/retransmision.md §3.1 y §19.7). Ordena la carrera.
+   */
   tS: number
   /** Cuánto le queda en el depósito y con cuánto salió (SPEC 6.5). */
   energy: number
@@ -484,6 +489,48 @@ export interface SnapshotRider {
   pullWindow: number
 }
 
+/**
+ * LO QUE `onBanner` RECIBE DE UNA PANCARTA DISPUTADA (E2, docs/retransmision.md §5.2): el reparto
+ * entero que el motor hace y hoy no emite, porque el suceso solo nombra al primero.
+ */
+export interface ProbeBanner {
+  readonly kind: BannerType
+  /** El km del bucle en el bloque de la pancarta (`kmAt`), el mismo que lleva su suceso. */
+  readonly km: number
+  /** La categoría de la cima (`block.climbCategory`); null en una meta volante. */
+  readonly cat: ClimbCategory
+  /**
+   * Reloj del grupo del PRIMERO QUE PUNTÚA. En la volante, el del grupo de cabeza, el único que
+   * esprinta; en la cima, el del grupo de `disputan[0]`, que puede no ser el primero en coronar (si
+   * los de delante no la disputan), así que no es el reloj de `climb_kom`, que es el de cabeza.
+   */
+  readonly tS: number
+  /** Los que puntúan, en su orden, con los puntos que suman: `STAGE.sprintPoints` o la tabla de la cima. */
+  readonly order: readonly { readonly riderId: string; readonly points: number }[]
+}
+
+/** LO QUE `onTimeTrialRide` RECIBE DE CADA CORREDOR DE UNA CRONO al cerrar su recorrido (E2 §5.2 y §9). */
+export interface ProbeTimeTrialRide {
+  readonly riderId: string
+  /** Su hora en la rampa (`timeTrialStartOrder`), en segundos del reloj de carrera. */
+  readonly startS: number
+  /**
+   * Su reloj propio al final de cada bloque, sin ruido ni percance: el array del motor, SIN COPIAR.
+   * Solo se lee, y durante la llamada: la crónica de la crono lo vuelve a leer después.
+   */
+  readonly raw: ArrayLike<number>
+  /** El ruido de su tiempo final: el reloj propio en el bloque `i` es `raw[i] · noise`. */
+  readonly noise: number
+  /** Su tiempo con percance y ruido, `(raw[último] + percance) · noise`: el que `results` redondea. */
+  readonly totalS: number
+  /** Su percance, con el km y la pérdida sin ruido (los del parte de incidentes); null si no tuvo. */
+  readonly mishap: {
+    readonly kind: 'pinchazo' | 'averia'
+    readonly km: number
+    readonly lostS: number
+  } | null
+}
+
 export interface StageProbe {
   /** Kilómetros del recorrido en los que se quiere la foto. */
   atKm: readonly number[]
@@ -501,6 +548,24 @@ export interface StageProbe {
    * `null` = todavía no hay ninguno (no queda nadie en carretera).
    */
   onSnapshot: (km: number, riders: readonly SnapshotRider[], mainGroupId: string | null) => void
+  /**
+   * LOS TRES GANCHOS DE LA RETRANSMISIÓN (E2, docs/retransmision.md §5.2), OPCIONALES: sin ellos, el
+   * motor de antes. Son observación como la foto: ninguno devuelve nada, ninguno tira un dado y
+   * ninguno recibe un objeto que el motor vuelva a leer con otro valor, así que no cambian una carrera
+   * y `ENGINE_VERSION` no se mueve (lo sella `probeHooks.test.ts`, B11).
+   *
+   * `onEvent`: cada suceso EN EL ORDEN EN QUE SE EMITE, con el bloque del bucle en que se emitió: 0
+   * antes del bucle, `i` dentro del bloque `i` (antes de su foto, que se toma al final del bloque) y
+   * `blocks` después (la meta y el corte de tiempo). Es el MISMO objeto que queda en `events`, que se
+   * reconoce por identidad aunque la salida vaya ordenada por reloj; los `rider_defies_team` no pasan
+   * por aquí, porque los inserta `announceRebels` al cerrar. Solo en carretera: la crono no lo llama.
+   * No debe mutar el suceso.
+   */
+  onEvent?: (event: Readonly<RaceEvent>, block: number) => void
+  /** Cada pancarta en que alguien puntúa, justo después de repartir los puntos y antes de su suceso. */
+  onBanner?: (banner: ProbeBanner) => void
+  /** Cada corredor de una crono, después de sortear su ruido y antes de pasar al siguiente. */
+  onTimeTrialRide?: (ride: ProbeTimeTrialRide) => void
 }
 
 /**
