@@ -115,7 +115,7 @@ export const BROADCAST = {
   cueHoldS: [3, 4, 5, 6] as const satisfies Readonly<Record<CueClass, number>>, // s de pared que ocupa un Cue según su clase 0-3; no paran el reloj
   cueQueueMax: 3,                              // Cue esperando como mucho; con la cola llena se descartan los de clase 0 y 1, salvo la presentación de
                                                // la fuga, que no cuenta (6-m): la carrera no se frena
-  cueTopStart: 5,                              // puesto de salida hasta el que la caída o el abandono de un corredor es de clase 3
+  cueTopStart: 5,                              // puesto de salida hasta el que la caída, el descolgado o el abandono de un corredor son de clase 3 (6-g)
   crashNamesDelayS: 3,                         // s de pared entre CRASH y los nombres de los caídos
   breakRoundEveryS: 6,                         // s de pared entre dos rótulos de la moto que rodea la fuga, de clase 2 y reservados (6-m), uno por
                                                // escapado de breakRoundOf; solo en Watch a ×½, ×1 y ×2

@@ -62,7 +62,7 @@ Con `?diag=1` y un administrador (D-40, §11.15), la ruta sirve el `StageReplay`
 | 0 | `@fastify/compress` en toda respuesta de más de 1 KB (§14.8) | lo mismo, antes | el navegador descomprime solo |
 | 1 (1a, 1b) | `newsItemSchema` y `teamNewsItemSchema` ganan seis campos `.nullish()`; la API sigue mandando `text` | el feed de hoy | *strip*; `text` sigue ahí (regla 2) |
 | 2 | la voz causal (`buildChronicle` con `live`), sin ruta nueva | nada | no se expone |
-| 3 (3a, 3b, 3c) | las tres rutas de la retransmisión y la del acta, con `BROADCAST_WATCH=admins`; `/health` gana `features` | nada | rutas nuevas; `features` es un campo más de `/health` |
+| 3 (3a, 3b, 3c) | las tres rutas de la retransmisión y la del acta, con `BROADCAST_WATCH=admins`; `/health` gana `features`; `stageReplaySchema` gana `tplRev`, opcional, que sirven el acta y el paquete de meta (3a, 12-c) | nada | rutas nuevas; `features` es un campo más de `/health`, y `tplRev`, un opcional que la web de ayer descarta (*strip*; `yesterday.test.ts` lo omite, §14.7) |
 | 4, 5 y 6 | el motor graba la línea y la retransmisión usa la exacta | nada | ningún contrato cambia; la cabecera cambia de `clock` y `source` |
 | 7a | las rutas `/api/me/*`; `race_watch`; `request.viewer()` y `request.horizon()`; `SPOILER_MODE=admins` | nada | rutas nuevas |
 | 7b | la ruta de etapa aplica `stageAccessOf` y gana `watch`; el acta da 403 con la puerta; la web reenvía a la ruta de etapa el `?diag=1` de la página (§14.11) | los administradores, pestañas vacías en las etapas que no conocen, y la etapa entera si abren la página con `?diag=1` (D-40); nadie más ve cambios | regla 1; el 403 solo lo da la ruta nueva del acta; el `diag` de quien no es administrador se ignora (11-h) |

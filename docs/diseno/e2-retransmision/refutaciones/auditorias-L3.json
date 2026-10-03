@@ -275,9 +275,9 @@
   {
     "id": "A-L3-002",
     "origen": "auditoría L3: compilación y cableado del diario del tick",
-    "veredicto": "parcial",
-    "evidencia": "05-motor.md l. 464 cablea `raceWorldDay(tx, worldId, next, seed, timelineLog)` (la vuelta de prueba también corre etapas con `runOneStage`, `race.ts` l. 25-30 y 46-58), pero ni la lista de l. 467, ni el glosario (fila de `stageRun.ts`, `calendarRun.ts`, `tick.ts`), ni 17-plan.md l. 247 (§17.8) ni la tabla de ficheros (l. 579) dicen que `race.ts` cambia: quien siga el plan dejaría las etapas de la vuelta de prueba sin grabar, servidas con el adaptador.",
-    "accion": "lo he cerrado yo en 05-motor.md l. 467 (`raceWorldDay` gana un quinto parámetro, `timeline?: TimelineTickLog`, que pasa en el spec de su `runOneStage`) y en la fila del glosario; necesita otra sección: §17.8 (17-plan.md l. 247) y §17.20 (la fila de `calendarRun.ts` y `tick.ts`, l. 579) tienen que nombrar `race.ts`"
+    "veredicto": "cerrado",
+    "evidencia": "05-motor.md l. 464 cablea `raceWorldDay(tx, worldId, next, seed, timelineLog)` (la vuelta de prueba también corre etapas con `runOneStage`, `race.ts` l. 25-30 y 46-58), pero ni la lista de l. 467, ni el glosario (fila de `stageRun.ts`, `calendarRun.ts`, `tick.ts`), ni 17-plan.md l. 247 (§17.8) ni la tabla de ficheros (l. 579) dicen que `race.ts` cambia: quien siga el plan dejaría las etapas de la vuelta de prueba sin grabar, servidas con el adaptador. Resolución cruzada: §17.8 dice que `raceWorldDay` (`packages/db/src/race.ts` l. 25-30) gana el quinto parámetro, `timeline?: TimelineTickLog`, para que la vuelta de prueba también se grabe (17-plan.md l. 247), y la tabla de ficheros de §17.20 nombra `race.ts` (l. 579).",
+    "accion": "lo he cerrado yo en 05-motor.md l. 467 (`raceWorldDay` gana un quinto parámetro, `timeline?: TimelineTickLog`, que pasa en el spec de su `runOneStage`) y en la fila del glosario; necesita otra sección: §17.8 (17-plan.md l. 247) y §17.20 (la fila de `calendarRun.ts` y `tick.ts`, l. 579) tienen que nombrar `race.ts`; cerrado en la resolución cruzada (ya estaba en el texto: cierre de L9, A-L9-005): 17-plan.md l. 247 y 579"
   },
   {
     "id": "A-L3-003",
@@ -296,9 +296,9 @@
   {
     "id": "A-L3-005",
     "origen": "auditoría L3: cifras compartidas",
-    "veredicto": "parcial",
-    "evidencia": "13-esquema.md l. 399 daba la radio de hoy en «de 100 a 514 KB de JSON por etapa (mapa 07)»; el mapa 07 midió de 102,5 a 514,4 KB (mapas/07-tests-contratos.md l. 165 y 201) y 16-bancos.md l. 731 dice «de 102 a 514». 17-plan.md l. 250 (§17.8) y 19-riesgos.md l. 201 (§19.9) repiten el 100. (La radio de nueve etapas del juez del motor, 126-559 KB, de 05-motor.md l. 613, es otra medida y lleva su fuente.)",
-    "accion": "lo he cerrado yo en 13-esquema.md l. 399 («de 102 a 514 KB»); necesita otra sección: 17-plan.md l. 250 y 19-riesgos.md l. 201"
+    "veredicto": "cerrado",
+    "evidencia": "13-esquema.md l. 399 daba la radio de hoy en «de 100 a 514 KB de JSON por etapa (mapa 07)»; el mapa 07 midió de 102,5 a 514,4 KB (mapas/07-tests-contratos.md l. 165 y 201) y 16-bancos.md l. 731 dice «de 102 a 514». 17-plan.md l. 250 (§17.8) y 19-riesgos.md l. 201 (§19.9) repiten el 100. (La radio de nueve etapas del juez del motor, 126-559 KB, de 05-motor.md l. 613, es otra medida y lleva su fuente.) Resolución cruzada: «de 102 a 514 KB de JSON» en §17.8 (17-plan.md l. 250) y en §19.7 (19-riesgos.md l. 201), como §13.6 (13-esquema.md l. 399) y §16.8 (16-bancos.md l. 731).",
+    "accion": "lo he cerrado yo en 13-esquema.md l. 399 («de 102 a 514 KB»); necesita otra sección: 17-plan.md l. 250 y 19-riesgos.md l. 201; cerrado en la resolución cruzada (ya estaba en el texto: auditoría L9, Rcodigo-082 · cruzada L8 n.º 30): 17-plan.md l. 250; 19-riesgos.md l. 201"
   },
   {
     "id": "A-L3-006",

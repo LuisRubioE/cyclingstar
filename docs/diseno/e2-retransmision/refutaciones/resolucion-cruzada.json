@@ -1,0 +1,282 @@
+[
+ {
+  "id": "A-L1-009",
+  "seccion_destino": "§5.4",
+  "estado": "cerrado",
+  "donde": "05-motor.md l. 398",
+  "motivo": "«las mismas cifras que §3.4» era falso: el prototipo (23 etapas por 2 semillas) da de 418 a 3.617 marcas y las quince corridas de §3.4 (03-reloj.md l. 146 y 172), de 558 a 3.617; ahora dice las dos, con el mismo máximo en `race-colombia` e5 (tabla de §5.7, l. 630)"
+ },
+ {
+  "id": "A-L4-008",
+  "seccion_destino": "§4.9 y G.3.4",
+  "estado": "cerrado",
+  "donde": "04-modelo.md l. 823-826; 00-glosario.md, G.3.4 (l. 502-504)",
+  "motivo": "`RiderCueContext` pierde `'dropped'`: §6.5 (06-pantalla.md l. 397-409) solo programa `break_round`, `banner`, `own`, `focus` y `tt_round`, y el descolgado es su propio `Cue` (`DROPPED`); el comentario dice por qué, como hizo 6-p con `attack`. Ningún bloque ni test usa ese contexto (grep)"
+ },
+ {
+  "id": "A-L4-009 · A-L7-001",
+  "seccion_destino": "§4.9",
+  "estado": "cerrado",
+  "donde": "04-modelo.md l. 865",
+  "motivo": "`Next action` acelera hasta que entra en la cola el siguiente `Cue` de clase ≥ 2 que no sea de la ronda de la moto (§8.5, 6-m), como §8.5, §8.11, §15.3 (15-constantes.md l. 104), G.7 y §18.7"
+ },
+ {
+  "id": "A-L4-009",
+  "seccion_destino": "§18.7",
+  "estado": "ya_estaba",
+  "donde": "18-rendimiento.md l. 191",
+  "motivo": "lo cerró la auditoría L7 (A-L7-001)"
+ },
+ {
+  "id": "A-L4-011",
+  "seccion_destino": "§15.3 (y §4.9)",
+  "estado": "cerrado",
+  "donde": "15-constantes.md l. 118; 04-modelo.md l. 809-810",
+  "motivo": "la intención de `cueTopStart` nombra el descolgado, que 6-g y `cueClassOf` suben a 3 (06-pantalla.md l. 345 y 661), como G.7 (00-glosario.md l. 871); el comentario de `CueClass` de §4.9 tenía la misma falta y se arregla con él"
+ },
+ {
+  "id": "Rcodigo-028",
+  "seccion_destino": "§7.9 (7-a)",
+  "estado": "cerrado",
+  "donde": "07-rotulos.md l. 506",
+  "motivo": "7-a dice lo que costaría un nombre corto (`firstName` y `surname` en `riders`, columnas nuevas fuera de E2) y lleva la cifra de los apellidos compuestos, contada de nuevo con `rc/apellidos.py` en `packages/db/data/names/*.json`: 382 de 8.965 con espacio o guion, en 133 países (la misma de D-27)"
+ },
+ {
+  "id": "A-L5-004",
+  "seccion_destino": "§6.5 (y sus tests en §9.8 y §17.9)",
+  "estado": "cerrado",
+  "donde": "06-pantalla.md l. 419-420; 09-crono.md l. 308; 17-plan.md l. 287",
+  "motivo": "`admitir` sustituye el `tt_split` que espera por el siguiente del mismo `check`, y el `tt_finish` por el siguiente, con la mayor de las dos clases (9-d, §9.5, D-21 precisada); como `admitir` es pura y vive en `cues.ts` (A-L4-007), `cues.test.ts` gana el caso, además del de `player.test.ts` que ya tenía §9.8 (l. 309)"
+ },
+ {
+  "id": "A-L5-005",
+  "seccion_destino": "§4.8",
+  "estado": "cerrado",
+  "donde": "04-modelo.md l. 778 y 795",
+  "motivo": "el comentario de `WornInput.standings` sigue a 7-b (`gcRows` y, en puntos y montaña, solo filas con más de cero puntos, como la API y el acta; no la lista del tick) y el de `RiderCard.notoriety`, a `staticNotoriety` al servir, con `notorietyOf` durante la carrera (§7.5, 07-rotulos.md l. 309-322 y 469). Las copias de G.3.3 (00-glosario.md l. 479 y 494) no dicen ninguna de las dos cosas y no contradicen"
+ },
+ {
+  "id": "A-L5-008",
+  "seccion_destino": "§4.13",
+  "estado": "cerrado",
+  "donde": "04-modelo.md l. 1107 y 1109",
+  "motivo": "la fila de `names.ts` lista las importaciones de sus bloques de §6.3, §6.4, §7.1 y §7.7 (`constants.ts` y tipos de `jerseys.ts`, `contracts.ts`, `news.ts`, `instant.ts` y `timeline.ts`); la de `jerseys.ts` gana `staticNotoriety` e `isJerseyKind`, como G.2 (00-glosario.md l. 158)"
+ },
+ {
+  "id": "A-L7-005",
+  "seccion_destino": "§10.6",
+  "estado": "cerrado",
+  "donde": "10-horizonte.md l. 174",
+  "motivo": "comprobado en HEAD: `getRiderRaceDays` la llaman `GET /api/riders/me/orders` y `POST /api/riders/me/plan/preview` (`routes/riders.ts` l. 242 y 347; M, `sup. X10`, 11-b) y no `/form` (que usa `getDailyLog`, l. 430); `getRiderUpcomingRaces`, solo `upcoming-races` (l. 140); `my-orders` usa `isOnRoster` (`raceOrders.ts` l. 132-139) y es `safe`. D-41 ya lo decía (auditoría L7)"
+ },
+ {
+  "id": "A-L9-010 · Rcoste-012",
+  "seccion_destino": "§16.9 (B14)",
+  "estado": "cerrado",
+  "donde": "16-bancos.md l. 759",
+  "motivo": "el rango de las tres corridas en PostgreSQL 16 sin red: 1,70-2,16 ms el jugador y 3,88-4,75 el mánager, como §18.2 (18-rendimiento.md l. 83), §18.9 y §18.10"
+ },
+ {
+  "id": "A-L9-010 · Rcoste-012",
+  "seccion_destino": "§16.4 (B14)",
+  "estado": "cerrado",
+  "donde": "16-bancos.md l. 448",
+  "motivo": "la misma cifra en el texto de B14, con quién midió cada corrida (el refutador de coste y dos de la auditoría L7)"
+ },
+ {
+  "id": "A-L9-010",
+  "seccion_destino": "dudas.md, duda 3.2",
+  "estado": "cerrado",
+  "donde": "dudas.md l. 33 y 86",
+  "motivo": "de 3,88 a 4,75 ms de p95 en tres corridas, en la tabla y en el texto de la duda"
+ },
+ {
+  "id": "Rcoste-012",
+  "seccion_destino": "§10.7",
+  "estado": "cerrado",
+  "donde": "10-horizonte.md l. 400",
+  "motivo": "daba «3,88 en PostgreSQL 16 sin red»: no estaba en la lista de L9, salió al buscar la cifra en todas las secciones"
+ },
+ {
+  "id": "Rcoste-012 · A-L9-010",
+  "seccion_destino": "D-33 (00-decisiones.md)",
+  "estado": "cerrado",
+  "donde": "00-decisiones.md, D-33: la «Decisión», el bloque «Precisada en la resolución cruzada de la auditoría» con su versión anterior, y su fila del registro",
+  "motivo": "la «Decisión» de D-33 daba solo 3,88 ms; ahora el rango, con un bloque «Precisada en la resolución cruzada de la auditoría» y su versión anterior. La fila de la fase 5 del registro y su bloque «Precisada en la corrección, fase 5» conservan la corrida del refutador, que es lo que registran (A-L9-010)"
+ },
+ {
+  "id": "A-L9-002 (aviso de L1)",
+  "seccion_destino": "G.11",
+  "estado": "cerrado",
+  "donde": "00-glosario.md l. 1014",
+  "motivo": "G.11 gana la fila de la duración que anuncia la ficha: `About 13 min`, con su fórmula sobre `BroadcastHead.estimateS` (08-ritmo.md l. 77; en crono, `ttPlaybackEstimateS`, 09-crono.md l. 201)"
+ },
+ {
+  "id": "A-L9-006 (opcional)",
+  "seccion_destino": "§14.1",
+  "estado": "cerrado",
+  "donde": "14-api.md l. 65",
+  "motivo": "la fila del paso 3 dice que `stageReplaySchema` gana `tplRev`, opcional, en el 3a (12-c), y por qué la web de ayer no se rompe (*strip*; `yesterday.test.ts` lo omite), como §17.6 (17-plan.md l. 151 y 155)"
+ },
+ {
+  "id": "A-L9-002 (aviso de L1)",
+  "seccion_destino": "§17.5",
+  "estado": "ya_estaba",
+  "donde": "17-plan.md l. 122 y 128",
+  "motivo": "`estimatedHeadClock` se exporta para su test (§3.8); lo cerró el cierre de L9 (A-L9-002)"
+ },
+ {
+  "id": "A-L3-002",
+  "seccion_destino": "§17.8 y §17.20",
+  "estado": "ya_estaba",
+  "donde": "17-plan.md l. 247 y 579",
+  "motivo": "`raceWorldDay` (`race.ts`) gana el quinto parámetro y la fila de ficheros nombra `race.ts`; cierre de L9 (A-L9-005)"
+ },
+ {
+  "id": "A-L3-005",
+  "seccion_destino": "§17.8 y §19.7",
+  "estado": "ya_estaba",
+  "donde": "17-plan.md l. 250; 19-riesgos.md l. 201",
+  "motivo": "«de 102 a 514 KB de JSON»; auditoría L9 (Rcodigo-082 · cruzada L8 n.º 30)"
+ },
+ {
+  "id": "Rcobertura-014 (L2) · Rcobertura-014 · cruzada L2 n.º 20 · Rcodigo-046 · cruzada L8 n.º 9",
+  "seccion_destino": "§14.7, §17.6, §17.10 y §17.20",
+  "estado": "ya_estaba",
+  "donde": "14-api.md l. 491; 17-plan.md l. 151, 155, 330 y 554",
+  "motivo": "`stageReplaySchema.omit({ watch: true, tplRev: true })` en §14.7 (auditoría L6) y en el 7b, `.omit({ tplRev: true })` en el 3a, y la fila de `contracts.ts` dice en qué PR gana cada campo (cierre de L9, A-L9-006)"
+ },
+ {
+  "id": "A-L2-002",
+  "seccion_destino": "§6.2 a §6.4",
+  "estado": "ya_estaba",
+  "donde": "06-pantalla.md l. 96-98, 154-155 y 196-199",
+  "motivo": "los bloques de `instant.ts` ya no repiten importaciones de §4.5 y `names.ts` importa `BROADCAST`; auditoría L4 (A-L4-001), recompilado"
+ },
+ {
+  "id": "A-L2-003",
+  "seccion_destino": "§10.6",
+  "estado": "ya_estaba",
+  "donde": "10-horizonte.md l. 188-189 y 255-270",
+  "motivo": "`anonHorizon`, `first`, `guardCandidates`, `buildHorizon` y `stageGameDay` escritos, y las importaciones usadas; auditoría L6 (A-L6-001), compilado"
+ },
+ {
+  "id": "A-L4-012",
+  "seccion_destino": "§16.6 y §17.9",
+  "estado": "ya_estaba",
+  "donde": "16-bancos.md l. 697; 17-plan.md l. 280",
+  "motivo": "se tiran solo cuando el escapado ya no va por delante del pelotón (`aheadOfPeloton`), lo cacen o se quede; auditoría L8 (A-L8-011) y cierre de L9 (A-L9-008)"
+ },
+ {
+  "id": "A-L4-007",
+  "seccion_destino": "§17.9 y §17.20",
+  "estado": "ya_estaba",
+  "donde": "17-plan.md l. 271 y 567",
+  "motivo": "`admitir` y el fotograma, puros, en `cues.ts`; cierre de L9 (A-L9-008)"
+ },
+ {
+  "id": "A-L5-012",
+  "seccion_destino": "§16.4 y §16.9",
+  "estado": "ya_estaba",
+  "donde": "16-bancos.md l. 451 y 762",
+  "motivo": "B17 dice quién midió cada cifra (L4, el juez de ejecutabilidad, L5 y L2); auditoría L8 (A-L8-010 y A-L8-018)"
+ },
+ {
+  "id": "A-L5-014 · A-L9-003",
+  "seccion_destino": "§17.9 y §17.17",
+  "estado": "ya_estaba",
+  "donde": "17-plan.md l. 292 y 485",
+  "motivo": "los campeones de 17 países antes del día 179, los de 111 ese día y los de 5 después (§7.4); cierre de L9 (A-L9-003)"
+ },
+ {
+  "id": "A-L6-011 · A-L7-002",
+  "seccion_destino": "§11.15 y D-40",
+  "estado": "ya_estaba",
+  "donde": "11-superficies.md l. 495; 00-decisiones.md, D-40: la «Decisión», el bloque «Precisada en la auditoría L7» y su fila del registro",
+  "motivo": "«administrador» es `isUserAdmin` (`users.is_admin` o el correo de `ADMIN_EMAIL`); auditoría L7 (A-L7-002)"
+ },
+ {
+  "id": "A-L6-016",
+  "seccion_destino": "§11.10",
+  "estado": "ya_estaba",
+  "donde": "11-superficies.md l. 350",
+  "motivo": "la etapa arrastrada (`A`) abre en `Watch` con `Report` a un toque (6-r); auditoría L7 (A-L7-003)"
+ },
+ {
+  "id": "A-L7-015",
+  "seccion_destino": "§17.2, §17.12 y §17.21",
+  "estado": "ya_estaba",
+  "donde": "17-plan.md l. 43, 387, 396 y 718",
+  "motivo": "`raceTabs.test.ts` entra en el 9a con `stagePageTabs` y `raceTabLabel`; cierre de L9 (A-L9-009)"
+ },
+ {
+  "id": "A-L8-014",
+  "seccion_destino": "§17.9",
+  "estado": "ya_estaba",
+  "donde": "17-plan.md l. 280",
+  "motivo": "B3: ningún rótulo de la ronda empieza cuando su corredor ya no va por delante del pelotón; cierre de L9 (A-L9-008)"
+ },
+ {
+  "id": "A-L9-002 (aviso de L1)",
+  "seccion_destino": "§21.6, F.3",
+  "estado": "ya_estaba",
+  "donde": "21-apendices.md l. 588 (F.3, fila «Duración que anuncia la ficha»)",
+  "motivo": "fuera de esta resolución (es de §0, §20 o §21, del auditor de L10); comprobado al terminar, el 3 de octubre a las 09:44 UTC: el texto ya lo lleva, porque lo cerró en paralelo el auditor de L10; copia la fila nueva de G.11 (00-glosario.md l. 1014)"
+ },
+ {
+  "id": "A-L5-014 · A-L9-003",
+  "seccion_destino": "§21, X-13",
+  "estado": "ya_estaba",
+  "donde": "21-apendices.md l. 409 (X-13)",
+  "motivo": "fuera de esta resolución (es de §0, §20 o §21, del auditor de L10); comprobado al terminar, el 3 de octubre a las 09:44 UTC: el texto ya lo lleva, porque lo cerró en paralelo el auditor de L10: «salvo en los 17 países que corren antes su nacional (§7.4)»"
+ },
+ {
+  "id": "A-L8-004",
+  "seccion_destino": "§21.6, F.2",
+  "estado": "ya_estaba",
+  "donde": "21-apendices.md l. 528 (F.2)",
+  "motivo": "fuera de esta resolución (es de §0, §20 o §21, del auditor de L10); comprobado al terminar, el 3 de octubre a las 09:44 UTC: el texto ya lo lleva, porque lo cerró en paralelo el auditor de L10: `renderNews(_locale: 'en', …)`, como G.4"
+ },
+ {
+  "id": "A-L8-020",
+  "seccion_destino": "§20.5 y §21 (H-04)",
+  "estado": "ya_estaba",
+  "donde": "20-dueno.md l. 85 (§20.5); 21-apendices.md l. 188 (H-04)",
+  "motivo": "fuera de esta resolución (es de §0, §20 o §21, del auditor de L10); comprobado al terminar, el 3 de octubre a las 09:44 UTC: el texto ya lo lleva, porque lo cerró en paralelo el auditor de L10: la fuga de hasta `nameWholeGroupUpTo` (12) por delante del pelotón (16-w)"
+ },
+ {
+  "id": "A-L7-004 (opcional)",
+  "seccion_destino": "§21, D.5",
+  "estado": "ya_estaba",
+  "donde": "21-apendices.md l. 341-348 (D.5)",
+  "motivo": "fuera de esta resolución (es de §0, §20 o §21, del auditor de L10); comprobado al terminar, el 3 de octubre a las 09:44 UTC: el texto ya lo lleva, porque lo cerró en paralelo el auditor de L10: las filas de `sup. T6`, `sup. X3`, `sup. X5`, `sup. X6` y `sup. X7` dicen el mecanismo con las palabras de §11.1 y §11.2"
+ },
+ {
+  "id": "A-L9-010 · Rcoste-012",
+  "seccion_destino": "§0.7",
+  "estado": "ya_estaba",
+  "donde": "00-cabecera.md l. 149 (§0.7)",
+  "motivo": "fuera de esta resolución (es de §0, §20 o §21, del auditor de L10); comprobado al terminar, el 3 de octubre a las 09:44 UTC: el texto ya lo lleva, porque lo cerró en paralelo el auditor de L10: de 1,70 a 2,16 ms el jugador y de 3,88 a 4,75 el mánager en tres corridas"
+ },
+ {
+  "id": "A-L9-010 · Rcoste-012",
+  "seccion_destino": "§20, DD-21",
+  "estado": "ya_estaba",
+  "donde": "20-dueno.md l. 39 y 62 (DD-21)",
+  "motivo": "fuera de esta resolución (es de §0, §20 o §21, del auditor de L10); comprobado al terminar, el 3 de octubre a las 09:44 UTC: el texto ya lo lleva, porque lo cerró en paralelo el auditor de L10: el rango de las tres corridas"
+ },
+ {
+  "id": "A-L9-010",
+  "seccion_destino": "§21, X-11",
+  "estado": "ya_estaba",
+  "donde": "21-apendices.md l. 407 (X-11)",
+  "motivo": "fuera de esta resolución (es de §0, §20 o §21, del auditor de L10); comprobado al terminar, el 3 de octubre a las 09:44 UTC: el texto ya lo lleva, porque lo cerró en paralelo el auditor de L10: el rango de las tres corridas"
+ },
+ {
+  "id": "A-L9-010 · Rcoste-012",
+  "seccion_destino": "DD-21 en 00-decisiones.md (la sección DD, copia de la tabla de §20)",
+  "estado": "ya_estaba",
+  "donde": "00-decisiones.md, la fila de DD-21 de la sección DD y la fila «§DD | precisada» del registro",
+  "motivo": "fuera de esta resolución (es de §0, §20 o §21, del auditor de L10); comprobado al terminar, el 3 de octubre a las 09:44 UTC: el texto ya lo lleva, porque lo cerró en paralelo el auditor de L10, con su fila en el registro («como D-33»)"
+ }
+]

@@ -220,9 +220,9 @@
  {
   "id": "A-L1-009",
   "tipo": "comprobacion",
-  "veredicto": "abierto",
-  "evidencia": "Cifra compartida: 05-motor.md l. 398 (§5.4) dice «de 418 a 3.617 marcas (mediana 1.624, las mismas cifras que §3.4)», pero §3.4 (03-reloj.md l. 172) da de 518 a 3.392 (estado) y de 558 a 3.617 (las quince corridas) y ninguna mediana: solo el máximo coincide, porque el prototipo de L3 corre 23 etapas por 2 semillas y §3.4 quince corridas.",
-  "accion": "necesita otra sección: §5.4 (05-motor.md l. 398), que diga, por ejemplo, «de 418 a 3.617 marcas en las corridas del prototipo (mediana 1.624; en las quince de §3.4, de 558 a 3.617)» o quite «las mismas cifras que §3.4». No lo toco: es de L3."
+  "veredicto": "cerrado",
+  "evidencia": "Cifra compartida: 05-motor.md l. 398 (§5.4) dice «de 418 a 3.617 marcas (mediana 1.624, las mismas cifras que §3.4)», pero §3.4 (03-reloj.md l. 172) da de 518 a 3.392 (estado) y de 558 a 3.617 (las quince corridas) y ninguna mediana: solo el máximo coincide, porque el prototipo de L3 corre 23 etapas por 2 semillas y §3.4 quince corridas. Resolución cruzada: 05-motor.md l. 398 dice ahora «de 418 a 3.617 marcas (mediana 1.624; las quince corridas de §3.4, cinco de estas etapas con tres semillas, dan de 558 a 3.617, con el mismo máximo, `race-colombia` e5)», que casa con 03-reloj.md l. 146 y 172 y con la tabla de §5.7 (05-motor.md l. 630, 3.617 marcas en `race-colombia` e5).",
+  "accion": "necesita otra sección: §5.4 (05-motor.md l. 398), que diga, por ejemplo, «de 418 a 3.617 marcas en las corridas del prototipo (mediana 1.624; en las quince de §3.4, de 558 a 3.617)» o quite «las mismas cifras que §3.4». No lo toco: es de L3; cerrado en la resolución cruzada: 05-motor.md l. 398"
  },
  {
   "id": "A-L1-010",

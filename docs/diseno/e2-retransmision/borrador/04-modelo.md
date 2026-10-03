@@ -775,7 +775,7 @@ export interface WornInput {
   readonly firstDay: boolean            // etapa 1 de vuelta o carrera de un día: nadie lleva maillot de líder (UCI 2.6.018; hoy NO_LEADERS, routes/races.ts l. 468-469)
   readonly discipline: 'road' | 'itt'   // 'itt' si la etapa es crono (input.timeTrial)
   readonly category: 'elite' | 'u23'    // la de la carrera (championshipCategory ?? 'elite')
-  readonly standings: JerseyInput       // general, puntos y montaña de salida (l. 51-58), como las arma stageRun.ts l. 551-557
+  readonly standings: JerseyInput       // general, puntos y montaña de salida (l. 51-58), como las arma buildTimelineCast (7-b): gcRows y, en puntos y montaña, solo las filas con más de cero puntos, como la API y el acta; no la lista del tick de stageRun.ts l. 551-557
   readonly standingsFrom: StageRef | null // la N−1; null el primer día
   readonly titles: ReadonlyMap<string, readonly ChampionTitle[]> // riderId → títulos vigentes el día de la etapa (palmaresTitleSource.titlesOn, §7.4)
 }
@@ -792,7 +792,7 @@ export interface RiderCard {
   readonly team: { readonly id: string; readonly name: string; readonly jerseySeed: string } | null // el equipo CON EL QUE CORRIÓ y su equipación de ese día; el nombre, el de hoy: lo da NameResolver.team al servir, porque CastTeam no lo guarda (§7.8)
   readonly worn: WornJersey              // degradado: un `leader` cuyo `from` está velado pasa a { kind: 'team' }
   readonly lines: readonly Distinction[] // como mucho cardLinesMax; sin las de `from` velado
-  readonly notoriety: NotorietyLevel     // notorietyOf (§7.5) con lo que el espectador conoce
+  readonly notoriety: NotorietyLevel     // staticNotoriety (§7.5) al servir, tras el velo y el corte, con lo que el espectador conoce; notorietyOf(card, instant) lo ajusta durante la carrera
   readonly own: boolean                  // del espectador o de su equipo (R23.7)
 }
 ```
@@ -806,10 +806,10 @@ Lo eventual (D-17, D-21): la cola de rótulos por clase, que nunca frena la carr
 ```ts
 // packages/shared/src/broadcast/timeline.ts (sigue a §4.2). CueClass se declara aquí y no en cues.ts, porque la importan constants.ts,
 // cues.ts y el reproductor, y el tipo nace en el PR 2 antes que la cola (decisión 17-z).
-/** Importancia de un rótulo (D-21): 3 meta, caza de la fuga, corte, cambio de líder virtual, caída o abandono de un maillot o de un top
- *  BROADCAST.cueTopStart (5) de salida; 2 ataque, fuga, su frase, pancarta, caída, llama roja, fuera de control y la ronda de la moto,
- *  reservada (6-m); 1 diferencias, grupo cambiado, percance, rótulo de corredor; 0 ficha del puerto, la ronda ON COURSE de la crono
- *  (9-k) y datos. Dura cueHoldS[clase] s de pared sin parar el reloj (la ronda de la moto, cueHoldS[0]). */
+/** Importancia de un rótulo (D-21): 3 meta, caza de la fuga, corte, cambio de líder virtual, caída, descolgado o abandono de un maillot o
+ *  de un top BROADCAST.cueTopStart (5) de salida (6-g); 2 ataque, fuga, su frase, pancarta, caída, llama roja, fuera de control y la
+ *  ronda de la moto, reservada (6-m); 1 diferencias, grupo cambiado, percance, rótulo de corredor; 0 ficha del puerto, la ronda ON COURSE
+ *  de la crono (9-k) y datos. Dura cueHoldS[clase] s de pared sin parar el reloj (la ronda de la moto, cueHoldS[0]). */
 export type CueClass = 0 | 1 | 2 | 3
 ```
 
@@ -820,9 +820,10 @@ import type { JerseyKind } from '../jerseys.js'
 import type { Instant, VirtualGcRow } from './instant.js' // Instant, para aheadOfPeloton (§6.7)
 import type { CueClass, GroupIx, RaceS, RiderIx } from './timeline.js'
 
-/** Por qué sale un rótulo de corredor (uno a la vez, mapa 06 §5.3). No hay contexto 'attack': el rótulo ATTACK lleva la ficha del
- *  primer atacante y no se programa un rider aparte (6-p). */
-export type RiderCueContext = 'break_round' | 'dropped' | 'banner' | 'focus' | 'own' | 'tt_round' // tt_round: la ronda ON COURSE de la crono, de clase 0 (§9.5, 9-k)
+/** Por qué sale un rótulo de corredor (uno a la vez, mapa 06 §5.3); los cinco los programa el reproductor (§6.5). No hay contexto
+ *  'attack': el rótulo ATTACK lleva la ficha del primer atacante y no se programa un rider aparte (6-p); ni 'dropped': el descolgado
+ *  es su propio Cue (DROPPED, de clase 1, o 3 con un maillot o un top cueTopStart, 6-g) y un rider aparte lo repetiría. */
+export type RiderCueContext = 'break_round' | 'banner' | 'focus' | 'own' | 'tt_round' // tt_round: la ronda ON COURSE de la crono, de clase 0 (§9.5, 9-k)
 /** Una fila del cuadro de diferencias generales (`gapsTableEveryRealS`). */
 export interface TimeCheckRow { // number: el de carretera en t; gapS: GroupNow.gap.toHeadS; names: los que se nombran (§7.7), null si el grupo solo se cuenta
   readonly number: number; readonly group: GroupIx; readonly size: number; readonly gapS: number; readonly jerseys: readonly JerseyKind[]; readonly names: readonly RiderIx[] | null
@@ -861,7 +862,7 @@ export type TemplateTarget = CueKind | 'voice_only' | 'report_only'
 export type LiveLine = ChronicleEntry & { readonly revealS: RaceS }
 ```
 
-`Cue` lleva índices (`GroupIx`, `RiderIx`) y ninguna palabra: la palabra la pone el componente con el vocabulario de §6.3 y los textos de pantalla de §21.6 (F.3), que es lo que E10 necesita (D-62). `t` es la hora de carrera en que el rótulo se pudo saber (el `revealS` de su suceso o la hora del instante que lo produjo), así que un rótulo nunca precede a su hecho; `Next action` acelera hasta el siguiente `Cue` de clase ≥ `BROADCAST.nextActionMinClass` (2) sin saber dónde está, porque el `Cue` solo existe cuando se ha revelado (D-20).
+`Cue` lleva índices (`GroupIx`, `RiderIx`) y ninguna palabra: la palabra la pone el componente con el vocabulario de §6.3 y los textos de pantalla de §21.6 (F.3), que es lo que E10 necesita (D-62). `t` es la hora de carrera en que el rótulo se pudo saber (el `revealS` de su suceso o la hora del instante que lo produjo), así que un rótulo nunca precede a su hecho; `Next action` acelera hasta que entra en la cola el siguiente `Cue` de clase ≥ `BROADCAST.nextActionMinClass` (2) que no sea de la ronda de la moto (§8.5, 6-m), sin saber dónde está, porque el `Cue` solo existe cuando se ha revelado (D-20).
 
 ### 4.10 El horizonte y el velo
 
@@ -1103,9 +1104,9 @@ export interface Variant<D> { readonly since: number; readonly render: (d: D, n:
 | `…/broadcast/cues.ts` | 4.9 entero salvo `CueClass`; `CUE_CLASS`, `CUE_OF_TEMPLATE`, `cuesBetween`, `cueClassOf`, `isPresentation`, `aheadOfPeloton` (§6.5, §6.6, §6.7) | `constants.ts`; tipos de `contracts.ts`, `jerseys.ts`, `instant.ts` (`Instant`, `VirtualGcRow`), `timeline.ts` (`CueClass`, 17-z) y `wire.ts` |
 | `…/broadcast/wire.ts` | `SwitchMode`, `GuardReason`, `SpoilerScope`, `StageGate` y 4.11 entero con sus esquemas y `WIRE_MATCH`, salvo cuatro esquemas que declara `contracts.ts` (`stageGateSchema`, `preStageInfoSchema`, `watchStateSchema` y `switchModeSchema`; este fichero importa los dos primeros, 14-a, §14.2) y los seis que comparte con el formato guardado, que importa de `codec.ts` (4-x); `WatchMode`, `watchModeSchema` y los esquemas de entrada y de error de las rutas nuevas (§14.2) | `zod`, `contracts.ts`, `codec.ts`, `constants.ts`; tipos de `jerseys.ts`, `cues.ts` y `timeline.ts` (con `PaceZone`, 17-z) |
 | `…/broadcast/radio.ts` | `export interface RadioNames { readonly riderOf: ReadonlyMap<string, ChronicleRider> /* la forma de ChronicleNames, apps/api/src/chronicle.ts l. 193-195, que cabe en ella */; readonly own: ReadonlySet<RiderIx> /* los del espectador, nombrados siempre en su grupo (R23.7) */; readonly nameableAt: (km: number) => ReadonlySet<RiderIx> /* los nombrables en la foto de ese km: la política de §7.7 y, en una etapa conocida o con ?diag=1, además los diez primeros de la etapa */ }` (12-o) y `radioFromTimeline(tl: TimelineCore, names: RadioNames): RaceRadio` (§12.10) | `contracts.ts`, `timeline.ts`, `reduce.ts` |
-| `…/broadcast/constants.ts`, `pace.ts`, `names.ts`, `pageTitle.ts` | `BROADCAST`, `SPOILER` (§15); `paceAt`, `playbackEstimateS` (§8.2); `GROUP_WORDS`, `breakHeadline` (§6.3, §7.6); `pageTitle`, `stageReadyNotice` (§11.8, §11.9) | `constants.ts`: tipos de `timeline.ts` (`CueClass`, `PaceZone`; 17-z) y `contracts.ts` (`StageKind`); `pace.ts`: `constants.ts` y tipos de `timeline.ts` y `contracts.ts` (no importa `cues.ts` ni `wire.ts`); `names.ts` y `pageTitle.ts`, los de §6.3 y §11.8 |
+| `…/broadcast/constants.ts`, `pace.ts`, `names.ts`, `pageTitle.ts` | `BROADCAST`, `SPOILER` (§15); `paceAt`, `playbackEstimateS` (§8.2); `GROUP_WORDS`, `breakHeadline` (§6.3, §7.6); `pageTitle`, `stageReadyNotice` (§11.8, §11.9) | `constants.ts`: tipos de `timeline.ts` (`CueClass`, `PaceZone`; 17-z) y `contracts.ts` (`StageKind`); `pace.ts`: `constants.ts` y tipos de `timeline.ts` y `contracts.ts` (no importa `cues.ts` ni `wire.ts`); `names.ts`, los de sus bloques de §6.3, §6.4, §7.1 y §7.7: `constants.ts` y tipos de `jerseys.ts`, `contracts.ts`, `news.ts` (`NameResolver`), `instant.ts` y `timeline.ts`; `pageTitle.ts`, los de §11.8 |
 | `…/broadcast/index.ts` | reexporta los anteriores; `packages/shared/src/index.ts` (l. 8-17) gana `./broadcast/index.js`, `./news.js` y `./render/variants.js` | |
-| `packages/shared/src/jerseys.ts` | 4.8 entero; `wornJerseys`, `distinctions`, `notorietyOf` (§7.2, §7.5) | tipos de `broadcast/timeline.ts` |
+| `packages/shared/src/jerseys.ts` | 4.8 entero; `wornJerseys`, `distinctions`, `notorietyOf`, `staticNotoriety` (§7.2, §7.5); `isJerseyKind` (§12.6) | tipos de `broadcast/timeline.ts` |
 | `packages/shared/src/news.ts`, `render/variants.ts` | 4.12 entero; `newsPayloadSchema`, `renderNews`, `NEWS_VARIANTS` (§12.8); `pickVariant`, `TEMPLATE_REV` (§12.7) | `news.ts`: `zod`, `rider.ts` y `render/variants.ts` (`pickVariant`, §12.8); `variants.ts`: el tipo `NameResolver` de `news.ts`, un ciclo solo de tipos |
 | `packages/db/src/horizon.ts` | el resto de 4.10; `computeHorizon`, `veilDelta`, `veilSql`, `throughStage`, `isVeiled`, `worldHorizon` (§10.6) | `@cyclingstar/shared` |
 | `packages/engine/src/sim/timeline.ts` | `I1Mismatch`, `SNAPSHOT_FIELDS`, `PROBE_HOOKS`, `CODES_MATCH`, `ORIGIN_OF_PREFIX`; `timelineRecorder`, `TimelineRecorder`, `RecorderFinishInput`, `selfCheckI1` (§5.4, §5.5) | `@cyclingstar/shared`, `../stage/types.js`, `./raceRadio.js` |

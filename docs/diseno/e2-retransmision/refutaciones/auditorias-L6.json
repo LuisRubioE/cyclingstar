@@ -269,7 +269,7 @@
   "origen": "cruzadas-L2.json n.º 20 → §14.2; coherencia.json: aplicada",
   "veredicto": "cerrado",
   "evidencia": "§14.2 lo tiene (14-api.md l. 157-159: `stageReplaySchema: + tplRev: z.number().int().min(0).optional()`, la revisión de plantillas del acta, 12-c; opcional por la web de ayer; `StageReport` lo hereda; «yesterday.test.ts lo omite con watch»). Pero el test que escribe §14.7 seguía como `stageReplaySchema.omit({ watch: true })` (l. 491), contra lo que dice §14.2: es lo que el auditor de L2 dejó abierto en su Rcobertura-014. Lo cierro en §14.7: `stageReplaySchema.omit({ watch: true, tplRev: true })`.",
-  "accion": "lo he cerrado yo: 14-api.md l. 491 (§14.7). Necesita otra sección: §17.10 (17-plan.md l. 330, el `yesterday.test.ts` del 7b sigue con `stageReplaySchema.omit({ watch: true })`) y §17.20 (la fila de `contracts.ts`, l. 554, no dice en qué PR gana `stageReplaySchema` `watch` y `tplRev`)"
+  "accion": "lo he cerrado yo: 14-api.md l. 491 (§14.7). Necesita otra sección: §17.10 (17-plan.md l. 330, el `yesterday.test.ts` del 7b sigue con `stageReplaySchema.omit({ watch: true })`) y §17.20 (la fila de `contracts.ts`, l. 554, no dice en qué PR gana `stageReplaySchema` `watch` y `tplRev`); cerrado en la resolución cruzada (ya estaba en el texto: cierre de L9, A-L9-006): la otra sección: 17-plan.md l. 330 y 554"
  },
  {
   "id": "Rcoste-005 · cruzada L2 n.º 33",
@@ -413,7 +413,7 @@
   "origen": "cruzadas-L8.json n.º 9 → §14.2 (y §14.1); coherencia.json: aplicada",
   "veredicto": "cerrado",
   "evidencia": "14-api.md l. 157-159: `+ tplRev: z.number().int().min(0).optional()   // stage_timelines.tpl_rev (12-c) … opcional por la web de ayer (D-50); 0 sin línea. StageReport es StageReplay (§4.11) y lo hereda; yesterday.test.ts lo omite con watch`, que es el texto de la cruzada; casa con 04-modelo.md l. 982 (`StageReport = StageReplay`, «con watch y tplRev, que gana en §14.2»). El `.omit` de §14.7 no lo llevaba (ver Rcobertura-014 · cruzada L2 n.º 20): lo cierro en l. 491.",
-  "accion": "lo he cerrado yo: 14-api.md l. 491. Necesita otra sección: §17.10 (17-plan.md l. 330) y §17.20 (l. 554), como en Rcobertura-014 · cruzada L2 n.º 20"
+  "accion": "lo he cerrado yo: 14-api.md l. 491. Necesita otra sección: §17.10 (17-plan.md l. 330) y §17.20 (l. 554), como en Rcobertura-014 · cruzada L2 n.º 20; cerrado en la resolución cruzada (ya estaba en el texto: cierre de L9, A-L9-006): la otra sección: 17-plan.md l. 330 y 554"
  },
  {
   "id": "Rcobertura-052 · cruzada L8 n.º 21",
@@ -555,9 +555,9 @@
   "id": "A-L6-011",
   "tipo": "comprobación (regla 3: definición compartida con §11)",
   "origen": "auditor de L6",
-  "veredicto": "abierto",
-  "evidencia": "«Administrador» no es lo mismo en mis secciones que en §11.15. Para `SPOILER_MODE=admins` y `BROADCAST_WATCH=admins`, §10.13 (10-horizonte.md l. 567) y §14.6 (14-api.md l. 472) usan `isUserAdmin` (`users.is_admin` o el correo de `ADMIN_EMAIL`, `adminUsers.ts` l. 53-61), como el glosario (G.8) y la duda de §14 sobre §G.8. Para `?diag=1`, §11.15 (11-superficies.md l. 495) dice «Un usuario con `users.is_admin` … y sesión», y D-40 «Un administrador (`users.is_admin`)»; pero la web decide si enseñar el botón con `GET /api/admin/whoami`, que pasa por `requireAdmin` y este por `isUserAdmin` con `ADMIN_EMAIL` (`app.ts` l. 125-134; `routes/admin.ts` l. 60-64). Si el dueño es administrador por `ADMIN_EMAIL` y no tiene `is_admin`, `SPOILER_MODE=admins` le aplica el velo y `?diag=1` no le sirve nada: el caso de Rdueno-002. No lo toco porque la regla de quién entra en el modo diagnóstico es de §11.15 y D-40.",
-  "accion": "necesita otra sección: §11.15 (l. 495) y D-40 deberían decir `isUserAdmin` con sesión, como §10.13, §14.6 y `whoami`, o decir por qué el diagnóstico excluye al administrador raíz"
+  "veredicto": "cerrado",
+  "evidencia": "«Administrador» no es lo mismo en mis secciones que en §11.15. Para `SPOILER_MODE=admins` y `BROADCAST_WATCH=admins`, §10.13 (10-horizonte.md l. 567) y §14.6 (14-api.md l. 472) usan `isUserAdmin` (`users.is_admin` o el correo de `ADMIN_EMAIL`, `adminUsers.ts` l. 53-61), como el glosario (G.8) y la duda de §14 sobre §G.8. Para `?diag=1`, §11.15 (11-superficies.md l. 495) dice «Un usuario con `users.is_admin` … y sesión», y D-40 «Un administrador (`users.is_admin`)»; pero la web decide si enseñar el botón con `GET /api/admin/whoami`, que pasa por `requireAdmin` y este por `isUserAdmin` con `ADMIN_EMAIL` (`app.ts` l. 125-134; `routes/admin.ts` l. 60-64). Si el dueño es administrador por `ADMIN_EMAIL` y no tiene `is_admin`, `SPOILER_MODE=admins` le aplica el velo y `?diag=1` no le sirve nada: el caso de Rdueno-002. No lo toco porque la regla de quién entra en el modo diagnóstico es de §11.15 y D-40. Resolución cruzada: §11.15 dice «Un administrador con sesión: `users.is_admin` … o el correo de `ADMIN_EMAIL` …, lo que da `isUserAdmin`» (11-superficies.md l. 495), y D-40 igual, con su versión anterior y su fila en el registro (00-decisiones.md: su fila del registro y el bloque «Precisada en la auditoría L7»).",
+  "accion": "necesita otra sección: §11.15 (l. 495) y D-40 deberían decir `isUserAdmin` con sesión, como §10.13, §14.6 y `whoami`, o decir por qué el diagnóstico excluye al administrador raíz; cerrado en la resolución cruzada (ya estaba en el texto: auditoría L7, A-L7-002): 11-superficies.md l. 495; 00-decisiones.md, D-40, su bloque «Precisada en la auditoría L7» y su fila del registro"
  },
  {
   "id": "A-L6-012",
@@ -597,7 +597,7 @@
   "origen": "auditor de L6",
   "veredicto": "cerrado",
   "evidencia": "La tabla de interruptores de §14.6 (14-api.md l. 473) decía que con `BROADCAST_WATCH` la web abre «`Watch` o `Report` (pantalla) según `watch.known` (§11.10)». Desde 6-r, 10-e y D-36 precisada, la etapa arrastrada (`A`) es conocida y abre en `Watch`: lo que decide es `watch.seen` (`W`, `S` o `R`), como dicen §10.2 (10-horizonte.md l. 22 y 32), `stageAccessOf` (14-api.md l. 35-36) y §11.18 (11-superficies.md l. 695, «`seen` sale del `watch.seen`»). Arreglado en §14.6. La tabla de §11.10 a la que remite sigue con la regla vieja: 11-superficies.md l. 350-351 pone la `A` entre quienes «la conocen» y abren en `Report`, contra 6-r.",
-  "accion": "lo he cerrado yo: 14-api.md l. 473 («según `watch.seen`: la `A`, conocida sin haberla visto, abre en `Watch`, 6-r»). Necesita otra sección: §11.10 (11-superficies.md l. 350-351), la `A` va con quien no la ha visto, en `Watch` con `Report` a un toque (6-r, 10-e)"
+  "accion": "lo he cerrado yo: 14-api.md l. 473 («según `watch.seen`: la `A`, conocida sin haberla visto, abre en `Watch`, 6-r»). Necesita otra sección: §11.10 (11-superficies.md l. 350-351), la `A` va con quien no la ha visto, en `Watch` con `Report` a un toque (6-r, 10-e); cerrado en la resolución cruzada (ya estaba en el texto: auditoría L7, A-L7-003): la otra sección: 11-superficies.md l. 350 (la `A` abre en `Watch`)"
  },
  {
   "id": "A-L6-017",

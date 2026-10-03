@@ -55,9 +55,9 @@
   },
   {
     "id": "Rcobertura-014",
-    "veredicto": "parcial",
-    "evidencia": "Lo de §4 está: `BroadcastHead.tplRev` (04-modelo.md l. 955), `tplRev: int.min(0)` en `broadcastHeadSchema` (l. 1038) y `StageReport` lo hereda (l. 982); §14.2 añade `tplRev` a `stageReplaySchema` y dice que `yesterday.test.ts` «lo omite con watch» (14-api.md l. 157-159); §14.4 lo lee de `readStageTemplateRev` (l. 268). Falta lo último que pedía la corrección: el test de la web de ayer sigue escrito como `stageReplaySchema.omit({ watch: true })` en §14.7 (14-api.md l. 484) y en el paso 7b (17-plan.md l. 330), sin `tplRev`, contra lo que dice §14.2.",
-    "accion": "necesita otra sección: §14.7 (14-api.md l. 484) y §17 (17-plan.md l. 330): `stageReplaySchema.omit({ watch: true, tplRev: true })`, como dice §14.2 l. 159."
+    "veredicto": "cerrado",
+    "evidencia": "Lo de §4 está: `BroadcastHead.tplRev` (04-modelo.md l. 955), `tplRev: int.min(0)` en `broadcastHeadSchema` (l. 1038) y `StageReport` lo hereda (l. 982); §14.2 añade `tplRev` a `stageReplaySchema` y dice que `yesterday.test.ts` «lo omite con watch» (14-api.md l. 157-159); §14.4 lo lee de `readStageTemplateRev` (l. 268). Falta lo último que pedía la corrección: el test de la web de ayer sigue escrito como `stageReplaySchema.omit({ watch: true })` en §14.7 (14-api.md l. 484) y en el paso 7b (17-plan.md l. 330), sin `tplRev`, contra lo que dice §14.2. Resolución cruzada: §14.7 escribe ya `stageReplaySchema.omit({ watch: true, tplRev: true })` (14-api.md l. 491, auditoría L6) y §17 también: el 3a omite `tplRev` porque el esquema lo gana en ese PR (17-plan.md l. 151 y 155) y el 7b omite los dos (l. 330).",
+    "accion": "necesita otra sección: §14.7 (14-api.md l. 484) y §17 (17-plan.md l. 330): `stageReplaySchema.omit({ watch: true, tplRev: true })`, como dice §14.2 l. 159; cerrado en la resolución cruzada (ya estaba en el texto: auditoría L6 y cierre de L9, A-L9-006): 14-api.md l. 491; 17-plan.md l. 151, 155 y 330"
   },
   {
     "id": "Rcobertura-015",
@@ -324,15 +324,15 @@
   },
   {
     "id": "A-L2-002",
-    "veredicto": "abierto",
-    "evidencia": "Al compilar §4 con §6 (`aud-l2/h`, build de 04, 06 y 15): los bloques de §6 que amplían `instant.ts` vuelven a importar lo que el bloque de §4.5 ya importa o declara en ese mismo fichero: `TS2300` por `RadioGroupKind`, `StartState` y `BROADCAST` dos veces, y `TS2440` porque importan de `./instant.js` (el propio fichero) `GroupNow`, `MainGap` y `GroupRole` (06-pantalla.md l. 96-99 y l. 155-158); el JS emitido no carga (`Identifier 'BROADCAST' has already been declared`). Y `names.ts` usa `BROADCAST` sin importarlo en ningún bloque (06-pantalla.md l. 285, 572 y 577). Los tipos de §4.5 no cambian por esto: es la forma de los bloques de §6.",
-    "accion": "necesita otra sección: §6 (06-pantalla.md l. 96-99 y 155-158): quitar de los bloques de `instant.ts` los `import` de `RadioGroupKind`, `StartState` y `BROADCAST` que ya trae el fichero (o, si se quieren autosuficientes, decir que van en las importaciones de §4.5) y los `import type` de `./instant.js`; y en `names.ts` importar `BROADCAST` de `./constants.js` (l. 268 o la cabecera de §6.3)."
+    "veredicto": "cerrado",
+    "evidencia": "Al compilar §4 con §6 (`aud-l2/h`, build de 04, 06 y 15): los bloques de §6 que amplían `instant.ts` vuelven a importar lo que el bloque de §4.5 ya importa o declara en ese mismo fichero: `TS2300` por `RadioGroupKind`, `StartState` y `BROADCAST` dos veces, y `TS2440` porque importan de `./instant.js` (el propio fichero) `GroupNow`, `MainGap` y `GroupRole` (06-pantalla.md l. 96-99 y l. 155-158); el JS emitido no carga (`Identifier 'BROADCAST' has already been declared`). Y `names.ts` usa `BROADCAST` sin importarlo en ningún bloque (06-pantalla.md l. 285, 572 y 577). Los tipos de §4.5 no cambian por esto: es la forma de los bloques de §6. Resolución cruzada: el bloque de `mainGapOf` solo añade `import { BROADCAST } from './constants.js'` y dice que lo demás lo trae §4.5 (06-pantalla.md l. 96-98); el de `chaseRefOf`, `groupRoleOf` y `groupLabelOf` no importa nada (l. 154-155); la cabecera de `names.ts` importa `BROADCAST` (l. 196-199). Lo arregló y recompiló la auditoría L4 (A-L4-001).",
+    "accion": "necesita otra sección: §6 (06-pantalla.md l. 96-99 y 155-158): quitar de los bloques de `instant.ts` los `import` de `RadioGroupKind`, `StartState` y `BROADCAST` que ya trae el fichero (o, si se quieren autosuficientes, decir que van en las importaciones de §4.5) y los `import type` de `./instant.js`; y en `names.ts` importar `BROADCAST` de `./constants.js` (l. 268 o la cabecera de §6.3); cerrado en la resolución cruzada (ya estaba en el texto: auditoría L4, A-L4-001): 06-pantalla.md l. 96-98, 154-155 y 196-199"
   },
   {
     "id": "A-L2-003",
-    "veredicto": "abierto",
-    "evidencia": "Visto de paso al compilar el `horizon.ts` de §4.10 con los bloques de §10 (`aud-l2/h/dbfull.py`): el código de §10.6 llama a `anonHorizon`, `first`, `guardCandidates` y `buildHorizon`, que ningún bloque declara (TS2304; 10-horizonte.md l. 197, 200, 206, 224 y 227), e importa `DAYS_PER_SEASON` y el motor (`SEASON_CALENDAR`, `stageDayOfSeason`, l. 188-189) sin usarlos en lo escrito (TS6133, TS6192). No toca los tipos de §4.10, que compilan.",
-    "accion": "necesita otra sección: §10.6 (10-horizonte.md l. 187-230): escribir las firmas de esos cuatro auxiliares o decir dónde están, y quitar o usar las dos importaciones."
+    "veredicto": "cerrado",
+    "evidencia": "Visto de paso al compilar el `horizon.ts` de §4.10 con los bloques de §10 (`aud-l2/h/dbfull.py`): el código de §10.6 llama a `anonHorizon`, `first`, `guardCandidates` y `buildHorizon`, que ningún bloque declara (TS2304; 10-horizonte.md l. 197, 200, 206, 224 y 227), e importa `DAYS_PER_SEASON` y el motor (`SEASON_CALENDAR`, `stageDayOfSeason`, l. 188-189) sin usarlos en lo escrito (TS6133, TS6192). No toca los tipos de §4.10, que compilan. Resolución cruzada: 10-horizonte.md l. 257 (`anonHorizon`), l. 259 (`first`), l. 261 (`guardCandidates`), l. 263 (`buildHorizon`) y l. 266-270 (`stageGameDay`, que usa `DAYS_PER_SEASON`, `SEASON_CALENDAR` y `stageDayOfSeason` de l. 188-189). Lo arregló y compiló la auditoría L6 (A-L6-001).",
+    "accion": "necesita otra sección: §10.6 (10-horizonte.md l. 187-230): escribir las firmas de esos cuatro auxiliares o decir dónde están, y quitar o usar las dos importaciones; cerrado en la resolución cruzada (ya estaba en el texto: auditoría L6, A-L6-001): 10-horizonte.md l. 188-189 y 255-270"
   },
   {
     "id": "A-L2-004",

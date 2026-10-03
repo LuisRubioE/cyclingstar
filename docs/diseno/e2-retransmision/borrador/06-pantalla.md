@@ -416,6 +416,8 @@ reproductor, cada fotograma, además:
 admitir(c):                                                        // c ya con su clase k = cueClassOf(c, …)
   si la cabeza está a menos de quietFinalM (500 m) y c es un rider: descartar           // solo la distancia (D-17)
   si isPresentation(c): meter c, reservado                                             // 6-m: ni cuenta ni se descarta
+  si c es un tt_split y espera otro del mismo check, o c es un tt_finish y espera otro tt_finish:   // la crono (9-d, §9.5)
+    sacar el que espera; meter c con la mayor de las dos clases                         // el que espera ya no es noticia
   si los no reservados que esperan son menos de cueQueueMax: meter c
   si no, si k ≤ 1: descartar c                                                          // D-21
   si no, si hay alguno no reservado esperando de clase ≤ 1: sacar el de menor clase y más viejo; meter c
