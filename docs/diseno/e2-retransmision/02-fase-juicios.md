@@ -35,11 +35,29 @@ Cada juez tiene un foco distinto y escribe dos ficheros: `juicios/<foco>.md` (15
 {
   "foco": "…",
   "ganadora": "television | estado | producto | datos | ingeniero",
-  "puntuaciones": [{ "propuesta": "…", "cobertura": 0, "coherencia": 0, "ejecutabilidad": 0, "experiencia": 0, "justificacion": "…" }],
-  "injertos": [{ "id": "I-<foco>-01", "de": "datos", "seccion": "§10.3", "que": "…", "porque": "…" }],
+  "puntuaciones": [
+    {
+      "propuesta": "…",
+      "cobertura": 0,
+      "coherencia": 0,
+      "ejecutabilidad": 0,
+      "experiencia": 0,
+      "justificacion": "…"
+    }
+  ],
+  "injertos": [
+    { "id": "I-<foco>-01", "de": "datos", "seccion": "§10.3", "que": "…", "porque": "…" }
+  ],
   "objeciones": [{ "id": "O-<foco>-01", "seccion_ganadora": "§…", "que": "…", "evidencia": "…" }],
   "huecos": [{ "id": "H-<foco>-01", "que": "…" }],
-  "comprobaciones": [{ "afirmacion": "…", "propuesta": "…", "resultado": "cierta | falsa | a medias", "evidencia": "fichero l. n" }]
+  "comprobaciones": [
+    {
+      "afirmacion": "…",
+      "propuesta": "…",
+      "resultado": "cierta | falsa | a medias",
+      "evidencia": "fichero l. n"
+    }
+  ]
 }
 ```
 

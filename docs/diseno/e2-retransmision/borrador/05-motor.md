@@ -12,15 +12,15 @@ La doctrina está escrita tres veces en `docs/balance.md` y la regla de la casa 
 
 Cada cambio del motor que las propuestas querían hacer subiendo la versión llega aquí por observación (O-05, X-03, X-04):
 
-| Propuesta | Lo que subía la versión | Lo que lo da sin subirla |
-| --- | --- | --- |
-| `estado.md` §11 | el orden completo de volantes y cimas en `sprint_intermediate` y `climb_kom` (v90) | `onBanner` (5.2): el orden y los puntos de cada pancarta |
-| `producto.md` §11, cambio 4 | `datos.aT` y `datos.aKm` en `breakaway_formed` y `break_cooperation` | `onEvent` (5.2): el bloque de emisión, y `REVEAL_RULES` (§4.7) |
-| `producto.md` §11, cambio 5 | `climb_kom` con el reloj del grupo del ganador y `datos.orden` | `onBanner`: `ProbeBanner.tS` es el reloj del grupo del primero que puntúa |
-| `producto.md` §11, cambio 6 | un suceso `crash` por caída | `output.incidents` al cerrar la línea (D-13, 5.4) |
-| `producto.md` §11, cambio 7 | pinchazos y averías de crono con reloj de carrera | `onTimeTrialRide`: la salida más el reloj propio de la traza (§4.7, regla `tt_own_clock`) |
-| `ingeniero.md` §11.2 (paso 11 opcional) | `datos.knownKm`, `knownS` en la fuga; `p2Id`, `p3Id` y `pts` en las pancartas | `onEvent` y `onBanner` |
-| `datos.md` §11, punto 4 (paso 10 opcional) | los puestos 2.º a 8.º de volantes y cimas | `onBanner` |
+| Propuesta                                  | Lo que subía la versión                                                            | Lo que lo da sin subirla                                                                  |
+| ------------------------------------------ | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `estado.md` §11                            | el orden completo de volantes y cimas en `sprint_intermediate` y `climb_kom` (v90) | `onBanner` (5.2): el orden y los puntos de cada pancarta                                  |
+| `producto.md` §11, cambio 4                | `datos.aT` y `datos.aKm` en `breakaway_formed` y `break_cooperation`               | `onEvent` (5.2): el bloque de emisión, y `REVEAL_RULES` (§4.7)                            |
+| `producto.md` §11, cambio 5                | `climb_kom` con el reloj del grupo del ganador y `datos.orden`                     | `onBanner`: `ProbeBanner.tS` es el reloj del grupo del primero que puntúa                 |
+| `producto.md` §11, cambio 6                | un suceso `crash` por caída                                                        | `output.incidents` al cerrar la línea (D-13, 5.4)                                         |
+| `producto.md` §11, cambio 7                | pinchazos y averías de crono con reloj de carrera                                  | `onTimeTrialRide`: la salida más el reloj propio de la traza (§4.7, regla `tt_own_clock`) |
+| `ingeniero.md` §11.2 (paso 11 opcional)    | `datos.knownKm`, `knownS` en la fuga; `p2Id`, `p3Id` y `pts` en las pancartas      | `onEvent` y `onBanner`                                                                    |
+| `datos.md` §11, punto 4 (paso 10 opcional) | los puestos 2.º a 8.º de volantes y cimas                                          | `onBanner`                                                                                |
 
 **Lo que pasa si otra línea sube la versión** (H-02). E2 no la sube (D-09), pero no decide cuándo la suben los demás. `packages/db/src/raceReport.ts` l. 148 re-simula la «Last race» con `simulateStage(input, snap.seed)` sin comparar `engine_version` (C16): una subida anterior al paso 17d de la táctica, el que hace que ese informe deje de re-simular (`docs/tactica.md` l. 6979), le hace contar otra carrera de las etapas ya corridas, y `checkReplay` (`packages/engine/src/sim/raceRadio.ts` l. 49-55) y `scripts/race-radio.mjs --db`, que re-simula desde la semilla y la entrada de `stage_snapshots` y se niega si la versión no coincide (cabecera del script, l. 19-38), dejan de ser fieles para ellas. Mientras la versión no cambie, los dos siguen siendo el microscopio del dueño en producción ([DUEÑO 10]). Qué hacer con eso es una decisión del dueño, DD-25 (§20), y no una regla de este documento, por tres motivos que están escritos. La doctrina de `docs/balance.md` es no subir cuando nada de la carrera cambia («Este cambio no altera un segundo de ninguna carrera», l. 16321), y no dice que no se suba cuando la carrera sí cambia. La D7 dice cuándo no tocar el motor: «si lo que hace el motor está bien ahí, no cambies el motor, cambia el race radio» (l. 16557-16558); cuando estaba mal, el dueño lo ha arreglado subiendo la versión, de la v69 (`025efbe`, 14 de septiembre) a la v89 (`c39f450`, 26 de septiembre) en catorce commits, entre ellos la v83 («Dos defectos de producción», `d5ebc04`), la v86 («El que va de amarillo no da relevos», `bcd49bf`) y la v89 («las decisiones del dueño sobre el generador, aplicadas») (`git log -L` sobre `ENGINE_VERSION` en `packages/engine/src/constants.ts`). Y el orden de trabajo lo fijan los encargos al revés: E2 espera a la línea del motor (`docs/encargos.md` l. 14-26), no la línea del motor a E2 (Rdueno-005). La corrección de `docs/balance.md` l. 14684-14686 («moverla **tira todas las crónicas guardadas**»), que no es cierta porque la ruta de etapa lee las crónicas guardadas sin mirar la versión, la hace el paso 12 (D-58, §17.15).
 
@@ -35,9 +35,9 @@ Tampoco cambian `StageOutput` (5.9), `stage_snapshots` (§13.6) ni lo que se esc
 
 /** Lo que `onBanner` recibe de una pancarta DISPUTADA (E2 §5.2): el reparto que el motor hace y hoy no emite (solo el ganador). */
 export interface ProbeBanner {
-  readonly kind: BannerType            // 'meta_volante' | 'cima'
-  readonly km: number                  // kmAt del bloque de la pancarta: el `km` del bucle (simulate.ts l. 3088)
-  readonly cat: ClimbCategory          // la del bloque en una cima (`block.climbCategory`); null en una volante
+  readonly kind: BannerType // 'meta_volante' | 'cima'
+  readonly km: number // kmAt del bloque de la pancarta: el `km` del bucle (simulate.ts l. 3088)
+  readonly cat: ClimbCategory // la del bloque en una cima (`block.climbCategory`); null en una volante
   /** Reloj del grupo del PRIMERO QUE PUNTÚA: en la volante, el grupo de cabeza, el único que esprinta (simulate.ts l. 8940-8946);
    *  en la cima, el grupo de `disputan[0]`, que puede no ser el primero en coronar (l. 9287): no es `groups[0].tS` (l. 9310, C9). */
   readonly tS: number
@@ -48,11 +48,15 @@ export interface ProbeBanner {
 /** Lo que `onTimeTrialRide` recibe de cada corredor de una crono al cerrar su recorrido (E2 §5.2; su uso es §9). */
 export interface ProbeTimeTrialRide {
   readonly riderId: string
-  readonly startS: number              // su hora en la rampa (timeTrialStartOrder, startOrder.ts l. 127): reloj de carrera
-  readonly raw: ArrayLike<number>      // su reloj propio al final de cada bloque, sin ruido ni percance (timetrial.ts l. 266-284): el array del motor, sin copiar; solo se lee
-  readonly noise: number               // el ruido de su tiempo final (l. 345)
-  readonly totalS: number              // su tiempo con percance y ruido, el que `results` redondea (l. 347)
-  readonly mishap: { readonly kind: 'pinchazo' | 'averia'; readonly km: number; readonly lostS: number } | null // su percance (l. 306-331), km y pérdida sin ruido
+  readonly startS: number // su hora en la rampa (timeTrialStartOrder, startOrder.ts l. 127): reloj de carrera
+  readonly raw: ArrayLike<number> // su reloj propio al final de cada bloque, sin ruido ni percance (timetrial.ts l. 266-284): el array del motor, sin copiar; solo se lee
+  readonly noise: number // el ruido de su tiempo final (l. 345)
+  readonly totalS: number // su tiempo con percance y ruido, el que `results` redondea (l. 347)
+  readonly mishap: {
+    readonly kind: 'pinchazo' | 'averia'
+    readonly km: number
+    readonly lostS: number
+  } | null // su percance (l. 306-331), km y pérdida sin ruido
 }
 
 export interface StageProbe {
@@ -84,8 +88,17 @@ export class EventLog {
     this.events.push(event)
     this.listener?.(event)
   }
-  emit(km: number, tS: number, tipo: string, plantilla: string, protagonistas: string[] = [], datos?: Record<string, number | string>): void {
-    const event: RaceEvent = datos ? { km, tS, tipo, plantilla, protagonistas, datos } : { km, tS, tipo, plantilla, protagonistas }
+  emit(
+    km: number,
+    tS: number,
+    tipo: string,
+    plantilla: string,
+    protagonistas: string[] = [],
+    datos?: Record<string, number | string>,
+  ): void {
+    const event: RaceEvent = datos
+      ? { km, tS, tipo, plantilla, protagonistas, datos }
+      : { km, tS, tipo, plantilla, protagonistas }
     this.events.push(event)
     this.listener?.(event)
   }
@@ -99,36 +112,66 @@ El oyente recibe el MISMO objeto que queda en el registro: `toArray` (l. 46-48) 
 
 ```ts
 // packages/engine/src/stage/simulate.ts
-if (input.timeTrial) return simulateTimeTrial(input, seed, probe)             // l. 1264: la crono deja de ignorar la sonda
+if (input.timeTrial) return simulateTimeTrial(input, seed, probe) // l. 1264: la crono deja de ignorar la sonda
 
-const log = new EventLog()                                                   // l. 1571
-let bloqueDeEmision = 0                                                      // el bloque en curso para onEvent
-if (probe?.onEvent) { const onEvent = probe.onEvent; log.listen((e) => onEvent(e, bloqueDeEmision)) }
-
-for (let i = 0; i < n; i++) {                                                // l. 3058
-  bloqueDeEmision = i  // … y el bloque, sin cambios …
+const log = new EventLog() // l. 1571
+let bloqueDeEmision = 0 // el bloque en curso para onEvent
+if (probe?.onEvent) {
+  const onEvent = probe.onEvent
+  log.listen((e) => onEvent(e, bloqueDeEmision))
 }
-bloqueDeEmision = n                                                          // tras l. 9025: finishStage y applyStageTimeCut emiten después
 
-disputeBanner(front, block, km, frontTs, log, rngSprint, probe?.onBanner)     // l. 8946
-disputeClimb(groups, block, km, log, rngSprint, komLead, probe?.onBanner)     // l. 8955
+for (let i = 0; i < n; i++) {
+  // l. 3058
+  bloqueDeEmision = i // … y el bloque, sin cambios …
+}
+bloqueDeEmision = n // tras l. 9025: finishStage y applyStageTimeCut emiten después
 
-function disputeBanner(members: RiderSim[], block: Block, km: number, tS: number, log: EventLog, rngSprint: Rng,
-  onBanner?: StageProbe['onBanner']): void {                                  // l. 9175
+disputeBanner(front, block, km, frontTs, log, rngSprint, probe?.onBanner) // l. 8946
+disputeClimb(groups, block, km, log, rngSprint, komLead, probe?.onBanner) // l. 8955
+
+function disputeBanner(
+  members: RiderSim[],
+  block: Block,
+  km: number,
+  tS: number,
+  log: EventLog,
+  rngSprint: Rng,
+  onBanner?: StageProbe['onBanner'],
+): void {
+  // l. 9175
   // … hasta el reparto de puntos (l. 9213-9218), sin cambios …
   if (onBanner) {
     const order: { riderId: string; points: number }[] = []
-    ranked.forEach(({ m }, idx) => { const points = table[idx] ?? 0; if (points > 0) order.push({ riderId: m.input.riderId, points }) })
-    if (order.length > 0) onBanner({ kind: block.banner!, km, cat: isSprint ? null : (block.climbCategory ?? null), tS, order })
+    ranked.forEach(({ m }, idx) => {
+      const points = table[idx] ?? 0
+      if (points > 0) order.push({ riderId: m.input.riderId, points })
+    })
+    if (order.length > 0)
+      onBanner({
+        kind: block.banner!,
+        km,
+        cat: isSprint ? null : (block.climbCategory ?? null),
+        tS,
+        order,
+      })
   }
   // … el log.emit de l. 9221, sin cambios …
 }
 
-function disputeClimb(groups: { tS: number; members: RiderSim[] }[], block: Block, km: number, log: EventLog, rngSprint: Rng,
-  kom: { proclaimed: string | null }, onBanner?: StageProbe['onBanner']): void { // l. 9231
+function disputeClimb(
+  groups: { tS: number; members: RiderSim[] }[],
+  block: Block,
+  km: number,
+  log: EventLog,
+  rngSprint: Rng,
+  kom: { proclaimed: string | null },
+  onBanner?: StageProbe['onBanner'],
+): void {
+  // l. 9231
   const table = climbTable(block)
   const ordered: RiderSim[] = []
-  const relojDe = new Map<RiderSim, number>()                                // el grupo de cada uno, para el reloj del primero que puntúa
+  const relojDe = new Map<RiderSim, number>() // el grupo de cada uno, para el reloj del primero que puntúa
   for (const g of groups) {
     for (const m of g.members) relojDe.set(m, g.tS)
     // … el orden dentro del grupo y sus tiradas (l. 9246-9261), sin cambios …
@@ -136,28 +179,51 @@ function disputeClimb(groups: { tS: number; members: RiderSim[] }[], block: Bloc
   // … `interesados`, `disputan` y el reparto (l. 9273-9283), sin cambios …
   if (onBanner) {
     const order: { riderId: string; points: number }[] = []
-    disputan.forEach((m, idx) => { const points = table[idx] ?? 0; if (points > 0) order.push({ riderId: m.input.riderId, points }) })
-    if (order.length > 0) onBanner({ kind: 'cima', km, cat: block.climbCategory ?? null, tS: relojDe.get(disputan[0]!) ?? 0, order })
+    disputan.forEach((m, idx) => {
+      const points = table[idx] ?? 0
+      if (points > 0) order.push({ riderId: m.input.riderId, points })
+    })
+    if (order.length > 0)
+      onBanner({
+        kind: 'cima',
+        km,
+        cat: block.climbCategory ?? null,
+        tS: relojDe.get(disputan[0]!) ?? 0,
+        order,
+      })
   }
   // … el winner y el log.emit de l. 9310, sin cambios …
 }
 
 // packages/engine/src/stage/timetrial.ts (su importación de tipos de './types.js', l. 40-48, gana `StageProbe`, que hoy no trae)
-export function simulateTimeTrial(input: StageInput, seed: string, probe?: StageProbe): StageOutput {   // l. 219
+export function simulateTimeTrial(
+  input: StageInput,
+  seed: string,
+  probe?: StageProbe,
+): StageOutput {
+  // l. 219
   // … dentro de input.riders.map, por corredor:
   let percance: { kind: 'pinchazo' | 'averia'; km: number; lostS: number } | null = null
-  if (cronoOn && rngPercance() < STAGE.mishap.ttLambda) {                   // l. 306
+  if (cronoOn && rngPercance() < STAGE.mishap.ttLambda) {
+    // l. 306
     // … kind y perdida, sin cambios …
-    tS += perdida                                                            // l. 312
+    tS += perdida // l. 312
     percance = { kind, km: finishKm(input) / 2, lostS: perdida }
     // … incidents.push y log.emit, sin cambios …
   }
   // … workUnits, tank, efforts, sin cambios …
-  const noise = normal(rngNoise, 1, STAGE.ttNoiseSd)                         // l. 345
+  const noise = normal(rngNoise, 1, STAGE.ttNoiseSd) // l. 345
   const startS = startOf.get(rider.riderId) ?? 0
   const total = tS * noise
-  probe?.onTimeTrialRide?.({ riderId: rider.riderId, startS, raw, noise, totalS: total, mishap: percance })
-  return { riderId: rider.riderId, raw, noise, tS: total, startS, finishS: startS + total }   // l. 348
+  probe?.onTimeTrialRide?.({
+    riderId: rider.riderId,
+    startS,
+    raw,
+    noise,
+    totalS: total,
+    mishap: percance,
+  })
+  return { riderId: rider.riderId, raw, noise, tS: total, startS, finishS: startS + total } // l. 348
 }
 ```
 
@@ -184,14 +250,28 @@ const fotoDeRadio: StageProbe['onSnapshot'] = (km, riders, mainId) => {
 }
 // spec.timeline existe si el tick corre con TIMELINE_RECORD=on (§5.5); si no, la envoltura es byte a byte la de hoy.
 const grabacion = spec.timeline
-  ? startStageTimeline({ lengthKm, timeTrial: spec.timeTrial, riderIds: stageRiders.map((r) => r.riderId), radioShot: fotoDeRadio })
+  ? startStageTimeline({
+      lengthKm,
+      timeTrial: spec.timeTrial,
+      riderIds: stageRiders.map((r) => r.riderId),
+      radioShot: fotoDeRadio,
+    })
   : null
-const output = simulateStage(input, seed, grabacion?.probe ?? { atKm: radio.probe.atKm, onSnapshot: fotoDeRadio })
+const output = simulateStage(
+  input,
+  seed,
+  grabacion?.probe ?? { atKm: radio.probe.atKm, onSnapshot: fotoDeRadio },
+)
 ```
 
 ```ts
 // packages/db/src/timelines.ts
-import { STAGE, type StageProbe, type TimelineRecorder, timelineRecorder } from '@cyclingstar/engine'
+import {
+  STAGE,
+  type StageProbe,
+  type TimelineRecorder,
+  timelineRecorder,
+} from '@cyclingstar/engine'
 import { type Block, photoBlocksOf } from '@cyclingstar/shared'
 
 /** Una etapa que se está grabando: la sonda que se le pasa al motor y lo que queda para cerrarla. */
@@ -203,7 +283,8 @@ export interface StageTimelineRun {
 }
 
 /** El bloque cuyo centro es `km`, con la cuenta del motor (simulate.ts l. 1946-1948). */
-const blockOf = (km: number, blocks: number): Block => Math.max(0, Math.min(blocks-1, Math.round((km / STAGE.dx)-0.5)))
+const blockOf = (km: number, blocks: number): Block =>
+  Math.max(0, Math.min(blocks - 1, Math.round(km / STAGE.dx - 0.5)))
 
 /**
  * EL COLECTOR APARTE (D-08). Pide la foto de CADA bloque y despacha por índice: la de un bloque de radioKmPoints va a
@@ -213,17 +294,30 @@ const blockOf = (km: number, blocks: number): Block => Math.max(0, Math.min(bloc
 export function startStageTimeline(opts: {
   readonly lengthKm: number
   readonly timeTrial: boolean
-  readonly riderIds: readonly string[]                       // el orden de stage_snapshots.input.riders (stageRun.ts l. 257)
+  readonly riderIds: readonly string[] // el orden de stage_snapshots.input.riders (stageRun.ts l. 257)
   readonly radioShot: StageProbe['onSnapshot']
 }): StageTimelineRun {
-  const blocks = Math.round(opts.lengthKm / STAGE.dx)       // los de sampleProfile (sample.ts l. 70)
+  const blocks = Math.round(opts.lengthKm / STAGE.dx) // los de sampleProfile (sample.ts l. 70)
   const radioBlocks: ReadonlySet<Block> = new Set(photoBlocksOf(opts.lengthKm, STAGE.dx))
-  const recorder = timelineRecorder({ blocks, dx: STAGE.dx, lengthKm: opts.lengthKm, timeTrial: opts.timeTrial, radioBlocks, riderIds: opts.riderIds })
+  const recorder = timelineRecorder({
+    blocks,
+    dx: STAGE.dx,
+    lengthKm: opts.lengthKm,
+    timeTrial: opts.timeTrial,
+    radioBlocks,
+    riderIds: opts.riderIds,
+  })
   let failure: unknown
-  const safe = <A extends unknown[]>(fn: (...args: A) => void) => (...args: A): void => {
-    if (failure !== undefined) return
-    try { fn(...args) } catch (err) { failure = err ?? new Error('el grabador falló sin error') }
-  }
+  const safe =
+    <A extends unknown[]>(fn: (...args: A) => void) =>
+    (...args: A): void => {
+      if (failure !== undefined) return
+      try {
+        fn(...args)
+      } catch (err) {
+        failure = err ?? new Error('el grabador falló sin error')
+      }
+    }
   const snapshot = safe(recorder.onSnapshot)
   return {
     recorder,
@@ -254,30 +348,37 @@ export function startStageTimeline(opts: {
 
 ```ts
 // packages/engine/src/sim/timeline.ts (sigue a la guarda de §4.3)
-import type { Block, ProfileStrip, RiderIx, StageTimeline, StageWeather, TimelineCast } from '@cyclingstar/shared'
+import type {
+  Block,
+  ProfileStrip,
+  RiderIx,
+  StageTimeline,
+  StageWeather,
+  TimelineCast,
+} from '@cyclingstar/shared'
 import type { RaceRadio } from './raceRadio.js'
 import type { StageInput, StageOutput, StageProfile } from '../stage/types.js' // SnapshotRider y StageProbe ya los importa la guarda de §4.3: repetirlos da TS2300
 
 /** Lo que el grabador necesita saber de la etapa antes de que corra. */
 export interface TimelineRecorderOptions {
-  readonly blocks: number                    // Math.round(lengthKm / dx), los de sampleProfile (sample.ts l. 70)
-  readonly dx: number                        // STAGE.dx (constants.ts l. 2290)
-  readonly lengthKm: number                  // stageLengthKm(profile): las fotos clave y el último km
-  readonly timeTrial: boolean                // en crono no llegan fotos (simulate.ts l. 1264): solo la traza
-  readonly radioBlocks: ReadonlySet<Block>   // photoBlocksOf(lengthKm, dx): la capa de detalle y las fotos de I1
-  readonly riderIds: readonly string[]       // por RiderIx: el orden de stage_snapshots.input.riders (stageRun.ts l. 257)
+  readonly blocks: number // Math.round(lengthKm / dx), los de sampleProfile (sample.ts l. 70)
+  readonly dx: number // STAGE.dx (constants.ts l. 2290)
+  readonly lengthKm: number // stageLengthKm(profile): las fotos clave y el último km
+  readonly timeTrial: boolean // en crono no llegan fotos (simulate.ts l. 1264): solo la traza
+  readonly radioBlocks: ReadonlySet<Block> // photoBlocksOf(lengthKm, dx): la capa de detalle y las fotos de I1
+  readonly riderIds: readonly string[] // por RiderIx: el orden de stage_snapshots.input.riders (stageRun.ts l. 257)
 }
 
 /** Lo que el cierre necesita y el motor no ve. Lo arma packages/db con lo que ya tiene al correr la etapa (5.5). */
 export interface RecorderFinishInput {
-  readonly input: StageInput                 // la entrada congelada: el orden de salida de la crono (timeTrialStartOrder)
-  readonly output: StageOutput               // events, results e incidents, tal cual
-  readonly radio: RaceRadio | null           // la radio COMPLETA que stageRun ya construye (radio.radio({ incidents })); null en crono
-  readonly cast: TimelineCast                // buildTimelineCast (packages/db/src/cast.ts, D-15; su contenido es §7), con favourites (§4.2, 4-u; 8-f y 8-g)
-                                             // de los attrsByRider que runOneStage leyó al empezar (stageRun.ts l. 298-310), antes de que el
-                                             // aprendizaje los reescriba (l. 891-897): por eso se cierra justo tras stage_snapshots (l. 570-595)
-  readonly profile: ProfileStrip             // profileStripOf, abajo
-  readonly weather: StageWeather             // freezeStageWeather, abajo: el StageWeather de §4.2, no el del motor
+  readonly input: StageInput // la entrada congelada: el orden de salida de la crono (timeTrialStartOrder)
+  readonly output: StageOutput // events, results e incidents, tal cual
+  readonly radio: RaceRadio | null // la radio COMPLETA que stageRun ya construye (radio.radio({ incidents })); null en crono
+  readonly cast: TimelineCast // buildTimelineCast (packages/db/src/cast.ts, D-15; su contenido es §7), con favourites (§4.2, 4-u; 8-f y 8-g)
+  // de los attrsByRider que runOneStage leyó al empezar (stageRun.ts l. 298-310), antes de que el
+  // aprendizaje los reescriba (l. 891-897): por eso se cierra justo tras stage_snapshots (l. 570-595)
+  readonly profile: ProfileStrip // profileStripOf, abajo
+  readonly weather: StageWeather // freezeStageWeather, abajo: el StageWeather de §4.2, no el del motor
 }
 
 /** EL GRABADOR (D-02). Sus cuatro métodos son cierres sin `this`: el colector aparte (5.3) los pasa sueltos. */
@@ -293,29 +394,43 @@ export function timelineRecorder(opts: TimelineRecorderOptions): TimelineRecorde
 /** El recorrido congelado (§4.2 ProfileStrip): cotas al final de cada km (altitudesDelPerfil, citas.ts l. 256-264), puertos
  *  (tramosDelPerfil, l. 35-65, y las pancartas `cima`), volantes y vueltas; el nombre de un puerto sale de
  *  STAGE_FEATURES[raceId][stageDay − 1] (routes/stageFeatures.ts l. 15) si su cima está a menos de un bloque; si no, null. */
-export function profileStripOf(profile: StageProfile, at: { readonly raceId: string; readonly stageDay: number } | null): ProfileStrip
+export function profileStripOf(
+  profile: StageProfile,
+  at: { readonly raceId: string; readonly stageDay: number } | null,
+): ProfileStrip
 /** El tiempo del día congelado (D-14, I-19): stageWeather, stageWindStrength, weatherPlan, roadBearings y windComponents
  *  (weather.ts l. 58, 169, 188, 232, 251) sobre la semilla y el lugar, con el interruptor del clima de la carrera
  *  (`input.flags?.weather ?? STAGE.weather.enabled`, simulate.ts l. 1435): sin clima, un solo tramo sin viento. */
 export function freezeStageWeather(input: StageInput, seed: string): StageWeather
 /** I1 (§4.4) sobre las fotos del motor que guardó el grabador, con la tolerancia de 5.5. Vacío si se cumple. */
-export function selfCheckI1(tl: StageTimeline, kmPhotos: ReadonlyMap<Block, readonly SnapshotRider[]>): readonly I1Mismatch[]
+export function selfCheckI1(
+  tl: StageTimeline,
+  kmPhotos: ReadonlyMap<Block, readonly SnapshotRider[]>,
+): readonly I1Mismatch[]
 /** I5 (§4.4) en una crono: la última entrada de cada traza contra `10 · results.tiempoS`, y el reloj de cada control contra `10 · splitS`
  *  de todo `tt_split` de output.events cuyo primer protagonista es ese corredor (9-b). Igualdades, sin tolerancia. Vacío si se cumple (5.5).
  *  `check`: el índice del control en checksKm, o null para la meta. */
-export function selfCheckI5(tl: StageTimeline, output: StageOutput): readonly { readonly rider: RiderIx; readonly check: number | null; readonly expectedDs: number; readonly gotDs: number }[]
+export function selfCheckI5(
+  tl: StageTimeline,
+  output: StageOutput,
+): readonly {
+  readonly rider: RiderIx
+  readonly check: number | null
+  readonly expectedDs: number
+  readonly gotDs: number
+}[]
 ```
 
 **La capa de detalle sale de las mismas cuentas que la radio.** Hoy la calcula `radioForStorage` (`raceRadio.ts` l. 776-963) con tres cosas que solo existen ahí: la velocidad por los hombres con su medida hacia atrás (`groupSpeedKmh`, l. 679; su uso, l. 933-944), el turno de `TURNO_KM` fotos (l. 882-886) y el corte en `STORED_PULLERS_MAX` (l. 591, 911-912). El PR 4b las saca a una función exportada que las dos piezas leen, y `radioForStorage` pasa a construirse sobre ella sin cambiar un byte de lo que guarda (lo vigilan `stageRun.test.ts` l. 322-339, los tests de `sim/raceRadio.test.ts` y, en el paso 11, B16):
 
 ```ts
 // packages/engine/src/sim/raceRadio.ts (PR 4b: se extrae, no cambia lo que se guarda)
-export const STORED_PULLERS_MAX = 12     // l. 591, hoy sin export: el grabador corta a lo mismo
+export const STORED_PULLERS_MAX = 12 // l. 591, hoy sin export: el grabador corta a lo mismo
 /** La capa de detalle de un grupo en una foto de km, ANTES de indexar y de cortar. */
 export interface RadioGroupDetail {
-  readonly id: string                         // el id del motor en esa foto
-  readonly speedKmh: number | null            // groupSpeedKmh, con la medida del km anterior si el siguiente no da (v85)
-  readonly relevan: readonly RadioPuller[]    // los que dan la cara y los del turno, en el orden de hoy (l. 906-911), SIN cortar
+  readonly id: string // el id del motor en esa foto
+  readonly speedKmh: number | null // groupSpeedKmh, con la medida del km anterior si el siguiente no da (v85)
+  readonly relevan: readonly RadioPuller[] // los que dan la cara y los del turno, en el orden de hoy (l. 906-911), SIN cortar
   readonly mishap: RadioGroup['mishap']
 }
 /** Por foto de `radio.kms` y por grupo en orden de carretera: el cuerpo de radioForStorage de l. 799-960 sin `watching` ni índices. */
@@ -459,7 +574,9 @@ export interface TimelineTickLog {
 export function timelineTickLog(): TimelineTickLog
 
 // packages/db/src/tick.ts
-export interface RunTickOptions { /* … lo de hoy (l. 60-72) … */ readonly timelineRecord: 'off' | 'on' }
+export interface RunTickOptions {
+  /* … lo de hoy (l. 60-72) … */ readonly timelineRecord: 'off' | 'on'
+}
 // en runTick: const timelineLog = opts.timelineRecord === 'on' ? timelineTickLog() : undefined
 //   en la transacción del día (l. 262-284): raceWorldDay(tx, worldId, next, seed, timelineLog) (l. 269) y
 //   runCalendarDay(tx, worldId, next, seed, { repairWorld, timeline: timelineLog }) (l. 270-272); justo detrás, await timelineLog?.flush(tx)
@@ -491,26 +608,39 @@ type Tx = Parameters<Parameters<Database['transaction']>[0]>[0]
 /** La etapa de la fila, el día de juego en que se corrió (ninguna otra tabla de etapa lo guarda, mapa 04 §0, punto 2) y la revisión de
  *  plantillas del tick que la corrió: TEMPLATE_REV de @cyclingstar/shared (§12.7, 12-c), para que la voz y el acta de la etapa se
  *  redacten siempre con las variantes que había ese día (B5). */
-export interface StageTimelineMeta { readonly raceKey: string; readonly stageDay: number; readonly gameDay: number; readonly tplRev: number }
+export interface StageTimelineMeta {
+  readonly raceKey: string
+  readonly stageDay: number
+  readonly gameDay: number
+  readonly tplRev: number
+}
 /** `format` de una LÁPIDA: la etapa se corrió con la grabación encendida y no dejó línea (5.5). Las líneas llevan TIMELINE.format (1). */
 export const TIMELINE_TOMBSTONE_FORMAT = 0
 export type TimelineFailureReason = 'I1' | 'I5' | 'format' | 'error'
 export interface TimelineFailure {
   readonly reason: TimelineFailureReason
-  readonly message?: string                    // los 200 primeros caracteres del error, en 'format' y 'error'
-  readonly mismatches?: readonly unknown[]     // los 20 primeros I1Mismatch, o los de I5
+  readonly message?: string // los 200 primeros caracteres del error, en 'format' y 'error'
+  readonly mismatches?: readonly unknown[] // los 20 primeros I1Mismatch, o los de I5
 }
 
 /** La fila de una línea, en JavaScript y sin tocar la base: la escribe flush (5.5). Devuelve también lo que ocupa, para la nota de
  *  tamaño (15-g) y para B6. */
-export function stageTimelineRow(tl: StageTimeline, meta: StageTimelineMeta): { readonly row: StageTimelineRow; readonly bytes: number; readonly jsonBytes: number } {
+export function stageTimelineRow(
+  tl: StageTimeline,
+  meta: StageTimelineMeta,
+): { readonly row: StageTimelineRow; readonly bytes: number; readonly jsonBytes: number } {
   const json = Buffer.from(JSON.stringify(encodeTimeline(tl)))
   const body = gzipSync(json, { level: TIMELINE.gzipLevel })
   const row = {
-    raceId: meta.raceKey, stageDay: meta.stageDay, gameDay: meta.gameDay,
-    format: tl.format, engineVersion: tl.engineVersion, tplRev: meta.tplRev,
-    finishS: Math.ceil(tl.finish.finishS),     // en segundos enteros y hacia arriba: nada de la carrera pasa de aquí
-    bytes: body.length, body,
+    raceId: meta.raceKey,
+    stageDay: meta.stageDay,
+    gameDay: meta.gameDay,
+    format: tl.format,
+    engineVersion: tl.engineVersion,
+    tplRev: meta.tplRev,
+    finishS: Math.ceil(tl.finish.finishS), // en segundos enteros y hacia arriba: nada de la carrera pasa de aquí
+    bytes: body.length,
+    body,
   } satisfies StageTimelineRow
   return { row, bytes: body.length, jsonBytes: json.length }
 }
@@ -518,18 +648,34 @@ export function stageTimelineRow(tl: StageTimeline, meta: StageTimelineMeta): { 
 /** La fila de una lápida: el motivo y las primeras discrepancias, legibles por el dueño con `gunzip` (5.5). tpl_rev 0: con una lápida
  *  no se redacta nada. */
 export function tombstoneRow(meta: StageTimelineMeta, failure: TimelineFailure): StageTimelineRow {
-  const body = gzipSync(Buffer.from(JSON.stringify({ format: TIMELINE_TOMBSTONE_FORMAT, ...failure })), { level: TIMELINE.gzipLevel })
+  const body = gzipSync(
+    Buffer.from(JSON.stringify({ format: TIMELINE_TOMBSTONE_FORMAT, ...failure })),
+    { level: TIMELINE.gzipLevel },
+  )
   return {
-    raceId: meta.raceKey, stageDay: meta.stageDay, gameDay: meta.gameDay,
-    format: TIMELINE_TOMBSTONE_FORMAT, engineVersion: ENGINE_VERSION, tplRev: 0, finishS: 0, bytes: body.length, body,
+    raceId: meta.raceKey,
+    stageDay: meta.stageDay,
+    gameDay: meta.gameDay,
+    format: TIMELINE_TOMBSTONE_FORMAT,
+    engineVersion: ENGINE_VERSION,
+    tplRev: 0,
+    finishS: 0,
+    bytes: body.length,
+    body,
   }
 }
 
 /** Escribe filas en un solo INSERT, idempotente como stage_snapshots, y devuelve las que no escribió porque la etapa ya tenía fila
  *  (ON CONFLICT DO NOTHING), para que flush las apunte (5.5). La llaman flush, los tests y los fixtures (§16). */
-export async function writeStageTimelineRows(tx: Tx, rows: readonly StageTimelineRow[]): Promise<readonly StageTimelineRow[]> {
+export async function writeStageTimelineRows(
+  tx: Tx,
+  rows: readonly StageTimelineRow[],
+): Promise<readonly StageTimelineRow[]> {
   if (rows.length === 0) return []
-  const wrote = await tx.insert(stageTimelines).values([...rows]).onConflictDoNothing()
+  const wrote = await tx
+    .insert(stageTimelines)
+    .values([...rows])
+    .onConflictDoNothing()
     .returning({ raceId: stageTimelines.raceId, stageDay: stageTimelines.stageDay })
   const keys = new Set(wrote.map((r) => `${r.raceId}|${r.stageDay}`))
   return rows.filter((r) => !keys.has(`${r.raceId}|${r.stageDay}`))
@@ -537,7 +683,11 @@ export async function writeStageTimelineRows(tx: Tx, rows: readonly StageTimelin
 
 /** La etapa tiene lápida o su cuerpo no se deja decodificar: abre solo en `Report` (D-12, §14.4). */
 export class TimelineUnavailableError extends Error {
-  constructor(readonly raceKey: string, readonly stageDay: number, readonly reason: TimelineFailureReason | 'decode') {
+  constructor(
+    readonly raceKey: string,
+    readonly stageDay: number,
+    readonly reason: TimelineFailureReason | 'decode',
+  ) {
     super(`stage_timelines: ${raceKey} e${stageDay} sin línea (${reason})`)
   }
 }
@@ -548,26 +698,44 @@ type Decoded = { readonly tl: StageTimeline; readonly tplRev: number } | Timelin
 const decoded = new Map<string, Decoded>()
 
 /** La entrada de la etapa, del LRU o de la base. null sin fila, y eso no se guarda: la etapa aún puede correrse y grabarse. */
-async function decodedEntry(db: Database, raceKey: string, stageDay: number): Promise<Decoded | null> {
+async function decodedEntry(
+  db: Database,
+  raceKey: string,
+  stageDay: number,
+): Promise<Decoded | null> {
   const key = `${raceKey}|${stageDay}`
   let e = decoded.get(key)
   if (e === undefined) {
     const [row] = await db
-      .select({ format: stageTimelines.format, tplRev: stageTimelines.tplRev, body: stageTimelines.body })
+      .select({
+        format: stageTimelines.format,
+        tplRev: stageTimelines.tplRev,
+        body: stageTimelines.body,
+      })
       .from(stageTimelines)
       .where(and(eq(stageTimelines.raceId, raceKey), eq(stageTimelines.stageDay, stageDay)))
     if (!row) return null
     if (row.format === TIMELINE_TOMBSTONE_FORMAT) {
-      const { reason } = JSON.parse(gunzipSync(row.body).toString('utf8')) as { readonly reason: TimelineFailureReason }
+      const { reason } = JSON.parse(gunzipSync(row.body).toString('utf8')) as {
+        readonly reason: TimelineFailureReason
+      }
       e = new TimelineUnavailableError(raceKey, stageDay, reason)
     } else {
-      try { e = { tl: decodeTimeline(JSON.parse(gunzipSync(row.body).toString('utf8'))), tplRev: row.tplRev } }   // Zod y un decodificador por format (§4.3, H-13)
-      catch { e = new TimelineUnavailableError(raceKey, stageDay, 'decode') }
+      try {
+        e = {
+          tl: decodeTimeline(JSON.parse(gunzipSync(row.body).toString('utf8'))),
+          tplRev: row.tplRev,
+        }
+      } catch {
+        // Zod y un decodificador por format (§4.3, H-13)
+        e = new TimelineUnavailableError(raceKey, stageDay, 'decode')
+      }
     }
     decoded.set(key, e)
-    if (decoded.size > BROADCAST.decodedCacheEntries) decoded.delete(decoded.keys().next().value!)   // el más antiguo
+    if (decoded.size > BROADCAST.decodedCacheEntries) decoded.delete(decoded.keys().next().value!) // el más antiguo
   } else {
-    decoded.delete(key); decoded.set(key, e)                                                         // el más reciente al final
+    decoded.delete(key)
+    decoded.set(key, e) // el más reciente al final
   }
   return e
 }
@@ -577,7 +745,12 @@ async function decodedEntry(db: Database, raceKey: string, stageDay: number): Pr
  *  la línea entera; el corte lo hace quien sirve (D-06, §14.3). null: la etapa no tiene fila, que es una etapa corrida antes del paso 5
  *  o con TIMELINE_RECORD=off, y quien llama sirve el adaptador (D-07). Una lápida o un cuerpo que no se decodifica lanzan
  *  TimelineUnavailableError. */
-export async function readStageTimeline(db: Database, _h: Horizon, raceKey: string, stageDay: number): Promise<StageTimeline | null> {
+export async function readStageTimeline(
+  db: Database,
+  _h: Horizon,
+  raceKey: string,
+  stageDay: number,
+): Promise<StageTimeline | null> {
   const e = await decodedEntry(db, raceKey, stageDay)
   if (e instanceof TimelineUnavailableError) throw e
   return e?.tl ?? null
@@ -586,12 +759,19 @@ export async function readStageTimeline(db: Database, _h: Horizon, raceKey: stri
 /** La revisión de plantillas con que se redactan la voz y el acta de la etapa (BroadcastHead.tplRev y StageReport.tplRev, §4.11; 12-c):
  *  el tpl_rev de su fila, de la misma entrada del LRU, así que detrás de readStageTimeline no vuelve a la base. 0 sin fila (el adaptador,
  *  cuya línea lleva clock 'estimated' y que la ruta no pregunta) y 0 en una lápida. */
-export async function readStageTemplateRev(db: Database, _h: Horizon, raceKey: string, stageDay: number): Promise<number> {
+export async function readStageTemplateRev(
+  db: Database,
+  _h: Horizon,
+  raceKey: string,
+  stageDay: number,
+): Promise<number> {
   const e = await decodedEntry(db, raceKey, stageDay)
   return e === null || e instanceof TimelineUnavailableError ? 0 : e.tplRev
 }
 /** Solo para los tests: cada base de PGlite reutiliza claves de carrera. */
-export function clearStageTimelineCache(): void { decoded.clear() }
+export function clearStageTimelineCache(): void {
+  decoded.clear()
+}
 ```
 
 **La línea sola y su revisión aparte** (decisión 5-p). `readStageTimeline` devolvía `{ timeline, known }`, y `known` («fuera del velo de quien lee») no tenía lector y chocaba con `WatchState.known` y `BroadcastHead.view.known` («conocida», solo con `W`, `S`, `R` o `A`, 10-e): una etapa caducada daba `known: true` aquí y `false` allí. Hay dos caras escritas. Rcobertura-018 pedía renombrarlo a `unveiled`; Rcodigo-035 (de §14.4), quitar el tipo, y §14.4 ya lo escribe así (14-p): `timelineForStage` devuelve `StageTimeline | null` y `readStageTimeline` también, porque el velo lo deciden `stageGateOf` y `race_watch` en la ruta y un campo renombrado seguiría sin lector. Se quita. La otra cara la pone la revisión de plantillas: Rcobertura-014 (de §4.11) pedía que `readStageTimeline` devolviera también la columna `tpl_rev` para `BroadcastHead.tplRev` y el acta. Para no volver a un envoltorio, la revisión sale por `readStageTemplateRev`, de la misma entrada del LRU: la cabecera, el tramo (la voz se redacta con ella, §12.7) y el paquete de meta la piden detrás de `timelineForStage` cuando la línea es grabada (`clock: 'exact'`), y con el adaptador usan 0.
@@ -604,31 +784,31 @@ export function clearStageTimelineCache(): void { decoded.clear() }
 
 Las cuatro cifras de las propuestas son ciertas y miden objetos distintos, salvo la de producto en disco (D-11, C7, X-06). Ninguna mide el formato que este documento guarda, que es el de §4.3 (el modelo de estado de `estado.md` con la codificación en enteros de `datos.md`), así que aquí se ha medido con el prototipo de 5.4 (las filas nuevas):
 
-| Cifra | De | Qué mide | Veredicto |
-| --- | --- | --- | --- |
-| 17,5 KB de mediana (8 a 23) | `datos.md` §10.5 | la línea de `datos` (pertenencia en carreras por corredor, estado por series de grupo, relevo crudo) en `bytea` gzip, en disco, 28 etapas en línea | cierta (C7) |
-| 5,5 a 39 KB | `estado.md` §3.8 | la línea de `estado` con capa de detalle, como `json` en disco (PGlite, `pglz`), 5 etapas × 3 semillas | cierta |
-| +52 a 74 KB | `ingeniero.md` §10.3 | el JSON que se añadiría a la radio de hoy | cierta; en disco la radio crecería un 35-66 % |
-| 106 a 178 KB | `producto.md` §3.5 | la retransmisión SERVIDA entera en JSON, no lo guardado | cierta como red; su «3-9 KB en disco» es falsa: +4,7 a +53 KB en `jsonb` |
-| 126-559 KB en JSON, 10,7-146,4 KB en `jsonb` | juez del motor §2.1 | la radio de hoy | referencia |
-| **20,9 a 70,0 KB; mediana 38,8, p90 53,3** | medido aquí, `l3/grabador.mjs` | **`StoredTimelineV1` (§4.3) en `bytea` gzip 9**, 23 etapas en línea × 2 semillas, 176 o 126 corredores | nueva |
-| 123 a 464 KB; mediana 222 | idem | el mismo `StoredTimelineV1` en JSON, antes del gzip | nueva |
-| 18,8 a 23,0 KB | idem | la línea de un nacional en línea de 40 corredores (`nc-es-road`) | nueva |
-| 18,8 a 24,2 KB (176) y 7,2 a 7,5 KB (40) | idem | la línea de una crono, con su traza (`race-france` e1 y e16, de 20 y 26 km, y `nc-es-itt`), sin `checkClockDs`; con él, de 19,4 a 25,0 KB (19.835 a 25.637 B, `l5c/con.json`) | nueva |
-| 26.987 a 27.113 B y 31.178 a 31.436 B; con `checkClockDs`, 27.692 a 27.821 B y 31.918 a 32.203 B | `rcod/n/grab2.mjs` y `rcod/crono40.json` (refutador de código), re-medido en la corrección de §9 (`l5c/sin.json`, `l5c/con.json`) | la línea de las cronos de 176 corredores más largas del calendario, que no están en el banco: `race-spain` e18 (33 km) y `race-italy` e10 (42 km, la mayor) | nueva (corrección) |
-| 23.826 a 23.857 B | `rcod/crono40.json` | `race-chrono` e1 (47,6 km, la crono más larga del calendario, con 126 corredores), sin `checkClockDs` | nueva (corrección) |
+| Cifra                                                                                            | De                                                                                                                                | Qué mide                                                                                                                                                                      | Veredicto                                                                |
+| ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| 17,5 KB de mediana (8 a 23)                                                                      | `datos.md` §10.5                                                                                                                  | la línea de `datos` (pertenencia en carreras por corredor, estado por series de grupo, relevo crudo) en `bytea` gzip, en disco, 28 etapas en línea                            | cierta (C7)                                                              |
+| 5,5 a 39 KB                                                                                      | `estado.md` §3.8                                                                                                                  | la línea de `estado` con capa de detalle, como `json` en disco (PGlite, `pglz`), 5 etapas × 3 semillas                                                                        | cierta                                                                   |
+| +52 a 74 KB                                                                                      | `ingeniero.md` §10.3                                                                                                              | el JSON que se añadiría a la radio de hoy                                                                                                                                     | cierta; en disco la radio crecería un 35-66 %                            |
+| 106 a 178 KB                                                                                     | `producto.md` §3.5                                                                                                                | la retransmisión SERVIDA entera en JSON, no lo guardado                                                                                                                       | cierta como red; su «3-9 KB en disco» es falsa: +4,7 a +53 KB en `jsonb` |
+| 126-559 KB en JSON, 10,7-146,4 KB en `jsonb`                                                     | juez del motor §2.1                                                                                                               | la radio de hoy                                                                                                                                                               | referencia                                                               |
+| **20,9 a 70,0 KB; mediana 38,8, p90 53,3**                                                       | medido aquí, `l3/grabador.mjs`                                                                                                    | **`StoredTimelineV1` (§4.3) en `bytea` gzip 9**, 23 etapas en línea × 2 semillas, 176 o 126 corredores                                                                        | nueva                                                                    |
+| 123 a 464 KB; mediana 222                                                                        | idem                                                                                                                              | el mismo `StoredTimelineV1` en JSON, antes del gzip                                                                                                                           | nueva                                                                    |
+| 18,8 a 23,0 KB                                                                                   | idem                                                                                                                              | la línea de un nacional en línea de 40 corredores (`nc-es-road`)                                                                                                              | nueva                                                                    |
+| 18,8 a 24,2 KB (176) y 7,2 a 7,5 KB (40)                                                         | idem                                                                                                                              | la línea de una crono, con su traza (`race-france` e1 y e16, de 20 y 26 km, y `nc-es-itt`), sin `checkClockDs`; con él, de 19,4 a 25,0 KB (19.835 a 25.637 B, `l5c/con.json`) | nueva                                                                    |
+| 26.987 a 27.113 B y 31.178 a 31.436 B; con `checkClockDs`, 27.692 a 27.821 B y 31.918 a 32.203 B | `rcod/n/grab2.mjs` y `rcod/crono40.json` (refutador de código), re-medido en la corrección de §9 (`l5c/sin.json`, `l5c/con.json`) | la línea de las cronos de 176 corredores más largas del calendario, que no están en el banco: `race-spain` e18 (33 km) y `race-italy` e10 (42 km, la mayor)                   | nueva (corrección)                                                       |
+| 23.826 a 23.857 B                                                                                | `rcod/crono40.json`                                                                                                               | `race-chrono` e1 (47,6 km, la crono más larga del calendario, con 126 corredores), sin `checkClockDs`                                                                         | nueva (corrección)                                                       |
 
 Por tipo de etapa (mediana de `bytea` gzip, 176 corredores): llana 22,7 KB, media 35,6, reina 47,7 y clásica 44,9. Dónde se va el peso, en `bytea` gzip y con la semilla 0:
 
-| Etapa | JSON (s0 / s1) | `bytea` gzip (s0 / s1) | Marcas | Cambios de grupo | Grupos | Marcas `clocks` | Detalle | Reparto | `moves` | Sucesos | `riderIds` |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `race-france` e7, llana | 148,6 / 144,9 | 22,5 / 23,5 | 585 | 73 | 17 | 2,9 | 3,7 | 7,6 | 0,2 | 2,2 | 3,5 |
-| `race-france` e13, media | 214,0 / 202,0 | 36,6 / 34,7 | 1.460 | 1.109 | 57 | 7,4 | 7,2 | 7,6 | 2,5 | 3,9 | 3,5 |
-| `race-france` e18, reina | 269,0 / 216,7 | 48,4 / 39,3 | 2.254 | 2.475 | 73 | 11,5 | 10,6 | 7,6 | 5,6 | 3,7 | 3,5 |
-| `race-france` e20, reina | 463,7 / 443,9 | 70,0 / 67,5 | 3.350 | 3.836 | 157 | 17,2 | 18,3 | 7,6 | 9,4 | 6,0 | 3,5 |
-| `race-flanders`, clásica | 268,0 / 254,9 | 46,4 / 43,4 | 1.992 | 3.602 | 96 | 10,3 | 9,1 | 6,2 | 7,0 | 4,6 | 3,5 |
-| `race-colombia` e5, 126 c. | 411,0 / 364,6 | 62,3 / 50,7 | 3.617 | 1.790 | 130 | 18,8 | 18,7 | 5,6 | 4,4 | 5,3 | 2,5 |
-| `nc-es-road`, 40 c. | 125,4 / 90,3 | 23,0 / 18,8 | 1.446 | 810 | 60 | 7,3 | 6,1 | 1,6 | 1,7 | 2,3 | 0,8 |
+| Etapa                      | JSON (s0 / s1) | `bytea` gzip (s0 / s1) | Marcas | Cambios de grupo | Grupos | Marcas `clocks` | Detalle | Reparto | `moves` | Sucesos | `riderIds` |
+| -------------------------- | -------------- | ---------------------- | ------ | ---------------- | ------ | --------------- | ------- | ------- | ------- | ------- | ---------- |
+| `race-france` e7, llana    | 148,6 / 144,9  | 22,5 / 23,5            | 585    | 73               | 17     | 2,9             | 3,7     | 7,6     | 0,2     | 2,2     | 3,5        |
+| `race-france` e13, media   | 214,0 / 202,0  | 36,6 / 34,7            | 1.460  | 1.109            | 57     | 7,4             | 7,2     | 7,6     | 2,5     | 3,9     | 3,5        |
+| `race-france` e18, reina   | 269,0 / 216,7  | 48,4 / 39,3            | 2.254  | 2.475            | 73     | 11,5            | 10,6    | 7,6     | 5,6     | 3,7     | 3,5        |
+| `race-france` e20, reina   | 463,7 / 443,9  | 70,0 / 67,5            | 3.350  | 3.836            | 157    | 17,2            | 18,3    | 7,6     | 9,4     | 6,0     | 3,5        |
+| `race-flanders`, clásica   | 268,0 / 254,9  | 46,4 / 43,4            | 1.992  | 3.602            | 96     | 10,3            | 9,1     | 6,2     | 7,0     | 4,6     | 3,5        |
+| `race-colombia` e5, 126 c. | 411,0 / 364,6  | 62,3 / 50,7            | 3.617  | 1.790            | 130    | 18,8            | 18,7    | 5,6     | 4,4     | 5,3     | 2,5        |
+| `nc-es-road`, 40 c.        | 125,4 / 90,3   | 23,0 / 18,8            | 1.446  | 810              | 60     | 7,3             | 6,1     | 1,6     | 1,7     | 2,3     | 0,8        |
 
 (KB; las seis últimas columnas, el gzip de cada campo por separado.) Tres partes pesan casi igual: las marcas de reloj, porque `clocks` guarda relojes absolutos en Ds (números de cinco y seis cifras que gzip no comprime) y hay de 500 a 3.600; la capa de detalle de la radio; y el reparto con sus ids, porque un uuid de 36 caracteres no comprime y va dos veces (en `riderIds` y en cada `CastRider.riderId`, más de 32 KB de JSON más atrás, fuera de la ventana de gzip). Medidas dos variantes que no cambian lo que se guarda: con las marcas en diferencias por grupo, la mediana baja de 38,8 a 33,9 KB; sin repetir el id en el reparto, a 34,9; con las dos, a 29,8, pero el máximo sigue en 56,6 KB (`race-france` e20).
 
@@ -642,15 +822,15 @@ Por tipo de etapa (mediana de `bytea` gzip, 176 corredores): llana 22,7 KB, medi
 
 ### 5.8 El coste de CPU
 
-| Pieza | Medida | Fuente |
-| --- | --- | --- |
-| la sonda en cada bloque, sin grabador | de −7,7 a +11,6 % del tiempo de simular, mediana +3,8 % (máquina compartida) | juez del motor, C6 |
-| el grabador por foto (`onSnapshot`), etapa de 176 o 126 | de 30 a 73 ms por etapa, mediana 49 | aquí, `l3/grabador.mjs`, 46 corridas |
-| el cierre (`finish`: catálogo, sucesos, detalle, reparto y paso a JSON) | de 17 a 57 ms, mediana 33 | idem |
-| el gzip 9 | de 2,8 a 27,8 ms, mediana 7,1 (C6: de 3 a 15) | idem y C6 |
-| `selfCheckI1` | de 6 a 25 ms, mediana 14 (`estado.md` §11: de 15 a 24) | idem |
-| un nacional de 40 corredores | grabador de 11 a 14 ms y cierre de 9 a 12 | idem |
-| simular la etapa con todo lo anterior | de 1,36 a 3,77 s, mediana 2,41 | idem |
+| Pieza                                                                   | Medida                                                                       | Fuente                               |
+| ----------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------ |
+| la sonda en cada bloque, sin grabador                                   | de −7,7 a +11,6 % del tiempo de simular, mediana +3,8 % (máquina compartida) | juez del motor, C6                   |
+| el grabador por foto (`onSnapshot`), etapa de 176 o 126                 | de 30 a 73 ms por etapa, mediana 49                                          | aquí, `l3/grabador.mjs`, 46 corridas |
+| el cierre (`finish`: catálogo, sucesos, detalle, reparto y paso a JSON) | de 17 a 57 ms, mediana 33                                                    | idem                                 |
+| el gzip 9                                                               | de 2,8 a 27,8 ms, mediana 7,1 (C6: de 3 a 15)                                | idem y C6                            |
+| `selfCheckI1`                                                           | de 6 a 25 ms, mediana 14 (`estado.md` §11: de 15 a 24)                       | idem                                 |
+| un nacional de 40 corredores                                            | grabador de 11 a 14 ms y cierre de 9 a 12                                    | idem                                 |
+| simular la etapa con todo lo anterior                                   | de 1,36 a 3,77 s, mediana 2,41                                               | idem                                 |
 
 En una etapa grande, E2 suma del orden de 100 ms a unos 2,4 s de simular (un 4 %). El juez del motor midió un grabador de diferencias más sencillo, sin cierre, en 38-51 ms por etapa grande y 8 ms por nacional (C6); el prototipo es JavaScript sin optimizar, así que las cifras de producción deberían ser de ese orden o menores. **Los días pico** son los de C15: el día 176 corre 187 cronos nacionales (de 11 a 30 ms cada una) y el 179, 153 nacionales en línea (de 0,3 a 0,8 s cada uno). Con las medidas de aquí, el 179 gana del orden de 40 a 65 ms por nacional (grabador, cierre, gzip, I1 y el sobrecoste de la sonda), de 6 a 10 s ese día; el 176, unos milisegundos por crono (solo la traza), menos de un segundo (estimado; el juez estimó de 2 a 8 s). Medido después con el prototipo por §18.3 (`l7/tick.mjs`, dos corridas): el 179 suma de 15,5 a 18,9 s (de un 15 a un 17 % del día), casi el doble de lo estimado aquí, porque en un nacional de 40 corredores el grabador, el cierre e I1 pesan más en proporción; el 176, de 0,7 a 0,8 s. Lo mide B15 en el paso 5 con el grabador y la escritura reales (§16.4, §18.3), y `TIMELINE_RECORD=off` es el freno sin desplegar (5.5).
 
@@ -682,6 +862,7 @@ Y tres invariantes que el grabador cumple y §16.2 prueba: I1 (0 discrepancias e
 **Huecos rellenados.** H-02 (§5.1: ninguna subida en E2; lo que cuesta una subida de otra línea antes del 17d de la táctica, que es DD-25 y no una regla de este documento, Rdueno-005; la corrección de `balance.md` es del paso 12), H-13 (§5.4: el grabador usa la guarda de §4.3; §5.6: `readStageTimeline` decodifica por `format` con `decodeTimeline`), H-15 (§5.6: con `bytea` gzip la compresión TOAST deja de importar para la línea; queda sin comprobar para la radio de hoy). Contradicciones de hecho que quedan resueltas: X-03 y X-04 (§5.1), X-06 (§5.7), X-07 (§5.6), X-08 (§5.8), X-09 (§5.1, §5.10), X-10 (§5.3) y X-15 (§5.2 y §5.4: `bEmit` por `onEvent` para la fecha (a) y el reloj del primero que puntúa por `onBanner` para la (f)).
 
 **Decisiones de esta sección.**
+
 - 5-a. `onEvent` recibe el índice del bucle (`bloqueDeEmision`): 0 antes del bucle, `i` en el bloque `i`, `blocks` después. Descartado: contar fotos (`estado.md` §11), que ata el bloque a qué bloques se fotografían. La crono no lo llama; sus sucesos llevan `bEmit = blocks`.
 - 5-b. `onBanner` recibe `ProbeBanner`: ids, solo los que puntúan, y el reloj del grupo del primero que puntúa (en la cima, el de `disputan[0]`, con un mapa que se llena al ordenar y no tira dados). Solo se llama si alguien puntúa.
 - 5-c. `onTimeTrialRide` recibe `ProbeTimeTrialRide` con la traza sin copiar, el ruido, el tiempo final y el percance; el grabador calcula `kmClockDs` como `raw · noise` al final de cada km entero y `10 · Math.round(totalS)` en meta (9-a), y `checkClockDs` como `10 · Math.round(raw[idx] · noise)` en cada control (9-b) (I5 medido, 1.176 de 1.176, igualdad exacta).
@@ -700,6 +881,7 @@ Y tres invariantes que el grabador cumple y §16.2 prueba: I1 (0 discrepancias e
 - 5-p. `readStageTimeline` recibe el `Horizon` (D-32 pone `stage_timelines` entre sus fuentes; va como `_h` porque no lo usa) y devuelve la línea sola, `StageTimeline | null`, como `timelineForStage` (14-p): `StageTimelineRead` y su `known` desaparecen (Rcodigo-035, Rcobertura-018). La revisión de plantillas de la etapa sale por `readStageTemplateRev`, de la misma entrada del LRU (Rcobertura-014, Rcobertura-044). El LRU de D-10 vive en `packages/db/src/timelines.ts`, dentro del proceso de la API, con `clearStageTimelineCache` para los tests; una etapa sin fila no se guarda en él. Descartado: renombrar `known` a `unveiled`, que dejaba un campo sin lector, y devolver `{ timeline, tplRev }`, que volvía al envoltorio que §14.4 quitó.
 
 **Propuesto para el glosario.**
+
 - En `packages/engine/src/stage/types.ts`: `ProbeBanner` (lo que recibe `onBanner`) y `ProbeTimeTrialRide` (lo que recibe `onTimeTrialRide`).
 - En `packages/engine/src/sim/timeline.ts`: `TimelineRecorderOptions` (las opciones de `timelineRecorder`), `profileStripOf` (el perfil congelado), `freezeStageWeather` (el tiempo congelado) y `selfCheckI5` (I5 al grabar una crono).
 - En `packages/engine/src/sim/raceRadio.ts`: `RadioGroupDetail` y `radioGroupDetails` (la capa de detalle antes de indexar, compartida por la radio y el grabador) y el `export` de `STORED_PULLERS_MAX`.
@@ -708,6 +890,7 @@ Y tres invariantes que el grabador cumple y §16.2 prueba: I1 (0 discrepancias e
 - En la prosa, «la lápida»: la fila de `stage_timelines` con `format = 0` de una etapa que se corrió con la grabación encendida y no dejó línea.
 
 **Dudas para el ensamblador.**
+
 1. **Los topes de D-11 no casan con el formato de §4.3.** Medido: `bytea` gzip de 20,9 a 70,0 KB en línea (mediana 38,8; 10 de 46 corridas por encima de 48 KB), JSON de 123 a 464 KB (mediana 222; 45 de 46 por encima de 128 KB) y cronos de 176 corredores de 18,8 a 24,2 KB (todas por encima de 16 KB). Propuesta para §15.2: `maxStoredBytes` 98.304 (96 KB, 1,4 veces el máximo medido), `maxJsonBytes` 655.360 (640 KB), `medianJsonBytes` 262.144 (256 KB) y `ttMaxStoredBytes` 32.768 (32 KB). Aligerar §4.3 (marcas en diferencias por grupo, el reparto sin repetir el id) baja la mediana a 29,8 KB pero no el máximo por debajo de 48.
 2. **El volumen por temporada**: con el formato medido, del orden de 36 MB (cota superior), no de 11 a 20 (D-11, §13.8, DD-11 en §20).
 3. **La memoria del LRU**: 64 líneas decodificadas son de 33 a 121 MB, no unos 20 MB (§15.3). Propuesta: `decodedCacheEntries` 16 (de 8 a 30 MB), o un tope por bytes; lo mide §18.2.

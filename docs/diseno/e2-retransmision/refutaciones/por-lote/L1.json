@@ -1,68 +1,68 @@
 [
- {
-  "id": "Rcobertura-003",
-  "seccion": "§1.4",
-  "linea": 308,
-  "gravedad": "baja",
-  "afirmacion": "aplica veinte pasadas (l. 353-375)",
-  "fallo": "D-43 se corrigió: «las pasadas son veintiuna» (`borrador/00-decisiones.md` l. 32 y l. 450: «veinte llamadas en l. 353-375 más `markConcession` dentro del `map`, l. 319»), y §12.2 las escribe así (l. 5804 y l. 5863: «sus veintiuna pasadas»). §1.4 sigue diciendo veinte y a la vez cuenta `markConcession` (l. 319), que está fuera de l. 353-375, entre las que miran el futuro; §1.9 (l. 453) dice «veinte pasadas de coherencia» y §12.2 (l. 5772) atribuye todavía a D-43 «veinte pasadas». La misma cifra, de dos maneras.",
-  "correccion": "l. 308: «aplica veintiuna pasadas (las veinte llamadas de l. 353-375 y `markConcession`, que corre dentro del `map`, l. 319)». l. 453: «veintiuna pasadas de coherencia». l. 5772: «D-43 habla de veintiuna pasadas: son las veinte llamadas de l. 353-375 más `markConcession`, que corre dentro del `map` (l. 319)».",
-  "_fuente": "hallazgos-cobertura.json",
-  "_lote": 1
- },
- {
-  "id": "Rcobertura-004",
-  "seccion": "§3.3",
-  "linea": 713,
-  "gravedad": "media",
-  "afirmacion": "function groupBlockAt(cut: StageTimeline, g: GroupIx, t: RaceS, ctx: InstantContext)",
-  "fallo": "`instantAt` recibe `TimelineCore` (F.2, l. 10205) y `cutTimeline` devuelve `TimelineCore` (4-b, l. 1989: «`TimelineCore = Omit<StageTimeline, 'cast' | 'weather' | 'finish'>` es lo que reciben `photoAt`, `instantAt`, `visibilityOf` y `chunkOf` y lo que devuelve `cutTimeline`»). Las dos funciones de §3.3 que `instantAt` usa declaran `cut: StageTimeline`, aquí y en `speedFrom` (l. 732): con `strict`, pasarles la línea cortada no compila, porque a `TimelineCore` le faltan `cast`, `weather` y `finish`. Es código escrito para copiarse.",
-  "correccion": "En l. 713 y en l. 732, `cut: TimelineCore` en lugar de `cut: StageTimeline`, con `import type { TimelineCore } from './timeline.js'` en el bloque de §3.3.",
-  "_fuente": "hallazgos-cobertura.json",
-  "_lote": 1
- },
- {
-  "id": "Rcodigo-001",
-  "seccion": "§1.9",
-  "linea": 461,
-  "gravedad": "baja",
-  "afirmacion": "| La tolerancia del contrato | `contracts.ts` l. 1499-1531 (`.optional()`); `chronicle.ts` l. 1257-1317 (`z.object` sin `.strict()`) | la API puede callar un campo o añadir uno sin romper una pestaña abierta con la web de ayer |",
-  "fallo": "`apps/api/src/chronicle.ts` l. 1257-1317 es `storedRaceRadioSchema`, el esquema con que la API lee la radio GUARDADA de `stage_snapshots.radio` (l. 1257: `const storedRaceRadioSchema = z.object({ starters…`); no interviene en lo que valida la web. La tolerancia de la web de ayer a un campo nuevo es la de `stageReplaySchema` (`packages/shared/src/contracts.ts` l. 1482-1533, `z.object` sin `.strict()`) y la convención escrita en `contracts.ts` l. 10-11 («Los objetos son \"strip\" por defecto»). El propio documento usa bien esa cita en §14.1, regla 5 («Lo guardado también tolera»), que es otra cosa.",
-  "correccion": "En la fila de §1.9 sustituir «`chronicle.ts` l. 1257-1317 (`z.object` sin `.strict()`)» por «`contracts.ts` l. 10-11 y 1482-1533 (`z.object` *strip*, sin `.strict()`)», y si se quiere conservar la tolerancia de lo guardado, añadir una fila aparte: «La tolerancia de lo guardado | `apps/api/src/chronicle.ts` l. 1257-1317 y 1306 (`.catch(null)`) | una radio vieja o con un motivo nuevo se sigue leyendo | igual en E2 (§14.1, regla 5)».",
-  "_fuente": "hallazgos-codigo.json",
-  "_lote": 1
- },
- {
-  "id": "Rcodigo-042",
-  "seccion": "§3.8",
-  "linea": 920,
-  "gravedad": "baja",
-  "afirmacion": "function estimatedHeadClock(kms: readonly StoredRadioKm[], totalKm: number, winnerS: number): number[] {",
-  "fallo": "El bloque se presenta como el código de `apps/api/src/broadcastSource.ts` y no compila con el `tsconfig.base.json` del repositorio (`strict`, `noUncheckedIndexedAccess`). Compilado en el scratchpad contra `StoredRadioKm` real (`packages/engine/src/sim/raceRadio.ts` l. 575), con `firstKnownSpeed` declarada (`rcod/n/ehc/ehc.ts`): seis errores, `TS2532 Object is possibly 'undefined'` en `kms[k + 1].km` (l. 924), `kms[k].groups` (l. 925), `raw[raw.length - 1]` y `kms[k].km` (l. 927) y `raw[raw.length - 1]` (l. 929), y `TS7022 'v' implicitly has type 'any'` en l. 925, porque `v` depende de `lastV`, que se reasigna con `v` dentro del bucle. Además `firstKnownSpeed` no se define en ningún bloque del documento.",
-  "correccion": "Reescribir el cuerpo con tipos y lecturas seguras: `const v: number = kms[k]!.groups[0]?.speedKmh ?? lastV ?? firstKnownSpeed(kms, k)`, `const nextKm = k + 1 < kms.length ? kms[k + 1]!.km : totalKm`, `const prev = raw[raw.length - 1]!` y `raw.push(prev + ((nextKm - kms[k]!.km) / v) * 3600)`, `const scale = winnerS / raw[raw.length - 1]!`; y añadir `/** La primera speedKmh no nula de kms[k..]; 0 no se acepta. */ function firstKnownSpeed(kms: readonly StoredRadioKm[], k: number): number`, con su error si ninguna foto tiene velocidad.",
-  "_fuente": "hallazgos-codigo.json",
-  "_lote": 1
- },
- {
-  "id": "Rcoste-032",
-  "seccion": "§1.10",
-  "linea": 474,
-  "gravedad": "media",
-  "afirmacion": "| 17d, el informe deja de re-simular | no: `raceReport.ts` l. 148 re-simula sin mirar la versión (C16) | es de la táctica; E2 no lo hace y, al no subir la versión, no lo rompe (D-09) |",
-  "fallo": "E2 sí toca lo que el 17d reescribe. El 8a cambia la firma de `getRiderLastRaceReport` (`packages/db/src/raceReport.ts` l. 78) para que reciba el `Horizon` y elija la última etapa CONOCIDA (§12.9, l. 6237; tabla de §10.6, l. 4649, mecanismos P y G) y registra `/api/riders/me/last-race` con política `horizon` (l. 5152). El 17d de la táctica reescribe esa misma función: deja de re-simular y cruza orden con hecho (mapa 02 §8, `docs/tactica.md` l. 6979). Si el 17d llega después del 8b, su PR tiene que conservar el `Horizon`, declarar la política de su ruta (o el registro no deja arrancar, §14.5) y pasar B1a, B1b y B1c, que barren esa ruta; si llega antes, el 8a se rebasa sobre él. Ninguno de los dos costes está en §17 ni en el riesgo 1 de §19.1.",
-  "correccion": "Cambiar la última columna por «es de la táctica; E2 no sube la versión, pero el 8a cambia la firma de `getRiderLastRaceReport` y pone su ruta bajo el velo: si el 17d llega después, conserva el `Horizon` y pasa B1a, B1b y B1c; si llega antes, el 8a se rebasa sobre él». Añadir el cruce al riesgo 1 de §19.1 y a las dependencias de §17.16.",
-  "_fuente": "hallazgos-coste.json",
-  "_lote": 1
- },
- {
-  "id": "Rdueno-033",
-  "seccion": "§2.13",
-  "linea": 625,
-  "gravedad": "baja",
-  "afirmacion": "«lo que hay que hacer si acaso es mejorar la granularidad de las instrucciones, con más escenarios hipotéticos quizás» (`docs/epics.md` l. 701-702",
-  "fallo": "La cita del dueño está en `docs/epics.md` l. 700-701 («El dueño: «lo que hay que hacer si acaso es mejorar la granularidad de las instrucciones, con más» y, en la línea siguiente, «escenarios hipotéticos quizás»»); l. 702 está en blanco. §8.10 la cita bien (l. 4029, «`docs/epics.md` l. 700-701») y §20.4 repite el error (l. 9581). Regla 5 del encargo: la cita del dueño, textual y con su línea (`00-encargo.md` l. 87).",
-  "correccion": "`docs/epics.md` l. 700-701 en §2.13 (l. 625) y en §20.4 (l. 9581).",
-  "_fuente": "hallazgos-dueno.json",
-  "_lote": 1
- }
+  {
+    "id": "Rcobertura-003",
+    "seccion": "§1.4",
+    "linea": 308,
+    "gravedad": "baja",
+    "afirmacion": "aplica veinte pasadas (l. 353-375)",
+    "fallo": "D-43 se corrigió: «las pasadas son veintiuna» (`borrador/00-decisiones.md` l. 32 y l. 450: «veinte llamadas en l. 353-375 más `markConcession` dentro del `map`, l. 319»), y §12.2 las escribe así (l. 5804 y l. 5863: «sus veintiuna pasadas»). §1.4 sigue diciendo veinte y a la vez cuenta `markConcession` (l. 319), que está fuera de l. 353-375, entre las que miran el futuro; §1.9 (l. 453) dice «veinte pasadas de coherencia» y §12.2 (l. 5772) atribuye todavía a D-43 «veinte pasadas». La misma cifra, de dos maneras.",
+    "correccion": "l. 308: «aplica veintiuna pasadas (las veinte llamadas de l. 353-375 y `markConcession`, que corre dentro del `map`, l. 319)». l. 453: «veintiuna pasadas de coherencia». l. 5772: «D-43 habla de veintiuna pasadas: son las veinte llamadas de l. 353-375 más `markConcession`, que corre dentro del `map` (l. 319)».",
+    "_fuente": "hallazgos-cobertura.json",
+    "_lote": 1
+  },
+  {
+    "id": "Rcobertura-004",
+    "seccion": "§3.3",
+    "linea": 713,
+    "gravedad": "media",
+    "afirmacion": "function groupBlockAt(cut: StageTimeline, g: GroupIx, t: RaceS, ctx: InstantContext)",
+    "fallo": "`instantAt` recibe `TimelineCore` (F.2, l. 10205) y `cutTimeline` devuelve `TimelineCore` (4-b, l. 1989: «`TimelineCore = Omit<StageTimeline, 'cast' | 'weather' | 'finish'>` es lo que reciben `photoAt`, `instantAt`, `visibilityOf` y `chunkOf` y lo que devuelve `cutTimeline`»). Las dos funciones de §3.3 que `instantAt` usa declaran `cut: StageTimeline`, aquí y en `speedFrom` (l. 732): con `strict`, pasarles la línea cortada no compila, porque a `TimelineCore` le faltan `cast`, `weather` y `finish`. Es código escrito para copiarse.",
+    "correccion": "En l. 713 y en l. 732, `cut: TimelineCore` en lugar de `cut: StageTimeline`, con `import type { TimelineCore } from './timeline.js'` en el bloque de §3.3.",
+    "_fuente": "hallazgos-cobertura.json",
+    "_lote": 1
+  },
+  {
+    "id": "Rcodigo-001",
+    "seccion": "§1.9",
+    "linea": 461,
+    "gravedad": "baja",
+    "afirmacion": "| La tolerancia del contrato | `contracts.ts` l. 1499-1531 (`.optional()`); `chronicle.ts` l. 1257-1317 (`z.object` sin `.strict()`) | la API puede callar un campo o añadir uno sin romper una pestaña abierta con la web de ayer |",
+    "fallo": "`apps/api/src/chronicle.ts` l. 1257-1317 es `storedRaceRadioSchema`, el esquema con que la API lee la radio GUARDADA de `stage_snapshots.radio` (l. 1257: `const storedRaceRadioSchema = z.object({ starters…`); no interviene en lo que valida la web. La tolerancia de la web de ayer a un campo nuevo es la de `stageReplaySchema` (`packages/shared/src/contracts.ts` l. 1482-1533, `z.object` sin `.strict()`) y la convención escrita en `contracts.ts` l. 10-11 («Los objetos son \"strip\" por defecto»). El propio documento usa bien esa cita en §14.1, regla 5 («Lo guardado también tolera»), que es otra cosa.",
+    "correccion": "En la fila de §1.9 sustituir «`chronicle.ts` l. 1257-1317 (`z.object` sin `.strict()`)» por «`contracts.ts` l. 10-11 y 1482-1533 (`z.object` *strip*, sin `.strict()`)», y si se quiere conservar la tolerancia de lo guardado, añadir una fila aparte: «La tolerancia de lo guardado | `apps/api/src/chronicle.ts` l. 1257-1317 y 1306 (`.catch(null)`) | una radio vieja o con un motivo nuevo se sigue leyendo | igual en E2 (§14.1, regla 5)».",
+    "_fuente": "hallazgos-codigo.json",
+    "_lote": 1
+  },
+  {
+    "id": "Rcodigo-042",
+    "seccion": "§3.8",
+    "linea": 920,
+    "gravedad": "baja",
+    "afirmacion": "function estimatedHeadClock(kms: readonly StoredRadioKm[], totalKm: number, winnerS: number): number[] {",
+    "fallo": "El bloque se presenta como el código de `apps/api/src/broadcastSource.ts` y no compila con el `tsconfig.base.json` del repositorio (`strict`, `noUncheckedIndexedAccess`). Compilado en el scratchpad contra `StoredRadioKm` real (`packages/engine/src/sim/raceRadio.ts` l. 575), con `firstKnownSpeed` declarada (`rcod/n/ehc/ehc.ts`): seis errores, `TS2532 Object is possibly 'undefined'` en `kms[k + 1].km` (l. 924), `kms[k].groups` (l. 925), `raw[raw.length - 1]` y `kms[k].km` (l. 927) y `raw[raw.length - 1]` (l. 929), y `TS7022 'v' implicitly has type 'any'` en l. 925, porque `v` depende de `lastV`, que se reasigna con `v` dentro del bucle. Además `firstKnownSpeed` no se define en ningún bloque del documento.",
+    "correccion": "Reescribir el cuerpo con tipos y lecturas seguras: `const v: number = kms[k]!.groups[0]?.speedKmh ?? lastV ?? firstKnownSpeed(kms, k)`, `const nextKm = k + 1 < kms.length ? kms[k + 1]!.km : totalKm`, `const prev = raw[raw.length - 1]!` y `raw.push(prev + ((nextKm - kms[k]!.km) / v) * 3600)`, `const scale = winnerS / raw[raw.length - 1]!`; y añadir `/** La primera speedKmh no nula de kms[k..]; 0 no se acepta. */ function firstKnownSpeed(kms: readonly StoredRadioKm[], k: number): number`, con su error si ninguna foto tiene velocidad.",
+    "_fuente": "hallazgos-codigo.json",
+    "_lote": 1
+  },
+  {
+    "id": "Rcoste-032",
+    "seccion": "§1.10",
+    "linea": 474,
+    "gravedad": "media",
+    "afirmacion": "| 17d, el informe deja de re-simular | no: `raceReport.ts` l. 148 re-simula sin mirar la versión (C16) | es de la táctica; E2 no lo hace y, al no subir la versión, no lo rompe (D-09) |",
+    "fallo": "E2 sí toca lo que el 17d reescribe. El 8a cambia la firma de `getRiderLastRaceReport` (`packages/db/src/raceReport.ts` l. 78) para que reciba el `Horizon` y elija la última etapa CONOCIDA (§12.9, l. 6237; tabla de §10.6, l. 4649, mecanismos P y G) y registra `/api/riders/me/last-race` con política `horizon` (l. 5152). El 17d de la táctica reescribe esa misma función: deja de re-simular y cruza orden con hecho (mapa 02 §8, `docs/tactica.md` l. 6979). Si el 17d llega después del 8b, su PR tiene que conservar el `Horizon`, declarar la política de su ruta (o el registro no deja arrancar, §14.5) y pasar B1a, B1b y B1c, que barren esa ruta; si llega antes, el 8a se rebasa sobre él. Ninguno de los dos costes está en §17 ni en el riesgo 1 de §19.1.",
+    "correccion": "Cambiar la última columna por «es de la táctica; E2 no sube la versión, pero el 8a cambia la firma de `getRiderLastRaceReport` y pone su ruta bajo el velo: si el 17d llega después, conserva el `Horizon` y pasa B1a, B1b y B1c; si llega antes, el 8a se rebasa sobre él». Añadir el cruce al riesgo 1 de §19.1 y a las dependencias de §17.16.",
+    "_fuente": "hallazgos-coste.json",
+    "_lote": 1
+  },
+  {
+    "id": "Rdueno-033",
+    "seccion": "§2.13",
+    "linea": 625,
+    "gravedad": "baja",
+    "afirmacion": "«lo que hay que hacer si acaso es mejorar la granularidad de las instrucciones, con más escenarios hipotéticos quizás» (`docs/epics.md` l. 701-702",
+    "fallo": "La cita del dueño está en `docs/epics.md` l. 700-701 («El dueño: «lo que hay que hacer si acaso es mejorar la granularidad de las instrucciones, con más» y, en la línea siguiente, «escenarios hipotéticos quizás»»); l. 702 está en blanco. §8.10 la cita bien (l. 4029, «`docs/epics.md` l. 700-701») y §20.4 repite el error (l. 9581). Regla 5 del encargo: la cita del dueño, textual y con su línea (`00-encargo.md` l. 87).",
+    "correccion": "`docs/epics.md` l. 700-701 en §2.13 (l. 625) y en §20.4 (l. 9581).",
+    "_fuente": "hallazgos-dueno.json",
+    "_lote": 1
+  }
 ]

@@ -12,9 +12,15 @@ borrador entero, y busca FALLOS, no opiniones. Escribe `refutaciones/hallazgos-<
 lista de objetos con este formato exacto:
 
 ```json
-{ "id": "R<foco>-001", "seccion": "§7.3", "linea": 1234, "gravedad": "alta | media | baja",
-  "afirmacion": "cita literal del borrador", "fallo": "por qué es falso, incoherente o insuficiente, con evidencia (fichero y línea del código, o medida)",
-  "correccion": "el texto o la decisión que lo arregla, escrito para que un corrector lo aplique sin pensar" }
+{
+  "id": "R<foco>-001",
+  "seccion": "§7.3",
+  "linea": 1234,
+  "gravedad": "alta | media | baja",
+  "afirmacion": "cita literal del borrador",
+  "fallo": "por qué es falso, incoherente o insuficiente, con evidencia (fichero y línea del código, o medida)",
+  "correccion": "el texto o la decisión que lo arregla, escrito para que un corrector lo aplique sin pensar"
+}
 ```
 
 Focos:

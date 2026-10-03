@@ -1,158 +1,158 @@
 [
- {
-  "id": "Rcobertura-005",
-  "estado": "aplicado",
-  "donde": "borrador/04-modelo.md l. 156-167 (TimelineCast.favourites), l. 234 (procedencia), l. 315-318 (timelineCastSchema del formato 1), l. 1122 (4-u); 00-decisiones.md D-15, bloque de la fase 5 (hoy l. 217); 00-glosario.md §G.3.1 y §G.3.8",
-  "motivo": "Comprobado en el código: runOneStage lee rider_attrs al empezar (packages/db/src/stageRun.ts l. 298-310), raceLearning los cambia (l. 790-805) y se escriben en la misma transacción (l. 891-897), así que leídos al servir llevan el desenlace de la etapa. TimelineCast gana favourites como { rider, why }[] con la regla de 8-f y su procedencia; los de la general no se guardan porque salen de StartState.gcTop, y la API arma StagePreview.favourites con los dos. Entra en storedTimelineV1Schema (formato 1), compilado con tsc 5.9.3 y zod 4.4.3 contra packages/shared de HEAD. Lo que piden 8-g, §10.10 (veilCast), §17.20, §17.21 y el riesgo 22 de §19.1 va a cruzadas."
- },
- {
-  "id": "Rcobertura-006",
-  "estado": "aplicado",
-  "donde": "borrador/04-modelo.md l. 176 (TimeTrialTrace.checkClockDs), l. 319-322 (timeTrialTraceSchema), l. 457 (I5), l. 619 (tabla de visibilidad), l. 638 (TimelineVisibility.ttCheckDs), l. 655 (cutTimeline); 00-glosario.md §G.3.1, §G.3.8 y I5 de §G.9",
-  "motivo": "Comprobado: el parcial de tt_split es Math.round(raw[idx] · noise) (timetrial.ts l. 528 y 542) y bestChain compara ese entero (l. 143). checkClockDs se escribe tras kmClockDs con esa procedencia y [] sin controles; ttCheckDs = startDs + checkClockDs, y el corte lo deja en las entradas con startDs[r] + reloj ≤ T. I5 gana la igualdad con el splitS de cada tt_split. Tipos y esquema compilados. Lo que toca a §5.4 (onTimeTrialRide) y a 17-a va a cruzadas; 9-b ya lo dio por decisión la corrección de §9."
- },
- {
-  "id": "Rcobertura-007",
-  "estado": "aplicado",
-  "donde": "borrador/04-modelo.md l. 183 (FinishRecord.finishS), l. 623 (borde de la meta), l. 674-676 y 697 (tt_catches a finish), l. 1119 (4-r) y l. 1124 (4-w); 00-decisiones.md D-05, bloque de la fase 5 (hoy l. 119); 00-glosario.md §G.3.1",
-  "motivo": "Comprobado: lastHome es la última llegada (timetrial.ts l. 495) y stage_win_itt y tt_catches van a su hora (l. 596 y 614); tt_last_home es la llegada del último en salir (l. 605). Re-medido con rcod/n/ws/ttborde.mjs: 30 de 154 corridas con alguien que llega después del último en salir, hasta +281 s (race-ain e2, s1); la e16 s0, +17 s. El borde pasa a máx(startDs + kmClockDs.at(−1)) y tt_catches, fechado en ese borde, a la regla finish. Este hallazgo dice que lastKmFromS de §9.4 sigue siendo el del último en salir; Rcodigo-025 dice lo contrario: las dos caras van en cruzadas-L2 para §9.4, que ya eligió la de este."
- },
- {
-  "id": "Rcobertura-008",
-  "estado": "parcial",
-  "donde": "borrador/04-modelo.md l. 510-511 (comentario de GroupNow.jerseys)",
-  "motivo": "Cierto que GroupNow solo lleva los maillots de líder. No se añade GroupNow.named: el maillot llevado ya degradado y la equipación de cada corredor están en BroadcastHead.cast (RiderCard.worn y team.jerseySeed, §4.8) por RiderIx, y a quién nombra una fila lo decide namedRidersOf (§6.3, §7.7) sobre GroupNow.members; copiarlo en GroupNow obligaría a instantAt a recibir el reparto y los sucesos revelados. §4.5 lo dice ahora en el comentario. La parte que falta, pintar WornJerseyIcon delante de cada nombre de la fila y el ejemplo de §6.1, es de §6 y va a cruzadas."
- },
- {
-  "id": "Rcobertura-009",
-  "estado": "aplicado",
-  "donde": "borrador/04-modelo.md l. 674-675 (tabla de D-05), l. 707 (RecorderView.groupAt con b = −1), l. 691 (REVEAL_RULES), l. 727-729 (pseudocódigo), l. 735 (párrafo) y l. 1123 (4-v); l. 614 (visibilidad del mishap); 00-decisiones.md D-05, bloque de la fase 5 (hoy l. 119)",
-  "motivo": "Comprobado: alSuelo llama a dropOut en el mismo bloque (simulate.ts l. 8266-8291) y el pinchazo con pérdida mayor que driftDropGapSeconds también (l. 8471). En lugar de un miembro nuevo groupBefore se usa groupAt(r0, b − 1), con b = −1 el grupo de salida; el reloj es el de ese grupo en b, o en b − 1 si murió en b (iba solo). puncture y mechanical de carretera pasan a incident. Es el mismo grupo con que §5.4 junta el montón de caídas. El test de timeline.test.ts, el paso 5 de §5.4 y el riesgo 24 de §19.1 van a cruzadas."
- },
- {
-  "id": "Rcobertura-010",
-  "estado": "parcial",
-  "donde": "borrador/04-modelo.md l. 3, l. 735, l. 853, l. 900, l. 996, l. 1111, l. 1114 y l. 1119; 15-constantes.md l. 3, l. 187, l. 293 y l. 335",
-  "motivo": "Cierto: el glosario ya lleva la firma con source (§G.4) y §G.n no existirá en el documento final. La frase de l. 1638 del v0 se reescribe sin la remisión (se conserva el porqué de source) y todas las §G.n del cuerpo de §4 y §15 pasan a su sitio (§21.6 F.2 y F.3, §14.2) o a «la síntesis». Quedan las de los bloques de dudas, que ensamblar.sh quita. Las §G.n de las demás secciones no son de este lote: la tabla de sustitución va a cruzadas para la pasada de coherencia."
- },
- {
-  "id": "Rcobertura-011",
-  "estado": "aplicado",
-  "donde": "borrador/04-modelo.md l. 787 (RiderCard.gender) y l. 1002 (riderCardSchema con genderSchema); 00-glosario.md §G.3.3 y §G.3.8",
-  "motivo": "Comprobado: riders.gender es público (publicRiderSchema, contracts.ts l. 73; GENDERS 'M' | 'F', rider.ts l. 159-160) y la web recibe RiderCard, no CastRider. RiderCard gana gender y el esquema usa genderSchema de contracts.ts; compilado. Que serveCast lo copie (§7.8) y la frase de §12.11 van a cruzadas."
- },
- {
-  "id": "Rcobertura-012",
-  "estado": "aplicado",
-  "donde": "borrador/04-modelo.md l. 800 (quién produce los Cue de crono), l. 814 (RiderCueContext con tt_round), l. 835-846 (tt_start_order, tt_split, tt_finish) y l. 1122 (4-u); 00-glosario.md §G.3.4 y §G.3.8",
-  "motivo": "Se escriben las tres variantes con la procedencia de cada campo. Frente a la propuesta, tt_split y tt_finish llevan deltaS (el nombre del glosario y de TimeTrialInstant, no gapS), timeS, board (el tablero del control en t, para el rótulo SPLIT con los tres primeros aunque salga más tarde de la cola) y prev (el on Jan Novák de HOT SEAT). Compilado: con los tipos nuevos, el CUE_CLASS de §6.5 deja de compilar (TS1360, faltan tt_start_order, tt_split y tt_finish) y compila con la ampliación que va a cruzadas; cueClassOf sube tt_split con rank 1 a 2 y tt_finish con hotSeat a 3. Se añade el contexto tt_round que usa la corrección de §9 (9-n)."
- },
- {
-  "id": "Rcobertura-013",
-  "estado": "aplicado",
-  "donde": "borrador/04-modelo.md l. 935-938 (BroadcastHead.tt), l. 954-956 (BroadcastChunk.tt.checks), l. 1012-1021 (esquemas) y l. 659 (chunkOf); 00-glosario.md §G.3.6",
-  "motivo": "BroadcastHead.tt lleva order, intervalS y checksKm de TimeTrialTrace, sin relojes, null en línea y con el adaptador (una crono sin línea abre en Report, §9.1); con cast.length da el plan de ttPaceAt, el cuadro Start order y los saltos de la crono. BroadcastChunk.tt gana checks, tríos [rider, control, checkClockDs], que chunkOf llena por su visibilidad (startDs + checkClockDs en el tramo); van en reloj propio, como km, para que la web rehaga TimeTrialTrace sin restar, y el comentario de km lo dice ahora. Compilado, con el atado en los dos sentidos. Que la cabecera lo arme (§14.4) va a cruzadas; 9-i ya es decisión en la corrección de §9."
- },
- {
-  "id": "Rcobertura-014",
-  "estado": "aplicado",
-  "donde": "borrador/04-modelo.md l. 939 (BroadcastHead.tplRev), l. 963 (StageReport) y l. 1012-1015 (tplRev: int.min(0)); 00-glosario.md §G.3.6 y §G.3.8",
-  "motivo": "Comprobado en §12.7: pickVariant(seed, variants, rev) necesita la revisión de la etapa. BroadcastHead gana tplRev (stage_timelines.tpl_rev; 0 con el adaptador). StageReport es StageReplay y su esquema vive en contracts.ts: su tplRev, el .omit de yesterday.test.ts, la columna (Rcobertura-044) y la lectura en §5.6 y §14.4 van a cruzadas."
- },
- {
-  "id": "Rcobertura-015",
-  "estado": "aplicado",
-  "donde": "borrador/04-modelo.md l. 1035 (final del párrafo tras los esquemas)",
-  "motivo": "Cierto: 14-a, §14.2 y §4.13 los declaran en contracts.ts. La frase dice ahora que los dos se declaran en contracts.ts, donde los usa stageReplaySchema y de donde lo toma healthSchema en index.ts, y que sus tipos siguen en wire.ts; wire.ts no importa esos dos (solo stageGateSchema y preStageInfoSchema), así que no se escribe que los importa."
- },
- {
-  "id": "Rcobertura-016",
-  "estado": "aplicado",
-  "donde": "borrador/04-modelo.md l. 1056 (contract con housingCovered); 00-glosario.md §G.3.7 y §G.3.8",
-  "motivo": "Comprobado: packages/db/src/contracts.ts l. 328 escribe ' with housing covered' si offer.payHousing, y solo con traslado. La variante gana housingCovered con su procedencia. Compilado con los bloques de §12.8: el TS2339 de d.housingCovered desaparece (los errores de Of que quedan son de Rcodigo-004, de §12.8, y se van con su arreglo, comprobado)."
- },
- {
-  "id": "Rcobertura-049",
-  "estado": "aplicado",
-  "donde": "borrador/15-constantes.md l. 107-108, l. 126-129 y l. 143",
-  "motivo": "17-e manda que BROADCAST y SPOILER nazcan enteros en el PR 2. Se borran de §15.3 las seis notas «Entra en el 10a» y «Entra en el 6a» y también el «Entran en el 6a» de los topes de red, que es la misma contradicción. Las filas de §17.20, §17.13 y §17.9 que las hacen crecer después van a cruzadas."
- },
- {
-  "id": "Rcobertura-050",
-  "estado": "aplicado",
-  "donde": "borrador/15-constantes.md l. 18 (§15.1), l. 219-223 (título y texto de §15.5), l. 228-230 y 247-256 (el test), l. 272 (medida), l. 311 (§15.7) y l. 333 y 343 (15-a, 15-k)",
-  "motivo": "Título «Las copias atadas por test»; son cinco (con chaseRefOf, copia de chaseReferenceIndex, group.ts l. 235-245) y PULLERS_KEPT hasta el 4b, que suma Rcobertura-040. El test gana el caso de chaseRefOf sobre 10.000 carreteras con seededRng de @cyclingstar/shared, de 0 a 20 grupos para cubrir también el -1; medido con la copia de §6.3 y el dist de HEAD (corr-l2/chaseref.mjs): 0 diferencias, 40 ms. Que §6.3 exporte chaseRefOf y §11.16 exporte PULLERS_KEPT va a cruzadas."
- },
- {
-  "id": "Rcodigo-002",
-  "estado": "aplicado",
-  "donde": "borrador/04-modelo.md l. 900 (párrafo de §4.11), l. 285-291 (SchemaMatches en codec.ts), l. 1028-1032 (WIRE_MATCH), l. 341 (STORED_MATCH) y l. 1111 (4-j) y 1125 (4-x)",
-  "motivo": "Re-medido con tsc 5.9.3 y zod 4.4.3: un campo de más con satisfies compila y uno de menos da TS1360; raceLeadersSchema es una anotación (contracts.ts l. 431) y la cabecera de contracts.ts (l. 4-5) manda z.infer. La frase se reescribe con las tres cosas y 4-j dice que se aparta a sabiendas. El otro sentido del atado no va en un test con expectTypeOf, sino en el propio fichero, como CODES_MATCH: SchemaMatches exige asignabilidad en los dos sentidos con DeepReadonly en los dos lados, y WIRE_MATCH y STORED_MATCH la exigen para las cuatro respuestas y el formato 1. Comprobado en negativo: un campo de más en la cabecera o en la traza, y un campo de menos, no compilan."
- },
- {
-  "id": "Rcodigo-005",
-  "estado": "aplicado",
-  "donde": "borrador/04-modelo.md l. 1056",
-  "motivo": "El mismo arreglo que Rcobertura-016, con la cita l. 325-339 y offer.payHousing (l. 328). Dar por aceptado contract.housingCovered en la duda 1.1 va a cruzadas (dudas.md es de la pasada de coherencia)."
- },
- {
-  "id": "Rcodigo-007",
-  "estado": "aplicado",
-  "donde": "borrador/04-modelo.md l. 1065",
-  "motivo": "El bloque empieza con import type { NameResolver } from '../news.js' y el paréntesis se quita; compilado sin TS2304."
- },
- {
-  "id": "Rcodigo-008",
-  "estado": "aplicado",
-  "donde": "borrador/04-modelo.md l. 249-252 (imports), l. 293-341 (esquemas, storedTimelineV1Schema y STORED_MATCH), l. 348 (fromStoredV1) y l. 358; 4-x (l. 1125)",
-  "motivo": "storedTimelineV1Schema se escribe entero, con el múltiplo de cada lista plana (groupMeta de 4 en 4, moves y clocks de 3, main y el orden de las pancartas de 2) y un motivo desconocido leído como null (.catch(null), como chronicle.ts l. 1306); fromStoredV1 queda privada con su firma. Los seis esquemas que el formato comparte con la red pasan de wire.ts a codec.ts (4-x): importarlos de wire.ts cargaría BROADCAST en codec.ts, que es del lado del grabador (15-b). Compilado contra packages/shared de HEAD sin errores, y en ejecución valida las 16 líneas del prototipo del grabador (l7/stored y rcod/crono40-*, con favourites y checkClockDs añadidos; corr-l2/parse-stored.mjs)."
- },
- {
-  "id": "Rcodigo-012",
-  "estado": "aplicado",
-  "donde": "borrador/15-constantes.md l. 45",
-  "motivo": "Comprobado en juicios/motor.md: C8 (l. 56) es la de bytea con gzip 1,6-2,4 veces menos que jsonb; C7 (l. 55) es la de los tamaños de las propuestas."
- },
- {
-  "id": "Rcodigo-014",
-  "estado": "aplicado",
-  "donde": "borrador/15-constantes.md l. 54-56 (ttMaxStoredBytes: 49_152), l. 66 (tabla) y l. 341 (15-i); 00-decisiones.md D-11, bloque de la fase 5 (hoy l. 185); 00-glosario.md §G.7",
-  "motivo": "Comprobado: rcod/cronos2.mjs da 77 cronos fuera de los nacionales y tres WorldTour de más de 26 km; los .stored.json de race-italy e10 dan 31.436 y 31.178 bytes con gzip 9, y con checkClockDs y los favoritos (aproximados aquí, 32.235 B) el 98 % del tope. El tope pasa a 49.152 bytes (1,5 veces 32.203, redondeado a 48 KB de 1.024) y D-11 se corrige con esta evidencia. Las filas de §5.7, B6 en §16.4, §9.8, la duda 1.4 y §19.6 van a cruzadas (§9.8 ya añadió la e10 en la corrección de §9)."
- },
- {
-  "id": "Rcodigo-025",
-  "estado": "aplicado",
-  "donde": "borrador/04-modelo.md l. 183, l. 623, l. 697 y l. 1124 (4-w); 00-decisiones.md D-05, bloque de la fase 5 (hoy l. 119)",
-  "motivo": "El mismo cambio que Rcobertura-007, con la cifra re-medida aquí (30 de 154 corridas, hasta +281 s). Este hallazgo pide además calcular lastKmFromS de §9.4 sobre el de la última llegada, al revés que Rcobertura-007: las dos caras van a cruzadas-L2 para §9.4, que es quien decide el ritmo."
- },
- {
-  "id": "Rcodigo-026",
-  "estado": "aplicado",
-  "donde": "borrador/04-modelo.md l. 674-676, l. 691, l. 727-729, l. 735 y l. 1123 (4-v)",
-  "motivo": "El mismo cambio que Rcobertura-009: incident con groupAt(r0, b − 1) y puncture y mechanical de carretera en REVEAL_RULES; la duda 1.2 se da por cerrada en cruzadas."
- },
- {
-  "id": "Rcodigo-036",
-  "estado": "aplicado",
-  "donde": "borrador/04-modelo.md l. 156-167 y l. 315-318",
-  "motivo": "El mismo campo que Rcobertura-005. Frente a esta propuesta, why no incluye 'gc': los favoritos de la general salen de StartState.gcTop al servir y guardarlos duplicaría el dato; el valor es el de rider_attrs antes del aprendizaje (stageRun.ts l. 298-310), el que se enseña en publicRiderDetailSchema.attributes, y no el eff0 de stage_snapshots.input, que lleva Banister."
- },
- {
-  "id": "Rcoste-004",
-  "estado": "aplicado",
-  "donde": "borrador/04-modelo.md l. 358",
-  "motivo": "Re-medido: con el esquema aproximado del hallazgo (coste/zod/decode.mjs, dos corridas) Zod va de 0,4 a 18 ms de mediana y la primera llamada de 46 a 109 ms; con el storedTimelineV1Schema que escribe ahora §4.3, compilado del borrador (corr-l2/zod-real.mjs, que además valida las 16 líneas del prototipo), de 0,9 a 21 ms, de cinco a seis veces el JSON.parse en las pesadas, y 61 ms la primera. La frase da esas cifras, dice que el LRU las ahorra solo mientras lo que se mira quepa en 16 entradas y que cada despliegue lo vacía. Sumarlas en §5.6 y la medida pendiente de §18.9 y 18-d van a cruzadas."
- },
- {
-  "id": "Rcoste-005",
-  "estado": "aplicado",
-  "donde": "borrador/04-modelo.md l. 1035 y l. 24 (el mismo error en §4.1)",
-  "motivo": "Comprobado en §18.1: la etapa entera de 27,9 a 81,5 KB con gzip, un tramo de 0,23 a 4,72 KB y parse y Zod del tramo mayor de 0,11 a 0,54 ms. §4.11 cita eso y §4.1, que citaba también el formato de datos.md, pasa a parse y Zod de todos los tramos, de 1,1 a 7,6 ms (la tabla de §18.1). §14.8 va a cruzadas."
- },
- {
-  "id": "Rcoste-019",
-  "estado": "aplicado",
-  "donde": "borrador/15-constantes.md l. 141 (comentario), l. 289 (§15.6), l. 322 (§15.8) y l. 342 (15-j); 00-decisiones.md D-53, bloque de la fase 5 (hoy l. 577); 00-glosario.md §G.2 (env.ts) y §G.8",
-  "motivo": "Cierto: SPOILER_MODE=off deja las escrituras de /api/me/* (§10.13) y solo BROADCAST_WATCH=off las frena. PROGRESS_MIN_DELTA_S, opcional en el envSchema de web como TICK_INTERVAL_MINUTES (apps/api/src/env.ts l. 32), sustituye a progressMinDeltaS sin desplegar; §15.8 dice además, por cuenta con la curva de §8.2, que a ×60 un informe avanza 900 s, así que el valor útil pasa de esa cifra. D-53 se precisa. La variable en env.ts, recordProgress y la regla 9 de §17.1 van a cruzadas."
- }
+  {
+    "id": "Rcobertura-005",
+    "estado": "aplicado",
+    "donde": "borrador/04-modelo.md l. 156-167 (TimelineCast.favourites), l. 234 (procedencia), l. 315-318 (timelineCastSchema del formato 1), l. 1122 (4-u); 00-decisiones.md D-15, bloque de la fase 5 (hoy l. 217); 00-glosario.md §G.3.1 y §G.3.8",
+    "motivo": "Comprobado en el código: runOneStage lee rider_attrs al empezar (packages/db/src/stageRun.ts l. 298-310), raceLearning los cambia (l. 790-805) y se escriben en la misma transacción (l. 891-897), así que leídos al servir llevan el desenlace de la etapa. TimelineCast gana favourites como { rider, why }[] con la regla de 8-f y su procedencia; los de la general no se guardan porque salen de StartState.gcTop, y la API arma StagePreview.favourites con los dos. Entra en storedTimelineV1Schema (formato 1), compilado con tsc 5.9.3 y zod 4.4.3 contra packages/shared de HEAD. Lo que piden 8-g, §10.10 (veilCast), §17.20, §17.21 y el riesgo 22 de §19.1 va a cruzadas."
+  },
+  {
+    "id": "Rcobertura-006",
+    "estado": "aplicado",
+    "donde": "borrador/04-modelo.md l. 176 (TimeTrialTrace.checkClockDs), l. 319-322 (timeTrialTraceSchema), l. 457 (I5), l. 619 (tabla de visibilidad), l. 638 (TimelineVisibility.ttCheckDs), l. 655 (cutTimeline); 00-glosario.md §G.3.1, §G.3.8 y I5 de §G.9",
+    "motivo": "Comprobado: el parcial de tt_split es Math.round(raw[idx] · noise) (timetrial.ts l. 528 y 542) y bestChain compara ese entero (l. 143). checkClockDs se escribe tras kmClockDs con esa procedencia y [] sin controles; ttCheckDs = startDs + checkClockDs, y el corte lo deja en las entradas con startDs[r] + reloj ≤ T. I5 gana la igualdad con el splitS de cada tt_split. Tipos y esquema compilados. Lo que toca a §5.4 (onTimeTrialRide) y a 17-a va a cruzadas; 9-b ya lo dio por decisión la corrección de §9."
+  },
+  {
+    "id": "Rcobertura-007",
+    "estado": "aplicado",
+    "donde": "borrador/04-modelo.md l. 183 (FinishRecord.finishS), l. 623 (borde de la meta), l. 674-676 y 697 (tt_catches a finish), l. 1119 (4-r) y l. 1124 (4-w); 00-decisiones.md D-05, bloque de la fase 5 (hoy l. 119); 00-glosario.md §G.3.1",
+    "motivo": "Comprobado: lastHome es la última llegada (timetrial.ts l. 495) y stage_win_itt y tt_catches van a su hora (l. 596 y 614); tt_last_home es la llegada del último en salir (l. 605). Re-medido con rcod/n/ws/ttborde.mjs: 30 de 154 corridas con alguien que llega después del último en salir, hasta +281 s (race-ain e2, s1); la e16 s0, +17 s. El borde pasa a máx(startDs + kmClockDs.at(−1)) y tt_catches, fechado en ese borde, a la regla finish. Este hallazgo dice que lastKmFromS de §9.4 sigue siendo el del último en salir; Rcodigo-025 dice lo contrario: las dos caras van en cruzadas-L2 para §9.4, que ya eligió la de este."
+  },
+  {
+    "id": "Rcobertura-008",
+    "estado": "parcial",
+    "donde": "borrador/04-modelo.md l. 510-511 (comentario de GroupNow.jerseys)",
+    "motivo": "Cierto que GroupNow solo lleva los maillots de líder. No se añade GroupNow.named: el maillot llevado ya degradado y la equipación de cada corredor están en BroadcastHead.cast (RiderCard.worn y team.jerseySeed, §4.8) por RiderIx, y a quién nombra una fila lo decide namedRidersOf (§6.3, §7.7) sobre GroupNow.members; copiarlo en GroupNow obligaría a instantAt a recibir el reparto y los sucesos revelados. §4.5 lo dice ahora en el comentario. La parte que falta, pintar WornJerseyIcon delante de cada nombre de la fila y el ejemplo de §6.1, es de §6 y va a cruzadas."
+  },
+  {
+    "id": "Rcobertura-009",
+    "estado": "aplicado",
+    "donde": "borrador/04-modelo.md l. 674-675 (tabla de D-05), l. 707 (RecorderView.groupAt con b = −1), l. 691 (REVEAL_RULES), l. 727-729 (pseudocódigo), l. 735 (párrafo) y l. 1123 (4-v); l. 614 (visibilidad del mishap); 00-decisiones.md D-05, bloque de la fase 5 (hoy l. 119)",
+    "motivo": "Comprobado: alSuelo llama a dropOut en el mismo bloque (simulate.ts l. 8266-8291) y el pinchazo con pérdida mayor que driftDropGapSeconds también (l. 8471). En lugar de un miembro nuevo groupBefore se usa groupAt(r0, b − 1), con b = −1 el grupo de salida; el reloj es el de ese grupo en b, o en b − 1 si murió en b (iba solo). puncture y mechanical de carretera pasan a incident. Es el mismo grupo con que §5.4 junta el montón de caídas. El test de timeline.test.ts, el paso 5 de §5.4 y el riesgo 24 de §19.1 van a cruzadas."
+  },
+  {
+    "id": "Rcobertura-010",
+    "estado": "parcial",
+    "donde": "borrador/04-modelo.md l. 3, l. 735, l. 853, l. 900, l. 996, l. 1111, l. 1114 y l. 1119; 15-constantes.md l. 3, l. 187, l. 293 y l. 335",
+    "motivo": "Cierto: el glosario ya lleva la firma con source (§G.4) y §G.n no existirá en el documento final. La frase de l. 1638 del v0 se reescribe sin la remisión (se conserva el porqué de source) y todas las §G.n del cuerpo de §4 y §15 pasan a su sitio (§21.6 F.2 y F.3, §14.2) o a «la síntesis». Quedan las de los bloques de dudas, que ensamblar.sh quita. Las §G.n de las demás secciones no son de este lote: la tabla de sustitución va a cruzadas para la pasada de coherencia."
+  },
+  {
+    "id": "Rcobertura-011",
+    "estado": "aplicado",
+    "donde": "borrador/04-modelo.md l. 787 (RiderCard.gender) y l. 1002 (riderCardSchema con genderSchema); 00-glosario.md §G.3.3 y §G.3.8",
+    "motivo": "Comprobado: riders.gender es público (publicRiderSchema, contracts.ts l. 73; GENDERS 'M' | 'F', rider.ts l. 159-160) y la web recibe RiderCard, no CastRider. RiderCard gana gender y el esquema usa genderSchema de contracts.ts; compilado. Que serveCast lo copie (§7.8) y la frase de §12.11 van a cruzadas."
+  },
+  {
+    "id": "Rcobertura-012",
+    "estado": "aplicado",
+    "donde": "borrador/04-modelo.md l. 800 (quién produce los Cue de crono), l. 814 (RiderCueContext con tt_round), l. 835-846 (tt_start_order, tt_split, tt_finish) y l. 1122 (4-u); 00-glosario.md §G.3.4 y §G.3.8",
+    "motivo": "Se escriben las tres variantes con la procedencia de cada campo. Frente a la propuesta, tt_split y tt_finish llevan deltaS (el nombre del glosario y de TimeTrialInstant, no gapS), timeS, board (el tablero del control en t, para el rótulo SPLIT con los tres primeros aunque salga más tarde de la cola) y prev (el on Jan Novák de HOT SEAT). Compilado: con los tipos nuevos, el CUE_CLASS de §6.5 deja de compilar (TS1360, faltan tt_start_order, tt_split y tt_finish) y compila con la ampliación que va a cruzadas; cueClassOf sube tt_split con rank 1 a 2 y tt_finish con hotSeat a 3. Se añade el contexto tt_round que usa la corrección de §9 (9-n)."
+  },
+  {
+    "id": "Rcobertura-013",
+    "estado": "aplicado",
+    "donde": "borrador/04-modelo.md l. 935-938 (BroadcastHead.tt), l. 954-956 (BroadcastChunk.tt.checks), l. 1012-1021 (esquemas) y l. 659 (chunkOf); 00-glosario.md §G.3.6",
+    "motivo": "BroadcastHead.tt lleva order, intervalS y checksKm de TimeTrialTrace, sin relojes, null en línea y con el adaptador (una crono sin línea abre en Report, §9.1); con cast.length da el plan de ttPaceAt, el cuadro Start order y los saltos de la crono. BroadcastChunk.tt gana checks, tríos [rider, control, checkClockDs], que chunkOf llena por su visibilidad (startDs + checkClockDs en el tramo); van en reloj propio, como km, para que la web rehaga TimeTrialTrace sin restar, y el comentario de km lo dice ahora. Compilado, con el atado en los dos sentidos. Que la cabecera lo arme (§14.4) va a cruzadas; 9-i ya es decisión en la corrección de §9."
+  },
+  {
+    "id": "Rcobertura-014",
+    "estado": "aplicado",
+    "donde": "borrador/04-modelo.md l. 939 (BroadcastHead.tplRev), l. 963 (StageReport) y l. 1012-1015 (tplRev: int.min(0)); 00-glosario.md §G.3.6 y §G.3.8",
+    "motivo": "Comprobado en §12.7: pickVariant(seed, variants, rev) necesita la revisión de la etapa. BroadcastHead gana tplRev (stage_timelines.tpl_rev; 0 con el adaptador). StageReport es StageReplay y su esquema vive en contracts.ts: su tplRev, el .omit de yesterday.test.ts, la columna (Rcobertura-044) y la lectura en §5.6 y §14.4 van a cruzadas."
+  },
+  {
+    "id": "Rcobertura-015",
+    "estado": "aplicado",
+    "donde": "borrador/04-modelo.md l. 1035 (final del párrafo tras los esquemas)",
+    "motivo": "Cierto: 14-a, §14.2 y §4.13 los declaran en contracts.ts. La frase dice ahora que los dos se declaran en contracts.ts, donde los usa stageReplaySchema y de donde lo toma healthSchema en index.ts, y que sus tipos siguen en wire.ts; wire.ts no importa esos dos (solo stageGateSchema y preStageInfoSchema), así que no se escribe que los importa."
+  },
+  {
+    "id": "Rcobertura-016",
+    "estado": "aplicado",
+    "donde": "borrador/04-modelo.md l. 1056 (contract con housingCovered); 00-glosario.md §G.3.7 y §G.3.8",
+    "motivo": "Comprobado: packages/db/src/contracts.ts l. 328 escribe ' with housing covered' si offer.payHousing, y solo con traslado. La variante gana housingCovered con su procedencia. Compilado con los bloques de §12.8: el TS2339 de d.housingCovered desaparece (los errores de Of que quedan son de Rcodigo-004, de §12.8, y se van con su arreglo, comprobado)."
+  },
+  {
+    "id": "Rcobertura-049",
+    "estado": "aplicado",
+    "donde": "borrador/15-constantes.md l. 107-108, l. 126-129 y l. 143",
+    "motivo": "17-e manda que BROADCAST y SPOILER nazcan enteros en el PR 2. Se borran de §15.3 las seis notas «Entra en el 10a» y «Entra en el 6a» y también el «Entran en el 6a» de los topes de red, que es la misma contradicción. Las filas de §17.20, §17.13 y §17.9 que las hacen crecer después van a cruzadas."
+  },
+  {
+    "id": "Rcobertura-050",
+    "estado": "aplicado",
+    "donde": "borrador/15-constantes.md l. 18 (§15.1), l. 219-223 (título y texto de §15.5), l. 228-230 y 247-256 (el test), l. 272 (medida), l. 311 (§15.7) y l. 333 y 343 (15-a, 15-k)",
+    "motivo": "Título «Las copias atadas por test»; son cinco (con chaseRefOf, copia de chaseReferenceIndex, group.ts l. 235-245) y PULLERS_KEPT hasta el 4b, que suma Rcobertura-040. El test gana el caso de chaseRefOf sobre 10.000 carreteras con seededRng de @cyclingstar/shared, de 0 a 20 grupos para cubrir también el -1; medido con la copia de §6.3 y el dist de HEAD (corr-l2/chaseref.mjs): 0 diferencias, 40 ms. Que §6.3 exporte chaseRefOf y §11.16 exporte PULLERS_KEPT va a cruzadas."
+  },
+  {
+    "id": "Rcodigo-002",
+    "estado": "aplicado",
+    "donde": "borrador/04-modelo.md l. 900 (párrafo de §4.11), l. 285-291 (SchemaMatches en codec.ts), l. 1028-1032 (WIRE_MATCH), l. 341 (STORED_MATCH) y l. 1111 (4-j) y 1125 (4-x)",
+    "motivo": "Re-medido con tsc 5.9.3 y zod 4.4.3: un campo de más con satisfies compila y uno de menos da TS1360; raceLeadersSchema es una anotación (contracts.ts l. 431) y la cabecera de contracts.ts (l. 4-5) manda z.infer. La frase se reescribe con las tres cosas y 4-j dice que se aparta a sabiendas. El otro sentido del atado no va en un test con expectTypeOf, sino en el propio fichero, como CODES_MATCH: SchemaMatches exige asignabilidad en los dos sentidos con DeepReadonly en los dos lados, y WIRE_MATCH y STORED_MATCH la exigen para las cuatro respuestas y el formato 1. Comprobado en negativo: un campo de más en la cabecera o en la traza, y un campo de menos, no compilan."
+  },
+  {
+    "id": "Rcodigo-005",
+    "estado": "aplicado",
+    "donde": "borrador/04-modelo.md l. 1056",
+    "motivo": "El mismo arreglo que Rcobertura-016, con la cita l. 325-339 y offer.payHousing (l. 328). Dar por aceptado contract.housingCovered en la duda 1.1 va a cruzadas (dudas.md es de la pasada de coherencia)."
+  },
+  {
+    "id": "Rcodigo-007",
+    "estado": "aplicado",
+    "donde": "borrador/04-modelo.md l. 1065",
+    "motivo": "El bloque empieza con import type { NameResolver } from '../news.js' y el paréntesis se quita; compilado sin TS2304."
+  },
+  {
+    "id": "Rcodigo-008",
+    "estado": "aplicado",
+    "donde": "borrador/04-modelo.md l. 249-252 (imports), l. 293-341 (esquemas, storedTimelineV1Schema y STORED_MATCH), l. 348 (fromStoredV1) y l. 358; 4-x (l. 1125)",
+    "motivo": "storedTimelineV1Schema se escribe entero, con el múltiplo de cada lista plana (groupMeta de 4 en 4, moves y clocks de 3, main y el orden de las pancartas de 2) y un motivo desconocido leído como null (.catch(null), como chronicle.ts l. 1306); fromStoredV1 queda privada con su firma. Los seis esquemas que el formato comparte con la red pasan de wire.ts a codec.ts (4-x): importarlos de wire.ts cargaría BROADCAST en codec.ts, que es del lado del grabador (15-b). Compilado contra packages/shared de HEAD sin errores, y en ejecución valida las 16 líneas del prototipo del grabador (l7/stored y rcod/crono40-*, con favourites y checkClockDs añadidos; corr-l2/parse-stored.mjs)."
+  },
+  {
+    "id": "Rcodigo-012",
+    "estado": "aplicado",
+    "donde": "borrador/15-constantes.md l. 45",
+    "motivo": "Comprobado en juicios/motor.md: C8 (l. 56) es la de bytea con gzip 1,6-2,4 veces menos que jsonb; C7 (l. 55) es la de los tamaños de las propuestas."
+  },
+  {
+    "id": "Rcodigo-014",
+    "estado": "aplicado",
+    "donde": "borrador/15-constantes.md l. 54-56 (ttMaxStoredBytes: 49_152), l. 66 (tabla) y l. 341 (15-i); 00-decisiones.md D-11, bloque de la fase 5 (hoy l. 185); 00-glosario.md §G.7",
+    "motivo": "Comprobado: rcod/cronos2.mjs da 77 cronos fuera de los nacionales y tres WorldTour de más de 26 km; los .stored.json de race-italy e10 dan 31.436 y 31.178 bytes con gzip 9, y con checkClockDs y los favoritos (aproximados aquí, 32.235 B) el 98 % del tope. El tope pasa a 49.152 bytes (1,5 veces 32.203, redondeado a 48 KB de 1.024) y D-11 se corrige con esta evidencia. Las filas de §5.7, B6 en §16.4, §9.8, la duda 1.4 y §19.6 van a cruzadas (§9.8 ya añadió la e10 en la corrección de §9)."
+  },
+  {
+    "id": "Rcodigo-025",
+    "estado": "aplicado",
+    "donde": "borrador/04-modelo.md l. 183, l. 623, l. 697 y l. 1124 (4-w); 00-decisiones.md D-05, bloque de la fase 5 (hoy l. 119)",
+    "motivo": "El mismo cambio que Rcobertura-007, con la cifra re-medida aquí (30 de 154 corridas, hasta +281 s). Este hallazgo pide además calcular lastKmFromS de §9.4 sobre el de la última llegada, al revés que Rcobertura-007: las dos caras van a cruzadas-L2 para §9.4, que es quien decide el ritmo."
+  },
+  {
+    "id": "Rcodigo-026",
+    "estado": "aplicado",
+    "donde": "borrador/04-modelo.md l. 674-676, l. 691, l. 727-729, l. 735 y l. 1123 (4-v)",
+    "motivo": "El mismo cambio que Rcobertura-009: incident con groupAt(r0, b − 1) y puncture y mechanical de carretera en REVEAL_RULES; la duda 1.2 se da por cerrada en cruzadas."
+  },
+  {
+    "id": "Rcodigo-036",
+    "estado": "aplicado",
+    "donde": "borrador/04-modelo.md l. 156-167 y l. 315-318",
+    "motivo": "El mismo campo que Rcobertura-005. Frente a esta propuesta, why no incluye 'gc': los favoritos de la general salen de StartState.gcTop al servir y guardarlos duplicaría el dato; el valor es el de rider_attrs antes del aprendizaje (stageRun.ts l. 298-310), el que se enseña en publicRiderDetailSchema.attributes, y no el eff0 de stage_snapshots.input, que lleva Banister."
+  },
+  {
+    "id": "Rcoste-004",
+    "estado": "aplicado",
+    "donde": "borrador/04-modelo.md l. 358",
+    "motivo": "Re-medido: con el esquema aproximado del hallazgo (coste/zod/decode.mjs, dos corridas) Zod va de 0,4 a 18 ms de mediana y la primera llamada de 46 a 109 ms; con el storedTimelineV1Schema que escribe ahora §4.3, compilado del borrador (corr-l2/zod-real.mjs, que además valida las 16 líneas del prototipo), de 0,9 a 21 ms, de cinco a seis veces el JSON.parse en las pesadas, y 61 ms la primera. La frase da esas cifras, dice que el LRU las ahorra solo mientras lo que se mira quepa en 16 entradas y que cada despliegue lo vacía. Sumarlas en §5.6 y la medida pendiente de §18.9 y 18-d van a cruzadas."
+  },
+  {
+    "id": "Rcoste-005",
+    "estado": "aplicado",
+    "donde": "borrador/04-modelo.md l. 1035 y l. 24 (el mismo error en §4.1)",
+    "motivo": "Comprobado en §18.1: la etapa entera de 27,9 a 81,5 KB con gzip, un tramo de 0,23 a 4,72 KB y parse y Zod del tramo mayor de 0,11 a 0,54 ms. §4.11 cita eso y §4.1, que citaba también el formato de datos.md, pasa a parse y Zod de todos los tramos, de 1,1 a 7,6 ms (la tabla de §18.1). §14.8 va a cruzadas."
+  },
+  {
+    "id": "Rcoste-019",
+    "estado": "aplicado",
+    "donde": "borrador/15-constantes.md l. 141 (comentario), l. 289 (§15.6), l. 322 (§15.8) y l. 342 (15-j); 00-decisiones.md D-53, bloque de la fase 5 (hoy l. 577); 00-glosario.md §G.2 (env.ts) y §G.8",
+    "motivo": "Cierto: SPOILER_MODE=off deja las escrituras de /api/me/* (§10.13) y solo BROADCAST_WATCH=off las frena. PROGRESS_MIN_DELTA_S, opcional en el envSchema de web como TICK_INTERVAL_MINUTES (apps/api/src/env.ts l. 32), sustituye a progressMinDeltaS sin desplegar; §15.8 dice además, por cuenta con la curva de §8.2, que a ×60 un informe avanza 900 s, así que el valor útil pasa de esa cifra. D-53 se precisa. La variable en env.ts, recordProgress y la regla 9 de §17.1 van a cruzadas."
+  }
 ]

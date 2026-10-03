@@ -1,170 +1,170 @@
 [
- {
-  "id": "Rdueno-005",
-  "estado": "aplicado",
-  "donde": "05-motor.md l. 25 (§5.1, «Lo que pasa si otra línea sube la versión», en lugar de «La regla para quien venga después») y el cierre de §5 (O-05 y H-02, l. 671-673); 00-decisiones.md D-09 (l. 167) y su nota «Corregida en la corrección, fase 5» (l. 171-173)",
-  "motivo": "Comprobado: `docs/balance.md` l. 16319-16321 no sube cuando la carrera no cambia y la D7 (l. 16557-16558) es condicional; `git log -L` sobre `ENGINE_VERSION` da de la v69 (`025efbe`) a la v89 (`c39f450`) en catorce commits entre el 14 y el 26 de septiembre (v83 `d5ebc04`, v86 `bcd49bf`, v89 `c39f450`); `docs/encargos.md` l. 14-26 pone a las épicas detrás de la línea del motor; `docs/tactica.md` l. 6979 es el 17d («el informe deja de re-simular»). §5.1 deja de escribir la regla y dice lo que cuesta una subida de otra línea antes del 17d (la «Last race», `checkReplay` y `race-radio.mjs --db`, C16) y que decidirlo es DD-25. D-09 se corrige con esa evidencia y guarda la versión anterior. §0.4, §2.3, §19.5 y la fila de DD-25 van a cruzadas; DD-25 la reescribe Rdueno-006 (L10)."
- },
- {
-  "id": "Rcobertura-017",
-  "estado": "aplicado",
-  "donde": "05-motor.md l. 169 (§5.2, viñeta «`onTimeTrialRide` no copia la traza») y l. 678 (decisión 5-c)",
-  "motivo": "Cierto: `results.tiempoS` es `Math.round(f.tS)` (`timetrial.ts` l. 361 y 372), así que la meta de la traza se escribe `10 · Math.round(totalS)` y I5 es una igualdad (§4.4 y 16-c ya lo dicen). Re-medido con la meta así redondeada (`c-l3/i5exacto.mjs`, copia de `l3/i5.mjs` sobre el `dist` parcheado de L3): 1.176 de 1.176 corredores con 0 Ds de diferencia, 19 con percance, traza monótona. La viñeta añade de paso el reloj de cada control (`checkClockDs`, 9-b, Rcobertura-006) y 5-c dice las dos fórmulas."
- },
- {
-  "id": "Rcodigo-017",
-  "estado": "aplicado",
-  "donde": "05-motor.md l. 259 (§5.4, la importación de `../stage/types.js` en `packages/engine/src/sim/timeline.ts`)",
-  "motivo": "Comprobado contra la guarda vigente de §4.3 (04-modelo.md l. 365): ya importa `BannerType`, `Incident`, `PullMotive as EnginePullMotive`, `SnapshotRider` y `StageProbe` de `../stage/types.js`, y el bloque de §5.4, que la sigue en el mismo fichero, repetía `SnapshotRider` y `StageProbe` (TS2300, medido por el refutador en `rcod/n/ws`). La importación de §5.4 queda en `StageInput`, `StageOutput` y `StageProfile`, con el comentario de por qué."
- },
- {
-  "id": "Rcobertura-005",
-  "estado": "aplicado",
-  "donde": "05-motor.md l. 276-278 (§5.4, comentario de `RecorderFinishInput.cast`) y l. 417 (§5.5, `buildTimelineCast(sp, …, attrsByRider)`)",
-  "motivo": "Cruzada de L2 (§5.4). Comprobado en `packages/db/src/stageRun.ts`: `attrsByRider` se lee en l. 298-310, el aprendizaje reescribe `rider_attrs` en l. 891-897 y `stage_snapshots` se escribe en l. 570-595, así que el reparto cerrado ahí lleva los favoritos con los atributos de antes de la etapa. `buildTimelineCast` los recibe en memoria (no vuelve a leerlos). La parte de §7.8 es del lote L5."
- },
- {
-  "id": "Rcobertura-006",
-  "estado": "aplicado",
-  "donde": "05-motor.md l. 169 (§5.2), l. 303-306 (§5.4, `selfCheckI5` con `check`), l. 360-361 (`onTimeTrialRide` del pseudocódigo), l. 384-386 (paso 7 con `ttTraceOf`) y l. 408 (§5.5, I5 con los controles)",
-  "motivo": "Cruzada de L2 (§5.4). Comprobado en `timetrial.ts`: el control usa `idx = floor(blockCount · c / (ttSplitChecks + 1)) − 1` (l. 523-524), `timeS = raw[idx] · noise` (l. 528) y `splitS = Math.round(timeS)` (l. 542). El grabador guarda `10 · Math.round(raw[idx] · noise)` por control, el paso 7 lo escribe con `ttTraceOf` de §9.2 y `selfCheckI5` compara además cada `tt_split` con el `checkClockDs` de su primer protagonista, como define I5 en §4.4; su elemento gana `check` (null en la meta)."
- },
- {
-  "id": "Rcobertura-007",
-  "estado": "aplicado",
-  "donde": "05-motor.md l. 367-369 (§5.4, paso 3 de `finish`)",
-  "motivo": "Cruzada de L2 (§5.4). Comprobado: `lastHome` es la última llegada (`timetrial.ts` l. 495) y `tt_catches` y `stage_win_itt` van a su hora (l. 596 y 614); §4.2 (`FinishRecord.finishS`, 4-w) ya lo escribe así. El paso 3 da en crono `máx(startDs[r] + kmClockDs[r].at(−1)) / 10`."
- },
- {
-  "id": "Rcobertura-009",
-  "estado": "aplicado",
-  "donde": "05-motor.md l. 376-381 (§5.4, paso 5 de `finish`: los percances de carretera y la caída con la regla `incident`), l. 390-391 (la vista, `groupAt(r, −1) = 0`) y l. 665 (§5.10, el caso de `timeline.test.ts`)",
-  "motivo": "Cruzadas de L2 (§5.4 y tests del grabador). Comprobado contra §4.7 vigente: `REVEAL_RULES` pone `crash`, `puncture` y `mechanical` en `incident`, que toma `groupAt(r0, b − 1)` y el reloj de ese grupo en b, o en b − 1 si murió en b, y `RecorderView.groupAt` da 0 con b = −1 (el pelotón de salida, `simulate.ts` l. 1698-1702). La caída entra con tS 0 y se graba con tS = revealS. El test del grabador con las cifras del prototipo (70,6 s de retraso de mediana con la regla anterior, `l3/grabador.mjs`) va en §5.10; §17.21 y el riesgo 24 de §19.1 son del lote L9."
- },
- {
-  "id": "Rcoste-006",
-  "estado": "aplicado",
-  "donde": "05-motor.md l. 410 (§5.5, «Si falla…»), l. 413-427 (pseudocódigo de `recordStageTimeline`), l. 433 (párrafo «Una sola escritura por día»), l. 440-465 (`StageTimelineRow`, `TimelineTickLog` con `flush` y el cableado de `runTick`), l. 468 (los tests que llaman a `runOneStage`), l. 504-529 (§5.6: `stageTimelineRow`, `tombstoneRow`, `writeStageTimelineRows`) y l. 687 (decisión 5-l); 00-decisiones.md D-10 (l. 177 y nota de l. 184-186)",
-  "motivo": "Comprobado en el código: el tick de hoy es una transacción por día sin puntos de guardado (`tick.ts` l. 259-262) y la etapa se corre dentro (`runCalendarDay`, l. 270-272); el límite de 64 subtransacciones en caché es `PGPROC_MAX_CACHED_SUBXIDS` de Postgres y un punto de guardado que solo lee no toma identificador. La medida en PostgreSQL 16.13 es del refutador (`coste/pgm/subxact.mjs` y `subxact2.mjs`: 153 y 187 puntos que escriben desbordan, 153 que leen no, un INSERT de 153 líneas en un punto, 86 ms); no se ha repetido aquí. Aplicado como propone: la lectura del reparto va en un punto que solo lee, las filas del día se guardan en el diario y `flush` las escribe detrás de `runCalendarDay` en un INSERT y un punto de guardado, con un segundo punto para las lápidas si falla. Los tests que llaman a `runOneStage` con `spec.timeline` llaman a `flush` (el mundo de B1 de §16.3 y `stageRun.test.ts` de §17.8, a cruzadas); el riesgo va a §19.1 por cruzada."
- },
- {
-  "id": "Rcodigo-009",
-  "estado": "aplicado",
-  "donde": "05-motor.md l. 470 (§5.5, «Los cinco sitios que llaman a `runTick`») y l. 688 (decisión 5-m)",
-  "motivo": "Comprobado: `runTick(` se llama en `apps/api/src/tick/main.ts` l. 11, `apps/api/src/index.ts` l. 38 (`onAdminTick`), l. 45 (`onAdminAdvance`) y l. 67 (dentro de `autoTick`, l. 56-85, el tick del propio servicio web), y en `packages/db/src/tickRun.test.ts` l. 30. Son cinco; el test pasa `timelineRecord: 'off'` porque el campo es obligatorio. §14.6 vigente ya clasifica bien los tres de `index.ts`. Añadir `tickRun.test.ts` a los ficheros del PR 5 (§17.20) va a cruzadas."
- },
- {
-  "id": "Rcodigo-018",
-  "estado": "aplicado",
-  "donde": "05-motor.md l. 487 (§5.6, `type Tx = Parameters<Parameters<Database['transaction']>[0]>[0]`)",
-  "motivo": "Cierto: `client.ts` solo exporta `Database` (l. 35) y cada fichero de `packages/db` declara su `Tx` (`stageRun.ts` l. 71, `news.ts` l. 14, `economy.ts` l. 24…). Se añade el alias de §7.4. Compilado: los tres bloques de `timelines.ts` de §5.3, §5.5 y §5.6, extraídos del fichero de sección (`c-l3/extrae.py`) sobre la copia del refutador (`c-l3/ws`, esquema de §13 con `tpl_rev`), dan 0 errores con `tsc -p tsconfig.db.json` (strict, `noUnusedLocals`, `noUnusedParameters`, `exactOptionalPropertyTypes`, `verbatimModuleSyntax`)."
- },
- {
-  "id": "Rcodigo-035",
-  "estado": "aplicado",
-  "donde": "05-motor.md l. 573-577 (§5.6, `readStageTimeline(db, _h: Horizon, …): Promise<StageTimeline | null>`, sin `StageTimelineRead`), l. 483 (`import type { Horizon }`), l. 590 (párrafo «La línea sola y su revisión aparte») y l. 691 (decisión 5-p)",
-  "motivo": "Cruzada de L6 (§5.6). Comprobado contra §14.4 vigente (14-p): `timelineForStage` ya devuelve `StageTimeline | null` y nadie lee `known`. Se quita el tipo; el parámetro va como `_h` por `noUnusedParameters` (`tsconfig.base.json` l. 19), y `isVeiled` sale de la importación, que con `noUnusedLocals` no compilaría. Compilado sin errores (`c-l3/ws`). §G.2, §G.4 y §21.6 F.2 van a cruzadas."
- },
- {
-  "id": "Rcobertura-018",
-  "estado": "aplicado",
-  "donde": "05-motor.md l. 573-577 y l. 590 (§5.6: `StageTimelineRead` desaparece; las dos caras en «La línea sola y su revisión aparte») y l. 691 (decisión 5-p)",
-  "motivo": "Cierto: el mismo nombre para «fuera del velo» y «conocida» (duda 1.8). Hay dos caras y las dos van escritas en §5.6: este hallazgo pedía renombrar a `unveiled`; Rcodigo-035 (L6) quitarlo, y §14.4 vigente ya lo quitó (14-p) porque ningún lector lo usa. Se aplica la segunda, que cierra el choque de nombres sin dejar un campo sin lector; `timelineForStage` (§14.4) y F.2 no necesitan el renombrado."
- },
- {
-  "id": "Rcobertura-014",
-  "estado": "parcial",
-  "donde": "05-motor.md l. 540-566 (§5.6, `Decoded` y `decodedEntry`, con el `tpl_rev` de la fila), l. 582-585 (`readStageTemplateRev`) y l. 590; 13-esquema.md l. 194 y 196 (§13.3)",
-  "motivo": "Cruzada de L2 (§5.6 y §13.3). La columna existe y se lee: `BroadcastHead.tplRev` (§4.11) y el acta la necesitan. Parcial en la forma: la cruzada pedía que la devolviera `readStageTimeline`, y Rcodigo-035 (L6) y §14.4 vigente fijan que esa lectura devuelve la línea sola; para no volver a un envoltorio, la revisión sale por `readStageTemplateRev`, que usa la misma entrada del LRU (tras `readStageTimeline` no vuelve a la base). Que la cabecera, el tramo y el paquete de meta la pidan detrás de `timelineForStage` es de §14.3 y §14.4 y va a cruzadas."
- },
- {
-  "id": "Rcoste-004",
-  "estado": "aplicado",
-  "donde": "05-motor.md l. 594 (§5.6, párrafo «El LRU»)",
-  "motivo": "Cruzadas de L2 y L7 (§5.6), con cifras distintas porque miden con esquemas distintos: se escriben las dos caras. Re-medido aquí en dos corridas sobre las ocho líneas de `l7/stored`: con el `storedTimelineV1Schema` de §4.3 (`corr-l2/zod-real.mjs`, recompilado el `dist` de `corr-l2/ws`), Zod de 1,1 a 28,7 ms de mediana y de 73 a 77 ms la primera; con el aproximado (`coste/zod/decode.mjs l7/stored`), de 0,4 a 23,1 ms; la máquina iba más cargada que en las medidas de L2 (0,9 a 21 ms) y L6 y L7 (0,3 a 14,5 ms). El esquema real cuesta de 1,2 a 1,7 veces el aproximado en la misma corrida y es el que se implementa: la línea en frío, de unos 8 ms (e7) a unos 28 ms (e20) antes de cortar con las medianas de L2. §14.4 y §18.2 dan de 3 a 22 ms con el aproximado: va a cruzadas para que citen el real."
- },
- {
-  "id": "Rcodigo-056",
-  "estado": "aplicado",
-  "donde": "05-motor.md l. 628 (§5.7, párrafo «Los topes»)",
-  "motivo": "Re-contado sobre `rcod/n/sizes24.json` (las 46 corridas en línea, que reproducen al byte el resto del párrafo): con KB de 1.024 bytes, los de `TIMELINE`, pasan de 128 KB de JSON 44 de 46 (`race-france` e21 s1, 126.321 B, y e11 s1, 128.156 B, quedan por debajo de 131.072) y de 48 KB 10; el 45 salía de contar KB de 1.000. El párrafo dice 44, nombra las dos y declara la unidad."
- },
- {
-  "id": "Rcoste-007",
-  "estado": "aplicado",
-  "donde": "05-motor.md l. 610-612 (§5.7, filas de la crono, `race-spain` e18, `race-italy` e10 y `race-chrono` e1), l. 628 («Los topes», `ttMaxStoredBytes` 49.152) y l. 630 («El tope de la crono, corregido»); l. 424-425 (§5.5, la nota de tamaño de una crono contra `ttMaxStoredBytes`)",
-  "motivo": "Comprobado sobre `rcod/crono40.json` y `l5c/sin.json` y `con.json`: la e10 de `race-italy` (42 km, 176) ocupa 31.436 y 31.178 B, y 32.203 y 31.918 con `checkClockDs`; la e18 de `race-spain`, 26.987 y 27.113 B; `race-chrono` e1 (47,6 km, 126), 23.857 y 23.826 B. §15.2 vigente ya pone el tope en 49.152 (L2, 15-i) y D-11 ya está corregida; §5.7 lo cuenta con las cifras. La medida a mano de B6 en el paso 5 (§16.4, §17.8), la fila de §0.7 y el riesgo 10 de §19.1 van a cruzadas (L2 y L5 ya mandaron las de §16.4 y §0.7)."
- },
- {
-  "id": "Rcoste-008",
-  "estado": "parcial",
-  "donde": "05-motor.md l. 632 (§5.7, párrafo «El margen de la mediana del JSON»)",
-  "motivo": "Cierto: la mediana medida es 227.516 B (222 KB, `rcod/n/sizes24.json`), un 15 % bajo el tope de 262.144, y la e18 cambia un 20 % solo con la semilla (269,0 y 216,7 KB); B6 del JSON corre en el tramo del motor (15-d, 16-n) y `TIMELINE` vive en `packages/engine/src/constants.ts`. §5.7 escribe el riesgo y las dos salidas; no cambia la cifra porque el valor es de §15.2 (vigente, del lote L2: 262_144) y el comportamiento de B6 es de §16.4 (L8), y escribir 320 KB aquí contradiría las dos. La mediana a 327.680, que B6 del JSON imprima sin fallar en el tramo del motor (o sacar los topes a `packages/shared`) y el riesgo 1 de §19.1 (la táctica paga I1, I3, B6 y B11 de E2) van a cruzadas."
- },
- {
-  "id": "Rcobertura-031",
-  "estado": "aplicado",
-  "donde": "05-motor.md l. 610-612 (§5.7, filas de la crono con y sin `checkClockDs`)",
-  "motivo": "Cruzada de L5 (§5.7 y §0.7). Cifras comprobadas en `l5c/sin.json` y `l5c/con.json` (e18: 26.987 y 27.113 B, 27.692 y 27.821 con `checkClockDs`; e10: 31.436 y 31.178, 32.203 y 31.918). La parte de §0.7 es del lote L10 y ya está en `cruzadas-L5.json`."
- },
- {
-  "id": "Rcodigo-014",
-  "estado": "aplicado",
-  "donde": "05-motor.md l. 610-612, l. 628 y l. 630 (§5.7)",
-  "motivo": "Cruzada de L2 (§5.7): la fila de la crono de 176 de 20 y 26 km, la e18 de `race-spain` y la e10 de `race-italy` con y sin `checkClockDs`, y el tope de 48 KB (49.152 B, 15-i). Las cifras son las de `rcod/crono40.json` y `l5c/con.json`."
- },
- {
-  "id": "Rcodigo-010",
-  "estado": "aplicado",
-  "donde": "05-motor.md l. 655 (§5.9, la reexportación de `realRaceScenario` y la medida con su campo) y l. 662 (§5.10, B10)",
-  "motivo": "Comprobado: `export function realRaceScenario(` en `sim/scenarios.ts` l. 518, usada por `pareado.ts` l. 32, `coherence.test.ts` l. 27 y `saturation.ts` l. 17; el índice (l. 197-204) no la reexporta; corre `uniformField()` (l. 491-509, 176 corredores con `eff(60)`, l. 531). Se escribe así. Como B10 en `packages/db` no repite las 18 corridas del juez, se ha medido con su campo y sus semillas (`c-l3/b10uniforme.mjs`, las tres etapas de QUICK de §16.4): colector aparte igual que hoy en 3 de 3, la ingenua rompe en 3 de 3 (6, 1 y 2 corredores en `trabajaronParaOtro`, y la radio): la cláusula de no vacío de §16.4 se cumple."
- },
- {
-  "id": "Rcobertura-010",
-  "estado": "aplicado",
-  "donde": "05-motor.md l. 404 (§5.5, «como decía la firma que fijó la síntesis») y l. 684 (decisión 5-i); 5-p (l. 691) ya sin §G.4",
-  "motivo": "Cruzada de L2 (todas las secciones). En §5 el cuerpo tenía dos remisiones a §G.4 (el párrafo de `selfCheckI1` y las decisiones 5-i y 5-p): pasan a «la firma que fijó la síntesis» y a §21.6 F.2, la tabla de firmas del apéndice. Las que quedan (duda 6 de §5; «Propuesto para el glosario» de §13, con §G.4 y §G.5) están en bloques que `ensamblar.sh` quita."
- },
- {
-  "id": "Rcoste-016",
-  "estado": "aplicado",
-  "donde": "13-esquema.md l. 25 (§13.1, párrafo de medida tras la tabla)",
-  "motivo": "Cierto: una fila por tabla no mide los índices ni los `ALTER TABLE` sobre tablas llenas. Medido en la corrección en PGlite con tamaños de un año (`c-l3/anio.mjs`: 1.000.000 de transacciones, 20.000 noticias, 50.000 puntos, 249.600 filas de `race_rosters`): `0043` 23 ms, `0044` 5 ms, `0045` 239 ms, `0046` 703 ms; se citan también los 258 ms del refutador en PostgreSQL 16 y los 44 ms (60 al repetir) del mundo con una fila. La espera a un tick abierto va a la regla 8 (Rcoste-030)."
- },
- {
-  "id": "Rcoste-030",
-  "estado": "parcial",
-  "donde": "13-esquema.md l. 15 (§13.1, regla 7) y l. 16 (regla 8 nueva), l. 448 (§13.10, punto 8) y l. 469 (decisión 13-k); 00-decisiones.md D-49 (l. 593 y nota de l. 599-601)",
-  "motivo": "Del lote L9 por su `seccion` (§17.1); el orquestador lo pone en L3 y su corrección y la cruzada de L7 piden la defensa en §13.1. Comprobado: `runMigrations` antes de `listen` (`index.ts` l. 16 y 54) y en el cron (`railway.tick.json`); drizzle 0.45.2 aplica las pendientes en una transacción (`pg-core/dialect.js` l. 60-71); `LOCK_CLASS.migration` y `LOCK_CLASS.tick` son clases distintas (`migrate.ts` l. 24, `tick.ts` l. 214); el tick usa `pg_try_advisory_lock` y sale con `ran: false` (l. 212-217). La cola medida es del refutador en PostgreSQL 16 (`coste/pgm/cola.mjs`, `cola45.mjs`); no se ha repetido (PGlite tiene un solo backend). Sobre la propuesta se añade que solo se toma el candado del tick si hay migraciones pendientes (la comparación de drizzle, `dialect.js` l. 57-62 y `migrator.js` l. 22), para no hacer esperar a cada arranque, y se escriben el coste (esperar al tick en curso, hasta 40 días al ponerse al día) y el `healthcheckTimeout` de 300 s. Parcial: §17.1 (regla 9) y el riesgo de §19.1 son del lote L9 y van a cruzadas."
- },
- {
-  "id": "Rcoste-037",
-  "estado": "parcial",
-  "donde": "13-esquema.md l. 31 (§13.2, «Si el reinicio llega antes que el código») y l. 436 (§13.9, «La `0043` y su escritor van antes»)",
-  "motivo": "Del lote L9 por su `seccion` (§17.19); el orquestador lo pone en L3 porque toca la `0043` y el reinicio de §13. Comprobado: la regla de arranque (`docs/encargos.md` l. 14-26), el reinicio que fija el dueño (`docs/agenda.md` l. 35), el plazo (l. 131-133) y la Oleada 0 (l. 1416-1417); «no tiene arreglo» es de §19.8. §13.2 escribe el riesgo y el mínimo que lo evita (la `0043` y `emitNews` guardando semilla y datos) y deja la elección al dueño; §13.9 lo remite. Parcial: la excepción declarada en §17.19, el riesgo de §19.1 y la decisión nueva de §20 son de L9 y L10 y van a cruzadas."
- },
- {
-  "id": "Rcobertura-044",
-  "estado": "aplicado",
-  "donde": "13-esquema.md l. 124 (§13.3, entrada y procedencia del SQL), l. 133 (SQL `\"tpl_rev\" smallint NOT NULL`), l. 173-175 (Drizzle `tplRev: smallint('tpl_rev').notNull()`), l. 194 («Quién escribe y quién lee»), l. 196 (párrafo «`tpl_rev`, la revisión de las plantillas»), l. 21 (fila de la `0044` en §13.1), l. 445 (§13.10, punto 5) y l. 468 (decisión 13-j); 05-motor.md l. 414 (§5.5, `meta.tplRev`) y l. 489-492, 504-521 y 582 (§5.6); 00-decisiones.md D-10 (l. 177)",
-  "motivo": "Cierto: 12-c y §12.7 la necesitan y `BroadcastHead.tplRev` ya está en §4.11 (L2). Regenerado con drizzle-kit 0.31.10 (`c-l3/generar3.py` sobre `c-l3/dbcopy3`, copia fresca de `packages/db`): la `0044` gana la columna tras `engine_version` y las otras tres salen iguales; aplicado sobre PGlite con un mundo vivo (`c-l3/aplicar3.mjs`): 60 ms, segunda pasada vacía, una fila sin `tpl_rev` da 23502. Frente a la corrección propuesta, sin `DEFAULT 0`: no hay filas anteriores a la tabla y sin defecto `$inferInsert` obliga a darla en los dos escritores (compilado en `c-l3/ws`); con defecto, olvidarla dejaría todo en la revisión 0 sin fallar. La lectura va por `readStageTemplateRev` y no por `readStageTimeline` (Rcodigo-035, §14.4). §17.8 (sin condicional) y §12.7 (sin `default 0`) van a cruzadas."
- },
- {
-  "id": "Rcobertura-045",
-  "estado": "aplicado",
-  "donde": "13-esquema.md l. 394 (§13.5, último párrafo) y l. 470 (decisión 13-l)",
-  "motivo": "Cierto: §11.1 no dice nada de él. Comprobado contra §10.6 vigente: `money` suma los `premio` con `(race_key, stage_day)` velados y `budget` el `prize` de las etapas veladas (10-horizonte.md l. 327-328), así que un premio sin `ref` no se resta y cuenta como conocido, y §11.13 ya ve siempre los movimientos con `race_key` nulo. Se escribe como decisión, con el porqué de que no importe (mundo de pruebas, antes del paso 10, `transactions.rider_id` en cascada con el corredor, `schema.ts` l. 828-830, y R nace en el 8b, detrás del 8a). La remisión en §11.13 va a cruzadas."
- },
- {
-  "id": "Rcodigo-011",
-  "estado": "aplicado",
-  "donde": "13-esquema.md l. 409 (§13.7, «Pero el criterio de escritura no distingue…»), l. 411-414 («Por eso el PR 1a añade al test una segunda regla…» y sus tres consecuencias), l. 447 (§13.10, punto 7) y l. 459 (decisión 13-a); 00-decisiones.md D-49 (l. 593 y nota de l. 599-601)",
-  "motivo": "Cierto, y más ancho de lo que decía: con la lógica del test (`columnasVivas.test.ts` l. 84-93) sobre el esquema de §13 y un `horizon.ts` y un `watch.ts` que solo tienen las declaraciones de §4.10 y §10.3 (formateadas con el prettier del repositorio), `knownThrough` sale escrita por `Horizon` y por el literal de `worldHorizon`, `follow` por `WatchRow` y el parámetro de `setFollow`, y `horizonRev` por el objeto que devuelve `recordProgress` (`c-l3/vivas/vivas3.mjs`). La corrección propuesta (excluir `Map<`, `Set<`, `Array<`) no cambia nada, medido; renombrar el campo de `Horizon` no quita los otros tres y es de §4.10. Se aplica otra: para las cuatro columnas de E2, una escritura solo cuenta dentro de un `.set(` o un `.values(` (`c-l3/vivas/vivasD.mjs`: hoy, 24 vigiladas y solo `fame` y `teamTrust` muertas; con solo declaraciones, las cuatro muertas; con los escritores de §10.3 y §13.5, vivas), con el caso de las declaraciones solas en el test. La frase de §10.3 sobre los nombres locales va a cruzadas."
- },
- {
-  "id": "Rcodigo-069",
-  "estado": "aplicado",
-  "donde": "13-esquema.md l. 442 (§13.10, punto 2) y l. 471 (decisión 13-m)",
-  "motivo": "Comprobado: `runMigrations(databaseUrl)` usa la carpeta fija de `migrate.ts` l. 15 (l. 21-29) y `startTestDb()` llama siempre a `runMigrations` (`testDb.ts` l. 58-65); `l3/aplicar2.mjs` y `c-l3/aplicar3.mjs` montan PGlite y el socket a mano. §13.10 dice qué cambia en el PR 1a: `runMigrations(databaseUrl, folder = migrationsFolder)` y `startEmptyTestDb()`, y cómo lo usa el test con `detached` (l. 73-80). La fila de §17.20 va a cruzadas."
- }
+  {
+    "id": "Rdueno-005",
+    "estado": "aplicado",
+    "donde": "05-motor.md l. 25 (§5.1, «Lo que pasa si otra línea sube la versión», en lugar de «La regla para quien venga después») y el cierre de §5 (O-05 y H-02, l. 671-673); 00-decisiones.md D-09 (l. 167) y su nota «Corregida en la corrección, fase 5» (l. 171-173)",
+    "motivo": "Comprobado: `docs/balance.md` l. 16319-16321 no sube cuando la carrera no cambia y la D7 (l. 16557-16558) es condicional; `git log -L` sobre `ENGINE_VERSION` da de la v69 (`025efbe`) a la v89 (`c39f450`) en catorce commits entre el 14 y el 26 de septiembre (v83 `d5ebc04`, v86 `bcd49bf`, v89 `c39f450`); `docs/encargos.md` l. 14-26 pone a las épicas detrás de la línea del motor; `docs/tactica.md` l. 6979 es el 17d («el informe deja de re-simular»). §5.1 deja de escribir la regla y dice lo que cuesta una subida de otra línea antes del 17d (la «Last race», `checkReplay` y `race-radio.mjs --db`, C16) y que decidirlo es DD-25. D-09 se corrige con esa evidencia y guarda la versión anterior. §0.4, §2.3, §19.5 y la fila de DD-25 van a cruzadas; DD-25 la reescribe Rdueno-006 (L10)."
+  },
+  {
+    "id": "Rcobertura-017",
+    "estado": "aplicado",
+    "donde": "05-motor.md l. 169 (§5.2, viñeta «`onTimeTrialRide` no copia la traza») y l. 678 (decisión 5-c)",
+    "motivo": "Cierto: `results.tiempoS` es `Math.round(f.tS)` (`timetrial.ts` l. 361 y 372), así que la meta de la traza se escribe `10 · Math.round(totalS)` y I5 es una igualdad (§4.4 y 16-c ya lo dicen). Re-medido con la meta así redondeada (`c-l3/i5exacto.mjs`, copia de `l3/i5.mjs` sobre el `dist` parcheado de L3): 1.176 de 1.176 corredores con 0 Ds de diferencia, 19 con percance, traza monótona. La viñeta añade de paso el reloj de cada control (`checkClockDs`, 9-b, Rcobertura-006) y 5-c dice las dos fórmulas."
+  },
+  {
+    "id": "Rcodigo-017",
+    "estado": "aplicado",
+    "donde": "05-motor.md l. 259 (§5.4, la importación de `../stage/types.js` en `packages/engine/src/sim/timeline.ts`)",
+    "motivo": "Comprobado contra la guarda vigente de §4.3 (04-modelo.md l. 365): ya importa `BannerType`, `Incident`, `PullMotive as EnginePullMotive`, `SnapshotRider` y `StageProbe` de `../stage/types.js`, y el bloque de §5.4, que la sigue en el mismo fichero, repetía `SnapshotRider` y `StageProbe` (TS2300, medido por el refutador en `rcod/n/ws`). La importación de §5.4 queda en `StageInput`, `StageOutput` y `StageProfile`, con el comentario de por qué."
+  },
+  {
+    "id": "Rcobertura-005",
+    "estado": "aplicado",
+    "donde": "05-motor.md l. 276-278 (§5.4, comentario de `RecorderFinishInput.cast`) y l. 417 (§5.5, `buildTimelineCast(sp, …, attrsByRider)`)",
+    "motivo": "Cruzada de L2 (§5.4). Comprobado en `packages/db/src/stageRun.ts`: `attrsByRider` se lee en l. 298-310, el aprendizaje reescribe `rider_attrs` en l. 891-897 y `stage_snapshots` se escribe en l. 570-595, así que el reparto cerrado ahí lleva los favoritos con los atributos de antes de la etapa. `buildTimelineCast` los recibe en memoria (no vuelve a leerlos). La parte de §7.8 es del lote L5."
+  },
+  {
+    "id": "Rcobertura-006",
+    "estado": "aplicado",
+    "donde": "05-motor.md l. 169 (§5.2), l. 303-306 (§5.4, `selfCheckI5` con `check`), l. 360-361 (`onTimeTrialRide` del pseudocódigo), l. 384-386 (paso 7 con `ttTraceOf`) y l. 408 (§5.5, I5 con los controles)",
+    "motivo": "Cruzada de L2 (§5.4). Comprobado en `timetrial.ts`: el control usa `idx = floor(blockCount · c / (ttSplitChecks + 1)) − 1` (l. 523-524), `timeS = raw[idx] · noise` (l. 528) y `splitS = Math.round(timeS)` (l. 542). El grabador guarda `10 · Math.round(raw[idx] · noise)` por control, el paso 7 lo escribe con `ttTraceOf` de §9.2 y `selfCheckI5` compara además cada `tt_split` con el `checkClockDs` de su primer protagonista, como define I5 en §4.4; su elemento gana `check` (null en la meta)."
+  },
+  {
+    "id": "Rcobertura-007",
+    "estado": "aplicado",
+    "donde": "05-motor.md l. 367-369 (§5.4, paso 3 de `finish`)",
+    "motivo": "Cruzada de L2 (§5.4). Comprobado: `lastHome` es la última llegada (`timetrial.ts` l. 495) y `tt_catches` y `stage_win_itt` van a su hora (l. 596 y 614); §4.2 (`FinishRecord.finishS`, 4-w) ya lo escribe así. El paso 3 da en crono `máx(startDs[r] + kmClockDs[r].at(−1)) / 10`."
+  },
+  {
+    "id": "Rcobertura-009",
+    "estado": "aplicado",
+    "donde": "05-motor.md l. 376-381 (§5.4, paso 5 de `finish`: los percances de carretera y la caída con la regla `incident`), l. 390-391 (la vista, `groupAt(r, −1) = 0`) y l. 665 (§5.10, el caso de `timeline.test.ts`)",
+    "motivo": "Cruzadas de L2 (§5.4 y tests del grabador). Comprobado contra §4.7 vigente: `REVEAL_RULES` pone `crash`, `puncture` y `mechanical` en `incident`, que toma `groupAt(r0, b − 1)` y el reloj de ese grupo en b, o en b − 1 si murió en b, y `RecorderView.groupAt` da 0 con b = −1 (el pelotón de salida, `simulate.ts` l. 1698-1702). La caída entra con tS 0 y se graba con tS = revealS. El test del grabador con las cifras del prototipo (70,6 s de retraso de mediana con la regla anterior, `l3/grabador.mjs`) va en §5.10; §17.21 y el riesgo 24 de §19.1 son del lote L9."
+  },
+  {
+    "id": "Rcoste-006",
+    "estado": "aplicado",
+    "donde": "05-motor.md l. 410 (§5.5, «Si falla…»), l. 413-427 (pseudocódigo de `recordStageTimeline`), l. 433 (párrafo «Una sola escritura por día»), l. 440-465 (`StageTimelineRow`, `TimelineTickLog` con `flush` y el cableado de `runTick`), l. 468 (los tests que llaman a `runOneStage`), l. 504-529 (§5.6: `stageTimelineRow`, `tombstoneRow`, `writeStageTimelineRows`) y l. 687 (decisión 5-l); 00-decisiones.md D-10 (l. 177 y nota de l. 184-186)",
+    "motivo": "Comprobado en el código: el tick de hoy es una transacción por día sin puntos de guardado (`tick.ts` l. 259-262) y la etapa se corre dentro (`runCalendarDay`, l. 270-272); el límite de 64 subtransacciones en caché es `PGPROC_MAX_CACHED_SUBXIDS` de Postgres y un punto de guardado que solo lee no toma identificador. La medida en PostgreSQL 16.13 es del refutador (`coste/pgm/subxact.mjs` y `subxact2.mjs`: 153 y 187 puntos que escriben desbordan, 153 que leen no, un INSERT de 153 líneas en un punto, 86 ms); no se ha repetido aquí. Aplicado como propone: la lectura del reparto va en un punto que solo lee, las filas del día se guardan en el diario y `flush` las escribe detrás de `runCalendarDay` en un INSERT y un punto de guardado, con un segundo punto para las lápidas si falla. Los tests que llaman a `runOneStage` con `spec.timeline` llaman a `flush` (el mundo de B1 de §16.3 y `stageRun.test.ts` de §17.8, a cruzadas); el riesgo va a §19.1 por cruzada."
+  },
+  {
+    "id": "Rcodigo-009",
+    "estado": "aplicado",
+    "donde": "05-motor.md l. 470 (§5.5, «Los cinco sitios que llaman a `runTick`») y l. 688 (decisión 5-m)",
+    "motivo": "Comprobado: `runTick(` se llama en `apps/api/src/tick/main.ts` l. 11, `apps/api/src/index.ts` l. 38 (`onAdminTick`), l. 45 (`onAdminAdvance`) y l. 67 (dentro de `autoTick`, l. 56-85, el tick del propio servicio web), y en `packages/db/src/tickRun.test.ts` l. 30. Son cinco; el test pasa `timelineRecord: 'off'` porque el campo es obligatorio. §14.6 vigente ya clasifica bien los tres de `index.ts`. Añadir `tickRun.test.ts` a los ficheros del PR 5 (§17.20) va a cruzadas."
+  },
+  {
+    "id": "Rcodigo-018",
+    "estado": "aplicado",
+    "donde": "05-motor.md l. 487 (§5.6, `type Tx = Parameters<Parameters<Database['transaction']>[0]>[0]`)",
+    "motivo": "Cierto: `client.ts` solo exporta `Database` (l. 35) y cada fichero de `packages/db` declara su `Tx` (`stageRun.ts` l. 71, `news.ts` l. 14, `economy.ts` l. 24…). Se añade el alias de §7.4. Compilado: los tres bloques de `timelines.ts` de §5.3, §5.5 y §5.6, extraídos del fichero de sección (`c-l3/extrae.py`) sobre la copia del refutador (`c-l3/ws`, esquema de §13 con `tpl_rev`), dan 0 errores con `tsc -p tsconfig.db.json` (strict, `noUnusedLocals`, `noUnusedParameters`, `exactOptionalPropertyTypes`, `verbatimModuleSyntax`)."
+  },
+  {
+    "id": "Rcodigo-035",
+    "estado": "aplicado",
+    "donde": "05-motor.md l. 573-577 (§5.6, `readStageTimeline(db, _h: Horizon, …): Promise<StageTimeline | null>`, sin `StageTimelineRead`), l. 483 (`import type { Horizon }`), l. 590 (párrafo «La línea sola y su revisión aparte») y l. 691 (decisión 5-p)",
+    "motivo": "Cruzada de L6 (§5.6). Comprobado contra §14.4 vigente (14-p): `timelineForStage` ya devuelve `StageTimeline | null` y nadie lee `known`. Se quita el tipo; el parámetro va como `_h` por `noUnusedParameters` (`tsconfig.base.json` l. 19), y `isVeiled` sale de la importación, que con `noUnusedLocals` no compilaría. Compilado sin errores (`c-l3/ws`). §G.2, §G.4 y §21.6 F.2 van a cruzadas."
+  },
+  {
+    "id": "Rcobertura-018",
+    "estado": "aplicado",
+    "donde": "05-motor.md l. 573-577 y l. 590 (§5.6: `StageTimelineRead` desaparece; las dos caras en «La línea sola y su revisión aparte») y l. 691 (decisión 5-p)",
+    "motivo": "Cierto: el mismo nombre para «fuera del velo» y «conocida» (duda 1.8). Hay dos caras y las dos van escritas en §5.6: este hallazgo pedía renombrar a `unveiled`; Rcodigo-035 (L6) quitarlo, y §14.4 vigente ya lo quitó (14-p) porque ningún lector lo usa. Se aplica la segunda, que cierra el choque de nombres sin dejar un campo sin lector; `timelineForStage` (§14.4) y F.2 no necesitan el renombrado."
+  },
+  {
+    "id": "Rcobertura-014",
+    "estado": "parcial",
+    "donde": "05-motor.md l. 540-566 (§5.6, `Decoded` y `decodedEntry`, con el `tpl_rev` de la fila), l. 582-585 (`readStageTemplateRev`) y l. 590; 13-esquema.md l. 194 y 196 (§13.3)",
+    "motivo": "Cruzada de L2 (§5.6 y §13.3). La columna existe y se lee: `BroadcastHead.tplRev` (§4.11) y el acta la necesitan. Parcial en la forma: la cruzada pedía que la devolviera `readStageTimeline`, y Rcodigo-035 (L6) y §14.4 vigente fijan que esa lectura devuelve la línea sola; para no volver a un envoltorio, la revisión sale por `readStageTemplateRev`, que usa la misma entrada del LRU (tras `readStageTimeline` no vuelve a la base). Que la cabecera, el tramo y el paquete de meta la pidan detrás de `timelineForStage` es de §14.3 y §14.4 y va a cruzadas."
+  },
+  {
+    "id": "Rcoste-004",
+    "estado": "aplicado",
+    "donde": "05-motor.md l. 594 (§5.6, párrafo «El LRU»)",
+    "motivo": "Cruzadas de L2 y L7 (§5.6), con cifras distintas porque miden con esquemas distintos: se escriben las dos caras. Re-medido aquí en dos corridas sobre las ocho líneas de `l7/stored`: con el `storedTimelineV1Schema` de §4.3 (`corr-l2/zod-real.mjs`, recompilado el `dist` de `corr-l2/ws`), Zod de 1,1 a 28,7 ms de mediana y de 73 a 77 ms la primera; con el aproximado (`coste/zod/decode.mjs l7/stored`), de 0,4 a 23,1 ms; la máquina iba más cargada que en las medidas de L2 (0,9 a 21 ms) y L6 y L7 (0,3 a 14,5 ms). El esquema real cuesta de 1,2 a 1,7 veces el aproximado en la misma corrida y es el que se implementa: la línea en frío, de unos 8 ms (e7) a unos 28 ms (e20) antes de cortar con las medianas de L2. §14.4 y §18.2 dan de 3 a 22 ms con el aproximado: va a cruzadas para que citen el real."
+  },
+  {
+    "id": "Rcodigo-056",
+    "estado": "aplicado",
+    "donde": "05-motor.md l. 628 (§5.7, párrafo «Los topes»)",
+    "motivo": "Re-contado sobre `rcod/n/sizes24.json` (las 46 corridas en línea, que reproducen al byte el resto del párrafo): con KB de 1.024 bytes, los de `TIMELINE`, pasan de 128 KB de JSON 44 de 46 (`race-france` e21 s1, 126.321 B, y e11 s1, 128.156 B, quedan por debajo de 131.072) y de 48 KB 10; el 45 salía de contar KB de 1.000. El párrafo dice 44, nombra las dos y declara la unidad."
+  },
+  {
+    "id": "Rcoste-007",
+    "estado": "aplicado",
+    "donde": "05-motor.md l. 610-612 (§5.7, filas de la crono, `race-spain` e18, `race-italy` e10 y `race-chrono` e1), l. 628 («Los topes», `ttMaxStoredBytes` 49.152) y l. 630 («El tope de la crono, corregido»); l. 424-425 (§5.5, la nota de tamaño de una crono contra `ttMaxStoredBytes`)",
+    "motivo": "Comprobado sobre `rcod/crono40.json` y `l5c/sin.json` y `con.json`: la e10 de `race-italy` (42 km, 176) ocupa 31.436 y 31.178 B, y 32.203 y 31.918 con `checkClockDs`; la e18 de `race-spain`, 26.987 y 27.113 B; `race-chrono` e1 (47,6 km, 126), 23.857 y 23.826 B. §15.2 vigente ya pone el tope en 49.152 (L2, 15-i) y D-11 ya está corregida; §5.7 lo cuenta con las cifras. La medida a mano de B6 en el paso 5 (§16.4, §17.8), la fila de §0.7 y el riesgo 10 de §19.1 van a cruzadas (L2 y L5 ya mandaron las de §16.4 y §0.7)."
+  },
+  {
+    "id": "Rcoste-008",
+    "estado": "parcial",
+    "donde": "05-motor.md l. 632 (§5.7, párrafo «El margen de la mediana del JSON»)",
+    "motivo": "Cierto: la mediana medida es 227.516 B (222 KB, `rcod/n/sizes24.json`), un 15 % bajo el tope de 262.144, y la e18 cambia un 20 % solo con la semilla (269,0 y 216,7 KB); B6 del JSON corre en el tramo del motor (15-d, 16-n) y `TIMELINE` vive en `packages/engine/src/constants.ts`. §5.7 escribe el riesgo y las dos salidas; no cambia la cifra porque el valor es de §15.2 (vigente, del lote L2: 262_144) y el comportamiento de B6 es de §16.4 (L8), y escribir 320 KB aquí contradiría las dos. La mediana a 327.680, que B6 del JSON imprima sin fallar en el tramo del motor (o sacar los topes a `packages/shared`) y el riesgo 1 de §19.1 (la táctica paga I1, I3, B6 y B11 de E2) van a cruzadas."
+  },
+  {
+    "id": "Rcobertura-031",
+    "estado": "aplicado",
+    "donde": "05-motor.md l. 610-612 (§5.7, filas de la crono con y sin `checkClockDs`)",
+    "motivo": "Cruzada de L5 (§5.7 y §0.7). Cifras comprobadas en `l5c/sin.json` y `l5c/con.json` (e18: 26.987 y 27.113 B, 27.692 y 27.821 con `checkClockDs`; e10: 31.436 y 31.178, 32.203 y 31.918). La parte de §0.7 es del lote L10 y ya está en `cruzadas-L5.json`."
+  },
+  {
+    "id": "Rcodigo-014",
+    "estado": "aplicado",
+    "donde": "05-motor.md l. 610-612, l. 628 y l. 630 (§5.7)",
+    "motivo": "Cruzada de L2 (§5.7): la fila de la crono de 176 de 20 y 26 km, la e18 de `race-spain` y la e10 de `race-italy` con y sin `checkClockDs`, y el tope de 48 KB (49.152 B, 15-i). Las cifras son las de `rcod/crono40.json` y `l5c/con.json`."
+  },
+  {
+    "id": "Rcodigo-010",
+    "estado": "aplicado",
+    "donde": "05-motor.md l. 655 (§5.9, la reexportación de `realRaceScenario` y la medida con su campo) y l. 662 (§5.10, B10)",
+    "motivo": "Comprobado: `export function realRaceScenario(` en `sim/scenarios.ts` l. 518, usada por `pareado.ts` l. 32, `coherence.test.ts` l. 27 y `saturation.ts` l. 17; el índice (l. 197-204) no la reexporta; corre `uniformField()` (l. 491-509, 176 corredores con `eff(60)`, l. 531). Se escribe así. Como B10 en `packages/db` no repite las 18 corridas del juez, se ha medido con su campo y sus semillas (`c-l3/b10uniforme.mjs`, las tres etapas de QUICK de §16.4): colector aparte igual que hoy en 3 de 3, la ingenua rompe en 3 de 3 (6, 1 y 2 corredores en `trabajaronParaOtro`, y la radio): la cláusula de no vacío de §16.4 se cumple."
+  },
+  {
+    "id": "Rcobertura-010",
+    "estado": "aplicado",
+    "donde": "05-motor.md l. 404 (§5.5, «como decía la firma que fijó la síntesis») y l. 684 (decisión 5-i); 5-p (l. 691) ya sin §G.4",
+    "motivo": "Cruzada de L2 (todas las secciones). En §5 el cuerpo tenía dos remisiones a §G.4 (el párrafo de `selfCheckI1` y las decisiones 5-i y 5-p): pasan a «la firma que fijó la síntesis» y a §21.6 F.2, la tabla de firmas del apéndice. Las que quedan (duda 6 de §5; «Propuesto para el glosario» de §13, con §G.4 y §G.5) están en bloques que `ensamblar.sh` quita."
+  },
+  {
+    "id": "Rcoste-016",
+    "estado": "aplicado",
+    "donde": "13-esquema.md l. 25 (§13.1, párrafo de medida tras la tabla)",
+    "motivo": "Cierto: una fila por tabla no mide los índices ni los `ALTER TABLE` sobre tablas llenas. Medido en la corrección en PGlite con tamaños de un año (`c-l3/anio.mjs`: 1.000.000 de transacciones, 20.000 noticias, 50.000 puntos, 249.600 filas de `race_rosters`): `0043` 23 ms, `0044` 5 ms, `0045` 239 ms, `0046` 703 ms; se citan también los 258 ms del refutador en PostgreSQL 16 y los 44 ms (60 al repetir) del mundo con una fila. La espera a un tick abierto va a la regla 8 (Rcoste-030)."
+  },
+  {
+    "id": "Rcoste-030",
+    "estado": "parcial",
+    "donde": "13-esquema.md l. 15 (§13.1, regla 7) y l. 16 (regla 8 nueva), l. 448 (§13.10, punto 8) y l. 469 (decisión 13-k); 00-decisiones.md D-49 (l. 593 y nota de l. 599-601)",
+    "motivo": "Del lote L9 por su `seccion` (§17.1); el orquestador lo pone en L3 y su corrección y la cruzada de L7 piden la defensa en §13.1. Comprobado: `runMigrations` antes de `listen` (`index.ts` l. 16 y 54) y en el cron (`railway.tick.json`); drizzle 0.45.2 aplica las pendientes en una transacción (`pg-core/dialect.js` l. 60-71); `LOCK_CLASS.migration` y `LOCK_CLASS.tick` son clases distintas (`migrate.ts` l. 24, `tick.ts` l. 214); el tick usa `pg_try_advisory_lock` y sale con `ran: false` (l. 212-217). La cola medida es del refutador en PostgreSQL 16 (`coste/pgm/cola.mjs`, `cola45.mjs`); no se ha repetido (PGlite tiene un solo backend). Sobre la propuesta se añade que solo se toma el candado del tick si hay migraciones pendientes (la comparación de drizzle, `dialect.js` l. 57-62 y `migrator.js` l. 22), para no hacer esperar a cada arranque, y se escriben el coste (esperar al tick en curso, hasta 40 días al ponerse al día) y el `healthcheckTimeout` de 300 s. Parcial: §17.1 (regla 9) y el riesgo de §19.1 son del lote L9 y van a cruzadas."
+  },
+  {
+    "id": "Rcoste-037",
+    "estado": "parcial",
+    "donde": "13-esquema.md l. 31 (§13.2, «Si el reinicio llega antes que el código») y l. 436 (§13.9, «La `0043` y su escritor van antes»)",
+    "motivo": "Del lote L9 por su `seccion` (§17.19); el orquestador lo pone en L3 porque toca la `0043` y el reinicio de §13. Comprobado: la regla de arranque (`docs/encargos.md` l. 14-26), el reinicio que fija el dueño (`docs/agenda.md` l. 35), el plazo (l. 131-133) y la Oleada 0 (l. 1416-1417); «no tiene arreglo» es de §19.8. §13.2 escribe el riesgo y el mínimo que lo evita (la `0043` y `emitNews` guardando semilla y datos) y deja la elección al dueño; §13.9 lo remite. Parcial: la excepción declarada en §17.19, el riesgo de §19.1 y la decisión nueva de §20 son de L9 y L10 y van a cruzadas."
+  },
+  {
+    "id": "Rcobertura-044",
+    "estado": "aplicado",
+    "donde": "13-esquema.md l. 124 (§13.3, entrada y procedencia del SQL), l. 133 (SQL `\"tpl_rev\" smallint NOT NULL`), l. 173-175 (Drizzle `tplRev: smallint('tpl_rev').notNull()`), l. 194 («Quién escribe y quién lee»), l. 196 (párrafo «`tpl_rev`, la revisión de las plantillas»), l. 21 (fila de la `0044` en §13.1), l. 445 (§13.10, punto 5) y l. 468 (decisión 13-j); 05-motor.md l. 414 (§5.5, `meta.tplRev`) y l. 489-492, 504-521 y 582 (§5.6); 00-decisiones.md D-10 (l. 177)",
+    "motivo": "Cierto: 12-c y §12.7 la necesitan y `BroadcastHead.tplRev` ya está en §4.11 (L2). Regenerado con drizzle-kit 0.31.10 (`c-l3/generar3.py` sobre `c-l3/dbcopy3`, copia fresca de `packages/db`): la `0044` gana la columna tras `engine_version` y las otras tres salen iguales; aplicado sobre PGlite con un mundo vivo (`c-l3/aplicar3.mjs`): 60 ms, segunda pasada vacía, una fila sin `tpl_rev` da 23502. Frente a la corrección propuesta, sin `DEFAULT 0`: no hay filas anteriores a la tabla y sin defecto `$inferInsert` obliga a darla en los dos escritores (compilado en `c-l3/ws`); con defecto, olvidarla dejaría todo en la revisión 0 sin fallar. La lectura va por `readStageTemplateRev` y no por `readStageTimeline` (Rcodigo-035, §14.4). §17.8 (sin condicional) y §12.7 (sin `default 0`) van a cruzadas."
+  },
+  {
+    "id": "Rcobertura-045",
+    "estado": "aplicado",
+    "donde": "13-esquema.md l. 394 (§13.5, último párrafo) y l. 470 (decisión 13-l)",
+    "motivo": "Cierto: §11.1 no dice nada de él. Comprobado contra §10.6 vigente: `money` suma los `premio` con `(race_key, stage_day)` velados y `budget` el `prize` de las etapas veladas (10-horizonte.md l. 327-328), así que un premio sin `ref` no se resta y cuenta como conocido, y §11.13 ya ve siempre los movimientos con `race_key` nulo. Se escribe como decisión, con el porqué de que no importe (mundo de pruebas, antes del paso 10, `transactions.rider_id` en cascada con el corredor, `schema.ts` l. 828-830, y R nace en el 8b, detrás del 8a). La remisión en §11.13 va a cruzadas."
+  },
+  {
+    "id": "Rcodigo-011",
+    "estado": "aplicado",
+    "donde": "13-esquema.md l. 409 (§13.7, «Pero el criterio de escritura no distingue…»), l. 411-414 («Por eso el PR 1a añade al test una segunda regla…» y sus tres consecuencias), l. 447 (§13.10, punto 7) y l. 459 (decisión 13-a); 00-decisiones.md D-49 (l. 593 y nota de l. 599-601)",
+    "motivo": "Cierto, y más ancho de lo que decía: con la lógica del test (`columnasVivas.test.ts` l. 84-93) sobre el esquema de §13 y un `horizon.ts` y un `watch.ts` que solo tienen las declaraciones de §4.10 y §10.3 (formateadas con el prettier del repositorio), `knownThrough` sale escrita por `Horizon` y por el literal de `worldHorizon`, `follow` por `WatchRow` y el parámetro de `setFollow`, y `horizonRev` por el objeto que devuelve `recordProgress` (`c-l3/vivas/vivas3.mjs`). La corrección propuesta (excluir `Map<`, `Set<`, `Array<`) no cambia nada, medido; renombrar el campo de `Horizon` no quita los otros tres y es de §4.10. Se aplica otra: para las cuatro columnas de E2, una escritura solo cuenta dentro de un `.set(` o un `.values(` (`c-l3/vivas/vivasD.mjs`: hoy, 24 vigiladas y solo `fame` y `teamTrust` muertas; con solo declaraciones, las cuatro muertas; con los escritores de §10.3 y §13.5, vivas), con el caso de las declaraciones solas en el test. La frase de §10.3 sobre los nombres locales va a cruzadas."
+  },
+  {
+    "id": "Rcodigo-069",
+    "estado": "aplicado",
+    "donde": "13-esquema.md l. 442 (§13.10, punto 2) y l. 471 (decisión 13-m)",
+    "motivo": "Comprobado: `runMigrations(databaseUrl)` usa la carpeta fija de `migrate.ts` l. 15 (l. 21-29) y `startTestDb()` llama siempre a `runMigrations` (`testDb.ts` l. 58-65); `l3/aplicar2.mjs` y `c-l3/aplicar3.mjs` montan PGlite y el socket a mano. §13.10 dice qué cambia en el PR 1a: `runMigrations(databaseUrl, folder = migrationsFolder)` y `startEmptyTestDb()`, y cómo lo usa el test con `detached` (l. 73-80). La fila de §17.20 va a cruzadas."
+  }
 ]

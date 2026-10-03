@@ -1,147 +1,147 @@
 [
- {
-  "id": "Rcobertura-023, Rdueno-003",
-  "seccion_destino": "§16.4 (B3) y §16.9",
-  "que": "B3 gana una segunda parte, «la presentación de la fuga» (6-m, §6.7): sobre las cinco etapas en línea congeladas, el reproductor de verdad corre sin navegador (sus funciones puras: `cuesBetween`, la programación de §6.5, `admitir` y el fotograma de la cola, `isPresentation`, `aheadOfPeloton`, `breakRoundOf`) a 60 fotogramas por segundo de pared, con la cabecera que arma la ruta, en `Watch` a ×½, ×1 y ×2 y en `Highlights` a ×1. Umbrales, 100 % en las cinco: (1) la lista (`break_formed`) y la frase de toda fuga salen enteras salvo que no quede ningún escapado por delante del pelotón cuando les toca; (2) en `Watch` a ×½ y ×1, todo escapado de `breakRoundOf` que sigue por delante del pelotón cuando le toca tiene su rótulo entero antes de dejar de estarlo; (3) ningún rótulo de la ronda empieza con su corredor ya cazado. Imprime, sin umbral, la ronda a ×2, lo que sale entero del resto de la cola por clase y el retraso del último rótulo de cada ronda sobre su hora prevista (`breakRoundEveryS` por su puesto en la ronda): medido, como mucho 36 s de pared a ×1 en las 44 corridas, así que el tope de 30 s que proponía Rcobertura-023 fallaría por seis segundos en el peor caso sin que se pierda ningún rótulo. Medido por L4 (`l4c/cola.mjs`, con la cola de §6.5 y el prototipo del grabador): en las congeladas, 5 de 5 listas y frases en todos los modos y 21 de 21 rótulos a ×½ y ×1 (20 de 21 a ×2), contra 9 de 21 y 2 de 5 frases con la cola de antes; en las 22 en línea por dos semillas, 157 de 158 a ×1. A mano en el paso 10, lo mismo sobre las 24 × 2 con la línea grabada, con umbral del 99 % en (2). Vive en la web (`apps/web/src/domain/broadcast/presentation.test.ts`, que lee los fixtures de `apps/api/src/__fixtures__/broadcast/` como `templateCoverage.test.ts` lee el motor), rápida, y nace en el 6b. Fila nueva en la tabla de §16.9."
- },
- {
-  "id": "Rdueno-003",
-  "seccion_destino": "§16.5 (prueba de lectura, puntos 6 y 8)",
-  "que": "En los puntos del sorteo en que haya una fuga de hasta doce por delante del pelotón, una quinta pregunta: qué maillot lleva cada escapado (el de líder, el de campeón o el de su equipo), contestada mirando la barra; la verdad la da `scripts/pl-truth.mjs` con `RiderCard.worn` de los miembros del grupo 1. Cuenta como las otras cuatro para el nueve de nueve. Es el requisito del dueño de los maillots de la fuga (`docs/encargos.md` l. 153-154), que ninguna pregunta de la prueba tocaba."
- },
- {
-  "id": "Rcobertura-008, Rcobertura-023",
-  "seccion_destino": "§16.6",
-  "que": "La fila de la capa fija y la barra gana: «`GroupBar.test.tsx`: cada nombre de una fila lleva su `WornJerseyIcon` (líder, `ChampionMark` o `Jersey seed` del equipo) leído del reparto por `RiderIx`; la fila de un grupo de cuatro a doce lleva la línea de sus corredores con su icono (en el móvil, solo bajo la fila 1 y las del espectador); los nombres, tal como están guardados y cortados con `…` si no caben (§6.2, 6-c)». La fila de la cola gana: «`cues.test.ts`: `isPresentation`, `aheadOfPeloton` (en tránsito cuenta el grupo que dejó; sin grupo con el título, cierto), `breakRoundOf` (tope de doce: maillot, propio y notoriedad), y la cola de §6.5 con una fuga: la lista, la frase y la ronda no cuentan para `cueQueueMax`, no se descartan, no caducan, esperan detrás de los demás de clase 2 y se tiran al cazarse el escapado (6-m)». Y la del reproductor, las filas nuevas de §8.12 (el 429, los mandos que se esconden, el `finish` con su modo y el `release` del digest)."
- },
- {
-  "id": "Rcobertura-023, Rdueno-003",
-  "seccion_destino": "§7.6",
-  "que": "07-rotulos.md l. 395: «[la moto, clase 0, uno cada BROADCAST.breakRoundEveryS (6 s), por dorsal]» pasa a «[la moto, clase 2 y reservada con la lista y la frase, uno cada BROADCAST.breakRoundEveryS (6 s), por dorsal; solo en Watch a ×½, ×1 y ×2 (6-m, §6.7)]». En el dibujo de la barra del caso literal, cada nombre lleva su icono (`[IT*] Luca Bertolini · [KOM] Jonas Verhoeven · [kit] Pierre Lambert · …`), y la frase de 360 px «la lista de la fila se abre al tocarla» pasa a «bajo la fila 1 van los iconos de los cinco, y la lista con nombres se abre al tocarla» (§6.2). El `break_formed` del caso lleva ya la lista con el maillot de cada uno (§6.7): se puede dibujar como el primer rótulo de la secuencia."
- },
- {
-  "id": "Rcobertura-032, Rcobertura-023",
-  "seccion_destino": "§9.5 (9-k)",
-  "que": "09-crono.md l. 336: «el `rider` con contexto `tt_round`, que `cueClassOf` baja a 0 como la ronda de la fuga» pasa a «que `cueClassOf` pone en 0; la ronda de la fuga es de clase 2 y va reservada (6-m, §6.7), porque es el requisito del dueño de los maillots de la fuga y con la clase 0 salían enteras 4 de 34 rondas». `ON COURSE` sigue en 0, con la medida de L5."
- },
- {
-  "id": "Rcobertura-023, Rdueno-003",
-  "seccion_destino": "§21 (D.2)",
-  "que": "21-apendices.md l. 249, la fila «[DUEÑO 3] Cuando se escapan cinco, que se vean sus maillots»: donde se diseña, «§7.2-7.6; §6.2 (el maillot de cada corredor en la barra) y §6.7 (la presentación de la fuga, 6-m)»; donde se prueba, «§7.3, §17.17 y la segunda parte de B3 (§16.4), con la pregunta de los maillots de la prueba de lectura (§16.5)»."
- },
- {
-  "id": "Rcobertura-022",
-  "seccion_destino": "§4.9",
-  "que": "`RiderCueContext` deja de usar `'attack'`: el rótulo `ATTACK` lleva la ficha del primer atacante y no hay `rider` aparte (6-p). Se puede quitar de la unión o dejarla con un comentario de que no se programa. El comentario de `CueClass` («0 ronda de la moto, ficha del puerto, datos») pasa a «0 ficha del puerto, la ronda `ON COURSE` de la crono y datos; la ronda de la moto es de clase 2 y reservada (6-m)». Y `cues.ts` importa además `Instant` de `./instant.js` para `aheadOfPeloton` (§6.7)."
- },
- {
-  "id": "Rcobertura-021, Rdueno-021",
-  "seccion_destino": "§4.11",
-  "que": "`BroadcastFinish` gana `readonly threeKmRule: readonly RiderIx[]` (los que se cayeron dentro de `STAGE.truce.threeKmRuleKm` de una etapa en que el motor aplica la regla y llegan con el tiempo de su grupo; 6-o), con `threeKmRule: z.array(ix)` en `broadcastFinishSchema`. `WatchState` gana `readonly seen: boolean` (`true` con `W`, `S` o `R`; `false` con `A`, que abre en `Watch`, 6-r), con su campo en `watchStateSchema` (`contracts.ts`, 14-a)."
- },
- {
-  "id": "Rcobertura-021, Rdueno-021, Rcoste-009",
-  "seccion_destino": "§14.1, §14.2 y §14.7",
-  "que": "La ruta del paquete de meta arma `BroadcastFinish.threeKmRule` con `threeKmRule` y la condición de `simulate.ts` l. 8289-8290 sobre las caídas de la línea (`mishaps` con `caida` y su km) y el resultado; `routes/broadcast.test.ts` gana el caso (una caída a 2 km de un final al sprint con el tiempo del grupo sale marcada; la misma en un final en alto, no). La ruta de etapa rellena `WatchState.seen`, y con `A` puede omitir el resultado como con la `X`, porque la pantalla abre en `Watch` (10-e, 6-r). Y, solo si el paso 10 mide más de 5 s con `Slow 4G` para un salto de 125 km (8-t, §18.9): `POST /api/races/:raceId/stages/:day/broadcast/seek` con `{ km }`, que calcula la hora de destino con la bisección de §8.5 sobre la línea (nunca más allá de `lengthKm − 1`), escribe lo alcanzado con `mode: 'seek'` y devuelve los tramos intermedios en una respuesta; política G, como `…/finish`."
- },
- {
-  "id": "Rdueno-021",
-  "seccion_destino": "§10.2 (fila «arrastrada») y 10-e",
-  "que": "10-horizonte.md l. 22: la columna de la pestaña de la fila «arrastrada» pasa de `Report` a `Watch` («sin puerta; `Report` a un toque, como la caducada»). 10-e: «una etapa caducada o fuera de guardia, o arrastrada, abre en `Watch`», y `WatchState.seen` distingue la `A` de `W`, `S` y `R` (6-r, §6.10)."
- },
- {
-  "id": "Rdueno-021",
-  "seccion_destino": "§11 (`raceTabs`, 9b) y §17 (9b)",
-  "que": "`raceTabs` y su test ganan el caso de la etapa arrastrada: con `known` y sin `seen`, la primera pestaña es `watch`. El test del 9b: una carrera fuera de guardia, se ve la etapa 5 y la 1 abre en `Watch`."
- },
- {
-  "id": "Rdueno-016",
-  "seccion_destino": "§12.2",
-  "que": "La voz nombra con `riderFull` (dorsal, nombre, equipo entre paréntesis y bandera): es la B1 del dueño («Cada vez que menciones un ciclista, pon su dorsal, su equipo entre paréntesis y su bandera», `docs/balance.md` l. 1842, v13), que reafirmó al rechazar un umbral (`stageJournal.ts` l. 186-195). §6.2 y §6.3 dicen ya que la barra es la única pieza de `Watch` que no la lleva entera, por espacio, y que tocar la fila la da."
- },
- {
-  "id": "Rdueno-017",
-  "seccion_destino": "§12.6",
-  "que": "El grupo del maillot se llama igual en la voz que en la barra (6-b): `withGroupRoles` anota, además del papel, que el grupo del protagonista lleva la etiqueta `jersey_group` en `instantAt(revealS)` y con qué maillot, y el renderizador dice `the race leader’s group`, `the points leader’s group` o `the mountains leader’s group` (`GROUP_WORDS.jersey`, que pasa a pares [barra, voz], §6.3) donde diría `the chase group` o `the gruppetto`. `GROUP_NOUNS` y `WATCHED_GROUP_NOUNS` ganan esos tres nombres en el 4a, como `the gruppetto`."
- },
- {
-  "id": "Rdueno-017, Rcobertura-021",
-  "seccion_destino": "§17 (PR 4a y su tabla de ficheros)",
-  "que": "17-plan.md, la línea de `sim/coherence.ts` (l. 200) y la fila de la tabla de ficheros (l. 527): `GROUP_NOUNS` y `WATCHED_GROUP_NOUNS` ganan también `the race leader’s group`, `the points leader’s group` y `the mountains leader’s group` (6-b). Y el 4a exporta `threeKmRule` de `packages/engine/src/stage/truce.ts` en `src/index.ts`, un `export` más sin cambio de conducta (6-o)."
- },
- {
-  "id": "Rdueno-014, Rdueno-015, Rcobertura-023",
-  "seccion_destino": "§15.3 y el glosario (§G.7)",
-  "que": "`BROADCAST.controlsHideS: 3` en el bloque MANDOS, con su intención: «s de pared sin tocar tras los que los mandos y la barra de progreso se esconden en playing; vuelven con cualquier toque, movimiento o tecla (8-p). S/E: la prueba de lectura». Y en la tabla de aceptación, con `cueHoldS` y las demás que acepta la PL. El comentario de `breakRoundEveryS` («un rótulo de clase 0 de la moto») pasa a «un rótulo de la moto, de clase 2 y reservado (6-m), por escapado de `breakRoundOf`»; y el de `cueQueueMax`, «…se descartan los de clase 0 y 1, salvo la presentación de la fuga, que no cuenta (6-m)». Y el de `cardRowsMax` gana la lista de una fuga: «filas de un cuadro de diferencias, de la general virtual o de la lista de una fuga (dos corredores por fila) en el móvil» (§6.7)."
- },
- {
-  "id": "Rcobertura-026",
-  "seccion_destino": "§16.4 (B17) y §17.9",
-  "que": "16-bancos.md, B17: «la crono, de 5:30 a 13:00» pasa a «de 5:00 a 13:00», y «6:24-11:23» a «5:20-11:23 (las nacionales de §9.4, 5:20-5:52; el prólogo, 6:24-7:06; la e16, 11:14-11:23)» (8-k). 17-plan.md, donde §17.9 cite la banda de la crono, lo mismo."
- },
- {
-  "id": "Rcobertura-026",
-  "seccion_destino": "§21 (O-11 y D.7)",
-  "que": "21-apendices.md l. 127 (O-11) y l. 370 (D.7): «medido de 6:24 a 11:23» pasa a «medido de 5:20 a 11:23 (el prólogo de 176 corredores, de 6:24 a 7:06; una nacional de 40 km con 12, de 5:20 a 5:24; §9.4)»."
- },
- {
-  "id": "Rdueno-030",
-  "seccion_destino": "§3.5",
-  "que": "03-reloj.md l. 194: «dos de las cuatro preguntas del dueño ([DUEÑO 4])» pasa a «dos de las cuatro preguntas de la regla del diario (SPEC §6.15, l. 598-600), con la que la v27 contestó a la queja del dueño ([DUEÑO 4])»: la regla es de la v27 (`docs/balance.md` l. 6000-6002) y lo del dueño es la queja (l. 5975-5976)."
- },
- {
-  "id": "Rcoste-009",
-  "seccion_destino": "§18.9",
-  "que": "Fila nueva: «un salto de recorrido de 125 km (`Final 20 km` desde el km 30 de una llana) | la pestaña `Network` de Chrome con `Slow 4G`, del toque al primer fotograma tras `Skipping…` | 10 | ≤ 5 s; si no, `POST …/broadcast/seek` (8-t, §14.2) | pendiente (estimado: unos 4 s con `Fast 4G` y de 13 a 15 s con `Slow 4G`, 24 peticiones seguidas) | pendiente»."
- },
- {
-  "id": "Rdueno-014",
-  "seccion_destino": "§18.8",
-  "que": "Los mandos se esconden a los 3 s sin tocar (8-p) con opacidad y siguen en el árbol de accesibilidad: el lector de pantalla y el tabulador los encuentran siempre, y el foco dentro de ellos no los deja esconderse. El resumen accesible de la capa fija incluye la segunda línea (reloj, velocidad, pendiente y tiempo), que en pantalla sale con el cuadro de diferencias y al tocar (6-f)."
- },
- {
-  "id": "Rcodigo-028, Rcobertura-020",
-  "seccion_destino": "§18.5",
-  "que": "La medida a mano del móvil se hace con los nombres enteros de 7-a en la barra (cortados con `…`) y con la línea de iconos bajo la fila 1 cuando es un grupo de cuatro a doce (20 px más, §6.1), y con los mandos a la vista y escondidos (unos 430 y unos 380 px de 800)."
- },
- {
-  "id": "Rdueno-036",
-  "seccion_destino": "§20 (una decisión nueva del dueño) y 00-decisiones.md (tabla DD)",
-  "que": "Fila nueva, «Los nombres de pantalla»: por defecto, los de D-48 (`Watch`, `Report`, `Commentary`, `Race Radio`); alternativa, `Journal` para el acta, que es la palabra del dueño en todas sus peticiones (`docs/balance.md` l. 1431-1432, v11; l. 5975, v27; l. 8095, v39); consecuencia: su último momento barato es el 9a, que renombra `Story` para todos los jugadores. D-48 ya está precisada en 00-decisiones.md; el número de la fila lo pone §20."
- },
- {
-  "id": "Rdueno-037",
-  "seccion_destino": "§20 (una decisión nueva del dueño, y §20.4) y 00-decisiones.md (tabla DD)",
-  "que": "Fila nueva, «La criba lejana en el acta»: por defecto no (el acta sigue con el 58 % de cobertura de la v39, sin remedir); lo que costaría: una frase del motor, que sube la versión (D-09), o una pasada de `buildChronicle` que la lea del estado de la línea grabada. En §20.4: «En el acta, la cobertura de la criba lejana sigue en el 58 % de la v39; `Watch` la enseña como estado (§6.8)». D-59 ya está precisada en 00-decisiones.md."
- },
- {
-  "id": "Rdueno-018",
-  "seccion_destino": "§20.2 (DD-04) y §20.8",
-  "que": "DD-04 y su porqué: «La C7 pide una sola palabra, no cuál. `Bunch` es la de SPEC §6.15 y del journal (140 tests); `Peloton` es la de la tele, la del código del motor (`kind: 'peloton'`, `contracts.ts` l. 1346, y cinco plantillas `peloton_*`), la de la radio de hoy y la del dueño («Cada vez que alguien tire del pelotón», `docs/balance.md` l. 1843). El corte de dos tercios decide cuándo un grupo es el grueso, no cómo se llama». La fila de DD-04 de 00-decisiones.md ya lo lleva."
- },
- {
-  "id": "Rcobertura-019, Rcobertura-020, Rcodigo-028, Rdueno-015, Rcobertura-021",
-  "seccion_destino": "§21.6 F.3 (textos de pantalla) y §G.11",
-  "que": "`KOM leader’s group` pasa a `Mountains leader’s group`, y en la voz `the race leader’s group`, `the points leader’s group` y `the mountains leader’s group`; el ejemplo `Pulling: Team Beta (for 11 S. CARTER)` pasa a `Pulling: Team Beta (for 11 Sam Carter)` (7-a) y se borra el paréntesis «la forma del nombre está abierta» (D-27 cerrada); entran las quince de `PULL_MOTIVE_WORDS` (`alone`, `in the echelon`, `lead-out`, `working the break`, `chasing`, `just riding`, `for the stage`, `defending the jersey`, `for the GC`, `team duty`, `own tempo`, `for the points jersey`, `for the mountains jersey`, `sitting on`, `guarding the leader`) y `same time (3 km rule)`; y todos los ejemplos con apellido en mayúsculas o inicial (`MORENO · LEROY · KAHN`, `S. CARTER`, `L. BERTOLINI`) pasan al nombre guardado."
- },
- {
-  "id": "Rcobertura-012, Rcobertura-033, Rcobertura-022, Rdueno-015, Rcobertura-023, Rcoste-041, Rcobertura-030",
-  "seccion_destino": "§21.6 F.2 (firmas) y §G.4 del glosario",
-  "que": "`cueClassOf(cue, start, lastVirtualLeader, timeTrial): CueClass` (ya pedida por L5); `isPresentation(cue: Cue): boolean` y `aheadOfPeloton(i: Instant, r: RiderIx): boolean` en `cues.ts`; `breakRoundOf(riders: readonly RiderIx[], cast: readonly RiderCard[]): readonly RiderIx[]` y `PULL_MOTIVE_WORDS` en `names.ts`; `PullingLine` con `motive` en cada equipo; `GROUP_WORDS.jersey` en pares [barra, voz]; y en `player.ts`, `playerInit(view, stageDay, reachedS, known)`, `PlayerState.idleS`, `stageDay` y `loaded`, `PlayerContext.digestNext`, las acciones `touch` y `throttled`, `cueAdmitted.round`, y los efectos `finish` con `mode` y `release`."
- },
- {
-  "id": "Rcodigo-028, Rcobertura-020",
-  "seccion_destino": "dudas.md (1.5)",
-  "que": "La duda 1.5 queda cerrada: §6 y §8 escriben el nombre guardado de 7-a en todos sus ejemplos, la barra lo corta con `…` si no cabe, y D-27 está cerrada en 00-decisiones.md. Queda para §21.6 F.3 y §G.11 (cruzada aparte)."
- },
- {
-  "id": "Rcobertura-021, Rdueno-021, Rdueno-036, Rdueno-037",
-  "seccion_destino": "§20 y §19 (si procede)",
-  "que": "Nada que decidir del dueño en 6-o ni en 6-r; sí en «Los nombres de pantalla» y «La criba lejana en el acta» (filas aparte). Si §19 lleva un riesgo de la cola de rótulos, puede citar la medida de §6.5: en `Watch` ×1 salen enteros el 69 % de los de clase 2 y el 35 % de los de clase 1 fuera de la presentación de la fuga, y la prueba de lectura dice si basta."
- },
- {
-  "id": "Rcobertura-023, Rdueno-003, Rdueno-014, Rdueno-015, Rcobertura-019, Rdueno-017",
-  "seccion_destino": "00-glosario.md (§G.2, §G.4, §G.7 y §G.11)",
-  "que": "§G.7: `BROADCAST.breakRoundEveryS` (6) deja de ser «un rótulo de clase 0 por escapado»: «la moto rodea la fuga: un rótulo de clase 2, reservado con la lista y la frase (6-m), por corredor de `breakRoundOf`, solo en `Watch` a ×½, ×1 y ×2»; `BROADCAST.cueQueueMax` (3): «…se descartan los de clase 0 y 1, salvo la presentación de la fuga, que no cuenta»; nueva `BROADCAST.controlsHideS` (3, 8-p); `cardRowsMax` gana la lista de una fuga. §G.4: `cueClassOf(cue, start, lastVirtualLeader, timeTrial)`, `isPresentation(cue)`, `aheadOfPeloton(i, r)` y `breakRoundOf(riders, cast)`; `PullingLine` con `motive` y `PULL_MOTIVE_WORDS`; `GROUP_WORDS.jersey` en pares [barra, voz]; `playerInit(view, stageDay, reachedS, known)` y los campos, acciones y efectos nuevos de `player.ts` (§8.11). §G.11: `Mountains leader’s group` en lugar de `KOM leader’s group`, las quince palabras de `PULL_MOTIVE_WORDS`, `same time (3 km rule)`, y los ejemplos con el nombre guardado (7-a)."
- }
+  {
+    "id": "Rcobertura-023, Rdueno-003",
+    "seccion_destino": "§16.4 (B3) y §16.9",
+    "que": "B3 gana una segunda parte, «la presentación de la fuga» (6-m, §6.7): sobre las cinco etapas en línea congeladas, el reproductor de verdad corre sin navegador (sus funciones puras: `cuesBetween`, la programación de §6.5, `admitir` y el fotograma de la cola, `isPresentation`, `aheadOfPeloton`, `breakRoundOf`) a 60 fotogramas por segundo de pared, con la cabecera que arma la ruta, en `Watch` a ×½, ×1 y ×2 y en `Highlights` a ×1. Umbrales, 100 % en las cinco: (1) la lista (`break_formed`) y la frase de toda fuga salen enteras salvo que no quede ningún escapado por delante del pelotón cuando les toca; (2) en `Watch` a ×½ y ×1, todo escapado de `breakRoundOf` que sigue por delante del pelotón cuando le toca tiene su rótulo entero antes de dejar de estarlo; (3) ningún rótulo de la ronda empieza con su corredor ya cazado. Imprime, sin umbral, la ronda a ×2, lo que sale entero del resto de la cola por clase y el retraso del último rótulo de cada ronda sobre su hora prevista (`breakRoundEveryS` por su puesto en la ronda): medido, como mucho 36 s de pared a ×1 en las 44 corridas, así que el tope de 30 s que proponía Rcobertura-023 fallaría por seis segundos en el peor caso sin que se pierda ningún rótulo. Medido por L4 (`l4c/cola.mjs`, con la cola de §6.5 y el prototipo del grabador): en las congeladas, 5 de 5 listas y frases en todos los modos y 21 de 21 rótulos a ×½ y ×1 (20 de 21 a ×2), contra 9 de 21 y 2 de 5 frases con la cola de antes; en las 22 en línea por dos semillas, 157 de 158 a ×1. A mano en el paso 10, lo mismo sobre las 24 × 2 con la línea grabada, con umbral del 99 % en (2). Vive en la web (`apps/web/src/domain/broadcast/presentation.test.ts`, que lee los fixtures de `apps/api/src/__fixtures__/broadcast/` como `templateCoverage.test.ts` lee el motor), rápida, y nace en el 6b. Fila nueva en la tabla de §16.9."
+  },
+  {
+    "id": "Rdueno-003",
+    "seccion_destino": "§16.5 (prueba de lectura, puntos 6 y 8)",
+    "que": "En los puntos del sorteo en que haya una fuga de hasta doce por delante del pelotón, una quinta pregunta: qué maillot lleva cada escapado (el de líder, el de campeón o el de su equipo), contestada mirando la barra; la verdad la da `scripts/pl-truth.mjs` con `RiderCard.worn` de los miembros del grupo 1. Cuenta como las otras cuatro para el nueve de nueve. Es el requisito del dueño de los maillots de la fuga (`docs/encargos.md` l. 153-154), que ninguna pregunta de la prueba tocaba."
+  },
+  {
+    "id": "Rcobertura-008, Rcobertura-023",
+    "seccion_destino": "§16.6",
+    "que": "La fila de la capa fija y la barra gana: «`GroupBar.test.tsx`: cada nombre de una fila lleva su `WornJerseyIcon` (líder, `ChampionMark` o `Jersey seed` del equipo) leído del reparto por `RiderIx`; la fila de un grupo de cuatro a doce lleva la línea de sus corredores con su icono (en el móvil, solo bajo la fila 1 y las del espectador); los nombres, tal como están guardados y cortados con `…` si no caben (§6.2, 6-c)». La fila de la cola gana: «`cues.test.ts`: `isPresentation`, `aheadOfPeloton` (en tránsito cuenta el grupo que dejó; sin grupo con el título, cierto), `breakRoundOf` (tope de doce: maillot, propio y notoriedad), y la cola de §6.5 con una fuga: la lista, la frase y la ronda no cuentan para `cueQueueMax`, no se descartan, no caducan, esperan detrás de los demás de clase 2 y se tiran al cazarse el escapado (6-m)». Y la del reproductor, las filas nuevas de §8.12 (el 429, los mandos que se esconden, el `finish` con su modo y el `release` del digest)."
+  },
+  {
+    "id": "Rcobertura-023, Rdueno-003",
+    "seccion_destino": "§7.6",
+    "que": "07-rotulos.md l. 395: «[la moto, clase 0, uno cada BROADCAST.breakRoundEveryS (6 s), por dorsal]» pasa a «[la moto, clase 2 y reservada con la lista y la frase, uno cada BROADCAST.breakRoundEveryS (6 s), por dorsal; solo en Watch a ×½, ×1 y ×2 (6-m, §6.7)]». En el dibujo de la barra del caso literal, cada nombre lleva su icono (`[IT*] Luca Bertolini · [KOM] Jonas Verhoeven · [kit] Pierre Lambert · …`), y la frase de 360 px «la lista de la fila se abre al tocarla» pasa a «bajo la fila 1 van los iconos de los cinco, y la lista con nombres se abre al tocarla» (§6.2). El `break_formed` del caso lleva ya la lista con el maillot de cada uno (§6.7): se puede dibujar como el primer rótulo de la secuencia."
+  },
+  {
+    "id": "Rcobertura-032, Rcobertura-023",
+    "seccion_destino": "§9.5 (9-k)",
+    "que": "09-crono.md l. 336: «el `rider` con contexto `tt_round`, que `cueClassOf` baja a 0 como la ronda de la fuga» pasa a «que `cueClassOf` pone en 0; la ronda de la fuga es de clase 2 y va reservada (6-m, §6.7), porque es el requisito del dueño de los maillots de la fuga y con la clase 0 salían enteras 4 de 34 rondas». `ON COURSE` sigue en 0, con la medida de L5."
+  },
+  {
+    "id": "Rcobertura-023, Rdueno-003",
+    "seccion_destino": "§21 (D.2)",
+    "que": "21-apendices.md l. 249, la fila «[DUEÑO 3] Cuando se escapan cinco, que se vean sus maillots»: donde se diseña, «§7.2-7.6; §6.2 (el maillot de cada corredor en la barra) y §6.7 (la presentación de la fuga, 6-m)»; donde se prueba, «§7.3, §17.17 y la segunda parte de B3 (§16.4), con la pregunta de los maillots de la prueba de lectura (§16.5)»."
+  },
+  {
+    "id": "Rcobertura-022",
+    "seccion_destino": "§4.9",
+    "que": "`RiderCueContext` deja de usar `'attack'`: el rótulo `ATTACK` lleva la ficha del primer atacante y no hay `rider` aparte (6-p). Se puede quitar de la unión o dejarla con un comentario de que no se programa. El comentario de `CueClass` («0 ronda de la moto, ficha del puerto, datos») pasa a «0 ficha del puerto, la ronda `ON COURSE` de la crono y datos; la ronda de la moto es de clase 2 y reservada (6-m)». Y `cues.ts` importa además `Instant` de `./instant.js` para `aheadOfPeloton` (§6.7)."
+  },
+  {
+    "id": "Rcobertura-021, Rdueno-021",
+    "seccion_destino": "§4.11",
+    "que": "`BroadcastFinish` gana `readonly threeKmRule: readonly RiderIx[]` (los que se cayeron dentro de `STAGE.truce.threeKmRuleKm` de una etapa en que el motor aplica la regla y llegan con el tiempo de su grupo; 6-o), con `threeKmRule: z.array(ix)` en `broadcastFinishSchema`. `WatchState` gana `readonly seen: boolean` (`true` con `W`, `S` o `R`; `false` con `A`, que abre en `Watch`, 6-r), con su campo en `watchStateSchema` (`contracts.ts`, 14-a)."
+  },
+  {
+    "id": "Rcobertura-021, Rdueno-021, Rcoste-009",
+    "seccion_destino": "§14.1, §14.2 y §14.7",
+    "que": "La ruta del paquete de meta arma `BroadcastFinish.threeKmRule` con `threeKmRule` y la condición de `simulate.ts` l. 8289-8290 sobre las caídas de la línea (`mishaps` con `caida` y su km) y el resultado; `routes/broadcast.test.ts` gana el caso (una caída a 2 km de un final al sprint con el tiempo del grupo sale marcada; la misma en un final en alto, no). La ruta de etapa rellena `WatchState.seen`, y con `A` puede omitir el resultado como con la `X`, porque la pantalla abre en `Watch` (10-e, 6-r). Y, solo si el paso 10 mide más de 5 s con `Slow 4G` para un salto de 125 km (8-t, §18.9): `POST /api/races/:raceId/stages/:day/broadcast/seek` con `{ km }`, que calcula la hora de destino con la bisección de §8.5 sobre la línea (nunca más allá de `lengthKm − 1`), escribe lo alcanzado con `mode: 'seek'` y devuelve los tramos intermedios en una respuesta; política G, como `…/finish`."
+  },
+  {
+    "id": "Rdueno-021",
+    "seccion_destino": "§10.2 (fila «arrastrada») y 10-e",
+    "que": "10-horizonte.md l. 22: la columna de la pestaña de la fila «arrastrada» pasa de `Report` a `Watch` («sin puerta; `Report` a un toque, como la caducada»). 10-e: «una etapa caducada o fuera de guardia, o arrastrada, abre en `Watch`», y `WatchState.seen` distingue la `A` de `W`, `S` y `R` (6-r, §6.10)."
+  },
+  {
+    "id": "Rdueno-021",
+    "seccion_destino": "§11 (`raceTabs`, 9b) y §17 (9b)",
+    "que": "`raceTabs` y su test ganan el caso de la etapa arrastrada: con `known` y sin `seen`, la primera pestaña es `watch`. El test del 9b: una carrera fuera de guardia, se ve la etapa 5 y la 1 abre en `Watch`."
+  },
+  {
+    "id": "Rdueno-016",
+    "seccion_destino": "§12.2",
+    "que": "La voz nombra con `riderFull` (dorsal, nombre, equipo entre paréntesis y bandera): es la B1 del dueño («Cada vez que menciones un ciclista, pon su dorsal, su equipo entre paréntesis y su bandera», `docs/balance.md` l. 1842, v13), que reafirmó al rechazar un umbral (`stageJournal.ts` l. 186-195). §6.2 y §6.3 dicen ya que la barra es la única pieza de `Watch` que no la lleva entera, por espacio, y que tocar la fila la da."
+  },
+  {
+    "id": "Rdueno-017",
+    "seccion_destino": "§12.6",
+    "que": "El grupo del maillot se llama igual en la voz que en la barra (6-b): `withGroupRoles` anota, además del papel, que el grupo del protagonista lleva la etiqueta `jersey_group` en `instantAt(revealS)` y con qué maillot, y el renderizador dice `the race leader’s group`, `the points leader’s group` o `the mountains leader’s group` (`GROUP_WORDS.jersey`, que pasa a pares [barra, voz], §6.3) donde diría `the chase group` o `the gruppetto`. `GROUP_NOUNS` y `WATCHED_GROUP_NOUNS` ganan esos tres nombres en el 4a, como `the gruppetto`."
+  },
+  {
+    "id": "Rdueno-017, Rcobertura-021",
+    "seccion_destino": "§17 (PR 4a y su tabla de ficheros)",
+    "que": "17-plan.md, la línea de `sim/coherence.ts` (l. 200) y la fila de la tabla de ficheros (l. 527): `GROUP_NOUNS` y `WATCHED_GROUP_NOUNS` ganan también `the race leader’s group`, `the points leader’s group` y `the mountains leader’s group` (6-b). Y el 4a exporta `threeKmRule` de `packages/engine/src/stage/truce.ts` en `src/index.ts`, un `export` más sin cambio de conducta (6-o)."
+  },
+  {
+    "id": "Rdueno-014, Rdueno-015, Rcobertura-023",
+    "seccion_destino": "§15.3 y el glosario (§G.7)",
+    "que": "`BROADCAST.controlsHideS: 3` en el bloque MANDOS, con su intención: «s de pared sin tocar tras los que los mandos y la barra de progreso se esconden en playing; vuelven con cualquier toque, movimiento o tecla (8-p). S/E: la prueba de lectura». Y en la tabla de aceptación, con `cueHoldS` y las demás que acepta la PL. El comentario de `breakRoundEveryS` («un rótulo de clase 0 de la moto») pasa a «un rótulo de la moto, de clase 2 y reservado (6-m), por escapado de `breakRoundOf`»; y el de `cueQueueMax`, «…se descartan los de clase 0 y 1, salvo la presentación de la fuga, que no cuenta (6-m)». Y el de `cardRowsMax` gana la lista de una fuga: «filas de un cuadro de diferencias, de la general virtual o de la lista de una fuga (dos corredores por fila) en el móvil» (§6.7)."
+  },
+  {
+    "id": "Rcobertura-026",
+    "seccion_destino": "§16.4 (B17) y §17.9",
+    "que": "16-bancos.md, B17: «la crono, de 5:30 a 13:00» pasa a «de 5:00 a 13:00», y «6:24-11:23» a «5:20-11:23 (las nacionales de §9.4, 5:20-5:52; el prólogo, 6:24-7:06; la e16, 11:14-11:23)» (8-k). 17-plan.md, donde §17.9 cite la banda de la crono, lo mismo."
+  },
+  {
+    "id": "Rcobertura-026",
+    "seccion_destino": "§21 (O-11 y D.7)",
+    "que": "21-apendices.md l. 127 (O-11) y l. 370 (D.7): «medido de 6:24 a 11:23» pasa a «medido de 5:20 a 11:23 (el prólogo de 176 corredores, de 6:24 a 7:06; una nacional de 40 km con 12, de 5:20 a 5:24; §9.4)»."
+  },
+  {
+    "id": "Rdueno-030",
+    "seccion_destino": "§3.5",
+    "que": "03-reloj.md l. 194: «dos de las cuatro preguntas del dueño ([DUEÑO 4])» pasa a «dos de las cuatro preguntas de la regla del diario (SPEC §6.15, l. 598-600), con la que la v27 contestó a la queja del dueño ([DUEÑO 4])»: la regla es de la v27 (`docs/balance.md` l. 6000-6002) y lo del dueño es la queja (l. 5975-5976)."
+  },
+  {
+    "id": "Rcoste-009",
+    "seccion_destino": "§18.9",
+    "que": "Fila nueva: «un salto de recorrido de 125 km (`Final 20 km` desde el km 30 de una llana) | la pestaña `Network` de Chrome con `Slow 4G`, del toque al primer fotograma tras `Skipping…` | 10 | ≤ 5 s; si no, `POST …/broadcast/seek` (8-t, §14.2) | pendiente (estimado: unos 4 s con `Fast 4G` y de 13 a 15 s con `Slow 4G`, 24 peticiones seguidas) | pendiente»."
+  },
+  {
+    "id": "Rdueno-014",
+    "seccion_destino": "§18.8",
+    "que": "Los mandos se esconden a los 3 s sin tocar (8-p) con opacidad y siguen en el árbol de accesibilidad: el lector de pantalla y el tabulador los encuentran siempre, y el foco dentro de ellos no los deja esconderse. El resumen accesible de la capa fija incluye la segunda línea (reloj, velocidad, pendiente y tiempo), que en pantalla sale con el cuadro de diferencias y al tocar (6-f)."
+  },
+  {
+    "id": "Rcodigo-028, Rcobertura-020",
+    "seccion_destino": "§18.5",
+    "que": "La medida a mano del móvil se hace con los nombres enteros de 7-a en la barra (cortados con `…`) y con la línea de iconos bajo la fila 1 cuando es un grupo de cuatro a doce (20 px más, §6.1), y con los mandos a la vista y escondidos (unos 430 y unos 380 px de 800)."
+  },
+  {
+    "id": "Rdueno-036",
+    "seccion_destino": "§20 (una decisión nueva del dueño) y 00-decisiones.md (tabla DD)",
+    "que": "Fila nueva, «Los nombres de pantalla»: por defecto, los de D-48 (`Watch`, `Report`, `Commentary`, `Race Radio`); alternativa, `Journal` para el acta, que es la palabra del dueño en todas sus peticiones (`docs/balance.md` l. 1431-1432, v11; l. 5975, v27; l. 8095, v39); consecuencia: su último momento barato es el 9a, que renombra `Story` para todos los jugadores. D-48 ya está precisada en 00-decisiones.md; el número de la fila lo pone §20."
+  },
+  {
+    "id": "Rdueno-037",
+    "seccion_destino": "§20 (una decisión nueva del dueño, y §20.4) y 00-decisiones.md (tabla DD)",
+    "que": "Fila nueva, «La criba lejana en el acta»: por defecto no (el acta sigue con el 58 % de cobertura de la v39, sin remedir); lo que costaría: una frase del motor, que sube la versión (D-09), o una pasada de `buildChronicle` que la lea del estado de la línea grabada. En §20.4: «En el acta, la cobertura de la criba lejana sigue en el 58 % de la v39; `Watch` la enseña como estado (§6.8)». D-59 ya está precisada en 00-decisiones.md."
+  },
+  {
+    "id": "Rdueno-018",
+    "seccion_destino": "§20.2 (DD-04) y §20.8",
+    "que": "DD-04 y su porqué: «La C7 pide una sola palabra, no cuál. `Bunch` es la de SPEC §6.15 y del journal (140 tests); `Peloton` es la de la tele, la del código del motor (`kind: 'peloton'`, `contracts.ts` l. 1346, y cinco plantillas `peloton_*`), la de la radio de hoy y la del dueño («Cada vez que alguien tire del pelotón», `docs/balance.md` l. 1843). El corte de dos tercios decide cuándo un grupo es el grueso, no cómo se llama». La fila de DD-04 de 00-decisiones.md ya lo lleva."
+  },
+  {
+    "id": "Rcobertura-019, Rcobertura-020, Rcodigo-028, Rdueno-015, Rcobertura-021",
+    "seccion_destino": "§21.6 F.3 (textos de pantalla) y §G.11",
+    "que": "`KOM leader’s group` pasa a `Mountains leader’s group`, y en la voz `the race leader’s group`, `the points leader’s group` y `the mountains leader’s group`; el ejemplo `Pulling: Team Beta (for 11 S. CARTER)` pasa a `Pulling: Team Beta (for 11 Sam Carter)` (7-a) y se borra el paréntesis «la forma del nombre está abierta» (D-27 cerrada); entran las quince de `PULL_MOTIVE_WORDS` (`alone`, `in the echelon`, `lead-out`, `working the break`, `chasing`, `just riding`, `for the stage`, `defending the jersey`, `for the GC`, `team duty`, `own tempo`, `for the points jersey`, `for the mountains jersey`, `sitting on`, `guarding the leader`) y `same time (3 km rule)`; y todos los ejemplos con apellido en mayúsculas o inicial (`MORENO · LEROY · KAHN`, `S. CARTER`, `L. BERTOLINI`) pasan al nombre guardado."
+  },
+  {
+    "id": "Rcobertura-012, Rcobertura-033, Rcobertura-022, Rdueno-015, Rcobertura-023, Rcoste-041, Rcobertura-030",
+    "seccion_destino": "§21.6 F.2 (firmas) y §G.4 del glosario",
+    "que": "`cueClassOf(cue, start, lastVirtualLeader, timeTrial): CueClass` (ya pedida por L5); `isPresentation(cue: Cue): boolean` y `aheadOfPeloton(i: Instant, r: RiderIx): boolean` en `cues.ts`; `breakRoundOf(riders: readonly RiderIx[], cast: readonly RiderCard[]): readonly RiderIx[]` y `PULL_MOTIVE_WORDS` en `names.ts`; `PullingLine` con `motive` en cada equipo; `GROUP_WORDS.jersey` en pares [barra, voz]; y en `player.ts`, `playerInit(view, stageDay, reachedS, known)`, `PlayerState.idleS`, `stageDay` y `loaded`, `PlayerContext.digestNext`, las acciones `touch` y `throttled`, `cueAdmitted.round`, y los efectos `finish` con `mode` y `release`."
+  },
+  {
+    "id": "Rcodigo-028, Rcobertura-020",
+    "seccion_destino": "dudas.md (1.5)",
+    "que": "La duda 1.5 queda cerrada: §6 y §8 escriben el nombre guardado de 7-a en todos sus ejemplos, la barra lo corta con `…` si no cabe, y D-27 está cerrada en 00-decisiones.md. Queda para §21.6 F.3 y §G.11 (cruzada aparte)."
+  },
+  {
+    "id": "Rcobertura-021, Rdueno-021, Rdueno-036, Rdueno-037",
+    "seccion_destino": "§20 y §19 (si procede)",
+    "que": "Nada que decidir del dueño en 6-o ni en 6-r; sí en «Los nombres de pantalla» y «La criba lejana en el acta» (filas aparte). Si §19 lleva un riesgo de la cola de rótulos, puede citar la medida de §6.5: en `Watch` ×1 salen enteros el 69 % de los de clase 2 y el 35 % de los de clase 1 fuera de la presentación de la fuga, y la prueba de lectura dice si basta."
+  },
+  {
+    "id": "Rcobertura-023, Rdueno-003, Rdueno-014, Rdueno-015, Rcobertura-019, Rdueno-017",
+    "seccion_destino": "00-glosario.md (§G.2, §G.4, §G.7 y §G.11)",
+    "que": "§G.7: `BROADCAST.breakRoundEveryS` (6) deja de ser «un rótulo de clase 0 por escapado»: «la moto rodea la fuga: un rótulo de clase 2, reservado con la lista y la frase (6-m), por corredor de `breakRoundOf`, solo en `Watch` a ×½, ×1 y ×2»; `BROADCAST.cueQueueMax` (3): «…se descartan los de clase 0 y 1, salvo la presentación de la fuga, que no cuenta»; nueva `BROADCAST.controlsHideS` (3, 8-p); `cardRowsMax` gana la lista de una fuga. §G.4: `cueClassOf(cue, start, lastVirtualLeader, timeTrial)`, `isPresentation(cue)`, `aheadOfPeloton(i, r)` y `breakRoundOf(riders, cast)`; `PullingLine` con `motive` y `PULL_MOTIVE_WORDS`; `GROUP_WORDS.jersey` en pares [barra, voz]; `playerInit(view, stageDay, reachedS, known)` y los campos, acciones y efectos nuevos de `player.ts` (§8.11). §G.11: `Mountains leader’s group` en lugar de `KOM leader’s group`, las quince palabras de `PULL_MOTIVE_WORDS`, `same time (3 km rule)`, y los ejemplos con el nombre guardado (7-a)."
+  }
 ]

@@ -1,542 +1,542 @@
 [
- {
-  "id": "Rcobertura-001",
-  "seccion": "§0",
-  "linea": 7,
-  "gravedad": "baja",
-  "afirmacion": "62 decisiones cerradas por la síntesis y 218 tomadas por las secciones",
-  "fallo": "El documento tiene 234 decisiones de sección, no 218. Contadas en el borrador: 218 van de 3-a a 19-c, y hay otras 16, 0-a a 0-e (l. 167-171), 20-a a 20-f (l. 9699-9704) y 21-a a 21-e (l. 10310-10314). El glosario lo dice bien (`borrador/00-glosario.md` l. 997: «(234; 218 de §1 a §19)»), mientras el apéndice F.4 (l. 10292) solo da identificador a «`3-a` a `19-c` | las 218 decisiones que tomaron las secciones», así que las 16 de §0, §20 y §21 no tienen fila. La misma cifra, dada de dos maneras.",
-  "correccion": "En l. 7: «62 decisiones cerradas por la síntesis y 234 tomadas por las secciones (218 de §3 a §19; 16 de §0, §20 y §21)». En F.4 (l. 10292): «| `0-a` a `21-e` | las 234 decisiones que tomaron las secciones (218 de §3 a §19) | el bloque de cierre de cada sección |»."
- },
- {
-  "id": "Rcobertura-002",
-  "seccion": "§0.3",
-  "linea": 65,
-  "gravedad": "media",
-  "afirmacion": "Nada queda «a definir».",
-  "fallo": "La cabecera (l. 9: «cada decisión está tomada, cada tipo está escrito en TypeScript») y §0.3 lo afirman, pero el cuerpo deja decisiones condicionadas a un tercero que el plan no tiene: 17-a (l. 8997) mete `checkClockDs` y `favourites` en el formato 1 «si el ensamblador lo acepta»; §17.8 (l. 8526) genera la `0044` «con `tpl_rev` si se acepta 12-c»; §19.1 deja el riesgo 22 en «depende de que el ensamblador acepte 8-g» (l. 9291) y el arreglo del rótulo de caídas del riesgo 24 «pendiente del ensamblador» (l. 9293); 8-g (l. 4149), 9-b (l. 4466), 9-d (l. 4468), 9-i (l. 4473) y 12-c (l. 6283) siguen en «se propone»; y F.3 (l. 10244) dice que «la forma del nombre está abierta». `00-encargo.md` l. 40-41: quien implemente «no tiene a quién preguntar», y la fase 7 solo ensambla (`04-fase-refutacion.md` §7): nadie decidirá esto después.",
-  "correccion": "Tomar esas decisiones y borrar todo condicional: los campos de 8-g, 9-b, 9-d, 9-i, 12-c, 12-j y 12-k quedan escritos como fijan Rcobertura-005, -006, -012, -013, -014, -016, -044 y -046; el rótulo de caídas usa el grupo al final de `b − 1` (Rcobertura-009); la forma del nombre es la de 7-a (Rcobertura-020). Después: en 17-a quitar «si el ensamblador lo acepta»; en §17.8 quitar «(con `tpl_rev` si se acepta 12-c: decisión 17-a)» y escribir «con `tpl_rev` (12-c)»; en §19.1, riesgos 22 y 24 con probabilidad «baja: decidido en 8-g» y «baja: decidido en §4.7», o quitarlos; en F.3, borrar «(la forma del nombre está abierta: 7-a escribe el nombre tal como está guardado)»."
- },
- {
-  "id": "Rcobertura-003",
-  "seccion": "§1.4",
-  "linea": 308,
-  "gravedad": "baja",
-  "afirmacion": "aplica veinte pasadas (l. 353-375)",
-  "fallo": "D-43 se corrigió: «las pasadas son veintiuna» (`borrador/00-decisiones.md` l. 32 y l. 450: «veinte llamadas en l. 353-375 más `markConcession` dentro del `map`, l. 319»), y §12.2 las escribe así (l. 5804 y l. 5863: «sus veintiuna pasadas»). §1.4 sigue diciendo veinte y a la vez cuenta `markConcession` (l. 319), que está fuera de l. 353-375, entre las que miran el futuro; §1.9 (l. 453) dice «veinte pasadas de coherencia» y §12.2 (l. 5772) atribuye todavía a D-43 «veinte pasadas». La misma cifra, de dos maneras.",
-  "correccion": "l. 308: «aplica veintiuna pasadas (las veinte llamadas de l. 353-375 y `markConcession`, que corre dentro del `map`, l. 319)». l. 453: «veintiuna pasadas de coherencia». l. 5772: «D-43 habla de veintiuna pasadas: son las veinte llamadas de l. 353-375 más `markConcession`, que corre dentro del `map` (l. 319)»."
- },
- {
-  "id": "Rcobertura-004",
-  "seccion": "§3.3",
-  "linea": 713,
-  "gravedad": "media",
-  "afirmacion": "function groupBlockAt(cut: StageTimeline, g: GroupIx, t: RaceS, ctx: InstantContext)",
-  "fallo": "`instantAt` recibe `TimelineCore` (F.2, l. 10205) y `cutTimeline` devuelve `TimelineCore` (4-b, l. 1989: «`TimelineCore = Omit<StageTimeline, 'cast' | 'weather' | 'finish'>` es lo que reciben `photoAt`, `instantAt`, `visibilityOf` y `chunkOf` y lo que devuelve `cutTimeline`»). Las dos funciones de §3.3 que `instantAt` usa declaran `cut: StageTimeline`, aquí y en `speedFrom` (l. 732): con `strict`, pasarles la línea cortada no compila, porque a `TimelineCore` le faltan `cast`, `weather` y `finish`. Es código escrito para copiarse.",
-  "correccion": "En l. 713 y en l. 732, `cut: TimelineCore` en lugar de `cut: StageTimeline`, con `import type { TimelineCore } from './timeline.js'` en el bloque de §3.3."
- },
- {
-  "id": "Rcobertura-005",
-  "seccion": "§4.2",
-  "linea": 1143,
-  "gravedad": "alta",
-  "afirmacion": "export interface TimelineCast { readonly riders: readonly CastRider[]; readonly teams: readonly CastTeam[] }",
-  "fallo": "8-g (l. 4149) decide ordenar los favoritos por atributo con los atributos del día, «congelados al grabarla», y dice «Pide `TimelineCast.favourites` (propuesto abajo)»: debajo no hay nada y §4.2 no tiene el campo, que ninguna otra sección puede añadir (regla 7 del esqueleto, citada en l. 990). Lo dan por hecho §17.20 (l. 8828: `buildTimelineCast` «con `knownWins` (7-e) y los `favourites` de 8-g») y §19.1 (riesgo 22, l. 9291: sin él «B1c nacería en rojo en el 7a»). Sin el dato congelado, `StagePreview.favourites` (l. 1851) sale de `publicRiderDetailSchema.attributes` (l. 3945), que es el atributo de HOY, con el aprendizaje de esa etapa y de las siguientes: distinto en los dos desenlaces de B1c.",
-  "correccion": "En §4.2, `TimelineCast` gana `readonly favourites: readonly { readonly rider: RiderIx; readonly why: 'sprint' | 'hills' | 'climb' | 'tt' | 'cobbles' }[] // se graba: los BROADCAST.previewAttrTop (3) mejores inscritos por el atributo del tipo de etapa (8-f), con los atributos del día, antes de correrla (8-g)`. En §4.3, su campo en `storedTimelineV1Schema` y en `encodeTimeline`/`decodeTimeline` (formato 1). `veilCast` (§10.10) lo copia tal cual; la API arma `StagePreview.favourites` con `why: 'gc'` desde `StartState.gcTop` y el resto desde `cast.favourites`, y con `previous_unseen` no lo sirve (§8.6). `cast.test.ts` (§17.21) gana el caso. En 8-g, borrar «(propuesto abajo)»; en 17-a, «si el ensamblador lo acepta»; el riesgo 22 de §19.1 pasa a «baja: decidido en 8-g»."
- },
- {
-  "id": "Rcobertura-006",
-  "seccion": "§4.2",
-  "linea": 1149,
-  "gravedad": "alta",
-  "afirmacion": "readonly checksKm: readonly number[]",
-  "fallo": "`TimeTrialTrace` guarda dónde están los controles pero no el reloj de cada corredor en ellos, y §9 lo usa como si existiera: la tabla de §9.2 (l. 4215: «`checkClockDs[r]` (campo propuesto, 9-b)»), el pseudocódigo de la traza (l. 4227) y el de §9.3 (l. 4268: `lastSplitKm ← el último control con startDs[r] + checkClockDs[r][c] ≤ T`), el tamaño medido «con `checkClockDs`» (l. 4240) y el test de §9.8 (l. 4442: «`checkClockDs` es `10 · splitS` para cada `tt_split`»). Tampoco lo corta nadie: `TimelineVisibility` (§4.6, l. 1537-1546) solo tiene `ttKmDs`, y el `cutTimeline` de l. 1561 solo corta `kmClockDs`. Sin el campo, `SPLIT 1` sale interpolando `kmClockDs`, que 9-b (l. 4466) descarta por errar hasta 1,43 s contra el acta.",
-  "correccion": "En §4.2, tras `kmClockDs`: `readonly checkClockDs: readonly (readonly Ds[])[] // se graba: por RiderIx y control, 10 · Math.round(raw[idx] · noise), el entero que compara bestChain y escribe tt_split (timetrial.ts l. 143, 528 y 542; 9-b); vacío en un prólogo sin controles`. En §4.3, su campo en `storedTimelineV1Schema` (formato 1). En §4.6, `TimelineVisibility` gana `readonly ttCheckDs: readonly (readonly Ds[])[] | null // crono: por RiderIx y control, startDs + checkClockDs`, y `cutTimeline` corta `checkClockDs[r]` a las entradas con `startDs[r] + checkClockDs[r][c] ≤ T`. En 9-b, «Se propone el campo» pasa a «`TimeTrialTrace` lleva», y en 17-a se borra el condicional."
- },
- {
-  "id": "Rcobertura-007",
-  "seccion": "§4.2",
-  "linea": 1158,
-  "gravedad": "media",
-  "afirmacion": "en crono, la llegada del último en salir",
-  "fallo": "El motor cierra la crono con la última LLEGADA, no con la del último en salir: `stage_win_itt` va a la hora del último en llegar (`timetrial.ts` l. 611-619), como dice el propio §9.1 (l. 4177: «`tt_last_home` a la llegada del último en SALIR (l. 603-610); `stage_win_itt` a la del último en LLEGAR (l. 611-619)»). Medido en 6 corridas (duda 1.3 de `borrador/dudas.md`): en la e16, semilla 0, un corredor llega después del último en salir. Con este borde (l. 1530, y l. 4939: `toDs ← mín(toDs, vis.finishDs − 1)`), su último tramo de traza no va en ningún tramo: la pantalla lo deja en ruta cuando pide la meta, y la capa fija de la crono cuenta un `on course` que ya no existe mientras pasa a la llegada.",
-  "correccion": "En §4.2 (l. 1158), §4.6 (l. 1530), §5.4 (l. 2372) y 4-r (l. 2005): «en crono, la última llegada: el máximo de `startS + tiempo` de los que acaban, que es la hora de `stage_win_itt` (`timetrial.ts` l. 611-619)». `tt_last_home` sigue en `finish`. En §9.4, `lastKmFromS` sigue siendo el del último en salir (es el ritmo, no el borde). `timeTrial.test.ts` (§9.8) gana el caso de la e16, semilla 0: el último en llegar cruza la meta en pantalla antes de `atFinish`."
- },
- {
-  "id": "Rcobertura-008",
-  "seccion": "§4.5",
-  "linea": 1422,
-  "gravedad": "media",
-  "afirmacion": "readonly jerseys: readonly JerseyKind[] // maillots de líder que llevan sus miembros (ctx.start.leaders), en JERSEY_PRIORITY",
-  "fallo": "La fila de la barra solo puede pintar los tres maillots de líder: ni el de campeón ni la equipación de los nombrados están en `GroupNow`, y el ejemplo de §6.1 lo confirma (l. 2657: `│ 1  MORENO · LEROY · KAHN`, sin maillot ni equipo). Quedan dos promesas sin cumplir: §7.3 (l. 3374) enseña «la equipación del equipo CON EL QUE CORRIÓ en cada rótulo y en cada fila de un grupo», y la agenda pide, «permanentemente y sin que se lo pidas» (`docs/agenda.md` l. 508), «Quién va en cada grupo, con nombre y equipo, y cuántos son» (l. 512; [DUEÑO 1], `mapas/05-dueno-docs.md` l. 175). §6.2 (l. 2761) deja el equipo detrás de un toque: «Tocar una fila despliega el grupo: sus corredores nombrables con dorsal, bandera, equipo y maillot llevado».",
-  "correccion": "En §4.5, `GroupNow` gana `readonly named: readonly { readonly rider: RiderIx; readonly worn: WornJersey }[] // los que la fila nombra (tres o menos, o los de namedRidersOf, §7.7), con su maillot llevado ya degradado por el velo`. En §6.2 y §6.3, cada nombre de una fila lleva delante su `WornJerseyIcon` (el de líder, `ChampionMark` o la equipación de `CastTeam.jerseySeed`): da maillot y equipo sin tocar. El ejemplo de l. 2657 pasa a `1  [kit] … · [IT*] … · [kit] …` con la forma de nombre que fije Rcobertura-020, y `GroupBar.test.tsx` (§16.6) comprueba que cada nombrado lleva su icono."
- },
- {
-  "id": "Rcobertura-009",
-  "seccion": "§4.7",
-  "linea": 1632,
-  "gravedad": "media",
-  "afirmacion": "emit(v.blockOfKm(e.km))",
-  "fallo": "`emit(b)` toma el grupo del protagonista con `groupAt(r, b)`, «su grupo al final de b» (l. 1612), y el caído sale de su grupo en ese mismo bloque: el reloj que se usa es el del grupo al que ha caído, por detrás. L3 lo midió (`l3/grabador.mjs`, 627 caídas de 13 etapas por 3 semillas; duda 1.2 de `borrador/dudas.md`): `CRASH` sale 70,6 s de carrera tarde de mediana (p90 136 s, máximo 290 s), y los pinchazos y averías de carretera, que van por `emit`, 141,6 s. §19.1 lo da por riesgo de probabilidad alta con el arreglo «pendiente del ensamblador» (l. 9293): el rótulo sale cuando el grupo del caído ya ha pasado.",
-  "correccion": "En `RecorderView` (l. 1612) añadir `readonly groupBefore: (rider: RiderIx, b: Block) => GroupIx | null // su grupo al final de b − 1`. En `revealSOf`, para la regla `incident` y para `puncture` y `mechanical` en carretera, `g ← groupBefore(r0, b)` en lugar de `groupAt`; la tabla de §4.7 lo dice en la fila de `crash` y en una fila nueva «`puncture`, `mechanical` (carretera) | `emit` | el reloj del grupo en que iba al empezar el bloque». §5.4 sintetiza la caída con el mismo grupo; `timeline.test.ts` gana «el `revealS` de cada `crash` no pasa del reloj de su grupo de `b − 1` más lo que ese grupo tarda en un bloque (`STAGE.dx`, 0,1 km)», y el riesgo 24 de §19.1 se quita."
- },
- {
-  "id": "Rcobertura-010",
-  "seccion": "§4.7",
-  "linea": 1638,
-  "gravedad": "baja",
-  "afirmacion": "La firma gana `source` respecto de §G.4 (`revealSOf(e, bEmit, tl)`)",
-  "fallo": "La frase es falsa ya: el glosario lleva la firma con `source` (`borrador/00-glosario.md` l. 680: «`revealSOf(e: RevealInput, source: number, bEmit: Block, tl: RecorderView): RaceS` … 4-r (gana `source`)»). Y apunta a un sitio que no estará en `docs/retransmision.md`: el glosario no se ensambla (F de §21.6 recoge «la parte del glosario que no está en el cuerpo»), y el borrador cita subsecciones `§G.n` 72 veces (contadas: §G.4 20, §G.2 13, §G.11 7, §G.9 7, §G.3 6, §G.7 5, §G.6 4, §G.5 3, §G.1 2, §G.8 2 y una cada §G.10, §G.12 y §G.13). `04-fase-refutacion.md` §7 manda que no queden referencias a `borrador/`, y un `§G.4` en el documento final no lleva a ninguna parte.",
-  "correccion": "Borrar la frase de l. 1638 (4-r ya registra el cambio) y sustituir en todo el documento cada `§G.n` por su sitio: §G.1 → §21.6 F.1; §G.2 → §17.20; §G.3 → §4; §G.4 → §21.6 F.2; §G.5 → §13; §G.6 → §14.2; §G.7 → §15; §G.8 → §14.6; §G.9 → §16.9; §G.10 → §17.2; §G.11 → §21.6 F.3; §G.12 → §21.6 F.4; §G.13 → la tabla de alias de §21.1. Donde la frase contrasta con la firma que fijó la síntesis, escribir esa firma entre paréntesis en lugar de la remisión."
- },
- {
-  "id": "Rcobertura-011",
-  "seccion": "§4.8",
-  "linea": 1684,
-  "gravedad": "baja",
-  "afirmacion": "export interface RiderCard {",
-  "fallo": "D-62 (`borrador/00-decisiones.md` l. 608) deja a E10 «el género en el reparto», y §12.11 (l. 6260), §19.2 (l. 9331) y D.8 (l. 10093) lo dan por cumplido con `CastRider.gender` (l. 1137). Pero la web no recibe `CastRider`: recibe `RiderCard` (l. 1684-1695), que no tiene género, y `serveCast` lo pierde al convertir. La voz, el acta y `breakHeadline` se redactan en la web (`stageJournal.ts`, `names.ts`), que es donde E10 tendrá que concordar; §7.8 (l. 3645) incluso lista el «género» entre lo que se sirve.",
-  "correccion": "En §4.8, `RiderCard` gana `readonly gender: 'M' | 'F' // CastRider.gender: la concordancia de E10 (D-62)`; `riderCardSchema` (§4.11), `gender: z.enum(['M', 'F'])`; `serveCast` (§7.8) lo copia. §12.11 (l. 6260) pasa a «el género en el rótulo servido (`RiderCard.gender`)»."
- },
- {
-  "id": "Rcobertura-012",
-  "seccion": "§4.9",
-  "linea": 1737,
-  "gravedad": "alta",
-  "afirmacion": "export type CueKind = Cue['kind']",
-  "fallo": "La unión `Cue` (l. 1721-1736) no tiene los rótulos de la crono, y dos secciones los dan por hechos: §9.5 (l. 4375: «dos variantes nuevas de `Cue` (propuestas: `tt_split` y `tt_finish`, decisión 9-d)») y §17.9, que los programa en el PR 6b (l. 8567: «las variantes de crono de `Cue` (`tt_split`, `tt_finish`, 9-d)»). El cuadro `Start order: …` de §9.5 (l. 4366, clase 1) tampoco tiene `CueKind`. Como `CUE_CLASS` es `satisfies Readonly<Record<CueKind, CueClass>>` (l. 2945), añadirlas sin darles clase no compila, y §6.5 no les da ninguna.",
-  "correccion": "En §4.9, añadir a `Cue`: `| { readonly kind: 'tt_start_order'; readonly t: RaceS }` (en `t = 0`, con la regla de `BroadcastHead.tt`), `| { readonly kind: 'tt_split'; readonly t: RaceS; readonly check: number; readonly rider: RiderIx; readonly rank: number; readonly gapS: number }` y `| { readonly kind: 'tt_finish'; readonly t: RaceS; readonly rider: RiderIx; readonly rank: number; readonly gapS: number; readonly hotSeat: boolean }`. En §6.5, `CUE_CLASS` gana `tt_start_order: 1, tt_split: 1, tt_finish: 1`, y `cueClassOf` sube `tt_split` a 2 si bate el mejor parcial y `tt_finish` a 3 si `hotSeat`, que son las clases de la tabla de §9.5. En 9-d y §9.5, «propuestas» pasa a decisión."
- },
- {
-  "id": "Rcobertura-013",
-  "seccion": "§4.11",
-  "linea": 1813,
-  "gravedad": "alta",
-  "afirmacion": "// GET …/broadcast: recorrido, reparto y salida; nada de la carrera",
-  "fallo": "`BroadcastHead` no lleva la preparación de la crono, y tres piezas de la web la necesitan antes de que salga nadie: el cuadro `Start order: reverse general classification, every 2:00 · 176 riders` (§9.5, l. 4366: «`BroadcastHead.tt` (campo propuesto, 9-i)»); el ritmo, porque `ttPaceAt(t, plan: { readonly riders: number; readonly intervalS: number }, …)` (l. 4319) corre en la web y `intervalS` no viaja en ninguna respuesta; y los saltos `Last 20 starters` y `Last starter` (9-g), que dependen del orden y del intervalo. 9-i (l. 4473) sigue en «Se propone», también para que `BroadcastChunk.tt` lleve «los pasos por control», que el tipo de l. 1840 (`{ starts, km }`) no tiene.",
-  "correccion": "En §4.11, `BroadcastHead` gana `readonly tt: { readonly order: 'gc' | 'bib'; readonly intervalS: number; readonly checksKm: readonly number[] } | null // crono: la preparación pública de TimeTrialTrace, sin relojes (9-i); null en línea`, y `broadcastHeadSchema`, `tt: z.object({ order: z.enum(['gc', 'bib']), intervalS: int.min(1), checksKm: z.array(z.number()) }).nullable()`. `BroadcastChunk.tt` gana `readonly checks: readonly number[] // tríos [rider, índice de control, relojDs]: ttCheckDs en (fromDs, toDs]`, con su esquema, y `chunkOf` (§4.6) lo llena. 9-i pasa de «Se propone» a decisión."
- },
- {
-  "id": "Rcobertura-014",
-  "seccion": "§4.11",
-  "linea": 1847,
-  "gravedad": "media",
-  "afirmacion": "export type StageReport = StageReplay",
-  "fallo": "12-c (l. 6283) dice que la revisión de plantillas de la etapa «viaja como `tplRev` en `BroadcastHead` y `StageReport`», y la web la necesita: `pickVariant(seed, variants, rev)` (§12.7) elige con ella la redacción de la voz y del acta, y el PR 12 la usa (l. 8711: «`variantSeed` y `pickVariant` con la revisión de la etapa»). Pero `BroadcastHead` (l. 1813-1826) no tiene `tplRev`, `StageReport` es el `stageReplaySchema` de hoy y §14.2 solo le añade `watch` (l. 6898). Sin el campo, la web no sabe con qué revisión redactar ni la voz de un tramo ni el acta.",
-  "correccion": "En §4.11, `BroadcastHead` gana `readonly tplRev: number // stage_timelines.tpl_rev; 0 con el adaptador de la radio (12-c)`, y `broadcastHeadSchema`, `tplRev: int.min(0)`. En §14.2, la lista de ampliaciones gana `stageReplaySchema: + tplRev: z.number().int().nullish() // la revisión de la etapa para el acta (12-c)`, y `yesterday.test.ts` su `.omit`. La columna es Rcobertura-044."
- },
- {
-  "id": "Rcobertura-015",
-  "seccion": "§4.11",
-  "linea": 1923,
-  "gravedad": "baja",
-  "afirmacion": "los dos se declaran aquí para que el contrato tenga un solo sitio",
-  "fallo": "El comentario de cabecera del mismo bloque (l. 1797: «stageGateSchema, preStageInfoSchema, watchStateSchema y switchModeSchema se declaran en contracts.ts (§14.2)»), la tabla de ficheros de §4.13 (l. 1968) y 14-a (l. 7268) los declaran en `packages/shared/src/contracts.ts`, y así los escribe §14.2 (l. 6894 y l. 6896). Esta frase dice lo contrario para `watchStateSchema` y `switchModeSchema`: quien la siga los declara dos veces o crea el ciclo de importación que 14-a evita.",
-  "correccion": "Sustituir el final de l. 1923 por: «los dos se declaran en `contracts.ts` (14-a, §14.2) y `wire.ts` los importa de ahí, para que `contracts.ts` siga sin importar nada de `broadcast/`»."
- },
- {
-  "id": "Rcobertura-016",
-  "seccion": "§4.12",
-  "linea": 1944,
-  "gravedad": "media",
-  "afirmacion": "{ readonly kind: 'contract'; readonly riderId: string; readonly toTeamId: string; readonly fromTeamId: string | null; readonly relocateCountry: string | null }",
-  "fallo": "12-j (l. 6290) decide que `contract` guarda `housingCovered`, porque hoy el titular dice « with housing covered» (`packages/db/src/contracts.ts` l. 328, comprobado), y §12.8 lo usa: el esquema lo exige (l. 6100, `housingCovered: z.boolean()`) y la redacción lo lee (l. 6124, `d.housingCovered`) con `d: Of<'contract'>`, que es `Extract<NewsPayload, { kind: K }>` (l. 6111). Como §4.12 no tiene el campo, `NEWS_VARIANTS` no compila y el titular de hoy no se reproduce (B4).",
-  "correccion": "En §4.12, añadir `; readonly housingCovered: boolean` a la variante `contract`, tras `relocateCountry`, con el comentario `// offer.payHousing (contracts.ts l. 328): solo se dice con traslado (12-j)`."
- },
- {
-  "id": "Rcobertura-017",
-  "seccion": "§5.2",
-  "linea": 2179,
-  "gravedad": "baja",
-  "afirmacion": "con un error máximo de 5 Ds (el redondeo de `tiempoS`)",
-  "fallo": "§5.2 describe la última entrada de la traza como `totalS` sin redondear («y en meta `totalS`, con el percance dentro») y la da por buena con un error de hasta 5 Ds, y 5-c (l. 2622) repite «y `totalS` en meta». Pero 9-a (l. 4465) fija que «La última entrada de `kmClockDs` es `10 · Math.round(tS)`, el `tiempoS` de `results` por diez», §4.2 (l. 1151) lo escribe así y 16-c (l. 8285) hace de I5 una igualdad exacta, «Descartado: la tolerancia de 5 Ds». Quien implemente el grabador por §5.2 deja la entrada sin redondear, y `selfCheckI5`, que exige la igualdad (l. 2407), pondría lápida a las cronos en que el redondeo cambia el segundo (de 6 a 9 de 176 tiempos, según 9-a).",
-  "correccion": "l. 2179: «El reloj propio en km `k` es `raw[round(k / dx) − 1] · noise` y en meta `10 · Math.round(totalS)`, el `tiempoS` de `results` por diez (9-a), con el percance dentro; medido …: la última entrada es igual a `10 · results.tiempoS` en 1.176 de 1.176 corredores». 5-c (l. 2622): «… y `10 · Math.round(totalS)` en meta (9-a)»."
- },
- {
-  "id": "Rcobertura-018",
-  "seccion": "§5.6",
-  "linea": 2509,
-  "gravedad": "baja",
-  "afirmacion": "export interface StageTimelineRead { readonly timeline: StageTimeline; readonly known: boolean }",
-  "fallo": "`StageTimelineRead.known` significa «fuera del velo de quien lee» (la lectura sirve la línea entera), mientras `WatchState.known` (l. 1869) y `BroadcastHead.view.known` (l. 1824) significan «conocida», solo con las letras `W`, `S`, `R` o `A` (10-e, l. 5007). Una etapa caducada (`X`) o de una carrera fuera de guardia tiene aquí `known: true` y en `WatchState` `known: false`. El mismo nombre para dos conceptos, contra la C7 que el documento aplica a los grupos (§20.4, l. 9579); es la duda 1.8 de `borrador/dudas.md`, sin cerrar.",
-  "correccion": "Renombrar el campo a `unveiled` en §5.6 (l. 2509 y su uso en `readStageTimeline`), §14.4 (`timelineForStage`, l. 6952 y el texto que lo lee) y F.2, con el comentario `// fuera del velo de quien lee: conocida, caducada o fuera de guardia (10-e)`."
- },
- {
-  "id": "Rcobertura-019",
-  "seccion": "§6.3",
-  "linea": 2845,
-  "gravedad": "baja",
-  "afirmacion": "kom: 'KOM leader’s group'",
-  "fallo": "El mismo maillot se nombra de dos maneras en pantalla: la barra dice `KOM leader’s group` (l. 2845, l. 2864; F.3, l. 10241), pero el rótulo dice `Leader, mountains classification` y `Mountains jersey (3rd in the classification)` (F.3, l. 10270), la frase de la fuga `the mountains leader` (§7.5) y el `aria-label` «Mountains leader» (§18.8, l. 9184). El documento se obliga a «Un solo concepto, con el mismo nombre» (la C7 del dueño, `docs/balance.md` l. 6740-6741, citada en l. 574 y l. 9579); `KOM` es en el resto de la pantalla la pancarta de montaña (`KOM · Côte d'Engins`, l. 3153), no el maillot.",
-  "correccion": "En `GROUP_WORDS` (l. 2845), `kom: 'Mountains leader’s group'`; en la tabla de l. 2864 y en F.3 (l. 10241), `Mountains leader’s group`. `KOM` queda solo para el rótulo de la pancarta de montaña (`banner_result`)."
- },
- {
-  "id": "Rcobertura-020",
-  "seccion": "§6.3",
-  "linea": 2853,
-  "gravedad": "media",
-  "afirmacion": "en la barra, los apellidos en mayúsculas separados por `·` (`MORENO · LEROY · KAHN`)",
-  "fallo": "7-a (l. 3687) descarta esa forma y da el porqué: «`riders` solo guarda `name` (`schema.ts` l. 279) … poner en mayúsculas «la última palabra» falla con los apellidos compuestos. Descartado: `Luca BERTOLINI` y `L. BERTOLINI`». La barra no tiene de dónde sacar el apellido, y los ejemplos siguen con él o con inicial: §6.1 (l. 2657), la tabla de §6.3 (l. 2865: «los apellidos»), §6.4 (`Pulling: Team Beta (for 11 S. CARTER)`, l. 2894), §6.5 (`CRASH · 45 J. MOREAU · 88 I. ARRIETA`, l. 2974), §6.7 (`1. LEROY 10 pts`, l. 3153) y §8.6 (`[GC]  11 S. CARTER · closest: ARRIETA`, l. 3930). F.3 lo admite (l. 10244: «la forma del nombre está abierta»); es la duda 1.5 de `borrador/dudas.md`. Quien implemente tiene dos reglas y ningún dato para una de ellas.",
-  "correccion": "Aplicar 7-a a toda la pantalla. l. 2853: «en la barra, los nombres tal como están guardados, separados por `·`; si no caben en el ancho de la fila (unos 336 px en el teléfono, §18.5), el último se corta con `…`». l. 2865: «los nombres» en lugar de «los apellidos». Reescribir con el nombre guardado los ejemplos citados (por ejemplo `Pulling: Team Beta (for 11 Sam Carter)` y `DROPPED · 11 Sam Carter · Race leader · +0:25`, con el nombre que ya usa el rótulo de l. 3270), y borrar el paréntesis de F.3 (l. 10244)."
- },
- {
-  "id": "Rcobertura-021",
-  "seccion": "§6.5",
-  "linea": 2974,
-  "gravedad": "baja",
-  "afirmacion": "| `crash` | 2 (3 con nombres de un maillot o un top 5) | la caída sintetizada de `incidents` (D-13)",
-  "fallo": "El mapa 06 §9, fila 29, pide la regla de los 3 km («km de la incidencia y tipo de final | en el suceso») y da el dato por existente (`mapas/06-television.md` l. 377: `threeKmRule`, `truce.ts` l. 136-143). El borrador no la nombra en ninguna parte ni la descarta. En el motor, una caída en los últimos `STAGE.truce.threeKmRuleKm` (3) km de un final que no es en alto no pierde tiempo (`simulate.ts` l. 8289-8291: `dropOut(m, group, reglaTresKm ? 0 : perdidaS)`), mientras `incidents` guarda la pérdida nominal (l. 8269). La pantalla enseña `CRASH` y el corredor quedándose atrás, y después el resultado y `gcAfter` le dan el tiempo de su grupo sin que nada lo explique.",
-  "correccion": "Escribir en §6.8 («Lo que no es suceso») la decisión: la regla no tiene rótulo durante la carrera, porque el motor no la emite y la pérdida de `incidents` es la nominal; se explica en la llegada: en el paquete de meta, el corredor con una caída de `incidents` a menos de `STAGE.truce.threeKmRuleKm` de meta y el tiempo de su grupo lleva `same time (3 km rule)` (pantalla) en el resultado y en `group_finish`, derivado al servir `BroadcastFinish`. Su caso va a `routes/broadcast.test.ts`."
- },
- {
-  "id": "Rcobertura-022",
-  "seccion": "§6.5",
-  "linea": 3001,
-  "gravedad": "baja",
-  "afirmacion": "tras attack, el primer atacante con notoriedad menor que 8 (§7.5)",
-  "fallo": "La agenda pone entre lo que la tele enseña siempre «El rótulo del momento: quien ataca sale en pantalla con su nombre y su ficha» (`docs/agenda.md` l. 514; [DUEÑO 1], `mapas/05-dueno-docs.md` l. 175). Con esta regla, un atacante de nivel 8 («el resto», §7.5), que es el nivel de la mayoría del pelotón, sale en `ATTACK · 21 L. BERTOLINI · Team Alpha` (l. 2970) pero nunca con su ficha, y ninguna sección dice por qué se aparta del requisito.",
-  "correccion": "l. 3001: «rider 'attack'           tras attack, el primer atacante sea cual sea su notoriedad; con varios, el de menor nivel de §7.5». Si se quiere mantener el filtro, escribir su porqué en 6-i y subirlo a §20 como decisión del dueño, porque contradice la agenda l. 514."
- },
- {
-  "id": "Rcobertura-023",
-  "seccion": "§6.7",
-  "linea": 3151,
-  "gravedad": "alta",
-  "afirmacion": "Con la cola llena, la ronda es lo primero que se descarta (clase 0).",
-  "fallo": "El requisito literal del dueño es que, cuando se escapan cinco, «se vean sus maillots», y el encargo dice qué es: «es exactamente el rótulo con el que la televisión presenta a cada corredor» (`docs/encargos.md` l. 153-157; `docs/agenda.md` l. 736-739; [DUEÑO 3], `mapas/05-dueno-docs.md` l. 177). §7.6 lo repite: la tele lo resuelve con «la LISTA de la fuga, con el maillot que lleva cada uno, y la FRASE del comentarista» (l. 3541). En el diseño esa lista es la ronda de la moto, de clase 0, y D-21 descarta los de clase 0 y 1 con la cola llena (l. 2932), justo cuando más pasa: la fuga nace entre ataques y pancartas de clase 2. Lo que queda seguro es la frase de `break_presented`, que nombra a `breakNamedMax` (2, l. 3547) y cuenta al resto, y la barra, que solo pinta maillots de líder (`GroupNow.jerseys`, l. 1422). Ningún banco mide cuántas rondas se completan (B3, l. 7980, cuenta nombres, no rótulos), y D.2 (l. 9956) da [DUEÑO 3] por cubierto.",
-  "correccion": "En §6.7 y 6-g: la ronda de la moto es de clase 2 para los escapados cuyo `worn` no es `team` (líderes, delegados y campeones: los que hacen de «se escapan cinco» «se escapa el campeón de Italia con cuatro más») y de clase 0 para el resto; `cueClassOf` (l. 2954) gana el caso. B3 (§16.4) gana la cláusula: en las seis congeladas, en toda fuga de hasta `nameWholeGroupUpTo` corredores, cada escapado con maillot o título sale en su rótulo antes de `breakRoundEveryS` por el tamaño de la fuga más 30 s de pared. La barra pinta además el maillot de cada nombrado (Rcobertura-008), y D.2 cita los dos sitios."
- },
- {
-  "id": "Rcobertura-024",
-  "seccion": "§6.7",
-  "linea": 3153,
-  "gravedad": "baja",
-  "afirmacion": "Tres puestos en el rótulo; los ocho que puntúan",
-  "fallo": "El mapa 06 §9, fila 23, pide del paso por un puerto «orden de los N primeros en la cima, sus puntos, hueco en la cima» (`mapas/06-television.md` l. 371). `BannerResult` (l. 1094-1102) guarda orden y puntos, y el rótulo `KOM · Côte d'Engins (Cat. 1) · 1. LEROY 10 pts · 2. KAHN 8 · 3. MORENO 6` no lleva hueco; ninguna sección lo decide ni lo descarta, aunque el dato existe en el instante (el `gap` de los grupos al `revealS` de la pancarta).",
-  "correccion": "En §6.7, tras el ejemplo del rótulo de montaña: «Si el segundo que puntúa va en otro grupo, el rótulo añade su hueco en la cima (`+0:18`, pantalla), que el reproductor saca de `GroupNow.gap` en el instante de `revealS`; no se guarda nada nuevo». O, si se descarta, escribirlo como decisión 6-x con su motivo."
- },
- {
-  "id": "Rcobertura-025",
-  "seccion": "§7.1",
-  "linea": 3214,
-  "gravedad": "baja",
-  "afirmacion": "la UCI exige dorsal, apellido, nombre, nacionalidad y equipo",
-  "fallo": "El mapa 06 §9, fila 14, pide para el rótulo de corredor «dorsal, nombre, nacionalidad, equipo, edad, puesto y hueco en la general» (`mapas/06-television.md` l. 362). `RiderCard` (l. 1684-1695) y `CastRider` (l. 1131-1142) no llevan edad y §7.1 no la descarta; el dato existe (`riders.birth_season`, `packages/db/src/schema.ts` l. 286, que el fixture de B1 rellena en l. 7740).",
-  "correccion": "Decidir en §7.1: o `RiderCard` gana `readonly age: number // temporada de la etapa menos riders.birth_season, al servir`, con su campo en `riderCardSchema` y `24 years` (pantalla) en la primera línea del rótulo, o se escribe como decisión 7-x «la edad no va en el rótulo: no cambia la lectura de la carrera»."
- },
- {
-  "id": "Rcobertura-026",
-  "seccion": "§8.1",
-  "linea": 3714,
-  "gravedad": "baja",
-  "afirmacion": "Una crono en `Watch` dura de 5:20 a 11:23 (§9.4)",
-  "fallo": "La duración de una crono se da de tres maneras: de 5:20 a 11:23 aquí y en 8-m (l. 4155), que incluye `nc-es-itt`, 40 km y 12 corredores, 5:20-5:24 (l. 4351); «medido de 6:24 a 11:23» en §8.9 (l. 4022), en O-11 (l. 9834) y en D.7 (l. 10077); y la banda de B17 es «una crono, entre 5:30 y 13:00» (l. 4022, l. 7994 y l. 8564). Una nacional que el propio §9.4 midió cae fuera de la banda del banco que la vigila: no rompe hoy porque B17 corre las 24 etapas del mapa 07 §7, que no tienen nacionales, pero la banda y la cifra del documento no casan.",
-  "correccion": "Banda de la crono en B17: «entre 5:00 y 13:00» en §8.9 (l. 4022), §16.4 (l. 7994) y §17.9 (l. 8564). En §8.9, O-11 y D.7, la cifra medida: «de 5:20 a 11:23 (un prólogo de 176 corredores, de 6:24 a 7:06; una nacional de 40 km con 12, de 5:20 a 5:24)»."
- },
- {
-  "id": "Rcobertura-027",
-  "seccion": "§8.6",
-  "linea": 3901,
-  "gravedad": "baja",
-  "afirmacion": "**La previa: cuatro cuadros de `BROADCAST.previewCardS` (5 s de pared)**",
-  "fallo": "El mapa 06 §9, fila 35, pide para la previa «perfil, puertos, sprint, horario a tres medias, meteo, favoritos, maillots en juego» (`mapas/06-television.md` l. 383). `StagePreview` (l. 1848-1852) y los cuatro cuadros de §8.6 cubren todo menos el horario a tres medias, y ninguna sección dice que se descarta ni por qué.",
-  "correccion": "Añadir a §8.6, tras los cuatro cuadros: «El horario de paso a tres medias de la previa de la tele no se enseña: la etapa ya está corrida y cada espectador la reproduce cuando entra (DD-15, §8.10); su equivalente es la duración anunciada, `About 9 min` (§8.2)», con su decisión 8-x."
- },
- {
-  "id": "Rcobertura-028",
-  "seccion": "§8.6",
-  "linea": 3977,
-  "gravedad": "baja",
-  "afirmacion": "La clasificación por equipos no tiene cuadro: vive en `Report` → `Classifications` (pantalla), como hoy.",
-  "fallo": "El mapa 06 §9, fila 34, pide en el cierre «general, puntos, montaña y equipos, con cambios» (`mapas/06-television.md` l. 382). `StageClosing` (l. 1853-1860) lleva la general con sus movimientos y los líderes de mañana (`jerseysTomorrow`), y el cierre solo descarta por escrito la de equipos (esta línea y 20-c). Las tablas de puntos y de montaña con sus cambios ni están ni se descartan: quien sube en la de puntos sin llevar el maillot no sale en ningún cuadro, y el implementador no sabe si falta un cuadro o sobra.",
-  "correccion": "Tras l. 3977: «Las tablas de puntos y de montaña tampoco tienen cuadro: el cierre dice quién lleva cada maillot mañana (`jerseysTomorrow`) y las tablas enteras, con sus cambios, viven en `Report` → `Classifications`», con su decisión 8-x. Si se quieren, `StageClosing` gana `pointsAfter` y `komAfter` con la forma de `gcAfter` y dos cuadros tras el 3 de §8.6."
- },
- {
-  "id": "Rcobertura-029",
-  "seccion": "§8.7",
-  "linea": 3989,
-  "gravedad": "baja",
-  "afirmacion": "5. **El fuera de control** (`time_cut`, clase 2), si lo hay: `TIME CUT · 12 riders outside the limit`.",
-  "fallo": "El mapa 06 §9, fila 30, pide del fuera de control «límite en vivo y quién queda fuera | la cuenta en montaña; la lista en meta» (`mapas/06-television.md` l. 378). El borrador solo da la lista tras la meta (`time_cut` lleva la regla `finish`, l. 1597, y el motor lo emite en meta, `simulate.ts` l. 9135) y no dice nada del límite en vivo que la tele enseña al grupeto en montaña, ni lo descarta.",
-  "correccion": "Añadir a §6.8: «El límite de fuera de control no se enseña en vivo: depende del tiempo del ganador, que solo existe en la meta, y adelantarlo destriparía la llegada. El corte sale tras `BroadcastFinish` (§8.7)», con su decisión 6-x."
- },
- {
-  "id": "Rcobertura-030",
-  "seccion": "§8.11",
-  "linea": 4077,
-  "gravedad": "media",
-  "afirmacion": "| { readonly k: 'finish' }",
-  "fallo": "`POST …/broadcast/finish` exige cuerpo `{ mode }` (14-f, l. 7273; `finishBodySchema = z.object({ mode: watchModeSchema })`, l. 6869), y es esa llamada la que escribe la letra: el `report` del borde lleva un `reachedS` menor que `finishS`, porque el último tramo acaba en `vis.finishDs − 1` (l. 4939), y `recordProgress` solo escribe la letra «si reachedS ≥ finishS» (l. 4581). El efecto `finish` no lleva modo, y la comprobación 6 (l. 4109) pone la letra en el sitio equivocado: «El `report` que acompaña a `finish` lleva `REPORT_MODE[view]`, y con él la letra (§8.1)». Con este tipo, el gancho que ejecuta el efecto tiene que deducir el modo por su cuenta, y un error ahí escribe `W` donde toca `S` (DD-20).",
-  "correccion": "l. 4077: `| { readonly k: 'finish'; readonly mode: WatchMode } // POST …/broadcast/finish con { mode: REPORT_MODE[view] }`. Comprobación 6 (l. 4109): «El `finish` lleva `REPORT_MODE[view]` en su cuerpo, y con él la letra (§8.1); el `report` del borde no la escribe, porque su `reachedS` es menor que `finishS`». `player.test.ts` gana el caso del digest: su `finish` lleva `mode: 'digest'`."
- },
- {
-  "id": "Rcobertura-031",
-  "seccion": "§9.2",
-  "linea": 4245,
-  "gravedad": "baja",
-  "afirmacion": "y la de una crono de 40 km con 176 corredores se estima en 19-20 KB con relojes absolutos",
-  "fallo": "El tope de la línea de una crono es `TIMELINE.ttMaxStoredBytes` (32 KB, D-11), y con esta estimación una crono de 40 km con 176 corredores se queda al borde: 19-20 KB de traza más unos 11 KB del resto de la línea (duda 1.4 de `borrador/dudas.md`), antes de sumar `checkClockDs` (l. 4240: 22,1 KB frente a 19,8 sin él en la e1). Ninguna de las 24 etapas del banco pasa de 26 km (§19.6, l. 9435), así que B6, el banco que dice vigilar el tope, nunca mide el caso que lo puede romper.",
-  "correccion": "Añadir a B6 (§16.4) y a `scripts/broadcast-fixtures.mjs --sizes` (paso 5) la crono individual más larga con 176 corredores que tenga `SEASON_CALENDAR` (un test la busca), medida en el 4b con el grabador real y `checkClockDs`. Si pasa de 28 KB, §4.3 guarda `kmClockDs` por diferencias por km (unos 5 KB, `estado.md` §9) en el formato 1, que 17-a cierra en el 4b."
- },
- {
-  "id": "Rcobertura-032",
-  "seccion": "§9.5",
-  "linea": 4367,
-  "gravedad": "media",
-  "afirmacion": "0 (`rider`, `focus`); 1 si es del espectador (`own`)",
-  "fallo": "`cueClassOf` solo baja a 0 la ronda de la fuga: `case 'rider': return cue.context === 'break_round' ? 0 : CUE_CLASS.rider` (l. 2954), y `CUE_CLASS.rider` es 1. Un `rider` con contexto `focus` (que además es el de tocar un nombre, que «sale enseguida, fuera de la cola», l. 3004) es de clase 1, no 0. Las rondas `ON COURSE` son casi la mitad de los rótulos de una crono (l. 4381-4382: 41-43 y 56 rondas de 85-106) y, en clase 1, compiten con los parciales en lugar de descartarse antes: la cola medida en `l5/cola.mjs` no es la que este código produce.",
-  "correccion": "En §4.9, `RiderCueContext` gana `'tt_round'`; en §6.5 (l. 2954), `case 'rider': return cue.context === 'break_round' || cue.context === 'tt_round' ? 0 : CUE_CLASS.rider`; en §9.5 (l. 4367), «0 (`rider`, `tt_round`); 1 si es del espectador (`own`)». `cues.test.ts` gana el caso."
- },
- {
-  "id": "Rcobertura-033",
-  "seccion": "§9.5",
-  "linea": 4371,
-  "gravedad": "media",
-  "afirmacion": "2; 3 si el líder virtual no es el líder (D-21)",
-  "fallo": "§6.5 da a `virtual_gc` clase 1 y la sube a 3 solo si cambia el líder virtual (l. 2943, `virtual_gc: 1`; l. 2957, `cue.rows[0].rider !== lastVirtualLeader ? 3`; l. 2983), que es lo que dice D-21: «cambio de líder virtual» (`borrador/00-decisiones.md` l. 252). §9.5 da otra clase base (2) y otra regla (el líder virtual no es el líder) citando la misma D-21. Con un solo `cueClassOf` la crono no puede cumplir las dos, y la cola medida para la crono (l. 4381-4382) se hizo con una regla que el código no tendrá.",
-  "correccion": "l. 4371: «1; 3 si cambia el líder virtual (D-21, `cueClassOf`)», la misma regla de §6.5 para carretera y crono. Si la crono quiere la suya, escribirla en `cueClassOf` (l. 2957) con una decisión nueva y su caso en `cues.test.ts`, y no citar D-21."
- },
- {
-  "id": "Rcobertura-034",
-  "seccion": "§9.5",
-  "linea": 4373,
-  "gravedad": "baja",
-  "afirmacion": "| `TIME CUT` | tras `BroadcastFinish` | el paquete de meta | 3 |",
-  "fallo": "`CUE_CLASS` da a `time_cut` clase 2 (l. 2942), como D-21 («2, … fuera de control», l. 2932; `borrador/00-decisiones.md` l. 252), la tabla de §6.5 (l. 2976), la fila 45 de §6.6 (l. 3109) y §8.7 (l. 3989: «(`time_cut`, clase 2)»). La tabla de la crono le da 3, y ningún caso de `cueClassOf` sube `time_cut`.",
-  "correccion": "l. 4373: «| `TIME CUT` | tras `BroadcastFinish` | el paquete de meta | 2 |»."
- },
- {
-  "id": "Rcobertura-035",
-  "seccion": "§9.5",
-  "linea": 4388,
-  "gravedad": "media",
-  "afirmacion": "`tt_catches` y `tt_last_home`, `report_only` (su hora es la meta)",
-  "fallo": "Esta frase da a `CUE_OF_TEMPLATE` destinos que §6.6 contradice: allí `tt_catches` y `tt_last_home` son `voice_only` (l. 3059; filas 53 y 54, l. 3117-3118: «regla `finish` (§4.7): en el paquete de meta») y `time_cut_readmitted` es `voice_only` (l. 3056; fila 46, l. 3110: «la readmisión se cuenta, no se rotula»), mientras aquí `time_cut_readmitted` va a `time_cut`. B7 exige un destino por plantilla (D-21) y `cues.test.ts` sella la tabla de §6.6: las dos versiones no pueden estar en verde a la vez.",
-  "correccion": "Reescribir el final de l. 4388 como la tabla de §6.6: «`tt_catches`, `voice_only`; `tt_last_home`, `voice_only` (con la regla `finish`, su línea llega con el paquete de meta, como `bunch_sprint`); `stage_win_itt`, `finish`; `puncture` y `mechanical`, `mishap`; `time_cut`, `time_cut`; `time_cut_readmitted`, `voice_only`»."
- },
- {
-  "id": "Rcobertura-036",
-  "seccion": "§9.7",
-  "linea": 4410,
-  "gravedad": "baja",
-  "afirmacion": "con sus amenazas (los `BROADCAST.previewGcTop` siguientes de la general de salida)",
-  "fallo": "Las amenazas al maillot de la general se cuentan con `BROADCAST.previewThreatsMax` (§8.6, l. 3936: «los `BROADCAST.previewThreatsMax` (3, propuesta) siguientes de la general de salida»; §15.3, l. 7412: «corredores que el cuadro de maillots de la previa nombra por maillot»). `previewGcTop` es la constante de los favoritos por la general (l. 3945; l. 7408). Hoy valen las dos 3, así que el error solo se verá cuando la prueba de lectura mueva una (§15.6: «se ajustan antes de `BROADCAST_WATCH=on`»).",
-  "correccion": "l. 4410: «con sus amenazas (los `BROADCAST.previewThreatsMax` siguientes de la general de salida)»."
- },
- {
-  "id": "Rcobertura-037",
-  "seccion": "§10.2",
-  "linea": 4501,
-  "gravedad": "baja",
-  "afirmacion": "la tercera salida de la puerta o un salto de recorrido hasta la meta",
-  "fallo": "8-j (l. 4152) prohíbe ese salto: «Ningún salto pasa de un km antes de meta; … una etapa solo pasa a vista cruzando la meta», y la comprobación 4 del reductor lo sella (l. 4107: «Un salto aterriza como mucho en la hora en que la cabeza pasa por `lengthKm − 1`; ningún salto emite `finish`»). Ningún salto revela con `R`.",
-  "correccion": "l. 4501: «| revelada | `Show result` (pantalla) o la tercera salida de la puerta | `R` | no | `Report` | todo |»."
- },
- {
-  "id": "Rcobertura-038",
-  "seccion": "§11.1",
-  "linea": 5038,
-  "gravedad": "baja",
-  "afirmacion": "| 9a | test de pantalla (§16.6) |",
-  "fallo": "La fila de `sup. E9` promete un test de pantalla en §16.6, y la tabla de §16.6 (l. 8197-8206) no tiene ninguno de `?tab=` ni de `?cls=`. Lo único que existe es el caso `?tab=story` de `raceTabs.test.ts`, que §11.19 (l. 5664) y §17.12 (l. 8666) ponen en el 9b, no en el 9a. `?cls=` (la clasificación pedida por la URL, `Tabs.tsx` l. 263-282, la mitad de la superficie) no lo prueba nadie.",
-  "correccion": "En §16.6, fila nueva: «| `?tab=` y `?cls=` de una etapa no conocida pintan la puerta, y `?tab=story` abre `report` (`sup. E9`) | `apps/web/src/domain/raceTabs.test.ts` | §11.17 | 9b |». En l. 5038 y en D.5 (l. 10009), «Cierra» pasa a 9b y «Banco» a «`raceTabs.test.ts` (§16.6)»; `raceTabs.test.ts` gana el caso `?cls=` con la etapa velada."
- },
- {
-  "id": "Rcobertura-039",
-  "seccion": "§11.1",
-  "linea": 5041,
-  "gravedad": "baja",
-  "afirmacion": "| G y P | la clásica no conocida abre en `Watch` (11-o) | 8a · 9a | B1a |",
-  "fallo": "El cambio de pantalla de la clásica terminada es `raceTabs(status, stageCount, known)` (11-o), y todas las demás secciones lo ponen en el 9b: el código (l. 5614: «apps/web/src/domain/raceTabs.ts (cambia en el 9b)»), sus tests (l. 5664), §17.2 (l. 8344) y §17.12 (l. 8666). La fila de `sup. C3` y su copia en D.5 (l. 10012) dicen 9a: el 9a se daría por cerrado con la clásica abriendo aún en `Result`.",
-  "correccion": "En l. 5041 y en D.5 (l. 10012), «8a · 9b»."
- },
- {
-  "id": "Rcobertura-040",
-  "seccion": "§11.16",
-  "linea": 5538,
-  "gravedad": "media",
-  "afirmacion": "`STORED_PULLERS_MAX` de raceRadio.ts (l. 591), que no se exporta",
-  "fallo": "§5.4 exporta `STORED_PULLERS_MAX` en el PR 4b (l. 2319: «hoy sin export: el grabador corta a lo mismo»; l. 2599; 5-g, l. 2626) y §15 dice de él «E2 no las copia» (l. 7582). Este bloque lo copia (`const PULLERS_KEPT = 12`, l. 5539) sin atarlo: no está en las copias de §15.5 ni en `broadcastConstants.test.ts`, así que si el motor cambia el tope, la radio servida corta a 12 lo que el motor guarda con otro número y no falla nada. Además, el bloque dice «se amplía en el 7b» (l. 5534) y 17-f (l. 9002) lo trae en el 3a, antes del 4b que exporta la constante: en el 3a la copia es inevitable, pero nadie la vigila.",
-  "correccion": "En §11.16: «`PULLERS_KEPT` copia `STORED_PULLERS_MAX` (raceRadio.ts l. 591) mientras el motor no la exporta (PR 3a); en el 4b, que la exporta, `chronicle.ts` pasa a importarla y la copia se borra, y hasta entonces `broadcastConstants.test.ts` comprueba que vale 12». El comentario de l. 5534 pasa a «(nace en el 3a, 17-f; el 7b añade los casos de la pestaña)». §15.5 y la tabla de §15 (l. 7582) citan la copia y su fecha de muerte."
- },
- {
-  "id": "Rcobertura-041",
-  "seccion": "§11.18",
-  "linea": 5647,
-  "gravedad": "baja",
-  "afirmacion": "que no necesitan entrada en la lista de B1b pero llevan su motivo en el registro (B1d)",
-  "fallo": "§11.18 saca de la lista blanca de B1b el `startlist`, `GET /api/my-orders` y las tres rutas de la vuelta de prueba, pero §11.1 las mete: `sup. W3` y `sup. W6` llevan «lista blanca de B1b» como banco (l. 5068 y l. 5071; D.5, l. 10039 y l. 10042), y l. 5252 dice de «la lista de salida, el recorrido, el calendario, el parte meteorológico y la condición del corredor propio (DD-08)» que están «todos en la lista blanca de B1b con su motivo». `B1B_WHITELIST` tiene una sola fuente, la tabla de §11.18 (16-o, l. 8297), y B1b «comprueba que cada ruta de la lista es L en el registro»: con dos listas distintas, el implementador no sabe cuál es la buena.",
-  "correccion": "En §11.1 (l. 5068 y l. 5071) y D.5 (l. 10039 y l. 10042), el banco de `sup. W3` y `sup. W6` pasa a «B1d (L con motivo; su respuesta no cambia con la etapa, §11.18)». l. 5252: «… todos L con su motivo en el registro (B1d); los que cambian al correrse una etapa (el calendario y la condición), además en la lista blanca de B1b (§11.18)»."
- },
- {
-  "id": "Rcobertura-042",
-  "seccion": "§12.10",
-  "linea": 6245,
-  "gravedad": "media",
-  "afirmacion": "`riders` son todos los que la política de nombres deja nombrar y `unnamed` el resto",
-  "fallo": "La política de nombres (§7.7, `namedRidersOf(g, cast, revealed, …)`) necesita saber quién es del espectador (R23.7, «EL CORREDOR PROPIO SIEMPRE APARECE NOMBRADO EN SU RADIO», que §19.3 da por resuelto, l. 9365) y qué se ha revelado, pero `radioFromTimeline(tl, names)` solo recibe `RadioNames = { readonly riderOf: ReadonlyMap<string, ChronicleRider> }` (§4.13, l. 1969; F.2): con esa firma no puede aplicar la política que dice aplicar. Y B16, el único banco de la radio desde la línea, no compara nombres (l. 7993: «grupos, tamaños, huecos, velocidades, percances, relevistas y motivos»): desde el paso 11, cuando la radio guardada deja de escribirse (DD-11), nada vigila que el propio salga nombrado.",
-  "correccion": "En §4.13 (l. 1969) y §12.10: `RadioNames = { readonly riderOf: ReadonlyMap<string, ChronicleRider>; readonly own: ReadonlySet<RiderIx>; readonly nameable: (rider: RiderIx) => boolean }`, que la ruta construye con la política de §7.7 sobre el reparto servido. §17.14 añade a los tests del PR 11: «`radioFromTimeline` nombra en `riders` a todo corredor de `own` en todas las fotos en que corre (R23.7), en las seis congeladas»."
- },
- {
-  "id": "Rcobertura-043",
-  "seccion": "§12.11",
-  "linea": 6259,
-  "gravedad": "media",
-  "afirmacion": "reciben `locale: 'en'` como primer parámetro cuando E10 añada el segundo idioma",
-  "fallo": "D-62 (`borrador/00-decisiones.md` l. 608) deja a E10 «todo como plantilla, datos y semilla neutra, con `locale` en cada punto de render», y D.8 (l. 10092) lo da por hecho. Pero esta frase aplaza el parámetro a cuando llegue E10, §19.9 (l. 9492) lo apunta como pendiente («`locale` como parámetro de cada render | cuando E10 añada la segunda lengua») y las firmas finales solo lo llevan en `renderNews` (F.2: `breakHeadline(cards, ownIx)`, `gapTrendLine(trend)`, `pageTitle(p: PreStageInfo | null, page: PageKind)`, `stageReadyNotice(p, ownRiderOnStartlist)`, `stageReadyEmail(p, ownRiderOnStartlist, url)`). Añadirlo después cambia la firma de cada render y todas sus llamadas en la web, la API y `shared`, que es el trabajo que D-62 quería ahorrarle a E10.",
-  "correccion": "Dar ya a cada render su `locale: 'en'` como primer parámetro, con el tipo literal: `chronicleLine(locale, …)`, `breakHeadline(locale, cards, ownIx)`, `gapTrendLine(locale, trend)`, `groupLabelText(locale, …)`, `championTitleText(locale, t, n)`, `pageTitle(locale, p, page)`, `stageReadyNotice(locale, p, own)` y `stageReadyEmail(locale, p, own, url)`. l. 6259: «… reciben `locale: 'en'` como primer parámetro desde que nacen; E10 solo ensancha el tipo»; F.2 con las firmas nuevas; la fila de §19.9 (l. 9492) se borra."
- },
- {
-  "id": "Rcobertura-044",
-  "seccion": "§13.3",
-  "linea": 6419,
-  "gravedad": "alta",
-  "afirmacion": "CREATE TABLE \"stage_timelines\" (",
-  "fallo": "12-c (l. 6283) decide que «La revisión de plantillas de cada etapa se guarda en `stage_timelines.tpl_rev`, que escribe el grabador con el `TEMPLATE_REV` del tick», y §12.7 (l. 6052) la necesita para que las etapas de antes «se leen igual que el día en que se vieron» (D-46, B5). Pero la `0044` no tiene la columna (SQL, l. 6419-6430; Drizzle, l. 6452 y siguientes), `writeStageTimeline` no la recibe (`StageTimelineMeta`, l. 2469: solo `raceKey`, `stageDay` y `gameDay`) y §17.8 la deja en el aire (l. 8526: «con `tpl_rev` si se acepta 12-c: decisión 17-a»). El PR 12 escribe `pickVariant` «con la revisión de la etapa» (l. 8711) sin tener de dónde leerla: una redacción nueva con `since: 1` reescribiría la voz y el acta de todas las etapas ya vistas, que es lo que B5 existe para impedir.",
-  "correccion": "En §13.3, SQL de la `0044`: `\"tpl_rev\" smallint DEFAULT 0 NOT NULL,` tras `engine_version`; en Drizzle, `/** TEMPLATE_REV del tick que grabó la etapa (12-c); 0 en una lápida. */ tplRev: smallint('tpl_rev').notNull().default(0),`. En §5.6, `StageTimelineMeta` gana `readonly tplRev: number`, `recordStageTimeline` pasa `TEMPLATE_REV` y `readStageTimeline` la devuelve para la cabecera y el acta (Rcobertura-014). En §17.8, «con `tpl_rev` (12-c)», sin condicional; `timelines.test.ts` gana «la fila guarda el `TEMPLATE_REV` del tick, y la lápida, 0»."
- },
- {
-  "id": "Rcobertura-045",
-  "seccion": "§13.5",
-  "linea": 6680,
-  "gravedad": "baja",
-  "afirmacion": "qué se hace con él es §11.1",
-  "fallo": "§11.1 no dice nada de los premios sin etapa: sus filas de dinero y de presupuesto (`sup. H2`, l. 5054; `sup. H6`, l. 5058; `sup. P6`, l. 5065; `sup. X8`, l. 5096) cuentan con `transactions.race_key`/`stage_day` y `stage_team_results.prize` y no tratan la fila anterior a la `0046`. La remisión apunta a una respuesta que no existe: el implementador no sabe si R resta, ignora o rechaza un premio que no puede atribuir a ninguna etapa.",
-  "correccion": "Sustituir el final de l. 6680 por la decisión: «La resta R no lo ve: sin `ref`, un premio anterior al 8a cuenta como conocido. Solo existe en el mundo de pruebas y antes del encendido (paso 10), el reinicio lo borra (§13.9) y los mundos de B1 nacen después del 8a»."
- },
- {
-  "id": "Rcobertura-046",
-  "seccion": "§14.2",
-  "linea": 6906,
-  "gravedad": "baja",
-  "afirmacion": "lastRaceResponseSchema (l. 1571): + ready: preStageInfoSchema.nullish()",
-  "fallo": "§14.2 es la lista de ampliaciones de los esquemas de hoy y no trae `riderRaceReportSchema.moments`, que §12.9 decide (l. 6235: «`riderRaceReportSchema` (`contracts.ts` l. 1554-1569) gana `moments`, opcional»; 12-k, l. 6291), §17.15 programa en el PR 12 (l. 8709) y §17.20 pone en `contracts.ts` (l. 8804). Sin su fila, el tipo de cada momento no está escrito en ninguna parte y `yesterday.test.ts`, que exige un `.omit` por cada campo nuevo (regla 8 de §17.1, l. 8316), no lo cubre.",
-  "correccion": "Añadir tras l. 6906: «`riderRaceReportSchema` (l. 1554-1569): `+ moments: z.array(chronicleEntrySchema).optional()` // las líneas del acta de la última etapa conocida en que el corredor es protagonista, con el esquema de `ChronicleEntry` de hoy (12-k)», y en §17.15 el `.omit({ moments: true })` de `yesterday.test.ts`."
- },
- {
-  "id": "Rcobertura-047",
-  "seccion": "§14.3",
-  "linea": 6939,
-  "gravedad": "media",
-  "afirmacion": "dos pasos de §12 que el código de arriba no enseña",
-  "fallo": "Dos bloques de código que el texto de al lado desmiente, en un documento que se implementa copiando. El de la ruta del tramo (§14.3) no llama a `withGroupRoles` antes de construir `revealOf` ni a `liveClusters` antes de `buildChronicle`, y esta línea lo reconoce. El de `computeHorizon` (§10.6, l. 4683) sigue con la consulta 2 que recorre `race_rosters` entera (`rr.rider_id = ${u.rider_id} or rr.rider_id in (select id from riders where team_id = …)`) y la cuarta por espectador, y l. 4717 lo reconoce: «Tal como están aquí, la consulta 2 no usa `race_rosters_rider_idx` … El código usa la forma D». La forma D es la que pasa B14 (18-a: de 23-40 ms a 3,1-3,7 ms de p95). Son las dudas 2.1 y 2.2 de `borrador/dudas.md`.",
-  "correccion": "Reescribir los dos bloques. En §14.3: `const anotados = withGroupRoles(sucesos, tl, revealS, ctx)` antes de `revealOf`; el mapa de horas, sobre `anotados`; y, con `BROADCAST.liveClusters`, los racimos de `liveClusters(anotados, tl, revealS)` añadidos antes de `buildChronicle` (12-n, §12.3). En §10.6: la consulta 1 trae los ids del corredor propio y de la plantilla, la 2 filtra con `rr.rider_id = any(${ids})`, y la cuarta se sustituye por `lastRunStages(db, world)` (18-a). Después, borrar la frase de l. 6939 y la de l. 4717."
- },
- {
-  "id": "Rcobertura-048",
-  "seccion": "§14.11",
-  "linea": 7257,
-  "gravedad": "baja",
-  "afirmacion": "el progreso en el borde, que devuelve `{ status: 'known', rev }`",
-  "fallo": "El progreso del borde no hace conocida la etapa: el último tramo acaba en `vis.finishDs − 1` (l. 4939), el reproductor no pinta más allá de lo servido (l. 3773), y `recordProgress` solo escribe la letra «si reachedS ≥ finishS» (l. 4581); con un `reachedS` menor devuelve `'watching'` (l. 4587). La que la hace conocida es `POST …/broadcast/finish` (§8.7, l. 3986: «que marca la etapa como vista con la letra del modo»; §14.2, l. 6832: «`recordProgress` hasta `finishS`»). Una web escrita según esta frase esperaría `known` del informe y trataría la respuesta real como un fallo.",
-  "correccion": "l. 7257: «… y, al llegar al borde de la meta, el progreso en el borde, que devuelve `{ status: 'watching', rev }`, y después `POST …/broadcast/finish`, que escribe la letra (§10.3) y cuyo paquete pinta la llegada y el cierre (§8.7 y §8.6)»."
- },
- {
-  "id": "Rcobertura-049",
-  "seccion": "§15.3",
-  "linea": 7412,
-  "gravedad": "baja",
-  "afirmacion": "nombra por maillot (§8.6). Entra en el 10a",
-  "fallo": "17-e (l. 9001) decide que «`BROADCAST` y `SPOILER` nacen enteros en el PR 2, el primero que los lee», pero §15.3 anota que seis constantes entran después (l. 7392-7414: `ttSeekStepS`, `ttSeekLastStarters`, `closingCardS`, `previewThreatsMax` y `recapMaxCues`, «Entra en el 10a»; `cardRowsMax`, «Entra en el 6a»), §17.20 (l. 8808) hace crecer `constants.ts` en el 6a y el 10a, y §17.13 (l. 8678) programa en el 10a «`recapMaxCues`, `previewThreatsMax` y `closingCardS` en `BROADCAST`». Dos planes para el mismo fichero: quien siga 17-e escribe en el PR 2 constantes que el PR 10a volverá a «añadir».",
-  "correccion": "Seguir 17-e, que es la regla del plan: en §15.3, borrar las seis notas «Entra en el 10a» y «Entra en el 6a»; en §17.20 (l. 8808), la fila de `constants.ts` queda «nace en el 2 con §15.3 y §15.4 enteros; en el 10b, lo que ajuste la prueba de lectura»; en §17.13 (l. 8678), quitar de la lista de código del 10a «`recapMaxCues`, `previewThreatsMax` y `closingCardS` en `BROADCAST`»."
- },
- {
-  "id": "Rcobertura-050",
-  "seccion": "§15.5",
-  "linea": 7501,
-  "gravedad": "media",
-  "afirmacion": "### 15.5 Las dos copias atadas por test",
-  "fallo": "El número de copias atadas se da de tres maneras: el título dice dos; el texto y 15-a dicen cuatro (l. 7505: «las cuatro copias son números»; l. 7602: «ata cuatro copias (`bunchMinShare`, `chaseMinShare`, `nameWholeGroupUpTo`, `photoBlocksOf` …)»); y §6.3 añade una quinta, `chaseRefOf`, copia de `chaseReferenceIndex` que «se ata por test como las copias de §15.5» (6-a, l. 3193; l. 2794), y que §17.6 (l. 8442) y §17.7 (l. 8484) meten en `broadcastConstants.test.ts`. El código del test de §15.5 no la tiene, y `chaseRefOf` está declarada sin `export` (l. 2795), así que el test de `apps/api` no puede llamarla. Es la duda 1.7 de `borrador/dudas.md`; a ella se suma `PULLERS_KEPT` (Rcobertura-040).",
-  "correccion": "Título: «### 15.5 Las copias atadas por test». En l. 7505 y en 15-a, «cinco copias», con `chaseRefOf` = `chaseReferenceIndex` desde el 4a (17-j). En §6.3 (l. 2795), `export function chaseRefOf`, y en el bloque de §15.5, `it('chaseRefOf es chaseReferenceIndex (group.ts l. 235-245)', …)` sobre 10.000 entradas generadas con semilla fija (de 1 a 20 grupos, tamaños de 1 a 176, `racing` al azar)."
- },
- {
-  "id": "Rcobertura-051",
-  "seccion": "§16.4",
-  "linea": 7980,
-  "gravedad": "alta",
-  "afirmacion": "Umbral: 100 %, que la política da por construcción (§7.7)",
-  "fallo": "B3 comprueba `named.length + others = size`: que cada miembro esté nombrado o contado. Eso lo cumple por construcción cualquier política, también una que no nombre a nadie, y el propio texto lo admite. Contradice la regla 1 del catálogo (l. 7617: «un banco que puede pasar sin probar nada lleva una cláusula que lo impide») y rebaja el B3 del mapa 07, que pedía que «cada corredor de un grupo que no es el pelotón lleva nombre y sus cinco categorías, o su «aún no existe» explícito», con «nombrados igual a `size` en todo grupo por debajo del umbral de E2» (`mapas/07-tests-contratos.md` l. 175). Así ningún banco sella [DUEÑO 3]: una fuga de cinco con el campeón contado entre `others` pasa B3.",
-  "correccion": "Reescribir B3: «Cada 30 s de carrera, en cada grupo del instante que no es `bunch` y tiene como mucho `BROADCAST.nameWholeGroupUpTo` corredores, `others = 0` (todos nombrados), y cada nombrado tiene su `RiderCard` con `worn` resuelto (líder, campeón con su `ChampionTitle`, o la equipación del equipo del día). Cláusula (regla 1): una cabecera sintética con un campeón vigente y un líder en una fuga de cinco tiene que dar un `break_presented` que nombra a los dos, o B3 falla. Umbral: 100 %»."
- },
- {
-  "id": "Rcobertura-052",
-  "seccion": "§16.4",
-  "linea": 7983,
-  "gravedad": "media",
-  "afirmacion": "contra los topes de red que se proponen aquí con los valores de §14.8 (sin evidencia de los jueces)",
-  "fallo": "El mapa 07 pide dos bancos sobre la respuesta de etapa: B6, que «`stage_snapshots.radio` y la respuesta de etapa caben en su presupuesto», y B8, que «parsear y validar la etapa cuesta menos de X ms», «con el factor de móvil» (`mapas/07-tests-contratos.md` l. 178 y l. 180). El B6 del borrador topa la cabecera, el tramo, la meta y la ruta de etapa VELADA, y el B8 mide el tramo y la cabecera en Node, sin factor de móvil (l. 7985). La ruta de etapa CONOCIDA, que es la que piden `Report` y `Race Radio` (14-b, l. 7269: «con la etapa conocida la sirve entera») y que hoy manda de 871 a 2.949 KB y cuesta de 2,8 a 9,3 más 4,1 a 24,9 ms de parse y Zod en Node (l. 9047), queda sin tope ni banco: ninguna regresión suya la vería nadie.",
-  "correccion": "B6 gana `BROADCAST.maxKnownStageGzipBytes` (112.640: 110 KB, el máximo medido con gzip, 100 KB en l. 9047, más un 10 %), medido con `app.inject` sobre la etapa corrida de `routes/broadcast.test.ts` con la etapa conocida. B8 gana el parse y el `safeParse` de esa respuesta en Node, mediana ≤ 40 ms (el máximo medido, 34,2 ms, con holgura), y dice que el factor de móvil del mapa 07 (de tres a cinco veces, estimado) se comprueba a mano en el paso 10 (§18.5)."
- },
- {
-  "id": "Rcobertura-053",
-  "seccion": "§16.4",
-  "linea": 7985,
-  "gravedad": "baja",
-  "afirmacion": "Umbrales (decisión 16-m): mediana ≤ 2 ms el tramo mayor y ≤ 3 ms la cabecera; p95 de `instantAt` ≤ 0,25 ms.",
-  "fallo": "§15 manda que «el implementador copia estos bloques y escribe los tests contra los nombres, nunca contra literales» (l. 7289), y ya lo cumple con los topes de B6, que viven en `BROADCAST` (l. 7429-7432). Los demás umbrales de banco son literales repetidos en varias secciones sin fuente única: B8 (aquí, en §16.9, l. 8255, y en §18.1), B15 (25 % y 15 s: §16.4, §18.3, §18.9 y §18.10), B17 (las bandas de 8-k: §8.9, l. 4022; §16.4, l. 7994; §17.9, l. 8564), I2 (15 y 4, l. 8284) y B2 (15 s en el 95 %, l. 7979). Ya divergen (la banda de la crono de B17 frente a §8.1, Rcobertura-026), y el 6a y el 10b los reajustan a mano («el umbral pasa a cinco veces lo medido»).",
-  "correccion": "Añadir a `packages/shared/src/broadcast/constants.ts` (§15.3), junto a los topes de B6, un bloque `BENCH` con comentario de intención y medida: `b8: { chunkParseMedianMs: 2, headParseMedianMs: 3, instantP95Ms: 0.25 }`, `b15: { maxPct: 25, maxS: 15 }`, `b17: { watchS: [360, 1320], highlightsS: [105, 450], last5kmShare: 0.15, last5kmShareSummit: 0.35, ttS: [300, 780], digestOverBudget: 0.4, estimateP90S: 60 }`, `i2: { transitP90Stage: 15, transitP90All: 4 }` y `b2: { gapS: 15, gapShare: 0.95 }`. §16.4 da los valores una vez, por su nombre; §8.9, §16.9, §17 y §18 citan el nombre."
- },
- {
-  "id": "Rcobertura-054",
-  "seccion": "§16.4",
-  "linea": 7993,
-  "gravedad": "baja",
-  "afirmacion": "Nocturno en las 24 × 2, con `CS_BANCOS=1`, y rápida en las seis",
-  "fallo": "B16 compara la radio desde la línea con la guardada, y las cronos no tienen radio (duda 1.10 de `borrador/dudas.md`: «la crono ignora la sonda, `simulate.ts` l. 1264»; mapa 07 §7: «`race-france` e1, crono, 20 km | sin radio»). De las 24 etapas del mapa 07 §7, dos son cronos, y de las seis congeladas, una (B19 cuenta «las cinco etapas en línea congeladas», l. 7996). B10 ya se corrigió a 22 etapas en línea (§5.10); B16 sigue en 24 aquí, en §12.10 (l. 6247) y en §17.14 (l. 8699).",
-  "correccion": "En l. 7993, l. 6247 y l. 8699: «las 22 etapas en línea del mapa 07 §7 por dos semillas» y «rápida en las cinco en línea de las seis congeladas»; y una línea: «en una crono, `radioFromTimeline` devuelve la radio vacía, como la guardada»."
- },
- {
-  "id": "Rcobertura-055",
-  "seccion": "§16.4",
-  "linea": 7999,
-  "gravedad": "baja",
-  "afirmacion": "posición de la cabeza, p99 ≤ 1 km",
-  "fallo": "B22 decide si las etapas sin línea abren en `Watch` (D-61) mirando solo la cabeza, pero el adaptador pinta los demás grupos interpolando entre fotos sin marcas de composición ni identidad, que es lo que objetaba O-13 (§21.2, l. 9836), y ese error puede llegar a kilómetros: «sin identidad, interpolar llega a errar 3,5 km en un grupo que no es la cabeza» (§19.1, riesgo 7, l. 9276; `estado.md` §3.6). Un adaptador con la cabeza bien y el pelotón a 3 km pasaría la puerta. Es la duda 1.6 de `borrador/dudas.md`, sin cerrar.",
-  "correccion": "B22 gana una segunda cifra: el p99 del error del cursor de todos los grupos contra la línea grabada, que el PR 6a escribe en su descripción y en §18.9. Si pasa de 2 km, las etapas del adaptador pintan en el perfil solo la cabeza y el grupo del título, y la barra sigue igual; si pasa de 1 km en la cabeza, sigue mandando la regla de hoy (solo `Report`)."
- },
- {
-  "id": "Rcobertura-056",
-  "seccion": "§16.9",
-  "linea": 8253,
-  "gravedad": "baja",
-  "afirmacion": "| B6 | el tamaño | 0, 5 y 6 |",
-  "fallo": "La tabla final fecha B6 en los pasos 0, 5 y 6, pero §17 lo hace nacer también en el 4b («I1, I3, I5 y B6 del `bytea` (4b)», `broadcastFixtures.test.ts`, l. 8898; «B6 del JSON», `timeline.test.ts`, l. 8935) y en el 7b (la ruta de etapa velada, l. 8603). Y fecha B17 en «0 y 10» (l. 8264), cuando su versión rápida, `apps/api/src/broadcastPace.test.ts`, nace en el 3a (l. 8894). La propia sección dice que «Las fechas de nacimiento siguen al plan (§17)» (l. 8272): estas dos filas no lo hacen.",
-  "correccion": "l. 8253: «| B6 | el tamaño | 0 (línea base), 4b (el JSON y el `bytea`), 5 (las 24 × 2), 6a (lo servido) y 7b (la etapa velada) | …». l. 8264: «| B17 | el ritmo medido | 0 (línea base), 3a (rápida) y 10b (la línea grabada) | …»."
- },
- {
-  "id": "Rcobertura-057",
-  "seccion": "§17.10",
-  "linea": 8601,
-  "gravedad": "baja",
-  "afirmacion": "No en `packages/shared/src/broadcast/veilCast.test.ts`, como dice §16.4",
-  "fallo": "§16.4 ya no lo dice: su B13 corre «en `apps/api/src/broadcastFixtures.test.ts`, junto a B3, … (decisión 17-t)» (l. 7990). Pasa lo mismo con otras decisiones de §17 que corrigen a §16 cuando §16 ya está corregido: 17-t (l. 9016: «como dice §16.4»), 17-b (l. 8998: «Descartado: B1d en el 7a, como dice §16.9», con §16.9 diciendo «0 (inventario) y 8a (17-b)», l. 8248), 17-i (l. 9005: «que §16.9 fechaba en el 6a», con §16.9 en «4b el banco (17-i)», l. 8242) 17-l (l. 9008: «como dicen §16.4 y §16.7», con B16 ya en el nocturno de `apps/api`, l. 7993) y 17-m (l. 9009: «y no en el 7a como dice §16.9», con §16.9 en «7b (17-m)», l. 8265). Son remisiones que afirman lo contrario de lo que hay en el sitio citado.",
-  "correccion": "Quitar «, como dice §16.4» de l. 8601 y de 17-t; en 17-b, 17-i, 17-l y 17-m, sustituir la referencia a §16 por «como decía el esqueleto», o borrar el «Descartado» que ya no describe ninguna alternativa del documento."
- },
- {
-  "id": "Rcobertura-058",
-  "seccion": "§18.2",
-  "linea": 9070,
-  "gravedad": "baja",
-  "afirmacion": "§15 fija `BROADCAST.decodedCacheEntries` en 64 «unos 20 MB»",
-  "fallo": "§15.3 lo fija en 16 (l. 7455: `decodedCacheEntries: 16`), y así lo usan §5.6 (l. 2544) y §17.9 (l. 8549: «se comprueba en 16, el valor de §15»). Pero §18 y §19 siguen contando una bajada de 64 a 16 en el paso 6: esta frase, 18-d (l. 9251: «baja de 64 a 16 en el paso 6»), el riesgo 13 de §19.1 (l. 9282: «el LRU de 64 líneas decodificadas ocupa de 33 a 121 MB … baja a 16 en el 6a») y la fila de la LRU de §18.10 (l. 9225, paso 6a), mientras §17.20 hace nacer la LRU en el 3a (`broadcastSource.ts`, l. 8846). Es la duda 1.11 de `borrador/dudas.md`.",
-  "correccion": "l. 9070: «`BROADCAST.decodedCacheEntries` es 16 (§15.3), no los 64 de «unos 20 MB» que estimaba `datos.md` §12». 18-d: «`BROADCAST.decodedCacheEntries` nace en 16 (§15.3), con la memoria de la API de §18.2 …». Riesgo 13 de §19.1: «media: con 16 entradas, de 8 a 30 MB (18-d)», paso 3a. Fila de la LRU de §18.10: paso 3a."
- },
- {
-  "id": "Rcobertura-059",
-  "seccion": "§18.9",
-  "linea": 9203,
-  "gravedad": "baja",
-  "afirmacion": "| B21, la posición extrapolada | contra la línea entera (§16.4) | 6 |",
-  "fallo": "17-i (l. 9005) adelanta la versión de banco de B21 al 4b («también las versiones de banco de I2, B2 y B21 que §16.9 fechaba en el 6a»), y así lo dicen §16.9 (l. 8268: «4b (17-i)»), §19.1 (riesgo 16, l. 9285: «B19, B21 | 4b, 6b») y §19.6 (l. 9420: «B21, en el 4b»). La tabla de medidas pendientes la sigue fechando en el paso 6.",
-  "correccion": "l. 9203: «| B21, la posición extrapolada | contra la línea entera (§16.4) | 4b | …»."
- },
- {
-  "id": "Rcobertura-060",
-  "seccion": "§21.6",
-  "linea": 10164,
-  "gravedad": "media",
-  "afirmacion": "etapa vista (`W` directo, `S` resumen), revelada (`R`), arrastrada (`A`) o caducada (`X`)",
-  "fallo": "«Conocida» tiene dos definiciones. La de F.1 (y la de G.1 del glosario, la de D-28 en `borrador/00-decisiones.md` l. 325 y la de §2.6, l. 568) incluye la caducada `X`; la de 10-e (l. 5007) la excluye: «`WatchState.known` es `true` solo con las letras `W`, `S`, `R` o `A`; una etapa caducada … abre en `Watch`», y así la usan §6.10 (l. 3174) y `stageAccessOf`. El código de §10.3 sigue la primera: `known_through` cuenta las `X` (l. 4528: «21 · `'WARS'` + 17 `X`») y `recordProgress` devuelve `status: 'known'` para toda `N ≤ known_through` (l. 4576), también para una etapa `X` que la web está reproduciendo como no conocida.",
-  "correccion": "F.1 y §2.6: «etapa conocida | vista (`W` directo, `S` resumen), revelada (`R`) o arrastrada (`A`); la caducada (`X`) está fuera del velo pero no es conocida y abre en `Watch` (10-e). `known_through` cuenta el prefijo de etapas fuera del velo por el espectador o por caducidad». En §10.3, tras l. 4576: «con una `X`, `status: 'known'` quiere decir fuera del velo: la web no lo usa para dar la etapa por vista»."
- }
+  {
+    "id": "Rcobertura-001",
+    "seccion": "§0",
+    "linea": 7,
+    "gravedad": "baja",
+    "afirmacion": "62 decisiones cerradas por la síntesis y 218 tomadas por las secciones",
+    "fallo": "El documento tiene 234 decisiones de sección, no 218. Contadas en el borrador: 218 van de 3-a a 19-c, y hay otras 16, 0-a a 0-e (l. 167-171), 20-a a 20-f (l. 9699-9704) y 21-a a 21-e (l. 10310-10314). El glosario lo dice bien (`borrador/00-glosario.md` l. 997: «(234; 218 de §1 a §19)»), mientras el apéndice F.4 (l. 10292) solo da identificador a «`3-a` a `19-c` | las 218 decisiones que tomaron las secciones», así que las 16 de §0, §20 y §21 no tienen fila. La misma cifra, dada de dos maneras.",
+    "correccion": "En l. 7: «62 decisiones cerradas por la síntesis y 234 tomadas por las secciones (218 de §3 a §19; 16 de §0, §20 y §21)». En F.4 (l. 10292): «| `0-a` a `21-e` | las 234 decisiones que tomaron las secciones (218 de §3 a §19) | el bloque de cierre de cada sección |»."
+  },
+  {
+    "id": "Rcobertura-002",
+    "seccion": "§0.3",
+    "linea": 65,
+    "gravedad": "media",
+    "afirmacion": "Nada queda «a definir».",
+    "fallo": "La cabecera (l. 9: «cada decisión está tomada, cada tipo está escrito en TypeScript») y §0.3 lo afirman, pero el cuerpo deja decisiones condicionadas a un tercero que el plan no tiene: 17-a (l. 8997) mete `checkClockDs` y `favourites` en el formato 1 «si el ensamblador lo acepta»; §17.8 (l. 8526) genera la `0044` «con `tpl_rev` si se acepta 12-c»; §19.1 deja el riesgo 22 en «depende de que el ensamblador acepte 8-g» (l. 9291) y el arreglo del rótulo de caídas del riesgo 24 «pendiente del ensamblador» (l. 9293); 8-g (l. 4149), 9-b (l. 4466), 9-d (l. 4468), 9-i (l. 4473) y 12-c (l. 6283) siguen en «se propone»; y F.3 (l. 10244) dice que «la forma del nombre está abierta». `00-encargo.md` l. 40-41: quien implemente «no tiene a quién preguntar», y la fase 7 solo ensambla (`04-fase-refutacion.md` §7): nadie decidirá esto después.",
+    "correccion": "Tomar esas decisiones y borrar todo condicional: los campos de 8-g, 9-b, 9-d, 9-i, 12-c, 12-j y 12-k quedan escritos como fijan Rcobertura-005, -006, -012, -013, -014, -016, -044 y -046; el rótulo de caídas usa el grupo al final de `b − 1` (Rcobertura-009); la forma del nombre es la de 7-a (Rcobertura-020). Después: en 17-a quitar «si el ensamblador lo acepta»; en §17.8 quitar «(con `tpl_rev` si se acepta 12-c: decisión 17-a)» y escribir «con `tpl_rev` (12-c)»; en §19.1, riesgos 22 y 24 con probabilidad «baja: decidido en 8-g» y «baja: decidido en §4.7», o quitarlos; en F.3, borrar «(la forma del nombre está abierta: 7-a escribe el nombre tal como está guardado)»."
+  },
+  {
+    "id": "Rcobertura-003",
+    "seccion": "§1.4",
+    "linea": 308,
+    "gravedad": "baja",
+    "afirmacion": "aplica veinte pasadas (l. 353-375)",
+    "fallo": "D-43 se corrigió: «las pasadas son veintiuna» (`borrador/00-decisiones.md` l. 32 y l. 450: «veinte llamadas en l. 353-375 más `markConcession` dentro del `map`, l. 319»), y §12.2 las escribe así (l. 5804 y l. 5863: «sus veintiuna pasadas»). §1.4 sigue diciendo veinte y a la vez cuenta `markConcession` (l. 319), que está fuera de l. 353-375, entre las que miran el futuro; §1.9 (l. 453) dice «veinte pasadas de coherencia» y §12.2 (l. 5772) atribuye todavía a D-43 «veinte pasadas». La misma cifra, de dos maneras.",
+    "correccion": "l. 308: «aplica veintiuna pasadas (las veinte llamadas de l. 353-375 y `markConcession`, que corre dentro del `map`, l. 319)». l. 453: «veintiuna pasadas de coherencia». l. 5772: «D-43 habla de veintiuna pasadas: son las veinte llamadas de l. 353-375 más `markConcession`, que corre dentro del `map` (l. 319)»."
+  },
+  {
+    "id": "Rcobertura-004",
+    "seccion": "§3.3",
+    "linea": 713,
+    "gravedad": "media",
+    "afirmacion": "function groupBlockAt(cut: StageTimeline, g: GroupIx, t: RaceS, ctx: InstantContext)",
+    "fallo": "`instantAt` recibe `TimelineCore` (F.2, l. 10205) y `cutTimeline` devuelve `TimelineCore` (4-b, l. 1989: «`TimelineCore = Omit<StageTimeline, 'cast' | 'weather' | 'finish'>` es lo que reciben `photoAt`, `instantAt`, `visibilityOf` y `chunkOf` y lo que devuelve `cutTimeline`»). Las dos funciones de §3.3 que `instantAt` usa declaran `cut: StageTimeline`, aquí y en `speedFrom` (l. 732): con `strict`, pasarles la línea cortada no compila, porque a `TimelineCore` le faltan `cast`, `weather` y `finish`. Es código escrito para copiarse.",
+    "correccion": "En l. 713 y en l. 732, `cut: TimelineCore` en lugar de `cut: StageTimeline`, con `import type { TimelineCore } from './timeline.js'` en el bloque de §3.3."
+  },
+  {
+    "id": "Rcobertura-005",
+    "seccion": "§4.2",
+    "linea": 1143,
+    "gravedad": "alta",
+    "afirmacion": "export interface TimelineCast { readonly riders: readonly CastRider[]; readonly teams: readonly CastTeam[] }",
+    "fallo": "8-g (l. 4149) decide ordenar los favoritos por atributo con los atributos del día, «congelados al grabarla», y dice «Pide `TimelineCast.favourites` (propuesto abajo)»: debajo no hay nada y §4.2 no tiene el campo, que ninguna otra sección puede añadir (regla 7 del esqueleto, citada en l. 990). Lo dan por hecho §17.20 (l. 8828: `buildTimelineCast` «con `knownWins` (7-e) y los `favourites` de 8-g») y §19.1 (riesgo 22, l. 9291: sin él «B1c nacería en rojo en el 7a»). Sin el dato congelado, `StagePreview.favourites` (l. 1851) sale de `publicRiderDetailSchema.attributes` (l. 3945), que es el atributo de HOY, con el aprendizaje de esa etapa y de las siguientes: distinto en los dos desenlaces de B1c.",
+    "correccion": "En §4.2, `TimelineCast` gana `readonly favourites: readonly { readonly rider: RiderIx; readonly why: 'sprint' | 'hills' | 'climb' | 'tt' | 'cobbles' }[] // se graba: los BROADCAST.previewAttrTop (3) mejores inscritos por el atributo del tipo de etapa (8-f), con los atributos del día, antes de correrla (8-g)`. En §4.3, su campo en `storedTimelineV1Schema` y en `encodeTimeline`/`decodeTimeline` (formato 1). `veilCast` (§10.10) lo copia tal cual; la API arma `StagePreview.favourites` con `why: 'gc'` desde `StartState.gcTop` y el resto desde `cast.favourites`, y con `previous_unseen` no lo sirve (§8.6). `cast.test.ts` (§17.21) gana el caso. En 8-g, borrar «(propuesto abajo)»; en 17-a, «si el ensamblador lo acepta»; el riesgo 22 de §19.1 pasa a «baja: decidido en 8-g»."
+  },
+  {
+    "id": "Rcobertura-006",
+    "seccion": "§4.2",
+    "linea": 1149,
+    "gravedad": "alta",
+    "afirmacion": "readonly checksKm: readonly number[]",
+    "fallo": "`TimeTrialTrace` guarda dónde están los controles pero no el reloj de cada corredor en ellos, y §9 lo usa como si existiera: la tabla de §9.2 (l. 4215: «`checkClockDs[r]` (campo propuesto, 9-b)»), el pseudocódigo de la traza (l. 4227) y el de §9.3 (l. 4268: `lastSplitKm ← el último control con startDs[r] + checkClockDs[r][c] ≤ T`), el tamaño medido «con `checkClockDs`» (l. 4240) y el test de §9.8 (l. 4442: «`checkClockDs` es `10 · splitS` para cada `tt_split`»). Tampoco lo corta nadie: `TimelineVisibility` (§4.6, l. 1537-1546) solo tiene `ttKmDs`, y el `cutTimeline` de l. 1561 solo corta `kmClockDs`. Sin el campo, `SPLIT 1` sale interpolando `kmClockDs`, que 9-b (l. 4466) descarta por errar hasta 1,43 s contra el acta.",
+    "correccion": "En §4.2, tras `kmClockDs`: `readonly checkClockDs: readonly (readonly Ds[])[] // se graba: por RiderIx y control, 10 · Math.round(raw[idx] · noise), el entero que compara bestChain y escribe tt_split (timetrial.ts l. 143, 528 y 542; 9-b); vacío en un prólogo sin controles`. En §4.3, su campo en `storedTimelineV1Schema` (formato 1). En §4.6, `TimelineVisibility` gana `readonly ttCheckDs: readonly (readonly Ds[])[] | null // crono: por RiderIx y control, startDs + checkClockDs`, y `cutTimeline` corta `checkClockDs[r]` a las entradas con `startDs[r] + checkClockDs[r][c] ≤ T`. En 9-b, «Se propone el campo» pasa a «`TimeTrialTrace` lleva», y en 17-a se borra el condicional."
+  },
+  {
+    "id": "Rcobertura-007",
+    "seccion": "§4.2",
+    "linea": 1158,
+    "gravedad": "media",
+    "afirmacion": "en crono, la llegada del último en salir",
+    "fallo": "El motor cierra la crono con la última LLEGADA, no con la del último en salir: `stage_win_itt` va a la hora del último en llegar (`timetrial.ts` l. 611-619), como dice el propio §9.1 (l. 4177: «`tt_last_home` a la llegada del último en SALIR (l. 603-610); `stage_win_itt` a la del último en LLEGAR (l. 611-619)»). Medido en 6 corridas (duda 1.3 de `borrador/dudas.md`): en la e16, semilla 0, un corredor llega después del último en salir. Con este borde (l. 1530, y l. 4939: `toDs ← mín(toDs, vis.finishDs − 1)`), su último tramo de traza no va en ningún tramo: la pantalla lo deja en ruta cuando pide la meta, y la capa fija de la crono cuenta un `on course` que ya no existe mientras pasa a la llegada.",
+    "correccion": "En §4.2 (l. 1158), §4.6 (l. 1530), §5.4 (l. 2372) y 4-r (l. 2005): «en crono, la última llegada: el máximo de `startS + tiempo` de los que acaban, que es la hora de `stage_win_itt` (`timetrial.ts` l. 611-619)». `tt_last_home` sigue en `finish`. En §9.4, `lastKmFromS` sigue siendo el del último en salir (es el ritmo, no el borde). `timeTrial.test.ts` (§9.8) gana el caso de la e16, semilla 0: el último en llegar cruza la meta en pantalla antes de `atFinish`."
+  },
+  {
+    "id": "Rcobertura-008",
+    "seccion": "§4.5",
+    "linea": 1422,
+    "gravedad": "media",
+    "afirmacion": "readonly jerseys: readonly JerseyKind[] // maillots de líder que llevan sus miembros (ctx.start.leaders), en JERSEY_PRIORITY",
+    "fallo": "La fila de la barra solo puede pintar los tres maillots de líder: ni el de campeón ni la equipación de los nombrados están en `GroupNow`, y el ejemplo de §6.1 lo confirma (l. 2657: `│ 1  MORENO · LEROY · KAHN`, sin maillot ni equipo). Quedan dos promesas sin cumplir: §7.3 (l. 3374) enseña «la equipación del equipo CON EL QUE CORRIÓ en cada rótulo y en cada fila de un grupo», y la agenda pide, «permanentemente y sin que se lo pidas» (`docs/agenda.md` l. 508), «Quién va en cada grupo, con nombre y equipo, y cuántos son» (l. 512; [DUEÑO 1], `mapas/05-dueno-docs.md` l. 175). §6.2 (l. 2761) deja el equipo detrás de un toque: «Tocar una fila despliega el grupo: sus corredores nombrables con dorsal, bandera, equipo y maillot llevado».",
+    "correccion": "En §4.5, `GroupNow` gana `readonly named: readonly { readonly rider: RiderIx; readonly worn: WornJersey }[] // los que la fila nombra (tres o menos, o los de namedRidersOf, §7.7), con su maillot llevado ya degradado por el velo`. En §6.2 y §6.3, cada nombre de una fila lleva delante su `WornJerseyIcon` (el de líder, `ChampionMark` o la equipación de `CastTeam.jerseySeed`): da maillot y equipo sin tocar. El ejemplo de l. 2657 pasa a `1  [kit] … · [IT*] … · [kit] …` con la forma de nombre que fije Rcobertura-020, y `GroupBar.test.tsx` (§16.6) comprueba que cada nombrado lleva su icono."
+  },
+  {
+    "id": "Rcobertura-009",
+    "seccion": "§4.7",
+    "linea": 1632,
+    "gravedad": "media",
+    "afirmacion": "emit(v.blockOfKm(e.km))",
+    "fallo": "`emit(b)` toma el grupo del protagonista con `groupAt(r, b)`, «su grupo al final de b» (l. 1612), y el caído sale de su grupo en ese mismo bloque: el reloj que se usa es el del grupo al que ha caído, por detrás. L3 lo midió (`l3/grabador.mjs`, 627 caídas de 13 etapas por 3 semillas; duda 1.2 de `borrador/dudas.md`): `CRASH` sale 70,6 s de carrera tarde de mediana (p90 136 s, máximo 290 s), y los pinchazos y averías de carretera, que van por `emit`, 141,6 s. §19.1 lo da por riesgo de probabilidad alta con el arreglo «pendiente del ensamblador» (l. 9293): el rótulo sale cuando el grupo del caído ya ha pasado.",
+    "correccion": "En `RecorderView` (l. 1612) añadir `readonly groupBefore: (rider: RiderIx, b: Block) => GroupIx | null // su grupo al final de b − 1`. En `revealSOf`, para la regla `incident` y para `puncture` y `mechanical` en carretera, `g ← groupBefore(r0, b)` en lugar de `groupAt`; la tabla de §4.7 lo dice en la fila de `crash` y en una fila nueva «`puncture`, `mechanical` (carretera) | `emit` | el reloj del grupo en que iba al empezar el bloque». §5.4 sintetiza la caída con el mismo grupo; `timeline.test.ts` gana «el `revealS` de cada `crash` no pasa del reloj de su grupo de `b − 1` más lo que ese grupo tarda en un bloque (`STAGE.dx`, 0,1 km)», y el riesgo 24 de §19.1 se quita."
+  },
+  {
+    "id": "Rcobertura-010",
+    "seccion": "§4.7",
+    "linea": 1638,
+    "gravedad": "baja",
+    "afirmacion": "La firma gana `source` respecto de §G.4 (`revealSOf(e, bEmit, tl)`)",
+    "fallo": "La frase es falsa ya: el glosario lleva la firma con `source` (`borrador/00-glosario.md` l. 680: «`revealSOf(e: RevealInput, source: number, bEmit: Block, tl: RecorderView): RaceS` … 4-r (gana `source`)»). Y apunta a un sitio que no estará en `docs/retransmision.md`: el glosario no se ensambla (F de §21.6 recoge «la parte del glosario que no está en el cuerpo»), y el borrador cita subsecciones `§G.n` 72 veces (contadas: §G.4 20, §G.2 13, §G.11 7, §G.9 7, §G.3 6, §G.7 5, §G.6 4, §G.5 3, §G.1 2, §G.8 2 y una cada §G.10, §G.12 y §G.13). `04-fase-refutacion.md` §7 manda que no queden referencias a `borrador/`, y un `§G.4` en el documento final no lleva a ninguna parte.",
+    "correccion": "Borrar la frase de l. 1638 (4-r ya registra el cambio) y sustituir en todo el documento cada `§G.n` por su sitio: §G.1 → §21.6 F.1; §G.2 → §17.20; §G.3 → §4; §G.4 → §21.6 F.2; §G.5 → §13; §G.6 → §14.2; §G.7 → §15; §G.8 → §14.6; §G.9 → §16.9; §G.10 → §17.2; §G.11 → §21.6 F.3; §G.12 → §21.6 F.4; §G.13 → la tabla de alias de §21.1. Donde la frase contrasta con la firma que fijó la síntesis, escribir esa firma entre paréntesis en lugar de la remisión."
+  },
+  {
+    "id": "Rcobertura-011",
+    "seccion": "§4.8",
+    "linea": 1684,
+    "gravedad": "baja",
+    "afirmacion": "export interface RiderCard {",
+    "fallo": "D-62 (`borrador/00-decisiones.md` l. 608) deja a E10 «el género en el reparto», y §12.11 (l. 6260), §19.2 (l. 9331) y D.8 (l. 10093) lo dan por cumplido con `CastRider.gender` (l. 1137). Pero la web no recibe `CastRider`: recibe `RiderCard` (l. 1684-1695), que no tiene género, y `serveCast` lo pierde al convertir. La voz, el acta y `breakHeadline` se redactan en la web (`stageJournal.ts`, `names.ts`), que es donde E10 tendrá que concordar; §7.8 (l. 3645) incluso lista el «género» entre lo que se sirve.",
+    "correccion": "En §4.8, `RiderCard` gana `readonly gender: 'M' | 'F' // CastRider.gender: la concordancia de E10 (D-62)`; `riderCardSchema` (§4.11), `gender: z.enum(['M', 'F'])`; `serveCast` (§7.8) lo copia. §12.11 (l. 6260) pasa a «el género en el rótulo servido (`RiderCard.gender`)»."
+  },
+  {
+    "id": "Rcobertura-012",
+    "seccion": "§4.9",
+    "linea": 1737,
+    "gravedad": "alta",
+    "afirmacion": "export type CueKind = Cue['kind']",
+    "fallo": "La unión `Cue` (l. 1721-1736) no tiene los rótulos de la crono, y dos secciones los dan por hechos: §9.5 (l. 4375: «dos variantes nuevas de `Cue` (propuestas: `tt_split` y `tt_finish`, decisión 9-d)») y §17.9, que los programa en el PR 6b (l. 8567: «las variantes de crono de `Cue` (`tt_split`, `tt_finish`, 9-d)»). El cuadro `Start order: …` de §9.5 (l. 4366, clase 1) tampoco tiene `CueKind`. Como `CUE_CLASS` es `satisfies Readonly<Record<CueKind, CueClass>>` (l. 2945), añadirlas sin darles clase no compila, y §6.5 no les da ninguna.",
+    "correccion": "En §4.9, añadir a `Cue`: `| { readonly kind: 'tt_start_order'; readonly t: RaceS }` (en `t = 0`, con la regla de `BroadcastHead.tt`), `| { readonly kind: 'tt_split'; readonly t: RaceS; readonly check: number; readonly rider: RiderIx; readonly rank: number; readonly gapS: number }` y `| { readonly kind: 'tt_finish'; readonly t: RaceS; readonly rider: RiderIx; readonly rank: number; readonly gapS: number; readonly hotSeat: boolean }`. En §6.5, `CUE_CLASS` gana `tt_start_order: 1, tt_split: 1, tt_finish: 1`, y `cueClassOf` sube `tt_split` a 2 si bate el mejor parcial y `tt_finish` a 3 si `hotSeat`, que son las clases de la tabla de §9.5. En 9-d y §9.5, «propuestas» pasa a decisión."
+  },
+  {
+    "id": "Rcobertura-013",
+    "seccion": "§4.11",
+    "linea": 1813,
+    "gravedad": "alta",
+    "afirmacion": "// GET …/broadcast: recorrido, reparto y salida; nada de la carrera",
+    "fallo": "`BroadcastHead` no lleva la preparación de la crono, y tres piezas de la web la necesitan antes de que salga nadie: el cuadro `Start order: reverse general classification, every 2:00 · 176 riders` (§9.5, l. 4366: «`BroadcastHead.tt` (campo propuesto, 9-i)»); el ritmo, porque `ttPaceAt(t, plan: { readonly riders: number; readonly intervalS: number }, …)` (l. 4319) corre en la web y `intervalS` no viaja en ninguna respuesta; y los saltos `Last 20 starters` y `Last starter` (9-g), que dependen del orden y del intervalo. 9-i (l. 4473) sigue en «Se propone», también para que `BroadcastChunk.tt` lleve «los pasos por control», que el tipo de l. 1840 (`{ starts, km }`) no tiene.",
+    "correccion": "En §4.11, `BroadcastHead` gana `readonly tt: { readonly order: 'gc' | 'bib'; readonly intervalS: number; readonly checksKm: readonly number[] } | null // crono: la preparación pública de TimeTrialTrace, sin relojes (9-i); null en línea`, y `broadcastHeadSchema`, `tt: z.object({ order: z.enum(['gc', 'bib']), intervalS: int.min(1), checksKm: z.array(z.number()) }).nullable()`. `BroadcastChunk.tt` gana `readonly checks: readonly number[] // tríos [rider, índice de control, relojDs]: ttCheckDs en (fromDs, toDs]`, con su esquema, y `chunkOf` (§4.6) lo llena. 9-i pasa de «Se propone» a decisión."
+  },
+  {
+    "id": "Rcobertura-014",
+    "seccion": "§4.11",
+    "linea": 1847,
+    "gravedad": "media",
+    "afirmacion": "export type StageReport = StageReplay",
+    "fallo": "12-c (l. 6283) dice que la revisión de plantillas de la etapa «viaja como `tplRev` en `BroadcastHead` y `StageReport`», y la web la necesita: `pickVariant(seed, variants, rev)` (§12.7) elige con ella la redacción de la voz y del acta, y el PR 12 la usa (l. 8711: «`variantSeed` y `pickVariant` con la revisión de la etapa»). Pero `BroadcastHead` (l. 1813-1826) no tiene `tplRev`, `StageReport` es el `stageReplaySchema` de hoy y §14.2 solo le añade `watch` (l. 6898). Sin el campo, la web no sabe con qué revisión redactar ni la voz de un tramo ni el acta.",
+    "correccion": "En §4.11, `BroadcastHead` gana `readonly tplRev: number // stage_timelines.tpl_rev; 0 con el adaptador de la radio (12-c)`, y `broadcastHeadSchema`, `tplRev: int.min(0)`. En §14.2, la lista de ampliaciones gana `stageReplaySchema: + tplRev: z.number().int().nullish() // la revisión de la etapa para el acta (12-c)`, y `yesterday.test.ts` su `.omit`. La columna es Rcobertura-044."
+  },
+  {
+    "id": "Rcobertura-015",
+    "seccion": "§4.11",
+    "linea": 1923,
+    "gravedad": "baja",
+    "afirmacion": "los dos se declaran aquí para que el contrato tenga un solo sitio",
+    "fallo": "El comentario de cabecera del mismo bloque (l. 1797: «stageGateSchema, preStageInfoSchema, watchStateSchema y switchModeSchema se declaran en contracts.ts (§14.2)»), la tabla de ficheros de §4.13 (l. 1968) y 14-a (l. 7268) los declaran en `packages/shared/src/contracts.ts`, y así los escribe §14.2 (l. 6894 y l. 6896). Esta frase dice lo contrario para `watchStateSchema` y `switchModeSchema`: quien la siga los declara dos veces o crea el ciclo de importación que 14-a evita.",
+    "correccion": "Sustituir el final de l. 1923 por: «los dos se declaran en `contracts.ts` (14-a, §14.2) y `wire.ts` los importa de ahí, para que `contracts.ts` siga sin importar nada de `broadcast/`»."
+  },
+  {
+    "id": "Rcobertura-016",
+    "seccion": "§4.12",
+    "linea": 1944,
+    "gravedad": "media",
+    "afirmacion": "{ readonly kind: 'contract'; readonly riderId: string; readonly toTeamId: string; readonly fromTeamId: string | null; readonly relocateCountry: string | null }",
+    "fallo": "12-j (l. 6290) decide que `contract` guarda `housingCovered`, porque hoy el titular dice « with housing covered» (`packages/db/src/contracts.ts` l. 328, comprobado), y §12.8 lo usa: el esquema lo exige (l. 6100, `housingCovered: z.boolean()`) y la redacción lo lee (l. 6124, `d.housingCovered`) con `d: Of<'contract'>`, que es `Extract<NewsPayload, { kind: K }>` (l. 6111). Como §4.12 no tiene el campo, `NEWS_VARIANTS` no compila y el titular de hoy no se reproduce (B4).",
+    "correccion": "En §4.12, añadir `; readonly housingCovered: boolean` a la variante `contract`, tras `relocateCountry`, con el comentario `// offer.payHousing (contracts.ts l. 328): solo se dice con traslado (12-j)`."
+  },
+  {
+    "id": "Rcobertura-017",
+    "seccion": "§5.2",
+    "linea": 2179,
+    "gravedad": "baja",
+    "afirmacion": "con un error máximo de 5 Ds (el redondeo de `tiempoS`)",
+    "fallo": "§5.2 describe la última entrada de la traza como `totalS` sin redondear («y en meta `totalS`, con el percance dentro») y la da por buena con un error de hasta 5 Ds, y 5-c (l. 2622) repite «y `totalS` en meta». Pero 9-a (l. 4465) fija que «La última entrada de `kmClockDs` es `10 · Math.round(tS)`, el `tiempoS` de `results` por diez», §4.2 (l. 1151) lo escribe así y 16-c (l. 8285) hace de I5 una igualdad exacta, «Descartado: la tolerancia de 5 Ds». Quien implemente el grabador por §5.2 deja la entrada sin redondear, y `selfCheckI5`, que exige la igualdad (l. 2407), pondría lápida a las cronos en que el redondeo cambia el segundo (de 6 a 9 de 176 tiempos, según 9-a).",
+    "correccion": "l. 2179: «El reloj propio en km `k` es `raw[round(k / dx) − 1] · noise` y en meta `10 · Math.round(totalS)`, el `tiempoS` de `results` por diez (9-a), con el percance dentro; medido …: la última entrada es igual a `10 · results.tiempoS` en 1.176 de 1.176 corredores». 5-c (l. 2622): «… y `10 · Math.round(totalS)` en meta (9-a)»."
+  },
+  {
+    "id": "Rcobertura-018",
+    "seccion": "§5.6",
+    "linea": 2509,
+    "gravedad": "baja",
+    "afirmacion": "export interface StageTimelineRead { readonly timeline: StageTimeline; readonly known: boolean }",
+    "fallo": "`StageTimelineRead.known` significa «fuera del velo de quien lee» (la lectura sirve la línea entera), mientras `WatchState.known` (l. 1869) y `BroadcastHead.view.known` (l. 1824) significan «conocida», solo con las letras `W`, `S`, `R` o `A` (10-e, l. 5007). Una etapa caducada (`X`) o de una carrera fuera de guardia tiene aquí `known: true` y en `WatchState` `known: false`. El mismo nombre para dos conceptos, contra la C7 que el documento aplica a los grupos (§20.4, l. 9579); es la duda 1.8 de `borrador/dudas.md`, sin cerrar.",
+    "correccion": "Renombrar el campo a `unveiled` en §5.6 (l. 2509 y su uso en `readStageTimeline`), §14.4 (`timelineForStage`, l. 6952 y el texto que lo lee) y F.2, con el comentario `// fuera del velo de quien lee: conocida, caducada o fuera de guardia (10-e)`."
+  },
+  {
+    "id": "Rcobertura-019",
+    "seccion": "§6.3",
+    "linea": 2845,
+    "gravedad": "baja",
+    "afirmacion": "kom: 'KOM leader’s group'",
+    "fallo": "El mismo maillot se nombra de dos maneras en pantalla: la barra dice `KOM leader’s group` (l. 2845, l. 2864; F.3, l. 10241), pero el rótulo dice `Leader, mountains classification` y `Mountains jersey (3rd in the classification)` (F.3, l. 10270), la frase de la fuga `the mountains leader` (§7.5) y el `aria-label` «Mountains leader» (§18.8, l. 9184). El documento se obliga a «Un solo concepto, con el mismo nombre» (la C7 del dueño, `docs/balance.md` l. 6740-6741, citada en l. 574 y l. 9579); `KOM` es en el resto de la pantalla la pancarta de montaña (`KOM · Côte d'Engins`, l. 3153), no el maillot.",
+    "correccion": "En `GROUP_WORDS` (l. 2845), `kom: 'Mountains leader’s group'`; en la tabla de l. 2864 y en F.3 (l. 10241), `Mountains leader’s group`. `KOM` queda solo para el rótulo de la pancarta de montaña (`banner_result`)."
+  },
+  {
+    "id": "Rcobertura-020",
+    "seccion": "§6.3",
+    "linea": 2853,
+    "gravedad": "media",
+    "afirmacion": "en la barra, los apellidos en mayúsculas separados por `·` (`MORENO · LEROY · KAHN`)",
+    "fallo": "7-a (l. 3687) descarta esa forma y da el porqué: «`riders` solo guarda `name` (`schema.ts` l. 279) … poner en mayúsculas «la última palabra» falla con los apellidos compuestos. Descartado: `Luca BERTOLINI` y `L. BERTOLINI`». La barra no tiene de dónde sacar el apellido, y los ejemplos siguen con él o con inicial: §6.1 (l. 2657), la tabla de §6.3 (l. 2865: «los apellidos»), §6.4 (`Pulling: Team Beta (for 11 S. CARTER)`, l. 2894), §6.5 (`CRASH · 45 J. MOREAU · 88 I. ARRIETA`, l. 2974), §6.7 (`1. LEROY 10 pts`, l. 3153) y §8.6 (`[GC]  11 S. CARTER · closest: ARRIETA`, l. 3930). F.3 lo admite (l. 10244: «la forma del nombre está abierta»); es la duda 1.5 de `borrador/dudas.md`. Quien implemente tiene dos reglas y ningún dato para una de ellas.",
+    "correccion": "Aplicar 7-a a toda la pantalla. l. 2853: «en la barra, los nombres tal como están guardados, separados por `·`; si no caben en el ancho de la fila (unos 336 px en el teléfono, §18.5), el último se corta con `…`». l. 2865: «los nombres» en lugar de «los apellidos». Reescribir con el nombre guardado los ejemplos citados (por ejemplo `Pulling: Team Beta (for 11 Sam Carter)` y `DROPPED · 11 Sam Carter · Race leader · +0:25`, con el nombre que ya usa el rótulo de l. 3270), y borrar el paréntesis de F.3 (l. 10244)."
+  },
+  {
+    "id": "Rcobertura-021",
+    "seccion": "§6.5",
+    "linea": 2974,
+    "gravedad": "baja",
+    "afirmacion": "| `crash` | 2 (3 con nombres de un maillot o un top 5) | la caída sintetizada de `incidents` (D-13)",
+    "fallo": "El mapa 06 §9, fila 29, pide la regla de los 3 km («km de la incidencia y tipo de final | en el suceso») y da el dato por existente (`mapas/06-television.md` l. 377: `threeKmRule`, `truce.ts` l. 136-143). El borrador no la nombra en ninguna parte ni la descarta. En el motor, una caída en los últimos `STAGE.truce.threeKmRuleKm` (3) km de un final que no es en alto no pierde tiempo (`simulate.ts` l. 8289-8291: `dropOut(m, group, reglaTresKm ? 0 : perdidaS)`), mientras `incidents` guarda la pérdida nominal (l. 8269). La pantalla enseña `CRASH` y el corredor quedándose atrás, y después el resultado y `gcAfter` le dan el tiempo de su grupo sin que nada lo explique.",
+    "correccion": "Escribir en §6.8 («Lo que no es suceso») la decisión: la regla no tiene rótulo durante la carrera, porque el motor no la emite y la pérdida de `incidents` es la nominal; se explica en la llegada: en el paquete de meta, el corredor con una caída de `incidents` a menos de `STAGE.truce.threeKmRuleKm` de meta y el tiempo de su grupo lleva `same time (3 km rule)` (pantalla) en el resultado y en `group_finish`, derivado al servir `BroadcastFinish`. Su caso va a `routes/broadcast.test.ts`."
+  },
+  {
+    "id": "Rcobertura-022",
+    "seccion": "§6.5",
+    "linea": 3001,
+    "gravedad": "baja",
+    "afirmacion": "tras attack, el primer atacante con notoriedad menor que 8 (§7.5)",
+    "fallo": "La agenda pone entre lo que la tele enseña siempre «El rótulo del momento: quien ataca sale en pantalla con su nombre y su ficha» (`docs/agenda.md` l. 514; [DUEÑO 1], `mapas/05-dueno-docs.md` l. 175). Con esta regla, un atacante de nivel 8 («el resto», §7.5), que es el nivel de la mayoría del pelotón, sale en `ATTACK · 21 L. BERTOLINI · Team Alpha` (l. 2970) pero nunca con su ficha, y ninguna sección dice por qué se aparta del requisito.",
+    "correccion": "l. 3001: «rider 'attack'           tras attack, el primer atacante sea cual sea su notoriedad; con varios, el de menor nivel de §7.5». Si se quiere mantener el filtro, escribir su porqué en 6-i y subirlo a §20 como decisión del dueño, porque contradice la agenda l. 514."
+  },
+  {
+    "id": "Rcobertura-023",
+    "seccion": "§6.7",
+    "linea": 3151,
+    "gravedad": "alta",
+    "afirmacion": "Con la cola llena, la ronda es lo primero que se descarta (clase 0).",
+    "fallo": "El requisito literal del dueño es que, cuando se escapan cinco, «se vean sus maillots», y el encargo dice qué es: «es exactamente el rótulo con el que la televisión presenta a cada corredor» (`docs/encargos.md` l. 153-157; `docs/agenda.md` l. 736-739; [DUEÑO 3], `mapas/05-dueno-docs.md` l. 177). §7.6 lo repite: la tele lo resuelve con «la LISTA de la fuga, con el maillot que lleva cada uno, y la FRASE del comentarista» (l. 3541). En el diseño esa lista es la ronda de la moto, de clase 0, y D-21 descarta los de clase 0 y 1 con la cola llena (l. 2932), justo cuando más pasa: la fuga nace entre ataques y pancartas de clase 2. Lo que queda seguro es la frase de `break_presented`, que nombra a `breakNamedMax` (2, l. 3547) y cuenta al resto, y la barra, que solo pinta maillots de líder (`GroupNow.jerseys`, l. 1422). Ningún banco mide cuántas rondas se completan (B3, l. 7980, cuenta nombres, no rótulos), y D.2 (l. 9956) da [DUEÑO 3] por cubierto.",
+    "correccion": "En §6.7 y 6-g: la ronda de la moto es de clase 2 para los escapados cuyo `worn` no es `team` (líderes, delegados y campeones: los que hacen de «se escapan cinco» «se escapa el campeón de Italia con cuatro más») y de clase 0 para el resto; `cueClassOf` (l. 2954) gana el caso. B3 (§16.4) gana la cláusula: en las seis congeladas, en toda fuga de hasta `nameWholeGroupUpTo` corredores, cada escapado con maillot o título sale en su rótulo antes de `breakRoundEveryS` por el tamaño de la fuga más 30 s de pared. La barra pinta además el maillot de cada nombrado (Rcobertura-008), y D.2 cita los dos sitios."
+  },
+  {
+    "id": "Rcobertura-024",
+    "seccion": "§6.7",
+    "linea": 3153,
+    "gravedad": "baja",
+    "afirmacion": "Tres puestos en el rótulo; los ocho que puntúan",
+    "fallo": "El mapa 06 §9, fila 23, pide del paso por un puerto «orden de los N primeros en la cima, sus puntos, hueco en la cima» (`mapas/06-television.md` l. 371). `BannerResult` (l. 1094-1102) guarda orden y puntos, y el rótulo `KOM · Côte d'Engins (Cat. 1) · 1. LEROY 10 pts · 2. KAHN 8 · 3. MORENO 6` no lleva hueco; ninguna sección lo decide ni lo descarta, aunque el dato existe en el instante (el `gap` de los grupos al `revealS` de la pancarta).",
+    "correccion": "En §6.7, tras el ejemplo del rótulo de montaña: «Si el segundo que puntúa va en otro grupo, el rótulo añade su hueco en la cima (`+0:18`, pantalla), que el reproductor saca de `GroupNow.gap` en el instante de `revealS`; no se guarda nada nuevo». O, si se descarta, escribirlo como decisión 6-x con su motivo."
+  },
+  {
+    "id": "Rcobertura-025",
+    "seccion": "§7.1",
+    "linea": 3214,
+    "gravedad": "baja",
+    "afirmacion": "la UCI exige dorsal, apellido, nombre, nacionalidad y equipo",
+    "fallo": "El mapa 06 §9, fila 14, pide para el rótulo de corredor «dorsal, nombre, nacionalidad, equipo, edad, puesto y hueco en la general» (`mapas/06-television.md` l. 362). `RiderCard` (l. 1684-1695) y `CastRider` (l. 1131-1142) no llevan edad y §7.1 no la descarta; el dato existe (`riders.birth_season`, `packages/db/src/schema.ts` l. 286, que el fixture de B1 rellena en l. 7740).",
+    "correccion": "Decidir en §7.1: o `RiderCard` gana `readonly age: number // temporada de la etapa menos riders.birth_season, al servir`, con su campo en `riderCardSchema` y `24 years` (pantalla) en la primera línea del rótulo, o se escribe como decisión 7-x «la edad no va en el rótulo: no cambia la lectura de la carrera»."
+  },
+  {
+    "id": "Rcobertura-026",
+    "seccion": "§8.1",
+    "linea": 3714,
+    "gravedad": "baja",
+    "afirmacion": "Una crono en `Watch` dura de 5:20 a 11:23 (§9.4)",
+    "fallo": "La duración de una crono se da de tres maneras: de 5:20 a 11:23 aquí y en 8-m (l. 4155), que incluye `nc-es-itt`, 40 km y 12 corredores, 5:20-5:24 (l. 4351); «medido de 6:24 a 11:23» en §8.9 (l. 4022), en O-11 (l. 9834) y en D.7 (l. 10077); y la banda de B17 es «una crono, entre 5:30 y 13:00» (l. 4022, l. 7994 y l. 8564). Una nacional que el propio §9.4 midió cae fuera de la banda del banco que la vigila: no rompe hoy porque B17 corre las 24 etapas del mapa 07 §7, que no tienen nacionales, pero la banda y la cifra del documento no casan.",
+    "correccion": "Banda de la crono en B17: «entre 5:00 y 13:00» en §8.9 (l. 4022), §16.4 (l. 7994) y §17.9 (l. 8564). En §8.9, O-11 y D.7, la cifra medida: «de 5:20 a 11:23 (un prólogo de 176 corredores, de 6:24 a 7:06; una nacional de 40 km con 12, de 5:20 a 5:24)»."
+  },
+  {
+    "id": "Rcobertura-027",
+    "seccion": "§8.6",
+    "linea": 3901,
+    "gravedad": "baja",
+    "afirmacion": "**La previa: cuatro cuadros de `BROADCAST.previewCardS` (5 s de pared)**",
+    "fallo": "El mapa 06 §9, fila 35, pide para la previa «perfil, puertos, sprint, horario a tres medias, meteo, favoritos, maillots en juego» (`mapas/06-television.md` l. 383). `StagePreview` (l. 1848-1852) y los cuatro cuadros de §8.6 cubren todo menos el horario a tres medias, y ninguna sección dice que se descarta ni por qué.",
+    "correccion": "Añadir a §8.6, tras los cuatro cuadros: «El horario de paso a tres medias de la previa de la tele no se enseña: la etapa ya está corrida y cada espectador la reproduce cuando entra (DD-15, §8.10); su equivalente es la duración anunciada, `About 9 min` (§8.2)», con su decisión 8-x."
+  },
+  {
+    "id": "Rcobertura-028",
+    "seccion": "§8.6",
+    "linea": 3977,
+    "gravedad": "baja",
+    "afirmacion": "La clasificación por equipos no tiene cuadro: vive en `Report` → `Classifications` (pantalla), como hoy.",
+    "fallo": "El mapa 06 §9, fila 34, pide en el cierre «general, puntos, montaña y equipos, con cambios» (`mapas/06-television.md` l. 382). `StageClosing` (l. 1853-1860) lleva la general con sus movimientos y los líderes de mañana (`jerseysTomorrow`), y el cierre solo descarta por escrito la de equipos (esta línea y 20-c). Las tablas de puntos y de montaña con sus cambios ni están ni se descartan: quien sube en la de puntos sin llevar el maillot no sale en ningún cuadro, y el implementador no sabe si falta un cuadro o sobra.",
+    "correccion": "Tras l. 3977: «Las tablas de puntos y de montaña tampoco tienen cuadro: el cierre dice quién lleva cada maillot mañana (`jerseysTomorrow`) y las tablas enteras, con sus cambios, viven en `Report` → `Classifications`», con su decisión 8-x. Si se quieren, `StageClosing` gana `pointsAfter` y `komAfter` con la forma de `gcAfter` y dos cuadros tras el 3 de §8.6."
+  },
+  {
+    "id": "Rcobertura-029",
+    "seccion": "§8.7",
+    "linea": 3989,
+    "gravedad": "baja",
+    "afirmacion": "5. **El fuera de control** (`time_cut`, clase 2), si lo hay: `TIME CUT · 12 riders outside the limit`.",
+    "fallo": "El mapa 06 §9, fila 30, pide del fuera de control «límite en vivo y quién queda fuera | la cuenta en montaña; la lista en meta» (`mapas/06-television.md` l. 378). El borrador solo da la lista tras la meta (`time_cut` lleva la regla `finish`, l. 1597, y el motor lo emite en meta, `simulate.ts` l. 9135) y no dice nada del límite en vivo que la tele enseña al grupeto en montaña, ni lo descarta.",
+    "correccion": "Añadir a §6.8: «El límite de fuera de control no se enseña en vivo: depende del tiempo del ganador, que solo existe en la meta, y adelantarlo destriparía la llegada. El corte sale tras `BroadcastFinish` (§8.7)», con su decisión 6-x."
+  },
+  {
+    "id": "Rcobertura-030",
+    "seccion": "§8.11",
+    "linea": 4077,
+    "gravedad": "media",
+    "afirmacion": "| { readonly k: 'finish' }",
+    "fallo": "`POST …/broadcast/finish` exige cuerpo `{ mode }` (14-f, l. 7273; `finishBodySchema = z.object({ mode: watchModeSchema })`, l. 6869), y es esa llamada la que escribe la letra: el `report` del borde lleva un `reachedS` menor que `finishS`, porque el último tramo acaba en `vis.finishDs − 1` (l. 4939), y `recordProgress` solo escribe la letra «si reachedS ≥ finishS» (l. 4581). El efecto `finish` no lleva modo, y la comprobación 6 (l. 4109) pone la letra en el sitio equivocado: «El `report` que acompaña a `finish` lleva `REPORT_MODE[view]`, y con él la letra (§8.1)». Con este tipo, el gancho que ejecuta el efecto tiene que deducir el modo por su cuenta, y un error ahí escribe `W` donde toca `S` (DD-20).",
+    "correccion": "l. 4077: `| { readonly k: 'finish'; readonly mode: WatchMode } // POST …/broadcast/finish con { mode: REPORT_MODE[view] }`. Comprobación 6 (l. 4109): «El `finish` lleva `REPORT_MODE[view]` en su cuerpo, y con él la letra (§8.1); el `report` del borde no la escribe, porque su `reachedS` es menor que `finishS`». `player.test.ts` gana el caso del digest: su `finish` lleva `mode: 'digest'`."
+  },
+  {
+    "id": "Rcobertura-031",
+    "seccion": "§9.2",
+    "linea": 4245,
+    "gravedad": "baja",
+    "afirmacion": "y la de una crono de 40 km con 176 corredores se estima en 19-20 KB con relojes absolutos",
+    "fallo": "El tope de la línea de una crono es `TIMELINE.ttMaxStoredBytes` (32 KB, D-11), y con esta estimación una crono de 40 km con 176 corredores se queda al borde: 19-20 KB de traza más unos 11 KB del resto de la línea (duda 1.4 de `borrador/dudas.md`), antes de sumar `checkClockDs` (l. 4240: 22,1 KB frente a 19,8 sin él en la e1). Ninguna de las 24 etapas del banco pasa de 26 km (§19.6, l. 9435), así que B6, el banco que dice vigilar el tope, nunca mide el caso que lo puede romper.",
+    "correccion": "Añadir a B6 (§16.4) y a `scripts/broadcast-fixtures.mjs --sizes` (paso 5) la crono individual más larga con 176 corredores que tenga `SEASON_CALENDAR` (un test la busca), medida en el 4b con el grabador real y `checkClockDs`. Si pasa de 28 KB, §4.3 guarda `kmClockDs` por diferencias por km (unos 5 KB, `estado.md` §9) en el formato 1, que 17-a cierra en el 4b."
+  },
+  {
+    "id": "Rcobertura-032",
+    "seccion": "§9.5",
+    "linea": 4367,
+    "gravedad": "media",
+    "afirmacion": "0 (`rider`, `focus`); 1 si es del espectador (`own`)",
+    "fallo": "`cueClassOf` solo baja a 0 la ronda de la fuga: `case 'rider': return cue.context === 'break_round' ? 0 : CUE_CLASS.rider` (l. 2954), y `CUE_CLASS.rider` es 1. Un `rider` con contexto `focus` (que además es el de tocar un nombre, que «sale enseguida, fuera de la cola», l. 3004) es de clase 1, no 0. Las rondas `ON COURSE` son casi la mitad de los rótulos de una crono (l. 4381-4382: 41-43 y 56 rondas de 85-106) y, en clase 1, compiten con los parciales en lugar de descartarse antes: la cola medida en `l5/cola.mjs` no es la que este código produce.",
+    "correccion": "En §4.9, `RiderCueContext` gana `'tt_round'`; en §6.5 (l. 2954), `case 'rider': return cue.context === 'break_round' || cue.context === 'tt_round' ? 0 : CUE_CLASS.rider`; en §9.5 (l. 4367), «0 (`rider`, `tt_round`); 1 si es del espectador (`own`)». `cues.test.ts` gana el caso."
+  },
+  {
+    "id": "Rcobertura-033",
+    "seccion": "§9.5",
+    "linea": 4371,
+    "gravedad": "media",
+    "afirmacion": "2; 3 si el líder virtual no es el líder (D-21)",
+    "fallo": "§6.5 da a `virtual_gc` clase 1 y la sube a 3 solo si cambia el líder virtual (l. 2943, `virtual_gc: 1`; l. 2957, `cue.rows[0].rider !== lastVirtualLeader ? 3`; l. 2983), que es lo que dice D-21: «cambio de líder virtual» (`borrador/00-decisiones.md` l. 252). §9.5 da otra clase base (2) y otra regla (el líder virtual no es el líder) citando la misma D-21. Con un solo `cueClassOf` la crono no puede cumplir las dos, y la cola medida para la crono (l. 4381-4382) se hizo con una regla que el código no tendrá.",
+    "correccion": "l. 4371: «1; 3 si cambia el líder virtual (D-21, `cueClassOf`)», la misma regla de §6.5 para carretera y crono. Si la crono quiere la suya, escribirla en `cueClassOf` (l. 2957) con una decisión nueva y su caso en `cues.test.ts`, y no citar D-21."
+  },
+  {
+    "id": "Rcobertura-034",
+    "seccion": "§9.5",
+    "linea": 4373,
+    "gravedad": "baja",
+    "afirmacion": "| `TIME CUT` | tras `BroadcastFinish` | el paquete de meta | 3 |",
+    "fallo": "`CUE_CLASS` da a `time_cut` clase 2 (l. 2942), como D-21 («2, … fuera de control», l. 2932; `borrador/00-decisiones.md` l. 252), la tabla de §6.5 (l. 2976), la fila 45 de §6.6 (l. 3109) y §8.7 (l. 3989: «(`time_cut`, clase 2)»). La tabla de la crono le da 3, y ningún caso de `cueClassOf` sube `time_cut`.",
+    "correccion": "l. 4373: «| `TIME CUT` | tras `BroadcastFinish` | el paquete de meta | 2 |»."
+  },
+  {
+    "id": "Rcobertura-035",
+    "seccion": "§9.5",
+    "linea": 4388,
+    "gravedad": "media",
+    "afirmacion": "`tt_catches` y `tt_last_home`, `report_only` (su hora es la meta)",
+    "fallo": "Esta frase da a `CUE_OF_TEMPLATE` destinos que §6.6 contradice: allí `tt_catches` y `tt_last_home` son `voice_only` (l. 3059; filas 53 y 54, l. 3117-3118: «regla `finish` (§4.7): en el paquete de meta») y `time_cut_readmitted` es `voice_only` (l. 3056; fila 46, l. 3110: «la readmisión se cuenta, no se rotula»), mientras aquí `time_cut_readmitted` va a `time_cut`. B7 exige un destino por plantilla (D-21) y `cues.test.ts` sella la tabla de §6.6: las dos versiones no pueden estar en verde a la vez.",
+    "correccion": "Reescribir el final de l. 4388 como la tabla de §6.6: «`tt_catches`, `voice_only`; `tt_last_home`, `voice_only` (con la regla `finish`, su línea llega con el paquete de meta, como `bunch_sprint`); `stage_win_itt`, `finish`; `puncture` y `mechanical`, `mishap`; `time_cut`, `time_cut`; `time_cut_readmitted`, `voice_only`»."
+  },
+  {
+    "id": "Rcobertura-036",
+    "seccion": "§9.7",
+    "linea": 4410,
+    "gravedad": "baja",
+    "afirmacion": "con sus amenazas (los `BROADCAST.previewGcTop` siguientes de la general de salida)",
+    "fallo": "Las amenazas al maillot de la general se cuentan con `BROADCAST.previewThreatsMax` (§8.6, l. 3936: «los `BROADCAST.previewThreatsMax` (3, propuesta) siguientes de la general de salida»; §15.3, l. 7412: «corredores que el cuadro de maillots de la previa nombra por maillot»). `previewGcTop` es la constante de los favoritos por la general (l. 3945; l. 7408). Hoy valen las dos 3, así que el error solo se verá cuando la prueba de lectura mueva una (§15.6: «se ajustan antes de `BROADCAST_WATCH=on`»).",
+    "correccion": "l. 4410: «con sus amenazas (los `BROADCAST.previewThreatsMax` siguientes de la general de salida)»."
+  },
+  {
+    "id": "Rcobertura-037",
+    "seccion": "§10.2",
+    "linea": 4501,
+    "gravedad": "baja",
+    "afirmacion": "la tercera salida de la puerta o un salto de recorrido hasta la meta",
+    "fallo": "8-j (l. 4152) prohíbe ese salto: «Ningún salto pasa de un km antes de meta; … una etapa solo pasa a vista cruzando la meta», y la comprobación 4 del reductor lo sella (l. 4107: «Un salto aterriza como mucho en la hora en que la cabeza pasa por `lengthKm − 1`; ningún salto emite `finish`»). Ningún salto revela con `R`.",
+    "correccion": "l. 4501: «| revelada | `Show result` (pantalla) o la tercera salida de la puerta | `R` | no | `Report` | todo |»."
+  },
+  {
+    "id": "Rcobertura-038",
+    "seccion": "§11.1",
+    "linea": 5038,
+    "gravedad": "baja",
+    "afirmacion": "| 9a | test de pantalla (§16.6) |",
+    "fallo": "La fila de `sup. E9` promete un test de pantalla en §16.6, y la tabla de §16.6 (l. 8197-8206) no tiene ninguno de `?tab=` ni de `?cls=`. Lo único que existe es el caso `?tab=story` de `raceTabs.test.ts`, que §11.19 (l. 5664) y §17.12 (l. 8666) ponen en el 9b, no en el 9a. `?cls=` (la clasificación pedida por la URL, `Tabs.tsx` l. 263-282, la mitad de la superficie) no lo prueba nadie.",
+    "correccion": "En §16.6, fila nueva: «| `?tab=` y `?cls=` de una etapa no conocida pintan la puerta, y `?tab=story` abre `report` (`sup. E9`) | `apps/web/src/domain/raceTabs.test.ts` | §11.17 | 9b |». En l. 5038 y en D.5 (l. 10009), «Cierra» pasa a 9b y «Banco» a «`raceTabs.test.ts` (§16.6)»; `raceTabs.test.ts` gana el caso `?cls=` con la etapa velada."
+  },
+  {
+    "id": "Rcobertura-039",
+    "seccion": "§11.1",
+    "linea": 5041,
+    "gravedad": "baja",
+    "afirmacion": "| G y P | la clásica no conocida abre en `Watch` (11-o) | 8a · 9a | B1a |",
+    "fallo": "El cambio de pantalla de la clásica terminada es `raceTabs(status, stageCount, known)` (11-o), y todas las demás secciones lo ponen en el 9b: el código (l. 5614: «apps/web/src/domain/raceTabs.ts (cambia en el 9b)»), sus tests (l. 5664), §17.2 (l. 8344) y §17.12 (l. 8666). La fila de `sup. C3` y su copia en D.5 (l. 10012) dicen 9a: el 9a se daría por cerrado con la clásica abriendo aún en `Result`.",
+    "correccion": "En l. 5041 y en D.5 (l. 10012), «8a · 9b»."
+  },
+  {
+    "id": "Rcobertura-040",
+    "seccion": "§11.16",
+    "linea": 5538,
+    "gravedad": "media",
+    "afirmacion": "`STORED_PULLERS_MAX` de raceRadio.ts (l. 591), que no se exporta",
+    "fallo": "§5.4 exporta `STORED_PULLERS_MAX` en el PR 4b (l. 2319: «hoy sin export: el grabador corta a lo mismo»; l. 2599; 5-g, l. 2626) y §15 dice de él «E2 no las copia» (l. 7582). Este bloque lo copia (`const PULLERS_KEPT = 12`, l. 5539) sin atarlo: no está en las copias de §15.5 ni en `broadcastConstants.test.ts`, así que si el motor cambia el tope, la radio servida corta a 12 lo que el motor guarda con otro número y no falla nada. Además, el bloque dice «se amplía en el 7b» (l. 5534) y 17-f (l. 9002) lo trae en el 3a, antes del 4b que exporta la constante: en el 3a la copia es inevitable, pero nadie la vigila.",
+    "correccion": "En §11.16: «`PULLERS_KEPT` copia `STORED_PULLERS_MAX` (raceRadio.ts l. 591) mientras el motor no la exporta (PR 3a); en el 4b, que la exporta, `chronicle.ts` pasa a importarla y la copia se borra, y hasta entonces `broadcastConstants.test.ts` comprueba que vale 12». El comentario de l. 5534 pasa a «(nace en el 3a, 17-f; el 7b añade los casos de la pestaña)». §15.5 y la tabla de §15 (l. 7582) citan la copia y su fecha de muerte."
+  },
+  {
+    "id": "Rcobertura-041",
+    "seccion": "§11.18",
+    "linea": 5647,
+    "gravedad": "baja",
+    "afirmacion": "que no necesitan entrada en la lista de B1b pero llevan su motivo en el registro (B1d)",
+    "fallo": "§11.18 saca de la lista blanca de B1b el `startlist`, `GET /api/my-orders` y las tres rutas de la vuelta de prueba, pero §11.1 las mete: `sup. W3` y `sup. W6` llevan «lista blanca de B1b» como banco (l. 5068 y l. 5071; D.5, l. 10039 y l. 10042), y l. 5252 dice de «la lista de salida, el recorrido, el calendario, el parte meteorológico y la condición del corredor propio (DD-08)» que están «todos en la lista blanca de B1b con su motivo». `B1B_WHITELIST` tiene una sola fuente, la tabla de §11.18 (16-o, l. 8297), y B1b «comprueba que cada ruta de la lista es L en el registro»: con dos listas distintas, el implementador no sabe cuál es la buena.",
+    "correccion": "En §11.1 (l. 5068 y l. 5071) y D.5 (l. 10039 y l. 10042), el banco de `sup. W3` y `sup. W6` pasa a «B1d (L con motivo; su respuesta no cambia con la etapa, §11.18)». l. 5252: «… todos L con su motivo en el registro (B1d); los que cambian al correrse una etapa (el calendario y la condición), además en la lista blanca de B1b (§11.18)»."
+  },
+  {
+    "id": "Rcobertura-042",
+    "seccion": "§12.10",
+    "linea": 6245,
+    "gravedad": "media",
+    "afirmacion": "`riders` son todos los que la política de nombres deja nombrar y `unnamed` el resto",
+    "fallo": "La política de nombres (§7.7, `namedRidersOf(g, cast, revealed, …)`) necesita saber quién es del espectador (R23.7, «EL CORREDOR PROPIO SIEMPRE APARECE NOMBRADO EN SU RADIO», que §19.3 da por resuelto, l. 9365) y qué se ha revelado, pero `radioFromTimeline(tl, names)` solo recibe `RadioNames = { readonly riderOf: ReadonlyMap<string, ChronicleRider> }` (§4.13, l. 1969; F.2): con esa firma no puede aplicar la política que dice aplicar. Y B16, el único banco de la radio desde la línea, no compara nombres (l. 7993: «grupos, tamaños, huecos, velocidades, percances, relevistas y motivos»): desde el paso 11, cuando la radio guardada deja de escribirse (DD-11), nada vigila que el propio salga nombrado.",
+    "correccion": "En §4.13 (l. 1969) y §12.10: `RadioNames = { readonly riderOf: ReadonlyMap<string, ChronicleRider>; readonly own: ReadonlySet<RiderIx>; readonly nameable: (rider: RiderIx) => boolean }`, que la ruta construye con la política de §7.7 sobre el reparto servido. §17.14 añade a los tests del PR 11: «`radioFromTimeline` nombra en `riders` a todo corredor de `own` en todas las fotos en que corre (R23.7), en las seis congeladas»."
+  },
+  {
+    "id": "Rcobertura-043",
+    "seccion": "§12.11",
+    "linea": 6259,
+    "gravedad": "media",
+    "afirmacion": "reciben `locale: 'en'` como primer parámetro cuando E10 añada el segundo idioma",
+    "fallo": "D-62 (`borrador/00-decisiones.md` l. 608) deja a E10 «todo como plantilla, datos y semilla neutra, con `locale` en cada punto de render», y D.8 (l. 10092) lo da por hecho. Pero esta frase aplaza el parámetro a cuando llegue E10, §19.9 (l. 9492) lo apunta como pendiente («`locale` como parámetro de cada render | cuando E10 añada la segunda lengua») y las firmas finales solo lo llevan en `renderNews` (F.2: `breakHeadline(cards, ownIx)`, `gapTrendLine(trend)`, `pageTitle(p: PreStageInfo | null, page: PageKind)`, `stageReadyNotice(p, ownRiderOnStartlist)`, `stageReadyEmail(p, ownRiderOnStartlist, url)`). Añadirlo después cambia la firma de cada render y todas sus llamadas en la web, la API y `shared`, que es el trabajo que D-62 quería ahorrarle a E10.",
+    "correccion": "Dar ya a cada render su `locale: 'en'` como primer parámetro, con el tipo literal: `chronicleLine(locale, …)`, `breakHeadline(locale, cards, ownIx)`, `gapTrendLine(locale, trend)`, `groupLabelText(locale, …)`, `championTitleText(locale, t, n)`, `pageTitle(locale, p, page)`, `stageReadyNotice(locale, p, own)` y `stageReadyEmail(locale, p, own, url)`. l. 6259: «… reciben `locale: 'en'` como primer parámetro desde que nacen; E10 solo ensancha el tipo»; F.2 con las firmas nuevas; la fila de §19.9 (l. 9492) se borra."
+  },
+  {
+    "id": "Rcobertura-044",
+    "seccion": "§13.3",
+    "linea": 6419,
+    "gravedad": "alta",
+    "afirmacion": "CREATE TABLE \"stage_timelines\" (",
+    "fallo": "12-c (l. 6283) decide que «La revisión de plantillas de cada etapa se guarda en `stage_timelines.tpl_rev`, que escribe el grabador con el `TEMPLATE_REV` del tick», y §12.7 (l. 6052) la necesita para que las etapas de antes «se leen igual que el día en que se vieron» (D-46, B5). Pero la `0044` no tiene la columna (SQL, l. 6419-6430; Drizzle, l. 6452 y siguientes), `writeStageTimeline` no la recibe (`StageTimelineMeta`, l. 2469: solo `raceKey`, `stageDay` y `gameDay`) y §17.8 la deja en el aire (l. 8526: «con `tpl_rev` si se acepta 12-c: decisión 17-a»). El PR 12 escribe `pickVariant` «con la revisión de la etapa» (l. 8711) sin tener de dónde leerla: una redacción nueva con `since: 1` reescribiría la voz y el acta de todas las etapas ya vistas, que es lo que B5 existe para impedir.",
+    "correccion": "En §13.3, SQL de la `0044`: `\"tpl_rev\" smallint DEFAULT 0 NOT NULL,` tras `engine_version`; en Drizzle, `/** TEMPLATE_REV del tick que grabó la etapa (12-c); 0 en una lápida. */ tplRev: smallint('tpl_rev').notNull().default(0),`. En §5.6, `StageTimelineMeta` gana `readonly tplRev: number`, `recordStageTimeline` pasa `TEMPLATE_REV` y `readStageTimeline` la devuelve para la cabecera y el acta (Rcobertura-014). En §17.8, «con `tpl_rev` (12-c)», sin condicional; `timelines.test.ts` gana «la fila guarda el `TEMPLATE_REV` del tick, y la lápida, 0»."
+  },
+  {
+    "id": "Rcobertura-045",
+    "seccion": "§13.5",
+    "linea": 6680,
+    "gravedad": "baja",
+    "afirmacion": "qué se hace con él es §11.1",
+    "fallo": "§11.1 no dice nada de los premios sin etapa: sus filas de dinero y de presupuesto (`sup. H2`, l. 5054; `sup. H6`, l. 5058; `sup. P6`, l. 5065; `sup. X8`, l. 5096) cuentan con `transactions.race_key`/`stage_day` y `stage_team_results.prize` y no tratan la fila anterior a la `0046`. La remisión apunta a una respuesta que no existe: el implementador no sabe si R resta, ignora o rechaza un premio que no puede atribuir a ninguna etapa.",
+    "correccion": "Sustituir el final de l. 6680 por la decisión: «La resta R no lo ve: sin `ref`, un premio anterior al 8a cuenta como conocido. Solo existe en el mundo de pruebas y antes del encendido (paso 10), el reinicio lo borra (§13.9) y los mundos de B1 nacen después del 8a»."
+  },
+  {
+    "id": "Rcobertura-046",
+    "seccion": "§14.2",
+    "linea": 6906,
+    "gravedad": "baja",
+    "afirmacion": "lastRaceResponseSchema (l. 1571): + ready: preStageInfoSchema.nullish()",
+    "fallo": "§14.2 es la lista de ampliaciones de los esquemas de hoy y no trae `riderRaceReportSchema.moments`, que §12.9 decide (l. 6235: «`riderRaceReportSchema` (`contracts.ts` l. 1554-1569) gana `moments`, opcional»; 12-k, l. 6291), §17.15 programa en el PR 12 (l. 8709) y §17.20 pone en `contracts.ts` (l. 8804). Sin su fila, el tipo de cada momento no está escrito en ninguna parte y `yesterday.test.ts`, que exige un `.omit` por cada campo nuevo (regla 8 de §17.1, l. 8316), no lo cubre.",
+    "correccion": "Añadir tras l. 6906: «`riderRaceReportSchema` (l. 1554-1569): `+ moments: z.array(chronicleEntrySchema).optional()` // las líneas del acta de la última etapa conocida en que el corredor es protagonista, con el esquema de `ChronicleEntry` de hoy (12-k)», y en §17.15 el `.omit({ moments: true })` de `yesterday.test.ts`."
+  },
+  {
+    "id": "Rcobertura-047",
+    "seccion": "§14.3",
+    "linea": 6939,
+    "gravedad": "media",
+    "afirmacion": "dos pasos de §12 que el código de arriba no enseña",
+    "fallo": "Dos bloques de código que el texto de al lado desmiente, en un documento que se implementa copiando. El de la ruta del tramo (§14.3) no llama a `withGroupRoles` antes de construir `revealOf` ni a `liveClusters` antes de `buildChronicle`, y esta línea lo reconoce. El de `computeHorizon` (§10.6, l. 4683) sigue con la consulta 2 que recorre `race_rosters` entera (`rr.rider_id = ${u.rider_id} or rr.rider_id in (select id from riders where team_id = …)`) y la cuarta por espectador, y l. 4717 lo reconoce: «Tal como están aquí, la consulta 2 no usa `race_rosters_rider_idx` … El código usa la forma D». La forma D es la que pasa B14 (18-a: de 23-40 ms a 3,1-3,7 ms de p95). Son las dudas 2.1 y 2.2 de `borrador/dudas.md`.",
+    "correccion": "Reescribir los dos bloques. En §14.3: `const anotados = withGroupRoles(sucesos, tl, revealS, ctx)` antes de `revealOf`; el mapa de horas, sobre `anotados`; y, con `BROADCAST.liveClusters`, los racimos de `liveClusters(anotados, tl, revealS)` añadidos antes de `buildChronicle` (12-n, §12.3). En §10.6: la consulta 1 trae los ids del corredor propio y de la plantilla, la 2 filtra con `rr.rider_id = any(${ids})`, y la cuarta se sustituye por `lastRunStages(db, world)` (18-a). Después, borrar la frase de l. 6939 y la de l. 4717."
+  },
+  {
+    "id": "Rcobertura-048",
+    "seccion": "§14.11",
+    "linea": 7257,
+    "gravedad": "baja",
+    "afirmacion": "el progreso en el borde, que devuelve `{ status: 'known', rev }`",
+    "fallo": "El progreso del borde no hace conocida la etapa: el último tramo acaba en `vis.finishDs − 1` (l. 4939), el reproductor no pinta más allá de lo servido (l. 3773), y `recordProgress` solo escribe la letra «si reachedS ≥ finishS» (l. 4581); con un `reachedS` menor devuelve `'watching'` (l. 4587). La que la hace conocida es `POST …/broadcast/finish` (§8.7, l. 3986: «que marca la etapa como vista con la letra del modo»; §14.2, l. 6832: «`recordProgress` hasta `finishS`»). Una web escrita según esta frase esperaría `known` del informe y trataría la respuesta real como un fallo.",
+    "correccion": "l. 7257: «… y, al llegar al borde de la meta, el progreso en el borde, que devuelve `{ status: 'watching', rev }`, y después `POST …/broadcast/finish`, que escribe la letra (§10.3) y cuyo paquete pinta la llegada y el cierre (§8.7 y §8.6)»."
+  },
+  {
+    "id": "Rcobertura-049",
+    "seccion": "§15.3",
+    "linea": 7412,
+    "gravedad": "baja",
+    "afirmacion": "nombra por maillot (§8.6). Entra en el 10a",
+    "fallo": "17-e (l. 9001) decide que «`BROADCAST` y `SPOILER` nacen enteros en el PR 2, el primero que los lee», pero §15.3 anota que seis constantes entran después (l. 7392-7414: `ttSeekStepS`, `ttSeekLastStarters`, `closingCardS`, `previewThreatsMax` y `recapMaxCues`, «Entra en el 10a»; `cardRowsMax`, «Entra en el 6a»), §17.20 (l. 8808) hace crecer `constants.ts` en el 6a y el 10a, y §17.13 (l. 8678) programa en el 10a «`recapMaxCues`, `previewThreatsMax` y `closingCardS` en `BROADCAST`». Dos planes para el mismo fichero: quien siga 17-e escribe en el PR 2 constantes que el PR 10a volverá a «añadir».",
+    "correccion": "Seguir 17-e, que es la regla del plan: en §15.3, borrar las seis notas «Entra en el 10a» y «Entra en el 6a»; en §17.20 (l. 8808), la fila de `constants.ts` queda «nace en el 2 con §15.3 y §15.4 enteros; en el 10b, lo que ajuste la prueba de lectura»; en §17.13 (l. 8678), quitar de la lista de código del 10a «`recapMaxCues`, `previewThreatsMax` y `closingCardS` en `BROADCAST`»."
+  },
+  {
+    "id": "Rcobertura-050",
+    "seccion": "§15.5",
+    "linea": 7501,
+    "gravedad": "media",
+    "afirmacion": "### 15.5 Las dos copias atadas por test",
+    "fallo": "El número de copias atadas se da de tres maneras: el título dice dos; el texto y 15-a dicen cuatro (l. 7505: «las cuatro copias son números»; l. 7602: «ata cuatro copias (`bunchMinShare`, `chaseMinShare`, `nameWholeGroupUpTo`, `photoBlocksOf` …)»); y §6.3 añade una quinta, `chaseRefOf`, copia de `chaseReferenceIndex` que «se ata por test como las copias de §15.5» (6-a, l. 3193; l. 2794), y que §17.6 (l. 8442) y §17.7 (l. 8484) meten en `broadcastConstants.test.ts`. El código del test de §15.5 no la tiene, y `chaseRefOf` está declarada sin `export` (l. 2795), así que el test de `apps/api` no puede llamarla. Es la duda 1.7 de `borrador/dudas.md`; a ella se suma `PULLERS_KEPT` (Rcobertura-040).",
+    "correccion": "Título: «### 15.5 Las copias atadas por test». En l. 7505 y en 15-a, «cinco copias», con `chaseRefOf` = `chaseReferenceIndex` desde el 4a (17-j). En §6.3 (l. 2795), `export function chaseRefOf`, y en el bloque de §15.5, `it('chaseRefOf es chaseReferenceIndex (group.ts l. 235-245)', …)` sobre 10.000 entradas generadas con semilla fija (de 1 a 20 grupos, tamaños de 1 a 176, `racing` al azar)."
+  },
+  {
+    "id": "Rcobertura-051",
+    "seccion": "§16.4",
+    "linea": 7980,
+    "gravedad": "alta",
+    "afirmacion": "Umbral: 100 %, que la política da por construcción (§7.7)",
+    "fallo": "B3 comprueba `named.length + others = size`: que cada miembro esté nombrado o contado. Eso lo cumple por construcción cualquier política, también una que no nombre a nadie, y el propio texto lo admite. Contradice la regla 1 del catálogo (l. 7617: «un banco que puede pasar sin probar nada lleva una cláusula que lo impide») y rebaja el B3 del mapa 07, que pedía que «cada corredor de un grupo que no es el pelotón lleva nombre y sus cinco categorías, o su «aún no existe» explícito», con «nombrados igual a `size` en todo grupo por debajo del umbral de E2» (`mapas/07-tests-contratos.md` l. 175). Así ningún banco sella [DUEÑO 3]: una fuga de cinco con el campeón contado entre `others` pasa B3.",
+    "correccion": "Reescribir B3: «Cada 30 s de carrera, en cada grupo del instante que no es `bunch` y tiene como mucho `BROADCAST.nameWholeGroupUpTo` corredores, `others = 0` (todos nombrados), y cada nombrado tiene su `RiderCard` con `worn` resuelto (líder, campeón con su `ChampionTitle`, o la equipación del equipo del día). Cláusula (regla 1): una cabecera sintética con un campeón vigente y un líder en una fuga de cinco tiene que dar un `break_presented` que nombra a los dos, o B3 falla. Umbral: 100 %»."
+  },
+  {
+    "id": "Rcobertura-052",
+    "seccion": "§16.4",
+    "linea": 7983,
+    "gravedad": "media",
+    "afirmacion": "contra los topes de red que se proponen aquí con los valores de §14.8 (sin evidencia de los jueces)",
+    "fallo": "El mapa 07 pide dos bancos sobre la respuesta de etapa: B6, que «`stage_snapshots.radio` y la respuesta de etapa caben en su presupuesto», y B8, que «parsear y validar la etapa cuesta menos de X ms», «con el factor de móvil» (`mapas/07-tests-contratos.md` l. 178 y l. 180). El B6 del borrador topa la cabecera, el tramo, la meta y la ruta de etapa VELADA, y el B8 mide el tramo y la cabecera en Node, sin factor de móvil (l. 7985). La ruta de etapa CONOCIDA, que es la que piden `Report` y `Race Radio` (14-b, l. 7269: «con la etapa conocida la sirve entera») y que hoy manda de 871 a 2.949 KB y cuesta de 2,8 a 9,3 más 4,1 a 24,9 ms de parse y Zod en Node (l. 9047), queda sin tope ni banco: ninguna regresión suya la vería nadie.",
+    "correccion": "B6 gana `BROADCAST.maxKnownStageGzipBytes` (112.640: 110 KB, el máximo medido con gzip, 100 KB en l. 9047, más un 10 %), medido con `app.inject` sobre la etapa corrida de `routes/broadcast.test.ts` con la etapa conocida. B8 gana el parse y el `safeParse` de esa respuesta en Node, mediana ≤ 40 ms (el máximo medido, 34,2 ms, con holgura), y dice que el factor de móvil del mapa 07 (de tres a cinco veces, estimado) se comprueba a mano en el paso 10 (§18.5)."
+  },
+  {
+    "id": "Rcobertura-053",
+    "seccion": "§16.4",
+    "linea": 7985,
+    "gravedad": "baja",
+    "afirmacion": "Umbrales (decisión 16-m): mediana ≤ 2 ms el tramo mayor y ≤ 3 ms la cabecera; p95 de `instantAt` ≤ 0,25 ms.",
+    "fallo": "§15 manda que «el implementador copia estos bloques y escribe los tests contra los nombres, nunca contra literales» (l. 7289), y ya lo cumple con los topes de B6, que viven en `BROADCAST` (l. 7429-7432). Los demás umbrales de banco son literales repetidos en varias secciones sin fuente única: B8 (aquí, en §16.9, l. 8255, y en §18.1), B15 (25 % y 15 s: §16.4, §18.3, §18.9 y §18.10), B17 (las bandas de 8-k: §8.9, l. 4022; §16.4, l. 7994; §17.9, l. 8564), I2 (15 y 4, l. 8284) y B2 (15 s en el 95 %, l. 7979). Ya divergen (la banda de la crono de B17 frente a §8.1, Rcobertura-026), y el 6a y el 10b los reajustan a mano («el umbral pasa a cinco veces lo medido»).",
+    "correccion": "Añadir a `packages/shared/src/broadcast/constants.ts` (§15.3), junto a los topes de B6, un bloque `BENCH` con comentario de intención y medida: `b8: { chunkParseMedianMs: 2, headParseMedianMs: 3, instantP95Ms: 0.25 }`, `b15: { maxPct: 25, maxS: 15 }`, `b17: { watchS: [360, 1320], highlightsS: [105, 450], last5kmShare: 0.15, last5kmShareSummit: 0.35, ttS: [300, 780], digestOverBudget: 0.4, estimateP90S: 60 }`, `i2: { transitP90Stage: 15, transitP90All: 4 }` y `b2: { gapS: 15, gapShare: 0.95 }`. §16.4 da los valores una vez, por su nombre; §8.9, §16.9, §17 y §18 citan el nombre."
+  },
+  {
+    "id": "Rcobertura-054",
+    "seccion": "§16.4",
+    "linea": 7993,
+    "gravedad": "baja",
+    "afirmacion": "Nocturno en las 24 × 2, con `CS_BANCOS=1`, y rápida en las seis",
+    "fallo": "B16 compara la radio desde la línea con la guardada, y las cronos no tienen radio (duda 1.10 de `borrador/dudas.md`: «la crono ignora la sonda, `simulate.ts` l. 1264»; mapa 07 §7: «`race-france` e1, crono, 20 km | sin radio»). De las 24 etapas del mapa 07 §7, dos son cronos, y de las seis congeladas, una (B19 cuenta «las cinco etapas en línea congeladas», l. 7996). B10 ya se corrigió a 22 etapas en línea (§5.10); B16 sigue en 24 aquí, en §12.10 (l. 6247) y en §17.14 (l. 8699).",
+    "correccion": "En l. 7993, l. 6247 y l. 8699: «las 22 etapas en línea del mapa 07 §7 por dos semillas» y «rápida en las cinco en línea de las seis congeladas»; y una línea: «en una crono, `radioFromTimeline` devuelve la radio vacía, como la guardada»."
+  },
+  {
+    "id": "Rcobertura-055",
+    "seccion": "§16.4",
+    "linea": 7999,
+    "gravedad": "baja",
+    "afirmacion": "posición de la cabeza, p99 ≤ 1 km",
+    "fallo": "B22 decide si las etapas sin línea abren en `Watch` (D-61) mirando solo la cabeza, pero el adaptador pinta los demás grupos interpolando entre fotos sin marcas de composición ni identidad, que es lo que objetaba O-13 (§21.2, l. 9836), y ese error puede llegar a kilómetros: «sin identidad, interpolar llega a errar 3,5 km en un grupo que no es la cabeza» (§19.1, riesgo 7, l. 9276; `estado.md` §3.6). Un adaptador con la cabeza bien y el pelotón a 3 km pasaría la puerta. Es la duda 1.6 de `borrador/dudas.md`, sin cerrar.",
+    "correccion": "B22 gana una segunda cifra: el p99 del error del cursor de todos los grupos contra la línea grabada, que el PR 6a escribe en su descripción y en §18.9. Si pasa de 2 km, las etapas del adaptador pintan en el perfil solo la cabeza y el grupo del título, y la barra sigue igual; si pasa de 1 km en la cabeza, sigue mandando la regla de hoy (solo `Report`)."
+  },
+  {
+    "id": "Rcobertura-056",
+    "seccion": "§16.9",
+    "linea": 8253,
+    "gravedad": "baja",
+    "afirmacion": "| B6 | el tamaño | 0, 5 y 6 |",
+    "fallo": "La tabla final fecha B6 en los pasos 0, 5 y 6, pero §17 lo hace nacer también en el 4b («I1, I3, I5 y B6 del `bytea` (4b)», `broadcastFixtures.test.ts`, l. 8898; «B6 del JSON», `timeline.test.ts`, l. 8935) y en el 7b (la ruta de etapa velada, l. 8603). Y fecha B17 en «0 y 10» (l. 8264), cuando su versión rápida, `apps/api/src/broadcastPace.test.ts`, nace en el 3a (l. 8894). La propia sección dice que «Las fechas de nacimiento siguen al plan (§17)» (l. 8272): estas dos filas no lo hacen.",
+    "correccion": "l. 8253: «| B6 | el tamaño | 0 (línea base), 4b (el JSON y el `bytea`), 5 (las 24 × 2), 6a (lo servido) y 7b (la etapa velada) | …». l. 8264: «| B17 | el ritmo medido | 0 (línea base), 3a (rápida) y 10b (la línea grabada) | …»."
+  },
+  {
+    "id": "Rcobertura-057",
+    "seccion": "§17.10",
+    "linea": 8601,
+    "gravedad": "baja",
+    "afirmacion": "No en `packages/shared/src/broadcast/veilCast.test.ts`, como dice §16.4",
+    "fallo": "§16.4 ya no lo dice: su B13 corre «en `apps/api/src/broadcastFixtures.test.ts`, junto a B3, … (decisión 17-t)» (l. 7990). Pasa lo mismo con otras decisiones de §17 que corrigen a §16 cuando §16 ya está corregido: 17-t (l. 9016: «como dice §16.4»), 17-b (l. 8998: «Descartado: B1d en el 7a, como dice §16.9», con §16.9 diciendo «0 (inventario) y 8a (17-b)», l. 8248), 17-i (l. 9005: «que §16.9 fechaba en el 6a», con §16.9 en «4b el banco (17-i)», l. 8242) 17-l (l. 9008: «como dicen §16.4 y §16.7», con B16 ya en el nocturno de `apps/api`, l. 7993) y 17-m (l. 9009: «y no en el 7a como dice §16.9», con §16.9 en «7b (17-m)», l. 8265). Son remisiones que afirman lo contrario de lo que hay en el sitio citado.",
+    "correccion": "Quitar «, como dice §16.4» de l. 8601 y de 17-t; en 17-b, 17-i, 17-l y 17-m, sustituir la referencia a §16 por «como decía el esqueleto», o borrar el «Descartado» que ya no describe ninguna alternativa del documento."
+  },
+  {
+    "id": "Rcobertura-058",
+    "seccion": "§18.2",
+    "linea": 9070,
+    "gravedad": "baja",
+    "afirmacion": "§15 fija `BROADCAST.decodedCacheEntries` en 64 «unos 20 MB»",
+    "fallo": "§15.3 lo fija en 16 (l. 7455: `decodedCacheEntries: 16`), y así lo usan §5.6 (l. 2544) y §17.9 (l. 8549: «se comprueba en 16, el valor de §15»). Pero §18 y §19 siguen contando una bajada de 64 a 16 en el paso 6: esta frase, 18-d (l. 9251: «baja de 64 a 16 en el paso 6»), el riesgo 13 de §19.1 (l. 9282: «el LRU de 64 líneas decodificadas ocupa de 33 a 121 MB … baja a 16 en el 6a») y la fila de la LRU de §18.10 (l. 9225, paso 6a), mientras §17.20 hace nacer la LRU en el 3a (`broadcastSource.ts`, l. 8846). Es la duda 1.11 de `borrador/dudas.md`.",
+    "correccion": "l. 9070: «`BROADCAST.decodedCacheEntries` es 16 (§15.3), no los 64 de «unos 20 MB» que estimaba `datos.md` §12». 18-d: «`BROADCAST.decodedCacheEntries` nace en 16 (§15.3), con la memoria de la API de §18.2 …». Riesgo 13 de §19.1: «media: con 16 entradas, de 8 a 30 MB (18-d)», paso 3a. Fila de la LRU de §18.10: paso 3a."
+  },
+  {
+    "id": "Rcobertura-059",
+    "seccion": "§18.9",
+    "linea": 9203,
+    "gravedad": "baja",
+    "afirmacion": "| B21, la posición extrapolada | contra la línea entera (§16.4) | 6 |",
+    "fallo": "17-i (l. 9005) adelanta la versión de banco de B21 al 4b («también las versiones de banco de I2, B2 y B21 que §16.9 fechaba en el 6a»), y así lo dicen §16.9 (l. 8268: «4b (17-i)»), §19.1 (riesgo 16, l. 9285: «B19, B21 | 4b, 6b») y §19.6 (l. 9420: «B21, en el 4b»). La tabla de medidas pendientes la sigue fechando en el paso 6.",
+    "correccion": "l. 9203: «| B21, la posición extrapolada | contra la línea entera (§16.4) | 4b | …»."
+  },
+  {
+    "id": "Rcobertura-060",
+    "seccion": "§21.6",
+    "linea": 10164,
+    "gravedad": "media",
+    "afirmacion": "etapa vista (`W` directo, `S` resumen), revelada (`R`), arrastrada (`A`) o caducada (`X`)",
+    "fallo": "«Conocida» tiene dos definiciones. La de F.1 (y la de G.1 del glosario, la de D-28 en `borrador/00-decisiones.md` l. 325 y la de §2.6, l. 568) incluye la caducada `X`; la de 10-e (l. 5007) la excluye: «`WatchState.known` es `true` solo con las letras `W`, `S`, `R` o `A`; una etapa caducada … abre en `Watch`», y así la usan §6.10 (l. 3174) y `stageAccessOf`. El código de §10.3 sigue la primera: `known_through` cuenta las `X` (l. 4528: «21 · `'WARS'` + 17 `X`») y `recordProgress` devuelve `status: 'known'` para toda `N ≤ known_through` (l. 4576), también para una etapa `X` que la web está reproduciendo como no conocida.",
+    "correccion": "F.1 y §2.6: «etapa conocida | vista (`W` directo, `S` resumen), revelada (`R`) o arrastrada (`A`); la caducada (`X`) está fuera del velo pero no es conocida y abre en `Watch` (10-e). `known_through` cuenta el prefijo de etapas fuera del velo por el espectador o por caducidad». En §10.3, tras l. 4576: «con una `X`, `status: 'known'` quiere decir fuera del velo: la web no lo usa para dar la etapa por vista»."
+  }
 ]

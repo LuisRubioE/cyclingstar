@@ -25,11 +25,11 @@ La pregunta del mapa: ¿qué pasa entre que el reloj decide correr una etapa y q
 
 ### 1.1 Quién dispara el tick y cuándo
 
-| Disparador | Cuándo | Qué corre | Cita |
-| --- | --- | --- | --- |
-| Servicio `web` (auto-tick en proceso) | cada `min(5 min, max(1 min, msPorDía/4))` = 5 min con 360; y al arrancar | `runTick` sin `forceDays` | `index.ts` l. 56-84; `railway.json` l. 8 |
-| Servicio `tick` (cron de Railway) | `0 */6 * * *` UTC | `node scripts/migrate.mjs && node apps/api/dist/tick/main.js` | `railway.tick.json` l. 8-9; `tick/main.ts` l. 9-18 |
-| Admin | a mano: `POST /admin/tick`, `POST /admin/advance?days=1..30`, `POST /api/world/advance?days=1..10` | `runTick` (con `forceDays` los dos últimos) | `routes/admin.ts` l. 108, 119-121; `routes/world.ts` l. 21-23 |
+| Disparador                            | Cuándo                                                                                             | Qué corre                                                     | Cita                                                          |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------- |
+| Servicio `web` (auto-tick en proceso) | cada `min(5 min, max(1 min, msPorDía/4))` = 5 min con 360; y al arrancar                           | `runTick` sin `forceDays`                                     | `index.ts` l. 56-84; `railway.json` l. 8                      |
+| Servicio `tick` (cron de Railway)     | `0 */6 * * *` UTC                                                                                  | `node scripts/migrate.mjs && node apps/api/dist/tick/main.js` | `railway.tick.json` l. 8-9; `tick/main.ts` l. 9-18            |
+| Admin                                 | a mano: `POST /admin/tick`, `POST /admin/advance?days=1..30`, `POST /api/world/advance?days=1..10` | `runTick` (con `forceDays` los dos últimos)                   | `routes/admin.ts` l. 108, 119-121; `routes/world.ts` l. 21-23 |
 
 - Candado `pg_try_advisory_lock`: si otro tick está dentro, se devuelve `ran: false` sin esperar (`tick.ts` l. 212-217).
 - Día objetivo: `floor((ahora − worlds.created_at) / msPorDía)` (l. 75-79), con tope de **40 días por ejecución** para ponerse al día (l. 50, 233-235). En régimen normal se procesa **1 día por ejecución**.
@@ -48,37 +48,37 @@ Consecuencia para E2: **no existe en la base un estado «etapa en curso»**. Ant
 
 **Medido** (vitest en el scratchpad, `SEASON_CALENDAR` y `scheduledStageIndices` de las fuentes):
 
-| Dato | Valor |
-| --- | --- |
-| Carreras en el calendario | 842 (532 campeonatos nacionales, 36 WT, 61 Pro, 101 `.1`, 112 `.2`) |
-| Etapas por temporada | 1.418 (886 fuera de los nacionales); coincide con la cifra de `docs/tactica.md` §8 |
-| Media por día | 3,90; 92 días sin ninguna |
-| Histograma (etapas: días) | 1: 46 · 2: 58 · 3: 52 · 4: 30 · 5: 27 · 6: 27 · 7: 11 · 8-11: 16 · 13: 1 |
-| Días extremos | día 175: 35 · 176: 187 · 178: 71 · 179: 153 (todas `nc-*`, cronos y ruta élite y sub-23) |
-| Semietapas declaradas | 0 (`doubleAfter` vacío en todas; lo dice también `stageRun.ts` l. 125-126) |
+| Dato                      | Valor                                                                                    |
+| ------------------------- | ---------------------------------------------------------------------------------------- |
+| Carreras en el calendario | 842 (532 campeonatos nacionales, 36 WT, 61 Pro, 101 `.1`, 112 `.2`)                      |
+| Etapas por temporada      | 1.418 (886 fuera de los nacionales); coincide con la cifra de `docs/tactica.md` §8       |
+| Media por día             | 3,90; 92 días sin ninguna                                                                |
+| Histograma (etapas: días) | 1: 46 · 2: 58 · 3: 52 · 4: 30 · 5: 27 · 6: 27 · 7: 11 · 8-11: 16 · 13: 1                 |
+| Días extremos             | día 175: 35 · 176: 187 · 178: 71 · 179: 153 (todas `nc-*`, cronos y ruta élite y sub-23) |
+| Semietapas declaradas     | 0 (`doubleAfter` vacío en todas; lo dice también `stageRun.ts` l. 125-126)               |
 
 Un nacional sin 5 corredores del país no se disputa (`calendarRun.ts` l. 217, 257) y `runOneStage` sale sin escribir nada (`stageRun.ts` l. 259): cuántos de esos 187 corren de verdad **no lo sé**, depende de la población del mundo.
 
 ### 1.4 `runOneStage`: qué simula y qué escribe (`packages/db/src/stageRun.ts`)
 
-| Paso | Qué | Tablas y columnas | Líneas |
-| --- | --- | --- | --- |
-| 1 | Lee el roster no abandonado (orden por dorsal), la general de SALIDA, corredores, atributos, ocultos, órdenes y el diario de ayer | lectura | 219-259, 277-291, 293-376 |
-| 2 | Semilla `stageSeed({worldSeed, raceId: raceKey, stageDay, engineVersion})` con `ENGINE_VERSION` 89 | | 470-475; `constants.ts` l. 838 |
-| 3 | Contexto de carrera y `StageInput` | | 482-506 |
-| 4 | **Simula**: `simulateStage(input, seed, sonda)` con la sonda de radio `raceRadioCollector(radioKmPoints(km))`, una foto por km | | 515, 528-536 |
-| 5 | Maillots de la carretera (general de salida) y lista de seguimiento: 3 maillots + 10 de la general + 10 de la etapa | | 550-569 |
-| 6 | **Snapshot** | `stage_snapshots(race_id, stage_day, seed, engine_version, input, events, radio)` con `onConflictDoNothing` | 570-595 |
-| 7 | Resultado (solo quien acaba; bonificación 0 en un día) | `stage_results(puesto, tiempo_s, bonificacion_s, puntos_volante, puntos_montana)` | 681-691, 856-858 |
-| 8 | General acumulada (upsert) | `race_gc(tiempo_total_s, puntos_volante, puntos_montana, suma_puestos, ultimo_puesto)` | 693-705, 862-876 |
-| 9 | Fisiología | `riders.ctl/atl`, `strain_days/ill_days`, `rider_attrs.value` | 877-898 |
-| 10 | Equipos de la etapa | `stage_team_results` | 903-926 |
-| 11 | Parte diario con lo que hizo | `rider_daily_log(game_day, tss, …, activity = 'carrera:<raceId>:e<N>', parte)` | 658-676, 729-747, 927-929 |
-| 12 | Aprendizaje | `rider_attr_log` | 930-932 |
-| 13 | Abandonos, lesiones, enfermedad | `race_rosters.abandoned_day/_reason`, `riders.health/health_until_day`, noticias `abandon` e `injury` | 937-1007, 1037-1140 |
-| 14 | `awardOutcome`: premios | `transactions` del corredor humano («`<carrera> · stage win`», «`<carrera> · GC #n`») y `teams.budget` | 1171-1179; `economy.ts` l. 134-184 |
-| 15 | Noticia de la victoria, y en la última etapa `gc_win` y `kom` | `news` | 1201-1256 |
-| 16 | Puntos y palmarés | `riders.season_points`, `rider_points(game_day, race_id, kind)`, `palmares(kind, detail 'Stage N', game_day)` | 1259-1307; `ranking.ts` l. 71-111 |
+| Paso | Qué                                                                                                                               | Tablas y columnas                                                                                             | Líneas                             |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| 1    | Lee el roster no abandonado (orden por dorsal), la general de SALIDA, corredores, atributos, ocultos, órdenes y el diario de ayer | lectura                                                                                                       | 219-259, 277-291, 293-376          |
+| 2    | Semilla `stageSeed({worldSeed, raceId: raceKey, stageDay, engineVersion})` con `ENGINE_VERSION` 89                                |                                                                                                               | 470-475; `constants.ts` l. 838     |
+| 3    | Contexto de carrera y `StageInput`                                                                                                |                                                                                                               | 482-506                            |
+| 4    | **Simula**: `simulateStage(input, seed, sonda)` con la sonda de radio `raceRadioCollector(radioKmPoints(km))`, una foto por km    |                                                                                                               | 515, 528-536                       |
+| 5    | Maillots de la carretera (general de salida) y lista de seguimiento: 3 maillots + 10 de la general + 10 de la etapa               |                                                                                                               | 550-569                            |
+| 6    | **Snapshot**                                                                                                                      | `stage_snapshots(race_id, stage_day, seed, engine_version, input, events, radio)` con `onConflictDoNothing`   | 570-595                            |
+| 7    | Resultado (solo quien acaba; bonificación 0 en un día)                                                                            | `stage_results(puesto, tiempo_s, bonificacion_s, puntos_volante, puntos_montana)`                             | 681-691, 856-858                   |
+| 8    | General acumulada (upsert)                                                                                                        | `race_gc(tiempo_total_s, puntos_volante, puntos_montana, suma_puestos, ultimo_puesto)`                        | 693-705, 862-876                   |
+| 9    | Fisiología                                                                                                                        | `riders.ctl/atl`, `strain_days/ill_days`, `rider_attrs.value`                                                 | 877-898                            |
+| 10   | Equipos de la etapa                                                                                                               | `stage_team_results`                                                                                          | 903-926                            |
+| 11   | Parte diario con lo que hizo                                                                                                      | `rider_daily_log(game_day, tss, …, activity = 'carrera:<raceId>:e<N>', parte)`                                | 658-676, 729-747, 927-929          |
+| 12   | Aprendizaje                                                                                                                       | `rider_attr_log`                                                                                              | 930-932                            |
+| 13   | Abandonos, lesiones, enfermedad                                                                                                   | `race_rosters.abandoned_day/_reason`, `riders.health/health_until_day`, noticias `abandon` e `injury`         | 937-1007, 1037-1140                |
+| 14   | `awardOutcome`: premios                                                                                                           | `transactions` del corredor humano («`<carrera> · stage win`», «`<carrera> · GC #n`») y `teams.budget`        | 1171-1179; `economy.ts` l. 134-184 |
+| 15   | Noticia de la victoria, y en la última etapa `gc_win` y `kom`                                                                     | `news`                                                                                                        | 1201-1256                          |
+| 16   | Puntos y palmarés                                                                                                                 | `riders.season_points`, `rider_points(game_day, race_id, kind)`, `palmares(kind, detail 'Stage N', game_day)` | 1259-1307; `ranking.ts` l. 71-111  |
 
 «Journal» y «crónica» son **el mismo dato**: `stage_snapshots.events`. Las clasificaciones de puntos y montaña no tienen tabla: se suman al leer desde `stage_results`, y la general y los equipos se pueden pedir «tras la etapa N» (`getGcThroughStage`, `getPointsClassification(…, throughStage)`, `getKomClassification`, `getTeamClassifications`: `results.ts` l. 236-414, `teamClassification.ts` l. 136-140). Lo único «solo presente» es `race_gc` (`getRaceGc`, `results.ts` l. 23).
 
@@ -86,15 +86,15 @@ Un nacional sin 5 corredores del país no se disputa (`calendarRun.ts` l. 217, 2
 
 Es la pregunta que decide cómo se podrá saber «qué ha visto cada uno»: la etapa es `(raceKey, stageDay)` con `raceKey = <raceId>:s<temporada>` (`packages/shared/src/raceKey.ts` l. 1-27), y su día de juego no está escrito en ninguna fila de etapa; se deduce del calendario (`season × 364 + stageDayOfSeason(race, N)`, como hace `raceReport.ts` l. 52-59).
 
-| Tabla | Cómo nombra la etapa | `game_day` | Marca de tiempo |
-| --- | --- | --- | --- |
-| `stage_snapshots`, `stage_results`, `stage_team_results` | `(race_id = raceKey, stage_day)` | no | no |
-| `race_gc` | `(race_id, rider_id)`: solo el acumulado tras la última etapa | no | no |
-| `rider_daily_log` | `activity = 'carrera:<raceId>:e<N>'`, con el `raceId` SIN temporada (`stageRun.ts` l. 672, 746) | sí | no |
-| `palmares` | `race_id` sin temporada, `season`, `detail = 'Stage N'` | sí | `created_at` |
-| `rider_points` | `race_id = raceKey`, `kind 'stage'` o `'gc'`, sin número de etapa (`schema.ts` l. 1032-1047) | sí | no |
-| `transactions` (libro del corredor) | solo en la nota: «`<carrera> · stage win`» | sí | `created_at` |
-| `news` | en ninguna columna: solo dentro del texto | sí | `created_at` |
+| Tabla                                                    | Cómo nombra la etapa                                                                            | `game_day` | Marca de tiempo |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ---------- | --------------- |
+| `stage_snapshots`, `stage_results`, `stage_team_results` | `(race_id = raceKey, stage_day)`                                                                | no         | no              |
+| `race_gc`                                                | `(race_id, rider_id)`: solo el acumulado tras la última etapa                                   | no         | no              |
+| `rider_daily_log`                                        | `activity = 'carrera:<raceId>:e<N>'`, con el `raceId` SIN temporada (`stageRun.ts` l. 672, 746) | sí         | no              |
+| `palmares`                                               | `race_id` sin temporada, `season`, `detail = 'Stage N'`                                         | sí         | `created_at`    |
+| `rider_points`                                           | `race_id = raceKey`, `kind 'stage'` o `'gc'`, sin número de etapa (`schema.ts` l. 1032-1047)    | sí         | no              |
+| `transactions` (libro del corredor)                      | solo en la nota: «`<carrera> · stage win`»                                                      | sí         | `created_at`    |
+| `news`                                                   | en ninguna columna: solo dentro del texto                                                       | sí         | `created_at`    |
 
 ---
 
@@ -119,19 +119,19 @@ Es la pregunta que decide cómo se podrá saber «qué ha visto cada uno»: la e
 
 **Escritura**: `emitNews` (`packages/db/src/news.ts` l. 28-49) llama a `renderNews(kind, seed, data)` (`engine/src/world/news.ts` l. 53-58) y guarda solo el texto. **Todas se escriben `global`**: ningún llamador pasa `personal: true` (grep: cero). Cada `kind` tiene UNA plantilla («la noticia es un dato», l. 29-32), así que la semilla no elige nada hoy. En la tabla, `<raya>` es el carácter U+2014 que el código escribe literalmente.
 
-| `kind` | Plantilla exacta (`world/news.ts`) | Quién y cuándo | `seed` pasada (y tirada) |
-| --- | --- | --- | --- |
-| `stage_win` | `${rider} wins stage ${stage} of the ${race}.` | tick, cada etapa de carrera por etapas sin fuga victoriosa ni crono (`stageRun.ts` l. 1201-1217) | `win:${raceKey}:${gameDay}:${stageDay}` |
-| `tt_win` | `${rider} wins the stage ${stage} time trial at the ${race}.` | tick, etapa crono | ídem |
-| `breakaway_win` | `${rider} wins stage ${stage} of the ${race} from the breakaway.` | tick, si hubo `fuga_formada` y ningún `fuga_cazada` (l. 1184-1186; no comprueba que el ganador fuera en ella) | ídem |
-| `one_day_win` | `${rider} wins the ${race}.` | tick, carrera de un día | ídem |
-| `one_day_tt_win` | `${rider} wins the ${race} time trial.` | tick, crono de un día | ídem |
-| `gc_win` | `${rider} wins the ${race} overall.` | tick, última etapa de una carrera por etapas (l. 1221-1231) | `gc:${raceKey}:${gameDay}:${stageDay}` |
-| `kom` | `${rider} wins the mountains classification at the ${race}.` | tick, última etapa, si el líder tiene > 0 puntos (l. 1233-1256) | `kom:${raceKey}` |
-| `abandon` | `${rider} abandons the ${race}` + `[ on stage ${stage}]` + `[ <raya> ${detail}]` + `.` | tick (`markAbandons`, l. 1069-1081; `detail` de l. 1020-1026: `climbs off, out of energy`, `eliminated on time`, `injured`, `ill`, `withdraws`); y la API al retirarse el jugador, sin etapa (`riderSchedule.ts` l. 299-306) | `abandon:${raceKey}:${gameDay}:${riderId}` |
-| `injury` | `${rider} injured` + `[ <raya> out for ${detail}]` + `.` | tick (`applyIncidents`, l. 1128-1138); `detail` «N weeks» o «N day(s)»; **no nombra la carrera** | `injury:${raceKey}:${gameDay}:${riderId}` |
-| `contract` | `${rider} signs for ${team}` + `[ ${detail}]` + `.` | API, al aceptar una oferta (`routes/riders.ts` l. 551 → `packages/db/src/contracts.ts` l. 324-339) | `contract:${offerId}` |
-| `retirement` | `${rider} retires` + `[ ${detail}]` + `.` | tick, rollover: los 6 retirados con más palmarés, `detail` «at N» (`rollover.ts` l. 319-333) | `${worldSeed}:retire:${riderId}` |
+| `kind`           | Plantilla exacta (`world/news.ts`)                                                     | Quién y cuándo                                                                                                                                                                                                               | `seed` pasada (y tirada)                   |
+| ---------------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| `stage_win`      | `${rider} wins stage ${stage} of the ${race}.`                                         | tick, cada etapa de carrera por etapas sin fuga victoriosa ni crono (`stageRun.ts` l. 1201-1217)                                                                                                                             | `win:${raceKey}:${gameDay}:${stageDay}`    |
+| `tt_win`         | `${rider} wins the stage ${stage} time trial at the ${race}.`                          | tick, etapa crono                                                                                                                                                                                                            | ídem                                       |
+| `breakaway_win`  | `${rider} wins stage ${stage} of the ${race} from the breakaway.`                      | tick, si hubo `fuga_formada` y ningún `fuga_cazada` (l. 1184-1186; no comprueba que el ganador fuera en ella)                                                                                                                | ídem                                       |
+| `one_day_win`    | `${rider} wins the ${race}.`                                                           | tick, carrera de un día                                                                                                                                                                                                      | ídem                                       |
+| `one_day_tt_win` | `${rider} wins the ${race} time trial.`                                                | tick, crono de un día                                                                                                                                                                                                        | ídem                                       |
+| `gc_win`         | `${rider} wins the ${race} overall.`                                                   | tick, última etapa de una carrera por etapas (l. 1221-1231)                                                                                                                                                                  | `gc:${raceKey}:${gameDay}:${stageDay}`     |
+| `kom`            | `${rider} wins the mountains classification at the ${race}.`                           | tick, última etapa, si el líder tiene > 0 puntos (l. 1233-1256)                                                                                                                                                              | `kom:${raceKey}`                           |
+| `abandon`        | `${rider} abandons the ${race}` + `[ on stage ${stage}]` + `[ <raya> ${detail}]` + `.` | tick (`markAbandons`, l. 1069-1081; `detail` de l. 1020-1026: `climbs off, out of energy`, `eliminated on time`, `injured`, `ill`, `withdraws`); y la API al retirarse el jugador, sin etapa (`riderSchedule.ts` l. 299-306) | `abandon:${raceKey}:${gameDay}:${riderId}` |
+| `injury`         | `${rider} injured` + `[ <raya> out for ${detail}]` + `.`                               | tick (`applyIncidents`, l. 1128-1138); `detail` «N weeks» o «N day(s)»; **no nombra la carrera**                                                                                                                             | `injury:${raceKey}:${gameDay}:${riderId}`  |
+| `contract`       | `${rider} signs for ${team}` + `[ ${detail}]` + `.`                                    | API, al aceptar una oferta (`routes/riders.ts` l. 551 → `packages/db/src/contracts.ts` l. 324-339)                                                                                                                           | `contract:${offerId}`                      |
+| `retirement`     | `${rider} retires` + `[ ${detail}]` + `.`                                              | tick, rollover: los 6 retirados con más palmarés, `detail` «at N» (`rollover.ts` l. 319-333)                                                                                                                                 | `${worldSeed}:retire:${riderId}`           |
 
 Defecto de texto de paso: `contract` con traslado produce «`signs for T , relocating to Spain.`» (el `detail` empieza por coma, l. 328, y la plantilla antepone un espacio).
 
@@ -145,19 +145,19 @@ Defecto de texto de paso: `contract` con traslado produce «`signs for T , reloc
 
 La API no declara esquemas de respuesta (ninguna ruta usa `schema.response`); los valida la web al recibir (`apps/web/src/api/results.ts` l. 52 con `stageReplaySchema`, etc.).
 
-| Ruta | Sesión | Forma (`packages/shared/src/contracts.ts`) | Cita |
-| --- | --- | --- | --- |
-| `GET /api/races/:raceId/stages/:day` | **no** | `StageReplay` (l. 1482-1533): `day, name, km, run, race, kind, timeTrial, journalUnavailable?, altimetry` (SVG con marcas de ataque, fuga, caza, pancartas y meta: `chronicle.ts` l. 169-175), `results[]` (con DNF y motivo), `chronicle[]`, `gc[]`, `kom[]`, `points[]`, `teamStage[]`, `teamGc[]`, `leaders { onRoad, afterStage }`, `radio?` (`RaceRadio`, l. 1476-1480) | `routes/races.ts` l. 387-539 |
-| `GET /api/races/test-tour/stages/:day`, `/results`, `/history` | sí, sí, no | `StageReplay` reducido; `RaceResults` (l. 1211-1219); `RaceHistoryHonour[]` | l. 175-282 |
-| `GET /api/calendar` | no | `Calendar` (l. 389-412): por carrera `winner` y etapas; `dayOfSeason` | `routes/calendar.ts` l. 38-78 |
-| `GET /api/calendar/:raceId` | no | `RaceView` (l. 565-606): `status`, `runDays`, `stages[]` (altimetría), `gc` (actual), `points`, `kom`, `teamGc`, `leaders` (ahora), `stageWinners`, `history` | l. 81-214 |
-| `GET /api/calendar/:raceId/startlist` | no | `RaceStartlist` (l. 630-640), solo antes de la salida | l. 221-249 |
-| `GET /api/my-orders?raceKey=` | sí, convocado | `RaceOrders` (l. 1174-1189): etapas con parte meteorológico | `races.ts` l. 286-364 |
-| `GET /api/riders/me/last-race` | sí | `RiderRaceReport` (l. 1554-1571): `position, fieldSize, timeGapToWinnerS, winnerName, personalEvents, story` | `routes/riders.ts` l. 198-205; `packages/db/src/raceReport.ts` |
-| `GET /api/riders/me/form`, `/summary`, `/ledger`, `/palmares`, `/upcoming-races` | sí | `FormResponse` con `parte` por día de carrera (l. 276-333); `RiderSummary` (l. 253-267); `Ledger` (l. 917-933); `PalmaresRow[]`; `UpcomingRace[]` (l. 227-240) | `routes/riders.ts` l. 134, 425-437, 500-530 |
-| `GET /api/riders/:id`, `/results`, `/palmares`, `/badges` | no | `PublicRiderDetail` (l. 713-737), `RiderRaceResult[]` (l. 890-913), `PalmaresRow[]`, `Badge[]` | `routes/riders.ts` l. 657-687 |
-| `GET /api/teams`, `/api/teams/:id` | no | `TeamListItem` (`pointsSeason`, `budget`), `TeamDetail` (plantilla con `seasonPoints` y `health`) (l. 644-682) | `routes/teams.ts` l. 116-129 |
-| `GET /api/rankings`, `/young`, `/api/season-awards`, `/api/hall-of-fame`, `/api/records`, `/api/countries[/:code]`, `/api/free-agents` | no | l. 748-866 | `routes/rankings.ts` l. 27-106 |
+| Ruta                                                                                                                                   | Sesión        | Forma (`packages/shared/src/contracts.ts`)                                                                                                                                                                                                                                                                                                                                   | Cita                                                           |
+| -------------------------------------------------------------------------------------------------------------------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `GET /api/races/:raceId/stages/:day`                                                                                                   | **no**        | `StageReplay` (l. 1482-1533): `day, name, km, run, race, kind, timeTrial, journalUnavailable?, altimetry` (SVG con marcas de ataque, fuga, caza, pancartas y meta: `chronicle.ts` l. 169-175), `results[]` (con DNF y motivo), `chronicle[]`, `gc[]`, `kom[]`, `points[]`, `teamStage[]`, `teamGc[]`, `leaders { onRoad, afterStage }`, `radio?` (`RaceRadio`, l. 1476-1480) | `routes/races.ts` l. 387-539                                   |
+| `GET /api/races/test-tour/stages/:day`, `/results`, `/history`                                                                         | sí, sí, no    | `StageReplay` reducido; `RaceResults` (l. 1211-1219); `RaceHistoryHonour[]`                                                                                                                                                                                                                                                                                                  | l. 175-282                                                     |
+| `GET /api/calendar`                                                                                                                    | no            | `Calendar` (l. 389-412): por carrera `winner` y etapas; `dayOfSeason`                                                                                                                                                                                                                                                                                                        | `routes/calendar.ts` l. 38-78                                  |
+| `GET /api/calendar/:raceId`                                                                                                            | no            | `RaceView` (l. 565-606): `status`, `runDays`, `stages[]` (altimetría), `gc` (actual), `points`, `kom`, `teamGc`, `leaders` (ahora), `stageWinners`, `history`                                                                                                                                                                                                                | l. 81-214                                                      |
+| `GET /api/calendar/:raceId/startlist`                                                                                                  | no            | `RaceStartlist` (l. 630-640), solo antes de la salida                                                                                                                                                                                                                                                                                                                        | l. 221-249                                                     |
+| `GET /api/my-orders?raceKey=`                                                                                                          | sí, convocado | `RaceOrders` (l. 1174-1189): etapas con parte meteorológico                                                                                                                                                                                                                                                                                                                  | `races.ts` l. 286-364                                          |
+| `GET /api/riders/me/last-race`                                                                                                         | sí            | `RiderRaceReport` (l. 1554-1571): `position, fieldSize, timeGapToWinnerS, winnerName, personalEvents, story`                                                                                                                                                                                                                                                                 | `routes/riders.ts` l. 198-205; `packages/db/src/raceReport.ts` |
+| `GET /api/riders/me/form`, `/summary`, `/ledger`, `/palmares`, `/upcoming-races`                                                       | sí            | `FormResponse` con `parte` por día de carrera (l. 276-333); `RiderSummary` (l. 253-267); `Ledger` (l. 917-933); `PalmaresRow[]`; `UpcomingRace[]` (l. 227-240)                                                                                                                                                                                                               | `routes/riders.ts` l. 134, 425-437, 500-530                    |
+| `GET /api/riders/:id`, `/results`, `/palmares`, `/badges`                                                                              | no            | `PublicRiderDetail` (l. 713-737), `RiderRaceResult[]` (l. 890-913), `PalmaresRow[]`, `Badge[]`                                                                                                                                                                                                                                                                               | `routes/riders.ts` l. 657-687                                  |
+| `GET /api/teams`, `/api/teams/:id`                                                                                                     | no            | `TeamListItem` (`pointsSeason`, `budget`), `TeamDetail` (plantilla con `seasonPoints` y `health`) (l. 644-682)                                                                                                                                                                                                                                                               | `routes/teams.ts` l. 116-129                                   |
+| `GET /api/rankings`, `/young`, `/api/season-awards`, `/api/hall-of-fame`, `/api/records`, `/api/countries[/:code]`, `/api/free-agents` | no            | l. 748-866                                                                                                                                                                                                                                                                                                                                                                   | `routes/rankings.ts` l. 27-106                                 |
 
 Dos límites de la ruta de etapa: resuelve la temporada con el día de HOY (`currentSeason(world.currentDay)`, l. 399), así que **una etapa de la temporada anterior no se puede abrir**; y no mira quién pide.
 
@@ -167,29 +167,29 @@ Y dos costes: la ficha de etapa hace unas catorce consultas por petición (mundo
 
 Todas lo revelan **desde el commit del día** (§1.2); ninguna filtra por usuario.
 
-| Superficie | Ruta(s) | Qué revela | Directo o indirecto |
-| --- | --- | --- | --- |
-| Portada (`apps/web/src/pages/Home.tsx` l. 145, 229) | `/api/riders/me/last-race`, `/form`, `/summary` | puesto, ganador, «la fuga llegó a meta» (`raceReport.ts` l. 158-170); km en fuga, pájara y descuelgue del parte; puntos y puesto de temporada, dinero | directo |
-| Ficha de etapa | `/api/races/:raceId/stages/:day` | todo | directo |
-| Ficha de carrera y calendario | `/api/calendar/:raceId`, `/api/calendar` | general, puntos, montaña y equipos actuales, maillots de hoy, ganadores de etapa, `status`, `runDays`; ganador final (`winner`) | directo |
-| Noticias | `/api/news`, `/api/teams/:id/news` | ganador de cada etapa, abandonos, lesiones; ganador final | directo |
-| Perfil de corredor | `/api/riders/:id/results`, `/palmares`, `/badges`, `/api/riders/:id` | puesto en cada etapa y general; «Stage N» en palmarés; insignias; puntos, puesto de temporada, `health: lesionado` tras una caída | directo e indirecto |
-| Mis carreras y finanzas | `/api/riders/:id/results`, `/api/riders/me/ledger` | puestos; «`<carrera> · stage win`» | directo |
-| Ranking y premios | `/api/rankings` (`rider_points` fechado), `/young`, `/season-awards`, `/countries` | los puntos de la etapa suben ya | indirecto |
-| Equipo | `/api/teams[/:id]` | `pointsSeason`, `budget` (premio de equipo), salud de la plantilla | indirecto |
-| Hall of fame, récords, historial | `/api/hall-of-fame`, `/api/records`, `history` de la ficha | victorias de etapa y generales contadas desde `palmares` (la de etapa, en cuanto se corre) | directo |
-| Correo | ninguno | nada (§5) | |
-| Título de la pestaña | `apps/web/index.html` l. 7, fijo «Cycling Star»; la web no toca `document.title` (grep) | nada hoy | |
+| Superficie                                          | Ruta(s)                                                                                 | Qué revela                                                                                                                                            | Directo o indirecto |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| Portada (`apps/web/src/pages/Home.tsx` l. 145, 229) | `/api/riders/me/last-race`, `/form`, `/summary`                                         | puesto, ganador, «la fuga llegó a meta» (`raceReport.ts` l. 158-170); km en fuga, pájara y descuelgue del parte; puntos y puesto de temporada, dinero | directo             |
+| Ficha de etapa                                      | `/api/races/:raceId/stages/:day`                                                        | todo                                                                                                                                                  | directo             |
+| Ficha de carrera y calendario                       | `/api/calendar/:raceId`, `/api/calendar`                                                | general, puntos, montaña y equipos actuales, maillots de hoy, ganadores de etapa, `status`, `runDays`; ganador final (`winner`)                       | directo             |
+| Noticias                                            | `/api/news`, `/api/teams/:id/news`                                                      | ganador de cada etapa, abandonos, lesiones; ganador final                                                                                             | directo             |
+| Perfil de corredor                                  | `/api/riders/:id/results`, `/palmares`, `/badges`, `/api/riders/:id`                    | puesto en cada etapa y general; «Stage N» en palmarés; insignias; puntos, puesto de temporada, `health: lesionado` tras una caída                     | directo e indirecto |
+| Mis carreras y finanzas                             | `/api/riders/:id/results`, `/api/riders/me/ledger`                                      | puestos; «`<carrera> · stage win`»                                                                                                                    | directo             |
+| Ranking y premios                                   | `/api/rankings` (`rider_points` fechado), `/young`, `/season-awards`, `/countries`      | los puntos de la etapa suben ya                                                                                                                       | indirecto           |
+| Equipo                                              | `/api/teams[/:id]`                                                                      | `pointsSeason`, `budget` (premio de equipo), salud de la plantilla                                                                                    | indirecto           |
+| Hall of fame, récords, historial                    | `/api/hall-of-fame`, `/api/records`, `history` de la ficha                              | victorias de etapa y generales contadas desde `palmares` (la de etapa, en cuanto se corre)                                                            | directo             |
+| Correo                                              | ninguno                                                                                 | nada (§5)                                                                                                                                             |                     |
+| Título de la pestaña                                | `apps/web/index.html` l. 7, fijo «Cycling Star»; la web no toca `document.title` (grep) | nada hoy                                                                                                                                              |                     |
 
 ---
 
 ## 5. Los correos
 
-| Correo | Cuándo | Asunto | Cuerpo | ¿Resultados? |
-| --- | --- | --- | --- | --- |
-| `resetPasswordEmail` (`emails.ts` l. 64-82) | «he olvidado mi contraseña» (`auth.ts` l. 126-128) | `Reset your Cycling Star password` | enlace que caduca en una hora | no |
-| `verifyEmailEmail` (l. 90-109) | registro, entrar sin confirmar y cambio de correo a la dirección nueva (`auth.ts` l. 136-148) | `Confirm your Cycling Star email` | enlace a `/verify-email` | no |
-| `changeEmailConfirmationEmail` (l. 116-135) | cambio de correo, a la dirección actual (`auth.ts` l. 155-162) | `Confirm the new email of your Cycling Star account` | nombra la dirección nueva | no |
+| Correo                                      | Cuándo                                                                                        | Asunto                                               | Cuerpo                        | ¿Resultados? |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------- | ----------------------------- | ------------ |
+| `resetPasswordEmail` (`emails.ts` l. 64-82) | «he olvidado mi contraseña» (`auth.ts` l. 126-128)                                            | `Reset your Cycling Star password`                   | enlace que caduca en una hora | no           |
+| `verifyEmailEmail` (l. 90-109)              | registro, entrar sin confirmar y cambio de correo a la dirección nueva (`auth.ts` l. 136-148) | `Confirm your Cycling Star email`                    | enlace a `/verify-email`      | no           |
+| `changeEmailConfirmationEmail` (l. 116-135) | cambio de correo, a la dirección actual (`auth.ts` l. 155-162)                                | `Confirm the new email of your Cycling Star account` | nombra la dirección nueva     | no           |
 
 Salen por Resend con un POST propio y 10 s de corte, sin lanzar nunca (`mailer.ts` l. 45-118); sin `RESEND_API_KEY`/`MAIL_FROM` un mailer nulo solo lo anota (l. 124-152). **No existe ningún correo de juego.** El servicio `tick` valida solo `DATABASE_URL` y `TICK_INTERVAL_MINUTES` (`env.ts` l. 65-68) y no crea mailer. El servicio `web` sí tiene mailer y corre el auto-tick en su proceso, pero `runTick` devuelve solo `{ ran, daysProcessed, currentDay, durationMs }` (`tick.ts` l. 52-58): un aviso de «etapa corrida» tendría que consultar después qué se corrió.
 
@@ -210,12 +210,12 @@ Salen por Resend con un POST propio y 10 s de corte, sin lanzar nunca (`mailer.t
 
 **Método.** Test de vitest en el scratchpad, con alias a las fuentes de `engine` y `shared` y las funciones reales de `apps/api/src/chronicle.ts`. Mismo camino que `stageRun.ts`: `raceRadioCollector(radioKmPoints(km))`, `simulateStage`, `radioForStorage(radio({ incidents }), lista de 3 + 10 + 10, maillots)`. Identidades sintéticas de longitud realista (nombre de 18 caracteres, equipo, país, dorsal). Bytes de `JSON.stringify`; gzip con `zlib`. Campos de `realQueenSetup` (realista) y de los escenarios del banco (homogéneo, 176 corredores).
 
-| Etapa (campo) | km | Corr. | Eventos / líneas | BD `radio` | BD `events` | BD `input` | API `radio` | API `chronicle` | Respuesta entera | `simulateStage` |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| race-france e5 llana (realista) | 158 | 176 | 62 / 45 | 104,7 KB (gzip 5,9) | 12,6 KB | 89,7 KB | 862 KB (gzip 15,0) | 19,7 KB (2,4) | **950 KB** (gzip 22,2) | 2,4 s |
-| race-colombia e5 reina (realista) | 232 | 126 | 92 / 67 | 391,9 KB (18,3) | 18,2 KB | 67,1 KB | 2.082 KB (43,1) | 25,3 KB (2,8) | **2.159 KB** (50,0) | 3,2 s |
-| race-france e18 (homogéneo, 3.ª semana) | 185 | 176 | 101 / 68 | 141,4 KB (10,5) | 20,2 KB | 59,6 KB | 1.065 KB (23,5) | 25,3 KB (2,9) | **1.158 KB** (31,9) | 5,8 s |
-| race-flanders (homogéneo) | 278 | 176 | 100 / 68 | 282,9 KB (16,0) | 19,1 KB | 65,4 KB | 1.770 KB (39,8) | 23,8 KB (2,6) | **1.870 KB** (48,7) | 5,9 s |
+| Etapa (campo)                           | km  | Corr. | Eventos / líneas | BD `radio`          | BD `events` | BD `input` | API `radio`        | API `chronicle` | Respuesta entera       | `simulateStage` |
+| --------------------------------------- | --- | ----- | ---------------- | ------------------- | ----------- | ---------- | ------------------ | --------------- | ---------------------- | --------------- |
+| race-france e5 llana (realista)         | 158 | 176   | 62 / 45          | 104,7 KB (gzip 5,9) | 12,6 KB     | 89,7 KB    | 862 KB (gzip 15,0) | 19,7 KB (2,4)   | **950 KB** (gzip 22,2) | 2,4 s           |
+| race-colombia e5 reina (realista)       | 232 | 126   | 92 / 67          | 391,9 KB (18,3)     | 18,2 KB     | 67,1 KB    | 2.082 KB (43,1)    | 25,3 KB (2,8)   | **2.159 KB** (50,0)    | 3,2 s           |
+| race-france e18 (homogéneo, 3.ª semana) | 185 | 176   | 101 / 68         | 141,4 KB (10,5)     | 20,2 KB     | 59,6 KB    | 1.065 KB (23,5)    | 25,3 KB (2,9)   | **1.158 KB** (31,9)    | 5,8 s           |
+| race-flanders (homogéneo)               | 278 | 176   | 100 / 68         | 282,9 KB (16,0)     | 19,1 KB     | 65,4 KB    | 1.770 KB (39,8)    | 23,8 KB (2,6)   | **1.870 KB** (48,7)    | 5,9 s           |
 
 Lecturas: (1) la radio es el 91-96 % de la respuesta porque `buildRaceRadio` repite la identidad completa de cada nombrado en cada grupo de cada km (`chronicle.ts` l. 1340-1400); tarda 10-27 ms. (2) **La API no comprime**: no hay `@fastify/compress` (grep); si el borde de Railway comprime, **no lo sé**. (3) Lo guardado en `radio` es de 5 a 18 veces el «~22 KB por etapa» que dice `schema.ts` l. 754 (en texto JSON; cuánto lo reduce TOAST en Postgres, no lo sé). (4) Los tiempos son de vitest sobre TypeScript, no del JS compilado de producción: valen como orden de magnitud del tick y del coste de la re-simulación de `last-race`.
 

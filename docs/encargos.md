@@ -1,7 +1,7 @@
 # Los encargos: qué pedirle a Fable, uno por documento
 
 Estado: **lista de encargos.** Cada punto de aquí es UN documento de diseño por escribir, del tamaño y con el método de `docs/tactica.md` y `docs/entrenamiento.md`.
-E1 está IMPLEMENTADO; E2 tiene el diseño ESCRITO, sin implementar; los demás no están empezados. El estado de cada uno va al principio de su sección.
+E1 está IMPLEMENTADO; E2 está EN IMPLEMENTACIÓN; los demás no están empezados. El estado de cada uno va al principio de su sección.
 
 **Los códigos van en el orden en que se van a desarrollar**: E2 primero, E13 último. No es una
 etiqueta arbitraria, es el plan.
@@ -135,7 +135,7 @@ la línea del motor, con ese código todavía fresco.
 
 **Fichero:** `docs/retransmision.md` · **Tamaño esperado:** grande (como `tactica.md`)
 
-**Estado: DISEÑO ESCRITO, SIN IMPLEMENTAR (3 de octubre de 2026).** El diseño está en
+**Estado: EN IMPLEMENTACIÓN desde el 3 de octubre de 2026, sobre el motor v91.** El diseño está en
 `docs/retransmision.md`: veintidós secciones, de la 0 a la 21, y unas 11.500 líneas, hechas con el
 método de `docs/diseno/README.md` completo: siete mapas del código y de los documentos, cinco
 propuestas independientes, tres jueces sin mayoría (la base es `ingeniero`, por suma de
@@ -143,11 +143,11 @@ puntuaciones, con los 49 injertos que pidieron), diez redactores por lotes, cuat
 adversarios (246 hallazgos, de ellos 27 altos), diez correctores, una pasada de coherencia y diez
 auditores que volvieron a mirar cada hallazgo contra el texto (777 veredictos: 243 hallazgos
 aplicados enteros, 2 en parte y 1 desestimado con su porqué). Todo el rastro está en
-`docs/diseno/e2-retransmision/`. **No hay nada implementado.** Las 27 decisiones del dueño están en
-la §20 del documento, cada una con su valor por defecto, y siguen pendientes de respuesta: si no
-contesta, se implementa el valor por defecto, y la §20.7 dice antes de qué PR hace falta cada
-respuesta. La regla de arranque sigue vigente: no se abre código hasta que la línea de la táctica y
-el entrenamiento esté en producción, y entonces se parte de la última versión de producción.
+`docs/diseno/e2-retransmision/`. **Se implementa por pasos, con el estado en su cabecera.** Las 27 decisiones del dueño están en
+la §20 del documento, cada una con su valor por defecto, y el dueño aceptó los 27 el 3 de octubre de
+2026 (puede cambiar cualquiera antes del PR que dice la §20.7). La regla de arranque se dio por
+cumplida ese día: el código parte de la versión de producción con el motor v91, y las migraciones de
+E2 se renumeran a partir de la 0046, porque producción ya ocupó de la 0043 a la 0045.
 
 Rehacer de arriba abajo lo que el jugador lee de una carrera: el Race Radio, el journal de etapa, la
 crónica y el feed de noticias, con **la retransmisión de televisión como norte** y no como adorno.

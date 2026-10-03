@@ -1,80 +1,80 @@
 [
- {
-  "id": "Rcobertura-025",
-  "estado": "aplicado",
-  "donde": "borrador/07-rotulos.md l. 20 (§7.1) y l. 504 (decisión 7-l)",
-  "motivo": "Comprobado: `RiderCard` y `CastRider` (04-modelo.md) no llevan edad y `riders.birth_season` existe (`packages/db/src/schema.ts` l. 286). De las dos salidas que da el hallazgo se toma la segunda, la decisión escrita, con evidencia: el propio mapa 06 §2.1 (l. 101) dice que la tele da edad, victorias y especialidad «solo en fases tranquilas (previa, hora muerta)» y que en carrera el rótulo lleva dorsal, nombre, bandera y equipo; la ficha ya la enseña (`apps/web/src/pages/RiderProfile.tsx` l. 399-400), a un toque por 7-m. La fórmula de la primera salida es falsa: la edad es `riderAge(birthSeason, season) = RIDER_AGE_EPOCH − birthSeason + season` (`packages/shared/src/time.ts` l. 22 y 38-40), no «temporada de la etapa menos riders.birth_season», que da veinte años menos; §7.1 y 7-l lo dejan escrito por si E3 la quiere en el rótulo."
- },
- {
-  "id": "Rcobertura-031",
-  "estado": "parcial",
-  "donde": "borrador/09-crono.md l. 74-87 (§9.2, tamaños y tope) y l. 304 (§9.8, B6); borrador/00-decisiones.md, D-23 precisada",
-  "motivo": "Evidencia comprobada y medida: re-medido en el scratchpad con el prototipo del grabador de L3 más `checkClockDs` (`rcod/n/grab2.mjs` con y sin `CHECKS=1`; salida en `l5c/sin.json` y `l5c/con.json`): `race-italy` e10 (42 km, 176) ocupa 31.436 y 31.178 B sin `checkClockDs` y 32.203 y 31.918 B con él, el 98,3 % de los 32.768 de entonces; `race-spain` e18, de 26.987 a 27.821 B; e1 y e16, lo de §5.7. La estimación de §9.2 (19-20 KB para 40 km) era de la traza sola y se cumple (18.886 a 19.856 B), pero la línea entera rozaba el tope, que es lo que el hallazgo decía. Aplicado en §9: la tabla de tamaños pasa a la línea entera de las cuatro cronos, con y sin `checkClockDs`, y §9.8 mete en la medida a mano del paso 5 la crono más larga de 176 corredores del calendario, que el script elige en `SEASON_CALENDAR`; D-23 queda precisada con la cifra. Parcial porque la condición del hallazgo («si pasa de 28 KB, §4.3 guarda `kmClockDs` por diferencias») se cumple y choca con Rcodigo-014 y Rcoste-007, que piden subir el tope: el corrector de L2 lo resolvió en §15.2 con 49.152 B (decisión 15-i) y descartó las diferencias. §9.2 escribe las dos caras con su cifra medida (por diferencias, la línea de la e10 baja a 15.614 B y la mayor de las cuatro es la e16, 19.037 B; `l5c/deltas.mjs`) y la decisión de 15-i. B6 (§16.4), el paso 5 (§17), §19.6, §5.7 y §0.7 van a cruzadas."
- },
- {
-  "id": "Rcobertura-032",
-  "estado": "aplicado",
-  "donde": "borrador/09-crono.md l. 210 (tabla de §9.5), l. 220-231 (quién los programa) y l. 336 (9-k)",
-  "motivo": "Comprobado en 06-pantalla.md l. 316: `cueClassOf` solo baja a 0 `break_round`, y `focus` (tocar un nombre) es de clase 1. §9.5 y 9-k dicen ahora «0 (`rider` con contexto `tt_round`); 1 si es del espectador (`rider` con contexto `own`)», y el bloque del reproductor programa la ronda con `tt_round`. La cola se volvió a medir con esa clase y con las reglas de §6.5 enteras (`l5c/cola2.mjs`): la medida vieja (`l5/cola.mjs`) ya daba clase 0 a las rondas, pero no aplicaba la caducidad de 6-h y ponía dos `VIRTUAL GC` al prólogo por dorsales; la tabla de §9.5 lleva las cifras nuevas. El tipo ya lo lleva §4.9 (04-modelo.md l. 815, `RiderCueContext` con `'tt_round'`, aplicado por L2 en paralelo); `cueClassOf` y la lista del reproductor (§6.5) van a cruzadas-L5.json; §9.8 añade el caso de `cues.test.ts`."
- },
- {
-  "id": "Rcobertura-033",
-  "estado": "aplicado",
-  "donde": "borrador/09-crono.md l. 214 (tabla de §9.5), l. 234 (la clase de VIRTUAL GC) y l. 339 (9-n); borrador/00-decisiones.md, D-21 precisada",
-  "motivo": "Las dos caras, medidas. La contradicción es cierta (06-pantalla.md l. 305 y 319: `virtual_gc` 1, y 3 si cambia el líder virtual; §9.5 decía «2; 3 si el líder virtual no es el líder» citando D-21). Alinear la crono con la clase 1 de carretera, la primera salida del hallazgo, pierde rótulos: con la cola de §6.5 entera, la clase 1 perdió 1 de los 7 `VIRTUAL GC` de la e16 en tres semillas (el del primer control de la semilla 2, caducado en la espera) y la clase 2 ninguno (`l5c/cola2.mjs`, `l5c/cola2b.mjs`). Se toma la segunda salida del hallazgo: regla propia de la crono con decisión nueva (9-n: 2, y 3 si cambia el líder virtual, que es la subida de D-21), su caso en `cues.test.ts` (§9.8) y D-21 precisada en 00-decisiones.md con la medida. `cueClassOf` gana el parámetro de crono en §6.5 (cruzadas)."
- },
- {
-  "id": "Rcobertura-034",
-  "estado": "aplicado",
-  "donde": "borrador/09-crono.md l. 216 (tabla de §9.5)",
-  "motivo": "Comprobado: `CUE_CLASS.time_cut` es 2 (06-pantalla.md l. 304), como D-21, la fila 45 de §6.6 y §8.7 (08-ritmo.md l. 289), y ningún caso de `cueClassOf` lo sube. La fila `TIME CUT` de la crono pasa a «2 (`time_cut`, como en carretera: §6.5, D-21)»; `cues.test.ts` lo comprueba (§9.8)."
- },
- {
-  "id": "Rcobertura-035",
-  "estado": "aplicado",
-  "donde": "borrador/09-crono.md l. 247 (§9.5, destino de las plantillas)",
-  "motivo": "Comprobado en 06-pantalla.md (`CUE_OF_TEMPLATE` y filas 46, 53 y 54 de §6.6): `tt_catches`, `tt_last_home` y `time_cut_readmitted` son `voice_only`. La frase de §9.5 copia ahora el destino de §6.6 (decisión 6-j): `tt_catches` y `tt_last_home`, `voice_only`, con su línea en el paquete de meta por la regla `finish` de §4.7 (que la corrección de L2 da ya también a `tt_catches`, 04-modelo.md 4-w); `time_cut`, `time_cut`; `time_cut_readmitted`, `voice_only`. `cues.test.ts` sella la tabla (§9.8)."
- },
- {
-  "id": "Rcobertura-036",
-  "estado": "aplicado",
-  "donde": "borrador/09-crono.md l. 269 (§9.7)",
-  "motivo": "Comprobado: §8.6 cuenta las amenazas con `BROADCAST.previewThreatsMax` (08-ritmo.md l. 236; 15-constantes.md l. 126) y `previewGcTop` es la de los favoritos (l. 122). §9.7 dice ahora «los `BROADCAST.previewThreatsMax` (3) siguientes de la general de salida, como en §8.6»."
- },
- {
-  "id": "Rcodigo-041",
-  "estado": "aplicado",
-  "donde": "borrador/07-rotulos.md l. 7 y 15 (§7.1), l. 461 y 467 (§7.8)",
-  "motivo": "Comprobado: `CastTeam` es `{ teamId, jerseySeed }` (04-modelo.md l. 141) y el nombre del equipo se edita con `PUT /api/teams/me` (`apps/api/src/routes/teams.ts` l. 18-24 y 48; `packages/db/src/teamControl.ts` l. 167-189). `serveCast` escribe ahora `team: t === null ? null : { id: t.teamId, name: nombres.team(t.teamId), jerseySeed: t.jerseySeed }` con `t = cast.teams[c.team]`, §7.8 dice que el nombre del equipo se resuelve al servir y un cambio de nombre posterior sí se ve, y §7.1 deja de decir «el nombre del equipo del día». El comentario de `RiderCard.team` en §4.8 va a cruzadas."
- },
- {
-  "id": "Rcodigo-045",
-  "estado": "aplicado",
-  "donde": "borrador/09-crono.md l. 53 (§9.2), l. 112-121 (§9.3), l. 206-231 (§9.5), l. 327, 329, 334 y 349 (9-b, 9-d, 9-i y glosario)",
-  "motivo": "Comprobado contra los tipos de §4 que escribe en paralelo el corrector de L2 (04-modelo.md: `TimeTrialTrace.checkClockDs` l. 176, `TimelineVisibility.ttCheckDs` l. 636, `Cue` `tt_start_order`, `tt_split` y `tt_finish` l. 834-843, `BroadcastHead.tt` l. 936, `BroadcastChunk.tt.checks` l. 954; decisión 4-u), con los mismos nombres. §9 deja de llamarlos propuestos (9-b, 9-d, 9-i, tablas de §9.2 y §9.5, `TimeTrialBoard`) y remite a §4. Faltaban dos piezas para que la pantalla de §9 se escriba con esos tipos: `TimeTrialInstant.arrivals` (§4.5), sin la que el `rank` de `tt_finish` y la tabla de llegados no salen del instante (§9.3 ya la calcula), y `RiderCueContext` `'tt_round'` (Rcobertura-032); se pidieron por cruzada y §4 ya las lleva (04-modelo.md l. 547-550 y 815). Las clases de las variantes nuevas (`CUE_CLASS` y `cueClassOf`) van a §6.5 por cruzada; §9.5 escribe quién programa cada `Cue` de crono (el reproductor, 6-i)."
- },
- {
-  "id": "Rcodigo-048",
-  "estado": "parcial",
-  "donde": "borrador/09-crono.md l. 161 (§9.4, comentario del bloque de `pace.ts`)",
-  "motivo": "Comprobado: el bloque de importaciones de `pace.ts` está en §8.2 (08-ritmo.md l. 34-37) y no trae `RaceS`, que usan las dos firmas de `ttPaceAt`; y la fila de `pace.ts` en §4.13 (04-modelo.md l. 1082) dice que importa `cues.ts`, que no importa. El arreglo es de esas dos secciones y va a cruzadas; en §9.4 el comentario del bloque dice ya de dónde llega `RaceS` (`./timeline.js`, con `ProfileStrip`, en las importaciones de §8.2). Parcial hasta que §8.2 y §4.13 lo apliquen."
- },
- {
-  "id": "Rcodigo-051",
-  "estado": "aplicado",
-  "donde": "borrador/07-rotulos.md l. 45-51 (bloque de §7.1) y l. 508 (glosario)",
-  "motivo": "Comprobado: `listAnd` no existe en el repositorio (`grep -rn listAnd packages apps`: nada) ni en el documento, y `listNames` vive en la web (`apps/web/src/domain/stageJournal.ts` l. 133-137), que `shared` no puede importar. Se escribe entera en el bloque de `names.ts`, antes de `cardCaption`: toma el último con `xs.at(-1)`, devuelve la cadena vacía si no hay ninguno, el único si hay uno y, si no, los demás unidos por comas y «and» delante del último; sin aserción de no nulo. Compilada con el `tsconfig.base.json` del repositorio (`noUncheckedIndexedAccess`, ES2022) y probada en el scratchpad (`l5c/ts/listAnd.ts`: la lista vacía da «», y las otras, «3», «3 and 7» y «3, 7 and 12»). Nombrarla en F.2 va a cruzadas."
- },
- {
-  "id": "Rdueno-012",
-  "estado": "aplicado",
-  "donde": "borrador/07-rotulos.md l. 288 (§7.4, el icono) y l. 500 (7-h)",
-  "motivo": "Comprobadas las citas (`docs/encargos.md` l. 153-154, `docs/navegacion.md` l. 412-413, `docs/agenda.md` l. 718-719, SPEC.md l. 841) y las marcas de `Jersey.tsx` (l. 57-75, 101-110; las equipaciones, `visuals.ts` l. 55 y `Jersey.tsx` l. 28-47). Se aplica la primera salida: `ChampionMark` provisional es un maillot, la silueta `TORSO` en un color neutro con una estrella en el pecho y la bandera pequeña al lado, con `aria-label` y `<title>`; el argumento de la escala de grises descartaba la banda, no la silueta, y la estrella no la lleva ningún maillot de líder ni ninguna equipación. Sigue cumpliendo D-25 («el icono lleva la bandera y una forma propia… y nunca el arcoíris»), así que no hace falta fila en §20. La fila de I-47 del apéndice («bandera con estrella») va a cruzadas."
- },
- {
-  "id": "Rdueno-038",
-  "estado": "aplicado",
-  "donde": "borrador/07-rotulos.md l. 12 y 22 (§7.1) y l. 505 (7-m)",
-  "motivo": "Comprobadas las dos peticiones del dueño (`apps/web/src/domain/stageJournal.ts` l. 170-171, v58; `apps/web/src/components/RiderName.tsx` l. 7-8, v59) y §11.14 (la ficha se sirve con el horizonte de quien mira). §7.1 dice ahora que el nombre del rótulo es siempre `RiderName` con su enlace, que tocar un nombre fuera del rótulo saca el rótulo (`focus`, §6.5) y que seguir el enlace pausa e informa de lo alcanzado (§8.5); decisión 7-m. Lo de la voz y `Commentary` con la marca de corredor de `chronicleParts` es de §12.2, y la frase de §8.5 «un nombre abre su ficha (§6.5)», que contradice a §6.5, va también a cruzadas."
- }
+  {
+    "id": "Rcobertura-025",
+    "estado": "aplicado",
+    "donde": "borrador/07-rotulos.md l. 20 (§7.1) y l. 504 (decisión 7-l)",
+    "motivo": "Comprobado: `RiderCard` y `CastRider` (04-modelo.md) no llevan edad y `riders.birth_season` existe (`packages/db/src/schema.ts` l. 286). De las dos salidas que da el hallazgo se toma la segunda, la decisión escrita, con evidencia: el propio mapa 06 §2.1 (l. 101) dice que la tele da edad, victorias y especialidad «solo en fases tranquilas (previa, hora muerta)» y que en carrera el rótulo lleva dorsal, nombre, bandera y equipo; la ficha ya la enseña (`apps/web/src/pages/RiderProfile.tsx` l. 399-400), a un toque por 7-m. La fórmula de la primera salida es falsa: la edad es `riderAge(birthSeason, season) = RIDER_AGE_EPOCH − birthSeason + season` (`packages/shared/src/time.ts` l. 22 y 38-40), no «temporada de la etapa menos riders.birth_season», que da veinte años menos; §7.1 y 7-l lo dejan escrito por si E3 la quiere en el rótulo."
+  },
+  {
+    "id": "Rcobertura-031",
+    "estado": "parcial",
+    "donde": "borrador/09-crono.md l. 74-87 (§9.2, tamaños y tope) y l. 304 (§9.8, B6); borrador/00-decisiones.md, D-23 precisada",
+    "motivo": "Evidencia comprobada y medida: re-medido en el scratchpad con el prototipo del grabador de L3 más `checkClockDs` (`rcod/n/grab2.mjs` con y sin `CHECKS=1`; salida en `l5c/sin.json` y `l5c/con.json`): `race-italy` e10 (42 km, 176) ocupa 31.436 y 31.178 B sin `checkClockDs` y 32.203 y 31.918 B con él, el 98,3 % de los 32.768 de entonces; `race-spain` e18, de 26.987 a 27.821 B; e1 y e16, lo de §5.7. La estimación de §9.2 (19-20 KB para 40 km) era de la traza sola y se cumple (18.886 a 19.856 B), pero la línea entera rozaba el tope, que es lo que el hallazgo decía. Aplicado en §9: la tabla de tamaños pasa a la línea entera de las cuatro cronos, con y sin `checkClockDs`, y §9.8 mete en la medida a mano del paso 5 la crono más larga de 176 corredores del calendario, que el script elige en `SEASON_CALENDAR`; D-23 queda precisada con la cifra. Parcial porque la condición del hallazgo («si pasa de 28 KB, §4.3 guarda `kmClockDs` por diferencias») se cumple y choca con Rcodigo-014 y Rcoste-007, que piden subir el tope: el corrector de L2 lo resolvió en §15.2 con 49.152 B (decisión 15-i) y descartó las diferencias. §9.2 escribe las dos caras con su cifra medida (por diferencias, la línea de la e10 baja a 15.614 B y la mayor de las cuatro es la e16, 19.037 B; `l5c/deltas.mjs`) y la decisión de 15-i. B6 (§16.4), el paso 5 (§17), §19.6, §5.7 y §0.7 van a cruzadas."
+  },
+  {
+    "id": "Rcobertura-032",
+    "estado": "aplicado",
+    "donde": "borrador/09-crono.md l. 210 (tabla de §9.5), l. 220-231 (quién los programa) y l. 336 (9-k)",
+    "motivo": "Comprobado en 06-pantalla.md l. 316: `cueClassOf` solo baja a 0 `break_round`, y `focus` (tocar un nombre) es de clase 1. §9.5 y 9-k dicen ahora «0 (`rider` con contexto `tt_round`); 1 si es del espectador (`rider` con contexto `own`)», y el bloque del reproductor programa la ronda con `tt_round`. La cola se volvió a medir con esa clase y con las reglas de §6.5 enteras (`l5c/cola2.mjs`): la medida vieja (`l5/cola.mjs`) ya daba clase 0 a las rondas, pero no aplicaba la caducidad de 6-h y ponía dos `VIRTUAL GC` al prólogo por dorsales; la tabla de §9.5 lleva las cifras nuevas. El tipo ya lo lleva §4.9 (04-modelo.md l. 815, `RiderCueContext` con `'tt_round'`, aplicado por L2 en paralelo); `cueClassOf` y la lista del reproductor (§6.5) van a cruzadas-L5.json; §9.8 añade el caso de `cues.test.ts`."
+  },
+  {
+    "id": "Rcobertura-033",
+    "estado": "aplicado",
+    "donde": "borrador/09-crono.md l. 214 (tabla de §9.5), l. 234 (la clase de VIRTUAL GC) y l. 339 (9-n); borrador/00-decisiones.md, D-21 precisada",
+    "motivo": "Las dos caras, medidas. La contradicción es cierta (06-pantalla.md l. 305 y 319: `virtual_gc` 1, y 3 si cambia el líder virtual; §9.5 decía «2; 3 si el líder virtual no es el líder» citando D-21). Alinear la crono con la clase 1 de carretera, la primera salida del hallazgo, pierde rótulos: con la cola de §6.5 entera, la clase 1 perdió 1 de los 7 `VIRTUAL GC` de la e16 en tres semillas (el del primer control de la semilla 2, caducado en la espera) y la clase 2 ninguno (`l5c/cola2.mjs`, `l5c/cola2b.mjs`). Se toma la segunda salida del hallazgo: regla propia de la crono con decisión nueva (9-n: 2, y 3 si cambia el líder virtual, que es la subida de D-21), su caso en `cues.test.ts` (§9.8) y D-21 precisada en 00-decisiones.md con la medida. `cueClassOf` gana el parámetro de crono en §6.5 (cruzadas)."
+  },
+  {
+    "id": "Rcobertura-034",
+    "estado": "aplicado",
+    "donde": "borrador/09-crono.md l. 216 (tabla de §9.5)",
+    "motivo": "Comprobado: `CUE_CLASS.time_cut` es 2 (06-pantalla.md l. 304), como D-21, la fila 45 de §6.6 y §8.7 (08-ritmo.md l. 289), y ningún caso de `cueClassOf` lo sube. La fila `TIME CUT` de la crono pasa a «2 (`time_cut`, como en carretera: §6.5, D-21)»; `cues.test.ts` lo comprueba (§9.8)."
+  },
+  {
+    "id": "Rcobertura-035",
+    "estado": "aplicado",
+    "donde": "borrador/09-crono.md l. 247 (§9.5, destino de las plantillas)",
+    "motivo": "Comprobado en 06-pantalla.md (`CUE_OF_TEMPLATE` y filas 46, 53 y 54 de §6.6): `tt_catches`, `tt_last_home` y `time_cut_readmitted` son `voice_only`. La frase de §9.5 copia ahora el destino de §6.6 (decisión 6-j): `tt_catches` y `tt_last_home`, `voice_only`, con su línea en el paquete de meta por la regla `finish` de §4.7 (que la corrección de L2 da ya también a `tt_catches`, 04-modelo.md 4-w); `time_cut`, `time_cut`; `time_cut_readmitted`, `voice_only`. `cues.test.ts` sella la tabla (§9.8)."
+  },
+  {
+    "id": "Rcobertura-036",
+    "estado": "aplicado",
+    "donde": "borrador/09-crono.md l. 269 (§9.7)",
+    "motivo": "Comprobado: §8.6 cuenta las amenazas con `BROADCAST.previewThreatsMax` (08-ritmo.md l. 236; 15-constantes.md l. 126) y `previewGcTop` es la de los favoritos (l. 122). §9.7 dice ahora «los `BROADCAST.previewThreatsMax` (3) siguientes de la general de salida, como en §8.6»."
+  },
+  {
+    "id": "Rcodigo-041",
+    "estado": "aplicado",
+    "donde": "borrador/07-rotulos.md l. 7 y 15 (§7.1), l. 461 y 467 (§7.8)",
+    "motivo": "Comprobado: `CastTeam` es `{ teamId, jerseySeed }` (04-modelo.md l. 141) y el nombre del equipo se edita con `PUT /api/teams/me` (`apps/api/src/routes/teams.ts` l. 18-24 y 48; `packages/db/src/teamControl.ts` l. 167-189). `serveCast` escribe ahora `team: t === null ? null : { id: t.teamId, name: nombres.team(t.teamId), jerseySeed: t.jerseySeed }` con `t = cast.teams[c.team]`, §7.8 dice que el nombre del equipo se resuelve al servir y un cambio de nombre posterior sí se ve, y §7.1 deja de decir «el nombre del equipo del día». El comentario de `RiderCard.team` en §4.8 va a cruzadas."
+  },
+  {
+    "id": "Rcodigo-045",
+    "estado": "aplicado",
+    "donde": "borrador/09-crono.md l. 53 (§9.2), l. 112-121 (§9.3), l. 206-231 (§9.5), l. 327, 329, 334 y 349 (9-b, 9-d, 9-i y glosario)",
+    "motivo": "Comprobado contra los tipos de §4 que escribe en paralelo el corrector de L2 (04-modelo.md: `TimeTrialTrace.checkClockDs` l. 176, `TimelineVisibility.ttCheckDs` l. 636, `Cue` `tt_start_order`, `tt_split` y `tt_finish` l. 834-843, `BroadcastHead.tt` l. 936, `BroadcastChunk.tt.checks` l. 954; decisión 4-u), con los mismos nombres. §9 deja de llamarlos propuestos (9-b, 9-d, 9-i, tablas de §9.2 y §9.5, `TimeTrialBoard`) y remite a §4. Faltaban dos piezas para que la pantalla de §9 se escriba con esos tipos: `TimeTrialInstant.arrivals` (§4.5), sin la que el `rank` de `tt_finish` y la tabla de llegados no salen del instante (§9.3 ya la calcula), y `RiderCueContext` `'tt_round'` (Rcobertura-032); se pidieron por cruzada y §4 ya las lleva (04-modelo.md l. 547-550 y 815). Las clases de las variantes nuevas (`CUE_CLASS` y `cueClassOf`) van a §6.5 por cruzada; §9.5 escribe quién programa cada `Cue` de crono (el reproductor, 6-i)."
+  },
+  {
+    "id": "Rcodigo-048",
+    "estado": "parcial",
+    "donde": "borrador/09-crono.md l. 161 (§9.4, comentario del bloque de `pace.ts`)",
+    "motivo": "Comprobado: el bloque de importaciones de `pace.ts` está en §8.2 (08-ritmo.md l. 34-37) y no trae `RaceS`, que usan las dos firmas de `ttPaceAt`; y la fila de `pace.ts` en §4.13 (04-modelo.md l. 1082) dice que importa `cues.ts`, que no importa. El arreglo es de esas dos secciones y va a cruzadas; en §9.4 el comentario del bloque dice ya de dónde llega `RaceS` (`./timeline.js`, con `ProfileStrip`, en las importaciones de §8.2). Parcial hasta que §8.2 y §4.13 lo apliquen."
+  },
+  {
+    "id": "Rcodigo-051",
+    "estado": "aplicado",
+    "donde": "borrador/07-rotulos.md l. 45-51 (bloque de §7.1) y l. 508 (glosario)",
+    "motivo": "Comprobado: `listAnd` no existe en el repositorio (`grep -rn listAnd packages apps`: nada) ni en el documento, y `listNames` vive en la web (`apps/web/src/domain/stageJournal.ts` l. 133-137), que `shared` no puede importar. Se escribe entera en el bloque de `names.ts`, antes de `cardCaption`: toma el último con `xs.at(-1)`, devuelve la cadena vacía si no hay ninguno, el único si hay uno y, si no, los demás unidos por comas y «and» delante del último; sin aserción de no nulo. Compilada con el `tsconfig.base.json` del repositorio (`noUncheckedIndexedAccess`, ES2022) y probada en el scratchpad (`l5c/ts/listAnd.ts`: la lista vacía da «», y las otras, «3», «3 and 7» y «3, 7 and 12»). Nombrarla en F.2 va a cruzadas."
+  },
+  {
+    "id": "Rdueno-012",
+    "estado": "aplicado",
+    "donde": "borrador/07-rotulos.md l. 288 (§7.4, el icono) y l. 500 (7-h)",
+    "motivo": "Comprobadas las citas (`docs/encargos.md` l. 153-154, `docs/navegacion.md` l. 412-413, `docs/agenda.md` l. 718-719, SPEC.md l. 841) y las marcas de `Jersey.tsx` (l. 57-75, 101-110; las equipaciones, `visuals.ts` l. 55 y `Jersey.tsx` l. 28-47). Se aplica la primera salida: `ChampionMark` provisional es un maillot, la silueta `TORSO` en un color neutro con una estrella en el pecho y la bandera pequeña al lado, con `aria-label` y `<title>`; el argumento de la escala de grises descartaba la banda, no la silueta, y la estrella no la lleva ningún maillot de líder ni ninguna equipación. Sigue cumpliendo D-25 («el icono lleva la bandera y una forma propia… y nunca el arcoíris»), así que no hace falta fila en §20. La fila de I-47 del apéndice («bandera con estrella») va a cruzadas."
+  },
+  {
+    "id": "Rdueno-038",
+    "estado": "aplicado",
+    "donde": "borrador/07-rotulos.md l. 12 y 22 (§7.1) y l. 505 (7-m)",
+    "motivo": "Comprobadas las dos peticiones del dueño (`apps/web/src/domain/stageJournal.ts` l. 170-171, v58; `apps/web/src/components/RiderName.tsx` l. 7-8, v59) y §11.14 (la ficha se sirve con el horizonte de quien mira). §7.1 dice ahora que el nombre del rótulo es siempre `RiderName` con su enlace, que tocar un nombre fuera del rótulo saca el rótulo (`focus`, §6.5) y que seguir el enlace pausa e informa de lo alcanzado (§8.5); decisión 7-m. Lo de la voz y `Commentary` con la marca de corredor de `chronicleParts` es de §12.2, y la frase de §8.5 «un nombre abre su ficha (§6.5)», que contradice a §6.5, va también a cruzadas."
+  }
 ]

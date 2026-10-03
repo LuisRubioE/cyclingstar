@@ -1,162 +1,162 @@
 [
- {
-  "id": "Rdueno-005",
-  "seccion_destino": "§0.4 (00-cabecera.md l. 72, punto 3)",
-  "que": "Sustituir «y toda subida futura de versión va detrás del paso 17d de la táctica (D-09, §19.5)» por «; si otra línea sube la versión antes del 17d de la táctica, la «Last race» de las etapas ya corridas cuenta otra carrera (C16), y qué hacer con eso es del dueño (DD-25)». D-09 ya no lleva la regla (corregida por L3 con la evidencia de §5.1)."
- },
- {
-  "id": "Rdueno-005",
-  "seccion_destino": "§2.3 (02-principios.md l. 42)",
-  "que": "Sustituir la viñeta «Toda subida futura de versión va detrás del paso 17d de la táctica, porque `raceReport.ts` l. 148 re-simula la «Last race» sin mirar la versión (C16; §19.5).» por «E2 no sube la versión (D-09). Si otra línea la sube antes del 17d de la táctica, la «Last race» de las etapas ya corridas cuenta otra carrera, porque `raceReport.ts` l. 148 re-simula sin mirar la versión (C16); qué hacer con eso es del dueño (DD-25, §20).»"
- },
- {
-  "id": "Rdueno-005",
-  "seccion_destino": "§19.5 (19-riesgos.md l. 153) y §19.1 (riesgo 4, l. 14), más los cierres O-05 y H-02 (l. 245 y 247) y la tabla de l. 95 y 227",
-  "que": "«El porqué de la regla» deja de ser regla: «Si otra línea sube `ENGINE_VERSION` antes del 17d de la táctica, la «Last race» de las etapas ya corridas cuenta otra carrera (C16) y `checkReplay` y `race-radio.mjs --db` dejan de ser fieles para ellas; el 17d hace que el informe lea lo congelado (R23.5) y desde entonces una subida solo cuesta lo que esas dos herramientas avisan. Qué hacer mientras tanto lo decide el dueño (DD-25): la doctrina de `docs/balance.md` es condicional (l. 16319-16321 y 16557-16558) y el dueño ha subido de la v69 a la v89 en catorce commits para arreglar defectos (§5.1). E2 no sube la versión en ningún paso.» En el riesgo 4, la defensa «la regla de §19.5 para quien venga después» pasa a «DD-25, del dueño». En l. 95 y 227, «el 17d antes de cualquier subida de versión (D-09)» pasa a «el 17d; las subidas anteriores, DD-25». D-09 ya no lleva la regla (corregida por L3)."
- },
- {
-  "id": "Rdueno-005",
-  "seccion_destino": "00-decisiones.md, fila de DD-25 (l. 703 del fichero antes de esta corrección) y §21 (O-05, l. 121; H-02, l. 186)",
-  "que": "La fila de DD-25 cita «(D-09)» para la regla «toda subida de `ENGINE_VERSION`, también las de la táctica, va detrás de su 17d», que D-09 ya no lleva: la fila tiene que sostenerse sola (Rdueno-006, lote L10, la reescribe con las tres respuestas y el defecto de adelantar el 17d). En el apéndice, O-05 y H-02 pasan de «toda subida va detrás del 17d» a «lo que cuesta una subida de otra línea antes del 17d, que decide el dueño (DD-25)»."
- },
- {
-  "id": "Rdueno-005",
-  "seccion_destino": "§17.15 y cierre de §17 (17-plan.md, H-02: «ata toda subida de versión al 17d»)",
-  "que": "El paso 12 no ata ninguna subida al 17d: corrige `docs/balance.md` l. 14684-14686 y anota que una subida de otra línea antes del 17d cambia la «Last race» de lo ya corrido (C16), que decide el dueño en DD-25. La regla 3 de §17.1 (ningún PR de E2 mueve `ENGINE_VERSION`) no cambia."
- },
- {
-  "id": "Rcobertura-045",
-  "seccion_destino": "§11.13 (11-superficies.md, párrafo del presupuesto, «Los movimientos que no nacen de una etapa…»)",
-  "que": "Añadir tras «llevan `race_key` y `stage_day` nulos y se ven siempre»: «, como un premio de una etapa corrida antes del 8a, que no tiene cómo decir su etapa y cuenta como conocido (§13.5)»."
- },
- {
-  "id": "Rcodigo-011",
-  "seccion_destino": "§10.3 (10-horizonte.md, párrafo tras el pseudocódigo de `recordProgress`)",
-  "que": "«el código las hace con `.set({ … })` y `.values({ … })` de Drizzle, con los campos por su nombre y nombres locales distintos del campo, porque `columnasVivas.test.ts` solo reconoce así una escritura» pasa a «el código las hace con `.set({ … })` y `.values({ … })` de Drizzle, con los campos por su nombre, porque `columnasVivas.test.ts` solo reconoce así la escritura de `follow`, `knownThrough` y `horizonRev` (la segunda regla de 13-a, §13.7): con SQL crudo las daría por columnas muertas, y con el criterio de hoy las daría por escritas por `WatchRow`, `setFollow` y `worldHorizon`»."
- },
- {
-  "id": "Rcobertura-044",
-  "seccion_destino": "§17.8 (paso 5) y 17-a, más la duda del cierre de §17 sobre §13.3",
-  "que": "«`drizzle-kit generate --name linea_temporal` (con `tpl_rev` si se acepta 12-c: decisión 17-a)» pasa a «(con `tpl_rev`, `smallint not null` sin defecto: 12-c y 13-j)», sin condicional. `timelines.test.ts` gana: «la fila guarda el `TEMPLATE_REV` del tick y la lápida, 0, y `readStageTemplateRev` los devuelve (0 sin fila)». En 17-a, `stage_timelines.tpl_rev` ya está en la `0044` de §13.3; se borra la duda «§13.3 no tiene `stage_timelines.tpl_rev`»."
- },
- {
-  "id": "Rcobertura-044",
-  "seccion_destino": "§12.7 (12-voz.md, párrafo «La revisión de cada etapa»), 12-c y la lista de cierre de §12",
-  "que": "«se propone la columna `stage_timelines.tpl_rev` (`smallint not null default 0`), que escribe el grabador con el `TEMPLATE_REV` del tick» pasa a «se guarda en la columna `stage_timelines.tpl_rev` (`smallint not null`, sin defecto, §13.3 y 13-j): la escribe `recordStageTimeline` con el `TEMPLATE_REV` del tick (§5.5) y la lápida lleva 0; la lee `readStageTemplateRev` (§5.6)». En la lista de nombres del cierre, `stage_timelines.tpl_rev (smallint not null default 0)` pasa a `smallint not null`, y la duda «§13.3 no tiene `stage_timelines.tpl_rev`» se borra."
- },
- {
-  "id": "Rcobertura-044",
-  "seccion_destino": "00-glosario.md (§G.3.8, fila de `stage_timelines.tpl_rev`; §G.5, fila de `stage_timelines`)",
-  "que": "`smallint not null default 0` pasa a `smallint not null` (sin defecto, 13-j), escrita en la `0044` de §13.3 (ya no «propuesto» ni «§13.3 no la tiene aún»); la escribe `recordStageTimeline` (5.5) y la lee `readStageTemplateRev` (5.6)."
- },
- {
-  "id": "Rcobertura-014",
-  "seccion_destino": "§14.3 y §14.4 (14-api.md: la cabecera, el tramo y el paquete de meta)",
-  "que": "`BroadcastHead.tplRev`, el `rev` con que la voz del tramo elige variantes (§12.7) y `StageReport.tplRev` salen de `readStageTemplateRev(db, h, raceKey, N)` (§5.6), que lee la misma entrada del LRU que `readStageTimeline`, cuando `timelineForStage` devuelve una línea grabada (`tl.clock === 'exact'`); con el adaptador (`clock: 'estimated'`), 0. `timelineForStage` sigue devolviendo `StageTimeline | null` (14-p). Es la cara de §14 de Rcobertura-013 y Rcobertura-014 (lote L2)."
- },
- {
-  "id": "Rcodigo-035",
-  "seccion_destino": "00-glosario.md (§G.2, l. 114; §G.4, l. 697) y §21.6 F.2 (21-apendices.md l. 511)",
-  "que": "Las funciones de `packages/db/src/timelines.ts` quedan: `startStageTimeline(…)`, `recordStageTimeline(tx, run, log, ctx)` (no escribe), `stageTimelineRow(tl, meta): { row, bytes, jsonBytes }`, `tombstoneRow(meta, failure): StageTimelineRow`, `writeStageTimelineRows(tx, rows)`, `readStageTimeline(db, h: Horizon, raceKey, stageDay): Promise<StageTimeline | null>`, `readStageTemplateRev(db, h: Horizon, raceKey, stageDay): Promise<number>`, `clearStageTimelineCache()` y el diario `TimelineTickLog` con `recorded(row, sizeNote)`, `failed(tombstone, note)`, `flush(tx)` y `summary()`; tipos `StageTimelineMeta` (con `tplRev`), `StageTimelineRow`, `TimelineFailure`, `TimelineFailureReason`, `TIMELINE_TOMBSTONE_FORMAT` y `TimelineUnavailableError`. Salen `StageTimelineRead`, `writeStageTimeline` y `writeStageTimelineFailure` (Rcodigo-035, Rcoste-006, Rcobertura-044)."
- },
- {
-  "id": "Rcobertura-006",
-  "seccion_destino": "00-glosario.md (§G.4, fila de `selfCheckI5`) y §21.6 F.2",
-  "que": "`selfCheckI5(tl, output)`: «I5 al grabar una crono: `kmClockDs[r].at(−1) = 10 · tiempoS` y `checkClockDs[r][c] = 10 · splitS` de cada `tt_split` de su primer protagonista»; su elemento es `{ rider, check: number | null, expectedDs, gotDs }` (null en la meta)."
- },
- {
-  "id": "Rcoste-006",
-  "seccion_destino": "§16.3 (16-bancos.md, `startSpoilerWorld` y `specOf`)",
-  "que": "El mundo de B1 corre etapas con `runOneStage` fuera de `runTick`, y desde 5-l la fila de `stage_timelines` no se escribe en `runOneStage` sino en `flush` del diario: sin llamarlo, las etapas 1 y 2 quedan sin fila y la retransmisión sale del adaptador sin que el test lo note. `specOf` recibe el diario en lugar de crear uno (`timeline: log`), y cada etapa se corre así: `const log = timelineTickLog(); await t.db.transaction(async (tx) => { await runOneStage(tx, worldId, dayOf(day), baseSeed, specOf(day, log)); await log.flush(tx) })`; lo mismo en `runVeiled`."
- },
- {
-  "id": "Rcoste-006",
-  "seccion_destino": "§17.8 (paso 5: texto, «Tests primero» y «Código») y §17.20 (fila de `timelines.ts`)",
-  "que": "«deja su fila en `stage_timelines`, en la misma transacción que `stage_snapshots` y en su punto de guardado (§5.5, §5.6)» pasa a «deja su fila en `stage_timelines` en la transacción del día: `recordStageTimeline` la arma y el diario la guarda hasta `flush`, que `runTick` llama detrás de `runCalendarDay` y escribe las del día en un solo `INSERT` y un punto de guardado (5-l)». El caso de `stageRun.test.ts` llama a `log.flush(tx)` tras la etapa; `timelines.test.ts` gana los de §13.10 punto 5 (un `INSERT` por día; si falla, lápidas y la transacción sigue). La lista de `timelines.ts` pasa a `recordStageTimeline`, `stageTimelineRow`, `tombstoneRow`, `writeStageTimelineRows`, `readStageTimeline`, `readStageTemplateRev`, su LRU, `TimelineUnavailableError`, `TIMELINE_TOMBSTONE_FORMAT` y `timelineTickLog` con `flush`, y `tick.ts` llama a `flush`."
- },
- {
-  "id": "Rcoste-006",
-  "seccion_destino": "§19.1 (riesgo nuevo) y §16.4 (B15)",
-  "que": "Riesgo: «un punto de guardado por etapa en la transacción del día (volver a la forma de v0 de 5-l) abre 187 subtransacciones que escriben el día 176 y 153 el 179 y desborda la caché de 64 de Postgres (`PGPROC_MAX_CACHED_SUBXIDS`): mientras la transacción siga abierta, de 104 a 128 s el 179, cada instantánea de la web consulta `pg_subtrans` (medido por el refutador de coste en PostgreSQL 16, `coste/pgm/subxact.mjs`)». Defensa: 5-l (un `INSERT` y un punto de guardado por día, y la lectura del reparto en un punto que solo lee). Vigilante: B15, que en PostgreSQL 16 puede mirar desde otra sesión `pg_stat_get_backend_subxact` durante los días 176 y 179 y fallar si `subxact_overflowed` es verdadero."
- },
- {
-  "id": "Rcoste-006",
-  "seccion_destino": "§18.3 (18-rendimiento.md, «La escritura sí se ha medido aparte…»)",
-  "que": "Tras «y de 122 a 153 ms con un punto de guardado por fila (`coste/pgm/subxact.mjs`)», añadir: «E2 no abre uno por etapa: escribe las filas del día en un solo `INSERT` y un punto de guardado al acabar sus carreras (5-l), 86 ms las 153 del 179 (`subxact2.mjs`), y la transacción del día no pasa de dos subtransacciones que escriben, frente a las 153 y 187 que desbordaban la caché de 64».»"
- },
- {
-  "id": "Rcodigo-009",
-  "seccion_destino": "§17.8 (paso 5, «Código», línea de la API) y §17.20 (tabla de ficheros)",
-  "que": "«`apps/api/src/tick/main.ts` (l. 11) y `index.ts` (l. 38, 45 y 67) pasan `timelineRecord` a `runTick`» pasa a «`apps/api/src/tick/main.ts` (l. 11, el cron) e `index.ts` (l. 38 y 45, `onAdminTick` y `onAdminAdvance`; l. 67, `autoTick`) pasan `timelineRecord` a `runTick`, y `packages/db/src/tickRun.test.ts` (l. 30) pasa `timelineRecord: 'off'`, porque el campo es obligatorio». §17.20 gana la fila de `packages/db/src/tickRun.test.ts` (hoy, PR 5)."
- },
- {
-  "id": "Rcoste-008",
-  "seccion_destino": "§15.2 (15-constantes.md, `medianJsonBytes`) y D-11",
-  "que": "`medianJsonBytes: 327_680` (320 KB, 1,44 veces la mediana medida de 227.516 B, el margen de `maxStoredBytes`), con el comentario «el 15 % de antes era menor que lo que cambia una etapa con la semilla (e18, 269,0 y 216,7 KB, §5.7), y B6 del JSON corre en cada PR del motor». D-11 se corrige con esa evidencia. §5.7 escribe el riesgo y las dos salidas y deja la cifra a esta sección."
- },
- {
-  "id": "Rcoste-008",
-  "seccion_destino": "§16.4 (B6) y 16-n",
-  "que": "Decidir entre las dos salidas de §5.7: (a) en `timeline.test.ts`, tramo «mundo y radio», B6 del JSON imprime las cifras y no falla; falla en la rápida sobre las seis etapas congeladas y en el nocturno sobre las 24 × 2, y el PR del motor que lo mueva lo apunta en su descripción; o (b) los cuatro topes de B6 salen de `TIMELINE` (`packages/engine/src/constants.ts`) a `packages/shared`, porque son umbrales de banco y no deciden lo que se graba (15-g). Con cualquiera de las dos, un paso de la táctica no se pone en rojo por un umbral de E2."
- },
- {
-  "id": "Rcoste-008",
-  "seccion_destino": "§19.1 (riesgo 1)",
-  "que": "Añadir al riesgo 1 que la táctica paga en cada PR suyo que toque `packages/engine` los bancos de E2 del tramo «mundo y radio» (I1, I3, B6 del JSON y B11, §16.4), y que B6 del JSON tiene un 15 % de margen sobre la mediana (§5.7) hasta que §15.2 y §16.4 decidan."
- },
- {
-  "id": "Rcoste-004",
-  "seccion_destino": "§14.4 (14-api.md, «Sin ella, antes hay que decodificarla…») y §18.2, §18.10",
-  "que": "El `parse` de Zod que se implementa es el del `storedTimelineV1Schema` de §4.3: de 0,9 a 21 ms de mediana y 61 ms la primera llamada (`corr-l2/zod-real.mjs`, L2), de 1,2 a 1,7 veces el esquema aproximado de `coste/zod/decode.mjs` en la misma corrida (re-medido por L3: 1,1 a 28,7 ms contra 0,4 a 23,1 ms en una máquina más cargada). Una línea en frío cuesta así de unos 8 ms (e7) a unos 28 ms (e20) antes de cortar, no de 3 a 22 ms, y de 50 a 80 ms la primera del proceso (§5.6)."
- },
- {
-  "id": "Rcoste-030",
-  "seccion_destino": "§17.1 (regla 9) y §17.20 (fila de `packages/db/src/migrate.ts`)",
-  "que": "La regla 9 dice, como §13.1 (regla 8): «aplicar una migración no es inerte: `runMigrations` mira si hay pendientes y, solo si las hay, toma antes el candado del tick (`pg_advisory_lock(LOCK_CLASS.tick, 1)`, la clave de `tick.ts` l. 214) y fija `SET lock_timeout = '10s'`; así nunca coincide con un día del tick y, si una tabla está ocupada, falla y el arranque se reintenta en vez de parar la web; el arranque que migra espera al tick en curso (con `healthcheckTimeout` de 300 s, `railway.json`)». Nace en el PR 1a. §17.20 gana la fila «`packages/db/src/migrate.ts` | hoy | 1a | las pendientes, el candado del tick y `lock_timeout` (§13.1, regla 8); `runMigrations(url, folder?)` (§13.10)»."
- },
- {
-  "id": "Rcoste-030",
-  "seccion_destino": "§19.1 (riesgo nuevo)",
-  "que": "«Una migración que se aplica al arrancar con un día del tick abierto deja en cola, hasta el final del día, las lecturas de la tabla que altera (de 7,4 a 7,9 s tras 8 s de tick en PostgreSQL 16, `coste/pgm/cola.mjs` y `cola45.mjs`; con `users` en la `0045`, toda petición con sesión)». Defensa: §13.1, regla 8 (13-k). Vigilante: el caso de dos sesiones de `migrations.test.ts` (§13.10, punto 8), que se corre a mano sin `TEST_DATABASE_URL` en el CI. Pasos: 1a, 5, 7a y 8a (los que traen migración)."
- },
- {
-  "id": "Rcodigo-069",
-  "seccion_destino": "§17.20 (tabla de ficheros) y §17.4 (PR 1a)",
-  "que": "Fila «`packages/db/src/migrate.ts` y `packages/db/src/testDb.ts` | hoy | 1a | `runMigrations(url, folder?)` y `startEmptyTestDb()` para el mundo vivo (§13.10, punto 2), y la regla 8 de §13.1 en `runMigrations`». El PR 1a los lista en su código."
- },
- {
-  "id": "Rcodigo-010",
-  "seccion_destino": "§16.4 (B10: el comentario de `QUICK` y la estimación de la rápida)",
-  "que": "El comentario de `QUICK` («Tres de las que rompen con la envoltura ingenua (L3: la e20 con la semilla 0, hasta 20 corredores)») mezcla dos campos: L3 midió con el del juez del motor, y el test corre `realRaceScenario`, el campo homogéneo de `uniformField()`. Medido con ese campo y las semillas del test (`c-l3/b10uniforme.mjs`): el colector aparte ve lo mismo que hoy en las tres y la ingenua rompe en las tres (6, 1 y 2 corredores en `trabajaronParaOtro`, y la radio). El comentario pasa a esas cifras."
- },
- {
-  "id": "Rcobertura-018, Rcodigo-035, Rcobertura-044, Rcobertura-009, Rcoste-007, Rcodigo-011",
-  "seccion_destino": "dudas.md (pasada de coherencia)",
-  "que": "Lo que el lote L3 deja cerrado en §5 y §13: la 1.8 (`StageTimelineRead` desaparece: `readStageTimeline` devuelve `StageTimeline | null`, 5-p); de la 1.1, `stage_timelines.tpl_rev` (escrita en la `0044`, `smallint not null` sin defecto, 13-j) y su lectura (`readStageTemplateRev`, §5.6); la 1.2 en la parte de §5.4 (el paso 5 de `finish` y la vista usan la regla `incident` de §4.7, 4-v); la 1.4 en la parte de §5.7 (el tope de la crono en 48 KB con la e10 medida); y la duda 1 de §13 (D-49 es cierta con la segunda regla de 13-a y está precisada). C-51 y C-52 siguen bien: §13.2 usa la firma de §12.8 (`opts.seed`, `opts.payload`, `opts.raceKey`) y llama `p` a `opts.payload`. Queda abierta, de §5, la mediana del JSON de B6 (Rcoste-008, §15.2 y §16.4)."
- },
- {
-  "id": "Rcoste-007",
-  "seccion_destino": "§15.2 (15-constantes.md, párrafo de 15-g tras la tabla de `TIMELINE`)",
-  "que": "«en producción una línea que pase de `maxStoredBytes` se escribe igual y el tick apunta `timeline size: …`» pasa a «en producción una línea que pase de `maxStoredBytes` (o de `ttMaxStoredBytes`, si es una crono) se escribe igual y el tick apunta `timeline size: …`», como hace ya `recordStageTimeline` (§5.5): sin eso, una crono por encima de su tope no dejaba nota hasta pasar de 96 KB."
- },
- {
-  "id": "Rdueno-005",
-  "seccion_destino": "§17.1 (regla 3, la cuenta de subidas de versión)",
-  "que": "La cuenta que da §5.1 y D-09: de la v69 (`025efbe`) a la v89 (`c39f450`) hay catorce commits que cambian `ENGINE_VERSION` (`git log -G'ENGINE_VERSION = [0-9]+' 025efbe..c39f450 -- packages/engine/src/constants.ts` da 14) y veinte subidas de número. «Veinte subidas y quince commits» mezcla dos cuentas: quince commits incluyen el propio `025efbe` (v68 a v69), y entonces son veintiuna subidas. Que las dos secciones digan lo mismo."
- },
- {
-  "id": "Rcoste-037",
-  "seccion_destino": "§17.19 y §19.1",
-  "que": "El lote L9 ya lo aplicó en §17.19 y en el riesgo 36 de §19.1 (`correcciones-L9.json`). Solo comprobar que dicen lo mismo que §13.2 y §13.9: el mínimo es la `0043` y `emitNews` guardando semilla y datos (el cambio de `runMigrations` de la regla 8 de §13.1 va en el mismo PR 1a), sin `renderNews` en `shared` ni los titulares nuevos; y que la elección es del dueño, con el defecto de adelantarlo."
- },
- {
-  "id": "Rcoste-037",
-  "seccion_destino": "§20 (decisión nueva del dueño)",
-  "que": "La DD nueva que L9 anuncia (DD-27 en `correcciones-L9.json`): «El reinicio antes que el código de E2». Adelantar el 1a mínimo (la `0043` y `emitNews` con semilla y datos) como excepción a la regla de arranque, o esperar al 1a para reiniciar; por defecto, adelantarlo, que es lo que pedía la Oleada 0 de `docs/agenda.md` (l. 1416-1417). Sin ninguna de las dos, las noticias del mundo nuevo nacen sin datos para siempre (§19.8). §13.2 y §13.9 remiten a ella; cuando tenga número, §13.2 puede citarlo."
- },
- {
-  "id": "Rcoste-007",
-  "seccion_destino": "§19.1 (riesgo 10) y §17.8 (B6 a mano en el paso 5)",
-  "que": "En el riesgo 10, «24,2 KB por crono» pasa a «31.436 B por crono (`race-italy` e10, 42 km, 176 corredores), 32.203 B con `checkClockDs`, bajo un tope de 49.152 B (§15.2, 15-i)», y la probabilidad, a «media» mientras B6 no mida la e10. En el paso 5, `scripts/broadcast-fixtures.mjs --sizes` mide también la e10 de `race-italy` (ninguna de las 24 pasa de 26 km). §0.7 y §16.4 ya los piden Rcobertura-031 (L5) y Rcodigo-014 (L2)."
- }
+  {
+    "id": "Rdueno-005",
+    "seccion_destino": "§0.4 (00-cabecera.md l. 72, punto 3)",
+    "que": "Sustituir «y toda subida futura de versión va detrás del paso 17d de la táctica (D-09, §19.5)» por «; si otra línea sube la versión antes del 17d de la táctica, la «Last race» de las etapas ya corridas cuenta otra carrera (C16), y qué hacer con eso es del dueño (DD-25)». D-09 ya no lleva la regla (corregida por L3 con la evidencia de §5.1)."
+  },
+  {
+    "id": "Rdueno-005",
+    "seccion_destino": "§2.3 (02-principios.md l. 42)",
+    "que": "Sustituir la viñeta «Toda subida futura de versión va detrás del paso 17d de la táctica, porque `raceReport.ts` l. 148 re-simula la «Last race» sin mirar la versión (C16; §19.5).» por «E2 no sube la versión (D-09). Si otra línea la sube antes del 17d de la táctica, la «Last race» de las etapas ya corridas cuenta otra carrera, porque `raceReport.ts` l. 148 re-simula sin mirar la versión (C16); qué hacer con eso es del dueño (DD-25, §20).»"
+  },
+  {
+    "id": "Rdueno-005",
+    "seccion_destino": "§19.5 (19-riesgos.md l. 153) y §19.1 (riesgo 4, l. 14), más los cierres O-05 y H-02 (l. 245 y 247) y la tabla de l. 95 y 227",
+    "que": "«El porqué de la regla» deja de ser regla: «Si otra línea sube `ENGINE_VERSION` antes del 17d de la táctica, la «Last race» de las etapas ya corridas cuenta otra carrera (C16) y `checkReplay` y `race-radio.mjs --db` dejan de ser fieles para ellas; el 17d hace que el informe lea lo congelado (R23.5) y desde entonces una subida solo cuesta lo que esas dos herramientas avisan. Qué hacer mientras tanto lo decide el dueño (DD-25): la doctrina de `docs/balance.md` es condicional (l. 16319-16321 y 16557-16558) y el dueño ha subido de la v69 a la v89 en catorce commits para arreglar defectos (§5.1). E2 no sube la versión en ningún paso.» En el riesgo 4, la defensa «la regla de §19.5 para quien venga después» pasa a «DD-25, del dueño». En l. 95 y 227, «el 17d antes de cualquier subida de versión (D-09)» pasa a «el 17d; las subidas anteriores, DD-25». D-09 ya no lleva la regla (corregida por L3)."
+  },
+  {
+    "id": "Rdueno-005",
+    "seccion_destino": "00-decisiones.md, fila de DD-25 (l. 703 del fichero antes de esta corrección) y §21 (O-05, l. 121; H-02, l. 186)",
+    "que": "La fila de DD-25 cita «(D-09)» para la regla «toda subida de `ENGINE_VERSION`, también las de la táctica, va detrás de su 17d», que D-09 ya no lleva: la fila tiene que sostenerse sola (Rdueno-006, lote L10, la reescribe con las tres respuestas y el defecto de adelantar el 17d). En el apéndice, O-05 y H-02 pasan de «toda subida va detrás del 17d» a «lo que cuesta una subida de otra línea antes del 17d, que decide el dueño (DD-25)»."
+  },
+  {
+    "id": "Rdueno-005",
+    "seccion_destino": "§17.15 y cierre de §17 (17-plan.md, H-02: «ata toda subida de versión al 17d»)",
+    "que": "El paso 12 no ata ninguna subida al 17d: corrige `docs/balance.md` l. 14684-14686 y anota que una subida de otra línea antes del 17d cambia la «Last race» de lo ya corrido (C16), que decide el dueño en DD-25. La regla 3 de §17.1 (ningún PR de E2 mueve `ENGINE_VERSION`) no cambia."
+  },
+  {
+    "id": "Rcobertura-045",
+    "seccion_destino": "§11.13 (11-superficies.md, párrafo del presupuesto, «Los movimientos que no nacen de una etapa…»)",
+    "que": "Añadir tras «llevan `race_key` y `stage_day` nulos y se ven siempre»: «, como un premio de una etapa corrida antes del 8a, que no tiene cómo decir su etapa y cuenta como conocido (§13.5)»."
+  },
+  {
+    "id": "Rcodigo-011",
+    "seccion_destino": "§10.3 (10-horizonte.md, párrafo tras el pseudocódigo de `recordProgress`)",
+    "que": "«el código las hace con `.set({ … })` y `.values({ … })` de Drizzle, con los campos por su nombre y nombres locales distintos del campo, porque `columnasVivas.test.ts` solo reconoce así una escritura» pasa a «el código las hace con `.set({ … })` y `.values({ … })` de Drizzle, con los campos por su nombre, porque `columnasVivas.test.ts` solo reconoce así la escritura de `follow`, `knownThrough` y `horizonRev` (la segunda regla de 13-a, §13.7): con SQL crudo las daría por columnas muertas, y con el criterio de hoy las daría por escritas por `WatchRow`, `setFollow` y `worldHorizon`»."
+  },
+  {
+    "id": "Rcobertura-044",
+    "seccion_destino": "§17.8 (paso 5) y 17-a, más la duda del cierre de §17 sobre §13.3",
+    "que": "«`drizzle-kit generate --name linea_temporal` (con `tpl_rev` si se acepta 12-c: decisión 17-a)» pasa a «(con `tpl_rev`, `smallint not null` sin defecto: 12-c y 13-j)», sin condicional. `timelines.test.ts` gana: «la fila guarda el `TEMPLATE_REV` del tick y la lápida, 0, y `readStageTemplateRev` los devuelve (0 sin fila)». En 17-a, `stage_timelines.tpl_rev` ya está en la `0044` de §13.3; se borra la duda «§13.3 no tiene `stage_timelines.tpl_rev`»."
+  },
+  {
+    "id": "Rcobertura-044",
+    "seccion_destino": "§12.7 (12-voz.md, párrafo «La revisión de cada etapa»), 12-c y la lista de cierre de §12",
+    "que": "«se propone la columna `stage_timelines.tpl_rev` (`smallint not null default 0`), que escribe el grabador con el `TEMPLATE_REV` del tick» pasa a «se guarda en la columna `stage_timelines.tpl_rev` (`smallint not null`, sin defecto, §13.3 y 13-j): la escribe `recordStageTimeline` con el `TEMPLATE_REV` del tick (§5.5) y la lápida lleva 0; la lee `readStageTemplateRev` (§5.6)». En la lista de nombres del cierre, `stage_timelines.tpl_rev (smallint not null default 0)` pasa a `smallint not null`, y la duda «§13.3 no tiene `stage_timelines.tpl_rev`» se borra."
+  },
+  {
+    "id": "Rcobertura-044",
+    "seccion_destino": "00-glosario.md (§G.3.8, fila de `stage_timelines.tpl_rev`; §G.5, fila de `stage_timelines`)",
+    "que": "`smallint not null default 0` pasa a `smallint not null` (sin defecto, 13-j), escrita en la `0044` de §13.3 (ya no «propuesto» ni «§13.3 no la tiene aún»); la escribe `recordStageTimeline` (5.5) y la lee `readStageTemplateRev` (5.6)."
+  },
+  {
+    "id": "Rcobertura-014",
+    "seccion_destino": "§14.3 y §14.4 (14-api.md: la cabecera, el tramo y el paquete de meta)",
+    "que": "`BroadcastHead.tplRev`, el `rev` con que la voz del tramo elige variantes (§12.7) y `StageReport.tplRev` salen de `readStageTemplateRev(db, h, raceKey, N)` (§5.6), que lee la misma entrada del LRU que `readStageTimeline`, cuando `timelineForStage` devuelve una línea grabada (`tl.clock === 'exact'`); con el adaptador (`clock: 'estimated'`), 0. `timelineForStage` sigue devolviendo `StageTimeline | null` (14-p). Es la cara de §14 de Rcobertura-013 y Rcobertura-014 (lote L2)."
+  },
+  {
+    "id": "Rcodigo-035",
+    "seccion_destino": "00-glosario.md (§G.2, l. 114; §G.4, l. 697) y §21.6 F.2 (21-apendices.md l. 511)",
+    "que": "Las funciones de `packages/db/src/timelines.ts` quedan: `startStageTimeline(…)`, `recordStageTimeline(tx, run, log, ctx)` (no escribe), `stageTimelineRow(tl, meta): { row, bytes, jsonBytes }`, `tombstoneRow(meta, failure): StageTimelineRow`, `writeStageTimelineRows(tx, rows)`, `readStageTimeline(db, h: Horizon, raceKey, stageDay): Promise<StageTimeline | null>`, `readStageTemplateRev(db, h: Horizon, raceKey, stageDay): Promise<number>`, `clearStageTimelineCache()` y el diario `TimelineTickLog` con `recorded(row, sizeNote)`, `failed(tombstone, note)`, `flush(tx)` y `summary()`; tipos `StageTimelineMeta` (con `tplRev`), `StageTimelineRow`, `TimelineFailure`, `TimelineFailureReason`, `TIMELINE_TOMBSTONE_FORMAT` y `TimelineUnavailableError`. Salen `StageTimelineRead`, `writeStageTimeline` y `writeStageTimelineFailure` (Rcodigo-035, Rcoste-006, Rcobertura-044)."
+  },
+  {
+    "id": "Rcobertura-006",
+    "seccion_destino": "00-glosario.md (§G.4, fila de `selfCheckI5`) y §21.6 F.2",
+    "que": "`selfCheckI5(tl, output)`: «I5 al grabar una crono: `kmClockDs[r].at(−1) = 10 · tiempoS` y `checkClockDs[r][c] = 10 · splitS` de cada `tt_split` de su primer protagonista»; su elemento es `{ rider, check: number | null, expectedDs, gotDs }` (null en la meta)."
+  },
+  {
+    "id": "Rcoste-006",
+    "seccion_destino": "§16.3 (16-bancos.md, `startSpoilerWorld` y `specOf`)",
+    "que": "El mundo de B1 corre etapas con `runOneStage` fuera de `runTick`, y desde 5-l la fila de `stage_timelines` no se escribe en `runOneStage` sino en `flush` del diario: sin llamarlo, las etapas 1 y 2 quedan sin fila y la retransmisión sale del adaptador sin que el test lo note. `specOf` recibe el diario en lugar de crear uno (`timeline: log`), y cada etapa se corre así: `const log = timelineTickLog(); await t.db.transaction(async (tx) => { await runOneStage(tx, worldId, dayOf(day), baseSeed, specOf(day, log)); await log.flush(tx) })`; lo mismo en `runVeiled`."
+  },
+  {
+    "id": "Rcoste-006",
+    "seccion_destino": "§17.8 (paso 5: texto, «Tests primero» y «Código») y §17.20 (fila de `timelines.ts`)",
+    "que": "«deja su fila en `stage_timelines`, en la misma transacción que `stage_snapshots` y en su punto de guardado (§5.5, §5.6)» pasa a «deja su fila en `stage_timelines` en la transacción del día: `recordStageTimeline` la arma y el diario la guarda hasta `flush`, que `runTick` llama detrás de `runCalendarDay` y escribe las del día en un solo `INSERT` y un punto de guardado (5-l)». El caso de `stageRun.test.ts` llama a `log.flush(tx)` tras la etapa; `timelines.test.ts` gana los de §13.10 punto 5 (un `INSERT` por día; si falla, lápidas y la transacción sigue). La lista de `timelines.ts` pasa a `recordStageTimeline`, `stageTimelineRow`, `tombstoneRow`, `writeStageTimelineRows`, `readStageTimeline`, `readStageTemplateRev`, su LRU, `TimelineUnavailableError`, `TIMELINE_TOMBSTONE_FORMAT` y `timelineTickLog` con `flush`, y `tick.ts` llama a `flush`."
+  },
+  {
+    "id": "Rcoste-006",
+    "seccion_destino": "§19.1 (riesgo nuevo) y §16.4 (B15)",
+    "que": "Riesgo: «un punto de guardado por etapa en la transacción del día (volver a la forma de v0 de 5-l) abre 187 subtransacciones que escriben el día 176 y 153 el 179 y desborda la caché de 64 de Postgres (`PGPROC_MAX_CACHED_SUBXIDS`): mientras la transacción siga abierta, de 104 a 128 s el 179, cada instantánea de la web consulta `pg_subtrans` (medido por el refutador de coste en PostgreSQL 16, `coste/pgm/subxact.mjs`)». Defensa: 5-l (un `INSERT` y un punto de guardado por día, y la lectura del reparto en un punto que solo lee). Vigilante: B15, que en PostgreSQL 16 puede mirar desde otra sesión `pg_stat_get_backend_subxact` durante los días 176 y 179 y fallar si `subxact_overflowed` es verdadero."
+  },
+  {
+    "id": "Rcoste-006",
+    "seccion_destino": "§18.3 (18-rendimiento.md, «La escritura sí se ha medido aparte…»)",
+    "que": "Tras «y de 122 a 153 ms con un punto de guardado por fila (`coste/pgm/subxact.mjs`)», añadir: «E2 no abre uno por etapa: escribe las filas del día en un solo `INSERT` y un punto de guardado al acabar sus carreras (5-l), 86 ms las 153 del 179 (`subxact2.mjs`), y la transacción del día no pasa de dos subtransacciones que escriben, frente a las 153 y 187 que desbordaban la caché de 64».»"
+  },
+  {
+    "id": "Rcodigo-009",
+    "seccion_destino": "§17.8 (paso 5, «Código», línea de la API) y §17.20 (tabla de ficheros)",
+    "que": "«`apps/api/src/tick/main.ts` (l. 11) y `index.ts` (l. 38, 45 y 67) pasan `timelineRecord` a `runTick`» pasa a «`apps/api/src/tick/main.ts` (l. 11, el cron) e `index.ts` (l. 38 y 45, `onAdminTick` y `onAdminAdvance`; l. 67, `autoTick`) pasan `timelineRecord` a `runTick`, y `packages/db/src/tickRun.test.ts` (l. 30) pasa `timelineRecord: 'off'`, porque el campo es obligatorio». §17.20 gana la fila de `packages/db/src/tickRun.test.ts` (hoy, PR 5)."
+  },
+  {
+    "id": "Rcoste-008",
+    "seccion_destino": "§15.2 (15-constantes.md, `medianJsonBytes`) y D-11",
+    "que": "`medianJsonBytes: 327_680` (320 KB, 1,44 veces la mediana medida de 227.516 B, el margen de `maxStoredBytes`), con el comentario «el 15 % de antes era menor que lo que cambia una etapa con la semilla (e18, 269,0 y 216,7 KB, §5.7), y B6 del JSON corre en cada PR del motor». D-11 se corrige con esa evidencia. §5.7 escribe el riesgo y las dos salidas y deja la cifra a esta sección."
+  },
+  {
+    "id": "Rcoste-008",
+    "seccion_destino": "§16.4 (B6) y 16-n",
+    "que": "Decidir entre las dos salidas de §5.7: (a) en `timeline.test.ts`, tramo «mundo y radio», B6 del JSON imprime las cifras y no falla; falla en la rápida sobre las seis etapas congeladas y en el nocturno sobre las 24 × 2, y el PR del motor que lo mueva lo apunta en su descripción; o (b) los cuatro topes de B6 salen de `TIMELINE` (`packages/engine/src/constants.ts`) a `packages/shared`, porque son umbrales de banco y no deciden lo que se graba (15-g). Con cualquiera de las dos, un paso de la táctica no se pone en rojo por un umbral de E2."
+  },
+  {
+    "id": "Rcoste-008",
+    "seccion_destino": "§19.1 (riesgo 1)",
+    "que": "Añadir al riesgo 1 que la táctica paga en cada PR suyo que toque `packages/engine` los bancos de E2 del tramo «mundo y radio» (I1, I3, B6 del JSON y B11, §16.4), y que B6 del JSON tiene un 15 % de margen sobre la mediana (§5.7) hasta que §15.2 y §16.4 decidan."
+  },
+  {
+    "id": "Rcoste-004",
+    "seccion_destino": "§14.4 (14-api.md, «Sin ella, antes hay que decodificarla…») y §18.2, §18.10",
+    "que": "El `parse` de Zod que se implementa es el del `storedTimelineV1Schema` de §4.3: de 0,9 a 21 ms de mediana y 61 ms la primera llamada (`corr-l2/zod-real.mjs`, L2), de 1,2 a 1,7 veces el esquema aproximado de `coste/zod/decode.mjs` en la misma corrida (re-medido por L3: 1,1 a 28,7 ms contra 0,4 a 23,1 ms en una máquina más cargada). Una línea en frío cuesta así de unos 8 ms (e7) a unos 28 ms (e20) antes de cortar, no de 3 a 22 ms, y de 50 a 80 ms la primera del proceso (§5.6)."
+  },
+  {
+    "id": "Rcoste-030",
+    "seccion_destino": "§17.1 (regla 9) y §17.20 (fila de `packages/db/src/migrate.ts`)",
+    "que": "La regla 9 dice, como §13.1 (regla 8): «aplicar una migración no es inerte: `runMigrations` mira si hay pendientes y, solo si las hay, toma antes el candado del tick (`pg_advisory_lock(LOCK_CLASS.tick, 1)`, la clave de `tick.ts` l. 214) y fija `SET lock_timeout = '10s'`; así nunca coincide con un día del tick y, si una tabla está ocupada, falla y el arranque se reintenta en vez de parar la web; el arranque que migra espera al tick en curso (con `healthcheckTimeout` de 300 s, `railway.json`)». Nace en el PR 1a. §17.20 gana la fila «`packages/db/src/migrate.ts` | hoy | 1a | las pendientes, el candado del tick y `lock_timeout` (§13.1, regla 8); `runMigrations(url, folder?)` (§13.10)»."
+  },
+  {
+    "id": "Rcoste-030",
+    "seccion_destino": "§19.1 (riesgo nuevo)",
+    "que": "«Una migración que se aplica al arrancar con un día del tick abierto deja en cola, hasta el final del día, las lecturas de la tabla que altera (de 7,4 a 7,9 s tras 8 s de tick en PostgreSQL 16, `coste/pgm/cola.mjs` y `cola45.mjs`; con `users` en la `0045`, toda petición con sesión)». Defensa: §13.1, regla 8 (13-k). Vigilante: el caso de dos sesiones de `migrations.test.ts` (§13.10, punto 8), que se corre a mano sin `TEST_DATABASE_URL` en el CI. Pasos: 1a, 5, 7a y 8a (los que traen migración)."
+  },
+  {
+    "id": "Rcodigo-069",
+    "seccion_destino": "§17.20 (tabla de ficheros) y §17.4 (PR 1a)",
+    "que": "Fila «`packages/db/src/migrate.ts` y `packages/db/src/testDb.ts` | hoy | 1a | `runMigrations(url, folder?)` y `startEmptyTestDb()` para el mundo vivo (§13.10, punto 2), y la regla 8 de §13.1 en `runMigrations`». El PR 1a los lista en su código."
+  },
+  {
+    "id": "Rcodigo-010",
+    "seccion_destino": "§16.4 (B10: el comentario de `QUICK` y la estimación de la rápida)",
+    "que": "El comentario de `QUICK` («Tres de las que rompen con la envoltura ingenua (L3: la e20 con la semilla 0, hasta 20 corredores)») mezcla dos campos: L3 midió con el del juez del motor, y el test corre `realRaceScenario`, el campo homogéneo de `uniformField()`. Medido con ese campo y las semillas del test (`c-l3/b10uniforme.mjs`): el colector aparte ve lo mismo que hoy en las tres y la ingenua rompe en las tres (6, 1 y 2 corredores en `trabajaronParaOtro`, y la radio). El comentario pasa a esas cifras."
+  },
+  {
+    "id": "Rcobertura-018, Rcodigo-035, Rcobertura-044, Rcobertura-009, Rcoste-007, Rcodigo-011",
+    "seccion_destino": "dudas.md (pasada de coherencia)",
+    "que": "Lo que el lote L3 deja cerrado en §5 y §13: la 1.8 (`StageTimelineRead` desaparece: `readStageTimeline` devuelve `StageTimeline | null`, 5-p); de la 1.1, `stage_timelines.tpl_rev` (escrita en la `0044`, `smallint not null` sin defecto, 13-j) y su lectura (`readStageTemplateRev`, §5.6); la 1.2 en la parte de §5.4 (el paso 5 de `finish` y la vista usan la regla `incident` de §4.7, 4-v); la 1.4 en la parte de §5.7 (el tope de la crono en 48 KB con la e10 medida); y la duda 1 de §13 (D-49 es cierta con la segunda regla de 13-a y está precisada). C-51 y C-52 siguen bien: §13.2 usa la firma de §12.8 (`opts.seed`, `opts.payload`, `opts.raceKey`) y llama `p` a `opts.payload`. Queda abierta, de §5, la mediana del JSON de B6 (Rcoste-008, §15.2 y §16.4)."
+  },
+  {
+    "id": "Rcoste-007",
+    "seccion_destino": "§15.2 (15-constantes.md, párrafo de 15-g tras la tabla de `TIMELINE`)",
+    "que": "«en producción una línea que pase de `maxStoredBytes` se escribe igual y el tick apunta `timeline size: …`» pasa a «en producción una línea que pase de `maxStoredBytes` (o de `ttMaxStoredBytes`, si es una crono) se escribe igual y el tick apunta `timeline size: …`», como hace ya `recordStageTimeline` (§5.5): sin eso, una crono por encima de su tope no dejaba nota hasta pasar de 96 KB."
+  },
+  {
+    "id": "Rdueno-005",
+    "seccion_destino": "§17.1 (regla 3, la cuenta de subidas de versión)",
+    "que": "La cuenta que da §5.1 y D-09: de la v69 (`025efbe`) a la v89 (`c39f450`) hay catorce commits que cambian `ENGINE_VERSION` (`git log -G'ENGINE_VERSION = [0-9]+' 025efbe..c39f450 -- packages/engine/src/constants.ts` da 14) y veinte subidas de número. «Veinte subidas y quince commits» mezcla dos cuentas: quince commits incluyen el propio `025efbe` (v68 a v69), y entonces son veintiuna subidas. Que las dos secciones digan lo mismo."
+  },
+  {
+    "id": "Rcoste-037",
+    "seccion_destino": "§17.19 y §19.1",
+    "que": "El lote L9 ya lo aplicó en §17.19 y en el riesgo 36 de §19.1 (`correcciones-L9.json`). Solo comprobar que dicen lo mismo que §13.2 y §13.9: el mínimo es la `0043` y `emitNews` guardando semilla y datos (el cambio de `runMigrations` de la regla 8 de §13.1 va en el mismo PR 1a), sin `renderNews` en `shared` ni los titulares nuevos; y que la elección es del dueño, con el defecto de adelantarlo."
+  },
+  {
+    "id": "Rcoste-037",
+    "seccion_destino": "§20 (decisión nueva del dueño)",
+    "que": "La DD nueva que L9 anuncia (DD-27 en `correcciones-L9.json`): «El reinicio antes que el código de E2». Adelantar el 1a mínimo (la `0043` y `emitNews` con semilla y datos) como excepción a la regla de arranque, o esperar al 1a para reiniciar; por defecto, adelantarlo, que es lo que pedía la Oleada 0 de `docs/agenda.md` (l. 1416-1417). Sin ninguna de las dos, las noticias del mundo nuevo nacen sin datos para siempre (§19.8). §13.2 y §13.9 remiten a ella; cuando tenga número, §13.2 puede citarlo."
+  },
+  {
+    "id": "Rcoste-007",
+    "seccion_destino": "§19.1 (riesgo 10) y §17.8 (B6 a mano en el paso 5)",
+    "que": "En el riesgo 10, «24,2 KB por crono» pasa a «31.436 B por crono (`race-italy` e10, 42 km, 176 corredores), 32.203 B con `checkClockDs`, bajo un tope de 49.152 B (§15.2, 15-i)», y la probabilidad, a «media» mientras B6 no mida la e10. En el paso 5, `scripts/broadcast-fixtures.mjs --sizes` mide también la e10 de `race-italy` (ninguna de las 24 pasa de 26 km). §0.7 y §16.4 ya los piden Rcobertura-031 (L5) y Rcodigo-014 (L2)."
+  }
 ]

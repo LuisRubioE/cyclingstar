@@ -67,16 +67,16 @@ En escritorio (desde 1.024 px) cabe todo a la vez en dos columnas: a la izquierd
 
 Los componentes viven en `apps/web/src/components/broadcast/` (§17.20) y la página en `apps/web/src/pages/StageWatch.tsx`. Ninguno lleva lógica de velo: pintan lo que les da el reproductor (`apps/web/src/domain/broadcast/player.ts`, §8.2), que solo tiene lo servido (D-06).
 
-| Pieza (pantalla) | Componente | Lo que pinta | Dato (§4) | Repinta |
-| --- | --- | --- | --- | --- |
-| capa fija | `FixedOverlay` | km a meta, diferencia principal, tendencia y contra quién; con el cuadro de diferencias y al tocarla, reloj, velocidad, pendiente y tiempo | `Instant.toGoKm`, `lapsToGo`, `mainGap`; `t`; `GroupNow.detail.speedKmh` de la cabeza; `ProfileStrip.altM`; `StageWeather.spans` | `BROADCAST.overlayHz` (10) |
-| perfil con cursores | `ProfileStrip` | la altimetría, los puertos, las volantes, un cursor por grupo y el puerto que viene | `ProfileStrip` (cabecera), `GroupNow.km`, `number`, `own` | `BROADCAST.barHz` (4) |
-| barra de grupos | `GroupBar` | una fila por grupo con número, nombre, tamaño, hueco, maillots, el maillot de cada corredor de un grupo de hasta 12, quién tira, los que van en tránsito y el corredor propio | `Instant.groups`, `inTransit`; `RiderCard` del reparto por `RiderIx` (`worn`, `team.jerseySeed`) | `barHz` |
-| el plano | `CueCard` | el rótulo del momento, uno a la vez | la cola de `Cue` (§6.5) | al entrar y salir un `Cue` |
-| la voz | `VoiceTicker` | la última línea dicha; `Commentary` despliega las anteriores | `LiveLine` con `revealS ≤ t` (§12.2) | al entrar una línea |
-| mandos | `PlayerControls` | pausa, velocidad, `Next action`, saltos, `Commentary`, la barra de progreso en km y `Show result` en el menú; se esconden a los 3 s sin tocar (8-p) | el reproductor (§8.5) | a cada toque |
-| previa y cierre | `StagePreviewCards`, `StageClosingCards` | los cuadros de antes de la salida y de después de la meta | `StagePreview`, `StageClosing` (§6.11, §8.6) | por cuadro |
-| puerta | `StageGateCard` | lo que sale en lugar de la etapa velada | `StageGate` (§11.12) | una vez |
+| Pieza (pantalla)    | Componente                               | Lo que pinta                                                                                                                                                                  | Dato (§4)                                                                                                                        | Repinta                    |
+| ------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| capa fija           | `FixedOverlay`                           | km a meta, diferencia principal, tendencia y contra quién; con el cuadro de diferencias y al tocarla, reloj, velocidad, pendiente y tiempo                                    | `Instant.toGoKm`, `lapsToGo`, `mainGap`; `t`; `GroupNow.detail.speedKmh` de la cabeza; `ProfileStrip.altM`; `StageWeather.spans` | `BROADCAST.overlayHz` (10) |
+| perfil con cursores | `ProfileStrip`                           | la altimetría, los puertos, las volantes, un cursor por grupo y el puerto que viene                                                                                           | `ProfileStrip` (cabecera), `GroupNow.km`, `number`, `own`                                                                        | `BROADCAST.barHz` (4)      |
+| barra de grupos     | `GroupBar`                               | una fila por grupo con número, nombre, tamaño, hueco, maillots, el maillot de cada corredor de un grupo de hasta 12, quién tira, los que van en tránsito y el corredor propio | `Instant.groups`, `inTransit`; `RiderCard` del reparto por `RiderIx` (`worn`, `team.jerseySeed`)                                 | `barHz`                    |
+| el plano            | `CueCard`                                | el rótulo del momento, uno a la vez                                                                                                                                           | la cola de `Cue` (§6.5)                                                                                                          | al entrar y salir un `Cue` |
+| la voz              | `VoiceTicker`                            | la última línea dicha; `Commentary` despliega las anteriores                                                                                                                  | `LiveLine` con `revealS ≤ t` (§12.2)                                                                                             | al entrar una línea        |
+| mandos              | `PlayerControls`                         | pausa, velocidad, `Next action`, saltos, `Commentary`, la barra de progreso en km y `Show result` en el menú; se esconden a los 3 s sin tocar (8-p)                           | el reproductor (§8.5)                                                                                                            | a cada toque               |
+| previa y cierre     | `StagePreviewCards`, `StageClosingCards` | los cuadros de antes de la salida y de después de la meta                                                                                                                     | `StagePreview`, `StageClosing` (§6.11, §8.6)                                                                                     | por cuadro                 |
+| puerta              | `StageGateCard`                          | lo que sale en lugar de la etapa velada                                                                                                                                       | `StageGate` (§11.12)                                                                                                             | una vez                    |
 
 El componente `ProfileStrip` y el tipo `ProfileStrip` de §4.2 comparten nombre, porque así los fijó la síntesis; el fichero del componente importa el tipo con alias (`import type { ProfileStrip as ProfileData } from '@cyclingstar/shared'`), como §4.1 hace con `Block`. Alturas en el teléfono, estimadas sobre las clases de hoy y sin medir en un navegador (la misma reserva del mapa 03 §7): 40 + 56 + 4 × 32 + 3 × 20 + 72 + 24 + 48, unos 430 px de 800 con los mandos a la vista y unos 380 con ellos escondidos (8-p); una fila 1 de cuatro a doce corredores suma los 20 px de su línea de maillots (§6.2). Lo mide a mano el paso 10 (§18.5), con los nombres enteros.
 
@@ -98,24 +98,40 @@ La diferencia principal se calcula con `mainGapOf`, el paso 10 de `instantAt` (�
 import { BROADCAST } from './constants.js'
 
 /** LA DIFERENCIA PRINCIPAL de la capa fija (D-17). groups: los de Instant.groups, ya en orden de carretera y con su papel. */
-export function mainGapOf(groups: readonly GroupNow[], start: StartState, markAt: (g: GroupNow, photoKm: number) => number): MainGap | null {
-  if (groups.length < 2) return null                                    // un solo grupo: `Bunch together` (pantalla)
+export function mainGapOf(
+  groups: readonly GroupNow[],
+  start: StartState,
+  markAt: (g: GroupNow, photoKm: number) => number,
+): MainGap | null {
+  if (groups.length < 2) return null // un solo grupo: `Bunch together` (pantalla)
   const head = groups[0]!
   // «El pelotón» de D-17: el grupo con papel bunch; si ninguno llega a los dos tercios, el del título (decisión 6-b)
-  const pack = groups.find((g) => g.role === 'bunch') ?? groups.find((g) => g.kind === 'peloton') ?? null
+  const pack =
+    groups.find((g) => g.role === 'bunch') ?? groups.find((g) => g.kind === 'peloton') ?? null
   let behind: GroupNow
   let ref: MainGap['ref']
   if (pack !== null && pack.g !== head.g) {
-    behind = pack; ref = 'bunch'                                        // la fuga contra el pelotón
+    behind = pack
+    ref = 'bunch' // la fuga contra el pelotón
   } else {
-    const top = new Set(start.gcTop.filter((r) => r.rank <= BROADCAST.mainGapTopStart).map((r) => r.rider))
-    const jg = groups.slice(1).find((g) => g.jerseys.length > 0 || g.members.some((r) => top.has(r)))
-    if (jg !== undefined) { behind = jg; ref = 'jersey_group' }         // el pelotón en cabeza: contra el primer grupo con un maillot o un top 3
-    else { behind = groups[1]!; ref = 'second' }                        // si no hay ninguno, contra el segundo
+    const top = new Set(
+      start.gcTop.filter((r) => r.rank <= BROADCAST.mainGapTopStart).map((r) => r.rider),
+    )
+    const jg = groups
+      .slice(1)
+      .find((g) => g.jerseys.length > 0 || g.members.some((r) => top.has(r)))
+    if (jg !== undefined) {
+      behind = jg
+      ref = 'jersey_group'
+    } // el pelotón en cabeza: contra el primer grupo con un maillot o un top 3
+    else {
+      behind = groups[1]!
+      ref = 'second'
+    } // si no hay ninguno, contra el segundo
   }
-  const k = behind.gap.atKm                                             // el último km de foto que ha cruzado el de detrás (§3.5)
+  const k = behind.gap.atKm // el último km de foto que ha cruzado el de detrás (§3.5)
   // la resta de las dos marcas en ese km; si la cabeza nació después (3-e), markAt da la de su origen
-  const gapS = Math.max(0, (markAt(behind, k)-markAt(head, k)) / 10)
+  const gapS = Math.max(0, (markAt(behind, k) - markAt(head, k)) / 10)
   return { ahead: head.g, behind: behind.g, gapS, trend: behind.gap.trend, ref }
 }
 ```
@@ -128,19 +144,19 @@ export function mainGapOf(groups: readonly GroupNow[], start: StartState, markAt
 
 **Tu corredor** ([DUEÑO 5]: el corredor propio se ve aunque no sea noticia; R23.7 de la táctica, «pero no dice quién es, wey», `docs/balance.md` l. 9594, v57). Una línea fija bajo la barra, `Your rider · in the bunch · +3:46` (pantalla), con la palabra de voz del grupo en que va (§6.3) y su hueco, que es el de su grupo en el último punto común (H-17; §3.5): nunca su reloj de foto, que suma deriva y marcaje (`simulate.ts` l. 9012). Si va en tránsito, lo dice: `Your rider · dropping back from the bunch · +3:46` o `Your rider · bridging to the lead group`, con el hueco del grupo que dejó (decisión 3-c). Si abandonó, `Your rider · out of the race`. Con varios corredores propios (el mánager de un equipo), una línea por papel: `Your team · 1 in front · 5 in the bunch · 2 in the gruppetto` (decisión 6-l). Sin corredor en la etapa, no hay línea.
 
-| Lo permanente | Dato | Repinta | Qué lo pide |
-| --- | --- | --- | --- |
-| km a meta (metros en el último km, vueltas en un circuito) | `Instant.toGoKm`, `lapsToGo` | `overlayHz` (10) | UCI §11.2, capa fija; agenda l. 510 |
-| diferencia principal, `s.t.` o `Bunch together` | `Instant.mainGap.gapS` | `overlayHz` | UCI §11.2, capa fija |
-| tendencia `▲ ▼` | `MainGap.trend` | `overlayHz` | agenda l. 511, «y si sube o baja» |
-| contra quién, `on the bunch` | `MainGap.behind` y su etiqueta | `overlayHz` | [DUEÑO 4], «sobre quién» |
-| reloj, velocidad, pendiente, tiempo (con el cuadro de diferencias y al tocar) | `t`, `GroupDetail.speedKmh`, `altM`, `StageWeather` | `overlayHz` | UCI §11.2, punto 5 del mapa 06 §1.1 («regularly and systematically»); D-14 |
-| barra de grupos numerada | `Instant.groups` | `barHz` (4) | UCI §11.2, capa de posiciones |
-| el maillot de cada corredor de un grupo de hasta 12 (en el móvil, en la fila 1 y en las del espectador) | `GroupNow.members`, `RiderCard.worn` y `team.jerseySeed` | `barHz` | encargo l. 167-168 ([DUEÑO 3]); Rcobertura-008 |
-| quién va en cada grupo, con nombre y equipo (los de tres o menos, en la fila; los demás, al tocarla) | `GroupNow.members`, `RiderCard` | `barHz` | agenda l. 512; UCI «composition regularly» |
-| quién tira | `GroupNow.detail.pullers` | `barHz` | [DUEÑO 1] vía D-27; C1-C6 del mapa 05 §2.3 |
-| perfil con cursor por grupo y puerto que viene | `ProfileStrip`, `GroupNow.km` | `barHz` | agenda l. 513; SPEC l. 596 ([DOC 2]) |
-| tu corredor | `InstantContext.own`, `GroupNow.own`, `inTransit` | `barHz` | [DUEÑO 5]; R23.7 |
+| Lo permanente                                                                                           | Dato                                                     | Repinta          | Qué lo pide                                                                |
+| ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- | ---------------- | -------------------------------------------------------------------------- |
+| km a meta (metros en el último km, vueltas en un circuito)                                              | `Instant.toGoKm`, `lapsToGo`                             | `overlayHz` (10) | UCI §11.2, capa fija; agenda l. 510                                        |
+| diferencia principal, `s.t.` o `Bunch together`                                                         | `Instant.mainGap.gapS`                                   | `overlayHz`      | UCI §11.2, capa fija                                                       |
+| tendencia `▲ ▼`                                                                                         | `MainGap.trend`                                          | `overlayHz`      | agenda l. 511, «y si sube o baja»                                          |
+| contra quién, `on the bunch`                                                                            | `MainGap.behind` y su etiqueta                           | `overlayHz`      | [DUEÑO 4], «sobre quién»                                                   |
+| reloj, velocidad, pendiente, tiempo (con el cuadro de diferencias y al tocar)                           | `t`, `GroupDetail.speedKmh`, `altM`, `StageWeather`      | `overlayHz`      | UCI §11.2, punto 5 del mapa 06 §1.1 («regularly and systematically»); D-14 |
+| barra de grupos numerada                                                                                | `Instant.groups`                                         | `barHz` (4)      | UCI §11.2, capa de posiciones                                              |
+| el maillot de cada corredor de un grupo de hasta 12 (en el móvil, en la fila 1 y en las del espectador) | `GroupNow.members`, `RiderCard.worn` y `team.jerseySeed` | `barHz`          | encargo l. 167-168 ([DUEÑO 3]); Rcobertura-008                             |
+| quién va en cada grupo, con nombre y equipo (los de tres o menos, en la fila; los demás, al tocarla)    | `GroupNow.members`, `RiderCard`                          | `barHz`          | agenda l. 512; UCI «composition regularly»                                 |
+| quién tira                                                                                              | `GroupNow.detail.pullers`                                | `barHz`          | [DUEÑO 1] vía D-27; C1-C6 del mapa 05 §2.3                                 |
+| perfil con cursor por grupo y puerto que viene                                                          | `ProfileStrip`, `GroupNow.km`                            | `barHz`          | agenda l. 513; SPEC l. 596 ([DOC 2])                                       |
+| tu corredor                                                                                             | `InstantContext.own`, `GroupNow.own`, `inTransit`        | `barHz`          | [DUEÑO 5]; R23.7                                                           |
 
 Los dos ritmos de repintado son iniciales y sin evidencia de los jueces: los mide a mano el paso 10 en 360 × 800 con la CPU a ×4 y, si no llegan a 30 fotogramas por segundo, se baja `barHz` y se simplifica el perfil antes de encender (D-56, §18.5). El instante se calcula una vez por fotograma y lo leen todos los componentes: no hay dos relojes en la misma pantalla.
 
@@ -156,7 +172,10 @@ D-18, escrito como hecho: un solo código, `GroupRole` (`lead`, `chase`, `bunch`
 
 /** Copia de chaseReferenceIndex (group.ts l. 235-245), atada por test (decisión 6-a; §15.5, 15-k). -1 si no hay nadie detrás.
  *  Se exporta para ese test, y broadcast/index.ts la reexporta. */
-export function chaseRefOf(behind: readonly { readonly size: number; readonly racing: boolean }[], mainFraction: number): number {
+export function chaseRefOf(
+  behind: readonly { readonly size: number; readonly racing: boolean }[],
+  mainFraction: number,
+): number {
   if (behind.length === 0) return -1
   const pool = behind.filter((x) => x.racing && x.size >= 2)
   const candidates = pool.length > 0 ? pool : behind
@@ -166,26 +185,43 @@ export function chaseRefOf(behind: readonly { readonly size: number; readonly ra
 }
 
 /** EL PAPEL de cada grupo, en orden de carretera (D-18). road[i].kind === 'peloton' es el grupo con el título. */
-export function groupRoleOf(road: readonly { readonly size: number; readonly kind: RadioGroupKind }[], racing: number): readonly GroupRole[] {
-  if (road.length === 1) return ['bunch']                                  // un solo grupo: `Bunch together`
+export function groupRoleOf(
+  road: readonly { readonly size: number; readonly kind: RadioGroupKind }[],
+  racing: number,
+): readonly GroupRole[] {
+  if (road.length === 1) return ['bunch'] // un solo grupo: `Bunch together`
   const main = road.findIndex((x) => x.kind === 'peloton')
   const bunch = main >= 0 && road[main]!.size >= racing * BROADCAST.bunchMinShare ? main : -1
   // sin grueso, la persecución que el motor nombra «the chase group» tras una criba (simulate.ts l. 4122-4144)
-  const ref = bunch >= 0 ? -1 : 1 + chaseRefOf(road.slice(1).map((x, j) => ({ size: x.size, racing: main < 0 || j + 1 <= main })), BROADCAST.chaseMinShare)
+  const ref =
+    bunch >= 0
+      ? -1
+      : 1 +
+        chaseRefOf(
+          road.slice(1).map((x, j) => ({ size: x.size, racing: main < 0 || j + 1 <= main })),
+          BROADCAST.chaseMinShare,
+        )
   return road.map((_, i): GroupRole => {
-    if (i === bunch) return 'bunch'                                        // el título con dos tercios de la carrera
-    if (i === 0) return 'lead'                                             // el primero de la carretera, si no es el grueso
-    if (bunch >= 0) return i < bunch ? 'chase' : 'gruppetto'               // entre la cabeza y el grueso persigue; detrás, descolgado
-    if (main < 0 || i <= main) return 'chase'                              // sin grueso: todo lo que va con el título o por delante
+    if (i === bunch) return 'bunch' // el título con dos tercios de la carrera
+    if (i === 0) return 'lead' // el primero de la carretera, si no es el grueso
+    if (bunch >= 0) return i < bunch ? 'chase' : 'gruppetto' // entre la cabeza y el grueso persigue; detrás, descolgado
+    if (main < 0 || i <= main) return 'chase' // sin grueso: todo lo que va con el título o por delante
     return i === ref ? 'chase' : 'gruppetto'
   })
 }
 
 /** CÓMO SE ROTULA la fila (GroupLabel, §4.5). jerseys va en JERSEY_PRIORITY: el primero es el que nombra al grupo. */
-export function groupLabelOf(size: number, members: readonly number[], jerseys: readonly JerseyKind[], role: GroupRole, groupsCount: number): GroupLabel {
+export function groupLabelOf(
+  size: number,
+  members: readonly number[],
+  jerseys: readonly JerseyKind[],
+  role: GroupRole,
+  groupsCount: number,
+): GroupLabel {
   if (groupsCount === 1) return { k: 'together' }
-  if (size <= BROADCAST.byNamesUpTo) return { k: 'names', riders: members }          // tres o menos, por sus nombres (SPEC l. 612)
-  if ((role === 'chase' || role === 'gruppetto') && jerseys.length > 0) return { k: 'jersey_group', jersey: jerseys[0]! }
+  if (size <= BROADCAST.byNamesUpTo) return { k: 'names', riders: members } // tres o menos, por sus nombres (SPEC l. 612)
+  if ((role === 'chase' || role === 'gruppetto') && jerseys.length > 0)
+    return { k: 'jersey_group', jersey: jerseys[0]! }
   return { k: 'role' }
 }
 ```
@@ -203,11 +239,12 @@ export const GROUP_WORDS = {
   role: {
     lead: ['Lead group', 'the lead group'],
     chase: ['Chase group', 'the chase group'],
-    bunch: ['Bunch', 'the bunch'],                      // DD-04: `Peloton` es la alternativa
+    bunch: ['Bunch', 'the bunch'], // DD-04: `Peloton` es la alternativa
     gruppetto: ['Gruppetto', 'the gruppetto'],
   },
   together: ['Bunch together', 'the bunch'],
-  jersey: {                                             // el grupo del maillot, igual en la barra, la radio servida, la capa fija y la voz (6-b)
+  jersey: {
+    // el grupo del maillot, igual en la barra, la radio servida, la capa fija y la voz (6-b)
     gc: ['Race leader’s group', 'the race leader’s group'],
     points: ['Points leader’s group', 'the points leader’s group'],
     kom: ['Mountains leader’s group', 'the mountains leader’s group'], // «Mountains leader», como JERSEY_LABEL (jerseys.ts l. 133-137)
@@ -223,32 +260,32 @@ La barra escribe las palabras de papel en mayúsculas (`LEAD GROUP`, es presenta
 
 **La lista cerrada, con su condición exacta** (pantalla, en inglés; `n` es el número de grupos en carretera y el grueso es el grupo con el título y al menos `bunchMinShare` de los que corren):
 
-| Barra | Voz | Condición sobre el instante | Hoy en la radio |
-| --- | --- | --- | --- |
-| `Bunch together` | `the bunch` | `n = 1` | `Bunch together` (`RaceRadioPanel.tsx` l. 68) |
-| `Lead group` | `the lead group` | el número 1, si no es el grueso, con más de tres | `Lead group` (l. 70) |
-| `Chase group` | `the chase group` | entre la cabeza y el grueso; sin grueso, del 2 al grupo del título; y, sin grueso, el de referencia de `chaseReferenceIndex` aunque vaya detrás del título (el trozo de atrás de una criba) | `Chase group` (`contra`, l. 72), `2nd group` o `Group` |
-| `Bunch` | `the bunch` | el grupo con el título y al menos 2/3 de los que corren | `Peloton` (l. 68) |
-| `Gruppetto` | `the gruppetto` | detrás del grueso; sin grueso, detrás del título y no es la referencia | `Grupetto` (l. 74), `No man’s land` (l. 73) |
-| `Race leader’s group` · `Points leader’s group` · `Mountains leader’s group` | `the race leader’s group` y las otras dos (6-b) | papel `chase` o `gruppetto`, más de tres corredores y un maillot de líder dentro; manda `JERSEY_PRIORITY` (gc, points, kom, `packages/shared/src/jerseys.ts` l. 22) | los mismos (l. 85-89), con `KOM leader’s group` por el de la montaña, elegidos por el orden gc, kom, points de la radio (l. 102) |
-| los nombres, cada uno con su maillot | los nombres, con la identidad entera | tres corredores o menos, sea cual sea el papel | no: `No man’s land` o el papel |
+| Barra                                                                        | Voz                                             | Condición sobre el instante                                                                                                                                                                 | Hoy en la radio                                                                                                                  |
+| ---------------------------------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `Bunch together`                                                             | `the bunch`                                     | `n = 1`                                                                                                                                                                                     | `Bunch together` (`RaceRadioPanel.tsx` l. 68)                                                                                    |
+| `Lead group`                                                                 | `the lead group`                                | el número 1, si no es el grueso, con más de tres                                                                                                                                            | `Lead group` (l. 70)                                                                                                             |
+| `Chase group`                                                                | `the chase group`                               | entre la cabeza y el grueso; sin grueso, del 2 al grupo del título; y, sin grueso, el de referencia de `chaseReferenceIndex` aunque vaya detrás del título (el trozo de atrás de una criba) | `Chase group` (`contra`, l. 72), `2nd group` o `Group`                                                                           |
+| `Bunch`                                                                      | `the bunch`                                     | el grupo con el título y al menos 2/3 de los que corren                                                                                                                                     | `Peloton` (l. 68)                                                                                                                |
+| `Gruppetto`                                                                  | `the gruppetto`                                 | detrás del grueso; sin grueso, detrás del título y no es la referencia                                                                                                                      | `Grupetto` (l. 74), `No man’s land` (l. 73)                                                                                      |
+| `Race leader’s group` · `Points leader’s group` · `Mountains leader’s group` | `the race leader’s group` y las otras dos (6-b) | papel `chase` o `gruppetto`, más de tres corredores y un maillot de líder dentro; manda `JERSEY_PRIORITY` (gc, points, kom, `packages/shared/src/jerseys.ts` l. 22)                         | los mismos (l. 85-89), con `KOM leader’s group` por el de la montaña, elegidos por el orden gc, kom, points de la radio (l. 102) |
+| los nombres, cada uno con su maillot                                         | los nombres, con la identidad entera            | tres corredores o menos, sea cual sea el papel                                                                                                                                              | no: `No man’s land` o el papel                                                                                                   |
 
 **Casos, con lo que dice hoy la radio y lo que dirá la barra.** Los ocho primeros son los de `raceRadioNames.test.tsx` (`apps/web/src/components/`, seis `it`), que D-18 re-sella a propósito en el paso 6; los demás, nuevos, van a `packages/shared/src/broadcast/instant.test.ts` con `groupRoleOf` y `groupLabelOf`:
 
-| Caso (orden de carretera; tamaño de los que corren) | Hoy, `groupName` | E2 |
-| --- | --- | --- |
-| el pelotón de 129 de 130 en cabeza, y uno suelto detrás | `Peloton` | `Bunch`; el suelto, por su nombre |
-| 130 de 130 en un solo grupo | `Bunch together` | `Bunch together` |
-| el pelotón de 110 de 130, segundo en carretera | `Peloton` | `Bunch` |
-| la carrera partida en 59 (primero) y 65 (segundo, con el título) de 124 | `Lead group` y `2nd group` | `Lead group` y `Chase group`: 65 de 124 no llega a 2/3, y persigue |
-| una contra de 8 entre la cabeza y el pelotón de 115 de 130 | `Chase group` | `Chase group` |
-| un corredor suelto (`tierra`), tercero | `No man’s land` | su nombre |
-| un grupeto de 12 detrás del pelotón | `Grupetto` | `Gruppetto` |
-| el grupo del título con 40 de 130, tercero | `3rd group` | `Chase group` |
-| el líder de la general en un grupo de 20, detrás del pelotón | `Race leader’s group` | `Race leader’s group` |
-| una fuga de 5, el título con 100 de 176 (57 %) y 71 detrás | `Lead group`, `2nd group`, `Grupetto` | `Lead group`, `Chase group`, `Gruppetto` |
-| el título con 100 de 176 en cabeza y 76 detrás, sin fuga | `Lead group`, `Grupetto` | `Lead group` y `Chase group`: los 76 son la referencia de `chaseReferenceIndex` |
-| el instante de §6.1: 3, 3, 2, 124 (con el título), 35, 5 y 1 de 176 | `Lead group`, `Chase group`, `Chase group`, `Peloton`, `Grupetto`, `Grupetto`, `Grupetto` | tres filas con nombres, `Bunch`, `Gruppetto`, `Gruppetto` y un nombre |
+| Caso (orden de carretera; tamaño de los que corren)                     | Hoy, `groupName`                                                                          | E2                                                                              |
+| ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| el pelotón de 129 de 130 en cabeza, y uno suelto detrás                 | `Peloton`                                                                                 | `Bunch`; el suelto, por su nombre                                               |
+| 130 de 130 en un solo grupo                                             | `Bunch together`                                                                          | `Bunch together`                                                                |
+| el pelotón de 110 de 130, segundo en carretera                          | `Peloton`                                                                                 | `Bunch`                                                                         |
+| la carrera partida en 59 (primero) y 65 (segundo, con el título) de 124 | `Lead group` y `2nd group`                                                                | `Lead group` y `Chase group`: 65 de 124 no llega a 2/3, y persigue              |
+| una contra de 8 entre la cabeza y el pelotón de 115 de 130              | `Chase group`                                                                             | `Chase group`                                                                   |
+| un corredor suelto (`tierra`), tercero                                  | `No man’s land`                                                                           | su nombre                                                                       |
+| un grupeto de 12 detrás del pelotón                                     | `Grupetto`                                                                                | `Gruppetto`                                                                     |
+| el grupo del título con 40 de 130, tercero                              | `3rd group`                                                                               | `Chase group`                                                                   |
+| el líder de la general en un grupo de 20, detrás del pelotón            | `Race leader’s group`                                                                     | `Race leader’s group`                                                           |
+| una fuga de 5, el título con 100 de 176 (57 %) y 71 detrás              | `Lead group`, `2nd group`, `Grupetto`                                                     | `Lead group`, `Chase group`, `Gruppetto`                                        |
+| el título con 100 de 176 en cabeza y 76 detrás, sin fuga                | `Lead group`, `Grupetto`                                                                  | `Lead group` y `Chase group`: los 76 son la referencia de `chaseReferenceIndex` |
+| el instante de §6.1: 3, 3, 2, 124 (con el título), 35, 5 y 1 de 176     | `Lead group`, `Chase group`, `Chase group`, `Peloton`, `Grupetto`, `Grupetto`, `Grupetto` | tres filas con nombres, `Bunch`, `Gruppetto`, `Gruppetto` y un nombre           |
 
 **Lo que se retira, y por qué.** `Peloton`, por DD-04 (la palabra de SPEC y del journal es `Bunch`). `No man’s land`, porque el `tierra` del motor es un movimiento que ha quedado DETRÁS del pelotón o a su altura (`kindOf`, `raceRadio.ts` l. 361-383) y la tierra de nadie de la tele es un suelto entre dos grupos de delante (mapa 06 §1.3): la misma palabra para dos cosas; el suelto, además, tiene tres o menos y se nombra por su nombre. `2nd group` y `3rd group`, porque el número de carretera no es identidad (la tele renumbera, UCI §11.2) y ya va delante de cada fila; era el remedio de la radio al caso del dueño en que «media carrera NO es el pelotón» (`raceRadioNames.test.tsx` l. 26-30), que ahora es `Chase group`. `Group`, porque no dice nada. Y la grafía `Grupetto`, que es `Gruppetto` en italiano y en la tele (mapa 06 §1.3).
 
@@ -269,43 +306,89 @@ import type { GroupDetail, RiderIx } from './timeline.js'
 import type { RiderCard } from '../jerseys.js'
 
 export type PullingLine =
-  | { readonly k: 'in_turn'; readonly pulling: number; readonly of: number }          // todos los equipos del grupo relevan
-  | { readonly k: 'teams'; readonly teams: readonly { readonly teamId: string; readonly count: number; readonly forRider: RiderIx | null; readonly motive: PullMotive | null }[]; readonly moreTeams: number }
+  | { readonly k: 'in_turn'; readonly pulling: number; readonly of: number } // todos los equipos del grupo relevan
+  | {
+      readonly k: 'teams'
+      readonly teams: readonly {
+        readonly teamId: string
+        readonly count: number
+        readonly forRider: RiderIx | null
+        readonly motive: PullMotive | null
+      }[]
+      readonly moreTeams: number
+    }
 
 /** LA LÍNEA DE QUIÉN TIRA de una fila (D-27, I-46). null si nadie da la cara en su último km de foto. */
-export function pullingLineOf(detail: GroupDetail | null, members: readonly RiderIx[], cast: readonly RiderCard[]): PullingLine | null {
+export function pullingLineOf(
+  detail: GroupDetail | null,
+  members: readonly RiderIx[],
+  cast: readonly RiderCard[],
+): PullingLine | null {
   if (detail === null || detail.pullingTotal === 0) return null
   const teamOf = (r: RiderIx): string => cast[r]?.team?.id ?? `solo:${r}`
   const teamsIn = new Set(members.map(teamOf))
   const byTeam = new Map<string, RiderIx[]>()
-  for (const p of detail.pullers) byTeam.set(teamOf(p.rider), [...(byTeam.get(teamOf(p.rider)) ?? []), p.rider])
+  for (const p of detail.pullers)
+    byTeam.set(teamOf(p.rider), [...(byTeam.get(teamOf(p.rider)) ?? []), p.rider])
   // Un grupo pequeño en el que dan relevos todos sus equipos es una fuga que colabora: `all 3 in turn` (pantalla)
   if (members.length <= BROADCAST.nameWholeGroupUpTo && [...teamsIn].every((t) => byTeam.has(t)))
     return { k: 'in_turn', pulling: detail.pullingTotal, of: members.length }
-  const ranked = [...byTeam.entries()].sort((a, b) => b[1].length-a[1].length || (a[0] < b[0] ? -1 : 1))
-  const forOf = (team: string): RiderIx | null => {             // el mismo destinatario en al menos dos de sus relevistas
+  const ranked = [...byTeam.entries()].sort(
+    (a, b) => b[1].length - a[1].length || (a[0] < b[0] ? -1 : 1),
+  )
+  const forOf = (team: string): RiderIx | null => {
+    // el mismo destinatario en al menos dos de sus relevistas
     const n = new Map<RiderIx, number>()
-    for (const p of detail.pullers) if (teamOf(p.rider) === team && p.forRider !== null) n.set(p.forRider, (n.get(p.forRider) ?? 0) + 1)
-    const best = [...n.entries()].sort((a, b) => b[1]-a[1])[0]
+    for (const p of detail.pullers)
+      if (teamOf(p.rider) === team && p.forRider !== null)
+        n.set(p.forRider, (n.get(p.forRider) ?? 0) + 1)
+    const best = [...n.entries()].sort((a, b) => b[1] - a[1])[0]
     return best !== undefined && best[1] >= 2 ? best[0] : null
   }
-  const motiveOf = (team: string): PullMotive | null => {       // el motivo de más relevistas del equipo; a igualdad, el que sale antes en detail.pullers
+  const motiveOf = (team: string): PullMotive | null => {
+    // el motivo de más relevistas del equipo; a igualdad, el que sale antes en detail.pullers
     const n = new Map<PullMotive, number>()
-    for (const p of detail.pullers) if (teamOf(p.rider) === team && p.motive !== null) n.set(p.motive, (n.get(p.motive) ?? 0) + 1)
+    for (const p of detail.pullers)
+      if (teamOf(p.rider) === team && p.motive !== null) n.set(p.motive, (n.get(p.motive) ?? 0) + 1)
     let best: PullMotive | null = null
     let most = 0
-    for (const [m, c] of n) if (c > most) { best = m; most = c }  // el Map guarda el orden de inserción: el primero en llegar gana el empate
+    for (const [m, c] of n)
+      if (c > most) {
+        best = m
+        most = c
+      } // el Map guarda el orden de inserción: el primero en llegar gana el empate
     return best
   }
-  return { k: 'teams', teams: ranked.slice(0, 2).map(([teamId, rs]) => ({ teamId, count: rs.length, forRider: forOf(teamId), motive: motiveOf(teamId) })), moreTeams: Math.max(0, ranked.length-2) }
+  return {
+    k: 'teams',
+    teams: ranked.slice(0, 2).map(([teamId, rs]) => ({
+      teamId,
+      count: rs.length,
+      forRider: forOf(teamId),
+      motive: motiveOf(teamId),
+    })),
+    moreTeams: Math.max(0, ranked.length - 2),
+  }
 }
 
 /** El porqué de un equipo en la línea, en pocas palabras (pantalla): las frases de la radio sin destinatario (motiveLabel,
  *  RaceRadioPanel.tsx l. 162-213), acortadas para una línea. Un motivo nuevo no compila sin su palabra. */
 export const PULL_MOTIVE_WORDS = {
-  solo: 'alone', abanico: 'in the echelon', tren: 'lead-out', fuga: 'working the break', persecucion: 'chasing', grupeto: 'just riding',
-  equipo_etapa: 'for the stage', equipo_maillot: 'defending the jersey', equipo_general: 'for the GC', rol: 'team duty', propio: 'own tempo',
-  equipo_puntos: 'for the points jersey', equipo_montana: 'for the mountains jersey', infiltrado: 'sitting on', colocando: 'guarding the leader',
+  solo: 'alone',
+  abanico: 'in the echelon',
+  tren: 'lead-out',
+  fuga: 'working the break',
+  persecucion: 'chasing',
+  grupeto: 'just riding',
+  equipo_etapa: 'for the stage',
+  equipo_maillot: 'defending the jersey',
+  equipo_general: 'for the GC',
+  rol: 'team duty',
+  propio: 'own tempo',
+  equipo_puntos: 'for the points jersey',
+  equipo_montana: 'for the mountains jersey',
+  infiltrado: 'sitting on',
+  colocando: 'guarding the leader',
 } as const satisfies Readonly<Record<PullMotive, string>>
 ```
 
@@ -324,64 +407,104 @@ import type { StartState } from './wire.js'
 
 /** LA CLASE DE CADA RÓTULO (D-21), por su CueKind. cueClassOf la sube o la baja en los casos que dependen de quién o de qué ronda. */
 export const CUE_CLASS = {
-  finish: 3, caught: 3, split: 3,                                                   // meta, caza de la fuga, corte
-  attack: 2, break_formed: 2, break_presented: 2, banner_result: 2, crash: 2, last_km: 2, time_cut: 2,
-  time_check: 1, group_changed: 1, mishap: 1, rider: 1, dropped: 1, abandon: 1, virtual_gc: 1, group_finish: 1,
-  tt_start_order: 1, tt_split: 1, tt_finish: 1,                                     // la crono (§9.5): cueClassOf sube el mejor paso y el sillón
-  climb_ahead: 0,                                                                    // la ficha del puerto
+  finish: 3,
+  caught: 3,
+  split: 3, // meta, caza de la fuga, corte
+  attack: 2,
+  break_formed: 2,
+  break_presented: 2,
+  banner_result: 2,
+  crash: 2,
+  last_km: 2,
+  time_cut: 2,
+  time_check: 1,
+  group_changed: 1,
+  mishap: 1,
+  rider: 1,
+  dropped: 1,
+  abandon: 1,
+  virtual_gc: 1,
+  group_finish: 1,
+  tt_start_order: 1,
+  tt_split: 1,
+  tt_finish: 1, // la crono (§9.5): cueClassOf sube el mejor paso y el sillón
+  climb_ahead: 0, // la ficha del puerto
 } as const satisfies Readonly<Record<CueKind, CueClass>>
 
 /** Sube a 3 lo que D-21 pone en 3 por su protagonista; la ronda de la moto va a 2 (6-m) y la de la crono a 0 (9-k). Pura.
  *  lastVirtualLeader: el primero del último VIRTUAL GC que salió; antes del primero de la etapa, start.leaders.gc, para que «cambia
  *  el líder virtual» se mida contra el líder de la general y no contra nada (9-n). timeTrial: BroadcastHead.stage.timeTrial. */
-export function cueClassOf(cue: Cue, start: StartState, lastVirtualLeader: RiderIx | null, timeTrial: boolean): CueClass {
+export function cueClassOf(
+  cue: Cue,
+  start: StartState,
+  lastVirtualLeader: RiderIx | null,
+  timeTrial: boolean,
+): CueClass {
   const top = new Set<RiderIx>([
-    ...[start.leaders.gc, start.leaders.points, start.leaders.kom].filter((r): r is RiderIx => r !== null),
+    ...[start.leaders.gc, start.leaders.points, start.leaders.kom].filter(
+      (r): r is RiderIx => r !== null,
+    ),
     ...start.gcTop.filter((r) => r.rank <= BROADCAST.cueTopStart).map((r) => r.rider),
   ])
   switch (cue.kind) {
-    case 'rider': return cue.context === 'break_round' ? 2 : cue.context === 'tt_round' ? 0 : CUE_CLASS.rider
-    case 'crash': return cue.riders !== null && cue.riders.some((r) => top.has(r)) ? 3 : CUE_CLASS.crash   // sin nombres, 2 siempre
-    case 'dropped': case 'abandon': return top.has(cue.rider) ? 3 : CUE_CLASS[cue.kind]
-    case 'virtual_gc': return cue.rows[0] !== undefined && cue.rows[0].rider !== lastVirtualLeader ? 3 : timeTrial ? 2 : CUE_CLASS.virtual_gc
-    case 'tt_split': return cue.rank === 1 ? 2 : CUE_CLASS.tt_split
-    case 'tt_finish': return cue.hotSeat ? 3 : CUE_CLASS.tt_finish
-    default: return CUE_CLASS[cue.kind]
+    case 'rider':
+      return cue.context === 'break_round' ? 2 : cue.context === 'tt_round' ? 0 : CUE_CLASS.rider
+    case 'crash':
+      return cue.riders !== null && cue.riders.some((r) => top.has(r)) ? 3 : CUE_CLASS.crash // sin nombres, 2 siempre
+    case 'dropped':
+    case 'abandon':
+      return top.has(cue.rider) ? 3 : CUE_CLASS[cue.kind]
+    case 'virtual_gc':
+      return cue.rows[0] !== undefined && cue.rows[0].rider !== lastVirtualLeader
+        ? 3
+        : timeTrial
+          ? 2
+          : CUE_CLASS.virtual_gc
+    case 'tt_split':
+      return cue.rank === 1 ? 2 : CUE_CLASS.tt_split
+    case 'tt_finish':
+      return cue.hotSeat ? 3 : CUE_CLASS.tt_finish
+    default:
+      return CUE_CLASS[cue.kind]
   }
 }
 
 /** LA PRESENTACIÓN DE LA FUGA (6-m, §6.7): la lista, la frase y la ronda de la moto, que la cola lleva reservadas. Pura. */
 export function isPresentation(cue: Cue): boolean {
-  return cue.kind === 'break_formed' || cue.kind === 'break_presented' || (cue.kind === 'rider' && cue.context === 'break_round')
+  return (
+    cue.kind === 'break_formed' ||
+    cue.kind === 'break_presented' ||
+    (cue.kind === 'rider' && cue.context === 'break_round')
+  )
 }
 ```
 
 `BROADCAST.cueTopStart` vale 5 y `start` es la salida servida, ya degradada por el velo (B13): un maillot que viene de una etapa velada no sube la clase de nadie. `CUE_CLASS` lleva las tres claves de la crono porque `satisfies Readonly<Record<CueKind, CueClass>>` no compila sin ellas con los `Cue` de §4.9 (TS1360, compilado por la corrección de §4), y `timeTrial` es el cuarto parámetro que pide la general virtual de la crono (9-n). La caída sin nombres (el primer tiempo de `CRASH`, D-13) es siempre de clase 2, aunque haya caído el líder: si fuera de clase 3, el tiempo que el rótulo dura en pantalla delataría quién está en el suelo antes de que la tele lo sepa (mapa 06 §3.1). El descolgado de un maillot o de un top 5 sube a 3 igual que su caída y su abandono (decisión 6-g): D-21 no lo nombra, y `Yellow jersey in difficulty` es de lo que más para una retransmisión (mapa 06 §3.1).
 
-| `CueKind` | Clase | De dónde sale | Rótulo (pantalla) |
-| --- | --- | --- | --- |
-| `finish` | 3 | el reproductor, tras `BroadcastFinish` (§8.7) | `STAGE WINNER · 21 Luca Bertolini · Team Alpha · 4:12:33` |
-| `caught` | 3 | `breakaway_caught` | `CAUGHT · the lead group · 12.4 km to go` |
-| `split` | 3 | `peloton_split`, `peloton_selection`, `echelon_split` | `SPLIT IN THE BUNCH · in the crosswind`; `ECHELONS` |
-| `attack` | 2 | `attack_sticks` | `ATTACK` con el rótulo de corredor del primer atacante por notoriedad (§7.1, §7.5): `ATTACK · [IT*] 21 Luca Bertolini (IT) · Team Alpha · Champion of Italy`; con más, `and 2 others` (hasta tres, R23.4; 6-p) |
-| `break_formed` | 2, reservado (6-m) | `breakaway_formed` | `BREAKAWAY · 5 riders · +0:48 on the bunch`, con la lista por dorsal y el maillot de cada uno (§6.7) |
-| `break_presented` | 2, reservado (6-m) | el reproductor, tras `break_formed` | la frase de la fuga de `breakHeadline` (§7.6) |
-| `banner_result` | 2 | `climb_kom`, `sprint_intermediate` | `KOM · Côte d'Engins (Cat. 1) · 1. Antoine Leroy 10 pts · 2. Jonas Kahn 8 · 3. Nicolás Moreno 6` |
-| `crash` | 2 (3 con nombres de un maillot o un top 5) | la caída sintetizada de `incidents` (D-13) | `CRASH`, y `BROADCAST.crashNamesDelayS` (3 s) después, `CRASH · 45 Jules Moreau · 88 Iñigo Arrieta` |
-| `last_km` | 2 | el estado: la cabeza cruza 1 km a meta | `FLAMME ROUGE · 1 KM · 2 in front · +0:08` |
-| `time_cut` | 2 | el reproductor, tras `BroadcastFinish` | `TIME CUT · 12 riders outside the limit` |
-| `time_check` | 1 | el reproductor, cada `BROADCAST.gapsTableEveryRealS` (25 s de pared) | el cuadro de diferencias (§6.7) |
-| `group_changed` | 1 | el estado (grupos de hasta 12) y `peloton_regroup` | `CONTACT · 2 riders bridge across`; `3 of the 5 remain`; `BACK TOGETHER · 38 riders rejoin the bunch` |
-| `mishap` | 1 | `puncture`, `mechanical` | `PUNCTURE · 45 Jules Moreau`; `MECHANICAL · 45 Jules Moreau` |
-| `rider` | 1 (2 y reservado en la ronda de la moto, 6-m; 0 en la ronda `ON COURSE` de la crono, 9-k) | el reproductor: la ronda de la moto, tras una pancarta, al tocar un nombre, el corredor propio y la ronda de la crono (§9.5) | el rótulo de corredor de §7.1 |
-| `dropped` | 1 (3 un maillot o un top 5) | `leader_dropped`, `rider_bonks` | `DROPPED · 11 Sam Carter · Race leader · +0:25` |
-| `abandon` | 1 (3 un maillot o un top 5) | `rider_abandons` | `ABANDON · 45 Jules Moreau · Team Gamma` |
-| `virtual_gc` | 1 (2 en crono, 9-n; 3 si cambia el líder virtual) | el reproductor, con el cuadro de diferencias; en crono, al paso del líder por un control o por la meta (§9.5) | `VIRTUAL GC · after 128.0 km` (§6.7) |
-| `group_finish` | 1 | el reproductor, tras `BroadcastFinish` | `BUNCH · +2:14` |
-| `climb_ahead` | 0 | el reproductor: `BROADCAST.climbCardLeadKm` (3 km) antes del pie de un puerto | `Côte de Monteynard · Cat. 2 · 8.8 km at 5.0% · summit in 11.8 km` |
-| `tt_start_order` | 1 | el reproductor, en `t = 0`, con `BroadcastHead.tt` (§9.5) | `Start order: reverse general classification, every 2:00 · 176 riders` |
-| `tt_split` | 1 (2 si es el mejor paso por ese control, 9-d) | el reproductor, del paso de un `TimeTrialInstant` al siguiente (§9.5) | `SPLIT 1 · km 9 · 1. Mads Olsen 18:03 · 2. Iñigo Arrieta +0:13 · …` |
-| `tt_finish` | 1 (3 si se sienta en el sillón) | ídem | `FINISH · HOT SEAT · 71 Mads Olsen 38:04 · −1:23 on Jan Novák` |
+| `CueKind`         | Clase                                                                                     | De dónde sale                                                                                                                | Rótulo (pantalla)                                                                                                                                                                                              |
+| ----------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `finish`          | 3                                                                                         | el reproductor, tras `BroadcastFinish` (§8.7)                                                                                | `STAGE WINNER · 21 Luca Bertolini · Team Alpha · 4:12:33`                                                                                                                                                      |
+| `caught`          | 3                                                                                         | `breakaway_caught`                                                                                                           | `CAUGHT · the lead group · 12.4 km to go`                                                                                                                                                                      |
+| `split`           | 3                                                                                         | `peloton_split`, `peloton_selection`, `echelon_split`                                                                        | `SPLIT IN THE BUNCH · in the crosswind`; `ECHELONS`                                                                                                                                                            |
+| `attack`          | 2                                                                                         | `attack_sticks`                                                                                                              | `ATTACK` con el rótulo de corredor del primer atacante por notoriedad (§7.1, §7.5): `ATTACK · [IT*] 21 Luca Bertolini (IT) · Team Alpha · Champion of Italy`; con más, `and 2 others` (hasta tres, R23.4; 6-p) |
+| `break_formed`    | 2, reservado (6-m)                                                                        | `breakaway_formed`                                                                                                           | `BREAKAWAY · 5 riders · +0:48 on the bunch`, con la lista por dorsal y el maillot de cada uno (§6.7)                                                                                                           |
+| `break_presented` | 2, reservado (6-m)                                                                        | el reproductor, tras `break_formed`                                                                                          | la frase de la fuga de `breakHeadline` (§7.6)                                                                                                                                                                  |
+| `banner_result`   | 2                                                                                         | `climb_kom`, `sprint_intermediate`                                                                                           | `KOM · Côte d'Engins (Cat. 1) · 1. Antoine Leroy 10 pts · 2. Jonas Kahn 8 · 3. Nicolás Moreno 6`                                                                                                               |
+| `crash`           | 2 (3 con nombres de un maillot o un top 5)                                                | la caída sintetizada de `incidents` (D-13)                                                                                   | `CRASH`, y `BROADCAST.crashNamesDelayS` (3 s) después, `CRASH · 45 Jules Moreau · 88 Iñigo Arrieta`                                                                                                            |
+| `last_km`         | 2                                                                                         | el estado: la cabeza cruza 1 km a meta                                                                                       | `FLAMME ROUGE · 1 KM · 2 in front · +0:08`                                                                                                                                                                     |
+| `time_cut`        | 2                                                                                         | el reproductor, tras `BroadcastFinish`                                                                                       | `TIME CUT · 12 riders outside the limit`                                                                                                                                                                       |
+| `time_check`      | 1                                                                                         | el reproductor, cada `BROADCAST.gapsTableEveryRealS` (25 s de pared)                                                         | el cuadro de diferencias (§6.7)                                                                                                                                                                                |
+| `group_changed`   | 1                                                                                         | el estado (grupos de hasta 12) y `peloton_regroup`                                                                           | `CONTACT · 2 riders bridge across`; `3 of the 5 remain`; `BACK TOGETHER · 38 riders rejoin the bunch`                                                                                                          |
+| `mishap`          | 1                                                                                         | `puncture`, `mechanical`                                                                                                     | `PUNCTURE · 45 Jules Moreau`; `MECHANICAL · 45 Jules Moreau`                                                                                                                                                   |
+| `rider`           | 1 (2 y reservado en la ronda de la moto, 6-m; 0 en la ronda `ON COURSE` de la crono, 9-k) | el reproductor: la ronda de la moto, tras una pancarta, al tocar un nombre, el corredor propio y la ronda de la crono (§9.5) | el rótulo de corredor de §7.1                                                                                                                                                                                  |
+| `dropped`         | 1 (3 un maillot o un top 5)                                                               | `leader_dropped`, `rider_bonks`                                                                                              | `DROPPED · 11 Sam Carter · Race leader · +0:25`                                                                                                                                                                |
+| `abandon`         | 1 (3 un maillot o un top 5)                                                               | `rider_abandons`                                                                                                             | `ABANDON · 45 Jules Moreau · Team Gamma`                                                                                                                                                                       |
+| `virtual_gc`      | 1 (2 en crono, 9-n; 3 si cambia el líder virtual)                                         | el reproductor, con el cuadro de diferencias; en crono, al paso del líder por un control o por la meta (§9.5)                | `VIRTUAL GC · after 128.0 km` (§6.7)                                                                                                                                                                           |
+| `group_finish`    | 1                                                                                         | el reproductor, tras `BroadcastFinish`                                                                                       | `BUNCH · +2:14`                                                                                                                                                                                                |
+| `climb_ahead`     | 0                                                                                         | el reproductor: `BROADCAST.climbCardLeadKm` (3 km) antes del pie de un puerto                                                | `Côte de Monteynard · Cat. 2 · 8.8 km at 5.0% · summit in 11.8 km`                                                                                                                                             |
+| `tt_start_order`  | 1                                                                                         | el reproductor, en `t = 0`, con `BroadcastHead.tt` (§9.5)                                                                    | `Start order: reverse general classification, every 2:00 · 176 riders`                                                                                                                                         |
+| `tt_split`        | 1 (2 si es el mejor paso por ese control, 9-d)                                            | el reproductor, del paso de un `TimeTrialInstant` al siguiente (§9.5)                                                        | `SPLIT 1 · km 9 · 1. Mads Olsen 18:03 · 2. Iñigo Arrieta +0:13 · …`                                                                                                                                            |
+| `tt_finish`       | 1 (3 si se sienta en el sillón)                                                           | ídem                                                                                                                         | `FINISH · HOT SEAT · 71 Mads Olsen 38:04 · −1:23 on Jan Novák`                                                                                                                                                 |
 
 **Qué produce `cuesBetween` y qué el reproductor.** `cuesBetween(prev, next, events)` (la firma de §21.6 F.2) es pura y solo conoce la línea: los rótulos de los sucesos revelados en `(prev.t, next.t]` (por `CUE_OF_TEMPLATE`, §6.6) y los de los cambios de estado entre los dos instantes. Lo que depende del espectador, del recorrido o del reloj de pared lo añade el reproductor (`apps/web/src/domain/broadcast/player.ts`), que tiene el reparto servido, la salida, el perfil y el reloj de pared (decisión 6-i):
 
@@ -443,89 +566,129 @@ Cada plantilla que el motor emite tiene un destino: un `CueKind` (un rótulo en 
 // packages/shared/src/broadcast/cues.ts (sigue). B7 exige que toda plantilla que emite el motor tenga fila aquí.
 export const CUE_OF_TEMPLATE: Readonly<Record<string, TemplateTarget>> = {
   // carretera: ataques y movimientos
-  attack_go: 'voice_only', attack_swarm: 'voice_only', attack_sticks: 'attack', attack_reeled: 'voice_only',
-  move_caught: 'voice_only', move_faded: 'voice_only', bridge_made: 'voice_only', move_merge: 'voice_only', bridge_failed: 'voice_only',
+  attack_go: 'voice_only',
+  attack_swarm: 'voice_only',
+  attack_sticks: 'attack',
+  attack_reeled: 'voice_only',
+  move_caught: 'voice_only',
+  move_faded: 'voice_only',
+  bridge_made: 'voice_only',
+  move_merge: 'voice_only',
+  bridge_failed: 'voice_only',
   // la fuga
-  breakaway_formed: 'break_formed', break_cooperation: 'voice_only', break_share: 'voice_only', breakaway_caught: 'caught',
+  breakaway_formed: 'break_formed',
+  break_cooperation: 'voice_only',
+  break_share: 'voice_only',
+  breakaway_caught: 'caught',
   peloton_concedes: 'voice_only',
   // el estado que ya dice la barra (D-43, punto 5)
-  front_group: 'report_only', time_gap: 'report_only',
+  front_group: 'report_only',
+  time_gap: 'report_only',
   // quién tira y por qué
-  peloton_pull: 'voice_only', chase_work: 'voice_only', sprinters_chase: 'voice_only', sprinters_give_up: 'voice_only',
-  no_help_for_leader: 'voice_only', domestiques_drop_back: 'voice_only', rider_defies_team: 'voice_only',
+  peloton_pull: 'voice_only',
+  chase_work: 'voice_only',
+  sprinters_chase: 'voice_only',
+  sprinters_give_up: 'voice_only',
+  no_help_for_leader: 'voice_only',
+  domestiques_drop_back: 'voice_only',
+  rider_defies_team: 'voice_only',
   // cortes y reagrupamientos
-  peloton_split: 'split', peloton_selection: 'split', echelon_split: 'split', echelon_close: 'voice_only',
-  peloton_regroup: 'group_changed', group_overtake: 'voice_only',
+  peloton_split: 'split',
+  peloton_selection: 'split',
+  echelon_split: 'split',
+  echelon_close: 'voice_only',
+  peloton_regroup: 'group_changed',
+  group_overtake: 'voice_only',
   // corredores
-  leader_dropped: 'dropped', rider_bonks: 'dropped', rider_sits_up: 'voice_only', rider_abandons: 'abandon',
-  puncture: 'mishap', mechanical: 'mishap', crash: 'crash', truce_granted: 'voice_only', truce_denied: 'voice_only', rain_front: 'voice_only',
+  leader_dropped: 'dropped',
+  rider_bonks: 'dropped',
+  rider_sits_up: 'voice_only',
+  rider_abandons: 'abandon',
+  puncture: 'mishap',
+  mechanical: 'mishap',
+  crash: 'crash',
+  truce_granted: 'voice_only',
+  truce_denied: 'voice_only',
+  rain_front: 'voice_only',
   // pancartas
-  sprint_intermediate: 'banner_result', climb_kom: 'banner_result',
+  sprint_intermediate: 'banner_result',
+  climb_kom: 'banner_result',
   // meta: solo tras BroadcastFinish
-  bunch_sprint: 'voice_only', final_km: 'voice_only', stage_win: 'finish', time_cut: 'time_cut', time_cut_readmitted: 'voice_only',
+  bunch_sprint: 'voice_only',
+  final_km: 'voice_only',
+  stage_win: 'finish',
+  time_cut: 'time_cut',
+  time_cut_readmitted: 'voice_only',
   // crono (sus rótulos de estado, ON COURSE, SPLIT, HOT SEAT, son §9.5)
-  tt_start_order: 'voice_only', tt_last_off: 'voice_only', tt_split: 'voice_only', tt_first_time: 'voice_only',
-  tt_best_time: 'voice_only', tt_catch: 'voice_only', tt_catches: 'voice_only', tt_last_home: 'voice_only', stage_win_itt: 'finish',
+  tt_start_order: 'voice_only',
+  tt_last_off: 'voice_only',
+  tt_split: 'voice_only',
+  tt_first_time: 'voice_only',
+  tt_best_time: 'voice_only',
+  tt_catch: 'voice_only',
+  tt_catches: 'voice_only',
+  tt_last_home: 'voice_only',
+  stage_win_itt: 'finish',
 }
 ```
 
-| # | Plantilla | La emite | Destino | Clase | Rótulo (pantalla) o por qué no lo tiene |
-| --- | --- | --- | --- | --- | --- |
-| 1 | `attack_go` | `simulate.ts` l. 7324 | `voice_only` | | cada intento: 87 emitidos y 30 narrados en cinco llanas (mapa 01 §3); el rótulo espera al hueco (`attack_sticks`) |
-| 2 | `attack_swarm` | l. 7122, 7203 | `voice_only` | | varios a la vez, casi siempre `narra: 0` |
-| 3 | `attack_sticks` | l. 8759 | `attack` | 2 | `ATTACK · [IT*] 21 Luca Bertolini (IT) · Team Alpha · Champion of Italy`, el rótulo del primer atacante; con más, `and 2 others` (6-p) |
-| 4 | `attack_reeled` | l. 8600, 8827 | `voice_only` | | el cierre de un intento; la barra enseña la fusión |
-| 5 | `move_caught` | l. 8827 | `voice_only` | | un movimiento que no es la fuga del día; la barra enseña la fusión |
-| 6 | `move_faded` | l. 8921 | `voice_only` | | se queda sin gente: la fila desaparece |
-| 7 | `bridge_made` | l. 8616 | `voice_only` | | el rótulo lo da el estado: `group_changed`, `CONTACT · 2 riders bridge across` |
-| 8 | `move_merge` | l. 8616 | `voice_only` | | ídem |
-| 9 | `bridge_failed` | l. 8536 | `voice_only` | | |
-| 10 | `breakaway_formed` | l. 8727 | `break_formed` | 2 | `BREAKAWAY · 5 riders · +0:48 on the bunch` y la lista con el maillot de cada uno; luego `break_presented` y la moto, las tres reservadas (6-m, §6.7) |
-| 11 | `break_cooperation` | l. 8733 | `voice_only` | | la línea de quién tira (§6.4) lo enseña |
-| 12 | `break_share` | l. 4476 | `voice_only` | | ídem |
-| 13 | `breakaway_caught` | l. 8889 | `caught` | 3 | `CAUGHT · the lead group · 12.4 km to go` |
-| 14 | `peloton_concedes` | l. 4814 | `voice_only` | | la tendencia de la capa fija ya dice que el hueco crece |
-| 15 | `front_group` | l. 4215 | `report_only` | | lo dice la barra (D-43, punto 5) |
-| 16 | `time_gap` | l. 4296 | `report_only` | | lo dice la capa fija (D-43, punto 5) |
-| 17 | `peloton_pull` | l. 4425 | `voice_only` | | la línea de quién tira (§6.4) |
-| 18 | `chase_work` | l. 2068 | `voice_only` | | el balance de la caza: voz |
-| 19 | `sprinters_chase` | l. 4546 | `voice_only` | | |
-| 20 | `sprinters_give_up` | l. 4591 | `voice_only` | | |
-| 21 | `no_help_for_leader` | l. 4017 | `voice_only` | | |
-| 22 | `domestiques_drop_back` | l. 4047 | `voice_only` | | |
-| 23 | `rider_defies_team` | `events.ts` l. 80-88 | `voice_only` | | revelado con el siguiente suceso de su protagonista (§4.7) |
-| 24 | `peloton_split` | l. 6640 | `split` | 3 | `SPLIT IN THE BUNCH`, con la causa de `datos.causa`: `after a crash`, `in the crosswind`, `on the cobbles`, `on the climb`, `in the chase` |
-| 25 | `peloton_selection` | l. 6762 | `split` | 3 | `SPLIT IN THE BUNCH`; la criba lejana, que la barra enseña como estado (§6.8) |
-| 26 | `echelon_split` | l. 6492 | `split` | 3 | `ECHELONS` |
-| 27 | `echelon_close` | l. 3156 | `voice_only` | | la barra enseña cómo se cierra |
-| 28 | `peloton_regroup` | l. 6684 | `group_changed` | 1 | `BACK TOGETHER · 38 riders rejoin the bunch` |
-| 29 | `group_overtake` | l. 8020 | `voice_only` | | la barra renumera |
-| 30 | `leader_dropped` | l. 5804 | `dropped` | 1 o 3 | `DROPPED · 11 Sam Carter · Race leader · +0:25` |
-| 31 | `rider_bonks` | l. 6046 | `dropped` | 1 o 3 | `DROPPED · …` |
-| 32 | `rider_sits_up` | l. 6269 | `voice_only` | | uno a uno, no (regla B3 del dueño, §12.3): los cuenta la barra |
-| 33 | `rider_abandons` | l. 6310 | `abandon` | 1 o 3 | `ABANDON · 45 Jules Moreau · Team Gamma` |
-| 34 | `puncture` | l. 8473; `timetrial.ts` l. 321-327 | `mishap` | 1 | `PUNCTURE · 45 Jules Moreau`; sin el tiempo perdido, que es del microscopio |
-| 35 | `mechanical` | ídem | `mishap` | 1 | `MECHANICAL · 45 Jules Moreau` |
-| 36 | `crash` | sintetizada de `output.incidents` (`types.ts` l. 358-365; D-13) | `crash` | 2 o 3 | `CRASH`; los nombres, 3 s después |
-| 37 | `truce_granted` | l. 8244 | `voice_only` | | frase nueva de §12.5 |
-| 38 | `truce_denied` | l. 8244 | `voice_only` | | ídem |
-| 39 | `rain_front` | l. 3133 | `voice_only` | | el tiempo se ve al tocar la capa fija (§6.2) |
-| 40 | `sprint_intermediate` | l. 9221 | `banner_result` | 2 | `INTERMEDIATE SPRINT · km 129 · 1. Erik Voss 20 pts · 2. Rui Silva 15 · 3. Pelle Ekdal 12` |
-| 41 | `climb_kom` | l. 9221, 9310 | `banner_result` | 2 | `KOM · Côte d'Engins (Cat. 1) · 1. Antoine Leroy 10 pts · 2. Jonas Kahn 8 · 3. Nicolás Moreno 6` |
-| 42 | `bunch_sprint` | l. 9662 | `voice_only` | | regla `finish`: la voz de la llegada, en el paquete de meta |
-| 43 | `final_km` | l. 9689 | `voice_only` | | ídem; el rótulo del último km es `last_km`, del estado |
-| 44 | `stage_win` | l. 9695 | `finish` | 3 | `STAGE WINNER · …` (§8.7) |
-| 45 | `time_cut` | l. 9135; `timetrial.ts` l. 443-447 | `time_cut` | 2 | `TIME CUT · 12 riders outside the limit` |
-| 46 | `time_cut_readmitted` | l. 9153; `timetrial.ts` l. 462-466 | `voice_only` | | la readmisión se cuenta, no se rotula |
-| 47 | `tt_start_order` | `timetrial.ts` l. 505 | `voice_only` | | el orden de salida es público: el rótulo `Start order` (el `Cue` `tt_start_order`) lo programa el reproductor en `t = 0` con `BroadcastHead.tt` (§9.5), además del cuadro de la previa de crono (§9.7) |
-| 48 | `tt_last_off` | l. 514 | `voice_only` | | |
-| 49 | `tt_split` | l. 540 | `voice_only` | | el rótulo `SPLIT 1` (el `Cue` `tt_split`) sale del estado de la crono (§9.5) |
-| 50 | `tt_first_time` | l. 557 | `voice_only` | | el sillón, `HOT SEAT` (el `Cue` `tt_finish` con `hotSeat`), sale del estado (§9.5) |
-| 51 | `tt_best_time` | l. 568 | `voice_only` | | ídem |
-| 52 | `tt_catch` | l. 589 | `voice_only` | | |
-| 53 | `tt_catches` | l. 596 | `voice_only` | | |
-| 54 | `tt_last_home` | l. 605 | `voice_only` | | regla `finish` (§4.7): en el paquete de meta |
-| 55 | `stage_win_itt` | l. 614 | `finish` | 3 | `STAGE WINNER · …` |
+| #   | Plantilla               | La emite                                                        | Destino         | Clase | Rótulo (pantalla) o por qué no lo tiene                                                                                                                                                                |
+| --- | ----------------------- | --------------------------------------------------------------- | --------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | `attack_go`             | `simulate.ts` l. 7324                                           | `voice_only`    |       | cada intento: 87 emitidos y 30 narrados en cinco llanas (mapa 01 §3); el rótulo espera al hueco (`attack_sticks`)                                                                                      |
+| 2   | `attack_swarm`          | l. 7122, 7203                                                   | `voice_only`    |       | varios a la vez, casi siempre `narra: 0`                                                                                                                                                               |
+| 3   | `attack_sticks`         | l. 8759                                                         | `attack`        | 2     | `ATTACK · [IT*] 21 Luca Bertolini (IT) · Team Alpha · Champion of Italy`, el rótulo del primer atacante; con más, `and 2 others` (6-p)                                                                 |
+| 4   | `attack_reeled`         | l. 8600, 8827                                                   | `voice_only`    |       | el cierre de un intento; la barra enseña la fusión                                                                                                                                                     |
+| 5   | `move_caught`           | l. 8827                                                         | `voice_only`    |       | un movimiento que no es la fuga del día; la barra enseña la fusión                                                                                                                                     |
+| 6   | `move_faded`            | l. 8921                                                         | `voice_only`    |       | se queda sin gente: la fila desaparece                                                                                                                                                                 |
+| 7   | `bridge_made`           | l. 8616                                                         | `voice_only`    |       | el rótulo lo da el estado: `group_changed`, `CONTACT · 2 riders bridge across`                                                                                                                         |
+| 8   | `move_merge`            | l. 8616                                                         | `voice_only`    |       | ídem                                                                                                                                                                                                   |
+| 9   | `bridge_failed`         | l. 8536                                                         | `voice_only`    |       |                                                                                                                                                                                                        |
+| 10  | `breakaway_formed`      | l. 8727                                                         | `break_formed`  | 2     | `BREAKAWAY · 5 riders · +0:48 on the bunch` y la lista con el maillot de cada uno; luego `break_presented` y la moto, las tres reservadas (6-m, §6.7)                                                  |
+| 11  | `break_cooperation`     | l. 8733                                                         | `voice_only`    |       | la línea de quién tira (§6.4) lo enseña                                                                                                                                                                |
+| 12  | `break_share`           | l. 4476                                                         | `voice_only`    |       | ídem                                                                                                                                                                                                   |
+| 13  | `breakaway_caught`      | l. 8889                                                         | `caught`        | 3     | `CAUGHT · the lead group · 12.4 km to go`                                                                                                                                                              |
+| 14  | `peloton_concedes`      | l. 4814                                                         | `voice_only`    |       | la tendencia de la capa fija ya dice que el hueco crece                                                                                                                                                |
+| 15  | `front_group`           | l. 4215                                                         | `report_only`   |       | lo dice la barra (D-43, punto 5)                                                                                                                                                                       |
+| 16  | `time_gap`              | l. 4296                                                         | `report_only`   |       | lo dice la capa fija (D-43, punto 5)                                                                                                                                                                   |
+| 17  | `peloton_pull`          | l. 4425                                                         | `voice_only`    |       | la línea de quién tira (§6.4)                                                                                                                                                                          |
+| 18  | `chase_work`            | l. 2068                                                         | `voice_only`    |       | el balance de la caza: voz                                                                                                                                                                             |
+| 19  | `sprinters_chase`       | l. 4546                                                         | `voice_only`    |       |                                                                                                                                                                                                        |
+| 20  | `sprinters_give_up`     | l. 4591                                                         | `voice_only`    |       |                                                                                                                                                                                                        |
+| 21  | `no_help_for_leader`    | l. 4017                                                         | `voice_only`    |       |                                                                                                                                                                                                        |
+| 22  | `domestiques_drop_back` | l. 4047                                                         | `voice_only`    |       |                                                                                                                                                                                                        |
+| 23  | `rider_defies_team`     | `events.ts` l. 80-88                                            | `voice_only`    |       | revelado con el siguiente suceso de su protagonista (§4.7)                                                                                                                                             |
+| 24  | `peloton_split`         | l. 6640                                                         | `split`         | 3     | `SPLIT IN THE BUNCH`, con la causa de `datos.causa`: `after a crash`, `in the crosswind`, `on the cobbles`, `on the climb`, `in the chase`                                                             |
+| 25  | `peloton_selection`     | l. 6762                                                         | `split`         | 3     | `SPLIT IN THE BUNCH`; la criba lejana, que la barra enseña como estado (§6.8)                                                                                                                          |
+| 26  | `echelon_split`         | l. 6492                                                         | `split`         | 3     | `ECHELONS`                                                                                                                                                                                             |
+| 27  | `echelon_close`         | l. 3156                                                         | `voice_only`    |       | la barra enseña cómo se cierra                                                                                                                                                                         |
+| 28  | `peloton_regroup`       | l. 6684                                                         | `group_changed` | 1     | `BACK TOGETHER · 38 riders rejoin the bunch`                                                                                                                                                           |
+| 29  | `group_overtake`        | l. 8020                                                         | `voice_only`    |       | la barra renumera                                                                                                                                                                                      |
+| 30  | `leader_dropped`        | l. 5804                                                         | `dropped`       | 1 o 3 | `DROPPED · 11 Sam Carter · Race leader · +0:25`                                                                                                                                                        |
+| 31  | `rider_bonks`           | l. 6046                                                         | `dropped`       | 1 o 3 | `DROPPED · …`                                                                                                                                                                                          |
+| 32  | `rider_sits_up`         | l. 6269                                                         | `voice_only`    |       | uno a uno, no (regla B3 del dueño, §12.3): los cuenta la barra                                                                                                                                         |
+| 33  | `rider_abandons`        | l. 6310                                                         | `abandon`       | 1 o 3 | `ABANDON · 45 Jules Moreau · Team Gamma`                                                                                                                                                               |
+| 34  | `puncture`              | l. 8473; `timetrial.ts` l. 321-327                              | `mishap`        | 1     | `PUNCTURE · 45 Jules Moreau`; sin el tiempo perdido, que es del microscopio                                                                                                                            |
+| 35  | `mechanical`            | ídem                                                            | `mishap`        | 1     | `MECHANICAL · 45 Jules Moreau`                                                                                                                                                                         |
+| 36  | `crash`                 | sintetizada de `output.incidents` (`types.ts` l. 358-365; D-13) | `crash`         | 2 o 3 | `CRASH`; los nombres, 3 s después                                                                                                                                                                      |
+| 37  | `truce_granted`         | l. 8244                                                         | `voice_only`    |       | frase nueva de §12.5                                                                                                                                                                                   |
+| 38  | `truce_denied`          | l. 8244                                                         | `voice_only`    |       | ídem                                                                                                                                                                                                   |
+| 39  | `rain_front`            | l. 3133                                                         | `voice_only`    |       | el tiempo se ve al tocar la capa fija (§6.2)                                                                                                                                                           |
+| 40  | `sprint_intermediate`   | l. 9221                                                         | `banner_result` | 2     | `INTERMEDIATE SPRINT · km 129 · 1. Erik Voss 20 pts · 2. Rui Silva 15 · 3. Pelle Ekdal 12`                                                                                                             |
+| 41  | `climb_kom`             | l. 9221, 9310                                                   | `banner_result` | 2     | `KOM · Côte d'Engins (Cat. 1) · 1. Antoine Leroy 10 pts · 2. Jonas Kahn 8 · 3. Nicolás Moreno 6`                                                                                                       |
+| 42  | `bunch_sprint`          | l. 9662                                                         | `voice_only`    |       | regla `finish`: la voz de la llegada, en el paquete de meta                                                                                                                                            |
+| 43  | `final_km`              | l. 9689                                                         | `voice_only`    |       | ídem; el rótulo del último km es `last_km`, del estado                                                                                                                                                 |
+| 44  | `stage_win`             | l. 9695                                                         | `finish`        | 3     | `STAGE WINNER · …` (§8.7)                                                                                                                                                                              |
+| 45  | `time_cut`              | l. 9135; `timetrial.ts` l. 443-447                              | `time_cut`      | 2     | `TIME CUT · 12 riders outside the limit`                                                                                                                                                               |
+| 46  | `time_cut_readmitted`   | l. 9153; `timetrial.ts` l. 462-466                              | `voice_only`    |       | la readmisión se cuenta, no se rotula                                                                                                                                                                  |
+| 47  | `tt_start_order`        | `timetrial.ts` l. 505                                           | `voice_only`    |       | el orden de salida es público: el rótulo `Start order` (el `Cue` `tt_start_order`) lo programa el reproductor en `t = 0` con `BroadcastHead.tt` (§9.5), además del cuadro de la previa de crono (§9.7) |
+| 48  | `tt_last_off`           | l. 514                                                          | `voice_only`    |       |                                                                                                                                                                                                        |
+| 49  | `tt_split`              | l. 540                                                          | `voice_only`    |       | el rótulo `SPLIT 1` (el `Cue` `tt_split`) sale del estado de la crono (§9.5)                                                                                                                           |
+| 50  | `tt_first_time`         | l. 557                                                          | `voice_only`    |       | el sillón, `HOT SEAT` (el `Cue` `tt_finish` con `hotSeat`), sale del estado (§9.5)                                                                                                                     |
+| 51  | `tt_best_time`          | l. 568                                                          | `voice_only`    |       | ídem                                                                                                                                                                                                   |
+| 52  | `tt_catch`              | l. 589                                                          | `voice_only`    |       |                                                                                                                                                                                                        |
+| 53  | `tt_catches`            | l. 596                                                          | `voice_only`    |       |                                                                                                                                                                                                        |
+| 54  | `tt_last_home`          | l. 605                                                          | `voice_only`    |       | regla `finish` (§4.7): en el paquete de meta                                                                                                                                                           |
+| 55  | `stage_win_itt`         | l. 614                                                          | `finish`        | 3     | `STAGE WINNER · …`                                                                                                                                                                                     |
 
 Los campos de cada `Cue` salen del suceso y del instante siguiente: `attack.riders`, los protagonistas (como mucho tres, R23.4) y `fromGroup`, su grupo en el instante anterior; `break_formed.group`, el grupo de los protagonistas (todos los de la fuga, mapa 01 §1.3) y `gapS`, la diferencia principal si ese grupo es la cabeza; `caught.caught`, el grupo que tenían los protagonistas antes y `by`, su sucesor; `split.parts`, los grupos del instante que llevan a alguien que iba en el grupo del título antes, y `cause`, `datos.causa` (en `echelon_split`, `viento`); `banner_result.banner`, el índice de la pancarta revelada en ese km en `Instant.banners`; `mishap.lostS`, `datos.perdidaS`; `dropped.gapS`, el hueco del grupo en que se pinta al corredor (H-17), o nulo si va en tránsito. B7 (§16.4) recorre la lista de plantillas de `simulate.ts`, `events.ts` y `timetrial.ts` y falla si una no tiene fila aquí, frase de voz y de acta y regla de `REVEAL_RULES`: la `card_changed` que traerá R23.8 de la táctica ([DOC 3]) entra por la regla por defecto de §4.7 y su redactor tiene que darle fila antes de fusionar (decisión 6-j para la crono).
 
@@ -567,14 +730,20 @@ VIRTUAL GC · after 128.0 km
 // packages/shared/src/broadcast/names.ts (sigue)
 /** A QUIÉNES PRESENTA LA MOTO (6-m): todos, por dorsal, si son hasta nameWholeGroupUpTo; si no, los que llevan un maillot que no
  *  es el de su equipo, después los del espectador y después por nivel de notoriedad (§7.5), hasta nameWholeGroupUpTo, por dorsal. */
-export function breakRoundOf(riders: readonly RiderIx[], cast: readonly RiderCard[]): readonly RiderIx[] {
-  const byBib = [...riders].sort((a, b) => a-b)
+export function breakRoundOf(
+  riders: readonly RiderIx[],
+  cast: readonly RiderCard[],
+): readonly RiderIx[] {
+  const byBib = [...riders].sort((a, b) => a - b)
   if (byBib.length <= BROADCAST.nameWholeGroupUpTo) return byBib
   const tier = (r: RiderIx): number => {
     const c = cast[r]
-    return c === undefined ? 30 : (c.worn.kind !== 'team' ? 0 : c.own ? 10 : 20) + c.notoriety   // NotorietyLevel va de 0 a 8
+    return c === undefined ? 30 : (c.worn.kind !== 'team' ? 0 : c.own ? 10 : 20) + c.notoriety // NotorietyLevel va de 0 a 8
   }
-  return [...byBib].sort((a, b) => tier(a)-tier(b) || a-b).slice(0, BROADCAST.nameWholeGroupUpTo).sort((a, b) => a-b)
+  return [...byBib]
+    .sort((a, b) => tier(a) - tier(b) || a - b)
+    .slice(0, BROADCAST.nameWholeGroupUpTo)
+    .sort((a, b) => a - b)
 }
 
 // packages/shared/src/broadcast/cues.ts (sigue). `Instant` ya lo importa el bloque de §4.9.
@@ -593,15 +762,15 @@ export function aheadOfPeloton(i: Instant, r: RiderIx): boolean {
 
 **Medido** (`l4c/cola.mjs`). La cola de §6.5 entera, a 60 fotogramas por segundo de pared, sobre las 22 etapas en línea de las 24 del mapa 07 §7 por dos semillas, con el prototipo del grabador (`l8/grab.mjs`, sobre el motor v89) y su reparto sintético; como el prototipo no tiene campeones, cuentan como «de maillot o título» los tres líderes y el 1.º y el 3.º de cada fuga por dorsal. Parte de `c4/cola.mjs`, el simulador que dejó el primer corrector de este lote, con la regla de arriba en lugar de la caza como fin de la fuga. Son 34 fugas; la ronda, con el tope de doce, suma 166 rótulos (203 sin él). «Tocaba» quiere decir que el escapado seguía por delante del pelotón cuando le llegaba su turno.
 
-| `Watch`, en las 44 corridas | la cola de antes (ronda de clase 0, sin reserva), ×1 | 6-m, ×½ | 6-m, ×1 | 6-m, ×2 |
-| --- | --- | --- | --- | --- |
-| la lista, entera | 31 de 34 | 33 de 34 | 33 de 34 | 33 de 34 |
-| la frase, entera | 20 de 34 | 33 de 34 | 33 de 34 | 33 de 34 |
-| rótulos de la moto de los escapados a los que tocaba | 102 de 189 (54 %) | 166 de 166 | 157 de 158 | 145 de 153 |
-| rondas enteras | 4 de 34 | 34 de 34 | 30 de 34 (33 contando solo a los que tocaba) | 28 de 34 |
-| los de maillot o título | 29 de 60 | 60 de 60 | 59 de 60 | 56 de 60 |
-| rótulos de escapados ya cazados | 5 | 0 | 0 | 0 |
-| el resto de la clase 2 / de la clase 1 que sale entero | 70,0 % / 35,8 % | 78,7 % / 55,4 % (antes, 79,0 % / 55,5 %) | 69,2 % / 35,3 % | 55,6 % / 18,5 % (antes, 56,7 % / 19,5 %) |
+| `Watch`, en las 44 corridas                            | la cola de antes (ronda de clase 0, sin reserva), ×1 | 6-m, ×½                                  | 6-m, ×1                                      | 6-m, ×2                                  |
+| ------------------------------------------------------ | ---------------------------------------------------- | ---------------------------------------- | -------------------------------------------- | ---------------------------------------- |
+| la lista, entera                                       | 31 de 34                                             | 33 de 34                                 | 33 de 34                                     | 33 de 34                                 |
+| la frase, entera                                       | 20 de 34                                             | 33 de 34                                 | 33 de 34                                     | 33 de 34                                 |
+| rótulos de la moto de los escapados a los que tocaba   | 102 de 189 (54 %)                                    | 166 de 166                               | 157 de 158                                   | 145 de 153                               |
+| rondas enteras                                         | 4 de 34                                              | 34 de 34                                 | 30 de 34 (33 contando solo a los que tocaba) | 28 de 34                                 |
+| los de maillot o título                                | 29 de 60                                             | 60 de 60                                 | 59 de 60                                     | 56 de 60                                 |
+| rótulos de escapados ya cazados                        | 5                                                    | 0                                        | 0                                            | 0                                        |
+| el resto de la clase 2 / de la clase 1 que sale entero | 70,0 % / 35,8 %                                      | 78,7 % / 55,4 % (antes, 79,0 % / 55,5 %) | 69,2 % / 35,3 %                              | 55,6 % / 18,5 % (antes, 56,7 % / 19,5 %) |
 
 La fuga que falta en las tres columnas de 6-m vivió un segundo de pared (`race-france` e20, semilla 1: un corredor, revelado a las 1:20:00 de carrera y cazado 64 s después, tras caerse): la cazaron antes de que salieran su lista y su frase, y su `CAUGHT` sí salió; a ×½ salió además su rótulo de la moto, porque poco después volvió a irse con otro corredor (`attack_go`, km 41,3) y, cuando le tocó, iba por delante del pelotón. A ×1 el último de la ronda sale a 30 s de pared de la lista en la mediana (p90, 67 s; máximo, 75 s), y un rótulo espera como mucho 39 s. En `Highlights` a ×1, sin ronda, salen 33 listas y 33 frases de 34, contra 22 y 14 con la cola de antes, y el resto de la clase 2 baja del 41,0 al 38,3 %. En las cinco etapas en línea congeladas de los tests (§16.4), la cola de antes enseñaba 9 de los 21 rótulos de la moto y 2 de las 5 frases a ×1; con 6-m, los 21 y las 5 a ×½ y a ×1, y 20 de 21 a ×2. Lo sella la segunda parte de B3 (§16.4).
 
@@ -627,13 +796,13 @@ D-17: la duración de la reproducción y lo que queda de ella; cuántos sucesos 
 
 D-48, escrito como hecho: `Watch` es la retransmisión; `Report` es el acta, la pestaña que hoy se llama `Story` (`apps/web/src/pages/StageReplay.tsx` l. 29-45, la primera y la de defecto de una etapa corrida, l. 345-346); `Race Radio` es el microscopio del dueño (pantalla, las tres). «journal», «crónica», «diario» y `Story` dejan de ser nombres de pantalla; en la prosa de este documento son «la voz» y «el acta» (mapa 05 §6, contradicción 8). Los nombres de pantalla son de producto, y el dueño llama a esa pieza «Journal» en todas sus peticiones («el Journal me gustaría que tuviera aún más detalle», `docs/balance.md` l. 1431-1432, v11; «si lees todo el Journal no SABES quién va ganando», l. 5975, v27; «es solo un tema del journal», l. 8095, v39): D-48 los fija por defecto y la elección pasa al dueño (DD-28, §20, «Los nombres de pantalla», con `Journal` como alternativa para el acta; Rdueno-036), cuyo último momento barato es el 9a, que renombra `Story` en todas las etapas. Dentro de `Watch`, la lista de lo que la voz ya ha dicho se despliega con `Commentary` (pantalla), y nunca enseña una línea con `revealS` mayor que `t`.
 
-| La etapa, para ese espectador | Pestañas (pantalla), la primera por defecto |
-| --- | --- |
-| no conocida y en el velo (a medias o sin tocar) | `Watch`, `Profile` sin marcas; `Report`, `Result`, `Classifications` y `Race Radio` enseñan la puerta (§11) |
-| no conocida y fuera del velo (caducada, o de una carrera fuera de guardia; §10.2, decisión 10-e) | `Watch`, sin puerta; las demás, a un toque y sin confirmación |
-| vista o revelada (letras `W`, `S` y `R`, D-28, 10-e) | `Report`, `Result`, `Classifications`, `Race Radio`, `Profile`, `Watch` |
-| arrastrada (letra `A`: conocida por deducción al ver o revelar una posterior, D-28, 10-a) | `Watch`, sin puerta; `Report` y las demás, a un toque y sin confirmación, como la caducada (decisión 6-r) |
-| aún no corrida | `Preview`, `Profile` |
+| La etapa, para ese espectador                                                                    | Pestañas (pantalla), la primera por defecto                                                                 |
+| ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| no conocida y en el velo (a medias o sin tocar)                                                  | `Watch`, `Profile` sin marcas; `Report`, `Result`, `Classifications` y `Race Radio` enseñan la puerta (§11) |
+| no conocida y fuera del velo (caducada, o de una carrera fuera de guardia; §10.2, decisión 10-e) | `Watch`, sin puerta; las demás, a un toque y sin confirmación                                               |
+| vista o revelada (letras `W`, `S` y `R`, D-28, 10-e)                                             | `Report`, `Result`, `Classifications`, `Race Radio`, `Profile`, `Watch`                                     |
+| arrastrada (letra `A`: conocida por deducción al ver o revelar una posterior, D-28, 10-a)        | `Watch`, sin puerta; `Report` y las demás, a un toque y sin confirmación, como la caducada (decisión 6-r)   |
+| aún no corrida                                                                                   | `Preview`, `Profile`                                                                                        |
 
 Una etapa con `A` no se ha visto: se conoce por deducción, porque la N+1 sale con la general de la N (D-28), y el espectador sabe de ella lo mismo que de una caducada. Quien descubre una carrera fuera de guardia por la etapa 5, pulsa `▶` y vuelve después a la 1 para verla desde el principio, la encuentra en `Watch`, como antes de pulsar, y no en `Report` con el ganador arriba: entrar en una etapa es sentarse a verla, no leer el acta (`docs/encargos.md` l. 158; Rdueno-021). Para distinguirla, `WatchState` gana `seen: boolean` (`true` con `W`, `S` o `R`), que la ruta de etapa rellena (§4.11, §14.1); `raceTabs` y su test (9b, §11) ganan el caso.
 
@@ -652,6 +821,7 @@ La emisión abre con la previa y cierra con el cierre (D-22, I-22): no son pági
 **Huecos rellenados.** H-03 (§6.8: la criba lejana la enseña la barra como estado y `peloton_selection` tiene rótulo; en el acta sigue en el 58 %, y lo decide el dueño), H-07 (§6.8: el tiempo sí, congelado y sin punto cardinal; lugares y avituallamiento no, porque el motor no los tiene), H-17 (§6.2: el hueco de tu corredor es el de su grupo en el último punto común, también en tránsito). De la corrección (fase 5): el requisito del dueño de los maillots de la fuga, con garantía y medida (§6.2, §6.7, 6-m); la regla de los 3 km (6-o), el fuera de control en vivo (6-q) y el hueco en la cima (6-n), que el mapa 06 §9 pedía y nadie decidía.
 
 **Decisiones de esta sección.**
+
 - 6-a. `groupRoleOf` aplica `bunchMinShare` para `Bunch` y, sin grueso, la referencia de `chaseReferenceIndex` con `chaseMinShare` para el trozo de atrás de una criba, que el motor llama «the chase group»; con grueso, todo lo de detrás es `Gruppetto`. La función del motor se copia en `shared` (`chaseRefOf`) porque `shared` no importa el motor; se exporta, `broadcast/index.ts` la reexporta y `broadcastConstants.test.ts` la compara con la del motor en 10.000 carreteras generadas (§15.5, 15-a, 15-k; cierra la duda 1.7). Descartado: todo lo que va detrás del título como `Gruppetto` (llamaría grupeta al trozo de 76 de una criba) y la referencia del motor también con grueso (llamaría `Chase group` a tres descolgados detrás de un pelotón que va en cabeza).
 - 6-b. «El pelotón» de D-17 es el grupo con papel `bunch` y, si ninguno llega a dos tercios, el grupo del título. El grupo del maillot (`jersey_group`) se llama igual en la barra, la radio servida, la capa fija y la voz (`Race leader’s group`, `on the race leader’s group`, «the race leader’s group»): el PR 4a añade sus tres nombres a `GROUP_NOUNS` y a `WATCHED_GROUP_NOUNS`, como `the gruppetto`, y la voz los dice cuando el grupo de su protagonista lleva esa etiqueta (§12.6). El de la montaña es `Mountains leader’s group`, como el `aria-label` de hoy (`JERSEY_LABEL`, `jerseys.ts` l. 133-137), y `KOM` queda para la pancarta. Descartado: la voz con el nombre del papel (la versión anterior), que daba dos nombres al mismo grupo en la misma pantalla (Rdueno-017), y `KOM leader’s group` (Rcobertura-019).
 - 6-c. Las `mobileGroupRows` filas del móvil se eligen por prioridad (la 1, el pelotón, las del espectador, las que llevan un maillot, y luego por carretera) y se pintan en orden de carretera; el resto se pliega en `+N groups · M riders`. Cada corredor que la barra nombra lleva su `WornJerseyIcon`, leído del reparto por `RiderIx`; la fila de un grupo de cuatro a doce lleva debajo sus corredores con su maillot (en escritorio, con nombre; en el móvil, solo los iconos, bajo la fila 1 y las del espectador). Los nombres, tal como están guardados (7-a), cortados con `…` si no caben. Descartado: las cuatro primeras sin más, que dejaría fuera al pelotón en cuanto hay tres grupos delante; y los apellidos en mayúsculas, que el esquema no guarda (7-a; cierra la duda 1.5).
@@ -672,6 +842,7 @@ La emisión abre con la previa y cierra con el cierre (D-22, I-22): no son pági
 - 6-r. Una etapa arrastrada (`A`) abre en `Watch`, sin puerta y con `Report` a un toque, como la caducada: no se ha visto, se conoce por deducción. `WatchState` gana `seen: boolean` para distinguirla (§4.11). Descartado: abrirla en `Report`, que pone el ganador delante a quien vuelve a la etapa 1 tras ver la 5 de una carrera fuera de guardia (Rdueno-021).
 
 **Propuesto para el glosario.**
+
 - `groupLabelOf(size, members, jerseys, role, groupsCount): GroupLabel` y `chaseRefOf` (copia de `chaseReferenceIndex`, exportada para el test de §15.5), en `packages/shared/src/broadcast/instant.ts`; `mainGapOf` gana un tercer parámetro, `markAt(g, photoKm)`, la marca en Ds de un grupo en un km de foto con el respaldo de 3-e.
 - `PullingLine` (`in_turn` o `teams`, cada equipo con `forRider` y `motive`), `pullingLineOf(detail, members, cast)` y `PULL_MOTIVE_WORDS` (el porqué de un equipo en pocas palabras, `Record<PullMotive, string>`), en `packages/shared/src/broadcast/names.ts`; `GROUP_WORDS.jersey` pasa a pares [barra, voz].
 - `cueClassOf(cue, start, lastVirtualLeader, timeTrial): CueClass`, `isPresentation(cue): boolean` y `aheadOfPeloton(i, r): boolean` (6-m), y las dos funciones de la cola de §6.5 (`admitir` y el fotograma, puras sobre su estado), en `packages/shared/src/broadcast/cues.ts`; `breakRoundOf(riders, cast): readonly RiderIx[]` (la ronda de la moto: todos por dorsal hasta doce; en una fuga mayor, los de maillot o título, los del espectador y por notoriedad, 6-m), en `names.ts`.
@@ -679,6 +850,7 @@ La emisión abre con la previa y cierra con el cierre (D-22, I-22): no son pági
 - Textos de pantalla: `on the bunch` (y las demás referencias de la capa fija), `Last lap · 8.2 km to go`, `850 m to go`, `Next: Côte des Terrasses · Cat. 3 · in 26.5 km`, `↓ 3 dropping back`, `↑ 2 bridging across`, `+3 groups · 41 riders`, `Pulling: all 3 in turn`, `Pulling: both in turn`, `Pulling: 4 of 5 in turn`, `+2 teams`, las quince de `PULL_MOTIVE_WORDS` (`chasing`, `for the GC`, `defending the jersey`…), `Mountains leader’s group`, `the race leader’s group` y las otras dos en la voz, `Your team · 1 in front · 5 in the bunch`, `Your rider · dropping back from the bunch`, `Your rider · bridging to the lead group`, `Your rider · out of the race`, `BREAKAWAY · 5 riders · +0:48 on the bunch`, `TIME CHECK · 98.5 km to go`, `+3 groups behind · 41 riders`, `CONTACT · 2 riders bridge across`, `3 of the 5 remain`, `BACK TOGETHER · 38 riders rejoin the bunch`, `FLAMME ROUGE · 1 KM`, `same time (3 km rule)`, y las causas del corte (`after a crash`, `in the crosswind`, `on the cobbles`, `on the climb`, `in the chase`).
 
 **Dudas para el ensamblador.** (estado tras la corrección L4, fase 5)
+
 - Para §12.6 (la voz): medido con `l4/bunch.mjs`, de las líneas narradas que dicen «the bunch» salen con el grupo del título por debajo de dos tercios, cuando la barra no lo llama `Bunch`, 0 de 41 en la llana, 16 de 67 en la media, 22 de 48 en la reina e18, 4 de 48 en Flandes y 8 de 22 en Colombia (sobre todo `attack_go` y `attack_reeled`). D-18 manda que la voz lea `GroupRole`, y ahora también `GroupLabel` para el grupo del maillot (6-b); §12.6 tiene que decir cómo (propuesta: el renderizador recibe el papel y la etiqueta del grupo del protagonista en `instantAt(revealS)` para las plantillas cuyo `GROUP_NOUNS` tiene más de un nombre) o aceptar la contradicción por escrito. El `chaseIsBunch` del motor usa la mitad de los que corren y no los dos tercios (`simulate.ts` l. 4142-4144); solo afecta a `time_gap` y `front_group`, fuera de la voz de `Watch`, y al acta.
 - Cerradas en la corrección: la exportación de `chaseReferenceIndex` y el test de `chaseRefOf` (15-k, §15.5; duda 1.7); los `Cue` de crono (4-u, §4.9; las tres claves de `CUE_CLASS` están arriba); y el comentario de §4.9 sobre quién produce los `Cue` (C-14).
 - Para §4.11: `BroadcastFinish.threeKmRule: readonly RiderIx[]` (6-o) y `WatchState.seen: boolean` (6-r). Para §4.9: `RiderCueContext` deja de usar `attack` (6-p).

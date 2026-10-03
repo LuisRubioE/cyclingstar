@@ -40,7 +40,7 @@ ETIQUETA = re.compile(r'^\*\*(Injertos aplicados|Objeciones resueltas|Huecos rel
 # 1. El orden: la tabla de §B del esqueleto.
 orden = []
 for linea in open(os.path.join(d, '00-esqueleto.md'), encoding='utf-8'):
-    m = re.match(r'^\| §(\d+) \| .*? \| `borrador/(\d\d-[\w-]+\.md)` \|', linea)
+    m = re.match(r'^\|\s*§(\d+)\s*\|.*?\|\s*`borrador/(\d\d-[\w-]+\.md)`\s*\|', linea)   # tolera el relleno de Prettier
     if m:
         orden.append((int(m.group(1)), m.group(2)))
 orden.sort()
@@ -167,8 +167,8 @@ for clave in ('injertos', 'objeciones', 'huecos'):
         fallo(f'{clave} sin bloque de cierre: {", ".join(faltan)}')
 
 # 4. Lo que pide la fase 7 (04-fase-refutacion.md §7) del documento final.
-if not L[2].startswith('Estado: diseño escrito, sin implementar.'):
-    fallo('la línea 3 no es «Estado: diseño escrito, sin implementar.»')
+if not (L[2].startswith('Estado: diseño escrito, sin implementar.') or L[2].startswith('Estado: en implementación')):
+    fallo('la línea 3 no es «Estado: diseño escrito, sin implementar.» ni «Estado: en implementación…»')
 fin0 = next(i for i, l in enumerate(L) if l.startswith('## 1. '))   # la cabecera, §0, acaba antes de «## 1.»
 if not any(l.startswith('**Regla de arranque**') and 'docs/encargos.md' in l for l in L[:fin0]):
     fallo('la cabecera no lleva el párrafo de la regla de arranque')
@@ -199,3 +199,12 @@ for f in fallos:
 print(f'comprobación: {len(fallos)} fallos, {len(avisos)} avisos')
 sys.exit(1 if fallos else 0)
 PY
+
+# El documento pasa por Prettier, como todo el repositorio: el CI lo comprueba con `pnpm format`, y la
+# comprobación de arriba mira el contenido, que Prettier no cambia (solo el relleno de las tablas).
+RAIZ="$(cd "$DIR/../../../.." && pwd)"
+if [[ " $* " == *" --final "* ]]; then
+  (cd "$RAIZ" && pnpm exec prettier --write --log-level warn docs/retransmision.md)
+else
+  (cd "$RAIZ" && pnpm exec prettier --write --log-level warn docs/diseno/e2-retransmision/borrador/retransmision-v1.md)
+fi

@@ -19,7 +19,7 @@ otros lotes. La pasada de coherencia tiene que cerrarlos uno a uno (o dejarlos e
   L4 lo mide en 38, 40 o 43 min y decide que el número del botón se calcula (8-b).
 - D-26: `knownWins` «por construcción» no vale para victorias de etapa dentro de una vuelta. L5 lo
   cierra en §7.5: solo cuentan victorias cuya fila `gc` de `palmares` tiene `game_day ≤ día −
-  expiryGameDays`, con consulta EXISTS.
+expiryGameDays`, con consulta EXISTS.
 - Trampa del CI: un test nuevo bajo `packages/engine/src/sim/` no corre en ningún PR; la decisión
   15-d mete `timeline.test.ts` en el tramo «mundo y radio».
 - `photoBlocksOf` tiene que quitar repetidos: en 69 etapas dos km de foto caen en el mismo bloque.

@@ -57,16 +57,16 @@ repositorio.
 
 Está descrito en `docs/diseno/README.md` y ejecutado en `docs/diseno/e1-generador/`. Se replica:
 
-| Fase | Quién | Salida | Modelo de referencia en E1 |
-| --- | --- | --- | --- |
-| 0. Mapas | 7 cartógrafos en paralelo | `mapas/01..07-*.md` (200-350 l. cada uno) | `e1-generador/mapas/` |
-| 1. Propuestas | 5 proponentes independientes | `propuestas/<lente>.md` (700-900 l.) | `e1-generador/propuestas/` |
-| 2. Juicios | 3 jueces con focos distintos | `juicios/<foco>.md` + `juicios/veredicto.json` | `e1-generador/juicios/` |
-| 3. Síntesis | esqueleto + redactores por sección | `borrador/00-esqueleto.md`, `borrador/NN-*.md` | `e1-generador/borrador/` |
-| 4. Refutación | 4 refutadores adversarios | `refutaciones/hallazgos-*.json` | `e1-generador/refutaciones/` |
-| 5. Corrección | correctores por sección | secciones corregidas + `correcciones-*.json` | idem |
-| 6. Coherencia y auditoría | 1 pasada de coherencia + auditores | `refutaciones/resultado-final.json`, cabecera | idem |
-| 7. Ensamblado | 1 ensamblador | `docs/retransmision.md` | `docs/generador.md` |
+| Fase                      | Quién                              | Salida                                         | Modelo de referencia en E1   |
+| ------------------------- | ---------------------------------- | ---------------------------------------------- | ---------------------------- |
+| 0. Mapas                  | 7 cartógrafos en paralelo          | `mapas/01..07-*.md` (200-350 l. cada uno)      | `e1-generador/mapas/`        |
+| 1. Propuestas             | 5 proponentes independientes       | `propuestas/<lente>.md` (700-900 l.)           | `e1-generador/propuestas/`   |
+| 2. Juicios                | 3 jueces con focos distintos       | `juicios/<foco>.md` + `juicios/veredicto.json` | `e1-generador/juicios/`      |
+| 3. Síntesis               | esqueleto + redactores por sección | `borrador/00-esqueleto.md`, `borrador/NN-*.md` | `e1-generador/borrador/`     |
+| 4. Refutación             | 4 refutadores adversarios          | `refutaciones/hallazgos-*.json`                | `e1-generador/refutaciones/` |
+| 5. Corrección             | correctores por sección            | secciones corregidas + `correcciones-*.json`   | idem                         |
+| 6. Coherencia y auditoría | 1 pasada de coherencia + auditores | `refutaciones/resultado-final.json`, cabecera  | idem                         |
+| 7. Ensamblado             | 1 ensamblador                      | `docs/retransmision.md`                        | `docs/generador.md`          |
 
 ## 4. Reglas de escritura, para todos
 

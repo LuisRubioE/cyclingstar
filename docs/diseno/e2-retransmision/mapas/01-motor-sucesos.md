@@ -40,12 +40,12 @@ Cinco hechos que condicionan todo E2:
 ```ts
 // packages/engine/src/stage/types.ts l. 330-337
 export interface RaceEvent {
-  km: number                               // centro del bloque de 100 m: 12.35; los de decisión, en k + 0.05
-  tS: number                               // segundos desde la salida, coma flotante, reloj del grupo implicado
-  tipo: string                             // categoría en castellano: 'intento', 'boquete', 'corte', 'meta'…
-  plantilla: string                        // clave de frase en inglés: 'attack_go', 'time_gap'…
-  protagonistas: string[]                  // riderIds; casi siempre ≤ 3
-  datos?: Record<string, number | string>  // plano: sin listas ni objetos (una lista va serializada en cadena)
+  km: number // centro del bloque de 100 m: 12.35; los de decisión, en k + 0.05
+  tS: number // segundos desde la salida, coma flotante, reloj del grupo implicado
+  tipo: string // categoría en castellano: 'intento', 'boquete', 'corte', 'meta'…
+  plantilla: string // clave de frase en inglés: 'attack_go', 'time_gap'…
+  protagonistas: string[] // riderIds; casi siempre ≤ 3
+  datos?: Record<string, number | string> // plano: sin listas ni objetos (una lista va serializada en cadena)
 }
 ```
 
@@ -66,43 +66,43 @@ export interface RaceEvent {
 
 ### 1.3 Catálogo de la carretera (simulate.ts salvo que se diga)
 
-| Plantilla (`tipo`) | l. | Protagonistas | `datos` | Cuándo y con qué freno |
-| --- | --- | --- | --- | --- |
-| `attack_go` (intento) | 7324 | ≤ 3 de los que saltan (l. 7092) | hueco, kind, saltan, tierra, cuerda, grupo, toGo, narra | todo intento; narra si han pasado 35 km del anterior narrado (10 en el final) o saltan ≥ 4 (l. 4237-4239) |
-| `attack_swarm` (intento) | 7122, 7203 | ≤ 3 | kind, saltan, grupo, toGo, narra, sinHueco | varios a la vez; casi siempre `narra 0` |
-| `attack_sticks` (ataque) | 8759 | ≤ 3 | kind, size, gapS, toGo, narra | el intento abre hueco; freno 6 km (l. 4242) |
-| `attack_reeled` / `move_caught` | 8600, 8827 | ≤ 3 | kind, km (lo que duró), narra | cierre; se narra solo si se narró la salida |
-| `move_faded` (intento_fallido) | 8921 | ≤ 3 (`lastIds`) | kind, km, toGo | el movimiento se queda sin gente |
-| `bridge_made` / `move_merge` (enlace) | 8616 | ≤ 3 de los que entran | size, entran, toGo, narra | fusión con el de delante |
-| `bridge_failed` (puente_fallido) | 8536 | ≤ 3 | toGo, narra | se agota el puente |
-| `breakaway_formed` (fuga_formada) | 8727 | **todos** los de la fuga | ninguno | una vez; fecha retrasada (§1.2 a) |
-| `break_cooperation` (colaboracion) | 8733 | todos | cooperating 0/1 | con la anterior |
-| `break_share` (colaboracion) | 4476 | los que tiran | size, passengers, toGo | una vez, 25 km después de formarse (l. 4455; constants l. 5022) |
-| `breakaway_caught` (fuga_cazada) | 8889 | los que quedaban | size, deLos, awayKm, toGo, motivo (`deshecha` si no la cazó el pelotón) | una vez |
-| `front_group` (cabeza) | 4215 | todos, si son ≤ 8, por perfil | size, gapS, toGo, chaseSize, chaseKind, entran, salen | cabeza ≤ 8, cambia de gente, ≥ 5 km del anterior (l. 2640-2644) |
-| `time_gap` (boquete) | 4296 | ≤ 3 de cabeza si son ≤ 8 | gapS, trend, leadSize, chaseSize, chaseKind, toGo, cuesta | cada 25 km, cada 4 en los últimos 40, solo si el hueco se movió ≥ máx(3 s, 15 %) y es ≥ 20 s (l. 2674-2698) |
-| `peloton_pull` (tiran) | 4425 | ≤ 3 | commit, forKind, forId, forLeaders, porQue, effort, toGo, size, chasing | ≥ 30 km del anterior si cambia quién tira, 36 si no (l. 4400-4406; constants l. 4993-4994) |
-| `chase_work` (trabajo) | 2068 | la cara de ≤ 3 equipos | teams, closedS, km, peakKm, work, pegado | al cazar un movimiento que tuvo ≥ 25 s |
-| `sprinters_chase` / `sprinters_give_up` | 4546 / 4591 | el sprinter / nadie | porQue / nada | una vez |
-| `peloton_concedes` (fuga_consolidada) | 4814 | la fuga | nada | una vez, no antes del 33 % |
-| `peloton_split` (corte) | 6640 | quien lo provoca | dropped, escapados, remaining, before, shed, phase, chasing, causa | freno 12 km (3 si es grande), escalado por aviso (l. 2589-2608); causa caida, viento, sector, puerto o caza (l. 6613-6622) |
-| `peloton_selection` (criba) | 6762 | idem | dropped, escapados, remaining, before, fromKm, toGo, chasing | criba lejos de meta: ≥ 20 y ≥ 25 %, 4 km asentada, freno 20 km (l. 2620-2628) |
-| `peloton_regroup` (reagrupamiento) | 6684 | nadie | joined, remaining, before, chasing | vuelven ≥ 8 y ≥ 25 %, freno 3 km |
-| `echelon_split` / `echelon_close` (criba) | 6492 / 3156 | ≤ 3 / nadie | before, remaining, dropped, wind, grupo, toGo, byTeam / toGo, wind | el abanico parte / se cierra tras 2 km al abrigo |
-| `group_overtake` (adelantamiento) | 8020 | ≤ 3 | size, pasados, gapS, terreno, toGo | ≥ 3 corredores, freno 10 km (l. 3114-3120) |
-| `leader_dropped` (lider_descolgado) | 5804 | el jefe | deposito, terreno, toGo | freno 5 km por jefe |
-| `no_help_for_leader` / `domestiques_drop_back` | 4017 / 4047 | el jefe / ≤ 3 gregarios | jefeId, porque, suyos, podian, gapS, toGo / jefeId, cuantos, enMov, guarda, gapS, porQue, toGo | una vez por jefe (l. 1883) / cuando bajan |
-| `rider_bonks` · `rider_sits_up` · `rider_abandons` | 6046 · 6269 · 6310 | él | toGo, narra · toGo · causa (caida o colapso), toGo | una vez por corredor |
-| `puncture` / `mechanical` (percance) | 8473 | él | perdidaS, conCoche, toGo | cada percance |
-| `truce_granted` / `truce_denied` (tregua) | 8244 | el caído | equipo, porEquipo, toGo, enJuego, motivo | caída del jefe de la general, una por equipo |
-| `rain_front` (clima) | 3133 | nadie | equipo, recargo, toGo | primer bloque con lluvia, una por equipo que defiende la general |
-| `sprint_intermediate` (banner) | 9221 | el ganador | **ninguno** | cada meta volante; solo disputa el grupo de cabeza (l. 8940-8947) |
-| `climb_kom` (banner) | 9310 | el ganador | category, points, leads, total, tras | cada cima |
-| `bunch_sprint` (sprint) | 9662 | los 3 primeros | field, ledOut, cuesta | cabeza ≥ 8 y final agrupable |
-| `final_km` (final) | 9689 | ≤ 3 primeros | margin, field, chaseSize | si no es sprint masivo |
-| `stage_win` (meta) | 9695 | el ganador | won, margin, field, fuga, finish | una |
-| `time_cut` / `time_cut_readmitted` | 9135 / 9153 | ≤ 3 | count, limitPct, gapS | tras la meta |
-| `rider_defies_team` (por_libre) | events.ts 84 | el rebelde | doing: ataca, tira, remata, aparece | una vez, en su primera aparición |
+| Plantilla (`tipo`)                                 | l.                 | Protagonistas                   | `datos`                                                                                        | Cuándo y con qué freno                                                                                                     |
+| -------------------------------------------------- | ------------------ | ------------------------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `attack_go` (intento)                              | 7324               | ≤ 3 de los que saltan (l. 7092) | hueco, kind, saltan, tierra, cuerda, grupo, toGo, narra                                        | todo intento; narra si han pasado 35 km del anterior narrado (10 en el final) o saltan ≥ 4 (l. 4237-4239)                  |
+| `attack_swarm` (intento)                           | 7122, 7203         | ≤ 3                             | kind, saltan, grupo, toGo, narra, sinHueco                                                     | varios a la vez; casi siempre `narra 0`                                                                                    |
+| `attack_sticks` (ataque)                           | 8759               | ≤ 3                             | kind, size, gapS, toGo, narra                                                                  | el intento abre hueco; freno 6 km (l. 4242)                                                                                |
+| `attack_reeled` / `move_caught`                    | 8600, 8827         | ≤ 3                             | kind, km (lo que duró), narra                                                                  | cierre; se narra solo si se narró la salida                                                                                |
+| `move_faded` (intento_fallido)                     | 8921               | ≤ 3 (`lastIds`)                 | kind, km, toGo                                                                                 | el movimiento se queda sin gente                                                                                           |
+| `bridge_made` / `move_merge` (enlace)              | 8616               | ≤ 3 de los que entran           | size, entran, toGo, narra                                                                      | fusión con el de delante                                                                                                   |
+| `bridge_failed` (puente_fallido)                   | 8536               | ≤ 3                             | toGo, narra                                                                                    | se agota el puente                                                                                                         |
+| `breakaway_formed` (fuga_formada)                  | 8727               | **todos** los de la fuga        | ninguno                                                                                        | una vez; fecha retrasada (§1.2 a)                                                                                          |
+| `break_cooperation` (colaboracion)                 | 8733               | todos                           | cooperating 0/1                                                                                | con la anterior                                                                                                            |
+| `break_share` (colaboracion)                       | 4476               | los que tiran                   | size, passengers, toGo                                                                         | una vez, 25 km después de formarse (l. 4455; constants l. 5022)                                                            |
+| `breakaway_caught` (fuga_cazada)                   | 8889               | los que quedaban                | size, deLos, awayKm, toGo, motivo (`deshecha` si no la cazó el pelotón)                        | una vez                                                                                                                    |
+| `front_group` (cabeza)                             | 4215               | todos, si son ≤ 8, por perfil   | size, gapS, toGo, chaseSize, chaseKind, entran, salen                                          | cabeza ≤ 8, cambia de gente, ≥ 5 km del anterior (l. 2640-2644)                                                            |
+| `time_gap` (boquete)                               | 4296               | ≤ 3 de cabeza si son ≤ 8        | gapS, trend, leadSize, chaseSize, chaseKind, toGo, cuesta                                      | cada 25 km, cada 4 en los últimos 40, solo si el hueco se movió ≥ máx(3 s, 15 %) y es ≥ 20 s (l. 2674-2698)                |
+| `peloton_pull` (tiran)                             | 4425               | ≤ 3                             | commit, forKind, forId, forLeaders, porQue, effort, toGo, size, chasing                        | ≥ 30 km del anterior si cambia quién tira, 36 si no (l. 4400-4406; constants l. 4993-4994)                                 |
+| `chase_work` (trabajo)                             | 2068               | la cara de ≤ 3 equipos          | teams, closedS, km, peakKm, work, pegado                                                       | al cazar un movimiento que tuvo ≥ 25 s                                                                                     |
+| `sprinters_chase` / `sprinters_give_up`            | 4546 / 4591        | el sprinter / nadie             | porQue / nada                                                                                  | una vez                                                                                                                    |
+| `peloton_concedes` (fuga_consolidada)              | 4814               | la fuga                         | nada                                                                                           | una vez, no antes del 33 %                                                                                                 |
+| `peloton_split` (corte)                            | 6640               | quien lo provoca                | dropped, escapados, remaining, before, shed, phase, chasing, causa                             | freno 12 km (3 si es grande), escalado por aviso (l. 2589-2608); causa caida, viento, sector, puerto o caza (l. 6613-6622) |
+| `peloton_selection` (criba)                        | 6762               | idem                            | dropped, escapados, remaining, before, fromKm, toGo, chasing                                   | criba lejos de meta: ≥ 20 y ≥ 25 %, 4 km asentada, freno 20 km (l. 2620-2628)                                              |
+| `peloton_regroup` (reagrupamiento)                 | 6684               | nadie                           | joined, remaining, before, chasing                                                             | vuelven ≥ 8 y ≥ 25 %, freno 3 km                                                                                           |
+| `echelon_split` / `echelon_close` (criba)          | 6492 / 3156        | ≤ 3 / nadie                     | before, remaining, dropped, wind, grupo, toGo, byTeam / toGo, wind                             | el abanico parte / se cierra tras 2 km al abrigo                                                                           |
+| `group_overtake` (adelantamiento)                  | 8020               | ≤ 3                             | size, pasados, gapS, terreno, toGo                                                             | ≥ 3 corredores, freno 10 km (l. 3114-3120)                                                                                 |
+| `leader_dropped` (lider_descolgado)                | 5804               | el jefe                         | deposito, terreno, toGo                                                                        | freno 5 km por jefe                                                                                                        |
+| `no_help_for_leader` / `domestiques_drop_back`     | 4017 / 4047        | el jefe / ≤ 3 gregarios         | jefeId, porque, suyos, podian, gapS, toGo / jefeId, cuantos, enMov, guarda, gapS, porQue, toGo | una vez por jefe (l. 1883) / cuando bajan                                                                                  |
+| `rider_bonks` · `rider_sits_up` · `rider_abandons` | 6046 · 6269 · 6310 | él                              | toGo, narra · toGo · causa (caida o colapso), toGo                                             | una vez por corredor                                                                                                       |
+| `puncture` / `mechanical` (percance)               | 8473               | él                              | perdidaS, conCoche, toGo                                                                       | cada percance                                                                                                              |
+| `truce_granted` / `truce_denied` (tregua)          | 8244               | el caído                        | equipo, porEquipo, toGo, enJuego, motivo                                                       | caída del jefe de la general, una por equipo                                                                               |
+| `rain_front` (clima)                               | 3133               | nadie                           | equipo, recargo, toGo                                                                          | primer bloque con lluvia, una por equipo que defiende la general                                                           |
+| `sprint_intermediate` (banner)                     | 9221               | el ganador                      | **ninguno**                                                                                    | cada meta volante; solo disputa el grupo de cabeza (l. 8940-8947)                                                          |
+| `climb_kom` (banner)                               | 9310               | el ganador                      | category, points, leads, total, tras                                                           | cada cima                                                                                                                  |
+| `bunch_sprint` (sprint)                            | 9662               | los 3 primeros                  | field, ledOut, cuesta                                                                          | cabeza ≥ 8 y final agrupable                                                                                               |
+| `final_km` (final)                                 | 9689               | ≤ 3 primeros                    | margin, field, chaseSize                                                                       | si no es sprint masivo                                                                                                     |
+| `stage_win` (meta)                                 | 9695               | el ganador                      | won, margin, field, fuga, finish                                                               | una                                                                                                                        |
+| `time_cut` / `time_cut_readmitted`                 | 9135 / 9153        | ≤ 3                             | count, limitPct, gapS                                                                          | tras la meta                                                                                                               |
+| `rider_defies_team` (por_libre)                    | events.ts 84       | el rebelde                      | doing: ataca, tira, remata, aparece                                                            | una vez, en su primera aparición                                                                                           |
 
 ### 1.4 Lo que el motor sabe y NO emite como suceso
 
@@ -128,14 +128,14 @@ export interface RaceEvent {
 
 ### 2.1 `StageOutput` (types.ts l. 568-593) no lleva estado intermedio
 
-| Campo | Qué lleva | Resolución | Medido (llana / reina) |
-| --- | --- | --- | --- |
-| `events` | §1 | sucesos sueltos | 14,0 / 22,1 KB |
-| `results: StageResult[]` (l. 340-348) | puesto, `tiempoS` entero, `bonificacionS` (10/6/4, constants.ts l. 6285), `puntosVolante` (incluye la meta), `puntosMontana`, estado finish, abandon o dnf | final | 21,5 KB |
-| `incidents` | §1.4 | km a 100 m, sin segundo | 0,2 / 1,0 KB |
-| `efforts: Map<id, StageEffort>` (l. 545-565) | km al frente, en fuga, descolgado; ataques, saltos, cerillos, reserva, gasto; **`pajaraKm`, `descuelgueKm`** | resumen del día | 44,5 / 58,7 KB |
-| `workUnits`, `tank` | gasto y depósito finales | final | |
-| `engineVersion`, `customsRevisions` | sello del motor, revisiones de la aduana | | |
+| Campo                                        | Qué lleva                                                                                                                                                  | Resolución              | Medido (llana / reina) |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- | ---------------------- |
+| `events`                                     | §1                                                                                                                                                         | sucesos sueltos         | 14,0 / 22,1 KB         |
+| `results: StageResult[]` (l. 340-348)        | puesto, `tiempoS` entero, `bonificacionS` (10/6/4, constants.ts l. 6285), `puntosVolante` (incluye la meta), `puntosMontana`, estado finish, abandon o dnf | final                   | 21,5 KB                |
+| `incidents`                                  | §1.4                                                                                                                                                       | km a 100 m, sin segundo | 0,2 / 1,0 KB           |
+| `efforts: Map<id, StageEffort>` (l. 545-565) | km al frente, en fuga, descolgado; ataques, saltos, cerillos, reserva, gasto; **`pajaraKm`, `descuelgueKm`**                                               | resumen del día         | 44,5 / 58,7 KB         |
+| `workUnits`, `tank`                          | gasto y depósito finales                                                                                                                                   | final                   |                        |
+| `engineVersion`, `customsRevisions`          | sello del motor, revisiones de la aduana                                                                                                                   |                         |                        |
 
 ### 2.2 La foto: `StageProbe` (types.ts l. 487-504)
 
@@ -145,16 +145,16 @@ export interface RaceEvent {
 
 `raceRadioCollector` guarda las fotos (l. 395-414) → `raceRadioFrom` hace `RadioKm` con los grupos ordenados por reloj, el hueco al líder por resta y el `kind` (fuga, contra, peloton, tierra, grupeto) por posición respecto al pelotón, con la histéresis del motor (l. 416-461, `kindOf` l. 361-383) → `radioForStorage` adelgaza (l. 776-963). Por km y grupo:
 
-| En la foto (`RadioGroup`, l. 120-148) | En `StoredRadioGroup` |
-| --- | --- |
-| `id` (`peloton`, `mov-3`, `shed-7`) | **se pierde**: no se puede seguir un grupo de un km al siguiente |
-| `tS` del grupo | **se pierde**; queda `gapS` al líder de carrera, redondeado |
-| `riderIds` y `riderTs` de todos | solo `pulling` (≤ 12, l. 591, más los de la lista de seguimiento que tiren) y `watching` (lista de seguimiento, o todos si el grupo es ≤ 12, l. 611) |
-| `energyPct` | se pierde |
-| `pulling` con motivo y destinatario | `pulling`, `pullingTotal`, `motivos`, `paraQuien`; el turno se alarga 3 km (l. 597) |
-| (no existe) | `speedKmh`: mediana de lo que tardaron sus corredores en el km (l. 679-753; techo `radioMaxKmh` 75, constants.ts l. 2518) |
-| `mishap` | `mishap { tipo, lostS }`, sin quién |
-| `RadioKm.mainId`, `stopped` | se pierden; quedan `racing` y `gone` |
+| En la foto (`RadioGroup`, l. 120-148) | En `StoredRadioGroup`                                                                                                                                |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id` (`peloton`, `mov-3`, `shed-7`)   | **se pierde**: no se puede seguir un grupo de un km al siguiente                                                                                     |
+| `tS` del grupo                        | **se pierde**; queda `gapS` al líder de carrera, redondeado                                                                                          |
+| `riderIds` y `riderTs` de todos       | solo `pulling` (≤ 12, l. 591, más los de la lista de seguimiento que tiren) y `watching` (lista de seguimiento, o todos si el grupo es ≤ 12, l. 611) |
+| `energyPct`                           | se pierde                                                                                                                                            |
+| `pulling` con motivo y destinatario   | `pulling`, `pullingTotal`, `motivos`, `paraQuien`; el turno se alarga 3 km (l. 597)                                                                  |
+| (no existe)                           | `speedKmh`: mediana de lo que tardaron sus corredores en el km (l. 679-753; techo `radioMaxKmh` 75, constants.ts l. 2518)                            |
+| `mishap`                              | `mishap { tipo, lostS }`, sin quién                                                                                                                  |
+| `RadioKm.mainId`, `stopped`           | se pierden; quedan `racing` y `gone`                                                                                                                 |
 
 La lista de seguimiento de producción son los 3 maillots (con prioridad), los 10 primeros de la general de salida y los 10 primeros de la etapa (`stageRun.ts` l. 551-567). **Medido**: la fracción de corredor-km nombrada es del 18-21 % en llana (el pelotón no se enumera; fuera de él, el 100 %) y del 22-33 % en reina, donde **fuera del pelotón solo se nombra el 47-64 %** (hay 90-436 grupo-km por etapa de grupos de más de 12 que no son el pelotón). Dos comentarios desfasados: raceRadio.ts l. 483-490 promete «un vector de enteros que dice en qué grupo va cada uno… por ~55 KB» y el código no guarda ese vector; `schema.ts` l. 754 dice «~22 KB por etapa». Medido: 113-161 KB en llana y 212-385 KB en reina.
 
@@ -187,17 +187,17 @@ La lista de seguimiento de producción son los 3 maillots (con prioridad), los 1
 
 No hay radio ni fotos: `simulateStage` la desvía antes de mirar la sonda (l. 1264), y `scripts/race-radio.mjs` l. 420-431 lo declara. Cada corredor se simula entero y aparte, con su traza por bloque `raw` (timetrial.ts l. 249-305), que **no sale**. El reloj de carrera son los segundos desde que sale el primero: `startS` por la rampa de `timeTrialStartOrder` (startOrder.ts l. 127: orden inverso de la general a 2 min, o por dorsales a 1 min) y `finishS = startS + tS`.
 
-| Plantilla | km | `tS` | `datos` | Cuántas |
-| --- | --- | --- | --- | --- |
-| `tt_start_order` | 0 | 0 | mode, intervalS, riders, windowS | 1 (solo el primero en salir) |
-| `tt_last_off` | 0 | salida del último | afterS, riders | 1 |
-| `tt_split` | control | reloj al pasar | checkKm, splitS, gainS, prevId | solo cambios del mejor parcial en 2 controles a ⅓ y ⅔ (`ttSplitChecks`), ≤ 5 por control, ≥ 120 s entre líneas, el último forzado (constants.ts l. 6177-6192) |
-| `tt_first_time` / `tt_best_time` | meta | llegada | timeS / timeS, gainS, prevId | la silla del mejor tiempo: ≤ 12, ≥ 90 s entre líneas, forzada si mejora ≥ 30 s |
-| `tt_catch` / `tt_catches` | km del alcance / meta | reloj | headStartS / count | ≤ 10, ≥ 120 s, nadie dos veces; el total, una |
-| `tt_last_home` | meta | llegada del último en salir | gapS, timeS, puesto | 1 |
-| `stage_win_itt` | meta | llegada del último en llegar | timeS, marginS, startedNth, riders | 1 |
-| `puncture` / `mechanical` | meta / 2 | **reloj propio** (§1.2 e) | perdidaS, conCoche | medido 0-5 por crono |
-| `time_cut` / `time_cut_readmitted` | meta | llegada | count, limitPct (25), gapS | si toca |
+| Plantilla                          | km                    | `tS`                         | `datos`                            | Cuántas                                                                                                                                                       |
+| ---------------------------------- | --------------------- | ---------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tt_start_order`                   | 0                     | 0                            | mode, intervalS, riders, windowS   | 1 (solo el primero en salir)                                                                                                                                  |
+| `tt_last_off`                      | 0                     | salida del último            | afterS, riders                     | 1                                                                                                                                                             |
+| `tt_split`                         | control               | reloj al pasar               | checkKm, splitS, gainS, prevId     | solo cambios del mejor parcial en 2 controles a ⅓ y ⅔ (`ttSplitChecks`), ≤ 5 por control, ≥ 120 s entre líneas, el último forzado (constants.ts l. 6177-6192) |
+| `tt_first_time` / `tt_best_time`   | meta                  | llegada                      | timeS / timeS, gainS, prevId       | la silla del mejor tiempo: ≤ 12, ≥ 90 s entre líneas, forzada si mejora ≥ 30 s                                                                                |
+| `tt_catch` / `tt_catches`          | km del alcance / meta | reloj                        | headStartS / count                 | ≤ 10, ≥ 120 s, nadie dos veces; el total, una                                                                                                                 |
+| `tt_last_home`                     | meta                  | llegada del último en salir  | gapS, timeS, puesto                | 1                                                                                                                                                             |
+| `stage_win_itt`                    | meta                  | llegada del último en llegar | timeS, marginS, startedNth, riders | 1                                                                                                                                                             |
+| `puncture` / `mechanical`          | meta / 2              | **reloj propio** (§1.2 e)    | perdidaS, conCoche                 | medido 0-5 por crono                                                                                                                                          |
+| `time_cut` / `time_cut_readmitted` | meta                  | llegada                      | count, limitPct (25), gapS         | si toca                                                                                                                                                       |
 
 - **Orden de salida completo**: no sale, pero se deriva exacto del `input` guardado, porque `timeTrialStartOrder` es pura y sin dados.
 - **Parciales**: solo los cambios del mejor; el parcial de cada corredor no existe fuera del motor.
@@ -211,30 +211,30 @@ No hay radio ni fotos: `simulateStage` la desvía antes de mirar la sonda (l. 12
 
 5 semillas por etapa, rango y (mediana). Tiempos de CPU en este contenedor; la primera corrida de cada proceso lleva el calentamiento del JIT.
 
-| Medida | Llana e7, 175 km | Reina e18, 185 km | Crono e16, 26 km (general, 2 min) | Crono e1, 20 km (dorsales, 1 min) |
-| --- | --- | --- | --- | --- |
-| Sucesos emitidos | 46-76 (71) | 86-127 (108) | 21-28 (26) | 16-29 (20) |
-| Narrables (`narra ≠ 0`) | 36-51 (42) | 69-83 (77) | todos | todos |
-| `events` en JSON | 9,2-14,9 KB (14,0) | 17,4-25,3 KB (22,1) | 3,1-4,2 KB (3,8) | 2,3-4,4 KB (2,9) |
-| … en gzip | 2,0-2,9 KB | 3,1-4,2 KB | 0,8-1,0 KB | 0,6-1,0 KB |
-| Segundos distintos con suceso | 42-68 (63) | 65-102 (81) | 19-26 (24) | 15-27 (18) |
-| Km distintos con suceso, a 100 m / a 1 km | (61) / (52) | (78) / (60) | (10) / (10) | (9) / (9) |
-| Duración | ganador 14.051-14.437 s | ganador 17.115-17.952 s | jornada 23.543-23.724 s | jornada 12.116-12.196 s |
-| Mayor silencio entre narrables | 15-21 km; 20-32 min | 14-29 km; 23-57 min | | |
-| Km con algún suceso narrable | 17-24 % | 23-29 % | | |
-| Incidentes (de ellos caídas) | 1-10 (0-9) | 5-15 (5-12) | 2-5 (0) | 0-5 (0) |
-| Fotos de radio (1 km) | 176 | 186 | 0 | 0 |
-| Cruces grupo-km (grupo × km) | 371-644 (590) | 794-1.439 (983) | | |
-| Grupos por km: máximo / mediana | 4-7 / 2-4 | 9-18 / 4-8 | | |
-| Ids de grupo distintos en la etapa | 9-21 (17) | 45-72 (55) | | |
-| Cambios del número de grupos, mirando cada 1 km / cada 100 m | (25) / (29) | (38) / (78) | | |
-| Radio completa `RaceRadio` | 1,16-1,26 MB | 1,42-2,00 MB | | |
-| Radio guardada `StoredRaceRadio` | 113-161 KB; gz 5,1-7,0 | 212-385 KB; gz 11,4-20,6 | 35 B (vacía) | 35 B |
-| Estado compacto `[id, tS, tamaño]` por grupo y km | 10-15 KB | 19-31 KB | | |
-| … cada 100 m | 102-153 KB; gz 16-25 | 189-313 KB; gz 32-54 | | |
-| Grupo de CADA corredor en cada km (vector de enteros) | 62 KB; gz 0,5-0,9 | 65 KB; gz 2,3-3,8 | | |
-| … cada 100 m, gz | 3,9-6,3 KB | 7,6-10,6 KB | | |
-| Simulación sin foto / con foto cada km / cada 100 m | (1,58 s) / (1,58 s) / (1,64 s) | (2,74 s) / (2,66 s) / (2,78 s) | 33-73 ms | 21-51 ms |
+| Medida                                                       | Llana e7, 175 km               | Reina e18, 185 km              | Crono e16, 26 km (general, 2 min) | Crono e1, 20 km (dorsales, 1 min) |
+| ------------------------------------------------------------ | ------------------------------ | ------------------------------ | --------------------------------- | --------------------------------- |
+| Sucesos emitidos                                             | 46-76 (71)                     | 86-127 (108)                   | 21-28 (26)                        | 16-29 (20)                        |
+| Narrables (`narra ≠ 0`)                                      | 36-51 (42)                     | 69-83 (77)                     | todos                             | todos                             |
+| `events` en JSON                                             | 9,2-14,9 KB (14,0)             | 17,4-25,3 KB (22,1)            | 3,1-4,2 KB (3,8)                  | 2,3-4,4 KB (2,9)                  |
+| … en gzip                                                    | 2,0-2,9 KB                     | 3,1-4,2 KB                     | 0,8-1,0 KB                        | 0,6-1,0 KB                        |
+| Segundos distintos con suceso                                | 42-68 (63)                     | 65-102 (81)                    | 19-26 (24)                        | 15-27 (18)                        |
+| Km distintos con suceso, a 100 m / a 1 km                    | (61) / (52)                    | (78) / (60)                    | (10) / (10)                       | (9) / (9)                         |
+| Duración                                                     | ganador 14.051-14.437 s        | ganador 17.115-17.952 s        | jornada 23.543-23.724 s           | jornada 12.116-12.196 s           |
+| Mayor silencio entre narrables                               | 15-21 km; 20-32 min            | 14-29 km; 23-57 min            |                                   |                                   |
+| Km con algún suceso narrable                                 | 17-24 %                        | 23-29 %                        |                                   |                                   |
+| Incidentes (de ellos caídas)                                 | 1-10 (0-9)                     | 5-15 (5-12)                    | 2-5 (0)                           | 0-5 (0)                           |
+| Fotos de radio (1 km)                                        | 176                            | 186                            | 0                                 | 0                                 |
+| Cruces grupo-km (grupo × km)                                 | 371-644 (590)                  | 794-1.439 (983)                |                                   |                                   |
+| Grupos por km: máximo / mediana                              | 4-7 / 2-4                      | 9-18 / 4-8                     |                                   |                                   |
+| Ids de grupo distintos en la etapa                           | 9-21 (17)                      | 45-72 (55)                     |                                   |                                   |
+| Cambios del número de grupos, mirando cada 1 km / cada 100 m | (25) / (29)                    | (38) / (78)                    |                                   |                                   |
+| Radio completa `RaceRadio`                                   | 1,16-1,26 MB                   | 1,42-2,00 MB                   |                                   |                                   |
+| Radio guardada `StoredRaceRadio`                             | 113-161 KB; gz 5,1-7,0         | 212-385 KB; gz 11,4-20,6       | 35 B (vacía)                      | 35 B                              |
+| Estado compacto `[id, tS, tamaño]` por grupo y km            | 10-15 KB                       | 19-31 KB                       |                                   |                                   |
+| … cada 100 m                                                 | 102-153 KB; gz 16-25           | 189-313 KB; gz 32-54           |                                   |                                   |
+| Grupo de CADA corredor en cada km (vector de enteros)        | 62 KB; gz 0,5-0,9              | 65 KB; gz 2,3-3,8              |                                   |                                   |
+| … cada 100 m, gz                                             | 3,9-6,3 KB                     | 7,6-10,6 KB                    |                                   |                                   |
+| Simulación sin foto / con foto cada km / cada 100 m          | (1,58 s) / (1,58 s) / (1,64 s) | (2,74 s) / (2,66 s) / (2,78 s) | 33-73 ms                          | 21-51 ms                          |
 
 **Los «instantes» de la línea temporal que existen hoy**: en carretera, 63 y 81 segundos distintos con suceso (medianas) más 176 y 186 filas de estado, que en tiempo son 590 y 983 pares grupo-km, porque cada grupo cruza cada km en su propio segundo; en crono, 24 y 18 segundos con suceso en una jornada de 6,5 y 3,4 horas. Una fila de radio por km es una cada 80-95 s de carrera para la cabeza (175 km en 14.126 s).
 
@@ -261,27 +261,27 @@ La línea táctica no está «por implementar»: el historial tiene los pasos 0 
 
 ## 7. Tabla final: lo que enseña la televisión contra lo que existe
 
-| Lo que enseña la tele | ¿Existe? | Dónde | Resolución | Qué habría que añadir |
-| --- | --- | --- | --- | --- |
-| Grupos en carretera, cuántos y de qué clase | sí | radio guardada: `kind`, `size` | 1 km | el `id` del grupo; en montaña, a 100 m hay el doble de cambios (78 contra 38) |
-| Diferencias entre grupos | sí | `gapS` al líder por grupo y km (resta exacta); `time_gap` (7 u 8 por etapa, de media medida), `front_group` | 1 km; sucesos cada 25 km o 4 km | el reloj absoluto por km para situarlas en el tiempo |
-| Km restantes | derivable | `km` y longitud del perfil; `toGo` en casi todos los `datos` | exacto | nada |
-| Posición en el perfil | derivable | `input.profile` → `sampleProfile`, `altitudesDelPerfil`, `tramosDelPerfil` | 100 m | el instante de paso por grupo (`tS`, hoy se tira en `radioForStorage`) |
-| Composición de la escapada | parcial | `breakaway_formed` (todos, fecha retrasada); radio `watching` si el grupo es ≤ 12; `front_group` si ≤ 8 | 1 km | el grupo de cada corredor por km (medido: 0,5-3,8 KB gz por etapa) |
-| Maillots de general, puntos y montaña | fuera del motor | `stageRun.ts` l. 553 (`assignLeaderJerseys`) solo ordena la lista de seguimiento: la radio no guarda QUÉ maillot lleva cada uno | posición del portador por km | el mapa maillot → corredor con que se sale |
-| Campeón nacional, maillot de equipo | no | ninguna parte | | interfaz con E3 y E12 |
-| Sprints intermedios | pobre | `sprint_intermediate`: ganador y reloj de cabeza | 100 m | puntos, puestos 2.º a 8.º, quién lo disputó, nombre |
-| Puertos | parcial | `climb_kom`: ganador, categoría, sus puntos, líder de la montaña DEL DÍA | 100 m | nombre, orden de paso, reloj del grupo del ganador; huecos en la cima (derivables de la radio) |
-| Caídas | no como suceso | `incidents` sin segundo y no guardado; `peloton_split.causa`, `truce_*`, `mishap` de la radio sin nombre | 100 m | un suceso de caída con implicados y segundo |
-| Pinchazos y averías | sí, sin frase | `puncture`, `mechanical` | 100 m | frase; en la crono, reloj y km verdaderos |
-| Abandonos | sí | `rider_abandons` (causa), `results.estado`, radio `gone` | 100 m | nada |
-| Cortes por abanico | sí | `echelon_split`, `echelon_close`, `peloton_split.causa = 'viento'` | 100 m | el viento por km, si se quiere enseñar |
-| Meta | sí | `stage_win`, `bunch_sprint`, `final_km`, `results` | meta | el último km lleva el reloj de meta |
-| Tiempos | sí | `results.tiempoS`, `bonificacionS`, `time_cut` | 1 s | la general tras la etapa es de `packages/db` |
-| Quién tira y para quién | sí | radio `pulling`, `motivos`, `paraQuien`; `peloton_pull` cada 30-36 km | 1 km | nada |
-| Velocidad | sí | radio `speedKmh` | 1 km | nada |
-| Fase de carrera, tiempo meteorológico | no | calculados por bloque y tirados | | emitirlos o derivarlos |
-| Crono: orden, parciales, líder provisional | parcial | sucesos `tt_*`; orden y líder derivables de `input` y `results` | 2 controles | el parcial de cada corredor en cada control |
+| Lo que enseña la tele                       | ¿Existe?        | Dónde                                                                                                                           | Resolución                      | Qué habría que añadir                                                                          |
+| ------------------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Grupos en carretera, cuántos y de qué clase | sí              | radio guardada: `kind`, `size`                                                                                                  | 1 km                            | el `id` del grupo; en montaña, a 100 m hay el doble de cambios (78 contra 38)                  |
+| Diferencias entre grupos                    | sí              | `gapS` al líder por grupo y km (resta exacta); `time_gap` (7 u 8 por etapa, de media medida), `front_group`                     | 1 km; sucesos cada 25 km o 4 km | el reloj absoluto por km para situarlas en el tiempo                                           |
+| Km restantes                                | derivable       | `km` y longitud del perfil; `toGo` en casi todos los `datos`                                                                    | exacto                          | nada                                                                                           |
+| Posición en el perfil                       | derivable       | `input.profile` → `sampleProfile`, `altitudesDelPerfil`, `tramosDelPerfil`                                                      | 100 m                           | el instante de paso por grupo (`tS`, hoy se tira en `radioForStorage`)                         |
+| Composición de la escapada                  | parcial         | `breakaway_formed` (todos, fecha retrasada); radio `watching` si el grupo es ≤ 12; `front_group` si ≤ 8                         | 1 km                            | el grupo de cada corredor por km (medido: 0,5-3,8 KB gz por etapa)                             |
+| Maillots de general, puntos y montaña       | fuera del motor | `stageRun.ts` l. 553 (`assignLeaderJerseys`) solo ordena la lista de seguimiento: la radio no guarda QUÉ maillot lleva cada uno | posición del portador por km    | el mapa maillot → corredor con que se sale                                                     |
+| Campeón nacional, maillot de equipo         | no              | ninguna parte                                                                                                                   |                                 | interfaz con E3 y E12                                                                          |
+| Sprints intermedios                         | pobre           | `sprint_intermediate`: ganador y reloj de cabeza                                                                                | 100 m                           | puntos, puestos 2.º a 8.º, quién lo disputó, nombre                                            |
+| Puertos                                     | parcial         | `climb_kom`: ganador, categoría, sus puntos, líder de la montaña DEL DÍA                                                        | 100 m                           | nombre, orden de paso, reloj del grupo del ganador; huecos en la cima (derivables de la radio) |
+| Caídas                                      | no como suceso  | `incidents` sin segundo y no guardado; `peloton_split.causa`, `truce_*`, `mishap` de la radio sin nombre                        | 100 m                           | un suceso de caída con implicados y segundo                                                    |
+| Pinchazos y averías                         | sí, sin frase   | `puncture`, `mechanical`                                                                                                        | 100 m                           | frase; en la crono, reloj y km verdaderos                                                      |
+| Abandonos                                   | sí              | `rider_abandons` (causa), `results.estado`, radio `gone`                                                                        | 100 m                           | nada                                                                                           |
+| Cortes por abanico                          | sí              | `echelon_split`, `echelon_close`, `peloton_split.causa = 'viento'`                                                              | 100 m                           | el viento por km, si se quiere enseñar                                                         |
+| Meta                                        | sí              | `stage_win`, `bunch_sprint`, `final_km`, `results`                                                                              | meta                            | el último km lleva el reloj de meta                                                            |
+| Tiempos                                     | sí              | `results.tiempoS`, `bonificacionS`, `time_cut`                                                                                  | 1 s                             | la general tras la etapa es de `packages/db`                                                   |
+| Quién tira y para quién                     | sí              | radio `pulling`, `motivos`, `paraQuien`; `peloton_pull` cada 30-36 km                                                           | 1 km                            | nada                                                                                           |
+| Velocidad                                   | sí              | radio `speedKmh`                                                                                                                | 1 km                            | nada                                                                                           |
+| Fase de carrera, tiempo meteorológico       | no              | calculados por bloque y tirados                                                                                                 |                                 | emitirlos o derivarlos                                                                         |
+| Crono: orden, parciales, líder provisional  | parcial         | sucesos `tt_*`; orden y líder derivables de `input` y `results`                                                                 | 2 controles                     | el parcial de cada corredor en cada control                                                    |
 
 ---
 

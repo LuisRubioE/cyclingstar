@@ -12,16 +12,16 @@ La propiedad tiene dos mitades que esta sección y la siguiente reparten así. L
 
 Una etapa corrida está, para un espectador, en uno de siete estados (D-28, I-28). Seis son los de `producto.md` §7.1; el séptimo, «fuera de guardia», es el de toda etapa de una carrera que no se protege para él, y hay que escribirlo porque también abre en `Watch` (pantalla; D-30, D-36). La letra es la que se guarda en `race_watch.how`, una por etapa del prefijo y en orden (`KnowledgeLetter`, §4.10).
 
-| Estado | Cuándo (en `race_watch` y en el horizonte) | Letra | ¿En el velo? | Al abrir la etapa | En el resto del producto |
-| --- | --- | --- | --- | --- | --- |
-| oculta | carrera en guardia (§10.4), etapa corrida, `known_through < N` y `watching_stage ≠ N` | ninguna | sí | `Watch` (pantalla); si hay una anterior sin conocer, la puerta `previous_unseen` (D-37, §11.12); `Report` (pantalla) da la puerta `not_seen` | nada que salga de ella: marcadores neutros y agregados de antes (mecanismos de §10.6, superficies de §11.1) |
-| a medias | `watching_stage = N` y `reached_s`, sin haber llegado a meta | ninguna | sí | `Watch` reanuda en `reached_s − BROADCAST.resumeBackS` (60 s) con `Previously` (pantalla; §8.5) | igual que oculta: lo alcanzado solo sirve para reanudar y para acotar los tramos |
-| vista en directo | lo alcanzado llegó a la meta en `Watch` | `W` | no | `Report` (pantalla), con `Watch anyway` a un toque | todo |
-| vista en resumen | lo alcanzado llegó a la meta en `Highlights` (pantalla) o en el digest (DD-20) | `S` | no | `Report` | todo |
-| revelada | `Show result` (pantalla) o la tercera salida de la puerta | `R` | no | `Report` | todo |
-| arrastrada | conocida porque el espectador vio o reveló una posterior | `A` | no | `Watch`, sin puerta; `Report` a un toque, como la caducada (6-r): no la vio, la conoce por deducción | todo |
-| caducada | pasaron `SPOILER.expiryGameDays` (56) días de juego desde la ÚLTIMA etapa de su carrera (§10.5) | `X`, escrita al avisar | no | `Watch`, sin puerta: nunca la vio, pero ya no se protege | todo |
-| fuera de guardia | la carrera no está en guardia para él (alcance `off`, carrera soltada, o ninguna de las tres fuentes de §10.4) y la etapa no es conocida | ninguna | no | `Watch`, sin puerta; `Report` a un toque, sin confirmación | todo: se ve al día (D-30) |
+| Estado           | Cuándo (en `race_watch` y en el horizonte)                                                                                               | Letra                  | ¿En el velo? | Al abrir la etapa                                                                                                                            | En el resto del producto                                                                                    |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| oculta           | carrera en guardia (§10.4), etapa corrida, `known_through < N` y `watching_stage ≠ N`                                                    | ninguna                | sí           | `Watch` (pantalla); si hay una anterior sin conocer, la puerta `previous_unseen` (D-37, §11.12); `Report` (pantalla) da la puerta `not_seen` | nada que salga de ella: marcadores neutros y agregados de antes (mecanismos de §10.6, superficies de §11.1) |
+| a medias         | `watching_stage = N` y `reached_s`, sin haber llegado a meta                                                                             | ninguna                | sí           | `Watch` reanuda en `reached_s − BROADCAST.resumeBackS` (60 s) con `Previously` (pantalla; §8.5)                                              | igual que oculta: lo alcanzado solo sirve para reanudar y para acotar los tramos                            |
+| vista en directo | lo alcanzado llegó a la meta en `Watch`                                                                                                  | `W`                    | no           | `Report` (pantalla), con `Watch anyway` a un toque                                                                                           | todo                                                                                                        |
+| vista en resumen | lo alcanzado llegó a la meta en `Highlights` (pantalla) o en el digest (DD-20)                                                           | `S`                    | no           | `Report`                                                                                                                                     | todo                                                                                                        |
+| revelada         | `Show result` (pantalla) o la tercera salida de la puerta                                                                                | `R`                    | no           | `Report`                                                                                                                                     | todo                                                                                                        |
+| arrastrada       | conocida porque el espectador vio o reveló una posterior                                                                                 | `A`                    | no           | `Watch`, sin puerta; `Report` a un toque, como la caducada (6-r): no la vio, la conoce por deducción                                         | todo                                                                                                        |
+| caducada         | pasaron `SPOILER.expiryGameDays` (56) días de juego desde la ÚLTIMA etapa de su carrera (§10.5)                                          | `X`, escrita al avisar | no           | `Watch`, sin puerta: nunca la vio, pero ya no se protege                                                                                     | todo                                                                                                        |
+| fuera de guardia | la carrera no está en guardia para él (alcance `off`, carrera soltada, o ninguna de las tres fuentes de §10.4) y la etapa no es conocida | ninguna                | no           | `Watch`, sin puerta; `Report` a un toque, sin confirmación                                                                                   | todo: se ve al día (D-30)                                                                                   |
 
 Un salto de recorrido no revela: ninguno pasa de un km antes de meta y una etapa solo pasa a vista cruzando la meta (8-j). Si un cliente informara la meta con `mode: 'seek'`, `LETTER_OF_MODE` la anotaría `R` (8-e), pero la web no lo hace nunca.
 
@@ -37,21 +37,21 @@ El visitante sin cuenta no tiene fila en esta tabla: su horizonte es `anon`, su 
 
 **Un espectador, día a día.** Su corredor corre `race-france` (21 etapas; primera etapa el día de juego 185, descansos tras la 9 y la 15, última el 207, mapa 04 §2) y su alcance es `guarded`, así que la carrera está en guardia por `own_rider`. La tabla sigue su fila de `race_watch` y el velo de esa carrera:
 
-| Día de juego | Qué pasa | `known_through` · `how` | `watching_stage` · `reached_s` | Velo de `race-france` | En la portada (§11.4) |
-| --- | --- | --- | --- | --- | --- |
-| 185 | el tick corre la etapa 1 | 0 · `''` | · | {1} | `Ready to watch` (pantalla): Stage 1 |
-| 185 | la ve entera en `Watch` | 1 · `'W'` | · | {} | nada por ver de esta carrera |
-| 186-188 | corren la 2, la 3 y la 4; no entra | 1 · `'W'` | · | {2, 3, 4} | `Ready to watch`: tres tarjetas |
-| 188 | empieza la 2 y la deja a los 7.020 s de carrera | 1 · `'W'` | 2 · 7.020 | {2, 3, 4}: a medias sigue velada | `Continue watching` (pantalla): Stage 2 y sus km a meta |
-| 188 | abre la 4; su cabecera trae `previous_unseen` con `firstUnseen` 2; elige revelar la 3 y la pantalla avisa `This also reveals stage 2.` | 3 · `'WAR'` | · | {4} | `Ready to watch`: Stage 4 |
-| 188 | ve la 4 en `Highlights` | 4 · `'WARS'` | · | {} | nada por ver |
-| 189-207 | corren de la 5 a la 21; no vuelve | 4 · `'WARS'` | · | {5, …, 21} | `While you were away` (pantalla): Race France, 17 etapas |
-| 263 | 207 + 56: caduca, sin escribir nada | 4 · `'WARS'` | · | {} | los resultados de la carrera salen en todas partes |
-| 270 | vuelve: `Results of Race France are now shown (finished 16 days ago) · Watch the digest anyway` (pantalla; 63 días de juego son 15,75 reales); la web lo acusa | 21 · `'WARS'` + 17 `X` | · | {} | nada |
+| Día de juego | Qué pasa                                                                                                                                                       | `known_through` · `how` | `watching_stage` · `reached_s` | Velo de `race-france`            | En la portada (§11.4)                                    |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- | ------------------------------ | -------------------------------- | -------------------------------------------------------- |
+| 185          | el tick corre la etapa 1                                                                                                                                       | 0 · `''`                | ·                              | {1}                              | `Ready to watch` (pantalla): Stage 1                     |
+| 185          | la ve entera en `Watch`                                                                                                                                        | 1 · `'W'`               | ·                              | {}                               | nada por ver de esta carrera                             |
+| 186-188      | corren la 2, la 3 y la 4; no entra                                                                                                                             | 1 · `'W'`               | ·                              | {2, 3, 4}                        | `Ready to watch`: tres tarjetas                          |
+| 188          | empieza la 2 y la deja a los 7.020 s de carrera                                                                                                                | 1 · `'W'`               | 2 · 7.020                      | {2, 3, 4}: a medias sigue velada | `Continue watching` (pantalla): Stage 2 y sus km a meta  |
+| 188          | abre la 4; su cabecera trae `previous_unseen` con `firstUnseen` 2; elige revelar la 3 y la pantalla avisa `This also reveals stage 2.`                         | 3 · `'WAR'`             | ·                              | {4}                              | `Ready to watch`: Stage 4                                |
+| 188          | ve la 4 en `Highlights`                                                                                                                                        | 4 · `'WARS'`            | ·                              | {}                               | nada por ver                                             |
+| 189-207      | corren de la 5 a la 21; no vuelve                                                                                                                              | 4 · `'WARS'`            | ·                              | {5, …, 21}                       | `While you were away` (pantalla): Race France, 17 etapas |
+| 263          | 207 + 56: caduca, sin escribir nada                                                                                                                            | 4 · `'WARS'`            | ·                              | {}                               | los resultados de la carrera salen en todas partes       |
+| 270          | vuelve: `Results of Race France are now shown (finished 16 days ago) · Watch the digest anyway` (pantalla; 63 días de juego son 15,75 reales); la web lo acusa | 21 · `'WARS'` + 17 `X`  | ·                              | {}                               | nada                                                     |
 
 ### 10.3 Dónde vive
 
-En la base, por cuenta y nunca en el navegador (el móvil y el ordenador ven lo mismo): la tabla nueva `race_watch` y cuatro columnas nuevas de `users`, las dos en la migración `0045_lo_visto` (su SQL, su Drizzle y sus columnas son §13.4). `race_watch` guarda una fila por (usuario, mundo, carrera) con `follow` (1 seguida, −1 soltada, 0 lo que diga la regla de §10.4), `known_through`, `how` (una letra por etapa conocida), `watching_stage`, `reached_s` y `updated_at`, con clave `(user_id, world_id, race_key)` (D-29). El `world_id` va en la clave porque las claves de carrera se repiten en cada mundo (`race-france:s0` existe en todos) y ningún documento dice si las cuentas sobreviven al reinicio (mapa 04 §8): sin él, el mundo nuevo nacería con lo visto del viejo. Además, el procedimiento del reinicio borra `race_watch` (la nota va en `docs/ops.md` en el 7a, que crea la tabla, 17-y; §13.9); con `world_id` en la clave, olvidarlo no destripa nada, solo deja filas muertas (H-11). `users` gana `spoiler_scope` (`guarded` por defecto), `horizon_rev` (entero que sube con cada cambio de lo conocido o de la guardia: es la mitad de `Horizon.rev`), `last_seen_at` (§10.7) y `reveal_confirm` (`true` por defecto; `Don't ask again`, pantalla, lo pone a `false`, D-38).
+En la base, por cuenta y nunca en el navegador (el móvil y el ordenador ven lo mismo): la tabla nueva `race_watch` y cuatro columnas nuevas de `users`, las dos en la migración `0048_lo_visto` (su SQL, su Drizzle y sus columnas son §13.4). `race_watch` guarda una fila por (usuario, mundo, carrera) con `follow` (1 seguida, −1 soltada, 0 lo que diga la regla de §10.4), `known_through`, `how` (una letra por etapa conocida), `watching_stage`, `reached_s` y `updated_at`, con clave `(user_id, world_id, race_key)` (D-29). El `world_id` va en la clave porque las claves de carrera se repiten en cada mundo (`race-france:s0` existe en todos) y ningún documento dice si las cuentas sobreviven al reinicio (mapa 04 §8): sin él, el mundo nuevo nacería con lo visto del viejo. Además, el procedimiento del reinicio borra `race_watch` (la nota va en `docs/ops.md` en el 7a, que crea la tabla, 17-y; §13.9); con `world_id` en la clave, olvidarlo no destripa nada, solo deja filas muertas (H-11). `users` gana `spoiler_scope` (`guarded` por defecto), `horizon_rev` (entero que sube con cada cambio de lo conocido o de la guardia: es la mitad de `Horizon.rev`), `last_seen_at` (§10.7) y `reveal_confirm` (`true` por defecto; `Don't ask again`, pantalla, lo pone a `false`, D-38).
 
 Dos invariantes de la fila, que las escrituras mantienen y B12 comprueba: `length(how) = known_through` y `watching_stage ∈ {null, known_through + 1}` (solo se puede estar a medias de la primera etapa no conocida; ver una posterior exige resolver la puerta, D-37).
 
@@ -59,35 +59,75 @@ Las cuatro escrituras viven en `packages/db/src/watch.ts` (§21.6 F.2). Sus firm
 
 ```ts
 // packages/db/src/watch.ts (nuevo)
-import type { Database } from './client.js'                    // l. 35
+import type { Database } from './client.js' // l. 35
 import type { KnowledgeLetter } from './horizon.js'
-import type { SpoilerScope, WatchMode } from '@cyclingstar/shared'   // WatchMode: reproducción, salto, resumen o digest; vive en broadcast/wire.ts (§14.2)
+import type { SpoilerScope, WatchMode } from '@cyclingstar/shared' // WatchMode: reproducción, salto, resumen o digest; vive en broadcast/wire.ts (§14.2)
 
 /** La letra con que queda una etapa cuando lo alcanzado llega a la meta (D-28): directo o resumen. Un salto (`seek`) no cruza nunca la meta (8-j); si un cliente lo informara, queda `R` (8-e). */
-export const LETTER_OF_MODE = { play: 'W', summary: 'S', digest: 'S', seek: 'R' } as const satisfies Record<WatchMode, KnowledgeLetter>
+export const LETTER_OF_MODE = {
+  play: 'W',
+  summary: 'S',
+  digest: 'S',
+  seek: 'R',
+} as const satisfies Record<WatchMode, KnowledgeLetter>
 
-export interface WatchKey { readonly userId: string; readonly worldId: string; readonly raceKey: string }
-export interface WatchRow { readonly follow: -1 | 0 | 1; readonly knownThrough: number; readonly how: string; readonly watchingStage: number | null; readonly reachedS: number | null }
-export interface ProgressResult { readonly status: 'watching' | 'known'; readonly horizonRev: number; readonly followed: boolean }
+export interface WatchKey {
+  readonly userId: string
+  readonly worldId: string
+  readonly raceKey: string
+}
+export interface WatchRow {
+  readonly follow: -1 | 0 | 1
+  readonly knownThrough: number
+  readonly how: string
+  readonly watchingStage: number | null
+  readonly reachedS: number | null
+}
+export interface ProgressResult {
+  readonly status: 'watching' | 'known'
+  readonly horizonRev: number
+  readonly followed: boolean
+}
 
 /** Lo alcanzado en la etapa `stageDay`. Si llega a `finishS`, la etapa pasa a conocida con la letra de su modo. */
-export function recordProgress(db: Database, k: WatchKey, stageDay: number, reachedS: number, mode: WatchMode, finishS: number): Promise<ProgressResult>
+export function recordProgress(
+  db: Database,
+  k: WatchKey,
+  stageDay: number,
+  reachedS: number,
+  mode: WatchMode,
+  finishS: number,
+): Promise<ProgressResult>
 /** Conocer la etapa sin verla: `R` para ella, `A` para los huecos anteriores; `X` para todas si la carrera ya caducó (§10.5). */
-export function revealStage(db: Database, k: WatchKey, stageDay: number, expired: boolean): Promise<{ readonly horizonRev: number }>
+export function revealStage(
+  db: Database,
+  k: WatchKey,
+  stageDay: number,
+  expired: boolean,
+): Promise<{ readonly horizonRev: number }>
 /** `Follow without spoilers` (1), `Stop protecting this race` (−1) o volver a la regla (0). */
-export function setFollow(db: Database, k: WatchKey, follow: -1 | 0 | 1): Promise<{ readonly horizonRev: number }>
+export function setFollow(
+  db: Database,
+  k: WatchKey,
+  follow: -1 | 0 | 1,
+): Promise<{ readonly horizonRev: number }>
 /** El alcance del velo y la confirmación al revelar, en `users`. */
-export function setSpoilerScope(db: Database, userId: string, scope: SpoilerScope, revealConfirm: boolean | undefined): Promise<{ readonly horizonRev: number }>
+export function setSpoilerScope(
+  db: Database,
+  userId: string,
+  scope: SpoilerScope,
+  revealConfirm: boolean | undefined,
+): Promise<{ readonly horizonRev: number }>
 /** La fila de una carrera, o null: la leen la ruta de etapa, la cabecera y `recordProgress` (§14.1, §14.2). */
 export function readWatch(db: Database, k: WatchKey): Promise<WatchRow | null>
 ```
 
-| Escritura | La llama | Cuándo | Qué escribe | ¿`horizon_rev += 1`? |
-| --- | --- | --- | --- | --- |
-| `recordProgress` | `POST /api/me/watch/:raceKey/:day` y `POST …/broadcast/finish` (§14.2) | cada `BROADCAST.progressEveryRealS` (15 s de pared) mientras se reproduce, al pausar, al ocultarse la pestaña, al salir y justo antes de pedir un tramo que pase de lo último informado más la precarga (§10.11); en la meta, por `finish` | en el primer progreso de la etapa, `known_through = max(known_through, N − 1)` con `A` en los huecos (decisión 10-a) y, si `follow = 0`, `follow = 1` (seguir al empezar a ver, D-30); después, `watching_stage = N` y `reached_s = greatest(reached_s, nuevo)`; al llegar a `finishS`: `known_through = N`, `how` + la letra de `LETTER_OF_MODE`, `watching_stage` y `reached_s` a null | al arrastrar, al pasar a conocida y al seguir |
-| `revealStage` | `POST /api/me/reveal/:raceKey/:day` | `Show result` (pantalla), la tercera salida de la puerta (`Show result of stage 6 and continue`), `Show results` de `While you were away` y el acuse del aviso de caducidad (§10.5) | `known_through = max(known_through, N)`; `R` para N y `A` para los huecos; con `expired`, `X` para todas las que faltan hasta la última | sí |
-| `setFollow` | `PUT /api/me/follow/:raceKey` | los botones `Follow without spoilers` y `Stop protecting this race` (pantalla) | `follow`; nada más: seguir a mano NO arrastra, protege desde ya las etapas corridas y no conocidas, que es lo que se pide al pulsarlo | sí |
-| `setSpoilerScope` | `PUT /api/me/spoiler-scope` | los ajustes y la oferta adaptativa (§10.4) | `users.spoiler_scope`; `users.reveal_confirm` si viene | sí, si cambia el alcance |
+| Escritura         | La llama                                                               | Cuándo                                                                                                                                                                                                                                     | Qué escribe                                                                                                                                                                                                                                                                                                                                                                              | ¿`horizon_rev += 1`?                          |
+| ----------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| `recordProgress`  | `POST /api/me/watch/:raceKey/:day` y `POST …/broadcast/finish` (§14.2) | cada `BROADCAST.progressEveryRealS` (15 s de pared) mientras se reproduce, al pausar, al ocultarse la pestaña, al salir y justo antes de pedir un tramo que pase de lo último informado más la precarga (§10.11); en la meta, por `finish` | en el primer progreso de la etapa, `known_through = max(known_through, N − 1)` con `A` en los huecos (decisión 10-a) y, si `follow = 0`, `follow = 1` (seguir al empezar a ver, D-30); después, `watching_stage = N` y `reached_s = greatest(reached_s, nuevo)`; al llegar a `finishS`: `known_through = N`, `how` + la letra de `LETTER_OF_MODE`, `watching_stage` y `reached_s` a null | al arrastrar, al pasar a conocida y al seguir |
+| `revealStage`     | `POST /api/me/reveal/:raceKey/:day`                                    | `Show result` (pantalla), la tercera salida de la puerta (`Show result of stage 6 and continue`), `Show results` de `While you were away` y el acuse del aviso de caducidad (§10.5)                                                        | `known_through = max(known_through, N)`; `R` para N y `A` para los huecos; con `expired`, `X` para todas las que faltan hasta la última                                                                                                                                                                                                                                                  | sí                                            |
+| `setFollow`       | `PUT /api/me/follow/:raceKey`                                          | los botones `Follow without spoilers` y `Stop protecting this race` (pantalla)                                                                                                                                                             | `follow`; nada más: seguir a mano NO arrastra, protege desde ya las etapas corridas y no conocidas, que es lo que se pide al pulsarlo                                                                                                                                                                                                                                                    | sí                                            |
+| `setSpoilerScope` | `PUT /api/me/spoiler-scope`                                            | los ajustes y la oferta adaptativa (§10.4)                                                                                                                                                                                                 | `users.spoiler_scope`; `users.reveal_confirm` si viene                                                                                                                                                                                                                                                                                                                                   | sí, si cambia el alcance                      |
 
 `recordProgress` y `revealStage` corren en una transacción que crea la fila si no existe (`insert … on conflict do nothing`) y la bloquea (`select … for update`) antes de calcular en TypeScript la fila nueva: así dos dispositivos que escriben a la vez no pierden letras, y gana el máximo (D-57, §10.12). Las dos rechazan romper el prefijo: `recordProgress` sobre una etapa N con una anterior en el velo no escribe y la ruta responde 403 `previous_unseen` (§14.2). Una etapa ya conocida no registra progreso: la ruta responde `status: 'known'` sin escribir, y el reproductor recuerda su punto en memoria (volver a ver no mueve nada).
 
@@ -159,23 +199,23 @@ El horizonte es lo que un espectador conoce de cada carrera en guardia, y el vel
 
 **1. El tipo.** `Horizon` es parámetro OBLIGATORIO y sin defecto de toda función exportada de `packages/db` que lea `stage_results`, `race_gc`, `stage_team_results`, `stage_snapshots.events` o `.radio`, `stage_timelines`, `palmares`, `rider_points`, `news`, `transactions`, `teams.budget`, `riders.season_points`, `riders.health` o `race_rosters.abandoned_day`, y va SEGUNDO, detrás de `db`: varias de estas funciones terminan hoy en un parámetro opcional (`getPointsClassification(db, raceId, throughStage?)`, `packages/db/src/results.ts` l. 320-324) y un parámetro obligatorio no puede ir detrás de uno opcional. Tres de ellas, `getGcThroughStage`, `getPointsClassification` y `getKomClassification` (`results.ts` l. 236, 320 y 379), reciben además primero `q: Queryable` (`Database | Tx`, el de `titles.ts`, §7.4) en lugar de `db: Database`, desde el PR 1a: `awardOutcome` las llama dentro de la transacción del tick (§12.8) y un `PgTransaction` no es asignable a `Database` (TS2379, medido por el refutador de código); las rutas las siguen llamando con `db`, y el 8a les añade el `Horizon` detrás de `q`. El tick, la administración y los bancos pasan `worldHorizon`, explícito: una llamada nueva no compila sin decidir qué horizonte lleva. La lista, sacada del código con `l6/lecturas.mjs` (toda función exportada cuyo cuerpo nombra una de esas tablas o columnas y lee) y comprobada a mano contra las importaciones de `apps/api/src/routes/`:
 
-| Fichero | Funciones (línea de su `export`) | Lee | Quién la llama | Mecanismo (§11.1 manda por superficie) |
-| --- | --- | --- | --- | --- |
-| `results.ts` | `getRaceGc` (l. 23), `getGcThroughStage` (l. 236), `getPointsClassification` (l. 320), `getStageWinners` (l. 357), `getKomClassification` (l. 379) | `race_gc`, `stage_results`, `race_rosters.abandoned_day` | rutas de carrera y de etapa (`routes/calendar.ts`, `races.ts`) y el tick | P |
-| `results.ts` | `getStageResults` (l. 84), `getStageNonFinishers` (l. 137), `getStageSnapshot` (l. 416) | `stage_results`, `stage_snapshots` | ruta de etapa, acta, administración | G; de `getStageSnapshot`, el `input` es recorrido (N) y `events` y `radio` solo con la etapa fuera del velo |
-| `results.ts` | `getRacedStageProfiles` (l. 451), `getRunStageDays` (l. 470) | `stage_snapshots.input`, `stage_results` | ficha de carrera | N y L (cuántas etapas se corrieron no es resultado, sup. C6) |
-| `teamClassification.ts`, `classifications.ts`, `raceContext.ts` | `getTeamClassifications` (l. 136); `getRaceClassifications` (l. 74); `raceMemoryOf` (l. 94) | `stage_results`, `race_gc`, `stage_team_results` | ruta de etapa y ficha (la primera); el tick (las otras dos, por `buildRaceContext`) | P; el tick pasa `worldHorizon` |
-| `ranking.ts` | `getRanking` (l. 174), `getYoungRiders` (l. 221), `getSeasonAwards` (l. 313), `getRiderBadges` (l. 361), `getHallOfFame` (l. 449), `getAllTimeRecords` (l. 493) | `rider_points`, `riders.season_points`, `palmares` | `routes/rankings.ts`, `riders.ts` | R |
-| `ranking.ts` | `getPalmares` (l. 336); `getSeasonWinners` (l. 564), `getRaceHistory` (l. 588) | `palmares` | fichas de corredor y de carrera, calendario | F; P |
-| `browse.ts` | `getTeams` (l. 24), `getTeamDetail` (l. 75), `getCountriesSummary` (l. 123), `getCountryRiders` (l. 157), `getFreeAgents` (l. 210), `getPublicRider` (l. 269) | `teams.budget`, `riders.season_points`, `riders.health`, `rider_attrs` | `routes/teams.ts`, `rankings.ts`, `riders.ts` | R; M para la salud; L para los atributos de `getPublicRider` (DD-08, `sup. X11`) |
-| `news.ts` | `getGlobalNews` (l. 67), `getTeamNews` (l. 96), `getRiderNews` (l. 118) | `news` | `/api/news`, `/api/teams/:id/news` | F |
-| `economy.ts` | `getLedger` (l. 201) | `transactions` | `/api/riders/me/ledger` | F y R (el saldo) |
-| `riderResults.ts` | `getRiderRaceResults` (l. 183; dentro, `getRiderGcStandings` l. 127 y `getLastStageRun` l. 163) | `stage_results`, `race_gc` | `/api/riders/:id/results` | P y F |
-| `riderSchedule.ts` | `getRiderRaceDays` (l. 17); `getRiderUpcomingRaces` (l. 193); `retireFromRace` (l. 258, lee y escribe) | `race_rosters.abandoned_day` | `GET /api/riders/me/orders` y `POST /api/riders/me/plan/preview` (`routes/riders.ts` l. 242 y 347; sup. X10, 11-b); `upcoming-races` (l. 140; sup. X2), y no `my-orders`, que mira la lista con `isOnRoster` (`raceOrders.ts` l. 132-139) y es `safe` (§11.3); la retirada (sup. X9, `alreadyOut`, `routes/riders.ts` l. 648) | M; M; M |
-| `riders.ts` | `getRiderHealth` (l. 217); `getSeasonRank` (l. 251), `getRiderSummary` (l. 269); `getDailyLog` (l. 322), `getAttrTrend` (l. 366), `getBlockReport` (l. 517) | `riders.health`, `riders.season_points`, `rider_daily_log` y `rider_attr_log` por los días de carrera velados | `/api/riders/me/*` | M; R; F (el `parte` de un día velado a null, sup. H4; X1 con `VeilDelta.raceDays`) |
-| `raceReport.ts` | `getRiderLastRaceReport` (l. 78) | `stage_results`, `stage_snapshots` | `/api/riders/me/last-race` | P y G: la última etapa CONOCIDA (D-47) |
-| `teamPlan.ts` | `getTeamCalendar` (l. 263, lee y escribe); `getRiderTeamRacePlan` (l. 151) no lee dinero (l. 115-128 y 151-203) y su ruta, `/api/teams/me/race-plan`, es `safe` (11-k) | `teams.budget` | `/api/teams/me/calendar` | R (sup. X8) |
-| `calendarRun.ts` | `predictStartlist` (l. 783), `ensureRaceRosterFrozen` (l. 1230), las dos leen y escriben | `race_gc`, `riders.season_points`, `palmares` | la lista de salida (`routes/calendar.ts` l. 220-249) y el tick | L: la lista se congela con el mundo al día; la ruta pasa `worldHorizon` y escribe el motivo en su `config.veil` (§14.5, §11.3) |
+| Fichero                                                         | Funciones (línea de su `export`)                                                                                                                                       | Lee                                                                                                           | Quién la llama                                                                                                                                                                                                                                                                                                                | Mecanismo (§11.1 manda por superficie)                                                                                         |
+| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `results.ts`                                                    | `getRaceGc` (l. 23), `getGcThroughStage` (l. 236), `getPointsClassification` (l. 320), `getStageWinners` (l. 357), `getKomClassification` (l. 379)                     | `race_gc`, `stage_results`, `race_rosters.abandoned_day`                                                      | rutas de carrera y de etapa (`routes/calendar.ts`, `races.ts`) y el tick                                                                                                                                                                                                                                                      | P                                                                                                                              |
+| `results.ts`                                                    | `getStageResults` (l. 84), `getStageNonFinishers` (l. 137), `getStageSnapshot` (l. 416)                                                                                | `stage_results`, `stage_snapshots`                                                                            | ruta de etapa, acta, administración                                                                                                                                                                                                                                                                                           | G; de `getStageSnapshot`, el `input` es recorrido (N) y `events` y `radio` solo con la etapa fuera del velo                    |
+| `results.ts`                                                    | `getRacedStageProfiles` (l. 451), `getRunStageDays` (l. 470)                                                                                                           | `stage_snapshots.input`, `stage_results`                                                                      | ficha de carrera                                                                                                                                                                                                                                                                                                              | N y L (cuántas etapas se corrieron no es resultado, sup. C6)                                                                   |
+| `teamClassification.ts`, `classifications.ts`, `raceContext.ts` | `getTeamClassifications` (l. 136); `getRaceClassifications` (l. 74); `raceMemoryOf` (l. 94)                                                                            | `stage_results`, `race_gc`, `stage_team_results`                                                              | ruta de etapa y ficha (la primera); el tick (las otras dos, por `buildRaceContext`)                                                                                                                                                                                                                                           | P; el tick pasa `worldHorizon`                                                                                                 |
+| `ranking.ts`                                                    | `getRanking` (l. 174), `getYoungRiders` (l. 221), `getSeasonAwards` (l. 313), `getRiderBadges` (l. 361), `getHallOfFame` (l. 449), `getAllTimeRecords` (l. 493)        | `rider_points`, `riders.season_points`, `palmares`                                                            | `routes/rankings.ts`, `riders.ts`                                                                                                                                                                                                                                                                                             | R                                                                                                                              |
+| `ranking.ts`                                                    | `getPalmares` (l. 336); `getSeasonWinners` (l. 564), `getRaceHistory` (l. 588)                                                                                         | `palmares`                                                                                                    | fichas de corredor y de carrera, calendario                                                                                                                                                                                                                                                                                   | F; P                                                                                                                           |
+| `browse.ts`                                                     | `getTeams` (l. 24), `getTeamDetail` (l. 75), `getCountriesSummary` (l. 123), `getCountryRiders` (l. 157), `getFreeAgents` (l. 210), `getPublicRider` (l. 269)          | `teams.budget`, `riders.season_points`, `riders.health`, `rider_attrs`                                        | `routes/teams.ts`, `rankings.ts`, `riders.ts`                                                                                                                                                                                                                                                                                 | R; M para la salud; L para los atributos de `getPublicRider` (DD-08, `sup. X11`)                                               |
+| `news.ts`                                                       | `getGlobalNews` (l. 67), `getTeamNews` (l. 96), `getRiderNews` (l. 118)                                                                                                | `news`                                                                                                        | `/api/news`, `/api/teams/:id/news`                                                                                                                                                                                                                                                                                            | F                                                                                                                              |
+| `economy.ts`                                                    | `getLedger` (l. 201)                                                                                                                                                   | `transactions`                                                                                                | `/api/riders/me/ledger`                                                                                                                                                                                                                                                                                                       | F y R (el saldo)                                                                                                               |
+| `riderResults.ts`                                               | `getRiderRaceResults` (l. 183; dentro, `getRiderGcStandings` l. 127 y `getLastStageRun` l. 163)                                                                        | `stage_results`, `race_gc`                                                                                    | `/api/riders/:id/results`                                                                                                                                                                                                                                                                                                     | P y F                                                                                                                          |
+| `riderSchedule.ts`                                              | `getRiderRaceDays` (l. 17); `getRiderUpcomingRaces` (l. 193); `retireFromRace` (l. 258, lee y escribe)                                                                 | `race_rosters.abandoned_day`                                                                                  | `GET /api/riders/me/orders` y `POST /api/riders/me/plan/preview` (`routes/riders.ts` l. 242 y 347; sup. X10, 11-b); `upcoming-races` (l. 140; sup. X2), y no `my-orders`, que mira la lista con `isOnRoster` (`raceOrders.ts` l. 132-139) y es `safe` (§11.3); la retirada (sup. X9, `alreadyOut`, `routes/riders.ts` l. 648) | M; M; M                                                                                                                        |
+| `riders.ts`                                                     | `getRiderHealth` (l. 217); `getSeasonRank` (l. 251), `getRiderSummary` (l. 269); `getDailyLog` (l. 322), `getAttrTrend` (l. 366), `getBlockReport` (l. 517)            | `riders.health`, `riders.season_points`, `rider_daily_log` y `rider_attr_log` por los días de carrera velados | `/api/riders/me/*`                                                                                                                                                                                                                                                                                                            | M; R; F (el `parte` de un día velado a null, sup. H4; X1 con `VeilDelta.raceDays`)                                             |
+| `raceReport.ts`                                                 | `getRiderLastRaceReport` (l. 78)                                                                                                                                       | `stage_results`, `stage_snapshots`                                                                            | `/api/riders/me/last-race`                                                                                                                                                                                                                                                                                                    | P y G: la última etapa CONOCIDA (D-47)                                                                                         |
+| `teamPlan.ts`                                                   | `getTeamCalendar` (l. 263, lee y escribe); `getRiderTeamRacePlan` (l. 151) no lee dinero (l. 115-128 y 151-203) y su ruta, `/api/teams/me/race-plan`, es `safe` (11-k) | `teams.budget`                                                                                                | `/api/teams/me/calendar`                                                                                                                                                                                                                                                                                                      | R (sup. X8)                                                                                                                    |
+| `calendarRun.ts`                                                | `predictStartlist` (l. 783), `ensureRaceRosterFrozen` (l. 1230), las dos leen y escriben                                                                               | `race_gc`, `riders.season_points`, `palmares`                                                                 | la lista de salida (`routes/calendar.ts` l. 220-249) y el tick                                                                                                                                                                                                                                                                | L: la lista se congela con el mundo al día; la ruta pasa `worldHorizon` y escribe el motivo en su `config.veil` (§14.5, §11.3) |
 
 Quedan fuera cuatro grupos, cada uno con su motivo. Los orquestadores del tick que leen y escriben (`runOneStage`, `lockCalendarDay`, `selectFieldTeams`, `runCallups`, `runMarket`, `runTeamFinances`, `awardRacePrizes`, `runRollover`, `trainWorldDay`, `seedWorld`) no leen el mundo para un espectador: lo calculan, y cuando llaman a una lectura de la tabla le pasan `worldHorizon`. Las funciones que definen el horizonte (`computeHorizon`, `horizonSummary`, `lastRunStages`, `veilDelta`) leen las fuentes para calcularlo. Y las dos lecturas nuevas de E2 que corren al grabar, en el tick, y cuya firma fijó la síntesis sin horizonte (§21.6 F.2): `buildTimelineCast` y `palmaresTitleSource.titlesOn`, que guardan la procedencia que el velo degrada al servir (B13, §10.10). Y dos escrituras del mánager, `draftRace` y `undraftRace`, que leen el presupuesto sin devolverlo (abajo). `readStageTimeline` y `timelineForStage`, en cambio, sí reciben el `Horizon` del espectador (decisión 5-p, §5.6; §14.4), aunque el corte lo siguen haciendo las rutas por lo alcanzado (mecanismo B, §10.11). Un test de la suite rápida, `packages/db/src/horizonReaders.test.ts`, hace de esta tabla una regla (decisión 10-c), y no con el criterio de texto de `l6/lecturas.mjs`, que solo ve `export function` y no tiene `stage_timelines` entre sus patrones: con él, un método de un objeto exportado, como `palmaresTitleSource.titlesOn` (`export const palmaresTitleSource: ChampionTitleSource = { async titlesOn(…) {…} }`, §7.4), o una lectura nueva de `stage_timelines` sin `Horizon` pasarían sin que nadie lo viera (0 de 2 en un fichero sintético con esas dos formas, `c-l6/lecturas-ast2.mjs`). El test usa el AST y el comprobador de tipos de TypeScript (`ts.createProgram` sobre el `tsconfig.json` de `packages/db`; `l8/plantillas.mjs` ya lee el AST así): recorre las funciones exportadas de `packages/db/src` y los métodos de los objetos exportados, con el cuerpo de las funciones no exportadas a las que llaman, que es donde leen de verdad `predictStartlist` y `ensureRaceRosterFrozen`; busca las fuentes de D-32, punto 1, enteras, `stage_timelines` incluida; y falla si una nombra una fuente, lee y el TIPO de su segundo parámetro no es `Horizon`, que el comprobador resuelve también en un método tipado por contexto. Las excepciones van en una lista escrita, por su nombre y con su motivo, y una entrada que ya no haga falta también falla, para que la lista no envejezca: los orquestadores del tick (los de arriba y los que el AST encuentra además, `runCalendarDay`, `recomputeWorldRanking` y `addSeasonPointsBatch`), `computeHorizon`, `horizonSummary`, `lastRunStages` y `veilDelta`, `cast.ts:buildTimelineCast` y `titles.ts:palmaresTitleSource.titlesOn`, y `draftRace` y `undraftRace`, que leen `teams.budget` por `ownedTeam` (`teamPlan.ts` l. 205-219) sin devolverlo (la ruta responde `{ ok: true }`, `routes/teams.ts` l. 94-96). Así una fuente de títulos nueva, como la de E12 (§7.9), entra en rojo hasta que alguien decida su horizonte. Medido con el prototipo sobre el árbol de hoy: 61 lecturas, las 57 del criterio de texto menos `getRiderTeamRacePlan` y `selectFieldTeams` (texto de sus funciones vecinas, no lecturas suyas) y más seis que el texto no veía (`getSeasonAwards`, que la tabla ya tiene, y cinco de la lista de excepciones), en unos 5 s en esta máquina.
 
@@ -185,33 +225,54 @@ Quedan fuera cuatro grupos, cada uno con su motivo. Los orquestadores del tick q
 
 ```ts
 // packages/db/src/horizon.ts (nuevo). Tres consultas por espectador y el mapa del día (forma D, 18-a); lo demás es cuenta en memoria.
-import { DAYS_PER_SEASON, SPOILER, currentSeason, parseRaceKey, type SpoilerScope, type StageGate } from '@cyclingstar/shared'
-import { SEASON_CALENDAR, stageDayOfSeason } from '@cyclingstar/engine'   // packages/db ya depende del motor (package.json)
+import {
+  DAYS_PER_SEASON,
+  SPOILER,
+  currentSeason,
+  parseRaceKey,
+  type SpoilerScope,
+  type StageGate,
+} from '@cyclingstar/shared'
+import { SEASON_CALENDAR, stageDayOfSeason } from '@cyclingstar/engine' // packages/db ya depende del motor (package.json)
 import { sql } from 'drizzle-orm'
 import type { Database } from './client.js'
 
 /** La fila de la consulta 1; `first` da la primera fila de un `db.execute`, o null. */
-interface ViewerRow { readonly scope: SpoilerScope; readonly rev: number; readonly rider_id: string | null; readonly team_riders: readonly string[] }
+interface ViewerRow {
+  readonly scope: SpoilerScope
+  readonly rev: number
+  readonly rider_id: string | null
+  readonly team_riders: readonly string[]
+}
 
-export async function computeHorizon(db: Database, viewer: Viewer, world: WorldRef): Promise<Horizon> {
+export async function computeHorizon(
+  db: Database,
+  viewer: Viewer,
+  world: WorldRef,
+): Promise<Horizon> {
   if (viewer === null) return anonHorizon()
   // 1. Usuario y alcance: la clave de users, el corredor activo y los ids de la plantilla del equipo que posee
   //    (riders.ts l. 184-215; schema.ts l. 227 y 277). Los ids van por delante para que la consulta 2 use el índice (18-a).
-  const u = first<ViewerRow>(await db.execute(sql`
+  const u = first<ViewerRow>(
+    await db.execute(sql`
     select u.spoiler_scope as scope, u.horizon_rev as rev,
            (select r.id from riders r where r.user_id = u.id and r.retired_at is null limit 1) as rider_id,
            array(select r2.id from riders r2
                  where r2.team_id = (select t.id from teams t where t.owner_user_id = u.id limit 1)) as team_riders
-    from users u where u.id = ${viewer.userId}`))
-  if (u === null) return anonHorizon()                        // cuenta borrada con la cookie aún viva: nada que proteger
+    from users u where u.id = ${viewer.userId}`),
+  )
+  if (u === null) return anonHorizon() // cuenta borrada con la cookie aún viva: nada que proteger
   const memoKey = `${viewer.userId}|${world.currentDay}|${u.rev}`
-  const hit = horizonMemo.get(memoKey, Date.now())            // TtlMemo (§10.7): SPOILER.horizonMemoS (60 s), barrido y tope
+  const hit = horizonMemo.get(memoKey, Date.now()) // TtlMemo (§10.7): SPOILER.horizonMemoS (60 s), barrido y tope
   if (hit !== undefined) return { ...hit, readOnly: viewer.readOnly }
-  const season = currentSeason(world.currentDay)              // shared/src/time.ts
-  // 2. Listas de su corredor y de su plantilla en la temporada actual y la anterior, por race_rosters_rider_idx (0045):
+  const season = currentSeason(world.currentDay) // shared/src/time.ts
+  // 2. Listas de su corredor y de su plantilla en la temporada actual y la anterior, por race_rosters_rider_idx (0048):
   //    `= any` con UN parámetro de tipo array (sql.param, 10-d). Con `or … in (select …)` el plan era un Seq Scan (18-a).
   const ids = [u.rider_id, ...u.team_riders].filter((id): id is string => id !== null)
-  const own = u.scope === 'off' || ids.length === 0 ? [] : await db.execute(sql`
+  const own =
+    u.scope === 'off' || ids.length === 0
+      ? []
+      : await db.execute(sql`
     select rr.race_id as race_key, bool_or(rr.rider_id = ${u.rider_id}) as own_rider
     from race_rosters rr
     where rr.rider_id = any(${sql.param(ids)}::uuid[])
@@ -221,10 +282,10 @@ export async function computeHorizon(db: Database, viewer: Viewer, world: WorldR
   const rows = await db.execute(sql`
     select race_key, follow, known_through, how, watching_stage, reached_s
     from race_watch where user_id = ${viewer.userId} and world_id = ${world.worldId}`)
-  const guard = guardCandidates(u.scope, own, rows, season)   // Map<raceKey, GuardReason>: propias, seguidas, cabecera; fuera las soltadas
+  const guard = guardCandidates(u.scope, own, rows, season) // Map<raceKey, GuardReason>: propias, seguidas, cabecera; fuera las soltadas
   // 4. La última etapa corrida de cada candidata sale del mapa del día, el mismo para todos los espectadores (abajo).
   const runs = guard.size === 0 ? new Map<string, number>() : await lastRunStages(db, world)
-  const h = buildHorizon(viewer, world, u.rev, guard, rows, runs)   // abajo
+  const h = buildHorizon(viewer, world, u.rev, guard, rows, runs) // abajo
   horizonMemo.set(memoKey, h, Date.now())
   return h
 }
@@ -232,17 +293,23 @@ export async function computeHorizon(db: Database, viewer: Viewer, world: WorldR
 /** La última etapa corrida de cada carrera de la temporada actual y la anterior: UNA consulta por (worldId, currentDay) para
  *  todos (18-a; 6,5 ms de p50 con las 1.630 carreras de dos temporadas, §18.2). Exacto porque el tick corre las etapas del día
  *  y sube currentDay en la misma transacción (tick.ts l. 262-284): quien lee el día D ve todas las etapas hasta D y ninguna más. */
-let lastRun: { readonly key: string; readonly runs: Promise<ReadonlyMap<string, number>> } | null = null
+let lastRun: { readonly key: string; readonly runs: Promise<ReadonlyMap<string, number>> } | null =
+  null
 export function lastRunStages(db: Database, world: WorldRef): Promise<ReadonlyMap<string, number>> {
   const key = `${world.worldId}|${world.currentDay}`
   if (lastRun?.key === key) return lastRun.runs
   const season = currentSeason(world.currentDay)
-  const runs = db.execute(sql`
+  const runs = db
+    .execute(
+      sql`
     select race_id as race_key, max(stage_day) as last_run from stage_snapshots
-    where race_id like ${`%:s${season}`} or race_id like ${`%:s${season - 1}`} group by race_id`)
+    where race_id like ${`%:s${season}`} or race_id like ${`%:s${season - 1}`} group by race_id`,
+    )
     .then((rs) => new Map(rs.map((r) => [String(r.race_key), Number(r.last_run)])))
   lastRun = { key, runs }
-  void runs.catch(() => { if (lastRun?.runs === runs) lastRun = null })   // un fallo no se queda como el mapa del día
+  void runs.catch(() => {
+    if (lastRun?.runs === runs) lastRun = null
+  }) // un fallo no se queda como el mapa del día
   return runs
 }
 
@@ -250,23 +317,53 @@ export function lastRunStages(db: Database, world: WorldRef): Promise<ReadonlyMa
  *  el mapa de lastRunStages y el total del ranking que resta R, guardado igual (11-s; viva donde viva, se vacía aquí). En el mundo de B1
  *  el día de juego no cambia al correr la etapa velada, y todo esto va por el día: sin vaciar el total, el barrido de B1b de después
  *  restaría la etapa velada a un total de antes (§16.3). Se exporta desde packages/db/src/index.ts en el 7a. */
-export function clearHorizonCaches(): void { horizonMemo.clear(); veilDeltaMemo.clear(); lastRun = null /* y el total del día de R, 11-s */ }
+export function clearHorizonCaches(): void {
+  horizonMemo.clear()
+  veilDeltaMemo.clear()
+  lastRun = null /* y el total del día de R, 11-s */
+}
 
 /** Los dos horizontes sin espectador (10-h, arriba): el del tick, la administración y los bancos, y el del visitante. Velo vacío. */
-export const worldHorizon: Horizon = { kind: 'world', userId: null, readOnly: true, rev: 'world', knownThrough: new Map(), veil: [], watching: new Map() }
-export function anonHorizon(): Horizon { return { ...worldHorizon, kind: 'anon', rev: 'anon' } }
+export const worldHorizon: Horizon = {
+  kind: 'world',
+  userId: null,
+  readOnly: true,
+  rev: 'world',
+  knownThrough: new Map(),
+  veil: [],
+  watching: new Map(),
+}
+export function anonHorizon(): Horizon {
+  return { ...worldHorizon, kind: 'anon', rev: 'anon' }
+}
 /** La primera fila de un `db.execute` (postgres-js devuelve un RowList, que es un array), o null. */
-function first<T>(rows: readonly unknown[]): T | null { return (rows[0] as T | undefined) ?? null }
+function first<T>(rows: readonly unknown[]): T | null {
+  return (rows[0] as T | undefined) ?? null
+}
 /** Las carreras en guardia y su motivo, sin las soltadas: el cuerpo es el pseudocódigo de §10.4. */
-function guardCandidates(scope: SpoilerScope, own: readonly Record<string, unknown>[], rows: readonly Record<string, unknown>[], season: number): Map<string, GuardReason>
+function guardCandidates(
+  scope: SpoilerScope,
+  own: readonly Record<string, unknown>[],
+  rows: readonly Record<string, unknown>[],
+  season: number,
+): Map<string, GuardReason>
 /** La cuenta pura del velo, de lo conocido y de lo que está a medias: el cuerpo es el pseudocódigo de abajo. */
-function buildHorizon(viewer: NonNullable<Viewer>, world: WorldRef, rev: number, guard: ReadonlyMap<string, GuardReason>, rows: readonly Record<string, unknown>[], runs: ReadonlyMap<string, number>): Horizon
+function buildHorizon(
+  viewer: NonNullable<Viewer>,
+  world: WorldRef,
+  rev: number,
+  guard: ReadonlyMap<string, GuardReason>,
+  rows: readonly Record<string, unknown>[],
+  runs: ReadonlyMap<string, number>,
+): Horizon
 /** El día de juego de una etapa por el calendario, la cuenta de raceReport.ts l. 52-59 (abajo). Una clave sin temporada o fuera del
  *  calendario da el número de etapa, como allí: esas carreras no entran nunca en guardia (la vuelta de prueba, abajo). */
 export function stageGameDay(raceKey: string, stageDay: number): number {
-  const { raceId, season } = parseRaceKey(raceKey)                                // shared/src/raceKey.ts l. 15-19
+  const { raceId, season } = parseRaceKey(raceKey) // shared/src/raceKey.ts l. 15-19
   const race = SEASON_CALENDAR.find((r) => r.id === raceId)
-  return race === undefined || season === null ? stageDay : season * DAYS_PER_SEASON + stageDayOfSeason(race, stageDay)
+  return race === undefined || season === null
+    ? stageDay
+    : season * DAYS_PER_SEASON + stageDayOfSeason(race, stageDay)
 }
 ```
 
@@ -291,7 +388,7 @@ stageGameDay(raceKey, s) = season(raceKey) · DAYS_PER_SEASON + stageDayOfSeason
 
 Tres detalles con su porqué. La clave de carrera sin temporada (`test-tour`, la vuelta de prueba de la alfa, `routes/races.ts` l. 65) no casa con los patrones `%:s<n>` de la consulta 2 y queda fuera de toda guardia: es una herramienta de pruebas con sus propias rutas, que ya piden sesión. El equipo de la consulta 2 es el de hoy (`riders.team_id`), no el del día de cada carrera: `race_rosters` no guarda equipo (`schema.ts` l. 587-610), y dentro de una temporada la plantilla solo cambia con el mercado, así que la aproximación puede dejar sin guardia la carrera de un corredor recién fichado o guardar la de uno recién vendido; las dos cosas solo restringen de más o de menos una carrera ajena. El `rev` lleva el día porque cada tick añade etapas nuevas al velo sin que cambie `horizon_rev`: el mismo espectador tiene otro horizonte mañana.
 
-**3. El predicado.** `veilSql` es la ÚNICA forma de escribir el corte en SQL (D-32). `(raceKey, gameDay)` identifica una etapa porque ninguna carrera declara `doubleAfter` (medido, 0 de 842, mapa 04 §2; `stageDayOfSeason` las contaría, `routes/schedule.ts` l. 15-16), y donde existe `stage_day` (en `news` desde la `0043`; en `rider_points`, `palmares` y `transactions` desde la `0046`; siempre en `stage_team_results`) se usa `stage_day`. En SQL, con `$1`, `$2` y `$3` las tres listas del velo:
+**3. El predicado.** `veilSql` es la ÚNICA forma de escribir el corte en SQL (D-32). `(raceKey, gameDay)` identifica una etapa porque ninguna carrera declara `doubleAfter` (medido, 0 de 842, mapa 04 §2; `stageDayOfSeason` las contaría, `routes/schedule.ts` l. 15-16), y donde existe `stage_day` (en `news` desde la `0046`; en `rider_points`, `palmares` y `transactions` desde la `0049`; siempre en `stage_team_results`) se usa `stage_day`. En SQL, con `$1`, `$2` y `$3` las tres listas del velo:
 
 ```sql
 -- veilSql(h, raceKey, gameDay, stageDay): la fila pertenece a una etapa del velo de h
@@ -307,22 +404,35 @@ exists (select 1 from unnest($1::text[], $2::int[], $3::int[]) as w(k, d, s)
 import type { SQL, SQLWrapper } from 'drizzle-orm'
 
 /** EL predicado del velo (D-32). `stageDay` donde la tabla lo tiene; `gameDay` null solo si la tabla no tiene día de juego. */
-export function veilSql(h: Horizon, raceKey: SQLWrapper, gameDay: SQLWrapper, stageDay?: SQLWrapper): SQL
+export function veilSql(
+  h: Horizon,
+  raceKey: SQLWrapper,
+  gameDay: SQLWrapper,
+  stageDay?: SQLWrapper,
+): SQL
 export function veilSql(h: Horizon, raceKey: SQLWrapper, gameDay: null, stageDay: SQLWrapper): SQL
-export function veilSql(h: Horizon, raceKey: SQLWrapper, gameDay: SQLWrapper | null, stageDay?: SQLWrapper): SQL {
+export function veilSql(
+  h: Horizon,
+  raceKey: SQLWrapper,
+  gameDay: SQLWrapper | null,
+  stageDay?: SQLWrapper,
+): SQL {
   if (h.veil.length === 0) return sql`false`
   // sql.param: UN parámetro de tipo array. Una lista tal cual, drizzle-orm 0.45.2 la expande a ($1, $2, …) y el ::text[] falla (l6/veilsql.mjs)
   const keys = sql.param(h.veil.map((v) => v.raceKey))
   const days = sql.param(h.veil.map((v) => v.gameDay))
   const stages = sql.param(h.veil.map((v) => v.stageDay))
-  const match = stageDay === undefined ? sql`w.d = ${gameDay}`
-    : gameDay === null ? sql`w.s = ${stageDay}`
-    : sql`(w.s = ${stageDay} or (${stageDay} is null and w.d = ${gameDay}))`
+  const match =
+    stageDay === undefined
+      ? sql`w.d = ${gameDay}`
+      : gameDay === null
+        ? sql`w.s = ${stageDay}`
+        : sql`(w.s = ${stageDay} or (${stageDay} is null and w.d = ${gameDay}))`
   return sql`exists (select 1 from unnest(${keys}::text[], ${days}::int[], ${stages}::int[]) as w(k, d, s) where w.k = ${raceKey} and ${match})`
 }
 ```
 
-Medido en el scratchpad: una lista dentro de `sql` sale como `($1, $2)::text[]` y la consulta falla («Failed query»), así que el `hiddenSql` de `ingeniero.md` §7.2, escrito con la lista tal cual, no funcionaría; con `sql.param` sale `$1::text[]` y devuelve exactamente las filas veladas en PGlite (`l6/veilsql.mjs`) y con postgres-js 3.4.9 contra PGlite servido por socket (`l6/veilsql-pgjs.mjs`), también con listas vacías. Los usos, por tabla: `news` con `veilSql(h, news.raceKey, news.gameDay, news.stageDay)`; `palmares`, cuya `race_id` no lleva temporada (`schema.ts` l. 774-775), con ``veilSql(h, sql`${palmares.raceId} || ':s' || ${palmares.season}`, palmares.gameDay, palmares.stageDay)``; `rider_points` con `veilSql(h, riderPoints.raceId, riderPoints.gameDay, riderPoints.stageDay)`; `transactions` con sus columnas de la `0046`; `stage_team_results` con `veilSql(h, stageTeamResults.raceId, null, stageTeamResults.stageDay)`; y el abandono con `veilSql(h, raceRosters.raceId, raceRosters.abandonedDay)` y `abandoned_reason <> 'voluntario'`: `abandoned_day` es un día de juego (`schema.ts` l. 598-600), y la retirada del jugador entre etapas lo escribe con el día de hoy (`riderSchedule.ts` l. 283), que puede ser el de una etapa velada; esa no se enmascara, porque es un acto del jugador y no un resultado. Las filas de antes de la migración que les da la columna tienen `race_key` nulo o `stage_day` nulo y caen al día de juego, o no casan y se ven: son del mundo de pruebas, que el reinicio se lleva (mapa 04 §8). En tablas grandes el predicado va detrás de un filtro que use un índice (`rider_points.game_day = any(…)`, `rider_points_day_idx`, `schema.ts` l. 1047; `palmares_race_idx`, l. 785): el velo tiene como mucho unas cincuenta entradas (42 de cabecera más las propias, §10.4).
+Medido en el scratchpad: una lista dentro de `sql` sale como `($1, $2)::text[]` y la consulta falla («Failed query»), así que el `hiddenSql` de `ingeniero.md` §7.2, escrito con la lista tal cual, no funcionaría; con `sql.param` sale `$1::text[]` y devuelve exactamente las filas veladas en PGlite (`l6/veilsql.mjs`) y con postgres-js 3.4.9 contra PGlite servido por socket (`l6/veilsql-pgjs.mjs`), también con listas vacías. Los usos, por tabla: `news` con `veilSql(h, news.raceKey, news.gameDay, news.stageDay)`; `palmares`, cuya `race_id` no lleva temporada (`schema.ts` l. 774-775), con ``veilSql(h, sql`${palmares.raceId} || ':s' || ${palmares.season}`, palmares.gameDay, palmares.stageDay)``; `rider_points` con `veilSql(h, riderPoints.raceId, riderPoints.gameDay, riderPoints.stageDay)`; `transactions` con sus columnas de la `0049`; `stage_team_results` con `veilSql(h, stageTeamResults.raceId, null, stageTeamResults.stageDay)`; y el abandono con `veilSql(h, raceRosters.raceId, raceRosters.abandonedDay)` y `abandoned_reason <> 'voluntario'`: `abandoned_day` es un día de juego (`schema.ts` l. 598-600), y la retirada del jugador entre etapas lo escribe con el día de hoy (`riderSchedule.ts` l. 283), que puede ser el de una etapa velada; esa no se enmascara, porque es un acto del jugador y no un resultado. Las filas de antes de la migración que les da la columna tienen `race_key` nulo o `stage_day` nulo y caen al día de juego, o no casan y se ven: son del mundo de pruebas, que el reinicio se lleva (mapa 04 §8). En tablas grandes el predicado va detrás de un filtro que use un índice (`rider_points.game_day = any(…)`, `rider_points_day_idx`, `schema.ts` l. 1047; `palmares_race_idx`, l. 785): el velo tiene como mucho unas cincuenta entradas (42 de cabecera más las propias, §10.4).
 
 **Sus gemelos, para lo que va por número de etapa:**
 
@@ -339,7 +449,9 @@ export function isVeiled(h: Horizon, raceKey: string, stageDay: number): boolean
 }
 /** La puerta de una etapa (D-37): una anterior velada manda sobre la propia. */
 export function stageGateOf(h: Horizon, raceKey: string, stageDay: number): StageGate | null {
-  const before = h.veil.filter((v) => v.raceKey === raceKey && v.stageDay < stageDay).map((v) => v.stageDay)
+  const before = h.veil
+    .filter((v) => v.raceKey === raceKey && v.stageDay < stageDay)
+    .map((v) => v.stageDay)
   if (before.length > 0) return { k: 'previous_unseen', firstUnseen: Math.min(...before) }
   return isVeiled(h, raceKey, stageDay) ? { k: 'not_seen' } : null
 }
@@ -347,15 +459,15 @@ export function stageGateOf(h: Horizon, raceKey: string, stageDay: number): Stag
 
 **4. `veilDelta`**, lo que las etapas veladas cambiaron en el mundo (§21.6 F.2: `veilDelta(db, h): Promise<VeilDelta>`). Una consulta por fuente, solo sobre filas veladas y por los índices nuevos; con el velo vacío no consulta nada y devuelve el `VeilDelta` vacío. Lo usan los mecanismos R y M; se pide perezoso, como mucho una vez por petición, y se memoriza con la clave y la vida del horizonte en otro `TtlMemo`, con las mismas reglas y el mismo tope (18-c, §10.7).
 
-| Campo de `VeilDelta` (§4.10) | La consulta (todas con `veilSql` y un filtro indexado delante) |
-| --- | --- |
-| `points` | `rider_points` de las filas veladas, `sum(points)` por `rider_id`: `window` todo, `season` las de `game_day ≥` el primer día de la temporada actual |
-| `money` | `transactions` de `kind = 'premio'` con `(race_key, stage_day)` velados (`transactions_race_stage_idx`, `0046`), `sum(amount)` por `rider_id` |
-| `budget` | `stage_team_results.prize` de `(race_id, stage_day)` velados, `sum` por `team_id` (`0046`, D-41) |
-| `palmares` | los `id` de `palmares` velados del mundo (`palmares_race_idx`) |
-| `health` | la noticia `injury` velada más reciente de cada corredor: `data->>'prevHealth'` y `data->>'prevUntilDay'` (`NewsPayload`, §4.12), la salud de ANTES de la caída (sup. P5) |
-| `abandons` | `race_rosters` con `abandoned_day` velado y `abandoned_reason <> 'voluntario'`: `${race_id}\|${rider_id}` (sups. X2 y X9) |
-| `raceDays` | los corredores de la lista de salida de cada carrera con etapas veladas, con los días de juego velados: `race_rosters` unido al velo por `race_id` (el `parte` y el aprendizaje, sups. H4 y X1) |
+| Campo de `VeilDelta` (§4.10) | La consulta (todas con `veilSql` y un filtro indexado delante)                                                                                                                                  |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `points`                     | `rider_points` de las filas veladas, `sum(points)` por `rider_id`: `window` todo, `season` las de `game_day ≥` el primer día de la temporada actual                                             |
+| `money`                      | `transactions` de `kind = 'premio'` con `(race_key, stage_day)` velados (`transactions_race_stage_idx`, `0049`), `sum(amount)` por `rider_id`                                                   |
+| `budget`                     | `stage_team_results.prize` de `(race_id, stage_day)` velados, `sum` por `team_id` (`0049`, D-41)                                                                                                |
+| `palmares`                   | los `id` de `palmares` velados del mundo (`palmares_race_idx`)                                                                                                                                  |
+| `health`                     | la noticia `injury` velada más reciente de cada corredor: `data->>'prevHealth'` y `data->>'prevUntilDay'` (`NewsPayload`, §4.12), la salud de ANTES de la caída (sup. P5)                       |
+| `abandons`                   | `race_rosters` con `abandoned_day` velado y `abandoned_reason <> 'voluntario'`: `${race_id}\|${rider_id}` (sups. X2 y X9)                                                                       |
+| `raceDays`                   | los corredores de la lista de salida de cada carrera con etapas veladas, con los días de juego velados: `race_rosters` unido al velo por `race_id` (el `parte` y el aprendizaje, sups. H4 y X1) |
 
 Tres de ellas escritas, para que se vea el patrón (un filtro indexado y `veilSql` detrás; `$days` y `$keys` son las listas del velo, enlazadas con `sql.param`):
 
@@ -382,22 +494,22 @@ group by rr.rider_id;
 
 **5. Los mecanismos.** Todo lo que una ruta devuelve y nace de una etapa pasa por uno de ocho (D-32). Su aplicación superficie a superficie es §11.1 y su declaración por ruta, `config.veil` (§14.5).
 
-| Mecanismo | Qué hace | Con qué pieza | Ejemplo |
-| --- | --- | --- | --- |
-| P, prefijo | sirve una carrera «tras la etapa k» con las funciones `…ThroughStage` que ya existen (`results.ts` l. 236, 320, 379) | `throughStage` | la ficha de carrera enseña la general tras la última conocida (sup. C2) |
-| R, resta | el total del mundo del día, calculado como hoy, menos `VeilDelta`, y se reordena; el total se guarda igual que `lastRunStages`, en una promesa por `(worldId, currentDay)` que comparten las peticiones que llegan a la vez tras el tick y que se borra si falla (11-s, §11.5) | `veilDelta` | el ranking mundial, los puntos del equipo, el presupuesto (sups. W1, P6) |
-| F, filtro | las filas veladas fuera y UN marcador neutro por etapa velada en toda lista que sea un flujo, se escribieran sobre ella una fila o cinco | `veilSql` | las noticias con un `stage_ready` por etapa (sup. N1, §11.7) |
-| M, máscara | el estado previo guardado en lugar del actual | `veilDelta.health`, `.abandons` | `Injured` no sale si la caída está velada (sup. P5) |
-| G, puerta | la respuesta no lleva el resultado; lleva `StageGate` | `stageGateOf`, `isVeiled` | el acta de una etapa velada da 403 con la puerta (§14.2) |
-| B, tramos | la retransmisión se sirve hasta lo alcanzado más la precarga y nunca con la meta | lo alcanzado (§10.11) | `GET …/broadcast/chunk` |
-| N, neutro | la entrada no puede llevar un resultado, por tipo | `PreStageInfo`, el recorrido | el título de la pestaña, el correo, el perfil sin marcas (§11.8, §11.9) |
-| L, libre | se deja ver, con el motivo escrito en la ruta y en §11.1 | ninguna | cuántas etapas se han corrido (sup. C6), la lista de salida congelada |
+| Mecanismo  | Qué hace                                                                                                                                                                                                                                                                       | Con qué pieza                   | Ejemplo                                                                  |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------- | ------------------------------------------------------------------------ |
+| P, prefijo | sirve una carrera «tras la etapa k» con las funciones `…ThroughStage` que ya existen (`results.ts` l. 236, 320, 379)                                                                                                                                                           | `throughStage`                  | la ficha de carrera enseña la general tras la última conocida (sup. C2)  |
+| R, resta   | el total del mundo del día, calculado como hoy, menos `VeilDelta`, y se reordena; el total se guarda igual que `lastRunStages`, en una promesa por `(worldId, currentDay)` que comparten las peticiones que llegan a la vez tras el tick y que se borra si falla (11-s, §11.5) | `veilDelta`                     | el ranking mundial, los puntos del equipo, el presupuesto (sups. W1, P6) |
+| F, filtro  | las filas veladas fuera y UN marcador neutro por etapa velada en toda lista que sea un flujo, se escribieran sobre ella una fila o cinco                                                                                                                                       | `veilSql`                       | las noticias con un `stage_ready` por etapa (sup. N1, §11.7)             |
+| M, máscara | el estado previo guardado en lugar del actual                                                                                                                                                                                                                                  | `veilDelta.health`, `.abandons` | `Injured` no sale si la caída está velada (sup. P5)                      |
+| G, puerta  | la respuesta no lleva el resultado; lleva `StageGate`                                                                                                                                                                                                                          | `stageGateOf`, `isVeiled`       | el acta de una etapa velada da 403 con la puerta (§14.2)                 |
+| B, tramos  | la retransmisión se sirve hasta lo alcanzado más la precarga y nunca con la meta                                                                                                                                                                                               | lo alcanzado (§10.11)           | `GET …/broadcast/chunk`                                                  |
+| N, neutro  | la entrada no puede llevar un resultado, por tipo                                                                                                                                                                                                                              | `PreStageInfo`, el recorrido    | el título de la pestaña, el correo, el perfil sin marcas (§11.8, §11.9)  |
+| L, libre   | se deja ver, con el motivo escrito en la ruta y en §11.1                                                                                                                                                                                                                       | ninguna                         | cuántas etapas se han corrido (sup. C6), la lista de salida congelada    |
 
 La existencia también informa (I-39): todo aviso que diga que hay algo oculto (`Results from 3 stages you haven't watched are hidden · Manage`, pantalla) depende SOLO del horizonte (`h.veil.length`) y sale igual en todas las fichas; una lista que sea un flujo deja un marcador por etapa velada y no por fila escondida; y ninguna decisión de enviar o de enseñar mira el contenido que esconde. B1c lo sella con dos semillas de desenlaces distintos (§16.3).
 
 ### 10.7 El coste
 
-`race_rosters` solo tiene la clave `(race_id, rider_id)` (`schema.ts` l. 609): las carreras de un corredor se buscaban con un recorrido secuencial, 19,6 ms con 249.232 filas (la cota de cuatro temporadas, un año real), contra 0,11 ms con un índice por `rider_id` (medido por el juez del motor en PGlite, C12). Por eso la `0045` añade `race_rosters_rider_idx (rider_id)` (§13.4) y el «menos de 5 ms» de `estado.md` §7.2, estimado sin índice, era falso (X-11, O-17, H-10). Las consultas 1 y 3 de `computeHorizon` van por clave primaria (`users`; `race_watch` por `(user_id, world_id)`, prefijo de su clave) y se estimaban por debajo del milisegundo cada una; la cuarta, por espectador (`stage_snapshots` por `race_id = any(…)`, prefijo de su clave), costaba 2,1 ms medida con 273 carreras en guardia, y por eso `lastRunStages` la hace una vez por día de juego para todas (forma D, 18-a; §18.2), en una promesa que comparten las peticiones que llegan a la vez tras el tick y que se borra si falla, como el total del día de la resta (11-s). El resultado se memoriza en el proceso por `(userId, currentDay, horizonRev)` durante `SPOILER.horizonMemoS` (60 s): una segunda petición del mismo espectador en el mismo minuto cuesta la consulta 1 y nada más (I-33); revelar, llegar a meta, seguir o cambiar el alcance suben `horizon_rev` y la clave cambia sola. B14 lo sella desde el 7a contra el Postgres de servicio del CI (§16.4, decisiones 16-k y 18-j): `computeHorizon` y `recordProgress` se miden por separado, cada uno con p95 ≤ `SPOILER.horizonBudgetMs` (5 ms) sobre 250.000 filas de `race_rosters`, y `computeHorizon` para dos espectadores. El jugador y `recordProgress` son puerta en la suite rápida contra ese Postgres; en PGlite solo informan y fallan por encima de 15 ms, porque por el socket de `testDb.ts` el jugador va de 2,55 a 4,97 ms entre corridas y la puerta sería intermitente (en PGlite dentro del proceso, 3,1 a 3,7 ms, forma D). El mánager de un equipo de 30 (de 8,6 a 9,3 ms en PGlite; de 3,88 a 4,75 en PostgreSQL 16 sin red, en tres corridas, §18.2) se imprime, y su puerta es la medida desde el servicio `web` de Railway contra una copia de producción (§18.9, DD-21). Si no pasa, `SPOILER_MODE=off` lo apaga sin desplegar (D-53, §10.13).
+`race_rosters` solo tiene la clave `(race_id, rider_id)` (`schema.ts` l. 609): las carreras de un corredor se buscaban con un recorrido secuencial, 19,6 ms con 249.232 filas (la cota de cuatro temporadas, un año real), contra 0,11 ms con un índice por `rider_id` (medido por el juez del motor en PGlite, C12). Por eso la `0048` añade `race_rosters_rider_idx (rider_id)` (§13.4) y el «menos de 5 ms» de `estado.md` §7.2, estimado sin índice, era falso (X-11, O-17, H-10). Las consultas 1 y 3 de `computeHorizon` van por clave primaria (`users`; `race_watch` por `(user_id, world_id)`, prefijo de su clave) y se estimaban por debajo del milisegundo cada una; la cuarta, por espectador (`stage_snapshots` por `race_id = any(…)`, prefijo de su clave), costaba 2,1 ms medida con 273 carreras en guardia, y por eso `lastRunStages` la hace una vez por día de juego para todas (forma D, 18-a; §18.2), en una promesa que comparten las peticiones que llegan a la vez tras el tick y que se borra si falla, como el total del día de la resta (11-s). El resultado se memoriza en el proceso por `(userId, currentDay, horizonRev)` durante `SPOILER.horizonMemoS` (60 s): una segunda petición del mismo espectador en el mismo minuto cuesta la consulta 1 y nada más (I-33); revelar, llegar a meta, seguir o cambiar el alcance suben `horizon_rev` y la clave cambia sola. B14 lo sella desde el 7a contra el Postgres de servicio del CI (§16.4, decisiones 16-k y 18-j): `computeHorizon` y `recordProgress` se miden por separado, cada uno con p95 ≤ `SPOILER.horizonBudgetMs` (5 ms) sobre 250.000 filas de `race_rosters`, y `computeHorizon` para dos espectadores. El jugador y `recordProgress` son puerta en la suite rápida contra ese Postgres; en PGlite solo informan y fallan por encima de 15 ms, porque por el socket de `testDb.ts` el jugador va de 2,55 a 4,97 ms entre corridas y la puerta sería intermitente (en PGlite dentro del proceso, 3,1 a 3,7 ms, forma D). El mánager de un equipo de 30 (de 8,6 a 9,3 ms en PGlite; de 3,88 a 4,75 en PostgreSQL 16 sin red, en tres corridas, §18.2) se imprime, y su puerta es la medida desde el servicio `web` de Railway contra una copia de producción (§18.9, DD-21). Si no pasa, `SPOILER_MODE=off` lo apaga sin desplegar (D-53, §10.13).
 
 **Los memos no crecen** (Rcoste-011, decisión 10-m). La clave cambia sola, y por eso mismo cada día de juego (cuatro por día real) y cada subida de `horizon_rev` dejan atrás una entrada que no se vuelve a pedir: un `Map` con solo `get` y `set` no suelta ninguna hasta que el proceso se reinicia. Medido por entrada (`heapUsed` tras `gc`, `coste/memo/memo.mjs` y `c-l6/veildelta-forma.mjs`, con las filas de §18.2): 9 KB el horizonte de un jugador y 35 KB el de un mánager, y 75 y 180 KB su `VeilDelta`, que se memoriza con la misma clave (18-c). Con 200 jugadores y una decena de claves nuevas por jugador y día real serían de 18 a 470 MB al día en el proceso de `web` (estimado por el refutador de coste). Así que los memos del proceso (el del horizonte, el de `veilDelta` y el de la sesión de `request.viewer()`, §10.3) son un `TtlMemo`, con tres reglas: una entrada caducada se borra al leerla; cada `set` barre desde el principio las caducadas, que son las primeras porque todas viven lo mismo y un `Map` recorre sus claves en orden de inserción, así que el memo guarda solo a quien pidió algo en el último minuto (con cien espectadores, 3,5 MB el del horizonte y 18 MB el de `veilDelta` si todos fueran mánagers); y un tope, `SPOILER.horizonMemoEntries` (500), borra la más antigua cuando un pico lo pasa: 17 y 88 MB en el peor caso, quinientos mánagers distintos en un minuto, todos en rutas con R o M. El tope no tiene evidencia de los jueces: quinientos espectadores distintos en un minuto están muy por encima de lo que el juego tiene hoy, y pasarlo solo cuesta recalcular (de 3 a 9 ms el horizonte, §18.2). No hace falta vaciarlos al cambiar `currentDay`, como proponía el refutador: una clave de otro día ya no se pide y el barrido la quita en menos de un minuto. La memoria de lo alcanzado sigue su propia regla (§10.3).
 
@@ -406,25 +518,38 @@ La existencia también informa (I-39): todo aviso que diga que hay algo oculto (
 /** Memo de vida fija. Todas las entradas viven lo mismo, así que el orden de inserción del Map es el de caducidad. */
 export class TtlMemo<V> {
   private readonly entries = new Map<string, { readonly v: V; readonly untilMs: number }>()
-  constructor(private readonly lifeMs: number, private readonly maxEntries: number) {}
+  constructor(
+    private readonly lifeMs: number,
+    private readonly maxEntries: number,
+  ) {}
   get(key: string, nowMs: number): V | undefined {
     const hit = this.entries.get(key)
     if (hit === undefined) return undefined
     if (hit.untilMs > nowMs) return hit.v
-    this.entries.delete(key)                                                           // caducada: fuera al leerla
+    this.entries.delete(key) // caducada: fuera al leerla
     return undefined
   }
   set(key: string, v: V, nowMs: number): void {
-    for (const [k, e] of this.entries) { if (e.untilMs > nowMs) break; this.entries.delete(k) }   // las caducadas, desde el principio
-    this.entries.delete(key)                                                           // al final, con su vida nueva
+    for (const [k, e] of this.entries) {
+      if (e.untilMs > nowMs) break
+      this.entries.delete(k)
+    } // las caducadas, desde el principio
+    this.entries.delete(key) // al final, con su vida nueva
     this.entries.set(key, { v, untilMs: nowMs + this.lifeMs })
-    if (this.entries.size > this.maxEntries) this.entries.delete(this.entries.keys().next().value!)   // el tope: fuera la más antigua
+    if (this.entries.size > this.maxEntries) this.entries.delete(this.entries.keys().next().value!) // el tope: fuera la más antigua
   }
-  get size(): number { return this.entries.size }                                      // para B12
-  clear(): void { this.entries.clear() }                                               // solo clearHorizonCaches, para los tests (§10.6)
+  get size(): number {
+    return this.entries.size
+  } // para B12
+  clear(): void {
+    this.entries.clear()
+  } // solo clearHorizonCaches, para los tests (§10.6)
 }
 const horizonMemo = new TtlMemo<Horizon>(SPOILER.horizonMemoS * 1000, SPOILER.horizonMemoEntries)
-const veilDeltaMemo = new TtlMemo<VeilDelta>(SPOILER.horizonMemoS * 1000, SPOILER.horizonMemoEntries)   // 18-c: la clave del horizonte
+const veilDeltaMemo = new TtlMemo<VeilDelta>(
+  SPOILER.horizonMemoS * 1000,
+  SPOILER.horizonMemoEntries,
+) // 18-c: la clave del horizonte
 /** `users.last_seen_at`, como mucho una vez por hora (abajo). Quien la lanza sin esperar le pone su `.catch` (10-k). */
 export function touchLastSeen(db: Database, userId: string): Promise<void>
 ```
@@ -441,7 +566,7 @@ La defensa es una cookie que solo restringe, `cs_viewer` (I-31). El servidor la 
 // apps/api/src/viewerCookie.ts (nuevo; §17.20)
 import { createHmac } from 'node:crypto'
 import { SPOILER } from '@cyclingstar/shared'
-import { timingSafeEqualString } from './security.js'   // l. 57-61: compara los SHA-256, en tiempo constante
+import { timingSafeEqualString } from './security.js' // l. 57-61: compara los SHA-256, en tiempo constante
 
 export const VIEWER_COOKIE = 'cs_viewer'
 const DAY_S = 86_400
@@ -453,7 +578,11 @@ export function signViewerCookie(userId: string, secret: string, nowS: number): 
   return `${payload}.${mac(secret, payload)}`
 }
 /** El usuario si la cookie es de este servidor, tiene forma y no ha caducado; null en cualquier otro caso. Nunca lanza. */
-export function readViewerCookie(raw: string | undefined, secret: string, nowS: number): { readonly userId: string; readonly issuedAtS: number } | null {
+export function readViewerCookie(
+  raw: string | undefined,
+  secret: string,
+  nowS: number,
+): { readonly userId: string; readonly issuedAtS: number } | null {
   if (raw === undefined || raw.length > 200) return null
   const parts = raw.split('.')
   if (parts.length !== 4 || parts[0] !== 'v1') return null
@@ -461,7 +590,9 @@ export function readViewerCookie(raw: string | undefined, secret: string, nowS: 
   const issuedAtS = Number(issued)
   if (!UUID_RE.test(userId) || !Number.isInteger(issuedAtS)) return null
   if (issuedAtS > nowS + 60 || nowS - issuedAtS > SPOILER.viewerCookieDays * DAY_S) return null
-  return timingSafeEqualString(signature, mac(secret, `v1.${userId}.${issuedAtS}`)) ? { userId, issuedAtS } : null
+  return timingSafeEqualString(signature, mac(secret, `v1.${userId}.${issuedAtS}`))
+    ? { userId, issuedAtS }
+    : null
 }
 /** La cabecera Set-Cookie; con `null`, la que la borra (Max-Age=0). */
 export function viewerCookieHeader(value: string | null, secure: boolean): string {
@@ -469,7 +600,7 @@ export function viewerCookieHeader(value: string | null, secure: boolean): strin
   return `${base}; Max-Age=${value === null ? 0 : SPOILER.viewerCookieDays * DAY_S}`
 }
 function mac(secret: string, payload: string): string {
-  return createHmac('sha256', secret).update(`cs_viewer.${payload}`).digest('base64url')   // el prefijo separa este uso del secreto de los de better-auth
+  return createHmac('sha256', secret).update(`cs_viewer.${payload}`).digest('base64url') // el prefijo separa este uso del secreto de los de better-auth
 }
 ```
 
@@ -479,13 +610,13 @@ Medido (`l6/cookie.mjs`): la cookie ocupa 94 caracteres y su cabecera `Set-Cooki
 
 **Se borra con un cierre de sesión explícito** (D-34). El reenvío a better-auth (`routes/authProxy.ts` l. 17-41) añade `viewerCookieHeader(null, secure)` a la respuesta de `POST /api/auth/sign-out` y a la de `POST /api/auth/delete-user` cuando responden con éxito. La caducidad de la sesión NO la borra: es exactamente el caso para el que existe.
 
-| Petición | Sesión | `cs_viewer` que llega | `Viewer` | Qué hace con la cookie |
-| --- | --- | --- | --- | --- |
-| ruta con horizonte | sí | cualquiera o ninguna | `{ userId, readOnly: false }` | la firma de nuevo para ese usuario si no llega, no vale, es de otro o tiene más de un día; si no, nada |
-| ruta con horizonte | no | válida | `{ userId, readOnly: true }` | nada |
-| ruta con horizonte | no | inválida, caducada o ausente | `null` (horizonte `anon`) | nada |
-| ruta `safe` | cualquiera | cualquiera | no se calcula | nada |
-| `POST /api/auth/sign-out`, `POST /api/auth/delete-user` con éxito | sí | cualquiera | no se calcula | la borra |
+| Petición                                                          | Sesión     | `cs_viewer` que llega        | `Viewer`                      | Qué hace con la cookie                                                                                 |
+| ----------------------------------------------------------------- | ---------- | ---------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------ |
+| ruta con horizonte                                                | sí         | cualquiera o ninguna         | `{ userId, readOnly: false }` | la firma de nuevo para ese usuario si no llega, no vale, es de otro o tiene más de un día; si no, nada |
+| ruta con horizonte                                                | no         | válida                       | `{ userId, readOnly: true }`  | nada                                                                                                   |
+| ruta con horizonte                                                | no         | inválida, caducada o ausente | `null` (horizonte `anon`)     | nada                                                                                                   |
+| ruta `safe`                                                       | cualquiera | cualquiera                   | no se calcula                 | nada                                                                                                   |
+| `POST /api/auth/sign-out`, `POST /api/auth/delete-user` con éxito | sí         | cualquiera                   | no se calcula                 | la borra                                                                                               |
 
 ### 10.9 La caché de la web
 
@@ -503,19 +634,34 @@ La cabecera de la retransmisión (`BroadcastHead.cast` y `.startState`, §4.11) 
 
 ```ts
 // packages/db/src/horizon.ts (sigue)
-import type { CastRider, Distinction, StageRef, TimelineCast, WornJersey } from '@cyclingstar/shared'
+import type {
+  CastRider,
+  Distinction,
+  StageRef,
+  TimelineCast,
+  WornJersey,
+} from '@cyclingstar/shared'
 
 /** El reparto que puede ver `h`: ningún campo con procedencia velada viaja (D-15, B13). Pura. */
 export function veilCast(cast: TimelineCast, h: Horizon): TimelineCast {
   if (h.veil.length === 0) return cast
   const seen = (r: StageRef | null): boolean => r === null || !isVeiled(h, r.raceKey, r.stageDay)
   const worn = (w: WornJersey): WornJersey =>
-    (w.kind === 'leader' && !seen(w.from)) || (w.kind === 'champion' && !seen(w.title.source)) ? { kind: 'team' } : w
+    (w.kind === 'leader' && !seen(w.from)) || (w.kind === 'champion' && !seen(w.title.source))
+      ? { kind: 'team' }
+      : w
   const line = (d: Distinction): Distinction | null => {
     switch (d.kind) {
-      case 'leads': case 'wears_for': case 'gc': return seen(d.from) ? d : null
-      case 'champion': return seen(d.title.source) ? d : null
-      case 'stage_wins': { const stages = d.stages.filter(seen); return stages.length > 0 ? { ...d, stages } : null }
+      case 'leads':
+      case 'wears_for':
+      case 'gc':
+        return seen(d.from) ? d : null
+      case 'champion':
+        return seen(d.title.source) ? d : null
+      case 'stage_wins': {
+        const stages = d.stages.filter(seen)
+        return stages.length > 0 ? { ...d, stages } : null
+      }
     }
   }
   const riders = cast.riders.map((c): CastRider => ({
@@ -524,7 +670,7 @@ export function veilCast(cast: TimelineCast, h: Horizon): TimelineCast {
     distinctions: c.distinctions.map(line).filter((d): d is Distinction => d !== null),
     start: seen(c.start.from) ? c.start : { gcRank: null, gcDeficitS: null, from: null },
   }))
-  return { riders, teams: cast.teams, favourites: cast.favourites }   // los favoritos no llevan from: se copian tal cual (8-f)
+  return { riders, teams: cast.teams, favourites: cast.favourites } // los favoritos no llevan from: se copian tal cual (8-f)
 }
 ```
 
@@ -561,42 +707,41 @@ Tres reglas sin evidencia de los jueces (D-57; H-21, H-23), que vigilan los test
 
 El interruptor del servidor (`off`, `admins`, `on`; §14.6), que no hay que confundir con el alcance del jugador (`users.spoiler_scope`), decide si se calcula el horizonte, alrededor de `computeHorizon` y no dentro, porque su firma (§21.6 F.2) no recibe el modo: lo aplica `request.horizon()`, en el registro de rutas (§14.5), y el cableado desde `env.ts` es §14.6.
 
-| Modo | Horizonte de cada petición | Qué ve la web |
-| --- | --- | --- |
-| `off` (defecto hasta el paso 7) | `worldHorizon` para quien tiene sesión o `cs_viewer`, `anonHorizon()` para el visitante: velo vacío, `computeHorizon` no se llama | lo de hoy: la ruta de etapa devuelve su `StageReplay` entero sin `watch` (§14.1); `/api/me/horizon` responde con el `rev` `'world'` y listas vacías; las escrituras de `/api/me/*` siguen funcionando, porque lo visto es del jugador y tiene que estar ahí cuando el modo se encienda |
-| `admins` (desde el paso 7) | `computeHorizon` solo si el espectador es administrador (`isUserAdmin`, `packages/db/src/adminUsers.ts` l. 53-61: `users.is_admin` o el correo de `ADMIN_EMAIL`); el resto, como `off` | el dueño vive el velo y los demás, el producto de hoy; para depurar una etapa que no conoce, el dueño abre la página con `?diag=1`, que la web reenvía a la ruta de etapa desde el 7b (§11.15, §14.11) |
-| `on` (al cerrar el paso 10, con B1 en verde y la prueba de lectura aceptada; D-53) | `computeHorizon` para todos | el producto sin destripe |
+| Modo                                                                               | Horizonte de cada petición                                                                                                                                                             | Qué ve la web                                                                                                                                                                                                                                                                          |
+| ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `off` (defecto hasta el paso 7)                                                    | `worldHorizon` para quien tiene sesión o `cs_viewer`, `anonHorizon()` para el visitante: velo vacío, `computeHorizon` no se llama                                                      | lo de hoy: la ruta de etapa devuelve su `StageReplay` entero sin `watch` (§14.1); `/api/me/horizon` responde con el `rev` `'world'` y listas vacías; las escrituras de `/api/me/*` siguen funcionando, porque lo visto es del jugador y tiene que estar ahí cuando el modo se encienda |
+| `admins` (desde el paso 7)                                                         | `computeHorizon` solo si el espectador es administrador (`isUserAdmin`, `packages/db/src/adminUsers.ts` l. 53-61: `users.is_admin` o el correo de `ADMIN_EMAIL`); el resto, como `off` | el dueño vive el velo y los demás, el producto de hoy; para depurar una etapa que no conoce, el dueño abre la página con `?diag=1`, que la web reenvía a la ruta de etapa desde el 7b (§11.15, §14.11)                                                                                 |
+| `on` (al cerrar el paso 10, con B1 en verde y la prueba de lectura aceptada; D-53) | `computeHorizon` para todos                                                                                                                                                            | el producto sin destripe                                                                                                                                                                                                                                                               |
 
 Los `rev` de los tres casos no coinciden nunca (`'world'`, `'anon'`, `${currentDay}.${horizon_rev}`), así que cambiar el modo cambia las claves de la web y nada de lo cacheado con un modo se enseña con el otro. Un destripe o un horizonte lento en producción se apagan con `SPOILER_MODE=off` en Railway, sin desplegar (D-53); la retransmisión tiene su propio interruptor, `BROADCAST_WATCH` (§14.6).
-
 
 ### 10.14 Lo que B12 comprueba de esta sección
 
 B12 es la aritmética del horizonte (§16.9); su código y su fixture son de §16.4. Estos son los casos que salen de esta sección, cada uno con lo que tiene que dar; corren en la suite rápida sobre PGlite con un mundo mínimo (una vuelta de siete etapas en guardia por `own_rider`, una de cabecera y una ajena):
 
-| Caso | Montaje | Tiene que dar |
-| --- | --- | --- |
-| prefijo al revelar | `known_through` 2; `revealStage` de la 5 | `known_through` 5, `how` `+ 'AAR'`, `horizon_rev` + 1 |
-| arrastre al ver | carrera fuera de guardia, `known_through` 0; primer progreso de la 5 | `known_through` 4 con `'AAAA'` y `follow` 1 antes de llegar a meta (10-a) |
-| la puerta | carrera en guardia con la 3 velada; progreso de la 5 | 403 `previous_unseen` con `firstUnseen` 3; nada escrito |
-| a medias sigue oculta | `watching_stage` 5, `reached_s` 3.000 | la 5 está en el velo y en `Horizon.watching` |
-| lo servido no es visto | tramos pedidos hasta el borde de la meta con el progreso informado hasta `finishS − 1` y sin `POST …/finish` (desde el 7b, el tope de lo alcanzado da 409 a todo tramo más allá de lo informado más `prefetchRaceS`; el 7b re-sella el caso, §17.10) | `known_through` sin cambiar y la etapa en el velo |
-| meta por modo | llegar a `finishS` con `play`, `summary`, `digest` y `seek` | `W`, `S`, `S` y `R` |
-| caducidad | última etapa el día D; `currentDay` D + 55 y D + 56; la carrera a medio correr en D + 100 | velada, no velada; en curso nunca caduca |
-| acuse | `revealStage` con `expired` sobre la última | `X` en todas las que faltaban; la carrera sale de `expiredSinceLastVisit` |
-| fuentes y alcances | una carrera por cada `GuardReason`; `follow` −1 en una propia; alcances `guarded`, `own_only` y `off` | la guardia de §10.4 exacta; soltar gana a todo; `off` no guarda nada |
-| temporada anterior | propia de la temporada pasada, acabada 40 días de juego antes | sigue en guardia |
-| vuelta de prueba | el corredor en `test-tour` | nunca en guardia |
-| la cookie que solo restringe | `cs_viewer` válida sin sesión | horizonte del jugador con `readOnly`; `POST /api/me/watch` y `GET /api/riders/me` dan 401 |
-| cookies malas | manipulada, caducada, de un usuario borrado | `anon` |
-| el memo | dos `computeHorizon` en el mismo minuto; luego un `revealStage` | la segunda solo hace la consulta 1; tras revelar, cambia `rev` y se recalcula |
-| el memo con tope | un `TtlMemo` con el reloj inyectado: mil claves distintas en un minuto, dos días de juego y 61 s sin peticiones | nunca pasa de `SPOILER.horizonMemoEntries`; una entrada caducada se borra al leerla; un `set` a los 61 s de la última petición deja solo su entrada, porque barre todas las caducadas (10-m; sin peticiones nadie barre, y las entradas viejas, como mucho el tope, esperan al siguiente `set`) |
-| el mapa del día | dos `computeHorizon` de espectadores distintos el mismo día; luego el tick sube `currentDay` | `lastRunStages` consulta una vez por día; el velo es el mismo, etapa a etapa, que con la cuarta consulta por espectador (18-a) |
-| la cuenta del día (de §11.19, 11-s: B12 lo cuenta aparte de los otros veinte, en el 8b) | veinte peticiones a la vez el día nuevo | una sola cuenta del total del ranking y de `lastRunStages`; si la cuenta falla, la petición siguiente la repite (11-s) |
-| `SPOILER_MODE` | los tres valores, con un administrador y con un jugador | la tabla de §10.13; tres `rev` distintos |
-| dos dispositivos | dos `recordProgress` concurrentes de la misma etapa, contra el Postgres de servicio del CI y no en PGlite, que con un solo backend lo haría pasar sin el `for update` (`watchConcurrency.test.ts`, §16.4, 16-r) | `reached_s` es el mayor; `how` sin letras perdidas |
-| retirada voluntaria | `retireFromRace` en el día de una etapa velada | el abandono no entra en `VeilDelta.abandons` (10-i) |
-| el predicado | velo vacío; fila con `stage_day`; fila vieja con `stage_day` nulo | `false`; casa por `stage_day`; casa por `game_day` |
+| Caso                                                                                    | Montaje                                                                                                                                                                                                                                              | Tiene que dar                                                                                                                                                                                                                                                                                   |
+| --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| prefijo al revelar                                                                      | `known_through` 2; `revealStage` de la 5                                                                                                                                                                                                             | `known_through` 5, `how` `+ 'AAR'`, `horizon_rev` + 1                                                                                                                                                                                                                                           |
+| arrastre al ver                                                                         | carrera fuera de guardia, `known_through` 0; primer progreso de la 5                                                                                                                                                                                 | `known_through` 4 con `'AAAA'` y `follow` 1 antes de llegar a meta (10-a)                                                                                                                                                                                                                       |
+| la puerta                                                                               | carrera en guardia con la 3 velada; progreso de la 5                                                                                                                                                                                                 | 403 `previous_unseen` con `firstUnseen` 3; nada escrito                                                                                                                                                                                                                                         |
+| a medias sigue oculta                                                                   | `watching_stage` 5, `reached_s` 3.000                                                                                                                                                                                                                | la 5 está en el velo y en `Horizon.watching`                                                                                                                                                                                                                                                    |
+| lo servido no es visto                                                                  | tramos pedidos hasta el borde de la meta con el progreso informado hasta `finishS − 1` y sin `POST …/finish` (desde el 7b, el tope de lo alcanzado da 409 a todo tramo más allá de lo informado más `prefetchRaceS`; el 7b re-sella el caso, §17.10) | `known_through` sin cambiar y la etapa en el velo                                                                                                                                                                                                                                               |
+| meta por modo                                                                           | llegar a `finishS` con `play`, `summary`, `digest` y `seek`                                                                                                                                                                                          | `W`, `S`, `S` y `R`                                                                                                                                                                                                                                                                             |
+| caducidad                                                                               | última etapa el día D; `currentDay` D + 55 y D + 56; la carrera a medio correr en D + 100                                                                                                                                                            | velada, no velada; en curso nunca caduca                                                                                                                                                                                                                                                        |
+| acuse                                                                                   | `revealStage` con `expired` sobre la última                                                                                                                                                                                                          | `X` en todas las que faltaban; la carrera sale de `expiredSinceLastVisit`                                                                                                                                                                                                                       |
+| fuentes y alcances                                                                      | una carrera por cada `GuardReason`; `follow` −1 en una propia; alcances `guarded`, `own_only` y `off`                                                                                                                                                | la guardia de §10.4 exacta; soltar gana a todo; `off` no guarda nada                                                                                                                                                                                                                            |
+| temporada anterior                                                                      | propia de la temporada pasada, acabada 40 días de juego antes                                                                                                                                                                                        | sigue en guardia                                                                                                                                                                                                                                                                                |
+| vuelta de prueba                                                                        | el corredor en `test-tour`                                                                                                                                                                                                                           | nunca en guardia                                                                                                                                                                                                                                                                                |
+| la cookie que solo restringe                                                            | `cs_viewer` válida sin sesión                                                                                                                                                                                                                        | horizonte del jugador con `readOnly`; `POST /api/me/watch` y `GET /api/riders/me` dan 401                                                                                                                                                                                                       |
+| cookies malas                                                                           | manipulada, caducada, de un usuario borrado                                                                                                                                                                                                          | `anon`                                                                                                                                                                                                                                                                                          |
+| el memo                                                                                 | dos `computeHorizon` en el mismo minuto; luego un `revealStage`                                                                                                                                                                                      | la segunda solo hace la consulta 1; tras revelar, cambia `rev` y se recalcula                                                                                                                                                                                                                   |
+| el memo con tope                                                                        | un `TtlMemo` con el reloj inyectado: mil claves distintas en un minuto, dos días de juego y 61 s sin peticiones                                                                                                                                      | nunca pasa de `SPOILER.horizonMemoEntries`; una entrada caducada se borra al leerla; un `set` a los 61 s de la última petición deja solo su entrada, porque barre todas las caducadas (10-m; sin peticiones nadie barre, y las entradas viejas, como mucho el tope, esperan al siguiente `set`) |
+| el mapa del día                                                                         | dos `computeHorizon` de espectadores distintos el mismo día; luego el tick sube `currentDay`                                                                                                                                                         | `lastRunStages` consulta una vez por día; el velo es el mismo, etapa a etapa, que con la cuarta consulta por espectador (18-a)                                                                                                                                                                  |
+| la cuenta del día (de §11.19, 11-s: B12 lo cuenta aparte de los otros veinte, en el 8b) | veinte peticiones a la vez el día nuevo                                                                                                                                                                                                              | una sola cuenta del total del ranking y de `lastRunStages`; si la cuenta falla, la petición siguiente la repite (11-s)                                                                                                                                                                          |
+| `SPOILER_MODE`                                                                          | los tres valores, con un administrador y con un jugador                                                                                                                                                                                              | la tabla de §10.13; tres `rev` distintos                                                                                                                                                                                                                                                        |
+| dos dispositivos                                                                        | dos `recordProgress` concurrentes de la misma etapa, contra el Postgres de servicio del CI y no en PGlite, que con un solo backend lo haría pasar sin el `for update` (`watchConcurrency.test.ts`, §16.4, 16-r)                                      | `reached_s` es el mayor; `how` sin letras perdidas                                                                                                                                                                                                                                              |
+| retirada voluntaria                                                                     | `retireFromRace` en el día de una etapa velada                                                                                                                                                                                                       | el abandono no entra en `VeilDelta.abandons` (10-i)                                                                                                                                                                                                                                             |
+| el predicado                                                                            | velo vacío; fila con `stage_day`; fila vieja con `stage_day` nulo                                                                                                                                                                                    | `false`; casa por `stage_day`; casa por `game_day`                                                                                                                                                                                                                                              |
 
 ---
 
@@ -607,6 +752,7 @@ B12 es la aritmética del horizonte (§16.9); su código y su fixture son de §1
 **Huecos rellenados.** H-10 (§10.7), H-11 (§10.3: `world_id` en la clave y el reinicio la borra), H-18 (§10.3: la carga, con la memoria del proceso y el umbral de 60 s, sin evidencia de los jueces; lo mide B14), H-21 (§10.12, regla 1), H-23 (§10.12, regla 2). Contradicciones de hecho que quedan resueltas: X-11 (§10.7) y X-16 (§10.8 y §10.9).
 
 **Decisiones de esta sección.**
+
 - 10-a. Ver la etapa N arrastra con `A` las anteriores no conocidas en el PRIMER progreso, no al llegar a meta: la ruta solo llama a `recordProgress` sin puerta `previous_unseen` (§14.2), así que esas etapas están fuera del velo (la carrera no estaba en guardia, o caducó) y el producto ya se las enseñaba. Es la regla de D-28 («ver o revelar la N revela 1..N−1 con A») con su momento fijado: si se esperara a la meta, seguir la carrera al empezar a verla (D-30) pondría en el velo las etapas 1 a N−1 mientras se ve la N, y la propia N pasaría a tener la puerta. Seguir A MANO no arrastra: `Follow without spoilers` (pantalla) protege desde ya las etapas corridas y no conocidas. Descartado: arrastrar al llegar a meta.
 - 10-b. La oferta adaptativa (DD-16) cuenta en `localStorage` las carreras de cabecera caducadas con etapas veladas y marca `cs.adaptiveAsked` al ofrecerla: el esquema (§13.4) no tiene columna para recordarlo. Descartado: una columna nueva en `users` sin que §13 la tenga (queda en Dudas).
 - 10-c. La obligación del tipo (D-32, punto 1) se cumple con la tabla de §10.6 y un test (`horizonReaders.test.ts`) que la hace ejecutable con el AST y el comprobador de tipos de TypeScript: funciones exportadas y métodos de objetos exportados, con sus ayudantes no exportados, y las fuentes de D-32 enteras, `stage_timelines` incluida (Rcodigo-049: el criterio de texto de `l6/lecturas.mjs` no veía ni los métodos ni esa tabla). Quedan fuera, en una lista escrita por su nombre y con su motivo, los orquestadores del tick, las funciones que calculan el horizonte (`computeHorizon`, `horizonSummary`, `lastRunStages`, `veilDelta`), las dos lecturas de E2 que corren en el tick (`cast.ts:buildTimelineCast`, `titles.ts:palmaresTitleSource.titlesOn`) y `draftRace` y `undraftRace`, que leen el presupuesto sin devolverlo; una entrada que ya no haga falta también falla. Así se cierra la duda 1.9 sin la lectura literal de D-32: esas dos del tick no leen para nadie, y la fuente de títulos que las sustituya entra en rojo. `readStageTimeline` y `timelineForStage` lo reciben (5-p). `Horizon` va segundo, detrás de `db`. Descartado: dar `Horizon` a las funciones que escriben el mundo, que no leen para nadie; y el criterio de texto.
@@ -623,6 +769,7 @@ B12 es la aritmética del horizonte (§16.9); su código y su fixture son de §1
 - 10-n. `request.viewer()` memoriza en el proceso, por el valor de la cookie de sesión, el usuario que devuelve `getSession`: 60 s, solo los aciertos, en un `TtlMemo`. Por qué: cada informe y cada tramo leían la sesión y su usuario en la base (Rcoste-010). Descartado: `session.cookieCache` de better-auth, porque la llamada del servidor tira la cookie que lo renueva (better-call, `dist/endpoint.mjs` l. 38-52), cambiaría la cabecera `Cookie` en cada renovación contra `Vary: Cookie` (§14.9) y es configuración de la sesión de toda la aplicación (E4). Las dos caras están en §10.3.
 
 **Propuesto para el glosario.**
+
 - En `packages/db/src/watch.ts`: `LETTER_OF_MODE` (la letra de cada modo al llegar a meta), `WatchKey`, `WatchRow`, `ProgressResult` y `readWatch(db, k)` (la fila de una carrera). `WatchMode` (`'play' | 'seek' | 'summary' | 'digest'`, el modo con que se llega a un punto) vive en `packages/shared/src/broadcast/wire.ts` con su esquema (§14.2).
 - En `packages/db/src/horizon.ts`: `anonHorizon()` (el horizonte del visitante), `stageGameDay(raceKey, stageDay)` (el día de juego de una etapa por el calendario), `stageGateOf(h, raceKey, stageDay)` (la puerta de una etapa), `horizonSummary(db, viewer, world)` (el `HorizonSummary` con las mismas consultas) y `veilCast(cast, h)` (el reparto degradado por el velo).
 - En `packages/db/src/horizon.ts`: `touchLastSeen(db, userId)` (la escritura condicional de `users.last_seen_at`, §10.7, que llama `request.viewer()`, §14.5).
@@ -631,6 +778,7 @@ B12 es la aritmética del horizonte (§16.9); su código y su fixture son de §1
 - De la corrección: `TtlMemo<V>` y `lastRunStages` en `packages/db/src/horizon.ts` (10-m, 18-a); `SPOILER.horizonMemoEntries` (500, el tope de los memos del proceso); los scripts de medida `c-l6/lecturas-ast2.mjs`, `c-l6/veildelta-forma.mjs`, `c-l6/todas.mjs` y `c-l6/peticiones.mjs`.
 
 **Dudas para el ensamblador.**
+
 - D-32 (punto 1) pone `stage_timelines` entre las fuentes con `Horizon` obligatorio y §G.4 da firmas sin él a `readStageTimeline`, `timelineForStage`, `buildTimelineCast` y `palmaresTitleSource.titlesOn`. §5.6 (5-p) se lo da a `readStageTimeline` y §14.4 a `timelineForStage`; las dos del tick se quedan sin él con 10-c. Si la refutación prefiere la lectura literal también para ellas, cambian esas dos firmas y nada más.
 - El esqueleto pide en §10.13 «qué hacen `off`, `admins` y `on` dentro de `computeHorizon`», pero la firma de §G.4 no recibe el modo: aquí actúan alrededor, en `request.horizon()` (§14.5).
 - DD-16 necesita recordar si ya se ofreció `own_only`; §G.5 no tiene dónde. 10-b lo deja en `localStorage` (por navegador, aproximado). Si el dueño la quiere exacta y entre dispositivos, §13.4 tendría que añadir una columna a `users`.

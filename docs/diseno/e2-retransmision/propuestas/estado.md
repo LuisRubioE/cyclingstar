@@ -53,13 +53,14 @@ del motor; la pantalla, la radio y el relato son vistas del mismo valor.
 2. **No hay instante.** Todos los grupos cruzan el mismo bloque a la vez con relojes distintos (`group.ts` l. 82-119; mapa 01 §0, hecho 1). Lo que la tele enseña (dónde está cada grupo AHORA) no existe en ninguna parte (mapa 06 §1.5).
 3. **El segundo de un suceso no significa lo mismo en todas las plantillas.** Medido aquí, comparando el `tS` de cada suceso con el reloj del grupo de su primer protagonista en el bloque en que está fechado (15 corridas, 1.815 sucesos):
 
-   | Qué reloj lleva `tS` | Plantillas (sucesos) |
-   | --- | --- |
-   | El de la foto, al **final** del bloque | `attack_sticks` (68/68), `attack_reeled` (135/203), `climb_kom` (83/84), `move_merge`, `group_overtake`, `move_caught`, `bridge_made`, `bridge_failed` (30/31), `chase_work` (16/19), `sprint_intermediate`, `breakaway_caught` (6/7), `stage_win`, `time_cut` |
-   | El de la **entrada** del bloque (un bloque antes) | `rider_sits_up` (203/203), `no_help_for_leader` (197/197), `time_gap` (147/147), `rider_bonks` (145/145), `peloton_pull` (58/59), `front_group` (56/57), `peloton_split` (24/25), `attack_swarm`, `break_share`, `peloton_selection`, `sprinters_chase` (8/9) |
-   | **Ninguno** de los dos | `attack_go` (291/292, mediana −8 s), `breakaway_formed` y `break_cooperation` (15/15, fecha de nacimiento), `peloton_concedes` (10/10, +199 s), `peloton_regroup` (8/10), `bunch_sprint` (8/8, +68 s) y `final_km` (7/7, +221 s) con el reloj de llegada, `puncture` (24/37) y `mechanical` (5/6) |
+   | Qué reloj lleva `tS`                              | Plantillas (sucesos)                                                                                                                                                                                                                                                                              |
+   | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+   | El de la foto, al **final** del bloque            | `attack_sticks` (68/68), `attack_reeled` (135/203), `climb_kom` (83/84), `move_merge`, `group_overtake`, `move_caught`, `bridge_made`, `bridge_failed` (30/31), `chase_work` (16/19), `sprint_intermediate`, `breakaway_caught` (6/7), `stage_win`, `time_cut`                                    |
+   | El de la **entrada** del bloque (un bloque antes) | `rider_sits_up` (203/203), `no_help_for_leader` (197/197), `time_gap` (147/147), `rider_bonks` (145/145), `peloton_pull` (58/59), `front_group` (56/57), `peloton_split` (24/25), `attack_swarm`, `break_share`, `peloton_selection`, `sprinters_chase` (8/9)                                     |
+   | **Ninguno** de los dos                            | `attack_go` (291/292, mediana −8 s), `breakaway_formed` y `break_cooperation` (15/15, fecha de nacimiento), `peloton_concedes` (10/10, +199 s), `peloton_regroup` (8/10), `bunch_sprint` (8/8, +68 s) y `final_km` (7/7, +221 s) con el reloj de llegada, `puncture` (24/37) y `mechanical` (5/6) |
 
    Cuadra con las siete fechas trucadas del mapa 01 §1.2 y añade una octava: 867 de los 1.815 sucesos (el 48 %) llevan el reloj de un bloque antes que la foto. Un reproductor que suelte los sucesos por `tS` y pinte el estado por foto enseña cosas antes de que pasen.
+
 4. **La crónica mira el futuro.** Concesión «cazada», criba que se borra si se deshace, rachas y racimos cosidos con km posteriores (mapa 07 §5.2.2; mapa 05 §6.3; `stageJournal.ts` l. 1085-1120 según el mapa 03 §2.3).
 5. **Todo sale en una respuesta**: resultado, clasificaciones de después, crónica, radio y altimetría con marcas, 0,95-2,16 MB por etapa sin comprimir (mapa 02 §4 y §7).
 6. **La radio guardada destripa**: la lista de seguimiento incluye a los diez primeros de la etapa recién corrida (`stageRun.ts` l. 558-568; mapa 07 §5.2.1).
@@ -129,11 +130,27 @@ export interface GrupoDelCatalogo {
 
 /** LO ÚNICO QUE CAMBIA LA FOTO. Unión cerrada: el reductor tiene un `case` por variante. */
 export type SucesoDeEstado =
-  | { readonly t: 'mueve'; readonly b: Bloque; readonly de: GrupoIx; readonly a: GrupoIx; readonly corredores: readonly CorredorIx[] }
+  | {
+      readonly t: 'mueve'
+      readonly b: Bloque
+      readonly de: GrupoIx
+      readonly a: GrupoIx
+      readonly corredores: readonly CorredorIx[]
+    }
   | { readonly t: 'sale'; readonly b: Bloque; readonly corredor: CorredorIx }
   | { readonly t: 'titulo'; readonly b: Bloque; readonly grupo: GrupoIx | null }
-  | { readonly t: 'percance'; readonly b: Bloque; readonly corredor: CorredorIx; readonly tipo: TipoPercance; readonly perdidaDs: number }
-  | { readonly t: 'reloj'; readonly b: Bloque; readonly marcas: readonly (readonly [GrupoIx, RelojDs])[] }
+  | {
+      readonly t: 'percance'
+      readonly b: Bloque
+      readonly corredor: CorredorIx
+      readonly tipo: TipoPercance
+      readonly perdidaDs: number
+    }
+  | {
+      readonly t: 'reloj'
+      readonly b: Bloque
+      readonly marcas: readonly (readonly [GrupoIx, RelojDs])[]
+    }
 
 /** Un suceso del motor (`RaceEvent`, sin tocar) con el momento en que se SUPO. */
 export interface SucesoNarrable {
@@ -242,7 +259,11 @@ export interface LineaTemporal {
   readonly corredores: number
   readonly grupos: readonly GrupoDelCatalogo[]
   /** Cada `fotoClaveKm`: la pertenencia completa. */
-  readonly claves: readonly { readonly b: Bloque; readonly grupoDe: Int16Array; readonly titulo: GrupoIx | null }[]
+  readonly claves: readonly {
+    readonly b: Bloque
+    readonly grupoDe: Int16Array
+    readonly titulo: GrupoIx | null
+  }[]
   readonly sucesos: readonly SucesoDeEstado[] // ordenados por b; dentro del bloque, en el orden del tipo
   readonly narrables: readonly SucesoNarrable[]
   readonly detalle: ReadonlyMap<Bloque, readonly DetalleDeGrupo[]>
@@ -255,8 +276,8 @@ El formato guardado (§3.8) empaqueta esto en listas planas de enteros; `desempa
 
 ```ts
 // packages/engine/src/broadcast/reducir.ts
-export function reducir(foto: Foto, s: SucesoDeEstado): Foto        // puro: devuelve una Foto nueva
-export function fotoEn(linea: LineaTemporal, b: Bloque): Foto       // clave ⌊b⌋ + sucesos (clave, b]
+export function reducir(foto: Foto, s: SucesoDeEstado): Foto // puro: devuelve una Foto nueva
+export function fotoEn(linea: LineaTemporal, b: Bloque): Foto // clave ⌊b⌋ + sucesos (clave, b]
 export function instanteEn(linea: LineaTemporal, T: RelojDs, ctx: ContextoDeEtapa): Instante
 
 /** Lo que el instante necesita además de la línea: todo sale del `input` y los `events` congelados. */
@@ -272,6 +293,7 @@ export interface ContextoDeEtapa {
 `reducir` tiene un `case` por variante: `mueve` reasigna `grupoDe` de los corredores listados; `sale` pone −1; `titulo` cambia el pelotón; `percance` se anota en el detalle del km en curso; `reloj` escribe marcas en `reloj`. Entre dos marcas, el reloj de un grupo se interpola linealmente por bloque (§3.6). Dentro de un bloque el orden es fijo: `sale`, `mueve`, `titulo`, `reloj`, `percance`.
 
 `instanteEn(T)` es el **corte diagonal**, en cuatro pasos:
+
 1. La cabeza está en `kmCabeza = L⁻¹(T)`, y `kmAMeta` es la longitud del perfil (`stageLengthKm`, `sample.ts` l. 60) menos eso.
 2. Cada grupo del catálogo cuya vida cubre `T` está en `b_g = r_g⁻¹(T)`, interpolando entre sus marcas.
 3. Su composición es la de `fotoEn(b_g)` para ese grupo. El hueco que se enseña es el del último km de foto por el que ya ha pasado (`medidoEnKm`), que es como lo mide la tele.
@@ -281,21 +303,21 @@ Por qué no se reduce en orden de reloj: se probó (`scratchpad/e2p-estado/medir
 
 ### 3.4 De dónde sale cada campo
 
-| Campo | Origen | Cita |
-| --- | --- | --- |
-| `grupoDe` por bloque | **se graba**: `SnapshotRider.groupId` de la sonda en cada bloque (hoy se pide por km y se adelgaza) | types.ts l. 449-485; `raceRadio.ts` l. 776-963 |
-| `titulo` | **se graba**: `mainId` de la foto si ese grupo tiene gente; si no, `mainGroupId` con el título del bloque anterior, que es la regla de la radio aplicada por bloque | `raceRadio.ts` l. 317-320; `group.ts` l. 194-206 |
-| `reloj` (marcas) | **se graba**: mínimo de los relojes de los suyos en la foto; hoy se tira | `raceRadio.ts` l. 284-300 y 945-963; mapa 01 §2.3 |
-| `percance` | **se graba** desde `output.incidents`, que hoy se tira después de usarlo; sin `diasBaja` (§8.2) | `stageRun.ts` l. 586-590; types.ts l. 358-365 |
-| `SucesoNarrable.bEmision` | **se graba** con la sonda nueva `onEvent` (§11) | `events.ts` l. 9-49 |
-| `DetalleDeGrupo` | **existe**: lo calcula `radioForStorage` con las mismas funciones (velocidad por los hombres, turno de 3 km, tope 12) | `raceRadio.ts` l. 679-963 |
-| `kmAMeta`, pendiente, próximo puerto | **se deriva** del perfil congelado | `sample.ts` l. 60-68; `citas.ts` l. 35-60 y 256-264 |
-| hueco, tendencia | **se deriva**: resta de relojes en el mismo bloque | `group.ts` l. 121-124 |
-| `papel`, `porNombres`, `delMaillot`, `numero` | **se deriva** (§3.5) | SPEC l. 600-615 |
-| `enTransito` | **se deriva** del corte diagonal | §3.3 |
-| `pancartas` | **existe a medias**: hoy solo el ganador; el orden completo **se graba** tras la v90 | `simulate.ts` l. 9221, 9310; §11 |
-| `generalVirtual` | **se deriva**: `gcDeficitSeconds` del `input` congelado más los huecos del instante | types.ts l. 183-189 |
-| rótulo de corredor | **se deriva al leer** en la API (§6) | `jerseys.ts` l. 80-98 |
+| Campo                                         | Origen                                                                                                                                                              | Cita                                                |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| `grupoDe` por bloque                          | **se graba**: `SnapshotRider.groupId` de la sonda en cada bloque (hoy se pide por km y se adelgaza)                                                                 | types.ts l. 449-485; `raceRadio.ts` l. 776-963      |
+| `titulo`                                      | **se graba**: `mainId` de la foto si ese grupo tiene gente; si no, `mainGroupId` con el título del bloque anterior, que es la regla de la radio aplicada por bloque | `raceRadio.ts` l. 317-320; `group.ts` l. 194-206    |
+| `reloj` (marcas)                              | **se graba**: mínimo de los relojes de los suyos en la foto; hoy se tira                                                                                            | `raceRadio.ts` l. 284-300 y 945-963; mapa 01 §2.3   |
+| `percance`                                    | **se graba** desde `output.incidents`, que hoy se tira después de usarlo; sin `diasBaja` (§8.2)                                                                     | `stageRun.ts` l. 586-590; types.ts l. 358-365       |
+| `SucesoNarrable.bEmision`                     | **se graba** con la sonda nueva `onEvent` (§11)                                                                                                                     | `events.ts` l. 9-49                                 |
+| `DetalleDeGrupo`                              | **existe**: lo calcula `radioForStorage` con las mismas funciones (velocidad por los hombres, turno de 3 km, tope 12)                                               | `raceRadio.ts` l. 679-963                           |
+| `kmAMeta`, pendiente, próximo puerto          | **se deriva** del perfil congelado                                                                                                                                  | `sample.ts` l. 60-68; `citas.ts` l. 35-60 y 256-264 |
+| hueco, tendencia                              | **se deriva**: resta de relojes en el mismo bloque                                                                                                                  | `group.ts` l. 121-124                               |
+| `papel`, `porNombres`, `delMaillot`, `numero` | **se deriva** (§3.5)                                                                                                                                                | SPEC l. 600-615                                     |
+| `enTransito`                                  | **se deriva** del corte diagonal                                                                                                                                    | §3.3                                                |
+| `pancartas`                                   | **existe a medias**: hoy solo el ganador; el orden completo **se graba** tras la v90                                                                                | `simulate.ts` l. 9221, 9310; §11                    |
+| `generalVirtual`                              | **se deriva**: `gcDeficitSeconds` del `input` congelado más los huecos del instante                                                                                 | types.ts l. 183-189                                 |
+| rótulo de corredor                            | **se deriva al leer** en la API (§6)                                                                                                                                | `jerseys.ts` l. 80-98                               |
 
 ### 3.5 La identidad de los grupos
 
@@ -312,12 +334,12 @@ El **título de pelotón** es un suceso aparte porque el motor lo decide con his
 Hoy no existe (mapa 01 §1-2): la radio guarda el hueco al líder redondeado y tira el reloj. Se guardan **marcas del reloj de cada grupo** en cuatro sitios: (a) cada foto de km; (b) su nacimiento y su muerte; (c) el bloque de cada cambio de su composición y el anterior; (d) cada bloque del último km, donde la tele pone carteles a 500, 300, 200 y 100 m (mapa 06 §1.5). Entre dos marcas, interpolación lineal por bloque. Medido sobre todos los bloques y grupos (`scratchpad/e2p-estado/medir-v2.mjs`):
 
 | Etapa (3 semillas) | Marcas por etapa | Error del reloj p99 | Error de posición p99 | Máximo |
-| --- | --- | --- | --- | --- |
-| llana e7 | 518-802 | 0,27-0,44 s | 3-6 m | 53 m |
-| media e13 | 1.535-1.682 | 3,3-8,4 s | 37-76 m | 183 m |
-| reina e18 | 1.937-2.582 | 8,8-9,4 s | 75-83 m | 195 m |
-| Flandes e1 | 1.769-2.042 | 23,8-29,9 s | 157-196 m | 422 m |
-| Colombia e5 | 2.914-3.392 | 18,7-20,3 s | 121-124 m | 271 m |
+| ------------------ | ---------------- | ------------------- | --------------------- | ------ |
+| llana e7           | 518-802          | 0,27-0,44 s         | 3-6 m                 | 53 m   |
+| media e13          | 1.535-1.682      | 3,3-8,4 s           | 37-76 m               | 183 m  |
+| reina e18          | 1.937-2.582      | 8,8-9,4 s           | 75-83 m               | 195 m  |
+| Flandes e1         | 1.769-2.042      | 23,8-29,9 s         | 157-196 m             | 422 m  |
+| Colombia e5        | 2.914-3.392      | 18,7-20,3 s         | 121-124 m             | 271 m  |
 
 Sin las marcas (c), la llana tiene p99 de 12-29 m y Flandes llega a 3,5 km de error máximo (primera pasada, `medir-estado.mjs`): los cambios de composición mueven el mínimo de los relojes y la recta no los ve. En pavé el error sube porque la velocidad cambia dentro del km; aun así, en la altimetría del motor (720 px para 278 km, `routes/altimetry.ts` l. 95-96 según el mapa 03 §7) 422 m son 1,1 px. **Los huecos que se enseñan no se interpolan nunca**: son la resta exacta en el último km de foto por el que ha pasado el grupo.
 
@@ -351,15 +373,15 @@ export interface LineaTemporalGuardada {
 
 Medido (tres semillas por etapa; KB de 1.024 B; disco = `pg_column_size` en PGlite):
 
-| | llana e7 | media e13 | reina e18 | Flandes | Colombia e5 |
-| --- | --- | --- | --- | --- | --- |
-| Radio de hoy, JSON | 132-167 | 241-277 | 286-347 | 268-323 | 485-546 |
-| Radio de hoy, disco (`jsonb`) | 12,6-14,1 | 23,1-42,0 | 26,9-42,3 | 29,3-31,2 | 117-122 |
-| Línea: núcleo (pertenencia, título, relojes), JSON | 8,8-10,9 | 27,8-35,1 | 39,1-50,1 | 39,8-44,4 | 47,6-51,6 |
-| Línea: capa de detalle, JSON | 13,1-16,0 | 19,9-28,4 | 22,7-33,9 | 27,2-29,9 | 45,5-52,5 |
-| **Línea entera, JSON** (gzip) | **24,0-24,8** (4,0-4,7) | **47,7-61,2** (11,8-15,2) | **61,8-84,1** (16,6-23,5) | **68,6-73,0** (16,6-18,3) | **93,9-104,1** (26,8-29,9) |
-| **Línea entera, disco** como `json` | **5,5-6,6** | **16,0-20,2** | **22,4-31,0** | **22,5-24,5** | **35,4-39,4** |
-| … la misma como `jsonb` | 7,9-9,3 | 22,2-29,6 | 31,5-43,1 | 32,8-36,3 | 52,3-58,4 |
+|                                                    | llana e7                | media e13                 | reina e18                 | Flandes                   | Colombia e5                |
+| -------------------------------------------------- | ----------------------- | ------------------------- | ------------------------- | ------------------------- | -------------------------- |
+| Radio de hoy, JSON                                 | 132-167                 | 241-277                   | 286-347                   | 268-323                   | 485-546                    |
+| Radio de hoy, disco (`jsonb`)                      | 12,6-14,1               | 23,1-42,0                 | 26,9-42,3                 | 29,3-31,2                 | 117-122                    |
+| Línea: núcleo (pertenencia, título, relojes), JSON | 8,8-10,9                | 27,8-35,1                 | 39,1-50,1                 | 39,8-44,4                 | 47,6-51,6                  |
+| Línea: capa de detalle, JSON                       | 13,1-16,0               | 19,9-28,4                 | 22,7-33,9                 | 27,2-29,9                 | 45,5-52,5                  |
+| **Línea entera, JSON** (gzip)                      | **24,0-24,8** (4,0-4,7) | **47,7-61,2** (11,8-15,2) | **61,8-84,1** (16,6-23,5) | **68,6-73,0** (16,6-18,3) | **93,9-104,1** (26,8-29,9) |
+| **Línea entera, disco** como `json`                | **5,5-6,6**             | **16,0-20,2**             | **22,4-31,0**             | **22,5-24,5**             | **35,4-39,4**              |
+| … la misma como `jsonb`                            | 7,9-9,3                 | 22,2-29,6                 | 31,5-43,1                 | 32,8-36,3                 | 52,3-58,4                  |
 
 Tres lecturas. (1) La línea ocupa en disco entre un tercio (Colombia) y tres cuartos (reina e18, Flandes) de la radio de hoy, y sitúa a todos los corredores en todos los bloques. (2) `json` (texto validado) ocupa entre un 26 % y un 32 % menos que `jsonb` con el mismo contenido, porque `pglz` comprime mejor el texto que el binario, y nadie consulta dentro de la línea: se elige `json`. (3) Dentro del núcleo, lo que más pesa en montaña son los `mov` (16-22 KB en reina): el grupeto se deshace de dos en dos (sucesos de estado por etapa: 26-42 en llana, 224-263 en media, 352-456 en reina, 326-343 en Flandes y 404-487 en Colombia; mediana de 2 corredores por suceso).
 
@@ -382,21 +404,21 @@ La línea no tiene ni una palabra: ids del motor (que son identificadores, no r�
 
 La UCI obliga a dos números fijos (km a meta y diferencia principal) y a las diferencias generales cada 3-5 minutos (mapa 06 §1.1); la agenda añade quién va en cada grupo, el perfil con la posición y el rótulo del momento (`docs/agenda.md` l. 510-515). Un km son 80 s de carrera a 45 km/h: con reproducción a ×60, una diferencia nueva por segundo y medio de pantalla. Por eso la barra de grupos es permanente aquí y no periódica.
 
-| Pieza | Cuándo | Campo del `Instante` | Texto (pantalla, en inglés) |
-| --- | --- | --- | --- |
-| **Capa fija**: km a meta, diferencia principal y tendencia | siempre | `kmAMeta`; hueco del grupo `caza` o, sin caza, del `grueso` | `42.6 km to go · +2:14 ▼0:18 in 5 km` |
-| Reloj de carrera | siempre | `T` | `3:41:07` |
-| **Barra de grupos**: número, papel, tamaño, hueco, iconos de maillot | siempre; fila nueva al partirse, fusión animada al cazar | `grupos[]` | `1 LEAD GROUP · 5` · `2 CHASE GROUP · 2 · +0:45` · `3 BUNCH · 142 · +2:14 [GC][PTS]` · `4 GRUPPETTO · 18 · +6:40` |
-| **Tu corredor** | siempre que corra | `grupoDe(mío)` | `You · in the bunch · +2:14` |
-| **Perfil con un cursor por grupo** y el puerto que viene | siempre | `grupos[].km`, perfil | `Next: Col du Lys · Cat 1 · summit in 6.2 km` |
-| Rótulo del momento | `rotuloVidaS` tras cada suceso narrable | `rotulos` | `ATTACK · 21 L. BERTOLINI · Team Alpha` |
-| Escapada con su lista (§6.4) | al nacer la cabeza y cada vez que gana o pierde a alguien | `grupos[0]` + rótulos | `FRONT OF THE RACE · 5 riders` y cinco líneas |
-| Ficha de puerto | al pie (sale del recorrido, no destripa) | perfil | `Col du Lys · Cat 1 · 12.4 km at 7.8%` |
-| Resultado de pancarta | tras la línea | `pancartas` | `KOM · Col du Lys · 1. VERHOEVEN 10 · 2. ARRIETA 8 · 3. OLSEN 6` |
-| General virtual | si alguien del top `generalVirtualTop` va en otro grupo que el líder a menos de `generalVirtualMaxS` | `generalVirtual` | `VIRTUAL GC · 1. ARRIETA (break) · 2. [GC] CARTER +0:47` |
-| Percance | en su bloque | `detalle.percance`, `enTransito` | `PUNCTURE · 45 J. MOREAU` |
-| Último km | carteles 1 km, 500, 300, 200, 100 m | marcas por bloque del último km | `FLAMME ROUGE · 5 in front · +0:08` |
-| Llegada | tramo de meta (§7) | resultado | `STAGE WINNER · L. BERTOLINI · 4:12:33` |
+| Pieza                                                                | Cuándo                                                                                               | Campo del `Instante`                                        | Texto (pantalla, en inglés)                                                                                       |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| **Capa fija**: km a meta, diferencia principal y tendencia           | siempre                                                                                              | `kmAMeta`; hueco del grupo `caza` o, sin caza, del `grueso` | `42.6 km to go · +2:14 ▼0:18 in 5 km`                                                                             |
+| Reloj de carrera                                                     | siempre                                                                                              | `T`                                                         | `3:41:07`                                                                                                         |
+| **Barra de grupos**: número, papel, tamaño, hueco, iconos de maillot | siempre; fila nueva al partirse, fusión animada al cazar                                             | `grupos[]`                                                  | `1 LEAD GROUP · 5` · `2 CHASE GROUP · 2 · +0:45` · `3 BUNCH · 142 · +2:14 [GC][PTS]` · `4 GRUPPETTO · 18 · +6:40` |
+| **Tu corredor**                                                      | siempre que corra                                                                                    | `grupoDe(mío)`                                              | `You · in the bunch · +2:14`                                                                                      |
+| **Perfil con un cursor por grupo** y el puerto que viene             | siempre                                                                                              | `grupos[].km`, perfil                                       | `Next: Col du Lys · Cat 1 · summit in 6.2 km`                                                                     |
+| Rótulo del momento                                                   | `rotuloVidaS` tras cada suceso narrable                                                              | `rotulos`                                                   | `ATTACK · 21 L. BERTOLINI · Team Alpha`                                                                           |
+| Escapada con su lista (§6.4)                                         | al nacer la cabeza y cada vez que gana o pierde a alguien                                            | `grupos[0]` + rótulos                                       | `FRONT OF THE RACE · 5 riders` y cinco líneas                                                                     |
+| Ficha de puerto                                                      | al pie (sale del recorrido, no destripa)                                                             | perfil                                                      | `Col du Lys · Cat 1 · 12.4 km at 7.8%`                                                                            |
+| Resultado de pancarta                                                | tras la línea                                                                                        | `pancartas`                                                 | `KOM · Col du Lys · 1. VERHOEVEN 10 · 2. ARRIETA 8 · 3. OLSEN 6`                                                  |
+| General virtual                                                      | si alguien del top `generalVirtualTop` va en otro grupo que el líder a menos de `generalVirtualMaxS` | `generalVirtual`                                            | `VIRTUAL GC · 1. ARRIETA (break) · 2. [GC] CARTER +0:47`                                                          |
+| Percance                                                             | en su bloque                                                                                         | `detalle.percance`, `enTransito`                            | `PUNCTURE · 45 J. MOREAU`                                                                                         |
+| Último km                                                            | carteles 1 km, 500, 300, 200, 100 m                                                                  | marcas por bloque del último km                             | `FLAMME ROUGE · 5 in front · +0:08`                                                                               |
+| Llegada                                                              | tramo de meta (§7)                                                                                   | resultado                                                   | `STAGE WINNER · L. BERTOLINI · 4:12:33`                                                                           |
 
 **Qué no se enseña nunca en la retransmisión**: la clasificación general de después, el número de sucesos que quedan, la duración total de la reproducción, marcas en el perfil donde va a pasar algo (hoy la altimetría las lleva, mapa 03 E7) y la lista de llegada antes de la línea.
 
@@ -425,13 +447,13 @@ Maqueta (pantalla, 360 px de ancho, estimada sobre las clases de hoy; E3 decide 
 
 **La curva.** La hora `T` avanza a una velocidad que depende del **tramo del recorrido** (sabido antes de salir) y se frena **después** de cada hito ya enseñado, nunca antes (principio 5). Hitos: un `mueve` de dos o más corredores en un grupo de delante del grueso o en el propio grueso, y los narrables de la lista `hitosNarrables` (§12). Aplicada a las cinco etapas con las constantes de §12 (`medir-ritmo.mjs`, semilla 0):
 
-| Etapa | Carrera | Reproducción | > 60 km | 60-20 | 20-5 | 5-1 | último km |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| llana e7, 175 km | 3 h 57 | **5:02** | 2:13 | 1:43 | 0:41 | 0:19 | 0:06 |
-| media e13, 206 km | 4 h 56 | **8:17** | 2:51 | 4:04 | 0:51 | 0:21 | 0:09 |
-| reina e18, 185 km | 4 h 50 | **11:00** | 6:04 | 1:32 | 1:38 | 1:06 | 0:40 |
-| Flandes, 278 km | 6 h 42 | **11:39** | 6:53 | 3:00 | 1:17 | 0:21 | 0:09 |
-| Colombia e5, 232 km | 7 h 36 | **15:03** | 7:21 | 3:18 | 1:45 | 1:25 | 1:14 |
+| Etapa               | Carrera | Reproducción | > 60 km | 60-20 | 20-5 | 5-1  | último km |
+| ------------------- | ------- | ------------ | ------- | ----- | ---- | ---- | --------- |
+| llana e7, 175 km    | 3 h 57  | **5:02**     | 2:13    | 1:43  | 0:41 | 0:19 | 0:06      |
+| media e13, 206 km   | 4 h 56  | **8:17**     | 2:51    | 4:04  | 0:51 | 0:21 | 0:09      |
+| reina e18, 185 km   | 4 h 50  | **11:00**    | 6:04    | 1:32  | 1:38 | 1:06 | 0:40      |
+| Flandes, 278 km     | 6 h 42  | **11:39**    | 6:53    | 3:00  | 1:17 | 0:21 | 0:09      |
+| Colombia e5, 232 km | 7 h 36  | **15:03**    | 7:21    | 3:18  | 1:45 | 1:25 | 1:14      |
 
 Medido con la cabeza de carrera como reloj; la reina e18 y Colombia terminan en alto, y su último km a ×4 dura lo que dura una subida. Es una compresión del orden de la de un resumen de televisión en la hora muerta (1:100 o más) y de 1:4 en el último km (mapa 06 §5.4).
 
@@ -476,13 +498,23 @@ export interface FuenteDeTitulos {
 
 export type MaillotLlevado =
   | { readonly k: 'lider'; readonly clasificacion: JerseyKind }
-  | { readonly k: 'campeon'; readonly ambito: AmbitoTitulo; readonly pais: string | null; readonly disciplina: Disciplina }
+  | {
+      readonly k: 'campeon'
+      readonly ambito: AmbitoTitulo
+      readonly pais: string | null
+      readonly disciplina: Disciplina
+    }
   | { readonly k: 'equipo' }
 
 export type Distincion =
   | { readonly k: 'lidera'; readonly clasificacion: JerseyKind } // aunque vista otro maillot
   | { readonly k: 'viste_por'; readonly clasificacion: JerseyKind; readonly puesto: number } // delegación
-  | { readonly k: 'titulo'; readonly ambito: AmbitoTitulo; readonly pais: string | null; readonly disciplina: Disciplina }
+  | {
+      readonly k: 'titulo'
+      readonly ambito: AmbitoTitulo
+      readonly pais: string | null
+      readonly disciplina: Disciplina
+    }
   | { readonly k: 'general'; readonly puesto: number; readonly deficitS: number } // los `rotuloGeneralTop` primeros
   | { readonly k: 'etapas'; readonly ganadas: number } // victorias de etapa en ESTA carrera hasta la N−1
 
@@ -492,7 +524,11 @@ export interface RotuloCorredor {
   readonly nombre: string
   readonly genero: 'M' | 'F' // lo pide la concordancia de E10 (mapa 07 §3); hoy no viaja
   readonly pais: string
-  readonly equipo: { readonly id: string; readonly nombre: string; readonly semillaMaillot: string } | null
+  readonly equipo: {
+    readonly id: string
+    readonly nombre: string
+    readonly semillaMaillot: string
+  } | null
   readonly lleva: MaillotLlevado
   readonly distinciones: readonly Distincion[]
   /** El corredor del jugador que mira: lo pone la API con la sesión, nunca la línea temporal. */
@@ -514,20 +550,24 @@ export interface GeneralDeSalida {
 }
 
 export function maillotLlevado(riderId: string, ctx: ContextoDeRotulo): MaillotLlevado
-export function distinciones(riderId: string, ctx: ContextoDeRotulo, general: GeneralDeSalida): readonly Distincion[]
+export function distinciones(
+  riderId: string,
+  ctx: ContextoDeRotulo,
+  general: GeneralDeSalida,
+): readonly Distincion[]
 ```
 
 **La regla de prioridad** es la de la UCI (mapa 06 §2.2), en este orden: (1) maillot de líder de la carrera, `gc` > `points` > `kom`, con el «pasa al siguiente» que ya aplica `assignLeaderJerseys` (`jerseys.ts` l. 80-98; UCI 1.3.071 y 2.6.018); (2) campeón del mundo de la disciplina de la etapa; (3) campeón nacional de la disciplina; (4) la equipación del equipo. Copa y continental no existen en el juego. En la etapa 1 no hay maillot de líder (UCI 2.6.018) y ya sale así porque `lideres` es `NO_LEADERS` sin general previa (mapa 03 §6). El título se lleva solo en su disciplina y categoría (UCI 1.3.063, 1.3.068): el nacional de crono no se ve en una etapa en línea, y los títulos sub-23 (`nc-<cc>-u23-*`, `calendar.ts` l. 3655-3660 según el mapa 04 §4) no se ven nunca en carreras élite. Un líder que además es campeón lleva el de líder y el rótulo dice las dos cosas (`lidera` + `titulo`).
 
 ### 6.2 Las cinco categorías y qué se enseña mientras E3 y E12 no existan
 
-| Categoría | De dónde sale el dato | Con qué se dibuja | Mientras E3 y E12 no existan |
-| --- | --- | --- | --- |
-| General, puntos, montaña | `assignLeaderJerseys` tras la N−1 (`routes/races.ts` l. 469-472) | `LeaderJersey` (`Jersey.tsx` l. 71-117) | igual que hoy |
-| Campeón nacional | **ya derivable**: la última fila de `palmares` con `race_id` `nc-<cc>-road` o `nc-<cc>-itt` y `kind = 'gc'` anterior al día (`stageRun.ts` l. 1291-1307; índice `palmares_race_idx`, `schema.ts` l. 783-786; mapa 04 §4) | componente `ChampionJersey` de E3 | el maillot del equipo con una banda de la bandera del país (`Flag`) y la línea `National champion`; nunca los colores de un campeonato real (SPEC §8) |
-| Campeón del mundo | E12 (no hay Mundial en el calendario, mapa 04 §4) | `ChampionJersey` de E3, sin arcoíris (SPEC §8) | no se enseña: `vigentes` no devuelve ninguno |
-| Equipo | `teams.jersey_seed` (`schema.ts` l. 234) | `Jersey seed` (`Jersey.tsx` l. 15-52) | el dibujo de hoy; E3 lo rediseña detrás de la misma prop `semillaMaillot` |
-| (dorsal del equipo líder) | `leadingTeam` (`jerseys.ts` l. 116-118) | fuera del rótulo, como decidió navegación §7.4 | igual |
+| Categoría                 | De dónde sale el dato                                                                                                                                                                                                    | Con qué se dibuja                              | Mientras E3 y E12 no existan                                                                                                                          |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| General, puntos, montaña  | `assignLeaderJerseys` tras la N−1 (`routes/races.ts` l. 469-472)                                                                                                                                                         | `LeaderJersey` (`Jersey.tsx` l. 71-117)        | igual que hoy                                                                                                                                         |
+| Campeón nacional          | **ya derivable**: la última fila de `palmares` con `race_id` `nc-<cc>-road` o `nc-<cc>-itt` y `kind = 'gc'` anterior al día (`stageRun.ts` l. 1291-1307; índice `palmares_race_idx`, `schema.ts` l. 783-786; mapa 04 §4) | componente `ChampionJersey` de E3              | el maillot del equipo con una banda de la bandera del país (`Flag`) y la línea `National champion`; nunca los colores de un campeonato real (SPEC §8) |
+| Campeón del mundo         | E12 (no hay Mundial en el calendario, mapa 04 §4)                                                                                                                                                                        | `ChampionJersey` de E3, sin arcoíris (SPEC §8) | no se enseña: `vigentes` no devuelve ninguno                                                                                                          |
+| Equipo                    | `teams.jersey_seed` (`schema.ts` l. 234)                                                                                                                                                                                 | `Jersey seed` (`Jersey.tsx` l. 15-52)          | el dibujo de hoy; E3 lo rediseña detrás de la misma prop `semillaMaillot`                                                                             |
+| (dorsal del equipo líder) | `leadingTeam` (`jerseys.ts` l. 116-118)                                                                                                                                                                                  | fuera del rótulo, como decidió navegación §7.4 | igual                                                                                                                                                 |
 
 `titulosDesdePalmares(db, worldId, dia)` es la implementación provisional de `FuenteDeTitulos`: una consulta `DISTINCT ON (race_id)` sobre `palmares` filtrada por `race_id LIKE 'nc-%-road' OR LIKE 'nc-%-itt'` y `game_day ≤ dia`, ordenada por `game_day` descendente. El precedente de la misma consulta es el dorsal 1 del campeón defensor (`calendarRun.ts` l. 991-1007). Cuando E12 cree los títulos, se cambia la implementación, no la interfaz.
 
@@ -599,40 +639,41 @@ export interface Horizonte {
   /** Días de juego de las etapas ocultas: para restar agregados fechados. */
   readonly diasOcultos: ReadonlyMap<string, readonly number[]>
 }
-export type Politica = 'P0_sin_carrera' | 'P1_por_etapa' | 'P2_agregado_fechado' | 'P3_contador_sin_fecha'
+export type Politica =
+  'P0_sin_carrera' | 'P1_por_etapa' | 'P2_agregado_fechado' | 'P3_contador_sin_fecha'
 export const POLITICA_DE_RUTAS: Readonly<Record<string, Politica>> // clave: método y patrón de Fastify
 ```
 
 Coste estimado: una consulta a `stage_views` por usuario, una a `race_rosters` de su corredor en la temporada y el calendario en memoria; por debajo de 5 ms. Las tres políticas que recortan, sobre el inventario completo del mapa 03 §4:
 
-| Superficies (mapa 03 §4) | Política | Regla |
-| --- | --- | --- |
-| E1, E2, E4, E5, E7 | P1 | La página de etapa abre en modo ver; crónica entera, podio, resultado, clasificaciones y altimetría con marcas solo en el acta (§10), que exige `vista` o `revelada` |
-| E3 | P1 | «On the road today» son los líderes tras la N−1: si la N−1 está oculta, puerta (§7.5) |
-| E6 | P1 | El deslizador llega a `entregadoHastaB`, nunca a meta |
-| E8 | P1 | Desaparece la respuesta única: cabecera, tramos y acta por separado (§10) |
-| E9 | P1 | `?tab=result` sobre una etapa oculta abre la puerta, no el resultado |
-| C1, C2, C4, C5 | P1 | Ganador, clasificaciones y ganadores de etapa hasta `visibleHasta`; el palmarés de la temporada en curso solo si la carrera entera es visible |
-| C3 | P1 | Una clásica terminada abre en modo ver |
-| C6 | P0 | «Under way, 7 of 21 stages raced» no es un resultado: se queda |
-| I1, I2, I4 | P2 | El ganador de una carrera con su última etapa oculta no se enseña (`🏆` ausente, sin tooltip) |
-| I3 | P2 | El buscador no casa contra ganadores ocultos (se re-sella `raceTimeline.test.ts` l. 120-128) |
-| N1, N2, N3, N4 | P2 | Se quitan las noticias con `(race_key, stage_day)` oculta; los filtros se construyen con las visibles (§8.2) |
-| H1, H5 | P1 | Si la última carrera tiene la etapa oculta: `Stage 7 of Race France is ready to watch ▶`, sin puesto ni veredicto |
-| H2 | P2 | Puntos de temporada y dinero sin las filas de `rider_points` y `transactions` de los días ocultos |
-| H3 | P3 | La forma se enseña: el jugador la necesita para dar órdenes (decisión del dueño, §16) |
-| H4 | P1 | «Where the energy went» de una etapa oculta: `Watch stage 7 to see` |
-| H6 | P2 | El apunte del premio de un día oculto sale como `Prize · watch stage 7 to reveal`, sin importe, y el saldo sin él |
-| H7, P4 | P1 | Resultados propios y ajenos hasta `visibleHasta` |
-| P1, W1, W2, W5 | P2 | Ranking, premios, naciones y equipos restando los `rider_points` de `diasOcultos` (`race_id` es la `raceKey` y lleva `game_day`, mapa 03 §4.1) |
-| P2, P3, W4 | P2 | Palmarés, logros, salón de la fama y récords sin las filas `(race_id, season, game_day)` ocultas |
-| W3 | P1 | Como C5 |
-| P5 | P3 | «Injured» causado por una etapa oculta (la noticia `injury` de §8.2 dice cuál): `Status hidden until you watch stage 7` |
-| P6 | P2 / P3 | Puntos de equipo, P2; presupuesto, P3 (sin libro por equipo; decisión, §16) |
-| W6 | P3 | Las órdenes enseñan la general en el horizonte (§7.5); el orden por fama queda como está (mapa 03 no lo comprobó) |
-| T1, T2, T3 | regla | §7.3 |
-| T4 | regla | Un contador de novedades cuenta etapas por ver, nunca resultados |
-| T5, T6 | regla | §7.4 |
+| Superficies (mapa 03 §4) | Política | Regla                                                                                                                                                                |
+| ------------------------ | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E1, E2, E4, E5, E7       | P1       | La página de etapa abre en modo ver; crónica entera, podio, resultado, clasificaciones y altimetría con marcas solo en el acta (§10), que exige `vista` o `revelada` |
+| E3                       | P1       | «On the road today» son los líderes tras la N−1: si la N−1 está oculta, puerta (§7.5)                                                                                |
+| E6                       | P1       | El deslizador llega a `entregadoHastaB`, nunca a meta                                                                                                                |
+| E8                       | P1       | Desaparece la respuesta única: cabecera, tramos y acta por separado (§10)                                                                                            |
+| E9                       | P1       | `?tab=result` sobre una etapa oculta abre la puerta, no el resultado                                                                                                 |
+| C1, C2, C4, C5           | P1       | Ganador, clasificaciones y ganadores de etapa hasta `visibleHasta`; el palmarés de la temporada en curso solo si la carrera entera es visible                        |
+| C3                       | P1       | Una clásica terminada abre en modo ver                                                                                                                               |
+| C6                       | P0       | «Under way, 7 of 21 stages raced» no es un resultado: se queda                                                                                                       |
+| I1, I2, I4               | P2       | El ganador de una carrera con su última etapa oculta no se enseña (`🏆` ausente, sin tooltip)                                                                        |
+| I3                       | P2       | El buscador no casa contra ganadores ocultos (se re-sella `raceTimeline.test.ts` l. 120-128)                                                                         |
+| N1, N2, N3, N4           | P2       | Se quitan las noticias con `(race_key, stage_day)` oculta; los filtros se construyen con las visibles (§8.2)                                                         |
+| H1, H5                   | P1       | Si la última carrera tiene la etapa oculta: `Stage 7 of Race France is ready to watch ▶`, sin puesto ni veredicto                                                    |
+| H2                       | P2       | Puntos de temporada y dinero sin las filas de `rider_points` y `transactions` de los días ocultos                                                                    |
+| H3                       | P3       | La forma se enseña: el jugador la necesita para dar órdenes (decisión del dueño, §16)                                                                                |
+| H4                       | P1       | «Where the energy went» de una etapa oculta: `Watch stage 7 to see`                                                                                                  |
+| H6                       | P2       | El apunte del premio de un día oculto sale como `Prize · watch stage 7 to reveal`, sin importe, y el saldo sin él                                                    |
+| H7, P4                   | P1       | Resultados propios y ajenos hasta `visibleHasta`                                                                                                                     |
+| P1, W1, W2, W5           | P2       | Ranking, premios, naciones y equipos restando los `rider_points` de `diasOcultos` (`race_id` es la `raceKey` y lleva `game_day`, mapa 03 §4.1)                       |
+| P2, P3, W4               | P2       | Palmarés, logros, salón de la fama y récords sin las filas `(race_id, season, game_day)` ocultas                                                                     |
+| W3                       | P1       | Como C5                                                                                                                                                              |
+| P5                       | P3       | «Injured» causado por una etapa oculta (la noticia `injury` de §8.2 dice cuál): `Status hidden until you watch stage 7`                                              |
+| P6                       | P2 / P3  | Puntos de equipo, P2; presupuesto, P3 (sin libro por equipo; decisión, §16)                                                                                          |
+| W6                       | P3       | Las órdenes enseñan la general en el horizonte (§7.5); el orden por fama queda como está (mapa 03 no lo comprobó)                                                    |
+| T1, T2, T3               | regla    | §7.3                                                                                                                                                                 |
+| T4                       | regla    | Un contador de novedades cuenta etapas por ver, nunca resultados                                                                                                     |
+| T5, T6                   | regla    | §7.4                                                                                                                                                                 |
 
 **El canario (B1, §13)** hace la regla ejecutable: un mundo de prueba con un ganador de nombre, id y tiempo únicos en una etapa protegida no vista; el test recorre **todas** las rutas registradas (hook `onRoute` de Fastify, no una lista a mano), las llama con parámetros del fixture y busca el canario en cada JSON, en el correo y en los títulos. Una ruta que no esté en `POLITICA_DE_RUTAS` hace fallar el test.
 
@@ -672,12 +713,43 @@ Son dos productos con la misma materia:
 // packages/engine/src/world/news.ts (reescrito: el dato es de códigos e ids, el texto sale al leer)
 export type CausaAbandono = 'colapso' | 'fuera_control' | 'lesion' | 'enfermedad' | 'voluntario'
 export type NoticiaDatos =
-  | { readonly kind: 'stage_win' | 'tt_win' | 'breakaway_win'; readonly raceKey: string; readonly stage: number; readonly riderId: string }
-  | { readonly kind: 'one_day_win' | 'one_day_tt_win' | 'gc_win' | 'kom'; readonly raceKey: string; readonly riderId: string }
-  | { readonly kind: 'gc_leader'; readonly raceKey: string; readonly stage: number; readonly riderId: string } // nuevo
-  | { readonly kind: 'abandon'; readonly raceKey: string; readonly stage: number | null; readonly riderId: string; readonly causa: CausaAbandono }
-  | { readonly kind: 'injury'; readonly raceKey: string | null; readonly stage: number | null; readonly riderId: string; readonly diasBaja: number }
-  | { readonly kind: 'contract'; readonly riderId: string; readonly teamId: string; readonly mudanza: string | null }
+  | {
+      readonly kind: 'stage_win' | 'tt_win' | 'breakaway_win'
+      readonly raceKey: string
+      readonly stage: number
+      readonly riderId: string
+    }
+  | {
+      readonly kind: 'one_day_win' | 'one_day_tt_win' | 'gc_win' | 'kom'
+      readonly raceKey: string
+      readonly riderId: string
+    }
+  | {
+      readonly kind: 'gc_leader'
+      readonly raceKey: string
+      readonly stage: number
+      readonly riderId: string
+    } // nuevo
+  | {
+      readonly kind: 'abandon'
+      readonly raceKey: string
+      readonly stage: number | null
+      readonly riderId: string
+      readonly causa: CausaAbandono
+    }
+  | {
+      readonly kind: 'injury'
+      readonly raceKey: string | null
+      readonly stage: number | null
+      readonly riderId: string
+      readonly diasBaja: number
+    }
+  | {
+      readonly kind: 'contract'
+      readonly riderId: string
+      readonly teamId: string
+      readonly mudanza: string | null
+    }
   | { readonly kind: 'retirement'; readonly riderId: string; readonly edad: number }
 export type NewsKind = NoticiaDatos['kind']
 export interface NombresDeNoticia {
@@ -686,7 +758,12 @@ export interface NombresDeNoticia {
   carrera(raceKey: string): string
   pais(iso2: string): string
 }
-export function renderNoticia(locale: 'en', seed: string, datos: NoticiaDatos, n: NombresDeNoticia): string
+export function renderNoticia(
+  locale: 'en',
+  seed: string,
+  datos: NoticiaDatos,
+  n: NombresDeNoticia,
+): string
 ```
 
 - Se conservan los once `kind` de hoy (`world/news.ts` l. 8-19) para no romper `newsLabel` (`labels.ts` l. 167-185) y se añade `gc_leader` («X takes the race lead»), el titular que la tele da en el cierre y que hoy no existe (mapa 02 §3). `detail` en inglés (`stageRun.ts` l. 1020-1026, 1127-1130; `contracts.ts` l. 326-329 de `db`; `rollover.ts` l. 331) se sustituye por códigos (`causa`, `diasBaja`, `mudanza`, `edad`), y el defecto del espacio antes de la coma de `contract` desaparece con él.
@@ -718,9 +795,16 @@ export interface LineaDeCrono {
 }
 export interface InstanteDeCrono {
   readonly T: RelojDs
-  readonly enRuta: readonly { readonly corredor: CorredorIx; readonly km: number; readonly aParcialS: number | null }[]
+  readonly enRuta: readonly {
+    readonly corredor: CorredorIx
+    readonly km: number
+    readonly aParcialS: number | null
+  }[]
   readonly sillon: { readonly corredor: CorredorIx; readonly tiempoDs: RelojDs } | null // mejor tiempo en meta hasta T
-  readonly parciales: readonly { readonly km: number; readonly orden: readonly { readonly corredor: CorredorIx; readonly tiempoDs: number }[] }[]
+  readonly parciales: readonly {
+    readonly km: number
+    readonly orden: readonly { readonly corredor: CorredorIx; readonly tiempoDs: number }[]
+  }[]
   readonly generalVirtual: readonly FilaGeneralVirtual[] | null
   readonly porSalir: number
 }
@@ -742,26 +826,39 @@ Tres migraciones con `drizzle-kit generate`, desde la `0043` (mapa 04 §6). No s
 // packages/db/src/schema.ts
 /** 0043. La línea temporal de la retransmisión (§3). Tabla aparte porque `stage_snapshots` no gana
  *  columnas (docs/tactica.md l. 7589-7591): 1:1 con ella, misma clave, escrita en la misma transacción. */
-export const stageTimelines = pgTable('stage_timelines', {
-  raceId: text('race_id').notNull(),
-  stageDay: integer('stage_day').notNull(),
-  formato: integer('formato').notNull(),
-  linea: json('linea'), // `LineaTemporalGuardada`, null en la crono
-  crono: json('crono'), // `LineaDeCrono` empaquetada igual que la línea, null en carretera
-  bytes: integer('bytes').notNull(), // JSON.stringify de lo guardado: el banco B6 lo vigila en producción
-}, (t) => [primaryKey({ columns: [t.raceId, t.stageDay] })])
+export const stageTimelines = pgTable(
+  'stage_timelines',
+  {
+    raceId: text('race_id').notNull(),
+    stageDay: integer('stage_day').notNull(),
+    formato: integer('formato').notNull(),
+    linea: json('linea'), // `LineaTemporalGuardada`, null en la crono
+    crono: json('crono'), // `LineaDeCrono` empaquetada igual que la línea, null en carretera
+    bytes: integer('bytes').notNull(), // JSON.stringify de lo guardado: el banco B6 lo vigila en producción
+  },
+  (t) => [primaryKey({ columns: [t.raceId, t.stageDay] })],
+)
 
 /** 0044. Qué ha visto cada jugador (§7.1). */
 export const estadoVisionadoEnum = pgEnum('estado_visionado', ['viendo', 'vista', 'revelada'])
-export const stageViews = pgTable('stage_views', {
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  raceKey: text('race_key').notNull(),
-  stageDay: integer('stage_day').notNull(),
-  estado: estadoVisionadoEnum('estado').notNull().default('viendo'),
-  vistoHastaB: integer('visto_hasta_b').notNull().default(0),
-  entregadoHastaB: integer('entregado_hasta_b').notNull().default(0),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-}, (t) => [primaryKey({ columns: [t.userId, t.raceKey, t.stageDay] }), index('stage_views_user_idx').on(t.userId, t.estado)])
+export const stageViews = pgTable(
+  'stage_views',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    raceKey: text('race_key').notNull(),
+    stageDay: integer('stage_day').notNull(),
+    estado: estadoVisionadoEnum('estado').notNull().default('viendo'),
+    vistoHastaB: integer('visto_hasta_b').notNull().default(0),
+    entregadoHastaB: integer('entregado_hasta_b').notNull().default(0),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.raceKey, t.stageDay] }),
+    index('stage_views_user_idx').on(t.userId, t.estado),
+  ],
+)
 
 /** 0045. `news` gana el dato (§8.2); `text` pasa a nullable y solo lo llevan las filas de antes. */
 // ADD COLUMN seed text, data jsonb, race_key text, stage_day integer; ALTER text DROP NOT NULL;
@@ -772,21 +869,53 @@ export const stageViews = pgTable('stage_views', {
 
 ### 10.2 Endpoints
 
-| Ruta | Sesión | Respuesta (Zod en `packages/shared/src/contracts.ts`) | Presupuesto |
-| --- | --- | --- | --- |
-| `GET /api/stages/:raceKey/:day/broadcast` | opcional | `EmisionCabecera`: etapa (nombre, km, tipo, crono, `perfil: Segment[]` y pancartas, sin marcas), `rotulos: RotuloCorredor[]` por `CorredorIx`, líderes en carretera, general de salida, número de tramos, `Visionado` si hay sesión. **Sin** catálogo de grupos | ≤ 40 KB (estimado: 176 rótulos de ~120 B) |
-| `GET /api/stages/:raceKey/:day/broadcast/:tramo` | opcional | `TramoEmision`: clave, grupos nacidos en el tramo, `mov`, `titulo`, relojes, marcas sueltas, percances, narrables con su `RaceEvent`, detalle; y `meta` (resultado de los 10 primeros con tiempos) solo en el tramo de meta. Con sesión, sube `entregadoHastaB` | ≤ 16 KB (medido 2,6-12,3 KB) |
-| `POST /api/stages/:raceKey/:day/seen` `{ b }` | sí | 204; `vistoHastaB = max(actual, b)` | |
-| `POST /api/stages/:raceKey/:day/reveal` | sí | `ActaDeEtapa`; estado `revelada` | |
-| `GET /api/stages/:raceKey/:day/report` | opcional | `ActaDeEtapa`: la `StageReplay` de hoy sin `radio`, o `409 { bloqueada: true }` si la etapa está oculta para ese jugador | la de hoy menos la radio |
-| `GET /api/stages/:raceKey/:day/radio?km=` | opcional | `RaceRadio` de un km, construida de la línea; oculta igual que el acta | ≤ 20 KB |
+| Ruta                                             | Sesión   | Respuesta (Zod en `packages/shared/src/contracts.ts`)                                                                                                                                                                                                           | Presupuesto                               |
+| ------------------------------------------------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| `GET /api/stages/:raceKey/:day/broadcast`        | opcional | `EmisionCabecera`: etapa (nombre, km, tipo, crono, `perfil: Segment[]` y pancartas, sin marcas), `rotulos: RotuloCorredor[]` por `CorredorIx`, líderes en carretera, general de salida, número de tramos, `Visionado` si hay sesión. **Sin** catálogo de grupos | ≤ 40 KB (estimado: 176 rótulos de ~120 B) |
+| `GET /api/stages/:raceKey/:day/broadcast/:tramo` | opcional | `TramoEmision`: clave, grupos nacidos en el tramo, `mov`, `titulo`, relojes, marcas sueltas, percances, narrables con su `RaceEvent`, detalle; y `meta` (resultado de los 10 primeros con tiempos) solo en el tramo de meta. Con sesión, sube `entregadoHastaB` | ≤ 16 KB (medido 2,6-12,3 KB)              |
+| `POST /api/stages/:raceKey/:day/seen` `{ b }`    | sí       | 204; `vistoHastaB = max(actual, b)`                                                                                                                                                                                                                             |                                           |
+| `POST /api/stages/:raceKey/:day/reveal`          | sí       | `ActaDeEtapa`; estado `revelada`                                                                                                                                                                                                                                |                                           |
+| `GET /api/stages/:raceKey/:day/report`           | opcional | `ActaDeEtapa`: la `StageReplay` de hoy sin `radio`, o `409 { bloqueada: true }` si la etapa está oculta para ese jugador                                                                                                                                        | la de hoy menos la radio                  |
+| `GET /api/stages/:raceKey/:day/radio?km=`        | opcional | `RaceRadio` de un km, construida de la línea; oculta igual que el acta                                                                                                                                                                                          | ≤ 20 KB                                   |
 
 ```ts
 // packages/shared/src/contracts.ts: tipos inferidos de los esquemas Zod nuevos (la web valida toda respuesta, mapa 07 §2)
-export interface EtapaSinResultado { raceKey: string; day: number; name: string; km: number; kind: string; timeTrial: boolean; perfil: Segment[]; pancartas: Banner[] }
-export interface EmisionCabecera { etapa: EtapaSinResultado; rotulos: RotuloCorredor[]; lideresEnCarretera: RaceLeaders; generalDeSalida: { riderId: string; puesto: number; deficitS: number }[]; tramos: number; visionado: Visionado | null }
-export interface ResultadoDeMeta { primeros: { riderId: string; puesto: number; tiempoS: number; bonificacionS: number }[] }
-export interface TramoEmision { tramo: number; desdeB: number; hastaB: number; clave: [number, string]; gruposNuevos: [number, string][]; mov: number[]; titulo: number[]; relojes: number[][]; sueltas: number[]; percances: number[]; narrables: { i: number; bEmision: number; tEmision: number; suceso: RaceEvent }[]; detalle: LineaTemporalGuardada['detalle']; meta: ResultadoDeMeta | null }
+export interface EtapaSinResultado {
+  raceKey: string
+  day: number
+  name: string
+  km: number
+  kind: string
+  timeTrial: boolean
+  perfil: Segment[]
+  pancartas: Banner[]
+}
+export interface EmisionCabecera {
+  etapa: EtapaSinResultado
+  rotulos: RotuloCorredor[]
+  lideresEnCarretera: RaceLeaders
+  generalDeSalida: { riderId: string; puesto: number; deficitS: number }[]
+  tramos: number
+  visionado: Visionado | null
+}
+export interface ResultadoDeMeta {
+  primeros: { riderId: string; puesto: number; tiempoS: number; bonificacionS: number }[]
+}
+export interface TramoEmision {
+  tramo: number
+  desdeB: number
+  hastaB: number
+  clave: [number, string]
+  gruposNuevos: [number, string][]
+  mov: number[]
+  titulo: number[]
+  relojes: number[][]
+  sueltas: number[]
+  percances: number[]
+  narrables: { i: number; bEmision: number; tEmision: number; suceso: RaceEvent }[]
+  detalle: LineaTemporalGuardada['detalle']
+  meta: ResultadoDeMeta | null
+}
 export type ActaDeEtapa = Omit<StageReplay, 'radio'> // `stageReplaySchema` de hoy, contracts.ts l. 1482-1533
 ```
 
@@ -800,13 +929,13 @@ El catálogo de grupos **no** va en la cabecera: su tamaño cuenta cuánto se ro
 
 **Frontera 3 intacta**: `StageOutput` no gana ni un campo (`docs/tactica.md` l. 246-249 y 7597-7611). Lo nuevo entra por la sonda, que es observación, o como datos de sucesos que ya existen. Todo lo que no se grabe al correr no se recupera después, porque cada subida de versión deja sin replay fiel a lo anterior (`checkReplay`, `raceRadio.ts` l. 49-55; mapa 01 §6).
 
-| Qué | Cómo | ¿Sube `ENGINE_VERSION`? | Prueba |
-| --- | --- | --- | --- |
-| La foto en **cada bloque** | el grabador pide `atKm` con el centro de cada bloque; la sonda ya lo admite (`simulate.ts` l. 1944-1950, 8996-9023) | no: no cambia el motor | I4: huella idéntica, 15 de 15 medido |
-| `raceLearning` sin cambios | `trabajaronParaOtro` (`stageRun.ts` l. 527-532) solo apunta en los bloques de `radioKmPoints`: con fotos cada 100 m el muestreo sería otro y el aprendizaje cambiaría | no | test de `stageRun`: mismo conjunto con la sonda vieja y la nueva |
-| `StageProbe.onEvent?(e: RaceEvent)` | `EventLog` (`events.ts` l. 9-49) recibe un oyente opcional; `simulateStage` y `simulateTimeTrial` le pasan el de la sonda. El grabador fecha cada suceso con el número de fotos recibidas: las del bloque `i` llegan al final del bloque, después de sus sucesos. Lo emitido tras el bucle (meta, corte) va a `bloques`; `rider_defies_team`, que `announceRebels` inserta al cerrar (`simulate.ts` l. 9081), toma el `bEmision` del siguiente suceso de su protagonista | no: observación | I4 con oyente |
-| `StageProbe.onRiderTrace?(riderId, salidaS, relojes)` en la crono | `simulateStage` deja de ignorar la sonda en la crono (l. 1264) y `simulateTimeTrial` la llama al cerrar cada corredor con `raw · noise` (`timetrial.ts` l. 345-348) | no: observación | I5; medido con la copia parcheada: resultados idénticos, 3 de 3 |
-| Orden completo de volantes y cimas | `sprint_intermediate` gana `orden` (hasta 8 ids) y `puntos`, y `climb_kom` gana `orden` y `puntosOrden`: el motor ya los reparte (`sprintPoints`, `constants.ts` l. 5032; tabla de cima, l. 5036) y solo emite al ganador (mapa 01 §1.4) | **sí, a la v90**: cambia lo que viaja en `events` (la regla de la fila 17c, `docs/tactica.md` l. 7435) | `journal.test.ts` con las claves nuevas; re-sellado de huellas |
+| Qué                                                               | Cómo                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | ¿Sube `ENGINE_VERSION`?                                                                                | Prueba                                                           |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| La foto en **cada bloque**                                        | el grabador pide `atKm` con el centro de cada bloque; la sonda ya lo admite (`simulate.ts` l. 1944-1950, 8996-9023)                                                                                                                                                                                                                                                                                                                                                      | no: no cambia el motor                                                                                 | I4: huella idéntica, 15 de 15 medido                             |
+| `raceLearning` sin cambios                                        | `trabajaronParaOtro` (`stageRun.ts` l. 527-532) solo apunta en los bloques de `radioKmPoints`: con fotos cada 100 m el muestreo sería otro y el aprendizaje cambiaría                                                                                                                                                                                                                                                                                                    | no                                                                                                     | test de `stageRun`: mismo conjunto con la sonda vieja y la nueva |
+| `StageProbe.onEvent?(e: RaceEvent)`                               | `EventLog` (`events.ts` l. 9-49) recibe un oyente opcional; `simulateStage` y `simulateTimeTrial` le pasan el de la sonda. El grabador fecha cada suceso con el número de fotos recibidas: las del bloque `i` llegan al final del bloque, después de sus sucesos. Lo emitido tras el bucle (meta, corte) va a `bloques`; `rider_defies_team`, que `announceRebels` inserta al cerrar (`simulate.ts` l. 9081), toma el `bEmision` del siguiente suceso de su protagonista | no: observación                                                                                        | I4 con oyente                                                    |
+| `StageProbe.onRiderTrace?(riderId, salidaS, relojes)` en la crono | `simulateStage` deja de ignorar la sonda en la crono (l. 1264) y `simulateTimeTrial` la llama al cerrar cada corredor con `raw · noise` (`timetrial.ts` l. 345-348)                                                                                                                                                                                                                                                                                                      | no: observación                                                                                        | I5; medido con la copia parcheada: resultados idénticos, 3 de 3  |
+| Orden completo de volantes y cimas                                | `sprint_intermediate` gana `orden` (hasta 8 ids) y `puntos`, y `climb_kom` gana `orden` y `puntosOrden`: el motor ya los reparte (`sprintPoints`, `constants.ts` l. 5032; tabla de cima, l. 5036) y solo emite al ganador (mapa 01 §1.4)                                                                                                                                                                                                                                 | **sí, a la v90**: cambia lo que viaja en `events` (la regla de la fila 17c, `docs/tactica.md` l. 7435) | `journal.test.ts` con las claves nuevas; re-sellado de huellas   |
 
 **Lo que NO se pide al motor.** Las caídas como suceso: el grabador las toma de `output.incidents`, que ya tiene km y corredor (`types.ts` l. 358-365), y las guarda como `percance`; la gravedad y los días de baja no entran en la línea (§8.2). Las fechas trucadas del mapa 01 §1.2 no se tocan: `bEmision` pone cada suceso donde se supo y `km`/`tS` siguen siendo la fecha del hecho para el texto. La fase de carrera y el tiempo meteorológico no los necesita la pantalla de E2.
 
@@ -841,19 +970,50 @@ export const BROADCAST = {
   /** Ventana de la tendencia del hueco («▼0:18 in 5 km»): la agenda pide «si sube o baja». */
   tendenciaKm: 5,
   /** General virtual: los primeros que se miran y el hueco máximo con el líder para sacarla. */
-  generalVirtualTop: 10, generalVirtualMaxS: 300,
+  generalVirtualTop: 10,
+  generalVirtualMaxS: 300,
   /** Segundos reales que vive el rótulo del momento. */
   rotuloVidaS: 5,
   /** La curva: [km a meta desde, s de carrera por s real]. Medido con ella: 5:02 a 15:03 por etapa (§5). */
-  ritmo: [[60, 120], [20, 60], [5, 30], [1, 15], [0, 4]] as const,
+  ritmo: [
+    [60, 120],
+    [20, 60],
+    [5, 30],
+    [1, 15],
+    [0, 4],
+  ] as const,
   /** Tras un hito ya enseñado, `frenoS` s reales a ×`frenoVelocidad`: que se vea, sin anunciarlo antes. */
-  frenoVelocidad: 12, frenoS: 4,
+  frenoVelocidad: 12,
+  frenoS: 4,
   /** Plantillas narrables que frenan la reproducción (las de la cabeza de carrera y las pancartas). */
-  hitosNarrables: ['attack_sticks', 'breakaway_formed', 'breakaway_caught', 'front_group', 'peloton_split', 'peloton_selection', 'peloton_regroup',
-    'echelon_split', 'leader_dropped', 'climb_kom', 'sprint_intermediate', 'bridge_made', 'move_merge', 'time_gap', 'rider_abandons',
-    'puncture', 'mechanical', 'final_km', 'bunch_sprint', 'stage_win'] as const,
+  hitosNarrables: [
+    'attack_sticks',
+    'breakaway_formed',
+    'breakaway_caught',
+    'front_group',
+    'peloton_split',
+    'peloton_selection',
+    'peloton_regroup',
+    'echelon_split',
+    'leader_dropped',
+    'climb_kom',
+    'sprint_intermediate',
+    'bridge_made',
+    'move_merge',
+    'time_gap',
+    'rider_abandons',
+    'puncture',
+    'mechanical',
+    'final_km',
+    'bunch_sprint',
+    'stage_win',
+  ] as const,
   /** Crono: primera hora anónima, el resto, los últimos en salir y su tramo de entrega en s de carrera. */
-  cronoPrimeraHoraVelocidad: 240, cronoVelocidad: 120, cronoUltimosSalir: 20, cronoUltimosVelocidad: 40, tramoCronoS: 1200,
+  cronoPrimeraHoraVelocidad: 240,
+  cronoVelocidad: 120,
+  cronoUltimosSalir: 20,
+  cronoUltimosVelocidad: 40,
+  tramoCronoS: 1200,
   /** El cliente pide el tramo siguiente a esta distancia del final del actual: sin cortes, sin adelantarse más. */
   pedirTramoAntesKm: 2,
   /** Cada cuántos s reales informa el cliente de su posición (reanudar). */
@@ -861,7 +1021,10 @@ export const BROADCAST = {
   /** Días reales tras el final de una carrera en que sus etapas no vistas dejan de ocultarse (decisión, §16). */
   caducidadDiasReales: 7,
   /** Presupuesto (B6): JSON por etapa en línea, mediana y máximo; crono; tramo. */
-  lineaMedianaMaxBytes: 65_536, lineaMaxBytes: 131_072, cronoMaxBytes: 32_768, tramoMaxBytes: 16_384,
+  lineaMedianaMaxBytes: 65_536,
+  lineaMaxBytes: 131_072,
+  cronoMaxBytes: 32_768,
+  tramoMaxBytes: 16_384,
 } as const
 ```
 
@@ -871,23 +1034,23 @@ export const BROADCAST = {
 
 Los de la casa se escriben desde la regla, no desde lo que hoy sale (mapa 05 §10, lección 5). Parten de B1-B8 del mapa 07 §5.3 y añaden los invariantes del modelo:
 
-| Id | Qué afirma | Cómo se mide | Listón | Dónde |
-| --- | --- | --- | --- | --- |
-| I1 | La foto reducida es la foto del motor | fotos sintéticas en `broadcast/reducir.test.ts`; y las 24 etapas del mapa 07 §7 con `radioKmFrom` en cada km | 0 discrepancias (medido hoy: 0 en 3.246) | rápido y bancos |
-| I2 | El instante coincide con la foto donde se mide | `instanteEn(r_g(k))` por grupo y km; tránsito cada 30 s | igualdad salvo deduplicados; tránsito p90 ≤ 2 | bancos |
-| I3 | Claves y empaquetado | `clave(k+10) = reducir*(clave(k), …)`; `desempaquetar ∘ empaquetar = id` | igualdad | rápido |
-| I4 | Mirar no cambia la carrera | extiende `sim/raceRadio.test.ts` l. 748-799: sonda en cada bloque, `onEvent` y traza de crono | huella idéntica | bancos |
-| I5 | La traza de la crono cuadra con el resultado | `salida + traza final + pérdida = results.tiempoS` por corredor | igualdad al segundo | rápido |
-| B1 | Nada de una etapa oculta sale del servidor | canario en PGlite; todas las rutas por `onRoute`, correo y títulos (§7.2) | 0 apariciones; ruta sin política = rojo | rápido |
-| B2 | Los sucesos casan con el estado | por suceso, sus protagonistas en carrera en `bEmision`; `front_group.size` y `time_gap.leadSize` contra la cabeza de la foto; `breakaway_formed`, todos juntos | 0 en las familias exactas; en las demás, la tasa medida y escrita en el test, como `coherence.test.ts` | bancos |
-| B3 | Cada escapado lleva rótulo | cada 30 s, todo miembro de grupo ≤ 12 con `lleva` resuelto | 100 % (hoy 47-64 % fuera del pelotón en reina) | bancos |
-| B4 | Re-render idéntico | golden por `kind` de noticia y por plantilla en `en` | igualdad | rápido |
-| B5 | Añadir una redacción no reescribe el pasado | hash de un corpus congelado de sucesos y noticias | hash fijo; se re-sella a propósito | rápido |
-| B6 | Tamaño | las 24 etapas: JSON de la línea, de la crono y de cada tramo; en producción, `stage_timelines.bytes` | constantes de §12 | bancos |
-| B7 | Cobertura | cada plantilla emitida tiene render vivo y de acta; cada `PapelDeGrupo`, `PullMotive` y `MaillotLlevado` tiene texto; guardarraíl de tipos motor/contrato como el de `PullMotive` (`apps/api/src/raceRadio.test.ts` l. 148-152) | 0 huecos; error de `typecheck` | rápido |
-| B8 | Coste en el cliente | `instanteEn` por fotograma y `safeParse` de un tramo, en Colombia e5 | ≤ 2 ms en Node (estimado ×3-5 en móvil) | rápido |
-| B9 | El journal vivo no mira al futuro | `vivo(s, b) = vivo(s filtrados a bEmision ≤ b, b)` para todo `b` | igualdad | rápido |
-| B10 | El ritmo no anuncia nada | la curva con la línea truncada en `T` es igual a la curva de la línea entera hasta `T`; bandas de duración por tipo de etapa | igualdad; llana ≤ 7 min, reina ≤ 16 min | bancos |
+| Id  | Qué afirma                                     | Cómo se mide                                                                                                                                                                                                                    | Listón                                                                                                 | Dónde           |
+| --- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | --------------- |
+| I1  | La foto reducida es la foto del motor          | fotos sintéticas en `broadcast/reducir.test.ts`; y las 24 etapas del mapa 07 §7 con `radioKmFrom` en cada km                                                                                                                    | 0 discrepancias (medido hoy: 0 en 3.246)                                                               | rápido y bancos |
+| I2  | El instante coincide con la foto donde se mide | `instanteEn(r_g(k))` por grupo y km; tránsito cada 30 s                                                                                                                                                                         | igualdad salvo deduplicados; tránsito p90 ≤ 2                                                          | bancos          |
+| I3  | Claves y empaquetado                           | `clave(k+10) = reducir*(clave(k), …)`; `desempaquetar ∘ empaquetar = id`                                                                                                                                                        | igualdad                                                                                               | rápido          |
+| I4  | Mirar no cambia la carrera                     | extiende `sim/raceRadio.test.ts` l. 748-799: sonda en cada bloque, `onEvent` y traza de crono                                                                                                                                   | huella idéntica                                                                                        | bancos          |
+| I5  | La traza de la crono cuadra con el resultado   | `salida + traza final + pérdida = results.tiempoS` por corredor                                                                                                                                                                 | igualdad al segundo                                                                                    | rápido          |
+| B1  | Nada de una etapa oculta sale del servidor     | canario en PGlite; todas las rutas por `onRoute`, correo y títulos (§7.2)                                                                                                                                                       | 0 apariciones; ruta sin política = rojo                                                                | rápido          |
+| B2  | Los sucesos casan con el estado                | por suceso, sus protagonistas en carrera en `bEmision`; `front_group.size` y `time_gap.leadSize` contra la cabeza de la foto; `breakaway_formed`, todos juntos                                                                  | 0 en las familias exactas; en las demás, la tasa medida y escrita en el test, como `coherence.test.ts` | bancos          |
+| B3  | Cada escapado lleva rótulo                     | cada 30 s, todo miembro de grupo ≤ 12 con `lleva` resuelto                                                                                                                                                                      | 100 % (hoy 47-64 % fuera del pelotón en reina)                                                         | bancos          |
+| B4  | Re-render idéntico                             | golden por `kind` de noticia y por plantilla en `en`                                                                                                                                                                            | igualdad                                                                                               | rápido          |
+| B5  | Añadir una redacción no reescribe el pasado    | hash de un corpus congelado de sucesos y noticias                                                                                                                                                                               | hash fijo; se re-sella a propósito                                                                     | rápido          |
+| B6  | Tamaño                                         | las 24 etapas: JSON de la línea, de la crono y de cada tramo; en producción, `stage_timelines.bytes`                                                                                                                            | constantes de §12                                                                                      | bancos          |
+| B7  | Cobertura                                      | cada plantilla emitida tiene render vivo y de acta; cada `PapelDeGrupo`, `PullMotive` y `MaillotLlevado` tiene texto; guardarraíl de tipos motor/contrato como el de `PullMotive` (`apps/api/src/raceRadio.test.ts` l. 148-152) | 0 huecos; error de `typecheck`                                                                         | rápido          |
+| B8  | Coste en el cliente                            | `instanteEn` por fotograma y `safeParse` de un tramo, en Colombia e5                                                                                                                                                            | ≤ 2 ms en Node (estimado ×3-5 en móvil)                                                                | rápido          |
+| B9  | El journal vivo no mira al futuro              | `vivo(s, b) = vivo(s filtrados a bEmision ≤ b, b)` para todo `b`                                                                                                                                                                | igualdad                                                                                               | rápido          |
+| B10 | El ritmo no anuncia nada                       | la curva con la línea truncada en `T` es igual a la curva de la línea entera hasta `T`; bandas de duración por tipo de etapa                                                                                                    | igualdad; llana ≤ 7 min, reina ≤ 16 min                                                                | bancos          |
 
 **Re-sellados esperados** (mapa 07 §1.5): las variantes en presente de `stageJournal.test.ts`, `world/news.test.ts` y `db/abandon.test.ts` (el texto se comprueba renderizando), `newsFeed.test.ts` (`raceOfHeadline` desaparece), `raceTimeline.test.ts` l. 120-128 (el buscador por ganador), los de radio guardada si se deja de escribir `radio`, y `ENGINE_VERSION` una vez (v90). **No se re-sellan** `jerseys.test.ts` ni `leaderJerseys.test.tsx`: `JerseyKind` sigue con tres valores y las categorías nuevas viven en `MaillotLlevado`.
 
@@ -895,19 +1058,19 @@ Los de la casa se escriben desde la regla, no desde lo que hoy sale (mapa 05 §1
 
 ## 14. Plan por pasos, tests primero
 
-| Paso | Qué | Tests que van antes | Depende de | PR (estimado) |
-| --- | --- | --- | --- | --- |
-| 1 | `broadcast/`: tipos, `reducir`, `fotoEn`, `instanteEn`, empaquetar y desempaquetar | I1 e I3 sobre fotos sintéticas; I2 sobre un caso de fusión con tránsito | | 1 |
-| 2 | Grabador en `packages/db`: sonda en cada bloque con diferencia sobre la foto anterior, título por bloque, marcas de reloj, percances, autocomprobación I1; `trabajaronParaOtro` solo en km; migración `0043` | I4, test de `stageRun` del aprendizaje, B6 | 1 | 1 |
-| 3 | Noticias con `seed` y `data` (`0045`), render al leer, orden estable, `gc_leader` | B4, B5, `abandon.test.ts` re-sellado | | 1 (**va antes del reinicio**: `docs/agenda.md` l. 131-133 según el mapa 04 §8) |
-| 4 | Motor: `onEvent` y traza de crono (observación); en PR aparte, orden de pancartas y v90 | I4, I5; `journal.test.ts` con las claves nuevas | 2 | 2 |
-| 5 | Rótulos: `rotulo.ts`, `titulosDesdePalmares` | B3; tabla de casos de la regla UCI (líder campeón, día 1, disciplina, sub-23) | 1 | 1 |
-| 6 | `stage_views` (`0044`), `horizonte.ts`, `POLITICA_DE_RUTAS` | B1 en rojo primero: el canario falla con todas las rutas sin clasificar, y el paso las clasifica | 3 | 2 |
-| 7 | API de emisión: cabecera, tramos, `seen`, `reveal`, `report`, radio desde la línea; `@fastify/compress`; contratos Zod con test de contrato (hoy no hay ninguno de etapa, mapa 07 §5.2) | B1 sobre las rutas nuevas, B6 por tramo, contratos | 2, 5, 6 | 2 |
-| 8 | Web: reproducción (capa fija, barra, perfil con cursores, rótulos, mandos, móvil), título de pestaña | B8, B10, renderizado estático de la barra con un instante fijo | 7 | 3 |
-| 9 | Journal vivo y acta: `buildChronicle` partido, plantillas en presente, `Commentary` | B9, B7 | 4, 7 | 1 |
-| 10 | Las 48 superficies al horizonte, tarjeta `To watch`, plantilla de correo, retirada de la ruta vieja, dejar de escribir `radio` | B1 completo | 6, 8 | 2 |
-| 11 | Crono: `LineaDeCrono`, instante, pantalla y ritmo | I5, B6 de crono, B10 | 4, 8 | 1 |
+| Paso | Qué                                                                                                                                                                                                          | Tests que van antes                                                                              | Depende de | PR (estimado)                                                                  |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ | ---------- | ------------------------------------------------------------------------------ |
+| 1    | `broadcast/`: tipos, `reducir`, `fotoEn`, `instanteEn`, empaquetar y desempaquetar                                                                                                                           | I1 e I3 sobre fotos sintéticas; I2 sobre un caso de fusión con tránsito                          |            | 1                                                                              |
+| 2    | Grabador en `packages/db`: sonda en cada bloque con diferencia sobre la foto anterior, título por bloque, marcas de reloj, percances, autocomprobación I1; `trabajaronParaOtro` solo en km; migración `0043` | I4, test de `stageRun` del aprendizaje, B6                                                       | 1          | 1                                                                              |
+| 3    | Noticias con `seed` y `data` (`0045`), render al leer, orden estable, `gc_leader`                                                                                                                            | B4, B5, `abandon.test.ts` re-sellado                                                             |            | 1 (**va antes del reinicio**: `docs/agenda.md` l. 131-133 según el mapa 04 §8) |
+| 4    | Motor: `onEvent` y traza de crono (observación); en PR aparte, orden de pancartas y v90                                                                                                                      | I4, I5; `journal.test.ts` con las claves nuevas                                                  | 2          | 2                                                                              |
+| 5    | Rótulos: `rotulo.ts`, `titulosDesdePalmares`                                                                                                                                                                 | B3; tabla de casos de la regla UCI (líder campeón, día 1, disciplina, sub-23)                    | 1          | 1                                                                              |
+| 6    | `stage_views` (`0044`), `horizonte.ts`, `POLITICA_DE_RUTAS`                                                                                                                                                  | B1 en rojo primero: el canario falla con todas las rutas sin clasificar, y el paso las clasifica | 3          | 2                                                                              |
+| 7    | API de emisión: cabecera, tramos, `seen`, `reveal`, `report`, radio desde la línea; `@fastify/compress`; contratos Zod con test de contrato (hoy no hay ninguno de etapa, mapa 07 §5.2)                      | B1 sobre las rutas nuevas, B6 por tramo, contratos                                               | 2, 5, 6    | 2                                                                              |
+| 8    | Web: reproducción (capa fija, barra, perfil con cursores, rótulos, mandos, móvil), título de pestaña                                                                                                         | B8, B10, renderizado estático de la barra con un instante fijo                                   | 7          | 3                                                                              |
+| 9    | Journal vivo y acta: `buildChronicle` partido, plantillas en presente, `Commentary`                                                                                                                          | B9, B7                                                                                           | 4, 7       | 1                                                                              |
+| 10   | Las 48 superficies al horizonte, tarjeta `To watch`, plantilla de correo, retirada de la ruta vieja, dejar de escribir `radio`                                                                               | B1 completo                                                                                      | 6, 8       | 2                                                                              |
+| 11   | Crono: `LineaDeCrono`, instante, pantalla y ritmo                                                                                                                                                            | I5, B6 de crono, B10                                                                             | 4, 8       | 1                                                                              |
 
 Unos 17 PR. Los pasos 1-2 y 3 pueden ir en paralelo; el 3 tiene fecha (el reinicio). Cada paso que toca el motor lleva su comprobación de que no tocó la Frontera 3.
 
@@ -930,16 +1093,16 @@ Unos 17 PR. Los pasos 1-2 y 3 pueden ir en paralelo; el 3 tiene fecha (el reinic
 
 ## 16. Decisiones que son del dueño
 
-| # | Decisión | Valor por defecto | Consecuencia |
-| --- | --- | --- | --- |
-| 1 | Qué etapas se protegen | las de las carreras de su corredor (o de su equipo, si es mánager) y las que empieza a ver | el resto del mundo se ve sin filtro; el ranking solo resta etapas protegidas |
-| 2 | Caducidad de lo no visto | 7 días reales tras el final de la carrera; nunca mientras está en curso | quien vuelve tras una semana encuentra su gran vuelta por ver; tras dos, revelada |
-| 3 | Visitante sin cuenta | modo ver por defecto, acta a un clic, P1-P3 sin recorte | la captación comparte el acta por su URL; el enlace de lista lleva a ver |
-| 4 | Vocabulario de grupos | los de SPEC 6.15 en toda superficie: `Lead group`, `Chase group`, `Bunch`, más `Gruppetto` | la radio deja de decir «Peloton» y «2nd group»; un solo nombre por concepto (v34) |
-| 5 | Duración de la reproducción | la curva de §5: 5 min una llana, 11-15 una reina (medido) | más corta = más frenazos perdidos; `Highlights` en 2-3 min para quien tenga prisa |
-| 6 | Contadores sin fecha | forma visible; salud oculta si la lesión viene de una etapa oculta; presupuesto del equipo visible | la forma puede insinuar el esfuerzo de ayer; a cambio, se pueden dar órdenes |
-| 7 | Maillot delegado a un campeón | la regla de hoy: pasa al siguiente sin mirar títulos | la UCI dejaría al campeón con su maillot (2.6.018); cambiarlo es tocar `assignLeaderJerseys` |
-| 8 | Campeón nacional antes de E3 | maillot del equipo con banda de la bandera y la línea `National champion` | se ve «el campeón de Italia» desde el primer PR; alternativa: solo texto |
-| 9 | ¿El resumen cuenta como visto? | sí | quien ve `Highlights` ya no tiene la etapa oculta en ninguna superficie |
-| 10 | Noticia `gc_leader` | sí | el feed cuenta el cambio de líder, que hoy no cuenta (MVP l. 160 pide que «cuente la historia») |
-| 11 | Orden de la lista de una escapada | por dorsal | estable; alternativa, por carretera dentro del grupo (cambia cada km) |
+| #   | Decisión                          | Valor por defecto                                                                                  | Consecuencia                                                                                    |
+| --- | --------------------------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| 1   | Qué etapas se protegen            | las de las carreras de su corredor (o de su equipo, si es mánager) y las que empieza a ver         | el resto del mundo se ve sin filtro; el ranking solo resta etapas protegidas                    |
+| 2   | Caducidad de lo no visto          | 7 días reales tras el final de la carrera; nunca mientras está en curso                            | quien vuelve tras una semana encuentra su gran vuelta por ver; tras dos, revelada               |
+| 3   | Visitante sin cuenta              | modo ver por defecto, acta a un clic, P1-P3 sin recorte                                            | la captación comparte el acta por su URL; el enlace de lista lleva a ver                        |
+| 4   | Vocabulario de grupos             | los de SPEC 6.15 en toda superficie: `Lead group`, `Chase group`, `Bunch`, más `Gruppetto`         | la radio deja de decir «Peloton» y «2nd group»; un solo nombre por concepto (v34)               |
+| 5   | Duración de la reproducción       | la curva de §5: 5 min una llana, 11-15 una reina (medido)                                          | más corta = más frenazos perdidos; `Highlights` en 2-3 min para quien tenga prisa               |
+| 6   | Contadores sin fecha              | forma visible; salud oculta si la lesión viene de una etapa oculta; presupuesto del equipo visible | la forma puede insinuar el esfuerzo de ayer; a cambio, se pueden dar órdenes                    |
+| 7   | Maillot delegado a un campeón     | la regla de hoy: pasa al siguiente sin mirar títulos                                               | la UCI dejaría al campeón con su maillot (2.6.018); cambiarlo es tocar `assignLeaderJerseys`    |
+| 8   | Campeón nacional antes de E3      | maillot del equipo con banda de la bandera y la línea `National champion`                          | se ve «el campeón de Italia» desde el primer PR; alternativa: solo texto                        |
+| 9   | ¿El resumen cuenta como visto?    | sí                                                                                                 | quien ve `Highlights` ya no tiene la etapa oculta en ninguna superficie                         |
+| 10  | Noticia `gc_leader`               | sí                                                                                                 | el feed cuenta el cambio de líder, que hoy no cuenta (MVP l. 160 pide que «cuente la historia») |
+| 11  | Orden de la lista de una escapada | por dorsal                                                                                         | estable; alternativa, por carretera dentro del grupo (cambia cada km)                           |

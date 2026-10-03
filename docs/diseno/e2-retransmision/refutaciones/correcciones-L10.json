@@ -1,476 +1,476 @@
 [
- {
-  "id": "Rcobertura-001",
-  "estado": "aplicado",
-  "donde": "borrador/00-cabecera.md l. 5 (procedencia) y l. 170 (0-f); borrador/21-apendices.md l. 605 (F.4); borrador/00-glosario.md G.12",
-  "motivo": "Cierto y recontado sobre `retransmision-v0.md` con el patrón de los bloques de cierre: 234 decisiones de sección, 218 de §3 a §19 y 16 de §0, §20 y §21 (§1 y §2 no tienen). La procedencia dice «234 tomadas por las secciones al escribirse (218 de §3 a §19 y 16 de §0, §20 y §21)» y F.4 y G.12 dan el rango `0-a` a `21-g`. No se escribe la cuenta de ahora (259 al empezar este lote, y subiendo, porque L3, L4, L8 y L9 corrigen en paralelo): la cabecera es provisional y la cifra final es del cierre (0-f). El glosario decía «218 de §1 a §19»: pasa a §3."
- },
- {
-  "id": "Rcobertura-002",
-  "estado": "aplicado",
-  "donde": "borrador/21-apendices.md l. 557 (F.3, `Pulling:`); borrador/00-glosario.md G.11; borrador/00-cabecera.md l. 63 (§0.3)",
-  "motivo": "Cierto en el v0. Lo de este lote: F.3 y G.11 dejan de decir que «la forma del nombre está abierta» y el ejemplo pasa al nombre tal como está guardado (`Pulling: Team Beta (for 11 Sam Carter)`, 7-a, como pide Rcobertura-020); §0.3 conserva «Nada queda «a definir»». Lo demás no es de estas secciones y ya lo hicieron o lo tienen pedido otros lotes: 4-u escribe en §4 `favourites`, `checkClockDs`, `tt`, `tplRev` y `housingCovered` (L2), L5 cerró 9-b, 9-d y 9-i, y las cruzadas de L2 (Rcobertura-005 y -009) piden quitar el condicional de 17-a, §17.8 y los riesgos 22 y 24. Parcial porque 12-c de §12.7 sigue diciendo «se propone la columna» (cruzada de L10) y §0.3 solo será cierto cuando la coherencia aplique esas cruzadas. Cierre de L10: lo que faltaba ya está en el texto de hoy, comprobado. 12-c (§12.7) dice que la revisión se guarda en `stage_timelines.tpl_rev`, en la `0044`, sin «se propone» (L8); 17-a y §17.8 escriben `tpl_rev` sin condicional (L9); el riesgo 22 va en «baja: decidido en 8-g» y el 24 se cerró con 4-v y su número no se usa (L9, `19-riesgos.md` l. 32 y 48); 8-g, 9-b, 9-d y 9-i están escritos como decididos (L4 y L5); y ninguna sección dice ya «si el ensamblador lo acepta», «si se acepta 12-c», «pendiente del ensamblador» ni que la forma del nombre esté abierta (búsqueda en `borrador/`). Así §0.3 («Nada queda «a definir»») es cierto, y el hallazgo pasa de parcial a aplicado."
- },
- {
-  "id": "Rcobertura-060",
-  "estado": "aplicado",
-  "donde": "borrador/21-apendices.md l. 476 (F.1) y l. 630 (21-g); borrador/00-glosario.md G.1; cierre: borrador/00-glosario.md l. 747 (G.5, `race_watch.how`)",
-  "motivo": "Cierto: §10.2 y 10-e dicen que la caducada no es conocida (`WatchState.known` solo con `W`, `S`, `R` o `A`) y F.1 y G.1 la contaban. La fila dice ahora «vista, revelada o arrastrada: `WatchState.known` (10-e); la caducada está fuera del velo pero no es conocida y abre en `Watch`», y que `known_through` cuenta el prefijo de letras, `X` incluida, que es lo que hace `recordProgress` en §10.3. §2.6, la frase del prefijo de §10.2 y el `status: 'known'` de §10.3 van a cruzadas. Cierre de L10: G.5 decía que `how` lleva «una `KnowledgeLetter` por etapa conocida»; ahora, por etapa del prefijo, la caducada `X` incluida (21-g)."
- },
- {
-  "id": "Rcoste-001",
-  "estado": "aplicado",
-  "donde": "borrador/00-cabecera.md l. 79 (§0.4, punto 10)",
-  "motivo": "Cierto: el 34 es la columna «Camino crítico» de §17.22, que supone ir en paralelo, y la de «En orden» da 48,5 hasta el 10b. Comprobado el precedente con `git log`: E1 estimó «24 sesiones de código y 1 de contenido» (`docs/generador.md` l. 10249) y se fusionó en 12 PR, del #250 (`b3f3797`, 26-09-2026 01:25) al #261 (`c39f450`, 20:08). El punto 10 dice las dos cifras y la vara. La lista de lo que lleva el segundo implementador añade el 3b y el 3c, que el hallazgo olvidaba y tampoco están en el camino crítico de §17.16 (el segundo carga 16,5 sesiones y todas caben antes de que las pidan). §17.16 y §17.22 van a cruzadas. L9 cambió después los costes de §17.22 (el 3a a 3,5 sesiones, el rebase previsto del 4a y el 4b, el 11 en dos PR): el punto 10 lleva las cifras nuevas, 56 sesiones, 52,5 hasta el encendido en orden y 37 por el camino crítico, y veintitrés PR."
- },
- {
-  "id": "Rcoste-002",
-  "estado": "aplicado",
-  "donde": "borrador/00-cabecera.md l. 146 (§0.7); borrador/21-apendices.md l. 139 (O-23) y l. 420 (X-24)",
-  "motivo": "Cierto y comprobado: `l7/tick.mjs` filtra `^nc-[a-z]{2}-road$` (l. 16) y proyecta 30 nacionales élite por 153, y el día 179 del calendario del motor son 111 `nc-XX-road` y 42 `nc-XX-u23-road` (contado aquí, `l10/dia179b.mjs`; el 176, 76 cronos élite y 111 sub-23). §0.7 dice «proyectado», sin sub-23, sin `buildTimelineCast` y sin escribir, con la escritura medida aparte (de 0,07 a 0,15 s, la cifra que L7 llevó a §18.3), y que B15 mide los dos días enteros en el paso 5; O-23 y X-24 del apéndice dicen lo mismo. La tabla de §18.3, §18.10 y B15 ya los corrigió L7."
- },
- {
-  "id": "Rcoste-003",
-  "estado": "aplicado",
-  "donde": "borrador/00-cabecera.md l. 148 (§0.7)",
-  "motivo": "Cierto: `l7/instante.mjs` no hace el paso 9 de §4.5. §0.7 da las tres cifras de §18.1, que L7 remidió con `corr-l7/instante-memo.mjs`: p99 de 0,036 a 0,056 ms sin el paso 9; con él memorizado por `(g, k_g)`, p95 de 0,017 a 0,052 ms; sin memo, de 0,064 a 0,804. El memo en §4.5 y B8 con el paso 9 son de L2 y L7 (cruzada de L7 a §4.5; §18.1 y 18-l ya lo dicen)."
- },
- {
-  "id": "Rdueno-002",
-  "estado": "aplicado",
-  "donde": "borrador/20-dueno.md l. 80 (§20.5, punto 3)",
-  "motivo": "Cierto: la web de hoy no reenvía `?diag=1` (`apps/web/src/api/results.ts` l. 51-55, comprobado por L6) y la API solo lo servía en el 9a. L6 adelantó al 7b el reenvío en `fetchCalendarStage` (14-s). §20.5 ya no dice «en todo momento»: la API lo acepta en la ruta de etapa desde el 7b y en la ficha de carrera y el feed desde el 8a (11-h), la web lo reenvía a la ruta de etapa desde el 7b y a las demás con el 9a y el 9b, que traen el botón. `SPOILER_MODE=admins` sigue en el 7a (14-s descartó retrasarlo)."
- },
- {
-  "id": "Rdueno-004",
-  "estado": "aplicado",
-  "donde": "borrador/20-dueno.md l. 25 (DD-05), l. 82 (§20.5, punto 5) y l. 129 (§20.8, DD-05); borrador/21-apendices.md l. 188 (H-04) y l. 217-219 (D-24, D-25 y D-26); cierre: borrador/21-apendices.md l. 189 (H-05) y l. 216 (D-21); borrador/20-dueno.md l. 85 (§20.5, punto 5: el punto sorteado y diez de diez)",
-  "motivo": "Cierto: las cuatro preguntas de §16.5 no miran maillots ni quién tira, y el apéndice C daba por medidas en la prueba de lectura D-25 y D-26. La prueba gana las dos preguntas del hallazgo, que L8 escribió en §16.5 (16-w) donde el grupo de delante es de 4 a `nameWholeGroupUpTo` (qué lleva cada uno y quién tira detrás y por qué, con la verdad de `pl-truth.mjs`), y §20.5 las cuenta. Cada decisión dice quién la mide de verdad: DD-05, nadie, porque la prueba pregunta qué lleva cada uno y no a quién pasa el delegado, y llega en el 10b, después de la respuesta: la juzga el dueño con el rótulo delante tras el 6b; D-25, la pregunta de los maillots donde salga un campeón; D-24, `jerseys.test.ts` fija la regla y B3 que el maillot se resuelve; D-25, B3 con su cláusula de no vacío y la pregunta de los maillots; D-26, los tests de la frase de la fuga fijan el orden, y que sea el bueno lo juzga el dueño al verla (con la cruzada de L8 a §21). 6-h va a cruzadas (L4). Corregida de paso la cita de SPEC en §20.5, que era l. 597-599: la regla del diario está en `SPEC.md` l. 598-600 (lo que pide Rdueno-031 para §16.5). Cierre de L10: faltaban dos filas del apéndice C que la cruzada de L8 nombra (la cola y la notoriedad): D-21 decía «B17 y la prueba de lectura», y ahora dice B17 y la segunda parte de B3 (la presentación de la fuga, 6-m, §16.4) con la medida de la cola de §6.5 y §6.7 (`l4c/cola.mjs`: 33 de 34 listas y frases y 157 de 158 rótulos de la ronda a ×1; del resto, el 69 % de la clase 2 y el 35 % de la clase 1), y que la prueba de lectura solo dice si con eso se entiende la etapa; y H-05 decía «sí: B3 y la prueba de lectura», contra la fila de D-26 de la misma página, y ahora dice lo mismo que ella. Y §20.5 (punto 5) dice ya la regla de aceptación de §16.5 (puntos 6 y 9): si en los nueve puntos no sale una fuga de 4 a 12, se sortea uno más, un punto cuenta si las dos personas aciertan todas sus preguntas, y hace falta diez de diez cuando hubo que sortearlo."
- },
- {
-  "id": "Rdueno-006",
-  "estado": "aplicado",
-  "donde": "borrador/20-dueno.md l. 43 (DD-25), l. 61 (§20.3), l. 94 (§20.6), l. 119 (§20.7), l. 147 (§20.8) y l. 197 (20-h); borrador/00-decisiones.md, fila de DD-25 y bloque de la corrección L10; borrador/00-cabecera.md l. 72 (§0.4, punto 3)",
-  "motivo": "Cierto y comprobado con `git log` de `packages/engine/src/constants.ts`: de la v69 (`025efbe`, 14-09) a la v89 (`c39f450`, 26-09) hay veinte subidas en catorce fusiones del 15 al 26, entre ellas la v83 «Dos defectos de producción», la v84 y la v86 «El que va de amarillo no da relevos» (21 y 22-09) y las tres del generador; `docs/tactica.md` l. 7435 es la fila de subidas de su tabla y l. 6979 da el 17d con sus ficheros, `apps/api` y `domain/dashboard.ts`, sin motor; `docs/balance.md` l. 16557-16558 es la D7 condicional. DD-25 pasa a «Las subidas de `ENGINE_VERSION` antes del 17d de la táctica», con el defecto de adelantar el 17d y las otras dos respuestas, y sin «casi todos sus pasos» ni «a E2 no le afecta». `00-decisiones.md` se actualiza con esa evidencia (D-09 ya no lleva la regla: la corrigió L3 con Rdueno-005)."
- },
- {
-  "id": "Rdueno-007",
-  "estado": "aplicado",
-  "donde": "borrador/20-dueno.md l. 67 (§20.4, la D7), l. 91 (§20.6, DD-23 y DD-24) y l. 145 (§20.8, DD-23)",
-  "motivo": "Cierto: la D7 es condicional (`docs/balance.md` l. 16557-16558, comprobado) y el dueño arregló en el motor lo que estaba mal en esos días (v83, v84, v86, `git log`). §20.4 dice que la D7 habla de lo que el motor hace bien, que por eso E2 cuenta sin tocarlo (D-09), y que lo que hace mal no lo decide la D7; DD-23 en §20.8 pasa a «E2 no lo arregla porque no sube la versión (D-09)» y §20.6 quita «la D7» del porqué de DD-23. §2.13, que dice lo mismo, va a cruzadas (L1 ya cerró)."
- },
- {
-  "id": "Rdueno-011",
-  "estado": "parcial",
-  "donde": "borrador/20-dueno.md l. 25 y l. 33 (DD-05 y DD-13, cuándo), l. 108 (§20.7), l. 129 (§20.8) y l. 198 (20-i)",
-  "motivo": "Cierto: el dueño ve el rótulo por primera vez en el 6b (§17.9) y la tabla le pedía DD-05 y DD-13 antes del 5. Se aplica una tercera vía entre las dos del hallazgo: las contesta tras el 6b, con el rótulo delante, y §20.7 escribe el precio (lo grabado entre el 5 y su respuesta lleva el defecto y no se reescribe; el reinicio lo borra con `stage_timelines` si llega después, §13.9). No se aplica calcular `distinctions` y la delegación al servir hasta el 6b, que abre un segundo camino al reparto congelado (D-15) por unas pocas sesiones de etapas; ni las cartas del adaptador en el 3c (Rdueno-010), que son de §17 (L9): si §17.6 las adopta, §20.7 pasa a «antes del 5» (cruzada). 17-k va a cruzadas."
- },
- {
-  "id": "Rdueno-020",
-  "estado": "aplicado",
-  "donde": "borrador/20-dueno.md l. 37 (DD-18), l. 58 (§20.3) y l. 142 (§20.8); borrador/00-decisiones.md, fila de DD-18; cierre: borrador/21-apendices.md l. 58 (I-44)",
-  "motivo": "Cierto, y medido aquí como pide el hallazgo: `l10/descuelgues.mjs` graba las 18 corridas de §12.2 con el prototipo de `l8/grab.mjs`, corre la voz como V1 de `l8/voz.mjs` con `liveClusters` apagada y aproxima la política de §7.7 (grupo de hasta 12 en el bloque anterior al de emisión, los que tiran en la capa de detalle y los protagonistas ya revelados; sin maillots ni general real, que nombrarían a más). La voz dice uno a uno de 63 a 74 descuelgues en la e20 (de 108 a 118 sueltos) y de 59 a 61 en Colombia e5 (de 61 a 63), y de 0 a 1 en las otras cuatro; desglose en `l10/descuelgues-desglose.mjs` (de 520 sueltos en las reinas, 235 salen de grupos de hasta 12, 246 tiraban y 115 ya eran protagonistas). Y como `liveClusters` solo junta a los que no tienen rótulo (§12.3), esos salen uno a uno con racimos o sin ellos. DD-18 lo dice en su consecuencia y en la contraria («apagados para siempre: la voz no dice nunca los de corredores sin rótulo y dice uno a uno los de corredores con rótulo, contra la B3»), y el defecto añade «hasta que se encienda, rige lo apagado». La medida y el hueco de la B3 van a cruzadas a §12.3 (L8). Cierre de L10: I-44, el injerto de los racimos, dice ya que el racimo solo junta a los que no tienen rótulo y que los de corredores con rótulo salen uno a uno (§12.3, DD-18)."
- },
- {
-  "id": "Rdueno-025",
-  "estado": "aplicado",
-  "donde": "borrador/20-dueno.md l. 32 (DD-12) y l. 136 (§20.8); borrador/00-decisiones.md, fila de DD-12; cierre: borrador/21-apendices.md l. 50 (I-36)",
-  "motivo": "Cierto: el robot de vista previa no lleva cookie y su horizonte es `anon` (§11.10 l. 360 lo dice), así que la condición de 14-k no protege a quien lee el enlace en un chat. La consecuencia de DD-12 lo dice («la vista previa lleva el ganador para todo el que vea el enlace, jugador o no, tenga la etapa velada o no») junto al acta en los buscadores de L7, y §20.8 lo pone como el precio. 14-k va a cruzadas (§14.10). Cierre de L10: I-36 decía solo «fuera del velo de quien pide (14-k)»; ahora dice que la vista previa la pide un robot sin cookie y con el velo vacío, y que por eso la ve todo el que vea el enlace (DD-12)."
- },
- {
-  "id": "Rdueno-028",
-  "estado": "parcial",
-  "donde": "borrador/20-dueno.md l. 76 (§20.5, entrada) y l. 86 («Lo que no tiene interruptor»); l. 199 (20-j)",
-  "motivo": "Cierto: el 1a, el 6b, el 9a, el 9b y el 12 enseñaban cosas a todos sin interruptor (comprobado en §17.4, §17.9, §17.12 y §17.15). §20.5 pone detrás de `BROADCAST_WATCH` lo que puede ir detrás (las palabras de papel del acta, 40 de cada 210 líneas según `l8/rol.mjs`; el nombre de la pestaña `Story`; la pestaña con que abre la carrera de un día), con cruzadas a §12.6, §11.17 y §17, cuenta que los titulares nuevos del 1a ya no se sirven hasta el velo (17-x, L9), y escribe las cuatro excepciones: la coma de `contract`, las cuatro claves crudas del 6b, el título de la pestaña del navegador y las redacciones del 12. Parcial porque la cifra de líneas del 12 es estimada y no medida: de las 90 elecciones de redacción de `stageJournal.ts` (contadas aquí), 44 son entre dos y 43 entre tres, así que cambia la mitad o dos tercios de las líneas que eligen (1 − 1/n); la mide B5 en ese PR."
- },
- {
-  "id": "Rdueno-029",
-  "estado": "aplicado",
-  "donde": "borrador/20-dueno.md l. 39 (DD-21) y l. 59 (§20.3); borrador/00-decisiones.md, fila de DD-21",
-  "motivo": "Cierto: `docs/agenda.md` l. 36 (decisión 3, «solo por invitación hasta que el juego esté implementado y probado») y l. 39 (decisión 6), comprobadas. La consecuencia de DD-21 dice que con el defecto el encendido para todos espera a un perfil de unos pocos invitados, y la contraria gana la tercera respuesta: encender para todos con el jugador dentro del listón y el mánager pagando sus milisegundos una vez por minuto mientras se optimiza la consulta 2 (la que L8 puso delante en 16-k con Rcoste-013)."
- },
- {
-  "id": "Rdueno-034",
-  "estado": "aplicado",
-  "donde": "borrador/20-dueno.md l. 21 y l. 23 (DD-01 y DD-03), l. 50 y l. 52 (§20.3); borrador/00-decisiones.md, fila de DD-03",
-  "motivo": "Cierto y rehecha la cuenta: 7 × 7:39 = 53,6 min y 7 × 13:28 = 94,3 min; 29 × 7:39 = 3,70 h y 29 × 13:28 = 6,51 h. DD-01 y DD-03 (tabla y §20.3) dicen lo que cuesta ponerse al día con el velo de la mediana y del p90, derivado de §8.3 y §10.4, y que el digest lo baja a lo de §8.4."
- },
- {
-  "id": "Rdueno-035",
-  "estado": "aplicado",
-  "donde": "borrador/20-dueno.md l. 33 (DD-13) y l. 137 (§20.8); borrador/00-decisiones.md, fila de DD-13",
-  "motivo": "Cierto: con el defecto el equipo líder no sale en `Watch` (ni rótulo, ni barra, ni cierre). La consecuencia lo dice, y §20.8 cita la petición del dueño, «Ah, falta la clasificación por equipos» (`docs/navegacion.md` l. 412-415, agosto de 2026), su solución en todas las tablas (l. 444-448) y la medida que lo dejó fuera de la identidad del corredor, que está en l. 452-453 y no en 452-454 como decía el borrador."
- },
- {
-  "id": "Rdueno-040",
-  "estado": "aplicado",
-  "donde": "borrador/20-dueno.md l. 26 (DD-06), l. 115 (§20.7) y l. 131 (§20.8); borrador/00-decisiones.md, fila de DD-06",
-  "motivo": "Cierto: los encargos van en orden, «E2 primero, E13 último» (`docs/encargos.md` l. 6-7), con E12 el penúltimo (l. 613). La contraria de DD-06 dice lo que exige antes del reinicio: E12 fuera de ese orden o una siembra en E2 detrás de `ChampionTitleSource` (un sorteo sembrado por país, marcado provisional), y §20.7 pone su plazo, antes del reinicio. §20.8 conserva el porqué del defecto y dice que la siembra, si se quiere, va marcada provisional. §7.9 va a cruzadas."
- },
- {
-  "id": "Rdueno-041",
-  "estado": "aplicado",
-  "donde": "borrador/20-dueno.md l. 12 (§20.1)",
-  "motivo": "Cierto: la notoriedad (`knownWins`) se congela en el reparto (7-e, 7-g). §20.1 pone la mitad de DD-02 en «lo que se congela al grabar la etapa»: el velo cambia al momento y los rótulos solo en las etapas grabadas después."
- },
- {
-  "id": "Rdueno-042",
-  "estado": "aplicado",
-  "donde": "borrador/20-dueno.md l. 46 («Dos números retirados»), l. 3 (entrada) y l. 196 (20-g); borrador/00-decisiones.md, tabla §DD, nota y bloque de la corrección L10",
-  "motivo": "Cierto: ningún jugador ve la diferencia entre las respuestas de DD-19, y el valor de DD-15 lo impone el tick («NO se trocea», `packages/db/src/tick.ts` l. 260, comprobado); la regla de la casa (`Claude.md` l. 26, comprobado) pide tomar y documentar lo razonable. DD-15 y DD-19 se retiran como del dueño y conservan su número, que no se reutiliza, para que no se rompan las remisiones de §8, §12, §13, §14, §17, §19 y §21: quedan decididas en §8.10 y §12.8. Y §20 gana las que el borrador tomaba fuera: DD-26 (L7, el presupuesto), seguir al empezar a ver (DD-01, L6), el cuarto nombre y el corte que cambian SPEC (DD-04, L8, 12-r) y el acta en los buscadores (DD-12, L7); los titulares nuevos del 1a no hace falta subirlos, porque L9 los dejó sin servir hasta el velo (17-x). §20 queda con veinticuatro. §8.10, 8-r y §12.8 van a cruzadas. Cierre de L10: la cuenta de «veinticuatro» es la de cuando se aplicó este hallazgo; con DD-27, DD-28 y DD-29 (Rcoste-037, Rdueno-036 y Rdueno-037), §20 queda con veintisiete, que es lo que dicen su entrada, §0.3, §0.4 (punto 10), §0.5 y la procedencia."
- },
- {
-  "id": "Rdueno-044",
-  "estado": "aplicado",
-  "donde": "borrador/20-dueno.md l. 70 (§20.4, [DUEÑO 9])",
-  "motivo": "Cierto: `docs/epics.md` l. 696-697 dice por qué se tumbó decidir en vivo y l. 701-702 lo que pidió el dueño (comprobadas; l. 700 está en blanco, como dice la cruzada de L1). §20.4 deja de atar a sus palabras el estreno a hora fija; el porqué de DD-15, ya retirada, es solo el del tick (§20.2), y §8.10 ya los separaba."
- },
- {
-  "id": "Rdueno-033",
-  "estado": "aplicado",
-  "donde": "borrador/20-dueno.md l. 70 (§20.4)",
-  "motivo": "Cruzada de L1: nada que cambiar en la cita. Comprobado que `docs/epics.md` l. 700 está en blanco y la frase del dueño está en l. 701-702; al reescribir el punto por Rdueno-044, la cita sigue siendo l. 701-702, y la razón que da el documento (l. 696-697) va sin comillas, porque no son palabras del dueño."
- },
- {
-  "id": "Rcobertura-010",
-  "estado": "aplicado",
-  "donde": "borrador/21-apendices.md l. 422-445 (tabla del principio de §21.6), l. 629 (21-f), l. 67 (alias), l. 419 (X-23), intros de F.1 a F.4, 21-c y 21-d; borrador/20-dueno.md l. 89 (§20.6, DD-22); borrador/00-cabecera.md l. 62 (§0.3); borrador/00-glosario.md, entrada",
-  "motivo": "Cruzada de L2 y hallazgo que el orquestador asigna a L10. Decidida la forma final de la remisión (21-f): el glosario de la síntesis no viaja con el documento, y cada remisión `§G.n` se escribe con el sitio del documento donde vive esa parte; donde la frase contrasta una firma o un nombre con el que fijó la síntesis, se escribe entero y se dice que es el de la síntesis. La tabla de conversión va al principio de §21.6, con la de L2 afinada: G.3 se reparte por las subsecciones de §4 (G.3.1 en §4.2 y §4.3, G.3.2 en §4.5, G.3.3 en §4.8, G.3.4 en §4.9, G.3.5 en §4.10, G.3.6 en §4.11, G.3.7 en §4.12), G.2 va a §17.20 y a §4.13, G.9 a §16.9 con los invariantes en §4.4 y §16.2, G.6 a §14.2 y §11.3. En §0, §20 y §21 no queda ninguna `§G.n` fuera de los bloques de cierre que quita el ensamblado y de la regla 21-f. Las demás secciones las cambia la coherencia (cruzada de L10)."
- },
- {
-  "id": "Rdueno-005",
-  "estado": "aplicado",
-  "donde": "borrador/00-cabecera.md l. 72 (§0.4, punto 3); borrador/21-apendices.md l. 121 (O-05) y l. 186 (H-02); borrador/00-decisiones.md, fila de DD-25",
-  "motivo": "Cruzadas de L3 a §0.4, a la fila de DD-25 y a §21: el punto 3 dice que si otra línea sube la versión antes del 17d la «Last race» de lo ya corrido cuenta otra carrera (C16) y que qué hacer es del dueño (DD-25); la fila de DD-25 se sostiene sola, sin «(D-09)» como regla (Rdueno-006); O-05 y H-02 dicen «lo que cuesta una subida de otra línea antes del 17d lo decide el dueño (DD-25)»."
- },
- {
-  "id": "Rcobertura-031",
-  "estado": "aplicado",
-  "donde": "borrador/00-cabecera.md l. 137 y l. 139 (§0.7)",
-  "motivo": "Cruzada de L5, comprobada contra la tabla de §9.2: la fila de las cronos da las dos del banco (de 18,8 a 24,2 KB) y las largas, de 26.987 a 27.821 B la e18 de `race-spain` y de 31.178 a 32.203 B la e10 de `race-italy`, sin y con `checkClockDs`, con su script; y la de los topes, 48 KB para la crono (15-i, D-11 corregida), 1,5 veces la e10."
- },
- {
-  "id": "Rcobertura-033",
-  "estado": "aplicado",
-  "donde": "borrador/21-apendices.md l. 521 (F.2); borrador/00-glosario.md G.4",
-  "motivo": "Cruzada de L5: la firma es `cueClassOf(cue, start, lastVirtualLeader, timeTrial): CueClass` (9-n), que es la que ya escribe §6.5 (06-pantalla.md l. 339, corrección L4)."
- },
- {
-  "id": "Rcodigo-051",
-  "estado": "aplicado",
-  "donde": "borrador/21-apendices.md l. 524 (F.2); borrador/00-glosario.md G.4",
-  "motivo": "Cruzada de L5: la fila de `names.ts` gana `cardCaption(worn, n)`, `cardLineText(d, n)`, `ordinal(n)`, `gapText(s)` y `listAnd(xs: readonly string[]): string`, como las escribe §7.1 (07-rotulos.md l. 43-59); en G.4, `listAnd(items)` pasa a la firma entera."
- },
- {
-  "id": "Rdueno-012",
-  "estado": "aplicado",
-  "donde": "borrador/21-apendices.md l. 61 (I-47); borrador/00-glosario.md G.2 (la fila de `Jersey.tsx`)",
-  "motivo": "Cruzada de L5: I-47 dice «`ChampionMark`, la silueta de maillot con una estrella en el pecho y la bandera al lado (7-h, corregida en la fase 5 por Rdueno-012)», y el glosario, lo mismo."
- },
- {
-  "id": "Rcodigo-045",
-  "estado": "aplicado",
-  "donde": "borrador/00-glosario.md G.4 (`cueClassOf`) y G.14 (corrección L10)",
-  "motivo": "Cruzada de L5: `RiderCueContext` con `'tt_round'` y `TimeTrialInstant.arrivals` ya estaban en G.3 (corrección L2); `cueClassOf` gana `timeTrial` (9-n) en G.4 y `listAnd` su firma; el registro de G.14 lo anota."
- },
- {
-  "id": "Rcobertura-047",
-  "estado": "aplicado",
-  "donde": "borrador/21-apendices.md l. 540 (F.2); borrador/00-glosario.md G.2 y G.4",
-  "motivo": "Cruzada de L6: `liveClusters(events, tl, revealS): readonly LiveCluster[]`, con `LiveCluster` = `{ event; revealS; members }`, como lo escribe ya §12.3 (12-voz.md l. 141-147) y lo usa §14.3."
- },
- {
-  "id": "Rcodigo-035",
-  "estado": "aplicado",
-  "donde": "borrador/21-apendices.md l. 530 y l. 538 (F.2); borrador/00-glosario.md G.2 (`timelines.ts`) y G.4",
-  "motivo": "Cruzada de L6: sin `StageTimelineRead`; `readStageTimeline(db, _h: Horizon, raceKey, stageDay): Promise<StageTimeline | null>` y `timelineForStage(db, h, raceKey, stageDay): Promise<StageTimeline | null>` (14-p), como §14.4 (14-api.md l. 223). §5.6 lo cambia L3 por la cruzada de L6; la duda de §21.6 dice que F.2 sigue a la coherencia si queda de otro modo."
- },
- {
-  "id": "Rcoste-011",
-  "estado": "aplicado",
-  "donde": "borrador/00-glosario.md G.7 (sin cambio) y G.2",
-  "motivo": "Cruzada de L6: `SPOILER.horizonMemoEntries` (500) ya estaba en G.7 con su intención (corrección L2, l. 862); se añade `TtlMemo<V>` a G.2 y a F.2."
- },
- {
-  "id": "Rdueno-023",
-  "estado": "aplicado",
-  "donde": "borrador/20-dueno.md l. 21 (DD-01), l. 11 (§20.1) y l. 108 y l. 111 (§20.7)",
-  "motivo": "Cruzada de L6: DD-01 pasa a «Qué carreras se protegen sin pedirlo, y si ver una etapa pone su carrera en guardia», con seguir al empezar a ver en el defecto (D-30), su consecuencia (el velo en todas las pantallas hasta la caducidad y el ranking retrasado en esa carrera), su contraria y dónde se cambia (`recordProgress`, `follow = 1` en el primer progreso, §10.3)."
- },
- {
-  "id": "Rdueno-024",
-  "estado": "aplicado",
-  "donde": "borrador/20-dueno.md l. 21 (DD-01), l. 50 (§20.3) y l. 125 (§20.8)",
-  "motivo": "Cruzada de L6: la tercera respuesta, todas las carreras, con su cifra medida (202, 601 y 669 etapas veladas a la vez; alguna en 356 días de 364; `c-l6/todas.mjs`), en la tabla, en §20.3 y en el porqué del defecto."
- },
- {
-  "id": "Rdueno-002 (cruzada de L6)",
-  "estado": "aplicado",
-  "donde": "borrador/20-dueno.md l. 80 (§20.5, punto 3)",
-  "motivo": "Cruzada de L6 (el hallazgo es de este lote, arriba): `?diag=1` funciona en la web desde el 7b en la ruta de etapa (14-s)."
- },
- {
-  "id": "Glosario de L6 (Rcobertura-047, Rcoste-011, Rcoste-014, Rcoste-018, Rcoste-044, Rdueno-002, Rcodigo-035)",
-  "estado": "aplicado",
-  "donde": "borrador/00-glosario.md G.2 (filas nuevas), G.4 y G.14",
-  "motivo": "Cruzada de L6 al glosario: `TtlMemo<V>` y `lastRunStages`, `PLAYER_RATE_LIMIT`, `ApiError.retryAfterS`, `<HorizonWatcher />`, `cacheOwnerChanged(prev, next)`, `SessionSeen`, `horizonKey(base, rev: string | undefined)`, `fetchCalendarStage(raceId, day, opts?)` con `diag` y `apps/web/src/api/results.test.ts`, y `LiveCluster`; sale `StageTimelineRead`. Los scripts de `c-l6/` no entran: son del scratchpad, como los de `l6/` (G.14)."
- },
- {
-  "id": "Rcobertura-038",
-  "estado": "aplicado",
-  "donde": "borrador/21-apendices.md l. 302 (D.5, `sup. E9`)",
-  "motivo": "Cruzada de L7: «Cierra» pasa a «7b · 9a y 9b» y el banco a `stageTables.test.tsx` (9a) y `raceTabs.test.ts` (9b), como §11.1."
- },
- {
-  "id": "Rcobertura-039",
-  "estado": "aplicado",
-  "donde": "borrador/21-apendices.md l. 305 (D.5, `sup. C3`)",
-  "motivo": "Cruzada de L7: «8a · 9a» pasa a «8a · 9b», como §11.1."
- },
- {
-  "id": "Rcobertura-041",
-  "estado": "aplicado",
-  "donde": "borrador/21-apendices.md l. 332 y l. 335 (D.5, `sup. W3` y `sup. W6`)",
-  "motivo": "Cruzada de L7: el banco pasa a «B1d (L con motivo; su respuesta no cambia con la etapa, §11.18)», como §11.1. Comparadas de paso las 59 filas de D.5 con las de §11.1 y §11.2: no hay más diferencias de mecanismo, PR o banco."
- },
- {
-  "id": "Rcodigo-029",
-  "estado": "aplicado",
-  "donde": "borrador/21-apendices.md l. 23 (I-09)",
-  "motivo": "Cruzada de L7: «el LRU es de 16 entradas desde que nace (18-d)»."
- },
- {
-  "id": "Rcodigo-061",
-  "estado": "aplicado",
-  "donde": "borrador/20-dueno.md l. 28 (DD-08) y l. 132 (§20.8); borrador/00-cabecera.md l. 76, l. 98 y l. 122 (§0.4, §0.5 y §0.6); borrador/21-apendices.md l. 43 (I-29), l. 148 (O-32), l. 238 (D.1), l. 290 (D.5), l. 352 (`sup. X11`), l. 413 (X-17) y l. 611 (F.4); borrador/00-glosario.md G.12",
-  "motivo": "Cruzadas de L7 a §20, §0 y §21: DD-08 cubre los atributos de la ficha de cualquier corredor, con la cifra medida (TAC de +0,37 a +0,41; `sup. X11`) y la purga de `rider_attr_log` a los 60 días; las puertas de fuera son once y `sup. X1` a `sup. X11` en todas las cuentas; D.5 gana la fila de `sup. X11` («L (DD-08) | 8a | lista blanca de B1b; B1c», la de §11.2)."
- },
- {
-  "id": "Rcoste-012",
-  "estado": "aplicado",
-  "donde": "borrador/00-cabecera.md l. 149 (§0.7); borrador/20-dueno.md l. 39 (DD-21), l. 59 (§20.3) y l. 146 (§20.8); borrador/21-apendices.md l. 407 (X-11)",
-  "motivo": "Cruzadas de L7 a §0.7 y a DD-21: la cifra de PostgreSQL 16 nativo sin red (2,16 ms el jugador y 3,88 el mánager), que falta la red de Railway y que la medida que decide DD-21 es desde el servicio `web` contra una copia de producción rellenada hasta 250.000 filas (18-j), como la fila de `00-decisiones.md`."
- },
- {
-  "id": "Rdueno-022",
-  "estado": "aplicado",
-  "donde": "borrador/20-dueno.md l. 21 (DD-01)",
-  "motivo": "Cruzada de L7: la consecuencia de DD-01 dice que fuera de guardia la ficha de carrera enseña el ganador de la carrera y el de cada etapa aunque no se hayan visto, mientras la etapa abre en `Watch` (§11.5, 11-u), y la contraria de todas las carreras, que deja de contarlos."
- },
- {
-  "id": "Rdueno-026",
-  "estado": "aplicado",
-  "donde": "borrador/20-dueno.md l. 44 (DD-26), l. 10 (§20.1), l. 95 (§20.6), l. 111 (§20.7), l. 148 (§20.8) y l. 179 (§20.9)",
-  "motivo": "Cruzada de L7: DD-26 entra con la fila de `00-decisiones.md` (velado por defecto, 11-t) entre las que son «un texto o un comportamiento de la web o de la API», con su porqué, su plazo (antes del 8b, `VeilDelta.budget`) y sus tests. La cuenta de §20 no pasa a veintiséis sino a veinticuatro, porque DD-15 y DD-19 se retiran (Rdueno-042). Cierre de L10: «veinticuatro» es la cuenta de ese momento; con DD-27, DD-28 y DD-29, veintisiete."
- },
- {
-  "id": "Rdueno-039",
-  "estado": "aplicado",
-  "donde": "borrador/20-dueno.md l. 80 (§20.5, punto 3)",
-  "motivo": "Cruzada de L7: `?diag=1` vale también en la ficha de carrera y en el feed, en la API desde el 8a (11-h), y en la web con el 9a y el 9b."
- },
- {
-  "id": "Rdueno-043",
-  "estado": "aplicado",
-  "donde": "borrador/20-dueno.md l. 32 (DD-12), l. 124 (§20.8, DD-07) y l. 136 (§20.8, DD-12)",
-  "motivo": "Cruzada de L7: DD-12 pasa a «La vista previa del acta compartida, y el acta en los buscadores», indexable por defecto (D-36) y con `X-Robots-Tag: noindex` en `/report` como segunda respuesta, que se contesta por separado; el porqué de DD-07 dice «pública en `/report`, e indexable por defecto (DD-12)». Se escribe junto a Rdueno-025, que dice a quién no protege la condición de 14-k."
- },
- {
-  "id": "Rcoste-003 (cruzada de L7)",
-  "estado": "aplicado",
-  "donde": "borrador/00-cabecera.md l. 148 (§0.7)",
-  "motivo": "Cruzada de L7 (el hallazgo es de este lote, arriba): las tres cifras de `instantAt`."
- },
- {
-  "id": "Rcoste-002 (cruzada de L7)",
-  "estado": "aplicado",
-  "donde": "borrador/00-cabecera.md l. 146 (§0.7)",
-  "motivo": "Cruzada de L7 (el hallazgo es de este lote, arriba): la cifra del tick, proyectada y con la escritura medida aparte. B15 en §16.4 la corrige L8 con la cruzada de L7."
- },
- {
-  "id": "Rcoste-037",
-  "estado": "aplicado",
-  "donde": "borrador/20-dueno.md, fila de DD-27 (§20.2), §20.1, §20.6, §20.7, §20.8 y §20.9; borrador/00-decisiones.md, fila de DD-27 y bloque «Añadidas en la corrección»",
-  "motivo": "Cruzada de L3, con el texto de L9 en §17.19 (17-plan.md l. 530, leído): si el reinicio llega antes de que la regla de arranque abra el código, el 1a mínimo se adelanta como excepción declarada, o el reinicio espera; §17.19 lo llama DD-27 y `correcciones-L9.json` dice que va a `00-decisiones.md` y a §20. Al cerrar este lote no estaba en `00-decisiones.md`, así que L10 escribe la fila con el número que ya usa §17.19, y §20 la recoge entera (defecto, consecuencia con §19.8 y el riesgo 36, dónde y cuándo, contraria, porqué y tests). La cruzada de L9 a §20 llegó después con el mismo contenido y otro título («El 1a antes de la regla de arranque, si el reinicio llega antes»): se conserva el de la fila escrita, que ya cita §17.19, y la consecuencia gana lo que añade L9 (con el defecto, un PR de E2 se abre antes de que la línea del motor esté en producción y el 1a completo se rebasa sobre él)."
- },
- {
-  "id": "Rdueno-036",
-  "estado": "aplicado",
-  "donde": "borrador/20-dueno.md, fila de DD-28, §20.1, §20.6, §20.7, §20.8 y §20.9; borrador/00-decisiones.md, fila de DD-28",
-  "motivo": "Cruzada de L4: §6.10 (06-pantalla.md l. 628) ya manda la elección de los nombres de pantalla al dueño y deja el número a §20. Comprobadas las tres citas del dueño con «Journal» (`docs/balance.md` l. 1431-1432, v11; l. 5975-5976, v27; l. 8095, v39). DD-28: por defecto los de D-48, la alternativa `Journal` para el acta, último momento barato el 9a; se escribe como texto de la web y no dentro de DD-04, que tiene otro plazo (20-k)."
- },
- {
-  "id": "Rdueno-037",
-  "estado": "aplicado",
-  "donde": "borrador/20-dueno.md, fila de DD-29, §20.4 ([DUEÑO 7]), §20.6, §20.7, §20.8 y §20.9; borrador/00-decisiones.md, fila de DD-29; cierre: borrador/21-apendices.md l. 253 (D.2, [DUEÑO 7])",
-  "motivo": "Cruzada de L4: §6.8 (06-pantalla.md l. 612) ya dice que en el acta la cobertura sigue en el 58 % de la v39 y deja la fila a §20. DD-29, por defecto no, con lo que costaría (una pasada de `buildChronicle` sobre la línea grabada, o una frase del motor que sube la versión y depende de DD-25), y §20.4 lo dice en el punto de [DUEÑO 7]. La cita del dueño es «es solo un tema del journal, no me preocupa de momento» (l. 8095); «para cuando se mejore el diario» es de la v39 (l. 8094), y la fila no se la atribuye a él. Cierre de L10: la fila de [DUEÑO 7] del apéndice D remite también a DD-29."
- },
- {
-  "id": "Rdueno-018",
-  "estado": "aplicado",
-  "donde": "borrador/20-dueno.md, fila de DD-04 (§20.2), §20.4 (la C7) y §20.8",
-  "motivo": "Cruzada de L4, comprobada: `radioGroupKindSchema` lleva `peloton` (`packages/shared/src/contracts.ts` l. 1346), el motor emite cinco plantillas `peloton_*` (contadas en `simulate.ts`), y el dueño dice «pelotón» (`docs/balance.md` l. 1843, v13; `raceRadioNames.test.tsx` l. 13-14). DD-04 dice que la C7 pide una sola palabra y no cuál, quién usa cada una, y que el corte de dos tercios decide cuándo un grupo es el grueso y no cómo se llama."
- },
- {
-  "id": "Rdueno-019",
-  "estado": "aplicado",
-  "donde": "borrador/20-dueno.md, fila de DD-04, §20.1 (el motor y SPEC), §20.3, §20.6 y §20.8",
-  "motivo": "Cruzada de L8 a §20.2 y §20.8 (12-r y la fila de DD-04 de `00-decisiones.md`): el cuarto nombre y el corte de dos tercios cambian SPEC §6.15 (`SPEC.md` l. 604-615, comprobado), así que van al dueño dentro de DD-04, con tres nombres como contraria, y el paso 12 reescribe SPEC con la respuesta. Es una de las decisiones del dueño fuera de §20 que pedía Rdueno-042."
- },
- {
-  "id": "Rdueno-001",
-  "estado": "aplicado",
-  "donde": "borrador/20-dueno.md, fila de DD-11 (§20.2), §20.3, §20.5 (punto 3) y §20.8",
-  "motivo": "Cruzada de L8 a §20.2, §20.3 y §20.8 (12-p y la fila de DD-11 de `00-decisiones.md`): `race-radio.mjs --db` sigue re-simulando las etapas de la versión de hoy, con el depósito por grupo, `--every` y todos los relevistas, y solo con otra versión pinta `radioFromTimeline`. DD-11 y su porqué lo dicen; y con 17-v (L9) la radio deja de escribirse en el 11b, que es donde §20 fecha DD-11."
- },
- {
-  "id": "Rcoste-013",
-  "estado": "aplicado",
-  "donde": "borrador/20-dueno.md, fila de DD-21",
-  "motivo": "Cruzada de L8 a §20.2 (16-k y la fila de DD-21 de `00-decisiones.md`): lo primero que se optimiza es la consulta 2, las carreras de la plantilla en `race_rosters`, que en PostgreSQL 16 es la que pesa en el mánager (p95 de 2,50 ms); la cuarta ya no va en la petición en la forma D (`lastRunStages`, 18-a)."
- },
- {
-  "id": "Rcobertura-023",
-  "estado": "aplicado",
-  "donde": "borrador/21-apendices.md, D.2 ([DUEÑO 3])",
-  "motivo": "Cruzada de L4 (con Rdueno-003): la fila de [DUEÑO 3] dice dónde se diseña (§7.2-7.6, §6.2 y §6.7 con la presentación de la fuga, 6-m) y dónde se prueba (la segunda parte de B3 y la pregunta de los maillots de la prueba de lectura, §16.5)."
- },
- {
-  "id": "Rcobertura-026",
-  "estado": "aplicado",
-  "donde": "borrador/21-apendices.md, O-11 y D.7; borrador/00-cabecera.md, §0.7 (la crono); cierre: borrador/00-glosario.md l. 809 (G.7, `BROADCAST.ttPace`)",
-  "motivo": "Cruzada de L4, comprobada en la tabla de §9.4: la crono va de 5:20 (la nacional de 40 km con 12 corredores, `nc-es-itt`) a 11:23; el prólogo de 176, de 6:24 a 7:06. O-11 y D.7 lo dicen, y §0.7 gana las nacionales (de 5:20 a 5:52). Cierre de L10: G.7 daba `ttPace` «medida 6:24-11:23»; ahora de 5:20 a 11:23, con la nacional de 40 km y el prólogo de §9.4. La tabla de aceptación de §15.3, que dice lo mismo («M (6:24-11:23)»), va a cruzadas."
- },
- {
-  "id": "Rcobertura-019 (cruzada de L4 a F.3 y al glosario)",
-  "estado": "aplicado",
-  "donde": "borrador/21-apendices.md, F.3; borrador/00-glosario.md G.11",
-  "motivo": "Cruzada de L4 (con Rcobertura-020, Rcodigo-028, Rdueno-015 y Rcobertura-021): `KOM leader’s group` pasa a `Mountains leader’s group`; la voz gana `the race leader’s group`, `the points leader’s group` y `the mountains leader’s group`; entran las quince palabras de `PULL_MOTIVE_WORDS` y `same time (3 km rule)`; el ejemplo de `Pulling:` ya iba con el nombre guardado (Rcobertura-002) y en F.3 no quedaba otro con apellido en mayúsculas o inicial."
- },
- {
-  "id": "Rcobertura-012 (cruzada de L4 a F.2 y al glosario)",
-  "estado": "aplicado",
-  "donde": "borrador/21-apendices.md, F.2 (`cues.ts`, `names.ts`, `player.ts`); borrador/00-glosario.md G.4 y G.7; cierre: borrador/00-glosario.md l. 697 (G.4, la fila de `cues.ts`) y l. 154-155 (G.2)",
-  "motivo": "Cruzada de L4 (con Rcobertura-033, -022, -030, Rdueno-015, -023 y Rcoste-041): `isPresentation(cue)` y `aheadOfPeloton(i, r)` en `cues.ts`; `breakRoundOf(riders, cast)`, `PULL_MOTIVE_WORDS`, `PullingLine` con `motive` y `GROUP_WORDS.jersey` en pares en `names.ts`; `playerInit(view, stageDay, reachedS, known)` y los campos, acciones y efectos nuevos de `player.ts`. En G.7, `breakRoundEveryS` (clase 2, reservado), `cueQueueMax` (la presentación no cuenta), `cardRowsMax` (la lista de una fuga) y la nueva `controlsHideS` (3, 8-p). Cierre de L10: F.2 y G.7 lo llevaban, pero G.4 no tenía `isPresentation` ni `aheadOfPeloton` (0 apariciones en el glosario): la fila de `cues.ts` gana `isPresentation(cue: Cue): boolean` y `aheadOfPeloton(i: Instant, r: RiderIx): boolean`, con las firmas de §6.5 y §6.7 (06-pantalla.md l. 356 y 583), y en G.2 la fila de `cues.ts` gana las dos y la de `names.ts`, `breakRoundOf` y `PULL_MOTIVE_WORDS`."
- },
- {
-  "id": "Rcobertura-044",
-  "estado": "aplicado",
-  "donde": "borrador/00-glosario.md G.3.8 y G.5",
-  "motivo": "Cruzada de L3: `stage_timelines.tpl_rev` es `smallint not null`, sin defecto (13-j), escrita ya en la `0044` de §13.3, la escribe `recordStageTimeline` y la lee `readStageTemplateRev`; deja de ir marcada «propuesto»."
- },
- {
-  "id": "Rcodigo-035 (cruzada de L3)",
-  "estado": "aplicado",
-  "donde": "borrador/21-apendices.md, F.2 (`timelines.ts`); borrador/00-glosario.md G.2 y G.4",
-  "motivo": "Cruzada de L3 a lo que ya había aplicado L10 con la de L6: las funciones de `timelines.ts` son las de la corrección de §5 (05-motor.md l. 413-582, leído): `recordStageTimeline` no escribe, `stageTimelineRow`, `tombstoneRow`, `writeStageTimelineRows`, `readStageTimeline` y `readStageTemplateRev` con `_h: Horizon`, `clearStageTimelineCache` y el diario `TimelineTickLog`; salen `StageTimelineRead`, `writeStageTimeline` y `writeStageTimelineFailure`. La cruzada escribía `h: Horizon`; §5.6 lo escribe `_h`, y manda la sección."
- },
- {
-  "id": "Rcobertura-006",
-  "estado": "aplicado",
-  "donde": "borrador/21-apendices.md, F.2 (`selfCheckI5`); borrador/00-glosario.md G.4",
-  "motivo": "Cruzada de L3: `selfCheckI5` comprueba también `checkClockDs[r][c] = 10 · splitS` de cada `tt_split` de su primer protagonista, con el elemento `{ rider, check: number | null, expectedDs, gotDs }`."
- },
- {
-  "id": "Rcobertura-042",
-  "estado": "aplicado",
-  "donde": "borrador/21-apendices.md, F.2 (`radioFromTimeline`); borrador/00-glosario.md G.4",
-  "motivo": "Cruzada de L8: `radioFromTimeline(tl: TimelineCore, names: RadioNames): RaceRadio`, con `RadioNames` = `{ riderOf; own; nameableAt }` (12-o)."
- },
- {
-  "id": "Rcobertura-043",
-  "estado": "aplicado",
-  "donde": "borrador/21-apendices.md, F.2 (`names.ts`, `pageTitle.ts`, `emails.ts` y la fila nueva de `stageJournal.ts`); borrador/00-glosario.md G.4",
-  "motivo": "Cruzada de L8: cada render nace con `_locale` delante (12-q): `groupLabelText`, `breakHeadline`, `championTitleText`, `gapTrendLine`, `pageTitle`, `stageReadyNotice` y `stageReadyEmail`; y F.2 y G.4 ganan la fila de `chronicleParts(_locale, e, rev)` y `chronicleLine(_locale, e, rev)` de `stageJournal.ts`, como las escribe §12.7 (12-voz.md l. 379-380)."
- },
- {
-  "id": "Rcodigo-050",
-  "estado": "aplicado",
-  "donde": "borrador/21-apendices.md, F.2 (`instant.ts`); borrador/00-glosario.md G.4",
-  "motivo": "Cruzada de L8: `GROUP_ROLES` y `isGroupRole(x: unknown): x is GroupRole` en `instant.ts`, escritos en §12.6."
- },
- {
-  "id": "Rdueno-031",
-  "estado": "aplicado",
-  "donde": "borrador/20-dueno.md, §20.5 (punto 5)",
-  "motivo": "Cruzada de L8: la regla del diario está en `SPEC.md` l. 598-600 (comprobado), no en l. 597-599; §20.5 ya lo corrigió con Rdueno-004. §20 no cita la frase de la v27 que no es del dueño."
- },
- {
-  "id": "Glosario de L8 (Rcobertura-042, -043, -047, -051, -052, Rcodigo-050, -063, -084, -087)",
-  "estado": "aplicado",
-  "donde": "borrador/00-glosario.md G.2, G.3.8, G.4, G.7, G.9 y G.11",
-  "motivo": "Cruzada de L8 al glosario: `RadioNames` con `own` y `nameableAt`, `GROUP_ROLES` e `isGroupRole(x: unknown)`, `liveClusters` con `LiveCluster`, la implementación de `buildChronicle` (`ChronicleEntry[] | LiveLine[]`), `chronicleParts`, `chronicleLine` y los demás renders con `_locale` (12-q), `clearHorizonCaches()`, `realTestDbFor(nombre)`, lo nuevo de `spoilerWorld.ts`, `BROADCAST.maxKnownStageGzipBytes` (112.640), los ficheros de test nuevos, `riderRaceResultSchema.stagesToWatch`, las filas de B1a, B3, B6, B8, B12, B16, B22 y PL como quedaron en §16, y la cabecera de `race-radio.mjs` con otra versión."
- },
- {
-  "id": "Rdueno-009",
-  "estado": "aplicado",
-  "donde": "borrador/21-apendices.md, F.3 (fila «Sin línea»); borrador/00-glosario.md G.11",
-  "motivo": "Cruzada de L9: con el reloj estimado, el aviso `Recorded before full race data` lleva debajo `Positions of the groups behind are estimated` y la barra escribe el km de esos grupos con `~` (§3.8, §6.2, que la coherencia recibe también por cruzada de L9)."
- },
- {
-  "id": "Rcodigo-042",
-  "estado": "aplicado",
-  "donde": "borrador/00-glosario.md G.4 (las privadas); cierre: borrador/00-glosario.md l. 172 (G.2, la fila de `broadcastSource.ts`)",
-  "motivo": "Cruzada de L9: `estimatedHeadClock` deja de ser privada, se exporta de `apps/api/src/broadcastSource.ts` para su test del PR 2. Cierre de L10: la fila de `apps/api/src/broadcastSource.ts` de G.2 seguía diciendo «la privada `estimatedHeadClock`»; ahora dice que se exporta para su test del PR 2, como G.4."
- },
- {
-  "id": "Rcoste-034",
-  "estado": "aplicado",
-  "donde": "borrador/00-cabecera.md §0.4 (punto 10), §0.5 y §0.6; borrador/21-apendices.md F.4; borrador/00-glosario.md G.10; borrador/00-decisiones.md, D-54 precisada; borrador/20-dueno.md, DD-11 (11b)",
-  "motivo": "Cruzada de L9: el paso 11 son dos PR (17-v), así que el plan son veintitrés PR y el coste de §17.22 pasa a unas 56 sesiones, 52,5 hasta el encendido en orden y 37 por el camino crítico, con un rebase previsto del 4a y el 4b. La cabecera, F.4, G.10 y D-54 lo dicen; DD-11 deja la radio en el 11b."
- },
- {
-  "id": "Rdueno-005 (cruzada de L9)",
-  "estado": "aplicado",
-  "donde": "borrador/00-cabecera.md §0.4 (punto 3); borrador/00-decisiones.md, DD-25",
-  "motivo": "Cruzada de L9, la misma que la de L3: §0.4 y DD-25 ya lo dicen; D-09 lo corrigió L3."
- },
- {
-  "id": "Rcobertura-032 (cruzada de L5 a §4.9, que pide lo mismo en §G.3)",
-  "estado": "aplicado",
-  "donde": "borrador/00-glosario.md l. 490 (G.3.4, `RiderCueContext`) y l. 661 (G.3.8)",
-  "motivo": "Cruzada de L5 sin entrada hasta el cierre. Comprobado en el glosario de hoy: `RiderCueContext` lleva `'tt_round'` con su comentario, «la ronda ON COURSE de la crono (9-k)», y no 9-n, que es la clase de `VIRTUAL GC` en crono; y la fila de G.3.8 dice «(9-i, 9-k)». Lo escribió la corrección L2 (4-u); nada que cambiar."
- },
- {
-  "id": "Rcobertura-021, Rdueno-021 (cruzada de L4 a §20 y §19)",
-  "estado": "aplicado",
-  "donde": "borrador/20-dueno.md (sin fila nueva); borrador/21-apendices.md l. 478 (F.1, «el arrastre»); borrador/00-glosario.md l. 53 (G.1)",
-  "motivo": "Cruzada de L4 sin entrada hasta el cierre. Comprobado: 6-o (la regla de los 3 km, que se explica en la llegada) y 6-r (la etapa arrastrada abre en `Watch`) no tienen nada del dueño, y lo que sí era suyo va en filas aparte, DD-28 y DD-29 (Rdueno-036 y Rdueno-037, arriba). La parte de §19 (citar la medida de la cola en un riesgo, si lo hay) es de L9. Lo que sí toca a este lote es la palabra de la prosa: F.1 y G.1 decían del arrastre solo «conocer la etapa N porque el jugador aceptó ver o revelar una posterior», y ahora añaden que la etapa arrastrada no se ha visto y abre en `Watch`, con `Report` a un toque, como la caducada (6-r), como ya dice F.3."
- },
- {
-  "id": "Glosario de L4 (Rcobertura-023, Rdueno-003, Rdueno-014, Rdueno-015, Rcobertura-019, Rdueno-017)",
-  "estado": "aplicado",
-  "donde": "borrador/00-glosario.md G.2 (l. 154 y 155), G.4 (l. 697), G.7 (sin cambio) y G.11 (sin cambio); G.14, párrafo «Cierre de L10»",
-  "motivo": "Cruzadas de L4 al glosario (§G.2, §G.4, §G.7 y §G.11), que el corrector aplicó bajo Rcobertura-012 y Rcobertura-019 sin una entrada propia. Comprobado contra §6 de hoy: G.7 lleva `controlsHideS` (3, 8-p) y los comentarios nuevos de `breakRoundEveryS`, `cueQueueMax` y `cardRowsMax`; G.11, `Mountains leader’s group`, las tres palabras del grupo del maillot en la voz, las quince de `PULL_MOTIVE_WORDS` y `same time (3 km rule)`, y ningún ejemplo con apellido en mayúsculas o inicial; G.4, `breakRoundOf`, `PULL_MOTIVE_WORDS`, `PullingLine` con `motive`, `GROUP_WORDS.jersey` en pares y `playerInit(view, stageDay, reachedS, known)` con lo nuevo de `player.ts`. Faltaban `isPresentation` y `aheadOfPeloton` en G.4 y en G.2, y las dos de `names.ts` en G.2: añadidas con las firmas de §6.5 y §6.7. El registro de G.14 lo anota."
- },
- {
-  "id": "Rdueno-045 (su efecto en §20.5, corrección L9)",
-  "estado": "aplicado",
-  "donde": "borrador/20-dueno.md l. 83 (§20.5, punto 3)",
-  "motivo": "L9 aplicó la segunda cara de Rdueno-045 en §17.10 y §17.11 (lo que el dueño verá roto del 7b al 9b, y hasta qué PR), y §20.5 decía todavía que tras el 7b el dueño ve «la puerta, el acta en `/report`», que llegan con el 9a (§17.12). El punto 3 dice ahora lo mismo que §17.10: pestañas vacías (`No result for this stage.`) del 7b al 9a, listas cortadas, ganadores a null y marcadores neutros del 8a al 9b, y agregados sin aviso del 8b al 9b, escritos en la descripción de cada PR; el modo diagnóstico y `race-radio.mjs --db` siguen como estaban (Rdueno-002, Rdueno-039, Rdueno-001)."
- },
- {
-  "id": "Rcobertura-055, Rcodigo-047 (16-s, lo que le llega al dueño)",
-  "estado": "aplicado",
-  "donde": "borrador/20-dueno.md l. 104 (§20.6) y l. 212 (20-l)",
-  "motivo": "Buscados en `correcciones-L*.json` y `cruzadas-L*.json` los «decide el dueño» de los correctores: todos están en §20 salvo 16-s (L8, `16-bancos.md` l. 444 y 785), que manda al dueño, antes de abrir en `Watch` las etapas del adaptador, un p99 del reloj estimado en todos los grupos por encima de 1 km (medido, de 0,84 a 0,89 km). §20.6 lo pone con la pregunta de la prueba de lectura que falla dos veces (16-i), entre lo que le llega si pasa y no es una decisión con valor por defecto, y 20-l dice por qué no se numera: lo medido no lo da, la puerta sigue siendo la cabeza (D-07, D-61) y por encima de 2 km el perfil se protege solo."
- },
- {
-  "id": "Rcodigo-038 (el Giro en 24 días, trazado en §0, §20 y §21)",
-  "estado": "aplicado",
-  "donde": "borrador/00-cabecera.md l. 75 (§0.4, punto 6) y l. 143 (§0.7); borrador/20-dueno.md l. 57 (§20.3, DD-03); borrador/21-apendices.md l. 203 (H-19) y l. 415 (X-19)",
-  "motivo": "L4 precisó D-19 y §8.4 con Rcodigo-038: el Giro descansa tres días, corre en 24 días de juego y 3,5 etapas por día real, y seguirlo cuesta de 27 a 47 min en `Watch` y hasta 70 (`rcod/n/gt2.mjs`). §0.4, §0.7, §20.3, H-19 y X-19 daban solo las 3,65 etapas de Francia y España; ahora dicen las dos cifras. El valor por defecto de DD-03 no cambia."
- },
- {
-  "id": "Rdueno-017, Rdueno-015, Rcodigo-028, Rdueno-003, Rcobertura-023 (trazado en §21)",
-  "estado": "aplicado",
-  "donde": "borrador/21-apendices.md l. 36 (I-22), l. 60 (I-46) y l. 126 (O-10)",
-  "motivo": "§21 traza contra las secciones de hoy, y la corrección L4 cambió en §6 tres cosas que el apéndice no decía: la moto rodea la fuga con un rótulo de clase 2 reservado con la lista y la frase, solo en `Watch` a ×½, ×1 y ×2 (6-m; I-22), la línea `Pulling:` lleva el porqué de cada equipo (6-d; I-46) y el grupo del maillot se llama igual en la barra, la capa fija y la voz (6-b; O-10). Ninguna subsección cambió de número al corregir (comparados los encabezados `###` del v0 con los de hoy: solo cambian cinco títulos, §6.7, §11.2, §15.5, §17.14 y §20.6), y los 49 injertos siguen donde dice la columna Dónde cayó (comprobado con los nombres de cada uno en el cuerpo de cada subsección citada, `check_sub.py`); siguen siendo 30 enteros y 19 con cambio."
- },
- {
-  "id": "Cierre L10 (§0.5, §20.2, §20.5 y §20.8: cuentas, plazos y lo que no tiene interruptor)",
-  "estado": "aplicado",
-  "donde": "borrador/00-cabecera.md l. 106 (§0.5, fila de §19) y l. 177 (dudas); borrador/20-dueno.md l. 81, l. 82 y l. 89 (§20.5); l. 153 (§20.8); borrador/21-apendices.md l. 444 y l. 506 (F.1); borrador/20-dueno.md l. 30, 39, 41 y 42 (§20.2, filas de DD-10, DD-21, DD-23 y DD-24)",
-  "motivo": "Cifras de §0 contra las secciones de hoy: §19.1 tiene treinta y seis riesgos, del 1 al 37 sin el 24, que cerró 4-v (L9), y §0.5 decía treinta y uno, los del v0; los topes (96, 640, 256 y 48 KB), los 17 países, las once puertas, las veintisiete decisiones del dueño, los veintitrés PR y las 56, 52,5 y 37 sesiones casan con §15.2, §7.4, §11.2, §20.2 y §17.22, y la duda de §0 dice que la mediana del JSON puede subir a 320 KB si §15.2 aplica la cruzada de L3 (Rcoste-008). En §20.5, el punto 1 dice lo que el 3c enseña de los grupos de detrás (`Positions of the groups behind are estimated`, Rdueno-009, §17.6), el 2 la presentación de la fuga (6-m), y «Lo que no tiene interruptor» gana el paso 0, que la regla 11 de §17.1 cuenta entre las cinco cosas que nota el jugador. §20.8 pone DD-26 en su orden, antes de DD-27. Y en `00-decisiones.md`, el bloque de la corrección L10 lleva la línea en blanco que le faltaba antes de la raya horizontal (sin ella el párrafo «Añadidas en la corrección» se pintaba como título). F.1 no tenía «la puerta de fuera», que G.1 lleva desde el ensamblado v0 (la acuñó §11) y que §0, §11 y §21 usan: entra al final, y la entrada de F.1 pasa a «las seis que acuñaron las secciones». Y en §20.2, que cada decisión diga antes de qué PR hace falta la respuesta: DD-10, DD-23 y DD-24 decían solo dónde se cambian y ahora dicen «cuando quiera», como §20.7; DD-21, «antes del encendido del 10b, con la medida delante». Las veintisiete filas llevan así valor por defecto, consecuencia con su cifra, dónde y cuándo, y lo que cambia con la contraria."
- }
+  {
+    "id": "Rcobertura-001",
+    "estado": "aplicado",
+    "donde": "borrador/00-cabecera.md l. 5 (procedencia) y l. 170 (0-f); borrador/21-apendices.md l. 605 (F.4); borrador/00-glosario.md G.12",
+    "motivo": "Cierto y recontado sobre `retransmision-v0.md` con el patrón de los bloques de cierre: 234 decisiones de sección, 218 de §3 a §19 y 16 de §0, §20 y §21 (§1 y §2 no tienen). La procedencia dice «234 tomadas por las secciones al escribirse (218 de §3 a §19 y 16 de §0, §20 y §21)» y F.4 y G.12 dan el rango `0-a` a `21-g`. No se escribe la cuenta de ahora (259 al empezar este lote, y subiendo, porque L3, L4, L8 y L9 corrigen en paralelo): la cabecera es provisional y la cifra final es del cierre (0-f). El glosario decía «218 de §1 a §19»: pasa a §3."
+  },
+  {
+    "id": "Rcobertura-002",
+    "estado": "aplicado",
+    "donde": "borrador/21-apendices.md l. 557 (F.3, `Pulling:`); borrador/00-glosario.md G.11; borrador/00-cabecera.md l. 63 (§0.3)",
+    "motivo": "Cierto en el v0. Lo de este lote: F.3 y G.11 dejan de decir que «la forma del nombre está abierta» y el ejemplo pasa al nombre tal como está guardado (`Pulling: Team Beta (for 11 Sam Carter)`, 7-a, como pide Rcobertura-020); §0.3 conserva «Nada queda «a definir»». Lo demás no es de estas secciones y ya lo hicieron o lo tienen pedido otros lotes: 4-u escribe en §4 `favourites`, `checkClockDs`, `tt`, `tplRev` y `housingCovered` (L2), L5 cerró 9-b, 9-d y 9-i, y las cruzadas de L2 (Rcobertura-005 y -009) piden quitar el condicional de 17-a, §17.8 y los riesgos 22 y 24. Parcial porque 12-c de §12.7 sigue diciendo «se propone la columna» (cruzada de L10) y §0.3 solo será cierto cuando la coherencia aplique esas cruzadas. Cierre de L10: lo que faltaba ya está en el texto de hoy, comprobado. 12-c (§12.7) dice que la revisión se guarda en `stage_timelines.tpl_rev`, en la `0044`, sin «se propone» (L8); 17-a y §17.8 escriben `tpl_rev` sin condicional (L9); el riesgo 22 va en «baja: decidido en 8-g» y el 24 se cerró con 4-v y su número no se usa (L9, `19-riesgos.md` l. 32 y 48); 8-g, 9-b, 9-d y 9-i están escritos como decididos (L4 y L5); y ninguna sección dice ya «si el ensamblador lo acepta», «si se acepta 12-c», «pendiente del ensamblador» ni que la forma del nombre esté abierta (búsqueda en `borrador/`). Así §0.3 («Nada queda «a definir»») es cierto, y el hallazgo pasa de parcial a aplicado."
+  },
+  {
+    "id": "Rcobertura-060",
+    "estado": "aplicado",
+    "donde": "borrador/21-apendices.md l. 476 (F.1) y l. 630 (21-g); borrador/00-glosario.md G.1; cierre: borrador/00-glosario.md l. 747 (G.5, `race_watch.how`)",
+    "motivo": "Cierto: §10.2 y 10-e dicen que la caducada no es conocida (`WatchState.known` solo con `W`, `S`, `R` o `A`) y F.1 y G.1 la contaban. La fila dice ahora «vista, revelada o arrastrada: `WatchState.known` (10-e); la caducada está fuera del velo pero no es conocida y abre en `Watch`», y que `known_through` cuenta el prefijo de letras, `X` incluida, que es lo que hace `recordProgress` en §10.3. §2.6, la frase del prefijo de §10.2 y el `status: 'known'` de §10.3 van a cruzadas. Cierre de L10: G.5 decía que `how` lleva «una `KnowledgeLetter` por etapa conocida»; ahora, por etapa del prefijo, la caducada `X` incluida (21-g)."
+  },
+  {
+    "id": "Rcoste-001",
+    "estado": "aplicado",
+    "donde": "borrador/00-cabecera.md l. 79 (§0.4, punto 10)",
+    "motivo": "Cierto: el 34 es la columna «Camino crítico» de §17.22, que supone ir en paralelo, y la de «En orden» da 48,5 hasta el 10b. Comprobado el precedente con `git log`: E1 estimó «24 sesiones de código y 1 de contenido» (`docs/generador.md` l. 10249) y se fusionó en 12 PR, del #250 (`b3f3797`, 26-09-2026 01:25) al #261 (`c39f450`, 20:08). El punto 10 dice las dos cifras y la vara. La lista de lo que lleva el segundo implementador añade el 3b y el 3c, que el hallazgo olvidaba y tampoco están en el camino crítico de §17.16 (el segundo carga 16,5 sesiones y todas caben antes de que las pidan). §17.16 y §17.22 van a cruzadas. L9 cambió después los costes de §17.22 (el 3a a 3,5 sesiones, el rebase previsto del 4a y el 4b, el 11 en dos PR): el punto 10 lleva las cifras nuevas, 56 sesiones, 52,5 hasta el encendido en orden y 37 por el camino crítico, y veintitrés PR."
+  },
+  {
+    "id": "Rcoste-002",
+    "estado": "aplicado",
+    "donde": "borrador/00-cabecera.md l. 146 (§0.7); borrador/21-apendices.md l. 139 (O-23) y l. 420 (X-24)",
+    "motivo": "Cierto y comprobado: `l7/tick.mjs` filtra `^nc-[a-z]{2}-road$` (l. 16) y proyecta 30 nacionales élite por 153, y el día 179 del calendario del motor son 111 `nc-XX-road` y 42 `nc-XX-u23-road` (contado aquí, `l10/dia179b.mjs`; el 176, 76 cronos élite y 111 sub-23). §0.7 dice «proyectado», sin sub-23, sin `buildTimelineCast` y sin escribir, con la escritura medida aparte (de 0,07 a 0,15 s, la cifra que L7 llevó a §18.3), y que B15 mide los dos días enteros en el paso 5; O-23 y X-24 del apéndice dicen lo mismo. La tabla de §18.3, §18.10 y B15 ya los corrigió L7."
+  },
+  {
+    "id": "Rcoste-003",
+    "estado": "aplicado",
+    "donde": "borrador/00-cabecera.md l. 148 (§0.7)",
+    "motivo": "Cierto: `l7/instante.mjs` no hace el paso 9 de §4.5. §0.7 da las tres cifras de §18.1, que L7 remidió con `corr-l7/instante-memo.mjs`: p99 de 0,036 a 0,056 ms sin el paso 9; con él memorizado por `(g, k_g)`, p95 de 0,017 a 0,052 ms; sin memo, de 0,064 a 0,804. El memo en §4.5 y B8 con el paso 9 son de L2 y L7 (cruzada de L7 a §4.5; §18.1 y 18-l ya lo dicen)."
+  },
+  {
+    "id": "Rdueno-002",
+    "estado": "aplicado",
+    "donde": "borrador/20-dueno.md l. 80 (§20.5, punto 3)",
+    "motivo": "Cierto: la web de hoy no reenvía `?diag=1` (`apps/web/src/api/results.ts` l. 51-55, comprobado por L6) y la API solo lo servía en el 9a. L6 adelantó al 7b el reenvío en `fetchCalendarStage` (14-s). §20.5 ya no dice «en todo momento»: la API lo acepta en la ruta de etapa desde el 7b y en la ficha de carrera y el feed desde el 8a (11-h), la web lo reenvía a la ruta de etapa desde el 7b y a las demás con el 9a y el 9b, que traen el botón. `SPOILER_MODE=admins` sigue en el 7a (14-s descartó retrasarlo)."
+  },
+  {
+    "id": "Rdueno-004",
+    "estado": "aplicado",
+    "donde": "borrador/20-dueno.md l. 25 (DD-05), l. 82 (§20.5, punto 5) y l. 129 (§20.8, DD-05); borrador/21-apendices.md l. 188 (H-04) y l. 217-219 (D-24, D-25 y D-26); cierre: borrador/21-apendices.md l. 189 (H-05) y l. 216 (D-21); borrador/20-dueno.md l. 85 (§20.5, punto 5: el punto sorteado y diez de diez)",
+    "motivo": "Cierto: las cuatro preguntas de §16.5 no miran maillots ni quién tira, y el apéndice C daba por medidas en la prueba de lectura D-25 y D-26. La prueba gana las dos preguntas del hallazgo, que L8 escribió en §16.5 (16-w) donde el grupo de delante es de 4 a `nameWholeGroupUpTo` (qué lleva cada uno y quién tira detrás y por qué, con la verdad de `pl-truth.mjs`), y §20.5 las cuenta. Cada decisión dice quién la mide de verdad: DD-05, nadie, porque la prueba pregunta qué lleva cada uno y no a quién pasa el delegado, y llega en el 10b, después de la respuesta: la juzga el dueño con el rótulo delante tras el 6b; D-25, la pregunta de los maillots donde salga un campeón; D-24, `jerseys.test.ts` fija la regla y B3 que el maillot se resuelve; D-25, B3 con su cláusula de no vacío y la pregunta de los maillots; D-26, los tests de la frase de la fuga fijan el orden, y que sea el bueno lo juzga el dueño al verla (con la cruzada de L8 a §21). 6-h va a cruzadas (L4). Corregida de paso la cita de SPEC en §20.5, que era l. 597-599: la regla del diario está en `SPEC.md` l. 598-600 (lo que pide Rdueno-031 para §16.5). Cierre de L10: faltaban dos filas del apéndice C que la cruzada de L8 nombra (la cola y la notoriedad): D-21 decía «B17 y la prueba de lectura», y ahora dice B17 y la segunda parte de B3 (la presentación de la fuga, 6-m, §16.4) con la medida de la cola de §6.5 y §6.7 (`l4c/cola.mjs`: 33 de 34 listas y frases y 157 de 158 rótulos de la ronda a ×1; del resto, el 69 % de la clase 2 y el 35 % de la clase 1), y que la prueba de lectura solo dice si con eso se entiende la etapa; y H-05 decía «sí: B3 y la prueba de lectura», contra la fila de D-26 de la misma página, y ahora dice lo mismo que ella. Y §20.5 (punto 5) dice ya la regla de aceptación de §16.5 (puntos 6 y 9): si en los nueve puntos no sale una fuga de 4 a 12, se sortea uno más, un punto cuenta si las dos personas aciertan todas sus preguntas, y hace falta diez de diez cuando hubo que sortearlo."
+  },
+  {
+    "id": "Rdueno-006",
+    "estado": "aplicado",
+    "donde": "borrador/20-dueno.md l. 43 (DD-25), l. 61 (§20.3), l. 94 (§20.6), l. 119 (§20.7), l. 147 (§20.8) y l. 197 (20-h); borrador/00-decisiones.md, fila de DD-25 y bloque de la corrección L10; borrador/00-cabecera.md l. 72 (§0.4, punto 3)",
+    "motivo": "Cierto y comprobado con `git log` de `packages/engine/src/constants.ts`: de la v69 (`025efbe`, 14-09) a la v89 (`c39f450`, 26-09) hay veinte subidas en catorce fusiones del 15 al 26, entre ellas la v83 «Dos defectos de producción», la v84 y la v86 «El que va de amarillo no da relevos» (21 y 22-09) y las tres del generador; `docs/tactica.md` l. 7435 es la fila de subidas de su tabla y l. 6979 da el 17d con sus ficheros, `apps/api` y `domain/dashboard.ts`, sin motor; `docs/balance.md` l. 16557-16558 es la D7 condicional. DD-25 pasa a «Las subidas de `ENGINE_VERSION` antes del 17d de la táctica», con el defecto de adelantar el 17d y las otras dos respuestas, y sin «casi todos sus pasos» ni «a E2 no le afecta». `00-decisiones.md` se actualiza con esa evidencia (D-09 ya no lleva la regla: la corrigió L3 con Rdueno-005)."
+  },
+  {
+    "id": "Rdueno-007",
+    "estado": "aplicado",
+    "donde": "borrador/20-dueno.md l. 67 (§20.4, la D7), l. 91 (§20.6, DD-23 y DD-24) y l. 145 (§20.8, DD-23)",
+    "motivo": "Cierto: la D7 es condicional (`docs/balance.md` l. 16557-16558, comprobado) y el dueño arregló en el motor lo que estaba mal en esos días (v83, v84, v86, `git log`). §20.4 dice que la D7 habla de lo que el motor hace bien, que por eso E2 cuenta sin tocarlo (D-09), y que lo que hace mal no lo decide la D7; DD-23 en §20.8 pasa a «E2 no lo arregla porque no sube la versión (D-09)» y §20.6 quita «la D7» del porqué de DD-23. §2.13, que dice lo mismo, va a cruzadas (L1 ya cerró)."
+  },
+  {
+    "id": "Rdueno-011",
+    "estado": "parcial",
+    "donde": "borrador/20-dueno.md l. 25 y l. 33 (DD-05 y DD-13, cuándo), l. 108 (§20.7), l. 129 (§20.8) y l. 198 (20-i)",
+    "motivo": "Cierto: el dueño ve el rótulo por primera vez en el 6b (§17.9) y la tabla le pedía DD-05 y DD-13 antes del 5. Se aplica una tercera vía entre las dos del hallazgo: las contesta tras el 6b, con el rótulo delante, y §20.7 escribe el precio (lo grabado entre el 5 y su respuesta lleva el defecto y no se reescribe; el reinicio lo borra con `stage_timelines` si llega después, §13.9). No se aplica calcular `distinctions` y la delegación al servir hasta el 6b, que abre un segundo camino al reparto congelado (D-15) por unas pocas sesiones de etapas; ni las cartas del adaptador en el 3c (Rdueno-010), que son de §17 (L9): si §17.6 las adopta, §20.7 pasa a «antes del 5» (cruzada). 17-k va a cruzadas."
+  },
+  {
+    "id": "Rdueno-020",
+    "estado": "aplicado",
+    "donde": "borrador/20-dueno.md l. 37 (DD-18), l. 58 (§20.3) y l. 142 (§20.8); borrador/00-decisiones.md, fila de DD-18; cierre: borrador/21-apendices.md l. 58 (I-44)",
+    "motivo": "Cierto, y medido aquí como pide el hallazgo: `l10/descuelgues.mjs` graba las 18 corridas de §12.2 con el prototipo de `l8/grab.mjs`, corre la voz como V1 de `l8/voz.mjs` con `liveClusters` apagada y aproxima la política de §7.7 (grupo de hasta 12 en el bloque anterior al de emisión, los que tiran en la capa de detalle y los protagonistas ya revelados; sin maillots ni general real, que nombrarían a más). La voz dice uno a uno de 63 a 74 descuelgues en la e20 (de 108 a 118 sueltos) y de 59 a 61 en Colombia e5 (de 61 a 63), y de 0 a 1 en las otras cuatro; desglose en `l10/descuelgues-desglose.mjs` (de 520 sueltos en las reinas, 235 salen de grupos de hasta 12, 246 tiraban y 115 ya eran protagonistas). Y como `liveClusters` solo junta a los que no tienen rótulo (§12.3), esos salen uno a uno con racimos o sin ellos. DD-18 lo dice en su consecuencia y en la contraria («apagados para siempre: la voz no dice nunca los de corredores sin rótulo y dice uno a uno los de corredores con rótulo, contra la B3»), y el defecto añade «hasta que se encienda, rige lo apagado». La medida y el hueco de la B3 van a cruzadas a §12.3 (L8). Cierre de L10: I-44, el injerto de los racimos, dice ya que el racimo solo junta a los que no tienen rótulo y que los de corredores con rótulo salen uno a uno (§12.3, DD-18)."
+  },
+  {
+    "id": "Rdueno-025",
+    "estado": "aplicado",
+    "donde": "borrador/20-dueno.md l. 32 (DD-12) y l. 136 (§20.8); borrador/00-decisiones.md, fila de DD-12; cierre: borrador/21-apendices.md l. 50 (I-36)",
+    "motivo": "Cierto: el robot de vista previa no lleva cookie y su horizonte es `anon` (§11.10 l. 360 lo dice), así que la condición de 14-k no protege a quien lee el enlace en un chat. La consecuencia de DD-12 lo dice («la vista previa lleva el ganador para todo el que vea el enlace, jugador o no, tenga la etapa velada o no») junto al acta en los buscadores de L7, y §20.8 lo pone como el precio. 14-k va a cruzadas (§14.10). Cierre de L10: I-36 decía solo «fuera del velo de quien pide (14-k)»; ahora dice que la vista previa la pide un robot sin cookie y con el velo vacío, y que por eso la ve todo el que vea el enlace (DD-12)."
+  },
+  {
+    "id": "Rdueno-028",
+    "estado": "parcial",
+    "donde": "borrador/20-dueno.md l. 76 (§20.5, entrada) y l. 86 («Lo que no tiene interruptor»); l. 199 (20-j)",
+    "motivo": "Cierto: el 1a, el 6b, el 9a, el 9b y el 12 enseñaban cosas a todos sin interruptor (comprobado en §17.4, §17.9, §17.12 y §17.15). §20.5 pone detrás de `BROADCAST_WATCH` lo que puede ir detrás (las palabras de papel del acta, 40 de cada 210 líneas según `l8/rol.mjs`; el nombre de la pestaña `Story`; la pestaña con que abre la carrera de un día), con cruzadas a §12.6, §11.17 y §17, cuenta que los titulares nuevos del 1a ya no se sirven hasta el velo (17-x, L9), y escribe las cuatro excepciones: la coma de `contract`, las cuatro claves crudas del 6b, el título de la pestaña del navegador y las redacciones del 12. Parcial porque la cifra de líneas del 12 es estimada y no medida: de las 90 elecciones de redacción de `stageJournal.ts` (contadas aquí), 44 son entre dos y 43 entre tres, así que cambia la mitad o dos tercios de las líneas que eligen (1 − 1/n); la mide B5 en ese PR."
+  },
+  {
+    "id": "Rdueno-029",
+    "estado": "aplicado",
+    "donde": "borrador/20-dueno.md l. 39 (DD-21) y l. 59 (§20.3); borrador/00-decisiones.md, fila de DD-21",
+    "motivo": "Cierto: `docs/agenda.md` l. 36 (decisión 3, «solo por invitación hasta que el juego esté implementado y probado») y l. 39 (decisión 6), comprobadas. La consecuencia de DD-21 dice que con el defecto el encendido para todos espera a un perfil de unos pocos invitados, y la contraria gana la tercera respuesta: encender para todos con el jugador dentro del listón y el mánager pagando sus milisegundos una vez por minuto mientras se optimiza la consulta 2 (la que L8 puso delante en 16-k con Rcoste-013)."
+  },
+  {
+    "id": "Rdueno-034",
+    "estado": "aplicado",
+    "donde": "borrador/20-dueno.md l. 21 y l. 23 (DD-01 y DD-03), l. 50 y l. 52 (§20.3); borrador/00-decisiones.md, fila de DD-03",
+    "motivo": "Cierto y rehecha la cuenta: 7 × 7:39 = 53,6 min y 7 × 13:28 = 94,3 min; 29 × 7:39 = 3,70 h y 29 × 13:28 = 6,51 h. DD-01 y DD-03 (tabla y §20.3) dicen lo que cuesta ponerse al día con el velo de la mediana y del p90, derivado de §8.3 y §10.4, y que el digest lo baja a lo de §8.4."
+  },
+  {
+    "id": "Rdueno-035",
+    "estado": "aplicado",
+    "donde": "borrador/20-dueno.md l. 33 (DD-13) y l. 137 (§20.8); borrador/00-decisiones.md, fila de DD-13",
+    "motivo": "Cierto: con el defecto el equipo líder no sale en `Watch` (ni rótulo, ni barra, ni cierre). La consecuencia lo dice, y §20.8 cita la petición del dueño, «Ah, falta la clasificación por equipos» (`docs/navegacion.md` l. 412-415, agosto de 2026), su solución en todas las tablas (l. 444-448) y la medida que lo dejó fuera de la identidad del corredor, que está en l. 452-453 y no en 452-454 como decía el borrador."
+  },
+  {
+    "id": "Rdueno-040",
+    "estado": "aplicado",
+    "donde": "borrador/20-dueno.md l. 26 (DD-06), l. 115 (§20.7) y l. 131 (§20.8); borrador/00-decisiones.md, fila de DD-06",
+    "motivo": "Cierto: los encargos van en orden, «E2 primero, E13 último» (`docs/encargos.md` l. 6-7), con E12 el penúltimo (l. 613). La contraria de DD-06 dice lo que exige antes del reinicio: E12 fuera de ese orden o una siembra en E2 detrás de `ChampionTitleSource` (un sorteo sembrado por país, marcado provisional), y §20.7 pone su plazo, antes del reinicio. §20.8 conserva el porqué del defecto y dice que la siembra, si se quiere, va marcada provisional. §7.9 va a cruzadas."
+  },
+  {
+    "id": "Rdueno-041",
+    "estado": "aplicado",
+    "donde": "borrador/20-dueno.md l. 12 (§20.1)",
+    "motivo": "Cierto: la notoriedad (`knownWins`) se congela en el reparto (7-e, 7-g). §20.1 pone la mitad de DD-02 en «lo que se congela al grabar la etapa»: el velo cambia al momento y los rótulos solo en las etapas grabadas después."
+  },
+  {
+    "id": "Rdueno-042",
+    "estado": "aplicado",
+    "donde": "borrador/20-dueno.md l. 46 («Dos números retirados»), l. 3 (entrada) y l. 196 (20-g); borrador/00-decisiones.md, tabla §DD, nota y bloque de la corrección L10",
+    "motivo": "Cierto: ningún jugador ve la diferencia entre las respuestas de DD-19, y el valor de DD-15 lo impone el tick («NO se trocea», `packages/db/src/tick.ts` l. 260, comprobado); la regla de la casa (`Claude.md` l. 26, comprobado) pide tomar y documentar lo razonable. DD-15 y DD-19 se retiran como del dueño y conservan su número, que no se reutiliza, para que no se rompan las remisiones de §8, §12, §13, §14, §17, §19 y §21: quedan decididas en §8.10 y §12.8. Y §20 gana las que el borrador tomaba fuera: DD-26 (L7, el presupuesto), seguir al empezar a ver (DD-01, L6), el cuarto nombre y el corte que cambian SPEC (DD-04, L8, 12-r) y el acta en los buscadores (DD-12, L7); los titulares nuevos del 1a no hace falta subirlos, porque L9 los dejó sin servir hasta el velo (17-x). §20 queda con veinticuatro. §8.10, 8-r y §12.8 van a cruzadas. Cierre de L10: la cuenta de «veinticuatro» es la de cuando se aplicó este hallazgo; con DD-27, DD-28 y DD-29 (Rcoste-037, Rdueno-036 y Rdueno-037), §20 queda con veintisiete, que es lo que dicen su entrada, §0.3, §0.4 (punto 10), §0.5 y la procedencia."
+  },
+  {
+    "id": "Rdueno-044",
+    "estado": "aplicado",
+    "donde": "borrador/20-dueno.md l. 70 (§20.4, [DUEÑO 9])",
+    "motivo": "Cierto: `docs/epics.md` l. 696-697 dice por qué se tumbó decidir en vivo y l. 701-702 lo que pidió el dueño (comprobadas; l. 700 está en blanco, como dice la cruzada de L1). §20.4 deja de atar a sus palabras el estreno a hora fija; el porqué de DD-15, ya retirada, es solo el del tick (§20.2), y §8.10 ya los separaba."
+  },
+  {
+    "id": "Rdueno-033",
+    "estado": "aplicado",
+    "donde": "borrador/20-dueno.md l. 70 (§20.4)",
+    "motivo": "Cruzada de L1: nada que cambiar en la cita. Comprobado que `docs/epics.md` l. 700 está en blanco y la frase del dueño está en l. 701-702; al reescribir el punto por Rdueno-044, la cita sigue siendo l. 701-702, y la razón que da el documento (l. 696-697) va sin comillas, porque no son palabras del dueño."
+  },
+  {
+    "id": "Rcobertura-010",
+    "estado": "aplicado",
+    "donde": "borrador/21-apendices.md l. 422-445 (tabla del principio de §21.6), l. 629 (21-f), l. 67 (alias), l. 419 (X-23), intros de F.1 a F.4, 21-c y 21-d; borrador/20-dueno.md l. 89 (§20.6, DD-22); borrador/00-cabecera.md l. 62 (§0.3); borrador/00-glosario.md, entrada",
+    "motivo": "Cruzada de L2 y hallazgo que el orquestador asigna a L10. Decidida la forma final de la remisión (21-f): el glosario de la síntesis no viaja con el documento, y cada remisión `§G.n` se escribe con el sitio del documento donde vive esa parte; donde la frase contrasta una firma o un nombre con el que fijó la síntesis, se escribe entero y se dice que es el de la síntesis. La tabla de conversión va al principio de §21.6, con la de L2 afinada: G.3 se reparte por las subsecciones de §4 (G.3.1 en §4.2 y §4.3, G.3.2 en §4.5, G.3.3 en §4.8, G.3.4 en §4.9, G.3.5 en §4.10, G.3.6 en §4.11, G.3.7 en §4.12), G.2 va a §17.20 y a §4.13, G.9 a §16.9 con los invariantes en §4.4 y §16.2, G.6 a §14.2 y §11.3. En §0, §20 y §21 no queda ninguna `§G.n` fuera de los bloques de cierre que quita el ensamblado y de la regla 21-f. Las demás secciones las cambia la coherencia (cruzada de L10)."
+  },
+  {
+    "id": "Rdueno-005",
+    "estado": "aplicado",
+    "donde": "borrador/00-cabecera.md l. 72 (§0.4, punto 3); borrador/21-apendices.md l. 121 (O-05) y l. 186 (H-02); borrador/00-decisiones.md, fila de DD-25",
+    "motivo": "Cruzadas de L3 a §0.4, a la fila de DD-25 y a §21: el punto 3 dice que si otra línea sube la versión antes del 17d la «Last race» de lo ya corrido cuenta otra carrera (C16) y que qué hacer es del dueño (DD-25); la fila de DD-25 se sostiene sola, sin «(D-09)» como regla (Rdueno-006); O-05 y H-02 dicen «lo que cuesta una subida de otra línea antes del 17d lo decide el dueño (DD-25)»."
+  },
+  {
+    "id": "Rcobertura-031",
+    "estado": "aplicado",
+    "donde": "borrador/00-cabecera.md l. 137 y l. 139 (§0.7)",
+    "motivo": "Cruzada de L5, comprobada contra la tabla de §9.2: la fila de las cronos da las dos del banco (de 18,8 a 24,2 KB) y las largas, de 26.987 a 27.821 B la e18 de `race-spain` y de 31.178 a 32.203 B la e10 de `race-italy`, sin y con `checkClockDs`, con su script; y la de los topes, 48 KB para la crono (15-i, D-11 corregida), 1,5 veces la e10."
+  },
+  {
+    "id": "Rcobertura-033",
+    "estado": "aplicado",
+    "donde": "borrador/21-apendices.md l. 521 (F.2); borrador/00-glosario.md G.4",
+    "motivo": "Cruzada de L5: la firma es `cueClassOf(cue, start, lastVirtualLeader, timeTrial): CueClass` (9-n), que es la que ya escribe §6.5 (06-pantalla.md l. 339, corrección L4)."
+  },
+  {
+    "id": "Rcodigo-051",
+    "estado": "aplicado",
+    "donde": "borrador/21-apendices.md l. 524 (F.2); borrador/00-glosario.md G.4",
+    "motivo": "Cruzada de L5: la fila de `names.ts` gana `cardCaption(worn, n)`, `cardLineText(d, n)`, `ordinal(n)`, `gapText(s)` y `listAnd(xs: readonly string[]): string`, como las escribe §7.1 (07-rotulos.md l. 43-59); en G.4, `listAnd(items)` pasa a la firma entera."
+  },
+  {
+    "id": "Rdueno-012",
+    "estado": "aplicado",
+    "donde": "borrador/21-apendices.md l. 61 (I-47); borrador/00-glosario.md G.2 (la fila de `Jersey.tsx`)",
+    "motivo": "Cruzada de L5: I-47 dice «`ChampionMark`, la silueta de maillot con una estrella en el pecho y la bandera al lado (7-h, corregida en la fase 5 por Rdueno-012)», y el glosario, lo mismo."
+  },
+  {
+    "id": "Rcodigo-045",
+    "estado": "aplicado",
+    "donde": "borrador/00-glosario.md G.4 (`cueClassOf`) y G.14 (corrección L10)",
+    "motivo": "Cruzada de L5: `RiderCueContext` con `'tt_round'` y `TimeTrialInstant.arrivals` ya estaban en G.3 (corrección L2); `cueClassOf` gana `timeTrial` (9-n) en G.4 y `listAnd` su firma; el registro de G.14 lo anota."
+  },
+  {
+    "id": "Rcobertura-047",
+    "estado": "aplicado",
+    "donde": "borrador/21-apendices.md l. 540 (F.2); borrador/00-glosario.md G.2 y G.4",
+    "motivo": "Cruzada de L6: `liveClusters(events, tl, revealS): readonly LiveCluster[]`, con `LiveCluster` = `{ event; revealS; members }`, como lo escribe ya §12.3 (12-voz.md l. 141-147) y lo usa §14.3."
+  },
+  {
+    "id": "Rcodigo-035",
+    "estado": "aplicado",
+    "donde": "borrador/21-apendices.md l. 530 y l. 538 (F.2); borrador/00-glosario.md G.2 (`timelines.ts`) y G.4",
+    "motivo": "Cruzada de L6: sin `StageTimelineRead`; `readStageTimeline(db, _h: Horizon, raceKey, stageDay): Promise<StageTimeline | null>` y `timelineForStage(db, h, raceKey, stageDay): Promise<StageTimeline | null>` (14-p), como §14.4 (14-api.md l. 223). §5.6 lo cambia L3 por la cruzada de L6; la duda de §21.6 dice que F.2 sigue a la coherencia si queda de otro modo."
+  },
+  {
+    "id": "Rcoste-011",
+    "estado": "aplicado",
+    "donde": "borrador/00-glosario.md G.7 (sin cambio) y G.2",
+    "motivo": "Cruzada de L6: `SPOILER.horizonMemoEntries` (500) ya estaba en G.7 con su intención (corrección L2, l. 862); se añade `TtlMemo<V>` a G.2 y a F.2."
+  },
+  {
+    "id": "Rdueno-023",
+    "estado": "aplicado",
+    "donde": "borrador/20-dueno.md l. 21 (DD-01), l. 11 (§20.1) y l. 108 y l. 111 (§20.7)",
+    "motivo": "Cruzada de L6: DD-01 pasa a «Qué carreras se protegen sin pedirlo, y si ver una etapa pone su carrera en guardia», con seguir al empezar a ver en el defecto (D-30), su consecuencia (el velo en todas las pantallas hasta la caducidad y el ranking retrasado en esa carrera), su contraria y dónde se cambia (`recordProgress`, `follow = 1` en el primer progreso, §10.3)."
+  },
+  {
+    "id": "Rdueno-024",
+    "estado": "aplicado",
+    "donde": "borrador/20-dueno.md l. 21 (DD-01), l. 50 (§20.3) y l. 125 (§20.8)",
+    "motivo": "Cruzada de L6: la tercera respuesta, todas las carreras, con su cifra medida (202, 601 y 669 etapas veladas a la vez; alguna en 356 días de 364; `c-l6/todas.mjs`), en la tabla, en §20.3 y en el porqué del defecto."
+  },
+  {
+    "id": "Rdueno-002 (cruzada de L6)",
+    "estado": "aplicado",
+    "donde": "borrador/20-dueno.md l. 80 (§20.5, punto 3)",
+    "motivo": "Cruzada de L6 (el hallazgo es de este lote, arriba): `?diag=1` funciona en la web desde el 7b en la ruta de etapa (14-s)."
+  },
+  {
+    "id": "Glosario de L6 (Rcobertura-047, Rcoste-011, Rcoste-014, Rcoste-018, Rcoste-044, Rdueno-002, Rcodigo-035)",
+    "estado": "aplicado",
+    "donde": "borrador/00-glosario.md G.2 (filas nuevas), G.4 y G.14",
+    "motivo": "Cruzada de L6 al glosario: `TtlMemo<V>` y `lastRunStages`, `PLAYER_RATE_LIMIT`, `ApiError.retryAfterS`, `<HorizonWatcher />`, `cacheOwnerChanged(prev, next)`, `SessionSeen`, `horizonKey(base, rev: string | undefined)`, `fetchCalendarStage(raceId, day, opts?)` con `diag` y `apps/web/src/api/results.test.ts`, y `LiveCluster`; sale `StageTimelineRead`. Los scripts de `c-l6/` no entran: son del scratchpad, como los de `l6/` (G.14)."
+  },
+  {
+    "id": "Rcobertura-038",
+    "estado": "aplicado",
+    "donde": "borrador/21-apendices.md l. 302 (D.5, `sup. E9`)",
+    "motivo": "Cruzada de L7: «Cierra» pasa a «7b · 9a y 9b» y el banco a `stageTables.test.tsx` (9a) y `raceTabs.test.ts` (9b), como §11.1."
+  },
+  {
+    "id": "Rcobertura-039",
+    "estado": "aplicado",
+    "donde": "borrador/21-apendices.md l. 305 (D.5, `sup. C3`)",
+    "motivo": "Cruzada de L7: «8a · 9a» pasa a «8a · 9b», como §11.1."
+  },
+  {
+    "id": "Rcobertura-041",
+    "estado": "aplicado",
+    "donde": "borrador/21-apendices.md l. 332 y l. 335 (D.5, `sup. W3` y `sup. W6`)",
+    "motivo": "Cruzada de L7: el banco pasa a «B1d (L con motivo; su respuesta no cambia con la etapa, §11.18)», como §11.1. Comparadas de paso las 59 filas de D.5 con las de §11.1 y §11.2: no hay más diferencias de mecanismo, PR o banco."
+  },
+  {
+    "id": "Rcodigo-029",
+    "estado": "aplicado",
+    "donde": "borrador/21-apendices.md l. 23 (I-09)",
+    "motivo": "Cruzada de L7: «el LRU es de 16 entradas desde que nace (18-d)»."
+  },
+  {
+    "id": "Rcodigo-061",
+    "estado": "aplicado",
+    "donde": "borrador/20-dueno.md l. 28 (DD-08) y l. 132 (§20.8); borrador/00-cabecera.md l. 76, l. 98 y l. 122 (§0.4, §0.5 y §0.6); borrador/21-apendices.md l. 43 (I-29), l. 148 (O-32), l. 238 (D.1), l. 290 (D.5), l. 352 (`sup. X11`), l. 413 (X-17) y l. 611 (F.4); borrador/00-glosario.md G.12",
+    "motivo": "Cruzadas de L7 a §20, §0 y §21: DD-08 cubre los atributos de la ficha de cualquier corredor, con la cifra medida (TAC de +0,37 a +0,41; `sup. X11`) y la purga de `rider_attr_log` a los 60 días; las puertas de fuera son once y `sup. X1` a `sup. X11` en todas las cuentas; D.5 gana la fila de `sup. X11` («L (DD-08) | 8a | lista blanca de B1b; B1c», la de §11.2)."
+  },
+  {
+    "id": "Rcoste-012",
+    "estado": "aplicado",
+    "donde": "borrador/00-cabecera.md l. 149 (§0.7); borrador/20-dueno.md l. 39 (DD-21), l. 59 (§20.3) y l. 146 (§20.8); borrador/21-apendices.md l. 407 (X-11)",
+    "motivo": "Cruzadas de L7 a §0.7 y a DD-21: la cifra de PostgreSQL 16 nativo sin red (2,16 ms el jugador y 3,88 el mánager), que falta la red de Railway y que la medida que decide DD-21 es desde el servicio `web` contra una copia de producción rellenada hasta 250.000 filas (18-j), como la fila de `00-decisiones.md`."
+  },
+  {
+    "id": "Rdueno-022",
+    "estado": "aplicado",
+    "donde": "borrador/20-dueno.md l. 21 (DD-01)",
+    "motivo": "Cruzada de L7: la consecuencia de DD-01 dice que fuera de guardia la ficha de carrera enseña el ganador de la carrera y el de cada etapa aunque no se hayan visto, mientras la etapa abre en `Watch` (§11.5, 11-u), y la contraria de todas las carreras, que deja de contarlos."
+  },
+  {
+    "id": "Rdueno-026",
+    "estado": "aplicado",
+    "donde": "borrador/20-dueno.md l. 44 (DD-26), l. 10 (§20.1), l. 95 (§20.6), l. 111 (§20.7), l. 148 (§20.8) y l. 179 (§20.9)",
+    "motivo": "Cruzada de L7: DD-26 entra con la fila de `00-decisiones.md` (velado por defecto, 11-t) entre las que son «un texto o un comportamiento de la web o de la API», con su porqué, su plazo (antes del 8b, `VeilDelta.budget`) y sus tests. La cuenta de §20 no pasa a veintiséis sino a veinticuatro, porque DD-15 y DD-19 se retiran (Rdueno-042). Cierre de L10: «veinticuatro» es la cuenta de ese momento; con DD-27, DD-28 y DD-29, veintisiete."
+  },
+  {
+    "id": "Rdueno-039",
+    "estado": "aplicado",
+    "donde": "borrador/20-dueno.md l. 80 (§20.5, punto 3)",
+    "motivo": "Cruzada de L7: `?diag=1` vale también en la ficha de carrera y en el feed, en la API desde el 8a (11-h), y en la web con el 9a y el 9b."
+  },
+  {
+    "id": "Rdueno-043",
+    "estado": "aplicado",
+    "donde": "borrador/20-dueno.md l. 32 (DD-12), l. 124 (§20.8, DD-07) y l. 136 (§20.8, DD-12)",
+    "motivo": "Cruzada de L7: DD-12 pasa a «La vista previa del acta compartida, y el acta en los buscadores», indexable por defecto (D-36) y con `X-Robots-Tag: noindex` en `/report` como segunda respuesta, que se contesta por separado; el porqué de DD-07 dice «pública en `/report`, e indexable por defecto (DD-12)». Se escribe junto a Rdueno-025, que dice a quién no protege la condición de 14-k."
+  },
+  {
+    "id": "Rcoste-003 (cruzada de L7)",
+    "estado": "aplicado",
+    "donde": "borrador/00-cabecera.md l. 148 (§0.7)",
+    "motivo": "Cruzada de L7 (el hallazgo es de este lote, arriba): las tres cifras de `instantAt`."
+  },
+  {
+    "id": "Rcoste-002 (cruzada de L7)",
+    "estado": "aplicado",
+    "donde": "borrador/00-cabecera.md l. 146 (§0.7)",
+    "motivo": "Cruzada de L7 (el hallazgo es de este lote, arriba): la cifra del tick, proyectada y con la escritura medida aparte. B15 en §16.4 la corrige L8 con la cruzada de L7."
+  },
+  {
+    "id": "Rcoste-037",
+    "estado": "aplicado",
+    "donde": "borrador/20-dueno.md, fila de DD-27 (§20.2), §20.1, §20.6, §20.7, §20.8 y §20.9; borrador/00-decisiones.md, fila de DD-27 y bloque «Añadidas en la corrección»",
+    "motivo": "Cruzada de L3, con el texto de L9 en §17.19 (17-plan.md l. 530, leído): si el reinicio llega antes de que la regla de arranque abra el código, el 1a mínimo se adelanta como excepción declarada, o el reinicio espera; §17.19 lo llama DD-27 y `correcciones-L9.json` dice que va a `00-decisiones.md` y a §20. Al cerrar este lote no estaba en `00-decisiones.md`, así que L10 escribe la fila con el número que ya usa §17.19, y §20 la recoge entera (defecto, consecuencia con §19.8 y el riesgo 36, dónde y cuándo, contraria, porqué y tests). La cruzada de L9 a §20 llegó después con el mismo contenido y otro título («El 1a antes de la regla de arranque, si el reinicio llega antes»): se conserva el de la fila escrita, que ya cita §17.19, y la consecuencia gana lo que añade L9 (con el defecto, un PR de E2 se abre antes de que la línea del motor esté en producción y el 1a completo se rebasa sobre él)."
+  },
+  {
+    "id": "Rdueno-036",
+    "estado": "aplicado",
+    "donde": "borrador/20-dueno.md, fila de DD-28, §20.1, §20.6, §20.7, §20.8 y §20.9; borrador/00-decisiones.md, fila de DD-28",
+    "motivo": "Cruzada de L4: §6.10 (06-pantalla.md l. 628) ya manda la elección de los nombres de pantalla al dueño y deja el número a §20. Comprobadas las tres citas del dueño con «Journal» (`docs/balance.md` l. 1431-1432, v11; l. 5975-5976, v27; l. 8095, v39). DD-28: por defecto los de D-48, la alternativa `Journal` para el acta, último momento barato el 9a; se escribe como texto de la web y no dentro de DD-04, que tiene otro plazo (20-k)."
+  },
+  {
+    "id": "Rdueno-037",
+    "estado": "aplicado",
+    "donde": "borrador/20-dueno.md, fila de DD-29, §20.4 ([DUEÑO 7]), §20.6, §20.7, §20.8 y §20.9; borrador/00-decisiones.md, fila de DD-29; cierre: borrador/21-apendices.md l. 253 (D.2, [DUEÑO 7])",
+    "motivo": "Cruzada de L4: §6.8 (06-pantalla.md l. 612) ya dice que en el acta la cobertura sigue en el 58 % de la v39 y deja la fila a §20. DD-29, por defecto no, con lo que costaría (una pasada de `buildChronicle` sobre la línea grabada, o una frase del motor que sube la versión y depende de DD-25), y §20.4 lo dice en el punto de [DUEÑO 7]. La cita del dueño es «es solo un tema del journal, no me preocupa de momento» (l. 8095); «para cuando se mejore el diario» es de la v39 (l. 8094), y la fila no se la atribuye a él. Cierre de L10: la fila de [DUEÑO 7] del apéndice D remite también a DD-29."
+  },
+  {
+    "id": "Rdueno-018",
+    "estado": "aplicado",
+    "donde": "borrador/20-dueno.md, fila de DD-04 (§20.2), §20.4 (la C7) y §20.8",
+    "motivo": "Cruzada de L4, comprobada: `radioGroupKindSchema` lleva `peloton` (`packages/shared/src/contracts.ts` l. 1346), el motor emite cinco plantillas `peloton_*` (contadas en `simulate.ts`), y el dueño dice «pelotón» (`docs/balance.md` l. 1843, v13; `raceRadioNames.test.tsx` l. 13-14). DD-04 dice que la C7 pide una sola palabra y no cuál, quién usa cada una, y que el corte de dos tercios decide cuándo un grupo es el grueso y no cómo se llama."
+  },
+  {
+    "id": "Rdueno-019",
+    "estado": "aplicado",
+    "donde": "borrador/20-dueno.md, fila de DD-04, §20.1 (el motor y SPEC), §20.3, §20.6 y §20.8",
+    "motivo": "Cruzada de L8 a §20.2 y §20.8 (12-r y la fila de DD-04 de `00-decisiones.md`): el cuarto nombre y el corte de dos tercios cambian SPEC §6.15 (`SPEC.md` l. 604-615, comprobado), así que van al dueño dentro de DD-04, con tres nombres como contraria, y el paso 12 reescribe SPEC con la respuesta. Es una de las decisiones del dueño fuera de §20 que pedía Rdueno-042."
+  },
+  {
+    "id": "Rdueno-001",
+    "estado": "aplicado",
+    "donde": "borrador/20-dueno.md, fila de DD-11 (§20.2), §20.3, §20.5 (punto 3) y §20.8",
+    "motivo": "Cruzada de L8 a §20.2, §20.3 y §20.8 (12-p y la fila de DD-11 de `00-decisiones.md`): `race-radio.mjs --db` sigue re-simulando las etapas de la versión de hoy, con el depósito por grupo, `--every` y todos los relevistas, y solo con otra versión pinta `radioFromTimeline`. DD-11 y su porqué lo dicen; y con 17-v (L9) la radio deja de escribirse en el 11b, que es donde §20 fecha DD-11."
+  },
+  {
+    "id": "Rcoste-013",
+    "estado": "aplicado",
+    "donde": "borrador/20-dueno.md, fila de DD-21",
+    "motivo": "Cruzada de L8 a §20.2 (16-k y la fila de DD-21 de `00-decisiones.md`): lo primero que se optimiza es la consulta 2, las carreras de la plantilla en `race_rosters`, que en PostgreSQL 16 es la que pesa en el mánager (p95 de 2,50 ms); la cuarta ya no va en la petición en la forma D (`lastRunStages`, 18-a)."
+  },
+  {
+    "id": "Rcobertura-023",
+    "estado": "aplicado",
+    "donde": "borrador/21-apendices.md, D.2 ([DUEÑO 3])",
+    "motivo": "Cruzada de L4 (con Rdueno-003): la fila de [DUEÑO 3] dice dónde se diseña (§7.2-7.6, §6.2 y §6.7 con la presentación de la fuga, 6-m) y dónde se prueba (la segunda parte de B3 y la pregunta de los maillots de la prueba de lectura, §16.5)."
+  },
+  {
+    "id": "Rcobertura-026",
+    "estado": "aplicado",
+    "donde": "borrador/21-apendices.md, O-11 y D.7; borrador/00-cabecera.md, §0.7 (la crono); cierre: borrador/00-glosario.md l. 809 (G.7, `BROADCAST.ttPace`)",
+    "motivo": "Cruzada de L4, comprobada en la tabla de §9.4: la crono va de 5:20 (la nacional de 40 km con 12 corredores, `nc-es-itt`) a 11:23; el prólogo de 176, de 6:24 a 7:06. O-11 y D.7 lo dicen, y §0.7 gana las nacionales (de 5:20 a 5:52). Cierre de L10: G.7 daba `ttPace` «medida 6:24-11:23»; ahora de 5:20 a 11:23, con la nacional de 40 km y el prólogo de §9.4. La tabla de aceptación de §15.3, que dice lo mismo («M (6:24-11:23)»), va a cruzadas."
+  },
+  {
+    "id": "Rcobertura-019 (cruzada de L4 a F.3 y al glosario)",
+    "estado": "aplicado",
+    "donde": "borrador/21-apendices.md, F.3; borrador/00-glosario.md G.11",
+    "motivo": "Cruzada de L4 (con Rcobertura-020, Rcodigo-028, Rdueno-015 y Rcobertura-021): `KOM leader’s group` pasa a `Mountains leader’s group`; la voz gana `the race leader’s group`, `the points leader’s group` y `the mountains leader’s group`; entran las quince palabras de `PULL_MOTIVE_WORDS` y `same time (3 km rule)`; el ejemplo de `Pulling:` ya iba con el nombre guardado (Rcobertura-002) y en F.3 no quedaba otro con apellido en mayúsculas o inicial."
+  },
+  {
+    "id": "Rcobertura-012 (cruzada de L4 a F.2 y al glosario)",
+    "estado": "aplicado",
+    "donde": "borrador/21-apendices.md, F.2 (`cues.ts`, `names.ts`, `player.ts`); borrador/00-glosario.md G.4 y G.7; cierre: borrador/00-glosario.md l. 697 (G.4, la fila de `cues.ts`) y l. 154-155 (G.2)",
+    "motivo": "Cruzada de L4 (con Rcobertura-033, -022, -030, Rdueno-015, -023 y Rcoste-041): `isPresentation(cue)` y `aheadOfPeloton(i, r)` en `cues.ts`; `breakRoundOf(riders, cast)`, `PULL_MOTIVE_WORDS`, `PullingLine` con `motive` y `GROUP_WORDS.jersey` en pares en `names.ts`; `playerInit(view, stageDay, reachedS, known)` y los campos, acciones y efectos nuevos de `player.ts`. En G.7, `breakRoundEveryS` (clase 2, reservado), `cueQueueMax` (la presentación no cuenta), `cardRowsMax` (la lista de una fuga) y la nueva `controlsHideS` (3, 8-p). Cierre de L10: F.2 y G.7 lo llevaban, pero G.4 no tenía `isPresentation` ni `aheadOfPeloton` (0 apariciones en el glosario): la fila de `cues.ts` gana `isPresentation(cue: Cue): boolean` y `aheadOfPeloton(i: Instant, r: RiderIx): boolean`, con las firmas de §6.5 y §6.7 (06-pantalla.md l. 356 y 583), y en G.2 la fila de `cues.ts` gana las dos y la de `names.ts`, `breakRoundOf` y `PULL_MOTIVE_WORDS`."
+  },
+  {
+    "id": "Rcobertura-044",
+    "estado": "aplicado",
+    "donde": "borrador/00-glosario.md G.3.8 y G.5",
+    "motivo": "Cruzada de L3: `stage_timelines.tpl_rev` es `smallint not null`, sin defecto (13-j), escrita ya en la `0044` de §13.3, la escribe `recordStageTimeline` y la lee `readStageTemplateRev`; deja de ir marcada «propuesto»."
+  },
+  {
+    "id": "Rcodigo-035 (cruzada de L3)",
+    "estado": "aplicado",
+    "donde": "borrador/21-apendices.md, F.2 (`timelines.ts`); borrador/00-glosario.md G.2 y G.4",
+    "motivo": "Cruzada de L3 a lo que ya había aplicado L10 con la de L6: las funciones de `timelines.ts` son las de la corrección de §5 (05-motor.md l. 413-582, leído): `recordStageTimeline` no escribe, `stageTimelineRow`, `tombstoneRow`, `writeStageTimelineRows`, `readStageTimeline` y `readStageTemplateRev` con `_h: Horizon`, `clearStageTimelineCache` y el diario `TimelineTickLog`; salen `StageTimelineRead`, `writeStageTimeline` y `writeStageTimelineFailure`. La cruzada escribía `h: Horizon`; §5.6 lo escribe `_h`, y manda la sección."
+  },
+  {
+    "id": "Rcobertura-006",
+    "estado": "aplicado",
+    "donde": "borrador/21-apendices.md, F.2 (`selfCheckI5`); borrador/00-glosario.md G.4",
+    "motivo": "Cruzada de L3: `selfCheckI5` comprueba también `checkClockDs[r][c] = 10 · splitS` de cada `tt_split` de su primer protagonista, con el elemento `{ rider, check: number | null, expectedDs, gotDs }`."
+  },
+  {
+    "id": "Rcobertura-042",
+    "estado": "aplicado",
+    "donde": "borrador/21-apendices.md, F.2 (`radioFromTimeline`); borrador/00-glosario.md G.4",
+    "motivo": "Cruzada de L8: `radioFromTimeline(tl: TimelineCore, names: RadioNames): RaceRadio`, con `RadioNames` = `{ riderOf; own; nameableAt }` (12-o)."
+  },
+  {
+    "id": "Rcobertura-043",
+    "estado": "aplicado",
+    "donde": "borrador/21-apendices.md, F.2 (`names.ts`, `pageTitle.ts`, `emails.ts` y la fila nueva de `stageJournal.ts`); borrador/00-glosario.md G.4",
+    "motivo": "Cruzada de L8: cada render nace con `_locale` delante (12-q): `groupLabelText`, `breakHeadline`, `championTitleText`, `gapTrendLine`, `pageTitle`, `stageReadyNotice` y `stageReadyEmail`; y F.2 y G.4 ganan la fila de `chronicleParts(_locale, e, rev)` y `chronicleLine(_locale, e, rev)` de `stageJournal.ts`, como las escribe §12.7 (12-voz.md l. 379-380)."
+  },
+  {
+    "id": "Rcodigo-050",
+    "estado": "aplicado",
+    "donde": "borrador/21-apendices.md, F.2 (`instant.ts`); borrador/00-glosario.md G.4",
+    "motivo": "Cruzada de L8: `GROUP_ROLES` y `isGroupRole(x: unknown): x is GroupRole` en `instant.ts`, escritos en §12.6."
+  },
+  {
+    "id": "Rdueno-031",
+    "estado": "aplicado",
+    "donde": "borrador/20-dueno.md, §20.5 (punto 5)",
+    "motivo": "Cruzada de L8: la regla del diario está en `SPEC.md` l. 598-600 (comprobado), no en l. 597-599; §20.5 ya lo corrigió con Rdueno-004. §20 no cita la frase de la v27 que no es del dueño."
+  },
+  {
+    "id": "Glosario de L8 (Rcobertura-042, -043, -047, -051, -052, Rcodigo-050, -063, -084, -087)",
+    "estado": "aplicado",
+    "donde": "borrador/00-glosario.md G.2, G.3.8, G.4, G.7, G.9 y G.11",
+    "motivo": "Cruzada de L8 al glosario: `RadioNames` con `own` y `nameableAt`, `GROUP_ROLES` e `isGroupRole(x: unknown)`, `liveClusters` con `LiveCluster`, la implementación de `buildChronicle` (`ChronicleEntry[] | LiveLine[]`), `chronicleParts`, `chronicleLine` y los demás renders con `_locale` (12-q), `clearHorizonCaches()`, `realTestDbFor(nombre)`, lo nuevo de `spoilerWorld.ts`, `BROADCAST.maxKnownStageGzipBytes` (112.640), los ficheros de test nuevos, `riderRaceResultSchema.stagesToWatch`, las filas de B1a, B3, B6, B8, B12, B16, B22 y PL como quedaron en §16, y la cabecera de `race-radio.mjs` con otra versión."
+  },
+  {
+    "id": "Rdueno-009",
+    "estado": "aplicado",
+    "donde": "borrador/21-apendices.md, F.3 (fila «Sin línea»); borrador/00-glosario.md G.11",
+    "motivo": "Cruzada de L9: con el reloj estimado, el aviso `Recorded before full race data` lleva debajo `Positions of the groups behind are estimated` y la barra escribe el km de esos grupos con `~` (§3.8, §6.2, que la coherencia recibe también por cruzada de L9)."
+  },
+  {
+    "id": "Rcodigo-042",
+    "estado": "aplicado",
+    "donde": "borrador/00-glosario.md G.4 (las privadas); cierre: borrador/00-glosario.md l. 172 (G.2, la fila de `broadcastSource.ts`)",
+    "motivo": "Cruzada de L9: `estimatedHeadClock` deja de ser privada, se exporta de `apps/api/src/broadcastSource.ts` para su test del PR 2. Cierre de L10: la fila de `apps/api/src/broadcastSource.ts` de G.2 seguía diciendo «la privada `estimatedHeadClock`»; ahora dice que se exporta para su test del PR 2, como G.4."
+  },
+  {
+    "id": "Rcoste-034",
+    "estado": "aplicado",
+    "donde": "borrador/00-cabecera.md §0.4 (punto 10), §0.5 y §0.6; borrador/21-apendices.md F.4; borrador/00-glosario.md G.10; borrador/00-decisiones.md, D-54 precisada; borrador/20-dueno.md, DD-11 (11b)",
+    "motivo": "Cruzada de L9: el paso 11 son dos PR (17-v), así que el plan son veintitrés PR y el coste de §17.22 pasa a unas 56 sesiones, 52,5 hasta el encendido en orden y 37 por el camino crítico, con un rebase previsto del 4a y el 4b. La cabecera, F.4, G.10 y D-54 lo dicen; DD-11 deja la radio en el 11b."
+  },
+  {
+    "id": "Rdueno-005 (cruzada de L9)",
+    "estado": "aplicado",
+    "donde": "borrador/00-cabecera.md §0.4 (punto 3); borrador/00-decisiones.md, DD-25",
+    "motivo": "Cruzada de L9, la misma que la de L3: §0.4 y DD-25 ya lo dicen; D-09 lo corrigió L3."
+  },
+  {
+    "id": "Rcobertura-032 (cruzada de L5 a §4.9, que pide lo mismo en §G.3)",
+    "estado": "aplicado",
+    "donde": "borrador/00-glosario.md l. 490 (G.3.4, `RiderCueContext`) y l. 661 (G.3.8)",
+    "motivo": "Cruzada de L5 sin entrada hasta el cierre. Comprobado en el glosario de hoy: `RiderCueContext` lleva `'tt_round'` con su comentario, «la ronda ON COURSE de la crono (9-k)», y no 9-n, que es la clase de `VIRTUAL GC` en crono; y la fila de G.3.8 dice «(9-i, 9-k)». Lo escribió la corrección L2 (4-u); nada que cambiar."
+  },
+  {
+    "id": "Rcobertura-021, Rdueno-021 (cruzada de L4 a §20 y §19)",
+    "estado": "aplicado",
+    "donde": "borrador/20-dueno.md (sin fila nueva); borrador/21-apendices.md l. 478 (F.1, «el arrastre»); borrador/00-glosario.md l. 53 (G.1)",
+    "motivo": "Cruzada de L4 sin entrada hasta el cierre. Comprobado: 6-o (la regla de los 3 km, que se explica en la llegada) y 6-r (la etapa arrastrada abre en `Watch`) no tienen nada del dueño, y lo que sí era suyo va en filas aparte, DD-28 y DD-29 (Rdueno-036 y Rdueno-037, arriba). La parte de §19 (citar la medida de la cola en un riesgo, si lo hay) es de L9. Lo que sí toca a este lote es la palabra de la prosa: F.1 y G.1 decían del arrastre solo «conocer la etapa N porque el jugador aceptó ver o revelar una posterior», y ahora añaden que la etapa arrastrada no se ha visto y abre en `Watch`, con `Report` a un toque, como la caducada (6-r), como ya dice F.3."
+  },
+  {
+    "id": "Glosario de L4 (Rcobertura-023, Rdueno-003, Rdueno-014, Rdueno-015, Rcobertura-019, Rdueno-017)",
+    "estado": "aplicado",
+    "donde": "borrador/00-glosario.md G.2 (l. 154 y 155), G.4 (l. 697), G.7 (sin cambio) y G.11 (sin cambio); G.14, párrafo «Cierre de L10»",
+    "motivo": "Cruzadas de L4 al glosario (§G.2, §G.4, §G.7 y §G.11), que el corrector aplicó bajo Rcobertura-012 y Rcobertura-019 sin una entrada propia. Comprobado contra §6 de hoy: G.7 lleva `controlsHideS` (3, 8-p) y los comentarios nuevos de `breakRoundEveryS`, `cueQueueMax` y `cardRowsMax`; G.11, `Mountains leader’s group`, las tres palabras del grupo del maillot en la voz, las quince de `PULL_MOTIVE_WORDS` y `same time (3 km rule)`, y ningún ejemplo con apellido en mayúsculas o inicial; G.4, `breakRoundOf`, `PULL_MOTIVE_WORDS`, `PullingLine` con `motive`, `GROUP_WORDS.jersey` en pares y `playerInit(view, stageDay, reachedS, known)` con lo nuevo de `player.ts`. Faltaban `isPresentation` y `aheadOfPeloton` en G.4 y en G.2, y las dos de `names.ts` en G.2: añadidas con las firmas de §6.5 y §6.7. El registro de G.14 lo anota."
+  },
+  {
+    "id": "Rdueno-045 (su efecto en §20.5, corrección L9)",
+    "estado": "aplicado",
+    "donde": "borrador/20-dueno.md l. 83 (§20.5, punto 3)",
+    "motivo": "L9 aplicó la segunda cara de Rdueno-045 en §17.10 y §17.11 (lo que el dueño verá roto del 7b al 9b, y hasta qué PR), y §20.5 decía todavía que tras el 7b el dueño ve «la puerta, el acta en `/report`», que llegan con el 9a (§17.12). El punto 3 dice ahora lo mismo que §17.10: pestañas vacías (`No result for this stage.`) del 7b al 9a, listas cortadas, ganadores a null y marcadores neutros del 8a al 9b, y agregados sin aviso del 8b al 9b, escritos en la descripción de cada PR; el modo diagnóstico y `race-radio.mjs --db` siguen como estaban (Rdueno-002, Rdueno-039, Rdueno-001)."
+  },
+  {
+    "id": "Rcobertura-055, Rcodigo-047 (16-s, lo que le llega al dueño)",
+    "estado": "aplicado",
+    "donde": "borrador/20-dueno.md l. 104 (§20.6) y l. 212 (20-l)",
+    "motivo": "Buscados en `correcciones-L*.json` y `cruzadas-L*.json` los «decide el dueño» de los correctores: todos están en §20 salvo 16-s (L8, `16-bancos.md` l. 444 y 785), que manda al dueño, antes de abrir en `Watch` las etapas del adaptador, un p99 del reloj estimado en todos los grupos por encima de 1 km (medido, de 0,84 a 0,89 km). §20.6 lo pone con la pregunta de la prueba de lectura que falla dos veces (16-i), entre lo que le llega si pasa y no es una decisión con valor por defecto, y 20-l dice por qué no se numera: lo medido no lo da, la puerta sigue siendo la cabeza (D-07, D-61) y por encima de 2 km el perfil se protege solo."
+  },
+  {
+    "id": "Rcodigo-038 (el Giro en 24 días, trazado en §0, §20 y §21)",
+    "estado": "aplicado",
+    "donde": "borrador/00-cabecera.md l. 75 (§0.4, punto 6) y l. 143 (§0.7); borrador/20-dueno.md l. 57 (§20.3, DD-03); borrador/21-apendices.md l. 203 (H-19) y l. 415 (X-19)",
+    "motivo": "L4 precisó D-19 y §8.4 con Rcodigo-038: el Giro descansa tres días, corre en 24 días de juego y 3,5 etapas por día real, y seguirlo cuesta de 27 a 47 min en `Watch` y hasta 70 (`rcod/n/gt2.mjs`). §0.4, §0.7, §20.3, H-19 y X-19 daban solo las 3,65 etapas de Francia y España; ahora dicen las dos cifras. El valor por defecto de DD-03 no cambia."
+  },
+  {
+    "id": "Rdueno-017, Rdueno-015, Rcodigo-028, Rdueno-003, Rcobertura-023 (trazado en §21)",
+    "estado": "aplicado",
+    "donde": "borrador/21-apendices.md l. 36 (I-22), l. 60 (I-46) y l. 126 (O-10)",
+    "motivo": "§21 traza contra las secciones de hoy, y la corrección L4 cambió en §6 tres cosas que el apéndice no decía: la moto rodea la fuga con un rótulo de clase 2 reservado con la lista y la frase, solo en `Watch` a ×½, ×1 y ×2 (6-m; I-22), la línea `Pulling:` lleva el porqué de cada equipo (6-d; I-46) y el grupo del maillot se llama igual en la barra, la capa fija y la voz (6-b; O-10). Ninguna subsección cambió de número al corregir (comparados los encabezados `###` del v0 con los de hoy: solo cambian cinco títulos, §6.7, §11.2, §15.5, §17.14 y §20.6), y los 49 injertos siguen donde dice la columna Dónde cayó (comprobado con los nombres de cada uno en el cuerpo de cada subsección citada, `check_sub.py`); siguen siendo 30 enteros y 19 con cambio."
+  },
+  {
+    "id": "Cierre L10 (§0.5, §20.2, §20.5 y §20.8: cuentas, plazos y lo que no tiene interruptor)",
+    "estado": "aplicado",
+    "donde": "borrador/00-cabecera.md l. 106 (§0.5, fila de §19) y l. 177 (dudas); borrador/20-dueno.md l. 81, l. 82 y l. 89 (§20.5); l. 153 (§20.8); borrador/21-apendices.md l. 444 y l. 506 (F.1); borrador/20-dueno.md l. 30, 39, 41 y 42 (§20.2, filas de DD-10, DD-21, DD-23 y DD-24)",
+    "motivo": "Cifras de §0 contra las secciones de hoy: §19.1 tiene treinta y seis riesgos, del 1 al 37 sin el 24, que cerró 4-v (L9), y §0.5 decía treinta y uno, los del v0; los topes (96, 640, 256 y 48 KB), los 17 países, las once puertas, las veintisiete decisiones del dueño, los veintitrés PR y las 56, 52,5 y 37 sesiones casan con §15.2, §7.4, §11.2, §20.2 y §17.22, y la duda de §0 dice que la mediana del JSON puede subir a 320 KB si §15.2 aplica la cruzada de L3 (Rcoste-008). En §20.5, el punto 1 dice lo que el 3c enseña de los grupos de detrás (`Positions of the groups behind are estimated`, Rdueno-009, §17.6), el 2 la presentación de la fuga (6-m), y «Lo que no tiene interruptor» gana el paso 0, que la regla 11 de §17.1 cuenta entre las cinco cosas que nota el jugador. §20.8 pone DD-26 en su orden, antes de DD-27. Y en `00-decisiones.md`, el bloque de la corrección L10 lleva la línea en blanco que le faltaba antes de la raya horizontal (sin ella el párrafo «Añadidas en la corrección» se pintaba como título). F.1 no tenía «la puerta de fuera», que G.1 lleva desde el ensamblado v0 (la acuñó §11) y que §0, §11 y §21 usan: entra al final, y la entrada de F.1 pasa a «las seis que acuñaron las secciones». Y en §20.2, que cada decisión diga antes de qué PR hace falta la respuesta: DD-10, DD-23 y DD-24 decían solo dónde se cambian y ahora dicen «cuando quiera», como §20.7; DD-21, «antes del encendido del 10b, con la medida delante». Las veintisiete filas llevan así valor por defecto, consecuencia con su cifra, dónde y cuándo, y lo que cambia con la contraria."
+  }
 ]

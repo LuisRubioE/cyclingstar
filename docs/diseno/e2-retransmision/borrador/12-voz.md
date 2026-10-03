@@ -6,12 +6,12 @@ Esta sección escribe como hechos D-16, D-18 y de D-43 a D-48: la voz de `Watch`
 
 D-48, escrito como hecho. Del mismo dato de la etapa salen tres productos, y cada uno tiene un nombre en pantalla y solo uno. Hasta hoy la misma cosa se llamaba `Story`, «journal», «crónica» o «diario» según el fichero y la pantalla (contradicción 8 del mapa 05). La noticia es un cuarto producto, de otra forma: el titular de un hecho, no el relato de una etapa.
 
-| Producto | En pantalla | Qué lee | Hasta dónde | Quién lo construye | Qué lo sella |
-| --- | --- | --- | --- | --- | --- |
-| la voz | las líneas de `Watch` (pantalla); la lista de lo ya dicho se despliega con `Commentary` | los sucesos de `stage_timelines` con su `revealS` (§4.2); en una etapa sin línea, los de `stage_snapshots.events` con el `revealS` del adaptador (§3.8) | lo revelado hasta el borde del tramo; lo de la meta, solo tras `BroadcastFinish` (D-06) | la ruta del tramo con `buildChronicle(…, { live })` (§14.3); el texto, la web con las plantillas de `apps/web/src/domain/stageJournal.ts` | B19, B7, B4 |
-| el acta | `Report` (la pestaña `Story` se renombra) | los sucesos guardados de la etapa entera | todo, pero solo en una etapa conocida o dentro de `BroadcastFinish.report` | `buildChronicle` sin `live`, como hoy (`apps/api/src/routes/races.ts` l. 465-512) | `chronicle.test.ts` (62), `stageJournal.test.ts` (140), B4, B5 |
-| el microscopio | `Race Radio` | `stage_snapshots.radio` con `buildRaceRadio` (`chronicle.ts` l. 1340) hasta el paso 11; desde el 11a, `radioFromTimeline` (12.10) | lo alcanzado (D-16) | la ruta de etapa y, desde el 11a, la línea | `raceRadio.test.ts` de la API (11), B16 |
-| la noticia | `News`, `Recent news`, `History` | `news.data` y `news.seed` (§13.2); en las filas de antes de la `0043`, `news.text` | lo conocido: con velo, un `stage_ready` por etapa velada (§11.7) | `renderNews` al leer (12.8) | B4, B5 |
+| Producto       | En pantalla                                                                             | Qué lee                                                                                                                                                 | Hasta dónde                                                                             | Quién lo construye                                                                                                                        | Qué lo sella                                                   |
+| -------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| la voz         | las líneas de `Watch` (pantalla); la lista de lo ya dicho se despliega con `Commentary` | los sucesos de `stage_timelines` con su `revealS` (§4.2); en una etapa sin línea, los de `stage_snapshots.events` con el `revealS` del adaptador (§3.8) | lo revelado hasta el borde del tramo; lo de la meta, solo tras `BroadcastFinish` (D-06) | la ruta del tramo con `buildChronicle(…, { live })` (§14.3); el texto, la web con las plantillas de `apps/web/src/domain/stageJournal.ts` | B19, B7, B4                                                    |
+| el acta        | `Report` (la pestaña `Story` se renombra)                                               | los sucesos guardados de la etapa entera                                                                                                                | todo, pero solo en una etapa conocida o dentro de `BroadcastFinish.report`              | `buildChronicle` sin `live`, como hoy (`apps/api/src/routes/races.ts` l. 465-512)                                                         | `chronicle.test.ts` (62), `stageJournal.test.ts` (140), B4, B5 |
+| el microscopio | `Race Radio`                                                                            | `stage_snapshots.radio` con `buildRaceRadio` (`chronicle.ts` l. 1340) hasta el paso 11; desde el 11a, `radioFromTimeline` (12.10)                       | lo alcanzado (D-16)                                                                     | la ruta de etapa y, desde el 11a, la línea                                                                                                | `raceRadio.test.ts` de la API (11), B16                        |
+| la noticia     | `News`, `Recent news`, `History`                                                        | `news.data` y `news.seed` (§13.2); en las filas de antes de la `0046`, `news.text`                                                                      | lo conocido: con velo, un `stage_ready` por etapa velada (§11.7)                        | `renderNews` al leer (12.8)                                                                                                               | B4, B5                                                         |
 
 La voz y el acta comparten el renderizador: la misma `ChronicleEntry` pasa por `chronicleLine` (`stageJournal.ts` l. 307-309) con los 55 `case` de hoy y los de 12.5, así que una frase escrita para la voz queda escrita para el acta y B7 comprueba las dos a la vez. Lo que las separa es la entrada (truncada por `revealS`), el orden, cinco pasadas y lo que la web calla porque ya lo dice el estado (12.2). El microscopio no narra: enseña grupos, huecos y relevistas de un km de foto, y por eso su vocabulario de grupos es el de la barra (§6.3) y no el de las frases. D-48 habla de nombres de PANTALLA: en el código siguen `stageJournal.ts`, `chronicle.ts`, `ChronicleEntry` y `buildChronicle`, porque renombrarlos toca trece ficheros de `apps` y `packages` (grep) sin nada que ganar para quien juega; en la prosa de este documento, «la voz» y «el acta».
 
@@ -34,14 +34,28 @@ export interface LiveChronicle {
 }
 
 export interface BuildChronicleOptions {
-  byClock?: boolean          // la crono (l. 270-279), para el acta; con `live` el orden es por revealS (12-a)
+  byClock?: boolean // la crono (l. 270-279), para el acta; con `live` el orden es por revealS (12-a)
   live?: LiveChronicle
 }
 
-export function buildChronicle(events: readonly ChronicleEvent[], names: ChronicleNames, options: BuildChronicleOptions & { readonly live: LiveChronicle }): LiveLine[]
-export function buildChronicle(events: readonly ChronicleEvent[], names: ChronicleNames, options?: BuildChronicleOptions): ChronicleEntry[]
+export function buildChronicle(
+  events: readonly ChronicleEvent[],
+  names: ChronicleNames,
+  options: BuildChronicleOptions & { readonly live: LiveChronicle },
+): LiveLine[]
+export function buildChronicle(
+  events: readonly ChronicleEvent[],
+  names: ChronicleNames,
+  options?: BuildChronicleOptions,
+): ChronicleEntry[]
 // La implementación (hoy l. 289-293) devuelve la unión: con su `): ChronicleEntry[]` de hoy la primera sobrecarga no compila (TS2394).
-export function buildChronicle(events: readonly ChronicleEvent[], names: ChronicleNames, options: BuildChronicleOptions = {}): ChronicleEntry[] | LiveLine[] { /* el cuerpo de hoy con los pasos de abajo */ }
+export function buildChronicle(
+  events: readonly ChronicleEvent[],
+  names: ChronicleNames,
+  options: BuildChronicleOptions = {},
+): ChronicleEntry[] | LiveLine[] {
+  /* el cuerpo de hoy con los pasos de abajo */
+}
 ```
 
 Las dos sobrecargas no casan con la implementación de hoy si esta no cambia: allí `ChronicleEntry` es el tipo LOCAL de la API (`chronicle.ts` l. 32-39), y `LiveLine` es el `ChronicleEntry` de `@cyclingstar/shared` más `revealS` (§4.9), cuyo `mentions` sale de Zod como `?: … | undefined` y, con `exactOptionalPropertyTypes`, no es asignable al local (TS2375), ni el local a `LiveLine`, al que le falta `revealS`. Lo midió el refutador de código pegando los bloques de §12.2 y §11.16 en una copia del fichero real y compilando con los tipos de §4 (`rcod/n/ws`, `tsconfig.api4.json`). Por eso la implementación devuelve `ChronicleEntry[] | LiveLine[]` y construye cada línea en vivo como `{ ...entrada, revealS: live.revealS(e) }`, que sí es asignable a `LiveLine`, porque el `ChronicleEntry` local lo es al de `shared`.
@@ -60,29 +74,29 @@ buildChronicle(events, names, options), con options.live = L:
 
 **Las pasadas, una a una.** D-43 habla de veintiuna pasadas: son las veinte llamadas de l. 353-375 más `markConcession`, que corre dentro del `map` (l. 319). Delante van dos filtros por línea que no son pasadas ni miran nada: `narra !== 0` (l. 302) y los duplicados exactos seguidos (l. 343-352). «Mira el futuro» quiere decir que el resultado de una línea depende de líneas que vienen después de ella en la etapa:
 
-| # | Pasada (llamada · definición) | Qué hace | ¿Mira el futuro? | En vivo |
-| --- | --- | --- | --- | --- |
-| 1 | `markConcession` (l. 319 · l. 1171) | marca `cazada` la concesión del pelotón si la fuga acaba cogida | sí: `caughtLaterKm` es la captura de toda la etapa (l. 297) | apagada |
-| 2 | `normalizeSplits` (l. 353 · l. 1127) | ordena la cadena de cortes de las crónicas viejas | no: mira el corte anterior (l. 1129-1152) | encendida |
-| 3 | `normalizeKomLeads` (l. 353 · l. 1078) | `leads` con los puntos acumulados hasta esa cima | no: suma en orden | encendida |
-| 4 | `dedupeSitUps` (l. 353 · l. 1186) | un corredor se descuelga una vez; tira la segunda mención | no | encendida |
-| 5 | `dropImpossibleLines` (l. 354 · l. 872) | tres frases imposibles, cada una por sus propios datos | no | encendida |
-| 6 | `dropRetiredWorkers` (l. 355 · l. 902) | el que se rindió no tira ni firma la caza | no: los rendidos de antes | encendida |
-| 7 | `dropLoneChaseGaps` (l. 358 · l. 396-410) | quita el `time_gap` medido contra un suelto si hay pelotón | `field` es el máximo de toda la entrada; truncada, de lo revelado | encendida (B19) |
-| 8 | `retellCatch` (l. 359 · l. 423) | la captura nombra a los que iban delante según el último parte | no: busca hacia atrás (l. 428) | encendida |
-| 9 | `markReunion` (l. 360 · l. 937) | `juntos` si la captura reúne de verdad; `toGo` | solo la longitud (l. 945 y 958) | encendida, con `lengthKm` |
-| 10 | `dropUndoneSelections` (l. 361 · l. 847) | borra la criba lejana que la carrera deshace | sí: recorre las líneas posteriores (l. 855-866) | apagada |
-| 11 | `groupGapRuns` (l. 362 · l. 1007) | nueve partes de ventaja en dos líneas (`time_gap_run`) | sí: la racha crece con lo que viene | apagada |
-| 12 | `followTheLeader` (l. 366 · l. 542) | `respecto` y `desenlace`, el hilo del líder | solo la longitud (l. 545 y 598) | encendida, con `lengthKm` |
-| 13 | `clockTheGaps` (l. 367 · l. 636) | `toGo` en el parte de ventaja | solo la longitud (l. 637-642) | encendida, con `lengthKm` |
-| 14 | `foldSameFailure` (l. 368 · l. 659) | un fracaso, una línea: tira la SEGUNDA | no | encendida |
-| 15 | `markFrontDelta` (l. 369 · l. 475) | `entran` y `salen` contra el parte de cabeza anterior | no | encendida |
-| 16 | `dropAttackEcho` (l. 370 · l. 682) | tira el parte de cabeza pegado a su propio ataque | no: mira la anterior | encendida |
-| 17 | `foldQuickAttacks` (l. 371 · l. 703) | ataque y captura en 3 km, una línea `attack_short` | sí: BORRA la línea del ataque, ya dicha | apagada |
-| 18 | `dropRepeatedPulls` (l. 372 · l. 733) | el mismo equipo tirando para el mismo, una vez | no | encendida |
-| 19 | `markAgreement` (l. 373 · l. 767) | la concordancia (`solo`) | no: línea a línea | encendida |
-| 20 | `markChaseWork` (l. 374 · l. 792) | `pegado` si el trabajo de caza va tras una captura | no: mira la anterior | encendida |
-| 21 | `groupRuns` ×3 (l. 375 · l. 1204) | racimos de descuelgues, pájaras y abandonos | sí: una mención suelta pasa a racimo con las que vienen | apagada; los racimos en vivo son 12.3 |
+| #   | Pasada (llamada · definición)             | Qué hace                                                        | ¿Mira el futuro?                                                  | En vivo                               |
+| --- | ----------------------------------------- | --------------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------- |
+| 1   | `markConcession` (l. 319 · l. 1171)       | marca `cazada` la concesión del pelotón si la fuga acaba cogida | sí: `caughtLaterKm` es la captura de toda la etapa (l. 297)       | apagada                               |
+| 2   | `normalizeSplits` (l. 353 · l. 1127)      | ordena la cadena de cortes de las crónicas viejas               | no: mira el corte anterior (l. 1129-1152)                         | encendida                             |
+| 3   | `normalizeKomLeads` (l. 353 · l. 1078)    | `leads` con los puntos acumulados hasta esa cima                | no: suma en orden                                                 | encendida                             |
+| 4   | `dedupeSitUps` (l. 353 · l. 1186)         | un corredor se descuelga una vez; tira la segunda mención       | no                                                                | encendida                             |
+| 5   | `dropImpossibleLines` (l. 354 · l. 872)   | tres frases imposibles, cada una por sus propios datos          | no                                                                | encendida                             |
+| 6   | `dropRetiredWorkers` (l. 355 · l. 902)    | el que se rindió no tira ni firma la caza                       | no: los rendidos de antes                                         | encendida                             |
+| 7   | `dropLoneChaseGaps` (l. 358 · l. 396-410) | quita el `time_gap` medido contra un suelto si hay pelotón      | `field` es el máximo de toda la entrada; truncada, de lo revelado | encendida (B19)                       |
+| 8   | `retellCatch` (l. 359 · l. 423)           | la captura nombra a los que iban delante según el último parte  | no: busca hacia atrás (l. 428)                                    | encendida                             |
+| 9   | `markReunion` (l. 360 · l. 937)           | `juntos` si la captura reúne de verdad; `toGo`                  | solo la longitud (l. 945 y 958)                                   | encendida, con `lengthKm`             |
+| 10  | `dropUndoneSelections` (l. 361 · l. 847)  | borra la criba lejana que la carrera deshace                    | sí: recorre las líneas posteriores (l. 855-866)                   | apagada                               |
+| 11  | `groupGapRuns` (l. 362 · l. 1007)         | nueve partes de ventaja en dos líneas (`time_gap_run`)          | sí: la racha crece con lo que viene                               | apagada                               |
+| 12  | `followTheLeader` (l. 366 · l. 542)       | `respecto` y `desenlace`, el hilo del líder                     | solo la longitud (l. 545 y 598)                                   | encendida, con `lengthKm`             |
+| 13  | `clockTheGaps` (l. 367 · l. 636)          | `toGo` en el parte de ventaja                                   | solo la longitud (l. 637-642)                                     | encendida, con `lengthKm`             |
+| 14  | `foldSameFailure` (l. 368 · l. 659)       | un fracaso, una línea: tira la SEGUNDA                          | no                                                                | encendida                             |
+| 15  | `markFrontDelta` (l. 369 · l. 475)        | `entran` y `salen` contra el parte de cabeza anterior           | no                                                                | encendida                             |
+| 16  | `dropAttackEcho` (l. 370 · l. 682)        | tira el parte de cabeza pegado a su propio ataque               | no: mira la anterior                                              | encendida                             |
+| 17  | `foldQuickAttacks` (l. 371 · l. 703)      | ataque y captura en 3 km, una línea `attack_short`              | sí: BORRA la línea del ataque, ya dicha                           | apagada                               |
+| 18  | `dropRepeatedPulls` (l. 372 · l. 733)     | el mismo equipo tirando para el mismo, una vez                  | no                                                                | encendida                             |
+| 19  | `markAgreement` (l. 373 · l. 767)         | la concordancia (`solo`)                                        | no: línea a línea                                                 | encendida                             |
+| 20  | `markChaseWork` (l. 374 · l. 792)         | `pegado` si el trabajo de caza va tras una captura              | no: mira la anterior                                              | encendida                             |
+| 21  | `groupRuns` ×3 (l. 375 · l. 1204)         | racimos de descuelgues, pájaras y abandonos                     | sí: una mención suelta pasa a racimo con las que vienen           | apagada; los racimos en vivo son 12.3 |
 
 `respecto`, `juntos` y `desenlace` son causales y siguen en la voz (X-14): `followTheLeader` solo usa el `front` de las líneas anteriores (l. 546-601), `markReunion` acumula `maxFront` hasta la propia captura (l. 937-1005) y `desenlace` solo necesita saber dónde está la meta. Mandarlos al acta dejaría al directo sin el hilo del líder que el dueño pidió: «si lees todo el Journal no SABES quién va ganando, quién va persiguiendo… es un lío los últimos mensajes» (`docs/balance.md` l. 5975-5976, v27). Es [DUEÑO 4], las cuatro preguntas en cualquier punto: la capa fija las contesta siempre (§6.2), la voz da el hilo y la prueba de lectura lo mide (§16.5).
 
@@ -90,13 +104,13 @@ buildChronicle(events, names, options), con options.live = L:
 
 **La medida.** Una violación es un paso de 30 s de carrera en el que la voz anterior NO es prefijo exacto de la nueva (misma plantilla, km, protagonistas y datos, línea a línea). `ingeniero` midió 0 en 15 corridas revelando cada suceso en su `tS` (`prefijo.mjs`), y 94 truncando sin más. Pero el diseño revela por `revealS` (D-05, §4.7), que no es el `tS` en la fuga, las pancartas, la caída ni en quien cambia de grupo: de los 2.667 sucesos anteriores a la meta de la muestra, 1.794 se revelan más de un segundo después de su `tS`. `l8/voz.mjs` graba cada etapa con el prototipo del grabador (bloque de emisión por `onEvent`, pancartas por `onBanner`, caídas sintetizadas y `revealS` por la tabla de §4.7) y construye la voz cada 30 s hasta el borde de la meta, en seis etapas (`race-france` e7, e13, e18 y e20, `race-flanders` e1 y `race-colombia` e5) con las semillas 0, 1 y 2: 18 corridas y 12.083 pasos.
 
-| Variante | Qué hace | Violaciones en 18 corridas | Las plantillas que más |
-| --- | --- | --- | --- |
-| V0 | el acta truncada: entrada por `revealS`, orden por km, las veintiuna pasadas | 574 | `riders_sit_up` 288, `time_gap` 57, `attack_go` 43, `crash` 37, `attack_sticks` 30 |
-| V1 | el diseño: entrada y orden por `revealS`, longitud como dato, cinco apagadas | 0 | |
-| V2 | V1 ordenando por `tS`, la rama `byClock` literal (l. 323-327) | 44 | `front_group` 13, `time_gap` 6, `crash` 5, `rider_sits_up` 5, `attack_reeled` 4 |
-| V3 | V1 con `dropLoneChaseGaps` también apagada | 0 | |
-| V4 | la de `ingeniero`: revelar en `tS` y ordenar por `tS` | 0 | |
+| Variante | Qué hace                                                                     | Violaciones en 18 corridas | Las plantillas que más                                                             |
+| -------- | ---------------------------------------------------------------------------- | -------------------------- | ---------------------------------------------------------------------------------- |
+| V0       | el acta truncada: entrada por `revealS`, orden por km, las veintiuna pasadas | 574                        | `riders_sit_up` 288, `time_gap` 57, `attack_go` 43, `crash` 37, `attack_sticks` 30 |
+| V1       | el diseño: entrada y orden por `revealS`, longitud como dato, cinco apagadas | 0                          |                                                                                    |
+| V2       | V1 ordenando por `tS`, la rama `byClock` literal (l. 323-327)                | 44                         | `front_group` 13, `time_gap` 6, `crash` 5, `rider_sits_up` 5, `attack_reeled` 4    |
+| V3       | V1 con `dropLoneChaseGaps` también apagada                                   | 0                          |                                                                                    |
+| V4       | la de `ingeniero`: revelar en `tS` y ordenar por `tS`                        | 0                          |                                                                                    |
 
 V4 reproduce la cifra de `ingeniero`; V2 dice por qué no basta. Ordenada por `tS`, una línea que se sabe tarde pero ocurrió antes (con la regla `emit`, la hora del grupo de su protagonista al final del bloque de emisión; la caída, la del grupo del caído en su km; §4.7) se mete DELANTE de líneas ya dichas, y las pasadas que miran la línea anterior (`dropAttackEcho`, `markFrontDelta`, `foldSameFailure`) cambian su veredicto sobre algo que el espectador ya leyó. El reloj que ordena la voz es, por eso, el de revelado (decisión 12-a). `dropLoneChaseGaps`, que D-43 dejaba sin medir, no rompe el prefijo: V1, con ella encendida, y V3, apagada, dan 0; se queda encendida y B19 la sigue vigilando. En las etapas del adaptador de la radio el `revealS` es el de `REVEAL_RULES` sobre el reloj estimado (§3.8) y la propiedad es la misma, porque solo depende de que la entrada crezca por el final.
 
@@ -110,9 +124,10 @@ import { CUE_OF_TEMPLATE, type LiveLine } from '@cyclingstar/shared'
 
 /** unnamed(id): el corredor no estaba nombrado en su grupo un instante antes de la línea (namedRidersOf, §7.7). */
 export function inVoice(line: LiveLine, unnamed: (riderId: string) => boolean): boolean {
-  if (CUE_OF_TEMPLATE[line.plantilla] === 'report_only') return false         // front_group, time_gap (§6.6)
-  if (line.plantilla === 'time_gap_run') return false                         // solo lo crea groupGapRuns, apagada en vivo
-  if (line.plantilla === 'rider_sits_up') return line.protagonists.some((p) => p.id == null || !unnamed(p.id))
+  if (CUE_OF_TEMPLATE[line.plantilla] === 'report_only') return false // front_group, time_gap (§6.6)
+  if (line.plantilla === 'time_gap_run') return false // solo lo crea groupGapRuns, apagada en vivo
+  if (line.plantilla === 'rider_sits_up')
+    return line.protagonists.some((p) => p.id == null || !unnamed(p.id))
   return true
 }
 ```
@@ -121,12 +136,12 @@ export function inVoice(line: LiveLine, unnamed: (riderId: string) => boolean): 
 
 **Los tests de la voz** (paso 2; la suite rápida, porque `apps/api` y `apps/web` corren en `test:rapido`):
 
-| Test | Qué fija |
-| --- | --- |
+| Test                                                           | Qué fija                                                                                                                                                                                                                                                                                                                                                                |
+| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `apps/api/src/chronicle.test.ts`, `describe('la voz en vivo')` | un suceso con `revealS > untilS` no sale; una concesión seguida de una captura revelada después NO lleva `cazada`; `toGo` y `desenlace` salen de `stageKm` y no del último suceso; una criba lejana no se borra aunque la carrera se recomponga después; ataque y captura en 3 km son dos líneas; tres descuelgues en 5 km son tres líneas; a igual km, manda `revealS` |
-| ídem, los 62 de hoy | sin `live` nada cambia: siguen en verde sin tocarlos, y son la prueba de que el acta es la de hoy |
-| `apps/api/src/voicePrefix.test.ts` | B19 (§16.4): la voz de cada tramo es prefijo de la del siguiente sobre las etapas congeladas |
-| `apps/web/src/domain/voice.test.ts` | `inVoice`: fuera `front_group`, `time_gap` y `time_gap_run`; el descuelgue de un corredor sin rótulo fuera, el de uno con rótulo dentro; el propio descuelgue no cuenta para nombrarle |
+| ídem, los 62 de hoy                                            | sin `live` nada cambia: siguen en verde sin tocarlos, y son la prueba de que el acta es la de hoy                                                                                                                                                                                                                                                                       |
+| `apps/api/src/voicePrefix.test.ts`                             | B19 (§16.4): la voz de cada tramo es prefijo de la del siguiente sobre las etapas congeladas                                                                                                                                                                                                                                                                            |
+| `apps/web/src/domain/voice.test.ts`                            | `inVoice`: fuera `front_group`, `time_gap` y `time_gap_run`; el descuelgue de un corredor sin rótulo fuera, el de uno con rótulo dentro; el propio descuelgue no cuenta para nombrarle                                                                                                                                                                                  |
 
 ### 12.3 Los racimos en vivo
 
@@ -144,7 +159,11 @@ export interface LiveCluster {
   readonly members: readonly ChronicleEvent[]
 }
 /** La ruta del tramo lo llama tras withGroupRoles y antes de buildChronicle (§14.3): ata cada racimo a su hora y quita sus sueltos. */
-export function liveClusters(events: readonly ChronicleEvent[], tl: StageTimeline, revealS: (e: ChronicleEvent) => RaceS): readonly LiveCluster[]
+export function liveClusters(
+  events: readonly ChronicleEvent[],
+  tl: StageTimeline,
+  revealS: (e: ChronicleEvent) => RaceS,
+): readonly LiveCluster[]
 ```
 
 ```
@@ -240,16 +259,16 @@ Lo que el motor manda en cada una: `puncture` y `mechanical` llevan `{ perdidaS,
 - `break_presented` es la frase de `breakHeadline('en', cards, ownIx)` (§7.6; el `locale` delante, 12.11). En `Watch`, la línea de `breakaway_formed` SE SUSTITUYE por ella: la del journal nombra a todos los escapados con dorsal y equipo, uno tras otro (`stageJournal.ts` l. 637-658), y la de la tele los ordena por notoriedad y cuenta al resto (`The mountains leader and the champion of Italy go clear with three others.`, pantalla). El acta conserva la de `breakaway_formed`, porque ahí la lista entera es lo que se busca.
 - `gap_trend` es `gapTrendLine('en', trend)` sobre `MainGap.trend` (`GapTrend`, §4.5): una línea cuando la flecha pasa a `up` o a `down` (`|deltaS| ≥ BROADCAST.trendMinS`, 5 s, en `trendWindowKm`, 5 km), como mucho una por cada `trendWindowKm` que avanza la cabeza y nunca al reiniciarse la pareja de la diferencia principal (§6.2). Es la frase de D-44 con su número: `The gap has fallen by 40 seconds in five kilometres.` y `The gap has grown by 40 seconds in five kilometres.` (pantalla); desde un minuto, `by 1:10`; la ventana, en palabras hasta nueve (`five kilometres`). El acta no la lleva: su parte de ventaja son `time_gap` y `time_gap_run`.
 
-| Plantilla | De dónde | Destino (§6.6) | La voz dice (pantalla) | Nombres de grupo (`GROUP_NOUNS`) |
-| --- | --- | --- | --- | --- |
-| `puncture` | motor, carretera y crono | `mishap` | `Puncture for 45 Julien Moreau (Team Gamma) with 42 km to go. The team car is right there with a wheel.` | ninguno |
-| `mechanical` | motor, carretera y crono | `mishap` | `Mechanical trouble for 45 Julien Moreau (Team Gamma) with 42 km to go, and no team car in sight.` | ninguno |
-| `truce_granted` | motor | `voice_only` | `A truce for 11 Sam Carter (Team Beta): the race eases off and waits for him.` | ninguno |
-| `truce_denied` | motor, seis motivos | `voice_only` | `No truce for 11 Sam Carter (Team Beta): with 45s at stake, his rivals press on.` | ninguno |
-| `crash` | grabador (D-13) | `crash` | `Crash in the gruppetto!` | los cuatro de D-18 y los tres del grupo del maillot (6-b) |
-| `crash_names` | la misma línea | el segundo tiempo de `crash` | `45 Julien Moreau (Team Gamma) and 88 Iñigo Arrieta (Team Delta) are on the ground.` | ninguno |
-| `break_presented` | estado: `breakHeadline` | `break_presented` | `The champion of Italy goes clear with four others.` | ninguno (usa `with four others`) |
-| `gap_trend` | estado: `MainGap.trend` | solo la voz | `The gap has fallen by 40 seconds in five kilometres.` | ninguno |
+| Plantilla         | De dónde                 | Destino (§6.6)               | La voz dice (pantalla)                                                                                   | Nombres de grupo (`GROUP_NOUNS`)                          |
+| ----------------- | ------------------------ | ---------------------------- | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `puncture`        | motor, carretera y crono | `mishap`                     | `Puncture for 45 Julien Moreau (Team Gamma) with 42 km to go. The team car is right there with a wheel.` | ninguno                                                   |
+| `mechanical`      | motor, carretera y crono | `mishap`                     | `Mechanical trouble for 45 Julien Moreau (Team Gamma) with 42 km to go, and no team car in sight.`       | ninguno                                                   |
+| `truce_granted`   | motor                    | `voice_only`                 | `A truce for 11 Sam Carter (Team Beta): the race eases off and waits for him.`                           | ninguno                                                   |
+| `truce_denied`    | motor, seis motivos      | `voice_only`                 | `No truce for 11 Sam Carter (Team Beta): with 45s at stake, his rivals press on.`                        | ninguno                                                   |
+| `crash`           | grabador (D-13)          | `crash`                      | `Crash in the gruppetto!`                                                                                | los cuatro de D-18 y los tres del grupo del maillot (6-b) |
+| `crash_names`     | la misma línea           | el segundo tiempo de `crash` | `45 Julien Moreau (Team Gamma) and 88 Iñigo Arrieta (Team Delta) are on the ground.`                     | ninguno                                                   |
+| `break_presented` | estado: `breakHeadline`  | `break_presented`            | `The champion of Italy goes clear with four others.`                                                     | ninguno (usa `with four others`)                          |
+| `gap_trend`       | estado: `MainGap.trend`  | solo la voz                  | `The gap has fallen by 40 seconds in five kilometres.`                                                   | ninguno                                                   |
 
 Ninguna frase nueva usa una palabra de `WATCHED_GROUP_NOUNS` (`coherence.ts` l. 616-635) que su fila no declare: por eso la tregua habla de `the race` y no de `the favourites` ni de `the peloton`, y el abanico de `the echelons`. **El `default` deja de imprimir la clave**: devuelve la cadena vacía, la voz y el acta no pintan líneas vacías y B7 (§16.4) recorre las 54 plantillas que el motor emite, contadas con el AST en `l8/plantillas.mjs` (las 42 llamadas a `log.emit` de `simulate.ts` dan 44, `rider_defies_team` la inserta `events.ts` y `timetrial.ts` da 13, cuatro compartidas: 54 distintas y ninguna calculada en tiempo de ejecución), más `crash`, y falla si alguna da cadena vacía, no tiene destino en `CUE_OF_TEMPLATE` o su regla de revelado no es la que el test tiene escrita (la de `REVEAL_RULES`, o `emit` por defecto, apuntado a propósito). El test de hoy que sella el `default` crudo («meteorito: Ana», l. 89-93) se re-sella a propósito en el 6b: un suceso desconocido da una línea vacía y no la clave.
 
@@ -265,13 +284,27 @@ D-18, escrito como hecho (I-07, O-10). El código es `GroupRole` y las palabras 
 
 ```ts
 // apps/api/src/voiceRoles.ts (nuevo): los papeles que la voz y el acta necesitan, sobre el instante (D-18). Pura sobre la línea.
-import { instantAt, type GroupNow, type InstantContext, type StageTimeline, type RaceS } from '@cyclingstar/shared'
+import {
+  instantAt,
+  type GroupNow,
+  type InstantContext,
+  type StageTimeline,
+  type RaceS,
+} from '@cyclingstar/shared'
 import type { ChronicleEvent } from './chronicle.js'
 
 /** Las plantillas que dicen «the bunch» por el grupo que el motor titula pelotón: su palabra es la de su papel. */
 export const MAIN_GROUP_TEMPLATES: ReadonlySet<string> = new Set([
-  'attack_go', 'attack_short', 'attack_reeled', 'sprinters_chase', 'sprinters_give_up',
-  'peloton_concedes', 'peloton_pull', 'breakaway_caught', 'time_gap', 'time_gap_run',
+  'attack_go',
+  'attack_short',
+  'attack_reeled',
+  'sprinters_chase',
+  'sprinters_give_up',
+  'peloton_concedes',
+  'peloton_pull',
+  'breakaway_caught',
+  'time_gap',
+  'time_gap_run',
 ])
 
 /**
@@ -280,16 +313,30 @@ export const MAIN_GROUP_TEMPLATES: ReadonlySet<string> = new Set([
  * `start.leaders` los maillots con que se salió (del reparto congelado, §4.2), porque de ahí sale `GroupNow.jerseys` y con él la
  * etiqueta; ni `own` ni el resto de `start` cambian grupos, papeles ni etiquetas, así que la anotación no depende de quien mira.
  */
-export function withGroupRoles(events: readonly ChronicleEvent[], tl: StageTimeline, revealS: (e: ChronicleEvent) => RaceS, ctx: InstantContext): ChronicleEvent[] {
+export function withGroupRoles(
+  events: readonly ChronicleEvent[],
+  tl: StageTimeline,
+  revealS: (e: ChronicleEvent) => RaceS,
+  ctx: InstantContext,
+): ChronicleEvent[] {
   return events.map((e) => {
     if (!MAIN_GROUP_TEMPLATES.has(e.plantilla) && e.plantilla !== 'crash') return e
-    const now = instantAt(tl, revealS(e), ctx)                                   // el instante de §4.5 en la hora de la línea
-    const g: GroupNow | undefined = e.plantilla === 'crash'
-      ? now.groups.find((x) => x.members.includes(tl.riderIds.indexOf(e.protagonistas[0] ?? '')))
-      : now.groups.find((x) => x.kind === 'peloton')
+    const now = instantAt(tl, revealS(e), ctx) // el instante de §4.5 en la hora de la línea
+    const g: GroupNow | undefined =
+      e.plantilla === 'crash'
+        ? now.groups.find((x) => x.members.includes(tl.riderIds.indexOf(e.protagonistas[0] ?? '')))
+        : now.groups.find((x) => x.kind === 'peloton')
     if (g === undefined) return e
-    const [roleKey, jerseyKey] = e.plantilla === 'crash' ? ['groupRole', 'groupJersey'] : ['mainRole', 'mainJersey']
-    return { ...e, datos: { ...e.datos, [roleKey]: g.role, ...(g.label.k === 'jersey_group' ? { [jerseyKey]: g.label.jersey } : {}) } }
+    const [roleKey, jerseyKey] =
+      e.plantilla === 'crash' ? ['groupRole', 'groupJersey'] : ['mainRole', 'mainJersey']
+    return {
+      ...e,
+      datos: {
+        ...e.datos,
+        [roleKey]: g.role,
+        ...(g.label.k === 'jersey_group' ? { [jerseyKey]: g.label.jersey } : {}),
+      },
+    }
   })
 }
 ```
@@ -298,7 +345,12 @@ El papel es el de `GroupNow.role`, con la histéresis de §4.5, y la etiqueta, l
 
 ```ts
 // packages/shared/src/broadcast/instant.ts (se amplía en el 3a, junto a GroupRole de §4.5): la guarda de lo que llega en `datos`
-export const GROUP_ROLES = ['lead', 'chase', 'bunch', 'gruppetto'] as const satisfies readonly GroupRole[]
+export const GROUP_ROLES = [
+  'lead',
+  'chase',
+  'bunch',
+  'gruppetto',
+] as const satisfies readonly GroupRole[]
 /** mainRole y groupRole viajan en `datos` de una línea, que no tiene tipo: sin la guarda, `role` es unknown y no indexa GROUP_WORDS. */
 export function isGroupRole(x: unknown): x is GroupRole {
   return typeof x === 'string' && (GROUP_ROLES as readonly string[]).includes(x)
@@ -319,7 +371,7 @@ import { GROUP_WORDS, isGroupRole, isJerseyKind } from '@cyclingstar/shared'
 
 /** La palabra de la barra, en minúsculas y con artículo: la del grupo del maillot si lo hay, si no la del papel; sin anotación, «the bunch». */
 export function groupNounOf(role: unknown, jersey: unknown): string {
-  if (isJerseyKind(jersey)) return GROUP_WORDS.jersey[jersey][1]                   // the race leader’s group (6-b)
+  if (isJerseyKind(jersey)) return GROUP_WORDS.jersey[jersey][1] // the race leader’s group (6-b)
   return isGroupRole(role) ? GROUP_WORDS.role[role][1] : BUNCH
 }
 const mainNoun = (e: ChronicleEntry): string => groupNounOf(e.datos?.mainRole, e.datos?.mainJersey)
@@ -331,14 +383,14 @@ const mainNoun = (e: ChronicleEntry): string => groupNounOf(e.datos?.mainRole, e
 
 **Las tablas del motor, en el PR 4a.** `GROUP_NOUNS` gana en cada fila las palabras que su plantilla puede decir ahora y las filas de las plantillas de 12.5; `WATCHED_GROUP_NOUNS` gana `the mountains leader’s group`, `the points leader’s group` y `the race leader’s group` en cabeza y `the gruppetto` entre `the favourites` y `the fast men`, porque la lista va de más larga a más corta (l. 612-613):
 
-| Fila de `GROUP_NOUNS` | Hoy (l. 571-600) | Tras el PR 4a | Por qué |
-| --- | --- | --- | --- |
-| `attack_go`, `sprinters_chase`, `peloton_concedes`, `peloton_pull`, `breakaway_caught` | `the bunch`, `the lead group` | más `the chase group` y los tres del grupo del maillot | `mainNoun`: el grupo del título con papel `chase`, o con la etiqueta `jersey_group` |
-| `attack_short`, `attack_reeled`, `sprinters_give_up` | `the bunch` | más `the chase group`, `the lead group` y los tres del grupo del maillot | `mainNoun` puede dar los tres papeles del título y su etiqueta de maillot; `lead`, 0 de 210 medido |
-| `time_gap`, `time_gap_run` | los tres | más los tres del grupo del maillot | `overWhom` pasa a `mainNoun` |
-| `puncture`, `mechanical`, `truce_granted`, `truce_denied`, `crash_names` | no existen | vacías | sus frases no nombran grupos |
-| `crash` | no existe | `the lead group`, `the chase group`, `the bunch`, `the gruppetto` y los tres del grupo del maillot | la caída puede ser en cualquier grupo |
-| `bunch_sprint`, `stage_win` y las demás | las de hoy | igual | |
+| Fila de `GROUP_NOUNS`                                                                  | Hoy (l. 571-600)              | Tras el PR 4a                                                                                      | Por qué                                                                                            |
+| -------------------------------------------------------------------------------------- | ----------------------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `attack_go`, `sprinters_chase`, `peloton_concedes`, `peloton_pull`, `breakaway_caught` | `the bunch`, `the lead group` | más `the chase group` y los tres del grupo del maillot                                             | `mainNoun`: el grupo del título con papel `chase`, o con la etiqueta `jersey_group`                |
+| `attack_short`, `attack_reeled`, `sprinters_give_up`                                   | `the bunch`                   | más `the chase group`, `the lead group` y los tres del grupo del maillot                           | `mainNoun` puede dar los tres papeles del título y su etiqueta de maillot; `lead`, 0 de 210 medido |
+| `time_gap`, `time_gap_run`                                                             | los tres                      | más los tres del grupo del maillot                                                                 | `overWhom` pasa a `mainNoun`                                                                       |
+| `puncture`, `mechanical`, `truce_granted`, `truce_denied`, `crash_names`               | no existen                    | vacías                                                                                             | sus frases no nombran grupos                                                                       |
+| `crash`                                                                                | no existe                     | `the lead group`, `the chase group`, `the bunch`, `the gruppetto` y los tres del grupo del maillot | la caída puede ser en cualquier grupo                                                              |
+| `bunch_sprint`, `stage_win` y las demás                                                | las de hoy                    | igual                                                                                              |                                                                                                    |
 
 El título de pelotón nunca tiene papel `gruppetto` (en `groupRoleOf` el grupo del título es `bunch`, `lead` o `chase`), así que `the gruppetto` solo entra por `crash`; los tres del grupo del maillot entran por el título con papel `chase` y un maillot dentro, y por `crash`. Con eso el test de los tres nombres (`stageJournal.test.ts` l. 1646-1650) se re-sella a propósito en el 4a con los siete: los cuatro papeles de D-18 y los tres del grupo del maillot; en el 4a solo cambian las filas de `GROUP_NOUNS`, que son un superconjunto de las de hoy, y el test de cada frase (l. 1624-1644) sigue en verde sin tocarse. Los casos con `mainRole` `chase`, con `mainJersey` para las ocho plantillas y con los cuatro papeles y los tres maillots para `crash` los gana en el 6b (§17.9), cuando la web ya pinta `mainRole` y `crash`: hasta entonces `crash` cae al `default` (l. 1602-1603) y esos casos fallarían.
 
@@ -363,7 +415,11 @@ export function fnv1a(s: string): number {
 }
 
 /** Elige SOLO entre las redacciones que ya existían en la revisión `rev` (D-46): añadir una no re-sortea el pasado. */
-export function pickVariant<D>(seed: string, variants: readonly Variant<D>[], rev: number): Variant<D> {
+export function pickVariant<D>(
+  seed: string,
+  variants: readonly Variant<D>[],
+  rev: number,
+): Variant<D> {
   const alive = variants.filter((v) => v.since <= rev)
   const chosen = alive[fnv1a(seed) % alive.length]
   if (chosen === undefined) throw new Error(`pickVariant: ninguna redacción con since <= ${rev}`)
@@ -380,10 +436,12 @@ export function variantSeed(e: ChronicleEntry): string {
 }
 /** Una cadena es una redacción con since 0: las 272 de hoy lo son todas. Las nuevas se escriben { since, text }. */
 type Phrasing = string | { readonly since: number; readonly text: string }
-const asVariant = (o: Phrasing): Variant<null> => (typeof o === 'string' ? { since: 0, render: () => o } : { since: o.since, render: () => o.text })
+const asVariant = (o: Phrasing): Variant<null> =>
+  typeof o === 'string' ? { since: 0, render: () => o } : { since: o.since, render: () => o.text }
 // dentro de chronicleTemplate(e, rev): rev es la revisión de ESTA etapa, que llega con la cabecera o con el acta
 const seed = variantSeed(e)
-const pick = (opts: readonly Phrasing[]): string => pickVariant(seed, opts.map(asVariant), rev).render(null, NO_NAMES)
+const pick = (opts: readonly Phrasing[]): string =>
+  pickVariant(seed, opts.map(asVariant), rev).render(null, NO_NAMES)
 // y las dos de fuera la pasan, con el locale delante (12.11): hoy chronicleParts(e) y chronicleLine(e), l. 286 y 307
 export function chronicleParts(_locale: 'en', e: ChronicleEntry, rev: number): ChroniclePart[]
 export function chronicleLine(_locale: 'en', e: ChronicleEntry, rev: number): string
@@ -393,7 +451,7 @@ export function chronicleLine(_locale: 'en', e: ChronicleEntry, rev: number): st
 
 `NO_NAMES` es un `NameResolver` que devuelve el id: las frases del journal ya llevan los nombres dentro y no lo usan. El km de una `ChronicleEntry` ya es entero (`Math.round(e.km)`, `chronicle.ts` l. 314), así que hoy la semilla lleva el km por diez; las décimas son para el día en que la línea lleve el km del motor sin redondear. `p.id ?? p.name` cubre al corredor que no se resuelve, que sale con `id` null y el id crudo por nombre (`unknownRider`, `chronicle.ts` l. 234-242): la semilla sigue siendo un id.
 
-**La revisión de cada etapa.** En una noticia es `news.tpl_rev`, que `emitNews` escribe con el `TEMPLATE_REV` del día (§13.2). En la voz y el acta es el `TEMPLATE_REV` vigente cuando se corrió la etapa, y se guarda (decisión 12-c) en la columna `stage_timelines.tpl_rev` (`smallint not null`, sin defecto: §13.3 y 13-j), que entra en la `0044` del paso 5 y no en una quinta migración (17-a): `recordStageTimeline` toma el `TEMPLATE_REV` del tick y `stageTimelineRow` lo pone en la fila de la etapa (§5.5), la lápida lleva 0, y `flush` escribe una u otra con las demás filas del día; la lee `readStageTemplateRev` (§5.6), y viaja como `BroadcastHead.tplRev` (§4.11) y como `tplRev` opcional en `stageReplaySchema` (§14.2; opcional por la web de ayer, D-50), que es el `StageReport` del acta (§4.11). Una etapa sin línea usa la revisión 0: sus variantes no cambian nunca, que es lo que importa. Así una redacción nueva con `since: 1` solo la pueden elegir las etapas corridas desde que existe, y las de antes se leen igual que el día en que se vieron.
+**La revisión de cada etapa.** En una noticia es `news.tpl_rev`, que `emitNews` escribe con el `TEMPLATE_REV` del día (§13.2). En la voz y el acta es el `TEMPLATE_REV` vigente cuando se corrió la etapa, y se guarda (decisión 12-c) en la columna `stage_timelines.tpl_rev` (`smallint not null`, sin defecto: §13.3 y 13-j), que entra en la `0047` del paso 5 y no en una quinta migración (17-a): `recordStageTimeline` toma el `TEMPLATE_REV` del tick y `stageTimelineRow` lo pone en la fila de la etapa (§5.5), la lápida lleva 0, y `flush` escribe una u otra con las demás filas del día; la lee `readStageTemplateRev` (§5.6), y viaja como `BroadcastHead.tplRev` (§4.11) y como `tplRev` opcional en `stageReplaySchema` (§14.2; opcional por la web de ayer, D-50), que es el `StageReport` del acta (§4.11). Una etapa sin línea usa la revisión 0: sus variantes no cambian nunca, que es lo que importa. Así una redacción nueva con `since: 1` solo la pueden elegir las etapas corridas desde que existe, y las de antes se leen igual que el día en que se vieron.
 
 **La identidad del día.** El equipo de cada mención es el del día de la etapa: el de `TimelineCast` (§4.2) en una etapa con línea y, sin ella, `stage_snapshots.input.riders[].teamId` (`StageRider.teamId`, `packages/engine/src/stage/types.ts` l. 264; `StageInput.riders`, l. 281). `getRaceRiderIdentities` (`results.ts` l. 191-207) gana un tercer parámetro con el equipo del día de cada corredor y resuelve el nombre de ESE equipo, y la ruta de etapa (`routes/races.ts` l. 501) y la del tramo se lo pasan. El nombre del corredor sigue siendo el de hoy (no cambia) y el del equipo es el nombre actual del equipo de aquel día.
 
@@ -401,27 +459,27 @@ export function chronicleLine(_locale: 'en', e: ChronicleEntry, rev: number): st
 
 ### 12.8 Las noticias
 
-D-45, escrito como hecho (I-13, I-25, O-06, O-07; punto 5 del encargo; [DOC 1]). El plazo sale de la decisión 2 del dueño («**Uno y para siempre**, con un **reset** al pasar de pruebas a juego de verdad», `docs/agenda.md` l. 35), y la agenda lo deduce y lo fija así: «El plazo queda en: **antes del reset**, añadir `seed` y `data` a `news` y mover el renderizado al momento de leer. Después del reset, cada noticia escrita sí es definitiva, porque a partir de ahí no habrá otro borrado.» (l. 131-133). Por eso la primera migración de E2 es `0043_noticias_con_datos` (§13.2) y el paso 1 va en paralelo a todo lo demás (§17.4). Hoy `emitNews` redacta al escribir y guarda solo `kind` y `text` (`packages/db/src/news.ts` l. 28-49); la semilla la calculan quienes llaman y se tira (`win:${seedBase}`, `stageRun.ts` l. 1195 y 1214). E2 es el dueño del arreglo: el mapa 05 lo daba a tres (Oleada 0, E2 y E10; contradicción 6) y el encargo lo resuelve a favor de E2 (`00-encargo.md` l. 27-29).
+D-45, escrito como hecho (I-13, I-25, O-06, O-07; punto 5 del encargo; [DOC 1]). El plazo sale de la decisión 2 del dueño («**Uno y para siempre**, con un **reset** al pasar de pruebas a juego de verdad», `docs/agenda.md` l. 35), y la agenda lo deduce y lo fija así: «El plazo queda en: **antes del reset**, añadir `seed` y `data` a `news` y mover el renderizado al momento de leer. Después del reset, cada noticia escrita sí es definitiva, porque a partir de ahí no habrá otro borrado.» (l. 131-133). Por eso la primera migración de E2 es `0046_noticias_con_datos` (§13.2) y el paso 1 va en paralelo a todo lo demás (§17.4). Hoy `emitNews` redacta al escribir y guarda solo `kind` y `text` (`packages/db/src/news.ts` l. 28-49); la semilla la calculan quienes llaman y se tira (`win:${seedBase}`, `stageRun.ts` l. 1195 y 1214). E2 es el dueño del arreglo: el mapa 05 lo daba a tres (Oleada 0, E2 y E10; contradicción 6) y el encargo lo resuelve a favor de E2 (`00-encargo.md` l. 27-29).
 
 **Lo que se guarda.** `emitNews` recibe un `NewsPayload` (§4.12) con ids, códigos y números y nunca nombres ni inglés: `detail` desaparece y en su lugar van `reason`, `days`, `relocateCountry`, `housingCovered` y `age`. Guarda la semilla, los datos, `race_key`, `stage_day` y `tpl_rev`, y, hasta DD-19, `text` redactado con `renderNews` y los nombres del momento (la inserción entera es §13.2). `teamId` es el equipo del DÍA del hecho: en los titulares de etapa, el del corredor en la entrada de la etapa (`input.riders[].teamId`, la misma fuente que el reparto congelado y `teamOfDay`; decisión 17-r, que pasa esa entrada a `awardOutcome` en el PR 1a, porque hoy no la recibe, `packages/db/src/stageRun.ts` l. 1143-1149); en los demás, el de `riders.team_id` cuando el tick escribe. Al leer ya no se consulta: un traspaso posterior no reescribe el titular (O-07).
 
 **Las once de hoy y las dos nuevas.** El texto de hoy va carácter a carácter; `\u2014` es la raya U+2014, que el código de hoy lleva literal y que aquí se escribe escapada.
 
-| `kind` | Quién lo emite | `data` (además de `kind`) | Semilla | Hoy (`world/news.ts` l. 33-50) | Render nuevo (`en`) |
-| --- | --- | --- | --- | --- | --- |
-| `stage_win` | `stageRun.ts` l. 1210 (`awardOutcome`) | `raceId`, `season`, `stageDay`, `riderId`, `teamId` | `win:${raceKey}:${gameDay}:${stageDay}` | `${rider} wins stage ${stage} of the ${race}.` | igual |
-| `tt_win` | ídem, crono de una vuelta | ídem | ídem | `${rider} wins the stage ${stage} time trial at the ${race}.` | igual |
-| `breakaway_win` | ídem, con fuga | ídem | ídem | `${rider} wins stage ${stage} of the ${race} from the breakaway.` | igual; solo si el ganador iba en la fuga |
-| `one_day_win` | ídem, carrera de un día | ídem, `stageDay` 1 | ídem | `${rider} wins the ${race}.` | igual |
-| `one_day_tt_win` | ídem, crono de un día | ídem, `stageDay` 1 | ídem | `${rider} wins the ${race} time trial.` | igual |
-| `kom` | `stageRun.ts` l. 1247, última etapa de una vuelta, con puntos | ídem, `stageDay` la última | `kom:${raceKey}` | `${rider} wins the mountains classification at the ${race}.` | igual |
-| `gc_win` | `stageRun.ts` l. 1223, última etapa de una vuelta | ídem, `stageDay` la última | `gc:${raceKey}:${gameDay}:${stageDay}` | `${rider} wins the ${race} overall.` | igual |
-| `contract` | `packages/db/src/contracts.ts` l. 332 | `riderId`, `toTeamId`, `fromTeamId`, `relocateCountry`, `housingCovered` | `contract:${offerId}` | `` ${rider} signs for ${team}${detail ? ` ${detail}` : ''}. ``, con `detail` = `, relocating to ${country}` más ` with housing covered` (l. 327-329): `R signs for T , relocating to Spain.` | `R signs for T, relocating to Spain.`: sin el espacio antes de la coma |
-| `injury` | `stageRun.ts` l. 1131 (`applyIncidents`) | `raceId`, `season`, `stageDay`, `riderId`, `teamId`, `days`, `prevHealth`, `prevUntilDay` | `injury:${raceKey}:${gameDay}:${riderId}` | `` ${rider} injured${detail ? ` \u2014 out for ${detail}` : ''}. ``, con `detail` = `${Math.round(d / 7)} weeks` desde 14 días y `${d} day(s)` por debajo (l. 1127-1130) | igual, con `days` |
-| `abandon` | `stageRun.ts` l. 1069 (`markAbandons`); `riderSchedule.ts` l. 299, entre etapas | `raceId`, `season`, `stageDay` (null entre etapas), `riderId`, `teamId`, `reason` | `abandon:${raceKey}:${gameDay}:${riderId}` | `` ${rider} abandons the ${race}${stage ? ` on stage ${stage}` : ''}${detail ? ` \u2014 ${detail}` : ''}. ``, con `ABANDON_DETAIL[reason]` (l. 1020-1026) | igual, con `reason` |
-| `retirement` | `rollover.ts` l. 326 | `riderId`, `teamId`, `age` | `${worldSeed}:retire:${riderId}` | `` ${rider} retires${detail ? ` ${detail}` : ''}. ``, con `detail` = `at ${age}` | igual |
-| `gc_lead_taken` | NUEVA: `awardOutcome`, de la etapa 2 a la penúltima | `raceId`, `season`, `stageDay`, `riderId`, `teamId` | `lead:${raceKey}:${gameDay}:${stageDay}` | no existe | `${rider} takes the overall lead at the ${race}.` |
-| `jersey_taken` | NUEVA: ídem, puntos y montaña | ídem más `jersey` | `jersey:${jersey}:${raceKey}:${gameDay}:${stageDay}` | no existe | `${rider} takes the points lead at the ${race}.` y `${rider} takes the mountains lead at the ${race}.` |
+| `kind`           | Quién lo emite                                                                  | `data` (además de `kind`)                                                                 | Semilla                                              | Hoy (`world/news.ts` l. 33-50)                                                                                                                                                             | Render nuevo (`en`)                                                                                    |
+| ---------------- | ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| `stage_win`      | `stageRun.ts` l. 1210 (`awardOutcome`)                                          | `raceId`, `season`, `stageDay`, `riderId`, `teamId`                                       | `win:${raceKey}:${gameDay}:${stageDay}`              | `${rider} wins stage ${stage} of the ${race}.`                                                                                                                                             | igual                                                                                                  |
+| `tt_win`         | ídem, crono de una vuelta                                                       | ídem                                                                                      | ídem                                                 | `${rider} wins the stage ${stage} time trial at the ${race}.`                                                                                                                              | igual                                                                                                  |
+| `breakaway_win`  | ídem, con fuga                                                                  | ídem                                                                                      | ídem                                                 | `${rider} wins stage ${stage} of the ${race} from the breakaway.`                                                                                                                          | igual; solo si el ganador iba en la fuga                                                               |
+| `one_day_win`    | ídem, carrera de un día                                                         | ídem, `stageDay` 1                                                                        | ídem                                                 | `${rider} wins the ${race}.`                                                                                                                                                               | igual                                                                                                  |
+| `one_day_tt_win` | ídem, crono de un día                                                           | ídem, `stageDay` 1                                                                        | ídem                                                 | `${rider} wins the ${race} time trial.`                                                                                                                                                    | igual                                                                                                  |
+| `kom`            | `stageRun.ts` l. 1247, última etapa de una vuelta, con puntos                   | ídem, `stageDay` la última                                                                | `kom:${raceKey}`                                     | `${rider} wins the mountains classification at the ${race}.`                                                                                                                               | igual                                                                                                  |
+| `gc_win`         | `stageRun.ts` l. 1223, última etapa de una vuelta                               | ídem, `stageDay` la última                                                                | `gc:${raceKey}:${gameDay}:${stageDay}`               | `${rider} wins the ${race} overall.`                                                                                                                                                       | igual                                                                                                  |
+| `contract`       | `packages/db/src/contracts.ts` l. 332                                           | `riderId`, `toTeamId`, `fromTeamId`, `relocateCountry`, `housingCovered`                  | `contract:${offerId}`                                | ``${rider} signs for ${team}${detail ? ` ${detail}` : ''}.``, con `detail` = `, relocating to ${country}` más ` with housing covered` (l. 327-329): `R signs for T , relocating to Spain.` | `R signs for T, relocating to Spain.`: sin el espacio antes de la coma                                 |
+| `injury`         | `stageRun.ts` l. 1131 (`applyIncidents`)                                        | `raceId`, `season`, `stageDay`, `riderId`, `teamId`, `days`, `prevHealth`, `prevUntilDay` | `injury:${raceKey}:${gameDay}:${riderId}`            | ``${rider} injured${detail ? ` \u2014 out for ${detail}` : ''}.``, con `detail` = `${Math.round(d / 7)} weeks` desde 14 días y `${d} day(s)` por debajo (l. 1127-1130)                     | igual, con `days`                                                                                      |
+| `abandon`        | `stageRun.ts` l. 1069 (`markAbandons`); `riderSchedule.ts` l. 299, entre etapas | `raceId`, `season`, `stageDay` (null entre etapas), `riderId`, `teamId`, `reason`         | `abandon:${raceKey}:${gameDay}:${riderId}`           | ``${rider} abandons the ${race}${stage ? ` on stage ${stage}` : ''}${detail ? ` \u2014 ${detail}` : ''}.``, con `ABANDON_DETAIL[reason]` (l. 1020-1026)                                    | igual, con `reason`                                                                                    |
+| `retirement`     | `rollover.ts` l. 326                                                            | `riderId`, `teamId`, `age`                                                                | `${worldSeed}:retire:${riderId}`                     | ``${rider} retires${detail ? ` ${detail}` : ''}.``, con `detail` = `at ${age}`                                                                                                             | igual                                                                                                  |
+| `gc_lead_taken`  | NUEVA: `awardOutcome`, de la etapa 2 a la penúltima                             | `raceId`, `season`, `stageDay`, `riderId`, `teamId`                                       | `lead:${raceKey}:${gameDay}:${stageDay}`             | no existe                                                                                                                                                                                  | `${rider} takes the overall lead at the ${race}.`                                                      |
+| `jersey_taken`   | NUEVA: ídem, puntos y montaña                                                   | ídem más `jersey`                                                                         | `jersey:${jersey}:${raceKey}:${gameDay}:${stageDay}` | no existe                                                                                                                                                                                  | `${rider} takes the points lead at the ${race}.` y `${rider} takes the mountains lead at the ${race}.` |
 
 `raceKey` es `${raceId}:s${season}` (`packages/shared/src/raceKey.ts`); la carrera viaja como `raceId` y `season` y no como nombre, y `raceOfHeadline` (`apps/web/src/domain/newsFeed.ts` l. 17-24), que buscaba el nombre de la carrera dentro del titular inglés, muere: el enlace sale de `raceId` (D-45). Las dos nuevas son un hecho por línea y caben en 70 caracteres con nombres cortos, como pide el test de hoy (`world/news.test.ts` l. 20-38). En la última etapa las cubren `gc_win` y `kom`; en la primera, el titular de la victoria (el primer líder casi siempre es el ganador). Las etiquetas del feed (`NEWS_KIND_LABEL`, `apps/web/src/domain/labels.ts` l. 167-181) ganan `gc_lead_taken: 'Leader'`, `jersey_taken: 'Jersey'` y `stage_ready: 'Watch'` (pantalla; el marcador de §11.7).
 
@@ -434,23 +492,75 @@ import { pickVariant, type Variant } from './render/variants.js'
 const ofRace = { raceId: z.string().min(1), season: z.number().int().min(0) }
 const who = { riderId: z.string().min(1), teamId: z.string().min(1).nullable() }
 const stageDay = z.number().int().min(1)
-export const abandonReasonSchema = z.enum(['colapso', 'fuera_control', 'lesion', 'enfermedad', 'voluntario']) satisfies z.ZodType<AbandonReason>
+export const abandonReasonSchema = z.enum([
+  'colapso',
+  'fuera_control',
+  'lesion',
+  'enfermedad',
+  'voluntario',
+]) satisfies z.ZodType<AbandonReason>
 /** Lo que lee la API de news.data. Una fila que no valida se pinta con su `text`, o no se pinta (§14.2). */
 export const newsPayloadSchema = z.discriminatedUnion('kind', [
-  z.object({ kind: z.enum(['stage_win', 'tt_win', 'breakaway_win', 'one_day_win', 'one_day_tt_win', 'gc_win', 'kom', 'gc_lead_taken']), ...ofRace, stageDay, ...who }),
-  z.object({ kind: z.literal('jersey_taken'), ...ofRace, stageDay, ...who, jersey: z.enum(['points', 'kom']) }),
-  z.object({ kind: z.literal('abandon'), ...ofRace, stageDay: stageDay.nullable(), ...who, reason: abandonReasonSchema }),
-  z.object({ kind: z.literal('injury'), ...ofRace, stageDay, ...who, days: z.number().int().min(1), prevHealth: z.enum(HEALTH_STATES), prevUntilDay: z.number().int().nullable() }),
-  z.object({ kind: z.literal('contract'), riderId: z.string().min(1), toTeamId: z.string().min(1), fromTeamId: z.string().min(1).nullable(), relocateCountry: z.string().length(2).nullable(), housingCovered: z.boolean() }),
+  z.object({
+    kind: z.enum([
+      'stage_win',
+      'tt_win',
+      'breakaway_win',
+      'one_day_win',
+      'one_day_tt_win',
+      'gc_win',
+      'kom',
+      'gc_lead_taken',
+    ]),
+    ...ofRace,
+    stageDay,
+    ...who,
+  }),
+  z.object({
+    kind: z.literal('jersey_taken'),
+    ...ofRace,
+    stageDay,
+    ...who,
+    jersey: z.enum(['points', 'kom']),
+  }),
+  z.object({
+    kind: z.literal('abandon'),
+    ...ofRace,
+    stageDay: stageDay.nullable(),
+    ...who,
+    reason: abandonReasonSchema,
+  }),
+  z.object({
+    kind: z.literal('injury'),
+    ...ofRace,
+    stageDay,
+    ...who,
+    days: z.number().int().min(1),
+    prevHealth: z.enum(HEALTH_STATES),
+    prevUntilDay: z.number().int().nullable(),
+  }),
+  z.object({
+    kind: z.literal('contract'),
+    riderId: z.string().min(1),
+    toTeamId: z.string().min(1),
+    fromTeamId: z.string().min(1).nullable(),
+    relocateCountry: z.string().length(2).nullable(),
+    housingCovered: z.boolean(),
+  }),
   z.object({ kind: z.literal('retirement'), ...who, age: z.number().int().min(0) }),
 ]) satisfies z.ZodType<NewsPayload>
 
 /** Lo que decía ABANDON_DETAIL (stageRun.ts l. 1020-1026), que se retira: el motivo es un código y la frase se pone al leer. */
 const ABANDON_WORDS: Readonly<Record<AbandonReason, string>> = {
-  colapso: 'climbs off, out of energy', fuera_control: 'eliminated on time', lesion: 'injured', enfermedad: 'ill', voluntario: 'withdraws',
+  colapso: 'climbs off, out of energy',
+  fuera_control: 'eliminated on time',
+  lesion: 'injured',
+  enfermedad: 'ill',
+  voluntario: 'withdraws',
 }
 /** La baja, como la contaba applyIncidents (l. 1127-1130): semanas desde 14 días, días por debajo. */
-const outFor = (d: number): string => (d >= 14 ? `${Math.round(d / 7)} weeks` : `${d} day${d === 1 ? '' : 's'}`)
+const outFor = (d: number): string =>
+  d >= 14 ? `${Math.round(d / 7)} weeks` : `${d} day${d === 1 ? '' : 's'}`
 
 /** La variante de NewsPayload de cada kind. No `Extract<NewsPayload, { kind: K }>`: siete kinds comparten variante con una unión en `kind`
  *  (`stage_win | tt_win | breakaway_win` y `one_day_win | one_day_tt_win | gc_win | kom`) y para ellos Extract da `never` (17 TS2339,
@@ -458,26 +568,91 @@ const outFor = (d: number): string => (d >= 14 ? `${Math.round(d / 7)} weeks` : 
 type Of<K extends NewsKind> = NewsPayload & { readonly kind: K }
 /** Las redacciones de cada kind, con su `since`. Todas since 0: reproducen el inglés de hoy salvo la coma de `contract`. */
 export const NEWS_VARIANTS: { readonly [K in NewsKind]: readonly Variant<Of<K>>[] } = {
-  stage_win: [{ since: 0, render: (d, n) => `${n.rider(d.riderId)} wins stage ${d.stageDay} of the ${n.race(d.raceId)}.` }],
-  tt_win: [{ since: 0, render: (d, n) => `${n.rider(d.riderId)} wins the stage ${d.stageDay} time trial at the ${n.race(d.raceId)}.` }],
-  breakaway_win: [{ since: 0, render: (d, n) => `${n.rider(d.riderId)} wins stage ${d.stageDay} of the ${n.race(d.raceId)} from the breakaway.` }],
-  one_day_win: [{ since: 0, render: (d, n) => `${n.rider(d.riderId)} wins the ${n.race(d.raceId)}.` }],
-  one_day_tt_win: [{ since: 0, render: (d, n) => `${n.rider(d.riderId)} wins the ${n.race(d.raceId)} time trial.` }],
-  kom: [{ since: 0, render: (d, n) => `${n.rider(d.riderId)} wins the mountains classification at the ${n.race(d.raceId)}.` }],
-  gc_win: [{ since: 0, render: (d, n) => `${n.rider(d.riderId)} wins the ${n.race(d.raceId)} overall.` }],
-  gc_lead_taken: [{ since: 0, render: (d, n) => `${n.rider(d.riderId)} takes the overall lead at the ${n.race(d.raceId)}.` }],
-  jersey_taken: [{ since: 0, render: (d, n) => `${n.rider(d.riderId)} takes the ${d.jersey === 'points' ? 'points' : 'mountains'} lead at the ${n.race(d.raceId)}.` }],
-  contract: [{ since: 0, render: (d, n) =>
-    `${n.rider(d.riderId)} signs for ${n.team(d.toTeamId)}${d.relocateCountry === null ? '' : `, relocating to ${n.country(d.relocateCountry)}${d.housingCovered ? ' with housing covered' : ''}`}.` }],
-  injury: [{ since: 0, render: (d, n) => `${n.rider(d.riderId)} injured \u2014 out for ${outFor(d.days)}.` }],
-  abandon: [{ since: 0, render: (d, n) =>
-    `${n.rider(d.riderId)} abandons the ${n.race(d.raceId)}${d.stageDay === null ? '' : ` on stage ${d.stageDay}`} \u2014 ${ABANDON_WORDS[d.reason]}.` }],
+  stage_win: [
+    {
+      since: 0,
+      render: (d, n) =>
+        `${n.rider(d.riderId)} wins stage ${d.stageDay} of the ${n.race(d.raceId)}.`,
+    },
+  ],
+  tt_win: [
+    {
+      since: 0,
+      render: (d, n) =>
+        `${n.rider(d.riderId)} wins the stage ${d.stageDay} time trial at the ${n.race(d.raceId)}.`,
+    },
+  ],
+  breakaway_win: [
+    {
+      since: 0,
+      render: (d, n) =>
+        `${n.rider(d.riderId)} wins stage ${d.stageDay} of the ${n.race(d.raceId)} from the breakaway.`,
+    },
+  ],
+  one_day_win: [
+    { since: 0, render: (d, n) => `${n.rider(d.riderId)} wins the ${n.race(d.raceId)}.` },
+  ],
+  one_day_tt_win: [
+    {
+      since: 0,
+      render: (d, n) => `${n.rider(d.riderId)} wins the ${n.race(d.raceId)} time trial.`,
+    },
+  ],
+  kom: [
+    {
+      since: 0,
+      render: (d, n) =>
+        `${n.rider(d.riderId)} wins the mountains classification at the ${n.race(d.raceId)}.`,
+    },
+  ],
+  gc_win: [
+    { since: 0, render: (d, n) => `${n.rider(d.riderId)} wins the ${n.race(d.raceId)} overall.` },
+  ],
+  gc_lead_taken: [
+    {
+      since: 0,
+      render: (d, n) => `${n.rider(d.riderId)} takes the overall lead at the ${n.race(d.raceId)}.`,
+    },
+  ],
+  jersey_taken: [
+    {
+      since: 0,
+      render: (d, n) =>
+        `${n.rider(d.riderId)} takes the ${d.jersey === 'points' ? 'points' : 'mountains'} lead at the ${n.race(d.raceId)}.`,
+    },
+  ],
+  contract: [
+    {
+      since: 0,
+      render: (d, n) =>
+        `${n.rider(d.riderId)} signs for ${n.team(d.toTeamId)}${d.relocateCountry === null ? '' : `, relocating to ${n.country(d.relocateCountry)}${d.housingCovered ? ' with housing covered' : ''}`}.`,
+    },
+  ],
+  injury: [
+    {
+      since: 0,
+      render: (d, n) => `${n.rider(d.riderId)} injured \u2014 out for ${outFor(d.days)}.`,
+    },
+  ],
+  abandon: [
+    {
+      since: 0,
+      render: (d, n) =>
+        `${n.rider(d.riderId)} abandons the ${n.race(d.raceId)}${d.stageDay === null ? '' : ` on stage ${d.stageDay}`} \u2014 ${ABANDON_WORDS[d.reason]}.`,
+    },
+  ],
   retirement: [{ since: 0, render: (d, n) => `${n.rider(d.riderId)} retires at ${d.age}.` }],
 }
 
 /** EL TITULAR AL LEER (D-45). Semilla y revisión, las de la fila. `_locale`: el literal 'en' hasta E10, que ensancha el tipo y lo renombra
  *  cuando lo lea; con el nombre sin `_`, `noUnusedParameters` (tsconfig.base.json) da TS6133 y el 1a no pasaría `pnpm typecheck`. */
-export function renderNews(_locale: 'en', p: NewsPayload, seed: string, rev: number, n: NameResolver): string {
+export function renderNews(
+  _locale: 'en',
+  p: NewsPayload,
+  seed: string,
+  rev: number,
+  n: NameResolver,
+): string {
   const variants = NEWS_VARIANTS[p.kind] as readonly Variant<NewsPayload>[]
   return pickVariant(`news:${p.kind}:${seed}`, variants, rev).render(p, n)
 }
@@ -485,21 +660,21 @@ export function renderNews(_locale: 'en', p: NewsPayload, seed: string, rev: num
 
 `injury` siempre tiene días (`applyIncidents` salta las de `diasBaja ≤ 0`, l. 1114) y `abandon` siempre tiene motivo (`ABANDON_DETAIL` es total), así que los condicionales de hoy sobre `detail` se quedan en su rama con texto. La semilla de `pickVariant` es la de hoy, `news:${kind}:${seed}` (`world/news.ts` l. 55); con una redacción por `kind`, que la función de elección pase de `seededRng` a FNV-1a no cambia ningún titular. `country(iso2)` resuelve con `COUNTRIES` (`packages/shared/src/countries.ts`), como hoy `contracts.ts` l. 326.
 
-**Las piezas que cambian con esto.** (1) `renderNews` y `NewsData` salen del motor en el PR 4a (`packages/engine/src/world/news.ts` l. 21-58; quedan los códigos) y su test pasa a `packages/shared/src/news.test.ts` con los mismos casos sobre `NewsPayload` y un resolutor de prueba (D-45). (2) `emitNews` recibe el payload y la semilla y, hasta DD-19, redacta `text` con `renderNews('en', p, seed, TEMPLATE_REV, n)` y un `NameResolver` leído de la base en la misma transacción. (3) `getGlobalNews`, `getTeamNews` y `getRiderNews` (`news.ts` l. 67-146) redactan al LEER: con `data` válido, `renderNews` con la semilla y el `tpl_rev` de la fila; sin él, `text`, que es una fila anterior a la `0043`; el resolutor carga en dos consultas los nombres de los corredores, equipos y carreras de la página (se propone `newsNames(db, payloads)` en `packages/db/src/news.ts`). (4) `abandon.test.ts` l. 232-237 deja de leer `news.text` y comprueba el render. (5) `ABANDON_DETAIL` y el `outFor` de `applyIncidents` se retiran de `stageRun.ts`: su texto vive en `ABANDON_WORDS` y `outFor`.
+**Las piezas que cambian con esto.** (1) `renderNews` y `NewsData` salen del motor en el PR 4a (`packages/engine/src/world/news.ts` l. 21-58; quedan los códigos) y su test pasa a `packages/shared/src/news.test.ts` con los mismos casos sobre `NewsPayload` y un resolutor de prueba (D-45). (2) `emitNews` recibe el payload y la semilla y, hasta DD-19, redacta `text` con `renderNews('en', p, seed, TEMPLATE_REV, n)` y un `NameResolver` leído de la base en la misma transacción. (3) `getGlobalNews`, `getTeamNews` y `getRiderNews` (`news.ts` l. 67-146) redactan al LEER: con `data` válido, `renderNews` con la semilla y el `tpl_rev` de la fila; sin él, `text`, que es una fila anterior a la `0046`; el resolutor carga en dos consultas los nombres de los corredores, equipos y carreras de la página (se propone `newsNames(db, payloads)` en `packages/db/src/news.ts`). (4) `abandon.test.ts` l. 232-237 deja de leer `news.text` y comprueba el render. (5) `ABANDON_DETAIL` y el `outFor` de `applyIncidents` se retiran de `stageRun.ts`: su texto vive en `ABANDON_WORDS` y `outFor`.
 
 La firma nueva de `emitNews`, que §13.2 da por escrita aquí (la inserción, con sus columnas, es §13.2, que llama `p` al payload):
 
 ```ts
 // packages/db/src/news.ts (PR 1a)
 export async function emitNews(
-  tx: NewsWriter,                  // Tx | Database, como hoy (news.ts l. 14-20): la retirada voluntaria escribe fuera de una transacción
+  tx: NewsWriter, // Tx | Database, como hoy (news.ts l. 14-20): la retirada voluntaria escribe fuera de una transacción
   opts: {
     worldId: string
     gameDay: number
-    seed: string                   // la que ya calcula quien llama: la de la columna Semilla de la tabla de las trece
-    payload: NewsPayload           // §4.12; sustituye a `kind` y a `data: NewsData`: el kind de la fila es payload.kind
-    raceKey?: string | null        // spec.raceKey de quien llama; null en contract y retirement (§13.2)
-    riderId?: string | null        // el protagonista, como hoy
+    seed: string // la que ya calcula quien llama: la de la columna Semilla de la tabla de las trece
+    payload: NewsPayload // §4.12; sustituye a `kind` y a `data: NewsData`: el kind de la fila es payload.kind
+    raceKey?: string | null // spec.raceKey de quien llama; null en contract y retirement (§13.2)
+    riderId?: string | null // el protagonista, como hoy
     personal?: boolean
   },
 ): Promise<void>
@@ -516,21 +691,35 @@ export async function emitNews(
 // packages/db/src/stageRun.ts, awardOutcome (l. 1143), tras la noticia de la victoria (l. 1210-1217). Tal como queda tras el 8a;
 // en el 1a, las mismas llamadas sin `worldHorizon`.
 if (!isOneDay && !spec.isFinal && spec.stageDay >= 2) {
-  const firstOf = async (day: number) => ({                              // tx es la transacción del día: `q: Queryable` (§7.4)
+  const firstOf = async (day: number) => ({
+    // tx es la transacción del día: `q: Queryable` (§7.4)
     gc: (await getGcThroughStage(tx, worldHorizon, spec.raceKey, day))[0]?.riderId ?? null,
-    points: (await getPointsClassification(tx, worldHorizon, spec.raceKey, day))[0]?.riderId ?? null,
+    points:
+      (await getPointsClassification(tx, worldHorizon, spec.raceKey, day))[0]?.riderId ?? null,
     kom: (await getKomClassification(tx, worldHorizon, spec.raceKey, day))[0]?.riderId ?? null,
   })
   const [before, after] = [await firstOf(spec.stageDay - 1), await firstOf(spec.stageDay)]
   const race = { raceId: spec.raceId, season: spec.season, stageDay: spec.stageDay }
   if (after.gc !== null && after.gc !== before.gc)
-    await emitNews(tx, { worldId, gameDay, raceKey: spec.raceKey, riderId: after.gc, seed: `lead:${seedBase}`,
-      payload: { kind: 'gc_lead_taken', ...race, riderId: after.gc, teamId: teamOfDay(after.gc) } })
+    await emitNews(tx, {
+      worldId,
+      gameDay,
+      raceKey: spec.raceKey,
+      riderId: after.gc,
+      seed: `lead:${seedBase}`,
+      payload: { kind: 'gc_lead_taken', ...race, riderId: after.gc, teamId: teamOfDay(after.gc) },
+    })
   for (const jersey of ['points', 'kom'] as const) {
     const rider = after[jersey]
     if (rider === null || rider === before[jersey]) continue
-    await emitNews(tx, { worldId, gameDay, raceKey: spec.raceKey, riderId: rider, seed: `jersey:${jersey}:${seedBase}`,
-      payload: { kind: 'jersey_taken', ...race, riderId: rider, teamId: teamOfDay(rider), jersey } })
+    await emitNews(tx, {
+      worldId,
+      gameDay,
+      raceKey: spec.raceKey,
+      riderId: rider,
+      seed: `jersey:${jersey}:${seedBase}`,
+      payload: { kind: 'jersey_taken', ...race, riderId: rider, teamId: teamOfDay(rider), jersey },
+    })
   }
 }
 ```
@@ -539,16 +728,16 @@ if (!isOneDay && !spec.isFinal && spec.stageDay >= 2) {
 
 **El orden dentro del día.** Hoy todas las noticias de un día comparten `created_at` y el orden es el que devuelva Postgres (mapa 04 §1.2; `news.ts` l. 87 ordena por `game_day desc, created_at desc`). El orden nuevo es `game_day desc`, `race_key` (nulos al final), `stage_day desc` (nulos al final), la prioridad del `kind` y `id`. Un `StageReadyItem` ocupa el sitio de las filas de su etapa con prioridad 0 (§11.7).
 
-| Prioridad | `kind` | Por qué ese sitio |
-| --- | --- | --- |
-| 1 | `gc_win` | la general final es la noticia de la carrera |
-| 2 | `gc_lead_taken`, `jersey_taken` | quién manda ahora, lo que cambia mañana |
-| 3 | `stage_win`, `tt_win`, `breakaway_win`, `one_day_win`, `one_day_tt_win` | la etapa |
-| 4 | `kom` | la montaña final |
-| 5 | `abandon` | quién se va |
-| 6 | `injury` | quién se hace daño |
-| 7 | `contract` | fuera de carrera |
-| 8 | `retirement` | fuera de carrera |
+| Prioridad | `kind`                                                                  | Por qué ese sitio                            |
+| --------- | ----------------------------------------------------------------------- | -------------------------------------------- |
+| 1         | `gc_win`                                                                | la general final es la noticia de la carrera |
+| 2         | `gc_lead_taken`, `jersey_taken`                                         | quién manda ahora, lo que cambia mañana      |
+| 3         | `stage_win`, `tt_win`, `breakaway_win`, `one_day_win`, `one_day_tt_win` | la etapa                                     |
+| 4         | `kom`                                                                   | la montaña final                             |
+| 5         | `abandon`                                                               | quién se va                                  |
+| 6         | `injury`                                                                | quién se hace daño                           |
+| 7         | `contract`                                                              | fuera de carrera                             |
+| 8         | `retirement`                                                            | fuera de carrera                             |
 
 ```sql
 -- packages/db/src/news.ts: el orden de getGlobalNews, getTeamNews y getRiderNews (hoy l. 87, 112 y 140)
@@ -563,23 +752,23 @@ order by game_day desc, race_key asc nulls last, stage_day desc nulls last,
 
 **Los tests de las noticias** (paso 1, suite rápida):
 
-| Test | Qué fija |
-| --- | --- |
-| `packages/shared/src/news.test.ts` (sustituye a `packages/engine/src/world/news.test.ts` en el 4a) | un golden por `kind`, los trece, con un resolutor de prueba; el de hoy carácter a carácter salvo `contract`; menos de 70 caracteres con nombres cortos; `newsPayloadSchema` rechaza un payload sin `prevHealth` o con un `reason` desconocido |
-| `packages/db/src/news.test.ts` (nuevo, PGlite) | `emitNews` escribe `data`, `seed`, `race_key`, `stage_day`, `tpl_rev` y `text`; leer da el mismo texto que se escribió (B4); una fila anterior a la `0043`, solo con `text`, se sigue leyendo; el orden del día es el de la tabla de prioridades |
-| `packages/db/src/abandon.test.ts` l. 232-237 | re-sellado: el titular se comprueba renderizando `data`, no leyendo `news.text` |
-| `packages/db/src/stageRun.test.ts` | `breakaway_win` solo con el ganador en un grupo `fuga`; `gc_lead_taken` y `jersey_taken` cuando cambia el primero, nunca en la primera ni en la última etapa; `injury` con la salud de antes |
-| `apps/web/src/domain/newsFeed.test.ts` l. 32-44 | re-sellado: el enlace sale de `raceId` y `raceOfHeadline` desaparece |
+| Test                                                                                               | Qué fija                                                                                                                                                                                                                                         |
+| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `packages/shared/src/news.test.ts` (sustituye a `packages/engine/src/world/news.test.ts` en el 4a) | un golden por `kind`, los trece, con un resolutor de prueba; el de hoy carácter a carácter salvo `contract`; menos de 70 caracteres con nombres cortos; `newsPayloadSchema` rechaza un payload sin `prevHealth` o con un `reason` desconocido    |
+| `packages/db/src/news.test.ts` (nuevo, PGlite)                                                     | `emitNews` escribe `data`, `seed`, `race_key`, `stage_day`, `tpl_rev` y `text`; leer da el mismo texto que se escribió (B4); una fila anterior a la `0046`, solo con `text`, se sigue leyendo; el orden del día es el de la tabla de prioridades |
+| `packages/db/src/abandon.test.ts` l. 232-237                                                       | re-sellado: el titular se comprueba renderizando `data`, no leyendo `news.text`                                                                                                                                                                  |
+| `packages/db/src/stageRun.test.ts`                                                                 | `breakaway_win` solo con el ganador en un grupo `fuga`; `gc_lead_taken` y `jersey_taken` cuando cambia el primero, nunca en la primera ni en la última etapa; `injury` con la salud de antes                                                     |
+| `apps/web/src/domain/newsFeed.test.ts` l. 32-44                                                    | re-sellado: el enlace sale de `raceId` y `raceOfHeadline` desaparece                                                                                                                                                                             |
 
 ### 12.9 Los narradores sobrantes
 
 D-47, escrito como hecho (I-41; contradicción 9 del mapa 05). Hoy hay dos fraseos de las mismas plantillas: el journal (`stageJournal.ts`) y `apps/web/src/domain/narration.ts`, con tres piezas que se tratan una a una.
 
-| Pieza | Hoy | E2 | Paso |
-| --- | --- | --- | --- |
-| `narrate()` y su tabla `CHRONICLE` (l. 16-124; la tabla, l. 16-107) | 19 plantillas y 56 redacciones (medido evaluando la tabla; el mapa 07 §3 dice 57 porque cuenta también la línea de la declaración, l. 16), con cero llamadas en producción: solo la usa su test (`narration.test.ts`, ejecutabilidad #5) | se borra, con los tres casos de `narrate` y `personalNarration` de `narration.test.ts` (l. 24-39); el cuarto (l. 41-59), la única prueba de `raceVerdict`, se queda, porque `raceVerdict` sigue en uso (`LastRaceReport.tsx` l. 4, `Home.tsx` l. 19) | 12 |
-| `personalNarration(plantilla)` (l. 127-149) | segunda persona para siete plantillas y, en las demás, la clave cruda (`default`, l. 146-147) en `LastRaceReport.tsx` (l. 4 y 97) | se sustituye por las líneas del acta en las que el corredor es protagonista, redactadas con `chronicleLine`: lo que no tiene frase no se imprime | 12 |
-| `raceVerdict(r)` (l. 152-164) | el veredicto por prioridades, sobre la última etapa CORRIDA, que pinta `LastRaceReport.tsx` l. 32 | la misma lógica, sobre la última etapa CONOCIDA | 8a |
+| Pieza                                                               | Hoy                                                                                                                                                                                                                                      | E2                                                                                                                                                                                                                                                   | Paso |
+| ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| `narrate()` y su tabla `CHRONICLE` (l. 16-124; la tabla, l. 16-107) | 19 plantillas y 56 redacciones (medido evaluando la tabla; el mapa 07 §3 dice 57 porque cuenta también la línea de la declaración, l. 16), con cero llamadas en producción: solo la usa su test (`narration.test.ts`, ejecutabilidad #5) | se borra, con los tres casos de `narrate` y `personalNarration` de `narration.test.ts` (l. 24-39); el cuarto (l. 41-59), la única prueba de `raceVerdict`, se queda, porque `raceVerdict` sigue en uso (`LastRaceReport.tsx` l. 4, `Home.tsx` l. 19) | 12   |
+| `personalNarration(plantilla)` (l. 127-149)                         | segunda persona para siete plantillas y, en las demás, la clave cruda (`default`, l. 146-147) en `LastRaceReport.tsx` (l. 4 y 97)                                                                                                        | se sustituye por las líneas del acta en las que el corredor es protagonista, redactadas con `chronicleLine`: lo que no tiene frase no se imprime                                                                                                     | 12   |
+| `raceVerdict(r)` (l. 152-164)                                       | el veredicto por prioridades, sobre la última etapa CORRIDA, que pinta `LastRaceReport.tsx` l. 32                                                                                                                                        | la misma lógica, sobre la última etapa CONOCIDA                                                                                                                                                                                                      | 8a   |
 
 **Los momentos del corredor.** `riderRaceReportSchema` (`contracts.ts` l. 1554-1569) gana `moments`, opcional: las `ChronicleEntry` del acta de esa etapa (`buildChronicle` sin `live` sobre `stage_snapshots.events`, con los nombres del día de 12.7) en las que el corredor es protagonista o su `forId` (`mentions`). Los produce el manejador de `GET /api/riders/me/last-race` (`apps/api/src/routes/riders.ts` l. 198-204), y no `getRiderLastRaceReport` (`packages/db/src/raceReport.ts` l. 78): `packages/db` no puede llamar a `buildChronicle`, que vive en `apps/api` (sus dependencias son `@cyclingstar/engine`, `@cyclingstar/shared`, `drizzle-orm` y `postgres`, `packages/db/package.json`). Con la etapa del informe, el manejador lee `stage_snapshots.events` y los nombres del día (`getRaceRiderIdentities` con el equipo del día, 12.7) y filtra `buildChronicle(events, names)` por `protagonists` y `mentions` del corredor; el esquema es el de §14.2 (`riderRaceReportSchema` + `moments`), y el PR 12 toca la ruta (§17.15, §17.20). Como `moments` es opcional, nada fallaría al compilar si nadie lo escribiera y la tarjeta `Last race` se quedaría sin los momentos del corredor; por eso el PR 12 lo fija con un test nuevo, `apps/api/src/routes/lastRace.test.ts` (PGlite, con una etapa corrida por `runOneStage`): con la etapa conocida, `report.moments` lleva las líneas del acta en que el corredor es protagonista o destinatario, en el orden del acta; y si la última corrida está velada, el informe es el de la anterior conocida y `ready` lleva la velada (§14.2). La web los pinta con `chronicleLine`; `personalEvents`, que solo trae `{ km, plantilla }`, se sigue mandando mientras haya una web que lo lea (DD-19) y deja de pintarse. El racimo de `groupRuns` en el que va el corredor cuenta como momento suyo: es la línea que dice que se descolgó.
 
@@ -595,11 +784,11 @@ D-16, escrito como hecho (I-05; [DUEÑO 10], la radio sigue siendo el microscopi
 
 **A quién nombra cada grupo** (decisión 12-o). Lo decide `names`, que no puede ser solo la identidad: `RadioNames` (§4.13) lleva `riderOf`, la forma de `ChronicleNames` (`chronicle.ts` l. 193-195) con que se pone cara a un id; `own`, los corredores del espectador; y `nameableAt(km)`, los nombrables en la foto de ese km. Un grupo de hasta `BROADCAST.nameWholeGroupUpTo` (12) va entero en `riders`, como en la radio guardada (`NAME_WHOLE_GROUP_UP_TO`, `raceRadio.ts` l. 611); en uno mayor, `riders` son los que tiran, con su motivo y su destinatario, los de `own` en todas las fotos en que corren (R23.7: «EL CORREDOR PROPIO SIEMPRE APARECE NOMBRADO EN SU RADIO», `docs/tactica.md` l. 4875) y los de `nameableAt(km)`, y `unnamed` es el resto, que se cuenta. Con una firma que solo trajera `riderOf` no se podría aplicar la política de §7.7, que necesita saber quién es del espectador y qué se ha revelado. Quien construye `names` elige la política:
 
-| Quién llama | `own` | `nameableAt(km)` |
-| --- | --- | --- |
-| la pestaña de una etapa NO conocida, en la web, sobre la línea cortada en lo pintado (11-i) | los del espectador (`RiderCard.own`) | la política de §7.7 sobre el reparto servido, que ya viene con el velo: los que llevan un maillot que no es el de su equipo, los `namedGcTop` (10) primeros de la general de salida y los protagonistas de los sucesos revelados antes de esa foto |
-| la ruta de etapa de una etapa CONOCIDA (letras `W`, `S`, `R` o `A`) y `?diag=1` (§11.15) | los del espectador | lo mismo, más los diez primeros de la etapa (de `stage_results`), los que mete hoy la lista de seguimiento (`stageRun.ts` l. 558-568): en una etapa conocida no destripan nada, y es a quien el dueño sigue por la radio aunque no tire («pero no dice quién es, wey», `docs/balance.md` l. 9594, v57; «Hay un ciclista suelto que se quedó descolgado del pelotón… ¿cómo es posible que vaya tan rápido como el pelotón?», l. 7898-7899) |
-| B16 (§16.4) | vacío, salvo en su caso de R23.7 | la lista que recibe `radioForStorage` en el otro lado: vacía, o los diez primeros de la etapa |
+| Quién llama                                                                                 | `own`                                | `nameableAt(km)`                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ------------------------------------------------------------------------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| la pestaña de una etapa NO conocida, en la web, sobre la línea cortada en lo pintado (11-i) | los del espectador (`RiderCard.own`) | la política de §7.7 sobre el reparto servido, que ya viene con el velo: los que llevan un maillot que no es el de su equipo, los `namedGcTop` (10) primeros de la general de salida y los protagonistas de los sucesos revelados antes de esa foto                                                                                                                                                                                        |
+| la ruta de etapa de una etapa CONOCIDA (letras `W`, `S`, `R` o `A`) y `?diag=1` (§11.15)    | los del espectador                   | lo mismo, más los diez primeros de la etapa (de `stage_results`), los que mete hoy la lista de seguimiento (`stageRun.ts` l. 558-568): en una etapa conocida no destripan nada, y es a quien el dueño sigue por la radio aunque no tire («pero no dice quién es, wey», `docs/balance.md` l. 9594, v57; «Hay un ciclista suelto que se quedó descolgado del pelotón… ¿cómo es posible que vaya tan rápido como el pelotón?», l. 7898-7899) |
+| B16 (§16.4)                                                                                 | vacío, salvo en su caso de R23.7     | la lista que recibe `radioForStorage` en el otro lado: vacía, o los diez primeros de la etapa                                                                                                                                                                                                                                                                                                                                             |
 
 No hay lista de seguimiento guardada: con la pertenencia completa en cada instante, nombrar ya no depende de lo que se guardó (§7.7), y la de la etapa conocida se pone al leer. Sin la fila de la etapa conocida, desde el paso 11 la radio dejaría de nombrar, km a km, al ganador que viajó escondido en el pelotón hasta que hiciera algo, que es justo lo que el microscopio del dueño enseña hoy.
 
@@ -611,35 +800,36 @@ No hay lista de seguimiento guardada: con la pertenencia completa en cada instan
 
 D-62, en la parte de E10 (`docs/encargos.md` l. 542-563: plantillas por idioma sobre sucesos estructurados y «nunca una tabla de cadenas traducidas»). Lo que el mapa 07 §3 pedía para E10, y dónde queda:
 
-| Lo que E10 necesita | Dónde queda en E2 |
-| --- | --- |
-| todo lo que E2 escribe, como plantilla, datos con códigos, números e ids, y semilla, nunca como texto; en el tick, cero texto | la voz y el acta, `ChronicleEntry` (12.2); las noticias, `NewsPayload` con `seed` (12.8); los rótulos, `Cue` (§6.5); el título y el aviso, `pageTitle` y `stageReadyNotice` (§11.8, §11.9) |
-| una semilla de variante neutra de idioma | `variantSeed` (12.7) y la semilla de la noticia, que ya era neutra (`win:${seedBase}`); `pickVariant` con `since` por idioma |
-| `locale` en cada punto de render | desde que nace, cada render recibe `locale` como primer parámetro, con el tipo literal `'en'` y el nombre `_locale` mientras no lo lea (`noUnusedParameters`, `tsconfig.base.json`; decisión 12-q): `renderNews` y `gapTrendLine` (12.5, 12.8); `breakHeadline`, `groupLabelText` y `championTitleText` (§6.3, §7.4, §7.6); `pageTitle`, `stageReadyNotice` y `stageReadyEmail` (§11.8, §11.9); y `chronicleParts` y `chronicleLine`, que lo ganan en el paso 12 junto con `rev` (12.7). E10 solo ensancha el tipo y renombra el parámetro: añadirlo después cambiaría la firma de cada render y todas sus llamadas en la web, la API y `shared`, que es el trabajo que D-62 quería ahorrarle |
-| los datos que la concordancia exige | el género en el rótulo servido (`RiderCard.gender`, §4.8), que es lo que recibe la web, copiado del reparto (`CastRider.gender`, §4.2) por `serveCast` (§7.8); las cuentas como números (`count`, `others`, `days`, `age`); `ChronicleRider` no lleva género y E10 lo añade desde el reparto |
-| el vocabulario de grupos como código | `GroupRole`, `JerseyKind` y `GROUP_WORDS` (§6.3), con `mainRole` y `groupRole`, y `mainJersey` y `groupJersey` para el grupo del maillot, en los datos de la línea (12.6); `GROUP_NOUNS` sigue en el motor como vigilancia del inglés |
-| la noticia con carrera y etapa en los datos | `raceId`, `season` y `stageDay` en `NewsPayload`; `raceOfHeadline` muere (12.8) |
+| Lo que E10 necesita                                                                                                           | Dónde queda en E2                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ----------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| todo lo que E2 escribe, como plantilla, datos con códigos, números e ids, y semilla, nunca como texto; en el tick, cero texto | la voz y el acta, `ChronicleEntry` (12.2); las noticias, `NewsPayload` con `seed` (12.8); los rótulos, `Cue` (§6.5); el título y el aviso, `pageTitle` y `stageReadyNotice` (§11.8, §11.9)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| una semilla de variante neutra de idioma                                                                                      | `variantSeed` (12.7) y la semilla de la noticia, que ya era neutra (`win:${seedBase}`); `pickVariant` con `since` por idioma                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `locale` en cada punto de render                                                                                              | desde que nace, cada render recibe `locale` como primer parámetro, con el tipo literal `'en'` y el nombre `_locale` mientras no lo lea (`noUnusedParameters`, `tsconfig.base.json`; decisión 12-q): `renderNews` y `gapTrendLine` (12.5, 12.8); `breakHeadline`, `groupLabelText` y `championTitleText` (§6.3, §7.4, §7.6); `pageTitle`, `stageReadyNotice` y `stageReadyEmail` (§11.8, §11.9); y `chronicleParts` y `chronicleLine`, que lo ganan en el paso 12 junto con `rev` (12.7). E10 solo ensancha el tipo y renombra el parámetro: añadirlo después cambiaría la firma de cada render y todas sus llamadas en la web, la API y `shared`, que es el trabajo que D-62 quería ahorrarle |
+| los datos que la concordancia exige                                                                                           | el género en el rótulo servido (`RiderCard.gender`, §4.8), que es lo que recibe la web, copiado del reparto (`CastRider.gender`, §4.2) por `serveCast` (§7.8); las cuentas como números (`count`, `others`, `days`, `age`); `ChronicleRider` no lleva género y E10 lo añade desde el reparto                                                                                                                                                                                                                                                                                                                                                                                                  |
+| el vocabulario de grupos como código                                                                                          | `GroupRole`, `JerseyKind` y `GROUP_WORDS` (§6.3), con `mainRole` y `groupRole`, y `mainJersey` y `groupJersey` para el grupo del maillot, en los datos de la línea (12.6); `GROUP_NOUNS` sigue en el motor como vigilancia del inglés                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| la noticia con carrera y etapa en los datos                                                                                   | `raceId`, `season` y `stageDay` en `NewsPayload`; `raceOfHeadline` muere (12.8)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 
 **Lo que sigue en inglés, y por qué.** Nada de esto es de E2 ni lo cuenta la retransmisión; se deja escrito para que E10 lo encuentre:
 
-- `palmares.detail` (`Stage ${spec.stageDay}`, `stageRun.ts` l. 1287): la fila del palmarés guarda texto; la `0046` le da `stage_day` (§13.5) y con eso E10 puede redactarlo al leer.
-- Las notas del libro de cuentas (`${raceName} · stage win` y `${raceName} · GC #${i + 1}`, `packages/db/src/economy.ts` l. 171 y 181): `transactions` gana `race_key` y `stage_day` en la `0046`, que es lo que E10 necesita para redactarlas.
+- `palmares.detail` (`Stage ${spec.stageDay}`, `stageRun.ts` l. 1287): la fila del palmarés guarda texto; la `0049` le da `stage_day` (§13.5) y con eso E10 puede redactarlo al leer.
+- Las notas del libro de cuentas (`${raceName} · stage win` y `${raceName} · GC #${i + 1}`, `packages/db/src/economy.ts` l. 171 y 181): `transactions` gana `race_key` y `stage_day` en la `0049`, que es lo que E10 necesita para redactarlas.
 - La `story` de `raceReport.ts` (l. 157-170), que es del paso 17d de la táctica (12.9).
 - Los tres correos de cuenta (`apps/api/src/emails.ts` l. 64-135), que no son de carrera.
 - Las 272 redacciones del journal y las frases nuevas de 12.5, que son el golden del inglés: se traducen como un fichero de plantillas por idioma, no como tabla de cadenas, que es lo que el encargo de E10 pide.
 
 ---
 
-**Injertos aplicados.** I-05 (§12.10: la foto frente al instante, escrito; la radio desde la línea con el contrato `RaceRadio` de hoy y sin lista de seguimiento guardada, tras B16; a quién nombra, con `own` y `nameableAt`, 12-o), I-07 (§12.6: la voz lee `GroupRole` con `mainRole` y `groupRole` sobre el instante, y la etiqueta del grupo del maillot con `mainJersey` y `groupJersey`; `GROUP_NOUNS` y `WATCHED_GROUP_NOUNS` con `the gruppetto` y los tres nombres del grupo del maillot en el PR 4a), I-13 (§12.8: `NewsPayload` con el equipo del día, `breakaway_win` comprobado y medido, `text` de compatibilidad hasta DD-19 y la `0043` como primera migración), I-14 (§12.7: `pickVariant` con `since` y `TEMPLATE_REV`, `variantSeed` neutra, la revisión de cada etapa), I-25 (§12.8: `gc_lead_taken` y `jersey_taken`, con carrera y etapa y bajo el velo por `race_key` y `stage_day`), I-41 (§12.9: `narrate()` se borra; `moments` y `raceVerdict` sobre la última etapa conocida), I-43 (§12.2: truncado por `revealS`, orden por revealado, longitud como dato y las cinco pasadas apagadas, medido en 18 corridas), I-44 (§12.3: la regla de publicación al cerrar la ventana, medida, detrás de `liveClusters`).
+**Injertos aplicados.** I-05 (§12.10: la foto frente al instante, escrito; la radio desde la línea con el contrato `RaceRadio` de hoy y sin lista de seguimiento guardada, tras B16; a quién nombra, con `own` y `nameableAt`, 12-o), I-07 (§12.6: la voz lee `GroupRole` con `mainRole` y `groupRole` sobre el instante, y la etiqueta del grupo del maillot con `mainJersey` y `groupJersey`; `GROUP_NOUNS` y `WATCHED_GROUP_NOUNS` con `the gruppetto` y los tres nombres del grupo del maillot en el PR 4a), I-13 (§12.8: `NewsPayload` con el equipo del día, `breakaway_win` comprobado y medido, `text` de compatibilidad hasta DD-19 y la `0046` como primera migración), I-14 (§12.7: `pickVariant` con `since` y `TEMPLATE_REV`, `variantSeed` neutra, la revisión de cada etapa), I-25 (§12.8: `gc_lead_taken` y `jersey_taken`, con carrera y etapa y bajo el velo por `race_key` y `stage_day`), I-41 (§12.9: `narrate()` se borra; `moments` y `raceVerdict` sobre la última etapa conocida), I-43 (§12.2: truncado por `revealS`, orden por revealado, longitud como dato y las cinco pasadas apagadas, medido en 18 corridas), I-44 (§12.3: la regla de publicación al cerrar la ventana, medida, detrás de `liveClusters`).
 
 **Objeciones resueltas.** O-02 (§12.2: la lista de cinco pasadas, escrita con las veintiuna, y la longitud como dato; `respecto`, `juntos` y `desenlace` siguen en la voz), O-06 (§12.8, con §13.2: la migración de noticias es la primera y va antes del reinicio), O-07 (§12.7 y §12.8: el equipo del día en la crónica y en el titular), O-10 (§12.6: una palabra por papel en barra, radio, voz y acta, con el conflicto de «the bunch» medido y resuelto, y el grupo del maillot con el mismo nombre en la barra y en la voz), O-24 (§12.5: los cuatro `case` que faltaban, las cuatro frases nuevas y el `default` que no imprime la clave).
 
 **Huecos rellenados.** Ninguno asignado. Contradicciones de hecho que quedan resueltas: X-14 (§12.2: las cinco pasadas que miran el futuro, con la tabla de las veintiuna), X-20 (§12.8: `/api/news` sigue mandando `text` hasta DD-19) y X-21 (§12.5: las cuatro plantillas que caían al `default`; §12.9: `narrate()` sin llamadas). Contradicciones 6 (§12.8), 8 (§12.1) y 9 (§12.9) del mapa 05.
 
 **Decisiones de esta sección.**
+
 - 12-a. El reloj que ordena la voz es el de revelado: `revealS`, y a igualdad `tS`, `EVENT_ORDER` y km. Con `live`, `byClock` no ordena. D-43 decía «orden por reloj» con la rama `byClock` porque `ingeniero` revelaba cada suceso en su `tS` y los dos relojes coincidían; con el `revealS` real, ordenar por `tS` rompe el prefijo 44 veces en 18 corridas y por `revealS`, ninguna (`l8/voz.mjs`). Descartado: el orden por `tS`.
 - 12-b. La voz dice la palabra que la barra enseña en la hora de la línea: la API anota `datos.mainRole` (el papel del grupo del título) en las diez plantillas de `MAIN_GROUP_TEMPLATES` y `datos.groupRole` (el del grupo del caído) en `crash`, y, si ese grupo lleva la etiqueta `jersey_group`, su maillot en `datos.mainJersey` o `datos.groupJersey`, con `instantAt` en el `revealS` de la línea; la web elige la palabra en `GROUP_WORDS`, la del grupo del maillot antes que la del papel (6-b; cruzada de §6, Rdueno-017); `bunch_sprint` y `stage_win` siguen diciendo `the bunch`. Medido: 40 de 210 líneas pasan a `the chase group` y ninguna a `the lead group`. Descartado: calcular el papel en la web al pintar, porque el acta no tiene instante, y aceptar por escrito la contradicción con la barra, que C7 prohíbe.
-- 12-c. La revisión de plantillas de cada etapa se guarda en `stage_timelines.tpl_rev`, `smallint not null` sin defecto, en la `0044` (§13.3, 13-j, 17-a): la fila lleva el `TEMPLATE_REV` del tick que toma `recordStageTimeline` y la lápida, 0; la lee `readStageTemplateRev` (§5.6) y viaja como `tplRev` en `BroadcastHead` (§4.11) y, opcional, en `stageReplaySchema` (§14.2), que es el `StageReport`; una etapa sin línea usa la revisión 0. Descartado: deducirla del día de juego, que el reinicio vuelve a empezar; y `default 0`, con el que un escritor que la olvidara dejaría todas las etapas en la revisión 0 sin que nada fallara (13-j; cruzada de §13, Rcobertura-044).
+- 12-c. La revisión de plantillas de cada etapa se guarda en `stage_timelines.tpl_rev`, `smallint not null` sin defecto, en la `0047` (§13.3, 13-j, 17-a): la fila lleva el `TEMPLATE_REV` del tick que toma `recordStageTimeline` y la lápida, 0; la lee `readStageTemplateRev` (§5.6) y viaja como `tplRev` en `BroadcastHead` (§4.11) y, opcional, en `stageReplaySchema` (§14.2), que es el `StageReport`; una etapa sin línea usa la revisión 0. Descartado: deducirla del día de juego, que el reinicio vuelve a empezar; y `default 0`, con el que un escritor que la olvidara dejaría todas las etapas en la revisión 0 sin que nada fallara (13-j; cruzada de §13, Rcobertura-044).
 - 12-d. Los racimos en vivo siguen la regla de D-43 (la hora en que el grupo del ÚLTIMO miembro cruza el final de la ventana) con una guarda: nunca antes del revelado de ninguno de sus miembros. Medido sin rótulos: 0 violaciones y una espera de 1.493 s de carrera de mediana. `liveClusters` sigue apagada hasta B19 con la política de nombres real y la prueba de lectura. Descartado: esperar al grupo más lento de todos los miembros (mediana de 1.955 s).
 - 12-e. En `Watch`, la línea de `breakaway_formed` es la frase de `breakHeadline`; el acta conserva la suya, con la lista entera. Descartado: decir las dos, que es la misma noticia dos veces.
 - 12-f. `crash` y `crash_names` son dos `case` sobre la misma línea (`linesOf`): la voz dice la segunda `crashNamesDelayS` después, con el rótulo de nombres; el acta las escribe seguidas. `gap_trend` sale solo cuando la flecha cambia a subir o bajar, como mucho una vez por `trendWindowKm` de la cabeza.
@@ -658,6 +848,7 @@ D-62, en la parte de E10 (`docs/encargos.md` l. 542-563: plantillas por idioma s
 - 12-s. (Coherencia, fase 6; cruzada de §20, Rdueno-020.) Con `liveClusters` encendida, el racimo en vivo junta los descuelgues de todo corredor salvo los de la fuga, los que llevan un maillot y los del espectador, tengan o no rótulo: con la regla anterior, que solo juntaba a los sin rótulo, la voz decía uno a uno de 59 a 74 descuelgues por reina (medido, `l10/descuelgues.mjs`), contra la B3 del dueño. Descartado: dejar fuera a todo corredor con rótulo.
 
 **Propuesto para el glosario.**
+
 - `LiveChronicle` (`untilS`, `stageKm`, `revealS`), las dos firmas de `buildChronicle` y la de su implementación, que devuelve `ChronicleEntry[] | LiveLine[]`, en `apps/api/src/chronicle.ts`; `liveClusters(events, tl, revealS): readonly LiveCluster[]` y `LiveCluster` (`event`, `revealS`, `members`) en `apps/api/src/liveClusters.ts`.
 - `withGroupRoles(events, tl, revealS, ctx)` y `MAIN_GROUP_TEMPLATES` en `apps/api/src/voiceRoles.ts`; las claves de datos `mainRole`, `groupRole`, `mainJersey` y `groupJersey`, que se anotan al leer y nunca se guardan.
 - `inVoice(line, unnamed)` en `apps/web/src/domain/voice.ts`; `groupNounOf(role, jersey)`, `linesOf(e)`, `variantSeed(e)` y el tipo `Phrasing` en `apps/web/src/domain/stageJournal.ts`; `GROUP_ROLES` e `isGroupRole(x): x is GroupRole` (guarda de tipo) en `packages/shared/src/broadcast/instant.ts`, e `isJerseyKind(x): x is JerseyKind` en `packages/shared/src/jerseys.ts`; `gapTrendLine(_locale, trend)` en `packages/shared/src/broadcast/names.ts`; `chronicleParts(_locale, e, rev)` y `chronicleLine(_locale, e, rev)` desde el paso 12; `fnv1a` en `packages/shared/src/render/variants.ts`.
@@ -668,14 +859,16 @@ D-62, en la parte de E10 (`docs/encargos.md` l. 542-563: plantillas por idioma s
 - (Corrección L8.) `RadioNames` gana `own: ReadonlySet<RiderIx>` y `nameableAt: (km: number) => ReadonlySet<RiderIx>` (12-o, §4.13); `getGcThroughStage`, `getPointsClassification` y `getKomClassification` reciben `q: Queryable` desde el 1a (12.8); el test `apps/api/src/routes/lastRace.test.ts` (PR 12, 12.9); la cabecera `fuente: línea grabada · sin depósitos · una foto por km` de `scripts/race-radio.mjs` (12-p).
 
 **Dudas para el ensamblador.**
+
 - D-43, punto 2, dice «orden por reloj: la rama `byClock`». Medido, la voz tiene que ordenarse por `revealS` (12-a); no reabre la decisión, la precisa. §14.3 pasa `byClock: tl.timeTrial` junto a `live`: con 12-a es inocuo, pero conviene decirlo allí, y su cifra de B19 («0 violaciones en 15 corridas revelando por reloj») debería citar además las 18 corridas con el `revealS` real de 12.2. (Cerrada en la auditoría L8: §14.3 ya no da esa cifra, y que `byClock` no ordena con `live` lo dicen 12-a y la interfaz de §12.2.)
 - D-43 habla de «veinte pasadas»: son veinte llamadas en l. 353-375 más `markConcession` dentro del `map` (l. 319), veintiuna funciones. La tabla de 12.2 las lista todas; el esqueleto y D-43 dicen veinte. (Cerrada: D-43 dice veintiuna desde el ensamblado, y 12.2 también desde la corrección L8.)
-- §4.11 no tiene `BroadcastHead.tplRev` ni `StageReport.tplRev`, y §4.12 y §G.3.7 no tienen `housingCovered` en `contract` (12-j). §14.2 no tiene `moments` en `riderRaceReportSchema` (12-k). (En la corrección L8: §4.11 y §4.12 ya los llevan, 4-u, y §14.2 lleva `moments`. En el cierre: §13.3 ya tiene `tpl_rev` en la `0044`, 13-j. Cerrada en la auditoría L8: §14.2 lleva `tplRev` en `stageReplaySchema`, 14-api.md l. 157.)
+- §4.11 no tiene `BroadcastHead.tplRev` ni `StageReport.tplRev`, y §4.12 y §G.3.7 no tienen `housingCovered` en `contract` (12-j). §14.2 no tiene `moments` en `riderRaceReportSchema` (12-k). (En la corrección L8: §4.11 y §4.12 ya los llevan, 4-u, y §14.2 lleva `moments`. En el cierre: §13.3 ya tiene `tpl_rev` en la `0047`, 13-j. Cerrada en la auditoría L8: §14.2 lleva `tplRev` en `stageReplaySchema`, 14-api.md l. 157.)
 - §6.3 dejaba para aquí cómo lee la voz el papel: 12-b lo cierra. §6.6 no tiene fila para `crash_names`, y no le hace falta: es el segundo tiempo de `crash`. (Cerrada en el cierre de la auditoría L8: §6.3 remite a §12.6 para la voz, 06-pantalla.md l. 257, y B7 solo pide fila de `CUE_OF_TEMPLATE` a las plantillas del motor y a `crash`.)
 - §G.9 dice que B19 midió «0 en 15 corridas»; ahora hay además 0 en 18 con el `revealS` real y 0 con racimos sin rótulos (12.2, 12.3). (Cerrada: §G.9 ya dice las 18.)
 - §17 (paso 4a) tiene que llevar, además de `the gruppetto`, las filas de 12.6 y la remedición de `storyMetrics` sobre las 60 etapas de `coherence.test.ts`. (Cerrada: §17.7 ya las lleva; que el re-sello de `coherence.test.ts` con el tope de seis deje de ser condicional va por cruzada.)
 
 **Dudas del cierre (lote L8).** Lo que el cierre no puede arreglar desde esta sección:
+
 - §14.3 no llama a `withGroupRoles` ni a `liveClusters`: su código tiene que anotar los papeles antes de construir `revealOf` (12-n), porque ata cada suceso a su hora por la identidad del objeto, y, con `BROADCAST.liveClusters` encendida, meter los racimos antes de `buildChronicle` (12.3). (Cerrada en el cierre de L8: §14.3 ya los llama en ese orden, corrección L6. Queda que su `rolesCtx` lleve los maillots de salida y no todo `null`, o `mainJersey` y `groupJersey` no saldrían nunca: va por cruzada. Cerrada en la auditoría L8: el `rolesCtx` de §14.3 lleva los líderes de salida del reparto, 14-api.md l. 200-204.)
 - §13.2 llama `p` al payload de `emitNews` y remite su firma a §12.7 y §12.8; la que vale es la de 12.8 (`opts.seed`, `opts.payload`, `opts.raceKey`), que §G.2 y §G.4 no recogen. (Cerrada: §13.2 usa la de 12.8, corrección L3, y §G.2 y §G.4 la llevan.)
 - 12.8 da dos fuentes para el equipo del día: `riders.team_id` al escribir (en «Lo que se guarda») e `input.riders[].teamId` en `teamOfDay`. Dentro del tick valen lo mismo, pero `awardOutcome` (`packages/db/src/stageRun.ts` l. 1143-1149) no recibe hoy la entrada de la etapa: el PR 1a tiene que elegir una y pasársela. (Cerrada: 17-r elige `input.riders[].teamId` y se la pasa en el 1a, y «Lo que se guarda» ya lo dice.)

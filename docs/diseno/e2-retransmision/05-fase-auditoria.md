@@ -11,9 +11,12 @@ corrector cree que hizo, y la auditoría comprueba si es verdad). Modelo:
 Escribe `refutaciones/auditorias-L<n>.json`, una lista con un objeto por hallazgo y por cruzada:
 
 ```json
-{ "id": "R…-nnn", "veredicto": "cerrado | parcial | abierto | desestimado_con_motivo",
+{
+  "id": "R…-nnn",
+  "veredicto": "cerrado | parcial | abierto | desestimado_con_motivo",
   "evidencia": "fichero de sección y líneas donde está la corrección, o por qué no está",
-  "accion": "nada | lo he cerrado yo: qué y dónde | necesita otra sección: cuál" }
+  "accion": "nada | lo he cerrado yo: qué y dónde | necesita otra sección: cuál"
+}
 ```
 
 Reglas:

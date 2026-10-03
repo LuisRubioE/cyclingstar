@@ -14,7 +14,7 @@ Base: `propuestas/ingeniero.md`, elegida por suma de puntuaciones porque no hubo
 6. Decisiones: las de `00-decisiones.md` se escriben como hechos, con su evidencia, sin reabrirlas. Lo que este esqueleto deja abierto se decide en un bloque «Decisión tomada aquí». Si un redactor comprueba que una decisión es falsa contra el código, no la cambia por su cuenta: la escribe como está y abre una «Duda para el ensamblador» con la evidencia (irá a `borrador/dudas.md` y a la refutación).
 7. Tipos: TypeScript estricto, sin `any`, Zod en los bordes. §4 es el ÚNICO sitio con los bloques enteros de §G.3 del glosario; las demás secciones los citan por `§4.m` y pueden enseñar valores de ejemplo, nunca redefinir un tipo ni añadirle un campo (si le falta uno, lo propone).
 8. Constantes: por nombre (`BROADCAST.pace`), con su valor la primera vez que salen en la sección. §15 es el único sitio con los tres bloques enteros.
-9. Versión y migraciones: `ENGINE_VERSION` es 89 (`packages/engine/src/constants.ts` l. 838) y NO sube en E2 (D-09); ninguna sección propone subirla. La próxima migración libre es la `0043` (`packages/db/drizzle/meta/_journal.json`: 43 entradas, la última `0042_transicion_e1`).
+9. Versión y migraciones: `ENGINE_VERSION` es 89 (`packages/engine/src/constants.ts` l. 838) y NO sube en E2 (D-09); ninguna sección propone subirla. La próxima migración libre es la `0046` (`packages/db/drizzle/meta/_journal.json`: 43 entradas, la última `0042_transicion_e1`).
 10. Citas del dueño: textuales, entre «», con fichero, línea y versión (`docs/balance.md` l. 1845-1846, v13). Nada va entre «» si no es cita.
 11. Decisiones del dueño: con su id (`DD-nn`) y su valor por defecto, que es el que se implementa. Si una sección encuentra otra decisión que es del dueño, la toma con un valor por defecto en «Decisión tomada aquí», marcada «(del dueño)», y el ensamblador la sube a §20.
 12. Cada decisión, tomada; cada tipo, escrito; cada constante, con valor e intención; cada paso del plan, con sus tests antes que su código. Nada «se podría».
@@ -43,7 +43,7 @@ Es el que abre el documento (§0.4): el redactor de la cabecera lo escribe con e
 6. **El ritmo depende del recorrido.** La curva de `producto` sin pausas: de 7:39 una llana a 19:59 la reina más larga, de 2:12 a 6:37 en `Highlights` (medido por el juez de ejecutabilidad). Seguir una gran vuelta cuesta de 28 a 49 min por día real, y por eso el modo por defecto es decisión del dueño (DD-03).
 7. **Sin destripe es una propiedad del producto.** Un horizonte por espectador calculado en el servidor en un solo punto (tipo obligatorio, predicado SQL único y un registro de rutas que no arranca si una no declara su política); lo visto es un prefijo y cuenta lo alcanzado, nunca lo servido; carreras en guardia con caducidad de 56 días de juego; la cookie `cs_viewer` que solo restringe; y las 48 superficies del mapa 03 más nueve puertas de fuera, una a una, vigiladas por el canario B1.
 8. **La voz no ve el futuro y las noticias se renderizan al leer.** La voz trunca la entrada de `buildChronicle` por hora de revelado, con la longitud de la etapa como dato y cinco pasadas retroactivas apagadas (la voz en `t` es prefijo de la de `t + 30 s`: 0 violaciones en 15 corridas, medido por `ingeniero`); el acta es la de hoy; `news` guarda `seed` y `data` en la primera migración, antes del reinicio, y así E10 puede traducirla.
-9. **Nada rompe la web de hoy.** La ruta de etapa sigue devolviendo `StageReplay`, `/api/news` sigue mandando `text`, las cuatro migraciones solo añaden (de la `0043` a la `0046`), las constantes de pantalla viven en `packages/shared` (tocarlas no corre los bancos) y todo se apaga sin desplegar con `BROADCAST_WATCH`, `SPOILER_MODE` y `TIMELINE_RECORD`.
+9. **Nada rompe la web de hoy.** La ruta de etapa sigue devolviendo `StageReplay`, `/api/news` sigue mandando `text`, las cuatro migraciones solo añaden (de la `0046` a la `0049`), las constantes de pantalla viven en `packages/shared` (tocarlas no corre los bancos) y todo se apaga sin desplegar con `BROADCAST_WATCH`, `SPOILER_MODE` y `TIMELINE_RECORD`.
 10. **Trece pasos y unos 22 PR, tests primero.** El dueño ve `Watch` sobre la radio de hoy en el paso 3; el destripe queda cerrado en el 8b con B1 en verde; se enciende al cerrar el 10 con la prueba de lectura (nueve de nueve); 20 decisiones son del dueño, cada una con su valor por defecto.
 
 ---
@@ -52,31 +52,31 @@ Es el que abre el documento (§0.4): el redactor de la cabecera lo escribe con e
 
 Veintidós secciones (la 0 es la cabecera), en el orden final. Longitud objetivo total: 10.860 líneas, del orden de `docs/tactica.md` (8.646) y `docs/generador.md` (11.121). Cada entrada dice: título, fichero, líneas objetivo y lote; qué contiene (cada punto numerado es una subsección `### N.m`); qué escribe entero; de qué secciones de qué propuestas, mapas y juicios sale; las decisiones que escribe como hechos; los injertos que recibe, las objeciones que resuelve, los huecos que rellena y las contradicciones de hecho que deja resueltas, por id; y lo que toca del dueño.
 
-| § | Título | Fichero | Líneas | Lote |
-| --- | --- | --- | --- | --- |
-| §0 | Cabecera y resumen ejecutivo | `borrador/00-cabecera.md` | 180 | L10 |
-| §1 | Diagnóstico medido: lo que el jugador lee hoy de una carrera | `borrador/01-diagnostico.md` | 380 | L1 |
-| §2 | Principios | `borrador/02-principios.md` | 150 | L1 |
-| §3 | El reloj, el espacio y la identidad | `borrador/03-reloj.md` | 400 | L1 |
-| §4 | El modelo de tipos: la línea temporal, el instante y la red | `borrador/04-modelo.md` | 900 | L2 |
-| §5 | Lo que el motor guarda al correr la etapa: sonda, codificación y tamaños | `borrador/05-motor.md` | 560 | L3 |
-| §6 | El estado en pantalla: lo permanente y lo eventual | `borrador/06-pantalla.md` | 620 | L4 |
-| §7 | Los rótulos y la regla de maillots | `borrador/07-rotulos.md` | 540 | L5 |
-| §8 | El ritmo y el montaje | `borrador/08-ritmo.md` | 540 | L4 |
-| §9 | La contrarreloj | `borrador/09-crono.md` | 380 | L5 |
-| §10 | Sin destripe (I): lo visto, el horizonte y el velo | `borrador/10-horizonte.md` | 620 | L6 |
-| §11 | Sin destripe (II): cada superficie, una a una | `borrador/11-superficies.md` | 820 | L7 |
-| §12 | La voz, el acta y las noticias | `borrador/12-voz.md` | 620 | L8 |
-| §13 | El esquema y las migraciones | `borrador/13-esquema.md` | 420 | L3 |
-| §14 | La API y el contrato | `borrador/14-api.md` | 540 | L6 |
-| §15 | Las constantes | `borrador/15-constantes.md` | 330 | L2 |
-| §16 | Los bancos y los tests | `borrador/16-bancos.md` | 640 | L8 |
-| §17 | El plan por pasos, tests primero | `borrador/17-plan.md` | 800 | L9 |
-| §18 | Rendimiento y móvil | `borrador/18-rendimiento.md` | 280 | L7 |
-| §19 | Riesgos y fronteras | `borrador/19-riesgos.md` | 280 | L9 |
-| §20 | Decisiones que son del dueño | `borrador/20-dueno.md` | 220 | L10 |
-| §21 | Apéndices: injertos, objeciones, cobertura y vocabulario | `borrador/21-apendices.md` | 640 | L10 |
-| | **Total** | | **10.860** | |
+| §   | Título                                                                   | Fichero                      | Líneas     | Lote |
+| --- | ------------------------------------------------------------------------ | ---------------------------- | ---------- | ---- |
+| §0  | Cabecera y resumen ejecutivo                                             | `borrador/00-cabecera.md`    | 180        | L10  |
+| §1  | Diagnóstico medido: lo que el jugador lee hoy de una carrera             | `borrador/01-diagnostico.md` | 380        | L1   |
+| §2  | Principios                                                               | `borrador/02-principios.md`  | 150        | L1   |
+| §3  | El reloj, el espacio y la identidad                                      | `borrador/03-reloj.md`       | 400        | L1   |
+| §4  | El modelo de tipos: la línea temporal, el instante y la red              | `borrador/04-modelo.md`      | 900        | L2   |
+| §5  | Lo que el motor guarda al correr la etapa: sonda, codificación y tamaños | `borrador/05-motor.md`       | 560        | L3   |
+| §6  | El estado en pantalla: lo permanente y lo eventual                       | `borrador/06-pantalla.md`    | 620        | L4   |
+| §7  | Los rótulos y la regla de maillots                                       | `borrador/07-rotulos.md`     | 540        | L5   |
+| §8  | El ritmo y el montaje                                                    | `borrador/08-ritmo.md`       | 540        | L4   |
+| §9  | La contrarreloj                                                          | `borrador/09-crono.md`       | 380        | L5   |
+| §10 | Sin destripe (I): lo visto, el horizonte y el velo                       | `borrador/10-horizonte.md`   | 620        | L6   |
+| §11 | Sin destripe (II): cada superficie, una a una                            | `borrador/11-superficies.md` | 820        | L7   |
+| §12 | La voz, el acta y las noticias                                           | `borrador/12-voz.md`         | 620        | L8   |
+| §13 | El esquema y las migraciones                                             | `borrador/13-esquema.md`     | 420        | L3   |
+| §14 | La API y el contrato                                                     | `borrador/14-api.md`         | 540        | L6   |
+| §15 | Las constantes                                                           | `borrador/15-constantes.md`  | 330        | L2   |
+| §16 | Los bancos y los tests                                                   | `borrador/16-bancos.md`      | 640        | L8   |
+| §17 | El plan por pasos, tests primero                                         | `borrador/17-plan.md`        | 800        | L9   |
+| §18 | Rendimiento y móvil                                                      | `borrador/18-rendimiento.md` | 280        | L7   |
+| §19 | Riesgos y fronteras                                                      | `borrador/19-riesgos.md`     | 280        | L9   |
+| §20 | Decisiones que son del dueño                                             | `borrador/20-dueno.md`       | 220        | L10  |
+| §21 | Apéndices: injertos, objeciones, cobertura y vocabulario                 | `borrador/21-apendices.md`   | 640        | L10  |
+|     | **Total**                                                                |                              | **10.860** |      |
 
 ### §0 · Cabecera y resumen ejecutivo
 
@@ -523,11 +523,11 @@ Cierra con la doctrina del dueño que acota a todos (mapa 05 §2.7): la D7 («si
 
 **Contiene:**
 
-1. **13.1 Las reglas.** Solo `drizzle-kit generate`; todo nullable, con defecto constante o en tabla nueva; nada se rellena hacia atrás; el mundo de pruebas sigue vivo entre el despliegue y el reinicio (mapa 04 §8); toda lectura tolera null y la ausencia de línea; la próxima libre es la `0043`; si otro documento toma antes un número, manda el nombre (D-49; mapa 04 §6).
-2. **13.2 `0043_noticias_con_datos`.** Las columnas de `news`, el índice `news_race_stage_idx` y `text` nullable; el SQL generado y el Drizzle de `schema.ts`, enteros (D-45, I-13, O-06).
-3. **13.3 `0044_linea_temporal`.** `stage_timelines` entera con su índice por `game_day`; SQL y Drizzle (D-10, I-09, O-15).
-4. **13.4 `0045_lo_visto`.** `race_watch`, el enum `spoiler_scope`, las columnas de `users` y `race_rosters_rider_idx`; SQL y Drizzle (D-29, D-33, I-33, O-17, H-10, H-11).
-5. **13.5 `0046_rastro_de_etapa`.** `stage_day` en `rider_points` y `palmares`, `race_key` y `stage_day` en `transactions` y `stage_team_results.prize`; quién escribe cada columna (`stageRun.ts`, `awardRacePrizes`) y desde cuándo (D-41, I-34).
+1. **13.1 Las reglas.** Solo `drizzle-kit generate`; todo nullable, con defecto constante o en tabla nueva; nada se rellena hacia atrás; el mundo de pruebas sigue vivo entre el despliegue y el reinicio (mapa 04 §8); toda lectura tolera null y la ausencia de línea; la próxima libre es la `0046`; si otro documento toma antes un número, manda el nombre (D-49; mapa 04 §6).
+2. **13.2 `0046_noticias_con_datos`.** Las columnas de `news`, el índice `news_race_stage_idx` y `text` nullable; el SQL generado y el Drizzle de `schema.ts`, enteros (D-45, I-13, O-06).
+3. **13.3 `0047_linea_temporal`.** `stage_timelines` entera con su índice por `game_day`; SQL y Drizzle (D-10, I-09, O-15).
+4. **13.4 `0048_lo_visto`.** `race_watch`, el enum `spoiler_scope`, las columnas de `users` y `race_rosters_rider_idx`; SQL y Drizzle (D-29, D-33, I-33, O-17, H-10, H-11).
+5. **13.5 `0049_rastro_de_etapa`.** `stage_day` en `rider_points` y `palmares`, `race_key` y `stage_day` en `transactions` y `stage_team_results.prize`; quién escribe cada columna (`stageRun.ts`, `awardRacePrizes`) y desde cuándo (D-41, I-34).
 6. **13.6 Lo que no se toca.** `stage_snapshots` no gana columnas (`tactica.md` l. 7589-7591) y `radio` se escribe hasta DD-11; la tabla que los documentos nombran y no existe (`stages.radio`, `stage_runs`; contradicción 4 del mapa 05).
 7. **13.7 Columnas vivas y muertas.** `columnasVivas.test.ts` exige que se escriban `race_watch.follow`, `known_through`, `users.horizon_rev` y `stage_team_results.prize`; `riders.fame` sigue en `MUERTAS_CONOCIDAS` (D-26).
 8. **13.8 Volúmenes.** `stage_timelines`, de 11 a 20 MB por temporada (estimado con las medianas y las 1.418 etapas); `race_watch`, de 40 a 80 mil filas por año real con 1.000 jugadores (la forma B del mapa 04 §3); una escritura por minuto real y espectador como mucho (D-55); mapa 04 §5.
@@ -656,14 +656,14 @@ Cierra con la doctrina del dueño que acota a todos (mapa 05 §2.7): la D7 («si
 1. **17.1 Reglas del plan.** Tamaños S (hasta 300 líneas de diff), M (hasta 800) y L; coste por PR (`typecheck` 37 s y `test:rapido` unos 9 min; los del motor, unos 73 min más); cada paso con «tests primero», «PR», «¿motor?», «visible» y «se revierte con» (D-53, D-54).
 2. **17.2 Los trece pasos.** La tabla de §G.10 con sus unos 22 PR.
 3. **17.3 Paso 0 · Red y línea base.** `@fastify/compress`, los contratos de `stageReplaySchema` y de las noticias en `contracts.test.ts`, el inventario de rutas, y B6 y B17 de línea base.
-4. **17.4 Paso 1 (1a, 1b) · Noticias con datos, antes del reinicio.** `0043`, `renderNews` en `packages/shared`, `text` de compatibilidad, `gc_lead_taken` y `jersey_taken`; B4; va en paralelo por su plazo (D-45, I-13, O-06).
+4. **17.4 Paso 1 (1a, 1b) · Noticias con datos, antes del reinicio.** `0046`, `renderNews` en `packages/shared`, `text` de compatibilidad, `gc_lead_taken` y `jersey_taken`; B4; va en paralelo por su plazo (D-45, I-13, O-06).
 5. **17.5 Paso 2 · La voz causal.** `live` y `revealS` desde lo guardado; B19 con cinco etapas congeladas (D-43).
 6. **17.6 Paso 3 (3a API, 3b dominio web, 3c pantalla) · `Watch` para el dueño sobre la radio de hoy.** El adaptador, el reloj estimado y `BROADCAST_WATCH=admins` (D-07, I-45).
 7. **17.7 Paso 4 (4a ganchos, 4b grabador) · El único que toca `packages/engine`.** `onEvent`, `onBanner`, `onTimeTrialRide`, `timelineRecorder`, `selfCheckI1` y `TIMELINE`; B10 y B11; retira la copia de `renderNews` del motor; añade a `GROUP_NOUNS` `the gruppetto` y las filas de las plantillas nuevas (§12.5, §12.6); paga los bancos y NO sube la versión.
-8. **17.8 Paso 5 · Grabar la línea.** `0044`, el colector aparte, `writeStageTimeline` y `TIMELINE_RECORD`; B15 sobre los días 176 y 179.
+8. **17.8 Paso 5 · Grabar la línea.** `0047`, el colector aparte, `writeStageTimeline` y `TIMELINE_RECORD`; B15 sobre los días 176 y 179.
 9. **17.9 Paso 6 (6a línea, 6b rótulos y crono) · La retransmisión exacta.** `instantAt` sobre la línea, `wornJerseys`, `palmaresTitleSource`, `breakHeadline`, las plantillas nuevas de §12.5 y la crono; B2, B3, B21 y B22; el re-sello de `raceRadioNames.test.tsx`.
-10. **17.10 Paso 7 (7a datos y rutas, 7b ruta de etapa) · Lo visto y la etapa cerrada.** `0045`, `race_watch`, `watch.ts` y las rutas `/api/me/…`; B1 nace con la lista de pendientes; `SPOILER_MODE=admins`; B14.
-11. **17.11 Paso 8 (8a, 8b) · El horizonte en toda la API.** `0046`, `Horizon` obligatorio, `veilSql`, los mecanismos y `registerSpoilerGuard`; cada PR vacía sus pendientes; B12 y B13; el 8b cierra el destripe (B1 en verde en todas las rutas).
+10. **17.10 Paso 7 (7a datos y rutas, 7b ruta de etapa) · Lo visto y la etapa cerrada.** `0048`, `race_watch`, `watch.ts` y las rutas `/api/me/…`; B1 nace con la lista de pendientes; `SPOILER_MODE=admins`; B14.
+11. **17.11 Paso 8 (8a, 8b) · El horizonte en toda la API.** `0049`, `Horizon` obligatorio, `veilSql`, los mecanismos y `registerSpoilerGuard`; cada PR vacía sus pendientes; B12 y B13; el 8b cierra el destripe (B1 en verde en todas las rutas).
 12. **17.12 Paso 9 (9a, 9b) · La web sin destripe.** La portada (`Continue watching`, `Ready to watch`, `While you were away`), puertas y avisos, la previa de la N+1 y las órdenes, `/report`, `usePageTitle`, `Story` que pasa a `Report`, la caché y `cs_viewer`.
 13. **17.13 Paso 10 (10a, 10b) · Previa, cierre, modos y encendido.** `StagePreviewCards`, `StageClosingCards`, `Highlights`, el digest y los mandos; el móvil medido a mano (D-56); la prueba de lectura (D-60); B17 otra vez; los dos interruptores a `on`.
 14. **17.14 Paso 11 · La radio desde la línea.** `radioFromTimeline`, B16 y DD-11 (D-16, O-16).
@@ -671,7 +671,7 @@ Cierra con la doctrina del dueño que acota a todos (mapa 05 §2.7): la D7 («si
 16. **17.16 Orden y dependencias.** El grafo de pasos: el camino del dueño (0, 2, 3), el del motor (4, 5, 6) y el del destripe (7, 8, 9); el 1 en paralelo por el plazo; el 10 exige el 6 y el 9; el 11 exige el 5 y el 6.
 17. **17.17 Lo primero que ve el dueño y lo que cierra el destripe.** El paso 3 y el 8b (D-54).
 18. **17.18 Encendido y marcha atrás.** `admins` desde el 3 (`Watch`) y desde el 7 (el velo); `on` al cerrar el 10 con B1 en verde y la prueba de lectura aceptada; la tabla por paso de «se revierte con» (D-53).
-19. **17.19 Entre el despliegue y el reinicio.** Las etapas corridas en ese hueco (D-61, H-16) y el reinicio dentro del plan: la `0043` antes; `race_watch` se borra; `text` hasta una versión de web después (DD-19).
+19. **17.19 Entre el despliegue y el reinicio.** Las etapas corridas en ese hueco (D-61, H-16) y el reinicio dentro del plan: la `0046` antes; `race_watch` se borra; `text` hasta una versión de web después (DD-19).
 
 **Escribe entero:** la tabla de pasos con sus columnas; por paso, la lista de tests primero con su fichero y sus casos.
 
@@ -803,19 +803,19 @@ Cierra con la doctrina del dueño que acota a todos (mapa 05 §2.7): la D7 («si
 
 Diez lotes para los redactores de la fase 3b; los correctores de la fase 5 trabajan por estos mismos lotes (`04-fase-refutacion.md` §5). Cada redactor lee `00-encargo.md`, este esqueleto, `00-glosario.md`, `00-decisiones.md`, `juicios/veredicto.json`, `propuestas/ingeniero.md` entera (la base) y las fuentes que citan las entradas de §B de sus secciones.
 
-| Lote | Secciones | Líneas | Depende de | Lee además (si ya está) | Ola |
-| --- | --- | --- | --- | --- | --- |
-| L1 | §1 (Diagnóstico medido), §2 (Principios), §3 (El reloj, el espacio y la identidad) | 930 | ninguno | nada más | 1 |
-| L2 | §4 (El modelo de tipos), §15 (Las constantes) | 1.230 | ninguno: es la raíz (tipos y constantes) | §3 | 1 |
-| L3 | §5 (Lo que el motor guarda al correr la etapa), §13 (El esquema y las migraciones) | 980 | L2 (tipos de §4.2 y §4.3; `TIMELINE`) | §3 | 2 |
-| L4 | §6 (El estado en pantalla), §8 (El ritmo y el montaje) | 1.160 | L2 (`Instant`, `Cue`, `BroadcastHead`; `BROADCAST`) | §3, §7 | 2 |
-| L5 | §7 (Los rótulos y la regla de maillots), §9 (La contrarreloj) | 920 | L2 (`RiderCard`, `ChampionTitle`, `TimeTrialTrace`, `TimeTrialInstant`; `BROADCAST`) | §5, §6 | 2 |
-| L6 | §10 (Sin destripe (I)), §14 (La API y el contrato) | 1.160 | L2 (`Horizon`, `VeilDelta`, los tipos de la red; `SPOILER`) | §5, §13 | 2 |
-| L7 | §11 (Sin destripe (II)), §18 (Rendimiento y móvil) | 1.100 | L2 y L6 (los mecanismos de §10.6, el registro y las rutas de §14) | §6, §8, §12 | 3 |
-| L8 | §12 (La voz, el acta y las noticias), §16 (Los bancos y los tests) | 1.260 | L2 (las constantes que miden los bancos), L3 (lo que se guarda y sus topes) y L6 (B1 y el horizonte) | §6, §7, §9 | 3 |
-| L9 | §17 (El plan por pasos, tests primero), §19 (Riesgos y fronteras) | 1.080 | L2, L3, L6 y L8 (tipos, migraciones, rutas y bancos) | todas las demás | 4 |
-| L10 | §0 (Cabecera y resumen ejecutivo), §20 (Decisiones que son del dueño), §21 (Apéndices) | 1.040 | todos | todas | 5 |
-| **Total** | 22 secciones | **10.860** | | | |
+| Lote      | Secciones                                                                              | Líneas     | Depende de                                                                                           | Lee además (si ya está) | Ola |
+| --------- | -------------------------------------------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------- | ----------------------- | --- |
+| L1        | §1 (Diagnóstico medido), §2 (Principios), §3 (El reloj, el espacio y la identidad)     | 930        | ninguno                                                                                              | nada más                | 1   |
+| L2        | §4 (El modelo de tipos), §15 (Las constantes)                                          | 1.230      | ninguno: es la raíz (tipos y constantes)                                                             | §3                      | 1   |
+| L3        | §5 (Lo que el motor guarda al correr la etapa), §13 (El esquema y las migraciones)     | 980        | L2 (tipos de §4.2 y §4.3; `TIMELINE`)                                                                | §3                      | 2   |
+| L4        | §6 (El estado en pantalla), §8 (El ritmo y el montaje)                                 | 1.160      | L2 (`Instant`, `Cue`, `BroadcastHead`; `BROADCAST`)                                                  | §3, §7                  | 2   |
+| L5        | §7 (Los rótulos y la regla de maillots), §9 (La contrarreloj)                          | 920        | L2 (`RiderCard`, `ChampionTitle`, `TimeTrialTrace`, `TimeTrialInstant`; `BROADCAST`)                 | §5, §6                  | 2   |
+| L6        | §10 (Sin destripe (I)), §14 (La API y el contrato)                                     | 1.160      | L2 (`Horizon`, `VeilDelta`, los tipos de la red; `SPOILER`)                                          | §5, §13                 | 2   |
+| L7        | §11 (Sin destripe (II)), §18 (Rendimiento y móvil)                                     | 1.100      | L2 y L6 (los mecanismos de §10.6, el registro y las rutas de §14)                                    | §6, §8, §12             | 3   |
+| L8        | §12 (La voz, el acta y las noticias), §16 (Los bancos y los tests)                     | 1.260      | L2 (las constantes que miden los bancos), L3 (lo que se guarda y sus topes) y L6 (B1 y el horizonte) | §6, §7, §9              | 3   |
+| L9        | §17 (El plan por pasos, tests primero), §19 (Riesgos y fronteras)                      | 1.080      | L2, L3, L6 y L8 (tipos, migraciones, rutas y bancos)                                                 | todas las demás         | 4   |
+| L10       | §0 (Cabecera y resumen ejecutivo), §20 (Decisiones que son del dueño), §21 (Apéndices) | 1.040      | todos                                                                                                | todas                   | 5   |
+| **Total** | 22 secciones                                                                           | **10.860** |                                                                                                      |                         |     |
 
 Reglas de dependencia:
 
@@ -832,265 +832,265 @@ Las cuatro primeras tablas salen de `juicios/veredicto.json` y de `00-decisiones
 
 ### D.1 Injerto → sección (los 49 de `veredicto.json`, en su orden)
 
-| Injerto | Origen | Qué | Secciones | Decisión |
-| --- | --- | --- | --- | --- |
-| I-01 | `estado.md` §3.1-3.3, §3.7 | la línea temporal de estado y el corte diagonal | §3, §4 | D-02 |
-| I-02 | `estado.md` §3.9, §11 | invariantes I1, I2, I3 e I5 y la autocomprobación | §4, §5, §16 | D-02, D-12 |
-| I-03 | `estado.md` §3.6 | marcas de reloj en cuatro sitios | §3, §4, §5 | D-01 |
-| I-04 | `estado.md` §3.5 | identidad con sucesor, histéresis y título por bloque | §3, §6 | D-03 |
-| I-05 | `estado.md` §3.1, §8.1 | foto frente a instante; la radio desde el estado | §3, §11, §12 | D-16 |
-| I-06 | `estado.md` §11 | `onEvent` y el bloque de emisión | §4, §5 | D-05 |
-| I-07 | `estado.md` §3.5, §8.1 | un código de papel de grupo | §6, §12 | D-18 |
-| I-08 | `estado.md` §9 (y datos §9, television §9) | tipos y traza de la crono | §9 | D-23 |
-| I-09 | `datos.md` §10.1, §10.5-10.6 | `stage_timelines` en `bytea` con gzip 9 | §5, §13, §14 | D-10 |
-| I-10 | `datos.md` §3.4, §7.2, B9 | visibilidad por dato y corte causal | §4, §10, §14, §16 | D-06 |
-| I-11 | `datos.md` §6.1, §7.4, B13 | procedencia `from` del reparto congelado | §7, §10, §11 | D-15, D-37 |
-| I-12 | `datos.md` §11 punto 2, B10, B11 | colector aparte, B10 y B11 | §5, §16 | D-08, D-09 |
-| I-13 | `datos.md` §8.3, §10.2, §10.7 | `NewsPayload` y la migración de noticias primera | §12, §13, §17 | D-45 |
-| I-14 | `datos.md` §8.2 | `pickVariant` con `since`; semilla neutra | §12 | D-46 |
-| I-15 | `datos.md` §3.4, §10.3 | la meta solo por `POST …/broadcast/finish` | §8, §14 | D-06 |
-| I-16 | `datos.md` §10.7 | `schema.parse` y `satisfies`; el contrato de hoy | §14 | D-50 |
-| I-17 | `datos.md` §10.4 (y H-motor-04) | formato plano de enteros, `format` y guarda de tipos | §4, §14 | D-10 |
-| I-18 | `television.md` §11.1 | `onBanner` | §5 | D-09 |
-| I-19 | `television.md` §3.3, §11.2 | el tiempo congelado | §5, §6, §8 | D-14 |
-| I-20 | `television.md` §11.3 (y estado §11, datos §3.4) | `REVEAL_RULES` y caídas desde `incidents` | §4, §5 | D-05, D-13 |
-| I-21 | `television.md` §3.5, §5.3, §12 | cola de rótulos, `Next action` y `While you skipped` | §6, §8 | D-20, D-21 |
-| I-22 | `television.md` §5.2, §6.4, §8.3, §10.2 | previa de cuatro cuadros y cierre | §6, §8 | D-22 |
-| I-23 | `television.md` §6.4 | notoriedad sin fama; el corredor propio siempre nombrado | §7 | D-26 |
-| I-24 | `television.md` §6.1-6.3 | la regla UCI completa del maillot | §7 | D-24 |
-| I-25 | `television.md` §8.3 (y estado §8.2) | titulares de cambio de líder | §12 | D-45 |
-| I-26 | `television.md` §5.5 | esconder `BottomNav` (propuesta a E6) | §18, §19 | D-56 |
-| I-27 | `television.md` §7.5 (y producto §7.10-7.11) | `PreStageInfo` para títulos y avisos | §11 | D-42 |
-| I-28 | `producto.md` §7.1-7.4 | horizonte y velo: grados, prefijo, alcances y caducidad | §10, §11 | D-28, D-30, D-31, D-32 |
-| I-29 | `producto.md` §1.7, §7.5, §7.6 | las 48 superficies y las puertas X1 a X9 | §11 | D-41 |
-| I-30 | `producto.md` §13, §14 | B1b diferencial y B1c de dos desenlaces | §16, §17 | D-54 |
-| I-31 | `producto.md` §7.8 | la cookie `cs_viewer` | §10 | D-34 |
-| I-32 | `producto.md` §7.4, §7.5 (X5), §10.2 | caché de la web: `rev`, `clear()` y `no-store` | §10, §14 | D-35 |
-| I-33 | `producto.md` §7.4 (y datos §10.1) | memo del horizonte y `last_seen_at` | §10, §13 | D-33 |
-| I-34 | `producto.md` §10.1 (0045) | rastro de etapa y `stage_team_results.prize` | §11, §13 | D-41, D-49 |
-| I-35 | `producto.md` §7.7 | revelar sin castigo | §11, §16 | D-38 |
-| I-36 | `producto.md` §7.10, §7.12 | `og:` neutras y las dos formas de compartir | §11, §14 | D-36, D-42 |
-| I-37 | `producto.md` §7.8-7.9, §12 | la portada y `While you were away` | §8, §11 | D-39 |
-| I-38 | `producto.md` §5, §12 | ritmo por zona de km, sin pausas | §8 | D-19 |
-| I-39 | `producto.md` §2 principio 4, §7.4 | la existencia también informa | §11 | D-32, D-45 |
-| I-40 | `producto.md` §7.15 | lo que se ve de otros; la regla para E9 | §11, §19 | D-41 |
-| I-41 | `producto.md` §8.4 | los narradores sobrantes | §12 | D-47 |
-| I-42 | `producto.md` §7.14 | agregados con su fecha de horizonte | §11 | D-32, D-41 |
-| I-43 | `ingeniero.md` §8.2 (base) | la voz por truncado, cinco pasadas apagadas | §12 | D-43 |
-| I-44 | `ingeniero.md` §8.2 (tabla, fila 4) (base) | racimos en vivo al cerrar su ventana | §12 | D-43 |
-| I-45 | `ingeniero.md` §7.4, §14 (base) | interruptores y `Watch` en el paso 3 | §14, §17 | D-07, D-53, D-54 |
-| I-46 | `ingeniero.md` §4.2, §6.4 (base) | `Pulling:` y a quién se nombra | §6, §7 | D-27 |
-| I-47 | `ingeniero.md` §6.3 (base) | icono de campeón con forma | §7 | D-25 |
-| I-48 | `ingeniero.md` §12 (base) | constantes en `packages/shared` | §15 | D-52 |
-| I-49 | `ingeniero.md` §7.2, §7.4 (base) | `Horizon` obligatorio, `veilSql` y el registro | §10, §14 | D-32 |
+| Injerto | Origen                                           | Qué                                                      | Secciones         | Decisión               |
+| ------- | ------------------------------------------------ | -------------------------------------------------------- | ----------------- | ---------------------- |
+| I-01    | `estado.md` §3.1-3.3, §3.7                       | la línea temporal de estado y el corte diagonal          | §3, §4            | D-02                   |
+| I-02    | `estado.md` §3.9, §11                            | invariantes I1, I2, I3 e I5 y la autocomprobación        | §4, §5, §16       | D-02, D-12             |
+| I-03    | `estado.md` §3.6                                 | marcas de reloj en cuatro sitios                         | §3, §4, §5        | D-01                   |
+| I-04    | `estado.md` §3.5                                 | identidad con sucesor, histéresis y título por bloque    | §3, §6            | D-03                   |
+| I-05    | `estado.md` §3.1, §8.1                           | foto frente a instante; la radio desde el estado         | §3, §11, §12      | D-16                   |
+| I-06    | `estado.md` §11                                  | `onEvent` y el bloque de emisión                         | §4, §5            | D-05                   |
+| I-07    | `estado.md` §3.5, §8.1                           | un código de papel de grupo                              | §6, §12           | D-18                   |
+| I-08    | `estado.md` §9 (y datos §9, television §9)       | tipos y traza de la crono                                | §9                | D-23                   |
+| I-09    | `datos.md` §10.1, §10.5-10.6                     | `stage_timelines` en `bytea` con gzip 9                  | §5, §13, §14      | D-10                   |
+| I-10    | `datos.md` §3.4, §7.2, B9                        | visibilidad por dato y corte causal                      | §4, §10, §14, §16 | D-06                   |
+| I-11    | `datos.md` §6.1, §7.4, B13                       | procedencia `from` del reparto congelado                 | §7, §10, §11      | D-15, D-37             |
+| I-12    | `datos.md` §11 punto 2, B10, B11                 | colector aparte, B10 y B11                               | §5, §16           | D-08, D-09             |
+| I-13    | `datos.md` §8.3, §10.2, §10.7                    | `NewsPayload` y la migración de noticias primera         | §12, §13, §17     | D-45                   |
+| I-14    | `datos.md` §8.2                                  | `pickVariant` con `since`; semilla neutra                | §12               | D-46                   |
+| I-15    | `datos.md` §3.4, §10.3                           | la meta solo por `POST …/broadcast/finish`               | §8, §14           | D-06                   |
+| I-16    | `datos.md` §10.7                                 | `schema.parse` y `satisfies`; el contrato de hoy         | §14               | D-50                   |
+| I-17    | `datos.md` §10.4 (y H-motor-04)                  | formato plano de enteros, `format` y guarda de tipos     | §4, §14           | D-10                   |
+| I-18    | `television.md` §11.1                            | `onBanner`                                               | §5                | D-09                   |
+| I-19    | `television.md` §3.3, §11.2                      | el tiempo congelado                                      | §5, §6, §8        | D-14                   |
+| I-20    | `television.md` §11.3 (y estado §11, datos §3.4) | `REVEAL_RULES` y caídas desde `incidents`                | §4, §5            | D-05, D-13             |
+| I-21    | `television.md` §3.5, §5.3, §12                  | cola de rótulos, `Next action` y `While you skipped`     | §6, §8            | D-20, D-21             |
+| I-22    | `television.md` §5.2, §6.4, §8.3, §10.2          | previa de cuatro cuadros y cierre                        | §6, §8            | D-22                   |
+| I-23    | `television.md` §6.4                             | notoriedad sin fama; el corredor propio siempre nombrado | §7                | D-26                   |
+| I-24    | `television.md` §6.1-6.3                         | la regla UCI completa del maillot                        | §7                | D-24                   |
+| I-25    | `television.md` §8.3 (y estado §8.2)             | titulares de cambio de líder                             | §12               | D-45                   |
+| I-26    | `television.md` §5.5                             | esconder `BottomNav` (propuesta a E6)                    | §18, §19          | D-56                   |
+| I-27    | `television.md` §7.5 (y producto §7.10-7.11)     | `PreStageInfo` para títulos y avisos                     | §11               | D-42                   |
+| I-28    | `producto.md` §7.1-7.4                           | horizonte y velo: grados, prefijo, alcances y caducidad  | §10, §11          | D-28, D-30, D-31, D-32 |
+| I-29    | `producto.md` §1.7, §7.5, §7.6                   | las 48 superficies y las puertas X1 a X9                 | §11               | D-41                   |
+| I-30    | `producto.md` §13, §14                           | B1b diferencial y B1c de dos desenlaces                  | §16, §17          | D-54                   |
+| I-31    | `producto.md` §7.8                               | la cookie `cs_viewer`                                    | §10               | D-34                   |
+| I-32    | `producto.md` §7.4, §7.5 (X5), §10.2             | caché de la web: `rev`, `clear()` y `no-store`           | §10, §14          | D-35                   |
+| I-33    | `producto.md` §7.4 (y datos §10.1)               | memo del horizonte y `last_seen_at`                      | §10, §13          | D-33                   |
+| I-34    | `producto.md` §10.1 (0048)                       | rastro de etapa y `stage_team_results.prize`             | §11, §13          | D-41, D-49             |
+| I-35    | `producto.md` §7.7                               | revelar sin castigo                                      | §11, §16          | D-38                   |
+| I-36    | `producto.md` §7.10, §7.12                       | `og:` neutras y las dos formas de compartir              | §11, §14          | D-36, D-42             |
+| I-37    | `producto.md` §7.8-7.9, §12                      | la portada y `While you were away`                       | §8, §11           | D-39                   |
+| I-38    | `producto.md` §5, §12                            | ritmo por zona de km, sin pausas                         | §8                | D-19                   |
+| I-39    | `producto.md` §2 principio 4, §7.4               | la existencia también informa                            | §11               | D-32, D-45             |
+| I-40    | `producto.md` §7.15                              | lo que se ve de otros; la regla para E9                  | §11, §19          | D-41                   |
+| I-41    | `producto.md` §8.4                               | los narradores sobrantes                                 | §12               | D-47                   |
+| I-42    | `producto.md` §7.14                              | agregados con su fecha de horizonte                      | §11               | D-32, D-41             |
+| I-43    | `ingeniero.md` §8.2 (base)                       | la voz por truncado, cinco pasadas apagadas              | §12               | D-43                   |
+| I-44    | `ingeniero.md` §8.2 (tabla, fila 4) (base)       | racimos en vivo al cerrar su ventana                     | §12               | D-43                   |
+| I-45    | `ingeniero.md` §7.4, §14 (base)                  | interruptores y `Watch` en el paso 3                     | §14, §17          | D-07, D-53, D-54       |
+| I-46    | `ingeniero.md` §4.2, §6.4 (base)                 | `Pulling:` y a quién se nombra                           | §6, §7            | D-27                   |
+| I-47    | `ingeniero.md` §6.3 (base)                       | icono de campeón con forma                               | §7                | D-25                   |
+| I-48    | `ingeniero.md` §12 (base)                        | constantes en `packages/shared`                          | §15               | D-52                   |
+| I-49    | `ingeniero.md` §7.2, §7.4 (base)                 | `Horizon` obligatorio, `veilSql` y el registro           | §10, §14          | D-32                   |
 
 ### D.2 Objeción → sección (las 32)
 
-| Objeción | Contra | Qué | Secciones | Decisión |
-| --- | --- | --- | --- | --- |
-| O-01 | producto | fotos finas por la misma sonda | §5 | D-08 |
-| O-02 | producto | pasadas sin lista ni longitud de etapa | §12 | D-43 |
-| O-03 | producto | campeón sub-23 en élite | §7 | D-24, D-25 |
-| O-04 | producto | campeones desde el primer día tras el reinicio | §7, §20 | D-25 |
-| O-05 | producto, estado | subir la versión sin necesidad | §5, §19 | D-09 |
-| O-06 | producto, estado | la migración de `news`, tarde | §13, §17 | D-45, D-49 |
-| O-07 | producto | nombre y equipo de hoy en titulares viejos | §12 | D-45, D-46 |
-| O-08 | producto | el visitante que abre el acta | §11 | D-36 |
-| O-09 | producto | las 8 de cabecera no son del dueño | §10, §20 | D-30 |
-| O-10 | producto, ingeniero | dos vocabularios del grupo | §6, §12 | D-18 |
-| O-11 | producto, ingeniero | crono sin tipo o con dos controles | §9 | D-23 |
-| O-12 | producto, ingeniero | ritmo sin medir o que comprime los finales | §8 | D-19 |
-| O-13 | producto, ingeniero | reloj sin marcas; reloj estimado sin medir | §3, §4 | D-01, D-07 |
-| O-14 | estado | el motivo guardado por índice | §4 | D-10 |
-| O-15 | estado | `json` en vez de `bytea` | §5, §13 | D-10 |
-| O-16 | estado | I1 no cubre la capa de detalle | §16, §17 | D-16 |
-| O-17 | estado | horizonte sin índice por corredor | §10, §13, §16 | D-33 |
-| O-18 | estado, ingeniero | la caché y la sesión de 7 días | §10 | D-34, D-35 |
-| O-19 | estado | las constantes en el motor | §15 | D-52 |
-| O-20 | estado | tramos por espacio; lo servido como visto | §10, §14 | D-06, D-28 |
-| O-21 | estado | el salto de un corredor, sin acotar | §3, §19 | D-01, D-58 |
-| O-22 | estado | la línea que no cumple I1: nota y salida | §5 | D-12 |
-| O-23 | estado | la CPU inflada; el banco del día pico | §16 | D-12 |
-| O-24 | ingeniero | «ninguna frase nueva» | §12 | D-44 |
-| O-25 | ingeniero | la meta en el último tramo | §14 | D-06 |
-| O-26 | ingeniero | `Catch up at ×4` y caducidad de 28 días | §10, §11 | D-31, D-39 |
-| O-27 | ingeniero | de plantilla a tipo de rótulo | §6 | D-21 |
-| O-28 | ingeniero | `sendBeacon` contra una ruta `PUT` | §14 | D-51 |
-| O-29 | ingeniero | previa y cierre mínimos | §8 | D-22 |
-| O-30 | ingeniero | `ITA CHAMP` no es televisión | §7 | D-25 |
-| O-31 | ingeniero | el registro solo de `GET` | §14 | D-32 |
-| O-32 | ingeniero | puertas sin mecanismo; el presupuesto | §11 | D-41 |
+| Objeción | Contra              | Qué                                            | Secciones     | Decisión   |
+| -------- | ------------------- | ---------------------------------------------- | ------------- | ---------- |
+| O-01     | producto            | fotos finas por la misma sonda                 | §5            | D-08       |
+| O-02     | producto            | pasadas sin lista ni longitud de etapa         | §12           | D-43       |
+| O-03     | producto            | campeón sub-23 en élite                        | §7            | D-24, D-25 |
+| O-04     | producto            | campeones desde el primer día tras el reinicio | §7, §20       | D-25       |
+| O-05     | producto, estado    | subir la versión sin necesidad                 | §5, §19       | D-09       |
+| O-06     | producto, estado    | la migración de `news`, tarde                  | §13, §17      | D-45, D-49 |
+| O-07     | producto            | nombre y equipo de hoy en titulares viejos     | §12           | D-45, D-46 |
+| O-08     | producto            | el visitante que abre el acta                  | §11           | D-36       |
+| O-09     | producto            | las 8 de cabecera no son del dueño             | §10, §20      | D-30       |
+| O-10     | producto, ingeniero | dos vocabularios del grupo                     | §6, §12       | D-18       |
+| O-11     | producto, ingeniero | crono sin tipo o con dos controles             | §9            | D-23       |
+| O-12     | producto, ingeniero | ritmo sin medir o que comprime los finales     | §8            | D-19       |
+| O-13     | producto, ingeniero | reloj sin marcas; reloj estimado sin medir     | §3, §4        | D-01, D-07 |
+| O-14     | estado              | el motivo guardado por índice                  | §4            | D-10       |
+| O-15     | estado              | `json` en vez de `bytea`                       | §5, §13       | D-10       |
+| O-16     | estado              | I1 no cubre la capa de detalle                 | §16, §17      | D-16       |
+| O-17     | estado              | horizonte sin índice por corredor              | §10, §13, §16 | D-33       |
+| O-18     | estado, ingeniero   | la caché y la sesión de 7 días                 | §10           | D-34, D-35 |
+| O-19     | estado              | las constantes en el motor                     | §15           | D-52       |
+| O-20     | estado              | tramos por espacio; lo servido como visto      | §10, §14      | D-06, D-28 |
+| O-21     | estado              | el salto de un corredor, sin acotar            | §3, §19       | D-01, D-58 |
+| O-22     | estado              | la línea que no cumple I1: nota y salida       | §5            | D-12       |
+| O-23     | estado              | la CPU inflada; el banco del día pico          | §16           | D-12       |
+| O-24     | ingeniero           | «ninguna frase nueva»                          | §12           | D-44       |
+| O-25     | ingeniero           | la meta en el último tramo                     | §14           | D-06       |
+| O-26     | ingeniero           | `Catch up at ×4` y caducidad de 28 días        | §10, §11      | D-31, D-39 |
+| O-27     | ingeniero           | de plantilla a tipo de rótulo                  | §6            | D-21       |
+| O-28     | ingeniero           | `sendBeacon` contra una ruta `PUT`             | §14           | D-51       |
+| O-29     | ingeniero           | previa y cierre mínimos                        | §8            | D-22       |
+| O-30     | ingeniero           | `ITA CHAMP` no es televisión                   | §7            | D-25       |
+| O-31     | ingeniero           | el registro solo de `GET`                      | §14           | D-32       |
+| O-32     | ingeniero           | puertas sin mecanismo; el presupuesto          | §11           | D-41       |
 
 ### D.3 Hueco → sección (los 23)
 
-| Hueco | Qué | Secciones | Decisión | Sin evidencia de los jueces |
-| --- | --- | --- | --- | --- |
-| H-01 | campeones antes del primer nacional | §7, §20 | D-25 | no |
-| H-02 | la contradicción 5 del mapa 05 y el 17d | §5, §17, §19 | D-09, D-58 | no |
-| H-03 | la criba lejana ([DUEÑO 7]) | §6 | D-59 | no |
-| H-04 | la prueba de lectura ([DOC 7]) | §16, §17 | D-60 | sí |
-| H-05 | notoriedad sin `fame` | §7 | D-26 | sí |
-| H-06 | el dueño, espectador y depurador | §11 | D-40 | sí |
-| H-07 | lugares, avituallamiento y tiempo | §6 | D-14, D-59 | no |
-| H-08 | dos jugadores en km distintos (E9) | §11, §19 | D-41 | no |
-| H-09 | el móvil, medido | §18 | D-56 | sí |
-| H-10 | índice y presupuesto del horizonte | §10, §13, §16 | D-33 | no |
-| H-11 | el reinicio y las tablas sin `world_id` | §10, §13 | D-29 | no |
-| H-12 | el salto de 138 s | §3, §19 | D-01, D-58 | no |
-| H-13 | guarda de tipos y decodificador | §4, §5 | D-10 | no |
-| H-14 | el banco del tick en los días 176 y 179 | §16 | D-12 | no |
-| H-15 | Postgres de producción y TOAST | §5, §19 | D-10 | no |
-| H-16 | las etapas entre el despliegue y el reinicio | §3, §17 | D-07, D-61 | sí |
-| H-17 | qué segundo es la diferencia de un corredor | §3, §6 | D-01, D-27 | no |
-| H-18 | la carga de escritura del progreso | §10, §18 | D-55 | sí |
-| H-19 | minutos al día de seguir una vuelta | §8, §20 | D-19 | no |
-| H-20 | ver una cola seguida | §8, §11 | D-39 | sí |
-| H-21 | fallos de red | §10, §18 | D-57 | sí |
-| H-22 | accesibilidad | §18 | D-57 | sí |
-| H-23 | dos dispositivos | §10 | D-57 | sí |
+| Hueco | Qué                                          | Secciones     | Decisión   | Sin evidencia de los jueces |
+| ----- | -------------------------------------------- | ------------- | ---------- | --------------------------- |
+| H-01  | campeones antes del primer nacional          | §7, §20       | D-25       | no                          |
+| H-02  | la contradicción 5 del mapa 05 y el 17d      | §5, §17, §19  | D-09, D-58 | no                          |
+| H-03  | la criba lejana ([DUEÑO 7])                  | §6            | D-59       | no                          |
+| H-04  | la prueba de lectura ([DOC 7])               | §16, §17      | D-60       | sí                          |
+| H-05  | notoriedad sin `fame`                        | §7            | D-26       | sí                          |
+| H-06  | el dueño, espectador y depurador             | §11           | D-40       | sí                          |
+| H-07  | lugares, avituallamiento y tiempo            | §6            | D-14, D-59 | no                          |
+| H-08  | dos jugadores en km distintos (E9)           | §11, §19      | D-41       | no                          |
+| H-09  | el móvil, medido                             | §18           | D-56       | sí                          |
+| H-10  | índice y presupuesto del horizonte           | §10, §13, §16 | D-33       | no                          |
+| H-11  | el reinicio y las tablas sin `world_id`      | §10, §13      | D-29       | no                          |
+| H-12  | el salto de 138 s                            | §3, §19       | D-01, D-58 | no                          |
+| H-13  | guarda de tipos y decodificador              | §4, §5        | D-10       | no                          |
+| H-14  | el banco del tick en los días 176 y 179      | §16           | D-12       | no                          |
+| H-15  | Postgres de producción y TOAST               | §5, §19       | D-10       | no                          |
+| H-16  | las etapas entre el despliegue y el reinicio | §3, §17       | D-07, D-61 | sí                          |
+| H-17  | qué segundo es la diferencia de un corredor  | §3, §6        | D-01, D-27 | no                          |
+| H-18  | la carga de escritura del progreso           | §10, §18      | D-55       | sí                          |
+| H-19  | minutos al día de seguir una vuelta          | §8, §20       | D-19       | no                          |
+| H-20  | ver una cola seguida                         | §8, §11       | D-39       | sí                          |
+| H-21  | fallos de red                                | §10, §18      | D-57       | sí                          |
+| H-22  | accesibilidad                                | §18           | D-57       | sí                          |
+| H-23  | dos dispositivos                             | §10           | D-57       | sí                          |
 
 ### D.4 Contradicción de hecho → decisión → sección (las 24)
 
-| Contradicción | Tema | Decisión | Secciones |
-| --- | --- | --- | --- |
-| X-01 | ¿Hay reloj absoluto? | D-01 | §1, §3 |
-| X-02 | Monotonía del reloj | D-01 | §1, §3 |
-| X-03 | ¿Guardar desde la sonda sube ENGINE_VERSION? | D-08, D-09 | §5 |
-| X-04 | ¿Hace falta subir ENGINE_VERSION? | D-09 | §5, §19 |
-| X-05 | ¿Subir la versión tira las crónicas guardadas? | D-58 | §17, §19 |
-| X-06 | Tamaño de la línea temporal | D-11 | §1, §5 |
-| X-07 | json, jsonb o bytea | D-10 | §5, §13 |
-| X-08 | Coste de CPU de la sonda en cada bloque | D-12 | §5, §16, §18 |
-| X-09 | ¿La carrera sale idéntica con la sonda en cada bloque? | D-09 | §5, §16 |
-| X-10 | ¿Las fotos finas por la misma sonda son inocuas? | D-08 | §5, §16 |
-| X-11 | ¿El horizonte cuesta menos de 5 ms? | D-33 | §1, §10, §13, §16 |
-| X-12 | riders.fame | D-26 | §1, §7 |
-| X-13 | El campeón nacional | D-25 | §1, §7 |
-| X-14 | ¿Qué pasadas de la crónica miran el futuro? | D-43 | §1, §12 |
-| X-15 | Las fechas trucadas (a) y (f) | D-05 | §4, §5 |
-| X-16 | Sesión de 7 días y caché | D-34, D-35 | §1, §10 |
-| X-17 | Las 48 superficies y las rutas | D-32, D-41 | §1, §11, §14 |
-| X-18 | Duración de la reproducción | D-19 | §8 |
-| X-19 | Coste diario de seguir una gran vuelta | D-19 | §8, §20 |
-| X-20 | Qué plan rompe la web de hoy | D-50, D-45 | §12, §14 |
-| X-21 | Plantillas y narradores | D-44, D-47 | §1, §12 |
-| X-22 | Qué PR pagan los bancos y cuál es la próxima migración | D-52, D-49 | §13, §15, §17 |
-| X-23 | El formato guardado de la línea | D-10 | §4 |
-| X-24 | Picos del tick | D-12 | §16, §18 |
+| Contradicción | Tema                                                   | Decisión   | Secciones         |
+| ------------- | ------------------------------------------------------ | ---------- | ----------------- |
+| X-01          | ¿Hay reloj absoluto?                                   | D-01       | §1, §3            |
+| X-02          | Monotonía del reloj                                    | D-01       | §1, §3            |
+| X-03          | ¿Guardar desde la sonda sube ENGINE_VERSION?           | D-08, D-09 | §5                |
+| X-04          | ¿Hace falta subir ENGINE_VERSION?                      | D-09       | §5, §19           |
+| X-05          | ¿Subir la versión tira las crónicas guardadas?         | D-58       | §17, §19          |
+| X-06          | Tamaño de la línea temporal                            | D-11       | §1, §5            |
+| X-07          | json, jsonb o bytea                                    | D-10       | §5, §13           |
+| X-08          | Coste de CPU de la sonda en cada bloque                | D-12       | §5, §16, §18      |
+| X-09          | ¿La carrera sale idéntica con la sonda en cada bloque? | D-09       | §5, §16           |
+| X-10          | ¿Las fotos finas por la misma sonda son inocuas?       | D-08       | §5, §16           |
+| X-11          | ¿El horizonte cuesta menos de 5 ms?                    | D-33       | §1, §10, §13, §16 |
+| X-12          | riders.fame                                            | D-26       | §1, §7            |
+| X-13          | El campeón nacional                                    | D-25       | §1, §7            |
+| X-14          | ¿Qué pasadas de la crónica miran el futuro?            | D-43       | §1, §12           |
+| X-15          | Las fechas trucadas (a) y (f)                          | D-05       | §4, §5            |
+| X-16          | Sesión de 7 días y caché                               | D-34, D-35 | §1, §10           |
+| X-17          | Las 48 superficies y las rutas                         | D-32, D-41 | §1, §11, §14      |
+| X-18          | Duración de la reproducción                            | D-19       | §8                |
+| X-19          | Coste diario de seguir una gran vuelta                 | D-19       | §8, §20           |
+| X-20          | Qué plan rompe la web de hoy                           | D-50, D-45 | §12, §14          |
+| X-21          | Plantillas y narradores                                | D-44, D-47 | §1, §12           |
+| X-22          | Qué PR pagan los bancos y cuál es la próxima migración | D-52, D-49 | §13, §15, §17     |
+| X-23          | El formato guardado de la línea                        | D-10       | §4                |
+| X-24          | Picos del tick                                         | D-12       | §16, §18          |
 
 ### D.5 Obligación de la síntesis (`03-fase-sintesis.md` §3a, punto 4) → sección
 
-| Obligación | Sección |
-| --- | --- |
-| Cabecera y resumen ejecutivo | §0 |
-| Diagnóstico medido | §1 |
-| Principios | §2 |
-| El modelo de tipos del estado y la línea temporal | §3, §4 |
-| Lo que el motor guarda al correr la etapa (sonda, codificación, tamaños) | §5 (el esquema, §13) |
+| Obligación                                                                                                          | Sección                |
+| ------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| Cabecera y resumen ejecutivo                                                                                        | §0                     |
+| Diagnóstico medido                                                                                                  | §1                     |
+| Principios                                                                                                          | §2                     |
+| El modelo de tipos del estado y la línea temporal                                                                   | §3, §4                 |
+| Lo que el motor guarda al correr la etapa (sonda, codificación, tamaños)                                            | §5 (el esquema, §13)   |
 | El estado en pantalla: lo permanente, lo eventual, la capa fija, las cabeceras de grupo, las diferencias, el perfil | §6.2, §6.3, §6.5, §6.7 |
-| Los rótulos y la regla de maillots | §7 |
-| El ritmo y el montaje | §8 |
-| La contrarreloj | §9 |
-| Sin destripe: el horizonte y el velo | §10.4-10.6 |
-| La tabla de lo visto | §10.2-10.3, §13.4 |
-| Las 48 superficies una a una | §11.1-11.2 |
-| Rutas públicas | §11.3, §11.10, §14.2 |
-| Título de pestaña | §11.8 |
-| Correos | §11.9 |
-| Sesión y cookie | §10.8 |
-| El que vuelve tras una semana | §11.4, §8.8 |
-| «Dame el resultado» | §11.11 |
-| El acta compartible | §11.10 |
-| La previa de N+1 | §11.12 |
-| La crónica causal | §12.2-12.4 |
-| `news` con semilla y datos; las 11 plantillas | §12.8, §13.2 |
-| E10 | §12.11 |
-| El esquema y las migraciones | §13 |
-| La API y el contrato | §14 |
-| Las constantes | §15 |
-| Los bancos y tests | §16 |
-| El plan por pasos con tests primero | §17 |
-| Rendimiento y móvil | §18 |
-| Riesgos y fronteras | §19 |
-| Decisiones del dueño | §20 |
-| Apéndices: injertos y dónde cayeron, objeciones desestimadas, cobertura del encargo y de los [DUEÑO n] | §21.1-21.3 |
+| Los rótulos y la regla de maillots                                                                                  | §7                     |
+| El ritmo y el montaje                                                                                               | §8                     |
+| La contrarreloj                                                                                                     | §9                     |
+| Sin destripe: el horizonte y el velo                                                                                | §10.4-10.6             |
+| La tabla de lo visto                                                                                                | §10.2-10.3, §13.4      |
+| Las 48 superficies una a una                                                                                        | §11.1-11.2             |
+| Rutas públicas                                                                                                      | §11.3, §11.10, §14.2   |
+| Título de pestaña                                                                                                   | §11.8                  |
+| Correos                                                                                                             | §11.9                  |
+| Sesión y cookie                                                                                                     | §10.8                  |
+| El que vuelve tras una semana                                                                                       | §11.4, §8.8            |
+| «Dame el resultado»                                                                                                 | §11.11                 |
+| El acta compartible                                                                                                 | §11.10                 |
+| La previa de N+1                                                                                                    | §11.12                 |
+| La crónica causal                                                                                                   | §12.2-12.4             |
+| `news` con semilla y datos; las 11 plantillas                                                                       | §12.8, §13.2           |
+| E10                                                                                                                 | §12.11                 |
+| El esquema y las migraciones                                                                                        | §13                    |
+| La API y el contrato                                                                                                | §14                    |
+| Las constantes                                                                                                      | §15                    |
+| Los bancos y tests                                                                                                  | §16                    |
+| El plan por pasos con tests primero                                                                                 | §17                    |
+| Rendimiento y móvil                                                                                                 | §18                    |
+| Riesgos y fronteras                                                                                                 | §19                    |
+| Decisiones del dueño                                                                                                | §20                    |
+| Apéndices: injertos y dónde cayeron, objeciones desestimadas, cobertura del encargo y de los [DUEÑO n]              | §21.1-21.3             |
 
 ### D.6 El encargo (`00-encargo.md` §1, sus seis puntos) → sección
 
-| Punto | Sección |
-| --- | --- |
-| 1. Rehacer lo que el jugador lee de una carrera, con la televisión como norte | §6, §7, §8, §12 (el diagnóstico, §1) |
-| 2. Un estado que evoluciona, con tipos; qué es permanente y qué eventual | §3, §4, §6 |
-| 3. Sin destripe por defecto, como propiedad del producto entero (portada, ranking, clasificaciones, feed, correo, título de la pestaña) | §10, §11, §14 |
-| 4. «El motor ya guarda los sucesos fechados», comprobado contra el código | §1.1, §4.7, §5 |
-| 5. El defecto de `news` | §12.8, §13.2, §17.4 |
-| 6. Los maillots de la escapada, con las cinco categorías y la interfaz para E3 y E12 | §7 |
+| Punto                                                                                                                                   | Sección                              |
+| --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| 1. Rehacer lo que el jugador lee de una carrera, con la televisión como norte                                                           | §6, §7, §8, §12 (el diagnóstico, §1) |
+| 2. Un estado que evoluciona, con tipos; qué es permanente y qué eventual                                                                | §3, §4, §6                           |
+| 3. Sin destripe por defecto, como propiedad del producto entero (portada, ranking, clasificaciones, feed, correo, título de la pestaña) | §10, §11, §14                        |
+| 4. «El motor ya guarda los sucesos fechados», comprobado contra el código                                                               | §1.1, §4.7, §5                       |
+| 5. El defecto de `news`                                                                                                                 | §12.8, §13.2, §17.4                  |
+| 6. Los maillots de la escapada, con las cinco categorías y la interfaz para E3 y E12                                                    | §7                                   |
 
 ### D.7 [DUEÑO n] (mapa 05 §5.1) → sección
 
-| Requisito | Sección |
-| --- | --- |
-| [DUEÑO 1] El norte de la televisión como estado permanente | §6.2 (y §2) |
-| [DUEÑO 2] Sin destripe | §10, §11 |
-| [DUEÑO 3] Cuando se escapan cinco, que se vean sus maillots | §7.2-7.6 |
-| [DUEÑO 4] Las cuatro preguntas en cualquier punto | §6.2, §12.2, §16.5 |
-| [DUEÑO 5] El corredor propio se ve aunque no sea noticia | §6.2, §7.6-7.7 |
-| [DUEÑO 6] Coherencia en el tiempo | §11.5, §11.12, §12.7 |
-| [DUEÑO 7] La criba lejana, aparcada | §6.8, §20.4 |
-| [DUEÑO 8] El visitante sin cuenta | §11.10, §20 |
-| [DUEÑO 9] Nada de decidir en vivo | §2, §8.10, §20.4 |
-| [DUEÑO 10] La radio sigue siendo el microscopio | §5.1, §11.15-11.16, §12.10 |
+| Requisito                                                   | Sección                    |
+| ----------------------------------------------------------- | -------------------------- |
+| [DUEÑO 1] El norte de la televisión como estado permanente  | §6.2 (y §2)                |
+| [DUEÑO 2] Sin destripe                                      | §10, §11                   |
+| [DUEÑO 3] Cuando se escapan cinco, que se vean sus maillots | §7.2-7.6                   |
+| [DUEÑO 4] Las cuatro preguntas en cualquier punto           | §6.2, §12.2, §16.5         |
+| [DUEÑO 5] El corredor propio se ve aunque no sea noticia    | §6.2, §7.6-7.7             |
+| [DUEÑO 6] Coherencia en el tiempo                           | §11.5, §11.12, §12.7       |
+| [DUEÑO 7] La criba lejana, aparcada                         | §6.8, §20.4                |
+| [DUEÑO 8] El visitante sin cuenta                           | §11.10, §20                |
+| [DUEÑO 9] Nada de decidir en vivo                           | §2, §8.10, §20.4           |
+| [DUEÑO 10] La radio sigue siendo el microscopio             | §5.1, §11.15-11.16, §12.10 |
 
 ### D.8 [DOC n] (mapa 05 §5.2) → sección
 
-| Requisito | Sección |
-| --- | --- |
-| [DOC 1] `news` con `seed` y `data`, antes del reset | §12.8, §13.2, §17.4 |
-| [DOC 2] Un cursor por grupo sobre la altimetría | §6.2 |
-| [DOC 3] R23.4, R23.7 y R23.8 | §7.6 (R23.4), §7.7 (R23.7), §4.7 y §6.6 (R23.8), §19.3 |
-| [DOC 4] Las dos preguntas abiertas de `docs/navegacion.md` §9 | §11.5 (etapas futuras: se conserva `Not raced yet`), §6.10 (la vista de espectador es `Watch`) |
-| [DOC 5] «La API no puede mandar lo que la pantalla no enseña» | §2.4, §10.11, §14.3 |
-| [DOC 6] Móvil como plataforma y maillots distinguibles por forma | §18.5, §18.8, §7.4 |
-| [DOC 7] El criterio del MVP paso 31 como prueba de lectura | §16.5, §17.13 |
+| Requisito                                                        | Sección                                                                                        |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| [DOC 1] `news` con `seed` y `data`, antes del reset              | §12.8, §13.2, §17.4                                                                            |
+| [DOC 2] Un cursor por grupo sobre la altimetría                  | §6.2                                                                                           |
+| [DOC 3] R23.4, R23.7 y R23.8                                     | §7.6 (R23.4), §7.7 (R23.7), §4.7 y §6.6 (R23.8), §19.3                                         |
+| [DOC 4] Las dos preguntas abiertas de `docs/navegacion.md` §9    | §11.5 (etapas futuras: se conserva `Not raced yet`), §6.10 (la vista de espectador es `Watch`) |
+| [DOC 5] «La API no puede mandar lo que la pantalla no enseña»    | §2.4, §10.11, §14.3                                                                            |
+| [DOC 6] Móvil como plataforma y maillots distinguibles por forma | §18.5, §18.8, §7.4                                                                             |
+| [DOC 7] El criterio del MVP paso 31 como prueba de lectura       | §16.5, §17.13                                                                                  |
 
 ### D.9 Contradicciones del mapa 05 §6 → sección
 
-| Contradicción | Sección |
-| --- | --- |
-| 1. Sin destripe contra la navegación | §11.17, §17.15 |
-| 2. Sin destripe contra la vista de espectador pública y la crónica que se comparte | §11.10 |
-| 3. La crónica ve el futuro | §12.2 |
-| 4. La tabla que no existe (`stages.radio`, `stage_runs`) | §1.6, §13.6 |
-| 5. «Traducible y re-renderizable», con matices | §4.3, §12.7-12.8, §17.19 |
-| 6. Tres dueños para el arreglo de `news` | §12.8 |
-| 7. Dos vocabularios del mismo grupo | §6.3, §12.6 |
-| 8. Cuatro nombres para un artefacto | §6.10, §12.1 |
-| 9. `narration.ts` medio muerto | §12.9 |
-| 10. «El del equipo» son dos cosas | §7.3 |
-| 11. «El mánager no elige nada» frente a las 12 semillas | §7.3 |
-| 12. Arcoíris y Mundial | §7.4, §19.2 |
-| 13. Códigos que chocan (E1 a E13 contra los EPIC; dos «radios») | §0.6 |
-| 14. El feed personal | §11.7 |
-| 15. Estado falso en los rectores (los correos existen) | §1.6, §11.9 |
+| Contradicción                                                                      | Sección                  |
+| ---------------------------------------------------------------------------------- | ------------------------ |
+| 1. Sin destripe contra la navegación                                               | §11.17, §17.15           |
+| 2. Sin destripe contra la vista de espectador pública y la crónica que se comparte | §11.10                   |
+| 3. La crónica ve el futuro                                                         | §12.2                    |
+| 4. La tabla que no existe (`stages.radio`, `stage_runs`)                           | §1.6, §13.6              |
+| 5. «Traducible y re-renderizable», con matices                                     | §4.3, §12.7-12.8, §17.19 |
+| 6. Tres dueños para el arreglo de `news`                                           | §12.8                    |
+| 7. Dos vocabularios del mismo grupo                                                | §6.3, §12.6              |
+| 8. Cuatro nombres para un artefacto                                                | §6.10, §12.1             |
+| 9. `narration.ts` medio muerto                                                     | §12.9                    |
+| 10. «El del equipo» son dos cosas                                                  | §7.3                     |
+| 11. «El mánager no elige nada» frente a las 12 semillas                            | §7.3                     |
+| 12. Arcoíris y Mundial                                                             | §7.4, §19.2              |
+| 13. Códigos que chocan (E1 a E13 contra los EPIC; dos «radios»)                    | §0.6                     |
+| 14. El feed personal                                                               | §11.7                    |
+| 15. Estado falso en los rectores (los correos existen)                             | §1.6, §11.9              |
 
 ### D.10 Decisiones sin evidencia de los jueces → quién las mide → sección
 
-| Decisión | Qué se decidió sin juez | Quién lo mide o lo acepta | Sección |
-| --- | --- | --- | --- |
-| D-04 | la posición extrapolada del instante | B21, paso 6 | §3.3, §18.9 |
-| D-07 | el umbral de 1 km del reloj estimado | B22, paso 6 | §3.8, §14.4 |
-| D-12 | el interruptor `TIMELINE_RECORD` | B15, paso 5 | §5.5 |
-| D-21 | la cola de rótulos sin freno | B17 y la prueba de lectura | §6.5 |
-| D-24 | la delegación que salta al campeón | DD-05 | §7.2 |
-| D-25 | `Champion of Italy` en lugar de un gentilicio | la prueba de lectura; E10 | §7.4 |
-| D-26 | `knownWins` como notoriedad | B3 y la prueba de lectura | §7.5 |
-| D-39 | la cola seguida: sin reproducción automática, la más antigua primero, filas separadas (H-20) | la prueba de lectura y el paso 9 | §8.8, §11.4 |
-| D-40 | el modo diagnóstico `?diag=1` | test de ruta (no escribe `race_watch`) | §11.15 |
-| D-43 | la regla del racimo en vivo | B19 antes de encender `liveClusters` (DD-18) | §12.3 |
-| D-55 | el umbral de escritura del progreso | B14 con `recordProgress`, paso 7 | §10.3, §18.4 |
-| D-56 | los umbrales del móvil | medida a mano, paso 10 | §18.5 |
-| D-57 | la red, dos dispositivos y la accesibilidad | tests de pantalla, pasos 9 y 10 | §10.12, §18.7-18.8 |
-| D-60 | nueve de nueve en la prueba de lectura | el propio protocolo, paso 10 | §16.5 |
+| Decisión | Qué se decidió sin juez                                                                      | Quién lo mide o lo acepta                    | Sección            |
+| -------- | -------------------------------------------------------------------------------------------- | -------------------------------------------- | ------------------ |
+| D-04     | la posición extrapolada del instante                                                         | B21, paso 6                                  | §3.3, §18.9        |
+| D-07     | el umbral de 1 km del reloj estimado                                                         | B22, paso 6                                  | §3.8, §14.4        |
+| D-12     | el interruptor `TIMELINE_RECORD`                                                             | B15, paso 5                                  | §5.5               |
+| D-21     | la cola de rótulos sin freno                                                                 | B17 y la prueba de lectura                   | §6.5               |
+| D-24     | la delegación que salta al campeón                                                           | DD-05                                        | §7.2               |
+| D-25     | `Champion of Italy` en lugar de un gentilicio                                                | la prueba de lectura; E10                    | §7.4               |
+| D-26     | `knownWins` como notoriedad                                                                  | B3 y la prueba de lectura                    | §7.5               |
+| D-39     | la cola seguida: sin reproducción automática, la más antigua primero, filas separadas (H-20) | la prueba de lectura y el paso 9             | §8.8, §11.4        |
+| D-40     | el modo diagnóstico `?diag=1`                                                                | test de ruta (no escribe `race_watch`)       | §11.15             |
+| D-43     | la regla del racimo en vivo                                                                  | B19 antes de encender `liveClusters` (DD-18) | §12.3              |
+| D-55     | el umbral de escritura del progreso                                                          | B14 con `recordProgress`, paso 7             | §10.3, §18.4       |
+| D-56     | los umbrales del móvil                                                                       | medida a mano, paso 10                       | §18.5              |
+| D-57     | la red, dos dispositivos y la accesibilidad                                                  | tests de pantalla, pasos 9 y 10              | §10.12, §18.7-18.8 |
+| D-60     | nueve de nueve en la prueba de lectura                                                       | el propio protocolo, paso 10                 | §16.5              |
 
 ---
 

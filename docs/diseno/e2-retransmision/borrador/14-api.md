@@ -4,11 +4,11 @@ Esta sección escribe cada ruta nueva o cambiada con su petición, su respuesta,
 
 ### 14.1 El contrato de hoy
 
-La web valida TODA respuesta: `request()` hace `safeParse` con el esquema de `@cyclingstar/shared` y lanza `ContractError` si no casa (`apps/web/src/api/request.ts` l. 91-111), y la página de etapa pide `GET /api/races/:raceId/stages/:day` con `stageReplaySchema` (`apps/web/src/api/results.ts` l. 51-55). La API, en cambio, no valida lo que devuelve: el manejador de etapa devuelve un literal (`apps/api/src/routes/races.ts` l. 519-537) y ninguna ruta declara `schema.response` ni usa `satisfies` (mapa 07 §2). El desfase entre despliegues se aguanta por tolerancia: objetos *strip*, donde un campo nuevo no rompe nada (`packages/shared/src/contracts.ts` l. 9-12), y `.optional()`, `.nullish().default()` y `.catch(null)` donde la API puede no enviar algo (mapa 07 §2). E2 no rompe la web de ayer en ningún PR (D-50, I-16), y lo cumple con cinco reglas:
+La web valida TODA respuesta: `request()` hace `safeParse` con el esquema de `@cyclingstar/shared` y lanza `ContractError` si no casa (`apps/web/src/api/request.ts` l. 91-111), y la página de etapa pide `GET /api/races/:raceId/stages/:day` con `stageReplaySchema` (`apps/web/src/api/results.ts` l. 51-55). La API, en cambio, no valida lo que devuelve: el manejador de etapa devuelve un literal (`apps/api/src/routes/races.ts` l. 519-537) y ninguna ruta declara `schema.response` ni usa `satisfies` (mapa 07 §2). El desfase entre despliegues se aguanta por tolerancia: objetos _strip_, donde un campo nuevo no rompe nada (`packages/shared/src/contracts.ts` l. 9-12), y `.optional()`, `.nullish().default()` y `.catch(null)` donde la API puede no enviar algo (mapa 07 §2). E2 no rompe la web de ayer en ningún PR (D-50, I-16), y lo cumple con cinco reglas:
 
 1. **La ruta de etapa sigue devolviendo `StageReplay`.** Sus campos obligatorios son `day`, `name`, `km`, `run` y `altimetry` (`contracts.ts` l. 1483-1486 y 1498), y se mandan siempre. Cuando la pantalla no va a enseñar el resultado, omite los opcionales de resultado: `results`, `chronicle`, `gc`, `kom`, `points`, `teamStage`, `teamGc`, `radio` (l. 1499-1531) y `leaders` ENTERO, sirve `altimetry` sin marcas (como la rama de una etapa sin correr, `routes/races.ts` l. 432) y gana `watch`, opcional. `leaders` se omite entero porque es `z.object({ onRoad, afterStage }).optional()` con los dos campos obligatorios dentro (l. 1526): mandar `leaders` sin `afterStage` haría fallar el esquema de la web de ayer, y omitirlo no, porque la web lo lee siempre con `?.` (`StageReplay.tsx` l. 450 y 479; `StageStory.tsx` l. 43 y 154). La web de ayer ve entonces pestañas vacías (`No result for this stage.`, pantalla, `StageReplay.tsx` l. 454; las tablas con `?? []`, l. 370-371 y 474-478), nunca un error.
 2. **`/api/news` y `/api/teams/:id/news` siguen mandando `text`** (D-45): una SPA ya cargada valida `text: z.string()` (`contracts.ts` l. 708 y 790) y cae entera con un solo titular sin él. `text` se deja de mandar una versión de web después del reinicio (DD-19; §14.2).
-3. **Las rutas nuevas no las llama ninguna web vieja**, y las que se amplían solo ganan campos: el esquema *strip* de ayer los tira.
+3. **Las rutas nuevas no las llama ninguna web vieja**, y las que se amplían solo ganan campos: el esquema _strip_ de ayer los tira.
 4. **Toda respuesta nueva se valida**, con `schema.parse` en su test y con `satisfies` en el código (§14.7).
 5. **Lo guardado también tolera**: `buildRaceRadio` valida la radio con un `z.object` sin `.strict()` e ignora claves nuevas, y un motivo que no conozca cae a null con `.catch(null)` (`apps/api/src/chronicle.ts` l. 1257-1317 y 1306).
 
@@ -21,24 +21,30 @@ import { type Horizon, type WatchRow, stageGateOf } from '@cyclingstar/db'
 
 export interface StageAccessInput {
   readonly h: Horizon
-  readonly applies: boolean   // SPOILER_MODE vale para quien pide: `on`, o `admins` y es administrador (§10.13)
-  readonly watchOn: boolean   // BROADCAST_WATCH vale para quien pide (§14.6): si no, no hay `Watch` que abrir
+  readonly applies: boolean // SPOILER_MODE vale para quien pide: `on`, o `admins` y es administrador (§10.13)
+  readonly watchOn: boolean // BROADCAST_WATCH vale para quien pide (§14.6): si no, no hay `Watch` que abrir
   readonly row: WatchRow | null // su fila de race_watch (readWatch, §10.3); null sin sesión ni cookie, o sin fila
   readonly raceKey: string
   readonly day: number
   readonly run: boolean
 }
 /** Qué sirve la ruta de etapa: el resultado solo si la pantalla lo va a enseñar ([DOC 5], D-50). */
-export function stageAccessOf(a: StageAccessInput): { readonly serveResult: boolean; readonly watch: WatchState | undefined } {
-  if (!a.applies) return { serveResult: true, watch: undefined }                 // el producto de hoy, sin `watch` (§10.13)
+export function stageAccessOf(a: StageAccessInput): {
+  readonly serveResult: boolean
+  readonly watch: WatchState | undefined
+} {
+  if (!a.applies) return { serveResult: true, watch: undefined } // el producto de hoy, sin `watch` (§10.13)
   const letter = a.row !== null && a.day <= a.row.knownThrough ? a.row.how.charAt(a.day - 1) : ''
-  const seen = letter === 'W' || letter === 'S' || letter === 'R'                 // vista o revelada: abre en Report
-  const known = seen || letter === 'A'                                             // X no: caducada abre en Watch (10-e)
+  const seen = letter === 'W' || letter === 'S' || letter === 'R' // vista o revelada: abre en Report
+  const known = seen || letter === 'A' // X no: caducada abre en Watch (10-e)
   const gate: StageGate | null = stageGateOf(a.h, a.raceKey, a.day)
   const reachedS = a.row !== null && a.row.watchingStage === a.day ? a.row.reachedS : null
   // Vista, se sirve. Arrastrada (A), caducada (X) o fuera de guardia abren en Watch (10-e, 6-r): se sirve solo sin Watch
   // disponible y fuera del velo (el acta de siempre). Velada, nunca.
-  return { serveResult: a.run && (seen || (gate === null && !a.watchOn)), watch: { known, reachedS, gate, seen } }
+  return {
+    serveResult: a.run && (seen || (gate === null && !a.watchOn)),
+    watch: { known, reachedS, gate, seen },
+  }
 }
 ```
 
@@ -46,53 +52,53 @@ Con `?diag=1` y un administrador (D-40, §11.15), la ruta sirve el `StageReplay`
 
 **Lo que rompería cada alternativa** (X-20; ejecutabilidad §2.3 y comprobaciones 1 a 3):
 
-| Alternativa | De | Qué rompe en la web de ayer |
-| --- | --- | --- |
-| `StageCard` en lugar de `StageReplay` en la ruta de hoy | `producto.md` §10.2 | `StageCard` no lleva `run`, que es obligatorio: `ContractError` y `Could not load the stage.` (pantalla) en toda etapa (`results.ts` l. 51-55; `StageReplay.tsx` l. 349) |
-| `/api/news` sin `text` | `estado.md` §8.2 | `text: z.string()` (l. 790): el feed entero cae con un solo titular sin texto |
-| 403 en la ruta de hoy con la etapa velada, sin interruptor | `television.md` §7.4 | `request()` lanza `ApiError` en todo 4xx (`request.ts` l. 109): `Could not load the stage.` para todo el que tenga la etapa velada, en cuanto se despliega |
-| mandar `leaders` sin `afterStage` | lectura literal de D-50 | `afterStage` es obligatorio dentro de `leaders` (l. 1526): `ContractError` |
-| omitir `run` o `altimetry` | ninguna propuesta; se dice para que nadie lo haga | obligatorios (l. 1486 y 1498): `ContractError` |
-| **la de este documento**: omitir opcionales, `leaders` entero, marcas de `altimetry` y ganar `watch` | D-50 | nada: pestañas vacías |
+| Alternativa                                                                                          | De                                                | Qué rompe en la web de ayer                                                                                                                                              |
+| ---------------------------------------------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `StageCard` en lugar de `StageReplay` en la ruta de hoy                                              | `producto.md` §10.2                               | `StageCard` no lleva `run`, que es obligatorio: `ContractError` y `Could not load the stage.` (pantalla) en toda etapa (`results.ts` l. 51-55; `StageReplay.tsx` l. 349) |
+| `/api/news` sin `text`                                                                               | `estado.md` §8.2                                  | `text: z.string()` (l. 790): el feed entero cae con un solo titular sin texto                                                                                            |
+| 403 en la ruta de hoy con la etapa velada, sin interruptor                                           | `television.md` §7.4                              | `request()` lanza `ApiError` en todo 4xx (`request.ts` l. 109): `Could not load the stage.` para todo el que tenga la etapa velada, en cuanto se despliega               |
+| mandar `leaders` sin `afterStage`                                                                    | lectura literal de D-50                           | `afterStage` es obligatorio dentro de `leaders` (l. 1526): `ContractError`                                                                                               |
+| omitir `run` o `altimetry`                                                                           | ninguna propuesta; se dice para que nadie lo haga | obligatorios (l. 1486 y 1498): `ContractError`                                                                                                                           |
+| **la de este documento**: omitir opcionales, `leaders` entero, marcas de `altimetry` y ganar `watch` | D-50                                              | nada: pestañas vacías                                                                                                                                                    |
 
 **Cómo sigue funcionando la web de hoy en cada paso del plan** (el orden y el contenido de los pasos son de §17; los interruptores, de §14.6). «La web de ayer» es la que está en producción hasta el paso 9 y, después, la que siga cargada en una pestaña abierta durante un despliegue:
 
-| Paso | Qué cambia en la API | Qué ve la web de ayer | Por qué no se rompe |
-| --- | --- | --- | --- |
-| 0 | `@fastify/compress` en toda respuesta de más de 1 KB (§14.8) | lo mismo, antes | el navegador descomprime solo |
-| 1 (1a, 1b) | `newsItemSchema` y `teamNewsItemSchema` ganan seis campos `.nullish()`; la API sigue mandando `text` | el feed de hoy | *strip*; `text` sigue ahí (regla 2) |
-| 2 | la voz causal (`buildChronicle` con `live`), sin ruta nueva | nada | no se expone |
-| 3 (3a, 3b, 3c) | las tres rutas de la retransmisión y la del acta, con `BROADCAST_WATCH=admins`; `/health` gana `features`; `stageReplaySchema` gana `tplRev`, opcional, que sirven el acta y el paquete de meta (3a, 12-c) | nada | rutas nuevas; `features` es un campo más de `/health`, y `tplRev`, un opcional que la web de ayer descarta (*strip*; `yesterday.test.ts` lo omite, §14.7) |
-| 4, 5 y 6 | el motor graba la línea y la retransmisión usa la exacta | nada | ningún contrato cambia; la cabecera cambia de `clock` y `source` |
-| 7a | las rutas `/api/me/*`; `race_watch`; `request.viewer()` y `request.horizon()`; `SPOILER_MODE=admins` | nada | rutas nuevas |
-| 7b | la ruta de etapa aplica `stageAccessOf` y gana `watch`; el acta da 403 con la puerta; la web reenvía a la ruta de etapa el `?diag=1` de la página (§14.11) | los administradores, pestañas vacías en las etapas que no conocen, y la etapa entera si abren la página con `?diag=1` (D-40); nadie más ve cambios | regla 1; el 403 solo lo da la ruta nueva del acta; el `diag` de quien no es administrador se ignora (11-h) |
-| 8 (8a, 8b) | el horizonte en toda la API: prefijos, restas, filtros y máscaras (§10.6), el registro que no arranca sin política, las cabeceras de caché, `stage_ready` en las noticias, `ready` en `last-race` | los administradores ven listas más cortas, ganadores a null y marcadores con su `text` | todo cabe en los esquemas de hoy: listas, campos `.nullable()` (`calendarRaceSummarySchema.winner`, l. 400) y campos nuevos `.nullish()` (§11.1 dice cuál en cada superficie) |
-| 9 (9a, 9b) | ninguno: es la web nueva | | |
-| 10 | los dos interruptores a `on` | una pestaña vieja, pestañas vacías en las etapas no conocidas | regla 1 |
-| 11a | `Race Radio` (pantalla) lee `radioFromTimeline`, con el contrato `RaceRadio` de hoy (§12.10) | la radio de siempre | mismo esquema |
-| 11b | `stageRun.ts` deja de escribir `stage_snapshots.radio` (17-v); la ruta de etapa sigue mandando `radio`, desde la línea | la radio de siempre | mismo esquema |
-| 12 | `text` de las noticias deja de mandarse una versión de web después del reinicio (DD-19); `last-race` gana `moments` (12-k) | la web de ese momento ya lee `text` como `.nullish()`; la de ayer no ve `moments` | la web se despliega antes que la API que deja de mandar `text`; *strip* tira `moments` |
+| Paso           | Qué cambia en la API                                                                                                                                                                                       | Qué ve la web de ayer                                                                                                                              | Por qué no se rompe                                                                                                                                                           |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0              | `@fastify/compress` en toda respuesta de más de 1 KB (§14.8)                                                                                                                                               | lo mismo, antes                                                                                                                                    | el navegador descomprime solo                                                                                                                                                 |
+| 1 (1a, 1b)     | `newsItemSchema` y `teamNewsItemSchema` ganan seis campos `.nullish()`; la API sigue mandando `text`                                                                                                       | el feed de hoy                                                                                                                                     | _strip_; `text` sigue ahí (regla 2)                                                                                                                                           |
+| 2              | la voz causal (`buildChronicle` con `live`), sin ruta nueva                                                                                                                                                | nada                                                                                                                                               | no se expone                                                                                                                                                                  |
+| 3 (3a, 3b, 3c) | las tres rutas de la retransmisión y la del acta, con `BROADCAST_WATCH=admins`; `/health` gana `features`; `stageReplaySchema` gana `tplRev`, opcional, que sirven el acta y el paquete de meta (3a, 12-c) | nada                                                                                                                                               | rutas nuevas; `features` es un campo más de `/health`, y `tplRev`, un opcional que la web de ayer descarta (_strip_; `yesterday.test.ts` lo omite, §14.7)                     |
+| 4, 5 y 6       | el motor graba la línea y la retransmisión usa la exacta                                                                                                                                                   | nada                                                                                                                                               | ningún contrato cambia; la cabecera cambia de `clock` y `source`                                                                                                              |
+| 7a             | las rutas `/api/me/*`; `race_watch`; `request.viewer()` y `request.horizon()`; `SPOILER_MODE=admins`                                                                                                       | nada                                                                                                                                               | rutas nuevas                                                                                                                                                                  |
+| 7b             | la ruta de etapa aplica `stageAccessOf` y gana `watch`; el acta da 403 con la puerta; la web reenvía a la ruta de etapa el `?diag=1` de la página (§14.11)                                                 | los administradores, pestañas vacías en las etapas que no conocen, y la etapa entera si abren la página con `?diag=1` (D-40); nadie más ve cambios | regla 1; el 403 solo lo da la ruta nueva del acta; el `diag` de quien no es administrador se ignora (11-h)                                                                    |
+| 8 (8a, 8b)     | el horizonte en toda la API: prefijos, restas, filtros y máscaras (§10.6), el registro que no arranca sin política, las cabeceras de caché, `stage_ready` en las noticias, `ready` en `last-race`          | los administradores ven listas más cortas, ganadores a null y marcadores con su `text`                                                             | todo cabe en los esquemas de hoy: listas, campos `.nullable()` (`calendarRaceSummarySchema.winner`, l. 400) y campos nuevos `.nullish()` (§11.1 dice cuál en cada superficie) |
+| 9 (9a, 9b)     | ninguno: es la web nueva                                                                                                                                                                                   |                                                                                                                                                    |                                                                                                                                                                               |
+| 10             | los dos interruptores a `on`                                                                                                                                                                               | una pestaña vieja, pestañas vacías en las etapas no conocidas                                                                                      | regla 1                                                                                                                                                                       |
+| 11a            | `Race Radio` (pantalla) lee `radioFromTimeline`, con el contrato `RaceRadio` de hoy (§12.10)                                                                                                               | la radio de siempre                                                                                                                                | mismo esquema                                                                                                                                                                 |
+| 11b            | `stageRun.ts` deja de escribir `stage_snapshots.radio` (17-v); la ruta de etapa sigue mandando `radio`, desde la línea                                                                                     | la radio de siempre                                                                                                                                | mismo esquema                                                                                                                                                                 |
+| 12             | `text` de las noticias deja de mandarse una versión de web después del reinicio (DD-19); `last-race` gana `moments` (12-k)                                                                                 | la web de ese momento ya lee `text` como `.nullish()`; la de ayer no ve `moments`                                                                  | la web se despliega antes que la API que deja de mandar `text`; _strip_ tira `moments`                                                                                        |
 
 ### 14.2 Las rutas nuevas
 
 Las rutas nuevas van bajo `/api/races/:raceId/stages/:day/…` con `?season=` (se conservan las URL de hoy) y bajo `/api/me/…` con la `raceKey` (D-51). `?season=` arregla de paso que una etapa de la temporada anterior no se pueda abrir, porque hoy la ruta resuelve la temporada con el día de hoy (`routes/races.ts` l. 399; mapa 02 §4); sin él, la temporada actual, como hoy. `GET` nunca cambia estado: el acta de una etapa velada da 403 con la puerta y revelar es un `POST`; la meta es `POST …/broadcast/finish`, porque un `GET` con efectos lo dispararían los precargadores y los rastreadores. Todos los errores usan el formato único de la API, `{ ok: false, error: <código> }` (`apps/api/src/http.ts` l. 11-19); los que llevan la puerta añaden `gate`.
 
-| Método y ruta | `config.spoiler` · mecanismo | Entra | Sale | Errores | Escribe |
-| --- | --- | --- | --- | --- | --- |
-| `GET /api/races/:raceId/stages/:day` (cambia) | `horizon` · G y P | `?season=`, `?diag=1` | `StageReplay` de hoy, con `watch?: WatchState`; sin los opcionales de resultado si `stageAccessOf` lo dice (§14.1) | 404 `no_encontrado` | nada |
-| `GET /api/races/:raceId/stages/:day/broadcast` | `watch` · B y G | `?season=`, `?diag=1` | `BroadcastHead` (§4.11): reparto degradado por el velo (`veilCast`, §10.10), `gate` solo si es `previous_unseen`, `view` null para el visitante | 404 `broadcast_off`, `no_encontrado`, `broadcast_unavailable` | nada |
-| `GET /api/races/:raceId/stages/:day/broadcast/chunk` | `watch` · B | `?season=&fromDs=&toDs=`, `?diag=1` | `BroadcastChunk` (§4.11) con la voz del tramo (§14.3) | 400 `validacion`; 403 `previous_unseen` con `gate`; 409 `beyond_reached`; 404 como la cabecera | nada |
-| `POST /api/races/:raceId/stages/:day/broadcast/finish` | `watch` · G | `?season=`; cuerpo `{ mode: WatchMode }` | `BroadcastFinish` (§4.11), con `report` sin `radio` (decisión 14-b) | 403 `previous_unseen` con `gate`; 404 como la cabecera | con sesión, `recordProgress` hasta `finishS` con ese modo (§10.3) |
-| `GET /api/races/:raceId/stages/:day/report` | `watch` · G | `?season=`, `?diag=1` | `StageReport` (el `StageReplay` entero) | 403 `not_seen` o `previous_unseen` con `gate`; 404 `no_encontrado` si no se ha corrido | nada |
-| `POST /api/me/watch/:raceKey/:day` | `watch` · B | cuerpo `{ reachedS: number; mode: WatchMode }` en `application/json` o, de respaldo, en `text/plain` (abajo) | `{ status: 'watching' \| 'known'; rev: string }` | 401 sin sesión; 403 `previous_unseen` con `gate`; 404 si la etapa no se ha corrido | `recordProgress`, con la memoria de D-55 delante |
-| `POST /api/me/reveal/:raceKey/:day` | `watch` · G | cuerpo `{}` | `{ rev: string }` | 401; 404 si no se ha corrido | `revealStage` (con `expired` si la carrera caducó, §10.5) |
-| `PUT /api/me/follow/:raceKey` | `safe` · N | `{ follow: 'follow' \| 'drop' \| 'default' }` | `{ rev: string }` | 401; 404 si la carrera no existe | `setFollow` (1, −1, 0) |
-| `PUT /api/me/spoiler-scope` | `safe` · N | `{ scope: SpoilerScope; revealConfirm?: boolean }` | `{ rev: string }` | 401 | `setSpoilerScope` |
-| `GET /api/me/horizon` | `horizon` · N | | `HorizonSummary` (§4.11); para `cs_viewer` sin sesión, solo `rev` y `scope` con las listas vacías | 401 sin sesión ni `cs_viewer` | nada |
-| `GET /api/news`, `GET /api/teams/:id/news` (cambian) | `horizon` · F | `?diag=1` (11-h) | `newsItemSchema` y `teamNewsItemSchema` ampliados (abajo); un `stage_ready` por etapa velada (§11.7); `gc_lead_taken` y `jersey_taken` solo con `leaderNews: request.spoilerApplies()`, desde el 8a, y entonces con el filtro F como los demás (17-x) | | nada |
-| `GET /api/calendar/:raceId` (cambia) | `horizon` · P, F y L (§11.3) | `?diag=1` (11-h) | la ficha de carrera de hoy, tras la última etapa conocida (§11.5) | | nada |
-| `GET /api/riders/me/last-race` (cambia) | `horizon` · P y G | | `{ report, ready? }`: `report` de la última etapa CONOCIDA; `ready`, la `PreStageInfo` de la última corrida si está velada (D-47) | 401 | nada |
-| `GET /health` (cambia) | `safe` · N | | gana `features?: { broadcastWatch: SwitchMode; spoilerMode: SwitchMode }` (§14.6) | | nada |
+| Método y ruta                                          | `config.spoiler` · mecanismo | Entra                                                                                                        | Sale                                                                                                                                                                                                                                                  | Errores                                                                                        | Escribe                                                           |
+| ------------------------------------------------------ | ---------------------------- | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `GET /api/races/:raceId/stages/:day` (cambia)          | `horizon` · G y P            | `?season=`, `?diag=1`                                                                                        | `StageReplay` de hoy, con `watch?: WatchState`; sin los opcionales de resultado si `stageAccessOf` lo dice (§14.1)                                                                                                                                    | 404 `no_encontrado`                                                                            | nada                                                              |
+| `GET /api/races/:raceId/stages/:day/broadcast`         | `watch` · B y G              | `?season=`, `?diag=1`                                                                                        | `BroadcastHead` (§4.11): reparto degradado por el velo (`veilCast`, §10.10), `gate` solo si es `previous_unseen`, `view` null para el visitante                                                                                                       | 404 `broadcast_off`, `no_encontrado`, `broadcast_unavailable`                                  | nada                                                              |
+| `GET /api/races/:raceId/stages/:day/broadcast/chunk`   | `watch` · B                  | `?season=&fromDs=&toDs=`, `?diag=1`                                                                          | `BroadcastChunk` (§4.11) con la voz del tramo (§14.3)                                                                                                                                                                                                 | 400 `validacion`; 403 `previous_unseen` con `gate`; 409 `beyond_reached`; 404 como la cabecera | nada                                                              |
+| `POST /api/races/:raceId/stages/:day/broadcast/finish` | `watch` · G                  | `?season=`; cuerpo `{ mode: WatchMode }`                                                                     | `BroadcastFinish` (§4.11), con `report` sin `radio` (decisión 14-b)                                                                                                                                                                                   | 403 `previous_unseen` con `gate`; 404 como la cabecera                                         | con sesión, `recordProgress` hasta `finishS` con ese modo (§10.3) |
+| `GET /api/races/:raceId/stages/:day/report`            | `watch` · G                  | `?season=`, `?diag=1`                                                                                        | `StageReport` (el `StageReplay` entero)                                                                                                                                                                                                               | 403 `not_seen` o `previous_unseen` con `gate`; 404 `no_encontrado` si no se ha corrido         | nada                                                              |
+| `POST /api/me/watch/:raceKey/:day`                     | `watch` · B                  | cuerpo `{ reachedS: number; mode: WatchMode }` en `application/json` o, de respaldo, en `text/plain` (abajo) | `{ status: 'watching' \| 'known'; rev: string }`                                                                                                                                                                                                      | 401 sin sesión; 403 `previous_unseen` con `gate`; 404 si la etapa no se ha corrido             | `recordProgress`, con la memoria de D-55 delante                  |
+| `POST /api/me/reveal/:raceKey/:day`                    | `watch` · G                  | cuerpo `{}`                                                                                                  | `{ rev: string }`                                                                                                                                                                                                                                     | 401; 404 si no se ha corrido                                                                   | `revealStage` (con `expired` si la carrera caducó, §10.5)         |
+| `PUT /api/me/follow/:raceKey`                          | `safe` · N                   | `{ follow: 'follow' \| 'drop' \| 'default' }`                                                                | `{ rev: string }`                                                                                                                                                                                                                                     | 401; 404 si la carrera no existe                                                               | `setFollow` (1, −1, 0)                                            |
+| `PUT /api/me/spoiler-scope`                            | `safe` · N                   | `{ scope: SpoilerScope; revealConfirm?: boolean }`                                                           | `{ rev: string }`                                                                                                                                                                                                                                     | 401                                                                                            | `setSpoilerScope`                                                 |
+| `GET /api/me/horizon`                                  | `horizon` · N                |                                                                                                              | `HorizonSummary` (§4.11); para `cs_viewer` sin sesión, solo `rev` y `scope` con las listas vacías                                                                                                                                                     | 401 sin sesión ni `cs_viewer`                                                                  | nada                                                              |
+| `GET /api/news`, `GET /api/teams/:id/news` (cambian)   | `horizon` · F                | `?diag=1` (11-h)                                                                                             | `newsItemSchema` y `teamNewsItemSchema` ampliados (abajo); un `stage_ready` por etapa velada (§11.7); `gc_lead_taken` y `jersey_taken` solo con `leaderNews: request.spoilerApplies()`, desde el 8a, y entonces con el filtro F como los demás (17-x) |                                                                                                | nada                                                              |
+| `GET /api/calendar/:raceId` (cambia)                   | `horizon` · P, F y L (§11.3) | `?diag=1` (11-h)                                                                                             | la ficha de carrera de hoy, tras la última etapa conocida (§11.5)                                                                                                                                                                                     |                                                                                                | nada                                                              |
+| `GET /api/riders/me/last-race` (cambia)                | `horizon` · P y G            |                                                                                                              | `{ report, ready? }`: `report` de la última etapa CONOCIDA; `ready`, la `PreStageInfo` de la última corrida si está velada (D-47)                                                                                                                     | 401                                                                                            | nada                                                              |
+| `GET /health` (cambia)                                 | `safe` · N                   |                                                                                                              | gana `features?: { broadcastWatch: SwitchMode; spoilerMode: SwitchMode }` (§14.6)                                                                                                                                                                     |                                                                                                | nada                                                              |
 
 `?diag=1` vale, para un administrador con sesión, en las rutas de etapa y también en `GET /api/calendar/:raceId`, `GET /api/news` y `GET /api/teams/:id/news`, con `diag: z.literal('1').optional()` como `stageQuerySchema` (abajo): se sirven con `worldHorizon`; para cualquier otro el parámetro se ignora y la respuesta es la misma, byte a byte (11-h, §11.15; `apps/api/src/diagMode.test.ts`, 8a).
 
@@ -106,11 +112,16 @@ Tres reglas comunes. **El acceso a la retransmisión**: las tres rutas de `…/b
 
 ```ts
 // packages/shared/src/broadcast/wire.ts (sigue §4.11): las entradas de las rutas nuevas (D-51)
-import { apiErrorBodySchema } from '../contracts.js'   // l. 32: { ok?: false, error: string }. stageGateSchema, z y BROADCAST ya los importa la cabecera de wire.ts (§4.11): repetirlos da TS2300
+import { apiErrorBodySchema } from '../contracts.js' // l. 32: { ok?: false, error: string }. stageGateSchema, z y BROADCAST ya los importa la cabecera de wire.ts (§4.11): repetirlos da TS2300
 
 /** Cómo llegó el espectador a su punto (§8.1, §8.5). packages/db/src/watch.ts la importa de aquí (§10.3). Tipo a mano y esquema atado (4-j). */
 export type WatchMode = 'play' | 'seek' | 'summary' | 'digest'
-export const watchModeSchema = z.enum(['play', 'seek', 'summary', 'digest']) satisfies z.ZodType<WatchMode>
+export const watchModeSchema = z.enum([
+  'play',
+  'seek',
+  'summary',
+  'digest',
+]) satisfies z.ZodType<WatchMode>
 
 /** `?season=` de las rutas de etapa: la de hoy si falta (como `/api/admin/stage-snapshot`, routes/admin.ts l. 46 y 193-199). `?diag=1`, solo administradores (D-40). */
 export const stageQuerySchema = z.object({
@@ -118,19 +129,32 @@ export const stageQuerySchema = z.object({
   diag: z.literal('1').optional(),
 })
 /** Un tramo (fromDs, toDs] de como mucho BROADCAST.chunkRaceS de carrera (§14.3). */
-export const chunkQuerySchema = stageQuerySchema.extend({
-  fromDs: z.coerce.number().int().min(0),
-  toDs: z.coerce.number().int().min(1),
-}).refine((q) => q.toDs > q.fromDs && q.toDs - q.fromDs <= BROADCAST.chunkRaceS * 10, { message: 'tramo' })
+export const chunkQuerySchema = stageQuerySchema
+  .extend({
+    fromDs: z.coerce.number().int().min(0),
+    toDs: z.coerce.number().int().min(1),
+  })
+  .refine((q) => q.toDs > q.fromDs && q.toDs - q.fromDs <= BROADCAST.chunkRaceS * 10, {
+    message: 'tramo',
+  })
 /** Lo alcanzado: segundos de carrera, hasta un día (una crono dura como mucho 23.724 s, mapa 01 §5). */
-export const watchProgressBodySchema = z.object({ reachedS: z.number().finite().min(0).max(86_400), mode: watchModeSchema })
+export const watchProgressBodySchema = z.object({
+  reachedS: z.number().finite().min(0).max(86_400),
+  mode: watchModeSchema,
+})
 export const finishBodySchema = z.object({ mode: watchModeSchema })
 export const revealBodySchema = z.object({}).strict()
 export const followBodySchema = z.object({ follow: z.enum(['follow', 'drop', 'default']) })
-export const spoilerScopeBodySchema = z.object({ scope: z.enum(['guarded', 'own_only', 'off']), revealConfirm: z.boolean().optional() })
+export const spoilerScopeBodySchema = z.object({
+  scope: z.enum(['guarded', 'own_only', 'off']),
+  revealConfirm: z.boolean().optional(),
+})
 
 /** Las respuestas pequeñas de /api/me. */
-export const watchResponseSchema = z.object({ status: z.enum(['watching', 'known']), rev: z.string() })
+export const watchResponseSchema = z.object({
+  status: z.enum(['watching', 'known']),
+  rev: z.string(),
+})
 export const revResponseSchema = z.object({ rev: z.string() })
 /** 403 con la puerta: el error de siempre más `gate` (el acta, la cabecera no, el tramo, la meta y el progreso). */
 export const stageGateErrorSchema = apiErrorBodySchema.extend({ gate: stageGateSchema })
@@ -158,7 +182,7 @@ stageReplaySchema: + watch: watchStateSchema.optional()          // §14.1: solo
                                                                   // opcional por la web de ayer (D-50); 0 sin línea. StageReport es StageReplay (§4.11) y lo hereda;
                                                                   // yesterday.test.ts lo omite con watch
 newsItemSchema (l. 787-799) y teamNewsItemSchema (l. 705-709):
-  + payload: newsPayloadSchema.nullish()   // los datos del titular (0043); null en las filas viejas y en `stage_ready`
+  + payload: newsPayloadSchema.nullish()   // los datos del titular (0046); null en las filas viejas y en `stage_ready`
   + seed: z.string().nullish()             // la semilla de variante (D-46)
   + tplRev: z.number().int().nullish()     // news.tpl_rev
   + raceId: z.string().nullish()           // para enlazar sin adivinar: raceOfHeadline muere (newsFeed.ts l. 17-24)
@@ -182,45 +206,62 @@ Un tramo es `(fromDs, toDs]` de reloj de carrera, de como mucho `BROADCAST.chunk
 
 ```ts
 // apps/api/src/routes/broadcast.ts (nuevo; §17.20): la voz de (fromDs, toDs]; tl es la línea de timelineForStage (§14.4)
-const toS = fromDs(q.toDs), fromS = fromDs(q.fromDs), finishS = fromDs(visibilityOf(tl).finishDs)   // los redondeos de §4.1
+const toS = fromDs(q.toDs),
+  fromS = fromDs(q.fromDs),
+  finishS = fromDs(visibilityOf(tl).finishDs) // los redondeos de §4.1
 // Los pasos 1 a 3 no dependen del tramo: se hacen una vez por línea decodificada, en un WeakMap sobre tl (§12.6).
 // 1. Los sucesos de antes de la meta, cada uno con su hora (§4.2), en el orden de tl.events.
-const sucesos: ChronicleEvent[] = [], horas: RaceS[] = []
-for (const e of tl.events) {                             // ChronicleEvent (chronicle.ts l. 22-29) no lleva índice ni hora
-  if (e.revealS >= finishS) continue                     // el mismo borde que chunkOf (§4.6): lo de la meta sale en BroadcastFinish
-  sucesos.push(stored[e.source] ?? {                     // el guardado, con su km original (4-h); si no, el sintetizado (source −1)
-    km: e.km, tS: e.tS, tipo: 'caida', plantilla: e.plantilla,        // `crash` (D-13); `tipo` es el del incidente (types.ts l. 361)
-    protagonistas: e.riders.map((ix) => tl.riderIds[ix] ?? ''), ...(e.datos === null ? {} : { datos: { ...e.datos } }),
-  })
+const sucesos: ChronicleEvent[] = [],
+  horas: RaceS[] = []
+for (const e of tl.events) {
+  // ChronicleEvent (chronicle.ts l. 22-29) no lleva índice ni hora
+  if (e.revealS >= finishS) continue // el mismo borde que chunkOf (§4.6): lo de la meta sale en BroadcastFinish
+  sucesos.push(
+    stored[e.source] ?? {
+      // el guardado, con su km original (4-h); si no, el sintetizado (source −1)
+      km: e.km,
+      tS: e.tS,
+      tipo: 'caida',
+      plantilla: e.plantilla, // `crash` (D-13); `tipo` es el del incidente (types.ts l. 361)
+      protagonistas: e.riders.map((ix) => tl.riderIds[ix] ?? ''),
+      ...(e.datos === null ? {} : { datos: { ...e.datos } }),
+    },
+  )
   horas.push(e.revealS)
 }
 // 2. Los papeles ANTES de atar las horas (12-n): withGroupRoles devuelve, en el mismo orden, una copia donde anota. Los líderes de
 //    salida son los del reparto congelado SIN degradar (quién lleva puesto cada `leader` en tl.cast, como arma la cabecera su
 //    StartState, §10.10): de ellos sale GroupNow.jerseys y la etiqueta jersey_group que withGroupRoles anota en mainJersey y groupJersey.
-const leaders: { gc: RiderIx | null; points: RiderIx | null; kom: RiderIx | null } = { gc: null, points: null, kom: null }
+const leaders: { gc: RiderIx | null; points: RiderIx | null; kom: RiderIx | null } = {
+  gc: null,
+  points: null,
+  kom: null,
+}
 for (const c of tl.cast.riders) if (c.worn.kind === 'leader') leaders[c.worn.jersey] = c.rider
-const rolesCtx: InstantContext = {                       // ni `own` ni el resto de `start` cambian grupos ni papeles; los líderes de
-  own: new Set(), start: { leaders, gcTop: [], racingAtStart: tl.riderIds.length },   // salida deciden la etiqueta del grupo del maillot (§12.6)
+const rolesCtx: InstantContext = {
+  // ni `own` ni el resto de `start` cambian grupos ni papeles; los líderes de
+  own: new Set(),
+  start: { leaders, gcTop: [], racingAtStart: tl.riderIds.length }, // salida deciden la etiqueta del grupo del maillot (§12.6)
   photoBlocks: photoBlocksOf(tl.lengthKm, tl.dx),
 }
-const horaDe = new Map(sucesos.map((ev, i) => [ev, horas[i] ?? finishS] as const))    // finishS y no toS: los pasos 1 a 3 no saben del tramo
+const horaDe = new Map(sucesos.map((ev, i) => [ev, horas[i] ?? finishS] as const)) // finishS y no toS: los pasos 1 a 3 no saben del tramo
 const anotados = withGroupRoles(sucesos, tl, (ev) => horaDe.get(ev) ?? finishS, rolesCtx)
-const revealOf = new Map<ChronicleEvent, RaceS>(anotados.map((ev, i) => [ev, horas[i] ?? finishS]))   // posición a posición
+const revealOf = new Map<ChronicleEvent, RaceS>(anotados.map((ev, i) => [ev, horas[i] ?? finishS])) // posición a posición
 // 3. Los racimos en vivo (§12.3), solo con BROADCAST.liveClusters: cada racimo entra con su hora y sus sueltos salen.
 let entrada: readonly ChronicleEvent[] = anotados
 if (BROADCAST.liveClusters) {
-  const racimos = liveClusters(anotados, tl, (ev) => revealOf.get(ev) ?? finishS)   // readonly { event, revealS, members }[]
+  const racimos = liveClusters(anotados, tl, (ev) => revealOf.get(ev) ?? finishS) // readonly { event, revealS, members }[]
   const absorbidos = new Set(racimos.flatMap((c) => c.members))
   for (const c of racimos) revealOf.set(c.event, c.revealS)
   entrada = [...anotados.filter((ev) => !absorbidos.has(ev)), ...racimos.map((c) => c.event)]
 }
 // 4. La voz hasta el final del tramo: buildChronicle se queda con revealS ≤ toS y ordena por revealS (§12.2).
-const names = chronicleNames([...identities, ...results], onRoad)            // como routes/races.ts l. 501-506
+const names = chronicleNames([...identities, ...results], onRoad) // como routes/races.ts l. 501-506
 const voice = buildChronicle(entrada, names, {
-  byClock: tl.timeTrial,                                                     // la rama de la crono, chronicle.ts l. 323-327
-  live: { untilS: toS, stageKm: tl.lengthKm, revealS: (ev) => revealOf.get(ev) ?? toS },   // §12.2
+  byClock: tl.timeTrial, // la rama de la crono, chronicle.ts l. 323-327
+  live: { untilS: toS, stageKm: tl.lengthKm, revealS: (ev) => revealOf.get(ev) ?? toS }, // §12.2
 })
-const lines = voice.filter((l) => l.revealS > fromS)                         // B19: la voz en t es prefijo de la de t + 30 s
+const lines = voice.filter((l) => l.revealS > fromS) // B19: la voz en t es prefijo de la de t + 30 s
 return { ...chunkOf(tl, q.fromDs, q.toDs), lines } satisfies BroadcastChunk
 ```
 
@@ -237,12 +278,21 @@ La API sirve la retransmisión con un solo formato venga de donde venga (D-07): 
 ```ts
 // apps/api/src/broadcastSource.ts (nuevo; §17.20)
 import type { Database, Horizon } from '@cyclingstar/db'
-import type { RaceLeaders, StageTimeline } from '@cyclingstar/shared'    // RaceLeaders: jerseys.ts l. 25
+import type { RaceLeaders, StageTimeline } from '@cyclingstar/shared' // RaceLeaders: jerseys.ts l. 25
 /** La línea de una etapa: la grabada, o la degradada del adaptador de la radio (§3.8), o null si no hay retransmisión. */
-export async function timelineForStage(db: Database, h: Horizon, raceKey: string, stageDay: number): Promise<StageTimeline | null>
+export async function timelineForStage(
+  db: Database,
+  h: Horizon,
+  raceKey: string,
+  stageDay: number,
+): Promise<StageTimeline | null>
 /** Los maillots y la general de salida tras la N−1: sale de routes/races.ts (l. 108-121, hoy privada) a este fichero, exportada, para el
  *  reparto provisional del adaptador (17-k, §3.8); la ruta de etapa la importa de aquí. */
-export async function leadersThroughStage(db: Database, raceKey: string, stageDay: number): Promise<RaceLeaders>
+export async function leadersThroughStage(
+  db: Database,
+  raceKey: string,
+  stageDay: number,
+): Promise<RaceLeaders>
 /** Solo para los tests, como clearStageTimelineCache (§5.6): vacía el LRU del adaptador, que va por `${raceKey}|${stageDay}` sin mundo. */
 export function clearAdaptedTimelineCache(): void
 ```
@@ -277,67 +327,109 @@ Lo que registra Fastify hoy, medido con `l6/rutas.mjs` (`buildApp` de `apps/api/
 
 ```ts
 // apps/api/src/spoiler.ts (nuevo; §17.20)
-import { type Database, type Viewer, type WorldRef, TtlMemo, anonHorizon, computeHorizon, getCurrentWorld, touchLastSeen, worldHorizon } from '@cyclingstar/db'
+import {
+  type Database,
+  type Viewer,
+  type WorldRef,
+  TtlMemo,
+  anonHorizon,
+  computeHorizon,
+  getCurrentWorld,
+  touchLastSeen,
+  worldHorizon,
+} from '@cyclingstar/db'
 // Horizon, WatchRow y stageGateOf ya los importa la cabecera de §14.1, en este mismo fichero: repetir Horizon da TS2300
 import { SPOILER, type SwitchMode } from '@cyclingstar/shared'
-import { getSessionCookie } from 'better-auth/cookies'     // dist/cookies/index.mjs l. 211-219: el valor de la cookie de sesión, sin validar
+import { getSessionCookie } from 'better-auth/cookies' // dist/cookies/index.mjs l. 211-219: el valor de la cookie de sesión, sin validar
 import type { FastifyInstance, FastifyRequest, HTTPMethods } from 'fastify'
-import { VIEWER_COOKIE, readViewerCookie, signViewerCookie, viewerCookieHeader } from './viewerCookie.js'
-import { toWebHeaders } from './routes/context.js'      // l. 7-18: las cabeceras como `Headers`, que es lo que lee getSessionCookie
+import {
+  VIEWER_COOKIE,
+  readViewerCookie,
+  signViewerCookie,
+  viewerCookieHeader,
+} from './viewerCookie.js'
+import { toWebHeaders } from './routes/context.js' // l. 7-18: las cabeceras como `Headers`, que es lo que lee getSessionCookie
 
 /** Qué hace una ruta con lo que nace de una etapa corrida (D-32). */
 export type SpoilerPolicy =
-  | 'safe'     // no devuelve nada nacido de una etapa, o solo lo que el propio jugador acaba de escribir (órdenes, ajustes, la salud del servidor)
-  | 'horizon'  // lo devuelve, y lo lee de packages/db con request.horizon()
-  | 'watch'    // lee o mueve lo visto: la retransmisión, el acta y el progreso
+  | 'safe' // no devuelve nada nacido de una etapa, o solo lo que el propio jugador acaba de escribir (órdenes, ajustes, la salud del servidor)
+  | 'horizon' // lo devuelve, y lo lee de packages/db con request.horizon()
+  | 'watch' // lee o mueve lo visto: la retransmisión, el acta y el progreso
 /** Cómo aplica el velo (definiciones en §10.6). */
 export type SurfaceMechanism = 'P' | 'R' | 'F' | 'M' | 'G' | 'B' | 'N' | 'L'
 /** El mecanismo de una ruta; con L, el motivo escrito es obligatorio. */
-export interface VeilSpec { readonly by: readonly [SurfaceMechanism, ...SurfaceMechanism[]]; readonly why?: string }
-export interface RouteEntry { readonly method: HTTPMethods; readonly url: string; readonly policy: SpoilerPolicy; readonly veil: VeilSpec; readonly origin: 'app' | 'static' }
+export interface VeilSpec {
+  readonly by: readonly [SurfaceMechanism, ...SurfaceMechanism[]]
+  readonly why?: string
+}
+export interface RouteEntry {
+  readonly method: HTTPMethods
+  readonly url: string
+  readonly policy: SpoilerPolicy
+  readonly veil: VeilSpec
+  readonly origin: 'app' | 'static'
+}
 /** Lo que registró Fastify, por `${método} ${url}`. B1a a B1d lo recorren (§16.3). */
 export type RouteRegistry = ReadonlyMap<string, RouteEntry>
 
 declare module 'fastify' {
-  interface FastifyContextConfig { spoiler?: SpoilerPolicy; veil?: VeilSpec }
-  interface FastifyRequest {
-    viewer(): Promise<Viewer>              // de la sesión, o de cs_viewer en lectura, o null (§10.8)
-    horizon(): Promise<Horizon>            // SPOILER_MODE aplicado (§10.13); una vez por petición
-    spoilerApplies(): Promise<boolean>     // SPOILER_MODE vale para quien pide: `on`, o `admins` y es administrador
-    broadcastOn(): Promise<boolean>        // BROADCAST_WATCH vale para quien pide
+  interface FastifyContextConfig {
+    spoiler?: SpoilerPolicy
+    veil?: VeilSpec
   }
-  interface FastifyInstance { spoilerRegistry: RouteRegistry }
+  interface FastifyRequest {
+    viewer(): Promise<Viewer> // de la sesión, o de cs_viewer en lectura, o null (§10.8)
+    horizon(): Promise<Horizon> // SPOILER_MODE aplicado (§10.13); una vez por petición
+    spoilerApplies(): Promise<boolean> // SPOILER_MODE vale para quien pide: `on`, o `admins` y es administrador
+    broadcastOn(): Promise<boolean> // BROADCAST_WATCH vale para quien pide
+  }
+  interface FastifyInstance {
+    spoilerRegistry: RouteRegistry
+  }
 }
 
 export interface SpoilerGuardDeps {
   readonly db: Database
-  readonly mode: SwitchMode                                             // SPOILER_MODE
-  readonly broadcast: SwitchMode                                        // BROADCAST_WATCH
-  readonly currentUserId: (request: FastifyRequest) => Promise<string | null>   // createCurrentUserId, routes/context.ts l. 47-54
-  readonly isAdmin: (userId: string) => Promise<boolean>                // isUserAdmin con ADMIN_EMAIL (app.ts l. 129-134)
-  readonly viewerSecret: string | null                                  // SESSION_SECRET; null: cs_viewer ni se firma ni se lee
-  readonly secureCookies: boolean                                       // APP_URL por https (auth.ts l. 100)
+  readonly mode: SwitchMode // SPOILER_MODE
+  readonly broadcast: SwitchMode // BROADCAST_WATCH
+  readonly currentUserId: (request: FastifyRequest) => Promise<string | null> // createCurrentUserId, routes/context.ts l. 47-54
+  readonly isAdmin: (userId: string) => Promise<boolean> // isUserAdmin con ADMIN_EMAIL (app.ts l. 129-134)
+  readonly viewerSecret: string | null // SESSION_SECRET; null: cs_viewer ni se firma ni se lee
+  readonly secureCookies: boolean // APP_URL por https (auth.ts l. 100)
 }
 
 /** Las rutas de un plugin de terceros que no admite `config`: la web compilada de @fastify/static. */
 export const STATIC_ROUTES: ReadonlySet<string> = new Set(['/*'])
 
 /** El registro y los cuatro métodos de la petición. `deps` es null en una app sin base o sin better-auth (tests de /health). */
-export function registerSpoilerGuard(app: FastifyInstance, deps: SpoilerGuardDeps | null): RouteRegistry {
+export function registerSpoilerGuard(
+  app: FastifyInstance,
+  deps: SpoilerGuardDeps | null,
+): RouteRegistry {
   const registry = new Map<string, RouteEntry>()
   app.addHook('onRoute', (r) => {
     const methods = Array.isArray(r.method) ? r.method : [r.method]
     const at = `${methods.join(',')} ${r.url}`
     const isStatic = STATIC_ROUTES.has(r.url) && r.config?.spoiler === undefined
     const policy: SpoilerPolicy | undefined = isStatic ? 'safe' : r.config?.spoiler
-    if (policy === undefined) throw new Error(`ruta sin política de destripe (config.spoiler): ${at}`)
-    const veil: VeilSpec | undefined = isStatic ? { by: ['N'], why: 'la web compilada: ningún dato de juego' }
-      : r.config?.veil ?? (policy === 'safe' ? { by: ['N'] } : undefined)
+    if (policy === undefined)
+      throw new Error(`ruta sin política de destripe (config.spoiler): ${at}`)
+    const veil: VeilSpec | undefined = isStatic
+      ? { by: ['N'], why: 'la web compilada: ningún dato de juego' }
+      : (r.config?.veil ?? (policy === 'safe' ? { by: ['N'] } : undefined))
     if (veil === undefined) throw new Error(`ruta con horizonte sin mecanismo (config.veil): ${at}`)
-    if (veil.by.includes('L') && (veil.why ?? '').trim() === '') throw new Error(`mecanismo L sin motivo escrito (config.veil.why): ${at}`)
-    for (const method of methods) registry.set(`${method} ${r.url}`, { method, url: r.url, policy, veil, origin: isStatic ? 'static' : 'app' })
+    if (veil.by.includes('L') && (veil.why ?? '').trim() === '')
+      throw new Error(`mecanismo L sin motivo escrito (config.veil.why): ${at}`)
+    for (const method of methods)
+      registry.set(`${method} ${r.url}`, {
+        method,
+        url: r.url,
+        policy,
+        veil,
+        origin: isStatic ? 'static' : 'app',
+      })
   })
-  installViewerAndHorizon(app, deps)   // abajo: los cuatro métodos de FastifyRequest y el gancho onSend; con deps null, inertes
+  installViewerAndHorizon(app, deps) // abajo: los cuatro métodos de FastifyRequest y el gancho onSend; con deps null, inertes
   app.decorate('spoilerRegistry', registry)
   return registry
 }
@@ -375,9 +467,28 @@ onSend:              con config.spoiler 'horizon' o 'watch':  Vary: Cookie;  Cac
 Cada ruta lo declara así (la tabla completa de las de hoy, con su política y su mecanismo, es §11.3):
 
 ```ts
-app.get('/api/news', { config: { spoiler: 'horizon', veil: { by: ['F'] } } }, async (request) => { const h = await request.horizon() /* … */ })
-app.route({ method: ['GET', 'POST'], url: '/api/auth/*', config: { rateLimit: AUTH_RATE_LIMIT, spoiler: 'safe' }, handler: forwardToAuth })
-app.get('/api/admin/stage-snapshot/:raceId/:day', { config: { spoiler: 'horizon', veil: { by: ['L'], why: 'solo administradores (requireAdmin): ven el mundo con worldHorizon' } } }, handler)
+app.get('/api/news', { config: { spoiler: 'horizon', veil: { by: ['F'] } } }, async (request) => {
+  const h = await request.horizon() /* … */
+})
+app.route({
+  method: ['GET', 'POST'],
+  url: '/api/auth/*',
+  config: { rateLimit: AUTH_RATE_LIMIT, spoiler: 'safe' },
+  handler: forwardToAuth,
+})
+app.get(
+  '/api/admin/stage-snapshot/:raceId/:day',
+  {
+    config: {
+      spoiler: 'horizon',
+      veil: {
+        by: ['L'],
+        why: 'solo administradores (requireAdmin): ven el mundo con worldHorizon',
+      },
+    },
+  },
+  handler,
+)
 ```
 
 Las rutas de administración son `horizon` con L y su motivo, no `safe`: devuelven datos de etapa, pero solo a quien pasa `requireAdmin` (`security.ts` l. 90-110), y así llevan además `private, no-store`. B1d (§16.3) construye la app, lee `app.spoilerRegistry` y lo compara con la tabla de §11.3 escrita en el propio test: falla si sobra o falta una ruta, o si cambia su política o su mecanismo, de modo que clasificar una ruta nueva deja rastro en el diff.
@@ -391,10 +502,11 @@ Las rutas de administración son `horizon` con L y su motivo, no `safe`: devuelv
 export const PLAYER_RATE_LIMIT = {
   timeWindow: '1 minute',
   keyGenerator: async (request: FastifyRequest): Promise<string> => {
-    const v = await request.viewer()                                   // §14.5: memorizado por petición; la ruta lo usa después
+    const v = await request.viewer() // §14.5: memorizado por petición; la ruta lo usa después
     return v !== null && !v.readOnly ? `u:${v.userId}` : `ip:${request.ip}`
   },
-  max: (_request: FastifyRequest, key: string): number => (key.startsWith('u:') ? 1_200 : GLOBAL_RATE_LIMIT.max),
+  max: (_request: FastifyRequest, key: string): number =>
+    key.startsWith('u:') ? 1_200 : GLOBAL_RATE_LIMIT.max,
 } as const
 // en routes/broadcast.ts y routes/me.ts:  { config: { rateLimit: PLAYER_RATE_LIMIT, spoiler: 'watch', veil: { by: ['B'] } } }
 ```
@@ -407,27 +519,26 @@ Cinco variables de entorno que se cambian en Railway sin desplegar código (D-53
 
 ```ts
 // apps/api/src/env.ts (cambia)
-import { switchModeSchema } from '@cyclingstar/shared'   // 'off' | 'admins' | 'on', declarado en contracts.ts (14-a)
+import { switchModeSchema } from '@cyclingstar/shared' // 'off' | 'admins' | 'on', declarado en contracts.ts (14-a)
 
 /** Que el tick grabe stage_timelines (D-12, §5.5). En envSchema y en tickEnvSchema. */
 const timelineRecordSchema = z.enum(['off', 'on']).default('on')
 
-const envSchema = z
-  .object({
-    // … las de hoy, l. 22-48 …
-    /** La retransmisión (D-53): `admins` desde el paso 3, `on` al cerrar el paso 10. */
-    BROADCAST_WATCH: switchModeSchema.default('off'),
-    /** El horizonte (D-53): `admins` desde el paso 7, `on` al cerrar el paso 10. */
-    SPOILER_MODE: switchModeSchema.default('off'),
-    TIMELINE_RECORD: timelineRecordSchema,
-    /** s de carrera: si está, sustituye a BROADCAST.progressMinDeltaS en el umbral de escritura del progreso (15-j, §10.3, §15.8).
-     *  Opcional; se lee al arrancar, como TICK_INTERVAL_MINUTES (l. 32). */
-    PROGRESS_MIN_DELTA_S: z.coerce.number().int().min(0).optional(),
-    /** Que el servicio web avance el mundo en su proceso (autoTick, index.ts l. 56-85), como hoy; Railway lo pone a `off` en web
-     *  cuando existe el servicio tick (18-k, D-53 precisada). */
-    AUTO_TICK: z.enum(['off', 'on']).default('on'),
-  })
-  // … los dos refine de hoy, l. 50-57 …
+const envSchema = z.object({
+  // … las de hoy, l. 22-48 …
+  /** La retransmisión (D-53): `admins` desde el paso 3, `on` al cerrar el paso 10. */
+  BROADCAST_WATCH: switchModeSchema.default('off'),
+  /** El horizonte (D-53): `admins` desde el paso 7, `on` al cerrar el paso 10. */
+  SPOILER_MODE: switchModeSchema.default('off'),
+  TIMELINE_RECORD: timelineRecordSchema,
+  /** s de carrera: si está, sustituye a BROADCAST.progressMinDeltaS en el umbral de escritura del progreso (15-j, §10.3, §15.8).
+   *  Opcional; se lee al arrancar, como TICK_INTERVAL_MINUTES (l. 32). */
+  PROGRESS_MIN_DELTA_S: z.coerce.number().int().min(0).optional(),
+  /** Que el servicio web avance el mundo en su proceso (autoTick, index.ts l. 56-85), como hoy; Railway lo pone a `off` en web
+   *  cuando existe el servicio tick (18-k, D-53 precisada). */
+  AUTO_TICK: z.enum(['off', 'on']).default('on'),
+})
+// … los dos refine de hoy, l. 50-57 …
 
 const tickEnvSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL es obligatoria'),
@@ -467,16 +578,16 @@ Un valor fuera de la lista (`true`, `ON`) hace fallar `parse` (l. 72-81) y el se
 
 `HealthRouteContext` (`routes/health.ts` l. 6-10) gana `features?`, y la ruta lo devuelve si lo tiene (l. 29-36). Qué hace cada valor:
 
-| Interruptor y superficie | `off` | `admins` | `on` |
-| --- | --- | --- | --- |
-| `BROADCAST_WATCH`: las tres rutas de `…/broadcast` | 404 `broadcast_off` | un administrador con sesión (`isUserAdmin`: `users.is_admin` o el correo de `ADMIN_EMAIL`, `adminUsers.ts` l. 53-61); el resto, 404 `broadcast_off` | todos, visitante incluido (D-36) |
-| `BROADCAST_WATCH`: la web | la página de etapa de hoy | pide la cabecera; con 404 `broadcast_off`, la página de hoy | `Watch` o `Report` (pantalla) según `watch.seen` (§11.10): la `A`, conocida sin haberla visto, abre en `Watch` (6-r) |
-| `SPOILER_MODE`: `request.horizon()` | `worldHorizon` o `anonHorizon()` (§10.13) | `computeHorizon` para los administradores; el resto, como `off` | `computeHorizon` para todos |
-| `SPOILER_MODE`: la ruta de etapa | el `StageReplay` entero de hoy, sin `watch` | `stageAccessOf` y `watch` para los administradores | para todos |
-| `SPOILER_MODE`: el acta, la cabecera y los tramos | sin puerta y sin el límite de lo alcanzado | puerta y límite para los administradores | para todos |
-| `SPOILER_MODE`: `/api/me/*` | escriben igual (lo visto tiene que estar cuando el modo se encienda); `GET /api/me/horizon` da `rev` `'world'` y listas vacías | | |
-| `TIMELINE_RECORD` | el tick no graba: esas etapas quedan sin fila y usan el adaptador (§14.4) | | graba (defecto) |
-| `AUTO_TICK` (no es de tres valores) | `web` no simula; lo hace el servicio `tick` | | `web` avanza el mundo en su proceso, como hoy (defecto) |
+| Interruptor y superficie                           | `off`                                                                                                                          | `admins`                                                                                                                                            | `on`                                                                                                                 |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `BROADCAST_WATCH`: las tres rutas de `…/broadcast` | 404 `broadcast_off`                                                                                                            | un administrador con sesión (`isUserAdmin`: `users.is_admin` o el correo de `ADMIN_EMAIL`, `adminUsers.ts` l. 53-61); el resto, 404 `broadcast_off` | todos, visitante incluido (D-36)                                                                                     |
+| `BROADCAST_WATCH`: la web                          | la página de etapa de hoy                                                                                                      | pide la cabecera; con 404 `broadcast_off`, la página de hoy                                                                                         | `Watch` o `Report` (pantalla) según `watch.seen` (§11.10): la `A`, conocida sin haberla visto, abre en `Watch` (6-r) |
+| `SPOILER_MODE`: `request.horizon()`                | `worldHorizon` o `anonHorizon()` (§10.13)                                                                                      | `computeHorizon` para los administradores; el resto, como `off`                                                                                     | `computeHorizon` para todos                                                                                          |
+| `SPOILER_MODE`: la ruta de etapa                   | el `StageReplay` entero de hoy, sin `watch`                                                                                    | `stageAccessOf` y `watch` para los administradores                                                                                                  | para todos                                                                                                           |
+| `SPOILER_MODE`: el acta, la cabecera y los tramos  | sin puerta y sin el límite de lo alcanzado                                                                                     | puerta y límite para los administradores                                                                                                            | para todos                                                                                                           |
+| `SPOILER_MODE`: `/api/me/*`                        | escriben igual (lo visto tiene que estar cuando el modo se encienda); `GET /api/me/horizon` da `rev` `'world'` y listas vacías |                                                                                                                                                     |                                                                                                                      |
+| `TIMELINE_RECORD`                                  | el tick no graba: esas etapas quedan sin fila y usan el adaptador (§14.4)                                                      |                                                                                                                                                     | graba (defecto)                                                                                                      |
+| `AUTO_TICK` (no es de tres valores)                | `web` no simula; lo hace el servicio `tick`                                                                                    |                                                                                                                                                     | `web` avanza el mundo en su proceso, como hoy (defecto)                                                              |
 
 El orden de encendido es el de D-53: `BROADCAST_WATCH=admins` desde el paso 3; `SPOILER_MODE=admins` desde el paso 7; los dos a `on` al cerrar el paso 10, con B1 en verde y la prueba de lectura aceptada. La marcha atrás: un defecto de pantalla se apaga con `BROADCAST_WATCH=off`; un destripe o un horizonte lento, con `SPOILER_MODE=off`; un tick que se resiente, con `TIMELINE_RECORD=off` (B15 lo mide en el paso 5). `features` no dice nada de nadie y la web lo lee de `['health']`, que caduca a los 5 min (`STALE_TIME.health`, `queryClient.ts` l. 25): una pestaña abierta se entera como mucho entonces o con el primer 404 `broadcast_off`, que el reproductor trata como retransmisión apagada: sale de `Watch` y abre la página de la etapa, sin perder lo alcanzado, que ya está en `race_watch` o en `localStorage`.
 
@@ -486,9 +597,10 @@ Hoy la API no valida lo que devuelve (§14.1; mapa 07 §2), aunque `buildApp` ya
 
 1. **En el código, `satisfies`.** Cada manejador construye su respuesta como un literal con `satisfies` de su tipo: los de §4.11 (`BroadcastHead`, `BroadcastChunk`, `BroadcastFinish`, `StageReport`, `HorizonSummary`) o los de §14.2 (`z.infer<typeof watchResponseSchema>`, `z.infer<typeof revResponseSchema>`). Como cada tipo está atado a su esquema con `satisfies z.ZodType<T>` (4-j), un campo que sobra, falta o cambia de tipo no compila, y el código no puede separarse del esquema con que valida la web.
 2. **En el test, `schema.parse`** de la respuesta real con `app.inject`, que atrapa lo que el tipo no ve (un `NaN`, un entero con decimales, un `min` o un `refine`):
+
 - `apps/api/src/routes/broadcast.test.ts`: las tres rutas de la retransmisión y el acta sobre PGlite (`@cyclingstar/db/test`, el export `./test` de `packages/db`) con una etapa corrida con grabador, con `process.env.DB_POOL_MAX = '1'` antes de `startTestDb()`, como `startSpoilerWorld` (§16.3): PGlite admite una sesión (`testDb.ts` l. 15-19), la ruta de etapa hace cuatro consultas a la vez (`routes/races.ts` l. 114-119) y sin ello responde 500 con `ECONNRESET` (medido por el refutador de código, `rcod/n/b1/dbg500.mjs`); `yesterday.test.ts`, que pide la misma ruta, igual. Cada 2xx con su esquema, cada error con `stageGateErrorSchema` o `apiErrorBodySchema`, y B18 (el 409); dos tramos seguidos de la misma sesión, con una `cs_viewer` de hace una hora, sin `Set-Cookie` (10-g); y el límite propio (14-q): dos sesiones desde la misma IP piden 320 tramos en un minuto sin un 429, y un visitante que pasa de 300 recibe el 429 con su `retry-after`; y la regla de los 3 km (6-o): una caída a 2 km de un final al sprint, con el tiempo del grupo, sale en `threeKmRule`; la misma en un final en alto, no.
 - `apps/api/src/routes/me.test.ts`: las cinco rutas de `/api/me` con `watchResponseSchema`, `revResponseSchema` y `horizonSummarySchema`; el 401 sin sesión; el cuerpo en `text/plain`, uno válido y una cadena que no es JSON (400 `validacion`); la memoria de lo alcanzado, que se vacía al conocer la etapa y, sin informes en 60 s, se barre escribiendo antes lo que faltaba (§10.3); y un `touchLastSeen` que rechaza sin tumbar el proceso (§10.7).
-- **La web de ayer**, `apps/api/src/routes/yesterday.test.ts`, que nace en el paso 0: hace pasar las respuestas de la ruta de etapa (velada y conocida), de las noticias (con un `stage_ready`), de `last-race` (con `ready` y, desde el 12, con `moments`) y de `/health` (con `features`) por los esquemas de hoy SIN los campos que E2 añade: `stageReplaySchema.omit({ watch: true, tplRev: true })`, `newsItemSchema.omit({ payload: true, seed: true, tplRev: true, raceId: true, raceKey: true, stageDay: true })` y así cada uno. `moments` va anidado en `report`, y un `.omit` de fuera no llega dentro: `last-race` se valida con `lastRaceResponseSchema.omit({ ready: true }).extend({ report: riderRaceReportSchema.omit({ moments: true }).nullable() })`, que el PR 12 añade con `moments` (regla 8 de §17.1). Como los objetos son *strip*, eso es lo que valida la web de `9c21885` mientras no cambie un campo de hoy, y el mismo test fija con una lista literal las claves de cada esquema en `9c21885`: cambiar una se ve en el diff. Es la regla 1 de §14.1 hecha test (D-50). En el paso 0, además, `apps/web/src/api/contracts.test.ts` gana dos casos: `stageReplaySchema` acepta una etapa sin opcionales de resultado ni `leaders`, y `newsItemSchema`, un titular con claves que no conoce.
+- **La web de ayer**, `apps/api/src/routes/yesterday.test.ts`, que nace en el paso 0: hace pasar las respuestas de la ruta de etapa (velada y conocida), de las noticias (con un `stage_ready`), de `last-race` (con `ready` y, desde el 12, con `moments`) y de `/health` (con `features`) por los esquemas de hoy SIN los campos que E2 añade: `stageReplaySchema.omit({ watch: true, tplRev: true })`, `newsItemSchema.omit({ payload: true, seed: true, tplRev: true, raceId: true, raceKey: true, stageDay: true })` y así cada uno. `moments` va anidado en `report`, y un `.omit` de fuera no llega dentro: `last-race` se valida con `lastRaceResponseSchema.omit({ ready: true }).extend({ report: riderRaceReportSchema.omit({ moments: true }).nullable() })`, que el PR 12 añade con `moments` (regla 8 de §17.1). Como los objetos son _strip_, eso es lo que valida la web de `9c21885` mientras no cambie un campo de hoy, y el mismo test fija con una lista literal las claves de cada esquema en `9c21885`: cambiar una se ve en el diff. Es la regla 1 de §14.1 hecha test (D-50). En el paso 0, además, `apps/web/src/api/contracts.test.ts` gana dos casos: `stageReplaySchema` acepta una etapa sin opcionales de resultado ni `leaders`, y `newsItemSchema`, un titular con claves que no conoce.
 
 La entrada se valida como hoy: `safeParse` con los esquemas de §14.2 y `badRequest` (400 `validacion`, `http.ts` l. 26-29). El progreso en `text/plain` llega como cadena (Fastify trae los dos analizadores de serie, y el de `text/plain` no interpreta el JSON, `c-l6/fplain.mjs`) y se pasa por `JSON.parse` dentro de un `try` antes del `safeParse`; una cadena que no es JSON da 400 `validacion`. Los 403 con puerta salen de un ayudante nuevo en `http.ts`, `sendGate(reply, gate)`, que responde `{ ok: false, error: gate.k, gate }`: el código es el `k` de la puerta, así que la web de hoy, que solo mira `error` (`request.ts` l. 60-67), lo entiende igual.
 
@@ -500,21 +612,21 @@ La entrada se valida como hoy: `safeParse` con los esquemas de §14.2 y `badRequ
 
 ```ts
 // apps/api/src/app.ts, paso 0: tras @fastify/helmet (l. 86-106) y ANTES de @fastify/static (l. 204), como pide su README (l. 79)
-import fastifyCompress from '@fastify/compress'   // 9.2.0: peer fastify '5.x' (index.js l. 735)
+import fastifyCompress from '@fastify/compress' // 9.2.0: peer fastify '5.x' (index.js l. 735)
 void app.register(fastifyCompress, { global: true, encodings: ['br', 'gzip'] })
 ```
 
 Con los defectos: nada por debajo de 1.024 B (`index.js` l. 143) y brotli de calidad 4 (l. 119). Añade `accept-encoding` a `Vary` sin quitar lo que haya (l. 574-584), y por eso el `onSend` de §14.5 añade `Cookie` sin sobrescribir. Comprimir una respuesta de 2,7 MB con la forma de la radio cuesta 14 ms con gzip y 7,8 ms con brotli 4, y deja 57 y 36 KB (estimado, `l6/comprimir.mjs`, JSON sintético); por encima de su umbral síncrono el plugin comprime con flujos (l. 144-149), fuera del bucle de eventos.
 
-| Respuesta | JSON | Comprimida | Procedencia |
-| --- | --- | --- | --- |
-| la ruta de etapa de hoy | 871-2.949 KB | 22,2-100,1 KB (gzip) | medido, mapa 07 §7: las 22 etapas en línea del banco (`race-france` e20, 2.942 KB y 100,1 KB; `race-colombia` e5, 2.949 KB y 74,9 KB); el mapa 02 §7 midió de 950 a 2.159 KB, y hasta 50,0 KB con gzip, en cuatro |
-| la misma sin los opcionales de resultado (§14.1) | 0,7-12,3 KB (mediana 2,6) | 0,46-2,1 KB (gzip; mediana 0,9) | medido, `l6/etapa-velada.mjs`: las 1.418 etapas del calendario de la temporada 1, con su altimetría real y textos de ejemplo |
-| la cabecera (`BroadcastHead`) | 58,0 KB, 48,5 del reparto | 6,7 KB (gzip 6); 4,7 KB (brotli 4) | estimado, `l6/cabecera.mjs`: 176 corredores sintéticos, unos 282 B cada uno; medida después por §18.1 sobre ocho etapas del banco, de 7,1 a 9,0 KB con gzip y de 6,0 a 7,9 KB con brotli (`l7/red.mjs`) |
-| cinco minutos de línea | | 174-1.581 B (gzip) | medido por `datos` (`datos.md` §10.5) |
-| un tramo de 900 s con su voz | | 0,5-6 KB | estimado: tres veces lo anterior y unas diez líneas de voz; medido después por §18.1, de 0,23 a 4,72 KB con gzip |
-| la línea entera | | 11-36 KB (gzip; las cronos, 6,5-18,5) | medido por `datos` (`datos.md` §10.5) sobre OTRO formato, el suyo: no es el de §4.3 (20,9 a 70,0 KB guardada, §5.7) |
-| el paquete de meta (`BroadcastFinish`) | 110-140 KB | 10-20 KB | estimado: el acta sin radio (77-100 KB, restando la radio en las cuatro del mapa 02 §7) más `result`, `closing` y `news`; en las 22 del mapa 07 §7 el acta sin radio es de 103 a 136 KB, así que el paquete puede pasar de 140 KB: lo mide B6 contra su tope de 40 KB con gzip |
+| Respuesta                                        | JSON                      | Comprimida                            | Procedencia                                                                                                                                                                                                                                                                    |
+| ------------------------------------------------ | ------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| la ruta de etapa de hoy                          | 871-2.949 KB              | 22,2-100,1 KB (gzip)                  | medido, mapa 07 §7: las 22 etapas en línea del banco (`race-france` e20, 2.942 KB y 100,1 KB; `race-colombia` e5, 2.949 KB y 74,9 KB); el mapa 02 §7 midió de 950 a 2.159 KB, y hasta 50,0 KB con gzip, en cuatro                                                              |
+| la misma sin los opcionales de resultado (§14.1) | 0,7-12,3 KB (mediana 2,6) | 0,46-2,1 KB (gzip; mediana 0,9)       | medido, `l6/etapa-velada.mjs`: las 1.418 etapas del calendario de la temporada 1, con su altimetría real y textos de ejemplo                                                                                                                                                   |
+| la cabecera (`BroadcastHead`)                    | 58,0 KB, 48,5 del reparto | 6,7 KB (gzip 6); 4,7 KB (brotli 4)    | estimado, `l6/cabecera.mjs`: 176 corredores sintéticos, unos 282 B cada uno; medida después por §18.1 sobre ocho etapas del banco, de 7,1 a 9,0 KB con gzip y de 6,0 a 7,9 KB con brotli (`l7/red.mjs`)                                                                        |
+| cinco minutos de línea                           |                           | 174-1.581 B (gzip)                    | medido por `datos` (`datos.md` §10.5)                                                                                                                                                                                                                                          |
+| un tramo de 900 s con su voz                     |                           | 0,5-6 KB                              | estimado: tres veces lo anterior y unas diez líneas de voz; medido después por §18.1, de 0,23 a 4,72 KB con gzip                                                                                                                                                               |
+| la línea entera                                  |                           | 11-36 KB (gzip; las cronos, 6,5-18,5) | medido por `datos` (`datos.md` §10.5) sobre OTRO formato, el suyo: no es el de §4.3 (20,9 a 70,0 KB guardada, §5.7)                                                                                                                                                            |
+| el paquete de meta (`BroadcastFinish`)           | 110-140 KB                | 10-20 KB                              | estimado: el acta sin radio (77-100 KB, restando la radio en las cuatro del mapa 02 §7) más `result`, `closing` y `news`; en las 22 del mapa 07 §7 el acta sin radio es de 103 a 136 KB, así que el paquete puede pasar de 140 KB: lo mide B6 contra su tope de 40 KB con gzip |
 
 Una etapa entera en `Watch` (pantalla) son de 28 a 82 KB comprimidos entre cabecera y tramos, sin la meta (medido por §18.1, de 27,9 a 81,5 KB con gzip: la voz de las reinas pesa más de lo que se estimaba), más la meta (estimada en 10-20 KB): lo que pesa hoy una sola petición de la ruta de etapa una vez comprimida (de 22,2 a 100,1 KB con gzip), que sin compresión son de 0,87 a 2,95 MB. B6 (§16.4) pide topes también para el tramo, la cabecera y la etapa servida, además de los de lo guardado (`TIMELINE.maxStoredBytes` y los suyos): son `BROADCAST.maxHeadGzipBytes` (16 KB), `maxChunkGzipBytes` (12 KB, el tramo mayor), `maxFinishGzipBytes` (40 KB, el paquete de meta) y `maxVeiledStageGzipBytes` (4 KB, la ruta de etapa sin los opcionales), comprimidos con gzip 6, el doble de lo estimado o medido, en las 24 etapas y en el paso 6 (decisión 16-h, sin evidencia de los jueces; §15.3); y `maxKnownStageGzipBytes` (110 KB, la ruta de etapa conocida, la más pesada: medida de 22,2 a 100,1 KB, el máximo más un 10 %; Rcobertura-052), sobre la etapa corrida de `routes/broadcast.test.ts` y a mano en las 24 × 2 en el paso 6.
 
@@ -522,14 +634,14 @@ Una etapa entera en `Watch` (pantalla) son de 28 a 82 KB comprimidos entre cabec
 
 Las pone el gancho `onSend` de §14.5 por la clase de la ruta, y la regla es de D-35 (I-32): nada que dependa del horizonte se guarda para otra cuenta, ni en el navegador ni en un intermediario.
 
-| Respuesta | `Cache-Control` | `Vary` | `Set-Cookie` |
-| --- | --- | --- | --- |
-| ruta `safe` | la de hoy (ninguna) | `accept-encoding` si se comprime | ninguna |
-| ruta `horizon` o `watch`, 2xx y errores | `private, no-store` | `Cookie` (y `accept-encoding`) | `cs_viewer`, solo si hay sesión y la que llega falta, no vale, es de otro o tiene más de un día (§10.8, 10-g) |
-| un tramo, 2xx | `private, max-age=3600` (`BROADCAST.chunkCacheMaxAgeS`) | `Cookie` | ídem |
-| el fallback de la SPA con meta (§14.10) | `private, no-store` | `Cookie` | ninguna |
-| `POST /api/auth/sign-out` y `POST /api/auth/delete-user` con éxito | la de better-auth | la de better-auth | además, `cs_viewer` borrada (`Max-Age=0`, §10.8) |
-| la web compilada (`/assets/*`, `/`) | la de `@fastify/static`, como hoy | | |
+| Respuesta                                                          | `Cache-Control`                                         | `Vary`                           | `Set-Cookie`                                                                                                  |
+| ------------------------------------------------------------------ | ------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| ruta `safe`                                                        | la de hoy (ninguna)                                     | `accept-encoding` si se comprime | ninguna                                                                                                       |
+| ruta `horizon` o `watch`, 2xx y errores                            | `private, no-store`                                     | `Cookie` (y `accept-encoding`)   | `cs_viewer`, solo si hay sesión y la que llega falta, no vale, es de otro o tiene más de un día (§10.8, 10-g) |
+| un tramo, 2xx                                                      | `private, max-age=3600` (`BROADCAST.chunkCacheMaxAgeS`) | `Cookie`                         | ídem                                                                                                          |
+| el fallback de la SPA con meta (§14.10)                            | `private, no-store`                                     | `Cookie`                         | ninguna                                                                                                       |
+| `POST /api/auth/sign-out` y `POST /api/auth/delete-user` con éxito | la de better-auth                                       | la de better-auth                | además, `cs_viewer` borrada (`Max-Age=0`, §10.8)                                                              |
+| la web compilada (`/assets/*`, `/`)                                | la de `@fastify/static`, como hoy                       |                                  |                                                                                                               |
 
 El tramo es la única respuesta con horizonte que se guarda, y solo en el navegador (`private`): su contenido no cambia nunca y solo se sirve dentro de lo permitido. `Vary: Cookie` hace que otra cuenta en el mismo navegador no lo reutilice, y por eso mismo el navegador solo lo reutiliza si la cabecera `Cookie` de la petición nueva es idéntica a la de la que lo guardó (RFC 9111 §4.1). Si `cs_viewer` se firmara de nuevo en cada respuesta, como decía la primera versión de 10-g, cada tramo cambiaría la cookie que manda el siguiente, porque la firma lleva la hora de emisión (`signViewerCookie`, §10.8): ninguno casaría, volver a la página lo bajaría todo otra vez, y el único ahorro sería la caché de React Query de esa pestaña (§14.11; Rcoste-014). Con `cs_viewer` renovada como mucho una vez al día (10-g) y la sesión de better-auth también (`updateAge`, §10.8), la cabecera casi no cambia en el día y el tramo guardado sirve su hora entera; por eso la sesión no se memoriza con `session.cookieCache`, que renovaría otra cookie cada minuto (10-n, §10.3). `routes/broadcast.test.ts` lo fija (§14.7). Los errores de un tramo (403, 409, 429) llevan `no-store`: la regla de la tabla vale para los 2xx.
 
@@ -543,11 +655,21 @@ import { type PreStageInfo, pageTitle, stageReadyNotice } from '@cyclingstar/sha
 import type { Database, Horizon } from '@cyclingstar/db'
 
 /** Lo que el fallback inyecta en index.html. Nunca un resultado, salvo el del acta fuera del velo (DD-12). */
-export interface ShellMeta { readonly title: string; readonly ogTitle: string; readonly ogDescription: string }
+export interface ShellMeta {
+  readonly title: string
+  readonly ogTitle: string
+  readonly ogDescription: string
+}
 /** Carrera, etapa y acta, y las rutas viejas de /races que la web redirige (App.tsx l. 285-289). */
-export const SHELL_PATH = /^\/(?:world\/)?races\/([a-z0-9]+(?:-[a-z0-9]+)*)(?:\/stages\/(\d{1,2})(\/report)?)?\/?$/
+export const SHELL_PATH =
+  /^\/(?:world\/)?races\/([a-z0-9]+(?:-[a-z0-9]+)*)(?:\/stages\/(\d{1,2})(\/report)?)?\/?$/
 /** La PreStageInfo de una etapa, resuelta como la ruta de etapa (routes/races.ts l. 395-419). null si no existe. */
-export async function preStageInfoFor(db: Database, raceId: string, stageDay: number, season: number | undefined): Promise<PreStageInfo | null>
+export async function preStageInfoFor(
+  db: Database,
+  raceId: string,
+  stageDay: number,
+  season: number | undefined,
+): Promise<PreStageInfo | null>
 export async function shellMetaFor(db: Database, h: Horizon, url: URL): Promise<ShellMeta | null>
 /** Cambia el primer <title> y añade las og: antes de </head>, escapando &, <, >, " y '. */
 export function injectShellMeta(html: string, meta: ShellMeta): string
@@ -585,18 +707,31 @@ El manejador de 404 (`app.ts` l. 205-213) cambia solo en su rama `GET` fuera de 
 ```ts
 // apps/web/src/queryClient.ts (cambia)
 /** Las familias cuyas rutas son `horizon` o `watch` (§11.3): su clave lleva el `rev` como ÚLTIMO elemento. */
-export const HORIZON_KEYS = [['news'], ['team-news'], ['stage-replay'], ['race'], ['calendar'], /* … las de §11.3 … */] as const
+export const HORIZON_KEYS = [
+  ['news'],
+  ['team-news'],
+  ['stage-replay'],
+  ['race'],
+  ['calendar'] /* … las de §11.3 … */,
+] as const
 /** La única forma de construir una clave de esas familias: horizonKey(['stage-replay', raceId, day], rev). `rev` es undefined mientras
  *  ['horizon'] no responde, y entonces la consulta va con `enabled: false` (regla 4 de §10.9, 14-r): esa clave no se pide nunca. */
-export function horizonKey(base: readonly unknown[], rev: string | undefined): readonly unknown[] { return [...base, rev] }
+export function horizonKey(base: readonly unknown[], rev: string | undefined): readonly unknown[] {
+  return [...base, rev]
+}
 /** Si el cambio de sesión obliga a `clear()`: solo un valor ya resuelto que cambia, nunca el paso de pendiente al primero (14-r). */
-export function cacheOwnerChanged(prev: SessionSeen, next: SessionSeen): boolean { return prev.resolved && next.resolved && prev.userId !== next.userId }
-export interface SessionSeen { readonly resolved: boolean; readonly userId: string | null }   // resolved: useSession() ya no está `isPending`
+export function cacheOwnerChanged(prev: SessionSeen, next: SessionSeen): boolean {
+  return prev.resolved && next.resolved && prev.userId !== next.userId
+}
+export interface SessionSeen {
+  readonly resolved: boolean
+  readonly userId: string | null
+} // resolved: useSession() ya no está `isPending`
 // en createQueryClient, tras l. 88-90:
-  client.setQueryDefaults(['horizon'], { staleTime: 0, refetchOnWindowFocus: true })        // regla 2: hoy apagado para todo (l. 79)
-  client.setQueryDefaults(['broadcast-chunk'], { staleTime: Infinity, retry: false })       // inmutable y sin rev (§14.3)
-  client.setQueryDefaults(['broadcast-head'], { retry: false })                             // un 403 o un 404 no se reintenta (hoy, retry: 1, l. 77)
-  client.setQueryDefaults(['stage-report'], { retry: false })
+client.setQueryDefaults(['horizon'], { staleTime: 0, refetchOnWindowFocus: true }) // regla 2: hoy apagado para todo (l. 79)
+client.setQueryDefaults(['broadcast-chunk'], { staleTime: Infinity, retry: false }) // inmutable y sin rev (§14.3)
+client.setQueryDefaults(['broadcast-head'], { retry: false }) // un 403 o un 404 no se reintenta (hoy, retry: 1, l. 77)
+client.setQueryDefaults(['stage-report'], { retry: false })
 ```
 
 `useHorizonRev()` lee `['horizon']` y devuelve su `rev`: `'anon'` si la respuesta es el 401 de quien no tiene sesión ni `cs_viewer`, y `undefined` mientras no ha respondido; toda consulta de `HORIZON_KEYS` lleva `enabled: rev !== undefined`, porque con un `rev` provisional saldría dos veces (regla 4 de §10.9; Rcoste-018). Un único vigilante, un componente `<HorizonWatcher />` montado una vez dentro del `QueryClientProvider` (`main.tsx` l. 22-26, junto a `<BrowserRouter>`), usa el `queryClient` creado en l. 11 y mira el id de usuario de `authClient.useSession()`, que es un hook y por eso solo vive dentro de ese árbol (Rcodigo-057). Llama a `queryClient.clear()` cuando `cacheOwnerChanged(prev, next)` lo dice, con `prev` el último valor resuelto que vio (un paso por pendiente en medio no lo borra): solo si cambia un valor ya resuelto (un id a otro, un id a nada o nada a un id), nunca en el paso de `isPending` al primer valor, que es la carga de la página (regla 4). `cacheOwnerChanged` es pura, en `queryClient.ts`, y se prueba sin DOM, como el resto de la web (§18.5). Revelar escribe en `['horizon']` el `rev` que devuelve; la meta invalida `['horizon']` (regla 3). Sin sesión y con un `rev` que no es `'world'` ni `'anon'`, la web sabe que está leyendo con `cs_viewer` y enseña `Sign in to see results as you know them` (pantalla; §10.8). Un test, `apps/web/src/queryKeys.test.ts`, recorre `apps/web/src` y falla si un `queryKey` de una familia de `HORIZON_KEYS` no se construye con `horizonKey` (empieza por `/// <reference types="node" />` y lee los fuentes con `readdirSync` y `readFileSync`, porque `apps/web/tsconfig.json` pone `"types": []`, l. 9: sin la directiva, TS2307, comprobado; son seis los tests de la web que la llevan, §17.21): olvidarlo es el destripe por caché de X-16, y así el PR no pasa el CI. Falla también si una de esas consultas no lleva `enabled` atado al `rev`, y prueba `cacheOwnerChanged` con los cinco pasos: de pendiente a un id y de pendiente a nada, no; de un id a otro, de un id a nada y de nada a un id, sí. Sin DOM no se puede renderizar la página y contar las peticiones (§18.5), y esas dos comprobaciones son las que hacen que la primera carga con sesión pida cada consulta una sola vez.
@@ -612,6 +747,7 @@ export interface SessionSeen { readonly resolved: boolean; readonly userId: stri
 **Huecos rellenados.** Ninguno por id. Contradicciones de hecho que quedan resueltas: X-17 (§14.5: las 52 rutas `GET`, medidas en Fastify) y X-20 (§14.1: lo que rompe cada alternativa).
 
 **Decisiones de esta sección.**
+
 - 14-a. Los cuatro esquemas de E2 que usan las ampliaciones de los de hoy (`stageGateSchema`, `watchStateSchema`, `preStageInfoSchema`, `switchModeSchema`) se declaran en `contracts.ts`, detrás de `stageKindSchema`, y `broadcast/wire.ts` los importa de ahí; sus tipos siguen en `wire.ts` y `contracts.ts` los trae con `import type`. `wire.ts` se reexporta desde `index.ts`. Medido: cualquier import de `wire.ts` en `contracts.ts`, reexportación incluida, no carga. Descartado: el orden de §4.13 y de la lista de ficheros de la síntesis.
 - 14-b. El `report` de `BroadcastFinish` va sin `radio`, que es del 88 al 96 % de la respuesta (mapa 07 §7, las 22 etapas en línea; del 91 al 96 % en las cuatro del mapa 02 §7): `Race Radio` (pantalla) la pide con la ruta de etapa, que con la etapa conocida la sirve entera. Descartado: repetir de 0,77 a 2,84 MB en el paquete de meta.
 - 14-c. `registerSpoilerGuard` recibe más que el `{ db; mode }` que le daba la síntesis: el interruptor de la retransmisión, el lector de sesión, `isAdmin`, el secreto de `cs_viewer` y `secureCookies`; y `deps` es null en una app sin base. Descartado: que el registro lea `process.env` o cree su propio lector de sesión.
@@ -633,6 +769,7 @@ export interface SessionSeen { readonly resolved: boolean; readonly userId: stri
 - 14-s. `fetchCalendarStage` reenvía `?diag=1` de la página desde el 7b, con `diag` en la clave, y no desde el 9a. Por qué: entre el 7b y el 9a el dueño, administrador con `SPOILER_MODE=admins`, ve pestañas vacías en toda etapa que no conoce y no tendría otra forma de mirar la radio de producción sin gastarla (Rdueno-002). Descartado: retrasar `SPOILER_MODE=admins` del 7a al 9a, que deja al dueño sin vivir el velo durante esos PR.
 
 **Propuesto para el glosario.**
+
 - En `packages/shared/src/broadcast/wire.ts`: `WatchMode` y `watchModeSchema`, `stageQuerySchema`, `chunkQuerySchema`, `watchProgressBodySchema`, `finishBodySchema`, `revealBodySchema`, `followBodySchema`, `spoilerScopeBodySchema`, `watchResponseSchema`, `revResponseSchema` y `stageGateErrorSchema` (las entradas y las respuestas pequeñas de §14.2).
 - En `apps/api/src/spoiler.ts`: `VeilSpec`, `RouteEntry`, `SpoilerGuardDeps`, `STATIC_ROUTES`, `StageAccessInput` y `stageAccessOf`; los métodos `request.viewer()`, `request.horizon()`, `request.spoilerApplies()` y `request.broadcastOn()`; `app.spoilerRegistry`; y la clave de ruta `config.veil`.
 - En `apps/api/src/http.ts`: `sendGate(reply, gate)`. En `apps/api/src/spaShell.ts` (nuevo): `ShellMeta`, `SHELL_PATH`, `preStageInfoFor`, `shellMetaFor` e `injectShellMeta`.
@@ -643,6 +780,7 @@ export interface SessionSeen { readonly resolved: boolean; readonly userId: stri
 - De la corrección: `PLAYER_RATE_LIMIT` en `apps/api/src/security.ts` (14-q); `ApiError.retryAfterS` en `request.ts`; `<HorizonWatcher />` y `cacheOwnerChanged(prev, next)` en `apps/web/src/queryClient.ts` (14-r); `fetchCalendarStage(raceId, day, opts?)` con `diag` y su test `apps/web/src/api/results.test.ts` (14-s); `LiveCluster` (`{ event, revealS, members }`, lo que devuelve `liveClusters`, §14.3); y los scripts `c-l6/fplain.mjs` y `c-l6/peticiones.mjs`. `StageTimelineRead` sale (14-p).
 
 **Dudas para el ensamblador.**
+
 - §4.11 y §4.13 declaran `stageGateSchema`, `preStageInfoSchema`, `watchStateSchema` y `switchModeSchema` en `broadcast/wire.ts`, y §G.2 dice que `contracts.ts` reexporta `wire.ts`: con 14-a los cuatro esquemas pasan a `contracts.ts` y la reexportación a `index.ts`. Lo mismo vale para §12.8: `contracts.ts` importa `newsPayloadSchema` de `news.ts`, así que `news.ts` no puede importar `contracts.ts`.
 - §G.2 pone `healthSchema` en `contracts.ts`, y vive en `packages/shared/src/index.ts` (l. 20-28): la ampliación va ahí.
 - §G.4 da a `registerSpoilerGuard` las dependencias `{ db; mode }`, y §G.6 no da cuerpo a `finish` y escribe el 403 como `{ gate }`: 14-c, 14-f y 14-h los cambian.

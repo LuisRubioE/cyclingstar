@@ -4,34 +4,34 @@ La crono es otro producto: no hay grupos ni pelotón, la jornada dura de tres a 
 
 ### 9.1 Lo que hay hoy
 
-| Qué | Dónde | Lo que implica para E2 |
-| --- | --- | --- |
-| la sonda no llega | `simulate.ts` l. 1264 desvía la crono antes de mirar la sonda; `simulateTimeTrial(input, seed)` no la recibe (`packages/engine/src/stage/timetrial.ts` l. 219) | no hay radio ni fotos de una crono |
-| la rampa | `timeTrialStartOrder` (`packages/engine/src/stage/startOrder.ts` l. 127-156): orden inverso de la general a 120 s si alguien llega con déficit y por dorsales a 60 s si no (`constants.ts` l. 6168 y 6172); `startS = i · intervalS` (l. 154) | el orden de salida es público: se sabe antes de salir |
-| la traza | `raw`, el tiempo acumulado al final de cada bloque sin ruido (`timetrial.ts` l. 264-289); el ruido final (l. 345-347); el tiempo de meta es `(raw final + pérdida) · noise` (l. 312 y 347) | se calcula y se tira: es lo que entrega `onTimeTrialRide` |
-| los parciales | dos controles (`STAGE.ttSplitChecks`, `constants.ts` l. 6177) en el bloque `⌊bloques · c / 3⌋ − 1`, si caen a 2 km o más de la salida y de la meta (`ttSplitMinKm`, l. 6179; `timetrial.ts` l. 523-526); el km del texto se redondea (l. 525) y el tiempo es el del bloque (l. 528) | solo se narran los cambios del mejor, como mucho 5 por control y a 120 s (l. 530-546; `constants.ts` l. 6191-6192): el parcial de cada corredor no sale del motor |
-| el sillón | `bestChain` compara segundos enteros y a igual segundo no quita el puesto (`timetrial.ts` l. 128-158); `tt_first_time` y `tt_best_time` (l. 549-573) | el mejor tiempo en cada instante es exacto con la llegada de cada uno |
-| los alcances | leídos de las trazas sin tocar ningún tiempo (l. 169-216 y 575-597) | se narran en la voz; la retransmisión no los recalcula |
-| el desenlace | `tt_last_home` a la llegada del último en SALIR (l. 603-610); `stage_win_itt` a la del último en LLEGAR (l. 611-619) | los dos, al paquete de meta (§4.7) |
-| el percance | del 1 al 4 % de los corredores (`ttLambda`, l. 300-306); `km = finishKm / 2` (l. 315 y 322); el `tS` del suceso es su tiempo propio en META con la pérdida y sin ruido (l. 312 y 323); la pérdida se suma después de la traza (l. 312) | ni el km ni la hora son los del percance: 9.6 |
-| sin pancartas, puntos ni bonificaciones | `puntosVolante`, `puntosMontana` y `bonificacionS` a 0 (l. 357-366) | en una crono solo puede cambiar el maillot de la general |
-| el corte | 25 % sobre el ganador, con las salvaguardas de carretera (l. 400-476) | al paquete de meta |
+| Qué                                     | Dónde                                                                                                                                                                                                                                                                               | Lo que implica para E2                                                                                                                                            |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| la sonda no llega                       | `simulate.ts` l. 1264 desvía la crono antes de mirar la sonda; `simulateTimeTrial(input, seed)` no la recibe (`packages/engine/src/stage/timetrial.ts` l. 219)                                                                                                                      | no hay radio ni fotos de una crono                                                                                                                                |
+| la rampa                                | `timeTrialStartOrder` (`packages/engine/src/stage/startOrder.ts` l. 127-156): orden inverso de la general a 120 s si alguien llega con déficit y por dorsales a 60 s si no (`constants.ts` l. 6168 y 6172); `startS = i · intervalS` (l. 154)                                       | el orden de salida es público: se sabe antes de salir                                                                                                             |
+| la traza                                | `raw`, el tiempo acumulado al final de cada bloque sin ruido (`timetrial.ts` l. 264-289); el ruido final (l. 345-347); el tiempo de meta es `(raw final + pérdida) · noise` (l. 312 y 347)                                                                                          | se calcula y se tira: es lo que entrega `onTimeTrialRide`                                                                                                         |
+| los parciales                           | dos controles (`STAGE.ttSplitChecks`, `constants.ts` l. 6177) en el bloque `⌊bloques · c / 3⌋ − 1`, si caen a 2 km o más de la salida y de la meta (`ttSplitMinKm`, l. 6179; `timetrial.ts` l. 523-526); el km del texto se redondea (l. 525) y el tiempo es el del bloque (l. 528) | solo se narran los cambios del mejor, como mucho 5 por control y a 120 s (l. 530-546; `constants.ts` l. 6191-6192): el parcial de cada corredor no sale del motor |
+| el sillón                               | `bestChain` compara segundos enteros y a igual segundo no quita el puesto (`timetrial.ts` l. 128-158); `tt_first_time` y `tt_best_time` (l. 549-573)                                                                                                                                | el mejor tiempo en cada instante es exacto con la llegada de cada uno                                                                                             |
+| los alcances                            | leídos de las trazas sin tocar ningún tiempo (l. 169-216 y 575-597)                                                                                                                                                                                                                 | se narran en la voz; la retransmisión no los recalcula                                                                                                            |
+| el desenlace                            | `tt_last_home` a la llegada del último en SALIR (l. 603-610); `stage_win_itt` a la del último en LLEGAR (l. 611-619)                                                                                                                                                                | los dos, al paquete de meta (§4.7)                                                                                                                                |
+| el percance                             | del 1 al 4 % de los corredores (`ttLambda`, l. 300-306); `km = finishKm / 2` (l. 315 y 322); el `tS` del suceso es su tiempo propio en META con la pérdida y sin ruido (l. 312 y 323); la pérdida se suma después de la traza (l. 312)                                              | ni el km ni la hora son los del percance: 9.6                                                                                                                     |
+| sin pancartas, puntos ni bonificaciones | `puntosVolante`, `puntosMontana` y `bonificacionS` a 0 (l. 357-366)                                                                                                                                                                                                                 | en una crono solo puede cambiar el maillot de la general                                                                                                          |
+| el corte                                | 25 % sobre el ganador, con las salvaguardas de carretera (l. 400-476)                                                                                                                                                                                                               | al paquete de meta                                                                                                                                                |
 
 Las nueve plantillas propias de la crono, más las cuatro que comparte con la carretera (mapa 01 §1.1 y §4; líneas de `timetrial.ts`):
 
-| Plantilla | km | `tS` | Cuántas | Línea |
-| --- | --- | --- | --- | --- |
-| `tt_start_order` | 0 | 0 | 1 | l. 505 |
-| `tt_last_off` | 0 | salida del último | 1 | l. 514 |
-| `tt_split` | el del control, redondeado | reloj al pasar | cambios del mejor, ≤ 5 por control | l. 540 |
-| `tt_first_time` | meta | llegada | 1 | l. 557 |
-| `tt_best_time` | meta | llegada | ≤ 12 (`ttBestNarrateMax`) | l. 568 |
-| `tt_catch` | el del alcance | reloj | ≤ 10 | l. 589 |
-| `tt_catches` | meta | llegada del último en llegar | 1 si hubo alcances | l. 596 |
-| `tt_last_home` | meta | llegada del último en salir | 1 si no ganó | l. 605 |
-| `stage_win_itt` | meta | llegada del último en llegar | 1 | l. 614 |
-| `puncture`, `mechanical` | meta / 2 | tiempo propio en meta con la pérdida | 0-5 por crono (mapa 01 §4) | l. 321-328 |
-| `time_cut`, `time_cut_readmitted` | meta | llegada | si toca | l. 443-473 |
+| Plantilla                         | km                         | `tS`                                 | Cuántas                            | Línea      |
+| --------------------------------- | -------------------------- | ------------------------------------ | ---------------------------------- | ---------- |
+| `tt_start_order`                  | 0                          | 0                                    | 1                                  | l. 505     |
+| `tt_last_off`                     | 0                          | salida del último                    | 1                                  | l. 514     |
+| `tt_split`                        | el del control, redondeado | reloj al pasar                       | cambios del mejor, ≤ 5 por control | l. 540     |
+| `tt_first_time`                   | meta                       | llegada                              | 1                                  | l. 557     |
+| `tt_best_time`                    | meta                       | llegada                              | ≤ 12 (`ttBestNarrateMax`)          | l. 568     |
+| `tt_catch`                        | el del alcance             | reloj                                | ≤ 10                               | l. 589     |
+| `tt_catches`                      | meta                       | llegada del último en llegar         | 1 si hubo alcances                 | l. 596     |
+| `tt_last_home`                    | meta                       | llegada del último en salir          | 1 si no ganó                       | l. 605     |
+| `stage_win_itt`                   | meta                       | llegada del último en llegar         | 1                                  | l. 614     |
+| `puncture`, `mechanical`          | meta / 2                   | tiempo propio en meta con la pérdida | 0-5 por crono (mapa 01 §4)         | l. 321-328 |
+| `time_cut`, `time_cut_readmitted` | meta                       | llegada                              | si toca                            | l. 443-473 |
 
 **La crono por equipos no existe en el motor.** `race-france` e1 es en la realidad una crono por equipos y así lo dice un comentario de `packages/engine/src/routes/calendar.test.ts` (l. 91), pero `simulateTimeTrial` «simula una contrarreloj individual» (`timetrial.ts` l. 218) y sus constantes de equipo están marcadas «PENDIENTE DE IMPLEMENTAR» (`constants.ts` l. 6197-6202). Comprobado con el calendario del `dist`: la etapa se llama `Stage 1 · ITT` y su etiqueta es `ITT`, con `timeTrial: true`. Nada en el producto la llama por equipos, así que la retransmisión enseña lo que el motor corre, una crono individual de 176 corredores por dorsales a un minuto, y no tiene nada que explicar en pantalla; si algún día existe la de equipos, será otra traza (la de un grupo por equipo) y otra frontera (§19.2).
 
@@ -43,15 +43,15 @@ Las nueve plantillas propias de la crono, más las cuatro que comparte con la ca
 
 `onTimeTrialRide` es el tercer gancho opcional de `StageProbe` (§5.2): `simulateStage` le pasa la sonda a `simulateTimeTrial` y esta lo llama al cerrar cada corredor, después de sacar su ruido y su tiempo final (l. 345-347) y antes de devolverlo (l. 348), con el corredor, su salida, su traza `raw`, su ruido, su tiempo y su percance. No tira del RNG ni devuelve nada que el motor lea, así que la carrera no cambia (B11, §16.4). Las llamadas llegan en el orden de `input.riders`, que `simulateStage` reordena por id (`simulate.ts` l. 1257-1262); el grabador las lleva a `RiderIx` por el id. Con eso escribe `TimeTrialTrace` (§4.2):
 
-| Campo | Valor | De dónde |
-| --- | --- | --- |
-| `order` | `'gc'` si el plan es `general`, `'bib'` si es `dorsales` | `startOrder.ts` l. 69 y 152 |
-| `intervalS` | 120 o 60 | l. 150 |
-| `checksKm` | por cada control que el motor conserva, el km exacto del final de su bloque, `(idx + 1) · dx` en décimas: 6,6 y 13,3 en `race-france` e1; 8,6 y 17,3 en la e16 (`l5/crono.mjs`) | `timetrial.ts` l. 523-526 |
-| `startDs[r]` | `toDs(startS)`, múltiplos de 600 o de 1.200 | `startOrder.ts` l. 154 |
-| `kmClockDs[r]` | en cada km entero `k` (el bloque `10k − 1`), `toDs(raw · noise)`; la última entrada es la meta y vale `10 · Math.round(tS)`, con la pérdida dentro: el `tiempoS` de `results` por diez (decisión 9-a) | `timetrial.ts` l. 264-289, 312, 345-347 y 361 |
-| `checkClockDs[r]` (9-b) | en cada control, `10 · Math.round(raw[idx] · noise)`: el mismo entero que compara `bestChain` y escribe `tt_split` | l. 143, 528 y 542 |
-| `mishaps` | `{ rider, km: finishKm / 2, kind, lostDs: toDs(pérdida · noise) }`: el km es el del motor, el único que hay (9.6) | l. 306-320 |
+| Campo                   | Valor                                                                                                                                                                                                 | De dónde                                      |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| `order`                 | `'gc'` si el plan es `general`, `'bib'` si es `dorsales`                                                                                                                                              | `startOrder.ts` l. 69 y 152                   |
+| `intervalS`             | 120 o 60                                                                                                                                                                                              | l. 150                                        |
+| `checksKm`              | por cada control que el motor conserva, el km exacto del final de su bloque, `(idx + 1) · dx` en décimas: 6,6 y 13,3 en `race-france` e1; 8,6 y 17,3 en la e16 (`l5/crono.mjs`)                       | `timetrial.ts` l. 523-526                     |
+| `startDs[r]`            | `toDs(startS)`, múltiplos de 600 o de 1.200                                                                                                                                                           | `startOrder.ts` l. 154                        |
+| `kmClockDs[r]`          | en cada km entero `k` (el bloque `10k − 1`), `toDs(raw · noise)`; la última entrada es la meta y vale `10 · Math.round(tS)`, con la pérdida dentro: el `tiempoS` de `results` por diez (decisión 9-a) | `timetrial.ts` l. 264-289, 312, 345-347 y 361 |
+| `checkClockDs[r]` (9-b) | en cada control, `10 · Math.round(raw[idx] · noise)`: el mismo entero que compara `bestChain` y escribe `tt_split`                                                                                    | l. 143, 528 y 542                             |
+| `mishaps`               | `{ rider, km: finishKm / 2, kind, lostDs: toDs(pérdida · noise) }`: el km es el del motor, el único que hay (9.6)                                                                                     | l. 306-320                                    |
 
 La conversión, que hace el grabador al cerrar la etapa (§5.4 la implementa; aquí se fija qué número va en cada sitio):
 
@@ -73,12 +73,12 @@ Los dos redondeos de la meta y de los controles no son un capricho: la pantalla 
 
 Tamaños de la línea ENTERA de una crono, que es lo que se guarda en `bytea` y lo que mide el tope, con los relojes absolutos de §4.2. Medidos con el prototipo del grabador de §5.7 más `checkClockDs` (`rcod/n/grab2.mjs`, con `CHECKS=1` y sin él, semillas 0 y 1; re-medido en la corrección con los mismos bytes), y la alternativa por diferencias con `l5c/deltas.mjs` sobre esas mismas líneas:
 
-| Crono, 176 corredores | Traza sola, gzip 9: con `checkClockDs` (sin él) | Línea entera, gzip 9: con `checkClockDs` (sin él) | Línea entera con `kmClockDs` por diferencias por km, con `checkClockDs` |
-| --- | --- | --- | --- |
-| `race-france` e1, 20 km | 9.352 y 9.224 B (8.730 y 8.608) | 19.906 y 19.835 B (19.350 y 19.272) | 13.874 y 13.853 B |
-| `race-france` e16, 26 km | 13.117 y 13.116 B (12.274 y 12.261) | 25.609 y 25.637 B (24.794 y 24.814) | 18.941 y 19.037 B |
-| `race-spain` e18, 33 km | 15.432 y 15.309 B (14.699 y 14.579) | 27.692 y 27.821 B (26.987 y 27.113) | 15.283 y 15.511 B |
-| `race-italy` e10, 42 km | 19.856 y 19.651 B (19.070 y 18.886) | 32.203 y 31.918 B (31.436 y 31.178) | 15.614 y 15.475 B |
+| Crono, 176 corredores    | Traza sola, gzip 9: con `checkClockDs` (sin él) | Línea entera, gzip 9: con `checkClockDs` (sin él) | Línea entera con `kmClockDs` por diferencias por km, con `checkClockDs` |
+| ------------------------ | ----------------------------------------------- | ------------------------------------------------- | ----------------------------------------------------------------------- |
+| `race-france` e1, 20 km  | 9.352 y 9.224 B (8.730 y 8.608)                 | 19.906 y 19.835 B (19.350 y 19.272)               | 13.874 y 13.853 B                                                       |
+| `race-france` e16, 26 km | 13.117 y 13.116 B (12.274 y 12.261)             | 25.609 y 25.637 B (24.794 y 24.814)               | 18.941 y 19.037 B                                                       |
+| `race-spain` e18, 33 km  | 15.432 y 15.309 B (14.699 y 14.579)             | 27.692 y 27.821 B (26.987 y 27.113)               | 15.283 y 15.511 B                                                       |
+| `race-italy` e10, 42 km  | 19.856 y 19.651 B (19.070 y 18.886)             | 32.203 y 31.918 B (31.436 y 31.178)               | 15.614 y 15.475 B                                                       |
 
 Las cifras que esta sección daba antes miden otros objetos y se quedan como referencia: la traza sola en JSON (`l5/instante.mjs`: 22,1 KB en la e1 y 29,8 en la e16, con `checkClockDs`), la traza por deltas de `estado.md` §9 (14,7 y 20,3 KB de JSON; 2,4 y 5,0 KB de gzip) y la de `datos.md` §9 (de 2,5 a 10 KB en `bytea`, en cronos de 40 y de 176 corredores).
 
@@ -95,7 +95,11 @@ Lo que la tele enseña de una crono en cada momento es un estado, igual que en c
 import type { InstantContext, TimeTrialInstant } from './instant.js'
 import type { RaceS, TimelineCore } from './timeline.js'
 
-export function timeTrialInstantAt(tl: TimelineCore, t: RaceS, ctx: InstantContext): TimeTrialInstant
+export function timeTrialInstantAt(
+  tl: TimelineCore,
+  t: RaceS,
+  ctx: InstantContext,
+): TimeTrialInstant
 ```
 
 ```
@@ -127,32 +131,32 @@ La posición en ruta es la de D-04 para un corredor solo: se extrapola desde su 
 Un instante calculado con esta regla sobre la e16, semilla 0, un segundo después de que el último en salir pase por el primer control (`l5/ejemplo.mjs`, campo del banco): son las 6:09:37, hay 12 en ruta, 164 llegados y ninguno por salir; en el sillón, el dorsal 71 con 38:04; el control 1 lo manda el 71 con 18:03, el 62 a 13 s y el 118 a 35 s, y el control 2, el 71 con 27:47, el 62 a 38 s y el 118 a 55 s. Los doce en ruta:
 
 | Salió | Dorsal | km pintado | Último control | Diferencia en él |
-| --- | --- | --- | --- | --- |
-| 165.º | 63 | 25,1 | 2 | +3:24 |
-| 166.º | 13 | 25,0 | 2 | +2:03 |
-| 167.º | 212 | 21,4 | 2 | +4:24 |
-| 168.º | 162 | 19,5 | 2 | +4:58 |
-| 169.º | 112 | 19,4 | 2 | +3:03 |
-| 170.º | 62 | 19,9 | 2 | +0:38 |
-| 171.º | 12 | 16,2 | 1 | +2:03 |
-| 172.º | 211 | 11,8 | 1 | +3:58 |
-| 173.º | 161 | 10,5 | 1 | +3:19 |
-| 174.º | 111 | 11,6 | 1 | +0:46 |
-| 175.º | 61 | 8,8 | 1 | +3:11 |
-| 176.º | 11 | 8,6 | 1 | +1:33 |
+| ----- | ------ | ---------- | -------------- | ---------------- |
+| 165.º | 63     | 25,1       | 2              | +3:24            |
+| 166.º | 13     | 25,0       | 2              | +2:03            |
+| 167.º | 212    | 21,4       | 2              | +4:24            |
+| 168.º | 162    | 19,5       | 2              | +4:58            |
+| 169.º | 112    | 19,4       | 2              | +3:03            |
+| 170.º | 62     | 19,9       | 2              | +0:38            |
+| 171.º | 12     | 16,2       | 1              | +2:03            |
+| 172.º | 211    | 11,8       | 1              | +3:58            |
+| 173.º | 161    | 10,5       | 1              | +3:19            |
+| 174.º | 111    | 11,6       | 1              | +0:46            |
+| 175.º | 61     | 8,8        | 1              | +3:11            |
+| 176.º | 11     | 8,6        | 1              | +1:33            |
 
 Los bordes que la función tiene que tratar, cada uno con su test en 9.8:
 
-| Caso | Qué hace `timeTrialInstantAt` |
-| --- | --- |
-| el corredor aún no ha salido | cuenta en `toStart`; no está en `onCourse` ni en ningún tablero |
-| lleva menos de un km | su km sale de la velocidad nominal del km 1 (el perfil es público) y nunca pasa de 1 |
-| ha pasado un control | `lastSplitKm` y `deltaS` contra el mejor visible; si es el mejor, 0 y el rótulo dice `fastest at split 1` |
-| ha pinchado | su posición sigue la traza, que no lleva la pérdida hasta la meta (9.6) |
-| ha llegado fuera de control | es un llegado más, con su tiempo; el corte solo se sabe en el paquete de meta (§4.7) |
-| un prólogo tan corto que el motor no pone controles (`timetrial.ts` l. 526; test de l. 309) | `checksKm` vacío: sin `SPLIT` ni `lastSplitKm`; el sillón y `ON COURSE` siguen |
-| una crono de un solo corredor (test de l. 301) | sin sillón hasta que llega; nadie a quien comparar: `deltaS` null |
-| un nacional de cinco corredores | igual que uno de 176: la curva de 9.4 se estira sobre la fracción de salidos |
+| Caso                                                                                        | Qué hace `timeTrialInstantAt`                                                                             |
+| ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| el corredor aún no ha salido                                                                | cuenta en `toStart`; no está en `onCourse` ni en ningún tablero                                           |
+| lleva menos de un km                                                                        | su km sale de la velocidad nominal del km 1 (el perfil es público) y nunca pasa de 1                      |
+| ha pasado un control                                                                        | `lastSplitKm` y `deltaS` contra el mejor visible; si es el mejor, 0 y el rótulo dice `fastest at split 1` |
+| ha pinchado                                                                                 | su posición sigue la traza, que no lleva la pérdida hasta la meta (9.6)                                   |
+| ha llegado fuera de control                                                                 | es un llegado más, con su tiempo; el corte solo se sabe en el paquete de meta (§4.7)                      |
+| un prólogo tan corto que el motor no pone controles (`timetrial.ts` l. 526; test de l. 309) | `checksKm` vacío: sin `SPLIT` ni `lastSplitKm`; el sillón y `ON COURSE` siguen                            |
+| una crono de un solo corredor (test de l. 301)                                              | sin sillón hasta que llega; nadie a quien comparar: `deltaS` null                                         |
+| un nacional de cinco corredores                                                             | igual que uno de 176: la curva de 9.4 se estira sobre la fracción de salidos                              |
 
 La general virtual sale solo cuando el líder ha pasado por un punto, que es cuando la tele la da: «VIRTUAL GC after split 2» (mapa 06 §4). En una crono por dorsales (el prólogo, una carrera de un día) no hay general de salida y es null. Lo que la tele enseña permanentemente sale del mismo estado: el reloj de carrera, las tres cuentas y el sillón. Medido en `race-france` e16, semilla 0 (`l5/instante.mjs`), a mitad de la rampa: `2:55:00 · 22 on course · 66 finished · 88 to start` (pantalla) con el mejor tiempo en 39:27; el ganador, 38:04, se sienta en el sillón a las 5:06:04 y lo ocupa 1:25:38, hasta la última llegada.
 
@@ -162,7 +166,11 @@ En carretera el ritmo lo manda la distancia de la cabeza a la meta (§8.2); en u
 
 ```ts
 // packages/shared/src/broadcast/pace.ts (sigue): ttPaceAt es el paceAt de la crono (§8.2). RaceS llega de ./timeline.js, con ProfileStrip, en las importaciones de §8.2
-export function ttPaceAt(t: RaceS, plan: { readonly riders: number; readonly intervalS: number }, lastKmFromS: RaceS | null): number
+export function ttPaceAt(
+  t: RaceS,
+  plan: { readonly riders: number; readonly intervalS: number },
+  lastKmFromS: RaceS | null,
+): number
 ```
 
 ```
@@ -176,25 +184,33 @@ ttPaceAt(t, plan, lastKmFromS):
 
 ```ts
 // packages/shared/src/broadcast/pace.ts (sigue)
-export function ttPaceAt(t: RaceS, plan: { readonly riders: number; readonly intervalS: number }, lastKmFromS: RaceS | null): number {
+export function ttPaceAt(
+  t: RaceS,
+  plan: { readonly riders: number; readonly intervalS: number },
+  lastKmFromS: RaceS | null,
+): number {
   if (lastKmFromS !== null && t >= lastKmFromS) return BROADCAST.ttLastKmX
-  const started = Math.min(plan.riders, Math.floor(Math.max(0, t) / plan.intervalS) + 1) / plan.riders
-  return (BROADCAST.ttPace.find((z) => started <= z.upToStarted) ?? BROADCAST.ttPace.at(-1)!).x   // la última zona llega a 1: el ?? no salta nunca
+  const started =
+    Math.min(plan.riders, Math.floor(Math.max(0, t) / plan.intervalS) + 1) / plan.riders
+  return (BROADCAST.ttPace.find((z) => started <= z.upToStarted) ?? BROADCAST.ttPace.at(-1)!).x // la última zona llega a 1: el ?? no salta nunca
 }
 /** La duración que se anuncia (About 7 min): solo el plan y el perfil; nunca un tiempo de la carrera. */
-export function ttPlaybackEstimateS(profile: ProfileStrip, plan: { readonly riders: number; readonly intervalS: number }): number
+export function ttPlaybackEstimateS(
+  profile: ProfileStrip,
+  plan: { readonly riders: number; readonly intervalS: number },
+): number
 //   rodaje ← Σ por km del perfil 3600 / nominalKmh(su pendiente);  último ← 3600 / nominalKmh(pendiente del último km)
 //   fin ← (riders − 1) · intervalS + rodaje;  devuelve ∫ de 0 a fin de 1 / ttPaceAt(s, plan, fin − último) ds
 ```
 
 Las duraciones a ×1:
 
-| Crono | Juez de ejecutabilidad (`juez-ejec/crono.mjs` y `crono_gc.mjs`; el último km, como el km medio del último en salir) | Este redactor (`l5/crono.mjs`: el último km de verdad; otro campo, semillas 0 a 2) |
-| --- | --- | --- |
-| `race-france` e1, 20 km, 176 a 60 s por dorsales | 6:24-6:33 | 6:55-7:06 |
-| `race-france` e16, 26 km, 176 a 120 s con general | 11:21-11:23 | 11:14-11:19 |
-| `nc-it-itt`, 35 km, 30 a 60 s | | 5:41-5:52 |
-| `nc-es-itt`, 40 km, 12 a 60 s | | 5:20-5:24 |
+| Crono                                             | Juez de ejecutabilidad (`juez-ejec/crono.mjs` y `crono_gc.mjs`; el último km, como el km medio del último en salir) | Este redactor (`l5/crono.mjs`: el último km de verdad; otro campo, semillas 0 a 2) |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `race-france` e1, 20 km, 176 a 60 s por dorsales  | 6:24-6:33                                                                                                           | 6:55-7:06                                                                          |
+| `race-france` e16, 26 km, 176 a 120 s con general | 11:21-11:23                                                                                                         | 11:14-11:19                                                                        |
+| `nc-it-itt`, 35 km, 30 a 60 s                     |                                                                                                                     | 5:41-5:52                                                                          |
+| `nc-es-itt`, 40 km, 12 a 60 s                     |                                                                                                                     | 5:20-5:24                                                                          |
 
 Dónde se va ese tiempo, con la semilla 0 (`l5/desglose.mjs`): en la e1, 52 s a ×120, 1:20 a ×40, 3:30 a ×12 y 1:14 en el último km a ×2; en la e16, 1:45, 2:39, 6:11 y 0:39. La mitad larga es la de ×12, cuando ya ha salido el último 10 % y corren los que deciden la etapa, que es la hora que la tele no se salta nunca. La diferencia de la e1 es su último km, que sube: al último en salir le cuesta 146 s contra 82 de media en la semilla 0, y a ×2 son 73 s de pared en vez de 41. Las dos medidas usan la misma curva; B17 la vuelve a medir en las dos cronos de las 24 etapas (§16.4) y la prueba de lectura la acepta (D-60). Se descartan, con su cifra (D-23): los dos controles y la meta como único dato de `producto.md` §9 (se queda su curva, no su traza); el §9 de `ingeniero.md`, en prosa, sin tipo y con 4-6 min estimados para lo que mide 2:51; y los 5.760 y 15.120 s de carrera sin presupuesto de `television.md` §9.
 
@@ -206,17 +222,17 @@ Dónde se va ese tiempo, con la semilla 0 (`l5/desglose.mjs`): en la e1, 52 s a 
 
 La tele cuenta una crono con cuatro rótulos (mapa 06 §4; D-23): el corredor en ruta, el parcial, la meta con el sillón y la general virtual. Aquí son estado permanente (la capa fija de la crono) más `Cue` que salen del paso de un `TimeTrialInstant` al siguiente, con las mismas reglas de la cola de §6.5 (un rótulo de corredor a la vez, `cueHoldS` por clase, nunca se frena la carrera). Todo tiempo relativo lleva signo además de color (`+0:05`, `−0:03`; D-57): que el verde sea «por delante» es convención de la tele que nadie ha verificado como norma (mapa 06 §4) y el daltonismo no la lee.
 
-| Rótulo (pantalla) | Cuándo | Dato | Clase (`Cue`) |
-| --- | --- | --- | --- |
-| `2:55:00 · 22 on course · 66 finished · 88 to start` y `HOT SEAT · Jan Novák 39:27` | siempre: es la capa fija de la crono | `toStart`, `finished`, `onCourse`, `hotSeat` | permanente |
-| `Start order: reverse general classification, every 2:00 · 176 riders` o `Start order: race numbers, every 1:00 · 176 riders` | en `t = 0`, con `tt_start_order` en la voz | `BroadcastHead.tt` (§4.11, 9-i) | 1 (`tt_start_order`) |
-| `ON COURSE · 62 Iñigo Arrieta (ES) · km 19.9 · +0:38 at split 2`; `… · fastest at split 1` si es el mejor | uno cada `BROADCAST.breakRoundEveryS` (6 s) entre los candidatos en ruta, en orden de salida | `onCourse` | 0 (`rider` con contexto `tt_round`); 1 si es del espectador (`rider` con contexto `own`) |
-| `SPLIT 1 · km 9 · 1. Mads Olsen 18:03 · 2. Iñigo Arrieta +0:13 · 3. Luca Bertolini +0:35`, y la fila del que pasa si no está entre los tres (`35. Sam Carter +1:33`) | pasa un candidato, o cualquiera bate el mejor | `splits` | 2 si bate el mejor (`rank` 1); 1 si no (`tt_split`) |
-| `FINISH · 62 Iñigo Arrieta 39:12 · 2nd · +1:08` | llega un candidato | `arrivals` y `hotSeat` | 1 (`tt_finish`) |
-| `FINISH · HOT SEAT · 71 Mads Olsen 38:04 · −1:23 on Jan Novák` | cualquiera bate el mejor tiempo | ídem | 3 (`tt_finish` con `hotSeat`) |
-| `VIRTUAL GC · after split 1 · 1. Sam Carter · 2. Jonas Verhoeven +0:25 · 3. Pierre Lambert +0:50` | el líder pasa un control o llega | `virtualGc` | 2; 3 si cambia el líder virtual (`virtual_gc`; D-21, 9-n) |
-| `PUNCTURE · 132 Tom Hargreaves · km 13` | su `revealS` (9.6) | el suceso `puncture` o `mechanical` | 1 (`mishap`) |
-| `TIME CUT` | tras `BroadcastFinish` | el paquete de meta | 2 (`time_cut`, como en carretera: §6.5, D-21) |
+| Rótulo (pantalla)                                                                                                                                                    | Cuándo                                                                                       | Dato                                         | Clase (`Cue`)                                                                            |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `2:55:00 · 22 on course · 66 finished · 88 to start` y `HOT SEAT · Jan Novák 39:27`                                                                                  | siempre: es la capa fija de la crono                                                         | `toStart`, `finished`, `onCourse`, `hotSeat` | permanente                                                                               |
+| `Start order: reverse general classification, every 2:00 · 176 riders` o `Start order: race numbers, every 1:00 · 176 riders`                                        | en `t = 0`, con `tt_start_order` en la voz                                                   | `BroadcastHead.tt` (§4.11, 9-i)              | 1 (`tt_start_order`)                                                                     |
+| `ON COURSE · 62 Iñigo Arrieta (ES) · km 19.9 · +0:38 at split 2`; `… · fastest at split 1` si es el mejor                                                            | uno cada `BROADCAST.breakRoundEveryS` (6 s) entre los candidatos en ruta, en orden de salida | `onCourse`                                   | 0 (`rider` con contexto `tt_round`); 1 si es del espectador (`rider` con contexto `own`) |
+| `SPLIT 1 · km 9 · 1. Mads Olsen 18:03 · 2. Iñigo Arrieta +0:13 · 3. Luca Bertolini +0:35`, y la fila del que pasa si no está entre los tres (`35. Sam Carter +1:33`) | pasa un candidato, o cualquiera bate el mejor                                                | `splits`                                     | 2 si bate el mejor (`rank` 1); 1 si no (`tt_split`)                                      |
+| `FINISH · 62 Iñigo Arrieta 39:12 · 2nd · +1:08`                                                                                                                      | llega un candidato                                                                           | `arrivals` y `hotSeat`                       | 1 (`tt_finish`)                                                                          |
+| `FINISH · HOT SEAT · 71 Mads Olsen 38:04 · −1:23 on Jan Novák`                                                                                                       | cualquiera bate el mejor tiempo                                                              | ídem                                         | 3 (`tt_finish` con `hotSeat`)                                                            |
+| `VIRTUAL GC · after split 1 · 1. Sam Carter · 2. Jonas Verhoeven +0:25 · 3. Pierre Lambert +0:50`                                                                    | el líder pasa un control o llega                                                             | `virtualGc`                                  | 2; 3 si cambia el líder virtual (`virtual_gc`; D-21, 9-n)                                |
+| `PUNCTURE · 132 Tom Hargreaves · km 13`                                                                                                                              | su `revealS` (9.6)                                                                           | el suceso `puncture` o `mechanical`          | 1 (`mishap`)                                                                             |
+| `TIME CUT`                                                                                                                                                           | tras `BroadcastFinish`                                                                       | el paquete de meta                           | 2 (`time_cut`, como en carretera: §6.5, D-21)                                            |
 
 El km de un parcial se escribe redondeado como el `checkKm` del motor (`timetrial.ts` l. 525), para que el rótulo diga `SPLIT 1 · km 9` donde la voz dice «At the 9 km check» (`apps/web/src/domain/stageJournal.ts` l. 1522 y 1530); el tiempo es el del bloque exacto (9.2). Son candidatos, en ruta, en un parcial o en la meta: los del espectador, los de notoriedad 5 o menos (llevan un maillot, un título de la categoría o amenazan la general, §7.5) y, en una crono por la general, los `BROADCAST.namedGcTop` (10) últimos en salir, que son los diez primeros de la general. En un prólogo por dorsales solo hay campeones y propios, y cualquiera que bata el mejor tiempo sale igual. Los rótulos de parcial y de meta son las variantes `tt_split` y `tt_finish` de `Cue` (§4.9; decisión 9-d), porque las de carretera son de grupos; `tt_split` lleva su `rank` en el control y `tt_finish`, `hotSeat`, que es lo que `cueClassOf` mira para subirlas. Y como en la primera hora a ×120 un mejor parcial puede caer cada medio segundo de pared, un `tt_split` que espera en la cola se sustituye por el siguiente del mismo control, y un `tt_finish` por el siguiente `tt_finish`, y el que queda lleva la clase mayor de los dos: el que espera ya no es noticia. La cola sigue sin frenar la carrera.
 
@@ -238,10 +254,10 @@ La clase de `VIRTUAL GC` es la única que la crono no toma tal cual de §6.5 (de
 
 La carga, medida con estas reglas, con las de la cola de §6.5 enteras (la admisión, la caducidad de 6-h a los 6 s de pared y el corte de un rótulo de clase 0 o 1 por uno de clase 3) y con el ritmo de 9.4 (`l5c/cola2.mjs`, semillas 0 a 2, con los diez últimos en salir como candidatos porque el campo del banco no tiene maillots ni campeones; incluye las rondas de `ON COURSE`):
 
-| Crono | Rótulos generados | Mostrados | Sustituidos en la cola | Descartados o caducados, de clase 0 o 1 | Caducados, de clase 2 | Cola máxima |
-| --- | --- | --- | --- | --- | --- | --- |
-| `race-france` e1 | 83-89 (41-43 rondas) | 64-67 | 4-12 | 9-12 | 2-3 | 3 |
-| `race-france` e16 | 99-106 (56 rondas) | 80-90 | 4-11 | 9-10 | 0-2 | 3 |
+| Crono             | Rótulos generados    | Mostrados | Sustituidos en la cola | Descartados o caducados, de clase 0 o 1 | Caducados, de clase 2 | Cola máxima |
+| ----------------- | -------------------- | --------- | ---------------------- | --------------------------------------- | --------------------- | ----------- |
+| `race-france` e1  | 83-89 (41-43 rondas) | 64-67     | 4-12                   | 9-12                                    | 2-3                   | 3           |
+| `race-france` e16 | 99-106 (56 rondas)   | 80-90     | 4-11                   | 9-10                                    | 0-2                   | 3           |
 
 La cola no pasa de `BROADCAST.cueQueueMax` (3), no se pierde ningún rótulo de clase 3 ni ningún `VIRTUAL GC`, y la duración es la de la curva: la cola no frena la crono (D-21). Los de clase 2 que caducan son todos `SPLIT` a ×120, mientras sale el primer 60 %: llevan 6 s de pared esperando, que son 12 minutos de carrera, y el tablero ya enseña ese control (6-h). La medida anterior de esta sección (`l5/cola.mjs`, de 85 a 106 rótulos y ninguno de clase 2 o 3 perdido) no aplicaba la caducidad de 6-h y daba dos `VIRTUAL GC` al prólogo por dorsales, que no tiene general virtual.
 
@@ -287,16 +303,16 @@ El cierre es el de §8.6 con dos cambios. `Most kilometres out front` no sale: e
 
 I5 se comprueba con su forma exacta (decisión 9-a; §4.4): para todo corredor `r` de toda crono, `tt.startDs[r] = toDs(startS)` de su hueco en `timeTrialStartOrder`, `tt.kmClockDs[r]` no decrece y `tt.kmClockDs[r].at(−1) = 10 · results[r].tiempoS`. Los casos:
 
-| Caso | Lo que se comprueba |
-| --- | --- |
-| sin percance | `kmClockDs[r].at(−1) = 10 · tiempoS` y cada entrada anterior es `toDs(raw · noise)` de su km |
-| con pinchazo o avería | la última entrada lleva la pérdida y las anteriores no; `mishaps` tiene su km (`finishKm / 2`) y su `lostDs` |
-| fuera de control | tiene tiempo y `estado: 'dnf'` en `results`; I5 vale igual |
-| longitud no entera (26,3 km) | 27 entradas: 26 km enteros y la meta |
-| longitud con coma flotante (`26.000000000000004`) | 26 entradas, como los 260 bloques del motor |
-| prólogo por dorsales | `order: 'bib'`, `intervalS: 60`, `startDs` múltiplos de 600 |
-| crono por la general | `order: 'gc'`, `intervalS: 120`, el líder de salida con el `startDs` mayor |
-| prólogo sin controles | `checksKm` y `checkClockDs` vacíos |
+| Caso                                              | Lo que se comprueba                                                                                          |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| sin percance                                      | `kmClockDs[r].at(−1) = 10 · tiempoS` y cada entrada anterior es `toDs(raw · noise)` de su km                 |
+| con pinchazo o avería                             | la última entrada lleva la pérdida y las anteriores no; `mishaps` tiene su km (`finishKm / 2`) y su `lostDs` |
+| fuera de control                                  | tiene tiempo y `estado: 'dnf'` en `results`; I5 vale igual                                                   |
+| longitud no entera (26,3 km)                      | 27 entradas: 26 km enteros y la meta                                                                         |
+| longitud con coma flotante (`26.000000000000004`) | 26 entradas, como los 260 bloques del motor                                                                  |
+| prólogo por dorsales                              | `order: 'bib'`, `intervalS: 60`, `startDs` múltiplos de 600                                                  |
+| crono por la general                              | `order: 'gc'`, `intervalS: 120`, el líder de salida con el `startDs` mayor                                   |
+| prólogo sin controles                             | `checksKm` y `checkClockDs` vacíos                                                                           |
 
 Los tests, por fichero, escritos antes que el código (el paso de cada uno es §17):
 
@@ -326,6 +342,7 @@ Los tests, por fichero, escritos antes que el código (el paso de cada uno es §
 **Huecos rellenados.** Ninguno (§B no asigna ninguno). Contradicciones de hecho: ninguna.
 
 **Decisiones de esta sección.**
+
 - 9-a. La última entrada de `kmClockDs` es `10 · Math.round(tS)`, el `tiempoS` de `results` por diez: el sillón que se ve es el del acta e I5 pasa a ser una igualdad. Con `toDs`, de 6 a 9 de 176 tiempos saldrían un segundo distintos del acta. Descartado: `toDs(tS)`.
 - 9-b. `TimeTrialTrace` lleva `checkClockDs` (§4.2), con `10 · Math.round(raw[idx] · noise)` en cada control, y `TimelineVisibility`, la hora de cada paso (`ttCheckDs`, §4.6): el tablero coincide con `bestChain` y con cada `tt_split`. Descartados: interpolar el parcial en `kmClockDs` (hasta 1,43 s de error; 177-180 de 352 segundos distintos en la e16) y guardar el reloj exacto en décimas (13-22 de 352 por el doble redondeo).
 - 9-c. `checksKm` guarda el km exacto del bloque del control (6,6; 8,6) y el rótulo lo redondea como el `checkKm` del motor, para que `SPLIT 1 · km 9` y «At the 9 km check» digan lo mismo.
@@ -342,6 +359,7 @@ Los tests, por fichero, escritos antes que el código (el paso de cada uno es §
 - 9-n. En una crono, `VIRTUAL GC` es de clase 2, y 3 si cambia el líder virtual; en carretera sigue en 1 y 3 (D-21, §6.5). `cueClassOf` recibe si la etapa es crono. Medido (`l5c/cola2.mjs`, e16, semillas 0 a 2): con la clase 1 la cola pierde 1 de los 7 `VIRTUAL GC`; con la 2, ninguno. Descartado: la clase 1 de carretera, pensada para un cuadro que sale cada 25 s de pared y no para un rótulo que sale dos o tres veces por crono; y la regla que escribía esta sección, «2, y 3 si el líder virtual no es el líder», que citaba D-21 sin ser la de D-21.
 
 **Propuesto para el glosario.**
+
 - `TimeTrialTrace.checkClockDs: readonly (readonly Ds[])[]` (§4.2): por `RiderIx`, reloj propio en cada control de `checksKm`, `10 · Math.round(raw[idx] · noise)`; y `TimelineVisibility.ttCheckDs: readonly (readonly Ds[])[] | null` (§4.6), `startDs + checkClockDs`, con `cutTimeline` y `chunkOf` cortándolo como `kmClockDs`.
 - `BroadcastHead.tt: { readonly order: 'gc' | 'bib'; readonly intervalS: number; readonly checksKm: readonly number[] } | null` y `BroadcastChunk.tt.checks: readonly number[]` (tríos `[rider, índice de control, relojDs]`), en `packages/shared/src/broadcast/wire.ts` (§4.11).
 - Dos variantes de `Cue` (§4.9), clases de §9.5: `{ readonly kind: 'tt_split'; readonly t: RaceS; readonly check: number; readonly rider: RiderIx; readonly rank: number; readonly deltaS: number }` y `{ readonly kind: 'tt_finish'; readonly t: RaceS; readonly rider: RiderIx; readonly rank: number; readonly deltaS: number; readonly hotSeat: boolean }`.
@@ -352,6 +370,7 @@ Los tests, por fichero, escritos antes que el código (el paso de cada uno es §
 - Corrección (fase 5): `RiderCueContext` gana `'tt_round'` (la ronda `ON COURSE` de la crono, clase 0; §4.9, §6.5); `TimeTrialInstant.arrivals: readonly { readonly rider: RiderIx; readonly timeS: number }[]` (los llegados antes de `t`, por tiempo y, a igualdad, por hora de llegada; §4.5); `cueClassOf(cue, start, lastVirtualLeader, timeTrial)` (9-n, §6.5); `tt_start_order` como `CueKind` (el cuadro `Start order`, §4.9); `BroadcastHead.tt`, `BroadcastChunk.tt.checks`, `checkClockDs`, `ttCheckDs`, `tt_split` y `tt_finish` dejan de ser propuestas (9-b, 9-d, 9-i).
 
 **Dudas para el ensamblador.**
+
 - §4.2 y §4.6 ponen el borde de la meta de una crono en la llegada del último en SALIR. En 1 de las 6 corridas medidas (e16, semilla 0) un corredor llega después que él, y el motor cierra la crono con la última llegada (`stage_win_itt`, `timetrial.ts` l. 611-619): con el borde de §4.6, ese corredor sigue en ruta cuando la pantalla pide la meta y su llegada solo viaja en el paquete. Propuesta: el borde es la última llegada.
 - D-23 dice que el km verdadero del pinchazo «sale de la traza»; el motor no tiene otro que `finishKm / 2` (§9.6, y la duda que ya dejó §4). La fila de D-05 («`startS` del corredor + su reloj propio») tiene que decir «su reloj propio en el km del suceso», como §4.7: con el `tS` del suceso, el rótulo del dorsal 132 saldría 22 s después de su llegada (medido, §9.6).
 - La frase de la voz para `puncture` y `mechanical` (§12.5) no debería dar los segundos en una crono, por la misma razón que el rótulo (9-e); `datos.perdidaS` existe y la tentación es usarlo.
