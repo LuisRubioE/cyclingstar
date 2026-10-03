@@ -50,5 +50,6 @@ plan, cada una con el paso que la hace (§0.8 y §18.9 del documento, y las duda
 7. La crono más larga de 176 corredores con el grabador de verdad (paso 4b).
 8. El racimo en vivo de 12-s con los nombres reales (paso 6b, B19).
 
-La implementación no ha empezado: espera a la regla de arranque de `docs/encargos.md` (l. 15-26) y a
-las 27 decisiones del dueño de §20, que traen valor por defecto.
+La implementación empezó el 3 de octubre de 2026, sobre la v91 de producción y con el valor por
+defecto de las 27 decisiones del dueño de §20: lo que entra en cada PR, lo que se aparta del diseño y
+las cifras de sus bancos están en `implementacion.md`.

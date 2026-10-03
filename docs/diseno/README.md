@@ -70,11 +70,11 @@ diseño y no plan en marcha.
 ## `e2-retransmision/`: el material de la retransmisión (E2)
 
 **El documento final ya está escrito y vive fuera de aquí**: `docs/retransmision.md` (11.494 líneas,
-del 3 de octubre de 2026). Es el diseño de E2, **escrito y sin implementar**: veintisiete de sus
-decisiones son del dueño y esperan respuesta en su §20, cada una con un valor por defecto que es el
-que se implementa si no contesta, y la regla de arranque de `docs/encargos.md` (l. 15-26) no deja abrir
-el código hasta que la línea de la táctica y el entrenamiento esté en producción. Este directorio es lo
-que se leyó y se escribió para redactarlo, y se parte en dos por su destino, como el de arriba.
+del 3 de octubre de 2026). Es el diseño de E2, **en implementación desde ese mismo día**, sobre la v91
+de producción y con el valor por defecto de las veintisiete decisiones del dueño de su §20. Este
+directorio es lo que se leyó y se escribió para redactarlo, y se parte en dos por su destino, como el
+de arriba; aparte va `implementacion.md`, que no es andamio: lo que entra en cada PR, lo que se aparta
+del diseño y lo que el paso siguiente tiene que saber.
 
 ### Cómo se llegó
 
