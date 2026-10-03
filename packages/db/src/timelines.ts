@@ -45,7 +45,7 @@ import {
   encodeTimeline,
   photoBlocksOf,
 } from '@cyclingstar/shared'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import type { drizzle } from 'drizzle-orm/postgres-js'
 import { type CastContext, buildTimelineCast } from './cast.js'
 import type { Horizon } from './horizon.js'
@@ -128,6 +128,37 @@ export function startStageTimeline(opts: {
       onBanner: safe(recorder.onBanner),
       onTimeTrialRide: safe(recorder.onTimeTrialRide),
     },
+  }
+}
+
+// ================================================================= los puntos de guardado (5-l)
+
+/**
+ * UN PUNTO DE GUARDADO QUE AÍSLA LOS ERRORES Y SE SUELTA AL ACABAR (5-l; §19.1, riesgo 37).
+ *
+ * `tx.transaction` de drizzle va por `savepoint` de postgres.js (3.4.9, `scope` en src/index.js), que
+ * hace dos cosas: aísla los errores de lo que corre dentro (su ámbito tiene su propio `uncaughtError`
+ * y, si algo falla, vuelve al punto y relanza), y NO SUELTA el punto cuando acaba bien. Lo segundo deja
+ * todo lo que la transacción del día escribe después dentro de ese punto, que gana un identificador de
+ * subtransacción aunque solo leyera: con un punto por etapa, el día 176 abría 82 (medido con B15) y
+ * desbordaba la caché de 64 de cada proceso, que es lo que 5-l existe para evitar. Y un punto hecho a
+ * mano no sirve solo: postgres.js apunta como error del ámbito de la transacción cualquier consulta
+ * que falle en él, aunque se capture, y al acabar la deshace entera.
+ *
+ * Por eso, los dos: un punto con nombre propio, a mano y que no falla, y dentro el de postgres.js, que
+ * aísla. Al acabar, bien o mal, `RELEASE` del propio, que destruye también todos los puntos abiertos
+ * después de él, el de postgres.js incluido.
+ */
+async function inSavepoint<T>(
+  tx: Tx,
+  name: 'e2_reparto' | 'e2_lineas',
+  fn: (sp: Tx) => Promise<T>,
+): Promise<T> {
+  await tx.execute(sql.raw(`savepoint ${name}`))
+  try {
+    return await tx.transaction(fn)
+  } finally {
+    await tx.execute(sql.raw(`release savepoint ${name}`))
   }
 }
 
@@ -302,7 +333,7 @@ export function timelineTickLog(
     }
   }
   const writeInSavepoint = async (tx: Tx, rows: readonly StageTimelineRow[]): Promise<void> => {
-    const left = await tx.transaction((sp) => writeStageTimelineRows(sp, rows))
+    const left = await inSavepoint(tx, 'e2_lineas', (sp) => writeStageTimelineRows(sp, rows))
     const notWritten = new Set(left)
     count(rows.filter((r) => !notWritten.has(r)))
     for (const r of left) notes.push(`timeline error: ${r.raceId} e${r.stageDay} ya tenía fila`)
@@ -424,7 +455,9 @@ export async function recordStageTimeline(
       raceId: ctx.raceId,
       stageDay: ctx.stageDay,
     })
-    const cast = await tx.transaction(async (sp) =>
+    // Las lecturas del reparto, en un punto de guardado que solo lee y se suelta (5-l): un error suyo
+    // vuelve al punto y deja la etapa sin línea, nunca la transacción del día en estado abortado.
+    const cast = await inSavepoint(tx, 'e2_reparto', async (sp) =>
       buildTimelineCast(sp, {
         worldId: ctx.worldId,
         gameDay: ctx.gameDay,

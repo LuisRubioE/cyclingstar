@@ -13,7 +13,7 @@ import {
   decodeTimeline,
   encodeTimeline,
 } from '@cyclingstar/shared'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { worldHorizon } from './horizon.js'
 import { stageResults, stageSnapshots, stageTimelines, worlds } from './schema.js'
@@ -184,6 +184,63 @@ describe('db: la línea temporal en stage_timelines (§5.5, §5.6, 5-l)', () => 
     expect(await readStageTimeline(t.db, worldHorizon, 'race-vuelta:s0', 1)).toEqual(tl)
     expect(await readStageTemplateRev(t.db, worldHorizon, 'race-vuelta:s0', 1)).toBe(TEMPLATE_REV)
     expect(log.summary()).toBe('timeline: 1 grabadas, 0 sin línea')
+  }, 120_000)
+
+  /**
+   * UNA ESCRITURA POR DÍA, Y NINGUNA SUBTRANSACCIÓN DE MÁS (5-l; §19.1, riesgo 37). El reparto se lee en
+   * un punto de guardado por etapa, y `flush` escribe en otro: los dos se SUELTAN al acabar, para que lo
+   * que la transacción del día escribe después (las etapas siguientes, el entrenamiento, el mercado) no
+   * quede dentro de ellos ganando cada uno un identificador de subtransacción. Con `tx.transaction` de
+   * drizzle, que va por `savepoint` de postgres.js y nunca lo suelta, cada etapa dejaba uno: 82 el día
+   * 176 en B15, por encima de los 64 de la caché de cada proceso. Aquí, tres etapas con escrituras
+   * detrás, leído en la propia sesión con `pg_stat_get_backend_subxact` (PGlite tiene una sola): los dos
+   * de la escritura de `flush` (su punto propio y, dentro, el de postgres.js, que aísla el error del
+   * INSERT) y ninguno por etapa. Sin el arreglo, 4.
+   */
+  it('tres etapas grabadas en una transacción, con escrituras detrás, solo dejan las dos subtransacciones de flush', async () => {
+    const log = timelineTickLog()
+    for (const raceKey of ['race-sub-a:s0', 'race-sub-b:s0', 'race-sub-c:s0'])
+      await enrollAll(t, w, raceKey)
+    const [estado] = await t.db.transaction(async (tx) => {
+      for (const raceKey of ['race-sub-a:s0', 'race-sub-b:s0', 'race-sub-c:s0']) {
+        dia += 1
+        await runOneStage(tx, w.worldId, dia, w.worldSeed, {
+          ...stageSpecOf(raceKey, 1, FLAT, false),
+          timeline: log,
+        })
+      }
+      await log.flush(tx)
+      await tx.update(worlds).set({ repairVersion: 5 }).where(eq(worlds.id, w.worldId))
+      return tx.execute<{ subxact_count: number; subxact_overflowed: boolean }>(
+        sql`select s.subxact_count, s.subxact_overflowed
+            from pg_stat_get_backend_idset() as b(id), lateral pg_stat_get_backend_subxact(b.id) s`,
+      )
+    })
+    expect(log.summary()).toBe('timeline: 3 grabadas, 0 sin línea')
+    expect(estado?.subxact_overflowed).toBe(false)
+    expect(estado?.subxact_count).toBe(2)
+  }, 180_000)
+
+  it('una lectura del reparto que falla en la base deja la lápida, y la transacción del día se confirma', async () => {
+    // Una fuente de títulos que lanza una consulta que Postgres rechaza: el error es de la base, no de
+    // JavaScript, y sin su punto de guardado dejaría abortada la transacción del día entera.
+    const rota: ChampionTitleSource = {
+      titlesOn: async (q) => {
+        await q.execute(sql`select 1 / 0`)
+        return new Map<string, readonly ChampionTitle[]>()
+      },
+    }
+    const log = timelineTickLog({ titles: rota })
+    await correr('race-lectura-rota:s0', { log })
+    const resultados = await t.db
+      .select({ riderId: stageResults.riderId })
+      .from(stageResults)
+      .where(eq(stageResults.raceId, 'race-lectura-rota:s0'))
+    expect(resultados.length).toBeGreaterThan(0)
+    expect((await fila('race-lectura-rota:s0'))?.format).toBe(TIMELINE_TOMBSTONE_FORMAT)
+    expect(log.summary()).toMatch(
+      /^timeline: 0 grabadas, 1 sin línea · timeline error: race-lectura-rota:s0 e1 division by zero$/,
+    )
   }, 120_000)
 
   it('una crono se graba con su traza y pasa I5', async () => {
