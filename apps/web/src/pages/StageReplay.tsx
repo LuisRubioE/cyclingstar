@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
+import { broadcastHeadKey, fetchBroadcastHead } from '../api/broadcast'
+import { fetchHealth } from '../api/health'
 import {
   type StageClassEntry,
   type StageGcEntry,
@@ -21,13 +23,17 @@ import { TeamClassNote, TeamClassTable } from '../components/TeamClassTable'
 import { formatTime } from '../domain/format'
 import { raceTeamLabel } from '../domain/labels'
 import { oneDayStageTarget } from '../domain/raceTabs'
+import { StageWatch } from './StageWatch'
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm'
 const head = 'text-xs font-semibold uppercase tracking-wide text-slate-400'
 
-type StageTabId = 'story' | 'result' | 'radio' | 'classifications' | 'profile'
+type StageTabId = 'watch' | 'story' | 'result' | 'radio' | 'classifications' | 'profile'
 
-/** Orden de las pestañas: `Story` primero, que es la carga emocional de la etapa (§7.2). */
+/**
+ * Orden de las pestañas: `Story` primero, que es la carga emocional de la etapa (§7.2). `Watch`, la
+ * retransmisión (E2), va delante cuando la hay (abajo).
+ */
 const STAGE_TAB_IDS: readonly StageTabId[] = [
   'story',
   'result',
@@ -36,6 +42,7 @@ const STAGE_TAB_IDS: readonly StageTabId[] = [
   'profile',
 ]
 const STAGE_TAB_LABEL: Record<StageTabId, string> = {
+  watch: 'Watch',
   story: 'Story',
   result: 'Result',
   // La RACE RADIO va pegada al resultado y antes de las clasificaciones: es el «qué pasó» en crudo,
@@ -343,8 +350,33 @@ export function StageReplay() {
   // El conjunto de pestañas depende de eso, así que las opciones se calculan aquí (con `data` aún
   // posiblemente ausente) para que el hook se llame siempre y en el mismo orden.
   const isOneDay = (data?.race?.stageCount ?? 0) === 1
-  const tabIds: readonly StageTabId[] = data?.run ? STAGE_TAB_IDS : ['profile']
-  const [active, setActive] = useTabParam(tabIds, tabIds[0] as StageTabId)
+  /**
+   * `Watch`, LA RETRANSMISIÓN (E2, docs/retransmision.md §17.6, paso 3c): la pestaña sale solo si
+   * `/health.features.broadcastWatch` no es `off` y la cabecera responde; con 404 `broadcast_off`
+   * (quien no es administrador con `admins`), `broadcast_unavailable` (una crono sin línea) o cualquier
+   * otro error, la página de hoy, sin cambiar nada. Va delante, pero la pestaña por defecto sigue siendo
+   * `Story` hasta el 9a, que la decide con lo visto (§6.10). Una carrera de un día redirige a su ficha y
+   * no tiene `Watch` hasta el 9b (§11.17).
+   */
+  const health = useQuery({ queryKey: ['health'], queryFn: fetchHealth })
+  const watchSwitch = health.data?.features?.broadcastWatch ?? 'off'
+  const wantsHead = watchSwitch !== 'off' && data?.run === true && !isOneDay
+  const watchHead = useQuery({
+    queryKey: broadcastHeadKey(raceId, dayNum),
+    queryFn: () => fetchBroadcastHead(raceId, dayNum),
+    enabled: wantsHead,
+  })
+  const watchable = wantsHead && watchHead.isSuccess
+  const tabIds: readonly StageTabId[] = data?.run
+    ? watchable
+      ? ['watch', ...STAGE_TAB_IDS]
+      : STAGE_TAB_IDS
+    : ['profile']
+  const [active, setActive] = useTabParam(tabIds, data?.run ? 'story' : 'profile')
+  // Quien entra por `?tab=watch` no ve la crónica mientras llega la cabecera: sería el destripe que
+  // `Watch` viene a evitar. Si la cabecera no responde, la página de hoy.
+  const watchPending =
+    params.get('tab') === 'watch' && (health.isPending || (wantsHead && watchHead.isPending))
 
   if (isPending) return <p className="text-slate-500">Loading…</p>
   if (isError) return <p className="text-red-600">Could not load the stage.</p>
@@ -444,9 +476,23 @@ export function StageReplay() {
       />
 
       <TabPanel panelId={STAGE_PANEL} active={active}>
-        {active === 'story' && <StageStory data={data} onFullResult={() => setActive('result')} />}
+        {watchPending && <p className="text-slate-500">Loading…</p>}
 
-        {active === 'result' &&
+        {active === 'watch' && watchHead.data && (
+          <StageWatch
+            head={watchHead.data}
+            raceId={raceId}
+            day={data.day}
+            onReport={() => setActive('story')}
+          />
+        )}
+
+        {!watchPending && active === 'story' && (
+          <StageStory data={data} onFullResult={() => setActive('result')} />
+        )}
+
+        {!watchPending &&
+          active === 'result' &&
           (data.results && data.results.length > 0 ? (
             <div className={card}>
               <h2 className={head}>Stage result</h2>
@@ -459,7 +505,8 @@ export function StageReplay() {
             </div>
           ))}
 
-        {active === 'radio' &&
+        {!watchPending &&
+          active === 'radio' &&
           (data.radio ? (
             <RaceRadioPanel radio={data.radio} />
           ) : (
@@ -473,7 +520,7 @@ export function StageReplay() {
             </div>
           ))}
 
-        {active === 'classifications' && (
+        {!watchPending && active === 'classifications' && (
           <StageClassifications
             gc={data.gc ?? []}
             points={points}
@@ -484,7 +531,7 @@ export function StageReplay() {
           />
         )}
 
-        {active === 'profile' && (
+        {!watchPending && active === 'profile' && (
           <div className={card}>
             <h2 className={head}>Profile</h2>
             {data.altimetry ? (
