@@ -33,7 +33,18 @@ export interface TestWorld {
  */
 export async function seedTestWorld(
   t: TestDb,
-  opts: { worldSeed: string; teams?: number; perTeam?: number; country?: string },
+  opts: {
+    worldSeed: string
+    teams?: number
+    perTeam?: number
+    country?: string
+    /** lo que cambia del corredor i (desde 0): la edad o los puntos de temporada, o sin equipo */
+    rider?: (i: number) => {
+      readonly birthSeason?: number
+      readonly seasonPoints?: number
+      readonly withoutTeam?: boolean
+    }
+  },
 ): Promise<TestWorld> {
   const nTeams = opts.teams ?? 4
   const perTeam = opts.perTeam ?? 10
@@ -57,19 +68,23 @@ export async function seedTestWorld(
   const n = nTeams * perTeam
   const riderIds = Array.from({ length: n }, (_, i) => idDe(i + 1))
   await t.db.insert(riders).values(
-    riderIds.map((id, i) => ({
-      id,
-      worldId,
-      teamId: teamIds[Math.floor(i / perTeam)]!,
-      name: `Corredor ${i + 1}`,
-      country: opts.country ?? 'ES',
-      gender: 'M' as const,
-      birthSeason: -25,
-      archetype: 'fondo' as const,
-      faceSeed: `cara-${i + 1}`,
-      ctl: 60,
-      atl: 40,
-    })),
+    riderIds.map((id, i) => {
+      const o = opts.rider?.(i) ?? {}
+      return {
+        id,
+        worldId,
+        teamId: o.withoutTeam === true ? null : teamIds[Math.floor(i / perTeam)]!,
+        name: `Corredor ${i + 1}`,
+        country: opts.country ?? 'ES',
+        gender: 'M' as const,
+        birthSeason: o.birthSeason ?? -25,
+        archetype: 'fondo' as const,
+        faceSeed: `cara-${i + 1}`,
+        ctl: 60,
+        atl: 40,
+        seasonPoints: o.seasonPoints ?? 0,
+      }
+    }),
   )
   await t.db
     .insert(riderAttrs)

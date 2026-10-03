@@ -1,5 +1,12 @@
-import { describe, expect, it } from 'vitest'
-import { selectFieldTeams } from './calendarRun.js'
+import type { ChampionTitle } from '@cyclingstar/shared'
+import { like } from 'drizzle-orm'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { runCalendarDay, selectFieldTeams } from './calendarRun.js'
+import { stageSnapshots } from './schema.js'
+import { type TestDb, startTestDb } from './testDb.js'
+import { type TestWorld, seedTestWorld } from './timelineTestWorld.js'
+import { timelineTickLog } from './timelines.js'
+import type { ChampionTitleSource } from './titles.js'
 
 type Div = 'WT' | 'PRS' | 'CON'
 /** Equipos de prueba, ya "ordenados por presupuesto" (el orden de entrada). */
@@ -152,4 +159,58 @@ describe('db: selección del pelotón por nivel y región (SPEC 8)', () => {
     const chosen = selectFieldTeams(eligible, 8, 'Oceania', undefined, 2)
     expect(chosen).toHaveLength(2)
   })
+})
+
+/**
+ * LOS TÍTULOS DEL DÍA, UNA VEZ POR DÍA (docs/retransmision.md §7.4, 7-c; E2, paso 5). El día 176 el
+ * tick corre 187 cronos nacionales y el 179, 153 nacionales en línea: cada una graba su reparto con los
+ * campeones del día, y la cota inferior estricta de la vigencia deja pedirlos UNA vez y pasarlos a
+ * todas. Aquí, el día 8 de la temporada 0, el primero con carreras: las dos cronos nacionales de
+ * Australia, la élite con los 40 mejores por puntos y la sub-23 con los seis jóvenes que quedan.
+ */
+describe('db: runCalendarDay graba sus etapas con los títulos pedidos una vez por día (§7.4)', () => {
+  let t: TestDb
+  let w: TestWorld
+
+  beforeAll(async () => {
+    t = await startTestDb()
+    w = await seedTestWorld(t, {
+      worldSeed: 'semilla-nacionales',
+      teams: 1,
+      perTeam: 46,
+      country: 'AU',
+      // 40 de élite con puntos (la élite los convoca a ellos) y 6 sub-23 sin puntos (22 años).
+      rider: (i) =>
+        i < 40
+          ? { birthSeason: -10, seasonPoints: 100 + i, withoutTeam: true }
+          : { birthSeason: -2, seasonPoints: 0, withoutTeam: true },
+    })
+  }, 180_000)
+
+  afterAll(async () => {
+    await t?.close()
+  })
+
+  it('el día 8 corre las dos cronos nacionales de Australia y pide los títulos una sola vez', async () => {
+    const llamadas: number[] = []
+    const fuente: ChampionTitleSource = {
+      titlesOn: (_q, mundo, dia) => {
+        expect(mundo).toBe(w.worldId)
+        llamadas.push(dia)
+        return Promise.resolve(new Map<string, readonly ChampionTitle[]>())
+      },
+    }
+    const log = timelineTickLog({ titles: fuente })
+    await t.db.transaction(async (tx) => {
+      await runCalendarDay(tx, w.worldId, 8, w.worldSeed, { timeline: log })
+      await log.flush(tx)
+    })
+    const corridas = await t.db
+      .select({ raceId: stageSnapshots.raceId })
+      .from(stageSnapshots)
+      .where(like(stageSnapshots.raceId, 'nc-au-%'))
+    expect(corridas.map((c) => c.raceId).sort()).toEqual(['nc-au-itt:s0', 'nc-au-u23-itt:s0'])
+    expect(llamadas).toEqual([8])
+    expect(log.summary()).toBe('timeline: 2 grabadas, 0 sin línea')
+  }, 120_000)
 })

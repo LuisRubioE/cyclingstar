@@ -13,6 +13,8 @@ async function main(): Promise<void> {
     msPerGameDay: env.TICK_INTERVAL_MINUTES * 60_000,
     worldSeed: GENESIS_WORLD_SEED,
     engineVersion: ENGINE_VERSION,
+    // E2, paso 5: que el tick grabe la línea temporal de cada etapa (§5.5, §14.6).
+    timelineRecord: env.TIMELINE_RECORD,
   })
   console.log(`tick: ${JSON.stringify(summary)}`)
 }

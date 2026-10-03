@@ -42,6 +42,7 @@ async function main(): Promise<void> {
         msPerGameDay,
         worldSeed: GENESIS_WORLD_SEED,
         engineVersion: ENGINE_VERSION,
+        timelineRecord: env.TIMELINE_RECORD,
       }),
     onAdminAdvance: (days) =>
       runTick(env.DATABASE_URL, {
@@ -50,10 +51,22 @@ async function main(): Promise<void> {
         worldSeed: GENESIS_WORLD_SEED,
         engineVersion: ENGINE_VERSION,
         forceDays: days,
+        timelineRecord: env.TIMELINE_RECORD,
       }),
     logger: { level: env.LOG_LEVEL },
   })
   await app.listen({ port: env.PORT, host: '0.0.0.0' })
+
+  /*
+   * AUTO_TICK=off (E2, docs/retransmision.md §18.3 y 18-k; paso 5): con el servicio `tick` del cron en
+   * marcha, `web` no simula en su proceso. Simular es JavaScript síncrono: mientras corre una etapa la
+   * web no contesta, y un tramo de la retransmisión pedido en ese momento saldría con `Loading`. Los
+   * avances a mano de /admin siguen funcionando. Con `on` (por defecto), como hoy.
+   */
+  if (env.AUTO_TICK === 'off') {
+    app.log.info('auto-tick disabled (AUTO_TICK=off): the tick service advances the world')
+    return
+  }
 
   // Auto-tick: el propio servicio web avanza el mundo (SPEC 2). No depende de un cron externo,
   // que puede no estar configurado. runTick es idempotente y se pone al día según el tiempo real
@@ -71,6 +84,7 @@ async function main(): Promise<void> {
         msPerGameDay,
         worldSeed: GENESIS_WORLD_SEED,
         engineVersion: ENGINE_VERSION,
+        timelineRecord: env.TIMELINE_RECORD,
       })
       if (summary.daysProcessed > 0) {
         app.log.info({ summary }, 'auto-tick advanced the world')

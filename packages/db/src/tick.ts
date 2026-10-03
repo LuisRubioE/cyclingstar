@@ -9,6 +9,7 @@ import { runPayroll, runTeamFinances } from './economy.js'
 import { LOCK_CLASS, TICK_LOCK_KEY } from './locks.js'
 import { backfillRosters, runRollover } from './rollover.js'
 import { gameState, riderAttrLog, tickLog, worlds } from './schema.js'
+import { timelineTickLog } from './timelines.js'
 import { trainWorldDay } from './train.js'
 import { congelarTransicionE1 } from './transicionE1.js'
 import {
@@ -81,6 +82,14 @@ export interface RunTickOptions {
   forceDays?: number
   /** Tope de días por ejecución (ver DEFAULT_MAX_DAYS_PER_RUN). */
   maxDaysPerRun?: number
+  /**
+   * `TIMELINE_RECORD` (E2, docs/retransmision.md §5.5 y §14.6; paso 5): con `on`, cada etapa del tick
+   * graba su línea temporal en `stage_timelines`, una escritura por día detrás de sus carreras (5-l), y
+   * el resumen va a `tick_log.notes`; con `off`, la envoltura de la sonda es la de hoy y esas etapas
+   * quedan sin fila (abren con el adaptador de la radio, D-07). Obligatorio: los cinco sitios que
+   * llaman a `runTick` lo dicen, y sin él no compilan (5-m).
+   */
+  timelineRecord: 'off' | 'on'
 }
 
 /** Día objetivo del mundo según el tiempo real transcurrido desde su creación. */
@@ -278,6 +287,9 @@ export async function runTick(databaseUrl: string, opts: RunTickOptions): Promis
       // ¿Se ha cruzado alguna temporada en esta ejecución? Solo entonces hay neopros/ascensos nuevos
       // que puedan necesitar las reconciliaciones de nombres y residencias.
       let seasonRolled = false
+      // EL DIARIO DE GRABACIÓN (E2, §5.5): uno por ejecución, que cuenta lo grabado en todos sus días
+      // y escribe las filas de cada día al acabar sus carreras. Sin él (TIMELINE_RECORD=off) no se graba.
+      const timelineLog = opts.timelineRecord === 'on' ? timelineTickLog() : undefined
       while (day < target) {
         const next = day + 1
         failingDay = next
@@ -293,7 +305,12 @@ export async function runTick(databaseUrl: string, opts: RunTickOptions): Promis
           await runRollover(tx, genesis.worldId, next, worldSeed)
           const raced = await runCalendarDay(tx, genesis.worldId, next, worldSeed, {
             repairWorld: needsRepair,
+            ...(timelineLog ? { timeline: timelineLog } : {}),
           })
+          // Las líneas del día, en UN INSERT y un punto de guardado, dentro de esta misma transacción
+          // (5-l): un punto de guardado por etapa desbordaría la caché de subtransacciones los días
+          // 176 y 179. Un fallo de la escritura deja lápidas y notas, nunca el día sin confirmar.
+          await timelineLog?.flush(tx)
           await trainWorldDay(tx, genesis.worldId, next, worldSeed, raced)
           await runCallups(tx, genesis.worldId, next, worldSeed)
           await runMarket(tx, genesis.worldId, next, worldSeed)
@@ -360,6 +377,8 @@ export async function runTick(databaseUrl: string, opts: RunTickOptions): Promis
         notes:
           [
             notaE1,
+            // `timeline: 312 grabadas, 1 sin línea` y sus notas (§5.5); null si no se corrió ninguna etapa.
+            timelineLog?.summary() ?? null,
             capped
               ? `tope de ${maxDays} días por ejecución: quedan ${wanted - day} días pendientes`
               : daysProcessed === 0

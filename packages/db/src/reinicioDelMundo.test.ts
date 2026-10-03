@@ -292,6 +292,8 @@ describe('migración 0044: reinicio del mundo', () => {
           worldSeed: GENESIS_WORLD_SEED,
           engineVersion: ENGINE_VERSION,
           forceDays: 0,
+          // E2, paso 5: el campo es obligatorio; la génesis no corre ningún día ni etapa.
+          timelineRecord: 'off',
         }),
       )
       expect(resumen.ran).toBe(true)

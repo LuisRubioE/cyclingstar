@@ -1,6 +1,7 @@
-import { desc, eq } from 'drizzle-orm'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { gameState, tickLog, worlds } from './schema.js'
+import { gunzipSync } from 'node:zlib'
+import { and, desc, eq, like } from 'drizzle-orm'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+import { gameState, stageSnapshots, stageTimelines, tickLog, worlds } from './schema.js'
 import { type TestDb, startTestDb } from './testDb.js'
 import { POISON_PILL_ATTEMPTS, runTick } from './tick.js'
 import { WORLD_REPAIR_VERSION } from './worldRepair.js'
@@ -9,7 +10,32 @@ import { WORLD_REPAIR_VERSION } from './worldRepair.js'
  * Integración real de `runTick` contra Postgres (PGlite): que los FALLOS se registren en `tick_log`
  * (antes solo se escribía el camino feliz y el panel de admin era ciego), que el "poison pill" —un
  * día que falla siempre— deje rastro contable, y que el tope de días por ejecución se respete.
+ *
+ * Y la grabación de E2 (docs/retransmision.md §5.5 y §17.8; paso 5): los casos de hoy corren con
+ * `timelineRecord: 'off'`, porque el campo es obligatorio; el último, con `on` y el grabador forzado a
+ * fallar en la primera etapa del día (un `vi.mock` parcial del motor, como en `timelines.test.ts`):
+ * el tick acaba bien, el día se confirma y `tick_log.notes` lleva el resumen y la nota.
  */
+
+const grabador = vi.hoisted(() => ({ fallarNumero: 0, creados: 0 }))
+
+vi.mock('@cyclingstar/engine', async (importOriginal) => {
+  const real = await importOriginal<typeof import('@cyclingstar/engine')>()
+  return {
+    ...real,
+    timelineRecorder: (opts: Parameters<typeof real.timelineRecorder>[0]) => {
+      grabador.creados += 1
+      const rec = real.timelineRecorder(opts)
+      if (grabador.creados !== grabador.fallarNumero) return rec
+      return {
+        ...rec,
+        finish: () => {
+          throw new Error('el grabador forzado falla al cerrar')
+        },
+      }
+    },
+  }
+})
 
 const SIX_HOURS_MS = 6 * 60 * 60 * 1000
 const NOW = new Date('2026-01-01T00:00:00.000Z')
@@ -25,7 +51,7 @@ describe('db: runTick registra fallos y respeta el tope de días', () => {
     await t?.close()
   })
 
-  const tick = (forceDays: number, maxDaysPerRun?: number) =>
+  const tick = (forceDays: number, maxDaysPerRun?: number, timelineRecord: 'off' | 'on' = 'off') =>
     t.detached((url) =>
       runTick(url, {
         now: NOW,
@@ -34,6 +60,7 @@ describe('db: runTick registra fallos y respeta el tope de días', () => {
         engineVersion: 1,
         forceDays,
         ...(maxDaysPerRun != null ? { maxDaysPerRun } : {}),
+        timelineRecord,
       }),
     )
 
@@ -151,4 +178,52 @@ describe('db: runTick registra fallos y respeta el tope de días', () => {
       .where(eq(worlds.repairVersion, WORLD_REPAIR_VERSION))
     expect(rows).toHaveLength(1)
   })
+
+  it('TIMELINE_RECORD=on con el grabador que falla: el tick acaba bien, el día se confirma y tick_log lleva la nota', async () => {
+    // El día 8 de la temporada es el primero con carreras: las cronos nacionales de Australia, élite
+    // y sub-23. Se salta hasta el 7 (los días de en medio no corren nada) y se corre uno.
+    await t.db
+      .update(gameState)
+      .set({ currentDay: 7, lastProcessedDay: 7 })
+      .where(eq(gameState.id, 1))
+    grabador.creados = 0
+    grabador.fallarNumero = 1
+    try {
+      const summary = await tick(1, undefined, 'on')
+      expect(summary.daysProcessed).toBe(1)
+    } finally {
+      grabador.fallarNumero = 0
+    }
+    const clock = await t.db.select({ d: gameState.currentDay }).from(gameState).limit(1)
+    expect(clock[0]?.d).toBe(8)
+    // Las etapas del día se corrieron y se guardaron (el día se confirmó con ellas)…
+    const etapas = await t.db
+      .select({ raceId: stageSnapshots.raceId })
+      .from(stageSnapshots)
+      .where(like(stageSnapshots.raceId, 'nc-au-%'))
+    const corridas = etapas.map((e) => e.raceId).sort()
+    expect(corridas.length).toBeGreaterThan(0)
+    expect(grabador.creados).toBe(corridas.length)
+    // …y cada una tiene su fila: la primera, una lápida; las demás, su línea.
+    const filas = await t.db
+      .select({
+        raceId: stageTimelines.raceId,
+        format: stageTimelines.format,
+        body: stageTimelines.body,
+      })
+      .from(stageTimelines)
+      .where(and(like(stageTimelines.raceId, 'nc-au-%'), eq(stageTimelines.stageDay, 1)))
+    expect(filas.map((f) => f.raceId).sort()).toEqual(corridas)
+    const lapidas = filas.filter((f) => f.format === 0)
+    expect(lapidas).toHaveLength(1)
+    expect(JSON.parse(gunzipSync(lapidas[0]!.body).toString('utf8'))).toMatchObject({
+      reason: 'error',
+      message: 'el grabador forzado falla al cerrar',
+    })
+    const [log] = await lastTicks(1)
+    expect(log?.ok).toBe(true)
+    expect(log?.notes).toContain(
+      `timeline: ${corridas.length - 1} grabadas, 1 sin línea · timeline error: ${lapidas[0]!.raceId} e1 el grabador forzado falla al cerrar`,
+    )
+  }, 300_000)
 })
