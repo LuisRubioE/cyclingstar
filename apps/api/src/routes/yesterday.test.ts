@@ -330,6 +330,8 @@ describe('la web de ayer: lo que la API manda hoy pasa por sus esquemas', () => 
       expect(typeof n.seed).toBe('string')
       expect(n.stageDay).toBe(n.payload && 'stageDay' in n.payload ? n.payload.stageDay : null)
     }
+    // Los dos titulares de líder se escriben desde la etapa 2 de una vuelta y no se sirven hasta el 8a.
+    expect(news.filter((n) => n.kind === 'gc_lead_taken' || n.kind === 'jersey_taken')).toEqual([])
     const stage = yesterdayStage.parse(await get(`/api/races/${RACE_ID}/stages/2`))
     const winnerTeam = stage.results?.find((r) => r.puesto === 1)?.teamId
     const equipo = teamNewsResponseSchema.parse(await get(`/api/teams/${winnerTeam!}/news`))

@@ -4,6 +4,7 @@ import {
   type AutoOrderRider,
   type Incident,
   type RaceClass,
+  type RaceRadio,
   type RaceLevel,
   type StageInput,
   type StageOrders,
@@ -47,6 +48,7 @@ import { buildRaceContext } from './raceContext.js'
 import { gcFinishersWhere, gcOrderBy, gcRosterOn } from './gcSort.js'
 import { emitNews } from './news.js'
 import { addSeasonPointsBatch, recordPalmares } from './ranking.js'
+import { getGcThroughStage, getKomClassification, getPointsClassification } from './results.js'
 import {
   raceGc,
   raceRosters,
@@ -568,6 +570,12 @@ export async function runOneStage(
       .slice(0, 10)
       .map((r) => r.riderId),
   ])
+  // La radio entera de la etapa, una vez: se guarda adelgazada y su última foto dice si el ganador
+  // venía en la fuga (el titular de `awardOutcome`). `raceRadioFrom` es pura: es la misma de siempre.
+  // LOS PERCANCES ENTRAN AQUÍ (v70.1) y no al armar el colector, porque la lista solo existe cuando la
+  // etapa ya ha corrido. Sin ellos, el kilómetro en que un hombre se para a cambiar una rueda se leía
+  // como una velocidad —y un solitario salía «a 16,1 km/h» estando parado—.
+  const stageRadio = radio.radio({ incidents: output.incidents })
 
   await tx
     .insert(stageSnapshots)
@@ -586,10 +594,7 @@ export async function runOneStage(
       // …y los TRES MAILLOTS con prioridad sobre el corte de la vista: sin esto el tope de 24
       // nombres por grupo caía encima de ellos y solo salía uno, al azar (v47).
       radio: radioForStorage(
-        // LOS PERCANCES ENTRAN AQUÍ (v70.1) y no al armar el colector, porque la lista solo existe
-        // cuando la etapa ya ha corrido. Sin ellos, el kilómetro en que un hombre se para a cambiar
-        // una rueda se leía como una velocidad —y un solitario salía «a 16,1 km/h» estando parado—.
-        radio.radio({ incidents: output.incidents }),
+        stageRadio,
         radioWatchList,
         [jerseys.gc, jerseys.points, jerseys.kom].filter((id): id is string => id !== null),
       ) as unknown,
@@ -1008,7 +1013,7 @@ export async function runOneStage(
     }
   }
 
-  await awardOutcome(tx, worldId, gameDay, spec, output, teamOfDay)
+  await awardOutcome(tx, worldId, gameDay, spec, output, teamOfDay, stageRadio)
   return raced
 }
 
@@ -1146,6 +1151,69 @@ export async function applyIncidents(
   }
 }
 
+/**
+ * ¿GANÓ LA FUGA? (docs/retransmision.md §12.8, 12-g). La regla de siempre —hubo fuga y nadie la
+ * cazó— más lo que el titular afirma: que el ganador iba en ella, es decir, que su grupo en la última
+ * foto de la radio de la etapa es la `fuga`. Medido en 44 etapas del banco, la regla de siempre dice
+ * «desde la fuga» en 16 y en las 16 el ganador va en la fuga; la foto sola lo diría en diez más, que
+ * son ataques del final con la fuga del día ya cazada. Por eso la condición se AÑADE y no sustituye.
+ */
+export function wonFromBreakaway(
+  events: readonly { readonly tipo: string }[],
+  radio: {
+    readonly kms: readonly {
+      readonly groups: readonly { readonly kind: string; readonly riderIds: readonly string[] }[]
+    }[]
+  },
+  winnerId: string,
+): boolean {
+  if (!events.some((e) => e.tipo === 'fuga_formada')) return false
+  if (events.some((e) => e.tipo === 'fuga_cazada')) return false
+  const last = radio.kms[radio.kms.length - 1]
+  return last?.groups.find((g) => g.riderIds.includes(winnerId))?.kind === 'fuga'
+}
+
+/**
+ * EL PRIMERO DE UNA CLASIFICACIÓN DE PUNTOS (la de puntos o la de la montaña), para los titulares de
+ * líder: el que tiene más que nadie, él solo, o null si nadie tiene puntos o si hay empate arriba. Se
+ * aparta del diseño, que tomaba la primera fila: esas dos consultas ordenan solo por los puntos y en
+ * un empate la primera fila la decide Postgres, así que la «primera» podía cambiar de una etapa a otra
+ * sin que cambiara nada y dar un «X takes the points lead» inventado.
+ */
+export function soleLeader(rows: readonly { riderId: string; puntos: number }[]): string | null {
+  let leader: string | null = null
+  let best = Number.NEGATIVE_INFINITY
+  let tied = false
+  for (const r of rows) {
+    if (r.puntos > best) {
+      best = r.puntos
+      leader = r.riderId
+      tied = false
+    } else if (r.puntos === best) {
+      tied = true
+    }
+  }
+  return tied ? null : leader
+}
+
+/**
+ * Los primeros de la general, de los puntos y de la montaña tras la etapa `stageDay`, con las lecturas
+ * de la ficha de la etapa (`results.ts`), dentro de la transacción del día. La general tiene un orden
+ * total (tiempo, puestos, último puesto e id) y su primero no puede ser un no clasificado.
+ */
+async function classificationLeaders(
+  tx: Tx,
+  raceKey: string,
+  stageDay: number,
+): Promise<{ gc: string | null; points: string | null; kom: string | null }> {
+  const gc = (await getGcThroughStage(tx, raceKey, stageDay))[0]
+  return {
+    gc: gc !== undefined && !gc.dnf ? gc.riderId : null,
+    points: soleLeader(await getPointsClassification(tx, raceKey, stageDay)),
+    kom: soleLeader(await getKomClassification(tx, raceKey, stageDay)),
+  }
+}
+
 /** Premios, noticias, puntos y palmarés de la etapa (SPEC 9, Paso 38-40). */
 async function awardOutcome(
   tx: Tx,
@@ -1154,6 +1222,7 @@ async function awardOutcome(
   spec: StageRunSpec,
   output: Awaited<ReturnType<typeof simulateStage>>,
   teamOfDay: TeamOfDay,
+  radio: RaceRadio,
 ): Promise<void> {
   const stageWinner = output.results.find((r) => r.puesto === 1)
   if (!stageWinner) return
@@ -1186,9 +1255,7 @@ async function awardOutcome(
     gcOrder,
   )
 
-  const brokeAway =
-    output.events.some((e) => e.tipo === 'fuga_formada') &&
-    !output.events.some((e) => e.tipo === 'fuga_cazada')
+  const brokeAway = wonFromBreakaway(output.events, radio, stageWinner.riderId)
   const seedBase = `${spec.raceKey}:${gameDay}:${spec.stageDay}`
   // Los titulares de la etapa guardan DATOS, no nombres (docs/retransmision.md §12.8): la carrera, la
   // etapa, el corredor y su equipo del día; el inglés lo pone `renderNews` al leer.
@@ -1262,6 +1329,49 @@ async function awardOutcome(
           ...race,
           riderId: komWinner.riderId,
           teamId: teamOfDay(komWinner.riderId) ?? komWinner.teamId,
+        },
+      })
+    }
+  }
+
+  /**
+   * QUIÉN PASA A MANDAR (docs/retransmision.md §12.8, 12-h; I-25): en una vuelta y de la etapa 2 a la
+   * penúltima, un titular cuando cambia el primero de la general, de los puntos o de la montaña
+   * respecto de tras la etapa anterior. El primero de la CLASIFICACIÓN, no el portador del maillot,
+   * que la delegación cambia sin que cambie el líder; y leído como lo lee la ficha de la etapa. En la
+   * primera lo cubre la victoria y en la última, `gc_win` y `kom`. Se escriben desde aquí para que las
+   * noticias del mundo nuevo nazcan con ellos, y ninguna lectura los sirve sin `leaderNews` (17-x).
+   */
+  if (!isOneDay && !spec.isFinal && spec.stageDay >= 2) {
+    const [before, after] = [
+      await classificationLeaders(tx, spec.raceKey, spec.stageDay - 1),
+      await classificationLeaders(tx, spec.raceKey, spec.stageDay),
+    ]
+    if (after.gc !== null && after.gc !== before.gc) {
+      await emitNews(tx, {
+        worldId,
+        gameDay,
+        seed: `lead:${seedBase}`,
+        raceKey: spec.raceKey,
+        riderId: after.gc,
+        payload: { kind: 'gc_lead_taken', ...race, riderId: after.gc, teamId: teamOfDay(after.gc) },
+      })
+    }
+    for (const jersey of ['points', 'kom'] as const) {
+      const rider = after[jersey]
+      if (rider === null || rider === before[jersey]) continue
+      await emitNews(tx, {
+        worldId,
+        gameDay,
+        seed: `jersey:${jersey}:${seedBase}`,
+        raceKey: spec.raceKey,
+        riderId: rider,
+        payload: {
+          kind: 'jersey_taken',
+          ...race,
+          riderId: rider,
+          teamId: teamOfDay(rider),
+          jersey,
         },
       })
     }
