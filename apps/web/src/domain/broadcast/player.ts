@@ -23,8 +23,9 @@
  *   informando de lo alcanzado y pidiendo otra vez (§14.11). Tras un reinicio de `web` la memoria del
  *   proceso se vacía y el servidor puede saber menos de lo que el reproductor le informó (riesgo 19).
  * - La línea: además de la cabeza pintada en su último bloque (`atLine`), el reloj parado en el borde
- *   de la meta con el último tramo dentro. Si la cabeza acelera en el último km, su extrapolación (§4.5)
- *   no llega al último bloque antes del borde y el reloj se quedaría esperando para siempre.
+ *   de la meta con el último tramo dentro. Si la cabeza no frena en el último km, su extrapolación
+ *   (§4.5) alcanza el último bloque en la meta o después, nunca antes del borde, y el reloj se quedaría
+ *   esperando para siempre: pasa en tres de las cinco congeladas en línea (la e7, la e20 y Colombia e5).
  * - Un 429 (`throttled`) no para el reloj por sí mismo: la petición sigue en vuelo y el reloj sigue con
  *   lo servido; si lo alcanza, espera con `Loading`, como con cualquier tramo en vuelo. §8.11 decía
  *   «deja la fase en waiting», que con 450 s de carrera servidos por delante pararía la imagen sin

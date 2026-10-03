@@ -47,7 +47,9 @@ import {
  *   fotograma a fotograma, a 60 fotogramas por segundo y con `Next action` apagado;
  * - las comprobaciones de §8.11 en cada paso de 1.000 secuencias de acciones al azar: las siete del 3b
  *   (1, 2, 3, 5, 6, la mitad de la 7 que no es del digest y la 9) y la 10, que ya se puede; la 4, la
- *   otra mitad de la 7 y la 8 son de los saltos y del digest, y llegan con ellos en el 10a;
+ *   otra mitad de la 7 y la 8 son de los saltos y del digest, y llegan con ellos en el 10a. La 1 con
+ *   una salvedad: bajo `Previously`, al volver a una etapa a medias, t pasa de lo servido mientras
+ *   llegan los tramos desde 0, y lo que se exige es que el reloj no corra sin carrera servida;
  * - la red al reproducir: las cinco etapas congeladas en línea enteras a ×1 y ×4 sin un solo 409 ni
  *   un fotograma esperando un tramo;
  * - un 429 con `retry-after` espera con `Loading` y repite, sin `Connection lost`, y un 409
@@ -207,6 +209,10 @@ describe('playerStep · el reloj (§8.2)', () => {
     const pausa = run(playing(), [{ k: 'pause' }, frame(1, 100)], ctx).next
     expect(pausa.phase).toBe('paused')
     expect(pausa.t).toBe(0)
+    const resumen = playerInit('watch', 1, 2000, false)
+    const quieto = run(resumen.next, [chunk(900), chunk(1800), chunk(2700), frame(1, 100)], ctx)
+    expect(quieto.next.phase).toBe('recap')
+    expect(quieto.next.t).toBe(resumen.next.t)
   })
 
   it('Next action multiplica por nextActionSpeedup hasta que entra un Cue de clase ≥ 2; uno de clase 1 o de la ronda de la moto no lo apaga (6-m)', () => {
@@ -370,7 +376,7 @@ describe('playerStep · la línea, la llegada y el cierre (§8.7)', () => {
     }
   })
 
-  it('si la cabeza no llega a su último bloque antes del borde (un sprint que acelera), la línea es el borde: el reloj no se queda colgado', () => {
+  it('si la cabeza no llega a su último bloque antes del borde (no frena en el último km, como en la e7, la e20 y Colombia e5), la línea es el borde: el reloj no se queda colgado', () => {
     const ctx = ctxOf(150)
     const s = atEdge('watch')
     const r = playerStep(s, frame(DT, 0.3, false), ctx)
