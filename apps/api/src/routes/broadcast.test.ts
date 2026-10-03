@@ -294,6 +294,11 @@ describe('las rutas de la retransmisión (§14.2)', () => {
       expect(chunks.length).toBeGreaterThan(1)
       expect(chunks.flatMap((c) => c.clocks).length).toBeGreaterThan(0)
       expect(chunks.flatMap((c) => c.lines).length).toBeGreaterThan(0)
+      // El primero lleva lo que se ve desde la salida (3c): el grupo de salida y su marca del bloque
+      // 0, que en la línea del adaptador vale 0 Ds, y ninguno más los repite
+      expect(chunks[0]!.groupsBorn[0]).toEqual([0, 'peloton', 'start'])
+      expect(chunks[0]!.clocks.slice(0, 3)).toEqual([0, 0, 0])
+      expect(chunks.flatMap((c) => c.groupsBorn).filter(([g]) => g === 0)).toHaveLength(1)
       // cada línea de voz, dentro de su tramo
       for (const c of chunks)
         for (const l of c.lines) {

@@ -10,8 +10,10 @@
  * bloques (`stage.lengthKm`, `dx` y `blocks`, que la cabecera lleva desde el 3c), el perfil y el reloj.
  * Lo que sale de los tramos: los grupos, de `groupsBorn` (con `bornB` en la primera marca del grupo,
  * que viaja en el mismo tramo) y `groupsDied`; y cada lista, reordenada por bloque al juntarla, porque
- * cada tramo la trae por la hora a la que se ve (nota 1 del 3a). El grupo de salida no viaja en ningún
- * tramo (se ve desde t = 0, 3-f): es el 0, `peloton`, desde el bloque 0.
+ * cada tramo la trae por la hora a la que se ve (nota 1 del 3a). El primer tramo, el que empieza en 0,
+ * lleva también lo que se ve desde la salida: el grupo de salida, su marca del bloque 0 (la del
+ * adaptador de la radio vale 0 Ds) y su fila de detalle del km 0 (3c). Antes de él, la línea tiene
+ * solo el grupo de salida, el 0, `peloton`, desde el bloque 0 y con todos (3-f).
  *
  * Nace en el 3c. La crono (`tt`) llega en el 6b; un código que la web no conozca se lee como null (4-m).
  */
@@ -85,7 +87,7 @@ const NO_PARTS: ServedParts = {
 
 /** La línea antes del primer tramo: solo la cabecera, y en ella el grupo de salida con todos (3-f). */
 export function servedLineOf(head: BroadcastHead): ServedLine {
-  return { core: coreOf(head, NO_PARTS, false), lines: [], toDs: 0, parts: NO_PARTS }
+  return { core: coreOf(head, NO_PARTS), lines: [], toDs: 0, parts: NO_PARTS }
 }
 
 /** La línea con un tramo más. Pura: devuelve otra y no toca la de entrada. */
@@ -107,7 +109,7 @@ export function withChunk(
     banners: [...p.banners, ...chunk.banners],
   }
   return {
-    core: coreOf(head, parts, true),
+    core: coreOf(head, parts),
     lines: [...line.lines, ...chunk.lines],
     toDs: Math.max(line.toDs, chunk.toDs),
     parts,
@@ -133,11 +135,8 @@ const RANK: Readonly<Record<StateEvent['t'], number>> = {
   mishap: 4,
 }
 
-/**
- * Rehace la línea con todo lo recibido: cada lista, por bloque. `received`: ha llegado al menos un
- * tramo (sin ninguno no se sabe la marca de salida, abajo).
- */
-function coreOf(head: BroadcastHead, p: ServedParts, received: boolean): TimelineCore {
+/** Rehace la línea con todo lo recibido: cada lista, por bloque. */
+function coreOf(head: BroadcastHead, p: ServedParts): TimelineCore {
   const riderIds: string[] = []
   for (const c of head.cast) riderIds[c.ix] = c.id
 
@@ -149,18 +148,10 @@ function coreOf(head: BroadcastHead, p: ServedParts, received: boolean): Timelin
     ;(marksAt.get(b) ?? marksAt.set(b, []).get(b)!).push([g, ds])
     firstMark.set(g, Math.min(firstMark.get(g) ?? b, b))
   }
-  // LA MARCA DE SALIDA. Todo grupo vivo tiene marca en cada km de foto y el bloque 0 es el primero
-  // (`photoBlocksOf`): el de salida la tiene siempre. Un tramo solo lleva lo que se ve DESPUÉS de su
-  // fromDs (`chunkOf`, y fromDs ≥ 0), así que una marca de 0 Ds no llega en ninguno, y la del
-  // adaptador de la radio vale 0 (su reloj de cabeza empieza en la primera foto). Sin ella el instante
-  // no tiene cabeza en ningún km de foto y los huecos de los grupos salen todos a 0, sin tendencia.
-  // Si tras el primer tramo no ha llegado, es esa; la de la línea grabada (unos 9 s, C1) llega en el
-  // primero y esto no hace nada.
-  if (received && !(marksAt.get(0) ?? []).some(([g]) => g === 0))
-    marksAt.set(0, [[0, 0], ...(marksAt.get(0) ?? [])])
 
   // EL CATÁLOGO: el de salida y los nacidos, con su muerte y su sucesor si ya se ven. Es un prefijo
-  // del de la línea (4-a): si faltara uno, los de detrás no se pueden poner y se cortan ahí.
+  // del de la línea (4-a): si faltara uno, los de detrás no se pueden poner y se cortan ahí. El de
+  // salida llega en el primer tramo; hasta entonces, el 0 con todos (3-f).
   const catalog: (GroupCatalogEntry | undefined)[] = [
     { id: 'peloton', origin: 'start', bornB: 0, diedB: null, successor: null },
   ]

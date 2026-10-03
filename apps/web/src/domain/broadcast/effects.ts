@@ -27,7 +27,7 @@ import { type PlayerAction, type PlayerEffect, failureAction } from './player'
 
 /** Lo que la cola sabe hacer fuera: la red (`api/broadcast.ts`) y esperar segundos de pared. */
 export interface WatchPorts {
-  /** GET …/broadcast/chunk, (fromDs, toDs] */
+  /** GET …/broadcast/chunk, (fromDs, toDs]; el que empieza en 0, [0, toDs] (3c) */
   readonly chunk: (fromDs: Ds, toDs: Ds) => Promise<BroadcastChunk>
   /** POST …/broadcast/finish con { mode } */
   readonly finish: (mode: WatchMode) => Promise<BroadcastFinish>

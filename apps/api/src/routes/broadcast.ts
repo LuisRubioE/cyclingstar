@@ -315,10 +315,13 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
     const names = await namesOf(tl, ctx)
     // 4. La voz hasta el final del tramo; el tramo, con las líneas nuevas.
     return (fromS, toS) =>
-      buildChronicle(entrada, names, {
-        byClock: tl.timeTrial,
-        live: { untilS: toS, stageKm: tl.lengthKm, revealS: (ev) => revealOf.get(ev) ?? toS },
-      }).filter((l) => l.revealS > fromS)
+      chunkLinesOf(
+        buildChronicle(entrada, names, {
+          byClock: tl.timeTrial,
+          live: { untilS: toS, stageKm: tl.lengthKm, revealS: (ev) => revealOf.get(ev) ?? toS },
+        }),
+        fromS,
+      )
   }
 
   /** Los nombres de la voz, como los de la ruta de etapa: la lista de salida y el resultado, con los maillots de tras la N − 1. */
@@ -414,6 +417,15 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
 
 /** La voz de un tramo: sus líneas nuevas. */
 type LiveLines = readonly LiveLine[]
+
+/**
+ * La voz de un tramo: de la voz hasta su final, las líneas que se ven después de su `fromS`; en el
+ * primero, también las de la salida (`revealS` 0), con el mismo borde que `chunkOf` (3c). Así los
+ * tramos, uno tras otro, son la voz entera hasta la meta, y ninguna línea viaja dos veces (B19).
+ */
+export function chunkLinesOf(voice: LiveLines, fromS: RaceS): LiveLines {
+  return voice.filter((l) => (fromS === 0 ? l.revealS >= 0 : l.revealS > fromS))
+}
 
 /** El acta sin la radio (decisión 14-b): el paquete de meta no la lleva. */
 function withoutRadio<T extends object>(replay: T): Omit<T, 'radio'> {

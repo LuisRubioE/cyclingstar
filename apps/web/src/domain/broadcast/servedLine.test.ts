@@ -28,7 +28,8 @@ import { type ServedLine, servedLineOf, withChunk } from './servedLine'
  * LA LÍNEA SERVIDA (docs/retransmision.md §4.6, §4.11 y §14.11; nota 1 del 3b): la web rehace la
  * `TimelineCore` con la cabecera y los tramos, y sobre ella pinta el instante. Juntar los tramos que
  * da `chunkOf` tiene que dar la línea que da `cutTimeline` en el borde del último (reordenando por
- * bloque lo que llega por hora), y el instante sobre lo servido, el de la línea entera (B9).
+ * bloque lo que llega por hora), y el instante sobre lo servido, el de la línea entera (B9). Desde el
+ * 3c el primer tramo lleva también lo que se ve en 0 Ds, y la web no deduce nada.
  *
  * La etapa es sintética: un grabador de juguete con las reglas de §5.4 (las marcas en los cuatro
  * sitios de §3.4, la muerte en b − 1 con su marca, el catálogo por la hora de su marca de
@@ -402,18 +403,20 @@ describe('servedLine · la línea de la web con la cabecera y los tramos (nota 1
     expect(i.toGoKm).toBe(LENGTH_KM)
   })
 
-  it('la marca de salida de 0 Ds, la del adaptador, no llega en ningún tramo: la línea la pone tras el primero', () => {
+  it('la marca de salida de 0 Ds, la del adaptador, llega en el primer tramo con la fila del km 0, y la web no pone nada', () => {
     // la línea del adaptador de la radio: el reloj de la cabeza empieza en 0 en la primera foto, el
-    // bloque 0 (y sin la fila de detalle del km 0, que se ve también en 0 Ds y tampoco llega)
+    // bloque 0, y la fila de detalle del km 0 se ve con esa marca. Hasta el 3c ningún tramo traía lo
+    // de 0 Ds y la web deducía la marca; ahora el tramo que empieza en 0 lo lleva (chunkOf)
     const zero: TimelineCore = {
       ...FULL,
       stateEvents: FULL.stateEvents.map((e) =>
         e.t === 'clock' && e.b === 0 ? { ...e, marks: [[0, 0] as const] } : e,
       ),
-      detail: new Map([...FULL.detail].filter(([b]) => b !== 0)),
     }
     const chunks = chunksOf(every(450), zero)
-    expect(chunks.flatMap((c) => c.clocks).slice(0, 3)).not.toEqual([0, 0, 0])
+    expect(chunks[0]!.groupsBorn[0]).toEqual([0, 'peloton', 'start'])
+    expect(chunks[0]!.clocks.slice(0, 3)).toEqual([0, 0, 0])
+    expect(chunks[0]!.details.slice(0, 2)).toEqual([0, 0])
     let served: ServedLine = servedLineOf(HEAD)
     // antes del primer tramo no se sabe: el de salida, en el km 0 (3-f)
     expect(served.core.stateEvents).toEqual([])
@@ -424,11 +427,18 @@ describe('servedLine · la línea de la web con la cabecera y los tramos (nota 1
       for (let ds = 0; ds <= upTo; ds += 389)
         expect(instantAt(served.core, fromDs(ds), CTX)).toEqual(instantAt(zero, fromDs(ds), CTX))
     }
-    // sin ella, el instante no tendría la cabeza en ningún km de foto y los huecos de los grupos
-    // saldrían todos a 0
+    // con ella el instante tiene la cabeza en cada km de foto, y los huecos de los grupos no salen a 0
     const t = fromDs(chunks[1]!.toDs)
-    const gaps = instantAt(zero, t, CTX).groups.map((g) => g.gap.toHeadS)
+    const gaps = instantAt(served.core, t, CTX).groups.map((g) => g.gap.toHeadS)
     expect(gaps.some((s) => s > 0)).toBe(true)
+  })
+
+  it('un tramo que no empieza en 0 no lleva lo de 0 Ds: nada viaja dos veces', () => {
+    const [first, second] = chunksOf([0, 4500, 9000])
+    expect(first!.groupsBorn.map(([g]) => g)).toContain(0)
+    expect(second!.groupsBorn.map(([g]) => g)).not.toContain(0)
+    const served = withChunk(HEAD, withChunk(HEAD, servedLineOf(HEAD), first!), second!)
+    expect(served.core.groups.filter((g) => g.origin === 'start')).toHaveLength(1)
   })
 
   it('un tramo que no trae nada no cambia lo que se ve', () => {
