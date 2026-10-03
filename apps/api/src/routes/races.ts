@@ -1,5 +1,4 @@
 import {
-  type Database,
   type StageOrderRow,
   getCurrentWorld,
   getGcThroughStage,
@@ -48,6 +47,7 @@ import {
   buildRaceRadio,
   chronicleNames,
 } from '../chronicle.js'
+import { leadersThroughStage } from '../broadcastSource.js'
 import { badRequest, notFound, sendError, unauthorized } from '../http.js'
 import { calendarStageSpec, stageHead } from '../stageHistory.js'
 import { congeladaComoEtapa } from '../stageRoute.js'
@@ -83,29 +83,6 @@ const putMyOrdersSchema = z.object({
 /** Kilómetros de una etapa a partir de su perfil. */
 const stageKm = (segments: readonly { km: number }[]): number =>
   Math.round(segments.reduce((sum, s) => sum + s.km, 0))
-
-/**
- * Quién llevaba cada maillot TRAS la etapa `day` (y por tanto quién lo lleva PUESTO en la `day+1`).
- *
- * Es la misma pregunta que responde la ficha con sus tablas, hecha un día antes: por eso relee las
- * mismas cuatro clasificaciones con `throughStage = day` en vez de inventar una consulta nueva. Con
- * `day < 1` no hay nada que arrastrar —la etapa 1 se corre sin maillots, se ganan el día anterior—
- * y se devuelve el juego vacío sin tocar la base.
- */
-async function leadersThroughStage(
-  db: Database,
-  raceKey: string,
-  day: number,
-): Promise<RaceLeaders> {
-  if (day < 1) return NO_LEADERS
-  const [gc, points, kom, teams] = await Promise.all([
-    getGcThroughStage(db, raceKey, day),
-    getPointsClassification(db, raceKey, day),
-    getKomClassification(db, raceKey, day),
-    getTeamClassifications(db, raceKey, day),
-  ])
-  return raceLeaders({ gc, points, kom, teams: teams.overall })
-}
 
 /**
  * Rutas de carrera: las órdenes del corredor para una carrera real del calendario y la crónica
