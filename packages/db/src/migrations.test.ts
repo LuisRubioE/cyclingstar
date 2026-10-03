@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { sql } from 'drizzle-orm'
 import postgres from 'postgres'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { worldHorizon } from './horizon.js'
 import { LOCK_CLASS, TICK_LOCK_KEY } from './locks.js'
 import { hasPendingMigrations, runMigrations } from './migrate.js'
 import { getGlobalNews } from './news.js'
@@ -15,6 +16,7 @@ import {
   startEmptyTestDb,
   startTestDb,
 } from './testDb.js'
+import { clearStageTimelineCache, readStageTemplateRev, readStageTimeline } from './timelines.js'
 
 /**
  * Integración real contra una Postgres efímera (PGlite): que las migraciones de drizzle-kit apliquen
@@ -320,6 +322,9 @@ describe('db: el mundo vivo, migrado con las migraciones de E2 encima', () => {
       select seed, engine_version, radio from stage_snapshots
       where race_id = 'race-vivo:s0' and stage_day = 3`
     expect(snap).toEqual({ seed: 'semilla-vieja', engine_version: 91, radio: radioVieja })
+    clearStageTimelineCache()
+    expect(await readStageTimeline(t.db, worldHorizon, 'race-vivo:s0', 3)).toBeNull()
+    expect(await readStageTemplateRev(t.db, worldHorizon, 'race-vivo:s0', 3)).toBe(0)
 
     // news (0046): el texto se queda y los datos nuevos, a null; nada se rellena hacia atrás.
     const [noticia] = await t.client`

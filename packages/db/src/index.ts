@@ -99,7 +99,27 @@ export {
   type NewsItem,
   type NewsReadOptions,
 } from './news.js'
-export type { Queryable } from './titles.js'
+export { palmaresTitleSource, type ChampionTitleSource, type Queryable } from './titles.js'
+// La línea temporal grabada de E2 (docs/retransmision.md §5.5 y §5.6; paso 5): el diario del tick que
+// baja a `runOneStage` por `StageRunSpec.timeline`, la escritura de las filas y la lectura con su LRU,
+// que el 6a pone delante del adaptador de la radio.
+export {
+  TIMELINE_TOMBSTONE_FORMAT,
+  TimelineUnavailableError,
+  clearStageTimelineCache,
+  readStageTemplateRev,
+  readStageTimeline,
+  stageTimelineRow,
+  timelineTickLog,
+  tombstoneRow,
+  writeStageTimelineRows,
+  type StageTimelineMeta,
+  type StageTimelineRow,
+  type TimelineFailure,
+  type TimelineFailureReason,
+  type TimelineTickLog,
+} from './timelines.js'
+export { buildTimelineCast, type CastContext } from './cast.js'
 export {
   getAllTimeRecords,
   getHallOfFame,

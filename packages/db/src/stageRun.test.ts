@@ -1,7 +1,8 @@
-import { type Incident, TEST_TOUR } from '@cyclingstar/engine'
+import { type Incident, TEST_TOUR, TIMELINE } from '@cyclingstar/engine'
 import { ATTRIBUTES, TEMPLATE_REV, newsPayloadSchema, renderNews } from '@cyclingstar/shared'
 import { and, asc, eq, inArray, sql } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { worldHorizon } from './horizon.js'
 import { newsNames } from './news.js'
 import {
   news,
@@ -28,6 +29,13 @@ import {
 } from './stageRun.js'
 import { getTeamClassifications } from './teamClassification.js'
 import { type TestDb, startTestDb } from './testDb.js'
+import { type TestWorld, enrollAll, seedTestWorld, stageSpecOf } from './timelineTestWorld.js'
+import {
+  type TimelineTickLog,
+  clearStageTimelineCache,
+  readStageTimeline,
+  timelineTickLog,
+} from './timelines.js'
 
 /**
  * Integración real de `runOneStage` contra Postgres (PGlite): comprueba que las escrituras EN LOTE
@@ -653,4 +661,139 @@ describe('db: la fuga del titular y el primero de una clasificación (E2, paso 1
       ]),
     ).toBeNull()
   })
+})
+
+/**
+ * LA LÍNEA EN LA TRANSACCIÓN DE LA ETAPA (docs/retransmision.md §5.5 y §17.8; E2, paso 5). Con
+ * `spec.timeline` y `flush` detrás de la etapa, en la misma transacción, la etapa deja su fila en
+ * `stage_timelines`; sin `flush` no la deja, y la retransmisión saldría del adaptador sin que nadie lo
+ * notara. Y GRABAR NO CAMBIA NADA DE LO QUE LA ETAPA ESCRIBE: con la grabación apagada
+ * (`TIMELINE_RECORD=off`, sin `spec.timeline`, la envoltura de hoy) y encendida, las mismas filas en
+ * todas las tablas que toca `runOneStage`, el aprendizaje y la radio guardada incluidos. Cada corrida se
+ * deshace al acabar, así que las dos parten del mismo mundo. Este fichero corre `runOneStage`
+ * directamente y no ve `tick_log`, que solo escribe `runTick` (lo mira `tickRun.test.ts`).
+ */
+describe('db: runOneStage con la grabación de la línea temporal (E2, paso 5)', () => {
+  let t: TestDb
+  let w: TestWorld
+  const KEY = 'race-grabada:s0'
+  const SEMILLA = 'semilla-grabada'
+  /** Todas las tablas que escribe una etapa (y las que no debería tocar), salvo `stage_timelines`. */
+  const TABLAS = [
+    'stage_snapshots',
+    'stage_results',
+    'race_gc',
+    'stage_team_results',
+    'race_rosters',
+    'riders',
+    'rider_attrs',
+    'rider_attr_log',
+    'rider_daily_log',
+    'rider_points',
+    'news',
+    'palmares',
+    'transactions',
+    'teams',
+  ] as const
+
+  class Deshacer extends Error {}
+
+  /** Las filas de cada tabla sin sus ids sorteados ni sus fechas de alta, ordenadas. */
+  const fotoDe = async (tx: Parameters<Parameters<TestDb['db']['transaction']>[0]>[0]) => {
+    const out: Record<string, string[]> = {}
+    for (const tabla of TABLAS) {
+      const filas = await tx.execute(sql.raw(`select * from "${tabla}"`))
+      out[tabla] = [...filas]
+        .map((f) => {
+          const resto: Record<string, unknown> = { ...f }
+          delete resto.id
+          delete resto.created_at
+          return JSON.stringify(resto)
+        })
+        .sort()
+    }
+    return out
+  }
+
+  /** Corre la etapa 2 en una transacción, saca la foto de lo escrito y la deshace. */
+  const correrYDeshacer = async (
+    log: TimelineTickLog | null,
+    flush = true,
+  ): Promise<{ foto: Record<string, string[]>; lineas: number }> => {
+    let foto: Record<string, string[]> = {}
+    let lineas = -1
+    await t.db
+      .transaction(async (tx) => {
+        await runOneStage(tx, w.worldId, 41, SEMILLA, {
+          ...stageSpecOf(KEY, 2, TEST_TOUR[1]!, false),
+          ...(log ? { timeline: log } : {}),
+        })
+        if (log && flush) await log.flush(tx)
+        foto = await fotoDe(tx)
+        const [n] = await tx.execute<{ n: number }>(
+          sql`select count(*)::int as n from stage_timelines where race_id = ${KEY} and stage_day = 2`,
+        )
+        lineas = n!.n
+        throw new Deshacer()
+      })
+      .catch((e: unknown) => {
+        if (!(e instanceof Deshacer)) throw e
+      })
+    return { foto, lineas }
+  }
+
+  beforeAll(async () => {
+    t = await startTestDb()
+    w = await seedTestWorld(t, { worldSeed: SEMILLA })
+    await enrollAll(t, w, KEY)
+    // La etapa 1, de verdad y sin grabar: la 2 sale con general, puntos y maillots.
+    await t.db.transaction((tx) =>
+      runOneStage(tx, w.worldId, 40, SEMILLA, stageSpecOf(KEY, 1, TEST_TOUR[0]!, false)),
+    )
+  }, 180_000)
+
+  afterAll(async () => {
+    await t?.close()
+  })
+
+  it('grabar no cambia nada de lo que escribe la etapa: las mismas filas con la grabación apagada y encendida', async () => {
+    const apagada = await correrYDeshacer(null)
+    const encendida = await correrYDeshacer(timelineTickLog())
+    expect(apagada.lineas).toBe(0)
+    expect(encendida.lineas).toBe(1)
+    for (const tabla of TABLAS) {
+      expect(encendida.foto[tabla], tabla).toEqual(apagada.foto[tabla])
+    }
+    // La prueba no es vacía: la etapa escribió resultados, general, aprendizaje y radio.
+    for (const tabla of ['stage_results', 'rider_attr_log', 'stage_snapshots'] as const)
+      expect(apagada.foto[tabla]!.length, tabla).toBeGreaterThan(0)
+  }, 180_000)
+
+  it('sin flush detrás de la etapa no queda fila, aunque la línea se haya cerrado', async () => {
+    const log = timelineTickLog()
+    const { lineas } = await correrYDeshacer(log, false)
+    expect(lineas).toBe(0)
+    // La línea se cerró y espera en el diario: el resumen no la cuenta porque no se escribió.
+    expect(log.summary()).toBe('timeline: 0 grabadas, 0 sin línea')
+  }, 120_000)
+
+  it('con flush, la etapa deja su línea con el formato 1 y su reparto congelado', async () => {
+    const log = timelineTickLog()
+    await t.db.transaction(async (tx) => {
+      await runOneStage(tx, w.worldId, 41, SEMILLA, {
+        ...stageSpecOf(KEY, 2, TEST_TOUR[1]!, false),
+        timeline: log,
+      })
+      await log.flush(tx)
+    })
+    expect(log.summary()).toBe('timeline: 1 grabadas, 0 sin línea')
+    clearStageTimelineCache()
+    const tl = await readStageTimeline(t.db, worldHorizon, KEY, 2)
+    expect(tl?.format).toBe(TIMELINE.format)
+    expect(tl?.cast.riders.map((c) => c.riderId)).toEqual(tl?.riderIds)
+    // La 2 sale con la general de la 1: su líder lleva el amarillo desde la etapa 1.
+    expect(
+      tl?.cast.riders.filter((c) => c.worn.kind === 'leader' && c.worn.jersey === 'gc'),
+    ).toHaveLength(1)
+  }, 120_000)
 })
