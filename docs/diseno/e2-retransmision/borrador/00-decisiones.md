@@ -1,6 +1,6 @@
 # Decisiones cerradas de `docs/retransmision.md` (E2 · La retransmisión)
 
-Cada contradicción de hecho o de diseño entre las cinco propuestas queda aquí cerrada con una decisión y su evidencia. Los redactores las escriben como hechos y NO las reabren; si una sección necesita decidir algo que aquí no está, lo decide en un bloque «Decisión tomada aquí» y lo anota. Los nombres son los de `00-glosario.md`.
+Cada contradicción de hecho o de diseño entre las cinco propuestas queda aquí cerrada con una decisión y su evidencia. Los redactores las escriben como hechos y NO las reabren; si una sección necesita decidir algo que aquí no está, lo decide en un bloque «Decisión tomada aquí» (en `docs/retransmision.md`, «Decisiones de esta sección», al final de cada sección) y lo anota. Los nombres son los de `00-glosario.md`.
 
 Cómo leer cada entrada. **Decisión**: lo que el documento final dice. **Evidencia**: de dónde sale, con el identificador del juicio (`C1` a `C18` son las comprobaciones del juez del motor, `juicios/motor.md` §2; «cobertura §2.n» y «ejecutabilidad #n» o «§2.1» son las de los otros dos jueces), el injerto (`I-nn`), la objeción (`O-nn`), el hueco (`H-nn`) o la contradicción (`X-nn`) de `juicios/veredicto.json`, y las líneas de código. **Descartado**: qué se propuso y no entra, y por qué. **Sección**: dónde se escribe (`§N` de `00-esqueleto.md`). Las entradas marcadas **Sin evidencia de los jueces** son decisiones que esta síntesis ha tenido que tomar sin que ningún juez las mida o las pida con mecanismo; el documento lo dice.
 

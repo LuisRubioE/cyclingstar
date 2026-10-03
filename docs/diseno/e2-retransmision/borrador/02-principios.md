@@ -19,7 +19,7 @@ Doce reglas. Salen de §2 de las cinco propuestas, con la base de `ingeniero.md`
 
 ### 2.1 Un estado con sucesos encima
 
-El encargo lo dice con esas palabras: «una retransmisión no es una lista: es un ESTADO que evoluciona (dónde va cada grupo, con cuánta diferencia, cuánto queda, dónde estamos del perfil) con sucesos encima» (`docs/encargos.md` l. 140-142). Hoy la radio es una foto de un km elegida con un deslizador y la crónica una lista de frases (§1.3, §1.4), y los sucesos narrables callan en siete de cada diez kilómetros (§1.1). En el diseño el estado es la reducción de la línea temporal: una foto clave más los sucesos de estado hasta un bloque dan la foto de ese bloque (`photoAt`, §4.4), y esa foto es la del motor en cada km de la radio (invariante I1: 0 discrepancias en 3.246 fotos, medido por `estado.md` §3.9). Los sucesos narrables van encima, cada uno a su hora (§4.7).
+El encargo lo dice con esas palabras: «una retransmisión no es una lista: es un ESTADO que evoluciona (dónde va cada grupo, con cuánta diferencia, cuánto queda, dónde estamos del perfil) con sucesos encima» (`docs/encargos.md` l. 154-156). Hoy la radio es una foto de un km elegida con un deslizador y la crónica una lista de frases (§1.3, §1.4), y los sucesos narrables callan en siete de cada diez kilómetros (§1.1). En el diseño el estado es la reducción de la línea temporal: una foto clave más los sucesos de estado hasta un bloque dan la foto de ese bloque (`photoAt`, §4.4), y esa foto es la del motor en cada km de la radio (invariante I1: 0 discrepancias en 3.246 fotos, medido por `estado.md` §3.9). Los sucesos narrables van encima, cada uno a su hora (§4.7).
 
 - La pantalla pinta primero el estado (capa fija, barra de grupos, perfil con cursores) y encima la cola de rótulos (§6.2, §6.5); una etapa sin un solo suceso sigue teniendo retransmisión.
 - Todo lo que el jugador lee de la etapa sale del mismo estado: la barra, la radio servida y la voz no tienen fuentes paralelas (§12.1).
@@ -43,7 +43,7 @@ El motor avanza por bloques de 100 m con un reloj por grupo, y el reloj de un co
 
 ### 2.4 Nada del futuro sale del servidor antes de su hora
 
-«la API no puede mandar lo que la pantalla no enseña. Cualquiera abre la pestaña de red del navegador, así que ocultar un dato en la interfaz no lo oculta» ([DOC 5], `docs/encargos.md` l. 240-242). Hoy la etapa sale entera en una respuesta pública y vive 30 minutos en la caché de la web (§1.3). En el diseño cada dato de la línea tiene su hora de visibilidad, y el servidor sirve tramos por reloj de carrera que no pasan de lo alcanzado más la precarga (D-06).
+«la API no puede mandar lo que la pantalla no enseña. Cualquiera abre la pestaña de red del navegador, así que ocultar un dato en la interfaz no lo oculta» ([DOC 5], `docs/encargos.md` l. 254-256). Hoy la etapa sale entera en una respuesta pública y vive 30 minutos en la caché de la web (§1.3). En el diseño cada dato de la línea tiene su hora de visibilidad, y el servidor sirve tramos por reloj de carrera que no pasan de lo alcanzado más la precarga (D-06).
 
 - Tramos por reloj y nunca por espacio: un grupo a 5 min pasa por el final de un tramo de km 5 min después que la cabeza (§4.6, §14.3).
 - La meta, el resultado, el acta y las clasificaciones de después solo viajan por `POST …/broadcast/finish` (§8.7).
@@ -52,7 +52,7 @@ El motor avanza por bloques de 100 m con un reloj por grupo, y el reloj de un co
 
 ### 2.5 Sin destripe es una propiedad del producto
 
-El punto 3 del encargo: que «ninguna otra pantalla se lo reviente por detrás (portada, ranking, clasificaciones, feed, correo de aviso y hasta el título de la pestaña del navegador), o sea que es una propiedad del producto entero» (`docs/encargos.md` l. 145-147). Hoy destripan 41 de las 48 superficies inventariadas y once puertas de fuera (la décima, `sup. X10`, y la undécima, `sup. X11`, las encontró §11.2), servidas por 52 rutas `GET` (§1.6). En el diseño hay un horizonte por espectador calculado en el servidor en un solo punto, con cuatro piezas que se vigilan entre sí: el tipo `Horizon` obligatorio, el predicado único `veilSql`, el registro de rutas que no arranca si una no declara su política y el canario B1 que las recorre todas (D-32).
+El punto 3 del encargo: que «ninguna otra pantalla se lo reviente por detrás (portada, ranking, clasificaciones, feed, correo de aviso y hasta el título de la pestaña del navegador), o sea que es una propiedad del producto entero» (`docs/encargos.md` l. 159-161). Hoy destripan 41 de las 48 superficies inventariadas y once puertas de fuera (la décima, `sup. X10`, y la undécima, `sup. X11`, las encontró §11.2), servidas por 52 rutas `GET` (§1.6). En el diseño hay un horizonte por espectador calculado en el servidor en un solo punto, con cuatro piezas que se vigilan entre sí: el tipo `Horizon` obligatorio, el predicado único `veilSql`, el registro de rutas que no arranca si una no declara su política y el canario B1 que las recorre todas (D-32).
 
 - Ninguna función de `packages/db` que lea una fuente con resultado se llama sin horizonte; el tick, la administración y los bancos pasan `worldHorizon`, explícito (§10.6).
 - La existencia también informa: un marcador neutro por etapa velada en toda lista, se haya escrito sobre ella una noticia o cinco, y ningún aviso mira el contenido que esconde (§11.6).
@@ -129,7 +129,7 @@ Dos decisiones del dueño cierran el espacio en que se mueven los doce principio
 
 **Huecos rellenados:** ninguno asignado.
 
-**Decisión tomada aquí:** ninguna. Los doce principios escriben decisiones cerradas de la síntesis (D-01, D-04, D-06, D-09, D-18, D-19, D-21, D-28, D-32, D-38, D-45, D-46, D-48, D-50, D-53, D-56, D-58, D-60) y la DD-09; §2.3 y §2.13 remiten además a dos decisiones del dueño, DD-25 y DD-23 (§20).
+**Decisiones de esta sección:** ninguna. Los doce principios escriben decisiones cerradas de la síntesis (D-01, D-04, D-06, D-09, D-18, D-19, D-21, D-28, D-32, D-38, D-45, D-46, D-48, D-50, D-53, D-56, D-58, D-60) y la DD-09; §2.3 y §2.13 remiten además a dos decisiones del dueño, DD-25 y DD-23 (§20).
 
 **Propuesto para el glosario:** nada.
 

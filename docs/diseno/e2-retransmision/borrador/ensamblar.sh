@@ -1,29 +1,41 @@
 #!/usr/bin/env bash
-# Ensamblado de E2: el v0 de la fase 3c (03-fase-sintesis.md) y, desde la pasada de coherencia (fase 6 de
-# 04-fase-refutacion.md), el v1.
+# Ensamblado de E2: el v0 de la fase 3c (03-fase-sintesis.md), el v1 desde la pasada de coherencia (fase 6 de
+# 04-fase-refutacion.md) y, desde la fase 7, el documento final, docs/retransmision.md.
 #
-# Reproduce borrador/retransmision-v1.md a partir de los ficheros de sección, en el orden de la
-# tabla de §B de 00-esqueleto.md: la cabecera primero, con la línea de estado bajo el título (la suya, si la trae), y
+# Reproduce el documento a partir de los ficheros de sección, en el orden de la tabla de §B de
+# 00-esqueleto.md: la cabecera primero, con la línea de estado bajo el título (la suya, si la trae), y
 # después §1 a §21, separadas por una línea `---`. De cada sección quita los bloques de cierre
 # «Propuesto para el glosario» (fundidos en 00-glosario.md), «Dudas para el ensamblador» y
-# «Dudas del cierre» (su estado está en dudas.md). No toca los ficheros de sección. El glosario de la síntesis
-# (00-glosario.md) no se concatena: entra como apéndice F, que es §21.6 de 21-apendices.md, con la tabla de
-# dónde vive cada una de sus partes en el documento (decisión 21-f).
+# «Dudas del cierre» (su estado está en dudas.md); se quedan los de injertos, objeciones y huecos, y el de
+# decisiones, que en la fase 7 pasó a llamarse «Decisiones de esta sección» (antes «Decisión tomada aquí»).
+# No toca los ficheros de sección. El glosario de la síntesis (00-glosario.md) no se concatena: lo que no está
+# en el cuerpo es el apéndice F, §21.6 de 21-apendices.md, con la tabla de dónde vive cada familia de
+# nombres (decisión 21-f).
 #
-# Uso:  bash docs/diseno/e2-retransmision/borrador/ensamblar.sh [--comprobar]
+# Uso:  bash docs/diseno/e2-retransmision/borrador/ensamblar.sh [--final] [--comprobar]
+# Sin --final escribe borrador/retransmision-v1.md, como en la fase 6; con --final escribe el documento
+# final, docs/retransmision.md (fase 7).
 # Con --comprobar, además, revisa el resultado (bloques quitados, referencias a borrador/, rayas y
-# guiones en medio de frase, frases cortadas, remisiones a subsecciones que no existen) y que cada
-# injerto, objeción y hueco de juicios/veredicto.json esté en un bloque de cierre de alguna sección.
+# guiones en medio de frase, frases cortadas, remisiones a subsecciones que no existen), que cada
+# injerto, objeción y hueco de juicios/veredicto.json esté en un bloque de cierre de alguna sección, y lo
+# que pide la fase 7: la línea de estado y la regla de arranque en la cabecera, las veintidós secciones y
+# los seis apéndices, ningún «Decisión tomada aquí» ni «Propuesto para el glosario», y ninguna mención de
+# refutaciones/, del glosario como fichero ni de los lotes L1 a L10 fuera de la cabecera (§0).
 set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-python3 - "$DIR" "${1:-}" <<'PY'
+python3 - "$DIR" "$@" <<'PY'
 import json, os, re, sys
 
-d, modo = sys.argv[1], sys.argv[2]
+d, args = sys.argv[1], sys.argv[2:]
+for a in args:
+    if a not in ('--final', '--comprobar'):
+        sys.exit(f'argumento desconocido: {a} (uso: ensamblar.sh [--final] [--comprobar])')
+modo = '--comprobar' if '--comprobar' in args else ''
+final = '--final' in args
 ESTADO = 'Estado: borrador v1, tras la refutación adversaria y la corrección, antes de la auditoría.'
 QUITAR = ('Propuesto para el glosario', 'Dudas para el ensamblador', 'Dudas del cierre')
 ETIQUETA = re.compile(r'^\*\*(Injertos aplicados|Objeciones resueltas|Huecos rellenados|Contradicciones de hecho|'
-                      r'Decisi[oó]n tomada aqu[ií]|Propuesto para el glosario|Dudas)')
+                      r'Decisi[oó]n tomada aqu[ií]|Decisiones de esta secci[oó]n|Propuesto para el glosario|Dudas)')
 
 # 1. El orden: la tabla de §B del esqueleto.
 orden = []
@@ -65,10 +77,13 @@ for n, fichero in orden:
     else:
         assert texto.startswith(f'## {n}. '), f'{fichero} no empieza por «## {n}.»'
     partes.append(texto)
-salida = os.path.join(d, 'retransmision-v1.md')
+if final:
+    salida = os.path.normpath(os.path.join(d, '..', '..', '..', 'retransmision.md'))   # docs/retransmision.md
+else:
+    salida = os.path.join(d, 'retransmision-v1.md')
 open(salida, 'w', encoding='utf-8').write('\n\n---\n\n'.join(partes) + '\n')
 total = sum(1 for _ in open(salida, encoding='utf-8'))
-print(f'retransmision-v1.md: {total} líneas, {len(partes)} secciones')
+print(f'{os.path.relpath(salida, os.path.join(d, "..", "..", "..", ".."))}: {total} líneas, {len(partes)} secciones')
 
 if modo != '--comprobar':
     sys.exit(0)
@@ -150,6 +165,32 @@ for clave in ('injertos', 'objeciones', 'huecos'):
     print(f'{clave}: {len(ids) - len(faltan)} de {len(ids)} en algún bloque de cierre')
     if faltan:
         fallo(f'{clave} sin bloque de cierre: {", ".join(faltan)}')
+
+# 4. Lo que pide la fase 7 (04-fase-refutacion.md §7) del documento final.
+if not L[2].startswith('Estado: diseño escrito, sin implementar.'):
+    fallo('la línea 3 no es «Estado: diseño escrito, sin implementar.»')
+fin0 = next(i for i, l in enumerate(L) if l.startswith('## 1. '))   # la cabecera, §0, acaba antes de «## 1.»
+if not any(l.startswith('**Regla de arranque**') and 'docs/encargos.md' in l for l in L[:fin0]):
+    fallo('la cabecera no lleva el párrafo de la regla de arranque')
+secciones = [int(m.group(1)) for l in L for m in [re.match(r'^## (\d+)\. ', l)] if m]
+if secciones != list(range(22)):
+    fallo(f'las secciones no son §0 a §21 en orden: {secciones}')
+apendices = [m.group(1) for l in L for m in [re.match(r'^### 21\.\d+ Apéndice ([A-F]) · ', l)] if m]
+if apendices != list('ABCDEF'):
+    fallo(f'los apéndices de §21 no son A a F: {apendices}')
+lote = re.compile(r'(?<![\w./-])L(10|[1-9])(?![\w])')
+for i, l in enumerate(L, 1):
+    for prohibido in ('Decisión tomada aquí', 'Propuesto para el glosario', '00-glosario', '§G.'):
+        if prohibido in l:
+            fallo(f'l. {i}: «{prohibido}»')
+    if i > fin0:
+        if 'refutaciones/' in l:
+            fallo(f'l. {i}: referencia a refutaciones/ fuera de la cabecera')
+        if 'glosario' in l:
+            fallo(f'l. {i}: el glosario fuera de la cabecera')
+        if lote.search(l):
+            fallo(f'l. {i}: lote {lote.search(l).group(0)} fuera de la cabecera')
+print(f'fase 7: {len(secciones)} secciones, apéndices {"".join(apendices)}, línea de estado y regla de arranque en la cabecera')
 
 for a in avisos:
     print('aviso:', a)

@@ -453,7 +453,7 @@ Lo que estas pruebas no ven, lo ven otras: B17 las duraciones de las 24 etapas d
 
 **Huecos rellenados.** H-19 (§8.4: de 28 a 49 min al día en `Watch`, hasta 73 con reinas largas; de 8 a 24 en `Highlights`; de 3 a 12 en el digest; el modo por defecto es DD-03), H-20 (§8.8: sin reproducción automática, la más antigua primero y dos carreras del mismo día en filas separadas; el digest sí se encadena). Contradicciones de hecho que quedan resueltas: X-18 (§8.3) y X-19 (§8.4).
 
-**Decisión tomada aquí.**
+**Decisiones de esta sección.**
 - 8-a. `digestPace` escala `summaryPace` con la estimación NOMINAL de la etapa (`playbackEstimateS`), no con el reloj de la cabeza: es causal y no necesita saber lo que tarda la carrera. Medido: de −9 a +34 % sobre el presupuesto. Descartado: escalar con el reloj real, que exige el futuro de la carrera en la cabecera (D-06).
 - 8-b. El botón del digest calcula sus minutos con los presupuestos de las etapas veladas y los cuadros fijos (38, 40 y 43 para las tres grandes vueltas enteras) en lugar del «30» que llevaban D-39 y los textos de §21.6 F.3 (D-39 ya está corregida). Descartado: un número redondo que no se cumple.
 - 8-c. El digest encadena las etapas solo, con el cuadro del recorrido entre una y otra; `Watch` y `Highlights` no encadenan nunca. El digest es un acto explícito sobre la carrera entera.

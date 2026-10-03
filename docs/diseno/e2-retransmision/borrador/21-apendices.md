@@ -2,7 +2,7 @@
 
 Estos apéndices son la trazabilidad del documento y el material de partida de la fase adversaria. Nada de lo que hay aquí es nuevo respecto de las secciones 0 a 20: es el índice inverso, para que un refutador que llegue con una propuesta, un juicio, un requisito del dueño o una superficie en la mano encuentre en una fila dónde está resuelto y con qué decisión. Salen de `juicios/veredicto.json` (injertos, objeciones, huecos y contradicciones de hecho, con sus fuentes en los tres juicios), de las decisiones cerradas por la síntesis (`D-01` a `D-62`) y de las del dueño (`DD-01` a `DD-29`, §20), del mapa 05 §5 y §6, del mapa 03 §4 y de los bloques de cierre de cada sección, contrastados con el texto: cada injerto se ha buscado en el cuerpo de las secciones donde dice haber caído, no solo en su bloque «Injertos aplicados».
 
-Son seis apéndices: A, los 49 injertos y dónde cayeron (21.1); B, las 32 objeciones y lo desestimado (21.2); C, los 23 huecos y las decisiones sin evidencia de los jueces (21.3); D, la cobertura del encargo, del dueño, de los documentos, de las superficies, de los maillots, de la crono y de E10 (21.4); E, las 24 contradicciones de hecho entre propuestas (21.5); y F, el vocabulario que no está en el cuerpo, con dónde queda cada parte del glosario de la síntesis (21.6).
+Son seis apéndices: A, los 49 injertos y dónde cayeron (21.1); B, las 32 objeciones y lo desestimado (21.2); C, los 23 huecos y las decisiones sin evidencia de los jueces (21.3); D, la cobertura del encargo, del dueño, de los documentos, de las superficies, de los maillots, de la crono y de E10 (21.4); E, las 24 contradicciones de hecho entre propuestas (21.5); y F, el vocabulario que no está en el cuerpo, con dónde vive cada familia de nombres (21.6).
 
 ### 21.1 Apéndice A · Los 49 injertos y dónde cayeron
 
@@ -64,7 +64,7 @@ Por propuesta de origen: 8 de `estado` (`I-01` a `I-08`), 9 de `datos` (`I-09` a
 
 **Injertos no encontrados en el texto: ninguno.** Treinta entraron enteros y diecinueve con cambio; los cambios son precisiones que las secciones midieron (el orden de la voz, la tolerancia de I1, el umbral de I2, el número del digest) o decisiones que los encajan con otra pieza del documento, y ninguno deja sin hacer lo que el juez pedía.
 
-**Los alias de las propuestas.** Es el único sitio del documento donde aparecen (la síntesis los tradujo con esta misma tabla en su glosario): a la izquierda, cómo lo llamaba cada propuesta; a la derecha, el nombre que usa el documento.
+**Los alias de las propuestas.** Es el único sitio del documento donde aparecen (la síntesis los tradujo con esta misma tabla): a la izquierda, cómo lo llamaba cada propuesta; a la derecha, el nombre que usa el documento.
 
 | En las propuestas | En este documento |
 | --- | --- |
@@ -147,7 +147,7 @@ Por propuesta de origen: 8 de `estado` (`I-01` a `I-08`), 9 de `datos` (`I-09` a
 | O-31 | eje 14 | `ingeniero` §7.4 | el registro solo clasifica `GET` bajo `/api`: las respuestas de escritura quedan fuera del canario | `config.spoiler` en toda ruta que devuelva cuerpo, sea del método que sea | §14.5 | D-32 |
 | O-32 | eje 08 | `ingeniero` §7.3 | faltan puertas en la tabla de mecanismos y el presupuesto del equipo se acepta como fuga | las nueve puertas de `producto` y dos más, `sup. X10` y `sup. X11`, cada una con su mecanismo; el presupuesto, velado con `stage_team_results.prize` por defecto, y la elección, del dueño | §11.2, §11.13; §20 (DD-26) | D-41, DD-26 |
 
-**Lo desestimado de las propuestas.** Lo que las propuestas decían y el documento no hace, agregado por decisión (los «Descartado» de las decisiones cerradas por la síntesis); lo que cada sección descartó al decidir está en su bloque «Decisión tomada aquí».
+**Lo desestimado de las propuestas.** Lo que las propuestas decían y el documento no hace, agregado por decisión (los «Descartado» de las decisiones cerradas por la síntesis); lo que cada sección descartó al decidir está en su bloque «Decisiones de esta sección».
 
 | Decisión | Lo que se descartó, y por qué | § |
 | --- | --- | --- |
@@ -176,15 +176,15 @@ Por propuesta de origen: 8 de `estado` (`I-01` a `I-08`), 9 de `datos` (`I-09` a
 | D-45 | `/api/news` sin `text` (`estado.md` §8.2), la migración de noticias tercera o sexta, y el nombre y el equipo de hoy al renderizar (`producto.md` §8.3) | §12.8, §13.2 |
 | D-50 | `StageCard` en la ruta de hoy (`producto.md` §10.2), `/api/news` sin `text` (`estado`) y el acta con 403 sin interruptor (`television.md` §7.4): las tres rompen la web de ayer (X-20) | §14.1 |
 
-**Lo desestimado de la fase adversaria.** Lo que los refutadores pidieron y el documento no hace: una fila por hallazgo, con el motivo del corrector copiado literal de su entrada de corrección y el veredicto de la auditoría, que volvió a mirarlo contra el texto y lo sostiene. Rdueno-033 se desestima entero. De Rdueno-036 y Rdueno-037 se desestima solo la parte de §19 que su cruzada (la n.º 28 del lote L4) llevaba «si procede»; lo que pedían está aplicado en §6.8, §6.10, §20.4 y §20 (DD-28 y DD-29).
+**Lo desestimado de la fase adversaria.** Lo que los refutadores pidieron y el documento no hace: una fila por hallazgo, con el motivo del corrector como lo escribió en su entrada de corrección (los lotes, nombrados por sus secciones) y el veredicto de la auditoría, que volvió a mirarlo contra el texto y lo sostiene. Rdueno-033 se desestima entero. De Rdueno-036 y Rdueno-037 se desestima solo la parte de §19 que su cruzada desde §6 llevaba «si procede»; lo que pedían está aplicado en §6.8, §6.10, §20.4 y §20 (DD-28 y DD-29).
 
-| Hallazgo | Qué pedía | Qué se desestima | Motivo del corrector, literal | Auditoría |
+| Hallazgo | Qué pedía | Qué se desestima | Motivo del corrector | Auditoría |
 | --- | --- | --- | --- | --- |
-| Rdueno-033 (dueño, baja; §2.13) | citar en `docs/epics.md` l. 700-701, en §2.13 y en §20.4, la frase del dueño sobre la granularidad de las instrucciones | entero: la frase está en la l. 701-702, y así la citan §2.13, §8.10 (corregida por Rcodigo-040) y §20.4 | La evidencia dice lo contrario. En docs/epics.md, en 9c21885 (el HEAD de las citas), en af953b9 y en el HEAD de hoy, l. 700 está en blanco, l. 701 es «> El dueño: «lo que hay que hacer si acaso es mejorar la granularidad de las instrucciones, con más» y l. 702, «> escenarios hipotéticos quizás».» (git show 9c21885:docs/epics.md \| sed -n 700,702p). §2.13 y §20.4 citan bien l. 701-702; la que está mal es §8.10 (l. 700-701), que es lo que dice Rcodigo-040 del lote L4, el hallazgo que contradice a éste con la línea buena. No es una contradicción de diseño con dos caras, sino un número que se comprueba. | L1, desestimado con motivo: el motivo se sostiene, comprobado contra `docs/epics.md` en 9c21885 y en HEAD; L4 y L10 comprueban que §8.10 y §20.4 dicen l. 701-702 |
-| Rdueno-036 (dueño, baja; §6.10) | subir a §20 «Los nombres de pantalla» (`Watch`, `Report`, `Commentary` y `Race Radio`), con la alternativa `Journal` para el acta | la parte de §19 de su cruzada: citar en un riesgo de la cola de rótulos la medida de §6.5, si §19 lo tenía | Cruzada de L4 a §20 y a §19 «si procede». La parte del dueño, los nombres de pantalla, es DD-28 en §20 (L10). La de §19 es condicional («si §19 lleva un riesgo de la cola de rótulos») y §19 no lo lleva: que la cola tire rótulos de clase 1 y 2 es la regla que decide 6-h con la medida de §6.5, no un riesgo; lo que no puede perderse, la presentación de la fuga, lo sella B3 (16-p), y si el resto basta lo ven el dueño en el 6a y la prueba de lectura (riesgo 23). Nada que aplicar en §17 ni en §19. | L9, desestimado con motivo: §19 no tiene ese riesgo; L4 y L10 cierran lo aplicado (§6.10 y DD-28) |
-| Rdueno-037 (dueño, baja; §6.8) | decir en §6.8 y §20.4 que el acta sigue con el 58 % de la criba lejana de la v39, y subir a §20 «La criba lejana en el acta» | la parte de §19 de su cruzada, la misma que la de Rdueno-036 | Cruzada de L4 a §20 y a §19 «si procede». La parte del dueño, la criba lejana en el acta, es DD-29 en §20 (L10); la de §19 no procede, por lo mismo que Rdueno-036: §19 no lleva un riesgo de la cola de rótulos. | L9, desestimado con motivo, con Rdueno-036; L4 y L10 cierran lo aplicado (§6.8, §20.4 y DD-29) |
+| Rdueno-033 (dueño, baja; §2.13) | citar en `docs/epics.md` l. 700-701, en §2.13 y en §20.4, la frase del dueño sobre la granularidad de las instrucciones | entero: la frase está en la l. 701-702, y así la citan §2.13, §8.10 (corregida por Rcodigo-040) y §20.4 | La evidencia dice lo contrario. En docs/epics.md, en 9c21885 (el HEAD de las citas), en af953b9 y en el HEAD de hoy, l. 700 está en blanco, l. 701 es «> El dueño: «lo que hay que hacer si acaso es mejorar la granularidad de las instrucciones, con más» y l. 702, «> escenarios hipotéticos quizás».» (git show 9c21885:docs/epics.md \| sed -n 700,702p). §2.13 y §20.4 citan bien l. 701-702; la que está mal es §8.10 (l. 700-701), que es lo que dice Rcodigo-040 (§8.10), el hallazgo que contradice a éste con la línea buena. No es una contradicción de diseño con dos caras, sino un número que se comprueba. | desestimado con motivo en la auditoría de §2: el motivo se sostiene, comprobado contra `docs/epics.md` en 9c21885 y en HEAD; las de §8 y §20 comprueban que §8.10 y §20.4 dicen l. 701-702 |
+| Rdueno-036 (dueño, baja; §6.10) | subir a §20 «Los nombres de pantalla» (`Watch`, `Report`, `Commentary` y `Race Radio`), con la alternativa `Journal` para el acta | la parte de §19 de su cruzada: citar en un riesgo de la cola de rótulos la medida de §6.5, si §19 lo tenía | Cruzada de §6 a §20 y a §19 «si procede». La parte del dueño, los nombres de pantalla, es DD-28 en §20. La de §19 es condicional («si §19 lleva un riesgo de la cola de rótulos») y §19 no lo lleva: que la cola tire rótulos de clase 1 y 2 es la regla que decide 6-h con la medida de §6.5, no un riesgo; lo que no puede perderse, la presentación de la fuga, lo sella B3 (16-p), y si el resto basta lo ven el dueño en el 6a y la prueba de lectura (riesgo 23). Nada que aplicar en §17 ni en §19. | desestimado con motivo en la auditoría de §19: §19 no tiene ese riesgo; las de §6 y §20 cierran lo aplicado (§6.10 y DD-28) |
+| Rdueno-037 (dueño, baja; §6.8) | decir en §6.8 y §20.4 que el acta sigue con el 58 % de la criba lejana de la v39, y subir a §20 «La criba lejana en el acta» | la parte de §19 de su cruzada, la misma que la de Rdueno-036 | Cruzada de §6 a §20 y a §19 «si procede». La parte del dueño, la criba lejana en el acta, es DD-29 en §20; la de §19 no procede, por lo mismo que Rdueno-036: §19 no lleva un riesgo de la cola de rótulos. | desestimado con motivo en la auditoría de §19, con Rdueno-036; las de §6 y §20 cierran lo aplicado (§6.8, §20.4 y DD-29) |
 
-Lo que un corrector dejó fuera de un hallazgo que la auditoría da por cerrado no está en esta tabla, porque no es un desestimado: es una corrección distinta de la propuesta, mejor según su motivo, escrito en la entrada de corrección, y la regla de la auditoría cierra «la corrección que pedía el hallazgo (o una mejor, con motivo)». Los 37 hallazgos que algún corrector dejó en parte, con sus entradas y sus veredictos, están en `docs/diseno/e2-retransmision/refutaciones/resultado-final.json`.
+Lo que un corrector dejó fuera de un hallazgo que la auditoría da por cerrado no está en esta tabla, porque no es un desestimado: es una corrección distinta de la propuesta, mejor según su motivo, escrito en la entrada de corrección, y la regla de la auditoría cierra «la corrección que pedía el hallazgo (o una mejor, con motivo)». Los 37 hallazgos que algún corrector dejó en parte están todos cerrados; §0.8 dice cómo, y dónde está el detalle, hallazgo a hallazgo, con sus entradas y sus veredictos.
 
 ### 21.3 Apéndice C · Los 23 huecos y las decisiones sin evidencia de los jueces
 
@@ -239,7 +239,7 @@ Lo que un corrector dejó fuera de un hallazgo que la auditoría da por cerrado 
 
 Dónde contesta el documento cada cosa que se le pidió: los seis puntos del encargo, los requisitos del dueño y de los documentos del mapa 05 §5, sus quince contradicciones, las superficies, las cinco categorías de maillot, la contrarreloj y lo que necesita E10. Las secciones citadas se han comprobado en el texto: donde un requisito aparece con su etiqueta (`[DUEÑO 4]`, `[DOC 3]`), la columna lo dice.
 
-**D.1 Los seis puntos del encargo** (`00-encargo.md` §1; `docs/encargos.md` l. 138-157):
+**D.1 Los seis puntos del encargo** (`00-encargo.md` §1; `docs/encargos.md` l. 152-171):
 
 | Punto | Dónde | Cómo se contesta |
 | --- | --- | --- |
@@ -387,7 +387,7 @@ Dónde contesta el documento cada cosa que se le pidió: los seis puntos del enc
 | la crono por equipos del calendario real, que el motor corre como individual (9-m) | §9.1 |
 | la crono sin línea abre en `Report` (3-d) | §3.8 |
 
-**D.8 Lo que E10 necesita** (`docs/encargos.md` l. 528-549; mapa 07 §3; D-62). La tabla entera, con lo que sigue en inglés y por qué, es §12.11:
+**D.8 Lo que E10 necesita** (`docs/encargos.md` l. 542-563; mapa 07 §3; D-62). La tabla entera, con lo que sigue en inglés y por qué, es §12.11:
 
 | Qué | Dónde |
 | --- | --- |
@@ -426,30 +426,30 @@ Dos propuestas que afirmaban cosas incompatibles sobre el código, con el veredi
 | X-20 | Qué plan rompe la web de hoy | `producto`: `StageCard` en la ruta de etapa; `estado`: `/api/news` sin `text`; `television`: 403 sin interruptor; `datos` e `ingeniero`: nada | rompen `producto`, `estado` y `television` (ejecutabilidad §2.3, #1, #2, #3) | `StageCard` no trae `run` y la web valida con `stageReplaySchema` (`ContractError`); una SPA cargada valida `text: z.string()`; los opcionales de `stageReplaySchema` sí se pueden omitir | D-50, D-45 | §12.8, §14.1 |
 | X-21 | Las plantillas y los narradores | `ingeniero`: 55 plantillas y 272 redacciones sin cambiar una frase ni añadir un `case`; `producto`: `narrate()` no tiene llamadas | `ingeniero`, a medias; `producto`, cierta (ejecutabilidad #5, #6) | cuatro plantillas caen al `default` que imprime la clave (`stageJournal.ts` l. 1602-1603) y su propio B7 exige frase; `narrate` solo lo usa su test | D-44, D-47 | §1.4, §12.5, §12.9 |
 | X-22 | Qué PR pagan los bancos y cuál es la próxima migración | `ingeniero`: solo los que tocan `packages/engine/`; las cinco: la próxima es la `0043` | ciertas (ejecutabilidad #9; C17) | el filtro de `ci.yml` l. 189 mira `^packages/engine/`, se suba o no la versión; `_journal.json` tiene 43 entradas, la última `0042_transicion_e1` | D-52, D-49 | §13.1, §15.1, §17.1, §17.7 |
-| X-23 | El formato guardado de la línea | `datos`: `StoredTimelineV1` (citado en sus l. 663 y 809) | falsa: nunca se define (ejecutabilidad) | lo definió el glosario de la síntesis y lo escribe entero §4.3 | D-10 | §4.3 |
+| X-23 | El formato guardado de la línea | `datos`: `StoredTimelineV1` (citado en sus l. 663 y 809) | falsa: nunca se define (ejecutabilidad) | lo definió la síntesis y lo escribe entero §4.3 | D-10 | §4.3 |
 | X-24 | Los picos del tick | los mapas 02 y 04: hasta 187 etapas en un día | cierta (C15) | día 176, 187 cronos nacionales; día 179, 153 nacionales en línea; E2 les suma de 2 a 8 s (estimado por el juez); §18.3 lo proyectó después de lo medido por nacional, de +0,7 a +0,8 s el 176 y de +15,5 a +18,9 s el 179, sin los sub-23, sin `buildTimelineCast` y sin escribir | D-12 | §16.4, §18.3 |
 
 ### 21.6 Apéndice F · El vocabulario
 
-La parte del glosario que no está en el cuerpo del documento, para que se lea sin los ficheros de trabajo del diseño: las palabras de la prosa, dónde vive cada familia de nombres, las funciones con su firma final, los textos de pantalla y los identificadores del proceso. Los tipos están enteros en §4, las constantes en §15, las tablas y columnas en §13, las rutas en §14.2 y §11.3, los interruptores en §14.6, los bancos en §16.9, los pasos y los PR en §17.2 y los ficheros, PR a PR, en §17.20. El glosario que escribió la síntesis (en `docs/diseno/e2-retransmision/`) no viaja con el documento. Tenía trece partes de vocabulario, y cada una está en este documento donde dice la tabla; ese sitio es el que se escribe donde una sección remitía a una parte del glosario, y donde una frase contrasta una firma o un nombre con el que fijó la síntesis, lo escribe entero y dice que es el que fijó la síntesis (decisión 21-f):
+El vocabulario que no está en el cuerpo del documento, para que se lea entero sin otro fichero: las palabras de la prosa, dónde vive cada familia de nombres, las funciones con su firma final, los textos de pantalla y los identificadores del proceso. Los tipos están enteros en §4, las constantes en §15, las tablas y columnas en §13, las rutas en §14.2 y §11.3, los interruptores en §14.6, los bancos en §16.9, los pasos y los PR en §17.2 y los ficheros, PR a PR, en §17.20. Cada familia de nombres tiene un solo sitio, el de esta tabla, y es al que remite el texto; donde una frase contrasta una firma o un nombre con el que fijó la síntesis, lo escribe entero y dice que es el que fijó la síntesis (decisión 21-f):
 
-| Parte del glosario de la síntesis | Qué nombraba | Dónde está en este documento |
-| --- | --- | --- |
-| G.1 | las palabras de la prosa | F.1 |
-| G.2 | los ficheros nuevos y tocados | §17.20, PR a PR; los de los tipos, en §4.13 |
-| G.3, de G.3.1 a G.3.8 | los tipos canónicos | §4: la línea temporal, §4.2 y §4.3; el instante, §4.5; el rótulo y los maillots, §4.8; la pantalla, §4.9; el horizonte y el velo, §4.10; la red y el contrato, §4.11; las noticias, §4.12; lo que proponían las secciones, escrito ya en su sitio (4-u) |
-| G.4 | las funciones | F.2 |
-| G.5 | las tablas, las columnas, los índices y las migraciones | §13 |
-| G.6 | las rutas | §14.2, y §11.3 con su política |
-| G.7 | las constantes | §15 |
-| G.8 | los interruptores | §14.6 |
-| G.9 | los bancos y los invariantes | §16.9; los invariantes, en §4.4 y §16.2 |
-| G.10 | los pasos del plan | §17.2 |
-| G.11 | los textos de pantalla | F.3 |
-| G.12 | los identificadores del proceso | F.4 |
-| G.13 | los alias de las propuestas | la tabla de alias de §21.1 |
+| Familia de nombres | Dónde está en este documento |
+| --- | --- |
+| las palabras de la prosa | F.1 |
+| los ficheros nuevos y tocados | §17.20, PR a PR; los de los tipos, en §4.13 |
+| los tipos canónicos | §4: la línea temporal, §4.2 y §4.3; el instante, §4.5; el rótulo y los maillots, §4.8; la pantalla, §4.9; el horizonte y el velo, §4.10; la red y el contrato, §4.11; las noticias, §4.12; lo que proponían las secciones, escrito ya en su sitio (4-u) |
+| las funciones | F.2 |
+| las tablas, las columnas, los índices y las migraciones | §13 |
+| las rutas | §14.2, y §11.3 con su política |
+| las constantes | §15 |
+| los interruptores | §14.6 |
+| los bancos y los invariantes | §16.9; los invariantes, en §4.4 y §16.2 |
+| los pasos del plan | §17.2 |
+| los textos de pantalla | F.3 |
+| los identificadores del proceso | F.4 |
+| los alias de las propuestas | la tabla de alias de §21.1 |
 
-Los nombres que las secciones añadieron al escribirse, y los que añadió la corrección, están fundidos en ese glosario; aquí se recogen los que cambian una firma, una palabra de la prosa o un texto de pantalla.
+De los nombres que las secciones añadieron al escribirse y los que añadió la corrección, aquí se recogen los que cambian una firma, una palabra de la prosa o un texto de pantalla; los demás están en el sitio que les da la tabla.
 
 **F.1 Las palabras de la prosa** (las de la síntesis, más las seis que acuñaron las secciones, al final):
 
@@ -616,12 +616,12 @@ Los nombres que las secciones añadieron al escribirse, y los que añadió la co
 | `X-01` a `X-24` | las contradicciones de hecho entre propuestas | ídem; §21.5 |
 | `D-01` a `D-62` | las decisiones cerradas por la síntesis | el fichero de decisiones de `docs/diseno/e2-retransmision/`; cada sección las escribe como hechos |
 | `DD-01` a `DD-29` | las decisiones del dueño, con su valor por defecto; DD-15 y DD-19, retiradas con su número | §20 |
-| `0-a` a `21-g` | las decisiones que tomaron las secciones en su bloque de cierre: 234 al escribirse (218 de §3 a §19 y 16 de §0, §20 y §21) y 298 al cerrar la fase adversaria (273 y 25), dos de ellas de la pasada de coherencia (12-s y 15-l) | el bloque de cierre de cada sección |
-| `§0` a `§21`; `L1` a `L10` | las secciones del documento; los lotes que las escribieron | §0.5; el esqueleto de la síntesis, en `docs/diseno/e2-retransmision/` |
+| `0-a` a `21-g` | las decisiones que tomaron las secciones, en su bloque «Decisiones de esta sección»: 234 al escribirse (218 de §3 a §19 y 16 de §0, §20 y §21) y 298 al cerrar la fase adversaria (273 y 25), dos de ellas de la pasada de coherencia (12-s y 15-l) | el bloque «Decisiones de esta sección», al final de cada una |
+| `§0` a `§21` | las secciones del documento | §0.5 |
 | `[DUEÑO 1]` a `[DUEÑO 10]`, `[DOC 1]` a `[DOC 7]`, contradicción 1 a 15 | los requisitos y las contradicciones del mapa 05 §5 y §6 | §21.4 |
 | A1 a G3 | las citas y reglas del dueño del mapa 05 §2 (la B3 de los racimos, la C7 del vocabulario, la D7 de «cambia el race radio») | `mapas/05-dueno-docs.md` §2 |
 | `C1` a `C18` | las comprobaciones del juez del motor | `juicios/motor.md` §2 |
-| `Rcodigo-nnn`, `Rcobertura-nnn`, `Rdueno-nnn`, `Rcoste-nnn` | los hallazgos de los cuatro refutadores de la fase adversaria (contra el código, por cobertura, contra el dueño y por coste) | `docs/diseno/e2-retransmision/refutaciones/` |
+| `Rcodigo-nnn`, `Rcobertura-nnn`, `Rdueno-nnn`, `Rcoste-nnn` | los hallazgos de los cuatro refutadores de la fase adversaria (contra el código, por cobertura, contra el dueño y por coste) | §0.8, con el recuento y dónde está el detalle; los desestimados, en §21.2 |
 | `sup. E1` a `sup. T6`; `sup. X1` a `sup. X11` | las 48 superficies del mapa 03 §4; las once puertas de fuera | §11.1; §11.2 |
 | I1, I2, I3, I5; B1a a B22; PL | los invariantes, los bancos y la prueba de lectura | §4.4, §16.2; §16.9; §16.5 |
 | paso 0 a paso 12; PR 0 a 12 | los pasos y los veintitrés PR del plan (el paso 11 son dos, 11a y 11b, 17-v) | §17.2 |
@@ -634,13 +634,13 @@ Los nombres que las secciones añadieron al escribirse, y los que añadió la co
 
 **Huecos rellenados.** Ninguno propio: §21.3 traza los 23. Contradicciones de hecho: §21.5 traza las 24 con su veredicto y su decisión. Del dueño: todos los [DUEÑO n] y [DOC n], como tabla, en §21.4 (D.2 y D.3).
 
-**Decisión tomada aquí.**
+**Decisiones de esta sección.**
 - 21-a. Los apéndices siguen el orden que pide el encargo de este lote (A, los injertos; B, las objeciones; C, los huecos; D, la cobertura; E, las contradicciones de hecho) y el vocabulario, que §B del esqueleto ponía como apéndice D, pasa a F. Lo que el esqueleto juntaba se reparte así: las objeciones y los descartes de las decisiones de la síntesis en B; los huecos y las catorce decisiones sin evidencia de los jueces en C; la cobertura en D; las contradicciones de hecho, que el esqueleto ponía en B, en E. Descartado: el orden del esqueleto, que mezclaba en un apéndice las objeciones y las contradicciones, que son cosas distintas (unas son defectos de diseño y otras afirmaciones sobre el código).
 - 21-b. La columna «Dónde cayó» del apéndice A no copia los bloques de cierre: cada injerto se ha buscado por sus nombres en el cuerpo de las secciones que cita (el script `l10/check_grafts.py` del scratchpad, que excluye los bloques de cierre). Los 49 aparecen; la columna da las subsecciones exactas de los bloques de cierre, comprobadas.
 - 21-c. La tabla de funciones del apéndice F da la firma final de cada sección, no la que fijó la síntesis, porque varias cambiaron al escribirse (4-b, 4-r, 5-e, 5-i, 5-p, 7-k, 10-d, 11-d, 14-c, 14-p); cada fila dice qué decisión la cambió.
 - 21-d. El texto de pantalla que fijó la síntesis, `Watch the race in 30 minutes`, se escribe con el número calculado (`Watch the race in 40 minutes`), por 8-b y DD-22.
 - 21-e. La tabla de las superficies del apéndice D (D.5) es la de §11.1 y §11.2 comprimida (qué es, mecanismo, PR y banco); la fila entera, con la ruta, la línea y lo que ve quien no conoce la etapa, se queda en §11 para no tener dos fuentes.
-- 21-f. El glosario de la síntesis no viaja con el documento, y una remisión a una de sus partes (`§G.4`, `§G.11`…) no llevaría a ninguna parte (Rcobertura-010): se escribe con el sitio del documento donde vive esa parte, según la tabla del principio de §21.6, y donde la frase contrasta una firma o un nombre con el que fijó la síntesis, se escribe entero y se dice que es el de la síntesis. La tabla va en el apéndice F porque F es lo que queda del glosario en el documento. Descartado: ensamblar el glosario como apéndice, que duplicaría §4, §13, §14.2 y §15 y tendría dos fuentes para cada tipo; y dejar las remisiones con su parte, que ningún lector del documento podría seguir.
+- 21-f. Cada familia de nombres vive en un solo sitio del documento (los tipos en §4, las constantes en §15, las tablas en §13, las rutas en §14.2) y el apéndice F recoge lo demás, con la tabla de dónde vive cada familia al principio de §21.6; toda remisión a un nombre va a ese sitio (Rcobertura-010), y donde la frase contrasta una firma o un nombre con el que fijó la síntesis, se escribe entero y se dice que es el de la síntesis. Descartado: añadir una lista aparte con todos los nombres, que duplicaría §4, §13, §14.2 y §15 y tendría dos fuentes para cada tipo; y remitir a partes de un vocabulario que no está en el documento, que ningún lector podría seguir.
 - 21-g. «Etapa conocida» es la de 10-e, la que usan `WatchState.known`, §6.10 y `stageAccessOf`: vista, revelada o arrastrada; la caducada está fuera del velo y no es conocida (Rcobertura-060). F.1 lo dice, y dice que `known_through` cuenta también las `X`, que es lo que hace el prefijo de §10.3.
 
 **Propuesto para el glosario.** En G.1, cinco palabras de la prosa que usan las secciones y el glosario no tenía: «la lápida» (5-k), «la línea cortada» (`TimelineCore`, 4-b), «el reparto servido» (`serveCast`, §7.8), «la forma D» (18-a) y «el sello» (`AuthorStamp`, 11-n), y «etapa conocida» sin la caducada (10-e, 21-g) (`21-apendices.md` §21.6). En G.12, `DD-01` a `DD-29` sin DD-15 ni DD-19, las decisiones de las secciones (`0-a` a `21-g`), las reglas del dueño del mapa 05 §2 (A1 a G3), `sup. X11` y los identificadores de los hallazgos de la fase adversaria (`Rcodigo`, `Rcobertura`, `Rdueno`, `Rcoste`). Y al principio del glosario, la tabla de §21.6 que dice dónde queda cada una de sus partes en el documento (21-f).

@@ -8,7 +8,7 @@ En el ensamblado v0 cambiaron además otros tres ficheros: `00-glosario.md` (los
 
 ## 0. Estado tras la coherencia (fase 6)
 
-De las veintisiete, diecinueve están cerradas por el texto de hoy (las doce de diseño, las cuatro primeras de código de ejemplo, la de las subidas de versión de la táctica y dos de las tres de fuera de E2); una es trabajo de la fase 7 (2.5); una sigue fuera de E2 sin cambio (4.3); y seis siguen abiertas porque necesitan una medida que solo puede hacer un paso del plan (3.1 a 3.6). La coherencia añade dos medidas pendientes que salen de lo cerrado (3.8 y 3.9). Ninguna duda de diseño queda abierta.
+De las veintisiete, diecinueve están cerradas por el texto de hoy (las doce de diseño, las cuatro primeras de código de ejemplo, la de las subidas de versión de la táctica y dos de las tres de fuera de E2); una era trabajo de la fase 7 (2.5), y el ensamblado final la cerró el 3 de octubre de 2026; una sigue fuera de E2 sin cambio (4.3); y seis siguen abiertas porque necesitan una medida que solo puede hacer un paso del plan (3.1 a 3.6). La coherencia añade dos medidas pendientes que salen de lo cerrado (3.8 y 3.9). Ninguna duda de diseño queda abierta.
 
 | Duda | Estado | Evidencia (fichero de `borrador/` y línea, o sección y decisión) | Paso que la mide |
 | --- | --- | --- | --- |
@@ -28,7 +28,7 @@ De las veintisiete, diecinueve están cerradas por el texto de hoy (las doce de 
 | 2.2 §10.6, `computeHorizon` | cerrada (fase 5) | la forma D con `lastRunStages` (`10-horizonte.md` l. 226 y 236; 18-a) | |
 | 2.3 §10.3 en SQL | cerrada (se queda así) | el pseudocódigo escribe en SQL para leerse de corrido y el texto dice que el código va con `.set({ … })` y `.values({ … })` de Drizzle, por `columnasVivas.test.ts` (`10-horizonte.md` l. 113; 13-a) | |
 | 2.4 las remisiones `§G.n` y a `00-decisiones.md` | cerrada (fase 5 y fase 6) | la tabla del principio de §21.6 y 21-f; la coherencia llevó a su sitio las 23 remisiones `§G.n` que quedaban en §9, §10, §11 y §14 (cruzada de L10, Rcobertura-010) y cambió las cuatro menciones de `00-decisiones.md` del cuerpo (§2, §19.6, §20.3 y §21.5) por «las decisiones de la síntesis (D-nn)», como §0.3; ninguna queda fuera de los bloques de cierre | |
-| 2.5 los bloques de cierre | de la fase 7 | fundirlos es del ensamblado final («ni Decisión tomada aquí sin fundir», `04-fase-refutacion.md` §7); no es una duda de diseño | fase 7 |
+| 2.5 los bloques de cierre | cerrada (fase 7) | el ensamblado final (`ensamblar.sh --final`) quita los bloques de nombres propuestos y de dudas, deja los de injertos, objeciones y huecos, y el de decisiones pasa a llamarse «Decisiones de esta sección» en los veintidós ficheros; `docs/retransmision.md` no tiene ningún «Decisión tomada aquí» (`04-fase-refutacion.md` §7) | |
 | 3.1 `sendBeacon` con un `Blob` JSON | abierta: medida | riesgo 17 y §19.6 (`19-riesgos.md` l. 27 y 180); `18-rendimiento.md` l. 218; el respaldo `text/plain` de 14-g lo cubre mientras tanto | 7a, a mano en Chrome y Safari de móvil (§18.9) |
 | 3.2 B14 con el mánager contra Postgres | abierta: medida | medido en PostgreSQL 16 sin red, de 3,88 a 4,75 ms de p95 en tres corridas contra 5 (§18.2); falta la red de Railway (`18-rendimiento.md` l. 215); si no pasa, DD-21 | 7a, desde el servicio `web` de Railway contra una copia de producción (§18.9) |
 | 3.3 TOAST y la versión de Postgres de producción | abierta: medida | riesgo 12 y §19.6 (`19-riesgos.md` l. 22 y 177): para la línea no importa (`bytea` con gzip 9); la radio de hoy sigue en `jsonb` hasta el 11b | 5, en producción |

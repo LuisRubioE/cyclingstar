@@ -1,7 +1,7 @@
 # Los encargos: qué pedirle a Fable, uno por documento
 
-Estado: **lista de encargos.** Cada punto de aquí es UN documento de diseño por escribir, del tamaño
-y con el método de `docs/tactica.md` y `docs/entrenamiento.md`. Ninguno está empezado.
+Estado: **lista de encargos.** Cada punto de aquí es UN documento de diseño por escribir, del tamaño y con el método de `docs/tactica.md` y `docs/entrenamiento.md`.
+E1 está IMPLEMENTADO; E2 tiene el diseño ESCRITO, sin implementar; los demás no están empezados. El estado de cada uno va al principio de su sección.
 
 **Los códigos van en el orden en que se van a desarrollar**: E2 primero, E13 último. No es una
 etiqueta arbitraria, es el plan.
@@ -135,6 +135,20 @@ la línea del motor, con ese código todavía fresco.
 
 **Fichero:** `docs/retransmision.md` · **Tamaño esperado:** grande (como `tactica.md`)
 
+**Estado: DISEÑO ESCRITO, SIN IMPLEMENTAR (3 de octubre de 2026).** El diseño está en
+`docs/retransmision.md`: veintidós secciones, de la 0 a la 21, y unas 11.500 líneas, hechas con el
+método de `docs/diseno/README.md` completo: siete mapas del código y de los documentos, cinco
+propuestas independientes, tres jueces sin mayoría (la base es `ingeniero`, por suma de
+puntuaciones, con los 49 injertos que pidieron), diez redactores por lotes, cuatro refutadores
+adversarios (246 hallazgos, de ellos 27 altos), diez correctores, una pasada de coherencia y diez
+auditores que volvieron a mirar cada hallazgo contra el texto (777 veredictos: 243 hallazgos
+aplicados enteros, 2 en parte y 1 desestimado con su porqué). Todo el rastro está en
+`docs/diseno/e2-retransmision/`. **No hay nada implementado.** Las 27 decisiones del dueño están en
+la §20 del documento, cada una con su valor por defecto, y siguen pendientes de respuesta: si no
+contesta, se implementa el valor por defecto, y la §20.7 dice antes de qué PR hace falta cada
+respuesta. La regla de arranque sigue vigente: no se abre código hasta que la línea de la táctica y
+el entrenamiento esté en producción, y entonces se parte de la última versión de producción.
+
 Rehacer de arriba abajo lo que el jugador lee de una carrera: el Race Radio, el journal de etapa, la
 crónica y el feed de noticias, con **la retransmisión de televisión como norte** y no como adorno.
 Hoy el Race Radio es una lista de frases en orden cronológico, y una retransmisión no es una lista:
@@ -156,9 +170,9 @@ campeón de Italia con cuatro más», que es una carrera distinta. Necesita las 
 resueltas (los tres de clasificación que ya existen, el de campeón que hay que crear en E3 y E12, y
 el del equipo), y es exactamente el rótulo con el que la televisión presenta a cada corredor.
 
-**Qué leer:** `apps/api/src/chronicle.ts` y `raceRadio.ts`, `apps/web/src/domain/narration.ts`,
+**Qué leer:** `apps/api/src/chronicle.ts` y `packages/engine/src/sim/raceRadio.ts` (la radio vive en el motor: `apps/api/src/raceRadio.ts` no existe), `apps/web/src/domain/narration.ts`,
 `stageJournal.ts` y `newsFeed.ts`, `apps/web/src/pages/StageReplay.tsx` y `News.tsx`,
-`packages/engine/src/world/news.ts`, la tabla `news` y `stages.radio` en `packages/db/src/schema.ts`.
+`packages/engine/src/world/news.ts`, la tabla `news` y la columna `radio` de `stage_snapshots` en `packages/db/src/schema.ts` (no hay tabla `stages`).
 
 ---
 

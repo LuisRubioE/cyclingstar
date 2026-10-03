@@ -29,7 +29,7 @@ Cinco nombres de este documento ya existen con otro significado en otro paquete.
 
 ### 4.2 La línea temporal
 
-La línea temporal es lo que se graba de una etapa al correrla (D-02): un catálogo de grupos, la pertenencia completa cada `TIMELINE.keyPhotoKm` (10) km, los sucesos de estado de cada bloque, las marcas de reloj, los sucesos narrables con el bloque en que se emitieron y la hora a la que se enseñan, la capa de detalle de la radio en los km de foto, las pancartas, el reparto congelado, el recorrido, el tiempo, la traza de la crono y la meta. Es el modelo de `estado.md` §3.2 con los nombres del glosario, la visibilidad y el reparto con procedencia de `datos.md` §3.3-3.4 y §6.1, y las pancartas y el tiempo de `television.md` §3.3.
+La línea temporal es lo que se graba de una etapa al correrla (D-02): un catálogo de grupos, la pertenencia completa cada `TIMELINE.keyPhotoKm` (10) km, los sucesos de estado de cada bloque, las marcas de reloj, los sucesos narrables con el bloque en que se emitieron y la hora a la que se enseñan, la capa de detalle de la radio en los km de foto, las pancartas, el reparto congelado, el recorrido, el tiempo, la traza de la crono y la meta. Es el modelo de `estado.md` §3.2 con los nombres de este documento, la visibilidad y el reparto con procedencia de `datos.md` §3.3-3.4 y §6.1, y las pancartas y el tiempo de `television.md` §3.3.
 
 ```ts
 // packages/shared/src/broadcast/timeline.ts (sigue)
@@ -1121,7 +1121,7 @@ El grafo no cambia de forma: `shared` no importa nada de fuera (su única depend
 
 **Huecos rellenados.** H-13 (§4.3: `decodeTimeline` por `format` y la guarda con `satisfies`). Contradicciones de hecho que quedan resueltas: X-15 (§4.7) y X-23 (§4.3).
 
-**Decisión tomada aquí.**
+**Decisiones de esta sección.**
 - 4-a. `GroupIx` numera por la hora de la marca de nacimiento (desempate por `bornB` e id), con `peloton` siempre 0; el grabador renumera al cerrar. Un corte por reloj deja así un prefijo del catálogo y el tramo reparte los nacidos sin huecos. Descartado: por bloque de nacimiento, que deja huecos al cortar.
 - 4-b. `TimelineCore = Omit<StageTimeline, 'cast' | 'weather' | 'finish'>` es lo que reciben `photoAt`, `instantAt`, `visibilityOf` y `chunkOf` y lo que devuelve `cutTimeline`: la web arma su línea con cabecera y tramos y no tiene el reparto congelado, y un corte no puede llevar la meta por tipo (D-06). Toda llamada con una `StageTimeline` sigue compilando. Descartado: rellenar en la web un reparto y una meta falsos.
 - 4-c. `instantAt(tl, t)` se define como el instante de `cutTimeline(tl, t)`: B9 es cierta por construcción y lo que prueba es que la implementación sin copias coincide con su definición.
