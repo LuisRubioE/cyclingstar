@@ -70,7 +70,12 @@ const SE_CONSERVAN = ['users', 'accounts', 'sessions', 'verifications', 'blocked
  * tabla nueva se apunta aquí (y el TRUNCATE ... CASCADE de la 0044 la vacía en este test si cuelga
  * de una tabla del mundo, que es lo único que le hace falta para seguir corriendo).
  */
-const POSTERIORES: readonly string[] = []
+const POSTERIORES: readonly string[] = [
+  // 0047_linea_temporal (E2, paso 5): no cuelga de ninguna tabla del mundo (va por race_key, sin
+  // world_id), así que la 0044 no la vaciaría; el procedimiento del próximo reinicio la vacía con
+  // stage_snapshots (docs/ops.md, docs/retransmision.md §13.9).
+  'stage_timelines',
+]
 
 /** El procedimiento de restauración de docs/ops.md («Migración 0044»), tal cual. */
 const RESTAURAR = `

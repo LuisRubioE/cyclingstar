@@ -49,6 +49,8 @@ describe('db: migraciones desde cero', () => {
       'stage_results',
       'race_gc',
       'stage_team_results',
+      // 0047_linea_temporal (docs/retransmision.md §13.3): la línea temporal de cada etapa.
+      'stage_timelines',
     ]) {
       expect(names.has(table), `falta la tabla ${table}`).toBe(true)
     }
@@ -112,9 +114,52 @@ describe('db: migraciones desde cero', () => {
       'contracts_rider_uidx',
       // 0046_noticias_con_datos (docs/retransmision.md §13.2): el velo corta por carrera y etapa.
       'news_race_stage_idx',
+      // 0047_linea_temporal (§13.3): el horizonte, el correo de etapa lista y B6 leen por día de juego.
+      'stage_timelines_day_idx',
     ]) {
       expect(names.has(idx), `falta el índice ${idx}`).toBe(true)
     }
+  })
+
+  it('stage_timelines: el bytea vuelve igual byte a byte, la clave es la etapa y tpl_rev no tiene defecto (0047)', async () => {
+    // Bytes que no son texto (un gzip lo es todo menos texto): el bytea vuelve como Buffer, igual.
+    const body = Buffer.from([0x1f, 0x8b, 0x08, 0x00, 0xff, 0x00, 0x7f, 0x80, 0x0a, 0x0d])
+    const fila = {
+      race_id: 'race-bytea:s0',
+      stage_day: 3,
+      game_day: 190,
+      format: 1,
+      engine_version: 91,
+      tpl_rev: 0,
+      finish_s: 15_123,
+      bytes: body.length,
+      body,
+    }
+    await t.client`insert into stage_timelines ${t.client(fila)}`
+    const [leida] = await t.client<{ body: Buffer; tpl_rev: number }[]>`
+      select body, tpl_rev from stage_timelines where race_id = 'race-bytea:s0' and stage_day = 3`
+    expect(Buffer.isBuffer(leida!.body)).toBe(true)
+    expect(leida!.body.equals(body)).toBe(true)
+    expect(leida!.tpl_rev).toBe(0)
+    // Una fila por etapa (la clave primaria, como stage_snapshots).
+    await expect(t.client`insert into stage_timelines ${t.client(fila)}`).rejects.toMatchObject({
+      code: '23505',
+    })
+    // Sin tpl_rev no entra: no tiene defecto, para que un escritor que lo olvide no deje todas las
+    // etapas en la revisión 0 sin que nada falle (13-j).
+    const sinRevision = {
+      race_id: fila.race_id,
+      stage_day: 4,
+      game_day: fila.game_day,
+      format: fila.format,
+      engine_version: fila.engine_version,
+      finish_s: fila.finish_s,
+      bytes: fila.bytes,
+      body,
+    }
+    await expect(
+      t.client`insert into stage_timelines ${t.client(sinRevision)}`,
+    ).rejects.toMatchObject({ code: '23502' })
   })
 
   it('news_text_or_data: un titular sin texto ni datos no entra; solo con datos, sí (0046)', async () => {
@@ -258,8 +303,23 @@ describe('db: el mundo vivo, migrado con las migraciones de E2 encima', () => {
     await t.client`
       insert into news (world_id, game_day, scope, rider_id, kind, text)
       values (${world!.id}, 120, 'global', ${rider!.id}, 'contract', ${vieja})`
+    // Una etapa corrida antes de la 0047 (paso 5): su snapshot, con la radio de hoy.
+    const radioVieja = { starters: 1, kms: [] }
+    await t.client`
+      insert into stage_snapshots (race_id, stage_day, seed, engine_version, input, events, radio)
+      values ('race-vivo:s0', 3, 'semilla-vieja', 91, '{"riders":[]}'::jsonb, '[]'::jsonb,
+              ${JSON.stringify(radioVieja)}::jsonb)`
 
     await t.detached((url) => runMigrations(url))
+
+    // stage_timelines (0047) nace vacía: la etapa de antes no tiene fila y se seguirá sirviendo con el
+    // adaptador de la radio (D-07); su snapshot no cambia (stage_snapshots no gana columnas, D-10).
+    const lineas = await t.client`select count(*)::int as n from stage_timelines`
+    expect(lineas[0]?.n).toBe(0)
+    const [snap] = await t.client`
+      select seed, engine_version, radio from stage_snapshots
+      where race_id = 'race-vivo:s0' and stage_day = 3`
+    expect(snap).toEqual({ seed: 'semilla-vieja', engine_version: 91, radio: radioVieja })
 
     // news (0046): el texto se queda y los datos nuevos, a null; nada se rellena hacia atrás.
     const [noticia] = await t.client`
