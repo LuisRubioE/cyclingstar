@@ -91,6 +91,14 @@ export function createQueryClient(): QueryClient {
   // La lista de bloqueo y la salud del mundo del panel de admin no deben reintentar (401 = token malo).
   client.setQueryDefaults(['admin-health'], { staleTime: 0, retry: false })
   client.setQueryDefaults(['blocklist'], { staleTime: 0, retry: false })
+  // LA RETRANSMISIÓN (docs/retransmision.md §14.11). Un tramo no cambia nunca y no lleva `rev`: se
+  // guarda para siempre (14-m), y no se reintenta solo, porque un fallo lo resuelve el reproductor
+  // (`Connection lost · Retry`, un 429 que espera su `retry-after`, un 409 que informa y repite).
+  client.setQueryDefaults(['broadcast-chunk'], { staleTime: Infinity, retry: false })
+  // La cabecera y el acta: un 403 (la puerta) o un 404 (`broadcast_off`, `broadcast_unavailable`) no se
+  // reintentan (hoy, `retry: 1` para todo).
+  client.setQueryDefaults(['broadcast-head'], { retry: false })
+  client.setQueryDefaults(['stage-report'], { retry: false })
 
   return client
 }

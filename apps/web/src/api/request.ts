@@ -20,12 +20,24 @@ export class ApiError extends Error {
   readonly status: number
   /** Código de error del servidor (`{ ok:false, error:'no_autorizado' }`), si vino. */
   readonly code: string | null
+  /**
+   * Los segundos de la cabecera `retry-after` de un 429 (`demasiadas_peticiones`); null en cualquier
+   * otra respuesta o si no se puede leer. El reproductor de `Watch` espera eso con `Loading` y repite,
+   * sin `Connection lost` (docs/retransmision.md §10.12 y §14.11, 14-q).
+   */
+  readonly retryAfterS: number | null
 
-  constructor(message: string, status: number, code: string | null = null) {
+  constructor(
+    message: string,
+    status: number,
+    code: string | null = null,
+    retryAfterS: number | null = null,
+  ) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.code = code
+    this.retryAfterS = retryAfterS
   }
 }
 
@@ -66,10 +78,23 @@ async function readErrorCode(res: Response): Promise<string | null> {
   }
 }
 
-/** Lanza `ApiError` con el código del servidor cuando la respuesta no es 2xx. */
+/**
+ * Los segundos de un `retry-after`. @fastify/rate-limit los manda como un entero de segundos; una
+ * fecha HTTP o cualquier otra cosa da null, y quien espera usa su propio respaldo.
+ */
+export function retryAfterOf(value: string | null): number | null {
+  if (value === null) return null
+  const v = value.trim()
+  if (!/^\d+(\.\d+)?$/.test(v)) return null
+  const n = Number(v)
+  return Number.isFinite(n) ? n : null
+}
+
+/** Lanza `ApiError` con el código del servidor cuando la respuesta no es 2xx; un 429, con su `retry-after`. */
 async function failed(res: Response, fallback: string): Promise<ApiError> {
   const code = await readErrorCode(res)
-  return new ApiError(code ?? fallback, res.status, code)
+  const retryAfterS = res.status === 429 ? retryAfterOf(res.headers.get('retry-after')) : null
+  return new ApiError(code ?? fallback, res.status, code, retryAfterS)
 }
 
 async function fetchOrThrow(path: string, options: RequestOptions): Promise<Response> {
