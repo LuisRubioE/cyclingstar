@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import fastifyCompress from '@fastify/compress'
 import fastifyHelmet from '@fastify/helmet'
 import fastifyRateLimit from '@fastify/rate-limit'
 import fastifyStatic from '@fastify/static'
@@ -104,6 +105,13 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
     // HSTS: 180 días. Railway termina el TLS delante, la app siempre se sirve por https.
     hsts: { maxAge: 15_552_000, includeSubDomains: true },
   })
+
+  // Compresión de las respuestas (@fastify/compress; docs/retransmision.md §14.8, E2 paso 0). La
+  // ruta de una etapa corrida pesaba de 0,87 a 2,95 MB de JSON y viajaba sin comprimir. Con los
+  // defectos del plugin: nada por debajo de 1.024 B, brotli de calidad 4 si el navegador lo acepta y
+  // gzip si no, y `accept-encoding` añadido a `Vary` sin quitar lo que ya hubiera. Va ANTES de
+  // @fastify/static, como pide su documentación, para que su gancho global alcance también a la web.
+  void app.register(fastifyCompress, { global: true, encodings: ['br', 'gzip'] })
 
   // Rate limiting global por IP (@fastify/rate-limit). Antes no había ninguno: /api/auth/* aceptaba
   // intentos de contraseña ilimitados. Los límites concretos y su porqué están en security.ts.
