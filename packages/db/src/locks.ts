@@ -25,6 +25,14 @@ export const LOCK_CLASS = {
 
 export type LockClass = (typeof LOCK_CLASS)[keyof typeof LOCK_CLASS]
 
+/**
+ * Clave del advisory lock del tick, en su propia clase. Vive aquí y no en tick.ts (que la reexporta)
+ * desde el paso 1a de E2: `runMigrations` también la toma (docs/retransmision.md §13.1, regla 8) y el
+ * arrancador de migraciones no debe cargar el tick, que arrastra el motor entero. Las migraciones
+ * 0044 y 0045 la escriben a mano (`pg_advisory_xact_lock(2, 1)`) y sus tests vigilan que siga casando.
+ */
+export const TICK_LOCK_KEY = 1
+
 /** Hash entero estable de una cadena (FNV-1a de 32 bits, sin signo). */
 export function hashInt(s: string): number {
   let h = 2166136261
