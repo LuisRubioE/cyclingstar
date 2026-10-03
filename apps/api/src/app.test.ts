@@ -76,10 +76,11 @@ describe('api: /health', () => {
 })
 
 /**
- * LA COMPRESIÓN (docs/retransmision.md §14.8; E2, paso 0). La ruta de etapa pesaba de 0,87 a 2,95 MB
- * sin comprimir, y de 22 a 100 KB comprimida. `@fastify/compress` comprime toda respuesta desde
- * 1.024 B (su umbral por defecto), con brotli si el navegador lo acepta y si no con gzip, y añade
- * `accept-encoding` a `Vary` para que una caché no sirva la comprimida a quien no la entiende.
+ * LA COMPRESIÓN (docs/retransmision.md §14.8; E2, paso 0). La ruta de una etapa corrida en línea pesa
+ * de 0,87 a 3,8 MB sin comprimir, y de 25 a 96 KB con gzip (B6, `scripts/bench-stage-size.mjs`).
+ * `@fastify/compress` comprime toda respuesta desde 1.024 B (su umbral por defecto), con brotli si el
+ * navegador lo acepta y si no con gzip, y añade `accept-encoding` a `Vary` para que una caché no sirva
+ * la comprimida a quien no la entiende.
  */
 describe('api: compresión de las respuestas', () => {
   // Una base sin mundo: `getCurrentWorld` (select…from…innerJoin…limit) no encuentra ninguno, y

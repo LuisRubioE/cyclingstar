@@ -107,10 +107,11 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
   })
 
   // Compresión de las respuestas (@fastify/compress; docs/retransmision.md §14.8, E2 paso 0). La
-  // ruta de una etapa corrida pesaba de 0,87 a 2,95 MB de JSON y viajaba sin comprimir. Con los
-  // defectos del plugin: nada por debajo de 1.024 B, brotli de calidad 4 si el navegador lo acepta y
-  // gzip si no, y `accept-encoding` añadido a `Vary` sin quitar lo que ya hubiera. Va ANTES de
-  // @fastify/static, como pide su documentación, para que su gancho global alcance también a la web.
+  // ruta de una etapa corrida en línea pesa de 0,87 a 3,8 MB de JSON y viajaba sin comprimir; con
+  // gzip son de 25 a 96 KB (B6, `scripts/bench-stage-size.mjs`). Con los defectos del plugin: nada
+  // por debajo de 1.024 B, brotli de calidad 4 si el navegador lo acepta y gzip si no, y
+  // `accept-encoding` añadido a `Vary` sin quitar lo que ya hubiera. Va ANTES de @fastify/static,
+  // como pide su documentación, para que su gancho global alcance también a la web.
   void app.register(fastifyCompress, { global: true, encodings: ['br', 'gzip'] })
 
   // Rate limiting global por IP (@fastify/rate-limit). Antes no había ninguno: /api/auth/* aceptaba
