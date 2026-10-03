@@ -10,8 +10,8 @@ import { beta, clamp, logNormal, normal, uniform, uniformInt } from './random.js
 
 /**
  * Creación del genoma del ciclista (SPEC 3.4 y 3.5). La vocación sesga valores iniciales y
- * techos sin garantizar élite; el don global garantiza que "eres ciclista". Determinista a
- * partir de la semilla del corredor.
+ * techos sin garantizar élite; el don global garantiza que "eres ciclista" en la especialidad que
+ * eligió. Determinista a partir de la semilla del corredor.
  */
 
 export interface RiderHidden {
@@ -77,13 +77,29 @@ export function generateRiderGenome(seed: string, vocation: Vocation): RiderGeno
     attributes[attr] = clamp(value, 1, ceiling)
   }
 
-  // Don global: si el mejor techo no llega al umbral, se eleva el argmax (SPEC 3.5).
+  /**
+   * DON GLOBAL, Y VA A LA ESPECIALIDAD ELEGIDA (SPEC 3.5, docs/balance.md «Creación: el don va a la
+   * especialidad elegida»).
+   *
+   * Antes elevaba el argmax de los diez techos, y el argmax puede ser cualquier cosa: al dueño le
+   * salió un velocista cuyo único potencial de élite estaba en la TÁCTICA. El don existe para
+   * garantizar que eres ciclista, y el jugador ya ha dicho de qué: si el mejor techo de sus
+   * atributos PRIMARIOS no llega al umbral, se eleva ese. Un adyacente o un «resto» que salga alto
+   * por suerte se queda donde está; lo que ya no pasa es que sea lo único alto.
+   *
+   * Consume el azar en el mismo sitio y con la misma llamada que antes. Lo que cambia es CUÁNDO se
+   * consume: ahora se mira el mejor primario y no el mejor de todos, así que un corredor cuyo mejor
+   * techo fuera de su vocación ya pasaba el umbral y cuyos primarios no, ahora recibe el don y
+   * desplaza una posición el talento, la fragilidad y las edades que salen después. Es un genoma
+   * distinto solo para corredores NUEVOS: los ya creados tienen el suyo guardado.
+   */
   if (CREATION.globalGift) {
-    let best: Attribute = ATTRIBUTES[0]
+    let best: Attribute | null = null
     for (const attr of ATTRIBUTES) {
-      if (ceilings[attr] > ceilings[best]) best = attr
+      if (categoryOf(attr, vocation) !== 'primary') continue
+      if (best === null || ceilings[attr] > ceilings[best]) best = attr
     }
-    if (ceilings[best] < CREATION.giftThreshold) {
+    if (best !== null && ceilings[best] < CREATION.giftThreshold) {
       ceilings[best] = uniform(rng, CREATION.giftMin, CREATION.giftMax)
     }
   }

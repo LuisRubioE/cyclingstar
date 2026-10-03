@@ -31,6 +31,7 @@ import {
   RACE_COUNTRY,
   RACE_TABLES,
   auto,
+  ciudadDeCampeonato,
   doy,
   enrollmentFor,
   featureSpec,
@@ -47,6 +48,7 @@ import type { RouteTerrain } from '../../routes/featureProfile.js'
 import type { FinalKind } from '../../routes/finalKind.js'
 import { raceRouteSourceOf } from '../../routes/grammar/generate.js'
 import { between, climb, descent, rolling, routeRng, split } from '../../routes/profileGen.js'
+import { stageEndpoints } from '../../routes/raceRoutes.js'
 import { STAGE_FEATURES } from '../../routes/stageFeatures.js'
 import type { Segment } from '../../stage/types.js'
 import { routeSourceDe } from '../routeCensus.js'
@@ -877,8 +879,14 @@ export function legacyCalendar(): CalendarRace[] {
   return viejas.map((race): CalendarRace => {
     // `routeSourceDe` lee el campo si está (las etapas con rasgos, por `featureSpec`) y si no lo
     // deduce de `STAGE_FEATURES` y `RACE_EDITIONS`; solo lee `race.id` y `stage.index`.
+    // Las ciudades no entran en el perfil ni en la huella (golden.test.ts): se ponen para cumplir el
+    // tipo, del recorrido de autoría o, en un campeonato, de la ciudad de la temporada base.
+    const ciudad = race.championshipCountry
+      ? ciudadDeCampeonato(race.championshipCountry, 0)
+      : race.name
     const stages = race.stages.map((st): CalendarStage => ({
       ...st,
+      ...(stageEndpoints(race.id, st.index) ?? { from: ciudad, to: ciudad }),
       routeSource: routeSourceDe(race as CalendarRace, st as CalendarStage),
     }))
     return { ...race, stages, routeSource: raceRouteSourceOf(stages) }

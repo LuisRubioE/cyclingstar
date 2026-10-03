@@ -1,8 +1,8 @@
 import {
   SEASON_CALENDAR,
   type StageInput,
-  TEST_TOUR,
   simulateStage,
+  stageCities,
   stageDayOfSeason,
 } from '@cyclingstar/engine'
 import { and, eq, sql } from 'drizzle-orm'
@@ -16,7 +16,6 @@ import { riders, stageResults, stageSnapshots } from './schema.js'
  */
 
 const SEASON_DAYS = 364
-const TEST_TOUR_KEY = 'test-tour'
 
 export interface RaceReportOrders {
   role: string
@@ -35,6 +34,9 @@ export interface RiderRaceReport {
   stageName: string
   raceId: string
   stageDay: number
+  /** Salida y llegada de la etapa (de su temporada); `null` si la etapa no tiene ciudades. */
+  from: string | null
+  to: string | null
   orders: RaceReportOrders | null
   position: number
   fieldSize: number
@@ -50,7 +52,6 @@ export interface RiderRaceReport {
 
 /** Día de juego absoluto de una etapa (para ordenar por recencia). */
 function absoluteDay(raceId: string, stageDay: number): number {
-  if (raceId === TEST_TOUR_KEY) return stageDay
   const m = /^(.*):s(\d+)$/.exec(raceId)
   if (!m) return stageDay
   const race = SEASON_CALENDAR.find((r) => r.id === m[1])
@@ -59,18 +60,21 @@ function absoluteDay(raceId: string, stageDay: number): number {
 }
 
 /** Nombre legible de la carrera y de la etapa. */
-function raceMeta(raceId: string, stageDay: number): { raceName: string; stageName: string } {
-  if (raceId === TEST_TOUR_KEY) {
-    const st = TEST_TOUR.find((s) => s.day === stageDay)
-    return { raceName: 'Test Tour', stageName: st?.name ?? `Stage ${stageDay}` }
-  }
+function raceMeta(
+  raceId: string,
+  stageDay: number,
+): { raceName: string; stageName: string; from: string | null; to: string | null } {
   const m = /^(.*):s(\d+)$/.exec(raceId)
   const race = m ? SEASON_CALENDAR.find((r) => r.id === m[1]) : undefined
   const stg = race?.stages[stageDay - 1]
+  // De dónde a dónde fue, con las ciudades de SU temporada (la del campeonato cambia cada año).
+  const ciudades = race && m ? stageCities(race.id, Number(m[2]), stageDay) : null
   return {
     raceName: race?.name ?? raceId,
     stageName:
       race && race.stages.length > 1 ? (stg?.name ?? `Stage ${stageDay}`) : (race?.name ?? ''),
+    from: ciudades?.from ?? null,
+    to: ciudades?.to ?? null,
   }
 }
 
@@ -98,7 +102,7 @@ export async function getRiderLastRaceReport(
     absoluteDay(r.raceId, r.stageDay) > absoluteDay(best.raceId, best.stageDay) ? r : best,
   )
 
-  const { raceName, stageName } = raceMeta(latest.raceId, latest.stageDay)
+  const { raceName, stageName, from, to } = raceMeta(latest.raceId, latest.stageDay)
 
   // Tamaño del pelotón y ganador de la etapa.
   const fieldRow = await db
@@ -176,6 +180,8 @@ export async function getRiderLastRaceReport(
     stageName,
     raceId: latest.raceId,
     stageDay: latest.stageDay,
+    from,
+    to,
     orders,
     position: latest.puesto,
     fieldSize,

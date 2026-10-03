@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Panel, SectionBar } from '../components/Panel'
+import { StageRoute } from '../components/StageRoute'
 import {
   type Effort,
   type Mentality,
@@ -418,7 +419,17 @@ export function RaceOrders() {
           return (
             <Panel
               key={stage.day}
-              title={stage.name}
+              title={
+                // El número de etapa y, al lado, de dónde a dónde se corre (encargo del dueño).
+                <>
+                  {stage.name}
+                  <StageRoute
+                    from={stage.from}
+                    to={stage.to}
+                    className="ml-2 font-normal text-white/80"
+                  />
+                </>
+              }
               action={
                 <span className="flex items-center gap-2 text-xs text-white/90">
                   {/* DE QUÉ VA EL DÍA, antes que ningún otro dato: la orden que tiene sentido en una

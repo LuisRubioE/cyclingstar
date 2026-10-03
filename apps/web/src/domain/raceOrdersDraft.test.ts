@@ -63,3 +63,24 @@ describe('web: borrador de órdenes de etapa', () => {
     expect(resolveOrders(server, draft, null)).toEqual(server)
   })
 })
+
+describe('el cazaetapas no sale reservón', () => {
+  it('al elegir cazaetapas con la mentalidad por defecto, se propone combativo', () => {
+    const d = withOrderPatch(null, 'r:s0', {}, 1, { role: 'cazaetapas' })
+    expect(d.orders[1]!.role).toBe('cazaetapas')
+    expect(d.orders[1]!.mentality).toBe('combativo')
+  })
+
+  it('si el jugador ya había elegido otra mentalidad, se respeta', () => {
+    const d1 = withOrderPatch(null, 'r:s0', {}, 1, { mentality: 'supercombativo' })
+    const d2 = withOrderPatch(d1, 'r:s0', {}, 1, { role: 'cazaetapas' })
+    expect(d2.orders[1]!.mentality).toBe('supercombativo')
+  })
+
+  it('y después puede volver a reservón a mano', () => {
+    const d1 = withOrderPatch(null, 'r:s0', {}, 1, { role: 'cazaetapas' })
+    const d2 = withOrderPatch(d1, 'r:s0', {}, 1, { mentality: 'reservon' })
+    expect(d2.orders[1]!.mentality).toBe('reservon')
+    expect(d2.orders[1]!.role).toBe('cazaetapas')
+  })
+})

@@ -7,6 +7,7 @@
  * página tradujera y otra mostrara la clave interna en crudo.
  */
 
+import { ARCHETYPE_LABELS } from '@cyclingstar/shared'
 import type {
   Effort,
   Mentality,
@@ -145,6 +146,18 @@ const LEDGER_KIND_LABEL: Record<string, string> = {
 
 export function ledgerKindLabel(kind: string): string {
   return LEDGER_KIND_LABEL[kind] ?? kind
+}
+
+/**
+ * Días de viaje de una carrera, anunciados como lo que cuestan de verdad: IDA Y VUELTA. El dato que
+ * llega (`TRANSPORT_COST[tramo].days`) es de UN trayecto, y enseñarlo tal cual anunciaba una carrera
+ * continental como «1d» cuando cuesta dos días sin entrenar, y una intercontinental como «2d» cuando
+ * cuesta cuatro (docs/agenda.md §4.19). En casa no hay viaje: cadena vacía.
+ */
+export function travelDaysLabel(oneWayDays: number): string {
+  if (oneWayDays <= 0) return ''
+  const total = oneWayDays * 2
+  return `${total} travel days (${oneWayDays} out, ${oneWayDays} back)`
 }
 
 /** Tipos de entrada del palmarés. */
@@ -343,3 +356,13 @@ export const CLIMB_PART_LABEL = {
   cima: 'near the top',
 }
 export const WEATHER_COND_LABEL = { lluvia: 'it rains', viento: 'the wind picks up' }
+
+/**
+ * EL NOMBRE EN INGLÉS DE UN ARQUETIPO. Las pantallas leían `VOCATION_LABELS`, que solo conoce las
+ * cinco vocaciones de siempre, y para los tres arquetipos de la génesis v2 (puncheur, rodador,
+ * gregario) caían al código interno en español: el ranking nacional enseñaba «rodador» y «gregario».
+ * `ARCHETYPE_LABELS` nombra los ocho; si llegara un código desconocido se enseña tal cual.
+ */
+export function archetypeLabel(code: string): string {
+  return (ARCHETYPE_LABELS as Record<string, string>)[code] ?? code
+}

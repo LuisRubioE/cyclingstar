@@ -1,3 +1,4 @@
+import { TRANSPORT_COST } from '@cyclingstar/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -15,7 +16,7 @@ import {
 } from '../api/teamCalendar'
 import { Flag } from '../components/Flag'
 import { Panel, SectionBar } from '../components/Panel'
-import { formatLabel, raceClassLabel } from '../domain/labels'
+import { formatLabel, raceClassLabel, travelDaysLabel } from '../domain/labels'
 
 /**
  * `My Team → Race calendar` (docs/navegacion.md §3.4). La página existía pero estaba HUÉRFANA: no
@@ -89,6 +90,12 @@ function RaceRow({
             title="Overseas trip — expensive"
           >
             ✈
+          </span>
+        )}
+        {/* El viaje también cuesta DÍAS sin entrenar, y se anuncian de ida y vuelta. */}
+        {TRANSPORT_COST[race.travelTier].days > 0 && (
+          <span className="block text-xs text-slate-400">
+            {travelDaysLabel(TRANSPORT_COST[race.travelTier].days)}
           </span>
         )}
       </td>

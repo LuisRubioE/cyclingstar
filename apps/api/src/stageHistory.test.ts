@@ -151,7 +151,16 @@ function fichaDe(
   profile: StageProfile,
   routeSource: CalendarStage['routeSource'] = 'real',
 ): CalendarStage {
-  return { index, kind, label, name: `Stage ${index} · ${label}`, profile, routeSource }
+  return {
+    index,
+    kind,
+    label,
+    name: `Stage ${index} · ${label}`,
+    profile,
+    routeSource,
+    from: 'Tarragona',
+    to: 'Barcelona',
+  }
 }
 
 const puerto = (km: number, g: number) =>
@@ -258,8 +267,15 @@ describe('api: la etiqueta del final la pone el recorrido, no el terreno declara
      * **Lo que este centinela vigila de verdad sigue en pie y es la línea de arriba**: `spec.kind`
      * coincide con `stage.kind` en las 1.418. El TIPO no se mueve (es lo que alimenta las órdenes
      * automáticas y el banco), solo la etiqueta con la que se anuncia.
+     *
+     * **31 desde la v90**, y por un cambio de recorrido real, no de regla: los puertos listados mandan
+     * sobre la altitud muestreada (docs/balance.md «v90»). Sale `race-spain` e7, que su recorrido
+     * dejaba en «Mountains» porque el Aramón Valdelinares se aplanaba y la meta quedaba en llano, y
+     * ahora es el «Summit finish» que declara su edición; entran `race-france` e2 (la Cote du Château
+     * de Montjuïc a 3 km de meta, que las muestras dejaban en 0,6 km) y `race-to-the-sun` e6 (la Cote
+     * de Saignon), las dos como «Uphill finish».
      */
     expect(cambianGeneradas).toBe(0)
-    expect(cambianReales).toBe(30)
+    expect(cambianReales).toBe(31)
   })
 })

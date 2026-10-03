@@ -9,8 +9,9 @@ import { fetchMyRider, fetchMyUpcomingRaces, fetchRiderSummary, retireFromRace }
 import { Flag } from '../components/Flag'
 import { Panel, SectionBar } from '../components/Panel'
 import { ShowAllButton, TOP_ROWS } from '../components/ShowAll'
+import { StageRoute } from '../components/StageRoute'
 import { type TabOption, TabPanel, Tabs, useTabParam } from '../components/Tabs'
-import { raceClassLabel } from '../domain/labels'
+import { raceClassLabel, travelDaysLabel } from '../domain/labels'
 import {
   hasStageBreakdown,
   ordinal,
@@ -195,6 +196,7 @@ function UpcomingTab() {
                 </Link>
                 <span className="shrink-0 text-xs text-slate-500">
                   GD {r.startDay} · travel {r.travelMoney.toLocaleString('en-US')}
+                  {r.travelDays > 0 && ` · ${travelDaysLabel(r.travelDays)}`}
                 </span>
               </li>
             ))}
@@ -238,8 +240,10 @@ function EnterableRow({
         <span className={race.affordable ? 'text-slate-700' : 'text-rose-600'}>
           {race.travelMoney.toLocaleString('en-US')}
         </span>
+        {/* Los días se anuncian de ida Y vuelta: `travelDays` es de un trayecto, y pintarlo tal
+            cual anunciaba la mitad del precio en días sin entrenar. */}
         {race.travelDays > 0 && (
-          <span className="ml-1 text-xs text-slate-400">· {race.travelDays}d</span>
+          <span className="block text-xs text-slate-400">{travelDaysLabel(race.travelDays)}</span>
         )}
       </td>
       <td className="px-3 py-2 text-right">
@@ -420,6 +424,14 @@ function ResultsTab({ riderId }: { riderId: string | null }) {
                     {r.raceName}
                   </Link>
                   <span className="ml-2 text-xs text-slate-400">Season {r.season + 1}</span>
+                  {/* Un día: la etapa ES la carrera, y su de dónde a dónde va junto al nombre. */}
+                  {r.isOneDay && (
+                    <StageRoute
+                      from={r.stages[0]?.from}
+                      to={r.stages[0]?.to}
+                      className="ml-2 text-xs text-slate-400"
+                    />
+                  )}
                   {/* El desglose de etapas cuelga de la carrera, plegado: el titular es la general. */}
                   {hasStageBreakdown(r) && (
                     <details className="mt-0.5">
@@ -444,6 +456,11 @@ function ResultsTab({ riderId }: { riderId: string | null }) {
                             >
                               Stage {s.stageDay} of {r.stageCount}
                             </Link>
+                            <StageRoute
+                              from={s.from}
+                              to={s.to}
+                              className="truncate text-slate-400"
+                            />
                           </li>
                         ))}
                       </ul>

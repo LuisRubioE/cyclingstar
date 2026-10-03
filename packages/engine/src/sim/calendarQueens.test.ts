@@ -88,9 +88,19 @@ describe('la montaña que de verdad se corre (v44)', () => {
       // Paso 9 (§13.4 punto 4 a, D6 por defecto): `facil` es la banda más baja con ≥ 3 etapas en la
       // muestra y `dura` la `>3500` si tiene ≥ 3 (si no, `2500-3500`). Con el calendario de la v87:
       // `<1500` (casi todas reales) contra `>3500`.
+      //
+      // …Y LA FÁCIL PIDE 6 ETAPAS DESDE LA v90. Con 3 etapas por 4 semillas son 12 carreras, y una
+      // carrera vale 8,3 puntos: menos que los 10 de margen que esta prueba exige, así que la banda
+      // `<1500` pasaba o no según una sola fuga. Medido: en la v89 daba 16,7 % (2 de 12) y en la v90,
+      // con los puertos reales de sus tres etapas puestos, 8,3 % (1 de 12), mientras `1500-2500`
+      // (10 etapas, 40 carreras) va del 15,0 % al 27,5 % y `>3500` se queda en 0 en las dos. El hecho
+      // que se vigila no se ha movido; lo que no tenía resolución para verlo era la cubeta.
       const poblada = (nombre: string): boolean =>
         (stats.porBanda.find((b) => b.nombre === nombre)?.stages ?? 0) >= 3
-      const facilNombre = BANDAS_DESNIVEL.map((b) => b.nombre).find(poblada) ?? '<1500'
+      const facilNombre =
+        BANDAS_DESNIVEL.map((b) => b.nombre).find(
+          (nombre) => (stats.porBanda.find((b) => b.nombre === nombre)?.stages ?? 0) >= 6,
+        ) ?? '<1500'
       const duraNombre = poblada('>3500') ? '>3500' : '2500-3500'
       const facil = stats.porBanda.find((b) => b.nombre === facilNombre)!
       const dura = stats.porBanda.find((b) => b.nombre === duraNombre)!

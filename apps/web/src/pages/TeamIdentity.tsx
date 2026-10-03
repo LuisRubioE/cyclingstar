@@ -1,4 +1,4 @@
-import { COUNTRIES, VOCATION_LABELS, type Vocation } from '@cyclingstar/shared'
+import { COUNTRIES } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import {
@@ -13,6 +13,7 @@ import { Flag } from '../components/Flag'
 import { Jersey } from '../components/Jersey'
 import { InfoRow, Panel, SectionBar } from '../components/Panel'
 import { TeamManager } from '../components/TeamManager'
+import { archetypeLabel } from '../domain/labels'
 
 /**
  * `My Team → Identity` (docs/navegacion.md §3.4): quién es mi equipo — maillot, país, división,
@@ -45,7 +46,7 @@ function dominantVocation(team: TeamDetail): { label: string; count: number } | 
   }
   if (!best) return null
   return {
-    label: VOCATION_LABELS[best.archetype as Vocation] ?? best.archetype,
+    label: archetypeLabel(best.archetype),
     count: best.count,
   }
 }

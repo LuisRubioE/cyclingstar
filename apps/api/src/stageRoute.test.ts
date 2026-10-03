@@ -113,7 +113,6 @@ describe('api: la altimetría de una etapa no corrida es la del mundo', () => {
       frozen,
       anterior: frozenFromCalendar(stagesForSeason(race.id, 0)[1]!),
       run: undefined,
-      ends: null,
     })
     expect(entry.altimetry).toBe(renderAltimetrySvg(trucado))
     expect(entry.km).toBe(70)
@@ -130,10 +129,15 @@ describe('api: la altimetría de una etapa no corrida es la del mundo', () => {
       frozen: frozenFromCalendar(deLaTemporada),
       anterior: null,
       run: undefined,
-      ends: null,
     })
     expect(entry.altimetry).toBe(renderAltimetrySvg(deLaTemporada.profile))
     expect(entry.arch?.frase).toBe(deLaTemporada.arch?.frase)
+    // De dónde a dónde: las ciudades de la etapa de la temporada, siempre presentes.
+    expect({ from: entry.from, to: entry.to }).toEqual({
+      from: deLaTemporada.from,
+      to: deLaTemporada.to,
+    })
+    expect(entry.from).toBeTruthy()
   })
 
   it('lo corrido manda sobre lo congelado', () => {
@@ -145,7 +149,6 @@ describe('api: la altimetría de una etapa no corrida es la del mundo', () => {
       frozen: frozenFromCalendar(deLaTemporada),
       anterior: null,
       run: { profile: trucado, timeTrial: false, km: 70 },
-      ends: null,
     })
     expect(entry.altimetry).toBe(renderAltimetrySvg(trucado))
   })

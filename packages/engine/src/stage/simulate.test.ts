@@ -6,6 +6,7 @@ import { blockCost } from './physics.js'
 import { stageSeed } from './rng.js'
 import type { RaceEvent, StageInput, StageOrders, StageOutput, StageRider } from './types.js'
 import { raceRadioCollector, radioKmPoints } from '../sim/raceRadio.js'
+import { campaignSeeds, queenScenario } from '../sim/scenarios.js'
 
 function eff(
   base: number,
@@ -1524,25 +1525,42 @@ describe('una criba sostenida no genera diez frases clónicas (v8)', () => {
     },
   )
 
+  /**
+   * LAS CRIBAS, PARTIDAS POR LOS REAGRUPAMIENTOS (v90). Un `peloton_regroup` cierra la criba en
+   * curso —el motor reinicia la fase y el protagonista, porque el grupo vuelve a estar entero—, así
+   * que las dos reglas de abajo se miden DENTRO de cada criba. Hasta la v89 este banco no tenía
+   * ningún reagrupamiento a mitad de la escalera porque la puerta de 22 s fundía los grupos antes de
+   * que se pudieran contar; con la puerta estrecha para los grupos establecidos aparece alguno.
+   */
+  const cribas = (out: (typeof runs)[number]) => {
+    const evs = out.events
+      .filter((e) => e.plantilla === 'peloton_split' || e.plantilla === 'peloton_regroup')
+      .sort((a, b) => a.km - b.km || a.tS - b.tS)
+    const tandas: (typeof evs)[] = [[]]
+    for (const e of evs) {
+      if (e.plantilla === 'peloton_regroup') tandas.push([])
+      else tandas.at(-1)!.push(e)
+    }
+    return tandas
+  }
+
   it('no se nombra al mismo protagonista en dos avisos seguidos', { timeout: 60000 }, () => {
     for (const out of runs) {
-      const splits = out.events
-        .filter((e) => e.plantilla === 'peloton_split')
-        .sort((a, b) => a.km - b.km)
-      for (let i = 1; i < splits.length; i++) {
-        const prev = splits[i - 1]!.protagonistas[0]
-        const now = splits[i]!.protagonistas[0]
-        if (prev && now) expect(now).not.toBe(prev)
+      for (const splits of cribas(out)) {
+        for (let i = 1; i < splits.length; i++) {
+          const prev = splits[i - 1]!.protagonistas[0]
+          const now = splits[i]!.protagonistas[0]
+          if (prev && now) expect(now).not.toBe(prev)
+        }
       }
     }
   })
 
   it('el primer aviso presenta la criba y los siguientes cuentan la progresión', () => {
     for (const out of runs) {
-      const splits = out.events
-        .filter((e) => e.plantilla === 'peloton_split')
-        .sort((a, b) => a.km - b.km)
-      splits.forEach((e, i) => expect(Number(e.datos!.phase)).toBe(i))
+      for (const splits of cribas(out)) {
+        splits.forEach((e, i) => expect(Number(e.datos!.phase)).toBe(i))
+      }
     }
   })
 
@@ -2493,7 +2511,11 @@ describe('el parte distingue al que ataca del que se esconde (v47)', () => {
     let cerillos = 0
     let gastoCerillos = 0
     let kmFuga = 0
-    for (let s = 0; s < 10; s++) {
+    // VEINTE ETAPAS, NO DIEZ (v90). Con la ley de la subida nueva el reservón y el supercombativo
+    // salían EMPATADOS en diez semillas (11 ataques y 13,5 de gasto cada uno), y antes 8 contra 12:
+    // el reservón ataca menos (apetito 0,3), no nunca, y con diez etapas la diferencia es del orden
+    // del ruido. Con veinte se mide la tendencia, que es lo que esta prueba vigila.
+    for (let s = 0; s < 20; s++) {
       const out = simulateStage(
         campo(mentality),
         stageSeed({ worldSeed: `parte-${s}`, raceId: 'agresivo', stageDay: 1, engineVersion: 1 }),
@@ -2516,7 +2538,20 @@ describe('el parte distingue al que ataca del que se esconde (v47)', () => {
     // Y la otra mitad, que es la que hace que el parte SIGNIFIQUE algo: el que se esconde gasta
     // menos en cerillos que el que se tira. Un `reservon` no quema cerillos ni siquiera para no
     // soltarse (lo dice `allowMatch` en el motor), así que aquí el listón es el cero.
-    expect(`escondido: ${escondido.gastoCerillos < agresivo.gastoCerillos}`).toBe('escondido: true')
+    /**
+     * …Y NO «MENOS»: LA MITAD O MENOS (v91). Con el listón en «menos» la prueba pasaba con 21
+     * ataques y saltos del reservón contra 24 del supercombativo: el apetito de 0,3 del reservón es
+     * relativo a su grupo y entre gregarios y líderes el cazaetapas sigue siendo el que más ganas
+     * tiene, y su salto era dos tercios del de un supercombativo. Desde la v91, fuera de lo suyo casi
+     * no lanza ni sigue (`STAGE.reservon`), y medido son 7 contra 26 y 6,3 de gasto contra 33,3. La
+     * mitad deja sitio de sobra al ruido de veinte etapas.
+     */
+    expect(escondido.ataques, 'ataques y saltos del reservón').toBeLessThanOrEqual(
+      agresivo.ataques / 2,
+    )
+    expect(escondido.gastoCerillos, 'gasto en cerillos del reservón').toBeLessThanOrEqual(
+      agresivo.gastoCerillos / 2,
+    )
   })
 })
 
@@ -2863,4 +2898,47 @@ describe('el maillot no releva fuera del pelotón si hay quien lo haga (v57)', (
       )
     },
   )
+})
+
+/**
+ * EL PUENTE DESDE ATRÁS NO HEREDA EL RELOJ DEL PELOTÓN (v91).
+ *
+ * Hasta la v90 el puente que salta de un grupo de descolgados hacia el pelotón nacía como un
+ * movimiento, y la caza de los movimientos (`peloton.tS − m.g.tS ≤ captureGapSeconds`) no tenía
+ * suelo: con el puente a 30-150 s por detrás el hueco era negativo, y el pelotón lo «cazaba» en el
+ * mismo bloque en que nacía. Sus hombres aparecían en el pelotón en la foto del kilómetro siguiente,
+ * con su reloj: en la reina canónica, un hombre a 81 s del pelotón en el km 85 iba dentro en el 86.
+ *
+ * Ahora es un grupo de descolgados que persigue, y en la foto siguiente sigue fuera: un minuto no
+ * se cierra en un kilómetro.
+ */
+describe('el puente desde atrás no hereda el reloj del pelotón (v91)', () => {
+  it('quien salta desde un grupo de descolgados sigue detrás un kilómetro después', () => {
+    const scenario = queenScenario()
+    const input = scenario.input
+    const totalKm = input.profile.segments.reduce((acc, sg) => acc + sg.km, 0)
+    const kms = Array.from({ length: Math.floor(totalKm) }, (_, i) => i + 1)
+    let puentes = 0
+    for (const seed of campaignSeeds(scenario.name, 2)) {
+      const fotos: { km: number; grupo: Map<string, string> }[] = []
+      const out = simulateStage(input, seed, {
+        atKm: kms,
+        onSnapshot: (km, riders) => {
+          fotos.push({ km, grupo: new Map(riders.map((r) => [r.riderId, r.groupId])) })
+        },
+      })
+      for (const e of out.events) {
+        if (e.plantilla !== 'attack_go' || e.datos?.detras !== 1) continue
+        expect(e.datos.kind).toBe('puente')
+        const despues = fotos.find((f) => f.km > e.km)
+        if (!despues) continue
+        puentes += 1
+        for (const id of e.protagonistas) {
+          expect(despues.grupo.get(id), `${id} en el km ${despues.km}`).not.toBe('peloton')
+        }
+      }
+    }
+    // Que la prueba mire algo: en las dos semillas selladas hay más de una docena.
+    expect(puentes).toBeGreaterThan(8)
+  })
 })

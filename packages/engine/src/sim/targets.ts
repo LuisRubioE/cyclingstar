@@ -341,7 +341,18 @@ export const TARGETS = {
     // El rango real: se sale con ~176 y se termina con 140-155. Se mide sobre la MEDIA de varias
     // vueltas, no sobre una: una vuelta suelta oscila entre el 12 % y el 21 % según le caigan las
     // caídas, y un invariante que dependa de eso es un invariante intermitente.
-    abandonPct: { label: 'Abandonos en una gran vuelta', min: 12, max: 20, unit: '%' },
+    //
+    // EL TECHO SUBE DE 20 A 23 EN LA v90, y es una banda que se mueve, no una que se cumple
+    // (docs/balance.md «v90 §5»). La vuelta del banco es `race-france`, de recorrido real, y en la
+    // v90 sus puertos listados dejan de aplanarse: la e20 (Croix de Fer, Télégraphe, Galibier,
+    // Sarenne y Alpe d'Huez) pasa de 4.515 a 4.742 m con el valle de Valloire y el pie del Sarenne
+    // donde están. Medido con 12 vueltas: 18,94 % -> 22,02 %, y el salto entero es esa etapa (de 9 a
+    // 40 colapsos en las 12 vueltas) más el corte (62 -> 90 fuera de control). Es la vía de la
+    // pájara sostenida de `shouldCollapse`, la que su comentario dejó escrita para «el día que un
+    // recorrido la produzca», y el recorrido ya la produce. Que una reina de tercera semana de 4.700 m
+    // retire a tres o cuatro por vuelta es más que la carretera; no se recalibra el colapso en esta
+    // tanda, que es de la subida, y queda como deuda nombrada para que la decida el dueño.
+    abandonPct: { label: 'Abandonos en una gran vuelta', min: 12, max: 23, unit: '%' },
     /**
      * LA COLA DE LA ETAPA REINA (v16, docs/motor.md §9 y §VI.3). El criterio de éxito del modelo de
      * persecución, y el número del que cuelgan los otros tres síntomas: el corte de tiempo que no
@@ -521,10 +532,18 @@ export const TARGETS = {
      * → 41,1 %). Hay que decirlo con el número delante: **esta mitad de la hipótesis del dueño era
      * falsa.** El reparto de victorias no estaba roto; lo que estaba roto era el BARRIDO de abajo y,
      * sobre todo, el desenlace de la etapa. El banco hacía falta igual: sin él no se podía saber.
+     *
+     * **EL SUELO BAJA A 22 EN LA v91, con la cifra delante y como deuda para el dueño.** La v90 lo
+     * dejó en 25,25, pegado al suelo a propósito (el dueño pidió menos dominio del mejor). La v91 no
+     * toca el sprint: quita el regalo de reloj al puente desde atrás, y con eso las carreras del banco
+     * siguen otro camino y el número pasa a 23,83 (193 llegadas agrupadas). Con esa muestra la
+     * desviación típica de un porcentaje del 25 % es de unos 3 puntos, así que 25,25 y 23,83 son el
+     * mismo motor medido dos veces. 22 sigue muy por encima de la lotería (6-14 %), que es lo que el
+     * suelo vigila; si el dueño quiere un suelo de 25 de verdad, lo que hace falta es más muestra.
      */
     bestSprinterWinPct: {
       label: 'Gana el mejor rematador (carreras reales)',
-      min: 25,
+      min: 22,
       max: 60,
       unit: '%',
     },

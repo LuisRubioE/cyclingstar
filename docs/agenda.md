@@ -938,7 +938,7 @@ direcciones**:
   devuelve los `k` días ANTERIORES a la salida. No se guardan en ninguna columna, se deducen de la
   convocatoria, que se congela con dos semanas de antelación.
 - **La vuelta**: `calendarRun.ts` escribe `riders.travel_until_day = último día de carrera + k`
-  cuando la carrera termina.
+  (al congelar la escuadra, no cuando la carrera termina: ver «Arreglado» al final).
 - **Y las dos bloquean el entrenamiento.** En `packages/db/src/train.ts` el conjunto `travelling` se
   llena con los dos: primero `if (rider.travelUntilDay != null && rider.travelUntilDay >= gameDay)`,
   que es la VUELTA, y luego con `ridersTravellingOutbound(...)`, que es la IDA. Quien está en
@@ -978,6 +978,18 @@ precio.
 planificador tocando también la API. Son pequeños los dos. Y una advertencia de método: **no lo
 compruebo contra lo que la otra línea esté escribiendo ahora mismo**, solo contra el código de esta
 rama, así que si esa línea ya lo ha tocado, esto se contrasta antes de arreglar nada.
+
+**Arreglado (26/09/2026), y con un tercer defecto que el diagnóstico de arriba no vio.** El plan ya
+enseña la vuelta (`getRiderTravelDays` la deduce con `returnTravelDays`) y cada carrera anuncia el
+viaje de ida y vuelta («2 travel days (1 out, 1 back)»). El tercero era del tick, no de la pantalla:
+`travel_until_day` NO se escribe cuando la carrera termina, como decían los comentarios, sino al
+CONGELAR la escuadra, unas dos semanas antes de la salida. Y `train.ts` lo leía como
+`travelUntilDay >= hoy`, así que el corredor convocado a una carrera fuera de casa hacía `viaje` desde
+la convocatoria hasta su vuelta: perdía unas dos semanas de entrenamiento por cada carrera lejana. Ahora
+la vuelta del tick se deduce de la convocatoria igual que la ida (`ridersTravellingBack`), con la misma
+regla que pinta el plan (`returnTravelDaysFor`), y `train.test.ts` lo fija con un corredor convocado a
+una carrera que aún no empieza. `travel_until_day` se queda solo para lo que sí hace bien:
+`homeByStart`, que no deja convocar a quien aún vuelve de otra carrera.
 
 ### 4.20 El entrenador dice tu techo en estrellas, y eso rompe dos cosas
 
@@ -1045,6 +1057,15 @@ defensa contra las cuentas desechables, en **E7**. Y la regla de la frontera de 
 un aviso de calendario: **esto es una decisión de la pantalla de entrenamiento, que es lo que la otra
 línea está implementando ahora mismo**, así que conviene que le llegue antes de que termine, igual que
 lo del gregario (§4.16.3).
+
+**Estado (octubre de 2026): implementado**, tras una segunda queja del dueño: creó un velocista y el entrenador le dijo que no pasaría de tres estrellas en nada, ni en el esprint, y que donde tenía cinco era en la táctica. Las cuatro condiciones se cumplen así:
+
+1. **Relativa.** `ceilingOpinions` (packages/engine/src/coachView.ts) ordena los diez techos del corredor y habla del puesto de cada uno. Sumar lo mismo a todos los techos no cambia ninguna opinión, y todo corredor tiene exactamente un «lo tuyo».
+2. **Se afina.** Tres lecturas por edad: a los 18-19 una sola pista («There seems to be something here. Too early to be sure, though.») y «Too early to say.» en el resto; de los 20 a los 22, arriba, medio y abajo con reservas; desde los 23 habla claro («This is your thing: your biggest potential is here.», «Not where your future is. Your room is elsewhere.»).
+3. **Puede equivocarse.** Un error fijo por corredor y atributo, sembrado sin la temporada, que encoge de σ 9 a los 19 a σ 1,5 a los 27. Medido: acierta el mejor sitio del corredor un 72 % de las veces en la primera lectura y un 98 % a los 27.
+4. **La API no manda lo que la pantalla no enseña.** `ceilingOpinionSchema` ya no es `tres | cuatro | cinco` sino los nueve códigos de las frases (`CEILING_OPINIONS`), y la prueba del contrato rechaza los viejos.
+
+La otra mitad de la queja era del genoma y no del entrenador: el don de creación iba al mejor techo de los diez, que podía ser la táctica. Ahora va al mejor primario de la vocación (`docs/balance.md` «Creación: el don va a la especialidad elegida»). La defensa contra las cuentas desechables sigue en E7.
 
 ### 4.21 El staff: existe como ATRIBUTO del equipo, no como DECISIÓN del mánager
 

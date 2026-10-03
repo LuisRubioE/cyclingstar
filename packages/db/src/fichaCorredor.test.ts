@@ -1,4 +1,9 @@
-import { ATTRIBUTES, type Attribute, birthSeasonForAge } from '@cyclingstar/shared'
+import {
+  ATTRIBUTES,
+  type Attribute,
+  CEILING_OPINIONS,
+  birthSeasonForAge,
+} from '@cyclingstar/shared'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { getAttrTrend, getBlockReport, getCoachView } from './riders.js'
 import {
@@ -138,7 +143,18 @@ describe('db: la ficha del corredor', () => {
     expect(texto).not.toContain('80')
     expect(texto).not.toContain('1.5')
     expect(vista.ceilings.length).toBe(ATTRIBUTES.length)
-    for (const c of vista.ceilings) expect(['tres', 'cuatro', 'cinco']).toContain(c.opinion)
+    for (const c of vista.ceilings) expect(CEILING_OPINIONS).toContain(c.opinion)
+    // Y tampoco estrellas (docs/agenda.md §4.20): los códigos de antes eran `tres`, `cuatro` y
+    // `cinco`, o sea el techo en estrellas legible en la pestaña de red del navegador.
+    expect(texto).not.toMatch(/tres|cuatro|cinco|★|star/i)
+  })
+
+  it('la opinión es RELATIVA: dice el mejor sitio del corredor, no a qué nivel llega', async () => {
+    const vista = (await getCoachView(t.db, riderId, 'semilla-ficha', HOY))!
+    // Sub-23, la lectura aún se forma: arriba, medio y abajo, con reservas.
+    const usadas = new Set(vista.ceilings.map((c) => c.opinion))
+    for (const o of usadas) expect(['apunta', 'quiza', 'no_parece']).toContain(o)
+    expect(vista.ceilings.filter((c) => c.opinion === 'apunta').length).toBe(2)
   })
 
   it('es estable dentro de la temporada y puede cambiar al año siguiente', async () => {

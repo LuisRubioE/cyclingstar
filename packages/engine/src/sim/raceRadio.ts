@@ -809,8 +809,21 @@ export function radioForStorage(
      * uno», que tiene la misma defensa contra el reloj que salta.
      */
     const prev = i > 0 ? radio.kms[i - 1] : undefined
-    const ref = next ?? prev
-    const haciaAtras = next === undefined
+    /**
+     * …Y DESDE LA v90 LA VELOCIDAD DE UNA FOTO ES LA DEL KILÓMETRO QUE SE ACABA DE RECORRER.
+     *
+     * El dueño, en la etapa 12 de la Vuelta, km 135 —la cima de un puerto de primera—: cabeza a 58,3
+     * km/h, el grupo del líder, a 22 s, a 20,7, y la caza, a minuto y medio, a 59. La cuenta medía
+     * contra la foto SIGUIENTE, así que en la cima enseñaba la velocidad de la BAJADA que aún no se
+     * había hecho; y el grupo del líder, que en ese kilómetro se fundía con el de delante, caía a la
+     * medida de reserva —la del kilómetro anterior, el de subida—. Dos semánticas en la misma foto.
+     *
+     * Lo que uno lee en una radio de carrera es a qué ritmo VAN, o sea el kilómetro que llevan en las
+     * piernas. Así que la cuenta principal mira hacia atrás y la de reserva hacia delante; la primera
+     * foto, que no tiene kilómetro anterior, mide el siguiente.
+     */
+    const ref = prev ?? next
+    const haciaAtras = prev !== undefined
     // El reloj de cada corredor en la foto de referencia, una vez por kilómetro: es lo que necesita
     // `groupSpeedKmh` para medir la velocidad por los hombres en vez de por dos relojes de grupo.
     // …y EN QUÉ GRUPO acaba (o empieza) cada uno, lo que permite descartar al que se cayó del nuestro.
@@ -852,7 +865,8 @@ export function radioForStorage(
      * seguidos, donde tampoco el de antes está limpio. Y no mueve NINGUNA velocidad de las que ya
      * salían: sólo entra cuando la cuenta de siempre no da nada.
      */
-    const atras = next && prev ? fotoRef(prev) : undefined
+    // La medida de reserva es ahora el kilómetro SIGUIENTE (v90, ver arriba).
+    const alterna = next && prev ? fotoRef(next) : undefined
     /**
      * ————— EL QUE ESTÁ EN EL TURNO NO VA A RUEDA, AUNQUE AHORA MISMO NO ESTÉ AL FRENTE —————
      *
@@ -934,13 +948,13 @@ export function radioForStorage(
         groupSpeedKmh(
           g,
           clockAhead,
-          next ? next.km - k.km : prev ? k.km - prev.km : 0,
+          prev ? k.km - prev.km : next ? next.km - k.km : 0,
           groupAhead,
           paradas,
           haciaAtras,
         ) ??
-        (atras && prev
-          ? groupSpeedKmh(g, atras.clock, k.km - prev.km, atras.grupo, paradas, true)
+        (alterna && next
+          ? groupSpeedKmh(g, alterna.clock, next.km - k.km, alterna.grupo, paradas, false)
           : null)
       return {
         kind: g.kind,

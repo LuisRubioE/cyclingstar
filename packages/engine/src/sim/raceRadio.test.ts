@@ -432,8 +432,10 @@ describe('radioForStorage: la velocidad de un grupo la miden SUS HOMBRES', () =>
     expect(g.pullingTotal).toBe(3)
   })
 
-  it('…y NO pisa la velocidad del kilómetro siguiente cuando esa sí se puede medir', () => {
-    // El pelotón frena: 80 s el km anterior (45 km/h) y 120 el siguiente (30). Manda el siguiente.
+  it('…y la velocidad de una foto es la del kilómetro que se ACABA de recorrer (v90)', () => {
+    // El pelotón frena: 80 s el km anterior (45 km/h) y 120 el siguiente (30). Desde la v90 manda el
+    // anterior: en la cima de un puerto la radio enseñaba ya la velocidad de la bajada, y el dueño lo
+    // vio en Calar Alto (cabeza a 58 km/h en la misma foto en que el grupo del líder iba a 20).
     const foto = (km: number, t: number) =>
       radioKmFrom(
         km,
@@ -444,7 +446,9 @@ describe('radioForStorage: la velocidad de un grupo la miden SUS HOMBRES', () =>
       { starters: 20, kms: [foto(10, 1000), foto(11, 1080), foto(12, 1200)] },
       new Set(),
     )
-    expect(stored.kms[1]!.groups[0]!.speedKmh).toBeCloseTo(30, 1)
+    expect(stored.kms[1]!.groups[0]!.speedKmh).toBeCloseTo(45, 1)
+    // La primera foto no tiene kilómetro anterior: mide el siguiente.
+    expect(stored.kms[0]!.groups[0]!.speedKmh).toBeCloseTo(45, 1)
   })
 
   it('y si tampoco el kilómetro de antes está limpio, sigue sin haber velocidad que enseñar', () => {

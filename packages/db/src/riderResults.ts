@@ -1,4 +1,4 @@
-import { SEASON_CALENDAR } from '@cyclingstar/engine'
+import { SEASON_CALENDAR, stageCities } from '@cyclingstar/engine'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
 import { gcOrderBy } from './gcSort.js'
@@ -25,6 +25,9 @@ import { raceGc, raceRosters, stageResults } from './schema.js'
 export interface RiderStagePlacing {
   stageDay: number
   puesto: number
+  /** Salida y llegada de la etapa en SU temporada (`stageCities`): el historial también la sitúa. */
+  from: string | null
+  to: string | null
 }
 
 /** El paso del corredor por una carrera: su general y, debajo, sus etapas. */
@@ -80,7 +83,7 @@ export function buildRiderRaceResults(
   const byRace = new Map<string, { sortKey: number; result: RiderRaceResult }>()
   for (const row of stageRows) {
     const m = /^(.*):s(\d+)$/.exec(row.raceId)
-    if (!m) continue // la vuelta de prueba no cuenta como carrera del calendario
+    if (!m) continue // una clave sin temporada no es del calendario
     const baseId = m[1]!
     const season = Number(m[2])
     const race = SEASON_CALENDAR.find((rc) => rc.id === baseId)
@@ -107,7 +110,13 @@ export function buildRiderRaceResults(
       }
       byRace.set(row.raceId, entry)
     }
-    entry.result.stages.push({ stageDay: row.stageDay, puesto: row.puesto })
+    const ciudades = stageCities(baseId, season, row.stageDay)
+    entry.result.stages.push({
+      stageDay: row.stageDay,
+      puesto: row.puesto,
+      from: ciudades?.from ?? null,
+      to: ciudades?.to ?? null,
+    })
   }
 
   const out = [...byRace.values()].sort((a, b) => b.sortKey - a.sortKey).slice(0, limit)

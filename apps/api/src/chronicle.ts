@@ -11,10 +11,10 @@ import {
 import { z } from 'zod'
 
 /**
- * Construcción de la crónica de una etapa. La comparten las dos rutas que la sirven —el replay de
- * la vuelta de prueba (re-simulando desde el snapshot sellado) y el journal de una etapa del
- * calendario (leyendo los eventos congelados)—, que antes repetían ~120 líneas idénticas: el mapa
- * de orden narrativo, el ordenado, el deduplicado y los marcadores de la altimetría. Duplicar eso
+ * Construcción de la crónica de una etapa: el mapa de orden narrativo, el ordenado, el deduplicado y
+ * los marcadores de la altimetría. La sirve el journal de una etapa del calendario (leyendo los
+ * eventos congelados). Se sacó aquí cuando dos rutas repetían ~120 líneas idénticas (la otra era el
+ * replay de la vuelta de prueba, retirada por decisión del dueño el 02/10/2026): duplicar eso
  * significaba que cualquier evento nuevo del motor había que darlo de alta en dos sitios.
  */
 
@@ -201,7 +201,7 @@ export interface ChronicleNames {
  * `leaders` son los maillots de la CARRETERA de ese día (la clasificación tras la etapa N−1). El
  * maillot entra en la identidad, junto al dorsal y la bandera, y no como un dato aparte del evento:
  * así sale en todas las menciones sin tocar ninguna de las cincuenta plantillas del journal. Sin
- * `leaders` —vuelta de prueba, etapa 1, carrera de un día— nadie lleva ninguno.
+ * `leaders` —etapa 1, carrera de un día— nadie lleva ninguno.
  */
 export function chronicleNames(
   sources: readonly ChronicleRiderSource[],

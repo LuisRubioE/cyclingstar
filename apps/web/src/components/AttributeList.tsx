@@ -3,6 +3,7 @@ import {
   ATTRIBUTE_DESCRIPTIONS,
   ATTRIBUTE_LABELS,
   type Attribute,
+  type CeilingOpinion,
   SESSION_CATALOG,
   attrProgress,
   attrStars,
@@ -10,16 +11,8 @@ import {
   trendArrow,
 } from '@cyclingstar/shared'
 import { useState } from 'react'
+import { COACH_OPINION_TEXT } from '../domain/coachOpinion'
 import { StarRating } from './StarRating'
-
-/** What the coach thinks you can reach. Deliberately vague: it's an opinion, not your ceiling. */
-export type CeilingOpinion = 'tres' | 'cuatro' | 'cinco'
-
-const OPINION_TEXT: Record<CeilingOpinion, string> = {
-  tres: "I don't see you going past 3★ here",
-  cuatro: 'You could reach 4★ here',
-  cinco: "There's 5★ material in this one",
-}
 
 /**
  * The extra layer that only YOUR OWN sheet gets (docs/entrenamiento.md §2.3): the progress mark
@@ -29,6 +22,10 @@ const OPINION_TEXT: Record<CeilingOpinion, string> = {
 export interface AttributeDetail {
   /** Δ over the last 28 days, per attribute. Missing means it didn't move. */
   trend?: Partial<Record<Attribute, number>>
+  /**
+   * What the coach makes of each attribute: RELATIVE to the rest of this rider, and vaguer the less
+   * he knows him (docs/agenda.md §4.20). Never a level, never stars.
+   */
   opinion?: Partial<Record<Attribute, CeilingOpinion>>
 }
 
@@ -131,7 +128,7 @@ export function AttributeList({
                 {opinion && (
                   <p className="mt-2 italic text-slate-500">
                     <span className="not-italic font-medium text-slate-600">Coach: </span>
-                    {OPINION_TEXT[opinion]}
+                    {COACH_OPINION_TEXT[opinion]}
                   </p>
                 )}
               </div>

@@ -1,4 +1,5 @@
 import type { FormPoint } from '../api/form'
+import { StageRoute } from './StageRoute'
 
 /**
  * DÓNDE SE FUE LA ENERGÍA DE UN DÍA DE CARRERA.
@@ -65,8 +66,10 @@ export function RaceEffortLog({ points, max = 8 }: { points: FormPoint[]; max?: 
         return (
           <li key={p.gameDay} className="py-3">
             <div className="flex items-baseline justify-between gap-3">
-              <span className="text-sm font-semibold text-slate-800 capitalize">
-                {tituloDelDia(p.activity)}
+              <span className="text-sm font-semibold text-slate-800">
+                <span className="capitalize">{tituloDelDia(p.activity)}</span>
+                {/* De dónde a dónde fue la etapa, fuera del `capitalize`: las ciudades van como son. */}
+                <StageRoute from={p.from} to={p.to} className="ml-1.5 font-normal text-slate-500" />
               </span>
               <span className="text-xs text-slate-400 tabular-nums">
                 day {p.gameDay} · TSS {Math.round(p.tss)}

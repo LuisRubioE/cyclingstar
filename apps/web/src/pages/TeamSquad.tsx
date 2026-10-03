@@ -1,4 +1,4 @@
-import { COUNTRIES, VOCATION_LABELS, type Vocation } from '@cyclingstar/shared'
+import { COUNTRIES } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -11,7 +11,7 @@ import { Jersey } from '../components/Jersey'
 import { Panel, SectionBar } from '../components/Panel'
 import { RaceResultList } from '../components/RaceResults'
 import { RiderName } from '../components/RiderName'
-import { palmaresLabel } from '../domain/labels'
+import { palmaresLabel, archetypeLabel } from '../domain/labels'
 
 /**
  * `My Team → Squad` (docs/navegacion.md §3.4): mis compañeros de equipo, en SOLO LECTURA.
@@ -126,7 +126,7 @@ function SquadRow({ rider, isMe }: { rider: TeamRider; isMe: boolean }) {
           )}
         </span>
         <span className="hidden w-32 shrink-0 text-sm text-slate-500 sm:block">
-          {VOCATION_LABELS[rider.archetype as Vocation] ?? rider.archetype}
+          {archetypeLabel(rider.archetype)}
         </span>
         <span className="w-20 shrink-0 text-right text-sm tabular-nums text-slate-400">
           {rider.seasonPoints.toLocaleString('en-US')}

@@ -299,6 +299,48 @@ export function jerseyBreakDamp(esMaillot: boolean, kind: MoveKind, onClimb: boo
   return onClimb ? STAGE.jerseyBreakDampClimb : STAGE.jerseyBreakDampFlat
 }
 
+/**
+ * ¿SE GUARDA ESTE RESERVÓN? (v91). La SPEC 6.18 le da un multiplicador de ataque personal de 0:
+ * guarda los cerillos y solo los gasta cuando hay algo que defender o que jugarse de verdad. Hasta
+ * la v90 no se notaba en el que más motivo tiene para moverse, el cazaetapas: ver
+ * `STAGE.reservon`. Se guarda salvo en lo suyo:
+ *
+ * - **su cita**: el jugador le marcó el kilómetro, y una orden explícita manda sobre la mentalidad;
+ * - **la general**, si se la juega (la misma ventana de `ataque_final`): en el desenlace o dentro de
+ *   un grupo, en el terreno de la general, y siempre que el que se mueve sea otro hombre de la
+ *   general.
+ *
+ * Todo lo demás (la fuga del día, el contraataque, el puente, el ataque de dentro de una fuga, el
+ * desenlace de una etapa que no le va nada) no es asunto suyo.
+ *
+ * SOLO EL CAZAETAPAS, y no por descuido. `reservon` es la mentalidad por defecto de todo el que no
+ * tiene otra (`autoOrders` se la pone a gregarios, velocistas, lanzadores y líderes; la consola del
+ * jugador y los escenarios canónicos, a todos), así que frenar a esos roles es cambiar la carrera
+ * del pelotón entero, y a ellos ya los frena su rol (apetito 0,45 sin órdenes, 0,3 el líder, 0,2 o
+ * menos el resto). Se midió (docs/balance.md «v91»): frenando a todos, el contraataque tras la
+ * captura de la llana canónica caía del 25 % al 16 % (suelo 25) y una fuga de las carreras pequeñas
+ * ganaba una llana por 1.043 s (techo 900); frenando también al líder, el mismo ganador en dos
+ * llegadas agrupadas de las carreras pequeñas caía del 26 % al 14 % (suelo 15). El líder conserva
+ * así intacto lo que ya tenía: defender y responder a sus rivales.
+ */
+export function reservonSeGuarda(
+  r: MoveRider,
+  ctx: MoveContext,
+  instigator: MoveRider | null = null,
+): boolean {
+  if (r.mentality !== 'reservon' || r.role !== 'cazaetapas') return false
+  if (r.triggerKm != null && ctx.km != null) {
+    if (Math.abs(ctx.km - r.triggerKm) <= STAGE.triggerWindowKm) return false
+  }
+  const ventana = STAGE.gcThreatFraction * STAGE.gcControlLeash
+  if (ctx.hasGcContext && r.gcDeficitSeconds <= ventana) {
+    if (ctx.kind === 'ataque_final' || ctx.kind === 'ataque_grupo') return false
+    if (ctx.gcTerrain) return false
+    if (instigator !== null && instigator.gcDeficitSeconds <= ventana) return false
+  }
+  return true
+}
+
 const KIND_FOLLOW: Record<MoveKind, number> = {
   fuga: 1,
   contraataque: 0.7,
@@ -673,7 +715,11 @@ export function followProbability(
     descuentoCompanero *
     // …Y EL MAILLOT TAMPOCO SALTA A LA RUEDA (R02.12 · v79), que es la mitad que faltaba entera:
     // «entrar en una fuga» es casi siempre seguir al que se va, no irse uno.
-    jerseyBreakDamp(r.esMaillot === true, ctx.kind, ctx.onClimb)
+    jerseyBreakDamp(r.esMaillot === true, ctx.kind, ctx.onClimb) *
+    // …Y EL RESERVÓN SOLO SALTA A LO QUE LE VA (v91). La mentalidad entraba como un sumando
+    // (`spirit`, −0,105) al lado del rol (0,3 para un cazaetapas), y ahí se perdía: su probabilidad
+    // de salto era dos tercios de la del supercombativo. Ver `reservonSeGuarda`.
+    (reservonSeGuarda(r, ctx, instigator) ? STAGE.reservon.seguir : 1)
   )
 }
 

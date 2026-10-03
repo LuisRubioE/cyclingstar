@@ -50,6 +50,7 @@ import {
   generateRiderGenome,
   planTss,
   projectLoad,
+  stageCities,
 } from '@cyclingstar/engine'
 import {
   PLAYER_START_AGE,
@@ -65,6 +66,17 @@ import { z } from 'zod'
 import { badRequest, notFound, sendError, unauthorized } from '../http.js'
 import type { RoutePlugin } from './context.js'
 import { parseRaceId, parseRaceKey, parseUuid } from './params.js'
+
+/**
+ * De dónde a dónde fue la etapa de un día de CARRERA del registro diario (`carrera:${raceId}:e${n}`,
+ * `stageRun.ts`), con las ciudades de la temporada de ese día; nada si el día no fue de carrera o la
+ * carrera ya no está en el calendario.
+ */
+function ciudadesDelDia(activity: string, gameDay: number): { from?: string; to?: string } {
+  const m = /^carrera:([^:]+):e(\d+)$/.exec(activity)
+  const c = m ? stageCities(m[1]!, currentSeason(gameDay), Number(m[2])) : null
+  return c ? { from: c.from, to: c.to } : {}
+}
 
 /** Horizonte del planificador de entrenamiento (SPEC 5.2: cola de 7 a 28 días). */
 export const TRAINING_HORIZON_DAYS = 28
@@ -236,9 +248,9 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
       world.currentDay + 1,
       world.currentDay + TRAINING_HORIZON_DAYS,
     )
-    // Días con carrera: no se entrenan (la carrera es su carga). Y días de VIAJE DE IDA: tampoco se
-    // entrenan, y el plan tiene que enseñarlos ANTES de que lleguen —el jugador planifica su semana
-    // contando con ellos, igual que cuenta con las etapas—.
+    // Días con carrera: no se entrenan (la carrera es su carga). Y días de VIAJE, de ida y de vuelta:
+    // tampoco se entrenan, y el plan tiene que enseñarlos ANTES de que lleguen —el jugador planifica
+    // su semana contando con ellos, igual que cuenta con las etapas—.
     const raceDays = await getRiderRaceDays(
       db,
       rider.id,
@@ -427,7 +439,10 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
     if (!userId) return unauthorized(reply)
     const rider = await getRiderForUser(db, userId)
     if (!rider) return { log: [], form: null }
-    const log = await getDailyLog(db, rider.id, 90)
+    const log = (await getDailyLog(db, rider.id, 90)).map((p) => ({
+      ...p,
+      ...ciudadesDelDia(p.activity, p.gameDay),
+    }))
     const latest = log[log.length - 1]
     const form = latest
       ? { stars: formStars(latest.ctl, latest.tsb), freshness: freshnessBar(latest.tsb) }
@@ -438,9 +453,16 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
 
   /**
    * LA FICHA DEL CORREDOR (docs/entrenamiento.md §2.3 y §4.6). Tres rutas, una regla: **ningún
-   * oculto cruza esta frontera**. El techo sale como una de tres frases, el talento y la fragilidad
-   * como códigos, y `facilities` como «bajo / normal / alto». Nada de lo que devuelven permite
-   * reconstruir un número interno, que es la condición que `MVP.md:114` pone a toda esta pantalla.
+   * oculto cruza esta frontera**. El techo sale como una opinión RELATIVA del entrenador (dónde
+   * tiene el corredor más margen y dónde menos, cada vez más segura con los años), el talento y la
+   * fragilidad como códigos, y `facilities` como «bajo / normal / alto». Nada de lo que devuelven
+   * permite reconstruir un número interno, que es la condición que `MVP.md:114` pone a toda esta
+   * pantalla.
+   *
+   * Y la regla tiene una segunda mitad que se aprendió por las malas (docs/agenda.md §4.20): **la
+   * API no manda lo que la pantalla no enseña**. La opinión viajaba como `tres` / `cuatro` /
+   * `cinco`, que no es un número crudo pero ES el techo en estrellas, y cualquiera lo leía en la
+   * pestaña de red. Los códigos de hoy son exactamente las frases de la pantalla.
    */
 
   // Flecha de tendencia: Δ28 por atributo (SPEC 3.2, con la ventana y los niveles de §2.3).
@@ -453,7 +475,7 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
     return { trend: await getAttrTrend(db, rider.id, world.currentDay) }
   })
 
-  // Opinión del entrenador: una vez por temporada, difusa a propósito (SPEC 5.6).
+  // Opinión del entrenador: una vez por temporada, relativa y borrosa al principio (SPEC 5.6).
   app.get('/api/riders/me/coach-view', async (request, reply) => {
     const userId = await currentUserId(request)
     if (!userId) return unauthorized(reply)

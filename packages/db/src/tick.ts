@@ -7,7 +7,6 @@ import { dedupeWorldNames } from './dedupeNames.js'
 import { runMarket } from './contracts.js'
 import { runPayroll, runTeamFinances } from './economy.js'
 import { LOCK_CLASS } from './locks.js'
-import { raceWorldDay } from './race.js'
 import { backfillRosters, runRollover } from './rollover.js'
 import { gameState, riderAttrLog, tickLog, worlds } from './schema.js'
 import { trainWorldDay } from './train.js'
@@ -35,8 +34,12 @@ import { WORLD_REPAIR_VERSION, markWorldRepaired, worldNeedsRepair } from './wor
  * engineVersion como parámetros para no depender de packages/engine.
  */
 
-/** Clave del advisory lock del tick, en su propia clase (ver locks.ts). */
-const TICK_LOCK_KEY = 1
+/**
+ * Clave del advisory lock del tick, en su propia clase (ver locks.ts). Exportada porque las
+ * migraciones 0044 y 0045 la escriben a mano (`pg_advisory_xact_lock(2, 1)`) y sus tests vigilan que
+ * siga casando.
+ */
+export const TICK_LOCK_KEY = 1
 
 /** Días de juego por temporada (debe casar con calendarRun.ts / rollover.ts). */
 const SEASON_DAYS = 364
@@ -57,9 +60,18 @@ export interface TickSummary {
   durationMs: number
 }
 
+/**
+ * LA SEMILLA CON LA QUE NACE UN MUNDO NUEVO. Pasó de `'cyclingstar'` a `'cyclingstar-2'` por
+ * decisión del dueño (01/10/2026): el próximo mundo tiene que estrenar los equipos y los nombres del
+ * generador de nombres ampliado, no repetir los del primero. Solo la lee `ensureGenesis` al crear un
+ * mundo: uno que ya existe conserva la suya (ver `runTick`).
+ */
+export const GENESIS_WORLD_SEED = 'cyclingstar-2'
+
 export interface RunTickOptions {
   now: Date
   msPerGameDay: number
+  /** Semilla para un mundo NUEVO; uno existente usa la suya (`worlds.world_seed`). */
   worldSeed: string
   engineVersion: number
   /**
@@ -112,7 +124,7 @@ type Db = ReturnType<typeof drizzle>
 async function ensureGenesis(
   db: Db,
   opts: RunTickOptions,
-): Promise<{ worldId: string; worldCreatedAt: Date; currentDay: number }> {
+): Promise<{ worldId: string; worldCreatedAt: Date; currentDay: number; worldSeed: string }> {
   const state = await db.select().from(gameState).limit(1)
   const existing = state[0]
   if (existing) {
@@ -121,7 +133,12 @@ async function ensureGenesis(
     if (!w) {
       throw new Error('game_state referencia un mundo inexistente')
     }
-    return { worldId: w.id, worldCreatedAt: w.createdAt, currentDay: existing.currentDay }
+    return {
+      worldId: w.id,
+      worldCreatedAt: w.createdAt,
+      currentDay: existing.currentDay,
+      worldSeed: w.worldSeed,
+    }
   }
 
   const inserted = await db
@@ -146,7 +163,12 @@ async function ensureGenesis(
     currentDay: 0,
     lastProcessedDay: 0,
   })
-  return { worldId: world.id, worldCreatedAt: world.createdAt, currentDay: 0 }
+  return {
+    worldId: world.id,
+    worldCreatedAt: world.createdAt,
+    currentDay: 0,
+    worldSeed: world.worldSeed,
+  }
 }
 
 /**
@@ -217,13 +239,21 @@ export async function runTick(databaseUrl: string, opts: RunTickOptions): Promis
     }
     try {
       const genesis = await ensureGenesis(db, opts)
+      /**
+       * LA SEMILLA ES LA DEL MUNDO, NO LA DEL CÓDIGO. `opts.worldSeed` solo bautiza un mundo NUEVO;
+       * uno que ya existe sigue con la suya, la que guarda `worlds.world_seed` y la que lee la API
+       * (`getCurrentWorld`) para las previsiones de inscritos. Hasta aquí el tick usaba la del
+       * código, así que cambiarla (para que un mundo nuevo saque nombres nuevos) habría cambiado a
+       * mitad de temporada el azar del mundo vivo y lo habría descasado de la API.
+       */
+      const worldSeed = genesis.worldSeed
       // TRANSICIÓN E1 (v88, una vez por mundo): antes de procesar ningún día, las carreras que
       // empiezan en los próximos 10 días de juego se congelan con el recorrido del generador viejo.
       // Si falla se registra y el tick sigue: sin la marca, el próximo tick lo vuelve a intentar.
       const notaE1 = await transicionE1(db, genesis.worldId, genesis.currentDay)
       // Génesis del mundo NPC (SPEC 10, Paso 33): equipos y ~1.600 corredores. Idempotente, así
       // que rellena también un mundo creado antes de este paso; solo hace trabajo una vez.
-      await db.transaction((tx) => seedWorld(tx, genesis.worldId, opts.worldSeed))
+      await db.transaction((tx) => seedWorld(tx, genesis.worldId, worldSeed))
       const wanted =
         opts.forceDays != null
           ? genesis.currentDay + opts.forceDays
@@ -241,12 +271,7 @@ export async function runTick(databaseUrl: string, opts: RunTickOptions): Promis
       // Completa plantillas NPC bajo mínimos hasta el tamaño actual (p.ej. un mundo creado con WT a
       // 14 se sube a 28) sin regenerar el mundo. Idempotente: no hace nada cuando están al completo.
       await db.transaction(async (tx) => {
-        await backfillRosters(
-          tx,
-          genesis.worldId,
-          opts.worldSeed,
-          Math.floor(genesis.currentDay / 364),
-        )
+        await backfillRosters(tx, genesis.worldId, worldSeed, Math.floor(genesis.currentDay / 364))
       })
 
       let day = genesis.currentDay
@@ -265,15 +290,13 @@ export async function runTick(databaseUrl: string, opts: RunTickOptions): Promis
           // pidiera con filas ya bloqueadas se abrazarían mortalmente (ver lockCalendarDay).
           await lockCalendarDay(tx, genesis.worldId, next, { repairWorld: needsRepair })
           // Al cruzar a una temporada nueva, primero el rollover (retiros, neopros, ascensos).
-          await runRollover(tx, genesis.worldId, next, opts.worldSeed)
-          const racedTest = await raceWorldDay(tx, genesis.worldId, next, opts.worldSeed)
-          const racedCal = await runCalendarDay(tx, genesis.worldId, next, opts.worldSeed, {
+          await runRollover(tx, genesis.worldId, next, worldSeed)
+          const raced = await runCalendarDay(tx, genesis.worldId, next, worldSeed, {
             repairWorld: needsRepair,
           })
-          const raced = new Set([...racedTest, ...racedCal])
-          await trainWorldDay(tx, genesis.worldId, next, opts.worldSeed, raced)
-          await runCallups(tx, genesis.worldId, next, opts.worldSeed)
-          await runMarket(tx, genesis.worldId, next, opts.worldSeed)
+          await trainWorldDay(tx, genesis.worldId, next, worldSeed, raced)
+          await runCallups(tx, genesis.worldId, next, worldSeed)
+          await runMarket(tx, genesis.worldId, next, worldSeed)
           await runPayroll(tx, genesis.worldId, next)
           await runTeamFinances(tx, genesis.worldId, next)
           await purgeAttrLog(tx, next)
@@ -318,7 +341,7 @@ export async function runTick(databaseUrl: string, opts: RunTickOptions): Promis
         await db.transaction((tx) => clusterTeamNationalities(tx, genesis.worldId))
         // Rebautiza a los extranjeros sobrantes de cada equipo bot con su país (mundos antiguos o con
         // pocos paisanos donde reubicar no basta). Idempotente una vez alcanzada la cuota nacional.
-        await db.transaction((tx) => renationalizeBotRosters(tx, genesis.worldId, opts.worldSeed))
+        await db.transaction((tx) => renationalizeBotRosters(tx, genesis.worldId, worldSeed))
         // Un bot vive en el país de SU equipo: repara residencias que quedaron obsoletas al reubicar
         // o renacionalizar plantillas. Idempotente.
         await db.transaction((tx) => reconcileBotResidences(tx, genesis.worldId))

@@ -130,6 +130,11 @@ describe('las carreras PEQUEÑAS con forma de producción (v23)', () => {
     expect(llana.medianWinnerKmh).toBeGreaterThan(media.medianWinnerKmh)
     expect(media.medianWinnerKmh).toBeGreaterThan(reina.medianWinnerKmh)
     expect(llana.medianWinnerKmh).toBeLessThanOrEqual(48)
-    expect(reina.medianWinnerKmh).toBeGreaterThanOrEqual(32)
+    // El suelo de la reina baja de 32 a 31 en la v90, y no por calibración: el banco llevaba la
+    // reina en 32,01 km/h, en el mismo borde, y al dejar de aplanarse los puertos listados de sus
+    // etapas reales (docs/balance.md «v90») las reinas suben de verdad y el ganador va a 31,89. La
+    // llana (43,13) y la media (39,63) no se mueven; una reina de carrera de una semana ganada a 31-32
+    // km/h está en el rango real.
+    expect(reina.medianWinnerKmh).toBeGreaterThanOrEqual(31)
   })
 })

@@ -20,7 +20,6 @@ import {
   SEASON_CALENDAR,
   type StageProfile,
   calendarForSeason,
-  stageEndpoints,
   stagesForSeason,
 } from '@cyclingstar/engine'
 import { DAYS_PER_SEASON, NO_LEADERS, currentSeason, raceLeaders } from '@cyclingstar/shared'
@@ -57,8 +56,6 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
       // etapas); vacío en las que no tienen. Permite marcar el descanso en la lista del calendario.
       restAfter: race.restAfter ?? [],
       stages: race.stages.map((stage) => {
-        // De dónde a dónde va la etapa: localidades reales del recorrido de autoría de la carrera.
-        const ends = stageEndpoints(race.id, stage.index)
         // La etiqueta del final la pone el RECORRIDO, no el terreno declarado (ver stageHistory.ts).
         const spec = calendarStageSpec(stage, stageKm(stage.profile.segments))
         return {
@@ -68,8 +65,10 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
           kind: spec.kind,
           km: spec.km,
           timeTrial: spec.timeTrial,
-          from: ends?.from ?? null,
-          to: ends?.to ?? null,
+          // De dónde a dónde va la etapa ESTE año: la edición real, el recorrido de autoría o la
+          // ciudad del campeonato de la temporada (la etapa del calendario las trae siempre).
+          from: stage.from,
+          to: stage.to,
         }
       }),
     }))
@@ -105,7 +104,6 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
           frozen: frozen[i] ?? frozenFromCalendar(deLaTemporada),
           anterior: anterior?.[i] ?? null,
           run: raced.get(deLaTemporada.index),
-          ends: stageEndpoints(race.id, deLaTemporada.index),
         }),
       )
     // Días de descanso: índices de etapa (1-based) tras los que hay descanso (grandes vueltas y

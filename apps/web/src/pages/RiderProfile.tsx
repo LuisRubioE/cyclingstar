@@ -1,7 +1,6 @@
 import {
   ATTRIBUTES,
   COUNTRIES,
-  VOCATION_LABELS,
   type Attribute,
   type Vocation,
   birthdayDayOfSeason,
@@ -27,11 +26,12 @@ import { LastRaceReport } from '../components/LastRaceReport'
 import { InfoRow, Panel, SectionBar } from '../components/Panel'
 import { RaceResultList } from '../components/RaceResults'
 import { RoleEditor } from '../components/RoleEditor'
+import { StageRoute } from '../components/StageRoute'
 import { StarRating } from '../components/StarRating'
 import { TeamLink } from '../components/TeamLink'
 import { conditionBars, conditionLabel } from '../domain/condition'
 import { HEALTH_LOOK, healthNote, healthUntilLabel } from '../domain/health'
-import { palmaresLabel } from '../domain/labels'
+import { palmaresLabel, archetypeLabel } from '../domain/labels'
 
 /**
  * LAS FRASES POR REGLA (docs/entrenamiento.md §2.3). El servidor manda códigos y el texto vive aquí,
@@ -79,7 +79,7 @@ function Identity({ rider, gameDay }: { rider: PublicRiderDetail; gameDay: numbe
           </span>
         </p>
         <p className="text-sm text-slate-500">
-          {VOCATION_LABELS[rider.archetype as Vocation] ?? rider.archetype}
+          {archetypeLabel(rider.archetype)}
           {' · '}
           <Link
             to={`/world/nations/${rider.country}`}
@@ -414,7 +414,7 @@ export function RiderProfile() {
             {owner ? (
               <RoleEditor current={rider.archetype as Vocation} />
             ) : (
-              (VOCATION_LABELS[rider.archetype as Vocation] ?? rider.archetype)
+              archetypeLabel(rider.archetype)
             )}
           </InfoRow>
           {rider.fieldSize > 0 && (
@@ -481,6 +481,8 @@ export function RiderProfile() {
                   {palmaresLabel(p.kind)}
                   {p.detail && ` · ${p.detail}`}
                 </span>
+                {/* Una victoria de etapa dice también de dónde a dónde fue. */}
+                <StageRoute from={p.from} to={p.to} className="truncate text-slate-400" />
               </li>
             ))}
           </ul>

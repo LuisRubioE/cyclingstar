@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { palmaresCities } from './ranking.js'
 import { buildRiderRaceResults } from './riderResults.js'
 
 /**
@@ -47,10 +48,27 @@ describe('buildRiderRaceResults', () => {
       10,
     )
     expect(out).toHaveLength(1)
-    expect(out[0]!.stages).toEqual([
+    // Solo día y puesto: las ciudades que cada etapa gana tienen su propio test, abajo.
+    expect(out[0]!.stages.map(({ stageDay, puesto }) => ({ stageDay, puesto }))).toEqual([
       { stageDay: 1, puesto: 1 },
       { stageDay: 2, puesto: 1 },
       { stageDay: 3, puesto: 3 },
+    ])
+  })
+
+  it('cada etapa del desglose dice de dónde a dónde fue (ciudades de SU temporada)', () => {
+    const [race] = buildRiderRaceResults(
+      [
+        { raceId: FRANCE, stageDay: 2, puesto: 4 },
+        { raceId: FRANCE, stageDay: 1, puesto: 9 },
+      ],
+      new Map(),
+      new Map(),
+      10,
+    )
+    expect(race!.stages).toEqual([
+      { stageDay: 1, puesto: 9, from: 'Barcelona', to: 'Barcelona' },
+      { stageDay: 2, puesto: 4, from: 'Tarragona', to: 'Barcelona' },
     ])
   })
 
@@ -112,7 +130,7 @@ describe('buildRiderRaceResults', () => {
     ])
   })
 
-  it('ignora la vuelta de prueba y las carreras que no están en el calendario', () => {
+  it('ignora las claves sin temporada (la vieja vuelta de prueba) y las que no están en el calendario', () => {
     const out = buildRiderRaceResults(
       [
         { raceId: 'test-tour', stageDay: 1, puesto: 1 },
@@ -123,5 +141,14 @@ describe('buildRiderRaceResults', () => {
       10,
     )
     expect(out).toEqual([])
+  })
+})
+
+describe('palmaresCities', () => {
+  it('una victoria de etapa gana su salida y su llegada; lo demás, nada', () => {
+    const fila = { season: 0, raceId: 'race-france', kind: 'stage', detail: 'Stage 2' }
+    expect(palmaresCities(fila)).toEqual({ from: 'Tarragona', to: 'Barcelona' })
+    expect(palmaresCities({ ...fila, kind: 'gc', detail: '' })).toEqual({ from: null, to: null })
+    expect(palmaresCities({ ...fila, raceId: 'test-tour' })).toEqual({ from: null, to: null })
   })
 })

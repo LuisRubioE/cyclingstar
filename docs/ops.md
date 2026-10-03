@@ -149,7 +149,9 @@ mundo (la reparación es idempotente). La comparación ignora mayúsculas y espa
 
 - Servicio web: `node apps/api/dist/index.js` (aplica migraciones al arrancar con advisory lock).
 - Cron del tick: invoca el avance del mundo según `TICK_INTERVAL_MINUTES`.
-- Las migraciones son aditivas (Drizzle) y se aplican solas al arrancar; no hay pasos manuales.
+- Las migraciones son aditivas (Drizzle) y se aplican solas al arrancar; no hay pasos manuales. La
+  excepción es la 0044, que reinicia el mundo (ver «Migración 0044» más abajo). La 0045 borra los
+  datos de la vuelta de prueba (ver «Migración 0045»).
 
 ## Cambio de calendario de la v87: congelar antes de desplegar (generador E1, paso 8)
 
@@ -247,3 +249,76 @@ propósito, con la causa en la nota de balance.
   persiste; el correo se usa para la cuenta). Revisar con la legislación aplicable antes del
   lanzamiento público.
 - **Sentry** — ver arriba.
+
+## Migración 0043: topes del arquetipo en el mundo vivo
+
+Se aplica sola con el `migrate.mjs` del tick. Baja a 83 el techo y el atributo de los físicos que el arquetipo de cada BOT penaliza (offset ≤ −14 en `ARCHETYPE_CEILING_OFFSETS`, sin TAC). No toca a los corredores con `user_id`. Es de un solo sentido: los valores anteriores no se guardan, así que si hiciera falta deshacerla habría que restaurar la copia de seguridad previa (`scripts/backup.sh`). El porqué, en `docs/balance.md`.
+
+## Migración 0044: reinicio del mundo con copia dentro de la base
+
+Decisión del dueño (02/10/2026): el mundo de producción se borra entero y empieza uno nuevo con la génesis v2 (semilla `cyclingstar-2`, motor v90). Como nadie tiene acceso externo a la base de producción, la copia de seguridad la hace la propia migración, dentro de la base y antes de borrar. Borra datos a propósito, pero se aplica sola al arrancar, como todas, y no hay pasos manuales para el despliegue. El SQL y su cabecera están en `packages/db/drizzle/0044_reinicio_del_mundo.sql`; el test que la prueba entera (copia, borrado, génesis y restauración) es `packages/db/src/reinicioDelMundo.test.ts`.
+
+### Qué hace
+
+Todo en la transacción del migrador de Drizzle, que aplica las migraciones pendientes en una sola transacción. Si algo falla, la base queda exactamente como estaba y el servicio no arranca (Railway lo reintenta).
+
+1. Toma el candado del tick en su versión de transacción: espera a que termine un tick en curso del servicio viejo y no deja empezar otro hasta el final.
+2. Bloquea las 29 tablas del mundo (ACCESS EXCLUSIVE), para que nadie escriba entre la copia y el borrado.
+3. Crea el esquema `respaldo_mundo_1` con una copia de cada una (solo datos: sin índices ni claves) y la tabla `respaldo_mundo_1.leeme`, con una fila: cuándo, motor 90, el motivo, el id del mundo, su semilla y su día de juego. El esquema se crea sin `IF NOT EXISTS`: si ya existiera, la migración falla sin tocar nada.
+4. Vacía las 29 tablas con un único `TRUNCATE`.
+
+Se copian y se vacían: `worlds`, `game_state`, `tick_log`, `teams`, `riders`, `rider_attrs`, `rider_hidden`, `rider_attr_log`, `rider_daily_log`, `rider_points`, `rider_race_prefs`, `training_plans`, `training_orders`, `team_training_orders`, `race_routes`, `race_rosters`, `race_entries`, `race_callups`, `team_race_plan`, `stage_orders`, `stage_results`, `race_gc`, `stage_team_results`, `stage_snapshots`, `palmares`, `news`, `transactions`, `contracts` y `offers`. Incluye los equipos con dueño y los corredores de los jugadores.
+
+Se conservan: `users`, `accounts`, `sessions` y `verifications` (cuentas, credenciales y sesiones abiertas; también `premium` e `is_admin`) y `blocked_names` (la lista de bloqueo de los admins, que vale para cualquier mundo). La contabilidad de Drizzle vive en el esquema `drizzle` y no se toca.
+
+### Después de la migración
+
+- El servicio web lanza un tick nada más arrancar y el servicio tick hace lo mismo tras `migrate.mjs`. Con `game_state` vacío, `ensureGenesis` crea el mundo nuevo (semilla `cyclingstar-2`, ya reparado y con `e1_transicion_hasta` = -1, así que ni las reparaciones de mundos viejos ni la transición E1 hacen nada) y `seedWorld` siembra equipos y corredores. Entre el final de la migración y el final de esa génesis, la API responde como en una base nueva: sin mundo (`mundo_no_inicializado` al crear ciclista, listas vacías) y luego con un mundo sin equipos durante la siembra. Son segundos.
+- **Los jugadores tienen que crear un ciclista nuevo.** Siguen dados de alta y con la sesión abierta; al entrar, la web les ve sin ciclista y les lleva a `/create`, que es el camino de siempre de un jugador nuevo. Un jugador premium que había tomado un equipo bot tiene que volver a tomarlo. El genoma del ciclista nuevo se siembra con la semilla del mundo nuevo, así que no repite el del anterior.
+- Si el despliegue ocurre con un tick a medio procesar en el servicio viejo, la migración espera a que termine. Si el servicio viejo choca con ella por los bloqueos de las tablas, Postgres aborta a uno de los dos: si es la migración, no ha pasado nada y Railway reintenta el arranque.
+
+### Espacio en disco
+
+La copia es una segunda copia de los datos del mundo 1. Durante la migración la base llega a tener el mundo dos veces (más el WAL de la copia). Al terminar, el `TRUNCATE` libera las tablas originales, de modo que queda la copia (más o menos lo que pesaban los datos del mundo 1, sin índices) más el mundo nuevo, que empieza pequeño y crece. Cuando el mundo nuevo llegue al tamaño del viejo, la base ocupará del orden del doble de lo que ocupaba el mundo 1, hasta que se borre la copia. Lo que pesa la copia se ve con:
+
+```sql
+SELECT pg_size_pretty(sum(pg_total_relation_size(c.oid)))
+FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+WHERE n.nspname = 'respaldo_mundo_1' AND c.relkind = 'r';
+```
+
+Los dumps de `scripts/backup.sh` incluyen también el esquema `respaldo_mundo_1`.
+
+### Restaurar el mundo 1
+
+Nunca SQL a mano en producción: se hace con una migración custom (`pnpm exec drizzle-kit generate --custom --name=restaurar_mundo_1` dentro de `packages/db`) con este contenido. Vacía el mundo nuevo y vuelve a meter el viejo; los jugadores que hubieran creado un ciclista en el mundo nuevo lo pierden y recuperan el del mundo 1. Antes de reinsertar pone a NULL el usuario de los corredores y equipos cuyo usuario se haya borrado después del reinicio, porque si no la clave foránea rompería la restauración.
+
+```sql
+UPDATE respaldo_mundo_1.riders SET user_id = NULL
+  WHERE user_id IS NOT NULL AND user_id NOT IN (SELECT id FROM public.users);
+UPDATE respaldo_mundo_1.teams SET owner_user_id = NULL
+  WHERE owner_user_id IS NOT NULL AND owner_user_id NOT IN (SELECT id FROM public.users);
+TRUNCATE TABLE worlds, game_state, tick_log, teams, riders, rider_attrs, rider_hidden,
+  rider_attr_log, rider_daily_log, rider_points, rider_race_prefs, training_plans,
+  training_orders, team_training_orders, race_routes, race_rosters, race_entries, race_callups,
+  team_race_plan, stage_orders, stage_results, race_gc, stage_team_results, stage_snapshots,
+  palmares, news, transactions, contracts, offers CASCADE;
+INSERT INTO public.worlds SELECT * FROM respaldo_mundo_1.worlds;
+INSERT INTO public.game_state SELECT * FROM respaldo_mundo_1.game_state;
+INSERT INTO public.tick_log SELECT * FROM respaldo_mundo_1.tick_log;
+INSERT INTO public.teams SELECT * FROM respaldo_mundo_1.teams;
+INSERT INTO public.riders SELECT * FROM respaldo_mundo_1.riders;
+-- y una línea igual por cada una de las otras 24 tablas, en el orden de la lista del TRUNCATE.
+```
+
+Tal cual (con las 29 líneas) lo corre el test de la 0044 y deja el mundo 1 idéntico. Dos condiciones: `SELECT *` solo vale mientras ninguna migración posterior haya cambiado las columnas de esas tablas (si alguna lo hizo, se escriben las columnas a mano), y el código desplegado tiene que entender el mundo 1, que corría con el motor v90.
+
+### Borrar la copia
+
+Cuando el dueño dé el mundo nuevo por bueno, otra migración custom con `DROP SCHEMA respaldo_mundo_1 CASCADE;` libera el espacio. Hasta entonces no estorba: ningún código la lee.
+
+## Migración 0045: sin vuelta de prueba
+
+Decisión del dueño (02/10/2026): la vuelta de prueba del MVP (clave `test-tour`) desaparece del juego. El tick ya no la corre (`race.ts` y `npc.ts` de packages/db se borraron) y la API ya no sirve `/api/races/test-tour*`. La migración `0045_sin_vuelta_de_prueba.sql` limpia lo que el mundo nuevo llegó a escribir en su GD1: rosters, órdenes, resultados, general, clasificación por equipos, snapshots y palmarés con `race_id = 'test-tour'`; sus puntos de ranking (descontados también de `season_points` si son de la temporada en curso); los premios del corredor con nota «Test tour · …» (descontados de `riders.money`); el parte diario `carrera:test-tour:eN`, y los titulares que nombran la vuelta. El premio de equipo no deja rastro por carrera y se queda en el presupuesto. La fisiología de esos días tampoco se toca. Lo comprueba `sinVueltaDePrueba.test.ts`.
+
+Si algún día se restaura el mundo 1 desde `respaldo_mundo_1`, sus filas de la vuelta de prueba vuelven con él: la migración de restauración puede repetir las sentencias de la 0045 al final.

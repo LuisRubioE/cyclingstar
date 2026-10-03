@@ -8,6 +8,7 @@ import {
   type StageOrders,
   type StageRider,
   applyDailyLoad,
+  applyLeaderJersey,
   autoStageOrders,
   eff0,
   gcPointsByClass,
@@ -20,6 +21,7 @@ import {
   radioForStorage,
   radioKmPoints,
   simulateStage,
+  stageCities,
   stageLengthKm,
   stagePointsByClass,
   stageSeed,
@@ -35,6 +37,7 @@ import {
   riderAge,
   seasonPosition,
   seededRng,
+  stageRouteText,
 } from '@cyclingstar/shared'
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
@@ -76,8 +79,17 @@ type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
  * sellaba los replays (un cambio de comportamiento reproducía las etapas viejas con la física nueva).
  */
 const ENGINE_VERSION_NUM: number = ENGINE_VERSION
-/** El maillot de líder da alas: el líder de la general rinde ~4% por encima de su nivel efectivo. */
-const LEADER_JERSEY_BOOST = 1.04
+
+/**
+ * De dónde a dónde va la etapa de `spec`, para los titulares que la citan (el dueño: «cada vez que
+ * mencione una etapa, que diga siempre el origen y destino»). Vacío fuera del calendario, donde no
+ * hay ciudades.
+ */
+function rutaDe(spec: Pick<StageRunSpec, 'raceId' | 'season' | 'stageDay'>): { route?: string } {
+  const c = stageCities(spec.raceId, spec.season, spec.stageDay)
+  const texto = c ? stageRouteText(c.from, c.to) : null
+  return texto ? { route: texto } : {}
+}
 
 export interface StageRunSpec {
   /** Clave de almacenamiento (results/gc/snapshots/rosters). Puede incluir la temporada. */
@@ -99,8 +111,8 @@ export interface StageRunSpec {
    * DÓNDE Y CUÁNDO SE CORRE, que es lo único que el clima necesita saber de una etapa (v43). País
    * ISO del calendario y día del año; sin esto `simulateStage` cae al clima de referencia y toda la
    * geografía de la v42 —la corrección que el dueño pidió: «el clima debería depender del país y del
-   * GD»— no llegaba a ninguna carrera real. Opcional porque la vuelta de prueba no está en ninguna
-   * parte del mapa.
+   * GD»— no llegaba a ninguna carrera real. Opcional porque una etapa fuera del calendario (los tests
+   * con perfiles escritos a mano) no está en ninguna parte del mapa.
    */
   lugar?: { pais?: string; dia: number }
   /**
@@ -454,18 +466,10 @@ export async function runOneStage(
   }
   if (stageRiders.length === 0) return new Set()
 
-  // El maillot de líder "da alas": quien defiende la general (déficit 0) rinde un poco por encima de
-  // su nivel, como en el ciclismo real. Solo cuando existe jersey de verdad (hay una brecha en la
-  // general: alguien con déficit > 0), así que en la etapa 1 y en carreras de un día no aplica.
-  const hasLeaderJersey = stageRiders.some((r) => r.gcDeficitSeconds > 0)
-  if (hasLeaderJersey) {
-    for (const r of stageRiders) {
-      if (r.gcDeficitSeconds !== 0) continue
-      for (const attr of ATTRIBUTES) {
-        r.eff0[attr] = Math.min(100, r.eff0[attr] * LEADER_JERSEY_BOOST)
-      }
-    }
-  }
+  // El maillot de líder "da alas" (v90): vive en el motor (`applyLeaderJersey`, `STAGE.jersey`) y
+  // solo sube el esfuerzo sostenido con el que se defiende una general, no el sprint. Hasta la v89
+  // era un 4 % sobre los diez atributos, SPR incluido, puesto aquí y fuera de todo banco.
+  const ridersDelDia = applyLeaderJersey(stageRiders)
 
   const seed = stageSeed({
     worldSeed,
@@ -490,7 +494,7 @@ export async function runOneStage(
   ).catch(() => null)
   const input: StageInput = {
     profile: spec.profile,
-    riders: stageRiders,
+    riders: ridersDelDia,
     ...(spec.timeTrial ? { timeTrial: true } : {}),
     // …Y SE CORRE DONDE Y CUANDO SE CORRE (v43). El banco ya lo pasaba desde la v42 y producción no,
     // así que el clima por país y fecha existía solo en la simulación: en el juego llovía el 20 % de
@@ -1075,6 +1079,7 @@ async function markAbandons<R extends { name: string }>(
         rider: riderById.get(entry.riderId)?.name ?? 'A rider',
         race: spec.raceName,
         stage: spec.stageDay,
+        ...rutaDe(spec),
         detail: ABANDON_DETAIL[entry.reason],
       },
       riderId: entry.riderId,
@@ -1212,7 +1217,12 @@ async function awardOutcome(
     gameDay,
     kind: winKind,
     seed: `win:${seedBase}`,
-    data: { rider: nameOf(stageWinner.riderId), race: spec.raceName, stage: spec.stageDay },
+    data: {
+      rider: nameOf(stageWinner.riderId),
+      race: spec.raceName,
+      stage: spec.stageDay,
+      ...rutaDe(spec),
+    },
     riderId: stageWinner.riderId,
   })
   const gcWinnerId = gcOrder[0]

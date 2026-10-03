@@ -22,7 +22,7 @@ Versión 0.6. Fuente de verdad del proyecto (SPEC.md). Toda constante numérica 
 
 ### v0.4
 
-- Talento reformulado como vector de techos por atributo. La vocación sesga los techos pero no garantiza élite vocacional; se conserva un don global mínimo en algún atributo (constante ajustable) y re creación libre hasta el día 90 de la primera temporada (3.4, 3.5).
+- Talento reformulado como vector de techos por atributo. La vocación sesga los techos pero no garantiza élite vocacional; se conserva un don global mínimo en un atributo primario de la vocación (constante ajustable) y re creación libre hasta el día 90 de la primera temporada (3.4, 3.5).
 - `K_dim` anclado al techo personal (5.2) y nuevos canales de descubrimiento del talento (5.6).
 - Creación: país preseleccionado por IP y generador de nombres por país con regeneración y lista de bloqueo de profesionales reales (3.6).
 - Motor: coste y selección en función de la pendiente real, con tramos dentro de puertos y descensos; drafting decreciente con la pendiente; muros resueltos con COL; categorías de montaña derivadas y relegadas a la contabilidad de puntos (6.2, 6.5, 6.9); nuevos invariantes (6.15).
@@ -72,13 +72,13 @@ formStarsScale(x) = clamp( round(x / 10) / 2 , 0.5 , 5 )   // FORMA y FRESCURA
 // 85.64 -> round(8.564)=9 -> 4.5 estrellas
 
 attrStars(x)      // ATRIBUTOS: medias estrellas sobre las bandas del dominio
-// cortes enteros 17 / 34 / 51 / 67 / 84 ; medias en 9 / 25 / 42 / 59 / 75
+// cortes enteros 22 / 42 / 58 / 74 / 92 ; medias en 11 / 32 / 50 / 66 / 83
 ```
 
-La forma es una magnitud continua de 0 a 100 sin umbrales de dominio, y su suelo de media estrella dice «siempre hay algo». Un atributo lleva los umbrales con los que se mide el mundo —«cinco estrellas» son 84 o más— y ahí el 0 existe: se puede no saber esprintar. Con el nombre genérico `stars()` las dos se confundían (`stars(84) = 4`, `attrStars(84) = 5`), y por eso la de la forma lleva ahora su apellido.
+La forma es una magnitud continua de 0 a 100 sin umbrales de dominio, y su suelo de media estrella dice «siempre hay algo». Un atributo lleva sus propias bandas, «cinco estrellas» son 92 o más, y ahí el 0 existe: se puede no saber esprintar. Con el nombre genérico `stars()` las dos se confundían (`stars(92) = 4.5`, `attrStars(92) = 5`), y por eso la de la forma lleva ahora su apellido. Las bandas se recalibraron en octubre de 2026 (eran 17 / 34 / 51 / 67 / 84) para que un 90 se lea como cuatro y media y un 76,5 como cuatro; el banco de mundo conserva la escala vieja para sus listones (`docs/balance.md` «La escala de estrellas de los atributos, recalibrada»).
 
 - **Ciclista propio**: estrellas exactas, más una **marca de progreso de cuatro pasos** dentro de la banda (`attrProgress`) y una **flecha de tendencia**. La flecha usa una ventana de **28 días** y **cinco niveles** —`↑` ≥ +1,0 · `↗` ≥ +0,3 · `→` · `↘` ≤ −0,3 · `↓` ≤ −1,0—, no los 7 días y tres niveles que este SPEC pedía: a siete días manda el ruido de un solo bloque y con tres niveles no se distingue «no se mueve» de «sube despacio», que es justo lo que hace un atributo secundario (+0,3 en cuatro semanas). La fuente es `rider_attr_log`, que se purga a 60 días.
-- **Opinión del entrenador**, una por temporada y por atributo: `techo + N(0, σ)` cuantizado a tres frases (no pasa de 3★ / puede llegar a 4★ / tiene madera de 5★), con σ = 6 y σ = 3 a partir de los 24. Enseñar el techo mata la exploración; no enseñar nada deja «no sé si mejoro».
+- **Opinión del entrenador**, una por temporada y por atributo, **relativa al propio corredor y sin estrellas** (5.6): dice dónde tiene más margen y dónde menos, no a qué nivel llega. Enseñar el techo mata la exploración; no enseñar nada deja «no sé si mejoro».
 - **Ciclistas ajenos**: estrellas exactas, como el propio pero **sin** marca, flecha ni opinión. El informe de ojeador con ruido `stars(x + N(0, 4))` **no está implementado y es una decisión abierta del dueño**: llegará el día que exista scouting como función, no antes.
 - Consecuencia de diseño: con estrella y marca, dos corredores «iguales» a la vista pueden separarse tres o cuatro puntos internos. El jugador infiere su nivel real por resultados, no por hoja de cálculo.
 
@@ -119,9 +119,11 @@ techos:
   techo_a = clamp( N(mu_a, 9), 45, 96 )     // correlaciones suaves en constants.ts (MON~RES +, SPR~MON -)
 
 don global (constante GLOBAL_GIFT = true, ajustable):
-  si max(techo) < 82 -> el atributo argmax se eleva a U(82, 90)
-  // no se garantiza que seas escalador; se garantiza que eres ciclista
+  si max(techo de los PRIMARIOS) < 82 -> el mejor primario se eleva a U(82, 90)
+  // se garantiza que eres ciclista, y de lo que elegiste ser
 ```
+
+El don iba al argmax de los diez techos, que podía ser cualquier atributo: un velocista podía quedarse con su único techo de élite en la táctica. Desde octubre de 2026 va al mejor primario de la vocación (`docs/balance.md` «Creación: el don va a la especialidad elegida»).
 
 Válvula de escape: re creación gratuita e ilimitada hasta el día 90 de la primera temporada (descarta palmarés, dinero y progreso). Después, solo el retiro voluntario estándar. La tasa de abandono de la beta arbitrará el peso 12 y la existencia del don global.
 
@@ -283,7 +285,7 @@ Encadenar carreras sin descansar jamás cristaliza el bono: solo fatiga.
 
 Los techos (3.5) son ocultos; se revelan por tres canales, siempre en lenguaje difuso:
 
-- **Opinión del entrenador** (implementado): una por temporada y por atributo, `techo + N(0, σ)` cuantizado a tres frases, con σ = 6 y σ = 3 a partir de los 24. Es el «test de esfuerzo» de la versión anterior de este SPEC, sin coste y sin racimo: cobrar por ello convertía el descubrimiento en un peaje, y limitarlo a dos atributos dejaba ocho a oscuras.
+- **Opinión del entrenador** (implementado): una por temporada y por atributo, y nunca en estrellas (`docs/agenda.md` §4.20). Ordena los diez techos del corredor, cada uno con un error propio sembrado por corredor que encoge con la edad (σ 9 a los 19, 1,5 a los 27), y habla del PUESTO de cada atributo dentro del corredor: a los 18-19 solo «parece que hay algo aquí» en uno y «es pronto» en el resto; de los 20 a los 22, arriba, medio y abajo con reservas; desde los 23, «lo tuyo», «fuerte», «normal» y «flojo». Subir todos los techos a la vez no cambia ni una opinión, así que no se pueden comparar cuentas. La API manda solo esos códigos, que son las frases de la pantalla. Es el «test de esfuerzo» de la versión anterior de este SPEC, sin coste y sin racimo: cobrar por ello convertía el descubrimiento en un peaje, y limitarlo a dos atributos dejaba ocho a oscuras.
 - **Frases por regla** (implementado), una por bloque de 28 días en el informe: talento alto y joven → «progresas más deprisa de lo que esperaba a tu edad»; REC alta → «recuperas rápido, puedes afinar más corto»; fragilidad alta → «eres propenso a caer enfermo cuando te cargas»; pasado el declive → «toca defender lo que tienes», con la etiqueta *Declining* junto a la edad; `kDim` agotado en la carta → «en esto estás cerca de lo que puedes dar, el margen está en otro sitio». Ningún número.
 - **El informe del bloque** (implementado): por atributo, cuánto se movió en 28 días y **de dónde vino cada trozo** —entrenando, corriendo, sobrecompensando—. Responde a «hice X y no mejoró» y a «por qué mejoré», que son las dos preguntas que el juego no sabía contestar.
 - La carretera: la relación entre `workUnits` invertidos y resultados obtenidos es el oráculo definitivo.
@@ -340,7 +342,7 @@ Consecuencia central del cambio: los boquetes ya no se estiman, se integran. Un 
 ### 6.4 La ley de velocidad (una sola para todo el juego)
 
 ```
-w(g)   = clamp( (g - 2) / 6 , 0.15, 1.0 )
+w(g)   = clamp( g / 5.5 , 0.15, 1.0 )        // v90; hasta la v89, (g - 2) / 6 (docs/balance.md «v90»)
 muro   = subida total <= 2.5 km con g >= 8  -> el atributo de subida es COL en vez de MON
 
 perfil_i(bloque):

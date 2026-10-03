@@ -21,6 +21,7 @@ export { deriveClimbCategory, isWall, sampleProfile, stageLengthKm } from './sta
 export { stageRng, stageSeed, type StageSeedParts } from './stage/rng.js'
 export { blockProbability, rollHazard } from './stage/hazard.js'
 export { simulateStage, stageTss } from './stage/simulate.js'
+export { alasDelMaillot, applyLeaderJersey, hayMaillot, llevaMaillot } from './stage/maillot.js'
 export {
   bearingAt,
   descentRisk,
@@ -95,10 +96,13 @@ export {
 export {
   SEASON_CALENDAR,
   calendarForSeason,
+  ciudadDeCampeonato,
   raceForSeason,
+  stageCities,
   stagesForSeason,
   type CalendarRace,
   type CalendarStage,
+  type Ciudades,
   type RaceFormat,
   type RaceLevel,
   type StageSpec,
@@ -304,15 +308,22 @@ export {
   type ProjectedDay,
 } from './training/projection.js'
 export {
-  ceilingOpinion,
+  ceilingOpinions,
   coachNotes,
+  coachReading,
   facilitiesTier,
   isDeclining,
+  opinionSd,
   COACH_NOTE,
-  OPINION_AGE_EXPERTO,
-  OPINION_SD_JOVEN,
-  OPINION_SD_VETERANO,
+  OPINION_AGE_CLARA,
+  OPINION_AGE_FORMANDOSE,
+  OPINION_AGE_INICIAL,
+  OPINION_AGE_SABE,
+  OPINION_RANKS,
+  OPINION_SD_FINAL,
+  OPINION_SD_INICIAL,
   type CeilingOpinion,
+  type CoachReading,
   type CoachNote,
   type CoachNotesInput,
 } from './coachView.js'

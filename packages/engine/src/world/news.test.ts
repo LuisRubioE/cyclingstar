@@ -17,6 +17,20 @@ describe('engine: generador de noticias (Paso 39)', () => {
     expect(text).toMatch(/5/)
   })
 
+  it('un titular que cita una etapa dice de dónde a dónde va', () => {
+    const d = { rider: 'R', race: 'Race X', stage: 2, route: 'Tarragona → Barcelona' }
+    expect(renderNews('stage_win', 's', d)).toBe(
+      'R wins stage 2 (Tarragona → Barcelona) of the Race X.',
+    )
+    expect(renderNews('tt_win', 's', { ...d, route: 'Barcelona' })).toBe(
+      'R wins the stage 2 (Barcelona) time trial at the Race X.',
+    )
+    expect(renderNews('breakaway_win', 's', d)).toContain('stage 2 (Tarragona → Barcelona)')
+    expect(renderNews('abandon', 's', d)).toBe(
+      'R abandons the Race X on stage 2 (Tarragona → Barcelona).',
+    )
+  })
+
   it('los titulares son concretos: un hecho por línea, con el nombre y sin florituras', () => {
     // La noticia es un DATO (quién, qué, dónde), no una crónica: el estilo narrativo va en el journal.
     const cases: { kind: NewsKind; data: Parameters<typeof renderNews>[2]; must: RegExp }[] = [

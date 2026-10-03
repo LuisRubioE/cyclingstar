@@ -18,6 +18,7 @@ import {
   raceClassLabel,
   raceRouteSourceLabel,
   roleLabel,
+  travelDaysLabel,
 } from './labels'
 
 describe('web: diccionario de dominio (español interno → inglés de UI)', () => {
@@ -90,5 +91,18 @@ describe('web: el origen del recorrido (docs/generador.md §11.4)', () => {
 
   it('la edición es la temporada del mundo más uno', () => {
     expect(editionLabel(1)).toBe('Edition 1')
+  })
+})
+
+describe('web: los días de viaje se anuncian de ida Y vuelta (docs/agenda.md §4.19)', () => {
+  it('el dato llega por trayecto y se enseña el viaje completo, desglosado', () => {
+    // Continental: un día para ir y otro para volver. Antes se anunciaba «1d».
+    expect(travelDaysLabel(1)).toBe('2 travel days (1 out, 1 back)')
+    // Intercontinental: dos y dos. Antes se anunciaba «2d».
+    expect(travelDaysLabel(2)).toBe('4 travel days (2 out, 2 back)')
+  })
+
+  it('en casa no hay viaje y no se pinta nada', () => {
+    expect(travelDaysLabel(0)).toBe('')
   })
 })

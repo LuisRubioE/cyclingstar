@@ -9,13 +9,13 @@ export { runMigrations } from './migrate.js'
 export {
   DEFAULT_MAX_DAYS_PER_RUN,
   POISON_PILL_ATTEMPTS,
+  GENESIS_WORLD_SEED,
   runTick,
   targetGameDay,
   type RunTickOptions,
   type TickSummary,
 } from './tick.js'
 export { WORLD_REPAIR_VERSION, markWorldRepaired, worldNeedsRepair } from './worldRepair.js'
-export { raceWorldDay } from './race.js'
 export {
   ENROLL_LOCK_DAYS,
   ensureRaceRosterFrozen,
@@ -61,7 +61,6 @@ export {
   type TeamPlan,
   type WorldPlan,
 } from './world.js'
-export { ensureTestTourField } from './npc.js'
 export {
   getRacePrefs,
   releaseUncontractedHumans,
@@ -265,9 +264,13 @@ export {
   getRiderUpcomingRaces,
   outboundTravelDays,
   retireFromRace,
+  returnTravelDays,
+  returnTravelDaysFor,
+  ridersTravellingBack,
   ridersTravellingOutbound,
   type RetireOutcome,
   type RiderTravelDay,
+  type TravelDirection,
   type RiderUpcomingRace,
 } from './riderSchedule.js'
 export {
@@ -283,7 +286,6 @@ export {
   type RaceReportEvent,
 } from './raceReport.js'
 export {
-  addToRoster,
   getRaceRivals,
   getRaceTeams,
   getRosterTeammates,

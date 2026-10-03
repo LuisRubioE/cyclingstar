@@ -285,12 +285,17 @@ describe('api: gating de sesión', () => {
     { method: 'POST', url: `/api/riders/me/offers/${UUID}/accept` },
     { method: 'POST', url: `/api/riders/me/offers/${UUID}/reject` },
     { method: 'GET', url: '/api/riders/me/race-entries' },
-    { method: 'POST', url: '/api/riders/me/race-entries/test-tour' },
-    { method: 'DELETE', url: '/api/riders/me/race-entries/test-tour' },
+    { method: 'POST', url: '/api/riders/me/race-entries/tour-de-france' },
+    { method: 'DELETE', url: '/api/riders/me/race-entries/tour-de-france' },
     // Retirada voluntaria de una carrera en marcha (docs/motor.md §V.5): es una acción que borra
     // la carrera de un corredor, así que jamás puede quedar abierta sin sesión.
     { method: 'POST', url: '/api/riders/me/races/race-france:s0/retire' },
     { method: 'PUT', url: '/api/riders/me/archetype' },
+    // La ficha propia: la opinión del entrenador habla del potencial del corredor, y eso solo se le
+    // cuenta a él (docs/agenda.md §4.20). Sin sesión no sale nada.
+    { method: 'GET', url: '/api/riders/me/trend' },
+    { method: 'GET', url: '/api/riders/me/coach-view' },
+    { method: 'GET', url: '/api/riders/me/report' },
     { method: 'POST', url: '/api/riders' },
     { method: 'GET', url: '/api/me/team-control' },
     { method: 'GET', url: '/api/me/team-training' },
@@ -301,10 +306,6 @@ describe('api: gating de sesión', () => {
     { method: 'GET', url: '/api/teams/me/race-plan' },
     { method: 'POST', url: '/api/teams/me/calendar/tour-de-france' },
     { method: 'DELETE', url: '/api/teams/me/calendar/tour-de-france' },
-    { method: 'GET', url: '/api/races/test-tour' },
-    { method: 'PUT', url: '/api/races/test-tour/orders' },
-    { method: 'GET', url: '/api/races/test-tour/results' },
-    { method: 'GET', url: '/api/races/test-tour/stages/1' },
     { method: 'GET', url: '/api/my-orders?raceKey=tour-de-france:s0' },
     { method: 'PUT', url: '/api/my-orders' },
   ]
@@ -355,7 +356,6 @@ describe('api: validación de parámetros de ruta', () => {
     '/api/calendar/..%2Fetc%2Fpasswd/startlist',
     '/api/races/carrera-que-no-existe/stages/1',
     '/api/races/tour-de-france/stages/no-es-un-numero',
-    '/api/races/test-tour/stages/99999',
   ]
 
   it.each(notFoundRoutes)('GET %s responde 404, no 500', async (url) => {
@@ -379,6 +379,25 @@ describe('api: validación de parámetros de ruta', () => {
     const res = await sessionApp.inject({ method, url, payload: {} })
     expect(res.statusCode).toBe(400)
     expect(res.json()).toEqual({ ok: false, error: 'validacion' })
+  })
+
+  /**
+   * LA VUELTA DE PRUEBA YA NO EXISTE (decisión del dueño, 02/10/2026). Era un resto del MVP que el
+   * tick corría en los primeros días de cada mundo; sus rutas se retiraron y una URL vieja (un
+   * marcador, una pestaña abierta) tiene que ser un 404 limpio, no un 500 ni una vuelta resucitada.
+   */
+  const vueltaDePrueba: { method: 'GET' | 'PUT'; url: string }[] = [
+    { method: 'GET', url: '/api/races/test-tour' },
+    { method: 'PUT', url: '/api/races/test-tour/orders' },
+    { method: 'GET', url: '/api/races/test-tour/history' },
+    { method: 'GET', url: '/api/races/test-tour/results' },
+    { method: 'GET', url: '/api/races/test-tour/stages/1' },
+  ]
+
+  it.each(vueltaDePrueba)('$method $url ya no existe (404)', async ({ method, url }) => {
+    const res = await sessionApp.inject({ method, url, payload: {} })
+    expect(res.statusCode).toBe(404)
+    expect(res.json()).toEqual({ ok: false, error: 'no_encontrado' })
   })
 
   it('/api/my-orders con una raceKey mal formada responde 404', async () => {

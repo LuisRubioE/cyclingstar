@@ -132,6 +132,7 @@ import {
   sprintRegimeKmh,
 } from './finish.js'
 import { markingMargin, resolveMarking, wheelProbability } from './marcaje.js'
+import { hayMaillot, llevaMaillot } from './maillot.js'
 import {
   type MoveContext,
   type MoveKind,
@@ -147,6 +148,7 @@ import {
   DAY_BREAK_KINDS,
   pelotonAllowsWithDie,
   rankOf,
+  reservonSeGuarda,
   rollMoveAttempt,
   sustainsJump,
   PHASE_TABLE,
@@ -1284,6 +1286,11 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    */
   const rngTactics2 = streams('tactics2')
   /**
+   * Subflujo NOMINAL del reservón (v91): si el reservón elegido para atacar se lanza o se lo guarda.
+   * Es una tirada NUEVA, y por eso va aparte: no corre la secuencia de `rngTactics`.
+   */
+  const rngReservon = streams('reservon')
+  /**
    * Subflujo NOMINAL de la pizarra (R24.2, SPEC 6.1): el error del director no puede salir de
    * `rngTactics`, que ya consume los intentos y la aduana. Con flujo propio, una etapa con los
    * directores apagados sale dígito a dígito como antes.
@@ -1711,6 +1718,11 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   const shed: Group[] = []
   let shedCounter = 0
   /**
+   * LOS GRUPOS DE DESCOLGADOS QUE VAN PUENTEANDO HACIA EL PELOTÓN (v91), con el km hasta el que
+   * aguantan el esfuerzo. Nacen de `attemptFrom` y viven en `shed`: ver la nota de `desdeAtras`.
+   */
+  const puenteDesdeAtras = new Map<string, number>()
+  /**
    * Cuántos se han DEJADO IR ya desde cada grupo (regla 8), por id de grupo. Es el freno colectivo
    * de la v17: rendirse es una decisión individual, pero en el km 212 de Race Colombia e5 se
    * sentaron 73 corredores de golpe, cada uno pasando su guarda por separado, y en cuanto se fueron
@@ -1767,6 +1779,15 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    * Se borra en cuanto se separan: el contacto tiene que ser SEGUIDO.
    */
   const contactoDesdeKm = new Map<string, number>()
+  /**
+   * EL MAYOR HUECO QUE HA LLEGADO A TENER CADA DESCOLGADO CON EL PELOTÓN (v90).
+   *
+   * Distingue al que cuelga de la cola de su propio grupo —nunca se ha ido más allá de
+   * `regroupGapSeconds`, es el pelotón estirado y vuelve por la puerta ancha— del GRUPO DE VERDAD,
+   * el que llegó a ir por detrás a más de eso: ese ya es otra carrera y para volver tiene que cerrar
+   * el hueco en carretera, hasta `captureGapSeconds`. Ver la puerta del reenganche, más abajo.
+   */
+  const huecoMaxDescolgado = new Map<string, number>()
   const llevaEnContacto = (kmAhora: number, a: string, b: string, juntos: boolean): boolean => {
     const clave = a < b ? `${a}|${b}` : `${b}|${a}`
     if (!juntos) {
@@ -3086,6 +3107,9 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       if (m.abandonedKm === null && m.finishTs === null) grupoAntes.set(m.input.riderId, m.groupId)
     }
     const km = kmAt(i)
+    /** ¿Sigue este grupo de descolgados puenteando hacia el pelotón? (v91, `puenteDesdeAtras`). */
+    const enPuente = (g: Group): boolean =>
+      (puenteDesdeAtras.get(g.id) ?? Number.NEGATIVE_INFINITY) >= km
     /**
      * EL TIEMPO DE ESTE KILÓMETRO, resuelto contra el rumbo de este kilómetro (R14.1/R14.2, paso 20).
      *
@@ -6969,11 +6993,15 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        * Es lo que hace legible el A/B: los intentos que R19 AÑADE no corren la secuencia de los que
        * ya existían.
        */
+      /**
+       * ¿SALE DE UN GRUPO DE DESCOLGADOS? Ni el pelotón ni un movimiento: es un `shed-N`, y lo
+       * único que se lanza desde ahí es el puente hacia el pelotón (R19.7). Ese puente nace POR
+       * DETRÁS del pelotón y se resuelve aparte (ver `puenteDesdeAtras`).
+       */
+      const desdeAtras =
+        source.id !== PELOTON && moves.find((m) => m.g.id === source.id) === undefined
       const legacyVetado =
-        cerrando ||
-        ventanaFlyer ||
-        moves.length >= STAGE.tacticMaxMoves ||
-        (source.id !== PELOTON && moves.find((m) => m.g.id === source.id) === undefined)
+        cerrando || ventanaFlyer || moves.length >= STAGE.tacticMaxMoves || desdeAtras
       const dado = fasesOn && legacyVetado ? rngTactics2 : rngTactics
       const ctx: MoveContext = {
         kind,
@@ -7033,6 +7061,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             cuerdaDeHoy,
           )
       if (!salta) return
+      const intentoAnterior = lastAttemptKm.get(source.id)
       lastAttemptKm.set(source.id, km)
       const type = finishType(finishTerrain, members.length)
       const pool = members.map((m) => asMoveRider(m, type, source.id === (mainId ?? PELOTON)))
@@ -7051,6 +7080,23 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             ) ?? null)
         : chooseInstigator(pool, ctx, dado)
       if (instigator === null) return
+      /**
+       * …Y EL RESERVÓN ELEGIDO SE LO PIENSA (v91). `chooseInstigator` reparte el intento entre los
+       * apetitos del grupo, así que la mentalidad solo pesa CONTRA LOS DEMÁS: en un grupo de
+       * reservones, o donde el resto tiene aún menos ganas, el 0,3 del reservón se cancela y el
+       * cazaetapas ataca como si fuera supercombativo. Lo que la SPEC 6.18 le pide es absoluto (no
+       * gasta un cerillo sin motivo), así que aquí se le pregunta a él: si se guarda
+       * (`reservonSeGuarda`), solo se lanza con `iniciativa`, y si no, el intento se queda en nada y
+       * no cuenta como intento (el grupo no tiene por qué respirar después de un ataque que no hubo).
+       *
+       * El dado sale de su propio flujo nominal (`rngReservon`): solo se tira cuando el elegido es un
+       * reservón que se guarda, y no corre la secuencia de los demás intentos.
+       */
+      if (reservonSeGuarda(instigator, ctx) && rngReservon() >= STAGE.reservon.iniciativa) {
+        if (intentoAnterior === undefined) lastAttemptKm.delete(source.id)
+        else lastAttemptKm.set(source.id, intentoAnterior)
+        return
+      }
       // Regla 2: **algunos van atentos y saltan detrás**, y regla 3: **muchos de los que lo intentan
       // no lo consiguen**. Los que no sostienen se quedan donde estaban; no es un fallo del modelo,
       // es la mitad de por qué un ataque no prospera.
@@ -7110,6 +7156,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        * Sigue viajando como TELEMETRÍA, igual que el resto de los intentos que no merecen línea.
        */
       const narrate =
+        !desdeAtras &&
         km >= STAGE.tacticMinAttackKm &&
         (party.length >= STAGE.tacticAttemptNarrateRiders
           ? claimAttackNotice(0)
@@ -7221,8 +7268,9 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         const s = sims.get(r.riderId)
         if (!s) continue
         s.groupId = gid
-        // Desde aquí cuenta su fuga: es lo que se le cobrará si le cazan (v42).
-        if (s.fugaDesdeKm === null) s.fugaDesdeKm = km
+        // Desde aquí cuenta su fuga: es lo que se le cobrará si le cazan (v42). El que salta desde
+        // un grupo de descolgados hacia el pelotón no se ha fugado de nada (v91).
+        if (s.fugaDesdeKm === null && !desdeAtras) s.fugaDesdeKm = km
         s.matches = Math.max(0, s.matches - 1)
         // Lanzar el ataque cuesta un cerillo entero; saltar a la rueda del que ataca cuesta menos
         // —se va al rebufo— y por eso seguir es más barato que irse, como en carretera (SPEC 6.6).
@@ -7244,6 +7292,56 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         // …y lo mismo para la cuenta de la criba lejana, que lleva su propio libro (v21): el que se
         // ESCAPA no es un descolgado ni aquí ni allí.
         farEscaped += ids.length
+      }
+      if (desdeAtras) {
+        /**
+         * EL PUENTE DESDE ATRÁS ES UN GRUPO DE DESCOLGADOS QUE PERSIGUE, NO UNA FUGA (v91).
+         *
+         * Hasta la v90 nacía como un `Move` más, y un `Move` es por definición algo que va por
+         * DELANTE del pelotón: la caza de los movimientos (`peloton.tS - m.g.tS ≤
+         * captureGapSeconds`, abajo) lo daba por cazado en el mismo bloque en que nacía, porque un
+         * hueco negativo también es menor que cinco. Sus hombres entraban en el pelotón con el reloj
+         * del pelotón: medido sobre diez etapas 3 sintéticas de la Vuelta, 49 puentes así, 34 de
+         * ellos en un puerto, con regalos de hasta 132 s.
+         *
+         * Exigir el hueco por los dos lados no basta (se probó en la v90): el puente sigue vivo como
+         * movimiento por detrás del pelotón y todo lo que pregunta «¿hay algo delante?» —la
+         * persecución, la correa, la aduana, el parte de cabeza— lo contaba como una fuga que
+         * perseguir, y el pelotón apretaba por nada.
+         *
+         * Así que nace donde vive: en `shed`, con el reloj que le da su acelerón y el compromiso del
+         * puente (`tacticBridgeCommit`) mientras dure el esfuerzo (`tacticBridgeKm`). Nada que mire
+         * a los movimientos lo ve, y vuelve al pelotón por la puerta de los grupos establecidos,
+         * que es LLEGAR (`captureGapSeconds`), sin regalo. Si el esfuerzo se acaba sin llegar, es un
+         * grupo de descolgados como cualquier otro: rueda a lo que puede y se funde con el de atrás
+         * si le alcanza. Los cerillos y el dado se gastan igual que antes; lo que cambia es la
+         * carretera.
+         *
+         * Es telemetría y no frase (`narra` 0): la crónica cuenta los ataques del pelotón y de la
+         * fuga, y aquí no hay ni lo uno ni lo otro.
+         */
+        const g = createGroup(gid, ids, {
+          tS: source.tS - gap,
+          vActual: source.vActual,
+          compromiso: STAGE.tacticBridgeCommit,
+        })
+        // Viene de un grupo establecido y sigue siéndolo: la puerta ancha no es para él.
+        const huecoOrigen = huecoMaxDescolgado.get(source.id) ?? source.tS - peloton.tS
+        huecoMaxDescolgado.set(gid, Math.max(huecoOrigen, g.tS - peloton.tS))
+        shed.push(g)
+        puenteDesdeAtras.set(gid, km + STAGE.tacticBridgeKm)
+        log.emit(km, g.tS, 'intento', 'attack_go', names, {
+          hueco: Math.round(gap),
+          kind,
+          saltan: party.length,
+          tierra: stranded,
+          cuerda: 1,
+          grupo: members.length,
+          toGo: Math.round(kmToGo),
+          detras: 1,
+          narra: 0,
+        })
+        return
       }
       const g = createGroup(gid, ids, {
         tS: source.tS - gap,
@@ -7471,7 +7569,10 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
      * menudo se queda a medias, que es exactamente la regla 7.
      */
     if (fasesOn) {
-      for (const sg of shed) {
+      // Sobre una copia: el puente que nace aquí entra en `shed` (v91) y no salta otra vez en el
+      // mismo bloque. Y el grupo que ya va puenteando tampoco lanza otro puente.
+      for (const sg of [...shed]) {
+        if (enPuente(sg)) continue
         const gapAlPeloton = sg.tS - peloton.tS
         if (gapAlPeloton < STAGE.bridgeGapMinSeconds || gapAlPeloton > STAGE.bridgeGapMaxSeconds) {
           continue
@@ -7729,6 +7830,13 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           sg.compromiso = Math.min(sg.compromiso, STAGE.grupetoWaitCommit)
         }
       }
+      // EL PUENTE DESDE ATRÁS (v91) va a tope mientras dure el esfuerzo, como el que sale del
+      // pelotón (regla 7); pasado `tacticBridgeKm`, el ritmo es el de un descolgado cualquiera.
+      const hasta = puenteDesdeAtras.get(sg.id)
+      if (hasta !== undefined) {
+        if (km <= hasta) sg.compromiso = STAGE.tacticBridgeCommit
+        else puenteDesdeAtras.delete(sg.id)
+      }
     }
     for (let g = 0; g < shed.length; g++) {
       shed[g] = advance(
@@ -7895,13 +8003,30 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           Math.abs(gapSeconds(peloton, sg)) <=
             contactoS(membersOf(PELOTON).length, mem.length, peloton.vActual),
         )
-        if (
-          caught ||
-          enContacto ||
-          (!onRough &&
-            cerrando &&
-            gapSeconds(peloton, sg) <= STAGE.rejoinGapSeconds * shutFor(mem.length))
-        ) {
+        /**
+         * …Y LA PUERTA ANCHA ES SOLO PARA EL QUE NUNCA SE FUE (v90).
+         *
+         * El dueño, en la etapa 3 de la Vuelta: tres grupos separados por 33 s se juntan entre el km
+         * 149 y el 150, en un tramo casi llano, con la radio marcando 68 km/h. Medido: el grupo de 61
+         * cerró en carretera 5 a 7 s de ese kilómetro y la puerta de `rejoinGapSeconds` le regaló
+         * los otros 20 a 22. Ese grupo eran los descolgados del puerto anterior: llevaban kilómetros
+         * siendo OTRO grupo, no la cola estirada del pelotón.
+         *
+         * Así que la puerta depende de la historia del grupo. Si nunca pasó de `regroupGapSeconds`
+         * por detrás, es el pelotón estirado y entra como siempre (y con ello el fuerte que vuelve en
+         * el adoquín, la objeción de la v58). Si alguna vez la pasó, es un grupo establecido y entra
+         * al llegar a `captureGapSeconds`, como cualquier caza. Medido sobre diez etapas 3 sintéticas
+         * con el campo real: las fusiones con más de 10 s de hueco pasan de 15 a 0, y la mediana de
+         * PAV del ganador del banco del pavé no se mueve (72).
+         */
+        const huecoAhora = sg.tS - peloton.tS
+        const huecoMax = Math.max(huecoMaxDescolgado.get(sg.id) ?? huecoAhora, huecoAhora)
+        huecoMaxDescolgado.set(sg.id, huecoMax)
+        const puerta =
+          huecoMax > STAGE.regroupGapSeconds
+            ? STAGE.captureGapSeconds
+            : STAGE.rejoinGapSeconds * shutFor(mem.length)
+        if (caught || enContacto || (!onRough && cerrando && gapSeconds(peloton, sg) <= puerta)) {
           /**
            * …Y FUNDIRSE POR CONTACTO TAMPOCO REGALA SEGUNDOS (v81, la regla de la v76.1 aplicada
            * aquí).
@@ -7929,9 +8054,15 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           continue
         }
         // ¿se funde con un grupeto cercano ya por delante? forman un autobús que rueda junto.
-        const near = allHurt(sg)
-          ? undefined
-          : stillDropped.find((o) => Math.abs(o.tS - sg.tS) <= mergeGap && !allHurt(o))
+        // …y el que va PUENTEANDO (v91) tampoco: el grupo del que acaba de saltar le tiene a
+        // segundos y se lo volvería a tragar en el mismo bloque. Cuando el esfuerzo se acaba, vuelve
+        // a fundirse como cualquiera.
+        const near =
+          allHurt(sg) || enPuente(sg)
+            ? undefined
+            : stillDropped.find(
+                (o) => Math.abs(o.tS - sg.tS) <= mergeGap && !allHurt(o) && !enPuente(o),
+              )
         if (near) {
           for (const m of mem) m.groupId = near.id
           near.riderIds = [...near.riderIds, ...sg.riderIds]
@@ -8780,6 +8911,13 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             })
           }
         }
+        /**
+         * LA CAZA MIRA UN SOLO LADO, Y DESDE LA v91 PUEDE: todo movimiento nace POR DELANTE de su
+         * grupo de origen, y el único que nacía por detrás del pelotón —el puente desde un grupo de
+         * descolgados— ya no es un movimiento (ver `desdeAtras` en `attemptFrom`). Un hueco
+         * negativo aquí es el pelotón que acaba de alcanzar al movimiento en este bloque, no un
+         * grupo que va un minuto detrás y hereda su reloj.
+         */
         if (gap <= STAGE.captureGapSeconds) {
           /**
            * AL QUE LE CAZAN DESPUÉS DE UNA FUGA LARGA, SE LE ACABÓ EL DÍA (v42).
@@ -9376,6 +9514,8 @@ function finishStage(
   // Contador del orden de llegada. Los grupos ya van ordenados por reloj, así que basta con ir
   // repartiéndolo grupo a grupo y, dentro de cada uno, por el ranking del remate.
   let order = 0
+  // EL MAILLOT EN LA LÍNEA (v90, `stage/maillot.ts`): quién lo lleva hoy, si es que hay maillot.
+  const hayLider = hayMaillot([...sims.values()].map((s) => s.input))
 
   withMembers.forEach(({ group, members }, gi) => {
     const idSet = new Set(members.map((m) => m.input.riderId))
@@ -9482,6 +9622,32 @@ function finishStage(
       (a, l, i) => (aspirantes.has(i) ? Math.max(a, l.metros) : a),
       0,
     )
+    /**
+     * EL FAVORITO MARCADO (v90). Cuanto más claro es el favorito del sprint, más se le marca: todos
+     * quieren su rueda, los trenes rivales se le cruzan y le encierran, y sale peor colocado. Se mide
+     * contra el segundo rematador del grupo, con el peso del rol (el favorito es el que va a por la
+     * etapa), y solo cuenta la ventaja por encima de `margenLibre`: entre dos velocistas parejos
+     * nadie marca a nadie. Ver `STAGE.favoritoMarcado`.
+     */
+    let favoritoId: string | null = null
+    let mejorConRol = Number.NEGATIVE_INFINITY
+    let segundoConRol = Number.NEGATIVE_INFINITY
+    members.forEach((m, i) => {
+      const v = remates[i]! * (STAGE.finishRoleWeight[m.input.orders.role] ?? 1)
+      if (v > mejorConRol) {
+        segundoConRol = mejorConRol
+        mejorConRol = v
+        favoritoId = m.input.riderId
+      } else if (v > segundoConRol) segundoConRol = v
+    })
+    const marcajeFavorito =
+      sprintFinish && Number.isFinite(segundoConRol)
+        ? Math.min(
+            STAGE.favoritoMarcado.sitioMax,
+            STAGE.favoritoMarcado.sitioPorPunto *
+              Math.max(0, mejorConRol - segundoConRol - STAGE.favoritoMarcado.margenLibre),
+          )
+        : 0
     const ranked = members
       .map((m, i) => {
         const e = erosion(m.energy, m.energy0, m.input.eff0.RES)
@@ -9495,6 +9661,12 @@ function finishStage(
          * tocaba por número. Ver `finishRoleWeight`.
          */
         score *= STAGE.finishRoleWeight[m.input.orders.role] ?? 1
+        /**
+         * …Y EL QUE LLEVA EL MAILLOT NO SE VACÍA POR LA ETAPA (v90). Marca a sus rivales en vez de
+         * jugársela en la línea: las alas le sirven para llegar con el grupo, no para ganarlo. Ver
+         * `STAGE.jersey.remate`.
+         */
+        if (llevaMaillot(m.input, hayLider)) score *= STAGE.jersey.remate
         // Peaje del trabajo del día (docs/motor.md §12): `workUnits` ya se calculaba y no se usaba
         // para nada en el resultado.
         if (meanWork > 0) {
@@ -9584,7 +9756,19 @@ function finishStage(
           const amortiguada = 1 + (draw - 1) * STAGE.placement.residualLuck
           score *=
             residual === 0 ? 1 : Math.max(1 - 3 * residual, Math.min(1 + 3 * residual, amortiguada))
-          score *= placeFinishWeight(m.placement)
+          /**
+           * EL MAILLOT VA POR FUERA EN EL SPRINT (v90): lejos del roce de las ruedas, que es donde se
+           * cae un líder. Y EL FAVORITO CLARO VA ENCERRADO: todos quieren su rueda. Las dos cosas son
+           * colocación solo para el remate y solo en un final al sprint (`marcajeFavorito` es 0 en
+           * los demás); la colocación de carrera no se toca. Ver `STAGE.jersey.sitioSprint` y
+           * `STAGE.favoritoMarcado`.
+           */
+          const sitioDe = (o: RiderSim): number =>
+            o.placement +
+            (sprintFinish && llevaMaillot(o.input, hayLider) ? STAGE.jersey.sitioSprint : 0) +
+            (o.input.riderId === favoritoId ? marcajeFavorito : 0)
+          const sitio = sitioDe(m)
+          score *= placeFinishWeight(sitio)
           /**
            * «Los carriles están llenos» se cuenta con los ASPIRANTES que van delante, no con el
            * pelotón entero: lo que te tapa la salida es otro velocista abriendo, no el gregario que
@@ -9594,10 +9778,10 @@ function finishStage(
           const delante = members.filter(
             (o) =>
               o.input.riderId !== m.input.riderId &&
-              o.placement < m.placement &&
+              sitioDe(o) < sitio &&
               (STAGE.finishRoleWeight[o.input.orders.role] ?? 1) >= 1,
           ).length
-          if (sprintFinish && isBoxed(m.placement, delante, STAGE.placement.lanes)) {
+          if (sprintFinish && isBoxed(sitio, delante, STAGE.placement.lanes)) {
             score *= STAGE.placement.boxedEffect
           }
         } else {

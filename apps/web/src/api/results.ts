@@ -7,16 +7,13 @@ import {
   type ChronicleEntry,
   type GcEntry,
   type PointsEntry,
-  type RaceResults,
   type StageClassEntry,
   type StageGcEntry,
   type StageRaceContext,
   type StageReplay,
   type StageResultEntry,
-  type StageStatus,
   type TeamClassEntry,
   advanceWorldResponseSchema,
-  raceResultsSchema,
   stageReplaySchema,
 } from '@cyclingstar/shared'
 import { request } from './request'
@@ -25,26 +22,12 @@ export type {
   ChronicleEntry,
   GcEntry,
   PointsEntry,
-  RaceResults,
   StageClassEntry,
   StageGcEntry,
   StageRaceContext,
   StageReplay,
   StageResultEntry,
-  StageStatus,
   TeamClassEntry,
-}
-
-export async function fetchResults(): Promise<RaceResults> {
-  return request('/api/races/test-tour/results', raceResultsSchema, {
-    errorMessage: 'Could not load results.',
-  })
-}
-
-export async function fetchStageReplay(day: number): Promise<StageReplay> {
-  return request(`/api/races/test-tour/stages/${day}`, stageReplaySchema, {
-    errorMessage: 'Could not load the stage.',
-  })
 }
 
 /** Crónica/journal de una etapa de calendario (pública). */
