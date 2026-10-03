@@ -1,15 +1,4 @@
-import {
-  type NewsData,
-  type NewsKind as EngineNewsKind,
-  renderNews as renderNewsHoy,
-} from '@cyclingstar/engine'
-import {
-  type NameResolver,
-  type NewsKind,
-  type NewsPayload,
-  TEMPLATE_REV,
-  renderNews,
-} from '@cyclingstar/shared'
+import { type NewsPayload, TEMPLATE_REV } from '@cyclingstar/shared'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { emitNews, getGlobalNews, getRiderNews, getTeamNews, newsNames } from './news.js'
@@ -482,82 +471,26 @@ describe('db: emitNews guarda los datos y las lecturas redactan al leer', () => 
 })
 
 /**
- * EL INGLÉS DE HOY, CARÁCTER A CARÁCTER (§12.8): el render de `shared` contra la función del motor
- * que sustituye (`packages/engine/src/world/news.ts`, que sale del motor en el 4a), con los mismos
- * nombres y la misma ruta, en los once kinds de hoy. La única diferencia es la coma de `contract`.
+ * EL RESOLUTOR DE NOMBRES DE UNA PÁGINA (§12.8): `newsNames` contesta, con la base y el calendario,
+ * lo que `renderNews` pide al leer.
+ *
+ * Hasta el paso 4a de E2 este bloque cotejaba además, kind a kind, el render de `shared` con la
+ * función del motor a la que sustituyó (`packages/engine/src/world/news.ts`), en los once kinds de la
+ * v91 y con los mismos nombres y la misma ruta: salían iguales carácter a carácter salvo la coma de
+ * `contract`. El 4a sacó del motor `renderNews`, `NewsData` y `NewsKind` (decisión 4-p) y el cotejo se
+ * fue con ellos; lo que fijaba sigue en los goldens de `packages/shared/src/news.test.ts`.
  */
-describe('db: el render de shared dice lo que decía el del motor', () => {
-  const ruta = (raceId: string, season: number, stageDay: number): string | null =>
-    raceId === 'race-france' && season === 0 && stageDay === 2 ? 'Tarragona → Barcelona' : null
-  const nombres: NameResolver = {
-    rider: () => 'Ana Ruiz',
-    team: () => 'Equipo Alfa',
-    race: () => 'Race France',
-    country: () => 'Spain',
-    route: ruta,
-  }
-  const hoy: Record<Exclude<NewsKind, 'gc_lead_taken' | 'jersey_taken'>, NewsData> = {
-    stage_win: { rider: 'Ana Ruiz', race: 'Race France', stage: 2, route: 'Tarragona → Barcelona' },
-    tt_win: { rider: 'Ana Ruiz', race: 'Race France', stage: 2, route: 'Tarragona → Barcelona' },
-    breakaway_win: {
-      rider: 'Ana Ruiz',
-      race: 'Race France',
-      stage: 2,
-      route: 'Tarragona → Barcelona',
-    },
-    one_day_win: { rider: 'Ana Ruiz', race: 'Race France', stage: 1 },
-    one_day_tt_win: { rider: 'Ana Ruiz', race: 'Race France', stage: 1 },
-    kom: { rider: 'Ana Ruiz', race: 'Race France' },
-    gc_win: { rider: 'Ana Ruiz', race: 'Race France' },
-    contract: {
-      rider: 'Ana Ruiz',
-      team: 'Equipo Alfa',
-      detail: ', relocating to Spain with housing covered',
-    },
-    injury: { rider: 'Ana Ruiz', detail: '3 weeks' },
-    abandon: {
-      rider: 'Ana Ruiz',
-      race: 'Race France',
-      stage: 2,
-      route: 'Tarragona → Barcelona',
-      detail: 'eliminated on time',
-    },
-    retirement: { rider: 'Ana Ruiz', detail: 'at 37' },
-  }
+describe('db: newsNames resuelve lo que el render pide', () => {
   const r = { ...france, riderId: ANA, teamId: TEAM_A }
-  const ahora: Record<keyof typeof hoy, NewsPayload> = {
-    stage_win: { kind: 'stage_win', ...r, stageDay: 2 },
-    tt_win: { kind: 'tt_win', ...r, stageDay: 2 },
-    breakaway_win: { kind: 'breakaway_win', ...r, stageDay: 2 },
-    one_day_win: { kind: 'one_day_win', ...r, stageDay: 1 },
-    one_day_tt_win: { kind: 'one_day_tt_win', ...r, stageDay: 1 },
-    kom: { kind: 'kom', ...r, stageDay: 21 },
-    gc_win: { kind: 'gc_win', ...r, stageDay: 21 },
-    contract: {
-      kind: 'contract',
-      riderId: ANA,
-      toTeamId: TEAM_A,
-      fromTeamId: null,
-      relocateCountry: 'ES',
-      housingCovered: true,
-    },
-    injury: { kind: 'injury', ...r, stageDay: 2, days: 21, prevHealth: 'sano', prevUntilDay: null },
-    abandon: { kind: 'abandon', ...r, stageDay: 2, reason: 'fuera_control' },
-    retirement: { kind: 'retirement', riderId: ANA, teamId: TEAM_A, age: 37 },
+  const contract: NewsPayload = {
+    kind: 'contract',
+    riderId: ANA,
+    toTeamId: TEAM_A,
+    fromTeamId: null,
+    relocateCountry: 'ES',
+    housingCovered: true,
   }
-
-  it.each(Object.keys(hoy) as (keyof typeof hoy)[])('%s', (kind) => {
-    const antes = renderNewsHoy(kind as EngineNewsKind, 'semilla', hoy[kind])
-    const despues = renderNews('en', ahora[kind], 'semilla', TEMPLATE_REV, nombres)
-    if (kind === 'contract') {
-      expect(antes).toBe(
-        'Ana Ruiz signs for Equipo Alfa , relocating to Spain with housing covered.',
-      )
-      expect(despues).toBe(antes.replace(' ,', ','))
-    } else {
-      expect(despues).toBe(antes)
-    }
-  })
+  const stageWin: NewsPayload = { kind: 'stage_win', ...r, stageDay: 2 }
 
   it('newsNames resuelve con la base y el calendario lo que el render pide', async () => {
     const t = await startTestDb()
@@ -586,7 +519,7 @@ describe('db: el render de shared dice lo que decía el del motor', () => {
         archetype: 'fondo',
         faceSeed: 'cara',
       })
-      const n = await newsNames(t.db, [ahora.contract, ahora.stage_win])
+      const n = await newsNames(t.db, [contract, stageWin])
       expect(n.rider(ANA)).toBe('Ana Ruiz')
       expect(n.team(TEAM_A)).toBe('Equipo Alfa')
       expect(n.race('race-france')).toBe('Race France')

@@ -171,7 +171,8 @@ export {
   stagePointsByClass,
   stageResultPoints,
 } from './world/points.js'
-export { renderNews, type NewsData, type NewsKind } from './world/news.js'
+// Las noticias ya no se redactan aquí: desde E2 (docs/retransmision.md §12.8, decisión 4-p) se
+// guardan como datos y las redacta `renderNews` de `@cyclingstar/shared` al leer.
 export {
   callupScore,
   raceVocationFit,
@@ -213,6 +214,7 @@ export { TARGETS, type Target } from './sim/targets.js'
 export {
   checkReplay,
   isTheBunch,
+  NAME_WHOLE_GROUP_UP_TO,
   PELOTON_MIN_SHARE,
   raceRadioCollector,
   raceRadioFrom,
@@ -232,6 +234,7 @@ export {
 } from './sim/raceRadio.js'
 export {
   advanceGroup,
+  chaseReferenceIndex,
   createGroup,
   gapSeconds,
   isCapture,
@@ -240,6 +243,12 @@ export {
   type Group,
   type GroupInit,
 } from './stage/group.js'
+// LO QUE LA RETRANSMISIÓN COPIA O CITA DEL MOTOR (E2, docs/retransmision.md §15.5 y 17-j). La pantalla
+// vive en `packages/shared`, que no importa el motor: `chaseReferenceIndex` (arriba) y
+// `NAME_WHOLE_GROUP_UP_TO` (con la radio) se exportan para que un test ate a ellas sus copias en
+// `BROADCAST`, y `threeKmRule` para la marca `same time (3 km rule)` del cierre (6-o). Tres `export`
+// sin cambio de conducta.
+export { threeKmRule } from './stage/truce.js'
 export {
   accLimit,
   blockCost,

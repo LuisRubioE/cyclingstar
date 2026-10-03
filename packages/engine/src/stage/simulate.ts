@@ -1237,9 +1237,11 @@ export function pullReason(
 /**
  * `probe` es OBSERVACIÓN PURA (v26): pide una foto del orden de la carrera en unos kilómetros dados
  * y no altera nada —ni un dado, ni un compromiso, ni un reloj—. Sin él, y es el caso de producción,
- * el motor corre exactamente igual que antes. La CONTRARRELOJ lo ignora a propósito: allí cada
- * corredor es su propio grupo desde la salida y el orden dentro de la etapa no es una pregunta con
- * sentido (SPEC 6.13).
+ * el motor corre exactamente igual que antes. La CONTRARRELOJ no hace fotos: allí cada corredor es su
+ * propio grupo desde la salida y el orden dentro de la etapa no es una pregunta con sentido (SPEC
+ * 6.13). Desde E2 (docs/retransmision.md §5.2) la sonda gana tres ganchos opcionales que también son
+ * observación: `onEvent` y `onBanner` en carretera, y `onTimeTrialRide`, que es lo único que la crono
+ * llama (la sonda le llega a `simulateTimeTrial`).
  */
 export function simulateStage(entrada: StageInput, seed: string, probe?: StageProbe): StageOutput {
   /**
@@ -1262,8 +1264,9 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       a.riderId < b.riderId ? -1 : a.riderId > b.riderId ? 1 : 0,
     ),
   }
-  // Contrarreloj: grupos de un corredor, sin drafting ni hazards de ataque (SPEC 6.13).
-  if (input.timeTrial) return simulateTimeTrial(input, seed)
+  // Contrarreloj: grupos de un corredor, sin drafting ni hazards de ataque (SPEC 6.13). La sonda va
+  // con ella por `onTimeTrialRide` (E2 §5.2); fotos no hay.
+  if (input.timeTrial) return simulateTimeTrial(input, seed, probe)
 
   const streams = stageRng(seed)
   // Subflujos nominales creados UNA vez: reutilizarlos preserva la secuencia (SPEC 6.1).
@@ -1576,6 +1579,16 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   const citasDelTiempo: RiderSim[] = []
   const n = blocks.length
   const log = new EventLog()
+  /**
+   * EN QUÉ BLOQUE SE EMITE CADA SUCESO (E2, docs/retransmision.md §5.2), para `onEvent`: 0 antes del
+   * bucle, `i` dentro del bloque `i` y `n` después (la meta y el corte de tiempo). Es el índice del
+   * bucle y nada más; sin `onEvent` el registro no tiene oyente y esto es una asignación por bloque.
+   */
+  let bloqueDeEmision = 0
+  if (probe?.onEvent) {
+    const onEvent = probe.onEvent
+    log.listen((e) => onEvent(e, bloqueDeEmision))
+  }
 
   const sims = new Map<string, RiderSim>()
   for (const r0 of input.riders) {
@@ -3077,6 +3090,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
 
   // --- Bucle principal (SPEC 6.16) --------------------------------------------------------
   for (let i = 0; i < n; i++) {
+    bloqueDeEmision = i
     const block = blocks[i]!
     /**
      * EL RELOJ DE CADA GRUPO ANTES DE QUE AVANCE NADIE (v56). Lo usa la fusión por alcance del final
@@ -9081,7 +9095,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       const frontIsMove = head !== null && head.g.tS <= peloton.tS
       const front = frontIsMove ? membersOf(head.g.id) : membersOf(PELOTON)
       const frontTs = frontIsMove ? head.g.tS : peloton.tS
-      disputeBanner(front, block, km, frontTs, log, rngSprint)
+      disputeBanner(front, block, km, frontTs, log, rngSprint, probe?.onBanner)
       lastBannerKm = km
     } else if (block.banner === 'cima') {
       // Cima: puntúan los primeros en coronar en TODO el pelotón, no solo el grupo de cabeza, así
@@ -9090,7 +9104,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         .map((g) => ({ tS: g.tS, members: membersOf(g.id) }))
         .filter((g) => g.members.length > 0)
         .sort((a, b) => a.tS - b.tS)
-      disputeClimb(groups, block, km, log, rngSprint, komLead)
+      disputeClimb(groups, block, km, log, rngSprint, komLead, probe?.onBanner)
       lastBannerKm = km
     }
 
@@ -9161,6 +9175,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       probe.onSnapshot(probeAt.get(i)!, snapshot, mainId)
     }
   }
+  // Lo que se emite desde aquí (finishStage y applyStageTimeCut) es de después del bucle.
+  bloqueDeEmision = n
 
   // --- Meta y resultados (SPEC 6.12, 6.15) -----------------------------------------------
   const allGroups: Group[] = [peloton, ...moves.map((m) => m.g), ...shed]
@@ -9317,6 +9333,8 @@ function disputeBanner(
   tS: number,
   log: EventLog,
   rngSprint: Rng,
+  /** El gancho de la sonda (E2 §5.2): el reparto entero, que el suceso no lleva. Solo observa. */
+  onBanner?: StageProbe['onBanner'],
 ): void {
   const interested = members.filter((m) =>
     block.banner === 'meta_volante' ? m.input.orders.contestSprints : m.input.orders.contestClimbs,
@@ -9354,6 +9372,22 @@ function disputeBanner(
     if (isSprint) m.sprintPts += pts
     else m.climbPts += pts
   })
+  // E2 §5.2: los que puntúan, en su orden y con sus puntos. Lee lo ya repartido y no tira nada.
+  if (onBanner) {
+    const order: { riderId: string; points: number }[] = []
+    ranked.forEach(({ m }, idx) => {
+      const points = table[idx] ?? 0
+      if (points > 0) order.push({ riderId: m.input.riderId, points })
+    })
+    if (order.length > 0)
+      onBanner({
+        kind: isSprint ? 'meta_volante' : 'cima',
+        km,
+        cat: isSprint ? null : (block.climbCategory ?? null),
+        tS,
+        order,
+      })
+  }
   const winner = ranked[0]?.m
   if (winner) {
     log.emit(km, tS, 'banner', isSprint ? 'sprint_intermediate' : 'climb_kom', [
@@ -9378,6 +9412,8 @@ function disputeClimb(
    * cada cima que coronaba —35 veces en 21 etapas del día de juego 46—.
    */
   kom: { proclaimed: string | null },
+  /** El gancho de la sonda (E2 §5.2): el reparto entero, que el suceso no lleva. Solo observa. */
+  onBanner?: StageProbe['onBanner'],
 ): void {
   const table = climbTable(block)
   const ordered: RiderSim[] = []
@@ -9419,6 +9455,27 @@ function disputeClimb(
     m.parte.gasto.banderas += STAGE.bannerCost
     m.climbPts += pts
   })
+  /**
+   * E2 §5.2: los que puntúan, en su orden y con sus puntos, y el reloj del grupo del PRIMERO QUE
+   * PUNTÚA, que no es `groups[0]` si los de delante no disputan la cima. Lee lo ya repartido, busca
+   * su grupo solo si hay gancho y no tira nada.
+   */
+  if (onBanner) {
+    const order: { riderId: string; points: number }[] = []
+    disputan.forEach((m, idx) => {
+      const points = table[idx] ?? 0
+      if (points > 0) order.push({ riderId: m.input.riderId, points })
+    })
+    const primero = disputan[0]
+    if (primero !== undefined && order.length > 0)
+      onBanner({
+        kind: 'cima',
+        km,
+        cat: block.climbCategory ?? null,
+        tS: groups.find((g) => g.members.includes(primero))?.tS ?? 0,
+        order,
+      })
+  }
   // Y el que se lleva la cima es el primero de LOS QUE LA DISPUTAN, que es a quien se le han dado
   // los puntos tres líneas más arriba. Nombrar al primero en coronar cuando los puntos se los llevó
   // otro era contar dos carreras distintas en la misma frase.

@@ -8,9 +8,21 @@ import type { RaceEvent } from './types.js'
 /** Acumulador ordenado de eventos de una etapa. */
 export class EventLog {
   private readonly events: RaceEvent[] = []
+  /**
+   * EL OYENTE (E2, docs/retransmision.md §5.2): ve cada suceso al añadirse, en el orden de emisión.
+   * El motor emite desde muchas funciones que reciben el registro, así que el único sitio que ve
+   * TODAS las emisiones es el propio registro. Uno como mucho; sin él, el registro de siempre.
+   */
+  private listener: ((event: Readonly<RaceEvent>) => void) | null = null
+
+  /** Pone el oyente (sustituye al anterior). Es observación: recibe el objeto que queda en el registro. */
+  listen(fn: (event: Readonly<RaceEvent>) => void): void {
+    this.listener = fn
+  }
 
   add(event: RaceEvent): void {
     this.events.push(event)
+    this.listener?.(event)
   }
 
   emit(
@@ -21,11 +33,11 @@ export class EventLog {
     protagonistas: string[] = [],
     datos?: Record<string, number | string>,
   ): void {
-    this.events.push(
-      datos
-        ? { km, tS, tipo, plantilla, protagonistas, datos }
-        : { km, tS, tipo, plantilla, protagonistas },
-    )
+    const event: RaceEvent = datos
+      ? { km, tS, tipo, plantilla, protagonistas, datos }
+      : { km, tS, tipo, plantilla, protagonistas }
+    this.events.push(event)
+    this.listener?.(event)
   }
 
   /**

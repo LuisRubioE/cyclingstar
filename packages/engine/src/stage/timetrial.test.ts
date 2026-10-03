@@ -10,9 +10,12 @@ import { describe, expect, it } from 'vitest'
 import { STAGE } from '../constants.js'
 import { campaignSeeds, timeTrialScenario } from '../sim/scenarios.js'
 import { stageSeed } from './rng.js'
+import { sampleProfile } from './sample.js'
+import { simulateStage } from './simulate.js'
+import { timeTrialStartOrder } from './startOrder.js'
 import { simulateTimeTrial } from './timetrial.js'
 import type { Attribute } from '@cyclingstar/shared'
-import type { RaceEvent, StageInput, StageOutput, StageRider } from './types.js'
+import type { ProbeTimeTrialRide, RaceEvent, StageInput, StageOutput, StageRider } from './types.js'
 
 /**
  * Huella sellada de `cri-40`.
@@ -319,6 +322,89 @@ describe('bordes de la crono', () => {
       expect(Number(e.datos!.checkKm)).toBeGreaterThanOrEqual(STAGE.ttSplitMinKm)
       expect(3 - Number(e.datos!.checkKm)).toBeGreaterThanOrEqual(STAGE.ttSplitMinKm)
     }
+  })
+})
+
+// --- La sonda de la crono (E2) ----------------------------------------------------------------
+
+/**
+ * LA SONDA DE LA CRONO (docs/retransmision.md §5.2 y §9.8; E2, paso 4a). `simulateStage` deja de
+ * ignorar la sonda en una crono: se la pasa a `simulateTimeTrial`, que llama a `onTimeTrialRide` al
+ * cerrar cada corredor, después de sortear su ruido, con su traza sin copiar, el ruido, el tiempo
+ * final y el percance. Es lo que la retransmisión necesita para poner a cada uno en la carretera a
+ * su hora (§9.2), y es observación: las huellas de arriba siguen selladas sin tocarse.
+ */
+describe('la sonda de la crono (E2 §5.2 y §9.8)', () => {
+  const huella = (o: StageOutput): string =>
+    JSON.stringify([o.results, o.events, [...o.efforts], o.incidents])
+  const corridas = Array.from({ length: 4 }, (_, s) => {
+    // Al revés del orden de id a propósito: `simulateStage` ordena el campo antes de nada.
+    const input = itt([...field(120, true)].reverse())
+    const seed = stageSeed({
+      worldSeed: `sonda-${s}`,
+      raceId: 'itt',
+      stageDay: 3,
+      engineVersion: 1,
+    })
+    const rides: ProbeTimeTrialRide[] = []
+    let fotos = 0
+    const out = simulateStage(input, seed, {
+      atKm: [5, 10, 20],
+      onSnapshot: () => {
+        fotos++
+      },
+      onTimeTrialRide: (x) => {
+        rides.push(x)
+      },
+    })
+    return { input, seed, out, rides, fotos }
+  })
+
+  it('se llama una vez por corredor, en orden de id, y la salida es la misma con y sin sonda', () => {
+    for (const { input, seed, out, rides, fotos } of corridas) {
+      expect(rides.map((x) => x.riderId)).toEqual(input.riders.map((r) => r.riderId).sort())
+      expect(fotos).toBe(0)
+      expect(huella(out)).toBe(huella(simulateStage(input, seed)))
+    }
+  })
+
+  it('lo que recibe cada corredor reproduce su tiempo de results al redondear', () => {
+    for (const { input, out, rides } of corridas) {
+      const blocks = sampleProfile(input.profile).length
+      const tiempo = new Map(out.results.map((r) => [r.riderId, r.tiempoS]))
+      const salida = new Map(
+        timeTrialStartOrder(input.riders).slots.map((s) => [s.riderId, s.startS]),
+      )
+      expect(rides).toHaveLength(input.riders.length)
+      for (const x of rides) {
+        expect(Math.round(x.totalS)).toBe(tiempo.get(x.riderId))
+        // La meta es la traza más el percance, por el ruido: la misma cuenta que el motor, bit a bit
+        // (I5 exacta, 9-a). La traza no lleva ni el ruido ni el percance, y no decrece.
+        expect(x.raw).toHaveLength(blocks)
+        expect((x.raw[blocks - 1]! + (x.mishap?.lostS ?? 0)) * x.noise).toBe(x.totalS)
+        expect(Array.from(x.raw).every((v, i, a) => i === 0 || v >= a[i - 1]!)).toBe(true)
+        expect(x.startS).toBe(salida.get(x.riderId))
+      }
+    }
+  })
+
+  it('el percance llega con su km y su pérdida sin ruido, los mismos del parte de incidentes', () => {
+    let percances = 0
+    for (const { out, rides } of corridas) {
+      const con = rides.filter((x) => x.mishap !== null)
+      percances += con.length
+      expect(con).toHaveLength(out.incidents.length)
+      for (const x of con) {
+        const parte = out.incidents.find((i) => i.riderId === x.riderId)
+        expect([x.mishap?.kind, x.mishap?.km, x.mishap?.lostS]).toEqual([
+          parte?.tipo,
+          parte?.km,
+          parte?.perdidaS,
+        ])
+      }
+    }
+    // Y el caso existe en estas corridas: sin un percance, esto no comprobaría nada.
+    expect(percances).toBeGreaterThan(0)
   })
 })
 

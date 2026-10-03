@@ -567,13 +567,31 @@ export const FINALE_KM = 15
  * que ser el mismo en producción y en el banco; y `stageJournal.test.ts` vigila la otra mitad —que
  * ninguna frase de verdad imprima un nombre que no esté en su fila—, que es lo que impide que la
  * tabla y las plantillas se separen.
+ *
+ * …Y LA RETRANSMISIÓN LA ENSANCHA A SIETE (E2, docs/retransmision.md §12.6; D-18, con el valor por
+ * defecto de DD-04 que el dueño aceptó). La voz y la barra de grupos dicen la misma palabra por el
+ * mismo grupo, que es lo que pide la C7 del dueño («un solo concepto, con el mismo nombre»): la del
+ * PAPEL de cada grupo —`the lead group`, `the chase group`, `the bunch` y un cuarto, `the gruppetto`,
+ * para lo que va detrás del grueso— y, si es el grupo de un maillot de líder, la de su maillot (6-b).
+ * Las frases que las dicen llegan en el paso 6b; aquí, en el 4a, solo crecen las filas, que son un
+ * superconjunto de las de la v27: las ocho plantillas que hablan del grupo que el motor titula
+ * pelotón (`mainNoun`) pueden decir los tres papeles de ese grupo y su maillot, los partes de ventaja
+ * ganan el maillot, `crash` (la caída que la línea sintetiza, D-13) puede caer en cualquier grupo, y
+ * las cinco frases nuevas que no nombran grupos tienen su fila vacía. SPEC §6.15, que dice tres
+ * nombres, lo reescribe el paso 12 (12-r).
  */
+const JERSEY_GROUP_NOUNS = [
+  'the race leader’s group',
+  'the points leader’s group',
+  'the mountains leader’s group',
+] as const
+
 export const GROUP_NOUNS: Readonly<Record<string, readonly string[]>> = {
-  attack_go: ['the bunch', 'the lead group'],
-  attack_short: ['the bunch'],
+  attack_go: ['the bunch', 'the lead group', 'the chase group', ...JERSEY_GROUP_NOUNS],
+  attack_short: ['the bunch', 'the chase group', 'the lead group', ...JERSEY_GROUP_NOUNS],
   attack_swarm: [],
   attack_sticks: [],
-  attack_reeled: ['the bunch'],
+  attack_reeled: ['the bunch', 'the chase group', 'the lead group', ...JERSEY_GROUP_NOUNS],
   move_faded: [],
   move_caught: ['the chase group'],
   move_merge: [],
@@ -583,21 +601,29 @@ export const GROUP_NOUNS: Readonly<Record<string, readonly string[]>> = {
   break_share: ['the lead group'],
   riders_sit_up: [],
   rider_sits_up: [],
-  sprinters_chase: ['the bunch', 'the lead group'],
-  sprinters_give_up: ['the bunch'],
-  peloton_concedes: ['the bunch', 'the lead group'],
-  peloton_pull: ['the bunch', 'the lead group'],
+  sprinters_chase: ['the bunch', 'the lead group', 'the chase group', ...JERSEY_GROUP_NOUNS],
+  sprinters_give_up: ['the bunch', 'the chase group', 'the lead group', ...JERSEY_GROUP_NOUNS],
+  peloton_concedes: ['the bunch', 'the lead group', 'the chase group', ...JERSEY_GROUP_NOUNS],
+  peloton_pull: ['the bunch', 'the lead group', 'the chase group', ...JERSEY_GROUP_NOUNS],
   peloton_split: ['the chase group', 'the lead group'],
   echelon_split: ['the chase group', 'the lead group'],
   peloton_selection: ['the chase group', 'the lead group'],
   peloton_regroup: ['the chase group', 'the lead group'],
-  time_gap: ['the lead group', 'the chase group', 'the bunch'],
-  time_gap_run: ['the lead group', 'the chase group', 'the bunch'],
+  time_gap: ['the lead group', 'the chase group', 'the bunch', ...JERSEY_GROUP_NOUNS],
+  time_gap_run: ['the lead group', 'the chase group', 'the bunch', ...JERSEY_GROUP_NOUNS],
   front_group: ['the lead group'],
   chase_work: ['the chase group'],
-  breakaway_caught: ['the bunch', 'the lead group'],
+  breakaway_caught: ['the bunch', 'the lead group', 'the chase group', ...JERSEY_GROUP_NOUNS],
   bunch_sprint: ['the bunch'],
   stage_win: ['the chase group', 'the bunch', 'the lead group'],
+  // Las frases nuevas de E2 (§12.5): las cuatro que hoy imprimen su clave cruda no nombran grupos
+  // («the race» en la tregua), y la caída sintetizada sí, en cualquiera de ellos.
+  puncture: [],
+  mechanical: [],
+  truce_granted: [],
+  truce_denied: [],
+  crash: ['the lead group', 'the chase group', 'the bunch', 'the gruppetto', ...JERSEY_GROUP_NOUNS],
+  crash_names: [],
 }
 
 /** Qué nombres de grupo puede imprimir esta línea. */
@@ -611,15 +637,21 @@ export function groupNounsOf(e: AuditEntry): readonly string[] {
  * declarado en `GROUP_NOUNS`, el test falla y la tabla y el texto no se pueden separar.
  *
  * Va ordenada de más larga a más corta a propósito: «the chase group» contiene «the chase», y quien
- * la recorra tiene que quedarse con la más larga primero o contará dos nombres donde hay uno.
+ * la recorra tiene que quedarse con la más larga primero o contará dos nombres donde hay uno. Los
+ * tres del grupo del maillot y `the gruppetto` entran con la retransmisión (E2 §12.6), cada uno en su
+ * sitio por largo.
  */
 export const WATCHED_GROUP_NOUNS: readonly string[] = [
+  'the mountains leader’s group',
+  'the points leader’s group',
+  'the race leader’s group',
   "the sprinters' teams",
   'the lead-out trains',
   'the chase group',
   'the front group',
   'the lead group',
   'the favourites',
+  'the gruppetto',
   'the fast men',
   'the escapees',
   'the chasers',
@@ -652,7 +684,12 @@ export interface StoryMetrics {
   finalLineas: number
   /** …y cuántas de ellas hablan del que gana la etapa. */
   finalDelGanador: number
-  /** Cuántos nombres distintos de grupo se usan en la etapa (el listón son tres). */
+  /**
+   * Cuántos nombres distintos de grupo DECLARA `GROUP_NOUNS` para las plantillas de la etapa. El
+   * listón eran tres; desde la retransmisión (E2 §12.6) son seis: los tres papeles que puede tener el
+   * grupo del título y los tres del grupo del maillot (`the gruppetto` solo entra por `crash`, que no
+   * emite el motor).
+   */
   nombresDeGrupo: number
 }
 

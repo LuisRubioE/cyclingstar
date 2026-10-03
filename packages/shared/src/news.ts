@@ -14,7 +14,7 @@ import { z } from 'zod'
 import { pickVariant, type Variant } from './render/variants.js'
 import { HEALTH_STATES, type HealthState } from './rider.js'
 
-/** race_rosters.abandoned_reason; la misma unión que `packages/db/src/stageRun.ts`, que pasa a importar esta en el paso 4a (4-p). */
+/** Por qué un corredor se ha ido de la carrera: race_rosters.abandoned_reason y el titular del abandono. `packages/db/src/stageRun.ts` la importa de aquí desde el paso 4a (4-p). */
 export type AbandonReason = 'colapso' | 'fuera_control' | 'lesion' | 'enfermedad' | 'voluntario'
 interface OfRace {
   readonly raceId: string
@@ -78,7 +78,7 @@ export type NewsPayload =
       readonly teamId: string | null
       readonly age: number
     }
-export type NewsKind = NewsPayload['kind'] // los once de hoy (engine world/news.ts) más gc_lead_taken y jersey_taken
+export type NewsKind = NewsPayload['kind'] // los once que redactaba el motor hasta el 4a (world/news.ts) más gc_lead_taken y jersey_taken
 
 /** Lo que una lista enseña en lugar de las noticias de una etapa velada: UNO por etapa, se escribiera una noticia o cinco (D-45, I-39). Solo en lectura. */
 export interface StageReadyItem {
@@ -178,7 +178,7 @@ const ABANDON_WORDS: Readonly<Record<AbandonReason, string>> = {
 const outFor = (d: number): string =>
   d >= 14 ? `${Math.round(d / 7)} weeks` : `${d} day${d === 1 ? '' : 's'}`
 
-/** «stage 4 (Tarragona → Barcelona)», o «stage 4» si la etapa no tiene ruta: el `etapa(d)` de hoy (engine world/news.ts). */
+/** «stage 4 (Tarragona → Barcelona)», o «stage 4» si la etapa no tiene ruta: el `etapa(d)` del motor hasta el 4a (world/news.ts). */
 const stageOf = (d: OfRace & { readonly stageDay: number }, n: NameResolver): string => {
   const route = n.route(d.raceId, d.season, d.stageDay)
   return `stage ${d.stageDay}${route ? ` (${route})` : ''}`

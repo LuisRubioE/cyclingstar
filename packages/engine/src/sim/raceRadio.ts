@@ -607,8 +607,12 @@ const TURNO_KM = 3
  *
  * En carretera, de un grupo pequeño se sabe quién va: son pocos y se les ve. El «+N more» es para
  * cuando de verdad no se puede nombrar a todos.
+ *
+ * Se exporta desde E2 (docs/retransmision.md §15.5, decisión 15-c): la retransmisión nombra a los
+ * grupos con «el mismo umbral que la radio» (D-27) desde `packages/shared`, que no importa el motor,
+ * así que lo copia en `BROADCAST.nameWholeGroupUpTo`, y un test ata la copia a éste.
  */
-const NAME_WHOLE_GROUP_UP_TO = 12
+export const NAME_WHOLE_GROUP_UP_TO = 12
 
 /**
  * DÓNDE ESTÁ ESTE GRUPO UN KILÓMETRO MÁS ALLÁ, para poder medirle la velocidad.

@@ -43,6 +43,7 @@ import type {
   StageEffort,
   StageInput,
   StageOutput,
+  StageProbe,
   StageResult,
   TankState,
 } from './types.js'
@@ -215,8 +216,19 @@ function findCatches(rides: readonly Ride[], blocks: number, dxKm: number): Catc
   return out.sort((a, b) => a.tS - b.tS)
 }
 
-/** Simula una contrarreloj individual: cada corredor solo contra el crono (SPEC 6.13). */
-export function simulateTimeTrial(input: StageInput, seed: string): StageOutput {
+/**
+ * Simula una contrarreloj individual: cada corredor solo contra el crono (SPEC 6.13).
+ *
+ * `probe` (E2, docs/retransmision.md §5.2): de la sonda, la crono solo llama a `onTimeTrialRide`, una
+ * vez por corredor y en el orden del campo, con su traza sin copiar, su ruido, su tiempo final y su
+ * percance. Fotos y sucesos por la sonda no hay: cada corredor corre su recorrido entero antes que el
+ * siguiente y no existe un bloque común. Es observación: sin ella, la crono de siempre.
+ */
+export function simulateTimeTrial(
+  input: StageInput,
+  seed: string,
+  probe?: StageProbe,
+): StageOutput {
   const streams = stageRng(seed)
   const rngNoise = streams('tt')
   /**
@@ -303,6 +315,8 @@ export function simulateTimeTrial(input: StageInput, seed: string): StageOutput 
      * por `rollHazard` —que la interpreta por kilómetro y la reparte en bloques de cien metros— la
      * dejaba en el 0,1 %, o sea diez veces por debajo de su propia banda; medido antes de verlo.
      */
+    /** Su percance, para `onTimeTrialRide` (E2 §5.2): el km y la pérdida sin ruido, los del parte. */
+    let percance: { kind: 'pinchazo' | 'averia'; km: number; lostS: number } | null = null
     if (cronoOn && rngPercance() < STAGE.mishap.ttLambda) {
       const kind: 'pinchazo' | 'averia' =
         rngPercance() < STAGE.mishap.mechanicalShare ? 'averia' : 'pinchazo'
@@ -310,6 +324,7 @@ export function simulateTimeTrial(input: StageInput, seed: string): StageOutput 
         STAGE.mishap.carBaseS * STAGE.timeTrial.ttCarShare +
         (kind === 'averia' ? STAGE.mishap.changeMechanicalS : STAGE.mishap.changePunctureS)
       tS += perdida
+      percance = { kind, km: finishKm(input) / 2, lostS: perdida }
       incidents.push({
         riderId: rider.riderId,
         km: finishKm(input) / 2,
@@ -345,6 +360,15 @@ export function simulateTimeTrial(input: StageInput, seed: string): StageOutput 
     const noise = normal(rngNoise, 1, STAGE.ttNoiseSd)
     const startS = startOf.get(rider.riderId) ?? 0
     const total = tS * noise
+    // E2 §5.2: el corredor entero, ya con su ruido sorteado. La traza va sin copiar y solo se lee.
+    probe?.onTimeTrialRide?.({
+      riderId: rider.riderId,
+      startS,
+      raw,
+      noise,
+      totalS: total,
+      mishap: percance,
+    })
     return { riderId: rider.riderId, raw, noise, tS: total, startS, finishS: startS + total }
   })
 

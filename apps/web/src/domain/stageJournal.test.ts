@@ -1643,11 +1643,26 @@ describe('el vocabulario de grupos: tres cosas, tres nombres (v27)', () => {
     expect(malas).toEqual([])
   })
 
-  it('los tres nombres que quedan son los tres del vocabulario', () => {
-    // Lo que la tabla declara, después de la v27, no puede ser más que las tres cosas que hay en la
-    // carretera. Si alguien añade un cuarto nombre a una plantilla, esta prueba lo caza.
+  it('los siete nombres que quedan son los siete del vocabulario', () => {
+    // Lo que la tabla declara no puede ser más que el vocabulario cerrado. Si alguien añade un nombre
+    // a una plantilla, esta prueba lo caza.
+    //
+    // RE-SELLADO EN E2, PASO 4a (docs/retransmision.md §12.6 y §16.1), y a propósito: eran los tres de
+    // la v27 —`the bunch`, `the chase group`, `the lead group`— y pasan a siete. La voz de la
+    // retransmisión dice la misma palabra que la barra de grupos por el mismo grupo (D-18, con el
+    // valor por defecto de DD-04): los cuatro papeles, con `the gruppetto` para lo que va detrás del
+    // grueso, y los tres del grupo del maillot de líder (6-b). En el 4a solo crecen las filas de
+    // `GROUP_NOUNS`; las frases que dicen las palabras nuevas llegan en el 6b, y con ellas sus casos.
     const usados = new Set(Object.values(GROUP_NOUNS).flat())
-    expect([...usados].sort()).toEqual(['the bunch', 'the chase group', 'the lead group'])
+    expect([...usados].sort()).toEqual([
+      'the bunch',
+      'the chase group',
+      'the gruppetto',
+      'the lead group',
+      'the mountains leader’s group',
+      'the points leader’s group',
+      'the race leader’s group',
+    ])
   })
 })
 
