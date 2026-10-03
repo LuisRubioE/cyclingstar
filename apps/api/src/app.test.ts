@@ -1,3 +1,4 @@
+import { brotliDecompressSync, gunzipSync } from 'node:zlib'
 import type { TickSummary } from '@cyclingstar/db'
 import { ENGINE_VERSION } from '@cyclingstar/engine'
 import { afterAll, describe, expect, it } from 'vitest'
@@ -71,6 +72,58 @@ describe('api: /health', () => {
     expect(res.headers['content-security-policy']).toContain("frame-ancestors 'none'")
     expect(res.headers['x-content-type-options']).toBe('nosniff')
     expect(res.headers['strict-transport-security']).toContain('max-age=15552000')
+  })
+})
+
+/**
+ * LA COMPRESIÓN (docs/retransmision.md §14.8; E2, paso 0). La ruta de una etapa corrida en línea pesa
+ * de 0,87 a 3,8 MB sin comprimir, y de 25 a 96 KB con gzip (B6, `scripts/bench-stage-size.mjs`).
+ * `@fastify/compress` comprime toda respuesta desde 1.024 B (su umbral por defecto), con brotli si el
+ * navegador lo acepta y si no con gzip, y añade `accept-encoding` a `Vary` para que una caché no sirva
+ * la comprimida a quien no la entiende.
+ */
+describe('api: compresión de las respuestas', () => {
+  // Una base sin mundo: `getCurrentWorld` (select…from…innerJoin…limit) no encuentra ninguno, y
+  // `/api/calendar` responde entonces el calendario de la temporada 0, que pesa bastante más de 1 KB.
+  const noWorld = {
+    select: () => ({ from: () => ({ innerJoin: () => ({ limit: async () => [] }) }) }),
+  }
+  const zipApp = buildTestApp({ db: noWorld as never })
+  afterAll(async () => {
+    await zipApp.close()
+  })
+
+  it('una respuesta de más de 1 KB sale comprimida, con brotli o gzip, y con Vary: accept-encoding', async () => {
+    const encodings = [
+      ['br', brotliDecompressSync],
+      ['gzip', gunzipSync],
+    ] as const
+    for (const [encoding, decompress] of encodings) {
+      const res = await zipApp.inject({
+        method: 'GET',
+        url: '/api/calendar',
+        headers: { 'accept-encoding': encoding },
+      })
+      expect(res.statusCode).toBe(200)
+      expect(res.headers['content-encoding']).toBe(encoding)
+      expect(String(res.headers.vary).toLowerCase()).toContain('accept-encoding')
+      const body = decompress(res.rawPayload).toString('utf8')
+      expect(Buffer.byteLength(body)).toBeGreaterThan(1024)
+      expect(res.rawPayload.length).toBeLessThan(Buffer.byteLength(body))
+      expect((JSON.parse(body) as { races: unknown[] }).races.length).toBeGreaterThan(0)
+    }
+  })
+
+  it('una de menos de 1 KB sale tal cual, aunque el navegador acepte brotli', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/health',
+      headers: { 'accept-encoding': 'br' },
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.rawPayload.length).toBeLessThan(1024)
+    expect(res.headers['content-encoding']).toBeUndefined()
+    expect(res.json()).toMatchObject({ ok: true, engineVersion: ENGINE_VERSION })
   })
 })
 
