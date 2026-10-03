@@ -6,6 +6,9 @@ import { z } from 'zod'
  */
 
 export * from './contracts.js'
+// La retransmisión (E2), detrás de contracts.js: desde el 3a importa en ejecución esquemas de
+// contracts.js, que tiene que estar ya cargado (14-a).
+export * from './broadcast/index.js'
 export * from './countries.js'
 export * from './jerseys.js'
 export * from './news.js'

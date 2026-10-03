@@ -1011,3 +1011,180 @@ describe('paso 17d · el informe se lee, no se re-simula', () => {
     expect(out).toEqual([inventado])
   })
 })
+
+/**
+ * LA VOZ EN VIVO (E2, docs/retransmision.md §12.2; D-43, 12-a). La voz de `Watch` es esta misma
+ * crónica con la etapa CORTADA en lo que ya se sabe: entra solo lo revelado hasta `untilS`, se
+ * ordena por la hora en que cada cosa se sabe, la longitud de la etapa entra como dato y se apagan
+ * las cinco pasadas que cambian o borran una línea ya dicha por algo que pasa después. Sin `live`
+ * nada cambia: los 62 casos de arriba son la prueba de que el acta es la de hoy.
+ */
+describe('la voz en vivo', () => {
+  const names = chronicleNames([])
+  /** La voz hasta `untilS` con la hora de revelado de cada suceso, atada por su identidad (§14.3). */
+  const voz = (
+    events: readonly (readonly [ChronicleEvent, number])[],
+    untilS: number,
+    stageKm = 150,
+    extra: { byClock?: boolean } = {},
+  ) => {
+    const horas = new Map(events)
+    return buildChronicle(
+      events.map(([e]) => e),
+      names,
+      { ...extra, live: { untilS, stageKm, revealS: (e) => horas.get(e) ?? untilS } },
+    )
+  }
+
+  it('un suceso con revealS > untilS no sale; el que se revela justo en untilS, sí', () => {
+    const a = ev({ plantilla: 'attack_go', km: 30, tS: 900, protagonistas: ['r1'] })
+    const b = ev({ plantilla: 'attack_go', km: 40, tS: 1300, protagonistas: ['r2'] })
+    const sucesos = [
+      [a, 1000],
+      [b, 2000],
+    ] as const
+    expect(voz(sucesos, 1999).map((l) => l.protagonists[0]?.name)).toEqual(['r1'])
+    expect(voz(sucesos, 2000).map((l) => l.protagonists[0]?.name)).toEqual(['r1', 'r2'])
+    // …y cada línea lleva la hora a la que se dice (`LiveLine`).
+    expect(voz(sucesos, 2000).map((l) => l.revealS)).toEqual([1000, 2000])
+  })
+
+  it('una concesión seguida de una captura revelada después NO lleva `cazada`', () => {
+    const concede = ev({ plantilla: 'peloton_concedes', km: 60, tS: 5000, protagonistas: ['f1'] })
+    const caza = ev({ plantilla: 'breakaway_caught', km: 140, tS: 12000, protagonistas: ['f1'] })
+    // El acta tiene la etapa entera delante y desmiente la concesión (B4, l. 255 de este fichero).
+    expect(buildChronicle([concede, caza], names)[0]?.datos?.cazada).toBe(1)
+    // La voz no: ni antes de la captura ni después, porque lo dicho no se reescribe; la desmiente la
+    // propia captura cuando llega.
+    const sucesos = [
+      [concede, 5100],
+      [caza, 12100],
+    ] as const
+    expect(voz(sucesos, 6000)[0]?.datos?.cazada).toBeUndefined()
+    expect(voz(sucesos, 13000)[0]?.datos?.cazada).toBeUndefined()
+  })
+
+  it('`toGo` y `desenlace` salen de `stageKm` y no del último suceso revelado', () => {
+    const fuga = ev({ plantilla: 'breakaway_formed', km: 20, tS: 1800, protagonistas: ['f1'] })
+    const ataque = ev({ plantilla: 'attack_go', km: 60, tS: 5000, protagonistas: ['r9'] })
+    const parte = ev({ plantilla: 'time_gap', km: 70, tS: 6000, datos: { gapS: 180, leadSize: 1 } })
+    const sucesos = [
+      [fuga, 1900],
+      [ataque, 5100],
+      [parte, 6100],
+    ] as const
+    // Cortada en el km 70, la etapa de 150 km tiene 80 por delante: el parte no dice «0 km to go»…
+    const lineas = voz(sucesos, 7000)
+    expect(lineas.find((l) => l.plantilla === 'time_gap')?.datos?.toGo).toBe(80)
+    // …ni un ataque a 90 km de meta es el desenlace, por mucho que sea lo último que ha pasado.
+    const ataqueLinea = lineas.find((l) => l.plantilla === 'attack_go')
+    expect(ataqueLinea?.datos?.respecto).toBe(1)
+    expect(ataqueLinea?.datos?.desenlace).toBeUndefined()
+    // El acta de esas mismas tres líneas sí lo cree, porque para ella el último suceso es la meta.
+    const acta = buildChronicle([fuga, ataque, parte], names)
+    expect(acta.find((l) => l.plantilla === 'time_gap')?.datos?.toGo).toBe(0)
+    expect(acta.find((l) => l.plantilla === 'attack_go')?.datos?.desenlace).toBe(1)
+    // La captura cuenta también lo que falta desde la etapa entera (markReunion).
+    const caza = ev({ plantilla: 'breakaway_caught', km: 100, tS: 9000, protagonistas: ['f1'] })
+    const conCaza = voz([...sucesos, [caza, 9100]], 9500)
+    expect(conCaza.find((l) => l.plantilla === 'breakaway_caught')?.datos?.toGo).toBe(50)
+  })
+
+  it('una criba lejana no se borra aunque la carrera se recomponga después', () => {
+    const criba = ev({
+      plantilla: 'peloton_selection',
+      km: 80,
+      tS: 7000,
+      datos: { before: 150, remaining: 60 },
+    })
+    const rehecho = ev({
+      plantilla: 'peloton_pull',
+      km: 110,
+      tS: 9500,
+      protagonistas: ['p1'],
+      datos: { size: 140 },
+    })
+    // El acta sabe que el grupo de 60 volvió a ser de 140 y la calla (v21)…
+    expect(buildChronicle([criba, rehecho], names).map((l) => l.plantilla)).toEqual([
+      'peloton_pull',
+    ])
+    // …la voz la dijo en el km 80 y sigue dicha: la reunión se cuenta cuando pasa.
+    const sucesos = [
+      [criba, 7100],
+      [rehecho, 9600],
+    ] as const
+    expect(voz(sucesos, 7500).map((l) => l.plantilla)).toEqual(['peloton_selection'])
+    expect(voz(sucesos, 10000).map((l) => l.plantilla)).toEqual([
+      'peloton_selection',
+      'peloton_pull',
+    ])
+  })
+
+  it('ataque y captura en 3 km son dos líneas', () => {
+    const ataque = ev({ plantilla: 'attack_go', km: 50, tS: 4000, protagonistas: ['r1'] })
+    const cazado = ev({ plantilla: 'attack_reeled', km: 52, tS: 4150, protagonistas: ['r1'] })
+    expect(buildChronicle([ataque, cazado], names).map((l) => l.plantilla)).toEqual([
+      'attack_short',
+    ])
+    const sucesos = [
+      [ataque, 4050],
+      [cazado, 4200],
+    ] as const
+    expect(voz(sucesos, 5000).map((l) => l.plantilla)).toEqual(['attack_go', 'attack_reeled'])
+  })
+
+  it('tres descuelgues en 5 km son tres líneas', () => {
+    const sueltos = [100, 102, 104].map((km, i) =>
+      ev({ plantilla: 'rider_sits_up', km, tS: 9000 + 100 * i, protagonistas: [`r${i}`] }),
+    )
+    expect(buildChronicle(sueltos, names).map((l) => l.plantilla)).toEqual(['riders_sit_up'])
+    const sucesos = sueltos.map((e, i) => [e, 9100 + 100 * i] as const)
+    expect(voz(sucesos, 9999).map((l) => l.plantilla)).toEqual([
+      'rider_sits_up',
+      'rider_sits_up',
+      'rider_sits_up',
+    ])
+  })
+
+  it('a igual km, manda `revealS`; a igual `revealS`, el reloj del suceso (12-a)', () => {
+    // El ataque pasó antes (tS 4900) pero se supo después (5100) que el frente de lluvia.
+    const ataque = ev({ plantilla: 'attack_go', km: 50, tS: 4900, protagonistas: ['r1'] })
+    const lluvia = ev({ plantilla: 'rain_front', km: 50, tS: 5000, protagonistas: ['r2'] })
+    expect(buildChronicle([ataque, lluvia], names).map((l) => l.plantilla)).toEqual([
+      'attack_go',
+      'rain_front',
+    ])
+    expect(
+      voz(
+        [
+          [ataque, 5100],
+          [lluvia, 5050],
+        ],
+        6000,
+      ).map((l) => l.plantilla),
+    ).toEqual(['rain_front', 'attack_go'])
+    // Con la misma hora de revelado desempata el reloj del suceso, y no el km.
+    const lejos = ev({ plantilla: 'rain_front', km: 10, tS: 5000, protagonistas: ['r2'] })
+    expect(
+      voz(
+        [
+          [ataque, 5100],
+          [lejos, 5100],
+        ],
+        6000,
+      ).map((l) => l.plantilla),
+    ).toEqual(['attack_go', 'rain_front'])
+    // Y en la crono `byClock` no ordena: la voz va por la hora de revelado.
+    expect(
+      voz(
+        [
+          [ataque, 5100],
+          [lluvia, 5050],
+        ],
+        6000,
+        150,
+        { byClock: true },
+      ).map((l) => l.plantilla),
+    ).toEqual(['rain_front', 'attack_go'])
+  })
+})

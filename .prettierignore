@@ -19,3 +19,7 @@ CLAUDE.md
 # prettier lo reformatea, la siguiente regeneración lo deshace y el CI se cae en bucle. Mismo
 # criterio que las migraciones de drizzle: lo generado manda sobre el formateador.
 docs/inventario-recorridos.md
+
+# Las etapas congeladas de la retransmisión (E2): su manifiesto lo escribe
+# `scripts/broadcast-fixtures.mjs`, con un corredor por línea. Mismo criterio.
+apps/api/src/__fixtures__/broadcast/manifest.json

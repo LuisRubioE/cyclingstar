@@ -14,6 +14,8 @@
  * abajo) NO lo es y va aparte a propósito: un cuerpo no puede llevar dos camisetas, pero un
  * corredor sí puede ir de amarillo Y ser del equipo líder a la vez, que además es lo normal.
  */
+// Ciclo solo de tipos con la línea temporal (E2, §4.8): `import type` se borra al compilar.
+import type { RiderIx, StageRef } from './broadcast/timeline.js'
 
 /** Los tres maillots que lleva un CORREDOR, en orden de prioridad. */
 export type JerseyKind = 'gc' | 'points' | 'kom'
@@ -134,4 +136,115 @@ export const JERSEY_LABEL: Record<JerseyKind, string> = {
   gc: 'Race leader',
   points: 'Points leader',
   kom: 'Mountains leader',
+}
+
+/*
+ * ── EL MAILLOT QUE SE VE Y EL RÓTULO (E2, docs/retransmision.md §4.8) ────────────────────────────
+ *
+ * El maillot LLEVADO (uno, el que se ve) no es lo mismo que las DISTINCIONES (varias, en el rótulo).
+ * Aquí nacen solo los TIPOS, en el PR 2, porque `broadcast/timeline.ts` los importa (decisión 17-z);
+ * la regla UCI que los calcula (`wornJerseys`, `distinctions`), la notoriedad (`notorietyOf`,
+ * `staticNotoriety`) y la fuente de títulos llegan en el paso 5 (§7.2, §7.4, §7.5). `JerseyKind` no
+ * crece: `WornJersey` es una unión aparte para que ni `JERSEY_LABEL` ni los `Record<JerseyKind, …>`
+ * de hoy cambien.
+ */
+
+/** Un título de campeón (§7.4). Lo deriva hoy E2 de palmares; E12 lo dará de su tabla detrás de la misma interfaz. */
+export interface ChampionTitle {
+  /** hoy solo 'national': no hay Mundial ni continentales en el calendario */
+  readonly scope: 'world' | 'continental' | 'national'
+  /** ISO-2 en mayúsculas, como riders.country; null en el del mundo */
+  readonly country: string | null
+  readonly discipline: 'road' | 'itt'
+  /** de la carrera que lo dio (`championshipCategory`) */
+  readonly category: 'elite' | 'u23'
+  readonly season: number
+  /** día de juego absoluto del campeonato (palmares.game_day) */
+  readonly validFromDay: number
+  /** el de la edición siguiente, o validFromDay + DAYS_PER_SEASON */
+  readonly validToDay: number
+  /** la etapa que lo dio: si está velada para el espectador, el título no viaja (B13) */
+  readonly source: StageRef
+  /** true mientras lo derive E2 de palmares */
+  readonly provisional: boolean
+}
+
+/** EL maillot que se ve. Se graba en CastRider.worn al correr la etapa (D-15, D-24). */
+export type WornJersey =
+  /** delegated: no es el primero de su tabla; from: la N−1 */
+  | {
+      readonly kind: 'leader'
+      readonly jersey: JerseyKind
+      readonly delegated: boolean
+      readonly from: StageRef
+    }
+  /** su título vigente de la disciplina y la categoría del día */
+  | { readonly kind: 'champion'; readonly title: ChampionTitle }
+  /** la equipación de su equipo del día (CastTeam.jerseySeed) */
+  | { readonly kind: 'team' }
+
+/** Lo que el rótulo dice además, como mucho BROADCAST.cardLinesMax, en este orden (§7.2). Cada una con su procedencia. */
+export type Distinction =
+  /** lidera sin llevarlo: `Also leads the mountains` (pantalla) */
+  | { readonly kind: 'leads'; readonly jersey: JerseyKind; readonly from: StageRef }
+  /** lo lleva delegado: `Points jersey (2nd in the classification)` */
+  | {
+      readonly kind: 'wears_for'
+      readonly jersey: JerseyKind
+      readonly rank: number
+      readonly from: StageRef
+    }
+  /** un título que no lleva puesto */
+  | { readonly kind: 'champion'; readonly title: ChampionTitle }
+  /** puesto de salida ≤ BROADCAST.gcLineTop y no líder: `14th overall +4:02` */
+  | {
+      readonly kind: 'gc'
+      readonly rank: number
+      readonly deficitS: number
+      readonly from: StageRef
+    }
+  /** etapas ganadas en ESTA carrera hasta la N−1 */
+  | { readonly kind: 'stage_wins'; readonly stages: readonly StageRef[] }
+
+/** La entrada de wornJerseys: todo de SALIDA, es decir, de tras la N−1. */
+export interface WornInput {
+  /** etapa 1 de vuelta o carrera de un día: nadie lleva maillot de líder (UCI 2.6.018; hoy NO_LEADERS) */
+  readonly firstDay: boolean
+  /** 'itt' si la etapa es crono (input.timeTrial) */
+  readonly discipline: 'road' | 'itt'
+  /** la de la carrera (championshipCategory ?? 'elite') */
+  readonly category: 'elite' | 'u23'
+  /** general, puntos y montaña de salida, como las arma buildTimelineCast (7-b) */
+  readonly standings: JerseyInput
+  /** la N−1; null el primer día */
+  readonly standingsFrom: StageRef | null
+  /** riderId → títulos vigentes el día de la etapa */
+  readonly titles: ReadonlyMap<string, readonly ChampionTitle[]>
+}
+
+/** El orden de la frase del comentarista, de menor a mayor (D-26, §7.5): 0 lleva el maillot de la general … 8 el resto. */
+export type NotorietyLevel = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
+
+/** EL RÓTULO SERVIDO, ya pasado por el velo del espectador (D-15, B13). Se deriva al servir la cabecera de CastRider y los nombres. */
+export interface RiderCard {
+  readonly ix: RiderIx
+  /** riderId */
+  readonly id: string
+  /** riders.name, resuelto al leer */
+  readonly name: string
+  readonly bib: number | null
+  /** ISO-2 en mayúsculas */
+  readonly country: string
+  /** CastRider.gender: la concordancia de E10 se hace en la web, que recibe esto y no el reparto (D-62) */
+  readonly gender: 'M' | 'F'
+  /** el equipo CON EL QUE CORRIÓ y su equipación de ese día; el nombre, el de hoy (NameResolver.team al servir) */
+  readonly team: { readonly id: string; readonly name: string; readonly jerseySeed: string } | null
+  /** degradado: un `leader` cuyo `from` está velado pasa a { kind: 'team' } */
+  readonly worn: WornJersey
+  /** como mucho cardLinesMax; sin las de `from` velado */
+  readonly lines: readonly Distinction[]
+  /** staticNotoriety (§7.5) al servir, tras el velo y el corte; notorietyOf la ajusta durante la carrera */
+  readonly notoriety: NotorietyLevel
+  /** del espectador o de su equipo (R23.7) */
+  readonly own: boolean
 }

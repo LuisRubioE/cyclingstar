@@ -55,6 +55,15 @@ const nodeBuiltins = [
 const ENGINE_PURITY_MSG =
   'packages/engine es puro (CLAUDE.md): no puede importar db, api, web ni módulos de Node.'
 
+/**
+ * LAS CONSTANTES DE LA RETRANSMISIÓN NO LLEGAN A LA CARRERA (E2, docs/retransmision.md §15.1, 15-b).
+ * `BROADCAST` y `SPOILER` viven en `packages/shared` para que ajustarlas no corra los ocho tramos de
+ * bancos; eso solo es verdad si ni el motor ni lo que el grabador usa de `shared` las leen. Si una de
+ * ellas cambiara una carrera o lo grabado, cambiarla tendría que pasar los bancos, y no los pasaría.
+ */
+const BROADCAST_NOT_IN_RACE_MSG =
+  'BROADCAST y SPOILER son de lectura (docs/retransmision.md §15.1, 15-b): ni el motor ni el lado del grabador de shared (timeline, codec, reduce, reveal) pueden leerlas.'
+
 export default tseslint.config(
   {
     // `.claude/**` aloja los worktrees temporales de agentes: son copias del propio repositorio,
@@ -107,6 +116,12 @@ export default tseslint.config(
               message: ENGINE_PURITY_MSG,
             })),
             ...nodeBuiltins.map((name) => ({ name, message: ENGINE_PURITY_MSG })),
+            // El motor sí importa `@cyclingstar/shared`, pero no las constantes de la pantalla (15-b).
+            {
+              name: '@cyclingstar/shared',
+              importNames: ['BROADCAST', 'SPOILER'],
+              message: BROADCAST_NOT_IN_RACE_MSG,
+            },
           ],
           patterns: [
             {
@@ -187,6 +202,22 @@ export default tseslint.config(
           selector: "MemberExpression[property.name='length'][object.property.name='riderIds']",
           message:
             'riderIds solo crece y no es el tamaño del grupo (v83): cuenta con membersOf(id).length.',
+        },
+      ],
+    },
+  },
+  {
+    // El lado del grabador de `shared` (E2, 15-b): lo usa el motor al grabar (paso 4b), así que no
+    // puede leer `BROADCAST` ni `SPOILER`, ni directamente ni por un índice que las reexporte.
+    files: ['packages/shared/src/broadcast/{timeline,codec,reduce,reveal}.ts'],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          paths: ['./constants.js', './index.js', '../index.js'].map((name) => ({
+            name,
+            message: BROADCAST_NOT_IN_RACE_MSG,
+          })),
         },
       ],
     },
