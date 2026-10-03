@@ -10,6 +10,14 @@ const MAIL_FROM_RE =
   /^(?:[^<>]{1,64}<[^<>@\s]+@[^<>@\s]+\.[^<>@\s]+>|[^<>@\s]+@[^<>@\s]+\.[^<>@\s]+)$/
 
 /**
+ * QUE EL TICK GRABE `stage_timelines` (E2, docs/retransmision.md §5.5 y §14.6; D-12, D-53): `on` por
+ * defecto desde el paso 5; `off` es el freno sin desplegar si el tick se resiente (B15), y esas etapas
+ * quedan sin fila y abren con el adaptador de la radio. Lo leen los dos servicios, porque el tick corre
+ * en el cron y dentro de `web` (`/admin/tick`, `/admin/advance` y el auto-tick).
+ */
+const timelineRecordSchema = z.enum(['off', 'on']).default('on')
+
+/**
  * Validación Zod de las variables de entorno en el borde de arranque (CLAUDE.md).
  * PORT lo inyecta Railway; DATABASE_URL es obligatoria desde el Paso 6.
  * APP_URL y SESSION_SECRET los usa better-auth (Paso 9).
@@ -53,6 +61,13 @@ const envSchema = z
      * `on` (todos, al cerrar el paso 10). Un valor fuera de la lista hace fallar el arranque.
      */
     BROADCAST_WATCH: switchModeSchema.default('off'),
+    TIMELINE_RECORD: timelineRecordSchema,
+    /**
+     * QUE `web` AVANCE EL MUNDO EN SU PROCESO (el auto-tick de `index.ts`), como hoy: `on` por defecto.
+     * Railway lo pone a `off` en `web` cuando existe el servicio `tick` (18-k): simular es JavaScript
+     * síncrono, y mientras corre una etapa la web no contesta (§18.3). No es un interruptor de pantalla.
+     */
+    AUTO_TICK: z.enum(['off', 'on']).default('on'),
   })
   .refine((env) => !(env.RESEND_API_KEY && !env.MAIL_FROM), {
     path: ['MAIL_FROM'],
@@ -72,6 +87,7 @@ export type Env = z.infer<typeof envSchema>
 const tickEnvSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL es obligatoria'),
   TICK_INTERVAL_MINUTES: z.coerce.number().int().positive().default(360),
+  TIMELINE_RECORD: timelineRecordSchema,
 })
 
 export type TickEnv = z.infer<typeof tickEnvSchema>

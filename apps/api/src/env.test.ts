@@ -68,10 +68,52 @@ describe('loadEnv: el interruptor de la retransmisión (E2, §14.6)', () => {
   })
 })
 
+describe('loadEnv: la grabación de la línea y el tick dentro de web (E2, §14.6 y 18-k; paso 5)', () => {
+  it('TIMELINE_RECORD vale on si no está: desde el paso 5 el tick graba', () => {
+    expect(loadEnv(BASE as NodeJS.ProcessEnv).TIMELINE_RECORD).toBe('on')
+  })
+
+  it('TIMELINE_RECORD acepta off y on, y nada más', () => {
+    for (const mode of ['off', 'on'])
+      expect(loadEnv({ ...BASE, TIMELINE_RECORD: mode } as NodeJS.ProcessEnv).TIMELINE_RECORD).toBe(
+        mode,
+      )
+    for (const mode of ['true', 'ON', 'admins'])
+      expect(() => loadEnv({ ...BASE, TIMELINE_RECORD: mode } as NodeJS.ProcessEnv)).toThrow(
+        /TIMELINE_RECORD/,
+      )
+  })
+
+  it('AUTO_TICK vale on si no está (web avanza el mundo, como hoy) y acepta off', () => {
+    expect(loadEnv(BASE as NodeJS.ProcessEnv).AUTO_TICK).toBe('on')
+    expect(loadEnv({ ...BASE, AUTO_TICK: 'off' } as NodeJS.ProcessEnv).AUTO_TICK).toBe('off')
+    for (const mode of ['false', 'OFF', 'admins'])
+      expect(() => loadEnv({ ...BASE, AUTO_TICK: mode } as NodeJS.ProcessEnv)).toThrow(/AUTO_TICK/)
+  })
+})
+
 describe('loadTickEnv', () => {
-  /* El servicio cron no manda correo: añadirle variables de correo sería configurarlo para nada. */
+  /*
+    El servicio cron no manda correo: añadirle variables de correo sería configurarlo para nada.
+    RE-SELLADO en E2, paso 5: el cron también lee TIMELINE_RECORD (corre el tick, que es quien graba,
+    §14.6), con `on` por defecto; sigue arrancando con la base de datos sola.
+  */
   it('sigue necesitando sólo la base de datos', () => {
     const env = loadTickEnv({ DATABASE_URL: 'postgres://x' } as NodeJS.ProcessEnv)
-    expect(env).toEqual({ DATABASE_URL: 'postgres://x', TICK_INTERVAL_MINUTES: 360 })
+    expect(env).toEqual({
+      DATABASE_URL: 'postgres://x',
+      TICK_INTERVAL_MINUTES: 360,
+      TIMELINE_RECORD: 'on',
+    })
+  })
+
+  it('TIMELINE_RECORD=off apaga la grabación en el cron, y un valor mal escrito no deja arrancar', () => {
+    expect(
+      loadTickEnv({ DATABASE_URL: 'postgres://x', TIMELINE_RECORD: 'off' } as NodeJS.ProcessEnv)
+        .TIMELINE_RECORD,
+    ).toBe('off')
+    expect(() =>
+      loadTickEnv({ DATABASE_URL: 'postgres://x', TIMELINE_RECORD: 'no' } as NodeJS.ProcessEnv),
+    ).toThrow(/TIMELINE_RECORD/)
   })
 })

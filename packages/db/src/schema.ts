@@ -45,6 +45,16 @@ const citext = customType<{ data: string }>({
   },
 })
 
+/**
+ * `bytea` como `Buffer` (E2, docs/retransmision.md §13.3): postgres.js lo entrega y lo recibe así, sin
+ * conversión. Un `customType`, como `citext`.
+ */
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType() {
+    return 'bytea'
+  },
+})
+
 /** El mundo persistente: semilla del azar y versión del motor con que se creó. */
 export const worlds = pgTable('worlds', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -753,11 +763,55 @@ export const stageSnapshots = pgTable(
      * cada uno, qué hueco llevan y quién está dando la cara. Se congela aquí por la MISMA razón que
      * `events`: una etapa corrida con el motor de ayer no se puede reconstruir con el de hoy
      * (`checkReplay`), así que calcularla al vuelo la dejaría vacía justo para las etapas ya
-     * corridas. ~22 KB por etapa. Null en los snapshots anteriores a esta columna.
+     * corridas. Lo que pesa, con lo que mide cada cifra (docs/retransmision.md §5.7, D-11): de 102 a
+     * 514 KB de JSON por etapa en línea (mapa 07, 22 etapas del banco) y, en disco, de 10,7 a 146,4 KB
+     * en `jsonb` con la compresión TOAST del servidor (el juez del motor, §2.1); no los «~22 KB» que
+     * decía este comentario. Null en los snapshots anteriores a esta columna.
      */
     radio: jsonb('radio'),
   },
   (t) => [primaryKey({ columns: [t.raceId, t.stageDay] })],
+)
+
+/**
+ * LA LÍNEA TEMPORAL DE UNA ETAPA (E2, docs/retransmision.md §4.2, §5.6 y §13.3; la 0047): lo único que
+ * se lee para retransmitirla. 1:1 con `stage_snapshots`, que NO gana columnas (tactica.md l.
+ * 7589-7591), y escrita en su misma transacción del día, por `flush` al acabar las carreras del día
+ * (5-l). `body` es el gzip 9 del JSON de `StoredTimelineV1` (§4.3): así lo que ocupa no depende de la
+ * compresión del servidor (C8). Lo guardado no se reescribe: un formato nuevo es otro `format` con su
+ * decodificador. Sin fila: etapa corrida antes del paso 5 o con `TIMELINE_RECORD=off`, y se sirve con
+ * el adaptador de la radio (D-07). Sin `world_id`, como toda tabla de etapa: el reinicio la vacía con
+ * `stage_snapshots` (§13.9, `docs/ops.md`).
+ */
+export const stageTimelines = pgTable(
+  'stage_timelines',
+  {
+    /** La `raceKey`, con temporada, como `stage_snapshots.race_id`. */
+    raceId: text('race_id').notNull(),
+    /** El número de etapa, desde 1: no es un día de juego. */
+    stageDay: integer('stage_day').notNull(),
+    /** El día de juego en que se corrió: ninguna otra tabla de etapa lo guarda. */
+    gameDay: integer('game_day').notNull(),
+    /** 1 = `StoredTimelineV1` (`TIMELINE.format`); 0 = lápida: la grabación falló y la etapa abre solo en `Report`. */
+    format: smallint('format').notNull(),
+    engineVersion: integer('engine_version').notNull(),
+    /**
+     * `TEMPLATE_REV` del tick que la grabó (12-c, §12.7): la voz y el acta de la etapa eligen sus
+     * variantes con él (B5). 0 en una lápida. Sin defecto, como `format` o `bytes`: el compilador
+     * obliga a darlo en los dos escritores, `stageTimelineRow` y `tombstoneRow` (13-j).
+     */
+    tplRev: smallint('tpl_rev').notNull(),
+    /** Segundo de carrera de la meta, redondeado hacia arriba: ningún tramo pasa de aquí. 0 en una lápida. */
+    finishS: integer('finish_s').notNull(),
+    /** Lo que ocupa `body`: B6 y la administración lo leen sin leer el cuerpo. */
+    bytes: integer('bytes').notNull(),
+    body: bytea('body').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.raceId, t.stageDay] }),
+    index('stage_timelines_day_idx').on(t.gameDay),
+  ],
 )
 
 export const palmaresKindEnum = pgEnum('palmares_kind', ['gc', 'stage', 'kom', 'points'])

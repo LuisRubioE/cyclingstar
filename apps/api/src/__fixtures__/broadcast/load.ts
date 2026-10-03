@@ -8,7 +8,9 @@
  * lo que espera I1). Regenerarlas es un PR propio, nunca el efecto de una subida de versión del motor.
  *
  * Lo leído se valida con Zod, como todo borde de entrada. `loadTimeline` (la línea del adaptador hasta
- * el 6a, la grabada después) llega en el 3a, y `seedFixtureWorld`, en el 6a (§17.20).
+ * el 6a, la grabada después) llega en el 3a, y `seedFixtureWorld`, en el 6a (§17.20). La segunda mitad
+ * llega en el 5: `loadTimelineBody` (el `stage_timelines.body` tal cual, para B6),
+ * `loadRecordedTimeline` (la línea grabada, decodificada) y `loadInvariants` (lo que esperan I1 o I5).
  */
 import { readFileSync } from 'node:fs'
 import { gunzipSync } from 'node:zlib'
@@ -26,6 +28,7 @@ import {
   type RaceLeaders,
   type StageTimeline,
   chronicleEntrySchema,
+  decodeTimeline,
   pullMotiveSchema,
   radioGroupKindSchema,
 } from '@cyclingstar/shared'
@@ -108,7 +111,18 @@ const manifestSchema = z.object({
       /** la lista de seguimiento y los maillots de `radioForStorage` en stageRun.ts */
       watch: z.array(z.string()),
       priority: z.array(z.string()),
-      files: z.object({ events: fileSchema, acta: fileSchema, radio: fileSchema.optional() }),
+      /** los nacionales que el script escribió en palmares antes de la etapa (paso 5): un `from` de campeón */
+      champions: z
+        .array(z.object({ riderId: z.string(), raceId: z.string(), gameDay: z.number().int() }))
+        .default([]),
+      files: z.object({
+        events: fileSchema,
+        acta: fileSchema,
+        radio: fileSchema.optional(),
+        /** paso 5: `stage_timelines.body` y lo que esperan los invariantes */
+        timeline: fileSchema.optional(),
+        i1: fileSchema.optional(),
+      }),
     }),
   ),
 })
@@ -314,4 +328,70 @@ export function loadTimeline(name: RoadFixtureName): StageTimeline {
   if (tl === null) throw new Error(`${name}: el adaptador no puede estimar el reloj`)
   timelines.set(name, tl)
   return tl
+}
+
+// ----------------------------------------------------------------------- la segunda mitad (paso 5)
+
+/**
+ * `stage_timelines.body` de la etapa, tal cual: el gzip 9 del JSON de `StoredTimelineV1`, con el
+ * reparto que `buildTimelineCast` congeló sobre la N − 1 (§16.2, 17-u). Es lo que pesa B6.
+ */
+export function loadTimelineBody(name: FixtureName): Buffer {
+  const file = fixtureStage(name).files.timeline?.file
+  if (file === undefined) throw new Error(`${name} no tiene línea grabada`)
+  return read(file)
+}
+
+const recorded = new Map<FixtureName, StageTimeline>()
+/**
+ * LA LÍNEA GRABADA de una etapa congelada, decodificada con `decodeTimeline` (el esquema de §4.3). El
+ * 6a la pone en `loadTimeline` en lugar de la del adaptador; hasta entonces la leen los invariantes.
+ */
+export function loadRecordedTimeline(name: FixtureName): StageTimeline {
+  let tl = recorded.get(name)
+  if (tl === undefined) {
+    tl = decodeTimeline(JSON.parse(gunzipSync(loadTimelineBody(name)).toString('utf8')))
+    recorded.set(name, tl)
+  }
+  return tl
+}
+
+/** Un grupo de lo que espera I1: [id, reloj en Ds, kind, tamaño, hueco en centésimas, RiderIx ordenados]. */
+const i1GroupSchema = z.tuple([
+  z.string(),
+  z.number().int(),
+  radioGroupKindSchema,
+  z.number().int(),
+  z.number().int(),
+  z.array(z.number().int()),
+])
+/** Lo que esperan los invariantes de una congelada (`scripts/broadcast-fixtures.mjs`, §16.2). */
+const invariantsSchema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('road'),
+    /** por bloque de foto: [b, racing, gone, el pelotón, grupos] de `radioKmFrom` de la foto del MOTOR */
+    blocks: z.array(
+      z.tuple([
+        z.number().int(),
+        z.number().int(),
+        z.number().int(),
+        z.string().nullable(),
+        z.array(i1GroupSchema),
+      ]),
+    ),
+  }),
+  z.object({
+    kind: z.literal('tt'),
+    /** por RiderIx: la salida del plan (`timeTrialStartOrder`) y 10 · tiempoS de results */
+    startDs: z.array(z.number().int()),
+    finishDs: z.array(z.number().int()),
+  }),
+])
+export type FixtureInvariants = z.infer<typeof invariantsSchema>
+
+/** Lo que esperan I1 (en línea) o I5 (en crono) de la línea grabada de una congelada. */
+export function loadInvariants(name: FixtureName): FixtureInvariants {
+  const file = fixtureStage(name).files.i1?.file
+  if (file === undefined) throw new Error(`${name} no tiene lo que esperan los invariantes`)
+  return invariantsSchema.parse(readGzJson(file))
 }

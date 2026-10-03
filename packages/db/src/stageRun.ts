@@ -8,6 +8,7 @@ import {
   type RaceLevel,
   type StageInput,
   type StageOrders,
+  type StageProbe,
   type StageRider,
   applyDailyLoad,
   applyLeaderJersey,
@@ -64,6 +65,12 @@ import {
   stageTeamResults,
 } from './schema.js'
 import { teamStageScores } from './teamClassification.js'
+import {
+  type StageTimelineRun,
+  type TimelineTickLog,
+  recordStageTimeline,
+  startStageTimeline,
+} from './timelines.js'
 
 /**
  * Motor de una etapa en la capa de datos (Paso 30/44). Genérico por carrera: construye el snapshot
@@ -77,8 +84,9 @@ type Db = ReturnType<typeof drizzle>
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
 
 /**
- * La versión del motor entra en `stageSeed()` y se sella en `stage_runs`: DEBE venir del propio
- * motor. Estuvo cableada a 1, así que subir `ENGINE_VERSION` no cambiaba ninguna semilla real ni
+ * La versión del motor entra en `stageSeed()` y se sella en `stage_snapshots.engine_version` (no hay
+ * tabla `stage_runs`, aunque algún documento la nombre: docs/retransmision.md §13.6): DEBE venir del
+ * propio motor. Estuvo cableada a 1, así que subir `ENGINE_VERSION` no cambiaba ninguna semilla real ni
  * sellaba los replays (un cambio de comportamiento reproducía las etapas viejas con la física nueva).
  */
 const ENGINE_VERSION_NUM: number = ENGINE_VERSION
@@ -137,6 +145,14 @@ export interface StageRunSpec {
     /** ¿Es ésta la última mitad del día? Solo entonces se aplica el paso y se escribe el parte. */
     aplicaHoy: boolean
   }
+  /**
+   * EL DIARIO DE GRABACIÓN DEL TICK (E2, docs/retransmision.md §5.5; paso 5). Existe si el tick corre
+   * con `TIMELINE_RECORD=on`: la etapa se corre con el colector aparte (§5.3), se cierra su línea
+   * temporal y su fila (línea o lápida) espera en el diario hasta `flush`, que quien corre la etapa
+   * llama dentro de la misma transacción antes de confirmarla. Ausente = `TIMELINE_RECORD=off` o una
+   * etapa fuera del tick: la envoltura de la sonda es byte a byte la de hoy y no se graba nada.
+   */
+  timeline?: TimelineTickLog
 }
 
 /**
@@ -517,7 +533,8 @@ export async function runOneStage(
    * reconstruir con el de hoy, así que calcularla al vuelo la dejaría vacía justo para las etapas
    * que el jugador quiere mirar.
    */
-  const radio = raceRadioCollector(radioKmPoints(stageLengthKm(spec.profile)))
+  const lengthKm = stageLengthKm(spec.profile)
+  const radio = raceRadioCollector(radioKmPoints(lengthKm))
   /**
    * QUIÉN TRABAJÓ PARA OTRO, leído al vuelo de las fotos que la radio YA toma cada kilómetro.
    *
@@ -530,15 +547,40 @@ export async function runOneStage(
    * no una integral.
    */
   const trabajaronParaOtro = new Set<string>()
-  const output = simulateStage(input, seed, {
-    atKm: radio.probe.atKm,
-    onSnapshot: (km, riders, mainId) => {
-      for (const r of riders) {
-        if (r.pullFor != null) trabajaronParaOtro.add(r.riderId)
-      }
-      radio.probe.onSnapshot?.(km, riders, mainId)
-    },
-  })
+  /** Una foto de un km de radio, tratada EXACTAMENTE como hoy: el aprendizaje y la radio. */
+  const fotoDeRadio: StageProbe['onSnapshot'] = (km, riders, mainId) => {
+    for (const r of riders) {
+      if (r.pullFor != null) trabajaronParaOtro.add(r.riderId)
+    }
+    radio.probe.onSnapshot?.(km, riders, mainId)
+  }
+  /**
+   * LA LÍNEA TEMPORAL (E2, docs/retransmision.md §5.3; paso 5). Con el diario del tick (`spec.timeline`,
+   * `TIMELINE_RECORD=on`), el COLECTOR APARTE pide la foto de cada bloque y da al grabador todas y a
+   * `fotoDeRadio` solo las de los km de radio, despachadas por índice de bloque: el aprendizaje y la
+   * radio guardada ven lo mismo que sin él, byte a byte (B10), y la carrera no cambia (B11). Si el
+   * grabador no llega a arrancar, la etapa se corre con la sonda de hoy y se queda sin línea, con su
+   * lápida (D-12). Sin diario, la sonda es la de hoy y no se graba nada.
+   */
+  let grabacion: StageTimelineRun | null = null
+  let falloAlArrancar: unknown
+  if (spec.timeline) {
+    try {
+      grabacion = startStageTimeline({
+        lengthKm,
+        timeTrial: spec.timeTrial,
+        riderIds: input.riders.map((r) => r.riderId),
+        radioShot: fotoDeRadio,
+      })
+    } catch (err) {
+      falloAlArrancar = err ?? new Error('el grabador no arrancó')
+    }
+  }
+  const output = simulateStage(
+    input,
+    seed,
+    grabacion?.probe ?? { atKm: radio.probe.atKm, onSnapshot: fotoDeRadio },
+  )
   /**
    * LOS TRES MAILLOTS DE LA CARRETERA, que es lo que se veía mal: la radio enseñaba el amarillo y
    * ningún otro. No era un fallo de la vista —el amarillo entraba de rebote, por ser el primero de
@@ -601,6 +643,34 @@ export async function runOneStage(
       ) as unknown,
     })
     .onConflictDoNothing()
+
+  /**
+   * …Y SU LÍNEA TEMPORAL (E2, docs/retransmision.md §5.5; paso 5), con la grabación encendida: el
+   * reparto congelado (con los atributos leídos al empezar, antes de que el aprendizaje de abajo los
+   * cambie, 8-g), el cierre, la autocomprobación y el gzip. No escribe: la fila espera en el diario
+   * hasta `flush`, al acabar las carreras del día (5-l), y un fallo deja la etapa sin línea y con su
+   * nota, nunca la etapa sin correr.
+   */
+  if (spec.timeline) {
+    await recordStageTimeline(tx, spec.timeline, {
+      run: grabacion,
+      startFailure: falloAlArrancar,
+      worldId,
+      gameDay,
+      raceKey: spec.raceKey,
+      raceId: spec.raceId,
+      stageDay: spec.stageDay,
+      kind: spec.kind,
+      timeTrial: spec.timeTrial,
+      seed,
+      input,
+      output,
+      radio: stageRadio,
+      riders: riderById,
+      gcRows,
+      attrsByRider,
+    })
+  }
 
   // Todo lo que sigue se ACUMULA en memoria y se escribe en lote al final: una etapa de gran vuelta
   // son 176 corredores y el bucle fila a fila hacía ~700-900 idas y vueltas dentro de la transacción

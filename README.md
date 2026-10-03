@@ -84,11 +84,13 @@ pnpm --filter @cyclingstar/web dev
 | `RESEND_API_KEY`        | no          | Clave de Resend. Sin ella la app arranca y no manda correo.                                                        |
 | `MAIL_FROM`             | no          | Remitente (`Nombre <correo@dominio>`). Va en pareja con la clave.                                                  |
 | `BROADCAST_WATCH`       | no (off)    | La retransmisión (E2): `off` da 404 en `…/broadcast`, `admins` la abre solo a los administradores y `on`, a todos. |
+| `TIMELINE_RECORD`       | no (on)     | Que el tick grabe la línea de cada etapa (E2) en `web` y en `tick`; `off` es el freno, sin desplegar.              |
+| `AUTO_TICK`             | no (on)     | Solo `web`: con `off` no avanza el mundo en su proceso y lo hace solo el cron de `tick`.                           |
 | `PORT`                  | no (3000)   | Puerto de escucha. En Railway lo inyecta la plataforma.                                                            |
 | `TICK_INTERVAL_MINUTES` | no (360)    | Minutos reales por día de juego. Bajarlo acelera el mundo para la alfa.                                            |
 | `LOG_LEVEL`             | no (info)   | Nivel de log de Fastify.                                                                                           |
 
-El servicio `tick` solo necesita `DATABASE_URL` y `TICK_INTERVAL_MINUTES`.
+El servicio `tick` solo necesita `DATABASE_URL` y `TICK_INTERVAL_MINUTES` (y `TIMELINE_RECORD` si se quiere apagar la grabación).
 
 `APP_URL` tiene que ser el dominio **canónico** por el que se navega de verdad. better-auth rechaza
 con «Invalid origin» cualquier petición que venga de otro sitio, así que apuntarla al dominio

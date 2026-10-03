@@ -48,6 +48,7 @@ import {
 import { freezeRaceRoute, raceStagesForWorld } from './raceRoutes.js'
 import { runOneStage } from './stageRun.js'
 import { ownedTeamAttendance } from './teamPlan.js'
+import type { TimelineTickLog } from './timelines.js'
 import { worldNeedsRepair } from './worldRepair.js'
 
 /**
@@ -1519,6 +1520,13 @@ export interface CalendarDayOptions {
    * tenga reparaciones pendientes; en un mundo sano NO se hace, que barría todas las tablas cada día.
    */
   repairWorld?: boolean
+  /**
+   * EL DIARIO DE GRABACIÓN DEL TICK (E2, docs/retransmision.md §5.5; paso 5), con
+   * `TIMELINE_RECORD=on`: cada etapa del día lo recibe en su `StageRunSpec.timeline` y deja en él su
+   * fila de `stage_timelines`, que `runTick` escribe con `flush` justo detrás de este día de
+   * calendario, en la misma transacción. Sin él no se graba nada.
+   */
+  timeline?: TimelineTickLog
 }
 
 export async function runCalendarDay(
@@ -1653,6 +1661,7 @@ export async function runCalendarDay(
       // parte anunciaría el tiempo de otra carrera (v44).
       lugar: stagePlace(race, idx),
       ...(carga ? { cargaDelDia: carga } : {}),
+      ...(opts.timeline ? { timeline: opts.timeline } : {}),
     })
     for (const id of r) raced.add(id)
   }

@@ -768,10 +768,13 @@
         "00000000-0000-4000-8000-000000000175"
       ],
       "priority": ["00000000-0000-4000-8000-000000000079", "00000000-0000-4000-8000-000000000009", "00000000-0000-4000-8000-000000000175"],
+      "champions": [],
       "files": {
         "events": { "file": "race-france-e7.events.json.gz", "bytes": 2323, "sha256": "1bfaeb8475f245765bdd9507c482565a1014deaba6feef954b078dbb904fd2dc" },
         "acta": { "file": "race-france-e7.acta.json.gz", "bytes": 1993, "sha256": "068c35d67867c51f590d04d6b0b23dea0804c7df7b6a70100fb014beea207cd4" },
-        "radio": { "file": "race-france-e7.radio.json.gz", "bytes": 51433, "sha256": "b59f1758d89c00572ec65e791367e566c0b2cf44069765f6b58f28eb1f1f0483" }
+        "radio": { "file": "race-france-e7.radio.json.gz", "bytes": 51433, "sha256": "b59f1758d89c00572ec65e791367e566c0b2cf44069765f6b58f28eb1f1f0483" },
+        "timeline": { "file": "race-france-e7.timeline.gz", "bytes": 14372, "sha256": "7fe404543ce309ccc0a331484f96ef2f56c8b638e0189cfa1730ee924fc48c64" },
+        "i1": { "file": "race-france-e7.i1.json.gz", "bytes": 4572, "sha256": "124c4c0efba500dd7e0c0a23eee93e3e4b539a53c262dc0db6e60657ca76b1b4" }
       }
     },
     "race-france-e16": {
@@ -959,9 +962,15 @@
         "00000000-0000-4000-8000-000000000175"
       ],
       "priority": ["00000000-0000-4000-8000-000000000079", "00000000-0000-4000-8000-000000000147", "00000000-0000-4000-8000-000000000175"],
+      "champions": [
+        { "riderId": "00000000-0000-4000-8000-000000000001", "raceId": "nc-us-itt", "gameDay": 201 },
+        { "riderId": "00000000-0000-4000-8000-000000000003", "raceId": "nc-fr-road", "gameDay": 201 }
+      ],
       "files": {
         "events": { "file": "race-france-e16.events.json.gz", "bytes": 1041, "sha256": "1e9bd686b4b463f57b22304a5e16a4cf86cb22265585c0d2af18091fed11cca9" },
-        "acta": { "file": "race-france-e16.acta.json.gz", "bytes": 1262, "sha256": "98ca92b000ad529264919eea12e2113ce12a67bae62cb6cd7ce9d7a5e8901812" }
+        "acta": { "file": "race-france-e16.acta.json.gz", "bytes": 1262, "sha256": "98ca92b000ad529264919eea12e2113ce12a67bae62cb6cd7ce9d7a5e8901812" },
+        "timeline": { "file": "race-france-e16.timeline.gz", "bytes": 18732, "sha256": "90e9a651b0810ef2ac533c744072f28c784c59fc698f8df0084df9872d72013c" },
+        "i1": { "file": "race-france-e16.i1.json.gz", "bytes": 720, "sha256": "599194f067f92beac010a4b7deaaafa04611fe1bb2fe26fa08710ebea6068db2" }
       }
     },
     "race-france-e18": {
@@ -1151,10 +1160,13 @@
         "00000000-0000-4000-8000-000000000175"
       ],
       "priority": ["00000000-0000-4000-8000-000000000079", "00000000-0000-4000-8000-000000000147", "00000000-0000-4000-8000-000000000175"],
+      "champions": [],
       "files": {
         "events": { "file": "race-france-e18.events.json.gz", "bytes": 4649, "sha256": "0cba6d5c7c963f0fccb0db78b155503357e56953f04560070452694911b992fb" },
         "acta": { "file": "race-france-e18.acta.json.gz", "bytes": 4076, "sha256": "4a252175e93cc8af448821f34600f07991341aea3f07bc7c1b93468a49f1a733" },
-        "radio": { "file": "race-france-e18.radio.json.gz", "bytes": 158787, "sha256": "884d9457a7afc36cfd0ac93f2b0d8d9c71900efad0ac950fd61214fb5d00c87b" }
+        "radio": { "file": "race-france-e18.radio.json.gz", "bytes": 158787, "sha256": "884d9457a7afc36cfd0ac93f2b0d8d9c71900efad0ac950fd61214fb5d00c87b" },
+        "timeline": { "file": "race-france-e18.timeline.gz", "bytes": 42981, "sha256": "bd756ff5806729ce14dfbad414c80473675593d98994d60dc34978c4a0441e0d" },
+        "i1": { "file": "race-france-e18.i1.json.gz", "bytes": 13987, "sha256": "9d9cf7b489cf0c729ce69af202778e3c1e58b19f9d74c3b09fa628c0c01323b0" }
       }
     },
     "race-france-e20": {
@@ -1340,10 +1352,13 @@
         "00000000-0000-4000-8000-000000000175"
       ],
       "priority": ["00000000-0000-4000-8000-000000000079", "00000000-0000-4000-8000-000000000147", "00000000-0000-4000-8000-000000000175"],
+      "champions": [],
       "files": {
         "events": { "file": "race-france-e20.events.json.gz", "bytes": 5335, "sha256": "6d42087437996c30f4396d7c36e09c75d36e9a0cc65fcbcb8e23cfe86552dd08" },
         "acta": { "file": "race-france-e20.acta.json.gz", "bytes": 4204, "sha256": "a4c54fcae5a21826bd3fd18ed439363ef82d7d610ca28c08f8ecbd31298011d6" },
-        "radio": { "file": "race-france-e20.radio.json.gz", "bytes": 198752, "sha256": "793fc20cfc61eaf09172cb68f5febfaa161e9ba4974972a6388e2f1a1f8de898" }
+        "radio": { "file": "race-france-e20.radio.json.gz", "bytes": 198752, "sha256": "793fc20cfc61eaf09172cb68f5febfaa161e9ba4974972a6388e2f1a1f8de898" },
+        "timeline": { "file": "race-france-e20.timeline.gz", "bytes": 53275, "sha256": "9095a7596c5063a0dc630536a24a7752114998b92aba01b88ad8f226490bf298" },
+        "i1": { "file": "race-france-e20.i1.json.gz", "bytes": 21720, "sha256": "3227822839896a7357cc8e8014342a422b8b1c8f6447f872accbcfbb9cea1745" }
       }
     },
     "race-flanders-e1": {
@@ -1544,10 +1559,16 @@
         "00000000-0000-4000-8000-000000000167"
       ],
       "priority": [],
+      "champions": [
+        { "riderId": "00000000-0000-4000-8000-000000000037", "raceId": "nc-gb-road", "gameDay": 94 },
+        { "riderId": "00000000-0000-4000-8000-000000000001", "raceId": "nc-co-road", "gameDay": 94 }
+      ],
       "files": {
         "events": { "file": "race-flanders-e1.events.json.gz", "bytes": 4190, "sha256": "9fdd4c318edab68d8c7f277ee9fbc2e30c185a908bfeac53855a281bd4fd1b28" },
         "acta": { "file": "race-flanders-e1.acta.json.gz", "bytes": 3424, "sha256": "aadda7b70c081913be51e2d4ef7c398aa4d97f0fef4d726685e45cb51e13a99b" },
-        "radio": { "file": "race-flanders-e1.radio.json.gz", "bytes": 153407, "sha256": "ee71356b4b10bf180efd55dbaa2474d8f417bfc54ab7f2c6fd16b0656c926a1f" }
+        "radio": { "file": "race-flanders-e1.radio.json.gz", "bytes": 153407, "sha256": "ee71356b4b10bf180efd55dbaa2474d8f417bfc54ab7f2c6fd16b0656c926a1f" },
+        "timeline": { "file": "race-flanders-e1.timeline.gz", "bytes": 44231, "sha256": "09310eb7b4d582ea5fe6e6ad50e581633157960abdd474f5cedf7b10bcf0aeac" },
+        "i1": { "file": "race-flanders-e1.i1.json.gz", "bytes": 17599, "sha256": "41e703a345f4dc64913ddff53c668fb29e23c82895cd8ea5c2d53f4b320c68d6" }
       }
     },
     "race-colombia-e5": {
@@ -1699,10 +1720,16 @@
         "00000000-0000-4000-8000-000000000123"
       ],
       "priority": ["00000000-0000-4000-8000-000000000082", "00000000-0000-4000-8000-000000000038", "00000000-0000-4000-8000-000000000036"],
+      "champions": [
+        { "riderId": "00000000-0000-4000-8000-000000000001", "raceId": "nc-pt-road", "gameDay": 37 },
+        { "riderId": "00000000-0000-4000-8000-000000000002", "raceId": "nc-de-road", "gameDay": 37 }
+      ],
       "files": {
         "events": { "file": "race-colombia-e5.events.json.gz", "bytes": 4406, "sha256": "9b108d41450576320584c442c6eb6a052ffd9c284e142463095b0b22bc5672f4" },
         "acta": { "file": "race-colombia-e5.acta.json.gz", "bytes": 3528, "sha256": "1e35680c17c5b2fe41a655adc72f326c88d32a78cf32fb6dbf51d76f5be6ce19" },
-        "radio": { "file": "race-colombia-e5.radio.json.gz", "bytes": 195512, "sha256": "3c998973ff3ad1871c93684d9ac802043a0bd7646419c7d27c4907deb2293d99" }
+        "radio": { "file": "race-colombia-e5.radio.json.gz", "bytes": 195512, "sha256": "3c998973ff3ad1871c93684d9ac802043a0bd7646419c7d27c4907deb2293d99" },
+        "timeline": { "file": "race-colombia-e5.timeline.gz", "bytes": 46135, "sha256": "a5775208ddcf7a8daf7ec3c9792555fa125b39062b8109960c358533ce563193" },
+        "i1": { "file": "race-colombia-e5.i1.json.gz", "bytes": 18722, "sha256": "154f97dc0d5986e91b4e0a9535124373c39aa6d33edb0a64701d242b947701fb" }
       }
     }
   }

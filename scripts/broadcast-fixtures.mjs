@@ -29,8 +29,23 @@
  *                           etapa, lo que el adaptador lee de su snapshot (`riderIds`, `lengthKm`,
  *                           `winnerS`) y la lista de seguimiento y los maillots de su radio
  *
- * El paso 5 escribe la segunda mitad (`.timeline.gz` e `.i1.json.gz`) de la misma corrida y falla si
- * los sucesos o la radio difieren en un byte de los de aquí (17-u).
+ * LA SEGUNDA MITAD (E2, paso 5; 17-u). Cada etapa se corre como el tick con la grabación encendida
+ * (`spec.timeline` y `flush` detrás, en su transacción, §5.5), y de las congeladas se escriben además:
+ *
+ *   <etapa>.timeline.gz     `stage_timelines.body` tal cual: el gzip 9 del JSON de `StoredTimelineV1`,
+ *                           con el reparto que `buildTimelineCast` congela sobre la N − 1
+ *   <etapa>.i1.json.gz      lo que esperan los invariantes en la suite rápida (§16.2): en línea, I1,
+ *                           `radioKmFrom` de la foto del MOTOR en cada bloque de foto con el título de
+ *                           la línea (por bloque: racing, gone, el pelotón y cada grupo con su reloj en
+ *                           Ds, su kind, su tamaño, su hueco en centésimas y sus RiderIx); en crono, I5,
+ *                           la salida del plan y 10 · tiempoS de cada corredor
+ *
+ * Y falla si los sucesos o la radio de la misma corrida difieren en un byte de los que escribió el 2
+ * (B11 y B10 en pequeño), y si alguna congelada no deja su línea (una lápida). Para que haya un `from`
+ * de campeón, antes de `race-flanders` e1, `race-colombia` e5 y la crono e16 el script escribe en
+ * `palmares` la victoria de un nacional (de ruta, y de crono en la e16) para dos corredores de la
+ * salida de países distintos, el primero de la fuga si la hay (sale de los sucesos del 2): `runOneStage`
+ * no lee `palmares`, así que la carrera no cambia.
  *
  * Uso (hacen falta los `dist` de packages/* y de apps/api):
  *   pnpm exec tsc -b
@@ -51,24 +66,35 @@ import { createHash } from 'node:crypto'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { isDeepStrictEqual } from 'node:util'
 import { gunzipSync, gzipSync } from 'node:zlib'
-import { ATTRIBUTES, assignLeaderJerseys, seededRng } from '../packages/shared/dist/index.js'
+import {
+  ATTRIBUTES,
+  assignLeaderJerseys,
+  decodeTimeline,
+  photoAt,
+  seededRng,
+  toDs,
+} from '../packages/shared/dist/index.js'
 import {
   ENGINE_VERSION,
   SEASON_CALENDAR,
+  STAGE,
   generateNpcRider,
   raceRadioCollector,
   radioForStorage,
+  radioKmFrom,
   radioKmPoints,
   sampleNpcAge,
   simulateStage,
   stageDayOfSeason,
   stageLengthKm,
   stagePlace,
+  timeTrialStartOrder,
 } from '../packages/engine/dist/index.js'
 import {
   freezeRaceRoute,
   gameState,
   getStageSnapshot,
+  palmares,
   raceRosters,
   raceStagesForWorld,
   riderAttrs,
@@ -76,6 +102,7 @@ import {
   riders,
   runOneStage,
   teams,
+  timelineTickLog,
   worlds,
 } from '../packages/db/dist/index.js'
 
@@ -98,6 +125,104 @@ const RACES = [
   { raceId: 'race-colombia', days: [5] },
 ]
 const nameOf = (raceId, day) => `${raceId}-e${day}`
+
+/**
+ * LOS CAMPEONES (paso 5): antes de estas etapas se escribe en `palmares` la victoria de un nacional
+ * para dos corredores de la salida, el día anterior, para que su reparto tenga un `from` de campeón
+ * (B13, en el 7b). En la crono, uno de crono (lo lleva puesto) y otro de ruta (va a una línea).
+ */
+const CHAMPIONS_BEFORE = {
+  'race-flanders-e1': ['road', 'road'],
+  'race-colombia-e5': ['road', 'road'],
+  'race-france-e16': ['itt', 'road'],
+}
+
+/**
+ * Escribe los dos nacionales: el primero, para el primero de la fuga del día si la hay (de los sucesos
+ * del 2, que la carrera repite byte a byte) o el de menor dorsal; el segundo, para el siguiente por
+ * dorsal de otro país, porque `palmaresTitleSource` da un campeón por campeonato.
+ */
+async function writeChampions(t, worldId, name, gameDay, riderRows) {
+  const disciplines = CHAMPIONS_BEFORE[name]
+  if (disciplines === undefined) return []
+  const before = JSON.parse(gunzipSync(readFileSync(new URL(`${name}.events.json.gz`, OUT))))
+  const breakaway = before.find((e) => e.plantilla === 'breakaway_formed')?.protagonistas[0]
+  const byBib = [...riderRows].sort((a, b) => a.bib - b.bib)
+  const first = byBib.find((r) => r.id === breakaway) ?? byBib[0]
+  const second = byBib.find((r) => r.country !== first.country)
+  const chosen = [first, second].map((r, i) => ({
+    worldId,
+    riderId: r.id,
+    season: 0,
+    raceId: `nc-${r.country.toLowerCase()}-${disciplines[i]}`,
+    raceName: `National championship ${r.country}`,
+    kind: 'gc',
+    detail: '',
+    gameDay: gameDay - 1,
+  }))
+  await t.db.insert(palmares).values(chosen)
+  return chosen.map((c) => ({ riderId: c.riderId, raceId: c.raceId, gameDay: c.gameDay }))
+}
+
+/**
+ * Que lo de esta corrida, con la grabación encendida, sea byte a byte el JSON que escribió el 2 (17-u).
+ * Si el fichero no está, no hay con qué comparar: se regenera la primera mitad.
+ */
+function sameAsStep2(name, kind, value) {
+  let before
+  try {
+    before = gunzipSync(readFileSync(new URL(`${name}.${kind}.json.gz`, OUT))).toString('utf8')
+  } catch {
+    return
+  }
+  if (before !== JSON.stringify(value))
+    throw new Error(`${name}: ${kind} distintos de los del paso 2 con la grabación encendida`)
+}
+
+/** El bloque cuyo centro es `km`, con la cuenta del motor (`probeAt`). */
+const blockOf = (km, blocks) => Math.max(0, Math.min(blocks - 1, Math.round(km / STAGE.dx - 0.5)))
+
+/**
+ * LO QUE ESPERA I1 (§4.4, §5.5, §16.2) en cada bloque de foto: `radioKmFrom` de la foto del MOTOR con
+ * el título de la línea (no el de la radio, que hereda el del km anterior y difiere en 4 de 3.246
+ * fotos). Por bloque: [b, racing, gone, pelotón, grupos], cada grupo [id, reloj en Ds, kind, tamaño,
+ * hueco en centésimas, RiderIx ordenados].
+ */
+function i1Expectation(tl, photos) {
+  const ix = new Map(tl.riderIds.map((id, r) => [id, r]))
+  const out = []
+  for (const [b, { km, riders: snapshot }] of [...photos].sort((x, y) => x[0] - y[0])) {
+    const p = photoAt(tl, b)
+    const titleId = p.main === null ? undefined : tl.groups[p.main]?.id
+    const radio = radioKmFrom(km, snapshot, tl.riderIds.length, Infinity, null, titleId)
+    out.push([
+      b,
+      radio.racing,
+      radio.gone,
+      radio.mainId,
+      radio.groups.map((g) => [
+        g.id,
+        toDs(g.tS),
+        g.kind,
+        g.size,
+        Math.round(g.gapS * 100),
+        g.riderIds.map((id) => ix.get(id)).sort((x, y) => x - y),
+      ]),
+    ])
+  }
+  return { kind: 'road', blocks: out }
+}
+
+/** LO QUE ESPERA I5 (§4.4, 9-a) en una crono: la salida del plan y 10 · tiempoS, por RiderIx. */
+function i5Expectation(tl, input, output) {
+  const plan = new Map(timeTrialStartOrder(input.riders).slots.map((s) => [s.riderId, s.startS]))
+  const tiempo = new Map(output.results.map((r) => [r.riderId, r.tiempoS]))
+  return {
+    kind: 'tt',
+    startDs: tl.riderIds.map((id) => toDs(plan.get(id) ?? Number.NaN)),
+    finishDs: tl.riderIds.map((id) => 10 * (tiempo.get(id) ?? Number.NaN)),
+  }
+}
 
 // ------------------------------------------------------- el campo del banco (scripts/race-radio.mjs)
 
@@ -299,9 +424,20 @@ async function runRace({ raceId, days }) {
       for (const r of rows)
         pointsBefore.set(r.rider_id, { pv: r.puntos_volante, pm: r.puntos_montana })
     }
+    const name = nameOf(race.id, idx)
+    const champions = await writeChampions(
+      t,
+      worldId,
+      name,
+      stageDayOfSeason(race, idx),
+      seeded.riderRows,
+    )
+    // Como el tick con TIMELINE_RECORD=on (paso 5): el diario baja a la etapa y `flush` escribe su fila
+    // en la misma transacción (§5.5). Toda etapa, congelada o no, tiene que dejar su línea.
+    const log = timelineTickLog()
     const t0 = performance.now()
-    await t.db.transaction((tx) =>
-      runOneStage(tx, worldId, stageDayOfSeason(race, idx), worldSeed, {
+    await t.db.transaction(async (tx) => {
+      await runOneStage(tx, worldId, stageDayOfSeason(race, idx), worldSeed, {
         raceKey,
         raceId: race.id,
         raceName: race.name,
@@ -314,20 +450,36 @@ async function runRace({ raceId, days }) {
         timeTrial: stage.timeTrial,
         isFinal: idx === frozen.length,
         lugar: stagePlace(race, idx),
-      }),
-    )
+        timeline: log,
+      })
+      await log.flush(tx)
+    })
+    if (log.summary() !== 'timeline: 1 grabadas, 0 sin línea')
+      throw new Error(`${race.id} e${idx} no dejó su línea: ${log.summary()}`)
     process.stderr.write(
-      `  ${race.id} e${idx} corrida en ${((performance.now() - t0) / 1000).toFixed(1)} s\n`,
+      `  ${race.id} e${idx} corrida y grabada en ${((performance.now() - t0) / 1000).toFixed(1)} s\n`,
     )
     if (!congelada) continue
 
     const snap = await getStageSnapshot(t.db, raceKey, idx)
     const input = snap.input
     const lengthKm = stageLengthKm(input.profile)
+    // Los sucesos de la etapa grabada, byte a byte los del 2 (B11 en pequeño: grabar no cambia la carrera).
+    sameAsStep2(name, 'events', snap.events)
     // La radio completa no se guarda: se vuelve a correr la etapa, que con la misma entrada y la misma
-    // semilla es la misma carrera (observar no cambia la carrera, B11).
+    // semilla es la misma carrera (observar no cambia la carrera, B11). De paso se quedan las fotos del
+    // motor de los bloques de radio, que son las que mira I1.
     const collector = raceRadioCollector(radioKmPoints(lengthKm))
-    const output = simulateStage(input, snap.seed, collector.probe)
+    const blocks = Math.round(lengthKm / STAGE.dx)
+    const photos = new Map()
+    const output = simulateStage(input, snap.seed, {
+      atKm: collector.probe.atKm,
+      onSnapshot: (km, riderSnaps, mainId) => {
+        const b = blockOf(km, blocks)
+        photos.set(b, { km: (b + 0.5) * STAGE.dx, riders: riderSnaps })
+        collector.probe.onSnapshot(km, riderSnaps, mainId)
+      },
+    })
     if (!isDeepStrictEqual(output.events, snap.events))
       throw new Error(`${race.id} e${idx}: la etapa re-simulada no da los sucesos guardados`)
     const finishers = output.results
@@ -343,8 +495,17 @@ async function runRace({ raceId, days }) {
       !isDeepStrictEqual(radioForStorage(radio, new Set(watch), priority), snap.radio)
     )
       throw new Error(`${race.id} e${idx}: radioForStorage no da la radio guardada`)
+    // La radio completa, byte a byte la del 2 (B10 en pequeño: el colector aparte no la cambia).
+    if (radio !== null) sameAsStep2(name, 'radio', radio)
+    // LA LÍNEA GRABADA: el cuerpo de su fila tal cual, y lo que esperan de ella I1 o I5.
+    const [row] =
+      await t.client`select body from stage_timelines where race_id = ${raceKey} and stage_day = ${idx}`
+    const body = Buffer.from(row.body)
+    const tl = decodeTimeline(JSON.parse(gunzipSync(body).toString('utf8')))
+    const invariants =
+      input.timeTrial === true ? i5Expectation(tl, input, output) : i1Expectation(tl, photos)
     stages.push({
-      name: nameOf(race.id, idx),
+      name,
       raceId: race.id,
       day: idx,
       raceKey,
@@ -356,6 +517,10 @@ async function runRace({ raceId, days }) {
       priority,
       events: snap.events,
       radio,
+      timeline: body,
+      timelineJsonBytes: gunzipSync(body).length,
+      invariants,
+      champions,
     })
   }
 
@@ -374,6 +539,8 @@ async function runRace({ raceId, days }) {
     s.acta = res.json().chronicle
     if (!Array.isArray(s.acta) || s.acta.length === 0)
       throw new Error(`${s.name}: el acta sale vacía`)
+    // El acta, también igual: la etapa grabada se sirve como siempre hasta el 6a.
+    sameAsStep2(s.name, 'acta', s.acta)
   }
   await app.close()
   await t.close()
@@ -419,9 +586,12 @@ for (const spec of RACES) {
   for (const s of stages) {
     const out = { events: gz(s.events), acta: gz(s.acta) }
     if (s.radio !== null) out.radio = gz(s.radio)
+    // La segunda mitad (paso 5): la línea es el cuerpo de su fila tal cual; lo de los invariantes, JSON.
+    out.timeline = s.timeline
+    out.i1 = gz(s.invariants)
     const described = {}
     for (const [kind, buf] of Object.entries(out)) {
-      const file = `${s.name}.${kind}.json.gz`
+      const file = kind === 'timeline' ? `${s.name}.timeline.gz` : `${s.name}.${kind}.json.gz`
       files.set(file, buf)
       described[kind] = { file, bytes: buf.length, sha256: sha256(buf) }
     }
@@ -435,6 +605,8 @@ for (const spec of RACES) {
       riderIds: s.riderIds,
       watch: s.watch,
       priority: s.priority,
+      // los nacionales que el script escribió en palmares antes de la etapa (paso 5)
+      champions: s.champions,
       files: described,
     }
   }
@@ -476,13 +648,16 @@ if (CHECK) {
 mkdirSync(OUT, { recursive: true })
 for (const [file, buf] of files) writeFileSync(new URL(file, OUT), buf)
 console.log(`\nFixtures de la retransmisión · motor v${ENGINE_VERSION} · semilla ${RUN}\n`)
-console.log('| Etapa | Corredores | Sucesos | Radio (KB gz) | Acta (KB gz) | Sucesos (KB gz) |')
-console.log('| --- | --- | --- | --- | --- | --- |')
+console.log(
+  '| Etapa | Corredores | Sucesos | Radio (KB gz) | Acta (KB gz) | Sucesos (KB gz) | Línea (KB, bytea) | Línea (KB de JSON) | Invariantes (KB gz) |',
+)
+console.log('| --- | --- | --- | --- | --- | --- | --- | --- | --- |')
 for (const [name, s] of Object.entries(manifest.stages)) {
   const kb = (kind) => (s.files[kind] ? (s.files[kind].bytes / 1024).toFixed(1) : '·')
   const events = JSON.parse(gunzipSync(files.get(s.files.events.file)).toString('utf8'))
+  const json = gunzipSync(files.get(s.files.timeline.file)).length / 1024
   console.log(
-    `| ${name}${s.timeTrial ? ' (crono)' : ''} | ${s.riderIds.length} | ${events.length} | ${kb('radio')} | ${kb('acta')} | ${kb('events')} |`,
+    `| ${name}${s.timeTrial ? ' (crono)' : ''} | ${s.riderIds.length} | ${events.length} | ${kb('radio')} | ${kb('acta')} | ${kb('events')} | ${kb('timeline')} | ${json.toFixed(1)} | ${kb('i1')} |`,
   )
 }
 const total = [...files.values()].reduce((a, b) => a + b.length, 0)

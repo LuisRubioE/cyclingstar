@@ -15,6 +15,7 @@
  * corredor sí puede ir de amarillo Y ser del equipo líder a la vez, que además es lo normal.
  */
 // Ciclo solo de tipos con la línea temporal (E2, §4.8): `import type` se borra al compilar.
+import type { GroupNow } from './broadcast/instant.js'
 import type { RiderIx, StageRef } from './broadcast/timeline.js'
 
 /** Los tres maillots que lleva un CORREDOR, en orden de prioridad. */
@@ -142,11 +143,11 @@ export const JERSEY_LABEL: Record<JerseyKind, string> = {
  * ── EL MAILLOT QUE SE VE Y EL RÓTULO (E2, docs/retransmision.md §4.8) ────────────────────────────
  *
  * El maillot LLEVADO (uno, el que se ve) no es lo mismo que las DISTINCIONES (varias, en el rótulo).
- * Aquí nacen solo los TIPOS, en el PR 2, porque `broadcast/timeline.ts` los importa (decisión 17-z);
- * la regla UCI que los calcula (`wornJerseys`, `distinctions`), la notoriedad (`notorietyOf`,
- * `staticNotoriety`) y la fuente de títulos llegan en el paso 5 (§7.2, §7.4, §7.5). `JerseyKind` no
- * crece: `WornJersey` es una unión aparte para que ni `JERSEY_LABEL` ni los `Record<JerseyKind, …>`
- * de hoy cambien.
+ * Los TIPOS nacen en el PR 2, porque `broadcast/timeline.ts` los importa (decisión 17-z); la regla UCI
+ * que los calcula (`wornJerseys`, `distinctions`, §7.2) y la notoriedad (`staticNotoriety`,
+ * `notorietyOf`, §7.5), en el paso 5, más abajo; la fuente de títulos vive en `packages/db`
+ * (`titles.ts`, §7.4). `JerseyKind` no crece: `WornJersey` es una unión aparte para que ni
+ * `JERSEY_LABEL` ni los `Record<JerseyKind, …>` de hoy cambien.
  */
 
 /** Un título de campeón (§7.4). Lo deriva hoy E2 de palmares; E12 lo dará de su tabla detrás de la misma interfaz. */
@@ -247,4 +248,183 @@ export interface RiderCard {
   readonly notoriety: NotorietyLevel
   /** del espectador o de su equipo (R23.7) */
   readonly own: boolean
+}
+
+// ------------------------------------------------ la regla UCI del maillot llevado (§7.2; paso 5)
+
+/** Prelación de los títulos (UCI 1.3.071): el del mundo, el continental y el nacional. */
+const SCOPE_RANK = { world: 0, continental: 1, national: 2 } as const satisfies Record<
+  ChampionTitle['scope'],
+  number
+>
+
+/** Los títulos que un corredor puede LLEVAR hoy: de la disciplina y la categoría del día (1.3.063, 1.3.068), el de mayor alcance primero. */
+function wearableTitles(input: WornInput, riderId: string): readonly ChampionTitle[] {
+  return (input.titles.get(riderId) ?? [])
+    .filter((t) => t.discipline === input.discipline && t.category === input.category)
+    .sort((a, b) => SCOPE_RANK[a.scope] - SCOPE_RANK[b.scope])
+}
+
+/** Las tablas de salida por maillot, sin los no clasificados (la general es la única que sabe quién abandonó). */
+function rankedTables(
+  input: WornInput,
+): Record<JerseyKind, readonly { readonly riderId: string }[]> {
+  const unranked = new Set(input.standings.gc.filter((r) => r.dnf === true).map((r) => r.riderId))
+  const ranked = (rows: readonly { readonly riderId: string }[]) =>
+    rows.filter((r) => !unranked.has(r.riderId))
+  return {
+    gc: ranked(input.standings.gc),
+    points: ranked(input.standings.points),
+    kom: ranked(input.standings.kom),
+  }
+}
+
+/**
+ * EL MAILLOT LLEVADO (D-24, §7.2) de quien no va de equipo; quien no está en el mapa lleva `{ kind:
+ * 'team' }`. Pura y total. El día 1 de una vuelta y en una carrera de un día no se viste a ningún líder
+ * (2.6.018), pero sí al campeón. Los de líder se reparten como `assignLeaderJerseys` (bajando por la
+ * tabla en `JERSEY_PRIORITY`), saltando además al que tiene un título que llevar hoy, salvo al líder
+ * verdadero, al que no se salta nunca (1.3.071); al que se salta por el título pasa al siguiente que no
+ * lo tenga (DD-05, por defecto). Después, cada campeón sin maillot de líder lleva el título de mayor
+ * alcance de la disciplina y la categoría del día.
+ */
+export function wornJerseys(input: WornInput): ReadonlyMap<string, WornJersey> {
+  const out = new Map<string, WornJersey>()
+  const from = input.standingsFrom
+  if (!input.firstDay && from !== null) {
+    const tables = rankedTables(input)
+    for (const jersey of JERSEY_PRIORITY) {
+      const ranked = tables[jersey]
+      const leader = ranked[0]?.riderId
+      const holder = ranked.find(
+        (r) =>
+          !out.has(r.riderId) &&
+          (r.riderId === leader || wearableTitles(input, r.riderId).length === 0),
+      )
+      if (holder !== undefined)
+        out.set(holder.riderId, {
+          kind: 'leader',
+          jersey,
+          delegated: holder.riderId !== leader,
+          from,
+        })
+    }
+  }
+  for (const riderId of input.titles.keys()) {
+    if (out.has(riderId)) continue
+    const title = wearableTitles(input, riderId)[0]
+    if (title !== undefined) out.set(riderId, { kind: 'champion', title })
+  }
+  return out
+}
+
+/**
+ * LO QUE EL RÓTULO DICE ADEMÁS (D-24, §7.2), en este orden y SIN CORTAR: el servidor corta a
+ * `cardLinesMax` DESPUÉS del velo (§7.8). `wears_for` si lleva un maillot delegado, con su puesto
+ * entre los clasificados de esa tabla; `leads` por cada clasificación que lidera de verdad y cuyo
+ * maillot no lleva; `champion` por cada título vigente que no lleva puesto (primero los de la
+ * categoría del día, luego los de la disciplina del día, luego por alcance); `gc` si salió entre el 2.º
+ * y el `gcLineTop` de la general (el 1.º lo dice su titular); y `stage_wins` con las etapas de ESTA
+ * carrera que ganó hasta la N − 1. `gcLineTop` llega como parámetro porque este fichero no lee
+ * `BROADCAST` (7-g): cambiarlo no reescribe las líneas grabadas.
+ */
+export function distinctions(
+  riderId: string,
+  input: WornInput,
+  worn: ReadonlyMap<string, WornJersey>,
+  start: { readonly gcRank: number | null; readonly gcDeficitS: number | null },
+  stageWins: readonly StageRef[],
+  opts: { readonly gcLineTop: number },
+): readonly Distinction[] {
+  const out: Distinction[] = []
+  const mine = worn.get(riderId)
+  const from = input.standingsFrom
+  if (!input.firstDay && from !== null) {
+    const tables = rankedTables(input)
+    if (mine?.kind === 'leader' && mine.delegated) {
+      const rank = tables[mine.jersey].findIndex((r) => r.riderId === riderId) + 1
+      if (rank > 0) out.push({ kind: 'wears_for', jersey: mine.jersey, rank, from })
+    }
+    for (const jersey of JERSEY_PRIORITY) {
+      if (tables[jersey][0]?.riderId !== riderId) continue
+      if (mine?.kind === 'leader' && mine.jersey === jersey) continue
+      out.push({ kind: 'leads', jersey, from })
+    }
+  }
+  const wornTitle = mine?.kind === 'champion' ? mine.title : null
+  const titles = (input.titles.get(riderId) ?? [])
+    .filter((t) => t !== wornTitle)
+    .sort(
+      (a, b) =>
+        Number(a.category !== input.category) - Number(b.category !== input.category) ||
+        Number(a.discipline !== input.discipline) - Number(b.discipline !== input.discipline) ||
+        SCOPE_RANK[a.scope] - SCOPE_RANK[b.scope],
+    )
+  for (const title of titles) out.push({ kind: 'champion', title })
+  if (
+    from !== null &&
+    start.gcRank !== null &&
+    start.gcDeficitS !== null &&
+    start.gcRank >= 2 &&
+    start.gcRank <= opts.gcLineTop
+  )
+    out.push({ kind: 'gc', rank: start.gcRank, deficitS: start.gcDeficitS, from })
+  if (stageWins.length > 0) out.push({ kind: 'stage_wins', stages: [...stageWins] })
+  return out
+}
+
+// ----------------------------------------------------------- la notoriedad sin `fame` (§7.5; paso 5)
+
+/**
+ * EL NIVEL DE NOTORIEDAD que se puede saber al servir la cabecera (D-26, §7.5), con el maillot y las
+ * líneas ya degradados por el velo y cortados a `cardLinesMax` (§7.8): 0 el maillot de la general, 1
+ * un título del mundo, 2 otro maillot de líder sin delegar, 3 uno delegado, 4 un título nacional o
+ * continental de la CATEGORÍA del día, lo lleve o no (7-f), 5 una línea de general hasta
+ * `gcThreatTop`, 6 una victoria de etapa conocida, 7 un nombre conocido (`knownWins ≥
+ * knownNameMinWins`) y 8 el resto. Los dos umbrales llegan como parámetros, como `gcLineTop` en
+ * `distinctions` (7-g).
+ */
+export function staticNotoriety(
+  worn: WornJersey,
+  lines: readonly Distinction[],
+  knownWins: number,
+  dayCategory: 'elite' | 'u23',
+  opts: { readonly gcThreatTop: number; readonly knownNameMinWins: number },
+): NotorietyLevel {
+  const titles = [
+    ...(worn.kind === 'champion' ? [worn.title] : []),
+    ...lines.flatMap((d) => (d.kind === 'champion' ? [d.title] : [])),
+  ]
+  if (worn.kind === 'leader' && worn.jersey === 'gc') return 0
+  if (titles.some((t) => t.scope === 'world')) return 1
+  if (worn.kind === 'leader' && !worn.delegated) return 2
+  if (worn.kind === 'leader') return 3
+  if (titles.some((t) => t.scope !== 'world' && t.category === dayCategory)) return 4
+  if (lines.some((d) => d.kind === 'gc' && d.rank <= opts.gcThreatTop)) return 5
+  if (lines.some((d) => d.kind === 'stage_wins')) return 6
+  if (knownWins >= opts.knownNameMinWins) return 7
+  return 8
+}
+
+/**
+ * LA NOTORIEDAD DURANTE LA CARRERA (§7.5): la de la cabecera, salvo que el corredor, con el déficit de
+ * su línea de general (solo la trae quien salió hasta `gcLineTop`: es una limitación dicha), vaya por
+ * delante del grupo del líder más de lo que pierde en la general, que lo sube a 5. Recibe solo lo que
+ * lee del rótulo y del instante, para que la web y los tests no tengan que montar un `Instant` entero.
+ */
+export function notorietyOf(
+  card: Pick<RiderCard, 'ix' | 'notoriety' | 'lines'>,
+  instant: {
+    readonly groups: readonly (Pick<GroupNow, 'number' | 'members' | 'jerseys'> & {
+      readonly gap: Pick<GroupNow['gap'], 'toHeadS'>
+    })[]
+  },
+): NotorietyLevel {
+  const gcLine = card.lines.find((d) => d.kind === 'gc')
+  if (card.notoriety <= 5 || gcLine === undefined || gcLine.kind !== 'gc') return card.notoriety
+  const mine = instant.groups.find((g) => g.members.includes(card.ix))
+  const leaders = instant.groups.find((g) => g.jerseys.includes('gc'))
+  if (mine === undefined || leaders === undefined || mine.number >= leaders.number)
+    return card.notoriety
+  return gcLine.deficitS < leaders.gap.toHeadS - mine.gap.toHeadS ? 5 : card.notoriety
 }
