@@ -10,6 +10,27 @@ import { unauthorized } from './http.js'
 export const GLOBAL_RATE_LIMIT = { max: 300, timeWindow: '1 minute' } as const
 
 /**
+ * EL LÍMITE DEL REPRODUCTOR (E2, docs/retransmision.md §14.5, decisión 14-q): el `config.rateLimit`
+ * propio de `GET …/broadcast/chunk` (y, desde el 7a, de `POST /api/me/watch`). `@fastify/rate-limit` da
+ * a una ruta con límite propio su contador EN LUGAR del global, así que el reproductor no gasta el cupo
+ * de la navegación ni al revés. En un modo rápido un espectador pide de 33 a 60 veces por etapa, y los
+ * que salen por la misma IP (una casa, un operador con CGNAT) compartirían el contador. Con sesión, por
+ * usuario: veinte veces el peor minuto de un espectador (58, §14.3), con sitio para reanudar y varios
+ * dispositivos, y aun así corta un cliente en bucle (S/E de los jueces). Sin sesión, por IP y con el
+ * cupo del global. Un 429 lleva `retry-after`, que el reproductor espera con `Loading` (§10.12).
+ */
+export const PLAYER_USER_MAX_PER_MINUTE = 1_200
+export const PLAYER_RATE_LIMIT = {
+  timeWindow: '1 minute',
+  keyGenerator: async (request: FastifyRequest): Promise<string> => {
+    const v = await request.viewer() // memorizado por petición: la ruta lo usa después
+    return v !== null && !v.readOnly ? `u:${v.userId}` : `ip:${request.ip}`
+  },
+  max: (_request: FastifyRequest, key: string): number =>
+    key.startsWith('u:') ? PLAYER_USER_MAX_PER_MINUTE : GLOBAL_RATE_LIMIT.max,
+} as const
+
+/**
  * Límite del resto de /api/auth/* (sobre todo get-session, que la web consulta en cada navegación).
  */
 export const AUTH_RATE_LIMIT = { max: 60, timeWindow: '1 minute' } as const

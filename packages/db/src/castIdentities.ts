@@ -1,4 +1,4 @@
-import { inArray } from 'drizzle-orm'
+import { and, eq, inArray, isNull, or } from 'drizzle-orm'
 import type { Database } from './client.js'
 import { riders, teams } from './schema.js'
 
@@ -57,4 +57,19 @@ export async function getCastIdentities(
     ),
     teams: new Map(teamRows.map((t) => [t.id, { name: t.name, jerseySeed: t.jerseySeed }])),
   }
+}
+
+/**
+ * LOS CORREDORES PROPIOS DE QUIEN MIRA (R23.7): su corredor activo y los de la plantilla del equipo que
+ * posee. `RiderCard.own` y `GroupNow.own` los marcan en la retransmisión (§4.5, §7.8). Una consulta.
+ */
+export async function getOwnRiderIds(db: Database, userId: string): Promise<string[]> {
+  const rows = await db
+    .select({ id: riders.id })
+    .from(riders)
+    .leftJoin(teams, eq(teams.id, riders.teamId))
+    .where(
+      and(isNull(riders.retiredAt), or(eq(riders.userId, userId), eq(teams.ownerUserId, userId))),
+    )
+  return rows.map((r) => r.id)
 }

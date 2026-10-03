@@ -93,6 +93,7 @@ export {
   emitNews,
   getGlobalNews,
   getRiderNews,
+  getStageNews,
   getTeamNews,
   newsNames,
   type NewsItem,
@@ -167,7 +168,7 @@ export {
   type WorldRef,
 } from './horizon.js'
 // El reparto provisional del adaptador de la radio (E2, §3.8, 17-k).
-export { getCastIdentities, type CastIdentities } from './castIdentities.js'
+export { getCastIdentities, getOwnRiderIds, type CastIdentities } from './castIdentities.js'
 export {
   TEAM_SCORING_RIDERS,
   getTeamClassifications,

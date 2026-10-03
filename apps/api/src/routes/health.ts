@@ -1,12 +1,17 @@
 import { type Database, getWorldClock } from '@cyclingstar/db'
 import { ENGINE_VERSION } from '@cyclingstar/engine'
-import type { Health } from '@cyclingstar/shared'
+import type { Health, SwitchMode } from '@cyclingstar/shared'
 import type { FastifyPluginAsync } from 'fastify'
 
 export interface HealthRouteContext {
   db?: Database
   migrationsApplied?: boolean
   tickIntervalMinutes?: number
+  /**
+   * Los interruptores de E2 (docs/retransmision.md §14.6, 14-l): si están, /health los publica en
+   * `features`, que no dice nada de nadie. Sin ellos la respuesta es la de siempre.
+   */
+  features?: { readonly broadcastWatch: SwitchMode; readonly spoilerMode: SwitchMode }
 }
 
 /** GET /health: versión del motor, fecha de juego y estado de las migraciones (SPEC 12). */
@@ -33,6 +38,14 @@ export const healthRoutes: FastifyPluginAsync<HealthRouteContext> = async (app, 
       migrationsApplied: ctx.migrationsApplied ?? false,
       tickIntervalMinutes,
       nextTickAtMs,
+      ...(ctx.features
+        ? {
+            features: {
+              broadcastWatch: ctx.features.broadcastWatch,
+              spoilerMode: ctx.features.spoilerMode,
+            },
+          }
+        : {}),
     }
   })
 }

@@ -34,6 +34,8 @@ async function main(): Promise<void> {
     tickIntervalMinutes: env.TICK_INTERVAL_MINUTES,
     adminToken: env.ADMIN_TOKEN,
     ...(env.ADMIN_EMAIL ? { adminEmail: env.ADMIN_EMAIL } : {}),
+    // Los interruptores de E2 (§14.6): SPOILER_MODE llega con el horizonte, en el 7a.
+    switches: { broadcastWatch: env.BROADCAST_WATCH, spoilerMode: 'off' },
     onAdminTick: () =>
       runTick(env.DATABASE_URL, {
         now: new Date(),

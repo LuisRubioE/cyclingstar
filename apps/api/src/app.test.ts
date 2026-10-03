@@ -73,6 +73,27 @@ describe('api: /health', () => {
     expect(res.headers['x-content-type-options']).toBe('nosniff')
     expect(res.headers['strict-transport-security']).toContain('max-age=15552000')
   })
+
+  it('con los interruptores de E2, publica features (docs/retransmision.md §14.6, 14-l)', async () => {
+    const withSwitches = buildApp({
+      migrationsApplied: true,
+      serveWeb: false,
+      tickIntervalMinutes: 360,
+      switches: { broadcastWatch: 'admins', spoilerMode: 'off' },
+    })
+    const res = await withSwitches.inject({ method: 'GET', url: '/health' })
+    await withSwitches.close()
+    expect(res.statusCode).toBe(200)
+    expect(res.json()).toEqual({
+      ok: true,
+      engineVersion: ENGINE_VERSION,
+      gameDay: null,
+      migrationsApplied: true,
+      tickIntervalMinutes: 360,
+      nextTickAtMs: null,
+      features: { broadcastWatch: 'admins', spoilerMode: 'off' },
+    })
+  })
 })
 
 /**

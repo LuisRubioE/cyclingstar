@@ -288,6 +288,39 @@ export async function getGlobalNews(
 }
 
 /**
+ * LAS NOTICIAS DE UNA ETAPA (E2, docs/retransmision.md §4.11): las que lleva el paquete de meta de la
+ * retransmisión (`BroadcastFinish.news`), que se sirve cuando el espectador llega a la meta. Las de esa
+ * carrera y esa etapa (`news.race_key` y `news.stage_day`, 0046), en el orden del feed y sin los dos
+ * titulares de líder salvo que se pidan (17-x).
+ */
+export async function getStageNews(
+  db: Database,
+  worldId: string,
+  raceKey: string,
+  stageDay: number,
+  opts: NewsReadOptions = {},
+): Promise<NewsItem[]> {
+  const rows = await db
+    .select(NEWS_COLUMNS)
+    .from(news)
+    .leftJoin(riders, eq(riders.id, news.riderId))
+    .leftJoin(teams, eq(teams.id, riders.teamId))
+    .where(
+      and(
+        eq(news.worldId, worldId),
+        eq(news.raceKey, raceKey),
+        eq(news.stageDay, stageDay),
+        leaderFilter(opts),
+      ),
+    )
+    .orderBy(...NEWS_ORDER)
+  return redacta(
+    db,
+    rows.map((r) => ({ ...r, personal: false })),
+  )
+}
+
+/**
  * Noticias de un equipo (#16): titulares cuyo protagonista corre hoy en el equipo (victorias de
  * etapa, generales, fugas de sus corredores…). Sin columna nueva: se deriva del enlace corredor.
  */

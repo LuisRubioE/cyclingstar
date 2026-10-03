@@ -20,6 +20,7 @@ import {
   stageLengthKm,
   stageWeather,
   stageWindStrength,
+  threeKmRule,
   weatherAt,
   weatherPlan,
   windComponents,
@@ -56,6 +57,7 @@ import {
   fromDs,
   fromKm10,
   jerseyOf,
+  photoAt,
   photoBlocksOf,
   raceLeaders,
   revealSOf,
@@ -428,6 +430,27 @@ export interface RadioStage {
   readonly profile: ProfileStrip
   readonly weather: StageWeather
   readonly cast: TimelineCast
+  /** el recorrido que se corrió (`input.profile`), si se tiene: la cabecera de la etapa lo lee (`adaptedSourceOf`) */
+  readonly racedProfile?: StageProfile
+}
+
+/**
+ * LO QUE LA RUTA NECESITA DE UNA LÍNEA DEL ADAPTADOR, además de la línea (3a): los sucesos guardados
+ * por `source`, porque la voz los lee con su km original (4-h, §14.3); la vista con que se fecharon,
+ * que es el reloj de los racimos en vivo (§12.3); y el recorrido que se corrió, del que la cabecera
+ * saca el nombre y la etiqueta de la etapa como la ruta de etapa (`stageHead`). Va aparte, en un
+ * `WeakMap` sobre la línea, porque `StageTimeline` es el formato (§4.2) y esto no lo es.
+ */
+export interface AdaptedSource {
+  readonly stored: readonly ChronicleEvent[]
+  readonly view: RecorderView
+  readonly racedProfile: StageProfile | null
+}
+const adaptedSources = new WeakMap<StageTimeline, AdaptedSource>()
+
+/** Lo de arriba de una línea del adaptador; null si la línea no es del adaptador. */
+export function adaptedSourceOf(tl: StageTimeline): AdaptedSource | null {
+  return adaptedSources.get(tl) ?? null
 }
 
 /**
@@ -909,7 +932,7 @@ export function adaptRadioStage(stage: RadioStage): StageTimeline | null {
     ;(arrivalsByDs.get(ds) ?? arrivalsByDs.set(ds, []).get(ds)!).push(r)
   }
 
-  return {
+  const tl: StageTimeline = {
     format: 1,
     engineVersion: stage.engineVersion,
     dx,
@@ -935,6 +958,40 @@ export function adaptRadioStage(stage: RadioStage): StageTimeline | null {
         .map(([ds, rs]) => [ds, rs.sort((x, y) => x - y)] as const),
     },
   }
+  adaptedSources.set(tl, {
+    stored: stage.events,
+    view: reveal.view,
+    racedProfile: stage.racedProfile ?? null,
+  })
+  return tl
+}
+
+/**
+ * LA REGLA DE LOS 3 KM EN LA META (6-o, §14.4): los que se cayeron dentro de
+ * `STAGE.truce.threeKmRuleKm` de la meta en una etapa en que el motor aplica la regla (`threeKmRule`,
+ * exportada en el 4a, con el tipo de final: en alto no) y llegan con el tiempo de alguien de su grupo
+ * de antes de caerse. Las caídas son los `mishap` de estado de la línea: la grabada los tendrá (5); la
+ * del adaptador no lleva ninguno, porque la radio guardada no dice quién se cayó, y da una lista vacía.
+ */
+export function threeKmRuleRiders(tl: StageTimeline, summitFinish: boolean): RiderIx[] {
+  const arrival = new Map<RiderIx, Ds>()
+  for (const [ds, riders] of tl.finish.arrivals) for (const r of riders) arrival.set(r, ds)
+  const out = new Set<RiderIx>()
+  for (const e of tl.stateEvents) {
+    if (e.t !== 'mishap' || e.kind !== 'caida') continue
+    const kmToGo = tl.lengthKm - (e.b + 0.5) * tl.dx
+    if (!threeKmRule(kmToGo, summitFinish ? 'alto' : 'sprint_masivo')) continue
+    const mine = arrival.get(e.rider)
+    if (mine === undefined) continue
+    const before = photoAt(tl, Math.max(0, e.b - 1)).groupOf
+    const g = before[e.rider]
+    for (let r = 0; r < before.length; r++)
+      if (r !== e.rider && before[r] === g && arrival.get(r) === mine) {
+        out.add(e.rider)
+        break
+      }
+  }
+  return [...out].sort((x, y) => x - y)
 }
 
 // ============================================ EL PERFIL, EL TIEMPO Y EL REPARTO PROVISIONALES (3a)
@@ -1356,6 +1413,7 @@ async function adaptStoredStage(
     profile: profileStripOf(profile),
     weather: stageWeatherOf(snap.seed, place, lengthKm),
     cast: provisionalCast(entries, identities, jerseys, from),
+    racedProfile: profile,
   })
 }
 
