@@ -23,8 +23,8 @@
  *   pnpm exec tsc -b
  *   node scripts/bench-stage-size.mjs [--runs 0,1] [--json fichero.json]
  *
- * Sale con código 0 siempre: en el paso 0 es una línea base, no un banco con tope. El tope del 6 se
- * imprime como referencia.
+ * Sale con código 0 aunque una etapa pase del tope: en el paso 0 es una línea base, no un banco con
+ * tope, y el del 6 se imprime como referencia. Falla si una ruta no responde 200 o no sale comprimida.
  */
 import { writeFileSync } from 'node:fs'
 import { ATTRIBUTES, seededRng } from '../packages/shared/dist/index.js'
