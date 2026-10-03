@@ -1,0 +1,866 @@
+[
+  {
+    "id": "Rcodigo-001",
+    "seccion": "§1.9",
+    "linea": 461,
+    "gravedad": "baja",
+    "afirmacion": "| La tolerancia del contrato | `contracts.ts` l. 1499-1531 (`.optional()`); `chronicle.ts` l. 1257-1317 (`z.object` sin `.strict()`) | la API puede callar un campo o añadir uno sin romper una pestaña abierta con la web de ayer |",
+    "fallo": "`apps/api/src/chronicle.ts` l. 1257-1317 es `storedRaceRadioSchema`, el esquema con que la API lee la radio GUARDADA de `stage_snapshots.radio` (l. 1257: `const storedRaceRadioSchema = z.object({ starters…`); no interviene en lo que valida la web. La tolerancia de la web de ayer a un campo nuevo es la de `stageReplaySchema` (`packages/shared/src/contracts.ts` l. 1482-1533, `z.object` sin `.strict()`) y la convención escrita en `contracts.ts` l. 10-11 («Los objetos son \"strip\" por defecto»). El propio documento usa bien esa cita en §14.1, regla 5 («Lo guardado también tolera»), que es otra cosa.",
+    "correccion": "En la fila de §1.9 sustituir «`chronicle.ts` l. 1257-1317 (`z.object` sin `.strict()`)» por «`contracts.ts` l. 10-11 y 1482-1533 (`z.object` *strip*, sin `.strict()`)», y si se quiere conservar la tolerancia de lo guardado, añadir una fila aparte: «La tolerancia de lo guardado | `apps/api/src/chronicle.ts` l. 1257-1317 y 1306 (`.catch(null)`) | una radio vieja o con un motivo nuevo se sigue leyendo | igual en E2 (§14.1, regla 5)»."
+  },
+  {
+    "id": "Rcodigo-002",
+    "seccion": "§4.11",
+    "linea": 1791,
+    "gravedad": "media",
+    "afirmacion": "cada esquema se ata a su tipo con `satisfies z.ZodType<T>`, que es el patrón que el contrato ya usa para `PublicRider` y `RaceLeaders` (`contracts.ts` l. 77 y 431): un campo que falte o sobre en un lado no compila (decisión 4-j).",
+    "fallo": "Tres cosas falsas. (1) Medido con tsc 5.9.3 y zod 4.4.3 (el `tsconfig.base.json` del repositorio, en el scratchpad `rcod/ws2`): `z.object({ a: z.number(), b: z.array(z.string()), extra: z.boolean() }) satisfies z.ZodType<T>` con `T = { readonly a: number; readonly b: readonly string[] }` COMPILA; solo falla el esquema al que le falta un campo obligatorio de `T` (TS1360). `z.ZodType` es covariante en su salida, así que un campo de más en el esquema, o un campo opcional del tipo que el esquema no tiene, no se detecta: el atado es de un solo sentido. El propio borrador lo demuestra: el esquema de `contract` de §12.8 (l. 6100) lleva `housingCovered` y el tipo de §4.12 (l. 1944) no, y el `satisfies z.ZodType<NewsPayload>` compila. (2) `RaceLeaders` no usa `satisfies`: `contracts.ts` l. 431 es una anotación, `export const raceLeadersSchema: z.ZodType<RaceLeaders> = z.object({…})`, que además ensancha el tipo del esquema; solo l. 77 (`PublicRider`) usa `satisfies`. (3) La cabecera de `contracts.ts` (l. 4-5) dice que «los tipos se DERIVAN del esquema con `z.infer` (nunca se declaran a mano en paralelo)»; 4-j hace lo contrario y la frase dice que «la política de `contracts.ts` (l. 1-14) se conserva» sin avisar de que rompe esa parte.",
+    "correccion": "Reescribir la frase: «Los tipos se escriben aquí a mano, con `readonly`, y cada esquema se ata con `satisfies z.ZodType<T>` como `PublicRider` (`contracts.ts` l. 77; `RaceLeaders`, l. 431, usa una anotación). Es una excepción declarada a la regla de `contracts.ts` l. 4-5 (tipos por `z.infer`), por 4-j. `satisfies` solo falla si al esquema le falta un campo obligatorio del tipo o se lo da de otro tipo; un campo de más en el esquema compila (medido, tsc 5.9.3 y zod 4.4.3). Para el otro sentido, `wire.test.ts` comprueba por cada esquema, con `expectTypeOf<keyof z.output<typeof s>>().toEqualTypeOf<keyof T>()` en cada nivel de objeto, que las claves coinciden.» Y en 4-j añadir: «Se aparta de `contracts.ts` l. 4-5 a sabiendas»."
+  },
+  {
+    "id": "Rcodigo-003",
+    "seccion": "§14.2",
+    "linea": 6851,
+    "gravedad": "baja",
+    "afirmacion": "import { apiErrorBodySchema, stageGateSchema } from '../contracts.js'   // l. 32: { ok?: false, error: string }; stageGateSchema, por 14-a",
+    "fallo": "El bloque dice que sigue a §4.11 en `packages/shared/src/broadcast/wire.ts`, y el de §4.11 (l. 1796) ya importa `stageGateSchema` de `../contracts.js`. Copiados los dos bloques en el mismo fichero, tsc da `TS2300: Duplicate identifier 'stageGateSchema'` dos veces (medido en el scratchpad, `rcod/ws1`: `src/broadcast/wire.ts(12,86)` y `(135,30)`). Con eso fuera, los bloques de §4 y §14 compilan juntos salvo `fromStoredV1` y `storedTimelineV1Schema` (ver el hallazgo de §4.3).",
+    "correccion": "En el bloque de §14.2 escribir `import { apiErrorBodySchema } from '../contracts.js'   // l. 32: { ok?: false, error: string }` y en el comentario: «`stageGateSchema` ya lo importa la cabecera de wire.ts (§4.11)»."
+  },
+  {
+    "id": "Rcodigo-004",
+    "seccion": "§12.8",
+    "linea": 6111,
+    "gravedad": "media",
+    "afirmacion": "type Of<K extends NewsKind> = Extract<NewsPayload, { kind: K }>",
+    "fallo": "En `NewsPayload` (§4.12, l. 1938-1945) siete `kind` comparten variante con una unión en `kind` (`'stage_win' | 'tt_win' | 'breakaway_win'` y `'one_day_win' | 'one_day_tt_win' | 'gc_win' | 'kom'`). `Extract<NewsPayload, { kind: 'stage_win' }>` es `never` para ellas, porque la variante `{ kind: 'stage_win' | 'tt_win' | 'breakaway_win'; … }` no es asignable a `{ kind: 'stage_win' }`. Compilado en el scratchpad (`rcod/ws1`, tsconfig del repositorio): catorce `TS2339: Property 'riderId' | 'stageDay' | 'raceId' does not exist on type 'never'` en las líneas de `stage_win`, `tt_win`, `breakaway_win`, `one_day_win`, `one_day_tt_win`, `kom` y `gc_win` de `NEWS_VARIANTS`. El bloque de §12.8 no compila tal como está.",
+    "correccion": "Sustituir la línea por `type Of<K extends NewsKind> = NewsPayload & { readonly kind: K }` (la intersección se reparte por la unión y reduce a `never` solo las variantes cuyo `kind` no admite `K`; medido: con ella desaparecen los catorce errores)."
+  },
+  {
+    "id": "Rcodigo-005",
+    "seccion": "§4.12",
+    "linea": 1944,
+    "gravedad": "media",
+    "afirmacion": "| { readonly kind: 'contract'; readonly riderId: string; readonly toTeamId: string; readonly fromTeamId: string | null; readonly relocateCountry: string | null } // db/src/contracts.ts l. 332-339",
+    "fallo": "El render de §12.8 (l. 6124) lee `d.housingCovered` y el esquema de §12.8 (l. 6100) lo declara (`housingCovered: z.boolean()`), pero el tipo no lo tiene: tsc da `TS2339: Property 'housingCovered' does not exist on type '{ readonly kind: \"contract\"; … }'` (medido, `rcod/ws3`). El dato existe hoy: `packages/db/src/contracts.ts` l. 328 escribe ` with housing covered` cuando `offer.payHousing`. Es la duda abierta 1.1 de `dudas.md` (`contract.housingCovered`) y la decisión 12-j (l. 6290): se cierra con esta evidencia a favor de añadirlo.",
+    "correccion": "En §4.12 escribir la variante como `| { readonly kind: 'contract'; readonly riderId: string; readonly toTeamId: string; readonly fromTeamId: string | null; readonly relocateCountry: string | null; readonly housingCovered: boolean } // db/src/contracts.ts l. 325-339; housingCovered: offer.payHousing (l. 328)`, y en `dudas.md` §1.1 dar `contract.housingCovered` por aceptado."
+  },
+  {
+    "id": "Rcodigo-006",
+    "seccion": "§12.8",
+    "linea": 6132,
+    "gravedad": "baja",
+    "afirmacion": "export function renderNews(locale: 'en', p: NewsPayload, seed: string, rev: number, n: NameResolver): string {",
+    "fallo": "`locale` no se usa en el cuerpo y `tsconfig.base.json` tiene `\"noUnusedParameters\": true`: tsc da `TS6133: 'locale' is declared but its value is never read` (medido, `rcod/ws3`). El paso 1a no pasaría `pnpm typecheck`.",
+    "correccion": "Escribir el parámetro como `_locale: 'en'` (el prefijo `_` exime de `noUnusedParameters`) y decir en el comentario que E10 lo renombra cuando lo lea."
+  },
+  {
+    "id": "Rcodigo-007",
+    "seccion": "§4.12",
+    "linea": 1952,
+    "gravedad": "baja",
+    "afirmacion": "// packages/shared/src/render/variants.ts (importa NameResolver de ../news.js)",
+    "fallo": "El bloque usa `NameResolver` en `Variant<D>` pero no escribe el `import`; ni este bloque ni el de §12.7 (l. 6014-6033) lo llevan, y compilados los dos en `render/variants.ts` tsc da `TS2304: Cannot find name 'NameResolver'` (medido, `rcod/ws1` y `rcod/ws2`). Con `verbatimModuleSyntax` activo (`tsconfig.base.json`) tiene que ser `import type`.",
+    "correccion": "Poner como primera línea del bloque `import type { NameResolver } from '../news.js'` y quitar el paréntesis del comentario."
+  },
+  {
+    "id": "Rcodigo-008",
+    "seccion": "§4.3",
+    "linea": 1265,
+    "gravedad": "baja",
+    "afirmacion": "if (format === 1) return fromStoredV1(storedTimelineV1Schema.parse(s))",
+    "fallo": "`fromStoredV1` y `storedTimelineV1Schema` no se declaran en ningún bloque del documento (grep: solo aparecen aquí, en la prosa de l. 1270 y en la tabla de §4.13): tsc da `TS2304: Cannot find name` para los dos (medido, `rcod/ws2`, único error que queda en los bloques de §4 y §14 una vez quitado el import duplicado de §14.2). El esquema que valida lo que viene de la base es precisamente la pieza que §4.13 lista como exportada de `codec.ts`, y es una tupla de ocho posiciones anidada que no se deduce sin ambigüedad de la prosa (por ejemplo, si `groupMeta` se valida como múltiplo de 4).",
+    "correccion": "Añadir al bloque de §4.3, antes de `decodeTimeline`, las dos declaraciones: `export const storedTimelineV1Schema = z.object({ format: z.literal(1), engineVersion: z.number().int(), dx: z.number(), blocks: z.number().int().min(1), lengthKm: z.number(), timeTrial: z.boolean(), riderIds: z.array(z.string()), groupIds: z.array(z.string()), groupMeta: z.array(z.number().int()).refine((a) => a.length % 4 === 0), keys: z.array(z.tuple([z.number().int(), z.string()])), moves: z.array(z.number().int()).refine((a) => a.length % 3 === 0), main: z.array(z.number().int()), clocks: z.array(z.number().int()), mishaps: …, events: …, detail: …, banners: …, profile: profileStripSchema, cast: …, weather: stageWeatherSchema, tt: …nullable(), finish: … }) satisfies z.ZodType<StoredTimelineV1>` escrito entero, y `function fromStoredV1(s: StoredTimelineV1): StageTimeline` con la firma; y el `import { z } from 'zod'` que el bloque no tiene."
+  },
+  {
+    "id": "Rcodigo-009",
+    "seccion": "§5.5",
+    "linea": 2452,
+    "gravedad": "baja",
+    "afirmacion": "Los cuatro sitios que llaman a `runTick` pasan `timelineRecord` desde su entorno: `apps/api/src/tick/main.ts` l. 11 (el cron) y `apps/api/src/index.ts` l. 38, 45 y 67 (el avance a mano de `/admin/tick`)",
+    "fallo": "Dos errores. (1) Son cinco, no cuatro: `packages/db/src/tickRun.test.ts` l. 30 también llama a `runTick(url, { now, msPerGameDay, worldSeed, engineVersion, forceDays, … })`, y con `readonly timelineRecord: 'off' | 'on'` obligatorio en `RunTickOptions` (l. 2445) ese test deja de compilar. (2) `index.ts` l. 67 no es el avance a mano: es `autoTick`, el tick automático del propio servicio web (l. 56-83, «el propio servicio web avanza el mundo (SPEC 2). No depende de un cron externo»); solo l. 38 (`onAdminTick`) y l. 45 (`onAdminAdvance`) son de `/admin`.",
+    "correccion": "Escribir: «Los cinco sitios que llaman a `runTick` pasan `timelineRecord`: `apps/api/src/tick/main.ts` l. 11 (el cron), `apps/api/src/index.ts` l. 38 y 45 (`onAdminTick` y `onAdminAdvance`, el avance a mano de `/admin`) y l. 67 (`autoTick`, el tick automático del servicio web), y `packages/db/src/tickRun.test.ts` l. 30 con `timelineRecord: 'off'`», y añadir `packages/db/src/tickRun.test.ts` a la lista de ficheros del PR 5 en §17.20."
+  },
+  {
+    "id": "Rcodigo-010",
+    "seccion": "§5.9",
+    "linea": 2599,
+    "gravedad": "baja",
+    "afirmacion": "Gana además `realRaceScenario` (hoy sin exportar, `sim/scenarios.ts` l. 518), que B10 importa desde `packages/db` (decisión 17-j).",
+    "fallo": "`realRaceScenario` sí está exportada en su módulo (`packages/engine/src/sim/scenarios.ts` l. 518: `export function realRaceScenario(`), y la usan `sim/pareado.ts` l. 32, `sim/coherence.test.ts` l. 27 y `sim/saturation.ts` l. 17. Lo que no hace es salir por el índice del motor: `packages/engine/src/index.ts` l. 197-204 reexporta de `./sim/scenarios.js` solo `campaignSeeds`, `flatScenario`, `queenScenario`, `queenThirdWeekScenario`, `timeTrialScenario` y `Scenario`. Además corre el campo homogéneo de `uniformField()` (l. 491-509: 176 corredores idénticos, `eff0: eff(60)`, también en `race-colombia`), no el campo del banco con que se midió B10 (`juez-motor/campo.mjs`, 126 corredores en Colombia): B10 en `packages/db` no reproduciría las 18 corridas medidas.",
+    "correccion": "Escribir: «Gana además la reexportación de `realRaceScenario` (exportada en `sim/scenarios.ts` l. 518, pero no en el índice, l. 197-204), que B10 importa desde `packages/db` (17-j); ojo: corre el campo homogéneo de `uniformField()` (l. 491-509), así que B10 en `packages/db` mide el colector sobre ese campo y no sobre el de `juez-motor/campo.mjs` con que se midieron las 18 corridas de §5.3»."
+  },
+  {
+    "id": "Rcodigo-011",
+    "seccion": "§13.7",
+    "linea": 6694,
+    "gravedad": "media",
+    "afirmacion": "La `0045` va en el mismo PR que las escrituras de `watch.ts` (7a) y la `0046`, en el mismo que `awardRacePrizes` (8a): una migración con su columna y sin su escritor deja el test en rojo.",
+    "fallo": "No es cierto para `knownThrough`. `columnasVivas.test.ts` l. 76-85 da una columna por escrita si cualquier línea de `packages/db/src` o `apps/api/src` (menos los tests y `schema.ts`) contiene `knownThrough:` y no es `knownThrough: x.knownThrough` ni `knownThrough: number|string|boolean`. La interfaz `Horizon` de §4.10 (l. 1767), que vive en `packages/db/src/horizon.ts`, tiene `readonly knownThrough: ReadonlyMap<string, number>`, que cumple la condición. Simulado en el scratchpad (`rcod/vivas_sim.mjs`, la lógica del test sobre el esquema de §13 y las líneas de §4.10): con solo esa interfaz y ningún escritor, `knownThrough` sale «escrita»; `follow`, `horizonRev` y `prize`, no. La vigilancia de `known_through` que 13-a promete es vacía en cuanto existe `horizon.ts`. (Los recuentos de 13-a sí son ciertos: 24 columnas únicas hoy con la expresión nueva y 28 con el esquema de §13, medido con `rcod/vivas_cnt.mjs`.)",
+    "correccion": "Añadir a 13-a una tercera consecuencia: «La interfaz `Horizon` (§4.10) declara `knownThrough: ReadonlyMap<…>`, que el test toma por escritura: para que `known_through` quede vigilada, el PR 7a amplía también la exclusión de tipos del test (l. 84) a `/\\b${campo}\\s*:\\s*(Readonly)?(Map|Set|Array)?<|:\\s*(number|string|boolean)\\b/`, o renombra el campo de `Horizon` a `knownThroughByRace`». Y en `vivas.mjs`/`columnasVivas.test.ts` añadir un caso que falle si solo existe la interfaz."
+  },
+  {
+    "id": "Rcodigo-012",
+    "seccion": "§15.2",
+    "linea": 7331,
+    "gravedad": "baja",
+    "afirmacion": "de 1,6 a 2,4 veces menos que jsonb *  (juez del motor, C7); con el formato de §4.3, de 20,9 a 70,0 KB, mediana 38,8 (§5.7, l3/grabador.mjs).",
+    "fallo": "La razón de 1,6 a 2,4 veces entre `bytea` con gzip y `jsonb` es la comprobación C8 del juez del motor, no la C7: `juicios/motor.md` l. 56 (C8: «`bytea` con gzip, 1,6-2,4 veces menos que `jsonb`»); C7 (l. 55) es la de los tamaños de las propuestas. El propio documento la atribuye a C8 en §5.6 (l. ~2542) y §13.3.",
+    "correccion": "En el comentario de `gzipLevel` sustituir «(juez del motor, C7)» por «(juez del motor, C8)»."
+  },
+  {
+    "id": "Rcodigo-013",
+    "seccion": "§16.5",
+    "linea": 8179,
+    "gravedad": "baja",
+    "afirmacion": "«un tercero entiende qué pasó en la etapa sin que nadie se lo explique» (`docs/MVP.md` l. 140)",
+    "fallo": "No existe `docs/MVP.md`: el fichero es `MVP.md`, en la raíz del repositorio (`ls docs/MVP.md`: «No such file or directory»); la cita sí está en `MVP.md` l. 140 (paso 31). §2.12 (l. 614) lo cita bien como `MVP.md` l. 140.",
+    "correccion": "Sustituir «(`docs/MVP.md` l. 140)» por «(`MVP.md` l. 140, paso 31)»."
+  },
+  {
+    "id": "Rcodigo-014",
+    "seccion": "§15.2",
+    "linea": 7341,
+    "gravedad": "alta",
+    "afirmacion": "ttMaxStoredBytes: 32_768,",
+    "fallo": "El tope se fijó sobre dos cronos de 20 y 26 km (§5.7: «18,8 a 24,2 KB con 176 corredores»), pero el calendario tiene cronos WorldTour mucho más largas con 176 corredores: `race-italy` e10 (42 km), `race-spain` e18 (33 km) y `race-rhone-alpes` e3 (28 km), más `race-chrono` e1 (47,6 km, 126 corredores) (medido con `rcod/cronos2.mjs` sobre `l3/eng`, el `dist` del motor v89: 77 cronos fuera de los nacionales, 3 WT de más de 26 km). Re-medido con el prototipo del grabador (`l3/grabador.mjs`, campo de `juez-motor/campo.mjs`, semillas 0 y 1): la línea entera de `race-italy` e10 ocupa 31.436 y 31.178 B con gzip 9 (el 96 % del tope) y la de `race-spain` e18, 27.113 B; con el campo propuesto `checkClockDs` (9-b, duda 1.1) la de la e10 sube a 32.203 B, el 98,3 % del tope (`rcod/n/grab2.mjs` con `CHECKS=1`). Es la duda abierta 1.4 de `dudas.md`, que se cierra con esta medida: el tope no revienta hoy, pero queda a 565 B, y B6 no lo vería porque ninguna de sus 24 etapas pasa de 26 km.",
+    "correccion": "En §15.2 escribir `ttMaxStoredBytes: 49_152,` con el comentario «bytes. Tope de una crono en bytea: 1,5 veces el máximo medido, la e10 de `race-italy` (42 km, 176 corredores): 31,4 KB, y 32,2 KB con `checkClockDs` (rcod/n/grab2.mjs). D-11.»; en §5.7 cambiar la fila de la crono a «18,8 a 24,2 KB (176, 20 y 26 km), 26,5 KB (`race-spain` e18, 33 km) y 30,4 a 30,7 KB (`race-italy` e10, 42 km)»; en B6 (§16.4) y en §9.8 añadir `race-italy` e10 a las etapas medidas (la crono más larga del WorldTour del calendario); y en `dudas.md` §1.4 y en la fila de §19.6 (l. 9435) sustituir «estimado por L5… ninguna de las 24 etapas del banco pasa de 26 km» por la medida."
+  },
+  {
+    "id": "Rcodigo-015",
+    "seccion": "§6.3",
+    "linea": 2784,
+    "gravedad": "baja",
+    "afirmacion": "Hoy la barra de la radio usa siete nombres (`groupName`, `apps/web/src/components/RaceRadioPanel.tsx` l. 58-79)",
+    "fallo": "`groupName` (`RaceRadioPanel.tsx` l. 58-79) devuelve once textos distintos, no siete: `Bunch together` y `Peloton` (l. 68), `Lead group` (l. 70), los tres de `JERSEY_GROUP_NAME` (`Race leader’s group`, `KOM leader’s group`, `Points leader’s group`, l. 85-89), `Chase group` (l. 72), `No man’s land` (l. 73), `Grupetto` (l. 74), el ordinal `2nd group`, `3rd group`… (l. 77) y `Group` (l. 79). Contando el ordinal y el del maillot como uno, son nueve.",
+    "correccion": "Escribir «Hoy la barra de la radio usa once textos de nueve formas (`groupName`, `apps/web/src/components/RaceRadioPanel.tsx` l. 58-89: `Bunch together`, `Peloton`, `Lead group`, los tres de `JERSEY_GROUP_NAME`, `Chase group`, `No man’s land`, `Grupetto`, el ordinal y `Group`)»."
+  },
+  {
+    "id": "Rcodigo-016",
+    "seccion": "§17.20",
+    "linea": 8825,
+    "gravedad": "baja",
+    "afirmacion": "los payloads de `contract.ts` l. 332, con `housingCovered`, y de `rollover.ts` l. 326",
+    "fallo": "No existe `contract.ts`: el fichero es `packages/db/src/contracts.ts` (lo nombra la primera columna de la misma fila), y su `emitNews` del fichaje empieza en l. 332 (l. 332-339). El dato de `housingCovered` sale de `offer.payHousing` en l. 328.",
+    "correccion": "Sustituir «de `contract.ts` l. 332» por «de `contracts.ts` l. 332-339 (`housingCovered` = `offer.payHousing`, l. 328)»."
+  },
+  {
+    "id": "Rcodigo-017",
+    "seccion": "§5.4",
+    "linea": 2269,
+    "gravedad": "baja",
+    "afirmacion": "import type { SnapshotRider, StageInput, StageOutput, StageProbe, StageProfile } from '../stage/types.js'",
+    "fallo": "El bloque dice que «sigue a la guarda de §4.3» en el mismo fichero `packages/engine/src/sim/timeline.ts`, y la guarda de §4.3 (l. 1278) ya importa `SnapshotRider` y `StageProbe` de `../stage/types.js`. Juntos en un fichero, tsc 5.9.3 con el `tsconfig.base.json` del repositorio da `TS2300: Duplicate identifier 'SnapshotRider'` y `'StageProbe'` dos veces cada uno (medido en `rcod/n/ws`, una copia del motor con los bloques de §4.3, §4.4, §5.2, §5.4 y §15.2 aplicados; son los únicos errores de todo el motor con E2: `tsc -p tsconfig.engine.json`).",
+    "correccion": "En el bloque de §5.4 escribir `import type { StageInput, StageOutput, StageProfile } from '../stage/types.js'` con el comentario «`SnapshotRider` y `StageProbe` ya los importa la guarda de §4.3»."
+  },
+  {
+    "id": "Rcodigo-018",
+    "seccion": "§5.6",
+    "linea": 2480,
+    "gravedad": "baja",
+    "afirmacion": "export async function writeStageTimeline(tx: Tx, tl: StageTimeline, meta: StageTimelineMeta): Promise<{ readonly bytes: number; readonly jsonBytes: number }> {",
+    "fallo": "`Tx` no está declarado en ninguno de los tres bloques de `packages/db/src/timelines.ts` (§5.3, §5.5 y §5.6) ni se importa: en `packages/db` cada fichero lo declara (`news.ts` l. 14, `economy.ts` l. 24, `race.ts` l. 18…) y `client.ts` solo exporta `Database` (l. 35). Compilado con los tres bloques en `rcod/n/ws` (el esquema de §13 y los tipos de §4 aplicados), tsc da `TS2304: Cannot find name 'Tx'` en `writeStageTimeline` y en `writeStageTimelineFailure`; es el único error del fichero.",
+    "correccion": "Añadir al bloque de §5.6, tras las importaciones, `type Tx = Parameters<Parameters<Database['transaction']>[0]>[0]   // el mismo alias que titles.ts (§7.4) y stageRun.ts l. 71`."
+  },
+  {
+    "id": "Rcodigo-019",
+    "seccion": "§14.5",
+    "linea": 7046,
+    "gravedad": "media",
+    "afirmacion": "si userId:  touchLastSeen(db, userId) sin esperar (§10.7);  devolver { userId, readOnly: false }   y marcar «de sesión»",
+    "fallo": "Una promesa lanzada sin esperar y sin `.catch` tumba el proceso si rechaza: el repositorio exige Node ≥ 22 (`package.json` l. 7-9; en el entorno, v22.22.2), cuyo modo por defecto ante un rechazo no atendido es lanzar y salir, y `apps/api/src/index.ts` no instala `process.on('unhandledRejection')` (solo `main().catch`, l. 88-91). Un fallo pasajero de la base en el `update users set last_seen_at` de §10.7 (l. 4828) reiniciaría el servicio `web`, que además corre el auto-tick (l. 56-86). El código de hoy envuelve lo que lanza sin esperar en `try/catch` (`autoTick`, `index.ts` l. 63-80); ni §14.5 ni §10.7 lo dicen.",
+    "correccion": "En el pseudocódigo de §14.5 escribir «si userId: `void touchLastSeen(db, userId).catch((err) => request.log.warn({ err }, 'touchLastSeen'))` (§10.7): sin `.catch`, un rechazo no atendido tumba el proceso en Node 22»; y en §10.7 añadir que `touchLastSeen` nunca propaga: captura y registra su error."
+  },
+  {
+    "id": "Rcodigo-020",
+    "seccion": "§16.3",
+    "linea": 7673,
+    "gravedad": "media",
+    "afirmacion": "import { eq } from 'drizzle-orm'",
+    "fallo": "`apps/api` no depende de `drizzle-orm`: su `package.json` (l. 12-23) solo lista `@cyclingstar/db`, `@cyclingstar/engine`, `@cyclingstar/shared`, los tres plugins de Fastify, `better-auth`, `fastify`, `fastify-type-provider-zod` y `zod`; con pnpm el paquete no está en `apps/api/node_modules` ni subido a la raíz (`ls node_modules/drizzle-orm`: no existe). Ningún fichero de `apps/api/src` lo importa hoy: los tests de la API escriben con SQL crudo (`tdb.client\\`update users …\\``, `authFlow.test.ts` l. 279, `adminPanel.test.ts` l. 36). Compilado el fixture en `rcod/n/ws` (con el esquema de §13 y las firmas de §4, §5.5 y §10), tsc da `TS2307: Cannot find module 'drizzle-orm'` en `spoilerWorld.ts`, y vitest fallaría igual al cargarlo: B1a, B1b y B1c no arrancan. Con esa importación resuelta, el resto del fixture compila contra el esquema real (inserciones en `worlds`, `teams`, `riders`, `riderAttrs`, `riderHidden`, `raceRosters`, `gameState`, `createAuth` y `buildApp`).",
+    "correccion": "En `spoilerWorld.ts` quitar `import { eq } from 'drizzle-orm'` y escribir la l. 7757 como `await t.client\\`update riders set user_id = ${u!.id} where id = ${OWN_RIDER}\\``, el patrón de los tests de la API; o, si se prefiere Drizzle, añadir `\"drizzle-orm\": \"0.45.2\"` a las `devDependencies` de `apps/api` en el PR 7a y decirlo en §17.20."
+  },
+  {
+    "id": "Rcodigo-021",
+    "seccion": "§14.5",
+    "linea": 6979,
+    "gravedad": "baja",
+    "afirmacion": "import { type Database, type Horizon, type Viewer, type WorldRef, anonHorizon, computeHorizon, getCurrentWorld, touchLastSeen, worldHorizon } from '@cyclingstar/db'",
+    "fallo": "El bloque de §14.1 (l. 6768: «apps/api/src/spoiler.ts (sigue en §14.5)») ya importa `type Horizon` de `@cyclingstar/db` (l. 6770). En el mismo fichero, tsc da `TS2300: Duplicate identifier 'Horizon'` en las dos líneas (medido en `rcod/n/ws`, los dos bloques en `apps/api/src/spoiler.ts`). Es el mismo defecto que el `stageGateSchema` de §14.2 y el `SnapshotRider` de §5.4.",
+    "correccion": "En el bloque de §14.5 quitar `type Horizon` de la importación y añadir al comentario de cabecera «`Horizon`, `WatchRow` y `stageGateOf` los importa ya §14.1»; o fundir las dos importaciones en la de §14.1."
+  },
+  {
+    "id": "Rcodigo-022",
+    "seccion": "§12.8",
+    "linea": 6171,
+    "gravedad": "media",
+    "afirmacion": "gc: (await getGcThroughStage(tx, spec.raceKey, day))[0]?.riderId ?? null,",
+    "fallo": "Las tres lecturas que usa el bloque reciben `db: Database` (`packages/db/src/results.ts` l. 236-239, 320-323 y 379-382) y aquí se llaman con `tx`, la transacción del día. Un `PgTransaction` no es asignable a `Database` (`PostgresJsDatabase<…> & { $client }`, `client.ts` l. 34-35): compilado en `rcod/n/ws/packages/db/src/zz_probe.ts` con el `tsconfig.base.json` del repositorio, tsc da `TS2379: Argument of type 'PgTransaction<…>' is not assignable to parameter of type 'PostgresJsDatabase<…> & { …; }'` en las tres. Hoy ninguna de las tres se llama desde el tick (grep: solo `index.ts` las exporta). Además, desde el PR 8a las tres llevan `Horizon` obligatorio en segundo lugar (§10.6, punto 1), así que el bloque tampoco casa con la firma de §10.6.",
+    "correccion": "Escribir el bloque con `getGcThroughStage(tx, worldHorizon, spec.raceKey, day)` (y lo mismo en las otras dos) y añadir en §10.6, punto 1, que las funciones de `results.ts` que el tick llama dentro de su transacción cambian su primer parámetro a `Database | Tx` (el patrón de `NewsWriter`, `news.ts` l. 20, y de `Queryable`, §7.4); o, sin tocar `results.ts`, sacar el primero de cada clasificación de `gcRows` y de `output.results` que `runOneStage` ya tiene en memoria y decirlo en el comentario."
+  },
+  {
+    "id": "Rcodigo-023",
+    "seccion": "§6.3",
+    "linea": 2795,
+    "gravedad": "media",
+    "afirmacion": "function chaseRefOf(behind: readonly { readonly size: number; readonly racing: boolean }[], mainFraction: number): number {",
+    "fallo": "Cierra la duda abierta 1.7 de `dudas.md` con evidencia. La copia es hoy idéntica a `chaseReferenceIndex` (`packages/engine/src/stage/group.ts` l. 235-245, comprobado línea a línea), pero el bloque la declara privada (sin `export`), mientras §17.6 la lista entre las exportaciones de `instant.ts` (l. 8448 y la fila de §17.20, l. 8812) y §17.7 (l. 8484) dice que `broadcastConstants.test.ts` la compara con `chaseReferenceIndex`; §15.5 (l. 7503-7540) no la tiene entre sus copias atadas, y `chaseReferenceIndex` no sale hoy del índice del motor (`packages/engine/src/index.ts`, grep vacío), aunque §17.7 (l. 8489) dice que el 4a lo exporta. Tal como está escrito, el test de §17.7 no compila (no puede importar una función privada) y §15.5 no lo tiene.",
+    "correccion": "En §6.3 escribir `export function chaseRefOf(`; en §15.5 cambiar «cuatro copias» por «cinco» y añadir al bloque de `broadcastConstants.test.ts` el caso `it('chaseRefOf es chaseReferenceIndex (group.ts l. 235-245) en toda entrada de hasta cuatro grupos', () => { const sizes = [1, 2, 5, 30, 90]; const opts = sizes.flatMap((size) => [true, false].map((racing) => ({ size, racing }))); const all = (n: number): { size: number; racing: boolean }[][] => n === 0 ? [[]] : all(n - 1).flatMap((xs) => opts.map((o) => [...xs, o])); for (let n = 0; n <= 4; n++) for (const b of all(n)) expect(chaseRefOf(b, BROADCAST.chaseMinShare)).toBe(chaseReferenceIndex(b, STAGE.gapChaseMainFraction)) })` (11.111 entradas), importando `chaseRefOf` de `@cyclingstar/shared` y `chaseReferenceIndex` de `@cyclingstar/engine`; decirlo en 15-a y en 6-a, y dar la duda 1.7 por cerrada."
+  },
+  {
+    "id": "Rcodigo-024",
+    "seccion": "§11.9",
+    "linea": 5356,
+    "gravedad": "baja",
+    "afirmacion": "devuelve el `MailBody` de hoy (`emails.ts` l. 61), que es lo que en el código se llama así (decisión 11-d)",
+    "fallo": "`MailBody` está en `apps/api/src/emails.ts` l. 58 (`export type MailBody = Omit<MailMessage, 'to'>`); l. 61 es el comentario de `resetPasswordEmail`. La misma cita, l. 61, se repite en la decisión 11-d (l. 5699).",
+    "correccion": "Sustituir «(`emails.ts` l. 61)» por «(`emails.ts` l. 58)» en l. 5356 y en l. 5699."
+  },
+  {
+    "id": "Rcodigo-025",
+    "seccion": "§4.2",
+    "linea": 1158,
+    "gravedad": "alta",
+    "afirmacion": "readonly finishS: RaceS  // en línea, la última marca de reloj de la cabeza (su paso por el último bloque); en crono, la llegada del último en salir",
+    "fallo": "Cierra la duda abierta 1.3 de `dudas.md` con una medida mayor que la de §9. El motor cierra la crono con la última LLEGADA, no con la del último en salir: `lastHome = byFinish[byFinish.length - 1]` (`packages/engine/src/stage/timetrial.ts` l. 495) y `stage_win_itt` y `tt_catches` se emiten en `lastHome.finishS` (l. 596 y 614); `tt_last_home` (l. 605) es otra cosa, la llegada del último que salió. Medido en el scratchpad (`rcod/n/ws/ttborde.mjs`, el motor con los ganchos de §5.2 compilados desde el TS del borrador, campo de `juez-motor/campo.mjs`): en las 77 cronos del calendario fuera de los nacionales, con las semillas 0 y 1, 30 de 154 corridas tienen al menos un corredor que llega después del último en salir, hasta 281 s después (`race-ain` e2, s1), entre ellas `race-france` e16 s0 (+17 s) y `race-italy` e10 s1 (+22 s). Con el borde de §4.2, §4.6 (l. 1530) y §5.4 (l. 2372), esos corredores siguen en ruta cuando la pantalla pide la meta, su llegada solo viaja en el paquete de meta, y `stage_win_itt`, que el motor fecha en `lastHome.finishS`, queda con visibilidad por encima del borde.",
+    "correccion": "Escribir en §4.2 «en crono, la última llegada (`lastHome.finishS`, `timetrial.ts` l. 495 y 614: el reloj en que el motor da la crono por cerrada)», lo mismo en §4.6 (l. 1530) y en el paso 3 del pseudocódigo de §5.4 (l. 2372: «en crono, max(startS + tiempoS) de los que llegan»), y en §9.4 calcular `lastKmFromS` sobre el corredor de la última llegada; dar la duda 1.3 por cerrada con la cifra (30 de 154 corridas, hasta +281 s)."
+  },
+  {
+    "id": "Rcodigo-026",
+    "seccion": "§4.7",
+    "linea": 1596,
+    "gravedad": "media",
+    "afirmacion": "crash: 'incident',",
+    "fallo": "Cierra la duda abierta 1.2 de `dudas.md` con el porqué en el código. La regla `incident` es `emit(v.blockOfKm(e.km))` y `emit` toma `v.groupAt(r0, b)`, «su grupo al final de b» (l. 1609 y 1625). Pero el motor saca al caído de su grupo en el MISMO bloque de la caída: `alSuelo` apunta el incidente y llama a `dropOut(m, group, perdidaS)` (`packages/engine/src/stage/simulate.ts` l. 8266-8295), y el pinchazo o la avería de carretera con pérdida mayor que `driftDropGapSeconds` hace lo mismo (l. 8471). Al final de `b` el corredor ya va en un grupo nuevo de detrás, cuyo reloj en `b` es el del grupo que dejó más lo perdido: el rótulo sale cuando ese grupo pasa, que es la demora que midió L3 (`l3/grabador.mjs`, 627 caídas: mediana 70,6 s, máximo 290 s; pinchazos y averías, 141,6 s). Los pinchazos de carretera no están en `REVEAL_RULES` y caen en `emit` con el mismo defecto (`máx(e.tS, emit(bEmit))`, con `e.tS = group.tS` del grupo que dejó, l. 8475, y `emit` el del grupo nuevo).",
+    "correccion": "En §4.7 definir `incident` como «el reloj del grupo de `r0` al final de `b − 1`, con `b = blockOfKm(e.km)`: el grupo en que iba cuando pasó (el motor lo saca de él en el mismo bloque, `simulate.ts` l. 8295 y 8471)», escrito en el pseudocódigo como `'incident' → emitAt(v.groupAt(r0, b − 1), b)`; añadir a `REVEAL_RULES` `puncture: 'incident', mechanical: 'incident'`; ajustar el paso 5 del pseudocódigo de §5.4 (l. 2380-2382), quitar o rebajar el riesgo 24 de §19.1 y dar la duda 1.2 por cerrada."
+  },
+  {
+    "id": "Rcodigo-027",
+    "seccion": "§12.10",
+    "linea": 6247,
+    "gravedad": "media",
+    "afirmacion": "B16 (§16.4) compara `radioFromTimeline` con `buildRaceRadio(radioForStorage(radio, ∅, []))` en las 24 etapas del mapa 07 §7",
+    "fallo": "Cierra la duda abierta 1.10. En las dos cronos de las 24 la radio guardada no tiene ningún km: la crono ignora la sonda (`simulate.ts` l. 1264) y el colector no recibe fotos. Medido con el `dist` del motor v89 y la envoltura de hoy (`rcod/n/ws/ttradio.mjs`): `race-france` e1 pide 21 km y guarda 0; la e16 pide 27 y guarda 0; con los ganchos de §5.2 sigue sin llegar ninguna foto (en crono solo se llama `onTimeTrialRide`). En cambio `radioFromTimeline`, tal como la describe este mismo apartado («por cada bloque de foto (`photoBlocksOf`), los grupos de `photoAt`»), daría 21 y 27 km con el grupo de salida: B16 nacería en rojo en las dos cronos, o sería vacío si alguien añade el caso a mano sin escribirlo.",
+    "correccion": "Escribir en §12.10: «En una crono (`tl.timeTrial`), `radioFromTimeline` devuelve la radio vacía (`kms: []`), que es la que la envoltura guarda hoy (medido: 0 km en `race-france` e1 y e16); B16 compara las 22 etapas en línea km a km y en las dos cronos comprueba `kms.length === 0`», y cambiar «las 24 etapas» por «las 22 etapas en línea, más las dos cronos con la radio vacía» en §12.10, §16.4 (l. 7993), §17.14 (l. 8699) y 17-l (l. 9008); dar la duda 1.10 por cerrada."
+  },
+  {
+    "id": "Rcodigo-028",
+    "seccion": "§6.1",
+    "linea": 2657,
+    "gravedad": "media",
+    "afirmacion": "│ 1  MORENO · LEROY · KAHN                       │  GroupBar, 4 filas de 32 px",
+    "fallo": "Cierra la duda abierta 1.5 de `dudas.md` a favor de 7-a (l. 3687), con una medida del dato real. `riders` guarda solo `name` (`packages/db/src/schema.ts` l. 279) y `generateName` lo compone como `${firstName} ${surname}` (`packages/db/src/names.ts` l. 96-98) sin guardar las partes. En las listas de nombres del repositorio (`packages/db/data/names/*.json`, 133 países) 382 de 8.965 apellidos tienen espacio o guion (`Van Damme`, `De la Cruz`, `Le Gall`, `Al Qasimi`, `Ben-David`; el 100 % en Catar, Arabia Saudí, Emiratos y Omán, el 24 % en Países Bajos) y 210 de 13.207 nombres de pila tienen dos palabras (`José Antonio`, `Andrés Felipe`): «la última palabra en mayúsculas» da `DAMME` o `CRUZ` y la inicial da `J. PÉREZ` para dos personas distintas. Los ejemplos de pantalla de §6 y §8 (`MORENO · LEROY · KAHN`, `15 N. MORENO`, `on CARTER`, `(for 107 A. ROSSI)`, `DROPPED · 11 S. CARTER`, `STAGE WINNER · 21 L. BERTOLINI`, `1. LEROY 10 pts`) no se pueden construir con ese dato sin adivinar el apellido.",
+    "correccion": "Aceptar 7-a para toda la pantalla: reescribir los ejemplos con el nombre guardado (`Nicolás Moreno · Pierre Leroy · Jonas Kahn`, `15 Nicolás Moreno · ESP · Team Alpha`, `on Sam Carter`, `(for 107 Andrea Rossi)`, `DROPPED · 11 Sam Carter · Race leader · +0:25`, `STAGE WINNER · 21 Luca Bertolini`, `1. Pierre Leroy 10 pts`) en §6.1 (l. 2657-2667 y 2681-2697), §6.2 (l. 2725), §6.4 (l. 2894 y 2926), la tabla de §6.5 (l. 2967-2985), §8.6 y §8.7, F.3 y §G.11; medir la barra del móvil en §18.5 con nombres enteros; dejar escrito en 7-a que un nombre corto exigiría guardar `firstName` y `surname` (una columna nueva, fuera de E2) y dar la duda 1.5 por cerrada."
+  },
+  {
+    "id": "Rcodigo-029",
+    "seccion": "§18.2",
+    "linea": 9070,
+    "gravedad": "baja",
+    "afirmacion": "§15 fija `BROADCAST.decodedCacheEntries` en 64 «unos 20 MB» (estimado por `datos.md` §12).",
+    "fallo": "Cierra la duda abierta 1.11: el documento ya no dice una sola cosa. §15.3 (l. 7455) fija 16 desde que existe la constante, §15.6 (l. 7565) y §5.6 (l. 2544) lo repiten y §17.9 (l. 8549) lo comprueba en 16; pero §18.2 dice que §15 fija 64, la decisión 18-d (l. 9251) dice que «baja de 64 a 16 en el paso 6», el riesgo 13 de §19.1 (l. 9282) habla del «LRU de 64 líneas» con la defensa «baja a 16 en el 6a» y el apéndice A (I-09, l. 9730) repite «el LRU baja de 64 a 16». La medida que decide es la misma en todos (L3, `l3/lru.mjs`: de 534 KB a 1,9 MB por línea, de 33 a 121 MB con 64 y de 8 a 30 MB con 16), y no hay razón para nacer en 64.",
+    "correccion": "En §18.2 escribir «`BROADCAST.decodedCacheEntries` es 16 desde que existe (§15.3; 18-d), no los 64 de `datos.md` §12 con sus «unos 20 MB» estimados»; reescribir 18-d como «**`BROADCAST.decodedCacheEntries` nace en 16**, no en 64: de 8 a 30 MB en lugar de 33 a 121 (L3)»; en el riesgo 13 de §19.1 poner «un LRU de 64 líneas ocuparía de 33 a 121 MB (L3)» y como defensa «nace en 16: de 8 a 30 MB»; en I-09 (l. 9730) «el LRU es de 16 entradas»; y dar la duda 1.11 por cerrada con el valor de §15.3."
+  },
+  {
+    "id": "Rcodigo-030",
+    "seccion": "§16.4",
+    "linea": 8150,
+    "gravedad": "alta",
+    "afirmacion": "const { input } = realRaceScenario(raceId, day)",
+    "fallo": "`realRaceScenario` no pone `timeTrial` en la entrada: devuelve `{ profile, riders: uniformField(), lugar }` (`packages/engine/src/sim/scenarios.ts` l. 518-541); solo `timeTrialScenario` (l. 587-597) pone `timeTrial: true`. Medido con el `dist` del motor v89 (`rcod/n/rrs.mjs`): `realRaceScenario('race-france', 1)`, `('race-france', 16)`, `('race-colombia', 3)` y `('nc-es-itt', 1)` dan `input.timeTrial === undefined`, y `simulateStage` las corre como etapas EN LÍNEA (0 sucesos `tt_*` ni `stage_win_itt`). Las «seis cronos» de B11 son, pues, seis etapas en línea sobre un perfil de crono: la rama `if (input.timeTrial === true)` no se ejecuta nunca, `onTimeTrialRide` no se llama y el gancho que cambia `timetrial.ts` (§5.2) queda sin sellar por el banco que dice sellarlo. Lo mismo le pasaría a cualquier banco de las 24 etapas que construya la entrada con `realRaceScenario` (las dos cronos de B6 y de I5).",
+    "correccion": "En el bloque de B11 escribir `const stage = SEASON_CALENDAR.find((r) => r.id === raceId)!.stages[day - 1]!` y `const input = { ...realRaceScenario(raceId, day).input, ...(stage.timeTrial === true ? { timeTrial: true } : {}) }` (importando `SEASON_CALENDAR` de `../routes/calendar.js`), y añadir una comprobación que falle si ninguna de las seis cronos corre como crono: `if (stage.timeTrial === true) expect(con.events.some((e) => e.plantilla === 'stage_win_itt')).toBe(true)`; decir en §16.2 y en B6 que las 24 etapas del banco se construyen igual, con el `timeTrial` del calendario."
+  },
+  {
+    "id": "Rcodigo-031",
+    "seccion": "§16.4",
+    "linea": 8145,
+    "gravedad": "media",
+    "afirmacion": "const huella = (o: ReturnType<typeof simulateStage>): string => JSON.stringify([o.results, o.events, o.efforts, o.incidents])",
+    "fallo": "`StageOutput.efforts` es un `Map<string, StageEffort>` (`packages/engine/src/stage/types.ts` l. 582), y `JSON.stringify` de un `Map` es siempre `{}`: medido con el `dist` del motor v89 (`rcod/n/rrs.mjs`), `JSON.stringify(out.efforts)` da `{}` en las cuatro etapas probadas. La huella de B11 no compara, pues, `efforts`, aunque el comentario del bloque diga «los cuatro campos de StageOutput» y §5.1 cuente las 24 de 24 idénticas «en los cuatro campos» (medidas con `l3/huella.mjs`, que sí lo hace bien: `efforts: [...o.efforts.entries()]`).",
+    "correccion": "Escribir `const huella = (o: ReturnType<typeof simulateStage>): string => JSON.stringify([o.results, o.events, [...o.efforts.entries()], o.incidents])` con el comentario «`efforts` es un Map: sin `entries()` se serializa como `{}`»."
+  },
+  {
+    "id": "Rcodigo-032",
+    "seccion": "§16.3",
+    "linea": 7919,
+    "gravedad": "alta",
+    "afirmacion": "Con la etapa vista, las rutas en las que tiene que salir el canario son, al menos, la ruta de etapa y la del acta (el tiempo), `/api/news` y las noticias de los dos equipos (los ids), y la ficha y los resultados del ganador (su palmarés y su tiempo)",
+    "fallo": "El canario de noticias y palmarés es el `id` de la fila (`plantCanary`, l. 7869-7871), y ningún `id` de esas tablas sale por la API: `NewsItem` (`packages/db/src/news.ts` l. 51-64) y `newsItemSchema`/`teamNewsItemSchema` (`packages/shared/src/contracts.ts` l. 705-709 y 787-799) no llevan `id`, y las ampliaciones de §14.2 (l. 6899-6905) añaden `payload`, `seed`, `tplRev`, `raceId`, `raceKey` y `stageDay`, tampoco `id`; `getPalmares` (`packages/db/src/ranking.ts` l. 336-348) selecciona `season`, `raceId`, `raceName`, `kind` y `detail`, sin `id` (el único que lee `palmares.id` es el tick, `calendarRun.ts` l. 1271-1306). Así B1a no puede cazar nunca una noticia ni un palmarés de la etapa velada, que son dos de las fugas que más cuentan (sups. N1-N4 y el palmarés de la ficha), y el umbral de «cinco rutas o más» con la etapa vista (l. 7912-7914) cuenta con tres rutas que no pueden dar el canario. El dinero tampoco asegura nada: `awardRacePrizes` solo apunta `premio` a corredores humanos (`packages/db/src/economy.ts` l. 149, 164 y 180) y en `spoilerWorld` el único humano es `OWN_RIDER`, que no tiene por qué ganar la etapa 3. Medido con el código de hoy (`rcod/n/b1/mundo.mjs`: el mundo de `spoilerWorld` rehecho con `runOneStage` del `dist` de `packages/db`, los mismos ids, atributos, dorsales y semillas, sin lo de E2): con la base `b1a-base` y la velada `b1a-velada` gana el corredor 08 y `OWN_RIDER` llega 4.º, y el día de la etapa 3 no hay ninguna fila en `transactions`; igual en las otras cinco semillas probadas (ganan el 09, 09, 04, 07 y 01), así que `update transactions … kind = 'premio'` no toca ninguna fila y /424242/ no puede salir nunca. Tampoco llevan el canario «la ficha y los resultados del ganador (su palmarés y su tiempo)» de l. 7919: `getRiderRaceResults` solo selecciona `raceId`, `stageDay` y `puesto` (`packages/db/src/riderResults.ts` l. 190-196), `getPublicRider` no trae palmarés ni tiempos (`packages/db/src/browse.ts` l. 269-322) y `rider_points.points` solo se lee sumado (`packages/db/src/ranking.ts` l. 184), así que 7373 solo aparece si es el único punto del corredor en la ventana. Con la etapa vista, solo la ruta de etapa y la del acta dan el canario con seguridad (el `tiempoS` del ganador, `contracts.ts` l. 1290): el umbral de cinco no se alcanza ni con el mundo correcto.",
+    "correccion": "Plantar el canario en campos que sí viajan: `update palmares set detail = 'Stage c0ffee' where game_day = ${day}` (sale en `getPalmares`), y en `news` el titular mientras exista `text` (`update news set text = 'c0ffee00 …'`) y, desde el 1a, un `stageDay` imposible en `data` (`data = jsonb_set(data, '{stageDay}', '97')`, que el render convierte en «stage 97»); añadir `/stage 97\\b/` y `/c0ffee/` a `TOKENS`; plantar el premio con un `insert` y no con un `update` (`insert into transactions (rider_id, game_day, kind, amount, note) values (${OWN_RIDER}, ${day}, 'premio', ${CANARY.money}, 'Race France · stage win')`, y desde el PR 8a con `race_key` y `stage_day`) para que el canario de dinero exista; y reescribir la frase de l. 7919 con las rutas que de verdad lo devuelven (ruta de etapa, acta, `/api/news`, `/api/teams/:id/news`, `/api/riders/:id/palmares` y `/api/riders/me/ledger`; no la ficha ni `/api/riders/:id/results`, que no llevan tiempo ni palmarés)."
+  },
+  {
+    "id": "Rcodigo-033",
+    "seccion": "§16.4",
+    "linea": 7981,
+    "gravedad": "media",
+    "afirmacion": "y en la web, que cada `ChronicleEntry` de las actas congeladas (`<etapa>.acta.json.gz`) da la misma frase dos veces y en dos procesos (`apps/web/src/domain/stageJournal.corpus.test.ts`)",
+    "fallo": "Tres tests de la web necesitan Node y la web no tiene sus tipos: `stageJournal.corpus.test.ts` (B4 y B5) descomprime `<etapa>.acta.json.gz` y lanza un segundo proceso, `templateCoverage.test.ts` (B7, l. 7984) lee `simulate.ts`, `timetrial.ts` y `events.ts` del motor, y `clientCost.test.ts` (B8, l. 7985) lee los tramos y cabeceras congelados de `apps/api/src/__fixtures__/broadcast/`. `apps/web/tsconfig.json` tiene `\"types\": []` (l. 9) y `lib` sin Node, su `include` es `src` (tests incluidos) y `pnpm typecheck` lo corre (`package.json` l. 12); ningún fichero de `apps/web/src` importa hoy un módulo de Node. Compilado en `rcod/n/ws` con ese tsconfig, `import { readFileSync } from 'node:fs'` en un test de `apps/web/src/domain` da `TS2307: Cannot find module 'node:fs'`; con `/// <reference types=\"node\" />` al principio del fichero compila.",
+    "correccion": "Añadir a §16.4 (B4, B5, B7 y B8) y a §17.21: «los tests de la web que leen ficheros o lanzan procesos (`stageJournal.corpus.test.ts`, `templateCoverage.test.ts`, `clientCost.test.ts`) empiezan por `/// <reference types=\\\"node\\\" />`, porque `apps/web/tsconfig.json` no carga los tipos de Node (`\\\"types\\\": []`, l. 9); `@types/node` se resuelve desde la raíz», o mover la parte que lee ficheros a `apps/api`, como §15.5 hizo con `broadcastConstants.test.ts`."
+  },
+  {
+    "id": "Rcodigo-034",
+    "seccion": "§14.8",
+    "linea": 7169,
+    "gravedad": "baja",
+    "afirmacion": "| la ruta de etapa de hoy | 950-2.159 KB | 22,2-50,0 KB (gzip) | medido, mapa 02 §7 |",
+    "fallo": "El documento da dos rangos medidos para lo mismo y usa el corto donde decide. El mapa 02 §7 midió cinco etapas (0,95 a 2,16 MB, gzip hasta 50,0 KB); el mapa 07 §7 midió las 22 en línea del banco (`scratchpad/medida-etapas.json.txt`, releído aquí: de 870,6 a 2.949 KB y de 22,2 a 100,1 KB con gzip; `race-france` e20 da 2.941,6 KB y 100,1 KB, `race-colombia` e5 2.949 KB y 74,9 KB, e3 2.149,9 KB y 72,1 KB). §1.3 (l. 286) y §18.1 (l. 9047) citan los dos, pero §14.8 (l. 7157 y la tabla), la frase de l. 7177, la línea base de B6 en §16.4 (l. 7983: «medida, 22,2-50,0 KB con gzip, mapa 02 §7») y §17.3 (l. 8368: «de 0,95-2,16 MB a 22-50 KB comprimidos») solo dan el corto, que se queda a la mitad del máximo medido.",
+    "correccion": "En §14.8, la tabla y l. 7177, en B6 (§16.4) y en §17.3 escribir «de 0,87 a 2,95 MB de JSON y de 22,2 a 100,1 KB con gzip (mapa 07 §7, las 22 etapas en línea del banco; el mapa 02 §7 midió de 0,95 a 2,16 MB en cinco)»."
+  },
+  {
+    "id": "Rcodigo-035",
+    "seccion": "§14.4",
+    "linea": 6969,
+    "gravedad": "baja",
+    "afirmacion": "`StageTimelineRead.known` es «fuera del velo», no «conocida» en el sentido de `WatchState.known` (10-e): las rutas no la usan para el límite de lo alcanzado, que sale de `race_watch` (§10.11).",
+    "fallo": "Cierra la duda abierta 1.8: además del nombre repetido, el campo no tiene lector. Lo producen `readStageTimeline` (§5.6, l. 2536) y `timelineForStage` (l. 6966), y ningún código del documento lo lee: la ruta del tramo usa `tl` (l. 6919-6936), la admisión (`admitirTramo`, l. 4936-4943) y `stageAccessOf` (l. 6782-6790) leen `race_watch` y `stageGateOf`, y `BroadcastHead.view.known` (l. 1824) es la semántica de `WatchState` (letras W, S, R, A). Un `known` que nadie lee y que significa otra cosa que el `known` de al lado es una trampa para el implementador.",
+    "correccion": "Quitar el campo: `readStageTimeline` y `timelineForStage` devuelven `Promise<StageTimeline | null>` (el `Horizon` se queda como parámetro por D-32), se borra `StageTimelineRead` de §5.6, §14.4, §G.4 y §21.6, y la frase de §14.4 dice «el velo de la etapa lo deciden `stageGateOf` y `race_watch`, no la lectura»; si se prefiere conservarlo, renombrarlo a `unveiled` en los mismos sitios. Dar la duda 1.8 por cerrada."
+  },
+  {
+    "id": "Rcodigo-036",
+    "seccion": "§4.2",
+    "linea": 1143,
+    "gravedad": "alta",
+    "afirmacion": "export interface TimelineCast { readonly riders: readonly CastRider[]; readonly teams: readonly CastTeam[] } // riders por RiderIx; teams por primera aparición en riders",
+    "fallo": "Cierra la parte `TimelineCast.favourites` de la duda abierta 1.1 con el porqué en el código. `StagePreview.favourites` (§4.11, l. 1851 y su esquema, l. 1898) y la regla de §8.6 (l. 3945, decisión 8-g) ordenan a los inscritos por el atributo del tipo de etapa «del día de la etapa, congelado al grabarla»; pero el tipo que se graba no tiene dónde congelarlo, y `rider_attrs` ya no guarda el valor de antes: `runOneStage` aplica `raceLearning` a todo corredor que corrió (`packages/db/src/stageRun.ts` l. 790-805) y escribe el resultado en `rider_attrs` en la misma transacción (l. 891-897); el aprendizaje sube justo los atributos del terreno (`STAGE_LEARNING_ATTRS`: llana LLA y SPR, media MON, LLA y DES, reina MON, COL y DES, crono CRI y LLA, clásica COL, PAV y LLA; `packages/engine/src/world/learning.ts` l. 20-29) y depende del desenlace (`puesto`, `depletion` y `estado`, l. 99-111). Calculados al servir, los favoritos de la previa de una etapa velada salen de atributos que ya llevan esa etapa: difieren entre dos desenlaces (B1c en rojo, riesgo 22 de §19.1) y dejan ver el resultado a quien no la ha visto.",
+    "correccion": "Escribir en §4.2 `export interface TimelineCast { readonly riders: readonly CastRider[]; readonly teams: readonly CastTeam[]; readonly favourites: readonly { readonly rider: RiderIx; readonly why: 'gc' | 'sprint' | 'hills' | 'climb' | 'tt' | 'cobbles' }[] } // favourites: 8-g, con los atributos de stage_snapshots.input (antes de raceLearning, stageRun.ts l. 790-805)`, añadir el campo a la codificación de §4.3 (formato 1, PR 4b, 17-a) y a `buildTimelineCast` (§17.20, `cast.ts`), y dar por cerrada esta parte de la duda 1.1; con eso el riesgo 22 de §19.1 deja de depender de una aceptación pendiente."
+  },
+  {
+    "id": "Rcodigo-037",
+    "seccion": "§11.17",
+    "linea": 5624,
+    "gravedad": "media",
+    "afirmacion": "export function raceTabs(status: RaceStatus, stageCount: number, known: boolean): readonly RaceTabId[] {",
+    "fallo": "El bloque de `raceTabs.ts` (l. 5614-5631) quita `story` de `RaceTabId` y añade un tercer parámetro obligatorio, pero deja sin tocar cuatro sitios del fichero real que usan lo quitado, y el texto (l. 5633) solo añade `watch` y `report` a `RACE_TAB_LABEL`. Aplicado sobre `apps/web/src/domain/raceTabs.ts` de hoy y compilado con tsc en el scratchpad (`rcod/n/rt/`): `TS2353` en `RACE_TAB_LABEL.story` (l. 22), `TS2322` en `ONE_DAY_TABS.finished` que sigue con `'story'` (l. 50), `TS2554 Expected 3 arguments, but got 2` en `defaultRaceTab` (l. 58-60, que llama a `raceTabs(status, stageCount)`) y `TS2322` en el `default: return 'story'` de `oneDayStageTab` (l. 80-81). Además `Race.tsx` l. 595 llama `raceTabs(status, data.race.stageCount)` y `raceTabs.test.ts` l. 33-34 espera `['result', 'story', …]` y `defaultRaceTab('finished', 1) === 'result'`.",
+    "correccion": "Añadir al bloque de §11.17, tras `LEGACY_TAB`: «En el mismo fichero: `RACE_TAB_LABEL` pierde `story: 'Story'` y gana `watch: 'Watch'` y `report: 'Report'`; `ONE_DAY_TABS.finished` pasa a `ONE_DAY_FINISHED.known` (o se borra la entrada y el tipo pasa a `Record<Exclude<RaceStatus, 'finished'>, …>`); `defaultRaceTab(status, stageCount, known)` gana el mismo tercer parámetro y lo pasa; `oneDayStageTab` devuelve `'report'` en su rama por defecto y en `case 'story'`; `Race.tsx` l. 595 pasa `watch.known` (falso mientras carga); `raceTabs.test.ts` l. 33-34 y 46-47 cambian `story` por `report`.»"
+  },
+  {
+    "id": "Rcodigo-038",
+    "seccion": "§8.4",
+    "linea": 3810,
+    "gravedad": "baja",
+    "afirmacion": "Una vuelta de 21 etapas y dos descansos dura 23 días de juego (Italia, días 128 a 151; Francia, 185 a 207; España, 234 a 256; mapa 04 §2)",
+    "fallo": "Italia no tiene dos descansos sino tres: `packages/engine/src/routes/editions.ts` l. 52-53 da `'race-italy': { restAfter: [3, 9, 15] }` (Francia y España, `[9, 15]`, l. 27 y 79). Medido con `scheduledStageIndices` del `dist` (`rcod/n/gt2.mjs`): Italia corre los días 128-130, 132-137, 139-144 y 146-151, 24 días de juego; Francia y España, 23. Por eso el propio rango 128 a 151 cuenta 24 días, y §1 (l. 403) ya dice «23-24 días». Para Italia son 6 días reales y 3,5 etapas por día, no 5,75 y 3,65.",
+    "correccion": "Sustituir por: «Una vuelta de 21 etapas dura 23 días de juego con dos descansos (Francia, días 185 a 207; España, 234 a 256) y 24 con tres (Italia, 128 a 151: descansa tras las etapas 3, 9 y 15, `editions.ts` l. 53; mapa 04 §2), y un día de juego son 6 h reales (…): de 5,75 a 6 días reales, unas 3,5 a 3,65 etapas por día real.» Las cifras por día de la tabla siguiente no cambian de orden de magnitud."
+  },
+  {
+    "id": "Rcodigo-039",
+    "seccion": "§8.5",
+    "linea": 3891,
+    "gravedad": "baja",
+    "afirmacion": "| `Next action` desde `Watch` ×1 | 0,75 s | 1,5 s | 3,8 s | 11 s | 30 s |",
+    "fallo": "La columna del último km no puede darse: la misma sección apaga `Next action` desde el rótulo `last_km` (l. 3830: «Apagado desde `last_km`: el último km no se acelera (8-o)»; decisión 8-o, l. 4157), y `last_km` sale cuando la cabeza cruza 1 km a meta (l. 2975 y 2994) con clase 2, que además ya apagaría el ×20. Los 30 s son 900 / (1,5 · 20), un factor que el reproductor nunca aplica; en el último km el colchón es el de `Watch` ×1, 600 s.",
+    "correccion": "Cambiar la última celda de la fila por «600 s (apagado, 8-o: va a `Watch` ×1)»."
+  },
+  {
+    "id": "Rcodigo-040",
+    "seccion": "§8.10",
+    "linea": 4029,
+    "gravedad": "baja",
+    "afirmacion": "«lo que hay que hacer si acaso es mejorar la granularidad de las instrucciones, con más escenarios hipotéticos quizás» (`docs/epics.md` l. 700-701)",
+    "fallo": "La cita está en `docs/epics.md` l. 701-702 (l. 700 está en blanco; l. 701 «> El dueño: «lo que hay que hacer si acaso es mejorar la granularidad de las instrucciones, con más», l. 702 «> escenarios hipotéticos quizás»»). El propio documento la cita bien en l. 625 y l. 9581 (`docs/epics.md` l. 701-702).",
+    "correccion": "Cambiar `docs/epics.md` l. 700-701 por `docs/epics.md` l. 701-702."
+  },
+  {
+    "id": "Rcodigo-041",
+    "seccion": "§7.8",
+    "linea": 3658,
+    "gravedad": "baja",
+    "afirmacion": "team: c.team === null ? null : { id, name, jerseySeed } de cast.teams[c.team]",
+    "fallo": "`CastTeam` (§4.2, l. 1128) es `{ teamId, jerseySeed }`: no tiene `id` ni `name`, así que `RiderCard.team.name` (§4.8, l. 1690) no puede salir de `cast.teams[c.team]`. El nombre del equipo solo puede salir de `NameResolver.team` al servir (l. 1950), como el del corredor, y eso quiere decir que un cambio de nombre posterior sí se ve en la retransmisión vieja: hoy el nombre se edita con `PUT /api/teams/me` (`apps/api/src/routes/teams.ts` l. 18-22; `packages/db/src/teamControl.ts` l. 170-189). La frase de l. 3661 («Un traspaso o un cambio de equipación posteriores no reescriben el pasado») no dice qué pasa con el nombre.",
+    "correccion": "Escribir la línea como `team: c.team === null ? null : { id: t.teamId, name: nombres.team(t.teamId), jerseySeed: t.jerseySeed }` con `t = cast.teams[c.team]`, y añadir a l. 3661: «El nombre del equipo, como el del corredor, se resuelve al servir: un cambio de nombre posterior sí se ve; el equipo y su equipación, no.»"
+  },
+  {
+    "id": "Rcodigo-042",
+    "seccion": "§3.8",
+    "linea": 920,
+    "gravedad": "baja",
+    "afirmacion": "function estimatedHeadClock(kms: readonly StoredRadioKm[], totalKm: number, winnerS: number): number[] {",
+    "fallo": "El bloque se presenta como el código de `apps/api/src/broadcastSource.ts` y no compila con el `tsconfig.base.json` del repositorio (`strict`, `noUncheckedIndexedAccess`). Compilado en el scratchpad contra `StoredRadioKm` real (`packages/engine/src/sim/raceRadio.ts` l. 575), con `firstKnownSpeed` declarada (`rcod/n/ehc/ehc.ts`): seis errores, `TS2532 Object is possibly 'undefined'` en `kms[k + 1].km` (l. 924), `kms[k].groups` (l. 925), `raw[raw.length - 1]` y `kms[k].km` (l. 927) y `raw[raw.length - 1]` (l. 929), y `TS7022 'v' implicitly has type 'any'` en l. 925, porque `v` depende de `lastV`, que se reasigna con `v` dentro del bucle. Además `firstKnownSpeed` no se define en ningún bloque del documento.",
+    "correccion": "Reescribir el cuerpo con tipos y lecturas seguras: `const v: number = kms[k]!.groups[0]?.speedKmh ?? lastV ?? firstKnownSpeed(kms, k)`, `const nextKm = k + 1 < kms.length ? kms[k + 1]!.km : totalKm`, `const prev = raw[raw.length - 1]!` y `raw.push(prev + ((nextKm - kms[k]!.km) / v) * 3600)`, `const scale = winnerS / raw[raw.length - 1]!`; y añadir `/** La primera speedKmh no nula de kms[k..]; 0 no se acepta. */ function firstKnownSpeed(kms: readonly StoredRadioKm[], k: number): number`, con su error si ninguna foto tiene velocidad."
+  },
+  {
+    "id": "Rcodigo-043",
+    "seccion": "§12.2",
+    "linea": 5756,
+    "gravedad": "baja",
+    "afirmacion": "export function buildChronicle(events: readonly ChronicleEvent[], names: ChronicleNames, options: BuildChronicleOptions & { readonly live: LiveChronicle }): LiveLine[]",
+    "fallo": "Las dos firmas sobrecargadas no compilan sobre la implementación de hoy, que declara `): ChronicleEntry[]` (`apps/api/src/chronicle.ts` l. 289-293) con el `ChronicleEntry` LOCAL de la API (l. 32-39), no el de `shared`. Pegados los dos bloques de §12.2 y §11.16 en una copia del fichero real y compilado con los tipos de §4 (`rcod/n/ws`, `tsconfig.api4.json`): `TS2394: This overload signature is not compatible with its implementation signature` en la sobrecarga de `LiveLine[]`. La causa: `LiveLine` es `ChronicleEntry & { revealS }` con el `ChronicleEntry` de `shared` (§4.9, l. 1741; `contracts.ts` l. 1262-1276), cuyo `mentions` sale de Zod como `?: … | undefined`, y con `exactOptionalPropertyTypes` no es asignable al `mentions?: Record<…>` local (TS2375, medido), ni el local a `LiveLine` (le falta `revealS`).",
+    "correccion": "Añadir tras el bloque: «La implementación cambia su tipo de vuelta a `ChronicleEntry[] | LiveLine[]` (y construye cada línea en vivo como `{ ...entrada, revealS: live.revealS(e) }`, que sí es asignable a `LiveLine` porque el `ChronicleEntry` local lo es al de `shared`).» O bien, más limpio, que el `ChronicleEntry` local pase a ser un alias del de `@cyclingstar/shared` y la firma de la implementación sea `options: BuildChronicleOptions = {}): ChronicleEntry[] | LiveLine[]`."
+  },
+  {
+    "id": "Rcodigo-044",
+    "seccion": "§17.20",
+    "linea": 8869,
+    "gravedad": "baja",
+    "afirmacion": "las filas de la pestaña `Stages` (pantalla; `Race.tsx` l. 358-369)",
+    "fallo": "`apps/web/src/pages/Race.tsx` l. 358-364 es el comentario de `StagesTab` y l. 365-369 su cabecera (`function StagesTab…`, `winnerOf`, `<div>`, `<h2>`, `<ol>`); las filas están en el `map` de l. 371-409, con `Not raced yet` en l. 397. El propio documento lo cita bien en otros sitios: `Race.tsx` l. 365-414 (la pestaña) y l. 380-397 (§11.17, l. 5595).",
+    "correccion": "Cambiar `Race.tsx` l. 358-369 por `Race.tsx` l. 365-414 (`StagesTab`; las filas, l. 371-409)."
+  },
+  {
+    "id": "Rcodigo-045",
+    "seccion": "§9 (decisión 9-i)",
+    "linea": 4473,
+    "gravedad": "media",
+    "afirmacion": "- 9-i. Se propone que `BroadcastHead` lleve la preparación pública de la crono (`order`, `intervalS`, `checksKm`), porque la previa, la barra y el primer rótulo la necesitan antes de que salga nadie, y que `BroadcastChunk.tt` lleve los pasos por control, visibles a su hora.",
+    "fallo": "Cierra la parte de la crono de la duda abierta 1.1 con dónde se rompe el código. Con los tipos de §4, que son los que compilan (§4.2, §4.6, §4.9, §4.11), la pantalla de §9 no se puede escribir: (1) `BroadcastHead` (l. 1812-1830) no tiene `tt`, y sin `intervalS` el reproductor no puede llamar a `ttPaceAt(t, plan, …)` (l. 4333; `PlayerContext.baseX`, l. 4061) en `t = 0`, ni pintar `Start order: …, every 2:00` (l. 4366) ni los controles del cuadro 1 de la previa (l. 4416); (2) `BroadcastChunk.tt` (l. 1840) solo lleva `starts` y `km`, así que `timeTrialInstantAt` no puede calcular `lastSplitKm`, `deltaS` ni `splits` (l. 4268-4271) con lo servido, y el rótulo `SPLIT` no sale; (3) `TimelineVisibility` (l. 1537-1546) tiene `ttKmDs` pero no la hora de cada paso por control, y `chunkOf` no sabe en qué tramo va; (4) `Cue` (l. 1719-1736) no tiene `tt_split` ni `tt_finish` (9-d, l. 4468), y `CUE_CLASS` (l. 2938-2944) está atado con `satisfies Readonly<Record<CueKind, CueClass>>`: añadir las variantes sin sus filas no compila; (5) `TimeTrialTrace` (l. 1146-1153) no tiene `checkClockDs` (9-b). Sin los cinco, B9 en la crono (§16.4) no tiene qué comparar.",
+    "correccion": "Escribir en §4 los cinco campos con su esquema y quitar «propuesto» de §9: en `TimeTrialTrace`, `readonly checkClockDs: readonly (readonly Ds[])[] // se graba: por RiderIx y control, 10 · Math.round(raw[idx] · noise) (9-b)`; en `TimelineVisibility`, `readonly ttCheckDs: readonly (readonly Ds[])[] | null // crono: startDs + checkClockDs`; en `BroadcastHead`, `readonly tt: { readonly order: 'gc' | 'bib'; readonly intervalS: number; readonly checksKm: readonly number[] } | null`; en `BroadcastChunk.tt`, `readonly checks: readonly number[] // tríos [rider, índice de control, relojDs]`; en `Cue`, `| { readonly kind: 'tt_split'; readonly t: RaceS; readonly check: number; readonly rider: RiderIx } | { readonly kind: 'tt_finish'; readonly t: RaceS; readonly rider: RiderIx; readonly hotSeat: boolean }`, y en `CUE_CLASS`, `tt_split: 1, tt_finish: 1` (cueClassOf los sube a 2 y 3 como dice la tabla de §9.5). Los mismos campos en `storedTimelineV1Schema` (§4.3) y en los esquemas de §4.11, dentro del formato 1 (17-a)."
+  },
+  {
+    "id": "Rcodigo-046",
+    "seccion": "§12.7",
+    "linea": 6052,
+    "gravedad": "media",
+    "afirmacion": "se propone la columna `stage_timelines.tpl_rev` (`smallint not null default 0`), que escribe el grabador con el `TEMPLATE_REV` del tick, y el campo `tplRev` en `BroadcastHead` y en `StageReport` (decisión 12-c)",
+    "fallo": "Cierra la parte `tpl_rev` de la duda abierta 1.1 con dónde falta. La `0044` de §13.3 (l. 6414-6484), comprobada contra la salida de drizzle-kit, y su tabla de Drizzle no tienen la columna; `BroadcastHead` (§4.11, l. 1812-1830) no tiene `tplRev`, y `StageReport` es `StageReplay` (l. 1847), el `stageReplaySchema` de hoy (`packages/shared/src/contracts.ts` l. 1482-1533), que tampoco. Pero el código de §12.7 la necesita: `chronicleTemplate(e, rev)` elige con `pickVariant(seed, …, rev)` (l. 6045-6047) y dice que `rev` «llega con la cabecera o con el acta». Sin ella la web no tiene de dónde sacarla, y 17-a (l. 8997) exige que entre en la `0044` y no en una quinta migración: si la `0044` se genera como está en §13.3, añadirla después obliga a una `0047`.",
+    "correccion": "Escribir 12-c como hecho en los tres sitios: en §13.3, `\"tpl_rev\" smallint DEFAULT 0 NOT NULL` en el `CREATE TABLE \"stage_timelines\"` y `tplRev: smallint('tpl_rev').notNull().default(0)` en su Drizzle, regenerando la `0044` con drizzle-kit; en §4.11, `readonly tplRev: number // stage_timelines.tpl_rev; 0 sin línea (12-c)` en `BroadcastHead`, y en §14.1, `tplRev: z.number().int().optional()` en `stageReplaySchema` (opcional por la web de ayer, D-50); y en §5.6, que `readStageTimeline` devuelva `tplRev` junto a la línea."
+  },
+  {
+    "id": "Rcodigo-047",
+    "seccion": "§16.4",
+    "linea": 7999,
+    "gravedad": "media",
+    "afirmacion": "contra la grabada de la misma etapa: posición de la cabeza, p99 ≤ 1 km. L1 midió un máximo de 0,69 km.",
+    "fallo": "Cierra la duda abierta 1.6 con una medida: la puerta solo mira la cabeza, y la cabeza es el grupo que mejor sale. Medido aquí (`rcod/n/adapt.mjs`, sobre el banco de `l1/banco.mjs`: foto en cada bloque, la radio guardada y el reloj estimado de §3.8 como en `l1/corte.mjs`; cada grupo pintado desde su marca `headS(k) + gapS` en la foto que acaba de cruzar, a la velocidad de la marca anterior de su MISMA POSICIÓN, que es la identidad del adaptador, l. 935, y con tope en la foto siguiente; contra su posición exacta, cada 10 s de carrera): en `race-flanders` s0, `race-france` e18 s0, `race-colombia` e5 s0 y e13 s1, la cabeza da p99 de 0,32 a 0,60 km y todos los grupos, de 0,84 a 0,89 km, con máximos de 2,62 km (e18) y 2,17 km (e13). Entre dos fotos seguidas, el grupo de la misma posición es OTRO grupo del motor en el 15-30 % de los pares (242 de 1.179 en Flandes, 704 de 2.344 en Colombia), y con él la velocidad con que se extrapola. Es una cota optimista: se toma como marcada la hora del grupo verdadero y no se cuenta la pertenencia (solo la de los nombrados). Con la cabeza en 0,3-0,6 km, B22 pasa aunque el resto de los cursores esté a una décima del umbral.",
+    "correccion": "Añadir a B22: «Informa además, sin ser puerta, del p99 y del máximo de la posición de TODOS los grupos (el pintado por la posición contra el exacto del motor) y del porcentaje de pares de fotos seguidas en que la misma posición cambia de grupo; medido en el diseño: p99 0,84-0,89 km, máximo 2,62 km, 15-30 % (`adapt.mjs`, cuatro corridas). Si el p99 de todos pasa de `estimatedClockMaxErrKm`, se escribe en el PR y decide el dueño antes de abrir en `Watch` las etapas del adaptador.» Y en §3.8 (l. 949), sustituir «y el adaptador además no la tiene» por esa cifra."
+  },
+  {
+    "id": "Rcodigo-048",
+    "seccion": "§9.4",
+    "linea": 4333,
+    "gravedad": "baja",
+    "afirmacion": "export function ttPaceAt(t: RaceS, plan: { readonly riders: number; readonly intervalS: number }, lastKmFromS: RaceS | null): number {",
+    "fallo": "Los bloques de §9.4 siguen a los de §8.2 en `packages/shared/src/broadcast/pace.ts` («(sigue)», l. 4318 y 4332), y el único bloque de importaciones de ese fichero (l. 3734-3737) trae `StageKind`, `BROADCAST`, `ProfileStrip` y `PaceZone`, pero no `RaceS`. Montado el fichero con sus cuatro bloques y compilado con el `tsconfig.base.json` del repositorio (`rcod/n/ws`): `TS2304: Cannot find name 'RaceS'` en las dos firmas de `ttPaceAt` (cuatro errores). Además §4.13 (l. 1970) dice que `pace.ts` importa «tipos de `wire.ts`, `cues.ts` y `contracts.ts`», y el bloque importa `ProfileStrip` de `./timeline.js`.",
+    "correccion": "En el bloque de §8.2 (l. 3736), `import type { ProfileStrip, RaceS } from './timeline.js'`; y en la fila de `pace.ts` de §4.13, «importa `timeline.ts` (tipos), `wire.ts` (tipos), `contracts.ts` (tipos) y `constants.ts`»."
+  },
+  {
+    "id": "Rcodigo-049",
+    "seccion": "§10.6",
+    "linea": 4653,
+    "gravedad": "media",
+    "afirmacion": "Un test de la suite rápida, `packages/db/src/horizonReaders.test.ts`, hace de esta tabla una regla: recorre las funciones exportadas de `packages/db/src` con el mismo criterio que `l6/lecturas.mjs` y falla si una nombra una fuente y su segundo parámetro no es `Horizon`",
+    "fallo": "Cierra la duda abierta 1.9 con lo que el test puede ver. El criterio de `l6/lecturas.mjs` (releído aquí) es textual: solo encuentra `^export (?:async )?function (\\w+)` y busca en su cuerpo trece patrones de tabla (`stageResults`, `raceGc`, …, `riderDailyLog`), sin `stageTimelines`. Con él: (1) `palmaresTitleSource.titlesOn` es un método de un objeto exportado con `export const palmaresTitleSource: ChampionTitleSource = { async titlesOn(q, worldId, gameDay) { … } }` (§7.4, l. 3401-3402) y el test no lo ve nunca, así que la excepción de 10-c para ella no hace nada, y la fuente de E12 que la sustituya (§7.9) podría leer títulos para un espectador sin `Horizon` sin que el test salte; (2) `stage_timelines`, que D-32 punto 1 pone entre las fuentes (`00-decisiones.md` l. 356), no está en la lista de patrones, así que `readStageTimeline` sin `Horizon` pasaría el test. Corrido hoy sobre `packages/db/src`, el criterio da 57 lecturas y ninguna es un `export const`: el hueco solo lo abre E2.",
+    "correccion": "Escribir en 10-c y en §17.11 (l. 8618) que `horizonReaders.test.ts` recorre con el AST de TypeScript (como `l8/plantillas.mjs`) las funciones exportadas Y los métodos de los objetos exportados, y que su lista de fuentes es la de D-32 punto 1 entera, con `stageTimelines` y `raceWatch`; y cerrar la duda 1.9 dejando la excepción de `buildTimelineCast` y `titlesOn` por su nombre (`cast.ts:buildTimelineCast`, `titles.ts:palmaresTitleSource.titlesOn`) en la lista escrita del test, con su motivo, para que una fuente nueva de títulos entre en rojo."
+  },
+  {
+    "id": "Rcodigo-050",
+    "seccion": "§12.6",
+    "linea": 5990,
+    "gravedad": "baja",
+    "afirmacion": "return isGroupRole(role) ? GROUP_WORDS.role[role][1] : BUNCH",
+    "fallo": "`isGroupRole` no se define en ningún bloque del documento: se importa aquí (l. 5986) y la tabla de ficheros de §17.20 (l. 8812) la pone en `instant.ts`, pero ni §4.5 ni §6.3 ni el apéndice F.2 escriben su firma. Sin una firma de guarda de tipo, `role` sigue siendo `unknown`: montados los dos bloques de §12.5 y §12.6 sobre la copia real de `apps/web/src/domain/stageJournal.ts` y compilado con los tipos de §4 (`rcod/n/ws`, `tsconfig.web3.json`), tsc da `TS2724: '\"@cyclingstar/shared\"' has no exported member named 'isGroupRole'` y, en esta línea, `TS2538: Type 'unknown' cannot be used as an index type`.",
+    "correccion": "Añadir al bloque de `GroupRole` de §4.5 (l. 1395): `export const GROUP_ROLES = ['lead', 'chase', 'bunch', 'gruppetto'] as const satisfies readonly GroupRole[]` y `/** Guarda de tipo para lo que llega en datos de una línea (mainRole, groupRole). */ export function isGroupRole(x: unknown): x is GroupRole { return typeof x === 'string' && (GROUP_ROLES as readonly string[]).includes(x) }`, y nombrarla en F.2 junto a `groupRoleOf`."
+  },
+  {
+    "id": "Rcodigo-051",
+    "seccion": "§7.1",
+    "linea": 3261,
+    "gravedad": "baja",
+    "afirmacion": "case 'stage_wins': return `Won ${d.stages.length === 1 ? 'stage' : 'stages'} ${listAnd(d.stages.map((r) => String(r.stageDay)))}`   // «3, 7 and 12»",
+    "fallo": "`listAnd` no existe: no se define en ningún bloque del documento (grep: solo esta línea) ni en el repositorio (`grep -rn 'function listAnd' packages apps`: nada). La función que hace «3, 7 and 12» hoy es `listNames` de `apps/web/src/domain/stageJournal.ts` (l. 133-137), que `packages/shared` no puede importar (§4, l. 992: `shared` no importa nada de la web ni del motor). `cardLineText` vive en `packages/shared/src/broadcast/names.ts` (l. 3243), así que no compila tal cual: en el montaje del scratchpad hubo que declararla aparte para compilar `names.ts`.",
+    "correccion": "Añadir al bloque de §7.1, antes de `cardLineText`: `/** «3», «3 and 7», «3, 7 and 12»: la lista en inglés (E10 la recibe como punto de render). */ export function listAnd(xs: readonly string[]): string { return xs.length <= 1 ? (xs[0] ?? '') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]!}` }`, y nombrarla en F.2 con `ordinal` y `gapText`."
+  },
+  {
+    "id": "Rcodigo-052",
+    "seccion": "§14.2",
+    "linea": 6845,
+    "gravedad": "baja",
+    "afirmacion": "La ruta acepta además el mismo JSON como `text/plain`: Fastify interpreta los dos tipos sin configurar nada, y así un navegador que rechace el `Blob` JSON en `sendBeacon` puede mandar una cadena.",
+    "fallo": "La frase dice que Fastify «interpreta» los dos tipos, y no los interpreta igual: el analizador que trae de serie para `text/plain` entrega el cuerpo como CADENA. Medido con el Fastify 5.11.2 del repositorio (`rcod/n/fplain.mjs`, `app.inject` con el mismo cuerpo): con `application/json`, `typeof request.body` es `object`; con `text/plain;charset=UTF-8`, es `string` (`\"{\\\"reachedS\\\":12,\\\"mode\\\":\\\"play\\\"}\"`). §14.7 (l. 7152) lo dice bien («llega como cadena … y se pasa por `JSON.parse` dentro de un `try` antes del `safeParse`»), pero §14.2, que es la sección de la ruta y la que lee quien la implementa, afirma lo contrario y no remite a §14.7: con esta frase, el manejador haría `watchProgressBodySchema.safeParse(request.body)` (l. 6868, un `z.object`) sobre la cadena y el respaldo de 14-g daría 400 `validacion` siempre, justo en el navegador para el que existe.",
+    "correccion": "Sustituir la frase por: «La ruta acepta además el mismo JSON como `text/plain`: Fastify lo entrega como cadena, y el manejador la pasa por `JSON.parse` dentro de un `try` antes del `safeParse` (§14.7; una cadena que no es JSON da 400 `validacion`), y así un navegador que rechace el `Blob` JSON en `sendBeacon` puede mandar una cadena.»"
+  },
+  {
+    "id": "Rcodigo-053",
+    "seccion": "§12.9",
+    "linea": 6232,
+    "gravedad": "baja",
+    "afirmacion": "segunda persona para siete plantillas y, en las demás, la clave cruda (`default`, l. 146-147) en `LastRaceReport.tsx` (l. 4, 32 y 97)",
+    "fallo": "La línea 32 de `apps/web/src/components/LastRaceReport.tsx` no usa `personalNarration`: es `<p className=\"mt-0.5 text-sm text-indigo-700\">{raceVerdict(data)}</p>`, el veredicto de la fila siguiente de la tabla. `personalNarration` aparece solo en la l. 4 (`import { personalNarration, raceVerdict } from '../domain/narration'`) y en la l. 97 (`<span>{personalNarration(e.plantilla)}</span>`); comprobado con `grep -n \"personalNarration\\|raceVerdict\"` sobre el fichero.",
+    "correccion": "En la fila de `personalNarration(plantilla)` escribir «en `LastRaceReport.tsx` (l. 4 y 97)», y en la fila de `raceVerdict(r)` (l. 6233) añadir a la columna Hoy «, que pinta `LastRaceReport.tsx` l. 32»."
+  },
+  {
+    "id": "Rcodigo-054",
+    "seccion": "§12.9",
+    "linea": 6231,
+    "gravedad": "baja",
+    "afirmacion": "| `narrate()` y su tabla `CHRONICLE` (l. 16-124) | 19 plantillas y 57 redacciones (mapa 07 §3)",
+    "fallo": "La tabla `CHRONICLE` de `apps/web/src/domain/narration.ts` (l. 16-107) tiene 19 plantillas y 56 redacciones, no 57. Medido evaluando el objeto en Node (`rcod/n/chron_tbl.js`, el literal de l. 16-107 sin la anotación de tipo): breakaway_formed 4, peloton_concedes 4, sprinters_give_up 4, sprint_intermediate 4, climb_kom 4, break_cooperation 1, bunch_sprint 2, final_km 2, time_gap 1, sprinters_chase 2, peloton_split 3, peloton_regroup 3, front_group 2, breakaway_caught 4, breakaway_consolidated 3, crash 3, dropped 3, stage_win 4, stage_win_itt 3; suma 56. El 57 sale de contar las líneas con `=>` entre l. 16 y 107, que incluyen la de la declaración `const CHRONICLE: Record<string, ((n: string) => string)[]>` (l. 16). El error viene del mapa 07 §3 (l. 116) y el borrador lo copia.",
+    "correccion": "Escribir «19 plantillas y 56 redacciones (medido evaluando la tabla; el mapa 07 §3 dice 57 porque cuenta la línea de la declaración)»."
+  },
+  {
+    "id": "Rcodigo-055",
+    "seccion": "§16.3",
+    "linea": 7702,
+    "gravedad": "baja",
+    "afirmacion": "export const B1B_WHITELIST: ReadonlyMap<string, readonly string[]> = new Map([ // las filas de §11.18, y ninguna más ])",
+    "fallo": "Cierra la duda abierta 1.12 de `dudas.md`. La lista blanca que el código de B1b usa está vacía en el borrador (l. 7702-7704) y la tabla de §11.18 (l. 5641-5645) solo da la segunda columna en prosa, así que la traducción a la gramática de `strip` (l. 7815-7835: puntos, `[]` y `[veiledDay]`) queda al implementador, y una traducción de menos o de más cambia lo que B1b caza. La forma real de las cinco respuestas permite escribirla ya: `GET /api/calendar/:raceId` devuelve `status` y `runDays` en la raíz (`apps/api/src/routes/calendar.ts` l. 131-144 y el segundo `return`); `GET /api/riders/me` devuelve `{ rider }` y `rider.attributes` (`apps/api/src/routes/riders.ts` l. 127-131; `packages/db/src/riders.ts` l. 198-206); `GET /api/riders/me/form` devuelve `{ log, form, health }` con `log` de filas `{ gameDay, ctl, atl, tsb, tss, activity, parte }` (`routes/riders.ts` l. 425-437; `getDailyLog`, `packages/db/src/riders.ts` l. 322-342); `GET /api/riders/me/race-prefs` devuelve `{ races }` y lo que decide una convocatoria es `callup` (`packages/db/src/callups.ts` l. 251-263); `GET /api/riders/me/offers` devuelve `{ offers, contract }` (`routes/riders.ts` l. 533-539). Con esas rutas de campos, la función `strip` del propio fixture quita exactamente lo que la prosa de §11.18 describe.",
+    "correccion": "En §16.3 sustituir el cuerpo vacío por: `export const B1B_WHITELIST: ReadonlyMap<string, readonly string[]> = new Map([ ['GET /api/calendar/:raceId', ['status', 'runDays']], ['GET /api/riders/me', ['rider.attributes']], ['GET /api/riders/me/form', ['form', 'log.[veiledDay]']], ['GET /api/riders/me/race-prefs', ['races.[].callup']], ['GET /api/riders/me/offers', ['offers']], ])`, con el comentario «una entrada por fila de §11.18, en el mismo orden»; y en la tabla de §11.18 añadir una columna «Campos (`strip`)» con esos mismos valores fila a fila. Dar la duda 1.12 por cerrada."
+  },
+  {
+    "id": "Rcodigo-056",
+    "seccion": "§5.7",
+    "linea": 2576,
+    "gravedad": "baja",
+    "afirmacion": "10 de las 46 corridas en línea pasaban de 48 KB (hasta 70,0), 45 de 46 de 128 KB de JSON (hasta 464)",
+    "fallo": "Las dos cuentas usan unidades distintas. Re-medido en el scratchpad con el prototipo del grabador (`rcod/n/sizes24.json`, las mismas 46 corridas en línea de 176 o 126 corredores; reproduce al byte el resto del párrafo: `bytea` de 20,9 a 70,0 KB, mediana 38,8, p90 53,3; JSON de 123,4 a 463,7 KB, mediana 222,2): con KB de 1.024 bytes, que son los de `TIMELINE` (98.304 = 96 KB, 655.360 = 640 KB), pasan de 48 KB 10 corridas y de 128 KB de JSON 44, no 45 (`race-france` e21 semilla 1, 126.321 B, y e11 semilla 1, 128.156 B, quedan por debajo de 131.072). El 45 sale de contar con KB de 1.000 bytes (128.156 > 128.000), y con esa misma unidad las de 48 KB serían 11.",
+    "correccion": "Escribir «10 de las 46 corridas en línea pasaban de 48 KB (hasta 70,0), 44 de 46 de 128 KB de JSON (hasta 464; KB de 1.024 bytes, como en `TIMELINE`)»."
+  },
+  {
+    "id": "Rcodigo-057",
+    "seccion": "§14.11",
+    "linea": 7255,
+    "gravedad": "baja",
+    "afirmacion": "Un único vigilante, montado una vez junto al `QueryClientProvider` (`main.tsx` l. 11)",
+    "fallo": "`apps/web/src/main.tsx` l. 11 es `const queryClient = createQueryClient()`; el `QueryClientProvider` se monta en l. 22-26 (`<QueryClientProvider client={queryClient}>` … `</QueryClientProvider>`, dentro de `ErrorBoundary`, con `BrowserRouter` y `App` dentro). El vigilante usa `authClient.useSession()`, que es un hook, así que tiene que ser un componente dentro de ese árbol (l. 22-26), no una sentencia junto a la l. 11.",
+    "correccion": "Escribir «Un único vigilante, un componente `<HorizonWatcher />` montado una vez dentro del `QueryClientProvider` (`main.tsx` l. 22-26, junto a `<BrowserRouter>`), que usa el `queryClient` creado en l. 11»."
+  },
+  {
+    "id": "Rcodigo-058",
+    "seccion": "§16.3",
+    "linea": 7973,
+    "gravedad": "baja",
+    "afirmacion": "comprueba que toda `L` lleva su `why`, y que las 53 rutas `HEAD` heredan el `config` de su `GET` (medido por L6 en Fastify 5.11.2, §14.5)",
+    "fallo": "53 es la cuenta de HOY (52 `GET` y el comodín `GET,POST` de `/api/auth/*`: 53 de las 87 rutas de `rcod/n/rutas_all.txt`, las mismas de §14.5 l. 6975), pero B1d corre con las rutas de E2, y E2 añade cuatro `GET` de las nueve de §14.2 (l. 6830-6838: la cabecera, el tramo, el acta y `GET /api/me/horizon`). Fastify crea un `HEAD` por cada ruta con `GET`, también el comodín: medido con el Fastify 5.11.2 del repositorio (`rcod/n/head.mjs`, gancho `onRoute`): dos `GET` y un `GET,POST` dan tres `HEAD`, cada uno con el `config` de su `GET`. Con E2 son, pues, 57 `HEAD` (y 153 registros, no 140). La misma cifra de 53 para el estado con E2 está en §11 (l. 5020: «las 96 rutas propias que registra Fastify con E2 (…; las 53 `HEAD` automáticas …)») y en el 8a de §17 (l. 8617). Un `expect(heads).toHaveLength(53)` escrito desde este texto nace en rojo.",
+    "correccion": "En l. 7973 y l. 8617 escribir «las 57 rutas `HEAD` (las 53 de hoy y las de los cuatro `GET` nuevos de §14.2) heredan el `config` de su `GET`», y en l. 5020 «las 57 `HEAD` automáticas»; mejor aún, que el test no fije el número sino que compruebe que cada `HEAD` registrado tiene un `GET` con la misma `url` y el mismo `config`."
+  },
+  {
+    "id": "Rcodigo-059",
+    "seccion": "§11.18",
+    "linea": 5647,
+    "gravedad": "baja",
+    "afirmacion": "las tres de la vuelta de prueba (`'la vuelta de prueba no entra en guardia'`), las trece de administración y `POST /api/world/advance` (`'solo administradores'`; para un jugador son un 401 antes y después)",
+    "fallo": "Las rutas de administración son doce, no trece: la tabla de §11.3 las lista una a una (l. 5115-5126: `GET /api/admin/whoami`, `GET`, `PATCH` y `DELETE` de `/api/admin/users`, `POST /admin/tick`, `POST /admin/advance`, `GET`, `POST` y `DELETE` de `/api/admin/blocklist`, `GET /api/admin/health`, `POST /api/admin/premium` y `GET /api/admin/stage-snapshot/:raceId/:day`), que son las doce de `apps/api/src/routes/admin.ts` (l. 60, 67, 74, 88, 108, 119, 129, 136, 145, 154, 160 y 186), y `POST /api/world/advance` (`routes/world.ts` l. 21) es la decimotercera; la nota de §11.3 (l. 5201) cuenta bien, «el motivo es el mismo en las trece», con ella dentro. Escrito así, «las trece de administración y `POST /api/world/advance`» suma catorce.",
+    "correccion": "Escribir «las doce de administración y `POST /api/world/advance`, trece en total (`'solo administradores'`; …)»."
+  },
+  {
+    "id": "Rcodigo-060",
+    "seccion": "§12.9",
+    "linea": 6235,
+    "gravedad": "media",
+    "afirmacion": "`riderRaceReportSchema` (`contracts.ts` l. 1554-1569) gana `moments`, opcional: las `ChronicleEntry` del acta de esa etapa (`buildChronicle` sin `live` sobre `stage_snapshots.events`, con los nombres del día de 12.7) en las que el corredor es protagonista o su `forId` (`mentions`).",
+    "fallo": "Cierra la parte `riderRaceReportSchema.moments` de la duda abierta 1.1 con dónde se rompe: el campo no tiene quien lo escriba. El informe lo arma `getRiderLastRaceReport` en `packages/db/src/raceReport.ts` (l. 78), y `packages/db` no puede llamar a `buildChronicle`, que vive en `apps/api/src/chronicle.ts`: sus dependencias son solo `@cyclingstar/engine`, `@cyclingstar/shared`, `drizzle-orm` y `postgres` (`packages/db/package.json`). El único sitio posible es el manejador de `GET /api/riders/me/last-race` (`apps/api/src/routes/riders.ts` l. 197-203), que hoy devuelve `{ report: await getRiderLastRaceReport(db, rider.id) }` sin leer `stage_snapshots.events` ni los nombres del día; pero ni §12.9 ni el plan lo asignan: la fila de `contracts.ts` en §17.20 (l. 8804) pone el esquema en el PR 12, la de `LastRaceReport.tsx` (l. 8871) pone el pintado, y ninguna fila ni el «Código» del PR 12 (l. 8711) toca la ruta. Tampoco está entre las ampliaciones de esquema de §14.2 (l. 6899-6905), que sí llevan `lastRaceResponseSchema.ready`. Como `moments` es opcional, nada falla al compilar: la web del PR 12 deja de pintar `personalEvents` (l. 6235) y, sin productor, la tarjeta `Last race` se queda sin los momentos del corredor.",
+    "correccion": "En §12.9, tras la frase citada, escribir: «Lo produce el manejador de `GET /api/riders/me/last-race` (`apps/api/src/routes/riders.ts` l. 197-203), no `raceReport.ts`, que no puede importar `apps/api`: con la etapa del informe lee `stage_snapshots.events`, los nombres del día (`getRaceRiderIdentities`, §12.7) y filtra `buildChronicle(events, names)` por `protagonists` y `mentions` del corredor.» En §14.2 añadir a las ampliaciones `riderRaceReportSchema (l. 1554-1569): + moments: z.array(chronicleEntrySchema).optional()`, y en §17.20 la fila «`apps/api/src/routes/riders.ts` | hoy | 8a, 12 | la última etapa CONOCIDA y `ready` (8a); `moments` (12, 12-k)». Dar la parte `moments` de la duda 1.1 por cerrada."
+  },
+  {
+    "id": "Rcodigo-061",
+    "seccion": "§11.3",
+    "linea": 5180,
+    "gravedad": "alta",
+    "afirmacion": "| `GET /api/riders/:id` | l. 678 | `horizon` | R y M | `sup. P1`, `sup. P5` | 8b |",
+    "fallo": "La ficha pública de cualquier corredor manda sus atributos, y el aprendizaje de la etapa velada ya está dentro. `getPublicRider` lee `rider_attrs.value` tal cual (`packages/db/src/browse.ts` l. 297-303; la columna es `real`, `schema.ts` l. 351) y la web los pinta para cualquiera (`AttributeList`, `apps/web/src/pages/RiderProfile.tsx` l. 456-458); `runOneStage` aplica `raceLearning` a todo el que corrió y lo escribe en la misma transacción (`stageRun.ts` l. 790-805 y 891-897), con el TAC multiplicado por el puesto (×1,8 al ganar, ×1,4 en el top 10: `packages/engine/src/world/learning.ts` l. 106-110), que es el argumento de `sup. X1`. Medido con el código de hoy en el mundo de B1 (`rcod/n/b1/attrs.mjs`: `spoilerWorld` rehecho con `runOneStage` del `dist`): al correrse la etapa velada, `getPublicRider` de `OWN_RIDER`, de `idDe(5)` y del ganador cambia LLA, MON, DES y TAC (de +0,04 a +0,41; `OWN_RIDER`, TAC +0,4143); y entre los dos mundos de B1c el TAC de `OWN_RIDER` sube +0,4631 en uno y +0,4234 en el otro. Ni esta fila (R y M: los puntos y la salud), ni las 48 superficies de §11.1 (`sup. P1` a `sup. P6` no nombran los atributos), ni la lista blanca de §11.18 (solo `GET /api/riders/me`, l. 5642) lo cubren, y el barrido de B1b y B1c pide `/api/riders/:id` con `OWN_RIDER` e `idDe(5)` (`PARAM.id`, l. 7783): los dos bancos nacen en rojo con el diseño tal cual, y en producción la ficha de un rival cuenta lo que aprendió en la etapa que el espectador no ha visto.",
+    "correccion": "Extender DD-08 a los rivales, que es lo que ya se decidió para el propio: en §11.1 añadir la fila `sup. P7` «atributos de la ficha de cualquiera (`RiderProfile.tsx` l. 456-458) | lo aprendido en la etapa (TAC por el puesto, `learning.ts` l. 106-110) | `GET /api/riders/:id` | L (DD-08) | el valor de hoy | 8a | B1b»; en esta fila de §11.3 escribir «R, M y L (los atributos, DD-08)» y `sup. P1`, `sup. P5`, `sup. P7`; en §11.18 añadir la fila «`GET /api/riders/:id` | `rider.attributes` | `'DD-08: los atributos se enseñan aunque los mueva lo aprendido en carrera, también los de un rival'` | `sup. P7`» (y en `B1B_WHITELIST`, `['GET /api/riders/:id', ['rider.attributes']]`); y en DD-08 (§20) decir que cubre también la ficha ajena, con esta cifra. Si el dueño prefiere velarlos, la máscara es restar las filas `carrera` y `sobrecompensacion` de `rider_attr_log` de los días velados, sabiendo que `purgeAttrLog` las borra a los 60 días (`tick.ts` l. 171-178) y una etapa sigue velada hasta 56 días después de la ÚLTIMA de su carrera (§10.5): en una gran vuelta, más de 60 días para las primeras."
+  },
+  {
+    "id": "Rcodigo-062",
+    "seccion": "§16.3",
+    "linea": 7735,
+    "gravedad": "alta",
+    "afirmacion": "const t = await startTestDb()",
+    "fallo": "El mundo de B1 sirve la API sobre PGlite con el pool de `createDb`, que abre hasta 10 conexiones (`packages/db/src/client.ts` l. 21-29: `max: poolNumber('DB_POOL_MAX', 10)`), y PGlite solo admite una sesión (`packages/db/src/testDb.ts` l. 15-19, que el propio B1c cita en l. 7936). La ruta de etapa de una etapa corrida lanza cuatro consultas a la vez (`leadersThroughStage`, `apps/api/src/routes/races.ts` l. 114-119, llamada en l. 469 para `leaders.onRoad`) y el socket de PGlite corta la conexión. Medido con el código de hoy (`rcod/n/b1/dbg500.mjs`: el mundo de `spoilerWorld` rehecho con `runOneStage`, `createAuth` y `buildApp` de los `dist`, y `app.inject`): `GET /api/races/race-france/stages/2` y `/3` responden 500 `interno` con `DrizzleQueryError … caused by: Error: read ECONNRESET` (en `getKomClassification`, `Promise.all` índice 2), igual en tres corridas; con `DB_POOL_MAX=1` las dos responden 200. En el barrido de B1b sobre ese mundo (`rcod/n/b1/sweep.mjs`) la ruta de la etapa velada pasa de 200 (sin correr) a 500 tras correrla, y arrastra a otras (`GET /api/races/test-tour/history`, 200→500 en el barrido anónimo). Con esto B1b nace en rojo por un error de la base de pruebas; B1c compara dos 500 iguales y no mira la ruta de etapa, la superficie que más cuenta (`sup. E1` a `sup. E9`); y el canario de B1a no puede salir en la ruta de etapa, una de las dos que lo dan con seguridad.",
+    "correccion": "En `startSpoilerWorld`, antes de `startTestDb()`, escribir `process.env.DB_POOL_MAX = '1'   // PGlite: una sesión (testDb.ts l. 15-19); la ruta de etapa hace cuatro consultas a la vez (routes/races.ts l. 114)` (`createDb` lee la variable al llamarse, `client.ts` l. 10-14), y lo mismo en los otros tests que piden la ruta de etapa de una etapa corrida con `app.inject` sobre PGlite: `apps/api/src/routes/yesterday.test.ts` (paso 0, «la ruta de etapa (velada y conocida)», l. 7149) y `apps/api/src/routes/broadcast.test.ts` (§14.7). Añadir además a B1b y B1c un `it` que falle si algún barrido tiene una respuesta 5xx: un 500 no es una respuesta igual ni distinta, es un banco que no ha mirado."
+  },
+  {
+    "id": "Rcodigo-063",
+    "seccion": "§16.3",
+    "linea": 7921,
+    "gravedad": "alta",
+    "afirmacion": "**B1b.** El barrido del jugador con el mundo en el día de la etapa 3, antes y después de correrla, con `strip` de `B1B_WHITELIST`: ninguna clave puede cambiar fuera de la lista blanca de §11.18 … El diferencial caza lo que no es un valor: que exista una fila, que un aviso diga «3 stages hidden» en vez de «2», que una lista cambie de orden.",
+    "fallo": "Antes de correr la etapa 3 el velo del jugador está vacío (conoce la 1 y la 2, `raceWatch` con `knownThrough: 2`, l. 7758) y después es {3}: los marcadores que el propio diseño hace depender del velo cambian por construcción, y ninguno está en §11.18 (que solo admite campos de rutas L, l. 5637). Son, al menos: el `stage_ready` de la etapa en `GET /api/news` y los de los equipos de su lista de salida en `GET /api/teams/:id/news` (§11.7, l. 5256 y 5262; §11.6 punto 2), la fila `Race France · 1 stage to watch` de `GET /api/riders/:id/results` (§11.6 punto 2, `sup. P4` y `sup. H7`), `ready` en `GET /api/riders/me/last-race` (§14.2, l. 6840), el velo de `GET /api/me/horizon` (l. 6838), y las cuatro rutas de la propia etapa velada, que pasan de «sin correr» (la ruta de etapa da el plan, `routes/races.ts` l. 422-433; el acta y la cabecera, 404) a `watch` con puerta, 403 `not_seen` y 200. La propia frase citada lo contradice: con la etapa corrida el aviso TIENE que decir un «stage hidden» más. Hay además un cambio que no es marcador y que la máscara F no quita: el informe del bloque cuenta el día velado con la actividad de su etapa (§11.13, l. 5457), y ese día no tenía fila antes de correrse; medido con el código de hoy (`rcod/n/b1/sweep.mjs`, barrido del jugador antes y después), `GET /api/riders/me/report` cambia `report.sessions` (de 2 a 3 entradas) y `report.trainingDays`, igual que la fila de `/form` que §11.18 sí admite con `[veiledDay]`. Tal como está, B1b no puede pasar con el diseño correcto.",
+    "correccion": "En §11.18 añadir, detrás de la tabla, «Lo que cambia porque el velo gana la etapa, y solo por eso (B1b lo quita antes de comparar)», con estas filas y su ruta de campos: `GET /api/news` y `GET /api/teams/:id/news`: `news.[stageReady]`; `GET /api/riders/:id/results`: `results.[toWatch]`; `GET /api/riders/me/last-race`: `ready`; `GET /api/riders/me/report`: `report.sessions` y `report.trainingDays`; y fuera del barrido de B1b, con su motivo en `SKIP`, `GET /api/me/horizon` y las cuatro rutas de la etapa velada (la de etapa, `…/broadcast`, `…/broadcast/chunk` y `…/report`), que son de B1a y B1c. En §16.3 definir en `strip` los dos tokens nuevos como `[veiledDay]`: `[stageReady]` quita las filas con `kind: 'stage_ready'` y `[toWatch]` la fila de marcador de la carrera velada; y cambiar la última frase por «El diferencial caza lo que no es un valor: que exista una fila, que un aviso diga dos etapas ocultas cuando el velo solo ganó una, que una lista cambie de orden»."
+  },
+  {
+    "id": "Rcodigo-064",
+    "seccion": "§16.3",
+    "linea": 7835,
+    "gravedad": "media",
+    "afirmacion": "/** Lo que difiere entre dos bases por construcción y no por la etapa: uuid aleatorios, por orden de aparición, y marcas de tiempo. */ export function normalize(s: string): string {",
+    "fallo": "`normalize` quita las marcas ISO y los uuid aleatorios, pero no la otra cosa que difiere entre dos bases por construcción: `GET /health` devuelve `nextTickAtMs = clock.createdAtMs + (currentDay + 1) · msPerGameDay` (`apps/api/src/routes/health.ts` l. 20-27), con `createdAtMs` de `worlds.created_at` (`getWorldClock`, `packages/db/src/riders.ts` l. 65-75), que es la hora real a la que `startSpoilerWorld` creó cada base. `/health` es una ruta `safe` del registro (§11.3) y el barrido la recorre (`SKIP` solo quita `/api/auth/*`, l. 7788). Medido con el código de hoy (`rcod/n/b1/sweep.mjs b1c`: las dos bases de B1c, `b1c-base` con las semillas `b1c-uno` y `b1c-dos`, barridas como el jugador con `app.inject`): `GET /health` difiere en `nextTickAtMs` entre las dos, y B1c («quien no ha visto la etapa recibe lo mismo, byte a byte, en todas las rutas», l. 7949-7959) nace en rojo por el reloj de pared, no por la etapa. En B1b no se ve porque las dos pasadas son de la misma base.",
+    "correccion": "En `normalize` añadir `.replace(/\"nextTickAtMs\":\\d+/g, '\"nextTickAtMs\":<t>')` y ampliar su comentario a «uuid aleatorios, marcas de tiempo y la cuenta atrás de `/health`, que sale de la hora real de creación del mundo (`routes/health.ts` l. 20-27)»; o, si se prefiere, añadir a `SKIP` `['GET /health', 'la salud del servidor: ningún dato de carrera; su cuenta atrás sale de la hora real de creación de la base']`."
+  },
+  {
+    "id": "Rcodigo-065",
+    "seccion": "§16 (decisión 16-n)",
+    "linea": 8296,
+    "gravedad": "media",
+    "afirmacion": "porque el motor no importa `node:*` ni en sus tests (`eslint.config.js` l. 80-137)",
+    "fallo": "La regla existe (`eslint.config.js` l. 101-127: `node:*` en `patterns`; `process` en l. 129-136), pero no alcanza a los tests: se salta con un comentario y el repositorio ya lo hace. Hoy cuatro tests del motor importan `node:fs` y `node:path` con `// eslint-disable-next-line @typescript-eslint/no-restricted-imports` (`packages/engine/src/routes/arranque.test.ts` l. 3-6, `routes/grammar/motifs.test.ts` l. 3-4, `routes/grammar/regions.test.ts` l. 4-7 y `routes/grammar/veto.test.ts` l. 3-4) y dos leen `process.env` con `// eslint-disable-next-line no-restricted-globals` (`routes/arranque.test.ts` l. 25-26, `routes/grammar/edition.test.ts` l. 534-535). Los tipos de Node llegan al motor: `tsconfig.base.json` no restringe `types` y `@types/node` ^22.20.1 es dependencia de la raíz (`package.json`), así que `import { gzipSync } from 'node:zlib'` compila en `packages/engine/src/sim/timeline.test.ts`. Cae la premisa de 16-n y con ella el porqué de B6 (l. 7983: «porque el motor no puede comprimir ni en sus tests») y de l. 8497 («el motor no comprime ni en sus tests, 16-n»): el `bytea` con gzip 9 de las 24 × 2 puede medirse en el banco en cada PR que toque el motor, y no a mano una sola vez en el paso 5, que deja sin vigilancia automática el tope `maxStoredBytes` y `ttMaxStoredBytes` sobre lo que graba el motor de cada día.",
+    "correccion": "En 16-n (l. 8296), sustituir «y a mano sobre las 24 × 2 en el paso 5 (`scripts/broadcast-fixtures.mjs --sizes`), porque el motor no importa `node:*` ni en sus tests (`eslint.config.js` l. 80-137)» por «y en el banco sobre las 24 × 2, en `timeline.test.ts`, con `gzipSync` de `node:zlib` al nivel `TIMELINE.gzipLevel`, importado con `// eslint-disable-next-line @typescript-eslint/no-restricted-imports` como ya hacen los tests del motor que leen ficheros (`packages/engine/src/routes/arranque.test.ts` l. 3-6): la regla de `eslint.config.js` l. 101-127 protege el código del motor, no sus tests». En B6 (l. 7983), cambiar «y a mano sobre las 24 × 2 en el paso 5 con `scripts/broadcast-fixtures.mjs --sizes`, porque el motor no puede comprimir ni en sus tests (decisión 16-n)» por «y en el banco sobre las 24 × 2 (`timeline.test.ts`, 16-n)». En l. 8497, cambiar «(§15.2; el motor no comprime ni en sus tests, 16-n)» por «y el `bytea` con gzip 9 contra `maxStoredBytes` y `ttMaxStoredBytes` (§15.2, 16-n)». Quitar «B6 a mano (el `bytea` de las 24 × 2)» de §17.2 (l. 8336), de §17.8 (l. 8531) y de §16.7 (l. 8218), y la opción `--sizes` de `scripts/broadcast-fixtures.mjs` en §17.20 (l. 8873)."
+  },
+  {
+    "id": "Rcodigo-066",
+    "seccion": "§17.6",
+    "linea": 8437,
+    "gravedad": "media",
+    "afirmacion": "B9, con el código entero de §16.4, sobre las cinco etapas en línea congeladas",
+    "fallo": "El código entero de §16.4 no compila ni corre en el 3a. (1) Importa `timeTrialInstantAt` de `@cyclingstar/shared` (l. 8005) y lo usa en l. 8022, pero `packages/shared/src/broadcast/timeTrial.ts` nace en el 6b (§17.9, l. 8567; §17.20, l. 8818): en el 3a `tsc -b` de `apps/api` (su `tsconfig.json` incluye `src`, tests incluidos) da TS2305, y el PR no cierra con `pnpm typecheck` en verde (regla 1, l. 8309). (2) Recorre `describe.each(FIXTURES)` (l. 8018), y `FIXTURES` son «los seis nombres» (l. 8055; §17.5, l. 8418), crono incluida; la crono no tiene `<etapa>.radio.json.gz` («salvo en la crono», l. 8418), así que el `loadTimeline` del adaptador que el 3a usa hasta el 6a no puede construir su línea. El propio 3a dice que «la crono entra en el 6b» (l. 8437) y el código que manda copiar dice lo contrario.",
+    "correccion": "En §17.6 (l. 8437) escribir: «`apps/api/src/broadcastCut.test.ts` (nuevo): B9 con el código de §16.4 sin la crono: en el 3a importa solo `instantAt`, usa `at = instantAt` y recorre `ROAD_FIXTURES` (las cinco en línea, que `load.ts` exporta junto a `FIXTURES`); el 6b añade `timeTrialInstantAt` a la importación, la línea `const at = tl.timeTrial ? timeTrialInstantAt : instantAt` y pasa a `describe.each(FIXTURES)`». En §16.4, en el comentario de cabecera del bloque de B9 (l. 8004), añadir «(en el 3a sobre `ROAD_FIXTURES` y con `instantAt`; la crono y `timeTrialInstantAt`, en el 6b)», y en l. 8055 escribir «`FIXTURES` con los seis nombres y `ROAD_FIXTURES` con los cinco en línea»."
+  },
+  {
+    "id": "Rcodigo-067",
+    "seccion": "§17.7",
+    "linea": 8477,
+    "gravedad": "media",
+    "afirmacion": "**PR 4a** · M · motor · no depende de nada: puede ir en paralelo con los pasos 1 a 3.",
+    "fallo": "El 4a depende del 1a por tres cosas que el propio plan escribe. (1) «`world/news.ts` pierde `renderNews` y `NewsData` (l. 21-58) y `index.ts` deja de exportar `NewsKind`» (l. 8490), pero hoy `packages/db/src/news.ts` los importa del motor (`import type { NewsData, NewsKind } from '@cyclingstar/engine'` y `import { renderNews } from '@cyclingstar/engine'`, l. 1-2; el motor los exporta en `packages/engine/src/index.ts` l. 170): hasta que el 1a pasa `emitNews` al `renderNews` de `shared` (l. 8393-8394), quitarlos deja `packages/db` sin compilar. (2) El test de noticias del motor «se muda a `packages/shared/src/news.test.ts`, que ya lo cubre desde el 1a» (l. 8482), fichero que nace en el 1a (§17.21, l. 8923). (3) «`packages/db/src/stageRun.ts` importa `AbandonReason` de `shared`» (l. 8490), y ese tipo lo crea el 1a en `packages/shared/src/news.ts` (`abandonReasonSchema`, l. 8393); hoy vive en `stageRun.ts` l. 1017. La tabla de §17.2 (l. 8334, «Depende de: nada»), §17.16 (l. 8730: «el 4a no necesita nada y puede ir en paralelo con los pasos 0 a 3») y el diagrama (l. 8722) repiten el error: un 4a fusionado antes que el 1a rompe `pnpm typecheck`.",
+    "correccion": "En l. 8477 escribir «**PR 4a** · M · motor · depende del 1a: el motor deja de exportar `renderNews`, `NewsData` y `NewsKind`, que `packages/db/src/news.ts` l. 1-2 importa hasta el 1a, y `AbandonReason` y `packages/shared/src/news.test.ts` nacen en el 1a; puede ir en paralelo con los pasos 2 y 3.». En §17.2 (l. 8334), la columna «Depende de» del 4a pasa a «1a». En §17.16, añadir al diagrama la flecha `1a ──► 4a` (l. 8721-8722) y cambiar en l. 8730 «el 4a no necesita nada y puede ir en paralelo con los pasos 0 a 3» por «el 4a solo pide el 1a y puede ir en paralelo con los pasos 2 y 3». El camino crítico de §17.22 no cambia (el 1a acaba a las 3 sesiones, antes de que el 3a deje empezar el 4b)."
+  },
+  {
+    "id": "Rcodigo-068",
+    "seccion": "§17.8",
+    "linea": 8523,
+    "gravedad": "media",
+    "afirmacion": "`packages/db/src/cast.test.ts` (nuevo): el de 7-b, `wornJerseys` sin títulos igual a `leadersThroughStage(N−1)` en las etapas del banco salvo empates exactos a puntos",
+    "fallo": "`leadersThroughStage` no está en `packages/db`: es una función privada, sin `export`, de `apps/api/src/routes/races.ts` (l. 108-121), y `packages/db` no puede importar de `apps/api` (las dependencias van al revés: `apps/api/tsconfig.json` referencia `../../packages/db` y `packages/db/package.json` solo depende de `engine` y `shared`). Tal como está descrito, el test no se puede escribir en el fichero que se le asigna. La función solo junta cuatro lecturas que sí son de `packages/db` (`getGcThroughStage`, `getPointsClassification`, `getKomClassification` y `getTeamClassifications`, l. 114-119) y las pasa por `raceLeaders` de `@cyclingstar/shared` (l. 120).",
+    "correccion": "En l. 8523 escribir: «`packages/db/src/cast.test.ts` (nuevo): el de 7-b, `wornJerseys` sin títulos igual a `raceLeaders({ gc, points, kom, teams: teams.overall })` (de `@cyclingstar/shared`) sobre `getGcThroughStage`, `getPointsClassification`, `getKomClassification` y `getTeamClassifications` con la etapa N − 1, que es lo que hace `leadersThroughStage`, privada de la API (`apps/api/src/routes/races.ts` l. 108-121), en las etapas del banco salvo empates exactos a puntos; `knownWins` con la consulta de 7-e; el `from` de cada dato.»"
+  },
+  {
+    "id": "Rcodigo-069",
+    "seccion": "§13.10",
+    "linea": 6723,
+    "gravedad": "baja",
+    "afirmacion": "copia `drizzle/` a un directorio temporal con `_journal.json` cortado en `0042_transicion_e1`, migra, escribe una fila en cada tabla que tocan las cuatro, migra con la carpeta entera",
+    "fallo": "Con los ayudantes de hoy no se puede migrar desde otra carpeta: `runMigrations(databaseUrl)` fija `migrationsFolder` a `../drizzle` (`packages/db/src/migrate.ts` l. 15 y 21-29) y `startTestDb()` aplica siempre la carpeta entera antes de devolver la base (`packages/db/src/testDb.ts` l. 58-65). `l3/aplicar2.mjs`, que es lo que el test copia, no usa ninguno de los dos: arranca PGlite y su socket a mano y llama a `migrate` de `drizzle-orm/postgres-js/migrator` con su propio `migrationsFolder`. Ni §13.10 ni el PR 1a (§17.4, l. 8387) ni §17.20 dicen qué cambia en `migrate.ts` o en `testDb.ts`, y quien implemente tiene que inventarlo.",
+    "correccion": "Añadir a §13.10, punto 2: «Para migrar desde la copia, `runMigrations` gana un segundo parámetro opcional, `runMigrations(databaseUrl, folder = migrationsFolder)` (`migrate.ts` l. 21), y `testDb.ts` exporta `startEmptyTestDb()`, igual que `startTestDb` (l. 58-65) pero sin llamar a `runMigrations`; el test migra con `runMigrations(url, copia)` y después con `runMigrations(url)`, dentro de `detached` (l. 29-33)». Añadir a §17.20 la fila «`packages/db/src/migrate.ts` y `testDb.ts` | hoy | 1a | `runMigrations(url, folder?)` y `startEmptyTestDb()` para el mundo vivo (§13.10)»."
+  },
+  {
+    "id": "Rcodigo-070",
+    "seccion": "§17.8",
+    "linea": 8519,
+    "gravedad": "baja",
+    "afirmacion": "un grabador que lanza (forzado) deja una lápida y la nota `timeline I1: …` o `timeline error: …` en `tick_log.notes`, y el día se confirma igual",
+    "fallo": "En `stageRun.test.ts` no hay `tick_log` que mirar: el fichero corre `runOneStage` directamente (`packages/db/src/stageRun.test.ts` l. 19) y `tick_log` solo lo escribe `runTick`, una fila al final de cada ejecución (`packages/db/src/tick.ts` l. 333-348). §5.5 lo dice («`runTick` escribe una fila por ejecución al final (`tick.ts` l. 333-348) y `runOneStage` no la ve», l. 2430), y por eso existe `TimelineTickLog`. Tampoco hay «día» que se confirme: la transacción del día es la de `runTick` (`tick.ts` l. 262). El caso, escrito así, no se puede comprobar en el fichero donde se pone, y el plan no dice cómo se fuerza el fallo del grabador.",
+    "correccion": "Partir el caso en dos. En `stageRun.test.ts`: «con `vi.mock('@cyclingstar/engine')` que sustituye `timelineRecorder` por uno que lanza, la etapa escribe sus resultados, deja en `stage_timelines` una fila con `format` 0 y el `TimelineTickLog` de `spec.timeline` devuelve en `summary()` `timeline: 0 grabadas, 1 sin línea` y la nota `timeline error: …`». En `packages/db/src/tickRun.test.ts` (que ya corre `runTick`, l. 30): «con `timelineRecord: 'on'` y el mismo grabador forzado, la fila de `tick_log` tiene `ok` verdadero y esa nota en `notes`». Añadir `tickRun.test.ts` a los tests del PR 5 en §17.2 (l. 8336) y en §17.21 (hoy, crece en el 5)."
+  },
+  {
+    "id": "Rcodigo-071",
+    "seccion": "§17.3",
+    "linea": 8363,
+    "gravedad": "baja",
+    "afirmacion": "hoy no está instalado (en `node_modules/.pnpm` solo está `@fastify+static@10.1.2`, comprobado)",
+    "fallo": "Que `@fastify/compress` no está es cierto; lo demás, no: `node_modules/.pnpm` tiene doce paquetes `@fastify+…` (comprobado con `ls node_modules/.pnpm | grep '^@fastify'`), entre ellos cuatro plugins que la API ya registra: `@fastify+helmet@13.1.0`, `@fastify+rate-limit@11.2.0`, `@fastify+static@10.1.2` y `@fastify+swagger@9.8.1`. Lo que sí se comprobó es la parte que importa: en el tarball de `@fastify/compress` 9.2.0 el umbral por defecto es `1024` (`index.js` l. 143), brotli sale con calidad 4 (l. 119) y el camino síncrono tiene tope (l. 144-149), como dicen l. 8360 y l. 8374.",
+    "correccion": "Sustituir el paréntesis por «(en `node_modules/.pnpm` no hay `@fastify+compress`; sí están los plugins que la API ya registra: `@fastify+helmet@13.1.0`, `@fastify+rate-limit@11.2.0`, `@fastify+static@10.1.2` y `@fastify+swagger@9.8.1`, comprobado)»."
+  },
+  {
+    "id": "Rcodigo-072",
+    "seccion": "§17.6",
+    "linea": 8440,
+    "gravedad": "baja",
+    "afirmacion": "`packages/shared/src/broadcast/reduce.test.ts` (nuevo): I1 e I3 de la suite rápida sobre fotos sintéticas (D-52, §16.2).",
+    "fallo": "I3 tiene dos mitades (§4.4, l. 1367): las claves que casan con la reducción y «`decodeTimeline(encodeTimeline(tl))` es igual a `tl` campo a campo». La segunda necesita `codec.ts`, que nace en el 4b (§17.7, l. 8505; §17.20, l. 8816): en el 3a la mitad del invariante no se puede escribir. Y el test del códec que §15.2 cita como vigilante de `TIMELINE.format` («`codec.test.ts`: un `format` desconocido lanza `TimelineFormatError`», l. 7347) no lo crea ningún PR: no está en los tests del 4b (l. 8496-8501) ni en la tabla de §17.21 (l. 8886-8953), y es el único fichero de test nuevo que el documento nombra sin darle PR.",
+    "correccion": "En l. 8440 escribir: «`packages/shared/src/broadcast/reduce.test.ts` (nuevo): I1 y la mitad de I3 de las claves (`keys[i]` es la reducción de `keys[i − 1]`), sobre fotos sintéticas (D-52, §16.2); la vuelta del códec entra en el 4b». Añadir a los tests del 4b (l. 8496-8501): «`packages/shared/src/broadcast/codec.test.ts` (nuevo): `decodeTimeline(encodeTimeline(tl))` igual a `tl` sobre la línea sintética de `reduce.test.ts` (la otra mitad de I3) y un `format` desconocido lanza `TimelineFormatError` (§15.2)», y la fila «`packages/shared/src/broadcast/codec.test.ts` | 4b | | I3 (la vuelta) y `TIMELINE.format` | rápida» a §17.21."
+  },
+  {
+    "id": "Rcodigo-073",
+    "seccion": "§17.20",
+    "linea": 8806,
+    "gravedad": "alta",
+    "afirmacion": "| `packages/shared/src/broadcast/timeline.ts` | 2 | | los tipos de §4.1 y §4.2 |",
+    "fallo": "Las fechas de nacimiento de §17.20 no respetan el grafo de importaciones de tipos de §4, y cuatro PR no pasan `pnpm typecheck` tal como están escritos (regla 1, l. 8309). (1) `timeline.ts` nace en el 2, pero importa `Distinction` y `WornJersey` de `../jerseys.js` (l. 1024), tipos de §4.8 que `jerseys.ts` solo gana en el PR 5 (l. 8805; §17.8, l. 8527); `CastRider` los usa (l. 1139-1140). (2) `constants.ts` nace «entero» en el 2 (l. 8424), pero importa `CueClass` de `./cues.js` (l. 7363) y `PaceZone` de `./wire.js` (l. 7364): `cues.ts` nace en el 6a (l. 8817) y `wire.ts` en el 3a (l. 8813); `cueHoldS`, `nextActionMinClass` y `skippedMinClass` están tipados con `CueClass`. (3) `wire.ts` nace en el 3a, pero importa `StoredTimelineV1` de `./codec.js` (l. 1802), que nace en el 4b (l. 8816), `LiveLine` de `./cues.js` (l. 1803), del 6a, y `ChampionTitle`, `Distinction`, `RiderCard` y `WornJersey` de `../jerseys.js` (l. 1800), del 5. (4) `apps/web/src/domain/broadcast/player.ts` nace en el 3b e importa `CueClass` y `CueKind` (l. 4039; `cueAdmitted` en l. 4067), del 6a. El PR 2 no compila con su propio `timeline.ts`, y detrás de él el 3a y el 3b.",
+    "correccion": "Adelantar los tipos, que no cuestan nada, y dejar el código en su PR. En §17.5 (l. 8424), añadir: «En el 2 entran también, solo como tipos, los de §4.8 en `packages/shared/src/jerseys.ts` (`ChampionTitle`, `WornJersey`, `Distinction`, `WornInput`, `NotorietyLevel`, `RiderCard`; `wornJerseys`, `distinctions`, `notorietyOf` y `staticNotoriety` siguen en el 5), y `PaceZone` (l. 1812) y `CueClass` (l. 1714) pasan a `broadcast/timeline.ts`, de donde los importan `constants.ts`, `wire.ts` y `cues.ts`». En §17.6 (3a, l. 8448), añadir: «`cues.ts` nace con los tipos de §4.9 (`Cue`, `CueKind`, `TemplateTarget`, `LiveLine`, `TimeCheckRow`, `RiderCueContext`), sin `CUE_CLASS`, `CUE_OF_TEMPLATE`, `cuesBetween` ni `cueClassOf`, que siguen en el 6a; y `codec.ts` nace con el tipo `StoredTimelineV1`, `ORIGIN_CODE` y `BANNER_CODE`, sin `encodeTimeline`, `decodeTimeline` ni `storedTimelineV1Schema`, que siguen en el 4b con el formato cerrado (17-a)». En §17.20, cambiar la columna Nace de `cues.ts` (l. 8817) a «3a (tipos) · 6a (código)», la de `codec.ts` (l. 8816) a «3a (tipo) · 4b (códec)», y en `jerseys.ts` (l. 8805) «Crece en: 2 (los tipos de §4.8), 5 (las funciones)». En §4.13 (l. 1963 y 1970), `timeline.ts` pasa a declarar `PaceZone` y `CueClass`, y `constants.ts` importa de `timeline.ts` y `contracts.ts`."
+  },
+  {
+    "id": "Rcodigo-074",
+    "seccion": "§17.20",
+    "linea": 8803,
+    "gravedad": "baja",
+    "afirmacion": "| `packages/shared/src/index.ts` | hoy | 1a, 2, 3a | `./news.js` y `./render/variants.js` (1a); `./broadcast/index.js` (2); la reexportación de `wire.ts` detrás de `contracts.js` (3a, 14-a) |",
+    "fallo": "§17.20 se presenta como el mapa completo «para que el ensamblador compruebe que cada pieza de §4 a §15 tiene su PR» (l. 8787) y le faltan tres cambios que otras secciones piden a ficheros de hoy. (1) `healthSchema` vive en `packages/shared/src/index.ts` (l. 19-27 de hoy, no en `contracts.ts`) y gana `features` en el 3a (§14.2, l. 6907); la fila de ese fichero no lo dice. (2) `apps/api/src/routes/authProxy.ts` (l. 17-41) añade `viewerCookieHeader(null, secure)` a las respuestas de `sign-out` y `delete-user` en el 7a (§10.8, l. 4876); no tiene fila, y la única que lo cubriría, «todas las rutas de `apps/api/src/routes/`», lo fecha en el 8a y el 8b (l. 8853). (3) El 1b mata `raceOfHeadline` (l. 8404), pero hoy la importa y la usa `apps/web/src/pages/News.tsx` (l. 16 y l. 100: `raceOfHeadline(item.text, races)`), que no aparece en §17.4 ni en §17.20: sin tocarla, el 1b no compila.",
+    "correccion": "En §17.20, en la fila de `packages/shared/src/index.ts` (l. 8803) añadir «; `healthSchema` gana `features` (3a, 14-l)»; añadir la fila «`apps/api/src/routes/authProxy.ts` | hoy | 7a | `viewerCookieHeader(null, secure)` en `sign-out` y `delete-user` (§10.8)»; y en la fila de `apps/web/src/domain/newsFeed.ts` y `domain/labels.ts` (l. 8856) añadir `apps/web/src/pages/News.tsx`, con «el feed toma `item.raceId` en lugar de `raceOfHeadline(item.text, races)` (l. 100) (1b)». En §17.4 (l. 8404) añadir «y `pages/News.tsx` l. 16 y 100 deja de llamarla»."
+  },
+  {
+    "id": "Rcodigo-075",
+    "seccion": "§17.10",
+    "linea": 8600,
+    "gravedad": "baja",
+    "afirmacion": "`apps/api/src/routes/broadcast.test.ts` gana B18: un tramo más allá de lo alcanzado más `BROADCAST.prefetchRaceS` da 409 `beyond_reached`",
+    "fallo": "El 7a escribe en el mismo fichero el caso de B12 «lo servido no es visto», montado como «tramos pedidos hasta el borde de la meta, sin progreso» (§10.14, l. 4979; §16.4, l. 7989; §17.10, l. 8578). En el 7a eso funciona porque todavía no hay tope; el 7b pone el tope (17-m) y desde entonces, sin informar progreso, todo tramo que pase de 0 + `prefetchRaceS` (900 s de carrera) da 409 `beyond_reached`, así que el caso del 7a se pone en rojo en el 7b. Ni §17.10 ni §17.21 dicen que el 7b lo reescriba, y la regla 1 (l. 8309) pide decir en el PR lo que se re-sella.",
+    "correccion": "En §17.10, en los tests del 7b (l. 8600), añadir: «el caso de B12 “lo servido no es visto” del 7a se reescribe con el tope: el cliente de prueba informa lo alcanzado tramo a tramo hasta `finishS − 1` (sin llegar a meta) y pide cada tramo dentro de lo alcanzado más `prefetchRaceS`; al final, `known_through` sigue sin cambiar y la etapa sigue en el velo». Y en §10.14 (l. 4979), cambiar el montaje a «tramos pedidos hasta el borde de la meta con el progreso informado hasta `finishS − 1` y sin `POST …/finish`»."
+  },
+  {
+    "id": "Rcodigo-076",
+    "seccion": "§16.4",
+    "linea": 8114,
+    "gravedad": "baja",
+    "afirmacion": "return naive.stored !== today.stored || naive.learners.join() !== today.learners.join()",
+    "fallo": "La cláusula de no vacío se cumple siempre por la radio, no por el aprendizaje: la envoltura ingenua da a `radioShot` la foto de cada bloque, así que el colector de la radio guarda un km por bloque y `stored` cambia por construcción. Medido con el `dist` del motor v89 y la entrada de `realRaceScenario` que usa B10 (`rc3/b10quick.mjs`, réplica literal de `watch()` de l. 8070-8089 con las envolturas `today` y `naive`, 176 corredores): la radio guardada difiere en 3 de 3 de QUICK y en 44 de 44 de LONG; el aprendizaje, en 3 de 3 de QUICK (6, 1 y 2 corredores) y en 36 de 44 de LONG (hasta 30 corredores, `race-france` e15 semilla 0). Con el `||`, el test sigue en verde aunque la comparación de `learners` estuviera rota, y esa es la mitad de B10 que protege el entrenamiento (`trabajaronParaOtro`, `stageRun.ts` l. 527-536). Además, la cifra que §16.4 da como evidencia («6 de 18 rotas, hasta en 20 corredores», l. 7987) es de L3 con el campo de `juez-motor/campo.mjs`, no con el campo uniforme de 176 que corre B10 (el campo ya lo señala Rcodigo-010).",
+    "correccion": "En l. 8109-8117, partir la cláusula en dos `it`: «no es vacío: la ingenua cambia el aprendizaje en alguna de las tres», con `return naive.learners.join() !== today.learners.join()` (medido: cambia en las tres), y «la ingenua cambia la radio guardada», con `naive.stored !== today.stored`. En l. 7987, sustituir «L3 midió 18 de 18 corridas iguales con el colector aparte y 6 de 18 rotas, hasta en 20 corredores, con la envoltura ingenua (§5.3)» por «L3 midió 18 de 18 iguales con el colector aparte y 6 de 18 rotas con la ingenua, sobre el campo de `juez-motor/campo.mjs`; con el de `realRaceScenario`, que es el que corre B10, la ingenua cambia el aprendizaje en 36 de 44 corridas (hasta 30 corredores) y la radio guardada en 44 de 44 (`rc3/b10quick.mjs`)»."
+  },
+  {
+    "id": "Rcodigo-077",
+    "seccion": "§16.4",
+    "linea": 8036,
+    "gravedad": "baja",
+    "afirmacion": "expect(c).toEqual(chunkOf(cutTimeline(tl, to / 10), from, to))",
+    "fallo": "La igualdad supone que `cutTimeline` y `chunkOf` cortan los sucesos con la misma regla, y no es así: `chunkOf` filtra por visibilidad en Ds, `eventDs = toDs(revealS)` con `toDs = Math.round(s * 10)` (l. 1541 y l. 1005), mientras que `cutTimeline` corta sucesos y pancartas por segundos, «los de revealS ≤ toS» (l. 1559), y todo lo demás por `T = toDs(toS)` (l. 1556-1558). En una línea grabada no importa, porque `revealS` vuelve del formato como Ds / 10; pero B9 corre del 3a al 6a sobre la línea del adaptador (l. 7986; §17.6, l. 8437), cuyos `revealS` salen de `revealSOf` sobre un reloj estimado en coma flotante (§3.8). Un suceso con `revealS` entre `to / 10` y `to / 10 + 0,05` s entra en `chunkOf(tl, from, to)` (su `toDs` es `to`) y no en `chunkOf(cutTimeline(tl, to / 10), from, to)`, y el `toEqual` falla por una regla de redondeo, no por una fuga.",
+    "correccion": "En el pseudocódigo de `cutTimeline` (l. 1559), escribir «events ← los de vis.eventDs ≤ T; banners ← los de vis.bannerDs ≤ T; detail ← las filas con su marca ≤ T», de modo que todo el corte vaya por Ds con el mismo `toDs`; y añadir a §4.6: «el adaptador de la radio redondea los `revealS` que calcula a décimas (`toDs(revealS) / 10`) al construir la línea, como la línea grabada (§4.3)», para que la línea del adaptador y la grabada se corten igual."
+  },
+  {
+    "id": "Rcodigo-078",
+    "seccion": "§17.15",
+    "linea": 8709,
+    "gravedad": "baja",
+    "afirmacion": "`apps/web/src/domain/narration.test.ts` se borra con `narrate()`",
+    "fallo": "`narration.test.ts` no prueba solo `narrate()`: su cuarto `it`, «el veredicto respeta el orden de prioridades del informe» (l. 41-59), es el único test de `raceVerdict` (`apps/web/src/domain/narration.ts` l. 152), que E2 no borra: lo usan `apps/web/src/components/LastRaceReport.tsx` (l. 4) y `apps/web/src/pages/Home.tsx` (l. 19), y §12.9 lo conserva con «la misma lógica, sobre la última etapa CONOCIDA» en el 8a (l. 6233). Borrar el fichero en el 12 deja sin test una función viva justo después de que el 8a le cambie la entrada. La tabla de §17.21 (l. 8953) y la lista de re-sellos (l. 8955) repiten el borrado.",
+    "correccion": "En l. 8709, sustituir «`apps/web/src/domain/narration.test.ts` se borra con `narrate()`» por «`apps/web/src/domain/narration.test.ts` pierde los tres `it` de `narrate()` y `personalNarration` (l. 24-39) y conserva el de `raceVerdict` (l. 41-59), que el 8a ya habrá ampliado con la última etapa conocida»; en §17.21 (l. 8953), la fila pasa a «`apps/web/src/domain/narration.test.ts` | hoy | 8a, 12 | `raceVerdict` sobre la última etapa conocida (8a); sin `narrate()` (12) | rápida», y en l. 8955, «y `narration.test.ts`, que se borra» por «y los `it` de `narrate()` de `narration.test.ts`»."
+  },
+  {
+    "id": "Rcodigo-079",
+    "seccion": "§17.7",
+    "linea": 8501,
+    "gravedad": "media",
+    "afirmacion": "`scripts/broadcast-fixtures.mjs` escribe con el grabador real `<etapa>.timeline.gz` (gzip 9 de `StoredTimelineV1`) y `<etapa>.i1.json.gz` de las seis.",
+    "fallo": "El grabador no puede cerrar una línea sin reparto: `TimelineRecorder.finish` pide `cast: TimelineCast`, que es «buildTimelineCast (packages/db/src/cast.ts, D-15)» (l. 2286), y `buildTimelineCast` nace en el 5 (§17.8, l. 8526) y lee la base (clasificaciones de la N−1, `palmares`, títulos). El script del 4b corre «desde el `dist` del motor» sin base, y ni §16.2 (l. 7641), ni 16-a (l. 8283), ni el 4b dicen de dónde saca el reparto de las seis etapas congeladas. Lo que el script invente decide lo que prueban los bancos que las usan: B13 (l. 7990) comprueba que ningún campo de `veilCast(cast, h)` cuyo `from` está en el velo viaja, y con un reparto sin maillots, sin distinciones y sin títulos (el campo del banco no tiene general ni campeones, como dice §9 en l. 4377) no hay ningún `from` que velar y B13 pasa en verde sin probar nada; §16 solo da cláusula de no vacío a los B1 (16-e, l. 8287).",
+    "correccion": "Añadir a §16.2 y al 4b (l. 8501): «El reparto de las seis lo arma el script con `buildTimelineCast` sobre un mundo de PGlite en el que corre antes, con `runOneStage` y la misma semilla, las etapas 1 a N − 1 de la carrera (seis etapas para la e7, diecisiete para la e18, diecinueve para la e20); en `race-flanders` e1, `race-colombia` e5 y la crono e16 añade además un título sintético (`ChampionTitle` con `source` en una etapa corrida) para que haya un `from` de campeón. Como `buildTimelineCast` es del 5, el 4b escribe `.timeline.gz` con ese reparto en un PR que depende del 5, o el 5 regenera los seis fixtures (PR propio, §16.2)». Y añadir a B13 (l. 7990) su cláusula de no vacío: «en los 500 velos, al menos 100 campos con `from` velado existían en el reparto sin velar y ninguno viaja»."
+  },
+  {
+    "id": "Rcodigo-080",
+    "seccion": "§17.9",
+    "linea": 8546,
+    "gravedad": "media",
+    "afirmacion": "con `app.inject` sobre las seis cargadas en PGlite por `broadcastFixtures.test.ts`",
+    "fallo": "Las seis etapas congeladas se corren con «el campo del banco» (16-a, l. 8283; §17.5, l. 8418), y el campo del banco del repositorio, el de `scripts/race-radio.mjs` (l. 129-135), usa ids que no son uuid: `rq-${t}-${k}` para los corredores y `rq-team-${t}` para los equipos (el `uniformField` de `packages/engine/src/sim/scenarios.ts` l. 501-508 usa `uni-${i}`). Esos ids van dentro de la línea (`riderIds`, `cast.riders[].riderId`, `cast.teams[].teamId`). Servir la cabecera con la ruta de verdad resuelve nombres y equipos en la base (`RiderCard.name`: «riders.name, resuelto al leer», l. 1687; `team.name`, l. 1690), y `riders.id` y `teams.id` son `uuid` (`packages/db/src/schema.ts` l. 273 y 221): ni se pueden insertar esas filas ni se puede consultar por esos ids (Postgres rechaza `'rq-3-5'` como uuid con el código 22P02). B6 de lo servido (aquí) y B3 «con la cabecera que arma la ruta» (l. 7980) no se pueden correr sobre los fixtures tal como se describen, y ningún sitio dice cómo se cargan en PGlite.",
+    "correccion": "Añadir a §16.2 (fixtures) y al 2 (l. 8418): «`scripts/broadcast-fixtures.mjs` sustituye los ids del campo del banco por uuid deterministas antes de correr la etapa (`00000000-0000-4000-8000-` más el índice en 12 cifras, corredores del 1 en adelante y equipos del 1001), y guarda en `manifest.json` el mapa de cada uuid a su dorsal, país, equipo y un nombre de prueba (`Rider 012`)». Y a `load.ts` (l. 8055): «`seedFixtureWorld(t: TestDb, name)` inserta en PGlite un mundo, `game_state`, los equipos y los corredores del manifiesto con esos uuid, la fila de `stage_timelines` con el `.timeline.gz` y la de `stage_snapshots` con los sucesos, que es lo que `broadcastFixtures.test.ts` usa para B6 de lo servido, B3 y B13»."
+  },
+  {
+    "id": "Rcodigo-081",
+    "seccion": "§12.6",
+    "linea": 6008,
+    "gravedad": "baja",
+    "afirmacion": "y el de cada frase gana casos con `mainRole` `chase` para las ocho plantillas y con los cuatro papeles para `crash`",
+    "fallo": "Esos casos no se pueden escribir en el 4a, que es el PR del que habla la frase. El test «de cada frase» (`apps/web/src/domain/stageJournal.test.ts` l. 1620-1644) pinta cada caso con `chronicleLine` de la web, y en el 4a la web no sabe nada de `mainRole` ni de `crash`: los `case` nuevos (`crash`, `crash_names`), el `default` vacío y `groupNounOf` llegan en el 6b (§17.9, l. 8567), y los tests de `mainRole` también (l. 8560: «los casos de `mainRole` y de las plantillas nuevas»). Hoy `crash` cae al `default` de `stageJournal.ts` (l. 1602-1603), que imprime la clave cruda. El plan lo pone bien: el 4a solo re-sella el test de los tres nombres (l. 8483); §12.6 dice otra cosa, y un implementador que siga §12.6 escribiría en el 4a casos que fallan.",
+    "correccion": "En l. 6008, sustituir «y el de cada frase gana casos con `mainRole` `chase` para las ocho plantillas y con los cuatro papeles para `crash`» por «y el de cada frase gana en el 6b (§17.9), cuando la web ya pinta `mainRole` y `crash`, los casos con `mainRole` `chase` para las ocho plantillas y con los cuatro papeles para `crash`; en el 4a solo cambian las filas de `GROUP_NOUNS`, que son un superconjunto de las de hoy, y el test de cada frase sigue en verde sin tocarse»."
+  },
+  {
+    "id": "Rcodigo-082",
+    "seccion": "§16.8",
+    "linea": 8233,
+    "gravedad": "baja",
+    "afirmacion": "| 6 | `schema.ts` l. 754 promete unos 22 KB de radio; son 102-514 KB |",
+    "fallo": "Dos cifras distintas para la misma corrección, sin decir qué mide cada una: aquí «son 102-514 KB»; en §13.6 (l. 6685), en el PR 5 (§17.8, l. 8529) y en §19.7 (l. 9449), «de 10,7 a 146,4 KB en `jsonb`», y el PR 5 manda corregir el comentario «con esa cifra». Son medidas de cosas distintas: el JSON de la radio guardada y lo que ocupa la columna `jsonb` comprimida por TOAST. Medido aquí con el `dist` del motor v89 (`rc3/radiosize.mjs`: `radioForStorage` de la radio del colector, campo de `realRaceScenario` y una lista de seguimiento de 20, como `stageRun.ts` l. 558-568): el JSON ocupa 100,6 KB en `race-france` e7, 156,7 en la e18, 322,5 en `race-flanders` e1 y 237,1 en `race-colombia` e5, que casa con el orden de 102-514 KB de JSON y no con los 10,7-146,4 de disco. Quien corrija el comentario en el PR 5 tiene dos números y ninguna unidad.",
+    "correccion": "En l. 8233 escribir «`schema.ts` l. 754 promete unos 22 KB de radio; son de 102 a 514 KB de JSON (mapa 07) y de 10,7 a 146,4 KB en `jsonb` en disco (juez del motor)», y en §13.6 (l. 6685) y §17.8 (l. 8529) que el comentario nuevo diga las dos: «de 100 a 510 KB de JSON por etapa, de 11 a 146 KB en disco con la compresión TOAST de `jsonb`»."
+  },
+  {
+    "id": "Rcodigo-083",
+    "seccion": "§16.6",
+    "linea": 8199,
+    "gravedad": "baja",
+    "afirmacion": "| la capa fija, la barra y sus palabras, el tránsito y `Your rider` | `apps/web/src/components/broadcast/*.test.tsx` | §6.2, §6.3 | 6b |",
+    "fallo": "Dos fechas de §16 contradicen al plan, que es el que manda según §16.9 (l. 8272). Los tests de la capa fija y la barra nacen en el 3c (`FixedOverlay.test.tsx` y `GroupBar.test.tsx`, §17.6, l. 8467; §17.21, l. 8940: «3c | 6b») y el 6b solo los amplía; §16.6 los fecha solo en el 6b. Y la tabla final de §16.9 fecha I1 en el 4b (l. 8241, «Nace 4b | banco y rápida»), cuando su versión rápida sobre fotos sintéticas nace en el 3a (`packages/shared/src/broadcast/reduce.test.ts`, §17.6, l. 8440; §16.2, l. 7645) y la de las seis congeladas en el 4b. §16.9 dice haber seguido al plan en B1d, I2, B2, B21, B16, B18 y B13 (l. 8272), pero no en estas dos.",
+    "correccion": "En §16.6 (l. 8199), la columna Paso pasa a «3c y 6b». En §16.9 (l. 8241), la columna Nace de I1 pasa a «3a la rápida sobre fotos sintéticas; 4b el banco y las seis congeladas», y en l. 8272 se añade «I1 al 3a en la rápida (17-i no lo movía: nace con `reduce.ts`)»."
+  },
+  {
+    "id": "Rcodigo-084",
+    "seccion": "§16.4",
+    "linea": 7989,
+    "gravedad": "media",
+    "afirmacion": "Los dieciocho casos de §10.14, uno por `it`, sobre PGlite con el mundo mínimo de allí",
+    "fallo": "Uno de los dieciocho no se puede probar sobre PGlite: «dos dispositivos | dos `recordProgress` concurrentes de la misma etapa | `reached_s` es el mayor; `how` sin letras perdidas» (§10.14, l. 4990), que es lo que sostiene el `select … for update` de §10.3 (l. 4570) y D-57. PGlite tiene un solo backend y admite una sesión a la vez (`packages/db/src/testDb.ts` l. 16-19: «los tests de concurrencia real … necesitan un Postgres de verdad y se saltan si no hay `TEST_DATABASE_URL`»); el repositorio ya lo resuelve así en `calendarConcurrency.test.ts` (l. 20-21 y 45, `describe.skipIf(REAL_URL == null)`). Sobre PGlite las dos transacciones se ejecutan una detrás de otra y el caso pasa aunque falte el `for update`, o, con el pool de `createDb` (hasta 10 conexiones), el socket corta la segunda (lo mismo que Rcodigo-062 midió en el mundo de B1). Y el CI no da a nadie un Postgres de verdad para esto: ningún fichero de `.github/workflows/` define `TEST_DATABASE_URL`, así que hoy los tests de concurrencia del repositorio se saltan en todo PR.",
+    "correccion": "En §16.4 (B12, l. 7989) y en el 7a (l. 8578), sacar el caso de los dos dispositivos del mundo de PGlite: «el caso “dos dispositivos” va en `packages/db/src/watchConcurrency.test.ts`, con `describe.skipIf(realTestDatabaseUrl() == null)` y `resetRealTestDb` como `calendarConcurrency.test.ts` (l. 24 y 45), y abre dos conexiones que llaman a `recordProgress` a la vez; el job `test` de `.github/workflows/ci.yml` gana `TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cyclingstar_concurrency` y un paso `createdb` sobre el Postgres de servicio (l. 33-48), para que corra en todo PR». Cambiar «Los dieciocho casos … sobre PGlite» por «Diecisiete casos sobre PGlite y el de los dos dispositivos sobre el Postgres de servicio del CI»."
+  },
+  {
+    "id": "Rcodigo-085",
+    "seccion": "§17.12",
+    "linea": 8654,
+    "gravedad": "baja",
+    "afirmacion": "`apps/web/src/domain/pageTitle.test.ts` (nuevo): `domain/pageTitle.ts` es el único fichero de `apps/web/src` que escribe `document.title`",
+    "fallo": "Comprobar que un fichero es el ÚNICO de `apps/web/src` que escribe `document.title` obliga a recorrer y leer los fuentes de la web desde el test, con `node:fs`; lo mismo `apps/web/src/queryKeys.test.ts` (l. 8657: «todo `queryKey` de una familia de `HORIZON_KEYS` se construye con `horizonKey`»), que tiene que leer cada llamada a `useQuery` de la web. `apps/web/tsconfig.json` tiene `\"types\": []` y `lib` sin Node (l. 4-9) e incluye `src` con los tests, y `pnpm typecheck` lo corre (`package.json` l. 12): `import { readFileSync } from 'node:fs'` da TS2307 (medido en Rcodigo-033 para otros tres tests de la web). Rcodigo-033 cuenta tres tests de la web que necesitan Node; son cinco con estos dos, y ninguno de los dos lo dice.",
+    "correccion": "En l. 8654 y l. 8657 añadir: «empieza por `/// <reference types=\"node\" />` y lee los fuentes con `readdirSync` y `readFileSync` desde `new URL('..', import.meta.url)`, como `packages/db/src/columnasVivas.test.ts` (l. 46-59), porque `apps/web/tsconfig.json` no carga los tipos de Node»; y en la corrección de Rcodigo-033, contar cinco tests (`stageJournal.corpus.test.ts`, `templateCoverage.test.ts`, `clientCost.test.ts`, `pageTitle.test.ts` y `queryKeys.test.ts`)."
+  },
+  {
+    "id": "Rcodigo-086",
+    "seccion": "§17.10",
+    "linea": 8582,
+    "gravedad": "media",
+    "afirmacion": "El mundo de B1, `apps/api/src/__fixtures__/spoilerWorld.ts` (nuevo, el código de §16.3), y B1a, B1b y B1c",
+    "fallo": "B1c monta dos mundos en el mismo fichero y el mismo proceso (`spoilerOutcomes.test.ts`, l. 7935-7940), con la misma carrera (`RACE_KEY`, l. 7744) y la etapa velada corrida con dos semillas distintas, y compara lo que sirven las rutas (l. 7949-7960). Pero las dos cachés de líneas son globales del módulo y van por `${raceKey}|${stageDay}`, sin mundo: la de `readStageTimeline` (`const decoded = new Map…`, l. 2512 y 2517) en `packages/db/src/timelines.ts`, y la del adaptador (`adaptadas`, l. 6961) en `apps/api/src/broadcastSource.ts`. Vitest aísla por fichero, no por mundo: el barrido del segundo mundo lee la línea de la etapa 3 que dejó en la caché el primero, así que la cabecera y los tramos de la etapa velada salen iguales en los dos mundos por la caché y no porque no destripen, y B1c no puede ver una diferencia en las rutas de la retransmisión. §5.6 conoce el problema («Solo para los tests: cada base de PGlite reutiliza claves de carrera», l. 2538, `clearStageTimelineCache`), pero `startSpoilerWorld` (l. 7734-7760) no la llama y el LRU del adaptador no tiene cómo vaciarse.",
+    "correccion": "En `startSpoilerWorld` (§16.3, l. 7734), como primera línea: «`clearStageTimelineCache(); clearAdaptedTimelineCache()   // las cachés de líneas van por raceKey y etapa, sin mundo, y B1c monta dos mundos con la misma carrera en el mismo proceso`». En §14.4 (l. 6952) y en el 3a (l. 8450), `broadcastSource.ts` exporta `clearAdaptedTimelineCache(): void`, solo para los tests, como `clearStageTimelineCache` (l. 2539); y en §17.8 (l. 8526) añadir `clearStageTimelineCache` a la lista de lo que exporta `timelines.ts`."
+  },
+  {
+    "id": "Rcodigo-087",
+    "seccion": "§16.3",
+    "linea": 7921,
+    "gravedad": "media",
+    "afirmacion": "**B1b.** El barrido del jugador con el mundo en el día de la etapa 3, antes y después de correrla",
+    "fallo": "Antes y después de correr la etapa 3 el día de juego es el mismo: `startSpoilerWorld` deja `game_state.current_day` en `dayOf(VEILED)` antes de correrla (l. 7746) y `runVeiled` corre la etapa sin tocar el día ni `users.horizon_rev` (l. 7762). Pero el horizonte se guarda en dos cachés del proceso que solo se invalidan por el día: el memo de `computeHorizon` por `(userId, currentDay, horizonRev)` durante 60 s (l. 4675-4677, 4696) y el mapa de la cuarta consulta, `lastRunStages`, «una vez por `(worldId, currentDay)`», que 18-a da por exacto «porque el tick sube `currentDay` en la misma transacción que corre las etapas» (l. 9248). En B1b esa premisa no se cumple: el barrido de después recibe el horizonte de antes, con la última etapa corrida en la 2 y el velo vacío, y la etapa 3 se sirve entera. B1b se pone en rojo por la caché del test y no por una ruta, o, si alguien lo arregla ensanchando la lista blanca, deja de probar lo que prueba.",
+    "correccion": "En §10.6 (horizon.ts) añadir, solo para los tests, `export function clearHorizonCaches(): void` que vacía el memo y el mapa de `lastRunStages`, como `clearStageTimelineCache` (l. 2539). En el mundo de B1 (l. 7762), `runVeiled` pasa a «`await t.db.transaction((tx) => runOneStage(tx, worldId, dayOf(VEILED), stageSeed, specOf(VEILED))); clearHorizonCaches()   // en producción el tick sube el día en la misma transacción (tick.ts l. 262-284) y la caché del día se invalida sola; aquí el día no cambia`». Y en l. 7921, añadir «(tras `runVeiled`, que vacía las cachés del horizonte: el día no cambia)»."
+  },
+  {
+    "id": "Rcodigo-088",
+    "seccion": "§16.4",
+    "linea": 426,
+    "gravedad": "media",
+    "afirmacion": "for (const e of c.events) expect(e[REVEAL] > from && e[REVEAL] <= to && e[REVEAL] < finishDs).toBe(true)\n      for (let i = 0; i < c.clocks.length; i += 3) expect(c.clocks[i + 2]! > from && c.clocks[i + 2]! <= to).toBe(true)\n      for (let i = 0; i < c.banners.length; i += 4 + 2 * c.banners[i + 3]!) expect(c.banners[i + 2]! > from && c.banners[i + 2]! <= to).toBe(true)",
+    "fallo": "(`borrador/16-bancos.md` l. 426-428 y 431-437.) B9 no sella «nunca la meta» más que en los sucesos. §4.6 fija el borde así: «`finishDs` es en línea la última marca de la cabeza (su paso por el último bloque …): nada con visibilidad ≥ `finishDs` va en un tramo» (`04-modelo.md` l. 623) y `chunkOf` filtra `vis < finishDs` (l. 648). En el último tramo `to === finishDs`, y la comprobación de relojes y pancartas es `≤ to`: la marca de la cabeza en el último bloque, que vale exactamente `finishDs` y es el tiempo del ganador, pasa el test. Un `chunkOf` con `≤` donde va `<` entregaría el resultado en el último tramo y B9 seguiría en verde (B18, l. 383, solo mira `atFinish` y la admisión). Y la tercera cláusula junta solo lo que es array (`if (Array.isArray(v))`, l. 434-436): `tt` es un objeto `{ starts, km, checks }` (`BroadcastChunk.tt`, `04-modelo.md` l. 956), así que en la crono e16, que el 6b añade a B9 (§17.9, `17-plan.md` l. 264), ni la pérdida ni la repetición de sus pasos por km y por control entre tramos se comprueba: todo lo propio de la crono queda fuera de dos de las tres cláusulas.",
+    "correccion": "En el código de B9 (`16-bancos.md` l. 427-428), añadir `&& c.clocks[i + 2]! < finishDs` y `&& c.banners[i + 2]! < finishDs` a las dos comprobaciones. En la tercera cláusula (l. 432-437), aplanar `tt` antes de juntar: `const flat = (c: Omit<BroadcastChunk, 'lines'>): Record<string, unknown> => ({ ...c, tt: null, 'tt.starts': c.tt?.starts ?? [], 'tt.km': c.tt?.km ?? [], 'tt.checks': c.tt?.checks ?? [] })`, y recorrer `Object.entries(flat(chunkOf(…)))` y `Object.entries(flat(whole))`. Y en la segunda, para la crono: `if (c.tt) { const v = visibilityOf(tl); for (let i = 0; i < c.tt.km.length; i += 3) { const ds = v.ttKmDs![c.tt.km[i]!]![c.tt.km[i + 1]!]!; expect(ds > from && ds <= to && ds < finishDs).toBe(true) } }`, y lo mismo con `c.tt.checks` y `v.ttCheckDs`. Importar `type BroadcastChunk` de `@cyclingstar/shared`."
+  },
+  {
+    "id": "Rcodigo-089",
+    "seccion": "§17.21",
+    "linea": 586,
+    "gravedad": "media",
+    "afirmacion": "El mismo índice para los ficheros de test: dónde nace cada uno, qué PR lo amplía, qué mide y en qué suite corre.",
+    "fallo": "(`borrador/17-plan.md` l. 584-655.) Cuatro ficheros de test que otras secciones mandan escribir no están en el índice ni en la lista de tests de su PR, así que el implementador que siga §17 no los escribe. (1) `apps/api/src/diagMode.test.ts` (nuevo, 8a): `?diag=1` en `GET /api/calendar/:raceId`, `/api/news` y `/api/teams/:id/news` (`11-superficies.md` l. 711); el 8a (§17.11, l. 314-324) no lo nombra. (2) `apps/web/src/api/results.test.ts` (nuevo, 7b): el de `fetchCalendarStage` con `diag` (decisión 14-s, `14-api.md` l. 589 y 599); el 7b (§17.10, l. 296-303) no lo nombra y no existe hoy (`ls apps/web/src/api/results.test.ts`: no existe). (3) `codec.test.ts`: «un `format` desconocido lanza `TimelineFormatError`» (`15-constantes.md` l. 62); el 4b (§17.7, l. 196-201) solo pone el códec a prueba dentro de I3 y B6. (4) `packages/db/src/calendarRun.test.ts` (existe hoy): «que el tick pide los títulos una vez por día aunque corra 187 cronos nacionales ese día» (`07-rotulos.md` l. 286); el 5 (§17.8, l. 217-223) lista `titles.test.ts` pero no este. Medido con un `grep` de los nombres `*.test.ts` de §1 a §15 y §18 contra los de §16 y §17: son los cuatro que faltan y tienen caso escrito.",
+    "correccion": "Añadir a §17.21 cuatro filas: «`apps/api/src/diagMode.test.ts` | 8a | | `?diag=1` fuera de la etapa (§11, 11-h) | rápida»; «`apps/web/src/api/results.test.ts` | 7b | | `fetchCalendarStage` con `diag` (14-s) | rápida»; «`packages/shared/src/broadcast/codec.test.ts` | 4b | | un `format` desconocido lanza `TimelineFormatError` (§15.2) | rápida»; «`packages/db/src/calendarRun.test.ts` | hoy | 5 | los títulos, una vez por día (§7.4) | rápida». Y cada uno en la lista «Tests primero» de su PR: el 8a (l. 314), el 7b (l. 296), el 4b (l. 196) y el 5 (l. 217), y en la columna «Tests primero» de la tabla de §17.2 (l. 35, 36, 40 y 41)."
+  },
+  {
+    "id": "Rcodigo-090",
+    "seccion": "§17.20",
+    "linea": 489,
+    "gravedad": "media",
+    "afirmacion": "Lo que §17.3 a §17.15 dicen por paso, visto por fichero: en qué PR nace cada fichero nuevo y en cuáles crece cada uno de los que E2 toca, para que dos PR no creen el mismo y para que el ensamblador compruebe que cada pieza de §4 a §15 tiene su PR.",
+    "fallo": "(`borrador/17-plan.md` l. 487-580.) La corrección de L6 añadió a §14 piezas en ficheros de hoy que la tabla no tiene, y una cambia de lado un PR. `14-api.md` l. 599 las lista: `PLAYER_RATE_LIMIT` en `apps/api/src/security.ts` (14-q, l. 587: `config.rateLimit` propio en `GET …/broadcast/chunk` y `POST /api/me/watch/:raceKey/:day`); `ApiError.retryAfterS` en `apps/web/src/api/request.ts`; `<HorizonWatcher />` y `cacheOwnerChanged` en `apps/web/src/queryClient.ts`, montado «dentro del `QueryClientProvider` (`main.tsx` l. 22-26)» (14-r, l. 588); y `fetchCalendarStage(raceId, day, opts?)` con `diag` en `apps/web/src/api/results.ts`, con `StageReplay.tsx` (l. 338-339) y `Race.tsx` (l. 515 y 531) pasándoselo, «desde el 7b» (14-s, l. 589; l. 535). Ni `security.ts`, ni `main.tsx`, ni `apps/web/src/api/results.ts` salen en §17.20, y el PR 7b se declara «M · API y `shared`» (l. 293) y su fila de §17.2 no toca la web, cuando 14-s le pone tres ficheros de la web.",
+    "correccion": "Añadir a §17.20: «`apps/api/src/security.ts` | hoy | 3a, 7a | `PLAYER_RATE_LIMIT` en `config.rateLimit` del tramo (3a) y de `POST /api/me/watch/:raceKey/:day` (7a) (14-q)»; «`apps/web/src/api/results.ts`, `pages/StageReplay.tsx` (l. 338-339) y `pages/Race.tsx` (l. 515 y 531) | hoy | 7b | `fetchCalendarStage(raceId, day, opts?)` con `diag` y `diag` en la clave (14-s)»; «`apps/web/src/main.tsx` | hoy | 9a | `<HorizonWatcher />` dentro del `QueryClientProvider` (l. 22-26; 14-r)». En la fila de `request.ts` añadir `ApiError.retryAfterS` (3b, con el reproductor que espera el `retry-after`), y en la de `queryClient.ts`, `<HorizonWatcher />` y `cacheOwnerChanged` (9a). En §17.10 (l. 293) el 7b pasa a «M · API, `shared` y web», y en su «Código» (l. 305) se añade el reenvío de `?diag=1` de 14-s."
+  },
+  {
+    "id": "Rcodigo-091",
+    "seccion": "§16.4",
+    "linea": 376,
+    "gravedad": "media",
+    "afirmacion": "más una prueba de humo en la rápida (`packages/engine/src/stage/probeHooks.test.ts`: una en línea y una crono), porque el grabador usa `packages/shared` y un cambio allí no dispara los bancos. […] Nace en el 4a como prueba de humo con ganchos que solo cuentan, porque el grabador aún no existe, y en el 4b pasa a la versión de abajo, con el grabador, en `timeline.test.ts` y en el tramo (15-d).",
+    "fallo": "(`borrador/16-bancos.md` l. 376; `17-plan.md` l. 180 y 197.) El porqué que se da no lo cubre lo que se construye. La prueba de humo de la rápida usa «ganchos que solo cuentan» (4a, `17-plan.md` l. 180) y nadie la cambia después: el B11 con el grabador de verdad vive en `packages/engine/src/sim/timeline.test.ts`, que `test:rapido` excluye (`package.json` l. 21: `--exclude 'packages/engine/src/sim/**'`) y que el CI solo corre cuando el diff toca `^packages/engine/` (`.github/workflows/ci.yml` l. 189) o de noche. Un PR que cambie `packages/shared/src/broadcast/reduce.ts` o `reveal.ts` (los usa el grabador, §17.16, l. 428) de modo que el grabador toque una foto o un suceso que el motor vuelve a leer (el riesgo que el propio B11 describe en l. 540: «si un día muta una foto o un suceso, este test lo caza en la huella») no cambia `packages/engine/`, no dispara los tramos y pasa la rápida: la prueba de humo no lleva grabador y B10, el único test rápido con el grabador enganchado (`startStageTimeline`), compara la radio y el aprendizaje, no `results`, `events` ni `incidents`. El hueco dura hasta el nocturno.",
+    "correccion": "En §16.4 (B11, l. 376) y en el 4b (§17.7, l. 197) escribir: «en el 4b, `probeHooks.test.ts` pasa a enganchar el grabador de verdad (`timelineRecorder` de `../sim/timeline.js`, como el código de B11) en sus dos etapas, con la huella de cuatro campos y las cuentas de ganchos: así un cambio en `packages/shared/src/broadcast/` que haga al grabador tocar lo que el motor lee cae en la rápida del mismo PR, que es la que corre cuando el diff no toca el motor». En §16.9 (fila B11) y §17.21 (fila de `probeHooks.test.ts`), «Crece en: 4b»."
+  },
+  {
+    "id": "Rcodigo-092",
+    "seccion": "§16.7",
+    "linea": 602,
+    "gravedad": "baja",
+    "afirmacion": "solo sus dos PR pagan los ocho tramos (D-54): 4.365 s de pruebas en serie, unos 73 min, que la matriz reparte en ocho tramos en paralelo (con seis tramos sumaron 82,8 min de runner y el más largo tardó 33,1; regla 4 de §17.1)",
+    "fallo": "(`borrador/16-bancos.md` l. 598, 600 y 602; `17-plan.md` l. 14 y 208.) Las dos cifras son de antes de que el tramo «mundo y radio» creciera, y se dan como el coste de hoy. Los 4.365 s de `ci.yml` l. 103-110 suman cinco ficheros (invariants, coherence, calendarQueens, world y raceRadio), medidos en el commit `d5ebc04` (21/09/2026, motor v83), y los 5,5 min de «mundo y radio» (l. 128, que §17.7 l. 208 toma como punto de partida del tramo) son de la corrida de `4d53bd7` (21/09), cuando el tramo tenía tres ficheros (`git show 4d53bd7:.github/workflows/ci.yml`, l. 166-170). Desde entonces el tramo tiene ocho: `routeCensus.test.ts` (entró en `b3f3797`, 26/09), `stageKind.completo.test.ts` (`52dad5d`, 26/09), `frozenSkeletons.test.ts`, `preRegistro.test.ts` y `legacy/golden.test.ts` (`4dc06ab`, 26/09) (`git log -S<fichero> -- .github/workflows/ci.yml`). Medido aquí con `pnpm exec vitest run` de esos cinco (`rc4/mundo_extra.log`): 35,8 s de pruebas en local, 34,4 de ellos `stageKind.completo.test.ts`, más 15 s de importación: el tramo parte de unos 6,1 min y no de 5,5, y el total en serie de unos 4.401 s.",
+    "correccion": "En §16.7 (l. 598 y 602), §17.1 regla 4 (l. 14) y §17.7 (l. 208), añadir tras la cifra: «(medidos el 21/09/2026, motor v83, con cinco ficheros; desde el 26/09 «mundo y radio» lleva además `routeCensus`, `stageKind.completo`, `frozenSkeletons`, `preRegistro` y `legacy/golden`, que suman 35,8 s en local, medido; el PR 4a apunta en su descripción el reloj de cada uno de los ocho tramos, que `ci.yml` no tiene, l. 135-136)», y en §17.7 (l. 208) ««Mundo y radio» (5,5 min medidos con tres ficheros, unos 6,1 con los ocho de hoy, estimado) crece de 2 a 5 min»."
+  },
+  {
+    "id": "Rcodigo-093",
+    "seccion": "§16.4",
+    "linea": 385,
+    "gravedad": "baja",
+    "afirmacion": "`packages/db/src/revealFree.test.ts` lee con el AST los ficheros de `packages/db/src` y `packages/engine/src` y falla si alguno fuera de la lista escrita (`schema.ts`, `horizon.ts`, `watch.ts`, el reinicio que la borra y los tests) nombra `raceWatch` o `race_watch`",
+    "fallo": "(`borrador/16-bancos.md` l. 385; lo repite `17-plan.md` l. 280.) «El reinicio que la borra» no es un fichero de `packages/db/src` ni lo será: hoy no hay código de reinicio (`grep -rln 'truncate\\|TRUNCATE\\|resetWorld' packages/db/src apps/api/src scripts` no da nada) y §13.9 dice que «ni `docs/ops.md` ni el código dicen qué se vacía» y que lo que E2 añade «el paso 12 escribe en `docs/ops.md`» (`13-esquema.md` l. 415-416; 13-h). La lista escrita del test, que tiene que ser literal para que B20 compare, lleva una entrada que no se puede escribir; y si alguien la resuelve como «cualquier fichero cuyo nombre contenga reset», abre justo el agujero que B20 cierra.",
+    "correccion": "En §16.4 (B20, l. 385) y en el 7a (§17.10, l. 280), la lista pasa a ser literal y cerrada: «`schema.ts`, `horizon.ts`, `watch.ts` y los `*.test.ts`; el reinicio no tiene código (§13.9: es un procedimiento de `docs/ops.md`, paso 12), y si algún día lo tiene, su fichero entra en la lista en el mismo PR con su motivo»."
+  },
+  {
+    "id": "Rcodigo-094",
+    "seccion": "§17.7",
+    "linea": 180,
+    "gravedad": "baja",
+    "afirmacion": "huella idéntica en `results`, `events`, `efforts` e `incidents` con y sin ganchos; en la etapa en línea, `onEvent` tantas veces como sucesos y `onBanner` una por pancarta con puntos",
+    "fallo": "(`borrador/17-plan.md` l. 180.) «`onEvent` tantas veces como sucesos» es falso en toda etapa con un corredor que desobedece: `announceRebels` (`packages/engine/src/stage/events.ts` l. 71-99) inserta los `rider_defies_team` en la salida después de correr la etapa, sin pasar por `EventLog.emit` ni `add` (l. 12-29), y §5.2 lo dice: «Los únicos objetos de la salida que el oyente no ha visto son los `rider_defies_team` que `announceRebels` inserta al cerrar (`simulate.ts` l. 9081)» (`05-motor.md` l. 96). Con `output.events.length` como cuenta, la prueba de humo cae en cuanto su etapa tenga órdenes con un rebelde. Y la huella de cuatro campos compara `efforts`, que es un `Map` y `JSON.stringify` deja en `{}` (Rcodigo-031): el mismo defecto de B11, aquí en la rápida.",
+    "correccion": "En el 4a (l. 180) escribir: «en la etapa en línea, `onEvent` tantas veces como sucesos de `output.events` cuya plantilla no es `rider_defies_team` (los inserta `announceRebels` al cerrar, §5.2), y `onBanner` una por pancarta con puntos; la huella serializa `efforts` con `[...o.efforts]`, como corrige Rcodigo-031»."
+  },
+  {
+    "id": "Rcodigo-095",
+    "seccion": "§17.7",
+    "linea": 190,
+    "gravedad": "baja",
+    "afirmacion": "`the gruppetto` en `WATCHED_GROUP_NOUNS`, entre `the favourites` y `the fast men` (l. 612-613: la lista va de más larga a más corta)",
+    "fallo": "(`borrador/17-plan.md` l. 190.) `packages/engine/src/sim/coherence.ts` l. 612-613 es el comentario de la lista («Va ordenada de más larga a más corta a propósito…», l. 613-614); la lista empieza en l. 616 y `'the favourites'` y `'the fast men'` son l. 621 y 622. El orden que se pide sí es el bueno: `the gruppetto` tiene 13 caracteres, entre los 14 de `the favourites` y los 12 de `the fast men`.",
+    "correccion": "Sustituir «(l. 612-613: la lista va de más larga a más corta)» por «(entre l. 621 y l. 622; la lista, l. 616-635, va de más larga a más corta, como dice su comentario de l. 613-614)»."
+  },
+  {
+    "id": "Rcodigo-096",
+    "seccion": "§16.4",
+    "linea": 381,
+    "gravedad": "baja",
+    "afirmacion": "**B16 · la radio desde la línea** (O-16). `radioFromTimeline` contra `buildRaceRadio(radioForStorage(radio, ∅, []))`, km a km: grupos, tamaños, huecos, velocidades, percances, relevistas y motivos (§12.10).",
+    "fallo": "(`borrador/16-bancos.md` l. 381; lo copia `17-plan.md` l. 399.) `buildRaceRadio` pide dos argumentos: `export function buildRaceRadio(stored: unknown, names: ChronicleNames): RaceRadio | null` (`apps/api/src/chronicle.ts` l. 1340), y `radioFromTimeline` recibe sus `RadioNames` (§17.14, l. 401). La comparación de B16 incluye a los relevistas por nombre, y el banco no dice con qué nombres se llaman las dos: en la rápida las seis etapas congeladas tienen ids del campo del banco que no están en ninguna base (Rcodigo-080), y en la versión larga cada etapa se corre al vuelo con `startStageTimeline`. Si cada lado resuelve nombres por su cuenta (uno con un mapa vacío, otro con los del manifiesto), la igualdad falla o, peor, se vuelve vacía comparando `null` contra `null` en los nombres.",
+    "correccion": "En §16.4 (B16, l. 381) y en el 11 (§17.14, l. 399) escribir la llamada entera: «`radioFromTimeline(tl, names)` contra `buildRaceRadio(radioForStorage(radio, new Set(), []), names)`, con el mismo `names` en los dos lados: en la rápida, el que `load.ts` arma desde `manifest.json` (`Rider 012`, su país y su equipo); en la larga, uno sintético `Rider <índice>` para cada `riderId` de la entrada. Y un `it` de no vacío: al menos un km con relevistas nombrados en cada etapa en línea»."
+  }
+]

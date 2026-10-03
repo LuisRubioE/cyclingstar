@@ -1,0 +1,122 @@
+[
+  {
+    "id": "Rcobertura-046",
+    "seccion_destino": "§17.15 (PR 12)",
+    "que": "Añadir a los tests del PR 12 el caso de `last-race` con `moments` en `apps/api/src/routes/yesterday.test.ts`: `lastRaceResponseSchema.omit({ ready: true }).extend({ report: riderRaceReportSchema.omit({ moments: true }).nullable() })`, porque un `.omit` de fuera no llega al esquema anidado (regla 8 de §17.1). La ampliación ya está en §14.2 (l. 157) y el paso 12 de la tabla de §14.1."
+  },
+  {
+    "id": "Rcobertura-047",
+    "seccion_destino": "§12.3 y §12.6 (y §G.4 del glosario)",
+    "que": "Escribir lo que devuelve `liveClusters`: `liveClusters(events, tl, revealS): readonly LiveCluster[]`, con `interface LiveCluster { readonly event: ChronicleEvent; readonly revealS: RaceS; readonly members: readonly ChronicleEvent[] }` (el racimo, su hora de publicación y los sueltos que absorbe), que es como lo usa la ruta del tramo en §14.3. En §12.6, que lo que se guarda en el `WeakMap` sobre la línea son los pasos 1 a 3 del bloque de §14.3 (sucesos con su hora, papeles y racimos), que no dependen del tramo."
+  },
+  {
+    "id": "Rcobertura-047",
+    "seccion_destino": "§18.2",
+    "que": "La tabla y el párrafo de `computeHorizon` hablan de «las cuatro de §10.6, tal cual» y de «la consulta 2 tal como la escribe §10.6»: §10.6 escribe ya la forma D (ids en la consulta 1, `= any(sql.param(ids)::uuid[])` y `lastRunStages`). Que esa fila diga «las cuatro consultas por espectador (la forma descartada)»."
+  },
+  {
+    "id": "Rcobertura-047",
+    "seccion_destino": "dudas.md",
+    "que": "Cerrar 2.1 (§14.3 reescrito con `withGroupRoles` antes de atar las horas y `liveClusters`), 2.2 (§10.6 en la forma D con `lastRunStages`), 1.8 (`StageTimelineRead` sale, Rcodigo-035, 14-p) y 1.9 (10-c: el test por AST con las excepciones por nombre, Rcodigo-049)."
+  },
+  {
+    "id": "Rcobertura-048",
+    "seccion_destino": "§8.7",
+    "que": "En «La línea» (v0 l. 3986): el informe del borde devuelve `{ status: 'watching', rev }`, porque el borde (`finishDs − 1`) no es la meta, y la letra la escribe `POST …/broadcast/finish`; como su paquete no lleva `rev` (§4.11), la web invalida `['horizon']` al recibirlo (regla 3 de §10.9, §14.11)."
+  },
+  {
+    "id": "Rcodigo-034",
+    "seccion_destino": "§16.4 (línea base de B6)",
+    "que": "«medida, 22,2-50,0 KB con gzip, mapa 02 §7» pasa a «de 0,87 a 2,95 MB de JSON y de 22,2 a 100,1 KB con gzip (mapa 07 §7, las 22 etapas en línea del banco; el mapa 02 §7 midió de 0,95 a 2,16 MB en cuatro)»."
+  },
+  {
+    "id": "Rcodigo-034",
+    "seccion_destino": "§17.3",
+    "que": "«de 0,95-2,16 MB a 22-50 KB comprimidos» pasa a «de 0,87-2,95 MB a 22-100 KB comprimidos (mapa 07 §7)»."
+  },
+  {
+    "id": "Rcodigo-035",
+    "seccion_destino": "§5.6 (y §G.2, §G.4 del glosario y §21.6 F.2)",
+    "que": "Quitar `StageTimelineRead` y su `known`, que nadie lee y chocaba con `WatchState.known`: `readStageTimeline(db, _h: Horizon, raceKey, stageDay): Promise<StageTimeline | null>` y `return tl` en lugar de `{ timeline, known }`. El parámetro va como `_h`, porque `tsconfig.base.json` l. 19 pone `noUnusedParameters` y D-32 lo quiere obligatorio. Las firmas de `readStageTimeline` y `timelineForStage` en §G.4 y en F.2 (v0 l. 10218 y 10226) devuelven `Promise<StageTimeline | null>`, y `StageTimelineRead` sale de la lista de §G.2 (l. 114)."
+  },
+  {
+    "id": "Rcodigo-049",
+    "seccion_destino": "§17.11",
+    "que": "`packages/db/src/horizonReaders.test.ts` va con el AST y el comprobador de tipos de TypeScript (`ts.createProgram` sobre el `tsconfig.json` de `packages/db`): funciones exportadas y métodos de objetos exportados, con sus ayudantes no exportados; las fuentes de D-32 enteras, `stage_timelines` incluida; el TIPO del segundo parámetro; y las excepciones por nombre y con motivo (orquestadores del tick con `runCalendarDay`, `recomputeWorldRanking` y `addSeasonPointsBatch`; `computeHorizon`, `horizonSummary`, `lastRunStages`, `veilDelta`; `cast.ts:buildTimelineCast`, `titles.ts:palmaresTitleSource.titlesOn`; `draftRace`, `undraftRace`), y una entrada que ya no haga falta también falla. Prototipo: `c-l6/lecturas-ast2.mjs`, 61 lecturas, unos 5 s (§10.6, 10-c)."
+  },
+  {
+    "id": "Rcoste-010",
+    "seccion_destino": "§18.4 y §18.9 (y el paso 10 de §17)",
+    "que": "En la tabla de §18.4, la fila «lecturas por espectador: `getSession` (sesión y usuario) y la consulta 1 del horizonte en cada informe y cada tramo; pico de 2,7 a 10,5 peticiones por segundo en los modos rápidos, de 33 a 60 por etapa y 58 en el peor minuto (estimado, `c-l6/peticiones.mjs`); `getSession` sale del memo de 60 s de `request.viewer()` (10-n)». En §18.9 y en el paso 10, la medida pendiente «p95 de un tramo con cien espectadores sintéticos en `Next action`»."
+  },
+  {
+    "id": "Rcoste-011",
+    "seccion_destino": "§15.3 (y §G.7 del glosario, y la tabla de aceptación de §15)",
+    "que": "Constante nueva `SPOILER.horizonMemoEntries = 500`, con su intención: tope de los memos del proceso (horizonte, `veilDelta` y sesión de `request.viewer()`), 17 MB y 88 MB en el peor caso (500 mánagers en un minuto; 35 KB por horizonte y 180 KB por `VeilDelta`, medido); sin evidencia de los jueces (10-m)."
+  },
+  {
+    "id": "Rcoste-011",
+    "seccion_destino": "§18.2 (18-c) y §18.4",
+    "que": "18-c: el memo de `veilDelta` es un `TtlMemo` con las reglas y el tope de 10-m (§10.7); sin ellas guardaba cada clave vieja hasta reiniciar (de 18 a 470 MB al día, estimado por el refutador). §18.4, fila «la memoria del proceso»: «una entrada por `(userId, raceKey)` que informó en el último minuto: se borra al conocer la etapa y se barre a los 60 s sin informe, escribiendo antes lo que faltaba (§10.3); del orden de 100 B por espectador que mira»."
+  },
+  {
+    "id": "Rcoste-011",
+    "seccion_destino": "§16.4 (B12)",
+    "que": "B12 gana los dos casos que §10.14 añade: «el memo con tope» (un `TtlMemo` con el reloj inyectado, mil claves en un minuto y dos días de juego: nunca pasa de `SPOILER.horizonMemoEntries`, borra la caducada al leerla y queda vacío a los 61 s sin peticiones) y «el mapa del día» (`lastRunStages` consulta una vez por día y da el mismo velo que la cuarta consulta por espectador)."
+  },
+  {
+    "id": "Rcoste-011",
+    "seccion_destino": "§19.1 (riesgo 13)",
+    "que": "La memoria de la API cuenta, además del LRU de líneas, los dos memos (horizonte de 9 a 35 KB y `VeilDelta` de 75 a 180 KB por entrada, con el tope de 500: 17 y 88 MB en el peor caso), el de la sesión y la memoria de lo alcanzado (10-m); y los dos LRU de 16 de Rcoste-023."
+  },
+  {
+    "id": "Rcoste-014",
+    "seccion_destino": "§17 (PR 7a) y §16.4 (B12)",
+    "que": "El PR que escribe `cs_viewer` y `routes/broadcast.test.ts` lleva el caso «dos tramos seguidos de la misma sesión, con una `cs_viewer` de hace una hora, no llevan `Set-Cookie`» (10-g, §14.7). Si B12 conserva los casos de la cookie, añadir «la cookie no se re-firma dentro del día»."
+  },
+  {
+    "id": "Rcoste-017",
+    "seccion_destino": "§18.10 y §18.2",
+    "que": "§18.10, fila «servir un tramo»: «M, por partes: 0,23-1,00 ms con la línea en la LRU; sin ella, de 3 a 22 ms más el corte (§5.6 y `coste/zod/decode.mjs`) y de 50 a 60 ms la primera del proceso». §18.2, «Servir un tramo»: quitar que `datos.md` §10.5 mide lo que paga el primer espectador; su 1,3-4,7 ms es de su formato (§14.4)."
+  },
+  {
+    "id": "Rcoste-018",
+    "seccion_destino": "§18.5 y §17 (PR 9a)",
+    "que": "§18.5: la primera visita con sesión espera a `GET /api/me/horizon` antes de pedir la cabecera (14-r), un viaje de ida y vuelta más (unos 0,17 s con `Fast 4G`) en la cuenta de 1,2 a 1,5 s de red. PR 9a: los tests de `cacheOwnerChanged` (cinco pasos) y la comprobación de `enabled` atado al `rev` en `queryKeys.test.ts`."
+  },
+  {
+    "id": "Rcoste-023",
+    "seccion_destino": "§18.2 (18-d) y §18.9",
+    "que": "18-d y el párrafo de la LRU: dos LRU de 16 entradas, el de las líneas y el del adaptador, hasta el doble de memoria (de 16 a 60 MB, estimado). §18.9: medida pendiente del paso 3a, «el adaptador en frío: leer, validar y construir la línea de las seis congeladas desde su `radio.json.gz`, con `leadersThroughStage` sobre PGlite» (estimado hoy en decenas de ms, §14.4)."
+  },
+  {
+    "id": "Rdueno-023",
+    "seccion_destino": "§20.2 (DD-01) y §11.20",
+    "que": "DD-01 pasa a «Qué carreras se protegen sin pedirlo, y si ver una etapa pone su carrera en guardia»: por defecto, además, seguir la carrera al empezar a ver cualquiera de sus etapas (D-30); consecuencia: esa carrera entra en el velo de todas las pantallas hasta su caducidad y el ranking de quien la mira va por detrás en ella; lo contrario: solo `Follow without spoilers` protege y ver la etapa 3 no protege la 4 del feed; dónde se cambia: `recordProgress`, que pone `follow = 1` en el primer progreso (§10.3). La fila de DD-01 de `00-decisiones.md` ya lo lleva. En §11.20, fila del jugador ante una carrera fuera de guardia: «(defecto de DD-01)»."
+  },
+  {
+    "id": "Rdueno-024",
+    "seccion_destino": "§20.2 y §20.3 (DD-01)",
+    "que": "DD-01 gana la tercera respuesta, «todas las carreras», la lectura literal del encargo («que ninguna otra pantalla se lo reviente por detrás», `docs/encargos.md` l. 145-146), con su cifra: 202 etapas veladas a la vez en la mediana, 601 en el p90 y 669 como máximo, alguna en 356 días de 364, y un velo de hasta 669 entradas (medido, `c-l6/todas.mjs`, la cuenta de `e2prod/headline.mjs` sobre las 842 carreras; con las ocho de cabecera reproduce 7, 29 y 42, y 260 días). Para que el dueño elija entre `guarded`, `own_only` y todas."
+  },
+  {
+    "id": "Rcoste-044",
+    "seccion_destino": "§19.1 (riesgo 31) y §16.4 (B18)",
+    "que": "Hallazgo del lote L9; lo de §14 ya está aplicado (14-q). Riesgo 31: la defensa es B18 y el límite propio de los tramos y del progreso (`PLAYER_RATE_LIMIT`: 1.200 por minuto y usuario con sesión, 300 por IP sin ella, contador aparte del global), y un 429 no pausa: espera `retry-after` con `Loading`. La cuenta del hallazgo exagera (160 por minuto dura lo que la zona; el peor minuto de un espectador son unas 58 peticiones, `c-l6/peticiones.mjs`). B18 gana el caso «dos sesiones desde la misma IP piden 320 tramos en un minuto sin un 429»."
+  },
+  {
+    "id": "Rcoste-044",
+    "seccion_destino": "§8.5 y §18.7",
+    "que": "§8.5: ante un 429 el reproductor espera lo que diga `retry-after` con `Loading` (pantalla) y repite; no es `Connection lost` (§10.12, 14-q). §18.7: la tabla de la cadencia da el ritmo de cada zona; añadir que lo acota la etapa, de 33 a 60 peticiones por etapa con `Highlights` ×4 o `Next action` y 58 en el peor minuto (estimado, `c-l6/peticiones.mjs`)."
+  },
+  {
+    "id": "Rdueno-002",
+    "seccion_destino": "§17.10, §17.18, §11.15 y §20.5",
+    "que": "Hallazgo del lote L10; lo de §14 ya está aplicado con su corrección principal (14-s). §17.10 (PR 7b): `fetchCalendarStage(raceId, day, opts?)` reenvía `?diag=1` de la página, con `diag` en la clave de `StageReplay.tsx` y `Race.tsx`, y su test `apps/web/src/api/results.test.ts`; el botón `Diagnostic view` sigue en el 9a. §17.18: `SPOILER_MODE=admins` sigue en el 7a. §11.15: «La web pasa `diag=1` a las cuatro rutas de etapa»: a la ruta de etapa desde el 7b, a las otras tres con el 9a. §20.5, punto 3: `?diag=1` funciona en la web desde el 7b."
+  },
+  {
+    "id": "Rcobertura-047, Rcoste-011, Rcoste-014, Rcoste-018, Rcoste-044, Rdueno-002, Rcodigo-035",
+    "seccion_destino": "glosario (§G.2, §G.4, §G.7, §G.12)",
+    "que": "Nombres nuevos: `TtlMemo<V>` y `lastRunStages` (ya en §G.4) en `packages/db/src/horizon.ts` (10-m, 18-a); `SPOILER.horizonMemoEntries` (500); `PLAYER_RATE_LIMIT` en `apps/api/src/security.ts` (14-q); `ApiError.retryAfterS` en `apps/web/src/api/request.ts`; `<HorizonWatcher />`, `cacheOwnerChanged(prev, next)` y `SessionSeen` en `apps/web/src/queryClient.ts`, y `horizonKey(base, rev: string | undefined)` (14-r); `fetchCalendarStage(raceId, day, opts?)` con `diag` y `apps/web/src/api/results.test.ts` (14-s); `LiveCluster` (§12.3); los scripts de `c-l6/` (`lecturas-ast2.mjs`, `veildelta-forma.mjs`, `todas.mjs`, `peticiones.mjs`, `fplain.mjs`). Sale `StageTimelineRead` (14-p)."
+  }
+]

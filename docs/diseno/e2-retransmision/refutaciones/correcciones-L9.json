@@ -1,0 +1,764 @@
+[
+  {
+    "id": "Rcoste-029",
+    "estado": "parcial",
+    "donde": "17-plan.md l. 11; 17-plan.md l. 67",
+    "motivo": "Cierto: la regla de arranque (docs/encargos.md l. 15-26) abre el código con la línea del motor en producción, y esa línea subió de la v69 a la v89 en veinte subidas y catorce commits (git log -G'ENGINE_VERSION = [0-9]+' de constants.ts). La regla 3 dice ahora que ENGINE_VERSION se queda en la versión de arranque, no en 89, y que index.test.ts l. 465 no lo toca ningún PR de E2. No se aplica «re-medir en el PR 0 con l3/grabador.mjs y l7/tick.mjs»: esos prototipos viven en el scratchpad del diseño y no en el repositorio, y en el PR 0 no existen los ganchos, el grabador ni la escritura que miden; las cifras las vuelve a dar el banco de cada una en su PR (B11 en el 4a, B6 en el 4b y el 5, B15 en el 5) sobre la versión de arranque, y el PR 0 apunta esa versión y el commit de producción de partida. Cierre L9: la cuenta es veinte subidas de número en catorce commits (git log -G sobre 025efbe..c39f450 da 14), como dicen §17.1 y §19; y la regla 3 da ya el defecto vigente de DD-25 (adelantar el 17d)."
+  },
+  {
+    "id": "Rcodigo-071",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 64",
+    "motivo": "Comprobado con ls node_modules/.pnpm | grep ^@fastify: doce paquetes, entre ellos helmet 13.1.0, rate-limit 11.2.0, static 10.1.2 y swagger 9.8.1, y ningún @fastify+compress. El paréntesis dice ahora eso."
+  },
+  {
+    "id": "Rcodigo-034",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 69; 17-plan.md l. 67",
+    "motivo": "Cruzada de L6. Aplicada en «Qué ve el dueño» del PR 0 con las cifras del mapa 07 §7 (de 0,87 a 2,95 MB y de 22 a 100 KB con gzip, las 22 etapas en línea); la línea base de B6 del mismo paso citaba también el mapa 02 (22,2 a 50,0 KB) y pasa a 22,2 a 100,1 KB."
+  },
+  {
+    "id": "Rcodigo-066",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 143; 17-plan.md l. 286",
+    "motivo": "Comprobado en el bloque de B9 de §16.4 (16-bancos.md l. 391-438): importa timeTrialInstantAt y recorre FIXTURES con la crono, que no tiene radio.json.gz. El 3a dice ahora que B9 corre sin la crono, con instantAt y ROAD_FIXTURES, y el 6b añade la importación, la línea de at y describe.each(FIXTURES). ROAD_FIXTURES nace en load.ts en el 2. El comentario de cabecera del bloque de §16.4 y la frase de load.ts van a cruzadas-L9 (§16.4)."
+  },
+  {
+    "id": "Rcodigo-067",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 190; 17-plan.md l. 34; 17-plan.md l. 460; 17-plan.md l. 469",
+    "motivo": "Comprobado: packages/db/src/news.ts l. 1-2 importa NewsData, NewsKind y renderNews de @cyclingstar/engine (index.ts l. 170), y AbandonReason vive hoy en stageRun.ts l. 1017. El 4a depende del 1a en su cabecera, en §17.16 (línea del diagrama y viñeta nueva) y en la tabla de §17.2; el camino crítico no cambia (el 4a acaba a las 4,5 sesiones, antes que el 3a)."
+  },
+  {
+    "id": "Rcodigo-068",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 242; 17-plan.md l. 158",
+    "motivo": "Comprobado: leadersThroughStage es privada de apps/api/src/routes/races.ts (l. 108-121) y packages/db solo depende de engine y shared (package.json). El caso de cast.test.ts compara con raceLeaders de shared sobre las cuatro lecturas de packages/db, que es lo que hace esa función. De paso, leadersThroughStage pasa en el 3a a broadcastSource.ts, exportada, porque el reparto del adaptador la usa."
+  },
+  {
+    "id": "Rcodigo-070",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 235; 17-plan.md l. 236; 17-plan.md l. 237; 17-plan.md l. 669; 17-plan.md l. 36",
+    "motivo": "Comprobado: stageRun.test.ts corre runOneStage (l. 19) y tick_log lo escribe runTick al final (tick.ts l. 333-348). El caso se parte: el grabador forzado, con un vi.mock parcial del motor, va en timelines.test.ts (y no en stageRun.test.ts, porque el mock vale para todo el fichero y rompería los demás casos) y comprueba la lápida y el summary() de TimelineTickLog; tickRun.test.ts gana la fila de tick_log con ok y la nota. tickRun.test.ts entra en la tabla de §17.2 y en §17.21."
+  },
+  {
+    "id": "Rcodigo-072",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 146; 17-plan.md l. 213; 17-plan.md l. 692; 17-plan.md l. 35",
+    "motivo": "Comprobado: codec.ts nace en el 4b y I3 tiene dos mitades (§4.4). reduce.test.ts del 3a lleva I1 y la mitad de las claves; codec.test.ts nace en el 4b con la vuelta del códec y el format desconocido que lanza TimelineFormatError (el vigilante de TIMELINE.format de §15.2), y entra en §17.2 y §17.21."
+  },
+  {
+    "id": "Rcodigo-075",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 326; 17-plan.md l. 725",
+    "motivo": "Comprobado: el caso del 7a pide tramos hasta el borde de la meta sin informar progreso, y el tope del 7b (17-m) da 409 a todo tramo más allá de 0 + prefetchRaceS. El 7b lo re-sella con el progreso informado hasta finishS − 1, y lo dice como re-sello (regla 1). El montaje de §10.14 va a cruzadas-L9."
+  },
+  {
+    "id": "Rcodigo-078",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 447; 17-plan.md l. 723; 17-plan.md l. 725",
+    "motivo": "Comprobado: narration.test.ts tiene cuatro it y el cuarto (l. 41-59) es la única prueba de raceVerdict (narration.ts l. 152), que usan LastRaceReport.tsx l. 4 y Home.tsx l. 19. El 12 borra los de narrate y conserva el de raceVerdict; §17.21 y la lista de re-sellos lo siguen. No se escribe que el 8a amplíe ese test: raceVerdict no cambia de lógica, cambia su entrada en la API (§12.9). La fila de §16.1 que dice lo mismo que el v0 va a cruzadas-L9."
+  },
+  {
+    "id": "Rcodigo-079",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 217; 17-plan.md l. 244; 17-plan.md l. 243; 17-plan.md l. 793",
+    "motivo": "Comprobado: TimelineRecorder.finish pide cast: TimelineCast, que es buildTimelineCast (05-motor.md l. 272-276), del 5, y el script del 4b corría sin base. Decisión 17-u: los fixtures salen de un mundo de PGlite con el prefijo de la carrera corrido con runOneStage desde el 2; la segunda mitad (.timeline.gz e .i1.json.gz) la escribe el 5 con spec.timeline y comprueba que sucesos y radio salen iguales byte a byte; y en flanders e1, colombia e5 y la crono e16 el script escribe en palmares un nacional para que haya un from de campeón. broadcastFixtures.test.ts nace en el 5. La cláusula de no vacío de B13 y el texto de §16.2 y 16-a van a cruzadas-L9."
+  },
+  {
+    "id": "Rcodigo-080",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 123; 17-plan.md l. 129; 17-plan.md l. 268",
+    "motivo": "Comprobado: el campo de scripts/race-radio.mjs usa rq-${t}-${k} y rq-team-${t} (l. 129-135) y riders.id y teams.id son uuid (schema.ts l. 221 y 273). Los fixtures del 2 salen con uuid deterministas de la forma de idDe (stageRun.test.ts l. 44) y el manifiesto guarda dorsal, país, equipo y nombre de prueba; seedFixtureWorld nace en load.ts en el 6a y lo usan B6 de lo servido, B3 y B13. runOneStage y StageRunSpec se exportan desde el 2 (hoy no, stageRun.ts l. 82 y 212). §16.2 y load.ts van a cruzadas-L9."
+  },
+  {
+    "id": "Rcodigo-085",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 383; 17-plan.md l. 386; 17-plan.md l. 727",
+    "motivo": "Comprobado: apps/web/tsconfig.json tiene \"types\": [] y lib sin Node, y pnpm typecheck compila los tests de la web. Reproducido en el scratchpad (l9/tsnode) con ese tsconfig: import de node:fs da TS2307 sin la directiva y compila con ella; y con un solo fichero que la lleve, otro sin ella también compila, porque la directiva carga los tipos de Node en todo el programa. pageTitle.test.ts y queryKeys.test.ts la llevan; la nota de los tests de la web con Node va en §17.21, que con breakPresentation.test.ts (Rcobertura-051, cruzada de L8) son seis."
+  },
+  {
+    "id": "Rcodigo-094",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 193",
+    "motivo": "Comprobado: announceRebels (events.ts l. 71-99) inserta los rider_defies_team en la salida sin pasar por EventLog (l. 12-29), y efforts es un Map que JSON.stringify deja en {}. La prueba de humo cuenta los sucesos sin esa plantilla y serializa [...o.efforts]."
+  },
+  {
+    "id": "Rcodigo-095",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 201",
+    "motivo": "Comprobado en coherence.ts: comentario en l. 613-614, lista en l. 616-635, the favourites en l. 621 y the fast men en l. 622."
+  },
+  {
+    "id": "Rcoste-031",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 188; 17-plan.md l. 470; 17-plan.md l. 746",
+    "motivo": "Cierto: el 4a y el 4b tocan stage/simulate.ts, events.ts, timetrial.ts, types.ts, sim/coherence.ts y sim/raceRadio.ts, y el riesgo 1 da por alta que la táctica mueva el motor a la vez. §17.7 y §17.16 dicen la ventana y que cada rebase repite los ocho tramos y B11; §17.22 suma una sesión por el rebase que se prevé (y la regla 4, el reloj de cada tramo en la descripción del 4a)."
+  },
+  {
+    "id": "Rcoste-034",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 425; 17-plan.md l. 427; 17-plan.md l. 435; 17-plan.md l. 794",
+    "motivo": "Cierto: radioFromTimeline y dejar de escribir la radio iban en el mismo PR, y su revert dejaba sin radio y sin quien la derive a las etapas de entre medias. Decisión 17-v: el 11 se parte en 11a (radio.ts, B16 y la pestaña; se revierte sin perder nada) y 11b (stageRun.ts deja de escribir; su revert vuelve a escribir y el 11a sigue sirviendo las de en medio). Veintitrés PR: §17.2, §17.16, §17.17, §17.18, §17.20, §17.21 y §17.22 lo siguen, y D-54 y §G.10 van a cruzadas."
+  },
+  {
+    "id": "Rcoste-035",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 453; 17-plan.md l. 512",
+    "motivo": "Cierto: el 12 re-sortea una vez las variantes de las frases viejas y cambia el equipo de las crónicas viejas; su revert es un segundo cambio visible. §17.15 y §17.18 lo dicen y fijan que el 12 va el último y solo se revierte por un fallo de corrección."
+  },
+  {
+    "id": "Rcoste-036",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 513; 17-plan.md l. 206; 17-plan.md l. 226",
+    "motivo": "Cierto: desde el 5, recordStageTimeline (packages/db/src/timelines.ts, §5.5) llama al grabador y a los ganchos del 4a y el 4b. §17.18 dice que se revierten con revert solo antes del 5, que después su marcha atrás es TIMELINE_RECORD=off y que todo revert de los dos paga los ocho tramos; §17.7 (4b) remite a ello. Cierre L9: el «Se revierte con» del 4a decía aún «revert; no deja datos»; ahora, como el del 4b, revert mientras el 5 no esté fusionado (después, §17.18)."
+  },
+  {
+    "id": "Rcoste-038",
+    "estado": "parcial",
+    "donde": "17-plan.md l. 533; 17-plan.md l. 251; 17-plan.md l. 315; 17-plan.md l. 235; 17-plan.md l. 797",
+    "motivo": "Cierto: el procedimiento hace falta desde el 5 y el paso 12 lo escribía el último. Decisión 17-y: docs/ops.md lo recoge en el PR que lo hace necesario (el 5, stage_timelines y el reinicio de web; el 7a, race_watch), y el 12 solo lo relee. timelines.test.ts gana el caso de la escritura que no inserta fila, con su nota, y §17.19 lo cuenta. No se aplica aquí la clave del LRU con worldId: es de §5.6 y §14.4, y va a cruzadas-L9; mientras no cambie, el reinicio sigue reiniciando web (13-h)."
+  },
+  {
+    "id": "Rcoste-037",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 531; 17-plan.md l. 102; 19-riesgos.md l. 45",
+    "motivo": "Cierto: la regla de arranque (docs/encargos.md l. 15-26) no deja abrir el código hasta que la línea del motor esté en producción, y el reinicio lo fija el dueño (docs/agenda.md l. 35); la Oleada 0 (agenda l. 1411-1417) pedía el arreglo de news antes del reinicio. §17.19 dice qué se hace si el reinicio llega antes: el 1a mínimo como excepción declarada (la 0043, runMigrations y emitNews con seed y data), o el reinicio espera; lo decide el dueño en una DD nueva, DD-27, con ese defecto, que se añade a 00-decisiones.md y va a §20 por cruzada. El riesgo va a §19.1 (riesgo 36)."
+  },
+  {
+    "id": "Rdueno-002",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 333; 17-plan.md l. 335; 17-plan.md l. 505; 17-plan.md l. 328",
+    "motivo": "Es de L10 por su sección (§20.5); llega también por la cruzada de L6, que aplicó 14-s en §14. Comprobado: fetchCalendarStage pide la ruta sin parámetros (apps/web/src/api/results.ts l. 51-55) y la llaman StageReplay.tsx l. 338-339 y Race.tsx l. 515 y 531. §17.10 (7b) pasa a «API, shared y web», reenvía ?diag=1 con diag en la clave y su test results.test.ts; §17.18 dice que admins sigue en el 7a con el diag de la web desde el 7b; el 9a pasa diag a las otras tres rutas de etapa. §11.15 y §20.5 van por la cruzada de L6."
+  },
+  {
+    "id": "Rdueno-045",
+    "estado": "parcial",
+    "donde": "17-plan.md l. 335; 17-plan.md l. 358",
+    "motivo": "Contradice a Rdueno-002 tal como lo resolvió L6 (14-s: admins en el 7a y ?diag=1 en la web desde el 7b); se escriben las dos caras en §17.10. Se aplica la segunda salida del hallazgo: el 7b, el 8a y el 8b dicen qué pantallas verá rotas el dueño y hasta qué PR (pestañas vacías del 7b al 9a salvo con ?diag=1; listas cortadas, ganadores a null y marcadores neutros del 8a al 9b; agregados sin aviso del 8b al 9b). No se cambia D-53 (admins desde el paso 7): el hallazgo no trae evidencia nueva que lo pida, solo el riesgo de falsos defectos, que queda escrito y acotado."
+  },
+  {
+    "id": "Rdueno-027",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 102; 17-plan.md l. 85; 17-plan.md l. 98; 17-plan.md l. 356; 17-plan.md l. 796",
+    "motivo": "Cierto: el 1a ponía en el feed de todos, semanas antes del velo, dos titulares que cuentan quién pasa a liderar, contra §2.10 y D-53, y el encargo cuenta el feed entre lo que no puede destripar (docs/encargos.md l. 145-147). Decisión 17-x: el 1a los escribe (las noticias del mundo nuevo nacen con ellos) y las lecturas no los devuelven sin opts.leaderNews, que las rutas pasan desde el 8a solo a quien le aplica el velo; news.test.ts (1a) y newsVeil.test.ts (8a) lo prueban, y la regla 11 ya no los cuenta como visibles en el 1a."
+  },
+  {
+    "id": "Rdueno-009",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 176; 17-plan.md l. 178; 17-plan.md l. 164",
+    "motivo": "Cierto (citas comprobadas: docs/balance.md l. 9480, v58, y l. 7898-7899). Con clock estimated, el 3c pinta hueco el cursor de todo grupo que no es la cabeza, escribe su km con ~ y el aviso gana Positions of the groups behind are estimated (pantalla); GroupBar.test.tsx lo prueba y con clock exact no sale. §3.8, §6 y el glosario de pantalla van a cruzadas-L9."
+  },
+  {
+    "id": "Rdueno-010",
+    "estado": "parcial",
+    "donde": "17-plan.md l. 485; 17-plan.md l. 158",
+    "motivo": "Cierto que el primer Watch no enseñaba nada de [DUEÑO 3]. Aplicado en parte: el 3a da al adaptador un reparto provisional (maillot de líder de leadersThroughStage(N − 1) o la equipación) y serveCast nace allí, que además era un hueco del plan (BroadcastHead.cast es un RiderCard[] obligatorio desde el 3a, §4.11); con él, el 3c enseña la fila de una fuga de hasta doce con cada escapado y su maillot. No se adelanta la frase ni la ronda de la moto a un 3d: son rótulos que necesitan la cola de rótulos (6a) y breakHeadline con las cartas (6b), el «3d (S)» del hallazgo no alcanza, y adelantarlas partiría el 6a y el 6b que otras secciones fechan; las dos caras van en §17.17. El reparto del adaptador va a cruzadas-L9 (§3.8, §14.4)."
+  },
+  {
+    "id": "Rcodigo-016",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 577",
+    "motivo": "Comprobado: el fichero es packages/db/src/contracts.ts; emitNews del fichaje en l. 332-339 y el dato de housingCovered sale de offer.payHousing en l. 328. Fila de §17.20 corregida."
+  },
+  {
+    "id": "Rcodigo-044",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 626",
+    "motivo": "Comprobado: Race.tsx l. 357-364 es el comentario de StagesTab, la función va de l. 365 a 414 y el map de las filas de l. 371 a 409 (Not raced yet en l. 397). Fila de §17.20 corregida."
+  },
+  {
+    "id": "Rcodigo-073",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 130; 17-plan.md l. 156; 17-plan.md l. 555; 17-plan.md l. 556; 17-plan.md l. 566; 17-plan.md l. 567; 17-plan.md l. 798",
+    "motivo": "Comprobado en los bloques vigentes: timeline.ts importa Distinction y WornJersey de ../jerseys.js (04-modelo.md l. 37); constants.ts, CueClass de ./cues.js y PaceZone de ./wire.js (15-constantes.md l. 78-79); wire.ts, los seis esquemas, SchemaMatches y StoredTimelineV1 de ./codec.js (valores, tras 4-x de L2), LiveLine de ./cues.js y RiderCard de ../jerseys.js (04-modelo.md l. 909-913); player.ts, CueClass y CueKind (08-ritmo.md l. 340). Decisión 17-z: los tipos de §4.8 en el 2, PaceZone y CueClass en timeline.ts en el 2, los tipos de §4.9 en cues.ts en el 3a y en codec.ts en el 3a el tipo, los códigos, SchemaMatches y los seis esquemas (más de lo que pedía el hallazgo, por 4-x); §17.5, §17.6, §17.7, §17.8 y §17.20 lo siguen. El cambio de §4.13 y del bloque de §15.3 va a cruzadas-L9. Cierre L9: 17-z lleva también Queryable en titles.ts en el 1a (ver Rcodigo-022)."
+  },
+  {
+    "id": "Rcodigo-074",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 553; 17-plan.md l. 606; 17-plan.md l. 611; 17-plan.md l. 108",
+    "motivo": "Comprobado: healthSchema vive en packages/shared/src/index.ts l. 19-27; authProxy.ts l. 17-41 es donde sign-out y delete-user tienen que borrar cs_viewer (§10.8); News.tsx importa raceOfHeadline en l. 16 y la llama en l. 100. Las tres entran en §17.20, y el 1b (§17.4) y el 7a (§17.10) las nombran."
+  },
+  {
+    "id": "Rcodigo-090",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 594; 17-plan.md l. 616; 17-plan.md l. 617; 17-plan.md l. 618; 17-plan.md l. 619; 17-plan.md l. 322; 17-plan.md l. 333",
+    "motivo": "Comprobado en 14-api.md (14-q, 14-r, 14-s y l. 599). §17.20 gana security.ts (PLAYER_RATE_LIMIT del tramo en el 3a y del progreso en el 7a), results.ts, main.tsx con <HorizonWatcher /> (l. 22-26), ApiError.retryAfterS en request.ts (3b) y cacheOwnerChanged en queryClient.ts (9a), y StageReplay.tsx y Race.tsx ganan el 7b; el 7b pasa a «API, shared y web» y su Código lleva el reenvío de ?diag=1."
+  },
+  {
+    "id": "Rcodigo-089",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 666; 17-plan.md l. 714; 17-plan.md l. 692; 17-plan.md l. 670",
+    "motivo": "Comprobado: los cuatro tienen caso escrito en otra sección (11-superficies.md l. 711; 14-api.md l. 535 y 589; 15-constantes.md l. 62; 07-rotulos.md l. 286) y ninguno estaba en §17; results.test.ts no existe hoy y calendarRun.test.ts sí. Los cuatro entran en §17.21, en los Tests primero de su PR (8a, 7b, 4b y 5) y en la tabla de §17.2."
+  },
+  {
+    "id": "Rcobertura-057",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 327; 17-plan.md l. 774; 17-plan.md l. 781; 17-plan.md l. 784; 17-plan.md l. 785; 17-plan.md l. 792",
+    "motivo": "Comprobado en el §16 vigente: B13 en broadcastFixtures.test.ts con 17-t, B1d en 0 y 8a, I2 y B2 en el 4b el banco, B16 largo en el nocturno de apps/api y B18 en el 7b (16-bancos.md, §16.4 y §16.9). Se quitan las remisiones que afirmaban lo contrario del sitio citado (el 7b, 17-b, 17-i, 17-l, 17-m y 17-t) y las dudas del cierre que las repetían; los «Descartado» se quedan como alternativas, sin atribuirlas a §16."
+  },
+  {
+    "id": "Rcoste-030",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 17; 17-plan.md l. 88; 17-plan.md l. 95; 17-plan.md l. 572; 17-plan.md l. 513; 17-plan.md l. 102; 17-plan.md l. 795; 19-riesgos.md l. 41",
+    "motivo": "Comprobado en el código: runMigrations toma LOCK_CLASS.migration (migrate.ts l. 24) y el tick LOCK_CLASS.tick (tick.ts l. 214, clave 1 en l. 39); corre antes de listen (index.ts l. 16) y antes de cada tick del cron (railway.tick.json). La cola medida es la del refutador (coste/pgm/cola.mjs), que §18.3 ya recoge. Regla 9 y decisión 17-w: desde el 1a runMigrations toma antes el candado del tick y fija lock_timeout de 10 s, y los dos candados se toman en el mismo orden; los dos casos de dos sesiones van en migrations.test.ts, como §13.10 punto 8 (cruzada de L3), con it.skipIf(realTestDatabaseUrl() == null) y en su propia base (realTestDbFor, cyclingstar_migrate), porque PGlite solo admite una sesión (testDb.ts l. 16-19), así que el 1a da al CI un Postgres de verdad (TEST_DATABASE_URL; hoy ningún workflow la define) con una base por fichero (realTestDbFor), porque resetRealTestDb vacía el esquema y vitest corre los ficheros en paralelo. Riesgo 32 en §19.1 y fila de §19.8. Llega también por la cruzada de L7 (§19.1 y §17.1). La regla 8 de §13.1 ya la escribió L3; que §13.10 punto 8 los corra en el CI desde el 1a va a cruzadas-L9. Cierre L9: el texto de §17 ya decía migrations.test.ts; este motivo y las cruzadas que decían migrateLock.test.ts se corrigen, y la fila de migrate.ts de §17.20 (cruzada de L3) está en l. 572. Cierre L9: el coste del 1a en su subsección decía 2 sesiones y la fila de §17.22 ya contaba 2,5 por este cambio; ahora dicen lo mismo."
+  },
+  {
+    "id": "Rcoste-042",
+    "estado": "aplicado",
+    "donde": "19-riesgos.md l. 29; 17-plan.md l. 326; 17-plan.md l. 17; 17-plan.md l. 508",
+    "motivo": "Cierto: cada despliegue reinicia web (index.ts l. 16 y 84) y los interruptores se leen de env.ts al arrancar (§14.6), así que cambiar uno reinicia el servicio. El riesgo 19 pasa a media, con el 409 del borde tras cada reinicio y la defensa de §14.11 (informar y repetir sin pausar); B18 gana el caso «con la memoria del proceso vacía, un tramo en el borde se sirve tras un informe» en el 7b, y la regla 9 de §17.1 y §17.18 dicen que cambiar una variable reinicia el servicio. El caso de B18 en §16.4 va a cruzadas-L9."
+  },
+  {
+    "id": "Rcoste-043",
+    "estado": "aplicado",
+    "donde": "19-riesgos.md l. 52; 19-riesgos.md l. 43; 19-riesgos.md l. 44",
+    "motivo": "Cierto: el mánager da 3,88 ms de p95 en PostgreSQL 16 sin red (§18.2, que ya recoge la medida del refutador). El párrafo se reescribe con el 1, el 32, el 13, el 31 y el 34, y el 8 baja con su motivo. De los cinco riesgos medidos que faltaban: la memoria de los memos entra en el riesgo 13 (con el tope de 10-m que puso L6), la migración con el tick es el 32, la puerta de B14 el 34, el límite de peticiones reescribe el 31 y el paso 9 de instantAt es el 35."
+  },
+  {
+    "id": "Rcoste-044",
+    "estado": "aplicado",
+    "donde": "19-riesgos.md l. 40; 17-plan.md l. 149; 17-plan.md l. 162; 17-plan.md l. 168; 17-plan.md l. 326",
+    "motivo": "Comprobado: GLOBAL_RATE_LIMIT es 300 por minuto e IP (security.ts l. 10; app.ts l. 108-121, global: true). L6 ya aplicó en §14 el límite propio (14-q) y rebajó la cuenta del hallazgo (el peor minuto de un espectador son 58 peticiones, c-l6/peticiones.mjs); llega también por su cruzada. El riesgo 31 cuenta el problema y su defensa (PLAYER_RATE_LIMIT, 429 que espera retry-after, B18), y el plan pone el límite en el 3a (el tramo) y el 7a (el progreso), con el caso de las dos sesiones y 320 tramos en routes/broadcast.test.ts del 3a y el 429 del reproductor en player.test.ts del 3b. El caso en B18 (§16.4) es de L8, que ya lo escribe. Cierre L9: §16.4 cuenta el caso de las dos sesiones y los 320 tramos en B18, que nace en el 7b; el 7b dice ahora que ese caso está desde el 3a con el límite, y la fecha va a cruzadas-L9 (§16.4 y §16.9). La fila del 429 de §8.12 lo fecha en el 10; va a cruzadas-L9 que sea del 3b, porque el límite existe desde el 3a y el dueño ve Watch desde el 3c."
+  },
+  {
+    "id": "Rdueno-005",
+    "estado": "aplicado",
+    "donde": "19-riesgos.md l. 161; 19-riesgos.md l. 14; 17-plan.md l. 11; 17-plan.md l. 451",
+    "motivo": "Es de L3 por su sección (§5.1); aquí, su parte de §19.5 y §17. Comprobado: docs/balance.md l. 16319-16321 y 16557-16558 dicen lo que cita; git log -G de constants.ts da veinte subidas de la v69 a la v89 en catorce commits (v83 «Dos defectos de producción», v86 «El que va de amarillo no da relevos»); docs/encargos.md l. 15-26 pone a E2 detrás de la línea del motor. §19.5 deja de escribir como regla que toda subida va detrás del 17d y dice lo que E2 hace (no sube) y lo que es del dueño (DD-25); lo siguen el riesgo 4 (probabilidad alta, con la cifra), §19.2, §19.3, §19.9, los bloques de cierre de §19 y §17 y la regla 3 de §17.1. D-09 y DD-25 de 00-decisiones.md se actualizan si L3 y L10 no lo han hecho (ver motivo de D-09 abajo). Cierre L9: con las cruzadas de L3 (l. 95 y 227 del v0, §17.15 y la cuenta de subidas) comprobadas en el texto; D-09 ya la lleva (L3) y DD-25 cambió de defecto (L10: adelantar el 17d), que la regla 3, el riesgo 4 y §19.5 citan ahora."
+  },
+  {
+    "id": "Rcodigo-092",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 12; 17-plan.md l. 226; 19-riesgos.md l. 188",
+    "motivo": "Es de L8 por su sección (§16.7); aquí, su parte de §17.1 (regla 4), §17.7 y §19.6. Comprobado: los 4.365 s de ci.yml l. 103-110 suman cinco ficheros (v83) y los 5,5 min de «mundo y radio» (l. 128) son de cuando el tramo tenía tres; hoy tiene ocho (l. 166-175). La medida del refutador está en el scratchpad (rc4/mundo_extra.log: 35,82 s de pruebas y 15,11 de importación, 34,3 de stageKind.completo), releída. El 4a apunta el reloj de cada tramo."
+  },
+  {
+    "id": "Rcoste-032",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 477; 19-riesgos.md l. 11; 19-riesgos.md l. 116",
+    "motivo": "Cruzada de L1 (§19.1 riesgo 1 y §17.16). Aplicada en la lista de dependencias de §17.16, en el riesgo 1 (defensa, vigilancia y paso 8a) y en §19.3; es lo que ya dice la fila del 17d en §1.10."
+  },
+  {
+    "id": "Rcodigo-042",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 122; 17-plan.md l. 30; 17-plan.md l. 651",
+    "motivo": "Cruzada de L1 (§17.5). El PR 2 gana broadcastSource.test.ts con los tres casos; estimatedHeadClock se exporta para él (§3.8 la llamaba privada: va a cruzadas-L9 para §3.8 y el glosario). Entra en §17.2 y §17.21."
+  },
+  {
+    "id": "Rcobertura-005",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 773; 17-plan.md l. 242; 19-riesgos.md l. 32",
+    "motivo": "Cruzada de L2 (§17 y §19.1 riesgo 22). 17-a sin «si el ensamblador lo acepta»; cast.test.ts gana el caso de los favoritos con dos corredores que raceLearning cambia de orden; el riesgo del PR 5 y las dos dudas del cierre de §17 sobre favourites y tpl_rev se quitan; el 5 escribe la 0044 con tpl_rev; el riesgo 22 pasa a baja, decidido en 8-g y escrito en §4.2 (4-u)."
+  },
+  {
+    "id": "Rcobertura-009",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 211; 17-plan.md l. 702; 19-riesgos.md l. 48",
+    "motivo": "Cruzada de L2 (§17.21 y §19.1 riesgo 24). timeline.test.ts del 4b gana el caso de la regla incident de 4-v (§17.7 y su fila de §17.21); el riesgo 24 se quita, con una nota que conserva la numeración, y su duda del cierre de §19 también. La duda 1.2 de dudas.md es de la pasada de coherencia."
+  },
+  {
+    "id": "Rcobertura-010",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 3",
+    "motivo": "Cruzada de L2 (todas las secciones). En §17 la única remisión §G.n del cuerpo era la del párrafo de entrada (§G.10), que pasa a la tabla de §17.2; las que quedan están en los bloques «Propuesto para el glosario» y «Dudas», que ensamblar.sh quita. §19 no tenía ninguna. Cierre L9, con la cruzada de L10 (la tabla de conversión de §21.6): las únicas §G.n de §17 están en «Propuesto para el glosario» (l. 801) y en «Dudas para el ensamblador» (l. 813), que el ensamblado quita; §19 no tiene ninguna."
+  },
+  {
+    "id": "Rcobertura-049",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 558; 17-plan.md l. 271; 17-plan.md l. 408",
+    "motivo": "Cruzada de L2 (§17.9, §17.13 y §17.20). Siguiendo 17-e: la fila de constants.ts nace entera en el 2 y solo crece en el 10b; el 6a y el 10a ya no añaden constantes a BROADCAST, las leen."
+  },
+  {
+    "id": "Rcobertura-050",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 148; 17-plan.md l. 216; 17-plan.md l. 222; 17-plan.md l. 597",
+    "motivo": "Cruzada de L2 (§17.6 y §17.7). El it de PULLERS_KEPT entra en el 3a y sale en el 4b, cuando chronicle.ts importa STORED_PULLERS_MAX (también en el Código del 4b y en §17.20); el de chaseRefOf sigue en el 4a, con las 10.000 carreteras de 15-a."
+  },
+  {
+    "id": "Rcodigo-014",
+    "estado": "aplicado",
+    "donde": "19-riesgos.md l. 187",
+    "motivo": "Cruzada de L2 (§19.6). La fila dice la medida (31.436 B y 32.203 B con checkClockDs, el 98,3 % del tope anterior) y el tope nuevo de 48 KB (15-i); sigue en §19.6 porque con el grabador de verdad no se ha medido, y B6 lo mide en el 5. La duda 1.4 de dudas.md es de la pasada de coherencia. Cierre L9: la columna «Dónde se mide» de esa fila pasa a timeline.test.ts en el banco desde el 4b (16-n), no --sizes a mano en el 5."
+  },
+  {
+    "id": "Rcoste-019",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 17; 17-plan.md l. 508; 17-plan.md l. 314; 17-plan.md l. 592; 19-riesgos.md l. 218",
+    "motivo": "Cruzada de L2 (§17.1 regla 9 y la fila de §19.8, que la cruzada llama §19.6). La regla 9 nombra PROGRESS_MIN_DELTA_S como freno sin desplegar, sin excepción; §19.8 sube la variable y no progressMinDeltaS. Cierre L9: faltaba el PR en que nace la variable (§15.8, 15-j): el 7a, con la escritura del progreso; env.ts la gana allí y la fila de env.ts de §17.20 lo dice."
+  },
+  {
+    "id": "Rcobertura-031",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 211; 17-plan.md l. 630; 19-riesgos.md l. 20; 19-riesgos.md l. 187",
+    "motivo": "Cruzada de L5 (§17.8, tabla de ficheros y §19.6). --sizes elige en el calendario la crono más larga de 176 corredores (hoy race-italy e10, semillas 0 y 1) en el 5 y en §17.20; el riesgo del 4b y el riesgo 10 dicen 32,2 KB contra 48 KB (15-i); la fila de §19.6 va con la medida (ver Rcodigo-014). Cierre L9: la medida de la crono más larga salió del paso 5 con Rcodigo-065 (cruzada de L8): la hace timeline.test.ts en el banco desde el 4b, que elige en SEASON_CALENDAR la de 176 corredores; --sizes queda para el paso de meta y la ruta conocida del 6a. La fila de §19.6 decía todavía «B6 a mano en el 5» y se corrige."
+  },
+  {
+    "id": "Rcodigo-045",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 287; 17-plan.md l. 38",
+    "motivo": "Cruzada de L5 (§17.9, paso 6b). cues.test.ts gana las clases de la crono y player.test.ts la e16 congelada sin perder rótulos de clase 3 ni virtual_gc; los dos entran en la fila del 6b de §17.2 y en §17.21."
+  },
+  {
+    "id": "Rcobertura-046",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 447; 17-plan.md l. 647",
+    "motivo": "Cruzada de L6 (§17.15). El PR 12 gana el caso con el .omit anidado; yesterday.test.ts crece en el 12 en §17.21 y entra en la fila del 12 de §17.2."
+  },
+  {
+    "id": "Rcodigo-049",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 345",
+    "motivo": "Cruzada de L6 (§17.11). horizonReaders.test.ts se describe como en §10.6 (AST y comprobador de tipos, métodos de objetos exportados, stage_timelines, el tipo del segundo parámetro, las excepciones por nombre y que falle una que sobre)."
+  },
+  {
+    "id": "Rcoste-010",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 417; 17-plan.md l. 757",
+    "motivo": "Cruzada de L6 (el paso 10 de §17). El 10b mide el p95 de un tramo con cien espectadores sintéticos en Next action, con la cifra en §18.9; está en la fila del 10b de §17.22."
+  },
+  {
+    "id": "Rcoste-011",
+    "estado": "aplicado",
+    "donde": "19-riesgos.md l. 23; 17-plan.md l. 301",
+    "motivo": "Cruzada de L6 (§19.1 riesgo 13). El riesgo 13 cuenta, además de las dos LRU de 16, los memos del horizonte y de VeilDelta con el tope de 500 (17 y 88 MB en el peor caso), el de la sesión y la memoria de lo alcanzado, con la defensa de TtlMemo (10-m). Cierre L9: el 7a gana además el caso de B12 «el memo con tope» (§10.14, 10-m) en horizon.test.ts, que §17.10 no tenía."
+  },
+  {
+    "id": "Rcoste-014",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 305",
+    "motivo": "Cruzada de L6 (§17, PR 7a). routes/broadcast.test.ts del 7a gana el caso de dos tramos con una cs_viewer de hace una hora sin Set-Cookie (10-g). El de B12 en §16.4 es de L8."
+  },
+  {
+    "id": "Rcoste-018",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 386; 17-plan.md l. 390",
+    "motivo": "Cruzada de L6 (§17, PR 9a). queryKeys.test.ts del 9a prueba cacheOwnerChanged con sus cinco pasos y que toda consulta con horizonte lleva enabled atado al rev; el vigilante <HorizonWatcher /> va en main.tsx. El viaje de ida y vuelta de más es de §18.5."
+  },
+  {
+    "id": "Rcobertura-038",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 387; 17-plan.md l. 717",
+    "motivo": "Cruzada de L7 (§17.12). stageTables.test.tsx gana en el 9a los casos de ?tab=result&cls=kom y ?tab=classifications con la etapa no conocida; entra en §17.2 y §17.21, y la lista de la red de E2 dice que el 9a lo amplía sin tocar lo de hoy."
+  },
+  {
+    "id": "Rcobertura-058",
+    "estado": "aplicado",
+    "donde": "19-riesgos.md l. 23; 17-plan.md l. 271; 17-plan.md l. 273",
+    "motivo": "Cruzada de L7 (§19.1 riesgo 13). Probabilidad, defensa y paso como pide (16 desde que existe, hasta el doble con la LRU del adaptador; tasa de acierto en §18.9; pasos 3a y 6a, y 7a por los memos). El 6a del plan dice lo mismo (18-d)."
+  },
+  {
+    "id": "Rcodigo-037",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 398; 17-plan.md l. 626; 17-plan.md l. 396",
+    "motivo": "Cruzada de L7 (§17.12 y §17.20). El 9b trae raceTabs.ts como el bloque de §11.17 y Race.tsx l. 595 pasa known = watch?.known ?? true (comprobado: hoy raceTabs(status, stageCount) en l. 53 y la llamada en l. 595); sus casos con story se re-sellan, en el 9b y en la lista de re-sellos de §17.21; la fila de §17.20 nombra las mismas funciones."
+  },
+  {
+    "id": "Rcoste-012",
+    "estado": "parcial",
+    "donde": "19-riesgos.md l. 18; 17-plan.md l. 302; 17-plan.md l. 320; 17-plan.md l. 419",
+    "motivo": "Cruzada de L7 (§19.1 riesgo 8, §17.10 y §17.13). Aplicadas la cifra de PostgreSQL 16 sin red, la defensa (la puerta de DD-21 es la medida desde el servicio web de Railway contra una copia de producción, §18.9, 18-j) y la medida del 7a y el punto 5 del 10b. No se aplica «baja»: por el criterio de 19-a, baja es lo excluido por construcción y vigilado en todo PR, y a esta cifra le falta la red, así que el riesgo sigue en media con el motivo escrito."
+  },
+  {
+    "id": "Rcoste-015",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 368",
+    "motivo": "Cruzada de L7 (§17.11). El 8b gana el caso de B12 de las veinte peticiones a la vez y la promesa por (worldId, currentDay) que se repite si falla (11-s, 18-a). El de §16.4 es de L8."
+  },
+  {
+    "id": "Rcoste-039",
+    "estado": "aplicado",
+    "donde": "19-riesgos.md l. 42; 17-plan.md l. 249; 17-plan.md l. 253; 17-plan.md l. 508",
+    "motivo": "Cruzada de L7 (§19.1 y §17.8). Riesgo 33 nuevo con la cifra de §18.3 y la defensa AUTO_TICK (18-k); el PR 5 trae AUTO_TICK en env.ts e index.ts y mide el p95 del tramo durante el tick del 179 con AUTO_TICK en on y en off; §19.8 gana la fila; la regla 9 y §17.18 lo nombran."
+  },
+  {
+    "id": "Rcoste-040",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 180",
+    "motivo": "Cruzada de L7 (§17.6). El PR 3c pesa la página de etapa compilada con gzip 6 antes y después y escribe el crecimiento en su descripción y en §18.9; con más de 40 KB, Watch con import() diferido. Fila nueva en §19.6."
+  },
+  {
+    "id": "Rcoste-041",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 406",
+    "motivo": "Cruzada de L7 (§17.13). player.test.ts del 10a gana el caso de 18-e."
+  },
+  {
+    "id": "Rdueno-039",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 356; 17-plan.md l. 398; 17-plan.md l. 346",
+    "motivo": "Cruzada de L7 (§17.11 y §17.12). El 8a trae el ?diag=1 de la ficha de carrera y del feed en la API con diagMode.test.ts; el 9b, la franja y el botón Diagnostic view para administradores en esas dos pantallas."
+  },
+  {
+    "id": "Rcoste-045",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 267",
+    "motivo": "Cruzada de L7 (§17.9). clientCost.test.ts del 6a mide instantAt con el paso 9 memorizado sobre todos los fotogramas de las seis a pasos de 1 s y aparte los 600 seguidos del tramo más denso de la e20, con el umbral fijo de 18-l (se quita el umbral de cinco veces lo medido, que 18-l descarta)."
+  },
+  {
+    "id": "Rcoste-020",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 97; 17-plan.md l. 302",
+    "motivo": "Cruzada de L7 (§17.10). El CI crea la base y exporta TEST_DATABASE_URL en el 1a y no en el 7a, porque el caso del candado de las migraciones (Rcoste-030) la necesita antes; horizonLatency.test.ts la usa en el 7a como dice 18-j. Cada fichero usa su propia base (realTestDbFor): resetRealTestDb vacía el esquema entero y vitest corre los ficheros en paralelo, y con la variable definida calendarConcurrency.test.ts empieza a correr en el CI."
+  },
+  {
+    "id": "Rcodigo-086",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 158; 17-plan.md l. 247; 17-plan.md l. 307; 17-plan.md l. 578; 17-plan.md l. 599",
+    "motivo": "Comprobado: las dos cachés de líneas van por ${raceKey}|${stageDay} sin mundo (la de readStageTimeline, §5.6, con clearStageTimelineCache en 05-motor.md l. 587; la del adaptador, §14.4) y B1c monta dos mundos con la misma carrera en el mismo proceso (§16.3). El 3a da a broadcastSource.ts clearAdaptedTimelineCache() para los tests, el 5 exporta clearStageTimelineCache desde timelines.ts y packages/db/src/index.ts, y el mundo de B1 del 7a vacía las dos al montarse; §17.20 lo sigue. El corrector lo aplicó sin dejar entrada. El código de startSpoilerWorld (§16.3) y la firma de §14.4 van por cruzadas-L9."
+  },
+  {
+    "id": "Rcobertura-044",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 247; 17-plan.md l. 235; 17-plan.md l. 773",
+    "motivo": "Cruzada de L3 (§17.8 y 17-a). La 0044 lleva tpl_rev smallint not null sin defecto y sin condicional (12-c, 13-j); timelines.test.ts gana la fila con el TEMPLATE_REV del tick, la lápida con 0 y readStageTemplateRev con 0 sin fila; 17-a ya no condiciona tpl_rev y la duda sobre §13.3 no está en el cierre. El corrector lo aplicó sin dejar entrada."
+  },
+  {
+    "id": "Rcoste-006",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 232; 17-plan.md l. 236; 17-plan.md l. 244; 17-plan.md l. 247; 17-plan.md l. 578; 17-plan.md l. 579; 19-riesgos.md l. 46",
+    "motivo": "Cruzadas de L3 (§17.8, §17.20 y §19.1). El 5 guarda la fila en la transacción del día: recordStageTimeline la arma y flush, que runTick llama detrás de runCalendarDay, escribe las del día en un INSERT y un punto de guardado (5-l); stageRun.test.ts llama a log.flush(tx), timelines.test.ts gana los casos de §13.10 punto 5, timelines.ts lista las funciones de §5.10 y tick.ts llama a flush; el riesgo 37 de §19.1 lleva la medida de coste/pgm/subxact.mjs con B15 de vigilante. El corrector lo aplicó sin dejar entrada. Cierre L9: las filas de timelines.ts y de calendarRun.ts y tick.ts de §17.20 no nombraban flush ni las funciones de §5.10, y el script de los fixtures del 5 corre ahora flush detrás de la etapa, como pide §5.5 a quien corre etapas fuera de runTick. B15 en §16.4 es de L8. Y el mundo de B1 de §16.3, cerrado por L8, corre cada etapa con su diario y flush detrás, e importa el tipo TimelineTickLog: el 7a y las filas de packages/db/src/index.ts lo dicen."
+  },
+  {
+    "id": "Rcodigo-009",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 249; 17-plan.md l. 237; 17-plan.md l. 669",
+    "motivo": "Cruzada de L3 (§17.8 y §17.20). El 5 dice quién pasa timelineRecord a runTick (tick/main.ts l. 11, el cron; index.ts l. 38 y 45, onAdminTick y onAdminAdvance; l. 67, autoTick) y que tickRun.test.ts pasa timelineRecord: 'off' en sus casos de hoy, porque el campo es obligatorio. El corrector lo aplicó sin dejar entrada. Cierre L9: la fila de tickRun.test.ts va en §17.21, porque §17.20 no lleva tests (lo dice su entrada), y dice ya timelineRecord: 'off'."
+  },
+  {
+    "id": "Rcoste-008",
+    "estado": "aplicado",
+    "donde": "19-riesgos.md l. 11; 17-plan.md l. 211; 17-plan.md l. 226; 17-plan.md l. 243",
+    "motivo": "Cruzada de L3 (§19.1, riesgo 1). El riesgo dice que desde el 4b cada PR de la táctica que toque packages/engine/ paga timeline.test.ts en «mundo y radio» y tiene que pasar I1, I3, B6 del JSON y del bytea y B11 de E2, con B6 del JSON a un 15 % de su tope de mediana (222 contra 256 KB, §5.7), que §15.2 ya fijó (D-11). El corrector lo aplicó sin dejar entrada. Cierre L9: §16.4 (B6 y 16-n, cierre de L8) decidió la salida (a) de esta cruzada: B6 del JSON imprime sin fallar en el tramo «mundo y radio» y falla en la rápida sobre las seis y en el nocturno sobre las 24 × 2. El riesgo 1, el 4b, el 5 y las tablas de §17.2 y §17.21 lo dicen."
+  },
+  {
+    "id": "Rcodigo-069",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 95; 17-plan.md l. 572; 17-plan.md l. 573",
+    "motivo": "Cruzada de L3 (§17.20 y §17.4). El 1a da a runMigrations el segundo parámetro folder y a testDb.ts startEmptyTestDb() para el mundo vivo (§13.10 punto 2, 13-m), con la regla 8 de §13.1 en runMigrations; §17.20 las lleva en dos filas, migrate.ts y testDb.ts (esta con realTestDbFor). El corrector lo aplicó sin dejar entrada."
+  },
+  {
+    "id": "Rcoste-007",
+    "estado": "aplicado",
+    "donde": "19-riesgos.md l. 20; 17-plan.md l. 211; 19-riesgos.md l. 187",
+    "motivo": "Cruzada de L3 (§19.1 riesgo 10 y §17.8). El riesgo 10 dice 31.436 B, y 32.203 con checkClockDs, contra 49.152 (15-i), con probabilidad media en la crono más larga hasta que B6 la mida con el grabador de verdad. La e10 de race-italy no se mide en el paso 5 con --sizes: Rcodigo-065 (cruzada de L8, posterior) lo pone en el banco desde el 4b, en timeline.test.ts, que elige en SEASON_CALENDAR la crono más larga de 176 corredores; así lo dicen §17.7 y, desde el cierre, §19.6."
+  },
+  {
+    "id": "Rdueno-021",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 396",
+    "motivo": "Cruzada de L4 (§17, 9b). raceTabs.test.ts gana la etapa arrastrada, conocida con A y sin ver (WatchState.seen falso, 6-r), que abre en watch: una carrera fuera de guardia, se ve la etapa 5 y la 1 abre en Watch. El corrector lo aplicó sin dejar entrada. Lo que la cruzada general de L4 pide a §19 «si procede» no procede (ver Rdueno-036)."
+  },
+  {
+    "id": "Rdueno-017",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 201; 17-plan.md l. 202; 17-plan.md l. 196; 17-plan.md l. 206; 17-plan.md l. 545; 17-plan.md l. 550; 17-plan.md l. 701; 17-plan.md l. 725; 17-plan.md l. 782",
+    "motivo": "Cruzada de L4 (PR 4a y su tabla de ficheros). El 4a pone en GROUP_NOUNS y WATCHED_GROUP_NOUNS los tres nombres del grupo del maillot de 6-b y exporta threeKmRule (6-o), que stage/truce.ts ya declara con export (l. 136, comprobado): solo cambia index.ts. Cierre L9: las filas de coherence.ts e index.ts de §17.20 y 17-j no lo decían, y el 4a dejaba como hipótesis el re-sello de coherence.test.ts l. 347-360; §12.6 (L8) pone los tres nombres en las filas de las ocho plantillas y de time_gap, que el motor emite, y §16.1 re-sella el tope en seis en el 4a, así que el 4a lo re-sella con la cifra de storyMetrics remedida (coherence.ts l. 736-738 y groupNounsOf l. 604-606, comprobados), y la tabla de §17.2, §17.21 y su lista de re-sellos lo siguen (el test de los tres nombres de stageJournal.test.ts pasa a siete, no a cuatro); el 6b gana los casos de mainJersey y de los siete nombres que piden §12.6 y §16.1. La línea de groupNounsOf que cita §12.6 (l. 725-727) va a cruzadas-L9."
+  },
+  {
+    "id": "Rcobertura-021",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 202; 17-plan.md l. 550; 17-plan.md l. 782",
+    "motivo": "Cruzada de L4 (PR 4a y su tabla de ficheros), la misma de Rdueno-017: el export de threeKmRule para la marca same time (3 km rule) del cierre (6-o) está en el Código del 4a, en la fila de index.ts de §17.20 y en 17-j. Lo que la cruzada general de L4 pide a §19 «si procede» no procede (ver Rdueno-036)."
+  },
+  {
+    "id": "Rcobertura-026",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 286",
+    "motivo": "Cruzada de L4 (§17.9). broadcastPace.test.ts gana en el 6b la banda de la crono de B17, de 5:00 a 13:00 (8-k), la de §16.4; §17 no cita la de 5:30 ni la medida de 6:24-11:23 en ningún otro sitio. El corrector lo aplicó sin dejar entrada."
+  },
+  {
+    "id": "Rdueno-036",
+    "estado": "desestimado",
+    "donde": "19-riesgos.md l. 33",
+    "motivo": "Cruzada de L4 a §20 y a §19 «si procede». La parte del dueño, los nombres de pantalla, es DD-28 en §20 (L10). La de §19 es condicional («si §19 lleva un riesgo de la cola de rótulos») y §19 no lo lleva: que la cola tire rótulos de clase 1 y 2 es la regla que decide 6-h con la medida de §6.5, no un riesgo; lo que no puede perderse, la presentación de la fuga, lo sella B3 (16-p), y si el resto basta lo ven el dueño en el 6a y la prueba de lectura (riesgo 23). Nada que aplicar en §17 ni en §19."
+  },
+  {
+    "id": "Rdueno-037",
+    "estado": "desestimado",
+    "donde": "19-riesgos.md l. 33",
+    "motivo": "Cruzada de L4 a §20 y a §19 «si procede». La parte del dueño, la criba lejana en el acta, es DD-29 en §20 (L10); la de §19 no procede, por lo mismo que Rdueno-036: §19 no lleva un riesgo de la cola de rótulos."
+  },
+  {
+    "id": "Rcobertura-042",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 429; 17-plan.md l. 431",
+    "motivo": "Cruzada de L8 (PR 11). B16 gana los diez primeros de la etapa en la lista y en nameableAt (la etapa conocida), cada uno en riders de su grupo en toda foto en que corre, y el it del propio de R23.7; el Código dice que la ruta de etapa de una etapa conocida y ?diag=1 construyen nameableAt con la política de §7.7 más los diez primeros. El corrector lo aplicó sin dejar entrada."
+  },
+  {
+    "id": "Rcobertura-043",
+    "estado": "aplicado",
+    "donde": "19-riesgos.md l. 79; 17-plan.md l. 449",
+    "motivo": "Cruzada de L8 (§19.9). La fila «locale como parámetro de cada render» ya no está en §19.9 (git diff frente a e9b62be), porque los renders nacen con él (12-q), y la fila de E10 de §19.2 lo cuenta entre lo que E2 hace. El corrector lo aplicó sin dejar entrada. Cierre L9: el paso 12 dice además que chronicleParts y chronicleLine ganan en él el locale y el rev (ver Rcodigo-006)."
+  },
+  {
+    "id": "Rcodigo-022",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 96; 17-plan.md l. 247; 17-plan.md l. 581; 17-plan.md l. 587; 17-plan.md l. 798",
+    "motivo": "Cruzada de L8 (§17.4, PR 1a). Las tres lecturas de clasificación de results.ts reciben q: Queryable desde el 1a, porque awardOutcome las llama dentro de la transacción del tick y un PgTransaction no es asignable a Database (TS2379). Cierre L9: Queryable es el tipo de titles.ts (§7.4, 07-rotulos.md l. 195), que nacía en el 5, así que el 1a no compilaba (regla 1): titles.ts nace en el 1a solo con el tipo y el 5 lo completa; lo siguen el 1a, el 5, las filas de titles.ts y results.ts de §17.20 y 17-z. §7.4 y §12.8 van a cruzadas-L9."
+  },
+  {
+    "id": "Rcodigo-027",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 429; 17-plan.md l. 431; 17-plan.md l. 784",
+    "motivo": "Cruzada de L8 (PR 11 y 17-l). B16 compara las 22 etapas en línea por dos semillas y en las dos cronos comprueba que las dos radios son vacías (kms.length === 0); radioFromTimeline devuelve la radio vacía en una crono (tl.timeTrial); 17-l dice «las 22 etapas en línea del banco». El corrector lo aplicó sin dejar entrada."
+  },
+  {
+    "id": "Rcodigo-060",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 447; 17-plan.md l. 449; 17-plan.md l. 605; 17-plan.md l. 660; 17-plan.md l. 49",
+    "motivo": "Cruzada de L8 (PR 12, §17.20 y §17.21). lastRace.test.ts nace en el 12 con moments y ready; el manejador de GET /api/riders/me/last-race (routes/riders.ts l. 198-204) produce moments con buildChronicle; §17.20 y §17.21 tienen sus filas. Cierre L9: faltaba en la fila del 12 de la tabla de §17.2, que ahora lo lleva."
+  },
+  {
+    "id": "Rdueno-001",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 431; 17-plan.md l. 633",
+    "motivo": "Cruzada de L8 (PR 11 y §17.20). scripts/race-radio.mjs --db sigue re-simulando con la versión de hoy y solo con otra versión y fila en stage_timelines pinta radioFromTimeline, diciéndolo en su cabecera; sin fila se sigue negando (12-p). El corrector lo aplicó sin dejar entrada."
+  },
+  {
+    "id": "Rdueno-019",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 451; 17-plan.md l. 638",
+    "motivo": "Cruzada de L8 (paso 12 y D-58). El paso 12 reescribe SPEC §6.15 (SPEC.md l. 604-615, comprobado) con la respuesta de DD-04, por defecto los cuatro nombres y el corte de dos tercios (12-r). El corrector lo aplicó sin dejar entrada. Cierre L9: la fila de documentos de §17.20 gana SPEC.md. Lo de D-58 en 00-decisiones.md sigue en la cruzada de L8. Cierre L9, con la cruzada actualizada en el cierre de L8: el defecto de DD-04 con que se reescribe SPEC §6.15 son los siete nombres (los cuatro papeles de D-18 y los tres del grupo del maillot de 6-b) y el corte de dos tercios, como §12.6 y 12-r; el paso 12 lo dice así."
+  },
+  {
+    "id": "Rcobertura-051",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 280; 17-plan.md l. 415; 17-plan.md l. 711; 17-plan.md l. 38; 17-plan.md l. 46",
+    "motivo": "Cruzada de L8 (PR 6b y §17.21). B3 va en dos partes: la primera en broadcastFixtures.test.ts, con la cabecera sintética de su cláusula de no vacío; la segunda en breakPresentation.test.ts (nuevo, rápida, con la directiva de Node), con la cola llena a ×1, ×4 y en Highlights y sobre las cinco en línea; tiene fila en §17.21 y entra en la del 6b de §17.2. El corrector lo aplicó sin dejar entrada. Cierre L9, con la cruzada actualizada en el cierre de L8 (y la de L4, Rcobertura-023 y Rdueno-003, que llegó a §16): la segunda parte corre el reproductor de verdad sobre las cinco congeladas a ×½, ×1 y ×2 y en Highlights, y el 10b la repite a mano sobre las 24 × 2 con la línea grabada; el 6b, el 10b, §17.2, §17.21 y §17.22 lo dicen."
+  },
+  {
+    "id": "Rcobertura-052",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 268; 17-plan.md l. 267; 17-plan.md l. 655",
+    "motivo": "Cruzada de L8 (PR 6a y §18.10). El 6a mide la ruta de etapa conocida contra maxKnownStageGzipBytes y B8 su parse, y a mano --sizes sobre las 24 × 2 con el máximo a §18.10. Cierre L9: el parse de la ruta conocida estaba en clientCost.test.ts, que es de la web y no tiene esa respuesta entre sus fixtures; va en routes/broadcast.test.ts, sobre su etapa corrida, como dice §16.4 («en Node y en la API»), y §17.21 lo sigue."
+  },
+  {
+    "id": "Rcobertura-053",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 267; 17-plan.md l. 418; 17-plan.md l. 211; 17-plan.md l. 253; 17-plan.md l. 302",
+    "motivo": "Cruzada de L8 (§17, 6a y 10b). El 6a cita los umbrales de B8 de §16.4 sin copiarlos (16-v) y el 10b, las bandas de B17 de 8-k. Cierre L9: el 4b copiaba los umbrales de I2 y B2, el 5 el de B15 y el 7a los de B14; ahora los citan por §16.2 y §16.4."
+  },
+  {
+    "id": "Rcodigo-058",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 344",
+    "motivo": "Cruzada de L8 (§17.10, 8a). B1d comprueba que cada HEAD registrado tiene un GET con la misma url y el mismo config, sin fijar el número (53 hoy, 57 con los cuatro GET nuevos de §14.2). El corrector lo aplicó sin dejar entrada."
+  },
+  {
+    "id": "Rcodigo-062",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 59; 17-plan.md l. 149",
+    "motivo": "Cruzada de L8 (§17.3, paso 0). yesterday.test.ts y routes/broadcast.test.ts ponen DB_POOL_MAX=1 antes de startTestDb(): PGlite admite una sesión (testDb.ts l. 15-19) y la ruta de etapa lanza cuatro consultas a la vez (routes/races.ts l. 114-119). El corrector lo aplicó sin dejar entrada."
+  },
+  {
+    "id": "Rcodigo-065",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 211; 17-plan.md l. 253; 17-plan.md l. 35; 17-plan.md l. 36; 17-plan.md l. 630; 19-riesgos.md l. 187",
+    "motivo": "Cruzada de L8 (PR 4b, paso 5, §17.2 y §17.20). timeline.test.ts mide en el banco el bytea con gzip 9 de las 24 × 2 y de la crono más larga de 176 corredores, con gzipSync bajo eslint-disable como arranque.test.ts l. 3-6; el paso 5 y su fila de §17.2 ya no llevan B6 a mano del bytea, y --sizes es del paso 6. El corrector lo aplicó sin dejar entrada. Cierre L9: la fila de §19.6 de la crono más larga decía aún «B6 a mano en el 5» y pasa al banco desde el 4b."
+  },
+  {
+    "id": "Rcodigo-082",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 250; 19-riesgos.md l. 201",
+    "motivo": "Cruzada de L8 (PR 5). El comentario nuevo de schema.ts l. 754 dice las dos cifras con su unidad: de 100 a 514 KB de JSON por etapa (mapa 07) y de 10,7 a 146,4 KB en jsonb en disco con TOAST (juez del motor), como la fila de §19.7. El corrector lo aplicó sin dejar entrada."
+  },
+  {
+    "id": "Rcodigo-084",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 306; 17-plan.md l. 97; 17-plan.md l. 729",
+    "motivo": "Cruzada de L8 (PR 7a). watchConcurrency.test.ts nace en el 7a con realTestDbFor (cyclingstar_watch). realTestDbFor y TEST_DATABASE_URL en el CI llegan un PR antes, en el 1a, porque los casos de dos sesiones de migrations.test.ts los necesitan (17-w; Rcoste-020 y Rcoste-030). El corrector lo aplicó sin dejar entrada."
+  },
+  {
+    "id": "Rcodigo-087",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 312; 17-plan.md l. 582",
+    "motivo": "Cruzada de L8 (PR 7a). horizon.ts exporta clearHorizonCaches() para los tests, que vacía el memo de computeHorizon y el mapa de lastRunStages, y packages/db/src/index.ts la exporta en el 7a. El corrector lo aplicó sin dejar entrada. Cierre L9: la fila de horizon.ts de §17.20 la nombra."
+  },
+  {
+    "id": "Rcodigo-091",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 214; 17-plan.md l. 698",
+    "motivo": "Cruzada de L8 (PR 4b y §17.21). probeHooks.test.ts engancha en el 4b el grabador de verdad con la huella de cuatro campos y las cuentas de ganchos, y su fila de §17.21 crece en el 4b. El corrector lo aplicó sin dejar entrada."
+  },
+  {
+    "id": "Rcodigo-093",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 303",
+    "motivo": "Cruzada de L8 (PR 7a). B20 lleva la lista literal y cerrada (schema.ts, horizon.ts, watch.ts y los *.test.ts); el reinicio no tiene código y, si lo tiene, entra en la lista en el mismo PR con su motivo. El corrector lo aplicó sin dejar entrada."
+  },
+  {
+    "id": "Rcodigo-096",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 429",
+    "motivo": "Cruzada de L8 (PR 11). B16 compara con el mismo resolutor en los dos lados (el de load.ts desde manifest.json en la rápida, uno sintético Rider <índice> en la larga) y gana el it de no vacío. El corrector lo aplicó sin dejar entrada. Cierre L9: decía «el mismo names»; ahora «el mismo resolutor de nombres (riderOf) y own vacío», y los relevistas «con su motivo y su destinatario», como §16.4 y 16-t."
+  },
+  {
+    "id": "Rcoste-024",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 268; 17-plan.md l. 630",
+    "motivo": "Cruzada de L8 (PR 6a y §18.10). A mano en el paso 6, --sizes mide sobre las 24 × 2, con el acta sin radio de la etapa corrida, el paquete de meta y la ruta de etapa conocida contra sus topes, y el máximo va a §18.10; la etapa de routes/broadcast.test.ts es la prueba de humo. El corrector lo aplicó sin dejar entrada."
+  },
+  {
+    "id": "Rcoste-027",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 212; 17-plan.md l. 676",
+    "motivo": "Cruzada de L8 (PR 4b y §17.21). B10 va en timelineCollectorBench.ts, timelineCollector.test.ts y, para el nocturno, long1 y long2, con sus filas en §17.21 y el coste del nocturno (de 7,5 a 10,5 min de CPU sin cobertura y de 13 a 21 con ella, estimado). El corrector lo aplicó sin dejar entrada."
+  },
+  {
+    "id": "Rcoste-028",
+    "estado": "aplicado",
+    "donde": "19-riesgos.md l. 11; 17-plan.md l. 226",
+    "motivo": "Cruzada de L8 (§19.1, riesgo 1). Desde el 4b cada PR de la táctica paga timeline.test.ts en «mundo y radio», de 3,7 a 5,4 min más (estimado), y tiene que pasar I1, I3, B6 del JSON y del bytea y B11 de E2; lo dicen el riesgo 1 y los Bancos del 4b. El corrector lo aplicó sin dejar entrada. Cierre L9: con 16-n corregida en el cierre de L8, lo que la táctica tiene que pasar en su tramo es B6 del bytea; el del JSON se imprime y lo caza el nocturno."
+  },
+  {
+    "id": "Rcoste-033",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 302",
+    "motivo": "Cruzada de L8 (PR 7a). horizonLatency.test.ts monta el mundo en un beforeAll con 120.000 ms (tickRun.test.ts l. 20-22 da 180.000 a su base) y mide tras 20 llamadas de calentamiento. El corrector lo aplicó sin dejar entrada."
+  },
+  {
+    "id": "Rcoste-001",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 479; 17-plan.md l. 762",
+    "motivo": "Cruzada de L10 (§17.16 y §17.22). §17.16 dice que las unas 37 sesiones del camino crítico piden un segundo implementador con los PR que no están en él y que con uno solo son 52,5 hasta el encendido; §17.22 lleva la vara de E1 (24 sesiones estimadas, 12 PR en unas 19 horas de reloj, del #250 al #261). El corrector lo aplicó sin dejar entrada."
+  },
+  {
+    "id": "Rdueno-011",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 292; 17-plan.md l. 783",
+    "motivo": "Cruzada de L10 (17-k y §17.9). El «Qué ve el dueño» del 6b dice que DD-05 y DD-13 se contestan tras el 6b con el rótulo delante y que lo grabado entre el 5 y la respuesta lleva el defecto y no se reescribe salvo que el reinicio lo borre (§20.7, 20-i). El corrector lo aplicó sin dejar entrada. Cierre L9: 17-k lo dice también."
+  },
+  {
+    "id": "Rdueno-028",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 19; 17-plan.md l. 290; 17-plan.md l. 392; 17-plan.md l. 400; 17-plan.md l. 453; 17-plan.md l. 43; 17-plan.md l. 44",
+    "motivo": "Cruzadas de L10 (el acta en el 6b, el 9a y el 9b, y el paso 12). Las palabras de papel del acta, solo con Watch encendido (broadcastOn()); la pestaña Story conserva su nombre y la clásica terminada abre en Result hasta el encendido, porque raceTabs mira broadcastOn(); el título de la pestaña del navegador sale para todos en el 9a; el paso 12 da la cifra estimada de las variantes (90 elecciones: 44 entre dos y 43 entre tres). El corrector lo aplicó sin dejar entrada. Cierre L9: la columna Visible de §17.2 decía aún «todos: Report» en el 9a y «la clásica terminada abre en Report» en el 9b; ahora dice lo que ven el dueño y el jugador."
+  },
+  {
+    "id": "Rdueno-004",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 418",
+    "motivo": "Cruzada de L10 (§17.13, PR 10b, punto 4), que es también la sincronía con §16.5 (16-w). La prueba de lectura lleva, donde delante vaya una fuga de 4 a 12, las dos preguntas del dueño (qué lleva cada uno y quién tira detrás y por qué), y nueve de nueve, o diez de diez si hubo que sortear el punto de la fuga (§16.5, puntos 6, 7 y 9). Cierre L9: el cierre de L8 (cruzada de L4, Rdueno-003) cambió «de 4 a 12» por «una fuga de hasta doce por delante del pelotón» (§16.5, 16-i, 16-w); el 10b lo dice así."
+  },
+  {
+    "id": "Cierre L10 (DD-24)",
+    "estado": "aplicado",
+    "donde": "19-riesgos.md l. 270; 19-riesgos.md l. 263; 19-riesgos.md l. 197; 19-riesgos.md l. 247",
+    "motivo": "Cruzada de L10 (dudas del cierre de §19). La duda de getBlockReport queda cerrada: es DD-24, con el valor por defecto de 19-b (§20). Cierre L9: 19-b, §19.7, §19.9 y el paso 12 de §17.15 citan DD-24, y el salto de 138 s, DD-23."
+  },
+  {
+    "id": "Cierre L10 (forma)",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 762",
+    "motivo": "Cruzada de L10 (§17.22). La raya que abre el bloque de cierre iba pegada al último párrafo y Markdown lo pintaba como título (el v0 tenía la línea en blanco; la quitó la corrección); el cierre la devuelve. Las comprobaciones de ensamblar.sh --comprobar, repetidas sobre §17 y §19 sin escribir el v0, dan 0 fallos."
+  },
+  {
+    "id": "Rcoste-022",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 285; 17-plan.md l. 292; 17-plan.md l. 38; 17-plan.md l. 650",
+    "motivo": "Sin cruzada a §17 (hallazgo de L8, §12.6). §16.4 (B8 y B19) y 16-m ponen en voicePrefix.test.ts la medida de withGroupRoles para B8, mediana por etapa con umbral fijo; el 6b, que trae voiceRoles.ts, la gana en su voicePrefix.test.ts y en sus bancos, y §17.2 y §17.21 lo siguen."
+  },
+  {
+    "id": "Rcodigo-011",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 89; 17-plan.md l. 309; 17-plan.md l. 349",
+    "motivo": "Sin cruzada a §17 (hallazgo de L3, §13.7). 13-a da a columnasVivas.test.ts una segunda regla, ESCRITURA_DRIZZLE, que solo cuenta como escritura una clave de un .set( o un .values(, con su caso de las declaraciones solas. El 1a la escribe con la expresión; el 7a ya no dice «nombres locales distintos del campo», que 13-a hace innecesario, sino .set({ … }) o .values({ … }) y nunca SQL crudo; el 8a nombra el .set({ prize: … }) de creditTeam."
+  },
+  {
+    "id": "Rcodigo-006",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 449; 17-plan.md l. 621",
+    "motivo": "Sin cruzada a §17 (hallazgo de L8, §12.8 y 12-q). Todo render recibe locale desde que nace, y chronicleParts y chronicleLine lo ganan en el paso 12 con rev, que cambia sus 102 llamadas de stageJournal.test.ts y la de StageStory.tsx l. 114 (§12.7; comprobado que StageStory.tsx l. 114 llama a chronicleParts(e)). El Código del 12 y la fila de stageJournal.ts de §17.20, con StageStory.tsx, lo dicen."
+  },
+  {
+    "id": "Rcobertura-055",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 264",
+    "motivo": "Sin cruzada a §17 (hallazgo de L8, B22; 16-s, con Rcodigo-047 como la otra cara). B22 es puerta solo en la cabeza e informa del p99 y del máximo de todos los grupos: si pasa de 1 km, decide el dueño antes de abrir en Watch las etapas del adaptador, y si pasa de 2 km, esas etapas pintan solo la cabeza y el grupo del título. El 6a lo dice con la cifra del refutador (p99 de 0,84 a 0,89 km)."
+  },
+  {
+    "id": "Rcodigo-047",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 264",
+    "motivo": "Sin cruzada a §17 (hallazgo de L8, B22; la otra cara de Rcobertura-055 en 16-s): el 6a escribe las dos caras de B22 como §16.4."
+  },
+  {
+    "id": "Cierre L9 (tabla de §17.2)",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 23; 17-plan.md l. 28; 17-plan.md l. 31; 17-plan.md l. 34; 17-plan.md l. 35; 17-plan.md l. 36; 17-plan.md l. 37; 17-plan.md l. 38; 17-plan.md l. 39; 17-plan.md l. 40; 17-plan.md l. 41; 17-plan.md l. 45",
+    "motivo": "Cierre L9, sin hallazgo. La columna «Tests primero» de §17.2 no llevaba ficheros que §17.21 y las subsecciones ponen en su PR (cruce de las dos tablas con un script: 1a, 3a, 4a, 4b, 5, 6a, 6b, 7a, 7b, 8a y 10a); ahora los lleva, y los Bancos del 6b ganan B8 de withGroupRoles y B9 y B17 de la crono, como su subsección. La entrada de §17.2 dice que cada PR lleva el defecto de las DD que toca y remite a §20.7."
+  },
+  {
+    "id": "Cierre L9 (DD vigentes)",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 11; 17-plan.md l. 98; 17-plan.md l. 201; 17-plan.md l. 451; 17-plan.md l. 453; 17-plan.md l. 533; 17-plan.md l. 770; 19-riesgos.md l. 14; 19-riesgos.md l. 79; 19-riesgos.md l. 161; 19-riesgos.md l. 237",
+    "motivo": "Cierre L9, contra 00-decisiones.md y §20 vigentes. DD-19 ya no es del dueño (se retira con su número, 20-g; la decide §12.8): §17 (1a, paso 12, §17.19 e injertos) y §19 (fila de E10 y §19.9) remiten a §12.8, y «Huecos rellenados» deja de contarla entre las del dueño. DD-25 tiene el defecto de adelantar el 17d, que dicen la regla 3, el paso 12, el riesgo 4 y §19.5. El salto de 138 s y getBlockReport son DD-23 y DD-24, que citan el paso 12, §19.7, §19.9 y 19-b. El 4a lleva el defecto de DD-04, cuya respuesta pide §20.7 antes de ese PR. Las demás DD que el plan condiciona (DD-03, DD-05, DD-09 a DD-14, DD-18, DD-21 y DD-27) existen con el valor que el plan usa."
+  },
+  {
+    "id": "Cierre L9 (B12 de §10.14)",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 301",
+    "motivo": "Cierre L9, sin hallazgo. §10.14 y §16.4 ponen en horizon.test.ts del 7a «el memo con tope» (10-m) y «el mapa del día» (lastRunStages, 18-a), que la lista del 7a no tenía; la gana."
+  },
+  {
+    "id": "Cierre L9 (§13.10 punto 6)",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 85",
+    "motivo": "Cierre L9, sin hallazgo. §13.10 punto 6 pide a news.test.ts una fila sin text, la de después de dejar de escribirlo (§12.8), además de la anterior a la 0043; el 1a la gana."
+  },
+  {
+    "id": "Cierre L9 (B18 de §16.4)",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 326",
+    "motivo": "Cierre L9, sin hallazgo. §16.4 cuenta en B18, que nace en el 7b, el caso de las dos sesiones y los 320 tramos, que §17 escribe en el 3a con PLAYER_RATE_LIMIT (14-q); el 7b lo dice, y la fecha del caso va a cruzadas-L9 para §16.4 y §16.9."
+  },
+  {
+    "id": "Cierre L9 (forma de §19.5)",
+    "estado": "aplicado",
+    "donde": "19-riesgos.md l. 161",
+    "motivo": "Cierre L9, sin hallazgo. El párrafo «Por qué E2 no la sube…» iba pegado a la tabla de §19.5 y Markdown lo leía como una fila más (ya en el v0); gana la línea en blanco."
+  },
+  {
+    "id": "Rcobertura-023",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 280; 17-plan.md l. 278; 17-plan.md l. 290; 17-plan.md l. 415; 17-plan.md l. 567; 17-plan.md l. 694",
+    "motivo": "Sin cruzada a §17 (hallazgo de L4, §6.7): la presentación de la fuga (6-m) va reservada en la cola, con isPresentation, aheadOfPeloton y breakRoundOf, y B3 (§16.4, cierre de L8) la prueba con el reproductor de verdad sobre las cinco congeladas a ×½, ×1 y ×2 y en Highlights, y a mano en el paso 10 sobre las 24 × 2. El 6b lo lleva en breakPresentation.test.ts, cues.test.ts, names.test.ts y su Código; el 10b, la medida a mano; §17.2, §17.20, §17.21 y §17.22 lo siguen."
+  },
+  {
+    "id": "Rdueno-003",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 280; 17-plan.md l. 418",
+    "motivo": "Sin cruzada a §17 (hallazgo de L4, §6.7), la otra cara de Rcobertura-023: la ronda de la moto de clase 2 y reservada, y la pregunta de los maillots de la prueba de lectura con una fuga de hasta doce por delante del pelotón (§16.5, 16-w). El 6b y el 10b lo dicen."
+  },
+  {
+    "id": "Rdueno-014",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 406; 17-plan.md l. 408",
+    "motivo": "Sin cruzada a §17 (hallazgo de L4, §8.5 y 8-p): los mandos se esconden a los BROADCAST.controlsHideS sin tocar y vuelven con un toque, y §8.12 y §16.6 lo prueban en player.test.ts en el paso 10. El 10a lo lleva en sus tests y su Código."
+  },
+  {
+    "id": "Rdueno-015",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 278; 17-plan.md l. 290; 17-plan.md l. 565",
+    "motivo": "Sin cruzada a §17 (hallazgo de L4, §6.4): la línea Pulling: lleva el motivo de cada equipo (PullingLine.teams[].motive, PULL_MOTIVE_WORDS en names.ts). El 6b lo nombra en names.test.ts, en su Código y en la fila de names.ts de §17.20."
+  },
+  {
+    "id": "Rdueno-017 (cruzada de L4, aplicada en §12.6)",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 206; 17-plan.md l. 725; 17-plan.md l. 701; 17-plan.md l. 555; 17-plan.md l. 601",
+    "motivo": "Cruzada del cierre de L8. «Lo que se re-sella, por PR» dice que el test de los tres nombres de stageJournal.test.ts pasa en el 4a a siete, y los Bancos del 4a ya no son condicionales: coherence.test.ts l. 347-360 se re-sella con el tope de seis y la cifra de storyMetrics remedida (ver Rdueno-017). Con el §12.6 cerrado por L8, el 6b gana además isJerseyKind en jerseys.ts, groupNounOf(role, jersey) y las claves mainJersey y groupJersey de withGroupRoles, en su Código y en §17.20."
+  },
+  {
+    "id": "Rcoste-008 (cruzada de L3, aplicada en §16.4)",
+    "estado": "aplicado",
+    "donde": "17-plan.md l. 211; 17-plan.md l. 243; 17-plan.md l. 253; 17-plan.md l. 702; 17-plan.md l. 657; 17-plan.md l. 35",
+    "motivo": "Cruzada del cierre de L8 (16-n). timeline.test.ts: B6 del bytea falla en el tramo; B6 del JSON imprime sus cifras en el tramo y falla con CS_BANCOS=1 en el nocturno. broadcastFixtures.test.ts (5): B6 del bytea y del JSON (el .timeline.gz descomprimido) de las seis, que sí fallan. Lo dicen el 4b, el 5 y las filas de §17.2 y §17.21."
+  },
+  {
+    "id": "Rcoste-006, Rcoste-008 (cruzadas de L3, aplicadas en §16.4)",
+    "estado": "aplicado",
+    "donde": "19-riesgos.md l. 46; 19-riesgos.md l. 11",
+    "motivo": "Cruzada del cierre de L8 (§19.1). El riesgo 37 ya tenía de vigilante a B15 leyendo pg_stat_get_backend_subxact durante los días 176 y 179, con 5-l de defensa (aplicado por el corrector de L9 con la cruzada de L3); el riesgo 1 dice ahora que lo que un PR de la táctica tiene que pasar en su tramo es I1, I3, B6 del bytea y B11, y que B6 del JSON solo se imprime allí y lo caza el nocturno (16-n). El 5 dice también que B15 vigila las subtransacciones."
+  }
+]

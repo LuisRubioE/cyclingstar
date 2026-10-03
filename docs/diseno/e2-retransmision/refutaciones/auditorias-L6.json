@@ -1,0 +1,618 @@
+[
+  {
+    "id": "Rcobertura-037",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L6.json",
+    "veredicto": "cerrado",
+    "evidencia": "10-horizonte.md l. 21 (fila «revelada»: «`Show result` (pantalla) o la tercera salida de la puerta | `R` | no | `Report` | todo», sin el salto), l. 26 (frase nueva: ningún salto pasa de un km antes de meta y una etapa solo pasa a vista cruzando la meta, 8-j; un `seek` informado en la meta quedaría `R` por `LETTER_OF_MODE`, 8-e, pero la web no lo hace) y l. 66 (el comentario de `LETTER_OF_MODE` dice lo mismo). Casa con 08-ritmo.md l. 466 (8-j) y l. 461 (8-e). «salto de recorrido hasta la meta» no queda en ninguna sección (grep sobre borrador/*.md salvo los v0 y v1: cero).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-046",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L6.json",
+    "veredicto": "cerrado",
+    "evidencia": "14-api.md l. 170-171 (`riderRaceReportSchema (l. 1554-1569): + moments: z.array(chronicleEntrySchema).optional()`, 12-k, PR 12, con el `chronicleEntrySchema` de hoy), l. 74 (fila del paso 12 de la tabla de §14.1: `last-race` gana `moments`, la web de ayer no lo ve) y l. 491 (§14.7: el `.omit` anidado, `lastRaceResponseSchema.omit({ ready: true }).extend({ report: riderRaceReportSchema.omit({ moments: true }).nullable() })`, porque un `.omit` de fuera no llega a `report`). La parte de §17.15 también está: 17-plan.md l. 447 (PR 12, `yesterday.test.ts` gana el caso con ese mismo `.omit` anidado) y l. 647. Comprobado en `packages/shared/src/contracts.ts`: `riderRaceReportSchema` en l. 1554-1569, `chronicleEntrySchema` en l. 1262-1276 (antes, así que la ampliación carga sin tocar el orden) y `lastRaceResponseSchema = z.object({ report: riderRaceReportSchema.nullable() })` en l. 1571, con lo que el `.omit({ ready }).extend({ report })` de §14.7 es exacto.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-047",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L6.json",
+    "veredicto": "cerrado",
+    "evidencia": "§14.3, 14-api.md l. 184-224: los sucesos con su hora (l. 187-196), `withGroupRoles(sucesos, tl, …, rolesCtx)` en l. 207 ANTES de `revealOf`, que se ata posición a posición sobre `anotados` (l. 208, 12-n), y con `BROADCAST.liveClusters` los racimos de `liveClusters(anotados, tl, …)` entran con su hora y sus sueltos salen (l. 209-216) antes de `buildChronicle` (l. 219-222); la frase de v0 que lo reconocía la sustituye «Por qué ese orden» (l. 227). Las llamadas casan con las firmas de 12-voz.md l. 147 (`liveClusters(events, tl, revealS): readonly LiveCluster[]`, con `event`, `revealS` y `members`, l. 141-145) y l. 283 (`withGroupRoles(events, tl, revealS, ctx): ChronicleEvent[]`). §10.6, 10-horizonte.md l. 196-247: la consulta 1 trae `rider_id` y `team_riders` (l. 200-205), la 2 filtra con `rr.rider_id = any(${sql.param(ids)}::uuid[])` (l. 214-219) y la cuarta es `lastRunStages`, una vez por `(worldId, currentDay)` (l. 226 y 232-247); la frase de v0 l. 4717 la sustituye el párrafo de l. 290. Dudas 2.1 y 2.2 cerradas (dudas.md l. 27-28). Compilado por el auditor con tsc 5.9.3 contra HEAD (`aud-l6/h/mk.py`: packages/db y apps/api de HEAD, shared con §4, §15 y §14.2): `computeHorizon` y `lastRunStages` compilan (también el `new Map(rs.map(…))`) salvo los cuatro auxiliares sin declarar de A-L2-003, que cierra A-L6-001.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-048",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L6.json",
+    "veredicto": "cerrado",
+    "evidencia": "14-api.md l. 604 (`StageWatch.tsx`: el progreso en el borde devuelve `{ status: 'watching', rev }` porque el último tramo acaba en `finishDs − 1` y `recordProgress` solo escribe la letra con `reachedS ≥ finishS`; después `POST …/broadcast/finish`, que escribe la letra del modo y cuyo paquete pinta la llegada y el cierre, y tras él la web invalida `['horizon']`). 10-horizonte.md l. 496 (regla 3 de §10.9: el paquete de meta no lleva `rev`, así que la web invalida `['horizon']`; el informe del borde da el `rev` de antes) y l. 104-110 (el pseudocódigo de `recordProgress`, que solo pasa a conocida con `reachedS ≥ finishS`).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-003",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L6.json",
+    "veredicto": "cerrado",
+    "evidencia": "14-api.md l. 109: `import { apiErrorBodySchema } from '../contracts.js'`, y el comentario dice que `stageGateSchema`, `z` y `BROADCAST` ya los importa la cabecera de wire.ts (§4.11) y que repetirlos da TS2300. `apiErrorBodySchema` está en `contracts.ts` l. 32. Compilado por el auditor (`aud-l6/h/build.py` con 04-modelo.md, 15-constantes.md y 14-api.md, tsc 5.9.3, zod 4.4.3): los bloques de wire.ts de §4.10, §4.11 y §14.2 juntos en `packages/shared/src/broadcast/wire.ts` no dan ningún TS2300 (los dos únicos errores del paquete son TS6196 de `cues.ts`, de §4).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-019",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L6.json",
+    "veredicto": "cerrado",
+    "evidencia": "14-api.md l. 357-358 (`void touchLastSeen(db, userId).catch((err) => request.log.warn({ err }, 'touchLastSeen'))`, con el porqué: en Node 22 un rechazo sin atender tumba el proceso) y l. 490 (`me.test.ts`: un `touchLastSeen` que rechaza sin tumbar el proceso). 10-horizonte.md l. 432 (§10.7: el `.catch` y su porqué, y que vale para toda escritura lanzada sin esperar), l. 117 (la escritura del barrido de lo alcanzado, «sin esperar y con su `.catch`») y l. 620 (10-k). En vez de que `touchLastSeen` capture dentro, lo captura quien la lanza, con el mismo efecto. Comprobado: `package.json` l. 7-9 (`node >=22`; el entorno, v22.22.2), `apps/api/src/index.ts` l. 88-91 (solo `main().catch`) y l. 63-80 (el auto-tick con `try/catch`).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-021",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L6.json",
+    "veredicto": "cerrado",
+    "evidencia": "14-api.md l. 280-281: la importación de §14.5 ya no trae `type Horizon` y el comentario dice que `Horizon`, `WatchRow` y `stageGateOf` los importa la cabecera de §14.1 en el mismo fichero. Compilado por el auditor (`aud-l6/h/mk.py`): los bloques de §14.1 y §14.5 juntos en `apps/api/src/spoiler.ts` no dan TS2300. Lo que queda al compilar ese fichero (importaciones que solo usa `installViewerAndHorizon`, escrita en pseudocódigo, y tres nombres que `packages/db` no exportaba en ningún bloque) es otro defecto, A-L6-002.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-034",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L6.json",
+    "veredicto": "cerrado",
+    "evidencia": "14-api.md l. 499 (la ruta de etapa pesa de 0,87 a 2,95 MB, mapa 07 §7, las 22 en línea; el mapa 02 §7, de 0,95 a 2,16 MB en cuatro), l. 511 (tabla: 871-2.949 KB y 22,2-100,1 KB con gzip, con `race-france` e20 y `race-colombia` e5), l. 519 (frase final) y l. 616 (14-b: la radio, del 88 al 96 %, de 0,77 a 2,84 MB). Las otras dos secciones también: 16-bancos.md l. 440 (línea base de B6) y 17-plan.md l. 67 (§17.3). Recalculado por el auditor desde `scratchpad/medida-etapas.json.txt` (resumen y filas): respuesta de 870,6 a 2.949 KB y de 22,2 a 100,1 KB con gzip en las 22 en línea; e20 2.941,6 y 100,1; Colombia e5 2.949 y 74,9; radio del 88,1 al 96,2 %; acta sin radio de 102,9 a 136,2 KB (la fila del paquete de meta, 14-api.md l. 517). No queda «22,2-50,0» ni «22-50 KB» en ninguna sección.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-035",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L6.json",
+    "veredicto": "cerrado",
+    "evidencia": "14-api.md l. 235 y 242 (`timelineForStage(db, h, raceKey, stageDay): Promise<StageTimeline | null>`, con `h` por D-32), l. 251-263 (pseudocódigo sin `known`), l. 270 (última frase: la puerta y el límite los deciden `stageGateOf` y `race_watch`; `StageTimelineRead` sobra) y l. 630 (14-p, con `unveiled` descartado por dejar un campo sin lector). §5.6 hace lo mismo (05-motor.md l. 700, 5-p), el glosario y F.2 llevan la firma nueva (00-glosario.md l. 738; 21-apendices.md l. 540) y la duda 1.8 está cerrada (dudas.md l. 22). Quedaba la duda para el ensamblador de 14-api.md l. 653, que todavía decía `Promise<StageTimelineRead | null>`: el ensamblado la quita, pero el auditor la ha puesto al día en el fichero (A-L6-005).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-049",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L6.json",
+    "veredicto": "cerrado",
+    "evidencia": "10-horizonte.md l. 180 (el test usa el AST y el comprobador de tipos, `ts.createProgram` sobre el `tsconfig.json` de `packages/db`; funciones exportadas y métodos de objetos exportados, con sus ayudantes no exportados; las fuentes de D-32 punto 1 enteras, `stage_timelines` incluida; el TIPO del segundo parámetro; excepciones por nombre y con motivo, `cast.ts:buildTimelineCast` y `titles.ts:palmaresTitleSource.titlesOn` entre ellas, y una entrada sobrante también falla) y l. 612 (10-c); §17.11 lo dice igual (17-plan.md l. 345). La duda 1.9 está cerrada (dudas.md l. 23) y D-32 dice la excepción (00-decisiones.md l. 521). Lo que no se aplicó, añadir `raceWatch` a las fuentes, tiene un motivo que se sostiene: D-32 punto 1 no pone `race_watch` entre las fuentes (00-decisiones.md l. 521: `stage_results` … `race_rosters.abandoned_day`), porque no guarda resultados, y `readWatch` solo lee la fila del propio espectador por `WatchKey`. Re-medido por el auditor con `c-l6/lecturas-ast2.mjs`: 61 lecturas, ninguna con `Horizon`, en 5,7 s.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-052",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L6.json",
+    "veredicto": "cerrado",
+    "evidencia": "14-api.md l. 103 (con `text/plain` el cuerpo llega como CADENA; el manejador lo pasa por `JSON.parse` dentro de un `try` antes del `safeParse`; una cadena que no es JSON da 400 `validacion`, §14.7), l. 493 (§14.7), l. 490 (`me.test.ts` con un cuerpo `text/plain` válido y una cadena que no es JSON) y l. 621 (14-g). Re-medido por el auditor con el Fastify 5.11.2 del repositorio (`aud-l6/fplain.mjs`, la misma prueba de `c-l6/fplain.mjs` con la importación absoluta): `application/json` da `typeof request.body` `object`, `text/plain;charset=UTF-8` da `string`.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-057",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L6.json",
+    "veredicto": "cerrado",
+    "evidencia": "14-api.md l. 602 (un componente `<HorizonWatcher />` montado una vez dentro del `QueryClientProvider`, `main.tsx` l. 22-26, junto a `<BrowserRouter>`, que usa el `queryClient` de l. 11; `authClient.useSession()` es un hook y solo vive dentro de ese árbol) y l. 632 (14-r). Comprobado `apps/web/src/main.tsx`: l. 11 `const queryClient = createQueryClient()`, l. 22-26 el proveedor con `BrowserRouter` y `App` dentro, todo dentro de `ErrorBoundary`.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-010",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L6.json",
+    "veredicto": "cerrado",
+    "evidencia": "Corrección distinta y mejor, con motivo. 10-horizonte.md l. 119 («Las lecturas»: `getSession` y la consulta 1 en cada informe y cada tramo, el pico de 2,7 y 10,5 peticiones por segundo acotado por la etapa, de 33 a 60 por etapa y 58 en el peor minuto; el remedio, un `TtlMemo` de 60 s de la sesión en `request.viewer()`, solo con aciertos), l. 121 (las dos caras: `session.cookieCache` no se elige porque `createCurrentUserId` llama a `getSession` sin `returnHeaders` y better-call tira la cookie que renueva la caché, porque esa cookie cambiaría la cabecera `Cookie` contra `Vary: Cookie` y porque es configuración de E4) y l. 623 (10-n); 14-api.md l. 353-356 (`viewer()` con `sessionMemo`). La fila de §18.4 y la medida de cien espectadores del paso 10 están: 18-rendimiento.md l. 136 y l. 221. Comprobado: `routes/context.ts` l. 51 (`auth.api.getSession({ headers })`), better-call 1.3.7 `dist/endpoint.mjs` l. 38-53 (sin `asResponse` ni `returnHeaders` devuelve solo `response`), `better-auth/cookies` exporta `getSessionCookie` (`dist/cookies/index.mjs` l. 211-220) y `auth.ts` no cambia el prefijo de la cookie (l. 194-218). Re-corrido `c-l6/peticiones.mjs`: de 33 a 60 peticiones por etapa en `Highlights` ×4 y `Next action`, 58 en el peor minuto, 9 en `Watch` ×1. Dos citas de better-auth estaban desplazadas una línea (`findSession` es l. 180, no 179; el bloque de `cookieCache`, l. 87-179): las corrige A-L6-003.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-011",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L6.json",
+    "veredicto": "cerrado",
+    "evidencia": "10-horizonte.md l. 402 («Los memos no crecen»: medidas por entrada, las tres reglas y el tope) y l. 404-427 (`TtlMemo` con borrado al leer, barrido de las caducadas en cada `set` y tope; `horizonMemo` y `veilDeltaMemo`), l. 208 y 228 (`computeHorizon` usa el memo), l. 348 (`veilDelta` en otro `TtlMemo`), l. 117 (la memoria de lo alcanzado se borra al conocer la etapa y se barre a los 60 s escribiendo antes lo que falta), l. 593 (B12, «el memo con tope») y l. 622 (10-m). Fuera de §10: `SPOILER.horizonMemoEntries` 500 (15-constantes.md l. 216-218 y l. 296), 18-c (18-rendimiento.md l. 272), riesgo 13 (19-riesgos.md l. 23). Las dos desviaciones de la propuesta tienen motivo escrito en 10-m: tope 500 y no 2.000 (con 180 KB por `VeilDelta`, 351 MB en el peor caso) y sin vaciar al cambiar de día, porque el barrido ya quita las claves viejas en un minuto. `TtlMemo` compila con `tsconfig.base.json` en el armado del auditor. La esperanza de B12 «a los 61 s de la última petición está vacío» no la cumple un `TtlMemo` que solo barre en `set`; la corrige A-L6-004.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-014",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L6.json",
+    "veredicto": "cerrado",
+    "evidencia": "10-horizonte.md l. 438 (§10.8: `cs_viewer` se firma solo si la que llega falta, no vale, es de otro usuario o tiene más de un día; su vida cuenta desde el último día de uso), l. 484 (fila de la tabla), l. 498 (regla 5 de §10.9) y l. 616 (10-g, con `nowS − issuedAtS > 86.400`). 14-api.md l. 369-370 (el `onSend` con esa condición), l. 528 y 534 (§14.9: la reutilización del tramo depende de que la cabecera `Cookie` no cambie, RFC 9111 §4.1), l. 489 (`routes/broadcast.test.ts`: dos tramos seguidos de la misma sesión con una `cs_viewer` de hace una hora sin `Set-Cookie`) y l. 627 (14-m). D-35 precisada (00-decisiones.md l. 41). `readViewerCookie` ya devuelve `issuedAtS` (10-horizonte.md l. 456-465), que es lo que necesita la condición; compila.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-017",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L6.json",
+    "veredicto": "cerrado",
+    "evidencia": "14-api.md l. 270: con la línea en el LRU, de 0,23 a 1,00 ms (`l7/red.mjs`); sin ella, de 2,7 a 7,1 ms (§5.6) más el `parse` de Zod, con las dos caras (el esquema aproximado de `coste/zod/decode.mjs` y el `storedTimelineV1Schema` de §4.3, de unos 8 a unos 28 ms y de 50 a 80 ms la primera llamada), y «El 1,3 a 4,7 ms que midió `datos` … es el de su formato». §18.10 tiene la etiqueta «M, por partes» (18-rendimiento.md l. 245) y §18.2 la misma cuenta (l. 63). La cifra del esquema aproximado decía «de 0,3 a 14,5 ms (medianas de dos corridas)» y §18.2 «de 0,4 a 14,5 … repetido en la corrección, de 0,39 a 13,6»: son tres corridas, y A-L6-006 lo escribe igual en los dos sitios.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-018",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L6.json",
+    "veredicto": "cerrado",
+    "evidencia": "10-horizonte.md l. 497 (regla 4: solo cuenta un cambio de un valor ya resuelto; el paso de `isPending` al primer valor no; `useHorizonRev()` devuelve `undefined` y las consultas de `HORIZON_KEYS` esperan con `enabled: rev !== undefined`; el coste, un viaje de ida y vuelta). 14-api.md l. 589-594 (`horizonKey` con `rev` opcional, `cacheOwnerChanged` pura, `SessionSeen`), l. 602 (el vigilante y `queryKeys.test.ts`, que comprueba el `enabled` atado al `rev` y prueba `cacheOwnerChanged` con los cinco pasos) y l. 632 (14-r). El caso «la primera carga con sesión pide cada consulta una sola vez» lo sustituyen esas dos comprobaciones, con motivo: sin DOM no se puede renderizar la página (§18.5). Comprobado `ProtectedRoute.tsx` l. 7-9 (`isPending`).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-023",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L6.json",
+    "veredicto": "cerrado",
+    "evidencia": "14-api.md l. 270 (el adaptador tiene su LRU de 16; los dos juntos, de 16 a 60 MB si la línea del adaptador pesa como una grabada, estimado; el adaptador en frío no se ha medido porque no existe: leer la radio, validarla con `storedRaceRadioSchema`, `leadersThroughStage` y construir la línea, del orden de decenas de ms, estimado con los 10-27 ms de `buildRaceRadio`; lo mide el paso 3a, §18.9) y l. 630 (14-p). Fuera de §14: la medida pendiente del paso 3a en §18.9 (18-rendimiento.md l. 224), 18-d con el doble (l. 273) y la tabla de §18.10 (l. 246), y el riesgo 13 (19-riesgos.md l. 23). Comprobado `chronicle.ts` l. 1257 (`storedRaceRadioSchema`) y `routes/races.ts` l. 108 (`leadersThroughStage`).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-023",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L6.json",
+    "veredicto": "cerrado",
+    "evidencia": "10-horizonte.md l. 128 (§10.4, punto 2: seguir al empezar a ver es el defecto que se implementa (D-30), no palabra del dueño, con su consecuencia, la contraria y «va al dueño, dentro de DD-01 (§20.2)»). DD-01 lo lleva: 20-dueno.md l. 21 (pregunta, defecto, consecuencia y contraria) y l. 102; D-30 corregida con la versión anterior en cita (00-decisiones.md l. 500-507); §11.20 lo remite a DD-01 (11-superficies.md l. 753).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-024",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L6.json",
+    "veredicto": "cerrado",
+    "evidencia": "10-horizonte.md l. 131: sin la cita de `captacion.md` (grep: cero en las secciones), con el porqué propio (un ranking, un feed o una ficha que esperasen a todo lo no visto se quedarían parados para quien no mira nada) y la tercera respuesta de DD-01, todas las carreras, con su cifra. DD-01 la lleva en 20-dueno.md l. 21 (contraria) y l. 55 (§20.3); D-30, 00-decisiones.md l. 500-505. Re-corrido por el auditor `c-l6/todas.mjs`: 842 carreras y 1.418 etapas; todas en guardia, 202 en la mediana, 601 en el p90, 669 como máximo y alguna velada 356 días de 364; las ocho de cabecera, 7, 29, 42 y 260 días, que es la cifra de `producto`.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-044 · parte de L6 (§10 y §14)",
+    "tipo": "hallazgo de otro lote",
+    "origen": "correcciones-L6.json (asignado también a L6; su lote es L9, §19.1): se audita aquí solo lo que cae en §10 y §14",
+    "veredicto": "cerrado",
+    "evidencia": "14-api.md l. 385-402 (§14.5: `PLAYER_RATE_LIMIT` con contador propio, por usuario con sesión, 1.200 por minuto, y por IP sin ella, 300; el 429 con `retry-after` y `Loading`), l. 231 (§14.3, el ritmo acotado por la etapa), l. 489 (los dos casos en `routes/broadcast.test.ts`), l. 581 (`ApiError.retryAfterS`) y l. 631 (14-q); 10-horizonte.md l. 556 (§10.12, regla 1: un 429 no es un fallo). Comprobado `@fastify/rate-limit` 11.2.0: una ruta con `config.rateLimit` propio lleva su almacén hijo y su gancho en lugar del global (`index.js` l. 172-186) y el plugin pone `retry-after` en todo 429 (l. 359); `GLOBAL_RATE_LIMIT` en `security.ts` l. 10 y su registro en `app.ts` l. 110-121. El bloque de `security.ts` compila en el armado del auditor. Lo de fuera de §10 y §14 también está (riesgo 31, 19-riesgos.md l. 40; B18 en 16-bancos.md l. 763), pero eso lo audita L9.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-002 · parte de L6 (§10 y §14)",
+    "tipo": "hallazgo de otro lote",
+    "origen": "correcciones-L6.json (asignado también a L6; su lote es L10, §20.5): se audita aquí solo lo que cae en §10 y §14",
+    "veredicto": "cerrado",
+    "evidencia": "14-api.md l. 68 (paso 7b de la tabla de §14.1: la web reenvía `?diag=1` de la página), l. 579 (`fetchCalendarStage(raceId, day, opts?)` con `diag` desde el 7b, `StageReplay.tsx` y `Race.tsx` se lo pasan con `diag` en la clave, y su test `apps/web/src/api/results.test.ts`) y l. 633 (14-s, con la alternativa descartada); 10-horizonte.md l. 567 (§10.13, fila `admins`). Comprobado `apps/web/src/api/results.ts` l. 51-55 (hoy pide la ruta sin parámetros). §17.10 lo lleva en la fila del 7b (17-plan.md l. 40); §20.5 lo audita L10.",
+    "accion": "nada"
+  },
+  {
+    "id": "A-L6-001",
+    "tipo": "comprobación (bloques de código; aviso A-L2-003 del auditor de L2)",
+    "origen": "auditorias-L2.json, A-L2-003; compilado por el auditor de L6",
+    "veredicto": "cerrado",
+    "evidencia": "El bloque de `computeHorizon` de §10.6 llamaba a `anonHorizon`, `first`, `guardCandidates` y `buildHorizon`, que ningún bloque declaraba (TS2304), e importaba `DAYS_PER_SEASON`, `SEASON_CALENDAR` y `stageDayOfSeason` sin usarlos en TypeScript (TS6133, TS6192); además, el bloque de `throughStage`, `isVeiled` y `stageGateOf` no tenía cabecera de fichero (no era de ningún fichero, y `stageGateOf`, que §14.1 importa de `@cyclingstar/db`, no salía exportada: TS2305), y el pseudocódigo de `stageGameDay` acababa en una frase cortada desde el v0 («se exporta de horizon.ts para que haya una»). Arreglado en 10-horizonte.md: l. 188 (la importación gana `parseRaceKey`), l. 255-270 (al final del bloque: `worldHorizon` y `anonHorizon` escritos, que la prosa de l. 182 solo describía; `first`; las firmas de `guardCandidates`, cuyo cuerpo es el pseudocódigo de §10.4, y de `buildHorizon`, cuyo cuerpo es el de abajo; y `stageGameDay` en TypeScript, la cuenta de `raceReport.ts` l. 52-59 con `parseRaceKey` de `shared/src/raceKey.ts` l. 15-19, que usa las tres importaciones), l. 286-287 (la frase terminada: una sola cuenta del día de juego de una etapa, para la caducidad y el `gameDay` del velo) y l. 330 (cabecera `// packages/db/src/horizon.ts (sigue)`). Compilado con tsc 5.9.3 contra HEAD (`aud-l6/h/mk.py`: el `horizon.ts` de §4.10 más los bloques de §10 en orden, `watch.ts`, `viewerCookie.ts`, sobre packages/db y apps/api de HEAD y el shared de §4, §11, §14.2 y §15): 0 errores en esos tres ficheros.",
+    "accion": "lo he cerrado yo: 10-horizonte.md l. 188, 255-270, 286-287 y 330"
+  },
+  {
+    "id": "A-L6-002",
+    "tipo": "comprobación (bloques de código)",
+    "origen": "compilado por el auditor de L6",
+    "veredicto": "cerrado",
+    "evidencia": "`apps/api/src/spoiler.ts` (§14.1 más §14.5) no compilaba: llamaba a `installViewerAndHorizon`, escrita solo en pseudocódigo (TS2304), e importaba de `@cyclingstar/db` `anonHorizon`, `worldHorizon` y `touchLastSeen`, que ningún bloque de §10 escribía (TS2305; los dos primeros quedan escritos por A-L6-001). Y el pseudocódigo de `viewer()` usa `toWebHeaders(request)` (l. 7-18 de `routes/context.ts`; hace falta porque `getSessionCookie` lee un `Headers` y una petición de Fastify trae un objeto) sin importarla. Arreglado: 10-horizonte.md l. 428-429 (la firma de `touchLastSeen(db, userId): Promise<void>` en el bloque de los memos, con su `.catch` a cargo de quien la lanza, 10-k); 14-api.md l. 286 (`import { toWebHeaders } from './routes/context.js'`) y l. 344-347 (la firma de `installViewerAndHorizon(app, deps): void` y qué importaciones usa). Con eso, el fichero solo da TS6133 por las importaciones que usará el cuerpo de `installViewerAndHorizon`, que es pseudocódigo por diseño, y lo dice su comentario. Comprobado que el pseudocódigo es implementable con esos tipos: escrito en TypeScript en el scratchpad (`aud-l6/h/ivh.ts`: los cuatro métodos con `decorateRequest`, memorizados por petición en un `WeakMap`, el `sessionMemo`, la cookie y el `onSend`) el fichero compila con 0 errores. También compilan sin errores el bloque de `security.ts` (§14.5), el de `broadcastSource.ts` (§14.4, con dos importaciones que le faltaban y he añadido en 14-api.md l. 239-240), el `env.ts` de §14.6 sobre el real, el cableado de `app.ts` de §14.6 sobre el real (con `HealthRouteContext.features`), las declaraciones de `queryClient.ts` de §14.11 sobre el real y la voz del tramo de §14.3 envuelta en una función con las firmas de §12.2, §12.3 y §12.6. `spaShell.ts` (§14.10) solo da TS6133 por `pageTitle` y `stageReadyNotice`, que usa `shellMetaFor`, escrita en pseudocódigo.",
+    "accion": "lo he cerrado yo: 10-horizonte.md l. 428-429; 14-api.md l. 239-240, 286 y 344-347"
+  },
+  {
+    "id": "A-L6-003",
+    "tipo": "comprobación (citas de código)",
+    "origen": "auditor de L6, al comprobar Rcoste-010",
+    "veredicto": "cerrado",
+    "evidencia": "§10.3 citaba `findSession` en `better-auth/dist/api/routes/session.mjs` l. 179 y el bloque de `cookieCache` en l. 87-178. En better-auth 1.6.25, `const session = await ctx.context.internalAdapter.findSession(sessionCookieToken)` está en l. 180, y el `if (sessionDataPayload?.session && …cookieCache?.enabled …)` abre en l. 87 y cierra en l. 179. Corregido en 10-horizonte.md l. 119 (l. 180) y l. 121 (l. 87-179). Las demás citas de esa defensa están bien: better-call 1.3.7 `dist/endpoint.mjs` l. 38-53, `session.mjs` l. 249 (`setCookieCache`), `routes/context.ts` l. 47-54.",
+    "accion": "lo he cerrado yo: 10-horizonte.md l. 119 y 121"
+  },
+  {
+    "id": "A-L6-004",
+    "tipo": "comprobación (lo que pide un test)",
+    "origen": "auditor de L6, al comprobar Rcoste-011",
+    "veredicto": "cerrado",
+    "evidencia": "El caso «el memo con tope» de B12 (§10.14) pedía que «a los 61 s de la última petición está vacío». El `TtlMemo` de §10.7 solo borra al leer la clave caducada y al barrer en cada `set` (10-horizonte.md l. 407-425: `get` en l. 410-416, `set` en l. 417-422), así que sin peticiones nadie barre y `size` sigue dando lo que había (como mucho el tope): el test fallaría con el código que el documento escribe. Corregido en 10-horizonte.md l. 593: un `set` a los 61 s de la última petición deja solo su entrada, porque barre todas las caducadas; sin peticiones las viejas esperan al siguiente `set`. La memoria sigue acotada por el tope, que es lo que pedía Rcoste-011.",
+    "accion": "lo he cerrado yo: 10-horizonte.md l. 593"
+  },
+  {
+    "id": "A-L6-005",
+    "tipo": "comprobación (dudas que quedaron viejas)",
+    "origen": "auditor de L6",
+    "veredicto": "cerrado",
+    "evidencia": "Dos «Dudas para el ensamblador» de §14 decían lo contrario del texto: la de `timelineForStage` daba `Promise<StageTimelineRead | null>` y proponía renombrar `known` a `unveiled` (14-p ya quitó el tipo, duda 1.8 cerrada), y la de `shellMetaFor` decía `pageTitle(null, 'race')` cuando §14.10 ya pasa la `PreStageInfo` de la etapa 1 (`pageTitle('en', p1, 'race')`, 11-c). El ensamblado quita ese bloque, pero el fichero de sección también se lee: las dos quedan marcadas como resueltas y con lo que se decidió (14-api.md l. 652 y 653).",
+    "accion": "lo he cerrado yo: 14-api.md l. 652-653"
+  },
+  {
+    "id": "A-L6-006",
+    "tipo": "comprobación (cifras compartidas con otra sección)",
+    "origen": "auditor de L6, al comprobar Rcoste-017",
+    "veredicto": "cerrado",
+    "evidencia": "§14.4 daba el `parse` del esquema aproximado como «de 0,3 a 14,5 ms (medianas de dos corridas)» y §18.2 (18-rendimiento.md l. 63) como «de 0,4 a 14,5 ms de mediana … repetido en la corrección, de 0,39 a 13,6»; el corrector de L6 había medido de 0,33 a 13,4 (correcciones-L6.json, Rcoste-017). Son tres corridas y ninguna cifra es falsa, pero las dos secciones contaban corridas distintas. 14-api.md l. 270 dice ahora «de 0,3 a 14,5 ms de mediana en tres corridas … (la del refutador, de 0,4 a 14,5, y dos de las correcciones, de 0,33 a 13,4 y de 0,39 a 13,6; §18.2)», que casa con §18.2.",
+    "accion": "lo he cerrado yo: 14-api.md l. 270"
+  },
+  {
+    "id": "Rcodigo-042 · cruzada L1 n.º 4",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L1.json n.º 4 → §14.4; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "14-api.md l. 261, en el pseudocódigo de `timelineForStage`, antes de `adaptadas.set`: «si tl es null: devolver null … estimatedHeadClock da null: ninguna foto tiene velocidad de cabeza (§3.8)»; y l. 266: las tres rutas responden 404 `broadcast_unavailable` cuando `timelineForStage` devuelve null, también en ese caso, y la web abre la etapa en `Report` con `Broadcast unavailable for this stage`. Casa con 03-reloj.md l. 293 (`estimatedHeadClock(…): number[] | null`) y l. 385.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-060 · cruzada L10 n.º 2",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L10.json n.º 2 → §10.2 y §10.3; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "10-horizonte.md l. 30 (§10.2: «las etapas con letra son siempre `1..k` … son conocidas las de `W`, `S`, `R` y `A` (10-e), y la `X` está fuera del velo sin ser conocida») y l. 99 (§10.3, tras `si N ≤ r.known_through` del pseudocódigo: «con una X, status 'known' quiere decir fuera del velo: la web no lo usa para dar la etapa por vista, 10-e»). Las dos frases son las que pedía la cruzada.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-025 · cruzada L10 n.º 8",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L10.json n.º 8 → §14.10 (14-k); coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "14-api.md l. 538 (§14.10: la condición por horizonte solo protege a quien abre la página con su sesión; quien pide la vista previa de un enlace compartido es un robot sin cookie y con el velo vacío, así que todo el que ve el enlace en un chat ve `Spoiler · Winner: …`; es el precio de DD-12, con las dos respuestas contrarias) y l. 625 (14-k, igual).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-005 · cruzada L2 n.º 3",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L2.json n.º 3 → §10.10; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "10-horizonte.md l. 527 (`veilCast` devuelve `{ riders, teams: cast.teams, favourites: cast.favourites }`, con el comentario «los favoritos no llevan from: se copian tal cual (8-f)») y l. 531 (con la N−1 velada la cabecera no sirve la previa, por la puerta de D-37, 8-f). `veilCast` compila contra el `TimelineCast` de §4.2 con `favourites` obligatorio (armado del auditor, `aud-l6/h/mk.py`).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-013 · cruzada L2 n.º 19",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L2.json n.º 19 → §14.4; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "14-api.md l. 270: `BroadcastHead.tt` sale de `tl.tt` (`order`, `intervalS`, `checksKm`; null en línea y con el adaptador), el tramo lleva `tt.checks` porque lo llena `chunkOf` (§4.6), y `tplRev` sale de `readStageTemplateRev` con una línea grabada y es 0 con el adaptador. Casa con 04-modelo.md l. 951-955 (`BroadcastHead.tt` y `tplRev`) y 05-motor.md l. 589 (`readStageTemplateRev(db, _h, raceKey, stageDay): Promise<number>`).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-014 · cruzada L2 n.º 20",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L2.json n.º 20 → §14.2; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "§14.2 lo tiene (14-api.md l. 157-159: `stageReplaySchema: + tplRev: z.number().int().min(0).optional()`, la revisión de plantillas del acta, 12-c; opcional por la web de ayer; `StageReport` lo hereda; «yesterday.test.ts lo omite con watch»). Pero el test que escribe §14.7 seguía como `stageReplaySchema.omit({ watch: true })` (l. 491), contra lo que dice §14.2: es lo que el auditor de L2 dejó abierto en su Rcobertura-014. Lo cierro en §14.7: `stageReplaySchema.omit({ watch: true, tplRev: true })`.",
+    "accion": "lo he cerrado yo: 14-api.md l. 491 (§14.7). Necesita otra sección: §17.10 (17-plan.md l. 330, el `yesterday.test.ts` del 7b sigue con `stageReplaySchema.omit({ watch: true })`) y §17.20 (la fila de `contracts.ts`, l. 554, no dice en qué PR gana `stageReplaySchema` `watch` y `tplRev`); cerrado en la resolución cruzada (ya estaba en el texto: cierre de L9, A-L9-006): la otra sección: 17-plan.md l. 330 y 554"
+  },
+  {
+    "id": "Rcoste-005 · cruzada L2 n.º 33",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L2.json n.º 33 → §14.8; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "14-api.md l. 516 (la fila «la línea entera» queda marcada: «medido por `datos` … sobre OTRO formato, el suyo: no es el de §4.3 (20,9 a 70,0 KB guardada, §5.7)») y l. 519 (la etapa entera en `Watch`: «de 28 a 82 KB comprimidos … sin la meta (medido por §18.1, de 27,9 a 81,5 KB con gzip …), más la meta (estimada en 10-20 KB)»), que es lo que pedía la cruzada.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-019 · cruzada L2 n.º 34",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L2.json n.º 34 → §14.6; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "14-api.md l. 423-425 (`PROGRESS_MIN_DELTA_S: z.coerce.number().int().min(0).optional()` en `envSchema`, que sustituye a `BROADCAST.progressMinDeltaS`, se lee al arrancar como `TICK_INTERVAL_MINUTES`, l. 32), l. 464-465 (el umbral que reciben las rutas: `env.PROGRESS_MIN_DELTA_S ?? BROADCAST.progressMinDeltaS`) y l. 406 (la frase de las cinco variables). Compilado por el auditor sobre el `env.ts` real (`aud-l6/h`, `tsconfig.env.json`): sin errores.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-019 · cruzada L2 n.º 35",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L2.json n.º 35 → §10.3; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "10-horizonte.md l. 117 («La carga»: escribe si lo alcanzado creció al menos «`env.PROGRESS_MIN_DELTA_S ?? BROADCAST.progressMinDeltaS` (60 s de carrera por defecto; la variable se cambia en Railway sin desplegar, 15-j, §14.6), que recibe quien aplica el umbral»).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-011 · cruzada L3 n.º 7",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L3.json n.º 7 → §10.3; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "10-horizonte.md l. 113: el párrafo tras el pseudocódigo de `recordProgress` dice, palabra por palabra, el texto que pedía la cruzada: `.set({ … })` y `.values({ … })` de Drizzle con los campos por su nombre, porque `columnasVivas.test.ts` solo reconoce así la escritura de `follow`, `knownThrough` y `horizonRev` (la segunda regla de 13-a, §13.7), y por qué con SQL crudo o con el criterio de hoy fallaría.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-014 · cruzada L3 n.º 11",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L3.json n.º 11 → §14.3 y §14.4; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "14-api.md l. 270: `BroadcastHead.tplRev`, el `rev` con que la voz del tramo elige variantes (§12.7) y `StageReport.tplRev` salen de `readStageTemplateRev(db, h, raceKey, N)` (§5.6), que lee la misma entrada del LRU que `readStageTimeline`, cuando `timelineForStage` devuelve una línea grabada (`tl.clock === 'exact'`); con el adaptador, 0; y `timelineForStage` sigue devolviendo `StageTimeline | null` (14-p). `StageTimeline.clock` existe con esos dos valores (04-modelo.md l. 195) y la firma de `readStageTemplateRev` casa (05-motor.md l. 589).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-004 · cruzada L3 n.º 22",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L3.json n.º 22 → §14.4 (y §18.2, §18.10); coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "14-api.md l. 270: con el `storedTimelineV1Schema` de §4.3, de 0,9 a 21 ms de mediana y 61 ms la primera llamada (`corr-l2/zod-real.mjs`), de 1,2 a 1,7 veces el aproximado (re-medido por L3: de 1,1 a 28,7 ms contra 0,4 a 23,1), y una línea en frío de unos 8 ms (e7) a unos 28 ms (e20) antes de cortar y de 50 a 80 ms la primera del proceso (§5.6; Rcoste-004). Casa con 18-rendimiento.md l. 63 y l. 245.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-021, Rdueno-021, Rcoste-009 · cruzada L4 n.º 9",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L4.json n.º 9 → §14.1, §14.2 y §14.7; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "Las cuatro partes. (1) `stageAccessOf` rellena `WatchState.seen` y con `A` (conocida y no vista) solo sirve el resultado sin `Watch` disponible y fuera del velo, como con la `X` (14-api.md l. 32-42, con `seen` en l. 35 y la regla en l. 39-41; l. 15). (2) La ruta condicional `POST …/broadcast/seek`, solo si el paso 10 mide más de 5 s con `Slow 4G`, nunca más allá de `lengthKm − 1`, política G (l. 99). (3) `BroadcastFinish.threeKmRule` con `threeKmRule` y la condición de `simulate.ts` l. 8289-8290 (l. 270). (4) El caso de `routes/broadcast.test.ts` (l. 489). Comprobado en el motor: `threeKmRule(kmToGo, finishType, ruleKm = STAGE.truce.threeKmRuleKm)` en `stage/truce.ts` l. 136-143 (exportada del fichero, no del paquete: de ahí «exportada en el 4a»), `threeKmRuleKm: 3` en `constants.ts` l. 5535 y `reglaTresKm` en `simulate.ts` l. 8289-8290.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-021 · cruzada L4 n.º 10",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L4.json n.º 10 → §10.2 (fila «arrastrada») y 10-e; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "10-horizonte.md l. 22 (fila «arrastrada»: «`Watch`, sin puerta; `Report` a un toque, como la caducada (6-r): no la vio, la conoce por deducción»), l. 32 (`WatchState.seen` distingue la `A`) y l. 614 (10-e: «una etapa caducada o fuera de guardia, o arrastrada, abre en `Watch`», y `seen`). §14.1 lo aplica en `stageAccessOf` (14-api.md l. 35-41).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-061 · cruzada L7 n.º 16",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L7.json n.º 16 → §10.6; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "10-horizonte.md l. 170: la fila de `browse.ts` lee también `rider_attrs` y su mecanismo dice «L para los atributos de `getPublicRider` (DD-08, `sup. X11`)». La segunda parte era condicional y no aplica: la fila de `riders.ts` (l. 175) no nombra `getCoachView`. Comprobado: `getCoachView` está en `packages/db/src/riders.ts` l. 412 y lee `riders`, `rider_hidden`, `rider_attrs` y `teams.facilities` (l. 418-457), ninguna fuente de D-32, así que no le toca fila en una tabla de lectoras de fuentes; §11.18 la lleva en la lista blanca, como dice la coherencia.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-015 · cruzada L7 n.º 21",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L7.json n.º 21 → §10.6 y §10.7; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "10-horizonte.md l. 388 (fila del mecanismo R: el total del mundo del día se guarda igual que `lastRunStages`, en una promesa por `(worldId, currentDay)` que comparten las peticiones que llegan a la vez tras el tick y que se borra si falla, 11-s) y l. 400 (§10.7, `lastRunStages` y el total del día, con la misma regla). `lastRunStages` (l. 235-247) hace exactamente eso: la promesa se guarda con su clave y `runs.catch` la borra si falla.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-039 · cruzada L7 n.º 24",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L7.json n.º 24 → §14.6 y §15.8; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "14-api.md l. 406 (las cinco variables: `AUTO_TICK` saca el tick del proceso de `web` cuando existe el servicio `tick`, 18-k), l. 426-428 (`AUTO_TICK: z.enum(['off', 'on']).default('on')` en `envSchema`), l. 464 (`autoTick` solo arranca con `env.AUTO_TICK === 'on'`) y l. 479 (su fila en la tabla de valores). §15.8 lo lleva (15-constantes.md l. 329). Compila sobre el `env.ts` real (`aud-l6/h`).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-039 · cruzada L7 n.º 31",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L7.json n.º 31 → §14.2; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "14-api.md l. 92-93 (las filas de las noticias y de `GET /api/calendar/:raceId` aceptan `?diag=1`, 11-h) y l. 97 (para un administrador con sesión se sirven con `worldHorizon`, con `diag: z.literal('1').optional()` como `stageQuerySchema`; para cualquier otro se ignora y la respuesta es la misma byte a byte; el test, `apps/api/src/diagMode.test.ts`, 8a). `stageQuerySchema` lleva ese `diag` (l. 116-119).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-039 · cruzada L7 n.º 32",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L7.json n.º 32 → §10.9; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "10-horizonte.md l. 494 (regla 1 de §10.9: «Las claves de las rutas de etapa, de la ficha de carrera y de los feeds llevan además `diag` cuando la página pide `?diag=1` (11-h, 14-s): una respuesta del modo diagnóstico nunca sirve la vista normal ni al revés»).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-043 · cruzada L7 n.º 35",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L7.json n.º 35 → §14.10; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "14-api.md l. 538: «Y el robot de un buscador tampoco lleva cookie, así que indexa el acta con el ganador», con la respuesta contraria de DD-12: si el dueño elige no indexarla, `/report` servido con `X-Robots-Tag: noindex` (§11.10); 14-k (l. 625) lo repite.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-020 · cruzada L7 n.º 43",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L7.json n.º 43 → §10.7; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "10-horizonte.md l. 400: «B14 lo sella desde el 7a contra el Postgres de servicio del CI (§16.4, decisiones 16-k y 18-j) … El jugador y `recordProgress` son puerta en la suite rápida contra ese Postgres; en PGlite solo informan y fallan por encima de 15 ms», con el porqué (de 2,55 a 4,97 ms por el socket) y el mánager medido en Railway (DD-21). Casa con 18-rendimiento.md l. 279 (18-j).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-017 · cruzada L7 n.º 46",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L7.json n.º 46 → §14.4; coherencia.json: ya_estaba",
+    "veredicto": "cerrado",
+    "evidencia": "14-api.md l. 270: «Servir un tramo con la línea en el LRU cuesta de 0,23 a 1,00 ms … Sin ella … de 3 a 22 ms antes de cortar» y «El 1,3 a 4,7 ms que midió `datos` (`datos.md` §10.5) es el de su formato, no el de este». Es la frase que pedía la cruzada, con la cara del esquema real al lado (Rcoste-004). Las cifras de las corridas casan con §18.2 tras A-L6-006.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-022 · cruzada L8 n.º 5",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L8.json n.º 5 → §10.6 (punto 1) y §17.4; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "10-horizonte.md l. 160 (punto 1: `getGcThroughStage`, `getPointsClassification` y `getKomClassification`, `results.ts` l. 236, 320 y 379, reciben primero `q: Queryable` (`Database | Tx`, el de `titles.ts`, §7.4) desde el PR 1a, porque `awardOutcome` las llama dentro de la transacción del tick y un `PgTransaction` no es asignable a `Database` (TS2379); las rutas las llaman con `db` y el 8a añade el `Horizon` detrás de `q`). §17.4 lo lleva (17-plan.md l. 96) y `Queryable` vive en `titles.ts` desde el 1a (l. 581).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-046 · cruzada L8 n.º 9",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L8.json n.º 9 → §14.2 (y §14.1); coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "14-api.md l. 157-159: `+ tplRev: z.number().int().min(0).optional()   // stage_timelines.tpl_rev (12-c) … opcional por la web de ayer (D-50); 0 sin línea. StageReport es StageReplay (§4.11) y lo hereda; yesterday.test.ts lo omite con watch`, que es el texto de la cruzada; casa con 04-modelo.md l. 982 (`StageReport = StageReplay`, «con watch y tplRev, que gana en §14.2»). El `.omit` de §14.7 no lo llevaba (ver Rcobertura-014 · cruzada L2 n.º 20): lo cierro en l. 491.",
+    "accion": "lo he cerrado yo: 14-api.md l. 491. Necesita otra sección: §17.10 (17-plan.md l. 330) y §17.20 (l. 554), como en Rcobertura-014 · cruzada L2 n.º 20; cerrado en la resolución cruzada (ya estaba en el texto: cierre de L9, A-L9-006): la otra sección: 17-plan.md l. 330 y 554"
+  },
+  {
+    "id": "Rcobertura-052 · cruzada L8 n.º 21",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L8.json n.º 21 → §15.3 y §14.8; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "14-api.md l. 519: el párrafo de los topes nombra el quinto, «`maxKnownStageGzipBytes` (110 KB, la ruta de etapa conocida, la más pesada: medida de 22,2 a 100,1 KB, el máximo más un 10 %; Rcobertura-052), sobre la etapa corrida de `routes/broadcast.test.ts` y a mano en las 24 × 2 en el paso 6». Casa con 15-constantes.md l. 154 (`maxKnownStageGzipBytes: 112_640`, 110 KB) y l. 305; la parte de §15 la auditó L2.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-062 · cruzada L8 n.º 26",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L8.json n.º 26 → §14.7 y §17.3; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "14-api.md l. 489: `routes/broadcast.test.ts` pone `process.env.DB_POOL_MAX = '1'` antes de `startTestDb()`, como `startSpoilerWorld` (§16.3), porque PGlite admite una sesión (`testDb.ts` l. 15-19) y la ruta de etapa hace cuatro consultas a la vez (`routes/races.ts` l. 114-119) y sin ello responde 500 con `ECONNRESET`; «`yesterday.test.ts`, que pide la misma ruta, igual». §17.3 lo lleva (17-plan.md l. 59). Comprobado `routes/races.ts` l. 114-119 (`Promise.all` de cuatro lecturas).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-063 · cruzada L8 n.º 27",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L8.json n.º 27 → §14.2 y §11.6; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "14-api.md l. 168-169: `riderRaceResultSchema (l. 900-911): + stagesToWatch: z.number().int().min(1).optional()`, con su porqué (§11.6, punto 2: las etapas veladas de esa carrera, la fila «Race France · 3 stages to watch», sup. P4 y H7) y que es lo que `[toWatch]` quita en B1b. Comprobado `contracts.ts` l. 900 (`riderRaceResultSchema`). La parte de §11.6 es de L7.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-084 · cruzada L8 n.º 32",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L8.json n.º 32 → §10.14 y §18.2 (18-j); coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "10-horizonte.md l. 597 (caso «dos dispositivos» de B12: dos `recordProgress` concurrentes «contra el Postgres de servicio del CI y no en PGlite, que con un solo backend lo haría pasar sin el `for update` (`watchConcurrency.test.ts`, §16.4, 16-r)»). B12 en 16-bancos.md l. 446 lo escribe igual. La parte de 18-j es de L8.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-087 · cruzada L8 n.º 33",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L8.json n.º 33 → §10.6 y §17.10 (PR 7a); coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "10-horizonte.md l. 249-253: `export function clearHorizonCaches(): void { horizonMemo.clear(); veilDeltaMemo.clear(); lastRun = null /* y el total del día de R, 11-s */ }` (el total del día lo añadió A-L6-014), solo para los tests, como `clearStageTimelineCache`, porque en el mundo de B1 el día de juego no cambia al correr la etapa velada; se exporta desde `packages/db/src/index.ts` en el 7a. `TtlMemo.clear` existe para eso (l. 424). La usa `startSpoilerWorld` (16-bancos.md l. 57 y 186) y §17.20 la lleva en `horizon.ts` (17-plan.md l. 582). Compila.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-017 · cruzada L8 n.º 48",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L8.json n.º 48 → §14.3 (el bloque de `rolesCtx`); coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "14-api.md l. 197-205: `leaders` sale de `tl.cast.riders` (quién lleva puesto cada `leader`, sin degradar) y entra en `rolesCtx.start.leaders`; el comentario dice «ni `own` ni el resto de `start` cambian grupos ni papeles; los líderes de salida deciden la etiqueta del grupo del maillot (§12.6)», el texto de la cruzada. «Por qué ese orden» (l. 227) da el porqué (6-b, Rdueno-017) y por qué no destripa (la puerta `previous_unseen` antes de construir la voz). Compilado por el auditor: el bloque, envuelto en una función con las firmas de §12.2, §12.3 y §12.6, compila contra el `chronicle.ts` real y el shared de §4 (`aud-l6/h`, `tsconfig.voz.json`): `leaders[c.worn.jersey] = c.rider` casa con `WornJersey` y `StartState.leaders` (04-modelo.md l. 762-765 y 934).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-010 · cruzada L9 n.º 5",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L9.json n.º 5 → §3.8, §14.4 y §7.8; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "14-api.md l. 243-245 (`leadersThroughStage(db, raceKey, stageDay): Promise<RaceLeaders>` sale de `routes/races.ts` l. 108-121 a `broadcastSource.ts`, exportada) y l. 268 («El reparto del adaptador» es provisional, 17-k: corredores de `snap.input` con dorsal, país, género y el equipo del día con su `jerseySeed` de hoy, `worn` de `jerseyOf(leadersThroughStage(N − 1), riderId)` con `from` en la N − 1 o la equipación, sin títulos, distinciones ni `knownWins`; `serveCast` nace en el 3a sin velo, el 6b le da líneas y notoriedad y el 7b el velo). Comprobado `routes/races.ts` l. 108-121 (privada hoy) y `jerseyOf` en `shared/src/jerseys.ts` l. 126. Las partes de §3.8 y §7.8 son de L1 y L5.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-086 · cruzada L9 n.º 7",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L9.json n.º 7 → §16.3 y §14.4; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "14-api.md l. 246-247 (`clearAdaptedTimelineCache(): void`, solo para los tests, como `clearStageTimelineCache`, porque el LRU del adaptador va por `${raceKey}|${stageDay}` sin mundo) y l. 270 (las dos claves sin mundo, y el mundo de B1 vacía las dos al montarse). Casa con 16-bancos.md l. 57 y 186 (la importación y la llamada en `startSpoilerWorld`, parte de L8).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-075 · cruzada L9 n.º 8",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L9.json n.º 8 → §10.14; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "10-horizonte.md l. 583 (caso «lo servido no es visto»: «tramos pedidos hasta el borde de la meta con el progreso informado hasta `finishS − 1` y sin `POST …/finish` (desde el 7b, el tope de lo alcanzado da 409 a todo tramo más allá de lo informado más `prefetchRaceS`; el 7b re-sella el caso, §17.10)»), que es el montaje que pedía la cruzada.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-038 · cruzada L9 n.º 11",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L9.json n.º 11 → §5.6 y §14.4 (clave de las LRU), §5.5, §13.9, §16.4; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "La parte de §14.4, el punto (1) de la cruzada, está en 14-api.md l. 270: «Las dos claves son `${raceKey}|${stageDay}`, sin mundo: por eso el reinicio reinicia el servicio `web` (13-h) … Si fueran por `${worldId}|${raceKey}|${stageDay}`, el reinicio no tendría que reiniciar `web`; mientras vayan sin mundo, lo reinicia». Los puntos (2) a (4) son de §5.5, §13.9 y §16.4 (L3 y L8).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-027 · cruzada L9 n.º 13",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L9.json n.º 13 → §12.8, §14.2 y §11; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "14-api.md l. 92 (fila de `GET /api/news` y `GET /api/teams/:id/news`: «`gc_lead_taken` y `jersey_taken` solo con `leaderNews: request.spoilerApplies()`, desde el 8a, y entonces con el filtro F como los demás (17-x)»). `request.spoilerApplies()` existe en la ampliación de `FastifyRequest` (l. 306) y su pseudocódigo (l. 362). Las partes de §12.8 y §11 son de L8 y L7.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-034 · cruzada L9 n.º 16",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L9.json n.º 16 → §14.1 (la fila del paso 11); coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "14-api.md l. 72-73: la tabla «Cómo sigue funcionando la web de hoy» tiene ya dos filas, 11a (`Race Radio` lee `radioFromTimeline` con el contrato `RaceRadio` de hoy, §12.10) y 11b (`stageRun.ts` deja de escribir `stage_snapshots.radio`, 17-v; la ruta de etapa sigue mandando `radio` desde la línea).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-085 · cruzada L9 n.º 18",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L9.json n.º 18 → §11.19 y §14.11; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "14-api.md l. 602: `apps/web/src/queryKeys.test.ts` «empieza por `/// <reference types=\"node\" />` y lee los fuentes con `readdirSync` y `readFileSync`, porque `apps/web/tsconfig.json` pone `\"types\": []`, l. 9: sin la directiva, TS2307, comprobado; son seis los tests de la web que la llevan, §17.21». Comprobado `apps/web/tsconfig.json` (l. 9, `\"types\": []`). La parte de §11.19 es de L7.",
+    "accion": "nada"
+  },
+  {
+    "id": "A-L6-007",
+    "tipo": "comprobación (regla 3: «Decisión tomada aquí» en 00-decisiones.md)",
+    "origen": "auditor de L6",
+    "veredicto": "cerrado",
+    "evidencia": "De las 14 decisiones de §10 (10-a a 10-n) y las 19 de §14 (14-a a 14-s), estaban en su D las que la cambian o precisan: 10-c y 10-d (D-32), 10-e (D-36, D-50), 10-g, 14-m y 14-r (D-35), 10-l (D-55), 10-m y 10-n (D-33), 14-d y 14-p (D-32), 14-e (D-50), 14-f y 14-g (D-51), 14-k (D-36). Faltaban seis que concretan o hacen una excepción a lo que dice una D (grep de «10-a», «10-f», «10-i», «14-i», «14-q» y «14-s» en 00-decisiones.md: cero): 10-a (D-28 dice que ver la N arrastra 1..N−1 con `A`, sin decir cuándo: se escribe en el primer progreso, no en la meta), 10-f (D-31 dice «en la visita siguiente se escribe `X`», y con D-51 no la escribe la lectura sino el acuse con `POST /api/me/reveal`), 10-i (la máscara del abandono de D-32 deja fuera la retirada voluntaria), 14-i (con `cs_viewer`, `GET /api/me/horizon` da solo `rev` y `scope`, que D-34 no dice), 14-q (D-57, regla 1, pausa con `Connection lost` todo tramo que falla; un 429 no) y 14-s (D-40 no dice desde qué PR reenvía la web `?diag=1`, que era el hueco de Rdueno-002). Las demás son locales y no cambian ninguna D: 10-b (cómo recuerda la web DD-16), 10-h (los `rev` `'world'` y `'anon'`), 10-j (la puerta del acta con dos veladas), 10-k (la escritura de `last_seen_at`), 14-a, 14-b, 14-c, 14-h, 14-j, 14-l, 14-n y 14-o.",
+    "accion": "lo he cerrado yo en 00-decisiones.md: bloques «Precisada … registrada en la auditoría L6» al final de D-28 (10-a), D-31 (10-f), D-32 (10-i), D-34 (14-i), D-40 (14-s) y D-57 (14-q), y sus seis filas al final del registro del principio"
+  },
+  {
+    "id": "A-L6-008",
+    "tipo": "comprobación (regla 3: rutas en 00-glosario.md)",
+    "origen": "auditor de L6",
+    "veredicto": "cerrado",
+    "evidencia": "La tabla G.6 del glosario (00-glosario.md, «Rutas») no decía lo mismo que §14.2: le faltaba la ruta `GET /api/calendar/:raceId`, que cambia (`horizon` · P, F y L, con `?diag=1`, 14-api.md l. 93); no llevaba `?diag=1` en la cabecera, el tramo y el acta (l. 83, 84 y 86) ni en las noticias (l. 92, que además solo sirven `gc_lead_taken` y `jersey_taken` con `leaderNews`, 17-x); la ruta de etapa decía que omite el resultado «con la etapa velada», cuando §14.1 lo omite siempre que la pantalla no lo va a enseñar (14-e, 10-e); `/health` ganaba `features` como si fuera obligatoria (es `features?`, 14-l); y no nombraba `POST /api/auth/sign-out` ni `POST /api/auth/delete-user`, que E2 cambia (borran `cs_viewer` cuando responden con éxito, §10.8, D-34).",
+    "accion": "lo he cerrado yo en 00-glosario.md, G.6: fila nueva de `GET /api/calendar/:raceId`, `?diag=1` en la cabecera, el tramo, el acta y las noticias, `leaderNews` en las noticias, la regla de 14-e en la ruta de etapa, `features?` en `/health` y una frase con las dos rutas de better-auth que borran `cs_viewer`"
+  },
+  {
+    "id": "A-L6-009",
+    "tipo": "comprobación (regla 3: tests y nombres en 00-glosario.md)",
+    "origen": "auditor de L6",
+    "veredicto": "cerrado",
+    "evidencia": "Recorridos los nombres entre comillas invertidas y las declaraciones de los bloques de §10 y §14 contra 00-glosario.md. Los tipos, las constantes (`SPOILER.*` y `BROADCAST.*`, con los mismos valores que §15: 56, 2, 60, 500, 5, 60, 90, 3; 60, 900, 15, 60, 900, 3.600, 16, 1 y los cinco topes de B6), los bancos, las rutas (salvo lo de A-L6-008) y los tests están con la misma grafía, menos uno: `apps/api/src/diagMode.test.ts` (14-api.md l. 97; nace en el 8a, §11.19 y 17-plan.md l. 346). Y los cuatro auxiliares privados que A-L6-001 y A-L6-002 escriben en los bloques (`guardCandidates`, `buildHorizon` y `first` en `horizon.ts`; `installViewerAndHorizon` en `spoiler.ts`) no estaban en las filas de esos ficheros de G.2, que sí nombran las privadas de otros (`groupBlockAt`, `speedFrom` en `instant.ts`). Los nombres que faltan y no son de E2 (`SEASON_CALENDAR`, `STALE_TIME`, `ContractError`, `getSessionCookie`, `toWebHeaders`) son del repositorio o de sus librerías, y los scripts del scratchpad (`l6/*.mjs`, `c-l6/*.mjs`) no van al glosario en ningún lote.",
+    "accion": "lo he cerrado yo en 00-glosario.md: `apps/api/src/diagMode.test.ts` en la fila de los tests nuevos de §14, §16 y §17 (G.2), y las privadas en las filas de `packages/db/src/horizon.ts` y `apps/api/src/spoiler.ts` (G.2)"
+  },
+  {
+    "id": "A-L6-010",
+    "tipo": "comprobación (regla 3: cifra compartida con §16)",
+    "origen": "auditor de L6",
+    "veredicto": "cerrado",
+    "evidencia": "§10.14 tiene 21 casos de B12 (10-horizonte.md l. 579-599) y §16.4 dice «Los veinte casos de §10.14, uno por `it`» (16-bancos.md l. 446) y «los 20 casos de §10.14» (l. 757). La diferencia es «la cuenta del día» (10-horizonte.md l. 595), que vino a §10.14 con la cruzada de Rcoste-015 (11-s) y que B12 cuenta aparte, «de §11.19», en el 8b. No es una cifra falsa en ninguno de los dos lados, pero el lector cuenta 21 donde §16 dice 20.",
+    "accion": "lo he cerrado yo: 10-horizonte.md l. 595, la fila dice que el caso es de §11.19 (11-s) y que B12 lo cuenta aparte, en el 8b; así los veinte de §16.4 son los demás"
+  },
+  {
+    "id": "A-L6-011",
+    "tipo": "comprobación (regla 3: definición compartida con §11)",
+    "origen": "auditor de L6",
+    "veredicto": "cerrado",
+    "evidencia": "«Administrador» no es lo mismo en mis secciones que en §11.15. Para `SPOILER_MODE=admins` y `BROADCAST_WATCH=admins`, §10.13 (10-horizonte.md l. 567) y §14.6 (14-api.md l. 472) usan `isUserAdmin` (`users.is_admin` o el correo de `ADMIN_EMAIL`, `adminUsers.ts` l. 53-61), como el glosario (G.8) y la duda de §14 sobre §G.8. Para `?diag=1`, §11.15 (11-superficies.md l. 495) dice «Un usuario con `users.is_admin` … y sesión», y D-40 «Un administrador (`users.is_admin`)»; pero la web decide si enseñar el botón con `GET /api/admin/whoami`, que pasa por `requireAdmin` y este por `isUserAdmin` con `ADMIN_EMAIL` (`app.ts` l. 125-134; `routes/admin.ts` l. 60-64). Si el dueño es administrador por `ADMIN_EMAIL` y no tiene `is_admin`, `SPOILER_MODE=admins` le aplica el velo y `?diag=1` no le sirve nada: el caso de Rdueno-002. No lo toco porque la regla de quién entra en el modo diagnóstico es de §11.15 y D-40. Resolución cruzada: §11.15 dice «Un administrador con sesión: `users.is_admin` … o el correo de `ADMIN_EMAIL` …, lo que da `isUserAdmin`» (11-superficies.md l. 495), y D-40 igual, con su versión anterior y su fila en el registro (00-decisiones.md: su fila del registro y el bloque «Precisada en la auditoría L7»).",
+    "accion": "necesita otra sección: §11.15 (l. 495) y D-40 deberían decir `isUserAdmin` con sesión, como §10.13, §14.6 y `whoami`, o decir por qué el diagnóstico excluye al administrador raíz; cerrado en la resolución cruzada (ya estaba en el texto: auditoría L7, A-L7-002): 11-superficies.md l. 495; 00-decisiones.md, D-40, su bloque «Precisada en la auditoría L7» y su fila del registro"
+  },
+  {
+    "id": "A-L6-012",
+    "tipo": "comprobación (cifras medidas, re-medidas)",
+    "origen": "auditor de L6",
+    "veredicto": "cerrado",
+    "evidencia": "Re-medido por el auditor lo que §10 y §14 dan como medido con scripts que siguen en el scratchpad: `l6/head.mjs` (las rutas `HEAD` heredan el `config` de su `GET`: sí), `l6/lanza.mjs` (un `onRoute` que lanza hace rechazar `ready()`: sí), `l6/veilsql.mjs` (una lista tal cual sale `($1, $2)::text[]` y la consulta falla; con `sql.param`, `$1::text[]` y devuelve las filas veladas: sí), `c-l6/fplain.mjs`, `c-l6/todas.mjs`, `c-l6/peticiones.mjs` y `c-l6/lecturas-ast2.mjs` (ver sus hallazgos): todos dan lo escrito. Solo cambia el coste de `cs_viewer` (`l6/cookie.mjs`, 10-horizonte.md l. 476): el texto dice 1,8 µs firmar y 6,3 µs leer y verificar; hoy, en esta máquina y en tres corridas, de 3,6 µs y de 8,6 a 9,8 µs. Los tamaños (94 y 161 caracteres) y los rechazos (manipulada, caducada) son los mismos. La diferencia es de máquina y no cambia ninguna conclusión (microsegundos frente a milisegundos), pero la cifra se escribe con las dos medidas.",
+    "accion": "lo he cerrado yo: 10-horizonte.md l. 476 dice también la re-medida de la auditoría"
+  },
+  {
+    "id": "A-L6-013",
+    "tipo": "comprobación (coherencia interna de §10.3)",
+    "origen": "auditor de L6",
+    "veredicto": "cerrado",
+    "evidencia": "La tabla de las escrituras de §10.3 (10-horizonte.md l. 87) decía que `recordProgress` sube `horizon_rev` «al pasar a conocida y al seguir», y su pseudocódigo (l. 101) lo sube también al arrastrar con `A` las etapas anteriores en el primer progreso (10-a): sin esa subida, `Horizon.rev` no cambiaría aunque `known_through` sí, y la web seguiría con las claves de antes (§10.9, regla 1).",
+    "accion": "lo he cerrado yo: 10-horizonte.md l. 87, «al arrastrar, al pasar a conocida y al seguir»"
+  },
+  {
+    "id": "A-L6-014",
+    "tipo": "comprobación (nombre compartido: lo que vacía `clearHorizonCaches`)",
+    "origen": "auditor de L6",
+    "veredicto": "cerrado",
+    "evidencia": "§10.6 decía que `clearHorizonCaches` vacía «el memo del horizonte, el de veilDelta y el mapa de lastRunStages» (10-horizonte.md l. 249-253); el glosario (00-glosario.md, G.4, fila de `clearHorizonCaches`) decía que vacía «horizonte, `veilDelta` y la cuenta del día» y «para los tests y el reinicio». La cuenta del día de 11-s son dos cosas, `lastRunStages` y el total del ranking que resta el mecanismo R, guardado igual, como una promesa por `(worldId, currentDay)` (11-superficies.md l. 224 y 792; fila R de §10.6, 10-horizonte.md l. 388). B1b barre las rutas del jugador antes y después de correr la etapa velada sin cambiar de día (16-bancos.md l. 377), y `startSpoilerWorld` confía en `clearHorizonCaches` para invalidar todo lo que va por `(worldId, currentDay)` (l. 184-186): si el total del día no se vacía, el barrido de después resta los puntos de la etapa velada a un total calculado antes de ella y el ranking cambia, que es justo lo que B1b prohíbe. Y nada en §10 ni en §16 la usa para el reinicio: el reinicio reinicia el servicio `web` (13-h).",
+    "accion": "lo he cerrado yo: 10-horizonte.md l. 249-253 (el comentario y el cuerpo de `clearHorizonCaches` dicen que vacía también el total del día de R, viva donde viva) y 00-glosario.md G.4 (la fila dice lo mismo y «solo para los tests», §16.3)"
+  },
+  {
+    "id": "A-L6-015",
+    "tipo": "comprobación (coherencia interna de §14: el `rev` tras escribir)",
+    "origen": "auditor de L6",
+    "veredicto": "cerrado",
+    "evidencia": "§14.2 (14-api.md l. 101) decía que el `rev` de las respuestas de `/api/me/*` «es el de `request.horizon()` recalculado tras escribir». Pero `request.horizon()` se memoriza por petición (§14.5, l. 305 y 350: «una vez por petición», en un `WeakMap`), y la ruta del progreso ya lo pide antes de escribir para mirar la puerta `previous_unseen` (§10.3, l. 92): volver a llamarlo devuelve el horizonte de antes, con el `rev` de antes, y la web no cambiaría sus claves (§10.9, regla 3). Lo que sí da el `rev` de después es lo que devuelven las escrituras: `ProgressResult.horizonRev` y el `{ horizonRev }` de `revealStage`, `setFollow` y `setSpoilerScope` (10-horizonte.md l. 71-80).",
+    "accion": "lo he cerrado yo: 14-api.md l. 101, el `rev` de la respuesta es `${currentDay}.${horizonRev}` con el `horizonRev` que devuelve la escritura si `SPOILER_MODE` vale para quien pide, y `'world'` si no, el mismo que daría `GET /api/me/horizon` justo después; no sale de `request.horizon()`"
+  },
+  {
+    "id": "A-L6-016",
+    "tipo": "comprobación (regla compartida: qué abre en `Report`)",
+    "origen": "auditor de L6",
+    "veredicto": "cerrado",
+    "evidencia": "La tabla de interruptores de §14.6 (14-api.md l. 473) decía que con `BROADCAST_WATCH` la web abre «`Watch` o `Report` (pantalla) según `watch.known` (§11.10)». Desde 6-r, 10-e y D-36 precisada, la etapa arrastrada (`A`) es conocida y abre en `Watch`: lo que decide es `watch.seen` (`W`, `S` o `R`), como dicen §10.2 (10-horizonte.md l. 22 y 32), `stageAccessOf` (14-api.md l. 35-36) y §11.18 (11-superficies.md l. 695, «`seen` sale del `watch.seen`»). Arreglado en §14.6. La tabla de §11.10 a la que remite sigue con la regla vieja: 11-superficies.md l. 350-351 pone la `A` entre quienes «la conocen» y abren en `Report`, contra 6-r.",
+    "accion": "lo he cerrado yo: 14-api.md l. 473 («según `watch.seen`: la `A`, conocida sin haberla visto, abre en `Watch`, 6-r»). Necesita otra sección: §11.10 (11-superficies.md l. 350-351), la `A` va con quien no la ha visto, en `Watch` con `Report` a un toque (6-r, 10-e); cerrado en la resolución cruzada (ya estaba en el texto: auditoría L7, A-L7-003): la otra sección: 11-superficies.md l. 350 (la `A` abre en `Watch`)"
+  },
+  {
+    "id": "A-L6-017",
+    "tipo": "comprobación (regla compartida con §11.8: la carrera de un día)",
+    "origen": "auditor de L6",
+    "veredicto": "cerrado",
+    "evidencia": "El pseudocódigo de `shellMetaFor` (§14.10, 14-api.md l. 564) daba como `og:title` de una etapa `Stage ${día} · ${p.raceName} · Watch the race` también en una carrera de un día, mientras el título de la misma página, que sale de `pageTitle`, dice `Race Sanremo · Cycling Star` sin «Stage 1» (11-superficies.md l. 272, «una carrera de un día no tiene «Stage 1»», y la tabla de l. 297). La vista previa de una clásica habría dicho `Stage 1 · Race Sanremo · Watch the race`.",
+    "accion": "lo he cerrado yo: 14-api.md l. 564, el `og:title` usa el nombre de la carrera solo cuando `p.stageCount` es 1, como `pageTitle`"
+  },
+  {
+    "id": "A-L6-018",
+    "tipo": "comprobación (regla compartida: la etapa arrastrada en el aviso de dos dispositivos)",
+    "origen": "auditor de L6",
+    "veredicto": "cerrado",
+    "evidencia": "§10.12, regla 2 (10-horizonte.md l. 557), sacaba el aviso `You finished this stage on another device · Watch anyway · Show report` de `view.known` de la cabecera. `BroadcastHead.view` solo lleva `reachedS` y `known` (04-modelo.md l. 949), y `known` es verdadero también con `A`: si en el otro dispositivo se ve o se revela una etapa posterior, la que se está viendo aquí pasa a `A` y la pestaña diría que se terminó en otro sitio, cuando 6-r manda que una arrastrada siga en `Watch`, sin puerta. Lo que distingue la `A` es `WatchState.seen`, que trae la ruta de etapa (§14.1; 11-superficies.md l. 695), y esa consulta también se rehace sola con el `rev` nuevo, porque el `rev` va en su clave (§10.9, regla 1). D-57 (2) decía «si la etapa ya es conocida en el otro», sin la `A` de 6-r.",
+    "accion": "lo he cerrado yo: 10-horizonte.md l. 557 (el aviso sale de `watch.seen`; una arrastrada sigue en `Watch`) y 00-decisiones.md, D-57, en el bloque registrado en la auditoría L6 (conocida es vista o revelada, 6-r)"
+  }
+]

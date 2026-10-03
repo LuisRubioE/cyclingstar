@@ -1,0 +1,234 @@
+[
+  {
+    "id": "Rcobertura-003",
+    "tipo": "hallazgo",
+    "veredicto": "cerrado",
+    "evidencia": "01-diagnostico.md l. 134 (§1.4: «aplica veintiuna pasadas (las veinte llamadas de l. 353-375 y `markConcession`, que corre dentro del `map`, l. 319)») y l. 279 (§1.9: «veintiuna pasadas de coherencia»); la tercera parte, §12.2, está en 12-voz.md l. 61 («D-43 habla de veintiuna pasadas…») por la cruzada de L1. Contado en el código (sin cambios entre 9c21885 y HEAD en apps/ y packages/): apps/api/src/chronicle.ts l. 353-375 hace veinte llamadas (de dedupeSitUps a groupRuns) y markConcession está en l. 319; D-43 dice veintiuna (00-decisiones.md l. 46 y 582).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-004",
+    "tipo": "hallazgo",
+    "veredicto": "cerrado",
+    "evidencia": "03-reloj.md l. 79 (`groupBlockAt(cut: TimelineCore, …)`) y l. 99 (`speedFrom(cut: TimelineCore, …)`), con las firmas de `originOf` y `lastTwoMarks` también sobre `TimelineCore` (l. 105-108). En lugar del `import type { TimelineCore }` que pedía el hallazgo, el bloque dice que es el mismo fichero que el de §4.5, que ya lo importa (04-modelo.md l. 476-479: `// packages/shared/src/broadcast/instant.ts` e `import type { BannerResult, Block, GroupDetail, GroupIx, RaceS, RiderIx, TimelineCore } from './timeline.js'`), y añade `toDs`/`Ds` de './timeline.js' y `clockMarksOf` de './reduce.js' (l. 75-76): repetir el import daría TS2300. Re-compilado por el auditor en el scratchpad (aud-l1/full) con tsconfig.base.json: §4.1 + §4.2 + `CueClass` y `PaceZone` en timeline.ts, el jerseys.ts real + §4.8, §4.4 con `clockMarksOf` declarada como F.2, y §4.5 + el bloque de §3.3 en instant.ts, con `originOf` y `lastTwoMarks` declaradas como sus comentarios: 0 errores (solo TS6133 por `groupBlockAt` sin usar, porque el cuerpo de `instantAt` no está escrito en TypeScript).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-001",
+    "tipo": "hallazgo",
+    "veredicto": "cerrado",
+    "evidencia": "01-diagnostico.md l. 287 (fila «La tolerancia del contrato»: `contracts.ts` l. 1499-1531 (`.optional()`), y l. 10-11 y 1482-1533 (`stageReplaySchema`, `z.object` strip, sin `.strict()`)) y l. 288 (fila nueva «La tolerancia de lo guardado»: `chronicle.ts` l. 1257-1317 y l. 1306 `.catch(null)`, «igual en E2 (D-50; §14.1, regla 5)»). Comprobado en el código: contracts.ts l. 10-11 es la convención «strip», l. 1482 abre `stageReplaySchema` y l. 1533 su tipo; chronicle.ts l. 1257 abre `storedRaceRadioSchema`, l. 1306 lleva `.catch(null)` y l. 1317 lo cierra.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-042",
+    "tipo": "hallazgo",
+    "veredicto": "cerrado",
+    "evidencia": "03-reloj.md l. 285-323 (§3.8): el bloque reescrito con lecturas seguras (`kms[k]!`, `kms[k + 1]!.km`, `raw[raw.length - 1]!`), `v` con tipo por `firstKnownSpeed` y `headSpeed`, ambas definidas (l. 307-320), y null en lugar de un error cuando ninguna foto tiene velocidad (mejor que la corrección pedida, con motivo: un error sería un 500 en `timelineForStage`; 14-api.md l. 259 lo recoge). Re-compilado por el auditor (aud-l1/ehc) con tsconfig.base.json contra el `StoredRadioKm` real (`@cyclingstar/engine`, raceRadio.ts l. 575-580, exportado en index.ts l. 222): 0 errores. La cita de `groupSpeedKmh` pasa a raceRadio.ts l. 679-764 (comprobado: return null en l. 757, cálculo en l. 758-763) y el techo de 75 km/h es `STAGE.radioMaxKmh` (constants.ts l. 2518).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-032",
+    "tipo": "hallazgo",
+    "veredicto": "cerrado",
+    "evidencia": "01-diagnostico.md l. 301 (§1.10, fila del 17d): el 8a cambia la firma de `getRiderLastRaceReport` (raceReport.ts l. 78, comprobado) y pone `/api/riders/me/last-race` bajo el velo con política `horizon`; si el 17d llega después conserva el `Horizon` y pasa B1a, B1b y B1c, y si llega antes el 8a se rebasa sobre él. Las otras dos partes, por cruzada: 19-riesgos.md l. 11 (riesgo 1: «el 17d y el 8a sobre la misma función») y l. 116 (§19.5), y 17-plan.md l. 477 (§17.16).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-033",
+    "tipo": "hallazgo",
+    "veredicto": "desestimado_con_motivo",
+    "evidencia": "02-principios.md l. 122 (§2.13) cita `docs/epics.md` l. 701-702, y es lo correcto: en HEAD y en 9c21885, l. 700 está en blanco, l. 701 es «> El dueño: «lo que hay que hacer si acaso es mejorar la granularidad de las instrucciones, con más» y l. 702 «> escenarios hipotéticos quizás».» (git show 9c21885:docs/epics.md | sed -n 699,703p). El motivo del corrector se sostiene; las otras dos citas casan: 08-ritmo.md l. 330 (§8.10, corregida por Rcodigo-040 de L4) y 20-dueno.md l. 73 (§20.4) dicen l. 701-702.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-010",
+    "tipo": "cruzada",
+    "origen": "L2, n.º 15 de cruzadas-L2.json; coherencia.json fila 23 (ya_estaba)",
+    "veredicto": "cerrado",
+    "evidencia": "Destino «todas las secciones (§0 a §21)». En 01-diagnostico.md, 02-principios.md y 03-reloj.md no queda ninguna remisión `§G.n` en el texto que se ensambla: la única, «el glosario (§G.1)», está en 03-reloj.md l. 390, dentro de «Dudas para el ensamblador», que `ensamblar.sh` quita. La decisión 3-b (l. 373) ya dice «el glosario de la síntesis (hoy §21.6 F.1)» y §3.3 (l. 70) «como la da F.2 (§21.6)».",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-005",
+    "tipo": "cruzada",
+    "origen": "L3, n.º 2 de cruzadas-L3.json; coherencia.json fila 46 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "02-principios.md l. 42 (§2.3, última viñeta): «E2 no sube la versión (D-09). Si otra línea la sube antes del 17d de la táctica, la «Last race» de las etapas ya corridas cuenta otra carrera, porque `raceReport.ts` l. 148 re-simula sin mirar la versión (C16); qué hacer con eso es del dueño (DD-25, §20; por defecto, adelantar el 17d), no una regla de E2 (§19.5).» Es el texto de la cruzada con el defecto vigente de DD-25 (00-decisiones.md l. 63 y la fila de DD-25). raceReport.ts l. 148 es `simulateStage(input, snap.seed)` (comprobado).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-030",
+    "tipo": "cruzada",
+    "origen": "L4, n.º 18 de cruzadas-L4.json; coherencia.json fila 94 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "03-reloj.md l. 194 (§3.5): «dos de las cuatro preguntas de la regla del diario (SPEC §6.15, l. 598-600), con la que la v27 contestó a la queja del dueño ([DUEÑO 4])», con la queja en `docs/balance.md` l. 5975-5976 y la regla en l. 6000-6002. Comprobado: SPEC.md l. 598-600 es «La regla del diario (v27)» dentro de «### 6.15 Salidas» (l. 591); balance.md l. 5975-5976 es la queja textual, l. 6000-6002 la regla y l. 6004 «se medía contra el grupo equivocado».",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-061",
+    "tipo": "cruzada",
+    "origen": "L7, n.º 13 de cruzadas-L7.json; coherencia.json fila 162 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "01-diagnostico.md l. 199 (§1.6): tras la décima, «y una undécima, `sup. X11`: la ficha de cualquier corredor manda sus atributos, que mueve lo aprendido en la etapa velada (TAC de +0,37 a +0,41 en el mundo de B1, medido, `rcod/n/b1/attrs.mjs`); queda libre por DD-08 (decisión 11-r)»; y l. 5 dice «once puertas que el inventario no tenía (las nueve de `producto.md`, y `sup. X10` y `sup. X11`…)». Casa con 11-superficies.md l. 82 y 791 (11-r), 20-dueno.md l. 28 y 00-cabecera.md l. 76 y 166 (once puertas).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-061",
+    "tipo": "cruzada",
+    "origen": "L7, n.º 14 de cruzadas-L7.json; coherencia.json fila 163 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "02-principios.md l. 11 (tabla de §2: «41 de 48 superficies, once puertas de fuera y 52 rutas `GET`») y l. 55 (§2.5: «once puertas de fuera (la décima, `sup. X10`, y la undécima, `sup. X11`, las encontró §11.2)»). Las cifras casan con §1.6 (l. 197 y 211) y con 14-api.md l. 605 y 21-apendices.md l. 413 (52 rutas `GET`).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-008",
+    "tipo": "cruzada",
+    "origen": "L8, n.º 16 de cruzadas-L8.json; coherencia.json fila 213 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "03-reloj.md l. 64 (§3.2): «sin la lista de seguimiento que hoy nombra desde el km 0 a los diez primeros de la etapa (`stageRun.ts` l. 560-568) en una etapa no conocida; en una conocida y con `?diag=1`, la ruta añade al leer los diez primeros de la etapa (§12.10, 12-o)». La otra mitad está en 05-motor.md l. 325 (§5.4) con la misma frase, y casa con 12-o (12-voz.md l. 654).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-047",
+    "tipo": "cruzada",
+    "origen": "L8, n.º 24 de cruzadas-L8.json; coherencia.json fila 221 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "03-reloj.md l. 342 (§3.8): «el adaptador además no la tiene» ya no está; en su lugar la medida del refutador (`rcod/n/adapt.mjs`, cuatro corridas): la cabeza, p99 de 0,32 a 0,60 km; todos los grupos, p99 de 0,84 a 0,89 km y máximos de 2,17 y 2,62 km; otro grupo del motor en el 15 al 30 % de los pares de fotos seguidas; B22 lo informa sin ser puerta y lo que se hace con ello es 16-s. Las cifras y la regla de 1 y 2 km casan con 16-bancos.md l. 456, l. 767 y l. 799 (16-s).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-077",
+    "tipo": "cruzada",
+    "origen": "L8, n.º 29 de cruzadas-L8.json; coherencia.json fila 226 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "03-reloj.md l. 327 (§3.8, viñeta «Los `revealS`, en décimas»): el adaptador redondea a décimas los `revealS` (`toDs(revealS) / 10`) para que el corte vaya entero por `Ds` y B9 no falle por redondeo. La parte de §4.6 está en 04-modelo.md l. 657 (`events ← los de vis.eventDs ≤ T; banners ← los de vis.bannerDs ≤ T`) y l. 663, que remite a §3.8.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-009",
+    "tipo": "cruzada",
+    "origen": "L9, n.º 4 de cruzadas-L9.json; coherencia.json fila 254 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "03-reloj.md l. 330 (§3.8: con `clock: 'estimated'`, `ProfileStrip` pinta hueco el cursor de todo grupo que no sea la cabeza, la barra escribe su km con `~` y el aviso lleva debajo `Positions of the groups behind are estimated`; nada de eso con `clock: 'exact'`; nace en el 3c con su caso en `GroupBar.test.tsx`) y l. 351 (la fila del adaptador en la tabla de qué abre cada etapa). Fuera de §3 también está: 06-pantalla.md l. 128 (§6.2), 00-glosario.md l. 992 (G.11) y 21-apendices.md l. 574 (F.3).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-010",
+    "tipo": "cruzada",
+    "origen": "L9, n.º 5 de cruzadas-L9.json; coherencia.json fila 255 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "03-reloj.md l. 328 (§3.8, viñeta «Un reparto provisional», decisión 17-k): los corredores de `snap.input` con dorsal, país, género, el equipo del día y su `jerseySeed`, `worn` de `jerseyOf(leadersThroughStage(N − 1), riderId)`, sin títulos ni `knownWins`; `leadersThroughStage` sale de `routes/races.ts` l. 108-121 (comprobado: privada, l. 108) a `broadcastSource.ts`, exportada; `serveCast` nace en el 3a sin velo. Comprobado también `input.riders[].teamId` (`types.ts` l. 264) y `jerseyOf` (`packages/shared/src/jerseys.ts` l. 126). Casa con 14-api.md l. 266 (§14.4) y 07-rotulos.md l. 473 (§7.8).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-042",
+    "tipo": "cruzada",
+    "origen": "L9, n.º 6 de cruzadas-L9.json; coherencia.json fila 256 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "03-reloj.md l. 291-293 (`export function estimatedHeadClock`, «Exportada para su test, apps/api/src/broadcastSource.test.ts (PR 2, §17.5)») y l. 323 (los tres casos del test); el bloque de cierre (l. 385) dice «exportada». Glosario: 00-glosario.md l. 172 (G.2) y l. 746 (G.4: «deja de ser privada»). El test está en 17-plan.md l. 122 y la fila de l. 599.",
+    "accion": "nada en §3. Para otras: 17-plan.md l. 122 dice «aunque §3.8 la daba por privada», que ya no es así (§17, L9); y la fila de §3 en G.14 (00-glosario.md l. 1094) conserva «`estimatedHeadClock` (privada)» como registro del v0."
+  },
+  {
+    "id": "Rdueno-005",
+    "tipo": "cruzada",
+    "origen": "L9, n.º 15 de cruzadas-L9.json; coherencia.json fila 265 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "La parte de §2.3 es la misma viñeta de la cruzada de L3 (02-principios.md l. 42). El resto también está: 00-cabecera.md l. 72 (§0.4, punto 3: «si otra línea sube la versión antes del 17d de la táctica, la «Last race» de las etapas ya corridas cuenta otra carrera (C16), y qué hacer con eso es del dueño (DD-25)»), 00-decisiones.md D-09 (l. 190 y su «Corregida en la corrección, fase 5», l. 194) y DD-25 (l. 807: por defecto, adelantar el 17d; la fila del registro, l. 63).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-060",
+    "tipo": "cruzada",
+    "origen": "L10, n.º 1 de cruzadas-L10.json; coherencia.json fila 279 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "02-principios.md l. 65 (§2.6): «por etapa del prefijo, una letra: `W` en directo, `S` en resumen, `R` revelada, `A` arrastrada, `X` caducada; la `X` está fuera del velo pero no es conocida y abre en `Watch` (10-e; §10.2, §13.4)». Casa con 10-horizonte.md l. 23 y l. 30 (las etapas con letra son 1..k; conocidas, `W`, `S`, `R` y `A`) y con 10-e (l. 592).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-007",
+    "tipo": "cruzada",
+    "origen": "L10, n.º 5 de cruzadas-L10.json; coherencia.json fila 283 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "02-principios.md l. 121 (§2.13): el título es «La D7: lo que el motor hace bien no se cambia para contarlo mejor» y la frase, la de la cruzada: «Es condicional… el dueño lo ha arreglado en el motor subiendo la versión (la v83, la v84 y la v86, el 21 y el 22 de septiembre), y el salto de 138 s E2 lo tolera en pantalla y se lo deja escrito para que decida (§3.6, D-58, DD-23).» Comprobado: v83 y v84 el 21-09 (d5ebc04, 13ed470) y v86 el 22-09 (bcd49bf) en el git log de constants.ts; la cita textual es `docs/balance.md` l. 16555-16558. Casa con 20-dueno.md l. 70 (§20.4).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-010",
+    "tipo": "cruzada",
+    "origen": "L10, n.º 15 de cruzadas-L10.json; coherencia.json fila 293 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "Destino «todas las secciones (§1 a §19)», con la tabla de 21-f. En §1, §2 y §3 no hay `§G.n` fuera de los bloques que quita el ensamblado (la única, 03-reloj.md l. 390, está en «Dudas para el ensamblador»); la coherencia ya contaba §3 entre las que no tenían.",
+    "accion": "nada"
+  },
+  {
+    "id": "A-L1-001",
+    "tipo": "comprobacion",
+    "veredicto": "cerrado",
+    "evidencia": "Regla 3, «Decisión tomada aquí» en 00-decisiones.md. §3 toma seis (03-reloj.md l. 372-377). 3-a, 3-b y 3-f están en D-04 (fila del registro, l. 17, y «Precisada en el ensamblado v0», l. 125); 3-c, 3-d y 3-e no estaban en ningún sitio de 00-decisiones.md antes de este arreglo (grep de «3-c», «3-d» y «3-e»: cero). 3-c y 3-e precisan el punto 4 de D-01 (el hueco de quien no tiene último punto común con su grupo de ahora; §4.5 las adopta en 4-t, 04-modelo.md l. 1143) y 3-d precisa D-07 (una crono no tiene radio: el adaptador no puede servirla).",
+    "accion": "lo he cerrado yo: 00-decisiones.md l. 99 (D-01, «Precisada al escribirse §3, registrada en la auditoría L1»: 3-c y 3-e, adoptadas por §4.5 en 4-t) y l. 175 (D-07: 3-d, dentro del bloque de A-L1-002), con sus filas en el registro, l. 75 y l. 77. 3-a, 3-b y 3-f ya estaban en D-04 (l. 17 y su «Precisada en el ensamblado v0»)."
+  },
+  {
+    "id": "A-L1-002",
+    "tipo": "comprobacion",
+    "veredicto": "cerrado",
+    "evidencia": "D-07 (00-decisiones.md l. 170) es la decisión que §3.8 escribe como hecho y no recogía lo que §3.8 dice hoy tras la corrección y la coherencia: sin velocidad de cabeza en ninguna foto no hay adaptador y la etapa abre en `Report` (Rcodigo-042, 03-reloj.md l. 285); el segundo aviso `Positions of the groups behind are estimated` con el cursor hueco y el `~` (Rdueno-009, l. 330 y 351); el reparto provisional desde el 3a (17-k, Rdueno-010, l. 328); los `revealS` en décimas (Rcodigo-077, l. 327); y B22 que informa de todos los grupos con su regla de 1 y 2 km (16-s, Rcodigo-047, l. 342). D-07 decía un solo aviso. El fichero promete decir «lo mismo que el documento» (l. 13).",
+    "accion": "lo he cerrado yo: 00-decisiones.md l. 175 (D-07, bloque «Precisada al escribirse §3 y en la corrección y la coherencia, fases 5 y 6; registrada en la auditoría L1» con la crono sin línea, el null sin velocidad, el segundo aviso y el cursor hueco, el reparto provisional, los `revealS` en décimas y B22 con todos los grupos) y fila del registro en l. 77. El texto de la Decisión no cambia: lo que añade §3.8 lo precisa sin contradecirlo."
+  },
+  {
+    "id": "A-L1-003",
+    "tipo": "comprobacion",
+    "veredicto": "cerrado",
+    "evidencia": "D-03 (00-decisiones.md l. 111, antes de este arreglo) resumía la regla del título así: «el `mainId` de la foto si ese grupo tiene gente; si no, el del bloque anterior». El código (`raceRadio.ts` l. 317-320 con `mainGroupId`, `group.ts` l. 194-206) y §3.7, regla 4 (03-reloj.md l. 252 y el bloque de l. 254-259), dicen otra cosa: si no, `mainGroupId` sobre los grupos de la foto con el título anterior como el que se defiende, que se conserva si sigue teniendo gente y nadie lo supera por 1,25, y si no manda el tamaño. El caso medido de §3.7 (Colombia e5, semilla 0, bloque 2251: el título anterior, `shed-349`, ya está vacío y la regla da `shed-78`) contradice el resumen de D-03.",
+    "accion": "lo he cerrado yo: 00-decisiones.md l. 111 (D-03, el paréntesis dice ahora la regla de §3.7 y del código, con `group.ts` l. 194-206) y l. 116-118 (bloque «Precisada en la auditoría L1» con el caso del bloque 2251 y la versión anterior en cita), con su fila en el registro, l. 76."
+  },
+  {
+    "id": "A-L1-004",
+    "tipo": "comprobacion",
+    "veredicto": "cerrado",
+    "evidencia": "Cifra compartida: el precedente v73 se cita `docs/balance.md` l. 14035-14036 en §2.3 (02-principios.md l. 37) y §3.6 (03-reloj.md l. 243), y l. 14036-14038 en D-09 (00-decisiones.md l. 190, antes de este arreglo). Comprobado: l. 14035-14036 es «el cambio solo añade un campo a `datos`… `ENGINE_VERSION` sube igual a **73**, porque la crónica emitida cambia»; l. 14037 está en blanco y l. 14038 ya habla de otra cosa.",
+    "accion": "lo he cerrado yo: 00-decisiones.md l. 190 (D-09 cita l. 14035-14036) y l. 198-200 (bloque «Precisada en la auditoría L1» con la versión anterior en cita), con su fila en el registro, l. 78. §2.3 y §3.6 ya estaban bien desde el arreglo de los auditores de la tanda 1 (ba69f2d)."
+  },
+  {
+    "id": "A-L1-005",
+    "tipo": "comprobacion",
+    "veredicto": "cerrado",
+    "evidencia": "03-reloj.md l. 148 («la que pone el borrador de §4.5 (paso 2)»), l. 372 (3-a: «la del borrador de §4.5 (paso 2)»), l. 373 (3-b: «como hace el borrador de §4.5 (paso 4)») y l. 376 (3-e: «el paso 8 del borrador de §4.5 busca…») hablan en presente de un §4.5 que ya no dice eso: §4.5 adopta 3-a, 3-b, 3-c, 3-e y 3-f (decisión 4-t, 04-modelo.md l. 1143; pasos 2, 4 y 8 del algoritmo, l. 573-594). En el documento ensamblado el lector lee que §4.5 hace lo que §3 descarta.",
+    "accion": "lo he cerrado yo: 03-reloj.md l. 148 («que es la que ponía el primer borrador de §4.5 (paso 2) antes de adoptar 3-a (4-t)»), l. 372 (3-a: «que era la del primer borrador de §4.5 (paso 2; §4.5 adopta 3-a en 4-t)»), l. 373 (3-b: «como hacía el primer borrador de §4.5 (paso 4; §4.5 adopta 3-b en 4-t)») y l. 376 (3-e: «el paso 8 del primer borrador de §4.5 buscaba… (§4.5 adopta 3-e en 4-t)»). Las de las «Dudas para el ensamblador» (l. 390-395) no se tocan: el ensamblado las quita y su estado está en dudas.md."
+  },
+  {
+    "id": "A-L1-006",
+    "tipo": "comprobacion",
+    "veredicto": "cerrado",
+    "evidencia": "02-principios.md l. 132: el bloque «Decisión tomada aquí» de §2, que el ensamblado conserva, enumera las decisiones que escriben los principios y no trae D-58, DD-23 ni DD-25, que el cuerpo cita desde las cruzadas de L3, L9 y L10 (l. 42: DD-25; l. 121: D-58 y DD-23).",
+    "accion": "lo he cerrado yo: 02-principios.md l. 132 añade D-58 a la lista y «§2.3 y §2.13 remiten además a dos decisiones del dueño, DD-25 y DD-23 (§20)»."
+  },
+  {
+    "id": "A-L1-007",
+    "tipo": "comprobacion",
+    "veredicto": "cerrado",
+    "evidencia": "Regla 3, nombres en el glosario: `GROUP_NOUNS` (02-principios.md l. 73, «`GROUP_NOUNS` gana `the gruppetto` y los tres nombres del grupo del maillot»; 01-diagnostico.md l. 148) es una constante que el diseño cambia en el PR 4a (17-plan.md l. 201 y la fila de `packages/engine/src/sim/coherence.ts` en §17.20, l. 545), y no está en 00-glosario.md (cero apariciones), ni `WATCHED_GROUP_NOUNS`, ni el fichero en G.2. Los demás tipos, constantes, bancos, tests y rutas de §1 a §3 están en el glosario con la misma grafía (cruce automático de los 696 nombres entre comillas invertidas; los que faltan son código de hoy que el diseño no toca, scripts, ids de corrida y textos retirados).",
+    "accion": "lo he cerrado yo: 00-glosario.md l. 200, fila nueva de G.2 («Añadidos»): `packages/engine/src/sim/coherence.ts` con lo que ganan `GROUP_NOUNS` (l. 571-600) y `WATCHED_GROUP_NOUNS` (l. 616-635) en el PR 4a, como lo dicen §12.6 (12-voz.md l. 332 y 343) y §17.20 (17-plan.md l. 545). F.2 y §17.20 no cambian: §17.20 ya lleva el fichero."
+  },
+  {
+    "id": "A-L1-008",
+    "tipo": "comprobacion",
+    "veredicto": "cerrado",
+    "evidencia": "Cifra compartida: el último km de la cabeza en `race-colombia` e5 es «de 348 a 357» s en §3.4 (03-reloj.md l. 172, del juez de ejecutabilidad: juicios/ejecutabilidad.json, «último km a 1:1: 227-357 s») y «348-358 s» en la tabla de §8.3 (08-ritmo.md l. 101, `l4/zonas.mjs`, semillas 0 y 1). La e7 (61 s) y la e18 (227-230 s) casan.",
+    "accion": "lo he cerrado yo: 03-reloj.md l. 172 dice ahora las dos medidas: «de 348 a 357 en Colombia e5 (medido por el juez de ejecutabilidad, §2.1; la tabla de §8.3, con `l4/zonas.mjs` y las semillas 0 y 1, da de 348 a 358)». Las diez marcas siguen siendo «de 6 a 36 s» con cualquiera de las dos."
+  },
+  {
+    "id": "A-L1-009",
+    "tipo": "comprobacion",
+    "veredicto": "cerrado",
+    "evidencia": "Cifra compartida: 05-motor.md l. 398 (§5.4) dice «de 418 a 3.617 marcas (mediana 1.624, las mismas cifras que §3.4)», pero §3.4 (03-reloj.md l. 172) da de 518 a 3.392 (estado) y de 558 a 3.617 (las quince corridas) y ninguna mediana: solo el máximo coincide, porque el prototipo de L3 corre 23 etapas por 2 semillas y §3.4 quince corridas. Resolución cruzada: 05-motor.md l. 398 dice ahora «de 418 a 3.617 marcas (mediana 1.624; las quince corridas de §3.4, cinco de estas etapas con tres semillas, dan de 558 a 3.617, con el mismo máximo, `race-colombia` e5)», que casa con 03-reloj.md l. 146 y 172 y con la tabla de §5.7 (05-motor.md l. 630, 3.617 marcas en `race-colombia` e5).",
+    "accion": "necesita otra sección: §5.4 (05-motor.md l. 398), que diga, por ejemplo, «de 418 a 3.617 marcas en las corridas del prototipo (mediana 1.624; en las quince de §3.4, de 558 a 3.617)» o quite «las mismas cifras que §3.4». No lo toco: es de L3; cerrado en la resolución cruzada: 05-motor.md l. 398"
+  },
+  {
+    "id": "A-L1-010",
+    "tipo": "comprobacion",
+    "veredicto": "cerrado",
+    "evidencia": "Grafía compartida: 01-diagnostico.md l. 308 (§1.11) dice «el CI usa `postgres:17` (`ci.yml` l. 35)», y en `.github/workflows/ci.yml` l. 35 la imagen es `postgres:17-alpine`, que es como la escriben §13.10 (13-esquema.md l. 443) y §19.6 (19-riesgos.md l. 177). 00-decisiones.md l. 880 repite `postgres:17`.",
+    "accion": "lo he cerrado yo: 01-diagnostico.md l. 308 (§1.11) y 00-decisiones.md l. 880 dicen `postgres:17-alpine`."
+  }
+]

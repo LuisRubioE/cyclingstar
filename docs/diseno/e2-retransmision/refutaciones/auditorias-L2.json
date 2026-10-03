@@ -1,0 +1,373 @@
+[
+  {
+    "id": "Rcobertura-005",
+    "veredicto": "cerrado",
+    "evidencia": "04-modelo.md l. 157-167: `TimelineCast.favourites` con la forma `{ rider, why: 'sprint' | 'hills' | 'climb' | 'tt' | 'cobbles' }[]`, la regla de 8-f y la procedencia (atributos de `attrsByRider`, stageRun.ts l. 298-310, antes de `raceLearning` l. 790-805 y de su escritura l. 891-897; comprobado en el código); l. 234 (fila `cast` de la tabla de procedencia); l. 315-318 (`timelineCastSchema` dentro de `storedTimelineV1Schema`, formato 1); l. 1144 (4-u). Lo de fuera de §4 está: 8-g sin «propuesto abajo» (08-ritmo.md l. 463), `veilCast` copia `favourites` (10-horizonte.md l. 505), `buildTimelineCast` y `cast.test.ts` con los favoritos (17-plan.md l. 580 y 679), 17-a sin condicional (l. 773) y el riesgo 22 en «baja: decidido en 8-g» (19-riesgos.md l. 32). Compilado hoy con tsc 5.9.3 y zod 4.4.3 contra `packages/shared` de HEAD (`aud-l2/h`), y el esquema valida las 16 líneas del prototipo (`aud-l2/h/parse-stored.mjs`).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-006",
+    "veredicto": "cerrado",
+    "evidencia": "04-modelo.md l. 176 (`TimeTrialTrace.checkClockDs` tras `kmClockDs`, con `10 · Math.round(raw[idx] · noise)`, timetrial.ts l. 143, 528 y 542, y `[]` sin controles); l. 321 (`timeTrialTraceSchema`, formato 1); l. 456 (I5 con los controles, sin tolerancia); l. 623 (fila de visibilidad del paso por control); l. 642 (`TimelineVisibility.ttCheckDs`); l. 659 (`cutTimeline` corta `checkClockDs[r]` igual que `kmClockDs[r]`); l. 663 (`chunkOf` lleva los pasos en `tt.checks`). 9-b ya es decisión («`TimeTrialTrace` lleva `checkClockDs`», 09-crono.md l. 327) y 17-a no lleva condicional (17-plan.md l. 773).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-007",
+    "veredicto": "cerrado",
+    "evidencia": "El borde de la crono es la última llegada en §4.2 (04-modelo.md l. 183, `FinishRecord.finishS`), §4.6 (l. 627), 4-r (l. 1141: `tt_last_home` sigue en `finish`) y 4-w (l. 1146), y en el paso 3 de `finish` de §5.4 (05-motor.md l. 368). §9.4 escribe las dos caras de `lastKmFromS` y se queda con la del último en salir, la que pedía este hallazgo (09-crono.md l. 172), y `timeTrial.test.ts` gana el caso de la e16, semilla 0 (l. 302).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-008",
+    "veredicto": "cerrado",
+    "evidencia": "Se cumple lo que pedía (maillot y equipo de cada nombrado en la fila sin tocar) por otro camino, con motivo: `GroupNow` no gana `named` porque el maillot llevado ya degradado y la equipación están en `RiderCard` por `RiderIx` y copiarlos obligaría a `instantAt` a recibir el reparto (04-modelo.md l. 512-513). §6 pinta el `WornJerseyIcon` delante de cada nombre de la barra (06-pantalla.md l. 19-21 y 50-53 del dibujo, l. 126 y 6-c en l. 657) y `GroupBar.test.tsx` lo comprueba (16-bancos.md l. 694). El corrector lo dejó en parcial porque la parte de §6 iba en cruzada; hoy está.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-009",
+    "veredicto": "cerrado",
+    "evidencia": "En vez de un miembro nuevo `groupBefore`, `RecorderView.groupAt(r, b − 1)` con `b = −1` como el grupo de salida (04-modelo.md l. 711), que da lo mismo. Pseudocódigo de `incident` (l. 731-734), filas de `crash` y de `puncture`/`mechanical` de carretera en la tabla (l. 678-679), `REVEAL_RULES` (l. 695), párrafo con la medida (l. 739) y 4-v (l. 1145). §5.4 revela la caída y los percances de carretera con esa regla (05-motor.md l. 376-380), `timeline.test.ts` la prueba (l. 672) y el riesgo 24 ya no existe (19-riesgos.md l. 48). Comprobado en el código: `dropOut` en el mismo bloque (simulate.ts l. 8291 y 8471).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-010",
+    "veredicto": "cerrado",
+    "evidencia": "La frase de la l. 1638 del v0 ya no remite a §G.4 (04-modelo.md l. 739 da el porqué de `source` sin remisión). En §4 y §15 solo quedan `§G.n` en los bloques «Dudas para el ensamblador» (04-modelo.md l. 1156-1158; 15-constantes.md l. 361 y 363), que ensamblar.sh quita. Contado hoy en todas las secciones con la misma limpieza que hace ensamblar.sh: queda un `§G.4`/`§G.11` entre comillas invertidas en 21-f (21-apendices.md l. 632), que es la decisión que habla de ellas, no una remisión. La tabla de conversión está en §21.6 (21-f).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-011",
+    "veredicto": "cerrado",
+    "evidencia": "04-modelo.md l. 791 (`RiderCard.gender`, con `Gender` de rider.ts l. 159-160, comprobado) y l. 1024 (`riderCardSchema` con `genderSchema`, contracts.ts l. 36). `serveCast` lo copia (07-rotulos.md l. 464) y §12.11 dice «el género en el rótulo servido (`RiderCard.gender`, §4.8)» (12-voz.md l. 619). D.8 (21-apendices.md l. 387) sigue diciendo «el género en el reparto (`CastRider.gender`)», que no es falso y el hallazgo no pedía cambiar.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-012",
+    "veredicto": "cerrado",
+    "evidencia": "04-modelo.md l. 846-856: `tt_start_order`, `tt_split` y `tt_finish` en `Cue`, con la procedencia de cada campo; frente a la propuesta llevan `deltaS` (el nombre de `TimeTrialInstant`), `timeS`, `board` y `prev`, con motivo en correcciones-L2. `CUE_CLASS` los tiene (06-pantalla.md l. 332) y `cueClassOf` los sube (l. 336-352); 9-d es decisión (09-crono.md l. 329). Compilado hoy §4 con §6: `CUE_CLASS satisfies Readonly<Record<CueKind, CueClass>>` no da error.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-013",
+    "veredicto": "cerrado",
+    "evidencia": "04-modelo.md l. 951-954 (`BroadcastHead.tt` con `order`, `intervalS` y `checksKm`, sin relojes, null en línea y con el adaptador), l. 970-972 (`BroadcastChunk.tt.checks`, tríos con `checkClockDs`), l. 1038 y 1042 (sus esquemas) y l. 663 (`chunkOf` los llena). §14.4 arma la cabecera con `tl.tt` (14-api.md l. 268) y 9-i es decisión (09-crono.md l. 334). Compilado, con `WIRE_MATCH` en los dos sentidos.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-014",
+    "veredicto": "cerrado",
+    "evidencia": "Lo de §4 está: `BroadcastHead.tplRev` (04-modelo.md l. 955), `tplRev: int.min(0)` en `broadcastHeadSchema` (l. 1038) y `StageReport` lo hereda (l. 982); §14.2 añade `tplRev` a `stageReplaySchema` y dice que `yesterday.test.ts` «lo omite con watch» (14-api.md l. 157-159); §14.4 lo lee de `readStageTemplateRev` (l. 268). Falta lo último que pedía la corrección: el test de la web de ayer sigue escrito como `stageReplaySchema.omit({ watch: true })` en §14.7 (14-api.md l. 484) y en el paso 7b (17-plan.md l. 330), sin `tplRev`, contra lo que dice §14.2. Resolución cruzada: §14.7 escribe ya `stageReplaySchema.omit({ watch: true, tplRev: true })` (14-api.md l. 491, auditoría L6) y §17 también: el 3a omite `tplRev` porque el esquema lo gana en ese PR (17-plan.md l. 151 y 155) y el 7b omite los dos (l. 330).",
+    "accion": "necesita otra sección: §14.7 (14-api.md l. 484) y §17 (17-plan.md l. 330): `stageReplaySchema.omit({ watch: true, tplRev: true })`, como dice §14.2 l. 159; cerrado en la resolución cruzada (ya estaba en el texto: auditoría L6 y cierre de L9, A-L9-006): 14-api.md l. 491; 17-plan.md l. 151, 155 y 330"
+  },
+  {
+    "id": "Rcobertura-015",
+    "veredicto": "cerrado",
+    "evidencia": "04-modelo.md l. 1057 (final del párrafo): los dos esquemas se declaran en `contracts.ts` (14-a, §14.2), sus tipos siguen en `wire.ts` y nadie los declara dos veces; el comentario del bloque (l. 922-923) y la fila de §4.13 (l. 1104) dicen lo mismo, y `wire.ts` solo importa `stageGateSchema` y `preStageInfoSchema` (l. 922), que es lo que usa. Compilado con el bloque de §14.2 sin ciclo ni duplicados.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-016",
+    "veredicto": "cerrado",
+    "evidencia": "04-modelo.md l. 1078: la variante `contract` lleva `housingCovered: boolean` con su procedencia (packages/db/src/contracts.ts l. 325-339 y `offer.payHousing` en l. 328, comprobado: solo con traslado). Compilado hoy §4 con §12: `news.ts` y `render/variants.ts` no dan error de `housingCovered`.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-049",
+    "veredicto": "cerrado",
+    "evidencia": "15-constantes.md §15.3 (l. 72-180) ya no dice «Entra en el 10a» ni «Entra en el 6a» (grep: 0). §17.20 dice que el fichero nace entero en el 2 (17-plan.md l. 558, 17-e en l. 777), el 10a solo usa las constantes «que nacieron con `BROADCAST` entero en el 2» (l. 408) y el 6a las lee (l. 271).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-050",
+    "veredicto": "cerrado",
+    "evidencia": "15-constantes.md l. 227 (título «Las copias atadas por test»), l. 18 y l. 229 (cinco copias: dos de D-52, `nameWholeGroupUpTo`, `photoBlocksOf` y `chaseRefOf`, más `PULLERS_KEPT` con fecha de muerte), l. 255-261 (el `it` de `chaseRefOf` sobre 10.000 carreteras con `seededRng`, que existe en shared/src/rng.ts l. 33), l. 280 (la medida) y 15-a y 15-k (l. 342 y 352). `export function chaseRefOf` en §6.3 (06-pantalla.md l. 162) y `export const PULLERS_KEPT` en §11.16 (11-superficies.md l. 528). Comprobado que `chaseReferenceIndex(behind, mainFraction)` tiene esa firma (group.ts l. 235-245).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-002",
+    "veredicto": "cerrado",
+    "evidencia": "04-modelo.md l. 911 reescribe la frase con las tres cosas (excepción declarada a contracts.ts l. 4-5; `RaceLeaders`, l. 431, es una anotación; `satisfies` es de un solo sentido) y 4-j dice que se aparta a sabiendas (l. 1133). El otro sentido no va en un test con `expectTypeOf` sino, con motivo (4-x, l. 1147), en `SchemaMatches` (l. 285-291), `STORED_MATCH` (l. 341) y `WIRE_MATCH` (l. 1050-1054). Re-comprobado hoy en negativo (`aud-l2/h`): un campo de más en `broadcastHeadSchema` o en `timeTrialTraceSchema` da TS2322 en `WIRE_MATCH`/`STORED_MATCH`, y uno de menos, TS1360; sin cambios compila.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-005",
+    "veredicto": "cerrado",
+    "evidencia": "El mismo arreglo que Rcobertura-016: 04-modelo.md l. 1078 con la cita l. 325-339 y `offer.payHousing` (l. 328). La duda 1.1 de dudas.md está cerrada (coherencia, cruzada L2 n.º 27).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-007",
+    "veredicto": "cerrado",
+    "evidencia": "04-modelo.md l. 1087: el bloque de `render/variants.ts` empieza por `import type { NameResolver } from '../news.js'`. Compilado §4 solo y §4 con §12.7: sin TS2304 ni import duplicado.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-008",
+    "veredicto": "cerrado",
+    "evidencia": "04-modelo.md l. 249 (`import { z } from 'zod'`), l. 293-341 (los esquemas, `storedTimelineV1Schema` entero con el múltiplo de cada lista plana y `STORED_MATCH`) y l. 348 (`fromStoredV1`, privada, con su firma). Compilado hoy sin errores en codec.ts, y el esquema emitido valida las 16 líneas del prototipo del grabador (8 de `l7/stored` y 8 cronos de `rcod/crono40-*`, 16 de 16; `aud-l2/h/parse-stored.mjs`).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-012",
+    "veredicto": "cerrado",
+    "evidencia": "15-constantes.md l. 45: «(juez del motor, C8)». Comprobado en juicios/motor.md: C8 (l. 56) es la de `bytea` con gzip 1,6-2,4 veces menos que `jsonb`.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-014",
+    "veredicto": "cerrado",
+    "evidencia": "15-constantes.md l. 56-58 (`ttMaxStoredBytes: 49_152` con la e10 de `race-italy` medida), l. 68 (fila de la tabla), l. 350 (15-i); D-11 corregida en el registro (00-decisiones.md, fila «El tope de la crono pasa de 32 a 48 KB»). Las filas de fuera están: §5.7, B6 con la crono más larga (16-bancos.md l. 440), §9.8 (09-crono.md l. 304), §19.6 (19-riesgos.md l. 187) y la duda 1.4 (dudas.md l. 18). Las 187 citas de una constante con su valor en todas las secciones casan con §15 salvo una «Versión anterior» de D-10 y una duda de §9 que el ensamblado quita (`aud-l2/cifras.mjs`).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-025",
+    "veredicto": "cerrado",
+    "evidencia": "El borde: 04-modelo.md l. 183, l. 627 y 4-w (l. 1146), y el paso 3 de §5.4 (05-motor.md l. 368), con la cifra re-medida (30 de 154 corridas, hasta +281 s). La parte de `lastKmFromS` la decidió §9.4 al revés, con motivo y con las dos caras escritas (09-crono.md l. 172: es el ritmo y no el borde, y quien llega después se pinta a `ttLastKmX` hasta el borde); el motivo se sostiene. La duda 1.3 está cerrada (dudas.md).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-026",
+    "veredicto": "cerrado",
+    "evidencia": "El mismo cambio que Rcobertura-009: la regla `incident` con `groupAt(r0, b − 1)` (04-modelo.md l. 731-734 y 4-v, l. 1145), `puncture` y `mechanical` en `REVEAL_RULES` (l. 695), el paso 5 de §5.4 (05-motor.md l. 376-380) y el riesgo 24 quitado (19-riesgos.md l. 48).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-036",
+    "veredicto": "cerrado",
+    "evidencia": "El mismo campo que Rcobertura-005 (04-modelo.md l. 157-167 y l. 315-318). Frente a la propuesta, sin `'gc'` (sale de `StartState.gcTop` al servir) y con los atributos de `rider_attrs` que lee `runOneStage` antes del aprendizaje, no los de `stage_snapshots.input` (que llevan Banister): una corrección mejor, con el motivo en el comentario. Comprobadas las líneas de stageRun.ts (298-310, 790-805, 891-897).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-004",
+    "veredicto": "cerrado",
+    "evidencia": "04-modelo.md l. 358: el `parse` de Zod medido con el esquema de §4.3 (de 0,9 a 21 ms de mediana, 61 ms la primera) y con el aproximado del refutador, que el LRU lo ahorra solo mientras lo que se mira quepa en él, que un despliegue lo vacía y que su tasa de acierto está sin medir (§18.9). Fuera de §4: §5.6 suma la cifra (05-motor.md l. 601), §18.9 lo pone como medida pendiente con la regla del 90 % (18-rendimiento.md l. 223) y 18-d la recoge (l. 273). Re-corrido hoy con el esquema compilado del texto: el mismo orden de magnitud en una máquina cargada (de 1,3 a 35 ms de mediana en 15 vueltas), sin motivo para cambiar la cifra.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-005",
+    "veredicto": "cerrado",
+    "evidencia": "04-modelo.md l. 1057 cita §18.1 (`l7/red.mjs`): la etapa entera sin la meta de 27,9 a 81,5 KB, un tramo de 0,23 a 4,72 KB y parse y Zod del tramo mayor de 0,11 a 0,54 ms; y l. 26 (§4.1) da parse y Zod de todos los tramos, de 1,1 a 7,6 ms. Recalculado hoy sobre la tabla de 18-rendimiento.md l. 17-29: las cuatro cifras casan. §14.8 marca la fila de `datos.md` como otro formato y da de 28 a 82 KB sin la meta (14-api.md l. 512).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-019",
+    "veredicto": "cerrado",
+    "evidencia": "15-constantes.md l. 147 (comentario de `progressMinDeltaS`), l. 297 (§15.6: «se sube `PROGRESS_MIN_DELTA_S` en Railway, sin desplegar»), l. 331 (§15.8) y 15-j (l. 351); D-53 precisada en el registro. Fuera de §15: `envSchema` con la variable (14-api.md l. 418 y 458), §10.3 (10-horizonte.md l. 117), la regla 9 y su lista (17-plan.md l. 17 y 508), §18.4 y §19.6 (19-riesgos.md l. 219). Comprobado `TICK_INTERVAL_MINUTES` en apps/api/src/env.ts l. 32.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-042 · cruzada L1 n.º 6",
+    "origen": "cruzadas-L1.json n.º 6 → §4.2; coherencia.json: ya_estaba",
+    "veredicto": "cerrado",
+    "evidencia": "04-modelo.md l. 78: el comentario de `GroupDetail.speedKmh` cita `groupSpeedKmh` en l. 679-764. Comprobado en raceRadio.ts: la función empieza en l. 679 y acaba en l. 764 (el `return null` en l. 757).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-010 · cruzada L2 n.º 15",
+    "origen": "cruzadas-L2.json n.º 15 → todas las secciones; coherencia.json: ya_estaba",
+    "veredicto": "cerrado",
+    "evidencia": "En §4 y §15 no queda ningún `§G.n` fuera de los bloques que ensamblar.sh quita (04-modelo.md l. 1156-1158 y 15-constantes.md l. 361 y 363 son «Dudas para el ensamblador»). Contado hoy en todas las secciones con la limpieza de ensamblar.sh: solo queda la mención entre comillas invertidas de 21-f (21-apendices.md l. 632). La tabla de conversión está al principio de §21.6.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-008 · cruzada L3 n.º 19",
+    "origen": "cruzadas-L3.json n.º 19 → §15.2 y D-11; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "15-constantes.md l. 52-55: `medianJsonBytes: 327_680` con su comentario (1,44 veces la mediana medida de 227.516 B; la e18 de 269,0 y 216,7 KB; B6 del JSON solo se imprime en el tramo del PR, 16-n) y 15-l (l. 353); D-11 tiene su fila «corregida (fase 6)» en el registro de 00-decisiones.md y G.7 lleva 327_680. §5.7 deja la cifra a §15 (05-motor.md l. 635).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-007 · cruzada L3 n.º 28",
+    "origen": "cruzadas-L3.json n.º 28 → §15.2 (15-g); coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "15-constantes.md l. 70: «una línea que pase de `maxStoredBytes` (o de `ttMaxStoredBytes`, si es una crono) se escribe igual y el tick apunta `timeline size: …`», como `recordStageTimeline` (05-motor.md l. 424).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-022 · cruzada L4 n.º 7",
+    "origen": "cruzadas-L4.json n.º 7 → §4.9; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "04-modelo.md l. 823-825: `RiderCueContext` sin `'attack'` y con el porqué (6-p); l. 809-812: el comentario de `CueClass` pone la ronda de la moto en la clase 2 reservada (6-m) y la ronda `ON COURSE` de la crono en la 0 (9-k); l. 820: `cues.ts` importa `Instant` para `aheadOfPeloton`. Compilado con §6: el import se usa.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-021, Rdueno-021 · cruzada L4 n.º 8",
+    "origen": "cruzadas-L4.json n.º 8 → §4.11; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "04-modelo.md l. 977-980 (`BroadcastFinish.threeKmRule`, con su porqué, 6-o) y l. 1044 (`threeKmRule: z.array(ix)` en `broadcastFinishSchema`); l. 1004-1007 (`WatchState.seen`, 6-r), con su campo en `watchStateSchema` (14-api.md l. 152). Compilado con `WIRE_MATCH`.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-014, Rdueno-015, Rcobertura-023 · cruzada L4 n.º 15",
+    "origen": "cruzadas-L4.json n.º 15 → §15.3 y G.7; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "15-constantes.md l. 111-112 (`controlsHideS: 3` en MANDOS, con unidad, intención y S/E), l. 294 (en la fila de la prueba de lectura de §15.6), l. 120-121 (`breakRoundEveryS`: un rótulo de la moto de clase 2 y reservado, 6-m), l. 116-117 (`cueQueueMax`: la presentación de la fuga no cuenta) y l. 134-135 (`cardRowsMax` con la lista de la fuga). G.7 lleva las cuatro filas con el mismo valor (comprobado con `aud-l2/h/consts.mjs`).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-031 · cruzada L5 n.º 1",
+    "origen": "cruzadas-L5.json n.º 1 → §15.2 (15-i); coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "15-constantes.md l. 350 (15-i): ahorro por diferencias de 6.032 a 16.589 bytes por crono, menos de 1,3 MB por temporada (77 × 16.589 = 1.277.353 B: la cota es más justa que el «menos de 1,5 MB» de la cruzada y es correcta), y la traza sola por diferencias de 3.152 a 6.402 bytes y la línea entera de 13.853 a 19.037.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-032 · cruzada L5 n.º 6",
+    "origen": "cruzadas-L5.json n.º 6 → §4.9; coherencia.json: ya_estaba",
+    "veredicto": "cerrado",
+    "evidencia": "04-modelo.md l. 825: el comentario de `tt_round` remite a «§9.5, 9-k»; el glosario lleva `tt_round` en el bloque de `Cue` (00-glosario.md l. 497) y en G.3.8 (l. 671).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-045 · cruzada L5 n.º 10",
+    "origen": "cruzadas-L5.json n.º 10 → §4.5; coherencia.json: ya_estaba",
+    "veredicto": "cerrado",
+    "evidencia": "04-modelo.md l. 548-551: `hotSeat` «es arrivals[0]» y `TimeTrialInstant.arrivals` con su orden (bestChain, timetrial.ts l. 128-158); el glosario lo lleva en G.3.2 (00-glosario.md l. 436).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-048 · cruzada L5 n.º 14",
+    "origen": "cruzadas-L5.json n.º 14 → §4.13; coherencia.json: ya_estaba",
+    "veredicto": "cerrado",
+    "evidencia": "04-modelo.md l. 1106: `pace.ts` importa `constants.ts` y tipos de `timeline.ts` y `contracts.ts`, y no importa `cues.ts` ni `wire.ts` (con 17-z ya no necesita `wire.ts`), que es lo que escribe el bloque de §8.2 (08-ritmo.md l. 33-36).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-041 · cruzada L5 n.º 15",
+    "origen": "cruzadas-L5.json n.º 15 → §4.8; coherencia.json: ya_estaba",
+    "veredicto": "cerrado",
+    "evidencia": "04-modelo.md l. 792: «el equipo CON EL QUE CORRIÓ y su equipación de ese día; el nombre, el de hoy: lo da NameResolver.team al servir, porque CastTeam no lo guarda (§7.8)».",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-011 · cruzada L6 n.º 11",
+    "origen": "cruzadas-L6.json n.º 11 → §15.3, G.7 y §15.6; coherencia.json: ya_estaba",
+    "veredicto": "cerrado",
+    "evidencia": "15-constantes.md l. 216-218 (`SPOILER.horizonMemoEntries: 500`, en §15.4, que es donde vive `SPOILER`, con unidad, intención, el peor caso de 17 y 88 MB «estimado por §10.7» y S/E) y l. 296 (su fila en §15.6). Las cifras casan con §10.7 (10-horizonte.md l. 382: 35 y 180 KB por entrada medidos, 17 y 88 MB con 500). G.7 la lleva con 500.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-039 · cruzada L7 n.º 24",
+    "origen": "cruzadas-L7.json n.º 24 → §14.6 y §15.8; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "15-constantes.md l. 329: `AUTO_TICK` (`off`, `on`; `on` por defecto; `index.ts` solo arranca `autoTick`, l. 56-85, con `on`; `off` en `web` cuando existe el servicio `tick`, 18-k), en `apps/api/src/env.ts`. Comprobado en apps/api/src/index.ts: el bloque del auto-tick va de l. 56 a l. 85. §14.6 la lleva en `envSchema` (14-api.md l. 399).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-003 · cruzada L7 n.º 37",
+    "origen": "cruzadas-L7.json n.º 37 → §4.5 (paso 9); coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "04-modelo.md l. 599-600 (paso 9: `crudo(g, s_g)` se guarda por `(g, k_g)`) y l. 604 (el p95 sin memo, de 0,064 a 0,804 ms, y con él, de 0,017 a 0,052). Recalculado hoy sobre la tabla de §18.1 (18-rendimiento.md l. 46-53, p95 · p99 por etapa en dos corridas): los dos rangos casan.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-042 · cruzada L8 n.º 1",
+    "origen": "cruzadas-L8.json n.º 1 → §4.13 y §21.6 F.2; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "04-modelo.md l. 1105: `RadioNames` con `riderOf`, `own` y `nameableAt` (12-o) y `radioFromTimeline(tl: TimelineCore, names: RadioNames): RaceRadio`; la misma firma en F.2 (21-apendices.md l. 524) y en G.4 (00-glosario.md l. 710).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-050 · cruzada L8 n.º 11",
+    "origen": "cruzadas-L8.json n.º 11 → §4.5 y §21.6 F.2; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "04-modelo.md l. 484-485: `GROUP_ROLES` e `isGroupRole` viven en `instant.ts` y se escriben en §12.6 (12-voz.md l. 301-304, cuyo bloque es de `instant.ts`); F.2 los lleva (21-apendices.md l. 518) y G.4 también (00-glosario.md l. 701).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-052 · cruzada L8 n.º 21",
+    "origen": "cruzadas-L8.json n.º 21 → §15.3 y §14.8; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "15-constantes.md l. 154-155 (`maxKnownStageGzipBytes: 112_640` con unidad, medida e intención: tope de banco, el máximo más un 10 %) y l. 305 (su fila en §15.6). G.7 la lleva (con la grafía 112.640, normalizada en A-L2-006).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-077 · cruzada L8 n.º 29",
+    "origen": "cruzadas-L8.json n.º 29 → §4.6 y §3.8; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "04-modelo.md l. 657: `cutTimeline` corta sucesos, pancartas y detalle por `vis.eventDs`, `vis.bannerDs` y su marca, todo en `Ds`; l. 663: el adaptador redondea a décimas los `revealS` que calcula, como la línea grabada, y sin eso B9 fallaría por redondeo.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-008 · cruzada L8 n.º 51",
+    "origen": "cruzadas-L8.json n.º 51 → §5.7 y §15.2 (fila de los topes); coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "15-constantes.md l. 68: los topes del `bytea` fallan en el banco de todo PR del motor; los del JSON, en el nocturno y en la rápida sobre las seis congeladas, y en el tramo del PR solo se imprimen (16-n). El comentario de `medianJsonBytes` (l. 52-54) dice lo mismo.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-073 · cruzada L9 n.º 3",
+    "origen": "cruzadas-L9.json n.º 3 → §4.13, §4.9, §4.11 y §15.3; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "17-z escrito: `CueClass` en el bloque de `timeline.ts` de §4.9 (04-modelo.md l. 807-813) y `PaceZone` en el de §4.11 (l. 914-916); `cues.ts` y `wire.ts` los importan de `./timeline.js` (l. 821 y 930); las filas de §4.13 (l. 1099, 1103, 1104 y 1106); §15.3 importa los dos de `./timeline.js` y `StageKind` de `../contracts.js` (15-constantes.md l. 79-80). Compilado hoy §4 con §15: sin errores en esos ficheros.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-010 · cruzada L10 n.º 15",
+    "origen": "cruzadas-L10.json n.º 15 → todas las secciones; coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "La misma comprobación que la cruzada L2 n.º 15: ninguna remisión `§G.n` sobrevive al ensamblado salvo la mención de 21-f (21-apendices.md l. 632).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-026 · cruzada L10 n.º 16",
+    "origen": "cruzadas-L10.json n.º 16 → §15.3 (tabla de aceptación); coherencia.json: aplicada",
+    "veredicto": "cerrado",
+    "evidencia": "15-constantes.md l. 291: «M (5:20-11:23)», y el comentario de `ttPace` (l. 91-93) da las nacionales de §9.4 (5:20-5:52, 09-crono.md l. 193-194). El glosario, la cabecera y §21 dicen 5:20-11:23.",
+    "accion": "nada"
+  },
+  {
+    "id": "A-L2-001",
+    "veredicto": "cerrado",
+    "evidencia": "Compilados con tsc 5.9.3 estricto (el `tsconfig.base.json` del repositorio: `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noUnusedLocals`, `verbatimModuleSyntax`) y zod 4.4.3, en `aud-l2/h` (los scripts de `a-l2` con `build.py`, `engine.py`, `tsc.py` y uno nuevo, `dbfull.py`): (1) todos los bloques de §4 y §15 sobre una copia de `packages/shared` de HEAD con los cuatro esquemas de §14.2 que §4.11 importa: 0 errores salvo dos `import type` de cues.ts (`Instant`, `CueClass`) que solo usa el código de §6.5 y §6.7 y que dejan de fallar al compilar con §6; (2) la guarda del grabador de §4.3 y `I1Mismatch` de §4.4 sobre una copia del motor de HEAD con la `StageProbe` de §5.2, el grabador de §5.4 y `TIMELINE` de §15.2: 0 errores (`Block` lo importa el bloque de §5.4); (3) `horizon.ts` de §4.10 solo: `TS6196`, `SpoilerScope` importado y sin usar; y con los bloques de §10 en el mismo fichero, contra `packages/db` y el `dist` del motor de HEAD: `TS2300 Duplicate identifier 'SpoilerScope'`, porque §10.6 (10-horizonte.md l. 188) lo importa también; (4) el test de §15.5 contra el `dist` del motor de HEAD: solo faltan `NAME_WHOLE_GROUP_UP_TO` y `chaseReferenceIndex`, que el PR 4a exporta (15-c, 17-j). En negativo, `STORED_MATCH` y `WIRE_MATCH` fallan con un campo de más y `satisfies` con uno de menos. Para que `@cyclingstar/shared` armado no se confunda con el de HEAD que trae el `dist` del motor hay que cambiarle la versión (TypeScript funde paquetes con el mismo nombre y versión).",
+    "accion": "lo he cerrado yo: 04-modelo.md l. 879, el `import type` de §4.10 ya no trae `SpoilerScope` (lo importa §10.6, que es quien lo usa); recompilado: `horizon.ts` de §4.10 solo, 0 errores, y con §10 sin el duplicado."
+  },
+  {
+    "id": "A-L2-002",
+    "veredicto": "cerrado",
+    "evidencia": "Al compilar §4 con §6 (`aud-l2/h`, build de 04, 06 y 15): los bloques de §6 que amplían `instant.ts` vuelven a importar lo que el bloque de §4.5 ya importa o declara en ese mismo fichero: `TS2300` por `RadioGroupKind`, `StartState` y `BROADCAST` dos veces, y `TS2440` porque importan de `./instant.js` (el propio fichero) `GroupNow`, `MainGap` y `GroupRole` (06-pantalla.md l. 96-99 y l. 155-158); el JS emitido no carga (`Identifier 'BROADCAST' has already been declared`). Y `names.ts` usa `BROADCAST` sin importarlo en ningún bloque (06-pantalla.md l. 285, 572 y 577). Los tipos de §4.5 no cambian por esto: es la forma de los bloques de §6. Resolución cruzada: el bloque de `mainGapOf` solo añade `import { BROADCAST } from './constants.js'` y dice que lo demás lo trae §4.5 (06-pantalla.md l. 96-98); el de `chaseRefOf`, `groupRoleOf` y `groupLabelOf` no importa nada (l. 154-155); la cabecera de `names.ts` importa `BROADCAST` (l. 196-199). Lo arregló y recompiló la auditoría L4 (A-L4-001).",
+    "accion": "necesita otra sección: §6 (06-pantalla.md l. 96-99 y 155-158): quitar de los bloques de `instant.ts` los `import` de `RadioGroupKind`, `StartState` y `BROADCAST` que ya trae el fichero (o, si se quieren autosuficientes, decir que van en las importaciones de §4.5) y los `import type` de `./instant.js`; y en `names.ts` importar `BROADCAST` de `./constants.js` (l. 268 o la cabecera de §6.3); cerrado en la resolución cruzada (ya estaba en el texto: auditoría L4, A-L4-001): 06-pantalla.md l. 96-98, 154-155 y 196-199"
+  },
+  {
+    "id": "A-L2-003",
+    "veredicto": "cerrado",
+    "evidencia": "Visto de paso al compilar el `horizon.ts` de §4.10 con los bloques de §10 (`aud-l2/h/dbfull.py`): el código de §10.6 llama a `anonHorizon`, `first`, `guardCandidates` y `buildHorizon`, que ningún bloque declara (TS2304; 10-horizonte.md l. 197, 200, 206, 224 y 227), e importa `DAYS_PER_SEASON` y el motor (`SEASON_CALENDAR`, `stageDayOfSeason`, l. 188-189) sin usarlos en lo escrito (TS6133, TS6192). No toca los tipos de §4.10, que compilan. Resolución cruzada: 10-horizonte.md l. 257 (`anonHorizon`), l. 259 (`first`), l. 261 (`guardCandidates`), l. 263 (`buildHorizon`) y l. 266-270 (`stageGameDay`, que usa `DAYS_PER_SEASON`, `SEASON_CALENDAR` y `stageDayOfSeason` de l. 188-189). Lo arregló y compiló la auditoría L6 (A-L6-001).",
+    "accion": "necesita otra sección: §10.6 (10-horizonte.md l. 187-230): escribir las firmas de esos cuatro auxiliares o decir dónde están, y quitar o usar las dos importaciones; cerrado en la resolución cruzada (ya estaba en el texto: auditoría L6, A-L6-001): 10-horizonte.md l. 188-189 y 255-270"
+  },
+  {
+    "id": "A-L2-004",
+    "veredicto": "cerrado",
+    "evidencia": "Las 86 claves de `TIMELINE`, `BROADCAST` y `SPOILER` (compiladas del texto de hoy) están en G.7 con el mismo valor (`aud-l2/h/consts.mjs`), y cada una lleva en §15 unidad e intención salvo una: `nextActionMinClass: 2 satisfies CueClass` no tenía comentario en §15.3 y su fila de G.7 tenía la intención vacía. Además, el comentario de `gzipLevel` decía «Nivel de gzip de stage_timelines.bytes», y `bytes` es la columna del tamaño: el gzip va en `body` (13-esquema.md l. 179-180; 04-modelo.md l. 245).",
+    "accion": "lo he cerrado yo: 15-constantes.md l. 104 (el comentario de `nextActionMinClass`, con la regla de §8.5 y 6-m), l. 43 (`stage_timelines.body`, con su tamaño en `bytes`) y 00-glosario.md l. 828 (la intención de `nextActionMinClass`)."
+  },
+  {
+    "id": "A-L2-005",
+    "veredicto": "cerrado",
+    "evidencia": "15-constantes.md l. 15 decía «los bancos suman 4.365 s de runner, unos 73 min», cuando D-52 (precisada en el ensamblado v0: «no tiempo de reloj ni de runner»), §17.1 regla 4 (17-plan.md l. 12) y §16 (16-bancos.md l. 718) dicen pruebas en serie, y ci.yml l. 103-104 los da como la suma de una corrida local.",
+    "accion": "lo he cerrado yo: 15-constantes.md l. 15, «4.365 s de pruebas en serie, unos 73 min, que la matriz reparte en ocho tramos en paralelo (… ; D-52)»."
+  },
+  {
+    "id": "A-L2-006",
+    "veredicto": "cerrado",
+    "evidencia": "Dos filas de G.7 con otra grafía que el resto: `maxKnownStageGzipBytes` con el valor «112.640» (las demás, `16_384`, como en el código) y `nominalKmh` con «seis bandas de km/h por pendiente, de 56 a 16» en vez del valor (las otras tablas de `BROADCAST` llevan el literal).",
+    "accion": "lo he cerrado yo: 00-glosario.md l. 872 (`112_640`) y l. 862 (el literal de las seis bandas, igual al de 15-constantes.md l. 99)."
+  },
+  {
+    "id": "A-L2-007",
+    "veredicto": "cerrado",
+    "evidencia": "Nombres de §4 y §15 contra 00-glosario.md (`aud-l2/glos.py`, `fields.py`, `unions.py`, `nombres.py`): los tipos, constantes y funciones exportados están todos y las interfaces y uniones de G.3 tienen los mismos campos que §4. Faltaban: `codec.test.ts` (15-constantes.md l. 64; nace en el 4b, 17-plan.md l. 213), y los esquemas privados que otras secciones nombran (`riderCardSchema` en §15.3, `liveLineSchema` en §14) con el resto de los de §4.3 y §4.11 y los auxiliares `DeepReadonly` y `Same`. Y la cabecera de G.3 decía que cada esquema se ata con `satisfies` «(contracts.ts l. 77 y 431)» y que viven en `wire.ts` salvo cuatro, cuando l. 431 es una anotación, el atado es de dos sentidos (`SchemaMatches`, 4-x) y seis viven en `codec.ts` (4-x).",
+    "accion": "lo he cerrado yo: 00-glosario.md l. 147 (la fila de `codec.ts` gana `codec.test.ts`), l. 749 (los esquemas privados y los dos auxiliares, en «Privadas que las secciones nombran») y l. 209 (la cabecera de G.3, con el atado en los dos sentidos y los seis esquemas de `codec.ts`)."
+  },
+  {
+    "id": "A-L2-008",
+    "veredicto": "cerrado",
+    "evidencia": "De las decisiones de §4 y §15, las que precisan una decisión cerrada estaban en 00-decisiones.md (D-04 con 4-t; D-05 con 4-g, 4-r, 4-v y 4-w; D-11 con 15-g, 15-i y 15-l; D-15 con 4-u; D-23 con 4-f; D-53 con 15-j) salvo dos: D-06 no recogía 4-d (el `main` se ve en el primero de los dos cruces; 4-d dice «D-06 no lo listaba»), 4-s (el `mishap`), el paso por control de 9-b ni que en crono el borde es la última llegada (4-w); y D-52 seguía diciendo que el test ata dos copias e I1, cuando 15-a, 15-c y 15-k atan cinco más `PULLERS_KEPT`, 15-b añade la regla de ESLint e I3 corre también en la rápida. Las demás (4-a a 4-c, 4-e, 4-h a 4-q, 4-x, 15-d a 15-f, 15-h) no cambian ninguna decisión cerrada y viven en su bloque, como dice la cabecera (00-cabecera.md l. 63).",
+    "accion": "lo he cerrado yo: 00-decisiones.md l. 81-82 (dos filas del registro, «registrada en la auditoría L2»), l. 172 (bloque «Precisada…» de D-06) y l. 692 (bloque «Precisada…» de D-52)."
+  },
+  {
+    "id": "A-L2-009",
+    "veredicto": "cerrado",
+    "evidencia": "La tabla de §4.13 no listaba lo que otras secciones escriben en tres ficheros: en `instant.ts`, `groupLabelOf` y `chaseRefOf` de §6.3 (que el test de §15.5 importa de `@cyclingstar/shared`) y `GROUP_ROLES` e `isGroupRole` de §12.6 (como dice el propio §4.5, l. 484), ni sus importaciones de `constants.ts`, `contracts.ts` y `jerseys.ts`; en `wire.ts`, `WatchMode`, `watchModeSchema` y los esquemas de entrada y de error de §14.2 (14-api.md l. 108-136); y en `news.ts` y `render/variants.ts` ponía como importación solo `rider.ts`, cuando §12.8 importa `zod` y `pickVariant` (12-voz.md l. 430-432) y `variants.ts` el tipo `NameResolver` (04-modelo.md l. 1087), un ciclo solo de tipos que la regla de la cabecera de §4 no nombraba. Además, el bloque de cierre «Propuesto para el glosario» ponía en `wire.ts` los cuatro esquemas que declara `contracts.ts` (14-a); el glosario ya los tiene bien (00-glosario.md l. 113).",
+    "accion": "lo he cerrado yo: 04-modelo.md l. 1102, 1104 y 1109 (las filas de `instant.ts`, `wire.ts` y `news.ts` de §4.13), l. 5 (el ciclo `news.ts` con `render/variants.ts` en la regla de importación) y l. 1153 (el bloque de cierre)."
+  }
+]

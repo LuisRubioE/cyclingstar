@@ -1,0 +1,107 @@
+[
+  {
+    "id": "Rcobertura-060",
+    "seccion_destino": "§2.6 (02-principios.md l. 65)",
+    "que": "«y, por etapa conocida, una letra: `W` en directo, `S` en resumen, `R` revelada, `A` arrastrada, `X` caducada» pasa a «y, por etapa del prefijo, una letra: `W` en directo, `S` en resumen, `R` revelada, `A` arrastrada, `X` caducada; la `X` está fuera del velo pero no es conocida y abre en `Watch` (10-e)»."
+  },
+  {
+    "id": "Rcobertura-060",
+    "seccion_destino": "§10.2 y §10.3 (10-horizonte.md l. 30 y l. 98)",
+    "que": "En §10.2, «las etapas conocidas son siempre `1..k` con `k = known_through`, y `how` tiene exactamente `k` letras» pasa a «las etapas con letra son siempre `1..k` con `k = known_through`, y `how` tiene exactamente `k` letras; son conocidas las de `W`, `S`, `R` y `A` (10-e), y la `X` está fuera del velo sin ser conocida». En §10.3, tras la línea del pseudocódigo `si N ≤ r.known_through: devolver { status: 'known', … }`: «con una `X`, `status: 'known'` quiere decir fuera del velo: la web no lo usa para dar la etapa por vista». F.1 y el glosario ya lo dicen así (21-g)."
+  },
+  {
+    "id": "Rcoste-001",
+    "seccion_destino": "§17.16 y §17.22 (17-plan.md)",
+    "que": "§17.16, donde dice «unas 37 sesiones de las 56 del total»: añadir «con un segundo implementador que lleve los PR que no están en el camino crítico (el 1a, el 1b, el 3b, el 3c, el 4a, el 7a, el 9a, el 11a y el 11b), que caben antes de que se pidan; con uno solo, 52,5 hasta el encendido (la columna En orden de §17.22)». §17.22, bajo la tabla: «La sesión no tiene duración medida. Como vara, E1 estimó 24 sesiones de código y 1 de contenido (`docs/generador.md` l. 10249) y se fusionó en 12 PR en unas 19 horas de reloj, del #250 al #261 (de la 01:25 a las 20:08 del 26-09-2026, `git log`).» §0.4 (punto 10) ya lo dice con las cifras de §17.22 tras la corrección L9 (56, 52,5 y 37)."
+  },
+  {
+    "id": "Rdueno-004",
+    "seccion_destino": "§6 (06-pantalla.md, decisión 6-h)",
+    "que": "6-h dice de la cola «lo acepta la prueba de lectura», pero la prueba de lectura no pregunta por los rótulos: pregunta quién va delante, con cuánta ventaja, sobre quién y cuánto queda, y, con la corrección de §16.5, qué lleva cada uno de los de delante y quién tira; la capa fija y la barra contestan aunque la cola tire un rótulo. Que 6-h diga quién la acepta de verdad (la medida de `l4c/cola.mjs` de §6.5, y el dueño al verla en el 6a), o que §16.5 lo mida apuntando qué rótulos salieron en cada punto. L8 manda lo mismo a §6 desde §16 (16-w ya añadió las dos preguntas a la prueba de lectura)."
+  },
+  {
+    "id": "Rdueno-007",
+    "seccion_destino": "§2.13 (02-principios.md l. 121)",
+    "que": "El título «La D7: no se cambia el motor para contar mejor» pasa a «La D7: lo que el motor hace bien no se cambia para contarlo mejor», y la frase «Es la regla que hace de E2 un encargo de observación y de presentación (§2.3), y la que decide qué hace E2 con los defectos del motor que la retransmisión hace visibles, como el salto de 138 s: tolerarlos en pantalla y escribirlos para el dueño, no arreglarlos (§3.6, D-58).» pasa a «Es condicional: lo que el motor hace bien se cuenta cambiando la radio, y por eso E2 cuenta sin tocar el motor (D-09, §2.3). Lo que el motor hace mal no lo decide la D7: el dueño lo ha arreglado en el motor subiendo la versión (la v83, la v84 y la v86, el 21 y el 22 de septiembre), y el salto de 138 s E2 lo tolera en pantalla y se lo deja escrito para que decida (§3.6, D-58, DD-23).» Es lo que ya dice §20.4."
+  },
+  {
+    "id": "Rdueno-011",
+    "seccion_destino": "§17 (17-plan.md, decisión 17-k y §17.9)",
+    "que": "DD-05 y DD-13 se contestan tras el 6b, con el rótulo delante (§20.7, 20-i), no antes del 5: el reparto provisional del 3c (17-k) enseña los maillots de líder de la fuga pero no los títulos ni las distinciones, que son lo que esas dos deciden. 17-k y el «Qué ve el dueño» del 6b pueden decirlo: lo grabado entre el 5 y la respuesta lleva el defecto y no se reescribe, y el reinicio lo borra si llega después (§13.9)."
+  },
+  {
+    "id": "Rdueno-020",
+    "seccion_destino": "§12.3 (12-voz.md, «Los racimos en vivo»)",
+    "que": "Medido (`l10/descuelgues.mjs`, las 18 corridas de §12.2 con el prototipo de `l8/grab.mjs`, la voz como V1 de `l8/voz.mjs` y `liveClusters` apagada, con la política de §7.7 aproximada: grupo de hasta 12 en el bloque anterior al de emisión, los que tiran en la capa de detalle y los protagonistas ya revelados; sin maillots ni general real, que nombrarían a más): la voz dice uno a uno de 63 a 74 descuelgues en la e20 (de 108 a 118 sueltos) y de 59 a 61 en `race-colombia` e5 (de 61 a 63), y de 0 a 1 en las otras cuatro. Como el pseudocódigo de §12.3 solo junta en racimo a los corredores sin rótulo, esos salen uno a uno también con `liveClusters` encendida: la B3 del dueño no se cumple en la voz para los que tienen rótulo. Que §12.3 lo diga con la cifra y decida si el racimo junta también a los que tienen rótulo (o solo los que no son de la fuga, los maillots ni los propios); DD-18 (§20.2, §20.3) ya lo cuenta así."
+  },
+  {
+    "id": "Rdueno-025",
+    "seccion_destino": "§14.10 (14-api.md, decisión 14-k)",
+    "que": "14-k dice que el ganador sale en la vista previa solo si la etapa está fuera del velo de quien pide la página; añadir que quien pide la vista previa de un enlace compartido es un robot sin cookie y con el velo vacío (`anon`), así que la condición solo protege a quien abre la página con su sesión, y todo el que ve el enlace en un chat ve `Spoiler · Winner: …`. Es el precio de DD-12, que el dueño decide con esa consecuencia delante (§20.2), con las dos respuestas contrarias: `og:description` neutra siempre y `X-Robots-Tag: noindex` en `/report`."
+  },
+  {
+    "id": "Rdueno-028",
+    "seccion_destino": "§12.6 y §17.9 (el acta en el 6b)",
+    "que": "El acta usa las palabras de papel de `withGroupRoles` (`the chase group` en 40 de cada 210 líneas que antes decían `the bunch`, `l8/rol.mjs`) solo para quien tiene `Watch` encendido (`broadcastOn()` del espectador, como la retransmisión); para los demás, el acta de hoy hasta el encendido. Las frases de las cuatro plantillas que imprimían su clave cruda sí salen para todos: son un arreglo. §20.5 («Lo que no tiene interruptor») ya lo cuenta así."
+  },
+  {
+    "id": "Rdueno-028",
+    "seccion_destino": "§11.17 y §17.12 (el 9a y el 9b)",
+    "que": "La pestaña `Story` conserva su nombre y la carrera de un día terminada sigue abriendo en `Result` para quien no tiene `Watch` encendido: `raceTabs` y el nombre de la pestaña miran `broadcastOn()`, y el cambio llega con el encendido y no con el despliegue del 9a y el 9b. El título de la pestaña del navegador sin resultado sí sale para todos en el 9a: es un arreglo que no cuenta nada. §20.5 ya lo cuenta así."
+  },
+  {
+    "id": "Rdueno-028",
+    "seccion_destino": "§17.15 (el paso 12)",
+    "que": "«algunas frases de etapas viejas cambian de variante» gana la cifra estimada: de las 90 elecciones de redacción de `apps/web/src/domain/stageJournal.ts` (contadas con un script sobre `pick([…])`), 44 son entre dos y 43 entre tres, así que cambia la mitad o dos tercios de las líneas que eligen (1 − 1/n, sin medir sobre etapas); B5 congela el resultado en ese PR. §20.5 la da como excepción sin interruptor."
+  },
+  {
+    "id": "Rdueno-042",
+    "seccion_destino": "§8.10 y 8-r (08-ritmo.md l. 329 y 474)",
+    "que": "DD-15 deja de ser del dueño (§20.2, 20-g): «(DD-15, por defecto no: cada uno ve cuando entra)» pasa a «(DD-15, retirada como decisión del dueño en la fase 5: la impone el tick, §20.2)», y 8-r puede citar §8.10 en lugar de DD-15. El párrafo sigue igual: el porqué es solo el tick, como pide Rdueno-044."
+  },
+  {
+    "id": "Rdueno-042",
+    "seccion_destino": "§12.8 (12-voz.md, «`text` de compatibilidad»)",
+    "que": "DD-19 deja de ser del dueño y pasa a ser una decisión de diseño de §12.8, con su valor: `text` se deja de escribir y de mandar una versión de web después del reinicio (antes rompería las pestañas abiertas, que validan `text: z.string()`, X-20; nunca dejaría una columna muerta que E10 tendría que ignorar). Conserva su número para que las remisiones de §13, §14, §17 y §19 sigan valiendo (§20.2); si la coherencia prefiere, esas remisiones pasan a «§12.8»."
+  },
+  {
+    "id": "Rdueno-040",
+    "seccion_destino": "§7.9 (07-rotulos.md)",
+    "que": "Donde §7.9 dice que sembrar títulos es de E12 (DD-06): la respuesta contraria del dueño exige, antes del reinicio, E12 fuera del orden de los encargos («E2 primero, E13 último», `docs/encargos.md` l. 6-7) o una siembra en E2 detrás de `ChampionTitleSource`, por ejemplo un sorteo sembrado entre los corredores de cada país, marcado provisional (§20.2)."
+  },
+  {
+    "id": "Rcobertura-010",
+    "seccion_destino": "todas las secciones (§1 a §19), para la coherencia",
+    "que": "La tabla de conversión está al principio de §21.6 (decisión 21-f) y afina la de L2: G.1 → F.1; G.2 → §17.20 (y §4.13 para los ficheros de tipos); G.3 → §4, por subsección (G.3.1 §4.2 y §4.3, G.3.2 §4.5, G.3.3 §4.8, G.3.4 §4.9, G.3.5 §4.10, G.3.6 §4.11, G.3.7 §4.12, G.3.8 ya escrito en su sitio por 4-u); G.4 → F.2; G.5 → §13; G.6 → §14.2 y §11.3; G.7 → §15; G.8 → §14.6; G.9 → §16.9, con los invariantes en §4.4 y §16.2; G.10 → §17.2; G.11 → F.3; G.12 → F.4; G.13 → la tabla de alias de §21.1. Donde la frase contrasta con la firma o el nombre que fijó la síntesis, se escribe entero y «el que fijó la síntesis». Quedan `§G.n` fuera de los bloques de cierre en §3, §5, §6, §7, §8, §9, §10, §11, §12, §13, §14, §16 y §17 (contadas al cerrar este lote); §0, §20 y §21 ya no tienen."
+  },
+  {
+    "id": "Rcobertura-026",
+    "seccion_destino": "§15.3 (15-constantes.md l. 283, tabla de aceptación)",
+    "que": "La fila de `ttPace` y `ttLastKmX` dice «M (6:24-11:23)»: medida hoy de 5:20 a 11:23, porque §9.4 midió las nacionales (la de 40 km con 12 corredores, `nc-es-itt`, de 5:20 a 5:24) y las bandas de B17 empiezan en 5:00 para que quepan (8-k). Pasa a «M (5:20-11:23)», como §0.7, O-11, D.7 y G.7."
+  },
+  {
+    "id": "Rdueno-004",
+    "seccion_destino": "§17.13 (17-plan.md l. 418, PR 10b, punto 4)",
+    "que": "La prueba de lectura del 10b dice «las cuatro preguntas de SPEC §6.15 y nueve de nueve»: con 16-w y 16-i son además dos más donde el grupo de delante tiene de 4 a `BROADCAST.nameWholeGroupUpTo` corredores, qué lleva cada uno de los de delante y quién tira detrás y por qué, con la verdad de `pl-truth.mjs` (§16.5, puntos 6 y 7), y un punto cuenta si las dos personas contestan bien todas. Es lo que ya dicen §16.5 y §20.5 (punto 5)."
+  },
+  {
+    "id": "Rcobertura-055, Rcodigo-047",
+    "seccion_destino": "§16.4 (16-bancos.md l. 444, B22) y 16-s (l. 785)",
+    "que": "Donde B22 y 16-s dicen que, si el p99 de todos los grupos pasa de 1 km, «decide el dueño antes de abrir en `Watch` las etapas del adaptador», añadir la remisión «(§20.6, 20-l)»: §20 lo recoge entre lo que le llega al dueño si pasa, sin número de decisión, y dice que mientras tanto la puerta sigue siendo la cabeza (D-07, D-61)."
+  },
+  {
+    "id": "Cierre L10 (DD-24)",
+    "seccion_destino": "§19 (19-riesgos.md l. 269, dudas del cierre)",
+    "que": "La duda «§11 pedía anotar `getBlockReport` «en §19 o §20»: 19-b lo deja en `docs/balance.md` como nota para el dueño; si el ensamblador lo prefiere como decisión del dueño, va a §20 con ese valor por defecto» está cerrada: es DD-24 desde el ensamblado v0 (20-a), con ese valor por defecto (no se arregla en E2, se anota en el paso 12 y el 8b solo lo vela) y su respuesta contraria (§20.2, §20.7, §20.9). Se puede quitar o dejar como registro con «es DD-24»."
+  },
+  {
+    "id": "Cierre L10 (forma)",
+    "seccion_destino": "§17.22 (17-plan.md l. 761-762)",
+    "que": "Falta la línea en blanco entre el párrafo que acaba «…del 26 de septiembre de 2026, `git log`).» y la raya `---` que abre el bloque de cierre: sin ella, Markdown pinta ese párrafo entero como un título de segundo nivel. Añadir la línea en blanco."
+  },
+  {
+    "id": "Rcobertura-019, Rdueno-017 (forma)",
+    "seccion_destino": "00-decisiones.md, D-18 (l. 268-269, «Versión anterior»)",
+    "que": "Las dos citas de la versión anterior de D-18 van seguidas sin la línea `>` que las separa, así que se pintan como un solo párrafo, y la primera se corta a media frase y con un paréntesis abierto («… `RaceRadioPanel.tsx` l. 85-89;»). La frase anterior entera, de la corrección L7 del fichero (`git show 9555cf1`), es: «El grupo del maillot conserva los nombres que la radio ya usa y el dueño pidió (`Race leader’s group`, `Points leader’s group`, `KOM leader’s group`, `RaceRadioPanel.tsx` l. 85-89; «podría llamarse grupo del maillot amarillo en vez de grupo 3», l. 50-52, v58), elegido con `JERSEY_PRIORITY` (gc > points > kom, `jerseys.ts` l. 22) y no con el orden de la radio (gc > kom > points, `RaceRadioPanel.tsx` l. 102).» Escribirla entera y poner una línea `>` en blanco entre las dos citas."
+  }
+]

@@ -1,0 +1,178 @@
+[
+  {
+    "id": "Rcobertura-017",
+    "seccion": "§5.2",
+    "linea": 2179,
+    "gravedad": "baja",
+    "afirmacion": "con un error máximo de 5 Ds (el redondeo de `tiempoS`)",
+    "fallo": "§5.2 describe la última entrada de la traza como `totalS` sin redondear («y en meta `totalS`, con el percance dentro») y la da por buena con un error de hasta 5 Ds, y 5-c (l. 2622) repite «y `totalS` en meta». Pero 9-a (l. 4465) fija que «La última entrada de `kmClockDs` es `10 · Math.round(tS)`, el `tiempoS` de `results` por diez», §4.2 (l. 1151) lo escribe así y 16-c (l. 8285) hace de I5 una igualdad exacta, «Descartado: la tolerancia de 5 Ds». Quien implemente el grabador por §5.2 deja la entrada sin redondear, y `selfCheckI5`, que exige la igualdad (l. 2407), pondría lápida a las cronos en que el redondeo cambia el segundo (de 6 a 9 de 176 tiempos, según 9-a).",
+    "correccion": "l. 2179: «El reloj propio en km `k` es `raw[round(k / dx) − 1] · noise` y en meta `10 · Math.round(totalS)`, el `tiempoS` de `results` por diez (9-a), con el percance dentro; medido …: la última entrada es igual a `10 · results.tiempoS` en 1.176 de 1.176 corredores». 5-c (l. 2622): «… y `10 · Math.round(totalS)` en meta (9-a)».",
+    "_fuente": "hallazgos-cobertura.json",
+    "_lote": 3
+  },
+  {
+    "id": "Rcobertura-018",
+    "seccion": "§5.6",
+    "linea": 2509,
+    "gravedad": "baja",
+    "afirmacion": "export interface StageTimelineRead { readonly timeline: StageTimeline; readonly known: boolean }",
+    "fallo": "`StageTimelineRead.known` significa «fuera del velo de quien lee» (la lectura sirve la línea entera), mientras `WatchState.known` (l. 1869) y `BroadcastHead.view.known` (l. 1824) significan «conocida», solo con las letras `W`, `S`, `R` o `A` (10-e, l. 5007). Una etapa caducada (`X`) o de una carrera fuera de guardia tiene aquí `known: true` y en `WatchState` `known: false`. El mismo nombre para dos conceptos, contra la C7 que el documento aplica a los grupos (§20.4, l. 9579); es la duda 1.8 de `borrador/dudas.md`, sin cerrar.",
+    "correccion": "Renombrar el campo a `unveiled` en §5.6 (l. 2509 y su uso en `readStageTimeline`), §14.4 (`timelineForStage`, l. 6952 y el texto que lo lee) y F.2, con el comentario `// fuera del velo de quien lee: conocida, caducada o fuera de guardia (10-e)`.",
+    "_fuente": "hallazgos-cobertura.json",
+    "_lote": 3
+  },
+  {
+    "id": "Rcobertura-044",
+    "seccion": "§13.3",
+    "linea": 6419,
+    "gravedad": "alta",
+    "afirmacion": "CREATE TABLE \"stage_timelines\" (",
+    "fallo": "12-c (l. 6283) decide que «La revisión de plantillas de cada etapa se guarda en `stage_timelines.tpl_rev`, que escribe el grabador con el `TEMPLATE_REV` del tick», y §12.7 (l. 6052) la necesita para que las etapas de antes «se leen igual que el día en que se vieron» (D-46, B5). Pero la `0044` no tiene la columna (SQL, l. 6419-6430; Drizzle, l. 6452 y siguientes), `writeStageTimeline` no la recibe (`StageTimelineMeta`, l. 2469: solo `raceKey`, `stageDay` y `gameDay`) y §17.8 la deja en el aire (l. 8526: «con `tpl_rev` si se acepta 12-c: decisión 17-a»). El PR 12 escribe `pickVariant` «con la revisión de la etapa» (l. 8711) sin tener de dónde leerla: una redacción nueva con `since: 1` reescribiría la voz y el acta de todas las etapas ya vistas, que es lo que B5 existe para impedir.",
+    "correccion": "En §13.3, SQL de la `0044`: `\"tpl_rev\" smallint DEFAULT 0 NOT NULL,` tras `engine_version`; en Drizzle, `/** TEMPLATE_REV del tick que grabó la etapa (12-c); 0 en una lápida. */ tplRev: smallint('tpl_rev').notNull().default(0),`. En §5.6, `StageTimelineMeta` gana `readonly tplRev: number`, `recordStageTimeline` pasa `TEMPLATE_REV` y `readStageTimeline` la devuelve para la cabecera y el acta (Rcobertura-014). En §17.8, «con `tpl_rev` (12-c)», sin condicional; `timelines.test.ts` gana «la fila guarda el `TEMPLATE_REV` del tick, y la lápida, 0».",
+    "_fuente": "hallazgos-cobertura.json",
+    "_lote": 3
+  },
+  {
+    "id": "Rcobertura-045",
+    "seccion": "§13.5",
+    "linea": 6680,
+    "gravedad": "baja",
+    "afirmacion": "qué se hace con él es §11.1",
+    "fallo": "§11.1 no dice nada de los premios sin etapa: sus filas de dinero y de presupuesto (`sup. H2`, l. 5054; `sup. H6`, l. 5058; `sup. P6`, l. 5065; `sup. X8`, l. 5096) cuentan con `transactions.race_key`/`stage_day` y `stage_team_results.prize` y no tratan la fila anterior a la `0046`. La remisión apunta a una respuesta que no existe: el implementador no sabe si R resta, ignora o rechaza un premio que no puede atribuir a ninguna etapa.",
+    "correccion": "Sustituir el final de l. 6680 por la decisión: «La resta R no lo ve: sin `ref`, un premio anterior al 8a cuenta como conocido. Solo existe en el mundo de pruebas y antes del encendido (paso 10), el reinicio lo borra (§13.9) y los mundos de B1 nacen después del 8a».",
+    "_fuente": "hallazgos-cobertura.json",
+    "_lote": 3
+  },
+  {
+    "id": "Rcodigo-009",
+    "seccion": "§5.5",
+    "linea": 2452,
+    "gravedad": "baja",
+    "afirmacion": "Los cuatro sitios que llaman a `runTick` pasan `timelineRecord` desde su entorno: `apps/api/src/tick/main.ts` l. 11 (el cron) y `apps/api/src/index.ts` l. 38, 45 y 67 (el avance a mano de `/admin/tick`)",
+    "fallo": "Dos errores. (1) Son cinco, no cuatro: `packages/db/src/tickRun.test.ts` l. 30 también llama a `runTick(url, { now, msPerGameDay, worldSeed, engineVersion, forceDays, … })`, y con `readonly timelineRecord: 'off' | 'on'` obligatorio en `RunTickOptions` (l. 2445) ese test deja de compilar. (2) `index.ts` l. 67 no es el avance a mano: es `autoTick`, el tick automático del propio servicio web (l. 56-83, «el propio servicio web avanza el mundo (SPEC 2). No depende de un cron externo»); solo l. 38 (`onAdminTick`) y l. 45 (`onAdminAdvance`) son de `/admin`.",
+    "correccion": "Escribir: «Los cinco sitios que llaman a `runTick` pasan `timelineRecord`: `apps/api/src/tick/main.ts` l. 11 (el cron), `apps/api/src/index.ts` l. 38 y 45 (`onAdminTick` y `onAdminAdvance`, el avance a mano de `/admin`) y l. 67 (`autoTick`, el tick automático del servicio web), y `packages/db/src/tickRun.test.ts` l. 30 con `timelineRecord: 'off'`», y añadir `packages/db/src/tickRun.test.ts` a la lista de ficheros del PR 5 en §17.20.",
+    "_fuente": "hallazgos-codigo.json",
+    "_lote": 3
+  },
+  {
+    "id": "Rcodigo-010",
+    "seccion": "§5.9",
+    "linea": 2599,
+    "gravedad": "baja",
+    "afirmacion": "Gana además `realRaceScenario` (hoy sin exportar, `sim/scenarios.ts` l. 518), que B10 importa desde `packages/db` (decisión 17-j).",
+    "fallo": "`realRaceScenario` sí está exportada en su módulo (`packages/engine/src/sim/scenarios.ts` l. 518: `export function realRaceScenario(`), y la usan `sim/pareado.ts` l. 32, `sim/coherence.test.ts` l. 27 y `sim/saturation.ts` l. 17. Lo que no hace es salir por el índice del motor: `packages/engine/src/index.ts` l. 197-204 reexporta de `./sim/scenarios.js` solo `campaignSeeds`, `flatScenario`, `queenScenario`, `queenThirdWeekScenario`, `timeTrialScenario` y `Scenario`. Además corre el campo homogéneo de `uniformField()` (l. 491-509: 176 corredores idénticos, `eff0: eff(60)`, también en `race-colombia`), no el campo del banco con que se midió B10 (`juez-motor/campo.mjs`, 126 corredores en Colombia): B10 en `packages/db` no reproduciría las 18 corridas medidas.",
+    "correccion": "Escribir: «Gana además la reexportación de `realRaceScenario` (exportada en `sim/scenarios.ts` l. 518, pero no en el índice, l. 197-204), que B10 importa desde `packages/db` (17-j); ojo: corre el campo homogéneo de `uniformField()` (l. 491-509), así que B10 en `packages/db` mide el colector sobre ese campo y no sobre el de `juez-motor/campo.mjs` con que se midieron las 18 corridas de §5.3».",
+    "_fuente": "hallazgos-codigo.json",
+    "_lote": 3
+  },
+  {
+    "id": "Rcodigo-011",
+    "seccion": "§13.7",
+    "linea": 6694,
+    "gravedad": "media",
+    "afirmacion": "La `0045` va en el mismo PR que las escrituras de `watch.ts` (7a) y la `0046`, en el mismo que `awardRacePrizes` (8a): una migración con su columna y sin su escritor deja el test en rojo.",
+    "fallo": "No es cierto para `knownThrough`. `columnasVivas.test.ts` l. 76-85 da una columna por escrita si cualquier línea de `packages/db/src` o `apps/api/src` (menos los tests y `schema.ts`) contiene `knownThrough:` y no es `knownThrough: x.knownThrough` ni `knownThrough: number|string|boolean`. La interfaz `Horizon` de §4.10 (l. 1767), que vive en `packages/db/src/horizon.ts`, tiene `readonly knownThrough: ReadonlyMap<string, number>`, que cumple la condición. Simulado en el scratchpad (`rcod/vivas_sim.mjs`, la lógica del test sobre el esquema de §13 y las líneas de §4.10): con solo esa interfaz y ningún escritor, `knownThrough` sale «escrita»; `follow`, `horizonRev` y `prize`, no. La vigilancia de `known_through` que 13-a promete es vacía en cuanto existe `horizon.ts`. (Los recuentos de 13-a sí son ciertos: 24 columnas únicas hoy con la expresión nueva y 28 con el esquema de §13, medido con `rcod/vivas_cnt.mjs`.)",
+    "correccion": "Añadir a 13-a una tercera consecuencia: «La interfaz `Horizon` (§4.10) declara `knownThrough: ReadonlyMap<…>`, que el test toma por escritura: para que `known_through` quede vigilada, el PR 7a amplía también la exclusión de tipos del test (l. 84) a `/\\b${campo}\\s*:\\s*(Readonly)?(Map|Set|Array)?<|:\\s*(number|string|boolean)\\b/`, o renombra el campo de `Horizon` a `knownThroughByRace`». Y en `vivas.mjs`/`columnasVivas.test.ts` añadir un caso que falle si solo existe la interfaz.",
+    "_fuente": "hallazgos-codigo.json",
+    "_lote": 3
+  },
+  {
+    "id": "Rcodigo-017",
+    "seccion": "§5.4",
+    "linea": 2269,
+    "gravedad": "baja",
+    "afirmacion": "import type { SnapshotRider, StageInput, StageOutput, StageProbe, StageProfile } from '../stage/types.js'",
+    "fallo": "El bloque dice que «sigue a la guarda de §4.3» en el mismo fichero `packages/engine/src/sim/timeline.ts`, y la guarda de §4.3 (l. 1278) ya importa `SnapshotRider` y `StageProbe` de `../stage/types.js`. Juntos en un fichero, tsc 5.9.3 con el `tsconfig.base.json` del repositorio da `TS2300: Duplicate identifier 'SnapshotRider'` y `'StageProbe'` dos veces cada uno (medido en `rcod/n/ws`, una copia del motor con los bloques de §4.3, §4.4, §5.2, §5.4 y §15.2 aplicados; son los únicos errores de todo el motor con E2: `tsc -p tsconfig.engine.json`).",
+    "correccion": "En el bloque de §5.4 escribir `import type { StageInput, StageOutput, StageProfile } from '../stage/types.js'` con el comentario «`SnapshotRider` y `StageProbe` ya los importa la guarda de §4.3».",
+    "_fuente": "hallazgos-codigo.json",
+    "_lote": 3
+  },
+  {
+    "id": "Rcodigo-018",
+    "seccion": "§5.6",
+    "linea": 2480,
+    "gravedad": "baja",
+    "afirmacion": "export async function writeStageTimeline(tx: Tx, tl: StageTimeline, meta: StageTimelineMeta): Promise<{ readonly bytes: number; readonly jsonBytes: number }> {",
+    "fallo": "`Tx` no está declarado en ninguno de los tres bloques de `packages/db/src/timelines.ts` (§5.3, §5.5 y §5.6) ni se importa: en `packages/db` cada fichero lo declara (`news.ts` l. 14, `economy.ts` l. 24, `race.ts` l. 18…) y `client.ts` solo exporta `Database` (l. 35). Compilado con los tres bloques en `rcod/n/ws` (el esquema de §13 y los tipos de §4 aplicados), tsc da `TS2304: Cannot find name 'Tx'` en `writeStageTimeline` y en `writeStageTimelineFailure`; es el único error del fichero.",
+    "correccion": "Añadir al bloque de §5.6, tras las importaciones, `type Tx = Parameters<Parameters<Database['transaction']>[0]>[0]   // el mismo alias que titles.ts (§7.4) y stageRun.ts l. 71`.",
+    "_fuente": "hallazgos-codigo.json",
+    "_lote": 3
+  },
+  {
+    "id": "Rcodigo-056",
+    "seccion": "§5.7",
+    "linea": 2576,
+    "gravedad": "baja",
+    "afirmacion": "10 de las 46 corridas en línea pasaban de 48 KB (hasta 70,0), 45 de 46 de 128 KB de JSON (hasta 464)",
+    "fallo": "Las dos cuentas usan unidades distintas. Re-medido en el scratchpad con el prototipo del grabador (`rcod/n/sizes24.json`, las mismas 46 corridas en línea de 176 o 126 corredores; reproduce al byte el resto del párrafo: `bytea` de 20,9 a 70,0 KB, mediana 38,8, p90 53,3; JSON de 123,4 a 463,7 KB, mediana 222,2): con KB de 1.024 bytes, que son los de `TIMELINE` (98.304 = 96 KB, 655.360 = 640 KB), pasan de 48 KB 10 corridas y de 128 KB de JSON 44, no 45 (`race-france` e21 semilla 1, 126.321 B, y e11 semilla 1, 128.156 B, quedan por debajo de 131.072). El 45 sale de contar con KB de 1.000 bytes (128.156 > 128.000), y con esa misma unidad las de 48 KB serían 11.",
+    "correccion": "Escribir «10 de las 46 corridas en línea pasaban de 48 KB (hasta 70,0), 44 de 46 de 128 KB de JSON (hasta 464; KB de 1.024 bytes, como en `TIMELINE`)».",
+    "_fuente": "hallazgos-codigo.json",
+    "_lote": 3
+  },
+  {
+    "id": "Rcodigo-069",
+    "seccion": "§13.10",
+    "linea": 6723,
+    "gravedad": "baja",
+    "afirmacion": "copia `drizzle/` a un directorio temporal con `_journal.json` cortado en `0042_transicion_e1`, migra, escribe una fila en cada tabla que tocan las cuatro, migra con la carpeta entera",
+    "fallo": "Con los ayudantes de hoy no se puede migrar desde otra carpeta: `runMigrations(databaseUrl)` fija `migrationsFolder` a `../drizzle` (`packages/db/src/migrate.ts` l. 15 y 21-29) y `startTestDb()` aplica siempre la carpeta entera antes de devolver la base (`packages/db/src/testDb.ts` l. 58-65). `l3/aplicar2.mjs`, que es lo que el test copia, no usa ninguno de los dos: arranca PGlite y su socket a mano y llama a `migrate` de `drizzle-orm/postgres-js/migrator` con su propio `migrationsFolder`. Ni §13.10 ni el PR 1a (§17.4, l. 8387) ni §17.20 dicen qué cambia en `migrate.ts` o en `testDb.ts`, y quien implemente tiene que inventarlo.",
+    "correccion": "Añadir a §13.10, punto 2: «Para migrar desde la copia, `runMigrations` gana un segundo parámetro opcional, `runMigrations(databaseUrl, folder = migrationsFolder)` (`migrate.ts` l. 21), y `testDb.ts` exporta `startEmptyTestDb()`, igual que `startTestDb` (l. 58-65) pero sin llamar a `runMigrations`; el test migra con `runMigrations(url, copia)` y después con `runMigrations(url)`, dentro de `detached` (l. 29-33)». Añadir a §17.20 la fila «`packages/db/src/migrate.ts` y `testDb.ts` | hoy | 1a | `runMigrations(url, folder?)` y `startEmptyTestDb()` para el mundo vivo (§13.10)».",
+    "_fuente": "hallazgos-codigo.json",
+    "_lote": 3
+  },
+  {
+    "id": "Rcoste-006",
+    "seccion": "§5.5",
+    "linea": 2409,
+    "gravedad": "media",
+    "afirmacion": "dentro de la transacción del día y en un punto de guardado propio (`tx.transaction`, que drizzle 0.45 con postgres.js hace con `SAVEPOINT`): un fallo de la grabación deshace solo la grabación y nunca la transacción del día",
+    "fallo": "Un punto de guardado que escribe es una subtransacción con su propio xid, y Postgres guarda en la caché de cada backend como mucho 64 (PGPROC_MAX_CACHED_SUBXIDS); con más, la transacción queda desbordada y toda instantánea tomada mientras siga abierta tiene que consultar `pg_subtrans` para la visibilidad de las filas recientes. El día 176 abre 187 y el 179, 153. Medido en PostgreSQL 16.13 local, mirando desde otra sesión con `pg_stat_get_backend_subxact` mientras la transacción sigue abierta (`coste/pgm/subxact.mjs`): 153 y 187 puntos de guardado dan `subxact_count` 64 y `subxact_overflowed` verdadero; sin ellos, 0. La transacción del día 179 dura de 104 a 128 s (§18.3), con la web leyendo todo ese tiempo, y el tick de hoy no abre puntos de guardado por etapa (`tick.ts` l. 262: una transacción por día). No está en §19. Y el punto de guardado por etapa no hace falta: uno que solo lee no toma xid (153 de solo lectura: `subxact_count` 0, `coste/pgm/subxact2.mjs`), y las 153 líneas en un solo `INSERT` dentro de un único punto de guardado cuestan 86 ms y una subtransacción.",
+    "correccion": "Sustituir por: «El cierre, el gzip y `selfCheckI1` corren en JavaScript y sus errores se capturan sin tocar la base; `buildTimelineCast` lee dentro de un punto de guardado que solo lee (no toma xid). Las líneas del día se guardan en la memoria del tick y se escriben al final del día en un solo `INSERT … ON CONFLICT DO NOTHING` dentro de un único punto de guardado: un fallo de la escritura deshace solo las líneas y nunca la transacción del día, y la transacción no pasa de una subtransacción (con una por etapa, los días 176 y 179 la desbordan: 64 en caché y `subxact_overflowed`, medido en Postgres 16).» Añadir el riesgo a §19.1 con B15 como vigilante y cambiar el pseudocódigo de `recordStageTimeline` (l. 2412-2426) en consecuencia.",
+    "_fuente": "hallazgos-coste.json",
+    "_lote": 3
+  },
+  {
+    "id": "Rcoste-007",
+    "seccion": "§5.7",
+    "linea": 2576,
+    "gravedad": "media",
+    "afirmacion": "`ttMaxStoredBytes` 32.768 (32 KB) por crono",
+    "fallo": "El tope se fijó con las cronos de las 24 etapas del banco (`race-france` e1 y e16, hasta 26 km: 24,2 KB), pero el calendario tiene cronos más largas con 176 corredores. Medido con el prototipo de L3 (`rcod/cronos2.mjs`, `rcod/crono40.json`): `race-italy` e10 (42 km, 176 corredores), 31.436 y 31.178 bytes con gzip 9 en las semillas 0 y 1, el 96 % del tope; `race-spain` e18 (33 km), 26.987 y 27.113; `race-chrono` e1 (47,6 km, 126 corredores), 23.857. El margen es de 1,04 veces, contra el 1,4 que §5.7 da al tope en línea, y B6 no lo verá nunca porque ninguna de sus 24 etapas pasa de 26 km: el primer aviso sería una nota `timeline size:` del tick en producción. El riesgo 10 de §19.1 (l. 9279) lo da por «baja» con «24,2 KB por crono» como máximo. Es la duda 1.4 de `dudas.md`, que estimaba de 19 a 20 KB para una crono de 40 km: medida, son 31,4 KB.",
+    "correccion": "Poner `ttMaxStoredBytes` en 49.152 (48 KB, 1,5 veces los 31,4 KB de `race-italy` e10) en §15.2 y §5.7; añadir `race-italy` e10 a la medida a mano de B6 del paso 5 (`scripts/broadcast-fixtures.mjs --sizes`) y a la fila de §0.7 («de 18,8 a 31,4 KB con 176 corredores»); y en el riesgo 10 cambiar «24,2 KB por crono» por «31,4 KB por crono (`race-italy` e10, 42 km)» y la probabilidad a «media».",
+    "_fuente": "hallazgos-coste.json",
+    "_lote": 3
+  },
+  {
+    "id": "Rcoste-008",
+    "seccion": "§5.7",
+    "linea": 2576,
+    "gravedad": "media",
+    "afirmacion": "`maxJsonBytes` 655.360 (640 KB) de JSON como máximo y `medianJsonBytes` 262.144 (256 KB) de mediana",
+    "fallo": "La mediana exigida deja un 15 % sobre la medida (222 KB, l. 7338), y B6 del JSON corre en `timeline.test.ts`, en el tramo «mundo y radio» de todo PR que toque `packages/engine` (l. 8216; l. 7317: «que es lo que tiene que pasar»), es decir, en cada PR de la línea de táctica. El JSON depende de cuántos grupos y cambios de grupo produce el motor (e18: 269,0 KB con la semilla 0 y 216,7 con la 1, un 20 % de diferencia solo por la semilla, tabla de §5.7): un paso de táctica que haga la carrera un 15 % más movida pone en rojo su propio PR por un tope de E2. Y el arreglo toca el motor: `TIMELINE` vive en `packages/engine/src/constants.ts` (l. 7297; l. 7563: «en el motor: cambiarlos paga los bancos»), contra la regla 4 de §17.1, que dice que ningún PR posterior al 4b toca `packages/engine`.",
+    "correccion": "En §15.2 y §5.7 poner `medianJsonBytes` en 327.680 (320 KB, 1,44 veces lo medido, el margen de `maxStoredBytes`). En §16.4 decidir: «en `timeline.test.ts` (tramo del motor) B6 del JSON imprime y no falla; falla en la rápida sobre las seis congeladas y en el nocturno, y el PR del motor que lo mueva lo apunta en su descripción»; o mover los topes de B6 a `packages/shared`, porque son umbrales de banco y no deciden lo que se graba. Añadir al riesgo 1 de §19.1 que la táctica paga I1, I3, B6 y B11 de E2 en cada PR suyo.",
+    "_fuente": "hallazgos-coste.json",
+    "_lote": 3
+  },
+  {
+    "id": "Rcoste-016",
+    "seccion": "§13.1",
+    "linea": 6321,
+    "gravedad": "baja",
+    "afirmacion": "sobre un mundo vivo (una fila escrita con la `0042` en `news`, `stage_team_results`, `transactions`, `rider_points`, `palmares` y `users`), las cuatro se aplican en 44 ms en PGlite",
+    "fallo": "Un mundo con una fila por tabla no dice cuánto tardan los cuatro `CREATE INDEX` (`news_race_stage_idx`, `race_rosters_rider_idx` y los dos de la `0046`), que recorren tablas enteras con el bloqueo de escritura puesto, ni cuánto esperan los `ALTER TABLE` a un tick abierto (hallazgo sobre la regla 9 de §17.1). Medido en PostgreSQL 16.13 con tamaños de un año: la `0046` sola sobre 1.000.000 de filas de `transactions`, 258 ms (`coste/pgm/cola.mjs`); `race_rosters_rider_idx` sobre 249.600 filas, 139 ms en PGlite (el propio §13.4, l. 6592). Son cifras pequeñas, pero son las que hay que escribir.",
+    "correccion": "Sustituir por «sobre un mundo con una fila por tabla, las cuatro se aplican en 44 ms en PGlite; con tamaños de un año, la `0046` tarda 258 ms en PostgreSQL 16 con 1.000.000 de transacciones (`coste/pgm/cola.mjs`) y `race_rosters_rider_idx`, 139 ms con 249.600 filas (§13.4); lo que puede costar más es la espera a un tick abierto (§17.1, regla 9)».",
+    "_fuente": "hallazgos-coste.json",
+    "_lote": 3
+  },
+  {
+    "id": "Rdueno-005",
+    "seccion": "§5.1",
+    "linea": 2035,
+    "gravedad": "alta",
+    "afirmacion": "**La regla para quien venga después** (H-02): toda subida de `ENGINE_VERSION`, de E2 o de otro documento, va DETRÁS del paso 17d de la táctica",
+    "fallo": "Se escribe como regla, aquí, en §0.4 punto 3 (l. 74), en §2.3 (l. 545) y en §19.5 (l. 9412), lo que §20 dice que es una decisión del dueño sin contestar (DD-25), y es más dura que la doctrina que dice seguir. La v85 decide no subir cuando nada de la carrera cambia: «`ENGINE_VERSION` NO sube, y es una decisión, no un olvido» y «Este cambio no altera un segundo de ninguna carrera» (`docs/balance.md` l. 16319-16321); no dice que no se suba cuando la carrera sí cambia. La D7 que el borrador cita es condicional, «si lo que hace el motor está bien ahí, no cambies el motor» (l. 16557-16558), y cuando el motor estaba mal el dueño lo ha arreglado subiendo la versión: de la v69 (`025efbe`, 14 de septiembre) a la v89 (`c39f450`, 26 de septiembre) hay veinte subidas, entre ellas la v83 «Dos defectos de producción», la v84, la v86 «El que va de amarillo no da relevos» y la v89 «las decisiones del dueño sobre el generador, aplicadas» (`git log` de `packages/engine/src/constants.ts`). La regla lo para todo hasta que se haga el 17d, y el orden de trabajo lo fijan los encargos al revés: E2 espera a la línea del motor, no la línea del motor a E2 (`docs/encargos.md` l. 17-19).",
+    "correccion": "En §0.4 punto 3, §2.3, §5.1 y §19.5, sustituir la regla por: «E2 no sube la versión (D-09). Si otra línea la sube antes del 17d de la táctica, la «Last race» de las etapas ya corridas cuenta otra carrera (C16); qué hacer con eso es DD-25, del dueño». Reescribir DD-25 como dice Rdueno-006.",
+    "_fuente": "hallazgos-dueno.json",
+    "_lote": 3
+  }
+]

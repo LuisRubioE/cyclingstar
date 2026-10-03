@@ -1,0 +1,331 @@
+[
+  {
+    "id": "Rcobertura-017",
+    "origen": "por-lote/L3.json",
+    "veredicto": "cerrado",
+    "evidencia": "05-motor.md l. 169 (§5.2: en meta, `10 · Math.round(totalS)`, el `tiempoS` de `results` por diez, 9-a; 1.176 de 1.176 sin un Ds de diferencia), l. 303-306 (`selfCheckI5`, igualdades), l. 360 (pseudocódigo), l. 408 (§5.5, I5 como igualdad, 16-c) y l. 687 (5-c). No queda «5 Ds» en §5. Comprobado `timetrial.ts` l. 361 y 372 (`tiempoS: Math.round(f.tS)`); casa con 09-crono.md l. 52 y 326 (9-a) y 16-bancos.md l. 36 y 783 (16-c).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-018",
+    "origen": "por-lote/L3.json",
+    "veredicto": "cerrado",
+    "evidencia": "Corrección mejor, con motivo: en vez de renombrar `known` a `unveiled`, `StageTimelineRead` desaparece y `readStageTimeline(db, _h: Horizon, raceKey, stageDay): Promise<StageTimeline | null>` (05-motor.md l. 580), con las dos caras escritas en l. 597 y la decisión 5-p (l. 700); §14.4 hace lo mismo (14-api.md, 14-p, l. 623). `StageTimelineRead` solo queda en bloques que `ensamblar.sh` quita (05-motor.md l. 706 y 716, 14-api.md l. 646, 21-apendices.md l. 641; comprobado con la misma regla del script).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-045",
+    "origen": "por-lote/L3.json",
+    "veredicto": "cerrado",
+    "evidencia": "13-esquema.md l. 394 (la resta R no ve el premio sin `ref`; cuenta como conocido; por qué no importa) y 13-l (l. 470). Casa con 10-horizonte.md l. 333-334 (`money` y `budget` solo suman lo velado) y con la remisión de 11-superficies.md l. 455 (§11.13, «cuenta como conocido (§13.5)»). Comprobado `schema.ts` l. 828-830 (`transactions.rider_id` con `onDelete: 'cascade'`).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-009",
+    "origen": "por-lote/L3.json",
+    "veredicto": "cerrado",
+    "evidencia": "05-motor.md l. 472 (los cinco sitios) y 5-m (l. 697). Comprobado con grep en todo el repositorio: `runTick(` solo en `apps/api/src/tick/main.ts` l. 11, `apps/api/src/index.ts` l. 38 (`onAdminTick`), l. 45 (`onAdminAdvance`) y l. 67 (dentro de `autoTick`, l. 56-85), y `packages/db/src/tickRun.test.ts` l. 30; `env.ts` l. 20 (`envSchema`) y l. 65 (`tickEnvSchema`). 17-plan.md l. 237 y l. 669 ponen `tickRun.test.ts` en el PR 5.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-010",
+    "origen": "por-lote/L3.json",
+    "veredicto": "cerrado",
+    "evidencia": "05-motor.md l. 662 (§5.9: se exporta en su módulo y no sale por el índice; corre `uniformField()`; B10 en `packages/db` no repite las 18 corridas, y lo medido con ese campo, 3 de 3) y l. 669 (B10). Comprobado: `sim/scenarios.ts` l. 518, `pareado.ts` l. 32, `coherence.test.ts` l. 27, `saturation.ts` l. 17, `index.ts` l. 197-204 y `uniformField` l. 491-509 con `eff0: eff(60)` (l. 503).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-011",
+    "origen": "por-lote/L3.json",
+    "veredicto": "cerrado",
+    "evidencia": "Corrección distinta y mejor, medida: 13-esquema.md l. 409-414 (segunda regla `ESCRITURA_DRIZZLE`: solo cuenta como clave de un `.set(` o un `.values(`; el caso de las declaraciones solas), 13-a (l. 459), §13.10 punto 7 (l. 447); 10-horizonte.md l. 113 escribe con `.set`/`.values`. Re-ejecutado `c-l3/vivas/vivasD.mjs`: hoy, 24 vigiladas y muertas solo `fame` y `teamTrust`; sobre el `schema.ts` regenerado del texto de §13 (`aud3/db`) con solo las declaraciones, muertas además `prize`, `follow`, `knownThrough` y `horizonRev`; con los escritores de §10.3 y §13.5, solo las dos conocidas. `vivas3.mjs`: con la regla de hoy y con la exclusión que pedía el hallazgo, `follow`, `knownThrough` y `horizonRev` salen escritas; exigir el `.insert(tabla)` mata `tiempoS` y `mejorPuesto`. Líneas citadas comprobadas (`columnasVivas.test.ts` l. 34-44, 66 y 84-93; `results.ts` l. 161; `teamClassification.ts` l. 73 y 86-88; `stageRun.ts` l. 925; `worldRepair.ts` l. 46).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-017",
+    "origen": "por-lote/L3.json",
+    "veredicto": "cerrado",
+    "evidencia": "05-motor.md l. 259 (`import type { StageInput, StageOutput, StageProfile }` con el comentario). Compilado HOY: `sim/timeline.ts` con la guarda de §4.3 (04-modelo.md l. 363), `I1Mismatch` de §4.4 (l. 460) y el bloque de §5.4, con `tsconfig.base.json` (strict, `noUnusedLocals`, `exactOptionalPropertyTypes`): sin TS2300 ni ningún otro error en el motor (`aud3/ws3` con el `shared` del corrector y `aud3/ws4` con un `shared` armado del texto de hoy).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-018",
+    "origen": "por-lote/L3.json",
+    "veredicto": "cerrado",
+    "evidencia": "05-motor.md l. 488-489 (`type Tx = Parameters<Parameters<Database['transaction']>[0]>[0]`). Compilados los tres bloques de `timelines.ts` (§5.3 l. 193, §5.5 l. 438 y §5.6 l. 479) con el esquema regenerado de §13: 0 errores en `timelines.ts` (`aud3/ws3` y `aud3/ws4`).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-056",
+    "origen": "por-lote/L3.json",
+    "veredicto": "cerrado",
+    "evidencia": "05-motor.md l. 635 («44 de 46 de 128 KB de JSON», con las dos que quedan por debajo y «Todos en KB de 1.024 bytes»). Re-contado sobre `rcod/n/sizes24.json` (las 46 corridas en línea de 176 o 126): 10 pasan de 49.152 B, 44 de 131.072 B (45 de 128.000), `race-france` e21 s1 126.321 B y e11 s1 128.156 B; mediana 227.516 B y p90 del `bytea` 53,3 KB con interpolación lineal. El «45 de 46» solo queda en la duda 1 de §5 (l. 711), que `ensamblar.sh` quita.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-069",
+    "origen": "por-lote/L3.json",
+    "veredicto": "cerrado",
+    "evidencia": "13-esquema.md l. 442 (§13.10 punto 2: `runMigrations(databaseUrl, folder = migrationsFolder)` y `startEmptyTestDb()`, con `detached`) y 13-m (l. 471); 17-plan.md l. 95, 572 y 573. Comprobado `migrate.ts` l. 15 y 21-29 y `testDb.ts` l. 58-65 (`startTestDb` llama a `runMigrations` en l. 65) y l. 73-80 (`detached`).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-006",
+    "origen": "por-lote/L3.json",
+    "veredicto": "cerrado",
+    "evidencia": "05-motor.md l. 410 (el reparto en un punto de guardado que solo lee), l. 413-429 (pseudocódigo sin escritura), l. 433 («Una sola escritura por día»), l. 437-468 (`TimelineTickLog` con `flush` y el cableado de `runTick`), l. 470 y 5-l (l. 696); D-10, nota de la fase 5. El riesgo está en 19-riesgos.md riesgo 37 (l. 46), vigilado por B15 (16-bancos.md l. 760: falla con `subxact_overflowed`); 17-plan.md l. 232. Comprobado `tick.ts` l. 259-262 y 262-284 (una transacción por día, sin puntos de guardado) y l. 270-272. La medida de PostgreSQL 16 es del refutador y no se ha repetido (aquí solo hay PGlite).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-007",
+    "origen": "por-lote/L3.json",
+    "veredicto": "cerrado",
+    "evidencia": "05-motor.md l. 617-619 (filas de las cronos largas), l. 635 (`ttMaxStoredBytes` 49.152) y l. 637; 15-constantes.md l. 58 (`ttMaxStoredBytes: 49_152`, 15-i); 16-bancos.md l. 440 (B6 en el banco sobre la crono más larga de 176 del calendario, 16-n); 00-cabecera.md l. 137 y 139 (§0.7); 19-riesgos.md riesgo 10 (l. 20: probabilidad media en la e10, 31.436 B y 32.203 B con `checkClockDs`, tope 49.152 B).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-008",
+    "origen": "por-lote/L3.json",
+    "veredicto": "cerrado",
+    "evidencia": "Lo que el corrector dejó parcial lo completaron la coherencia y L8: 05-motor.md l. 635 y 639 (`medianJsonBytes` 327.680, la salida que eligió §16.4); 15-constantes.md l. 52-55 (`327_680`, 15-l); 16-bancos.md 16-n (l. 794) y 16-g (l. 787: B6 del JSON solo imprime en el tramo del PR y falla en el nocturno y en la rápida); 19-riesgos.md riesgo 1 (l. 11: la táctica paga I1, I3, B6 del `bytea` y B11); D-11, nota de la fase 6.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-016",
+    "origen": "por-lote/L3.json",
+    "veredicto": "cerrado",
+    "evidencia": "13-esquema.md l. 25: la fila por tabla no mide índices ni `ALTER TABLE`; con tamaños de un año (`c-l3/anio.mjs`) 23, 5, 239 y 703 ms; los 258 ms del refutador en PostgreSQL 16; la espera al tick, a la regla 8. Repetido el mundo de una fila con las migraciones regeneradas de hoy (`aud3/aplicar.mjs`): 63 ms; `race_rosters_rider_idx` sobre 249.600 filas, 188 ms y 1,7 MB (la máquina iba más cargada que los 139 ms de §13.4).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-005",
+    "origen": "por-lote/L3.json",
+    "veredicto": "cerrado",
+    "evidencia": "05-motor.md l. 25 («Lo que pasa si otra línea sube la versión»), l. 680 (O-05) y l. 682 (H-02); 00-cabecera.md l. 72 (§0.4 punto 3); 02-principios.md l. 42 (§2.3); 19-riesgos.md l. 14 (riesgo 4) y l. 161 (§19.5); D-09 corregida (00-decisiones.md l. 20 y su nota con la versión anterior); DD-25 reescrita (20-dueno.md l. 98). La regla vieja solo queda citada como «Versión anterior». Comprobado: 14 commits cambian `ENGINE_VERSION` en `025efbe..c39f450` (v69 en l. 718, v89 en l. 838), `docs/balance.md` l. 16319-16323 y 16557-16558, `docs/encargos.md` l. 14-26, `docs/tactica.md` l. 6979, `raceReport.ts` l. 148 y `raceRadio.ts` l. 49-55.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-005",
+    "origen": "cruzadas-L2.json n.º 2 (§5.4 y §7.8); coherencia.json fila 10",
+    "veredicto": "cerrado",
+    "evidencia": "05-motor.md l. 276-278 (`RecorderFinishInput.cast`: `favourites` con los `attrsByRider` que `runOneStage` leyó al empezar, l. 298-310, antes de que el aprendizaje los reescriba, l. 891-897; por eso se cierra tras `stage_snapshots`, l. 570-595) y l. 417 (§5.5, `buildTimelineCast(sp, …, attrsByRider)`); la parte de §7.8 está en 07-rotulos.md l. 471. Líneas de `stageRun.ts` comprobadas. El comentario de §5.4 citaba solo 8-f, y la regla de los atributos del día, congelados antes del aprendizaje, es 8-g (08-ritmo.md l. 463; así la citan §7.8 y 17-plan.md l. 247).",
+    "accion": "lo he cerrado yo: 05-motor.md l. 276, «con favourites (§4.2, 4-u; 8-f y 8-g)»"
+  },
+  {
+    "id": "Rcobertura-006",
+    "origen": "cruzadas-L2.json n.º 6 (§5.4); coherencia.json fila 14",
+    "veredicto": "cerrado",
+    "evidencia": "05-motor.md l. 169 (`checkClockDs` en cada control, `10 · Math.round(raw[idx] · noise)`, 9-b), l. 303-306 (`selfCheckI5` con `check`), l. 360-361 (`onTimeTrialRide` del pseudocódigo), l. 384-386 (paso 7 con `ttTraceOf`) y l. 408 (I5 con los controles). Comprobado `timetrial.ts` l. 523-524, 528 y 542.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-007",
+    "origen": "cruzadas-L2.json n.º 7 (§5.4); coherencia.json fila 15",
+    "veredicto": "cerrado",
+    "evidencia": "05-motor.md l. 367-369 (paso 3: en crono, `finishS ← máx(startDs[r] + kmClockDs[r].at(−1)) / 10`, la última llegada, la hora de `lastHome`). Comprobado `timetrial.ts` l. 495 (`lastHome`), 596 (`tt_catches`) y 614 (`stage_win_itt`).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-009",
+    "origen": "cruzadas-L2.json n.º 12 (§5.4); coherencia.json fila 20",
+    "veredicto": "cerrado",
+    "evidencia": "05-motor.md l. 376-381 (paso 5: `puncture` y `mechanical` de carretera y la caída sintetizada por la regla `incident`, con el grupo al final de b − 1; la caída entra con tS 0 y se graba con tS = revealS) y l. 390-391 (`groupAt(r, −1) = 0`). Comprobado `simulate.ts` l. 1698-1702 (todos salen en el pelotón).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-009",
+    "origen": "cruzadas-L2.json n.º 13 (§5, tests del grabador, y §17.21); coherencia.json fila 21",
+    "veredicto": "cerrado",
+    "evidencia": "05-motor.md l. 672 (`timeline.test.ts` prueba la regla `incident` y da los 70,6 s de la regla anterior); la parte de §17 está en 17-plan.md l. 211 y el riesgo 24 retirado en 19-riesgos.md l. 48.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-014",
+    "origen": "cruzadas-L2.json n.º 21 (§5.6 y §13.3); coherencia.json fila 29",
+    "veredicto": "cerrado",
+    "evidencia": "Corrección mejor, con motivo: la revisión no la devuelve `readStageTimeline` (que devuelve la línea sola, 5-p y 14-p) sino `readStageTemplateRev(db, _h, raceKey, stageDay)`, de la misma entrada del LRU y con 0 sin fila y en una lápida (05-motor.md l. 547 `Decoded` con `tplRev`, l. 556, l. 586-592 y l. 597; 13-esquema.md l. 194 y 196). La usan la cabecera, el tramo y el acta en 14-api.md l. 268, y 12-voz.md 12-c (l. 642). El corrector lo dio por parcial solo por la forma; no falta nada.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-014",
+    "origen": "cruzadas-L2.json n.º 28 (§5.7); coherencia.json fila 36",
+    "veredicto": "cerrado",
+    "evidencia": "05-motor.md l. 617 (cronos de 20 y 26 km, de 18,8 a 24,2 KB), l. 618 (`race-spain` e18 y `race-italy` e10, con y sin `checkClockDs`, 32.203 B), l. 635 (tope 49.152 B, 15-i) y l. 637.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-004",
+    "origen": "cruzadas-L2.json n.º 31 (§5.6); coherencia.json fila 39",
+    "veredicto": "cerrado",
+    "evidencia": "05-motor.md l. 601 («El LRU»): suma el `parse` de Zod a los 2,7-7,1 ms con las dos caras escritas: el esquema de §4.3, de 0,9 a 21 ms y 61 ms la primera (`corr-l2/zod-real.mjs`); el aproximado, de 0,3 a 14,5 ms (L6 y L7); y la repetición de la corrección; con él, de unos 8 a unos 28 ms en frío. Casa con 14-api.md l. 268 y 18-rendimiento.md l. 63 y l. 245.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-044",
+    "origen": "cruzadas-L3.json n.º 8 (§17.8 y 17-a, con la duda de §17 sobre §13.3); coherencia.json fila 52",
+    "veredicto": "cerrado",
+    "evidencia": "Destino principal §17 (lote L9); comprobada aquí solo la cara de §13: 17-plan.md l. 247 dice `tpl_rev` `smallint not null` sin defecto (12-c, 13-j), sin condicional, igual que 13-esquema.md l. 133 y 175; el caso de `timelines.test.ts` está en 17-plan.md l. 235 y en §13.10 punto 5 (l. 445); 17-a (l. 773) lo pone en la `0044`; la duda de §17 sobre §13.3 ya no está.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-031",
+    "origen": "cruzadas-L5.json n.º 5 (§5.7 y §0.7); coherencia.json fila 110",
+    "veredicto": "cerrado",
+    "evidencia": "05-motor.md l. 617-618 (de 18,8 a 24,2 KB las del banco; `race-spain` e18, de 26.987 a 27.821 B; `race-italy` e10, de 31.178 a 32.203 B, con y sin `checkClockDs`); 00-cabecera.md l. 137 dice lo mismo.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-035",
+    "origen": "cruzadas-L6.json n.º 8 (§5.6, §G.2, §G.4 y §21.6 F.2); coherencia.json fila 133",
+    "veredicto": "cerrado",
+    "evidencia": "05-motor.md l. 580 (`readStageTimeline(db, _h: Horizon, raceKey, stageDay): Promise<StageTimeline | null>`, `return e?.tl ?? null`), l. 575-579 (por qué `_h`) y 5-p (l. 700); 00-glosario.md (fila de `db/src/timelines.ts` de G.4 y G.2) y 21-apendices.md l. 532 (F.2) con la firma sin `StageTimelineRead`. Compilado con `noUnusedParameters` (0 errores en `timelines.ts`, `aud3/ws4`).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-004",
+    "origen": "cruzadas-L7.json n.º 45 (§5.6); coherencia.json fila 194",
+    "veredicto": "cerrado",
+    "evidencia": "05-motor.md l. 601: el aproximado de `coste/zod/decode.mjs`, de 0,3 a 14,5 ms y de 50 a 60 ms la primera, «de 3 a 22 ms por línea en frío» como §14.4 y §18.2. La cruzada decía 0,4 en el extremo bajo; §5.6 y 14-api.md l. 268 dicen 0,3 (medianas de dos corridas) y 18-rendimiento.md l. 63 dice 0,4: es ruido de medida entre corridas, con su fuente al lado en las tres.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-046",
+    "origen": "cruzadas-L8.json n.º 8 (§13.3); coherencia.json fila 205",
+    "veredicto": "cerrado",
+    "evidencia": "La cruzada la retiró su propio lote («Superada en el cierre de L8: no aplicar»). Lo que pedía, `tpl_rev` en la `0044`, está en 13-esquema.md l. 133 y 175, sin `DEFAULT 0` por 13-j (l. 468), con el motivo comprobado (TS2741 al omitirlo y 23502 en la base, `aud3/ws4` y `aud3/aplicar.mjs`); 12-voz.md 12-c (l. 642) dice lo mismo.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-046",
+    "origen": "cruzadas-L8.json n.º 10 (§5.6); coherencia.json fila 207",
+    "veredicto": "cerrado",
+    "evidencia": "Retirada por L8 («Superada»). §5.6 da la revisión con `readStageTemplateRev` (05-motor.md l. 586-592) y la fila la arma `stageTimelineRow` con `meta.tplRev` (l. 506-516) desde `recordStageTimeline` (l. 414).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rdueno-008",
+    "origen": "cruzadas-L8.json n.º 16 (§3.2 y §5.4); coherencia.json fila 213",
+    "veredicto": "cerrado",
+    "evidencia": "05-motor.md l. 325 y 03-reloj.md l. 64: «en una etapa no conocida; en una conocida y con `?diag=1`, la ruta añade al leer los diez primeros de la etapa (§12.10, 12-o)». Comprobado `stageRun.ts` l. 560-568 (la lista de seguimiento) y 12-voz.md 12-o (l. 654).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-082",
+    "origen": "cruzadas-L8.json n.º 30 (§13.6 y §17.8, PR 5); coherencia.json fila 227",
+    "veredicto": "cerrado",
+    "evidencia": "13-esquema.md l. 399: el comentario de `schema.ts` l. 754 dirá las dos cifras con lo que mide cada una (JSON por etapa y `jsonb` en disco con TOAST), y 17-plan.md l. 250 igual. La cifra del JSON decía «de 100 a 514 KB (mapa 07)»: el mapa 07 midió 102,5 KB de mínimo (mapas/07-tests-contratos.md l. 165 y 201) y 16-bancos.md l. 731 dice 102; va como A-L3-005.",
+    "accion": "lo he cerrado yo: 13-esquema.md l. 399, «de 102 a 514 KB» (ver A-L3-005)"
+  },
+  {
+    "id": "Rcoste-008",
+    "origen": "cruzadas-L8.json n.º 51 (§5.7 y §15.2); coherencia.json fila 248",
+    "veredicto": "cerrado",
+    "evidencia": "05-motor.md l. 637 («B6 la mide en el banco, en `timeline.test.ts` (16-n)») y l. 639 (la salida que eligió §16.4 y la cifra de §15.2, 15-l); 15-constantes.md l. 68 (la fila de los topes dice dónde falla cada uno).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-030",
+    "origen": "cruzadas-L9.json n.º 10 (§13.10 punto 8 y §13.1 regla 8); coherencia.json fila 260",
+    "veredicto": "cerrado",
+    "evidencia": "13-esquema.md l. 448 (§13.10 punto 8: los dos casos de dos sesiones corren en todo PR desde el 1a con `TEST_DATABASE_URL` hacia el Postgres de servicio, 17-w, con `it.skipIf(realTestDatabaseUrl() == null)` y `realTestDbFor('cyclingstar_migrate')`; en local se saltan) y l. 16 (regla 8), que casa con la regla 9 de 17-plan.md l. 17 y l. 88. Comprobado `testDb.ts` l. 102-105 y 114-124.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-038",
+    "origen": "cruzadas-L9.json n.º 11 (§5.6 y §14.4, §5.5, §13.9 y §16.4); coherencia.json fila 261",
+    "veredicto": "cerrado",
+    "evidencia": "(1) 05-motor.md l. 601, final (la clave sin mundo, por eso el reinicio reinicia `web`; con mundo no haría falta) y 13-esquema.md l. 434; (2) 05-motor.md l. 449-451 (`flush` apunta `timeline error: <raceKey> e<n> ya tenía fila`), l. 528-536 (`writeStageTimelineRows` devuelve las no escritas) y l. 674 (el caso de `timelines.test.ts`); (3) 13-esquema.md l. 431 y 13-h (l. 466): `docs/ops.md` en el 5 y el 7a, el 12 relee (17-y); (4) 16-bancos.md l. 454 (B20).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-070",
+    "origen": "cruzadas-L9.json n.º 19 (§5.10); coherencia.json fila 269",
+    "veredicto": "cerrado",
+    "evidencia": "05-motor.md l. 674 (`vi.mock` parcial de `@cyclingstar/engine` en `timelines.test.ts`; la fila de `tick_log` en `tickRun.test.ts`, porque `stageRun.test.ts` no ve `tick_log`), igual que 17-plan.md l. 237.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-010",
+    "origen": "cruzadas-L2.json n.º 15 (todas las secciones); coherencia.json fila 23",
+    "veredicto": "cerrado",
+    "evidencia": "En §5 y §13 no queda ninguna remisión `§G.n` fuera de los bloques de cierre que `ensamblar.sh` quita: solo 05-motor.md l. 716 (duda 6) y 13-esquema.md l. 474-475 («Propuesto para el glosario»). Las de §5 pasaron a «la firma que fijó la síntesis» y a §21.6 F.2 (l. 404 y 5-i, l. 693).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-010",
+    "origen": "cruzadas-L10.json n.º 15 (todas las secciones, §1 a §19); coherencia.json fila 293",
+    "veredicto": "cerrado",
+    "evidencia": "Igual que la de L2: grep de `§G` y `G.n` en 05-motor.md y 13-esquema.md, solo en bloques que el ensamblado quita (comprobado con la regla de `ensamblar.sh`).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcoste-030",
+    "origen": "correcciones-L3.json (hallazgo de L9, §17.1, que el corrector de L3 aplicó en §13)",
+    "veredicto": "cerrado",
+    "evidencia": "La parte de §13: 13-esquema.md l. 16 (regla 8: solo con pendientes, el candado del tick y `lock_timeout` de 10 s), l. 448 (§13.10 punto 8) y 13-k (l. 469); el resto está en su sitio: 17-plan.md l. 17 (regla 9), l. 95 y l. 572, 19-riesgos.md riesgo 32 (l. 41), 18-rendimiento.md l. 121 y D-53. Comprobado `index.ts` l. 16 y 54, `migrate.ts` l. 24, `tick.ts` l. 214-217. La medida de la cola es del refutador en PostgreSQL 16 (PGlite no puede hacer cola). D-49 citaba 13-a y no 13-k, y el registro de 00-decisiones.md no tenía la fila: va como A-L3-007.",
+    "accion": "nada en §13; el registro de decisiones, en A-L3-007"
+  },
+  {
+    "id": "Rcoste-037",
+    "origen": "correcciones-L3.json (hallazgo de L9, §17.19, que el corrector de L3 aplicó en §13.2 y §13.9)",
+    "veredicto": "cerrado",
+    "evidencia": "13-esquema.md l. 31 (§13.2, «Si el reinicio llega antes que el código») y l. 436 (§13.9); lo de otras secciones ya está: 17-plan.md l. 531 (§17.19), 19-riesgos.md riesgo 36 (l. 45) y DD-27 en 20-dueno.md l. 45, 100 y 154. Pero §13.2 decía que el mínimo es «esta migración y que `emitNews` guarde la semilla y los datos», y DD-27 y §17.19 meten también el cambio de `runMigrations` de la regla 9 (la 8 de §13.1, que llega con la primera migración de E2); y §13.2 y §13.9 no nombraban DD-27.",
+    "accion": "lo he cerrado yo: 13-esquema.md l. 31 (el mínimo gana el cambio de `runMigrations` de la regla 8 y la decisión es DD-27) y l. 436 (DD-27)"
+  },
+  {
+    "id": "A-L3-002",
+    "origen": "auditoría L3: compilación y cableado del diario del tick",
+    "veredicto": "cerrado",
+    "evidencia": "05-motor.md l. 464 cablea `raceWorldDay(tx, worldId, next, seed, timelineLog)` (la vuelta de prueba también corre etapas con `runOneStage`, `race.ts` l. 25-30 y 46-58), pero ni la lista de l. 467, ni el glosario (fila de `stageRun.ts`, `calendarRun.ts`, `tick.ts`), ni 17-plan.md l. 247 (§17.8) ni la tabla de ficheros (l. 579) dicen que `race.ts` cambia: quien siga el plan dejaría las etapas de la vuelta de prueba sin grabar, servidas con el adaptador. Resolución cruzada: §17.8 dice que `raceWorldDay` (`packages/db/src/race.ts` l. 25-30) gana el quinto parámetro, `timeline?: TimelineTickLog`, para que la vuelta de prueba también se grabe (17-plan.md l. 247), y la tabla de ficheros de §17.20 nombra `race.ts` (l. 579).",
+    "accion": "lo he cerrado yo en 05-motor.md l. 467 (`raceWorldDay` gana un quinto parámetro, `timeline?: TimelineTickLog`, que pasa en el spec de su `runOneStage`) y en la fila del glosario; necesita otra sección: §17.8 (17-plan.md l. 247) y §17.20 (la fila de `calendarRun.ts` y `tick.ts`, l. 579) tienen que nombrar `race.ts`; cerrado en la resolución cruzada (ya estaba en el texto: cierre de L9, A-L9-005): 17-plan.md l. 247 y 579"
+  },
+  {
+    "id": "A-L3-003",
+    "origen": "auditoría L3: cifras",
+    "veredicto": "cerrado",
+    "evidencia": "05-motor.md l. 253 daba al reloj de cabeza del grabador «un `Float64Array` de `blocks`, de 12 a 22 KB en las etapas medidas»; las etapas medidas tienen de 1.280 a 2.782 bloques (l. 245; `l3/medidas-s01.json`: `race-france` e19 y `race-flanders`), es decir, de 10.240 a 22.256 bytes, de 10 a 22 KB.",
+    "accion": "lo he cerrado yo: 05-motor.md l. 253, «de 10 a 22 KB en las etapas medidas, de 1.280 a 2.782 bloques»"
+  },
+  {
+    "id": "A-L3-004",
+    "origen": "auditoría L3: nombres de test",
+    "veredicto": "cerrado",
+    "evidencia": "13-esquema.md l. 446 (§13.10 punto 6) decía «`news.test.ts`», que hoy no existe en `packages/db` y que el plan crea en dos paquetes (`packages/shared/src/news.test.ts` y `packages/db/src/news.test.ts`, 17-plan.md l. 84-85); el que lee filas con columnas null es el de `packages/db`, y el «test de `awardRacePrizes`», que hoy no existe, el plan lo pone en `stageRun.test.ts` (17-plan.md l. 349).",
+    "accion": "lo he cerrado yo: 13-esquema.md l. 446, `packages/db/src/news.test.ts` (nuevo en el 1a, §17.4) y el test de `awardRacePrizes` en `stageRun.test.ts` (PR 8a)"
+  },
+  {
+    "id": "A-L3-005",
+    "origen": "auditoría L3: cifras compartidas",
+    "veredicto": "cerrado",
+    "evidencia": "13-esquema.md l. 399 daba la radio de hoy en «de 100 a 514 KB de JSON por etapa (mapa 07)»; el mapa 07 midió de 102,5 a 514,4 KB (mapas/07-tests-contratos.md l. 165 y 201) y 16-bancos.md l. 731 dice «de 102 a 514». 17-plan.md l. 250 (§17.8) y 19-riesgos.md l. 201 (§19.9) repiten el 100. (La radio de nueve etapas del juez del motor, 126-559 KB, de 05-motor.md l. 613, es otra medida y lleva su fuente.) Resolución cruzada: «de 102 a 514 KB de JSON» en §17.8 (17-plan.md l. 250) y en §19.7 (19-riesgos.md l. 201), como §13.6 (13-esquema.md l. 399) y §16.8 (16-bancos.md l. 731).",
+    "accion": "lo he cerrado yo en 13-esquema.md l. 399 («de 102 a 514 KB»); necesita otra sección: 17-plan.md l. 250 y 19-riesgos.md l. 201; cerrado en la resolución cruzada (ya estaba en el texto: auditoría L9, Rcodigo-082 · cruzada L8 n.º 30): 17-plan.md l. 250; 19-riesgos.md l. 201"
+  },
+  {
+    "id": "A-L3-006",
+    "origen": "auditoría L3: glosario",
+    "veredicto": "cerrado",
+    "evidencia": "Nombres nuevos de §5 y §13 que no estaban en 00-glosario.md (comprobado con grep de cada nombre entre comillas invertidas y de cada declaración de los bloques): `packages/db/src/timelines.test.ts` (§5.10, §13.10 punto 5, §17.8; solo estaba `timelineCollector.test.ts`, que es B10), la lista `ESCRITURA_DRIZZLE` de `columnasVivas.test.ts` (13-a; la fila del glosario solo decía la expresión ampliada), `startEmptyTestDb()` de `testDb.ts` (13-m) y `runMigrations(databaseUrl, folder?)` con la regla 8 (13-k, 13-m), los tres propuestos en 13-esquema.md l. 476. Y la fila de `stage_timelines.tpl_rev` decía «la escribe `recordStageTimeline`», cuando la toma `recordStageTimeline` de `TEMPLATE_REV`, la pone en la fila `stageTimelineRow` (0 en `tombstoneRow`) y la escribe `flush` (05-motor.md l. 414, 511, 524; 13-esquema.md l. 194 y 196). El resto de nombres de tipo, constante, banco, test y ruta de §5 y §13 está en el glosario con la misma grafía.",
+    "accion": "lo he cerrado yo en 00-glosario.md: fila de `columnasVivas.test.ts` con `ESCRITURA_DRIZZLE`; filas nuevas de `migrate.ts` y `testDb.ts` (tocados, 13-k y 13-m) y de «tests nuevos de §5 y §13 (auditoría L3)» con `timelines.test.ts`; fila de `stage_timelines.tpl_rev` con quién la toma, la arma y la escribe"
+  },
+  {
+    "id": "A-L3-007",
+    "origen": "auditoría L3: «Decisión tomada aquí» en 00-decisiones.md",
+    "veredicto": "cerrado",
+    "evidencia": "Las decisiones de §5 y §13 que corrigen o precisan una D están en su D: 5-i y 5-k en D-12, 5-l y 13-j en D-10 (nota de la fase 5), 5-p en D-10 y D-32, 13-a en D-49, 13-h en D-58; las demás (5-a a 5-h, 5-j, 5-m a 5-o, 13-b a 13-g, 13-i, 13-l y 13-m) son locales y no cambian ninguna D (13-l: el presupuesto sigue velado por defecto, D-41). Faltaban en la tabla del registro las dos precisiones de la fase 5 de L3: D-10 (5-l, 13-j; Rcobertura-044, Rcoste-006) y D-49 (13-a con la segunda regla y 13-k; Rcodigo-011, Rcoste-030), y la nota de D-49 citaba 13-a y no 13-k, aunque su texto ya dice lo de `runMigrations`.",
+    "accion": "lo he cerrado yo en 00-decisiones.md: dos filas del registro (D-10 y D-49, «precisada (fase 5)», registradas en la auditoría L3) y «decisiones 13-a y 13-k» en la nota de la fase 5 de D-49"
+  },
+  {
+    "id": "Rcobertura-044",
+    "origen": "por-lote/L3.json",
+    "veredicto": "cerrado",
+    "evidencia": "13-esquema.md l. 133 (SQL `\"tpl_rev\" smallint NOT NULL`), l. 173-175 (Drizzle), l. 194, l. 196 y 13-j (l. 468); 05-motor.md l. 414 (`meta.tplRev` de `TEMPLATE_REV`), l. 494, 511, 524 y 589-592 (`readStageTemplateRev`); 17-plan.md l. 247 sin condicional y l. 235 (el caso de `timelines.test.ts`); §13.10 punto 5 (l. 445). Sin `DEFAULT 0`, con motivo que se sostiene: regenerado HOY con drizzle-kit 0.31.10 desde el texto de §13 sobre una copia limpia de `packages/db` (`aud3/regen13.py`): la `0043`, `0044`, `0045` y `0046` salen IGUALES byte a byte a los cuatro bloques SQL y un quinto `generate` dice `No schema changes`; `c-l3/generar3.py` sobre otra copia limpia, igual; y el `l3/generar.py` original, sobre otra, da la `0043`, la `0045` y la `0046` iguales y la `0044` igual salvo la línea de `tpl_rev`, que es lo que dice la cabecera de §13 (l. 3); aplicadas sobre PGlite con un mundo vivo (`aud3/aplicar.mjs`, 63 ms, segunda pasada sin error) una fila sin `tpl_rev` da 23502; y quitar `tplRev` de `tombstoneRow` da TS2741 (`aud3/ws4`).",
+    "accion": "nada"
+  },
+  {
+    "id": "A-L3-001",
+    "origen": "auditoría L3: compilación de los bloques del grabador",
+    "veredicto": "cerrado",
+    "evidencia": "Compilados HOY los bloques de §5 sobre una copia del motor y de `packages/db` (`aud3/armar_grabador.py`, el de la auditoría anterior, y `armar_grabador_hoy.py`, con un `shared` armado del texto de hoy): §5.2 (`types.ts`, `events.ts`, el diff de `simulate.ts` y `timetrial.ts`), §5.4 con la guarda de §4.3 e `I1Mismatch`, el `export` de `raceRadio.ts`, `TIMELINE` de §15.2, el índice de §5.9, los tres bloques de `timelines.ts`, `RunTickOptions.timelineRecord` y el esquema regenerado de §13: 0 errores en el motor y en `timelines.ts`. El único error de lo de §5 es el bloque de §5.3 (05-motor.md l. 176): usa `StageProbe['onSnapshot']` y `startStageTimeline` en `stageRun.ts`, que hoy no importa ninguno de los dos (l. 1-60), y da TS2304 «Cannot find name 'StageProbe'» y tres TS7006. Con la importación añadida, 0 errores (`aud3/e4b.err`). Lo mismo, sin error porque el script lo añade, en el trozo de `timetrial.ts` del bloque de §5.2 (l. 145): `simulateTimeTrial(…, probe?: StageProbe)` y `timetrial.ts` no importa hoy `StageProbe` (su `import type` de './types.js', l. 40-48). Repetida la compilación con el texto ya arreglado (`aud3/final.err`): 0 errores fuera de `shared` y `news.ts`. Los otros errores de la compilación no son de §5: `packages/db/src/news.ts` l. 89, 114 y 142 (`text` pasa a nullable con la `0043`, que §13.2 l. 120 ya dice que el `typecheck` obliga a decidir en el 1a) y los internos del `shared` armado (§4, §6 a §12).",
+    "accion": "lo he cerrado yo: 05-motor.md l. 176, el comentario de cabecera del bloque de §5.3 dice qué importaciones gana `stageRun.ts` (`type StageProbe` de '@cyclingstar/engine', que el índice exporta desde 5.9, y `startStageTimeline` y `type TimelineTickLog` de './timelines.js'), y l. 145, el del trozo de `timetrial.ts`, que su `import type` gana `StageProbe`"
+  }
+]

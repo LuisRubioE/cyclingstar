@@ -1,0 +1,2394 @@
+[
+  {
+    "id": "Rcobertura-003",
+    "origen": "L1, n.º 1 de cruzadas-L1.json",
+    "seccion_destino": "§12.2",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L8.json (Rcobertura-003, aplicado): 12-voz.md l. 61 (§12.2) y el bloque de dudas (cerrada)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-032",
+    "origen": "L1, n.º 2 de cruzadas-L1.json",
+    "seccion_destino": "§19.1",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcoste-032, aplicado): 17-plan.md l. 477; 19-riesgos.md l. 11; 19-riesgos.md l. 116",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-032",
+    "origen": "L1, n.º 3 de cruzadas-L1.json",
+    "seccion_destino": "§17.16",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcoste-032, aplicado): 17-plan.md l. 477; 19-riesgos.md l. 11; 19-riesgos.md l. 116",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcodigo-042",
+    "origen": "L1, n.º 4 de cruzadas-L1.json",
+    "seccion_destino": "§14.4",
+    "estado": "aplicada",
+    "donde": "14-api.md §14.4 (pseudocódigo de `timelineForStage`: «si tl es null: devolver null») y el párrafo de las tres rutas",
+    "motivo": "`estimatedHeadClock` da null sin ninguna velocidad de cabeza (§3.8) y el pseudocódigo guardaba ese null en el LRU; ahora devuelve null y la etapa abre en `Report` con `Broadcast unavailable for this stage`."
+  },
+  {
+    "id": "Rcodigo-042",
+    "origen": "L1, n.º 5 de cruzadas-L1.json",
+    "seccion_destino": "§17.5",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcodigo-042, aplicado): 17-plan.md l. 122; 17-plan.md l. 30; 17-plan.md l. 651",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcodigo-042",
+    "origen": "L1, n.º 6 de cruzadas-L1.json",
+    "seccion_destino": "§4.2",
+    "estado": "ya_estaba",
+    "donde": "04-modelo.md l. 78 (§4.2, comentario de `GroupDetail.speedKmh`)",
+    "motivo": "Ya cita `groupSpeedKmh` en l. 679-764, como §3.8."
+  },
+  {
+    "id": "Rdueno-033",
+    "origen": "L1, n.º 7 de cruzadas-L1.json",
+    "seccion_destino": "§20.4",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L10.json (Rdueno-033, aplicado): 20-dueno.md l. 70 (§20.4)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rdueno-033",
+    "origen": "L1, n.º 8 de cruzadas-L1.json",
+    "seccion_destino": "§8.10",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L4.json (Rdueno-033 (cruzada de L1), aplicado): 08-ritmo.md l. 331",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-005",
+    "origen": "L2, n.º 1 de cruzadas-L2.json",
+    "seccion_destino": "§8.6 (8-g)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L4.json (Rcobertura-005 (cruzada de L2), aplicado): 08-ritmo.md l. 247 (§8.6), l. 463 (8-g) y el bloque del glosario (l. 478 en adelante)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-005",
+    "origen": "L2, n.º 2 de cruzadas-L2.json",
+    "seccion_destino": "§5.4 y §7.8",
+    "estado": "aplicada",
+    "donde": "07-rotulos.md §7.8 (párrafo «Los favoritos de la previa»); 05-motor.md §5.4 y §5.5 ya lo tenían (L3)",
+    "motivo": "La regla de `favourites` en `buildTimelineCast`, con los atributos de antes del aprendizaje."
+  },
+  {
+    "id": "Rcobertura-005",
+    "origen": "L2, n.º 3 de cruzadas-L2.json",
+    "seccion_destino": "§10.10",
+    "estado": "aplicada",
+    "donde": "10-horizonte.md §10.10 (`veilCast` devuelve `favourites` y el párrafo que le sigue)",
+    "motivo": "El bloque devolvía `{ riders, teams }` y no compilaba con `TimelineCast.favourites` obligatorio (4-u); los favoritos se copian tal cual."
+  },
+  {
+    "id": "Rcobertura-005",
+    "origen": "L2, n.º 4 de cruzadas-L2.json",
+    "seccion_destino": "§17 (17-a, §17.8, §17.20, §17.21 y dudas del cierre)",
+    "estado": "ya_estaba",
+    "donde": "17-plan.md, 17-a (l. 773, sin «si el ensamblador lo acepta»), §17.8 (`cast.test.ts`, l. 242, con el caso de los favoritos y `raceLearning`)",
+    "motivo": "L9 la aplicó (correcciones-L9.json, Rcobertura-005); las dudas de §17 sobre `favourites` y `checkClockDs` ya no están."
+  },
+  {
+    "id": "Rcobertura-005",
+    "origen": "L2, n.º 5 de cruzadas-L2.json",
+    "seccion_destino": "§19.1 (riesgo 22) y §16 (dudas del cierre, B1c)",
+    "estado": "ya_estaba",
+    "donde": "19-riesgos.md, riesgo 22 (l. 32: «baja: decidido en 8-g y escrito en §4.2»); 16-bancos.md, «Dudas del cierre» (la de B1c y 8-g, cerrada)",
+    "motivo": "L9 la aplicó en §19.1 y L8 en §16."
+  },
+  {
+    "id": "Rcobertura-006",
+    "origen": "L2, n.º 6 de cruzadas-L2.json",
+    "seccion_destino": "§5.4",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L3.json (Rcobertura-006, aplicado): 05-motor.md l. 169 (§5.2), l. 303-306 (§5.4, `selfCheckI5` con `check`), l. 360-361 (`onTimeTrialRide` del pseudocódigo), l. 384-386 (paso 7 con `ttTraceOf`) y l. 408 (§5.5, I5 con los controles)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-007",
+    "origen": "L2, n.º 7 de cruzadas-L2.json",
+    "seccion_destino": "§5.4",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L3.json (Rcobertura-007, aplicado): 05-motor.md l. 367-369 (§5.4, paso 3 de `finish`)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-007",
+    "origen": "L2, n.º 8 de cruzadas-L2.json",
+    "seccion_destino": "§9.4 (lastKmFromS)",
+    "estado": "aplicada",
+    "donde": "09-crono.md §9.4 (el párrafo de `lastKmFromS`, con las dos caras)",
+    "motivo": "Las dos caras de Rcobertura-007 y Rcodigo-025, con la elegida y su porqué."
+  },
+  {
+    "id": "Rcobertura-007",
+    "origen": "L2, n.º 9 de cruzadas-L2.json",
+    "seccion_destino": "§9.8",
+    "estado": "aplicada",
+    "donde": "09-crono.md §9.8 (`timeTrial.test.ts`: el caso de la e16, semilla 0)",
+    "motivo": "El borde de la meta de una crono es la última llegada (4-w)."
+  },
+  {
+    "id": "Rcobertura-007",
+    "origen": "L2, n.º 10 de cruzadas-L2.json",
+    "seccion_destino": "dudas.md (1.3)",
+    "estado": "aplicada",
+    "donde": "dudas.md §0 (tabla del estado) y §1 (1.3 cerrada por 4-w)",
+    "motivo": "La 1.3 queda cerrada con la evidencia de 4-w (`04-modelo.md` l. 1146)."
+  },
+  {
+    "id": "Rcobertura-008",
+    "origen": "L2, n.º 11 de cruzadas-L2.json",
+    "seccion_destino": "§6.1, §6.2, §6.3 y §16.6",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L4.json (Rcobertura-008 (cruzada de L2), aplicado): 06-pantalla.md l. 12-66 (los dibujos), l. 126 (la barra) y l. 657 (6-c) | correcciones-L8.json (Rcobertura-008, aplicado): 16-bancos.md l. 680 (§16.6)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-009",
+    "origen": "L2, n.º 12 de cruzadas-L2.json",
+    "seccion_destino": "§5.4",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L3.json (Rcobertura-009, aplicado): 05-motor.md l. 376-381 (§5.4, paso 5 de `finish`: los percances de carretera y la caída con la regla `incident`), l. 390-391 (la vista, `groupAt(r, −1) = 0`) y l. 665 (§5.10, el caso de `timeline.test",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-009",
+    "origen": "L2, n.º 13 de cruzadas-L2.json",
+    "seccion_destino": "§5 (tests del grabador) y §17.21",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L3.json (Rcobertura-009, aplicado): 05-motor.md l. 376-381 (§5.4, paso 5 de `finish`: los percances de carretera y la caída con la regla `incident`), l. 390-391 (la vista, `groupAt(r, −1) = 0`) y l. 665 (§5.10, el caso de `timeline.test | correcciones-L9.json (Rcobertura-009, aplicado): 17-plan.md l. 211; 17-plan.md l. 702; 19-riesgos.md l. 48",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-009",
+    "origen": "L2, n.º 14 de cruzadas-L2.json",
+    "seccion_destino": "§19.1 (riesgo 24) y dudas.md (1.2)",
+    "estado": "ya_estaba",
+    "donde": "19-riesgos.md §19.1 (l. 48: «No hay riesgo 24», cerrado por 4-v)",
+    "motivo": "L9 quitó el riesgo 24 y dejó escrito por qué; la duda 1.2 se cierra en dudas.md."
+  },
+  {
+    "id": "Rcobertura-010",
+    "origen": "L2, n.º 15 de cruzadas-L2.json",
+    "seccion_destino": "todas las secciones (§0 a §21)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L10.json (Rcobertura-010, aplicado): 21-apendices.md l. 422-445 (tabla del principio de §21.6), l. 629 (21-f), l. 67 (alias), l. 419 (X-23), intros de F.1 a F.4, 21-c y 21-d; 20-dueno.md l. 89 (§20.6, DD-22); 0",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-011",
+    "origen": "L2, n.º 16 de cruzadas-L2.json",
+    "seccion_destino": "§7.8",
+    "estado": "aplicada",
+    "donde": "07-rotulos.md §7.8 (pseudocódigo de `serveCast`: `gender: c.gender`)",
+    "motivo": "La tabla ya daba el género por público; el pseudocódigo no lo copiaba."
+  },
+  {
+    "id": "Rcobertura-011",
+    "origen": "L2, n.º 17 de cruzadas-L2.json",
+    "seccion_destino": "§12.11",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L8.json (Rcobertura-011, aplicado): 12-voz.md l. 601 (§12.11)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-012",
+    "origen": "L2, n.º 18 de cruzadas-L2.json",
+    "seccion_destino": "§6.5 y §6.6",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L4.json (Rcobertura-012 (cruzada de L2), aplicado): 06-pantalla.md l. 332 (`CUE_CLASS`), l. 339-352 (`cueClassOf`), l. 384-386 (las tres filas de la tabla) y l. 520 (la fila 47 de §6.6)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-013",
+    "origen": "L2, n.º 19 de cruzadas-L2.json",
+    "seccion_destino": "§14.4",
+    "estado": "aplicada",
+    "donde": "14-api.md §14.4 (párrafo «Lo que la cabecera, el tramo y el paquete de meta toman de la fuente»)",
+    "motivo": "`tt` de `tl.tt` y `tt.checks` de `chunkOf`; `tplRev`, con la forma de L3#10."
+  },
+  {
+    "id": "Rcobertura-014",
+    "origen": "L2, n.º 20 de cruzadas-L2.json",
+    "seccion_destino": "§14.2",
+    "estado": "aplicada",
+    "donde": "14-api.md §14.2 (ampliación de `stageReplaySchema` con `tplRev`)",
+    "motivo": "`tplRev` junto a `watch`, opcional, con el `.omit` de `yesterday.test.ts`; `StageReport` lo hereda."
+  },
+  {
+    "id": "Rcobertura-014",
+    "origen": "L2, n.º 21 de cruzadas-L2.json",
+    "seccion_destino": "§5.6 y §13.3",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L3.json (Rcobertura-014, parcial): 05-motor.md l. 540-566 (§5.6, `Decoded` y `decodedEntry`, con el `tpl_rev` de la fila), l. 582-585 (`readStageTemplateRev`) y l. 590; 13-esquema.md l. 194 y 196 (§13.3)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-049",
+    "origen": "L2, n.º 22 de cruzadas-L2.json",
+    "seccion_destino": "§17.9, §17.13 y §17.20",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcobertura-049, aplicado): 17-plan.md l. 558; 17-plan.md l. 271; 17-plan.md l. 408",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-050",
+    "origen": "L2, n.º 23 de cruzadas-L2.json",
+    "seccion_destino": "§6.3",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L4.json (Rcobertura-050 (cruzada de L2), aplicado): 06-pantalla.md l. 162 y 655 (6-a)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-050",
+    "origen": "L2, n.º 24 de cruzadas-L2.json",
+    "seccion_destino": "§11.16",
+    "estado": "ya_estaba",
+    "donde": "11-superficies.md §11.16 (`export const PULLERS_KEPT = 12` con su comentario de 15-k)",
+    "motivo": "Ya exportada y atada por `broadcastConstants.test.ts` hasta el 4b."
+  },
+  {
+    "id": "Rcobertura-050",
+    "origen": "L2, n.º 25 de cruzadas-L2.json",
+    "seccion_destino": "§17.6 y §17.7",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcobertura-050, aplicado): 17-plan.md l. 148; 17-plan.md l. 216; 17-plan.md l. 222; 17-plan.md l. 597",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-050",
+    "origen": "L2, n.º 26 de cruzadas-L2.json",
+    "seccion_destino": "dudas.md (1.7)",
+    "estado": "aplicada",
+    "donde": "dudas.md §0 (tabla del estado) y §1 (1.7 cerrada por 15-a y 15-k)",
+    "motivo": "La 1.7 queda cerrada: §15.5 ata `chaseRefOf` (`15-constantes.md` l. 255)."
+  },
+  {
+    "id": "Rcodigo-005",
+    "origen": "L2, n.º 27 de cruzadas-L2.json",
+    "seccion_destino": "dudas.md (1.1)",
+    "estado": "aplicada",
+    "donde": "dudas.md §0 (tabla del estado) y §1 (1.1 cerrada)",
+    "motivo": "La 1.1 queda cerrada: §4 escribe los campos (4-u, con `contract.housingCovered` en §4.12), `tpl_rev` está en la `0044` (13-j) y `stageReplaySchema.tplRev` y `riderRaceReportSchema.moments` en §14.2."
+  },
+  {
+    "id": "Rcodigo-014",
+    "origen": "L2, n.º 28 de cruzadas-L2.json",
+    "seccion_destino": "§5.7",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L3.json (Rcodigo-014, aplicado): 05-motor.md l. 610-612, l. 628 y l. 630 (§5.7)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcodigo-014",
+    "origen": "L2, n.º 29 de cruzadas-L2.json",
+    "seccion_destino": "§16.4 (B6)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L8.json (Rcodigo-014, aplicado): 16-bancos.md l. 428 (B6) y 16-n",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcodigo-014",
+    "origen": "L2, n.º 30 de cruzadas-L2.json",
+    "seccion_destino": "§19.6 y dudas.md (1.4)",
+    "estado": "ya_estaba",
+    "donde": "19-riesgos.md §19.6 (l. 187: la e10 medida, 31.436 B y 32.203 B con `checkClockDs`, y el tope de 49.152 B, 15-i)",
+    "motivo": "L9 la aplicó; la duda 1.4 se cierra en dudas.md."
+  },
+  {
+    "id": "Rcoste-004",
+    "origen": "L2, n.º 31 de cruzadas-L2.json",
+    "seccion_destino": "§5.6",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L3.json (Rcoste-004, aplicado): 05-motor.md l. 594 (§5.6, párrafo «El LRU»)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-004",
+    "origen": "L2, n.º 32 de cruzadas-L2.json",
+    "seccion_destino": "§18.9 y 18-d",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L7.json (Rcoste-004, parcial): 18-rendimiento.md l. 63, l. 65, l. 217, l. 265",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-005",
+    "origen": "L2, n.º 33 de cruzadas-L2.json",
+    "seccion_destino": "§14.8",
+    "estado": "aplicada",
+    "donde": "14-api.md §14.8 (fila de «la línea entera» marcada como otro formato; la etapa entera, de 28 a 82 KB sin la meta más la meta estimada)",
+    "motivo": "La fila se deja como referencia, dicha de otro formato, y la estimación de la etapa entera pasa a la medida de §18.1."
+  },
+  {
+    "id": "Rcoste-019",
+    "origen": "L2, n.º 34 de cruzadas-L2.json",
+    "seccion_destino": "§14.6",
+    "estado": "aplicada",
+    "donde": "14-api.md §14.6 (`PROGRESS_MIN_DELTA_S` en `envSchema` y su cableado)",
+    "motivo": "La variable de 15-j, que §15.8 ya describía, faltaba en el `env.ts` de §14.6."
+  },
+  {
+    "id": "Rcoste-019",
+    "origen": "L2, n.º 35 de cruzadas-L2.json",
+    "seccion_destino": "§10.3",
+    "estado": "aplicada",
+    "donde": "10-horizonte.md §10.3 («La carga»: el umbral `env.PROGRESS_MIN_DELTA_S ?? BROADCAST.progressMinDeltaS`, y la subida sin desplegar)",
+    "motivo": "15-j: la variable sustituye a la constante y quien aplica el umbral lo recibe."
+  },
+  {
+    "id": "Rcoste-019",
+    "origen": "L2, n.º 36 de cruzadas-L2.json",
+    "seccion_destino": "§17.1 (regla 9), §18.4 y §19.6",
+    "estado": "aplicada",
+    "donde": "18-rendimiento.md §18.4 (la primera frase y «Si en producción pesara…»); §17.1 y §19.6 ya lo tenían (L9)",
+    "motivo": "Se sube `PROGRESS_MIN_DELTA_S` en Railway, sin desplegar (15-j)."
+  },
+  {
+    "id": "Rdueno-005",
+    "origen": "L3, n.º 1 de cruzadas-L3.json",
+    "seccion_destino": "§0.4 (00-cabecera.md l. 72, punto 3)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L10.json (Rdueno-005, aplicado): 00-cabecera.md l. 72 (§0.4, punto 3); 21-apendices.md l. 121 (O-05) y l. 186 (H-02); 00-decisiones.md, fila de DD-25",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rdueno-005",
+    "origen": "L3, n.º 2 de cruzadas-L3.json",
+    "seccion_destino": "§2.3 (02-principios.md l. 42)",
+    "estado": "aplicada",
+    "donde": "02-principios.md l. 42 (§2.3, última viñeta)",
+    "motivo": "La viñeta decía la regla retirada de D-09 («toda subida futura va detrás del 17d»); pasa al texto de la cruzada, con el defecto vigente de DD-25 (adelantar el 17d, corrección L10)."
+  },
+  {
+    "id": "Rdueno-005",
+    "origen": "L3, n.º 3 de cruzadas-L3.json",
+    "seccion_destino": "§19.5 (19-riesgos.md l. 153) y §19.1 (riesgo 4, l. 14), más los cierres O-05 y H-02 (l. 245 y 247) y la tabla de l. 95 y 227",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rdueno-005, aplicado): 19-riesgos.md l. 161; 19-riesgos.md l. 14; 17-plan.md l. 11; 17-plan.md l. 451",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rdueno-005",
+    "origen": "L3, n.º 4 de cruzadas-L3.json",
+    "seccion_destino": "00-decisiones.md, fila de DD-25 (l. 703 del fichero antes de esta corrección) y §21 (O-05, l. 121; H-02, l. 186)",
+    "estado": "ya_estaba",
+    "donde": "00-decisiones.md, fila de DD-25 (se sostiene sola: adelantar el 17d, E2 no sube la versión); 21-apendices.md, O-05 (l. 121) y H-02 (l. 186)",
+    "motivo": "L10 reescribió DD-25 con Rdueno-006 y O-05 y H-02 dicen ya que lo que cuesta una subida de otra línea lo decide el dueño (DD-25)."
+  },
+  {
+    "id": "Rdueno-005",
+    "origen": "L3, n.º 5 de cruzadas-L3.json",
+    "seccion_destino": "§17.15 y cierre de §17 (17-plan.md, H-02: «ata toda subida de versión al 17d»)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rdueno-005, aplicado): 19-riesgos.md l. 161; 19-riesgos.md l. 14; 17-plan.md l. 11; 17-plan.md l. 451",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-045",
+    "origen": "L3, n.º 6 de cruzadas-L3.json",
+    "seccion_destino": "§11.13 (11-superficies.md, párrafo del presupuesto, «Los movimientos que no nacen de una etapa…»)",
+    "estado": "aplicada",
+    "donde": "11-superficies.md §11.13 (párrafo del presupuesto, «Los movimientos que no nacen de una etapa…»)",
+    "motivo": "La remisión a 13-l que la corrección de L3 dejó por cruzada."
+  },
+  {
+    "id": "Rcodigo-011",
+    "origen": "L3, n.º 7 de cruzadas-L3.json",
+    "seccion_destino": "§10.3 (10-horizonte.md, párrafo tras el pseudocódigo de `recordProgress`)",
+    "estado": "aplicada",
+    "donde": "10-horizonte.md §10.3 (párrafo tras el pseudocódigo de `recordProgress`)",
+    "motivo": "La razón de 13-a escrita como la segunda regla de `columnasVivas.test.ts`, con las tres columnas y los tres falsos escritores de hoy."
+  },
+  {
+    "id": "Rcobertura-044",
+    "origen": "L3, n.º 8 de cruzadas-L3.json",
+    "seccion_destino": "§17.8 (paso 5) y 17-a, más la duda del cierre de §17 sobre §13.3",
+    "estado": "ya_estaba",
+    "donde": "17-plan.md §17.8 (l. 247, `tpl_rev` `smallint not null` sin defecto, sin condicional; l. 235, el caso de `readStageTemplateRev` en `timelines.test.ts`) y 17-a (l. 773)",
+    "motivo": "L9 la aplicó; la duda de §17 sobre §13.3 ya no está."
+  },
+  {
+    "id": "Rcobertura-044",
+    "origen": "L3, n.º 9 de cruzadas-L3.json",
+    "seccion_destino": "§12.7 (12-voz.md, párrafo «La revisión de cada etapa»), 12-c y la lista de cierre de §12",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L8.json (Rcobertura-044 (cruzada de L3), aplicado): 12-voz.md l. 393 (§12.7, «La revisión de cada etapa»), l. 639 (12-c), l. 661 (glosario propuesto) y l. 669 (dudas para el ensamblador)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-044",
+    "origen": "L3, n.º 10 de cruzadas-L3.json",
+    "seccion_destino": "00-glosario.md (§G.3.8, fila de `stage_timelines.tpl_rev`; §G.5, fila de `stage_timelines`)",
+    "estado": "ya_estaba",
+    "donde": "00-glosario.md G.3.8 (fila de `stage_timelines.tpl_rev`: `smallint not null`, sin defecto, 13-j, escrita en la `0044`) y G.5 (fila de `stage_timelines`)",
+    "motivo": "Lo aplicó el cierre de L10 (G.14, «Cierre de L10»)."
+  },
+  {
+    "id": "Rcobertura-014",
+    "origen": "L3, n.º 11 de cruzadas-L3.json",
+    "seccion_destino": "§14.3 y §14.4 (14-api.md: la cabecera, el tramo y el paquete de meta)",
+    "estado": "aplicada",
+    "donde": "14-api.md §14.4 (el mismo párrafo)",
+    "motivo": "`readStageTemplateRev` tras `timelineForStage` cuando la línea es grabada, 0 con el adaptador; sin envoltorio (14-p)."
+  },
+  {
+    "id": "Rcodigo-035",
+    "origen": "L3, n.º 12 de cruzadas-L3.json",
+    "seccion_destino": "00-glosario.md (§G.2, l. 114; §G.4, l. 697) y §21.6 F.2 (21-apendices.md l. 511)",
+    "estado": "ya_estaba",
+    "donde": "00-glosario.md G.2 (fila de `timelines.ts`) y G.4; 21-apendices.md F.2",
+    "motivo": "Las funciones de `timelines.ts` ya son las de la corrección de §5 y `StageTimelineRead` salió (cierre de L10). En esta pasada, `writeStageTimelineRows` gana en G.4 y en F.2 su tipo de vuelta, `Promise<readonly StageTimelineRow[]>`, que §5.6 escribe desde la cruzada L9#10."
+  },
+  {
+    "id": "Rcobertura-006",
+    "origen": "L3, n.º 13 de cruzadas-L3.json",
+    "seccion_destino": "00-glosario.md (§G.4, fila de `selfCheckI5`) y §21.6 F.2",
+    "estado": "ya_estaba",
+    "donde": "00-glosario.md G.4 (fila de `selfCheckI5`); 21-apendices.md F.2 (fila de `selfCheckI1` y `selfCheckI5`)",
+    "motivo": "La firma y el elemento `{ rider, check: number | null, expectedDs, gotDs }` ya estaban (cierre de L10)."
+  },
+  {
+    "id": "Rcoste-006",
+    "origen": "L3, n.º 14 de cruzadas-L3.json",
+    "seccion_destino": "§16.3 (16-bancos.md, `startSpoilerWorld` y `specOf`)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L8.json (Rcoste-006 (cruzada de L3, §16.3), aplicado): 16-bancos.md l. 57 (la importación), l. 132-143 (`specOf` con el diario y `runStage`), l. 160 y 178 (las etapas 1 y 2 y la velada), l. 287 (las exportaciones), l. 289 («La fila de cada etapa»",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-006",
+    "origen": "L3, n.º 15 de cruzadas-L3.json",
+    "seccion_destino": "§17.8 (paso 5: texto, «Tests primero» y «Código») y §17.20 (fila de `timelines.ts`)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcoste-006, aplicado): 17-plan.md l. 232; 17-plan.md l. 236; 17-plan.md l. 244; 17-plan.md l. 247; 17-plan.md l. 578; 17-plan.md l. 579; 19-riesgos.md l. 46",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-006",
+    "origen": "L3, n.º 16 de cruzadas-L3.json",
+    "seccion_destino": "§19.1 (riesgo nuevo) y §16.4 (B15)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L8.json (Rcoste-006 (cruzada de L3, §16.3), aplicado): 16-bancos.md l. 57 (la importación), l. 132-143 (`specOf` con el diario y `runStage`), l. 160 y 178 (las etapas 1 y 2 y la velada), l. 287 (las exportaciones), l. 289 («La fila de cada etapa» | correcciones-L9.json (Rcoste-006, aplicado): 17-plan.md l. 232; 17-plan.md l. 236; 17-plan.md l. 244; 17-plan.md l. 247; 17-plan.md l. 578; 17-plan.md l. 579; 19-riesgos.md l. 46",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-006",
+    "origen": "L3, n.º 17 de cruzadas-L3.json",
+    "seccion_destino": "§18.3 (18-rendimiento.md, «La escritura sí se ha medido aparte…»)",
+    "estado": "aplicada",
+    "donde": "18-rendimiento.md §18.3 (tras «La escritura sí se ha medido aparte…»)",
+    "motivo": "5-l: un solo `INSERT` y un punto de guardado por día, 86 ms las 153 filas del 179."
+  },
+  {
+    "id": "Rcodigo-009",
+    "origen": "L3, n.º 18 de cruzadas-L3.json",
+    "seccion_destino": "§17.8 (paso 5, «Código», línea de la API) y §17.20 (tabla de ficheros)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcodigo-009, aplicado): 17-plan.md l. 249; 17-plan.md l. 237; 17-plan.md l. 669",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-008",
+    "origen": "L3, n.º 19 de cruzadas-L3.json",
+    "seccion_destino": "§15.2 (15-constantes.md, `medianJsonBytes`) y D-11",
+    "estado": "aplicada",
+    "donde": "15-constantes.md §15.2 (`medianJsonBytes: 327_680` con su comentario, decisión 15-l); 00-decisiones.md D-11 (texto, bloque «Corregida en la coherencia, fase 6» y fila del registro); 05-motor.md §5.7 («Los topes»); 19-riesgos.md riesgo 10; 00-glosario.md G.7; 16-bancos.md 16-n",
+    "motivo": "La mediana sube a 320 KB con la evidencia de la cruzada (e18: 269,0 y 216,7 KB con la semilla); §16.4 ya había elegido la salida que la acompaña (16-n) y esperaba esta cifra."
+  },
+  {
+    "id": "Rcoste-008",
+    "origen": "L3, n.º 20 de cruzadas-L3.json",
+    "seccion_destino": "§16.4 (B6) y 16-n",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L8.json (Rcoste-008 (cruzada de L3), aplicado): 16-bancos.md l. 435 (B6), l. 708, 709 y 712 (§16.7: el tramo, el nocturno y «Quién paga los bancos»), l. 745 (§16.9), l. 781 (16-g) y l. 788 (16-n)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-008",
+    "origen": "L3, n.º 21 de cruzadas-L3.json",
+    "seccion_destino": "§19.1 (riesgo 1)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcoste-008, aplicado): 19-riesgos.md l. 11; 17-plan.md l. 211; 17-plan.md l. 226; 17-plan.md l. 243",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-004",
+    "origen": "L3, n.º 22 de cruzadas-L3.json",
+    "seccion_destino": "§14.4 (14-api.md, «Sin ella, antes hay que decodificarla…») y §18.2, §18.10",
+    "estado": "aplicada",
+    "donde": "14-api.md §14.4; 18-rendimiento.md §18.2 («Servir un tramo», con la cara del esquema de §4.3) y 18-d; §18.10 (ver L3#21 en la tabla)",
+    "motivo": "La lectura en frío con el esquema que se implementa: de 8 a 28 ms, y de 50 a 80 ms la primera."
+  },
+  {
+    "id": "Rcoste-030",
+    "origen": "L3, n.º 23 de cruzadas-L3.json",
+    "seccion_destino": "§17.1 (regla 9) y §17.20 (fila de `packages/db/src/migrate.ts`)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcoste-030, aplicado): 17-plan.md l. 17; 17-plan.md l. 88; 17-plan.md l. 95; 17-plan.md l. 572; 17-plan.md l. 513; 17-plan.md l. 102; 17-plan.md l. 795; 19-riesgos.md l. 41",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-030",
+    "origen": "L3, n.º 24 de cruzadas-L3.json",
+    "seccion_destino": "§19.1 (riesgo nuevo)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcoste-030, aplicado): 17-plan.md l. 17; 17-plan.md l. 88; 17-plan.md l. 95; 17-plan.md l. 572; 17-plan.md l. 513; 17-plan.md l. 102; 17-plan.md l. 795; 19-riesgos.md l. 41",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcodigo-069",
+    "origen": "L3, n.º 25 de cruzadas-L3.json",
+    "seccion_destino": "§17.20 (tabla de ficheros) y §17.4 (PR 1a)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcodigo-069, aplicado): 17-plan.md l. 95; 17-plan.md l. 572; 17-plan.md l. 573",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcodigo-010",
+    "origen": "L3, n.º 26 de cruzadas-L3.json",
+    "seccion_destino": "§16.4 (B10: el comentario de `QUICK` y la estimación de la rápida)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L8.json (Rcodigo-010 (cruzada de L3), aplicado): 16-bancos.md l. 553-554 (el comentario de `QUICK`, en el código de B10)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-018, Rcodigo-035, Rcobertura-044, Rcobertura-009, Rcoste-007, Rcodigo-011",
+    "origen": "L3, n.º 27 de cruzadas-L3.json",
+    "seccion_destino": "dudas.md (pasada de coherencia)",
+    "estado": "aplicada",
+    "donde": "dudas.md §0 (tabla del estado) y §1 (1.8, 1.1, 1.2 y 1.4 cerradas)",
+    "motivo": "Lo que L3 dejó cerrado en §5 y §13 figura como evidencia; la mediana del JSON de B6 (Rcoste-008), que L3 dejaba abierta, la cierra esta pasada con 15-l (320 KB, D-11 corregida en la fase 6)."
+  },
+  {
+    "id": "Rcoste-007",
+    "origen": "L3, n.º 28 de cruzadas-L3.json",
+    "seccion_destino": "§15.2 (15-constantes.md, párrafo de 15-g tras la tabla de `TIMELINE`)",
+    "estado": "aplicada",
+    "donde": "15-constantes.md §15.2 (párrafo de 15-g tras la tabla de `TIMELINE`)",
+    "motivo": "La nota de tamaño de una crono va contra `ttMaxStoredBytes`, como ya hace `recordStageTimeline` (§5.5)."
+  },
+  {
+    "id": "Rdueno-005",
+    "origen": "L3, n.º 29 de cruzadas-L3.json",
+    "seccion_destino": "§17.1 (regla 3, la cuenta de subidas de versión)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rdueno-005, aplicado): 19-riesgos.md l. 161; 19-riesgos.md l. 14; 17-plan.md l. 11; 17-plan.md l. 451",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-037",
+    "origen": "L3, n.º 30 de cruzadas-L3.json",
+    "seccion_destino": "§17.19 y §19.1",
+    "estado": "ya_estaba",
+    "donde": "17-plan.md §17.19 (l. 531) y 19-riesgos.md, riesgo 36 (l. 45)",
+    "motivo": "Dicen lo mismo que §13.2 y §13.9: la `0043`, el cambio de `runMigrations` y `emitNews` con `seed` y `data`, sin `renderNews` en `shared` ni los titulares nuevos; lo decide el dueño (DD-27), con el defecto de adelantarlo."
+  },
+  {
+    "id": "Rcoste-037",
+    "origen": "L3, n.º 31 de cruzadas-L3.json",
+    "seccion_destino": "§20 (decisión nueva del dueño)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L10.json (Rcoste-037, aplicado): 20-dueno.md, fila de DD-27 (§20.2), §20.1, §20.6, §20.7, §20.8 y §20.9; 00-decisiones.md, fila de DD-27 y bloque «Añadidas en la corrección»",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-007",
+    "origen": "L3, n.º 32 de cruzadas-L3.json",
+    "seccion_destino": "§19.1 (riesgo 10) y §17.8 (B6 a mano en el paso 5)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcoste-007, aplicado): 19-riesgos.md l. 20; 17-plan.md l. 211; 19-riesgos.md l. 187",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-023, Rdueno-003",
+    "origen": "L4, n.º 1 de cruzadas-L4.json",
+    "seccion_destino": "§16.4 (B3) y §16.9",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L8.json (Rcobertura-023, Rdueno-003 (cruzada de L4, §16.4 B3 y §16.9), aplicado): 16-bancos.md l. 432 (B3, las dos partes), l. 710 (§16.7, a mano), l. 742 (§16.9), l. 781 (16-g) y l. 790 (16-p)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rdueno-003",
+    "origen": "L4, n.º 2 de cruzadas-L4.json",
+    "seccion_destino": "§16.5 (prueba de lectura, puntos 6 y 8)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L8.json (Rcobertura-023, Rdueno-003 (cruzada de L4, §16.4 B3 y §16.9), aplicado): 16-bancos.md l. 432 (B3, las dos partes), l. 710 (§16.7, a mano), l. 742 (§16.9), l. 781 (16-g) y l. 790 (16-p)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-008, Rcobertura-023",
+    "origen": "L4, n.º 3 de cruzadas-L4.json",
+    "seccion_destino": "§16.6",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L8.json (Rcobertura-023, Rdueno-003 (cruzada de L4, §16.4 B3 y §16.9), aplicado): 16-bancos.md l. 432 (B3, las dos partes), l. 710 (§16.7, a mano), l. 742 (§16.9), l. 781 (16-g) y l. 790 (16-p)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-023, Rdueno-003",
+    "origen": "L4, n.º 4 de cruzadas-L4.json",
+    "seccion_destino": "§7.6",
+    "estado": "aplicada",
+    "donde": "07-rotulos.md §7.6 (el caso literal: iconos en la barra, la lista `break_formed` como primer rótulo, la moto en clase 2 reservada y solo a ×½, ×1 y ×2, y la línea de iconos a 360 px)",
+    "motivo": "El caso literal con la presentación de la fuga de 6-m."
+  },
+  {
+    "id": "Rcobertura-032, Rcobertura-023",
+    "origen": "L4, n.º 5 de cruzadas-L4.json",
+    "seccion_destino": "§9.5 (9-k)",
+    "estado": "aplicada",
+    "donde": "09-crono.md, decisión 9-k",
+    "motivo": "La ronda de la fuga ya no es de clase 0 (6-m): 9-k lo dice y deja `ON COURSE` en 0."
+  },
+  {
+    "id": "Rcobertura-023, Rdueno-003",
+    "origen": "L4, n.º 6 de cruzadas-L4.json",
+    "seccion_destino": "§21 (D.2)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L10.json (Rcobertura-023, aplicado): 21-apendices.md, D.2 ([DUEÑO 3])",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-022",
+    "origen": "L4, n.º 7 de cruzadas-L4.json",
+    "seccion_destino": "§4.9",
+    "estado": "aplicada",
+    "donde": "04-modelo.md, §4.9 (bloque de `timeline.ts` con `CueClass` y su comentario; bloque de `cues.ts`: `RiderCueContext` sin `attack` e importación de `Instant`)",
+    "motivo": "`attack` sale de la unión (6-p: `ATTACK` lleva la ficha del primer atacante); el comentario de `CueClass` pone la ronda de la moto en la clase 2 reservada (6-m) y la de la crono en 0 (9-k); `cues.ts` importa `Instant` para `aheadOfPeloton` (§6.7)."
+  },
+  {
+    "id": "Rcobertura-021, Rdueno-021",
+    "origen": "L4, n.º 8 de cruzadas-L4.json",
+    "seccion_destino": "§4.11",
+    "estado": "aplicada",
+    "donde": "04-modelo.md, §4.11 (`BroadcastFinish.threeKmRule` y su esquema; `WatchState.seen`); 14-api.md, §14.2 (`watchStateSchema` con `seen`)",
+    "motivo": "Los dos campos que 6-o y 6-r pedían a §4.11, con sus esquemas."
+  },
+  {
+    "id": "Rcobertura-021, Rdueno-021, Rcoste-009",
+    "origen": "L4, n.º 9 de cruzadas-L4.json",
+    "seccion_destino": "§14.1, §14.2 y §14.7",
+    "estado": "aplicada",
+    "donde": "14-api.md §14.1 (`stageAccessOf` rellena `seen` y no sirve el resultado con `A`; la regla de cuándo se omite), §14.2 (la ruta condicional `…/broadcast/seek`, 8-t), §14.4 (`threeKmRule` del paquete de meta) y §14.7 (el caso de la regla de los 3 km en `routes/broadcast.test.ts`)",
+    "motivo": "Las cuatro partes de la cruzada, con 6-o, 6-r y 8-t."
+  },
+  {
+    "id": "Rdueno-021",
+    "origen": "L4, n.º 10 de cruzadas-L4.json",
+    "seccion_destino": "§10.2 (fila «arrastrada») y 10-e",
+    "estado": "aplicada",
+    "donde": "10-horizonte.md §10.2 (fila «arrastrada» y párrafo de `WatchState.known`) y decisión 10-e",
+    "motivo": "La `A` abre en `Watch`, sin puerta y con `Report` a un toque (6-r), y `WatchState.seen` la distingue."
+  },
+  {
+    "id": "Rdueno-021",
+    "origen": "L4, n.º 11 de cruzadas-L4.json",
+    "seccion_destino": "§11 (`raceTabs`, 9b) y §17 (9b)",
+    "estado": "aplicada",
+    "donde": "11-superficies.md §11.17 (`raceTabs` y `defaultRaceTab` con `seen`, `stagePageTabs`, el párrafo de `seen` y el de `Race.tsx`), 11-o y la lista de nombres; 00-glosario.md G.2 y G.4; 21-apendices.md F.2; §17.12 ya tenía el test (L9)",
+    "motivo": "La etapa arrastrada abre en `Watch`: `raceTabs` y la página de etapa miran `WatchState.seen`, y el caso del 9b (se ve la 5 y la 1 abre en `Watch`) vive en `raceTabs.test.ts` con `stagePageTabs`."
+  },
+  {
+    "id": "Rdueno-016",
+    "origen": "L4, n.º 12 de cruzadas-L4.json",
+    "seccion_destino": "§12.2",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L8.json (Rdueno-016 (cruzada de L4), aplicado): 12-voz.md l. 105 (§12.2, «Cómo se pinta»)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rdueno-017",
+    "origen": "L4, n.º 13 de cruzadas-L4.json",
+    "seccion_destino": "§12.6",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L8.json (Rdueno-017 (cruzada de L4), aplicado): 12-voz.md l. 257, 274-291 (`withGroupRoles`), 313-327 (`groupNounOf` y `isJerseyKind`) y 329-346 (las tablas del motor, el test nocturno y SPEC); en el cierre, l. 177, 217-218, 233 y 246 (§12",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rdueno-017, Rcobertura-021",
+    "origen": "L4, n.º 14 de cruzadas-L4.json",
+    "seccion_destino": "§17 (PR 4a y su tabla de ficheros)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rdueno-017, aplicado): 17-plan.md l. 201; 17-plan.md l. 202; 17-plan.md l. 196; 17-plan.md l. 206; 17-plan.md l. 545; 17-plan.md l. 550; 17-plan.md l. 701; 17-plan.md l. 725; 17-plan.md l. 782",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rdueno-014, Rdueno-015, Rcobertura-023",
+    "origen": "L4, n.º 15 de cruzadas-L4.json",
+    "seccion_destino": "§15.3 y el glosario (§G.7)",
+    "estado": "aplicada",
+    "donde": "15-constantes.md §15.3 (`controlsHideS` en MANDOS; comentarios de `cueQueueMax`, `breakRoundEveryS` y `cardRowsMax`) y §15.6 (fila de la PL); 00-glosario.md G.7 (ver L4#28)",
+    "motivo": "La constante de 8-p y los comentarios que 6-m cambió."
+  },
+  {
+    "id": "Rcobertura-026",
+    "origen": "L4, n.º 16 de cruzadas-L4.json",
+    "seccion_destino": "§16.4 (B17) y §17.9",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L8.json (Rcobertura-026 (cruzada de L4), aplicado): 16-bancos.md l. 446 (B17) | correcciones-L9.json (Rcobertura-026, aplicado): 17-plan.md l. 286",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-026",
+    "origen": "L4, n.º 17 de cruzadas-L4.json",
+    "seccion_destino": "§21 (O-11 y D.7)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L10.json (Rcobertura-026, aplicado): 21-apendices.md, O-11 y D.7; 00-cabecera.md, §0.7 (la crono); cierre: 00-glosario.md l. 809 (G.7, `BROADCAST.ttPace`)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rdueno-030",
+    "origen": "L4, n.º 18 de cruzadas-L4.json",
+    "seccion_destino": "§3.5",
+    "estado": "aplicada",
+    "donde": "03-reloj.md l. 194 (§3.5)",
+    "motivo": "La regla de las cuatro preguntas es de la v27 (`docs/balance.md` l. 6000-6002, SPEC §6.15 l. 598-600); lo del dueño es la queja (l. 5975-5976). Mismo arreglo que §6.2 y 6-f."
+  },
+  {
+    "id": "Rcoste-009",
+    "origen": "L4, n.º 19 de cruzadas-L4.json",
+    "seccion_destino": "§18.9",
+    "estado": "aplicada",
+    "donde": "18-rendimiento.md §18.9 (fila del salto de 125 km)",
+    "motivo": "La medida que decide la ruta condicional de 8-t (§14.2)."
+  },
+  {
+    "id": "Rdueno-014",
+    "origen": "L4, n.º 20 de cruzadas-L4.json",
+    "seccion_destino": "§18.8",
+    "estado": "aplicada",
+    "donde": "18-rendimiento.md §18.8 (dos viñetas nuevas)",
+    "motivo": "Los mandos escondidos siguen en el árbol de accesibilidad, y el resumen accesible lleva la segunda línea (6-f, 8-p)."
+  },
+  {
+    "id": "Rcodigo-028, Rcobertura-020",
+    "origen": "L4, n.º 21 de cruzadas-L4.json",
+    "seccion_destino": "§18.5",
+    "estado": "aplicada",
+    "donde": "18-rendimiento.md §18.5 (punto 6 del protocolo)",
+    "motivo": "La medida a mano con los nombres enteros, la línea de iconos y los mandos a la vista y escondidos."
+  },
+  {
+    "id": "Rdueno-036",
+    "origen": "L4, n.º 22 de cruzadas-L4.json",
+    "seccion_destino": "§20 (una decisión nueva del dueño) y 00-decisiones.md (tabla DD)",
+    "estado": "ya_estaba",
+    "donde": "20-dueno.md, fila de DD-28; 00-decisiones.md, fila de DD-28",
+    "motivo": "L10 la registró como DD-28, «Los nombres de pantalla», con la alternativa `Journal` y el 9a como último momento barato."
+  },
+  {
+    "id": "Rdueno-037",
+    "origen": "L4, n.º 23 de cruzadas-L4.json",
+    "seccion_destino": "§20 (una decisión nueva del dueño, y §20.4) y 00-decisiones.md (tabla DD)",
+    "estado": "ya_estaba",
+    "donde": "20-dueno.md, fila de DD-29 y §20.4; 00-decisiones.md, fila de DD-29",
+    "motivo": "L10 la registró como DD-29, «La criba lejana en el acta»."
+  },
+  {
+    "id": "Rdueno-018",
+    "origen": "L4, n.º 24 de cruzadas-L4.json",
+    "seccion_destino": "§20.2 (DD-04) y §20.8",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L10.json (Rdueno-018, aplicado): 20-dueno.md, fila de DD-04 (§20.2), §20.4 (la C7) y §20.8",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-019, Rcobertura-020, Rcodigo-028, Rdueno-015, Rcobertura-021",
+    "origen": "L4, n.º 25 de cruzadas-L4.json",
+    "seccion_destino": "§21.6 F.3 (textos de pantalla) y §G.11",
+    "estado": "ya_estaba",
+    "donde": "21-apendices.md F.3 (grupos, barra con `Pulling: Team Beta (for 11 Sam Carter)`, motivos de `PULL_MOTIVE_WORDS`, `same time (3 km rule)`); 00-glosario.md G.11",
+    "motivo": "L10 lo aplicó en F.3 y en G.11: `Mountains leader’s group`, las palabras de la voz, las quince de `PULL_MOTIVE_WORDS` y el nombre guardado (7-a); ya no queda ningún ejemplo con apellido en mayúsculas."
+  },
+  {
+    "id": "Rcobertura-012, Rcobertura-033, Rcobertura-022, Rdueno-015, Rcobertura-023, Rcoste-041, Rcobertura-030",
+    "origen": "L4, n.º 26 de cruzadas-L4.json",
+    "seccion_destino": "§21.6 F.2 (firmas) y §G.4 del glosario",
+    "estado": "ya_estaba",
+    "donde": "21-apendices.md F.2 (`cues.ts`, `names.ts`, `player.ts`); 00-glosario.md G.4",
+    "motivo": "Firmas de `cueClassOf`, `isPresentation`, `aheadOfPeloton`, `breakRoundOf`, `PullingLine` con `motive`, `GROUP_WORDS.jersey` y `playerInit(view, stageDay, reachedS, known)` con lo nuevo de `player.ts`, ya fundidas por L10."
+  },
+  {
+    "id": "Rcodigo-028, Rcobertura-020",
+    "origen": "L4, n.º 27 de cruzadas-L4.json",
+    "seccion_destino": "dudas.md (1.5)",
+    "estado": "aplicada",
+    "donde": "dudas.md §0 (tabla del estado) y §1 (1.5 cerrada)",
+    "motivo": "La 1.5 queda cerrada por 7-a y D-27 cerrada; F.3 y G.11 ya llevan el nombre guardado."
+  },
+  {
+    "id": "Rcobertura-021, Rdueno-021, Rdueno-036, Rdueno-037",
+    "origen": "L4, n.º 28 de cruzadas-L4.json",
+    "seccion_destino": "§20 y §19 (si procede)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L10.json (Rdueno-036, aplicado): 20-dueno.md, fila de DD-28, §20.1, §20.6, §20.7, §20.8 y §20.9; 00-decisiones.md, fila de DD-28 | correcciones-L9.json (Rdueno-021, aplicado): 17-plan.md l. 396",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-023, Rdueno-003, Rdueno-014, Rdueno-015, Rcobertura-019, Rdueno-017",
+    "origen": "L4, n.º 29 de cruzadas-L4.json",
+    "seccion_destino": "00-glosario.md (§G.2, §G.4, §G.7 y §G.11)",
+    "estado": "ya_estaba",
+    "donde": "00-glosario.md G.2, G.4, G.7 (`controlsHideS`, `breakRoundEveryS`, `cueQueueMax`, `cardRowsMax`) y G.11",
+    "motivo": "Registradas en el cierre de L10 y comprobadas contra el texto de hoy."
+  },
+  {
+    "id": "Rcobertura-031",
+    "origen": "L5, n.º 1 de cruzadas-L5.json",
+    "seccion_destino": "§15.2 (decisión 15-i)",
+    "estado": "aplicada",
+    "donde": "15-constantes.md, decisión 15-i",
+    "motivo": "La primera precisión ya estaba en parte («menos de 1,3 MB», con la cota de la e10); se añaden el intervalo por crono (6.032 a 16.589 B) y la segunda precisión (traza por diferencias de 3.152 a 6.402 B, línea entera de 13.853 a 19.037 B)."
+  },
+  {
+    "id": "Rcobertura-031",
+    "origen": "L5, n.º 2 de cruzadas-L5.json",
+    "seccion_destino": "§16.4 (B6)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L8.json (Rcobertura-031, aplicado): 16-bancos.md l. 428 (B6)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-031",
+    "origen": "L5, n.º 3 de cruzadas-L5.json",
+    "seccion_destino": "§17.8 (paso 5) y tabla de ficheros de §17",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcobertura-031, aplicado): 17-plan.md l. 211; 17-plan.md l. 630; 19-riesgos.md l. 20; 19-riesgos.md l. 187",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-031",
+    "origen": "L5, n.º 4 de cruzadas-L5.json",
+    "seccion_destino": "§19.6",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcobertura-031, aplicado): 17-plan.md l. 211; 17-plan.md l. 630; 19-riesgos.md l. 20; 19-riesgos.md l. 187",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-031",
+    "origen": "L5, n.º 5 de cruzadas-L5.json",
+    "seccion_destino": "§5.7 y §0.7",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L10.json (Rcobertura-031, aplicado): 00-cabecera.md l. 137 y l. 139 (§0.7) | correcciones-L3.json (Rcobertura-031, aplicado): 05-motor.md l. 610-612 (§5.7, filas de la crono con y sin `checkClockDs`)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-032",
+    "origen": "L5, n.º 6 de cruzadas-L5.json",
+    "seccion_destino": "§4.9",
+    "estado": "ya_estaba",
+    "donde": "04-modelo.md, §4.9 (`RiderCueContext` con `tt_round`, comentario «§9.5, 9-k»); 00-glosario.md G.3.4 (l. 490) y G.3.8 (l. 661), corrección L10",
+    "motivo": "El comentario ya remitía a 9-k, no a 9-n, y el glosario ya llevaba `tt_round`."
+  },
+  {
+    "id": "Rcobertura-032",
+    "origen": "L5, n.º 7 de cruzadas-L5.json",
+    "seccion_destino": "§6.5",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L4.json (Rcobertura-032 (cruzada de L5), parcial): 06-pantalla.md l. 345 (`case 'rider'`), l. 378 (la fila `rider`) y l. 401-409 (la programación de la crono)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-033",
+    "origen": "L5, n.º 8 de cruzadas-L5.json",
+    "seccion_destino": "§6.5",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L4.json (Rcobertura-033 (cruzada de L5), aplicado): 06-pantalla.md l. 336-350 (`cueClassOf(cue, start, lastVirtualLeader, timeTrial)`, el caso de `virtual_gc` y el primero contra `start.leaders.gc`) y l. 381 (la fila `virtual_gc`)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-033",
+    "origen": "L5, n.º 9 de cruzadas-L5.json",
+    "seccion_destino": "§G.4 (00-glosario.md, la fila de `cuesBetween` y `cueClassOf`) y §21.6 F.2 (21-apendices.md l. 502)",
+    "estado": "ya_estaba",
+    "donde": "00-glosario.md G.4 (fila de `cuesBetween` y `cueClassOf`); 21-apendices.md F.2",
+    "motivo": "`cueClassOf(cue, start, lastVirtualLeader, timeTrial): CueClass` (9-n) en las dos."
+  },
+  {
+    "id": "Rcodigo-045",
+    "origen": "L5, n.º 10 de cruzadas-L5.json",
+    "seccion_destino": "§4.5",
+    "estado": "ya_estaba",
+    "donde": "04-modelo.md §4.5 (`TimeTrialInstant.arrivals`); 00-glosario.md G.3.2 (l. 434) y G.3.8",
+    "motivo": "L2 lo aplicó en §4.5 y la corrección L2 lo llevó al bloque de `TimeTrialInstant` del glosario."
+  },
+  {
+    "id": "Rcodigo-045",
+    "origen": "L5, n.º 11 de cruzadas-L5.json",
+    "seccion_destino": "§6.5",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L4.json (Rcodigo-045 (cruzada de L5), aplicado): 06-pantalla.md l. 332, 339-352 y 361",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcodigo-045",
+    "origen": "L5, n.º 12 de cruzadas-L5.json",
+    "seccion_destino": "§17.9 (paso 6b)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcodigo-045, aplicado): 17-plan.md l. 287; 17-plan.md l. 38",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcodigo-048",
+    "origen": "L5, n.º 13 de cruzadas-L5.json",
+    "seccion_destino": "§8.2",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L4.json (Rcodigo-048 (cruzada de L5), aplicado): 08-ritmo.md l. 36",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcodigo-048",
+    "origen": "L5, n.º 14 de cruzadas-L5.json",
+    "seccion_destino": "§4.13",
+    "estado": "ya_estaba",
+    "donde": "04-modelo.md, §4.13 (fila de `constants.ts`, `pace.ts`…: «no importa `cues.ts`»)",
+    "motivo": "La fila ya decía que `pace.ts` no importa `cues.ts`; con 17-z (L9#2) tampoco importa `wire.ts`, y se reescribe."
+  },
+  {
+    "id": "Rcodigo-041",
+    "origen": "L5, n.º 15 de cruzadas-L5.json",
+    "seccion_destino": "§4.8",
+    "estado": "ya_estaba",
+    "donde": "04-modelo.md, §4.8 (comentario de `RiderCard.team`)",
+    "motivo": "El comentario ya dice «el equipo CON EL QUE CORRIÓ y su equipación de ese día; el nombre, el de hoy: lo da `NameResolver.team` al servir, porque `CastTeam` no lo guarda (§7.8)»."
+  },
+  {
+    "id": "Rcodigo-051",
+    "origen": "L5, n.º 16 de cruzadas-L5.json",
+    "seccion_destino": "§21.6 F.2",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L10.json (Rcodigo-051, aplicado): 21-apendices.md l. 524 (F.2); 00-glosario.md G.4",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rdueno-012",
+    "origen": "L5, n.º 17 de cruzadas-L5.json",
+    "seccion_destino": "§21 (apéndice de injertos)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L10.json (Rdueno-012, aplicado): 21-apendices.md l. 61 (I-47); 00-glosario.md G.2 (la fila de `Jersey.tsx`)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rdueno-038",
+    "origen": "L5, n.º 18 de cruzadas-L5.json",
+    "seccion_destino": "§12.2",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L8.json (Rdueno-038, aplicado): 12-voz.md l. 105 (§12.2, «Cómo se pinta»)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rdueno-038",
+    "origen": "L5, n.º 19 de cruzadas-L5.json",
+    "seccion_destino": "§8.5",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L4.json (Rdueno-038 (cruzada de L5), aplicado): 08-ritmo.md l. 424",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcodigo-045",
+    "origen": "L5, n.º 20 de cruzadas-L5.json",
+    "seccion_destino": "00-glosario.md (§G.3 y §G.4)",
+    "estado": "ya_estaba",
+    "donde": "00-glosario.md G.3.4 (`RiderCueContext` con `tt_round`), G.3.2 (`TimeTrialInstant.arrivals`), G.4 (`cueClassOf` con `timeTrial`) y G.14 (9-n)",
+    "motivo": "Todo fundido por L2 y L10; en esta pasada `RiderCueContext` pierde además `attack` en el glosario, como §4.9 (6-p)."
+  },
+  {
+    "id": "Rcobertura-046",
+    "origen": "L6, n.º 1 de cruzadas-L6.json",
+    "seccion_destino": "§17.15 (PR 12)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcobertura-046, aplicado): 17-plan.md l. 447; 17-plan.md l. 647",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-047",
+    "origen": "L6, n.º 2 de cruzadas-L6.json",
+    "seccion_destino": "§12.3 y §12.6 (y §G.4 del glosario)",
+    "estado": "ya_estaba",
+    "donde": "12-voz.md §12.3 (`LiveCluster` y la firma de `liveClusters`) y §12.6 (el `WeakMap` con los pasos 1 a 3); 00-glosario.md G.4",
+    "motivo": "Aplicada por L8 en §12 y por L10 en el glosario."
+  },
+  {
+    "id": "Rcobertura-047",
+    "origen": "L6, n.º 3 de cruzadas-L6.json",
+    "seccion_destino": "§18.2",
+    "estado": "aplicada",
+    "donde": "18-rendimiento.md §18.2 (fila «las cuatro consultas por espectador (la forma descartada)» y los dos párrafos que la citan)",
+    "motivo": "§10.6 escribe ya la forma D; la tabla y el párrafo hablaban de «las cuatro de §10.6, tal cual»."
+  },
+  {
+    "id": "Rcobertura-047",
+    "origen": "L6, n.º 4 de cruzadas-L6.json",
+    "seccion_destino": "dudas.md",
+    "estado": "aplicada",
+    "donde": "dudas.md §0 (tabla del estado) y §1 y §2 (2.1, 2.2, 1.8 y 1.9 cerradas)",
+    "motivo": "Las cuatro quedan cerradas con la línea del texto de hoy que las cierra."
+  },
+  {
+    "id": "Rcobertura-048",
+    "origen": "L6, n.º 5 de cruzadas-L6.json",
+    "seccion_destino": "§8.7",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L4.json (Rcobertura-048 (cruzada de L6), aplicado): 08-ritmo.md l. 288",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcodigo-034",
+    "origen": "L6, n.º 6 de cruzadas-L6.json",
+    "seccion_destino": "§16.4 (línea base de B6)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L8.json (Rcodigo-034, aplicado): 16-bancos.md l. 428 (B6)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcodigo-034",
+    "origen": "L6, n.º 7 de cruzadas-L6.json",
+    "seccion_destino": "§17.3",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcodigo-034, aplicado): 17-plan.md l. 69; 17-plan.md l. 67",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcodigo-035",
+    "origen": "L6, n.º 8 de cruzadas-L6.json",
+    "seccion_destino": "§5.6 (y §G.2, §G.4 del glosario y §21.6 F.2)",
+    "estado": "ya_estaba",
+    "donde": "05-motor.md §5.6 (`readStageTimeline(db, _h: Horizon, …): Promise<StageTimeline | null>`); 00-glosario.md G.2 y G.4; 21-apendices.md F.2",
+    "motivo": "L3 la aplicó en §5.6 y L10 en el glosario y en F.2; `StageTimelineRead` no queda en ninguna sección."
+  },
+  {
+    "id": "Rcodigo-049",
+    "origen": "L6, n.º 9 de cruzadas-L6.json",
+    "seccion_destino": "§17.11",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcodigo-049, aplicado): 17-plan.md l. 345",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-010",
+    "origen": "L6, n.º 10 de cruzadas-L6.json",
+    "seccion_destino": "§18.4 y §18.9 (y el paso 10 de §17)",
+    "estado": "aplicada",
+    "donde": "18-rendimiento.md §18.4 (fila «lecturas por espectador») y §18.9 (fila del tramo con cien espectadores en `Next action`); §17.13 ya lo tenía (L9)",
+    "motivo": "Las lecturas por petición y su medida pendiente del paso 10."
+  },
+  {
+    "id": "Rcoste-011",
+    "origen": "L6, n.º 11 de cruzadas-L6.json",
+    "seccion_destino": "§15.3 (y §G.7 del glosario, y la tabla de aceptación de §15)",
+    "estado": "ya_estaba",
+    "donde": "15-constantes.md §15.4 (`SPOILER.horizonMemoEntries: 500` con su intención) y §15.6 (fila de `horizonBudgetMs`, `horizonMemoS`, `horizonMemoEntries`); 00-glosario.md G.7",
+    "motivo": "La constante, su intención y su fila de aceptación ya estaban (corrección L2, fundido en el glosario)."
+  },
+  {
+    "id": "Rcoste-011",
+    "origen": "L6, n.º 12 de cruzadas-L6.json",
+    "seccion_destino": "§18.2 (18-c) y §18.4",
+    "estado": "aplicada",
+    "donde": "18-rendimiento.md 18-c (`TtlMemo` con 10-m) y §18.4 (fila «la memoria del proceso»)",
+    "motivo": "El memo de `veilDelta` con vida, barrido y tope, y la memoria de lo alcanzado que se borra y se barre."
+  },
+  {
+    "id": "Rcoste-011",
+    "origen": "L6, n.º 13 de cruzadas-L6.json",
+    "seccion_destino": "§16.4 (B12)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L8.json (Rcoste-011, aplicado): 16-bancos.md l. 434 (B12)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-011",
+    "origen": "L6, n.º 14 de cruzadas-L6.json",
+    "seccion_destino": "§19.1 (riesgo 13)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcoste-011, aplicado): 19-riesgos.md l. 23; 17-plan.md l. 301",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-014",
+    "origen": "L6, n.º 15 de cruzadas-L6.json",
+    "seccion_destino": "§17 (PR 7a) y §16.4 (B12)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L8.json (Rcoste-014, aplicado): 16-bancos.md l. 434 (B12) | correcciones-L9.json (Rcoste-014, aplicado): 17-plan.md l. 305",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-017",
+    "origen": "L6, n.º 16 de cruzadas-L6.json",
+    "seccion_destino": "§18.10 y §18.2",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L7.json (Rcoste-017, parcial): 18-rendimiento.md l. 237, l. 63",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-018",
+    "origen": "L6, n.º 17 de cruzadas-L6.json",
+    "seccion_destino": "§18.5 y §17 (PR 9a)",
+    "estado": "aplicada",
+    "donde": "18-rendimiento.md §18.5 («Lo que se puede estimar ya»: el viaje de `GET /api/me/horizon`); §17.12 ya tenía los tests del 9a (L9)",
+    "motivo": "La espera de 14-r suma unos 0,17 s a la cuenta de red de la primera visita con sesión."
+  },
+  {
+    "id": "Rcoste-023",
+    "origen": "L6, n.º 18 de cruzadas-L6.json",
+    "seccion_destino": "§18.2 (18-d) y §18.9",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L7.json (Rcoste-023, parcial): 18-rendimiento.md l. 65, l. 218, l. 265",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rdueno-023",
+    "origen": "L6, n.º 19 de cruzadas-L6.json",
+    "seccion_destino": "§20.2 (DD-01) y §11.20",
+    "estado": "aplicada",
+    "donde": "11-superficies.md §11.20 (fila del jugador ante una carrera fuera de guardia: «el defecto de DD-01»); 20-dueno.md DD-01 ya lo decía (L10)",
+    "motivo": "Seguir al empezar a ver es el defecto de DD-01, no una regla fija."
+  },
+  {
+    "id": "Rdueno-024",
+    "origen": "L6, n.º 20 de cruzadas-L6.json",
+    "seccion_destino": "§20.2 y §20.3 (DD-01)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L10.json (Rdueno-024, aplicado): 20-dueno.md l. 21 (DD-01), l. 50 (§20.3) y l. 125 (§20.8)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-044",
+    "origen": "L6, n.º 21 de cruzadas-L6.json",
+    "seccion_destino": "§19.1 (riesgo 31) y §16.4 (B18)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L8.json (Rcoste-044, aplicado): 16-bancos.md l. 440 (B18) | correcciones-L9.json (Rcoste-044, aplicado): 19-riesgos.md l. 40; 17-plan.md l. 149; 17-plan.md l. 162; 17-plan.md l. 168; 17-plan.md l. 326",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-044",
+    "origen": "L6, n.º 22 de cruzadas-L6.json",
+    "seccion_destino": "§8.5 y §18.7",
+    "estado": "aplicada",
+    "donde": "18-rendimiento.md §18.7 (tras la tabla de la cadencia); 08-ritmo.md §8.5 ya lo tenía (L4)",
+    "motivo": "La cadencia por zona la acota la etapa: de 33 a 60 peticiones y 58 en el peor minuto."
+  },
+  {
+    "id": "Rdueno-002",
+    "origen": "L6, n.º 23 de cruzadas-L6.json",
+    "seccion_destino": "§17.10, §17.18, §11.15 y §20.5",
+    "estado": "aplicada",
+    "donde": "11-superficies.md §11.15 («Cómo se entra»: la ruta de etapa desde el 7b, las otras tres con el 9a); §17.10, §17.18 y §20.5 ya lo decían (L9, L10)",
+    "motivo": "14-s adelanta al 7b el reenvío de `diag` a la ruta de etapa."
+  },
+  {
+    "id": "Rcobertura-047, Rcoste-011, Rcoste-014, Rcoste-018, Rcoste-044, Rdueno-002, Rcodigo-035",
+    "origen": "L6, n.º 24 de cruzadas-L6.json",
+    "seccion_destino": "glosario (§G.2, §G.4, §G.7, §G.12)",
+    "estado": "ya_estaba",
+    "donde": "00-glosario.md G.2 (`TtlMemo<V>`, `PLAYER_RATE_LIMIT`, `ApiError.retryAfterS`, `<HorizonWatcher />`, `fetchCalendarStage`), G.4, G.7 (`SPOILER.horizonMemoEntries`) y G.12",
+    "motivo": "Fundidas por L10 («Corrección L10»); los scripts de `c-l6/` son del scratchpad y no entran, como dice G.14."
+  },
+  {
+    "id": "Rcobertura-038",
+    "origen": "L7, n.º 1 de cruzadas-L7.json",
+    "seccion_destino": "§16.6",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L8.json (Rcobertura-038, aplicado): 16-bancos.md l. 686 (§16.6)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-038",
+    "origen": "L7, n.º 2 de cruzadas-L7.json",
+    "seccion_destino": "§17.12",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcobertura-038, aplicado): 17-plan.md l. 387; 17-plan.md l. 717",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-038",
+    "origen": "L7, n.º 3 de cruzadas-L7.json",
+    "seccion_destino": "§21 (D.5)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L10.json (Rcobertura-038, aplicado): 21-apendices.md l. 302 (D.5, `sup. E9`)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-039",
+    "origen": "L7, n.º 4 de cruzadas-L7.json",
+    "seccion_destino": "§21 (D.5)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L10.json (Rcobertura-039, aplicado): 21-apendices.md l. 305 (D.5, `sup. C3`)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-041",
+    "origen": "L7, n.º 5 de cruzadas-L7.json",
+    "seccion_destino": "§21 (D.5)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L10.json (Rcobertura-041, aplicado): 21-apendices.md l. 332 y l. 335 (D.5, `sup. W3` y `sup. W6`)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-058",
+    "origen": "L7, n.º 6 de cruzadas-L7.json",
+    "seccion_destino": "§19.1 (riesgo 13)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcobertura-058, aplicado): 19-riesgos.md l. 23; 17-plan.md l. 271; 17-plan.md l. 273",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcodigo-029",
+    "origen": "L7, n.º 7 de cruzadas-L7.json",
+    "seccion_destino": "§21 (apéndice A, I-09)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L10.json (Rcodigo-029, aplicado): 21-apendices.md l. 23 (I-09)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcodigo-029",
+    "origen": "L7, n.º 8 de cruzadas-L7.json",
+    "seccion_destino": "dudas.md (1.11)",
+    "estado": "aplicada",
+    "donde": "dudas.md §0 (tabla del estado) y §1 (1.11 cerrada por 18-d)",
+    "motivo": "La 1.11 queda cerrada: 18-d dice «nace en 16» y §15.3 lo escribe."
+  },
+  {
+    "id": "Rcodigo-037",
+    "origen": "L7, n.º 9 de cruzadas-L7.json",
+    "seccion_destino": "§17.12 y §17.20",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcodigo-037, aplicado): 17-plan.md l. 398; 17-plan.md l. 626; 17-plan.md l. 396",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcodigo-061",
+    "origen": "L7, n.º 10 de cruzadas-L7.json",
+    "seccion_destino": "§16.3",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L8.json (Rcodigo-061, aplicado): 16-bancos.md l. 90-98 (`B1B_WHITELIST`)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcodigo-061",
+    "origen": "L7, n.º 11 de cruzadas-L7.json",
+    "seccion_destino": "§20 (§20.2, DD-08)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L10.json (Rcodigo-061, aplicado): 20-dueno.md l. 28 (DD-08) y l. 132 (§20.8); 00-cabecera.md l. 76, l. 98 y l. 122 (§0.4, §0.5 y §0.6); 21-apendices.md l. 43 (I-29), l. 148 (O-32), l. 238 (D.1), l. 290 (D.5)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcodigo-061",
+    "origen": "L7, n.º 12 de cruzadas-L7.json",
+    "seccion_destino": "§0",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L10.json (Rcodigo-061, aplicado): 20-dueno.md l. 28 (DD-08) y l. 132 (§20.8); 00-cabecera.md l. 76, l. 98 y l. 122 (§0.4, §0.5 y §0.6); 21-apendices.md l. 43 (I-29), l. 148 (O-32), l. 238 (D.1), l. 290 (D.5)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcodigo-061",
+    "origen": "L7, n.º 13 de cruzadas-L7.json",
+    "seccion_destino": "§1 (§1.6)",
+    "estado": "aplicada",
+    "donde": "01-diagnostico.md l. 5 y l. 199 (§1.6)",
+    "motivo": "La undécima puerta, `sup. X11` (11-r), faltaba en §1: l. 5 dice once puertas y l. 199 la añade tras la décima con la medida de TAC y DD-08."
+  },
+  {
+    "id": "Rcodigo-061",
+    "origen": "L7, n.º 14 de cruzadas-L7.json",
+    "seccion_destino": "§2 (§2.5)",
+    "estado": "aplicada",
+    "donde": "02-principios.md l. 11 (tabla de §2) y l. 55 (§2.5)",
+    "motivo": "«diez puertas» pasa a «once», con `sup. X11` junto a `sup. X10`."
+  },
+  {
+    "id": "Rcodigo-061",
+    "origen": "L7, n.º 15 de cruzadas-L7.json",
+    "seccion_destino": "§21",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L10.json (Rcodigo-061, aplicado): 20-dueno.md l. 28 (DD-08) y l. 132 (§20.8); 00-cabecera.md l. 76, l. 98 y l. 122 (§0.4, §0.5 y §0.6); 21-apendices.md l. 43 (I-29), l. 148 (O-32), l. 238 (D.1), l. 290 (D.5)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcodigo-061",
+    "origen": "L7, n.º 16 de cruzadas-L7.json",
+    "seccion_destino": "§10.6",
+    "estado": "aplicada",
+    "donde": "10-horizonte.md §10.6, tabla de lectores (fila de `browse.ts`: `rider_attrs` y L para los atributos de `getPublicRider`)",
+    "motivo": "La fila de `riders.ts` no nombra `getCoachView`, así que las notas del preparador no entran en esta tabla (§11.18 las lleva en la lista blanca)."
+  },
+  {
+    "id": "Rcoste-012",
+    "origen": "L7, n.º 17 de cruzadas-L7.json",
+    "seccion_destino": "§0 (§0.7)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L10.json (Rcoste-012, aplicado): 00-cabecera.md l. 149 (§0.7); 20-dueno.md l. 39 (DD-21), l. 59 (§20.3) y l. 146 (§20.8); 21-apendices.md l. 407 (X-11)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-012",
+    "origen": "L7, n.º 18 de cruzadas-L7.json",
+    "seccion_destino": "§19.1 (riesgo 8)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcoste-012, parcial): 19-riesgos.md l. 18; 17-plan.md l. 302; 17-plan.md l. 320; 17-plan.md l. 419",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-012",
+    "origen": "L7, n.º 19 de cruzadas-L7.json",
+    "seccion_destino": "§20 (§20.2 y el párrafo de DD-21)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L10.json (Rcoste-012, aplicado): 00-cabecera.md l. 149 (§0.7); 20-dueno.md l. 39 (DD-21), l. 59 (§20.3) y l. 146 (§20.8); 21-apendices.md l. 407 (X-11)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-012",
+    "origen": "L7, n.º 20 de cruzadas-L7.json",
+    "seccion_destino": "§17.10 y §17.13",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcoste-012, parcial): 19-riesgos.md l. 18; 17-plan.md l. 302; 17-plan.md l. 320; 17-plan.md l. 419",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-015",
+    "origen": "L7, n.º 21 de cruzadas-L7.json",
+    "seccion_destino": "§10.6 y §10.7",
+    "estado": "aplicada",
+    "donde": "10-horizonte.md §10.6 (fila del mecanismo R) y §10.7 (párrafo del coste)",
+    "motivo": "`lastRunStages` ya estaba escrita como promesa compartida; faltaba decirlo de la cuenta del día de R y en §10.7 (11-s)."
+  },
+  {
+    "id": "Rcoste-015",
+    "origen": "L7, n.º 22 de cruzadas-L7.json",
+    "seccion_destino": "§16.4 (B12) y §17.11",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L8.json (Rcoste-015, aplicado): 16-bancos.md l. 434 (B12) | correcciones-L9.json (Rcoste-015, aplicado): 17-plan.md l. 368",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-039",
+    "origen": "L7, n.º 23 de cruzadas-L7.json",
+    "seccion_destino": "§19.1",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcoste-039, aplicado): 19-riesgos.md l. 42; 17-plan.md l. 249; 17-plan.md l. 253; 17-plan.md l. 508",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-039",
+    "origen": "L7, n.º 24 de cruzadas-L7.json",
+    "seccion_destino": "§14.6 y §15.8",
+    "estado": "aplicada",
+    "donde": "14-api.md §14.6 (`AUTO_TICK` en `envSchema`, el cableado de `autoTick` y su fila en la tabla); 15-constantes.md §15.8",
+    "motivo": "18-k y D-53 precisada lo nombraban; §14.6 y §15.8 no."
+  },
+  {
+    "id": "Rcoste-039",
+    "origen": "L7, n.º 25 de cruzadas-L7.json",
+    "seccion_destino": "§17.8",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcoste-039, aplicado): 19-riesgos.md l. 42; 17-plan.md l. 249; 17-plan.md l. 253; 17-plan.md l. 508",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-040",
+    "origen": "L7, n.º 26 de cruzadas-L7.json",
+    "seccion_destino": "§17.6",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcoste-040, aplicado): 17-plan.md l. 180",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-041",
+    "origen": "L7, n.º 27 de cruzadas-L7.json",
+    "seccion_destino": "§8.11 y §8.12",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L4.json (Rcoste-041 (cruzada de L7), aplicado): 08-ritmo.md l. 360-367 (`stageDay`, `loaded`, `digestNext`), l. 387 (`release`), l. 420 (comprobación 8) y l. 443 (el test)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-041",
+    "origen": "L7, n.º 28 de cruzadas-L7.json",
+    "seccion_destino": "§17.13",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcoste-041, aplicado): 17-plan.md l. 406",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rdueno-022",
+    "origen": "L7, n.º 29 de cruzadas-L7.json",
+    "seccion_destino": "§20 (DD-01)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L10.json (Rdueno-022, aplicado): 20-dueno.md l. 21 (DD-01)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rdueno-026",
+    "origen": "L7, n.º 30 de cruzadas-L7.json",
+    "seccion_destino": "§20",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L10.json (Rdueno-026, aplicado): 20-dueno.md l. 44 (DD-26), l. 10 (§20.1), l. 95 (§20.6), l. 111 (§20.7), l. 148 (§20.8) y l. 179 (§20.9)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rdueno-039",
+    "origen": "L7, n.º 31 de cruzadas-L7.json",
+    "seccion_destino": "§14.2",
+    "estado": "aplicada",
+    "donde": "14-api.md §14.2 (filas de las noticias y de `GET /api/calendar/:raceId` con `?diag=1`, y párrafo de `?diag=1`)",
+    "motivo": "11-h en las tres rutas, con el esquema de `stageQuerySchema` y el test `diagMode.test.ts` de §11.19."
+  },
+  {
+    "id": "Rdueno-039",
+    "origen": "L7, n.º 32 de cruzadas-L7.json",
+    "seccion_destino": "§10.9",
+    "estado": "aplicada",
+    "donde": "10-horizonte.md §10.9, regla 1",
+    "motivo": "Las claves de la ficha de carrera y de los feeds llevan `diag`, como las de etapa (11-h)."
+  },
+  {
+    "id": "Rdueno-039",
+    "origen": "L7, n.º 33 de cruzadas-L7.json",
+    "seccion_destino": "§17.11 y §17.12",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rdueno-039, aplicado): 17-plan.md l. 356; 17-plan.md l. 398; 17-plan.md l. 346",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rdueno-039",
+    "origen": "L7, n.º 34 de cruzadas-L7.json",
+    "seccion_destino": "§20 (§20.5)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L10.json (Rdueno-039, aplicado): 20-dueno.md l. 80 (§20.5, punto 3)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rdueno-043",
+    "origen": "L7, n.º 35 de cruzadas-L7.json",
+    "seccion_destino": "§14.10",
+    "estado": "aplicada",
+    "donde": "14-api.md §14.10 (párrafo de la vista previa)",
+    "motivo": "El robot del buscador y `X-Robots-Tag: noindex` como respuesta contraria de DD-12."
+  },
+  {
+    "id": "Rdueno-043",
+    "origen": "L7, n.º 36 de cruzadas-L7.json",
+    "seccion_destino": "§20 (DD-12 y §20.8)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L10.json (Rdueno-043, aplicado): 20-dueno.md l. 32 (DD-12), l. 124 (§20.8, DD-07) y l. 136 (§20.8, DD-12)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-003",
+    "origen": "L7, n.º 37 de cruzadas-L7.json",
+    "seccion_destino": "§4.5 (paso 9)",
+    "estado": "aplicada",
+    "donde": "04-modelo.md, §4.5: paso 9 del algoritmo (el memo por `(g, k_g)`) y párrafo que le sigue (las cifras de §18.1)",
+    "motivo": "§18.1 remite a §4.5 para el memo y §4.5 no lo tenía."
+  },
+  {
+    "id": "Rcoste-003",
+    "origen": "L7, n.º 38 de cruzadas-L7.json",
+    "seccion_destino": "§0 (§0.7)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L10.json (Rcoste-003, aplicado): 00-cabecera.md l. 148 (§0.7)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-021",
+    "origen": "L7, n.º 39 de cruzadas-L7.json",
+    "seccion_destino": "§16.4 (B8), 16-m y §16.9",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L8.json (Rcoste-021, aplicado): 16-bancos.md l. 430 (B8), l. 738 (§16.9) y l. 779 (16-m)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-045",
+    "origen": "L7, n.º 40 de cruzadas-L7.json",
+    "seccion_destino": "§16.4 (B8), 16-m y §17.9",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L8.json (Rcoste-045, parcial): 16-bancos.md l. 430 (B8) y l. 779 (16-m) | correcciones-L9.json (Rcoste-045, aplicado): 17-plan.md l. 267",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-020",
+    "origen": "L7, n.º 41 de cruzadas-L7.json",
+    "seccion_destino": "§16.4 (B14), 16-k y §16.9",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L8.json (Rcoste-020, aplicado): 16-bancos.md l. 436 (B14), l. 745 (§16.9), l. 777 (16-k) y §16.7",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-020",
+    "origen": "L7, n.º 42 de cruzadas-L7.json",
+    "seccion_destino": "§17.10",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcoste-020, aplicado): 17-plan.md l. 97; 17-plan.md l. 302",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-020",
+    "origen": "L7, n.º 43 de cruzadas-L7.json",
+    "seccion_destino": "§10.7",
+    "estado": "aplicada",
+    "donde": "10-horizonte.md §10.7 (el párrafo de B14)",
+    "motivo": "B14 contra el Postgres del CI desde el 7a (18-j): el jugador y `recordProgress` son puerta; en PGlite solo informa; el mánager, en Railway (DD-21)."
+  },
+  {
+    "id": "Rcoste-030",
+    "origen": "L7, n.º 44 de cruzadas-L7.json",
+    "seccion_destino": "§19.1 y §17.1",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcoste-030, aplicado): 17-plan.md l. 17; 17-plan.md l. 88; 17-plan.md l. 95; 17-plan.md l. 572; 17-plan.md l. 513; 17-plan.md l. 102; 17-plan.md l. 795; 19-riesgos.md l. 41",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-004",
+    "origen": "L7, n.º 45 de cruzadas-L7.json",
+    "seccion_destino": "§5.6",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L3.json (Rcoste-004, aplicado): 05-motor.md l. 594 (§5.6, párrafo «El LRU»)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-017",
+    "origen": "L7, n.º 46 de cruzadas-L7.json",
+    "seccion_destino": "§14.4",
+    "estado": "ya_estaba",
+    "donde": "14-api.md §14.4 («Servir un tramo con la línea en el LRU cuesta de 0,23 a 1,00 ms… de 3 a 22 ms antes de cortar»; «El 1,3 a 4,7 ms que midió `datos` es el de su formato»)",
+    "motivo": "La corrección L6 ya lo había aplicado; la coherencia añade al lado la cara del esquema real (L3#21)."
+  },
+  {
+    "id": "Rcoste-002",
+    "origen": "L7, n.º 47 de cruzadas-L7.json",
+    "seccion_destino": "§0 (§0.7) y §16.4 (B15)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L10.json (Rcoste-002, aplicado): 00-cabecera.md l. 146 (§0.7); 21-apendices.md l. 139 (O-23) y l. 420 (X-24) | correcciones-L8.json (Rcoste-002, aplicado): 16-bancos.md l. 437 (B15) y l. 746 (§16.9)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcodigo-055",
+    "origen": "L7, n.º 48 de cruzadas-L7.json",
+    "seccion_destino": "dudas.md (1.12)",
+    "estado": "aplicada",
+    "donde": "dudas.md §0 (tabla del estado) y §1 (1.12 cerrada)",
+    "motivo": "La 1.12 queda cerrada: la columna «Campos (`strip`)» de §11.18 y `B1B_WHITELIST`."
+  },
+  {
+    "id": "Rcobertura-042",
+    "origen": "L8, n.º 1 de cruzadas-L8.json",
+    "seccion_destino": "§4.13 (y §21.6 F.2)",
+    "estado": "aplicada",
+    "donde": "04-modelo.md, §4.13 (fila de `radio.ts`); 21-apendices.md F.2 y 00-glosario.md G.4 ya lo tenían (L10)",
+    "motivo": "`RadioNames` con `own` y `nameableAt` (12-o), y la firma de `radioFromTimeline`."
+  },
+  {
+    "id": "Rcobertura-042",
+    "origen": "L8, n.º 2 de cruzadas-L8.json",
+    "seccion_destino": "§17.14 (PR 11)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcobertura-042, aplicado): 17-plan.md l. 429; 17-plan.md l. 431",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-043",
+    "origen": "L8, n.º 3 de cruzadas-L8.json",
+    "seccion_destino": "§6.3, §7.4, §7.6, §11.8, §11.9 y §21.6 F.2",
+    "estado": "aplicada",
+    "donde": "06-pantalla.md §6.3 (`groupLabelText(_locale, …)`); 07-rotulos.md §7.4 (`championTitleText(_locale, t, n)` y sus dos llamadas) y §7.6 (`breakHeadline(_locale, cards, ownIx)`); 11-superficies.md §11.8 y §11.9 (`pageTitle`, `stageReadyNotice` y `stageReadyEmail` con `_locale`), 11-c, 11-d y la lista de nombres; 14-api.md §14.10 (las llamadas de `shellMetaFor`); 00-glosario.md G.2; F.2 ya lo tenía (L10)",
+    "motivo": "Cada render nace con el `locale` delante (12-q, D-62); `cardCaption` y `cardLineText` conservan su firma de F.2 y pasan `'en'` a `championTitleText`."
+  },
+  {
+    "id": "Rcobertura-043",
+    "origen": "L8, n.º 4 de cruzadas-L8.json",
+    "seccion_destino": "§19.9",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcobertura-043, aplicado): 19-riesgos.md l. 79; 17-plan.md l. 449",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcodigo-022",
+    "origen": "L8, n.º 5 de cruzadas-L8.json",
+    "seccion_destino": "§10.6 (punto 1) y §17.4 (PR 1a)",
+    "estado": "aplicada",
+    "donde": "10-horizonte.md §10.6, punto 1 (las tres lecturas de clasificación con `q: Queryable` desde el 1a); §17.4 ya lo decía (L9)",
+    "motivo": "La parte de §10.6 faltaba; la de §17.4 la aplicó L9."
+  },
+  {
+    "id": "Rcodigo-027",
+    "origen": "L8, n.º 6 de cruzadas-L8.json",
+    "seccion_destino": "§17.14 (PR 11) y 17-l",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcodigo-027, aplicado): 17-plan.md l. 429; 17-plan.md l. 431; 17-plan.md l. 784",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcodigo-027",
+    "origen": "L8, n.º 7 de cruzadas-L8.json",
+    "seccion_destino": "dudas.md (1.10, 1.6 y 1.12)",
+    "estado": "aplicada",
+    "donde": "dudas.md §0 (tabla del estado) y §1 (1.10, 1.6, 1.12 y 1.1 cerradas)",
+    "motivo": "Las cuatro quedan cerradas; de la 1.1, `tplRev` ya está en `stageReplaySchema` de §14.2 (`14-api.md` l. 157). Las medidas que quedan de la 1.6 son la 3.5."
+  },
+  {
+    "id": "Rcodigo-046",
+    "origen": "L8, n.º 8 de cruzadas-L8.json",
+    "seccion_destino": "§13.3",
+    "estado": "ya_estaba",
+    "donde": "13-esquema.md §13.3 (`tpl_rev` `smallint not null` sin defecto, 13-j)",
+    "motivo": "La cruzada se retiró en el cierre de L8 («Superada: no aplicar»); lo que su nota describe ya está en §13.3."
+  },
+  {
+    "id": "Rcodigo-046",
+    "origen": "L8, n.º 9 de cruzadas-L8.json",
+    "seccion_destino": "§14.2 (y §14.1)",
+    "estado": "aplicada",
+    "donde": "14-api.md §14.2 (ampliación de `stageReplaySchema` con `tplRev`)",
+    "motivo": "La misma ampliación que L2#19, con el comentario de la cruzada."
+  },
+  {
+    "id": "Rcodigo-046",
+    "origen": "L8, n.º 10 de cruzadas-L8.json",
+    "seccion_destino": "§5.6",
+    "estado": "ya_estaba",
+    "donde": "05-motor.md §5.6 (`readStageTemplateRev` y `readStageTimeline` sola, 5-p)",
+    "motivo": "La cruzada se retiró en el cierre de L8 («Superada: no aplicar»); lo que su nota describe ya está en §5.6."
+  },
+  {
+    "id": "Rcodigo-050",
+    "origen": "L8, n.º 11 de cruzadas-L8.json",
+    "seccion_destino": "§4.5 y §21.6 F.2",
+    "estado": "aplicada",
+    "donde": "04-modelo.md, §4.5 (comentario tras `GroupRole`); 21-apendices.md F.2 (l. 518) y 00-glosario.md G.4 (l. 691) ya lo tenían (L10)",
+    "motivo": "`GROUP_ROLES` e `isGroupRole` se escriben en §12.6 y viven en `instant.ts`; §4.5 lo dice junto a `GroupRole`."
+  },
+  {
+    "id": "Rcodigo-060",
+    "origen": "L8, n.º 12 de cruzadas-L8.json",
+    "seccion_destino": "§17.15 (PR 12), §17.20 y §17.21",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcodigo-060, aplicado): 17-plan.md l. 447; 17-plan.md l. 449; 17-plan.md l. 605; 17-plan.md l. 660; 17-plan.md l. 49",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rdueno-001",
+    "origen": "L8, n.º 13 de cruzadas-L8.json",
+    "seccion_destino": "§17.14 (PR 11) y §17.20",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rdueno-001, aplicado): 17-plan.md l. 431; 17-plan.md l. 633",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rdueno-001",
+    "origen": "L8, n.º 14 de cruzadas-L8.json",
+    "seccion_destino": "§20.2, §20.3 y §20.8 (DD-11)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L10.json (Rdueno-001, aplicado): 20-dueno.md, fila de DD-11 (§20.2), §20.3, §20.5 (punto 3) y §20.8",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rdueno-008",
+    "origen": "L8, n.º 15 de cruzadas-L8.json",
+    "seccion_destino": "§11.16",
+    "estado": "aplicada",
+    "donde": "11-superficies.md §11.16 (fila «conocida» de la tabla y último párrafo)",
+    "motivo": "La etapa conocida lleva los diez primeros al leer (12-o) y B16 los pone en los dos lados (16-t)."
+  },
+  {
+    "id": "Rdueno-008",
+    "origen": "L8, n.º 16 de cruzadas-L8.json",
+    "seccion_destino": "§3.2 y §5.4",
+    "estado": "aplicada",
+    "donde": "03-reloj.md l. 64 (§3.2); 05-motor.md l. 325 (§5.4)",
+    "motivo": "Las dos frases daban la radio de la línea siempre sin la lista de seguimiento; con 12-o (corrección L8) la ruta añade los diez primeros de la etapa en una etapa conocida y con `?diag=1`."
+  },
+  {
+    "id": "Rdueno-019",
+    "origen": "L8, n.º 17 de cruzadas-L8.json",
+    "seccion_destino": "§20.2 y §20.8 (DD-04)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L10.json (Rdueno-019, aplicado): 20-dueno.md, fila de DD-04, §20.1 (el motor y SPEC), §20.3, §20.6 y §20.8",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rdueno-019",
+    "origen": "L8, n.º 18 de cruzadas-L8.json",
+    "seccion_destino": "§17.15 (paso 12) y D-58",
+    "estado": "aplicada",
+    "donde": "00-decisiones.md, D-58 (decisión y bloque «Precisada en la coherencia, fase 6») y fila del registro",
+    "motivo": "D-58 gana `SPEC.md` (§6.15 con la respuesta de DD-04) y `docs/ops.md` pasa al 5 y al 7a (17-y), como §17.15 y §17.20."
+  },
+  {
+    "id": "Rcobertura-051",
+    "origen": "L8, n.º 19 de cruzadas-L8.json",
+    "seccion_destino": "§7.7",
+    "estado": "aplicada",
+    "donde": "07-rotulos.md §7.7 (el párrafo de B3)",
+    "motivo": "«Con esta política el 100 % se cumple por construcción» pasa a lo que B3 exige de verdad (16-p), con la cláusula de no vacío."
+  },
+  {
+    "id": "Rcobertura-051",
+    "origen": "L8, n.º 20 de cruzadas-L8.json",
+    "seccion_destino": "§8.12, §17.9 (PR 6b), §17.13 (PR 10b) y §17.21",
+    "estado": "aplicada",
+    "donde": "08-ritmo.md §8.12 (fila de la segunda parte de B3 en `breakPresentation.test.ts`); §17.9, §17.13 y §17.21 ya lo tenían (L9)",
+    "motivo": "La cruzada ofrecía la fila en §8.12 «si se prefiere»: se añade para que la tabla de pruebas del reproductor la nombre."
+  },
+  {
+    "id": "Rcobertura-052",
+    "origen": "L8, n.º 21 de cruzadas-L8.json",
+    "seccion_destino": "§15.3 y §14.8",
+    "estado": "aplicada",
+    "donde": "14-api.md §14.8 (el quinto tope, `maxKnownStageGzipBytes`); 15-constantes.md §15.3 y §15.6",
+    "motivo": "La constante nueva y dónde se mide."
+  },
+  {
+    "id": "Rcobertura-052",
+    "origen": "L8, n.º 22 de cruzadas-L8.json",
+    "seccion_destino": "§17.9 (PR 6a) y §18.10",
+    "estado": "aplicada",
+    "donde": "18-rendimiento.md §18.10 (filas de la ruta de etapa conocida, de su parse y del paquete de meta con su medida del paso 6); §17.9 ya lo tenía (L9)",
+    "motivo": "La quinta cota de red y el parse de la ruta conocida, en `routes/broadcast.test.ts` (6a)."
+  },
+  {
+    "id": "Rcobertura-053",
+    "origen": "L8, n.º 23 de cruzadas-L8.json",
+    "seccion_destino": "§8.9, §17 y §18",
+    "estado": "aplicada",
+    "donde": "18-rendimiento.md §18.1 («B8 y sus umbrales») y §18.9-§18.10 (B8 y B15 citados por §16.4); 08-ritmo.md §8.9 (8-k, fuente única de las bandas de B17); §17 ya lo tenía (L9)",
+    "motivo": "16-v: cada umbral de banco se escribe una vez, en §16.4 (y las bandas de B17 en 8-k); §18 los cita en lugar de copiarlos."
+  },
+  {
+    "id": "Rcodigo-047",
+    "origen": "L8, n.º 24 de cruzadas-L8.json",
+    "seccion_destino": "§3.8",
+    "estado": "aplicada",
+    "donde": "03-reloj.md, §3.8, párrafo tras la tabla de la cabeza",
+    "motivo": "«y el adaptador además no la tiene» pasa a la medida del refutador de código (`rcod/n/adapt.mjs`: cabeza p99 0,32-0,60 km; todos los grupos p99 0,84-0,89 y máximos 2,17 y 2,62; otro grupo en el 15-30 % de los pares), con B22 informativo y 16-s."
+  },
+  {
+    "id": "Rcodigo-058",
+    "origen": "L8, n.º 25 de cruzadas-L8.json",
+    "seccion_destino": "§11 (introducción) y §17.10 (8a)",
+    "estado": "aplicada",
+    "donde": "11-superficies.md, introducción de §11 (las `HEAD`: 53 hoy y 57 con E2); §17.10 ya lo decía (L9)",
+    "motivo": "Sin fijar el número en el código: B1d comprueba que cada `HEAD` tenga su `GET` con la misma `url` y el mismo `config`."
+  },
+  {
+    "id": "Rcodigo-062",
+    "origen": "L8, n.º 26 de cruzadas-L8.json",
+    "seccion_destino": "§14.7 y §17.3 (paso 0)",
+    "estado": "aplicada",
+    "donde": "14-api.md §14.7 (`routes/broadcast.test.ts` y `yesterday.test.ts` con `DB_POOL_MAX = 1`); §17.3 ya lo decía (L9)",
+    "motivo": "Sin él, la ruta de etapa sobre PGlite da 500 con `ECONNRESET`."
+  },
+  {
+    "id": "Rcodigo-063",
+    "origen": "L8, n.º 27 de cruzadas-L8.json",
+    "seccion_destino": "§14.2 y §11.6",
+    "estado": "aplicada",
+    "donde": "14-api.md §14.2 (`riderRaceResultSchema.stagesToWatch`); 11-superficies.md §11.6, punto 2 (el campo nombrado); 00-glosario.md G.3.8 (l. 668) ya lo tenía",
+    "motivo": "La ampliación del esquema faltaba en §14.2 y §11.6 describía la fila sin nombrar el campo."
+  },
+  {
+    "id": "Rcodigo-065",
+    "origen": "L8, n.º 28 de cruzadas-L8.json",
+    "seccion_destino": "§17.7 (PR 4b), §17.8 (paso 5), §17.2 y §17.20",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcodigo-065, aplicado): 17-plan.md l. 211; 17-plan.md l. 253; 17-plan.md l. 35; 17-plan.md l. 36; 17-plan.md l. 630; 19-riesgos.md l. 187",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcodigo-077",
+    "origen": "L8, n.º 29 de cruzadas-L8.json",
+    "seccion_destino": "§4.6 (y §3.8)",
+    "estado": "aplicada",
+    "donde": "04-modelo.md, §4.6 (pseudocódigo de `cutTimeline` y párrafo que le sigue); 03-reloj.md, §3.8 (viñeta «Los `revealS`, en décimas»)",
+    "motivo": "El corte de sucesos y pancartas pasa a `vis.eventDs ≤ T` y `vis.bannerDs ≤ T`, y el adaptador redondea sus `revealS` a décimas, como pedía Rcodigo-077 para que B9 no falle por redondeo."
+  },
+  {
+    "id": "Rcodigo-082",
+    "origen": "L8, n.º 30 de cruzadas-L8.json",
+    "seccion_destino": "§13.6 y §17.8 (PR 5)",
+    "estado": "aplicada",
+    "donde": "13-esquema.md §13.6 (el comentario de `stage_snapshots.radio`)",
+    "motivo": "Las dos cifras con su unidad, como §17.8 y §19.9."
+  },
+  {
+    "id": "Rcodigo-084",
+    "origen": "L8, n.º 31 de cruzadas-L8.json",
+    "seccion_destino": "§17.10 (PR 7a)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcodigo-084, aplicado): 17-plan.md l. 306; 17-plan.md l. 97; 17-plan.md l. 729",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcodigo-084",
+    "origen": "L8, n.º 32 de cruzadas-L8.json",
+    "seccion_destino": "§10.14 y §18.2 (18-j)",
+    "estado": "aplicada",
+    "donde": "10-horizonte.md §10.14 (caso «dos dispositivos», contra el Postgres del CI); §18.2, 18-j (ver L8#31 en §18)",
+    "motivo": "PGlite, con un solo backend, lo haría pasar sin el `for update`."
+  },
+  {
+    "id": "Rcodigo-087",
+    "origen": "L8, n.º 33 de cruzadas-L8.json",
+    "seccion_destino": "§10.6 y §17.10 (PR 7a)",
+    "estado": "aplicada",
+    "donde": "10-horizonte.md §10.6 (`clearHorizonCaches()` tras `lastRunStages`) y §10.7 (`TtlMemo.clear`)",
+    "motivo": "El código de §16.3 ya llamaba a `clearHorizonCaches` y el glosario la tenía; §10.6 no la escribía. Vacía también el memo de `veilDelta`, como dice el glosario (G.4, l. 710)."
+  },
+  {
+    "id": "Rcodigo-091",
+    "origen": "L8, n.º 34 de cruzadas-L8.json",
+    "seccion_destino": "§17.7 (PR 4b) y §17.21",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcodigo-091, aplicado): 17-plan.md l. 214; 17-plan.md l. 698",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcodigo-092",
+    "origen": "L8, n.º 35 de cruzadas-L8.json",
+    "seccion_destino": "§17.1 (regla 4) y §17.7",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcodigo-092, aplicado): 17-plan.md l. 12; 17-plan.md l. 226; 19-riesgos.md l. 188",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcodigo-093",
+    "origen": "L8, n.º 36 de cruzadas-L8.json",
+    "seccion_destino": "§17.10 (PR 7a)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcodigo-093, aplicado): 17-plan.md l. 303",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcodigo-096",
+    "origen": "L8, n.º 37 de cruzadas-L8.json",
+    "seccion_destino": "§17.14 (PR 11)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcodigo-096, aplicado): 17-plan.md l. 429",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-013",
+    "origen": "L8, n.º 38 de cruzadas-L8.json",
+    "seccion_destino": "§20.2 (DD-21)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L10.json (Rcoste-013, aplicado): 20-dueno.md, fila de DD-21",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-024",
+    "origen": "L8, n.º 39 de cruzadas-L8.json",
+    "seccion_destino": "§17.9 (PR 6a) y §18.10",
+    "estado": "aplicada",
+    "donde": "18-rendimiento.md §18.10 (las dos filas con el máximo de las 24 × 2 del paso 6); §17.9 ya lo tenía (L9)",
+    "motivo": "El paquete de meta y la ruta conocida, medidos a mano en el paso 6."
+  },
+  {
+    "id": "Rcoste-027",
+    "origen": "L8, n.º 40 de cruzadas-L8.json",
+    "seccion_destino": "§17.7 (PR 4b) y §17.21",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcoste-027, aplicado): 17-plan.md l. 212; 17-plan.md l. 676",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-028",
+    "origen": "L8, n.º 41 de cruzadas-L8.json",
+    "seccion_destino": "§19.1 (riesgo 1)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcoste-028, aplicado): 19-riesgos.md l. 11; 17-plan.md l. 226",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-033",
+    "origen": "L8, n.º 42 de cruzadas-L8.json",
+    "seccion_destino": "§17.10 (PR 7a)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcoste-033, aplicado): 17-plan.md l. 302",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rdueno-004",
+    "origen": "L8, n.º 43 de cruzadas-L8.json",
+    "seccion_destino": "§20.8 (DD-05), §21 (apéndice C) y §6 (6-h)",
+    "estado": "aplicada",
+    "donde": "06-pantalla.md, decisión 6-h (quién mide la cola); 20-dueno.md DD-05 y §20.8, y 21-apendices.md (apéndice C, H-04), ya aplicados por L10 (Rdueno-004)",
+    "motivo": "Faltaba 6-h, que decía «lo acepta la prueba de lectura»."
+  },
+  {
+    "id": "Rdueno-004",
+    "origen": "L8, n.º 44 de cruzadas-L8.json",
+    "seccion_destino": "§8.9",
+    "estado": "aplicada",
+    "donde": "08-ritmo.md §8.9 (la prueba de lectura con las dos preguntas de 16-w)",
+    "motivo": "La prueba de lectura pregunta también por los maillots de la fuga y por quién tira."
+  },
+  {
+    "id": "Rdueno-031",
+    "origen": "L8, n.º 45 de cruzadas-L8.json",
+    "seccion_destino": "§20.5 (punto 5)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L10.json (Rdueno-031, aplicado): 20-dueno.md, §20.5 (punto 5)",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-020",
+    "origen": "L8, n.º 46 de cruzadas-L8.json",
+    "seccion_destino": "§18.2 (18-j)",
+    "estado": "aplicada",
+    "donde": "18-rendimiento.md §18.2 (el párrafo de B14) y 18-j",
+    "motivo": "La base propia de B14 con `realTestDbFor('cyclingstar_b14')` (16-r)."
+  },
+  {
+    "id": "Rcobertura-042, Rcobertura-043, Rcobertura-047, Rcobertura-051, Rcobertura-052, Rcodigo-050, Rcodigo-063, Rcodigo-084, Rcodigo-087",
+    "origen": "L8, n.º 47 de cruzadas-L8.json",
+    "seccion_destino": "00-glosario.md (§G.2, §G.3, §G.4, §G.7, §G.9, §G.11)",
+    "estado": "ya_estaba",
+    "donde": "00-glosario.md G.2, G.3.8 (`riderRaceResultSchema.stagesToWatch`), G.4, G.7 (`maxKnownStageGzipBytes`), G.9 y G.11 (`fuente: línea grabada · sin depósitos · una foto por km`)",
+    "motivo": "Fundidas por L10 («Cierre de L10»); en esta pasada G.9 gana además la cláusula de no vacío de B13 y los casos de B18."
+  },
+  {
+    "id": "Rdueno-017 (cruzada de L4, aplicada en §12.6)",
+    "origen": "L8, n.º 48 de cruzadas-L8.json",
+    "seccion_destino": "§14.3 (14-api.md, el código de la ruta del tramo: `rolesCtx`)",
+    "estado": "aplicada",
+    "donde": "14-api.md §14.3 (el bloque de `rolesCtx` con los líderes del reparto congelado y el párrafo «Por qué ese orden»)",
+    "motivo": "`rolesCtx.start.leaders` estaba a `null`: la voz no diría nunca el grupo del maillot (6-b). Ahora sale de `tl.cast`, sin degradar, como pide §12.6 (`withGroupRoles`), y el comentario dice que los líderes de salida deciden la etiqueta."
+  },
+  {
+    "id": "Rdueno-017 (cruzada de L4, aplicada en §12.6)",
+    "origen": "L8, n.º 49 de cruzadas-L8.json",
+    "seccion_destino": "§17.7 (PR 4a, «Bancos») y §17.21 («Lo que se re-sella, por PR»)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rdueno-017, aplicado): 17-plan.md l. 201; 17-plan.md l. 202; 17-plan.md l. 196; 17-plan.md l. 206; 17-plan.md l. 545; 17-plan.md l. 550; 17-plan.md l. 701; 17-plan.md l. 725; 17-plan.md l. 782",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-008 (cruzada de L3, aplicada en §16.4)",
+    "origen": "L8, n.º 50 de cruzadas-L8.json",
+    "seccion_destino": "§17.7 (PR 4b), §17.8 (paso 5) y §17.21 (las filas de `timeline.test.ts` y `broadcastFixtures.test.ts`)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcoste-008, aplicado): 19-riesgos.md l. 11; 17-plan.md l. 211; 17-plan.md l. 226; 17-plan.md l. 243",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcoste-008 (cruzada de L3, aplicada en §16.4)",
+    "origen": "L8, n.º 51 de cruzadas-L8.json",
+    "seccion_destino": "§5.7 (05-motor.md, «El tope de la crono, corregido» y «El margen de la mediana del JSON») y §15.2 (la fila de los topes de `TIMELINE`)",
+    "estado": "aplicada",
+    "donde": "05-motor.md §5.7 («El tope de la crono, corregido» y «El margen de la mediana del JSON»); 15-constantes.md §15.2 (fila de los topes de `TIMELINE` en la tabla de procedencia)",
+    "motivo": "El `bytea` de B6 ya se mide en el banco (16-n) y no a mano; el margen de la mediana cuenta la salida que eligió §16.4 y la cifra nueva de §15.2 (15-l); la fila de §15.2 dice dónde falla cada tope."
+  },
+  {
+    "id": "Rcoste-006, Rcoste-008 (cruzadas de L3, aplicadas en §16.4)",
+    "origen": "L8, n.º 52 de cruzadas-L8.json",
+    "seccion_destino": "§19.1 (el riesgo nuevo de las subtransacciones y el riesgo 1)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcoste-006, aplicado): 17-plan.md l. 232; 17-plan.md l. 236; 17-plan.md l. 244; 17-plan.md l. 247; 17-plan.md l. 578; 17-plan.md l. 579; 19-riesgos.md l. 46",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rdueno-017, Rcobertura-044, Rcobertura-023, Rdueno-003, Rcoste-006, Rcoste-008 (cruzadas de L3 y L4, aplicadas en §12 y §16)",
+    "origen": "L8, n.º 53 de cruzadas-L8.json",
+    "seccion_destino": "00-glosario.md (§G.2, §G.4 y §G.9)",
+    "estado": "aplicada",
+    "donde": "00-glosario.md G.2 (`voiceRoles.ts` con `mainJersey` y `groupJersey`; `jerseys.ts` con `isJerseyKind`; `packages/db/src/index.ts` con el tipo `TimelineTickLog`), G.4 (`groupNounOf(role, jersey)` e `isJerseyKind`) y G.9 (B3 con la presentación de la fuga, B6 del JSON, B15 con `pg_stat_get_backend_subxact`, PL con una fuga de hasta 12); 21-apendices.md F.2 (`isJerseyKind`)",
+    "motivo": "El cierre de L10 la daba por fundida, pero el glosario seguía sin esos nombres y con la PL de «4 a 12»."
+  },
+  {
+    "id": "Rcodigo-066",
+    "origen": "L9, n.º 1 de cruzadas-L9.json",
+    "seccion_destino": "§16.4 (código de B9 y frase de load.ts)",
+    "estado": "aplicada",
+    "donde": "16-bancos.md §16.4 (cabecera del bloque de B9 y el párrafo de `load.ts`)",
+    "motivo": "B9 en el 3a sobre `ROAD_FIXTURES` con `instantAt` y la línea del adaptador hasta el 6a; la crono en el 6b."
+  },
+  {
+    "id": "Rcodigo-079, Rcodigo-080",
+    "origen": "L9, n.º 2 de cruzadas-L9.json",
+    "seccion_destino": "§16.2 y 16-a (los fixtures) y §16.4 (B13)",
+    "estado": "aplicada",
+    "donde": "16-bancos.md §16.2 (los fixtures: el mundo de PGlite, los uuid, el manifiesto con nombres, la segunda mitad en el 5, los nacionales plantados, `ROAD_FIXTURES` y `seedFixtureWorld`), 16-a y §16.4 (B13 con su cláusula de no vacío)",
+    "motivo": "17-u: los fixtures salen de un mundo de PGlite con ids uuid, la línea en el 5, y B13 gana su cláusula de no vacío."
+  },
+  {
+    "id": "Rcodigo-073",
+    "origen": "L9, n.º 3 de cruzadas-L9.json",
+    "seccion_destino": "§4.13, §4.9, §4.11 y §15.3 (bloque de constants.ts)",
+    "estado": "aplicada",
+    "donde": "04-modelo.md §4.9 (bloque de `timeline.ts` con `CueClass`; `cues.ts` lo importa), §4.11 (bloque de `timeline.ts` con `PaceZone`; `wire.ts` lo importa) y §4.13 (filas de `timeline.ts`, `cues.ts`, `wire.ts` y `constants.ts`); 15-constantes.md §15.3 (importaciones de `constants.ts`); 08-ritmo.md §8.2 (importaciones de `pace.ts`)",
+    "motivo": "17-z: `PaceZone` y `CueClass` se declaran en `broadcast/timeline.ts`, y quien los usa los importa de allí; §8.2 se alinea por coherencia (ya no importa `wire.ts`)."
+  },
+  {
+    "id": "Rdueno-009",
+    "origen": "L9, n.º 4 de cruzadas-L9.json",
+    "seccion_destino": "§3.8, §6 (§6.2 y §6.3) y glosario (§G.11)",
+    "estado": "aplicada",
+    "donde": "03-reloj.md §3.8 (viñeta de `clock: 'estimated'`); 06-pantalla.md §6.2 (el perfil con cursores: cursor hueco, `~` y el segundo aviso); 00-glosario.md G.11 y 21-apendices.md F.3 ya lo tenían (L10)",
+    "motivo": "El término de pantalla `Positions of the groups behind are estimated` y el cursor hueco con el adaptador, desde el 3c."
+  },
+  {
+    "id": "Rdueno-010",
+    "origen": "L9, n.º 5 de cruzadas-L9.json",
+    "seccion_destino": "§3.8, §14.4 y §7.8",
+    "estado": "aplicada",
+    "donde": "03-reloj.md §3.8 (viñeta «Un reparto provisional»); 14-api.md §14.4 (`leadersThroughStage` exportada y el párrafo del reparto del adaptador); 07-rotulos.md §7.8 (párrafo del reparto provisional)",
+    "motivo": "17-k: el adaptador sirve un reparto provisional desde el 3a, sin títulos ni distinciones."
+  },
+  {
+    "id": "Rcodigo-042",
+    "origen": "L9, n.º 6 de cruzadas-L9.json",
+    "seccion_destino": "§3.8 y glosario (§G.4, estimatedHeadClock)",
+    "estado": "aplicada",
+    "donde": "03-reloj.md l. 283-290 (§3.8: `export function estimatedHeadClock` y el párrafo de su test); 00-glosario.md G.2 (l. 172) y G.4 (l. 735) ya lo decían (cierre de L10)",
+    "motivo": "§3.8 la daba privada; se exporta para `broadcastSource.test.ts` del PR 2 con los tres casos de la cruzada de L1 (§17.5 ya los lista)."
+  },
+  {
+    "id": "Rcodigo-086",
+    "origen": "L9, n.º 7 de cruzadas-L9.json",
+    "seccion_destino": "§16.3 (startSpoilerWorld) y §14.4",
+    "estado": "aplicada",
+    "donde": "16-bancos.md §16.3 (`startSpoilerWorld` vacía `clearStageTimelineCache()` y `clearAdaptedTimelineCache()`, sus importaciones y los dos párrafos que siguen al código); 14-api.md §14.4 (`clearAdaptedTimelineCache` exportada y la clave de las LRU); 18-rendimiento.md §18.2 (la LRU sin mundo)",
+    "motivo": "B1c monta dos mundos con la misma carrera en el mismo proceso y las LRU van sin mundo."
+  },
+  {
+    "id": "Rcodigo-075",
+    "origen": "L9, n.º 8 de cruzadas-L9.json",
+    "seccion_destino": "§10.14 (caso «lo servido no es visto» de B12)",
+    "estado": "aplicada",
+    "donde": "10-horizonte.md §10.14 (caso «lo servido no es visto»)",
+    "motivo": "Desde el 7b un tramo más allá de lo informado da 409, así que el montaje informa hasta `finishS − 1` sin `…/finish`."
+  },
+  {
+    "id": "Rcodigo-078",
+    "origen": "L9, n.º 9 de cruzadas-L9.json",
+    "seccion_destino": "§16.1 (fila de narration.test.ts) y §12.9",
+    "estado": "aplicada",
+    "donde": "12-voz.md §12.9 (fila de `narrate()`); 16-bancos.md §16.1 (fila de `narration.test.ts`); §17.15 y §17.21 ya lo decían (L9)",
+    "motivo": "El cuarto `it` es la única prueba de `raceVerdict`, que sigue en uso: se queda."
+  },
+  {
+    "id": "Rcoste-030",
+    "origen": "L9, n.º 10 de cruzadas-L9.json",
+    "seccion_destino": "§13.10 (punto 8) y §13.1 (regla 8)",
+    "estado": "aplicada",
+    "donde": "13-esquema.md §13.10, punto 8",
+    "motivo": "Los dos casos de dos sesiones de `migrations.test.ts` corren en todo PR desde el 1a con `TEST_DATABASE_URL` (17-w), cada uno en su base (`realTestDbFor('cyclingstar_migrate')`); la regla 8 de §13.1 ya casaba con la 9 de §17.1."
+  },
+  {
+    "id": "Rcoste-038",
+    "origen": "L9, n.º 11 de cruzadas-L9.json",
+    "seccion_destino": "§5.6 y §14.4 (clave de las LRU), §5.5 (nota de la fila que ya estaba) y §13.9 (13-h) y §16.4 (B20)",
+    "estado": "aplicada",
+    "donde": "05-motor.md §5.5 (la fila que ya estaba, apuntada en el `TimelineTickLog`) y §5.6 (clave de las LRU sin mundo, por eso el reinicio reinicia `web`); 14-api.md §14.4 (la misma clave); 13-esquema.md §13.9 y 13-h (`docs/ops.md` en el 5 y el 7a, 17-y); 16-bancos.md §16.4 (B20)",
+    "motivo": "Las cuatro partes quedan escritas en su sección; B20 ya decía el 7a y el 12 relee."
+  },
+  {
+    "id": "Rcoste-037",
+    "origen": "L9, n.º 12 de cruzadas-L9.json",
+    "seccion_destino": "§20 (§20.2 y la tabla de DD) y 00-decisiones.md",
+    "estado": "ya_estaba",
+    "donde": "20-dueno.md, fila de DD-27 (§20.2); 00-decisiones.md, fila de DD-27",
+    "motivo": "L10 la registró como DD-27, «El reinicio antes que el código de E2»; §17.19 y el riesgo 36 la citan."
+  },
+  {
+    "id": "Rdueno-027",
+    "origen": "L9, n.º 13 de cruzadas-L9.json",
+    "seccion_destino": "§12.8, §14.2 y §11 (sup. N1 y la tabla de §11.3 de /api/news y /api/teams/:id/news)",
+    "estado": "aplicada",
+    "donde": "12-voz.md §12.8 («Los dos titulares nuevos»); 14-api.md §14.2 (fila de las noticias); 11-superficies.md (`sup. N1`, las filas de §11.3 y §11.7)",
+    "motivo": "17-x: los titulares de líder se escriben desde el 1a y solo se sirven con `leaderNews` desde el 8a."
+  },
+  {
+    "id": "Rcoste-042",
+    "origen": "L9, n.º 14 de cruzadas-L9.json",
+    "seccion_destino": "§16.4 (B18)",
+    "estado": "aplicada",
+    "donde": "16-bancos.md §16.4 (B18: el tramo en el borde con la memoria de lo alcanzado vacía, tras un reinicio de `web` o un cambio de interruptor) y §16.9 (fila de B18)",
+    "motivo": "B18 gana el caso del riesgo 19 de §19.1 que §17.10 ya ponía en el 7b; §16.4 no lo contaba."
+  },
+  {
+    "id": "Rdueno-005",
+    "origen": "L9, n.º 15 de cruzadas-L9.json",
+    "seccion_destino": "00-decisiones.md (D-09 y DD-25), §0.4 punto 3 y §2.3",
+    "estado": "aplicada",
+    "donde": "02-principios.md l. 42 (§2.3); 00-cabecera.md l. 72 (§0.4, punto 3) ya lo decía (corrección L10); 00-decisiones.md D-09 (l. 169-173) y DD-25 (l. 749) ya lo decían",
+    "motivo": "Quedaba §2.3, que es la misma viñeta de la cruzada L3#1; §0.4, D-09 y DD-25 ya estaban."
+  },
+  {
+    "id": "Rcoste-034",
+    "origen": "L9, n.º 16 de cruzadas-L9.json",
+    "seccion_destino": "§14.1 (la fila del paso 11), con §G.10, D-54, §0 y §16 ya al día",
+    "estado": "aplicada",
+    "donde": "14-api.md §14.1 (tabla «Cómo sigue funcionando la web de hoy»: filas 11a y 11b)",
+    "motivo": "La fila decía «11»; el paso 11 son dos PR (17-v) y la radio que lee la línea es el 11a. §G.10, D-54, §0 y §16 ya lo decían."
+  },
+  {
+    "id": "Rcoste-020, Rcoste-030",
+    "origen": "L9, n.º 17 de cruzadas-L9.json",
+    "seccion_destino": "§16.4 (B12 y B14), §16.7 y §18.2 (18-j)",
+    "estado": "aplicada",
+    "donde": "18-rendimiento.md §18.2 y 18-j; 16-bancos.md §16.4 (B12: «el PR 1a se la da al job `test`», 17-w) y §16.7 (el job `test` gana `TEST_DATABASE_URL` en el 1a para los dos casos de `migrations.test.ts`, con las bases `cyclingstar_migrate`, `cyclingstar_watch` y `cyclingstar_b14`)",
+    "motivo": "17-w: la variable llega al CI en el 1a, y cada fichero con Postgres de verdad tiene su base."
+  },
+  {
+    "id": "Rcodigo-085",
+    "origen": "L9, n.º 18 de cruzadas-L9.json",
+    "seccion_destino": "§11.19 (pageTitle.test.ts) y §14.11 (queryKeys.test.ts)",
+    "estado": "aplicada",
+    "donde": "11-superficies.md §11.19 (fila de `apps/web/src/domain/pageTitle.test.ts`); 14-api.md §14.11 (`queryKeys.test.ts`)",
+    "motivo": "Los dos tests de la web que leen fuentes llevan `/// <reference types=\"node\" />` por el `\"types\": []` de `apps/web/tsconfig.json`; son seis con los cuatro de §16.4 (§17.21)."
+  },
+  {
+    "id": "Rcodigo-070",
+    "origen": "L9, n.º 19 de cruzadas-L9.json",
+    "seccion_destino": "§5.10 (tests del grabador)",
+    "estado": "aplicada",
+    "donde": "05-motor.md, §5.10 (párrafo «El grabador que falla»)",
+    "motivo": "El `vi.mock` parcial en `timelines.test.ts` y la fila de `tick_log` en `tickRun.test.ts`, como §17.8."
+  },
+  {
+    "id": "Rcodigo-068",
+    "origen": "L9, n.º 20 de cruzadas-L9.json",
+    "seccion_destino": "§7 (decisión 7-b y §7.2)",
+    "estado": "aplicada",
+    "donde": "07-rotulos.md §7.2 (el párrafo de las clasificaciones de salida) y decisión 7-b",
+    "motivo": "El test de 7-b vive en `packages/db` y no puede llamar a `leadersThroughStage`, que es de la API: hace su cuenta con `raceLeaders` sobre las cuatro lecturas."
+  },
+  {
+    "id": "Rcoste-036",
+    "origen": "L9, n.º 21 de cruzadas-L9.json",
+    "seccion_destino": "00-decisiones.md (D-53)",
+    "estado": "aplicada",
+    "donde": "00-decisiones.md, D-53 (el bloque «Precisada en la corrección, fase 5» de L9 ya estaba) y su fila en el registro",
+    "motivo": "Lo que faltaba era la fila del registro (ver el cierre L9)."
+  },
+  {
+    "id": "Rcodigo-072",
+    "origen": "L9, n.º 22 de cruzadas-L9.json",
+    "seccion_destino": "§16.2 (tabla de invariantes, I3) y §16.9 (filas de I1, I3 e I5)",
+    "estado": "aplicada",
+    "donde": "16-bancos.md §16.2 (fila de I3: las claves en `reduce.test.ts`, la vuelta en `codec.test.ts` del 4b, las seis en el 5); §16.9 (ver L9#21 en la tabla)",
+    "motivo": "La vuelta del códec vive en `codec.test.ts` desde el 4b y la rápida de las seis nace en el 5 (17-u)."
+  },
+  {
+    "id": "Rdueno-017",
+    "origen": "L9, n.º 23 de cruzadas-L9.json",
+    "seccion_destino": "§12.6 (12-voz.md l. 336)",
+    "estado": "aplicada",
+    "donde": "12-voz.md §12.6 («El test nocturno del vocabulario»)",
+    "motivo": "`groupNounsOf` está en `coherence.ts` l. 604-606 (comprobado en el repositorio); l. 738 es donde `storyMetrics` la usa."
+  },
+  {
+    "id": "Rcodigo-022",
+    "origen": "L9, n.º 24 de cruzadas-L9.json",
+    "seccion_destino": "§7.4 (titles.ts) y §12.8 (q: Queryable)",
+    "estado": "aplicada",
+    "donde": "12-voz.md §12.8 (`Queryable` de `titles.ts`, que nace en el 1a); 07-rotulos.md §7.4 (ver L9#23 en §7)",
+    "motivo": "`q: Queryable` ya estaba en §12.8 (corrección L8); faltaba cuándo nace `titles.ts`."
+  },
+  {
+    "id": "Rcoste-044",
+    "origen": "L9, n.º 25 de cruzadas-L9.json",
+    "seccion_destino": "§16.4 (B18) y §16.9 (fila de B18)",
+    "estado": "aplicada",
+    "donde": "16-bancos.md §16.4 (B18 nace en dos veces: los 320 tramos sin un 429 en el 3a, con `PLAYER_RATE_LIMIT`; el 409 `beyond_reached` en el 7b) y §16.9 (fila de B18 y párrafo de las fechas)",
+    "motivo": "L8 escribió el caso en B18 (Rcoste-044), pero B18 seguía naciendo solo en el 7b; el caso del límite está desde el 3a en `routes/broadcast.test.ts` (§17.6, §17.10)."
+  },
+  {
+    "id": "Rcobertura-052",
+    "origen": "L9, n.º 26 de cruzadas-L9.json",
+    "seccion_destino": "§16.4 (B8)",
+    "estado": "aplicada",
+    "donde": "16-bancos.md §16.4 (B8: el parse de la ruta de etapa conocida se mide en `apps/api/src/routes/broadcast.test.ts`, sobre su etapa corrida, desde el 6a)",
+    "motivo": "§16.4 nombraba la etapa corrida pero no el fichero; ahora lo nombra, como §17.9 y §17.21, y dice por qué no va en `clientCost.test.ts`."
+  },
+  {
+    "id": "Cierre L9 (registro de decisiones)",
+    "origen": "L9, n.º 27 de cruzadas-L9.json",
+    "seccion_destino": "00-decisiones.md (tabla del registro, l. 17-64)",
+    "estado": "aplicada",
+    "donde": "00-decisiones.md, tabla del registro (filas de D-09 corregida en la fase 5, de D-53 precisada por L9 y, de esta pasada, de D-58)",
+    "motivo": "El cuerpo ya llevaba los bloques de D-09 (L3) y D-53 (L9); faltaban sus filas."
+  },
+  {
+    "id": "Rcoste-044",
+    "origen": "L9, n.º 28 de cruzadas-L9.json",
+    "seccion_destino": "§8.12 (fila del 429 en un tramo)",
+    "estado": "aplicada",
+    "donde": "08-ritmo.md §8.12 (fila del 429: paso 3b)",
+    "motivo": "El reproductor espera un 429 desde que nace; §16.6 ya decía «3b y 10»."
+  },
+  {
+    "id": "Rcobertura-060",
+    "origen": "L10, n.º 1 de cruzadas-L10.json",
+    "seccion_destino": "§2.6 (02-principios.md l. 65)",
+    "estado": "aplicada",
+    "donde": "02-principios.md l. 65 (§2.6)",
+    "motivo": "«por etapa conocida» pasa a «por etapa del prefijo», con la `X` fuera del velo sin ser conocida y abriendo en `Watch` (10-e), como §10.2 y F.1."
+  },
+  {
+    "id": "Rcobertura-060",
+    "origen": "L10, n.º 2 de cruzadas-L10.json",
+    "seccion_destino": "§10.2 y §10.3 (10-horizonte.md l. 30 y l. 98)",
+    "estado": "aplicada",
+    "donde": "10-horizonte.md §10.2 (intro de la tabla y «Lo conocido es un prefijo») y §10.3 (nota tras `si N ≤ r.known_through` del pseudocódigo)",
+    "motivo": "Las etapas con letra frente a las conocidas: la `X` está en el prefijo sin ser conocida (10-e, F.1)."
+  },
+  {
+    "id": "Rcoste-001",
+    "origen": "L10, n.º 3 de cruzadas-L10.json",
+    "seccion_destino": "§17.16 y §17.22 (17-plan.md)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rcoste-001, aplicado): 17-plan.md l. 479; 17-plan.md l. 762",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rdueno-004",
+    "origen": "L10, n.º 4 de cruzadas-L10.json",
+    "seccion_destino": "§6 (06-pantalla.md, decisión 6-h)",
+    "estado": "aplicada",
+    "donde": "06-pantalla.md, decisión 6-h",
+    "motivo": "6-h daba la cola por aceptada en la prueba de lectura, que no pregunta por los rótulos; ahora dice quién la mide de verdad (la medida de §6.5, los tests de §6.7 y B3, y el dueño en el 6a)."
+  },
+  {
+    "id": "Rdueno-007",
+    "origen": "L10, n.º 5 de cruzadas-L10.json",
+    "seccion_destino": "§2.13 (02-principios.md l. 121)",
+    "estado": "aplicada",
+    "donde": "02-principios.md l. 121 (§2.13)",
+    "motivo": "Título y frase de la D7 con el texto de la cruzada: la D7 es condicional, como §20.4."
+  },
+  {
+    "id": "Rdueno-011",
+    "origen": "L10, n.º 6 de cruzadas-L10.json",
+    "seccion_destino": "§17 (17-plan.md, decisión 17-k y §17.9)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rdueno-011, aplicado): 17-plan.md l. 292; 17-plan.md l. 783",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rdueno-020",
+    "origen": "L10, n.º 7 de cruzadas-L10.json",
+    "seccion_destino": "§12.3 (12-voz.md, «Los racimos en vivo»)",
+    "estado": "aplicada",
+    "donde": "12-voz.md §12.3 (el pseudocódigo de `liveClusters`, el párrafo «Lo que el racimo junta» con la medida y la decisión 12-s); 20-dueno.md DD-18 (§20.2, §20.3 y §20.8); 00-decisiones.md D-43 y la fila de DD-18; 21-apendices.md I-44",
+    "motivo": "La cruzada pedía decir la cifra y decidir: el racimo encendido junta también a los corredores con rótulo, salvo la fuga, los maillots y los propios; la otra cara queda escrita."
+  },
+  {
+    "id": "Rdueno-025",
+    "origen": "L10, n.º 8 de cruzadas-L10.json",
+    "seccion_destino": "§14.10 (14-api.md, decisión 14-k)",
+    "estado": "aplicada",
+    "donde": "14-api.md §14.10 (párrafo de la vista previa) y decisión 14-k",
+    "motivo": "La condición por horizonte solo protege a quien abre la página con sesión; la vista previa de un enlace compartido la pide un robot `anon`."
+  },
+  {
+    "id": "Rdueno-028",
+    "origen": "L10, n.º 9 de cruzadas-L10.json",
+    "seccion_destino": "§12.6 y §17.9 (el acta en el 6b)",
+    "estado": "aplicada",
+    "donde": "12-voz.md §12.6 (la ruta del acta anota solo con `Watch` encendido); §17.9 y §20.5 ya lo decían (L9, L10)",
+    "motivo": "El acta con las palabras de papel llega con el encendido; el arreglo de las cuatro plantillas, para todos."
+  },
+  {
+    "id": "Rdueno-028",
+    "origen": "L10, n.º 10 de cruzadas-L10.json",
+    "seccion_destino": "§11.17 y §17.12 (el 9a y el 9b)",
+    "estado": "aplicada",
+    "donde": "11-superficies.md §11.17 (`watchOn` en `raceTabs`, `ONE_DAY_FINISHED.off` y `raceTabLabel`; el párrafo de `watchOn`) y 11-o; §17.12 y §20.5 ya lo decían (L9, L10)",
+    "motivo": "La pestaña `Story` conserva su nombre y la carrera de un día terminada sigue abriendo en `Result` hasta el encendido: `raceTabs` y el nombre de la pestaña miran `watchOn`, que es `broadcastOn()` visto desde la web."
+  },
+  {
+    "id": "Rdueno-028",
+    "origen": "L10, n.º 11 de cruzadas-L10.json",
+    "seccion_destino": "§17.15 (el paso 12)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rdueno-028, aplicado): 17-plan.md l. 19; 17-plan.md l. 290; 17-plan.md l. 392; 17-plan.md l. 400; 17-plan.md l. 453; 17-plan.md l. 43; 17-plan.md l. 44",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rdueno-042",
+    "origen": "L10, n.º 12 de cruzadas-L10.json",
+    "seccion_destino": "§8.10 y 8-r (08-ritmo.md l. 329 y 474)",
+    "estado": "aplicada",
+    "donde": "08-ritmo.md §8.10 («Un estreno a hora fija para todos») y 8-r",
+    "motivo": "DD-15 ya no es del dueño (20-g): §8.10 lo dice y 8-r cita §8.10."
+  },
+  {
+    "id": "Rdueno-042",
+    "origen": "L10, n.º 13 de cruzadas-L10.json",
+    "seccion_destino": "§12.8 (12-voz.md, «`text` de compatibilidad»)",
+    "estado": "aplicada",
+    "donde": "12-voz.md §12.8 («`text` de compatibilidad»)",
+    "motivo": "DD-19 es ya una decisión de diseño de §12.8 con su valor; conserva el número (20-g), así que las remisiones de §13, §14, §17 y §19 siguen valiendo."
+  },
+  {
+    "id": "Rdueno-040",
+    "origen": "L10, n.º 14 de cruzadas-L10.json",
+    "seccion_destino": "§7.9 (07-rotulos.md)",
+    "estado": "aplicada",
+    "donde": "07-rotulos.md §7.4 (el párrafo de la siembra, DD-06)",
+    "motivo": "Lo que cuesta la respuesta contraria de DD-06, con la alternativa del sorteo sembrado."
+  },
+  {
+    "id": "Rcobertura-010",
+    "origen": "L10, n.º 15 de cruzadas-L10.json",
+    "seccion_destino": "todas las secciones (§1 a §19), para la coherencia",
+    "estado": "aplicada",
+    "donde": "09-crono.md §9.4 (código de `pace.ts`); 10-horizonte.md §10.2, §10.3, §10.4, §10.6, §10.8, §10.13 y §10.14; 11-superficies.md §11.4, §11.8 y §11.17; 14-api.md §14.2, §14.3, §14.4, §14.5, §14.8 y §14.10",
+    "motivo": "Las 23 remisiones `§G.n` que quedaban fuera de los bloques de cierre pasan al sitio de la tabla de §21.6 (21-f): G.2 a §17.20, G.4 a §21.6 F.2, G.5 a §13.4, G.6 a §14.2, G.8 a §14.6, G.9 a §16.9 y §16.4, y donde la frase contrasta con la síntesis, «el de la síntesis»; §3, §5 a §8, §12, §13, §16 y §17 ya no tenían."
+  },
+  {
+    "id": "Rcobertura-026",
+    "origen": "L10, n.º 16 de cruzadas-L10.json",
+    "seccion_destino": "§15.3 (15-constantes.md l. 283, tabla de aceptación)",
+    "estado": "aplicada",
+    "donde": "15-constantes.md §15.6 (fila de `ttPace`) y comentario de `ttPace` en §15.3",
+    "motivo": "«M (6:24-11:23)» pasa a «M (5:20-11:23)», con las nacionales de §9.4 en el comentario."
+  },
+  {
+    "id": "Rdueno-004",
+    "origen": "L10, n.º 17 de cruzadas-L10.json",
+    "seccion_destino": "§17.13 (17-plan.md l. 418, PR 10b, punto 4)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Rdueno-004, aplicado): 17-plan.md l. 418",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-055, Rcodigo-047",
+    "origen": "L10, n.º 18 de cruzadas-L10.json",
+    "seccion_destino": "§16.4 (16-bancos.md l. 444, B22) y 16-s (l. 785)",
+    "estado": "aplicada",
+    "donde": "16-bancos.md §16.4 (B22) y 16-s",
+    "motivo": "Las dos frases de «decide el dueño antes de abrir en `Watch` las etapas del adaptador» remiten a §20.6 y 20-l."
+  },
+  {
+    "id": "Cierre L10 (DD-24)",
+    "origen": "L10, n.º 19 de cruzadas-L10.json",
+    "seccion_destino": "§19 (19-riesgos.md l. 269, dudas del cierre)",
+    "estado": "ya_estaba",
+    "donde": "19-riesgos.md, «Dudas para el ensamblador» (l. 270: la duda de `getBlockReport` cerrada, es DD-24)",
+    "motivo": "L9 la dejó como registro cerrado; el bloque no entra en el documento."
+  },
+  {
+    "id": "Cierre L10 (forma)",
+    "origen": "L10, n.º 20 de cruzadas-L10.json",
+    "seccion_destino": "§17.22 (17-plan.md l. 761-762)",
+    "estado": "ya_estaba",
+    "donde": "correcciones-L9.json (Cierre L10 (forma), aplicado): 17-plan.md l. 762",
+    "motivo": "Registrada como aplicada por el lote de destino en su correcciones-L<n>.json (en «donde»); la coherencia comprobó que sus nombres y cifras clave están hoy en el fichero de sección."
+  },
+  {
+    "id": "Rcobertura-019, Rdueno-017 (forma)",
+    "origen": "L10, n.º 21 de cruzadas-L10.json",
+    "seccion_destino": "00-decisiones.md, D-18 (l. 268-269, «Versión anterior»)",
+    "estado": "aplicada",
+    "donde": "00-decisiones.md, D-18 (la cita «Versión anterior» entera, con el cierre del paréntesis y el orden de `JERSEY_PRIORITY`)",
+    "motivo": "La primera cita estaba cortada a media frase; ahora es la frase anterior entera, de `git show 9555cf1`, y una línea `>` en blanco separa las dos citas. La misma línea separa las citas seguidas de D-05, D-23 y las demás, y dos párrafos «Precisada» que seguían pegados a una cita dejan de caer dentro de ella."
+  }
+]

@@ -1,0 +1,102 @@
+[
+  {
+    "id": "Rcobertura-031",
+    "seccion_destino": "§15.2 (decisión 15-i)",
+    "que": "15-i ya sube `ttMaxStoredBytes` a 49.152 B y §9.2 lo recoge (la e10 con `checkClockDs` queda en el 65,5 %). Dos precisiones para 15-i con la medida de §9.2 (`l5c/deltas.mjs`, sobre las líneas de `rcod/n/grab2.mjs`): el ahorro de la alternativa por diferencias no es «unos 20 KB» por crono sino de 6.032 a 16.589 B (e1 6.032, e16 6.668, e18 12.409, e10 16.589, con `checkClockDs`), así que por temporada es menos de 1,5 MB y el descarte sale aún más claro; y los «unos 5 KB en 40 km» de `estado.md` §9 son de la traza sola: por diferencias, medida, de 3.152 a 6.402 B en las cuatro cronos, y la línea entera de 13.853 a 19.037 B."
+  },
+  {
+    "id": "Rcobertura-031",
+    "seccion_destino": "§16.4 (B6)",
+    "que": "16-bancos.md l. 371: añadir a la medida a mano del paso 5 (`scripts/broadcast-fixtures.mjs --sizes`) la crono más larga de `SEASON_CALENDAR` entre las carreras de 176 corredores, elegida por el script en el calendario y no por su nombre (hoy `race-italy` e10, 42 km), con las semillas 0 y 1; y cambiar «las cronos de 176 corredores de 18,8 a 24,2 KB contra 32 KB» por «las cronos del banco (20 y 26 km) de 18,8 a 24,2 KB y la más larga del calendario, `race-italy` e10 (42 km), 31.436 B sin `checkClockDs` y 32.203 B con él (§9.2)», contra los 49.152 B de §15.2 (15-i). Es lo que §9.8 ya dice."
+  },
+  {
+    "id": "Rcobertura-031",
+    "seccion_destino": "§17.8 (paso 5) y tabla de ficheros de §17",
+    "que": "17-plan.md l. 573 (fila de `scripts/broadcast-fixtures.mjs`): `--sizes` sobre las 24 × 2 «y la crono más larga de 176 corredores de `SEASON_CALENDAR`, que el script elige en el calendario (hoy `race-italy` e10)»; y en el paso 5, el riesgo de B6 con la cifra de §9.2 (32.203 B con `checkClockDs` contra los 49.152 de 15-i) en lugar de «hasta 24,2 KB las cronos»."
+  },
+  {
+    "id": "Rcobertura-031",
+    "seccion_destino": "§19.6",
+    "que": "19-riesgos.md l. 176, fila «la crono larga frente a `ttMaxStoredBytes`»: sustituir «estimado por L5: de 19 a 20 KB de traza para 40 km; con el resto de la línea, cerca de los 32 KB de §15.2 (D-11), y ninguna de las 24 etapas del banco pasa de 26 km» por «medido (§9.2): `race-italy` e10, 42 km y 176 corredores, 31.436 B sin `checkClockDs` y 32.203 B con él, el 98,3 % de 32.768; ninguna de las 24 etapas del banco pasa de 26 km, y B6 la mide a mano en el paso 5 (§9.8)», y la defensa: el tope sube a 49.152 B (15-i). El riesgo 10 de §19.1 (l. 20) dice «24,2 KB por crono» contra 32 KB: pasa a «32,2 KB por crono (la e10 con `checkClockDs`) contra 48 KB»."
+  },
+  {
+    "id": "Rcobertura-031",
+    "seccion_destino": "§5.7 y §0.7",
+    "que": "05-motor.md l. 550 y 00-cabecera.md l. 137 dan «de 18,8 a 24,2 KB» por crono de 176 corredores: son las dos cronos del banco (20 y 26 km). Añadir «y 26.987 a 27.821 B `race-spain` e18 (33 km), 31.178 a 32.203 B `race-italy` e10 (42 km), la más larga de 176 del calendario, con y sin `checkClockDs` (§9.2)». Rcoste-007 (lote L3) pide lo mismo en §5.7."
+  },
+  {
+    "id": "Rcobertura-032",
+    "seccion_destino": "§4.9",
+    "que": "Ya aplicado por L2 en paralelo (04-modelo.md l. 815: `RiderCueContext` con `'tt_round'`); se deja como registro con una corrección: su comentario remite a «§9.5, 9-n» y la ronda `ON COURSE` es la decisión 9-k (9-n es la clase de `VIRTUAL GC` en crono). Falta lo mismo en §G.3 (00-glosario.md, el bloque de `Cue`)."
+  },
+  {
+    "id": "Rcobertura-032",
+    "seccion_destino": "§6.5",
+    "que": "06-pantalla.md l. 316: `case 'rider': return cue.context === 'break_round' || cue.context === 'tt_round' ? 0 : CUE_CLASS.rider`; en la lista del reproductor (l. 359-369), «rider 'tt_round'  en crono, cada breakRoundEveryS (6 s), el siguiente candidato en ruta en orden de salida (§9.5)»; en la tabla (l. 342), la fila `rider` dice «1 (0 en la ronda de la moto y en la de la crono)»; y `cues.test.ts` gana el caso (§9.8)."
+  },
+  {
+    "id": "Rcobertura-033",
+    "seccion_destino": "§6.5",
+    "que": "Decisión 9-n (§9.5, medida con `l5c/cola2.mjs`: con la clase 1 la cola perdió 1 de los 7 `VIRTUAL GC` de la e16 en tres semillas; con la 2, ninguno). En 06-pantalla.md l. 310 y 319: `export function cueClassOf(cue: Cue, start: StartState, lastVirtualLeader: RiderIx | null, timeTrial: boolean): CueClass` y `case 'virtual_gc': return cue.rows[0] !== undefined && cue.rows[0].rider !== lastVirtualLeader ? 3 : timeTrial ? 2 : CUE_CLASS.virtual_gc` (el reproductor pasa `head.stage.timeTrial`); la fila `virtual_gc` de la tabla (l. 345) dice «1 (2 en crono, 9-n; 3 si cambia el líder virtual)»; decir cuál es el `lastVirtualLeader` del primer rótulo (se propone `start.leaders.gc`, para que «cambia» se mida contra el líder de la general y no contra null); y `cues.test.ts` gana los casos. D-21 ya está precisada en 00-decisiones.md."
+  },
+  {
+    "id": "Rcobertura-033",
+    "seccion_destino": "§G.4 (00-glosario.md, la fila de `cuesBetween` y `cueClassOf`) y §21.6 F.2 (21-apendices.md l. 502)",
+    "que": "La firma pasa a `cueClassOf(cue, start, lastVirtualLeader, timeTrial): CueClass` (9-n)."
+  },
+  {
+    "id": "Rcodigo-045",
+    "seccion_destino": "§4.5",
+    "que": "Ya aplicado por L2 en paralelo (04-modelo.md l. 547-550: `TimeTrialInstant.arrivals`, y `hotSeat` es `arrivals[0]`), con la forma que pedía esta cruzada; se deja como registro. Falta en §G.3.2 (00-glosario.md, el bloque de `TimeTrialInstant`), donde sigue sin `arrivals`."
+  },
+  {
+    "id": "Rcodigo-045",
+    "seccion_destino": "§6.5",
+    "que": "`CUE_CLASS` (06-pantalla.md l. 302-307) gana `tt_start_order: 1, tt_split: 1, tt_finish: 1`, sin lo cual no compila con los `Cue` de §4.9 (`satisfies Readonly<Record<CueKind, CueClass>>`), y `cueClassOf` gana `case 'tt_split': return cue.rank === 1 ? 2 : CUE_CLASS.tt_split` y `case 'tt_finish': return cue.hotSeat ? 3 : CUE_CLASS.tt_finish` (las clases de la tabla de §9.5); la tabla de clases de §6.5 gana sus tres filas y la lista del reproductor remite a §9.5 para la crono («los `Cue` de crono los programa el reproductor comparando dos `TimeTrialInstant`, §9.5»)."
+  },
+  {
+    "id": "Rcodigo-045",
+    "seccion_destino": "§17.9 (paso 6b)",
+    "que": "Los tests de crono de §9.8 van en el 6b con las variantes: `cues.test.ts` con los casos de clase de la crono (`tt_round` 0, `own` 1, `tt_start_order` 1, `tt_split` 1 y 2, `tt_finish` 1 y 3, `virtual_gc` en crono 2 y 3, `time_cut` 2) y `player.test.ts` con la e16 congelada: el reproductor emite los `Cue` de crono de §9.5 y, con la cola de §6.5, no se pierde ningún rótulo de clase 3 ni ningún `virtual_gc`."
+  },
+  {
+    "id": "Rcodigo-048",
+    "seccion_destino": "§8.2",
+    "que": "08-ritmo.md l. 36: `import type { ProfileStrip, RaceS } from './timeline.js'`: `ttPaceAt` (§9.4) usa `RaceS` en sus dos firmas y sin ella `pace.ts` no compila (TS2304, medido por el refutador en `rcod/n/ws`)."
+  },
+  {
+    "id": "Rcodigo-048",
+    "seccion_destino": "§4.13",
+    "que": "04-modelo.md l. 1082, fila de `pace.ts`: importa `timeline.ts` (tipos), `wire.ts` (tipos), `contracts.ts` (tipos) y `constants.ts`; no importa `cues.ts` (el bloque de §8.2, l. 34-37, es el único de ese fichero)."
+  },
+  {
+    "id": "Rcodigo-041",
+    "seccion_destino": "§4.8",
+    "que": "04-modelo.md, comentario de `RiderCard.team`: «el equipo CON EL QUE CORRIÓ y su equipación de ese día; el nombre, el de hoy: lo da `NameResolver.team` al servir, porque `CastTeam` no lo guarda (§7.8)»."
+  },
+  {
+    "id": "Rcodigo-051",
+    "seccion_destino": "§21.6 F.2",
+    "que": "21-apendices.md l. 505 (funciones de `packages/shared/src/broadcast/names.ts`): añadir `cardCaption(worn, n)`, `cardLineText(d, n)`, `ordinal(n)`, `gapText(s)` y `listAnd(xs: readonly string[]): string` (escrita entera en §7.1), como ya las lista §G.4 (00-glosario.md, la fila de `names.ts`)."
+  },
+  {
+    "id": "Rdueno-012",
+    "seccion_destino": "§21 (apéndice de injertos)",
+    "que": "21-apendices.md l. 61, fila de I-47: «entero: `ChampionMark`, bandera con estrella (7-h)» pasa a «entero: `ChampionMark`, la silueta de maillot con una estrella en el pecho y la bandera al lado (7-h, corregida en la fase 5 por Rdueno-012)». En §G (00-glosario.md l. 183), la descripción de `ChampionMark` puede decir «la señal provisional de campeón: silueta de maillot con estrella y bandera (7-h)»."
+  },
+  {
+    "id": "Rdueno-038",
+    "seccion_destino": "§12.2",
+    "que": "Añadir: «la voz y `Commentary` se pintan con `chronicleParts`, con la marca de corredor y su enlace a la ficha (`RiderName`), como el journal de hoy (`apps/web/src/domain/stageJournal.ts` l. 170-171: el dueño, v58); seguir el enlace pausa e informa de lo alcanzado (§8.5)»."
+  },
+  {
+    "id": "Rdueno-038",
+    "seccion_destino": "§8.5",
+    "que": "08-ritmo.md l. 412 dice «un nombre abre su ficha (§6.5)», y §6.5 (l. 366) que tocar un nombre saca su rótulo (`rider 'focus'`). Con §7.1 (7-m): «un nombre saca su rótulo (§6.5), y el nombre del rótulo abre su ficha (§7.1): antes de salir, el reproductor pausa e informa de lo alcanzado»."
+  },
+  {
+    "id": "Rcodigo-045",
+    "seccion_destino": "00-glosario.md (§G.3 y §G.4)",
+    "que": "Tras la corrección de L5: `RiderCueContext` con `'tt_round'` (§G.3) y `TimeTrialInstant.arrivals` (§G.3.2), que §4 ya lleva; `cueClassOf(cue, start, lastVirtualLeader, timeTrial)` (§G.4), si §6.5 acepta 9-n; `listAnd(xs: readonly string[]): string` ya está. Y la decisión 9-n (la clase de `VIRTUAL GC` en crono) en el registro de §G.14 si se registran las decisiones nuevas."
+  }
+]

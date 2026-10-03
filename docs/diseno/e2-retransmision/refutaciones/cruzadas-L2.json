@@ -1,0 +1,182 @@
+[
+  {
+    "id": "Rcobertura-005",
+    "seccion_destino": "§8.6 (8-g)",
+    "que": "En 8-g, borrar «(propuesto abajo)»: TimelineCast.favourites está en §4.2 como readonly { rider, why: 'sprint' | 'hills' | 'climb' | 'tt' | 'cobbles' }[], no como RiderIx[] (el bloque «Propuesto para el glosario» de §8 decía RiderIx[]). En §8.6, la API arma StagePreview.favourites con los previewGcTop de StartState.gcTop (why: 'gc') seguidos de cast.favourites; sin línea (adaptador), solo los de la general; con previous_unseen la cabecera no los sirve (8-f)."
+  },
+  {
+    "id": "Rcobertura-005",
+    "seccion_destino": "§5.4 y §7.8",
+    "que": "buildTimelineCast (packages/db/src/cast.ts) llena favourites con la regla del comentario de §4.2: los BROADCAST.previewAttrTop mejores por el atributo del tipo de etapa (8-f), con los valores de attrsByRider de runOneStage (stageRun.ts l. 298-310), que recibe o vuelve a leer en la misma transacción antes de que se escriban los del aprendizaje (l. 891-897); recordStageTimeline ya lo llama antes (l. 570-595)."
+  },
+  {
+    "id": "Rcobertura-005",
+    "seccion_destino": "§10.10",
+    "que": "veilCast copia cast.favourites tal cual: no lleva from; con la N−1 velada la cabecera no sirve la previa por la puerta de D-37 y 8-f."
+  },
+  {
+    "id": "Rcobertura-005",
+    "seccion_destino": "§17 (17-a, §17.8, §17.20, §17.21 y dudas del cierre)",
+    "que": "En 17-a, quitar «si el ensamblador lo acepta»: favourites y checkClockDs están en §4.2 y entran en el formato 1 en el 4b (y tpl_rev en la 0044 del 5, que es de §13.3); borrar las dudas de l. 730 y 735 del v0. cast.test.ts (§17.21) gana el caso: los favoritos de una etapa corrida son los del orden de atributos leído al empezar, con dos corredores que raceLearning cambia de orden."
+  },
+  {
+    "id": "Rcobertura-005",
+    "seccion_destino": "§19.1 (riesgo 22) y §16 (dudas del cierre, B1c)",
+    "que": "El riesgo 22 pasa a «baja: decidido en 8-g y escrito en §4.2 (4-u)»; la duda de §16 sobre B1c y 8-g queda cerrada."
+  },
+  {
+    "id": "Rcobertura-006",
+    "seccion_destino": "§5.4",
+    "que": "onTimeTrialRide del grabador guarda también, por control, 10 · Math.round(raw[idx] · noise) (el ttTraceOf de §9.2), y el paso 7 de finish escribe checkClockDs en TimeTrialTrace; selfCheckI5 puede comprobar además que checkClockDs es 10 · splitS de cada tt_split (I5, §4.4)."
+  },
+  {
+    "id": "Rcobertura-007",
+    "seccion_destino": "§5.4",
+    "que": "Paso 3 del pseudocódigo de finish: «en crono, finishS ← máx(startDs[r] + kmClockDs[r].at(−1)) / 10: la última llegada (4-w), la hora de lastHome, timetrial.ts l. 495 y 614», en lugar de «la llegada del último en salir»."
+  },
+  {
+    "id": "Rcobertura-007",
+    "seccion_destino": "§9.4 (lastKmFromS)",
+    "que": "Dos caras, que §4 no decide porque el borde (§4.6) ya es la última llegada y el ritmo es de §9.4. Rcobertura-007: lastKmFromS sigue siendo el paso del último en salir por su último km entero, porque es el ritmo y no el borde. Rcodigo-025: calcular lastKmFromS sobre el corredor de la última llegada. La corrección de §9 ya escribe la primera."
+  },
+  {
+    "id": "Rcobertura-007",
+    "seccion_destino": "§9.8",
+    "que": "timeTrial.test.ts gana el caso de la e16, semilla 0 (un corredor llega 17 s después del último en salir): cruza la meta en pantalla antes de atFinish y finishDs es su llegada (medido en rcod/n/ws/ttborde.mjs: 30 de 154 corridas, hasta +281 s)."
+  },
+  {
+    "id": "Rcobertura-007",
+    "seccion_destino": "dudas.md (1.3)",
+    "que": "La duda 1.3 queda cerrada por 4-w: el borde de la meta de una crono es la última llegada; tt_catches va a la regla finish."
+  },
+  {
+    "id": "Rcobertura-008",
+    "seccion_destino": "§6.1, §6.2, §6.3 y §16.6",
+    "que": "Cada nombre de una fila de la barra lleva delante su WornJerseyIcon (el de líder, ChampionMark o la equipación de RiderCard.team.jerseySeed), leído de BroadcastHead.cast por RiderIx: maillot y equipo sin tocar la fila. El ejemplo de §6.1 (│ 1  MORENO · LEROY · KAHN) lleva el icono delante de cada nombre, con la forma de nombre que fije Rcobertura-020; GroupBar.test.tsx (§16.6) comprueba que cada nombrado lleva su icono. GroupNow no gana campo (§4.5)."
+  },
+  {
+    "id": "Rcobertura-009",
+    "seccion_destino": "§5.4",
+    "que": "La vista del grabador define groupAt(r, −1) = 0, el grupo de salida, y el paso 5 revela la caída sintetizada y los puncture y mechanical de carretera con la regla incident de §4.7: el grupo del corredor al final de b − 1 y su reloj en b, o en b − 1 si ese grupo murió en b; la caída entra con tS 0 y se graba con tS = revealS."
+  },
+  {
+    "id": "Rcobertura-009",
+    "seccion_destino": "§5 (tests del grabador) y §17.21",
+    "que": "timeline.test.ts gana: el revealS de cada crash es el reloj en b del grupo en que iba el corredor al final de b − 1 (o su reloj en b − 1 si ese grupo murió en b), y el de cada puncture o mechanical de carretera, el máximo de ese reloj y su tS; con la regla anterior el prototipo daba 70,6 s de retraso de mediana en las caídas (l3/grabador.mjs)."
+  },
+  {
+    "id": "Rcobertura-009",
+    "seccion_destino": "§19.1 (riesgo 24) y dudas.md (1.2)",
+    "que": "El riesgo 24 se quita: lo cierra 4-v (§4.7). La duda 1.2 queda cerrada."
+  },
+  {
+    "id": "Rcobertura-010",
+    "seccion_destino": "todas las secciones (§0 a §21)",
+    "que": "Sustituir cada remisión §G.n del cuerpo por su sitio del documento: §G.1 → §21.6 F.1; §G.2 → §17.20; §G.3 → §4; §G.4 → §21.6 F.2; §G.5 → §13; §G.6 → §14.2; §G.7 → §15; §G.8 → §14.6; §G.9 → §16.9; §G.10 → §17.2; §G.11 → §21.6 F.3; §G.12 → §21.6 F.4; §G.13 → la tabla de alias de §21.1. Donde la frase contrasta con la firma que fijó la síntesis, escribir esa firma o «la que fijó la síntesis». En §4 y §15 ya está hecho, salvo en sus bloques de dudas."
+  },
+  {
+    "id": "Rcobertura-011",
+    "seccion_destino": "§7.8",
+    "que": "serveCast copia gender: c.gender en cada RiderCard (§4.8); la tabla de §7.8 ya lo da por público."
+  },
+  {
+    "id": "Rcobertura-011",
+    "seccion_destino": "§12.11",
+    "que": "«el género en el reparto (CastRider.gender, §4.2)» pasa a «el género en el rótulo servido (RiderCard.gender, §4.8), que es lo que recibe la web»."
+  },
+  {
+    "id": "Rcobertura-012",
+    "seccion_destino": "§6.5 y §6.6",
+    "que": "CUE_CLASS gana tt_start_order: 1, tt_split: 1, tt_finish: 1, y cueClassOf los casos case 'tt_split': return cue.rank === 1 ? 2 : CUE_CLASS.tt_split y case 'tt_finish': return cue.hotSeat ? 3 : CUE_CLASS.tt_finish (compilado con los tipos de §4.9 en corr-l2/ws: sin ellos CUE_CLASS da TS1360); la tabla de §6.5 gana las tres filas. En §6.6, la fila 47 (tt_start_order) dice que el rótulo Start order lo programa el reproductor en t = 0 con BroadcastHead.tt (§9.5), además del cuadro de la previa."
+  },
+  {
+    "id": "Rcobertura-013",
+    "seccion_destino": "§14.4",
+    "que": "Al armar la cabecera, tt sale de tl.tt (order, intervalS, checksKm; null en línea y con el adaptador) y tplRev de la fila de stage_timelines (0 con el adaptador); el tramo lleva tt.checks porque lo llena chunkOf (§4.6)."
+  },
+  {
+    "id": "Rcobertura-014",
+    "seccion_destino": "§14.2",
+    "que": "stageReplaySchema gana tplRev: z.number().int().min(0).optional() (la revisión de plantillas de la etapa para el acta, 12-c), junto a watch; yesterday.test.ts lo añade a su .omit. StageReport es StageReplay (§4.11) y lo hereda."
+  },
+  {
+    "id": "Rcobertura-014",
+    "seccion_destino": "§5.6 y §13.3",
+    "que": "readStageTimeline devuelve la columna tpl_rev (Rcobertura-044) para BroadcastHead.tplRev (§4.11) y el acta; sin fila, 0."
+  },
+  {
+    "id": "Rcobertura-049",
+    "seccion_destino": "§17.9, §17.13 y §17.20",
+    "que": "Seguir 17-e: la fila de constants.ts de §17.20 (l. 508 del v0) pasa a «nace en el 2 con §15.3 y §15.4 enteros; en el 10b, lo que ajuste la prueba de lectura»; §17.13 quita de la lista del 10a «recapMaxCues, previewThreatsMax y closingCardS en BROADCAST» y las constantes de los saltos de crono; §17.9 quita del 6a «los cuatro topes de red de 16-h y cardRowsMax en BROADCAST». §15.3 ya no dice «Entra en el 10a» ni «Entra en el 6a»."
+  },
+  {
+    "id": "Rcobertura-050",
+    "seccion_destino": "§6.3",
+    "que": "function chaseRefOf pasa a export function chaseRefOf (y broadcast/index.ts la reexporta) para el it de §15.5; 6-a lo dice."
+  },
+  {
+    "id": "Rcobertura-050",
+    "seccion_destino": "§11.16",
+    "que": "const PULLERS_KEPT = 12 pasa a export const, con el comentario «copia de STORED_PULLERS_MAX (raceRadio.ts l. 591) hasta el 4b, atada por broadcastConstants.test.ts (§15.5); en el 4b se importa del motor y se borra» (15-k; es lo que pide Rcobertura-040)."
+  },
+  {
+    "id": "Rcobertura-050",
+    "seccion_destino": "§17.6 y §17.7",
+    "que": "El it de PULLERS_KEPT entra en el 3a con broadcastConstants.test.ts y sale en el 4b, cuando chronicle.ts importa STORED_PULLERS_MAX; el de chaseRefOf, en el 4a (§17.7 ya lo dice)."
+  },
+  {
+    "id": "Rcobertura-050",
+    "seccion_destino": "dudas.md (1.7)",
+    "que": "La duda 1.7 queda cerrada: §15.5 ata chaseRefOf como quinta copia (15-a)."
+  },
+  {
+    "id": "Rcodigo-005",
+    "seccion_destino": "dudas.md (1.1)",
+    "que": "contract.housingCovered, aceptado (§4.12). Del resto de 1.1, §4 escribe favourites, checkClockDs, ttCheckDs, BroadcastHead.tt y tplRev, BroadcastChunk.tt.checks, los Cue de crono y RiderCard.gender (4-u); quedan fuera de §4 stage_timelines.tpl_rev (§13.3), StageReport.tplRev y riderRaceReportSchema.moments (§14.2)."
+  },
+  {
+    "id": "Rcodigo-014",
+    "seccion_destino": "§5.7",
+    "que": "La fila de la crono: 18,8 a 24,2 KB (176 corredores, 20 y 26 km), 26.987 a 27.113 bytes (race-spain e18, 33 km) y 31.178 a 31.436 bytes (race-italy e10, 42 km), 32.203 con checkClockDs; tope 48 KB (49.152 bytes, 15-i)."
+  },
+  {
+    "id": "Rcodigo-014",
+    "seccion_destino": "§16.4 (B6)",
+    "que": "B6 mide también, contra ttMaxStoredBytes (48 KB, 15-i), la crono más larga del calendario con 176 corredores (hoy race-italy e10, 42 km), que ninguna de las 24 etapas iguala; §9.8 ya la añade a la medida del paso 5."
+  },
+  {
+    "id": "Rcodigo-014",
+    "seccion_destino": "§19.6 y dudas.md (1.4)",
+    "que": "Sustituir «estimado… ninguna de las 24 etapas del banco pasa de 26 km» por la medida (31.436 bytes, 32.203 con checkClockDs, el 98 % del tope anterior) y el tope nuevo de 48 KB (15-i, D-11 corregida en la fase 5). La duda 1.4 queda cerrada."
+  },
+  {
+    "id": "Rcoste-004",
+    "seccion_destino": "§5.6",
+    "que": "Sumar al coste de decodificar (2,7 a 7,1 ms sin Zod) el parse de Zod con el esquema de §4.3: de 0,9 a 21 ms de mediana según la línea y 61 ms la primera llamada del proceso (corr-l2/zod-real.mjs; con el esquema aproximado de coste/zod/decode.mjs, de 0,4 a 18 ms)."
+  },
+  {
+    "id": "Rcoste-004",
+    "seccion_destino": "§18.9 y 18-d",
+    "que": "Medida pendiente: la tasa de acierto del LRU de decodedCacheEntries un día pico y tras un despliegue, que lo vacía; y en 18-d la regla: si baja del 90 %, se sube el tope o se topa por bytes."
+  },
+  {
+    "id": "Rcoste-005",
+    "seccion_destino": "§14.8",
+    "que": "Borrar la fila «la línea entera | 11-36 KB … medido por datos» o marcarla «otro formato, datos.md», y cambiar la estimación de l. 7177 del v0 a «de 28 a 82 KB sin la meta (medido, §18.1) más la meta (estimada en 10-20 KB)»."
+  },
+  {
+    "id": "Rcoste-019",
+    "seccion_destino": "§14.6",
+    "que": "envSchema gana PROGRESS_MIN_DELTA_S: z.coerce.number().int().min(0).optional() en el servicio web, como TICK_INTERVAL_MINUTES (env.ts l. 32): si está, sustituye a BROADCAST.progressMinDeltaS (§15.8, 15-j)."
+  },
+  {
+    "id": "Rcoste-019",
+    "seccion_destino": "§10.3",
+    "que": "El umbral de escritura del progreso es env.PROGRESS_MIN_DELTA_S ?? BROADCAST.progressMinDeltaS; quien aplica el umbral (la ruta o recordProgress) lo recibe."
+  },
+  {
+    "id": "Rcoste-019",
+    "seccion_destino": "§17.1 (regla 9), §18.4 y §19.6",
+    "que": "La regla 9 no necesita excepción: la escritura del progreso se frena subiendo PROGRESS_MIN_DELTA_S en Railway. En §18.4 (l. 110 de 18-rendimiento.md) y en la fila de §19.6 (l. 207 de 19-riesgos.md), «se sube progressMinDeltaS» pasa a «se sube PROGRESS_MIN_DELTA_S, sin desplegar (15-j)»."
+  }
+]
