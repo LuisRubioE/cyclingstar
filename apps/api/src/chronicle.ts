@@ -1,5 +1,6 @@
 import type { AltimetryMarker } from '@cyclingstar/engine'
 import {
+  BROADCAST,
   type ChronicleRider,
   type LiveLine,
   type RaceLeaders,
@@ -1339,8 +1340,11 @@ export function buildMarkers(events: readonly ChronicleEvent[]): AltimetryMarker
  * Lo que hay GUARDADO en `stage_snapshots.radio`. Los corredores van por ÍNDICE sobre `riders`, y
  * `member` dice en qué grupo va cada uno. Se valida y no se confía: una fila escrita por un motor
  * anterior no tiene esta forma, y ahí la respuesta correcta es «esta etapa no tiene radio», no un 500.
+ *
+ * Exportado desde el 3a (E2): el adaptador de la radio (`broadcastSource.ts`, §3.8) la valida con el
+ * mismo esquema antes de construir la línea de una etapa sin línea grabada.
  */
-const storedRaceRadioSchema = z.object({
+export const storedRaceRadioSchema = z.object({
   starters: z.number(),
   riders: z.array(z.string()),
   kms: z.array(
@@ -1401,6 +1405,57 @@ const storedRaceRadioSchema = z.object({
     }),
   ),
 })
+
+/** La radio guardada, ya validada: lo que leen `buildRaceRadio` y el adaptador de la radio. */
+export type StoredRadio = z.infer<typeof storedRaceRadioSchema>
+
+/**
+ * Los doce primeros de `pulling` están por tirar, no por la lista de seguimiento. Copia de
+ * `STORED_PULLERS_MAX` (packages/engine/src/sim/raceRadio.ts, junto a `TURNO_KM`) hasta el 4b, que la
+ * exporta (5-g): entonces esta línea pasa a importarla del motor. Hasta ese día la ata
+ * `broadcastConstants.test.ts` (docs/retransmision.md §15.5, 15-k).
+ */
+export const PULLERS_KEPT = 12
+
+/**
+ * LA RADIO GUARDADA SIN LO QUE SU LISTA DE SEGUIMIENTO DESTRIPA (E2, docs/retransmision.md §11.16,
+ * decisión 11-l; D-16). La lista que escribe el tick mete en cada grupo grande, desde el km 0, a los
+ * diez primeros DE LA ETAPA, y el motor guarda además, entre los que tiran por encima de los doce
+ * primeros, a los que están en ella: quien ve nombrado en el pelotón del km 20 a uno que ni tira ni
+ * lleva maillot sabe que acabará entre los diez primeros.
+ *
+ * En un grupo de más de `BROADCAST.nameWholeGroupUpTo` se queda con los doce primeros que tiran y,
+ * del resto, solo con los nombrables en ese km; un grupo pequeño se nombra entero, porque su
+ * composición es estado (§7.7). `pullingTotal` es una cuenta y no cambia. `nameableAt(km)` no depende
+ * de quien mira (los maillots y los diez primeros de la general de salida, y los protagonistas de los
+ * sucesos hasta ese km), y por eso el resultado cabe en la LRU compartida del adaptador.
+ */
+export function veilStoredRadio(
+  stored: StoredRadio,
+  nameableAt: (km: number) => ReadonlySet<string>,
+): StoredRadio {
+  return {
+    ...stored,
+    kms: stored.kms.map((k) => {
+      const ok = nameableAt(k.km)
+      const nameable = (i: number): boolean => ok.has(stored.riders[i] ?? '')
+      return {
+        ...k,
+        groups: k.groups.map((g) => {
+          if (g.size <= BROADCAST.nameWholeGroupUpTo) return g
+          const keep = g.pulling.map((i, pi) => pi < PULLERS_KEPT || nameable(i))
+          return {
+            ...g,
+            pulling: g.pulling.filter((_, pi) => keep[pi]),
+            motivos: g.motivos.filter((_, pi) => keep[pi] === true),
+            paraQuien: g.paraQuien.filter((_, pi) => keep[pi] === true),
+            watching: g.watching.filter(nameable),
+          }
+        }),
+      }
+    }),
+  }
+}
 
 /**
  * A cuántos corredores se nombra como mucho en un grupo. En una fuga de seis se nombran los seis; en
