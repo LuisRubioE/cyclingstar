@@ -15,6 +15,7 @@ export {
   NPC,
   STAGE,
   TANK,
+  TIMELINE,
   TRAINING,
 } from './constants.js'
 export { deriveClimbCategory, isWall, sampleProfile, stageLengthKm } from './stage/sample.js'
@@ -199,11 +200,14 @@ export {
   type MountainStats,
   type TimeTrialStats,
 } from './sim/analyze.js'
+// `realRaceScenario` sale por el índice desde E2 (docs/retransmision.md §5.9, decisión 17-j): B10 corre en
+// `packages/db` las etapas del banco con su campo homogéneo, y `packages/db` solo ve lo que el motor exporta.
 export {
   campaignSeeds,
   flatScenario,
   queenScenario,
   queenThirdWeekScenario,
+  realRaceScenario,
   timeTrialScenario,
   type Scenario,
 } from './sim/scenarios.js'
@@ -218,15 +222,18 @@ export {
   PELOTON_MIN_SHARE,
   raceRadioCollector,
   raceRadioFrom,
+  radioGroupDetails,
   radioKmFrom,
   radioKmPoints,
   radioForStorage,
+  STORED_PULLERS_MAX,
   type RaceRadio,
   type RaceRadioOptions,
   type StoredRaceRadio,
   type StoredRadioGroup,
   type StoredRadioKm,
   type RadioGroup,
+  type RadioGroupDetail,
   type RadioGroupKind,
   type RadioKm,
   type RadioPuller,

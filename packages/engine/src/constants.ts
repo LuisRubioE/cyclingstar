@@ -6501,3 +6501,55 @@ export const STAGE = {
   // TSS de etapa derivado del gasto (workUnits) para alimentar el Banister (SPEC 5.1, 6.15).
   tssPerWorkUnit: 5,
 } as const
+
+/**
+ * LA LÍNEA TEMPORAL QUE SE GRABA AL CORRER LA ETAPA (E2, docs/retransmision.md §5 y §15.2). No es una
+ * constante de juego: la carrera no la lee. Vive aquí porque decide lo que se graba, y tocarla corre
+ * los ocho tramos de bancos (ci.yml, «¿Ha cambiado el motor?»), que es lo que tiene que pasar: I1, I3,
+ * B6 y B11 se miden sobre las 24 etapas del mapa 07 §7 (`sim/timeline.test.ts`). Nace en el PR 4b.
+ * Un cambio de valor se anota en docs/balance.md y no sube `ENGINE_VERSION` (D-09, 15-h).
+ */
+export const TIMELINE = {
+  /**
+   * Versión del formato guardado (§4.3): un decodificador por versión, y lo guardado no se reescribe.
+   * El grabador la escribe en un campo de tipo literal 1: subirla sin escribir el formato 2 y su
+   * decodificador no compila.
+   */
+  format: 1,
+  /**
+   * km entre fotos clave (la pertenencia completa, §4.2), más una al empezar el último km. Es el paso
+   * de I3 y la unidad del salto. Medido: 4,2-6,7 KB por etapa en fotos clave (estado.md §3.7).
+   */
+  keyPhotoKm: 10,
+  /**
+   * Bloques del final en los que cada grupo vivo lleva marca de reloj en cada uno (el cuarto sitio de
+   * §3.4): con STAGE.dx 0,1 son el último km, el de los carteles de 500, 300, 200 y 100 m. Derivado.
+   */
+  lastKmMarkBlocks: 10,
+  /**
+   * Nivel de gzip de stage_timelines.body (su tamaño va en stage_timelines.bytes); lo aplica
+   * packages/db, porque el motor no importa Node. Medido con 9 sobre el formato de §4.3: de 20,9 a
+   * 70,0 KB por etapa en línea, mediana 38,8 (§5.7), de 1,6 a 2,4 veces menos que jsonb (C8).
+   */
+  gzipLevel: 9,
+  /**
+   * bytes. Tope de stage_timelines.bytes de una etapa en línea: 1,4 veces el máximo medido con el
+   * formato de §4.3 (70,0 KB; de 20,9 a 70,0, mediana 38,8; §5.7, 23 etapas × 2 semillas). D-11. Es un
+   * umbral de B6, no de escritura (15-g): una línea mayor se guarda igual y deja su nota en el tick.
+   */
+  maxStoredBytes: 98_304,
+  /** bytes. Tope del JSON antes del gzip: medido de 123 a 464 KB (§5.7). D-11. */
+  maxJsonBytes: 655_360,
+  /**
+   * bytes. Mediana exigida al JSON en las 24 etapas: medida, 222 KB (227.516 B, §5.7); 1,44 veces lo
+   * medido, el margen de maxStoredBytes. Una misma etapa cambia hasta un 20 % con la semilla, y B6 del
+   * JSON corre en cada PR del motor: en su tramo solo se imprime y falla en el nocturno (16-n). D-11, 15-l.
+   */
+  medianJsonBytes: 327_680,
+  /**
+   * bytes. Tope de una crono en bytea: 1,5 veces el máximo medido, la e10 de race-italy (42 km, 176
+   * corredores, la crono WorldTour más larga del calendario): 32.203 bytes con checkClockDs. Las de 20
+   * y 26 km, de 18,8 a 24,2 KB (§5.7). D-11, 15-i.
+   */
+  ttMaxStoredBytes: 49_152,
+} as const

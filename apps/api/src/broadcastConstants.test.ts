@@ -10,7 +10,6 @@ import {
 } from '@cyclingstar/engine'
 import { BROADCAST, SPOILER, chaseRefOf, photoBlocksOf, seededRng } from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
-import { PULLERS_KEPT } from './chronicle.js'
 
 /**
  * LAS COPIAS DEL MOTOR EN SHARED (docs/retransmision.md §15.5; D-52, decisiones 15-a, 15-c y 15-k).
@@ -18,10 +17,11 @@ import { PULLERS_KEPT } from './chronicle.js'
  * copiadas en `BROADCAST` y en `instant.ts`. Una copia que diverge compila y no rompe ningún banco: la
  * barra llamaría Bunch a lo que la radio no llama pelotón. Este fichero es lo único que lo impide.
  *
- * Las citas, en la v91 tras el 4a: `PELOTON_MIN_SHARE` en `raceRadio.ts` l. 91, `STORED_PULLERS_MAX` en
- * l. 591 y `NAME_WHOLE_GROUP_UP_TO` en l. 615 (exportada en el 4a); `STAGE.gapChaseMainFraction` en
- * `constants.ts` l. 2703; `chaseReferenceIndex` en `stage/group.ts` l. 235-245 (exportada en el 4a);
- * `probeAt` en `simulate.ts` l. 1978-1984.
+ * Las citas, en la v91 tras el 4a: `PELOTON_MIN_SHARE` en `raceRadio.ts` l. 91 y `NAME_WHOLE_GROUP_UP_TO`
+ * en l. 615 (exportada en el 4a); `STAGE.gapChaseMainFraction` en `constants.ts` l. 2703;
+ * `chaseReferenceIndex` en `stage/group.ts` l. 235-245 (exportada en el 4a); `probeAt` en `simulate.ts`
+ * l. 1978-1984. La copia de `STORED_PULLERS_MAX` que tenía la API (`PULLERS_KEPT`, 3a) murió en el 4b,
+ * que exporta la del motor: `chronicle.ts` la importa, y con ella se fue su caso de aquí (15-k).
  */
 describe('las copias del motor en BROADCAST (§15.5)', () => {
   it('bunchMinShare es PELOTON_MIN_SHARE', () => {
@@ -47,10 +47,6 @@ describe('las copias del motor en BROADCAST (§15.5)', () => {
         chaseReferenceIndex(behind, BROADCAST.chaseMinShare),
       )
     }
-  })
-
-  it('PULLERS_KEPT es STORED_PULLERS_MAX hasta el 4b, que la importa y borra este caso (15-k)', () => {
-    expect(PULLERS_KEPT).toBe(12)
   })
 
   it('photoBlocksOf da los bloques de las fotos de km del motor en todas las etapas del calendario', () => {

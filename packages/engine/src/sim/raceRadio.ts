@@ -587,8 +587,14 @@ export interface StoredRaceRadio {
   kms: readonly StoredRadioKm[]
 }
 
-/** Cuántos se guardan como «llevan el grupo». Ver el porqué del tope en `StoredRadioGroup.pulling`. */
-const STORED_PULLERS_MAX = 12
+/**
+ * Cuántos se guardan como «llevan el grupo». Ver el porqué del tope en `StoredRadioGroup.pulling`.
+ *
+ * Se exporta desde E2 (docs/retransmision.md §5.4, decisiones 5-g y 15-k): la línea temporal corta su
+ * capa de detalle en el mismo número (`sim/timeline.ts`), y la API, que lo tenía copiado para velar la
+ * radio guardada (`PULLERS_KEPT`, paso 3a), lo importa de aquí.
+ */
+export const STORED_PULLERS_MAX = 12
 
 /**
  * CUÁNTOS KILÓMETROS DURA UN TURNO A EFECTOS DE LA FOTO. El que dio la cara hace tres kilómetros y
@@ -767,40 +773,31 @@ function groupSpeedKmh(
   return Math.round((10 * (3600 * dKm)) / mid) / 10
 }
 
-/**
- * De la radio completa a la que se guarda.
- *
- * `watch` son los corredores que hay que poder nombrar SIEMPRE, vayan o no tirando. El motor no sabe
- * quién lleva maillot ni quién es favorito —eso vive en la base—, así que lo recibe de fuera y se
- * limita a decir en qué grupo está cada uno en cada kilómetro.
- *
- * La VELOCIDAD se calcula aquí, mirando el reloj del mismo grupo en la foto siguiente: es el único
- * sitio donde están las dos fotos a la vez.
- */
-export function radioForStorage(
-  radio: RaceRadio,
-  watch: ReadonlySet<string> = new Set(),
-  /**
-   * LOS QUE NO SE PUEDEN CAER DEL CORTE, en orden de importancia (v47). Son los tres maillots, y
-   * existen porque la vista nombra como mucho a 24 por grupo (`MAX_NAMED_PER_GROUP`) poniendo
-   * primero a los que tiran: con doce tirando y la lista de seguimiento detrás EN ORDEN DE
-   * CARRETERA, el corte caía justo encima de los maillots y qué maillot sobrevivía era azar. El
-   * dueño lo reportó dos veces —«te dije que SIEMPRE se vean los 3 maillots y solo sale uno»— y no
-   * era que faltara el dato: es que iba en el sitio equivocado de la cola.
-   */
-  priority: readonly string[] = [],
-): StoredRaceRadio {
-  const index = new Map<string, number>()
-  const riders: string[] = []
-  const idx = (id: string): number => {
-    const found = index.get(id)
-    if (found !== undefined) return found
-    index.set(id, riders.length)
-    riders.push(id)
-    return riders.length - 1
-  }
+/** La capa de detalle de un grupo en una foto de km, ANTES de indexar y de cortar (E2 §5.4, 5-g). */
+export interface RadioGroupDetail {
+  /** El id del motor en esa foto, el de `RadioGroup.id`. */
+  readonly id: string
+  /** `groupSpeedKmh`, con la medida de reserva si la principal no da (v85 y v90); null si ninguna. */
+  readonly speedKmh: number | null
+  /** Los que dan la cara y los del turno, en el orden de siempre, SIN cortar en `STORED_PULLERS_MAX`. */
+  readonly relevan: readonly RadioPuller[]
+  readonly mishap: RadioGroup['mishap']
+}
 
-  const kms = radio.kms.map((k, i) => {
+/**
+ * LA CAPA DE DETALLE DE LA RADIO, por foto de `radio.kms` y por grupo en orden de carretera: la
+ * velocidad de cada grupo medida por sus hombres, quiénes están en el turno y el percance del km. Es
+ * el cuerpo de `radioForStorage` sin la lista de seguimiento ni los índices (E2, docs/retransmision.md
+ * §5.4, decisión 5-g): sale aparte para que la radio guardada y la línea temporal (`sim/timeline.ts`)
+ * lean las MISMAS cuentas —la velocidad con su medida de reserva, el turno de `TURNO_KM` fotos y el
+ * percance—, y `radioForStorage` se construye encima sin cambiar un byte de lo que guarda (lo vigilan
+ * `raceRadio.test.ts` y `packages/db/src/stageRun.test.ts`).
+ *
+ * La VELOCIDAD se calcula aquí, mirando el reloj de los mismos hombres en la foto de al lado: es el
+ * único sitio donde están las dos fotos a la vez.
+ */
+export function radioGroupDetails(radio: RaceRadio): readonly (readonly RadioGroupDetail[])[] {
+  return radio.kms.map((k, i) => {
     const next = radio.kms[i + 1]
     /**
      * …Y LA ÚLTIMA FOTO SE MIDE HACIA ATRÁS (v85). La velocidad se calcula contra el kilómetro
@@ -904,7 +901,72 @@ export function radioForStorage(
     }
     // …Y QUIÉNES SE PARARON AQUÍ (v70.1): su reloj cuenta tiempo de pie, no carretera cubierta.
     const paradas = new Set<string>(k.stopped)
-    const groups = k.groups.map((g) => {
+    return k.groups.map((g): RadioGroupDetail => {
+      /**
+       * Los que dan la cara AHORA, y detrás los que la dieron en los últimos kilómetros y siguen
+       * aquí (ver `enElTurno`). Se pide el MISMO grupo, no solo el mismo hombre: el que venía
+       * relevando en el pelotón y acaba de caerse a un grupeto no está relevando en el grupeto.
+       */
+      const alFrente = new Set(g.pulling.map((p) => p.riderId))
+      const turno = g.riderIds
+        .filter((id) => !alFrente.has(id) && enElTurno.has(`${g.id}|${id}`))
+        .map((id) => enElTurno.get(`${g.id}|${id}`)!)
+        .sort((a, b) => b.pullWindow - a.pullWindow || (a.riderId < b.riderId ? -1 : 1))
+      // La velocidad del grupo en este km, medida por los suyos (ver `groupSpeedKmh`).
+      const speedKmh =
+        groupSpeedKmh(
+          g,
+          clockAhead,
+          prev ? k.km - prev.km : next ? next.km - k.km : 0,
+          groupAhead,
+          paradas,
+          haciaAtras,
+        ) ??
+        (alterna && next
+          ? groupSpeedKmh(g, alterna.clock, next.km - k.km, alterna.grupo, paradas, false)
+          : null)
+      return { id: g.id, speedKmh, relevan: [...g.pulling, ...turno], mishap: g.mishap }
+    })
+  })
+}
+
+/**
+ * De la radio completa a la que se guarda.
+ *
+ * `watch` son los corredores que hay que poder nombrar SIEMPRE, vayan o no tirando. El motor no sabe
+ * quién lleva maillot ni quién es favorito —eso vive en la base—, así que lo recibe de fuera y se
+ * limita a decir en qué grupo está cada uno en cada kilómetro.
+ *
+ * La velocidad, el turno y el percance de cada grupo salen de `radioGroupDetails`, la capa de detalle
+ * que la línea temporal también guarda (E2, 5-g); aquí se corta la lista de los que tiran y se indexa.
+ */
+export function radioForStorage(
+  radio: RaceRadio,
+  watch: ReadonlySet<string> = new Set(),
+  /**
+   * LOS QUE NO SE PUEDEN CAER DEL CORTE, en orden de importancia (v47). Son los tres maillots, y
+   * existen porque la vista nombra como mucho a 24 por grupo (`MAX_NAMED_PER_GROUP`) poniendo
+   * primero a los que tiran: con doce tirando y la lista de seguimiento detrás EN ORDEN DE
+   * CARRETERA, el corte caía justo encima de los maillots y qué maillot sobrevivía era azar. El
+   * dueño lo reportó dos veces —«te dije que SIEMPRE se vean los 3 maillots y solo sale uno»— y no
+   * era que faltara el dato: es que iba en el sitio equivocado de la cola.
+   */
+  priority: readonly string[] = [],
+): StoredRaceRadio {
+  const index = new Map<string, number>()
+  const riders: string[] = []
+  const idx = (id: string): number => {
+    const found = index.get(id)
+    if (found !== undefined) return found
+    index.set(id, riders.length)
+    riders.push(id)
+    return riders.length - 1
+  }
+
+  const details = radioGroupDetails(radio)
+  const kms = radio.kms.map((k, i) => {
+    const groups = k.groups.map((g, j) => {
+      const { relevan, speedKmh } = details[i]![j]!
       /**
        * A QUIÉN SE GUARDA COMO QUE TIRA. El tope existe porque en un pelotón el turno son cuarenta
        * hombres y no caben; pero al que se cae del corte hay que dejarlo FUERA de los nombrados, no
@@ -916,17 +978,6 @@ export function radioForStorage(
        * Y a los que hay que poder seguir SIEMPRE —los maillots— se les guarda tiren donde tiren,
        * aunque el corte los dejara fuera: si el maillot está dando la cara, eso es la noticia.
        */
-      /**
-       * Los que dan la cara AHORA, y detrás los que la dieron en los últimos kilómetros y siguen
-       * aquí (ver `enElTurno`). Se pide el MISMO grupo, no solo el mismo hombre: el que venía
-       * relevando en el pelotón y acaba de caerse a un grupeto no está relevando en el grupeto.
-       */
-      const alFrente = new Set(g.pulling.map((p) => p.riderId))
-      const turno = g.riderIds
-        .filter((id) => !alFrente.has(id) && enElTurno.has(`${g.id}|${id}`))
-        .map((id) => enElTurno.get(`${g.id}|${id}`)!)
-        .sort((a, b) => b.pullWindow - a.pullWindow || (a.riderId < b.riderId ? -1 : 1))
-      const relevan: readonly RadioPuller[] = [...g.pulling, ...turno]
       const keep = new Set(relevan.slice(0, STORED_PULLERS_MAX).map((p) => p.riderId))
       for (const p of relevan) if (watch.has(p.riderId)) keep.add(p.riderId)
       // Se filtra conservando el orden, que viene con los que dan la cara al viento primero.
@@ -947,19 +998,6 @@ export function radioForStorage(
             (rank.get(a) ?? Number.MAX_SAFE_INTEGER) - (rank.get(b) ?? Number.MAX_SAFE_INTEGER),
         )
         .map(idx)
-      // La velocidad del grupo en este km, medida por los suyos (ver `groupSpeedKmh`).
-      const speedKmh =
-        groupSpeedKmh(
-          g,
-          clockAhead,
-          prev ? k.km - prev.km : next ? next.km - k.km : 0,
-          groupAhead,
-          paradas,
-          haciaAtras,
-        ) ??
-        (alterna && next
-          ? groupSpeedKmh(g, alterna.clock, next.km - k.km, alterna.grupo, paradas, false)
-          : null)
       return {
         kind: g.kind,
         size: g.size,
