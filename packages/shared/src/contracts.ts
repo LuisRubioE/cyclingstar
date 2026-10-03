@@ -14,6 +14,8 @@
  */
 
 import { z } from 'zod'
+// Solo tipos (14-a): `import type` se borra al compilar y este fichero no carga nada de broadcast/.
+import type { PreStageInfo, StageGate, SwitchMode, WatchState } from './broadcast/wire.js'
 import type { RaceLeaders } from './jerseys.js'
 import { newsPayloadSchema } from './news.js'
 import { ATTRIBUTES, GENDERS, HEALTH_STATES, type PublicRider, VOCATIONS } from './rider.js'
@@ -1184,6 +1186,40 @@ export type StageOrder = z.infer<typeof stageOrderSchema>
 export const stageKindSchema = z.enum(['llana', 'media', 'reina', 'cri', 'clasica'])
 export type StageKind = z.infer<typeof stageKindSchema>
 
+/*
+ * ── LOS CUATRO ESQUEMAS DE E2 QUE VIVEN AQUÍ (docs/retransmision.md §14.2, decisión 14-a) ─────────
+ *
+ * Sus tipos están en `broadcast/wire.ts`, junto a los de la red, y aquí solo entran por `import type`,
+ * que se borra al compilar: este fichero no puede cargar nada de `broadcast/`, ni por reexportación,
+ * porque `wire.ts` usa al cargar esquemas de aquí y el paquete no cargaría (medido, `l6/ciclo/`). Van
+ * detrás de `stageKindSchema`, que `preStageInfoSchema` usa al cargar. `stageReplaySchema` gana
+ * `watch` en el 7b, y `healthSchema` (en `index.ts`) toma `switchModeSchema` para sus `features`.
+ */
+/** La puerta que sale en lugar de un resultado velado (D-37). */
+export const stageGateSchema = z.discriminatedUnion('k', [
+  z.object({ k: z.literal('not_seen') }),
+  z.object({ k: z.literal('previous_unseen'), firstUnseen: z.number().int().min(1) }),
+]) satisfies z.ZodType<StageGate>
+/** `StageReplay.watch` (§14.1; llega en el 7b). seen: 6-r. */
+export const watchStateSchema = z.object({
+  known: z.boolean(),
+  reachedS: z.number().nullable(),
+  gate: stageGateSchema.nullable(),
+  seen: z.boolean(),
+}) satisfies z.ZodType<WatchState>
+/** Lo único que un título, un aviso o una miniatura saben de una etapa (D-42). */
+export const preStageInfoSchema = z.object({
+  raceName: z.string(),
+  season: z.number().int(),
+  stageDay: z.number().int().min(1),
+  stageCount: z.number().int().min(1),
+  km: z.number(),
+  label: z.string(),
+  stageKind: stageKindSchema,
+}) satisfies z.ZodType<PreStageInfo>
+/** BROADCAST_WATCH y SPOILER_MODE (§14.6). */
+export const switchModeSchema = z.enum(['off', 'admins', 'on']) satisfies z.ZodType<SwitchMode>
+
 /**
  * EL PARTE METEOROLÓGICO DE UNA ETAPA QUE AÚN NO SE HA CORRIDO (v44). Lo que convierte el clima en
  * una DECISIÓN y no en un modificador: el jugador reparte roles sabiendo si va a llover.
@@ -1569,6 +1605,13 @@ export const stageReplaySchema = z.object({
    * re-simulando, que contaría una carrera distinta de la que quedó en el marcador.
    */
   radio: raceRadioSchema.optional(),
+  /**
+   * LA REVISIÓN DE LAS PLANTILLAS con que se lee el acta (E2, docs/retransmision.md 12-c, §14.2):
+   * `stage_timelines.tpl_rev`, el `TEMPLATE_REV` del tick que corrió la etapa; 0 sin línea. La
+   * sirven el acta y el paquete de meta desde el 3a. Opcional por la web de ayer (D-50), que la
+   * descarta; `yesterday.test.ts` la omite.
+   */
+  tplRev: z.number().int().min(0).optional(),
 })
 export type StageReplay = z.infer<typeof stageReplaySchema>
 

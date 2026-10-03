@@ -34,8 +34,18 @@
  *
  * Uso (hacen falta los `dist` de packages/* y de apps/api):
  *   pnpm exec tsc -b
- *   node scripts/broadcast-fixtures.mjs           escribe los ficheros
- *   node scripts/broadcast-fixtures.mjs --check   los regenera en memoria y sale con 1 si alguno cambia
+ *   node scripts/broadcast-fixtures.mjs             escribe los ficheros
+ *   node scripts/broadcast-fixtures.mjs --check     los regenera en memoria y sale con 1 si alguno cambia
+ *   node scripts/broadcast-fixtures.mjs --adapter   el adaptador en frío (abajo), sin escribir nada
+ *
+ * EL ADAPTADOR EN FRÍO (§14.4 y §18.9; E2, paso 3a). Con `--adapter`, en el mismo mundo que escribe las
+ * congeladas, mide lo que cuesta servir una etapa sin línea la primera vez (`timelineForStage` con el
+ * LRU vacío): leer `stage_snapshots` y validar su radio (`storedRaceRadioSchema`) y sus sucesos, leer el
+ * resultado, los maillots de salida (`jerseysThroughStage`, las cuatro consultas de
+ * `leadersThroughStage`) y las identidades del reparto, y construir la línea (`adaptRadioStage`). Da la
+ * primera llamada del proceso, la mediana de `ADAPTER_REPS` llamadas en frío, cada parte por separado
+ * y lo que cuesta con la línea ya en el LRU. PGlite en el mismo proceso: la base de producción, por
+ * socket, añade la red a las cinco lecturas.
  */
 import { createHash } from 'node:crypto'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -71,6 +81,11 @@ import {
 
 const OUT = new URL('../apps/api/src/__fixtures__/broadcast/', import.meta.url)
 const CHECK = process.argv.includes('--check')
+const ADAPTER = process.argv.includes('--adapter')
+/** Llamadas en frío por etapa con `--adapter`: la mediana, para que una pausa del recolector no mande. */
+const ADAPTER_REPS = 7
+/** Las filas de `--adapter`, una por etapa congelada, en el orden en que se miden. */
+const adapterRows = []
 /** La semilla del banco: `radio-<carrera>-<RUN>` (scripts/race-radio.mjs, `--run`). */
 const RUN = 0
 /** gzip 9, como `TIMELINE.gzipLevel` (§15.2): los ficheros solo se escriben una vez. */
@@ -344,6 +359,12 @@ async function runRace({ raceId, days }) {
     })
   }
 
+  if (ADAPTER) {
+    adapterRows.push(...(await benchAdapter(t, raceKey, stages)))
+    await t.close()
+    return { race: null, stages: [] }
+  }
+
   // EL ACTA, la que sirve hoy la ruta de etapa: con los nombres, los equipos y los maillots de la base.
   const app = buildApp({ db: t.db, auth: fakeAuth, serveWeb: false })
   for (const s of stages) {
@@ -389,6 +410,7 @@ const manifest = {
 }
 for (const spec of RACES) {
   const { race, stages } = await runRace(spec)
+  if (race === null) continue // --adapter: se mide y no se escribe nada
   manifest.races[race.raceId] = {
     worldSeed: race.worldSeed,
     teams: race.teams,
@@ -416,6 +438,10 @@ for (const spec of RACES) {
       files: described,
     }
   }
+}
+if (ADAPTER) {
+  reportAdapter(adapterRows)
+  process.exit(0)
 }
 files.set('manifest.json', Buffer.from(`${compactJson(manifest)}\n`))
 
@@ -468,6 +494,146 @@ console.log(`\nEn total ${(total / 1024).toFixed(0)} KB en ${files.size} fichero
  * Prettier no lo toca (.prettierignore): lo generado manda sobre el formateador, como el inventario
  * de recorridos.
  */
+// --------------------------------------------------------------- el adaptador en frío (--adapter)
+
+/** La mediana (una función con nombre: el bucle de arriba la llama antes de llegar aquí). */
+function median(xs) {
+  const s = [...xs].sort((a, b) => a - b)
+  return s[Math.floor(s.length / 2)]
+}
+
+/** Lo que tarda `fn`, en ms, y su resultado. */
+async function timed(fn) {
+  const t0 = performance.now()
+  const value = await fn()
+  return { ms: performance.now() - t0, value }
+}
+
+/**
+ * El adaptador en frío de las etapas congeladas de una carrera, en su mundo. La primera llamada del
+ * proceso va aparte (la primera de todas paga además la carga de módulos y de los esquemas); después,
+ * `ADAPTER_REPS` en frío (el LRU vaciado antes de cada una), cada parte por separado y una con la línea
+ * ya en el LRU.
+ */
+async function benchAdapter(t, raceKey, stages) {
+  const {
+    adaptRadioStage,
+    clearAdaptedTimelineCache,
+    jerseysThroughStage,
+    nameableAtStart,
+    profileStripOf,
+    provisionalCast,
+    stageWeatherOf,
+    storedEventsOf,
+    timelineForStage,
+  } = await import('../apps/api/dist/broadcastSource.js')
+  const { storedRaceRadioSchema } = await import('../apps/api/dist/chronicle.js')
+  const { getCastIdentities, getStageResults, worldHorizon } =
+    await import('../packages/db/dist/index.js')
+  const rows = []
+  for (const s of stages) {
+    clearAdaptedTimelineCache()
+    const first = await timed(() => timelineForStage(t.db, worldHorizon, raceKey, s.day))
+    const cold = []
+    for (let i = 0; i < ADAPTER_REPS; i++) {
+      clearAdaptedTimelineCache()
+      cold.push((await timed(() => timelineForStage(t.db, worldHorizon, raceKey, s.day))).ms)
+    }
+    const warm = await timed(() => timelineForStage(t.db, worldHorizon, raceKey, s.day))
+    // Las partes, una a una, como las hace `timelineForStage` (broadcastSource.ts, adaptStoredStage).
+    const parts = { read: [], validate: [], results: [], jerseys: [], cast: [], build: [] }
+    let tl = first.value
+    if (!s.timeTrial)
+      for (let i = 0; i < ADAPTER_REPS; i++) {
+        const snap = await timed(() => getStageSnapshot(t.db, raceKey, s.day))
+        const v = await timed(() => ({
+          radio: storedRaceRadioSchema.parse(snap.value.radio),
+          events: storedEventsOf(snap.value.events),
+        }))
+        const res = await timed(() => getStageResults(t.db, raceKey, s.day))
+        const jer = await timed(() => jerseysThroughStage(t.db, raceKey, s.day - 1))
+        const input = snap.value.input
+        const entries = input.riders.map((r) => ({
+          riderId: r.riderId,
+          bib: r.bib ?? null,
+          teamId: r.teamId ?? null,
+          gcRank: r.gcRank ?? null,
+          gcDeficitS: r.gcDeficitSeconds ?? null,
+        }))
+        const ids = await timed(() =>
+          getCastIdentities(
+            t.db,
+            entries.map((e) => e.riderId),
+            [...new Set(entries.flatMap((e) => (e.teamId ? [e.teamId] : [])))],
+          ),
+        )
+        const finishers = res.value.filter((r) => !r.dnf && r.tiempoS > 0)
+        const lengthKm = stageLengthKm(input.profile)
+        const from = s.day > 1 ? { raceKey, stageDay: s.day - 1 } : null
+        const built = await timed(() =>
+          adaptRadioStage({
+            radio: v.value.radio,
+            events: v.value.events,
+            riderIds: entries.map((e) => e.riderId),
+            lengthKm,
+            winnerS: Math.min(...finishers.map((r) => r.tiempoS)),
+            engineVersion: snap.value.engineVersion,
+            finishTimes: new Map(finishers.map((r) => [r.riderId, r.tiempoS])),
+            nameableAlways: nameableAtStart(jer.value.leaders, entries),
+            profile: profileStripOf(input.profile),
+            weather: stageWeatherOf(snap.value.seed, input.lugar, lengthKm),
+            cast: provisionalCast(entries, ids.value, jer.value, from),
+            racedProfile: input.profile,
+          }),
+        )
+        tl = built.value
+        parts.read.push(snap.ms)
+        parts.validate.push(v.ms)
+        parts.results.push(res.ms)
+        parts.jerseys.push(jer.ms)
+        parts.cast.push(ids.ms)
+        parts.build.push(built.ms)
+      }
+    const radioKb = s.timeTrial
+      ? 0
+      : Buffer.byteLength(JSON.stringify((await getStageSnapshot(t.db, raceKey, s.day)).radio)) /
+        1024
+    rows.push({
+      name: s.name,
+      timeTrial: s.timeTrial,
+      radioKb,
+      groups: tl?.groups.length ?? 0,
+      stateEvents: tl?.stateEvents.length ?? 0,
+      first: first.ms,
+      cold: median(cold),
+      coldMax: Math.max(...cold),
+      warm: warm.ms,
+      parts: Object.fromEntries(
+        Object.entries(parts).map(([k, xs]) => [k, xs.length ? median(xs) : 0]),
+      ),
+    })
+    process.stderr.write(`  ${s.name}: el adaptador en frío, ${median(cold).toFixed(1)} ms\n`)
+  }
+  return rows
+}
+
+function reportAdapter(rows) {
+  const ms = (x) => x.toFixed(1)
+  console.log(
+    `\nEl adaptador en frío (§18.9) · motor v${ENGINE_VERSION} · semilla ${RUN} · PGlite en el proceso · mediana de ${ADAPTER_REPS}\n`,
+  )
+  console.log(
+    '| Etapa | Radio (KB de JSON) | Grupos · sucesos de estado | Primera del proceso (ms) | En frío (ms, mediana · máx.) | leer · validar · resultado · maillots · reparto · construir (ms) | En el LRU (ms) |',
+  )
+  console.log('| --- | --- | --- | --- | --- | --- | --- |')
+  for (const r of rows) {
+    const p = r.parts
+    console.log(
+      `| ${r.name}${r.timeTrial ? ' (crono: sin línea, null)' : ''} | ${r.timeTrial ? '·' : r.radioKb.toFixed(0)} | ${r.timeTrial ? '·' : `${r.groups} · ${r.stateEvents}`} | ${ms(r.first)} | ${ms(r.cold)} · ${ms(r.coldMax)} | ${r.timeTrial ? '·' : [p.read, p.validate, p.results, p.jerseys, p.cast, p.build].map(ms).join(' · ')} | ${ms(r.warm)} |`,
+    )
+  }
+}
+
 function compactJson(value, indent = '', column = 0) {
   const flat = (v) => v === null || typeof v !== 'object'
   if (flat(value)) return JSON.stringify(value)

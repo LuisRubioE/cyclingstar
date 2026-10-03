@@ -56,12 +56,14 @@ const NEWS_DATA = {
 } as const
 
 const YESTERDAY = {
-  stageReplay: stageReplaySchema,
+  // `tplRev`, del 3a (12-c): la sirven el acta y el paquete de meta; la ruta de etapa, todavía no.
+  stageReplay: stageReplaySchema.omit({ tplRev: true }),
   newsItem: newsItemSchema.omit(NEWS_DATA),
   teamNewsItem: teamNewsItemSchema.omit(NEWS_DATA),
   lastRaceResponse: lastRaceResponseSchema,
   riderRaceReport: riderRaceReportSchema,
-  health: healthSchema,
+  // `features`, del 3a (14-l): los interruptores de E2, que /health publica cuando los recibe.
+  health: healthSchema.omit({ features: true }),
 }
 
 /** Lo que valida la web de ayer, ruta a ruta (apps/web/src/api: results, news, browse, lastRace, health). */
@@ -276,6 +278,8 @@ describe('la web de ayer: lo que la API manda hoy pasa por sus esquemas', () => 
       serveWeb: false,
       migrationsApplied: true,
       tickIntervalMinutes: 360,
+      // Como la arranca index.ts: /health publica `features` (3a), que la web de ayer descarta.
+      switches: { broadcastWatch: 'admins', spoilerMode: 'off' },
     })
   }, 180_000)
 

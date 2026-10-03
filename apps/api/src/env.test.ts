@@ -51,6 +51,23 @@ describe('loadEnv: correo', () => {
   })
 })
 
+describe('loadEnv: el interruptor de la retransmisión (E2, §14.6)', () => {
+  it('BROADCAST_WATCH vale off si no está: desplegar no enciende nada', () => {
+    expect(loadEnv(BASE as NodeJS.ProcessEnv).BROADCAST_WATCH).toBe('off')
+  })
+
+  it('acepta off, admins y on, y nada más: un valor mal escrito no deja arrancar', () => {
+    for (const mode of ['off', 'admins', 'on'])
+      expect(loadEnv({ ...BASE, BROADCAST_WATCH: mode } as NodeJS.ProcessEnv).BROADCAST_WATCH).toBe(
+        mode,
+      )
+    for (const mode of ['true', 'ON', 'admin'])
+      expect(() => loadEnv({ ...BASE, BROADCAST_WATCH: mode } as NodeJS.ProcessEnv)).toThrow(
+        /BROADCAST_WATCH/,
+      )
+  })
+})
+
 describe('loadTickEnv', () => {
   /* El servicio cron no manda correo: añadirle variables de correo sería configurarlo para nada. */
   it('sigue necesitando sólo la base de datos', () => {

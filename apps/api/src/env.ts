@@ -1,3 +1,4 @@
+import { switchModeSchema } from '@cyclingstar/shared'
 import { z } from 'zod'
 
 /**
@@ -46,6 +47,12 @@ const envSchema = z
       .string()
       .regex(MAIL_FROM_RE, 'MAIL_FROM debe ser "correo@dominio" o "Nombre <correo@dominio>"')
       .optional(),
+    /**
+     * LA RETRANSMISIÓN (E2, docs/retransmision.md §14.6; D-53): `off` (las rutas de `…/broadcast`
+     * dan 404 `broadcast_off`), `admins` (solo los administradores con sesión, desde el paso 3) u
+     * `on` (todos, al cerrar el paso 10). Un valor fuera de la lista hace fallar el arranque.
+     */
+    BROADCAST_WATCH: switchModeSchema.default('off'),
   })
   .refine((env) => !(env.RESEND_API_KEY && !env.MAIL_FROM), {
     path: ['MAIL_FROM'],

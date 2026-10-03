@@ -1,7 +1,20 @@
 import { describe, expect, it } from 'vitest'
-import { buildRaceRadio, chronicleNames } from './chronicle.js'
-import type { PullMotive } from '@cyclingstar/shared'
+import {
+  PULLERS_KEPT,
+  buildRaceRadio,
+  chronicleNames,
+  storedRaceRadioSchema,
+  veilStoredRadio,
+} from './chronicle.js'
+import { BROADCAST, type PullMotive } from '@cyclingstar/shared'
 import type { PullMotive as EnginePullMotive } from '@cyclingstar/engine'
+import {
+  ROAD_FIXTURES,
+  fixtureStage,
+  loadEvents,
+  loadRadio,
+  loadStoredRadio,
+} from './__fixtures__/broadcast/load.js'
 
 /**
  * LA RADIO QUE SE GUARDA Y LA QUE SE PINTA. Lo que hay en `stage_snapshots.radio` son ids —es lo que
@@ -180,4 +193,106 @@ describe('el vocabulario de motivos del MOTOR y el del CONTRATO no pueden separa
     expect(pulling.length).toBeGreaterThan(0)
     expect(pulling.every((r) => r.motivo === null)).toBe(true)
   })
+})
+
+/**
+ * LA RADIO GUARDADA BAJO EL VELO (docs/retransmision.md §11.16 y §11.19, decisión 11-l; D-16; nace en
+ * el 3a con el adaptador, 17-f). La lista de seguimiento que escribe el tick mete en cada grupo grande,
+ * desde el km 0, a los diez primeros DE LA ETAPA: quien los ve nombrados en el pelotón del km 20 sabe
+ * que acabarán entre los diez primeros. `veilStoredRadio` la corta al construir la línea del adaptador,
+ * para todos: en un grupo de más de doce, los doce primeros que tiran y, del resto, los nombrables.
+ */
+describe('veilStoredRadio · la lista de seguimiento, cortada (11-l)', () => {
+  const ids = Array.from({ length: 20 }, (_, i) => `x${i}`)
+  /** Un grupo grande de 20: tiran los catorce primeros y van a rueda, nombrados, x14 a x16. */
+  const grande = {
+    kind: 'peloton' as const,
+    size: 20,
+    gapS: 0,
+    speedKmh: 40,
+    pulling: ids.slice(0, 14).map((_, i) => i),
+    pullingTotal: 27,
+    motivos: ids.slice(0, 14).map((_, i) => (i === 13 ? ('equipo_general' as const) : null)),
+    paraQuien: ids.slice(0, 14).map((_, i) => (i === 13 ? 5 : null)),
+    watching: [14, 15, 16],
+  }
+  const radio = storedRaceRadioSchema.parse({
+    starters: 32,
+    riders: ids,
+    kms: [{ km: 20, racing: 32, gone: 0, groups: [grande, { ...grande, size: 12, gapS: 30 }] }],
+  })
+  /** Nombrables: x13 (tira el decimocuarto) y x15 (a rueda). */
+  const nameable = (): ReadonlySet<string> => new Set(['x13', 'x15'])
+
+  it('un grupo de 13 o más se queda con los doce primeros que tiran y los nombrables', () => {
+    const g = veilStoredRadio(radio, nameable).kms[0]!.groups[0]!
+    expect(g.pulling).toEqual([...ids.slice(0, PULLERS_KEPT).map((_, i) => i), 13])
+    expect(g.motivos).toEqual([...ids.slice(0, PULLERS_KEPT).map(() => null), 'equipo_general'])
+    expect(g.paraQuien).toEqual([...ids.slice(0, PULLERS_KEPT).map(() => null), 5])
+    expect(g.watching).toEqual([15])
+    expect([g.size, g.pullingTotal]).toEqual([20, 27])
+  })
+
+  it('uno de 12 no cambia: su composición es estado y se nombra entero (§7.7)', () => {
+    const before = radio.kms[0]!.groups[1]!
+    expect(veilStoredRadio(radio, nameable).kms[0]!.groups[1]).toBe(before)
+  })
+
+  it('tras buildRaceRadio, size, pullingTotal y unnamed cuadran', () => {
+    const everyone = chronicleNames(
+      ids.map((riderId) => ({ riderId, name: riderId, bib: null, teamName: null, country: 'es' })),
+    )
+    const shown = buildRaceRadio(veilStoredRadio(radio, nameable), everyone)!.kms[0]!.groups[0]!
+    expect(shown.size).toBe(20)
+    expect(shown.pullingTotal).toBe(27)
+    expect(shown.riders).toHaveLength(14) // doce que tiran, el decimocuarto nombrable y x15
+    expect(shown.unnamed).toBe(20 - 14)
+  })
+
+  it.each(ROAD_FIXTURES)(
+    '%s: ningún corredor del top 10 de la etapa que no sea nombrable sale en un grupo grande por estar en la lista',
+    (name) => {
+      const stage = fixtureStage(name)
+      const events = loadEvents(name)
+      // El top 10 de la etapa: el reloj de cada uno en la foto de la meta de la radio completa.
+      const last = loadRadio(name).kms.at(-1)!
+      const top10 = new Set(
+        last.groups
+          .flatMap((g) => g.riderIds.map((id, j) => ({ id, t: g.riderTs[j]! })))
+          .sort((a, b) => a.t - b.t || (a.id < b.id ? -1 : 1))
+          .slice(0, 10)
+          .map((x) => x.id),
+      )
+      // Lo nombrable sin quien mira: los maillots y los protagonistas de lo ya contado (11-l).
+      const nameableAt = (km: number): ReadonlySet<string> =>
+        new Set([
+          ...stage.priority,
+          ...events.filter((e) => e.km <= km + 1e-4).flatMap((e) => e.protagonistas),
+        ])
+      const stored = storedRaceRadioSchema.parse(loadStoredRadio(name))
+      /** Los del top 10 no nombrables que salen en un grupo grande sin estar entre los doce que tiran. */
+      const leaks = (r: typeof stored): number =>
+        r.kms.reduce((n, k) => {
+          const ok = nameableAt(k.km)
+          const bad = (i: number): boolean => {
+            const id = r.riders[i]!
+            return top10.has(id) && !ok.has(id)
+          }
+          return (
+            n +
+            k.groups
+              .filter((g) => g.size > BROADCAST.nameWholeGroupUpTo)
+              .reduce(
+                (m, g) =>
+                  m +
+                  g.watching.filter(bad).length +
+                  g.pulling.slice(PULLERS_KEPT).filter(bad).length,
+                0,
+              )
+          )
+        }, 0)
+      expect(leaks(stored)).toBeGreaterThan(0) // sin cortar, la lista los nombra
+      expect(leaks(veilStoredRadio(stored, nameableAt))).toBe(0)
+    },
+  )
 })

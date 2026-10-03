@@ -6,6 +6,7 @@ import fastifyHelmet from '@fastify/helmet'
 import fastifyRateLimit from '@fastify/rate-limit'
 import fastifyStatic from '@fastify/static'
 import { type Database, type TickSummary, isUserAdmin } from '@cyclingstar/db'
+import type { SwitchMode } from '@cyclingstar/shared'
 import Fastify, {
   type FastifyError,
   type FastifyInstance,
@@ -19,6 +20,7 @@ import type { GeoIpLookup } from './geoIp.js'
 import { apiError } from './http.js'
 import { adminRoutes } from './routes/admin.js'
 import { authProxyRoutes } from './routes/authProxy.js'
+import { broadcastRoutes } from './routes/broadcast.js'
 import { calendarRoutes } from './routes/calendar.js'
 import { type RouteContext, createCurrentUserId } from './routes/context.js'
 import { geoRoutes } from './routes/geo.js'
@@ -29,6 +31,7 @@ import { riderRoutes } from './routes/riders.js'
 import { teamRoutes } from './routes/teams.js'
 import { worldRoutes } from './routes/world.js'
 import { GLOBAL_RATE_LIMIT, createAdminGuard } from './security.js'
+import { registerSpoilerGuard } from './spoiler.js'
 
 export interface AppDeps {
   /** Base de datos (opcional en tests). Cuando está, /health lee la fecha de juego. */
@@ -53,6 +56,11 @@ export interface AppDeps {
   onAdminAdvance?: (days: number) => Promise<TickSummary>
   /** Resolución de país por IP; en tests se inyecta un doble para no salir a la red (v59). */
   geoLookup?: GeoIpLookup
+  /**
+   * Los interruptores de E2 (docs/retransmision.md §14.6; D-53): BROADCAST_WATCH y SPOILER_MODE.
+   * Sin ellos, los dos `off`, y /health no publica `features`.
+   */
+  switches?: { readonly broadcastWatch: SwitchMode; readonly spoilerMode: SwitchMode }
 }
 
 /** Carpeta de la web compilada (apps/web/dist). Vacía de index.html hasta el Paso 8. */
@@ -162,12 +170,28 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
     reply.status(statusCode).send(apiError(error.message))
   })
 
+  // El sin destripe (E2, §14.5): el registro de las rutas y los cuatro métodos de cada petición
+  // (viewer, horizon, spoilerApplies, broadcastOn). Va antes de registrar las rutas: los `register`
+  // no cargan nada hasta `ready()`, y así el gancho `onRoute` las ve todas.
+  registerSpoilerGuard(
+    app,
+    db && currentUserId
+      ? {
+          mode: deps.switches?.spoilerMode ?? 'off',
+          broadcast: deps.switches?.broadcastWatch ?? 'off',
+          currentUserId,
+          isAdmin: (userId) => isUserAdmin(db, userId, adminEmail),
+        }
+      : null,
+  )
+
   void app.register(healthRoutes, {
     ...(deps.db ? { db: deps.db } : {}),
     ...(deps.migrationsApplied !== undefined ? { migrationsApplied: deps.migrationsApplied } : {}),
     ...(deps.tickIntervalMinutes !== undefined
       ? { tickIntervalMinutes: deps.tickIntervalMinutes }
       : {}),
+    ...(deps.switches ? { features: deps.switches } : {}),
   })
 
   // País por IP (Paso 14): sin sesión ni base de datos, la pide la pantalla de creación de corredor.
@@ -200,6 +224,9 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
     void app.register(riderRoutes, ctx)
     void app.register(teamRoutes, ctx)
     void app.register(raceRoutes, ctx)
+    // La retransmisión (E2, §14.2): la cabecera, el tramo, la meta y el acta. Se registran siempre;
+    // BROADCAST_WATCH decide en cada petición quién las alcanza (404 broadcast_off a los demás).
+    void app.register(broadcastRoutes, ctx)
     void app.register(calendarRoutes, ctx)
     void app.register(rankingRoutes, ctx)
     if (deps.onAdminAdvance) {

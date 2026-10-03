@@ -8,15 +8,20 @@
  * `race-france`, `race-flanders`, `race-tramuntana` y `race-colombia` e5— y, por defecto, con las
  * semillas 0 y 1 del banco de `scripts/race-radio.mjs` (mismo campo, misma semilla de etapa).
  *
- * HASTA EL PASO 3a ESTE SCRIPT LLEVA SU PROPIA COPIA DE LA CURVA (decisión 17-c): `paceAt`,
- * `playbackEstimateS`, `digestPace` y `ttPaceAt` no existen todavía en `packages/shared`. Las de abajo
- * son las de §8.2 y §9.4, letra a letra, con las constantes de §15.3. En el 3a pasa a importar
- * `paceAt` y las demás, y la cifra no se puede mover: si se mueve, una de las dos copias está mal.
+ * DESDE EL 3a IMPORTA LA CURVA (decisión 17-c): `paceAt`, `playbackEstimateS` y las constantes
+ * (`BROADCAST.pace`, `summaryPace`, `nominalKmh`) salen de `packages/shared`, y la cifra no se ha
+ * movido: con el mismo reloj, la curva importada da las mismas duraciones que la copia del paso 0, al
+ * segundo. `digestPace` (10a) y `ttPaceAt` (6b) todavía no existen en `shared`, y siguen aquí como
+ * copias de §8.2 y §9.4 con las constantes de §15.3.
  *
- * El reloj de la cabeza es el ESTIMADO, el del adaptador de la radio (§3.8): la velocidad del grupo en
- * cabeza de cada foto de la radio guardada (`radioForStorage`, como `stageRun.ts`), integrada y
- * reescalada para que la meta caiga en el tiempo del ganador. Es el reloj que tendrán las etapas sin
- * línea grabada; en el 10b, B17 se vuelve a correr sobre la línea grabada.
+ * El reloj de la cabeza es el ESTIMADO, el del adaptador de la radio (§3.8), y desde el 3a es el suyo
+ * de verdad (`storedHeadClock`, apps/api/src/broadcastSource.ts): la velocidad del grupo en cabeza de
+ * cada foto de la radio guardada (`radioForStorage`, como `stageRun.ts`), con la regla de la v90 (el
+ * tramo de la foto k a la k + 1 lo mide la k + 1) y cada foto en el bloque del calendario del motor,
+ * integrada y reescalada para que la meta caiga en el tiempo del ganador. El paso 0 llevaba una copia
+ * con la regla de la v89 (el tramo con la velocidad de la foto de su inicio), y por eso las duraciones
+ * de este informe no son las del paso 0: las mueve el reloj, no la curva. En el 10b, B17 se vuelve a
+ * correr sobre la línea grabada.
  *
  * La crono no tiene radio: su ritmo va por la fracción de salidos, que solo pide el plan de salida
  * público (`timeTrialStartOrder`) y la llegada de cada uno (`results`). La hora a la que el último en
@@ -28,10 +33,21 @@
  * a 120 s.
  *
  * Las bandas (8-k): `Watch` de 6:00 a 22:00 en línea; `Highlights` de 1:45 a 7:30 en línea; los
- * últimos 5 km, al menos el 15 % de `Watch` en línea y el 35 % en los finales en alto (la etiqueta
- * `Summit finish` de la API); la crono, de 5:00 a 13:00; el digest, a menos del 40 % de su
- * presupuesto; y el error de la duración anunciada (`estimateS`), con p90 por debajo de 60 s en las
- * etapas en línea que no acaban en alto.
+ * últimos 5 km, al menos el 15 % de `Watch` en línea y el 35 % en los FINALES EN SUBIDA; la crono, de
+ * 5:00 a 13:00; el digest, a menos del 40 % de su presupuesto; y el error de la duración anunciada
+ * (`estimateS`), con p90 por debajo de 60 s en las etapas en línea que no acaban en alto (las que la
+ * API llama `Summit finish`).
+ *
+ * LA BANDA DEL 35 %, DECIDIDA EN EL 3a. El paso 0 la aplicaba a toda etapa que la API llama `Summit
+ * finish`, y tres de ellas (la e6, la e10 y la e20 de `race-france`) quedaban del 31 al 33 % (con el
+ * reloj del 3a, del 27 al 32 %). Las tres acaban arriba, pero sus últimos 5 km suben de media un 3,7,
+ * un 1,1 y un 2,1 %: la cabeza no frena ahí, y la curva no tiene en esos km más carrera que repartir
+ * que en un final llano. Las que sí suben (la e15, la e18, la e19 y la `race-colombia` e5, del 6,7 al
+ * 8,8 %) dan del 42 al 48 %. Así que el 35 % se pide a los finales en subida: `Summit finish` y al
+ * menos un 5 % de media en los últimos 5 km del perfil (`CLIMBING_FINISH_MIN_PCT`). La curva no se
+ * toca: las tres siguen por encima del 15 % de toda etapa. La banda del error de `estimateS` sigue
+ * fuera de toda `Summit finish`, como en §15.3: es el error de las velocidades nominales en la
+ * montaña, que existe aunque los últimos 5 km sean suaves (la e20, de −86 a −61 s).
  *
  * Uso (hacen falta los `dist` de packages/* y de apps/api):
  *   pnpm exec tsc -b
@@ -40,7 +56,14 @@
  * Sale con código 1 si alguna duración se sale de su banda.
  */
 import { writeFileSync } from 'node:fs'
-import { ATTRIBUTES, seededRng } from '../packages/shared/dist/index.js'
+import {
+  ATTRIBUTES,
+  BROADCAST,
+  paceAt,
+  playbackEstimateS,
+  seededRng,
+} from '../packages/shared/dist/index.js'
+import { storedHeadClock } from '../apps/api/dist/broadcastSource.js'
 import { eff0, initialEnergy } from '../packages/engine/dist/banister.js'
 import { ENGINE_VERSION } from '../packages/engine/dist/constants.js'
 import { SEASON_CALENDAR } from '../packages/engine/dist/routes/calendar.js'
@@ -69,66 +92,40 @@ const RUNS = String(opt('runs', '0,1'))
   .map((s) => Number(s.trim()))
 const JSON_OUT = opt('json', null)
 
-// ------------------------------------------- la copia de la curva y sus constantes (§15.3, 17-c)
+// ----------------------------------- la curva, de packages/shared desde el 3a (§8.2, §15.3, 17-c)
 
-/** `BROADCAST.pace`: s de carrera por s de pared con la cabeza a más de `aboveKm` de meta. */
-const PACE = [
-  { aboveKm: 50, x: 60 },
-  { aboveKm: 20, x: 30 },
-  { aboveKm: 5, x: 12 },
-  { aboveKm: 1, x: 4 },
-  { aboveKm: 0, x: 1.5 },
-]
-/** `BROADCAST.summaryPace` (`Highlights`), la misma forma. */
-const SUMMARY_PACE = [
-  { aboveKm: 50, x: 300 },
-  { aboveKm: 20, x: 120 },
-  { aboveKm: 5, x: 40 },
-  { aboveKm: 1, x: 10 },
-  { aboveKm: 0, x: 3 },
-]
+/** `BROADCAST.pace` (`Watch`) y `summaryPace` (`Highlights`): s de carrera por s de pared. */
+const PACE = BROADCAST.pace
+const SUMMARY_PACE = BROADCAST.summaryPace
 /** `BROADCAST.digestBudgetS`: s de pared por etapa en el digest, por tipo de etapa. */
-const DIGEST_BUDGET_S = { llana: 60, media: 90, reina: 150, cri: 120, clasica: 150 }
+const DIGEST_BUDGET_S = BROADCAST.digestBudgetS
 /** `BROADCAST.ttPace`: s de carrera por s de pared mientras la fracción de salidos es ≤ `upToStarted`. */
-const TT_PACE = [
-  { upToStarted: 0.6, x: 120 },
-  { upToStarted: 0.9, x: 40 },
-  { upToStarted: 1, x: 12 },
-]
+const TT_PACE = BROADCAST.ttPace
 /** `BROADCAST.ttLastKmX`: el último km del último en salir. */
-const TT_LAST_KM_X = 2
+const TT_LAST_KM_X = BROADCAST.ttLastKmX
 /** `BROADCAST.nominalKmh`: km/h por pendiente media del km, para la duración anunciada. */
-const NOMINAL_KMH = [
-  { upToPct: -4, kmh: 56 },
-  { upToPct: -1.5, kmh: 47 },
-  { upToPct: 1.5, kmh: 44 },
-  { upToPct: 4, kmh: 37 },
-  { upToPct: 7, kmh: 22 },
-  { upToPct: Infinity, kmh: 16 },
-]
-const nominalKmh = (pct) => NOMINAL_KMH.find((b) => pct <= b.upToPct).kmh
+const nominalKmh = (pct) => BROADCAST.nominalKmh.find((b) => pct <= b.upToPct).kmh
+/** Un perfil con solo las cotas: es lo único que lee la duración anunciada. */
+const strip = (altM) => ({ altM, climbs: [], sprintsKm: [], laps: 1 })
 
-/** §8.2: la primera zona con `toGoKm > aboveKm`; en la línea, la del último km. */
-function paceAt(toGoKm, zones) {
-  for (const z of zones) if (toGoKm > z.aboveKm) return z.x
-  return zones[zones.length - 1].x
-}
+/**
+ * Los últimos 5 km de un final en subida suben al menos esto de media (%), sobre la cota por km del
+ * perfil. Decidido en el 3a con las 24 etapas del banco (arriba): las `Summit finish` que no suben en
+ * sus últimos 5 km se quedan en el 3,7 % como mucho (y las `Uphill finish`, en el 4,1 %), y las que
+ * suben van del 6,7 al 8,8 %. Lo mismo que `CLIMBING_FINISH_MIN_PCT` de apps/api/src/broadcastPace.test.ts.
+ */
+const CLIMBING_FINISH_MIN_PCT = 5
 
-/** §8.2: la duración a ×1 que anuncia la ficha, solo con el perfil (`altM`) y las velocidades nominales. */
-function playbackEstimateS(altM, zones) {
-  const km = altM.length - 1
-  let wall = 0
-  for (let k = 0; k < km; k++) {
-    const pct = (altM[k + 1] - altM[k]) / 10
-    const raceS = 3600 / nominalKmh(pct)
-    for (let j = 0; j < 10; j++) wall += raceS / 10 / paceAt(km - k - (j + 0.5) / 10, zones)
-  }
-  return wall
+/** La pendiente media de los últimos 5 km del perfil (`altM`, la cota al final de cada km entero). */
+function last5Pct(altM, km) {
+  const n = altM.length - 1
+  const from = Math.max(0, n - 5)
+  return (altM[n] - altM[from]) / ((km - from) * 10)
 }
 
 /** §8.2: el digest, `summaryPace` escalada para que la estimación nominal dure su presupuesto. */
 function digestPace(altM, kind) {
-  const k = playbackEstimateS(altM, SUMMARY_PACE) / DIGEST_BUDGET_S[kind]
+  const k = playbackEstimateS(strip(altM), SUMMARY_PACE) / DIGEST_BUDGET_S[kind]
   return SUMMARY_PACE.map((z) => ({ aboveKm: z.aboveKm, x: z.x * k }))
 }
 
@@ -162,32 +159,6 @@ function ttPlaybackEstimateS(altM, plan) {
   const ultimo = 3600 / nominalKmh((altM[km] - altM[km - 1]) / 10)
   const fin = (plan.riders - 1) * plan.intervalS + rodaje
   return ttWallS(plan, fin, fin - ultimo)
-}
-
-// ----------------------------------------------- el reloj estimado de la cabeza (§3.8, la copia)
-
-function headSpeed(photo) {
-  const v = photo.groups[0]?.speedKmh ?? null
-  return v !== null && v > 0 ? v : null
-}
-
-/** §3.8: el reloj de la cabeza en cada foto y en meta, o null si ninguna foto tiene velocidad. */
-function estimatedHeadClock(kms, totalKm, winnerS) {
-  let v = null
-  for (const photo of kms) {
-    v = headSpeed(photo)
-    if (v !== null) break
-  }
-  if (v === null) return null
-  const raw = [0]
-  for (let k = 0; k < kms.length; k++) {
-    const here = kms[k]
-    const nextKm = k + 1 < kms.length ? kms[k + 1].km : totalKm
-    v = headSpeed(here) ?? v
-    raw.push(raw[raw.length - 1] + ((nextKm - here.km) / v) * 3600)
-  }
-  const scale = winnerS / raw[raw.length - 1]
-  return { clock: raw.map((s) => s * scale), scale }
 }
 
 // ------------------------------------------------- el perfil por km (`ProfileStrip.altM`, §4.2)
@@ -314,22 +285,22 @@ function measureRoad(race, stage, run, label) {
   const winnerS = Math.min(
     ...output.results.filter((r) => r.estado === 'finish' && r.tiempoS > 0).map((r) => r.tiempoS),
   )
-  const head = estimatedHeadClock(stored.kms, L, winnerS)
+  const head = storedHeadClock(stored.kms, L, winnerS)
   if (head === null) return { kind: 'sin reloj' }
-  const H = stored.kms.map((p, k) => [p.km, head.clock[k]])
-  H.push([L, head.clock[head.clock.length - 1]])
+  const H = head.kms.map((p, k) => [p.km, head.head[k]])
+  H.push([L, head.head[head.head.length - 1]])
   const watch = wallByZone(H, L, PACE)
   const highlights = wallByZone(H, L, SUMMARY_PACE)
   const { altM } = altMOf(input.profile)
   const digest = wallByZone(H, L, digestPace(altM, stage.kind))
-  const estimateS = playbackEstimateS(altM, PACE)
+  const estimateS = playbackEstimateS(strip(altM), PACE)
   return {
     kind: 'road',
     stageKind: stage.kind,
     label,
     km: L,
     raceS: winnerS,
-    scale: head.scale,
+    last5GradePct: last5Pct(altM, L),
     watchS: watch.total,
     zonesS: watch.wall,
     last5Pct: (100 * (watch.wall[3] + watch.wall[4])) / watch.total,
@@ -438,15 +409,17 @@ for (const r of rows) {
   byStage.get(r.stage).push(r)
 }
 const isSummit = (r) => r.label === 'Summit finish'
+/** Los finales en subida, a los que se pide el 35 % (decidido en el 3a, arriba). */
+const isClimbingFinish = (r) => isSummit(r) && r.last5GradePct >= CLIMBING_FINISH_MIN_PCT
 
 console.log(
-  `\nB17 · línea base del ritmo · motor v${ENGINE_VERSION} · semillas ${RUNS.join(', ')} · reloj estimado del adaptador (§3.8) · curva copiada (17-c)\n`,
+  `\nB17 · el ritmo medido · motor v${ENGINE_VERSION} · semillas ${RUNS.join(', ')} · reloj estimado del adaptador (§3.8, storedHeadClock) · curva de packages/shared\n`,
 )
 console.log(
-  `| Etapa | Etiqueta | km | \`Watch\` | ${ZONES.map((z) => `${z} km`).join(' | ')} | últimos 5 km, % | \`Highlights\` | digest (presupuesto) | anunciada · error |`,
+  `| Etapa | Etiqueta | km | sube en los últimos 5 km | \`Watch\` | ${ZONES.map((z) => `${z} km`).join(' | ')} | últimos 5 km, % | \`Highlights\` | digest (presupuesto) | anunciada · error |`,
 )
 console.log(
-  `| --- | --- | --- | --- | ${ZONES.map(() => '---').join(' | ')} | --- | --- | --- | --- |`,
+  `| --- | --- | --- | --- | --- | ${ZONES.map(() => '---').join(' | ')} | --- | --- | --- | --- |`,
 )
 for (const [stage, rs] of byStage) {
   const road = rs.filter((r) => r.kind === 'road')
@@ -458,7 +431,7 @@ for (const [stage, rs] of byStage) {
     ),
   ).join(' | ')
   console.log(
-    `| ${stage} | ${road[0].label} | ${Math.round(road[0].km)} | ${range(
+    `| ${stage} | ${road[0].label} | ${Math.round(road[0].km)} | ${road[0].last5GradePct.toFixed(1)} % | ${range(
       road.map((r) => r.watchS),
       mmss,
     )} | ${zones} | ${range(
@@ -526,8 +499,8 @@ band(
   (r) => `${pct(r.last5Pct)} %`,
 )
 band(
-  'los últimos 5 km de un final en alto, al menos el 35 %',
-  road.filter(isSummit),
+  `los últimos 5 km de un final en subida (\`Summit finish\` y ≥ ${CLIMBING_FINISH_MIN_PCT} % en ellos), al menos el 35 %`,
+  road.filter(isClimbingFinish),
   (r) => r.last5Pct >= 35,
   (r) => `${pct(r.last5Pct)} %`,
 )
@@ -552,7 +525,7 @@ console.log(
 
 const sum = (xs, f) => `${mmss(Math.min(...xs.map(f)))} a ${mmss(Math.max(...xs.map(f)))}`
 console.log(
-  `\nEn resumen: \`Watch\` en línea de ${sum(road, (r) => r.watchS)}; \`Highlights\` de ${sum(road, (r) => r.highlightsS)}; los últimos 5 km, del ${pct(Math.min(...road.map((r) => r.last5Pct)))} al ${pct(Math.max(...road.map((r) => r.last5Pct)))} % (en alto, del ${pct(Math.min(...road.filter(isSummit).map((r) => r.last5Pct)))} al ${pct(Math.max(...road.filter(isSummit).map((r) => r.last5Pct)))} %); la crono de ${sum(tts, (r) => r.watchS)}; el reloj estimado, reescalado por ${Math.min(...road.map((r) => r.scale)).toFixed(4)}-${Math.max(...road.map((r) => r.scale)).toFixed(4)}.`,
+  `\nEn resumen: \`Watch\` en línea de ${sum(road, (r) => r.watchS)}; \`Highlights\` de ${sum(road, (r) => r.highlightsS)}; los últimos 5 km, del ${pct(Math.min(...road.map((r) => r.last5Pct)))} al ${pct(Math.max(...road.map((r) => r.last5Pct)))} % (en los finales en subida, del ${pct(Math.min(...road.filter(isClimbingFinish).map((r) => r.last5Pct)))} al ${pct(Math.max(...road.filter(isClimbingFinish).map((r) => r.last5Pct)))} %); la crono de ${sum(tts, (r) => r.watchS)}.`,
 )
 if (JSON_OUT) {
   writeFileSync(

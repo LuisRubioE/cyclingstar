@@ -1,20 +1,11 @@
 import {
-  type Database,
   type StageOrderRow,
   getCurrentWorld,
-  getGcThroughStage,
-  getKomClassification,
-  getPointsClassification,
-  getRaceRiderIdentities,
   getRaceRivals,
   getRaceTeams,
   getRosterTeammates,
   getStageOrders,
-  getStageNonFinishers,
-  getStageResults,
-  getStageSnapshot,
   getRiderForUser,
-  getTeamClassifications,
   isOnRoster,
   raceStagesForWorld,
   setStageOrders,
@@ -22,7 +13,6 @@ import {
 import {
   ENGINE_VERSION,
   SEASON_CALENDAR,
-  type StageInput,
   renderAltimetrySvg,
   stageDayOfSeason,
   stagePlace,
@@ -32,24 +22,15 @@ import {
 } from '@cyclingstar/engine'
 import {
   DAYS_PER_SEASON,
-  NO_LEADERS,
-  type RaceLeaders,
   chasePolicySchema,
   currentSeason,
   dayGoalSchema,
-  raceLeaders,
   triggerCondSchema,
 } from '@cyclingstar/shared'
 import { z } from 'zod'
-import {
-  type ChronicleEvent,
-  buildChronicle,
-  buildMarkers,
-  buildRaceRadio,
-  chronicleNames,
-} from '../chronicle.js'
 import { badRequest, notFound, sendError, unauthorized } from '../http.js'
-import { calendarStageSpec, stageHead } from '../stageHistory.js'
+import { calendarStageSpec } from '../stageHistory.js'
+import { stageContextOf, stageReplayOf } from '../stageReplay.js'
 import { congeladaComoEtapa } from '../stageRoute.js'
 import type { RoutePlugin } from './context.js'
 import { parseRaceId, parseRaceKey, parseStageDay } from './params.js'
@@ -83,29 +64,6 @@ const putMyOrdersSchema = z.object({
 /** Kilómetros de una etapa a partir de su perfil. */
 const stageKm = (segments: readonly { km: number }[]): number =>
   Math.round(segments.reduce((sum, s) => sum + s.km, 0))
-
-/**
- * Quién llevaba cada maillot TRAS la etapa `day` (y por tanto quién lo lleva PUESTO en la `day+1`).
- *
- * Es la misma pregunta que responde la ficha con sus tablas, hecha un día antes: por eso relee las
- * mismas cuatro clasificaciones con `throughStage = day` en vez de inventar una consulta nueva. Con
- * `day < 1` no hay nada que arrastrar —la etapa 1 se corre sin maillots, se ganan el día anterior—
- * y se devuelve el juego vacío sin tocar la base.
- */
-async function leadersThroughStage(
-  db: Database,
-  raceKey: string,
-  day: number,
-): Promise<RaceLeaders> {
-  if (day < 1) return NO_LEADERS
-  const [gc, points, kom, teams] = await Promise.all([
-    getGcThroughStage(db, raceKey, day),
-    getPointsClassification(db, raceKey, day),
-    getKomClassification(db, raceKey, day),
-    getTeamClassifications(db, raceKey, day),
-  ])
-  return raceLeaders({ gc, points, kom, teams: teams.overall })
-}
 
 /**
  * Rutas de carrera: las órdenes del corredor para una carrera real del calendario y la crónica
@@ -228,156 +186,11 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
       const raceId = parseRaceId(request.params.raceId)
       const day = parseStageDay(request.params.day)
       if (!raceId || day === null) return notFound(reply)
-      // La carrera y la etapa se resuelven contra el calendario (dato del motor) ANTES de tocar la
-      // base: un raceId o un día inexistentes son un 404, no un 500 por consulta con basura.
-      const race = SEASON_CALENDAR.find((r) => r.id === raceId)
-      if (!race || !race.stages[day - 1]) return notFound(reply)
-      const world = await getCurrentWorld(db)
-      if (!world) return notFound(reply)
-      const season = currentSeason(world.currentDay)
-      const raceKey = `${race.id}:s${season}`
-      // La etapa que el MUNDO corre este año (congelada, o la edición de la temporada si aún no), no
-      // la de la temporada 0: es la que se enseña mientras no se haya corrido (docs/generador.md §10.7).
-      const frozen = (await raceStagesForWorld(db, world.worldId, raceKey, race.id, season))[
-        day - 1
-      ]
-      const deLaTemporada = stagesForSeason(race.id, season)[day - 1]
-      if (!deLaTemporada) return notFound(reply)
-      const stage = frozen ? congeladaComoEtapa(deLaTemporada, frozen) : deLaTemporada
-      const km = stageKm(stage.profile.segments)
-      // Contexto de la etapa: a qué carrera pertenece y cuántas etapas tiene. Sin esto la página de
-      // etapa es un callejón sin salida (docs/navegacion.md §6.3): no sabe ni su carrera ni si hay
-      // anterior/siguiente. Va en las TRES ramas de respuesta, corrida o no.
-      const raceInfo = {
-        id: race.id,
-        name: race.name,
-        country: race.country ?? null,
-        stageCount: race.stages.length,
-      }
-      // De dónde a dónde va la etapa ESTE año; viaja en las tres ramas, corrida o no.
-      const ciudades = { from: deLaTemporada.from, to: deLaTemporada.to }
-      // La etiqueta del final la pone el RECORRIDO, no el terreno declarado (ver stageHistory.ts).
-      const spec = calendarStageSpec(stage, km)
-      const snapshot = await getStageSnapshot(db, raceKey, day)
-      if (!snapshot) {
-        return {
-          day,
-          name: spec.name,
-          km,
-          run: false,
-          race: raceInfo,
-          ...ciudades,
-          label: spec.label,
-          kind: spec.kind,
-          timeTrial: spec.timeTrial,
-          altimetry: renderAltimetrySvg(stage.profile),
-        }
-      }
-      // LA HISTORIA DE UNA ETAPA CORRIDA SE LEE DE SU SNAPSHOT, NO DEL CALENDARIO DE HOY: el
-      // porqué y el caso de producción que lo destapó, en `stageHistory.ts`.
-      const racedInput = snapshot.input as StageInput
-      const racedProfile = racedInput.profile
-      const racedTimeTrial = racedInput.timeTrial === true
-      const head = stageHead(day, spec, {
-        profile: racedProfile,
-        timeTrial: racedTimeTrial,
-        km: stageKm(racedProfile.segments),
-      })
-
-      /**
-       * LA HOJA DE LA ETAPA LLEVA TAMBIÉN A LOS QUE NO ACABARON (v50). El dueño: «los DNF no salen
-       * en la clasificación de la etapa», y antes: «no sé si se retiró antes de salir o en medio».
-       * La lista de salida es la del SNAPSHOT —el campo que el motor corrió ese día—, así que quien
-       * está en ella y no está clasificado se retiró en carretera, y quien no está ni en ella es que
-       * no tomó la salida. Ver `getStageNonFinishers`.
-       */
-      const started = racedInput.riders.map((r) => r.riderId)
-      const results = [
-        ...(await getStageResults(db, raceKey, day)),
-        ...(await getStageNonFinishers(db, raceKey, day, started)),
-      ]
-      const gc = await getGcThroughStage(db, raceKey, day)
-      // Montaña y puntos tal como quedaron TRAS esta etapa (acumulado hasta el día `day`).
-      const kom = await getKomClassification(db, raceKey, day)
-      const points = await getPointsClassification(db, raceKey, day)
-      // Clasificación por equipos: la de ESTA etapa y la acumulada tras ella, igual que la general.
-      const { stage: teamStage, overall: teamGc } = await getTeamClassifications(db, raceKey, day)
-      // LOS MAILLOTS, en dos juegos (ver `stageReplaySchema.leaders`): los de la carretera de ese
-      // día —la clasificación tras la N−1, que es lo que cuenta el journal— y los de después de la
-      // etapa, que es lo que muestran las tablas de esta misma página. En una carrera de UN DÍA no
-      // hay ninguno: no hay clasificación anterior que arrastrar ni día siguiente que defender.
-      const oneDay = race.stages.length === 1
-      const onRoad = oneDay ? NO_LEADERS : await leadersThroughStage(db, raceKey, day - 1)
-      const afterStage: RaceLeaders = oneDay
-        ? NO_LEADERS
-        : raceLeaders({ gc, points, kom, teams: teamGc })
-      const leaders = { onRoad, afterStage }
-      // El journal se lee de los eventos CONGELADOS al correr la etapa (no se re-simula): así siempre
-      // cuadra con el resultado guardado. Las etapas corridas antes de guardarlos no tienen journal
-      // detallado (no lo inventamos re-simulando, que daría una historia distinta al resultado real).
-      const storedEvents = snapshot.events as ChronicleEvent[] | null
-      if (!storedEvents) {
-        return {
-          day,
-          name: head.name,
-          km: head.km,
-          run: true,
-          race: raceInfo,
-          ...ciudades,
-          kind: head.kind,
-          timeTrial: head.timeTrial,
-          altimetry: renderAltimetrySvg(racedProfile),
-          results,
-          gc,
-          kom,
-          points,
-          teamStage,
-          teamGc,
-          leaders,
-          journalUnavailable: true,
-        }
-      }
-      // La identidad de los protagonistas sale del ROSTER (dorsal, equipo, país de todos los
-      // inscritos) y, para quien no esté en él, de los resultados de la etapa: los eventos están
-      // congelados y hay que resolverlos con lo que haya hoy, sin romperse por lo que falte.
-      const identities = await getRaceRiderIdentities(db, raceKey)
-      // …y con el maillot que llevaba PUESTO ese día, que es parte de su identidad en la carretera
-      // exactamente igual que el dorsal: así sale en TODAS las menciones sin tocar una sola frase.
-      // El índice de identidades se construye UNA vez: lo comparten el journal y la radio, así que
-      // no pueden llamar de dos maneras distintas al mismo corredor.
-      const names = chronicleNames([...identities, ...results], onRoad)
-      const chronicle = buildChronicle(
-        storedEvents,
-        names,
-        // Una crono se lee por el reloj de carrera, no por el kilómetro (v18); y si se corrió contra
-        // el reloj lo dice el snapshot, que es quien vio la etapa.
-        { byClock: racedTimeTrial },
-      )
-      const altimetry = renderAltimetrySvg(racedProfile, { markers: buildMarkers(storedEvents) })
-      // LA RADIO DE CARRERA, con la misma gente que el journal. `null` en las etapas corridas antes
-      // de guardarla, y ahí la vista lo dice en vez de inventarla. A quién se sigue lo decidió quien
-      // la escribió; aquí solo se le pone cara.
-      const radio = buildRaceRadio(snapshot.radio, names)
-      return {
-        day,
-        name: head.name,
-        km: head.km,
-        run: true,
-        race: raceInfo,
-        ...ciudades,
-        kind: head.kind,
-        timeTrial: head.timeTrial,
-        altimetry,
-        results,
-        chronicle,
-        gc,
-        kom,
-        points,
-        teamStage,
-        teamGc,
-        leaders,
-        ...(radio ? { radio } : {}),
-      }
+      // La carrera, la etapa y la edición que corre el mundo (stageReplay.ts): un raceId o un día que
+      // el calendario no tiene son un 404, no un 500 por consulta con basura.
+      const ctx = await stageContextOf(db, raceId, day)
+      if (!ctx) return notFound(reply)
+      return stageReplayOf(db, ctx)
     },
   )
 }

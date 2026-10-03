@@ -14,15 +14,18 @@ import { buildApp } from './app.js'
  * quite entre el 0 y el 8a tiene que pasar por aquí, y así la tabla de §11.3 llega completa al 8a,
  * donde cada fila gana su clase y su mecanismo y este fichero pasa a ser B1d.
  *
- * La lista va en el orden de §11.3, por fichero, con la línea del registro en la v91 (la base de E2).
+ * La lista va en el orden de §11.3, por fichero, con la línea del registro en la v91 (la base de E2),
+ * salvo en `routes/health.ts` y `routes/races.ts`, que el 3a movió, y en `routes/broadcast.ts`, que
+ * nace en el 3a: ahí, la del 3a.
  * El diseño contaba 87 rutas y 53 `HEAD` en `9c21885`; la v91 retiró la vuelta de prueba
  * (`/api/races/test-tour*`: cuatro `GET` y un `PUT`), así que hoy son 82 rutas de nuestro código
  * —48 `GET`, 21 `POST`, 7 `PUT`, 4 `DELETE`, un `PATCH` y el comodín `GET` y `POST` de `/api/auth/*`,
- * que aquí cuenta dos veces porque el registro va por método— y 49 `HEAD`.
+ * que aquí cuenta dos veces porque el registro va por método— y 49 `HEAD`. El 3a añade las cuatro de
+ * la retransmisión (`routes/broadcast.ts`: tres `GET` y un `POST`, §14.2): 86 rutas y 52 `HEAD`.
  */
 const ROUTES = [
   // routes/health.ts
-  'GET /health', // l. 16
+  'GET /health', // l. 21
   // routes/riders.ts (la única pública de ese fichero)
   'GET /api/names/generate', // l. 125
   // routes/geo.ts
@@ -58,9 +61,14 @@ const ROUTES = [
   'GET /api/calendar/:raceId', // l. 80
   'GET /api/calendar/:raceId/startlist', // l. 218-219
   // routes/races.ts
-  'GET /api/my-orders', // l. 121
-  'PUT /api/my-orders', // l. 204
-  'GET /api/races/:raceId/stages/:day', // l. 225-226
+  'GET /api/my-orders', // l. 79
+  'PUT /api/my-orders', // l. 162
+  'GET /api/races/:raceId/stages/:day', // l. 183-184
+  // routes/broadcast.ts (E2, paso 3a): la retransmisión y el acta (§14.2)
+  'GET /api/races/:raceId/stages/:day/broadcast', // l. 123-124
+  'GET /api/races/:raceId/stages/:day/broadcast/chunk', // l. 190-191
+  'POST /api/races/:raceId/stages/:day/broadcast/finish', // l. 213-214
+  'GET /api/races/:raceId/stages/:day/report', // l. 243-244
   // routes/rankings.ts
   'GET /api/rankings', // l. 27
   'GET /api/rankings/young', // l. 34
@@ -143,6 +151,7 @@ function productionDeps(serveWeb: boolean): AppDeps {
     adminEmail: 'dueno@example.com',
     onAdminTick: async () => summary,
     onAdminAdvance: async () => summary,
+    switches: { broadcastWatch: 'off', spoilerMode: 'off' },
     serveWeb,
   }
 }
@@ -175,14 +184,14 @@ function compare(seen: readonly string[], expected: readonly string[]) {
 describe('el inventario de rutas (hasta el 8a; luego, B1d)', () => {
   it('la lista no repite ninguna ruta y cuenta lo que dice la cabecera', () => {
     expect(new Set(ROUTES).size).toBe(ROUTES.length)
-    expect(ROUTES).toHaveLength(83)
-    expect(HEADS).toHaveLength(49)
+    expect(ROUTES).toHaveLength(87)
+    expect(HEADS).toHaveLength(52)
   })
 
   it('Fastify registra exactamente las rutas de la lista y sus HEAD, ni una más ni una menos', async () => {
     const seen = await inventory(productionDeps(false))
     expect(compare(seen, [...ROUTES, ...HEADS])).toEqual({ extra: [], missing: [], repeated: 0 })
-    expect(seen).toHaveLength(132)
+    expect(seen).toHaveLength(139)
   })
 
   it('con la web compilada, @fastify/static añade solo GET y HEAD /*', async () => {

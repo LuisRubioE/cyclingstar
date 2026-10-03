@@ -42,18 +42,19 @@ base idéntica; el script crea la extensión `citext` antes de restaurar (la usa
 
 ## Variables de entorno
 
-| Variable                | Uso                                                                                                       |
-| ----------------------- | --------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`          | Conexión a Postgres (obligatoria).                                                                        |
-| `WORLD_SEED`            | Semilla del mundo; fija la generación reproducible (SPEC 10).                                             |
-| `TICK_INTERVAL_MINUTES` | Minutos reales por día de juego (por defecto 360 = 6 h). Bajarlo acelera el mundo para la alfa (Paso 43). |
-| `ADMIN_TOKEN`           | Protege `POST /admin/tick`, `POST /admin/advance` y la lista de bloqueo de nombres (`/admin/names`).      |
-| `SESSION_SECRET`        | Secreto de firma de sesiones de better-auth (mínimo 32 caracteres).                                       |
-| `APP_URL`               | URL pública **canónica**: `baseURL` de better-auth, origen de confianza y raíz de los enlaces del correo. |
-| `EXTRA_TRUSTED_ORIGINS` | Orígenes de confianza extra, separados por comas. Opcional.                                               |
-| `ADMIN_EMAIL`           | Correo del administrador raíz. Opcional; esa cuenta, con el correo confirmado, entra en `/admin`.         |
-| `RESEND_API_KEY`        | Clave de Resend. Opcional; sin ella la app arranca y NO manda correo (lo deja dicho en el log).           |
-| `MAIL_FROM`             | Remitente: `Cycling Star <no-reply@cyclingstar.app>`. Va en pareja con `RESEND_API_KEY`.                  |
+| Variable                | Uso                                                                                                                                                                                                                                                 |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`          | Conexión a Postgres (obligatoria).                                                                                                                                                                                                                  |
+| `WORLD_SEED`            | Semilla del mundo; fija la generación reproducible (SPEC 10).                                                                                                                                                                                       |
+| `TICK_INTERVAL_MINUTES` | Minutos reales por día de juego (por defecto 360 = 6 h). Bajarlo acelera el mundo para la alfa (Paso 43).                                                                                                                                           |
+| `ADMIN_TOKEN`           | Protege `POST /admin/tick`, `POST /admin/advance` y la lista de bloqueo de nombres (`/admin/names`).                                                                                                                                                |
+| `SESSION_SECRET`        | Secreto de firma de sesiones de better-auth (mínimo 32 caracteres).                                                                                                                                                                                 |
+| `APP_URL`               | URL pública **canónica**: `baseURL` de better-auth, origen de confianza y raíz de los enlaces del correo.                                                                                                                                           |
+| `EXTRA_TRUSTED_ORIGINS` | Orígenes de confianza extra, separados por comas. Opcional.                                                                                                                                                                                         |
+| `ADMIN_EMAIL`           | Correo del administrador raíz. Opcional; esa cuenta, con el correo confirmado, entra en `/admin`.                                                                                                                                                   |
+| `RESEND_API_KEY`        | Clave de Resend. Opcional; sin ella la app arranca y NO manda correo (lo deja dicho en el log).                                                                                                                                                     |
+| `MAIL_FROM`             | Remitente: `Cycling Star <no-reply@cyclingstar.app>`. Va en pareja con `RESEND_API_KEY`.                                                                                                                                                            |
+| `BROADCAST_WATCH`       | La retransmisión de E2 (`docs/retransmision.md` §14.6): `off` (por defecto; las rutas de `…/broadcast` dan 404 `broadcast_off`), `admins` (solo los administradores con sesión) u `on` (todos). Un valor fuera de la lista hace fallar el arranque. |
 
 Esta tabla nombraba `BETTER_AUTH_SECRET` y `WORLD_SEED`, que el código NO lee: el secreto se llama
 `SESSION_SECRET` (`apps/api/src/env.ts`) y la semilla del mundo está fijada en el código
