@@ -265,9 +265,10 @@ const SIT_UP_GROUP_MIN = 3
 /**
  * Qué se agrupa en racimo y con qué nombre (v14). La pájara y el abandono llegan igual que los
  * descuelgues —en tandas, en el mismo tramo de carretera— y merecen el mismo trato: con uno o dos,
- * mención propia; con tres o más en la misma ventana, una frase con el número.
+ * mención propia; con tres o más en la misma ventana, una frase con el número. Se exporta para los
+ * racimos en vivo (`liveClusters.ts`, E2 §12.3), que agrupan los mismos pares.
  */
-const CLUSTERED: readonly { single: string; many: string }[] = [
+export const CLUSTERED: readonly { readonly single: string; readonly many: string }[] = [
   { single: 'rider_sits_up', many: 'riders_sit_up' },
   { single: 'rider_bonks', many: 'riders_bonk' },
   { single: 'rider_abandons', many: 'riders_abandon' },
