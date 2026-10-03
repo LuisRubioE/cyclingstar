@@ -1,18 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { NewsItem } from '@cyclingstar/shared'
-import {
-  NO_FILTER,
-  groupByGameDay,
-  headlineTarget,
-  matchesFilter,
-  raceOfHeadline,
-} from './newsFeed'
-
-const RACES = [
-  { id: 'race-france', name: 'Race France' },
-  { id: 'volta', name: 'Volta' },
-  { id: 'race', name: 'Race' },
-]
+import { NO_FILTER, groupByGameDay, headlineTarget, matchesFilter, raceOfItem } from './newsFeed'
 
 function item(partial: Partial<NewsItem>): NewsItem {
   return {
@@ -29,17 +17,37 @@ function item(partial: Partial<NewsItem>): NewsItem {
   }
 }
 
-describe('raceOfHeadline', () => {
-  it('reconoce la carrera por su nombre dentro del titular', () => {
-    expect(raceOfHeadline('Ana Ruiz wins the Volta overall.', RACES)).toBe('volta')
+/**
+ * RE-SELLADO EN EL 1b DE E2 (docs/retransmision.md §11.7 y §16.1, D-45). La carrera de un titular se
+ * buscaba por su NOMBRE dentro del inglés del texto (`raceOfHeadline`, que muere aquí). Desde la 0046
+ * cada titular trae su carrera como dato (`raceId`) y el enlace sale de ahí; un titular de antes no la
+ * trae, y no se adivina del texto.
+ */
+describe('la carrera de un titular', () => {
+  it('sale de sus datos, aunque el texto nombre otra', () => {
+    expect(
+      raceOfItem(item({ text: 'Ana Ruiz wins stage 3 of the Volta.', raceId: 'race-france' })),
+    ).toBe('race-france')
   })
 
-  it('prefiere el nombre más largo cuando uno contiene al otro', () => {
-    expect(raceOfHeadline('Ana Ruiz wins stage 3 of the Race France.', RACES)).toBe('race-france')
+  it('un titular de antes de la 0046 no la trae, y no se adivina del texto', () => {
+    expect(raceOfItem(item({ text: 'Ana Ruiz wins the Volta overall.' }))).toBeNull()
+    expect(raceOfItem(item({ text: 'Ana Ruiz wins the Volta overall.', raceId: null }))).toBeNull()
   })
 
-  it('devuelve null si el titular no habla de ninguna carrera', () => {
-    expect(raceOfHeadline('Ana Ruiz signs for Team Sky.', RACES)).toBeNull()
+  it('un fichaje no es de ninguna carrera', () => {
+    expect(
+      raceOfItem(item({ kind: 'contract', text: 'Ana Ruiz signs for Team Sky.', raceId: null })),
+    ).toBeNull()
+  })
+
+  it('y el enlace de una victoria lleva a esa carrera', () => {
+    const victoria = item({
+      riderId: 'r1',
+      text: 'Ana Ruiz wins stage 3 of the Volta.',
+      raceId: 'race-france',
+    })
+    expect(headlineTarget(victoria, raceOfItem(victoria))).toBe('/world/races/race-france')
   })
 })
 

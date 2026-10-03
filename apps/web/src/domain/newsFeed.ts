@@ -9,18 +9,14 @@
 import type { NewsItem } from '@cyclingstar/shared'
 
 /**
- * Carrera de la que habla un titular. Las plantillas del motor incrustan el NOMBRE de la carrera
- * tal cual está en el calendario (`packages/engine/src/world/news.ts`), así que se resuelve
- * buscando el nombre más largo que aparezca en el texto — el más largo para que "Race France" gane
- * a "Race" si un día conviven los dos.
+ * Carrera de la que habla un titular: la de sus datos (`raceId`), que la API manda desde la migración
+ * 0046 (docs/retransmision.md §11.7 y §14.2, D-45; E2, paso 1b). Hasta aquí se adivinaba buscando el
+ * NOMBRE de la carrera dentro del inglés del titular (`raceOfHeadline`), que fallaba en cuanto el
+ * texto no lo llevaba tal cual y que no sobrevive a otra lengua. Un titular de antes de la 0046 no
+ * trae carrera y no se le busca en el texto: lleva a su protagonista, como un fichaje.
  */
-export function raceOfHeadline(text: string, races: { id: string; name: string }[]): string | null {
-  let best: { id: string; length: number } | null = null
-  for (const race of races) {
-    if (race.name.length === 0 || !text.includes(race.name)) continue
-    if (!best || race.name.length > best.length) best = { id: race.id, length: race.name.length }
-  }
-  return best?.id ?? null
+export function raceOfItem(item: NewsItem): string | null {
+  return item.raceId ?? null
 }
 
 export interface NewsFilter {

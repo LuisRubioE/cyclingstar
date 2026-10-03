@@ -13,7 +13,7 @@ import {
   groupByGameDay,
   headlineTarget,
   matchesFilter,
-  raceOfHeadline,
+  raceOfItem,
 } from '../domain/newsFeed'
 
 const selectClass =
@@ -95,10 +95,10 @@ export function News() {
     [calendar.data],
   )
 
-  // Carrera de cada titular: se resuelve una vez por lista, no por render de fila.
+  // Carrera de cada titular: la de sus datos (`raceId`), no la que se adivinaba en el texto.
   const withRace = useMemo(
-    () => (data ?? []).map((item) => ({ item, raceId: raceOfHeadline(item.text, races) })),
-    [data, races],
+    () => (data ?? []).map((item) => ({ item, raceId: raceOfItem(item) })),
+    [data],
   )
 
   const options = useMemo(() => {
@@ -133,9 +133,6 @@ export function News() {
   if (isError) return <p className="text-red-600">Could not load the news feed.</p>
 
   const shown = withRace.filter(({ item, raceId }) => matchesFilter(item, filter, raceId))
-  // La carrera de cada titular ya está calculada para el filtro; se guarda por referencia para que
-  // el enlace no tenga que volver a adivinarla del texto.
-  const raceOfItem = new Map(shown.map(({ item, raceId }) => [item, raceId]))
   const visible = shown.map(({ item }) => item)
   const days = groupByGameDay(visible)
   const filtered = Object.values(filter).some((v) => v !== null)
@@ -208,11 +205,7 @@ export function News() {
                 <div className="overflow-hidden rounded-md bg-white shadow-sm ring-1 ring-black/5">
                   <ol className="divide-y divide-slate-100">
                     {day.items.map((item, i) => (
-                      <Headline
-                        key={`${day.gameDay}-${i}`}
-                        item={item}
-                        raceId={raceOfItem.get(item) ?? null}
-                      />
+                      <Headline key={`${day.gameDay}-${i}`} item={item} raceId={raceOfItem(item)} />
                     ))}
                   </ol>
                 </div>
