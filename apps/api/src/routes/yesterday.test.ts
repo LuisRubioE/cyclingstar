@@ -17,13 +17,12 @@ import {
   healthSchema,
   lastRaceResponseSchema,
   newsItemSchema,
-  newsResponseSchema,
   riderRaceReportSchema,
   stageReplaySchema,
   teamNewsItemSchema,
-  teamNewsResponseSchema,
 } from '@cyclingstar/shared'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { z } from 'zod'
 import type { AppDeps } from '../app.js'
 import { buildApp } from '../app.js'
 
@@ -35,27 +34,35 @@ import { buildApp } from '../app.js'
  * siguiente, una pestaña abierta sigue validando con los esquemas de la versión anterior, así que cada
  * PR de E2 tiene que mandar algo que esos esquemas acepten. Este fichero lo hace test:
  *
- * - fija con una lista literal las claves de los esquemas de las rutas que E2 va a ensanchar, tal como
- *   están en la base de E2 (la v91, `b1be481`): cambiar una se ve en el diff;
- * - y pasa las respuestas de hoy de esas rutas, sobre un mundo de verdad (PGlite, con dos etapas
- *   corridas por `runOneStage`), por `YESTERDAY`, los esquemas de la web de ayer.
- *
- * Cada PR que ensancha un esquema le pone aquí su `.omit` de los campos nuevos (1a, 3a, 7b y 8a; el 12,
- * el anidado de `report`), de modo que su respuesta se sigue validando con lo que validaba la web
- * anterior: como los objetos son strip, eso es exactamente lo que hace esa web.
+ * - `YESTERDAY` son los esquemas de la web de ayer: los de hoy SIN lo que E2 les añade. Cada PR que
+ *   ensancha uno le pone aquí su `.omit` de los campos nuevos (1a, 3a, 7b y 8a; el 12, el de `report`,
+ *   que va anidado y por eso tiene su propia entrada).
+ * - Una lista literal fija sus claves tal como están en la base de E2 (la v91, `b1be481`): con el
+ *   `.omit` puesto no cambian, y cambiar o quitar una clave de hoy se ve en el diff.
+ * - Las respuestas de hoy de esas rutas, sobre un mundo de verdad (PGlite, con dos etapas corridas por
+ *   `runOneStage`), tienen que pasar por las envolturas de abajo, armadas con `YESTERDAY`: como los
+ *   objetos son strip, eso es exactamente lo que valida la web anterior.
  */
-
-/** Los esquemas de la web de ayer. En el paso 0 son los de hoy: E2 todavía no ha añadido nada. */
 const YESTERDAY = {
-  stage: stageReplaySchema,
-  news: newsResponseSchema,
-  teamNews: teamNewsResponseSchema,
-  lastRace: lastRaceResponseSchema,
+  stageReplay: stageReplaySchema,
+  newsItem: newsItemSchema,
+  teamNewsItem: teamNewsItemSchema,
+  lastRaceResponse: lastRaceResponseSchema,
+  riderRaceReport: riderRaceReportSchema,
   health: healthSchema,
 }
 
-/** Las claves de cada esquema en la base de E2 (v91). El diseño las fijaba en `9c21885`, la v89. */
-const KEYS = {
+/** Lo que valida la web de ayer, ruta a ruta (apps/web/src/api: results, news, browse, lastRace, health). */
+const yesterdayStage = YESTERDAY.stageReplay
+const yesterdayNews = z.object({ news: z.array(YESTERDAY.newsItem) })
+const yesterdayTeamNews = z.object({ news: z.array(YESTERDAY.teamNewsItem) })
+const yesterdayLastRace = YESTERDAY.lastRaceResponse.extend({
+  report: YESTERDAY.riderRaceReport.nullable(),
+})
+const yesterdayHealth = YESTERDAY.health
+
+/** Las claves de los esquemas de ayer en la base de E2 (v91). El diseño las fijaba en `9c21885`, la v89. */
+const KEYS: Record<keyof typeof YESTERDAY, readonly string[]> = {
   stageReplay: [
     'day',
     'name',
@@ -78,7 +85,6 @@ const KEYS = {
     'leaders',
     'radio',
   ],
-  newsResponse: ['news'],
   newsItem: [
     'gameDay',
     'kind',
@@ -90,7 +96,6 @@ const KEYS = {
     'teamId',
     'teamName',
   ],
-  teamNewsResponse: ['news'],
   teamNewsItem: ['gameDay', 'kind', 'text'],
   lastRaceResponse: ['report'],
   riderRaceReport: [
@@ -119,23 +124,17 @@ const KEYS = {
     'tickIntervalMinutes',
     'nextTickAtMs',
   ],
-} as const
+}
 
 const sorted = (keys: readonly string[]): string[] => [...keys].sort()
 
 describe('la web de ayer: las claves de cada esquema', () => {
-  it.each([
-    ['stageReplaySchema', stageReplaySchema.shape, KEYS.stageReplay],
-    ['newsResponseSchema', newsResponseSchema.shape, KEYS.newsResponse],
-    ['newsItemSchema', newsItemSchema.shape, KEYS.newsItem],
-    ['teamNewsResponseSchema', teamNewsResponseSchema.shape, KEYS.teamNewsResponse],
-    ['teamNewsItemSchema', teamNewsItemSchema.shape, KEYS.teamNewsItem],
-    ['lastRaceResponseSchema', lastRaceResponseSchema.shape, KEYS.lastRaceResponse],
-    ['riderRaceReportSchema', riderRaceReportSchema.shape, KEYS.riderRaceReport],
-    ['healthSchema', healthSchema.shape, KEYS.health],
-  ] as const)('%s tiene las claves de la base de E2', (_name, shape, keys) => {
-    expect(sorted(Object.keys(shape))).toEqual(sorted(keys))
-  })
+  it.each(Object.keys(KEYS) as (keyof typeof YESTERDAY)[])(
+    '%s tiene las claves de la base de E2',
+    (name) => {
+      expect(sorted(Object.keys(YESTERDAY[name].shape))).toEqual(sorted(KEYS[name]))
+    },
+  )
 })
 
 const RACE_ID = 'race-france'
@@ -282,7 +281,7 @@ describe('la web de ayer: lo que la API manda hoy pasa por sus esquemas', () => 
   }
 
   it('la etapa en línea corrida, con maillots de la víspera, radio y acta', async () => {
-    const stage = YESTERDAY.stage.parse(await get(`/api/races/${RACE_ID}/stages/2`))
+    const stage = yesterdayStage.parse(await get(`/api/races/${RACE_ID}/stages/2`))
     expect(stage.run).toBe(true)
     expect(stage.results?.length).toBeGreaterThan(0)
     expect(stage.chronicle?.length).toBeGreaterThan(0)
@@ -291,38 +290,38 @@ describe('la web de ayer: lo que la API manda hoy pasa por sus esquemas', () => 
   })
 
   it('la crono corrida', async () => {
-    const stage = YESTERDAY.stage.parse(await get(`/api/races/${RACE_ID}/stages/1`))
+    const stage = yesterdayStage.parse(await get(`/api/races/${RACE_ID}/stages/1`))
     expect(stage.run).toBe(true)
     expect(stage.timeTrial).toBe(true)
     expect(stage.results?.length).toBeGreaterThan(0)
   })
 
   it('la etapa sin correr', async () => {
-    const stage = YESTERDAY.stage.parse(await get(`/api/races/${RACE_ID}/stages/3`))
+    const stage = yesterdayStage.parse(await get(`/api/races/${RACE_ID}/stages/3`))
     expect(stage.run).toBe(false)
     expect(stage.results).toBeUndefined()
   })
 
   it('las noticias del jugador', async () => {
-    const { news } = YESTERDAY.news.parse(await get('/api/news'))
+    const { news } = yesterdayNews.parse(await get('/api/news'))
     expect(news.length).toBeGreaterThan(0)
   })
 
   it('las noticias del equipo del ganador', async () => {
-    const stage = YESTERDAY.stage.parse(await get(`/api/races/${RACE_ID}/stages/2`))
+    const stage = yesterdayStage.parse(await get(`/api/races/${RACE_ID}/stages/2`))
     const winnerTeam = stage.results?.find((r) => r.puesto === 1)?.teamId
     expect(typeof winnerTeam).toBe('string')
-    const { news } = YESTERDAY.teamNews.parse(await get(`/api/teams/${winnerTeam!}/news`))
+    const { news } = yesterdayTeamNews.parse(await get(`/api/teams/${winnerTeam!}/news`))
     expect(news.length).toBeGreaterThan(0)
   })
 
   it('el informe de la última carrera', async () => {
-    const { report } = YESTERDAY.lastRace.parse(await get('/api/riders/me/last-race'))
+    const { report } = yesterdayLastRace.parse(await get('/api/riders/me/last-race'))
     expect(report?.stageDay).toBe(2)
   })
 
   it('la salud del servidor', async () => {
-    const health = YESTERDAY.health.parse(await get('/health'))
+    const health = yesterdayHealth.parse(await get('/health'))
     expect(health.gameDay).toBe(dayOf(3))
   })
 })
