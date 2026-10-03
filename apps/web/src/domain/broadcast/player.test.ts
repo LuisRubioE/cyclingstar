@@ -13,6 +13,7 @@ import {
   photoBlocksOf,
   seededRng,
   toDs,
+  visibilityOf,
 } from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
 import { ApiError } from '../../api/request'
@@ -677,6 +678,22 @@ function played(name: HeadTrackName, opts: RunOptions): StageRun {
   if (r === undefined) runs.set(key, (r = playStage(name, opts)))
   return r
 }
+
+describe('__fixtures__/headTracks.ts · la cabeza volcada de las congeladas', () => {
+  it.each(NAMES)(
+    '%s: una marca por km de foto, que no baja y acaba en la meta de su línea',
+    (name) => {
+      const track = HEAD_TRACKS[name]
+      expect(track.blocks).toBe(Math.round(track.lengthKm / DX))
+      expect(track.headDs).toHaveLength(photoBlocksOf(track.lengthKm, DX).length)
+      for (let i = 1; i < track.headDs.length; i++)
+        expect(track.headDs[i]!).toBeGreaterThanOrEqual(track.headDs[i - 1]!)
+      expect(track.headDs.at(-1)).toBe(track.finishDs)
+      expect(visibilityOf(headLine(track, true)).finishDs).toBe(track.finishDs)
+      expect(track.revealDs.length).toBeGreaterThan(0)
+    },
+  )
+})
 
 // ------------------------------------------------------------------------- B9: el ritmo (§4.6)
 
