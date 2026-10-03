@@ -219,3 +219,8 @@ otros lotes. La pasada de coherencia tiene que cerrarlos uno a uno (o dejarlos e
   fila H-04 de §21 (l. 188) dicen «de 4 a 12» para la fuga de la prueba de lectura y 16-w dice
   «hasta 12» (L10). Para el cierre general: lo que pedían A-L3-005, A-L4-012 y A-L5-012 ya está en
   el texto, pero los JSON de L3, L4 y L5 conservan el veredicto viejo (actualizar al fundir).
+- De L9 (cierre de auditoría): «3,88» sin rango en §0.7 (cabecera l. 149), §16.9 (B14), DD-21 en
+  §20, X-11 en §21 y la duda 3.2 de `dudas.md` (el rango de las tres corridas de B14 es de 3,88 a
+  4,75 ms, como dicen §18.2, §18.9 y §18.10); X-13 de §21 y «About N min» en G.11 y F.3 (L10); la
+  fila del 3a de §14.1 podría nombrar `tplRev` (opcional). JSON de L3, L4 y L5 con veredicto viejo
+  de A-L3-005, A-L4-012 y A-L5-012 (ya en el texto): actualizar al fundir.
