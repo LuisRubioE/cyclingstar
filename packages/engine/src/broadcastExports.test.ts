@@ -20,6 +20,13 @@ import {
   radioKmFrom,
 } from './sim/raceRadio.js'
 import { realRaceScenario } from './sim/scenarios.js'
+import {
+  freezeStageWeather,
+  profileStripOf,
+  selfCheckI1,
+  selfCheckI5,
+  timelineRecorder,
+} from './sim/timeline.js'
 import { chaseReferenceIndex } from './stage/group.js'
 import { threeKmRule } from './stage/truce.js'
 import type { SnapshotRider } from './stage/types.js'
@@ -71,8 +78,13 @@ describe('el motor exporta lo que la retransmisión copia o cita (E2 §15.5, 17-
     expect('renderNews' in engine).toBe(false)
   })
 
-  it('TIMELINE, radioGroupDetails y realRaceScenario salen por el índice (4b, §5.9)', () => {
+  it('el grabador y lo que packages/db necesita para enganchar y cerrar la línea salen por el índice (4b, §5.9)', () => {
     expect(engine.TIMELINE).toBe(TIMELINE)
+    expect(engine.timelineRecorder).toBe(timelineRecorder)
+    expect(engine.selfCheckI1).toBe(selfCheckI1)
+    expect(engine.selfCheckI5).toBe(selfCheckI5)
+    expect(engine.profileStripOf).toBe(profileStripOf)
+    expect(engine.freezeStageWeather).toBe(freezeStageWeather)
     expect(engine.radioGroupDetails).toBe(radioGroupDetails)
     // B10 corre en packages/db las etapas del banco con su campo (17-j)
     expect(engine.realRaceScenario).toBe(realRaceScenario)

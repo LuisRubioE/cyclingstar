@@ -239,6 +239,20 @@ export {
   type RadioPuller,
   type ReplayCheck,
 } from './sim/raceRadio.js'
+// EL GRABADOR DE LA LÍNEA TEMPORAL (E2, docs/retransmision.md §5.4, §5.5 y §5.9; paso 4b). Lo engancha
+// `packages/db` (`startStageTimeline`, el colector aparte de §5.3) y cierra la línea al correr la etapa;
+// `profileStripOf` y `freezeStageWeather` congelan el recorrido y el tiempo del día para el cierre.
+export {
+  freezeStageWeather,
+  profileStripOf,
+  selfCheckI1,
+  selfCheckI5,
+  timelineRecorder,
+  type I1Mismatch,
+  type RecorderFinishInput,
+  type TimelineRecorder,
+  type TimelineRecorderOptions,
+} from './sim/timeline.js'
 export {
   advanceGroup,
   chaseReferenceIndex,
@@ -292,13 +306,17 @@ export type {
   DayGoal,
   Incident,
   Mentality,
+  ProbeBanner,
+  ProbeTimeTrialRide,
   RaceEvent,
   Ramp,
   Segment,
   SegmentTerrain,
+  SnapshotRider,
   StageInput,
   StageOrders,
   StageOutput,
+  StageProbe,
   StageProfile,
   StageResult,
   StageRider,

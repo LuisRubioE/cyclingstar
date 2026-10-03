@@ -14,13 +14,18 @@
  * es lo único que compara «la radio no toca la carrera», `sim/raceRadio.test.ts`): `efforts` es un
  * `Map`, y `JSON.stringify` lo deja en `{}` si no se serializa como `[...o.efforts]`.
  *
- * Aquí los ganchos solo apuntan lo que reciben; desde el 4b esta misma prueba engancha el grabador
- * de verdad (`timelineRecorder`, §17.7), y B11 entero corre en el tramo «mundo y radio».
+ * Desde el 4b los ganchos van al grabador de verdad (`timelineRecorder`, enganchado como lo engancha
+ * `packages/db` con el colector aparte de §5.3; §17.7 y 16-u) además de apuntar lo que reciben: el
+ * grabador usa `packages/shared`, y un cambio allí que le hiciera tocar lo que el motor vuelve a leer
+ * no correría los bancos (`timeline.test.ts` solo corre si el diff toca el motor), pero sí esta prueba,
+ * que está en la suite rápida. Y, de paso, la línea que sale se cierra y pasa la autocomprobación con
+ * que se grabará (I1 en línea e I5 en la crono, §5.5): los bancos la miden en las 24 etapas, y aquí se
+ * ve en la rápida el día que `shared` cambie lo que se graba. B11 entero corre en «mundo y radio».
  */
 import { describe, expect, it } from 'vitest'
 import { ENGINE_VERSION, STAGE } from '../constants.js'
-import { SEASON_CALENDAR } from '../routes/calendar.js'
-import { realRaceScenario } from '../sim/scenarios.js'
+import { selfCheckI1, selfCheckI5 } from '../sim/timeline.js'
+import { type Recording, inputOf, startRecording } from '../sim/timelineBench.js'
 import { stageSeed } from './rng.js'
 import { sampleProfile } from './sample.js'
 import { simulateStage } from './simulate.js'
@@ -35,13 +40,6 @@ import type {
 
 const huella = (o: StageOutput): string =>
   JSON.stringify([o.results, o.events, [...o.efforts], o.incidents])
-
-/** La entrada de una etapa del calendario, como la del banco B11: `realRaceScenario` no pone `timeTrial`. */
-function inputOf(raceId: string, day: number): StageInput {
-  const stage = SEASON_CALENDAR.find((r) => r.id === raceId)!.stages.find((s) => s.index === day)!
-  const { input } = realRaceScenario(raceId, day)
-  return stage.timeTrial === true ? { ...input, timeTrial: true } : input
-}
 
 /**
  * …CON REBELDES. Seis gregarios que se declaran líderes en un equipo que ya tiene jefe corren por su
@@ -76,24 +74,33 @@ interface Apuntes {
   orden: string[]
 }
 
-/** La foto de CADA bloque y los tres ganchos nuevos, que solo apuntan. */
-function sondaQueApunta(blocks: number): { probe: StageProbe; apuntes: Apuntes } {
+/**
+ * La foto de CADA bloque y los tres ganchos nuevos, que apuntan lo que reciben y se lo pasan al
+ * grabador de verdad, enganchado como en producción (`startRecording`).
+ */
+function sondaQueApunta(rec: Recording): { probe: StageProbe; apuntes: Apuntes } {
   const apuntes: Apuntes = { fotos: 0, sucesos: [], pancartas: [], cronos: [], orden: [] }
+  const grabador = rec.probe
+  expect(grabador.atKm).toEqual(Array.from({ length: rec.blocks }, (_, b) => (b + 0.5) * STAGE.dx))
   const probe: StageProbe = {
-    atKm: Array.from({ length: blocks }, (_, b) => (b + 0.5) * STAGE.dx),
-    onSnapshot: () => {
+    atKm: grabador.atKm,
+    onSnapshot: (km, riders, mainId) => {
       apuntes.fotos++
+      grabador.onSnapshot(km, riders, mainId)
     },
     onEvent: (e, b) => {
       apuntes.sucesos.push({ e, b })
       apuntes.orden.push(e.plantilla)
+      grabador.onEvent?.(e, b)
     },
     onBanner: (x) => {
       apuntes.pancartas.push(x)
       apuntes.orden.push('pancarta')
+      grabador.onBanner?.(x)
     },
     onTimeTrialRide: (x) => {
       apuntes.cronos.push(x)
+      grabador.onTimeTrialRide?.(x)
     },
   }
   return { probe, apuntes }
@@ -111,10 +118,19 @@ describe('B11, humo: los ganchos de la sonda no tocan la carrera (E2 §5.2)', ()
     const seed = semilla('race-france', 13)
     const blocks = sampleProfile(input.profile).length
     const sin = simulateStage(input, seed)
-    const { probe, apuntes } = sondaQueApunta(blocks)
+    const rec = startRecording('race-france', 13, input, seed)
+    const { probe, apuntes } = sondaQueApunta(rec)
     const con = simulateStage(input, seed, probe)
 
     expect(huella(con)).toBe(huella(sin))
+    // La línea que deja el grabador se cierra y se reconoce en las fotos del motor (I1, §5.5): con los
+    // rebeldes, que no pasan por onEvent, fechados con el siguiente suceso de su protagonista (D-05, b).
+    const { timeline } = rec.close(con)
+    expect(selfCheckI1(timeline, rec.recorder.kmPhotos)).toEqual([])
+    expect(
+      timeline.events.filter((e) => e.plantilla === 'rider_defies_team').length,
+    ).toBeGreaterThan(0)
+    expect(timeline.events.every((e) => e.bEmit >= 0 && e.bEmit <= blocks)).toBe(true)
     expect(apuntes.fotos).toBe(blocks)
     expect(apuntes.cronos).toHaveLength(0)
 
@@ -180,10 +196,15 @@ describe('B11, humo: los ganchos de la sonda no tocan la carrera (E2 §5.2)', ()
     expect(input.timeTrial).toBe(true)
     const seed = semilla('race-france', 1)
     const sin = simulateStage(input, seed)
-    const { probe, apuntes } = sondaQueApunta(sampleProfile(input.profile).length)
+    const rec = startRecording('race-france', 1, input, seed)
+    const { probe, apuntes } = sondaQueApunta(rec)
     const con = simulateStage(input, seed, probe)
 
     expect(huella(con)).toBe(huella(sin))
+    // La traza de la crono cuadra con el resultado y con cada parcial narrado (I5, §5.5).
+    const { timeline } = rec.close(con)
+    expect(selfCheckI5(timeline, con)).toEqual([])
+    expect(timeline.tt?.kmClockDs).toHaveLength(input.riders.length)
     expect(con.events.some((e) => e.plantilla === 'stage_win_itt')).toBe(true)
     expect(apuntes.cronos).toHaveLength(input.riders.length)
     // La crono no tiene bloque común ni pelotón: ni fotos ni sucesos por la sonda (§5.2).
