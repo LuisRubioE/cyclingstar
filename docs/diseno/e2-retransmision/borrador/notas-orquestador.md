@@ -213,3 +213,9 @@ otros lotes. La pasada de coherencia tiene que cerrarlos uno a uno (o dejarlos e
   L9); §4.9 l. 864, falta la excepción de `Next action` para la ronda de la moto. Opcional para el
   cierre: D.5 de §21 puede copiar las filas X3, X5, X6, X7 y T6 tal como quedan; donde se dé
   «3,88 ms» puede darse el rango de las tres corridas (4,11 a 4,75 en PostgreSQL 16).
+- De L8 (cierre de auditoría): A-L8-004, F.2 de §21 (`21-apendices.md` l. 528) debe pasar a
+  `renderNews(_locale: 'en', …)` (L10); A-L8-014, §17.9 (`17-plan.md` l. 280) aún dice «ningún
+  rótulo de la ronda con su corredor ya cazado» (L9); A-L8-020, §20.5 (`20-dueno.md` l. 85) y la
+  fila H-04 de §21 (l. 188) dicen «de 4 a 12» para la fuga de la prueba de lectura y 16-w dice
+  «hasta 12» (L10). Para el cierre general: lo que pedían A-L3-005, A-L4-012 y A-L5-012 ya está en
+  el texto, pero los JSON de L3, L4 y L5 conservan el veredicto viejo (actualizar al fundir).
