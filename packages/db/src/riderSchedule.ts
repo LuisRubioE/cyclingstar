@@ -406,17 +406,27 @@ export async function retireFromRace(
     .returning({ riderId: raceRosters.riderId })
   if (updated.length === 0) return { ok: true, raceName: race.name, alreadyOut: true }
 
+  // El titular, con sus datos (docs/retransmision.md §12.8): se retira ENTRE etapas, así que no lleva
+  // etapa; su equipo es el de hoy, que es el del día del hecho.
   const [rider] = await db
-    .select({ name: riders.name })
+    .select({ teamId: riders.teamId })
     .from(riders)
     .where(eq(riders.id, opts.riderId))
   await emitNews(db, {
     worldId: opts.worldId,
     gameDay: opts.currentDay,
-    kind: 'abandon',
     seed: `abandon:${opts.raceKey}:${opts.currentDay}:${opts.riderId}`,
-    data: { rider: rider?.name ?? 'A rider', race: race.name, detail: 'withdraws' },
+    raceKey: opts.raceKey,
     riderId: opts.riderId,
+    payload: {
+      kind: 'abandon',
+      raceId: race.id,
+      season,
+      stageDay: null,
+      riderId: opts.riderId,
+      teamId: rider?.teamId ?? null,
+      reason: 'voluntario',
+    },
   })
   return { ok: true, raceName: race.name, alreadyOut: false }
 }

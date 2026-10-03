@@ -1,7 +1,8 @@
 import { SEASON_CALENDAR } from '@cyclingstar/engine'
-import { ATTRIBUTES } from '@cyclingstar/shared'
+import { ATTRIBUTES, newsPayloadSchema, renderNews } from '@cyclingstar/shared'
 import { and, eq, isNull } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { newsNames } from './news.js'
 import { getRaceGc, getStageResults } from './results.js'
 import { getRiderUpcomingRaces, retireFromRace } from './riderSchedule.js'
 import {
@@ -229,12 +230,39 @@ describe('db: consecuencias de un abandono', () => {
     // porque en el feed puede haber abandonos de otros —el motor retira gente dentro de la etapa
     // (v14)— y contarlos todos convertía «no se duplica el titular» en «no abandona nadie más»,
     // que es otra cosa y además no es verdad.
+    //
+    // RE-SELLADO EN EL 1a DE E2 (docs/retransmision.md §12.8 y §16.1): el titular ya no se lee de
+    // `news.text`, que es de compatibilidad hasta DD-19, sino que se redacta desde los datos de la
+    // fila (`news.data`, `seed` y `tpl_rev`), que es como lo leen el feed y la web desde la 0046.
     const headlines = await t.db
-      .select({ kind: news.kind, text: news.text, riderId: news.riderId })
+      .select({
+        kind: news.kind,
+        data: news.data,
+        seed: news.seed,
+        tplRev: news.tplRev,
+        riderId: news.riderId,
+      })
       .from(news)
     const mine = headlines.filter((h) => h.kind === 'abandon' && h.riderId === me)
     expect(mine).toHaveLength(1)
-    expect(mine[0]!.text).toContain('abandons the Race France')
+    const payload = newsPayloadSchema.parse(mine[0]!.data)
+    expect(payload).toEqual({
+      kind: 'abandon',
+      raceId: RACE_ID,
+      season: SEASON,
+      stageDay: null,
+      riderId: me,
+      teamId: expect.any(String),
+      reason: 'voluntario',
+    })
+    const titular = renderNews(
+      'en',
+      payload,
+      mine[0]!.seed!,
+      mine[0]!.tplRev!,
+      await newsNames(t.db, [payload]),
+    )
+    expect(titular).toBe('Corredor 1 abandons the Race France — withdraws.')
 
     // Repetirlo no mueve el día ni duplica el titular.
     const again = await retireFromRace(t.db, {

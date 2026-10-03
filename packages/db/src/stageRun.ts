@@ -2,6 +2,7 @@ import {
   ENGINE_VERSION,
   STAGE,
   type AutoOrderRider,
+  type Incident,
   type RaceClass,
   type RaceLevel,
   type StageInput,
@@ -21,7 +22,6 @@ import {
   radioForStorage,
   radioKmPoints,
   simulateStage,
-  stageCities,
   stageLengthKm,
   stagePointsByClass,
   stageSeed,
@@ -33,11 +33,11 @@ import {
 import {
   ATTRIBUTES,
   type Attribute,
+  type HealthState,
   assignLeaderJerseys,
   riderAge,
   seasonPosition,
   seededRng,
-  stageRouteText,
 } from '@cyclingstar/shared'
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
@@ -81,15 +81,11 @@ type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
 const ENGINE_VERSION_NUM: number = ENGINE_VERSION
 
 /**
- * De dónde a dónde va la etapa de `spec`, para los titulares que la citan (el dueño: «cada vez que
- * mencione una etapa, que diga siempre el origen y destino»). Vacío fuera del calendario, donde no
- * hay ciudades.
+ * EL EQUIPO DEL DÍA de cada corredor: el de la entrada de la etapa (`input.riders[].teamId`). Es el
+ * que llevan los titulares de la etapa (decisión 17-r, docs/retransmision.md §12.8), la misma fuente
+ * que el reparto congelado y la voz; null para un agente libre o para quien no tomó la salida.
  */
-function rutaDe(spec: Pick<StageRunSpec, 'raceId' | 'season' | 'stageDay'>): { route?: string } {
-  const c = stageCities(spec.raceId, spec.season, spec.stageDay)
-  const texto = c ? stageRouteText(c.from, c.to) : null
-  return texto ? { route: texto } : {}
-}
+type TeamOfDay = (riderId: string) => string | null
 
 export interface StageRunSpec {
   /** Clave de almacenamiento (results/gc/snapshots/rosters). Puede incluir la temporada. */
@@ -508,6 +504,8 @@ export async function runOneStage(
      */
     ...(raceCtx ? { race: raceCtx } : {}),
   }
+  const equipoDelDia = new Map(input.riders.map((r) => [r.riderId, r.teamId ?? null]))
+  const teamOfDay: TeamOfDay = (riderId) => equipoDelDia.get(riderId) ?? null
   /*
    * LA RADIO DE CARRERA SE RECOGE MIENTRAS LA ETAPA SE CORRE. El motor lo sabe todo bloque a bloque
    * y lo tira; la foto de `StageProbe` es lo que lo rescata, y medido cuesta CERO (−1 % sobre una
@@ -949,13 +947,13 @@ export async function runOneStage(
         riderId: r.riderId,
         reason: abandonReasonOf(r),
       })),
-      riderById,
+      teamOfDay,
     )
   }
 
   // Consecuencias de las caídas (SPEC 6.14): una caída con baja deja al corredor LESIONADO varios días
   // (rinde peor y puede perderse próximas carreras); las que dejan lesión obligan a ABANDONAR la vuelta.
-  await applyIncidents(tx, worldId, gameDay, spec.raceKey, output.incidents, riderById)
+  await applyIncidents(tx, worldId, gameDay, spec, output.incidents, riderById, teamOfDay)
   const injured = new Set(
     output.incidents.filter((i) => injuryEndsRace(i.severidad, i.diasBaja)).map((i) => i.riderId),
   )
@@ -966,7 +964,7 @@ export async function runOneStage(
       gameDay,
       spec,
       [...injured].map((riderId) => ({ riderId, reason: 'lesion' as const })),
-      riderById,
+      teamOfDay,
       // La lesión ya emite su propio titular (`injury`) en `applyIncidents`: no se duplica.
       { silent: true },
     )
@@ -1005,29 +1003,25 @@ export async function runOneStage(
         gameDay,
         spec,
         sick.map((s) => ({ riderId: s.riderId, reason: 'enfermedad' as const })),
-        riderById,
+        teamOfDay,
       )
     }
   }
 
-  await awardOutcome(tx, worldId, gameDay, spec, output)
+  await awardOutcome(tx, worldId, gameDay, spec, output, teamOfDay)
   return raced
 }
 
 /** Días de baja de una enfermedad contraída en carrera (mismo rango que SPEC 4.3 para el training). */
 const ILLNESS_DAYS = 4
 
-/** Por qué un corredor se ha ido de la carrera. Se guarda en `race_rosters.abandoned_reason`. */
+/**
+ * Por qué un corredor se ha ido de la carrera. Se guarda en `race_rosters.abandoned_reason` y, desde el
+ * paso 1a de E2, en los datos del titular (`NewsPayload`), cuya frase pone `shared` al leer
+ * (`ABANDON_WORDS`). Es la misma unión que `AbandonReason` de `@cyclingstar/shared`, que esta pasa a
+ * importar en el paso 4a (docs/retransmision.md, decisión 4-p).
+ */
 export type AbandonReason = 'colapso' | 'fuera_control' | 'lesion' | 'enfermedad' | 'voluntario'
-
-/** Cómo se cuenta cada abandono en el feed. Textos de interfaz, así que en inglés. */
-const ABANDON_DETAIL: Record<AbandonReason, string> = {
-  colapso: 'climbs off, out of energy',
-  fuera_control: 'eliminated on time',
-  lesion: 'injured',
-  enfermedad: 'ill',
-  voluntario: 'withdraws',
-}
 
 /**
  * Saca a unos corredores del resto de la carrera: `abandoned_day` los deja fuera del roster efectivo
@@ -1038,13 +1032,13 @@ const ABANDON_DETAIL: Record<AbandonReason, string> = {
  * Es IDEMPOTENTE: solo escribe sobre los que aún no habían abandonado, de modo que el tick puede
  * reintentar un día sin duplicar titulares ni cambiar el día del abandono.
  */
-async function markAbandons<R extends { name: string }>(
+async function markAbandons(
   tx: Tx,
   worldId: string,
   gameDay: number,
   spec: StageRunSpec,
   entries: readonly { riderId: string; reason: AbandonReason }[],
-  riderById: Map<string, R>,
+  teamOfDay: TeamOfDay,
   opts: { silent?: boolean } = {},
 ): Promise<void> {
   if (entries.length === 0) return
@@ -1073,16 +1067,18 @@ async function markAbandons<R extends { name: string }>(
     await emitNews(tx, {
       worldId,
       gameDay,
-      kind: 'abandon',
       seed: `abandon:${spec.raceKey}:${gameDay}:${entry.riderId}`,
-      data: {
-        rider: riderById.get(entry.riderId)?.name ?? 'A rider',
-        race: spec.raceName,
-        stage: spec.stageDay,
-        ...rutaDe(spec),
-        detail: ABANDON_DETAIL[entry.reason],
-      },
+      raceKey: spec.raceKey,
       riderId: entry.riderId,
+      payload: {
+        kind: 'abandon',
+        raceId: spec.raceId,
+        season: spec.season,
+        stageDay: spec.stageDay,
+        riderId: entry.riderId,
+        teamId: teamOfDay(entry.riderId),
+        reason: entry.reason,
+      },
     })
   }
 }
@@ -1098,19 +1094,18 @@ async function markAbandons<R extends { name: string }>(
  * bucle con su propio umbral (15 días), y por eso un corredor con una lesión de 10 días quedaba
  * marcado `lesionado` —fuera de los rosters de las demás carreras— y seguía corriendo esta.
  */
-async function applyIncidents<
-  R extends { name: string; health: string; healthUntilDay: number | null },
->(
+export async function applyIncidents(
   tx: Tx,
   worldId: string,
   gameDay: number,
-  raceKey: string,
-  incidents: Awaited<ReturnType<typeof simulateStage>>['incidents'],
-  riderById: Map<string, R>,
+  spec: Pick<StageRunSpec, 'raceKey' | 'raceId' | 'season' | 'stageDay'>,
+  incidents: readonly Incident[],
+  riderById: ReadonlyMap<string, { health: HealthState; healthUntilDay: number | null }>,
+  teamOfDay: TeamOfDay,
 ): Promise<void> {
   if (incidents.length === 0) return
   // Peor incidencia por corredor (la de más días de baja manda).
-  const worst = new Map<string, (typeof incidents)[number]>()
+  const worst = new Map<string, Incident>()
   for (const inc of incidents) {
     const prev = worst.get(inc.riderId)
     if (!prev || inc.diasBaja > prev.diasBaja) worst.set(inc.riderId, inc)
@@ -1128,18 +1123,25 @@ async function applyIncidents<
       .set({ health: 'lesionado', healthUntilDay: Math.max(currentUntil, until) })
       .where(eq(riders.id, riderId))
 
-    // Duración concreta de la baja para el titular: semanas si es larga, días si es corta.
-    const outFor =
-      inc.diasBaja >= 14
-        ? `${Math.round(inc.diasBaja / 7)} weeks`
-        : `${inc.diasBaja} day${inc.diasBaja === 1 ? '' : 's'}`
+    // La baja va en días y la frase («5 weeks», «3 days») la pone `shared` al leer. La salud de ANTES
+    // va con ella (§12.8): es lo que la ficha enseña mientras la etapa de la caída esté velada.
     await emitNews(tx, {
       worldId,
       gameDay,
-      kind: 'injury',
-      seed: `injury:${raceKey}:${gameDay}:${riderId}`,
-      data: { rider: rider?.name ?? 'A rider', detail: outFor },
+      seed: `injury:${spec.raceKey}:${gameDay}:${riderId}`,
+      raceKey: spec.raceKey,
       riderId,
+      payload: {
+        kind: 'injury',
+        raceId: spec.raceId,
+        season: spec.season,
+        stageDay: spec.stageDay,
+        riderId,
+        teamId: teamOfDay(riderId),
+        days: inc.diasBaja,
+        prevHealth: rider?.health ?? 'sano',
+        prevUntilDay: rider?.healthUntilDay ?? null,
+      },
     })
   }
 }
@@ -1151,6 +1153,7 @@ async function awardOutcome(
   gameDay: number,
   spec: StageRunSpec,
   output: Awaited<ReturnType<typeof simulateStage>>,
+  teamOfDay: TeamOfDay,
 ): Promise<void> {
   const stageWinner = output.results.find((r) => r.puesto === 1)
   if (!stageWinner) return
@@ -1183,21 +1186,13 @@ async function awardOutcome(
     gcOrder,
   )
 
-  const komLeader = [...output.results]
-    .filter((r) => r.puntosMontana > 0)
-    .sort((a, b) => b.puntosMontana - a.puntosMontana)[0]
   const brokeAway =
     output.events.some((e) => e.tipo === 'fuga_formada') &&
     !output.events.some((e) => e.tipo === 'fuga_cazada')
-  const nameIds = [stageWinner.riderId, komLeader?.riderId, gcOrder[0]].filter((id): id is string =>
-    Boolean(id),
-  )
-  const nameRows = await tx
-    .select({ id: riders.id, name: riders.name })
-    .from(riders)
-    .where(inArray(riders.id, nameIds))
-  const nameOf = (id: string): string => nameRows.find((r) => r.id === id)?.name ?? 'A rider'
   const seedBase = `${spec.raceKey}:${gameDay}:${spec.stageDay}`
+  // Los titulares de la etapa guardan DATOS, no nombres (docs/retransmision.md §12.8): la carrera, la
+  // etapa, el corredor y su equipo del día; el inglés lo pone `renderNews` al leer.
+  const race = { raceId: spec.raceId, season: spec.season, stageDay: spec.stageDay }
 
   // En una carrera de UN DÍA (etapa única = final) la victoria de etapa y la general son la misma:
   // se emite UNA sola noticia (la victoria en la carrera), con lenguaje de contrarreloj si es CRI.
@@ -1215,15 +1210,15 @@ async function awardOutcome(
   await emitNews(tx, {
     worldId,
     gameDay,
-    kind: winKind,
     seed: `win:${seedBase}`,
-    data: {
-      rider: nameOf(stageWinner.riderId),
-      race: spec.raceName,
-      stage: spec.stageDay,
-      ...rutaDe(spec),
-    },
+    raceKey: spec.raceKey,
     riderId: stageWinner.riderId,
+    payload: {
+      kind: winKind,
+      ...race,
+      riderId: stageWinner.riderId,
+      teamId: teamOfDay(stageWinner.riderId),
+    },
   })
   const gcWinnerId = gcOrder[0]
   // La general y la MONTAÑA son eventos aparte solo en carreras POR ETAPAS y solo al TERMINAR: un
@@ -1233,23 +1228,25 @@ async function awardOutcome(
       await emitNews(tx, {
         worldId,
         gameDay,
-        kind: 'gc_win',
         seed: `gc:${seedBase}`,
-        data: { rider: nameOf(gcWinnerId), race: spec.raceName },
+        raceKey: spec.raceKey,
         riderId: gcWinnerId,
+        payload: { kind: 'gc_win', ...race, riderId: gcWinnerId, teamId: teamOfDay(gcWinnerId) },
       })
     }
-    // Ganador de la clasificación de la montaña (suma de puntos de cima de toda la carrera).
+    // Ganador de la clasificación de la montaña (suma de puntos de cima de toda la carrera). Puede no
+    // haber tomado la salida hoy (abandonó con los puntos ya hechos): entonces su equipo es el de la
+    // ficha, que dentro del tick es el mismo que tenía.
     const komRows = await tx
       .select({
         riderId: stageResults.riderId,
-        name: riders.name,
+        teamId: riders.teamId,
         pts: sql<number>`sum(${stageResults.puntosMontana})::int`,
       })
       .from(stageResults)
       .innerJoin(riders, eq(riders.id, stageResults.riderId))
       .where(eq(stageResults.raceId, spec.raceKey))
-      .groupBy(stageResults.riderId, riders.name)
+      .groupBy(stageResults.riderId, riders.teamId)
       .orderBy(desc(sql`sum(${stageResults.puntosMontana})`))
       .limit(1)
     const komWinner = komRows[0]
@@ -1257,10 +1254,15 @@ async function awardOutcome(
       await emitNews(tx, {
         worldId,
         gameDay,
-        kind: 'kom',
         seed: `kom:${spec.raceKey}`,
-        data: { rider: komWinner.name, race: spec.raceName },
+        raceKey: spec.raceKey,
         riderId: komWinner.riderId,
+        payload: {
+          kind: 'kom',
+          ...race,
+          riderId: komWinner.riderId,
+          teamId: teamOfDay(komWinner.riderId) ?? komWinner.teamId,
+        },
       })
     }
   }

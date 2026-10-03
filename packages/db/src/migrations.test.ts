@@ -7,6 +7,7 @@ import postgres from 'postgres'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { LOCK_CLASS, TICK_LOCK_KEY } from './locks.js'
 import { hasPendingMigrations, runMigrations } from './migrate.js'
+import { getGlobalNews } from './news.js'
 import {
   type TestDb,
   realTestDatabaseUrl,
@@ -109,9 +110,34 @@ describe('db: migraciones desde cero', () => {
       'race_entries_race_season_idx',
       'team_race_plan_season_race_idx',
       'contracts_rider_uidx',
+      // 0046_noticias_con_datos (docs/retransmision.md §13.2): el velo corta por carrera y etapa.
+      'news_race_stage_idx',
     ]) {
       expect(names.has(idx), `falta el índice ${idx}`).toBe(true)
     }
+  })
+
+  it('news_text_or_data: un titular sin texto ni datos no entra; solo con datos, sí (0046)', async () => {
+    const [world] = await t.client<{ id: string }[]>`
+      insert into worlds (world_seed, engine_version) values ('semilla-noticias', 1) returning id`
+    await expect(
+      t.client`insert into news (world_id, game_day, scope, kind)
+               values (${world!.id}, 1, 'global', 'stage_win')`,
+    ).rejects.toMatchObject({ code: '23514' })
+    const data = {
+      kind: 'gc_win',
+      raceId: 'race-france',
+      season: 0,
+      stageDay: 21,
+      riderId: '00000000-0000-4000-8000-000000000001',
+      teamId: null,
+    }
+    await t.client`insert into news (world_id, game_day, scope, kind, data, seed, race_key, stage_day, tpl_rev)
+                   values (${world!.id}, 2, 'global', 'gc_win', ${JSON.stringify(data)}::jsonb, 'gc:x',
+                           'race-france:s0', 21, 0)`
+    const [fila] = await t.client<{ text: string | null; data: unknown }[]>`
+      select text, data from news where world_id = ${world!.id}`
+    expect(fila).toEqual({ text: null, data })
   })
 })
 
@@ -197,6 +223,63 @@ describe('db: el ayudante que dice si hay migraciones pendientes', () => {
     await t.detached((url) => runMigrations(url))
     expect(await hasPendingMigrations(t.client)).toBe(false)
     expect(await hasPendingMigrations(t.client, ayer)).toBe(false)
+  })
+})
+
+/**
+ * EL MUNDO VIVO (docs/retransmision.md §13.10, punto 2): las migraciones de E2 caen sobre una base
+ * con datos, no vacía. Se migra una copia de `drizzle/` con el journal cortado en la última de antes
+ * de E2, se escribe una fila en cada tabla que tocan las de E2, se migra la carpeta entera y se leen
+ * las filas viejas. El diseño cortaba en `0042_transicion_e1`; producción ocupó después la 0043, la
+ * 0044 y la 0045, y la 0044 (el reinicio del mundo) VACÍA las tablas del mundo, así que con ese corte
+ * las filas viejas no llegarían vivas a la 0046: se corta en la 0045. El 5, el 7a y el 8a amplían
+ * este caso con las tablas de sus migraciones.
+ */
+describe('db: el mundo vivo, migrado con las migraciones de E2 encima', () => {
+  let t: TestDb
+
+  beforeAll(async () => {
+    t = await startEmptyTestDb()
+  }, 120_000)
+
+  afterAll(async () => {
+    await t?.close()
+  })
+
+  it('las filas de antes de E2 se siguen leyendo, con las columnas nuevas a null', async () => {
+    await t.detached((url) => runMigrations(url, copiaCortada('0045_sin_vuelta_de_prueba')))
+    const vieja = 'Ana Ruiz signs for Equipo Alfa , relocating to Spain.'
+    // Con las columnas de ayer, que son las únicas que había (SQL a pelo: el esquema de hoy ya es otro).
+    const [world] = await t.client<{ id: string }[]>`
+      insert into worlds (world_seed, engine_version) values ('mundo-vivo', 91) returning id`
+    const [rider] = await t.client<{ id: string }[]>`
+      insert into riders (world_id, name, country, gender, birth_season, archetype, face_seed)
+      values (${world!.id}, 'Ana Ruiz', 'ES', 'F', -25, 'fondo', 'f1') returning id`
+    await t.client`
+      insert into news (world_id, game_day, scope, rider_id, kind, text)
+      values (${world!.id}, 120, 'global', ${rider!.id}, 'contract', ${vieja})`
+
+    await t.detached((url) => runMigrations(url))
+
+    // news (0046): el texto se queda y los datos nuevos, a null; nada se rellena hacia atrás.
+    const [noticia] = await t.client`
+      select text, seed, data, race_key, stage_day, tpl_rev from news where world_id = ${world!.id}`
+    expect(noticia).toEqual({
+      text: vieja,
+      seed: null,
+      data: null,
+      race_key: null,
+      stage_day: null,
+      tpl_rev: null,
+    })
+    const feed = await getGlobalNews(t.db, world!.id)
+    expect(feed).toHaveLength(1)
+    expect(feed[0]).toMatchObject({
+      kind: 'contract',
+      text: vieja,
+      payload: null,
+      riderId: rider!.id,
+    })
   })
 })
 

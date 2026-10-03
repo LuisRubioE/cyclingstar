@@ -1,8 +1,10 @@
-import { TEST_TOUR } from '@cyclingstar/engine'
-import { ATTRIBUTES } from '@cyclingstar/shared'
-import { and, asc, eq, sql } from 'drizzle-orm'
+import { type Incident, TEST_TOUR } from '@cyclingstar/engine'
+import { ATTRIBUTES, TEMPLATE_REV, newsPayloadSchema, renderNews } from '@cyclingstar/shared'
+import { and, asc, eq, inArray, sql } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { newsNames } from './news.js'
 import {
+  news,
   raceGc,
   raceRosters,
   riderAttrLog,
@@ -16,7 +18,7 @@ import {
   teams,
   worlds,
 } from './schema.js'
-import { runOneStage } from './stageRun.js'
+import { applyIncidents, runOneStage } from './stageRun.js'
 import { getTeamClassifications } from './teamClassification.js'
 import { type TestDb, startTestDb } from './testDb.js'
 
@@ -42,7 +44,9 @@ const FIELD = 40
  */
 const idDe = (i: number) => `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`
 
-async function seedMiniWorld(t: TestDb): Promise<{ worldId: string; riderIds: string[] }> {
+async function seedMiniWorld(
+  t: TestDb,
+): Promise<{ worldId: string; teamId: string; riderIds: string[] }> {
   const [world] = await t.db
     .insert(worlds)
     .values({ worldSeed: 'semilla-etapa', engineVersion: 1 })
@@ -112,18 +116,20 @@ async function seedMiniWorld(t: TestDb): Promise<{ worldId: string; riderIds: st
   await t.db
     .insert(raceRosters)
     .values(riderIds.map((id, i) => ({ raceId: RACE_KEY, riderId: id, bib: i + 1 })))
-  return { worldId, riderIds }
+  return { worldId, teamId: team!.id, riderIds }
 }
 
 describe('db: runOneStage escribe en lote con la misma semántica', () => {
   let t: TestDb
   let worldId: string
+  let teamId: string
   let riderIds: string[]
 
   beforeAll(async () => {
     t = await startTestDb()
     const seeded = await seedMiniWorld(t)
     worldId = seeded.worldId
+    teamId = seeded.teamId
     riderIds = seeded.riderIds
   }, 180_000)
 
@@ -336,5 +342,113 @@ describe('db: runOneStage escribe en lote con la misma semántica', () => {
     for (const k of radio!.kms) expect(k.groups.length).toBeGreaterThan(0)
     // El primer grupo de carretera es el líder: su hueco al líder es cero por construcción.
     expect(radio!.kms[0]!.groups[0]!.gapS).toBe(0)
+  })
+
+  /**
+   * LAS NOTICIAS DE LA ETAPA SE GUARDAN CON SUS DATOS (docs/retransmision.md §12.8 y §13.2; E2, paso
+   * 1a). Las dos etapas del primer caso escribieron sus titulares (la victoria, la general y la
+   * montaña de la final, y los abandonos y lesiones que hubiera): todos llevan un `NewsPayload` que
+   * valida, su semilla, la carrera y la etapa de quien los escribe, y su `text` de compatibilidad es
+   * exactamente lo que se lee al redactar desde los datos (B4).
+   */
+  it('cada titular de la etapa guarda sus datos y se lee como se escribió', async () => {
+    const filas = await t.db.select().from(news).where(eq(news.worldId, worldId))
+    const VICTORIA = ['stage_win', 'tt_win', 'breakaway_win']
+    // Una victoria por etapa, y la general de la final.
+    for (const dia of [1, 2]) {
+      expect(filas.filter((f) => VICTORIA.includes(f.kind) && f.stageDay === dia)).toHaveLength(1)
+    }
+    expect(filas.filter((f) => f.kind === 'gc_win')).toHaveLength(1)
+    const payloads = filas.map((f) => newsPayloadSchema.parse(f.data))
+    const nombres = await newsNames(t.db, payloads)
+    for (const [i, fila] of filas.entries()) {
+      const p = payloads[i]!
+      expect(fila.kind).toBe(p.kind)
+      expect(fila.tplRev).toBe(TEMPLATE_REV)
+      expect(fila.raceKey).toBe(RACE_KEY)
+      expect(fila.stageDay).toBe('stageDay' in p ? p.stageDay : null)
+      expect(p).toMatchObject({ raceId: 'race-test', season: 0 })
+      // El equipo del día: el de la entrada de la etapa, que aquí es el único equipo.
+      expect('teamId' in p ? p.teamId : null).toBe(teamId)
+      expect(fila.text).toBe(renderNews('en', p, fila.seed!, fila.tplRev!, nombres))
+    }
+    const victoria = filas.find((f) => VICTORIA.includes(f.kind) && f.stageDay === 1)!
+    expect(victoria.seed).toBe(`win:${RACE_KEY}:1:1`)
+    // 'race-test' no está en el calendario: la carrera se nombra por su id y la etapa, sin ruta.
+    expect(victoria.text).toMatch(
+      /^Corredor \d+ wins stage 1 of the race-test( from the breakaway)?\.$/,
+    )
+  })
+
+  /**
+   * LA LESIÓN GUARDA LA SALUD DE ANTES (§12.8; la máscara de la ficha, sup. P5, la enseña mientras la
+   * etapa de la caída esté velada). `applyIncidents` la conoce antes de escribir la nueva.
+   */
+  it('injury guarda los días, la salud de antes y hasta cuándo', async () => {
+    const tocado = riderIds[5]!
+    const sano = riderIds[6]!
+    await t.db
+      .update(riders)
+      .set({ health: 'molestias', healthUntilDay: 40 })
+      .where(eq(riders.id, tocado))
+    await t.db
+      .update(riders)
+      .set({ health: 'sano', healthUntilDay: null })
+      .where(eq(riders.id, sano))
+    const filas = await t.db
+      .select({ id: riders.id, health: riders.health, healthUntilDay: riders.healthUntilDay })
+      .from(riders)
+      .where(inArray(riders.id, [tocado, sano]))
+    const riderById = new Map(filas.map((r) => [r.id, r]))
+    const caida = (riderId: string, diasBaja: number): Incident => ({
+      riderId,
+      km: 80,
+      tipo: 'caida',
+      severidad: 'minor',
+      perdidaS: 60,
+      diasBaja,
+    })
+    const spec = { raceKey: RACE_KEY, raceId: 'race-test', season: 0, stageDay: 3 }
+    await t.db.transaction((tx) =>
+      applyIncidents(
+        tx,
+        worldId,
+        30,
+        spec,
+        [caida(tocado, 16), caida(sano, 3)],
+        riderById,
+        () => teamId,
+      ),
+    )
+    const lesiones = await t.db
+      .select({ riderId: news.riderId, data: news.data, text: news.text })
+      .from(news)
+      .where(and(eq(news.worldId, worldId), eq(news.kind, 'injury'), eq(news.gameDay, 30)))
+    const de = (id: string) => lesiones.find((l) => l.riderId === id)!
+    expect(de(tocado).data).toEqual({
+      kind: 'injury',
+      raceId: 'race-test',
+      season: 0,
+      stageDay: 3,
+      riderId: tocado,
+      teamId,
+      days: 16,
+      prevHealth: 'molestias',
+      prevUntilDay: 40,
+    })
+    expect(de(tocado).text).toBe('Corredor 5 injured — out for 2 weeks.')
+    expect(de(sano).data).toMatchObject({ days: 3, prevHealth: 'sano', prevUntilDay: null })
+    expect(de(sano).text).toBe('Corredor 6 injured — out for 3 days.')
+    // …y la salud nueva, que es la de siempre: lesionado hasta el día de la caída más la baja.
+    const despues = await t.db
+      .select({ id: riders.id, health: riders.health, healthUntilDay: riders.healthUntilDay })
+      .from(riders)
+      .where(inArray(riders.id, [tocado, sano]))
+    expect(new Map(despues.map((r) => [r.id, [r.health, r.healthUntilDay]]))).toEqual(
+      new Map([
+        [tocado, ['lesionado', 46]],
+        [sano, ['lesionado', 33]],
+      ]),
+    )
   })
 })
