@@ -43,10 +43,20 @@ import { buildApp } from '../app.js'
  *   `runOneStage`), tienen que pasar por las envolturas de abajo, armadas con `YESTERDAY`: como los
  *   objetos son strip, eso es exactamente lo que valida la web anterior.
  */
+/** Los seis campos que el 1a añade a los dos titulares (§14.2): la web de ayer no los conoce. */
+const NEWS_DATA = {
+  payload: true,
+  seed: true,
+  tplRev: true,
+  raceId: true,
+  raceKey: true,
+  stageDay: true,
+} as const
+
 const YESTERDAY = {
   stageReplay: stageReplaySchema,
-  newsItem: newsItemSchema,
-  teamNewsItem: teamNewsItemSchema,
+  newsItem: newsItemSchema.omit(NEWS_DATA),
+  teamNewsItem: teamNewsItemSchema.omit(NEWS_DATA),
   lastRaceResponse: lastRaceResponseSchema,
   riderRaceReport: riderRaceReportSchema,
   health: healthSchema,

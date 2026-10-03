@@ -577,29 +577,64 @@ describe('contratos: la etapa y las noticias, tal como las tolera la web de hoy'
   })
 
   it('un titular con claves que no conoce vale, y las claves de más se quedan fuera', () => {
-    // Los objetos son strip (contracts.ts, cabecera): el titular de E2 llega con sus datos y la web
-    // de hoy lo lee por su `text` de siempre, sin ver lo demás.
+    // Re-sellado en el 1a (docs/retransmision.md §14.2): los seis campos del titular con datos
+    // (`payload`, `seed`, `tplRev`, `raceId`, `raceKey` y `stageDay`), que en el paso 0 eran aquí
+    // las claves de más, ya son del esquema. Lo que el caso fija no cambia: un campo que la API
+    // añada mañana se queda fuera y la web lee el titular por lo que conoce. Que la web de AYER se
+    // trague los seis lo fija `apps/api/src/routes/yesterday.test.ts`, con su `.omit`.
     const today = {
       gameDay: 187,
       kind: 'stage_win',
-      text: 'Ana Ruiz wins stage 3 of the Race France',
+      text: 'Ana Ruiz wins stage 3 of the Race France.',
       personal: false,
       riderId: 'r1',
       riderName: 'Ana Ruiz',
       country: 'ES',
       teamId: 't1',
       teamName: 'Equipo Uno',
-    }
-    const widened = {
-      ...today,
-      payload: { rider: 'Ana Ruiz', race: 'Race France', stage: 3 },
+      payload: {
+        kind: 'stage_win',
+        raceId: 'race-france',
+        season: 0,
+        stageDay: 3,
+        riderId: 'r1',
+        teamId: 't1',
+      },
       seed: 'win:race-france:s0:187:3',
       tplRev: 0,
       raceId: 'race-france',
       raceKey: 'race-france:s0',
       stageDay: 3,
     }
+    const widened = { ...today, watch: { known: false }, gate: null }
     expect(newsItemSchema.parse(widened)).toEqual(today)
     expect(newsResponseSchema.parse({ news: [widened] })).toEqual({ news: [today] })
+  })
+
+  it('un titular de antes de la 0046 llega sin datos y se lee por su text', () => {
+    const old = {
+      gameDay: 40,
+      kind: 'contract',
+      text: 'Ana Ruiz signs for Equipo Uno , relocating to Spain.',
+      personal: true,
+      riderId: 'r1',
+      riderName: 'Ana Ruiz',
+      country: 'ES',
+      teamId: 't1',
+      teamName: 'Equipo Uno',
+    }
+    expect(newsItemSchema.parse(old)).toEqual(old)
+    const sinDatos = {
+      ...old,
+      payload: null,
+      seed: null,
+      tplRev: null,
+      raceId: null,
+      raceKey: null,
+      stageDay: null,
+    }
+    expect(newsItemSchema.parse(sinDatos)).toEqual(sinDatos)
+    // Unos datos que no son un `NewsPayload` no se mandan: la API los pone a null (§14.2).
+    expect(newsItemSchema.safeParse({ ...old, payload: { rider: 'Ana Ruiz' } }).success).toBe(false)
   })
 })
