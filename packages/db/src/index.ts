@@ -138,6 +138,9 @@ export {
   type StageResultRow,
   type StageSnapshotRow,
 } from './results.js'
+// Una etapa corrida como la corre el tick, para los tests de `apps/api` que piden la ruta de etapa y
+// para los scripts de banco (docs/retransmision.md §17.3; el diseño lo ponía en el paso 2, §17.20).
+export { runOneStage, type StageRunSpec } from './stageRun.js'
 export {
   TEAM_SCORING_RIDERS,
   getTeamClassifications,
