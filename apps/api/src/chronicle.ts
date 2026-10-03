@@ -1,8 +1,10 @@
 import type { AltimetryMarker } from '@cyclingstar/engine'
 import {
   type ChronicleRider,
+  type LiveLine,
   type RaceLeaders,
   type RaceRadio,
+  type RaceS,
   type RadioRider,
   jerseyOf,
   pullMotiveSchema,
@@ -36,6 +38,12 @@ export interface ChronicleEntry {
   protagonists: ChronicleRider[]
   mentions?: Record<string, ChronicleRider>
   datos: Record<string, number | string> | undefined
+  /**
+   * SOLO EN LA VOZ (`live`, E2 §12.2): la hora de carrera a la que se supo el suceso de esta línea.
+   * Viaja por las pasadas dentro de la propia entrada —todas las que corren en vivo la copian con
+   * `{ ...e }`— y `buildChronicle` la devuelve como `LiveLine.revealS`. El acta no la lleva nunca.
+   */
+  revealS?: RaceS
 }
 
 /**
@@ -265,6 +273,25 @@ const CLUSTERED: readonly { single: string; many: string }[] = [
   { single: 'rider_abandons', many: 'riders_abandon' },
 ]
 
+/**
+ * LA VOZ (E2, docs/retransmision.md §12.2; D-43): la crónica causal de lo revelado hasta `untilS`.
+ *
+ * El acta mira la etapa entera: `caughtLaterKm` es la captura de la fuga aunque ocurra ciento veinte
+ * kilómetros más tarde, y una retransmisión que la llamara con la etapa entera enseñaría en el km 10
+ * lo que pasa en el 126. La voz es la misma crónica con la etapa CORTADA en lo que ya se sabe, y
+ * ninguna pasada se reescribe: se trunca la entrada, se ordena por la hora en que cada cosa se sabe,
+ * la longitud de la etapa entra como dato y se apagan las cinco pasadas que cambian o borran una línea
+ * ya dicha por algo que pasa después. Así la voz de `t` es prefijo exacto de la de `t + 30 s` (B19).
+ */
+export interface LiveChronicle {
+  /** El borde de lo que se cuenta, en s de carrera: el final del tramo pedido (§14.3). */
+  readonly untilS: RaceS
+  /** StageTimeline.lengthKm: el «ahora» ya no es el último suceso, que truncado es cualquiera. */
+  readonly stageKm: number
+  /** La hora de revelado de cada suceso (§4.7). La ruta la ata por la identidad del objeto (§14.3). */
+  readonly revealS: (e: ChronicleEvent) => RaceS
+}
+
 /** Cómo se arma la crónica de ESTA etapa. */
 export interface BuildChronicleOptions {
   /**
@@ -275,8 +302,12 @@ export interface BuildChronicleOptions {
    * cruzando la meta mientras el último todavía no ha tomado la rampa, así que ordenar por km
    * pondría todas las llegadas juntas al final y todos los parciales juntos al principio, con el
    * relato mezclando dos horas distintas de la tarde. El reloj es el hilo de la historia.
+   *
+   * Con `live` no ordena: la voz va por la hora de revelado (12-a), también en la crono.
    */
   byClock?: boolean
+  /** La voz en vivo (§12.2). Sin ella, el acta: todo como hasta E2. */
+  live?: LiveChronicle
 }
 
 /**
@@ -285,17 +316,37 @@ export interface BuildChronicleOptions {
  * duplicados y agrupa lo que en bruto sería una lista. Es la frontera entre TELEMETRÍA y NARRATIVA
  * (docs/motor.md §16): los eventos guardados no se tocan nunca, y todo lo que se decide aquí vale
  * también para las etapas ya congeladas.
+ *
+ * Con `live` es la VOZ (`LiveChronicle`): cada línea lleva la hora a la que se dice (`LiveLine`).
  */
 export function buildChronicle(
   events: readonly ChronicleEvent[],
   names: ChronicleNames,
+  options: BuildChronicleOptions & { readonly live: LiveChronicle },
+): LiveLine[]
+export function buildChronicle(
+  events: readonly ChronicleEvent[],
+  names: ChronicleNames,
+  options?: BuildChronicleOptions,
+): ChronicleEntry[]
+// La implementación devuelve la unión: con un `ChronicleEntry[]` a secas la primera sobrecarga no
+// compila (TS2394), porque el `ChronicleEntry` de aquí no es el de `shared` ni lleva `revealS`.
+export function buildChronicle(
+  events: readonly ChronicleEvent[],
+  names: ChronicleNames,
   options: BuildChronicleOptions = {},
-): ChronicleEntry[] {
+): ChronicleEntry[] | LiveLine[] {
+  const live = options.live
   const riderOf = (id: string): ChronicleRider => names.riderOf.get(id) ?? unknownRider(id)
   // ¿Se acaba cazando la fuga? Se sabe aquí y no en el motor, que emite en carretera sin ver el
   // futuro. Sirve para que «el pelotón concede» no contradiga a la captura de treinta km después.
-  const caughtLaterKm = events.find((e) => e.plantilla === 'breakaway_caught')?.km ?? null
+  // En vivo no se mira (markConcession, apagada): la captura todavía no ha pasado.
+  const caughtLaterKm =
+    live === undefined ? (events.find((e) => e.plantilla === 'breakaway_caught')?.km ?? null) : null
   const ordered = events
+    // LA VOZ SOLO CUENTA LO QUE YA SE SABE (D-43.1): ni lo de después del borde del tramo, que
+    // todavía no ha pasado en pantalla, ni lo que las pasadas de abajo podrían ver por adelantado.
+    .filter((e) => live === undefined || live.revealS(e) <= live.untilS)
     // TELEMETRÍA frente a NARRATIVA (docs/motor.md §16): el motor emite TODOS los intentos de
     // movimiento porque son dato de carrera, y marca con `narra` cuáles merecen una frase. Una
     // etapa tiene una docena de intentos y la crónica no puede ser su inventario.
@@ -316,29 +367,40 @@ export function buildChronicle(
         plantilla: e.plantilla,
         protagonists: e.protagonistas.map(riderOf),
         ...(Object.keys(mentions).length > 0 ? { mentions } : {}),
-        datos: markConcession(e, caughtLaterKm),
+        // En vivo, la concesión se dice tal cual: la desmiente la captura cuando llega (§12.2).
+        datos: live === undefined ? markConcession(e, caughtLaterKm) : e.datos,
+        ...(live === undefined ? {} : { revealS: live.revealS(e) }),
       }
     })
     .sort((a, b) =>
-      options.byClock === true
-        ? a.tS - b.tS ||
+      live !== undefined
+        ? // LA VOZ SE ORDENA POR LA HORA EN QUE SE SABE (12-a), y a igualdad por el reloj del suceso,
+          // el orden narrativo y el km. Ordenada por `tS`, una línea que se sabe tarde pero ocurrió
+          // antes se metería DELANTE de líneas ya dichas: medido, 44 roturas del prefijo en 18
+          // corridas, contra ninguna así (`l8/voz.mjs`). Lo nuevo siempre entra por el final.
+          (a.revealS ?? 0) - (b.revealS ?? 0) ||
+          a.tS - b.tS ||
           (EVENT_ORDER[a.plantilla] ?? 9) - (EVENT_ORDER[b.plantilla] ?? 9) ||
           a.km - b.km
-        : // DENTRO DEL MISMO KILÓMETRO MANDA EL RELOJ DE CARRERA (v21). El orden narrativo
-          // (`EVENT_ORDER`) es una tabla de prioridades fija y se estrenó para desempatar eventos
-          // que ocurren a la vez; en el último kilómetro de una etapa caen seis y NO ocurren a la
-          // vez. Medido en producción, Race Bességes e4: la captura de la fuga y quién la cerró
-          // llevan `tS` 13713 y la victoria 13735 —la caza fue ANTES—, y la crónica imprimía
-          // primero la victoria. El motor tenía razón y el ordenador no lo miraba.
-          //
-          // El reloj va por delante de la tabla y la tabla queda para lo que de verdad comparte
-          // segundo. Solo la VICTORIA se queda fija al final de su kilómetro: es el cierre del
-          // relato y ningún parte del pelotón que cruce la meta después le quita ese sitio.
-          a.km - b.km ||
-          openingRank(a.plantilla) - openingRank(b.plantilla) ||
-          finalRank(a.plantilla) - finalRank(b.plantilla) ||
-          a.tS - b.tS ||
-          (EVENT_ORDER[a.plantilla] ?? 9) - (EVENT_ORDER[b.plantilla] ?? 9),
+        : options.byClock === true
+          ? a.tS - b.tS ||
+            (EVENT_ORDER[a.plantilla] ?? 9) - (EVENT_ORDER[b.plantilla] ?? 9) ||
+            a.km - b.km
+          : // DENTRO DEL MISMO KILÓMETRO MANDA EL RELOJ DE CARRERA (v21). El orden narrativo
+            // (`EVENT_ORDER`) es una tabla de prioridades fija y se estrenó para desempatar eventos
+            // que ocurren a la vez; en el último kilómetro de una etapa caen seis y NO ocurren a la
+            // vez. Medido en producción, Race Bességes e4: la captura de la fuga y quién la cerró
+            // llevan `tS` 13713 y la victoria 13735 —la caza fue ANTES—, y la crónica imprimía
+            // primero la victoria. El motor tenía razón y el ordenador no lo miraba.
+            //
+            // El reloj va por delante de la tabla y la tabla queda para lo que de verdad comparte
+            // segundo. Solo la VICTORIA se queda fija al final de su kilómetro: es el cierre del
+            // relato y ningún parte del pelotón que cruce la meta después le quita ese sitio.
+            a.km - b.km ||
+            openingRank(a.plantilla) - openingRank(b.plantilla) ||
+            finalRank(a.plantilla) - finalRank(b.plantilla) ||
+            a.tS - b.tS ||
+            (EVENT_ORDER[a.plantilla] ?? 9) - (EVENT_ORDER[b.plantilla] ?? 9),
     )
     // Quita duplicados exactos consecutivos (misma frase, mismos protagonistas y km).
     .filter((e, i, arr) => {
@@ -350,6 +412,13 @@ export function buildChronicle(
         prev.protagonists.map((p) => p.name).join() !== e.protagonists.map((p) => p.name).join()
       )
     })
+  /**
+   * DÓNDE ESTÁ LA META, en la voz: la longitud de la etapa como DATO (§12.2, paso 4). Truncada, el
+   * último suceso es cualquiera, y deducir de él la meta haría que el km 70 de una etapa de 150 dijera
+   * «0 km to go» y llamara desenlace a un ataque a 90 km de meta. Redondeada como los km de las
+   * líneas, para que `toGo` sea el mismo entero que da el acta, cuyo último suceso es la meta.
+   */
+  const lengthKm = live === undefined ? undefined : Math.round(live.stageKm)
   let out = dedupeSitUps(normalizeKomLeads(normalizeSplits(ordered)))
   out = dropImpossibleLines(out)
   out = dropRetiredWorkers(out)
@@ -357,23 +426,35 @@ export function buildChronicle(
   // CONGELADAS, que es lo que el dueño está leyendo hoy y lo único que el motor no puede arreglar.
   out = dropLoneChaseGaps(out)
   out = retellCatch(out)
-  out = markReunion(out)
-  out = dropUndoneSelections(out)
-  out = groupGapRuns(out)
+  out = markReunion(out, lengthKm)
+  // LAS CINCO PASADAS QUE MIRAN EL FUTURO SE APAGAN EN VIVO (D-43, X-14): cambian o borran una línea
+  // ya dicha por algo que pasa después, y lo dicho no se reescribe. Cada hueco se cubre de otra
+  // manera (§12.2): la criba lejana queda dicha y la reunión se cuenta cuando pasa; los partes de
+  // ventaja seguidos los dice la capa fija; el ataque cazado en 3 km son dos líneas; los descuelgues,
+  // la barra y los racimos en vivo (`liveClusters.ts`). La concesión, arriba, en el `map`.
+  if (live === undefined) {
+    out = dropUndoneSelections(out)
+    out = groupGapRuns(out)
+  }
   // LA ESPINA DORSAL DEL RELATO (v27). Las tres pasadas que hacen que en cualquier punto del diario
   // se pueda responder quién va delante, con cuánto, sobre quién y cuánto queda. Van DESPUÉS de
   // `groupGapRuns` porque el resumen de una racha es una línea nueva y también necesita su líder.
-  out = followTheLeader(out)
-  out = clockTheGaps(out)
+  out = followTheLeader(out, lengthKm)
+  out = clockTheGaps(out, lengthKm)
   out = foldSameFailure(out)
   out = markFrontDelta(out)
   out = dropAttackEcho(out)
-  out = foldQuickAttacks(out)
+  if (live === undefined) out = foldQuickAttacks(out)
   out = dropRepeatedPulls(out)
   out = markAgreement(out)
   out = markChaseWork(out)
-  for (const kind of CLUSTERED) out = groupRuns(out, kind.single, kind.many)
-  return out
+  if (live === undefined) {
+    for (const kind of CLUSTERED) out = groupRuns(out, kind.single, kind.many)
+    return out
+  }
+  // Cada línea de la voz con su hora: la de su suceso, que las pasadas encendidas copian con la
+  // entrada (ninguna crea líneas nuevas).
+  return out.map(({ revealS, ...line }) => ({ ...line, revealS: revealS ?? live.untilS }))
 }
 
 /**
@@ -538,11 +619,13 @@ const REGROUPS_THE_RACE = new Set(['peloton_regroup', 'bunch_sprint'])
  *
  * Vive aquí y no en el motor porque es lo único que llega a las etapas YA CORRIDAS, que son las que
  * el dueño está leyendo: el motor de la v27 ya nombra a los suyos, pero los eventos congelados no.
+ *
+ * `lengthKm` es la meta en la voz (E2 §12.2); sin él, la del acta: el km del último suceso.
  */
-function followTheLeader(entries: ChronicleEntry[]): ChronicleEntry[] {
+function followTheLeader(entries: ChronicleEntry[], lengthKm?: number): ChronicleEntry[] {
   /** Quiénes van delante según lo último que se ha contado; `null` cuando ya no se sabe. */
   let front: ChronicleRider[] | null = null
-  const lastKm = entries.reduce((mx, e) => Math.max(mx, e.km), 0)
+  const lastKm = lengthKm ?? entries.reduce((mx, e) => Math.max(mx, e.km), 0)
   return entries.map((e) => {
     const names = new Set((front ?? []).map((p) => p.name))
     const tocaAlLider = e.protagonists.some((p) => names.has(p.name))
@@ -631,10 +714,10 @@ const SUBPLOT = new Set(['attack_go', 'attack_sticks', 'attack_short', 'bridge_m
  * CUÁNTO QUEDA (v27). La cuarta pregunta de la regla, y la más barata: una ventaja sin el punto de
  * la carretera en el que se lee no sitúa nada («the lead grows to 6:53» — ¿a 100 km de meta o a
  * 14?). El motor de la v27 manda `toGo` en el parte de ventaja; en las etapas ya corridas se
- * reconstruye con lo que la crónica sabe de sobra: dónde está la meta.
+ * reconstruye con lo que la crónica sabe de sobra: dónde está la meta (en la voz, `lengthKm`).
  */
-function clockTheGaps(entries: ChronicleEntry[]): ChronicleEntry[] {
-  const lastKm = entries.reduce((mx, e) => Math.max(mx, e.km), 0)
+function clockTheGaps(entries: ChronicleEntry[], lengthKm?: number): ChronicleEntry[] {
+  const lastKm = lengthKm ?? entries.reduce((mx, e) => Math.max(mx, e.km), 0)
   if (lastKm <= 0) return entries
   return entries.map((e) => {
     if (e.plantilla !== 'time_gap' && e.plantilla !== 'time_gap_run') return e
@@ -933,8 +1016,10 @@ const REUNION_MIN_FRACTION = 0.75
  * `juntos` viaja con el evento: 1 si el grupo que caza sigue siendo casi todo el pelotón, 0 si lo
  * que caza es un pedazo de carrera. La web escribe una frase distinta en cada caso, y así también se
  * arreglan las etapas ya corridas.
+ *
+ * `lengthKm` es la meta en la voz (E2 §12.2); sin él, la del acta: el km del último suceso.
  */
-function markReunion(entries: ChronicleEntry[]): ChronicleEntry[] {
+function markReunion(entries: ChronicleEntry[], lengthKm?: number): ChronicleEntry[] {
   let maxFront = 0
   let lastFront: number | null = null
   // Y los dos números que hacen que la captura sea una historia y no un trámite: desde cuándo
@@ -942,7 +1027,7 @@ function markReunion(entries: ChronicleEntry[]): ChronicleEntry[] {
   // etapas ya corridas se RECONSTRUYEN de la propia crónica, que sabe en qué km se formó la fuga y
   // en cuál acabó la etapa. Es el mismo apaño que la v13 hizo con el `before` de los cortes.
   const formedKm = entries.find((e) => e.plantilla === 'breakaway_formed')?.km ?? null
-  const lastKm = entries.reduce((mx, e) => Math.max(mx, e.km), 0)
+  const lastKm = lengthKm ?? entries.reduce((mx, e) => Math.max(mx, e.km), 0)
   return entries.map((e) => {
     // El grupo que persigue: el tamaño que anuncian los eventos que lo dicen, y el `chaseSize` del
     // parte de boquete, que es justo el del grupo que va a cazar.
