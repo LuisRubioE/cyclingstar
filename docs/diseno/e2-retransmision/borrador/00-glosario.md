@@ -1039,7 +1039,7 @@ Los PR con nombre propio (§17.2): 8a (mecanismos P, F, G y N) y 8b (R y M), el 
 | `[DUEÑO n]`, `[DOC n]`, contradicción n | requisitos y contradicciones del mapa 05 §5 y §6 | `mapas/05-dueno-docs.md` |
 | E1-E9, C1-C6, I1-I4, N1-N4, H1-H7, P1-P6, W1-W6, T1-T6 | las 48 superficies (en el documento se escriben `sup. E1`, etc., para no confundir `I1` con el invariante) | `mapas/03-web-superficie-destripe.md` §4 |
 | X1-X11 | las once puertas fuera del inventario (en el documento, `sup. X1`); la décima, `sup. X10`, la añadió §11.2 (11-b), y la undécima, `sup. X11`, su corrección (11-r) | `propuestas/producto.md` §1.7 y §7.5; §11.2 |
-| `0-a` a `21-g` | las decisiones que tomó cada sección en su bloque de cierre (234 al escribirse: 218 de §3 a §19 y 16 de §0, §20 y §21; más las de la fase adversaria y dos de la pasada de coherencia, 12-s y 15-l) | el bloque «Decisión tomada aquí» de cada sección |
+| `0-a` a `21-g` | las decisiones que tomó cada sección en su bloque de cierre (234 al escribirse: 218 de §3 a §19 y 16 de §0, §20 y §21; 298 al cerrar la fase adversaria: 273 y 25, dos de ellas de la pasada de coherencia, 12-s y 15-l) | el bloque «Decisión tomada aquí» de cada sección |
 | `Rcodigo-nnn`, `Rcobertura-nnn`, `Rdueno-nnn`, `Rcoste-nnn` | los hallazgos de los cuatro refutadores de la fase adversaria | `refutaciones/hallazgos-*.json`; `correcciones-*.json` dice qué hizo con cada uno su lote |
 | A1 a G3 | las citas y reglas del dueño del mapa 05 §2 (la B3 de los racimos, la C7 del vocabulario, la D7 de «cambia el race radio»); se citan por su letra y número, sin prefijo | `mapas/05-dueno-docs.md` §2; §0.6 |
 

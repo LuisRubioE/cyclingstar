@@ -3,7 +3,7 @@
 # 04-fase-refutacion.md), el v1.
 #
 # Reproduce borrador/retransmision-v1.md a partir de los ficheros de sección, en el orden de la
-# tabla de §B de 00-esqueleto.md: la cabecera primero, con la línea de estado bajo el título, y
+# tabla de §B de 00-esqueleto.md: la cabecera primero, con la línea de estado bajo el título (la suya, si la trae), y
 # después §1 a §21, separadas por una línea `---`. De cada sección quita los bloques de cierre
 # «Propuesto para el glosario» (fundidos en 00-glosario.md), «Dudas para el ensamblador» y
 # «Dudas del cierre» (su estado está en dudas.md). No toca los ficheros de sección. El glosario de la síntesis
@@ -58,7 +58,10 @@ for n, fichero in orden:
     if n == 0:
         titulo, _, resto = texto.partition('\n')
         assert titulo.startswith('# '), '00-cabecera.md tiene que empezar por el título del documento'
-        texto = titulo + '\n\n' + ESTADO + '\n\n' + resto.lstrip('\n')
+        resto = resto.lstrip('\n')
+        if not resto.startswith('Estado:'):   # la cabecera del cierre trae su propia línea de estado
+            resto = ESTADO + '\n\n' + resto
+        texto = titulo + '\n\n' + resto
     else:
         assert texto.startswith(f'## {n}. '), f'{fichero} no empieza por «## {n}.»'
     partes.append(texto)

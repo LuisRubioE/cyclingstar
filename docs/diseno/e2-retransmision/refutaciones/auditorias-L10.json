@@ -95,7 +95,7 @@
   "tipo": "hallazgo",
   "veredicto": "cerrado",
   "evidencia": "§20.5 abre con lo que llega al jugador «solo cuando el dueño enciende los interruptores … lo poco que no tiene interruptor va al final» (20-dueno.md l. 79) y el párrafo «Lo que no tiene interruptor» (l. 89) pone detrás de `BROADCAST_WATCH` las palabras de papel del acta (40 de cada 210 líneas, `l8/rol.mjs`), el nombre de la pestaña `Story` y la pestaña de la carrera de un día (que §12.6, §11.17 y §17.9 y §17.12 ya miran con `broadcastOn()`: 11-superficies.md l. 695; 17-plan.md l. 292, 392 y 400) y escribe las cuatro excepciones con su cifra. El corrector lo dejaba parcial porque la cifra del 12 es estimada (1 − 1/n); el texto lo dice («estimado …, sin medir sobre etapas; B5 congela el resultado en ese PR»), que es lo que exige la regla de las cifras. Recontado aquí con el parser de TypeScript del repositorio sobre `apps/web/src/domain/stageJournal.ts` (sin cambios desde 25ecb3e): de las 90 llamadas a `pick`, 45 son entre dos redacciones, 44 entre tres y una entre cuatro, no 44 y 43; la conclusión, la mitad o dos tercios de las líneas que eligen, no cambia (A-L10-010).",
-  "accion": "lo he cerrado yo: 20-dueno.md l. 89, la cuenta de las elecciones (A-L10-010); necesita otra sección: §17.15 (17-plan.md l. 453) dice también «44 son entre dos y 43 entre tres»"
+  "accion": "lo he cerrado yo: 20-dueno.md l. 89, la cuenta de las elecciones (A-L10-010); necesita otra sección: §17.15 (17-plan.md l. 453) dice también «44 son entre dos y 43 entre tres»; §17.15 la cerró el cierre (fase 6c) con las mismas palabras (A-L10-010)"
  },
  {
   "id": "Rdueno-029",
@@ -702,9 +702,9 @@
   "id": "A-L10-010",
   "tipo": "comprobacion",
   "origen": "regla 3: la cifra de las redacciones que cambian en el paso 12, que §20.5 comparte con §17.15",
-  "veredicto": "parcial",
-  "evidencia": "Contadas con el parser de TypeScript del repositorio (`node_modules/typescript`) las llamadas a `pick([…])` de `apps/web/src/domain/stageJournal.ts` (sin cambios desde 25ecb3e, anterior al árbol 9c21885 del diseño): 90, de las que 45 eligen entre dos redacciones, 44 entre tres y una entre cuatro (l. 654). §20.5 y §17.15 decían «44 son entre dos y 43 entre tres». La conclusión (cambia la mitad o dos tercios de las líneas que eligen, por 1 − 1/n) no cambia: un 58 % de media.",
-  "accion": "lo he cerrado yo en 20-dueno.md l. 89 («45 son entre dos, 44 entre tres y una entre cuatro»); necesita otra sección: §17.15 (17-plan.md l. 453), de L9, con las mismas palabras"
+  "veredicto": "cerrado",
+  "evidencia": "Contadas con el parser de TypeScript del repositorio (`node_modules/typescript`) las llamadas a `pick([…])` de `apps/web/src/domain/stageJournal.ts` (sin cambios desde 25ecb3e, anterior al árbol 9c21885 del diseño): 90, de las que 45 eligen entre dos redacciones, 44 entre tres y una entre cuatro (l. 654). §20.5 y §17.15 decían «44 son entre dos y 43 entre tres». La conclusión (cambia la mitad o dos tercios de las líneas que eligen, por 1 − 1/n) no cambia: un 58 % de media. Cerrado en el cierre (fase 6c): §17.15 (17-plan.md l. 453) dice ya «de las 90 elecciones de redacción de `apps/web/src/domain/stageJournal.ts`, 45 son entre dos, 44 entre tres y una entre cuatro», como §20.5 (20-dueno.md l. 89); recontado de nuevo con el parser del repositorio (TypeScript 5.9.3): 90 llamadas a `pick([…])`, 45 de dos, 44 de tres y una de cuatro (l. 654). Ninguna otra sección da la cuenta.",
+  "accion": "lo he cerrado yo en 20-dueno.md l. 89 («45 son entre dos, 44 entre tres y una entre cuatro»); §17.15 (17-plan.md l. 453), de L9, lo cerró el cierre con las mismas palabras"
  },
  {
   "id": "A-L10-011",
