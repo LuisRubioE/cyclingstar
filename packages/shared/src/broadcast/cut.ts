@@ -158,11 +158,18 @@ export function visibilityOf(tl: TimelineCore): TimelineVisibility {
         moveRiderDs.push(null)
         break
       case 'mishap': {
+        // El suceso que lo cuenta es el de su corredor en su bloque. Su km va guardado en décimas (§4.2)
+        // y el del motor es el centro del bloque, que cae justo entre dos décimas: vale cualquiera de
+        // los dos bordes. Con el bloque del km redondeado (la regla del 3a) no casaban 91 de 136
+        // percances de la línea grabada (paso 4b), que se veían con la marca de su grupo y no con su suceso.
+        const lo = toKm10(e.b * tl.dx)
+        const hi = toKm10((e.b + 1) * tl.dx)
         const told = tl.events.findIndex(
           (x) =>
             MISHAP_TEMPLATES.has(x.plantilla) &&
             x.riders.includes(e.rider) &&
-            Math.max(0, Math.round(x.km / tl.dx - 0.5)) === e.b,
+            toKm10(x.km) >= lo &&
+            toKm10(x.km) <= hi,
         )
         const g = groupOf[e.rider] ?? -1
         stateEventDs.push(told >= 0 ? eventDs[told]! : atBlock(e.b, nearOf(g, e.b)))

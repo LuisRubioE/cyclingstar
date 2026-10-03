@@ -15,6 +15,7 @@ export {
   NPC,
   STAGE,
   TANK,
+  TIMELINE,
   TRAINING,
 } from './constants.js'
 export { deriveClimbCategory, isWall, sampleProfile, stageLengthKm } from './stage/sample.js'
@@ -199,11 +200,14 @@ export {
   type MountainStats,
   type TimeTrialStats,
 } from './sim/analyze.js'
+// `realRaceScenario` sale por el índice desde E2 (docs/retransmision.md §5.9, decisión 17-j): B10 corre en
+// `packages/db` las etapas del banco con su campo homogéneo, y `packages/db` solo ve lo que el motor exporta.
 export {
   campaignSeeds,
   flatScenario,
   queenScenario,
   queenThirdWeekScenario,
+  realRaceScenario,
   timeTrialScenario,
   type Scenario,
 } from './sim/scenarios.js'
@@ -218,20 +222,37 @@ export {
   PELOTON_MIN_SHARE,
   raceRadioCollector,
   raceRadioFrom,
+  radioGroupDetails,
   radioKmFrom,
   radioKmPoints,
   radioForStorage,
+  STORED_PULLERS_MAX,
   type RaceRadio,
   type RaceRadioOptions,
   type StoredRaceRadio,
   type StoredRadioGroup,
   type StoredRadioKm,
   type RadioGroup,
+  type RadioGroupDetail,
   type RadioGroupKind,
   type RadioKm,
   type RadioPuller,
   type ReplayCheck,
 } from './sim/raceRadio.js'
+// EL GRABADOR DE LA LÍNEA TEMPORAL (E2, docs/retransmision.md §5.4, §5.5 y §5.9; paso 4b). Lo engancha
+// `packages/db` (`startStageTimeline`, el colector aparte de §5.3) y cierra la línea al correr la etapa;
+// `profileStripOf` y `freezeStageWeather` congelan el recorrido y el tiempo del día para el cierre.
+export {
+  freezeStageWeather,
+  profileStripOf,
+  selfCheckI1,
+  selfCheckI5,
+  timelineRecorder,
+  type I1Mismatch,
+  type RecorderFinishInput,
+  type TimelineRecorder,
+  type TimelineRecorderOptions,
+} from './sim/timeline.js'
 export {
   advanceGroup,
   chaseReferenceIndex,
@@ -285,13 +306,17 @@ export type {
   DayGoal,
   Incident,
   Mentality,
+  ProbeBanner,
+  ProbeTimeTrialRide,
   RaceEvent,
   Ramp,
   Segment,
   SegmentTerrain,
+  SnapshotRider,
   StageInput,
   StageOrders,
   StageOutput,
+  StageProbe,
   StageProfile,
   StageResult,
   StageRider,

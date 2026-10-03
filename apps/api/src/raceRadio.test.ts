@@ -1,13 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
-  PULLERS_KEPT,
   buildRaceRadio,
   chronicleNames,
   storedRaceRadioSchema,
   veilStoredRadio,
 } from './chronicle.js'
 import { BROADCAST, type PullMotive } from '@cyclingstar/shared'
-import type { PullMotive as EnginePullMotive } from '@cyclingstar/engine'
+import { type PullMotive as EnginePullMotive, STORED_PULLERS_MAX } from '@cyclingstar/engine'
 import {
   ROAD_FIXTURES,
   fixtureStage,
@@ -226,9 +225,12 @@ describe('veilStoredRadio · la lista de seguimiento, cortada (11-l)', () => {
 
   it('un grupo de 13 o más se queda con los doce primeros que tiran y los nombrables', () => {
     const g = veilStoredRadio(radio, nameable).kms[0]!.groups[0]!
-    expect(g.pulling).toEqual([...ids.slice(0, PULLERS_KEPT).map((_, i) => i), 13])
-    expect(g.motivos).toEqual([...ids.slice(0, PULLERS_KEPT).map(() => null), 'equipo_general'])
-    expect(g.paraQuien).toEqual([...ids.slice(0, PULLERS_KEPT).map(() => null), 5])
+    expect(g.pulling).toEqual([...ids.slice(0, STORED_PULLERS_MAX).map((_, i) => i), 13])
+    expect(g.motivos).toEqual([
+      ...ids.slice(0, STORED_PULLERS_MAX).map(() => null),
+      'equipo_general',
+    ])
+    expect(g.paraQuien).toEqual([...ids.slice(0, STORED_PULLERS_MAX).map(() => null), 5])
     expect(g.watching).toEqual([15])
     expect([g.size, g.pullingTotal]).toEqual([20, 27])
   })
@@ -286,7 +288,7 @@ describe('veilStoredRadio · la lista de seguimiento, cortada (11-l)', () => {
                 (m, g) =>
                   m +
                   g.watching.filter(bad).length +
-                  g.pulling.slice(PULLERS_KEPT).filter(bad).length,
+                  g.pulling.slice(STORED_PULLERS_MAX).filter(bad).length,
                 0,
               )
           )

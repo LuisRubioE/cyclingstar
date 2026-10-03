@@ -1,4 +1,4 @@
-import type { AltimetryMarker } from '@cyclingstar/engine'
+import { type AltimetryMarker, STORED_PULLERS_MAX } from '@cyclingstar/engine'
 import {
   BROADCAST,
   type ChronicleRider,
@@ -1410,14 +1410,6 @@ export const storedRaceRadioSchema = z.object({
 export type StoredRadio = z.infer<typeof storedRaceRadioSchema>
 
 /**
- * Los doce primeros de `pulling` están por tirar, no por la lista de seguimiento. Copia de
- * `STORED_PULLERS_MAX` (packages/engine/src/sim/raceRadio.ts, junto a `TURNO_KM`) hasta el 4b, que la
- * exporta (5-g): entonces esta línea pasa a importarla del motor. Hasta ese día la ata
- * `broadcastConstants.test.ts` (docs/retransmision.md §15.5, 15-k).
- */
-export const PULLERS_KEPT = 12
-
-/**
  * LA RADIO GUARDADA SIN LO QUE SU LISTA DE SEGUIMIENTO DESTRIPA (E2, docs/retransmision.md §11.16,
  * decisión 11-l; D-16). La lista que escribe el tick mete en cada grupo grande, desde el km 0, a los
  * diez primeros DE LA ETAPA, y el motor guarda además, entre los que tiran por encima de los doce
@@ -1443,7 +1435,8 @@ export function veilStoredRadio(
         ...k,
         groups: k.groups.map((g) => {
           if (g.size <= BROADCAST.nameWholeGroupUpTo) return g
-          const keep = g.pulling.map((i, pi) => pi < PULLERS_KEPT || nameable(i))
+          // los `STORED_PULLERS_MAX` primeros de `pulling` están por tirar, no por la lista de seguimiento
+          const keep = g.pulling.map((i, pi) => pi < STORED_PULLERS_MAX || nameable(i))
           return {
             ...g,
             pulling: g.pulling.filter((_, pi) => keep[pi]),

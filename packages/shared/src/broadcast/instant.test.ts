@@ -16,6 +16,7 @@ import {
 } from './instant.js'
 import { GROUP_WORDS, groupLabelText } from './names.js'
 import { photoAt } from './reduce.js'
+import { type TimelineCore, toDs } from './timeline.js'
 import type { StartState } from './wire.js'
 
 /**
@@ -413,5 +414,44 @@ describe('instantAt · el corte diagonal sobre la etapa de juguete (§4.5)', () 
   it('las constantes de la histéresis y de la tendencia son las de §15.3', () => {
     expect(BROADCAST.roleHysteresisKm).toBe(1)
     expect(BROADCAST.trendWindowKm).toBe(5)
+  })
+
+  it('un mishap de estado se ve con el suceso que lo cuenta, con su km en cualquiera de las dos décimas de su bloque (4-s)', () => {
+    // r5 pincha en el bloque 25, el de su descuelgue. El motor fecha el suceso en el centro del bloque
+    // (2,55 km), que guardado en décimas puede ser 2,5 o 2,6 según el redondeo; el grabador del 4b da
+    // las dos (y con la regla del 3a, el bloque del km redondeado, solo casaba la primera).
+    const revealS = photos[25]!.clockS.peloton! + 3
+    const withMishap = (km: number): TimelineCore => {
+      const at = tl.stateEvents.findIndex((e) => e.b > 25)
+      return {
+        ...tl,
+        stateEvents: [
+          ...tl.stateEvents.slice(0, at),
+          { t: 'mishap', b: 25, rider: 5, kind: 'pinchazo', lostDs: 250 },
+          ...tl.stateEvents.slice(at),
+        ],
+        events: [
+          {
+            source: 0,
+            plantilla: 'puncture',
+            km,
+            tS: revealS,
+            bEmit: 25,
+            revealS,
+            riders: [5],
+            datos: null,
+          },
+        ],
+      }
+    }
+    for (const km of [2.5, 2.6]) {
+      const line = withMishap(km)
+      const i = line.stateEvents.findIndex((e) => e.t === 'mishap')
+      expect(visibilityOf(line).stateEventDs[i], `km ${km}`).toBe(toDs(revealS))
+    }
+    // el de otro bloque no lo cuenta: se ve con la marca de su grupo
+    const far = withMishap(2.7)
+    const i = far.stateEvents.findIndex((e) => e.t === 'mishap')
+    expect(visibilityOf(far).stateEventDs[i]).not.toBe(toDs(revealS))
   })
 })

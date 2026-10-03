@@ -87,8 +87,12 @@ export function clockMarksOf(tl: TimelineCore, g: GroupIx): readonly (readonly [
  * una línea cortada, se extrapola a la velocidad entre sus dos últimas marcas, y con una sola se queda
  * en ella: el 3-a (la velocidad del grupo de origen) es del instante, que es quien pinta (§4.5); en
  * una línea entera nunca falta la marca siguiente de un grupo vivo (§3.4). Null sin marcas.
+ *
+ * Es el `relojEn` de §4.4. Se exporta desde el 4b para la vista con que el grabador fecha los sucesos
+ * (`RecorderView.clockAt`, §5.4): el reloj de un grupo en un bloque sale de aquí y de ningún otro sitio,
+ * con el mismo redondeo que la foto.
  */
-function clockAt(marks: readonly (readonly [Block, Ds])[], b: Block): Ds | null {
+export function clockOfMarks(marks: readonly (readonly [Block, Ds])[], b: Block): Ds | null {
   if (marks.length === 0) return null
   let lo = 0
   let hi = marks.length - 1
@@ -143,7 +147,8 @@ export function photoAt(tl: TimelineCore, b: Block): Photo {
   for (const g of p.groupOf) if (g >= 0) alive.add(g)
   const clock = new Map<GroupIx, Ds>()
   for (const g of [...alive].sort((x, y) => x - y)) {
-    const ds = g === 0 && clockMarksOf(tl, 0).length === 0 ? 0 : clockAt(clockMarksOf(tl, g), b)
+    const ds =
+      g === 0 && clockMarksOf(tl, 0).length === 0 ? 0 : clockOfMarks(clockMarksOf(tl, g), b)
     if (ds !== null) clock.set(g, ds)
   }
   return { b, groupOf: p.groupOf, main: p.main, clock, detail: tl.detail.get(b) ?? null }

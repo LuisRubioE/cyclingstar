@@ -176,6 +176,9 @@ jobs:
             ficheros: packages/engine/src/sim/invariantsPequenas.test.ts
           - nombre: coherencia
             ficheros: packages/engine/src/sim/coherence.test.ts
+          # `timeline.test.ts` (E2, paso 4b; docs/retransmision.md 15-d): el grabador de la línea
+          # temporal sobre las 24 etapas del banco (B11, I1, I2, I3, I5, B2, B6 y B21). Vive en `sim/`,
+          # que `test:rapido` excluye, así que si no estuviera aquí no correría en ningún PR.
           - nombre: mundo y radio
             ficheros: >-
               packages/engine/src/sim/calendarQueens.test.ts
@@ -186,6 +189,7 @@ jobs:
               packages/engine/src/sim/frozenSkeletons.test.ts
               packages/engine/src/sim/preRegistro.test.ts
               packages/engine/src/sim/legacy/golden.test.ts
+              packages/engine/src/sim/timeline.test.ts
     steps:
       - uses: actions/checkout@v4
         with:

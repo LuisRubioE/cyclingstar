@@ -500,6 +500,30 @@ function applyIttTimeCut(
 }
 
 /**
+ * LOS PUNTOS DE CONTROL DE UNA CRONO: `STAGE.ttSplitChecks` repartidos a partes iguales, cada uno en
+ * el ÚLTIMO bloque de su fracción (`idx`, cuyo reloj es el del parcial) y con el km entero que dice el
+ * texto (`km`); fuera los que caen a menos de `ttSplitMinKm` de la salida o de la meta (`metaKm`, la de
+ * `finishKm`, redondeada).
+ *
+ * Sale aparte de `narrate` sin cambiar nada (E2, docs/retransmision.md §9.2): la línea temporal guarda
+ * el reloj de cada corredor en estos mismos bloques (`TimeTrialTrace.checkClockDs`, `sim/timeline.ts`),
+ * y con dos copias de la regla un cambio en una dejaría la otra diciendo otro parcial.
+ */
+export function ttSplitChecksOf(
+  blockCount: number,
+  metaKm: number,
+): readonly { readonly idx: number; readonly km: number }[] {
+  const out: { idx: number; km: number }[] = []
+  for (let c = 1; c <= STAGE.ttSplitChecks; c++) {
+    const idx = Math.floor((blockCount * c) / (STAGE.ttSplitChecks + 1)) - 1
+    const km = Math.round((idx + 1) * STAGE.dx)
+    if (idx < 0 || km < STAGE.ttSplitMinKm || metaKm - km < STAGE.ttSplitMinKm) continue
+    out.push({ idx, km })
+  }
+  return out
+}
+
+/**
  * LA CRÓNICA DE LA CRONO. Todo lo que sigue es OBSERVACIÓN: lee las trazas y el reparto de la rampa
  * y emite eventos. No consume azar, no toca ni un tiempo y se puede quitar entera sin que cambie una
  * sola clasificación.
@@ -544,10 +568,7 @@ function narrate(
   // --- 2. Los parciales -------------------------------------------------------------------------
   // Puntos de control propios, repartidos a partes iguales (ver `STAGE.ttSplitChecks`).
   const dxKm = STAGE.dx
-  for (let c = 1; c <= STAGE.ttSplitChecks; c++) {
-    const idx = Math.floor((blockCount * c) / (STAGE.ttSplitChecks + 1)) - 1
-    const km = Math.round((idx + 1) * dxKm)
-    if (idx < 0 || km < STAGE.ttSplitMinKm || meta - km < STAGE.ttSplitMinKm) continue
+  for (const { idx, km } of ttSplitChecksOf(blockCount, meta)) {
     const arrivals = rides
       .map((r) => ({ riderId: r.riderId, timeS: r.raw[idx]! * r.noise, clockS: clockAt(r, idx) }))
       .sort((a, b) => a.clockS - b.clockS)
