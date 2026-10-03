@@ -14,9 +14,9 @@ import { TEMPLATE_REV, type Variant, fnv1a, pickVariant } from './render/variant
  * B4, LA PARTE DE LAS NOTICIAS (docs/retransmision.md §12.8 y §16.4; E2, paso 1a). Un titular se
  * guarda como DATOS (`NewsPayload`: ids, códigos y números) con su semilla, y se redacta al LEER
  * con `renderNews`. Estos goldens fijan que la redacción nueva dice, carácter a carácter, lo mismo
- * que las plantillas de hoy (`packages/engine/src/world/news.ts`), salvo el espacio que `contract`
- * ponía antes de la coma; el cotejo con la función del motor misma está en
- * `packages/db/src/news.test.ts`, que importa los dos paquetes.
+ * que las plantillas del motor a las que sustituye (`packages/engine/src/world/news.ts`, que el paso
+ * 4a borró con su test, decisión 4-p), salvo el espacio que `contract` ponía antes de la coma;
+ * mientras convivieron, `packages/db/src/news.test.ts` cotejó las dos funciones kind a kind.
  *
  * La etapa se cita con su «de dónde a dónde» (v91, `stageRouteText`): el diseño se escribió contra
  * la v89, que no lo tenía, y el resolutor gana `route` para decirlo al leer.
@@ -27,7 +27,7 @@ const ROUTES = new Map<string, string>([
   ['race-x:0:4', 'A → B'],
 ])
 
-/** El resolutor de prueba: nombres CORTOS, como el test de hoy del motor (`world/news.test.ts`). */
+/** El resolutor de prueba: nombres CORTOS, como el test del motor que este absorbe (`world/news.test.ts`). */
 const SHORT: NameResolver = {
   rider: (id) => (id === 'r1' ? 'R' : 'A rider'),
   team: (id) => (id === 't2' ? 'T' : 'a team'),
@@ -141,7 +141,7 @@ describe('shared: el titular se redacta al leer desde sus datos (B4)', () => {
   })
 
   it('cada titular cabe en una línea: menos de 70 caracteres con nombres cortos', () => {
-    // La regla de hoy (`world/news.test.ts`): un hecho por línea, sin florituras.
+    // La regla del test del motor que este absorbe (`world/news.test.ts`): un hecho por línea, sin florituras.
     for (const { payload } of GOLDENS) expect(render(payload).length).toBeLessThan(70)
   })
 

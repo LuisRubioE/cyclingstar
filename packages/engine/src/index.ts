@@ -171,7 +171,8 @@ export {
   stagePointsByClass,
   stageResultPoints,
 } from './world/points.js'
-export { renderNews, type NewsData, type NewsKind } from './world/news.js'
+// Las noticias ya no se redactan aquí: desde E2 (docs/retransmision.md §12.8, decisión 4-p) se
+// guardan como datos y las redacta `renderNews` de `@cyclingstar/shared` al leer.
 export {
   callupScore,
   raceVocationFit,

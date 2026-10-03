@@ -33,6 +33,7 @@ import {
 } from '@cyclingstar/engine'
 import {
   ATTRIBUTES,
+  type AbandonReason,
   type Attribute,
   type HealthState,
   assignLeaderJerseys,
@@ -1019,14 +1020,6 @@ export async function runOneStage(
 
 /** Días de baja de una enfermedad contraída en carrera (mismo rango que SPEC 4.3 para el training). */
 const ILLNESS_DAYS = 4
-
-/**
- * Por qué un corredor se ha ido de la carrera. Se guarda en `race_rosters.abandoned_reason` y, desde el
- * paso 1a de E2, en los datos del titular (`NewsPayload`), cuya frase pone `shared` al leer
- * (`ABANDON_WORDS`). Es la misma unión que `AbandonReason` de `@cyclingstar/shared`, que esta pasa a
- * importar en el paso 4a (docs/retransmision.md, decisión 4-p).
- */
-export type AbandonReason = 'colapso' | 'fuera_control' | 'lesion' | 'enfermedad' | 'voluntario'
 
 /**
  * Saca a unos corredores del resto de la carrera: `abandoned_day` los deja fuera del roster efectivo
