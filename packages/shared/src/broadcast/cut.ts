@@ -317,17 +317,25 @@ const byTime = <T>(xs: Timed<T>[]): T[] =>
 
 /**
  * EL TRAMO (fromDs, toDs]: los datos con visibilidad en ese intervalo y anterior a la meta, en el
- * formato plano de §4.11. La voz la añade la ruta (§14.3, 4-r).
+ * formato plano de §4.11. La voz la añade la ruta (§14.3, 4-r). El que empieza en 0 es [0, toDs]: lleva
+ * también lo que se ve desde la salida (el grupo de salida, la marca del bloque 0, que en la línea del
+ * adaptador vale 0 Ds, la fila de detalle del km 0 y los sucesos de `revealS` 0), que si no no llegaba
+ * en ningún tramo (3c). Los demás siguen con `d > fromDs`, para que nada viaje dos veces.
  *
  * Cada lista va por la hora en que su dato se ve y, a igual hora, en el orden de la línea: así los
- * tramos, uno tras otro, son exactamente el tramo de toda la etapa (la tercera cláusula de B9), y la
- * web solo tiene que reordenar por bloque lo que junta. `atFinish` dice que el tramo llega al borde de
- * la meta: después de él no queda nada que servir y lo siguiente es `POST …/finish`.
+ * tramos, uno tras otro, son exactamente el tramo de toda la etapa, que es la línea cortada en su borde
+ * (la tercera cláusula de B9), y la web solo tiene que reordenar por bloque lo que junta. `atFinish`
+ * dice que el tramo llega al borde de la meta: después de él no queda nada que servir y lo siguiente es
+ * `POST …/finish`.
  */
 export function chunkOf(tl: TimelineCore, fromDs: Ds, toDs: Ds): Omit<BroadcastChunk, 'lines'> {
   const vis = visibilityOf(tl)
   const inside = (d: Ds | null | undefined): boolean =>
-    d !== null && d !== undefined && d > fromDs && d <= toDs && d < vis.finishDs
+    d !== null &&
+    d !== undefined &&
+    (fromDs === 0 ? d >= 0 : d > fromDs) &&
+    d <= toDs &&
+    d < vis.finishDs
 
   const groupsBorn: BroadcastChunk['groupsBorn'][number][] = []
   const groupsDied: Timed<BroadcastChunk['groupsDied'][number]>[] = []

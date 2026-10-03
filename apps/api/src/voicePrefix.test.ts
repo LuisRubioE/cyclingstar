@@ -1,4 +1,4 @@
-import type { LiveLine, RaceS } from '@cyclingstar/shared'
+import { BROADCAST, type LiveLine, type RaceS } from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
 import {
   ROAD_FIXTURES,
@@ -11,6 +11,7 @@ import {
 import { revealStoredEvents } from './broadcastSource.js'
 import { type ChronicleEvent, buildChronicle } from './chronicle.js'
 import { liveClusters } from './liveClusters.js'
+import { chunkLinesOf } from './routes/broadcast.js'
 
 /**
  * B19 · LA VOZ ES PREFIJO DE SÍ MISMA (docs/retransmision.md §16.4, §12.2; D-43).
@@ -25,6 +26,11 @@ import { liveClusters } from './liveClusters.js'
  * `stage_snapshots.events` con el `revealS` del adaptador de la radio, sobre su reloj estimado (16-a,
  * §3.8). Desde el 5, B19 usa la línea grabada; en el 6b, la voz pasa antes por `withGroupRoles` (12-n)
  * y el segundo caso, por la política de nombres real (DD-18).
+ *
+ * Desde el 3c, también lo que esta propiedad promete a la ruta: que sus tramos, uno tras otro, sean la
+ * voz entera hasta la meta, con el filtro de la ruta (`chunkLinesOf`). El primero lleva las líneas de la
+ * salida (`revealS` 0), como `chunkOf` lleva lo de 0 Ds: hasta el 3c no llegaban en ningún tramo, y en la
+ * e18 era la de la lluvia.
  */
 
 /** El paso con que se construye la voz: el de §16.4. */
@@ -41,12 +47,20 @@ interface Medida {
   readonly primera: string | null
 }
 
+/** La voz de una etapa hasta una hora, como la construye la ruta del tramo (§14.3). */
+interface Voz {
+  readonly voz: (untilS: RaceS) => readonly LiveLine[]
+  /** el borde de la meta */
+  readonly finishS: RaceS
+  /** los racimos en vivo que entran */
+  readonly racimos: number
+}
+
 /**
- * La voz de una etapa como la construirá la ruta del tramo (§14.3), cada 30 s de carrera hasta el
- * borde de la meta. Con `racimos`, los racimos en vivo de §12.3 con TODOS los corredores sin rótulo:
- * nadie conserva su línea, que es el peor caso.
+ * La voz de una etapa como la construye la ruta del tramo (§14.3). Con `racimos`, los racimos en vivo
+ * de §12.3 con TODOS los corredores sin rótulo: nadie conserva su línea, que es el peor caso.
  */
-function medir(name: RoadFixtureName, racimos: boolean): Medida {
+function vozDe(name: RoadFixtureName, racimos: boolean): Voz {
   const stage = fixtureStage(name)
   const guardados = loadEvents(name)
   const reveal = revealStoredEvents(guardados, {
@@ -85,6 +99,12 @@ function medir(name: RoadFixtureName, racimos: boolean): Medida {
     buildChronicle(entrada, names, {
       live: { untilS, stageKm: stage.lengthKm, revealS: (ev) => horaDe.get(ev) ?? untilS },
     })
+  return { voz, finishS, racimos: cuantos }
+}
+
+/** La voz de una etapa, cada 30 s de carrera hasta el borde de la meta. */
+function medir(name: RoadFixtureName, racimos: boolean): Medida {
+  const { voz, finishS, racimos: cuantos } = vozDe(name, racimos)
   let antes = voz(0).map((l) => JSON.stringify(l))
   let violaciones = 0
   let pasos = 0
@@ -128,5 +148,23 @@ describe('B19 · la voz es prefijo de sí misma (§16.4)', () => {
     // aquí no saliera ningún racimo, el segundo caso no estaría probando nada.
     expect(medir('race-france-e20', true).racimos).toBeGreaterThan(0)
     expect(medir('race-colombia-e5', true).racimos).toBeGreaterThan(0)
+  })
+
+  it.each(ROAD_FIXTURES)(
+    '%s: los tramos de la ruta, uno tras otro, son la voz entera hasta la meta (3c)',
+    (name) => {
+      const { voz, finishS } = vozDe(name, false)
+      const tramos: LiveLine[] = []
+      for (let from = 0; from < finishS; from += BROADCAST.chunkRaceS)
+        tramos.push(...chunkLinesOf(voz(Math.min(from + BROADCAST.chunkRaceS, finishS)), from))
+      expect(tramos).toEqual(voz(finishS))
+    },
+  )
+
+  it('la e18 sale con lluvia: su línea de la salida (revealS 0) va en el primer tramo (3c)', () => {
+    const { voz } = vozDe('race-france-e18', false)
+    const salida = voz(0)
+    expect(salida.map((l) => [l.plantilla, l.revealS])).toEqual([['rain_front', 0]])
+    expect(chunkLinesOf(voz(BROADCAST.chunkRaceS), 0).slice(0, 1)).toEqual(salida)
   })
 })

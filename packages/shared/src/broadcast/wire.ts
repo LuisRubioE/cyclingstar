@@ -92,7 +92,13 @@ export interface StartState {
 
 /** GET …/broadcast: recorrido, reparto y salida; nada de la carrera. */
 export interface BroadcastHead {
-  /** label: la del recorrido (stageHistory.ts, calendarStageSpec) */
+  /**
+   * label: la del recorrido (stageHistory.ts, calendarStageSpec). km va redondeado, para la ficha.
+   * lengthKm, dx y blocks son los de la línea (`StageTimeline`), sin redondear: no estaban en §4.11 y
+   * sin ellos la web no rehace la `TimelineCore` de los tramos (`instantAt` lee los km a meta y el
+   * tope de la extrapolación, `photoBlocksOf(lengthKm, dx)` da el calendario de fotos y `headAtLine`
+   * pide `blocks` y `dx`; paso 3c). Son del recorrido: no dicen nada de la carrera.
+   */
   readonly stage: {
     readonly raceKey: string
     readonly raceId: string
@@ -102,6 +108,12 @@ export interface BroadcastHead {
     readonly kind: StageKind
     readonly timeTrial: boolean
     readonly label: string
+    /** stageLengthKm(profile), sin redondear */
+    readonly lengthKm: number
+    /** STAGE.dx con que se corrió, 0,1 */
+    readonly dx: number
+    /** Math.round(lengthKm / dx) */
+    readonly blocks: number
   }
   readonly profile: ProfileStrip
   readonly weather: StageWeather
@@ -131,7 +143,10 @@ export interface BroadcastHead {
 /** La misma tupla que se guarda (I-17). */
 export type TimelineEventWire = StoredTimelineV1['events'][number]
 
-/** GET …/broadcast/chunk: los datos con visibilidad en (fromDs, toDs], planos (§4.6). */
+/**
+ * GET …/broadcast/chunk: los datos con visibilidad en (fromDs, toDs], planos (§4.6); el primero,
+ * con fromDs 0, en [0, toDs], para que viaje lo que se ve en 0 Ds (paso 3c, `chunkOf` en cut.ts).
+ */
 export interface BroadcastChunk {
   readonly fromDs: Ds
   readonly toDs: Ds
@@ -334,6 +349,9 @@ export const broadcastHeadSchema = z.object({
     kind: stageKindSchema,
     timeTrial: z.boolean(),
     label: z.string(),
+    lengthKm: z.number().positive(),
+    dx: z.number().positive(),
+    blocks: int.min(1),
   }),
   profile: profileStripSchema,
   weather: stageWeatherSchema,
@@ -404,7 +422,7 @@ export const stageQuerySchema = z.object({
   season: z.coerce.number().int().min(0).max(9999).optional(),
   diag: z.literal('1').optional(),
 })
-/** Un tramo (fromDs, toDs] de como mucho BROADCAST.chunkRaceS de carrera (§14.3). */
+/** Un tramo (fromDs, toDs] de como mucho BROADCAST.chunkRaceS de carrera (§14.3); [0, toDs] el primero. */
 export const chunkQuerySchema = stageQuerySchema
   .extend({
     fromDs: z.coerce.number().int().min(0),
