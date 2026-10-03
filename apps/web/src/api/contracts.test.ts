@@ -13,6 +13,8 @@ import {
   formResponseSchema,
   ledgerResponseSchema,
   myRiderResponseSchema,
+  newsItemSchema,
+  newsResponseSchema,
   ordersResponseSchema,
   publicRiderDetailResponseSchema,
   raceOrdersResponseSchema,
@@ -20,6 +22,7 @@ import {
   raceStartlistSchema,
   raceViewSchema,
   rankingResponseSchema,
+  stageReplaySchema,
   teamControlResponseSchema,
   teamResponseSchema,
   worldHealthResponseSchema,
@@ -545,5 +548,58 @@ describe('contratos: mundo, equipo y dinero', () => {
       },
     }
     expect(worldHealthResponseSchema.parse(payload)).toEqual(payload)
+  })
+})
+
+/**
+ * LA WEB DE AYER AGUANTA LO QUE LA RETRANSMISIÓN VA A SERVIR (docs/retransmision.md §14.1 y §14.7,
+ * D-50; E2, paso 0). Estos dos esquemas no tenían ningún caso aquí (la ceguera 5 del mapa 07 §5.2), y
+ * son justo los dos que E2 estira: la ruta de etapa deja de mandar el resultado de una etapa que la
+ * pantalla no va a enseñar, y los titulares ganan sus datos. Lo que se fija es la tolerancia de HOY,
+ * la que permite desplegar la API antes que la web sin que una pestaña abierta se caiga.
+ */
+describe('contratos: la etapa y las noticias, tal como las tolera la web de hoy', () => {
+  it('una etapa corrida con solo sus obligatorios, sin resultado ni maillots, vale', () => {
+    // §14.1, regla 1: `day`, `name`, `km`, `run` y `altimetry` son obligatorios y se mandan siempre;
+    // los opcionales de resultado y `leaders` ENTERO se pueden omitir. `leaders` no puede ir a medias:
+    // dentro lleva `onRoad` y `afterStage` obligatorios.
+    const veiled = { day: 3, name: 'Stage 3 · Hills', km: 196, run: true, altimetry: '<svg/>' }
+    expect(stageReplaySchema.parse(veiled)).toEqual(veiled)
+    for (const key of ['day', 'name', 'km', 'run', 'altimetry']) {
+      const incompleta: Record<string, unknown> = { ...veiled }
+      delete incompleta[key]
+      expect(stageReplaySchema.safeParse(incompleta).success).toBe(false)
+    }
+    const onRoad = { gc: 'r1', points: null, kom: null, team: null }
+    expect(stageReplaySchema.safeParse({ ...veiled, leaders: { onRoad } }).success).toBe(false)
+    const leaders = { onRoad, afterStage: onRoad }
+    expect(stageReplaySchema.parse({ ...veiled, leaders })).toEqual({ ...veiled, leaders })
+  })
+
+  it('un titular con claves que no conoce vale, y las claves de más se quedan fuera', () => {
+    // Los objetos son strip (contracts.ts, cabecera): el titular de E2 llega con sus datos y la web
+    // de hoy lo lee por su `text` de siempre, sin ver lo demás.
+    const today = {
+      gameDay: 187,
+      kind: 'stage_win',
+      text: 'Ana Ruiz wins stage 3 of the Race France',
+      personal: false,
+      riderId: 'r1',
+      riderName: 'Ana Ruiz',
+      country: 'ES',
+      teamId: 't1',
+      teamName: 'Equipo Uno',
+    }
+    const widened = {
+      ...today,
+      payload: { rider: 'Ana Ruiz', race: 'Race France', stage: 3 },
+      seed: 'win:race-france:s0:187:3',
+      tplRev: 0,
+      raceId: 'race-france',
+      raceKey: 'race-france:s0',
+      stageDay: 3,
+    }
+    expect(newsItemSchema.parse(widened)).toEqual(today)
+    expect(newsResponseSchema.parse({ news: [widened] })).toEqual({ news: [today] })
   })
 })
