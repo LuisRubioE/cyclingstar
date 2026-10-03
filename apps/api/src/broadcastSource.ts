@@ -243,6 +243,26 @@ function photosAtTheirBlocks<P extends { readonly km: number }>(
 const CONFIRMED_BREAK = new Set(['breakaway_formed', 'break_cooperation'])
 
 /**
+ * EL RELOJ ESTIMADO DE LA CABEZA DE UNA RADIO GUARDADA (§3.8), con cada foto en el bloque del
+ * calendario del motor y en el km del final de ese bloque: el que usan el adaptador y B17
+ * (`scripts/bench-pace.mjs`). Null si ninguna foto tiene velocidad de cabeza.
+ */
+export function storedHeadClock<P extends StoredRadioPhoto>(
+  kms: readonly P[],
+  lengthKm: number,
+  winnerS: number,
+): {
+  readonly photoBlocks: readonly Block[]
+  readonly kms: readonly P[]
+  readonly head: readonly RaceS[]
+} | null {
+  const photoBlocks = storedPhotoBlocks(kms, lengthKm)
+  const atBlocks = photosAtTheirBlocks(kms, photoBlocks, lengthKm)
+  const head = estimatedHeadClock(atBlocks, lengthKm, winnerS)
+  return head === null ? null : { photoBlocks, kms: atBlocks, head }
+}
+
+/**
  * LA HORA A LA QUE SE ENSEÑA CADA SUCESO GUARDADO (§3.8, §4.7): `revealSOf` sobre una vista
  * (`RecorderView`) que se construye con lo que la radio guardada sabe, en décimas. Null si no hay
  * reloj que estimar (ninguna foto con velocidad de cabeza).
@@ -270,10 +290,9 @@ export function revealStoredEvents(
   events: readonly ChronicleEvent[],
   stage: StoredStage,
 ): StoredReveal | null {
-  const photoBlocks = storedPhotoBlocks(stage.radio.kms, stage.lengthKm)
-  const kms = photosAtTheirBlocks(stage.radio.kms, photoBlocks, stage.lengthKm)
-  const head = estimatedHeadClock(kms, stage.lengthKm, stage.winnerS)
-  if (head === null) return null
+  const clock = storedHeadClock(stage.radio.kms, stage.lengthKm, stage.winnerS)
+  if (clock === null) return null
+  const { photoBlocks, kms, head } = clock
   const dx = STAGE.dx
   const blocks = Math.max(1, Math.round(stage.lengthKm / dx))
   /** El bloque cuyo centro es ese km, como resuelve el motor las fotos (simulate.ts, `probeAt`). */
