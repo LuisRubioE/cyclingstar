@@ -424,7 +424,8 @@ describe('servedLine · la línea de la web con la cabecera y los tramos (nota 1
       for (let ds = 0; ds <= upTo; ds += 389)
         expect(instantAt(served.core, fromDs(ds), CTX)).toEqual(instantAt(zero, fromDs(ds), CTX))
     }
-    // sin ella, el instante no tendría la cabeza en ningún km de foto y todos los huecos saldrían a 0
+    // sin ella, el instante no tendría la cabeza en ningún km de foto y los huecos de los grupos
+    // saldrían todos a 0
     const t = fromDs(chunks[1]!.toDs)
     const gaps = instantAt(zero, t, CTX).groups.map((g) => g.gap.toHeadS)
     expect(gaps.some((s) => s > 0)).toBe(true)

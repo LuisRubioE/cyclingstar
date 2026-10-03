@@ -153,8 +153,9 @@ function coreOf(head: BroadcastHead, p: ServedParts, received: boolean): Timelin
   // (`photoBlocksOf`): el de salida la tiene siempre. Un tramo solo lleva lo que se ve DESPUÉS de su
   // fromDs (`chunkOf`, y fromDs ≥ 0), así que una marca de 0 Ds no llega en ninguno, y la del
   // adaptador de la radio vale 0 (su reloj de cabeza empieza en la primera foto). Sin ella el instante
-  // no tiene cabeza en ningún km de foto y todos los huecos salen a 0. Si tras el primer tramo no ha
-  // llegado, es esa; la de la línea grabada (unos 9 s, C1) llega en el primero y esto no hace nada.
+  // no tiene cabeza en ningún km de foto y los huecos de los grupos salen todos a 0, sin tendencia.
+  // Si tras el primer tramo no ha llegado, es esa; la de la línea grabada (unos 9 s, C1) llega en el
+  // primero y esto no hace nada.
   if (received && !(marksAt.get(0) ?? []).some(([g]) => g === 0))
     marksAt.set(0, [[0, 0], ...(marksAt.get(0) ?? [])])
 
