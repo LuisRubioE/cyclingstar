@@ -55,6 +55,8 @@ base idéntica; el script crea la extensión `citext` antes de restaurar (la usa
 | `RESEND_API_KEY`        | Clave de Resend. Opcional; sin ella la app arranca y NO manda correo (lo deja dicho en el log).                                                                                                                                                     |
 | `MAIL_FROM`             | Remitente: `Cycling Star <no-reply@cyclingstar.app>`. Va en pareja con `RESEND_API_KEY`.                                                                                                                                                            |
 | `BROADCAST_WATCH`       | La retransmisión de E2 (`docs/retransmision.md` §14.6): `off` (por defecto; las rutas de `…/broadcast` dan 404 `broadcast_off`), `admins` (solo los administradores con sesión) u `on` (todos). Un valor fuera de la lista hace fallar el arranque. |
+| `TIMELINE_RECORD`       | Que el tick grabe la línea de cada etapa en `stage_timelines` (E2): `on` (por defecto) u `off`, el freno. En `web` y en `tick`, que corren el tick los dos (ver «Migración 0047»). Un valor fuera de la lista hace fallar el arranque.              |
+| `AUTO_TICK`             | Solo `web`: con `on` (por defecto) avanza el mundo en su proceso, como siempre; con `off`, lo deja al servicio `tick` (ver «Despliegue (Railway)»). Un valor fuera de la lista hace fallar el arranque.                                             |
 
 Esta tabla nombraba `BETTER_AUTH_SECRET` y `WORLD_SEED`, que el código NO lee: el secreto se llama
 `SESSION_SECRET` (`apps/api/src/env.ts`) y la semilla del mundo está fijada en el código
@@ -149,6 +151,11 @@ mundo (la reparación es idempotente). La comparación ignora mayúsculas y espa
 ## Despliegue (Railway)
 
 - Servicio web: `node apps/api/dist/index.js` (aplica migraciones al arrancar con advisory lock).
+  También avanza el mundo en su proceso (`autoTick`), salvo con `AUTO_TICK=off`, que se pone cuando
+  el servicio `tick` está en marcha: mientras simula una etapa grande, la web no contesta durante
+  segundos (`docs/retransmision.md` 18-k). Con `off`, el mundo avanza solo cuando corre el cron de
+  `tick` (`railway.tick.json`, cada 6 h): vale con `TICK_INTERVAL_MINUTES` de 360; con días más
+  cortos hay que acortar el cron o dejar `on`. `POST /admin/tick` y `/admin/advance` funcionan igual.
 - Cron del tick: invoca el avance del mundo según `TICK_INTERVAL_MINUTES`.
 - Las migraciones son aditivas (Drizzle) y se aplican solas al arrancar; no hay pasos manuales. La
   excepción es la 0044, que reinicia el mundo (ver «Migración 0044» más abajo). La 0045 borra los
@@ -304,6 +311,7 @@ TRUNCATE TABLE worlds, game_state, tick_log, teams, riders, rider_attrs, rider_h
   training_orders, team_training_orders, race_routes, race_rosters, race_entries, race_callups,
   team_race_plan, stage_orders, stage_results, race_gc, stage_team_results, stage_snapshots,
   palmares, news, transactions, contracts, offers CASCADE;
+TRUNCATE TABLE stage_timelines;
 INSERT INTO public.worlds SELECT * FROM respaldo_mundo_1.worlds;
 INSERT INTO public.game_state SELECT * FROM respaldo_mundo_1.game_state;
 INSERT INTO public.tick_log SELECT * FROM respaldo_mundo_1.tick_log;
@@ -314,6 +322,8 @@ INSERT INTO public.riders SELECT * FROM respaldo_mundo_1.riders;
 
 Tal cual (con las 29 líneas) lo corre el test de la 0044 y deja el mundo 1 idéntico. Dos condiciones: `SELECT *` solo vale mientras ninguna migración posterior haya cambiado las columnas de esas tablas (si alguna lo hizo, se escriben las columnas a mano), y el código desplegado tiene que entender el mundo 1, que corría con el motor v90.
 
+El segundo `TRUNCATE` es de la 0047 (E2, paso 5): `stage_timelines` no tiene copia, porque el mundo 1 no grabó ninguna línea (sus etapas se retransmiten con el adaptador), y sin él se quedarían las líneas del mundo nuevo con las mismas claves que las etapas del viejo (ver «Migración 0047»). Después, el servicio `web` se reinicia, cosa que ya hace el despliegue de la migración.
+
 ### Borrar la copia
 
 Cuando el dueño dé el mundo nuevo por bueno, otra migración custom con `DROP SCHEMA respaldo_mundo_1 CASCADE;` libera el espacio. Hasta entonces no estorba: ningún código la lee.
@@ -323,3 +333,29 @@ Cuando el dueño dé el mundo nuevo por bueno, otra migración custom con `DROP 
 Decisión del dueño (02/10/2026): la vuelta de prueba del MVP (clave `test-tour`) desaparece del juego. El tick ya no la corre (`race.ts` y `npc.ts` de packages/db se borraron) y la API ya no sirve `/api/races/test-tour*`. La migración `0045_sin_vuelta_de_prueba.sql` limpia lo que el mundo nuevo llegó a escribir en su GD1: rosters, órdenes, resultados, general, clasificación por equipos, snapshots y palmarés con `race_id = 'test-tour'`; sus puntos de ranking (descontados también de `season_points` si son de la temporada en curso); los premios del corredor con nota «Test tour · …» (descontados de `riders.money`); el parte diario `carrera:test-tour:eN`, y los titulares que nombran la vuelta. El premio de equipo no deja rastro por carrera y se queda en el presupuesto. La fisiología de esos días tampoco se toca. Lo comprueba `sinVueltaDePrueba.test.ts`.
 
 Si algún día se restaura el mundo 1 desde `respaldo_mundo_1`, sus filas de la vuelta de prueba vuelven con él: la migración de restauración puede repetir las sentencias de la 0045 al final.
+
+## Migración 0047: la línea temporal de cada etapa (E2)
+
+La `0047_linea_temporal` solo añade: la tabla `stage_timelines`, una fila por etapa corrida con su línea temporal comprimida (`body`, gzip en `bytea`), y su índice por `game_day`. Se aplica sola al arrancar, como todas, y todavía nadie la lee: servir la línea grabada llega con el paso 6a de E2 (`docs/retransmision.md` §17.9); hasta entonces la retransmisión sale del adaptador, como antes.
+
+Desde este despliegue, con `TIMELINE_RECORD=on` (el defecto), el tick graba la línea de cada etapa que corre, dentro de la transacción del día y con un solo `INSERT` al final del día. Grabar no cambia ninguna carrera: el tick deja las mismas filas con `on`, con `off` y con el código de antes de la 0047 (B15, `scripts/bench-tick.mjs`). Y nunca para el tick: si grabar una etapa falla, la etapa se queda con una lápida (una fila con `format` 0 y el motivo, sin línea) y el día sigue; si falla el `INSERT` del día, todas sus etapas se quedan con lápida y el día se confirma igual. Lo que no se graba no se rellena después: esas etapas se retransmitirán con el adaptador, desde lo que guardó `stage_snapshots`.
+
+**Coste** (B15, `scripts/bench-tick.mjs`, sobre PGlite y el mundo de la génesis): el día 179 (114 nacionales en línea) tarda de 5 a 7 s más con la grabación, del 8 al 11 %, y el 176 (82 cronos nacionales), de 0,3 a 1 s más, del 2 al 7 %; el umbral de `docs/retransmision.md` 16-l (más de un 25 % y más de 15 s a la vez) queda lejos. En disco, unos 3 KB por crono nacional y 16 KB por nacional en línea (medianas de B15), y de 14 a 52 KB por etapa de vuelta grande o clásica; el diseño estima del orden de 36 MB por temporada, como cota superior (`docs/retransmision.md` §5.7).
+
+**El freno**: `TIMELINE_RECORD=off` en Railway, en `web` y en `tick`, sin desplegar.
+
+### Qué mirar
+
+En `tick_log.notes`, que el panel de administración enseña, cada tick que corre etapas apunta `timeline: N grabadas, M sin línea` y detrás una nota por problema (como mucho 20, y `… y N más`):
+
+- `timeline error: <carrera> e<etapa> <motivo>`: esa etapa se quedó sin línea, con lápida. Con el motivo `ya tenía fila`, la etapa ya tenía una fila con esa clave y no se escribió la nueva: el síntoma de un reinicio que no vació `stage_timelines` (abajo).
+- `timeline error: el INSERT del día falló (N etapas): <motivo>`: todo el día sin línea, con lápidas. Si detrás viene `las lápidas del día tampoco se escribieron`, esas etapas no tienen fila ninguna, y se retransmiten igual con el adaptador.
+- `timeline I1: <carrera> e<etapa> km <k>` o `timeline I5: <carrera> e<etapa> rider <id>`: la autocomprobación vio que la línea no reproduce la carrera corrida (I1 en línea, I5 en crono), y la etapa se quedó sin línea, con lápida. Es un fallo del grabador, no del tick: hay que mirarlo, pero la carrera es buena.
+- `timeline size: <carrera> e<etapa> <bytes>`: una línea por encima del tope de aviso (96 KB en línea, 48 KB en crono). Se graba igual.
+
+### Lo que un reinicio hace con la línea
+
+`stage_timelines` va por la clave de la carrera y la etapa (`race-france:s0`, 3), sin el mundo, igual que `stage_snapshots`, y se escribe sin pisar (`ON CONFLICT DO NOTHING`). Un reinicio que no la vacíe deja las líneas del mundo viejo con las claves que el mundo nuevo va a usar: el mundo nuevo no puede grabar las suyas (`ya tenía fila`) y, desde el paso 6a, se serviría la línea del viejo. Por eso todo reinicio del mundo:
+
+1. **Vacía `stage_timelines` con `stage_snapshots`.** Un reinicio como la 0044 la copia y la vacía con las demás tablas del mundo; la restauración del mundo 1 la vacía sin más (arriba, «Restaurar el mundo 1»). La 0044 ya aplicada no la nombra porque es anterior a ella.
+2. **Después, reinicia el servicio `web`.** Guarda líneas en memoria por carrera y etapa, sin el mundo: la LRU del adaptador desde el paso 3a de E2 y, desde el 6a, la de las líneas grabadas. Un proceso que sobreviva al reinicio serviría datos del mundo viejo. Si el reinicio va en una migración, el despliegue ya reinicia `web`; si se hace de otra forma, hay que reiniciarlo a mano.

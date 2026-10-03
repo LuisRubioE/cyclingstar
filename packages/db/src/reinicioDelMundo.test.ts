@@ -72,18 +72,22 @@ const SE_CONSERVAN = ['users', 'accounts', 'sessions', 'verifications', 'blocked
  */
 const POSTERIORES: readonly string[] = [
   // 0047_linea_temporal (E2, paso 5): no cuelga de ninguna tabla del mundo (va por race_key, sin
-  // world_id), así que la 0044 no la vaciaría; el procedimiento del próximo reinicio la vacía con
-  // stage_snapshots (docs/ops.md, docs/retransmision.md §13.9).
+  // world_id), así que la 0044 no la vaciaría; la restauración de abajo y todo reinicio posterior la
+  // vacían con stage_snapshots (docs/ops.md, «Migración 0047»; docs/retransmision.md §13.9).
   'stage_timelines',
 ]
 
-/** El procedimiento de restauración de docs/ops.md («Migración 0044»), tal cual. */
+/**
+ * El procedimiento de restauración de docs/ops.md («Migración 0044»), tal cual. El segundo TRUNCATE es
+ * de la 0047 (E2, paso 5): el mundo 1 no grabó líneas, y las del mundo nuevo llevan sus mismas claves.
+ */
 const RESTAURAR = `
 UPDATE respaldo_mundo_1.riders SET user_id = NULL
   WHERE user_id IS NOT NULL AND user_id NOT IN (SELECT id FROM public.users);
 UPDATE respaldo_mundo_1.teams SET owner_user_id = NULL
   WHERE owner_user_id IS NOT NULL AND owner_user_id NOT IN (SELECT id FROM public.users);
 TRUNCATE TABLE ${DEL_MUNDO.join(', ')} CASCADE;
+TRUNCATE TABLE stage_timelines;
 ${DEL_MUNDO.map((t) => `INSERT INTO public.${t} SELECT * FROM respaldo_mundo_1.${t};`).join('\n')}
 `
 
@@ -326,9 +330,15 @@ describe('migración 0044: reinicio del mundo', () => {
     }, 180_000)
 
     it('la restauración de docs/ops.md devuelve el mundo 1 tal cual', async () => {
+      // Una línea que el mundo nuevo grabó con la clave de una etapa del viejo (E2, paso 5): si se
+      // quedara, el mundo 1 restaurado serviría la línea del nuevo (docs/ops.md, «Migración 0047»).
+      await t.client`insert into stage_timelines
+        (race_id, stage_day, game_day, format, engine_version, tpl_rev, finish_s, bytes, body)
+        values ('race-germany:s0', 1, 1, 0, ${ENGINE_VERSION}, 0, 0, 2, ${Buffer.from('{}')})`
       await t.client.begin(async (tx) => {
         await tx.unsafe(RESTAURAR)
       })
+      expect(await contar('public', 'stage_timelines')).toBe(0)
       for (const tabla of DEL_MUNDO) expect(await contar('public', tabla), tabla).toBe(antes[tabla])
       expect(await getCurrentWorld(t.db)).toMatchObject({ worldId: ids.mundo, currentDay: 40 })
       expect((await getRiderForUser(t.db, ids.jugador))?.name).toBe('Corredor Humano')
