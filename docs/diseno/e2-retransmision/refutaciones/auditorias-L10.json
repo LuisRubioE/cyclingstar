@@ -1,0 +1,797 @@
+[
+ {
+  "id": "Rcobertura-001",
+  "tipo": "hallazgo",
+  "veredicto": "cerrado",
+  "evidencia": "00-cabecera.md l. 5 (recuadro de procedencia): «62 decisiones cerradas por la síntesis y 234 tomadas por las secciones al escribirse (218 de §3 a §19 y 16 de §0, §20 y §21)»; 21-apendices.md l. 609 (F.4): «`0-a` a `21-g` | … 234 al escribirse (218 de §3 a §19 y 16 de §0, §20 y §21), más las que añadió la fase adversaria y dos de la pasada de coherencia (12-s y 15-l)»; G.12 del glosario dice lo mismo. Recontado por esta auditoría con el patrón de los bloques de cierre (`- n-x.` y `- **n-x.`): en retransmision-v0.md son 234, 218 de §3 a §19 (§1 y §2 no tienen) y 16 de §0 (5), §20 (6) y §21 (5); hoy, en los ficheros de sección, son 298 (273 y 25), sin repetidos. Que la cabecera dé la cifra de al escribirse y no la de hoy es lo que dice 0-f (l. 170), porque el recuento final es del cierre, y la cabecera sigue siendo provisional.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-002",
+  "tipo": "hallazgo",
+  "veredicto": "cerrado",
+  "evidencia": "§0.3 (00-cabecera.md l. 63) conserva «Nada queda «a definir»» y hoy es cierto: búsqueda en borrador/ de «si el ensamblador», «si se acepta», «pendiente del ensamblador», «depende de que el ensamblador», «está abierta» y «se propone la»: fuera de los bloques de dudas que el ensamblado quita (13-esquema.md l. 479, 16-bancos.md l. 830) no queda ninguna. F.3 da el nombre guardado y no dice que la forma esté abierta (21-apendices.md l. 559, `Pulling: Team Beta (for 11 Sam Carter)`, 7-a); 12-c escribe `stage_timelines.tpl_rev` en la `0044` sin «se propone» (12-voz.md l. 396); 17-a y §17.8 escriben `tpl_rev` sin condicional (17-plan.md l. 247); el riesgo 22 va decidido en 8-g y el 24 se cerró con 4-v y su número no se usa (19-riesgos.md, tabla de §19.1: 36 filas, del 1 al 37 sin el 24); 8-g, 9-b, 9-d y 9-i están escritos como decididos (§4.2 con 4-u, §9).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-060",
+  "tipo": "hallazgo",
+  "veredicto": "cerrado",
+  "evidencia": "F.1 (21-apendices.md l. 476): «etapa conocida | etapa vista (`W` directo, `S` resumen), revelada (`R`) o arrastrada (`A`): `WatchState.known` (10-e); la caducada (`X`) está fuera del velo pero no es conocida y abre en `Watch`…; `known_through` cuenta el prefijo de letras, `X` incluida», con 21-g (l. 634). G.1 del glosario lleva la misma fila; §2.6 la misma regla (02-principios.md l. 65); y §10.3 la nota tras el pseudocódigo de `recordProgress` (10-horizonte.md l. 99: «con una X, status 'known' quiere decir fuera del velo: la web no lo usa para dar la etapa por vista, 10-e»). D-36 precisada (6-r) distingue `known` de `seen` igual que §4.11.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-001",
+  "tipo": "hallazgo",
+  "veredicto": "cerrado",
+  "evidencia": "§0.4, punto 10 (00-cabecera.md l. 79): «Unas 56 sesiones de trabajo (estimado, §17.22), con un rebase del 4a y el 4b sobre la táctica: 52,5 hasta el encendido con un solo implementador, y 37 si un segundo lleva en paralelo los PR que no están en el camino crítico, el 1a, el 1b, el 3b, el 3c, el 4a, el 7a, el 9a, el 11a y el 11b (§17.16). La sesión no tiene duración medida; como vara, E1 estimó 24 sesiones … y se fusionó en 12 PR en unas 19 horas de reloj, del #250 al #261». Casa con la tabla de §17.22 (17-plan.md l. 735-760: 56 en orden, 52,5 tras el 10b, 37 por el camino crítico) y con §17.16 (l. 479); la vara está también bajo la tabla de §17.22 (l. 762). Las cifras ya no son las del hallazgo (52, 48,5 y 34) porque el plan ganó el 11b y el rebase: el texto sigue a §17.22 de hoy.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-002",
+  "tipo": "hallazgo",
+  "veredicto": "cerrado",
+  "evidencia": "§0.7 (00-cabecera.md l. 146): «el 179 (153 nacionales en línea: 111 élite y 42 sub-23) … proyectado: 153 y 187 veces la media de 30 nacionales élite de cada clase … (`l7/tick.mjs`, dos corridas), sin los sub-23, sin `buildTimelineCast` y sin escribir; la escritura, medida aparte en PostgreSQL 16 local (`coste/pgm/subxact.mjs`); B15 mide los dos días enteros en el paso 5». §18.3 (18-rendimiento.md l. 108-117) titula las columnas «El día, proyectado» y dice lo que falta; §18.10 (l. 251-252) escribe «proyectado» en las filas del tick; B15 corre los dos días enteros, sub-23 y `buildTimelineCast` incluidos (18-rendimiento.md l. 123; §16.4). O-23 y X-24 de §21 dicen lo mismo (21-apendices.md l. 139 y 420).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-003",
+  "tipo": "hallazgo",
+  "veredicto": "cerrado",
+  "evidencia": "El paso 9 de §4.5 lleva el memo que pedía el hallazgo (04-modelo.md l. 599: «crudo(g, s_g) se guarda por (g, k_g): s_g solo cambia cuando g cruza un punto de foto…»). §0.7 (00-cabecera.md l. 148) da las tres cifras: sin el paso 9, p99 de 0,036 a 0,056 ms; con él y memo, p95 de 0,017 a 0,052; sin memo, de 0,064 a 0,804, que son las de la tabla de §18.1 (18-rendimiento.md l. 46-53). B8 mide `instantAt` con el paso 9 implementado y memorizado (16-bancos.md l. 442; §18.1, l. 57), y el instante a `overlayHz` queda como salida si el móvil no llega (l. 55).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-002",
+  "tipo": "hallazgo",
+  "veredicto": "cerrado",
+  "evidencia": "§20.5, punto 3 (20-dueno.md l. 83) ya no dice «en todo momento»: «la API lo acepta en la ruta de etapa desde el 7b y en la ficha de carrera y el feed desde el 8a (11-h); la web de hoy lo reenvía a la ruta de etapa desde el 7b (`fetchCalendarStage`, 14-s), y a las demás con el 9a y el 9b, que traen el botón `Diagnostic view`», y antes dice qué huecos ve del 7b al 9b. Casa con §11.15 (11-superficies.md l. 496 y 501), §17.10 (17-plan.md l. 335) y F.2 (21-apendices.md l. 546, `fetchCalendarStage(raceId, day, opts?: { readonly diag?: boolean })`, 14-s). Es la primera de las dos salidas del hallazgo; `SPOILER_MODE=admins` sigue en el 7a.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-004",
+  "tipo": "hallazgo",
+  "veredicto": "cerrado",
+  "evidencia": "La prueba de lectura gana las dos preguntas (16-bancos.md l. 681, §16.5 punto 6, 16-w) y cada decisión dice quién la mide de verdad: DD-05 en §20.2 (20-dueno.md l. 25) y §20.8 (l. 134), «ninguna prueba lo mide: la prueba de lectura pregunta qué lleva cada uno de los de delante, no a quién debe pasar el delegado»; el apéndice C, D-21, D-24, D-25 y D-26 (21-apendices.md l. 216-219) y H-05 (l. 189); 6-h (06-pantalla.md, bloque de decisiones de §6). 16-w amplió la condición del hallazgo («de 4 a `nameWholeGroupUpTo`») a toda fuga de hasta 12 por delante del pelotón, con motivo (16-bancos.md l. 803), y dos sitios de L10 conservaban la condición vieja: §20.5, punto 5 (20-dueno.md l. 85, «de 4 a `BROADCAST.nameWholeGroupUpTo`») y la fila H-04 (21-apendices.md l. 188, «de 4 a 12»). Ver A-L10-003.",
+  "accion": "lo he cerrado yo: 20-dueno.md l. 85 y 21-apendices.md l. 188 dicen la condición de 16-w (A-L10-003)"
+ },
+ {
+  "id": "Rdueno-006",
+  "tipo": "hallazgo",
+  "veredicto": "cerrado",
+  "evidencia": "DD-25 se llama «Las subidas de `ENGINE_VERSION` antes del 17d de la táctica» (20-dueno.md l. 43), con el defecto de adelantar el 17d, un PR sin motor (`docs/tactica.md` l. 6979), las otras dos respuestas en la última columna y la consecuencia que frena: «veinte subidas en catorce fusiones entre el 15 y el 26 de septiembre de 2026, de la v69 a la v89». Comprobado con `git log -L` de `ENGINE_VERSION` en `packages/engine/src/constants.ts`: catorce commits de la v70 (9f1d2e8, 15-09) a la v89 (c39f450, 26-09). Ni «casi todos sus pasos» ni «a E2 no le afecta» quedan en §0, §20 ni §21 (grep); §20.3 (l. 64), §20.6 (l. 98), §20.7 (l. 124), §20.8 (l. 152) y 20-h (l. 208) lo siguen. Única imprecisión: §20.3 daba a la v84 el título de la v86 («la v84 y la v86 «El que va de amarillo no da relevos»»), y la v84 es «Administrar no es cazar» (13ed470), también un defecto que el dueño vio en la etapa 19 de producción (A-L10-009).",
+  "accion": "lo he cerrado yo: 20-dueno.md l. 64, cada versión con su título (A-L10-009)"
+ },
+ {
+  "id": "Rdueno-007",
+  "tipo": "hallazgo",
+  "veredicto": "cerrado",
+  "evidencia": "§20.4 (20-dueno.md l. 70): «La D7: lo que el motor hace bien no se cambia para contarlo mejor … Es condicional … Lo que el motor hace mal no lo decide la D7: el dueño lo ha arreglado en el motor, subiendo la versión, en esos mismos días (la v83, la v84 y la v86, §20.3), y el salto de 138 s … E2 se lo deja escrito para que decida (DD-23)». §20.8, DD-23 (l. 150): «E2 no lo arregla porque no sube la versión (D-09) … No es la D7, que habla de lo que el motor hace bien (§20.4)». §2.13 dice lo mismo (02-principios.md l. 121, corregida por la cruzada).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-011",
+  "tipo": "hallazgo",
+  "veredicto": "cerrado",
+  "evidencia": "El corrector lo daba por parcial porque eligió una tercera salida; la auditoría la da por buena, con su motivo escrito. DD-05 y DD-13 se contestan «tras el 6b, con el rótulo delante» (20-dueno.md l. 25 y 33; §20.7, l. 113), que es cuando el dueño ve por primera vez títulos y distinciones (§17.9, 17-plan.md l. 292), y el precio va escrito: «lo grabado entre el 5 y su respuesta lleva el defecto, salvo que el reinicio llegue después y lo borre con `stage_timelines` (§13.9)». 20-i (l. 209) descarta, con motivo, calcular `distinctions` y la delegación al servir hasta el 6b (un segundo camino al reparto congelado, D-15) y explica por qué el reparto provisional del 3c no adelanta la respuesta (trae los maillots de líder, no títulos ni distinciones). §17.9 y 17-k (17-plan.md l. 292 y 783) dicen lo mismo con las mismas palabras. El fallo del hallazgo era que el dueño decidía a ciegas; ya no.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-020",
+  "tipo": "hallazgo",
+  "veredicto": "cerrado",
+  "evidencia": "DD-18 (20-dueno.md l. 37): el defecto dice «`BROADCAST.liveClusters` nace apagada … hasta que se encienda, rige lo apagado»; la consecuencia, medida con `l10/descuelgues.mjs` (las 18 corridas de §12.2, política de §7.7 aproximada): «apagado, los de corredores con rótulo salen uno a uno (§12.2): al menos de 59 a 74 por etapa en las dos reinas del banco que los tienen, y de 0 a 1 en las otras cuatro»; y la contraria dice lo que pedía el hallazgo, contra la B3. §20.3 (l. 61) da el desglose (de 63 a 74 en la e20, de 59 a 61 en Colombia e5), igual que §12.3 (12-voz.md l. 170, 12-s), y §20.8 (l. 146) lo repite. La B3 citada con su línea y versión (`docs/balance.md` l. 1845-1846, v13).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-025",
+  "tipo": "hallazgo",
+  "veredicto": "cerrado",
+  "evidencia": "DD-12 (20-dueno.md l. 32): «la condición de 14-k solo cuenta cuando la página la pide un navegador con sesión: el robot de vista previa de un chat no lleva cookie y su horizonte es `anon`, con el velo vacío, así que la vista previa lleva el ganador para todo el que vea el enlace, jugador o no, tenga la etapa velada o no (§11.10)»; §20.8 (l. 141) y 20-d (l. 204) lo dicen, y 14-k también (14-api.md l. 625). La fila de DD-12 de 00-decisiones.md lleva la misma consecuencia.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-028",
+  "tipo": "hallazgo",
+  "veredicto": "cerrado",
+  "evidencia": "§20.5 abre con lo que llega al jugador «solo cuando el dueño enciende los interruptores … lo poco que no tiene interruptor va al final» (20-dueno.md l. 79) y el párrafo «Lo que no tiene interruptor» (l. 89) pone detrás de `BROADCAST_WATCH` las palabras de papel del acta (40 de cada 210 líneas, `l8/rol.mjs`), el nombre de la pestaña `Story` y la pestaña de la carrera de un día (que §12.6, §11.17 y §17.9 y §17.12 ya miran con `broadcastOn()`: 11-superficies.md l. 695; 17-plan.md l. 292, 392 y 400) y escribe las cuatro excepciones con su cifra. El corrector lo dejaba parcial porque la cifra del 12 es estimada (1 − 1/n); el texto lo dice («estimado …, sin medir sobre etapas; B5 congela el resultado en ese PR»), que es lo que exige la regla de las cifras. Recontado aquí con el parser de TypeScript del repositorio sobre `apps/web/src/domain/stageJournal.ts` (sin cambios desde 25ecb3e): de las 90 llamadas a `pick`, 45 son entre dos redacciones, 44 entre tres y una entre cuatro, no 44 y 43; la conclusión, la mitad o dos tercios de las líneas que eligen, no cambia (A-L10-010).",
+  "accion": "lo he cerrado yo: 20-dueno.md l. 89, la cuenta de las elecciones (A-L10-010); necesita otra sección: §17.15 (17-plan.md l. 453) dice también «44 son entre dos y 43 entre tres»"
+ },
+ {
+  "id": "Rdueno-029",
+  "tipo": "hallazgo",
+  "veredicto": "cerrado",
+  "evidencia": "DD-21 (20-dueno.md l. 39): «El mánager es por invitación hasta que el juego esté implementado y probado (decisiones 3 y 6 del dueño, `docs/agenda.md` l. 36 y 39): con el defecto, el encendido para todos espera a un perfil que al principio tendrán unos pocos invitados», y la tercera respuesta en la última columna («se enciende para todos con el jugador dentro del listón y el mánager pagando sus milisegundos una vez por minuto (el memo de `SPOILER.horizonMemoS`, §10.7) mientras se optimiza la consulta 2»). §20.3 (l. 62) lo repite. Comprobadas las dos citas de la agenda (l. 36: «solo por invitación hasta que el juego esté implementado y probado»; l. 39).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-034",
+  "tipo": "hallazgo",
+  "veredicto": "cerrado",
+  "evidencia": "DD-01 (20-dueno.md l. 21): «ponerse al día cuesta de 54 a 94 min en `Watch` con el velo de la mediana y de 3,7 a 6,5 h con el del p90 (derivado, §20.3)»; DD-03 (l. 23) lo repite; §20.3 (l. 55 y 57) da la cuenta (7 × 7:39 a 7 × 13:28; 29 × 7:39 = 3,70 h y 29 × 13:28 = 6,5 h, recomprobado) y dice que DD-01 y DD-03 se contestan juntas.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-035",
+  "tipo": "hallazgo",
+  "veredicto": "cerrado",
+  "evidencia": "DD-13 (20-dueno.md l. 33): «con el defecto, el equipo líder no aparece en `Watch`: ni en el rótulo, ni en la barra, ni en el cierre, que no tiene tabla por equipos (§8.6, 20-c); solo en la clasificación por equipos de `Report`». §20.8 (l. 142) cita la petición del dueño junto a la medida: «Ah, falta la clasificación por equipos» (`docs/navegacion.md` l. 412-415, agosto de 2026), el dorsal en todas las tablas (l. 444-448) y la medida de Race Colombia (l. 452-453), comprobadas en el fichero.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-040",
+  "tipo": "hallazgo",
+  "veredicto": "cerrado",
+  "evidencia": "DD-06 (20-dueno.md l. 26), última columna: «que el Giro de la temporada 0 traiga al campeón de Italia exige, antes del reinicio, E12 fuera del orden de los encargos («E2 primero, E13 último», `docs/encargos.md` l. 6-7, con E12 el penúltimo) o una siembra en E2 detrás de `ChampionTitleSource` (por ejemplo, un sorteo sembrado entre los corredores de cada país, marcado provisional)»; plazo «antes del reinicio» en la fila y en §20.7 (l. 122); §20.8 (l. 135) y §7.4 (07-rotulos.md l. 268) lo dicen igual.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-041",
+  "tipo": "hallazgo",
+  "veredicto": "cerrado",
+  "evidencia": "§20.1 (20-dueno.md l. 9): «Son DD-02 (el velo; lo que congela, dos puntos más abajo)…», y l. 12, en «Lo que se congela al grabar la etapa»: «Son DD-05, DD-13 y la mitad de DD-02: el velo cambia en cuanto cambia la constante, pero la notoriedad de los rótulos cuenta las carreras que caducaron (`knownWins`) y se congela en el reparto, así que con otra caducidad los rótulos cambian solo en las etapas grabadas después (7-e, 7-g)». La fila de DD-02 (l. 22) dice lo mismo.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-042",
+  "tipo": "hallazgo",
+  "veredicto": "cerrado",
+  "evidencia": "DD-15 y DD-19 se retiran como decisiones del dueño y conservan su número (20-dueno.md l. 49, «Dos números retirados»; 20-g, l. 207; la entrada de §20, l. 3); quedan decididas en su sección: DD-19 en §12.8 (12-voz.md l. 562, «`text` de compatibilidad (DD-19: retirada como decisión del dueño en la fase 5, es una decisión de diseño de esta subsección…»)») y DD-15 en §8.10 (08-ritmo.md l. 328, «la impone el tick»). §20 ganó las que estaban fuera: DD-26 a DD-29 y lo de DD-01, DD-04 y DD-12 (§20.6, l. 99-102). 00-decisiones.md (§DD) lleva la nota y el bloque de la corrección L10.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-044",
+  "tipo": "hallazgo",
+  "veredicto": "cerrado",
+  "evidencia": "§20.4, [DUEÑO 9] (20-dueno.md l. 73): ya no dice «y por eso no hay estreno a hora fija (DD-15, §8.10)»; la cita es la de `docs/epics.md` (l. 696-697 la razón, l. 701-702 las palabras del dueño, comprobadas: l. 700 está en blanco) y termina en «La retransmisión se mira: ningún mando de `Watch` cambia la carrera, que ya está corrida (§8.10)». DD-15 se retira (20-g) y §8.10 da como porqué solo el tick (08-ritmo.md l. 328).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-033 · cruzada L1 n.º 7",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L1.json n.º 7 → §20.4; coherencia.json fila 7 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §20.4. La cruzada no pide cambio: la cita de `docs/epics.md` l. 701-702 es la buena. 20-dueno.md l. 73 la conserva («l. 701-702») tras reescribir la viñeta con Rdueno-044, y la razón de la l. 696-697; comprobado en el fichero: l. 700 en blanco, l. 701-702 las palabras del dueño.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-010 · cruzada L2 n.º 15",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L2.json n.º 15 → todas las secciones (§0 a §21); coherencia.json fila 23 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino «todas las secciones (§0 a §21)»; lo de L10. En lo que se ensambla de 00-cabecera.md, 20-dueno.md y 21-apendices.md no queda ninguna remisión `§G.n` (grep de «§G» y «G.n» por fichero, fuera de los bloques de cierre): solo la tabla de conversión del principio de §21.6 (21-apendices.md l. 426-440), que es la que fija 21-f, y 21-f y los bloques «Propuesto para el glosario» y de dudas, que el ensamblado quita.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-005 · cruzada L3 n.º 1",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L3.json n.º 1 → §0.4 (00-cabecera.md l. 72, punto 3); coherencia.json fila 45 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "§0.4, punto 3 (00-cabecera.md l. 72): «Solo el paso 4 toca `packages/engine`; si otra línea sube la versión antes del 17d de la táctica, la «Last race» de las etapas ya corridas cuenta otra carrera (C16), y qué hacer con eso es del dueño (DD-25)». La regla «toda subida va detrás del 17d» no queda en §0.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-005 · cruzada L3 n.º 4",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L3.json n.º 4 → 00-decisiones.md, fila de DD-25 (l. 703 del fichero antes de esta corrección) y §21 (O-05, l. 121; H-02, l. 186); coherencia.json fila 48 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "O-05 (21-apendices.md l. 121): «lo que cuesta una subida de otra línea antes del 17d, y qué se hace con ella, lo decide el dueño | … §20 (DD-25) | D-09, DD-25»; H-02 (l. 186): «ninguna subida de versión en E2; lo que cuesta una subida de otra línea antes del 17d lo decide el dueño (DD-25)». La fila de DD-25 de 00-decisiones.md (§DD) se sostiene sola: defecto de adelantar el 17d y «E2 no sube la versión (D-09)», sin la regla.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-044 · cruzada L3 n.º 10",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L3.json n.º 10 → 00-glosario.md (§G.3.8, fila de `stage_timelines.tpl_rev`; §G.5, fila de `stage_timelines`); coherencia.json fila 54 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino el glosario. G.3.8, fila de `stage_timelines.tpl_rev`: «`smallint not null`, sin defecto (13-j) … la escribe `flush` y la lee `readStageTemplateRev` | §13.3, escrita ya en la `0044`»; G.5, fila de `stage_timelines`: «gana `tpl_rev smallint not null`, sin defecto (12-c, 13-j), escrita en la `0044` de §13.3». Como §13.3 y §12.7 (12-voz.md l. 396).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-035 · cruzada L3 n.º 12",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L3.json n.º 12 → 00-glosario.md (§G.2, l. 114; §G.4, l. 697) y §21.6 F.2 (21-apendices.md l. 511); coherencia.json fila 56 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "G.2 (fila de `packages/db/src/timelines.ts`) y G.4 (fila de `startStageTimeline(…)`…) llevan las funciones de la corrección de §5, con `readStageTimeline(db, _h: Horizon, …): Promise<StageTimeline | null>` (el `_h` de 5-p) y «salen `StageTimelineRead`, `writeStageTimeline` y `writeStageTimelineFailure`»; F.2 (21-apendices.md l. 532) igual. Ninguna sección ni el glosario nombran ya `StageTimelineRead` fuera de los bloques de dudas resueltas. Faltaba en F.2 la fábrica del diario, `timelineTickLog(): TimelineTickLog` (05-motor.md l. 459), que G.2 sí tiene (A-L10-011).",
+  "accion": "lo he cerrado yo: 21-apendices.md l. 532, `timelineTickLog(): TimelineTickLog` (A-L10-011)"
+ },
+ {
+  "id": "Rcobertura-006 · cruzada L3 n.º 13",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L3.json n.º 13 → 00-glosario.md (§G.4, fila de `selfCheckI5`) y §21.6 F.2; coherencia.json fila 57 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "G.4, fila de `selfCheckI5(tl, output)`: «I5 al grabar una crono: `kmClockDs[r].at(−1) = 10 · tiempoS` y `checkClockDs[r][c] = 10 · splitS` de cada `tt_split` de su primer protagonista; su elemento es `{ rider, check: number | null, expectedDs, gotDs }` (null en la meta)»; F.2 (21-apendices.md l. 513) dice lo mismo.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-037 · cruzada L3 n.º 31",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L3.json n.º 31 → §20 (decisión nueva del dueño); coherencia.json fila 75 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "DD-27, «El reinicio antes que el código de E2» (20-dueno.md l. 45): defecto, adelantar el 1a mínimo como excepción declarada (la `0043`, `runMigrations` con el candado y `emitNews` con `seed`, `data`, `race_key`, `stage_day` y `text`); consecuencia, las noticias sin datos para siempre (§19.8) y el 1a mínimo de una sesión, lo que pedía la Oleada 0 (`docs/agenda.md` l. 1411-1417, comprobado: l. 1411 el título, l. 1416-1417 el punto de `news`); también en §20.1 (l. 15), §20.6 (l. 100), §20.7 (l. 122), §20.8 (l. 154) y §20.9 (l. 188), y en 00-decisiones.md (§DD).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-023, Rdueno-003 · cruzada L4 n.º 6",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L4.json n.º 6 → §21 (D.2); coherencia.json fila 82 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "D.2, fila de [DUEÑO 3] (21-apendices.md l. 249): «§7.2-7.6; §6.2 (el maillot de cada corredor en la barra) y §6.7 (la presentación de la fuga, 6-m); se prueba en la segunda parte de B3 (§16.4) y con la pregunta de los maillots de la prueba de lectura (§16.5) | §7.3, §17.17».",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-014, Rdueno-015, Rcobertura-023 · cruzada L4 n.º 15",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L4.json n.º 15 → §15.3 y el glosario (§G.7); coherencia.json fila 91 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "Lo de L10 es el glosario (G.7); §15.3 la auditó L2. G.7: `BROADCAST.controlsHideS` (3, 8-p, «sin evidencia de los jueces, la acepta la prueba de lectura»), `breakRoundEveryS` («un rótulo de clase 2, reservado con la lista y la frase (6-m), por corredor de `breakRoundOf`, solo en `Watch` a ×½, ×1 y ×2»), `cueQueueMax` («salvo la presentación de la fuga, que no cuenta (6-m)») y `cardRowsMax` («o de la lista de una fuga (dos corredores por fila)»).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-026 · cruzada L4 n.º 17",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L4.json n.º 17 → §21 (O-11 y D.7); coherencia.json fila 93 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "O-11 (21-apendices.md l. 127) y D.7 (l. 371): «medido de 5:20 a 11:23 (el prólogo de 176 corredores, de 6:24 a 7:06; una nacional de 40 km con 12, de 5:20 a 5:24; §9.4)», como la tabla de §9.4 (09-crono.md l. 196-197) y §8.3; §0.7 (00-cabecera.md l. 142) da además la de 35 km (5:41-5:52).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-036 · cruzada L4 n.º 22",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L4.json n.º 22 → §20 (una decisión nueva del dueño) y 00-decisiones.md (tabla DD); coherencia.json fila 98 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "DD-28, «Los nombres de pantalla» (20-dueno.md l. 46): por defecto los de D-48; consecuencia con las tres citas del dueño («Journal», `docs/balance.md` l. 1431-1432, v11; l. 5975-5976, v27; l. 8095, v39); dónde y cuándo, «antes del 9a, que renombra `Story`»; la contraria, `Journal` en la pestaña y en los textos que la nombran. También en §20.1, §20.6 (l. 101), §20.7 (l. 117), §20.8 (l. 155) y §20.9 (l. 189), y en 00-decisiones.md (§DD, D-48 precisada).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-037 · cruzada L4 n.º 23",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L4.json n.º 23 → §20 (una decisión nueva del dueño, y §20.4) y 00-decisiones.md (tabla DD); coherencia.json fila 99 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "DD-29, «La criba lejana en el acta» (20-dueno.md l. 47), con las dos salidas que da la cruzada (una pasada de `buildChronicle` sobre la línea grabada o una frase del motor, que sube la versión, D-09); §20.4, [DUEÑO 7] (l. 72): «En el acta, la cobertura sigue en el 58 % de la v39, sin remedir, y subirla es DD-29»; y su fila en 00-decisiones.md.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-018 · cruzada L4 n.º 24",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L4.json n.º 24 → §20.2 (DD-04) y §20.8; coherencia.json fila 100 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "DD-04 (20-dueno.md l. 24), consecuencia: «la C7 del dueño pide una sola palabra, no cuál: `Bunch` es la de SPEC §6.15 y la del journal (140 tests); `Peloton` es la de la tele, la del código del motor (`kind: 'peloton'`, `contracts.ts` l. 1346, y cinco plantillas `peloton_*`), la de la radio de hoy y la del dueño (…`docs/balance.md` l. 1843, v13)»; el corte decide cuándo un grupo es el grueso, no cómo se llama, en §20.8 (l. 133); la C7 en §20.4 (l. 71).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-019, Rcobertura-020, Rcodigo-028, Rdueno-015, Rcobertura-021 · cruzada L4 n.º 25",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L4.json n.º 25 → §21.6 F.3 (textos de pantalla) y §G.11; coherencia.json fila 101 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "F.3 (21-apendices.md l. 556-557, 559, 582 y 590): `Mountains leader’s group` y, en la voz, `the race leader’s group`, `the points leader’s group` y `the mountains leader’s group`; `Pulling: Team Beta (for 11 Sam Carter)` (el nombre, tal como está guardado, 7-a), sin el paréntesis de la forma abierta; las quince de `PULL_MOTIVE_WORDS`; y `same time (3 km rule)`. G.11 igual. Ningún ejemplo con apellido en mayúsculas o inicial queda en §21 ni en el glosario (grep de `S. CARTER`, `MORENO`, `L. BERTOLINI`, `KOM leader`).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-012, Rcobertura-033, Rcobertura-022, Rdueno-015, Rcobertura-023, Rcoste-041, Rcobertura-030 · cruzada L4 n.º 26",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L4.json n.º 26 → §21.6 F.2 (firmas) y §G.4 del glosario; coherencia.json fila 102 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "F.2 (21-apendices.md l. 522, 525 y 545): `cueClassOf(cue, start, lastVirtualLeader, timeTrial): CueClass` (9-n), `isPresentation(cue: Cue): boolean` y `aheadOfPeloton(i: Instant, r: RiderIx): boolean` en `cues.ts`; `breakRoundOf(riders: readonly RiderIx[], cast: readonly RiderCard[]): readonly RiderIx[]`, `pullingLineOf(…): PullingLine` (con el `motive` de cada equipo), `GROUP_WORDS` (el maillot, en pares [barra, voz]) y `PULL_MOTIVE_WORDS` en `names.ts`; `playerInit(view, stageDay, reachedS, known)` con `PlayerState.idleS`, `stageDay` y `loaded`, `PlayerContext.digestNext`, `touch`, `throttled`, `cueAdmitted.round` y los efectos `finish` con `mode` y `release`. G.4 igual. F.2 no nombraba las dos funciones de la cola de §6.5 que G.2 sí lleva (`admitir` y el fotograma, en pseudocódigo; A-L10-011).",
+  "accion": "lo he cerrado yo: 21-apendices.md l. 522, las dos funciones de la cola (A-L10-011)"
+ },
+ {
+  "id": "Rcobertura-021, Rdueno-021, Rdueno-036, Rdueno-037 · cruzada L4 n.º 28",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L4.json n.º 28 → §20 y §19 (si procede); coherencia.json fila 104 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Lo de §20: DD-28 y DD-29 tienen fila (20-dueno.md l. 46-47) y nada de 6-o ni de 6-r va al dueño. La parte de §19 es de L9 y opcional.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-023, Rdueno-003, Rdueno-014, Rdueno-015, Rcobertura-019, Rdueno-017 · cruzada L4 n.º 29",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L4.json n.º 29 → 00-glosario.md (§G.2, §G.4, §G.7 y §G.11); coherencia.json fila 105 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Glosario: G.7 con `breakRoundEveryS`, `cueQueueMax`, `controlsHideS` y `cardRowsMax` como pide la cruzada; G.4 con `cueClassOf(cue, start, lastVirtualLeader, timeTrial)`, `isPresentation(cue: Cue)`, `aheadOfPeloton(i: Instant, r: RiderIx)`, `breakRoundOf`, `PullingLine` con `motive`, `GROUP_WORDS.jersey` en pares y `playerInit(view, stageDay, reachedS, known)` con lo nuevo de `player.ts`; G.2 con `isPresentation` y `aheadOfPeloton` en la fila de `cues.ts` y `breakRoundOf` y `PULL_MOTIVE_WORDS` en la de `names.ts`; G.11 con `Mountains leader’s group`, las tres palabras del grupo del maillot en la voz, las quince de `PULL_MOTIVE_WORDS` y `same time (3 km rule)`.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-031 · cruzada L5 n.º 5",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L5.json n.º 5 → §5.7 y §0.7; coherencia.json fila 110 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "§0.7 (00-cabecera.md l. 137): «de 18,8 a 24,2 KB las dos del banco (20 y 26 km) con 176 corredores; de 26.987 a 27.821 B la e18 de `race-spain` (33 km) y de 31.178 a 32.203 B la e10 de `race-italy` (42 km), la más larga de 176 corredores del calendario, sin y con `checkClockDs`; de 7,2 a 7,5 KB con 40», igual que la tabla de §5.7 (05-motor.md l. 617-618); y el tope de 48 KB de la crono (l. 139). Lo de §5.7 lo auditó L3.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-033 · cruzada L5 n.º 9",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L5.json n.º 9 → §G.4 (00-glosario.md, la fila de `cuesBetween` y `cueClassOf`) y §21.6 F.2 (21-apendices.md l. 502); coherencia.json fila 114 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "G.4 (fila de `cuesBetween` y `cueClassOf`) y F.2 (21-apendices.md l. 522): `cueClassOf(cue, start, lastVirtualLeader, timeTrial): CueClass` (9-n).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-051 · cruzada L5 n.º 16",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L5.json n.º 16 → §21.6 F.2; coherencia.json fila 121 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "F.2, fila de `names.ts` (21-apendices.md l. 525): `cardCaption(worn, n)`, `cardLineText(d, n)`, `ordinal(n)`, `gapText(s)` y `listAnd(xs: readonly string[]): string`, como G.4.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-012 · cruzada L5 n.º 17",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L5.json n.º 17 → §21 (apéndice de injertos); coherencia.json fila 122 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "I-47 (21-apendices.md l. 61): «entero: `ChampionMark`, la silueta de maillot con una estrella en el pecho y la bandera al lado (7-h, corregida en la fase 5 por Rdueno-012)»; G.2, fila de `Jersey.tsx`: «`ChampionMark` (la señal provisional de campeón: la silueta de maillot con una estrella en el pecho y la bandera al lado, 7-h, Rdueno-012)».",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-045 · cruzada L5 n.º 20",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L5.json n.º 20 → 00-glosario.md (§G.3 y §G.4); coherencia.json fila 125 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "G.3.4: `RiderCueContext` con `'tt_round'` (y sin `attack`, 6-p, como §4.9); G.3.2: `TimeTrialInstant.arrivals` como `readonly { rider; timeS }[]` (9-i); G.3.8, la fila de los dos; G.4: `cueClassOf(…, timeTrial)` (9-n), y el bloque «Corrección L10» de G.14 lo registra.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-047 · cruzada L6 n.º 2",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L6.json n.º 2 → §12.3 y §12.6 (y §G.4 del glosario); coherencia.json fila 127 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Lo de L10 es G.4: «`liveClusters(events, tl, revealS): readonly LiveCluster[]`, con `LiveCluster` = `{ event; revealS; members }` (el racimo, su hora de publicación y los sueltos que absorbe)», y G.2 tiene `apps/api/src/liveClusters.ts`. F.2 (21-apendices.md l. 542) igual. §12.3 y §12.6 los auditó L8.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-035 · cruzada L6 n.º 8",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L6.json n.º 8 → §5.6 (y §G.2, §G.4 del glosario y §21.6 F.2); coherencia.json fila 133 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Lo de L10: G.2 y G.4 sin `StageTimelineRead` y con `readStageTimeline(db, _h: Horizon, raceKey, stageDay): Promise<StageTimeline | null>`; F.2 (21-apendices.md l. 532 y 540) con esa firma y `timelineForStage(db, h: Horizon, raceKey, stageDay): Promise<StageTimeline | null>` (14-p).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-011 · cruzada L6 n.º 11",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L6.json n.º 11 → §15.3 (y §G.7 del glosario, y la tabla de aceptación de §15); coherencia.json fila 136 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "G.7: «`SPOILER.horizonMemoEntries` | 500 | tope de entradas de cada memo del proceso (`TtlMemo`: horizonte, `veilDelta` y sesión); sin evidencia de los jueces (10-m, §15.4)». §15.4 y su fila de aceptación los auditó L2.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-023 · cruzada L6 n.º 19",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L6.json n.º 19 → §20.2 (DD-01) y §11.20; coherencia.json fila 144 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "Lo de L10: DD-01 (20-dueno.md l. 21) se llama «Qué carreras se protegen sin pedirlo, y si ver una etapa pone su carrera en guardia», con «seguir una carrera al empezar a ver cualquiera de sus etapas (D-30)» en el defecto, su consecuencia, la contraria («Sin seguir al empezar a ver, solo `Follow without spoilers` (pantalla) protege, y ver la etapa 3 no protege la 4 del feed») y `recordProgress`, que pone `follow = 1` en el primer progreso (§10.3), entre lo que se cambia. §11.20 lo auditó L7.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-024 · cruzada L6 n.º 20",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L6.json n.º 20 → §20.2 y §20.3 (DD-01); coherencia.json fila 145 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "DD-01 (20-dueno.md l. 21, última columna) y §20.3 (l. 55): la tercera respuesta, todas las carreras, con «202 etapas veladas a la vez en la mediana, 601 en el p90 y 669 como máximo, alguna en 356 días de 364, y un velo de hasta 669 entradas (medido, `c-l6/todas.mjs`)», y la cuenta de `e2prod/headline.mjs` que con las ocho reproduce 7, 29 y 42; §20.8 (l. 130) la cita. Igual que §10.4 (10-horizonte.md l. 131).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-002 · cruzada L6 n.º 23",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L6.json n.º 23 → §17.10, §17.18, §11.15 y §20.5; coherencia.json fila 148 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "Lo de L10 es §20.5, punto 3 (20-dueno.md l. 83): la web reenvía `?diag=1` a la ruta de etapa desde el 7b (`fetchCalendarStage`, 14-s) y a las demás con el 9a y el 9b; casa con §11.15 (11-superficies.md l. 496 y 501) y §17.10 (17-plan.md l. 335).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-047, Rcoste-011, Rcoste-014, Rcoste-018, Rcoste-044, Rdueno-002, Rcodigo-035 · cruzada L6 n.º 24",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L6.json n.º 24 → glosario (§G.2, §G.4, §G.7, §G.12); coherencia.json fila 149 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "G.2: `TtlMemo<V>` (fila de `horizon.ts`), `PLAYER_RATE_LIMIT` (`security.ts`), `ApiError.retryAfterS` (`request.ts`), `<HorizonWatcher />`, `cacheOwnerChanged(prev, next)`, `SessionSeen` y `horizonKey(base, rev: string | undefined)` (`queryClient.ts`), `fetchCalendarStage(raceId, day, opts?: { readonly diag?: boolean })` y `apps/web/src/api/results.test.ts`; G.4 con `lastRunStages`, `liveClusters` y `LiveCluster`; G.7 con `SPOILER.horizonMemoEntries`; `StageTimelineRead` fuera. Los scripts de `c-l6/` son del scratchpad y no entran, como dice G.14.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-038 · cruzada L7 n.º 3",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L7.json n.º 3 → §21 (D.5); coherencia.json fila 152 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "D.5, fila de `sup. E9` (21-apendices.md l. 302): «7b · 9a y 9b | `stageTables.test.tsx` (9a) y `raceTabs.test.ts` (9b)», que es la de §11.1 abreviada (11-superficies.md, fila de `sup. E9`).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-039 · cruzada L7 n.º 4",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L7.json n.º 4 → §21 (D.5); coherencia.json fila 153 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "D.5, fila de `sup. C3` (21-apendices.md l. 305): «8a · 9b», como §11.1.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-041 · cruzada L7 n.º 5",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L7.json n.º 5 → §21 (D.5); coherencia.json fila 154 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "D.5, filas de `sup. W3` y `sup. W6` (21-apendices.md l. 332 y 335): «B1d (L con motivo; su respuesta no cambia con la etapa, §11.18)».",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-029 · cruzada L7 n.º 7",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L7.json n.º 7 → §21 (apéndice A, I-09); coherencia.json fila 156 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "I-09 (21-apendices.md l. 23): «entero; el LRU es de 16 entradas desde que nace (18-d)».",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-061 · cruzada L7 n.º 11",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L7.json n.º 11 → §20 (§20.2, DD-08); coherencia.json fila 160 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "DD-08 (20-dueno.md l. 28): «Condición y atributos del corredor propio, y atributos de cualquier corredor en su ficha | visibles (L, en la lista blanca de B1b) | … en la ficha ajena, la etapa velada sube TAC de +0,37 a +0,41 y el ganador no es el que más sube (medido en el mundo de B1, `rcod/n/b1/attrs.mjs`; `sup. X11`) | `GET /api/riders/me`, `/form`, `/coach-view` y los atributos de `GET /api/riders/:id` (§11.13, §11.18)», con la purga a los 60 días (`tick.ts` l. 171-178) en la contraria; §20.8 (l. 137).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-061 · cruzada L7 n.º 12",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L7.json n.º 12 → §0; coherencia.json fila 161 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "§0: «las 48 superficies del mapa 03 más once puertas de fuera (`sup. X10` la encontró §11.2 y `sup. X11`, su corrección)» (00-cabecera.md l. 76), «Las 48 superficies y las once puertas de fuera» (§0.5, l. 98) y «`sup. X1` a `sup. X11`» (§0.6, l. 122).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-061 · cruzada L7 n.º 15",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L7.json n.º 15 → §21; coherencia.json fila 164 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "I-29 (21-apendices.md l. 43): «una décima puerta, `sup. X10` (11-b), y una undécima, `sup. X11` (11-r)»; O-32 (l. 148): «las nueve puertas de `producto` y dos más, `sup. X10` y `sup. X11`»; D.1, punto 3 (l. 238): «las 48 superficies y once puertas»; D.5, el título (l. 290) y la fila de `sup. X11` (l. 352); F.4 (l. 615): «`sup. X1` a `sup. X11`».",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-012 · cruzada L7 n.º 17",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L7.json n.º 17 → §0 (§0.7); coherencia.json fila 166 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "§0.7, fila del horizonte (00-cabecera.md l. 149): «en PostgreSQL 16 nativo sin red, 2,16 y 3,88 ms», con `coste/pgm/horizonte-pg.mjs` y «falta la red de Railway, tres idas y vueltas por cálculo, que mide el paso 7 (DD-21)». Es lo que pedía la cruzada; después la auditoría L7 repitió la medida dos veces y §18.2 da hoy las tres corridas (18-rendimiento.md l. 83: 2,16 (1,70 y 1,96) y 3,88 (4,75 y 4,11)), así que la cifra compartida pasa al rango (A-L10-004).",
+  "accion": "lo he cerrado yo: 00-cabecera.md l. 149, el rango de las tres corridas (A-L10-004)"
+ },
+ {
+  "id": "Rcoste-012 · cruzada L7 n.º 19",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L7.json n.º 19 → §20 (§20.2 y el párrafo de DD-21); coherencia.json fila 168 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "DD-21 (20-dueno.md l. 39): el defecto lleva «medido desde el servicio `web` de Railway contra una copia de la base de producción rellenada hasta 250.000 filas de `race_rosters` (18-j)» y la consecuencia la cifra de PostgreSQL 16 sin red; §20.3 (l. 62) y §20.8 (l. 148) también. Como en la cruzada anterior, la cifra pasa al rango de las tres corridas de §18.2 (A-L10-004).",
+  "accion": "lo he cerrado yo: 20-dueno.md l. 39, 62 y 148 (A-L10-004)"
+ },
+ {
+  "id": "Rdueno-022 · cruzada L7 n.º 29",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L7.json n.º 29 → §20 (DD-01); coherencia.json fila 178 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "DD-01 (20-dueno.md l. 21), consecuencia: «Fuera de guardia, la ficha de carrera enseña el ganador de la carrera y el de cada etapa aunque no se hayan visto, mientras la etapa abre en `Watch` (§11.5, 11-u)»; y la contraria: «la ficha de carrera deja de contar ganadores no vistos».",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-026 · cruzada L7 n.º 30",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L7.json n.º 30 → §20; coherencia.json fila 179 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "DD-26 (20-dueno.md l. 44) con la fila de 00-decisiones.md y además dónde y cuándo («`VeilDelta.budget` en el 8b (§11.13); antes del 8b») y la contraria con su lista blanca de B1b; en §20.1 (l. 10) entre los textos o comportamientos de la web o la API; §20.6 (l. 99), §20.7 (l. 116), §20.8 (l. 153) y §20.9 (l. 187). La cuenta de §20 es veintisiete (l. 3).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-039 · cruzada L7 n.º 34",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L7.json n.º 34 → §20 (§20.5); coherencia.json fila 183 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "§20.5, punto 3 (20-dueno.md l. 83): «la API lo acepta en la ruta de etapa desde el 7b y en la ficha de carrera y el feed desde el 8a (11-h)».",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-043 · cruzada L7 n.º 36",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L7.json n.º 36 → §20 (DD-12 y §20.8); coherencia.json fila 185 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "DD-12 (20-dueno.md l. 32): «La vista previa del acta compartida, y el acta en los buscadores», con el acta «pública e indexable en `/report` (D-36)» por defecto, el robot de un buscador sin cookie en la consecuencia y `X-Robots-Tag: noindex` en la contraria; §20.8, DD-07 (l. 136): «pública en `/report`, e indexable por defecto (DD-12)».",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-003 · cruzada L7 n.º 38",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L7.json n.º 38 → §0 (§0.7); coherencia.json fila 187 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "§0.7, fila del cliente (00-cabecera.md l. 148): «`instantAt`, p99 de 0,036 a 0,056 ms sin el paso 9 de §4.5, y con él memorizado por `(g, k_g)`, p95 de 0,017 a 0,052 ms (sin el memo, de 0,064 a 0,804)», que son las de §18.1 (18-rendimiento.md l. 46-53).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-002 · cruzada L7 n.º 47",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L7.json n.º 47 → §0 (§0.7) y §16.4 (B15); coherencia.json fila 196 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Lo de L10 es §0.7 (00-cabecera.md l. 146): «proyectado: 153 y 187 veces la media de 30 nacionales élite de cada clase … sin los sub-23, sin `buildTimelineCast` y sin escribir; la escritura, medida aparte en PostgreSQL 16 local», y O-23 y X-24 (21-apendices.md l. 139 y 420). B15 lo auditó L8.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-042 · cruzada L8 n.º 1",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L8.json n.º 1 → §4.13 (y §21.6 F.2); coherencia.json fila 198 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "F.2 (21-apendices.md l. 524): «`radioFromTimeline(tl: TimelineCore, names: RadioNames): RaceRadio`, con `RadioNames` = `{ riderOf; own: ReadonlySet<RiderIx>; nameableAt: (km: number) => ReadonlySet<RiderIx> }` (12-o)».",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-043 · cruzada L8 n.º 3",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L8.json n.º 3 → §6.3, §7.4, §7.6, §11.8, §11.9 y §21.6 F.2; coherencia.json fila 200 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "F.2 lleva `_locale` en `groupLabelText`, `breakHeadline`, `championTitleText` y `gapTrendLine` (21-apendices.md l. 525), `pageTitle` y `stageReadyNotice` (l. 527), `chronicleParts` y `chronicleLine` (l. 529) y `stageReadyEmail` (l. 543). Quedaba un render sin el guion bajo, `renderNews(locale: 'en', …)` (l. 528), cuando §12.8 lo escribe `renderNews(_locale: 'en', p: NewsPayload, seed: string, rev: number, n: NameResolver)` (12-voz.md l. 480) y G.4 ya lo corrigió (A-L8-004); y D.8 (l. 386) decía `renderNews(locale, …)`.",
+  "accion": "lo he cerrado yo: 21-apendices.md l. 528 (F.2) y l. 386 (D.8), con `_locale` (A-L10-005)"
+ },
+ {
+  "id": "Rcodigo-050 · cruzada L8 n.º 11",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L8.json n.º 11 → §4.5 y §21.6 F.2; coherencia.json fila 208 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "F.2, fila de `instant.ts` (21-apendices.md l. 518): «`GROUP_ROLES` y `isGroupRole(x: unknown): x is GroupRole` … la guarda del papel que llega en `datos` | §4.5, §6.2, §6.3, §12.6».",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-001 · cruzada L8 n.º 14",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L8.json n.º 14 → §20.2, §20.3 y §20.8 (DD-11); coherencia.json fila 211 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "DD-11 (20-dueno.md l. 31): «`race-radio.mjs --db` sigue re-simulando las etapas corridas con la versión de hoy (con el depósito por grupo, `--every` y todos los relevistas) y, con otra versión, pinta `radioFromTimeline` sobre la fila de `stage_timelines` en lugar de negarse (12-p, §12.10)»; §20.3 (l. 60): «Lo que compra DD-11 es una sola fuente de verdad para la pestaña»; §20.8 (l. 140) igual; §20.5, punto 3, sin cambio.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-019 · cruzada L8 n.º 17",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L8.json n.º 17 → §20.2 y §20.8 (DD-04); coherencia.json fila 214 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "La cruzada (actualizada en el cierre de L8) avisaba: «Si §20 ya aplicó la versión anterior de esta cruzada, lo que falta son los tres nombres del grupo del maillot». Así estaba: DD-04 (20-dueno.md l. 24) decía «El cuarto nombre y el corte cambian SPEC §6.15» y la contraria no nombraba el grupo del maillot, mientras la fila de DD-04 de 00-decisiones.md, 12-r y §12.6 (12-voz.md l. 347, «con los siete nombres y el corte de §6.3 por defecto») ya los llevan; y §20.3 (l. 58) decía que el cuarto nombre y el corte no cuestan tests del motor, cuando 12-r dice que `coherence.test.ts` se re-sella en el 4a con el tope de seis.",
+  "accion": "lo he cerrado yo: 20-dueno.md l. 24 (DD-04: los tres nombres del grupo del maillot en la voz, D-18 y 6-b, cambian también SPEC §6.15, y la contraria los nombra por su papel), l. 58 (§20.3: el re-sello de `coherence.test.ts` en el 4a), l. 102 (§20.6), l. 133 (§20.8) y l. 167 (§20.9)"
+ },
+ {
+  "id": "Rcoste-013 · cruzada L8 n.º 38",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L8.json n.º 38 → §20.2 (DD-21); coherencia.json fila 235 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "DD-21 (20-dueno.md l. 39): «mientras no pase, lo primero que se optimiza es la consulta 2, las carreras de la plantilla en `race_rosters`, que en PostgreSQL 16 es la que pesa en el mánager (p95 de 2,50 ms; 16-k)», y la contraria «mientras se optimiza la consulta 2».",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-004 · cruzada L8 n.º 43",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L8.json n.º 43 → §20.8 (DD-05), §21 (apéndice C) y §6 (6-h); coherencia.json fila 240 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "§20.8, DD-05 (20-dueno.md l. 134): «ninguna prueba lo mide: la prueba de lectura del 10b pregunta qué lleva cada uno de los de delante (§16.5, punto 6), que dice si el rótulo se lee y no a quién debe pasar el delegado»; el apéndice C: D-21 (B17 y la segunda parte de B3, con la medida de la cola de `l4c/cola.mjs`), D-24 (`jerseys.test.ts` y B3), D-25 (B3 con su cláusula de no vacío y la pregunta de los maillots) y D-26 (los tests de la frase de la fuga y el dueño tras el 6b) (21-apendices.md l. 216-219), y H-05 (l. 189); 6-h lo corrigió la coherencia (06-pantalla.md). La fila H-04 (l. 188) llevaba aún la condición vieja de la prueba («de 4 a 12»; A-L10-003).",
+  "accion": "lo he cerrado yo: 21-apendices.md l. 188 (A-L10-003)"
+ },
+ {
+  "id": "Rdueno-031 · cruzada L8 n.º 45",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L8.json n.º 45 → §20.5 (punto 5); coherencia.json fila 242 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "§20.5, punto 5 (20-dueno.md l. 85) cita SPEC §6.15 en «l. 598-600» (comprobado en SPEC.md: la regla del diario va de la l. 598 a la 600) y no atribuye al dueño la frase del registro de la v27.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-042, Rcobertura-043, Rcobertura-047, Rcobertura-051, Rcobertura-052, Rcodigo-050, Rcodigo-063, Rcodigo-084, Rcodigo-087 · cruzada L8 n.º 47",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L8.json n.º 47 → 00-glosario.md (§G.2, §G.3, §G.4, §G.7, §G.9, §G.11); coherencia.json fila 244 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Comprobados en el glosario de hoy (grep): G.4, `RadioNames` con `own` y `nameableAt`, `isGroupRole` y `GROUP_ROLES`, `liveClusters` y `LiveCluster`, las dos firmas de `buildChronicle`, `chronicleParts(_locale, e, rev)`, `chronicleLine(_locale, e, rev)`, `gapTrendLine(_locale, trend)`, `clearHorizonCaches()` y `realTestDbFor`; `serverErrors`, `SKIP`, `B1B_SKIP` y `B1B_VEIL` en la fila de `spoilerWorld.ts`; G.7, `BROADCAST.maxKnownStageGzipBytes` (112_640); G.2, `timelineCollectorBench.ts`, `timelineCollector.long1.test.ts` y `long2.test.ts`, `watchConcurrency.test.ts`, `breakPresentation.test.ts` y `lastRace.test.ts`; G.3.8, `riderRaceResultSchema.stagesToWatch`; G.9, B1a, B3, B6, B8, B12, B16, B22 y PL como los pide; G.11, `fuente: línea grabada · sin depósitos · una foto por km`.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-017, Rcobertura-044, Rcobertura-023, Rdueno-003, Rcoste-006, Rcoste-008 (cruzadas de L3 y L4, aplicadas en §12 y §16) · cruzada L8 n.º 53",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L8.json n.º 53 → 00-glosario.md (§G.2, §G.4 y §G.9); coherencia.json fila 250 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "G.2: `voiceRoles.ts` con `mainJersey` y `groupJersey`, `jerseys.ts` con `isJerseyKind`, `packages/db/src/index.ts` con el tipo `TimelineTickLog`; G.4: `groupNounOf(role, jersey)` e `isJerseyKind`; G.9: B3 con la presentación de la fuga, B6 del JSON (16-n), B15 con `pg_stat_get_backend_subxact` y PL «con una fuga de hasta 12 delante» (la cuenta «de 4 a 12» ya no sale en el glosario, grep); F.2 (21-apendices.md l. 526) con `isJerseyKind(x): x is JerseyKind`.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-009 · cruzada L9 n.º 4",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L9.json n.º 4 → §3.8, §6 (§6.2 y §6.3) y glosario (§G.11); coherencia.json fila 254 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "Lo de L10 es G.11 y F.3: F.3, fila «Sin línea» (21-apendices.md l. 574): «`Recorded before full race data`, `Positions of the groups behind are estimated` (debajo del aviso, con el km de esos grupos escrito con `~`; §3.8, §6.2)»; G.11 igual. §20.5, punto 1 (20-dueno.md l. 81) lo dice también.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-042 · cruzada L9 n.º 6",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L9.json n.º 6 → §3.8 y glosario (§G.4, estimatedHeadClock); coherencia.json fila 256 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "Lo de L10 es el glosario: G.2, fila de `broadcastSource.ts`: «gana `serveCast` y `estimatedHeadClock`, que se exporta para su test (`apps/api/src/broadcastSource.test.ts`, PR 2; cruzada de L9)», y la lista de privadas de G.4 dice que deja de serlo. F.2 no la tenía en la fila de `broadcastSource.ts` (A-L10-011).",
+  "accion": "lo he cerrado yo: 21-apendices.md l. 540, `estimatedHeadClock(kms, totalKm, winnerS): number[] | null` (A-L10-011)"
+ },
+ {
+  "id": "Rcoste-037 · cruzada L9 n.º 12",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L9.json n.º 12 → §20 (§20.2 y la tabla de DD) y 00-decisiones.md; coherencia.json fila 262 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "DD-27 (20-dueno.md l. 45) y su fila en 00-decisiones.md, con el título «El reinicio antes que el código de E2», el 1a mínimo como excepción declarada, la Oleada 0 (`docs/agenda.md` l. 1411-1417) y el riesgo 36 (§19.8).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-005 · cruzada L9 n.º 15",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L9.json n.º 15 → 00-decisiones.md (D-09 y DD-25), §0.4 punto 3 y §2.3; coherencia.json fila 265 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "§0.4, punto 3 (00-cabecera.md l. 72) dice lo que pide (ver la cruzada L3 n.º 1); D-09 y DD-25 en 00-decisiones.md, también; §2.3 lo auditó L1.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-034 · cruzada L9 n.º 16",
+  "tipo": "cruzada",
+  "origen": "cruzadas-L9.json n.º 16 → §14.1 (la fila del paso 11), con §G.10, D-54, §0 y §16 ya al día; coherencia.json fila 266 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "Lo que la cruzada da por hecho en §0 lo está: «Trece pasos y veintitrés PR» y 56, 52,5 y 37 sesiones con el rebase (00-cabecera.md l. 79), §0.5 (l. 104) y F.4 (21-apendices.md l. 617: «los veintitrés PR del plan (el paso 11 son dos, 11a y 11b, 17-v)»); DD-11 dice 11b (20-dueno.md l. 31).",
+  "accion": "nada"
+ },
+ {
+  "id": "A-L10-001",
+  "tipo": "comprobacion",
+  "origen": "encargo del lote: que §20 recoge todas las DD vigentes de 00-decisiones.md, con defecto, consecuencia, antes de qué PR y coste de la contraria",
+  "veredicto": "cerrado",
+  "evidencia": "00-decisiones.md, §DD, hoy (con los bloques y filas que añadieron L1 a L9 y el cierre de L9): 27 decisiones vigentes, DD-01 a DD-29 sin DD-15 ni DD-19, retiradas con su número (nota bajo la tabla); ninguna DD-30 ni otra nueva (grep de `DD-[0-9]+`). §20.2 tiene las mismas 27 filas (20-dueno.md l. 21-47; comparadas fila a fila con un guion: el mismo conjunto y el mismo valor por defecto, más detallado en §20), y cada fila tiene sus seis columnas llenas: qué se decide, el defecto, la consecuencia con su cifra, dónde se cambia con el plazo (de «antes del 7a» a «cuando quiera»), y qué cambia con la contraria. Las 27 están también en §20.7 (cuándo, l. 112-124), §20.8 (por qué, l. 130-156) y §20.9 (qué tests mueve la contraria, l. 164-190). La cuenta, «veintisiete», es la misma en §20 (l. 3, 53, 68), §0.4 punto 10 (dieciocho de la síntesis, cinco de las secciones y cuatro de la fase adversaria: 18 + 5 + 4) y §0.5, y el rango `DD-01` a `DD-29` en §0.3, §0.6, §21 (l. 3) y F.4. Dos filas decían menos que su gemela de §DD: DD-04, sin los tres nombres del grupo del maillot en la voz (lo cierra la cruzada Rdueno-019 · L8 n.º 17), y DD-21, con la cifra de una sola corrida de PostgreSQL 16 en las dos (A-L10-004).",
+  "accion": "lo he cerrado yo: 20-dueno.md l. 24, 58, 102, 133 y 167 (DD-04) y l. 39, 62 y 148 (DD-21); 00-decisiones.md, fila de DD-21 con su bloque «Precisada en la auditoría L10» y su fila en el registro"
+ },
+ {
+  "id": "A-L10-002",
+  "tipo": "comprobacion",
+  "origen": "regla 3 y encargo del lote: las cifras de §0.4, §0.5 y §0.7 contra las secciones de hoy",
+  "veredicto": "cerrado",
+  "evidencia": "Comprobadas contra la sección dueña de cada una: los tamaños (20,9 a 70,0 KB, mediana 38,8, p90 53,3; las cronos de 18,8 a 24,2 KB, 26.987 a 27.821 B y 31.178 a 32.203 B; unos 36 MB) con §5.7; los topes (96, 640, 320 y 48 KB; los de la síntesis, 48, 128, 64 y 16) con §5.7 y §15.2; I1 (0 en 3.246 y en 8.656) con §3.7, §5.5 y §16.9; B10 y B11 (20 de 20, 24 de 24, 6 de 18) con §5.1, §5.3 y §16.9; los saltos (de 0 a 6 por etapa de más de 60 s) con §3.6; los países (17 antes del día 179, 5 después, el Giro con 15 y ninguno de Italia) con §7.4; las duraciones (7:39 a 19:59, la e18 de 13:21 a 13:35, `Highlights` de 2:12 a 6:37, las cronos de 6:24 a 7:06, 11:21 a 11:23 y 5:20 a 5:52) con §8.3 y §9.4; el coste diario (28 a 49 min y hasta 73; el Giro, 27 a 47 y hasta 70; 8 a 16 y hasta 24; 3 a 9 y hasta 12) con §8.4; el tick (100 ms sobre 2,4 s; la sonda de −7,7 a +11,6 %; el 179 y el 176 proyectados; la escritura de 0,07 a 0,15 s) con §5.8 y §18.3; la red (cabecera de 7,1 a 9,0 KB, tramo de 1,1 a 3,4 KB de mediana y 4,7 como mucho, la etapa de 27,9 a 81,5 KB) y el cliente (0,54 ms; los p99 y p95 de `instantAt`) con §18.1; 334 KB y 85 del motor con §18.5; las puertas (`sup. X1` a `sup. X11`, once) con §11.2; las migraciones (`0043` a `0046`), trece pasos y veintitrés PR, 56, 52,5 y 37 sesiones con el rebase, y el camino crítico con §17.16 y §17.22; los treinta y seis riesgos del 1 al 37 sin el 24 con §19.1 (36 filas); las 55 filas de `CUE_OF_TEMPLATE` (55 claves en el bloque de §6.6), las veintiuna pasadas, las once noticias y las dos nuevas, y B2 a B22, con §6.6, §12.2, §12.8 y §16.4; las veintisiete decisiones del dueño con §20 (A-L10-001). Fallaban tres: el horizonte en PostgreSQL 16 daba una sola corrida (A-L10-004); §0.4, punto 10, encendía con «nueve de nueve», cuando §16.5 (punto 9) y §20.5 dicen «o diez de diez si hubo que sortear el punto de la fuga»; y §0.7 decía de la estimación por temporada «con 176 corredores en todas», cuando §5.7 los supone en todas las que no son nacionales.",
+  "accion": "lo he cerrado yo: 00-cabecera.md l. 79 (diez de diez), l. 138 («en todas las que no son nacionales») y l. 149 (A-L10-004)"
+ },
+ {
+  "id": "A-L10-003",
+  "tipo": "aviso de L8 (A-L8-020, notas del orquestador)",
+  "origen": "la condición de las dos preguntas de la fuga en la prueba de lectura, que 16-w amplió de «de 4 a 12» a «hasta 12»",
+  "veredicto": "cerrado",
+  "evidencia": "§16.5, punto 6 (16-bancos.md l. 681): «en todo punto en que el grupo 1 vaya por delante del pelotón con hasta `BROADCAST.nameWholeGroupUpTo` (12) corredores, dos más»; 16-w da el motivo. §20.5, punto 5 decía «donde el grupo de delante tenga de 4 a `BROADCAST.nameWholeGroupUpTo` corredores», y la fila H-04 de §21, «donde el grupo de delante es de 4 a 12»; G.9 del glosario ya decía «con una fuga de hasta 12 delante». La fila de D-60 del apéndice C (21-apendices.md l. 226) decía solo «nueve de nueve», sin el décimo punto de 16-i.",
+  "accion": "lo he cerrado yo: 20-dueno.md l. 85 («donde el grupo de delante vaya por delante del pelotón con hasta `BROADCAST.nameWholeGroupUpTo` (12) corredores») y 21-apendices.md l. 188 (H-04: «donde va por delante del pelotón una fuga de hasta 12, 16-w», y la aceptación con el diez de diez); y l. 226 (D-60: «diez de diez si hubo que sortear el punto de la fuga, 16-i»)"
+ },
+ {
+  "id": "A-L10-004",
+  "tipo": "aviso de L7 (Rcoste-012) y de L9 (A-L9-010), notas del orquestador",
+  "origen": "regla 3: la cifra de B14 en PostgreSQL 16 que §0, §20 y §21 comparten con §18.2",
+  "veredicto": "cerrado",
+  "evidencia": "§18.2 (18-rendimiento.md l. 83) da hoy tres corridas de PostgreSQL 16.13 sin red: el jugador 2,16 ms (1,70 y 1,96 en las dos de la auditoría L7) y el mánager 3,88 ms (4,75 y 4,11), y l. 85 dice que el mánager pasa en las tres «con un margen de un 5 a un 22 % según la corrida (de 3,88 a 4,75 ms)». Así lo dicen ya §10.7, §16.4 y §16.9, §17.10, §18.9, §18.10, §19.1 (riesgo 8), §19.6, D-33 y dudas.md 3.2 (grep). El rango del mánager en las tres corridas es de 3,88 a 4,75 ms; el «de 4,11 a 4,75» de las notas del orquestador es el de las dos corridas de la auditoría L7, no el de las tres, y aquí se escribe el de las tres, como §18.2 y las demás secciones. En L10 quedaban con una sola corrida §0.7 (l. 149), DD-21 en §20.2 (l. 39), §20.3 (l. 62), §20.8 (l. 148, «ya pasa con un 22 % de margen … lo probable es que el defecto no retenga nada», que con el 5 % de la peor corrida y sin la red no se sostiene: el riesgo 8 de §19.1 está en media) y X-11 (21-apendices.md l. 407); y la fila de DD-21 de 00-decisiones.md.",
+  "accion": "lo he cerrado yo: 00-cabecera.md l. 149 (de 1,70 a 2,16 ms el jugador y de 3,88 a 4,75 el mánager, en tres corridas, con su procedencia); 20-dueno.md l. 39 y 62 (con la población, de 2,33 a 2,69) y l. 148 (el margen de un 5 a un 22 % y el riesgo 8 en media hasta la medida); 21-apendices.md l. 407 (X-11); 00-decisiones.md, fila de DD-21, su bloque «Precisada en la auditoría L10» y su fila en el registro"
+ },
+ {
+  "id": "A-L10-005",
+  "tipo": "aviso de L8 (A-L8-004, notas del orquestador)",
+  "origen": "regla 3: la firma de `renderNews` en F.2, contra §12.8 y G.4",
+  "veredicto": "cerrado",
+  "evidencia": "§12.8 escribe `renderNews(_locale: 'en', p: NewsPayload, seed: string, rev: number, n: NameResolver): string` (12-voz.md l. 480) y G.4 del glosario igual; F.2 (21-apendices.md l. 528) decía `renderNews(locale: 'en', …)`, la única firma de render de la tabla sin el guion bajo de 12-q, y D.8 (l. 386) `renderNews(locale, …)`.",
+  "accion": "lo he cerrado yo: 21-apendices.md l. 528 (`renderNews(_locale: 'en', p: NewsPayload, seed, rev, n: NameResolver)`, 12-q) y l. 386 (D.8: `renderNews(_locale, …)`, con el nombre `_locale` mientras no lo lean, 12-q)"
+ },
+ {
+  "id": "A-L10-006",
+  "tipo": "aviso de L5 (A-L5-014) y de L9 (A-L9-003), notas del orquestador",
+  "origen": "regla 3: los campeones antes del día 179, que X-13 comparte con §7.4, §17.17, §0.4, DD-06, O-04 y H-01",
+  "veredicto": "cerrado",
+  "evidencia": "§7.4 (07-rotulos.md l. 260 y la tabla de l. 262-266): 17 países corren su ruta élite antes del día 179 y el Giro de la temporada 0 sale con campeones de 15. §0.4 punto 5, DD-06, O-04 y H-01 ya decían «salvo en los 17 países que corren antes su nacional», y §17.17 lo cerró L9; X-13 (21-apendices.md l. 409) seguía diciendo «tras el reinicio no hay campeones hasta el día 179».",
+  "accion": "lo he cerrado yo: 21-apendices.md l. 409 (X-13: «hasta el día 179 de la temporada 0, salvo en los 17 países que corren antes su nacional (§7.4)»)"
+ },
+ {
+  "id": "A-L10-007",
+  "tipo": "aviso de L7 (A-L7-004, notas del orquestador)",
+  "origen": "regla 3: la tabla D.5 de §21 contra §11.1 y §11.2 (21-e la declara comprimida de esas dos)",
+  "veredicto": "cerrado",
+  "evidencia": "Comparadas con un guion las 59 filas de D.5 con las de §11.1 y §11.2 (mecanismo, PR que cierra y banco). Cinco no seguían a §11 tras la auditoría L7: `sup. X3` (D.5 daba solo «`cs_viewer`, que solo restringe»; §11.2, l. 74: los mecanismos de cada ruta con el horizonte en lectura de `cs_viewer` y `Sign in to see results as you know them`), `sup. X5` (§11.2, l. 76: ninguno de los ocho, porque es la caché del navegador), `sup. X6` (l. 77: N, también con la etapa conocida), `sup. X7` (l. 78: N, y en `/report` G con el ganador marcado `Spoiler` solo fuera del velo de quien pide) y `sup. T6` (§11.1, l. 60: cierra «ninguno: E2 no los crea, y E4 hereda la regla», banco «ninguno»; D.5 tenía las dos celdas vacías). Las demás diferencias son abreviaturas (`sup. E9`, `sup. T1`, `sup. T5`).",
+  "accion": "lo he cerrado yo: 21-apendices.md l. 341 (`sup. T6`) y l. 344 y 346-348 (`sup. X3`, `sup. X5`, `sup. X6` y `sup. X7`), con las palabras de §11; el guion, repetido, ya solo da abreviaturas"
+ },
+ {
+  "id": "A-L10-008",
+  "tipo": "aviso de L1 y de L9 (A-L9-002), notas del orquestador",
+  "origen": "regla 3: el texto de pantalla `About N min` en F.3 y G.11",
+  "veredicto": "cerrado",
+  "evidencia": "La ficha de la etapa anuncia su duración con `About 13 min` (pantalla; 08-ritmo.md l. 30 y 77, `About ${Math.max(1, Math.round(estimateS / 60))} min`; en una crono, `About 7 min`, 09-crono.md l. 201), y §20.8 (DD-22) lo cita; no estaba ni en F.3 ni en G.11. Mientras se auditaba, la resolución cruzada de las auditorías L1 a L9 lo añadió a G.11 («Duración que anuncia la ficha (§8.2, §9.4)», commit 82603f0).",
+  "accion": "lo he cerrado yo: 21-apendices.md, F.3, fila «Duración que anuncia la ficha (§8.2, §9.4)», con las mismas palabras que G.11"
+ },
+ {
+  "id": "A-L10-009",
+  "tipo": "comprobacion",
+  "origen": "regla 3: las versiones del motor que cita DD-25 (§20.3), contra `git log`",
+  "veredicto": "cerrado",
+  "evidencia": "`git log -L` de la línea de `ENGINE_VERSION` en `packages/engine/src/constants.ts`: de la v69 (025efbe, 14-09) a la v89 (c39f450, 26-09) hay catorce commits entre el 15 y el 26 de septiembre que suben veinte versiones, como dicen DD-25 y §20.3. La v83 es «Dos defectos de producción» (d5ebc04, 21-09), la v84 «Administrar no es cazar: el cupo del que vigila una fuga inofensiva» (13ed470, 21-09, por la etapa 19 de producción, según su mensaje) y la v86 «El que va de amarillo no da relevos» (bcd49bf, 22-09). §20.3 (l. 64) escribía «la v84 y la v86 «El que va de amarillo no da relevos»», que daba a la v84 el título de la v86.",
+  "accion": "lo he cerrado yo: 20-dueno.md l. 64 («la v84 «Administrar no es cazar» y la v86 «El que va de amarillo no da relevos»»)"
+ },
+ {
+  "id": "A-L10-010",
+  "tipo": "comprobacion",
+  "origen": "regla 3: la cifra de las redacciones que cambian en el paso 12, que §20.5 comparte con §17.15",
+  "veredicto": "parcial",
+  "evidencia": "Contadas con el parser de TypeScript del repositorio (`node_modules/typescript`) las llamadas a `pick([…])` de `apps/web/src/domain/stageJournal.ts` (sin cambios desde 25ecb3e, anterior al árbol 9c21885 del diseño): 90, de las que 45 eligen entre dos redacciones, 44 entre tres y una entre cuatro (l. 654). §20.5 y §17.15 decían «44 son entre dos y 43 entre tres». La conclusión (cambia la mitad o dos tercios de las líneas que eligen, por 1 − 1/n) no cambia: un 58 % de media.",
+  "accion": "lo he cerrado yo en 20-dueno.md l. 89 («45 son entre dos, 44 entre tres y una entre cuatro»); necesita otra sección: §17.15 (17-plan.md l. 453), de L9, con las mismas palabras"
+ },
+ {
+  "id": "A-L10-011",
+  "tipo": "comprobacion",
+  "origen": "regla 3: F.2 contra las firmas de las secciones y G.2 y G.4 del glosario",
+  "veredicto": "cerrado",
+  "evidencia": "Cruzadas con un guion las firmas de F.2 con las definiciones de las secciones (`export function …`) y con G.4: salvo las abreviaturas con `…` que F.2 declara, coinciden (`selfCheckI1`, `encodeTimeline`, `timeTrialInstantAt`, `cutTimeline`, `chunkOf`, `digestPace`, `digestMinutes`, `stageReadyNotice`, `pageTitle`, `veilSql`, `veiledRaceDays`, `usePageTitle`, `pickVariant`, `revealSOf`, `instantAt`, `computeHorizon`, `raceTabs`, `stagePageTabs`, `raceTabLabel`…). Fallaba `renderNews` (A-L10-005), y faltaban tres que las secciones escriben y G.2 o G.4 llevan: `timelineTickLog(): TimelineTickLog`, la fábrica del diario de grabación (05-motor.md l. 459; G.2), `estimatedHeadClock(kms, totalKm, winnerS): number[] | null`, exportada para su test desde la cruzada de L9 (03-reloj.md l. 293 y 323; G.2 y G.4), y las dos funciones de la cola de §6.5, `admitir(c)` y el fotograma, que G.2 añadió en la auditoría L4 (06-pantalla.md l. 413-416).",
+  "accion": "lo he cerrado yo: 21-apendices.md l. 522 (las dos funciones de la cola), l. 532 (`timelineTickLog(): TimelineTickLog`) y l. 540 (`estimatedHeadClock`, con §3.8 en su columna)"
+ },
+ {
+  "id": "A-L10-012",
+  "tipo": "comprobacion",
+  "origen": "regla 3: rayas, guiones, bloques de código y comillas invertidas en §0, §20 y §21; el ensamblado",
+  "veredicto": "cerrado",
+  "evidencia": "grep de «—», «–» y « - » en 00-cabecera.md, 20-dueno.md y 21-apendices.md: cero, antes y después de los arreglos; las tres secciones no tienen bloques de código (cero vallas), y ninguna línea deja una comilla invertida sin pareja (awk). `ensamblar.sh --comprobar` sobre una copia de `borrador/` y `juicios/` en el scratchpad, tras los arreglos de esta auditoría: 11.452 líneas, 22 secciones, 49 de 49 injertos, 32 de 32 objeciones y 23 de 23 huecos en algún bloque de cierre, 0 fallos y 0 avisos.",
+  "accion": "nada"
+ },
+ {
+  "id": "A-L10-013",
+  "tipo": "comprobacion",
+  "origen": "regla 3: cada «Decisión tomada aquí» de §0, §20 y §21 en 00-decisiones.md",
+  "veredicto": "cerrado",
+  "evidencia": "0-a a 0-f y 21-a a 21-f deciden la forma de la cabecera y de los apéndices y no tocan ninguna D. Las de §20 que cambian o precisan una decisión de la síntesis están en su entrada: 20-a a 20-d, 20-g, 20-h y 20-k en §DD (las filas y los bloques «Corregida en el ensamblado v0» y «Corregida» y «Añadidas en la corrección, fase 5»); 20-l en D-07 (bloque de L1, fases 5 y 6, con 16-s); 20-i casa con 17-k, que está en D-07 y D-15, y §DD no tiene columna de plazos; 21-g es 10-e, que D-50 registra, con G.1 y D-36 precisada. Faltaba 20-j: pone detrás de `BROADCAST_WATCH` las palabras de papel del acta, el nombre de la pestaña `Story` y la pestaña de la carrera de un día, y escribe las cuatro cosas sin interruptor; D-18 tenía lo del acta (L8), pero D-53, que dice qué apaga cada interruptor, no decía qué llega al jugador antes del encendido.",
+  "accion": "lo he cerrado yo en 00-decisiones.md: bloque «Precisada en la corrección, fase 5; registrada en la auditoría L10» al final de D-53 y su fila en el registro del principio"
+ },
+ {
+  "id": "A-L10-014",
+  "tipo": "comprobacion",
+  "origen": "regla 3: cada nombre de tipo, constante, banco, test y ruta de §0, §20 y §21 en 00-glosario.md con la misma grafía",
+  "veredicto": "cerrado",
+  "evidencia": "Recorridos con un guion los 1.216 nombres entre comillas invertidas de las tres secciones, fuera de los bloques de cierre, contra 00-glosario.md y contra el repositorio (`git grep` y rutas): no falta ninguno de E2. Los 123 que no están en el glosario son identificadores del proceso cuyo rango sí está en G.12 (`sup. E2` y las demás superficies, `I-09`, `H-04`, `DD-27`, `19-c`), scripts del scratchpad de medida (`l7/tick.mjs`, `coste/pgm/subxact.mjs`…), commits, nombres de hoy (`raceRadioNames.test.tsx`, `create-context.mjs` de better-auth, `GET /api/riders/:id`), y cabeceras o atributos web (`X-Robots-Tag: noindex`, `aria-live=\"polite\"`). Las firmas, en A-L10-011 y A-L10-005; los textos de pantalla de F.3 contra G.11, en la cruzada L4 n.º 25 y A-L10-008.",
+  "accion": "nada"
+ },
+ {
+  "id": "A-L10-015",
+  "tipo": "comprobacion",
+  "origen": "encargo del lote: el índice de §0.5 contra los títulos reales de las 22 secciones",
+  "veredicto": "cerrado",
+  "evidencia": "Los 22 títulos de §0.5 son, carácter a carácter, los de la primera línea `## ` de cada fichero (00-cabecera.md a 21-apendices.md). La columna «Qué encuentra el lector» casa con las subsecciones de hoy en todo lo que nombra (los doce principios de §2, las 55 filas de `CUE_OF_TEMPLATE`, las veintiuna pasadas, las once noticias y las dos nuevas, B2 a B22, los treinta y seis riesgos numerados del 1 al 37 sin el 24), pero no nombraba §1.11, §4.1, §5.9, §9.9, §10.1, §10.14, §11.17, §11.19, §11.20, §13.1 ni §15.8.",
+  "accion": "lo he cerrado yo: 00-cabecera.md l. 88, 91, 92, 96, 97, 98, 100 y 102, cada fila con las subsecciones que le faltaban"
+ },
+ {
+  "id": "A-L10-016",
+  "tipo": "comprobacion",
+  "origen": "encargo del lote: que §21 traza contra el texto de hoy",
+  "veredicto": "cerrado",
+  "evidencia": "Contado con guiones sobre 21-apendices.md: 49 injertos, 30 enteros y 19 con cambio (como dice l. 65), de 17, 16 y 18 identificadores distintos de los tres jueces, 11 filas que citan al orquestador y 5 que solo a él (l. 9), y por propuesta 8, 9, 10, 15 y 7 (l. 11); 32 objeciones con 13, 12 y 14 fuentes y siete de dos jueces (l. 113); 23 huecos con 9, 9 y 8 y tres coincidencias (l. 181); las catorce decisiones sin evidencia de los jueces (l. 209-226); 24 contradicciones de hecho. Los nombres de la columna «Qué» de cada injerto, objeción y hueco están en el cuerpo de las secciones que cita su columna «Dónde» (guion; solo cinco nombres compuestos, como `StageProbe.onEvent` o `body bytea`, que la sección escribe partidos). Lo que no trazaba el texto de hoy está en sus entradas: H-04 (A-L10-003), X-11 (A-L10-004), X-13 (A-L10-006), D.5 (A-L10-007), F.2 (A-L10-005 y A-L10-011), F.3 (A-L10-008) y D.8 (A-L10-005).",
+  "accion": "nada (los arreglos van en sus entradas)"
+ },
+ {
+  "id": "A-L10-017",
+  "tipo": "comprobacion",
+  "origen": "encargo del lote: §0 sigue siendo la cabecera provisional; lo que dice del estado del proceso, contra el de hoy",
+  "veredicto": "cerrado",
+  "evidencia": "El recuadro de procedencia (00-cabecera.md l. 5), 0-f (l. 170) y §0.8 (l. 154) dejan el recuento de la fase adversaria al cierre, y así se queda: esta auditoría no lo escribe. Pero §0.2, punto 5 (l. 35) decía que «quedan la coherencia, la auditoría hallazgo a hallazgo y el ensamblado», contra §0.1 (l. 21: «repasado por la pasada de coherencia (fase 6); faltan la auditoría y el cierre»), y la coherencia está hecha (`refutaciones/coherencia.json`, ESTADO.md). Las cifras del v1 de §0.1 (11.411 líneas) son las del fichero `retransmision-v1.md` que hay en `borrador/`; el ensamblado de hoy da 11.452 (A-L10-012) y las reescribe el cierre.",
+  "accion": "lo he cerrado yo: 00-cabecera.md l. 35 («después, la pasada de coherencia entre secciones; y quedan la auditoría hallazgo a hallazgo, el cierre y el ensamblado») y l. 154 (§0.8: la auditoría L10 comprobó las cifras de la cabecera contra las secciones de su día)"
+ },
+ {
+  "id": "Rcoste-007 · lo que toca a §0.7",
+  "tipo": "hallazgo de otro lote",
+  "origen": "por-lote/L3.json; su corrección pedía también la fila de la crono de §0.7",
+  "veredicto": "cerrado",
+  "evidencia": "§0.7 (00-cabecera.md l. 137) da la crono más larga de 176 corredores, la e10 de `race-italy` (42 km), de 31.178 a 32.203 B sin y con `checkClockDs`, y la e18 de `race-spain`; y la fila de los topes (l. 139), el de la crono en 48 KB, 1,5 veces la e10 (15-i). Es lo que pedía el hallazgo con la cifra re-medida por L5 (con `checkClockDs`).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-018 · lo que toca a F.2",
+  "tipo": "hallazgo de otro lote",
+  "origen": "por-lote/L3.json; su corrección pedía renombrar en F.2 el campo `known` de `StageTimelineRead`",
+  "veredicto": "cerrado",
+  "evidencia": "Superado por una corrección mejor: 5-p y 14-p quitaron `StageTimelineRead` y su campo (`readStageTimeline` y `timelineForStage` devuelven `Promise<StageTimeline | null>`), y F.2 (21-apendices.md l. 532 y 540) ya no lo nombra, como G.2 y G.4.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-027 · lo que toca a §20",
+  "tipo": "hallazgo de otro lote",
+  "origen": "por-lote/L9.json; su corrección pedía subir a §20 los titulares nuevos de cambio de líder si se querían antes del encendido",
+  "veredicto": "cerrado",
+  "evidencia": "L9 los dejó escritos desde el 1a y servidos desde el 8a, solo con el velo que los tapa (17-x). §20 lo dice dos veces: en «Lo que no tiene interruptor» (20-dueno.md l. 89: «los titulares nuevos de cambio de líder, que el 1a ya escribe, no los sirve ninguna ruta hasta el 8a, y entonces solo con el velo que los tapa (17-x)») y entre lo que §20.6 deja fuera a propósito (l. 104: «no hay nada que decidir mientras no se quieran antes»).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-045 · lo que toca a §20.5",
+  "tipo": "hallazgo de otro lote",
+  "origen": "por-lote/L9.json; su corrección nombraba §20.5 entre los sitios que dicen qué ve el dueño con `SPOILER_MODE=admins`",
+  "veredicto": "cerrado",
+  "evidencia": "L9 eligió la segunda salida del hallazgo (decirle al dueño qué pantallas verá a medias y hasta qué PR), y §20.5, punto 3 (20-dueno.md l. 83) la sigue: «Hasta que la web lo pinte ve huecos que no son defectos, y la descripción de cada PR los dice (§17.10, §17.11; Rdueno-045): pestañas vacías … del 7b al 9a …; del 8a al 9b, listas cortadas, ganadores a null y marcadores con su `text` neutro …; y del 8b al 9b, los agregados a su horizonte sin el aviso que lo explica», como §17.10 y §17.11 (17-plan.md l. 335, 358 y 373).",
+  "accion": "nada"
+ }
+]
