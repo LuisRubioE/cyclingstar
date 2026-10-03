@@ -72,11 +72,13 @@ interface Apuntes {
   sucesos: { e: Readonly<RaceEvent>; b: number }[]
   pancartas: ProbeBanner[]
   cronos: ProbeTimeTrialRide[]
+  /** El orden de las llamadas de `onEvent` (su plantilla) y `onBanner` (`'pancarta'`), juntas. */
+  orden: string[]
 }
 
 /** La foto de CADA bloque y los tres ganchos nuevos, que solo apuntan. */
 function sondaQueApunta(blocks: number): { probe: StageProbe; apuntes: Apuntes } {
-  const apuntes: Apuntes = { fotos: 0, sucesos: [], pancartas: [], cronos: [] }
+  const apuntes: Apuntes = { fotos: 0, sucesos: [], pancartas: [], cronos: [], orden: [] }
   const probe: StageProbe = {
     atKm: Array.from({ length: blocks }, (_, b) => (b + 0.5) * STAGE.dx),
     onSnapshot: () => {
@@ -84,9 +86,11 @@ function sondaQueApunta(blocks: number): { probe: StageProbe; apuntes: Apuntes }
     },
     onEvent: (e, b) => {
       apuntes.sucesos.push({ e, b })
+      apuntes.orden.push(e.plantilla)
     },
     onBanner: (x) => {
       apuntes.pancartas.push(x)
+      apuntes.orden.push('pancarta')
     },
     onTimeTrialRide: (x) => {
       apuntes.cronos.push(x)
@@ -140,6 +144,10 @@ describe('B11, humo: los ganchos de la sonda no tocan la carrera (E2 §5.2)', ()
     expect(apuntes.pancartas).toHaveLength(dePancarta.length)
     expect(apuntes.pancartas.some((p) => p.kind === 'meta_volante')).toBe(true)
     expect(apuntes.pancartas.some((p) => p.kind === 'cima')).toBe(true)
+    const sinSuSuceso = apuntes.orden.filter(
+      (x, i) => x === 'pancarta' && !esPancarta(apuntes.orden[i + 1] ?? ''),
+    )
+    expect(sinSuSuceso).toEqual([])
     apuntes.pancartas.forEach((p, i) => {
       const { e } = dePancarta[i]!
       expect(p.kind).toBe(e.plantilla === 'sprint_intermediate' ? 'meta_volante' : 'cima')
