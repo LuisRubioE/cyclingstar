@@ -14,6 +14,7 @@ import {
   photoAt,
   photoBlocksOf,
   toDs,
+  visibilityOf,
 } from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
 import { STAGE, TIMELINE } from '../constants.js'
@@ -44,8 +45,9 @@ import {
  * - Sobre las 24 etapas del mapa 07 §7 por dos semillas: I1 (`selfCheckI1`, con la tolerancia de
  *   relojes iguales que cubre el `kind`, §5.5), I3 (las fotos clave son la reducción de la anterior, y
  *   `decodeTimeline(encodeTimeline(tl))` es `tl`), I5 exacta en las dos cronos (9-a, 9-b), la regla
- *   `incident` de 4-v, las marcas del último km, B6 (lo guardado contra `TIMELINE`), I2 (la igualdad en
- *   el km de foto y el tránsito, 16-b), B2 (los sucesos contra el instante, 16-j) y B21 (informativo).
+ *   `incident` de 4-v, que cada `mishap` de estado se vea con su suceso (4-s), las marcas del último
+ *   km, B6 (lo guardado contra `TIMELINE`), I2 (la igualdad en el km de foto y el tránsito, 16-b), B2
+ *   (los sucesos contra el instante, 16-j) y B21 (informativo).
  * - B6 sobre la crono más larga de 176 corredores del calendario, que ninguna de las 24 iguala (15-i).
  *
  * Las semillas son las de B11 (`b11-0` y `b11-1`, `seedOf`), también en las 24: las siete etapas que
@@ -135,6 +137,8 @@ const B2_SPLIT_SHARE = 0.55
 /** Las familias de la pertenencia de B2. */
 const B2_HEAD = new Set(['front_group', 'breakaway_formed'])
 const B2_SPLIT = new Set(['peloton_split', 'peloton_selection'])
+/** Las plantillas que cuentan un percance (4-s, las de `cut.ts`). */
+const MISHAP_TEMPLATES = new Set(['crash', 'puncture', 'mechanical'])
 
 const huella = (o: StageOutput): string =>
   JSON.stringify([o.results, o.events, [...o.efforts.entries()], o.incidents])
@@ -217,6 +221,7 @@ describe('la línea grabada sobre las 24 etapas del banco (§16.2)', () => {
   const transitByStage: { name: string; p90: number }[] = []
   const origins = new Set<string>()
   const b21: number[] = []
+  const b21Unordered: number[] = []
   const b2 = {
     head: 0,
     headBad: [] as string[],
@@ -228,6 +233,7 @@ describe('la línea grabada sobre las 24 etapas del banco (§16.2)', () => {
   }
   let crashes = 0
   let roadMishaps = 0
+  let mishapsTold = 0
   let i2Checks = 0
   let i2DyingAtPhoto = 0
   let i2Unordered = 0
@@ -306,6 +312,19 @@ describe('la línea grabada sobre las 24 etapas del banco (§16.2)', () => {
           if (original === null) crashes += 1
           else roadMishaps += 1
         }
+        // 4-s: cada `mishap` de estado se ve con el suceso que lo cuenta (`visibilityOf`, §4.6), el de su
+        // corredor emitido en su bloque. Con la regla del 3a no casaban 91 de 136 (el km en décimas).
+        const vis = visibilityOf(tl)
+        tl.stateEvents.forEach((e, i) => {
+          if (e.t !== 'mishap') return
+          const told = tl.events.filter(
+            (x) =>
+              MISHAP_TEMPLATES.has(x.plantilla) && x.bEmit === e.b && x.riders.includes(e.rider),
+          )
+          expect(told, `${name}, ${e.kind} de ${e.rider} en el bloque ${e.b}`).toHaveLength(1)
+          expect(vis.stateEventDs[i]).toBe(toDs(told[0]!.revealS))
+          mishapsTold += 1
+        })
         // Las marcas del último km (TIMELINE.lastKmMarkBlocks, §3.4 d): todo grupo vivo, en cada bloque.
         for (let b = tl.blocks - TIMELINE.lastKmMarkBlocks; b < tl.blocks; b++)
           for (const g of photoAt(tl, b).clock.keys())
@@ -332,12 +351,16 @@ describe('la línea grabada sobre las 24 etapas del banco (§16.2)', () => {
       // bloque; C4, §1.2). Se cuentan para el 6a: el instante de `shared` (3a) da por hecho que las
       // marcas vistas de un grupo son un prefijo de las suyas.
       const marksOf = new Map<number, readonly (readonly [Block, number])[]>()
+      const unorderedGroups = new Set<number>()
       for (let g = 0; g < tl.groups.length; g++) {
         const list = clockMarksOf(tl, g)
         marksOf.set(g, list)
         marksTotal += list.length
         for (let j = 1; j < list.length; j++)
-          if (list[j]![1] <= list[j - 1]![1]) drops.push((list[j - 1]![1] - list[j]![1]) / 10)
+          if (list[j]![1] <= list[j - 1]![1]) {
+            drops.push((list[j - 1]![1] - list[j]![1]) / 10)
+            unorderedGroups.add(g)
+          }
       }
 
       // I2 (§4.4, 16-b): en la hora de su marca en un km de foto, cada grupo lleva a los de la foto
@@ -425,7 +448,9 @@ describe('la línea grabada sobre las 24 etapas del banco (§16.2)', () => {
         }
       }
 
-      // B21 (§16.4): la posición del instante contra la de la línea entera, una vez por minuto.
+      // B21 (§16.4): la posición del instante contra la de la línea entera, una vez por minuto. La
+      // construcción la deja a menos de un km (§4.5) si las marcas del grupo crecen; las de un grupo con
+      // marcas fuera de orden (arriba) se cuentan aparte y no son puerta: medido, hasta 969 m.
       for (let t = B21_EVERY_S; t < tl.finish.finishS; t += B21_EVERY_S) {
         const S = toDs(t)
         for (const x of instantAt(tl, t, ctx).groups) {
@@ -437,6 +462,10 @@ describe('la línea grabada sobre las 24 etapas del banco (§16.2)', () => {
           const [b1, d1] = list[j]!
           const exact = d1 > d0 ? b0 + ((b1 - b0) * (S - d0)) / (d1 - d0) : b0
           const err = Math.abs(x.km - (exact + 0.5) * dx)
+          if (unorderedGroups.has(x.g)) {
+            b21Unordered.push(err)
+            continue
+          }
           b21.push(err)
           expect(err, `${name}: ${tl.groups[x.g]!.id} a ${t} s`).toBeLessThan(B21_MAX_KM)
         }
@@ -445,12 +474,14 @@ describe('la línea grabada sobre las 24 etapas del banco (§16.2)', () => {
     180_000,
   )
 
-  it('el catálogo usa los tres orígenes, y la regla incident se ha probado de verdad', () => {
+  it('el catálogo usa los tres orígenes, y la regla incident y 4-s se han probado de verdad', () => {
     expect([...origins].sort()).toEqual(['attack', 'shed', 'start'])
     expect(crashes, 'caídas sintetizadas comprobadas').toBeGreaterThan(0)
     expect(roadMishaps, 'pinchazos y averías de carretera comprobados').toBeGreaterThan(0)
+    expect(mishapsTold, 'mishap de estado comprobados').toBeGreaterThan(0)
     console.info(
-      `[timeline] regla incident: ${crashes} caídas y ${roadMishaps} pinchazos o averías de carretera`,
+      `[timeline] regla incident: ${crashes} caídas y ${roadMishaps} pinchazos o averías de carretera; ` +
+        `4-s: ${mishapsTold} mishap de estado, cada uno visible con su suceso`,
     )
   })
 
@@ -541,7 +572,9 @@ describe('la línea grabada sobre las 24 etapas del banco (§16.2)', () => {
   it('B21 · la posición del instante (informativo; falla solo con 1 km)', () => {
     console.info(
       `[timeline] B21: ${b21.length} posiciones, error p50 ${(1000 * quantile(b21, 0.5)).toFixed(0)} m, ` +
-        `p99 ${(1000 * quantile(b21, 0.99)).toFixed(0)} m, máximo ${(1000 * Math.max(...b21)).toFixed(0)} m`,
+        `p99 ${(1000 * quantile(b21, 0.99)).toFixed(0)} m, máximo ${(1000 * Math.max(...b21)).toFixed(0)} m; ` +
+        `aparte, ${b21Unordered.length} de grupos con marcas fuera de orden, máximo ` +
+        `${(1000 * Math.max(0, ...b21Unordered)).toFixed(0)} m`,
     )
     expect(b21.length).toBeGreaterThan(0)
   })
