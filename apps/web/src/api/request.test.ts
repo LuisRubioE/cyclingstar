@@ -1,6 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
-import { ApiError, ContractError, isUnauthorized, request, requestOptionalAuth } from './request'
+import {
+  ApiError,
+  ContractError,
+  isUnauthorized,
+  request,
+  requestOptionalAuth,
+  retryAfterOf,
+} from './request'
 
 const schema = z.object({ ok: z.boolean(), value: z.number() })
 
@@ -98,5 +105,57 @@ describe('web: wrapper request()', () => {
       body: '{"a":1}',
       headers: { 'content-type': 'application/json' },
     })
+  })
+})
+
+describe('web: el retry-after de un 429 (docs/retransmision.md §14.11, 14-q)', () => {
+  const tooMany = (retryAfter: string | null): Response =>
+    ({
+      ok: false,
+      status: 429,
+      headers: new Headers(retryAfter === null ? {} : { 'retry-after': retryAfter }),
+      json: async () => ({ ok: false, error: 'demasiadas_peticiones' }),
+    }) as Response
+
+  it('un 429 lleva en ApiError los segundos de su retry-after, que el reproductor espera con Loading', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => tooMany('12')),
+    )
+    const error = await request('/api/x', schema).catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(ApiError)
+    expect(error).toMatchObject({ status: 429, code: 'demasiadas_peticiones', retryAfterS: 12 })
+  })
+
+  it('sin retry-after, o en cualquier otra respuesta de error, retryAfterS es null', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => tooMany(null)),
+    )
+    expect(await request('/api/x', schema).catch((e: unknown) => e)).toMatchObject({
+      status: 429,
+      retryAfterS: null,
+    })
+    // un 409 no lee la cabecera (la respuesta de mentira ni siquiera la tiene)
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => response({ ok: false, error: 'beyond_reached' }, 409)),
+    )
+    expect(await request('/api/x', schema).catch((e: unknown) => e)).toMatchObject({
+      status: 409,
+      code: 'beyond_reached',
+      retryAfterS: null,
+    })
+  })
+
+  it('retryAfterOf lee segundos, como los manda @fastify/rate-limit; una fecha o un número raro dan null', () => {
+    expect(retryAfterOf('12')).toBe(12)
+    expect(retryAfterOf(' 7 ')).toBe(7)
+    expect(retryAfterOf('1.5')).toBe(1.5)
+    expect(retryAfterOf('0')).toBe(0)
+    expect(retryAfterOf(null)).toBeNull()
+    expect(retryAfterOf('')).toBeNull()
+    expect(retryAfterOf('-3')).toBeNull()
+    expect(retryAfterOf('Wed, 21 Oct 2015 07:28:00 GMT')).toBeNull()
   })
 })
