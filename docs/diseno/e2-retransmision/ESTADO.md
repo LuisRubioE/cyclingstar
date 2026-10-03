@@ -1,6 +1,6 @@
 # E2 · Estado del proceso de diseño (nota para reanudar)
 
-Última actualización: 29 de septiembre de 2026, 04:25 UTC, en pausa a petición del dueño (cuota).
+Última actualización: 3 de octubre de 2026, 08:55 UTC, en pausa a petición del dueño (cuota).
 
 ## Hecho
 
@@ -12,18 +12,21 @@
 - Fase 6a, coherencia: completa. `refutaciones/coherencia.json` (299 cruzadas: 129 aplicadas, 170 ya
   estaban); glosario y decisiones fundidos; `borrador/retransmision-v1.md` (11.411 líneas,
   `ensamblar.sh --comprobar` con 0 fallos); `dudas.md` con 19 de 27 cerradas.
-- Fase 6b, auditorías: instrucciones en `05-fase-auditoria.md`. La tanda 1 (L1 a L5) se lanzó dos
-  veces y murió por cuota las dos; NO hay ningún `auditorias-L*.json` escrito. Quedan en la rama
-  unos arreglos pequeños que los auditores hicieron en §2, §3, §6, §8, glosario y decisiones.
-
+- Fase 6b, auditorías: ENTREGADAS L1 a L7 (`refutaciones/auditorias-L1.json` a `-L7.json`,
+  todas con sus arreglos pequeños aplicados y subidos). L8 y L9 murieron por cuota con el JSON casi
+  entero (120 y 136 veredictos, en la rama); L10 murió antes de escribir nada.
+  Recuento parcial de L1 a L7: 379 veredictos, de ellos 2 desestimados con motivo, 9 parciales y
+  unos 10 abiertos que apuntan a otras secciones (lista en `borrador/notas-orquestador.md`,
+  sección «Abiertos de la auditoría que cruzan secciones»).
 ## Pendiente, en este orden
 
-1. Auditorías por lote (fase 6b): L1 a L5 y luego L6 a L10, según `05-fase-auditoria.md`, cada
-   una escribiendo `refutaciones/auditorias-L<n>.json` por partes desde el principio. Cinco a la
-   vez como máximo; conviene arrancar justo tras un reinicio de la ventana de Opus.
-2. Cierre (fase 6c, `04-fase-refutacion.md` §6): fundir las auditorías en
-   `refutaciones/resultado-final.json` (formato del de E1) y escribir la cabecera definitiva
-   `borrador/00-cabecera.md` con la procedencia y el recuento.
+1. Cerrar L8 y L9 (un cerrador por lote: verificar `auditorias-L8.json` y `-L9.json` contra
+   `por-lote/`, las cruzadas y `coherencia.json`, completar lo que falte, no rehacer) y auditar L10
+   (§0, §20, §21) desde cero, según `05-fase-auditoria.md`. De tres en tres como máximo.
+2. Cierre (fase 6c, `04-fase-refutacion.md` §6): resolver los abiertos que cruzan secciones
+   (`notas-orquestador.md`), fundir las diez auditorías en `refutaciones/resultado-final.json`
+   (formato del de E1) y escribir la cabecera definitiva `borrador/00-cabecera.md` con la
+   procedencia y el recuento.
 3. Ensamblado final (fase 7): `ensamblar.sh` a `docs/retransmision.md`; comprobar; actualizar
    `docs/encargos.md` (E2: diseño escrito, sin implementar) y `docs/diseno/README.md`.
 

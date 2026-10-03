@@ -1,0 +1,1090 @@
+[
+ {
+  "id": "Rcobertura-057",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "Las seis remisiones que afirmaban lo contrario del sitio citado ya no están: 17-plan.md l. 327 (B13 del 7b: «No en `packages/shared/src/broadcast/veilCast.test.ts`, porque `veilCast` vive en `packages/db/src/horizon.ts`… (decisión 17-t)», sin «como dice §16.4»), l. 774 (17-b, el descartado sin «como dice §16.9»), l. 781 (17-i, sin «que §16.9 fechaba en el 6a»), l. 784 (17-l, sin «como dicen §16.4 y §16.7»), l. 785 (17-m, «y no en el 7a con el resto de B12») y l. 792 (17-t). Los «Descartado» se quedan como alternativas, que es una de las dos salidas que daba el hallazgo. Contra el §16 de hoy: B13 en `broadcastFixtures.test.ts` y B16 largo en el nocturno de `apps/api` (16-bancos.md, tabla de §16.4 y §16.9), como dice el plan.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-016",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "17-plan.md l. 577 (§17.20): «los payloads de `contracts.ts` l. 332-339 (`housingCovered` = `offer.payHousing`, l. 328) y de `rollover.ts` l. 326». Comprobado en HEAD (sin cambios fuera de `docs/` desde `9c21885`): `packages/db/src/contracts.ts` l. 328 lee `offer.payHousing` y el `emitNews` del fichaje va de l. 332 a 339. La otra mención (l. 99, §17.4) ya decía `packages/db/src/contracts.ts` l. 332.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-044",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "17-plan.md l. 626 (§17.20): «`StagesTab`, `Race.tsx` l. 365-414, las filas en l. 371-409». Comprobado en HEAD: l. 357-364 es el comentario, `function StagesTab` en l. 365, el `map` de las filas empieza en l. 371, `Not raced yet` en l. 397 y la función cierra en l. 414.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-066",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "17-plan.md l. 143 (3a): «B9 con el código de §16.4 sin la crono: en el 3a importa solo `instantAt`, usa `at = instantAt` y recorre `ROAD_FIXTURES`…; El 6b añade `timeTrialInstantAt` a la importación y la línea `const at = tl.timeTrial ? timeTrialInstantAt : instantAt`, y pasa a `describe.each(FIXTURES)`». l. 286 (6b) dice lo mismo desde el otro lado, y l. 123 hace nacer `ROAD_FIXTURES` en `load.ts` en el 2. La parte de §16.4 que el corrector mandó por cruzada está: 16-bancos.md l. 461-462 (el comentario del bloque de B9: «en el 3a sobre ROAD_FIXTURES y con instantAt; la crono y timeTrialInstantAt, en el 6b, §17.6») y l. 522 («`FIXTURES` con los seis nombres y `ROAD_FIXTURES` con los cinco en línea»).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-067",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "17-plan.md l. 190 (cabecera del 4a: «depende del 1a: el motor deja de exportar `renderNews`, `NewsData` y `NewsKind`, que `packages/db/src/news.ts` importa hoy de él (l. 1-2…)… Puede ir en paralelo con los pasos 2 y 3»), l. 34 (tabla de §17.2, «Depende de: 1a»), l. 460 (el diagrama: «4a pide el 1a») y l. 469 (la viñeta «1a antes que 4a»). El camino crítico no cambia: en §17.22 el 1a acaba a las 2,5 sesiones y el 4b empieza tras el 3a (7), l. 745.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-068",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "17-plan.md l. 242 (`cast.test.ts`): «`wornJerseys` sin títulos igual a `raceLeaders({ gc, points, kom, teams: teams.overall })` de `@cyclingstar/shared` sobre `getGcThroughStage`, `getPointsClassification`, `getKomClassification` y `getTeamClassifications` con la etapa N − 1, que es lo que hace `leadersThroughStage` (privada de la API hasta el 3a…; `packages/db` no puede importar de `apps/api`)». Es la redacción que pedía el hallazgo; l. 158 añade que el 3a la exporta desde `broadcastSource.ts`, que sigue siendo `apps/api`.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-070",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "Corrección mejor que la pedida, con motivo: el grabador forzado va en `timelines.test.ts` con un `vi.mock('@cyclingstar/engine', …)` parcial (17-plan.md l. 235: lápida con `format` 0 y `summary()` con `timeline: 0 grabadas, 1 sin línea` y la nota), porque el mock vale para todo el fichero y en `stageRun.test.ts` rompería los demás casos; l. 236 dice por qué `stageRun.test.ts` no ve `tick_log`; l. 237 da a `tickRun.test.ts` la fila de `tick_log` con `ok` y la nota. `tickRun.test.ts` está en la tabla de §17.2 (l. 36) y en §17.21 (l. 669).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-071",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "17-plan.md l. 64: «hoy no está instalado (en `node_modules/.pnpm` no hay `@fastify+compress`; sí están los plugins que la API ya registra: `@fastify+helmet@13.1.0`, `@fastify+rate-limit@11.2.0`, `@fastify+static@10.1.2` y `@fastify+swagger@9.8.1`, comprobado)», la redacción que pedía el hallazgo.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-072",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "17-plan.md l. 146 (`reduce.test.ts` del 3a: «I1 y la mitad de I3 de las claves… la otra mitad de I3, la vuelta del códec, entra en el 4b con `codec.test.ts`»), l. 213 (`codec.test.ts` nuevo en el 4b: la vuelta sobre la línea sintética y el `format` desconocido que lanza `TimelineFormatError`), l. 35 (tabla de §17.2) y l. 692 (§17.21: «I3, la vuelta del códec, y `TIMELINE.format` (§15.2)»).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-073",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "Decisión 17-z (17-plan.md l. 798) y sus fechas: los tipos de §4.8 en `jerseys.ts` en el 2 (l. 130, l. 555), `PaceZone` y `CueClass` en `timeline.ts` en el 2 (l. 130, l. 556), los tipos de §4.9 en `cues.ts` en el 3a y en `codec.ts` el tipo `StoredTimelineV1`, los dos códigos, `SchemaMatches` y los seis esquemas en el 3a (l. 156, l. 566-567), con el código en el 4b y el 6a; el reproductor del 3b importa `CueClass` y `CueKind` de ficheros que existen (l. 170). Lo que el corrector mandó a otras secciones está: §4.13 declara `CueClass` y `PaceZone` en `timeline.ts` (04-modelo.md l. 807, 914 y 1099), el bloque de §15.3 los importa de allí (15-constantes.md l. 80) y el glosario también (00-glosario.md l. 378-381).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-074",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "17-plan.md l. 553 (fila de `packages/shared/src/index.ts`: «`healthSchema` (l. 19-27) con `features` (3a, 14-l)»), l. 606 (fila nueva de `apps/api/src/routes/authProxy.ts`, 7a, `viewerCookieHeader(null, secure)` en `sign-out` y `delete-user`), l. 611 (la fila del feed gana `pages/News.tsx`, con `item.raceId` en lugar de `raceOfHeadline(item.text, races)`, l. 16 y 100) y l. 108 (el 1b lo dice en su código). El 7a lo nombra también en l. 314.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-075",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "17-plan.md l. 326 (tests del 7b): «el caso de B12 “lo servido no es visto” del 7a… se reescribe aquí con el tope…: el cliente de prueba informa lo alcanzado tramo a tramo hasta `finishS − 1`, sin llegar a meta… al final, `known_through` sigue sin cambiar y la etapa sigue en el velo (regla 1: el PR dice lo que re-sella)», y l. 725 lo cuenta entre los re-sellos («Entre tests que nacen en E2, el 7b re-sella…»). La parte de §10.14 que fue por cruzada está: 10-horizonte.md l. 583 monta el caso con el progreso informado hasta `finishS − 1` y sin `POST …/finish`, y remite al re-sello del 7b.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-078",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "17-plan.md l. 447 (el 12: `narration.test.ts` «pierde los tres `it` de `narrate()` y `personalNarration` (l. 24-39) y conserva el de `raceVerdict` (l. 41-59)…»), l. 723 (§17.21: nace hoy, crece en el 12, `raceVerdict` se queda) y l. 725 (re-sellos: «los tres `it` de `narrate()` de `narration.test.ts`»). El corrector no escribe que el 8a amplíe ese test, con un motivo que se sostiene: `raceVerdict` no cambia de lógica, cambia lo que la API le da (§12.9). §16.1 dice lo mismo (16-bancos.md l. 19).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-079",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "Decisión 17-u (17-plan.md l. 793) con mejor salida que la propuesta: los fixtures salen de un mundo de PGlite con las etapas 1 a N − 1 corridas por `runOneStage` desde el 2 (l. 123), el 4b no escribe `.timeline.gz` (l. 217) y el 5 escribe la segunda mitad con `spec.timeline`, comprobando que sucesos y radio salen iguales byte a byte, y siembra en `palmares` un nacional en flanders e1, colombia e5 y la crono e16 para que haya un `from` de campeón (l. 244); `broadcastFixtures.test.ts` nace en el 5 (l. 243). Lo que fue por cruzada a §16 está: 16-bancos.md l. 29 (§16.2, los dos tiempos, los uuid, el manifiesto y los nacionales sembrados) y l. 447 (B13 con su cláusula de no vacío: «al menos 100 campos con `from` velado existían en el reparto sin velar, y ninguno viaja»).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-080",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "17-plan.md l. 123 (uuid deterministas `00000000-0000-4000-8000-` más el índice en doce cifras, la forma de `idDe`, y el manifiesto con dorsal, país, equipo y nombre de prueba), l. 129 (`runOneStage` y `StageRunSpec` exportados desde el 2) y l. 268 (`seedFixtureWorld(t, name)` nace en `load.ts` en el 6a e inserta mundo, `game_state`, equipos, corredores y las filas de `stage_timelines` y `stage_snapshots`; lo usan B6 de lo servido, B3 y B13). §16.2 lo recoge (16-bancos.md l. 29) y `load.ts` también (l. 522).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-085",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "17-plan.md l. 383 (`pageTitle.test.ts` «Empieza por `/// <reference types=\"node\" />` y lee los fuentes con `readdirSync` y `readFileSync`… porque `apps/web/tsconfig.json` no carga los tipos de Node (`\"types\": []`, l. 9)»), l. 386 (`queryKeys.test.ts`, «con la misma directiva de Node») y l. 727 (la nota de §17.21: son seis, con `breakPresentation.test.ts`, y por qué solo ellos la llevan). Comprobado en HEAD: `apps/web/tsconfig.json` l. 9 es `\"types\": []` e incluye `src`; `columnasVivas.test.ts` l. 46-59 recorre los fuentes con `readdirSync`.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-086",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "17-plan.md l. 158 (el 3a da a `broadcastSource.ts` `clearAdaptedTimelineCache()` para los tests, con el motivo: el LRU va por `${raceKey}|${stageDay}` sin mundo y B1c monta dos mundos), l. 247 (`clearStageTimelineCache` en el 5), l. 307 (el mundo de B1 del 7a vacía las dos al montarse) y §17.20 l. 578 y 599. Lo que fue por cruzada está: `startSpoilerWorld` llama a `clearStageTimelineCache()` y `clearAdaptedTimelineCache()` antes de nada (16-bancos.md l. 147-151) y §14.4 declara `export function clearAdaptedTimelineCache(): void` (14-api.md l. 247).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-089",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "Los cuatro ficheros están en §17.21 (17-plan.md l. 666 `diagMode.test.ts`, 8a; l. 714 `results.test.ts`, 7b; l. 692 `codec.test.ts`, 4b; l. 670 `calendarRun.test.ts`, hoy y crece en el 5), en los «Tests primero» de su PR (l. 346, l. 328, l. 213 y l. 241) y en la columna de la tabla de §17.2 (l. 41, 40, 35 y 36).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-090",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "§17.20 gana `apps/api/src/security.ts` (17-plan.md l. 594, 3a y 7a), `apps/web/src/api/results.ts` (l. 616, 7b), `request.ts` con `ApiError.retryAfterS` (l. 617, 3b), `queryClient.ts` con `cacheOwnerChanged` (l. 618, 9a), `main.tsx` con `<HorizonWatcher />` (l. 619, 9a) y el 7b en las filas de `StageReplay.tsx` y `Race.tsx` (l. 624 y 626). El 7b es «M · API, `shared` y web» (l. 322) y su «Código» lleva el reenvío de `?diag=1` (l. 333).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-094",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "17-plan.md l. 193 (`probeHooks.test.ts` del 4a): la huella serializa `efforts` «como `[...o.efforts]`, porque es un `Map` y `JSON.stringify` lo deja en `{}`», y «`onEvent` tantas veces como sucesos de `output.events` cuya plantilla no es `rider_defies_team` (los inserta `announceRebels` al cerrar, `packages/engine/src/stage/events.ts` l. 71-99, sin pasar por `EventLog`, l. 12-29; §5.2)». Comprobado en HEAD: `announceRebels` empieza en l. 71 de `events.ts`.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-095",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "17-plan.md l. 201: «entre l. 621 y l. 622; la lista, l. 616-635, va de más larga a más corta, como dice su comentario de l. 613-614». Comprobado en HEAD (`packages/engine/src/sim/coherence.ts`): el comentario en l. 613-614, la lista desde l. 616, `'the favourites'` en l. 621 y `'the fast men'` en l. 622.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-029",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: parcial",
+  "veredicto": "cerrado",
+  "evidencia": "Lo que pedía el hallazgo está en el texto, y lo que el corrector no aplicó tiene una salida mejor con un motivo que se sostiene. 17-plan.md l. 11 (regla 3): `ENGINE_VERSION` «se queda en la versión con la que arranque E2, que no será la de hoy (89…)», `index.test.ts` l. 465 no lo toca ningún PR de E2, y «Las cifras del motor de este documento (B11…, los tamaños de §5.7, el tick de §18.3) son de la v89, y las vuelve a dar sobre la versión de arranque el banco de cada una en su PR»; l. 67: el PR 0 apunta la versión y el commit de producción de los que parte E2. Re-medir en el PR 0 con `l3/grabador.mjs` y `l7/tick.mjs` no se puede: son prototipos del scratchpad del diseño, no ficheros del repositorio, y en el PR 0 no existen los ganchos, el grabador ni la escritura que miden; los bancos que los sustituyen (B11, B6, B15) corren antes de que nada dependa de esas cifras y fallan con su umbral.",
+  "accion": "lo he cerrado yo: 17-plan.md l. 11, «B11 en el 4a» pasa a «B11 en humo en el 4a y entero en el 4b», porque el «24 de 24» con los tres ganchos es el B11 entero de `timeline.test.ts` (4b, l. 211) y el 4a solo lleva la prueba de humo (l. 193)"
+ },
+ {
+  "id": "Rcoste-030",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "17-plan.md l. 17 (regla 9: aplicar una migración no es inerte; `runMigrations` mira si hay pendientes y solo entonces toma el candado del tick, `pg_advisory_lock(LOCK_CLASS.tick, 1)`, y fija `SET lock_timeout = '10s'`, con los dos candados en el mismo orden), l. 88 (los casos de `migrations.test.ts`, dos de ellos con dos sesiones contra Postgres de verdad), l. 95 (`migrate.ts` en el 1a), l. 97 (`TEST_DATABASE_URL` y `realTestDbFor`), l. 514 («aplicarlas no lo es: regla 9»), l. 572 (§17.20), l. 795 (17-w) y el coste de 2,5 sesiones en l. 102 y l. 738. §19.1 tiene el riesgo 32 (19-riesgos.md l. 41) y §19.8 su síntoma (l. 222). §13.1 regla 8 y 13-k (13-esquema.md l. 16 y 469) y §13.10 punto 8 (l. 448) dicen lo mismo. Comprobado en HEAD: `LOCK_CLASS.migration` en `migrate.ts` l. 24, `LOCK_CLASS.tick` en `tick.ts` l. 214 y la clave 1 en l. 39.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-031",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "17-plan.md l. 188 (§17.7: el 4a y el 4b tocan los ficheros que la táctica cambia, «se fusionan en una ventana acordada con esa línea, sin un PR suyo abierto sobre esos ficheros, y cada rebase sobre un cambio del motor repite los ocho tramos… y vuelve a sellar B11; §17.22 cuenta una sesión por el rebase que se prevé»), l. 470 (§17.16, la misma regla) y l. 746 (§17.22, la fila del rebase, 1 sesión, con los ocho tramos otra vez). El coste del 4a y del 4b dice «más el rebase si la táctica fusiona antes» (l. 206 y 226).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-034",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "Decisión 17-v (17-plan.md l. 794): el paso 11 son dos PR, el 11a (`radio.ts`, B16 y la pestaña, l. 427-433) y el 11b (deja de escribir `stage_snapshots.radio`, l. 435-441), con el porqué en l. 425. §17.18 lo sigue (l. 512: «El 11b se revierte volviendo a escribir la radio, y las etapas de entre medias siguen servidas desde su línea por el código del 11a (17-v)»; l. 514). La tabla de §17.2 (l. 47-48), el diagrama de §17.16 (l. 464), §17.21 y §17.22 (l. 758-759) cuentan veintitrés PR. Lo que fue por cruzada está: D-54 dice 23 PR con su registro de la fase 5 (00-decisiones.md l. 58 y 772-780) y G.10 del glosario tiene el paso 11 partido (00-glosario.md l. 965).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-035",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "17-plan.md l. 453 (§17.15: «**Se revierte con** revert, pero no sin que se note: el revert vuelve a cambiar para todos las variantes de las frases viejas, un segundo re-sorteo visible, y las crónicas viejas vuelven a nombrar al equipo de hoy; por eso el 12 va el último, tras la prueba de lectura, y solo se revierte por un fallo de corrección») y l. 512 (§17.18 dice lo mismo).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-036",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "17-plan.md l. 513 (§17.18: «El 4a y el 4b, con `git revert` solo antes del 5… Su marcha atrás es entonces `TIMELINE_RECORD=off`, y el código se queda. Todo revert de los dos paga los ocho tramos (regla 4)»), y el «Se revierte con» del 4a y del 4b remite a ello (l. 206 y 226). La tabla de §17.2 dice «revert, solo antes del 5» en los dos (l. 34-35).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-037",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "17-plan.md l. 531 (§17.19, «Si el reinicio llega antes que el código»: el 1a mínimo como excepción declarada, la `0043` con el cambio de `runMigrations` y `emitNews` escribiendo `seed`, `data`, `race_key`, `stage_day` y `text`, o el reinicio espera; lo decide el dueño en DD-27 con el defecto de adelantar el 1a mínimo, la Oleada 0 de `docs/agenda.md` l. 1411-1417; una sesión), l. 102 (el riesgo del 1a remite a ello) y el riesgo 36 de §19.1 (19-riesgos.md l. 45). DD-27 existe con ese defecto en 00-decisiones.md (l. 76 y 884) y en §20 (20-dueno.md l. 45, 100 y 122).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-038",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: parcial",
+  "veredicto": "cerrado",
+  "evidencia": "Lo que el hallazgo pedía a §17 está: decisión 17-y (17-plan.md l. 797), el 5 escribe en `docs/ops.md` que el reinicio vacía `stage_timelines` con `stage_snapshots` y reinicia `web` (l. 251) y el 7a, que borra `race_watch` (l. 315); `timelines.test.ts` gana la escritura que no inserta fila y deja la nota `timeline error: … ya tenía fila` (l. 235), y §17.19 lo cuenta (l. 533). La clave de las LRU con `worldId`, que el corrector mandó a §5.6 y §14.4, no se adoptó, y el motivo se sostiene: §13.9 deja escrito el reinicio de `web` como paso del procedimiento mientras las LRU vayan sin mundo (13-esquema.md l. 434, 13-h), y ese reinicio hace falta de todos modos por el memo del horizonte y el mapa de `lastRunStages`, que viven en el proceso y tampoco llevan mundo (§17.19 l. 533), así que cambiar la clave no quitaría el paso.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-042",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "Riesgo 19 de §19.1 (19-riesgos.md l. 29): «media: cada despliegue reinicia `web`… y cada cambio de interruptor también, porque se leen de `env.ts` al arrancar (§14.6); y con más de una instancia no se comparte», el 409 en el borde tras cada reinicio, la defensa de §14.11 (informar y pedir otra vez sin pausar) y B18 con el caso de la memoria vacía. 17-plan.md l. 326 (B18 del 7b gana ese caso), l. 17 (regla 9: cambiar una variable reinicia el servicio y vacía lo que vive en la memoria) y l. 508. El caso está en §16.4 (16-bancos.md l. 452) y en la tabla de §16.9 (l. 763).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-043",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "19-riesgos.md l. 52: «Los que más pueden costar» es ahora el 1, el 32 (la migración con un día del tick), el 13 (la memoria de `web`, con los memos), el 31 (el límite de peticiones) y el 34 (la puerta de B14 intermitente); «El 8 era de estos… y bajó: en PostgreSQL 16 sin red da 3,88 ms de p95 (§18.2); queda su medida desde Railway». Los cuatro riesgos medidos que faltaban son filas: el 13 con los memos y su tope (l. 23), el 32 (l. 41), el 34 (l. 43) y el 35, el paso 9 de `instantAt` (l. 44); el 31 reescribe la defensa del límite (l. 40).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-044",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "Riesgo 31 de §19.1 (19-riesgos.md l. 40): el límite global de 300 por minuto e IP como problema y no como defensa, y la defensa nueva: `PLAYER_RATE_LIMIT` en `GET …/broadcast/chunk` y `POST /api/me/watch/:raceKey/:day` (1.200 por minuto por usuario con sesión y 300 por IP sin ella, contador aparte), el 429 que espera `retry-after` con `Loading` y B18; lo vigila `routes/broadcast.test.ts` con dos sesiones y 320 tramos (3a). El plan lo fecha: el límite del tramo en el 3a (17-plan.md l. 149 y 162), el del progreso en el 7a (l. 304 y 314), el 429 del reproductor en el 3b (l. 168) y el caso de los 320 tramos en el fichero de B18 desde el 3a (l. 326). Lo que fue por cruzada está: §16.4 y §16.9 fechan B18 en el 3a (los 320 tramos) y el 7b (16-bancos.md l. 452 y 763), y §8.12 pone la fila del 429 en el 3b (08-ritmo.md l. 440).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-009",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "17-plan.md l. 176 (`FixedOverlay.test.tsx` y `GroupBar.test.tsx` del 3c: con `clock: 'estimated'`, el km de todo grupo que no es la cabeza lleva `~`, su cursor en `ProfileStrip` va hueco y el aviso lleva `Positions of the groups behind are estimated`; con `exact`, nada de eso), l. 178 (el código del 3c) y l. 164 (el riesgo del 3a, con la cita de `docs/balance.md` l. 9480, v58). Lo que fue por cruzada está: §3.8 (03-reloj.md l. 330 y 351), §6 (06-pantalla.md l. 127, «Nace en el 3c con su caso en `GroupBar.test.tsx`») y los textos de pantalla del glosario (00-glosario.md l. 998) y de F.3 (21-apendices.md l. 574).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-010",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: parcial",
+  "veredicto": "cerrado",
+  "evidencia": "Lo central del hallazgo está: el 3a da al adaptador un reparto provisional y `serveCast` sin velo (17-plan.md l. 158; 17-k, l. 783), y el 3c enseña la fila de una fuga de hasta doce con cada escapado y el maillot que lleva, de líder o de su equipo (l. 178 y 182); §17.17 dice que el corte tras el 3c contesta [DUEÑO 3] en parte (l. 485 y la tabla de l. 493). Lo que no se aplicó tiene un motivo escrito en §17.17 que se sostiene: la frase y la ronda de la moto son rótulos que necesitan la cola de rótulos del 6a y `breakHeadline` con las cartas del 6b, y adelantarlas parte esos dos PR y los tests que otras secciones fechan en ellos; los títulos se quedan fuera del reparto provisional porque los deciden DD-05 y DD-13, que el dueño contesta tras el 6b (17-k). El mismo párrafo daba como motivo que en un mundo reiniciado no hay campeones hasta el día 179, que es falso para 17 países (§7.4, 07-rotulos.md l. 260).",
+  "accion": "lo he cerrado yo: 17-plan.md l. 485 («en un mundo reiniciado hay pocos campeones hasta el día 179 de la temporada 0: los de 17 países llegan antes, los de 111 ese día y los de 5 después (§7.4)») y l. 292, §17.9, que decía lo mismo («desde el nacional de cada país…»)"
+ },
+ {
+  "id": "Rdueno-027",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: aplicado",
+  "veredicto": "cerrado",
+  "evidencia": "Decisión 17-x (17-plan.md l. 796): `gc_lead_taken` y `jersey_taken` se escriben desde el 1a y no se sirven hasta el 8a, y entonces solo a quien le aplica el velo (`opts.leaderNews`). Lo siguen la regla 11 (l. 19), los tests del 1a (l. 85, `getGlobalNews`, `getTeamNews` y `getRiderNews` no los devuelven sin `opts.leaderNews`), el código del 1a (l. 98), «Qué ve el dueño» del 1a (l. 102: solo la coma de `contract`), el 8a (l. 348 `newsVeil.test.ts` y l. 356, `leaderNews: request.spoilerApplies()`) y §17.21 (l. 667 y 685).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-045",
+  "tipo": "hallazgo",
+  "origen": "por-lote/L9.json; correcciones-L9.json: parcial",
+  "veredicto": "cerrado",
+  "evidencia": "El hallazgo daba dos salidas, y la segunda está en el texto: «Si se prefiere antes, que §17.10 y §17.11 le digan qué pantallas verá rotas y hasta qué PR». 17-plan.md l. 335 (7b): lo que verá roto y hasta cuándo (pestañas vacías del 7b al 9a, salvo con `?diag=1`; listas cortadas, ganadores a null y marcadores con su `text` neutro del 8a al 9b; los agregados sin aviso del 8b al 9b), escrito también en la descripción del PR, y la otra cara (encender `admins` al fusionar el 9b) descartada con su motivo: dejaría al dueño sin vivir el velo mientras se construye, que es para lo que existe `admins` (D-53), como en 14-s. El 8a (l. 358) y el 8b (l. 373) lo repiten.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-032 · cruzada L1 n.º 2",
+  "tipo": "cruzada",
+  "origen": "L1, n.º 2 de cruzadas-L1.json; coherencia.json fila 2 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §19.1, riesgo 1. 19-riesgos.md l. 11: la defensa lleva el cruce con el 17d («el 8a y el 17d tocan `getRiderLastRaceReport` (`packages/db/src/raceReport.ts` l. 78): el 8a le da el `Horizon`, la hace leer la última etapa CONOCIDA (D-47) y registra `/api/riders/me/last-race` con política `horizon`, el 17d la reescribe…, y el que llegue segundo se rebasa sobre el otro; si es el 17d, conserva el `Horizon` y la política… y pasa B1a, B1b y B1c»), la vigilancia «B1a a B1c para el 17d» y el paso 8a. §19.3 lo repite (l. 116).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-032 · cruzada L1 n.º 3",
+  "tipo": "cruzada",
+  "origen": "L1, n.º 3 de cruzadas-L1.json; coherencia.json fila 3 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.16. 17-plan.md l. 477: la viñeta «8a y el 17d de la táctica» con la misma función, el rebase del que llegue segundo y, si es el 17d, el `Horizon`, la política de su ruta y B1a, B1b y B1c.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-042 · cruzada L1 n.º 5",
+  "tipo": "cruzada",
+  "origen": "L1, n.º 5 de cruzadas-L1.json; coherencia.json fila 5 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.5. 17-plan.md l. 122: `apps/api/src/broadcastSource.test.ts` (nuevo) con los tres casos que pedía la cruzada; está en la tabla de §17.2 (l. 30) y en §17.21 (l. 651). La frase decía aún que §3.8 daba privada `estimatedHeadClock`, y §3.8 ya la exporta para ese test (03-reloj.md l. 323 y 385), como el glosario (00-glosario.md l. 174 y 751); es el aviso de L1 recogido en las notas del orquestador.",
+  "accion": "lo he cerrado yo: 17-plan.md l. 122, «se exporta para él (§3.8), aunque solo la usa el adaptador» en lugar de «aunque §3.8 la daba por privada»"
+ },
+ {
+  "id": "Rcobertura-005 · cruzada L2 n.º 4",
+  "tipo": "cruzada",
+  "origen": "L2, n.º 4 de cruzadas-L2.json; coherencia.json fila 12 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17 (17-a, §17.8, §17.20, §17.21 y dudas del cierre). 17-plan.md l. 773 (17-a: `checkClockDs` y `TimelineCast.favourites`, «que §4.2 ya escribe, 4-u», entran en el formato 1 en el 4b, y `tpl_rev` en la `0044` del 5; sin «si el ensamblador lo acepta»), l. 242 (`cast.test.ts`: «los favoritos de 8-g (4-u): los de una etapa corrida son los del orden de atributos leído al empezar, con dos corredores que `raceLearning` cambia de orden»), l. 679 (§17.21) y l. 257 (el riesgo del 5: los favoritos ya no son un riesgo). Las dos dudas del cierre sobre `favourites` y `tpl_rev` ya no están (l. 807-816).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-005 · cruzada L2 n.º 5",
+  "tipo": "cruzada",
+  "origen": "L2, n.º 5 de cruzadas-L2.json; coherencia.json fila 13 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §19.1 (riesgo 22) y §16. 19-riesgos.md l. 32: «baja: decidido en 8-g y escrito en §4.2 (`TimelineCast.favourites`, 4-u)», con la defensa (los favoritos en el formato 1 en el 4b y en el reparto del 5, 17-a) y `cast.test.ts`. La duda de §16 sobre B1c y 8-g está cerrada (16-bancos.md l. 831, «Cerrada en la corrección L2»).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-009 · cruzada L2 n.º 13",
+  "tipo": "cruzada",
+  "origen": "L2, n.º 13 de cruzadas-L2.json; coherencia.json fila 21 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §5 y §17.21 (lo de §17). 17-plan.md l. 211: `timeline.test.ts` del 4b gana «la regla `incident` de 4-v: el `revealS` de cada `crash` es el reloj en `b` del grupo en que iba el corredor al final de `b − 1` (o su reloj en `b − 1` si ese grupo murió en `b`), y el de cada `puncture` o `mechanical` de carretera, el máximo de ese reloj y su `tS`; con la regla anterior el prototipo daba 70,6 s de retraso de mediana en las caídas (`l3/grabador.mjs`)», y §17.21 lo cuenta en la fila del fichero (l. 702).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-009 · cruzada L2 n.º 14",
+  "tipo": "cruzada",
+  "origen": "L2, n.º 14 de cruzadas-L2.json; coherencia.json fila 22 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §19.1 (riesgo 24) y dudas.md. 19-riesgos.md l. 48: «No hay riesgo 24. Era el rótulo de las caídas y los pinchazos… y lo cerró la regla `incident` de 4-v (§4.7)…; `timeline.test.ts` la prueba en el 4b (§17.7). El número se deja sin usar para que los demás… no cambien»; la tabla salta del 23 al 25 (l. 33-34). dudas.md da la 1.2 por cerrada (l. 16 y 49).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-010 · cruzada L2 n.º 15",
+  "tipo": "cruzada",
+  "origen": "L2, n.º 15 de cruzadas-L2.json; coherencia.json fila 23 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino «todas las secciones», en lo que toca a §17 y §19. En el cuerpo de §17 no queda ninguna remisión `§G.n` (la del párrafo de entrada pasó a la tabla de §17.2, 17-plan.md l. 3); las dos que quedan (l. 801 y 813) están en «Propuesto para el glosario» y «Dudas para el ensamblador», que `ensamblar.sh` quita (su `QUITAR`). §19 no tiene ninguna (grep `§G` sobre 19-riesgos.md: cero).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-049 · cruzada L2 n.º 22",
+  "tipo": "cruzada",
+  "origen": "L2, n.º 22 de cruzadas-L2.json; coherencia.json fila 30 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.9, §17.13 y §17.20, siguiendo 17-e. 17-plan.md l. 558 (fila de `broadcast/constants.ts`: nace en el 2 con §15.3 y §15.4 enteros, «topes de red, `cardRowsMax` y las constantes de la previa, el cierre y los saltos de crono incluidos», y solo crece en el 10b con lo que ajuste la prueba de lectura); l. 271 (el 6a «lee de `BROADCAST` los topes y `cardRowsMax`, que nacieron enteros en el 2 (17-e)»); l. 408 (el 10a: `ttSeekStepS` y `ttSeekLastStarters`, «que como `recapMaxCues`, `previewThreatsMax` y `closingCardS` nacieron con `BROADCAST` entero en el 2, 17-e»). §15.3 ya no dice «Entra en el 10a» ni «Entra en el 6a» (grep: cero).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-050 · cruzada L2 n.º 25",
+  "tipo": "cruzada",
+  "origen": "L2, n.º 25 de cruzadas-L2.json; coherencia.json fila 33 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.6 y §17.7. 17-plan.md l. 148 (el 3a: el valor de `STORED_PULLERS_MAX` «hasta que el 4b la importe y borre la copia y su caso (15-k)»), l. 216 (el 4b: «`broadcastConstants.test.ts` pierde el caso de `PULLERS_KEPT`, que muere con la copia»), l. 222 (`chronicle.ts` importa `STORED_PULLERS_MAX` y borra `PULLERS_KEPT`), l. 597 y l. 654 (§17.20 y §17.21). El de `chaseRefOf`, en el 4a con las 10.000 carreteras de 15-a (l. 197).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-014 · cruzada L2 n.º 30",
+  "tipo": "cruzada",
+  "origen": "L2, n.º 30 de cruzadas-L2.json; coherencia.json fila 38 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §19.6 y dudas.md. 19-riesgos.md l. 187: la fila de la crono más larga dice la medida con el prototipo («`race-italy` e10, 42 km y 176 corredores, 31.436 B sin `checkClockDs` y 32.203 B con él, el 98,3 % de los 32.768 del tope anterior»), que con el grabador de verdad no se ha medido, dónde se mide (B6 en el banco desde el 4b, `timeline.test.ts` sobre la crono más larga de `SEASON_CALENDAR`, 16-n) y el tope nuevo de 49.152 B (15-i). El riesgo 10 dice lo mismo (l. 20). dudas.md da la 1.4 por cerrada (l. 18).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-019 · cruzada L2 n.º 36",
+  "tipo": "cruzada",
+  "origen": "L2, n.º 36 de cruzadas-L2.json; coherencia.json fila 44 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.1 (regla 9), §18.4 y §19.6, en lo que toca a §17 y §19. 17-plan.md l. 17 (regla 9 sin excepción: «`PROGRESS_MIN_DELTA_S` frena la escritura del progreso sin apagar nada (15-j)»), l. 508 (§17.18), l. 314 (el 7a hace nacer la variable en `env.ts`) y l. 592 (§17.20). La fila que la cruzada llamaba §19.6 (l. 207 del v0) es hoy la de §19.8 (19-riesgos.md l. 219: «si pesa la escritura, se sube `PROGRESS_MIN_DELTA_S`, sin desplegar (15-j, §18.4)»); §19 no nombra `progressMinDeltaS` en ningún sitio (grep: cero).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-005 · cruzada L3 n.º 3",
+  "tipo": "cruzada",
+  "origen": "L3, n.º 3 de cruzadas-L3.json; coherencia.json fila 47 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §19.5, §19.1 (riesgo 4), los cierres O-05 y H-02 y las dos filas del v0. 19-riesgos.md l. 161 (§19.5: el porqué ya no es regla; lo que E2 hace, no subir, y lo que es del dueño, DD-25, con las citas de `docs/balance.md` l. 16319-16321 y 16557-16558 y las veinte subidas de la v69 a la v89 en catorce commits), l. 14 (riesgo 4: «no lo decide E2: es DD-25, del dueño, con el defecto de adelantar el 17d»), l. 102 (§19.2, la fila de la táctica: «si sube la versión antes de su 17d, la decisión del dueño… (DD-25, §19.5), que no bloquea a E2»), l. 241 (§19.9) y l. 258 y 260 (O-05 y H-02). DD-25 tiene ese defecto en 00-decisiones.md l. 882 y 20-dueno.md l. 43.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-005 · cruzada L3 n.º 5",
+  "tipo": "cruzada",
+  "origen": "L3, n.º 5 de cruzadas-L3.json; coherencia.json fila 49 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.15 y el cierre de §17. 17-plan.md l. 451 (el paso 12 corrige `docs/balance.md` l. 14684-14686 y anota que una subida de otra línea antes del 17d cambia la «Last race» de lo ya corrido, C16, y que lo decide el dueño en DD-25, con el defecto de adelantar el 17d) y l. 770 (H-02: «E2 no sube la versión, y las subidas de otras líneas antes del 17d de la táctica son DD-25, del dueño»). La regla 3 no cambia (l. 11).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-044 · cruzada L3 n.º 8",
+  "tipo": "cruzada",
+  "origen": "L3, n.º 8 de cruzadas-L3.json; coherencia.json fila 52 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.8 y 17-a. 17-plan.md l. 247 (`drizzle-kit generate --name linea_temporal`, «con `tpl_rev` `smallint not null` sin defecto (12-c, 13-j; decisión 17-a)», sin condicional), l. 235 (`timelines.test.ts`: «la fila guarda el `TEMPLATE_REV` del tick y la lápida, 0, y `readStageTemplateRev` los devuelve, con 0 para una etapa sin fila») y l. 773 (17-a, `tpl_rev` en la `0044` del 5). La duda sobre §13.3 ya no está en el cierre de §17 (l. 807-816).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-006 · cruzada L3 n.º 15",
+  "tipo": "cruzada",
+  "origen": "L3, n.º 15 de cruzadas-L3.json; coherencia.json fila 59 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.8 y §17.20. 17-plan.md l. 232 («deja su fila en `stage_timelines` en la transacción del día: `recordStageTimeline` la arma y el diario la guarda hasta `flush`, que `runTick` llama detrás de `runCalendarDay` y que escribe las del día en un solo `INSERT` y un punto de guardado (§5.5, decisión 5-l)»), l. 235 (`timelines.test.ts`: un solo `INSERT`; si falla, una lápida por etapa y la transacción de fuera se confirma), l. 236 (`stageRun.test.ts` con `log.flush(tx)`), l. 244 (el script de los fixtures con `flush` detrás), l. 247 (las funciones de `timelines.ts` y `tick.ts` con `flush`) y §17.20 l. 578-579.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-006 · cruzada L3 n.º 16",
+  "tipo": "cruzada",
+  "origen": "L3, n.º 16 de cruzadas-L3.json; coherencia.json fila 60 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §19.1 (riesgo nuevo) y §16.4. 19-riesgos.md l. 46: el riesgo 37, «baja: excluido por construcción (5-l)», con las 187 y 153 subtransacciones, la caché de 64 (`PGPROC_MAX_CACHED_SUBXIDS`), los 104 a 128 s del 179 y la medida de `coste/pgm/subxact.mjs`; defensa, un `INSERT` y un punto de guardado por día y la lectura del reparto en un punto que solo lee; vigilante, B15 mirando `pg_stat_get_backend_subxact` desde otra sesión. B15 lo lleva en §16.4 (16-bancos.md l. 449) y en el 5 (17-plan.md l. 253).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-009 · cruzada L3 n.º 18",
+  "tipo": "cruzada",
+  "origen": "L3, n.º 18 de cruzadas-L3.json; coherencia.json fila 62 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.8 y §17.20. 17-plan.md l. 249 («`apps/api/src/tick/main.ts` (l. 11, el cron) e `index.ts` (l. 38 y 45, `onAdminTick` y `onAdminAdvance`; l. 67, `autoTick`) pasan `timelineRecord` a `runTick`»), l. 237 (`tickRun.test.ts` «pasa `timelineRecord: 'off'` en sus casos de hoy, porque el campo es obligatorio y sin él no compila») y la fila de `tickRun.test.ts` en §17.21 (l. 669) y no en §17.20, con motivo: §17.20 no lleva tests (l. 537, «Los tests van en §17.21»).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-008 · cruzada L3 n.º 21",
+  "tipo": "cruzada",
+  "origen": "L3, n.º 21 de cruzadas-L3.json; coherencia.json fila 65 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §19.1, riesgo 1. 19-riesgos.md l. 11: «desde el 4b, cada PR de la táctica que toque `packages/engine/` paga `timeline.test.ts` en «mundo y radio», de 3,7 a 5,4 min más…, y tiene que pasar I1, I3, B6 del `bytea` y B11 de E2; B6 del JSON, con su tope de mediana a 1,44 veces lo medido (222 KB contra 320, §5.7, 15-l), solo imprime sus cifras en ese tramo y lo caza el nocturno esa misma noche (16-n)». El 15 % de margen de la cruzada lo dejó atrás 15-l (15-constantes.md l. 353). Al comprobarlo, §17.7 seguía con la cifra vieja: es A-L9-004.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-030 · cruzada L3 n.º 23",
+  "tipo": "cruzada",
+  "origen": "L3, n.º 23 de cruzadas-L3.json; coherencia.json fila 67 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.1 (regla 9) y §17.20. 17-plan.md l. 17 (la regla 9 dice lo de §13.1 regla 8: pendientes, el candado del tick con la clave de `tick.ts` l. 39, `lock_timeout` de 10 s, los 300 s de `healthcheckTimeout` de `railway.json` y el reintento por `restartPolicyType: ON_FAILURE`; nace en el 1a, 17-w) y l. 572 (la fila de `packages/db/src/migrate.ts`: «`runMigrations(databaseUrl, folder?)` (§13.10); si hay pendientes, el candado del tick y `lock_timeout`»).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-030 · cruzada L3 n.º 24",
+  "tipo": "cruzada",
+  "origen": "L3, n.º 24 de cruzadas-L3.json; coherencia.json fila 68 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §19.1 (riesgo nuevo). 19-riesgos.md l. 41, riesgo 32: la cola de 7,4 a 7,9 s tras 8 s de tick (`coste/pgm/cola.mjs` y `cola45.mjs`), `users` en la `0045`, la defensa de la regla 8 de §13.1 y la regla 9 de §17.1 (13-k, 17-w), y un vigilante mejor que el que pedía la cruzada: los dos casos de dos sesiones de `migrations.test.ts` corren en todo PR contra el Postgres del CI (`TEST_DATABASE_URL` desde el 1a), no a mano. Pasos 1a, 5, 7a y 8a.",
+  "accion": "nada"
+ },
+ {
+  "id": "A-L9-001",
+  "tipo": "comprobación (regla 3: nombres y ficheros iguales a §4.13)",
+  "origen": "auditor de L9",
+  "veredicto": "cerrado",
+  "evidencia": "La entrada de §17.20 (17-plan.md l. 537) decía que §4.13 manda sobre la tabla «salvo `PaceZone` y `CueClass`, que viven en `timeline.ts` (17-z)», pero §4.13 ya los declara en `timeline.ts` (04-modelo.md l. 807, 914 y 1099), como §15.3 (15-constantes.md l. 80) y el glosario (00-glosario.md l. 378-381): la excepción ya no existe.",
+  "accion": "lo he cerrado yo: 17-plan.md l. 537, «que manda sobre esta tabla y ya pone `PaceZone` y `CueClass` en `timeline.ts` (17-z)»"
+ },
+ {
+  "id": "A-L9-002",
+  "tipo": "aviso de L1 (notas del orquestador, «Abiertos de la auditoría que cruzan secciones»)",
+  "origen": "auditor de L1, vía notas-orquestador.md",
+  "veredicto": "cerrado",
+  "evidencia": "«`17-plan.md` l. 122 aún dice que §3.8 daba privada `estimatedHeadClock`»: era cierto; §3.8 ya la exporta para su test (03-reloj.md l. 323 y 385). La otra mitad del aviso («About N min» no está en G.11 ni en F.3) no es de §17 ni de §19.",
+  "accion": "lo he cerrado yo: 17-plan.md l. 122 (ver la cruzada Rcodigo-042 · L1 n.º 5). «About N min» queda para quien tenga el glosario y §21 (L10 o el cierre)"
+ },
+ {
+  "id": "A-L9-003",
+  "tipo": "aviso de L5 (notas del orquestador): cifra compartida con §7.4",
+  "origen": "auditor de L5, vía notas-orquestador.md",
+  "veredicto": "cerrado",
+  "evidencia": "§17.17 (17-plan.md l. 485) decía que los campeones no existen en un mundo reiniciado hasta el día 179 de la temporada 0, y §17.9 (l. 292) que la frase con campeón no sale antes del 179. §7.4 midió otra cosa (07-rotulos.md l. 260): la ruta élite de 111 países es el día 179, y de los 22 de `NATIONALS_ROAD_OVERRIDE`, 17 la corren antes y 5 después; el riesgo 21 de §19.1 (19-riesgos.md l. 31) ya lo decía bien. La mitad del aviso que toca a §21 (X-13) no es de este lote.",
+  "accion": "lo he cerrado yo: 17-plan.md l. 485 y l. 292 con las cifras de §7.4. X-13 de §21 necesita otra sección (L10)"
+ },
+ {
+  "id": "A-L9-004",
+  "tipo": "comprobación (regla 3: cifras que §17 comparte con §15.2, §16.4 y §19)",
+  "origen": "auditor de L9",
+  "veredicto": "cerrado",
+  "evidencia": "§17.7 seguía con el tope de mediana del JSON anterior a 15-l: el 4b decía que B6 del JSON imprime sin fallar en el tramo «porque la mediana tiene un 15 % de margen» (17-plan.md l. 211) y el riesgo del 4b, «222 de mediana contra 256» (l. 226). `TIMELINE.medianJsonBytes` es 327.680 (320 KB), 1,44 veces lo medido (15-constantes.md l. 55 y 353, 15-l), y así lo dicen §5.7 (05-motor.md l. 635), §16.4 (16-n, 16-bancos.md l. 794), el glosario (l. 817) y los riesgos 1 y 10 de §19.1. La coherencia de la fase 6 llevó la cifra a §0.7, §16.4 y §19, no a §17.",
+  "accion": "lo he cerrado yo: 17-plan.md l. 211 (el porqué de 16-n: que un paso de la táctica no se ponga en rojo por un umbral de E2, con el tope de 320 KB, 1,44 veces lo medido) y l. 226 («222 de mediana contra 320, 15-l»)"
+ },
+ {
+  "id": "Rcodigo-069 · cruzada L3 n.º 25",
+  "tipo": "cruzada",
+  "origen": "L3, n.º 25 de cruzadas-L3.json; coherencia.json fila 69 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.20 y §17.4. 17-plan.md l. 95 (el 1a: `runMigrations(databaseUrl, folder = migrationsFolder)`, el segundo parámetro para el mundo vivo, con la regla 8 de §13.1, y `testDb.ts` gana `startEmptyTestDb()`, 13-m), l. 572 (fila de `migrate.ts`) y l. 573 (fila de `testDb.ts`, con `startEmptyTestDb()` y `realTestDbFor(name)`). Dos filas en lugar de la una que proponía la cruzada; mismo contenido.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-005 · cruzada L3 n.º 29",
+  "tipo": "cruzada",
+  "origen": "L3, n.º 29 de cruzadas-L3.json; coherencia.json fila 73 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.1 (regla 3). 17-plan.md l. 11: «de la v69 del 14 de septiembre (`025efbe`) a la v89 del 26 (`c39f450`), veinte subidas de número en catorce commits (`git log -G'ENGINE_VERSION = [0-9]+' 025efbe..c39f450 -- packages/engine/src/constants.ts`)», y §19 dice lo mismo (19-riesgos.md l. 14 y 161). Comprobado ahora: esa orden da 14 commits, y `constants.ts` dice 69 en `025efbe` y 89 en `c39f450`.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-037 · cruzada L3 n.º 30",
+  "tipo": "cruzada",
+  "origen": "L3, n.º 30 de cruzadas-L3.json; coherencia.json fila 74 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.19 y §19.1, para comprobar que dicen lo mismo que §13.2 y §13.9. 17-plan.md l. 531 (el 1a mínimo: «la `0043` con el cambio de `runMigrations` de la regla 9 y `emitNews` escribiendo `seed`, `data`, `race_key`, `stage_day` y `text`, sin `renderNews` en `shared` ni los titulares nuevos»; lo decide el dueño, DD-27, con el defecto de adelantarlo) y riesgo 36 (19-riesgos.md l. 45) casan con §13.2 (13-esquema.md l. 31) y §13.9 (l. 436).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-007 · cruzada L3 n.º 32",
+  "tipo": "cruzada",
+  "origen": "L3, n.º 32 de cruzadas-L3.json; coherencia.json fila 76 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §19.1 (riesgo 10) y §17.8. Riesgo 10 (19-riesgos.md l. 20): «media en la crono más larga del calendario hasta que B6 la mida con el grabador de verdad en el 4b: `race-italy` e10, 42 km y 176 corredores, 31.436 B, y 32.203 B con `checkClockDs`, bajo un tope de 49.152 B». La medida de la e10 no va al `--sizes` del paso 5, como pedía la cruzada, sino a algo mejor que llegó después (Rcodigo-065, cruzada de L8): B6 en el banco desde el 4b, `timeline.test.ts` elige en `SEASON_CALENDAR` la crono más larga de 176 corredores (17-plan.md l. 211); §19.6 lo dice (l. 187).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-021 · cruzada L4 n.º 11",
+  "tipo": "cruzada",
+  "origen": "L4, n.º 11 de cruzadas-L4.json; coherencia.json fila 87 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §11 y §17 (9b); lo de §17. 17-plan.md l. 396: `raceTabs.test.ts` gana «la etapa arrastrada, conocida con `A` y sin ver (`WatchState.seen` falso, 6-r), que abre en `watch` (una carrera fuera de guardia: se ve la etapa 5 y la 1 abre en `Watch`)», y el código del 9b pasa `seen = watch?.seen ?? true` desde `Race.tsx` l. 595 (l. 398).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-017, Rcobertura-021 · cruzada L4 n.º 14",
+  "tipo": "cruzada",
+  "origen": "L4, n.º 14 de cruzadas-L4.json; coherencia.json fila 90 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17 (PR 4a y su tabla de ficheros). 17-plan.md l. 201 (`sim/coherence.ts`: los tres nombres del grupo del maillot de 6-b en `GROUP_NOUNS` y, al principio, en `WATCHED_GROUP_NOUNS`), l. 202 (`index.ts` exporta `threeKmRule`, que `stage/truce.ts` ya declara con `export`, l. 136), l. 545 y 550 (las filas de §17.20), l. 782 (17-j) y el re-sello que eso trae: l. 196 y 206 (el test de los tres nombres pasa a siete; `coherence.test.ts` l. 347-360, a seis, con `storyMetrics` remedida), l. 701 y 725. Comprobado en HEAD: `groupNounsOf` en `coherence.ts` l. 604-606 y la unión de `storyMetrics` en l. 736-738, como cita l. 206.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-026 · cruzada L4 n.º 16",
+  "tipo": "cruzada",
+  "origen": "L4, n.º 16 de cruzadas-L4.json; coherencia.json fila 92 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §16.4 (B17) y §17.9; lo de §17. 17-plan.md l. 286: `broadcastPace.test.ts` gana en el 6b «la banda de la crono de B17 (de 5:00 a 13:00, 8-k)», la misma de §16.4 (16-bancos.md l. 451); §17 no cita la banda de 5:30 ni la medida de 6:24-11:23 en ningún sitio (grep: cero).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-021, Rdueno-021, Rdueno-036, Rdueno-037 · cruzada L4 n.º 28",
+  "tipo": "cruzada",
+  "origen": "L4, n.º 28 de cruzadas-L4.json; coherencia.json fila 104 (ya_estaba); correcciones-L9.json: Rdueno-036 y Rdueno-037 desestimadas",
+  "veredicto": "desestimado_con_motivo",
+  "evidencia": "Destino §20 y §19 «si procede». Lo del dueño es de §20 (DD-28 y DD-29, L10). Lo de §19 era condicional («Si §19 lleva un riesgo de la cola de rótulos, puede citar la medida de §6.5») y §19 no lleva ese riesgo (19-riesgos.md l. 11-46). El motivo del corrector se sostiene: que la cola tire rótulos de clase 1 y 2 es la regla de 6-h con la medida de §6.5, no un riesgo; lo que no puede perderse, la presentación de la fuga, lo sella B3 (16-p), y si el resto basta lo dicen el dueño desde el 6a y la prueba de lectura del 10b, que sí es el riesgo 23 (l. 33).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-031 · cruzada L5 n.º 3",
+  "tipo": "cruzada",
+  "origen": "L5, n.º 3 de cruzadas-L5.json; coherencia.json fila 108 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.8 y la tabla de ficheros. Con una salida mejor que la pedida, que llegó después (Rcodigo-065, cruzada de L8): la crono más larga de 176 corredores la elige en `SEASON_CALENDAR` `timeline.test.ts` en el banco desde el 4b (17-plan.md l. 211), no `--sizes` a mano en el 5; `--sizes` queda para el paquete de meta y la ruta conocida del 6a (l. 268 y 630). El riesgo del 4b da la cifra de §9.2: «32,2 KB la más larga del calendario, `race-italy` e10 con `checkClockDs` (§9.2), contra 48 KB (15-i)» (l. 226).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-031 · cruzada L5 n.º 4",
+  "tipo": "cruzada",
+  "origen": "L5, n.º 4 de cruzadas-L5.json; coherencia.json fila 109 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §19.6 (y el riesgo 10). 19-riesgos.md l. 187: la fila de la crono más larga con la medida de §9.2 (31.436 B y 32.203 B con `checkClockDs`, el 98,3 % de 32.768), dónde se mide (B6 en el banco desde el 4b, no a mano en el 5, por lo mismo que la cruzada n.º 3) y el tope de 49.152 B (15-i). Riesgo 10 (l. 20): «32.203 B con `checkClockDs`, bajo un tope de 49.152 B».",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-045 · cruzada L5 n.º 12",
+  "tipo": "cruzada",
+  "origen": "L5, n.º 12 de cruzadas-L5.json; coherencia.json fila 117 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.9 (6b). 17-plan.md l. 287: `cues.test.ts` gana los casos de clase de la crono (`tt_round` 0, `own` 1, `tt_start_order` 1, `tt_split` 1 y 2, `tt_finish` 1 y 3, `virtual_gc` en crono 2 y 3, `time_cut` 2) y `player.test.ts` la e16 congelada sin perder ningún rótulo de clase 3 ni ningún `virtual_gc`; los dos están en la fila del 6b de §17.2 (l. 38) y en §17.21 (l. 694 y 706).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-046 · cruzada L6 n.º 1",
+  "tipo": "cruzada",
+  "origen": "L6, n.º 1 de cruzadas-L6.json; coherencia.json fila 126 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.15 (PR 12). 17-plan.md l. 447: `yesterday.test.ts` gana el caso de `last-race` con `moments`, `lastRaceResponseSchema.omit({ ready: true }).extend({ report: riderRaceReportSchema.omit({ moments: true }).nullable() })`, «porque un `.omit` de fuera no llega al esquema anidado (regla 8, §14.7)»; §17.21 lo hace crecer en el 12 (l. 647) y la fila del 12 de §17.2 lo lista (l. 49).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-034 · cruzada L6 n.º 7",
+  "tipo": "cruzada",
+  "origen": "L6, n.º 7 de cruzadas-L6.json; coherencia.json fila 132 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.3. 17-plan.md l. 69: «la respuesta de una etapa pasa de 0,87-2,95 MB a 22-100 KB comprimidos (mapa 07 §7)», y la línea base de B6 del mismo paso, «de 22,2 a 100,1 KB en las 22 etapas en línea» (l. 67). La misma cifra está en el 6a (l. 268, `maxKnownStageGzipBytes`, «medido de 22,2 a 100,1 KB, §14.8»).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-049 · cruzada L6 n.º 9",
+  "tipo": "cruzada",
+  "origen": "L6, n.º 9 de cruzadas-L6.json; coherencia.json fila 134 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.11. 17-plan.md l. 345: `horizonReaders.test.ts` «Va con el AST y el comprobador de tipos de TypeScript (`ts.createProgram` sobre el `tsconfig.json` de `packages/db`)…: funciones exportadas y métodos de objetos exportados, con sus ayudantes no exportados; las fuentes de D-32 enteras, `stage_timelines` incluida; el TIPO del segundo parámetro; y las excepciones por nombre y con motivo (…`runCalendarDay`, `recomputeWorldRanking` y `addSeasonPointsBatch`; `computeHorizon`, `horizonSummary`, `lastRunStages` y `veilDelta`; `cast.ts:buildTimelineCast` y `titles.ts:palmaresTitleSource.titlesOn`; `draftRace` y `undraftRace`), y una excepción que ya no haga falta también falla. El prototipo… ve 61 lecturas en unos 5 s».",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-010 · cruzada L6 n.º 10",
+  "tipo": "cruzada",
+  "origen": "L6, n.º 10 de cruzadas-L6.json; coherencia.json fila 135 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §18.4 y §18.9, y el paso 10 de §17; lo de §17. 17-plan.md l. 417 (punto 3 del 10b: «el p95 de un tramo con cien espectadores sintéticos en `Next action`, el modo que más pide (§18.4), con la cifra en §18.9») y l. 757 (§17.22, en la columna «Además de la rápida» del 10b).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-011 · cruzada L6 n.º 14",
+  "tipo": "cruzada",
+  "origen": "L6, n.º 14 de cruzadas-L6.json; coherencia.json fila 139 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §19.1 (riesgo 13). 19-riesgos.md l. 23: las dos LRU de 16 entradas (de 8 a 30 MB cada una y hasta el doble con la del adaptador, 18-d, frente a los 33 a 121 MB de 64), «el del horizonte, de 9 a 35 KB por entrada, y el de `VeilDelta`, de 75 a 180 KB, con el tope de 500 entradas, 17 y 88 MB en el peor caso (10-m), más el de la sesión y la memoria de lo alcanzado», con la defensa de `TtlMemo` con caducidad y tope. El 7a gana el caso del memo con tope en `horizon.test.ts` (17-plan.md l. 301).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-014 · cruzada L6 n.º 15",
+  "tipo": "cruzada",
+  "origen": "L6, n.º 15 de cruzadas-L6.json; coherencia.json fila 140 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17 (PR 7a) y §16.4; lo de §17. 17-plan.md l. 305: `routes/broadcast.test.ts` del 7a gana «la cookie que no se re-firma dentro del día (10-g, §14.7): dos tramos seguidos de la misma sesión, con una `cs_viewer` de hace una hora, no llevan `Set-Cookie`», y §17.21 lo cuenta en la fila del fichero (l. 655).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-018 · cruzada L6 n.º 17",
+  "tipo": "cruzada",
+  "origen": "L6, n.º 17 de cruzadas-L6.json; coherencia.json fila 142 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §18.5 y §17 (PR 9a); lo de §17. 17-plan.md l. 386: `queryKeys.test.ts` del 9a, con `enabled: rev !== undefined` en toda consulta de las familias de `HORIZON_KEYS` (14-r) y `cacheOwnerChanged` con sus cinco pasos; l. 390, `<HorizonWatcher />` en `main.tsx` (l. 22-26). §17.21 lo resume (l. 716).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-044 · cruzada L6 n.º 21",
+  "tipo": "cruzada",
+  "origen": "L6, n.º 21 de cruzadas-L6.json; coherencia.json fila 146 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §19.1 (riesgo 31) y §16.4 (B18). Riesgo 31 (19-riesgos.md l. 40) con la cuenta rebajada de L6 («un modo rápido pide de 33 a 60 veces por etapa y 58 en su peor minuto (§14.3)») y la defensa que pedía la cruzada: `PLAYER_RATE_LIMIT` (1.200 por minuto por usuario con sesión, 300 por IP sin ella, contador aparte), el 429 que espera `retry-after` con `Loading` y B18. El caso de las dos sesiones y los 320 tramos está en B18 (16-bancos.md l. 452) y en el plan desde el 3a (17-plan.md l. 149 y 326). Es el hallazgo Rcoste-044 de este lote, cerrado arriba.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-002 · cruzada L6 n.º 23",
+  "tipo": "cruzada",
+  "origen": "L6, n.º 23 de cruzadas-L6.json; coherencia.json fila 148 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.10, §17.18, §11.15 y §20.5; lo de §17. 17-plan.md l. 333 (el 7b: `fetchCalendarStage(raceId, day, opts?)` añade `?diag=1` cuando la URL de la página lo lleva, y `StageReplay.tsx` l. 338-339 y `Race.tsx` l. 515 y 531 lo pasan con `diag` en la clave; el botón sigue en el 9a), l. 328 (`results.test.ts`), l. 335 (qué ve el dueño con `?diag=1`) y l. 505 (§17.18: `SPOILER_MODE=admins` desde el 7a, «y el `?diag=1` de la página, en la web desde el 7b, 14-s»). El 9a pasa `diag=1` a las otras tres rutas de etapa (l. 390).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-038 · cruzada L7 n.º 2",
+  "tipo": "cruzada",
+  "origen": "L7, n.º 2 de cruzadas-L7.json; coherencia.json fila 151 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.12. 17-plan.md l. 387: «`apps/web/src/pages/stageTables.test.tsx` se amplía (`sup. E9`, §11.19): con la etapa no conocida y la URL con `?tab=result&cls=kom`, o con `?tab=classifications`, la ficha de etapa pinta `StageGateCard` y no la tabla», en la fila del 9a de §17.2 (l. 43), en §17.21 (l. 717) y en la red de E2 «que el 9a amplía sin tocar lo de hoy» (l. 725).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-058 · cruzada L7 n.º 6",
+  "tipo": "cruzada",
+  "origen": "L7, n.º 6 de cruzadas-L7.json; coherencia.json fila 155 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §19.1 (riesgo 13). 19-riesgos.md l. 23: probabilidad «media: con 16 entradas, de 8 a 30 MB por LRU de líneas y hasta el doble con la del adaptador (18-d), cuando un LRU de 64 ocuparía de 33 a 121 MB (L3)», defensa «`decodedCacheEntries` nace en 16 (§15.3), y su tasa de acierto se mide un día pico y tras un despliegue (§18.9)» y pasos 3a, 6a y 7a (el 7a por los memos). El 6a lo dice igual (17-plan.md l. 271 y 273).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-037 · cruzada L7 n.º 9",
+  "tipo": "cruzada",
+  "origen": "L7, n.º 9 de cruzadas-L7.json; coherencia.json fila 158 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.12 y §17.20. 17-plan.md l. 398 (el 9b trae `raceTabs.ts` como el bloque de §11.17: `RACE_TAB_LABEL` con `watch` y `report` y sin `story`, `ONE_DAY_TABS` sin `finished`, `raceTabs` y `defaultRaceTab` con `seen` y `watchOn`, `oneDayStageTab` y `oneDayStageTarget`), l. 396 (los casos con `story`, l. 33-34, 46-47, 67-68 y 84-86, se re-sellan) y l. 626 (la fila de §17.20 con las mismas funciones). Donde la cruzada decía `known = watch?.known ?? true`, el texto dice `seen = watch?.seen ?? true`: es la corrección posterior de 6-r (la etapa arrastrada abre en `Watch`), y §11.17 dice lo mismo (11-superficies.md l. 695).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-012 · cruzada L7 n.º 18",
+  "tipo": "cruzada",
+  "origen": "L7, n.º 18 de cruzadas-L7.json; coherencia.json fila 167 (ya_estaba); correcciones-L9.json: parcial",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §19.1 (riesgo 8). 19-riesgos.md l. 18: la cifra («el mánager de un equipo de 30 da 3,88 ms de p95 en PostgreSQL 16 sin red y de 8,6 a 9,3 en PGlite») y la defensa que pedía la cruzada («la puerta de DD-21 es la medida desde el servicio `web` de Railway contra una copia de la base de producción (§18.9, 18-j)»). La probabilidad se queda en media en lugar de la baja que proponía la cruzada, con el motivo escrito en la propia fila y que se sostiene: por el criterio de 19-a, baja es lo excluido por construcción y vigilado en todo PR, y a la cifra le faltan las tres idas y vueltas por cálculo de la red de Railway («hasta medirla no es “baja” (19-a)»).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-012 · cruzada L7 n.º 20",
+  "tipo": "cruzada",
+  "origen": "L7, n.º 20 de cruzadas-L7.json; coherencia.json fila 169 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.10 y §17.13. 17-plan.md l. 302 (B14 del mánager: «la medida a mano de este paso: desde el servicio `web` de Railway contra una copia de la base de producción rellenada hasta 250.000 filas de `race_rosters`, una vez (§18.9, DD-21)»), l. 320 (el riesgo del 7a) y l. 419 (punto 5 del 10b: «el mánager de B14 dentro en la medida del paso 7, desde el servicio `web` de Railway contra una copia de la base de producción (§18.9; o lo que haya decidido el dueño, 16-k, DD-21)»). Ya no dice «contra Postgres de producción».",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-015 · cruzada L7 n.º 22",
+  "tipo": "cruzada",
+  "origen": "L7, n.º 22 de cruzadas-L7.json; coherencia.json fila 171 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §16.4 y §17.11; lo de §17. 17-plan.md l. 368 (8b): «B12 gana el caso de 11-s: veinte peticiones a la vez el día nuevo hacen una sola cuenta del total del ranking y de `lastRunStages`, que se guardan como una promesa por `(worldId, currentDay)`; si la cuenta falla, la siguiente petición la repite (18-a)».",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-039 · cruzada L7 n.º 23",
+  "tipo": "cruzada",
+  "origen": "L7, n.º 23 de cruzadas-L7.json; coherencia.json fila 172 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §19.1. Riesgo 33 (19-riesgos.md l. 42): la fila tal como la pedía la cruzada (de 3,3 a 4,8 s una etapa grande y de 0,7 a 0,8 un nacional, §18.3; `Loading` en `Highlights` ×4 y `Next action`; `AUTO_TICK=off` en `web` cuando existe el servicio `tick`, 18-k; el p95 del tramo durante el tick del 179, a mano, §18.9; paso 5). §19.8 tiene su síntoma (l. 221).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-039 · cruzada L7 n.º 25",
+  "tipo": "cruzada",
+  "origen": "L7, n.º 25 de cruzadas-L7.json; coherencia.json fila 174 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.8. 17-plan.md l. 249 (`env.ts` gana `AUTO_TICK`, `on` por defecto, e `index.ts` no arranca el auto-tick, l. 56-85, con `AUTO_TICK=off`) y l. 253 (a mano, el p95 de `GET …/broadcast/chunk` servido mientras `web` corre el día 179, con `AUTO_TICK` en `on` y en `off`, §18.9). La regla 9 y §17.18 lo nombran (l. 17 y 508), y la tabla de §17.2 lo pone en el 5 (l. 36).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-040 · cruzada L7 n.º 26",
+  "tipo": "cruzada",
+  "origen": "L7, n.º 26 de cruzadas-L7.json; coherencia.json fila 175 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.6. 17-plan.md l. 180 (bancos del 3c): «a mano, lo que E2 añade a la página de etapa (§18.5, §18.9): la página compilada, los módulos que carga `/world/races/:raceId/stages/:day` con gzip 6, antes y después de este PR, con el crecimiento en su descripción; si pasa de 40 KB comprimidos, `Watch` se carga con `import()` diferido». §17.22 lo cuenta en el 3c (l. 743) y §19.6 tiene la fila (19-riesgos.md l. 175).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-041 · cruzada L7 n.º 28",
+  "tipo": "cruzada",
+  "origen": "L7, n.º 28 de cruzadas-L7.json; coherencia.json fila 177 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.13. 17-plan.md l. 406: `player.test.ts` del 10a gana «el de 18-e: al empezar la etapa k + 1 del digest pide soltar la k − 1, y nunca tiene más de dos cargadas»; §17.21 lo cuenta (l. 706, «18-e (10a)»).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-039 · cruzada L7 n.º 33",
+  "tipo": "cruzada",
+  "origen": "L7, n.º 33 de cruzadas-L7.json; coherencia.json fila 182 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.11 y §17.12. 17-plan.md l. 346 (`apps/api/src/diagMode.test.ts`, nuevo, §11.15, 11-h, en el 8a), l. 356 (`?diag=1` vale en la ficha de carrera y en el feed para un administrador con sesión) y l. 398 (el 9b: la franja `Diagnostic view · not counted as watched` y el botón `Diagnostic view`, solo para administradores, que reenvían `?diag=1`). §17.21 tiene la fila (l. 666).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-045 · cruzada L7 n.º 40",
+  "tipo": "cruzada",
+  "origen": "L7, n.º 40 de cruzadas-L7.json; coherencia.json fila 189 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §16.4 (B8), 16-m y §17.9; lo de §17. 17-plan.md l. 267 (`clientCost.test.ts` del 6a): `instantAt`, con el paso 9 memorizado por `(g, k_g)`, «sobre todos los fotogramas de las seis congeladas a pasos de 1 s de carrera (el p95 sobre todos) y, aparte, sobre los 600 seguidos del tramo de más grupos vivos de la e20; no 600 repartidos por la etapa, que el memo no aprovecha», con el umbral fijo de §16.4 que no se deriva de lo que mida el PR (18-l).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-020 · cruzada L7 n.º 42",
+  "tipo": "cruzada",
+  "origen": "L7, n.º 42 de cruzadas-L7.json; coherencia.json fila 191 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.10. Con una fecha mejor que la pedida y su motivo: el job `test` crea la base con `createdb` y exporta `TEST_DATABASE_URL` en el 1a, no en el 7a, porque los dos casos de dos sesiones de `migrations.test.ts` (regla 9) la necesitan antes (17-plan.md l. 97), y cada fichero usa su base de `realTestDbFor` porque `resetRealTestDb` vacía el esquema y vitest corre los ficheros en paralelo; `horizonLatency.test.ts` la usa desde el 7a en `cyclingstar_b14` (l. 97 y 302, 18-j). §17.21 lo resume (l. 729).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-030 · cruzada L7 n.º 44",
+  "tipo": "cruzada",
+  "origen": "L7, n.º 44 de cruzadas-L7.json; coherencia.json fila 193 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §19.1 y §17.1. La regla 9 lleva la defensa (17-plan.md l. 17: `runMigrations` toma antes el candado del tick y fija `lock_timeout` de 10 s, 17-w) y §19.1 tiene el riesgo 32 con la cola medida (19-riesgos.md l. 41: de 7,4 a 7,9 s tras 8 s de tick, `coste/pgm/cola.mjs` y `cola45.mjs`). Es el hallazgo Rcoste-030 de este lote, cerrado arriba.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-042 · cruzada L8 n.º 2",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 2 de cruzadas-L8.json; coherencia.json fila 199 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.14 (hoy el 11a). 17-plan.md l. 429: B16 compara con la lista vacía y `nameableAt` vacío (la etapa no conocida) y «con los diez primeros de la etapa en la lista y en `nameableAt`, que es la etapa conocida, cada uno va en `riders` de su grupo en toda foto en que corre, en las dos radios», más el `it` del propio de R23.7 («con `own` igual a un corredor, ese corredor va en `riders` de su grupo en todas las fotos en que corre») y el de no vacío; l. 431: «la ruta de etapa de una etapa conocida y `?diag=1` construyen `nameableAt` con la política de §7.7 más los diez primeros de la etapa».",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-043 · cruzada L8 n.º 4",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 4 de cruzadas-L8.json; coherencia.json fila 201 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §19.9. La fila «`locale` como parámetro de cada render» ya no está en §19.9 (19-riesgos.md l. 236-250), y la fila de E10 de §19.2 lo cuenta entre lo que E2 hace («`locale` en cada punto de render», l. 79). El 12 dice que `chronicleParts` y `chronicleLine` ganan el `rev` y el `locale` (17-plan.md l. 449, 12-q).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-022 · cruzada L8 n.º 5",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 5 de cruzadas-L8.json; coherencia.json fila 202 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §10.6 y §17.4; lo de §17. 17-plan.md l. 96 (el 1a: las tres lecturas de clasificación de `results.ts`, l. 236, 320 y 379, reciben primero `q: Queryable` porque `awardOutcome` las llama dentro de la transacción del tick y un `PgTransaction` no es asignable a `Database`, TS2379; el 8a les añade el `Horizon` detrás de `q`), con lo que eso arrastra: `Queryable` nace en `titles.ts` en el 1a solo con el tipo y el 5 lo completa (l. 96, 247, 581 y 17-z en l. 798), y la fila de `results.ts` (l. 587). §7.4 dice lo mismo (07-rotulos.md l. 191 y 523).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-027 · cruzada L8 n.º 6",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 6 de cruzadas-L8.json; coherencia.json fila 203 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.14 y 17-l. 17-plan.md l. 429 (B16 largo: «en las 22 en línea del banco por dos semillas y las dos cronos»; «En las dos cronos, las dos radios son vacías (`kms.length === 0`: la sonda no corre en la crono, `simulate.ts` l. 1264)»), l. 431 (`radioFromTimeline` «en una crono (`tl.timeTrial`) devuelve la radio vacía») y l. 784 (17-l: «las 22 etapas en línea del banco por dos semillas»).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-060 · cruzada L8 n.º 12",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 12 de cruzadas-L8.json; coherencia.json fila 209 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.15, §17.20 y §17.21. 17-plan.md l. 447 (`apps/api/src/routes/lastRace.test.ts`, nuevo, con `moments` en el orden del acta y `ready` con la velada), l. 449 (el manejador de `GET /api/riders/me/last-race`, `routes/riders.ts` l. 198-204, produce `moments` con `stage_snapshots.events`, los nombres del día y `buildChronicle`, «y no `raceReport.ts`, que no puede importar `apps/api`»), l. 605 (fila de `routes/riders.ts`: 8a y 12), l. 660 (fila de `lastRace.test.ts`) y l. 49 (la fila del 12 de §17.2).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-001 · cruzada L8 n.º 13",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 13 de cruzadas-L8.json; coherencia.json fila 210 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.14 y §17.20. 17-plan.md l. 431: «`scripts/race-radio.mjs --db` sigue re-simulando cuando `stage_snapshots.engine_version` es la de hoy (el depósito por grupo, `--every` y todos los relevistas) y, solo si la versión no coincide y la etapa tiene fila en `stage_timelines`, pinta `radioFromTimeline` en lugar de negarse, y lo dice en su cabecera (`fuente: línea grabada · sin depósitos · una foto por km`); sin fila, se sigue negando (§12.10, 12-p)»; l. 633, la fila del guion en §17.20.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-019 · cruzada L8 n.º 18",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 18 de cruzadas-L8.json; coherencia.json fila 215 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.15 y D-58. 17-plan.md l. 451: «SPEC §6.15 (l. 604-615, «El vocabulario de grupos (v27)») se reescribe con lo que conteste el dueño en DD-04: por defecto, los siete nombres (los cuatro papeles de D-18 y los tres del grupo del maillot de 6-b) y el corte de dos tercios de §6.3 (12-r)»; l. 638, la fila de documentos de §17.20 con `SPEC.md`. D-58 lo lleva (00-decisiones.md l. 842, «Precisada en la coherencia, fase 6»).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-051 · cruzada L8 n.º 20",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 20 de cruzadas-L8.json; coherencia.json fila 217 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §8.12, §17.9, §17.13 y §17.21; lo de §17. 17-plan.md l. 280 (B3 en dos partes: la primera en `broadcastFixtures.test.ts` con la cabecera sintética de su cláusula de no vacío; la segunda en `apps/web/src/domain/broadcast/breakPresentation.test.ts`, nuevo, con la directiva de Node, el reproductor de verdad a 60 fotogramas por segundo, la fuga de cinco con la cola llena a ×1, ×4 y en `Highlights` y las cinco en línea a ×½, ×1 y ×2 y en `Highlights`), l. 415 (el 10b repite la presentación sobre las 24 × 2 con la línea grabada, a mano, «con el umbral de §16.4 para la ronda»), l. 711 (§17.21), l. 38 y 46 (§17.2) y l. 757 (§17.22).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-052 · cruzada L8 n.º 22",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 22 de cruzadas-L8.json; coherencia.json fila 219 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.9 (6a) y §18.10; lo de §17. 17-plan.md l. 268: la ruta de etapa conocida contra `maxKnownStageGzipBytes` (medido de 22,2 a 100,1 KB) sobre la etapa corrida de `routes/broadcast.test.ts`, y en el mismo fichero B8 de su parse (`JSON.parse` más `stageReplaySchema.safeParse`) con el umbral de §16.4, porque la web no tiene esa respuesta entre sus fixtures (16-m); y a mano `--sizes` sobre las 24 × 2 con el máximo a §18.10. §17.21 lo sigue (l. 655).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-053 · cruzada L8 n.º 23",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 23 de cruzadas-L8.json; coherencia.json fila 220 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §8.9, §17 y §18; lo de §17. Los umbrales de banco se citan por §16.4 y no se copian (16-v): B8 en el 6a (17-plan.md l. 267, «citados de allí y no copiados»), las bandas de B17 por 8-k en el 10b (l. 415), I2 y B2 en el 4b por 16-b y 16-j (l. 211), B15 por 16-l (l. 253) y B14 por §16.4 (l. 302). Quedaba uno copiado: «B14 corre en PGlite con el umbral de 15 ms (18-j)» en §17.21 (l. 729); la cifra es la de §16.4 (16-bancos.md l. 759), pero 16-v pide citarla.",
+  "accion": "lo he cerrado yo: 17-plan.md l. 729, «con el umbral holgado de §16.4, que solo caza la pérdida del índice (18-j)»"
+ },
+ {
+  "id": "Rcodigo-058 · cruzada L8 n.º 25",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 25 de cruzadas-L8.json; coherencia.json fila 222 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §11 (introducción) y §17.10 (hoy §17.11, el 8a); lo de §17. 17-plan.md l. 344 (`spoilerRegistry.test.ts` pasa a B1d en el 8a): «cada `HEAD` registrado tiene un `GET` con la misma `url` y el mismo `config`, sin fijar el número (53 hoy, 57 con los cuatro `GET` nuevos de §14.2; `l6/head.mjs`)». El inventario del paso 0 da las 53 de hoy como cifra medida de la lista literal (l. 60), que es lo que ese test compara.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-062 · cruzada L8 n.º 26",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 26 de cruzadas-L8.json; coherencia.json fila 223 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §14.7 y §17.3; lo de §17. 17-plan.md l. 59 (`yesterday.test.ts` del 0 «Pone `process.env.DB_POOL_MAX = '1'` antes de `startTestDb()`: PGlite admite una sesión (`testDb.ts` l. 15-19) y la ruta de etapa de una etapa corrida lanza cuatro consultas a la vez (`routes/races.ts` l. 114-119), que sin eso dan 500 con `ECONNRESET`») y l. 149 (`routes/broadcast.test.ts` del 3a, «con `process.env.DB_POOL_MAX = '1'` antes de `startTestDb()`, como `yesterday.test.ts`»).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-065 · cruzada L8 n.º 28",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 28 de cruzadas-L8.json; coherencia.json fila 225 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.7, §17.8, §17.2 y §17.20. 17-plan.md l. 211 (el 4b: `timeline.test.ts` mide el `bytea` con gzip 9 de las 24 × 2 y de la crono más larga de 176 corredores del calendario, con `gzipSync` de `node:zlib` bajo `// eslint-disable-next-line @typescript-eslint/no-restricted-imports`, como `routes/arranque.test.ts` l. 3-6), l. 253 (el paso 5 ya no mide a mano el `bytea`: «el `bytea` de las 24 × 2 y la crono más larga, en el banco desde el 4b»), l. 35-36 (la tabla de §17.2) y l. 630 (`--sizes` mide el paquete de meta y la ruta de etapa conocida en el 6a). §19.6 lo sigue (19-riesgos.md l. 187).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-082 · cruzada L8 n.º 30",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 30 de cruzadas-L8.json; coherencia.json fila 227 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §13.6 y §17.8; lo de §17. 17-plan.md l. 250: el comentario nuevo de `schema.ts` l. 754 dice las dos cifras con su unidad, JSON por etapa (mapa 07) y `jsonb` en disco con TOAST (juez del motor). La cifra baja decía «de 100 a 514 KB», y el mapa 07 midió 102,5 KB de mínimo (mapas/07-tests-contratos.md l. 165 y 201: «102-514 KB»; «102,5 · 230,6 · 514,4 KB»), como dicen §13.6 (13-esquema.md l. 399) y §16.8 (16-bancos.md l. 731); §19.7 repetía la misma cifra (19-riesgos.md l. 201). Es el aviso A-L3-005 de las notas del orquestador.",
+  "accion": "lo he cerrado yo: 17-plan.md l. 250 y 19-riesgos.md l. 201, «de 102 a 514 KB de JSON»"
+ },
+ {
+  "id": "Rcodigo-084 · cruzada L8 n.º 31",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 31 de cruzadas-L8.json; coherencia.json fila 228 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.10 (7a). 17-plan.md l. 306 (`packages/db/src/watchConcurrency.test.ts`, nuevo, Postgres de verdad con `realTestDbFor`, el caso de B12 de los dos dispositivos, con el porqué de que salga de `horizon.test.ts`), l. 97 (`realTestDbFor(name)` y `TEST_DATABASE_URL` en el CI llegan un PR antes, en el 1a, porque los casos de dos sesiones de `migrations.test.ts` los necesitan, 17-w; las bases `cyclingstar_migrate`, `cyclingstar_watch` y `cyclingstar_b14`, y `calendarConcurrency.test.ts` en la de `TEST_DATABASE_URL`) y l. 729 (sin la variable, los dos primeros se saltan).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-087 · cruzada L8 n.º 33",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 33 de cruzadas-L8.json; coherencia.json fila 230 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §10.6 y §17.10; lo de §17. 17-plan.md l. 312 (el 7a: `horizon.ts` gana, «solo para los tests, `clearHorizonCaches()`, que vacía ese memo y el mapa de `lastRunStages`, exportada en `packages/db/src/index.ts`: en el mundo de B1 el día de juego no cambia al correr la etapa velada y las dos cachés van por el día (§16.3)») y l. 582 (la fila de `horizon.ts` de §17.20).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-091 · cruzada L8 n.º 34",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 34 de cruzadas-L8.json; coherencia.json fila 231 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.7 y §17.21. 17-plan.md l. 214 (`probeHooks.test.ts` pasa en el 4b a enganchar el grabador de verdad, `timelineRecorder` de `../sim/timeline.js`, con la huella de cuatro campos y las cuentas de ganchos, y por qué: un cambio en `packages/shared/src/broadcast/` cae así en la rápida del mismo PR) y l. 698 (la fila de §17.21: nace en el 4a y crece en el 4b).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-092 · cruzada L8 n.º 35",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 35 de cruzadas-L8.json; coherencia.json fila 232 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.1 (regla 4) y §17.7. 17-plan.md l. 12 (los 4.365 s y los 73 min son del 21 de septiembre, motor v83 y cinco ficheros; desde el 26, «mundo y radio» lleva además `routeCensus`, `stageKind.completo`, `frozenSkeletons`, `preRegistro` y `legacy/golden`, 35,8 s de pruebas más 15 s de importación, `rc4/mundo_extra.log`; el 4a apunta el reloj de cada tramo) y l. 226 («Mundo y radio» con 5,5 min medidos cuando tenía tres ficheros, unos 6,1 con los ocho de hoy, estimado). §19.6 tiene la fila del reloj de los ocho tramos (19-riesgos.md l. 188). La frase de l. 226 decía que el tramo «crece de 3,7 a 5,4 min», que se lee como de 3,7 a 5,4 min de total, cuando §16.7 y el riesgo 1 dicen que `timeline.test.ts` le suma de 3,7 a 5,4 min (16-bancos.md l. 714; 19-riesgos.md l. 11).",
+  "accion": "lo he cerrado yo: 17-plan.md l. 226, «suma de 3,7 a 5,4 min más con `timeline.test.ts`»"
+ },
+ {
+  "id": "Rcodigo-093 · cruzada L8 n.º 36",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 36 de cruzadas-L8.json; coherencia.json fila 233 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.10 (7a). 17-plan.md l. 303: B20 en `revealFree.test.ts`, «la lista es literal y cerrada, `schema.ts`, `horizon.ts`, `watch.ts` y los `*.test.ts`: el reinicio no tiene código (§13.9), y si algún día lo tiene, entra en la lista en el mismo PR con su motivo».",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcodigo-096 · cruzada L8 n.º 37",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 37 de cruzadas-L8.json; coherencia.json fila 234 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.14 (hoy el 11a). 17-plan.md l. 429: «`radioFromTimeline(tl, names)` contra `buildRaceRadio(radioForStorage(radio, lista, []), names)`, con el mismo resolutor de nombres (`riderOf`) en los dos lados y `own` vacío…: en la rápida, el que `load.ts` arma desde `manifest.json`, y en la larga, uno sintético `Rider <índice>` por cada `riderId`», los relevistas «con su motivo y su destinatario», y el `it` de no vacío: «al menos un km con relevistas nombrados en cada etapa en línea». Casa con B16 de §16.4 (16-bancos.md l. 450).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-024 · cruzada L8 n.º 39",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 39 de cruzadas-L8.json; coherencia.json fila 236 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.9 (6a) y §18.10; lo de §17. 17-plan.md l. 268: «a mano en este paso, `scripts/broadcast-fixtures.mjs --sizes` mide sobre las 24 × 2, con el acta sin radio de la etapa corrida, el paquete de meta y la ruta de etapa conocida contra esos dos topes, y el máximo de cada uno va a la tabla de §18.10: la etapa de `routes/broadcast.test.ts` no fija recorrido ni campo y es solo la prueba de humo»; l. 630 (la fila del script) y l. 748 (§17.22).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-027 · cruzada L8 n.º 40",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 40 de cruzadas-L8.json; coherencia.json fila 237 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.7 (4b) y §17.21. 17-plan.md l. 212 (B10 en tres ficheros: `timelineCollectorBench.ts` con `watch`, `seedOf`, `same`, `QUICK` y `LONG`; `timelineCollector.test.ts`, la rápida; y `timelineCollector.long1.test.ts` y `long2.test.ts` para el nocturno, en paralelo; lo que E2 añade al nocturno, de 7,5 a 10,5 min de CPU sin cobertura y de 13 a 21 con ella, estimado, §16.7) y las filas de §17.21 (l. 675 y 676).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-028 · cruzada L8 n.º 41",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 41 de cruzadas-L8.json; coherencia.json fila 238 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §19.1 (riesgo 1). 19-riesgos.md l. 11: «desde el 4b, cada PR de la táctica que toque `packages/engine/` paga `timeline.test.ts` en «mundo y radio», de 3,7 a 5,4 min más (estimado, §16.7), y tiene que pasar I1, I3, B6 del `bytea` y B11 de E2; B6 del JSON… solo imprime sus cifras en ese tramo y lo caza el nocturno esa misma noche (16-n)». El 15 % de margen de la cruzada lo dejó atrás 15-l: la mediana tiene ahora un tope de 320 KB, 1,44 veces lo medido, y el riesgo lo dice así. §17.7 lo repite (17-plan.md l. 226).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-033 · cruzada L8 n.º 42",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 42 de cruzadas-L8.json; coherencia.json fila 239 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.10 (7a). 17-plan.md l. 302: «El mundo se monta en un `beforeAll` con tiempo explícito, 120.000 ms (`tickRun.test.ts` l. 20-22 pone 180.000 a su base; los ganchos de vitest se quedan en 10 s y montar el mundo cuesta de 10 a 15 s), y la medida empieza tras 20 llamadas de calentamiento». Comprobado en HEAD: `tickRun.test.ts` l. 20-22 es el `beforeAll` con `180_000`.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-017 (cruzada de L4, aplicada en §12.6) · cruzada L8 n.º 49",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 49 de cruzadas-L8.json; coherencia.json fila 246 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.7 (4a, «Bancos») y §17.21 («Lo que se re-sella, por PR»). 17-plan.md l. 196 (el test de los tres nombres de `stageJournal.test.ts`, l. 1646-1650, «se re-sella con los cuatro de D-18 y los tres del grupo del maillot de 6-b, siete»), l. 206 (los Bancos del 4a sin condicional: `coherence.test.ts` l. 347-360 se re-sella con el tope de seis y la cifra de `storyMetrics` remedida sobre sus 60 etapas va en la descripción del PR) y l. 725 (la lista de re-sellos: «pasa a siete» y «pasa a seis»). §17.20 y §17.21 lo siguen (l. 545, 555, 601 y 701).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-008 (cruzada de L3, aplicada en §16.4) · cruzada L8 n.º 50",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 50 de cruzadas-L8.json; coherencia.json fila 247 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.7, §17.8 y §17.21. 17-plan.md l. 211 (`timeline.test.ts`: B6 del `bytea` contra los topes en el tramo; el JSON, «que en el tramo de un PR imprime sus cifras sin fallar y falla en el nocturno (`CS_BANCOS=1`)»), l. 243 (`broadcastFixtures.test.ts` del 5: B6 del `bytea` y del JSON de las seis, que fallan), l. 253 y las filas de §17.21 (l. 657 y 702) y de §17.2 (l. 35).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-006, Rcoste-008 (cruzadas de L3, aplicadas en §16.4) · cruzada L8 n.º 52",
+  "tipo": "cruzada",
+  "origen": "L8, n.º 52 de cruzadas-L8.json; coherencia.json fila 249 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §19.1 (riesgo de las subtransacciones y riesgo 1). Riesgo 37 (19-riesgos.md l. 46) con B15 de vigilante, que lee `pg_stat_get_backend_subxact` durante los días 176 y 179 y falla si `subxact_overflowed` es verdadero, y 5-l de defensa; riesgo 1 (l. 11): lo que un PR de la táctica tiene que pasar en su tramo es I1, I3, B6 del `bytea` y B11, y B6 del JSON solo se imprime allí (16-n). El 5 lo dice también (17-plan.md l. 253).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcoste-001 · cruzada L10 n.º 3",
+  "tipo": "cruzada",
+  "origen": "L10, n.º 3 de cruzadas-L10.json; coherencia.json fila 281 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.16 y §17.22. 17-plan.md l. 479 («unas 37 sesiones de las 56 del total… si un segundo implementador lleva los PR que no están en él (el 1a, el 1b, el 3b, el 3c, el 4a, el 7a, el 9a, el 11a y el 11b), que caben antes de que se pidan; con uno solo, las de la columna En orden de §17.22, 52,5 hasta el encendido») y l. 762 («La sesión no tiene duración medida. Como vara, E1 estimó 24 sesiones de código y 1 de contenido (`docs/generador.md` l. 10249) y se fusionó en 12 PR en unas 19 horas de reloj, del #250 al #261…»). Las cifras casan con la tabla de §17.22 (l. 747-760); la comprobación contra §0 y §21 va en A-L9-007.",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-011 · cruzada L10 n.º 6",
+  "tipo": "cruzada",
+  "origen": "L10, n.º 6 de cruzadas-L10.json; coherencia.json fila 284 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17 (17-k y §17.9). 17-plan.md l. 292 (el 6b: «el dueño contesta DD-05 y DD-13 tras este PR, con el rótulo delante (§20.7), y lo grabado entre el 5 y su respuesta lleva el valor por defecto y no se reescribe, salvo que el reinicio lo borre (§13.9)») y l. 783 (17-k dice lo mismo, con 20-i, y que el reparto provisional del 3c no trae títulos ni distinciones).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-028 · cruzada L10 n.º 9",
+  "tipo": "cruzada",
+  "origen": "L10, n.º 9 de cruzadas-L10.json; coherencia.json fila 287 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §12.6 y §17.9; lo de §17. 17-plan.md l. 290 (el 6b: «las palabras de papel de `withGroupRoles` en el acta solo si `broadcastOn()` es cierto para quien la pide (§12.6)»), l. 292 (`the chase group` en 40 de cada 210 líneas, `l8/rol.mjs`, solo para quien tiene `Watch` encendido; las frases de las cuatro claves crudas, para todos) y l. 19 (regla 11).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-028 · cruzada L10 n.º 10",
+  "tipo": "cruzada",
+  "origen": "L10, n.º 10 de cruzadas-L10.json; coherencia.json fila 288 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §11.17 y §17.12; lo de §17. 17-plan.md l. 392 (el 9a: el jugador ve el título de la pestaña del navegador sin resultado, «un arreglo que no cuenta nada»; `Story` conserva su nombre hasta el encendido, porque el nombre mira `broadcastOn()`), l. 400 (el 9b: la carrera de un día terminada sigue abriendo en `Result`, porque `raceTabs` mira `broadcastOn()`), y la columna Visible de §17.2 (l. 43-44).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-028 · cruzada L10 n.º 11",
+  "tipo": "cruzada",
+  "origen": "L10, n.º 11 de cruzadas-L10.json; coherencia.json fila 289 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.15 (el paso 12). 17-plan.md l. 453: «de las 90 elecciones de redacción de `apps/web/src/domain/stageJournal.ts`, 44 son entre dos y 43 entre tres, así que cambia la mitad o dos tercios de las líneas que eligen (estimado por 1 − 1/n, sin medir sobre etapas; B5 congela el resultado en este PR)».",
+  "accion": "nada"
+ },
+ {
+  "id": "Rcobertura-010 · cruzada L10 n.º 15",
+  "tipo": "cruzada",
+  "origen": "L10, n.º 15 de cruzadas-L10.json; coherencia.json fila 293 (aplicada)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino «todas las secciones (§1 a §19)», en lo que toca a §17 y §19: ninguna remisión `§G.n` fuera de los bloques que quita el ensamblado (17-plan.md l. 801 y 813 están en «Propuesto para el glosario» y «Dudas para el ensamblador»; 19-riesgos.md no tiene ninguna). La remisión de la entrada de §17 va a la tabla de §17.2, que es el destino de G.10 en la tabla de §21.6 (l. 3).",
+  "accion": "nada"
+ },
+ {
+  "id": "Rdueno-004 · cruzada L10 n.º 17",
+  "tipo": "cruzada",
+  "origen": "L10, n.º 17 de cruzadas-L10.json; coherencia.json fila 295 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.13 (10b, punto 4). 17-plan.md l. 418: las cuatro preguntas de SPEC §6.15 y, «donde el grupo 1 vaya por delante del pelotón con hasta doce corredores, dos más, qué lleva cada uno y quién tira detrás y por qué (16-w)», con nueve de nueve («diez de diez si hubo que sortear el punto de la fuga») y la verdad de `scripts/pl-truth.mjs` (16-i). La cruzada decía «de 4 a `nameWholeGroupUpTo`»; el cierre de L8 lo cambió a una fuga de hasta doce por delante del pelotón (16-bancos.md l. 803, 16-w), y el 10b lo sigue.",
+  "accion": "nada"
+ },
+ {
+  "id": "Cierre L10 (DD-24) · cruzada L10 n.º 19",
+  "tipo": "cruzada",
+  "origen": "L10, n.º 19 de cruzadas-L10.json; coherencia.json fila 297 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §19, dudas del cierre. 19-riesgos.md l. 271: la duda queda como registro cerrado («§20 lo recoge como DD-24 con ese valor por defecto (corrección L10); la duda queda cerrada»), en un bloque que el ensamblado quita. 19-b (l. 264), §19.7 (l. 197) y §19.9 (l. 248) citan DD-24, y el paso 12 también (17-plan.md l. 451).",
+  "accion": "nada"
+ },
+ {
+  "id": "Cierre L10 (forma) · cruzada L10 n.º 20",
+  "tipo": "cruzada",
+  "origen": "L10, n.º 20 de cruzadas-L10.json; coherencia.json fila 298 (ya_estaba)",
+  "veredicto": "cerrado",
+  "evidencia": "Destino §17.22. 17-plan.md l. 762 es el último párrafo, l. 763 está en blanco y la raya `---` del bloque de cierre está en l. 764: Markdown ya no pinta el párrafo como título.",
+  "accion": "nada"
+ },
+ {
+  "id": "A-L9-005",
+  "tipo": "aviso de L3 (A-L3-002, notas del orquestador)",
+  "origen": "auditor de L3, vía notas-orquestador.md",
+  "veredicto": "cerrado",
+  "evidencia": "§5.5 cablea el diario del tick también en la vuelta de prueba: `raceWorldDay(tx, worldId, next, seed, timelineLog)` en `tick.ts` l. 269, y `raceWorldDay` (`packages/db/src/race.ts` l. 25-30) gana un quinto parámetro, `timeline?: TimelineTickLog`, que pasa en el spec de su `runOneStage` (l. 46-58) (05-motor.md l. 464 y 467; glosario, 00-glosario.md l. 168). §17.8 (17-plan.md l. 247) y la fila de `calendarRun.ts` y `tick.ts` de §17.20 (l. 579) no nombraban `race.ts`: quien siguiera el plan dejaría las etapas de la vuelta de prueba sin grabar. Comprobado en HEAD: `raceWorldDay` en `race.ts` l. 25-30 con su `runOneStage` en l. 46-58, y la llamada de `tick.ts` l. 269.",
+  "accion": "lo he cerrado yo: 17-plan.md l. 247 (el 5: `raceWorldDay` gana el quinto parámetro y `tick.ts` le pasa el diario, l. 269) y l. 579 (la fila pasa a `calendarRun.ts`, `race.ts` y `tick.ts`)"
+ },
+ {
+  "id": "A-L9-006",
+  "tipo": "avisos de L2 (Rcobertura-014, parcial) y L6 (notas del orquestador): `tplRev` y `watch` de `stageReplaySchema`",
+  "origen": "auditores de L2 y L6, vía notas-orquestador.md",
+  "veredicto": "cerrado",
+  "evidencia": "§14.2 da a `stageReplaySchema` dos campos opcionales, `watch` y `tplRev` (14-api.md l. 156-159), y §14.7 ya escribe `stageReplaySchema.omit({ watch: true, tplRev: true })` (l. 491). En §17 el 7b seguía con `.omit({ watch: true })` (17-plan.md l. 330) y ningún PR decía cuándo gana el esquema cada campo (la fila de `contracts.ts` de §17.20, l. 554). §14.1 pone `watch` en el 7b (l. 68). `tplRev` lo sirven desde el 3a el acta y el paquete de meta (`StageReport.tplRev`, 0 con el adaptador y `readStageTemplateRev` con la línea grabada, §14.4, 14-api.md l. 270; `BroadcastFinish.report` es un `StageReport`, 04-modelo.md l. 977), así que el esquema lo necesita en el 3a.",
+  "accion": "lo he cerrado yo: 17-plan.md l. 151 (`yesterday.test.ts` del 3a con `stageReplaySchema.omit({ tplRev: true })`), l. 155 (`stageReplaySchema` gana `tplRev` en el 3a, con el motivo), l. 330 (el 7b, `.omit({ watch: true, tplRev: true })`), l. 333 (`watch` entra en el esquema en el 7b) y l. 554 (la fila de `contracts.ts`: 3a `tplRev`, 7b `watch`)"
+ },
+ {
+  "id": "A-L9-008",
+  "tipo": "avisos de L4 (A-L4-012 y A-L4-007): la regla de 6-m y las dos funciones de la cola",
+  "origen": "auditor de L4, vía notas-orquestador.md y auditorias-L4.json",
+  "veredicto": "cerrado",
+  "evidencia": "6-m tira los rótulos reservados «solo cuando ya no presentan nada»: la ronda, cuando su corredor ya no va por delante del grupo con el título de pelotón, lo cacen o se quede; la lista y la frase, cuando no queda ninguno de la fuga (06-pantalla.md l. 426-427 y 665; `aheadOfPeloton`, l. 581-587). §17.9 (17-plan.md l. 280) decía «se tiran al cazarse el escapado», que no cubre al que se queda. Y la auditoría L4 dejó los dos pasos de la cola, `admitir` y el fotograma, como funciones puras de `packages/shared/src/broadcast/cues.ts` (06-pantalla.md l. 413; 00-glosario.md l. 155), mientras el 6a de §17.9 (l. 271) y las filas de `cues.ts` y del reproductor de §17.20 (l. 567 y 613) ponían «la cola de rótulos en el reproductor». `isPresentation` y `aheadOfPeloton` ya estaban nombradas en el 6b y en la fila de `cues.ts`.",
+  "accion": "lo he cerrado yo: 17-plan.md l. 280 (la regla entera de 6-m, con `aheadOfPeloton`), l. 271 (`admitir` y el fotograma en `cues.ts`, el reproductor guarda el estado y los llama) y l. 567 y 613 (§17.20). La fila de `cues.test.ts` de §16.6 (16-bancos.md l. 697) necesita otra sección (L8)"
+ },
+ {
+  "id": "A-L9-009",
+  "tipo": "aviso de L7 (notas del orquestador): tests primero de `stagePageTabs` y `raceTabLabel`",
+  "origen": "auditor de L7, vía notas-orquestador.md",
+  "veredicto": "cerrado",
+  "evidencia": "`stagePageTabs` y `raceTabLabel` nacen en el 9a (17-plan.md l. 390; §11.17, 11-superficies.md l. 605), pero sus casos estaban en los tests del 9b (l. 396, la etapa arrastrada con `stagePageTabs`), y la fila de §17.2 del 9a y la de §17.21 de `raceTabs.test.ts` no lo nombraban en el 9a: contra la regla 1 (cada PR escribe antes los tests de lo que trae). §11.19 fecha esos casos en el 9a («9a (`stagePageTabs`, `raceTabLabel`) y 9b», 11-superficies.md l. 740).",
+  "accion": "lo he cerrado yo: 17-plan.md, tests del 9a (`raceTabs.test.ts` gana `stagePageTabs` con la etapa arrastrada y `raceTabLabel`), tests del 9b (sin ese caso), la fila del 9a de §17.2 y la de `raceTabs.test.ts` de §17.21 (crece en el 9a y el 9b)"
+ },
+ {
+  "id": "A-L9-010",
+  "tipo": "aviso de L7 (notas del orquestador, opcional): cifra compartida con §18.2",
+  "origen": "auditor de L7, vía notas-orquestador.md",
+  "veredicto": "cerrado",
+  "evidencia": "§18.2 da hoy el p95 del mánager en PostgreSQL 16 sin red en tres corridas, 3,88 ms (la del refutador) y 4,75 y 4,11 (la auditoría L7), y el jugador en 2,16, 1,70 y 1,96 (18-rendimiento.md l. 83 y 247: «1,70-2,16 y 3,88-4,75 en tres corridas»). §17.10 (17-plan.md l. 320) y §19 (riesgo 8, el párrafo de los que más pueden costar y la fila de §19.6: 19-riesgos.md l. 18, 52 y 176) daban solo 3,88 y 2,16. La cifra sigue por debajo de los 5 ms, y el argumento del riesgo 8 (media hasta medir con la red de Railway) no cambia. §0.7 (00-cabecera.md l. 149) da también solo 2,16 y 3,88.",
+  "accion": "lo he cerrado yo: 17-plan.md l. 320 y 19-riesgos.md l. 18, 52 y 176, con los rangos de las tres corridas. §0.7 (00-cabecera.md l. 149) necesita otra sección (la cabecera, en el cierre)"
+ }
+]
