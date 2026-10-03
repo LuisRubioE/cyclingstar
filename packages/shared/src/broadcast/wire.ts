@@ -143,7 +143,10 @@ export interface BroadcastHead {
 /** La misma tupla que se guarda (I-17). */
 export type TimelineEventWire = StoredTimelineV1['events'][number]
 
-/** GET …/broadcast/chunk: los datos con visibilidad en (fromDs, toDs], planos (§4.6). */
+/**
+ * GET …/broadcast/chunk: los datos con visibilidad en (fromDs, toDs], planos (§4.6); el primero,
+ * con fromDs 0, en [0, toDs], para que viaje lo que se ve en 0 Ds (paso 3c, `chunkOf` en cut.ts).
+ */
 export interface BroadcastChunk {
   readonly fromDs: Ds
   readonly toDs: Ds
@@ -419,7 +422,7 @@ export const stageQuerySchema = z.object({
   season: z.coerce.number().int().min(0).max(9999).optional(),
   diag: z.literal('1').optional(),
 })
-/** Un tramo (fromDs, toDs] de como mucho BROADCAST.chunkRaceS de carrera (§14.3). */
+/** Un tramo (fromDs, toDs] de como mucho BROADCAST.chunkRaceS de carrera (§14.3); [0, toDs] el primero. */
 export const chunkQuerySchema = stageQuerySchema
   .extend({
     fromDs: z.coerce.number().int().min(0),
