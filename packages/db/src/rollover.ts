@@ -247,7 +247,8 @@ export async function runRollover(
 
   const rng = seededRng(`${worldSeed}:rollover:s${newSeason}`)
   let retired = 0
-  const retirees: { id: string; name: string; age: number }[] = []
+  // Con el equipo que dejan: el titular de la retirada lo guarda en sus datos (§12.8).
+  const retirees: { id: string; name: string; age: number; teamId: string | null }[] = []
   for (const npc of npcs) {
     const age = 20 - npc.birthSeason + newSeason
     if (shouldRetire(age, npc.declineAge, rng)) {
@@ -256,7 +257,7 @@ export async function runRollover(
         .set({ retiredAt: newSeason, teamId: null })
         .where(eq(riders.id, npc.id))
       retired++
-      retirees.push({ id: npc.id, name: npc.name, age })
+      retirees.push({ id: npc.id, name: npc.name, age, teamId: npc.teamId })
     }
   }
 
@@ -276,6 +277,7 @@ export async function runRollover(
       id: riders.id,
       name: riders.name,
       birthSeason: riders.birthSeason,
+      teamId: riders.teamId,
     })
     .from(riders)
     .where(and(eq(riders.worldId, worldId), isNotNull(riders.userId), isNull(riders.retiredAt)))
@@ -284,7 +286,7 @@ export async function runRollover(
     if (age < HARD_RETIRE_AGE) continue
     await tx.update(riders).set({ retiredAt: newSeason, teamId: null }).where(eq(riders.id, h.id))
     retired++
-    retirees.push({ id: h.id, name: h.name, age })
+    retirees.push({ id: h.id, name: h.name, age, teamId: h.teamId })
   }
 
   /**
@@ -326,10 +328,9 @@ export async function runRollover(
     await emitNews(tx, {
       worldId,
       gameDay,
-      kind: 'retirement',
       seed: `${worldSeed}:retire:${r.id}`,
-      data: { rider: r.name, detail: `at ${r.age}` },
       riderId: r.id,
+      payload: { kind: 'retirement', riderId: r.id, teamId: r.teamId, age: r.age },
     })
   }
 

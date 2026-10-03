@@ -191,6 +191,10 @@ const NEWS_KIND_LABEL: Record<string, string> = {
   // colapso, por enfermedad, por el corte de tiempo o porque el jugador lo decide) — docs/motor.md §VI.3.
   abandon: 'Abandon',
   retirement: 'Retirement',
+  // Quién pasa a mandar en la general, o en los puntos o la montaña (docs/retransmision.md §12.8).
+  // Se escriben desde el paso 1a de E2 y no se sirven hasta el 8a, y solo a quien le aplica el velo.
+  gc_lead_taken: 'Leader',
+  jersey_taken: 'Jersey',
 }
 
 export function newsLabel(kind: string): string {

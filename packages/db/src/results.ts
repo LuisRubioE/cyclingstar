@@ -2,6 +2,7 @@ import { and, asc, desc, eq, inArray, lte, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
 import { gcOrderBy } from './gcSort.js'
 import { raceGc, raceRosters, riders, stageResults, stageSnapshots, teams } from './schema.js'
+import type { Queryable } from './titles.js'
 
 /** Lecturas de resultados y clasificaciones para la web del replay (Paso 31, pulido). */
 
@@ -232,9 +233,13 @@ export async function getRaceRiderIdentities(
  *  2. **Solo se clasifica quien tiene TODAS las etapas corridas hasta hoy.** Es la red que hace
  *     imposible por construcción que a alguien le beneficie faltar, esté marcado el abandono o no:
  *     si a un corredor le falta un día, no puede estar en la general aunque nadie lo haya anotado.
+ *
+ * `q` es la base de las rutas o la transacción del día del tick: los titulares de líder la llaman
+ * dentro de la etapa que se acaba de escribir (docs/retransmision.md §12.8; E2, paso 1a), y lo mismo
+ * `getPointsClassification` y `getKomClassification`.
  */
 export async function getGcThroughStage(
-  db: Database,
+  q: Queryable,
   raceId: string,
   stageDay: number,
 ): Promise<
@@ -254,7 +259,7 @@ export async function getGcThroughStage(
   const ultimoPuesto = sql<number>`(array_agg(${stageResults.puesto} order by ${stageResults.stageDay} desc))[1]`
   // Cuántas etapas de esta carrera se han corrido hasta `stageDay`: el que no las tenga todas no
   // está clasificado. Se cuenta sobre los propios resultados para no depender del calendario.
-  const stagesRun = db
+  const stagesRun = q
     .select({ n: sql<number>`count(distinct ${stageResults.stageDay})::int`.as('n') })
     .from(stageResults)
     .where(and(eq(stageResults.raceId, raceId), lte(stageResults.stageDay, stageDay)))
@@ -279,7 +284,7 @@ export async function getGcThroughStage(
    * de estar mal.
    */
   const unranked = sql<boolean>`(${mine} < (${stagesRun}))`
-  const rows = await db
+  const rows = await q
     .select({
       riderId: stageResults.riderId,
       name: riders.name,
@@ -318,12 +323,12 @@ export interface PointsRow {
  * (inclusive) si se indica —para ver la clasificación tal como quedó tras una etapa concreta—.
  */
 export async function getPointsClassification(
-  db: Database,
+  q: Queryable,
   raceId: string,
   throughStage?: number,
 ): Promise<PointsRow[]> {
   const total = sql<number>`sum(${stageResults.puntosVolante})::int`
-  const rows = await db
+  const rows = await q
     .select({
       riderId: stageResults.riderId,
       name: riders.name,
@@ -377,12 +382,12 @@ export async function getStageWinners(db: Database, raceId: string): Promise<Sta
  * (inclusive) si se indica —para ver la montaña tal como quedó tras una etapa concreta—.
  */
 export async function getKomClassification(
-  db: Database,
+  q: Queryable,
   raceId: string,
   throughStage?: number,
 ): Promise<PointsRow[]> {
   const total = sql<number>`sum(${stageResults.puntosMontana})::int`
-  const rows = await db
+  const rows = await q
     .select({
       riderId: stageResults.riderId,
       name: riders.name,

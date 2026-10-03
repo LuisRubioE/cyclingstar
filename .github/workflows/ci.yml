@@ -46,9 +46,22 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cyclingstar_test
+      # LOS TESTS DE POSTGRES DE VERDAD (docs/retransmision.md §17.4 y 17-w; E2, paso 1a): los que
+      # necesitan dos sesiones a la vez, que PGlite no tiene (`calendarConcurrency.test.ts` y los dos de
+      # `migrations.test.ts` sobre la migración y el tick). Hasta el 1a ningún flujo daba esta variable
+      # y se saltaban en todo PR. Va a una base propia, no a la de DATABASE_URL: `resetRealTestDb` vacía
+      # su esquema entero, y `realTestDbFor` crea desde ella una base para cada fichero de tests.
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cyclingstar_real
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
+
+      - name: Base de los tests de Postgres de verdad
+        run: createdb cyclingstar_real
+        env:
+          PGHOST: localhost
+          PGUSER: postgres
+          PGPASSWORD: postgres
 
       # packages/db compilado: lo necesita el aplicador de migraciones (dist/migrate.js).
       - name: Build de packages/db

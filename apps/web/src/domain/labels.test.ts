@@ -44,6 +44,11 @@ describe('web: diccionario de dominio (español interno → inglés de UI)', () 
     expect(newsLabel('injury')).toBe('Injury')
   })
 
+  it('los dos titulares de cambio de líder tienen la suya (E2, paso 1b)', () => {
+    expect(newsLabel('gc_lead_taken')).toBe('Leader')
+    expect(newsLabel('jersey_taken')).toBe('Jersey')
+  })
+
   it('traduce los tipos de apunte y de palmarés', () => {
     expect(ledgerKindLabel('salario')).toBe('Salary')
     expect(ledgerKindLabel('viaje')).toBe('Travel')

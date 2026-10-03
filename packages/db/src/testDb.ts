@@ -56,13 +56,26 @@ async function freePort(): Promise<number> {
  * memoria: `close()` no deja nada en disco.
  */
 export async function startTestDb(): Promise<TestDb> {
+  return start(true)
+}
+
+/**
+ * Como `startTestDb`, pero SIN MIGRAR: una base vacía. La necesita el test del mundo vivo, que migra
+ * una copia de `drizzle/` con el journal cortado antes de migrar la carpeta entera
+ * (docs/retransmision.md §13.10, punto 2; 13-m).
+ */
+export async function startEmptyTestDb(): Promise<TestDb> {
+  return start(false)
+}
+
+async function start(migrar: boolean): Promise<TestDb> {
   const pg = await PGlite.create({ extensions: { citext } })
   const port = await freePort()
   const server = new PGLiteSocketServer({ db: pg, port, host: '127.0.0.1' })
   await server.start()
   const url = `postgres://postgres@127.0.0.1:${port}/postgres`
   try {
-    await runMigrations(url)
+    if (migrar) await runMigrations(url)
   } catch (err) {
     await server.stop()
     await pg.close()
@@ -124,4 +137,33 @@ export async function resetRealTestDb(url: string): Promise<void> {
     await admin.end({ timeout: 5 })
   }
   await runMigrations(url)
+}
+
+/**
+ * UNA BASE DE POSTGRES DE VERDAD PARA UN SOLO FICHERO DE TESTS (docs/retransmision.md §17.4 y 17-w;
+ * E2, paso 1a). La crea de nuevo, vacía, en el servidor de `TEST_DATABASE_URL` con el nombre `name`,
+ * la migra (con `folder`, o la carpeta entera) y devuelve su URL.
+ *
+ * Por qué una por fichero: `resetRealTestDb` vacía el esquema entero de la base que recibe, y vitest
+ * corre los ficheros en paralelo, así que dos ficheros sobre la misma base se borrarían el uno al
+ * otro. `calendarConcurrency.test.ts` sigue usando la de `TEST_DATABASE_URL`; los demás, cada uno la
+ * suya (`cyclingstar_migrate`, y desde el 7a `cyclingstar_watch` y `cyclingstar_b14`). Los advisory
+ * locks son de cada base, así que tampoco se estorban entre ellas.
+ */
+export async function realTestDbFor(name: string, folder?: string): Promise<string> {
+  const base = realTestDatabaseUrl()
+  if (base === undefined) throw new Error('realTestDbFor: falta TEST_DATABASE_URL')
+  if (!/^[a-z_][a-z0-9_]*$/.test(name)) throw new Error(`realTestDbFor: nombre no válido: ${name}`)
+  const admin = postgres(base, { max: 1, onnotice: () => {} })
+  try {
+    // WITH (FORCE) echa a las sesiones que se hubieran quedado abiertas en una corrida anterior.
+    await admin.unsafe(`drop database if exists ${name} with (force)`)
+    await admin.unsafe(`create database ${name}`)
+  } finally {
+    await admin.end({ timeout: 5 })
+  }
+  const url = new URL(base)
+  url.pathname = `/${name}`
+  await runMigrations(url.toString(), folder)
+  return url.toString()
 }

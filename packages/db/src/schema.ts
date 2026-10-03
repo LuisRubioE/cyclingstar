@@ -5,6 +5,7 @@ import type {
   StageProfile,
   TriggerCond,
 } from '@cyclingstar/engine'
+import type { NewsPayload } from '@cyclingstar/shared'
 import { desc, sql } from 'drizzle-orm'
 import {
   boolean,
@@ -18,6 +19,7 @@ import {
   pgTable,
   primaryKey,
   real,
+  smallint,
   text,
   timestamp,
   uniqueIndex,
@@ -801,12 +803,28 @@ export const news = pgTable(
     /** Corredor protagonista para el feed personal (null en noticias solo globales). */
     riderId: uuid('rider_id').references(() => riders.id, { onDelete: 'cascade' }),
     kind: text('kind').notNull(),
-    text: text('text').notNull(),
+    /**
+     * El titular en inglés, redactado al escribir. Las filas anteriores a la 0046 solo tienen esto; las
+     * nuevas lo llevan de compatibilidad hasta DD-19 y después va null: el titular se redacta al LEER.
+     */
+    text: text('text'),
+    /** La semilla de la variante, la que `stageRun.ts` ya calculaba y se tiraba (`win:${raceKey}:${gameDay}:${stageDay}`). */
+    seed: text('seed'),
+    /** Los datos del titular, con ids y códigos, nunca nombres ni inglés (`NewsPayload`). Null antes de la 0046. */
+    data: jsonb('data').$type<NewsPayload>(),
+    /** La carrera (con temporada) y el número de etapa de los que sale: el velo corta por aquí sin abrir `data`. */
+    raceKey: text('race_key'),
+    stageDay: smallint('stage_day'),
+    /** `TEMPLATE_REV` al escribir: la variante se elige solo entre las que ya existían ese día (D-46). */
+    tplRev: smallint('tpl_rev'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index('news_world_day_idx').on(t.worldId, t.gameDay),
     index('news_rider_idx').on(t.riderId),
+    index('news_race_stage_idx').on(t.worldId, t.raceKey, t.stageDay),
+    /** Toda fila se puede pintar: con el texto de antes de la 0046 o con los datos de después de DD-19. */
+    check('news_text_or_data', sql`${t.text} is not null or ${t.data} is not null`),
   ],
 )
 

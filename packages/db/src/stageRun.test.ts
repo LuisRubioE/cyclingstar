@@ -1,8 +1,10 @@
-import { TEST_TOUR } from '@cyclingstar/engine'
-import { ATTRIBUTES } from '@cyclingstar/shared'
-import { and, asc, eq, sql } from 'drizzle-orm'
+import { type Incident, TEST_TOUR } from '@cyclingstar/engine'
+import { ATTRIBUTES, TEMPLATE_REV, newsPayloadSchema, renderNews } from '@cyclingstar/shared'
+import { and, asc, eq, inArray, sql } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { newsNames } from './news.js'
 import {
+  news,
   raceGc,
   raceRosters,
   riderAttrLog,
@@ -16,7 +18,14 @@ import {
   teams,
   worlds,
 } from './schema.js'
-import { runOneStage } from './stageRun.js'
+import { getGcThroughStage, getKomClassification, getPointsClassification } from './results.js'
+import {
+  type StageRunSpec,
+  applyIncidents,
+  runOneStage,
+  soleLeader,
+  wonFromBreakaway,
+} from './stageRun.js'
 import { getTeamClassifications } from './teamClassification.js'
 import { type TestDb, startTestDb } from './testDb.js'
 
@@ -42,7 +51,9 @@ const FIELD = 40
  */
 const idDe = (i: number) => `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`
 
-async function seedMiniWorld(t: TestDb): Promise<{ worldId: string; riderIds: string[] }> {
+async function seedMiniWorld(
+  t: TestDb,
+): Promise<{ worldId: string; teamId: string; riderIds: string[] }> {
   const [world] = await t.db
     .insert(worlds)
     .values({ worldSeed: 'semilla-etapa', engineVersion: 1 })
@@ -112,18 +123,20 @@ async function seedMiniWorld(t: TestDb): Promise<{ worldId: string; riderIds: st
   await t.db
     .insert(raceRosters)
     .values(riderIds.map((id, i) => ({ raceId: RACE_KEY, riderId: id, bib: i + 1 })))
-  return { worldId, riderIds }
+  return { worldId, teamId: team!.id, riderIds }
 }
 
 describe('db: runOneStage escribe en lote con la misma semántica', () => {
   let t: TestDb
   let worldId: string
+  let teamId: string
   let riderIds: string[]
 
   beforeAll(async () => {
     t = await startTestDb()
     const seeded = await seedMiniWorld(t)
     worldId = seeded.worldId
+    teamId = seeded.teamId
     riderIds = seeded.riderIds
   }, 180_000)
 
@@ -336,5 +349,308 @@ describe('db: runOneStage escribe en lote con la misma semántica', () => {
     for (const k of radio!.kms) expect(k.groups.length).toBeGreaterThan(0)
     // El primer grupo de carretera es el líder: su hueco al líder es cero por construcción.
     expect(radio!.kms[0]!.groups[0]!.gapS).toBe(0)
+  })
+
+  /**
+   * LAS NOTICIAS DE LA ETAPA SE GUARDAN CON SUS DATOS (docs/retransmision.md §12.8 y §13.2; E2, paso
+   * 1a). Las dos etapas del primer caso escribieron sus titulares (la victoria, la general y la
+   * montaña de la final, y los abandonos y lesiones que hubiera): todos llevan un `NewsPayload` que
+   * valida, su semilla, la carrera y la etapa de quien los escribe, y su `text` de compatibilidad es
+   * exactamente lo que se lee al redactar desde los datos (B4).
+   */
+  it('cada titular de la etapa guarda sus datos y se lee como se escribió', async () => {
+    const filas = await t.db.select().from(news).where(eq(news.worldId, worldId))
+    const VICTORIA = ['stage_win', 'tt_win', 'breakaway_win']
+    // Una victoria por etapa, y la general de la final.
+    for (const dia of [1, 2]) {
+      expect(filas.filter((f) => VICTORIA.includes(f.kind) && f.stageDay === dia)).toHaveLength(1)
+    }
+    expect(filas.filter((f) => f.kind === 'gc_win')).toHaveLength(1)
+    const payloads = filas.map((f) => newsPayloadSchema.parse(f.data))
+    const nombres = await newsNames(t.db, payloads)
+    for (const [i, fila] of filas.entries()) {
+      const p = payloads[i]!
+      expect(fila.kind).toBe(p.kind)
+      expect(fila.tplRev).toBe(TEMPLATE_REV)
+      expect(fila.raceKey).toBe(RACE_KEY)
+      expect(fila.stageDay).toBe('stageDay' in p ? p.stageDay : null)
+      expect(p).toMatchObject({ raceId: 'race-test', season: 0 })
+      // El equipo del día: el de la entrada de la etapa, que aquí es el único equipo.
+      expect('teamId' in p ? p.teamId : null).toBe(teamId)
+      expect(fila.text).toBe(renderNews('en', p, fila.seed!, fila.tplRev!, nombres))
+    }
+    const victoria = filas.find((f) => VICTORIA.includes(f.kind) && f.stageDay === 1)!
+    expect(victoria.seed).toBe(`win:${RACE_KEY}:1:1`)
+    // 'race-test' no está en el calendario: la carrera se nombra por su id y la etapa, sin ruta.
+    expect(victoria.text).toMatch(
+      /^Corredor \d+ wins stage 1 of the race-test( from the breakaway)?\.$/,
+    )
+  })
+
+  /**
+   * LOS DOS TITULARES DE LÍDER (docs/retransmision.md §12.8, 12-h; E2, paso 1a): `awardOutcome` los
+   * escribe en una vuelta, de la etapa 2 a la penúltima, cuando cambia el primero de la general, de
+   * los puntos o de la montaña respecto de la etapa anterior; en la primera los cubre la victoria y en
+   * la última, `gc_win` y `kom`. Se escriben desde el 1a y no se sirven hasta el 8a (17-x).
+   *
+   * La etapa 1 de esta vuelta se escribe a mano para que el cambio de líder sea seguro y no dependa
+   * de la carrera: su líder (un segundo por delante de todos) se retira antes de la 2, así que la 2
+   * tiene que darle la general a otro. Nadie lleva puntos de nada tras la 1.
+   */
+  it('gc_lead_taken y jersey_taken cuando cambia el primero, nunca en la primera ni en la última', async () => {
+    const KEY = 'race-lideres:s0'
+    const specDe = (
+      stageDay: number,
+      stage: (typeof TEST_TOUR)[number],
+      isFinal: boolean,
+    ): StageRunSpec => ({
+      raceKey: KEY,
+      raceId: 'race-lideres',
+      raceName: 'Carrera de líderes',
+      level: 'WT',
+      raceClass: 'WT',
+      season: 0,
+      stageDay,
+      kind: stage.kind,
+      profile: stage.profile,
+      timeTrial: stage.timeTrial === true,
+      isFinal,
+    })
+    const retirado = riderIds[0]!
+    await t.db.insert(stageResults).values(
+      riderIds.map((riderId, i) => ({
+        raceId: KEY,
+        stageDay: 1,
+        riderId,
+        puesto: i + 1,
+        tiempoS: i === 0 ? 18_000 : 18_001,
+        bonificacionS: 0,
+        puntosVolante: 0,
+        puntosMontana: 0,
+      })),
+    )
+    await t.db.insert(raceRosters).values(
+      riderIds.map((riderId, i) => ({
+        raceId: KEY,
+        riderId,
+        bib: i + 1,
+        ...(i === 0 ? { abandonedDay: 41, abandonedReason: 'voluntario' as const } : {}),
+      })),
+    )
+    const leaderOf = async (day: number) => ({
+      gc: (await getGcThroughStage(t.db, KEY, day)).find((r) => !r.dnf)?.riderId ?? null,
+      points: soleLeader(await getPointsClassification(t.db, KEY, day)),
+      kom: soleLeader(await getKomClassification(t.db, KEY, day)),
+    })
+    expect(await leaderOf(1)).toEqual({ gc: retirado, points: null, kom: null })
+
+    const etapas = [TEST_TOUR[1]!, TEST_TOUR[2]!, TEST_TOUR[4]!]
+    for (const [i, stage] of etapas.entries()) {
+      const stageDay = i + 2
+      await t.db.transaction((tx) =>
+        runOneStage(
+          tx,
+          worldId,
+          40 + stageDay,
+          'semilla-lideres',
+          specDe(stageDay, stage, stageDay === 4),
+        ),
+      )
+    }
+
+    const titulares = await t.db
+      .select({ kind: news.kind, riderId: news.riderId, stageDay: news.stageDay, data: news.data })
+      .from(news)
+      .where(and(eq(news.raceKey, KEY), inArray(news.kind, ['gc_lead_taken', 'jersey_taken'])))
+    // El líder se retiró: la etapa 2 le da la general a otro.
+    const nuevo = (await leaderOf(2)).gc
+    expect(nuevo).not.toBeNull()
+    expect(nuevo).not.toBe(retirado)
+    expect(titulares.filter((x) => x.kind === 'gc_lead_taken' && x.stageDay === 2)).toEqual([
+      {
+        kind: 'gc_lead_taken',
+        riderId: nuevo,
+        stageDay: 2,
+        data: {
+          kind: 'gc_lead_taken',
+          raceId: 'race-lideres',
+          season: 0,
+          stageDay: 2,
+          riderId: nuevo,
+          teamId,
+        },
+      },
+    ])
+    // En cada etapa con anterior que no es la última, uno por clasificación que cambia de primero.
+    for (const dia of [2, 3]) {
+      const [antes, despues] = [await leaderOf(dia - 1), await leaderOf(dia)]
+      const esperados: { kind: string; riderId: string; jersey?: string }[] = []
+      if (despues.gc !== null && despues.gc !== antes.gc)
+        esperados.push({ kind: 'gc_lead_taken', riderId: despues.gc })
+      for (const jersey of ['points', 'kom'] as const) {
+        const quien = despues[jersey]
+        if (quien !== null && quien !== antes[jersey])
+          esperados.push({ kind: 'jersey_taken', riderId: quien, jersey })
+      }
+      const escritos = titulares
+        .filter((x) => x.stageDay === dia)
+        .map((x) => {
+          const p = newsPayloadSchema.parse(x.data)
+          return {
+            kind: x.kind,
+            riderId: x.riderId!,
+            ...(p.kind === 'jersey_taken' ? { jersey: p.jersey } : {}),
+          }
+        })
+      expect(escritos, `etapa ${dia}`).toEqual(esperados)
+    }
+    // Nunca en la última: la cubren gc_win y kom.
+    expect(titulares.filter((x) => x.stageDay === 4)).toEqual([])
+    // Y nunca en la primera: la vuelta del primer caso corrió la 1 y la 2 (la última), y no tiene ninguno.
+    const enLaOtra = await t.db
+      .select({ kind: news.kind })
+      .from(news)
+      .where(and(eq(news.raceKey, RACE_KEY), inArray(news.kind, ['gc_lead_taken', 'jersey_taken'])))
+    expect(enLaOtra).toEqual([])
+  }, 180_000)
+
+  /**
+   * LA LESIÓN GUARDA LA SALUD DE ANTES (§12.8; la máscara de la ficha, sup. P5, la enseña mientras la
+   * etapa de la caída esté velada). `applyIncidents` la conoce antes de escribir la nueva.
+   */
+  it('injury guarda los días, la salud de antes y hasta cuándo', async () => {
+    const tocado = riderIds[5]!
+    const sano = riderIds[6]!
+    await t.db
+      .update(riders)
+      .set({ health: 'molestias', healthUntilDay: 40 })
+      .where(eq(riders.id, tocado))
+    await t.db
+      .update(riders)
+      .set({ health: 'sano', healthUntilDay: null })
+      .where(eq(riders.id, sano))
+    const filas = await t.db
+      .select({ id: riders.id, health: riders.health, healthUntilDay: riders.healthUntilDay })
+      .from(riders)
+      .where(inArray(riders.id, [tocado, sano]))
+    const riderById = new Map(filas.map((r) => [r.id, r]))
+    const caida = (riderId: string, diasBaja: number): Incident => ({
+      riderId,
+      km: 80,
+      tipo: 'caida',
+      severidad: 'minor',
+      perdidaS: 60,
+      diasBaja,
+    })
+    const spec = { raceKey: RACE_KEY, raceId: 'race-test', season: 0, stageDay: 3 }
+    await t.db.transaction((tx) =>
+      applyIncidents(
+        tx,
+        worldId,
+        30,
+        spec,
+        [caida(tocado, 16), caida(sano, 3)],
+        riderById,
+        () => teamId,
+      ),
+    )
+    const lesiones = await t.db
+      .select({ riderId: news.riderId, data: news.data, text: news.text })
+      .from(news)
+      .where(and(eq(news.worldId, worldId), eq(news.kind, 'injury'), eq(news.gameDay, 30)))
+    const de = (id: string) => lesiones.find((l) => l.riderId === id)!
+    expect(de(tocado).data).toEqual({
+      kind: 'injury',
+      raceId: 'race-test',
+      season: 0,
+      stageDay: 3,
+      riderId: tocado,
+      teamId,
+      days: 16,
+      prevHealth: 'molestias',
+      prevUntilDay: 40,
+    })
+    expect(de(tocado).text).toBe('Corredor 5 injured — out for 2 weeks.')
+    expect(de(sano).data).toMatchObject({ days: 3, prevHealth: 'sano', prevUntilDay: null })
+    expect(de(sano).text).toBe('Corredor 6 injured — out for 3 days.')
+    // …y la salud nueva, que es la de siempre: lesionado hasta el día de la caída más la baja.
+    const despues = await t.db
+      .select({ id: riders.id, health: riders.health, healthUntilDay: riders.healthUntilDay })
+      .from(riders)
+      .where(inArray(riders.id, [tocado, sano]))
+    expect(new Map(despues.map((r) => [r.id, [r.health, r.healthUntilDay]]))).toEqual(
+      new Map([
+        [tocado, ['lesionado', 46]],
+        [sano, ['lesionado', 33]],
+      ]),
+    )
+  })
+})
+
+describe('db: la fuga del titular y el primero de una clasificación (E2, paso 1a)', () => {
+  type Grupo = [kind: 'fuga' | 'contra' | 'peloton' | 'grupeto', riderIds: string[]]
+  const foto = (km: number, grupos: Grupo[]) => ({
+    km,
+    groups: grupos.map(([kind, riderIds]) => ({ kind, riderIds })),
+  })
+  const radio = (...kms: ReturnType<typeof foto>[]) => ({ kms })
+  const formada = { tipo: 'fuga_formada' }
+  const cazada = { tipo: 'fuga_cazada' }
+
+  /**
+   * `breakaway_win` (§12.8, 12-g): a la regla de hoy (hubo fuga y no la cazaron) se le AÑADE que el
+   * ganador vaya en ella, es decir, que su grupo en la última foto de la radio sea `fuga`. Medido en
+   * 44 etapas del banco, la regla de hoy acierta en sus 16 y la foto sola añadiría diez ataques del
+   * final; con las dos, el titular dice lo que pasó.
+   */
+  it('breakaway_win solo con el ganador en un grupo fuga en la última foto', () => {
+    const final = (kind: Grupo[0]) =>
+      radio(
+        foto(0, [['peloton', ['g', 'a', 'b']]]),
+        foto(150, [
+          [kind, ['g', 'a']],
+          ['peloton', ['b']],
+        ]),
+      )
+    expect(wonFromBreakaway([formada], final('fuga'), 'g')).toBe(true)
+    // Ganó un ataque del final: el grupo del ganador ya no es la fuga del día.
+    expect(wonFromBreakaway([formada], final('contra'), 'g')).toBe(false)
+    expect(wonFromBreakaway([formada], final('peloton'), 'g')).toBe(false)
+    // Con la fuga cazada no hay titular de fuga, vaya el ganador donde vaya.
+    expect(wonFromBreakaway([formada, cazada], final('fuga'), 'g')).toBe(false)
+    // Sin fuga, tampoco.
+    expect(wonFromBreakaway([], final('fuga'), 'g')).toBe(false)
+    // Manda la ÚLTIMA foto: haber ido en la fuga antes no basta.
+    const antes = radio(
+      foto(100, [
+        ['fuga', ['g']],
+        ['peloton', ['a', 'b']],
+      ]),
+      foto(150, [['peloton', ['g', 'a', 'b']]]),
+    )
+    expect(wonFromBreakaway([formada], antes, 'g')).toBe(false)
+    // Una etapa sin radio (una crono) no da fugas.
+    expect(wonFromBreakaway([formada], radio(), 'g')).toBe(false)
+  })
+
+  it('el primero de puntos o de montaña es el que tiene más que nadie él solo', () => {
+    expect(soleLeader([])).toBeNull()
+    expect(soleLeader([{ riderId: 'a', puntos: 5 }])).toBe('a')
+    expect(
+      soleLeader([
+        { riderId: 'b', puntos: 7 },
+        { riderId: 'a', puntos: 9 },
+        { riderId: 'c', puntos: 2 },
+      ]),
+    ).toBe('a')
+    // Empatados arriba no hay primero: la consulta los da en el orden que quiera Postgres, y un
+    // titular «X takes the points lead» con X sorteado entre dos sería inventado.
+    expect(
+      soleLeader([
+        { riderId: 'a', puntos: 9 },
+        { riderId: 'b', puntos: 9 },
+        { riderId: 'c', puntos: 2 },
+      ]),
+    ).toBeNull()
   })
 })

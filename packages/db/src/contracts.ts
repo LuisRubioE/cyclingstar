@@ -6,7 +6,6 @@ import {
   releaseClause,
 } from '@cyclingstar/engine'
 import {
-  COUNTRIES,
   HOUSING_RENT_PER_WEEK,
   continentForCountry,
   residenceAfterSigning,
@@ -285,6 +284,12 @@ export async function acceptOffer(db: Database, riderId: string, offerId: string
       .limit(1)
     const offer = rows[0]
     if (!offer || offer.status !== 'pendiente') throw new Error('oferta no disponible')
+    // El equipo que deja, para los datos del titular (antes de moverlo).
+    const [antes] = await tx
+      .select({ teamId: riders.teamId })
+      .from(riders)
+      .where(eq(riders.id, riderId))
+      .limit(1)
 
     await tx.delete(contracts).where(eq(contracts.riderId, riderId))
     await tx.insert(contracts).values({
@@ -314,28 +319,31 @@ export async function acceptOffer(db: Database, riderId: string, offerId: string
 
     // Noticia del fichaje (Paso 39), personal del corredor.
     const info = await tx
-      .select({ worldId: riders.worldId, rider: riders.name, team: teams.name })
+      .select({ worldId: riders.worldId })
       .from(riders)
       .innerJoin(teams, eq(teams.id, offer.teamId))
       .where(eq(riders.id, riderId))
       .limit(1)
     if (info[0]) {
-      // Si el corredor se muda a otro país, la noticia lo cuenta (y si el equipo le cubre la vivienda).
+      // Si el corredor se muda a otro país, la noticia lo cuenta (y si el equipo le cubre la vivienda):
+      // el país va en los datos como código y el nombre lo pone `renderNews` al leer (§12.8, 12-j).
       const teamCountry = teamRow[0]?.country ?? null
       const abroad = !!teamCountry && teamCountry !== (teamRow[0]?.nationality ?? null)
-      const countryName = COUNTRIES.find((c) => c.code === teamCountry)?.name ?? teamCountry
-      const detail = abroad
-        ? `, relocating to ${countryName}${offer.payHousing ? ' with housing covered' : ''}`
-        : ''
       // El fichaje se fecha el día de la FIRMA (hoy), no el día en que llegó la oferta.
       const clock = await tx.select({ currentDay: gameState.currentDay }).from(gameState).limit(1)
       await emitNews(tx, {
         worldId: info[0].worldId,
         gameDay: clock[0]?.currentDay ?? offer.createdDay,
-        kind: 'contract',
         seed: `contract:${offerId}`,
-        data: { rider: info[0].rider, team: info[0].team, detail },
         riderId,
+        payload: {
+          kind: 'contract',
+          riderId,
+          toTeamId: offer.teamId,
+          fromTeamId: antes?.teamId ?? null,
+          relocateCountry: abroad ? teamCountry : null,
+          housingCovered: offer.payHousing,
+        },
       })
     }
     // Las demás ofertas pendientes caducan.

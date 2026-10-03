@@ -89,7 +89,16 @@ export {
   type TeamRacePlan,
 } from './teamPlan.js'
 export { runRollover } from './rollover.js'
-export { emitNews, getGlobalNews, getRiderNews, getTeamNews, type NewsItem } from './news.js'
+export {
+  emitNews,
+  getGlobalNews,
+  getRiderNews,
+  getTeamNews,
+  newsNames,
+  type NewsItem,
+  type NewsReadOptions,
+} from './news.js'
+export type { Queryable } from './titles.js'
 export {
   getAllTimeRecords,
   getHallOfFame,

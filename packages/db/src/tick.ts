@@ -6,7 +6,7 @@ import { runCallups } from './callups.js'
 import { dedupeWorldNames } from './dedupeNames.js'
 import { runMarket } from './contracts.js'
 import { runPayroll, runTeamFinances } from './economy.js'
-import { LOCK_CLASS } from './locks.js'
+import { LOCK_CLASS, TICK_LOCK_KEY } from './locks.js'
 import { backfillRosters, runRollover } from './rollover.js'
 import { gameState, riderAttrLog, tickLog, worlds } from './schema.js'
 import { trainWorldDay } from './train.js'
@@ -35,11 +35,11 @@ import { WORLD_REPAIR_VERSION, markWorldRepaired, worldNeedsRepair } from './wor
  */
 
 /**
- * Clave del advisory lock del tick, en su propia clase (ver locks.ts). Exportada porque las
- * migraciones 0044 y 0045 la escriben a mano (`pg_advisory_xact_lock(2, 1)`) y sus tests vigilan que
- * siga casando.
+ * Clave del advisory lock del tick, en su propia clase. Vive en locks.ts desde el paso 1a de E2,
+ * porque `runMigrations` también la toma; se reexporta aquí para quien la buscaba aquí (los tests de
+ * las migraciones 0044 y 0045, que la escriben a mano).
  */
-export const TICK_LOCK_KEY = 1
+export { TICK_LOCK_KEY }
 
 /** Días de juego por temporada (debe casar con calendarRun.ts / rollover.ts). */
 const SEASON_DAYS = 364

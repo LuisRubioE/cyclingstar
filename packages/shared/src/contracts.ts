@@ -15,6 +15,7 @@
 
 import { z } from 'zod'
 import type { RaceLeaders } from './jerseys.js'
+import { newsPayloadSchema } from './news.js'
 import { ATTRIBUTES, GENDERS, HEALTH_STATES, type PublicRider, VOCATIONS } from './rider.js'
 import { INTENSITIES, SESSIONS } from './training.js'
 
@@ -740,10 +741,31 @@ export const takeOverResponseSchema = z.object({
   teamName: z.string(),
 })
 
+/**
+ * LOS DATOS DEL TITULAR (docs/retransmision.md §14.2, D-45; E2, paso 1a), en `newsItemSchema` y en
+ * `teamNewsItemSchema`. Desde la migración 0046 un titular se guarda como datos (`NewsPayload`) con
+ * su semilla y se redacta al leer; la API manda además `text` ya redactado, que es lo que la web de
+ * hoy pinta y lo que la de ayer sigue validando (`text: z.string()`). Los seis son `.nullish()`: una
+ * fila anterior a la 0046 no los tiene, y la web de ayer los descarta (strip).
+ */
+const newsDataFields = {
+  /** Los datos del titular (news.data); null en las filas viejas y en las que no validan. */
+  payload: newsPayloadSchema.nullish(),
+  /** La semilla de la variante (D-46). */
+  seed: z.string().nullish(),
+  /** news.tpl_rev: la revisión de las plantillas con que se escribió. */
+  tplRev: z.number().int().nullish(),
+  /** La carrera, para enlazar sin adivinarla del inglés del titular (raceOfHeadline muere). */
+  raceId: z.string().nullish(),
+  raceKey: z.string().nullish(),
+  stageDay: z.number().int().nullish(),
+}
+
 export const teamNewsItemSchema = z.object({
   gameDay: z.number().int(),
   kind: z.string(),
   text: z.string(),
+  ...newsDataFields,
 })
 export type TeamNewsItem = z.infer<typeof teamNewsItemSchema>
 export const teamNewsResponseSchema = z.object({ news: z.array(teamNewsItemSchema) })
@@ -834,6 +856,7 @@ export const newsItemSchema = z.object({
   /** Equipo ACTUAL del protagonista: es lo que permite filtrar el feed por equipo (§3.5). */
   teamId: z.string().nullable(),
   teamName: z.string().nullable(),
+  ...newsDataFields,
 })
 export type NewsItem = z.infer<typeof newsItemSchema>
 export const newsResponseSchema = z.object({ news: z.array(newsItemSchema) })

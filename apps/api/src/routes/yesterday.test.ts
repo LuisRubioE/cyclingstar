@@ -17,9 +17,11 @@ import {
   healthSchema,
   lastRaceResponseSchema,
   newsItemSchema,
+  newsResponseSchema,
   riderRaceReportSchema,
   stageReplaySchema,
   teamNewsItemSchema,
+  teamNewsResponseSchema,
 } from '@cyclingstar/shared'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { z } from 'zod'
@@ -43,10 +45,20 @@ import { buildApp } from '../app.js'
  *   `runOneStage`), tienen que pasar por las envolturas de abajo, armadas con `YESTERDAY`: como los
  *   objetos son strip, eso es exactamente lo que valida la web anterior.
  */
+/** Los seis campos que el 1a añade a los dos titulares (§14.2): la web de ayer no los conoce. */
+const NEWS_DATA = {
+  payload: true,
+  seed: true,
+  tplRev: true,
+  raceId: true,
+  raceKey: true,
+  stageDay: true,
+} as const
+
 const YESTERDAY = {
   stageReplay: stageReplaySchema,
-  newsItem: newsItemSchema,
-  teamNewsItem: teamNewsItemSchema,
+  newsItem: newsItemSchema.omit(NEWS_DATA),
+  teamNewsItem: teamNewsItemSchema.omit(NEWS_DATA),
   lastRaceResponse: lastRaceResponseSchema,
   riderRaceReport: riderRaceReportSchema,
   health: healthSchema,
@@ -305,6 +317,26 @@ describe('la web de ayer: lo que la API manda hoy pasa por sus esquemas', () => 
   it('las noticias del jugador', async () => {
     const { news } = yesterdayNews.parse(await get('/api/news'))
     expect(news.length).toBeGreaterThan(0)
+  })
+
+  it('y la web de hoy recibe además los datos de cada titular (E2, paso 1a)', async () => {
+    // Todo lo de este mundo lo escribió el 1a: cada titular viaja con su payload, su semilla, la
+    // revisión de las plantillas y la carrera y la etapa, además del `text` de siempre (§14.2).
+    const { news } = newsResponseSchema.parse(await get('/api/news'))
+    expect(news.length).toBeGreaterThan(0)
+    for (const n of news) {
+      expect(n.payload, n.text).toMatchObject({ kind: n.kind, raceId: RACE_ID, season: 0 })
+      expect(n).toMatchObject({ tplRev: 0, raceId: RACE_ID, raceKey: RACE_KEY })
+      expect(typeof n.seed).toBe('string')
+      expect(n.stageDay).toBe(n.payload && 'stageDay' in n.payload ? n.payload.stageDay : null)
+    }
+    // Los dos titulares de líder se escriben desde la etapa 2 de una vuelta y no se sirven hasta el 8a.
+    expect(news.filter((n) => n.kind === 'gc_lead_taken' || n.kind === 'jersey_taken')).toEqual([])
+    const stage = yesterdayStage.parse(await get(`/api/races/${RACE_ID}/stages/2`))
+    const winnerTeam = stage.results?.find((r) => r.puesto === 1)?.teamId
+    const equipo = teamNewsResponseSchema.parse(await get(`/api/teams/${winnerTeam!}/news`))
+    expect(equipo.news.length).toBeGreaterThan(0)
+    for (const n of equipo.news) expect(n.payload?.kind).toBe(n.kind)
   })
 
   it('las noticias del equipo del ganador', async () => {
