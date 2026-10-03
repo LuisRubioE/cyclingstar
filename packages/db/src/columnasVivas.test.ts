@@ -43,6 +43,26 @@ const MUERTAS_CONOCIDAS: Record<string, string> = {
     renovaciones y promesas cumplidas, y eso hay que diseñarlo, no inventarlo aquí.`,
 }
 
+/**
+ * LAS COLUMNAS QUE SE VIGILAN (docs/retransmision.md §13.7, decisión 13-a; E2, paso 1a): sangradas con
+ * dos o cuatro espacios —las de `users` van con dos— y de tipo `real`, `integer`, `smallint` o
+ * `doublePrecision`. Hasta el 1a eran solo cuatro espacios y sin `smallint`: sobre el esquema de hoy
+ * la ampliación añade `worlds.repairVersion`, que se escribe, y desde la 0048 alcanza a
+ * `race_watch.follow`, `known_through` y `users.horizon_rev`.
+ */
+const COLUMNA_CON_DEFECTO =
+  /^ {2,4}(\w+): (?:real|integer|smallint|doublePrecision)\('([\w_]+)'\)([^\n]*\.default\(\s*-?\d[\d._]*\s*\)[^\n]*)$/gm
+
+/**
+ * LAS COLUMNAS DE E2 QUE SOLO SE DAN POR ESCRITAS COMO CLAVE DE UN `.set(` O UN `.values(` (13-a,
+ * Rcodigo-011). La regla de siempre cuenta cualquier línea con `campo:`, y E2 escribe con esos
+ * nombres cuatro cosas que no escriben ninguna columna: `Horizon.knownThrough` y el `knownThrough:
+ * new Map()` de `worldHorizon` (horizon.ts), `WatchRow.follow` y el parámetro de `setFollow`
+ * (watch.ts) y el `horizonRev` que devuelve `recordProgress`. Las que aún no están en `schema.ts` no
+ * se miran: entran con su migración (prize con la 0049; las otras tres con la 0048).
+ */
+const ESCRITURA_DRIZZLE: readonly string[] = ['prize', 'follow', 'knownThrough', 'horizonRev']
+
 function ficherosTs(dir: string, out: string[] = []): string[] {
   for (const nombre of readdirSync(dir)) {
     const p = join(dir, nombre)
@@ -58,41 +78,72 @@ function ficherosTs(dir: string, out: string[] = []): string[] {
   return out
 }
 
+/** Las columnas numéricas con defecto de un `schema.ts`, por su nombre de campo. */
+function columnasConDefecto(schema: string): string[] {
+  return [...schema.matchAll(COLUMNA_CON_DEFECTO)].map((m) => m[1]!)
+}
+
+/** La regla de siempre: alguna línea con `campo:` que no sea `campo: x.campo` ni un tipo. */
+function escritaEnAlgunaLínea(campo: string, líneas: readonly string[]): boolean {
+  return líneas.some((t) => {
+    // Propiedad abreviada dentro de un objeto: `facilities,` sí escribe.
+    if (new RegExp(`^${campo},$`).test(t)) return true
+    if (!new RegExp(`\\b${campo}\\s*:`).test(t)) return false
+    // Referirse a la COLUMNA de drizzle no es escribirla: `fame: riders.fame`.
+    if (new RegExp(`\\b${campo}\\s*:\\s*\\w+\\.${campo}\\b`).test(t)) return false
+    // Ni declarar un tipo: `fame: number` en una interfaz no escribe nada.
+    if (new RegExp(`\\b${campo}\\s*:\\s*(number|string|boolean)\\b`).test(t)) return false
+    return true
+  })
+}
+
+/** El texto entre los paréntesis de cada `.set(` y cada `.values(` de un fichero, equilibrados. */
+function argumentosDeEscritura(fuente: string): string[] {
+  const out: string[] = []
+  for (const m of fuente.matchAll(/\.(?:set|values)\(/g)) {
+    const desde = m.index + m[0].length
+    let nivel = 1
+    let i = desde
+    for (; i < fuente.length && nivel > 0; i++) {
+      if (fuente[i] === '(') nivel++
+      else if (fuente[i] === ')') nivel--
+    }
+    out.push(fuente.slice(desde, i - 1))
+  }
+  return out
+}
+
+/** La segunda regla: el campo como clave (o abreviatura) del objeto de un `.set(` o un `.values(`. */
+function escritaPorDrizzle(campo: string, fuentes: readonly string[]): boolean {
+  const clave = new RegExp(`[{,]\\s*${campo}\\s*[:,}]`)
+  return fuentes.some((f) => argumentosDeEscritura(f).some((a) => clave.test(a)))
+}
+
+/** Las columnas con defecto de `schema` que nadie escribe en `fuentes` (el texto de cada fichero). */
+function columnasMuertas(schema: string, fuentes: readonly string[]): string[] {
+  const líneas = fuentes.flatMap((f) => f.split('\n').map((l) => l.trim()))
+  return [...new Set(columnasConDefecto(schema))].filter((campo) =>
+    ESCRITURA_DRIZZLE.includes(campo)
+      ? !escritaPorDrizzle(campo, fuentes)
+      : !escritaEnAlgunaLínea(campo, líneas),
+  )
+}
+
 describe('db: ninguna columna nace con un número y se queda ahí', () => {
   it('toda columna numérica con valor por defecto se escribe en alguna parte', () => {
     const schema = readFileSync(join(aquí, 'schema.ts'), 'utf8')
-    const columnas: string[] = []
-    const re =
-      /^ {4}(\w+): (?:real|integer|doublePrecision)\('([\w_]+)'\)([^\n]*\.default\(\s*-?\d[\d._]*\s*\)[^\n]*)$/gm
-    for (const m of schema.matchAll(re)) columnas.push(m[1]!)
+    const columnas = columnasConDefecto(schema)
     // Si esto se queda a cero, el escáner ha dejado de encontrar columnas y la prueba no vigila nada.
     expect(`columnas encontradas: ${columnas.length > 10}`).toBe('columnas encontradas: true')
+    // La ampliación de 13-a: dos espacios de sangría y `smallint`.
+    expect(columnas).toContain('repairVersion')
 
     const raíz = join(aquí, '..', '..', '..')
     const fuentes = [
       ...ficherosTs(join(raíz, 'packages', 'db', 'src')),
       ...ficherosTs(join(raíz, 'apps', 'api', 'src')),
-    ]
-    const líneas = fuentes.flatMap((f) =>
-      readFileSync(f, 'utf8')
-        .split('\n')
-        .map((l) => l.trim()),
-    )
-
-    const muertas: string[] = []
-    for (const campo of new Set(columnas)) {
-      const escrita = líneas.some((t) => {
-        // Propiedad abreviada dentro de un objeto: `facilities,` sí escribe.
-        if (new RegExp(`^${campo},$`).test(t)) return true
-        if (!new RegExp(`\\b${campo}\\s*:`).test(t)) return false
-        // Referirse a la COLUMNA de drizzle no es escribirla: `fame: riders.fame`.
-        if (new RegExp(`\\b${campo}\\s*:\\s*\\w+\\.${campo}\\b`).test(t)) return false
-        // Ni declarar un tipo: `fame: number` en una interfaz no escribe nada.
-        if (new RegExp(`\\b${campo}\\s*:\\s*(number|string|boolean)\\b`).test(t)) return false
-        return true
-      })
-      if (!escrita) muertas.push(campo)
-    }
+    ].map((f) => readFileSync(f, 'utf8'))
+    const muertas = columnasMuertas(schema, fuentes)
 
     const inesperadas = muertas.filter((c) => MUERTAS_CONOCIDAS[c] === undefined)
     expect(`columnas muertas nuevas: ${inesperadas.join(', ') || 'ninguna'}`).toBe(
@@ -104,5 +155,83 @@ describe('db: ninguna columna nace con un número y se queda ahí', () => {
     expect(`conocidas que ya se escriben: ${resucitadas.join(', ') || 'ninguna'}`).toBe(
       'conocidas que ya se escriben: ninguna',
     )
+  })
+
+  /**
+   * LAS CUATRO DE E2 CON SOLO SUS DECLARACIONES SALEN MUERTAS (docs/retransmision.md §13.7). Un
+   * `schema.ts` con las cuatro columnas tal como las escriben la 0048 y la 0049, y un `horizon.ts` y
+   * un `watch.ts` de mentira que solo declaran lo que §4.10 y §10.3 declaran con esos nombres: con la
+   * regla de siempre tres de las cuatro saldrían escritas sin que nadie las escriba; con la segunda,
+   * las cuatro salen muertas hasta que llega su `.set({ … })`.
+   */
+  it('las cuatro columnas de E2 solo cuentan como escritas en un .set( o un .values(', () => {
+    const schema = [
+      "export const users = pgTable('users', {",
+      "  id: text('id').primaryKey(),",
+      "  horizonRev: integer('horizon_rev').notNull().default(0),",
+      '})',
+      'export const raceWatch = pgTable(',
+      "  'race_watch',",
+      '  {',
+      "    follow: smallint('follow').notNull().default(0),",
+      "    knownThrough: smallint('known_through').notNull().default(0),",
+      '  },',
+      ')',
+      'export const stageTeamResults = pgTable(',
+      "  'stage_team_results',",
+      '  {',
+      "    prize: integer('prize').notNull().default(0),",
+      '  },',
+      ')',
+    ].join('\n')
+    const horizon = [
+      'export interface Horizon {',
+      '  readonly knownThrough: ReadonlyMap<string, number>',
+      '}',
+      'export const worldHorizon: Horizon = {',
+      '  knownThrough: new Map(),',
+      '}',
+    ].join('\n')
+    const watch = [
+      'export interface WatchRow {',
+      '  follow: -1 | 0 | 1',
+      '  knownThrough: number',
+      '}',
+      'export async function setFollow(db: Database, follow: -1 | 0 | 1): Promise<void> {',
+      '  await db.select({ prize: stageTeamResults.prize, tiempo: sql<number>`0` }).from(stageTeamResults)',
+      '}',
+      'export function recordProgress(rev: number): { horizonRev: number } {',
+      '  return {',
+      '    horizonRev: rev + 1,',
+      '  }',
+      '}',
+    ].join('\n')
+    const cuatro = ['follow', 'horizonRev', 'knownThrough', 'prize']
+
+    expect(columnasConDefecto(schema).sort()).toEqual(cuatro)
+    expect(columnasMuertas(schema, [horizon, watch]).sort()).toEqual(cuatro)
+    // Con la regla de siempre, las tres de la 0048 se daban por escritas sin escritor.
+    const líneas = [horizon, watch].flatMap((f) => f.split('\n').map((l) => l.trim()))
+    expect(cuatro.filter((c) => escritaEnAlgunaLínea(c, líneas))).toEqual([
+      'follow',
+      'horizonRev',
+      'knownThrough',
+    ])
+
+    // Y con sus escritores (§10.3 y §13.5), vivas.
+    const escritores = [
+      'export async function setFollow(db: Database, f: -1 | 0 | 1, through: number) {',
+      '  await db.update(raceWatch).set({ follow: f, knownThrough: through })',
+      '  await db',
+      '    .update(users)',
+      '    .set({',
+      '      horizonRev: sql`${users.horizonRev} + 1`,',
+      '    })',
+      '}',
+      'async function creditTeam(tx: Tx, amount: number) {',
+      '  await tx.update(stageTeamResults).set({ prize: sql`${stageTeamResults.prize} + ${amount}` })',
+      '}',
+    ].join('\n')
+    expect(columnasMuertas(schema, [horizon, watch, escritores])).toEqual([])
   })
 })
