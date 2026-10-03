@@ -168,6 +168,11 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
           kind: head.kind,
           timeTrial: tl.timeTrial,
           label: head.label,
+          // Los de la línea, sin redondear, para que la web rehaga la suya con los tramos (3c):
+          // espaciales, del recorrido.
+          lengthKm: tl.lengthKm,
+          dx: tl.dx,
+          blocks: tl.blocks,
         },
         profile: tl.profile,
         weather: tl.weather,

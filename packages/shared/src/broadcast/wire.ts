@@ -92,7 +92,13 @@ export interface StartState {
 
 /** GET …/broadcast: recorrido, reparto y salida; nada de la carrera. */
 export interface BroadcastHead {
-  /** label: la del recorrido (stageHistory.ts, calendarStageSpec) */
+  /**
+   * label: la del recorrido (stageHistory.ts, calendarStageSpec). km va redondeado, para la ficha.
+   * lengthKm, dx y blocks son los de la línea (`StageTimeline`), sin redondear: no estaban en §4.11 y
+   * sin ellos la web no rehace la `TimelineCore` de los tramos (`instantAt` lee los km a meta y el
+   * tope de la extrapolación, `photoBlocksOf(lengthKm, dx)` da el calendario de fotos y `headAtLine`
+   * pide `blocks` y `dx`; paso 3c). Son del recorrido: no dicen nada de la carrera.
+   */
   readonly stage: {
     readonly raceKey: string
     readonly raceId: string
@@ -102,6 +108,12 @@ export interface BroadcastHead {
     readonly kind: StageKind
     readonly timeTrial: boolean
     readonly label: string
+    /** stageLengthKm(profile), sin redondear */
+    readonly lengthKm: number
+    /** STAGE.dx con que se corrió, 0,1 */
+    readonly dx: number
+    /** Math.round(lengthKm / dx) */
+    readonly blocks: number
   }
   readonly profile: ProfileStrip
   readonly weather: StageWeather
@@ -334,6 +346,9 @@ export const broadcastHeadSchema = z.object({
     kind: stageKindSchema,
     timeTrial: z.boolean(),
     label: z.string(),
+    lengthKm: z.number().positive(),
+    dx: z.number().positive(),
+    blocks: int.min(1),
   }),
   profile: profileStripSchema,
   weather: stageWeatherSchema,

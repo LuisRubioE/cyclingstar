@@ -11,7 +11,7 @@ import {
   worlds,
 } from '@cyclingstar/db'
 import { type TestDb, startTestDb } from '@cyclingstar/db/test'
-import { SEASON_CALENDAR } from '@cyclingstar/engine'
+import { SEASON_CALENDAR, STAGE, stageLengthKm } from '@cyclingstar/engine'
 import {
   ATTRIBUTES,
   BROADCAST,
@@ -22,6 +22,7 @@ import {
   broadcastFinishSchema,
   broadcastHeadSchema,
   healthSchema,
+  photoBlocksOf,
   stageReplaySchema,
 } from '@cyclingstar/shared'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -240,6 +241,12 @@ describe('las rutas de la retransmisión (§14.2)', () => {
         day: 2,
         timeTrial: false,
       })
+      // Lo que la web necesita para rehacer la línea con los tramos (3c), sin redondear: km es el de
+      // la ficha, redondeado, y blocks sale de la longitud, como en la línea.
+      expect(head.stage.dx).toBe(STAGE.dx)
+      expect(head.stage.blocks).toBe(Math.round(head.stage.lengthKm / head.stage.dx))
+      expect(head.stage.km).toBe(Math.round(head.stage.lengthKm))
+      expect(head.stage.lengthKm).toBe(stageLengthKm(specOf(2).profile))
       expect(head.cast).toHaveLength(FIELD)
       // el reparto: dorsal, país y equipo del día; el maillot de líder de tras la etapa 1, con su procedencia
       for (const c of head.cast) {
@@ -266,6 +273,9 @@ describe('las rutas de la retransmisión (§14.2)', () => {
     })
 
     it('los tramos, uno tras otro, hasta la meta: su esquema, la voz y la caché del navegador', async () => {
+      const head = broadcastHeadSchema.parse(
+        (await call(app, 'GET', `${STAGE_URL}/2/broadcast`, ADMIN)).json(),
+      )
       const chunks: BroadcastChunk[] = []
       for (let from = 0; ; from += BROADCAST.chunkRaceS * 10) {
         const res = await call(
@@ -290,6 +300,22 @@ describe('las rutas de la retransmisión (§14.2)', () => {
           expect(l.revealS * 10).toBeGreaterThan(c.fromDs - 1e-6)
           expect(l.revealS * 10).toBeLessThanOrEqual(c.toDs + 1e-6)
         }
+      // La web rehace la línea con la cabecera (3c): toda marca de reloj cae en el calendario de
+      // fotos que saca de lengthKm y dx, en el último bloque o en la muerte de su grupo (la marca de
+      // diedB, §3.4), y ningún bloque pasa de blocks.
+      const { lengthKm, dx, blocks } = head.stage
+      const calendar = new Set([...photoBlocksOf(lengthKm, dx), blocks - 1])
+      const deaths = new Set(chunks.flatMap((c) => c.groupsDied.map(([g, b]) => `${g}:${b}`)))
+      let marks = 0
+      for (const c of chunks)
+        for (let i = 0; i < c.clocks.length; i += 3) {
+          const [b, g] = [c.clocks[i]!, c.clocks[i + 1]!]
+          marks += 1
+          expect(calendar.has(b) || deaths.has(`${g}:${b}`), `marca de ${g} en ${b}`).toBe(true)
+        }
+      expect(marks).toBeGreaterThan(0)
+      for (const c of chunks)
+        for (let i = 0; i < c.moves.length; i += 3) expect(c.moves[i]!).toBeLessThan(blocks)
     })
 
     it('un tramo mal pedido es un 400 validacion', async () => {
