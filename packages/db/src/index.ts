@@ -150,6 +150,24 @@ export {
 // Una etapa corrida como la corre el tick, para los tests de `apps/api` que piden la ruta de etapa y
 // para los scripts de banco (docs/retransmision.md §17.3; el diseño lo ponía en el paso 2, §17.20).
 export { runOneStage, type StageRunSpec } from './stageRun.js'
+// El horizonte y el velo de E2 (docs/retransmision.md §4.10 y §10.6): los tipos y las funciones puras
+// nacen en el 3a (17-g); computeHorizon, en el 7a.
+export {
+  anonHorizon,
+  isVeiled,
+  stageGateOf,
+  throughStage,
+  worldHorizon,
+  type Horizon,
+  type HorizonKind,
+  type KnowledgeLetter,
+  type VeilDelta,
+  type VeiledStage,
+  type Viewer,
+  type WorldRef,
+} from './horizon.js'
+// El reparto provisional del adaptador de la radio (E2, §3.8, 17-k).
+export { getCastIdentities, type CastIdentities } from './castIdentities.js'
 export {
   TEAM_SCORING_RIDERS,
   getTeamClassifications,
