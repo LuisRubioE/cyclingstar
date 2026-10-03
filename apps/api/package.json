@@ -14,11 +14,11 @@
     "@cyclingstar/engine": "workspace:*",
     "@cyclingstar/shared": "workspace:*",
     "@fastify/compress": "^9.2.0",
-    "@fastify/helmet": "^13.1.0",
+    "@fastify/helmet": "^13.1.1",
     "@fastify/rate-limit": "^11.2.0",
-    "@fastify/static": "^10.1.2",
-    "better-auth": "^1.6.25",
-    "fastify": "^5.11.2",
+    "@fastify/static": "^10.1.5",
+    "better-auth": "^1.7.6",
+    "fastify": "^5.12.5",
     "fastify-type-provider-zod": "^7.0.0",
     "zod": "catalog:"
   }
