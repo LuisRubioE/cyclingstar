@@ -14,7 +14,9 @@ import { buildApp } from './app.js'
  * quite entre el 0 y el 8a tiene que pasar por aquí, y así la tabla de §11.3 llega completa al 8a,
  * donde cada fila gana su clase y su mecanismo y este fichero pasa a ser B1d.
  *
- * La lista va en el orden de §11.3, por fichero, con la línea del registro en la v91 (la base de E2).
+ * La lista va en el orden de §11.3, por fichero, con la línea del registro en la v91 (la base de E2),
+ * salvo en `routes/health.ts` y `routes/races.ts`, que el 3a movió, y en `routes/broadcast.ts`, que
+ * nace en el 3a: ahí, la del 3a.
  * El diseño contaba 87 rutas y 53 `HEAD` en `9c21885`; la v91 retiró la vuelta de prueba
  * (`/api/races/test-tour*`: cuatro `GET` y un `PUT`), así que hoy son 82 rutas de nuestro código
  * —48 `GET`, 21 `POST`, 7 `PUT`, 4 `DELETE`, un `PATCH` y el comodín `GET` y `POST` de `/api/auth/*`,
@@ -23,7 +25,7 @@ import { buildApp } from './app.js'
  */
 const ROUTES = [
   // routes/health.ts
-  'GET /health', // l. 16
+  'GET /health', // l. 21
   // routes/riders.ts (la única pública de ese fichero)
   'GET /api/names/generate', // l. 125
   // routes/geo.ts

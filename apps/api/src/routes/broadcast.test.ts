@@ -162,15 +162,13 @@ describe('las rutas de la retransmisión (§14.2)', () => {
         declineAge: 33,
       })),
     )
-    await t.db
-      .insert(raceRosters)
-      .values(
-        Array.from({ length: FIELD }, (_, i) => ({
-          raceId: RACE_KEY,
-          riderId: idDe(i),
-          bib: i + 1,
-        })),
-      )
+    await t.db.insert(raceRosters).values(
+      Array.from({ length: FIELD }, (_, i) => ({
+        raceId: RACE_KEY,
+        riderId: idDe(i),
+        bib: i + 1,
+      })),
+    )
     // La 1 es la crono; la 2, en línea, sale con los maillots que dejó la 1.
     for (const stageDay of [1, 2])
       await t.db.transaction((tx) =>
