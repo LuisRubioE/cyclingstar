@@ -345,15 +345,30 @@ describe('la espina dorsal del relato (docs/motor.md §16, v27)', () => {
     expect(chaseReferenceIndex([], f)).toBe(-1)
   })
 
+  /**
+   * RE-SELLADO EN E2, PASO 4a (docs/retransmision.md §12.6 y §16.1), y a propósito: el tope era de
+   * tres nombres y pasa a SEIS. La retransmisión hace que la voz diga la misma palabra que la barra de
+   * grupos por el mismo grupo (D-18, con el valor por defecto de DD-04), así que `GROUP_NOUNS` gana en
+   * las ocho plantillas que hablan del grupo titulado pelotón y en los dos partes de ventaja los tres
+   * nombres del grupo del maillot (`the race leader’s group` y los otros dos), y `the chase group` en
+   * las que no lo tenían. La unión que mide `storyMetrics` son las palabras DECLARADAS para las
+   * plantillas que el motor emite: los tres papeles del título y los tres maillots. `the gruppetto`
+   * solo entra por `crash`, que no es suceso del motor (D-13). Ningún suceso cambia: cambia la tabla.
+   *
+   * Remedido sobre estas 60 etapas con los sucesos de la v91: antes, las 60 daban tres nombres; con
+   * la tabla del 4a, las 60 dan seis. Este test ya no dice nada de la pantalla (eso lo vigila
+   * `stageJournal.test.ts`, frase a frase): caza que alguien declare un séptimo nombre para una
+   * plantilla que el motor emite.
+   */
   it(
-    'el vocabulario de grupos no pasa de tres nombres en ninguna etapa',
+    'el vocabulario de grupos no pasa de seis nombres en ninguna etapa',
     () => {
       for (const caso of casos)
         for (const seed of campaignSeeds(`vocabulario-${caso.name}`, caso.seeds)) {
           const out = simulateStage(caso.scenario.input, seed)
           const m = storyMetrics(rawChronicle(out.events))
           expect(`${caso.name} nombres=${m.nombresDeGrupo}`).toBe(
-            `${caso.name} nombres=${Math.min(m.nombresDeGrupo, 3)}`,
+            `${caso.name} nombres=${Math.min(m.nombresDeGrupo, 6)}`,
           )
         }
     },
