@@ -24,9 +24,10 @@ import {
  * con razón en la lista de salida: eso es B1c. El tercer `it` del diseño, el del título, las `og:` y el
  * aviso, entra en el 9a con `spaShell.ts` y `stageReadyEmail` (§17.10).
  *
- * Los tres primeros `it` miran el MISMO estado del mundo (la etapa corrida y velada), así que comparten
- * un barrido: tres seguidos pasarían de las 300 peticiones por minuto del límite global (security.ts) y
- * el tercero vería 429 en vez de cuerpos.
+ * Los tres primeros `it` miran el MISMO estado del mundo (la etapa corrida y velada) y comparten un
+ * barrido. Con el de `reveal`, cuatro barridos de 62 peticiones serían 248 en unos segundos, cerca de
+ * las 300 por minuto del límite global (security.ts), y pasado ese límite el barrido vería 429 en vez
+ * de cuerpos; así son dos.
  */
 
 /** EL CANARIO: valores que solo existen en el desenlace de la etapa velada, en campos que la API sirve. Se plantan tras correrla. */

@@ -220,15 +220,13 @@ describe('las rutas de /api/me (§14.2)', () => {
         declineAge: 33,
       })),
     )
-    await t.db
-      .insert(raceRosters)
-      .values(
-        Array.from({ length: FIELD }, (_, i) => ({
-          raceId: RACE_KEY,
-          riderId: idDe(i),
-          bib: i + 1,
-        })),
-      )
+    await t.db.insert(raceRosters).values(
+      Array.from({ length: FIELD }, (_, i) => ({
+        raceId: RACE_KEY,
+        riderId: idDe(i),
+        bib: i + 1,
+      })),
+    )
     for (const stageDay of [1, 2])
       await t.db.transaction((tx) =>
         runOneStage(tx, worldId, dayOf(stageDay), SEED, specOf(stageDay)),
