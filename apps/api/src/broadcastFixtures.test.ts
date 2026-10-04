@@ -59,7 +59,9 @@ import { type AppDeps, buildApp } from './app.js'
  *   hora de revelado; cada familia contra lo que mide hoy, impreso con su causa.
  * - B6 de lo servido (16-h, 16-n): la cabecera y el tramo mayor de las seis, con gzip 6 como
  *   `@fastify/compress`, servidos por `app.inject` sobre las seis sembradas en PGlite con
- *   `seedFixtureWorld`, contra `maxHeadGzipBytes` y `maxChunkGzipBytes`.
+ *   `seedFixtureWorld`, contra `maxHeadGzipBytes` y `maxChunkGzipBytes`; y B8 de su parse, `JSON.parse`
+ *   más el `safeParse` del esquema de `shared`, con los umbrales de §16.4 (la web no tiene estas
+ *   respuestas: `clientCost.test.ts` mide allí el fotograma).
  * - Y cada plantilla de las seis tiene su rótulo en `CUE_OF_TEMPLATE` (§6.6).
  *
  * El 6b le añade B3; el 7b, B13; y el 11a, B16.
@@ -451,9 +453,38 @@ const noAuth = {
   handler: async () => new Response('{}', { status: 200 }),
 } as unknown as NonNullable<AppDeps['auth']>
 
-describe('B6 de lo servido: la cabecera y el tramo mayor de las seis, con gzip 6 (16-h, 16-n)', () => {
+/**
+ * B8 DEL PARSE (§16.4; 16-m, 18-l), los umbrales de §16.4, su única fuente escrita (16-v): la mediana de
+ * `JSON.parse` más el `safeParse` del esquema de `shared` (el mismo que usa la web) de la cabecera ≤ 3
+ * ms y del tramo mayor ≤ 2 ms, en Node, sobre lo que sirve la ruta de verdad. `clientCost.test.ts` (la
+ * web) mide el fotograma; las respuestas de la API las tiene este fichero.
+ */
+const B8_PARSE_MEDIAN_MS = { head: 3, chunk: 2 } as const
+/** Las vueltas de cada medida de B8: la mediana. */
+const B8_PARSE_REPS = 21
+
+/** La mediana de lo que tarda `JSON.parse` más `safeParse` de una respuesta, en ms. */
+function parseMedianMs(body: string, schema: { safeParse: (x: unknown) => { success: boolean } }) {
+  const ms: number[] = []
+  for (let i = 0; i < B8_PARSE_REPS; i++) {
+    const t0 = performance.now()
+    const ok = schema.safeParse(JSON.parse(body)).success
+    ms.push(performance.now() - t0)
+    expect(ok).toBe(true)
+  }
+  return ms.sort((a, b) => a - b)[Math.floor(B8_PARSE_REPS / 2)]!
+}
+
+describe('B6 de lo servido: la cabecera y el tramo mayor de las seis, con gzip 6 (16-h, 16-n), y B8 de su parse', () => {
   const poolBefore = process.env.DB_POOL_MAX
-  const served: { name: string; head: number; chunk: number; chunks: number }[] = []
+  const served: {
+    name: string
+    head: number
+    chunk: number
+    chunks: number
+    headMs: number
+    chunkMs: number
+  }[] = []
   beforeAll(() => {
     // PGlite admite UNA sesión (testDb.ts), y la ruta lanza consultas a la vez.
     process.env.DB_POOL_MAX = '1'
@@ -490,18 +521,26 @@ describe('B6 de lo servido: la cabecera y el tramo mayor de las seis, con gzip 6
           expect(head.clock).toBe('exact')
           let chunk = 0
           let chunks = 0
+          let largest = ''
           for (let from = 0; ; from += BROADCAST.chunkRaceS * 10) {
             const c = await app.inject({
               method: 'GET',
               url: `${url}/chunk?fromDs=${from}&toDs=${from + BROADCAST.chunkRaceS * 10}`,
             })
             expect(c.statusCode, c.body.slice(0, 300)).toBe(200)
+            if (gz(c.body) > chunk) largest = c.body
             chunk = Math.max(chunk, gz(c.body))
             chunks += 1
             if (broadcastChunkSchema.parse(c.json()).atFinish) break
             expect(chunks).toBeLessThan(100)
           }
-          served.push({ name, head: gz(res.body), chunk, chunks })
+          const headMs = parseMedianMs(res.body, broadcastHeadSchema)
+          const chunkMs = parseMedianMs(largest, broadcastChunkSchema)
+          served.push({ name, head: gz(res.body), chunk, chunks, headMs, chunkMs })
+          expect(headMs, `${name}: B8 de la cabecera`).toBeLessThanOrEqual(B8_PARSE_MEDIAN_MS.head)
+          expect(chunkMs, `${name}: B8 del tramo mayor`).toBeLessThanOrEqual(
+            B8_PARSE_MEDIAN_MS.chunk,
+          )
           expect(gz(res.body), `${name}: la cabecera`).toBeLessThanOrEqual(
             BROADCAST.maxHeadGzipBytes,
           )
@@ -523,7 +562,9 @@ describe('B6 de lo servido: la cabecera y el tramo mayor de las seis, con gzip 6
         served
           .map(
             (s) =>
-              `  ${s.name}: la cabecera ${kb(s.head)} KB, el tramo mayor ${kb(s.chunk)} KB de ${s.chunks}`,
+              `  ${s.name}: la cabecera ${kb(s.head)} KB, el tramo mayor ${kb(s.chunk)} KB de ` +
+              `${s.chunks}; B8, el parse de la cabecera ${s.headMs.toFixed(2)} ms y del tramo mayor ` +
+              `${s.chunkMs.toFixed(2)} ms (topes ${B8_PARSE_MEDIAN_MS.head} y ${B8_PARSE_MEDIAN_MS.chunk})`,
           )
           .join('\n'),
     )
