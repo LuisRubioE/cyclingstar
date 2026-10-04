@@ -1,3 +1,6 @@
+/// <reference types="node" />
+import { readFileSync } from 'node:fs'
+import { gunzipSync } from 'node:zlib'
 import {
   BROADCAST,
   type BannerResult,
@@ -15,6 +18,7 @@ import {
   type TimelineEvent,
   chunkOf,
   cutTimeline,
+  decodeTimeline,
   fromDs,
   instantAt,
   photoBlocksOf,
@@ -34,7 +38,9 @@ import { type ServedLine, servedLineOf, withChunk } from './servedLine'
  * La etapa es sintética: un grabador de juguete con las reglas de §5.4 (las marcas en los cuatro
  * sitios de §3.4, la muerte en b − 1 con su marca, el catálogo por la hora de su marca de
  * nacimiento) sobre una foto por bloque escrita a mano, más los sucesos, la capa de detalle, las
- * pancartas y un percance.
+ * pancartas y un percance. Desde el 6a, también una congelada grabada de verdad (la e18, con sus
+ * marcas que bajan y su muerte en el bloque de foto), leída de los `.timeline.gz` de `apps/api` como
+ * en `clientCost.test.ts`, de ahí la referencia a los tipos de Node.
  */
 
 const DX = 0.1
@@ -475,5 +481,45 @@ describe('servedLine · la línea de la web con la cabecera y los tramos (nota 1
         ],
       },
     ])
+  })
+})
+
+describe('servedLine · con una congelada grabada de verdad (6a)', () => {
+  const url = new URL(
+    '../../../../api/src/__fixtures__/broadcast/race-france-e18.timeline.gz',
+    import.meta.url,
+  )
+  const tl = decodeTimeline(JSON.parse(gunzipSync(readFileSync(url)).toString('utf8')))
+  const head = headOf(tl)
+  const finish = visibilityOf(tl).finishDs
+  const ctx: InstantContext = {
+    own: new Set(),
+    start: head.startState,
+    photoBlocks: photoBlocksOf(head.stage.lengthKm, head.stage.dx),
+  }
+
+  it('tras cada tramo de 900 s, la línea es la cortada en su borde, y el instante sobre ella el de la línea entera', () => {
+    expect(tl.clock).toBe('exact')
+    const bounds = Array.from(
+      { length: Math.ceil(finish / (BROADCAST.chunkRaceS * 10)) + 1 },
+      (_, i) => i * BROADCAST.chunkRaceS * 10,
+    )
+    let served: ServedLine = servedLineOf(head)
+    let checked = 0
+    for (const c of chunksOf(bounds, tl)) {
+      served = withChunk(head, served, c)
+      const upTo = Math.min(c.toDs, finish - 1)
+      expect(shapeOf(served.core), `hasta ${c.toDs}`).toEqual(
+        shapeOf(cutTimeline(tl, fromDs(upTo))),
+      )
+      for (let ds = Math.max(0, c.fromDs - 600); ds <= upTo; ds += 311) {
+        expect(instantAt(served.core, fromDs(ds), ctx), `t = ${ds}`).toEqual(
+          instantAt(tl, fromDs(ds), ctx),
+        )
+        checked += 1
+      }
+    }
+    expect(served.toDs).toBe(finish)
+    expect(checked).toBeGreaterThan(100)
   })
 })

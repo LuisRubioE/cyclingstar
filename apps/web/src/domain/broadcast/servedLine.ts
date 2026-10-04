@@ -268,8 +268,16 @@ function coreOf(head: BroadcastHead, p: ServedParts): TimelineCore {
     const order: BannerResult['order'][number][] = []
     for (let j = 0; j < n; j++) order.push({ rider: d[i + 4 + j * 2]!, points: d[i + 5 + j * 2]! })
     if (kind !== null) {
-      const climb =
-        kind === 'cima' ? head.profile.climbs.find((c) => Math.abs(c.topKm - km) < 0.05) : undefined
+      // la pancarta va en el km del centro de su bloque, en décimas: la grabada, una décima después de
+      // la cima del perfil (37,1 la del km 37,0); la del adaptador, en el km de la cima. La más cercana
+      // a menos de un bloque (6a)
+      let climb: (typeof head.profile.climbs)[number] | undefined
+      if (kind === 'cima')
+        for (const c of head.profile.climbs) {
+          const d = Math.abs(c.topKm - km)
+          if (d <= head.stage.dx + 1e-6 && (climb === undefined || d < Math.abs(climb.topKm - km)))
+            climb = c
+        }
       banners.push({
         kind,
         km,
