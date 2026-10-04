@@ -19,8 +19,9 @@ import { calendarStageSpec } from './stageHistory.js'
 
 /**
  * B17 · EL RITMO MEDIDO, EN LA RÁPIDA (docs/retransmision.md §8.9, §16.4 y §17.6; D-19, D-60). La curva
- * de `Watch` y la de `Highlights` sobre la cabeza de la línea del adaptador de las cinco etapas
- * congeladas en línea, con las bandas de 8-k; la crono entra en el 6b y el digest en el 10a. El banco
+ * de `Watch` y la de `Highlights` sobre la cabeza de la línea de las cinco etapas congeladas en línea
+ * (la grabada desde el 6a; del 3a al 5, la del adaptador), con las bandas de 8-k; la crono entra en el
+ * 6b y el digest en el 10a. El banco
  * largo, sobre las 24 etapas y dos semillas, es `scripts/bench-pace.mjs`, con la misma curva (la de
  * `packages/shared`) y el mismo reloj (`storedHeadClock`).
  *

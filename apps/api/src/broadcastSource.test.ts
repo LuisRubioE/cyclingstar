@@ -12,7 +12,7 @@ import { describe, expect, it } from 'vitest'
 import {
   ROAD_FIXTURES,
   fixtureStage,
-  loadRecordedTimeline,
+  loadTimeline,
   loadStoredRadio,
 } from './__fixtures__/broadcast/load.js'
 import {
@@ -530,7 +530,7 @@ describe('el reparto provisional del adaptador (17-k) y su primera forma servida
 
 describe('threeKmRuleRiders · la regla de los 3 km sobre las caídas de la línea grabada (6-o, §14.7)', () => {
   // La e7, una llana que acaba al sprint: el grupo que llega con el ganador, y uno de ellos que se cae.
-  const tl = loadRecordedTimeline('race-france-e7')
+  const tl = loadTimeline('race-france-e7')
   const [winnerDs, bunch] = tl.finish.arrivals[0]!
   const rider = bunch[bunch.length - 1]!
   /** La línea con una caída de `rider` a `toGoKm` de la meta, en su sitio entre los sucesos de estado. */

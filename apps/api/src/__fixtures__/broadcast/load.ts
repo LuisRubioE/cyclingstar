@@ -7,17 +7,32 @@
  * radio completa del colector y el acta, más `manifest.json`), la segunda en el 5 (la línea grabada y
  * lo que espera I1). Regenerarlas es un PR propio, nunca el efecto de una subida de versión del motor.
  *
- * Lo leído se valida con Zod, como todo borde de entrada. `loadTimeline` (la línea del adaptador hasta
- * el 6a, la grabada después) llega en el 3a, y `seedFixtureWorld`, en el 6a (§17.20). La segunda mitad
- * llega en el 5: `loadTimelineBody` (el `stage_timelines.body` tal cual, para B6),
- * `loadRecordedTimeline` (la línea grabada, decodificada) y `loadInvariants` (lo que esperan I1 o I5).
+ * Lo leído se valida con Zod, como todo borde de entrada. La segunda mitad llega en el 5:
+ * `loadTimelineBody` (el `stage_timelines.body` tal cual, para B6) y `loadInvariants` (lo que esperan I1
+ * o I5). Desde el 6a, `loadTimeline` es la línea grabada (`<etapa>.timeline.gz`, decodificada como la
+ * lee `readStageTimeline`), la que miden B9, B17, I2 y B2; la del adaptador de la radio, que era
+ * `loadTimeline` del 3a al 5, sigue como `loadAdaptedTimeline` para B22. Y `seedFixtureWorld` siembra
+ * una congelada en una base de PGlite para servirla por las rutas (B6 de lo servido; B3 en el 6b y B13
+ * en el 7b, §17.20).
  */
 import { readFileSync } from 'node:fs'
 import { gunzipSync } from 'node:zlib'
 import {
+  type Database,
+  gameState,
+  riders,
+  stageSnapshots,
+  teams,
+  worlds,
+  writeStageTimelineRows,
+} from '@cyclingstar/db'
+import {
   type RaceRadio,
+  SEASON_CALENDAR,
+  type StageProfile,
   type StoredRaceRadio,
   radioForStorage,
+  stageDayOfSeason,
   stageLengthKm,
   stagesForSeason,
 } from '@cyclingstar/engine'
@@ -27,6 +42,7 @@ import {
   NO_LEADERS,
   type RaceLeaders,
   type StageTimeline,
+  TEMPLATE_REV,
   chronicleEntrySchema,
   decodeTimeline,
   pullMotiveSchema,
@@ -268,26 +284,35 @@ function fixtureLeaders(stage: FixtureStage): RaceLeaders {
   return { gc: gc ?? null, points: points ?? null, kom: kom ?? null, team: null }
 }
 
-const timelines = new Map<RoadFixtureName, StageTimeline>()
 /**
- * LA LÍNEA DE UNA ETAPA CONGELADA (§16.4, §17.6). Hasta el 6a, la del adaptador de la radio (§3.8):
- * se construye, como `timelineForStage` sin base, desde `<etapa>.radio.json.gz` (adelgazada como la
- * guardó stageRun.ts) y `.events.json.gz`, con el recorrido de la temporada 0 del calendario (el que
- * corrió el mundo de las congeladas; se comprueba que mide lo mismo) y el reparto provisional de los
- * corredores del manifiesto. Lo que el mundo de las congeladas no guardó en el manifiesto va
- * degradado y dicho: lo nombrable desde la salida son los tres maillots (la general de salida no
- * está), nadie lleva un maillot delegado, el tiempo es de prueba (la semilla de la etapa no está) y
- * todos son `M`, como el campo del banco. Desde el 6a, la grabada (`<etapa>.timeline.gz`).
+ * El recorrido que corrió una congelada: el de la temporada 0 del calendario, que es el que congeló su
+ * mundo (se comprueba que mide lo mismo).
  */
-export function loadTimeline(name: RoadFixtureName): StageTimeline {
-  const hit = timelines.get(name)
+function fixtureProfile(name: FixtureName): StageProfile {
+  const stage = fixtureStage(name)
+  const profile = stagesForSeason(stage.raceId, 0)[stage.day - 1]?.profile
+  if (profile === undefined || Math.abs(stageLengthKm(profile) - stage.lengthKm) > 1e-6)
+    throw new Error(`${name}: el recorrido de la temporada 0 no es el que corrió la congelada`)
+  return profile
+}
+
+const adaptedLines = new Map<RoadFixtureName, StageTimeline>()
+/**
+ * LA LÍNEA DEL ADAPTADOR DE LA RADIO de una congelada en línea (§3.8), la que era `loadTimeline` del 3a
+ * al 5 y desde el 6a mide B22 contra la grabada: se construye, como `timelineForStage` sin fila, desde
+ * `<etapa>.radio.json.gz` (adelgazada como la guardó stageRun.ts) y `.events.json.gz`, con el recorrido
+ * de la temporada 0 del calendario y el reparto provisional de los corredores del manifiesto. Lo que el
+ * mundo de las congeladas no guardó en el manifiesto va degradado y dicho: lo nombrable desde la salida
+ * son los tres maillots (la general de salida no está), nadie lleva un maillot delegado, el tiempo es
+ * de prueba (la semilla de la etapa no está) y todos son `M`, como el campo del banco.
+ */
+export function loadAdaptedTimeline(name: RoadFixtureName): StageTimeline {
+  const hit = adaptedLines.get(name)
   if (hit !== undefined) return hit
   const stage = fixtureStage(name)
   const race = fixtureManifest().races[stage.raceId]
   if (race === undefined) throw new Error(`la carrera de ${name} no está en manifest.json`)
-  const profile = stagesForSeason(stage.raceId, 0)[stage.day - 1]?.profile
-  if (profile === undefined || Math.abs(stageLengthKm(profile) - stage.lengthKm) > 1e-6)
-    throw new Error(`${name}: el recorrido de la temporada 0 no es el que corrió la congelada`)
+  const profile = fixtureProfile(name)
   const leaders = fixtureLeaders(stage)
   const from = stage.day > 1 ? { raceKey: stage.raceKey, stageDay: stage.day - 1 } : null
   const entries = stage.riderIds.map((riderId) => {
@@ -326,7 +351,7 @@ export function loadTimeline(name: RoadFixtureName): StageTimeline {
     ),
   })
   if (tl === null) throw new Error(`${name}: el adaptador no puede estimar el reloj`)
-  timelines.set(name, tl)
+  adaptedLines.set(name, tl)
   return tl
 }
 
@@ -342,18 +367,128 @@ export function loadTimelineBody(name: FixtureName): Buffer {
   return read(file)
 }
 
-const recorded = new Map<FixtureName, StageTimeline>()
+const timelines = new Map<FixtureName, StageTimeline>()
 /**
- * LA LÍNEA GRABADA de una etapa congelada, decodificada con `decodeTimeline` (el esquema de §4.3). El
- * 6a la pone en `loadTimeline` en lugar de la del adaptador; hasta entonces la leen los invariantes.
+ * LA LÍNEA DE UNA ETAPA CONGELADA (§16.4, §17.6): desde el 6a, la grabada, `<etapa>.timeline.gz`
+ * descomprimido y pasado por `decodeTimeline` (el esquema de §4.3), igual que `readStageTimeline`
+ * (§5.6). Del 3a al 5 era la del adaptador, que sigue en `loadAdaptedTimeline`.
  */
-export function loadRecordedTimeline(name: FixtureName): StageTimeline {
-  let tl = recorded.get(name)
+export function loadTimeline(name: FixtureName): StageTimeline {
+  let tl = timelines.get(name)
   if (tl === undefined) {
     tl = decodeTimeline(JSON.parse(gunzipSync(loadTimelineBody(name)).toString('utf8')))
-    recorded.set(name, tl)
+    timelines.set(name, tl)
   }
   return tl
+}
+
+/** Lo que deja sembrado `seedFixtureWorld`: el mundo de la carrera y la etapa, como la piden las rutas. */
+export interface SeededFixture {
+  readonly worldId: string
+  readonly raceId: string
+  readonly raceKey: string
+  readonly day: number
+}
+
+/** El día de juego en que se corrió: el de la temporada 0 del calendario, como lo corrió su mundo. */
+const gameDayOf = (stage: FixtureStage): number => {
+  const race = SEASON_CALENDAR.find((r) => r.id === stage.raceId)
+  if (race === undefined) throw new Error(`${stage.raceId} no está en el calendario`)
+  return stageDayOfSeason(race, stage.day)
+}
+
+/**
+ * SIEMBRA UNA CONGELADA EN UNA BASE (§16.2, §17.9; 17-u), para servirla por las rutas de verdad: el
+ * mundo de su carrera la primera vez (la fila de `worlds` con la semilla del manifiesto, `game_state`
+ * en la temporada 0 y después de todas sus carreras, como lo dejó el script, y los equipos y los
+ * corredores del manifiesto con sus uuid y sus nombres de prueba), y después la etapa: la fila de
+ * `stage_timelines` con el `.timeline.gz` tal cual y la de `stage_snapshots` con los sucesos, la radio
+ * guardada (en línea) y una entrada con el recorrido corrido y la salida del manifiesto.
+ *
+ * Lo que el manifiesto no guarda va con un valor de prueba, dicho: la división, la filosofía, el
+ * arquetipo y la edad (que ni la línea ni las rutas de la retransmisión leen), la semilla de la etapa y
+ * la revisión de plantillas (`TEMPLATE_REV`). Una base tiene un solo mundo (`getCurrentWorld`) y los
+ * uuid se repiten entre carreras (el script los numera desde 1 en cada una), así que una base siembra
+ * etapas de una sola carrera: la de otra es un error, no se pisa nada en silencio.
+ */
+export async function seedFixtureWorld(
+  t: { readonly db: Database },
+  name: FixtureName,
+): Promise<SeededFixture> {
+  const manifest = fixtureManifest()
+  const stage = fixtureStage(name)
+  const race = manifest.races[stage.raceId]
+  if (race === undefined) throw new Error(`la carrera de ${name} no está en manifest.json`)
+  const there = await t.db.select({ id: worlds.id, seed: worlds.worldSeed }).from(worlds)
+  let worldId = there.find((w) => w.seed === race.worldSeed)?.id
+  if (worldId === undefined && there.length > 0)
+    throw new Error(`${name}: la base ya tiene el mundo de otra carrera (${there[0]!.seed})`)
+  if (worldId === undefined) {
+    const [world] = await t.db
+      .insert(worlds)
+      .values({ worldSeed: race.worldSeed, engineVersion: manifest.engineVersion })
+      .returning({ id: worlds.id })
+    worldId = world!.id
+    await t.db.insert(gameState).values({ worldId, currentDay: 360, lastProcessedDay: 360 })
+    await t.db.insert(teams).values(
+      Object.entries(race.teams).map(([id, tm]) => ({
+        id,
+        worldId: worldId!,
+        name: tm.name,
+        division: 'WT' as const,
+        philosophy: 'general' as const,
+        jerseySeed: tm.jerseySeed,
+        country: tm.country,
+      })),
+    )
+    await t.db.insert(riders).values(
+      Object.entries(race.riders).map(([id, r]) => ({
+        id,
+        worldId: worldId!,
+        teamId: r.team,
+        name: r.name,
+        country: r.country,
+        gender: 'M' as const,
+        birthSeason: -27,
+        archetype: 'fondo' as const,
+        faceSeed: `${id}:cara`,
+      })),
+    )
+  }
+  const body = loadTimelineBody(name)
+  const tl = loadTimeline(name)
+  const missed = await writeStageTimelineRows(t.db, [
+    {
+      raceId: stage.raceKey,
+      stageDay: stage.day,
+      gameDay: gameDayOf(stage),
+      format: tl.format,
+      engineVersion: tl.engineVersion,
+      tplRev: TEMPLATE_REV,
+      finishS: Math.ceil(tl.finish.finishS),
+      bytes: body.length,
+      body,
+    },
+  ])
+  if (missed.length > 0) throw new Error(`${name}: la etapa ya estaba sembrada`)
+  await t.db.insert(stageSnapshots).values({
+    raceId: stage.raceKey,
+    stageDay: stage.day,
+    seed: `fixture:${name}`,
+    engineVersion: manifest.engineVersion,
+    input: {
+      profile: fixtureProfile(name),
+      timeTrial: stage.timeTrial,
+      riders: stage.riderIds.map((riderId) => ({
+        riderId,
+        teamId: race.riders[riderId]?.team ?? null,
+        bib: race.riders[riderId]?.bib ?? null,
+      })),
+    },
+    events: loadEvents(name),
+    radio: stage.timeTrial ? null : loadStoredRadio(name as RoadFixtureName),
+  })
+  return { worldId, raceId: stage.raceId, raceKey: stage.raceKey, day: stage.day }
 }
 
 /** Un grupo de lo que espera I1: [id, reloj en Ds, kind, tamaño, hueco en centésimas, RiderIx ordenados]. */
