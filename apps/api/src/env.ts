@@ -61,6 +61,20 @@ const envSchema = z
      * `on` (todos, al cerrar el paso 10). Un valor fuera de la lista hace fallar el arranque.
      */
     BROADCAST_WATCH: switchModeSchema.default('off'),
+    /**
+     * EL HORIZONTE (E2, docs/retransmision.md §10.13 y §14.6; D-53): `off` (por defecto; ninguna
+     * petición calcula el horizonte y todo se sirve como hoy), `admins` (los administradores viven el
+     * velo, desde el paso 7) u `on` (todos, al cerrar el paso 10, con B1 en verde y la prueba de lectura
+     * aceptada). Un destripe o un horizonte lento se apagan con `off`, sin desplegar. Lo visto se
+     * escribe igual con cualquier valor: tiene que estar ahí cuando el modo se encienda.
+     */
+    SPOILER_MODE: switchModeSchema.default('off'),
+    /**
+     * Segundos de carrera que tiene que crecer lo alcanzado para escribirlo en `race_watch` (E2, D-55,
+     * 15-j). Opcional: si está, sustituye a `BROADCAST.progressMinDeltaS` (60). Frena la escritura del
+     * progreso sin desplegar y sin apagar nada: el tope de los tramos usa la memoria del proceso.
+     */
+    PROGRESS_MIN_DELTA_S: z.coerce.number().int().min(0).optional(),
     TIMELINE_RECORD: timelineRecordSchema,
     /**
      * QUE `web` AVANCE EL MUNDO EN SU PROCESO (el auto-tick de `index.ts`), como hoy: `on` por defecto.

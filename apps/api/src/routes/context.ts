@@ -1,4 +1,4 @@
-import type { Database, TickSummary } from '@cyclingstar/db'
+import type { Database, ProgressMemory, TickSummary } from '@cyclingstar/db'
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify'
 import type { Auth } from '../auth.js'
 import type { AdminGuard } from '../security.js'
@@ -28,6 +28,12 @@ export interface RouteContext {
   currentUserId: (request: FastifyRequest) => Promise<string | null>
   /** Guarda de admin (token o sesión de administrador); responde 401 y devuelve null si no. */
   requireAdmin: AdminGuard
+  /**
+   * La memoria de lo alcanzado de este proceso (E2, D-55, §10.3; paso 7a): la escriben los informes de
+   * `POST /api/me/watch` y la vacía la meta (`POST …/broadcast/finish`); el 7b la lee para el tope de
+   * los tramos. Una por app, con el umbral de `PROGRESS_MIN_DELTA_S`.
+   */
+  progress: ProgressMemory
 }
 
 /** Contexto de las rutas de admin: base de datos y la guarda (que ya resuelve token o sesión). */

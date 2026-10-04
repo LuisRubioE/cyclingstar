@@ -1,7 +1,9 @@
 import {
   type StageRunSpec,
+  clearHorizonCaches,
   gameState,
   raceRosters,
+  readWatch,
   riderAttrs,
   riderHidden,
   riders,
@@ -22,13 +24,16 @@ import {
   broadcastFinishSchema,
   broadcastHeadSchema,
   healthSchema,
+  horizonSummarySchema,
   photoBlocksOf,
   stageReplaySchema,
+  watchResponseSchema,
 } from '@cyclingstar/shared'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { AppDeps } from '../app.js'
 import { buildApp } from '../app.js'
 import { clearAdaptedTimelineCache } from '../broadcastSource.js'
+import { VIEWER_COOKIE, signViewerCookie } from '../viewerCookie.js'
 
 /**
  * LAS RUTAS DE LA RETRANSMISIÓN SOBRE UNA ETAPA CORRIDA (docs/retransmision.md §14.2, §14.7 y §17.6).
@@ -37,8 +42,10 @@ import { clearAdaptedTimelineCache } from '../broadcastSource.js'
  * con `schema.parse` y cada error, `apiErrorBodySchema`; `BROADCAST_WATCH` decide quién alcanza la
  * retransmisión (404 `broadcast_off`), la crono sin línea da 404 `broadcast_unavailable`, y el tramo
  * lleva su propio límite de peticiones (14-q): dos sesiones desde la misma IP piden 320 tramos en un
- * minuto sin un 429, y un visitante que pasa de 300 recibe el 429 con su `retry-after`. El tope de lo
- * alcanzado (B18, 409 `beyond_reached`) llega en el 7b.
+ * minuto sin un 429, y un visitante que pasa de 300 recibe el 429 con su `retry-after`. El 7a añade lo
+ * visto: la meta escribe la letra (14-f) y la cabecera dice lo alcanzado (`view`); la cookie que solo
+ * restringe no se re-firma dentro del día (10-g); y B12, lo servido no es visto. El tope de lo alcanzado
+ * (B18, 409 `beyond_reached`) llega en el 7b, que re-sella ese caso de B12 (§17.10).
  */
 
 const RACE_ID = 'race-france'
@@ -91,18 +98,24 @@ describe('las rutas de la retransmisión (§14.2)', () => {
   const apps: ReturnType<typeof buildApp>[] = []
   const poolBefore = process.env.DB_POOL_MAX
 
-  const appWith = (broadcastWatch?: SwitchMode): ReturnType<typeof buildApp> => {
+  const appWith = (
+    broadcastWatch?: SwitchMode,
+    extra: Partial<AppDeps> = {},
+    spoilerMode: SwitchMode = 'off',
+  ): ReturnType<typeof buildApp> => {
     const app = buildApp({
       db: t.db,
       auth: headerAuth(),
       serveWeb: false,
       migrationsApplied: true,
       tickIntervalMinutes: 360,
-      ...(broadcastWatch ? { switches: { broadcastWatch, spoilerMode: 'off' } } : {}),
+      ...(broadcastWatch ? { switches: { broadcastWatch, spoilerMode } } : {}),
+      ...extra,
     })
     apps.push(app)
     return app
   }
+  let worldId = ''
 
   beforeAll(async () => {
     // PGlite admite UNA sesión (testDb.ts), y la ruta de etapa lanza consultas a la vez.
@@ -113,7 +126,8 @@ describe('las rutas de la retransmisión (§14.2)', () => {
       .insert(worlds)
       .values({ worldSeed: SEED, engineVersion: 1 })
       .returning({ id: worlds.id })
-    const worldId = world!.id
+    worldId = world!.id
+    clearHorizonCaches()
     await t.db.insert(users).values([
       { id: PLAYER, email: 'jugador@example.com', name: 'Jugador', emailVerified: true },
       { id: PLAYER_2, email: 'otra@example.com', name: 'Otra', emailVerified: true },
@@ -336,7 +350,13 @@ describe('las rutas de la retransmisión (§14.2)', () => {
       }
     })
 
-    it('la meta: el paquete con su esquema, sin radio en el acta, y sin escribir nada', async () => {
+    /**
+     * RE-SELLADO en E2, paso 7a: la meta ya no deja de escribir. Con sesión, escribe la letra del modo
+     * con `recordProgress` hasta `finishS` (14-f, §10.3): el administrador no había visto nada, así que
+     * la crono queda arrastrada (A, 10-a) y la 2, vista en directo (W); y la cabecera lo dice.
+     */
+    it('la meta: el paquete con su esquema, sin radio en el acta, y la letra de lo visto escrita (7a)', async () => {
+      expect(await readWatch(t.db, { userId: ADMIN, worldId, raceKey: RACE_KEY })).toBeNull()
       const res = await call(app, 'POST', `${STAGE_URL}/2/broadcast/finish`, ADMIN, {
         mode: 'play',
       })
@@ -348,6 +368,17 @@ describe('las rutas de la retransmisión (§14.2)', () => {
       expect(finish.report.radio).toBeUndefined()
       expect(finish.report.tplRev).toBe(0)
       expect(finish.threeKmRule).toEqual([])
+      expect(await readWatch(t.db, { userId: ADMIN, worldId, raceKey: RACE_KEY })).toEqual({
+        follow: 1,
+        knownThrough: 2,
+        how: 'AW',
+        watchingStage: null,
+        reachedS: null,
+      })
+      const head = broadcastHeadSchema.parse(
+        (await call(app, 'GET', `${STAGE_URL}/2/broadcast`, ADMIN)).json(),
+      )
+      expect(head.view).toEqual({ reachedS: null, known: true })
       const bad = await call(app, 'POST', `${STAGE_URL}/2/broadcast/finish`, ADMIN, { mode: 'x' })
       expect(bad.statusCode).toBe(400)
     })
@@ -379,6 +410,103 @@ describe('las rutas de la retransmisión (§14.2)', () => {
     const res = await call(app, 'GET', `${STAGE_URL}/2/broadcast`, ADMIN)
     expect(res.statusCode).toBe(404)
     expect(apiErrorBodySchema.parse(res.json()).error).toBe('broadcast_off')
+  })
+
+  /**
+   * LA COOKIE QUE NO SE RE-FIRMA DENTRO DEL DÍA (10-g, §14.9). La firma lleva la hora de emisión:
+   * firmarla en cada respuesta cambiaría la cabecera `Cookie` en cada petición, y con `Vary: Cookie` el
+   * navegador no reutilizaría ningún tramo guardado. Se firma solo si falta, no vale, es de otro usuario
+   * o tiene más de un día.
+   */
+  describe('cs_viewer en los tramos (10-g)', () => {
+    const SECRET = 's'.repeat(32)
+    const chunkUrl = `${STAGE_URL}/2/broadcast/chunk?fromDs=0&toDs=600`
+    const setCookies = (res: { headers: Record<string, unknown> }): string[] =>
+      [res.headers['set-cookie'] ?? []].flat().map(String)
+
+    it('dos tramos seguidos de la misma sesión con una cs_viewer de hace una hora no llevan Set-Cookie', async () => {
+      const app = appWith('on', { viewerSecret: SECRET })
+      const nowS = Date.now() / 1000
+      const cookie = `${VIEWER_COOKIE}=${signViewerCookie(ADMIN, SECRET, nowS - 3600)}`
+      for (let i = 0; i < 2; i++) {
+        const res = await app.inject({
+          method: 'GET',
+          url: chunkUrl,
+          headers: { 'x-test-user': ADMIN, cookie },
+        })
+        expect(res.statusCode).toBe(200)
+        expect(setCookies(res)).toEqual([])
+        expect(res.headers['cache-control']).toBe(`private, max-age=${BROADCAST.chunkCacheMaxAgeS}`)
+        const vary = String(res.headers.vary)
+          .split(',')
+          .map((v) => v.trim())
+        expect(vary.filter((v) => v === 'Cookie')).toEqual(['Cookie'])
+      }
+    })
+
+    it('sin ella, de otro usuario o de hace más de un día, la sesión recibe una nueva; sin sesión, ninguna', async () => {
+      const app = appWith('on', { viewerSecret: SECRET })
+      const nowS = Date.now() / 1000
+      for (const cookie of [
+        undefined,
+        `${VIEWER_COOKIE}=${signViewerCookie(PLAYER, SECRET, nowS - 60)}`,
+        `${VIEWER_COOKIE}=${signViewerCookie(ADMIN, SECRET, nowS - 86_400 - 60)}`,
+        `${VIEWER_COOKIE}=basura`,
+      ]) {
+        const res = await app.inject({
+          method: 'GET',
+          url: chunkUrl,
+          headers: { 'x-test-user': ADMIN, ...(cookie ? { cookie } : {}) },
+        })
+        const set = setCookies(res)
+        expect(set, cookie).toHaveLength(1)
+        expect(set[0]!.startsWith(`${VIEWER_COOKIE}=v1.${ADMIN}.`)).toBe(true)
+        expect(set[0]).toContain('HttpOnly; SameSite=Lax')
+      }
+      const anon = await app.inject({ method: 'GET', url: chunkUrl })
+      expect(setCookies(anon)).toEqual([])
+    })
+  })
+
+  /**
+   * B12 · LO SERVIDO NO ES VISTO (§10.2, §10.11; O-20). Los tramos hasta el borde de la meta, con lo
+   * alcanzado informado hasta `finishS − 1` y sin `POST …/finish`: la etapa sigue sin conocerse y en el
+   * velo; solo la meta la hace vista. En el 7b, con el tope de lo alcanzado, se re-sella pidiendo cada
+   * tramo dentro de lo informado más `prefetchRaceS` (§17.10).
+   */
+  it('B12 · lo servido no es visto: los tramos hasta la meta y lo alcanzado hasta finishS − 1 no la hacen vista', async () => {
+    const app = appWith('on', {}, 'on')
+    const key = { userId: PLAYER, worldId, raceKey: RACE_KEY }
+    const watchUrl = `/api/me/watch/${encodeURIComponent(RACE_KEY)}/2`
+    // El jugador vio la crono; su corredor corre la carrera: en guardia, con la 2 por ver.
+    await t.client`insert into race_watch (user_id, world_id, race_key, known_through, how)
+                   values (${PLAYER}, ${worldId}, ${RACE_KEY}, 1, 'W')`
+    let finishS = 0
+    for (let from = 0; ; from += BROADCAST.chunkRaceS * 10) {
+      const res = await call(
+        app,
+        'GET',
+        `${STAGE_URL}/2/broadcast/chunk?fromDs=${from}&toDs=${from + BROADCAST.chunkRaceS * 10}`,
+        PLAYER,
+      )
+      expect(res.statusCode).toBe(200)
+      const c = broadcastChunkSchema.parse(res.json())
+      if (c.atFinish) {
+        finishS = c.toDs / 10
+        break
+      }
+      const watch = await call(app, 'POST', watchUrl, PLAYER, {
+        reachedS: c.toDs / 10,
+        mode: 'play',
+      })
+      expect(watchResponseSchema.parse(watch.json()).status).toBe('watching')
+    }
+    const last = await call(app, 'POST', watchUrl, PLAYER, { reachedS: finishS - 1, mode: 'play' })
+    expect(watchResponseSchema.parse(last.json()).status).toBe('watching')
+    expect(await readWatch(t.db, key)).toMatchObject({ knownThrough: 1, how: 'W' })
+    const h = horizonSummarySchema.parse((await call(app, 'GET', '/api/me/horizon', PLAYER)).json())
+    expect(h.ready.find((r) => r.raceKey === RACE_KEY)?.stages).toEqual([2])
+    expect(h.watching.find((w) => w.raceKey === RACE_KEY)?.stageDay).toBe(2)
   })
 
   describe('el límite propio del tramo (14-q)', () => {

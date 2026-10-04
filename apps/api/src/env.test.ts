@@ -68,6 +68,32 @@ describe('loadEnv: el interruptor de la retransmisión (E2, §14.6)', () => {
   })
 })
 
+describe('loadEnv: el horizonte y el umbral del progreso (E2, §14.6 y 15-j; paso 7a)', () => {
+  it('SPOILER_MODE vale off si no está: desplegar no enciende el velo', () => {
+    expect(loadEnv(BASE as NodeJS.ProcessEnv).SPOILER_MODE).toBe('off')
+  })
+
+  it('SPOILER_MODE acepta off, admins y on, y nada más: un valor mal escrito no deja arrancar', () => {
+    for (const mode of ['off', 'admins', 'on'])
+      expect(loadEnv({ ...BASE, SPOILER_MODE: mode } as NodeJS.ProcessEnv).SPOILER_MODE).toBe(mode)
+    for (const mode of ['true', 'ON', 'admin'])
+      expect(() => loadEnv({ ...BASE, SPOILER_MODE: mode } as NodeJS.ProcessEnv)).toThrow(
+        /SPOILER_MODE/,
+      )
+  })
+
+  it('PROGRESS_MIN_DELTA_S es opcional: sin ella manda BROADCAST.progressMinDeltaS', () => {
+    expect(loadEnv(BASE as NodeJS.ProcessEnv).PROGRESS_MIN_DELTA_S).toBeUndefined()
+    expect(
+      loadEnv({ ...BASE, PROGRESS_MIN_DELTA_S: '300' } as NodeJS.ProcessEnv).PROGRESS_MIN_DELTA_S,
+    ).toBe(300)
+    for (const v of ['-1', '1.5', 'mucho'])
+      expect(() => loadEnv({ ...BASE, PROGRESS_MIN_DELTA_S: v } as NodeJS.ProcessEnv)).toThrow(
+        /PROGRESS_MIN_DELTA_S/,
+      )
+  })
+})
+
 describe('loadEnv: la grabación de la línea y el tick dentro de web (E2, §14.6 y 18-k; paso 5)', () => {
   it('TIMELINE_RECORD vale on si no está: desde el paso 5 el tick graba', () => {
     expect(loadEnv(BASE as NodeJS.ProcessEnv).TIMELINE_RECORD).toBe('on')
