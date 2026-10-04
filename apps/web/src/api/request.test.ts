@@ -106,6 +106,17 @@ describe('web: wrapper request()', () => {
       headers: { 'content-type': 'application/json' },
     })
   })
+
+  it('keepalive (E2, 7a): pasa a la petición solo si se pide, para que el informe de lo alcanzado sobreviva a cerrar la página', async () => {
+    const fetchMock = vi.fn<(path: string, init?: RequestInit) => Promise<Response>>(async () =>
+      response({ ok: true, value: 1 }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    await request('/api/x', schema, { method: 'POST', json: {}, keepalive: true })
+    await request('/api/x', schema)
+    expect(fetchMock.mock.calls[0]![1]?.keepalive).toBe(true)
+    expect(fetchMock.mock.calls[1]![1]).not.toHaveProperty('keepalive')
+  })
 })
 
 describe('web: el retry-after de un 429 (docs/retransmision.md §14.11, 14-q)', () => {

@@ -14,6 +14,13 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { broadcastChunkKey, fetchBroadcastChunk, postBroadcastFinish } from '../api/broadcast'
+import {
+  beaconWatchProgress,
+  forgetLocalProgress,
+  postWatchProgress,
+  readLocalProgress,
+  writeLocalProgress,
+} from '../api/watch'
 import { ClockNotice } from '../components/broadcast/ClockNotice'
 import { FixedOverlay } from '../components/broadcast/FixedOverlay'
 import { GroupBar } from '../components/broadcast/GroupBar'
@@ -52,7 +59,9 @@ import { formatTime } from '../domain/format'
  * una tras la respuesta de la anterior (`effects.ts`); y los cuadros, contados por la pantalla. Lo que
  * se aparta, por ser del 3c: la previa no tiene cuadros (son del 10a), así que espera a `▶`; la
  * llegada es solo el ganador, `finishFreezeS`, y el cierre, el resultado y el acta a un toque, los dos
- * provisionales hasta los cuadros del 10a; y los informes de lo alcanzado no se mandan hasta el 7a.
+ * provisionales hasta los cuadros del 10a. Los informes de lo alcanzado salen desde el 7a: con sesión,
+ * `POST /api/me/watch` con `keepalive` y, al salir, `sendBeacon` (14-g); sin ella (el visitante, o quien
+ * lee con `cs_viewer`: la cabecera no trae `view`), al `localStorage`, de donde también se reanuda (11-p).
  */
 export function StageWatch({
   head,
@@ -298,9 +307,9 @@ const sameControls = (a: Shown, b: Shown): boolean =>
  * `requestAnimationFrame` le da al reductor un fotograma con sus km a meta y si la cabeza está en la
  * línea (`headAtLine`), con el instante a `overlayHz` sobre la línea servida; ejecuta sus peticiones en
  * orden con `effectRunner` (un tramo, con `fetchQuery` y su clave, que no caduca ni se reintenta; un
- * 429, a los `retryAfterS`); y cuenta los cuadros: la llegada, `finishFreezeS`, y `Previously`,
- * `cueHoldS[3]`. Ocultar la pestaña pausa; un toque, el ratón o una tecla enseñan los mandos, y la
- * barra espaciadora pausa y sigue (D-20).
+ * 429, a los `retryAfterS`; los informes de lo alcanzado, desde el 7a); y cuenta los cuadros: la
+ * llegada, `finishFreezeS`, y `Previously`, `cueHoldS[3]`. Ocultar la pestaña pausa; un toque, el ratón
+ * o una tecla enseñan los mandos, y la barra espaciadora pausa y sigue (D-20).
  */
 function useWatchPlayer(head: BroadcastHead, raceId: string, day: number): WatchScreen {
   const queryClient = useQueryClient()
@@ -332,10 +341,13 @@ function useWatchPlayer(head: BroadcastHead, raceId: string, day: number): Watch
     let served = servedLineOf(head)
     let instant = instantAt(served.core, 0, ctx)
     let painted = { line: served.core, t: 0 }
+    const raceKey = head.stage.raceKey
+    // Sin sesión la cabecera no trae `view`, y el progreso no va al servidor: vive en localStorage (11-p).
+    const signedIn = head.view !== null
     const init = playerInit(
       DEFAULT_VIEW,
       day,
-      head.view?.reachedS ?? null,
+      signedIn ? (head.view?.reachedS ?? null) : readLocalProgress(raceKey, day),
       head.view?.known ?? false,
     )
     let s = init.next
@@ -361,8 +373,19 @@ function useWatchPlayer(head: BroadcastHead, raceId: string, day: number): Watch
             queryKey: broadcastChunkKey(raceId, day, undefined, fromD, toD),
             queryFn: () => fetchBroadcastChunk(raceId, day, fromD, toD),
           }),
-        finish: (mode) => postBroadcastFinish(raceId, day, mode),
+        finish: async (mode) => {
+          const f = await postBroadcastFinish(raceId, day, mode)
+          // con sesión, la meta escribe la letra (14-f); el visitante olvida lo alcanzado y vuelve a la previa (8-l)
+          if (!signedIn) forgetLocalProgress(raceKey, day)
+          return f
+        },
         sleep: (sec) => new Promise((resolve) => window.setTimeout(resolve, sec * 1000)),
+        report: signedIn
+          ? (reachedS, mode) => postWatchProgress(raceKey, day, { reachedS, mode })
+          : async (reachedS) => writeLocalProgress(raceKey, day, reachedS),
+        beacon: signedIn
+          ? (reachedS, mode) => beaconWatchProgress(raceKey, day, { reachedS, mode })
+          : (reachedS) => writeLocalProgress(raceKey, day, reachedS),
       },
       {
         chunk: (c) => {

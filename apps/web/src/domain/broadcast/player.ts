@@ -14,7 +14,7 @@
  * Nace en el 3b con el reloj, la red, la previa, la llegada y el cierre de `Watch` y `Highlights`. Los
  * saltos (`seek`, `back`, `landed`), `Show result` y el digest (con `release` y `loaded`) llegan en el
  * 10a: hasta entonces sus acciones no cambian nada. La cola de rótulos llega en el 6a, y los efectos de
- * informe (`report`) no se ejecutan hasta el 7a, cuando existe `POST /api/me/watch` (§17.6).
+ * informe (`report`) se ejecutan desde el 7a, que trae `POST /api/me/watch` (§17.6).
  *
  * Lo que se aparta de §8.11, cada cosa con su motivo:
  * - `PlayerState.sinceReportS`: los informes de cada `progressEveryRealS` de pared (§8.5) necesitan
@@ -155,7 +155,7 @@ export type PlayerAction =
   | { readonly k: 'throttled'; readonly retryAfterS: number }
 
 export type PlayerEffect =
-  /** POST /api/me/watch; beacon en pagehide. No se ejecuta hasta el 7a */
+  /** POST /api/me/watch (7a); beacon en pagehide y al desmontar, sin cola (effects.ts) */
   | {
       readonly k: 'report'
       readonly reachedS: RaceS
