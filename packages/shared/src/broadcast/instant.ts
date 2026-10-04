@@ -13,7 +13,13 @@
  * cruzado un km de foto lleva el hueco de su origen) y 3-f (la salida se ve desde t = 0), y la
  * histéresis del papel sin estado de 4-q.
  *
- * Nace en el PR 3a. `timeTrialInstantAt` (§9.3) llega en el 6b.
+ * Nace en el PR 3a. En el 6a, dos cosas que la línea grabada pedía (notas 1 y 3 del 4b): una marca
+ * que baja (el reloj de un grupo es el de su primero, y quien cae de un grupo de delante entra con el
+ * suyo) se ve y se pinta con el máximo acumulado del reloj de su grupo, como la cabeza (C3), y su
+ * reloj de verdad sigue dando el hueco; y el fotograma ya no rehace lo visto cruzando cada corredor
+ * con cada grupo, sino con un índice por línea (sus cambios, por corredor, y las marcas, por grupo y
+ * por bloque), para que B8 quepa: de 1 a 5 ms por llamada sobre las líneas grabadas a un p95 de
+ * 0,06 a 0,1 ms, con el mismo resultado. `timeTrialInstantAt` (§9.3) llega en el 6b.
  */
 import type { RadioGroupKind } from '../contracts.js'
 import { JERSEY_PRIORITY, type JerseyKind } from '../jerseys.js'
@@ -320,16 +326,97 @@ export function mainGapOf(
 
 // ------------------------------------------------------------------------ la línea, indexada
 
-/** Lo que el instante lee de una línea, calculado una vez por objeto. */
+/**
+ * Las marcas de un grupo, por bloque creciente: el reloj de verdad (`raw`, el de su primero al cruzar
+ * el bloque, §3.4), que da los huecos, y la hora a la que se ve (`eff`, el máximo acumulado de `raw`,
+ * de `visibilityOf`), que no decrece y da qué se ve y dónde se pinta (6a; nota 1 del 4b).
+ */
+interface GroupMarks {
+  readonly b: readonly Block[]
+  readonly raw: readonly Ds[]
+  readonly eff: readonly Ds[]
+  /**
+   * `eff` no decrece. Solo no lo hace si la marca de su muerte, que se ve a su reloj, baja: entonces las
+   * vistas son un prefijo mientras vive, pero no cuando ya ha muerto (su velocidad como origen, abajo).
+   */
+  readonly sorted: boolean
+}
+
+/** Las marcas de un bloque por la hora a la que se ven, con el menor reloj de las vistas hasta cada una: la cabeza (C3). */
+interface BlockMarks {
+  readonly eff: readonly Ds[]
+  readonly minRaw: readonly Ds[]
+}
+
+/** Un cambio de grupo de un corredor: en qué bloque, adónde (−1 es su `out`) y desde qué hora se ve. */
+interface RiderEntry {
+  readonly b: Block
+  readonly to: GroupIx
+  readonly vis: Ds
+}
+
+/** Un corredor de un `move`, por la posición de su cambio en `entries[rider]`. */
+interface MoveRef {
+  readonly rider: RiderIx
+  readonly entry: number
+}
+
+/** Un `move` de la línea, para la histéresis del papel (4-q): adónde, quiénes y la primera hora a la que se ve uno. */
+interface MoveEvent {
+  readonly to: GroupIx
+  readonly refs: readonly MoveRef[]
+  readonly vis1: Ds
+}
+
+/**
+ * Lo que no depende de la hora y sí del calendario de fotos, que da el tope de la extrapolación: por
+ * grupo, el máximo de lo pintado por cada marca hasta la siguiente (`pm[k]`, el de las marcas 1 a
+ * k − 1; la 0 depende de su origen y se calcula aparte).
+ */
+interface PhotoCache {
+  readonly reachMax: Map<GroupIx, number[]>
+  /** por GroupIx: lo pintado por su primera marca hasta la segunda, válido desde `since` (depende de su origen) */
+  readonly reach0: Map<GroupIx, { readonly since: Ds; readonly value: number }>
+}
+
+/**
+ * Lo que el instante lee de una línea, calculado una vez por objeto. Con él, un fotograma no rehace lo
+ * visto recorriendo cada corredor contra cada grupo: B8 pide su p95 por debajo de 0,25 ms (§16.4) y el
+ * instante del 3a costaba de 1 a 5 ms por llamada sobre las líneas grabadas (6a).
+ */
 interface LineIndex {
   readonly tl: TimelineCore
   readonly vis: TimelineVisibility
-  /** por GroupIx: sus marcas [bloque, Ds], por bloque creciente */
-  readonly marks: readonly (readonly (readonly [Block, Ds])[])[]
-  /** por bloque: las marcas [GroupIx, Ds] de ese bloque */
-  readonly marksAt: ReadonlyMap<Block, readonly (readonly [GroupIx, Ds])[]>
   /** la línea entera de la que sale (cutRootOf): comparte con ella el memo de los papeles crudos */
   readonly root: TimelineCore
+  /** por GroupIx */
+  readonly marks: readonly GroupMarks[]
+  /** por bloque con marcas */
+  readonly marksAt: ReadonlyMap<Block, BlockMarks>
+  /** por RiderIx: sus cambios de grupo y su `out`, en el orden de la línea, que es el de los bloques */
+  readonly entries: readonly (readonly RiderEntry[])[]
+  /** por RiderIx: la hora a la que se ve cada uno de sus cambios, en el mismo orden */
+  readonly entryVis: readonly (readonly Ds[])[]
+  /**
+   * por RiderIx: si la hora a la que se ven sus cambios no decrece con el bloque. Casi siempre (en las
+   * congeladas no la cumplen de 0 a 14 corredores por etapa): entonces lo visto es un prefijo y se busca
+   * por bisección; si no, se recorre.
+   */
+  readonly monotone: readonly boolean[]
+  /** los `main`, en el orden de la línea, con su hora; y el mínimo de la hora de cada sufijo */
+  readonly mains: readonly { readonly group: GroupIx | null; readonly vis: Ds }[]
+  readonly mainsSufMin: readonly Ds[]
+  /** los `move`, por su primera hora */
+  readonly moves: readonly MoveEvent[]
+  readonly movesVis1: readonly Ds[]
+  /** por GroupIx: los cambios que entran en él en su bloque de nacimiento (su origen, 3-a) */
+  readonly births: readonly (readonly MoveRef[])[]
+  /**
+   * por GroupIx: su origen, ya fijo desde `since`: cuando se ven todos los que entran en él al nacer y
+   * ninguno de ellos ve sus cambios fuera de orden, lo visto después no lo cambia.
+   */
+  readonly originCache: Map<GroupIx, { readonly since: Ds; readonly origin: GroupIx | undefined }>
+  readonly byPhotos: WeakMap<readonly Block[], PhotoCache>
 }
 
 const indexes = new WeakMap<TimelineCore, LineIndex>()
@@ -337,19 +424,87 @@ const indexes = new WeakMap<TimelineCore, LineIndex>()
 function indexOf(tl: TimelineCore): LineIndex {
   const hit = indexes.get(tl)
   if (hit !== undefined) return hit
-  const marks: [Block, Ds][][] = tl.groups.map(() => [])
-  const marksAt = new Map<Block, [GroupIx, Ds][]>()
-  for (const e of tl.stateEvents) {
-    if (e.t !== 'clock') continue
-    for (const [g, ds] of e.marks) {
-      ;(marks[g] ??= []).push([e.b, ds])
-      let at = marksAt.get(e.b)
-      if (at === undefined) marksAt.set(e.b, (at = []))
-      at.push([g, ds])
+  const vis = visibilityOf(tl)
+  const nG = tl.groups.length
+  const mb: Block[][] = Array.from({ length: nG }, () => [])
+  const mr: Ds[][] = Array.from({ length: nG }, () => [])
+  const me: Ds[][] = Array.from({ length: nG }, () => [])
+  const at = new Map<Block, [Ds, Ds][]>()
+  const entries: RiderEntry[][] = tl.riderIds.map(() => [])
+  const mains: { group: GroupIx | null; vis: Ds }[] = []
+  const moves: MoveEvent[] = []
+  const births: MoveRef[][] = Array.from({ length: nG }, () => [])
+  tl.stateEvents.forEach((e, i) => {
+    switch (e.t) {
+      case 'clock': {
+        const seenAt = vis.clockMarkDs[i] ?? []
+        e.marks.forEach(([g, raw], j) => {
+          const eff = seenAt[j] ?? raw
+          ;(mb[g] ??= []).push(e.b)
+          ;(mr[g] ??= []).push(raw)
+          ;(me[g] ??= []).push(eff)
+          let list = at.get(e.b)
+          if (list === undefined) at.set(e.b, (list = []))
+          list.push([eff, raw])
+        })
+        return
+      }
+      case 'out':
+        entries[e.rider]?.push({ b: e.b, to: -1, vis: vis.stateEventDs[i]! })
+        return
+      case 'move': {
+        const per = vis.moveRiderDs[i] ?? []
+        const refs: MoveRef[] = []
+        e.riders.forEach((r, j) => {
+          const list = entries[r]
+          if (list === undefined) return
+          list.push({ b: e.b, to: e.to, vis: per[j] ?? Number.POSITIVE_INFINITY })
+          refs.push({ rider: r, entry: list.length - 1 })
+        })
+        let vis1 = Number.POSITIVE_INFINITY
+        for (const d of per) if (d < vis1) vis1 = d
+        moves.push({ to: e.to, refs, vis1 })
+        if (e.to < nG && tl.groups[e.to]!.bornB === e.b) births[e.to]!.push(...refs)
+        return
+      }
+      case 'main':
+        mains.push({ group: e.group, vis: vis.stateEventDs[i]! })
+        return
+      default:
+        return
     }
+  })
+  const marksAt = new Map<Block, BlockMarks>()
+  for (const [b, list] of at) {
+    list.sort((x, y) => x[0] - y[0] || x[1] - y[1])
+    let min = Number.POSITIVE_INFINITY
+    const minRaw = list.map(([, raw]) => (min = Math.min(min, raw)))
+    marksAt.set(b, { eff: list.map(([eff]) => eff), minRaw })
   }
-  for (const list of marks) list.sort((x, y) => x[0] - y[0] || x[1] - y[1])
-  const out: LineIndex = { tl, vis: visibilityOf(tl), marks, marksAt, root: cutRootOf(tl) }
+  const mainsSufMin: Ds[] = new Array<Ds>(mains.length)
+  let suf = Number.POSITIVE_INFINITY
+  for (let i = mains.length - 1; i >= 0; i--) mainsSufMin[i] = suf = Math.min(suf, mains[i]!.vis)
+  moves.sort((x, y) => x.vis1 - y.vis1)
+  const out: LineIndex = {
+    tl,
+    vis,
+    root: cutRootOf(tl),
+    marks: mb.map((b, g) => {
+      const eff = me[g] ?? []
+      return { b, raw: mr[g] ?? [], eff, sorted: eff.every((d, j) => j === 0 || d >= eff[j - 1]!) }
+    }),
+    marksAt,
+    entries,
+    entryVis: entries.map((list) => list.map((x) => x.vis)),
+    monotone: entries.map((list) => list.every((x, k) => k === 0 || x.vis >= list[k - 1]!.vis)),
+    mains,
+    mainsSufMin,
+    moves,
+    movesVis1: moves.map((m) => m.vis1),
+    births,
+    originCache: new Map(),
+    byPhotos: new WeakMap(),
+  }
   indexes.set(tl, out)
   return out
 }
@@ -367,6 +522,64 @@ function upperBound(xs: readonly number[], x: number): number {
     else hi = mid
   }
   return lo
+}
+
+/** La primera posición de una lista ordenada con valor ≥ x (búsqueda binaria). */
+function lowerBound(xs: readonly number[], x: number): number {
+  let lo = 0
+  let hi = xs.length
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1
+    if (xs[mid]! < x) lo = mid + 1
+    else hi = mid
+  }
+  return lo
+}
+
+/**
+ * Hasta qué bloque llega la marca j de un grupo a la hora s: su bloque más su velocidad por el tiempo
+ * desde que se ve, sin pasar de la foto siguiente (`cap`). La velocidad es la de la marca anterior a la
+ * siguiente, o, en la primera, la de su grupo de origen (3-a, `speed0`). Todo con la hora a la que se
+ * ve cada marca, que no decrece: un grupo nunca va hacia atrás.
+ */
+function reachOf(
+  m: GroupMarks,
+  j: number,
+  s: Ds,
+  cap: (b: Block) => number,
+  speed0: (s: Ds) => number,
+): number {
+  const bj = m.b[j]!
+  const dj = m.eff[j]!
+  let speed: number
+  if (j >= 1) {
+    const d0 = m.eff[j - 1]!
+    speed = dj > d0 ? (bj - m.b[j - 1]!) / (dj - d0) : 0
+  } else speed = speed0(s)
+  return Math.min(cap(bj), bj + speed * (s - dj))
+}
+
+/** El máximo de lo pintado por las marcas 1 a k − 1 de un grupo, cada una hasta la siguiente (no depende de la hora). */
+function reachMaxOf(
+  cache: PhotoCache,
+  g: GroupIx,
+  m: GroupMarks,
+  k: number,
+  cap: (b: Block) => number,
+): number {
+  let pm = cache.reachMax.get(g)
+  if (pm === undefined)
+    cache.reachMax.set(g, (pm = [Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY]))
+  while (pm.length <= k) {
+    const j = pm.length - 1
+    pm.push(
+      Math.max(
+        pm[j]!,
+        reachOf(m, j, m.eff[j + 1]!, cap, () => 0),
+      ),
+    )
+  }
+  return pm[k]!
 }
 
 /** La regla de kindOf (raceRadio.ts) sobre el orden de este instante: delante, fuga y contra; detrás, tierra o grupeto. */
@@ -404,11 +617,6 @@ interface Seen {
     readonly kind: RadioGroupKind
   }[]
   readonly mainG: GroupIx | null
-  /** por corredor: su último cambio de grupo visto { b, from, to }; to = −1 es `out` */
-  readonly lastMove: ReadonlyMap<
-    RiderIx,
-    { readonly b: Block; readonly from: GroupIx; readonly to: GroupIx }
-  >
   readonly outs: number
   readonly inTransit: readonly {
     readonly rider: RiderIx
@@ -416,10 +624,10 @@ interface Seen {
     readonly to: GroupIx
     readonly lastB: Block
   }[]
-  /** por GroupIx vivo: su grupo de origen (3-a) */
-  readonly originOf: ReadonlyMap<GroupIx, GroupIx>
-  /** los movimientos vistos de más de un corredor: para la histéresis del papel (4-q) */
-  readonly bigMoves: readonly { readonly ds: Ds; readonly touched: ReadonlySet<GroupIx> }[]
+  /** el grupo de origen de un grupo (3-a): el de la mayoría de los que entran en él al nacer */
+  readonly originOf: (g: GroupIx) => GroupIx | undefined
+  /** ¿le tocó a g un movimiento de más de un corredor que se ve después de `since`? (la histéresis, 4-q) */
+  readonly touchedSince: (g: GroupIx, since: Ds) => boolean
   /** por GroupIx muerto y visto: sus predecesores (los que le tienen por sucesor) */
   readonly preds: ReadonlyMap<GroupIx, readonly GroupIx[]>
   /** el grupo de un corredor al final de un bloque, con lo visto */
@@ -431,169 +639,220 @@ interface Seen {
  * dependa de quién iba dónde sale de rehacer lo visto, nunca de la línea entera.
  */
 function seenAt(ix: LineIndex, S: Ds, photoBlocks: readonly Block[]): Seen {
-  const { tl, vis, marks } = ix
+  const { tl, vis, marks, entries, monotone } = ix
+  const nR = tl.riderIds.length
+  const nG = tl.groups.length
   // 1. Los grupos que se ven (un prefijo, 4-a) y los vivos.
   let nVisible = 0
-  while (nVisible < tl.groups.length && vis.groupBornDs[nVisible]! <= S) nVisible++
+  while (nVisible < nG && vis.groupBornDs[nVisible]! <= S) nVisible++
   const diedSeen = (g: GroupIx): boolean => {
     const d = vis.groupDiedDs[g] ?? null
     return d !== null && d <= S
   }
 
-  // Lo visto, rehecho en orden de bloque: el historial de cada corredor, los orígenes de cada grupo
-  // (los de los corredores que entran en él en su bloque de nacimiento), el último título y los
-  // movimientos de más de un corredor.
-  const history = new Map<RiderIx, [Block, GroupIx][]>()
-  const current = new Int16Array(tl.riderIds.length)
-  const lastMove = new Map<RiderIx, { b: Block; from: GroupIx; to: GroupIx }>()
-  const originCount = new Map<GroupIx, Map<GroupIx, number>>()
-  const bigMoves: { ds: Ds; touched: Set<GroupIx> }[] = []
-  let mainG: GroupIx | null = 0
-  let outs = 0
-  tl.stateEvents.forEach((e, i) => {
-    switch (e.t) {
-      case 'out':
-        if (vis.stateEventDs[i]! > S) return
-        lastMove.set(e.rider, { b: e.b, from: current[e.rider]!, to: -1 })
-        current[e.rider] = -1
-        ;(history.get(e.rider) ?? history.set(e.rider, []).get(e.rider)!).push([e.b, -1])
-        outs += 1
-        return
-      case 'move': {
-        const per = vis.moveRiderDs[i] ?? []
-        const touched = new Set<GroupIx>([e.to])
-        let seen = 0
-        let minDs = Number.POSITIVE_INFINITY
-        e.riders.forEach((r, j) => {
-          const ds = per[j] ?? Number.POSITIVE_INFINITY
-          if (ds > S) return
-          const from = current[r]!
-          seen += 1
-          minDs = Math.min(minDs, ds)
-          touched.add(from)
-          if (e.to < tl.groups.length && tl.groups[e.to]!.bornB === e.b) {
-            let c = originCount.get(e.to)
-            if (c === undefined) originCount.set(e.to, (c = new Map()))
-            c.set(from, (c.get(from) ?? 0) + 1)
-          }
-          lastMove.set(r, { b: e.b, from, to: e.to })
-          current[r] = e.to
-          ;(history.get(r) ?? history.set(r, []).get(r)!).push([e.b, e.to])
-        })
-        if (seen > 1) bigMoves.push({ ds: minDs, touched })
-        return
-      }
-      case 'main':
-        if (vis.stateEventDs[i]! <= S) mainG = e.group
-        return
-      default:
-        return
+  // Lo visto de cada corredor, en el orden de la línea: el último de sus cambios que se ve. Su grupo al
+  // final de un bloque es el de su último cambio visto de ese bloque o anterior; el grupo que deja un
+  // cambio, el del cambio visto anterior (o el de salida).
+  const last = new Int32Array(nR)
+  for (let r = 0; r < nR; r++) {
+    const list = entries[r]!
+    if (monotone[r]) last[r] = upperBound(ix.entryVis[r]!, S) - 1
+    else {
+      let k = -1
+      for (let i = 0; i < list.length; i++) if (list[i]!.vis <= S) k = i
+      last[r] = k
     }
-  })
-  const groupAtBlock = (r: RiderIx, b: Block): GroupIx => {
-    const h = history.get(r)
-    if (h === undefined) return 0
-    let out: GroupIx = 0
-    for (const [hb, g] of h) {
-      if (hb > b) break
-      out = g
-    }
-    return out
   }
-  const originOf = new Map<GroupIx, GroupIx>()
-  for (const [g, counts] of originCount) {
-    let best: GroupIx | null = null
+  const prevSeen = (r: RiderIx, i: number): number => {
+    if (monotone[r]) return i - 1
+    const list = entries[r]!
+    for (let j = i - 1; j >= 0; j--) if (list[j]!.vis <= S) return j
+    return -1
+  }
+  const toOf = (r: RiderIx, i: number): GroupIx => (i < 0 ? 0 : entries[r]![i]!.to)
+  const groupAtBlock = (r: RiderIx, b: Block): GroupIx => {
+    const k = last[r]!
+    if (k < 0) return 0
+    const list = entries[r]!
+    if (monotone[r]) {
+      let lo = 0
+      let hi = k + 1
+      while (lo < hi) {
+        const mid = (lo + hi) >> 1
+        if (list[mid]!.b <= b) lo = mid + 1
+        else hi = mid
+      }
+      return lo === 0 ? 0 : list[lo - 1]!.to
+    }
+    for (let j = k; j >= 0; j--) {
+      const x = list[j]!
+      if (x.vis <= S && x.b <= b) return x.to
+    }
+    return 0
+  }
+  const lastMoveOf = (r: RiderIx): { b: Block; from: GroupIx; to: GroupIx } | undefined => {
+    const k = last[r]!
+    if (k < 0) return undefined
+    const x = entries[r]![k]!
+    return { b: x.b, from: toOf(r, prevSeen(r, k)), to: x.to }
+  }
+  let outs = 0
+  for (let r = 0; r < nR; r++) {
+    const k = last[r]!
+    if (k >= 0 && entries[r]![k]!.to === -1) outs += 1
+  }
+  // El último `main` visto, en el orden de la línea: el mayor índice con hora ≤ S.
+  let mainG: GroupIx | null = 0
+  const lastMain = upperBound(ix.mainsSufMin, S) - 1
+  if (lastMain >= 0) mainG = ix.mains[lastMain]!.group
+
+  // El origen de cada grupo (3-a), cuando se pide: el grupo que dejan la mayoría de los que entran en
+  // él en su bloque de nacimiento; a igualdad, el de menor índice.
+  const origins = new Map<GroupIx, GroupIx | undefined>()
+  const originOf = (g: GroupIx): GroupIx | undefined => {
+    const fixed = ix.originCache.get(g)
+    if (fixed !== undefined && S >= fixed.since) return fixed.origin
+    if (origins.has(g)) return origins.get(g)
+    const counts = new Map<GroupIx, number>()
+    let since = Number.NEGATIVE_INFINITY
+    let settled = true
+    for (const ref of ix.births[g] ?? []) {
+      const vis = entries[ref.rider]![ref.entry]!.vis
+      if (vis > S) {
+        settled = false
+        continue
+      }
+      since = Math.max(since, vis)
+      if (!monotone[ref.rider]) settled = false
+      const from = toOf(ref.rider, prevSeen(ref.rider, ref.entry))
+      counts.set(from, (counts.get(from) ?? 0) + 1)
+    }
+    let best: GroupIx | undefined
     let bestN = -1
     for (const [from, n] of [...counts].sort((x, y) => x[0] - y[0]))
       if (n > bestN && from >= 0) {
         best = from
         bestN = n
       }
-    if (best !== null) originOf.set(g, best)
+    origins.set(g, best)
+    if (settled) ix.originCache.set(g, { since, origin: best })
+    return best
   }
 
-  // 2. La posición de cada grupo vivo (D-04, 3-a, 3-f).
-  const visibleMarks = (g: GroupIx): number => {
-    const list = marks[g] ?? []
-    // las marcas de un grupo crecen con el bloque: las vistas son un prefijo
-    let lo = 0
-    let hi = list.length
-    while (lo < hi) {
-      const mid = (lo + hi) >> 1
-      if (list[mid]![1] <= S) lo = mid + 1
-      else hi = mid
-    }
-    return lo
-  }
+  // 2. La posición de cada grupo vivo (D-04, 3-a, 3-f), con la hora a la que se ve cada marca.
   const cap = (b: Block): number => {
     const k = upperBound(photoBlocks, b)
     return k < photoBlocks.length ? photoBlocks[k]! : tl.blocks - 1
   }
-  /** Las dos últimas marcas de o con reloj ≤ s, como velocidad en bloques por décima; 0 sin dos. */
+  /** Las dos últimas marcas de o vistas a la hora s, como velocidad en bloques por décima; 0 sin dos. */
   const originSpeed = (o: GroupIx | undefined, s: Ds): number => {
-    if (o === undefined) return 0
-    const list = marks[o] ?? []
-    let n = 0
-    while (n < list.length && list[n]![1] <= s) n++
-    if (n < 2) return 0
-    const [b0, d0] = list[n - 2]!
-    const [b1, d1] = list[n - 1]!
-    return d1 > d0 ? (b1 - b0) / (d1 - d0) : 0
+    const m = o === undefined ? undefined : marks[o]
+    if (m === undefined) return 0
+    let i0 = -1
+    let i1 = -1
+    if (m.sorted) {
+      i1 = upperBound(m.eff, s) - 1
+      i0 = i1 - 1
+    } else
+      for (let j = 0; j < m.eff.length; j++)
+        if (m.eff[j]! <= s) {
+          i0 = i1
+          i1 = j
+        }
+    if (i0 < 0) return 0
+    const d0 = m.eff[i0]!
+    const d1 = m.eff[i1]!
+    return d1 > d0 ? (m.b[i1]! - m.b[i0]!) / (d1 - d0) : 0
+  }
+  let cache = ix.byPhotos.get(photoBlocks)
+  if (cache === undefined)
+    ix.byPhotos.set(photoBlocks, (cache = { reachMax: new Map(), reach0: new Map() }))
+  /** Lo pintado por la primera marca de g hasta la segunda: fijo en cuanto su origen lo es. */
+  const reach0Of = (g: GroupIx, m: GroupMarks, speed0: (s: Ds) => number): number => {
+    const hit = cache.reach0.get(g)
+    if (hit !== undefined && S >= hit.since) return hit.value
+    const value = reachOf(m, 0, m.eff[1]!, cap, speed0)
+    const fixed = g === 0 ? { since: Number.NEGATIVE_INFINITY } : ix.originCache.get(g)
+    if (fixed !== undefined && S >= fixed.since)
+      cache.reach0.set(g, { since: Math.max(fixed.since, m.eff[1]!), value })
+    return value
   }
   const live: { g: GroupIx; real: number; painted: number; km: number; last: number }[] = []
   for (let g = 0; g < nVisible; g++) {
     if (diedSeen(g)) continue
-    const list = marks[g] ?? []
-    const n = visibleMarks(g)
-    if (n === 0) {
+    const m = marks[g]
+    // vivo, sus marcas vistas son un prefijo: la de su muerte, la única que puede no seguir el orden, no se ve aún
+    let n = 0
+    if (m !== undefined && m.sorted) n = upperBound(m.eff, S)
+    else if (m !== undefined) while (n < m.eff.length && m.eff[n]! <= S) n++
+    if (m === undefined || n === 0) {
       // antes de su primera marca: solo el de salida existe, en el km 0 con todo el reparto (3-f)
       if (g === 0) live.push({ g, real: 0, painted: -0.5, km: 0, last: -1 })
       continue
     }
-    const speed = (j: number, s: Ds): number => {
-      if (j >= 1) {
-        const [b0, d0] = list[j - 1]!
-        const [b1, d1] = list[j]!
-        return d1 > d0 ? (b1 - b0) / (d1 - d0) : 0
-      }
-      return g === 0 ? 0 : originSpeed(originOf.get(g), s)
-    }
-    const reach = (j: number, s: Ds): number => {
-      const [bj, dj] = list[j]!
-      return Math.min(cap(bj), bj + speed(j, s) * (s - dj))
-    }
+    const speed0 = (s: Ds): number => (g === 0 ? 0 : originSpeed(originOf(g), s))
     const lastIx = n - 1
-    const real = reach(lastIx, S)
+    const real = reachOf(m, lastIx, S, cap, speed0)
     let painted = real
-    for (let j = 0; j < lastIx; j++) painted = Math.max(painted, reach(j, list[j + 1]![1]))
+    if (lastIx >= 1) {
+      painted = Math.max(painted, reach0Of(g, m, speed0))
+      painted = Math.max(painted, reachMaxOf(cache, g, m, lastIx, cap))
+    }
     live.push({ g, real, painted, km: Math.max(0, (painted + 0.5) * tl.dx), last: lastIx })
   }
 
-  // 3. La composición: los de cada grupo en la foto de su bloque sin pintar (4-e).
-  const membersOf = new Map<GroupIx, RiderIx[]>()
-  for (const x of live) membersOf.set(x.g, [])
-  const blockOf = new Map(live.map((x) => [x.g, Math.floor(x.real)] as const))
-  for (let r = 0; r < tl.riderIds.length; r++) {
-    if (current[r] === -1 && lastMove.get(r)?.to === -1) continue // fuera: su `out` se ve
-    for (const x of live) {
-      if (groupAtBlock(r, blockOf.get(x.g)!) === x.g) membersOf.get(x.g)!.push(r)
+  // 3. La composición: los de cada grupo en la foto de su bloque sin pintar (4-e). Por corredor, cada
+  //    tramo de bloques en que lo visto le pone en un grupo vivo cuenta si contiene el bloque de ese grupo.
+  const membersOf: RiderIx[][] = []
+  const blockOfLive = new Int32Array(nG).fill(-1)
+  for (const x of live) {
+    membersOf[x.g] = []
+    blockOfLive[x.g] = Math.floor(x.real)
+  }
+  /** r es de h si el bloque de h cae en [lo, hi). */
+  const claim = (r: RiderIx, h: GroupIx, lo: Block, hi: Block): void => {
+    if (h < 0 || h >= nG) return
+    const B = blockOfLive[h]!
+    if (B >= 0 && B >= lo && B < hi) membersOf[h]!.push(r)
+  }
+  for (let r = 0; r < nR; r++) {
+    const k = last[r]!
+    const list = entries[r]!
+    if (k >= 0 && list[k]!.to === -1) continue // fuera: su `out` se ve
+    let cur: GroupIx = 0
+    let lo: Block = 0
+    for (let i = 0; i <= k; i++) {
+      const x = list[i]!
+      if (x.vis > S) continue
+      claim(r, cur, lo, x.b)
+      cur = x.to
+      lo = x.b
     }
+    claim(r, cur, lo, Number.POSITIVE_INFINITY)
   }
 
   // 5. El orden: por km pintado decreciente; a igual km, por la marca de su último km de foto y por id.
-  const lastPhotoMark = (x: { g: GroupIx; last: number }): Ds => {
-    if (x.last < 0) return 0
-    const list = marks[x.g]!
-    const bLast = list[x.last]![0]
-    const kIx = upperBound(photoBlocks, bLast) - 1
+  const lastPhotoMark: Ds[] = []
+  for (const x of live) {
+    if (x.last < 0) {
+      lastPhotoMark[x.g] = 0
+      continue
+    }
+    const m = marks[x.g]!
+    const kIx = upperBound(photoBlocks, m.b[x.last]!) - 1
     const k = kIx >= 0 ? photoBlocks[kIx]! : -1
-    for (let j = x.last; j >= 0; j--) if (list[j]![0] === k) return list[j]![1]
-    return list[x.last]![1]
+    let d = m.raw[x.last]!
+    for (let j = x.last; j >= 0 && m.b[j]! >= k; j--)
+      if (m.b[j] === k) {
+        d = m.raw[j]!
+        break
+      }
+    lastPhotoMark[x.g] = d
   }
   live.sort(
     (a, b) =>
       b.km - a.km ||
-      lastPhotoMark(a) - lastPhotoMark(b) ||
+      lastPhotoMark[a.g]! - lastPhotoMark[b.g]! ||
       (tl.groups[a.g]!.id < tl.groups[b.g]!.id
         ? -1
         : tl.groups[a.g]!.id > tl.groups[b.g]!.id
@@ -602,38 +861,45 @@ function seenAt(ix: LineIndex, S: Ds, photoBlocks: readonly Block[]): Seen {
   )
 
   // 4. El tránsito (3-b): el que sale en dos grupos se pinta en el de atrás; el que no sale en
-  //    ninguno y no se ha bajado, va de su grupo de antes a su destino.
-  const inTransit: { rider: RiderIx; from: GroupIx; to: GroupIx; lastB: Block }[] = []
-  const where = new Map<RiderIx, number[]>() // posiciones en `live` (orden de carretera)
+  //    ninguno y no se ha bajado, va de su grupo de antes a su destino. Por corredor, en cuántos grupos
+  //    sale y el primero y el último de ellos en orden de carretera.
+  const count = new Int32Array(nR)
+  const firstPos = new Int32Array(nR)
+  const lastPos = new Int32Array(nR)
+  let doubled = false
   live.forEach((x, pos) => {
-    for (const r of membersOf.get(x.g)!) (where.get(r) ?? where.set(r, []).get(r)!).push(pos)
-  })
-  for (const [r, poss] of where) {
-    if (poss.length < 2) continue
-    const behind = Math.max(...poss)
-    const ahead = Math.min(...poss)
-    for (const pos of poss) {
-      if (pos === behind) continue
-      const list = membersOf.get(live[pos]!.g)!
-      list.splice(list.indexOf(r), 1)
+    for (const r of membersOf[x.g]!) {
+      const n = count[r]!
+      if (n === 0) firstPos[r] = pos
+      else doubled = true
+      count[r] = n + 1
+      lastPos[r] = pos
     }
-    const mv = lastMove.get(r)
-    inTransit.push({
-      rider: r,
-      from: live[behind]!.g,
-      to: live[ahead]!.g,
-      lastB: mv?.b ?? 0,
+  })
+  if (doubled)
+    live.forEach((x, pos) => {
+      const list = membersOf[x.g]!
+      if (list.some((r) => count[r]! > 1 && lastPos[r] !== pos))
+        membersOf[x.g] = list.filter((r) => count[r]! < 2 || lastPos[r] === pos)
     })
-  }
-  for (let r = 0; r < tl.riderIds.length; r++) {
-    if (where.has(r)) continue
-    const mv = lastMove.get(r)
+  const inTransit: { rider: RiderIx; from: GroupIx; to: GroupIx; lastB: Block }[] = []
+  for (let r = 0; r < nR; r++) {
+    const n = count[r]!
+    if (n === 1) continue
+    const mv = lastMoveOf(r)
+    if (n > 1) {
+      inTransit.push({
+        rider: r,
+        from: live[lastPos[r]!]!.g,
+        to: live[firstPos[r]!]!.g,
+        lastB: mv?.b ?? 0,
+      })
+      continue
+    }
     if (mv !== undefined && mv.to === -1) continue // se bajó
-    const from = mv?.from ?? current[r]!
-    const to = mv?.to ?? current[r]!
-    inTransit.push({ rider: r, from, to, lastB: mv?.b ?? 0 })
+    const cur = toOf(r, last[r]!)
+    inTransit.push({ rider: r, from: mv?.from ?? cur, to: mv?.to ?? cur, lastB: mv?.b ?? 0 })
   }
-  inTransit.sort((a, b) => a.rider - b.rider)
 
   // 6. El pelotón: el del último `main` visto; si ya no vive, el primero vivo de su cadena de sucesores.
   const aliveSet = new Set(live.map((x) => x.g))
@@ -659,6 +925,23 @@ function seenAt(ix: LineIndex, S: Ds, photoBlocks: readonly Block[]): Seen {
     if (s !== null && s !== undefined) (preds.get(s) ?? preds.set(s, []).get(s)!).push(g)
   }
 
+  /** Los movimientos de más de un corredor vistos, que tocan a g (adonde van o de donde sale uno), vistos después de `since`. */
+  const touchedSince = (g: GroupIx, since: Ds): boolean => {
+    for (let i = upperBound(ix.movesVis1, since); i < ix.moves.length; i++) {
+      const m = ix.moves[i]!
+      if (m.vis1 > S) break
+      let seen = 0
+      let touched = m.to === g
+      for (const ref of m.refs) {
+        if (entries[ref.rider]![ref.entry]!.vis > S) continue
+        seen += 1
+        if (!touched && toOf(ref.rider, prevSeen(ref.rider, ref.entry)) === g) touched = true
+      }
+      if (seen > 1 && touched) return true
+    }
+    return false
+  }
+
   return {
     S,
     order: live.map((x, i) => ({
@@ -667,15 +950,14 @@ function seenAt(ix: LineIndex, S: Ds, photoBlocks: readonly Block[]): Seen {
       painted: x.painted,
       km: x.km,
       last: x.last,
-      members: membersOf.get(x.g)!,
+      members: membersOf[x.g]!,
       kind: kinds[i]!,
     })),
     mainG: main,
-    lastMove,
     outs,
     inTransit,
     originOf,
-    bigMoves,
+    touchedSince,
     preds,
     groupAtBlock,
   }
@@ -712,24 +994,22 @@ export function instantAt(tl: TimelineCore, t: RaceS, ctx: InstantContext): Inst
   const seen = seenAt(ix, S, pb)
   const { marks } = ix
 
-  /** Su marca en el bloque, si se ve. */
+  /** Su marca en el bloque, con su reloj de verdad, si se ve. */
   const markOf = (g: GroupIx, b: Block): Ds | null => {
-    const list = marks[g] ?? []
-    for (const [mb, d] of list) {
-      if (mb === b) return d <= S ? d : null
-      if (mb > b) break
-    }
-    return null
+    const m = marks[g]
+    if (m === undefined) return null
+    const j = lowerBound(m.b, b)
+    if (j >= m.b.length || m.b[j] !== b) return null
+    return m.eff[j]! <= S ? m.raw[j]! : null
   }
   // La cabeza en cada km de foto: la menor marca vista, con máximo acumulado (C3).
   const headAt = new Map<Block, Ds>()
   let acc = 0
   for (const k of pb) {
-    const at = ix.marksAt.get(k) ?? []
-    let min: Ds | null = null
-    for (const [, d] of at) if (d <= S && (min === null || d < min)) min = d
-    if (min === null) break // nadie ha cruzado aún este km: tampoco los siguientes
-    acc = Math.max(acc, min)
+    const at = ix.marksAt.get(k)
+    const n = at === undefined ? 0 : upperBound(at.eff, S)
+    if (at === undefined || n === 0) break // nadie ha cruzado aún este km: tampoco los siguientes
+    acc = Math.max(acc, at.minRaw[n - 1]!)
     headAt.set(k, acc)
   }
   const photoAtOrBefore = (b: Block): Block | null => {
@@ -777,7 +1057,7 @@ export function instantAt(tl: TimelineCore, t: RaceS, ctx: InstantContext): Inst
 
   // 8. Los huecos: en el último km de foto que cada grupo ha cruzado (D-01, punto 4).
   const lastBlockOf = (x: Seen['order'][number]): Block | null =>
-    x.last >= 0 ? marks[x.g]![x.last]![0] : null
+    x.last >= 0 ? marks[x.g]!.b[x.last]! : null
   /** reading: su hueco; k: el km de foto de la lectura; own: si es suyo y no de su origen (3-e). */
   const gapOf = new Map<GroupIx, { reading: GapReading; k: Block | null; own: boolean }>()
   /** El hueco de un grupo en un km de foto concreto, sin tendencia ni el de delante. */
@@ -793,7 +1073,7 @@ export function instantAt(tl: TimelineCore, t: RaceS, ctx: InstantContext): Inst
     const d = k === null ? null : markOf(x.g, k)
     if (k === null || d === null) {
       // 3-e: aún no ha cruzado un km de foto; el hueco de su origen en su último km antes de nacer
-      const o = seen.originOf.get(x.g)
+      const o = seen.originOf(x.g)
       const born = ix.tl.groups[x.g]!.bornB
       const ko = photoAtOrBefore(born - 1)
       const fromOrigin = o !== undefined && ko !== null ? plainGap(o, ko) : null
@@ -837,8 +1117,7 @@ export function instantAt(tl: TimelineCore, t: RaceS, ctx: InstantContext): Inst
     if (then === null) return now
     const thenRole = rawRoles(ix, then.d, pb).get(then.g)
     if (thenRole === undefined || thenRole === now) return now
-    const touched = seen.bigMoves.some((m) => m.ds > then.d && m.touched.has(x.g))
-    return touched ? now : thenRole
+    return seen.touchedSince(x.g, then.d) ? now : thenRole
   }
 
   // 10. Lo demás: los maillots y los del espectador de cada grupo, la etiqueta, la diferencia
@@ -880,7 +1159,7 @@ export function instantAt(tl: TimelineCore, t: RaceS, ctx: InstantContext): Inst
     const k = Math.max(0, Math.round(photoKm / ix.tl.dx - 0.5))
     const d = markOf(g.g, k)
     if (d !== null) return d
-    const o = seen.originOf.get(g.g)
+    const o = seen.originOf(g.g)
     const od = o === undefined ? null : markOf(o, k)
     return od ?? (headAt.get(k) ?? 0) + g.gap.toHeadS * 10
   }

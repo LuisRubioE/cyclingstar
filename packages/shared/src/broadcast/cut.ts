@@ -6,10 +6,21 @@
  * guardado: así sale igual sobre una línea cortada, el corte es idempotente y B9 se cumple (§16.4).
  *
  * Por qué sale igual sobre una línea cortada, también en lo que depende de quién iba dónde (el grupo
- * del que sale un `move`, el que pierde el título): las marcas de un grupo crecen con el bloque. Si el
- * `move` que metió a un corredor en su grupo no se ve todavía, ese grupo cruzó aquel bloque después de
- * T, y cruzará el siguiente aún más tarde; así que en la línea cortada su marca no está, y el mínimo de
- * las marcas que quedan es el mismo número que en la línea entera.
+ * del que sale un `move`, el que pierde el título): la hora a la que se ve cada marca de un grupo crece
+ * con el bloque. Si el `move` que metió a un corredor en su grupo no se ve todavía, ese grupo cruzó
+ * aquel bloque después de T, y el siguiente no se ve antes; así que en la línea cortada su marca no
+ * está, y el mínimo de las marcas que quedan es el mismo número que en la línea entera.
+ *
+ * Esa hora es el MÁXIMO ACUMULADO del reloj del grupo, no el reloj de la marca (6a; nota 1 del 4b). El
+ * reloj de un grupo es el de su primero (§3.4), y quien se descuelga de un grupo de delante y cae en
+ * uno que va por detrás entra con su propio reloj: la marca de ese bloque baja (41 de 47.194 en el
+ * banco del 4b, hasta 101 s; una en las congeladas). Si se viera a su reloj, se vería antes que la
+ * anterior, la línea cortada perdería la anterior y no la siguiente, y B9 dejaría de cumplirse. La
+ * marca viaja con su reloj de verdad, que es el que da los huecos; solo su hora de verse es la del
+ * máximo. Las marcas que quedan en una línea cortada son un prefijo de las de cada grupo, así que el
+ * máximo sale igual en las dos. La de la muerte de un grupo, no: se ve a su reloj, porque con ella se
+ * ve su muerte (abajo) y desde entonces el grupo no se pinta; es la última, y la línea cortada la
+ * tiene en cuanto tiene su muerte.
  *
  * Todo va por `Ds`, con el mismo `toDs` que el tramo: un suceso se compara por su `revealS` en
  * décimas, nunca en coma flotante (por eso el adaptador de la radio redondea sus `revealS`, §3.8).
@@ -41,6 +52,12 @@ export interface TimelineVisibility {
   /** por índice de stateEvents; en un `clock`, la menor de sus marcas, y en un `move`, la del primero que se ve */
   readonly stateEventDs: readonly Ds[]
   /**
+   * por índice de stateEvents: en un `clock`, la hora a la que se ve cada una de sus marcas, en su orden:
+   * el máximo acumulado del reloj de su grupo hasta ese bloque, salvo la de su muerte, a su reloj (6a,
+   * nota 1 del 4b); null en las demás variantes. No estaba en §4.6, que veía cada marca a su reloj.
+   */
+  readonly clockMarkDs: readonly (readonly Ds[] | null)[]
+  /**
    * por índice de stateEvents: en un `move`, la de cada uno de sus corredores, en su orden; null en las
    * demás variantes. No estaba en §4.6: un `move` junta a los que van al mismo grupo en el mismo bloque,
    * y pueden venir de grupos distintos, que lo cruzan a horas distintas (el primero de los dos cruces es
@@ -71,33 +88,52 @@ const MISHAP_TEMPLATES: ReadonlySet<string> = new Set(['crash', 'puncture', 'mec
 const cache = new WeakMap<TimelineCore, TimelineVisibility>()
 
 /**
- * LA VISIBILIDAD de una línea (§4.6), una vez por objeto. Las marcas, a su valor; un nacimiento, a su
- * marca en `bornB` (el de salida, a 0); una muerte, a su marca en `diedB`; un `move`, al primero de
- * los dos cruces de cada corredor (el del grupo que deja, o su marca de muerte si murió en el bloque
- * anterior, y el del que le recibe); un `out`, a la marca de su grupo; un `main`, al primero de los dos
- * cruces del que pierde el título y del que lo gana (4-d); un `mishap`, al `revealS` del suceso que lo
- * cuenta (4-s); la capa de detalle, a la marca de su grupo; un suceso y una pancarta, a su `revealS`.
- * Donde falta la marca que pide la regla, la menor marca del bloque, que es la cabeza al cruzarlo.
+ * LA VISIBILIDAD de una línea (§4.6), una vez por objeto. Las marcas, al máximo acumulado del reloj de
+ * su grupo, y la de su muerte, a su reloj (6a, arriba); un nacimiento, a su marca en `bornB` (el de
+ * salida, a 0); una muerte, a su
+ * marca en `diedB`; un `move`, al primero de los dos cruces de cada corredor (el del grupo que deja, o
+ * su marca de muerte si murió en el bloque anterior, y el del que le recibe); un `out`, a la marca de
+ * su grupo; un `main`, al primero de los dos cruces del que pierde el título y del que lo gana (4-d);
+ * un `mishap`, al `revealS` del suceso que lo cuenta (4-s); la capa de detalle, a la marca de su grupo;
+ * un suceso y una pancarta, a su `revealS`. Donde falta la marca que pide la regla, la menor marca del
+ * bloque, que es la cabeza al cruzarlo. Toda marca que lee una regla es la hora a la que se ve.
  */
 export function visibilityOf(tl: TimelineCore): TimelineVisibility {
   const hit = cache.get(tl)
   if (hit !== undefined) return hit
 
+  // Las marcas, a la hora a la que se ven: el máximo acumulado del reloj de cada grupo, por bloque
+  // (los sucesos de estado van por bloque, §4.2). El borde de la meta, en cambio, es el reloj de la
+  // cabeza en el último bloque, el tiempo del ganador (4-w): el menor reloj de verdad de ese bloque.
   const marks = new Map<GroupIx, Map<Block, Ds>>()
   const firstMark = new Map<GroupIx, Ds>()
   const lastMark = new Map<GroupIx, Ds>()
   const minAt = new Map<Block, Ds>()
+  const clockMarkDs: (readonly Ds[] | null)[] = []
+  let finishRaw: Ds | undefined
   for (const e of tl.stateEvents) {
-    if (e.t !== 'clock') continue
+    if (e.t !== 'clock') {
+      clockMarkDs.push(null)
+      continue
+    }
+    const seenAt: Ds[] = []
     for (const [g, ds] of e.marks) {
+      // La de su muerte, a su reloj: es la última del grupo y con ella se ve su muerte (§4.6), así que
+      // desde esa hora no se pinta y nada de lo que la sigue depende del orden de las suyas.
+      const dies = tl.groups[g]?.diedB === e.b
+      const prev = lastMark.get(g)
+      const eff = dies || prev === undefined || ds > prev ? ds : prev
+      seenAt.push(eff)
       let byBlock = marks.get(g)
       if (byBlock === undefined) marks.set(g, (byBlock = new Map()))
-      byBlock.set(e.b, ds)
-      if (!firstMark.has(g)) firstMark.set(g, ds)
-      lastMark.set(g, ds)
+      byBlock.set(e.b, eff)
+      if (!firstMark.has(g)) firstMark.set(g, eff)
+      lastMark.set(g, eff)
       const m = minAt.get(e.b)
-      if (m === undefined || ds < m) minAt.set(e.b, ds)
+      if (m === undefined || eff < m) minAt.set(e.b, eff)
+      if (e.b === tl.blocks - 1 && (finishRaw === undefined || ds < finishRaw)) finishRaw = ds
     }
+    clockMarkDs.push(seenAt)
   }
   const markOf = (g: GroupIx | null, b: Block): Ds | undefined =>
     g === null || g < 0 ? undefined : marks.get(g)?.get(b)
@@ -154,7 +190,7 @@ export function visibilityOf(tl: TimelineCore): TimelineVisibility {
         main = e.group
         break
       case 'clock':
-        stateEventDs.push(Math.min(...e.marks.map(([, ds]) => ds)))
+        stateEventDs.push(Math.min(...(clockMarkDs[stateEventDs.length] ?? [])))
         moveRiderDs.push(null)
         break
       case 'mishap': {
@@ -198,12 +234,13 @@ export function visibilityOf(tl: TimelineCore): TimelineVisibility {
     let last = Number.NEGATIVE_INFINITY
     for (const row of ttKmDs) if (row.length > 0) last = Math.max(last, row[row.length - 1]!)
     finishDs = last === Number.NEGATIVE_INFINITY ? Number.POSITIVE_INFINITY : last
-  } else finishDs = minAt.get(tl.blocks - 1) ?? Number.POSITIVE_INFINITY
+  } else finishDs = finishRaw ?? Number.POSITIVE_INFINITY
 
   const out: TimelineVisibility = {
     groupBornDs,
     groupDiedDs,
     stateEventDs,
+    clockMarkDs,
     moveRiderDs,
     eventDs,
     bannerDs,
@@ -269,7 +306,8 @@ export function cutTimeline(tl: TimelineCore, toS: number): TimelineCore {
   const stateEvents: StateEvent[] = []
   tl.stateEvents.forEach((e, i) => {
     if (e.t === 'clock') {
-      const marks = e.marks.filter(([, ds]) => ds <= T)
+      const seenAt = vis.clockMarkDs[i] ?? []
+      const marks = e.marks.filter((_, j) => (seenAt[j] ?? Number.POSITIVE_INFINITY) <= T)
       if (marks.length > 0) stateEvents.push(marks.length === e.marks.length ? e : { ...e, marks })
     } else if (e.t === 'move') {
       const per = vis.moveRiderDs[i] ?? []
@@ -372,10 +410,15 @@ export function chunkOf(tl: TimelineCore, fromDs: Ds, toDs: Ds): Omit<BroadcastC
             item: [e.b, e.group === null ? 0 : e.group + 1],
           })
         break
-      case 'clock':
-        for (const [g, ds] of e.marks)
-          if (inside(ds)) clocks.push({ ds, order: order++, item: [e.b, g, ds] })
+      case 'clock': {
+        // cada marca va en el tramo de la hora a la que se ve, con su reloj de verdad (6a)
+        const seenAt = vis.clockMarkDs[i] ?? []
+        e.marks.forEach(([g, ds], j) => {
+          const at = seenAt[j]
+          if (inside(at)) clocks.push({ ds: at!, order: order++, item: [e.b, g, ds] })
+        })
         break
+      }
       case 'mishap':
         if (inside(vis.stateEventDs[i]))
           mishaps.push({

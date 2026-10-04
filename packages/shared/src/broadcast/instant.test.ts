@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { RadioGroupKind } from '../contracts.js'
-import { synthLine, toyStage } from './__fixtures__/syntheticLine.js'
+import { synthLine, toyStage, toyStageWithDrop } from './__fixtures__/syntheticLine.js'
 import { BROADCAST } from './constants.js'
 import { chunkOf, cutTimeline, visibilityOf } from './cut.js'
 import {
@@ -15,7 +15,7 @@ import {
   photoBlocksOf,
 } from './instant.js'
 import { GROUP_WORDS, groupLabelText } from './names.js'
-import { photoAt } from './reduce.js'
+import { clockMarksOf, photoAt } from './reduce.js'
 import { type TimelineCore, toDs } from './timeline.js'
 import type { StartState } from './wire.js'
 
@@ -453,5 +453,110 @@ describe('instantAt · el corte diagonal sobre la etapa de juguete (§4.5)', () 
     const far = withMishap(2.7)
     const i = far.stateEvents.findIndex((e) => e.t === 'mishap')
     expect(visibilityOf(far).stateEventDs[i]).not.toBe(toDs(revealS))
+  })
+})
+
+describe('instantAt · una marca que baja (nota 1 del 4b): la resuelve el instante, con el máximo acumulado del reloj del grupo', () => {
+  const { photos, riderIds } = toyStageWithDrop()
+  const { tl, ixOf } = synthLine(photos, riderIds, { photoEvery: 10, keyEvery: 20, lastBlocks: 10 })
+  const ctx: InstantContext = {
+    own: new Set(),
+    start: { leaders: { gc: null, points: null, kom: null }, gcTop: [], racingAtStart: 8 },
+    photoBlocks: photoBlocksOf(tl.lengthKm, tl.dx),
+  }
+  const shed = ixOf.get('shed-2')!
+  const { finishDs } = visibilityOf(tl)
+  const at29 = toDs(photos[29]!.clockS['shed-2']!)
+  const at30 = toDs(photos[30]!.clockS['shed-2']!)
+  const at45 = toDs(photos[45]!.clockS['shed-2']!)
+  const at46 = toDs(photos[46]!.clockS['shed-2']!)
+  /** Las marcas de un tramo, de tres en tres. */
+  const triples = (xs: readonly number[]): number[][] => {
+    const out: number[][] = []
+    for (let i = 0; i + 2 < xs.length; i += 3) out.push([xs[i]!, xs[i + 1]!, xs[i + 2]!])
+    return out
+  }
+
+  it('la línea las lleva tal cual: la marca de shed-2 en el 30 es 10 s menor que la del 29, y la de su muerte en el 46, menor que la del 45', () => {
+    const marks = clockMarksOf(tl, shed)
+    expect(marks.find(([b]) => b === 29)?.[1]).toBe(at29)
+    expect(marks.find(([b]) => b === 30)?.[1]).toBe(at30)
+    expect(at29 - at30).toBe(100)
+    expect(tl.groups[shed]!.diedB).toBe(46)
+    expect(marks.find(([b]) => b === 45)?.[1]).toBe(at45)
+    expect(at46).toBeLessThan(at45)
+  })
+
+  it('la muerte se ve a su marca, con su reloj, aunque baje: desde entonces shed-2 no se pinta (lo que pide I2 del banco)', () => {
+    expect(visibilityOf(tl).groupDiedDs[shed]).toBe(at46)
+    expect(instantAt(tl, at46 / 10, ctx).groups.map((g) => g.g)).not.toContain(shed)
+    expect(instantAt(tl, (at46 - 1) / 10, ctx).groups.map((g) => g.g)).toContain(shed)
+    // y su marca del 45, que no se ve hasta su reloj, va en el tramo de su hora, después de la muerte
+    expect(triples(chunkOf(tl, 0, at46).clocks)).toContainEqual([46, shed, at46])
+    expect(triples(chunkOf(tl, 0, at46).clocks)).not.toContainEqual([45, shed, at45])
+  })
+
+  it('la marca que baja se ve con la anterior, nunca antes: el primer tramo que la lleva es el de la del 29', () => {
+    expect(triples(chunkOf(tl, 0, at29 - 1).clocks)).not.toContainEqual([30, shed, at30])
+    expect(triples(chunkOf(tl, 0, at29).clocks)).toContainEqual([30, shed, at30])
+    // y en el tramo va con su reloj de verdad: la web lo necesita para el hueco
+    expect(triples(chunkOf(tl, at29 - 1, at29).clocks)).toContainEqual([29, shed, at29])
+  })
+
+  it('B9: lo que se ve en T no cambia al cortar la línea en T, en cada décima alrededor de las dos y en toda la etapa', () => {
+    const around = [
+      [at30 - 20, at29 + 20],
+      [at46 - 20, at45 + 20],
+    ] as const
+    for (const [from, to] of around)
+      for (let ds = from; ds <= to; ds++) {
+        const T = ds / 10
+        const cut = cutTimeline(tl, T)
+        expect(instantAt(cut, T, ctx), `T = ${T}`).toEqual(instantAt(tl, T, ctx))
+        expect(cutTimeline(cut, T)).toEqual(cut)
+      }
+    for (let ds = 0; ds < finishDs; ds += 7)
+      expect(instantAt(cutTimeline(tl, ds / 10), ds / 10, ctx), `T = ${ds / 10}`).toEqual(
+        instantAt(tl, ds / 10, ctx),
+      )
+  })
+
+  it('los tramos, uno tras otro, son la línea cortada en su borde también con la marca que baja', () => {
+    const joined: number[][] = []
+    for (let from = 0; from < finishDs; from += 50) {
+      const to = Math.min(from + 50, finishDs)
+      const c = chunkOf(tl, from, to)
+      expect(c).toEqual(chunkOf(cutTimeline(tl, to / 10), from, to))
+      joined.push(...triples(c.clocks))
+      const cut = cutTimeline(tl, Math.min(to, finishDs - 1) / 10)
+      const want = cut.stateEvents.flatMap((e) =>
+        e.t === 'clock' ? e.marks.map(([g, ds]) => [e.b, g, ds]) : [],
+      )
+      const byBlock = (x: number[], y: number[]): number => x[0]! - y[0]! || x[1]! - y[1]!
+      expect([...joined].sort(byBlock), `hasta ${to}`).toEqual(want.sort(byBlock))
+    }
+  })
+
+  it('lo pintado de shed-2 no retrocede, y no pasa del bloque 30 hasta que se ve su marca del 29', () => {
+    let last = 0
+    for (let ds = 0; ds <= finishDs; ds++) {
+      const g = instantAt(tl, ds / 10, ctx).groups.find((x) => x.g === shed)
+      if (g === undefined) continue
+      expect(g.km, `a ${ds}`).toBeGreaterThanOrEqual(last)
+      last = g.km
+      if (ds < at29) expect(g.km, `a ${ds}`).toBeLessThanOrEqual((30 + 0.5) * tl.dx + 1e-9)
+    }
+  })
+
+  it('r6, que cae del pelotón a shed-2, se pinta en un solo grupo a cada hora, y acaba en shed-2', () => {
+    for (let ds = at30 - 200; ds <= at29 + 50; ds++) {
+      const i = instantAt(tl, ds / 10, ctx)
+      const painted = i.groups.filter((g) => g.members.includes(6)).length
+      const moving = i.inTransit.filter((x) => x.rider === 6).length
+      expect(painted, `a ${ds}`).toBeLessThanOrEqual(1)
+      expect(painted + moving, `a ${ds}`).toBeGreaterThanOrEqual(1)
+    }
+    const after = instantAt(tl, at29 / 10 + 1, ctx)
+    expect(after.groups.find((g) => g.g === shed)?.members).toContain(6)
   })
 })
