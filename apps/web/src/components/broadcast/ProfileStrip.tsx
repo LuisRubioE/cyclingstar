@@ -1,5 +1,10 @@
 import type { Instant, ProfileStrip as ProfileData } from '@cyclingstar/shared'
-import { climbAheadText, climbCatText } from '../../domain/broadcast/screen'
+import {
+  type Cursor,
+  climbAheadText,
+  climbCatText,
+  shownGroupsOf,
+} from '../../domain/broadcast/screen'
 
 /**
  * EL PERFIL CON CURSORES (docs/retransmision.md §6.2; [DOC 2]): la cota por km de la cabecera a todo
@@ -10,6 +15,11 @@ import { climbAheadText, climbCatText } from '../../domain/broadcast/screen'
  * Con el reloj estimado del adaptador de la radio (§3.8), el cursor de todo grupo que no es la cabeza
  * va hueco, sin relleno: su posición es estimada. Con `prefers-reduced-motion`, los cursores saltan de
  * km en km sin animarse (D-57).
+ *
+ * Desde el 6a, los cursores siguen al grupo por su sucesor (D-03): los da el reproductor
+ * (`cursorsOf`), con su identidad en pantalla como clave, así que un cambio de etiqueta no cambia de
+ * cursor y una fuga cazada se funde con el de su cazador en lugar de desaparecer (ese cursor que se va
+ * se pinta sin número). Sin ellos, un cursor por grupo con alguien dentro (`shownGroupsOf`).
  *
  * El componente y el tipo comparten nombre (§6.1): el tipo se importa con alias.
  */
@@ -25,12 +35,15 @@ export function ProfileStrip({
   instant,
   clock,
   reducedMotion = false,
+  cursors: given,
 }: {
   profile: ProfileData
   lengthKm: number
   instant: Instant
   clock: 'exact' | 'estimated'
   reducedMotion?: boolean
+  /** los del reproductor, que siguen al grupo por su sucesor (`cursorsOf`) */
+  cursors?: readonly Cursor[]
 }) {
   const alt = profile.altM.length > 0 ? profile.altM : [0, 0]
   const lo = Math.min(...alt)
@@ -58,8 +71,20 @@ export function ProfileStrip({
     return `M${x(from).toFixed(1)},${H} L${pts.join(' L')} L${x(to).toFixed(1)},${H} Z`
   }
   const ahead = climbAheadText(profile, instant.headKm)
-  // de detrás a delante, para que la cabeza se pinte encima
-  const cursors = [...instant.groups].reverse()
+  const drawn: readonly Cursor[] =
+    given ??
+    shownGroupsOf(instant).map((g) => ({
+      key: String(g.g),
+      g: g.g,
+      km: g.km,
+      number: g.number,
+      own: g.own,
+      ghost: 0,
+    }))
+  // de detrás a delante, para que la cabeza se pinte encima; los que se van, debajo de todo
+  const cursors = [...drawn].sort((a, b) =>
+    a.ghost !== b.ghost ? b.ghost - a.ghost : b.number - a.number,
+  )
   return (
     <figure className="space-y-1">
       <svg
@@ -103,26 +128,29 @@ export function ProfileStrip({
             ? undefined
             : { transition: 'cx 0.25s linear, cy 0.25s linear' }
           return (
-            <g key={g.g}>
+            <g key={g.key}>
               <circle
-                data-cursor={g.number}
+                data-cursor={g.ghost > 0 ? 'leaving' : g.number}
                 cx={x(km)}
                 cy={y(km)}
                 r={g.own ? 6 : 5}
                 fill={hollow ? 'none' : color}
+                fillOpacity={g.ghost > 0 ? 0.5 : 1}
                 stroke={color}
                 strokeWidth={2}
                 style={motion}
               />
-              <text
-                x={x(km)}
-                y={Math.max(8, y(km) - 8)}
-                fontSize={8}
-                textAnchor="middle"
-                fill={color}
-              >
-                {g.number}
-              </text>
+              {g.ghost === 0 && (
+                <text
+                  x={x(km)}
+                  y={Math.max(8, y(km) - 8)}
+                  fontSize={8}
+                  textAnchor="middle"
+                  fill={color}
+                >
+                  {g.number}
+                </text>
+              )}
             </g>
           )
         })}

@@ -134,6 +134,8 @@ const SIZES_RACES = [
 ]
 /** Las dos semillas del banco (`scripts/race-radio.mjs`, `--run`). */
 const SIZES_RUNS = [0, 1]
+/** Las etapas de `--sizes` que dejaron una lápida en lugar de su línea, con su motivo. */
+const tombstones = []
 /** Llamadas en frío por etapa con `--adapter`: la mediana, para que una pausa del recolector no mande. */
 const ADAPTER_REPS = 7
 /** Las filas de `--adapter`, una por etapa congelada, en el orden en que se miden. */
@@ -911,8 +913,20 @@ async function sizesOfRace({ raceId, days }, run) {
       })
       await log.flush(tx)
     })
-    if (log.summary() !== 'timeline: 1 grabadas, 0 sin línea')
-      throw new Error(`${race.id} e${idx} s${run} no dejó su línea: ${log.summary()}`)
+    // Una lápida no para la medida: se apunta con su motivo (la etapa solo abre en `Report`, D-12).
+    if (log.summary() !== 'timeline: 1 grabadas, 0 sin línea') {
+      const [row] =
+        await t.client`select format, body from stage_timelines where race_id = ${raceKey} and stage_day = ${idx}`
+      const why =
+        row?.format === 0 ? JSON.parse(gunzipSync(Buffer.from(row.body)).toString('utf8')) : null
+      tombstones.push({
+        name: `${race.id} e${idx} s${run}`,
+        summary: log.summary(),
+        reason: why?.reason ?? null,
+        first: (why?.mismatches ?? []).slice(0, 3),
+      })
+      process.stderr.write(`  ${race.id} e${idx} s${run}: LÁPIDA, ${log.summary()}\n`)
+    }
   }
   const app = buildApp({
     db: t.db,
@@ -930,8 +944,20 @@ async function sizesOfRace({ raceId, days }, run) {
       payload: { mode: 'play' },
     })
     const known = await app.inject({ method: 'GET', url })
-    if (finish.statusCode !== 200 || known.statusCode !== 200)
-      throw new Error(`${race.id} e${day} s${run}: ${finish.statusCode} y ${known.statusCode}`)
+    if (known.statusCode !== 200)
+      throw new Error(`${race.id} e${day} s${run}: la ruta conocida respondió ${known.statusCode}`)
+    if (finish.statusCode === 404 && finish.json().error === 'broadcast_unavailable') {
+      // la lápida de arriba: sin meta ni línea que servir; la ruta conocida, sí
+      rows.push({
+        name: `${race.id} e${day} s${run}`,
+        timeTrial: frozen[day - 1].timeTrial === true,
+        tombstone: true,
+        known: gz6(known.body),
+      })
+      continue
+    }
+    if (finish.statusCode !== 200)
+      throw new Error(`${race.id} e${day} s${run}: la meta respondió ${finish.statusCode}`)
     // Lo que cuesta servir la línea grabada: la lectura en frío y en el LRU, y la cabecera igual.
     const cold = []
     const headCold = []
@@ -952,6 +978,7 @@ async function sizesOfRace({ raceId, days }, run) {
     rows.push({
       name: `${race.id} e${day} s${run}`,
       timeTrial: frozen[day - 1].timeTrial === true,
+      tombstone: false,
       bytea: row.bytes,
       finish: gz6(finish.body),
       known: gz6(known.body),
@@ -974,14 +1001,15 @@ async function sizesOfRace({ raceId, days }, run) {
 
 /** `--sizes`: la tabla y los máximos; devuelve el código de salida (1 si algo pasa de su tope). */
 async function reportSizes() {
-  const rows = []
+  const all = []
   let caps = null
   for (const run of SIZES_RUNS)
     for (const spec of SIZES_RACES) {
       const out = await sizesOfRace(spec, run)
-      rows.push(...out.rows)
+      all.push(...out.rows)
       caps = out.caps
     }
+  const rows = all.filter((r) => !r.tombstone)
   const kb = (b) => (b / 1024).toFixed(1)
   const ms = (x) => x.toFixed(1)
   console.log(
@@ -1000,8 +1028,10 @@ async function reportSizes() {
     const s = rows.map((r) => r[k]).sort((a, b) => a - b)
     return s[Math.min(s.length - 1, Math.floor(p * s.length))]
   }
+  for (const r of all.filter((x) => x.tombstone))
+    console.log(`| ${r.name} (lápida) | · | · | ${kb(r.known)} | · | · |`)
   const finish = max('finish')
-  const known = max('known')
+  const known = all.reduce((a, r) => (r.known > a.known ? r : a))
   console.log(
     `\nMeta: máximo ${kb(finish.finish)} KB (${finish.name}), tope ${kb(caps.finish)} KB. ` +
       `Ruta conocida: máximo ${kb(known.known)} KB (${known.name}), tope ${kb(caps.known)} KB.`,
@@ -1011,5 +1041,10 @@ async function reportSizes() {
       `en el LRU, mediana ${ms(q('warm', 0.5))} ms. La cabecera, en frío ${ms(q('headCold', 0.5))} ms (p95 ` +
       `${ms(q('headCold', 0.95))}) y con la línea en el LRU ${ms(q('headWarm', 0.5))} ms (p95 ${ms(q('headWarm', 0.95))}).`,
   )
+  if (tombstones.length > 0) {
+    console.log(`\nLápidas (la etapa abre solo en Report, D-12): ${tombstones.length}`)
+    for (const x of tombstones)
+      console.log(`  ${x.name}: ${x.summary} · ${x.reason} · ${JSON.stringify(x.first)}`)
+  }
   return finish.finish > caps.finish || known.known > caps.known ? 1 : 0
 }

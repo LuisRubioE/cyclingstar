@@ -13,8 +13,10 @@
  *
  * Nace en el 3b con el reloj, la red, la previa, la llegada y el cierre de `Watch` y `Highlights`. Los
  * saltos (`seek`, `back`, `landed`), `Show result` y el digest (con `release` y `loaded`) llegan en el
- * 10a: hasta entonces sus acciones no cambian nada. La cola de rótulos llega en el 6a, y los efectos de
- * informe (`report`) se ejecutan desde el 7a, que trae `POST /api/me/watch` (§17.6).
+ * 10a: hasta entonces sus acciones no cambian nada. La cola de rótulos llega en el 6a (`CueDeck`, al
+ * final): un estado aparte del reloj, que el hook avanza en cada fotograma con el instante que pinta y
+ * que le da al reductor solo lo que admite (`cueAdmitted`). Los efectos de informe (`report`) se
+ * ejecutan desde el 7a, que trae `POST /api/me/watch` (§17.6).
  *
  * Lo que se aparta de §8.11, cada cosa con su motivo:
  * - `PlayerState.sinceReportS`: los informes de cada `progressEveryRealS` de pared (§8.5) necesitan
@@ -40,14 +42,26 @@
  */
 import {
   BROADCAST,
+  type Cue,
   type CueClass,
   type CueKind,
+  type CueQueue,
   type Ds,
+  EMPTY_CUE_QUEUE,
+  type GroupCatalogEntry,
   type Instant,
   type RaceS,
+  type RiderIx,
+  type StartState,
   type TimelineCore,
+  type TimelineEvent,
   type WatchMode,
+  admitCue,
+  cueClassOf,
+  cueFrame,
+  cuesBetween,
   fromDs,
+  namedCrashesBetween,
   toDs,
 } from '@cyclingstar/shared'
 import { ApiError } from '../../api/request'
@@ -484,4 +498,104 @@ export function playerStep(s: PlayerState, a: PlayerAction, ctx: PlayerContext):
       // los saltos y Show result llegan en el 10a (§8.5, §17.13)
       return none(s)
   }
+}
+
+// ------------------------------------------------------------------ la cola de rótulos (§6.5; 6a)
+
+/**
+ * LA COLA DE RÓTULOS DEL REPRODUCTOR (§6.5, D-21; 6-h, 6-i). Un estado aparte del reloj, que el hook
+ * avanza en cada fotograma con el instante que pinta (`cueDeckStep`): los rótulos de `cuesBetween`
+ * entre el instante del paso anterior y este, cada uno con su clase (`cueClassOf`), pasan por `admitir`
+ * (`admitCue`), y después el fotograma de la cola (`cueFrame`) decide qué está en pantalla. Lo que se
+ * admite vuelve al hook para el reductor (`cueAdmitted`), que es lo único que la cola le cambia: apaga
+ * `Next action`. El reloj no la lee nunca: un rótulo en pantalla o una cola llena no frenan la carrera.
+ *
+ * Su hora es la de pared con la carrera corriendo (`playing`): en pausa, o esperando un tramo, el rótulo
+ * no se gasta. De lo que el reproductor programa además de `cuesBetween` (6-i), el 6a pone solo el
+ * segundo tiempo de una caída, sus nombres, `crashNamesDelayS` de pared después del primero (D-13); la
+ * presentación de la fuga, la crono, el cuadro de diferencias y la ficha del puerto son del 6b, y los
+ * de la llegada, del 10a.
+ */
+export interface CueDeck {
+  readonly queue: CueQueue
+  /** s de pared con la carrera corriendo: la cola caduca y cuenta su tiempo en pantalla con ellos */
+  readonly wallS: number
+  /** el instante del paso anterior: los rótulos de un paso son los de (seen.t, instante.t] */
+  readonly seen: Instant | null
+  /** los nombres de cada caída, con la hora de pared a la que salen (D-13) */
+  readonly names: readonly { readonly cue: Cue; readonly atS: number }[]
+  /** el primero del último VIRTUAL GC; hasta el primero, el líder de la general de salida (9-n) */
+  readonly lastVirtualLeader: RiderIx | null
+}
+
+/** Lo que la cola necesita de la etapa: la salida servida, si es crono, y la línea servida (sus sucesos y su catálogo). */
+export interface CueDeckContext {
+  readonly start: StartState
+  readonly timeTrial: boolean
+  readonly events: readonly TimelineEvent[]
+  readonly catalog: readonly GroupCatalogEntry[]
+}
+
+/** Un rótulo admitido, como lo recibe el reductor. */
+export type AdmittedCue = Extract<PlayerAction, { k: 'cueAdmitted' }>
+
+/** La cola vacía, al entrar en una etapa. */
+export function cueDeckInit(start: StartState): CueDeck {
+  return {
+    queue: EMPTY_CUE_QUEUE,
+    wallS: 0,
+    seen: null,
+    names: [],
+    lastVirtualLeader: start.leaders.gc,
+  }
+}
+
+/**
+ * UN FOTOGRAMA DE LA COLA. Pura. `instant` es el que se pinta en este fotograma (el mismo objeto
+ * mientras no cambia la hora); `running`, si la carrera corre (`playing`). El primer instante solo se
+ * apunta: lo de antes de entrar (la previa, `Previously`) no sale en rótulos. Si la hora va hacia
+ * atrás (un salto, 10a), tampoco.
+ */
+export function cueDeckStep(
+  deck: CueDeck,
+  instant: Instant,
+  dtS: number,
+  running: boolean,
+  ctx: CueDeckContext,
+): { readonly deck: CueDeck; readonly admitted: readonly AdmittedCue[] } {
+  const wallS = deck.wallS + (running && Number.isFinite(dtS) ? Math.max(0, dtS) : 0)
+  const fresh: Cue[] = []
+  let names = deck.names
+  let seen = deck.seen
+  if (seen === null || toDs(instant.t) < toDs(seen.t)) seen = instant
+  else if (instant !== seen && toDs(instant.t) > toDs(seen.t)) {
+    fresh.push(...cuesBetween(seen, instant, ctx.events, ctx.catalog))
+    const named = namedCrashesBetween(seen, instant, ctx.events)
+    if (named.length > 0)
+      names = [...names, ...named.map((cue) => ({ cue, atS: wallS + BROADCAST.crashNamesDelayS }))]
+    seen = instant
+  }
+  if (names.some((x) => x.atS <= wallS)) {
+    fresh.push(...names.filter((x) => x.atS <= wallS).map((x) => x.cue))
+    names = names.filter((x) => x.atS > wallS)
+  }
+  let queue = deck.queue
+  let lastVirtualLeader = deck.lastVirtualLeader
+  const admitted: AdmittedCue[] = []
+  const at = { wallS, toGoKm: instant.toGoKm }
+  for (const cue of fresh) {
+    const cls = cueClassOf(cue, ctx.start, lastVirtualLeader, ctx.timeTrial)
+    const r = admitCue(queue, cue, cls, at)
+    queue = r.queue
+    if (r.admitted)
+      admitted.push({
+        k: 'cueAdmitted',
+        cls,
+        kind: cue.kind,
+        round: cue.kind === 'rider' && cue.context === 'break_round',
+      })
+    if (cue.kind === 'virtual_gc') lastVirtualLeader = cue.rows[0]?.rider ?? lastVirtualLeader
+  }
+  queue = cueFrame(queue, at)
+  return { deck: { queue, wallS, seen, names, lastVirtualLeader }, admitted }
 }

@@ -22,6 +22,7 @@ import {
   writeLocalProgress,
 } from '../api/watch'
 import { ClockNotice } from '../components/broadcast/ClockNotice'
+import { CueCard, type ShownCueCard } from '../components/broadcast/CueCard'
 import { FixedOverlay } from '../components/broadcast/FixedOverlay'
 import { GroupBar } from '../components/broadcast/GroupBar'
 import {
@@ -33,16 +34,28 @@ import { ProfileStrip } from '../components/broadcast/ProfileStrip'
 import { VoiceTicker } from '../components/broadcast/VoiceTicker'
 import { effectRunner } from '../domain/broadcast/effects'
 import {
+  type CueDeckContext,
   DEFAULT_VIEW,
   type PlayerAction,
   type PlayerContext,
   type PlayerState,
   controlsHidden,
+  cueDeckInit,
+  cueDeckStep,
   headAtLine,
   playerInit,
   playerStep,
 } from '../domain/broadcast/player'
-import { clockText, isQuietFinal, unnamedFor } from '../domain/broadcast/screen'
+import {
+  type Cursor,
+  clockText,
+  cueText,
+  cursorsOf,
+  isQuietFinal,
+  screenKeysOf,
+  shownGroupsOf,
+  unnamedFor,
+} from '../domain/broadcast/screen'
 import { servedLineOf, withChunk } from '../domain/broadcast/servedLine'
 import { formatTime } from '../domain/format'
 
@@ -62,6 +75,11 @@ import { formatTime } from '../domain/format'
  * provisionales hasta los cuadros del 10a. Los informes de lo alcanzado salen desde el 7a: con sesión,
  * `POST /api/me/watch` con `keepalive` y, al salir, `sendBeacon` (14-g); sin ella (el visitante, o quien
  * lee con `cs_viewer`: la cabecera no trae `view`), al `localStorage`, de donde también se reanuda (11-p).
+ *
+ * Desde el 6a, sobre la línea grabada con el reloj exacto donde la hay: el plano (`CueCard`) con la cola
+ * de rótulos del reproductor (`CueDeck`, que el hook avanza en cada fotograma con el instante que pinta,
+ * §6.5), y los cursores del perfil y las filas de la barra que siguen al grupo por su sucesor
+ * (`cursorsOf` y `screenKeysOf`, D-03).
  */
 export function StageWatch({
   head,
@@ -101,6 +119,7 @@ export function StageWatch({
               instant={w.bar}
               clock={head.clock}
               reducedMotion={reducedMotion}
+              cursors={w.cursors}
             />
           </div>
           {phase === 'preview' && (
@@ -117,17 +136,21 @@ export function StageWatch({
               clock={head.clock}
               expanded={barOpen}
               onExpand={() => setBarOpen(true)}
+              keys={w.keys}
             />
           </div>
         </div>
-        <div className={card}>
-          <VoiceTicker
-            lines={w.lines}
-            t={w.overlay.t}
-            open={commentary}
-            quiet={isQuietFinal(w.overlay.toGoKm)}
-            unnamed={unnamed}
-          />
+        <div className="space-y-3">
+          <CueCard cue={w.cue} />
+          <div className={card}>
+            <VoiceTicker
+              lines={w.lines}
+              t={w.overlay.t}
+              open={commentary}
+              quiet={isQuietFinal(w.overlay.toGoKm)}
+              unnamed={unnamed}
+            />
+          </div>
         </div>
       </div>
       {phase !== 'arrival' && phase !== 'closing' && (
@@ -169,7 +192,7 @@ function PreviewCard({ head, onPlay }: { head: BroadcastHead; onPlay: () => void
   )
 }
 
-/** El ganador, en la línea (§8.7, paso 3). Provisional hasta los rótulos de llegada del 6a y el 10a. */
+/** El ganador, en la línea (§8.7, paso 3). Provisional hasta los rótulos y los cuadros de la llegada del 10a. */
 function WinnerCard({ head, finish }: { head: BroadcastHead; finish: BroadcastFinish }) {
   const winner = finish.result.find((r) => !r.dnf && r.puesto === 1)
   if (winner === undefined) return null
@@ -272,10 +295,16 @@ interface Shown extends ControlsState {
   readonly atLine: boolean
 }
 
-/** Lo que pinta la pantalla: el instante a `overlayHz` y a `barHz`, los mandos, la voz y la meta. */
+/**
+ * Lo que pinta la pantalla: el instante a `overlayHz` y a `barHz`, los cursores del perfil y la
+ * identidad de las filas (a `barHz`), el rótulo en pantalla, los mandos, la voz y la meta.
+ */
 interface WatchScreen {
   readonly overlay: Instant
   readonly bar: Instant
+  readonly cursors: readonly Cursor[]
+  readonly keys: readonly string[]
+  readonly cue: ShownCueCard | null
   readonly controls: Shown
   readonly lines: readonly LiveLine[]
   readonly finish: BroadcastFinish | null
@@ -322,8 +351,14 @@ function useWatchPlayer(head: BroadcastHead, raceId: string, day: number): Watch
     [head],
   )
   const first = useMemo(() => instantAt(servedLineOf(head).core, 0, ctx), [head, ctx])
+  const firstKeys = useMemo(() => screenKeysOf(servedLineOf(head).core.groups), [head])
   const [overlay, setOverlay] = useState<Instant>(first)
   const [bar, setBar] = useState<Instant>(first)
+  const [cursors, setCursors] = useState<readonly Cursor[]>(() =>
+    cursorsOf(shownGroupsOf(first), servedLineOf(head).core.groups, firstKeys, []),
+  )
+  const [keys, setKeys] = useState<readonly string[]>(firstKeys)
+  const [cue, setCue] = useState<ShownCueCard | null>(null)
   const [controls, setControls] = useState<Shown>(() =>
     controlsOf(playerInit(DEFAULT_VIEW, day, null, false).next),
   )
@@ -354,6 +389,12 @@ function useWatchPlayer(head: BroadcastHead, raceId: string, day: number): Watch
     let shown = controlsOf(s)
     let phaseWallS = 0
     let lastPhase = s.phase
+    // la cola de rótulos (§6.5), los cursores por sucesor y la identidad de las filas (D-03)
+    let deck = cueDeckInit(head.startState)
+    let onScreen = deck.queue.shown
+    let cueSeq = 0
+    let screenKeys = screenKeysOf(served.core.groups)
+    let drawn = cursorsOf(shownGroupsOf(instant), served.core.groups, screenKeys, [])
 
     function dispatch(a: PlayerAction): void {
       const r = playerStep(s, a, pctx)
@@ -391,6 +432,8 @@ function useWatchPlayer(head: BroadcastHead, raceId: string, day: number): Watch
         chunk: (c) => {
           served = withChunk(head, served, c)
           setLines(served.lines)
+          screenKeys = screenKeysOf(served.core.groups)
+          setKeys(screenKeys)
           const toS = fromDs(c.toDs)
           return {
             k: 'chunk',
@@ -407,6 +450,9 @@ function useWatchPlayer(head: BroadcastHead, raceId: string, day: number): Watch
     setControls(shown)
     setFinish(null)
     setLines([])
+    setCue(null)
+    setKeys(screenKeys)
+    setCursors(drawn)
     runner.push(init.effects)
 
     let raf = 0
@@ -427,7 +473,37 @@ function useWatchPlayer(head: BroadcastHead, raceId: string, day: number): Watch
       }
       if (now - lastBar >= 1000 / BROADCAST.barHz) {
         lastBar = now
+        drawn = cursorsOf(shownGroupsOf(instant), served.core.groups, screenKeys, drawn)
         setBar(instant)
+        setCursors(drawn)
+      }
+      // La cola de rótulos (§6.5): los de este instante, admitidos con su clase; lo admitido, al
+      // reductor (solo apaga Next action); y el que está en pantalla, con su texto fijado al salir.
+      const deckCtx: CueDeckContext = {
+        start: head.startState,
+        timeTrial: head.stage.timeTrial,
+        events: served.core.events,
+        catalog: served.core.groups,
+      }
+      const step = cueDeckStep(deck, instant, dtS, s.phase === 'playing', deckCtx)
+      deck = step.deck
+      for (const a of step.admitted) dispatch(a)
+      if (deck.queue.shown !== onScreen) {
+        onScreen = deck.queue.shown
+        cueSeq += 1
+        setCue(
+          onScreen === null
+            ? null
+            : {
+                text: cueText(onScreen.cue, {
+                  cast: head.cast,
+                  instant,
+                  profile: head.profile,
+                }),
+                cls: onScreen.cls,
+                seq: cueSeq,
+              },
+        )
       }
       dispatch({
         k: 'frame',
@@ -481,6 +557,9 @@ function useWatchPlayer(head: BroadcastHead, raceId: string, day: number): Watch
   return {
     overlay,
     bar,
+    cursors,
+    keys,
+    cue,
     controls,
     lines,
     finish,
