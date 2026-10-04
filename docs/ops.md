@@ -311,7 +311,7 @@ TRUNCATE TABLE worlds, game_state, tick_log, teams, riders, rider_attrs, rider_h
   training_orders, team_training_orders, race_routes, race_rosters, race_entries, race_callups,
   team_race_plan, stage_orders, stage_results, race_gc, stage_team_results, stage_snapshots,
   palmares, news, transactions, contracts, offers CASCADE;
-TRUNCATE TABLE stage_timelines;
+TRUNCATE TABLE stage_timelines, race_watch;
 INSERT INTO public.worlds SELECT * FROM respaldo_mundo_1.worlds;
 INSERT INTO public.game_state SELECT * FROM respaldo_mundo_1.game_state;
 INSERT INTO public.tick_log SELECT * FROM respaldo_mundo_1.tick_log;
@@ -322,7 +322,7 @@ INSERT INTO public.riders SELECT * FROM respaldo_mundo_1.riders;
 
 Tal cual (con las 29 líneas) lo corre el test de la 0044 y deja el mundo 1 idéntico. Dos condiciones: `SELECT *` solo vale mientras ninguna migración posterior haya cambiado las columnas de esas tablas (si alguna lo hizo, se escriben las columnas a mano), y el código desplegado tiene que entender el mundo 1, que corría con el motor v90.
 
-El segundo `TRUNCATE` es de la 0047 (E2, paso 5): `stage_timelines` no tiene copia, porque el mundo 1 no grabó ninguna línea (sus etapas se retransmiten con el adaptador), y sin él se quedarían las líneas del mundo nuevo con las mismas claves que las etapas del viejo (ver «Migración 0047»). Después, el servicio `web` se reinicia, cosa que ya hace el despliegue de la migración.
+El segundo `TRUNCATE` es de la 0047 (E2, paso 5) y de la 0048 (paso 7a): `stage_timelines` no tiene copia, porque el mundo 1 no grabó ninguna línea (sus etapas se retransmiten con el adaptador), y sin él se quedarían las líneas del mundo nuevo con las mismas claves que las etapas del viejo (ver «Migración 0047»); `race_watch` tampoco, porque el mundo 1 no guardaba lo visto, y lo que los jugadores vieron en el mundo nuevo no vale para el viejo (el `TRUNCATE … CASCADE` de la primera línea ya la vaciaría, porque cuelga de `worlds`, pero se nombra a la vista). Después, el servicio `web` se reinicia, cosa que ya hace el despliegue de la migración.
 
 ### Borrar la copia
 
@@ -358,4 +358,5 @@ En `tick_log.notes`, que el panel de administración enseña, cada tick que corr
 `stage_timelines` va por la clave de la carrera y la etapa (`race-france:s0`, 3), sin el mundo, igual que `stage_snapshots`, y se escribe sin pisar (`ON CONFLICT DO NOTHING`). Un reinicio que no la vacíe deja las líneas del mundo viejo con las claves que el mundo nuevo va a usar: el mundo nuevo no puede grabar las suyas (`ya tenía fila`) y, desde el paso 6a, se serviría la línea del viejo. Por eso todo reinicio del mundo:
 
 1. **Vacía `stage_timelines` con `stage_snapshots`.** Un reinicio como la 0044 la copia y la vacía con las demás tablas del mundo; la restauración del mundo 1 la vacía sin más (arriba, «Restaurar el mundo 1»). La 0044 ya aplicada no la nombra porque es anterior a ella.
-2. **Después, reinicia el servicio `web`.** Guarda líneas en memoria por carrera y etapa, sin el mundo: la LRU del adaptador desde el paso 3a de E2 y, desde el 6a, la de las líneas grabadas. Un proceso que sobreviva al reinicio serviría datos del mundo viejo. Si el reinicio va en una migración, el despliegue ya reinicia `web`; si se hace de otra forma, hay que reiniciarlo a mano.
+2. **Borra `race_watch` entera** (la 0048, paso 7a de E2; ver «Migración 0048»). Es lo que cada jugador ha visto de cada carrera, y lo visto en el mundo viejo no es lo visto en el nuevo. Lleva el mundo en la clave, así que olvidarla no destripa nada (las filas viejas no casan con el mundo nuevo y solo ocupan sitio), y cuelga de `worlds` con borrado en cascada: un reinicio que borre la fila de `worlds`, o que la vacíe con `TRUNCATE … CASCADE` como la 0044, la vacía solo. Aun así se nombra a la vista, como en la restauración del mundo 1 (arriba): `TRUNCATE TABLE stage_timelines, race_watch;`. Las columnas nuevas de `users` (`spoiler_scope`, `reveal_confirm`, `horizon_rev`, `last_seen_at`) se quedan con las cuentas: son preferencias de la persona, no del mundo.
+3. **Después, reinicia el servicio `web`.** Guarda líneas en memoria por carrera y etapa, sin el mundo: la LRU del adaptador desde el paso 3a de E2 y, desde el 6a, la de las líneas grabadas. Y desde el 7a, el memo del horizonte, el mapa de la última etapa corrida de cada carrera (los dos van por el día de juego) y la memoria de lo alcanzado. Un proceso que sobreviva al reinicio serviría datos del mundo viejo. Si el reinicio va en una migración, el despliegue ya reinicia `web`; si se hace de otra forma, hay que reiniciarlo a mano.

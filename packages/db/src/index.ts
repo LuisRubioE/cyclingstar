@@ -172,21 +172,49 @@ export {
 // para los scripts de banco (docs/retransmision.md §17.3; el diseño lo ponía en el paso 2, §17.20).
 export { runOneStage, type StageRunSpec } from './stageRun.js'
 // El horizonte y el velo de E2 (docs/retransmision.md §4.10 y §10.6): los tipos y las funciones puras
-// nacen en el 3a (17-g); computeHorizon, en el 7a.
+// nacen en el 3a (17-g); computeHorizon, el mapa del día, el memo, horizonSummary y touchLastSeen, en
+// el 7a, con clearHorizonCaches solo para los tests (el mundo de B1, §16.3).
 export {
+  TtlMemo,
   anonHorizon,
+  clearHorizonCaches,
+  computeHorizon,
+  horizonSummary,
   isVeiled,
+  lastRunStages,
+  raceExpired,
+  stageCountOf,
+  stageGameDay,
   stageGateOf,
   throughStage,
+  touchLastSeen,
   worldHorizon,
   type Horizon,
   type HorizonKind,
   type KnowledgeLetter,
+  type ToGoKmOf,
   type VeilDelta,
   type VeiledStage,
   type Viewer,
   type WorldRef,
 } from './horizon.js'
+// Lo visto (E2, §10.3; paso 7a): las cuatro escrituras de race_watch, sus dos lecturas y la memoria del
+// proceso de lo alcanzado (D-55).
+export {
+  LETTER_OF_MODE,
+  ProgressMemory,
+  readSpoilerPrefs,
+  readWatch,
+  recordProgress,
+  revealStage,
+  setFollow,
+  setSpoilerScope,
+  type ProgressMemoryOptions,
+  type ProgressResult,
+  type ReportOutcome,
+  type WatchKey,
+  type WatchRow,
+} from './watch.js'
 // El reparto provisional del adaptador de la radio (E2, §3.8, 17-k).
 export { getCastIdentities, getOwnRiderIds, type CastIdentities } from './castIdentities.js'
 export {

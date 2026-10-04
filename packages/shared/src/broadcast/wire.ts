@@ -7,8 +7,8 @@
  * los dos sentidos: con `satisfies z.ZodType<T>` y con `WIRE_MATCH` (`SchemaMatches`, 4-j y 4-x). Se
  * aparta a sabiendas de la cabecera de `contracts.ts`, que manda derivar los tipos con `z.infer`.
  *
- * Nace en el PR 3a con lo que piden la cabecera, el tramo, la meta y el acta. `HorizonSummary` y su
- * esquema, las entradas y las respuestas de `/api/me` llegan en el 7a (§17.20).
+ * Nace en el PR 3a con lo que piden la cabecera, el tramo, la meta y el acta. El 7a añade
+ * `HorizonSummary` y su esquema, y las entradas y las respuestas de `/api/me` (§17.20).
  *
  * El orden de carga (14-a): `contracts.ts` no importa nada de aquí, ni por reexportación; los cuatro
  * esquemas de E2 que sus ampliaciones necesitan (`stageGateSchema`, `preStageInfoSchema`,
@@ -258,6 +258,37 @@ export interface WatchState {
   readonly seen: boolean
 }
 
+/**
+ * `GET /api/me/horizon` (§4.11, §10.5, §11.4; nace en el 7a): lo que el espectador tiene por ver, que es
+ * lo único que la portada pinta de las carreras en guardia. Solo lleva el horizonte del propio
+ * espectador; con `cs_viewer` y sin sesión, solo `rev` y `scope`, con las listas vacías (14-i).
+ */
+export interface HorizonSummary {
+  /** el de `Horizon.rev`: `${currentDay}.${horizon_rev}`, `'world'` con SPOILER_MODE apagado para él (10-h) */
+  readonly rev: string
+  readonly scope: SpoilerScope
+  /** una por carrera en guardia con etapas en el velo, la más antigua primero */
+  readonly ready: readonly {
+    readonly raceKey: string
+    readonly raceName: string
+    /** las etapas veladas, en orden */
+    readonly stages: readonly number[]
+    readonly reason: GuardReason
+    /** el día de juego en que se levanta su velo: su última etapa más SPOILER.expiryGameDays (§10.5) */
+    readonly expiresOnDay: number
+  }[]
+  /** las etapas a medias (`Continue watching`) */
+  readonly watching: readonly {
+    readonly raceKey: string
+    readonly stageDay: number
+    readonly reachedS: number
+    /** lo que le queda a la cabeza en lo alcanzado */
+    readonly toGoKm: number
+  }[]
+  /** las carreras en guardia que caducaron sin conocerse enteras: la web las acusa (10-f) */
+  readonly expiredSinceLastVisit: readonly string[]
+}
+
 // ------------------------------------------------------- los códigos numéricos de los tramos (4-m)
 
 /** Tablas explícitas que solo crecen, atadas a su unión. 0 significa que no hay dato. */
@@ -394,16 +425,40 @@ export const broadcastFinishSchema = z.object({
   threeKmRule: z.array(ix),
 }) satisfies z.ZodType<BroadcastFinish>
 // El acta (`GET …/report`) se valida con `stageReplaySchema` de contracts.ts: `StageReport` es `StageReplay`.
+export const horizonSummarySchema = z.object({
+  rev: z.string(),
+  scope: z.enum(['guarded', 'own_only', 'off']),
+  expiredSinceLastVisit: z.array(z.string()),
+  ready: z.array(
+    z.object({
+      raceKey: z.string(),
+      raceName: z.string(),
+      stages: z.array(int.min(1)),
+      reason: z.enum(['own_rider', 'own_team', 'follow', 'headline']),
+      expiresOnDay: int,
+    }),
+  ),
+  watching: z.array(
+    z.object({
+      raceKey: z.string(),
+      stageDay: int.min(1),
+      reachedS: z.number().min(0),
+      toGoKm: z.number().min(0),
+    }),
+  ),
+}) satisfies z.ZodType<HorizonSummary>
 
 /** El otro sentido del atado (4-x): cada respuesta nueva, con su tipo, en todos los niveles. Solo lo lee el compilador. */
 export const WIRE_MATCH = {
   head: true,
   chunk: true,
   finish: true,
+  horizon: true,
 } as const satisfies {
   head: SchemaMatches<typeof broadcastHeadSchema, BroadcastHead>
   chunk: SchemaMatches<typeof broadcastChunkSchema, BroadcastChunk>
   finish: SchemaMatches<typeof broadcastFinishSchema, BroadcastFinish>
+  horizon: SchemaMatches<typeof horizonSummarySchema, HorizonSummary>
 }
 
 // ---------------------------------------------------------- las entradas de las rutas nuevas (§14.2)
@@ -435,3 +490,31 @@ export const chunkQuerySchema = stageQuerySchema
 export const finishBodySchema = z.object({ mode: watchModeSchema })
 /** 403 con la puerta: el error de siempre más `gate`. */
 export const stageGateErrorSchema = apiErrorBodySchema.extend({ gate: stageGateSchema })
+
+// ------------------------------------------------------- las entradas y respuestas de /api/me (7a)
+
+/**
+ * `POST /api/me/watch/:raceKey/:day`: lo alcanzado, en segundos de carrera (la web lo manda en
+ * décimas, hacia abajo), hasta un día (una crono dura como mucho 23.724 s, mapa 01 §5). Llega en
+ * `application/json` o, de respaldo para `sendBeacon`, el mismo JSON en `text/plain` (14-g).
+ */
+export const watchProgressBodySchema = z.object({
+  reachedS: z.number().finite().min(0).max(86_400),
+  mode: watchModeSchema,
+})
+/** `POST /api/me/reveal/:raceKey/:day`: sin nada (con la carrera caducada, la ruta lo sabe sola, §10.5). */
+export const revealBodySchema = z.object({}).strict()
+/** `PUT /api/me/follow/:raceKey`: `Follow without spoilers`, `Stop protecting this race` o la regla (D-30). */
+export const followBodySchema = z.object({ follow: z.enum(['follow', 'drop', 'default']) })
+/** `PUT /api/me/spoiler-scope`: el alcance (D-30, DD-01) y, si viene, `Don't ask again` (DD-17). */
+export const spoilerScopeBodySchema = z.object({
+  scope: z.enum(['guarded', 'own_only', 'off']),
+  revealConfirm: z.boolean().optional(),
+})
+/** La respuesta del progreso: si la etapa sigue a medias o ya es conocida, y el `rev` de después (§14.2). */
+export const watchResponseSchema = z.object({
+  status: z.enum(['watching', 'known']),
+  rev: z.string(),
+})
+/** La respuesta de las otras escrituras de `/api/me`: el `rev` de después, para cambiar las claves de una vez (§10.9). */
+export const revResponseSchema = z.object({ rev: z.string() })
