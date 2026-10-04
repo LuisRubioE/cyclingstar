@@ -2,6 +2,7 @@ import {
   type CastIdentities,
   type Database,
   type Horizon,
+  TimelineUnavailableError,
   getCastIdentities,
   getGcThroughStage,
   getKomClassification,
@@ -9,6 +10,7 @@ import {
   getStageResults,
   getStageSnapshot,
   getTeamClassifications,
+  readStageTimeline,
 } from '@cyclingstar/db'
 import {
   STAGE,
@@ -71,6 +73,7 @@ import {
   storedRaceRadioSchema,
   veilStoredRadio,
 } from './chronicle.js'
+import type { ClusterClock } from './liveClusters.js'
 
 /**
  * LA FUENTE DE LA RETRANSMISIÓN (E2, docs/retransmision.md §3.8 y §14.4).
@@ -84,7 +87,8 @@ import {
  * sobre ese reloj (`revealStoredEvents`, con `revealSOf`). El 3a le pone encima el adaptador entero:
  * la `StageTimeline` degradada (`adaptRadioStage`), su perfil, su tiempo y su reparto provisionales,
  * `leadersThroughStage` (que sale de `routes/races.ts`), `timelineForStage` con su LRU y la primera
- * forma de `serveCast`.
+ * forma de `serveCast`. El 6a pone delante la línea grabada (`readStageTimeline`), que el tick escribe
+ * desde el paso 5, y la fuente de cualquier línea para la voz y la cabecera (`lineSourceOf`).
  */
 
 /**
@@ -435,22 +439,87 @@ export interface RadioStage {
 }
 
 /**
- * LO QUE LA RUTA NECESITA DE UNA LÍNEA DEL ADAPTADOR, además de la línea (3a): los sucesos guardados
- * por `source`, porque la voz los lee con su km original (4-h, §14.3); la vista con que se fecharon,
- * que es el reloj de los racimos en vivo (§12.3); y el recorrido que se corrió, del que la cabecera
- * saca el nombre y la etiqueta de la etapa como la ruta de etapa (`stageHead`). Va aparte, en un
- * `WeakMap` sobre la línea, porque `StageTimeline` es el formato (§4.2) y esto no lo es.
+ * LO QUE LA RUTA NECESITA DE UNA LÍNEA, además de la línea (3a, 6a): los sucesos guardados por
+ * `source`, porque la voz los lee con su km original (4-h, §14.3); la vista con que se fechan, que es
+ * el reloj de los racimos en vivo (§12.3); y el recorrido que se corrió, del que la cabecera saca el
+ * nombre y la etiqueta de la etapa como la ruta de etapa (`stageHead`). Va aparte, en un `WeakMap`
+ * sobre la línea, porque `StageTimeline` es el formato (§4.2) y esto no lo es. La del adaptador la deja
+ * el adaptador al construir la línea; la de una línea grabada sale del snapshot de la etapa la primera
+ * vez que se pide (`lineSourceOf`), con una vista sobre la línea (`recordedClockOf`).
  */
-export interface AdaptedSource {
+export interface LineSource {
   readonly stored: readonly ChronicleEvent[]
-  readonly view: RecorderView
+  readonly view: ClusterClock
   readonly racedProfile: StageProfile | null
+}
+/** La de una línea del adaptador lleva la vista entera con que fechó sus sucesos (§3.8). */
+export interface AdaptedSource extends LineSource {
+  readonly view: RecorderView
 }
 const adaptedSources = new WeakMap<StageTimeline, AdaptedSource>()
 
 /** Lo de arriba de una línea del adaptador; null si la línea no es del adaptador. */
 export function adaptedSourceOf(tl: StageTimeline): AdaptedSource | null {
   return adaptedSources.get(tl) ?? null
+}
+
+/**
+ * LA VISTA SOBRE UNA LÍNEA GRABADA (6a), lo que los racimos en vivo leen de ella (`ClusterClock`): el
+ * grupo de un corredor y el reloj de un grupo al final de un bloque, de su foto (`photoAt`), con el
+ * bloque del km como lo resuelve el motor (`probeAt`) y el borde de la meta de la línea.
+ */
+export function recordedClockOf(tl: StageTimeline): ClusterClock {
+  const riderIx = new Map(tl.riderIds.map((id, r) => [id, r] as const))
+  return {
+    finishS: tl.finish.finishS,
+    riderIx: (id) => riderIx.get(id) ?? null,
+    blockOfKm: (km) => Math.max(0, Math.min(tl.blocks - 1, Math.round(km / tl.dx - 0.5))),
+    groupAt: (r, b) => {
+      if (b < 0) return 0 // todos salen en el grupo de salida
+      const g = photoAt(tl, Math.min(b, tl.blocks - 1)).groupOf[r]
+      return g === undefined || g < 0 ? null : g
+    },
+    clockAt: (g, b) => {
+      const d = photoAt(tl, Math.max(0, Math.min(b, tl.blocks - 1))).clock.get(g)
+      return d === undefined ? null : fromDs(d)
+    },
+  }
+}
+
+/** La fuente de cada línea grabada, leída una vez por objeto: la línea vive en el LRU de `readStageTimeline`. */
+const recordedSources = new WeakMap<StageTimeline, Promise<LineSource>>()
+
+/**
+ * LA FUENTE DE UNA LÍNEA (6a): la del adaptador, o la de una grabada, que lee el snapshot de la etapa
+ * (los sucesos y el recorrido corrido) una sola vez por línea. Unos sucesos que no se dejan leer dejan
+ * la voz con los de la línea, sin su km original; un recorrido que no se deja leer, la cabecera con la
+ * ficha del calendario.
+ */
+export function lineSourceOf(
+  db: Database,
+  tl: StageTimeline,
+  raceKey: string,
+  stageDay: number,
+): Promise<LineSource> {
+  const adapted = adaptedSourceOf(tl)
+  if (adapted !== null) return Promise.resolve(adapted)
+  let hit = recordedSources.get(tl)
+  if (hit === undefined) {
+    const read: Promise<LineSource> = getStageSnapshot(db, raceKey, stageDay).then((snap) => {
+      const input = snap === null ? null : snapshotInputSchema.safeParse(snap.input)
+      return {
+        stored: (snap === null ? null : storedEventsOf(snap.events)) ?? [],
+        view: recordedClockOf(tl),
+        // El recorrido validado en lo que se lee de él; el resto viaja tal cual lo escribió el motor.
+        racedProfile:
+          input?.success === true ? (input.data.profile as unknown as StageProfile) : null,
+      }
+    })
+    hit = read
+    recordedSources.set(tl, read)
+    void read.catch(() => recordedSources.delete(tl))
+  }
+  return hit
 }
 
 /**
@@ -1318,16 +1387,28 @@ export function clearAdaptedTimelineCache(): void {
 
 /**
  * LA LÍNEA DE UNA ETAPA (§14.4): la grabada (desde el 6a) o la degradada del adaptador de la radio,
- * o null si no hay retransmisión. En el 3a solo existe la rama del adaptador. Recibe el horizonte de
- * quien mira desde que existe (14-p), aunque la línea no dependa de él: el velo y el límite de lo
- * alcanzado los deciden las rutas (§10.11).
+ * o null si no hay retransmisión. Recibe el horizonte de quien mira (14-p), aunque la línea no dependa
+ * de él: el velo y el límite de lo alcanzado los deciden las rutas (§10.11).
+ *
+ * Primero la grabada, por `readStageTimeline` y su LRU (§5.6). Una lápida, o un cuerpo que no se deja
+ * decodificar, es una etapa sin retransmisión: null, y las rutas responden 404 `broadcast_unavailable`
+ * y la web abre `Report` (D-12, 5-k); no se le pone el adaptador encima. Solo una etapa SIN FILA,
+ * corrida antes del paso 5 o con `TIMELINE_RECORD=off`, va al adaptador (D-07). Las dos clases se
+ * distinguen por la fila, no por la fecha.
  */
 export async function timelineForStage(
   db: Database,
-  _h: Horizon,
+  h: Horizon,
   raceKey: string,
   stageDay: number,
 ): Promise<StageTimeline | null> {
+  try {
+    const recorded = await readStageTimeline(db, h, raceKey, stageDay)
+    if (recorded !== null) return recorded
+  } catch (err) {
+    if (err instanceof TimelineUnavailableError) return null
+    throw err
+  }
   const key = `${raceKey}|${stageDay}`
   const hit = adapted.get(key)
   if (hit !== undefined) {

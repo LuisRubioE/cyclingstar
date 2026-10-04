@@ -8,6 +8,7 @@ import {
   getStageNews,
   getStageNonFinishers,
   getStageResults,
+  readStageTemplateRev,
   readWatch,
   recordProgress,
   stageGateOf,
@@ -39,8 +40,8 @@ import {
 } from '@cyclingstar/shared'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import {
-  adaptedSourceOf,
   leadersThroughStage,
+  lineSourceOf,
   serveCast,
   threeKmRuleRiders,
   timelineForStage,
@@ -70,6 +71,11 @@ import { parseRaceId, parseStageDay } from './params.js'
  * cabecera dice lo visto (`view`) y la meta lo escribe; la puerta de una etapa velada y el tope de lo
  * alcanzado (B18, 409 `beyond_reached`) llegan en el 7b (17-m). Cada respuesta se construye con
  * `satisfies` de su tipo, atado a su esquema (§14.7).
+ *
+ * Desde el 6a sirven la línea grabada de las etapas que la tienen (`timelineForStage`, §14.4), con el
+ * reloj exacto, la revisión de plantillas de su fila (`tplRev`, 12-c) en la cabecera, el acta y la
+ * meta, y la preparación pública de la crono en la cabecera (`tt`); una lápida es 404
+ * `broadcast_unavailable` (D-12), y una etapa sin fila sigue con el adaptador.
  */
 
 type StageParams = { readonly raceId: string; readonly day: string }
@@ -153,6 +159,14 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
     routeCtx.progress.forget(key)
   }
 
+  /**
+   * La revisión de plantillas con que se redactan la voz y el acta (12-c): la de la fila de la línea
+   * grabada, de la misma entrada del LRU (§5.6); con el adaptador, 0.
+   */
+  async function tplRevOf(tl: StageTimeline, a: Admitted): Promise<number> {
+    return tl.clock === 'exact' ? readStageTemplateRev(db, a.h, a.ctx.raceKey, a.ctx.day) : 0
+  }
+
   /** Los corredores propios de quien mira, como RiderIx de la línea (R23.7). */
   async function ownOf(request: FastifyRequest, tl: StageTimeline): Promise<Set<RiderIx>> {
     const v = await request.viewer()
@@ -193,7 +207,7 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
       )
       const startState = startStateOf(tl)
       // El nombre, la etiqueta y el tipo, como la ruta de etapa para una etapa corrida (stageHead).
-      const raced = adaptedSourceOf(tl)?.racedProfile ?? null
+      const raced = (await lineSourceOf(db, tl, ctx.raceKey, ctx.day)).racedProfile
       const head =
         raced === null
           ? ctx.spec
@@ -231,8 +245,12 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
         // Lo visto (7a): de race_watch y de la memoria del proceso; null para el visitante.
         view,
         gate: null,
-        tt: null,
-        tplRev: 0,
+        // la preparación pública de la crono (9-i), sin un solo reloj; null en línea y con el adaptador
+        tt:
+          tl.tt === null
+            ? null
+            : { order: tl.tt.order, intervalS: tl.tt.intervalS, checksKm: [...tl.tt.checksKm] },
+        tplRev: await tplRevOf(tl, a),
       } satisfies BroadcastHead
     },
   )
@@ -284,8 +302,10 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
         })),
         result: replay.results,
         closing: await closingOf(a.ctx, tl, replay, ix),
-        report: { ...withoutRadio(replay), tplRev: 0 },
+        report: { ...withoutRadio(replay), tplRev: await tplRevOf(tl, a) },
         news: await getStageNews(db, a.ctx.worldId, a.ctx.raceKey, a.ctx.day),
+        // las caídas de la línea grabada (sus `mishap` de estado); el tipo de final, por la etiqueta
+        // (en alto, sin la regla), que es lo que la API sabe del `bunchFinish` del motor (6-o)
         threeKmRule: threeKmRuleRiders(tl, a.ctx.spec.label === 'Summit finish'),
       } satisfies BroadcastFinish
     },
@@ -301,8 +321,10 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
       if (a === null) return reply
       const replay = await stageReplayOf(db, a.ctx)
       if (!replay.run) return notFound(reply)
-      // tplRev: el de la línea grabada (6a); con el adaptador, o sin línea, 0 (12-c).
-      return { ...replay, tplRev: 0 } satisfies StageReport
+      // tplRev: el de la fila de la línea grabada (6a), sin construir el adaptador; sin fila o con
+      // lápida, 0 (12-c, §5.6).
+      const tplRev = await readStageTemplateRev(db, a.h, a.ctx.raceKey, a.ctx.day)
+      return { ...replay, tplRev } satisfies StageReport
     },
   )
 
@@ -332,13 +354,14 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
     ctx: StageContext,
   ): Promise<(fromS: RaceS, toS: RaceS) => LiveLines> {
     const finishS = fromDs(visibilityOf(tl).finishDs)
-    const source = adaptedSourceOf(tl)
+    const source = await lineSourceOf(db, tl, ctx.raceKey, ctx.day)
     // 1. Los sucesos de antes de la meta, cada uno con su hora, en el orden de tl.events.
     const sucesos: ChronicleEvent[] = []
     const revealOf = new Map<ChronicleEvent, RaceS>()
     for (const e of tl.events) {
       if (e.revealS >= finishS) continue // el mismo borde que chunkOf: lo de la meta va en el paquete de meta
-      const ev: ChronicleEvent = source?.stored[e.source] ?? {
+      // el guardado, con su km original (4-h); la caída sintetizada (D-13) no está guardada
+      const ev: ChronicleEvent = source.stored[e.source] ?? {
         km: e.km,
         tS: e.tS,
         tipo: 'caida',
@@ -351,7 +374,7 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
     }
     // 3. Los racimos en vivo (§12.3), solo con BROADCAST.liveClusters: entran con su hora y sus sueltos salen.
     let entrada: readonly ChronicleEvent[] = sucesos
-    if (BROADCAST.liveClusters && source !== null) {
+    if (BROADCAST.liveClusters) {
       const racimos = liveClusters(sucesos, source.view, (ev) => revealOf.get(ev) ?? finishS)
       const absorbidos = new Set(racimos.flatMap((c) => c.members))
       const enVivo = racimos.filter((c) => c.revealS < finishS)
@@ -437,7 +460,8 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
       podium,
       gcAfter,
       jerseysTomorrow,
-      // el mayor kmEnFuga no se guarda hasta la línea grabada (DD-14): el adaptador no lo sabe
+      // el mayor kmEnFuga (DD-14) tampoco va en la línea grabada: lo guarda el parte de cada corredor
+      // (`rider_daily_log.parte`); lo lee el cierre del 10a
       mostKmOutFront: null,
       outOfRace,
       tomorrow: await tomorrowOf(ctx),

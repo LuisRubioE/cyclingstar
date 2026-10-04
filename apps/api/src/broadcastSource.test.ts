@@ -4,11 +4,17 @@ import {
   type StageTimeline,
   cutTimeline,
   instantAt,
+  photoAt,
   photoBlocksOf,
   visibilityOf,
 } from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
-import { ROAD_FIXTURES, fixtureStage, loadStoredRadio } from './__fixtures__/broadcast/load.js'
+import {
+  ROAD_FIXTURES,
+  fixtureStage,
+  loadRecordedTimeline,
+  loadStoredRadio,
+} from './__fixtures__/broadcast/load.js'
 import {
   type CastEntry,
   type RadioStage,
@@ -17,9 +23,11 @@ import {
   adaptRadioStage,
   estimatedHeadClock,
   provisionalCast,
+  recordedClockOf,
   revealStoredEvents,
   serveCast,
   storedPhotoBlocks,
+  threeKmRuleRiders,
 } from './broadcastSource.js'
 import type { ChronicleEvent, StoredRadio } from './chronicle.js'
 
@@ -517,5 +525,51 @@ describe('el reparto provisional del adaptador (17-k) y su primera forma servida
     ])
     expect(cards[0]!.team).toEqual({ id: 'sol', name: 'Team Sol', jerseySeed: 'j-sol' })
     for (const c of cards) expect(c.lines).toEqual([])
+  })
+})
+
+describe('threeKmRuleRiders · la regla de los 3 km sobre las caídas de la línea grabada (6-o, §14.7)', () => {
+  // La e7, una llana que acaba al sprint: el grupo que llega con el ganador, y uno de ellos que se cae.
+  const tl = loadRecordedTimeline('race-france-e7')
+  const [winnerDs, bunch] = tl.finish.arrivals[0]!
+  const rider = bunch[bunch.length - 1]!
+  /** La línea con una caída de `rider` a `toGoKm` de la meta, en su sitio entre los sucesos de estado. */
+  const crashAt = (toGoKm: number): StageTimeline => {
+    const b = Math.round((tl.lengthKm - toGoKm) / tl.dx - 0.5)
+    const at = tl.stateEvents.findIndex((e) => e.b > b)
+    const mishap = { t: 'mishap', b, rider, kind: 'caida', lostDs: 150 } as const
+    return {
+      ...tl,
+      stateEvents: [...tl.stateEvents.slice(0, at), mishap, ...tl.stateEvents.slice(at)],
+    }
+  }
+
+  it('la congelada: el que se caerá llega con el tiempo de su grupo, el del ganador, y sin caídas no hay nadie', () => {
+    expect(bunch.length).toBeGreaterThan(1)
+    expect(tl.finish.arrivals.find(([, rs]) => rs.includes(rider))?.[0]).toBe(winnerDs)
+    expect(threeKmRuleRiders(tl, false)).toEqual([])
+  })
+
+  it('una caída a 2 km de un final al sprint, con el tiempo del grupo, sale; la misma en un final en alto, no', () => {
+    const line = crashAt(2)
+    expect(threeKmRuleRiders(line, false)).toEqual([rider])
+    expect(threeKmRuleRiders(line, true)).toEqual([])
+  })
+
+  it('a 4 km de la meta la regla no la cubre', () => {
+    expect(threeKmRuleRiders(crashAt(4), false)).toEqual([])
+  })
+
+  it('la fuente de una línea grabada: los sucesos guardados, el recorrido corrido y una vista sobre la línea', () => {
+    const view = recordedClockOf(tl)
+    expect(view.finishS).toBe(tl.finish.finishS)
+    expect(view.riderIx(tl.riderIds[3]!)).toBe(3)
+    expect(view.groupAt(3, -1)).toBe(0)
+    const b = 1000
+    const p = photoAt(tl, b)
+    const g = view.groupAt(3, b)
+    expect(g).toBe(p.groupOf[3])
+    expect(view.clockAt(g!, b)).toBe(p.clock.get(g!)! / 10)
+    expect(view.blockOfKm(100.05)).toBe(1000)
   })
 })
