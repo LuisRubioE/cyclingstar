@@ -424,7 +424,9 @@ describe('B12 · la aritmética del horizonte (§10.14)', () => {
     const counted = countingDb(t.db)
     const h1 = await computeHorizon(counted.db, me(PLAYER), day())
     const first = counted.calls()
-    expect(first).toBe(4) // la 1, la 2, la 3 y el mapa del día
+    // La 1, la 2 y la 3 juntas en una sentencia (B14, 16-k), y el mapa del día. RE-SELLADO: eran 4
+    // antes de juntar la 2 y la 3.
+    expect(first).toBe(3)
     const h2 = await computeHorizon(counted.db, me(PLAYER), day())
     expect(counted.calls() - first).toBe(1)
     expect(h2).toBe(h1)
@@ -435,7 +437,8 @@ describe('B12 · la aritmética del horizonte (§10.14)', () => {
     await revealStage(t.db, k(PLAYER, OWN), 2, false)
     const before = counted.calls()
     const h3 = await computeHorizon(counted.db, me(PLAYER), day())
-    expect(counted.calls() - before).toBe(3) // otra clave: la 1, la 2 y la 3; el mapa del día sigue
+    // Otra clave: la 1, y la 2 y la 3 juntas (eran 3 antes de juntarlas); el mapa del día sigue.
+    expect(counted.calls() - before).toBe(2)
     expect(h3.rev).not.toBe(h1.rev)
     expect(stagesOf(h3, OWN)).toEqual([3, 4, 5, 6, 7])
   })
