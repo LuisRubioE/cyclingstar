@@ -13,13 +13,20 @@
  * `beyond` (un 409 `beyond_reached`) y con `failed`, la petición se suelta, porque el reductor pide lo
  * que haga falta (informar y pedir otra vez, o `Connection lost · Retry`).
  *
- * Nace en el 3c. Hasta el 7a no existe `POST /api/me/watch`: los efectos `report` se saltan sin romper
- * el orden de los demás, y el servidor no da 409 hasta el 7b (B18). `reveal` y `release` son del 10a.
+ * Nace en el 3c. Desde el 7a los informes (`report`) salen (`POST /api/me/watch`, o el `localStorage`
+ * del visitante: lo deciden los `ports` de `StageWatch.tsx`). Van en la cola como los demás, y un fallo
+ * suyo no para la imagen: no llega al reductor, que ya contó lo informado al pedirlo, y lo alcanzado
+ * vuelve a subir con el informe siguiente; si la red ha caído, lo dice el tramo que le sigue, y desde el
+ * 7b, si el servidor sabe menos de lo informado, el 409 de ese tramo (`beyond`), que informa otra vez.
+ * Un 429 espera y repite el mismo informe. El de salir (`beacon`, en `pagehide` o al desmontar) no hace
+ * cola: sale en el acto, porque la página se va y la cola se para justo después. El servidor no da 409
+ * hasta el 7b (B18). `reveal` y `release` son del 10a.
  */
 import {
   type BroadcastChunk,
   type BroadcastFinish,
   type Ds,
+  type RaceS,
   type WatchMode,
   toDs,
 } from '@cyclingstar/shared'
@@ -33,6 +40,10 @@ export interface WatchPorts {
   readonly finish: (mode: WatchMode) => Promise<BroadcastFinish>
   /** espera `s` segundos de pared: el `retry-after` de un 429 */
   readonly sleep: (s: number) => Promise<void>
+  /** el informe de lo alcanzado: `POST /api/me/watch` con `keepalive` (7a); sin sesión, el `localStorage` (11-p) */
+  readonly report: (reachedS: RaceS, mode: WatchMode) => Promise<unknown>
+  /** el informe de salir, sin esperar respuesta: `sendBeacon` (14-g); sin sesión, el `localStorage` */
+  readonly beacon: (reachedS: RaceS, mode: WatchMode) => void
 }
 
 /** A quién le llega cada respuesta: la pantalla (la línea y la meta) y el reductor (las acciones). */
@@ -76,6 +87,25 @@ export function effectRunner(ports: WatchPorts, sink: WatchSink): EffectRunner {
     }
   }
 
+  /**
+   * Un informe hasta que responde o se suelta: un 429 espera y repite el mismo; cualquier otro fallo se
+   * suelta sin decírselo al reductor (la cabecera de este fichero dice por qué).
+   */
+  async function report(reachedS: RaceS, mode: WatchMode): Promise<void> {
+    for (;;) {
+      try {
+        await ports.report(reachedS, mode)
+        return
+      } catch (error) {
+        if (stopped) return
+        const a = failureAction(error)
+        if (a.k !== 'throttled') return
+        await ports.sleep(a.retryAfterS)
+        if (stopped) return
+      }
+    }
+  }
+
   async function run(): Promise<void> {
     running = true
     try {
@@ -97,7 +127,9 @@ export function effectRunner(ports: WatchPorts, sink: WatchSink): EffectRunner {
               },
             )
             break
-          case 'report': // POST /api/me/watch llega en el 7a
+          case 'report':
+            await report(e.reachedS, e.mode)
+            break
           case 'reveal': // POST /api/me/reveal llega en el 10a, con Show result
           case 'release': // el digest, en el 10a
             break
@@ -111,8 +143,16 @@ export function effectRunner(ports: WatchPorts, sink: WatchSink): EffectRunner {
   return {
     push(effects) {
       if (stopped || effects.length === 0) return
-      queue.push(...effects)
-      if (!running) void run()
+      for (const e of effects) {
+        if (e.k !== 'report' || !e.beacon) queue.push(e)
+        else
+          try {
+            ports.beacon(e.reachedS, e.mode) // al salir no se espera a nadie (14-g)
+          } catch {
+            // un beacon que falla no rompe la cola: lo alcanzado vuelve a subir en la visita siguiente
+          }
+      }
+      if (!running && queue.length > 0) void run()
     },
     stop() {
       stopped = true

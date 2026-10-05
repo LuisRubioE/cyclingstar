@@ -1,3 +1,4 @@
+import type { StageGate } from '@cyclingstar/shared'
 import type { FastifyReply } from 'fastify'
 
 /**
@@ -36,4 +37,13 @@ export function unauthorized(reply: FastifyReply): FastifyReply {
 /** 404: el recurso no existe (o el id, siendo válido, no corresponde a nada). */
 export function notFound(reply: FastifyReply, code = 'no_encontrado'): FastifyReply {
   return sendError(reply, 404, code)
+}
+
+/**
+ * 403 con la puerta de una etapa (E2, docs/retransmision.md §14.7, 14-h): el error de siempre con el
+ * `k` de la puerta como código, y la puerta al lado (`stageGateErrorSchema`). La web de hoy, que solo
+ * mira `error`, lo entiende igual. Nace en el 7a con el progreso; el 7b lo usa en el acta y los tramos.
+ */
+export function sendGate(reply: FastifyReply, gate: StageGate): FastifyReply {
+  return reply.status(403).send({ ...apiError(gate.k), gate })
 }

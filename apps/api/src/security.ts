@@ -11,7 +11,7 @@ export const GLOBAL_RATE_LIMIT = { max: 300, timeWindow: '1 minute' } as const
 
 /**
  * EL LÍMITE DEL REPRODUCTOR (E2, docs/retransmision.md §14.5, decisión 14-q): el `config.rateLimit`
- * propio de `GET …/broadcast/chunk` (y, desde el 7a, de `POST /api/me/watch`). `@fastify/rate-limit` da
+ * propio de `GET …/broadcast/chunk` (3a) y de `POST /api/me/watch/:raceKey/:day` (7a). `@fastify/rate-limit` da
  * a una ruta con límite propio su contador EN LUGAR del global, así que el reproductor no gasta el cupo
  * de la navegación ni al revés. En un modo rápido un espectador pide de 33 a 60 veces por etapa, y los
  * que salen por la misma IP (una casa, un operador con CGNAT) compartirían el contador. Con sesión, por

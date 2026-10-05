@@ -1,18 +1,51 @@
-import { type Horizon, type Viewer, anonHorizon, worldHorizon } from '@cyclingstar/db'
-import type { SwitchMode } from '@cyclingstar/shared'
-import type { FastifyInstance, FastifyRequest, HTTPMethods } from 'fastify'
+import {
+  type Database,
+  type Horizon,
+  TtlMemo,
+  type Viewer,
+  type WorldRef,
+  anonHorizon,
+  computeHorizon,
+  getCurrentWorld,
+  touchLastSeen,
+  worldHorizon,
+} from '@cyclingstar/db'
+import { SPOILER, type SwitchMode } from '@cyclingstar/shared'
+import { getSessionCookie } from 'better-auth/cookies'
+import type {
+  FastifyContextConfig,
+  FastifyInstance,
+  FastifyReply,
+  FastifyRequest,
+  HTTPMethods,
+} from 'fastify'
+import { toWebHeaders } from './routes/context.js'
+import {
+  DAY_S,
+  VIEWER_COOKIE,
+  cookieValue,
+  readViewerCookie,
+  signViewerCookie,
+  viewerCookieHeader,
+} from './viewerCookie.js'
 
 /**
- * EL SIN DESTRIPE EN LA API, EN SU PRIMERA FORMA (E2, docs/retransmision.md §14.5; decisión 17-h).
+ * EL SIN DESTRIPE EN LA API (E2, docs/retransmision.md §10.8, §10.13, §14.5 y §14.9; decisión 17-h).
  *
- * Nace en el 3a con lo que las rutas de la retransmisión necesitan: los tipos del registro, el aumento
- * de `FastifyContextConfig` y de `FastifyRequest`, y `registerSpoilerGuard`, que apunta cada ruta en
- * `app.spoilerRegistry` y pone en cada petición sus cuatro métodos. Hasta el 8a la política y el
- * mecanismo de cada ruta son opcionales (el servidor arranca aunque falten: el inventario de
- * `spoilerRegistry.test.ts` sigue siendo la lista), `viewer()` solo mira la sesión (la cookie
- * `cs_viewer` llega en el 7a), `spoilerApplies()` es siempre falso y `horizon()` da el horizonte del
- * mundo con sesión y el del visitante sin ella, los dos con el velo vacío. `computeHorizon` y el gancho
- * `onSend` de las cabeceras llegan en el 7a y el 8a.
+ * Se construye en tres PR. El 3a puso el registro que apunta cada ruta en `app.spoilerRegistry`, sin
+ * lanzar, y los cuatro métodos de cada petición sin horizonte. El 7a (este) les da su forma: `viewer()`
+ * es el de la sesión, con su usuario memorizado 60 s por el valor de la cookie de sesión (10-n), o el de
+ * `cs_viewer` EN LECTURA (§10.8); `spoilerApplies()` dice si `SPOILER_MODE` vale para quien pide
+ * (`on`, o `admins` y es administrador); `horizon()` es `computeHorizon` cuando vale y, si no, el del
+ * mundo con sesión o el del visitante sin ella (§10.13); y el gancho `onSend` pone a toda ruta con
+ * horizonte (`horizon` o `watch`) `Vary: Cookie`, `Cache-Control: private, no-store` (salvo un 2xx que
+ * ya traiga el suyo, como el tramo) y, a una petición con sesión, `cs_viewer` firmada de nuevo si la que
+ * llega falta, no vale, es de otro usuario o tiene más de un día (10-g). El 8a hará obligatorios
+ * `policy` y `veil` y el registro lanzará al arrancar si a una ruta le faltan.
+ *
+ * Además de los cuatro métodos de §14.5, la petición gana `world()`: el mundo y su día de juego, leídos
+ * una vez por petición (los usan `horizon()` y las rutas de `/api/me`, que necesitan el mundo de la
+ * fila de `race_watch` y el día del `rev`).
  */
 
 /** Qué hace una ruta con lo que nace de una etapa corrida (D-32). */
@@ -42,7 +75,7 @@ export interface RouteEntry {
   readonly origin: 'app' | 'static'
 }
 
-/** Lo que registró Fastify, por `${método} ${url}`. B1a a B1d lo recorrerán (§16.3). */
+/** Lo que registró Fastify, por `${método} ${url}`. B1a a B1d lo recorren (§16.3). */
 export type RouteRegistry = ReadonlyMap<string, RouteEntry>
 
 declare module 'fastify' {
@@ -51,14 +84,16 @@ declare module 'fastify' {
     veil?: VeilSpec
   }
   interface FastifyRequest {
-    /** de la sesión (desde el 7a, también de cs_viewer en lectura), o null; una vez por petición */
+    /** de la sesión, o de cs_viewer en lectura, o null (§10.8); una vez por petición */
     viewer(): Promise<Viewer>
-    /** con SPOILER_MODE aplicado, el de quien mira (7a); hasta entonces, el del mundo o el del visitante */
+    /** con SPOILER_MODE aplicado (§10.13), el de quien mira; si no, el del mundo o el del visitante */
     horizon(): Promise<Horizon>
-    /** SPOILER_MODE vale para quien pide; siempre falso hasta el 7a (17-h) */
+    /** SPOILER_MODE vale para quien pide: `on`, o `admins` y es administrador */
     spoilerApplies(): Promise<boolean>
     /** BROADCAST_WATCH vale para quien pide: `on`, o `admins` y un administrador con sesión */
     broadcastOn(): Promise<boolean>
+    /** el mundo y su día de juego (game_state), o null sin mundo; una vez por petición */
+    world(): Promise<WorldRef | null>
   }
   interface FastifyInstance {
     spoilerRegistry: RouteRegistry
@@ -66,22 +101,27 @@ declare module 'fastify' {
 }
 
 export interface SpoilerGuardDeps {
-  /** SPOILER_MODE: se publica en /health y se aplica desde el 7a */
+  readonly db: Database
+  /** SPOILER_MODE (§10.13) */
   readonly mode: SwitchMode
   /** BROADCAST_WATCH */
   readonly broadcast: SwitchMode
-  /** createCurrentUserId (routes/context.ts) */
+  /** createCurrentUserId (routes/context.ts): getSession de better-auth */
   readonly currentUserId: (request: FastifyRequest) => Promise<string | null>
   /** isUserAdmin con ADMIN_EMAIL (app.ts) */
   readonly isAdmin: (userId: string) => Promise<boolean>
+  /** SESSION_SECRET, que firma cs_viewer; null: la cookie ni se firma ni se lee */
+  readonly viewerSecret: string | null
+  /** APP_URL por https: cs_viewer lleva Secure, la regla de la cookie de sesión (auth.ts) */
+  readonly secureCookies: boolean
 }
 
 /** Las rutas de un plugin de terceros que no admite `config`: la web compilada de @fastify/static. */
 export const STATIC_ROUTES: ReadonlySet<string> = new Set(['/*'])
 
 /**
- * El registro y los cuatro métodos de la petición. `deps` es null en una app sin base o sin
- * better-auth (los tests de /health): entonces `viewer()` da null, `horizon()` el del visitante y los
+ * El registro y los métodos de la petición. `deps` es null en una app sin base o sin better-auth (los
+ * tests de /health): entonces `viewer()` da null, `horizon()` el del visitante, `world()` null y los
  * otros dos, falso; sin base no se registra ninguna ruta de juego, así que nadie los lee.
  */
 export function registerSpoilerGuard(
@@ -105,54 +145,166 @@ export function registerSpoilerGuard(
         origin: isStatic ? 'static' : 'app',
       })
   })
-  installRequestMethods(app, deps)
+  installViewerAndHorizon(app, deps)
   app.decorate('spoilerRegistry', registry)
   return registry
 }
 
-/** Los cuatro métodos de FastifyRequest, cada uno memorizado por petición. */
-function installRequestMethods(app: FastifyInstance, deps: SpoilerGuardDeps | null): void {
-  const viewers = new WeakMap<FastifyRequest, Promise<Viewer>>()
-  const broadcast = new WeakMap<FastifyRequest, Promise<boolean>>()
-  const viewerOf = (request: FastifyRequest): Promise<Viewer> => {
-    let v = viewers.get(request)
-    if (v === undefined) {
-      v =
-        deps === null
-          ? Promise.resolve(null)
-          : deps
-              .currentUserId(request)
-              .then((userId) => (userId === null ? null : { userId, readOnly: false }))
-      viewers.set(request, v)
+/** El espectador de una petición y si salió de la sesión (y no de cs_viewer): solo entonces se firma cs_viewer. */
+interface ResolvedViewer {
+  readonly viewer: Viewer
+  readonly session: boolean
+}
+
+/**
+ * Los cinco métodos de FastifyRequest, cada uno memorizado por petición en un WeakMap, y el gancho
+ * onSend de las cabeceras (§14.9). Con `deps` null, inertes.
+ */
+function installViewerAndHorizon(app: FastifyInstance, deps: SpoilerGuardDeps | null): void {
+  const viewers = new WeakMap<FastifyRequest, Promise<ResolvedViewer>>()
+  const worlds = new WeakMap<FastifyRequest, Promise<WorldRef | null>>()
+  const applies = new WeakMap<FastifyRequest, Promise<boolean>>()
+  const broadcasts = new WeakMap<FastifyRequest, Promise<boolean>>()
+  const horizons = new WeakMap<FastifyRequest, Promise<Horizon>>()
+  /** El usuario de una cookie de sesión, 60 s, solo los aciertos (10-n): sin él, cada informe y cada tramo leían la sesión en la base. */
+  const sessionMemo = new TtlMemo<string>(SPOILER.horizonMemoS * 1000, SPOILER.horizonMemoEntries)
+
+  const memo = <T>(
+    map: WeakMap<FastifyRequest, Promise<T>>,
+    request: FastifyRequest,
+    make: () => Promise<T>,
+  ): Promise<T> => {
+    let p = map.get(request)
+    if (p === undefined) {
+      p = make()
+      map.set(request, p)
     }
-    return v
+    return p
   }
+
+  const resolveViewer = async (request: FastifyRequest): Promise<ResolvedViewer> => {
+    if (deps === null) return { viewer: null, session: false }
+    const nowMs = Date.now()
+    const sessionCookie = getSessionCookie(toWebHeaders(request))
+    let userId: string | null | undefined =
+      sessionCookie === null ? undefined : sessionMemo.get(sessionCookie, nowMs)
+    if (userId === undefined) {
+      userId = await deps.currentUserId(request)
+      if (userId !== null && sessionCookie !== null) sessionMemo.set(sessionCookie, userId, nowMs)
+    }
+    if (userId !== null) {
+      // Sin esperar y con su .catch: en Node 22 un rechazo sin atender tumba el proceso (10-k).
+      touchLastSeen(deps.db, userId).catch((err: unknown) =>
+        request.log.warn({ err }, 'touchLastSeen'),
+      )
+      return { viewer: { userId, readOnly: false }, session: true }
+    }
+    const cookie =
+      deps.viewerSecret === null
+        ? null
+        : readViewerCookie(
+            cookieValue(request.headers.cookie, VIEWER_COOKIE),
+            deps.viewerSecret,
+            nowMs / 1000,
+          )
+    return {
+      viewer: cookie === null ? null : { userId: cookie.userId, readOnly: true },
+      session: false,
+    }
+  }
+  const viewerOf = (request: FastifyRequest): Promise<ResolvedViewer> =>
+    memo(viewers, request, () => resolveViewer(request))
+
+  const worldOf = (request: FastifyRequest): Promise<WorldRef | null> =>
+    memo(worlds, request, async () => {
+      if (deps === null) return null
+      const w = await getCurrentWorld(deps.db)
+      return w === null ? null : { worldId: w.worldId, currentDay: w.currentDay }
+    })
+
+  const appliesOf = (request: FastifyRequest): Promise<boolean> =>
+    memo(applies, request, async () => {
+      if (deps === null || deps.mode === 'off') return false
+      if (deps.mode === 'on') return true
+      const { viewer } = await viewerOf(request)
+      return viewer !== null && (await deps.isAdmin(viewer.userId))
+    })
+
   app.decorateRequest('viewer', function (this: FastifyRequest): Promise<Viewer> {
-    return viewerOf(this)
+    return viewerOf(this).then((r) => r.viewer)
   })
-  app.decorateRequest('spoilerApplies', function (): Promise<boolean> {
-    return Promise.resolve(false)
+  app.decorateRequest('world', function (this: FastifyRequest): Promise<WorldRef | null> {
+    return worldOf(this)
+  })
+  app.decorateRequest('spoilerApplies', function (this: FastifyRequest): Promise<boolean> {
+    return appliesOf(this)
   })
   app.decorateRequest('broadcastOn', function (this: FastifyRequest): Promise<boolean> {
-    let on = broadcast.get(this)
-    if (on === undefined) {
-      on = broadcastOnFor(deps, viewerOf(this))
-      broadcast.set(this, on)
-    }
-    return on
+    return memo(broadcasts, this, async () => {
+      if (deps === null || deps.broadcast === 'off') return false
+      if (deps.broadcast === 'on') return true
+      const { viewer, session } = await viewerOf(this)
+      return viewer !== null && session && (await deps.isAdmin(viewer.userId))
+    })
   })
   app.decorateRequest('horizon', function (this: FastifyRequest): Promise<Horizon> {
-    return viewerOf(this).then((v) => (v === null ? anonHorizon() : worldHorizon))
+    return memo(horizons, this, async () => {
+      const { viewer } = await viewerOf(this)
+      // SPOILER_MODE alrededor de computeHorizon y no dentro (§10.13): con el modo apagado para quien
+      // pide, el del mundo con sesión o con cookie, el del visitante sin nada, y ninguna consulta.
+      if (deps === null || !(await appliesOf(this)))
+        return viewer === null ? anonHorizon() : worldHorizon
+      const w = await worldOf(this)
+      return w === null ? worldHorizon : computeHorizon(deps.db, viewer, w)
+    })
+  })
+
+  // LAS CABECERAS DE UNA RUTA CON HORIZONTE (§14.9): nada que dependa del horizonte se guarda para otra
+  // cuenta, ni en el navegador ni en un intermediario. Añade `Cookie` a `Vary` sin quitar lo que haya
+  // (el `accept-encoding` de @fastify/compress, que va después en la cadena de onSend).
+  app.addHook('onSend', async (request, reply, payload) => {
+    // La de un 404 no tiene config (fastify, request.js: `context.config?.method`).
+    const config = request.routeOptions.config as FastifyContextConfig | undefined
+    const policy = config?.spoiler
+    if (policy !== 'horizon' && policy !== 'watch') return payload
+    addVary(reply, 'Cookie')
+    const ok = reply.statusCode >= 200 && reply.statusCode < 300
+    if (!(ok && reply.hasHeader('cache-control')))
+      void reply.header('cache-control', 'private, no-store')
+    const resolved = viewers.get(request)
+    if (deps === null || deps.viewerSecret === null || resolved === undefined) return payload
+    const { viewer, session } = await resolved
+    if (!session || viewer === null) return payload
+    const nowS = Date.now() / 1000
+    const came = readViewerCookie(
+      cookieValue(request.headers.cookie, VIEWER_COOKIE),
+      deps.viewerSecret,
+      nowS,
+    )
+    if (came === null || came.userId !== viewer.userId || nowS - came.issuedAtS > DAY_S)
+      appendSetCookie(
+        reply,
+        viewerCookieHeader(
+          signViewerCookie(viewer.userId, deps.viewerSecret, nowS),
+          deps.secureCookies,
+        ),
+      )
+    return payload
   })
 }
 
-/** BROADCAST_WATCH para quien pide: `on`, o `admins` y un administrador con sesión (§14.6). */
-async function broadcastOnFor(
-  deps: SpoilerGuardDeps | null,
-  viewer: Promise<Viewer>,
-): Promise<boolean> {
-  if (deps === null || deps.broadcast === 'off') return false
-  if (deps.broadcast === 'on') return true
-  const v = await viewer
-  return v !== null && !v.readOnly && (await deps.isAdmin(v.userId))
+/** Añade un valor a `Vary` si no está ya (sin distinguir mayúsculas). */
+function addVary(reply: FastifyReply, value: string): void {
+  const prev = reply.getHeader('vary')
+  const list = (Array.isArray(prev) ? prev.join(',') : prev === undefined ? '' : String(prev))
+    .split(',')
+    .map((v) => v.trim())
+    .filter((v) => v !== '')
+  if (list.some((v) => v.toLowerCase() === value.toLowerCase() || v === '*')) return
+  void reply.header('vary', [...list, value].join(', '))
+}
+
+/** Añade un Set-Cookie sin pisar los que ya lleve la respuesta: fastify acumula los de `set-cookie` (reply.js). */
+export function appendSetCookie(reply: FastifyReply, cookie: string): void {
+  void reply.header('set-cookie', cookie)
 }

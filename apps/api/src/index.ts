@@ -34,8 +34,16 @@ async function main(): Promise<void> {
     tickIntervalMinutes: env.TICK_INTERVAL_MINUTES,
     adminToken: env.ADMIN_TOKEN,
     ...(env.ADMIN_EMAIL ? { adminEmail: env.ADMIN_EMAIL } : {}),
-    // Los interruptores de E2 (§14.6): SPOILER_MODE llega con el horizonte, en el 7a.
-    switches: { broadcastWatch: env.BROADCAST_WATCH, spoilerMode: 'off' },
+    // Los interruptores de E2 (§14.6). SPOILER_MODE, desde el 7a: `admins` lo enciende para el dueño.
+    switches: { broadcastWatch: env.BROADCAST_WATCH, spoilerMode: env.SPOILER_MODE },
+    // La cookie que solo restringe (§10.8): firmada con el secreto de sesión, Secure en https como la de
+    // sesión (auth.ts).
+    viewerSecret: env.SESSION_SECRET,
+    secureCookies: env.APP_URL.startsWith('https://'),
+    // El umbral de escritura del progreso (15-j): sin la variable, BROADCAST.progressMinDeltaS.
+    ...(env.PROGRESS_MIN_DELTA_S !== undefined
+      ? { progressMinDeltaS: env.PROGRESS_MIN_DELTA_S }
+      : {}),
     onAdminTick: () =>
       runTick(env.DATABASE_URL, {
         now: new Date(),

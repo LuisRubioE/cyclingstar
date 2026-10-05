@@ -53,6 +53,8 @@ describe('db: migraciones desde cero', () => {
       'stage_team_results',
       // 0047_linea_temporal (docs/retransmision.md §13.3): la línea temporal de cada etapa.
       'stage_timelines',
+      // 0048_lo_visto (§13.4): lo que ha visto cada espectador de cada carrera.
+      'race_watch',
     ]) {
       expect(names.has(table), `falta la tabla ${table}`).toBe(true)
     }
@@ -118,8 +120,104 @@ describe('db: migraciones desde cero', () => {
       'news_race_stage_idx',
       // 0047_linea_temporal (§13.3): el horizonte, el correo de etapa lista y B6 leen por día de juego.
       'stage_timelines_day_idx',
+      // 0048_lo_visto (§13.4): las carreras de un corredor, para el horizonte (D-33).
+      'race_rosters_rider_idx',
     ]) {
       expect(names.has(idx), `falta el índice ${idx}`).toBe(true)
+    }
+  })
+
+  it('users: las cuatro columnas de la 0048 nacen con su defecto (guarded, 0, null, true)', async () => {
+    const [u] = await t.client<{ id: string }[]>`
+      insert into users (email, name) values ('defectos@example.com', 'Defectos') returning id`
+    const [fila] = await t.client`
+      select spoiler_scope, horizon_rev, last_seen_at, reveal_confirm from users where id = ${u!.id}`
+    expect(fila).toEqual({
+      spoiler_scope: 'guarded',
+      horizon_rev: 0,
+      last_seen_at: null,
+      reveal_confirm: true,
+    })
+  })
+
+  it('race_watch: sus dos claves ajenas borran en cascada, la del usuario y la del mundo (0048)', async () => {
+    const [u] = await t.client<{ id: string }[]>`
+      insert into users (email, name) values ('cascada@example.com', 'Cascada') returning id`
+    const [w1] = await t.client<{ id: string }[]>`
+      insert into worlds (world_seed, engine_version) values ('cascada-1', 1) returning id`
+    const [w2] = await t.client<{ id: string }[]>`
+      insert into worlds (world_seed, engine_version) values ('cascada-2', 1) returning id`
+    for (const w of [w1!, w2!])
+      await t.client`insert into race_watch (user_id, world_id, race_key) values (${u!.id}, ${w.id}, 'race-france:s0')`
+    const cuantas = async (): Promise<number> =>
+      (
+        await t.client<{ n: number }[]>`
+          select count(*)::int as n from race_watch where user_id = ${u!.id}`
+      )[0]!.n
+    expect(await cuantas()).toBe(2)
+    await t.client`delete from worlds where id = ${w1!.id}`
+    expect(await cuantas()).toBe(1)
+    await t.client`delete from users where id = ${u!.id}`
+    expect(await cuantas()).toBe(0)
+    const reglas = await t.client<{ constraint_name: string; delete_rule: string }[]>`
+      select constraint_name, delete_rule from information_schema.referential_constraints
+      where constraint_name in ('race_watch_user_id_users_id_fk', 'race_watch_world_id_worlds_id_fk')
+      order by constraint_name`
+    expect(reglas).toEqual([
+      { constraint_name: 'race_watch_user_id_users_id_fk', delete_rule: 'CASCADE' },
+      { constraint_name: 'race_watch_world_id_worlds_id_fk', delete_rule: 'CASCADE' },
+    ])
+  })
+
+  /**
+   * LAS TRES RESTRICCIONES DE RACE_WATCH (§13.4, decisión 13-b), con los casos de `l3/aplicar2.mjs`:
+   * las invariantes de la fila que `watch.ts` mantiene las pone además la base, para que un error de
+   * `watch.ts` no se convierta en una etapa destripada o escondida para siempre.
+   */
+  it('race_watch: entran la fila por defecto, AAR viendo la 4 y follow −1; lo demás, 23514 (0048)', async () => {
+    const [u] = await t.client<{ id: string }[]>`
+      insert into users (email, name) values ('restricciones@example.com', 'R') returning id`
+    const [w] = await t.client<{ id: string }[]>`
+      insert into worlds (world_seed, engine_version) values ('restricciones', 1) returning id`
+    let n = 0
+    const fila = (cols: Record<string, unknown>) => ({
+      user_id: u!.id,
+      world_id: w!.id,
+      race_key: `race-${++n}:s0`,
+      ...cols,
+    })
+    // Entran.
+    await t.client`insert into race_watch ${t.client(fila({}))}`
+    await t.client`insert into race_watch ${t.client(
+      fila({ known_through: 3, how: 'AAR', watching_stage: 4, reached_s: 1200 }),
+    )}`
+    await t.client`insert into race_watch ${t.client(fila({ follow: -1 }))}`
+    const [defecto] = await t.client`
+      select follow, known_through, how, watching_stage, reached_s from race_watch
+      where user_id = ${u!.id} and race_key = 'race-1:s0'`
+    expect(defecto).toEqual({
+      follow: 0,
+      known_through: 0,
+      how: '',
+      watching_stage: null,
+      reached_s: null,
+    })
+    // Se rechazan, cada una con el código de una restricción CHECK.
+    for (const [caso, cols] of [
+      ['dos letras con known_through 3', { known_through: 3, how: 'AA' }],
+      ['una letra que no es de las cinco', { known_through: 1, how: 'Z' }],
+      [
+        'viendo la 5 con 3 conocidas',
+        { known_through: 3, how: 'WWW', watching_stage: 5, reached_s: 10 },
+      ],
+      ['viendo sin reached_s', { known_through: 0, watching_stage: 1 }],
+      ['lo alcanzado sin etapa', { reached_s: 10 }],
+      ['follow 2', { follow: 2 }],
+    ] as const) {
+      await expect(
+        t.client`insert into race_watch ${t.client(fila(cols))}`,
+        caso,
+      ).rejects.toMatchObject({ code: '23514' })
     }
   })
 
@@ -311,8 +409,32 @@ describe('db: el mundo vivo, migrado con las migraciones de E2 encima', () => {
       insert into stage_snapshots (race_id, stage_day, seed, engine_version, input, events, radio)
       values ('race-vivo:s0', 3, 'semilla-vieja', 91, '{"riders":[]}'::jsonb, '[]'::jsonb,
               ${JSON.stringify(radioVieja)}::jsonb)`
+    // Una cuenta y una lista de salida de antes de la 0048 (paso 7a), con las columnas de ayer.
+    const [cuenta] = await t.client<{ id: string }[]>`
+      insert into users (email, name, is_admin) values ('vivo@example.com', 'Vivo', true) returning id`
+    await t.client`
+      insert into race_rosters (race_id, rider_id, bib) values ('race-vivo:s0', ${rider!.id}, 7)`
 
     await t.detached((url) => runMigrations(url))
+
+    // users (0048): la cuenta de ayer recibe los defectos sin reescribir nada (DD-01, DD-17), y
+    // race_watch nace vacía: nadie ha visto nada todavía, que es lo mismo que no tener fila (§10.3).
+    const [vivo] = await t.client`
+      select email, is_admin, spoiler_scope, horizon_rev, last_seen_at, reveal_confirm
+      from users where id = ${cuenta!.id}`
+    expect(vivo).toEqual({
+      email: 'vivo@example.com',
+      is_admin: true,
+      spoiler_scope: 'guarded',
+      horizon_rev: 0,
+      last_seen_at: null,
+      reveal_confirm: true,
+    })
+    expect((await t.client`select count(*)::int as n from race_watch`)[0]?.n).toBe(0)
+    // race_rosters (0048): el índice nuevo cubre las filas de ayer, que se siguen leyendo igual.
+    const [lista] = await t.client`
+      select race_id, bib, abandoned_day from race_rosters where rider_id = ${rider!.id}`
+    expect(lista).toEqual({ race_id: 'race-vivo:s0', bib: 7, abandoned_day: null })
 
     // stage_timelines (0047) nace vacía: la etapa de antes no tiene fila y se seguirá sirviendo con el
     // adaptador de la radio (D-07); su snapshot no cambia (stage_snapshots no gana columnas, D-10).

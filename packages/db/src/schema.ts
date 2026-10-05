@@ -78,6 +78,14 @@ export const worlds = pgTable('worlds', {
 })
 
 /**
+ * El alcance del velo de cada jugador (E2, docs/retransmision.md §10.4 y §13.4; D-30): `guarded`, las
+ * carreras propias, las seguidas y las ocho de cabecera; `own_only`, solo las dos primeras; `off`,
+ * ninguna. Se AMPLÍA, nunca se recrea (Postgres no borra valores de un enum). Valores = `SpoilerScope`
+ * (`shared`), atados en los dos sentidos por `schema.test.ts`.
+ */
+export const spoilerScopeEnum = pgEnum('spoiler_scope', ['guarded', 'own_only', 'off'])
+
+/**
  * Cuentas de usuario / identidad (SPEC 11). Es la tabla de usuario de better-auth
  * (Paso 9): la contraseña se guarda cifrada en `accounts`, no aquí. Los campos
  * `locale` e `isAdmin` son propios del juego; el resto los usa better-auth.
@@ -96,6 +104,20 @@ export const users = pgTable('users', {
   // Cuenta premium: a futuro de pago; al principio, admin y personas de confianza. Habilita tomar
   // el control de un equipo bot y convertirlo en equipo humano (SPEC 7).
   premium: boolean('premium').notNull().default(false),
+  /** Qué carreras se protegen sin pedirlo (E2, D-30; la 0048); por defecto, `guarded` (DD-01). */
+  spoilerScope: spoilerScopeEnum('spoiler_scope').notNull().default('guarded'),
+  /**
+   * Sube con cada cambio de lo conocido o de la guardia (E2, D-33; la 0048): la mitad de `Horizon.rev`
+   * y de la clave del memo de `computeHorizon`. Solo la escriben las cuatro funciones de `watch.ts`.
+   */
+  horizonRev: integer('horizon_rev').notNull().default(0),
+  /**
+   * La última petición con sesión (E2, §10.7; la 0048), escrita como mucho una vez por hora
+   * (`touchLastSeen`). No sirve al horizonte: la pide E7, y no se reconstruye hacia atrás.
+   */
+  lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
+  /** Confirmar antes de revelar (E2, DD-17; la 0048): `Don't ask again` lo pone a false. */
+  revealConfirm: boolean('reveal_confirm').notNull().default(true),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
@@ -618,7 +640,14 @@ export const raceRosters = pgTable(
      */
     abandonedReason: text('abandoned_reason'),
   },
-  (t) => [primaryKey({ columns: [t.raceId, t.riderId] })],
+  (t) => [
+    primaryKey({ columns: [t.raceId, t.riderId] }),
+    /**
+     * Las carreras de un corredor, para el horizonte (E2, D-33; la 0048): sin él, buscarlas era un
+     * recorrido secuencial de unos 20 ms por petición con 250.000 filas (0,46 ms con él, §13.4).
+     */
+    index('race_rosters_rider_idx').on(t.riderId),
+  ],
 )
 
 /** Órdenes de etapa del piloto automático, encolables por toda la vuelta (SPEC 6.18, Paso 29). */
@@ -811,6 +840,52 @@ export const stageTimelines = pgTable(
   (t) => [
     primaryKey({ columns: [t.raceId, t.stageDay] }),
     index('stage_timelines_day_idx').on(t.gameDay),
+  ],
+)
+
+/**
+ * LO VISTO (E2, docs/retransmision.md §10.2, §10.3 y §13.4; D-28, D-29; la 0048): una fila por
+ * (jugador, mundo, carrera). Lo conocido es siempre el prefijo 1..known_through, con una letra por
+ * etapa en `how` (`KnowledgeLetter`: W directo, S resumen o digest, R revelada, A arrastrada, X
+ * caducada); `watching_stage` y `reached_s` son la etapa a medias. El mundo va en la clave porque las
+ * claves de carrera se repiten en cada mundo (`race-france:s0` existe en todos): sin él, un jugador que
+ * conservara su cuenta nacería en el mundo nuevo con lo visto del viejo. Sin fila: nada conocido y
+ * `follow` 0. La escriben las cuatro funciones de `watch.ts` (§10.3) y solo la leen `horizon.ts` y
+ * `watch.ts` (B20, `revealFree.test.ts`): ningún premio, logro ni dinero lee lo visto (D-38), y ninguna
+ * ruta la devuelve de otro jugador (D-41). El reinicio del mundo la borra (`docs/ops.md`, §13.9).
+ */
+export const raceWatch = pgTable(
+  'race_watch',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    worldId: uuid('world_id')
+      .notNull()
+      .references(() => worlds.id, { onDelete: 'cascade' }),
+    raceKey: text('race_key').notNull(),
+    /** 1 seguida (a mano o al empezar a ver), −1 soltada, 0 lo que diga la regla de guardia (D-30). */
+    follow: smallint('follow').notNull().default(0),
+    knownThrough: smallint('known_through').notNull().default(0),
+    how: text('how').notNull().default(''),
+    watchingStage: smallint('watching_stage'),
+    /** Lo alcanzado, en segundos de carrera: lo informa el cliente y es lo único que hace vista una etapa (D-28). */
+    reachedS: integer('reached_s'),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.worldId, t.raceKey] }),
+    check('race_watch_follow', sql`${t.follow} between -1 and 1`),
+    /** Una letra por etapa conocida, y solo de las cinco (13-b). */
+    check(
+      'race_watch_how',
+      sql`${t.how} ~ '^[WSRAX]*$' and char_length(${t.how}) = ${t.knownThrough}`,
+    ),
+    /** A medias solo se está de la primera etapa no conocida, y siempre con lo alcanzado (13-b). */
+    check(
+      'race_watch_watching',
+      sql`(${t.watchingStage} is null) = (${t.reachedS} is null) and (${t.watchingStage} is null or ${t.watchingStage} = ${t.knownThrough} + 1)`,
+    ),
   ],
 )
 

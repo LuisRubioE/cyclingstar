@@ -5,8 +5,8 @@ import fastifyCompress from '@fastify/compress'
 import fastifyHelmet from '@fastify/helmet'
 import fastifyRateLimit from '@fastify/rate-limit'
 import fastifyStatic from '@fastify/static'
-import { type Database, type TickSummary, isUserAdmin } from '@cyclingstar/db'
-import type { SwitchMode } from '@cyclingstar/shared'
+import { type Database, ProgressMemory, type TickSummary, isUserAdmin } from '@cyclingstar/db'
+import { BROADCAST, type SwitchMode } from '@cyclingstar/shared'
 import Fastify, {
   type FastifyError,
   type FastifyInstance,
@@ -25,6 +25,7 @@ import { calendarRoutes } from './routes/calendar.js'
 import { type RouteContext, createCurrentUserId } from './routes/context.js'
 import { geoRoutes } from './routes/geo.js'
 import { healthRoutes } from './routes/health.js'
+import { meRoutes } from './routes/me.js'
 import { raceRoutes } from './routes/races.js'
 import { rankingRoutes } from './routes/rankings.js'
 import { riderRoutes } from './routes/riders.js'
@@ -61,6 +62,18 @@ export interface AppDeps {
    * Sin ellos, los dos `off`, y /health no publica `features`.
    */
   switches?: { readonly broadcastWatch: SwitchMode; readonly spoilerMode: SwitchMode }
+  /**
+   * SESSION_SECRET, que firma la cookie que solo restringe, `cs_viewer` (E2, §10.8; paso 7a). Sin él,
+   * la cookie ni se pone ni se lee.
+   */
+  viewerSecret?: string
+  /** APP_URL va por https: `cs_viewer` lleva Secure, la regla de la cookie de sesión (auth.ts). */
+  secureCookies?: boolean
+  /**
+   * PROGRESS_MIN_DELTA_S (E2, 15-j): los segundos de carrera que tiene que crecer lo alcanzado para
+   * escribirlo. Sin él, `BROADCAST.progressMinDeltaS`.
+   */
+  progressMinDeltaS?: number
 }
 
 /** Carpeta de la web compilada (apps/web/dist). Vacía de index.html hasta el Paso 8. */
@@ -177,10 +190,13 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
     app,
     db && currentUserId
       ? {
+          db,
           mode: deps.switches?.spoilerMode ?? 'off',
           broadcast: deps.switches?.broadcastWatch ?? 'off',
           currentUserId,
           isAdmin: (userId) => isUserAdmin(db, userId, adminEmail),
+          viewerSecret: deps.viewerSecret ?? null,
+          secureCookies: deps.secureCookies ?? false,
         }
       : null,
   )
@@ -210,7 +226,10 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
 
   // Montaje de better-auth en /api/auth/* (Paso 9).
   if (deps.auth) {
-    void app.register(authProxyRoutes, { auth: deps.auth })
+    void app.register(authProxyRoutes, {
+      auth: deps.auth,
+      ...(deps.secureCookies !== undefined ? { secureCookies: deps.secureCookies } : {}),
+    })
   }
 
   // Rutas de juego: requieren sesión (better-auth) y base de datos.
@@ -220,6 +239,16 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       auth: deps.auth,
       currentUserId: currentUserId ?? createCurrentUserId(deps.auth),
       requireAdmin,
+      // La memoria de lo alcanzado de este proceso (D-55, §10.3): una por app. Lo que el barrido escribe
+      // sin esperar, si falla, se apunta y no tumba el proceso (10-k).
+      progress: new ProgressMemory({
+        minDeltaS: deps.progressMinDeltaS ?? BROADCAST.progressMinDeltaS,
+        onLateWriteError: (err, k) =>
+          app.log.warn(
+            { err, raceKey: k.raceKey },
+            'race_watch: lo alcanzado no se escribió al barrer',
+          ),
+      }),
     }
     void app.register(riderRoutes, ctx)
     void app.register(teamRoutes, ctx)
@@ -227,6 +256,8 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
     // La retransmisión (E2, §14.2): la cabecera, el tramo, la meta y el acta. Se registran siempre;
     // BROADCAST_WATCH decide en cada petición quién las alcanza (404 broadcast_off a los demás).
     void app.register(broadcastRoutes, ctx)
+    // Lo visto (E2, §14.2; paso 7a): el progreso, revelar, seguir, el alcance y el horizonte de cada uno.
+    void app.register(meRoutes, ctx)
     void app.register(calendarRoutes, ctx)
     void app.register(rankingRoutes, ctx)
     if (deps.onAdminAdvance) {

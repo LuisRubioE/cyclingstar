@@ -66,6 +66,12 @@ export interface RequestOptions {
   headers?: Record<string, string>
   /** Mensaje para el usuario si la petición falla (en inglés, es UI). */
   errorMessage?: string
+  /**
+   * `keepalive` de fetch: la petición sigue aunque la página se cierre o se oculte. Lo usa el informe
+   * de lo alcanzado de `Watch` (E2, docs/retransmision.md §14.11; paso 7a), que se manda al pausar,
+   * ocultar la pestaña o salir.
+   */
+  keepalive?: boolean
 }
 
 /** Extrae el `error` del cuerpo uniforme de la API, si lo hay. */
@@ -105,6 +111,7 @@ async function fetchOrThrow(path: string, options: RequestOptions): Promise<Resp
     init.body = JSON.stringify(options.json)
   }
   if (Object.keys(headers).length > 0) init.headers = headers
+  if (options.keepalive === true) init.keepalive = true
   try {
     return await fetch(path, init)
   } catch {

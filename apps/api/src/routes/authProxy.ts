@@ -1,11 +1,24 @@
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
 import type { Auth } from '../auth.js'
 import { AUTH_RATE_LIMIT, CREDENTIAL_AUTH_PATHS, CREDENTIAL_RATE_LIMIT } from '../security.js'
+import { viewerCookieHeader } from '../viewerCookie.js'
 import { toWebHeaders } from './context.js'
 
 export interface AuthProxyContext {
   auth: Auth
+  /** APP_URL va por https: la cookie que se borra lleva Secure, como la que se puso (E2, §10.8). */
+  secureCookies?: boolean
 }
+
+/**
+ * Las salidas explícitas de la cuenta, que además borran `cs_viewer`, la cookie que solo restringe
+ * (E2, docs/retransmision.md §10.8; D-34; paso 7a). La caducidad de la sesión NO la borra: es justo el
+ * caso para el que existe.
+ */
+const CLEARS_VIEWER_COOKIE: ReadonlySet<string> = new Set([
+  '/api/auth/sign-out',
+  '/api/auth/delete-user',
+])
 
 /**
  * Montaje de better-auth en /api/auth/* (Paso 9). Reconstruye una Request web a partir de la
@@ -35,6 +48,9 @@ export const authProxyRoutes: FastifyPluginAsync<AuthProxyContext> = async (app,
     }
     for (const cookie of response.headers.getSetCookie()) {
       reply.header('set-cookie', cookie)
+    }
+    if (response.ok && CLEARS_VIEWER_COOKIE.has(url.pathname)) {
+      reply.header('set-cookie', viewerCookieHeader(null, ctx.secureCookies ?? false))
     }
     const body = await response.text()
     return reply.send(body.length > 0 ? body : null)

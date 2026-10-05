@@ -1,5 +1,6 @@
 import {
   type Horizon,
+  type Viewer,
   getCastIdentities,
   getOwnRiderIds,
   getRaceRiderIdentities,
@@ -7,6 +8,9 @@ import {
   getStageNews,
   getStageNonFinishers,
   getStageResults,
+  readWatch,
+  recordProgress,
+  stageGateOf,
 } from '@cyclingstar/db'
 import {
   BROADCAST,
@@ -24,6 +28,7 @@ import {
   type StageReport,
   type StageTimeline,
   type StartState,
+  type WatchMode,
   chunkOf,
   chunkQuerySchema,
   finishBodySchema,
@@ -57,13 +62,14 @@ import { parseRaceId, parseStageDay } from './params.js'
 /**
  * LAS RUTAS DE LA RETRANSMISIÓN (E2, docs/retransmision.md §14.2 a §14.4; D-06, D-50, D-51). Nacen en
  * el 3a: la cabecera (`GET …/broadcast`), el tramo con su voz (`GET …/broadcast/chunk`), el paquete de
- * meta (`POST …/broadcast/finish`, que en el 3a no escribe nada: `race_watch` llega en el 7a) y el acta
+ * meta (`POST …/broadcast/finish`, que desde el 7a escribe la letra de lo visto) y el acta
  * (`GET …/report`), con `?season=` y `?diag=1` aceptados (el modo diagnóstico actúa en el 7b).
  *
  * Las tres de `…/broadcast` responden 404 `broadcast_off` a quien `BROADCAST_WATCH` no alcanza; el acta
- * no depende de ese interruptor (§14.2). La puerta de una etapa velada y el tope de lo alcanzado (B18,
- * 409 `beyond_reached`) llegan con el horizonte (7a y 7b): hasta entonces `spoilerApplies()` es falso.
- * Cada respuesta se construye con `satisfies` de su tipo, atado a su esquema (§14.7).
+ * no depende de ese interruptor (§14.2). El horizonte existe desde el 7a (`SPOILER_MODE`), y con él la
+ * cabecera dice lo visto (`view`) y la meta lo escribe; la puerta de una etapa velada y el tope de lo
+ * alcanzado (B18, 409 `beyond_reached`) llegan en el 7b (17-m). Cada respuesta se construye con
+ * `satisfies` de su tipo, atado a su esquema (§14.7).
  */
 
 type StageParams = { readonly raceId: string; readonly day: string }
@@ -106,6 +112,45 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
     const run = (await getRunStageDays(db, a.ctx.raceKey)).includes(a.ctx.day)
     notFound(reply, run ? 'broadcast_unavailable' : 'no_encontrado')
     return null
+  }
+
+  /**
+   * Lo visto de la etapa para la cabecera (§4.11; 7a): si ya es conocida (W, S, R o A; la X no, 10-e) y
+   * lo alcanzado, el mayor de lo escrito en race_watch y lo último informado a este proceso, para
+   * reanudar (8-l). null para el visitante y para quien lee con cs_viewer, que no escribe progreso.
+   */
+  async function viewOf(viewer: Viewer, ctx: StageContext): Promise<BroadcastHead['view']> {
+    if (viewer === null || viewer.readOnly) return null
+    const key = { userId: viewer.userId, worldId: ctx.worldId, raceKey: ctx.raceKey }
+    const row = await readWatch(db, key)
+    const letter = row !== null && ctx.day <= row.knownThrough ? row.how.charAt(ctx.day - 1) : ''
+    const known = letter === 'W' || letter === 'S' || letter === 'R' || letter === 'A'
+    if (known) return { reachedS: null, known }
+    const stored = row !== null && row.watchingStage === ctx.day ? row.reachedS : null
+    const remembered = routeCtx.progress.reachedOf(key, ctx.day)
+    const reachedS =
+      stored === null ? remembered : remembered === null ? stored : Math.max(stored, remembered)
+    return { reachedS, known }
+  }
+
+  /**
+   * LA META ESCRIBE LA LETRA (§10.3, 14-f; 7a): con sesión, `recordProgress` hasta `finishS` con el modo
+   * con que se llegó, y la memoria de lo alcanzado de esa carrera sobra. Nunca rompe el prefijo: con una
+   * anterior en el velo no escribe, porque `recordProgress` solo se llama sin la puerta
+   * `previous_unseen` (§10.3); el 403 de la meta lo pone el 7b, con la admisión de los tramos.
+   */
+  async function finishWatch(
+    request: FastifyRequest,
+    a: Admitted,
+    finishS: RaceS,
+    mode: WatchMode,
+  ): Promise<void> {
+    const viewer = await request.viewer()
+    if (viewer === null || viewer.readOnly) return
+    if (stageGateOf(a.h, a.ctx.raceKey, a.ctx.day)?.k === 'previous_unseen') return
+    const key = { userId: viewer.userId, worldId: a.ctx.worldId, raceKey: a.ctx.raceKey }
+    await recordProgress(db, key, a.ctx.day, finishS, mode, finishS)
+    routeCtx.progress.forget(key)
   }
 
   /** Los corredores propios de quien mira, como RiderIx de la línea (R23.7). */
@@ -157,7 +202,7 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
               timeTrial: tl.timeTrial,
               km: Math.round(tl.lengthKm),
             })
-      const viewer = await request.viewer()
+      const view = await viewOf(await request.viewer(), ctx)
       return {
         stage: {
           raceKey: ctx.raceKey,
@@ -183,8 +228,8 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
         clock: tl.clock,
         source: tl.clock === 'estimated' ? 'radio' : 'timeline',
         preview: previewOf(tl, startState),
-        // Lo visto llega en el 7a (race_watch): hasta entonces, quien tiene sesión no ha visto nada.
-        view: viewer === null ? null : { reachedS: null, known: false },
+        // Lo visto (7a): de race_watch y de la memoria del proceso; null para el visitante.
+        view,
         gate: null,
         tt: null,
         tplRev: 0,
@@ -229,6 +274,7 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
       if (tl === null) return reply
       const replay = await stageReplayOf(db, a.ctx)
       if (!replay.run) return notFound(reply)
+      await finishWatch(request, a, fromDs(visibilityOf(tl).finishDs), body.data.mode)
       const ix = new Map(tl.riderIds.map((id, i) => [id, i] as const))
       const first = tl.finish.arrivals[0]?.[0] ?? 0
       return {

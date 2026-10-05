@@ -10,7 +10,8 @@ import type { PlayerAction, PlayerEffect } from './player'
  * tras la respuesta del anterior, porque el servidor autoriza un tramo con lo último informado
  * (§10.11). Un error se traduce con `failureAction`: un 429 espera su `retry-after` de pared y repite
  * la misma petición; un 409 `beyond_reached` y un fallo se sueltan, y el reductor pide lo que haga
- * falta. Los informes (`report`) no se mandan hasta el 7a, que trae `POST /api/me/watch`.
+ * falta. Desde el 7a los informes (`report`) salen: en la cola, en su orden, y un fallo suyo no para
+ * la imagen; el de salir (`beacon`), en el acto, sin esperar a nadie (§14.11, 14-g).
  */
 
 /** Una promesa que el test resuelve o rechaza cuando quiere. */
@@ -47,6 +48,7 @@ function rig() {
   const calls: string[] = []
   const pending: { readonly what: string; readonly d: ReturnType<typeof deferred<unknown>> }[] = []
   const sleeps: number[] = []
+  const beacons: string[] = []
   const actions: PlayerAction[] = []
   const chunks: BroadcastChunk[] = []
   const finishes: BroadcastFinish[] = []
@@ -67,6 +69,16 @@ function rig() {
     },
     sleep: async (s) => {
       sleeps.push(s)
+    },
+    report: (reachedS, mode) => {
+      const what = `report ${reachedS} ${mode}`
+      calls.push(what)
+      const d = deferred<unknown>()
+      pending.push({ what, d })
+      return d.promise
+    },
+    beacon: (reachedS, mode) => {
+      beacons.push(`beacon ${reachedS} ${mode}`)
     },
   }
   let push: (effects: readonly PlayerEffect[]) => void = () => {}
@@ -101,7 +113,7 @@ function rig() {
     pending.shift()!.d.reject(error)
     await flush()
   }
-  return { runner, calls, pending, sleeps, actions, chunks, finishes, flush, answer, fail }
+  return { runner, calls, pending, sleeps, beacons, actions, chunks, finishes, flush, answer, fail }
 }
 
 describe('effectRunner · las peticiones del reproductor, en orden (§8.11)', () => {
@@ -128,18 +140,40 @@ describe('effectRunner · las peticiones del reproductor, en orden (§8.11)', ()
     expect(r.calls).toEqual(['chunk 0-900', 'chunk 900-1800'])
   })
 
-  it('los informes no se mandan hasta el 7a, y no rompen el orden de los demás', async () => {
+  /**
+   * RE-SELLADO en E2, paso 7a: hasta aquí los informes se saltaban («no se mandan hasta el 7a»). Ya
+   * existe `POST /api/me/watch`, y salen en la cola, en su orden: el tramo que sigue a un informe no
+   * sale hasta que el informe responde, porque el servidor autoriza el tramo con lo último informado
+   * (§10.11). El de salir no hace cola (el siguiente `it`).
+   */
+  it('los informes salen en la cola, en su orden: lo que les sigue espera su respuesta (7a)', async () => {
     const r = rig()
     r.runner.push([
       { k: 'report', reachedS: 12.3, mode: 'play', beacon: false },
       { k: 'chunk', fromS: 0, toS: 30 },
-      { k: 'report', reachedS: 25, mode: 'play', beacon: true },
+      { k: 'report', reachedS: 25, mode: 'summary', beacon: false },
       { k: 'finish', mode: 'play' },
     ])
     await r.flush()
-    expect(r.calls).toEqual(['chunk 0-300'])
+    expect(r.calls).toEqual(['report 12.3 play'])
+    await r.answer({ status: 'watching', rev: '1.0' })
+    expect(r.calls).toEqual(['report 12.3 play', 'chunk 0-300'])
     await r.answer(chunkTo(300, true))
-    expect(r.calls).toEqual(['chunk 0-300', 'finish play'])
+    await r.answer({ status: 'watching', rev: '1.0' })
+    expect(r.calls).toEqual(['report 12.3 play', 'chunk 0-300', 'report 25 summary', 'finish play'])
+    // la respuesta de un informe no es una acción: el reductor ya contó lo informado al pedirlo
+    expect(r.actions.map((a) => a.k)).toEqual(['chunk'])
+    expect(r.beacons).toEqual([])
+  })
+
+  it('el informe de salir (beacon) sale en el acto: no espera al tramo en vuelo, y la cola parada después no lo pierde', async () => {
+    const r = rig()
+    r.runner.push([{ k: 'chunk', fromS: 0, toS: 30 }])
+    await r.flush()
+    r.runner.push([{ k: 'report', reachedS: 25, mode: 'play', beacon: true }])
+    r.runner.stop() // como el desmontaje de StageWatch: `leave` y en seguida `stop`
+    expect(r.beacons).toEqual(['beacon 25 play'])
+    expect(r.calls).toEqual(['chunk 0-300'])
   })
 
   it('la meta: POST con su modo; la pantalla recibe el paquete y el reductor, finished', async () => {
@@ -189,6 +223,61 @@ describe('effectRunner · los errores, con failureAction (§14.11, 14-q)', () =>
     expect(r.actions).toEqual([{ k: 'beyond' }, { k: 'failed' }])
     expect(r.calls).toEqual(['chunk 0-300', 'chunk 300-600'])
     expect(r.sleeps).toEqual([])
+  })
+})
+
+describe('effectRunner · los errores de un informe (7a)', () => {
+  it('un informe que falla no para la imagen: no llega al reductor y lo que le sigue sale', async () => {
+    const r = rig()
+    r.runner.push([
+      { k: 'report', reachedS: 12.3, mode: 'play', beacon: false },
+      { k: 'chunk', fromS: 0, toS: 30 },
+    ])
+    await r.flush()
+    await r.fail(new ApiError('Network error', 0, 'network'))
+    expect(r.actions).toEqual([])
+    expect(r.calls).toEqual(['report 12.3 play', 'chunk 0-300'])
+    await r.fail(new ApiError('Network error', 0, 'network'))
+    expect(r.actions).toEqual([{ k: 'failed' }]) // la red caída la dice el tramo, que es lo que la imagen espera
+  })
+
+  it('un 429 en un informe espera su retry-after de pared y repite el mismo informe, sin decírselo al reductor', async () => {
+    const r = rig()
+    r.runner.push([
+      { k: 'report', reachedS: 12.3, mode: 'play', beacon: false },
+      { k: 'chunk', fromS: 0, toS: 30 },
+    ])
+    await r.flush()
+    await r.fail(new ApiError('demasiadas_peticiones', 429, 'demasiadas_peticiones', 7))
+    expect(r.sleeps).toEqual([7])
+    expect(r.calls).toEqual(['report 12.3 play', 'report 12.3 play'])
+    await r.answer({ status: 'watching', rev: '1.0' })
+    expect(r.calls).toEqual(['report 12.3 play', 'report 12.3 play', 'chunk 0-300'])
+    expect(r.actions).toEqual([])
+  })
+
+  it('un beacon que lanza no rompe la cola', async () => {
+    const r = rig()
+    const runner = effectRunner(
+      {
+        chunk: async () => chunkTo(300),
+        finish: async () => FINISH,
+        sleep: async () => {},
+        report: async () => ({}),
+        beacon: () => {
+          throw new TypeError('sendBeacon')
+        },
+      },
+      { chunk: () => ({ k: 'touch' }), finish: () => {}, dispatch: (a) => r.actions.push(a) },
+    )
+    expect(() =>
+      runner.push([
+        { k: 'report', reachedS: 1, mode: 'play', beacon: true },
+        { k: 'chunk', fromS: 0, toS: 30 },
+      ]),
+    ).not.toThrow()
+    await r.flush()
+    expect(r.actions).toEqual([{ k: 'touch' }])
   })
 })
 

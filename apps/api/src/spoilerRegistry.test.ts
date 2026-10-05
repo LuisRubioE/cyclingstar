@@ -21,7 +21,9 @@ import { buildApp } from './app.js'
  * (`/api/races/test-tour*`: cuatro `GET` y un `PUT`), así que hoy son 82 rutas de nuestro código
  * —48 `GET`, 21 `POST`, 7 `PUT`, 4 `DELETE`, un `PATCH` y el comodín `GET` y `POST` de `/api/auth/*`,
  * que aquí cuenta dos veces porque el registro va por método— y 49 `HEAD`. El 3a añade las cuatro de
- * la retransmisión (`routes/broadcast.ts`: tres `GET` y un `POST`, §14.2): 86 rutas y 52 `HEAD`.
+ * la retransmisión (`routes/broadcast.ts`: tres `GET` y un `POST`, §14.2): 86 rutas y 52 `HEAD`. El 7a,
+ * las cinco de `/api/me` (`routes/me.ts`: dos `POST`, dos `PUT` y un `GET`): 91 rutas, 92 entradas con
+ * el comodín, y 53 `HEAD`. Las líneas de `routes/broadcast.ts` son las del 7a.
  */
 const ROUTES = [
   // routes/health.ts
@@ -65,10 +67,16 @@ const ROUTES = [
   'PUT /api/my-orders', // l. 162
   'GET /api/races/:raceId/stages/:day', // l. 183-184
   // routes/broadcast.ts (E2, paso 3a): la retransmisión y el acta (§14.2)
-  'GET /api/races/:raceId/stages/:day/broadcast', // l. 123-124
-  'GET /api/races/:raceId/stages/:day/broadcast/chunk', // l. 190-191
-  'POST /api/races/:raceId/stages/:day/broadcast/finish', // l. 213-214
-  'GET /api/races/:raceId/stages/:day/report', // l. 243-244
+  'GET /api/races/:raceId/stages/:day/broadcast', // l. 168-169
+  'GET /api/races/:raceId/stages/:day/broadcast/chunk', // l. 240-241
+  'POST /api/races/:raceId/stages/:day/broadcast/finish', // l. 263-264
+  'GET /api/races/:raceId/stages/:day/report', // l. 294-295
+  // routes/me.ts (E2, paso 7a): lo visto, el revelado, la guardia y el horizonte de cada uno (§14.2)
+  'POST /api/me/watch/:raceKey/:day', // l. 100-101
+  'POST /api/me/reveal/:raceKey/:day', // l. 149-150
+  'PUT /api/me/follow/:raceKey', // l. 172-173
+  'PUT /api/me/spoiler-scope', // l. 194
+  'GET /api/me/horizon', // l. 206-207
   // routes/rankings.ts
   'GET /api/rankings', // l. 27
   'GET /api/rankings/young', // l. 34
@@ -184,14 +192,14 @@ function compare(seen: readonly string[], expected: readonly string[]) {
 describe('el inventario de rutas (hasta el 8a; luego, B1d)', () => {
   it('la lista no repite ninguna ruta y cuenta lo que dice la cabecera', () => {
     expect(new Set(ROUTES).size).toBe(ROUTES.length)
-    expect(ROUTES).toHaveLength(87)
-    expect(HEADS).toHaveLength(52)
+    expect(ROUTES).toHaveLength(92)
+    expect(HEADS).toHaveLength(53)
   })
 
   it('Fastify registra exactamente las rutas de la lista y sus HEAD, ni una más ni una menos', async () => {
     const seen = await inventory(productionDeps(false))
     expect(compare(seen, [...ROUTES, ...HEADS])).toEqual({ extra: [], missing: [], repeated: 0 })
-    expect(seen).toHaveLength(139)
+    expect(seen).toHaveLength(145)
   })
 
   it('con la web compilada, @fastify/static añade solo GET y HEAD /*', async () => {

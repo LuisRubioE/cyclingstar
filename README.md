@@ -86,6 +86,8 @@ pnpm --filter @cyclingstar/web dev
 | `BROADCAST_WATCH`       | no (off)    | La retransmisión (E2): `off` da 404 en `…/broadcast`, `admins` la abre solo a los administradores y `on`, a todos. |
 | `TIMELINE_RECORD`       | no (on)     | Que el tick grabe la línea de cada etapa (E2) en `web` y en `tick`; `off` es el freno, sin desplegar.              |
 | `AUTO_TICK`             | no (on)     | Solo `web`: con `off` no avanza el mundo en su proceso y lo hace solo el cron de `tick`.                           |
+| `SPOILER_MODE`          | no (off)    | El horizonte (E2): `off` no vela nada, `admins` lo enciende para los administradores y `on`, para todos.           |
+| `PROGRESS_MIN_DELTA_S`  | no (60)     | Segundos de carrera que tiene que crecer lo alcanzado para escribirlo (E2); subirlo frena las escrituras.          |
 | `PORT`                  | no (3000)   | Puerto de escucha. En Railway lo inyecta la plataforma.                                                            |
 | `TICK_INTERVAL_MINUTES` | no (360)    | Minutos reales por día de juego. Bajarlo acelera el mundo para la alfa.                                            |
 | `LOG_LEVEL`             | no (info)   | Nivel de log de Fastify.                                                                                           |
