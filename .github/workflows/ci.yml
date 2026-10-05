@@ -96,8 +96,16 @@ jobs:
       # No se pierde nada: los bancos los corre el job `benches` de aquí abajo EN CUANTO SE TOCA EL
       # MOTOR, que es cuando pueden romperse, y `cobertura.yml` los corre enteros con cobertura una
       # vez al día pase lo que pase.
+      # B14 (docs/retransmision.md §16.4 y 16-k) se aparta de la suite y corre SOLO, en el paso de
+      # abajo: es una puerta de latencia (p95 ≤ 5 ms contra el Postgres de servicio) y, dentro de la
+      # suite, la medía con doscientos ficheros más compitiendo por la CPU. Con el mismo
+      # `computeHorizon`, el p95 del jugador dio 3,75, 5,05, 5,11 y 6,40 ms en cuatro corridas: eso
+      # mide el runner, no la consulta. El umbral no cambia.
       - name: Test (sin los bancos)
-        run: pnpm test:rapido
+        run: pnpm test:rapido --exclude packages/db/src/horizonLatency.test.ts
+
+      - name: B14 · la latencia del horizonte, sola
+        run: pnpm exec vitest run packages/db/src/horizonLatency.test.ts
 
   benches:
     name: Bancos · ${{ matrix.nombre }}

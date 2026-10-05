@@ -267,29 +267,40 @@ async function guardStateOf(
   //    race_rosters_rider_idx (0048): `= any` con UN parámetro de tipo array (sql.param, 10-d). Con
   //    `or … in (select …)` el plan era un Seq Scan (18-a).
   const ids = [u.riderId, ...u.teamRiders].filter((id): id is string => id !== null)
-  const own: OwnRaceRow[] =
-    u.scope === 'off' || ids.length === 0
-      ? []
-      : (
-          await db.execute(sql`
-            select rr.race_id as race_key, bool_or(rr.rider_id = ${u.riderId}) as own_rider
-            from race_rosters rr
-            where rr.rider_id = any(${sql.param(ids)}::uuid[])
-              and (rr.race_id like ${`%:s${season}`} or rr.race_id like ${`%:s${season - 1}`})
-            group by rr.race_id`)
-        ).map((r) => ({ raceKey: String(r.race_key), ownRider: r.own_rider === true }))
   // 3. Sus filas de race_watch en este mundo: la clave (user_id, world_id, race_key).
-  const rows: WatchStateRow[] = (
-    await db.execute(sql`
-      select race_key, follow, known_through, watching_stage, reached_s
-      from race_watch where user_id = ${userId} and world_id = ${world.worldId}`)
-  ).map((r) => ({
-    raceKey: String(r.race_key),
-    follow: Number(r.follow),
-    knownThrough: Number(r.known_through),
-    watchingStage: r.watching_stage == null ? null : Number(r.watching_stage),
-    reachedS: r.reached_s == null ? null : Number(r.reached_s),
-  }))
+  // La 2 y la 3 van en UNA sentencia, cada una como un `json_agg` en su subconsulta: el horizonte
+  // paga un viaje a la base menos (B14, 16-k) y cada subconsulta conserva su plan (la 2, por el índice).
+  const ownOn = u.scope !== 'off' && ids.length > 0
+  const ownSql = ownOn
+    ? sql`(select coalesce(json_agg(o), '[]'::json) from (
+          select rr.race_id as race_key, bool_or(rr.rider_id = ${u.riderId}) as own_rider
+          from race_rosters rr
+          where rr.rider_id = any(${sql.param(ids)}::uuid[])
+            and (rr.race_id like ${`%:s${season}`} or rr.race_id like ${`%:s${season - 1}`})
+          group by rr.race_id) o)`
+    : sql`'[]'::json`
+  const [both] = await db.execute(sql`
+    select ${ownSql} as own,
+      (select coalesce(json_agg(w), '[]'::json) from (
+         select race_key, follow, known_through, watching_stage, reached_s
+         from race_watch where user_id = ${userId} and world_id = ${world.worldId}) w) as rows`)
+  const ownJson: unknown = both?.['own']
+  const rowsJson: unknown = both?.['rows']
+  const own: OwnRaceRow[] = (Array.isArray(ownJson) ? ownJson : []).map(
+    (r: Record<string, unknown>) => ({
+      raceKey: String(r['race_key']),
+      ownRider: r['own_rider'] === true,
+    }),
+  )
+  const rows: WatchStateRow[] = (Array.isArray(rowsJson) ? rowsJson : []).map(
+    (r: Record<string, unknown>) => ({
+      raceKey: String(r['race_key']),
+      follow: Number(r['follow']),
+      knownThrough: Number(r['known_through']),
+      watchingStage: r['watching_stage'] == null ? null : Number(r['watching_stage']),
+      reachedS: r['reached_s'] == null ? null : Number(r['reached_s']),
+    }),
+  )
   const guard = guardCandidates(u.scope, own, rows, season)
   // 4. La última etapa corrida de cada candidata sale del mapa del día, el mismo para todos.
   const runs = guard.size === 0 ? new Map<string, number>() : await lastRunStages(db, world)

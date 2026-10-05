@@ -60,15 +60,11 @@ jobs:
       - name: Migraciones sobre la base de tests
         run: node scripts/migrate.mjs
 
-      # `CS_BANCOS=1` enciende lo que solo corre de noche (E2, docs/retransmision.md §16.4, 16-g y
-      # 16-n): B10 largo (`packages/db/src/timelineCollector.long1.test.ts` y `long2`, las 22 etapas en
-      # línea del banco por dos semillas) y que fallen B6 del JSON de la línea y las familias de B2 que
-      # no llegan a su umbral (16-j), que en el tramo de un PR solo se imprimen
-      # (`packages/engine/src/sim/timeline.test.ts`).
+      # Sin `CS_BANCOS`: los bancos de noche de E2 van en su propio job (`bancos`, abajo). Dentro de
+      # la cobertura alargaron la pasada hasta 2 h 6 min y dos pruebas del motor agotaron sus 30 s
+      # (4 de octubre de 2026).
       - name: Test con cobertura
         run: pnpm test:coverage
-        env:
-          CS_BANCOS: '1'
 
       - name: Sube el informe de cobertura
         if: always()
@@ -78,6 +74,29 @@ jobs:
           path: coverage/
           retention-days: 7
           if-no-files-found: ignore
+
+  # `CS_BANCOS=1` enciende lo que solo corre de noche (E2, docs/retransmision.md §16.4, 16-g y 16-n):
+  # B10 largo (`packages/db/src/timelineCollector.long1.test.ts` y `long2`, las 22 etapas en línea
+  # del banco por dos semillas) y que fallen B6 del JSON de la línea y las familias de B2 que no
+  # llegan a su umbral (16-j), que en el tramo de un PR solo se imprimen
+  # (`packages/engine/src/sim/timeline.test.ts`). En su propio runner y sin instrumentar, para no
+  # robarle la CPU a la cobertura; un fallo aquí sigue siendo rojo.
+  bancos:
+    name: Bancos de noche (E2)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Build de packages/db
+        run: pnpm exec tsc -b packages/db
+      - name: B10 largo, B6 del JSON y las familias de B2
+        run: >-
+          pnpm exec vitest run
+          packages/db/src/timelineCollector.long1.test.ts
+          packages/db/src/timelineCollector.long2.test.ts
+          packages/engine/src/sim/timeline.test.ts
+        env:
+          CS_BANCOS: '1'
 
   audit:
     name: Auditoría de dependencias (informativo)
