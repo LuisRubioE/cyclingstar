@@ -79,11 +79,8 @@ const asFollow = (n: number): WatchRow['follow'] => FOLLOW_VALUES.find((f) => f 
 type Tx = Parameters<Parameters<Database['transaction']>[0]>[0]
 
 /** Crea la fila si no existe y la bloquea hasta el final de la transacción (D-57). */
-async function lockRow(tx: Tx, k: WatchKey): Promise<WatchRow> {
-  await tx
-    .insert(raceWatch)
-    .values({ userId: k.userId, worldId: k.worldId, raceKey: k.raceKey })
-    .onConflictDoNothing()
+/** La fila de `k`, bloqueada hasta el final de la transacción (`for update`), o `undefined`. */
+async function selectRowForUpdate(tx: Tx, k: WatchKey): Promise<WatchRow | undefined> {
   const [r] = await tx
     .select({
       follow: raceWatch.follow,
@@ -95,8 +92,23 @@ async function lockRow(tx: Tx, k: WatchKey): Promise<WatchRow> {
     .from(raceWatch)
     .where(keyOf(k))
     .for('update')
+  return r === undefined ? undefined : { ...r, follow: asFollow(r.follow) }
+}
+
+async function lockRow(tx: Tx, k: WatchKey): Promise<WatchRow> {
+  // Casi siempre la fila ya existe (cada informe tras el primero): primero se busca y se bloquea, y
+  // solo si falta se crea y se vuelve a buscar. Es un viaje a la base menos que crearla siempre con
+  // `on conflict do nothing` (B14, 16-k). Dos que llegan a la vez sin fila: el `insert` del segundo
+  // espera al del primero y no hace nada, y su segundo `select` ve la fila ya confirmada y la bloquea.
+  const found = await selectRowForUpdate(tx, k)
+  if (found !== undefined) return found
+  await tx
+    .insert(raceWatch)
+    .values({ userId: k.userId, worldId: k.worldId, raceKey: k.raceKey })
+    .onConflictDoNothing()
+  const r = await selectRowForUpdate(tx, k)
   if (r === undefined) throw new Error(`race_watch: la fila de ${k.raceKey} no está tras crearla`)
-  return { ...r, follow: asFollow(r.follow) }
+  return r
 }
 
 /** Escribe la fila nueva de una carrera. */
@@ -131,6 +143,31 @@ async function currentHorizonRev(tx: Tx, userId: string): Promise<number> {
 }
 
 /**
+ * Escribe la fila de `k` y devuelve `users.horizon_rev`, subido en uno si `bump`, en un solo viaje:
+ * la actualización de `race_watch` va en un `with`, que Postgres ejecuta aunque la consulta principal
+ * no la lea. Es el camino caliente de `recordProgress` (B14, 16-k), que antes daba dos viajes
+ * (`writeRow` y la revisión). Las columnas van por su nombre en la base (§13.4).
+ */
+async function writeRowWithRev(tx: Tx, k: WatchKey, r: WatchRow, bump: boolean): Promise<number> {
+  const write = sql`update race_watch set follow = ${r.follow}, known_through = ${r.knownThrough},
+    how = ${r.how}, watching_stage = ${r.watchingStage}, reached_s = ${r.reachedS},
+    updated_at = now()
+    where user_id = ${k.userId} and world_id = ${k.worldId} and race_key = ${k.raceKey}`
+  const rows = bump
+    ? await tx.execute(
+        sql`with w as (${write}) update users set horizon_rev = horizon_rev + 1
+          where id = ${k.userId} returning horizon_rev as rev`,
+      )
+    : await tx.execute(
+        sql`with w as (${write}) select horizon_rev as rev from users where id = ${k.userId}`,
+      )
+  const rev = rows[0]?.['rev']
+  if (typeof rev === 'number') return rev
+  if (bump) throw new Error(`race_watch: no existe el usuario ${k.userId}`)
+  return 0
+}
+
+/**
  * LO ALCANZADO EN LA ETAPA `stageDay` (§10.3). En el primer progreso de una etapa, lo anterior no
  * conocido se arrastra con `A` (decisión 10-a: la ruta solo llama sin la puerta `previous_unseen`, así
  * que esas etapas están fuera del velo) y una carrera con `follow` 0 pasa a seguida (D-30); después,
@@ -148,6 +185,12 @@ export function recordProgress(
   finishS: number,
 ): Promise<ProgressResult> {
   return db.transaction(async (tx) => {
+    // El informe de progreso se repite cada pocos segundos de pared y perderlo no destapa nada: lo
+    // alcanzado solo crece y lo que no se ha visto sigue velado. Por eso no espera a que el WAL
+    // llegue al disco (`synchronous_commit` local a esta transacción; lo escrito se ve igual en
+    // cuanto confirma, y solo un fallo de Postgres en ese instante lo perdería). La meta
+    // (`reachedS >= finishS`), que hace conocida la etapa, sí espera (B14, 16-k).
+    if (reachedS < finishS) await tx.execute(sql`set local synchronous_commit = off`)
     const r = await lockRow(tx, k)
     if (stageDay <= r.knownThrough)
       return { status: 'known', horizonRev: await currentHorizonRev(tx, k.userId), followed: false }
@@ -174,10 +217,8 @@ export function recordProgress(
       reached = watchingStage === stageDay && reached !== null ? Math.max(reached, floor) : floor
       watchingStage = stageDay
     }
-    await writeRow(tx, k, { follow, knownThrough, how, watchingStage, reachedS: reached })
-    const horizonRev = bump
-      ? await bumpHorizonRev(tx, k.userId)
-      : await currentHorizonRev(tx, k.userId)
+    const row = { follow, knownThrough, how, watchingStage, reachedS: reached }
+    const horizonRev = await writeRowWithRev(tx, k, row, bump)
     return { status: knownThrough >= stageDay ? 'known' : 'watching', horizonRev, followed }
   })
 }
