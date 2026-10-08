@@ -14,6 +14,9 @@
  *     del día de calendario y de su `flush` (falla si se desborda la caché de 64, la que 5-l evita);
  *   - y LA IDENTIDAD: con la grabación encendida, todas las tablas de la base salvo `stage_timelines` y
  *     `tick_log` quedan fila a fila como con la grabación apagada (grabar no cambia ninguna carrera).
+ *     Desde el 11b (DD-11), salvo `stage_snapshots.radio`, que se compara aparte: grabar la deja a null
+ *     en toda etapa cuya línea entró y la conserva en las demás (falla si no), y entre corridas del mismo
+ *     modo tiene que salir igual.
  *
  * La base es PGlite (PostgreSQL 18.3 en WASM, una sola sesión): el mundo se crea una vez con la génesis
  * del tick (`seedWorld`, el campo de producción), se lleva su reloj al día anterior y se CLONA para cada
@@ -158,6 +161,13 @@ async function worldBefore(day) {
   return dump
 }
 
+/**
+ * LA RADIO GUARDADA, APARTE (DD-11; E2, paso 11b). Con la grabación encendida, `flush` deja a null
+ * `stage_snapshots.radio` de toda etapa cuya línea entró, así que esa columna no puede ser igual con
+ * `off` y con `on`: la huella de `stage_snapshots` va sin ella y la radio lleva la suya, con este nombre.
+ */
+const RADIO = 'stage_snapshots.radio'
+
 /** La huella de cada tabla: sus filas sin ids sorteados ni fechas de alta, ordenadas y con sha256. */
 async function fingerprints(sql) {
   const tables = (
@@ -166,6 +176,7 @@ async function fingerprints(sql) {
     .map((r) => r.table_name)
     .filter((t) => t !== 'stage_timelines' && t !== 'tick_log')
   const out = {}
+  const sha256 = (lines) => createHash('sha256').update(lines.join('\n')).digest('hex')
   for (const table of tables) {
     const rows = await sql.unsafe(`select * from "${table}"`)
     const lines = rows
@@ -174,14 +185,16 @@ async function fingerprints(sql) {
         delete copy.id
         delete copy.created_at
         delete copy.started_at
+        if (table === 'stage_snapshots') delete copy.radio
         return JSON.stringify(copy, (_k, v) => (typeof v === 'bigint' ? String(v) : v))
       })
       .sort()
-    out[table] = {
-      rows: lines.length,
-      sha256: createHash('sha256').update(lines.join('\n')).digest('hex'),
-    }
+    out[table] = { rows: lines.length, sha256: sha256(lines) }
   }
+  const radios = (await sql`select race_id, stage_day, radio from stage_snapshots`)
+    .map((r) => JSON.stringify(r))
+    .sort()
+  out[RADIO] = { rows: radios.length, sha256: sha256(radios) }
   return out
 }
 
@@ -205,7 +218,16 @@ async function runDay(dump, day, mode) {
     const lines = await sql`
       select format, bytes, race_id from stage_timelines order by bytes`
     const notes = (await sql`select notes from tick_log order by started_at desc limit 1`)[0]?.notes
-    return { stages, lines, notes, fingerprints: await fingerprints(sql) }
+    // DD-11: la etapa con su línea dentro no guarda radio; la que no tiene línea servible, sí.
+    const [dd11] = await sql`
+      select
+        count(*) filter (where t.format <> 0 and s.radio is null)::int as "lineNoRadio",
+        count(*) filter (where t.format <> 0 and s.radio is not null)::int as "lineWithRadio",
+        count(*) filter (where (t.format is null or t.format = 0) and s.radio is not null)::int as "noLineWithRadio",
+        count(*) filter (where (t.format is null or t.format = 0) and s.radio is null)::int as "noLineNoRadio"
+      from stage_snapshots s
+      left join stage_timelines t on t.race_id = s.race_id and t.stage_day = s.stage_day`
+    return { stages, lines, notes, dd11, fingerprints: await fingerprints(sql) }
   })
   await base.close()
   const recorded = result.lines.filter((l) => l.format !== 0)
@@ -221,6 +243,7 @@ async function runDay(dump, day, mode) {
     medianBytes: bytes.length ? bytes[Math.floor(bytes.length / 2)] : 0,
     maxBytes: bytes.length ? bytes[bytes.length - 1] : 0,
     notes: result.notes,
+    dd11: result.dd11,
     fingerprints: result.fingerprints,
   }
 }
@@ -293,25 +316,35 @@ for (const r of runs)
 let failed = false
 if (!OFF_ONLY) {
   console.log(
-    '\n| Día | off · on (mediana) | De más | Umbral (16-l) | Tablas iguales en todas las corridas |',
+    '\n| Día | off · on (mediana) | De más | Umbral (16-l) | Tablas iguales en todas las corridas | La radio guardada (DD-11) |',
   )
-  console.log('| --- | --- | --- | --- | --- |')
+  console.log('| --- | --- | --- | --- | --- | --- |')
   for (const day of DAYS) {
     const off = runs.find((r) => r.day === day && r.mode === 'off')
     const extra = medianSeconds(day, 'on') - medianSeconds(day, 'off')
     const pct = (100 * extra) / medianSeconds(day, 'off')
     const over = pct > MAX_PCT && extra > MAX_S
-    // La identidad, contra TODAS las corridas del día (las dos grabaciones y las repeticiones).
-    const tables = Object.keys(off.fingerprints)
-    const others = runs.filter((r) => r.day === day && r !== off)
+    // La identidad, contra TODAS las corridas del día (las dos grabaciones y las repeticiones), salvo la
+    // radio guardada (DD-11), que solo tiene que ser igual entre corridas del mismo modo.
+    const tables = Object.keys(off.fingerprints).filter((t) => t !== RADIO)
+    const dayRuns = runs.filter((r) => r.day === day)
+    const others = dayRuns.filter((r) => r !== off)
     const same = tables.filter((t) =>
       others.every((o) => o.fingerprints[t]?.sha256 === off.fingerprints[t].sha256),
     )
     const different = tables.filter((t) => !same.includes(t))
-    const tombstones = Math.max(...runs.filter((r) => r.day === day).map((r) => r.tombstones))
-    if (over || tombstones > 0 || different.length > 0) failed = true
+    const radioSame = dayRuns.every(
+      (r) =>
+        r.fingerprints[RADIO]?.sha256 ===
+        dayRuns.find((x) => x.mode === r.mode).fingerprints[RADIO]?.sha256,
+    )
+    // DD-11: ninguna etapa con línea guarda radio, y todas las que no la tienen la guardan.
+    const dd11 = dayRuns.every((r) => r.dd11.lineWithRadio === 0 && r.dd11.noLineNoRadio === 0)
+    const tombstones = Math.max(...dayRuns.map((r) => r.tombstones))
+    if (over || tombstones > 0 || different.length > 0 || !radioSame || !dd11) failed = true
+    const on = dayRuns.find((r) => r.mode === 'on')
     console.log(
-      `| ${day} | ${medianSeconds(day, 'off').toFixed(1)} · ${medianSeconds(day, 'on').toFixed(1)} s | ${extra >= 0 ? '+' : ''}${extra.toFixed(1)} s (${pct >= 0 ? '+' : ''}${pct.toFixed(1)} %) | ${over ? 'FALLA' : 'pasa'} | ${same.length} de ${tables.length}${different.length ? ` (distintas: ${different.join(', ')})` : ''} |`,
+      `| ${day} | ${medianSeconds(day, 'off').toFixed(1)} · ${medianSeconds(day, 'on').toFixed(1)} s | ${extra >= 0 ? '+' : ''}${extra.toFixed(1)} s (${pct >= 0 ? '+' : ''}${pct.toFixed(1)} %) | ${over ? 'FALLA' : 'pasa'} | ${same.length} de ${tables.length}${different.length ? ` (distintas: ${different.join(', ')})` : ''} | ${dd11 && radioSame ? 'pasa' : 'FALLA'}: con \`on\`, ${on.dd11.lineNoRadio} líneas sin radio y ${on.dd11.noLineWithRadio} sin línea con ella; con \`off\`, ${off.dd11.noLineWithRadio} con radio |`,
     )
   }
   for (const s of subxacts) {
@@ -342,8 +375,16 @@ if (COMPARE) {
     const tables = [
       ...new Set([...mine, ...theirs].flatMap((r) => Object.keys(r.fingerprints))),
     ].sort()
+    // La radio guardada (DD-11), solo entre corridas del mismo modo: con `on`, la de las etapas con
+    // línea va a null.
     const different = tables.filter((t) =>
-      mine.some((r) => theirs.some((o) => r.fingerprints[t]?.sha256 !== o.fingerprints[t]?.sha256)),
+      mine.some((r) =>
+        theirs.some(
+          (o) =>
+            (t !== RADIO || r.mode === o.mode) &&
+            r.fingerprints[t]?.sha256 !== o.fingerprints[t]?.sha256,
+        ),
+      ),
     )
     if (different.length > 0) failed = true
     const modes = (rs) => rs.map((r) => `${r.mode} (${r.rep + 1})`).join(', ')

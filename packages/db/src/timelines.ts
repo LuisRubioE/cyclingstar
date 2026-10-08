@@ -13,6 +13,8 @@
  * - `timelineTickLog` es ese diario: guarda en memoria las filas del día hasta `flush`, que las escribe
  *   todas en un solo `INSERT … ON CONFLICT DO NOTHING` dentro de un punto de guardado (5-l), y lleva las
  *   notas que `runTick` deja en `tick_log.notes`. Pide además los títulos de campeón una vez por día.
+ *   Desde el 11b (DD-11), en ese mismo punto borra la radio guardada de las etapas cuya línea entra
+ *   (`dropStoredRadios`): la etapa sin línea se queda con la suya.
  * - `stageTimelineRow`, `tombstoneRow` y `writeStageTimelineRows`, las filas y su escritura.
  * - `readStageTimeline` y `readStageTemplateRev`, la lectura detrás de un LRU por proceso (D-10). Nadie
  *   las sirve todavía: la retransmisión sigue saliendo del adaptador de la radio hasta el 6a.
@@ -47,9 +49,10 @@ import {
 } from '@cyclingstar/shared'
 import { and, eq, sql } from 'drizzle-orm'
 import type { drizzle } from 'drizzle-orm/postgres-js'
+import { valuesList } from './batch.js'
 import { type CastContext, buildTimelineCast } from './cast.js'
 import type { Horizon } from './horizon.js'
-import { stageTimelines } from './schema.js'
+import { stageSnapshots, stageTimelines } from './schema.js'
 import { type ChampionTitleSource, type Queryable, palmaresTitleSource } from './titles.js'
 
 /**
@@ -257,6 +260,34 @@ export async function writeStageTimelineRows(
   return rows.filter((r) => !keys.has(`${r.raceId}|${r.stageDay}`))
 }
 
+/**
+ * LA RADIO GUARDADA DE LAS ETAPAS CUYA LÍNEA ACABA DE ENTRAR, FUERA (DD-11; E2, paso 11b; §12.10 y
+ * §17.14). Desde el 11b, la `Race Radio` de una etapa con línea sale de ella (`radioFromTimeline`, 11a,
+ * con B16 en verde), y su `stage_snapshots.radio` se queda en null: una sola fuente para la pestaña y la
+ * retransmisión. La etapa la sigue escribiendo al correr (`runOneStage`) y se borra aquí, en el mismo
+ * punto de guardado que el `INSERT` de su línea, porque el snapshot se escribe antes de saber si la línea
+ * va a entrar: se cierra después (`recordStageTimeline`), puede salir lápida (I1, I5 o un error) y,
+ * aunque salga línea, no entra hasta `flush`, al acabar las carreras del día, que puede fallar o
+ * encontrarse la fila de antes (§17.19). Una etapa sin línea y sin radio no tendría `Race Radio` nunca,
+ * y no escribirla de entrada pediría guardar en memoria la radio de todas las etapas del día hasta
+ * `flush`. Así, la radio solo se va con su línea dentro: si el `INSERT` falla, el punto se deshace con
+ * este borrado, y las lápidas de `flush` encuentran la radio en su sitio. Solo llegan aquí las líneas que
+ * el `INSERT` escribió: ni las lápidas ni las que encontraron fila.
+ */
+async function dropStoredRadios(tx: Tx, lines: readonly StageTimelineRow[]): Promise<void> {
+  if (lines.length === 0) return
+  const v = valuesList(
+    lines.map((r) => [r.raceId, r.stageDay]),
+    ['text', 'int'],
+  )
+  await tx.execute(
+    sql`update ${stageSnapshots} set radio = null
+        from ${v} as v(race_id, stage_day)
+        where ${stageSnapshots.raceId} = v.race_id and ${stageSnapshots.stageDay} = v.stage_day
+          and ${stageSnapshots.radio} is not null`,
+  )
+}
+
 /** El mensaje que explica un error: el de su causa más honda (drizzle envuelve el de Postgres con la consulta entera). */
 function messageOf(err: unknown): string {
   let e: unknown = err
@@ -299,7 +330,8 @@ export interface TimelineTickLog {
    * `timeline error: <raceKey> e<n> ya tenía fila`. Si ese INSERT falla, escribe en otro punto de
    * guardado una lápida `{ reason: 'error' }` por cada etapa pendiente, y si también falla, no escribe
    * ninguna (esas etapas abren con el adaptador, D-07); las dos cosas van a las notas. El fallo no llega
-   * a la transacción del día.
+   * a la transacción del día. En el punto del INSERT, y solo si entra, borra la radio guardada de las
+   * etapas cuya línea escribió (DD-11, `dropStoredRadios`): las demás conservan la suya.
    */
   flush(tx: Tx): Promise<void>
   /**
@@ -333,7 +365,16 @@ export function timelineTickLog(
     }
   }
   const writeInSavepoint = async (tx: Tx, rows: readonly StageTimelineRow[]): Promise<void> => {
-    const left = await inSavepoint(tx, 'e2_lineas', (sp) => writeStageTimelineRows(sp, rows))
+    const left = await inSavepoint(tx, 'e2_lineas', async (sp) => {
+      const notWritten = await writeStageTimelineRows(sp, rows)
+      // DD-11: la radio guardada de las etapas cuya LÍNEA acaba de entrar, en el mismo punto (arriba).
+      const skip = new Set(notWritten)
+      await dropStoredRadios(
+        sp,
+        rows.filter((r) => !skip.has(r) && r.format !== TIMELINE_TOMBSTONE_FORMAT),
+      )
+      return notWritten
+    })
     const notWritten = new Set(left)
     count(rows.filter((r) => !notWritten.has(r)))
     for (const r of left) notes.push(`timeline error: ${r.raceId} e${r.stageDay} ya tenía fila`)

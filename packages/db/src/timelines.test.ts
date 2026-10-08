@@ -45,9 +45,16 @@ import type { ChampionTitleSource } from './titles.js'
  * los casos del grabador que falla viven aquí y no en `stageRun.test.ts` (§17.8). El mismo mock apunta
  * la sonda que recibe el motor en cada etapa, para comprobar que con `TIMELINE_RECORD=off` la envoltura
  * es la de hoy y con `on` la del colector aparte (§5.3).
+ *
+ * Y LA RADIO GUARDADA DE LAS ETAPAS SIN LÍNEA (DD-11; E2, paso 11b). Desde el 11b, la etapa cuya línea
+ * entra en `stage_timelines` no guarda `stage_snapshots.radio`: `flush` la borra en el mismo punto de
+ * guardado en que escribe la línea, y la `Race Radio` sale de la línea (11a). La etapa cuya línea no
+ * sale la conserva, que es la única radio que va a tener: la lápida de I1 o de I5 (el mismo mock hace
+ * fallar la autocomprobación), el grabador que falla, la lectura del reparto que falla, el `flush` que
+ * falla, la fila que ya estaba (§17.19), sin `flush` y sin diario (`TIMELINE_RECORD=off`).
  */
 
-type Fallo = 'ninguno' | 'arranque' | 'foto' | 'cierre'
+type Fallo = 'ninguno' | 'arranque' | 'foto' | 'cierre' | 'I1' | 'I5'
 const control = vi.hoisted(() => ({
   fallo: 'ninguno' as Fallo,
   sondas: [] as { readonly atKm: number; readonly ganchos: readonly string[] }[],
@@ -84,6 +91,15 @@ vi.mock('@cyclingstar/engine', async (importOriginal) => {
       })
       return real.simulateStage(...args)
     },
+    // La autocomprobación que no se cumple (§5.5): la lápida de I1 en línea y la de I5 en la crono.
+    selfCheckI1: (...args: Parameters<typeof real.selfCheckI1>) =>
+      control.fallo === 'I1'
+        ? [{ b: 12, km: 1.25, field: 'members', group: null, expected: '7', got: '6' }]
+        : real.selfCheckI1(...args),
+    selfCheckI5: (...args: Parameters<typeof real.selfCheckI5>) =>
+      control.fallo === 'I5'
+        ? [{ rider: 0, check: null, expectedDs: 36_000, gotDs: 36_010 }]
+        : real.selfCheckI5(...args),
   }
 })
 
@@ -138,6 +154,22 @@ describe('db: la línea temporal en stage_timelines (§5.5, §5.6, 5-l)', () => 
         .where(and(eq(stageTimelines.raceId, raceKey), eq(stageTimelines.stageDay, stageDay)))
     )[0]
 
+  /** `stage_snapshots.radio` de una etapa corrida (DD-11): null si su línea entró. */
+  const radioGuardada = async (raceKey: string, stageDay = 1): Promise<unknown> => {
+    const [snap] = await t.db
+      .select({ radio: stageSnapshots.radio })
+      .from(stageSnapshots)
+      .where(and(eq(stageSnapshots.raceId, raceKey), eq(stageSnapshots.stageDay, stageDay)))
+    expect(snap, `${raceKey} e${stageDay} tiene snapshot`).toBeDefined()
+    return snap!.radio
+  }
+  /** La radio guardada de una etapa en línea, con sus fotos: la que leerá `Race Radio` sin línea. */
+  const conRadio = async (raceKey: string): Promise<void> => {
+    const radio = (await radioGuardada(raceKey)) as { kms?: unknown[] } | null
+    expect(radio, `${raceKey} guarda su radio`).not.toBeNull()
+    expect(radio!.kms?.length, `${raceKey}: las fotos de su radio`).toBeGreaterThan(10)
+  }
+
   /** Un diario que además se queda con las filas que le llegan, para comparar con lo escrito. */
   const espia = () => {
     const log = timelineTickLog()
@@ -184,6 +216,8 @@ describe('db: la línea temporal en stage_timelines (§5.5, §5.6, 5-l)', () => 
     expect(await readStageTimeline(t.db, worldHorizon, 'race-vuelta:s0', 1)).toEqual(tl)
     expect(await readStageTemplateRev(t.db, worldHorizon, 'race-vuelta:s0', 1)).toBe(TEMPLATE_REV)
     expect(log.summary()).toBe('timeline: 1 grabadas, 0 sin línea')
+    // Con su línea dentro, la etapa no guarda radio (DD-11): la `Race Radio` sale de la línea.
+    expect(await radioGuardada('race-vuelta:s0')).toBeNull()
   }, 120_000)
 
   /**
@@ -195,7 +229,8 @@ describe('db: la línea temporal en stage_timelines (§5.5, §5.6, 5-l)', () => 
    * 176 en B15, por encima de los 64 de la caché de cada proceso. Aquí, tres etapas con escrituras
    * detrás, leído en la propia sesión con `pg_stat_get_backend_subxact` (PGlite tiene una sola): los dos
    * de la escritura de `flush` (su punto propio y, dentro, el de postgres.js, que aísla el error del
-   * INSERT) y ninguno por etapa. Sin el arreglo, 4.
+   * INSERT) y ninguno por etapa. Sin el arreglo, 4. Desde el 11b (DD-11), el borrado de la radio guardada
+   * de las tres va en el mismo punto que su INSERT, y no añade ninguna.
    */
   it('tres etapas grabadas en una transacción, con escrituras detrás, solo dejan las dos subtransacciones de flush', async () => {
     const log = timelineTickLog()
@@ -219,9 +254,11 @@ describe('db: la línea temporal en stage_timelines (§5.5, §5.6, 5-l)', () => 
     expect(log.summary()).toBe('timeline: 3 grabadas, 0 sin línea')
     expect(estado?.subxact_overflowed).toBe(false)
     expect(estado?.subxact_count).toBe(2)
+    for (const raceKey of ['race-sub-a:s0', 'race-sub-b:s0', 'race-sub-c:s0'])
+      expect(await radioGuardada(raceKey), raceKey).toBeNull()
   }, 180_000)
 
-  it('una lectura del reparto que falla en la base deja la lápida, y la transacción del día se confirma', async () => {
+  it('una lectura del reparto que falla en la base deja la lápida y la radio guardada, y la transacción del día se confirma', async () => {
     // Una fuente de títulos que lanza una consulta que Postgres rechaza: el error es de la base, no de
     // JavaScript, y sin su punto de guardado dejaría abortada la transacción del día entera.
     const rota: ChampionTitleSource = {
@@ -241,6 +278,8 @@ describe('db: la línea temporal en stage_timelines (§5.5, §5.6, 5-l)', () => 
     expect(log.summary()).toMatch(
       /^timeline: 0 grabadas, 1 sin línea · timeline error: race-lectura-rota:s0 e1 division by zero$/,
     )
+    // Sin línea, la `Race Radio` de la etapa es la guardada (DD-11): se queda.
+    await conRadio('race-lectura-rota:s0')
   }, 120_000)
 
   it('una crono se graba con su traza y pasa I5', async () => {
@@ -250,14 +289,42 @@ describe('db: la línea temporal en stage_timelines (§5.5, §5.6, 5-l)', () => 
     expect(tl?.timeTrial).toBe(true)
     expect(tl?.tt?.kmClockDs).toHaveLength(w.riderIds.length)
     expect(log.summary()).toBe('timeline: 1 grabadas, 0 sin línea')
+    // La crono no tiene radio (la vacía, desde su línea o guardada): con la línea, tampoco la guarda.
+    expect(await radioGuardada('race-crono:s0')).toBeNull()
   }, 120_000)
 
-  it('sin flush la etapa no deja fila; sin diario, la envoltura es la de hoy y no hay fila', async () => {
+  /**
+   * LA LÁPIDA DE LA AUTOCOMPROBACIÓN (§5.5; DD-11). Una etapa en línea que no pasa I1, o una crono que
+   * no pasa I5, se queda sin línea, con su lápida: su `Race Radio` es la guardada, que se queda. La de
+   * la crono es la vacía de siempre (`kms: []`), no null.
+   */
+  for (const [fallo, stage, motivo] of [
+    ['I1', FLAT, 'km 1.25'],
+    ['I5', CRONO, 'rider '],
+  ] as const) {
+    it(`una etapa que no pasa ${fallo} deja su lápida y guarda su radio (DD-11)`, async () => {
+      control.fallo = fallo
+      const raceKey = `race-lapida-${fallo}:s0`
+      const log = timelineTickLog()
+      await correr(raceKey, { log, stage })
+      const lapida = (await fila(raceKey))!
+      expect(lapida.format).toBe(TIMELINE_TOMBSTONE_FORMAT)
+      expect(JSON.parse(gunzipSync(lapida.body).toString('utf8'))).toMatchObject({ reason: fallo })
+      expect(log.summary()).toContain(`timeline ${fallo}: ${raceKey} e1 ${motivo}`)
+      if (fallo === 'I1') await conRadio(raceKey)
+      else expect(await radioGuardada(raceKey)).toMatchObject({ kms: [] })
+    }, 120_000)
+  }
+
+  it('sin flush la etapa no deja fila; sin diario, la envoltura es la de hoy y no hay fila; las dos guardan su radio', async () => {
     await correr('race-sin-flush:s0', { log: timelineTickLog(), flush: false })
     expect(await fila('race-sin-flush:s0')).toBeUndefined()
     control.sondas.length = 0
     await correr('race-apagada:s0')
     expect(await fila('race-apagada:s0')).toBeUndefined()
+    // Sin línea (sin `flush`, o con TIMELINE_RECORD=off), la radio guardada se queda (DD-11).
+    await conRadio('race-sin-flush:s0')
+    await conRadio('race-apagada:s0')
     // TIMELINE_RECORD=off: el motor recibe la sonda de hoy, con los km de radio y solo onSnapshot.
     expect(control.sondas).toEqual([
       {
@@ -274,10 +341,60 @@ describe('db: la línea temporal en stage_timelines (§5.5, §5.6, 5-l)', () => 
         ganchos: ['atKm', 'onBanner', 'onEvent', 'onSnapshot', 'onTimeTrialRide'],
       },
     ])
+    expect(await radioGuardada('race-encendida:s0')).toBeNull()
   }, 180_000)
 
+  /**
+   * EL `flush` QUE FALLA (5-l; DD-11). La etapa cerró su línea, pero el INSERT del día no entra: una
+   * fila imposible en el mismo diario (un `format` que no cabe en `smallint`) lo tumba entero, y `flush`
+   * escribe una lápida por etapa. El borrado de la radio va en el mismo punto de guardado que el INSERT y
+   * se deshace con él: la etapa se queda con su lápida y su radio.
+   */
+  it('si el INSERT del día falla, la etapa se queda con su lápida y con su radio guardada', async () => {
+    const log = timelineTickLog()
+    const mala: StageTimelineRow = {
+      ...tombstoneRow(
+        { raceKey: 'race-flush-mala:s0', stageDay: 1, gameDay: 300, tplRev: 0 },
+        { reason: 'error' },
+      ),
+      format: 70_000,
+    }
+    log.recorded(mala, null)
+    await correr('race-flush-cae:s0', { log })
+    const lapida = (await fila('race-flush-cae:s0'))!
+    expect(lapida.format).toBe(TIMELINE_TOMBSTONE_FORMAT)
+    expect(JSON.parse(gunzipSync(lapida.body).toString('utf8'))).toMatchObject({ reason: 'error' })
+    expect(log.summary()).toMatch(/^timeline: 0 grabadas, 2 sin línea · timeline error: /)
+    await conRadio('race-flush-cae:s0')
+  }, 120_000)
+
+  /**
+   * LA FILA QUE YA ESTABA (§17.19; DD-11): un reinicio que no vació `stage_timelines` deja la fila del
+   * mundo viejo, y la etapa del nuevo no escribe la suya (`ON CONFLICT DO NOTHING`, la nota «ya tenía
+   * fila»). Su línea no entró: se queda con su radio.
+   */
+  it('una etapa que ya tenía fila no escribe su línea y se queda con su radio guardada', async () => {
+    await t.db.transaction((tx) =>
+      writeStageTimelineRows(tx, [
+        tombstoneRow(
+          { raceKey: 'race-ya-estaba:s0', stageDay: 1, gameDay: 1, tplRev: 0 },
+          { reason: 'error', message: 'del mundo viejo' },
+        ),
+      ]),
+    )
+    const log = timelineTickLog()
+    await correr('race-ya-estaba:s0', { log })
+    expect(log.summary()).toBe(
+      'timeline: 0 grabadas, 0 sin línea · timeline error: race-ya-estaba:s0 e1 ya tenía fila',
+    )
+    expect(
+      JSON.parse(gunzipSync((await fila('race-ya-estaba:s0'))!.body).toString('utf8')),
+    ).toEqual({ format: 0, reason: 'error', message: 'del mundo viejo' })
+    await conRadio('race-ya-estaba:s0')
+  }, 120_000)
+
   for (const fallo of ['arranque', 'foto', 'cierre'] as const) {
-    it(`el grabador que falla (${fallo}): la etapa escribe sus resultados y deja una lápida y su nota`, async () => {
+    it(`el grabador que falla (${fallo}): la etapa escribe sus resultados y deja una lápida, su nota y su radio guardada`, async () => {
       control.fallo = fallo
       const raceKey = `race-falla-${fallo}:s0`
       const log = timelineTickLog()
@@ -309,6 +426,8 @@ describe('db: la línea temporal en stage_timelines (§5.5, §5.6, 5-l)', () => 
       await expect(readStageTimeline(t.db, worldHorizon, raceKey, 1)).rejects.toBeInstanceOf(
         TimelineUnavailableError,
       )
+      // Sin línea, la `Race Radio` es la guardada (DD-11): se queda.
+      await conRadio(raceKey)
       // Si el grabador no llegó a arrancar, la etapa se corrió con la envoltura de hoy.
       if (fallo === 'arranque')
         expect(control.sondas.map((s) => s.ganchos)).toEqual([['atKm', 'onSnapshot']])

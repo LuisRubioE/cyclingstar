@@ -63,8 +63,26 @@ jobs:
       # Sin `CS_BANCOS`: los bancos de noche de E2 van en su propio job (`bancos`, abajo). Dentro de
       # la cobertura alargaron la pasada hasta 2 h 6 min y dos pruebas del motor agotaron sus 30 s
       # (4 de octubre de 2026).
+      #
+      # Y sin las puertas de tiempo de E2, que bajo la instrumentación no miden nada: B14
+      # (`horizonLatency.test.ts`), B8 del fotograma (`clientCost.test.ts`), B8 de la voz
+      # (`voicePrefix.test.ts`) y B8 del parse (`broadcastFixtures.test.ts`, con B6, B3, B13 y B16
+      # rápida). Las cuatro corren en cada push y en cada PR en `ci.yml`, sin instrumentar, que es donde
+      # un umbral en milisegundos significa algo. Del 4 al 8 de octubre de 2026 esta pasada cayó cada
+      # noche por ellas (17 tests: medianas de 3,7 ms contra 3, fotogramas de 0,48 ms contra 0,25) y por
+      # dos pruebas del motor que pasaron de 30 s (51 y 36 s); un rojo aquí cuelga del commit de `main`
+      # de esa noche, y un redespliegue de ese commit en Railway, el de cambiar una variable, espera al
+      # CI y se salta si lo encuentra rojo. Por la instrumentación (×1,75 a ×2,02) y el runner (+30 %),
+      # el límite por test es aquí de 90 s y no de 30 (`vitest.config.ts`).
       - name: Test con cobertura
-        run: pnpm test:coverage
+        run: >-
+          pnpm test:coverage
+          --exclude '**/node_modules/**'
+          --exclude packages/db/src/horizonLatency.test.ts
+          --exclude apps/web/src/domain/broadcast/clientCost.test.ts
+          --exclude apps/api/src/voicePrefix.test.ts
+          --exclude apps/api/src/broadcastFixtures.test.ts
+          --testTimeout=90000
 
       - name: Sube el informe de cobertura
         if: always()

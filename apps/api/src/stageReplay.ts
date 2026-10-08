@@ -384,7 +384,8 @@ const FIRST_OF_THE_STAGE = 10
  * ganador que viajó escondido en el pelotón) y los corredores propios de quien mira (R23.7). Quien llama
  * solo pide la ficha entera de una etapa conocida, o con `?diag=1`, o sin `SPOILER_MODE`, o fuera del
  * velo. Sin línea (corrida antes del paso 5 o con `TIMELINE_RECORD=off`) o con una lápida, la guardada de
- * siempre: `stage_snapshots.radio` se sigue escribiendo hasta el 11b (17-v).
+ * siempre: desde el 11b (DD-11) solo la guardan esas etapas, porque `flush` borra la de las etapas cuya
+ * línea entra (`stage_snapshots.radio` a null), y `buildRaceRadio` da null si no hay.
  */
 async function radioOf(
   db: Database,

@@ -22,7 +22,8 @@
  *                           que se re-simula la etapa desde su `input` y su `seed`, y el script
  *                           comprueba que los sucesos salen iguales y que `radioForStorage` con la
  *                           lista de seguimiento y los maillots del manifiesto da, campo a campo,
- *                           `stage_snapshots.radio`
+ *                           `stage_snapshots.radio` (la que escribe `runOneStage`, leída antes de
+ *                           `flush`, que desde el 11b la borra al escribir la línea: DD-11)
  *   <etapa>.acta.json.gz    las `ChronicleEntry` del acta, las que sirve hoy la ruta de etapa
  *   manifest.json           motor, semilla, campo, tamaños y sha256 de cada fichero; por carrera, cada
  *                           uuid con su dorsal, país, equipo y nombre de prueba (`Rider 012`); y por
@@ -464,6 +465,10 @@ async function runRace({ raceId, days }) {
     // en la misma transacción (§5.5). Toda etapa, congelada o no, tiene que dejar su línea.
     const log = timelineTickLog()
     const t0 = performance.now()
+    // La radio guardada de la etapa, leída ANTES de `flush`: desde el 11b (DD-11), `flush` la borra en el
+    // mismo punto de guardado en que escribe la línea, y la comprobación de la lista de seguimiento y los
+    // maillots del manifiesto (abajo) necesita la que escribió `runOneStage`.
+    let storedRadio = null
     await t.db.transaction(async (tx) => {
       await runOneStage(tx, worldId, stageDayOfSeason(race, idx), worldSeed, {
         raceKey,
@@ -480,6 +485,7 @@ async function runRace({ raceId, days }) {
         lugar: stagePlace(race, idx),
         timeline: log,
       })
+      if (congelada) storedRadio = (await getStageSnapshot(tx, worldHorizon, raceKey, idx)).radio
       await log.flush(tx)
     })
     if (log.summary() !== 'timeline: 1 grabadas, 0 sin línea')
@@ -490,6 +496,16 @@ async function runRace({ raceId, days }) {
     if (!congelada) continue
 
     const snap = await getStageSnapshot(t.db, worldHorizon, raceKey, idx)
+    // Con su línea dentro, la etapa no guarda radio (DD-11).
+    if (snap.radio !== null)
+      throw new Error(
+        `${race.id} e${idx}: con la línea escrita, la radio guardada no es null (DD-11)`,
+      )
+    // El adaptador (`--adapter`) solo sirve etapas sin línea, que desde el 11b son las únicas que
+    // guardan su radio: la congelada la recupera para que su snapshot sea el que el adaptador lee.
+    if (ADAPTER)
+      await t.client`update stage_snapshots set radio = ${JSON.stringify(storedRadio)}::jsonb
+                     where race_id = ${raceKey} and stage_day = ${idx}`
     const input = snap.input
     const lengthKm = stageLengthKm(input.profile)
     // Los sucesos de la etapa grabada, byte a byte los del 2 (B11 en pequeño: grabar no cambia la carrera).
@@ -520,7 +536,7 @@ async function runRace({ raceId, days }) {
     const { watch, priority } = watchListOf(input, pointsBefore, finishers)
     if (
       radio !== null &&
-      !isDeepStrictEqual(radioForStorage(radio, new Set(watch), priority), snap.radio)
+      !isDeepStrictEqual(radioForStorage(radio, new Set(watch), priority), storedRadio)
     )
       throw new Error(`${race.id} e${idx}: radioForStorage no da la radio guardada`)
     // La radio completa, byte a byte la del 2 (B10 en pequeño: el colector aparte no la cambia).

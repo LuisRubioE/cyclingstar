@@ -804,6 +804,14 @@ export const stageSnapshots = pgTable(
      * 514 KB de JSON por etapa en línea (mapa 07, 22 etapas del banco) y, en disco, de 10,7 a 146,4 KB
      * en `jsonb` con la compresión TOAST del servidor (el juez del motor, §2.1); no los «~22 KB» que
      * decía este comentario. Null en los snapshots anteriores a esta columna.
+     *
+     * Y NULL DESDE EL PASO 11b DE E2 (octubre de 2026; DD-11, docs/retransmision.md §12.10) en toda
+     * etapa cuya línea temporal entró en `stage_timelines`: su `Race Radio` sale de la línea
+     * (`radioFromTimeline`), y `flush` borra esta en el mismo punto de guardado en que escribe la línea
+     * (`dropStoredRadios`, timelines.ts). Se sigue escribiendo, y es la única radio que van a tener, en
+     * las etapas sin línea: con `TIMELINE_RECORD=off`, con una lápida (I1, I5 o el grabador que falla),
+     * si el `INSERT` de `flush` falla o si la etapa ya tenía fila (§17.19). La leen, para esas etapas y
+     * las de antes, la ruta de etapa (`radioOf`) y el adaptador de la radio (D-07).
      */
     radio: jsonb('radio'),
   },

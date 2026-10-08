@@ -637,6 +637,12 @@ export async function runOneStage(
       // diez primeros de la etapa. Sin ella, «el equipo tira para X» se lee sin ver nunca a X.
       // …y los TRES MAILLOTS con prioridad sobre el corte de la vista: sin esto el tope de 24
       // nombres por grupo caía encima de ellos y solo salía uno, al azar (v47).
+      // DESDE EL 11b ES LA RADIO DE LAS ETAPAS SIN LÍNEA (DD-11, docs/retransmision.md §12.10): la de
+      // una etapa con línea sale de la línea (`radioFromTimeline`), y `flush` borra esta en el mismo
+      // punto de guardado en que escribe la línea (`dropStoredRadios`, timelines.ts). Se escribe
+      // siempre porque aquí no se sabe todavía si la línea va a entrar: se queda con
+      // TIMELINE_RECORD=off, con una lápida (I1, I5 o el grabador que falla), si `flush` falla, si la
+      // etapa ya tenía fila o si nadie llama a `flush`, y es la única radio que esas etapas tendrán.
       radio: radioForStorage(
         stageRadio,
         radioWatchList,
@@ -650,7 +656,7 @@ export async function runOneStage(
    * reparto congelado (con los atributos leídos al empezar, antes de que el aprendizaje de abajo los
    * cambie, 8-g), el cierre, la autocomprobación y el gzip. No escribe: la fila espera en el diario
    * hasta `flush`, al acabar las carreras del día (5-l), y un fallo deja la etapa sin línea y con su
-   * nota, nunca la etapa sin correr.
+   * nota, nunca la etapa sin correr. Si la línea entra, `flush` borra la radio de arriba (DD-11).
    */
   if (spec.timeline) {
     await recordStageTimeline(tx, spec.timeline, {
