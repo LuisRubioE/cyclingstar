@@ -20,7 +20,7 @@ jobs:
     name: Typecheck
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - run: pnpm typecheck
 
@@ -53,7 +53,7 @@ jobs:
       # su esquema entero, y `realTestDbFor` crea desde ella una base para cada fichero de tests.
       TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cyclingstar_real
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
 
       - name: Base de los tests de Postgres de verdad
@@ -206,7 +206,7 @@ jobs:
               packages/engine/src/sim/legacy/golden.test.ts
               packages/engine/src/sim/timeline.test.ts
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: ¿Ha cambiado el motor?
@@ -243,7 +243,7 @@ jobs:
     name: Lint · Format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - name: Lint
         run: pnpm lint
@@ -258,7 +258,7 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - run: pnpm -r build
 
@@ -285,7 +285,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cyclingstar_migrations
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - name: Build de packages/db
         run: pnpm exec tsc -b packages/db
