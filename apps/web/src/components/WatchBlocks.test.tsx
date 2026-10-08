@@ -59,9 +59,13 @@ const calendar: Calendar = {
   dayOfSeason: 200,
 }
 
-function home(horizon: HorizonSummary, spoilerMode: 'on' | 'off' = 'on'): string {
+function home(
+  horizon: HorizonSummary,
+  spoilerMode: 'on' | 'off' = 'on',
+  broadcastWatch: 'on' | 'off' = 'on',
+): string {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  client.setQueryData(['health'], healthWith('on', spoilerMode, 200))
+  client.setQueryData(['health'], healthWith(broadcastWatch, spoilerMode, 200))
   client.setQueryData(['horizon'], horizon)
   client.setQueryData(horizonKey(['calendar'], horizon.rev), calendar)
   return renderToStaticMarkup(
@@ -124,6 +128,14 @@ describe('la portada bajo el velo (§11.4)', () => {
     )
     // delante de Key stages (§11.4)
     expect(markup.indexOf('Watch the race in')).toBeLessThan(markup.indexOf('Key stages'))
+  })
+
+  it('con Watch apagado para quien mira (el velo encendido antes que Watch), ni Highlights ni el digest: llevarían a una etapa sin Watch', () => {
+    const markup = home(veiled, 'on', 'off')
+    expect(markup).toContain('Ready to watch')
+    expect(markup).not.toContain('Highlights')
+    expect(markup).not.toContain('Watch the race in')
+    expect(markup).not.toContain('view=')
   })
 
   it('While you were away: la terminada, con Key stages, Continue from stage 4 y Show results', () => {

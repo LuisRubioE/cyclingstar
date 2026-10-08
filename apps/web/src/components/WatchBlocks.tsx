@@ -22,6 +22,7 @@ import {
   useHorizon,
   useHorizonRev,
   useRevealActions,
+  useWatchOn,
   veilApplies,
 } from '../queryClient'
 import { Panel } from './Panel'
@@ -64,6 +65,9 @@ export function WatchBlocks() {
     enabled: wanted && rev !== undefined,
   })
   const health = useHealth()
+  // `Highlights` y el digest son de `Watch`: con `Watch` apagado para quien mira (el velo encendido antes
+  // que `Watch`), no se ofrecen (10a)
+  const { watchOn } = useWatchOn(false, wanted)
   if (h === null || !wanted || calendar.data === undefined) return null
   const blocks = homeBlocks(h, calendar.data.races)
   const expired =
@@ -94,7 +98,7 @@ export function WatchBlocks() {
         <Panel title="Ready to watch">
           <div className="space-y-4">
             {blocks.ready.map((row) => (
-              <ReadyRaceRow key={row.raceKey} row={row} h={h} />
+              <ReadyRaceRow key={row.raceKey} row={row} h={h} watchOn={watchOn} />
             ))}
           </div>
         </Panel>
@@ -103,7 +107,7 @@ export function WatchBlocks() {
         <Panel title="While you were away">
           <div className="space-y-4">
             {blocks.away.map((block) => (
-              <AwayRace key={block.raceKey} block={block} />
+              <AwayRace key={block.raceKey} block={block} watchOn={watchOn} />
             ))}
           </div>
         </Panel>
@@ -132,7 +136,7 @@ function useDropRace(raceKey: string) {
 }
 
 /** Una fila de `Ready to watch`: su cabecera, sus tarjetas y, en el menú, soltar la carrera. */
-function ReadyRaceRow({ row, h }: { row: ReadyRow; h: HorizonSummary }) {
+function ReadyRaceRow({ row, h, watchOn }: { row: ReadyRow; h: HorizonSummary; watchOn: boolean }) {
   const drop = useDropRace(row.raceKey)
   const veiled = h.ready.find((r) => r.raceKey === row.raceKey)?.stages ?? []
   return (
@@ -155,6 +159,7 @@ function ReadyRaceRow({ row, h }: { row: ReadyRow; h: HorizonSummary }) {
             card={c}
             ownRider={row.ownRider}
             before={veiled.filter((d) => d < c.stageDay)}
+            watchOn={watchOn}
           />
         ))}
       </ul>
@@ -168,11 +173,14 @@ function ReadyCard({
   card,
   ownRider,
   before,
+  watchOn,
 }: {
   card: StageCard
   ownRider: boolean
   /** las veladas de antes, que revelarla arrastra */
   before: readonly number[]
+  /** `Watch` encendido para quien mira: `Highlights` (10a) */
+  watchOn: boolean
 }) {
   const [revealed, setRevealed] = useState(false)
   return (
@@ -183,9 +191,11 @@ function ReadyCard({
         <Link to={`/world/races/${card.raceId}/stages/${card.stageDay}`} className={button}>
           Watch
         </Link>
-        <Link to={watchHref(card.raceId, card.stageDay, false, 'highlights')} className={quiet}>
-          Highlights
-        </Link>
+        {watchOn && (
+          <Link to={watchHref(card.raceId, card.stageDay, false, 'highlights')} className={quiet}>
+            Highlights
+          </Link>
+        )}
         {!revealed && (
           <RevealButton
             raceKey={card.raceKey}
@@ -266,7 +276,7 @@ function RevealButton({
 }
 
 /** Un bloque de `While you were away`: una carrera terminada con etapas veladas. */
-function AwayRace({ block }: { block: AwayBlock }) {
+function AwayRace({ block, watchOn }: { block: AwayBlock; watchOn: boolean }) {
   const [keyOpen, setKeyOpen] = useState(false)
   const oneDay = block.stageCount === 1
   const stageHref = (day: number): string => `/world/races/${block.raceId}/stages/${day}`
@@ -275,12 +285,15 @@ function AwayRace({ block }: { block: AwayBlock }) {
       <h3 className="text-sm font-semibold text-slate-800">{block.header}</h3>
       <div className="mt-1.5 flex flex-wrap items-center gap-2">
         {/* el digest: la carrera entera deprisa, encadenada (§8.8, 8-c) */}
-        <Link
-          to={watchHref(block.raceId, block.continueFrom, oneDay, 'digest', block.lastStage)}
-          className={button}
-        >
-          Watch the race in {block.digestMinutes} {block.digestMinutes === 1 ? 'minute' : 'minutes'}
-        </Link>
+        {watchOn && (
+          <Link
+            to={watchHref(block.raceId, block.continueFrom, oneDay, 'digest', block.lastStage)}
+            className={button}
+          >
+            Watch the race in {block.digestMinutes}{' '}
+            {block.digestMinutes === 1 ? 'minute' : 'minutes'}
+          </Link>
+        )}
         {oneDay ? (
           <Link to={stageHref(1)} className={button}>
             Watch
@@ -316,7 +329,7 @@ function AwayRace({ block }: { block: AwayBlock }) {
           {block.keyStages.map((d) => (
             <li key={d}>
               <Link
-                to={watchHref(block.raceId, d, false, 'highlights')}
+                to={watchOn ? watchHref(block.raceId, d, false, 'highlights') : stageHref(d)}
                 className="text-xs font-medium text-brand-cyan hover:underline"
               >
                 Stage {d} →
