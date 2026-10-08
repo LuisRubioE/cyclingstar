@@ -1,9 +1,12 @@
 import {
   type Database,
+  type Horizon,
   type StageSnapshotRow,
+  TimelineUnavailableError,
   getCurrentWorld,
   getGcThroughStage,
   getKomClassification,
+  getOwnRiderIds,
   getPointsClassification,
   getRaceRiderIdentities,
   getStageNonFinishers,
@@ -11,6 +14,8 @@ import {
   getStageSnapshot,
   getTeamClassifications,
   raceStagesForWorld,
+  readStageTimeline,
+  veilCast,
   worldHorizon,
 } from '@cyclingstar/db'
 import {
@@ -25,12 +30,18 @@ import {
   NO_LEADERS,
   type PreStageInfo,
   type RaceLeaders,
+  type RaceRadio,
+  type StageTimeline,
   currentSeason,
   raceLeaders,
+  radioFromTimeline,
+  radioNameableAt,
+  startStateOf,
 } from '@cyclingstar/shared'
 import { leadersThroughStage } from './broadcastSource.js'
 import {
   type ChronicleEvent,
+  type ChronicleNames,
   buildChronicle,
   buildMarkers,
   buildRaceRadio,
@@ -130,6 +141,19 @@ export interface StageReplayOptions {
    * lee antes de decidir si sirve el resultado (`stageAccessOf`, 7b). Sin él, se lee aquí.
    */
   readonly snapshot?: StageSnapshotRow | null
+  /**
+   * A QUIÉN NOMBRA LA RADIO DESDE LA LÍNEA (11a; §12.10, 12-o): el horizonte de quien mira, con el que se
+   * degrada el reparto del que salen los maillots y la general de salida que nombra §7.7, y de quién son
+   * los corredores propios (R23.7). Sin él, el horizonte del mundo y nadie propio. `false`, sin radio: el
+   * paquete de meta no la lleva (14-b) y no se construye para tirarla.
+   */
+  readonly radio?: RadioViewer | false
+}
+
+/** Quién mira la radio de una ficha: su horizonte y su cuenta (null, el visitante). */
+export interface RadioViewer {
+  readonly h: Horizon
+  readonly userId: string | null
 }
 
 /**
@@ -314,9 +338,12 @@ export async function stageReplayOf(
   )
   const altimetry = renderAltimetrySvg(racedProfile, { markers: buildMarkers(storedEvents) })
   // LA RADIO DE CARRERA, con la misma gente que el journal. `null` en las etapas corridas antes
-  // de guardarla, y ahí la vista lo dice en vez de inventarla. A quién se sigue lo decidió quien
-  // la escribió; aquí solo se le pone cara.
-  const radio = buildRaceRadio(snapshot.radio, names)
+  // de guardarla, y ahí la vista lo dice en vez de inventarla. Desde el 11a sale de la línea grabada
+  // si la etapa la tiene (`radioOf`); si no, de la guardada, a la que aquí solo se le pone cara.
+  const radio =
+    opts.radio === false
+      ? null
+      : await radioOf(db, ctx, snapshot, names, results, opts.radio ?? WORLD_VIEWER)
   return {
     day,
     name: head.name,
@@ -341,3 +368,60 @@ export async function stageReplayOf(
 
 /** Lo que devuelve la ruta de etapa: un `StageReplay` (la rama sin correr lleva además `label`). */
 export type StageReplayBody = Awaited<ReturnType<typeof stageReplayOf>>
+
+/** Sin espectador: el horizonte del mundo y nadie propio. */
+const WORLD_VIEWER: RadioViewer = { h: worldHorizon, userId: null }
+
+/** Los diez primeros de una etapa conocida (12-o): la lista de seguimiento de hoy, aplicada al leer. */
+const FIRST_OF_THE_STAGE = 10
+
+/**
+ * LA RADIO DE LA FICHA (E2, docs/retransmision.md §12.10 y §11.16; D-16, 12-o; paso 11a). La de la línea
+ * grabada si la etapa la tiene (`radioFromTimeline`), con la política de §7.7 sobre el reparto degradado
+ * por el velo de quien mira (los maillots que no son del equipo y los `namedGcTop` primeros de la
+ * general de salida, más los protagonistas de los sucesos hasta cada foto), los diez primeros de la etapa
+ * (en una etapa conocida no destripan, y son a quien el dueño sigue por la radio aunque no tire: el
+ * ganador que viajó escondido en el pelotón) y los corredores propios de quien mira (R23.7). Quien llama
+ * solo pide la ficha entera de una etapa conocida, o con `?diag=1`, o sin `SPOILER_MODE`, o fuera del
+ * velo. Sin línea (corrida antes del paso 5 o con `TIMELINE_RECORD=off`) o con una lápida, la guardada de
+ * siempre: `stage_snapshots.radio` se sigue escribiendo hasta el 11b (17-v).
+ */
+async function radioOf(
+  db: Database,
+  ctx: StageContext,
+  snapshot: StageSnapshotRow,
+  names: ChronicleNames,
+  results: readonly { readonly riderId: string; readonly puesto: number; readonly dnf: boolean }[],
+  viewer: RadioViewer,
+): Promise<RaceRadio | null> {
+  let tl: StageTimeline | null = null
+  try {
+    tl = await readStageTimeline(db, viewer.h, ctx.raceKey, ctx.day)
+  } catch (err) {
+    if (!(err instanceof TimelineUnavailableError)) throw err
+  }
+  if (tl === null) return buildRaceRadio(snapshot.radio, names)
+  const ixOf = new Map(tl.riderIds.map((id, r) => [id, r] as const))
+  const ixs = (ids: Iterable<string>): number[] =>
+    [...ids].flatMap((id) => {
+      const r = ixOf.get(id)
+      return r === undefined ? [] : [r]
+    })
+  // una crono no tiene radio (la vacía, como la guardada), ni hace falta saber de quién es nadie
+  const own = tl.timeTrial || viewer.userId === null ? [] : await getOwnRiderIds(db, viewer.userId)
+  const cast = veilCast(tl.cast, viewer.h)
+  const firstTen = results
+    .filter((r) => !r.dnf)
+    .sort((a, b) => a.puesto - b.puesto)
+    .slice(0, FIRST_OF_THE_STAGE)
+    .map((r) => r.riderId)
+  return radioFromTimeline(tl, {
+    riderOf: names.riderOf,
+    own: new Set(ixs(own)),
+    nameableAt: radioNameableAt(tl, {
+      wearing: cast.riders.filter((c) => c.worn.kind !== 'team').map((c) => c.rider),
+      gcTop: startStateOf(cast, tl.riderIds.length).gcTop,
+      extra: ixs(firstTen),
+    }),
+  })
+}

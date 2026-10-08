@@ -585,11 +585,13 @@ describe('la ruta de etapa cerrada sobre una etapa corrida (§14.1; 7b)', () => 
   })
 
   /**
-   * LA PESTAÑA `Race Radio` DEL 7b AL 10 (§11.16, decisión 11-i): la de una etapa no conocida enseña la
-   * puerta, porque la ruta de etapa no manda `radio`; la de una conocida, la radio guardada de hoy,
-   * entera (la lista de seguimiento ya no adelanta nada); con `?diag=1`, también entera.
+   * LA PESTAÑA `Race Radio` (§11.16, decisión 11-i): la ruta de etapa no manda `radio` de una etapa no
+   * conocida (desde el 11a, la web la construye hasta lo pintado con los tramos); la de una conocida es la
+   * de la ficha de hoy, entera, y con `?diag=1`, también. Del 7b al 10 era la radio guardada; desde el
+   * 11a, en una etapa con línea como la 2, la de la línea (`radioFromTimeline`, con los diez primeros de la
+   * etapa y los propios de quien pide, que aquí no tiene ninguno): las tres comparaciones no cambian.
    */
-  it('la Race Radio: sin radio en la etapa no conocida; la guardada de hoy, entera, en la vista y con ?diag=1 (§11.16)', async () => {
+  it('la Race Radio: sin radio en la etapa no conocida; la de la ficha de hoy, entera, en la vista y con ?diag=1 (§11.16)', async () => {
     const app = appWith('admins', 'admins')
     const today = stageReplaySchema.parse(JSON.parse(await todayOf(2, ADMIN)))
     expect(today.radio?.kms.length).toBeGreaterThan(0)
