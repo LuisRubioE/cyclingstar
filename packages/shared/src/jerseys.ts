@@ -24,6 +24,15 @@ export type JerseyKind = 'gc' | 'points' | 'kom'
 /** El orden manda: si un corredor pudiera llevar dos, se queda con el primero de esta lista. */
 export const JERSEY_PRIORITY: readonly JerseyKind[] = ['gc', 'points', 'kom']
 
+/**
+ * La guarda de un maillot que llega sin tipo (E2, docs/retransmision.md §12.6; paso 6b): `mainJersey` y
+ * `groupJersey` viajan en `datos` de una línea de la voz, y sin ella el valor es `unknown` y no indexa
+ * `GROUP_WORDS.jersey`. Sobre `JERSEY_PRIORITY`, que ya los lista todos.
+ */
+export function isJerseyKind(x: unknown): x is JerseyKind {
+  return typeof x === 'string' && (JERSEY_PRIORITY as readonly string[]).includes(x)
+}
+
 /** Quién lleva cada maillot (id de corredor), y qué equipo lleva los dorsales de líder. */
 export interface RaceLeaders {
   /** Líder de la general: maillot amarillo. */
