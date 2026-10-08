@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { fetchForm } from '../api/form'
 import { fetchHealth } from '../api/health'
-import { fetchLastRace } from '../api/lastRace'
+import { fetchLastRace, lastRaceKey } from '../api/lastRace'
 import { fetchMarket } from '../api/market'
 import { fetchEnterableRaces } from '../api/raceEntry'
 import { fetchRaceOrders } from '../api/raceOrders'
@@ -11,13 +11,16 @@ import { fetchMyRider, fetchMyUpcomingRaces, fetchRiderSummary } from '../api/ri
 import { fetchOrders } from '../api/training'
 import { authClient } from '../auth/client'
 import { Logo } from '../components/Logo'
+import { LastRaceReady } from '../components/LastRaceReady'
 import { InfoRow, Panel, SectionBar } from '../components/Panel'
 import { StageRoute } from '../components/StageRoute'
 import { StarRating } from '../components/StarRating'
 import { TeamLink } from '../components/TeamLink'
+import { WatchBlocks } from '../components/WatchBlocks'
 import { WorldClock } from '../components/WorldClock'
 import { type DashboardAction, buildDashboard } from '../domain/dashboard'
 import { raceVerdict } from '../domain/narration'
+import { horizonKey, useHorizonRev, veilApplies } from '../queryClient'
 
 function SystemStatus() {
   const health = useQuery({ queryKey: ['health'], queryFn: fetchHealth })
@@ -41,10 +44,18 @@ function SystemStatus() {
   )
 }
 
-/** Guest landing: hero + how-to-play + system status. */
+/**
+ * Guest landing: hero + how-to-play + system status. Quien vuelve sin sesión con `cs_viewer` lee el mundo
+ * con el velo de su cuenta (§10.8): la portada de invitado no enseña resultados, y se lo dice (E2, §11.4;
+ * 9b).
+ */
 function GuestHome() {
+  const health = useQuery({ queryKey: ['health'], queryFn: fetchHealth })
   return (
     <section className="space-y-4">
+      {/* Solo con el velo para todos: con `admins`, un invitado no lo tiene, y preguntar por su cookie
+          sería una petición más en cada portada de invitado. */}
+      {health.data?.features?.spoilerMode === 'on' && <CookieReaderNotice />}
       <div className="space-y-4">
         <Logo size={96} className="mb-2" />
         <SectionBar>Race. Train. Rise.</SectionBar>
@@ -69,6 +80,22 @@ function GuestHome() {
       </div>
       <SystemStatus />
     </section>
+  )
+}
+
+/** `Sign in to see results as you know them` a quien lee con `cs_viewer` sin sesión (§10.8). */
+function CookieReaderNotice() {
+  const rev = useHorizonRev()
+  if (!veilApplies(rev)) return null
+  return (
+    <p
+      role="note"
+      className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900 ring-1 ring-amber-200"
+    >
+      <Link to="/login" className="font-medium underline">
+        Sign in to see results as you know them
+      </Link>
+    </p>
   )
 }
 
@@ -141,9 +168,25 @@ function ActionRow({ action }: { action: DashboardAction }) {
   )
 }
 
-/** Crónica de la última carrera corrida, con enlace a la etapa completa. */
+/**
+ * Crónica de la última carrera corrida, con enlace a la etapa completa. Bajo el velo (E2, §11.4; sup. H1;
+ * 9b), la de la última etapa CONOCIDA; si la última que corrió su corredor está velada, `Your last race ·
+ * Race France, Stage 8 · Ready to watch` con `Watch` en lugar de `Full story →`.
+ */
 function LastRaceCard() {
-  const { data } = useQuery({ queryKey: ['rider', 'last-race'], queryFn: fetchLastRace })
+  const rev = useHorizonRev()
+  const last = useQuery({
+    queryKey: lastRaceKey(rev),
+    queryFn: fetchLastRace,
+    enabled: rev !== undefined,
+  })
+  if (last.data?.ready != null)
+    return (
+      <Panel title="Last race">
+        <LastRaceReady ready={last.data.ready} />
+      </Panel>
+    )
+  const data = last.data?.report
   if (!data) return null
   const gap =
     data.position === 1
@@ -189,11 +232,28 @@ function LastRaceCard() {
 /** Panel del jugador: qué hago hoy, cómo estoy y qué pasó en mi última carrera. */
 function PlayerHome({ name }: { name: string }) {
   const health = useQuery({ queryKey: ['health'], queryFn: fetchHealth })
-  const summary = useQuery({ queryKey: ['rider', 'summary'], queryFn: fetchRiderSummary })
-  const training = useQuery({ queryKey: ['orders'], queryFn: fetchOrders })
-  const upcoming = useQuery({ queryKey: ['rider', 'upcoming'], queryFn: fetchMyUpcomingRaces })
+  const rev = useHorizonRev()
+  const summary = useQuery({
+    queryKey: horizonKey(['rider', 'summary'], rev),
+    queryFn: fetchRiderSummary,
+    enabled: rev !== undefined,
+  })
+  const training = useQuery({
+    queryKey: horizonKey(['orders'], rev),
+    queryFn: fetchOrders,
+    enabled: rev !== undefined,
+  })
+  const upcoming = useQuery({
+    queryKey: horizonKey(['rider', 'upcoming'], rev),
+    queryFn: fetchMyUpcomingRaces,
+    enabled: rev !== undefined,
+  })
   const market = useQuery({ queryKey: ['market'], queryFn: fetchMarket })
-  const form = useQuery({ queryKey: ['rider', 'form'], queryFn: fetchForm })
+  const form = useQuery({
+    queryKey: horizonKey(['rider', 'form'], rev),
+    queryFn: fetchForm,
+    enabled: rev !== undefined,
+  })
 
   // La carrera que toca: la que está en marcha o la más próxima. Sus órdenes deciden si hay aviso.
   const nextRace = upcoming.data?.find((r) => r.ongoing) ?? upcoming.data?.[0] ?? null
@@ -268,6 +328,10 @@ function PlayerHome({ name }: { name: string }) {
         </div>
       </div>
 
+      {/* Lo que tiene por ver (E2, §11.4; 9b): a medias, listo para ver y lo que pasó mientras no
+          estaba. Sin velo para él, nada. */}
+      <WatchBlocks />
+
       {/* Solo lo accionable: si no hay nada que decidir, este bloque no existe. */}
       {actions.length > 0 && (
         <ul className="space-y-2">
@@ -323,10 +387,11 @@ function PlayerHome({ name }: { name: string }) {
 
 export function Home() {
   const { data: session } = authClient.useSession()
+  const rev = useHorizonRev()
   const riderQuery = useQuery({
-    queryKey: ['rider', 'me'],
+    queryKey: horizonKey(['rider', 'me'], rev),
     queryFn: fetchMyRider,
-    enabled: !!session,
+    enabled: !!session && rev !== undefined,
   })
 
   if (!session) return <GuestHome />

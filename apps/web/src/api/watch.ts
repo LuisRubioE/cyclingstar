@@ -188,3 +188,39 @@ export function forgetLocalProgress(
     // bloqueado: nada que hacer
   }
 }
+
+// ------------------------------------------------- la oferta adaptativa (DD-16, 10-b; 9b)
+
+/** `cs.adaptiveIgnored`: las carreras de cabecera que caducaron sin conocerse enteras, en este navegador. */
+export const ADAPTIVE_IGNORED_KEY = 'cs.adaptiveIgnored'
+/** `cs.adaptiveAsked`: la oferta ya se hizo en este navegador (10-b). */
+export const ADAPTIVE_ASKED_KEY = 'cs.adaptiveAsked'
+
+/** Lo que la oferta recuerda en este navegador. Nunca lanza: sin almacenamiento, nada (se puede repetir, sin destripar). */
+export function readAdaptive(storage: ProgressStorage | null = browserStorage()): {
+  readonly ignored: readonly string[]
+  readonly asked: boolean
+} {
+  try {
+    const raw = storage?.getItem(ADAPTIVE_IGNORED_KEY)
+    const v: unknown = raw == null ? [] : JSON.parse(raw)
+    const ignored = Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []
+    return { ignored, asked: storage?.getItem(ADAPTIVE_ASKED_KEY) === '1' }
+  } catch {
+    return { ignored: [], asked: false }
+  }
+}
+
+/** Guarda la lista y, si se pide, la marca de ofrecida. Nunca lanza. */
+export function writeAdaptive(
+  ignored: readonly string[],
+  asked: boolean,
+  storage: ProgressStorage | null = browserStorage(),
+): void {
+  try {
+    storage?.setItem(ADAPTIVE_IGNORED_KEY, JSON.stringify(ignored))
+    if (asked) storage?.setItem(ADAPTIVE_ASKED_KEY, '1')
+  } catch {
+    // lleno o bloqueado: la oferta podrá repetirse, que no destripa nada
+  }
+}
