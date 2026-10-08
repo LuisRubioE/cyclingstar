@@ -209,17 +209,22 @@ export const meRoutes: RoutePlugin = async (app, routeCtx) => {
       if (viewer === null) return unauthorized(reply)
       const world = await request.world()
       const empty = { ready: [], watching: [], expiredSinceLastVisit: [] }
-      const scopeOf = async () =>
-        (await readSpoilerPrefs(db, viewer.userId))?.scope ?? ('guarded' as const)
+      // El alcance y, con sesión, si `Show result` pregunta antes (DD-17; 9a): quien lee con cs_viewer
+      // no puede revelar, así que no lo lleva.
+      const prefsOf = async (): Promise<Pick<HorizonSummary, 'scope' | 'revealConfirm'>> => {
+        const prefs = await readSpoilerPrefs(db, viewer.userId)
+        const scope = prefs?.scope ?? ('guarded' as const)
+        return viewer.readOnly ? { scope } : { scope, revealConfirm: prefs?.revealConfirm ?? true }
+      }
       // Con el modo apagado para quien pide: el rev 'world' y las listas vacías (§14.6).
       if (world === null || !(await request.spoilerApplies()))
-        return { rev: 'world', scope: await scopeOf(), ...empty } satisfies HorizonSummary
+        return { rev: 'world', ...(await prefsOf()), ...empty } satisfies HorizonSummary
       // Con cs_viewer y sin sesión, solo rev y scope: en un dispositivo compartido, el segundo no ve lo
       // que el primero tiene por ver (14-i).
       if (viewer.readOnly)
         return {
           rev: (await request.horizon()).rev,
-          scope: await scopeOf(),
+          ...(await prefsOf()),
           ...empty,
         } satisfies HorizonSummary
       const h = await request.horizon()
@@ -243,7 +248,7 @@ export const meRoutes: RoutePlugin = async (app, routeCtx) => {
           }).toGoKm
         },
       )
-      return summary
+      return { ...summary, ...(await prefsOf()) } satisfies HorizonSummary
     },
   )
 }

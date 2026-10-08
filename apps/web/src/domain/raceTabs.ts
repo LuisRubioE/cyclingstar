@@ -13,18 +13,42 @@
 
 import type { RaceStatus } from '@cyclingstar/shared'
 
+/**
+ * `watch` y `report` llegan en el 9a (E2, docs/retransmision.md §11.17, D-48): la página de etapa ya las
+ * usa (`stagePageTabs`, abajo). `story` sigue en la ficha de una carrera de UN DÍA hasta el 9b, que la
+ * cambia por `report` con `LEGACY_TAB` para los enlaces viejos.
+ */
 export type RaceTabId =
-  'classifications' | 'result' | 'story' | 'radio' | 'stages' | 'route' | 'startlist' | 'honours'
+  | 'watch'
+  | 'classifications'
+  | 'result'
+  | 'report'
+  | 'story'
+  | 'radio'
+  | 'stages'
+  | 'route'
+  | 'startlist'
+  | 'honours'
 
 export const RACE_TAB_LABEL: Record<RaceTabId, string> = {
+  watch: 'Watch',
   classifications: 'Classifications',
   result: 'Result',
+  report: 'Report',
   story: 'Story',
   radio: 'Race Radio',
   stages: 'Stages',
   route: 'Route',
   startlist: 'Startlist',
   honours: 'Roll of honour',
+}
+
+/**
+ * El nombre de cada pestaña: `report` se llama `Story`, como hoy, mientras `Watch` no esté encendido
+ * para quien mira; el cambio llega con el encendido y no con el despliegue del 9a y el 9b (§20.5).
+ */
+export function raceTabLabel(id: RaceTabId, watchOn: boolean): string {
+  return id === 'report' && !watchOn ? 'Story' : RACE_TAB_LABEL[id]
 }
 
 /** Pestañas de una carrera POR ETAPAS: antes de correrse manda el recorrido, en cuanto rueda las clasificaciones. */
@@ -87,4 +111,57 @@ export function oneDayStageTarget(raceId: string, search: URLSearchParams): stri
   const next = new URLSearchParams(search)
   next.set('tab', oneDayStageTab(search.get('tab')))
   return `/world/races/${raceId}?${next.toString()}`
+}
+
+// ------------------------------------------------- la página de una etapa (E2, §6.10 y §11.17; 9a)
+
+/** Las pestañas de la página de una etapa CORRIDA de una carrera por etapas. La sin correr, `Profile`. */
+export type StagePageTabId = 'watch' | 'report' | 'result' | 'classifications' | 'radio' | 'profile'
+
+/**
+ * LAS PESTAÑAS DE UNA ETAPA CORRIDA (§6.10, D-48; 6-r), en el mismo fichero para probarlas sin DOM, con
+ * la decisión 1 del dueño durante la implementación (8 de octubre de 2026): con `Watch` encendido para
+ * quien mira, `Story` y `Result` se funden en una sola pestaña, `Report`, el acta con el resultado y la
+ * crónica (los nombres de DD-28).
+ *
+ * - `watchOn` falso (el jugador hasta el encendido, §20.5): las de hoy, en su orden (`StageReplay.tsx`
+ *   hasta el 9a), con `report` llamada `Story`. Nada cambia para él.
+ * - `seen` falso (sin letra, `A` o `X`; 6-r, 10-e): `Watch` primero y el perfil, que no cuenta nada,
+ *   detrás; lo que enseña el resultado, a un toque (con la puerta si la etapa está en el velo).
+ * - `seen` (`W`, `S` o `R`): `Report` primero, el acta al terminar de verla o al revelarla, y `Watch` al
+ *   final (`Watch anyway`).
+ * - `watchable` falso (una crono sin línea, una lápida, `broadcast_unavailable`): sin `Watch`, `Report`
+ *   primero con el acta, vista o no (§17.19).
+ */
+export function stagePageTabs(
+  seen: boolean,
+  watchOn: boolean,
+  watchable = true,
+): readonly StagePageTabId[] {
+  if (!watchOn) return ['report', 'result', 'radio', 'classifications', 'profile']
+  if (!watchable) return ['report', 'classifications', 'radio', 'profile']
+  return seen
+    ? ['report', 'classifications', 'radio', 'profile', 'watch']
+    : ['watch', 'profile', 'report', 'classifications', 'radio']
+}
+
+/** El nombre de cada pestaña de la página de etapa: los de la ficha de carrera y `Profile`. */
+export function stageTabLabel(id: StagePageTabId, watchOn: boolean): string {
+  return id === 'profile' ? 'Profile' : raceTabLabel(id, watchOn)
+}
+
+/**
+ * Lo que pide `?tab=` en la página de etapa, contra sus pestañas: `story` (los enlaces de hoy, D-48)
+ * abre `report`, y `result`, que con `Watch` encendido vive dentro de `Report`, también. Una pestaña que
+ * no existe da null y la página abre en la suya por defecto. La pestaña pedida no salta la puerta: con
+ * la etapa sin ver, `report`, `result`, `classifications` y `radio` la pintan (sup. E9).
+ */
+export function stagePageTabOf(
+  raw: string | null,
+  tabs: readonly StagePageTabId[],
+): StagePageTabId | null {
+  if (raw === null) return null
+  const exact = tabs.find((t) => t === raw)
+  if (exact !== undefined) return exact
+  return (raw === 'story' || raw === 'result') && tabs.includes('report') ? 'report' : null
 }

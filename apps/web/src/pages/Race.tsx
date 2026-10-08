@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Fragment, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import type { RaceClass, RaceFormat } from '../api/calendar'
@@ -35,7 +35,9 @@ import {
   raceRouteSourceLabel,
   raceTeamLabel,
 } from '../domain/labels'
+import { usePageTitle } from '../domain/pageTitle'
 import { RACE_TAB_LABEL, type RaceTabId, raceTabs } from '../domain/raceTabs'
+import { useHorizonRev } from '../queryClient'
 
 function fmtTime(seconds: number): string {
   const h = Math.floor(seconds / 3600)
@@ -506,7 +508,8 @@ function ClassificationsTab({ data }: { data: RaceView }) {
  * Antes esto costaba tres clics —`Stages`, entrar en la lista de un solo elemento, y ya dentro
  * `Story`— para lo único que de verdad importa de una clásica. La crónica se pide solo cuando se
  * abre la pestaña, así que la ficha de carrera no carga nada de más. Con el `?diag=1` de la página,
- * en la petición y en la clave (E2, §11.15, 14-s; paso 7b).
+ * en la petición y en la clave (E2, §11.15, 14-s; paso 7b), y desde el 9a con el `rev` del horizonte en
+ * la clave, que espera a tenerlo (§10.9): la ruta de etapa depende de lo que ha visto quien mira.
  */
 export function OneDayStory({
   raceId,
@@ -517,9 +520,13 @@ export function OneDayStory({
 }) {
   const [params] = useSearchParams()
   const diag = diagOf(params)
+  const rev = useHorizonRev()
   const { data, isPending, isError } = useQuery({
-    queryKey: stageReplayKey(raceId, 1, diag),
+    queryKey: stageReplayKey(raceId, 1, diag, rev),
     queryFn: () => fetchCalendarStage(raceId, 1, { diag }),
+    enabled: rev !== undefined,
+    // con otro `rev` se queda la de antes mientras llega la nueva, sin volver a «Loading…»
+    placeholderData: keepPreviousData,
   })
   if (isPending) return <p className="text-slate-500">Loading…</p>
   if (isError) return <p className="text-red-600">Could not load the story.</p>
@@ -529,15 +536,19 @@ export function OneDayStory({
 /**
  * Pestaña `Race Radio` de una carrera de UN DÍA: la carrera kilómetro a kilómetro de su única etapa.
  *
- * Cuelga de la MISMA consulta que la crónica (`stageReplayKey(raceId, 1, diag)`), así que abrir las
- * dos pestañas no pide nada dos veces.
+ * Cuelga de la MISMA consulta que la crónica (`stageReplayKey(raceId, 1, diag, rev)`), así que abrir
+ * las dos pestañas no pide nada dos veces.
  */
 export function OneDayRadio({ raceId }: { raceId: string }) {
   const [params] = useSearchParams()
   const diag = diagOf(params)
+  const rev = useHorizonRev()
   const { data, isPending, isError } = useQuery({
-    queryKey: stageReplayKey(raceId, 1, diag),
+    queryKey: stageReplayKey(raceId, 1, diag, rev),
     queryFn: () => fetchCalendarStage(raceId, 1, { diag }),
+    enabled: rev !== undefined,
+    // con otro `rev` se queda la de antes mientras llega la nueva, sin volver a «Loading…»
+    placeholderData: keepPreviousData,
   })
   if (isPending) return <p className="text-slate-500">Loading…</p>
   if (isError) return <p className="text-red-600">Could not load the race radio.</p>
@@ -671,6 +682,14 @@ export function Race() {
     mutationFn: (wanted: boolean) => setRacePref(raceId, wanted),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['race-prefs'] }),
   })
+  // El título (E2, §11.8; 9a): la carrera, con la información de su etapa 1, como el fallback de la SPA
+  // antes del JavaScript (11-c). Nada del desenlace.
+  usePageTitle(
+    data === undefined
+      ? null
+      : { raceName: data.race.name, stageDay: 1, stageCount: data.race.stageCount },
+    'race',
+  )
 
   if (isPending) return <p className="text-slate-500">Loading…</p>
   if (isError) return <p className="text-red-600">Could not load the race.</p>

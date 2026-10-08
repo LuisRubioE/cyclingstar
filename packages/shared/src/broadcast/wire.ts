@@ -287,6 +287,12 @@ export interface HorizonSummary {
   }[]
   /** las carreras en guardia que caducaron sin conocerse enteras: la web las acusa (10-f) */
   readonly expiredSinceLastVisit: readonly string[]
+  /**
+   * `users.reveal_confirm` (DD-17; 9a): si `Show result` pregunta antes. Solo con sesión, que es quien
+   * puede revelar; sin él, la web pregunta. Lo pone a `false` `Don't ask again`
+   * (`PUT /api/me/spoiler-scope`), y así no vuelve a preguntar en ningún dispositivo.
+   */
+  readonly revealConfirm?: boolean | undefined
 }
 
 // ------------------------------------------------------- los códigos numéricos de los tramos (4-m)
@@ -446,6 +452,7 @@ export const horizonSummarySchema = z.object({
       toGoKm: z.number().min(0),
     }),
   ),
+  revealConfirm: z.boolean().optional(),
 }) satisfies z.ZodType<HorizonSummary>
 
 /** El otro sentido del atado (4-x): cada respuesta nueva, con su tipo, en todos los niveles. Solo lo lee el compilador. */

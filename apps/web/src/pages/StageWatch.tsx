@@ -20,7 +20,6 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { broadcastChunkKey, fetchBroadcastChunk, postBroadcastFinish } from '../api/broadcast'
-import { stageReplayPrefix } from '../api/results'
 import {
   beaconWatchProgress,
   forgetLocalProgress,
@@ -98,20 +97,32 @@ import { GAP_TREND_INIT, type GapTrendVoice, gapTrendStep, unnamedBefore } from 
  * `TimeTrialBoard`) en lugar de la capa y la barra de carretera, un cursor por corredor en ruta, su
  * ritmo (`ttPaceAt`, con su último km desde que lo pisa el último en salir) y sus rótulos. Lo que cuesta
  * se calcula a `overlayHz` o al cambiar el instante, no en cada fotograma (B8).
+ *
+ * Desde el 9a: la meta invalida `['horizon']` (la regla 3 de §10.9): el `rev` nuevo cambia las claves de
+ * la ficha, la cabecera y el acta, que se piden otra vez con la etapa ya vista (sustituye a la
+ * invalidación de la ficha del 7b), y la página sabe que la etapa se vio AQUÍ (`onFinished`), no en otro
+ * dispositivo. Y el modo diagnóstico del dueño (`diag`, §11.15): los tramos y la meta con `?diag=1`, que
+ * la API sirve sin tope y sin escribir, desde la previa y sin informar de lo alcanzado.
  */
 export function StageWatch({
   head,
   raceId,
   day,
+  diag = false,
   onReport,
+  onFinished,
 }: {
   head: BroadcastHead
   raceId: string
   day: number
-  /** el acta, la pestaña `Story` de la página (`Report` desde el 9a) */
+  /** el modo diagnóstico de un administrador (§11.15): sin tope, desde la previa y sin informar */
+  diag?: boolean
+  /** el acta, la pestaña `Report` de la página (9a) */
   onReport: () => void
+  /** la meta respondió: la etapa se vio aquí (la página no la toma por otro dispositivo, D-57) */
+  onFinished?: () => void
 }) {
-  const w = useWatchPlayer(head, raceId, day)
+  const w = useWatchPlayer(head, raceId, day, diag, onFinished)
   const [overlayOpen, setOverlayOpen] = useState(false)
   const [barOpen, setBarOpen] = useState(false)
   const [commentary, setCommentary] = useState(false)
@@ -389,8 +400,19 @@ const sameControls = (a: Shown, b: Shown): boolean =>
  * llegada, `finishFreezeS`, y `Previously`, `cueHoldS[3]`. Ocultar la pestaña pausa; un toque, el ratón
  * o una tecla enseñan los mandos, y la barra espaciadora pausa y sigue (D-20).
  */
-function useWatchPlayer(head: BroadcastHead, raceId: string, day: number): WatchScreen {
+function useWatchPlayer(
+  head: BroadcastHead,
+  raceId: string,
+  day: number,
+  diag: boolean,
+  onFinished: (() => void) | undefined,
+): WatchScreen {
   const queryClient = useQueryClient()
+  // el aviso de la meta, sin reiniciar el reproductor cuando la página lo cambia
+  const finishedRef = useRef(onFinished)
+  useEffect(() => {
+    finishedRef.current = onFinished
+  }, [onFinished])
   const ctx = useMemo<InstantContext>(
     () => ({
       own: new Set(head.cast.filter((c) => c.own).map((c) => c.ix)),
@@ -444,11 +466,13 @@ function useWatchPlayer(head: BroadcastHead, raceId: string, day: number): Watch
     const raceKey = head.stage.raceKey
     // Sin sesión la cabecera no trae `view`, y el progreso no va al servidor: vive en localStorage (11-p).
     const signedIn = head.view !== null
+    // En el modo diagnóstico (§11.15) no se reanuda ni se informa: lo visto ahí lo sabe el dueño, no su
+    // cuenta, y la etapa empieza en la previa, como una conocida.
     const init = playerInit(
       DEFAULT_VIEW,
       day,
-      signedIn ? (head.view?.reachedS ?? null) : readLocalProgress(raceKey, day),
-      head.view?.known ?? false,
+      diag ? null : signedIn ? (head.view?.reachedS ?? null) : readLocalProgress(raceKey, day),
+      diag || (head.view?.known ?? false),
     )
     let s = init.next
     let shown = controlsOf(s)
@@ -476,27 +500,34 @@ function useWatchPlayer(head: BroadcastHead, raceId: string, day: number): Watch
       {
         chunk: (fromD, toD) =>
           queryClient.fetchQuery({
-            queryKey: broadcastChunkKey(raceId, day, undefined, fromD, toD),
-            queryFn: () => fetchBroadcastChunk(raceId, day, fromD, toD),
+            queryKey: broadcastChunkKey(raceId, day, undefined, fromD, toD, diag),
+            queryFn: () => fetchBroadcastChunk(raceId, day, fromD, toD, undefined, { diag }),
           }),
         finish: async (mode) => {
-          const f = await postBroadcastFinish(raceId, day, mode)
-          // Con sesión, la meta escribe la letra (14-f) y la etapa pasa a conocida: la ficha de la página,
-          // que con SPOILER_MODE llegó sin resultado (7b), se pide otra vez para que `Story` y `Result` la
-          // enseñen. Desde el 9a lo hará el `rev` del horizonte en la clave (§10.9, regla 3). El visitante
-          // olvida lo alcanzado y vuelve a la previa (8-l).
-          if (signedIn)
-            void queryClient.invalidateQueries({ queryKey: stageReplayPrefix(raceId, day) })
-          else forgetLocalProgress(raceKey, day)
+          // Con `?diag=1`, la API sirve la meta sin escribir nada (7b): el dueño ve la llegada y el cierre.
+          const f = await postBroadcastFinish(raceId, day, mode, undefined, { diag })
+          // Con sesión, la meta escribe la letra (14-f) y cambia el `rev` del horizonte: se pide otra vez
+          // (la regla 3 de §10.9) y con él la ficha, la cabecera y el acta, ya con la etapa vista. El
+          // visitante olvida lo alcanzado y vuelve a la previa (8-l).
+          if (!diag) {
+            if (signedIn) void queryClient.invalidateQueries({ queryKey: ['horizon'] })
+            else forgetLocalProgress(raceKey, day)
+          }
+          finishedRef.current?.()
           return f
         },
         sleep: (sec) => new Promise((resolve) => window.setTimeout(resolve, sec * 1000)),
-        report: signedIn
-          ? (reachedS, mode) => postWatchProgress(raceKey, day, { reachedS, mode })
-          : async (reachedS) => writeLocalProgress(raceKey, day, reachedS),
-        beacon: signedIn
-          ? (reachedS, mode) => beaconWatchProgress(raceKey, day, { reachedS, mode })
-          : (reachedS) => writeLocalProgress(raceKey, day, reachedS),
+        // En el modo diagnóstico nada se informa (§11.15): ni al servidor, ni al localStorage.
+        report: diag
+          ? async () => undefined
+          : signedIn
+            ? (reachedS, mode) => postWatchProgress(raceKey, day, { reachedS, mode })
+            : async (reachedS) => writeLocalProgress(raceKey, day, reachedS),
+        beacon: diag
+          ? () => undefined
+          : signedIn
+            ? (reachedS, mode) => beaconWatchProgress(raceKey, day, { reachedS, mode })
+            : (reachedS) => writeLocalProgress(raceKey, day, reachedS),
       },
       {
         chunk: (c) => {
@@ -649,7 +680,7 @@ function useWatchPlayer(head: BroadcastHead, raceId: string, day: number): Watch
       runner.stop()
       dispatchRef.current = () => {}
     }
-  }, [head, raceId, day, ctx, queryClient, timeTrial])
+  }, [head, raceId, day, ctx, queryClient, timeTrial, diag])
 
   return {
     overlay,

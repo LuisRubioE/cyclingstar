@@ -1,10 +1,20 @@
-import type { RaceLeaders, StageGcEntry, StageResultEntry } from '@cyclingstar/shared'
+import {
+  BROADCAST,
+  type BroadcastHead,
+  type RaceLeaders,
+  type StageGcEntry,
+  type StageReplay as StageReplayData,
+  type StageResultEntry,
+} from '@cyclingstar/shared'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
+import { broadcastHeadKey } from '../api/broadcast'
+import { stageReplayKey } from '../api/results'
 import { TOP_ROWS } from '../components/ShowAll'
-import { GcTable, PointsTable, ResultTable } from './StageReplay'
+import { GcTable, PointsTable, ResultTable, StageReplay } from './StageReplay'
 
 /**
  * LAS TABLAS DE LA FICHA DE ETAPA CON LOS MAILLOTS PUESTOS.
@@ -192,5 +202,142 @@ describe('el resultado de la etapa', () => {
     expect(markup).toContain('Corredor z')
     // …y el que se queda fuera del corte por ser el 30.º clasificado, no.
     expect(markup).not.toContain(`Corredor c${TOP_ROWS + 14}`)
+  })
+})
+
+/**
+ * LA PESTAÑA PEDIDA NO SALTA LA PUERTA (E2, docs/retransmision.md §11.8 y §11.19; sup. E9; paso 9a). Con
+ * la etapa no conocida, la ruta de etapa sirve la ficha sin resultado con su puerta (`watch.gate`, 7b), y
+ * la página pinta `StageGateCard` en lugar de la tabla aunque la URL pida `?tab=result&cls=kom` o
+ * `?tab=classifications`; `?tab=story` abre `Report`, que también la pinta. Con `Watch` encendido, el
+ * `Result` de la URL vive dentro de `Report` (decisión 1 del dueño); apagado, la pestaña `Result` de hoy
+ * pinta la puerta. La página se renderiza en estático con la caché ya llena: el horizonte, `/health`, la
+ * ficha y la cabecera de la retransmisión.
+ */
+describe('la ficha de etapa sin ver: ?tab= no salta la puerta (sup. E9)', () => {
+  const REV = '9.1'
+  const race = { id: 'race-france', name: 'Race France', country: 'FR', stageCount: 21 }
+  const veiled: StageReplayData = {
+    day: 7,
+    name: 'Stage 7 · Summit finish',
+    km: 187,
+    run: true,
+    race,
+    altimetry: '<svg/>',
+    watch: { known: false, reachedS: null, gate: { k: 'not_seen' }, seen: false },
+  }
+  const seen: StageReplayData = {
+    ...veiled,
+    results: [resultRow('a', 1), resultRow('b', 2)],
+    chronicle: [],
+    gc: [gcRow('a', 'Ana')],
+    kom: [],
+    points: [],
+    teamStage: [],
+    teamGc: [],
+    leaders: { onRoad: leaders, afterStage: leaders },
+    watch: { known: true, reachedS: null, gate: null, seen: true },
+  }
+  const strip = { altM: [0, 100], climbs: [], sprintsKm: [], laps: 1 }
+  const weather = { tempC: 18, rain: 0, spans: [] }
+  const head: BroadcastHead = {
+    stage: {
+      raceKey: 'race-france:s0',
+      raceId: 'race-france',
+      day: 7,
+      name: 'Stage 7 · Summit finish',
+      km: 187,
+      kind: 'reina',
+      timeTrial: false,
+      label: 'Summit finish',
+      lengthKm: 187,
+      dx: 0.1,
+      blocks: 1870,
+    },
+    profile: strip,
+    weather,
+    cast: [],
+    startState: { leaders: { gc: null, points: null, kom: null }, gcTop: [], racingAtStart: 0 },
+    pace: [...BROADCAST.pace],
+    estimateS: 3600,
+    clock: 'exact',
+    source: 'timeline',
+    preview: { route: strip, weather, jerseysInPlay: [], favourites: [] },
+    view: { reachedS: null, known: false },
+    gate: null,
+    tt: null,
+    tplRev: 1,
+  }
+
+  function page(url: string, watch: 'on' | 'off', data: StageReplayData = veiled): string {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    client.setQueryData(['horizon'], {
+      rev: REV,
+      scope: 'guarded',
+      ready: [],
+      watching: [],
+      expiredSinceLastVisit: [],
+      revealConfirm: true,
+    })
+    client.setQueryData(['health'], {
+      ok: true,
+      engineVersion: 91,
+      gameDay: 100,
+      migrationsApplied: true,
+      tickIntervalMinutes: 360,
+      features: { broadcastWatch: watch, spoilerMode: 'on' },
+    })
+    client.setQueryData(['admin-whoami'], null)
+    client.setQueryData(stageReplayKey('race-france', 7, false, REV), data)
+    client.setQueryData(broadcastHeadKey('race-france', 7, undefined, false, REV), head)
+    return renderToStaticMarkup(
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={[url]}>
+          <Routes>
+            <Route path="/world/races/:raceId/stages/:day" element={<StageReplay />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+  }
+  const GATE = 'This page shows the result of Stage 7.'
+
+  for (const watch of ['on', 'off'] as const) {
+    it(`Watch ${watch}: ?tab=result&cls=kom pinta la puerta y no la tabla`, () => {
+      const markup = page('/world/races/race-france/stages/7?tab=result&cls=kom', watch)
+      expect(markup).toContain(GATE)
+      expect(markup).not.toContain('Stage result')
+      expect(markup).not.toContain('Mountains')
+      expect(markup).not.toContain('Corredor')
+    })
+
+    it(`Watch ${watch}: ?tab=classifications pinta la puerta y no las clasificaciones`, () => {
+      const markup = page('/world/races/race-france/stages/7?tab=classifications', watch)
+      expect(markup).toContain(GATE)
+      expect(markup).not.toContain('Standings after this stage.')
+    })
+
+    it(`Watch ${watch}: ?tab=story (los enlaces de hoy) abre Report, que pinta la puerta`, () => {
+      const markup = page('/world/races/race-france/stages/7?tab=story', watch)
+      expect(markup).toContain(GATE)
+      expect(markup).toMatch(/aria-selected="true"[^>]*>(Report|Story)</)
+    })
+  }
+
+  it('con Watch encendido y sin pestaña pedida, la etapa sin ver abre en Watch, sin Result aparte', () => {
+    const markup = page('/world/races/race-france/stages/7?tab=profile', 'on')
+    for (const label of ['Watch', 'Profile', 'Report', 'Classifications', 'Race Radio'])
+      expect(markup).toContain(`>${label}</button>`)
+    expect(markup).not.toContain('>Result</button>')
+    expect(markup).not.toContain('>Story</button>')
+  })
+
+  it('no es vacío: vista, ?tab=result pinta el resultado (en Report con Watch, en Result sin él)', () => {
+    for (const watch of ['on', 'off'] as const) {
+      const markup = page('/world/races/race-france/stages/7?tab=result', watch, seen)
+      expect(markup).not.toContain(GATE)
+      expect(markup).toContain('Stage result')
+      expect(markup).toContain('Corredor a')
+    }
   })
 })

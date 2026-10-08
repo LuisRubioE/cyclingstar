@@ -8,6 +8,7 @@ import {
   fetchBroadcastHead,
   fetchStageReport,
   postBroadcastFinish,
+  stageReportKey,
 } from './broadcast'
 import { ApiError, ContractError } from './request'
 
@@ -110,7 +111,9 @@ describe('web: los clientes de la retransmisión', () => {
     expect(failureAction(down)).toEqual({ k: 'failed' })
   })
 
-  it('las claves: el tramo sin rev, con su intervalo; la cabecera, por etapa y temporada', () => {
+  // Re-sellado en el 9a: el tramo gana `diag` al final y la cabecera, `diag` y el `rev` del horizonte
+  // (`horizonKey`, §10.9 y §14.11), y el acta tiene su clave, como la cabecera.
+  it('las claves: el tramo sin rev, con su intervalo y diag; la cabecera y el acta, por etapa, temporada, diag y rev', () => {
     expect(broadcastChunkKey('race-france', 7, undefined, 0, 9000)).toEqual([
       'broadcast-chunk',
       'race-france',
@@ -118,7 +121,43 @@ describe('web: los clientes de la retransmisión', () => {
       undefined,
       0,
       9000,
+      false,
     ])
-    expect(broadcastHeadKey('race-france', 7, 2)).toEqual(['broadcast-head', 'race-france', 7, 2])
+    expect(broadcastChunkKey('race-france', 7, undefined, 0, 9000, true)).not.toEqual(
+      broadcastChunkKey('race-france', 7, undefined, 0, 9000),
+    )
+    expect(broadcastHeadKey('race-france', 7, 2, false, '9.3')).toEqual([
+      'broadcast-head',
+      'race-france',
+      7,
+      2,
+      false,
+      '9.3',
+    ])
+    expect(stageReportKey('race-france', 7, undefined, true, 'anon')).toEqual([
+      'stage-report',
+      'race-france',
+      7,
+      undefined,
+      true,
+      'anon',
+    ])
+  })
+
+  it('el modo diagnóstico (9a): las cuatro rutas de etapa llevan ?diag=1 cuando se pide, y sin él no', async () => {
+    const fetchMock = vi.fn<(path: string) => Promise<Response>>(async () => response(emptyChunk))
+    vi.stubGlobal('fetch', fetchMock)
+    await fetchBroadcastChunk('race-france', 7, 0, 9000, undefined, { diag: true })
+    await fetchBroadcastChunk('race-france', 7, 0, 9000, 2, { diag: false })
+    await fetchBroadcastHead('race-france', 7, undefined, { diag: true }).catch(() => null)
+    await postBroadcastFinish('race-france', 7, 'play', undefined, { diag: true }).catch(() => null)
+    await fetchStageReport('race-france', 7, 2, { diag: true }).catch(() => null)
+    expect(fetchMock.mock.calls.map((c) => c[0])).toEqual([
+      '/api/races/race-france/stages/7/broadcast/chunk?fromDs=0&toDs=9000&diag=1',
+      '/api/races/race-france/stages/7/broadcast/chunk?season=2&fromDs=0&toDs=9000',
+      '/api/races/race-france/stages/7/broadcast?diag=1',
+      '/api/races/race-france/stages/7/broadcast/finish?diag=1',
+      '/api/races/race-france/stages/7/report?season=2&diag=1',
+    ])
   })
 })

@@ -17,13 +17,18 @@ import { raceTeamLabel } from '../domain/labels'
  *
  * `onFullResult` es opcional: si la página tiene una pestaña de resultado completo, el podio ofrece
  * el atajo; si no, no se pinta el botón.
+ *
+ * `podium` (E2, paso 9a): `Report`, el acta de la página de etapa con `Watch` encendido, lleva el
+ * resultado entero encima y no repite el podio (decisión 1 del dueño durante la implementación).
  */
 export function StageStory({
   data,
   onFullResult,
+  podium = true,
 }: {
   data: StageReplay
   onFullResult?: () => void
+  podium?: boolean
 }) {
   const card = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm'
   const head = 'text-xs font-semibold uppercase tracking-wide text-slate-400'
@@ -139,7 +144,7 @@ export function StageStory({
         </div>
       )}
       {/* El desenlace, sin cambiar de pestaña: los tres primeros y la salida al resultado completo. */}
-      {results.length > 0 && (
+      {podium && results.length > 0 && (
         <div className={card}>
           <h2 className={head}>Podium</h2>
           <ol className="mt-2 space-y-1.5">

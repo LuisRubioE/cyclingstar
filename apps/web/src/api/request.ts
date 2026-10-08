@@ -12,7 +12,7 @@
  *   sesión usan `requestOptionalAuth`, que devuelve `null`.
  */
 
-import { apiErrorBodySchema } from '@cyclingstar/shared'
+import { type StageGate, apiErrorBodySchema, stageGateErrorSchema } from '@cyclingstar/shared'
 import type { ZodType } from 'zod'
 
 /** Fallo de red o respuesta de error de la API. `status` es 0 cuando ni siquiera hubo respuesta. */
@@ -38,6 +38,22 @@ export class ApiError extends Error {
     this.status = status
     this.code = code
     this.retryAfterS = retryAfterS
+  }
+}
+
+/**
+ * LA PUERTA (E2, docs/retransmision.md §14.2 y §14.11; D-37, 14-h; paso 9a): el 403 de una ruta de etapa
+ * que no se va a servir hasta que se vea o se revele, con el error de siempre (`not_seen` o
+ * `previous_unseen`) y la puerta al lado. Las pantallas preguntan `error instanceof GateError` para
+ * pintar `StageGateCard`; para todo lo demás es un `ApiError` más.
+ */
+export class GateError extends ApiError {
+  readonly gate: StageGate
+
+  constructor(message: string, status: number, code: string | null, gate: StageGate) {
+    super(message, status, code)
+    this.name = 'GateError'
+    this.gate = gate
   }
 }
 
@@ -74,13 +90,18 @@ export interface RequestOptions {
   keepalive?: boolean
 }
 
-/** Extrae el `error` del cuerpo uniforme de la API, si lo hay. */
-async function readErrorCode(res: Response): Promise<string | null> {
+/** El `error` del cuerpo uniforme de la API, si lo hay, y la puerta, si es un 403 con `gate` (9a). */
+async function readErrorBody(
+  res: Response,
+): Promise<{ readonly code: string | null; readonly gate: StageGate | null }> {
   try {
-    const parsed = apiErrorBodySchema.safeParse(await res.json())
-    return parsed.success ? parsed.data.error : null
+    const body: unknown = await res.json()
+    const gated = stageGateErrorSchema.safeParse(body)
+    if (gated.success) return { code: gated.data.error, gate: gated.data.gate }
+    const parsed = apiErrorBodySchema.safeParse(body)
+    return { code: parsed.success ? parsed.data.error : null, gate: null }
   } catch {
-    return null
+    return { code: null, gate: null }
   }
 }
 
@@ -96,9 +117,14 @@ export function retryAfterOf(value: string | null): number | null {
   return Number.isFinite(n) ? n : null
 }
 
-/** Lanza `ApiError` con el código del servidor cuando la respuesta no es 2xx; un 429, con su `retry-after`. */
+/**
+ * El error de una respuesta que no es 2xx: `ApiError` con el código del servidor; un 429, con su
+ * `retry-after`; y un 403 con la puerta, `GateError` (9a). El cuerpo se lee una sola vez.
+ */
 async function failed(res: Response, fallback: string): Promise<ApiError> {
-  const code = await readErrorCode(res)
+  const { code, gate } = await readErrorBody(res)
+  if (res.status === 403 && gate !== null)
+    return new GateError(code ?? fallback, res.status, code, gate)
   const retryAfterS = res.status === 429 ? retryAfterOf(res.headers.get('retry-after')) : null
   return new ApiError(code ?? fallback, res.status, code, retryAfterS)
 }

@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import fastifyCompress from '@fastify/compress'
@@ -32,6 +32,7 @@ import { riderRoutes } from './routes/riders.js'
 import { teamRoutes } from './routes/teams.js'
 import { worldRoutes } from './routes/world.js'
 import { GLOBAL_RATE_LIMIT, createAdminGuard } from './security.js'
+import { injectShellMeta, shellMetaFor } from './spaShell.js'
 import { registerSpoilerGuard } from './spoiler.js'
 
 export interface AppDeps {
@@ -74,10 +75,25 @@ export interface AppDeps {
    * escribirlo. Sin él, `BROADCAST.progressMinDeltaS`.
    */
   progressMinDeltaS?: number
+  /**
+   * El index.html de la web en el que el fallback inyecta el título y las `og:` de una carrera o de una
+   * etapa (E2, §14.10; paso 9a). Lo pasan los tests; sin él, el de `apps/web/dist`, leído una vez al
+   * construir la app.
+   */
+  webIndexHtml?: string
 }
 
 /** Carpeta de la web compilada (apps/web/dist). Vacía de index.html hasta el Paso 8. */
 const webRoot = fileURLToPath(new URL('../../web/dist', import.meta.url))
+
+/** El index.html de la web compilada, o null si no se puede leer: el fallback lo sirve entonces tal cual. */
+function readWebIndexHtml(): string | null {
+  try {
+    return readFileSync(join(webRoot, 'index.html'), 'utf8')
+  } catch {
+    return null
+  }
+}
 
 /**
  * Construye la instancia de Fastify de la API (SPEC 12): logging pino, validación Zod en los
@@ -269,14 +285,33 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
   const serveWeb = deps.serveWeb ?? existsSync(join(webRoot, 'index.html'))
   if (serveWeb) {
     void app.register(fastifyStatic, { root: webRoot })
-    app.setNotFoundHandler((request, reply) => {
+    // El index.html, una vez: el fallback le pone el título y las `og:` de una carrera o de una etapa.
+    const shellHtml = deps.webIndexHtml ?? readWebIndexHtml()
+    app.setNotFoundHandler(async (request, reply) => {
       const isApiPath = request.url.startsWith('/api') || request.url.startsWith('/health')
       if (request.method === 'GET' && !isApiPath) {
+        // EL TÍTULO Y LAS `og:` ANTES DEL JAVASCRIPT (E2, §14.10; D-42, DD-12; paso 9a): en una carrera,
+        // una etapa o su acta, el mismo título que pondrá la web y una vista previa neutra, salvo el
+        // ganador del acta fuera del velo de quien pide. Depende de quien pide: privado y por cookie.
+        // El horizonte, solo para el acta. Si no hay meta o algo falla, el index de siempre.
+        if (shellHtml !== null && db) {
+          try {
+            const url = new URL(request.url, 'http://localhost')
+            const meta = await shellMetaFor(db, () => request.horizon(), url)
+            if (meta !== null)
+              return reply
+                .header('cache-control', 'private, no-store')
+                .header('vary', 'Cookie')
+                .type('text/html; charset=utf-8')
+                .send(injectShellMeta(shellHtml, meta))
+          } catch (err) {
+            request.log.warn({ err }, 'spaShell: el index sin título propio')
+          }
+        }
         // Fallback SPA: cualquier ruta desconocida sirve el index de la web.
-        void reply.sendFile('index.html')
-        return
+        return reply.sendFile('index.html')
       }
-      reply.status(404).send(apiError('no_encontrado'))
+      return reply.status(404).send(apiError('no_encontrado'))
     })
   } else {
     app.setNotFoundHandler((_request, reply) => {

@@ -304,6 +304,12 @@ describe('las rutas de /api/me (§14.2)', () => {
     const [prefs] =
       await t.client`select spoiler_scope, reveal_confirm from users where id = ${PLAYER_2}`
     expect(prefs).toEqual({ spoiler_scope: 'own_only', reveal_confirm: false })
+    // 9a: el horizonte lo dice, para que `Show result` no vuelva a preguntar en ningún dispositivo (DD-17)
+    expect(summary.revealConfirm).toBe(true)
+    const asked = horizonSummarySchema.parse(
+      (await call(app, 'GET', '/api/me/horizon', { user: PLAYER_2 })).json(),
+    )
+    expect(asked).toMatchObject({ scope: 'own_only', revealConfirm: false })
 
     const reveal = await call(app, 'POST', REVEAL(2), { user: PLAYER_2, payload: {} })
     expect(revResponseSchema.parse(reveal.json()).rev).toBe(`${TODAY}.${r0 + 4}`)
@@ -347,12 +353,14 @@ describe('las rutas de /api/me (§14.2)', () => {
       expect(apiErrorBodySchema.parse(res.json()).error).toBe('no_autorizado')
     }
     const h = await call(app, 'GET', '/api/me/horizon', { user: PLAYER })
+    // Re-sellado en el 9a: con sesión, el horizonte dice además si revelar pregunta antes (DD-17).
     expect(horizonSummarySchema.parse(h.json())).toEqual({
       rev: 'world',
       scope: 'guarded',
       ready: [],
       watching: [],
       expiredSinceLastVisit: [],
+      revealConfirm: true,
     })
   })
 
