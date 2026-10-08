@@ -160,7 +160,11 @@ ADMIN_TOKEN=… node scripts/race-radio.mjs race-andalusia 1 \
 Con `--db` o `--api` la etapa se re-simula desde `stage_snapshots` (semilla y entrada congeladas) y
 **solo si corrió con el motor de hoy**: si `engineVersion` no coincide, el comando dice que no se
 puede reconstruir en vez de enseñar una carrera que no pasó. La guarda se resuelve siempre contra el
-motor de ESTE árbol, que es el que re-simula. `--help` en la cabecera del propio script.
+motor de ESTE árbol, que es el que re-simula. Con `--db` hay una salida desde la retransmisión (E2,
+paso 11a): si la versión no coincide y la etapa tiene su línea grabada en `stage_timelines`, la tabla
+sale de esa línea, la misma radio que sirve la API, y la cabecera lo dice
+(`fuente: línea grabada · sin depósitos · una foto por km`); sin fila, o con una lápida, se sigue
+negando. `--api` no la lee. `--help` en la cabecera del propio script.
 
 `--db` necesita credenciales de base de datos en la máquina desde la que se mira; `--api` no: pide
 la etapa a la puerta de administración de la API (ver abajo). Es la diferencia entre poder mirar una
