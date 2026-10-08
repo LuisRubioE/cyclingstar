@@ -1,5 +1,12 @@
 import { type Incident, TEST_TOUR, TIMELINE } from '@cyclingstar/engine'
-import { ATTRIBUTES, TEMPLATE_REV, newsPayloadSchema, renderNews } from '@cyclingstar/shared'
+import {
+  ATTRIBUTES,
+  type ChronicleRider,
+  TEMPLATE_REV,
+  newsPayloadSchema,
+  radioFromTimeline,
+  renderNews,
+} from '@cyclingstar/shared'
 import { and, asc, eq, inArray, sql } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { worldHorizon } from './horizon.js'
@@ -160,8 +167,12 @@ describe('db: runOneStage escribe en lote con la misma semántica', () => {
     const stage1 = TEST_TOUR[0]!
     const stage2 = TEST_TOUR[1]!
 
-    const raced1 = await t.db.transaction((tx) =>
-      runOneStage(tx, worldId, 1, 'semilla-etapa', {
+    // La 1 se corre como el tick con `TIMELINE_RECORD=on` (el diario y `flush` detrás, en su
+    // transacción, §5.5) y la 2 sin el diario, como con `TIMELINE_RECORD=off`: grabar no cambia nada de
+    // lo que se comprueba aquí, y el caso de la radio de abajo lee las dos (DD-11, paso 11b).
+    const log = timelineTickLog()
+    const raced1 = await t.db.transaction(async (tx) => {
+      const raced = await runOneStage(tx, worldId, 1, 'semilla-etapa', {
         raceKey: RACE_KEY,
         raceId: 'race-test',
         raceName: 'Carrera de pruebas',
@@ -173,9 +184,13 @@ describe('db: runOneStage escribe en lote con la misma semántica', () => {
         profile: stage1.profile,
         timeTrial: false,
         isFinal: false,
-      }),
-    )
+        timeline: log,
+      })
+      await log.flush(tx)
+      return raced
+    })
     expect(raced1.size).toBe(FIELD)
+    expect(log.summary()).toBe('timeline: 1 grabadas, 0 sin línea')
 
     const res1 = await t.db
       .select({
@@ -336,31 +351,64 @@ describe('db: runOneStage escribe en lote con la misma semántica', () => {
   }, 180_000)
 
   /**
-   * LA RADIO SE GUARDA AL CORRER. El dueño la pidió y durante toda una tanda existió solo como
-   * script de línea de comandos: la vista no podía existir porque el dato no se guardaba. Y guardarlo
-   * es obligatorio, no una optimización: una etapa corrida con el motor de ayer no se puede
-   * reconstruir con el de hoy (`checkReplay`), así que calcularla al vuelo la dejaría vacía justo
-   * para las etapas ya corridas, que son las que se quieren mirar.
+   * LA RADIO DE LA ETAPA CORRIDA SE PUEDE LEER SIEMPRE. El dueño la pidió y durante toda una tanda
+   * existió solo como script de línea de comandos: la vista no podía existir porque el dato no se
+   * guardaba. Y guardarlo es obligatorio, no una optimización: una etapa corrida con el motor de ayer no
+   * se puede reconstruir con el de hoy (`checkReplay`), así que calcularla al vuelo la dejaría vacía
+   * justo para las etapas ya corridas, que son las que se quieren mirar.
    *
-   * Se lee la etapa 1 que acaba de correr el caso de arriba: es la misma escritura de producción.
+   * RE-SELLADO EN EL 11b (DD-11, docs/retransmision.md §12.10 y §17.14). Hasta el 11b este caso pedía
+   * la radio a `stage_snapshots.radio` de la etapa 1. Desde el 11b, una etapa cuya línea entra en
+   * `stage_timelines` ya no la guarda: la `Race Radio` sale de su línea (`radioFromTimeline`, 11a, con
+   * B16 en verde), y se le exige a esa radio lo mismo que se le exigía a la guardada. La guardada sigue
+   * para las etapas sin línea: aquí la 2, corrida sin el diario (`TIMELINE_RECORD=off`); la lápida y el
+   * grabador que falla, en `timelines.test.ts`, que es donde se le puede hacer fallar.
+   *
+   * Se leen las etapas que acaba de correr el caso de arriba: es la misma escritura de producción.
    */
-  it('la etapa corrida deja su RADIO guardada, con grupos y huecos', async () => {
-    const [row] = await t.db
-      .select({ radio: stageSnapshots.radio })
-      .from(stageSnapshots)
-      .where(and(eq(stageSnapshots.raceId, RACE_KEY), eq(stageSnapshots.stageDay, 1)))
-    const radio = row?.radio as
-      | { starters: number; kms: { km: number; groups: { size: number; gapS: number }[] }[] }
-      | null
-      | undefined
-    expect(radio).toBeTruthy()
-    expect(radio!.starters).toBeGreaterThan(0)
-    // Una foto por kilómetro, y cada una con al menos un grupo: si esto sale vacío, la vista sale
-    // vacía y el dueño vuelve a ver una pestaña que no enseña nada.
-    expect(radio!.kms.length).toBeGreaterThan(10)
-    for (const k of radio!.kms) expect(k.groups.length).toBeGreaterThan(0)
-    // El primer grupo de carretera es el líder: su hueco al líder es cero por construcción.
-    expect(radio!.kms[0]!.groups[0]!.gapS).toBe(0)
+  it('DD-11: la etapa grabada se lee desde su línea y no guarda radio; la que corre sin grabar guarda la suya, con grupos y huecos', async () => {
+    type Radio = {
+      starters: number
+      kms: { km: number; groups: { size: number; gapS: number }[] }[]
+    }
+    const guardada = async (stageDay: number): Promise<unknown> => {
+      const [row] = await t.db
+        .select({ radio: stageSnapshots.radio })
+        .from(stageSnapshots)
+        .where(and(eq(stageSnapshots.raceId, RACE_KEY), eq(stageSnapshots.stageDay, stageDay)))
+      expect(row, `la etapa ${stageDay} tiene snapshot`).toBeDefined()
+      return row!.radio
+    }
+    const conGruposYHuecos = (radio: Radio | null | undefined, cual: string): void => {
+      expect(radio, cual).toBeTruthy()
+      expect(radio!.starters, cual).toBeGreaterThan(0)
+      // Una foto por kilómetro, y cada una con al menos un grupo: si esto sale vacío, la vista sale
+      // vacía y el dueño vuelve a ver una pestaña que no enseña nada.
+      expect(radio!.kms.length, cual).toBeGreaterThan(10)
+      for (const k of radio!.kms) expect(k.groups.length, `${cual} km ${k.km}`).toBeGreaterThan(0)
+      // El primer grupo de carretera es el líder: su hueco al líder es cero por construcción.
+      expect(radio!.kms[0]!.groups[0]!.gapS, cual).toBe(0)
+    }
+
+    // La 1, grabada: su fila es una línea y su radio guardada, null.
+    expect(await guardada(1)).toBeNull()
+    clearStageTimelineCache()
+    const tl = await readStageTimeline(t.db, worldHorizon, RACE_KEY, 1)
+    expect(tl?.format).toBe(TIMELINE.format)
+    const riderOf = new Map<string, ChronicleRider>(
+      tl!.riderIds.map((id, i) => [
+        id,
+        { id, name: `Corredor ${i}`, bib: i + 1, team: null, country: null },
+      ]),
+    )
+    conGruposYHuecos(
+      radioFromTimeline(tl!, { riderOf, own: new Set(), nameableAt: () => new Set() }),
+      'la 1, desde su línea',
+    )
+
+    // La 2, sin el diario: sin fila, y con su radio guardada de siempre, que es la única que tiene.
+    expect(await readStageTimeline(t.db, worldHorizon, RACE_KEY, 2)).toBeNull()
+    conGruposYHuecos((await guardada(2)) as Radio | null, 'la 2, guardada')
   })
 
   /**
@@ -675,9 +723,11 @@ describe('db: la fuga del titular y el primero de una clasificación (E2, paso 1
  * `stage_timelines`; sin `flush` no la deja, y la retransmisión saldría del adaptador sin que nadie lo
  * notara. Y GRABAR NO CAMBIA NADA DE LO QUE LA ETAPA ESCRIBE: con la grabación apagada
  * (`TIMELINE_RECORD=off`, sin `spec.timeline`, la envoltura de hoy) y encendida, las mismas filas en
- * todas las tablas que toca `runOneStage`, el aprendizaje y la radio guardada incluidos. Cada corrida se
- * deshace al acabar, así que las dos parten del mismo mundo. Este fichero corre `runOneStage`
- * directamente y no ve `tick_log`, que solo escribe `runTick` (lo mira `tickRun.test.ts`).
+ * todas las tablas que toca `runOneStage`, el aprendizaje incluido. Desde el 11b (DD-11), salvo una
+ * columna: con la línea escrita, `stage_snapshots.radio` va a null, porque la `Race Radio` sale de la
+ * línea; sin `flush` la línea no entra y la radio se queda. Cada corrida se deshace al acabar, así que
+ * las dos parten del mismo mundo. Este fichero corre `runOneStage` directamente y no ve `tick_log`, que
+ * solo escribe `runTick` (lo mira `tickRun.test.ts`).
  */
 describe('db: runOneStage con la grabación de la línea temporal (E2, paso 5)', () => {
   let t: TestDb
@@ -762,25 +812,59 @@ describe('db: runOneStage con la grabación de la línea temporal (E2, paso 5)',
     await t?.close()
   })
 
-  it('grabar no cambia nada de lo que escribe la etapa: las mismas filas con la grabación apagada y encendida', async () => {
+  /** Las filas de `stage_snapshots` de una foto sin su `radio`, ordenadas. */
+  const sinRadio = (filas: readonly string[]): string[] =>
+    filas
+      .map((f) => {
+        const resto = JSON.parse(f) as Record<string, unknown>
+        delete resto.radio
+        return JSON.stringify(resto)
+      })
+      .sort()
+  /** `stage_snapshots.radio` de la etapa `stageDay` en una foto. */
+  const radioDeLa = (foto: Record<string, string[]>, stageDay: number): unknown => {
+    const filas = (foto.stage_snapshots ?? []).map((f) => JSON.parse(f) as Record<string, unknown>)
+    const fila = filas.find((f) => f.race_id === KEY && f.stage_day === stageDay)
+    expect(fila, `la etapa ${stageDay} tiene snapshot`).toBeDefined()
+    return fila!.radio
+  }
+
+  /**
+   * RE-SELLADO EN EL 11b (DD-11, docs/retransmision.md §12.10 y §17.14): hasta el 11b, grabar dejaba
+   * también la misma radio guardada. Desde el 11b, la etapa cuya línea entra en `stage_timelines` deja
+   * `stage_snapshots.radio` a null (la `Race Radio` sale de la línea, 11a); todo lo demás, igual.
+   */
+  it('grabar no cambia nada de lo que escribe la etapa salvo la radio guardada, que con la línea va a null (DD-11)', async () => {
     const apagada = await correrYDeshacer(null)
     const encendida = await correrYDeshacer(timelineTickLog())
     expect(apagada.lineas).toBe(0)
     expect(encendida.lineas).toBe(1)
     for (const tabla of TABLAS) {
+      if (tabla === 'stage_snapshots') continue
       expect(encendida.foto[tabla], tabla).toEqual(apagada.foto[tabla])
     }
+    // stage_snapshots, columna a columna, igual salvo la radio de la 2…
+    expect(sinRadio(encendida.foto.stage_snapshots!)).toEqual(
+      sinRadio(apagada.foto.stage_snapshots!),
+    )
+    // …que sin grabar se guarda y con la línea escrita, no; la de la 1, corrida sin grabar, ni se toca.
+    expect(radioDeLa(apagada.foto, 2)).toMatchObject({ kms: expect.any(Array) as unknown })
+    expect(radioDeLa(encendida.foto, 2)).toBeNull()
+    expect(radioDeLa(encendida.foto, 1)).toEqual(radioDeLa(apagada.foto, 1))
+    expect(radioDeLa(apagada.foto, 1)).not.toBeNull()
     // La prueba no es vacía: la etapa escribió resultados, general, aprendizaje y radio.
     for (const tabla of ['stage_results', 'rider_attr_log', 'stage_snapshots'] as const)
       expect(apagada.foto[tabla]!.length, tabla).toBeGreaterThan(0)
   }, 180_000)
 
-  it('sin flush detrás de la etapa no queda fila, aunque la línea se haya cerrado', async () => {
+  it('sin flush detrás de la etapa no queda fila, aunque la línea se haya cerrado, y la radio guardada se queda', async () => {
     const log = timelineTickLog()
-    const { lineas } = await correrYDeshacer(log, false)
+    const { foto, lineas } = await correrYDeshacer(log, false)
     expect(lineas).toBe(0)
     // La línea se cerró y espera en el diario: el resumen no la cuenta porque no se escribió.
     expect(log.summary()).toBe('timeline: 0 grabadas, 0 sin línea')
+    // Sin línea, la etapa conserva su radio (DD-11): solo `flush`, al escribir la línea, la borra.
+    expect(radioDeLa(foto, 2)).toMatchObject({ kms: expect.any(Array) as unknown })
   }, 120_000)
 
   it('con flush, la etapa deja su línea con el formato 1 y su reparto congelado', async () => {
@@ -796,6 +880,17 @@ describe('db: runOneStage con la grabación de la línea temporal (E2, paso 5)',
     clearStageTimelineCache()
     const tl = await readStageTimeline(t.db, worldHorizon, KEY, 2)
     expect(tl?.format).toBe(TIMELINE.format)
+    // …y, confirmada la transacción, sin radio guardada (DD-11): la de la 1, sin grabar, sí.
+    const radios = await t.db
+      .select({ stageDay: stageSnapshots.stageDay, radio: stageSnapshots.radio })
+      .from(stageSnapshots)
+      .where(eq(stageSnapshots.raceId, KEY))
+    expect(new Map(radios.map((r) => [r.stageDay, r.radio !== null]))).toEqual(
+      new Map([
+        [1, true],
+        [2, false],
+      ]),
+    )
     expect(tl?.cast.riders.map((c) => c.riderId)).toEqual(tl?.riderIds)
     // La 2 sale con la general de la 1: su líder lleva el amarillo desde la etapa 1.
     expect(
