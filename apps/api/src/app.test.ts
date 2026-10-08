@@ -1,3 +1,6 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { brotliDecompressSync, gunzipSync } from 'node:zlib'
 import type { TickSummary } from '@cyclingstar/db'
 import { ENGINE_VERSION } from '@cyclingstar/engine'
@@ -145,6 +148,74 @@ describe('api: compresión de las respuestas', () => {
     expect(res.rawPayload.length).toBeLessThan(1024)
     expect(res.headers['content-encoding']).toBeUndefined()
     expect(res.json()).toMatchObject({ ok: true, engineVersion: ENGINE_VERSION })
+  })
+})
+
+/**
+ * LA WEB COMPILADA EN LA CACHÉ DEL NAVEGADOR (E2, paso 10b; nota 4 del 9b en
+ * docs/diseno/e2-retransmision/implementacion.md). Vite deja en `assets/` cada fichero con la huella de
+ * su contenido en el nombre (`index-<hash>.js`): un fichero con otro contenido tiene otro nombre, así
+ * que se sirve un año y como inmutable, y una recarga no vuelve a pedirlo (un 304 por fichero, y cada
+ * uno contaba para el límite de 300 peticiones por minuto e IP). El `index.html`, que es el que nombra
+ * los ficheros de cada despliegue, se revalida siempre (`no-cache`), también el que sirve el fallback
+ * de la SPA; lo demás de la raíz (el favicon, sin huella), como hasta ahora.
+ */
+describe('api: la web compilada, con caché larga solo en los ficheros con huella', () => {
+  const root = mkdtempSync(join(tmpdir(), 'cs-web-'))
+  mkdirSync(join(root, 'assets'))
+  writeFileSync(join(root, 'index.html'), '<!doctype html><title>Cycling Star</title>')
+  writeFileSync(join(root, 'assets', 'index-B1x2c3D4.js'), 'console.log(1)\n')
+  writeFileSync(join(root, 'assets', 'index-Cq9w8e7R.css'), 'body{margin:0}\n')
+  writeFileSync(join(root, 'favicon.svg'), '<svg xmlns="http://www.w3.org/2000/svg"/>')
+  const webApp = buildApp({
+    migrationsApplied: true,
+    serveWeb: true,
+    webRoot: root,
+    tickIntervalMinutes: 360,
+  })
+  afterAll(async () => {
+    await webApp.close()
+    rmSync(root, { recursive: true, force: true })
+  })
+
+  it('los ficheros de assets/ van un año y como inmutables', async () => {
+    for (const url of ['/assets/index-B1x2c3D4.js', '/assets/index-Cq9w8e7R.css']) {
+      const res = await webApp.inject({ method: 'GET', url })
+      expect(res.statusCode, url).toBe(200)
+      expect(res.headers['cache-control'], url).toBe('public, max-age=31536000, immutable')
+    }
+  })
+
+  it('el index.html se revalida siempre: en /, pedido por su nombre y en el fallback de la SPA', async () => {
+    for (const url of ['/', '/index.html', '/world/teams']) {
+      const res = await webApp.inject({ method: 'GET', url })
+      expect(res.statusCode, url).toBe(200)
+      expect(res.headers['content-type'], url).toContain('text/html')
+      expect(res.headers['cache-control'], url).toBe('no-cache')
+    }
+  })
+
+  it('lo demás de la raíz, sin huella, como hasta ahora', async () => {
+    const res = await webApp.inject({ method: 'GET', url: '/favicon.svg' })
+    expect(res.statusCode).toBe(200)
+    expect(res.headers['cache-control']).toBe('public, max-age=0')
+  })
+
+  it('un fichero de assets/ que no existe no se sirve como inmutable', async () => {
+    const res = await webApp.inject({ method: 'GET', url: '/assets/index-Zz0000Zz.js' })
+    expect(res.headers['cache-control']).not.toContain('immutable')
+  })
+
+  it('una revalidación de un fichero de assets/ conserva la cabecera', async () => {
+    const first = await webApp.inject({ method: 'GET', url: '/assets/index-B1x2c3D4.js' })
+    const etag = String(first.headers.etag)
+    const res = await webApp.inject({
+      method: 'GET',
+      url: '/assets/index-B1x2c3D4.js',
+      headers: { 'if-none-match': etag },
+    })
+    expect(res.statusCode).toBe(304)
+    expect(res.headers['cache-control']).toBe('public, max-age=31536000, immutable')
   })
 })
 

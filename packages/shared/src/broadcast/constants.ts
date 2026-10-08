@@ -62,6 +62,13 @@ export const BROADCAST = {
     { upToPct: 7, kmh: 22 },
     { upToPct: Infinity, kmh: 16 },
   ] as const satisfies readonly { readonly upToPct: number; readonly kmh: number }[],
+  /** La altitud de la estimación (E2, paso 10b; B17): un km de más de abovePct % de pendiente media cuya cota media pasa de
+   *  fromM tarda en playbackEstimateS y ttPlaybackEstimateS 1 + slowdownPer1000M · (cota − fromM) / 1000 veces lo de su banda
+   *  de nominalKmh. Solo el perfil, nunca la carrera. M (10b, la línea grabada de las 22 en línea del banco × 2): esos km van
+   *  de media un 8 % más despacio que su banda de 1.000 a 1.500 m, un 17 % de 1.500 a 2.000 y un 37 % por encima; mínimos
+   *  cuadrados desde 1.000 m, 0,18. Sin ella, el digest de race-colombia e5 congelada (hasta 2.274 m) dura un 41 % más que su
+   *  presupuesto (8-k pide menos del 40 %); con ella, un 23 %, y la duración anunciada fuera de los finales en alto no se mueve. */
+  nominalAltitude: { abovePct: 4, fromM: 1000, slowdownPer1000M: 0.2 },
 
   // MANDOS (§8.5; D-20)
   speeds: [0.5, 1, 2, 4], // ×½ ×1 ×2 ×4: multiplican el factor de la zona, no mueven las zonas

@@ -26,18 +26,33 @@ export function paceAt(toGoKm: number, zones: readonly PaceZone[]): number {
 }
 
 /**
- * La duración a ×1 que anuncia la ficha (`About 13 min`, pantalla). Cada km a su velocidad NOMINAL por
- * pendiente (`BROADCAST.nominalKmh`, la primera banda con `upToPct` ≥ su pendiente), nunca a la de la
- * carrera, y la curva aplicada por décimas de km. El último km parcial cuenta entero: el error es de
- * menos de un km.
+ * LO QUE TARDA EL KM k A SU VELOCIDAD NOMINAL (§8.2), en s de carrera: la de su pendiente media
+ * (`BROADCAST.nominalKmh`, la primera banda con `upToPct` ≥ su pendiente) y, desde el 10b, más despacio
+ * si sube más de `nominalAltitude.abovePct` % por encima de `fromM` de cota media (B17: los km de subida
+ * altos van más despacio que su banda, y el digest de una reina larga que acaba a más de 2.000 m se iba
+ * un 41 % de su presupuesto). Solo el perfil, nunca la carrera.
+ */
+function nominalKmS(profile: ProfileStrip, k: number): number {
+  const a = profile.altM[k]!
+  const b = profile.altM[k + 1]!
+  const pct = (b - a) / 10 // pendiente media del km, en %
+  const band = BROADCAST.nominalKmh.find((x) => pct <= x.upToPct) ?? BROADCAST.nominalKmh.at(-1)!
+  const { abovePct, fromM, slowdownPer1000M } = BROADCAST.nominalAltitude
+  const over = (a + b) / 2 - fromM
+  const altitude = pct > abovePct && over > 0 ? 1 + (slowdownPer1000M * over) / 1000 : 1
+  return (3600 / band.kmh) * altitude
+}
+
+/**
+ * La duración a ×1 que anuncia la ficha (`About 13 min`, pantalla). Cada km a su velocidad NOMINAL
+ * (`nominalKmS`: por pendiente y, en las subidas altas, por altitud), nunca a la de la carrera, y la
+ * curva aplicada por décimas de km. El último km parcial cuenta entero: el error es de menos de un km.
  */
 export function playbackEstimateS(profile: ProfileStrip, zones: readonly PaceZone[]): number {
   const km = profile.altM.length - 1
   let wall = 0
   for (let k = 0; k < km; k++) {
-    const pct = (profile.altM[k + 1]! - profile.altM[k]!) / 10 // pendiente media del km, en %
-    const band = BROADCAST.nominalKmh.find((b) => pct <= b.upToPct) ?? BROADCAST.nominalKmh.at(-1)!
-    const raceS = 3600 / band.kmh
+    const raceS = nominalKmS(profile, k)
     for (let j = 0; j < 10; j++) wall += raceS / 10 / paceAt(km - k - (j + 0.5) / 10, zones)
   }
   return wall
@@ -47,10 +62,11 @@ export function playbackEstimateS(profile: ProfileStrip, zones: readonly PaceZon
 
 /**
  * LA CURVA DEL DIGEST de `While you were away` (§8.2, §8.8; decisión 8-a): `summaryPace` escalada para
- * que la estimación NOMINAL de la etapa (`playbackEstimateS`, velocidades por pendiente) dure
- * `digestBudgetS` de su tipo. Causal: la escala sale del perfil, nunca de la carrera (B9), así que la
- * duración real se aparta de su presupuesto lo que se aparta la estimación (de −9 a +34 %, §8.4), y B17
- * la acota a menos de un 40 %. En una crono, `ttDigestScale` (8-m).
+ * que la estimación NOMINAL de la etapa (`playbackEstimateS`, velocidades por pendiente y, desde el 10b,
+ * por altitud en las subidas altas) dure `digestBudgetS` de su tipo. Causal: la escala sale del perfil,
+ * nunca de la carrera (B9), así que la duración real se aparta de su presupuesto lo que se aparta la
+ * estimación (de −11 a +23 % sobre la línea grabada de las 24 × 2 y las seis congeladas, 10b), y B17 la
+ * acota a menos de un 40 %. En una crono, `ttDigestScale` (8-m).
  */
 export function digestPace(profile: ProfileStrip, kind: StageKind): readonly PaceZone[] {
   const k = playbackEstimateS(profile, BROADCAST.summaryPace) / BROADCAST.digestBudgetS[kind]
@@ -93,17 +109,10 @@ export function ttPaceAt(t: RaceS, plan: TimeTrialPlan, lastKmFromS: RaceS | nul
   return (BROADCAST.ttPace.find((z) => started <= z.upToStarted) ?? BROADCAST.ttPace.at(-1)!).x // la última zona llega a 1: el ?? no salta nunca
 }
 
-/** Lo que tarda un km a la velocidad nominal de su pendiente (§8.2), en s de carrera. */
-function nominalKmS(profile: ProfileStrip, k: number): number {
-  const pct = (profile.altM[k + 1]! - profile.altM[k]!) / 10
-  const band = BROADCAST.nominalKmh.find((b) => pct <= b.upToPct) ?? BROADCAST.nominalKmh.at(-1)!
-  return 3600 / band.kmh
-}
-
 /**
  * LA DURACIÓN QUE SE ANUNCIA DE UNA CRONO (`About 7 min`, §9.4; 9-h): solo el plan y el perfil, nunca un
  * tiempo de la carrera. El último sale a `(riders − 1) · intervalS` y rueda el perfil entero a las
- * velocidades nominales de cada km; su último km, a `ttLastKmX`. Se integra la curva de `ttPaceAt` por
+ * velocidades nominales de cada km (`nominalKmS`, con la altitud); su último km, a `ttLastKmX`. Se integra la curva de `ttPaceAt` por
  * tramos en que es constante: una salida tras otra y, después, hasta el último km del último.
  */
 export function ttPlaybackEstimateS(profile: ProfileStrip, plan: TimeTrialPlan): number {
