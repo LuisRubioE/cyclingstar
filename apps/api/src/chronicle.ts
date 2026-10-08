@@ -1454,8 +1454,11 @@ export function veilStoredRadio(
  * A cuántos corredores se nombra como mucho en un grupo. En una fuga de seis se nombran los seis; en
  * un pelotón de ciento veinte, los que tiran y los que hay que ver —maillots y jefes de filas—, y el
  * resto se CUENTA. El tope es de lectura, no de dato: lo guardado los lleva a todos.
+ *
+ * Desde el 11a (E2) vive en `BROADCAST.radioNamedMax`: la radio desde la línea (`radioFromTimeline`,
+ * `packages/shared`) corta en el mismo número, y una copia aquí podría divergir sin que nada fallara.
  */
-const MAX_NAMED_PER_GROUP = 24
+const MAX_NAMED_PER_GROUP = BROADCAST.radioNamedMax
 
 /**
  * LA RADIO DE CARRERA, con la gente puesta donde va.
