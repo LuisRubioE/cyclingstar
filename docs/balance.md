@@ -17968,3 +17968,24 @@ Al líder ya lo frenan su rol (0,3) y, con el maillot, `jerseyBreakDamp`; así c
 - `stage/simulate.test.ts`: prueba nueva, el que salta desde un grupo de descolgados no está en el pelotón en la foto del kilómetro siguiente (en la v90 sí: un hombre a 81 s en el km 85 iba dentro en el 86). Y la del parte pide la mitad o menos de ataques y de gasto.
 - `sim/targets.ts`: el suelo de `smallTours.bestSprinterWinPct`, de 25 a 22 (§1).
 - `pnpm typecheck`, `pnpm lint` (0 errores; los 20 avisos de `apps/web` son de antes), `pnpm format`, `pnpm test:rapido` y `pnpm test:bancos` en verde.
+
+## E2 · La altitud en la estimación de la retransmisión (paso 10b, 08/10/2026)
+
+Una constante nueva de `packages/shared`, `BROADCAST.nominalAltitude` (docs/retransmision.md §15.3; decisión 15-h: se anota aquí con su medida, sin subir `ENGINE_VERSION`). No toca el motor ni ninguna carrera: solo la duración que anuncia `Watch` (`About 13 min`) y la escala del digest de `While you were away`.
+
+**El síntoma.** B17 (§8.9, banda de 8-k: el digest de cada etapa a menos de un 40 % de su presupuesto) dejaba fuera `race-colombia` e5 congelada: 3:31 de 2:30, +41 % (el 10a la dejó en `it.todo`). El digest escala `summaryPace` con la estimación nominal de la etapa, que va por pendiente; y la cabeza, en los km de subida altos, va más despacio que su banda.
+
+**Medido** (la línea grabada de las 22 etapas en línea del banco de B17 por dos semillas, km de más del 4 %, tiempo de la cabeza contra el nominal de su banda): por debajo de 1.000 m de cota, 0,95-1,00; de 1.000 a 1.500 m, 1,08; de 1.500 a 2.000, 1,17; por encima de 2.000 (solo Colombia e5, hasta 2.274 m), 1,37. Volver a ajustar `nominalKmh` sobre la misma línea, como §15.3, da la tabla de hoy (54, 47, 44, 37, 22 y 17 km/h) y deja Colombia en +45 %; bajar las dos bandas de subida (20 y 14 km/h) la deja en +28 %, pero el error de la crono e16 pasa del 5 % (§9.4) y el de la duración anunciada fuera de los finales en alto sube de 34 a 43 s de p90.
+
+**El cambio.** Un km de más del 4 % cuya cota media pasa de 1.000 m tarda en la estimación `1 + 0,2 · (cota − 1.000) / 1.000` veces lo de su banda (mínimos cuadrados desde 1.000 m: 0,18). Solo el perfil, nunca la carrera.
+
+| B17 sobre la línea grabada                                 | Antes                     | Con la altitud           |
+| ---------------------------------------------------------- | ------------------------- | ------------------------ |
+| digest de las seis congeladas                              | de −8 a +41 % (Colombia)  | de −8 a +23 % (Colombia) |
+| digest de las 24 × 2 del banco                             | de −11 a +36 % (Colombia) | de −11 a +23 % (e6)      |
+| duración anunciada, p90 del error fuera de finales en alto | 34 s                      | 34 s                     |
+| duración anunciada, p90 del error en finales en alto       | 239 s                     | 135 s                    |
+| Colombia e5 anunciada (dura de 19:13 a 20:22)              | 15:14                     | 16:57                    |
+| la e18 anunciada (dura de 12:30 a 13:37)                   | 11:40                     | 12:07                    |
+
+Re-sellados con la causa: `pace.test.ts` (la e18 y Colombia, y `Highlights` de la e18, de 3:42 a 3:54) y `broadcastPace.test.ts` (las mismas dos; el `it.todo` de Colombia pasa a test). Medido con `scripts/bench-pace.mjs`, que desde el 10b corre sobre la línea grabada (`--reloj linea`, por defecto).

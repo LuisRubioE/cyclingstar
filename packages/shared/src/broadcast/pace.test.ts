@@ -75,20 +75,42 @@ describe('playbackEstimateS · la duración que anuncia la ficha (§8.2)', () =>
    * reescribió los perfiles de los puertos reales (la e18 pasa de 13:10 a 11:40) y redondear a metros
    * cambia de banda de `nominalKmh` tres km de Colombia e5 que caían en su borde (15:36 → 15:14).
    * Vueltas a medir aquí, son las de la línea base de B17 del paso 0 (`scripts/bench-pace.mjs`).
+   *
+   * RE-SELLADO EN EL 10b, por la altitud de la estimación (`BROADCAST.nominalAltitude`): los km de subida
+   * de más del 4 % por encima de 1.000 m tardan más. La e18 (hasta 1.615 m) pasa de 11:40 a 12:07 y
+   * Colombia e5 (hasta 2.274 m), de 15:14 a 16:57; las otras tres no suben por encima de 1.000 m y no se
+   * mueven. Con la línea grabada, la e18 dura en `Watch` de 12:30 a 13:37 y Colombia, de 19:13 a 20:22.
    */
   it.each([
     ['race-france-e7', '8:11'],
     ['race-france-e13', '9:11'],
-    ['race-france-e18', '11:40'],
+    ['race-france-e18', '12:07'],
     ['race-flanders-e1', '11:05'],
-    ['race-colombia-e5', '15:14'],
+    ['race-colombia-e5', '16:57'],
   ] as const)('%s: Watch anuncia %s', (name, expected) => {
     expect(mmss(playbackEstimateS(strip(PACE_PROFILES[name]), BROADCAST.pace))).toBe(expected)
   })
 
-  it('Highlights de la e18 anuncia 3:42 (4:25 en la v89, con la subida final de antes)', () => {
+  it('Highlights de la e18 anuncia 3:54 (4:25 en la v89, con la subida final de antes; 3:42 sin la altitud, hasta el 10b)', () => {
     const e18 = strip(PACE_PROFILES['race-france-e18'])
-    expect(mmss(playbackEstimateS(e18, BROADCAST.summaryPace))).toBe('3:42')
+    expect(mmss(playbackEstimateS(e18, BROADCAST.summaryPace))).toBe('3:54')
+  })
+
+  it('la altitud (10b): un km de más del 4 % por encima de 1.000 m tarda 1 + 0,2 · (cota media − 1.000) / 1.000 veces lo de su banda', () => {
+    expect(BROADCAST.nominalAltitude).toEqual({ abovePct: 4, fromM: 1000, slowdownPer1000M: 0.2 })
+    const x1 = [{ aboveKm: 0, x: 1 }] as const
+    // al 6 % de 1.950 a 2.010 m (cota media 1.980): 22 km/h, un 19,6 % más
+    expect(playbackEstimateS(strip([1950, 2010]), x1)).toBeCloseTo((3600 / 22) * 1.196, 6)
+    // al 8 % de 2.400 a 2.480 m (2.440): 16 km/h, un 28,8 % más
+    expect(playbackEstimateS(strip([2400, 2480]), x1)).toBeCloseTo((3600 / 16) * 1.288, 6)
+    // al 6 % por debajo de 1.000 m (de 900 a 960, 930): la de su banda
+    expect(playbackEstimateS(strip([900, 960]), x1)).toBeCloseTo(3600 / 22, 6)
+    // al 4 % justo (la banda de 37 km/h) o menos, y bajando, la de su banda aunque vaya alto
+    expect(playbackEstimateS(strip([1500, 1540]), x1)).toBeCloseTo(3600 / 37, 6)
+    expect(playbackEstimateS(strip([2000, 2030]), x1)).toBeCloseTo(3600 / 37, 6)
+    expect(playbackEstimateS(strip([2010, 1950]), x1)).toBeCloseTo(3600 / 56, 6)
+    // la cota media es la de los dos extremos del km: de 980 a 1.040 (1.010), un 0,2 % más
+    expect(playbackEstimateS(strip([980, 1040]), x1)).toBeCloseTo((3600 / 22) * 1.002, 6)
   })
 
   it('cada km va a la velocidad nominal de su pendiente, por décimas, y el último parcial cuenta entero', () => {
@@ -163,6 +185,14 @@ describe('ttPlaybackEstimateS · la duración que anuncia una crono (§9.4)', ()
     const climb = strip([...Array.from({ length: 10 }, () => 0), 50])
     expect(ttPlaybackEstimateS(climb, { riders: 10, intervalS: 60 })).toBeCloseTo(
       360 / 120 + 180 / 40 + (9 * (3600 / 44)) / 12 + 3600 / 22 / 2,
+      9,
+    )
+  })
+
+  it('la altitud (10b) también en la crono: el mismo último km al 5 %, a 2.000 m de cota media, un 20 % más', () => {
+    const high = strip([...Array.from({ length: 10 }, () => 1975), 2025])
+    expect(ttPlaybackEstimateS(high, { riders: 10, intervalS: 60 })).toBeCloseTo(
+      360 / 120 + 180 / 40 + (9 * (3600 / 44)) / 12 + ((3600 / 22) * 1.2) / 2,
       9,
     )
   })

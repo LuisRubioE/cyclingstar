@@ -171,38 +171,23 @@ describe('B17 · el ritmo de Watch y de Highlights sobre las cinco congeladas en
   })
 })
 
-/**
- * Las congeladas cuyo digest aún no cabe en su banda, con la cifra medida (regla 1 de §17.1: lo que aún no
- * puede pasar va como `it.todo` con su cifra). Colombia e5, un final en alto largo: 3:31 de 2:30, +41 %
- * (§8.4 midió +34 % con el motor v89): la estimación nominal que escala el digest (`playbackEstimateS`)
- * se queda corta cuando la cabeza sube más despacio que la velocidad nominal de su pendiente, el mismo
- * error que la banda de la duración anunciada deja fuera en los finales en alto (§15.3). Lo ajusta el 10b
- * con B17 sobre las 24 (`bench-pace.mjs`): `nominalKmh` o `digestBudgetS.reina`, constantes de `shared`.
- */
-const DIGEST_PENDING: readonly RoadFixtureName[] = ['race-colombia-e5']
-
-describe('B17 · el digest de cada etapa, a menos de un 40 % de su presupuesto (8-k, 8-a; paso 10a)', () => {
-  it.todo(
-    'race-colombia-e5 (reina): el digest dura 3:31 de 2:30, +41 % de su presupuesto (8-k pide menos del 40 %): lo ajusta el 10b',
-  )
-
-  it('las pendientes son las que aún no caben: medidas, por encima del 40 %', () => {
-    for (const m of measured.filter((x) => DIGEST_PENDING.includes(x.name))) {
-      const budget = BROADCAST.digestBudgetS[m.kind]
-      expect(Math.abs(m.digestS - budget) / budget).toBeGreaterThanOrEqual(BANDS.digestBudgetErr)
-    }
+describe('B17 · el digest de cada etapa, a menos de un 40 % de su presupuesto (8-k, 8-a; pasos 10a y 10b)', () => {
+  /**
+   * Las seis, en su banda desde el 10b. Colombia e5, la reina larga, se quedaba en 3:31 de 2:30 (+41 %, en
+   * `it.todo` del 10a con una guarda): la estimación nominal que escala el digest (`playbackEstimateS`) se
+   * quedaba corta en los km de subida por encima de 1.000 m, que en la línea grabada de las 22 en línea
+   * del banco por dos semillas van de media un 8 % más despacio que su banda de 1.000 a 1.500 m, un 17 %
+   * de 1.500 a 2.000 y un 37 % por encima. Con la altitud en la estimación (`BROADCAST.nominalAltitude`,
+   * ajustada por mínimos cuadrados sobre esa misma línea), 3:04 (+23 %); las demás congeladas casi no se
+   * mueven (la e18, de +9 a +3 %; la e20, de +19 a +18 %).
+   */
+  it.each(measured)('$name ($kind): el digest en su banda', (m) => {
+    const budget = BROADCAST.digestBudgetS[m.kind]
+    console.info(
+      `[broadcast] B17 · digest de ${m.name} (${m.kind}): ${mmss(m.digestS)} de ${mmss(budget)}, ${(((m.digestS - budget) / budget) * 100).toFixed(0)} %`,
+    )
+    expect(Math.abs(m.digestS - budget) / budget).toBeLessThan(BANDS.digestBudgetErr)
   })
-
-  it.each(measured.filter((m) => !DIGEST_PENDING.includes(m.name)))(
-    '$name ($kind): el digest en su banda',
-    (m) => {
-      const budget = BROADCAST.digestBudgetS[m.kind]
-      console.info(
-        `[broadcast] B17 · digest de ${m.name} (${m.kind}): ${mmss(m.digestS)} de ${mmss(budget)}, ${(((m.digestS - budget) / budget) * 100).toFixed(0)} %`,
-      )
-      expect(Math.abs(m.digestS - budget) / budget).toBeLessThan(BANDS.digestBudgetErr)
-    },
-  )
 
   it('los minutos del botón son los del calendario: 38, 40 y 43 para las tres grandes vueltas (8-b)', () => {
     const minutes = ['race-italy', 'race-france', 'race-spain'].map((raceId) =>
@@ -217,9 +202,9 @@ describe('el perfil de la cabecera del adaptador da la duración anunciada de pa
   it.each([
     ['race-france', 7, '8:11'],
     ['race-france', 13, '9:11'],
-    ['race-france', 18, '11:40'],
+    ['race-france', 18, '12:07'],
     ['race-flanders', 1, '11:05'],
-    ['race-colombia', 5, '15:14'],
+    ['race-colombia', 5, '16:57'],
   ] as const)('%s e%i: %s', (raceId, day, expected) => {
     const strip = profileStripOf(stagesForSeason(raceId, 0)[day - 1]!.profile)
     expect(mmss(playbackEstimateS(strip, BROADCAST.pace))).toBe(expected)
