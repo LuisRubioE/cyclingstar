@@ -999,8 +999,21 @@ const brief = (members: readonly string[]): string =>
  * con la misma regla. Se compara por TRAMOS de igual reloj en Ds, porque dos grupos con el mismo reloj
  * en décimas pueden cambiar de puesto y, con el puesto, su `kind` (medido: 1 de 8.656 fotos sin esta
  * tolerancia, 0 con ella): en cada tramo, los mismos ids; en cada id, los miembros como conjunto, el
- * tamaño y el hueco a 0,1 s; los `kind` del tramo, como multiconjunto; y `racing`, `gone` y `mainId`.
- * Vacío si se cumple.
+ * tamaño y el hueco a 0,1 s; los `kind` del tramo, como multiconjunto, con los del motor a la
+ * resolución de la línea (abajo); y `racing`, `gone` y `mainId`. Vacío si se cumple.
+ *
+ * EL `kind` DEL MOTOR, CON SUS RELOJES EN DS. La regla (`kindOf`) no solo reparte `fuga` y `contra` por
+ * puesto: compara el reloj de cada grupo con el del pelotón (delante, `fuga` o `contra`; a la par,
+ * `tierra`; detrás, `tierra` o `grupeto` según su origen). Un grupo en el mismo Ds que el pelotón va a
+ * la par en la línea, y el motor lo pone delante o detrás por centésimas que la línea no guarda (§4.1):
+ * eso cambia el `kind` y no solo a quién le toca, y el multiconjunto no lo cubría. Medido tras el 6a:
+ * `race-flanders` e1 con la semilla 1 de `--sizes` (km 168,05: `shed-25` a 0,04 s del pelotón, `grupeto`
+ * en el motor y `tierra` en la línea) y 10 fotos en 9 de 220 corridas en línea del banco (las 22 por
+ * las semillas 0 a 9), todas así y sin ninguna otra diferencia, dejaban la etapa sin línea. Por eso el
+ * `kind` del motor se toma de la misma regla sobre su foto con cada reloj en Ds, donde un empate no
+ * tiene orden ni entre los grupos ni respecto del pelotón. Sin empates es el mismo que en coma flotante
+ * (redondear no cambia el orden de relojes de distinto Ds), así que esa proyección solo se rehace en
+ * las fotos con un tramo de más de un grupo (24 de las 39.590 de esas 220 corridas).
  */
 export function selfCheckI1(
   tl: StageTimeline,
@@ -1012,7 +1025,23 @@ export function selfCheckI1(
     const km = (b + 0.5) * tl.dx
     const p = photoAt(tl, b)
     const titleId = p.main === null ? undefined : tl.groups[p.main]?.id
-    const expected = radioKmFrom(km, kmPhotos.get(b)!, starters, Infinity, null, titleId)
+    const photo = kmPhotos.get(b)!
+    const expected = radioKmFrom(km, photo, starters, Infinity, null, titleId)
+    // El `kind` del motor a la resolución de la línea (arriba): sin empates en Ds, el de `expected`.
+    const tied = expected.groups.some(
+      (g, i) => i > 0 && toDs(g.tS) === toDs(expected.groups[i - 1]!.tS),
+    )
+    const atDs = tied
+      ? radioKmFrom(
+          km,
+          photo.map((r) => ({ ...r, tS: fromDs(toDs(r.tS)) })),
+          starters,
+          Infinity,
+          null,
+          titleId,
+        )
+      : expected
+    const kindAtDs = new Map(atDs.groups.map((g) => [g.id, g.kind] as const))
     const lineRiders: SnapshotRider[] = []
     p.groupOf.forEach((g, r) => {
       if (g < 0) return
@@ -1078,12 +1107,11 @@ export function selfCheckI1(
         if (Math.abs(ge.gapS - gg.gapS) > 0.1 + 1e-6)
           miss('gapS', ge.id, ge.gapS.toFixed(2), gg.gapS.toFixed(2))
       }
-      const kinds = (run: NonNullable<typeof a>): string =>
-        run
-          .map((g) => g.kind)
-          .sort()
-          .join(',')
-      if (kinds(a) !== kinds(c)) miss('kind', a[0]!.id, kinds(a), kinds(c))
+      const kinds = (run: NonNullable<typeof a>, pick: (g: (typeof run)[number]) => string) =>
+        run.map(pick).sort().join(',')
+      const wantKinds = kinds(a, (g) => kindAtDs.get(g.id) ?? g.kind)
+      const haveKinds = kinds(c, (g) => g.kind)
+      if (wantKinds !== haveKinds) miss('kind', a[0]!.id, wantKinds, haveKinds)
     }
   }
   return out

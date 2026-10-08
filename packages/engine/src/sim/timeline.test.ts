@@ -23,6 +23,7 @@ import { stageLengthKm } from '../stage/sample.js'
 import { simulateStage } from '../stage/simulate.js'
 import { timeTrialStartOrder } from '../stage/startOrder.js'
 import type { StageOutput } from '../stage/types.js'
+import { radioKmFrom } from './raceRadio.js'
 import { ORIGIN_OF_PREFIX, selfCheckI1, selfCheckI5 } from './timeline.js'
 import {
   type RecordedStage,
@@ -49,6 +50,8 @@ import {
  *   km, B6 (lo guardado contra `TIMELINE`), I2 (la igualdad en el km de foto y el tránsito, 16-b), B2
  *   (los sucesos contra el instante, 16-j) y B21 (informativo).
  * - B6 sobre la crono más larga de 176 corredores del calendario, que ninguna de las 24 iguala (15-i).
+ * - I1 en el tramo del pelotón: tres etapas de las 24 con otras semillas (2 y 7), en las que un grupo
+ *   va en una foto de km en el mismo Ds que el pelotón (el arreglo de la lápida de `--sizes`, tras el 6a).
  *
  * Las semillas son las de B11 (`b11-0` y `b11-1`, `seedOf`), también en las 24: las siete etapas que
  * comparten se simulan una vez. El reparto es el sintético de `benchCast`, con la forma del que arma
@@ -620,4 +623,52 @@ describe('B6 · la crono más larga de 176 corredores del calendario (15-i, 16-n
     })
     expect(STAGE.dx).toBe(0.1)
   })
+})
+
+/**
+ * I1 EN EL TRAMO DEL PELOTÓN, SOBRE ETAPAS DE VERDAD (§5.5; el arreglo de la lápida que encontró el 6a
+ * con `scripts/broadcast-fixtures.mjs --sizes`: `race-flanders` e1 con la semilla 1 del campo de
+ * `scripts/race-radio.mjs`, km 168,05). Un grupo en el mismo Ds que el pelotón es, en el motor,
+ * `grupeto` (o `fuga` o `contra`) por centésimas que la línea no guarda, y `tierra` en la línea, que lo ve
+ * a la par: `selfCheckI1` toma el `kind` del motor con sus relojes en Ds. Con las semillas de B11
+ * ninguna de las 24 lo tiene en una foto de km; con las semillas 2 a 9, 10 fotos en 9 de las 220
+ * corridas en línea (motor v91), todas con un grupo descolgado de 0,001 a 0,08 s por detrás del pelotón,
+ * y todas se quedaban sin línea. Estas tres son de esas: la misma etapa que la lápida y las dos más
+ * baratas de correr (la e19, con dos fotos así). Si el motor cambia, el empate puede irse: el test lo
+ * imprime y sigue pidiendo I1, y el caso sigue cubierto en la rápida con fotos escritas a mano
+ * (`src/timelineI1.test.ts`).
+ */
+const I1_PELOTON_TIES = [
+  ['race-flanders', 1, 2],
+  ['race-france', 10, 2],
+  ['race-france', 19, 7],
+] as const
+
+describe('I1 en el tramo del pelotón: un grupo en el Ds del pelotón no deja la etapa sin línea (§5.5)', () => {
+  it.each(I1_PELOTON_TIES)(
+    '%s e%i semilla %i: I1 se cumple',
+    (raceId, day, s) => {
+      const rec = recordStage(raceId, day, inputOf(raceId, day), seedOf(raceId, day, s))
+      const tl = rec.timeline
+      // Las fotos de km con un grupo en el mismo Ds que el pelotón y, en el motor, otro kind que tierra.
+      const ties: string[] = []
+      for (const [b, photo] of rec.recorder.kmPhotos) {
+        const p = photoAt(tl, b)
+        const titleId = p.main === null ? undefined : tl.groups[p.main]?.id
+        const km = (b + 0.5) * tl.dx
+        const radio = radioKmFrom(km, photo, tl.riderIds.length, Infinity, null, titleId)
+        const main = radio.groups.find((g) => g.id === radio.mainId)
+        if (main === undefined) continue
+        for (const g of radio.groups)
+          if (g !== main && toDs(g.tS) === toDs(main.tS) && g.kind !== 'tierra')
+            ties.push(`km ${km.toFixed(2)}, ${g.id} ${g.kind} a ${(g.tS - main.tS).toFixed(3)} s`)
+      }
+      console.info(
+        `[timeline] I1 en el tramo del pelotón, ${raceId} e${day} s${s}: ` +
+          (ties.length === 0 ? 'ningún grupo en su Ds (¿ha cambiado el motor?)' : ties.join('; ')),
+      )
+      expect(selfCheckI1(tl, rec.recorder.kmPhotos), `${raceId} e${day} s${s}`).toEqual([])
+    },
+    120_000,
+  )
 })
