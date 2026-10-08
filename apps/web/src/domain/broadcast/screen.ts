@@ -4,7 +4,10 @@
  * §4.5); los componentes de `components/broadcast/` solo lo pintan.
  *
  * Nace en el 3c. Las palabras de grupo son las de `GROUP_WORDS` (`shared`, D-18 y DD-04); los textos
- * de pantalla, los de §21.6 F.3, en inglés.
+ * de pantalla, los de §21.6 F.3, en inglés. Desde el 10a, las de la capa fija y la barra (`toGoText`,
+ * `mainGapText`, que era `gapText`, `versusText`, `pullingText`, `nameOf`, `clockText`) y los grupos que
+ * se pintan (`shownGroupsOf`) viven en `shared` (`screenWords.ts`), una sola copia con la verdad de la
+ * prueba de lectura: aquí se borraron.
  */
 import {
   BROADCAST,
@@ -17,26 +20,22 @@ import {
   type GroupNow,
   type Instant,
   type JerseyKind,
-  PULL_MOTIVE_WORDS,
   type ProfileStrip,
-  type PullingLine,
   type RiderCard,
   type RiderIx,
   type TimeTrialInstant,
   breakHeadline,
   cardCaption,
   cardLineText,
+  clockText,
   groupLabelText,
+  mainGapText,
+  nameOf,
+  packOf,
+  riderShort,
+  shownGroupsOf,
+  versusText,
 } from '@cyclingstar/shared'
-
-/** `m:ss`, y `h:mm:ss` desde la hora. */
-export function clockText(totalS: number): string {
-  const s = Math.max(0, Math.round(totalS))
-  const h = Math.floor(s / 3600)
-  const m = Math.floor((s % 3600) / 60)
-  const ss = String(s % 60).padStart(2, '0')
-  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`
-}
 
 /** El reloj de carrera de la segunda línea: siempre con las horas, `2:09:00` (6-f). */
 export function raceClockText(t: number): string {
@@ -45,37 +44,9 @@ export function raceClockText(t: number): string {
   return `${h}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
 }
 
-/** Un hueco: `+3:46`, `+1:02:10`; por debajo de `sameTimeS`, `s.t.` (§6.2). */
-export function gapText(gapS: number): string {
-  return gapS < BROADCAST.sameTimeS ? 's.t.' : `+${clockText(gapS)}`
-}
-
 /** En los últimos `quietFinalM`, solo la distancia: ni huecos ni voz (§6.9). */
 export function isQuietFinal(toGoKm: number): boolean {
   return toGoKm * 1000 < BROADCAST.quietFinalM
-}
-
-/** La distancia: un decimal, y dentro del último km los metros hacia abajo a la decena (§6.2). */
-function distanceText(toGoKm: number): string {
-  if (toGoKm < 1) return `${Math.floor(Math.max(0, toGoKm) * 100 + 1e-9) * 10} m`
-  return `${toGoKm.toFixed(1)} km`
-}
-
-/** Los km a meta de la capa fija: `98.5 km to go`, `850 m to go`, `3 laps to go · 42.5 km`, `Last lap · 8.2 km to go`. */
-export function toGoText(toGoKm: number, lapsToGo: number | null): string {
-  if (lapsToGo !== null && lapsToGo > 1) return `${lapsToGo} laps to go · ${toGoKm.toFixed(1)} km`
-  if (lapsToGo === 1) return `Last lap · ${distanceText(toGoKm)} to go`
-  return `${distanceText(toGoKm)} to go`
-}
-
-/** El nombre que la pantalla pone a un corredor: tal como está guardado (7-a). */
-export function nameOf(cast: readonly RiderCard[]): (r: RiderIx) => string {
-  return (r) => cast[r]?.name ?? `#${r + 1}`
-}
-
-/** Contra quién se mide la diferencia principal: la palabra de voz de su grupo, `on the bunch` (§6.2, 6-b). */
-export function versusText(behind: GroupNow, cast: readonly RiderCard[]): string {
-  return `on ${groupLabelText('en', behind.label, behind.role, 'voice', nameOf(cast))}`
 }
 
 /** La pendiente del km en que va la cabeza, de la cota de la cabecera; null fuera del perfil. */
@@ -157,7 +128,7 @@ export function mobileRowsOf(groups: readonly GroupNow[]): ReadonlySet<number> {
     if (g !== undefined && chosen.size < max) chosen.add(g.g)
   }
   add(groups[0])
-  add(groups.find((g) => g.role === 'bunch') ?? groups.find((g) => g.kind === 'peloton'))
+  add(packOf(groups) ?? undefined)
   for (const g of groups) if (g.own) add(g)
   for (const g of groups) if (g.jerseys.length > 0) add(g)
   for (const g of groups) add(g)
@@ -189,39 +160,6 @@ export function transitOf(instant: Instant): ReadonlyMap<number, TransitCount> {
 }
 
 // ------------------------------------------------------------ quién tira y tu corredor (6b)
-
-/**
- * LA LÍNEA DE QUIÉN TIRA de una fila, en palabras (§6.4; D-27, I-46, 6-d): `Pulling: all 3 in turn`
- * (`both in turn` con dos; `4 of 5 in turn` si no están todos), o cada equipo con su porqué, `(for 107
- * Andrea Rossi)` si dos de sus relevistas comparten destinatario y, si no, su motivo (`(chasing)`), y
- * `+2 teams` si tiran más de dos. `oneTeam`: en el móvil, solo el primero (`+N teams` con el resto).
- */
-export function pullingText(
-  line: PullingLine,
-  cast: readonly RiderCard[],
-  oneTeam = false,
-): string {
-  if (line.k === 'in_turn') {
-    if (line.pulling < line.of) return `Pulling: ${line.pulling} of ${line.of} in turn`
-    return `Pulling: ${line.of === 2 ? 'both' : `all ${line.of}`} in turn`
-  }
-  const teamName = (teamId: string): string => {
-    if (teamId.startsWith('solo:')) return nameOf(cast)(Number(teamId.slice(5)))
-    return cast.find((c) => c.team?.id === teamId)?.team?.name ?? teamId
-  }
-  const shown = oneTeam ? line.teams.slice(0, 1) : line.teams
-  const more = line.moreTeams + (line.teams.length - shown.length)
-  const parts = shown.map((t) => {
-    const why =
-      t.forRider !== null
-        ? `for ${riderShort(cast, t.forRider)}`
-        : t.motive === null
-          ? null
-          : PULL_MOTIVE_WORDS[t.motive]
-    return `${teamName(t.teamId)}${why === null ? '' : ` (${why})`}`
-  })
-  return `Pulling: ${parts.join(', ')}${more > 0 ? ` +${more} ${more === 1 ? 'team' : 'teams'}` : ''}`
-}
 
 /**
  * TU CORREDOR (§6.2, [DUEÑO 5]; 6-l): una línea fija bajo la barra si el espectador corre. Con uno,
@@ -256,7 +194,7 @@ export function yourRiderText(
   if (own.length === 1) {
     const w = where(own[0]!)
     if (w === null) return 'Your rider · out of the race'
-    return ['Your rider', w.text, quiet || w.group.number === 1 ? null : gapText(w.gapS)]
+    return ['Your rider', w.text, quiet || w.group.number === 1 ? null : mainGapText(w.gapS)]
       .filter((x) => x !== null)
       .join(' · ')
   }
@@ -279,20 +217,6 @@ export function yourRiderText(
 }
 
 // ------------------------------------------------------------- los grupos que se pintan (6a)
-
-/**
- * LOS GRUPOS QUE PINTAN LA BARRA Y EL PERFIL: los del instante con alguien dentro, renumerados por
- * carretera. Un grupo recién nacido cuyos corredores aún se pintan en el de detrás (los que salen en
- * dos grupos van en el de atrás y en tránsito, 3-b) va vacío en el instante unos segundos de carrera,
- * hasta que se ve su marca siguiente: en las cinco congeladas, del 0,3 al 0,8 % de los segundos, y en
- * la mitad de ellos es el primero de la carretera. El instante lo conserva (I2 lo cuenta); la pantalla
- * no pinta una fila ni un cursor sin nadie, y el número de carretera (que renumera y no es identidad,
- * §6.2) es el de lo pintado.
- */
-export function shownGroupsOf(instant: Instant): readonly GroupNow[] {
-  if (instant.groups.every((g) => g.size > 0)) return instant.groups
-  return instant.groups.filter((g) => g.size > 0).map((g, i) => ({ ...g, number: i + 1 }))
-}
 
 /**
  * LA IDENTIDAD DE UN GRUPO EN PANTALLA (D-03, §3.7): el id del motor y, en un cambio de etiqueta (todos
@@ -386,13 +310,6 @@ export interface CueTextContext {
   readonly tti?: TimeTrialInstant | null
 }
 
-/** El corredor en un rótulo: el dorsal y el nombre, `45 Jules Moreau` (§6.5). */
-function riderShort(cast: readonly RiderCard[], r: RiderIx): string {
-  const c = cast[r]
-  if (c === undefined) return `#${r + 1}`
-  return c.bib === null ? c.name : `${c.bib} ${c.name}`
-}
-
 /** El maillot de líder en un rótulo, `Race leader` (§6.5, `DROPPED`). */
 const LEADER_WORDS: Readonly<Record<JerseyKind, string>> = {
   gc: 'Race leader',
@@ -450,7 +367,7 @@ export function cueText(cue: Cue, ctx: CueTextContext): CueText {
         detail: join([
           plural(cue.riders.length, 'rider', 'riders'),
           cue.gapS >= BROADCAST.sameTimeS
-            ? `${gapText(cue.gapS)}${behind === undefined ? '' : ` ${versusText(behind, cast)}`}`
+            ? `${mainGapText(cue.gapS)}${behind === undefined ? '' : ` ${versusText(behind, cast)}`}`
             : null,
         ]),
       }
@@ -513,7 +430,7 @@ export function cueText(cue: Cue, ctx: CueTextContext): CueText {
         title: 'FLAMME ROUGE · 1 KM',
         detail: join([
           head === undefined ? null : `${head.size} in front`,
-          cue.leadGapS === null ? null : gapText(cue.leadGapS),
+          cue.leadGapS === null ? null : mainGapText(cue.leadGapS),
         ]),
       }
     }
@@ -551,7 +468,7 @@ export function cueText(cue: Cue, ctx: CueTextContext): CueText {
         detail: join([
           rider(cue.rider),
           c?.worn.kind === 'leader' ? LEADER_WORDS[c.worn.jersey] : null,
-          cue.gapS === null ? null : gapText(cue.gapS),
+          cue.gapS === null ? null : mainGapText(cue.gapS),
         ]),
       }
     }
@@ -602,7 +519,7 @@ export function cueText(cue: Cue, ctx: CueTextContext): CueText {
                 ? null
                 : x.deltaS === 0
                   ? `fastest at split ${check + 1}`
-                  : `${gapText(x.deltaS)} at split ${check + 1}`,
+                  : `${mainGapText(x.deltaS)} at split ${check + 1}`,
             ]),
           }
         }
@@ -770,7 +687,7 @@ export function cueBodyOf(cue: Cue, ctx: CueTextContext): CueBody {
                   ? `${r.size}`
                   : `${groupLabelText('en', g.label, g.role, 'bar', nameOf(cast)).toUpperCase()} · ${r.size}`,
             jerseys: names.length > 0 ? [] : r.jerseys,
-            right: r.gapS < BROADCAST.sameTimeS ? '0:00' : gapText(r.gapS),
+            right: r.gapS < BROADCAST.sameTimeS ? '0:00' : mainGapText(r.gapS),
           }
         }),
         behind:

@@ -1,10 +1,5 @@
-import type { Instant, ProfileStrip as ProfileData } from '@cyclingstar/shared'
-import {
-  type Cursor,
-  climbAheadText,
-  climbCatText,
-  shownGroupsOf,
-} from '../../domain/broadcast/screen'
+import { type Instant, type ProfileStrip as ProfileData, shownGroupsOf } from '@cyclingstar/shared'
+import { type Cursor, climbAheadText, climbCatText } from '../../domain/broadcast/screen'
 
 /**
  * EL PERFIL CON CURSORES (docs/retransmision.md §6.2; [DOC 2]): la cota por km de la cabecera a todo

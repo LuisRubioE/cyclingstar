@@ -20,20 +20,22 @@ import { groupLabelText, pullingLineOf } from './names.js'
 import {
   READING_DRAW,
   type ReadingStageCandidate,
-  barLabelText,
   breakawayKmsOf,
   drawBreakawayPoint,
   drawReadingPoints,
-  mainGapText,
   pickReadingStages,
-  pullingText,
   readingCrossings,
   readingScreenOf,
   readingTruthsOf,
+} from './readingTest.js'
+import {
+  barLabelText,
+  mainGapText,
+  pullingText,
   toGoText,
   versusText,
   wornText,
-} from './readingTest.js'
+} from './screenWords.js'
 import type { GroupDetail, RiderIx, StageTimeline } from './timeline.js'
 
 /**
@@ -278,7 +280,7 @@ function groupNow(
   }
 }
 
-describe('las palabras de la pantalla, como las escribe la web (screen.ts y los iconos de la barra)', () => {
+describe('las palabras de la pantalla (screenWords.ts, una sola copia para la web y la verdad desde el 10a)', () => {
   it('los km a meta de la capa fija: un decimal, metros en el último km y vueltas en un circuito', () => {
     expect(toGoText(98.5, null)).toBe('98.5 km to go')
     expect(toGoText(0.856, null)).toBe('850 m to go')

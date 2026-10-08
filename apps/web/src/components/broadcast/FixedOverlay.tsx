@@ -1,11 +1,11 @@
-import type { BroadcastHead, Instant } from '@cyclingstar/shared'
 import {
-  gapText,
-  isQuietFinal,
-  overlayDetailText,
+  type BroadcastHead,
+  type Instant,
+  mainGapText,
   toGoText,
   versusText,
-} from '../../domain/broadcast/screen'
+} from '@cyclingstar/shared'
+import { isQuietFinal, overlayDetailText } from '../../domain/broadcast/screen'
 
 /**
  * LA CAPA FIJA (docs/retransmision.md §6.2, 6-f; D-17): lo que la UCI pide «permanently viewed on
@@ -51,7 +51,7 @@ export function FixedOverlay({
             <span className="text-sm font-semibold">Bunch together</span>
           ) : (
             <span className="flex items-baseline gap-1 text-right">
-              <span className="text-lg font-bold tabular-nums">{gapText(gap.gapS)}</span>
+              <span className="text-lg font-bold tabular-nums">{mainGapText(gap.gapS)}</span>
               {arrow !== null && (
                 <span className={arrow === '▲' ? 'text-amber-300' : 'text-emerald-300'}>
                   {arrow}

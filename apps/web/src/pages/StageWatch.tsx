@@ -10,10 +10,12 @@ import {
   type TimeTrialInstant,
   type TimelineCore,
   breakHeadline,
+  clockText,
   fromDs,
   instantAt,
   paceAt,
   photoBlocksOf,
+  shownGroupsOf,
   timeTrialInstantAt,
   ttLastKmFromS,
   ttPaceAt,
@@ -58,12 +60,10 @@ import {
 } from '../domain/broadcast/player'
 import {
   type Cursor,
-  clockText,
   cueBodyOf,
   cursorsOf,
   isQuietFinal,
   screenKeysOf,
-  shownGroupsOf,
   ttCursorsOf,
 } from '../domain/broadcast/screen'
 import { servedLineOf, withChunk } from '../domain/broadcast/servedLine'
