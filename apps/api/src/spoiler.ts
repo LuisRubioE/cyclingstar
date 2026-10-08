@@ -21,6 +21,7 @@ import type {
   FastifyRequest,
   HTTPMethods,
 } from 'fastify'
+import { z } from 'zod'
 import { toWebHeaders } from './routes/context.js'
 import {
   DAY_S,
@@ -55,7 +56,8 @@ import {
  *
  * El 7b añade `stageAccessOf` (§14.1, 14-e), la regla de qué sirve la ruta de etapa, y `diagAllowed()`,
  * si `?diag=1` vale para quien pide: un administrador con sesión (D-40, §11.15). Para cualquier otro el
- * parámetro no existe y la respuesta es la misma, byte a byte, que sin él (11-h).
+ * parámetro no existe y la respuesta es la misma, byte a byte, que sin él (11-h). El 8a lo lleva a la
+ * ficha de carrera y al feed con `diagHorizon`.
  */
 
 /** Qué hace una ruta con lo que nace de una etapa corrida (D-32). */
@@ -350,6 +352,25 @@ function addVary(reply: FastifyReply, value: string): void {
 /** Añade un Set-Cookie sin pisar los que ya lleve la respuesta: fastify acumula los de `set-cookie` (reply.js). */
 export function appendSetCookie(reply: FastifyReply, cookie: string): void {
   void reply.header('set-cookie', cookie)
+}
+
+// ------------------------------------- `?diag=1` en la ficha de carrera y el feed (§11.15; paso 8a)
+
+/** `?diag=1`, como `stageQuerySchema.diag` (§14.2): cualquier otro valor es como no mandarlo. */
+const diagQuerySchema = z.object({ diag: z.literal('1').optional() })
+
+/**
+ * EL HORIZONTE DE UNA RUTA QUE ACEPTA `?diag=1` fuera de las de etapa (D-40, §11.15, decisión 11-h; 8a):
+ * la ficha de carrera (`GET /api/calendar/:raceId`) y el feed (`GET /api/news` y
+ * `GET /api/teams/:id/news`). Con el parámetro y un administrador con sesión, el del mundo: lo de antes,
+ * sin velo, para cazar defectos en lo agregado, y sin escribir nada. Para cualquier otro, `horizon()`:
+ * el parámetro no existe y la respuesta es la misma, byte a byte, que sin él. Las fichas, los rankings y
+ * la portada no lo aceptan: no es ahí donde se depura una carrera.
+ */
+export async function diagHorizon(request: FastifyRequest): Promise<Horizon> {
+  const diag = diagQuerySchema.safeParse(request.query).data?.diag === '1'
+  if (diag && (await request.diagAllowed())) return worldHorizon
+  return request.horizon()
 }
 
 // ------------------------------------------------------- la ruta de etapa (§14.1, 14-e; paso 7b)

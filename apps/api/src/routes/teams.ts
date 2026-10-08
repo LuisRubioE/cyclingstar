@@ -12,6 +12,7 @@ import {
 } from '@cyclingstar/db'
 import { z } from 'zod'
 import { badRequest, notFound, sendError, unauthorized } from '../http.js'
+import { diagHorizon } from '../spoiler.js'
 import type { RoutePlugin } from './context.js'
 import { parseRaceId, parseUuid } from './params.js'
 
@@ -146,14 +147,14 @@ export const teamRoutes: RoutePlugin = async (app, ctx) => {
   // Noticias del equipo (#16): titulares de sus corredores. Bajo el velo (§11.7, 11-g; E2, paso 8a):
   // sin las de las etapas que quien pide no ha visto, con un marcador por cada etapa velada de cada
   // carrera en cuya lista de salida está el equipo, y los titulares de líder solo a quien le aplica el
-  // velo (17-x).
+  // velo (17-x). Con `?diag=1`, a un administrador con sesión, con el horizonte del mundo (§11.15).
   app.get<{ Params: { id: string } }>(
     '/api/teams/:id/news',
     { config: { spoiler: 'horizon', veil: { by: ['F'] } } },
     async (request, reply) => {
       const teamId = parseUuid(request.params.id)
       if (!teamId) return notFound(reply)
-      const h = await request.horizon()
+      const h = await diagHorizon(request)
       const opts = { leaderNews: await request.spoilerApplies() }
       return { news: await getTeamNews(db, h, teamId, 15, opts) }
     },

@@ -77,21 +77,21 @@ const TABLE: Readonly<Record<string, readonly [SpoilerPolicy, VeilSpec]>> = {
   // routes/world.ts
   'POST /api/world/advance': ['horizon', ADMIN], // l. 22-23
   // routes/calendar.ts
-  'GET /api/calendar': ['horizon', { by: ['P'] }], // l. 39-40
+  'GET /api/calendar': ['horizon', { by: ['P'] }], // l. 40-41
   'GET /api/calendar/:raceId': [
     'horizon',
     {
       by: ['P', 'F', 'L'],
       why: 'status y runDays son calendario: cuántas etapas se han corrido, no quién las ganó',
     },
-  ], // l. 94-95
+  ], // l. 95-96
   'GET /api/calendar/:raceId/startlist': [
     'horizon',
     {
       by: ['L'],
       why: 'solo antes de la salida: la lista se congela con el mundo al día (worldHorizon)',
     },
-  ], // l. 245-246
+  ], // l. 246-247
   // routes/races.ts
   'GET /api/my-orders': ['safe', { by: ['N', 'L'], why: 'rivales por fama, que no se escribe' }], // l. 84-85
   'PUT /api/my-orders': ['safe', N], // l. 176
@@ -108,15 +108,15 @@ const TABLE: Readonly<Record<string, readonly [SpoilerPolicy, VeilSpec]>> = {
   'PUT /api/me/spoiler-scope': ['safe', N], // l. 195
   'GET /api/me/horizon': ['horizon', N], // l. 207-208
   // routes/rankings.ts
-  'GET /api/rankings': ['horizon', { by: ['R'] }], // l. 31-32
-  'GET /api/rankings/young': ['horizon', { by: ['R'] }], // l. 43-44
-  'GET /api/season-awards': ['horizon', { by: ['R'] }], // l. 57-58
-  'GET /api/hall-of-fame': ['horizon', { by: ['R'] }], // l. 71-72
-  'GET /api/records': ['horizon', { by: ['R'] }], // l. 83-84
-  'GET /api/news': ['horizon', { by: ['F'] }], // l. 100
-  'GET /api/countries': ['horizon', { by: ['R'] }], // l. 114-115
-  'GET /api/countries/:code': ['horizon', { by: ['R', 'M'] }], // l. 125-126
-  'GET /api/free-agents': ['horizon', { by: ['R'] }], // l. 141-142
+  'GET /api/rankings': ['horizon', { by: ['R'] }], // l. 32-33
+  'GET /api/rankings/young': ['horizon', { by: ['R'] }], // l. 44-45
+  'GET /api/season-awards': ['horizon', { by: ['R'] }], // l. 58-59
+  'GET /api/hall-of-fame': ['horizon', { by: ['R'] }], // l. 72-73
+  'GET /api/records': ['horizon', { by: ['R'] }], // l. 84-85
+  'GET /api/news': ['horizon', { by: ['F'] }], // l. 102
+  'GET /api/countries': ['horizon', { by: ['R'] }], // l. 116-117
+  'GET /api/countries/:code': ['horizon', { by: ['R', 'M'] }], // l. 127-128
+  'GET /api/free-agents': ['horizon', { by: ['R'] }], // l. 143-144
   // routes/riders.ts
   'GET /api/riders/me': [
     'horizon',
@@ -185,15 +185,15 @@ const TABLE: Readonly<Record<string, readonly [SpoilerPolicy, VeilSpec]>> = {
     },
   ], // l. 856-857
   // routes/teams.ts
-  'POST /api/teams/take-over': ['safe', N], // l. 36
-  'PUT /api/teams/me': ['safe', N], // l. 48
-  'GET /api/teams/me/calendar': ['horizon', { by: ['R'] }], // l. 63-64
-  'GET /api/teams/me/race-plan': ['safe', N], // l. 83
-  'POST /api/teams/me/calendar/:raceId': ['safe', N], // l. 91-92
-  'DELETE /api/teams/me/calendar/:raceId': ['safe', N], // l. 107-108
-  'GET /api/teams': ['horizon', { by: ['R'] }], // l. 124-125
-  'GET /api/teams/:id': ['horizon', { by: ['R', 'M'] }], // l. 134-135
-  'GET /api/teams/:id/news': ['horizon', { by: ['F'] }], // l. 150-151
+  'POST /api/teams/take-over': ['safe', N], // l. 37
+  'PUT /api/teams/me': ['safe', N], // l. 49
+  'GET /api/teams/me/calendar': ['horizon', { by: ['R'] }], // l. 64-65
+  'GET /api/teams/me/race-plan': ['safe', N], // l. 84
+  'POST /api/teams/me/calendar/:raceId': ['safe', N], // l. 92-93
+  'DELETE /api/teams/me/calendar/:raceId': ['safe', N], // l. 108-109
+  'GET /api/teams': ['horizon', { by: ['R'] }], // l. 125-126
+  'GET /api/teams/:id': ['horizon', { by: ['R', 'M'] }], // l. 135-136
+  'GET /api/teams/:id/news': ['horizon', { by: ['F'] }], // l. 151-152
 }
 
 /** Lo que añade `@fastify/static` cuando sirve la web compilada: se clasifica sola (`STATIC_ROUTES`). */

@@ -14,6 +14,7 @@ import {
 } from '@cyclingstar/db'
 import { currentSeason, isKnownCountry } from '@cyclingstar/shared'
 import { notFound } from '../http.js'
+import { diagHorizon } from '../spoiler.js'
 import type { RoutePlugin } from './context.js'
 
 /**
@@ -96,11 +97,12 @@ export const rankingRoutes: RoutePlugin = async (app, ctx) => {
   //
   // BAJO EL VELO (§11.7; E2, paso 8a): sin las noticias de las etapas que quien pide no ha visto y con
   // un `stage_ready` por cada una (F). Los dos titulares de líder (`gc_lead_taken` y `jersey_taken`)
-  // salen solo a quien le aplica el velo, y con él pasan el filtro como los demás (17-x).
+  // salen solo a quien le aplica el velo, y con él pasan el filtro como los demás (17-x). Con
+  // `?diag=1`, a un administrador con sesión, con el horizonte del mundo (§11.15, 11-h).
   app.get('/api/news', { config: { spoiler: 'horizon', veil: { by: ['F'] } } }, async (request) => {
     const world = await getCurrentWorld(db)
     if (!world) return { news: [] }
-    const h = await request.horizon()
+    const h = await diagHorizon(request)
     const opts = { leaderNews: await request.spoilerApplies() }
     const userId = await currentUserId(request)
     const rider = userId ? await getRiderForUser(db, userId) : null

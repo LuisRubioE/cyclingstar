@@ -25,6 +25,7 @@ import {
 } from '@cyclingstar/engine'
 import { DAYS_PER_SEASON, NO_LEADERS, currentSeason, raceLeaders } from '@cyclingstar/shared'
 import { notFound } from '../http.js'
+import { diagHorizon } from '../spoiler.js'
 import { type RacedStage, calendarStageSpec } from '../stageHistory.js'
 import { frozenFromCalendar, raceRouteSource, stageKm, stagePlanEntry } from '../stageRoute.js'
 import type { RoutePlugin } from './context.js'
@@ -90,7 +91,7 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
   // velo de quien pide se sirve tras la última que conoce (P: la general, los puntos, la montaña, los
   // equipos, los maillots y los ganadores de etapa), sin la edición de esta temporada en el palmarés
   // si su final está velado (F), y con `status` y `runDays` libres, que son calendario (L). Fuera de
-  // guardia, la de hoy.
+  // guardia, la de hoy. Con `?diag=1`, a un administrador con sesión, la del mundo (§11.15, 11-h).
   app.get<{ Params: { raceId: string } }>(
     '/api/calendar/:raceId',
     {
@@ -169,7 +170,7 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
       }
       const season = currentSeason(world.currentDay)
       const raceKey = `${race.id}:s${season}`
-      const h = await request.horizon()
+      const h = await diagHorizon(request)
       // Lo que el mundo corre este año y lo que corrió el anterior: congelado, o la edición si aún no.
       const frozen = await raceStagesForWorld(db, world.worldId, raceKey, race.id, season)
       const anterior =
