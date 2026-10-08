@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Fragment, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import type { RaceClass, RaceFormat } from '../api/calendar'
 import { fetchRacePrefs, setRacePref } from '../api/objectives'
 import {
@@ -15,7 +15,7 @@ import {
   fetchRace,
   fetchStartlist,
 } from '../api/race'
-import { fetchCalendarStage } from '../api/results'
+import { diagOf, fetchCalendarStage, stageReplayKey } from '../api/results'
 import type { RaceLeaders, RaceRouteSource, RouteSource } from '@cyclingstar/shared'
 import { Flag } from '../components/Flag'
 import { Jersey, RiderJersey } from '../components/Jersey'
@@ -505,12 +505,21 @@ function ClassificationsTab({ data }: { data: RaceView }) {
  *
  * Antes esto costaba tres clics —`Stages`, entrar en la lista de un solo elemento, y ya dentro
  * `Story`— para lo único que de verdad importa de una clásica. La crónica se pide solo cuando se
- * abre la pestaña, así que la ficha de carrera no carga nada de más.
+ * abre la pestaña, así que la ficha de carrera no carga nada de más. Con el `?diag=1` de la página,
+ * en la petición y en la clave (E2, §11.15, 14-s; paso 7b).
  */
-function OneDayStory({ raceId, onFullResult }: { raceId: string; onFullResult: () => void }) {
+export function OneDayStory({
+  raceId,
+  onFullResult,
+}: {
+  raceId: string
+  onFullResult: () => void
+}) {
+  const [params] = useSearchParams()
+  const diag = diagOf(params)
   const { data, isPending, isError } = useQuery({
-    queryKey: ['stage-replay', raceId, 1],
-    queryFn: () => fetchCalendarStage(raceId, 1),
+    queryKey: stageReplayKey(raceId, 1, diag),
+    queryFn: () => fetchCalendarStage(raceId, 1, { diag }),
   })
   if (isPending) return <p className="text-slate-500">Loading…</p>
   if (isError) return <p className="text-red-600">Could not load the story.</p>
@@ -520,13 +529,15 @@ function OneDayStory({ raceId, onFullResult }: { raceId: string; onFullResult: (
 /**
  * Pestaña `Race Radio` de una carrera de UN DÍA: la carrera kilómetro a kilómetro de su única etapa.
  *
- * Cuelga de la MISMA consulta que la crónica (`['stage-replay', raceId, 1]`), así que abrir las dos
- * pestañas no pide nada dos veces.
+ * Cuelga de la MISMA consulta que la crónica (`stageReplayKey(raceId, 1, diag)`), así que abrir las
+ * dos pestañas no pide nada dos veces.
  */
-function OneDayRadio({ raceId }: { raceId: string }) {
+export function OneDayRadio({ raceId }: { raceId: string }) {
+  const [params] = useSearchParams()
+  const diag = diagOf(params)
   const { data, isPending, isError } = useQuery({
-    queryKey: ['stage-replay', raceId, 1],
-    queryFn: () => fetchCalendarStage(raceId, 1),
+    queryKey: stageReplayKey(raceId, 1, diag),
+    queryFn: () => fetchCalendarStage(raceId, 1, { diag }),
   })
   if (isPending) return <p className="text-slate-500">Loading…</p>
   if (isError) return <p className="text-red-600">Could not load the race radio.</p>

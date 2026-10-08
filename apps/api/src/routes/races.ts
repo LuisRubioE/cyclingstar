@@ -5,9 +5,11 @@ import {
   getRaceTeams,
   getRosterTeammates,
   getStageOrders,
+  getStageSnapshot,
   getRiderForUser,
   isOnRoster,
   raceStagesForWorld,
+  readWatch,
   setStageOrders,
 } from '@cyclingstar/db'
 import {
@@ -22,15 +24,18 @@ import {
 } from '@cyclingstar/engine'
 import {
   DAYS_PER_SEASON,
+  type StageReplay,
   chasePolicySchema,
   currentSeason,
   dayGoalSchema,
+  stageQuerySchema,
   triggerCondSchema,
 } from '@cyclingstar/shared'
 import { z } from 'zod'
 import { badRequest, notFound, sendError, unauthorized } from '../http.js'
+import { stageAccessOf } from '../spoiler.js'
 import { calendarStageSpec } from '../stageHistory.js'
-import { stageContextOf, stageReplayOf } from '../stageReplay.js'
+import { stageContextOf, stageReplayOf, stageShellOf } from '../stageReplay.js'
 import { congeladaComoEtapa } from '../stageRoute.js'
 import type { RoutePlugin } from './context.js'
 import { parseRaceId, parseRaceKey, parseStageDay } from './params.js'
@@ -178,19 +183,60 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
     return { ok: true, saved: valid.length }
   })
 
-  // Crónica/journal de una etapa de CALENDARIO (pública): cuenta lo que pasó (fuga, caza, cimas,
-  // sprints, meta) a partir de los eventos congelados al correrla, aunque no hayas corrido tú.
+  /**
+   * LA FICHA DE UNA ETAPA DE CALENDARIO (pública): cuenta lo que pasó (fuga, caza, cimas, sprints,
+   * meta) a partir de los eventos congelados al correrla, aunque no hayas corrido tú.
+   *
+   * Desde el 7b (E2, docs/retransmision.md §14.1 y §14.2; D-40, D-50, decisiones 14-e y 11-h) sirve el
+   * resultado solo si la pantalla lo va a enseñar (`stageAccessOf`): una etapa que no se ha visto da su
+   * ficha sin resultado (`stageShellOf`) y gana `watch`, lo visto, con su puerta. Solo con
+   * `SPOILER_MODE` aplicado a quien pide (§10.13): sin él, la ficha de hoy, entera y sin `watch`. Con
+   * `?diag=1`, un administrador con sesión recibe la ficha entera, sin `watch` ni horizonte y sin
+   * escribir nada (§11.15); para cualquier otro, el parámetro no existe. `?season=` abre una etapa de
+   * otra temporada (§14.2); sin él, la de hoy, como siempre.
+   */
   app.get<{ Params: { raceId: string; day: string } }>(
     '/api/races/:raceId/stages/:day',
+    { config: { spoiler: 'horizon', veil: { by: ['G', 'P'] } } },
     async (request, reply) => {
+      const q = stageQuerySchema.safeParse(request.query)
+      if (!q.success) return badRequest(reply)
       const raceId = parseRaceId(request.params.raceId)
       const day = parseStageDay(request.params.day)
       if (!raceId || day === null) return notFound(reply)
       // La carrera, la etapa y la edición que corre el mundo (stageReplay.ts): un raceId o un día que
       // el calendario no tiene son un 404, no un 500 por consulta con basura.
-      const ctx = await stageContextOf(db, raceId, day)
+      const ctx = await stageContextOf(db, raceId, day, q.data.season)
       if (!ctx) return notFound(reply)
-      return stageReplayOf(db, ctx)
+      // El espectador se resuelve siempre, con `?diag=1` o sin él: así quien no es administrador recibe
+      // lo mismo, cabeceras incluidas (la `cs_viewer` de §14.9), que sin el parámetro (11-h).
+      const viewer = await request.viewer()
+      if (q.data.diag === '1' && (await request.diagAllowed())) return stageReplayOf(db, ctx)
+      if (!(await request.spoilerApplies())) return stageReplayOf(db, ctx)
+      const [h, watchOn, row, snapshot] = await Promise.all([
+        request.horizon(),
+        request.broadcastOn(),
+        viewer === null
+          ? null
+          : readWatch(db, { userId: viewer.userId, worldId: ctx.worldId, raceKey: ctx.raceKey }),
+        getStageSnapshot(db, ctx.raceKey, ctx.day),
+      ])
+      const access = stageAccessOf({
+        h,
+        applies: true,
+        watchOn,
+        row,
+        raceKey: ctx.raceKey,
+        day: ctx.day,
+        run: snapshot !== null,
+      })
+      const body = access.serveResult
+        ? await stageReplayOf(db, ctx, { snapshot })
+        : stageShellOf(ctx, snapshot)
+      return {
+        ...body,
+        ...(access.watch === undefined ? {} : { watch: access.watch }),
+      } satisfies StageReplay
     },
   )
 }

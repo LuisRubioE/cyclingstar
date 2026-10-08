@@ -56,8 +56,9 @@ const NEWS_DATA = {
 } as const
 
 const YESTERDAY = {
-  // `tplRev`, del 3a (12-c): la sirven el acta y el paquete de meta; la ruta de etapa, todavía no.
-  stageReplay: stageReplaySchema.omit({ tplRev: true }),
+  // `tplRev`, del 3a (12-c): la sirven el acta y el paquete de meta; la ruta de etapa, todavía no. Y
+  // `watch`, del 7b (§14.1): lo visto de la etapa, que la ruta de etapa sirve con SPOILER_MODE.
+  stageReplay: stageReplaySchema.omit({ tplRev: true, watch: true }),
   newsItem: newsItemSchema.omit(NEWS_DATA),
   teamNewsItem: teamNewsItemSchema.omit(NEWS_DATA),
   lastRaceResponse: lastRaceResponseSchema,
@@ -192,6 +193,7 @@ function playerAuth(): NonNullable<AppDeps['auth']> {
 describe('la web de ayer: lo que la API manda hoy pasa por sus esquemas', () => {
   let t: TestDb
   let app: ReturnType<typeof buildApp>
+  let worldId = ''
   const poolBefore = process.env.DB_POOL_MAX
 
   beforeAll(async () => {
@@ -204,7 +206,7 @@ describe('la web de ayer: lo que la API manda hoy pasa por sus esquemas', () => 
       .insert(worlds)
       .values({ worldSeed: SEED, engineVersion: 1 })
       .returning({ id: worlds.id })
-    const worldId = world!.id
+    worldId = world!.id
     await t.db.insert(users).values({
       id: USER_ID,
       email: 'jugador@example.com',
@@ -316,6 +318,52 @@ describe('la web de ayer: lo que la API manda hoy pasa por sus esquemas', () => 
     const stage = yesterdayStage.parse(await get(`/api/races/${RACE_ID}/stages/3`))
     expect(stage.run).toBe(false)
     expect(stage.results).toBeUndefined()
+  })
+
+  /**
+   * LA RUTA DE ETAPA CON SPOILER_MODE (§14.1, regla 1; paso 7b): velada, sin los opcionales de
+   * resultado y sin `leaders` ENTERO; conocida, entera; las dos con `watch`, que la web de ayer descarta.
+   * El jugador tiene su corredor en la carrera: sin nada visto, la 1 y la 2 están en su velo.
+   */
+  it('la ruta de etapa velada y la conocida, con SPOILER_MODE, pasan por los esquemas de ayer (7b)', async () => {
+    const veiledApp = buildApp({
+      db: t.db,
+      auth: playerAuth(),
+      serveWeb: false,
+      migrationsApplied: true,
+      tickIntervalMinutes: 360,
+      switches: { broadcastWatch: 'admins', spoilerMode: 'on' },
+    })
+    const stageOf = async (day: number) => {
+      const res = await veiledApp.inject({
+        method: 'GET',
+        url: `/api/races/${RACE_ID}/stages/${day}`,
+      })
+      expect(res.statusCode, res.body.slice(0, 200)).toBe(200)
+      return {
+        parsed: yesterdayStage.parse(res.json()),
+        raw: res.json() as Record<string, unknown>,
+      }
+    }
+    try {
+      for (const day of [1, 2]) {
+        const veiled = await stageOf(day)
+        expect(veiled.parsed.run).toBe(true)
+        expect(veiled.parsed.results).toBeUndefined()
+        expect(veiled.parsed.leaders).toBeUndefined()
+        expect(veiled.raw.watch).toMatchObject({ known: false, seen: false })
+      }
+      await t.client`insert into race_watch (user_id, world_id, race_key, follow, known_through, how)
+                     values (${USER_ID}, ${worldId}, ${RACE_KEY}, 1, 2, 'WW')`
+      await t.client`update users set horizon_rev = horizon_rev + 1 where id = ${USER_ID}`
+      const known = await stageOf(2)
+      expect(known.parsed.results?.length).toBeGreaterThan(0)
+      expect(known.parsed.leaders?.onRoad.gc).not.toBeNull()
+      expect(known.raw.watch).toMatchObject({ known: true, seen: true, gate: null })
+    } finally {
+      await t.client`delete from race_watch where user_id = ${USER_ID}`
+      await veiledApp.close()
+    }
   })
 
   it('las noticias del jugador', async () => {

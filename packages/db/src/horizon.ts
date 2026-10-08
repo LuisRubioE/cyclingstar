@@ -8,19 +8,24 @@
  * Nace en el PR 3a con los tipos y las funciones PURAS (decisión 17-g): `timelineForStage` recibe un
  * `Horizon` desde que existe (14-p). El 7a añade `computeHorizon` en la forma D (18-a) con su memo y el
  * mapa del día (`lastRunStages`), `horizonSummary`, `touchLastSeen`, `TtlMemo` y, solo para los tests,
- * `clearHorizonCaches`; `veilCast` llega en el 7b, `veilSql` en el 8a y `veilDelta` en el 8b. Qué
- * horizonte recibe cada petición lo decide `SPOILER_MODE` alrededor de `computeHorizon`, no dentro:
- * `request.horizon()`, en la API (§10.13, §14.5).
+ * `clearHorizonCaches`; el 7b, `veilCast` (el reparto bajo el velo, §10.10); `veilSql` llega en el 8a
+ * y `veilDelta` en el 8b. Qué horizonte recibe cada petición lo decide `SPOILER_MODE` alrededor de
+ * `computeHorizon`, no dentro: `request.horizon()`, en la API (§10.13, §14.5).
  */
 import { SEASON_CALENDAR, stageDayOfSeason } from '@cyclingstar/engine'
 import {
+  type CastRider,
   DAYS_PER_SEASON,
+  type Distinction,
   type GuardReason,
   type HealthState,
   type HorizonSummary,
   SPOILER,
   type SpoilerScope,
   type StageGate,
+  type StageRef,
+  type TimelineCast,
+  type WornJersey,
   currentSeason,
   parseRaceKey,
 } from '@cyclingstar/shared'
@@ -576,4 +581,47 @@ export function stageGateOf(h: Horizon, raceKey: string, stageDay: number): Stag
     .map((v) => v.stageDay)
   if (before.length > 0) return { k: 'previous_unseen', firstUnseen: Math.min(...before) }
   return isVeiled(h, raceKey, stageDay) ? { k: 'not_seen' } : null
+}
+
+// ------------------------------------------------------------ el reparto bajo el velo (§10.10; 7b)
+
+/**
+ * EL REPARTO QUE PUEDE VER `h` (§10.10, §7.8; I-11, D-15, D-37): ningún dato cuya procedencia esté en
+ * su velo viaja. Un maillot de líder cuyo `from` está velado, o uno de campeón cuyo campeonato lo está,
+ * pasa a la equipación: nadie lo lleva en la pantalla de ese espectador, porque reasignarlo delataría la
+ * clasificación con que se calculó la delegación. Las líneas `leads`, `wears_for` y `gc` con `from`
+ * velado y la de un título velado se van; `stage_wins` se filtra etapa a etapa y, sin ninguna, se va. La
+ * salida de la general (`start`) velada pasa a null, y con ella las filas de `StartState` que salen de
+ * ella. `knownWins`, los equipos y los favoritos no llevan procedencia y se copian tal cual (D-26, 8-f).
+ * Pura; con el velo vacío devuelve el mismo objeto. La aplica `serveCast` antes de cortar las líneas y
+ * de calcular la notoriedad (§7.8), y la ruta de la cabecera arma `StartState` con su resultado.
+ */
+export function veilCast(cast: TimelineCast, h: Horizon): TimelineCast {
+  if (h.veil.length === 0) return cast
+  const seen = (r: StageRef | null): boolean => r === null || !isVeiled(h, r.raceKey, r.stageDay)
+  const worn = (w: WornJersey): WornJersey =>
+    (w.kind === 'leader' && !seen(w.from)) || (w.kind === 'champion' && !seen(w.title.source))
+      ? { kind: 'team' }
+      : w
+  const line = (d: Distinction): Distinction | null => {
+    switch (d.kind) {
+      case 'leads':
+      case 'wears_for':
+      case 'gc':
+        return seen(d.from) ? d : null
+      case 'champion':
+        return seen(d.title.source) ? d : null
+      case 'stage_wins': {
+        const stages = d.stages.filter(seen)
+        return stages.length === d.stages.length ? d : stages.length > 0 ? { ...d, stages } : null
+      }
+    }
+  }
+  const riders = cast.riders.map((c): CastRider => ({
+    ...c,
+    worn: worn(c.worn),
+    distinctions: c.distinctions.map(line).filter((d): d is Distinction => d !== null),
+    start: seen(c.start.from) ? c.start : { gcRank: null, gcDeficitS: null, from: null },
+  }))
+  return { riders, teams: cast.teams, favourites: cast.favourites }
 }

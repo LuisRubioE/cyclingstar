@@ -52,20 +52,18 @@ const BASE = 'http://localhost:3000'
 
 export type Bank = 'B1a' | 'B1b' | 'B1c'
 /**
- * Lo que el 7b y el paso 8 aún no han cerrado: ruta, PR que la cierra (la columna «Mecanismo en» de
- * §11.3) y bancos que la ven. Nace llena en el 7a, medida con este mundo y el código del 7a: cada test
- * comprueba que nada fuera de ella falla y que cada ruta de ella sigue fallando en sus bancos («ya no
- * destripa: quítala»). Un banco que no aparece no ve la ruta en este mundo: B1a solo ve los cinco
- * valores canario, B1b no barre la etapa velada (`B1B_SKIP`) y B1c compara dos desenlaces con el mismo
- * velo. Queda vacía al cerrar el 8b y se borra en el 9b (17-n).
+ * Lo que el paso 8 aún no ha cerrado: ruta, PR que la cierra (la columna «Mecanismo en» de §11.3) y
+ * bancos que la ven. Nace llena en el 7a, medida con este mundo y el código del 7a: cada test comprueba
+ * que nada fuera de ella falla y que cada ruta de ella sigue fallando en sus bancos («ya no destripa:
+ * quítala»). Un banco que no aparece no ve la ruta en este mundo: B1a solo ve los cinco valores canario,
+ * B1b no barre la etapa velada (`B1B_SKIP`) y B1c compara dos desenlaces con el mismo velo. El 7b quitó
+ * las dos de la etapa, la ruta de etapa (G y P, `stageAccessOf`) y el acta (G, `sendGate`). Queda vacía
+ * al cerrar el 8b y se borra en el 9b (17-n).
  */
 export const PENDING_ROUTES: ReadonlyMap<
   string,
   { readonly pr: string; readonly banks: readonly Bank[] }
 > = new Map<string, { readonly pr: string; readonly banks: readonly Bank[] }>([
-  // 7b: la puerta de la etapa velada (G y P, `stageAccessOf`; el acta, «3a · 7b»)
-  ['GET /api/races/:raceId/stages/:day', { pr: '7b', banks: ['B1a', 'B1c'] }],
-  ['GET /api/races/:raceId/stages/:day/report', { pr: '7b', banks: ['B1a', 'B1c'] }],
   // 8a: P, F y G con `veilSql`
   ['GET /api/calendar/:raceId', { pr: '8a', banks: ['B1b', 'B1c'] }],
   ['GET /api/news', { pr: '8a', banks: ['B1a', 'B1b', 'B1c'] }],

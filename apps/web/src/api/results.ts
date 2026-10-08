@@ -30,9 +30,46 @@ export type {
   TeamClassEntry,
 }
 
+/** Cómo se pide la ficha de una etapa. */
+export interface CalendarStageOptions {
+  /**
+   * EL MODO DIAGNÓSTICO DEL DUEÑO (E2, docs/retransmision.md §11.15 y §14.11; D-40, decisión 14-s;
+   * paso 7b): la página lo lleva en la URL (`?diag=1`) y la ficha lo reenvía. Un administrador con
+   * sesión recibe la etapa entera aunque no la haya visto, sin gastarla; para cualquier otro la API
+   * ignora el parámetro (11-h). La cabecera, los tramos y el acta lo reciben en el 9a.
+   */
+  readonly diag?: boolean
+}
+
+/** El `?diag=1` de la página (§11.15): solo su valor exacto lo activa, como en la API (`stageQuerySchema`). */
+export function diagOf(search: URLSearchParams): boolean {
+  return search.get('diag') === '1'
+}
+
+/** El prefijo de las claves de la ficha de una etapa, con `diag` o sin él: lo que se invalida (abajo). */
+export function stageReplayPrefix(raceId: string, day: number): readonly unknown[] {
+  return ['stage-replay', raceId, day]
+}
+
+/**
+ * La clave de React Query de la ficha de una etapa: con `diag`, para que la respuesta del modo
+ * diagnóstico no sirva nunca la vista normal ni al revés (§11.15, §10.9). Desde el 9a llevará además el
+ * `rev` del horizonte al final (`horizonKey`, §14.11). La meta de `Watch` invalida su prefijo: con
+ * `SPOILER_MODE`, la ficha de una etapa que no se había visto llegó sin resultado (7b), y vista ya lo
+ * tiene.
+ */
+export function stageReplayKey(raceId: string, day: number, diag: boolean): readonly unknown[] {
+  return [...stageReplayPrefix(raceId, day), diag]
+}
+
 /** Crónica/journal de una etapa de calendario (pública). */
-export async function fetchCalendarStage(raceId: string, day: number): Promise<StageReplay> {
-  return request(`/api/races/${raceId}/stages/${day}`, stageReplaySchema, {
+export async function fetchCalendarStage(
+  raceId: string,
+  day: number,
+  opts: CalendarStageOptions = {},
+): Promise<StageReplay> {
+  const query = opts.diag === true ? '?diag=1' : ''
+  return request(`/api/races/${raceId}/stages/${day}${query}`, stageReplaySchema, {
     errorMessage: 'Could not load the stage.',
   })
 }

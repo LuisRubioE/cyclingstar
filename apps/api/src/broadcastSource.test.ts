@@ -569,6 +569,78 @@ describe('el reparto provisional del adaptador (17-k) y su primera forma servida
       8,
     )
   })
+
+  /**
+   * CON EL VELO (§7.8, §10.10; 7b): primero se degrada, después se cortan las líneas y se calcula la
+   * notoriedad. El ejemplo de §7.8: la campeona de Italia cuyo nacional no se ha visto sale con la
+   * equipación y sin su línea de título, y la línea que queda no se la come el corte; con la N − 1
+   * velada, nadie lleva el maillot de líder.
+   */
+  it('serveCast con el velo: la campeona de un nacional no visto, de equipación y sin su línea; la N − 1 velada, sin maillots', () => {
+    const cast = provisionalCast(
+      entries,
+      identities,
+      { leaders, delegated: new Set(['points']) },
+      from,
+    )
+    const names = {
+      rider: (id: string) => identities.riders.get(id)?.name ?? '?',
+      team: (id: string) => identities.teams.get(id)?.name ?? '?',
+    }
+    const ctx = { own: new Set<number>(), dayCategory: 'elite' as const }
+    const nc = { raceKey: 'nc-it-road:s0', stageDay: 1 }
+    const title = {
+      scope: 'national',
+      country: 'IT',
+      discipline: 'road',
+      category: 'elite',
+      season: 0,
+      validFromDay: 150,
+      validToDay: 515,
+      source: nc,
+      provisional: true,
+    } as const
+    const lines = [
+      { kind: 'champion', title: { ...title, discipline: 'itt' } },
+      { kind: 'champion', title: { ...title, category: 'u23' } },
+      { kind: 'champion', title: { ...title, discipline: 'itt', category: 'u23' } },
+      { kind: 'stage_wins', stages: [{ raceKey: 'race-france:s0', stageDay: 2 }] },
+    ] as const
+    const full = {
+      ...cast,
+      riders: cast.riders.map((r) =>
+        r.rider === 2
+          ? { ...r, worn: { kind: 'champion', title } as const, distinctions: lines }
+          : r,
+      ),
+    }
+    const veiledOf = (
+      ...stages: { raceKey: string; stageDay: number }[]
+    ): Parameters<typeof serveCast>[1] => ({
+      ...worldHorizon,
+      kind: 'viewer',
+      userId: 'u',
+      readOnly: false,
+      rev: '200.1',
+      veil: stages.map((s) => ({ ...s, gameDay: 0, reason: 'own_rider' as const })),
+    })
+    // sin velo: el título se lleva y las líneas de título ocupan los huecos (cardLinesMax)
+    expect(BROADCAST.cardLinesMax).toBe(3)
+    const open = serveCast(full, worldHorizon, names, ctx)[2]!
+    expect(open.worn).toEqual({ kind: 'champion', title })
+    expect(open.lines).toEqual(lines.slice(0, BROADCAST.cardLinesMax))
+    expect(open.notoriety).toBe(4)
+    // con el nacional velado: de equipación, sin las líneas de título, y la victoria de etapa, que el
+    // corte se comía, sale y da la notoriedad: se degrada antes de cortar
+    const caro = serveCast(full, veiledOf(nc), names, ctx)[2]!
+    expect(caro.worn).toEqual({ kind: 'team' })
+    expect(caro.lines).toEqual([lines[3]])
+    expect(caro.notoriety).toBe(6)
+    // con la N − 1 velada: nadie lleva el maillot de líder y no hay notoriedad que salga de él
+    const n1 = serveCast(full, veiledOf(from), names, ctx)
+    expect(n1.map((c) => c.worn.kind)).toEqual(['team', 'team', 'champion'])
+    expect(n1.map((c) => c.notoriety)).toEqual([8, 8, 4])
+  })
 })
 
 describe('threeKmRuleRiders · la regla de los 3 km sobre las caídas de la línea grabada (6-o, §14.7)', () => {
