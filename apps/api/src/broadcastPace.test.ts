@@ -3,9 +3,12 @@ import {
   BROADCAST,
   type PaceZone,
   type StageTimeline,
+  digestMinutes,
+  digestPace,
   paceAt,
   photoBlocksOf,
   playbackEstimateS,
+  ttDigestScale,
   ttLastKmFromS,
   ttPaceAt,
   ttPlaybackEstimateS,
@@ -24,7 +27,8 @@ import { calendarStageSpec } from './stageHistory.js'
  * B17 · EL RITMO MEDIDO, EN LA RÁPIDA (docs/retransmision.md §8.9, §16.4 y §17.6; D-19, D-60). La curva
  * de `Watch` y la de `Highlights` sobre la cabeza de la línea de las cinco etapas congeladas en línea
  * (la grabada desde el 6a; del 3a al 5, la del adaptador), con las bandas de 8-k; la crono, la e16,
- * desde el 6b con la curva de `ttPaceAt` (§9.4), y el digest en el 10a. El banco
+ * desde el 6b con la curva de `ttPaceAt` (§9.4), y el digest desde el 10a (`digestPace`, 8-a, y en la
+ * crono `ttDigestScale`, 8-m), cada etapa a menos de un 40 % de su presupuesto. El banco
  * largo, sobre las 24 etapas y dos semillas, es `scripts/bench-pace.mjs`, con la misma curva (la de
  * `packages/shared`) y el mismo reloj (`storedHeadClock`).
  *
@@ -53,6 +57,8 @@ const BANDS = {
   ttWatchS: [300, 780],
   /** el error de `ttPlaybackEstimateS` contra la duración de la curva (§9.4 y §9.8: menos de un 5 %) */
   ttEstimateErr: 0.05,
+  /** el digest de cada etapa, a menos de esta fracción de su presupuesto (8-k: 40 %; medido en §8.4, de −9 a +34 %) */
+  digestBudgetErr: 0.4,
 } as const
 
 /** Un final en subida sube de media al menos esto (%) en sus últimos 5 km; lo mismo en scripts/bench-pace.mjs. */
@@ -97,6 +103,12 @@ function last5GradePct(tl: StageTimeline): number {
   return (altM[n]! - altM[n - 5]!) / ((tl.lengthKm - (n - 5)) * 10)
 }
 
+/** El tipo de la etapa que corrió la congelada (`StageKind`, el del calendario del motor): el presupuesto de su digest. */
+function kindOf(name: RoadFixtureName) {
+  const st = fixtureStage(name)
+  return stagesForSeason(st.raceId, 0)[st.day - 1]!.kind
+}
+
 /** La etiqueta de la API (`calendarStageSpec`) de la etapa que corrió la congelada. */
 function labelOf(name: RoadFixtureName): string {
   const st = fixtureStage(name)
@@ -121,6 +133,8 @@ const measured = ROAD_FIXTURES.map((name) => {
     last5Share: watch.last5 / watch.total,
     highlightsS: wallOf(tl, BROADCAST.summaryPace).total,
     estimateS: playbackEstimateS(tl.profile, BROADCAST.pace),
+    kind: kindOf(name),
+    digestS: wallOf(tl, digestPace(tl.profile, kindOf(name))).total,
   }
 })
 
@@ -154,6 +168,47 @@ describe('B17 · el ritmo de Watch y de Highlights sobre las cinco congeladas en
     expect(errs.length).toBeGreaterThan(0)
     const p90 = errs[Math.min(errs.length - 1, Math.ceil(0.9 * errs.length) - 1)]!
     expect(p90).toBeLessThan(BANDS.estimateErrP90S)
+  })
+})
+
+/**
+ * Las congeladas cuyo digest aún no cabe en su banda, con la cifra medida (regla 1 de §17.1: lo que aún no
+ * puede pasar va como `it.todo` con su cifra). Colombia e5, un final en alto largo: 3:31 de 2:30, +41 %
+ * (§8.4 midió +34 % con el motor v89): la estimación nominal que escala el digest (`playbackEstimateS`)
+ * se queda corta cuando la cabeza sube más despacio que la velocidad nominal de su pendiente, el mismo
+ * error que la banda de la duración anunciada deja fuera en los finales en alto (§15.3). Lo ajusta el 10b
+ * con B17 sobre las 24 (`bench-pace.mjs`): `nominalKmh` o `digestBudgetS.reina`, constantes de `shared`.
+ */
+const DIGEST_PENDING: readonly RoadFixtureName[] = ['race-colombia-e5']
+
+describe('B17 · el digest de cada etapa, a menos de un 40 % de su presupuesto (8-k, 8-a; paso 10a)', () => {
+  it.todo(
+    'race-colombia-e5 (reina): el digest dura 3:31 de 2:30, +41 % de su presupuesto (8-k pide menos del 40 %): lo ajusta el 10b',
+  )
+
+  it('las pendientes son las que aún no caben: medidas, por encima del 40 %', () => {
+    for (const m of measured.filter((x) => DIGEST_PENDING.includes(x.name))) {
+      const budget = BROADCAST.digestBudgetS[m.kind]
+      expect(Math.abs(m.digestS - budget) / budget).toBeGreaterThanOrEqual(BANDS.digestBudgetErr)
+    }
+  })
+
+  it.each(measured.filter((m) => !DIGEST_PENDING.includes(m.name)))(
+    '$name ($kind): el digest en su banda',
+    (m) => {
+      const budget = BROADCAST.digestBudgetS[m.kind]
+      console.info(
+        `[broadcast] B17 · digest de ${m.name} (${m.kind}): ${mmss(m.digestS)} de ${mmss(budget)}, ${(((m.digestS - budget) / budget) * 100).toFixed(0)} %`,
+      )
+      expect(Math.abs(m.digestS - budget) / budget).toBeLessThan(BANDS.digestBudgetErr)
+    },
+  )
+
+  it('los minutos del botón son los del calendario: 38, 40 y 43 para las tres grandes vueltas (8-b)', () => {
+    const minutes = ['race-italy', 'race-france', 'race-spain'].map((raceId) =>
+      digestMinutes(stagesForSeason(raceId, 0).map((s) => s.kind)),
+    )
+    expect(minutes).toEqual([38, 40, 43])
   })
 })
 
@@ -206,5 +261,12 @@ describe('B17 · el ritmo de la crono sobre la e16 congelada (8-k, §9.4)', () =
 
   it('la curva no lee los sucesos: la misma pared sin ellos', () => {
     expect(ttWallS({ ...tl, events: [] })).toBe(watchS)
+  })
+
+  it('el resumen y el digest de la crono, una curva (8-m), a menos de un 40 % de su presupuesto', () => {
+    const digestS = watchS / ttDigestScale(tl.profile, plan)
+    const budget = BROADCAST.digestBudgetS.cri
+    console.info(`[broadcast] B17 · digest de la crono e16: ${mmss(digestS)} de ${mmss(budget)}`)
+    expect(Math.abs(digestS - budget) / budget).toBeLessThan(BANDS.digestBudgetErr)
   })
 })
