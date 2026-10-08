@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import fastifyCompress from '@fastify/compress'
 import fastifyHelmet from '@fastify/helmet'
@@ -81,17 +81,39 @@ export interface AppDeps {
    * construir la app.
    */
   webIndexHtml?: string
+  /** La carpeta de la web compilada. Lo pasan los tests; sin él, `apps/web/dist`. */
+  webRoot?: string
 }
 
 /** Carpeta de la web compilada (apps/web/dist). Vacía de index.html hasta el Paso 8. */
-const webRoot = fileURLToPath(new URL('../../web/dist', import.meta.url))
+const defaultWebRoot = fileURLToPath(new URL('../../web/dist', import.meta.url))
 
 /** El index.html de la web compilada, o null si no se puede leer: el fallback lo sirve entonces tal cual. */
-function readWebIndexHtml(): string | null {
+function readWebIndexHtml(webRoot: string): string | null {
   try {
     return readFileSync(join(webRoot, 'index.html'), 'utf8')
   } catch {
     return null
+  }
+}
+
+/**
+ * LA CACHÉ DE LA WEB COMPILADA (E2, paso 10b). Lo que Vite deja en `assets/` lleva en el nombre la
+ * huella de su contenido (`index-<hash>.js`): otro contenido es otro nombre, así que se sirve un año y
+ * como inmutable, y una recarga no lo vuelve a pedir (antes, un 304 por fichero, y cada uno contaba para
+ * el límite de peticiones por IP: 30 de las 34 de una carga de la página de etapa). El `index.html`, que
+ * nombra los ficheros de cada despliegue, se revalida en cada carga (`no-cache`), también el del
+ * fallback de la SPA. Lo demás de la raíz (el favicon, que no lleva huella) sigue con lo de
+ * `@fastify/static`, `public, max-age=0`.
+ */
+export const WEB_ASSET_CACHE = 'public, max-age=31536000, immutable'
+export const WEB_INDEX_CACHE = 'no-cache'
+
+function webCacheHeaders(webRoot: string): (reply: FastifyReply, path: string) => void {
+  return (reply, path) => {
+    const rel = relative(webRoot, path)
+    if (rel.startsWith(`assets${sep}`)) reply.header('cache-control', WEB_ASSET_CACHE)
+    else if (rel === 'index.html') reply.header('cache-control', WEB_INDEX_CACHE)
   }
 }
 
@@ -282,11 +304,12 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
   }
 
   // Servido de la web: por defecto se activa si existe una build con index.html.
+  const webRoot = deps.webRoot ?? defaultWebRoot
   const serveWeb = deps.serveWeb ?? existsSync(join(webRoot, 'index.html'))
   if (serveWeb) {
-    void app.register(fastifyStatic, { root: webRoot })
+    void app.register(fastifyStatic, { root: webRoot, setHeaders: webCacheHeaders(webRoot) })
     // El index.html, una vez: el fallback le pone el título y las `og:` de una carrera o de una etapa.
-    const shellHtml = deps.webIndexHtml ?? readWebIndexHtml()
+    const shellHtml = deps.webIndexHtml ?? readWebIndexHtml(webRoot)
     app.setNotFoundHandler(async (request, reply) => {
       const isApiPath = request.url.startsWith('/api') || request.url.startsWith('/health')
       if (request.method === 'GET' && !isApiPath) {
