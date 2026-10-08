@@ -576,6 +576,17 @@ describe('contratos: la etapa y las noticias, tal como las tolera la web de hoy'
     expect(stageReplaySchema.parse({ ...veiled, leaders })).toEqual({ ...veiled, leaders })
   })
 
+  it('la etapa velada del 7b llega con lo visto (`watch`), y una puerta que no conoce no pasa', () => {
+    // §14.1 y §14.2 (paso 7b): con SPOILER_MODE aplicado, la ruta de etapa gana `watch`, opcional.
+    const veiled = { day: 3, name: 'Stage 3 · Hills', km: 196, run: true, altimetry: '<svg/>' }
+    const watch = { known: false, reachedS: 1200, gate: { k: 'not_seen' }, seen: false } as const
+    expect(stageReplaySchema.parse({ ...veiled, watch })).toEqual({ ...veiled, watch })
+    const previous = { ...watch, gate: { k: 'previous_unseen', firstUnseen: 2 } } as const
+    expect(stageReplaySchema.parse({ ...veiled, watch: previous }).watch).toEqual(previous)
+    const bad = { ...watch, gate: { k: 'quien_sabe' } }
+    expect(stageReplaySchema.safeParse({ ...veiled, watch: bad }).success).toBe(false)
+  })
+
   it('un titular con claves que no conoce vale, y las claves de más se quedan fuera', () => {
     // Re-sellado en el 1a (docs/retransmision.md §14.2): los seis campos del titular con datos
     // (`payload`, `seed`, `tplRev`, `raceId`, `raceKey` y `stageDay`), que en el paso 0 eran aquí

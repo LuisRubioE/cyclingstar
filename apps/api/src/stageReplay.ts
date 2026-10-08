@@ -1,5 +1,6 @@
 import {
   type Database,
+  type StageSnapshotRow,
   getCurrentWorld,
   getGcThroughStage,
   getKomClassification,
@@ -101,6 +102,88 @@ export interface StageReplayOptions {
    * altimetría siguen leyendo los guardados.
    */
   readonly annotate?: (stored: readonly ChronicleEvent[]) => readonly ChronicleEvent[]
+  /**
+   * El snapshot de la etapa ya leído (null: sin correr), para no leerlo dos veces: la ruta de etapa lo
+   * lee antes de decidir si sirve el resultado (`stageAccessOf`, 7b). Sin él, se lee aquí.
+   */
+  readonly snapshot?: StageSnapshotRow | null
+}
+
+/**
+ * Contexto de la etapa: a qué carrera pertenece y cuántas etapas tiene. Sin esto la página de etapa es
+ * un callejón sin salida (docs/navegacion.md §6.3): no sabe ni su carrera ni si hay anterior/siguiente.
+ * Va en todas las ramas de respuesta, corrida o no.
+ */
+function raceInfoOf(ctx: StageContext) {
+  return {
+    id: ctx.race.id,
+    name: ctx.race.name,
+    country: ctx.race.country ?? null,
+    stageCount: ctx.race.stages.length,
+  }
+}
+
+/** De dónde a dónde va la etapa ESTE año; viaja en todas las ramas, corrida o no. */
+function citiesOf(ctx: StageContext) {
+  return { from: ctx.ofTheSeason.from, to: ctx.ofTheSeason.to }
+}
+
+/** La ficha de una etapa sin correr: el recorrido que el mundo va a correr, nada más. */
+function notRunReplayOf(ctx: StageContext) {
+  const { day, spec, stage, km } = ctx
+  return {
+    day,
+    name: spec.name,
+    km,
+    run: false as const,
+    race: raceInfoOf(ctx),
+    ...citiesOf(ctx),
+    label: spec.label,
+    kind: spec.kind,
+    timeTrial: spec.timeTrial,
+    altimetry: renderAltimetrySvg(stage.profile),
+  }
+}
+
+/**
+ * LA HISTORIA DE UNA ETAPA CORRIDA SE LEE DE SU SNAPSHOT, NO DEL CALENDARIO DE HOY: el recorrido que
+ * se corrió y su cabecera (nombre, km, tipo y crono). El porqué y el caso de producción que lo destapó,
+ * en `stageHistory.ts`.
+ */
+function racedOf(ctx: StageContext, snapshot: StageSnapshotRow) {
+  const input = snapshot.input as StageInput
+  const profile = input.profile
+  const timeTrial = input.timeTrial === true
+  const head = stageHead(ctx.day, ctx.spec, {
+    profile,
+    timeTrial,
+    km: stageKm(profile.segments),
+  })
+  return { input, profile, timeTrial, head }
+}
+
+/**
+ * LA FICHA SIN RESULTADO (§14.1, regla 1; 14-e; paso 7b): lo que la ruta de etapa sirve cuando la
+ * pantalla no va a enseñar el resultado. Los obligatorios de `StageReplay` (`day`, `name`, `km`, `run` y
+ * `altimetry`) y el contexto de siempre, sin los opcionales de resultado (`results`, `chronicle`, `gc`,
+ * `kom`, `points`, `teamStage`, `teamGc` y `radio`), sin `leaders` ENTERO (la web de ayer lo lee con
+ * `?.`; uno sin `afterStage` no pasaría su esquema) y con la altimetría sin marcas, como la de una etapa
+ * sin correr (sup. E7). Ninguno de esos campos depende del desenlace. Pura: el snapshot llega leído.
+ */
+export function stageShellOf(ctx: StageContext, snapshot: StageSnapshotRow | null) {
+  if (!snapshot) return notRunReplayOf(ctx)
+  const { profile, head } = racedOf(ctx, snapshot)
+  return {
+    day: ctx.day,
+    name: head.name,
+    km: head.km,
+    run: true as const,
+    race: raceInfoOf(ctx),
+    ...citiesOf(ctx),
+    kind: head.kind,
+    timeTrial: head.timeTrial,
+    altimetry: renderAltimetrySvg(profile),
+  }
 }
 
 /** La ficha de la etapa (`StageReplay`): sin correr, corrida sin crónica o corrida con crónica y radio. */
@@ -109,43 +192,18 @@ export async function stageReplayOf(
   ctx: StageContext,
   opts: StageReplayOptions = {},
 ) {
-  const { race, raceKey, day, spec, stage, km } = ctx
-  // Contexto de la etapa: a qué carrera pertenece y cuántas etapas tiene. Sin esto la página de
-  // etapa es un callejón sin salida (docs/navegacion.md §6.3): no sabe ni su carrera ni si hay
-  // anterior/siguiente. Va en las TRES ramas de respuesta, corrida o no.
-  const raceInfo = {
-    id: race.id,
-    name: race.name,
-    country: race.country ?? null,
-    stageCount: race.stages.length,
-  }
-  // De dónde a dónde va la etapa ESTE año; viaja en las tres ramas, corrida o no.
-  const ciudades = { from: ctx.ofTheSeason.from, to: ctx.ofTheSeason.to }
-  const snapshot = await getStageSnapshot(db, raceKey, day)
-  if (!snapshot) {
-    return {
-      day,
-      name: spec.name,
-      km,
-      run: false as const,
-      race: raceInfo,
-      ...ciudades,
-      label: spec.label,
-      kind: spec.kind,
-      timeTrial: spec.timeTrial,
-      altimetry: renderAltimetrySvg(stage.profile),
-    }
-  }
-  // LA HISTORIA DE UNA ETAPA CORRIDA SE LEE DE SU SNAPSHOT, NO DEL CALENDARIO DE HOY: el
-  // porqué y el caso de producción que lo destapó, en `stageHistory.ts`.
-  const racedInput = snapshot.input as StageInput
-  const racedProfile = racedInput.profile
-  const racedTimeTrial = racedInput.timeTrial === true
-  const head = stageHead(day, spec, {
+  const { race, raceKey, day } = ctx
+  const raceInfo = raceInfoOf(ctx)
+  const ciudades = citiesOf(ctx)
+  const snapshot =
+    opts.snapshot === undefined ? await getStageSnapshot(db, raceKey, day) : opts.snapshot
+  if (!snapshot) return notRunReplayOf(ctx)
+  const {
+    input: racedInput,
     profile: racedProfile,
     timeTrial: racedTimeTrial,
-    km: stageKm(racedProfile.segments),
-  })
+    head,
+  } = racedOf(ctx, snapshot)
 
   /**
    * LA HOJA DE LA ETAPA LLEVA TAMBIÉN A LOS QUE NO ACABARON (v50). El dueño: «los DNF no salen

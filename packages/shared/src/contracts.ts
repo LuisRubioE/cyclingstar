@@ -1612,6 +1612,15 @@ export const stageReplaySchema = z.object({
    * descarta; `yesterday.test.ts` la omite.
    */
   tplRev: z.number().int().min(0).optional(),
+  /**
+   * LO VISTO DE ESTA ETAPA para quien la pide (E2, docs/retransmision.md §14.1 y §14.2; paso 7b): si
+   * la conoce (`W`, `S`, `R` o `A`; la `X` no, 10-e), si la vio (6-r), lo alcanzado si la dejó a medias y
+   * la puerta. Solo con `SPOILER_MODE` aplicado a quien pide (§10.13): sin él, la ruta de etapa es la de
+   * hoy y no lo lleva. Cuando la pantalla no va a enseñar el resultado, la ruta omite los opcionales de
+   * resultado y `leaders` entero (`stageAccessOf`, 14-e). Opcional por la web de ayer (D-50), que lo
+   * descarta; `yesterday.test.ts` lo omite.
+   */
+  watch: watchStateSchema.optional(),
 })
 export type StageReplay = z.infer<typeof stageReplaySchema>
 

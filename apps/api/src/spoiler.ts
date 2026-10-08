@@ -3,14 +3,16 @@ import {
   type Horizon,
   TtlMemo,
   type Viewer,
+  type WatchRow,
   type WorldRef,
   anonHorizon,
   computeHorizon,
   getCurrentWorld,
+  stageGateOf,
   touchLastSeen,
   worldHorizon,
 } from '@cyclingstar/db'
-import { SPOILER, type SwitchMode } from '@cyclingstar/shared'
+import { SPOILER, type StageGate, type SwitchMode, type WatchState } from '@cyclingstar/shared'
 import { getSessionCookie } from 'better-auth/cookies'
 import type {
   FastifyContextConfig,
@@ -46,6 +48,10 @@ import {
  * Además de los cuatro métodos de §14.5, la petición gana `world()`: el mundo y su día de juego, leídos
  * una vez por petición (los usan `horizon()` y las rutas de `/api/me`, que necesitan el mundo de la
  * fila de `race_watch` y el día del `rev`).
+ *
+ * El 7b añade `stageAccessOf` (§14.1, 14-e), la regla de qué sirve la ruta de etapa, y `diagAllowed()`,
+ * si `?diag=1` vale para quien pide: un administrador con sesión (D-40, §11.15). Para cualquier otro el
+ * parámetro no existe y la respuesta es la misma, byte a byte, que sin él (11-h).
  */
 
 /** Qué hace una ruta con lo que nace de una etapa corrida (D-32). */
@@ -94,6 +100,8 @@ declare module 'fastify' {
     broadcastOn(): Promise<boolean>
     /** el mundo y su día de juego (game_state), o null sin mundo; una vez por petición */
     world(): Promise<WorldRef | null>
+    /** `?diag=1` vale para quien pide: un administrador con sesión (D-40, §11.15; 7b) */
+    diagAllowed(): Promise<boolean>
   }
   interface FastifyInstance {
     spoilerRegistry: RouteRegistry
@@ -164,6 +172,7 @@ function installViewerAndHorizon(app: FastifyInstance, deps: SpoilerGuardDeps | 
   const viewers = new WeakMap<FastifyRequest, Promise<ResolvedViewer>>()
   const worlds = new WeakMap<FastifyRequest, Promise<WorldRef | null>>()
   const applies = new WeakMap<FastifyRequest, Promise<boolean>>()
+  const admins = new WeakMap<FastifyRequest, Promise<boolean>>()
   const broadcasts = new WeakMap<FastifyRequest, Promise<boolean>>()
   const horizons = new WeakMap<FastifyRequest, Promise<Horizon>>()
   /** El usuario de una cookie de sesión, 60 s, solo los aciertos (10-n): sin él, cada informe y cada tramo leían la sesión en la base. */
@@ -230,6 +239,14 @@ function installViewerAndHorizon(app: FastifyInstance, deps: SpoilerGuardDeps | 
       return viewer !== null && (await deps.isAdmin(viewer.userId))
     })
 
+  /** Un administrador con SESIÓN (no con cs_viewer): el de `BROADCAST_WATCH=admins` y el de `?diag=1`. */
+  const adminSessionOf = (request: FastifyRequest): Promise<boolean> =>
+    memo(admins, request, async () => {
+      if (deps === null) return false
+      const { viewer, session } = await viewerOf(request)
+      return viewer !== null && session && (await deps.isAdmin(viewer.userId))
+    })
+
   app.decorateRequest('viewer', function (this: FastifyRequest): Promise<Viewer> {
     return viewerOf(this).then((r) => r.viewer)
   })
@@ -243,9 +260,11 @@ function installViewerAndHorizon(app: FastifyInstance, deps: SpoilerGuardDeps | 
     return memo(broadcasts, this, async () => {
       if (deps === null || deps.broadcast === 'off') return false
       if (deps.broadcast === 'on') return true
-      const { viewer, session } = await viewerOf(this)
-      return viewer !== null && session && (await deps.isAdmin(viewer.userId))
+      return adminSessionOf(this)
     })
+  })
+  app.decorateRequest('diagAllowed', function (this: FastifyRequest): Promise<boolean> {
+    return adminSessionOf(this)
   })
   app.decorateRequest('horizon', function (this: FastifyRequest): Promise<Horizon> {
     return memo(horizons, this, async () => {
@@ -307,4 +326,45 @@ function addVary(reply: FastifyReply, value: string): void {
 /** Añade un Set-Cookie sin pisar los que ya lleve la respuesta: fastify acumula los de `set-cookie` (reply.js). */
 export function appendSetCookie(reply: FastifyReply, cookie: string): void {
   void reply.header('set-cookie', cookie)
+}
+
+// ------------------------------------------------------- la ruta de etapa (§14.1, 14-e; paso 7b)
+
+/** Lo que `stageAccessOf` necesita saber de quien pide y de la etapa. */
+export interface StageAccessInput {
+  readonly h: Horizon
+  /** SPOILER_MODE vale para quien pide: `on`, o `admins` y es administrador (§10.13) */
+  readonly applies: boolean
+  /** BROADCAST_WATCH vale para quien pide (§14.6): si no, no hay `Watch` que abrir */
+  readonly watchOn: boolean
+  /** su fila de race_watch (`readWatch`, §10.3); null sin sesión ni cookie, o sin fila */
+  readonly row: WatchRow | null
+  readonly raceKey: string
+  readonly day: number
+  readonly run: boolean
+}
+
+/**
+ * QUÉ SIRVE LA RUTA DE ETAPA (§14.1, decisión 14-e; [DOC 5], D-50): el resultado solo si la pantalla lo
+ * va a enseñar, que no es lo mismo que «si la etapa no está velada» (10-e). Vista (`W`, `S` o `R`), se
+ * sirve. Arrastrada (`A`), caducada (`X`), fuera de guardia o la de cualquier visitante abren en `Watch`
+ * (6-r, D-30, D-31, D-36): se sirven solo si no hay `Watch` que abrir y están fuera del velo, que es el
+ * acta de siempre. Velada, nunca. Sin `SPOILER_MODE` para quien pide, el producto de hoy: todo, sin
+ * `watch` (§10.13). `watch` dice lo visto: conocida con `W`, `S`, `R` o `A` (la `X` no, 10-e), vista
+ * con `W`, `S` o `R` (6-r), lo alcanzado si está a medias, y la puerta de `stageGateOf`.
+ */
+export function stageAccessOf(a: StageAccessInput): {
+  readonly serveResult: boolean
+  readonly watch: WatchState | undefined
+} {
+  if (!a.applies) return { serveResult: true, watch: undefined }
+  const letter = a.row !== null && a.day <= a.row.knownThrough ? a.row.how.charAt(a.day - 1) : ''
+  const seen = letter === 'W' || letter === 'S' || letter === 'R'
+  const known = seen || letter === 'A'
+  const gate: StageGate | null = stageGateOf(a.h, a.raceKey, a.day)
+  const reachedS = a.row !== null && a.row.watchingStage === a.day ? a.row.reachedS : null
+  return {
+    serveResult: a.run && (seen || (gate === null && !a.watchOn)),
+    watch: { known, reachedS, gate, seen },
+  }
 }
