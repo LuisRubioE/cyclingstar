@@ -283,6 +283,15 @@ export function groupLabelOf(
 }
 
 /**
+ * «EL PELOTÓN» de D-17 (6-b): el primer grupo con papel `bunch` y, si ninguno llega a los dos tercios,
+ * el del título; null si no hay ninguno. Es contra quien mide la capa fija una fuga (`mainGapOf`) y la
+ * fila de la que la prueba de lectura pregunta si va por detrás del grupo 1 (§16.5, punto 6).
+ */
+export function packOf<G extends Pick<GroupNow, 'role' | 'kind'>>(groups: readonly G[]): G | null {
+  return groups.find((g) => g.role === 'bunch') ?? groups.find((g) => g.kind === 'peloton') ?? null
+}
+
+/**
  * LA DIFERENCIA PRINCIPAL de la capa fija (D-17, §6.2): el paso 10 de `instantAt`. `groups`, los del
  * instante en orden de carretera y con su papel; `markAt`, la marca en Ds de un grupo en un km de foto
  * (con el respaldo del origen, 3-e). La referencia: el pelotón si no es la cabeza (`on the bunch`); si
@@ -296,9 +305,7 @@ export function mainGapOf(
 ): MainGap | null {
   if (groups.length < 2) return null // un solo grupo: `Bunch together` (pantalla)
   const head = groups[0]!
-  // «El pelotón» de D-17: el grupo con papel bunch; si ninguno llega a los dos tercios, el del título (6-b)
-  const pack =
-    groups.find((g) => g.role === 'bunch') ?? groups.find((g) => g.kind === 'peloton') ?? null
+  const pack = packOf(groups)
   let behind: GroupNow
   let ref: MainGap['ref']
   if (pack !== null && pack.g !== head.g) {
