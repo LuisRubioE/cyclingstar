@@ -4,6 +4,8 @@ import { type RecordEntry, fetchHallOfFame, fetchRecords } from '../api/rankings
 import { Flag } from '../components/Flag'
 import { Panel, SectionBar } from '../components/Panel'
 import { RiderName } from '../components/RiderName'
+import { horizonKey, useHorizonRev } from '../queryClient'
+import { VeilNotice } from '../components/VeilNotice'
 
 function RecordCard({
   title,
@@ -39,11 +41,17 @@ function RecordCard({
 
 /** Salón de la fama (#58/#62): corredores por palmarés total de todas las temporadas. */
 export function HallOfFame() {
+  const rev = useHorizonRev()
   const { data, isPending, isError } = useQuery({
-    queryKey: ['hall-of-fame'],
+    queryKey: horizonKey(['hall-of-fame'], rev),
     queryFn: fetchHallOfFame,
+    enabled: rev !== undefined,
   })
-  const records = useQuery({ queryKey: ['records'], queryFn: fetchRecords })
+  const records = useQuery({
+    queryKey: horizonKey(['records'], rev),
+    queryFn: fetchRecords,
+    enabled: rev !== undefined,
+  })
 
   if (isPending) return <p className="text-slate-500">Loading…</p>
   if (isError) return <p className="text-red-600">Could not load the hall of fame.</p>
@@ -54,6 +62,7 @@ export function HallOfFame() {
   return (
     <section className="space-y-4">
       <SectionBar>Hall of Fame</SectionBar>
+      <VeilNotice kind="results" />
       <p className="text-sm text-slate-500">
         The most decorated riders of the world, by all-time wins across every season.
       </p>

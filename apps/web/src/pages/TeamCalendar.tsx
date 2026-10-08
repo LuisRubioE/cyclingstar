@@ -17,6 +17,8 @@ import {
 import { Flag } from '../components/Flag'
 import { Panel, SectionBar } from '../components/Panel'
 import { formatLabel, raceClassLabel, travelDaysLabel } from '../domain/labels'
+import { finalVeiled, raceKeyOn, raceVeil } from '../domain/veil'
+import { horizonKey, useHealth, useHorizon, useHorizonRev } from '../queryClient'
 
 /**
  * `My Team → Race calendar` (docs/navegacion.md §3.4). La página existía pero estaba HUÉRFANA: no
@@ -226,12 +228,15 @@ const PAST_PREVIEW = 10
 function MemberRow({
   race,
   winner,
+  finalHidden,
   selected,
   past,
 }: {
   race: TeamPlanRace
   /** Ganador de la carrera esta temporada, si ya se corrió (viene del calendario público). */
   winner: string | null
+  /** la última etapa está en el velo de quien mira: llega sin ganador (sup. I4; E2, 9b) */
+  finalHidden: boolean
   selected: boolean
   past: boolean
 }) {
@@ -275,6 +280,8 @@ function MemberRow({
             </span>
           ) : winner ? (
             <span className="truncate text-amber-700">🏆 {winner}</span>
+          ) : finalHidden ? (
+            <span className="truncate text-emerald-700">Finished · ready to watch</span>
           ) : (
             <span className="text-slate-300">—</span>
           )}
@@ -291,9 +298,20 @@ function MemberRow({
  */
 function MemberCalendar({ plan }: { plan: TeamRacePlan }) {
   // El calendario público solo se usa para dos cosas: saber qué día es hoy y quién ganó cada carrera.
-  const calendar = useQuery({ queryKey: ['calendar'], queryFn: fetchCalendar })
-  const upcoming = useQuery({ queryKey: ['rider', 'upcoming'], queryFn: fetchMyUpcomingRaces })
+  const rev = useHorizonRev()
+  const calendar = useQuery({
+    queryKey: horizonKey(['calendar'], rev),
+    queryFn: fetchCalendar,
+    enabled: rev !== undefined,
+  })
+  const upcoming = useQuery({
+    queryKey: horizonKey(['rider', 'upcoming'], rev),
+    queryFn: fetchMyUpcomingRaces,
+    enabled: rev !== undefined,
+  })
   const [showAllPast, setShowAllPast] = useState(false)
+  const horizon = useHorizon()
+  const health = useHealth()
 
   if (calendar.isPending) return <p className="text-slate-500">Loading…</p>
   if (calendar.isError)
@@ -301,6 +319,13 @@ function MemberCalendar({ plan }: { plan: TeamRacePlan }) {
 
   const attending = plan.races.filter((r) => r.attending)
   const winnerOf = new Map(calendar.data.races.map((r) => [r.id, r.winner]))
+  const stagesOf = new Map(calendar.data.races.map((r) => [r.id, Math.max(1, r.stages.length)]))
+  // la carrera de final velado (sup. I4; 9b): solo del horizonte de quien mira (I-39)
+  const hidden = (raceId: string): boolean =>
+    finalVeiled(
+      raceVeil(horizon.data, raceKeyOn(raceId, health.data?.gameDay)),
+      stagesOf.get(raceId) ?? 1,
+    )
   const today = calendar.data.dayOfSeason
   const mine = new Set((upcoming.data ?? []).map((r) => r.raceId))
   const past = today == null ? [] : attending.filter((r) => r.startDay < today).reverse()
@@ -329,6 +354,7 @@ function MemberCalendar({ plan }: { plan: TeamRacePlan }) {
                 key={race.raceId}
                 race={race}
                 winner={winnerOf.get(race.raceId) ?? null}
+                finalHidden={hidden(race.raceId)}
                 selected={mine.has(race.raceId)}
                 past={false}
               />
@@ -345,6 +371,7 @@ function MemberCalendar({ plan }: { plan: TeamRacePlan }) {
                 key={race.raceId}
                 race={race}
                 winner={winnerOf.get(race.raceId) ?? null}
+                finalHidden={hidden(race.raceId)}
                 selected={mine.has(race.raceId)}
                 past
               />
@@ -367,7 +394,12 @@ function MemberCalendar({ plan }: { plan: TeamRacePlan }) {
 
 export function TeamCalendar() {
   // Devuelve null si no gestiono ningún equipo: ese es el caso normal hoy (todos son bots).
-  const draft = useQuery({ queryKey: ['team-calendar'], queryFn: fetchTeamCalendar })
+  const rev = useHorizonRev()
+  const draft = useQuery({
+    queryKey: horizonKey(['team-calendar'], rev),
+    queryFn: fetchTeamCalendar,
+    enabled: rev !== undefined,
+  })
   // Devuelve null si ni siquiera pertenezco a un equipo (agente libre).
   const plan = useQuery({ queryKey: ['team-race-plan'], queryFn: fetchTeamRacePlan })
 

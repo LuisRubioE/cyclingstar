@@ -17,6 +17,7 @@ import {
   saveTrainingPlan,
 } from '../api/sheet'
 import { Panel } from './Panel'
+import { horizonKey, useHorizonRev } from '../queryClient'
 
 /**
  * THE PLAN, ONE LEVEL UP (docs/entrenamiento.md §5.3).
@@ -92,10 +93,11 @@ export function PlanLadder() {
     if (stored.data.plan) setPlan(stored.data.plan)
   }, [stored.data, tocado])
 
+  const rev = useHorizonRev()
   const preview = useQuery({
-    queryKey: ['plan-preview', mode, JSON.stringify(plan)],
+    queryKey: horizonKey(['plan-preview', mode, JSON.stringify(plan)], rev),
     queryFn: () => previewTrainingPlan({ mode, plan }),
-    enabled: stored.data !== undefined,
+    enabled: stored.data !== undefined && rev !== undefined,
   })
 
   const guardar = useMutation({

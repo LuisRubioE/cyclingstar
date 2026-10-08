@@ -4,6 +4,8 @@ import { type TeamListItem, fetchTeams } from '../api/browse'
 import { Flag } from '../components/Flag'
 import { Jersey } from '../components/Jersey'
 import { Panel, SectionBar } from '../components/Panel'
+import { horizonKey, useHorizonRev } from '../queryClient'
+import { VeilNotice } from '../components/VeilNotice'
 
 const DIVISION_BADGE: Record<string, string> = {
   WT: 'bg-indigo-100 text-indigo-700',
@@ -48,13 +50,19 @@ function DivisionBlock({ division, teams }: { division: string; teams: TeamListI
 }
 
 export function Teams() {
-  const { data, isPending, isError } = useQuery({ queryKey: ['teams'], queryFn: fetchTeams })
+  const rev = useHorizonRev()
+  const { data, isPending, isError } = useQuery({
+    queryKey: horizonKey(['teams'], rev),
+    queryFn: fetchTeams,
+    enabled: rev !== undefined,
+  })
   if (isPending) return <p className="text-slate-500">Loading…</p>
   if (isError) return <p className="text-red-600">Could not load teams.</p>
 
   return (
     <section className="space-y-4">
       <SectionBar>Teams</SectionBar>
+      <VeilNotice kind="results" />
       <p className="text-sm text-slate-500">{data.length} teams across the three divisions.</p>
       {['WT', 'PRS', 'CON'].map((div) => (
         <DivisionBlock key={div} division={div} teams={data.filter((t) => t.division === div)} />

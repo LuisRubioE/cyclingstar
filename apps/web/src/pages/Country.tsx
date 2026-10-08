@@ -6,13 +6,17 @@ import { Flag } from '../components/Flag'
 import { Panel, SectionBar } from '../components/Panel'
 import { RiderName } from '../components/RiderName'
 import { archetypeLabel } from '../domain/labels'
+import { horizonKey, useHorizonRev } from '../queryClient'
+import { VeilNotice } from '../components/VeilNotice'
 
 /** Ranking nacional (#7): corredores de un país por puntos de temporada. */
 export function Country() {
   const { code = '' } = useParams()
+  const rev = useHorizonRev()
   const { data, isPending, isError } = useQuery({
-    queryKey: ['country', code],
+    queryKey: horizonKey(['country', code], rev),
     queryFn: () => fetchCountryRiders(code),
+    enabled: rev !== undefined,
   })
   const info = COUNTRIES.find((c) => c.code === code.toUpperCase())
 
@@ -30,6 +34,7 @@ export function Country() {
           {info?.name ?? code.toUpperCase()}
         </span>
       </SectionBar>
+      <VeilNotice kind="results" />
       <p className="text-sm text-slate-500">
         {data.length} active {data.length === 1 ? 'rider' : 'riders'} · national ranking by season
         points

@@ -7,6 +7,7 @@ import {
   raceResultKind,
   raceResultPlace,
   stagesSummary,
+  stagesToWatchText,
 } from './riderResults'
 
 /** Carrera de ejemplo; cada test cambia solo lo que le interesa. */
@@ -116,5 +117,25 @@ describe('color del puesto', () => {
   it('un abandono o una general sin calcular se apagan', () => {
     expect(placeTone(race({ dnf: true, gcPuesto: 1 }))).toBe('text-slate-400')
     expect(placeTone(race({ gcPuesto: null }))).toBe('text-slate-400')
+  })
+})
+
+/**
+ * LA CARRERA CON ETAPAS POR VER (E2, docs/retransmision.md §11.6, punto 2; sups. P4 y H7; paso 9b). La API
+ * manda `stagesToWatch` en la carrera con etapas en el velo de quien mira, para todos los de su lista de
+ * salida, abandonaran o no (8a); la fila lo dice, `Race France · 3 stages to watch`, y el puesto es el de
+ * lo conocido (o ninguno).
+ */
+describe('stagesToWatchText (9b)', () => {
+  it('cuenta las etapas por ver, en singular y en plural; sin ellas, null', () => {
+    expect(stagesToWatchText(race({ stagesToWatch: 3 }))).toBe('3 stages to watch')
+    expect(stagesToWatchText(race({ stagesToWatch: 1 }))).toBe('1 stage to watch')
+    expect(stagesToWatchText(race())).toBeNull()
+  })
+
+  it('una carrera sin ninguna etapa conocida no tiene puesto que enseñar', () => {
+    const veiled = race({ stages: [], gcPuesto: null, finished: false, stagesToWatch: 21 })
+    expect(raceResultPlace(veiled)).toBe('—')
+    expect(stagesToWatchText(veiled)).toBe('21 stages to watch')
   })
 })

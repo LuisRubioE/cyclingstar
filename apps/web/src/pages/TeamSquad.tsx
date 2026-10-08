@@ -12,6 +12,8 @@ import { Panel, SectionBar } from '../components/Panel'
 import { RaceResultList } from '../components/RaceResults'
 import { RiderName } from '../components/RiderName'
 import { palmaresLabel, archetypeLabel } from '../domain/labels'
+import { horizonKey, useHorizonRev } from '../queryClient'
+import { VeilNotice } from '../components/VeilNotice'
 
 /**
  * `My Team → Squad` (docs/navegacion.md §3.4): mis compañeros de equipo, en SOLO LECTURA.
@@ -39,17 +41,21 @@ const HEALTH_BADGE: Record<string, { label: string; cls: string } | undefined> =
 
 /** Ficha desplegable de un compañero: atributos, últimos resultados y palmarés. */
 function TeammateDetail({ riderId }: { riderId: string }) {
+  const rev = useHorizonRev()
   const rider = useQuery({
-    queryKey: ['public-rider', riderId],
+    queryKey: horizonKey(['public-rider', riderId], rev),
     queryFn: () => fetchPublicRider(riderId),
+    enabled: rev !== undefined,
   })
   const results = useQuery({
-    queryKey: ['public-rider', riderId, 'results'],
+    queryKey: horizonKey(['public-rider', riderId, 'results'], rev),
     queryFn: () => fetchRiderResults(riderId),
+    enabled: rev !== undefined,
   })
   const palmares = useQuery({
-    queryKey: ['public-rider', riderId, 'palmares'],
+    queryKey: horizonKey(['public-rider', riderId, 'palmares'], rev),
     queryFn: () => fetchRiderPalmares(riderId),
+    enabled: rev !== undefined,
   })
 
   if (rider.isPending) return <p className="px-4 py-3 text-sm text-slate-500">Loading…</p>
@@ -146,13 +152,22 @@ function SquadRow({ rider, isMe }: { rider: TeamRider; isMe: boolean }) {
 }
 
 export function TeamSquad() {
-  const summary = useQuery({ queryKey: ['rider', 'summary'], queryFn: fetchRiderSummary })
-  const me = useQuery({ queryKey: ['rider', 'me'], queryFn: fetchMyRider })
+  const rev = useHorizonRev()
+  const summary = useQuery({
+    queryKey: horizonKey(['rider', 'summary'], rev),
+    queryFn: fetchRiderSummary,
+    enabled: rev !== undefined,
+  })
+  const me = useQuery({
+    queryKey: horizonKey(['rider', 'me'], rev),
+    queryFn: fetchMyRider,
+    enabled: rev !== undefined,
+  })
   const teamId = summary.data?.teamId ?? null
   const team = useQuery({
-    queryKey: ['team', teamId],
+    queryKey: horizonKey(['team', teamId], rev),
     queryFn: () => fetchTeam(teamId!),
-    enabled: teamId != null,
+    enabled: teamId != null && rev !== undefined,
   })
 
   if (summary.isPending) return <p className="text-slate-500">Loading…</p>
@@ -185,6 +200,7 @@ export function TeamSquad() {
   return (
     <section className="space-y-4">
       <SectionBar>Squad · {team.data.name}</SectionBar>
+      <VeilNotice kind="results" />
 
       <Panel>
         <div className="flex flex-wrap items-center gap-3">

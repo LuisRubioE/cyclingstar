@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { fetchRiderSummary } from '../api/rider'
 import { authClient } from '../auth/client'
 import { bottomBarLinks, sectionOf } from '../domain/nav'
+import { horizonKey, useHorizonRev } from '../queryClient'
 
 /**
  * Barra inferior fija del teléfono (docs/navegacion.md §5, fase G).
@@ -24,10 +25,11 @@ export function BottomNav() {
   const { pathname } = useLocation()
   // Misma consulta (y misma caché) que la cabecera: saber si pertenezco a un equipo no cuesta una
   // petición extra.
+  const rev = useHorizonRev()
   const summary = useQuery({
-    queryKey: ['rider', 'summary'],
+    queryKey: horizonKey(['rider', 'summary'], rev),
     queryFn: fetchRiderSummary,
-    enabled: Boolean(session),
+    enabled: Boolean(session) && rev !== undefined,
   })
 
   const links = bottomBarLinks({

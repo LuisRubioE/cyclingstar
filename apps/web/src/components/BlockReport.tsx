@@ -8,6 +8,7 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { fetchBlockReport } from '../api/sheet'
 import { Panel } from './Panel'
+import { horizonKey, useHorizonRev } from '../queryClient'
 
 /**
  * WHERE EACH POINT CAME FROM, over the last 28 days (docs/entrenamiento.md §4.6).
@@ -37,7 +38,12 @@ function activityLabel(activity: string): string {
 const signed = (x: number): string => `${x >= 0 ? '+' : '−'}${Math.abs(x).toFixed(1)}`
 
 export function BlockReport() {
-  const report = useQuery({ queryKey: ['block-report'], queryFn: fetchBlockReport })
+  const rev = useHorizonRev()
+  const report = useQuery({
+    queryKey: horizonKey(['block-report'], rev),
+    queryFn: fetchBlockReport,
+    enabled: rev !== undefined,
+  })
   const data = report.data
   if (!data) return null
 

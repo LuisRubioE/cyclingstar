@@ -9,6 +9,7 @@ import {
   raceResultKind,
   raceResultPlace,
   stagesSummary,
+  stagesToWatchText,
 } from '../domain/riderResults'
 // El tope de filas visibles es el común del juego (§7.3); el rótulo del interruptor cambia porque
 // aquí se cuentan CARRERAS ("Show all 31"), no filas de una clasificación.
@@ -54,6 +55,11 @@ export function RaceResultRow({
             {result.raceName}
           </Link>
           <p className="text-xs text-slate-400">
+            {/* Con etapas en el velo de quien mira (sup. P4; 9b): cuántas le quedan por ver, igual para
+                todos los de la lista de salida, y el puesto de lo que conoce. */}
+            {stagesToWatchText(result) !== null && (
+              <span className="font-medium text-emerald-700">{stagesToWatchText(result)} · </span>
+            )}
             {raceResultKind(result)} · Season {result.season + 1}
             {/* En una carrera de un día la etapa ES la carrera: su de dónde a dónde va aquí. */}
             {result.isOneDay && stageRouteText(result.stages[0]?.from, result.stages[0]?.to) && (

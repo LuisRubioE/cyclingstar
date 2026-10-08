@@ -1,11 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
 import { fetchRiderBadges } from '../api/browse'
+import { horizonKey, useHorizonRev } from '../queryClient'
 
 /** Logros del corredor (#95): medallas ganadas por su palmarés. Nada si aún no tiene ninguna. */
 export function Badges({ riderId }: { riderId: string }) {
+  const rev = useHorizonRev()
   const { data } = useQuery({
-    queryKey: ['badges', riderId],
+    queryKey: horizonKey(['badges', riderId], rev),
     queryFn: () => fetchRiderBadges(riderId),
+    enabled: rev !== undefined,
   })
   if (!data || data.length === 0) return null
   return (

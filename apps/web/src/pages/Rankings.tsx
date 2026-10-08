@@ -14,6 +14,8 @@ import { Panel, SectionBar } from '../components/Panel'
 import { RiderName } from '../components/RiderName'
 import { TeamLink } from '../components/TeamLink'
 import { archetypeLabel } from '../domain/labels'
+import { horizonKey, useHorizonRev } from '../queryClient'
+import { VeilNotice } from '../components/VeilNotice'
 
 function RankingTable({ rows }: { rows: RankingRow[] }) {
   if (rows.length === 0) {
@@ -108,13 +110,22 @@ function AwardsPanel({ awards }: { awards: SeasonAwards }) {
 
 export function Rankings() {
   const [tab, setTab] = useState<'overall' | 'young'>('overall')
-  const ranking = useQuery({ queryKey: ['rankings'], queryFn: fetchRankings })
-  const young = useQuery({
-    queryKey: ['rankings-young'],
-    queryFn: fetchYoungRankings,
-    enabled: tab === 'young',
+  const rev = useHorizonRev()
+  const ranking = useQuery({
+    queryKey: horizonKey(['rankings'], rev),
+    queryFn: fetchRankings,
+    enabled: rev !== undefined,
   })
-  const awards = useQuery({ queryKey: ['season-awards'], queryFn: fetchSeasonAwards })
+  const young = useQuery({
+    queryKey: horizonKey(['rankings-young'], rev),
+    queryFn: fetchYoungRankings,
+    enabled: tab === 'young' && rev !== undefined,
+  })
+  const awards = useQuery({
+    queryKey: horizonKey(['season-awards'], rev),
+    queryFn: fetchSeasonAwards,
+    enabled: rev !== undefined,
+  })
 
   if (ranking.isPending) return <p className="text-slate-500">Loading…</p>
   if (ranking.isError) return <p className="text-red-600">Could not load the rankings.</p>
@@ -139,6 +150,7 @@ export function Rankings() {
   return (
     <section className="space-y-4">
       <SectionBar>Rankings</SectionBar>
+      <VeilNotice kind="ranking" />
       <p className="text-sm text-slate-500">
         {tab === 'young'
           ? 'Points scored by riders aged 23 and under in the current season.'

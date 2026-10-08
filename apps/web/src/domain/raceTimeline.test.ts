@@ -117,7 +117,13 @@ describe('filtros del índice', () => {
     expect(matchesFormat(race({ format: 'gran-vuelta' }), 'un-dia')).toBe(false)
   })
 
-  it('busca por nombre, país y ganador, sin distinguir mayúsculas', () => {
+  /**
+   * Re-sellado en el 9b (E2, docs/retransmision.md §11.1; sup. I3): el buscador busca sobre la lista que
+   * sirve la API, ya cortada al horizonte de quien mira (P, 8a). Una carrera cuyo final está en su velo
+   * llega sin ganador, así que escribir el nombre de quien la ganó no la encuentra: el buscador no puede
+   * contar lo que la fila no enseña.
+   */
+  it('busca por nombre, país y ganador servido, sin distinguir mayúsculas; un ganador velado no casa', () => {
     const r = race({ name: 'Tour of Flanders', country: 'BE', winner: 'Ana Ruiz' })
     expect(matchesQuery(r, '')).toBe(true)
     expect(matchesQuery(r, 'flanders')).toBe(true)
@@ -125,6 +131,10 @@ describe('filtros del índice', () => {
     expect(matchesQuery(r, 'ruiz')).toBe(true)
     expect(matchesQuery(r, '  RUIZ  ')).toBe(true)
     expect(matchesQuery(r, 'giro')).toBe(false)
+    // la misma carrera con el final velado, como la sirve la API a quien no la ha visto
+    const veiled = race({ name: 'Tour of Flanders', country: 'BE', winner: null })
+    expect(matchesQuery(veiled, 'ruiz')).toBe(false)
+    expect(matchesQuery(veiled, 'flanders')).toBe(true)
   })
 })
 

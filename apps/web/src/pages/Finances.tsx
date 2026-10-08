@@ -6,6 +6,8 @@ import { fetchLedger } from '../api/finances'
 import { fetchRiderSummary } from '../api/rider'
 import { money } from '../domain/format'
 import { ledgerKindLabel } from '../domain/labels'
+import { horizonKey, useHorizonRev } from '../queryClient'
+import { VeilNotice } from '../components/VeilNotice'
 
 const KIND_TONE: Record<string, string> = {
   salario: 'text-emerald-600',
@@ -23,7 +25,12 @@ function countryName(code: string): string {
 
 /** Situación de vivienda del corredor: en casa (gratis), fuera pagando alquiler, o cubierto por el equipo. */
 function HousingCard() {
-  const { data } = useQuery({ queryKey: ['rider-summary'], queryFn: fetchRiderSummary })
+  const rev = useHorizonRev()
+  const { data } = useQuery({
+    queryKey: horizonKey(['rider-summary'], rev),
+    queryFn: fetchRiderSummary,
+    enabled: rev !== undefined,
+  })
   if (!data) return null
   const atHome = data.residence === data.nationality
   return (
@@ -82,7 +89,12 @@ function NextSalaryCard({ gameDay, salary }: { gameDay: number; salary: number }
 }
 
 export function Finances() {
-  const { data, isPending, isError } = useQuery({ queryKey: ['ledger'], queryFn: fetchLedger })
+  const rev = useHorizonRev()
+  const { data, isPending, isError } = useQuery({
+    queryKey: horizonKey(['ledger'], rev),
+    queryFn: fetchLedger,
+    enabled: rev !== undefined,
+  })
 
   if (isPending) return <p className="text-slate-500">Loading…</p>
   if (isError) return <p className="text-red-600">Could not load your finances.</p>
@@ -90,6 +102,7 @@ export function Finances() {
   return (
     <section className="space-y-4">
       <SectionBar>Finances</SectionBar>
+      <VeilNotice kind="results" />
       <p className="text-sm text-slate-500">
         Every salary payment and race prize is logged here. Your balance is the sum of the ledger.
       </p>

@@ -72,3 +72,14 @@ export function placeTone(r: RiderRaceResult): string {
 export function raceResultKey(r: RiderRaceResult): string {
   return `${r.raceId}:s${r.season}`
 }
+
+/**
+ * `3 stages to watch` (E2, §11.6, punto 2; sups. P4 y H7; 9b): las etapas de esa carrera que quien mira
+ * tiene en su velo (`stagesToWatch`, desde el 8a), dichas igual para todos los de la lista de salida;
+ * null si no tiene ninguna.
+ */
+export function stagesToWatchText(r: RiderRaceResult): string | null {
+  const n = r.stagesToWatch ?? 0
+  if (n <= 0) return null
+  return `${n} ${n === 1 ? 'stage' : 'stages'} to watch`
+}
