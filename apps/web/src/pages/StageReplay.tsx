@@ -6,12 +6,7 @@ import {
 } from '@cyclingstar/shared'
 import { type ReactNode, useState } from 'react'
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
-import {
-  type StageClassEntry,
-  type StageGcEntry,
-  type TeamClassEntry,
-  diagOf,
-} from '../api/results'
+import type { StageClassEntry, StageGcEntry, TeamClassEntry } from '../api/results'
 import { Flag } from '../components/Flag'
 import { RiderJersey } from '../components/Jersey'
 import { RiderName } from '../components/RiderName'
@@ -19,12 +14,7 @@ import { ShowAllButton, TOP_ROWS } from '../components/ShowAll'
 import { PaintedRaceRadio } from '../components/PaintedRaceRadio'
 import { RaceRadioPanel } from '../components/RaceRadioPanel'
 import { ShareStage } from '../components/ShareStage'
-import {
-  DiagnosticStrip,
-  StageGateCard,
-  TwoDeviceNotice,
-  useRevealActions,
-} from '../components/StageGate'
+import { DiagnosticStrip, StageGateCard, TwoDeviceNotice } from '../components/StageGate'
 import { StageRoute } from '../components/StageRoute'
 import { StageStory } from '../components/StageStory'
 import { type TabOption, TabPanel, Tabs, useTabParam } from '../components/Tabs'
@@ -40,6 +30,7 @@ import {
   stageTabLabel,
 } from '../domain/raceTabs'
 import type { GatePlace } from '../domain/stageGate'
+import { diagOf, useRevealActions } from '../queryClient'
 import {
   RESULT_TABS,
   ResultTable,
@@ -53,10 +44,10 @@ import {
 } from './stageView'
 import { StageWatch } from './StageWatch'
 
-// Las piezas que la página compartía con el acta y que el 9b sacó a `stageView.tsx` y `StageGate.tsx`
-// (la ficha de una carrera de un día también las usa): se reexportan para quien las importa de aquí.
+// Las piezas que la página compartía con el acta y que el 9b sacó a `stageView.tsx` y `queryClient.ts` (la
+// ficha de una carrera de un día también las usa): se reexportan para quien las importa de aquí.
 export { ResultTable, StageReportView, hasResult, raceKeyOf } from './stageView'
-export { useRevealActions } from '../components/StageGate'
+export { useRevealActions } from '../queryClient'
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm'
 const head = 'text-xs font-semibold uppercase tracking-wide text-slate-400'

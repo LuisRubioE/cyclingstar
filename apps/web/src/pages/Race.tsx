@@ -1,13 +1,6 @@
-import {
-  type HorizonSummary,
-  type RaceLeaders,
-  type RaceRouteSource,
-  type RouteSource,
-  type StageGate,
-  type StageReplay as StageReplayData,
-} from '@cyclingstar/shared'
+import type { HorizonSummary, RaceLeaders, RaceRouteSource, RouteSource } from '@cyclingstar/shared'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Fragment, type ReactNode, Suspense, lazy, useState } from 'react'
+import { Fragment, Suspense, lazy, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import type { RaceClass, RaceFormat } from '../api/calendar'
 import { fetchRacePrefs, setRacePref } from '../api/objectives'
@@ -24,24 +17,14 @@ import {
   fetchStartlist,
   raceViewKey,
 } from '../api/race'
-import { diagOf } from '../api/results'
 import { putFollow } from '../api/watch'
 import { authClient } from '../auth/client'
 import { Flag } from '../components/Flag'
 import { Jersey, RiderJersey } from '../components/Jersey'
-import { PaintedRaceRadio } from '../components/PaintedRaceRadio'
 import { RiderName } from '../components/RiderName'
 import { ShowAllButton, TOP_ROWS } from '../components/ShowAll'
-import { RaceRadioPanel } from '../components/RaceRadioPanel'
-import { ShareStage } from '../components/ShareStage'
-import {
-  DiagnosticStrip,
-  StageGateCard,
-  TwoDeviceNotice,
-  useRevealActions,
-} from '../components/StageGate'
+import { DiagnosticStrip } from '../components/StageGate'
 import { StageRoute } from '../components/StageRoute'
-import { StageStory } from '../components/StageStory'
 import { TeamClassNote, TeamClassTable } from '../components/TeamClassTable'
 import { type TabOption, TabPanel, Tabs, useTabParam } from '../components/Tabs'
 import { TeamLink } from '../components/TeamLink'
@@ -57,24 +40,22 @@ import { usePageTitle } from '../domain/pageTitle'
 import { stageRowLink, stageRowState } from '../domain/raceStages'
 import { type RaceTabId, raceTabLabel, raceTabOf, raceTabs } from '../domain/raceTabs'
 import { type ReadyRace, finalVeiled, raceKeyOn, raceVeil, raceVeilNotice } from '../domain/veil'
-import { useHealth, useHorizon, useHorizonRev, veilApplies } from '../queryClient'
-import { useWatchOn } from '../watchSwitch'
 import {
-  RESULT_TABS,
-  StageReportView,
-  paintedRadioWanted,
-  paintedReachedOf,
-  raceKeyOf,
-  usePinnedHead,
-  useStageFacts,
-  useStageResult,
-} from './stageView'
+  diagOf,
+  useHealth,
+  useHorizon,
+  useHorizonRev,
+  useWatchOn,
+  veilApplies,
+} from '../queryClient'
 
 /**
- * `Watch` de una carrera de un día, cargado solo cuando se pinta: el reproductor pesa, y quien no tiene
- * `Watch` encendido (el jugador hasta el encendido, §20.5) no lo descarga al abrir la ficha.
+ * La ficha de una carrera de un día terminada (`OneDayRace.tsx`, 11-o), cargada solo cuando se pinta: lleva
+ * la etapa (su ruta, el acta, la puerta, la radio y `Watch`), que la ficha de una vuelta no necesita.
  */
-const StageWatch = lazy(() => import('./StageWatch').then((m) => ({ default: m.StageWatch })))
+const OneDaySections = lazy(() =>
+  import('./OneDayRace').then((m) => ({ default: m.OneDaySections })),
+)
 
 function fmtTime(seconds: number): string {
   const h = Math.floor(seconds / 3600)
@@ -684,210 +665,6 @@ function RaceSections({
 }
 
 /**
- * LA CARRERA DE UN DÍA TERMINADA (E2, docs/retransmision.md §11.17; 11-o, sup. C3 y E9; paso 9b), con la
- * decisión 1 del dueño durante la implementación. Su ficha ES la de su etapa 1: con `Watch` encendido para
- * quien mira lleva `Watch`, `Report` (el acta: el resultado y la crónica) y `Race Radio`, con la misma puerta
- * que la página de una etapa y sus mismas piezas (`useStageFacts`, `useStageResult`, `StageGateCard`,
- * `StageWatch`, `PaintedRaceRadio`), y abre en `Watch` si no la ha visto y en `Report` si la vio o la reveló.
- * Por eso, con `Watch` encendido, la ficha pide la ruta de su etapa al abrirse y no al tocar la pestaña:
- * de ella depende la pestaña por defecto; mientras llega, la cabecera sin pestañas.
- *
- * Con `Watch` apagado (el jugador hasta el encendido, §20.5), las de hoy: `Result` primero, el acta al lado
- * con el nombre `Story` y la radio, y la ruta de la etapa se sigue pidiendo solo al abrir una de las dos
- * (la primera carga no pide nada más que hoy). Lo que enseña el resultado de una carrera que quien mira
- * tiene en su velo pinta la puerta, también con `Watch` apagado.
- *
- * Arregla de paso la `Race Radio` de una carrera sin ver (nota 6 del 11a): decía `This race was run before
- * the race radio was recorded`, que no era verdad; ahora pinta la puerta o, con `Watch` y línea grabada, la
- * radio hasta lo pintado.
- */
-function OneDaySections({
-  data,
-  raceId,
-  watchOn,
-  watchSettled,
-  veil,
-}: {
-  data: RaceView
-  raceId: string
-  watchOn: boolean
-  watchSettled: boolean
-  veil: ReadyRace | null
-}) {
-  const [params] = useSearchParams()
-  // Con `Watch` apagado las pestañas no dependen de la etapa: la de la URL decide si hace falta pedirla.
-  const offTabs = raceTabs('finished', 1, true, false)
-  const offActive = raceTabOf(params.get('tab'), offTabs) ?? offTabs[0]
-  // la carrera en el velo de quien mira: con `Watch` apagado, `Result` pinta la puerta sin pedir nada
-  const veiled = veil !== null && veil.stages.includes(1)
-  const needStage = watchSettled && (watchOn || offActive === 'report' || offActive === 'radio')
-  const f = useStageFacts(raceId, 1, { oneDay: true, enabled: needStage })
-  const tabsKnown = watchSettled && (!watchOn || f.settled)
-  const tabIds = raceTabs('finished', 1, f.seen, watchOn, f.watchable)
-  // La pestaña por defecto, fijada la primera vez que se sabe: la carrera que pasa a vista mientras se
-  // mira (la meta, o el otro dispositivo) no saca a nadie de `Watch`.
-  const [start, setStart] = useState<{ readonly tab: RaceTabId; readonly seen: boolean }>()
-  if (start === undefined && tabsKnown) setStart({ tab: tabIds[0] ?? 'route', seen: f.seen })
-  const pinned = start !== undefined && tabIds.includes(start.tab) ? start.tab : tabIds[0]
-  const [active, setActive] = useTabParam(
-    tabIds,
-    raceTabOf(params.get('tab'), tabIds) ?? pinned ?? 'route',
-  )
-
-  const [finishedHere, setFinishedHere] = useState(false)
-  const [revealedHere, setRevealedHere] = useState(false)
-  const [otherDeviceSeen, setOtherDeviceSeen] = useState(false)
-  const [reachedHere, setReachedHere] = useState(0)
-  const actions = useRevealActions(
-    f.readingWithCookie ? null : raceKeyOf(raceId, f.broadcastHead.data, f.gameDay),
-    () => setRevealedHere(true),
-  )
-  const { full, gate, actaError } = useStageResult(f, raceId, 1, RESULT_TABS.has(active))
-  const watchHead = usePinnedHead(f.broadcastHead.data)
-
-  if (!tabsKnown) return <p className="text-slate-500">Loading…</p>
-
-  const options = tabIds.map((id) => ({ key: id, label: raceTabLabel(id, watchOn) }))
-  const pagePath = `/world/races/${raceId}`
-  const diagHref = f.isAdmin ? `${pagePath}?diag=1` : null
-  const otherDevice =
-    start !== undefined &&
-    !start.seen &&
-    f.seen &&
-    !finishedHere &&
-    !revealedHere &&
-    !otherDeviceSeen &&
-    active === 'watch' &&
-    !f.diagOn
-  const gateCard = (g: StageGate): ReactNode => (
-    <StageGateCard
-      gate={g}
-      stageDay={1}
-      place="result"
-      raceId={raceId}
-      watchOn={watchOn}
-      watchable={f.watchable}
-      onWatch={() => setActive('watch')}
-      actions={actions}
-      signIn={f.readingWithCookie}
-      diagHref={diagHref}
-    />
-  )
-  /** Lo que enseña el resultado: la puerta, o lo que trae la ruta de la etapa o el acta. */
-  const withResult = (render: (d: StageReplayData) => ReactNode): ReactNode => {
-    if (gate !== null) return gateCard(gate)
-    if (full !== null) return render(full)
-    if (actaError || f.isError)
-      return (
-        <div className={card}>
-          <p className="text-sm text-red-600">Could not load the race.</p>
-        </div>
-      )
-    return <p className="text-slate-500">Loading…</p>
-  }
-  const radioHead = f.broadcastHead.data
-  const paintedRadio = paintedRadioWanted(gate, f.watchable, radioHead)
-
-  return (
-    <>
-      {watchOn && (
-        <ShareStage
-          raceId={raceId}
-          day={1}
-          report={full !== null || (f.data?.watch?.known ?? true)}
-        />
-      )}
-      <Tabs
-        options={options}
-        value={active}
-        onChange={setActive}
-        label="Race"
-        variant="underline"
-        panelId={RACE_PANEL}
-      />
-      {otherDevice && (
-        <TwoDeviceNotice
-          onWatchAnyway={() => setOtherDeviceSeen(true)}
-          onShowReport={() => {
-            setOtherDeviceSeen(true)
-            setActive('report')
-          }}
-        />
-      )}
-      <TabPanel panelId={RACE_PANEL} active={active}>
-        {active === 'watch' &&
-          (watchHead !== undefined ? (
-            <Suspense fallback={<p className="text-slate-500">Loading…</p>}>
-              <StageWatch
-                head={watchHead}
-                raceId={raceId}
-                day={1}
-                diag={f.diagOn}
-                onReport={() => setActive('report')}
-                onFinished={() => setFinishedHere(true)}
-                onReached={(s) => setReachedHere((x) => Math.max(x, s))}
-              />
-            </Suspense>
-          ) : (
-            <p className="text-slate-500">Loading…</p>
-          ))}
-
-        {active === 'report' && (
-          <>
-            {/* Sin `Watch` para su etapa (§17.19): una crono sin línea, una lápida (D-12). */}
-            {watchOn && f.unavailable && (
-              <p className="text-sm text-slate-500">Broadcast unavailable for this race</p>
-            )}
-            {withResult((d) =>
-              watchOn ? (
-                <StageReportView
-                  data={d}
-                  onWatchAnyway={f.watchable && f.seen ? () => setActive('watch') : undefined}
-                />
-              ) : (
-                <StageStory data={d} onFullResult={() => setActive('result')} />
-              ),
-            )}
-          </>
-        )}
-
-        {/* `Result`, solo con `Watch` apagado: el de la ficha de carrera, o la puerta si está en el velo. */}
-        {active === 'result' &&
-          (veiled ? gateCard({ k: 'not_seen' }) : <ClassificationsTab data={data} />)}
-
-        {active === 'radio' && paintedRadio && (
-          <PaintedRaceRadio
-            head={radioHead}
-            raceId={raceId}
-            day={1}
-            reachedS={paintedReachedOf(radioHead, 1, reachedHere)}
-            onWatch={() => setActive('watch')}
-          />
-        )}
-        {active === 'radio' &&
-          !paintedRadio &&
-          withResult((d) =>
-            d.radio ? (
-              <RaceRadioPanel radio={d.radio} />
-            ) : (
-              <div className={card}>
-                <h2 className={head}>Race Radio</h2>
-                <p className="text-sm text-slate-500">
-                  This race was run before the race radio was recorded, so there is nothing to
-                  replay.
-                </p>
-              </div>
-            ),
-          )}
-
-        {active === 'route' && <RouteTab data={data} />}
-        {active === 'honours' && <HonoursTab data={data} />}
-      </TabPanel>
-    </>
-  )
-}
-
-/**
  * `Follow without spoilers` y `Stop protecting this race` (E2, docs/retransmision.md §10.4, D-30; 9b): seguir
  * una carrera la pone en guardia (sus etapas corridas y no vistas se velan en toda la web) y soltarla la saca
  * aunque sea propia o de cabecera (`follow = −1` gana a toda fuente). Solo con el velo para quien mira y con
@@ -1125,13 +902,17 @@ export function Race() {
       {diagOn && <DiagnosticStrip exitHref={hrefWith(pagePath, params, { diag: null })} />}
 
       {stageCount === 1 && status === 'finished' ? (
-        <OneDaySections
-          data={data}
-          raceId={raceId}
-          watchOn={sw.watchOn}
-          watchSettled={sw.settled}
-          veil={veil}
-        />
+        <Suspense fallback={<p className="text-slate-500">Loading…</p>}>
+          <OneDaySections
+            raceId={raceId}
+            watchOn={sw.watchOn}
+            watchSettled={sw.settled}
+            veil={veil}
+            classifications={<ClassificationsTab data={data} />}
+            route={<RouteTab data={data} />}
+            honours={<HonoursTab data={data} />}
+          />
+        </Suspense>
       ) : (
         <RaceSections
           data={data}

@@ -4,7 +4,6 @@ import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { fetchCalendar } from '../api/calendar'
 import { type NewsItem, fetchNews, newsKey } from '../api/news'
-import { diagOf } from '../api/results'
 import { Flag } from '../components/Flag'
 import { SectionBar } from '../components/Panel'
 import { DiagnosticStrip } from '../components/StageGate'
@@ -19,8 +18,7 @@ import {
   matchesFilter,
   raceOfItem,
 } from '../domain/newsFeed'
-import { horizonKey, useHorizonRev } from '../queryClient'
-import { useWatchOn } from '../watchSwitch'
+import { diagOf, horizonKey, useHorizonRev, useWatchOn } from '../queryClient'
 
 const selectClass =
   'w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-700 focus:border-brand-cyan focus:outline-none'
@@ -113,8 +111,9 @@ export function News() {
     enabled: rev !== undefined,
   })
   const veiled = (data ?? []).some((item) => item.kind === 'stage_ready')
-  // ¿Es un administrador con sesión? Solo se pregunta con `?diag=1` o con algo velado.
-  const { isAdmin } = useWatchOn(diag || veiled)
+  // ¿Es un administrador con sesión? Solo se pregunta con `?diag=1` o con algo velado, y el feed no
+  // pinta nada distinto con `Watch` (`needWatch` falso): con `BROADCAST_WATCH=admins`, ningún `whoami` más.
+  const { isAdmin } = useWatchOn(diag || veiled, false)
   const diagOn = diag && isAdmin
   // El filtro es estado de la vista: nunca se deriva de la respuesta del servidor.
   const [filter, setFilter] = useState<NewsFilter>(NO_FILTER)

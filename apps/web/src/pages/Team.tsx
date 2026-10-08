@@ -2,7 +2,6 @@ import { COUNTRIES } from '@cyclingstar/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { fetchTeam, fetchTeamControl, fetchTeamNews, takeOverTeam } from '../api/browse'
-import { diagOf } from '../api/results'
 import { Flag } from '../components/Flag'
 import { DiagnosticStrip } from '../components/StageGate'
 import { Jersey } from '../components/Jersey'
@@ -11,8 +10,7 @@ import { RiderName } from '../components/RiderName'
 import { TeamFeed } from '../components/TeamFeed'
 import { TeamManager } from '../components/TeamManager'
 import { archetypeLabel } from '../domain/labels'
-import { horizonKey, useHorizonRev } from '../queryClient'
-import { useWatchOn } from '../watchSwitch'
+import { diagOf, horizonKey, useHorizonRev, useWatchOn } from '../queryClient'
 import { VeilNotice } from '../components/VeilNotice'
 
 const DIVISION_LABEL: Record<string, string> = {
@@ -47,7 +45,8 @@ export function Team() {
     enabled: rev !== undefined,
   })
   const veiled = (teamNews.data ?? []).some((n) => n.kind === 'stage_ready')
-  const { isAdmin } = useWatchOn(diag || veiled)
+  // solo para `Diagnostic view`: el feed del equipo no cambia con `Watch` (`needWatch` falso)
+  const { isAdmin } = useWatchOn(diag || veiled, false)
   const diagOn = diag && isAdmin
   const takeOver = useMutation({
     mutationFn: takeOverTeam,

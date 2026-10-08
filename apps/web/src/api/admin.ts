@@ -23,12 +23,11 @@ import {
   blocklistAddResponseSchema,
   blocklistResponseSchema,
   adminUsersResponseSchema,
-  adminWhoamiResponseSchema,
   okResponseSchema,
   worldHealthResponseSchema,
 } from '@cyclingstar/shared'
 import type { ZodType } from 'zod'
-import { ApiError, type RequestOptions, request, requestOptionalAuth } from './request'
+import { ApiError, type RequestOptions, request } from './request'
 
 export type { AdminUser, AdminWhoami, BlockedKind, BlockedName, TickLogRow, WorldHealth }
 
@@ -97,13 +96,8 @@ export async function setPremium(token: AdminKey, email: string, premium: boolea
   })
 }
 
-/**
- * ¿Soy admin con mi sesión? `null` si no. Usa la variante que NO propaga el 401: un jugador que
- * no es admin no ha perdido la sesión, y el manejador global lo mandaría al login.
- */
-export async function fetchAdminWhoami(): Promise<AdminWhoami | null> {
-  return requestOptionalAuth('/api/admin/whoami', adminWhoamiResponseSchema)
-}
+/** ¿Soy admin con mi sesión? Vive en `queryClient.ts` desde el 9b, con lo que la web sabe de quien mira. */
+export { fetchAdminWhoami } from '../queryClient'
 
 /** Cuentas del juego, las más nuevas primero, filtradas por un trozo del correo. */
 export async function fetchAdminUsers(token: AdminKey, search: string): Promise<AdminUser[]> {

@@ -2,15 +2,15 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { fetchStageReport, stageReportKey } from '../api/broadcast'
 import { ApiError, GateError } from '../api/request'
-import { diagOf, fetchCalendarStage, stageReplayKey } from '../api/results'
+import { fetchCalendarStage, stageReplayKey } from '../api/results'
 import { authClient } from '../auth/client'
 import { Flag } from '../components/Flag'
 import { ShareStage } from '../components/ShareStage'
 import { DiagnosticStrip, StageGateCard } from '../components/StageGate'
 import { stageTitleInfo, usePageTitle } from '../domain/pageTitle'
-import { useHealth, useHorizonRev } from '../queryClient'
-import { useWatchOn } from '../watchSwitch'
-import { StageReportView, raceKeyOf, useRevealActions } from './StageReplay'
+import { diagOf, useHealth, useHorizonRev, useRevealActions, useWatchOn } from '../queryClient'
+// de `stageView.tsx` y no de `StageReplay.tsx`: el acta no carga la página de la etapa ni el reproductor
+import { StageReportView, raceKeyOf } from './stageView'
 
 /**
  * EL ACTA COMPARTIBLE, `/world/races/:raceId/stages/:day/report` (E2, docs/retransmision.md §11.10;

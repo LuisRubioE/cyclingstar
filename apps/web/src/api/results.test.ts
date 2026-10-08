@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { type ReactElement, createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { Race } from '../pages/Race'
 import { StageReplay } from '../pages/StageReplay'
 import { healthWith, horizonWith, raceViewWith } from '../pages/__fixtures__/world'
@@ -38,6 +38,32 @@ function response(body: unknown): Response {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+})
+
+// La ficha de una carrera de un día terminada va diferida (`lazy`, `OneDayRace.tsx`, 9b): un primer render
+// la pide y, ya cargada, los de los tests la pintan con sus consultas.
+beforeAll(async () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, enabled: false } } })
+  client.setQueryData(['health'], healthWith('off', 'on', 100))
+  client.setQueryData(['horizon'], horizonWith({ rev: '9.1' }))
+  client.setQueryData(raceViewKey('race-sanremo', false, '9.1'), raceViewWith(1))
+  renderToStaticMarkup(
+    createElement(
+      QueryClientProvider,
+      { client },
+      createElement(
+        MemoryRouter,
+        { initialEntries: ['/world/races/race-sanremo'] },
+        createElement(
+          Routes,
+          null,
+          createElement(Route, { path: '/world/races/:raceId', element: createElement(Race) }),
+        ),
+      ),
+    ),
+  )
+  await import('../pages/OneDayRace')
+  await new Promise((resolve) => setTimeout(resolve, 0))
 })
 
 describe('web: la ficha de una etapa con ?diag=1 (14-s)', () => {

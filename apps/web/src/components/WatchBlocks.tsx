@@ -15,9 +15,16 @@ import {
   expiredNotices,
   homeBlocks,
 } from '../domain/veil'
-import { horizonKey, useHealth, useHorizon, useHorizonRev, veilApplies } from '../queryClient'
+import {
+  horizonKey,
+  useHealth,
+  useHorizon,
+  useHorizonRev,
+  useRevealActions,
+  veilApplies,
+} from '../queryClient'
 import { Panel } from './Panel'
-import { RevealConfirm, useRevealActions } from './StageGate'
+import { RevealConfirm } from './StageGate'
 
 /**
  * LA PORTADA BAJO EL VELO (E2, docs/retransmision.md §11.4; D-39, I-37, H-20, 11-q; paso 9b). Encima de lo
@@ -314,7 +321,10 @@ function AwayRace({ block }: { block: AwayBlock }) {
  * LO QUE SALE UNA VEZ. El acuse de las carreras caducadas (§10.5, 10-f): se enseña y se confirma con
  * `POST /api/me/reveal` sobre su última etapa, que escribe `X` en las que faltaban; desde entonces la
  * carrera sale de `expiredSinceLastVisit` y el aviso se queda en esta página hasta salir de ella. `GET` no
- * cambia nada (D-51). Antes de acusarlas, la oferta adaptativa (DD-16, 10-b) cuenta las de cabecera en
+ * cambia nada (D-51). El acuse no cambia lo que sirve ninguna ruta (la carrera caducada ya no estaba en el
+ * velo), así que su `rev` nuevo no se lleva a `['horizon']`: con él cambiarían todas las claves de la
+ * página y se pediría todo otra vez (medido en Chromium: de 12 peticiones a la API a 21 en la portada). Se
+ * quita la carrera de la lista en la caché, y el `rev` nuevo llega con la siguiente carga o al enfocar. Antes de acusarlas, la oferta adaptativa (DD-16, 10-b) cuenta las de cabecera en
  * este navegador; con `SPOILER.adaptiveAskAfterRaces` ignoradas, la ofrece una vez.
  */
 function ExpiredAndOffer({ h, notices }: { h: HorizonSummary; notices: readonly ExpiredNotice[] }) {
@@ -340,8 +350,17 @@ function ExpiredAndOffer({ h, notices }: { h: HorizonSummary; notices: readonly 
     )
     writeAdaptive(ignored, false)
     if (adaptiveOfferDue(ignored, before.asked, h.scope)) setOffer(true)
+    const done = new Set(fresh.map((n) => n.raceKey))
     void Promise.all(fresh.map((n) => postReveal(n.raceKey, n.lastStage).catch(() => null))).then(
-      () => queryClient.invalidateQueries({ queryKey: ['horizon'] }),
+      () =>
+        queryClient.setQueryData<HorizonSummary | null>(['horizon'], (old) =>
+          old == null
+            ? old
+            : {
+                ...old,
+                expiredSinceLastVisit: old.expiredSinceLastVisit.filter((k) => !done.has(k)),
+              },
+        ),
     )
   }, [notices, h.scope, queryClient])
   const scope = useMutation({

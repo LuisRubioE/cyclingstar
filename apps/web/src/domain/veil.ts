@@ -20,6 +20,17 @@ import {
   parseRaceKey,
 } from '@cyclingstar/shared'
 
+/**
+ * ¿Lo que se ve está cortado por el velo de quien mira? Solo con un `rev` de espectador,
+ * `${currentDay}.${horizon_rev}` (10-h): `'world'` (sin velo para él), `'anon'` (el visitante) y
+ * `'unavailable'` no lo están. Es lo que enciende los avisos y los botones del velo en el mundo (9b): con
+ * `SPOILER_MODE` apagado, o en `admins` para un jugador, la web es la de hoy. Nació en `queryClient.ts`, que
+ * lo reexporta (y lo usa): así este fichero va con la caché, que toda página carga al arrancar.
+ */
+export function veilApplies(rev: string | undefined): boolean {
+  return rev !== undefined && /^\d+\.\d+$/.test(rev)
+}
+
 /** Una carrera con etapas en el velo (`HorizonSummary.ready[]`). */
 export type ReadyRace = HorizonSummary['ready'][number]
 

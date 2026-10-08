@@ -2,8 +2,8 @@
  * LO QUE LA PÁGINA DE UNA ETAPA Y LA FICHA DE UNA CARRERA DE UN DÍA COMPARTEN (E2, docs/retransmision.md
  * §6.10, §11.10, §11.16 y §11.17; nació en `StageReplay.tsx` con el 9a y el 9b lo saca aquí): los hechos de
  * la etapa antes de elegir pestaña, el acta a un toque, la cabecera de `Watch` fijada, la radio hasta lo
- * pintado y la tabla de llegada. No importa `StageWatch`: la ficha de carrera lo carga diferido, para que
- * quien no tiene `Watch` encendido no se descargue el reproductor.
+ * pintado y la tabla de llegada. No importa `StageWatch`, que montan la página de etapa y la ficha de un día
+ * (`OneDayRace.tsx`): el acta (`StageReport.tsx`) importa de aquí y no se descarga el reproductor.
  */
 import {
   type BroadcastHead,
@@ -22,7 +22,7 @@ import {
   stageReportKey,
 } from '../api/broadcast'
 import { ApiError, GateError } from '../api/request'
-import { type StageResultEntry, diagOf, fetchCalendarStage, stageReplayKey } from '../api/results'
+import { type StageResultEntry, fetchCalendarStage, stageReplayKey } from '../api/results'
 import { readLocalProgress } from '../api/watch'
 import { authClient } from '../auth/client'
 import { Flag } from '../components/Flag'
@@ -32,8 +32,7 @@ import { ShowAllButton, TOP_ROWS } from '../components/ShowAll'
 import { StageStory } from '../components/StageStory'
 import { formatTime } from '../domain/format'
 import { raceTeamLabel } from '../domain/labels'
-import { useHealth, useHorizonRev } from '../queryClient'
-import { useWatchOn } from '../watchSwitch'
+import { diagOf, useHealth, useHorizonRev, useWatchOn } from '../queryClient'
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm'
 const head = 'text-xs font-semibold uppercase tracking-wide text-slate-400'

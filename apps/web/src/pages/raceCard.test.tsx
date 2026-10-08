@@ -2,7 +2,7 @@ import type { HorizonSummary, RaceView, StageReplay as StageReplayData } from '@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { broadcastHeadKey } from '../api/broadcast'
 import { raceViewKey } from '../api/race'
 import { stageReplayKey } from '../api/results'
@@ -95,6 +95,14 @@ const sanremoVeil = horizonWith({
   ],
 })
 const GATE = 'This page shows the result of Stage 1.'
+
+// La ficha de una carrera de un día terminada va diferida (`lazy`, `OneDayRace.tsx`), para que la de una
+// vuelta no cargue la etapa: un primer render la pide y, ya cargada, los demás la pintan.
+beforeAll(async () => {
+  page(`/world/races/${SANREMO}`, { view: sanremo, stage: seenStage })
+  await import('./OneDayRace')
+  await new Promise((resolve) => setTimeout(resolve, 0))
+})
 
 describe('la carrera de un día terminada (11-o; sup. C3 y E9)', () => {
   it('sin ver y con Watch encendido: abre en Watch, sin Result aparte, y la cabecera no dice quién ganó', () => {

@@ -3,9 +3,8 @@ import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { broadcastHeadKey, fetchBroadcastHead } from '../api/broadcast'
-import { useHorizon, useHorizonRev } from '../queryClient'
-import { useWatchOn } from '../watchSwitch'
-import { RevealConfirm, useRevealActions } from './StageGate'
+import { useHorizon, useHorizonRev, useRevealActions, useWatchOn } from '../queryClient'
+import { RevealConfirm } from './StageGate'
 
 const primary =
   'rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-slate-700 disabled:opacity-60'
