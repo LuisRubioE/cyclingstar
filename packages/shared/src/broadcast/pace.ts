@@ -7,9 +7,11 @@
  * este fichero recibe la línea ni los sucesos.
  *
  * Nace en el PR 3a con `paceAt` y `playbackEstimateS`; `ttPaceAt` y `ttPlaybackEstimateS` llegan en el
- * 6b y `digestPace`, en el 10a (§17.20). `scripts/bench-pace.mjs` (B17) la importa desde el 3a: hasta
- * entonces llevaba su copia (decisión 17-c), y la cifra no se podía mover al cambiar de una a otra.
+ * 6b y `digestPace`, `ttDigestScale` y `digestMinutes`, en el 10a (§17.20). `scripts/bench-pace.mjs`
+ * (B17) la importa desde el 3a: hasta entonces llevaba su copia (decisión 17-c), y la cifra no se podía
+ * mover al cambiar de una a otra.
  */
+import type { StageKind } from '../contracts.js'
 import { BROADCAST } from './constants.js'
 import type { PaceZone, ProfileStrip, RaceS } from './timeline.js'
 
@@ -39,6 +41,33 @@ export function playbackEstimateS(profile: ProfileStrip, zones: readonly PaceZon
     for (let j = 0; j < 10; j++) wall += raceS / 10 / paceAt(km - k - (j + 0.5) / 10, zones)
   }
   return wall
+}
+
+// --------------------------------------------------------------------------- el digest (§8.8; 10a)
+
+/**
+ * LA CURVA DEL DIGEST de `While you were away` (§8.2, §8.8; decisión 8-a): `summaryPace` escalada para
+ * que la estimación NOMINAL de la etapa (`playbackEstimateS`, velocidades por pendiente) dure
+ * `digestBudgetS` de su tipo. Causal: la escala sale del perfil, nunca de la carrera (B9), así que la
+ * duración real se aparta de su presupuesto lo que se aparta la estimación (de −9 a +34 %, §8.4), y B17
+ * la acota a menos de un 40 %. En una crono, `ttDigestScale` (8-m).
+ */
+export function digestPace(profile: ProfileStrip, kind: StageKind): readonly PaceZone[] {
+  const k = playbackEstimateS(profile, BROADCAST.summaryPace) / BROADCAST.digestBudgetS[kind]
+  return BROADCAST.summaryPace.map((z) => ({ aboveKm: z.aboveKm, x: z.x * k }))
+}
+
+/**
+ * LOS MINUTOS DE `Watch the race in 40 minutes` (pantalla; decisión 8-b): los presupuestos de las etapas
+ * veladas por su tipo y los cuadros fijos (el recorrido y el ganador de cada una, y el cierre final de
+ * seis cuadros); nunca la carrera. Con las 21 etapas de cada gran vuelta, 38 (Italia), 40 (Francia) y 43
+ * (España).
+ */
+export function digestMinutes(kinds: readonly StageKind[]): number {
+  const race = kinds.reduce((s, k) => s + BROADCAST.digestBudgetS[k], 0)
+  const cards =
+    (BROADCAST.previewCardS + BROADCAST.finishFreezeS) * kinds.length + 6 * BROADCAST.closingCardS
+  return Math.max(1, Math.round((race + cards) / 60))
 }
 
 // ---------------------------------------------------------------------------- la crono (§9.4; 6b)
@@ -92,4 +121,13 @@ export function ttPlaybackEstimateS(profile: ProfileStrip, plan: TimeTrialPlan):
     t = to
   }
   return wall + last / BROADCAST.ttLastKmX
+}
+
+/**
+ * EL RESUMEN Y EL DIGEST DE UNA CRONO (decisión 8-m): una sola curva, `ttPaceAt` multiplicado por esta
+ * escala, para que la estimación nominal (`ttPlaybackEstimateS`) dure `digestBudgetS.cri` (120 s). Solo el
+ * plan público y el perfil. Medido con el motor real en cuatro cronos y tres semillas: de 1:56 a 2:03.
+ */
+export function ttDigestScale(profile: ProfileStrip, plan: TimeTrialPlan): number {
+  return ttPlaybackEstimateS(profile, plan) / BROADCAST.digestBudgetS.cri
 }

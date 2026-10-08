@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { PACE_PROFILES } from './__fixtures__/paceProfiles.js'
 import { BROADCAST } from './constants.js'
-import { paceAt, playbackEstimateS, ttPaceAt, ttPlaybackEstimateS } from './pace.js'
+import type { StageKind } from '../contracts.js'
+import {
+  digestMinutes,
+  digestPace,
+  paceAt,
+  playbackEstimateS,
+  ttDigestScale,
+  ttPaceAt,
+  ttPlaybackEstimateS,
+} from './pace.js'
 import type { PaceZone, ProfileStrip } from './timeline.js'
 
 /**
@@ -156,5 +165,127 @@ describe('ttPlaybackEstimateS · la duración que anuncia una crono (§9.4)', ()
       360 / 120 + 180 / 40 + (9 * (3600 / 44)) / 12 + 3600 / 22 / 2,
       9,
     )
+  })
+})
+
+describe('digestPace y digestMinutes · el digest de While you were away (§8.2, §8.8; 8-a, 8-b, 8-m)', () => {
+  const KINDS: readonly StageKind[] = ['llana', 'media', 'reina', 'cri', 'clasica']
+
+  it('digestPace multiplica todas las zonas de summaryPace por un mismo factor, y la estimación nominal dura digestBudgetS de su tipo (menos de 1 s de error)', () => {
+    for (const name of Object.keys(PACE_PROFILES) as (keyof typeof PACE_PROFILES)[]) {
+      const p = strip(PACE_PROFILES[name])
+      for (const kind of KINDS) {
+        const zones = digestPace(p, kind)
+        expect(zones.map((z) => z.aboveKm)).toEqual(BROADCAST.summaryPace.map((z) => z.aboveKm))
+        const k = zones[0]!.x / BROADCAST.summaryPace[0].x
+        zones.forEach((z, i) => expect(z.x / BROADCAST.summaryPace[i]!.x).toBeCloseTo(k, 9))
+        expect(
+          Math.abs(playbackEstimateS(p, zones) - BROADCAST.digestBudgetS[kind]),
+          `${name} ${kind}`,
+        ).toBeLessThan(1)
+      }
+    }
+  })
+
+  it('no mira la carrera: el mismo perfil y el mismo tipo dan la misma curva', () => {
+    const p = strip(PACE_PROFILES['race-france-e18'])
+    expect(digestPace(p, 'reina')).toEqual(digestPace(p, 'reina'))
+  })
+
+  /**
+   * Los tipos de las 21 etapas de cada gran vuelta en la temporada 0 (`stagesForSeason`, el calendario
+   * del motor), en su orden: `broadcastPace.test.ts` (apps/api) comprueba que son los del calendario.
+   */
+  const GRAND_TOURS: Readonly<Record<'italy' | 'france' | 'spain', readonly StageKind[]>> = {
+    italy: [
+      'llana',
+      'media',
+      'llana',
+      'llana',
+      'media',
+      'llana',
+      'reina',
+      'media',
+      'reina',
+      'cri',
+      'media',
+      'llana',
+      'media',
+      'reina',
+      'llana',
+      'reina',
+      'media',
+      'media',
+      'reina',
+      'reina',
+      'llana',
+    ],
+    france: [
+      'cri',
+      'media',
+      'media',
+      'media',
+      'llana',
+      'reina',
+      'llana',
+      'llana',
+      'media',
+      'reina',
+      'llana',
+      'llana',
+      'media',
+      'reina',
+      'reina',
+      'cri',
+      'media',
+      'reina',
+      'reina',
+      'reina',
+      'llana',
+    ],
+    spain: [
+      'cri',
+      'media',
+      'reina',
+      'reina',
+      'media',
+      'clasica',
+      'reina',
+      'llana',
+      'reina',
+      'media',
+      'llana',
+      'reina',
+      'media',
+      'reina',
+      'media',
+      'llana',
+      'llana',
+      'cri',
+      'reina',
+      'reina',
+      'media',
+    ],
+  }
+
+  it('digestMinutes da 38, 40 y 43 con los tipos de las tres grandes vueltas (8-b)', () => {
+    expect(GRAND_TOURS.italy).toHaveLength(21)
+    expect(digestMinutes(GRAND_TOURS.italy)).toBe(38)
+    expect(digestMinutes(GRAND_TOURS.france)).toBe(40)
+    expect(digestMinutes(GRAND_TOURS.spain)).toBe(43)
+  })
+
+  it('digestMinutes: los presupuestos por tipo y los cuadros fijos (el recorrido y el ganador de cada una y el cierre final), nunca menos de uno', () => {
+    // una llana: 60 s de carrera, 5 + 3 s de cuadros y 36 de cierre = 104 s, 2 min
+    expect(digestMinutes(['llana'])).toBe(2)
+    expect(digestMinutes([])).toBe(1)
+  })
+
+  it('en una crono, el resumen y el digest son una sola curva: ttPaceAt por la escala que lleva la estimación nominal a 120 s (8-m)', () => {
+    const flat = strip(Array.from({ length: 31 }, () => 0))
+    const plan = { riders: 120, intervalS: 60 }
+    const k = ttDigestScale(flat, plan)
+    expect(k).toBeGreaterThan(1)
+    expect(ttPlaybackEstimateS(flat, plan) / k).toBeCloseTo(BROADCAST.digestBudgetS.cri, 9)
   })
 })
