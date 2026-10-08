@@ -230,8 +230,10 @@ export function StageWatch({
   )
   const tt = head.stage.timeTrial ? head.tt : null
   const { phase } = w.controls
-  // Show result: con sesión, fuera del modo diagnóstico y antes de la meta (§8.5)
-  const canShowResult = reveal !== null && !diag && head.view !== null && !w.controls.revealed
+  // Show result: con sesión, fuera del modo diagnóstico, con la etapa sin conocer y antes de la meta
+  // (§8.5); la conocida tiene su acta en `Report`
+  const canShowResult =
+    reveal !== null && !diag && head.view !== null && !head.view.known && !w.controls.revealed
   const revealDay = digest?.last ?? day
   function askShowResult(): void {
     if (!canShowResult || reveal === null) return
@@ -271,7 +273,6 @@ export function StageWatch({
               onWatch={() => w.dispatch({ k: 'play' })}
             />
           )}
-          {phase === 'arrival' && w.arrival !== null && <ArrivalCardView card={w.arrival} />}
           {phase === 'closing' && closing.length > 0 && (
             <StageClosingCards
               cards={closing}
@@ -295,9 +296,12 @@ export function StageWatch({
           </div>
         </div>
         <div className="space-y-3">
-          {/* El plano (§6.1): el resumen de un salto, el aviso del salto en curso o el rótulo. Tocarlo
-              pausa y enseña los mandos («tocar la pantalla» de D-20, 8-p). */}
-          {phase === 'recap' && w.recap !== null ? (
+          {/* El plano (§6.1): la llegada (el plano del ganador de la tele, §8.7), el resumen de un salto,
+              el aviso del salto en curso o el rótulo; en el cierre, nada. Tocarlo pausa y enseña los
+              mandos («tocar la pantalla» de D-20, 8-p). */}
+          {phase === 'arrival' ? (
+            w.arrival !== null && <ArrivalCardView card={w.arrival} />
+          ) : phase === 'closing' ? null : phase === 'recap' && w.recap !== null ? (
             <RecapCard recap={w.recap} onDone={() => w.dispatch({ k: 'cardDone' })} />
           ) : phase === 'seeking' && w.seeking !== null ? (
             <p className="rounded-2xl bg-slate-900 px-3 py-4 text-sm text-white" role="status">

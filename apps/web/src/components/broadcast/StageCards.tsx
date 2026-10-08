@@ -19,7 +19,8 @@ import { PLAY_GLYPH } from './PlayerControls'
  */
 
 const dark = 'rounded-2xl bg-slate-900 p-4 text-white'
-const caption = 'text-xs font-semibold uppercase tracking-wide'
+/** Los títulos van ya en mayúsculas donde las lleva el texto (§8.6): `STAGE 18 · SUMMIT FINISH · 185 km`. */
+const caption = 'text-xs font-semibold tracking-wide'
 
 /** Los puntos de un pase de cuadros: cuál se ve de cuántos. */
 function Dots({ n, at }: { n: number; at: number }) {
@@ -218,7 +219,7 @@ export function StageClosingCards({
   )
 }
 
-const title = 'text-xs font-semibold uppercase tracking-wide text-slate-400'
+const title = 'text-xs font-semibold tracking-wide text-slate-400'
 
 /** Un cuadro del cierre, sin estado: se exporta para probar cada uno. */
 export function ClosingCardView({
@@ -243,7 +244,10 @@ export function ClosingCardView({
                   {r.name}
                   {r.own ? ' (your rider)' : ''}
                   {r.team !== null && (
-                    <span className="ml-2 text-xs font-normal text-slate-400">{r.team}</span>
+                    <>
+                      {' '}
+                      <span className="ml-1 text-xs font-normal text-slate-400">{r.team}</span>
+                    </>
                   )}
                 </span>
                 <span className="shrink-0 tabular-nums text-slate-500">

@@ -53,8 +53,9 @@ export const CLOCK_JUMP_LABEL: Readonly<Record<ClockJump, string>> = {
   lastStarter: 'Last starter',
 }
 
+// en el teléfono, más estrechos: la fila entera cabe en una línea a 360 px (8-p)
 const button =
-  'rounded-lg px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-transparent'
+  'rounded-lg px-2 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-transparent sm:px-3'
 
 /**
  * LOS MANDOS (docs/retransmision.md §8.5, 8-o, 8-p y §18.8). En el teléfono, la fila lleva `❚❚`, la
@@ -112,10 +113,10 @@ export function PlayerControls({
         hidden ? 'opacity-0 focus-within:opacity-100' : 'opacity-100'
       }`}
     >
-      <div className="flex flex-wrap items-center gap-1">
+      <div className="flex flex-wrap items-center gap-0.5 sm:gap-1">
         <button
           type="button"
-          className={`${button} w-12 text-base`}
+          className={`${button} w-10 text-base sm:w-12`}
           aria-label={running ? 'Pause' : 'Play'}
           onClick={running ? onPause : onPlay}
         >
@@ -176,7 +177,7 @@ export function PlayerControls({
               aria-label="More"
               aria-expanded={sheetOpen}
               aria-controls="player-sheet"
-              className={`${button} w-10`}
+              className={`${button} w-9`}
               onClick={() => setSheetOpen((o) => !o)}
             >
               ⋯
