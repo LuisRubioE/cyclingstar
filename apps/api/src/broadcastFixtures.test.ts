@@ -1,15 +1,19 @@
 import { gunzipSync, gzipSync } from 'node:zlib'
+import { type Horizon, type VeiledStage, veilCast, worldHorizon } from '@cyclingstar/db'
 import { type TestDb, startTestDb } from '@cyclingstar/db/test'
 import { type RadioKm, type SnapshotRider, TIMELINE, radioKmFrom } from '@cyclingstar/engine'
 import {
   BROADCAST,
   type BroadcastHead,
   CUE_OF_TEMPLATE,
+  type CastRider,
   type ChampionTitle,
   type InstantContext,
   JERSEY_PRIORITY,
   type RiderCard,
+  type StageRef,
   type StageTimeline,
+  type TimelineCast,
   breakHeadline,
   breakPresentedOf,
   broadcastChunkSchema,
@@ -23,6 +27,8 @@ import {
   namedRidersOf,
   photoAt,
   photoBlocksOf,
+  seededRng,
+  startStateOf,
   staticNotoriety,
   toDs,
 } from '@cyclingstar/shared'
@@ -40,6 +46,7 @@ import {
   seedFixtureWorld,
 } from './__fixtures__/broadcast/load.js'
 import { type AppDeps, buildApp } from './app.js'
+import { serveCast } from './broadcastSource.js'
 
 /**
  * LAS SEIS ETAPAS CONGELADAS CON SU LÍNEA GRABADA (docs/retransmision.md §16.2, §16.4, §17.8 y §17.9;
@@ -76,7 +83,8 @@ import { type AppDeps, buildApp } from './app.js'
  * El 6b le añade B3, su primera parte (§16.4), sobre la cabecera que sirve la ruta a las seis: en cada
  * grupo de hasta `nameWholeGroupUpTo` cada 30 s de carrera, `namedRidersOf` nombra a todos y cada uno
  * tiene su carta con el maillot resuelto, y la cláusula de no vacío con una cabecera sintética. La
- * segunda parte es de la web (`breakPresentation.test.ts`). El 7b le añadirá B13; y el 11a, B16.
+ * segunda parte es de la web (`breakPresentation.test.ts`). El 7b le añade B13 (abajo, 17-t): ningún
+ * dato del reparto cuya procedencia esté en el velo viaja; y el 11a, B16.
  */
 
 const ROAD = new Set<FixtureName>(FIXTURES.filter((name) => !fixtureStage(name).timeTrial))
@@ -721,5 +729,141 @@ describe('B3, primera parte: el rótulo y los maillots de la fuga sobre la cabec
       checked.push(name)
     }
     expect(checked).toEqual(['race-france-e7', 'race-france-e18', 'race-flanders-e1'])
+  })
+})
+
+// ------------------------------------------------------------------------ B13, la procedencia (7b)
+
+/** Las vueltas de B13 y su cláusula de no vacío (§16.4, 17-u). */
+const B13_VEILS = 500
+const B13_MIN_VEILED_FIELDS = 100
+
+const refKey = (r: StageRef): string => `${r.raceKey}#${r.stageDay}`
+
+/**
+ * Las procedencias de un valor ya servido: todo objeto con `raceKey` y `stageDay` es un `StageRef`
+ * (§7.8). Se busca en el JSON parseado, es decir, en lo que viaja.
+ */
+function refsIn(value: unknown, out: Set<string> = new Set()): Set<string> {
+  if (Array.isArray(value)) for (const v of value) refsIn(v, out)
+  else if (value !== null && typeof value === 'object') {
+    const o = value as Record<string, unknown>
+    if (typeof o.raceKey === 'string' && typeof o.stageDay === 'number')
+      out.add(`${o.raceKey}#${o.stageDay}`)
+    for (const v of Object.values(o)) refsIn(v, out)
+  }
+  return out
+}
+
+/** Las procedencias de un corredor del reparto congelado, una por dato (§7.8). */
+function refsOfRider(c: CastRider): StageRef[] {
+  const refs: StageRef[] = []
+  if (c.start.from !== null) refs.push(c.start.from)
+  if (c.worn.kind === 'leader') refs.push(c.worn.from)
+  if (c.worn.kind === 'champion') refs.push(c.worn.title.source)
+  for (const d of c.distinctions)
+    if (d.kind === 'champion') refs.push(d.title.source)
+    else if (d.kind === 'stage_wins') refs.push(...d.stages)
+    else refs.push(d.from)
+  return refs
+}
+
+/**
+ * B13 · LA PROCEDENCIA (docs/retransmision.md §16.4, §10.10 y §7.8; I-11, D-15; paso 7b, decisiones
+ * 17-t y 17-u). Con el reparto congelado de las seis, el mismo que `seedFixtureWorld` siembra y la ruta
+ * sirve (el primer caso lo ata a las cabeceras de B6), y 500 velos al azar con semilla fija sobre las
+ * etapas de las que sale algo de esos repartos (más ruido de otras carreras): ningún dato con
+ * procedencia velada viaja, ni en el reparto degradado (`veilCast`), ni en las cartas servidas
+ * (`serveCast`), ni en la salida (`startStateOf`: un maillot velado no lo lleva nadie y una general de
+ * salida velada no da filas). Cada resultado se serializa y se busca. Con la cláusula de no vacío: en
+ * los 500 velos, al menos 100 campos con procedencia velada existían en el reparto sin velar (las seis
+ * llevan la general de salida, y tres de ellas un campeón plantado por el script, §16.2).
+ */
+describe('B13 · la procedencia: nada del reparto con procedencia velada viaja (§16.4; 17-t)', () => {
+  const casts = FIXTURES.map((name) => [name, loadTimeline(name).cast] as const)
+  const names = { rider: (id: string) => `rider ${id}`, team: (id: string) => `team ${id}` }
+  const ctx = { own: new Set<number>(), dayCategory: 'elite' as const }
+
+  it('con el velo vacío, la cabecera que sirve la ruta es la de serveCast y startStateOf sobre el reparto congelado', () => {
+    for (const [name, cast] of casts) {
+      const head = servedHeads.get(name)
+      expect(head, 'B6 sirve antes las seis cabeceras').toBeDefined()
+      const riders = new Map(head!.cast.map((c) => [c.id, c.name] as const))
+      const teams = new Map(
+        head!.cast.flatMap((c) => (c.team === null ? [] : [[c.team.id, c.team.name] as const])),
+      )
+      const served = serveCast(
+        cast,
+        worldHorizon,
+        { rider: (id) => riders.get(id) ?? id, team: (id) => teams.get(id) ?? id },
+        ctx,
+      )
+      expect(served, name).toEqual(head!.cast)
+      expect(startStateOf(veilCast(cast, worldHorizon), cast.riders.length), name).toEqual(
+        head!.startState,
+      )
+    }
+  })
+
+  it('500 velos al azar: ninguna procedencia velada en el reparto, las cartas ni la salida', () => {
+    const rnd = seededRng('b13-la-procedencia')
+    const universe = [
+      ...new Set(casts.flatMap(([, cast]) => cast.riders.flatMap(refsOfRider).map(refKey))),
+    ].sort()
+    const noise = ['race-italy:s0#3', 'race-france:s0#21', 'race-colombia:s0#5', 'nc-es-road:s0#1']
+    const pick = <T>(xs: readonly T[]): T => xs[Math.floor(rnd() * xs.length)]!
+    const leaks: string[] = []
+    let veiledFields = 0
+    for (let i = 0; i < B13_VEILS; i++) {
+      const keys = new Set<string>()
+      const size = 1 + Math.floor(rnd() * 6)
+      while (keys.size < size) keys.add(pick(universe))
+      if (rnd() < 0.5) keys.add(pick(noise))
+      const veil: VeiledStage[] = [...keys].map((k) => {
+        const [raceKey, day] = k.split('#') as [string, string]
+        return { raceKey, stageDay: Number(day), gameDay: 0, reason: 'follow' }
+      })
+      const h: Horizon = {
+        ...worldHorizon,
+        kind: 'viewer',
+        userId: 'b13',
+        readOnly: false,
+        rev: `0.${i}`,
+        veil,
+      }
+      for (const [name, cast] of casts) {
+        veiledFields += cast.riders.reduce(
+          (n, c) => n + refsOfRider(c).filter((r) => keys.has(refKey(r))).length,
+          0,
+        )
+        const where = `${name}, velo ${i} (${[...keys].join(' ')})`
+        const out: TimelineCast = veilCast(cast, h)
+        const cards: RiderCard[] = serveCast(cast, h, names, ctx)
+        for (const [what, value] of [
+          ['el reparto', out],
+          ['las cartas', cards],
+        ] as const)
+          for (const r of refsIn(JSON.parse(JSON.stringify(value)) as unknown))
+            if (keys.has(r)) leaks.push(`${where}: ${what} lleva ${r}`)
+        const start = startStateOf(out, cast.riders.length)
+        for (const jersey of JERSEY_PRIORITY) {
+          const holder = start.leaders[jersey]
+          const worn = holder === null ? null : cast.riders[holder]?.worn
+          if (worn?.kind === 'leader' && keys.has(refKey(worn.from)))
+            leaks.push(`${where}: la salida viste a ${holder} de ${jersey}`)
+        }
+        for (const row of start.gcTop) {
+          const from = cast.riders[row.rider]?.start.from ?? null
+          if (from === null || keys.has(refKey(from)))
+            leaks.push(`${where}: la general de salida lleva a ${row.rider}`)
+        }
+      }
+    }
+    console.info(
+      `[broadcast] B13: ${B13_VEILS} velos sobre las seis, ${veiledFields} datos con procedencia ` +
+        `velada en el reparto sin velar (mínimo ${B13_MIN_VEILED_FIELDS}), ${leaks.length} viajan`,
+    )
+    expect(leaks.slice(0, 5)).toEqual([])
+    expect(veiledFields).toBeGreaterThanOrEqual(B13_MIN_VEILED_FIELDS)
   })
 })

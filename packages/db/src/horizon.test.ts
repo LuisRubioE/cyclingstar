@@ -1,5 +1,13 @@
 import { SEASON_CALENDAR, stageDayOfSeason } from '@cyclingstar/engine'
-import { BROADCAST, DAYS_PER_SEASON, SPOILER } from '@cyclingstar/shared'
+import {
+  BROADCAST,
+  type CastRider,
+  type ChampionTitle,
+  DAYS_PER_SEASON,
+  SPOILER,
+  type StageRef,
+  type TimelineCast,
+} from '@cyclingstar/shared'
 import { sql } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import type { Database } from './client.js'
@@ -18,6 +26,7 @@ import {
   stageGateOf,
   throughStage,
   touchLastSeen,
+  veilCast,
   worldHorizon,
 } from './horizon.js'
 import { type TestDb, startTestDb } from './testDb.js'
@@ -106,6 +115,116 @@ describe('throughStage, isVeiled y stageGateOf (§10.6)', () => {
     expect(stageGateOf(h, KEY, 6)).toEqual({ k: 'previous_unseen', firstUnseen: 5 })
     expect(stageGateOf(h, KEY, 9)).toEqual({ k: 'previous_unseen', firstUnseen: 5 })
     expect(stageGateOf(h, 'race-italy:s0', 3)).toEqual({ k: 'previous_unseen', firstUnseen: 2 })
+  })
+})
+
+/**
+ * EL REPARTO BAJO EL VELO (docs/retransmision.md §10.10 y §7.8; I-11, D-15, D-37; paso 7b). Todo dato
+ * del reparto congelado cuya procedencia (`from`, o la `source` de un título) está en el velo de quien
+ * mira se degrada antes de servir: el maillot a la equipación, la línea fuera, la salida de la general a
+ * null; `stage_wins`, etapa a etapa. Lo que no lleva procedencia (dorsal, país, equipo, `knownWins`,
+ * los favoritos) viaja tal cual. B13, con las seis congeladas y 500 velos, está en
+ * `apps/api/src/broadcastFixtures.test.ts` (17-t).
+ */
+describe('veilCast · el reparto bajo el velo (§10.10; 7b)', () => {
+  const ref = (stageDay: number, raceKey = KEY): StageRef => ({ raceKey, stageDay })
+  const n1 = ref(6) // la N−1 de la etapa 7
+  const title = (source: StageRef): ChampionTitle => ({
+    scope: 'national',
+    country: 'IT',
+    discipline: 'road',
+    category: 'elite',
+    season: 0,
+    validFromDay: 0,
+    validToDay: 365,
+    source,
+    provisional: true,
+  })
+  const NC = ref(1, 'nc-it-road:s0')
+  const rider = (i: number, over: Partial<CastRider>): CastRider => ({
+    rider: i,
+    riderId: `rider-${i}`,
+    bib: i + 1,
+    team: 0,
+    country: 'IT',
+    gender: 'M',
+    start: { gcRank: i + 1, gcDeficitS: i * 10, from: n1 },
+    worn: { kind: 'team' },
+    distinctions: [],
+    knownWins: 3,
+    ...over,
+  })
+  const cast: TimelineCast = {
+    riders: [
+      rider(0, { worn: { kind: 'leader', jersey: 'gc', delegated: false, from: n1 } }),
+      rider(1, {
+        worn: { kind: 'leader', jersey: 'points', delegated: true, from: n1 },
+        distinctions: [
+          { kind: 'wears_for', jersey: 'points', rank: 2, from: n1 },
+          { kind: 'leads', jersey: 'kom', from: n1 },
+        ],
+      }),
+      rider(2, {
+        worn: { kind: 'champion', title: title(NC) },
+        distinctions: [
+          { kind: 'gc', rank: 3, deficitS: 20, from: n1 },
+          { kind: 'stage_wins', stages: [ref(2), ref(5)] },
+        ],
+      }),
+      rider(3, { distinctions: [{ kind: 'champion', title: title(NC) }] }),
+    ],
+    teams: [{ teamId: 'team-0', jerseySeed: 'j0' }],
+    favourites: [{ rider: 2, why: 'climb' }],
+  }
+
+  it('con el velo vacío devuelve el mismo reparto, sin copiarlo', () => {
+    expect(veilCast(cast, worldHorizon)).toBe(cast)
+    expect(veilCast(cast, anonHorizon())).toBe(cast)
+  })
+
+  it('con la N−1 velada: nadie lleva maillot de líder, sin líneas de la N−1 y sin general de salida', () => {
+    const out = veilCast(cast, withVeil([veiled(6)]))
+    expect(out.riders.map((c) => c.worn.kind)).toEqual(['team', 'team', 'champion', 'team'])
+    expect(out.riders[1]!.distinctions).toEqual([])
+    // la línea de general se va; las victorias de etapa de antes, que conoce, se quedan
+    expect(out.riders[2]!.distinctions).toEqual([{ kind: 'stage_wins', stages: [ref(2), ref(5)] }])
+    for (const c of out.riders)
+      expect(c.start).toEqual({ gcRank: null, gcDeficitS: null, from: null })
+    // lo que no lleva procedencia viaja tal cual
+    expect(out.teams).toBe(cast.teams)
+    expect(out.favourites).toBe(cast.favourites)
+    expect(out.riders.map((c) => [c.riderId, c.bib, c.team, c.country, c.knownWins])).toEqual(
+      cast.riders.map((c) => [c.riderId, c.bib, c.team, c.country, c.knownWins]),
+    )
+    expect(JSON.stringify(out)).not.toContain('"stageDay":6')
+  })
+
+  it('stage_wins se filtra etapa a etapa, y sin ninguna se va la línea', () => {
+    const one = veilCast(cast, withVeil([veiled(5)]))
+    expect(one.riders[2]!.distinctions).toEqual([
+      { kind: 'gc', rank: 3, deficitS: 20, from: n1 },
+      { kind: 'stage_wins', stages: [ref(2)] },
+    ])
+    const both = veilCast(cast, withVeil([veiled(2), veiled(5)]))
+    expect(both.riders[2]!.distinctions.map((d) => d.kind)).toEqual(['gc'])
+    // la N−1 sigue conocida: el maillot y la general de salida viajan
+    expect(both.riders[0]!.worn).toEqual(cast.riders[0]!.worn)
+    expect(both.riders[0]!.start).toEqual(cast.riders[0]!.start)
+  })
+
+  it('un título cuyo campeonato está velado no viste a nadie ni sale en su línea (D-37)', () => {
+    const out = veilCast(cast, withVeil([veiled(1, 'nc-it-road:s0')]))
+    expect(out.riders[2]!.worn).toEqual({ kind: 'team' })
+    expect(out.riders[3]!.distinctions).toEqual([])
+    // lo de la carrera, que conoce, sigue
+    expect(out.riders[0]!.worn).toEqual(cast.riders[0]!.worn)
+    expect(out.riders[2]!.distinctions).toEqual(cast.riders[2]!.distinctions)
+    expect(JSON.stringify(out)).not.toContain('nc-it-road')
+  })
+
+  it('un velo de otra carrera o de otra etapa no toca nada', () => {
+    const out = veilCast(cast, withVeil([veiled(6, 'race-italy:s0'), veiled(9)]))
+    expect(out).toEqual(cast)
   })
 })
 

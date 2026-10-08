@@ -11,6 +11,7 @@ import {
   getStageSnapshot,
   getTeamClassifications,
   readStageTimeline,
+  veilCast,
 } from '@cyclingstar/db'
 import {
   STAGE,
@@ -1354,18 +1355,18 @@ export interface ServeCastContext {
 /**
  * EL REPARTO SERVIDO (`BroadcastHead.cast`, §7.8): un `RiderCard` por corredor con sus líneas cortadas
  * a `cardLinesMax` y su notoriedad (`staticNotoriety`, §7.5), sobre el reparto congelado
- * (`riderCardsOf`, en `shared` para que la web pruebe con la misma cabecera, B3). Todavía sin velo:
- * `worldHorizon` llega ya (`h`), y el 7b mete delante `veilCast`, que degrada lo que viene de una etapa
- * velada antes de cortar y de calcular la notoriedad (§7.8). Los nombres no se congelan: se resuelven
- * al servir, con los de hoy.
+ * (`riderCardsOf`, en `shared` para que la web pruebe con la misma cabecera, B3). Con el horizonte de
+ * quien mira (7b): primero `veilCast` degrada lo que viene de una etapa velada, y después se cortan las
+ * líneas y se calcula la notoriedad (§7.8), así que una línea velada no ocupa un hueco ni sube de nivel
+ * a nadie (B13). Los nombres no se congelan: se resuelven al servir, con los de hoy.
  */
 export function serveCast(
   cast: TimelineCast,
-  _h: Horizon,
+  h: Horizon,
   names: Pick<NameResolver, 'rider' | 'team'>,
   ctx: ServeCastContext,
 ): RiderCard[] {
-  return riderCardsOf(cast, names, ctx.own, ctx.dayCategory)
+  return riderCardsOf(veilCast(cast, h), names, ctx.own, ctx.dayCategory)
 }
 
 // ======================================================= LA FUENTE: timelineForStage y su LRU (3a)
