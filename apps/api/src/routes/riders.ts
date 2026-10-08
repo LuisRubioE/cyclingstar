@@ -1,4 +1,6 @@
 import {
+  type Horizon,
+  type RiderRaceReport,
   type TrainingOrderRow,
   acceptOffer,
   createRider,
@@ -33,6 +35,7 @@ import {
   getRiderUpcomingRaces,
   getTeamTrainingPlan,
   getTrainingOrders,
+  lastReadyStageOf,
   rejectOffer,
   retireFromRace,
   countRidersForUser,
@@ -40,6 +43,7 @@ import {
   setRiderArchetype,
   setTeamTrainingPlan,
   setTrainingOrders,
+  stageGameDay,
   withdrawRace,
   worldHorizon,
 } from '@cyclingstar/db'
@@ -55,6 +59,7 @@ import {
 } from '@cyclingstar/engine'
 import {
   PLAYER_START_AGE,
+  type PreStageInfo,
   SESSIONS,
   type TrainingChoice,
   birthSeasonForAge,
@@ -65,6 +70,7 @@ import {
 } from '@cyclingstar/shared'
 import { z } from 'zod'
 import { badRequest, notFound, sendError, unauthorized } from '../http.js'
+import { preStageInfoOf, stageContextOf } from '../stageReplay.js'
 import type { RoutePlugin } from './context.js'
 import { parseRaceId, parseRaceKey, parseUuid } from './params.js'
 
@@ -224,8 +230,28 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
     return reply.status(201).send({ ok: true, id: created.id })
   })
 
+  /**
+   * La última corrida, si está velada y es posterior a la del informe (E2, docs/retransmision.md §12.9
+   * y §14.2, D-47; paso 8a): lo único que se sabe de ella (`PreStageInfo`, D-42), para «Ready to
+   * watch». La decide la lista de salida y el horizonte (`lastReadyStageOf`), nunca lo que pasó en ella.
+   */
+  async function readyOf(
+    h: Horizon,
+    riderId: string,
+    report: RiderRaceReport | null,
+  ): Promise<PreStageInfo | null> {
+    const last = await lastReadyStageOf(db, h, riderId)
+    if (last === null) return null
+    if (report !== null && last.gameDay <= stageGameDay(report.raceId, report.stageDay)) return null
+    const key = parseRaceKey(last.raceKey)
+    const ctx =
+      key === null ? null : await stageContextOf(db, key.raceId, last.stageDay, key.season)
+    return ctx === null ? null : preStageInfoOf(ctx)
+  }
+
   // Informe personal de la última carrera: qué ordené vs qué pasó (backlog extra). Sobre la última
-  // etapa CONOCIDA (P y G; E2, docs/retransmision.md §12.9, D-47; paso 8a).
+  // etapa CONOCIDA (P y G; E2, docs/retransmision.md §12.9, D-47; paso 8a), y con `ready` si la última
+  // corrida está velada. Sin velo, la respuesta de siempre: sin la clave.
   app.get(
     '/api/riders/me/last-race',
     { config: { spoiler: 'horizon', veil: { by: ['P', 'G'] } } },
@@ -235,7 +261,9 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
       const rider = await getRiderForUser(db, userId)
       if (!rider) return { report: null }
       const h = await request.horizon()
-      return { report: await getRiderLastRaceReport(db, h, rider.id) }
+      const report = await getRiderLastRaceReport(db, h, rider.id)
+      const ready = await readyOf(h, rider.id, report)
+      return ready === null ? { report } : { report, ready }
     },
   )
 

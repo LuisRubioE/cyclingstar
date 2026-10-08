@@ -19,6 +19,8 @@ import {
   newsItemSchema,
   newsResponseSchema,
   riderRaceReportSchema,
+  riderRaceResultSchema,
+  riderResultsResponseSchema,
   stageReplaySchema,
   teamNewsItemSchema,
   teamNewsResponseSchema,
@@ -61,8 +63,11 @@ const YESTERDAY = {
   stageReplay: stageReplaySchema.omit({ tplRev: true, watch: true }),
   newsItem: newsItemSchema.omit(NEWS_DATA),
   teamNewsItem: teamNewsItemSchema.omit(NEWS_DATA),
-  lastRaceResponse: lastRaceResponseSchema,
+  // `ready`, del 8a (§12.9): la última corrida, si está velada, con lo único que se sabe de ella.
+  lastRaceResponse: lastRaceResponseSchema.omit({ ready: true }),
   riderRaceReport: riderRaceReportSchema,
+  // `stagesToWatch`, del 8a (§11.6): las etapas por ver de una carrera, en los resultados del corredor.
+  riderRaceResult: riderRaceResultSchema.omit({ stagesToWatch: true }),
   // `features`, del 3a (14-l): los interruptores de E2, que /health publica cuando los recibe.
   health: healthSchema.omit({ features: true }),
 }
@@ -74,6 +79,7 @@ const yesterdayTeamNews = z.object({ news: z.array(YESTERDAY.teamNewsItem) })
 const yesterdayLastRace = YESTERDAY.lastRaceResponse.extend({
   report: YESTERDAY.riderRaceReport.nullable(),
 })
+const yesterdayRiderResults = z.object({ results: z.array(YESTERDAY.riderRaceResult) })
 const yesterdayHealth = YESTERDAY.health
 
 /** Las claves de los esquemas de ayer en la base de E2 (v91). El diseño las fijaba en `9c21885`, la v89. */
@@ -130,6 +136,18 @@ const KEYS: Record<keyof typeof YESTERDAY, readonly string[]> = {
     'winnerName',
     'personalEvents',
     'story',
+  ],
+  riderRaceResult: [
+    'raceId',
+    'raceName',
+    'raceClass',
+    'season',
+    'stageCount',
+    'isOneDay',
+    'gcPuesto',
+    'dnf',
+    'finished',
+    'stages',
   ],
   health: [
     'ok',
@@ -361,7 +379,9 @@ describe('la web de ayer: lo que la API manda hoy pasa por sus esquemas', () => 
       expect(known.parsed.leaders?.onRoad.gc).not.toBeNull()
       expect(known.raw.watch).toMatchObject({ known: true, seen: true, gate: null })
     } finally {
+      // Con el `rev` nuevo: el horizonte de cada (usuario, rev) se memoriza 60 s en el proceso (10-n).
       await t.client`delete from race_watch where user_id = ${USER_ID}`
+      await t.client`update users set horizon_rev = horizon_rev + 1 where id = ${USER_ID}`
       await veiledApp.close()
     }
   })
@@ -382,7 +402,8 @@ describe('la web de ayer: lo que la API manda hoy pasa por sus esquemas', () => 
       expect(typeof n.seed).toBe('string')
       expect(n.stageDay).toBe(n.payload && 'stageDay' in n.payload ? n.payload.stageDay : null)
     }
-    // Los dos titulares de líder se escriben desde la etapa 2 de una vuelta y no se sirven hasta el 8a.
+    // Los dos titulares de líder se escriben desde la etapa 2 de una vuelta y desde el 8a salen solo a
+    // quien le aplica el velo (17-x): con SPOILER_MODE apagado, a nadie.
     expect(news.filter((n) => n.kind === 'gc_lead_taken' || n.kind === 'jersey_taken')).toEqual([])
     const stage = yesterdayStage.parse(await get(`/api/races/${RACE_ID}/stages/2`))
     const winnerTeam = stage.results?.find((r) => r.puesto === 1)?.teamId
@@ -402,6 +423,87 @@ describe('la web de ayer: lo que la API manda hoy pasa por sus esquemas', () => 
   it('el informe de la última carrera', async () => {
     const { report } = yesterdayLastRace.parse(await get('/api/riders/me/last-race'))
     expect(report?.stageDay).toBe(2)
+  })
+
+  it('los resultados del corredor', async () => {
+    const { results } = yesterdayRiderResults.parse(await get(`/api/riders/${OWN_RIDER}/results`))
+    expect(results.map((r) => r.raceId)).toEqual([RACE_ID])
+  })
+
+  /**
+   * BAJO EL VELO (§11.6, §11.7 y §12.9; paso 8a): con SPOILER_MODE y nada visto, la 1 y la 2 están en
+   * el velo del jugador. El feed y las noticias de su equipo llevan un `stage_ready` por etapa velada,
+   * `last-race` lleva `ready` y los resultados del corredor, `stagesToWatch`: todo pasa por los esquemas
+   * de ayer, que leen el marcador como un titular más y descartan las dos claves nuevas. Con la 1 vista,
+   * el informe es el de la 1 y `ready`, la 2; con las dos, la respuesta de siempre.
+   */
+  it('el feed con stage_ready, last-race con ready y los resultados con stagesToWatch, con SPOILER_MODE (8a)', async () => {
+    const veiledApp = buildApp({
+      db: t.db,
+      auth: playerAuth(),
+      serveWeb: false,
+      migrationsApplied: true,
+      tickIntervalMinutes: 360,
+      switches: { broadcastWatch: 'admins', spoilerMode: 'on' },
+    })
+    const getVeiled = async (url: string): Promise<unknown> => {
+      const res = await veiledApp.inject({ method: 'GET', url })
+      expect(res.statusCode, `${url} → ${res.body.slice(0, 200)}`).toBe(200)
+      return res.json()
+    }
+    const watched = async (knownThrough: number, how: string): Promise<void> => {
+      await t.client`delete from race_watch where user_id = ${USER_ID}`
+      await t.client`insert into race_watch (user_id, world_id, race_key, follow, known_through, how)
+                     values (${USER_ID}, ${worldId}, ${RACE_KEY}, 1, ${knownThrough}, ${how})`
+      await t.client`update users set horizon_rev = horizon_rev + 1 where id = ${USER_ID}`
+    }
+    const ready = (stageDay: number) => `Stage ${stageDay} of ${RACE.name} is ready to watch`
+    try {
+      await t.client`delete from race_watch where user_id = ${USER_ID}`
+      await t.client`update users set horizon_rev = horizon_rev + 1 where id = ${USER_ID}`
+      const feed = await getVeiled('/api/news')
+      const { news } = yesterdayNews.parse(feed)
+      // Todo lo escrito en este mundo es de las dos etapas veladas: quedan sus dos marcadores.
+      expect(news.map((n) => [n.kind, n.text])).toEqual([
+        ['stage_ready', ready(2)],
+        ['stage_ready', ready(1)],
+      ])
+      expect(newsResponseSchema.parse(feed).news.map((n) => [n.raceKey, n.stageDay])).toEqual([
+        [RACE_KEY, 2],
+        [RACE_KEY, 1],
+      ])
+      const team = yesterdayTeamNews.parse(await getVeiled(`/api/teams/${TEAM_IDS[0]!}/news`))
+      expect(team.news.map((n) => n.text)).toEqual([ready(2), ready(1)])
+
+      const lastRace = await getVeiled('/api/riders/me/last-race')
+      expect(yesterdayLastRace.parse(lastRace).report).toBeNull()
+      expect(lastRaceResponseSchema.parse(lastRace).ready).toMatchObject({
+        raceName: RACE.name,
+        season: 0,
+        stageDay: 2,
+        stageCount: RACE.stages.length,
+      })
+
+      const results = await getVeiled(`/api/riders/${OWN_RIDER}/results`)
+      expect(yesterdayRiderResults.parse(results).results).toMatchObject([
+        { raceId: RACE_ID, stages: [], gcPuesto: null },
+      ])
+      expect(riderResultsResponseSchema.parse(results).results[0]?.stagesToWatch).toBe(2)
+
+      await watched(1, 'W')
+      const known1 = lastRaceResponseSchema.parse(await getVeiled('/api/riders/me/last-race'))
+      expect(known1.report?.stageDay).toBe(1)
+      expect(known1.ready?.stageDay).toBe(2)
+
+      await watched(2, 'WW')
+      const known2 = (await getVeiled('/api/riders/me/last-race')) as Record<string, unknown>
+      expect(known2).not.toHaveProperty('ready')
+      expect(yesterdayLastRace.parse(known2).report?.stageDay).toBe(2)
+    } finally {
+      await t.client`delete from race_watch where user_id = ${USER_ID}`
+      await t.client`update users set horizon_rev = horizon_rev + 1 where id = ${USER_ID}`
+      await veiledApp.close()
+    }
   })
 
   it('la salud del servidor', async () => {

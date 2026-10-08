@@ -58,7 +58,7 @@ import { type ChronicleNames, buildChronicle, chronicleNames } from '../chronicl
 import { badRequest, notFound, sendError, sendGate } from '../http.js'
 import { PLAYER_RATE_LIMIT } from '../security.js'
 import { stageHead } from '../stageHistory.js'
-import { type StageContext, stageContextOf, stageReplayOf } from '../stageReplay.js'
+import { type StageContext, preStageInfoOf, stageContextOf, stageReplayOf } from '../stageReplay.js'
 import { lineVoiceOf, storedWithRoles } from '../voiceRoles.js'
 import type { RoutePlugin } from './context.js'
 import { parseRaceId, parseStageDay } from './params.js'
@@ -566,16 +566,7 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
   async function tomorrowOf(ctx: StageContext): Promise<PreStageInfo | null> {
     if (ctx.day >= ctx.race.stages.length) return null
     const next = await stageContextOf(db, ctx.race.id, ctx.day + 1, ctx.season)
-    if (next === null) return null
-    return {
-      raceName: ctx.race.name,
-      season: ctx.season,
-      stageDay: next.day,
-      stageCount: ctx.race.stages.length,
-      km: next.km,
-      label: next.spec.label,
-      stageKind: next.spec.kind,
-    }
+    return next === null ? null : preStageInfoOf(next)
   }
 }
 

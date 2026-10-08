@@ -47,7 +47,7 @@ const TABLE: Readonly<Record<string, readonly [SpoilerPolicy, VeilSpec]>> = {
   // routes/health.ts
   'GET /health': ['safe', N], // l. 21-22
   // routes/riders.ts (la única pública de ese fichero)
-  'GET /api/names/generate': ['safe', N], // l. 126
+  'GET /api/names/generate': ['safe', N], // l. 132
   // routes/geo.ts
   'GET /api/geo/country': ['safe', N], // l. 75
   // routes/authProxy.ts: el comodín (l. 66-71) y las ocho de credenciales (l. 63, CREDENTIAL_AUTH_PATHS)
@@ -124,66 +124,66 @@ const TABLE: Readonly<Record<string, readonly [SpoilerPolicy, VeilSpec]>> = {
       by: ['L'],
       why: 'DD-08: los atributos propios se enseñan aunque los mueva lo aprendido en carrera',
     },
-  ], // l. 140-141
-  'GET /api/riders/me/upcoming-races': ['horizon', { by: ['M'] }], // l. 159-160
-  'GET /api/me/team-control': ['safe', N], // l. 175
-  'POST /api/riders': ['safe', N], // l. 182
-  'GET /api/riders/me/last-race': ['horizon', { by: ['P', 'G'] }], // l. 229-230
-  'PUT /api/riders/me/archetype': ['safe', N], // l. 244
-  'GET /api/riders/me/orders': ['horizon', { by: ['M'] }], // l. 256-257
-  'PUT /api/riders/me/orders': ['safe', N], // l. 304
-  'GET /api/riders/me/plan': ['safe', N], // l. 339
-  'PUT /api/riders/me/plan': ['safe', N], // l. 353
-  'POST /api/riders/me/plan/preview': ['horizon', { by: ['M'] }], // l. 375-376
-  'GET /api/me/team-training': ['safe', N], // l. 436
-  'PUT /api/me/team-training': ['safe', N], // l. 459
+  ], // l. 146-147
+  'GET /api/riders/me/upcoming-races': ['horizon', { by: ['M'] }], // l. 165-166
+  'GET /api/me/team-control': ['safe', N], // l. 181
+  'POST /api/riders': ['safe', N], // l. 188
+  'GET /api/riders/me/last-race': ['horizon', { by: ['P', 'G'] }], // l. 255-256
+  'PUT /api/riders/me/archetype': ['safe', N], // l. 272
+  'GET /api/riders/me/orders': ['horizon', { by: ['M'] }], // l. 284-285
+  'PUT /api/riders/me/orders': ['safe', N], // l. 332
+  'GET /api/riders/me/plan': ['safe', N], // l. 367
+  'PUT /api/riders/me/plan': ['safe', N], // l. 381
+  'POST /api/riders/me/plan/preview': ['horizon', { by: ['M'] }], // l. 403-404
+  'GET /api/me/team-training': ['safe', N], // l. 464
+  'PUT /api/me/team-training': ['safe', N], // l. 487
   'GET /api/riders/me/form': [
     'horizon',
     {
       by: ['L', 'F', 'M'],
       why: 'DD-08: la condición propia se enseña; el parte y la actividad de los días velados, no',
     },
-  ], // l. 472-473
-  'GET /api/riders/me/trend': ['horizon', { by: ['F'] }], // l. 517-518
+  ], // l. 500-501
+  'GET /api/riders/me/trend': ['horizon', { by: ['F'] }], // l. 545-546
   'GET /api/riders/me/coach-view': [
     'horizon',
     {
       by: ['L'],
       why: 'DD-08: las notas del preparador miran los atributos propios, que mueve lo aprendido en carrera',
     },
-  ], // l. 531-532
-  'GET /api/riders/me/report': ['horizon', { by: ['F'] }], // l. 555-556
+  ], // l. 559-560
+  'GET /api/riders/me/report': ['horizon', { by: ['F'] }], // l. 583-584
   'GET /api/riders/me/race-prefs': [
     'horizon',
     { by: ['L'], why: 'convocatorias decididas con el mundo al día; no nombran ninguna etapa' },
-  ], // l. 571-572
-  'PUT /api/riders/me/race-prefs': ['safe', N], // l. 592
-  'GET /api/riders/me/palmares': ['horizon', { by: ['F'] }], // l. 604-605
-  'GET /api/riders/me/summary': ['horizon', { by: ['R'] }], // l. 617-618
-  'GET /api/riders/me/ledger': ['horizon', { by: ['F', 'R'] }], // l. 630-631
+  ], // l. 599-600
+  'PUT /api/riders/me/race-prefs': ['safe', N], // l. 620
+  'GET /api/riders/me/palmares': ['horizon', { by: ['F'] }], // l. 632-633
+  'GET /api/riders/me/summary': ['horizon', { by: ['R'] }], // l. 645-646
+  'GET /api/riders/me/ledger': ['horizon', { by: ['F', 'R'] }], // l. 658-659
   'GET /api/riders/me/offers': [
     'horizon',
     {
       by: ['L'],
       why: 'ofertas con el rating y los presupuestos del mundo al día; no nombran ninguna etapa',
     },
-  ], // l. 650-651
-  'POST /api/riders/me/offers/:id/accept': ['safe', N], // l. 670-671
-  'POST /api/riders/me/offers/:id/reject': ['safe', N], // l. 689-690
-  'GET /api/riders/me/race-entries': ['safe', N], // l. 712-713
-  'POST /api/riders/me/race-entries/:raceId': ['safe', N], // l. 725-726
-  'DELETE /api/riders/me/race-entries/:raceId': ['safe', N], // l. 742-743
-  'POST /api/riders/me/races/:raceKey/retire': ['horizon', { by: ['M'] }], // l. 768-769
-  'GET /api/riders/:id/badges': ['horizon', { by: ['R'] }], // l. 795-796
-  'GET /api/riders/:id/palmares': ['horizon', { by: ['F'] }], // l. 806-807
-  'GET /api/riders/:id/results': ['horizon', { by: ['F', 'P'] }], // l. 818-819
+  ], // l. 678-679
+  'POST /api/riders/me/offers/:id/accept': ['safe', N], // l. 698-699
+  'POST /api/riders/me/offers/:id/reject': ['safe', N], // l. 717-718
+  'GET /api/riders/me/race-entries': ['safe', N], // l. 740-741
+  'POST /api/riders/me/race-entries/:raceId': ['safe', N], // l. 753-754
+  'DELETE /api/riders/me/race-entries/:raceId': ['safe', N], // l. 770-771
+  'POST /api/riders/me/races/:raceKey/retire': ['horizon', { by: ['M'] }], // l. 796-797
+  'GET /api/riders/:id/badges': ['horizon', { by: ['R'] }], // l. 823-824
+  'GET /api/riders/:id/palmares': ['horizon', { by: ['F'] }], // l. 834-835
+  'GET /api/riders/:id/results': ['horizon', { by: ['F', 'P'] }], // l. 846-847
   'GET /api/riders/:id': [
     'horizon',
     {
       by: ['R', 'M', 'L'],
       why: 'DD-08: los atributos se enseñan aunque los mueva lo aprendido en carrera, también los de un rival',
     },
-  ], // l. 828-829
+  ], // l. 856-857
   // routes/teams.ts
   'POST /api/teams/take-over': ['safe', N], // l. 36
   'PUT /api/teams/me': ['safe', N], // l. 48

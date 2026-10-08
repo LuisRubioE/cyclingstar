@@ -966,6 +966,12 @@ export const riderRaceResultSchema = z.object({
   dnf: z.boolean(),
   finished: z.boolean(),
   stages: z.array(riderStagePlacingSchema),
+  /**
+   * Las etapas de esta carrera que quien mira aún no ha visto (E2, docs/retransmision.md §11.6, punto 2;
+   * sups. P4 y H7; paso 8a): la fila «Race France · 3 stages to watch». Solo con velo; sin él, la clave
+   * no sale. La carrera entra aunque no tenga ninguna etapa conocida.
+   */
+  stagesToWatch: z.number().int().min(1).optional(),
 })
 export type RiderRaceResult = z.infer<typeof riderRaceResultSchema>
 export const riderResultsResponseSchema = z.object({ results: z.array(riderRaceResultSchema) })
@@ -1663,7 +1669,15 @@ export const riderRaceReportSchema = z.object({
   story: z.array(raceReportEventSchema),
 })
 export type RiderRaceReport = z.infer<typeof riderRaceReportSchema>
-export const lastRaceResponseSchema = z.object({ report: riderRaceReportSchema.nullable() })
+/**
+ * `GET /api/riders/me/last-race`. `report` es el de la última etapa CONOCIDA; `ready`, la última corrida
+ * si está velada y es posterior, con lo único que se sabe de ella (`PreStageInfo`, D-42), para «Ready
+ * to watch» (E2, docs/retransmision.md §12.9 y §14.2, D-47; paso 8a). Sin velo, la clave no sale.
+ */
+export const lastRaceResponseSchema = z.object({
+  report: riderRaceReportSchema.nullable(),
+  ready: preStageInfoSchema.nullish(),
+})
 
 // --- Admin (protegido por x-admin-token) ---------------------------------------------------
 

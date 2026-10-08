@@ -21,7 +21,13 @@ import {
   renderAltimetrySvg,
   stagesForSeason,
 } from '@cyclingstar/engine'
-import { NO_LEADERS, type RaceLeaders, currentSeason, raceLeaders } from '@cyclingstar/shared'
+import {
+  NO_LEADERS,
+  type PreStageInfo,
+  type RaceLeaders,
+  currentSeason,
+  raceLeaders,
+} from '@cyclingstar/shared'
 import { leadersThroughStage } from './broadcastSource.js'
 import {
   type ChronicleEvent,
@@ -92,6 +98,22 @@ export async function stageContextOf(
     stage,
     km,
     spec: calendarStageSpec(stage, km),
+  }
+}
+
+/**
+ * Lo ÚNICO que un título, un aviso o una miniatura saben de una etapa (D-42): por tipo no cabe un
+ * resultado. Es el `tomorrow` del paquete de meta y el `ready` de `GET /api/riders/me/last-race` (8a).
+ */
+export function preStageInfoOf(ctx: StageContext): PreStageInfo {
+  return {
+    raceName: ctx.race.name,
+    season: ctx.season,
+    stageDay: ctx.day,
+    stageCount: ctx.race.stages.length,
+    km: ctx.km,
+    label: ctx.spec.label,
+    stageKind: ctx.spec.kind,
   }
 }
 

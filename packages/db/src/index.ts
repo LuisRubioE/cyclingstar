@@ -363,6 +363,8 @@ export {
 } from './riderResults.js'
 export {
   getRiderLastRaceReport,
+  lastReadyStageOf,
+  type ReadyStage,
   type RiderRaceReport,
   type RaceReportOrders,
   type RaceReportEvent,
