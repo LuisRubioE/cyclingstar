@@ -1,20 +1,26 @@
 import { COUNTRIES, seasonPosition } from '@cyclingstar/shared'
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { fetchCalendar } from '../api/calendar'
-import { type NewsItem, fetchNews } from '../api/news'
+import { type NewsItem, fetchNews, newsKey } from '../api/news'
+import { diagOf } from '../api/results'
 import { Flag } from '../components/Flag'
 import { SectionBar } from '../components/Panel'
+import { DiagnosticStrip } from '../components/StageGate'
+import { StageReadyLine } from '../components/StageReadyLine'
 import { newsLabel } from '../domain/labels'
 import {
   NO_FILTER,
   type NewsFilter,
+  feedEntries,
   groupByGameDay,
   headlineTarget,
   matchesFilter,
   raceOfItem,
 } from '../domain/newsFeed'
+import { horizonKey, useHorizonRev } from '../queryClient'
+import { useWatchOn } from '../watchSwitch'
 
 const selectClass =
   'w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-700 focus:border-brand-cyan focus:outline-none'
@@ -83,10 +89,33 @@ function Headline({ item, raceId }: { item: NewsItem; raceId: string | null }) {
  * News (navegación §3.5): el MISMO feed global para todo el mundo, sin personalizar, agrupado por
  * día de juego y con filtros por equipo, corredor, nación y carrera para poder preguntarle cosas
  * concretas ("¿qué ha hecho mi equipo?", "¿quién ganó en la Volta?").
+ *
+ * BAJO EL VELO (E2, docs/retransmision.md §11.7 y §11.15; paso 9b): la API ya no manda las noticias de las
+ * etapas que quien mira no ha visto, sino un marcador por etapa (8a), que aquí es una línea `Watch` que
+ * lleva a la etapa; con más de `SPOILER.newsGroupAbove` de una carrera, una sola línea (`feedEntries`).
+ * Los desplegables se construyen con lo servido (sup. N3): un marcador aporta su carrera y ningún
+ * corredor. Y el modo diagnóstico del dueño: `?diag=1` de un administrador pide el feed con el horizonte
+ * del mundo, con su franja; el botón `Diagnostic view` sale solo a un administrador con algo velado.
  */
 export function News() {
-  const { data, isPending, isError } = useQuery({ queryKey: ['news'], queryFn: fetchNews })
-  const calendar = useQuery({ queryKey: ['calendar'], queryFn: fetchCalendar })
+  const [params] = useSearchParams()
+  const diag = diagOf(params)
+  const rev = useHorizonRev()
+  const { data, isPending, isError } = useQuery({
+    queryKey: newsKey(diag, rev),
+    queryFn: () => fetchNews({ diag }),
+    enabled: rev !== undefined,
+    placeholderData: keepPreviousData,
+  })
+  const calendar = useQuery({
+    queryKey: horizonKey(['calendar'], rev),
+    queryFn: fetchCalendar,
+    enabled: rev !== undefined,
+  })
+  const veiled = (data ?? []).some((item) => item.kind === 'stage_ready')
+  // ¿Es un administrador con sesión? Solo se pregunta con `?diag=1` o con algo velado.
+  const { isAdmin } = useWatchOn(diag || veiled)
+  const diagOn = diag && isAdmin
   // El filtro es estado de la vista: nunca se deriva de la respuesta del servidor.
   const [filter, setFilter] = useState<NewsFilter>(NO_FILTER)
 
@@ -134,12 +163,20 @@ export function News() {
 
   const shown = withRace.filter(({ item, raceId }) => matchesFilter(item, filter, raceId))
   const visible = shown.map(({ item }) => item)
-  const days = groupByGameDay(visible)
+  const days = groupByGameDay(feedEntries(visible))
   const filtered = Object.values(filter).some((v) => v !== null)
 
   return (
     <section className="space-y-4">
       <SectionBar>News</SectionBar>
+      {diagOn && <DiagnosticStrip exitHref="/news" />}
+      {!diag && isAdmin && veiled && (
+        <p className="text-right">
+          <Link to="/news?diag=1" className="text-xs text-slate-400 hover:text-slate-600">
+            Diagnostic view
+          </Link>
+        </p>
+      )}
 
       {/* Los filtros van en una caja neutra, sin cabecera de color: son una herramienta, no una
           sección con contenido propio. */}
@@ -204,9 +241,17 @@ export function News() {
                 </h2>
                 <div className="overflow-hidden rounded-md bg-white shadow-sm ring-1 ring-black/5">
                   <ol className="divide-y divide-slate-100">
-                    {day.items.map((item, i) => (
-                      <Headline key={`${day.gameDay}-${i}`} item={item} raceId={raceOfItem(item)} />
-                    ))}
+                    {day.items.map((entry, i) =>
+                      entry.kind === 'news' ? (
+                        <Headline
+                          key={`${day.gameDay}-${i}`}
+                          item={entry.item}
+                          raceId={raceOfItem(entry.item)}
+                        />
+                      ) : (
+                        <StageReadyLine key={`${day.gameDay}-${i}`} entry={entry} />
+                      ),
+                    )}
                   </ol>
                 </div>
               </section>

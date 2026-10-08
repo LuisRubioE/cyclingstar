@@ -12,8 +12,10 @@ import { fetchRiderSummary } from '../api/rider'
 import { Flag } from '../components/Flag'
 import { Jersey } from '../components/Jersey'
 import { InfoRow, Panel, SectionBar } from '../components/Panel'
+import { TeamFeed } from '../components/TeamFeed'
 import { TeamManager } from '../components/TeamManager'
 import { archetypeLabel } from '../domain/labels'
+import { horizonKey, useHorizonRev } from '../queryClient'
 
 /**
  * `My Team → Identity` (docs/navegacion.md §3.4): quién es mi equipo — maillot, país, división,
@@ -77,19 +79,28 @@ function philosophy(team: TeamDetail): string {
 }
 
 export function TeamIdentity() {
-  const summary = useQuery({ queryKey: ['rider', 'summary'], queryFn: fetchRiderSummary })
+  const rev = useHorizonRev()
+  const summary = useQuery({
+    queryKey: horizonKey(['rider', 'summary'], rev),
+    queryFn: fetchRiderSummary,
+    enabled: rev !== undefined,
+  })
   const teamId = summary.data?.teamId ?? null
   const team = useQuery({
-    queryKey: ['team', teamId],
+    queryKey: horizonKey(['team', teamId], rev),
     queryFn: () => fetchTeam(teamId!),
-    enabled: teamId != null,
+    enabled: teamId != null && rev !== undefined,
   })
   const news = useQuery({
-    queryKey: ['team-news', teamId],
+    queryKey: horizonKey(['team-news', teamId], rev),
     queryFn: () => fetchTeamNews(teamId!),
-    enabled: teamId != null,
+    enabled: teamId != null && rev !== undefined,
   })
-  const teams = useQuery({ queryKey: ['teams'], queryFn: fetchTeams })
+  const teams = useQuery({
+    queryKey: horizonKey(['teams'], rev),
+    queryFn: fetchTeams,
+    enabled: rev !== undefined,
+  })
   const control = useQuery({ queryKey: ['team-control'], queryFn: fetchTeamControl })
 
   if (summary.isPending) return <p className="text-slate-500">Loading…</p>
@@ -177,16 +188,7 @@ export function TeamIdentity() {
 
       <Panel title="History" bodyClassName="p-0">
         {news.data && news.data.length > 0 ? (
-          <ul className="divide-y divide-slate-100">
-            {news.data.map((n, i) => (
-              <li key={i} className="flex gap-3 px-4 py-2.5 text-sm">
-                <span className="w-16 shrink-0 text-xs tabular-nums text-slate-400">
-                  Day {n.gameDay}
-                </span>
-                <span className="text-slate-700">{n.text}</span>
-              </li>
-            ))}
-          </ul>
+          <TeamFeed items={news.data} padding="px-4" />
         ) : (
           <p className="px-4 py-6 text-center text-sm text-slate-500">
             Nothing has happened to this team yet — its story starts with the next race.

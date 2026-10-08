@@ -86,10 +86,19 @@ export async function fetchTeam(id: string): Promise<TeamDetail> {
   return data.team
 }
 
-export async function fetchTeamNews(id: string): Promise<TeamNewsItem[]> {
-  const data = await request(`/api/teams/${id}/news`, teamNewsResponseSchema, {
-    errorMessage: 'Could not load team news.',
-  })
+/**
+ * El feed de un equipo. Con `diag`, el `?diag=1` del modo diagnóstico (E2, §11.15, 11-h; la API desde el
+ * 8a, la web desde el 9b): un administrador con sesión lo recibe con el horizonte del mundo.
+ */
+export async function fetchTeamNews(
+  id: string,
+  opts: { readonly diag?: boolean } = {},
+): Promise<TeamNewsItem[]> {
+  const data = await request(
+    `/api/teams/${id}/news${opts.diag === true ? '?diag=1' : ''}`,
+    teamNewsResponseSchema,
+    { errorMessage: 'Could not load team news.' },
+  )
   return data.news
 }
 

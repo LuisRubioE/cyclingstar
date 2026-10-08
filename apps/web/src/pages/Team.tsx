@@ -1,13 +1,19 @@
 import { COUNTRIES } from '@cyclingstar/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { fetchTeam, fetchTeamControl, fetchTeamNews, takeOverTeam } from '../api/browse'
+import { diagOf } from '../api/results'
 import { Flag } from '../components/Flag'
+import { DiagnosticStrip } from '../components/StageGate'
 import { Jersey } from '../components/Jersey'
 import { Panel, SectionBar } from '../components/Panel'
 import { RiderName } from '../components/RiderName'
+import { TeamFeed } from '../components/TeamFeed'
 import { TeamManager } from '../components/TeamManager'
 import { archetypeLabel } from '../domain/labels'
+import { horizonKey, useHorizonRev } from '../queryClient'
+import { useWatchOn } from '../watchSwitch'
+import { VeilNotice } from '../components/VeilNotice'
 
 const DIVISION_LABEL: Record<string, string> = {
   WT: 'World Tour',
@@ -25,12 +31,24 @@ const HEALTH_BADGE: Record<string, { label: string; cls: string } | undefined> =
 export function Team() {
   const { id = '' } = useParams()
   const queryClient = useQueryClient()
+  const rev = useHorizonRev()
   const { data, isPending, isError } = useQuery({
-    queryKey: ['team', id],
+    queryKey: horizonKey(['team', id], rev),
     queryFn: () => fetchTeam(id),
+    enabled: rev !== undefined,
   })
   const { data: control } = useQuery({ queryKey: ['team-control'], queryFn: fetchTeamControl })
-  const teamNews = useQuery({ queryKey: ['team-news', id], queryFn: () => fetchTeamNews(id) })
+  // El modo diagnóstico del feed del equipo (§11.15; 9b): `?diag=1` de un administrador.
+  const [params] = useSearchParams()
+  const diag = diagOf(params)
+  const teamNews = useQuery({
+    queryKey: horizonKey(['team-news', id, diag], rev),
+    queryFn: () => fetchTeamNews(id, { diag }),
+    enabled: rev !== undefined,
+  })
+  const veiled = (teamNews.data ?? []).some((n) => n.kind === 'stage_ready')
+  const { isAdmin } = useWatchOn(diag || veiled)
+  const diagOn = diag && isAdmin
   const takeOver = useMutation({
     mutationFn: takeOverTeam,
     onSuccess: () => {
@@ -64,6 +82,7 @@ export function Team() {
       >
         {data.name}
       </SectionBar>
+      <VeilNotice kind="results" />
       <Panel bodyClassName="p-4">
         <div className="flex items-center gap-3">
           <Jersey seed={data.jerseySeed} size={44} />
@@ -133,17 +152,22 @@ export function Team() {
       </Panel>
 
       {teamNews.data && teamNews.data.length > 0 && (
-        <Panel title="Recent news" bodyClassName="p-0">
-          <ul className="divide-y divide-slate-100">
-            {teamNews.data.map((n, i) => (
-              <li key={i} className="flex gap-3 px-5 py-2.5 text-sm">
-                <span className="w-14 shrink-0 text-xs tabular-nums text-slate-400">
-                  Day {n.gameDay}
-                </span>
-                <span className="text-slate-700">{n.text}</span>
-              </li>
-            ))}
-          </ul>
+        <Panel
+          title="Recent news"
+          bodyClassName="p-0"
+          action={
+            !diag && isAdmin && veiled ? (
+              <Link
+                to={`/world/teams/${id}?diag=1`}
+                className="text-xs text-white/80 hover:text-white"
+              >
+                Diagnostic view
+              </Link>
+            ) : undefined
+          }
+        >
+          {diagOn && <DiagnosticStrip exitHref={`/world/teams/${id}`} />}
+          <TeamFeed items={teamNews.data} padding="px-5" />
         </Panel>
       )}
     </section>

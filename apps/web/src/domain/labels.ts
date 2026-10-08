@@ -195,6 +195,9 @@ const NEWS_KIND_LABEL: Record<string, string> = {
   // Se escriben desde el paso 1a de E2 y no se sirven hasta el 8a, y solo a quien le aplica el velo.
   gc_lead_taken: 'Leader',
   jersey_taken: 'Jersey',
+  // El marcador de una etapa velada (§11.7, sup. N2; 9b): la familia `Watch`, igual para todos, venga de
+  // la carrera que venga y pase lo que pase en ella.
+  stage_ready: 'Watch',
 }
 
 export function newsLabel(kind: string): string {
