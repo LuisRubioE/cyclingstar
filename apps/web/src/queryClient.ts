@@ -7,7 +7,7 @@
  * segundos el mostrar un error. Aquí se fija un `staleTime` por dominio de dato y un solo reintento.
  */
 
-import type { HorizonSummary } from '@cyclingstar/shared'
+import type { Health, HorizonSummary } from '@cyclingstar/shared'
 import {
   MutationCache,
   QueryCache,
@@ -15,6 +15,7 @@ import {
   type UseQueryResult,
   useQuery,
 } from '@tanstack/react-query'
+import { fetchHealth } from './api/health'
 import { fetchHorizon } from './api/horizon'
 import { isUnauthorized } from './api/request'
 import { notifyUnauthorized } from './api/session'
@@ -72,14 +73,53 @@ const PERSONAL_KEYS = [
 // --------------------------------------------- el horizonte en las claves (E2, §10.9 y §14.11; 9a)
 
 /**
- * LAS FAMILIAS CON HORIZONTE: las consultas de las rutas `horizon` o `watch` de la página de etapa
- * (§11.3): la ficha de la etapa, la cabecera de la retransmisión y el acta. Su clave lleva el `rev` del
- * horizonte como ÚLTIMO elemento (regla 1 de §10.9), así que `setQueryDefaults` por prefijo sigue
- * valiendo, y con otro `rev` la clave es otra y la consulta se rehace sola. Las del mundo (la ficha de
- * carrera, las noticias, los rankings…) entran en el 9b, con las pantallas que las pintan bajo el velo.
- * `queryKeys.test.ts` falla si una clave de estas familias no sale de `horizonKey`.
+ * LAS FAMILIAS CON HORIZONTE: las consultas de las rutas `horizon` o `watch` (§11.3) cuya respuesta
+ * cambia con lo que ha visto quien mira. Su clave lleva el `rev` del horizonte como ÚLTIMO elemento
+ * (regla 1 de §10.9), así que `setQueryDefaults` por prefijo sigue valiendo, y con otro `rev` la clave es
+ * otra y la consulta se rehace sola: al ver una etapa, al revelarla, al seguir una carrera, con el día
+ * nuevo y al cambiar `SPOILER_MODE` (los tres `rev` no coinciden nunca, §10.13), nada de lo guardado con
+ * el horizonte de antes se enseña con el de ahora. `queryKeys.test.ts` falla si una clave de estas
+ * familias no sale de `horizonKey`.
+ *
+ * - La etapa (9a): la ficha, la cabecera de la retransmisión y el acta.
+ * - El mundo (9b): la ficha de carrera (`['race']`) y el calendario (P), los dos feeds (F), los agregados
+ *   (R y M, desde el 8b), las fichas de corredor y de equipo, y lo propio (`['rider', …]`, el resumen, el
+ *   libro de cuentas, el informe del bloque, la tendencia, el plan de días y su proyección). Las rutas
+ *   que solo son L o `safe` (la lista de salida, las ofertas, las convocatorias, las órdenes de carrera, el
+ *   programa del equipo) no cambian con lo visto y quedan fuera.
  */
-export const HORIZON_KEYS = [['stage-replay'], ['broadcast-head'], ['stage-report']] as const
+export const HORIZON_KEYS = [
+  // la etapa (9a)
+  ['stage-replay'],
+  ['broadcast-head'],
+  ['stage-report'],
+  // el mundo (9b): P y F
+  ['race'],
+  ['calendar'],
+  ['news'],
+  ['team-news'],
+  // los agregados: R y M
+  ['rankings'],
+  ['rankings-young'],
+  ['season-awards'],
+  ['hall-of-fame'],
+  ['records'],
+  ['countries'],
+  ['country'],
+  ['teams'],
+  ['team'],
+  ['team-calendar'],
+  // las fichas de corredor y lo propio: R, M, F, P y G
+  ['public-rider'],
+  ['badges'],
+  ['rider'],
+  ['rider-summary'],
+  ['ledger'],
+  ['block-report'],
+  ['rider-trend'],
+  ['orders'],
+  ['plan-preview'],
+] as const
 
 /**
  * La única forma de construir una clave de esas familias: `horizonKey(['stage-replay', raceId, day,
@@ -106,21 +146,73 @@ export function cacheOwnerChanged(prev: SessionSeen, next: SessionSeen): boolean
   return prev.resolved && next.resolved && prev.userId !== next.userId
 }
 
-/** La consulta del horizonte de quien mira: `null` es el 401 del visitante sin sesión ni `cs_viewer`. */
-export function useHorizon(): UseQueryResult<HorizonSummary | null> {
-  return useQuery({ queryKey: ['horizon'], queryFn: fetchHorizon })
+/** `GET /health`: el reloj del mundo y los interruptores. La pide ya la cabecera en toda página. */
+export function useHealth(): UseQueryResult<Health> {
+  return useQuery({ queryKey: ['health'], queryFn: fetchHealth })
 }
 
 /**
- * EL `rev` DE LAS CLAVES (§10.9, 14-r): el de `GET /api/me/horizon`; `'anon'` si la respuesta es el 401
- * de quien no tiene sesión ni `cs_viewer`; `undefined` mientras no ha respondido, y entonces las
- * consultas con horizonte esperan. Si la petición falla, `'unavailable'`: la página no se queda
- * esperando para siempre, y lo que sirve cada ruta lo sigue decidiendo el servidor.
+ * ¿Hace falta pedir el horizonte? Solo si `SPOILER_MODE` no está apagado (9b; §10.13): apagado, el
+ * horizonte de todos es el del mundo (`rev` `'world'`, listas vacías) y pedirlo sería una petición más en
+ * cada página para nada. Una API sin interruptores (`features` ausente) es como `off`. Hasta saber el
+ * modo, no.
  */
+export function horizonWanted(health: Health | undefined): boolean {
+  return health !== undefined && (health.features?.spoilerMode ?? 'off') !== 'off'
+}
+
+/**
+ * La consulta del horizonte de quien mira: `null` es el 401 del visitante sin sesión ni `cs_viewer`. Con
+ * `SPOILER_MODE=off` no se pide (`horizonWanted`): `data` se queda en undefined, como sin velo.
+ */
+export function useHorizon(): UseQueryResult<HorizonSummary | null> {
+  const health = useHealth()
+  return useQuery({
+    queryKey: ['horizon'],
+    queryFn: fetchHorizon,
+    enabled: horizonWanted(health.data),
+  })
+}
+
+/** Lo que `revOf` lee de una consulta: su dato y si falló. */
+interface Settled<T> {
+  readonly data: T | undefined
+  readonly isError: boolean
+}
+
+/**
+ * EL `rev` DE LAS CLAVES (§10.9, 14-r), puro: el de `GET /api/me/horizon`; `'anon'` si la respuesta es
+ * el 401 de quien no tiene sesión ni `cs_viewer`; `undefined` mientras no ha respondido, y entonces las
+ * consultas con horizonte esperan. Si la petición falla, `'unavailable'`: la página no se queda
+ * esperando para siempre, y lo que sirve cada ruta lo sigue decidiendo el servidor. Desde el 9b, con
+ * `SPOILER_MODE=off`, `'world'` sin pedir el horizonte, que es el `rev` que el servidor daría (10-h): así,
+ * con el interruptor apagado, la web no pide nada más que antes del velo.
+ */
+export function revOf(
+  health: Settled<Health>,
+  horizon: Settled<HorizonSummary | null>,
+): string | undefined {
+  if (health.data === undefined) return health.isError ? 'unavailable' : undefined
+  if (!horizonWanted(health.data)) return 'world'
+  if (horizon.data === undefined) return horizon.isError ? 'unavailable' : undefined
+  return horizon.data === null ? 'anon' : horizon.data.rev
+}
+
+/** El `rev` de quien mira (`revOf` sobre `/health` y el horizonte). */
 export function useHorizonRev(): string | undefined {
-  const q = useHorizon()
-  if (q.data === undefined) return q.isError ? 'unavailable' : undefined
-  return q.data === null ? 'anon' : q.data.rev
+  const health = useHealth()
+  const horizon = useHorizon()
+  return revOf(health, horizon)
+}
+
+/**
+ * ¿Lo que se ve está cortado por el velo de quien mira? Solo con un `rev` de espectador,
+ * `${currentDay}.${horizon_rev}` (10-h): `'world'` (sin velo para él), `'anon'` (el visitante) y
+ * `'unavailable'` no lo están. Es lo que enciende los avisos y los botones del velo en el mundo (9b): con
+ * `SPOILER_MODE` apagado, o en `admins` para un jugador, la web es la de hoy.
+ */
+export function veilApplies(rev: string | undefined): boolean {
+  return rev !== undefined && /^\d+\.\d+$/.test(rev)
 }
 
 /** Un 401 inesperado significa sesión caducada: se avisa una sola vez, en el nivel global. */
@@ -164,7 +256,14 @@ export function createQueryClient(): QueryClient {
   // EL HORIZONTE (regla 2 de §10.9; 9a): siempre caduco y se pide otra vez al enfocar la ventana (el
   // único que lo hace: está apagado para todo). De él sale el `rev` de las claves de HORIZON_KEYS, y así
   // una pestaña que vuelve al primer plano ve lo que se vio o se reveló en otro dispositivo (D-57).
-  client.setQueryDefaults(['horizon'], { staleTime: 0, refetchOnWindowFocus: true })
+  // Desde el 9b casi toda página lleva el `rev` en sus claves, y pedir el horizonte al montar cada una
+  // sería una petición más por navegación: al montar solo se pide si algo lo invalidó (la meta, revelar,
+  // el progreso que sigue la carrera, seguirla o soltarla, el alcance, el día nuevo del reloj).
+  client.setQueryDefaults(['horizon'], {
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnMount: (query) => query.state.isInvalidated,
+  })
 
   return client
 }

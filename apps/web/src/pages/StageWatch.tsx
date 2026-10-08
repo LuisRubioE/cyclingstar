@@ -2,6 +2,7 @@ import {
   BROADCAST,
   type BroadcastFinish,
   type BroadcastHead,
+  type HorizonSummary,
   type Instant,
   type InstantContext,
   type LiveLine,
@@ -533,9 +534,16 @@ function useWatchPlayer(
         report: diag
           ? async () => undefined
           : signedIn
-            ? (reachedS, mode) => {
+            ? async (reachedS, mode) => {
                 reachedRef.current?.(reachedS)
-                return postWatchProgress(raceKey, day, { reachedS, mode })
+                const res = await postWatchProgress(raceKey, day, { reachedS, mode })
+                // El primer progreso puede seguir la carrera (D-30) y arrastrar con `A` las anteriores
+                // (10-a): el `rev` cambia, y con él lo que el mundo enseña (9b). Si es otro, el horizonte
+                // se pide otra vez y las claves de las páginas del mundo cambian de una vez (§10.9).
+                const known = queryClient.getQueryData<HorizonSummary | null>(['horizon'])
+                if (known != null && known.rev !== res.rev)
+                  void queryClient.invalidateQueries({ queryKey: ['horizon'] })
+                return res
               }
             : async (reachedS) => {
                 reachedRef.current?.(reachedS)

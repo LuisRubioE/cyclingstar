@@ -33,10 +33,12 @@ export function WorldClock({
       // Al vencer, pide /health una vez para obtener el nuevo día y el siguiente objetivo.
       if (ms <= 0 && !refetched.current) {
         refetched.current = true
-        refetchTimer = window.setTimeout(
-          () => void qc.invalidateQueries({ queryKey: ['health'] }),
-          2000,
-        )
+        refetchTimer = window.setTimeout(() => {
+          void qc.invalidateQueries({ queryKey: ['health'] })
+          // El `rev` del horizonte lleva el día (`${currentDay}.${horizon_rev}`, 10-h): con el día nuevo
+          // las páginas del mundo cambian de clave y ven las etapas que acaban de correrse (9b).
+          void qc.invalidateQueries({ queryKey: ['horizon'] })
+        }, 2000)
       }
     }
     update()
