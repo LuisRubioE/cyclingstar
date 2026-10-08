@@ -137,6 +137,9 @@ describe('db: ninguna columna nace con un número y se queda ahí', () => {
     expect(`columnas encontradas: ${columnas.length > 10}`).toBe('columnas encontradas: true')
     // La ampliación de 13-a: dos espacios de sangría y `smallint`.
     expect(columnas).toContain('repairVersion')
+    // Y desde la 0049 (paso 8a) vigila `stage_team_results.prize`, que solo cuenta como escrita por el
+    // `.set({ prize: … })` de `creditTeam` (`economy.ts`), en el mismo PR que la migración (§13.7).
+    expect(columnas).toContain('prize')
 
     const raíz = join(aquí, '..', '..', '..')
     const fuentes = [

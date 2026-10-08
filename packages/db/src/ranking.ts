@@ -80,8 +80,12 @@ export async function addSeasonPointsBatch(
    * Cuándo y en qué se puntuó. Opcional solo para no romper a quien sume puntos fuera de una
    * carrera; sin ello la puntuación no entra en el ranking rodante, y eso tiene que ser una decisión
    * explícita de quien llama y no un olvido.
+   *
+   * `stageDay`, desde la 0049 (E2, docs/retransmision.md §13.5, decisión 13-g): el número de la etapa
+   * que dio los puntos (la última en los de general), que es lo que el velo necesita para restarlos
+   * (8b). Opcional para quien suma puntos fuera de una etapa; `stageRun.ts` lo pasa siempre.
    */
-  source?: { gameDay: number; raceId: string; kind: 'stage' | 'gc' },
+  source?: { gameDay: number; raceId: string; kind: 'stage' | 'gc'; stageDay?: number },
 ): Promise<void> {
   const totals = new Map<string, number>()
   for (const e of entries) {
@@ -109,12 +113,16 @@ export async function addSeasonPointsBatch(
           points: pts,
           raceId: source.raceId,
           kind: source.kind,
+          stageDay: source.stageDay ?? null,
         })),
     )
   })
 }
 
-/** Inmortaliza un logro en el palmarés (no se reinicia). */
+/**
+ * Inmortaliza un logro en el palmarés (no se reinicia). `stageDay`, desde la 0049 (E2, §13.5, 13-g):
+ * el número de la etapa que lo dio, la última en `gc`; `stageRun.ts` lo pasa siempre.
+ */
 export async function recordPalmares(
   tx: Tx,
   opts: {
@@ -126,6 +134,7 @@ export async function recordPalmares(
     kind: 'gc' | 'stage' | 'kom' | 'points'
     detail?: string
     gameDay: number
+    stageDay?: number
   },
 ): Promise<void> {
   await tx.insert(palmares).values({
@@ -137,6 +146,7 @@ export async function recordPalmares(
     kind: opts.kind,
     detail: opts.detail ?? '',
     gameDay: opts.gameDay,
+    stageDay: opts.stageDay ?? null,
   })
 }
 

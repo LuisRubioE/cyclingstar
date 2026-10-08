@@ -1308,6 +1308,8 @@ async function awardOutcome(
       .orderBy(...gcOrderBy())
   ).map((r) => r.riderId)
 
+  // La etapa de los premios (0049, §13.5): cada premio de corredor dice su etapa y el de equipo deja
+  // su libro en `stage_team_results.prize`, lo que el velo resta del dinero y del presupuesto (8b).
   await awardRacePrizes(
     tx,
     gameDay,
@@ -1316,6 +1318,7 @@ async function awardOutcome(
     stageWinner.riderId,
     spec.isFinal,
     gcOrder,
+    { raceKey: spec.raceKey, stageDay: spec.stageDay },
   )
 
   const brokeAway = wonFromBreakaway(output.events, radio, stageWinner.riderId)
@@ -1455,8 +1458,9 @@ async function awardOutcome(
           points: stagePointsByClass(spec.raceClass, r.puesto - 1),
         })),
       // FECHADO, para el ranking a 365 días (docs/epics.md «G3»): se guarda la EDICIÓN
-      // (`raceKey` lleva la temporada), que es lo que sale de la ventana dentro de un año.
-      { gameDay, raceId: spec.raceKey, kind: 'stage' },
+      // (`raceKey` lleva la temporada), que es lo que sale de la ventana dentro de un año. Y, desde
+      // la 0049, la ETAPA (§13.5), que es lo que el velo necesita para restarlos.
+      { gameDay, raceId: spec.raceKey, kind: 'stage', stageDay: spec.stageDay },
     )
   }
   // En una carrera de UN DÍA (etapa única = final) la victoria de etapa y la general son la MISMA:
@@ -1471,13 +1475,14 @@ async function awardOutcome(
       kind: 'stage',
       detail: `Stage ${spec.stageDay}`,
       gameDay,
+      stageDay: spec.stageDay,
     })
   }
   if (spec.isFinal) {
     await addSeasonPointsBatch(
       tx,
       gcOrder.map((riderId, i) => ({ riderId, points: gcPointsByClass(spec.raceClass, i) })),
-      { gameDay, raceId: spec.raceKey, kind: 'gc' },
+      { gameDay, raceId: spec.raceKey, kind: 'gc', stageDay: spec.stageDay },
     )
     if (gcWinnerId) {
       await recordPalmares(tx, {
@@ -1488,6 +1493,7 @@ async function awardOutcome(
         raceName: spec.raceName,
         kind: 'gc',
         gameDay,
+        stageDay: spec.stageDay,
       })
     }
   }

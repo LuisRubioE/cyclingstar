@@ -770,6 +770,14 @@ export const stageTeamResults = pgTable(
     sumaPuestos: integer('suma_puestos').notNull().default(0),
     /** Mejor puesto de esos tres (segundo desempate de la etapa; 0 si no puntuó). */
     mejorPuesto: integer('mejor_puesto').notNull().default(0),
+    /**
+     * Premios de equipo de ESTA etapa (el de etapa y, en la última, los de la general), en la moneda de
+     * `teams.budget`: el libro del presupuesto, que hasta la 0049 no lo tenía (E2, docs/retransmision.md
+     * §13.5, D-41). Lo escribe `creditTeam`, dentro de `awardRacePrizes`, con un `update` de esta fila
+     * —nunca un `insert`, que daría a un equipo sin fila una con `scored` verdadero (13-f)—, y lo resta
+     * el velo del presupuesto (R, 8b). 0 en las etapas de antes de la 0049.
+     */
+    prize: integer('prize').notNull().default(0),
   },
   (t) => [primaryKey({ columns: [t.raceId, t.stageDay, t.teamId] })],
 )
@@ -909,6 +917,13 @@ export const palmares = pgTable(
     /** Detalle opcional (p. ej. número de etapa). */
     detail: text('detail').notNull().default(''),
     gameDay: integer('game_day').notNull(),
+    /**
+     * El número de etapa que dio el logro (la última en `gc`): con él el velo sabe de qué ETAPA es
+     * (E2, §13.5, I-34). `race_id` va SIN temporada, que está en `season`: la etapa de un palmarés es
+     * `(race_id, season, stage_day)`, y `veilSql` hace la cuenta. Null antes de la 0049; entonces el
+     * velo la casa por el día de juego (D-32, punto 2).
+     */
+    stageDay: smallint('stage_day'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -980,9 +995,20 @@ export const transactions = pgTable(
     /** Cantidad con signo: positiva ingreso, negativa gasto. */
     amount: integer('amount').notNull(),
     note: text('note').notNull().default(''),
+    /**
+     * La etapa que dio el premio (`kind` `premio`), con su clave de carrera CON temporada (E2, §13.5):
+     * la escribe `creditRider` con `ref`, que solo pasan los premios de `awardRacePrizes` (13-e; el
+     * viaje se cobra antes de la carrera y no dice nada del resultado). Null en el resto de
+     * movimientos y antes de la 0049.
+     */
+    raceKey: text('race_key'),
+    stageDay: smallint('stage_day'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index('transactions_rider_idx').on(t.riderId, t.gameDay)],
+  (t) => [
+    index('transactions_rider_idx').on(t.riderId, t.gameDay),
+    index('transactions_race_stage_idx').on(t.raceKey, t.stageDay),
+  ],
 )
 
 export const contractRoleEnum = pgEnum('contract_role', ['lider', 'colider', 'gregario', 'libre'])
@@ -1188,10 +1214,17 @@ export const riderPoints = pgTable(
     /** De dónde salieron: para el desglose del perfil y para poder depurar un ranking raro. */
     raceId: text('race_id').notNull(),
     kind: text('kind').notNull(),
+    /**
+     * El número de etapa (la última en `gc`), con la clave de carrera CON temporada de `race_id`: de
+     * qué ETAPA son los puntos, para que el velo los reste (E2, §13.5, I-34). Null antes de la 0049 y
+     * en las filas `legado` de la 0031; entonces el velo los casa por el día de juego.
+     */
+    stageDay: smallint('stage_day'),
   },
   (t) => [
     index('rider_points_rider_day_idx').on(t.riderId, t.gameDay),
     index('rider_points_day_idx').on(t.gameDay),
+    index('rider_points_race_stage_idx').on(t.raceId, t.stageDay),
   ],
 )
 

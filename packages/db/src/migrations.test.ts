@@ -122,9 +122,81 @@ describe('db: migraciones desde cero', () => {
       'stage_timelines_day_idx',
       // 0048_lo_visto (§13.4): las carreras de un corredor, para el horizonte (D-33).
       'race_rosters_rider_idx',
+      // 0049_rastro_de_etapa (§13.5): las restas del velo leen puntos y premios por etapa (veilDelta, 8b).
+      'rider_points_race_stage_idx',
+      'transactions_race_stage_idx',
     ]) {
       expect(names.has(idx), `falta el índice ${idx}`).toBe(true)
     }
+  })
+
+  /**
+   * EL RASTRO DE ETAPA (§13.5, D-41, I-34): de qué ETAPA es un punto, un palmarés o un premio, y lo que
+   * ganó cada equipo en cada etapa. Todo admite null o lleva un defecto constante (regla 2 de §13.1:
+   * añadirlas no reescribe la tabla), y nada se rellena hacia atrás (regla 3).
+   */
+  it('las columnas de la 0049: stage_day, race_key y prize, con su tipo, su nulo y su defecto', async () => {
+    const cols = await t.client<
+      {
+        table_name: string
+        column_name: string
+        data_type: string
+        is_nullable: string
+        column_default: string | null
+      }[]
+    >`
+      select table_name, column_name, data_type, is_nullable, column_default
+      from information_schema.columns
+      where table_schema = 'public'
+        and (table_name, column_name) in (('palmares', 'stage_day'), ('rider_points', 'stage_day'),
+          ('transactions', 'race_key'), ('transactions', 'stage_day'), ('stage_team_results', 'prize'))
+      order by table_name, column_name`
+    expect(cols).toEqual([
+      {
+        table_name: 'palmares',
+        column_name: 'stage_day',
+        data_type: 'smallint',
+        is_nullable: 'YES',
+        column_default: null,
+      },
+      {
+        table_name: 'rider_points',
+        column_name: 'stage_day',
+        data_type: 'smallint',
+        is_nullable: 'YES',
+        column_default: null,
+      },
+      {
+        table_name: 'stage_team_results',
+        column_name: 'prize',
+        data_type: 'integer',
+        is_nullable: 'NO',
+        column_default: '0',
+      },
+      {
+        table_name: 'transactions',
+        column_name: 'race_key',
+        data_type: 'text',
+        is_nullable: 'YES',
+        column_default: null,
+      },
+      {
+        table_name: 'transactions',
+        column_name: 'stage_day',
+        data_type: 'smallint',
+        is_nullable: 'YES',
+        column_default: null,
+      },
+    ])
+    // Los dos índices de las restas, por carrera y etapa (§10.6, punto 4).
+    const idx = await t.client<{ indexname: string; indexdef: string }[]>`
+      select indexname, indexdef from pg_indexes
+      where indexname in ('rider_points_race_stage_idx', 'transactions_race_stage_idx')
+      order by indexname`
+    expect(idx.map((r) => r.indexdef.replace(/^.* USING /, ''))).toEqual([
+      'btree (race_id, stage_day)',
+      'btree (race_key, stage_day)',
+    ])
   })
 
   it('users: las cuatro columnas de la 0048 nacen con su defecto (guarded, 0, null, true)', async () => {
@@ -378,7 +450,8 @@ describe('db: el ayudante que dice si hay migraciones pendientes', () => {
  * las filas viejas. El diseño cortaba en `0042_transicion_e1`; producción ocupó después la 0043, la
  * 0044 y la 0045, y la 0044 (el reinicio del mundo) VACÍA las tablas del mundo, así que con ese corte
  * las filas viejas no llegarían vivas a la 0046: se corta en la 0045. El 5, el 7a y el 8a amplían
- * este caso con las tablas de sus migraciones.
+ * este caso con las tablas de sus migraciones (el 8a, con los puntos, el palmarés, el premio y la fila
+ * de equipo de una etapa de antes de la 0049).
  */
 describe('db: el mundo vivo, migrado con las migraciones de E2 encima', () => {
   let t: TestDb
@@ -414,6 +487,23 @@ describe('db: el mundo vivo, migrado con las migraciones de E2 encima', () => {
       insert into users (email, name, is_admin) values ('vivo@example.com', 'Vivo', true) returning id`
     await t.client`
       insert into race_rosters (race_id, rider_id, bib) values ('race-vivo:s0', ${rider!.id}, 7)`
+    // Los puntos, el palmarés, el premio y la fila del equipo de una etapa corrida antes de la 0049
+    // (paso 8a), con las columnas de ayer: ninguna dice de qué etapa es.
+    const [equipo] = await t.client<{ id: string }[]>`
+      insert into teams (world_id, name, division, philosophy, jersey_seed)
+      values (${world!.id}, 'Equipo Vivo', 'WT', 'general', 'jv') returning id`
+    await t.client`
+      insert into rider_points (rider_id, game_day, points, race_id, kind)
+      values (${rider!.id}, 123, 40, 'race-vivo:s0', 'stage')`
+    await t.client`
+      insert into palmares (world_id, rider_id, season, race_id, race_name, kind, detail, game_day)
+      values (${world!.id}, ${rider!.id}, 0, 'race-vivo', 'Race Vivo', 'stage', 'Stage 3', 123)`
+    await t.client`
+      insert into transactions (rider_id, game_day, kind, amount, note)
+      values (${rider!.id}, 123, 'premio', 1500, 'Race Vivo · stage win')`
+    await t.client`
+      insert into stage_team_results (race_id, stage_day, team_id, scored, tiempo_s, suma_puestos, mejor_puesto)
+      values ('race-vivo:s0', 3, ${equipo!.id}, true, 30000, 6, 1)`
 
     await t.detached((url) => runMigrations(url))
 
@@ -435,6 +525,27 @@ describe('db: el mundo vivo, migrado con las migraciones de E2 encima', () => {
     const [lista] = await t.client`
       select race_id, bib, abandoned_day from race_rosters where rider_id = ${rider!.id}`
     expect(lista).toEqual({ race_id: 'race-vivo:s0', bib: 7, abandoned_day: null })
+
+    // rider_points, palmares, transactions y stage_team_results (0049): las filas de ayer no dicen su
+    // etapa (stage_day y race_key a null) ni su premio de equipo (prize a 0), y así se leen: el velo las
+    // corta por (carrera, día de juego) y la resta R no ve el premio (13-l), nada se rellena (§13.5).
+    const [punto] = await t.client`
+      select points, race_id, kind, stage_day from rider_points where rider_id = ${rider!.id}`
+    expect(punto).toEqual({ points: 40, race_id: 'race-vivo:s0', kind: 'stage', stage_day: null })
+    const [honor] = await t.client`
+      select detail, game_day, stage_day from palmares where rider_id = ${rider!.id}`
+    expect(honor).toEqual({ detail: 'Stage 3', game_day: 123, stage_day: null })
+    const [premio] = await t.client`
+      select amount, note, race_key, stage_day from transactions where rider_id = ${rider!.id}`
+    expect(premio).toEqual({
+      amount: 1500,
+      note: 'Race Vivo · stage win',
+      race_key: null,
+      stage_day: null,
+    })
+    const [delEquipo] = await t.client`
+      select tiempo_s, prize from stage_team_results where team_id = ${equipo!.id}`
+    expect(delEquipo).toEqual({ tiempo_s: 30000, prize: 0 })
 
     // stage_timelines (0047) nace vacía: la etapa de antes no tiene fila y se seguirá sirviendo con el
     // adaptador de la radio (D-07); su snapshot no cambia (stage_snapshots no gana columnas, D-10).
