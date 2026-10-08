@@ -9,6 +9,7 @@ import {
   chunkOf,
   cutTimeline,
   instantAt,
+  photoAt,
   photoBlocksOf,
   seededRng,
   toDs,
@@ -22,19 +23,20 @@ import { ROAD_FIXTURES, loadTimeline } from './__fixtures__/broadcast/load.js'
  * B9 · EL CORTE CAUSAL (docs/retransmision.md §16.4; D-06, I-10). El código de §16.4 sin la crono: en
  * el 3a importa solo `instantAt`, usa `at = instantAt` y recorre `ROAD_FIXTURES` (las cinco en línea),
  * porque `timeTrialInstantAt` no existe hasta el 6b y la crono no tiene `<etapa>.radio.json.gz` (§17.6).
- * Hasta el 6a `loadTimeline` construye la línea del adaptador de la radio (§3.8). El 6b añade la crono
- * (`const at = tl.timeTrial ? timeTrialInstantAt : instantAt` y `describe.each(FIXTURES)`).
+ * Del 3a al 5 `loadTimeline` construía la línea del adaptador de la radio (§3.8); desde el 6a carga la
+ * grabada (`<etapa>.timeline.gz`), con sus marcas de verdad, también las que bajan (§4.6). El 6b añade
+ * la crono (`const at = tl.timeTrial ? timeTrialInstantAt : instantAt` y `describe.each(FIXTURES)`).
  *
  * Una diferencia con el código de §16.4, a propósito: `atFinish` se compara con `to >= finishDs − 1` y
  * no con `to === finishDs`, porque un tramo solo lleva lo visible ANTES de la meta (`< finishDs`): el
  * que acaba en `finishDs − 1` ya lo lleva todo y es el último que hay que pedir (`chunkOf`, cut.ts).
  *
  * Y dos del 3c. El tramo que empieza en 0 es [0, toDs] y no (0, toDs]: lo que se ve desde la salida (el
- * grupo de salida, su marca del bloque 0, que en la línea del adaptador vale 0 Ds, su fila de detalle
- * del km 0 y los sucesos de `revealS` 0) va en el primero; los demás siguen siendo (fromDs, toDs], para
- * que nada viaje dos veces. Y la tercera cláusula compara los tramos, uno tras otro, con `cutTimeline`
- * en el borde de cada uno, que es lo que dice §4.6 (la unión de los tramos hasta T es la línea cortada
- * en T), y no con `chunkOf(tl, 0, finishDs)`, que tampoco traía lo de 0 Ds y por eso no lo veía.
+ * grupo de salida y lo que se vea en 0 Ds, como la marca del bloque 0 que la línea del adaptador ponía
+ * en 0 Ds) va en el primero; los demás siguen siendo (fromDs, toDs], para que nada viaje dos veces. Y la
+ * tercera cláusula compara los tramos, uno tras otro, con `cutTimeline` en el borde de cada uno, que es
+ * lo que dice §4.6 (la unión de los tramos hasta T es la línea cortada en T), y no con
+ * `chunkOf(tl, 0, finishDs)`, que tampoco traía lo de 0 Ds y por eso no lo veía.
  */
 
 /** Sin espectador y sin salida: ni `own` ni `start` cambian lo que el corte deja ver. */
@@ -189,10 +191,11 @@ describe.each(ROAD_FIXTURES)('B9 · el corte causal · %s', (name) => {
   it('el primer tramo lleva lo que se ve desde la salida: el grupo de salida, su marca del bloque 0 y su fila del km 0', () => {
     const c = chunkOf(tl, 0, CHUNK_DS)
     expect(c.groupsBorn[0]).toEqual([0, tl.groups[0]!.id, 'start'])
-    // la marca de salida, la primera de la etapa: la del adaptador de la radio vale 0 Ds, porque su
-    // reloj de cabeza empieza en la primera foto (§3.8); hasta el 3c no llegaba en ningún tramo, y sin
-    // ella el instante no tiene cabeza en ningún km de foto y los huecos de los grupos salen a 0
-    expect(c.clocks.slice(0, 3)).toEqual([0, 0, 0])
+    // la marca de salida, la primera de la etapa: la grabada es el reloj de verdad de la cabeza al
+    // final del bloque 0 (la del adaptador valía 0 Ds, porque su reloj empezaba en la primera foto, §3.8)
+    expect(c.clocks.slice(0, 2)).toEqual([0, 0])
+    expect(c.clocks[2]).toBeGreaterThan(0)
+    expect(c.clocks[2]).toBe(Math.min(...[...photoAt(tl, 0).clock.values()]))
     // la fila de detalle del grupo de salida en el km 0, que se ve con esa marca
     expect(c.details.slice(0, 2)).toEqual([0, 0])
   })
@@ -203,12 +206,18 @@ describe.each(ROAD_FIXTURES)('B9 · el corte causal · %s', (name) => {
 })
 
 describe('B9 · la e18 sale con lluvia', () => {
-  it('sus doce rain_front se ven en 0 s y van en el primer tramo, y en ninguno más', () => {
+  it('sus doce rain_front se ven con la marca de salida y van en el primer tramo, y en ninguno más', () => {
     const tl = loadTimeline('race-france-e18')
-    const atStart = tl.events.filter((e) => toDs(e.revealS) === 0)
+    // en la grabada, el suceso del bloque 0 se ve con el reloj de su bloque (§4.6): el de la marca de
+    // salida, 9,2 s; la del adaptador los veía en 0 s
+    const startDs = chunkOf(tl, 0, CHUNK_DS).clocks[2]!
+    const atStart = tl.events.filter((e) => toDs(e.revealS) === startDs)
     expect(atStart.map((e) => e.plantilla)).toEqual(Array(12).fill('rain_front'))
-    const first = chunkOf(tl, 0, CHUNK_DS).events.filter((e) => e[REVEAL] === 0)
+    expect(tl.events.every((e) => toDs(e.revealS) >= startDs)).toBe(true)
+    const first = chunkOf(tl, 0, CHUNK_DS).events.filter((e) => e[REVEAL] === startDs)
     expect(first.map((e) => e[0])).toEqual(atStart.map((e) => e.source))
-    expect(chunkOf(tl, CHUNK_DS, 2 * CHUNK_DS).events.some((e) => e[REVEAL] === 0)).toBe(false)
+    expect(chunkOf(tl, CHUNK_DS, 2 * CHUNK_DS).events.some((e) => e[REVEAL] === startDs)).toBe(
+      false,
+    )
   })
 })

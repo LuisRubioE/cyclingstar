@@ -11,11 +11,27 @@
  * Un `Cue` lleva índices (`GroupIx`, `RiderIx`) y ninguna palabra: la palabra la pone el componente
  * con el vocabulario de §6.3 (D-62). `t` es la hora de carrera en que el rótulo se pudo saber, así que
  * un rótulo nunca precede a su hecho.
+ *
+ * Lo del 6a (§6.5, §6.6): las dos tablas, `cueClassOf` (6-g), `cuesBetween`, que da los rótulos de los
+ * sucesos revelados entre dos instantes y de los cambios de estado (6-i), y la cola, con sus dos pasos
+ * puros sobre su estado, `admitCue` (el `admitir` de §6.5) y `cueFrame` (el fotograma), que el
+ * reproductor llama en cada fotograma. La presentación de la fuga reservada en la cola (`isPresentation`
+ * y `aheadOfPeloton`, 6-m) y la sustitución de los rótulos de la crono son del 6b.
  */
 import type { ChronicleEntry } from '../contracts.js'
 import type { JerseyKind } from '../jerseys.js'
-import type { VirtualGcRow } from './instant.js'
-import type { GroupIx, RaceS, RiderIx } from './timeline.js'
+import { BROADCAST } from './constants.js'
+import type { GroupNow, Instant, VirtualGcRow } from './instant.js'
+import type {
+  CueClass,
+  GroupCatalogEntry,
+  GroupIx,
+  RaceS,
+  RiderIx,
+  TimelineEvent,
+} from './timeline.js'
+import { toDs } from './timeline.js'
+import type { StartState } from './wire.js'
 
 /**
  * Por qué sale un rótulo de corredor (uno a la vez); los cinco los programa el reproductor (§6.5).
@@ -153,3 +169,468 @@ export type TemplateTarget = CueKind | 'voice_only' | 'report_only'
  * construye la API para cada tramo.
  */
 export type LiveLine = ChronicleEntry & { readonly revealS: RaceS }
+
+// ------------------------------------------------------------------------- la clase (§6.5, 6-g)
+
+/** LA CLASE DE CADA RÓTULO (D-21), por su CueKind. cueClassOf la sube o la baja en los casos que dependen de quién o de qué ronda. */
+export const CUE_CLASS = {
+  finish: 3,
+  caught: 3,
+  split: 3, // meta, caza de la fuga, corte
+  attack: 2,
+  break_formed: 2,
+  break_presented: 2,
+  banner_result: 2,
+  crash: 2,
+  last_km: 2,
+  time_cut: 2,
+  time_check: 1,
+  group_changed: 1,
+  mishap: 1,
+  rider: 1,
+  dropped: 1,
+  abandon: 1,
+  virtual_gc: 1,
+  group_finish: 1,
+  tt_start_order: 1,
+  tt_split: 1,
+  tt_finish: 1, // la crono (§9.5): cueClassOf sube el mejor paso y el sillón
+  climb_ahead: 0, // la ficha del puerto
+} as const satisfies Readonly<Record<CueKind, CueClass>>
+
+/**
+ * Sube a 3 lo que D-21 pone en 3 por su protagonista; la ronda de la moto va a 2 (6-m) y la de la crono
+ * a 0 (9-k). Pura. `lastVirtualLeader`: el primero del último VIRTUAL GC que salió; antes del primero de
+ * la etapa, `start.leaders.gc`, para que «cambia el líder virtual» se mida contra el líder de la
+ * general y no contra nada (9-n). `timeTrial`: `BroadcastHead.stage.timeTrial`. `start` es la salida
+ * servida, ya degradada por el velo (B13): un maillot que viene de una etapa velada no sube nada.
+ */
+export function cueClassOf(
+  cue: Cue,
+  start: StartState,
+  lastVirtualLeader: RiderIx | null,
+  timeTrial: boolean,
+): CueClass {
+  const top = new Set<RiderIx>([
+    ...[start.leaders.gc, start.leaders.points, start.leaders.kom].filter(
+      (r): r is RiderIx => r !== null,
+    ),
+    ...start.gcTop.filter((r) => r.rank <= BROADCAST.cueTopStart).map((r) => r.rider),
+  ])
+  switch (cue.kind) {
+    case 'rider':
+      return cue.context === 'break_round' ? 2 : cue.context === 'tt_round' ? 0 : CUE_CLASS.rider
+    case 'crash':
+      // sin nombres, 2 siempre: el tiempo en pantalla delataría quién está en el suelo (mapa 06 §3.1)
+      return cue.riders !== null && cue.riders.some((r) => top.has(r)) ? 3 : CUE_CLASS.crash
+    case 'dropped':
+    case 'abandon':
+      return top.has(cue.rider) ? 3 : CUE_CLASS[cue.kind]
+    case 'virtual_gc':
+      return cue.rows[0] !== undefined && cue.rows[0].rider !== lastVirtualLeader
+        ? 3
+        : timeTrial
+          ? 2
+          : CUE_CLASS.virtual_gc
+    case 'tt_split':
+      return cue.rank === 1 ? 2 : CUE_CLASS.tt_split
+    case 'tt_finish':
+      return cue.hotSeat ? 3 : CUE_CLASS.tt_finish
+    default:
+      return CUE_CLASS[cue.kind]
+  }
+}
+
+// ------------------------------------------------------------------ CUE_OF_TEMPLATE (§6.6, D-21)
+
+/**
+ * EL DESTINO DE CADA PLANTILLA: un rótulo (y su línea en la voz), solo la voz o solo el acta. Las 54 que
+ * emite el motor (44 de carretera, `rider_defies_team` y las 13 de la crono, cuatro compartidas) más
+ * `crash`, la caída sintetizada (D-13). Lo que no esté aquí va a la voz en producción; B7 (6b) lo hace
+ * fallar en test. Las de la regla `finish` (§4.7) nunca van en un tramo: su rótulo lo programa el
+ * reproductor tras `BroadcastFinish` (§8.7).
+ */
+export const CUE_OF_TEMPLATE: Readonly<Record<string, TemplateTarget>> = {
+  // carretera: ataques y movimientos
+  attack_go: 'voice_only',
+  attack_swarm: 'voice_only',
+  attack_sticks: 'attack',
+  attack_reeled: 'voice_only',
+  move_caught: 'voice_only',
+  move_faded: 'voice_only',
+  bridge_made: 'voice_only',
+  move_merge: 'voice_only',
+  bridge_failed: 'voice_only',
+  // la fuga
+  breakaway_formed: 'break_formed',
+  break_cooperation: 'voice_only',
+  break_share: 'voice_only',
+  breakaway_caught: 'caught',
+  peloton_concedes: 'voice_only',
+  // el estado que ya dice la barra (D-43, punto 5)
+  front_group: 'report_only',
+  time_gap: 'report_only',
+  // quién tira y por qué
+  peloton_pull: 'voice_only',
+  chase_work: 'voice_only',
+  sprinters_chase: 'voice_only',
+  sprinters_give_up: 'voice_only',
+  no_help_for_leader: 'voice_only',
+  domestiques_drop_back: 'voice_only',
+  rider_defies_team: 'voice_only',
+  // cortes y reagrupamientos
+  peloton_split: 'split',
+  peloton_selection: 'split',
+  echelon_split: 'split',
+  echelon_close: 'voice_only',
+  peloton_regroup: 'group_changed',
+  group_overtake: 'voice_only',
+  // corredores
+  leader_dropped: 'dropped',
+  rider_bonks: 'dropped',
+  rider_sits_up: 'voice_only',
+  rider_abandons: 'abandon',
+  puncture: 'mishap',
+  mechanical: 'mishap',
+  crash: 'crash',
+  truce_granted: 'voice_only',
+  truce_denied: 'voice_only',
+  rain_front: 'voice_only',
+  // pancartas
+  sprint_intermediate: 'banner_result',
+  climb_kom: 'banner_result',
+  // meta: solo tras BroadcastFinish
+  bunch_sprint: 'voice_only',
+  final_km: 'voice_only',
+  stage_win: 'finish',
+  time_cut: 'time_cut',
+  time_cut_readmitted: 'voice_only',
+  // crono (sus rótulos de estado, ON COURSE, SPLIT, HOT SEAT, son §9.5)
+  tt_start_order: 'voice_only',
+  tt_last_off: 'voice_only',
+  tt_split: 'voice_only',
+  tt_first_time: 'voice_only',
+  tt_best_time: 'voice_only',
+  tt_catch: 'voice_only',
+  tt_catches: 'voice_only',
+  tt_last_home: 'voice_only',
+  stage_win_itt: 'finish',
+}
+
+// ------------------------------------------------------------------- cuesBetween (§6.5, 6-i)
+
+/** Lo que sale cada palabra de una causa de corte (`datos.causa` de `peloton_split`, simulate.ts). */
+const SPLIT_CAUSES = ['caida', 'viento', 'sector', 'puerto', 'caza'] as const
+
+/** El grupo que lleva a la mayoría de unos corredores en un instante; a igualdad, el primero en carretera. */
+function groupOfRiders(at: Instant, riders: readonly RiderIx[]): GroupNow | undefined {
+  let best: GroupNow | undefined
+  let bestN = 0
+  for (const g of at.groups) {
+    let n = 0
+    for (const r of riders) if (g.members.includes(r)) n++
+    if (n > bestN) {
+      best = g
+      bestN = n
+    }
+  }
+  return best
+}
+
+/** El grupo de antes de `g`: el mismo, o el que murió y le tiene por sucesor (D-03), el mayor si son varios. */
+function selfBefore(
+  prev: Instant,
+  next: Instant,
+  g: GroupIx,
+  catalog: readonly GroupCatalogEntry[] | undefined,
+): GroupNow | undefined {
+  const same = prev.groups.find((x) => x.g === g)
+  if (same !== undefined || catalog === undefined) return same
+  let best: GroupNow | undefined
+  for (const x of prev.groups) {
+    if (catalog[x.g]?.successor !== g || next.groups.some((y) => y.g === x.g)) continue
+    if (best === undefined || x.size > best.size) best = x
+  }
+  return best
+}
+
+/** El rótulo de un suceso, con sus campos de la tabla de §6.6; null si no lleva rótulo en un tramo. */
+function cueOfEvent(e: TimelineEvent, prev: Instant, next: Instant): Cue | null {
+  const t = e.revealS
+  const target = CUE_OF_TEMPLATE[e.plantilla] ?? 'voice_only'
+  switch (target) {
+    case 'attack': {
+      // los protagonistas, como mucho tres (R23.4), y el grupo del que salen en el instante anterior
+      const riders = e.riders.slice(0, 3)
+      const from = groupOfRiders(prev, riders) ?? prev.groups[0]
+      return from === undefined ? null : { kind: 'attack', t, riders, fromGroup: from.g }
+    }
+    case 'break_formed': {
+      // el grupo de todos los de la fuga, y la diferencia principal si ese grupo es la cabeza
+      const g = groupOfRiders(next, e.riders)
+      if (g === undefined) return null
+      const gapS = next.mainGap !== null && next.mainGap.ahead === g.g ? next.mainGap.gapS : 0
+      return { kind: 'break_formed', t, group: g.g, riders: [...e.riders], gapS }
+    }
+    case 'caught': {
+      // el grupo que tenían los cazados y el que tienen ahora, su sucesor
+      const was = groupOfRiders(prev, e.riders)
+      const now = groupOfRiders(next, e.riders)
+      if (was === undefined || now === undefined) return null
+      return { kind: 'caught', t, caught: was.g, by: now.g, toGoKm: next.toGoKm }
+    }
+    case 'split': {
+      // los grupos de ahora con alguien que iba en el grupo del título antes
+      const title = prev.groups.find((g) => g.kind === 'peloton')
+      const parts =
+        title === undefined
+          ? []
+          : next.groups.filter((g) => g.members.some((r) => title.members.includes(r)))
+      const causa = e.datos?.causa
+      const cause =
+        typeof causa === 'string' && (SPLIT_CAUSES as readonly string[]).includes(causa)
+          ? causa
+          : e.plantilla === 'echelon_split'
+            ? 'viento'
+            : null
+      return { kind: 'split', t, parts: parts.map((g) => g.g), cause }
+    }
+    case 'banner_result': {
+      // la pancarta revelada en ese km (la del suceso lleva su km en décimas; la pancarta, el de su bloque)
+      const kind = e.plantilla === 'climb_kom' ? 'cima' : 'meta_volante'
+      let banner = -1
+      let best = Number.POSITIVE_INFINITY
+      next.banners.forEach((b, i) => {
+        const d = Math.abs(b.km - e.km)
+        if (b.kind === kind && d <= BANNER_KM_TOLERANCE && d < best) {
+          banner = i
+          best = d
+        }
+      })
+      return banner < 0 ? null : { kind: 'banner_result', t, banner }
+    }
+    case 'crash': {
+      // primero sin nombres; los nombres los programa el reproductor (namedCrashesBetween, 6-i)
+      const g = groupOfRiders(next, e.riders) ?? groupOfRiders(prev, e.riders)
+      return g === undefined ? null : { kind: 'crash', t, group: g.g, riders: null }
+    }
+    case 'mishap': {
+      const rider = e.riders[0]
+      if (rider === undefined) return null
+      const lost = e.datos?.perdidaS
+      return {
+        kind: 'mishap',
+        t,
+        rider,
+        mishap: e.plantilla === 'mechanical' ? 'averia' : 'pinchazo',
+        lostS: typeof lost === 'number' ? lost : 0,
+      }
+    }
+    case 'dropped':
+    case 'abandon': {
+      // el hueco del grupo en que se pinta al corredor (H-17), o null si va en tránsito
+      const rider = e.riders[0]
+      if (rider === undefined) return null
+      const moving = next.inTransit.some((x) => x.rider === rider)
+      const g = moving ? undefined : next.groups.find((x) => x.members.includes(rider))
+      return { kind: target, t, rider, gapS: g === undefined ? null : g.gap.toHeadS }
+    }
+    case 'group_changed': {
+      // peloton_regroup: los que vuelven al grupo del título; si no se ve volver a nadie, nada
+      const pack = next.groups.find((g) => g.kind === 'peloton')
+      if (pack === undefined) return null
+      const before = prev.groups.find((g) => g.g === pack.g)?.members ?? []
+      const gained = pack.members.filter((r) => !before.includes(r))
+      return gained.length === 0
+        ? null
+        : { kind: 'group_changed', t, group: pack.g, gained, lost: [] }
+    }
+    default:
+      // la voz, el acta, y lo que programa el reproductor (la meta, el fuera de control, 6-i)
+      return null
+  }
+}
+
+/** Km entre el suceso de una pancarta (en décimas) y la pancarta (el km de su bloque): bloque y medio. */
+const BANNER_KM_TOLERANCE = 0.15
+
+/** Los sucesos revelados en (prev.t, next.t], por hora y, a igual hora, por índice: en Ds, como el corte. */
+function revealedBetween(
+  prev: Instant,
+  next: Instant,
+  events: readonly TimelineEvent[],
+): TimelineEvent[] {
+  const from = toDs(prev.t)
+  const to = toDs(next.t)
+  return events
+    .filter((e) => {
+      const d = toDs(e.revealS)
+      return d > from && d <= to
+    })
+    .sort((a, b) => toDs(a.revealS) - toDs(b.revealS) || a.source - b.source)
+}
+
+/**
+ * LOS RÓTULOS ENTRE DOS INSTANTES (§6.5; la firma de §21.6 F.2, más el catálogo). Pura y solo conoce
+ * la línea: los de los sucesos revelados en (prev.t, next.t] por `CUE_OF_TEMPLATE`, con los campos de
+ * §6.6; `last_km` si la cabeza cruza el último km; y `group_changed` de cada grupo de hasta
+ * `nameWholeGroupUpTo` cuya gente cambió respecto de sí mismo antes, o, con el catálogo de la línea
+ * (`catalog`, que §21.6 no tenía: el instante no lleva los sucesores), del grupo que murió y le tiene
+ * por sucesor (D-03). Lo que depende del espectador, del recorrido o del reloj de pared lo programa el
+ * reproductor (6-i): entre ello, los nombres de una caída (`namedCrashesBetween`).
+ */
+export function cuesBetween(
+  prev: Instant,
+  next: Instant,
+  events: readonly TimelineEvent[],
+  catalog?: readonly GroupCatalogEntry[],
+): Cue[] {
+  const out: Cue[] = []
+  for (const e of revealedBetween(prev, next, events)) {
+    const cue = cueOfEvent(e, prev, next)
+    if (cue !== null) out.push(cue)
+  }
+  if (prev.toGoKm > 1 && next.toGoKm <= 1)
+    out.push({ kind: 'last_km', t: next.t, leadGapS: next.mainGap?.gapS ?? null })
+  const told = new Set(out.flatMap((c) => (c.kind === 'group_changed' ? [c.group] : [])))
+  for (const g of next.groups) {
+    if (g.size > BROADCAST.nameWholeGroupUpTo || told.has(g.g)) continue
+    const before = selfBefore(prev, next, g.g, catalog)
+    if (before === undefined) continue
+    const gained = g.members.filter((r) => !before.members.includes(r))
+    const lost = before.members.filter((r) => !g.members.includes(r))
+    if (gained.length > 0 || lost.length > 0)
+      out.push({ kind: 'group_changed', t: next.t, group: g.g, gained, lost })
+  }
+  return out
+}
+
+/**
+ * EL SEGUNDO TIEMPO DE UNA CAÍDA (D-13, 6-i): por cada caída revelada en (prev.t, next.t], el mismo
+ * rótulo que da `cuesBetween` con sus nombres. Lo programa el reproductor `crashNamesDelayS` de pared
+ * después del primero; su clase la sube `cueClassOf` si cae un maillot o un top de salida.
+ */
+export function namedCrashesBetween(
+  prev: Instant,
+  next: Instant,
+  events: readonly TimelineEvent[],
+): Cue[] {
+  return revealedBetween(prev, next, events).flatMap((e): Cue[] => {
+    if ((CUE_OF_TEMPLATE[e.plantilla] ?? 'voice_only') !== 'crash') return []
+    const cue = cueOfEvent(e, prev, next)
+    return cue === null || cue.kind !== 'crash' ? [] : [{ ...cue, riders: [...e.riders] }]
+  })
+}
+
+// ------------------------------------------------------------------------- la cola (§6.5, 6-h)
+
+/** Un rótulo que espera: su clase y la hora de pared a la que entró. */
+export interface QueuedCue {
+  readonly cue: Cue
+  readonly cls: CueClass
+  readonly sinceS: number
+}
+
+/** El rótulo en pantalla, hasta la hora de pared `untilS`. */
+export interface ShownCue {
+  readonly cue: Cue
+  readonly cls: CueClass
+  readonly untilS: number
+}
+
+/**
+ * LA COLA DE RÓTULOS, el estado que guarda el reproductor (§6.5): lo que espera, en el orden en que
+ * saldrá (por clase, de mayor a menor, y a igual clase por hora de carrera), y lo que está en pantalla.
+ * Uno a la vez: nunca dos rótulos de corredor en pantalla (mapa 06 §5.3).
+ */
+export interface CueQueue {
+  readonly waiting: readonly QueuedCue[]
+  readonly shown: ShownCue | null
+}
+
+export const EMPTY_CUE_QUEUE: CueQueue = { waiting: [], shown: null }
+
+/** Lo que la cola mira en cada paso: la hora de pared (que corre con el reloj, no en pausa) y los km a meta de la cabeza. */
+export interface CueClock {
+  readonly wallS: number
+  readonly toGoKm: number
+}
+
+/** ¿Está la cabeza en los últimos quietFinalM? Solo la distancia (D-17, §6.9). */
+const quiet = (toGoKm: number): boolean => toGoKm * 1000 < BROADCAST.quietFinalM
+
+/** La espera con un rótulo más, en su sitio: por clase y, a igual clase, por hora de carrera y por llegada. */
+function enqueue(waiting: readonly QueuedCue[], x: QueuedCue): QueuedCue[] {
+  const out = [...waiting]
+  let i = out.length
+  while (i > 0) {
+    const y = out[i - 1]!
+    if (y.cls > x.cls || (y.cls === x.cls && y.cue.t <= x.cue.t)) break
+    i--
+  }
+  out.splice(i, 0, x)
+  return out
+}
+
+/** El índice del que se echa: el de menor clase entre los de clase ≤ máx. y, a igual clase, el que más espera. */
+function evictable(waiting: readonly QueuedCue[], maxCls: CueClass): number {
+  let pick = -1
+  waiting.forEach((x, i) => {
+    if (x.cls > maxCls) return
+    const p = pick < 0 ? undefined : waiting[pick]!
+    if (p === undefined || x.cls < p.cls || (x.cls === p.cls && x.sinceS < p.sinceS)) pick = i
+  })
+  return pick
+}
+
+/**
+ * ADMITIR (§6.5, 6-h). Pura. `cls` es la de `cueClassOf`. En los últimos `quietFinalM`, el rótulo de
+ * corredor se descarta; con menos de `cueQueueMax` esperando, entra; si no, uno de clase 0 o 1 se
+ * descarta, uno de clase 2 echa al de menor clase y más viejo de clase ≤ 1 o, si no hay, al de clase 2
+ * más viejo, y uno de clase 3 entra siempre (la cola crece: la meta nunca se tira). `admitted` dice si
+ * entró: es lo que el reproductor le da al reductor (`cueAdmitted`) y lo que apaga `Next action`.
+ */
+export function admitCue(
+  q: CueQueue,
+  cue: Cue,
+  cls: CueClass,
+  at: CueClock,
+): { readonly queue: CueQueue; readonly admitted: boolean } {
+  if (cue.kind === 'rider' && quiet(at.toGoKm)) return { queue: q, admitted: false }
+  const x: QueuedCue = { cue, cls, sinceS: at.wallS }
+  if (q.waiting.length < BROADCAST.cueQueueMax)
+    return { queue: { ...q, waiting: enqueue(q.waiting, x) }, admitted: true }
+  if (cls <= 1) return { queue: q, admitted: false }
+  let out = evictable(q.waiting, 1)
+  if (out < 0 && cls === 2) out = evictable(q.waiting, 2)
+  const rest = out < 0 ? q.waiting : q.waiting.filter((_, i) => i !== out)
+  return { queue: { ...q, waiting: enqueue(rest, x) }, admitted: true }
+}
+
+/**
+ * EL FOTOGRAMA DE LA COLA (§6.5, 6-h). Pura. Caduca lo de clase 2 o menos que lleva más de `cueHoldS[3]`
+ * de pared esperando (un ATTACK de alguien ya cazado contradiría la barra); quita el de pantalla al
+ * acabarse su tiempo (`cueHoldS[clase]`); corta el de clase 0 o 1 si espera uno de clase 3 (la tele
+ * corta); y si la pantalla queda libre y la cabeza no está en los últimos `quietFinalM`, saca el primero.
+ * La carrera no se frena nunca por la cola (D-21): nada de esto toca el reloj.
+ */
+export function cueFrame(q: CueQueue, at: CueClock): CueQueue {
+  const waiting = q.waiting.filter(
+    (x) => x.cls >= 3 || at.wallS - x.sinceS <= BROADCAST.cueHoldS[3],
+  )
+  let shown = q.shown
+  if (shown !== null && at.wallS >= shown.untilS) shown = null
+  if (shown !== null && shown.cls <= 1 && waiting[0]?.cls === 3) shown = null
+  if (shown === null && !quiet(at.toGoKm) && waiting.length > 0) {
+    const [first, ...rest] = waiting
+    return {
+      waiting: rest,
+      shown: {
+        cue: first!.cue,
+        cls: first!.cls,
+        untilS: at.wallS + BROADCAST.cueHoldS[first!.cls],
+      },
+    }
+  }
+  return waiting.length === q.waiting.length && shown === q.shown ? q : { waiting, shown }
+}

@@ -202,3 +202,33 @@ export function toyStage(): { readonly photos: SynthPhoto[]; readonly riderIds: 
   }
   return { photos, riderIds }
 }
+
+/**
+ * LA ETAPA DE JUGUETE CON MARCAS QUE BAJAN (nota 1 del 4b): el reloj de un grupo es el de su primero
+ * (§3.4), y quien se descuelga de un grupo de delante y cae en uno de descolgados que va por detrás
+ * entra con su propio reloj. Aquí `shed-2` va 20 s detrás del pelotón en el bloque 29, y en el 30 se le
+ * une r6, que viene del pelotón: la marca de `shed-2` en el 30 es 10 s MENOR que la del 29. Y en el 46,
+ * el último antes de que el pelotón lo cace, se le une r4, también del pelotón: su marca de muerte baja
+ * unos 36 s (como la de `shed-47` de `race-france` e20 con la semilla 0 en el banco del 4b). En las 44
+ * corridas del banco del 4b pasa en 41 de 47.194 marcas (hasta 101 s); en las congeladas, una vez
+ * (`shed-74` de `race-colombia` e5, 10,3 s).
+ */
+export function toyStageWithDrop(): {
+  readonly photos: SynthPhoto[]
+  readonly riderIds: string[]
+} {
+  const { photos, riderIds } = toyStage()
+  return {
+    riderIds,
+    photos: photos.map((p, b) => {
+      if (b < 25 || b >= 47) return p
+      const groupOf = [...p.groupOf]
+      if (b >= 30) groupOf[6] = 'shed-2'
+      if (b === 46) groupOf[4] = 'shed-2'
+      const peloton = p.clockS.peloton!
+      const shed =
+        b < 30 ? peloton + (b - 24) * 4 : b < 46 ? peloton + 0.5 + (b - 30) * 3 : peloton + 0.3
+      return { ...p, groupOf, clockS: { ...p.clockS, 'shed-2': shed } }
+    }),
+  }
+}

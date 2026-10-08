@@ -52,6 +52,7 @@
  *   node scripts/broadcast-fixtures.mjs             escribe los ficheros
  *   node scripts/broadcast-fixtures.mjs --check     los regenera en memoria y sale con 1 si alguno cambia
  *   node scripts/broadcast-fixtures.mjs --adapter   el adaptador en frío (abajo), sin escribir nada
+ *   node scripts/broadcast-fixtures.mjs --sizes     la meta y la ruta de etapa conocida (abajo), sin escribir nada
  *
  * EL ADAPTADOR EN FRÍO (§14.4 y §18.9; E2, paso 3a). Con `--adapter`, en el mismo mundo que escribe las
  * congeladas, mide lo que cuesta servir una etapa sin línea la primera vez (`timelineForStage` con el
@@ -61,6 +62,18 @@
  * primera llamada del proceso, la mediana de `ADAPTER_REPS` llamadas en frío, cada parte por separado
  * y lo que cuesta con la línea ya en el LRU. PGlite en el mismo proceso: la base de producción, por
  * socket, añade la red a las cinco lecturas.
+ *
+ * LO QUE PESAN LA META Y LA RUTA CONOCIDA (§14.8, §16.4 y §18.10; E2, paso 6a). Con `--sizes`, sobre las
+ * 24 etapas del banco (las 21 de `race-france`, `race-flanders`, `race-tramuntana` y la e5 de
+ * `race-colombia`) por las dos semillas del banco (`radio-<carrera>-0` y `-1`), cada carrera corrida
+ * como el tick con la grabación encendida: el paquete de meta (`POST …/broadcast/finish`, con el acta
+ * sin radio de la etapa corrida) y la ruta de etapa conocida (`GET /api/races/:raceId/stages/:day`,
+ * `StageReplay` entero, con la radio), con gzip 6 como `@fastify/compress`, contra
+ * `BROADCAST.maxFinishGzipBytes` y `maxKnownStageGzipBytes`; el máximo de cada uno va a la tabla de
+ * §18.10. Y lo que cuesta servir la línea grabada: `readStageTimeline` en frío (el LRU vaciado: leer la
+ * fila, `gunzip`, `JSON.parse` y `decodeTimeline`) y en el LRU, y la cabecera (`GET …/broadcast`) en
+ * frío y con la línea ya en el LRU; la mediana de `SIZES_REPS` llamadas. Sale con 1 si alguna pasa
+ * de su tope.
  */
 import { createHash } from 'node:crypto'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -109,6 +122,20 @@ import {
 const OUT = new URL('../apps/api/src/__fixtures__/broadcast/', import.meta.url)
 const CHECK = process.argv.includes('--check')
 const ADAPTER = process.argv.includes('--adapter')
+const SIZES = process.argv.includes('--sizes')
+/** Llamadas por etapa con `--sizes` para los tiempos de servir la línea grabada: la mediana. */
+const SIZES_REPS = 5
+/** Las 24 etapas del banco (§16.2), por carrera: se corren de la 1 a la última que se mide. */
+const SIZES_RACES = [
+  { raceId: 'race-france', days: Array.from({ length: 21 }, (_, i) => i + 1) },
+  { raceId: 'race-flanders', days: [1] },
+  { raceId: 'race-tramuntana', days: [1] },
+  { raceId: 'race-colombia', days: [5] },
+]
+/** Las dos semillas del banco (`scripts/race-radio.mjs`, `--run`). */
+const SIZES_RUNS = [0, 1]
+/** Las etapas de `--sizes` que dejaron una lápida en lugar de su línea, con su motivo. */
+const tombstones = []
 /** Llamadas en frío por etapa con `--adapter`: la mediana, para que una pausa del recolector no mande. */
 const ADAPTER_REPS = 7
 /** Las filas de `--adapter`, una por etapa congelada, en el orden en que se miden. */
@@ -575,6 +602,7 @@ const manifest = {
   races: {},
   stages: {},
 }
+if (SIZES) process.exit(await reportSizes())
 for (const spec of RACES) {
   const { race, stages } = await runRace(spec)
   if (race === null) continue // --adapter: se mide y no se escribe nada
@@ -846,4 +874,177 @@ function withoutHashes(m) {
       ]),
     ),
   }
+}
+
+// ----------------------------------------------------- la meta y la ruta de etapa conocida (--sizes)
+
+/** Una carrera de `SIZES_RACES` con una semilla: la corre como el tick y mide cada etapa servida. */
+async function sizesOfRace({ raceId, days }, run) {
+  const race = SEASON_CALENDAR.find((r) => r.id === raceId)
+  const worldSeed = `radio-${race.id}-${run}`
+  process.env.DB_POOL_MAX = '1'
+  const { startTestDb } = await import('../packages/db/dist/testDb.js')
+  const { buildApp } = await import('../apps/api/dist/app.js')
+  const { BROADCAST } = await import('../packages/shared/dist/index.js')
+  const { clearStageTimelineCache, readStageTimeline, worldHorizon } =
+    await import('../packages/db/dist/index.js')
+  const t = await startTestDb()
+  const { worldId, raceKey } = await seedRace(t, race, worldSeed)
+  await freezeRaceRoute(t.db, worldId, raceKey, race.id, 0)
+  const frozen = await raceStagesForWorld(t.db, worldId, raceKey, race.id, 0)
+  for (let idx = 1; idx <= Math.max(...days); idx++) {
+    const stage = frozen[idx - 1]
+    const log = timelineTickLog()
+    await t.db.transaction(async (tx) => {
+      await runOneStage(tx, worldId, stageDayOfSeason(race, idx), worldSeed, {
+        raceKey,
+        raceId: race.id,
+        raceName: race.name,
+        level: race.level,
+        raceClass: race.raceClass,
+        season: 0,
+        stageDay: idx,
+        kind: stage.kind,
+        profile: stage.profile,
+        timeTrial: stage.timeTrial,
+        isFinal: idx === frozen.length,
+        lugar: stagePlace(race, idx),
+        timeline: log,
+      })
+      await log.flush(tx)
+    })
+    // Una lápida no para la medida: se apunta con su motivo (la etapa solo abre en `Report`, D-12).
+    if (log.summary() !== 'timeline: 1 grabadas, 0 sin línea') {
+      const [row] =
+        await t.client`select format, body from stage_timelines where race_id = ${raceKey} and stage_day = ${idx}`
+      const why =
+        row?.format === 0 ? JSON.parse(gunzipSync(Buffer.from(row.body)).toString('utf8')) : null
+      tombstones.push({
+        name: `${race.id} e${idx} s${run}`,
+        summary: log.summary(),
+        reason: why?.reason ?? null,
+        first: (why?.mismatches ?? []).slice(0, 3),
+      })
+      process.stderr.write(`  ${race.id} e${idx} s${run}: LÁPIDA, ${log.summary()}\n`)
+    }
+  }
+  const app = buildApp({
+    db: t.db,
+    auth: fakeAuth,
+    serveWeb: false,
+    switches: { broadcastWatch: 'on', spoilerMode: 'off' },
+  })
+  const gz6 = (body) => gzipSync(Buffer.from(body), { level: 6 }).length
+  const rows = []
+  for (const day of days) {
+    const url = `/api/races/${race.id}/stages/${day}`
+    const finish = await app.inject({
+      method: 'POST',
+      url: `${url}/broadcast/finish`,
+      payload: { mode: 'play' },
+    })
+    const known = await app.inject({ method: 'GET', url })
+    if (known.statusCode !== 200)
+      throw new Error(`${race.id} e${day} s${run}: la ruta conocida respondió ${known.statusCode}`)
+    if (finish.statusCode === 404 && finish.json().error === 'broadcast_unavailable') {
+      // la lápida de arriba: sin meta ni línea que servir; la ruta conocida, sí
+      rows.push({
+        name: `${race.id} e${day} s${run}`,
+        timeTrial: frozen[day - 1].timeTrial === true,
+        tombstone: true,
+        known: gz6(known.body),
+      })
+      continue
+    }
+    if (finish.statusCode !== 200)
+      throw new Error(`${race.id} e${day} s${run}: la meta respondió ${finish.statusCode}`)
+    // Lo que cuesta servir la línea grabada: la lectura en frío y en el LRU, y la cabecera igual.
+    const cold = []
+    const headCold = []
+    for (let i = 0; i < SIZES_REPS; i++) {
+      clearStageTimelineCache()
+      cold.push((await timed(() => readStageTimeline(t.db, worldHorizon, raceKey, day))).ms)
+      clearStageTimelineCache()
+      headCold.push((await timed(() => app.inject({ method: 'GET', url: `${url}/broadcast` }))).ms)
+    }
+    const warm = []
+    const headWarm = []
+    for (let i = 0; i < SIZES_REPS; i++) {
+      warm.push((await timed(() => readStageTimeline(t.db, worldHorizon, raceKey, day))).ms)
+      headWarm.push((await timed(() => app.inject({ method: 'GET', url: `${url}/broadcast` }))).ms)
+    }
+    const [row] =
+      await t.client`select bytes from stage_timelines where race_id = ${raceKey} and stage_day = ${day}`
+    rows.push({
+      name: `${race.id} e${day} s${run}`,
+      timeTrial: frozen[day - 1].timeTrial === true,
+      tombstone: false,
+      bytea: row.bytes,
+      finish: gz6(finish.body),
+      known: gz6(known.body),
+      cold: median(cold),
+      warm: median(warm),
+      headCold: median(headCold),
+      headWarm: median(headWarm),
+    })
+    process.stderr.write(
+      `  ${race.id} e${day} s${run}: meta ${gz6(finish.body)} B, conocida ${gz6(known.body)} B\n`,
+    )
+  }
+  await app.close()
+  await t.close()
+  return {
+    rows,
+    caps: { finish: BROADCAST.maxFinishGzipBytes, known: BROADCAST.maxKnownStageGzipBytes },
+  }
+}
+
+/** `--sizes`: la tabla y los máximos; devuelve el código de salida (1 si algo pasa de su tope). */
+async function reportSizes() {
+  const all = []
+  let caps = null
+  for (const run of SIZES_RUNS)
+    for (const spec of SIZES_RACES) {
+      const out = await sizesOfRace(spec, run)
+      all.push(...out.rows)
+      caps = out.caps
+    }
+  const rows = all.filter((r) => !r.tombstone)
+  const kb = (b) => (b / 1024).toFixed(1)
+  const ms = (x) => x.toFixed(1)
+  console.log(
+    `\nLa meta y la ruta de etapa conocida (§14.8, §18.10) · motor v${ENGINE_VERSION} · semillas ${SIZES_RUNS.join(' y ')} · gzip 6\n`,
+  )
+  console.log(
+    '| Etapa | Línea (KB, bytea) | Meta (KB gz) | Conocida (KB gz) | readStageTimeline en frío · en el LRU (ms) | Cabecera en frío · con la línea en el LRU (ms) |',
+  )
+  console.log('| --- | --- | --- | --- | --- | --- |')
+  for (const r of rows)
+    console.log(
+      `| ${r.name}${r.timeTrial ? ' (crono)' : ''} | ${kb(r.bytea)} | ${kb(r.finish)} | ${kb(r.known)} | ${ms(r.cold)} · ${ms(r.warm)} | ${ms(r.headCold)} · ${ms(r.headWarm)} |`,
+    )
+  const max = (k) => rows.reduce((a, r) => (r[k] > a[k] ? r : a))
+  const q = (k, p) => {
+    const s = rows.map((r) => r[k]).sort((a, b) => a - b)
+    return s[Math.min(s.length - 1, Math.floor(p * s.length))]
+  }
+  for (const r of all.filter((x) => x.tombstone))
+    console.log(`| ${r.name} (lápida) | · | · | ${kb(r.known)} | · | · |`)
+  const finish = max('finish')
+  const known = all.reduce((a, r) => (r.known > a.known ? r : a))
+  console.log(
+    `\nMeta: máximo ${kb(finish.finish)} KB (${finish.name}), tope ${kb(caps.finish)} KB. ` +
+      `Ruta conocida: máximo ${kb(known.known)} KB (${known.name}), tope ${kb(caps.known)} KB.`,
+  )
+  console.log(
+    `La línea grabada: readStageTimeline en frío, mediana ${ms(q('cold', 0.5))} ms y p95 ${ms(q('cold', 0.95))}; ` +
+      `en el LRU, mediana ${ms(q('warm', 0.5))} ms. La cabecera, en frío ${ms(q('headCold', 0.5))} ms (p95 ` +
+      `${ms(q('headCold', 0.95))}) y con la línea en el LRU ${ms(q('headWarm', 0.5))} ms (p95 ${ms(q('headWarm', 0.95))}).`,
+  )
+  if (tombstones.length > 0) {
+    console.log(`\nLápidas (la etapa abre solo en Report, D-12): ${tombstones.length}`)
+    for (const x of tombstones)
+      console.log(`  ${x.name}: ${x.summary} · ${x.reason} · ${JSON.stringify(x.first)}`)
+  }
+  return finish.finish > caps.finish || known.known > caps.known ? 1 : 0
 }

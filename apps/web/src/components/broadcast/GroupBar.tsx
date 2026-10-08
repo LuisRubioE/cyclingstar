@@ -11,6 +11,7 @@ import {
   isQuietFinal,
   mobileRowsOf,
   nameOf,
+  shownGroupsOf,
   transitOf,
 } from '../../domain/broadcast/screen'
 import { LeaderJersey } from '../Jersey'
@@ -33,6 +34,11 @@ import { WornJerseyIcon } from './WornJerseyIcon'
  * el resto se pliega en `+3 groups · 41 riders`, que se abre al tocarlo (6-c). Con el reloj estimado
  * del adaptador de la radio, el km de todo grupo que no es la cabeza se escribe con `~` (§3.8). En los
  * últimos `quietFinalM`, sin huecos (§6.9). Se repinta a `barHz` y no es una región viva (§18.8).
+ *
+ * Desde el 6a, una fila por grupo con alguien dentro, con el número de lo pintado (`shownGroupsOf`): un
+ * grupo recién nacido que aún no lleva a nadie no tiene fila, y los que van hacia él se cuentan bajo la
+ * del grupo que dejan (`↑ 3 bridging across`). Y la identidad de cada fila es la de pantalla
+ * (`screenKeysOf`, D-03): un cambio de etiqueta no la cambia.
  */
 export function GroupBar({
   instant,
@@ -40,6 +46,7 @@ export function GroupBar({
   clock,
   expanded = false,
   onExpand,
+  keys,
 }: {
   instant: Instant
   cast: readonly RiderCard[]
@@ -47,20 +54,31 @@ export function GroupBar({
   /** las filas plegadas del móvil, abiertas */
   expanded?: boolean
   onExpand?: () => void
+  /** la identidad en pantalla de cada `GroupIx` (`screenKeysOf`); sin ella, el `GroupIx` */
+  keys?: readonly string[]
 }) {
   const quiet = isQuietFinal(instant.toGoKm)
-  const chosen = mobileRowsOf(instant.groups)
+  const groups = shownGroupsOf(instant)
+  const chosen = mobileRowsOf(groups)
   const transit = transitOf(instant)
-  const folded = expanded ? [] : instant.groups.filter((g) => !chosen.has(g.g))
+  const folded = expanded ? [] : groups.filter((g) => !chosen.has(g.g))
   const foldedRiders = folded.reduce((s, g) => s + g.size, 0)
+  // un eslabón y el siguiente casi nunca se pintan a la vez; si pasa, el segundo lleva su GroupIx
+  const used = new Set<string>()
+  const rowKey = (g: GroupNow): string => {
+    const k = keys?.[g.g] ?? String(g.g)
+    const key = used.has(k) ? `${k}~${g.g}` : k
+    used.add(key)
+    return key
+  }
   return (
     <div className="divide-y divide-slate-100" aria-live="off">
-      {instant.groups.map((g) => {
+      {groups.map((g) => {
         const fold = folded.includes(g)
         const t = transit.get(g.g)
         return (
           <div
-            key={g.g}
+            key={rowKey(g)}
             data-group-row={g.number}
             data-mobile={fold ? 'folded' : undefined}
             className={`${fold ? 'hidden sm:block' : 'block'} py-1.5`}

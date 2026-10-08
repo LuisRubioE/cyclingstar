@@ -2,10 +2,12 @@
  * LA CABEZA DE LAS CINCO ETAPAS CONGELADAS EN LÍNEA, para el ritmo y la red del reproductor (E2,
  * docs/retransmision.md §8.12; paso 3b).
  *
- * La línea de una etapa de verdad vive en `apps/api` (el adaptador de la radio, `loadTimeline` de
- * `apps/api/src/__fixtures__/broadcast/load.ts`), que la web no puede importar. El reproductor solo
- * necesita de ella la cabeza (los km que le quedan, `Instant.toGoKm`), la hora de la meta y la de
- * cada suceso, así que `player.test.ts` corre sobre una línea de solo cabeza armada con estos datos.
+ * La línea de una etapa de verdad vive en `apps/api` (la del adaptador de la radio, que era
+ * `loadTimeline` de `apps/api/src/__fixtures__/broadcast/load.ts` y desde el 6a es
+ * `loadAdaptedTimeline`; `loadTimeline` es ya la grabada), que la web no puede importar. El
+ * reproductor solo necesita de ella la cabeza (los km que le quedan, `Instant.toGoKm`), la hora de la
+ * meta y la de cada suceso, así que `player.test.ts` corre sobre una línea de solo cabeza armada con
+ * estos datos.
  *
  * Volcados en el 3b (base `81c7a80`, motor v91) de la línea del adaptador de cada congelada:
  * `lengthKm` y `blocks` de la línea; `finishDs`, el borde de la meta (`visibilityOf`); `headDs`, la

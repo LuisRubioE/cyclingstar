@@ -19,6 +19,8 @@ import { describe, expect, it } from 'vitest'
 import { ApiError } from '../../api/request'
 import { HEAD_TRACKS, type HeadTrack, type HeadTrackName } from './__fixtures__/headTracks'
 import {
+  type CueDeck,
+  type CueDeckContext,
   type PlayerAction,
   type PlayerContext,
   type PlayerEffect,
@@ -31,6 +33,8 @@ import {
   type ViewMode,
   clockCapS,
   controlsHidden,
+  cueDeckInit,
+  cueDeckStep,
   failureAction,
   headAtLine,
   playerInit,
@@ -418,15 +422,16 @@ function headLine(track: HeadTrack, withEvents: boolean): TimelineCore {
     b,
     marks: [[0, track.headDs[k]!]],
   }))
+  // cada suceso, un ataque que cuaja (`attack_sticks`, un ATTACK de clase 2): la cola más cargada
   const events: TimelineEvent[] = withEvents
     ? track.revealDs.map((ds, i) => ({
         source: i,
-        plantilla: 'attack_go',
+        plantilla: 'attack_sticks',
         km: 0,
         tS: fromDs(ds),
         bEmit: 0,
         revealS: fromDs(ds),
-        riders: [],
+        riders: [i % 8],
         datos: null,
       }))
     : []
@@ -482,14 +487,21 @@ interface StageRun {
   readonly afterBeyond: readonly PlayerEffect[]
   /** s de pared de la reproducción: del fin de la previa a la línea */
   readonly playWallS: number
+  /** la cola de rótulos (6a): lo admitido, los fotogramas con un rótulo en pantalla y con la cola llena */
+  readonly admitted: number
+  readonly framesWithCue: number
+  readonly framesFullQueue: number
+  /** fotogramas con un rótulo en pantalla en que la hora avanzó */
+  readonly framesCueAndClock: number
 }
 
 /**
  * UNA ETAPA ENTERA, como la vería el dueño: la previa de 20 s (que tapa el primer tramo), el reloj a
  * 60 fotogramas por segundo con el instante a overlayHz sobre la línea servida (`cutTimeline` en lo
  * servido, sin la marca de meta, que ningún tramo lleva), las peticiones en orden a 150 ms cada una
- * (los informes también, como serán desde el 7a), la meta y la llegada. Con sucesos, cada uno entra en
- * la cola a su hora (`cueAdmitted`; la cola de verdad, con sus reglas, es del 6a).
+ * (los informes también, como serán desde el 7a), la meta y la llegada. Con sucesos, la cola de rótulos
+ * de verdad (6a): en cada fotograma, `cueDeckStep` con el instante que se pinta y la línea servida, y lo
+ * que admite, al reductor (`cueAdmitted`), como hace el hook de `StageWatch.tsx`.
  */
 function playStage(name: HeadTrackName, opts: RunOptions): StageRun {
   const track = HEAD_TRACKS[name]
@@ -596,7 +608,11 @@ function playStage(name: HeadTrackName, opts: RunOptions): StageRun {
   let paused = false
   let playFrom: number | null = null
   let arrivalAt: number | null = null
-  let nextEvent = 0
+  let deck: CueDeck = cueDeckInit(ictx.start)
+  let admitted = 0
+  let framesWithCue = 0
+  let framesFullQueue = 0
+  let framesCueAndClock = 0
   let instant = instantAt(servedLine(0), 0, ictx)
   const maxFrames = 60 * 3600
   for (let f = 1; f <= maxFrames; f++) {
@@ -625,24 +641,35 @@ function playStage(name: HeadTrackName, opts: RunOptions): StageRun {
       if (wall >= arrivalAt + ARRIVAL_S) dispatch({ k: 'cardDone' })
     }
     if (s.phase === 'closing') break
-    // 3. El instante, a overlayHz, sobre la línea servida; el fotograma, con sus km a meta.
+    // 3. El instante, a overlayHz, sobre la línea servida.
     if (f % FRAMES_PER_INSTANT === 0) instant = instantAt(servedLine(s.servedS), s.t, ictx)
+    // 4. Con sucesos, la cola de rótulos con ese instante; lo admitido, al reductor (6a).
+    if (opts.events) {
+      const served = servedLine(s.servedS)
+      const deckCtx: CueDeckContext = {
+        start: ictx.start,
+        timeTrial: false,
+        events: served.events,
+        catalog: served.groups,
+      }
+      const step = cueDeckStep(deck, instant, DT, s.phase === 'playing', deckCtx)
+      deck = step.deck
+      for (const a of step.admitted) dispatch(a)
+      admitted += step.admitted.length
+      if (deck.queue.waiting.length >= BROADCAST.cueQueueMax) framesFullQueue += 1
+    }
+    // 5. El fotograma, con sus km a meta.
+    const before = s.t
     dispatch({
       k: 'frame',
       dtS: DT,
       toGoKm: instant.toGoKm,
       atLine: headAtLine(instant, line),
     })
-    // 4. Con sucesos, la cola los admite a su hora (los de la meta no van en ningún tramo).
-    if (opts.events)
-      while (
-        nextEvent < track.revealDs.length &&
-        track.revealDs[nextEvent]! <= toDs(s.t) &&
-        track.revealDs[nextEvent]! < track.finishDs
-      ) {
-        dispatch({ k: 'cueAdmitted', cls: 2, kind: 'attack', round: false })
-        nextEvent += 1
-      }
+    if (deck.queue.shown !== null) {
+      framesWithCue += 1
+      if (s.t > before) framesCueAndClock += 1
+    }
     if (s.phase === 'waiting') {
       if (!(s.atFinish && s.inFlight)) waitingForChunk += 1
       if (s.notice !== 'loading') loadingWhileWaiting = false
@@ -666,6 +693,10 @@ function playStage(name: HeadTrackName, opts: RunOptions): StageRun {
     finishes,
     afterBeyond: clock.afterBeyond,
     playWallS: clock.lineAt === null || playFrom === null ? Number.NaN : clock.lineAt - playFrom,
+    admitted,
+    framesWithCue,
+    framesFullQueue,
+    framesCueAndClock,
   }
 }
 
@@ -715,6 +746,128 @@ describe('B9 · el ritmo no lee los sucesos: la misma t fotograma a fotograma, c
     const sin = played('race-france-e7', { events: false, speed: 1, nextAction: true })
     expect(con.ts).not.toEqual(sin.ts)
     expect(sin.ts.length).toBeLessThan(con.ts.length) // sin nada que lo apague, ×20 hasta el final
+  })
+})
+
+// --------------------------------------------------------- la cola de rótulos (§6.5, D-21; 6a)
+
+describe('la cola de rótulos no para el reloj (D-21; 6a)', () => {
+  it.each(NAMES)(
+    '%s: con un rótulo en pantalla y con la cola llena, la hora avanza igual que sin sucesos',
+    (name) => {
+      const con = played(name, { events: true, speed: 1 })
+      const sin = played(name, { events: false, speed: 1 })
+      expect(con.admitted).toBeGreaterThan(0)
+      expect(con.framesWithCue).toBeGreaterThan(0)
+      expect(con.framesCueAndClock).toBeGreaterThan(0)
+      expect(con.ts).toEqual(sin.ts)
+    },
+    60_000,
+  )
+
+  it('y la cola se llena de verdad en alguna de las cinco: el reloj no la mira', () => {
+    const full = NAMES.map((name) => played(name, { events: true, speed: 1 }).framesFullQueue)
+    expect(Math.max(...full)).toBeGreaterThan(0)
+  })
+})
+
+describe('cueDeckStep · la cola de rótulos del reproductor, paso a paso (§6.5, 6-h, 6-i)', () => {
+  const track = HEAD_TRACKS['race-france-e7']
+  /** La cabeza de la e7 con estos sucesos, cada uno con su índice como `source`. */
+  const lineWith = (events: readonly Omit<TimelineEvent, 'source'>[]): TimelineCore => ({
+    ...headLine(track, false),
+    events: events.map((e, i) => ({ ...e, source: i })),
+  })
+  const ictx: InstantContext = {
+    own: new Set(),
+    start: { leaders: { gc: null, points: null, kom: null }, gcTop: [], racingAtStart: 8 },
+    photoBlocks: photoBlocksOf(track.lengthKm, DX),
+  }
+  const deckCtx = (line: TimelineCore): CueDeckContext => ({
+    start: ictx.start,
+    timeTrial: false,
+    events: line.events,
+    catalog: line.groups,
+  })
+  const event = (
+    plantilla: string,
+    revealS: number,
+    riders: number[],
+  ): Omit<TimelineEvent, 'source'> => ({
+    plantilla,
+    km: 1,
+    tS: revealS,
+    bEmit: 10,
+    revealS,
+    riders,
+    datos: null,
+  })
+
+  it('el primer instante solo se apunta; después, los rótulos revelados entre el anterior y este', () => {
+    const line = lineWith([event('attack_sticks', 100, [0]), event('attack_go', 120, [1])])
+    const at = (t: number) => instantAt(line, t, ictx)
+    // se entra a mitad (Previously): lo de antes no sale en rótulos
+    const first = cueDeckStep(cueDeckInit(ictx.start), at(150), DT, true, deckCtx(line))
+    expect(first.admitted).toEqual([])
+    expect(first.deck.queue).toEqual({ waiting: [], shown: null })
+    const line2 = lineWith([event('attack_sticks', 200, [0]), event('attack_go', 220, [1])])
+    const at2 = (t: number) => instantAt(line2, t, ictx)
+    let deck = cueDeckStep(cueDeckInit(ictx.start), at2(150), DT, true, deckCtx(line2)).deck
+    const r = cueDeckStep(deck, at2(250), DT, true, deckCtx(line2))
+    // attack_go es solo voz (§6.6); attack_sticks, un ATTACK de clase 2, en pantalla enseguida
+    expect(r.admitted).toEqual([{ k: 'cueAdmitted', cls: 2, kind: 'attack', round: false }])
+    expect(r.deck.queue.shown?.cue).toMatchObject({ kind: 'attack', t: 200, riders: [0] })
+    // el mismo instante otra vez no vuelve a dar nada
+    deck = r.deck
+    expect(cueDeckStep(deck, at2(250), DT, true, deckCtx(line2)).admitted).toEqual([])
+  })
+
+  it('en pausa la hora de la cola no corre: el rótulo sigue en pantalla hasta que la carrera vuelve', () => {
+    const line = lineWith([event('attack_sticks', 200, [0])])
+    const at = (t: number) => instantAt(line, t, ictx)
+    let deck = cueDeckStep(cueDeckInit(ictx.start), at(150), DT, true, deckCtx(line)).deck
+    const now = at(250)
+    deck = cueDeckStep(deck, now, DT, true, deckCtx(line)).deck
+    const shown = deck.queue.shown
+    expect(shown).not.toBeNull()
+    for (let i = 0; i < 600; i++) deck = cueDeckStep(deck, now, DT, false, deckCtx(line)).deck
+    expect(deck.queue.shown).toBe(shown)
+    for (let i = 0; i < 60 * (BROADCAST.cueHoldS[2] + 1); i++)
+      deck = cueDeckStep(deck, now, DT, true, deckCtx(line)).deck
+    expect(deck.queue.shown).toBeNull()
+  })
+
+  it('la caída: primero CRASH sin nombres y, crashNamesDelayS de pared después, con ellos (D-13)', () => {
+    const line = lineWith([event('crash', 200, [1, 2])])
+    const at = (t: number) => instantAt(line, t, ictx)
+    let deck = cueDeckStep(cueDeckInit(ictx.start), at(150), DT, true, deckCtx(line)).deck
+    const now = at(250)
+    const r = cueDeckStep(deck, now, DT, true, deckCtx(line))
+    expect(r.admitted.map((a) => a.kind)).toEqual(['crash'])
+    expect(r.deck.queue.shown?.cue).toMatchObject({ kind: 'crash', riders: null })
+    deck = r.deck
+    const names: number[] = []
+    for (let f = 1; f <= 60 * 12; f++) {
+      const x = cueDeckStep(deck, now, DT, true, deckCtx(line))
+      deck = x.deck
+      if (x.admitted.length > 0) names.push(f * DT)
+      if (deck.queue.shown?.cue.kind === 'crash' && deck.queue.shown.cue.riders !== null) break
+    }
+    // admitido a los crashNamesDelayS de pared; sale cuando acaba el primero (cueHoldS de su clase)
+    expect(names).toHaveLength(1)
+    expect(names[0]!).toBeCloseTo(BROADCAST.crashNamesDelayS, 1)
+    expect(deck.queue.shown?.cue).toMatchObject({ kind: 'crash', riders: [1, 2] })
+  })
+
+  it('si la hora va hacia atrás (un salto, 10a), no sale nada de lo que ya pasó', () => {
+    const line = lineWith([event('attack_sticks', 200, [0])])
+    const at = (t: number) => instantAt(line, t, ictx)
+    let deck = cueDeckStep(cueDeckInit(ictx.start), at(300), DT, true, deckCtx(line)).deck
+    const back = cueDeckStep(deck, at(100), DT, true, deckCtx(line))
+    expect(back.admitted).toEqual([])
+    deck = back.deck
+    // desde ahí, lo que se revela otra vez sí sale
+    expect(cueDeckStep(deck, at(250), DT, true, deckCtx(line)).admitted).toHaveLength(1)
   })
 })
 

@@ -8,8 +8,13 @@
  */
 import {
   BROADCAST,
+  type Cue,
+  type GroupCatalogEntry,
+  type GroupIx,
+  GROUP_WORDS,
   type GroupNow,
   type Instant,
+  type JerseyKind,
   type ProfileStrip,
   type RiderCard,
   type RiderIx,
@@ -195,4 +200,303 @@ export function unnamedFor(
       if (id !== undefined) named.add(id)
     }
   return (riderId) => !named.has(riderId)
+}
+
+// ------------------------------------------------------------- los grupos que se pintan (6a)
+
+/**
+ * LOS GRUPOS QUE PINTAN LA BARRA Y EL PERFIL: los del instante con alguien dentro, renumerados por
+ * carretera. Un grupo recién nacido cuyos corredores aún se pintan en el de detrás (los que salen en
+ * dos grupos van en el de atrás y en tránsito, 3-b) va vacío en el instante unos segundos de carrera,
+ * hasta que se ve su marca siguiente: en las cinco congeladas, del 0,3 al 0,8 % de los segundos, y en
+ * la mitad de ellos es el primero de la carretera. El instante lo conserva (I2 lo cuenta); la pantalla
+ * no pinta una fila ni un cursor sin nadie, y el número de carretera (que renumera y no es identidad,
+ * §6.2) es el de lo pintado.
+ */
+export function shownGroupsOf(instant: Instant): readonly GroupNow[] {
+  if (instant.groups.every((g) => g.size > 0)) return instant.groups
+  return instant.groups.filter((g) => g.size > 0).map((g, i) => ({ ...g, number: i + 1 }))
+}
+
+/**
+ * LA IDENTIDAD DE UN GRUPO EN PANTALLA (D-03, §3.7): el id del motor y, en un cambio de etiqueta (todos
+ * los de un grupo pasan juntos a uno que nace en el bloque de su muerte o en el siguiente: en Colombia,
+ * de 10 a 19 veces por etapa), la del grupo que murió, por la cadena de `successor`. Así la fila de la
+ * barra y el cursor del perfil son los mismos de un eslabón al siguiente. Por `GroupIx` del catálogo.
+ */
+export function screenKeysOf(catalog: readonly GroupCatalogEntry[]): readonly string[] {
+  const keys: string[] = catalog.map((g) => g.id)
+  // el catálogo va por nacimiento (4-a): el antecesor de un grupo siempre va antes que él
+  const inherited = new Set<GroupIx>()
+  catalog.forEach((g, i) => {
+    const s = g.successor
+    if (s === null || g.diedB === null || inherited.has(s)) return
+    const next = catalog[s]
+    if (next !== undefined && s > i && (next.bornB === g.diedB || next.bornB === g.diedB + 1)) {
+      keys[s] = keys[i]!
+      inherited.add(s)
+    }
+  })
+  return keys
+}
+
+/** Un cursor del perfil: su identidad en pantalla, dónde se pinta y si es un grupo que ya no está. */
+export interface Cursor {
+  readonly key: string
+  readonly g: GroupIx
+  readonly km: number
+  readonly number: number
+  readonly own: boolean
+  /** 0, un grupo del instante; n > 0, uno que se fue hace n repintados y se pinta aún (abajo) */
+  readonly ghost: number
+}
+
+/** Cuántos repintados del perfil (a `barHz`, 4 por segundo) sigue un cursor cuyo grupo se ha ido. */
+export const CURSOR_GHOST_PAINTS = 2
+
+/**
+ * LOS CURSORES DEL PERFIL QUE SIGUEN AL GRUPO POR SU SUCESOR (D-03; 6a). Los del instante, cada uno con
+ * su identidad en pantalla (`screenKeysOf`), y los que estaban en el repintado anterior y ya no están,
+ * durante `CURSOR_GHOST_PAINTS` repintados: si su cadena de sucesores llega a un grupo del instante,
+ * se pintan en su km (una fuga cazada se funde con el cursor de su cazador, en lugar de desaparecer); si
+ * no, se quedan donde iban (en un cambio de etiqueta, el sucesor nace un bloque después, y su cursor,
+ * con la misma identidad, sigue desde ahí sin saltar).
+ */
+export function cursorsOf(
+  groups: readonly GroupNow[],
+  catalog: readonly GroupCatalogEntry[],
+  keys: readonly string[],
+  before: readonly Cursor[],
+): Cursor[] {
+  const used = new Set<string>()
+  const live: Cursor[] = groups.map((x) => {
+    let key = keys[x.g] ?? `g${x.g}`
+    if (used.has(key)) key = `${key}~${x.g}`
+    used.add(key)
+    return { key, g: x.g, km: x.km, number: x.number, own: x.own, ghost: 0 }
+  })
+  const byG = new Map(groups.map((x) => [x.g, x] as const))
+  const ghosts: Cursor[] = []
+  for (const c of before) {
+    if (used.has(c.key) || c.ghost >= CURSOR_GHOST_PAINTS) continue
+    let s = catalog[c.g]?.successor ?? null
+    for (let hops = 0; s !== null && !byG.has(s) && hops < catalog.length; hops++)
+      s = catalog[s]?.successor ?? null
+    const to = s === null ? undefined : byG.get(s)
+    ghosts.push({ ...c, km: to === undefined ? c.km : Math.max(c.km, to.km), ghost: c.ghost + 1 })
+  }
+  return [...ghosts, ...live]
+}
+
+// ------------------------------------------------------------------- los rótulos (§6.5; 6a)
+
+/** Un rótulo en pantalla: la palabra de arriba, en mayúsculas, y lo que la sigue. */
+export interface CueText {
+  readonly title: string
+  readonly detail: string | null
+}
+
+/** Lo que el rótulo lee además del `Cue`: el reparto servido, el instante que se pinta y el perfil. */
+export interface CueTextContext {
+  readonly cast: readonly RiderCard[]
+  readonly instant: Instant
+  readonly profile: ProfileStrip
+}
+
+/** El corredor en un rótulo: el dorsal y el nombre, `45 Jules Moreau` (§6.5). */
+function riderShort(cast: readonly RiderCard[], r: RiderIx): string {
+  const c = cast[r]
+  if (c === undefined) return `#${r + 1}`
+  return c.bib === null ? c.name : `${c.bib} ${c.name}`
+}
+
+/** El maillot de líder en un rótulo, `Race leader` (§6.5, `DROPPED`). */
+const LEADER_WORDS: Readonly<Record<JerseyKind, string>> = {
+  gc: 'Race leader',
+  points: 'Points leader',
+  kom: 'Mountains leader',
+}
+
+/** La causa de un corte (§6.5, F.3), por `datos.causa`. */
+const SPLIT_CAUSE_WORDS: Readonly<Record<string, string>> = {
+  caida: 'after a crash',
+  viento: 'in the crosswind',
+  sector: 'on the cobbles',
+  puerto: 'on the climb',
+  caza: 'in the chase',
+}
+
+const join = (parts: readonly (string | null | undefined | false)[]): string | null => {
+  const kept = parts.filter((p): p is string => typeof p === 'string' && p.length > 0)
+  return kept.length === 0 ? null : kept.join(' · ')
+}
+const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`
+
+/**
+ * EL TEXTO DE UN RÓTULO (§6.5, los textos de §21.6 F.3, en inglés). Puro. El 6a dice lo que sale de los
+ * sucesos y del estado (`cuesBetween`), con el corredor por su dorsal y su nombre; el rótulo de corredor
+ * entero (§7.1, la bandera, el equipo y sus títulos), la presentación de la fuga, la crono y los de la
+ * llegada son del 6b y del 10a, y aquí llevan solo su palabra.
+ */
+export function cueText(cue: Cue, ctx: CueTextContext): CueText {
+  const { cast, instant } = ctx
+  const rider = (r: RiderIx): string => riderShort(cast, r)
+  const groupNow = (g: GroupIx): GroupNow | undefined => instant.groups.find((x) => x.g === g)
+  const voiceWord = (g: GroupNow): string =>
+    groupLabelText('en', g.label, g.role, 'voice', nameOf(cast))
+  switch (cue.kind) {
+    case 'attack': {
+      const [first, ...rest] = [...cue.riders].sort(
+        (a, b) =>
+          (cast[a]?.notoriety ?? 8) - (cast[b]?.notoriety ?? 8) ||
+          (cast[a]?.bib ?? a) - (cast[b]?.bib ?? b),
+      )
+      return {
+        title: 'ATTACK',
+        detail:
+          first === undefined
+            ? null
+            : `${rider(first)}${rest.length > 0 ? ` and ${plural(rest.length, 'other', 'others')}` : ''}`,
+      }
+    }
+    case 'break_formed': {
+      const gap = instant.mainGap
+      const behind = gap !== null && gap.ahead === cue.group ? groupNow(gap.behind) : undefined
+      return {
+        title: 'BREAKAWAY',
+        detail: join([
+          plural(cue.riders.length, 'rider', 'riders'),
+          cue.gapS >= BROADCAST.sameTimeS
+            ? `${gapText(cue.gapS)}${behind === undefined ? '' : ` ${versusText(behind, cast)}`}`
+            : null,
+        ]),
+      }
+    }
+    case 'break_presented':
+      return { title: 'BREAKAWAY', detail: null }
+    case 'caught': {
+      const was = groupNow(cue.caught)
+      return {
+        title: 'CAUGHT',
+        detail: join([
+          was === undefined ? GROUP_WORDS.role.lead[1] : voiceWord(was),
+          `${cue.toGoKm.toFixed(1)} km to go`,
+        ]),
+      }
+    }
+    case 'split':
+      return {
+        title: 'SPLIT IN THE BUNCH',
+        detail: cue.cause === null ? null : (SPLIT_CAUSE_WORDS[cue.cause] ?? null),
+      }
+    case 'banner_result': {
+      const b = instant.banners[cue.banner]
+      if (b === undefined) return { title: 'INTERMEDIATE SPRINT', detail: null }
+      const order = b.order
+        .slice(0, 3)
+        .map(
+          (o, i) =>
+            `${i + 1}. ${cast[o.rider]?.name ?? rider(o.rider)} ${o.points}${i === 0 ? ' pts' : ''}`,
+        )
+      if (b.kind === 'cima')
+        return {
+          title: 'KOM',
+          detail: join([
+            b.name === null
+              ? b.cat === null
+                ? null
+                : climbCatText(b.cat)
+              : `${b.name}${b.cat === null ? '' : ` (${climbCatText(b.cat)})`}`,
+            ...order,
+          ]),
+        }
+      return { title: 'INTERMEDIATE SPRINT', detail: join(order) }
+    }
+    case 'crash':
+      return {
+        title: 'CRASH',
+        detail: cue.riders === null ? null : join(cue.riders.map(rider)),
+      }
+    case 'last_km': {
+      const head = shownGroupsOf(instant)[0]
+      return {
+        title: 'FLAMME ROUGE · 1 KM',
+        detail: join([
+          head === undefined ? null : `${head.size} in front`,
+          cue.leadGapS === null ? null : gapText(cue.leadGapS),
+        ]),
+      }
+    }
+    case 'group_changed': {
+      const g = groupNow(cue.group)
+      const kept = g === undefined ? null : g.size
+      if (cue.gained.length > 0 && cue.gained.length >= cue.lost.length) {
+        if (g?.kind === 'peloton' || g?.role === 'bunch')
+          return {
+            title: 'BACK TOGETHER',
+            detail: `${plural(cue.gained.length, 'rider rejoins', 'riders rejoin')} the bunch`,
+          }
+        return {
+          title: 'CONTACT',
+          detail: `${plural(cue.gained.length, 'rider bridges', 'riders bridge')} across`,
+        }
+      }
+      return {
+        title: g === undefined ? 'GROUP' : voiceWord(g).replace(/^the /, '').toUpperCase(),
+        detail:
+          kept === null
+            ? null
+            : `${kept} of the ${kept + cue.lost.length - cue.gained.length} remain`,
+      }
+    }
+    case 'mishap':
+      return {
+        title: cue.mishap === 'averia' ? 'MECHANICAL' : 'PUNCTURE',
+        detail: rider(cue.rider),
+      }
+    case 'dropped': {
+      const c = cast[cue.rider]
+      return {
+        title: 'DROPPED',
+        detail: join([
+          rider(cue.rider),
+          c?.worn.kind === 'leader' ? LEADER_WORDS[c.worn.jersey] : null,
+          cue.gapS === null ? null : gapText(cue.gapS),
+        ]),
+      }
+    }
+    case 'abandon':
+      return {
+        title: 'ABANDON',
+        detail: join([rider(cue.rider), cast[cue.rider]?.team?.name ?? null]),
+      }
+    case 'climb_ahead': {
+      const c = ctx.profile.climbs[cue.banner]
+      return {
+        title: c?.name ?? (c === undefined ? 'CLIMB' : `${climbCatText(c.cat)} climb`),
+        detail:
+          c === undefined
+            ? null
+            : `${climbCatText(c.cat)} · summit in ${Math.max(0, c.topKm - instant.headKm).toFixed(1)} km`,
+      }
+    }
+    case 'time_check':
+      return { title: 'TIME CHECK', detail: `${instant.toGoKm.toFixed(1)} km to go` }
+    case 'virtual_gc':
+      return { title: 'VIRTUAL GC', detail: null }
+    case 'rider':
+      return { title: rider(cue.rider), detail: cast[cue.rider]?.team?.name ?? null }
+    case 'finish':
+      return { title: 'STAGE WINNER', detail: null }
+    case 'group_finish':
+      return { title: 'FINISH', detail: null }
+    case 'time_cut':
+      return { title: 'TIME CUT', detail: null }
+    case 'tt_start_order':
+      return { title: 'START ORDER', detail: null }
+    case 'tt_split':
+      return { title: `SPLIT ${cue.check + 1}`, detail: rider(cue.rider) }
+    case 'tt_finish':
+      return { title: cue.hotSeat ? 'FINISH · HOT SEAT' : 'FINISH', detail: rider(cue.rider) }
+  }
 }
