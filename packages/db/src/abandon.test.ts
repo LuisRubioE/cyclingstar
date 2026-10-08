@@ -4,7 +4,7 @@ import { and, eq, isNull } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { newsNames } from './news.js'
 import { getRaceGc, getStageResults } from './results.js'
-import { getRiderUpcomingRaces, retireFromRace } from './riderSchedule.js'
+import { getRiderRaceDays, getRiderUpcomingRaces, retireFromRace } from './riderSchedule.js'
 import {
   news,
   raceGc,
@@ -17,7 +17,7 @@ import {
 } from './schema.js'
 import { runOneStage } from './stageRun.js'
 import { type TestDb, startTestDb } from './testDb.js'
-import { worldHorizon } from './horizon.js'
+import { type Horizon, clearHorizonCaches, stageGameDay, worldHorizon } from './horizon.js'
 
 /**
  * Consecuencias de un abandono en la capa de datos (docs/motor.md §VI.3 y §V.5), contra Postgres
@@ -313,5 +313,129 @@ describe('db: consecuencias de un abandono', () => {
         currentDay: START_DAY - 5,
       }),
     ).toEqual({ ok: false, reason: 'no_en_marcha' })
+  })
+})
+
+/**
+ * EL ABANDONO BAJO EL VELO (docs/retransmision.md §11.2; sups. X2, X9 y X10, decisiones 10-i, 11-b y 11-j;
+ * paso 8b). Con el abandono en una etapa que quien mira tiene velada, las tres puertas enseñan lo mismo
+ * que si no hubiera abandonado, y a la vez (si una enmascarara y otra no, la otra delataría): la carrera
+ * sigue en «tus carreras» (X2), los días que quedaban siguen siendo de carrera en el planificador (X10) y
+ * la retirada responde la de una retirada normal sin escribir nada (X9). Con la etapa conocida, lo de
+ * hoy. La retirada voluntaria no se enmascara nunca: es un acto del jugador (10-i).
+ */
+describe('db: el abandono bajo el velo (sups. X2, X9 y X10; 8b)', () => {
+  let t: TestDb
+  let worldId: string
+  let riderIds: string[]
+  const KEY = RACE_KEY
+  /** El día de juego de cada etapa (`stageGameDay`, la cuenta del tick). */
+  const g = (stageDay: number): number => stageGameDay(KEY, stageDay)
+  const RACE = SEASON_CALENDAR.find((r) => r.id === RACE_ID)!
+  /** El corredor del jugador: abandona en la 3 («colapso»). */
+  const out = (): string => riderIds[4]!
+  const USER = '00000000-0000-4000-8000-000000000990'
+  /** El horizonte del jugador con las etapas `stages` de la Race France en el velo. */
+  const horizonOf = (stages: readonly number[]): Horizon => ({
+    ...worldHorizon,
+    kind: 'viewer',
+    userId: USER,
+    readOnly: false,
+    rev: `${g(4)}.${stages.length}`,
+    knownThrough: new Map([[KEY, stages.length === 0 ? 4 : Math.min(...stages) - 1]]),
+    veil: stages.map((s) => ({ raceKey: KEY, stageDay: s, gameDay: g(s), reason: 'own_rider' })),
+  })
+  const veiled = horizonOf([3, 4])
+  const known = horizonOf([4])
+
+  beforeAll(async () => {
+    t = await startTestDb()
+    const seeded = await seedWorld(t)
+    worldId = seeded.worldId
+    riderIds = seeded.riderIds
+    await t.client`insert into users (id, email, name) values (${USER}, 'jugador@example.com', 'Jugador')`
+    await t.client`update riders set user_id = ${USER} where id = ${out()}`
+    await t.db
+      .update(raceRosters)
+      .set({ abandonedDay: g(3), abandonedReason: 'colapso' })
+      .where(and(eq(raceRosters.raceId, KEY), eq(raceRosters.riderId, out())))
+  }, 180_000)
+
+  afterAll(async () => {
+    await t?.close()
+  })
+
+  it('las etapas del ejemplo: la 3 y la 4 son días seguidos de la carrera en curso', () => {
+    expect([g(3), g(4)]).toEqual([START_DAY + 2, START_DAY + 3])
+    expect(RACE.stages.length).toBeGreaterThan(4)
+  })
+
+  it('sup. X2: con el abandono velado, la carrera sigue en curso en «tus carreras»; con la etapa conocida, ya no', async () => {
+    clearHorizonCaches()
+    const enCurso = await getRiderUpcomingRaces(t.db, veiled, out(), g(4))
+    expect(enCurso.find((r) => r.raceKey === KEY)).toMatchObject({ ongoing: true, bib: 5 })
+    for (const h of [known, worldHorizon])
+      expect(
+        (await getRiderUpcomingRaces(t.db, h, out(), g(4))).some((r) => r.raceKey === KEY),
+      ).toBe(false)
+  })
+
+  it('sup. X10: con el abandono velado, los días que quedaban siguen siendo de carrera en el planificador', async () => {
+    clearHorizonCaches()
+    const desde = g(2)
+    const hasta = g(2) + 6
+    const todos = (await getRiderRaceDays(t.db, veiled, out(), desde, hasta)).length
+    const visto = await getRiderRaceDays(t.db, known, out(), desde, hasta)
+    // con la etapa del abandono conocida, solo hasta el día del abandono, inclusive
+    expect(visto).toEqual([g(2), g(3)])
+    expect(await getRiderRaceDays(t.db, worldHorizon, out(), desde, hasta)).toEqual(visto)
+    // velado, los de toda la ventana que son de la carrera (los de la 2 a la que toque), como el de un corredor sin abandono
+    const sinAbandono = await getRiderRaceDays(t.db, worldHorizon, riderIds[5]!, desde, hasta)
+    expect(await getRiderRaceDays(t.db, veiled, out(), desde, hasta)).toEqual(sinAbandono)
+    expect(todos).toBeGreaterThan(visto.length)
+  })
+
+  it('sup. X9: con el abandono velado, la retirada responde alreadyOut: false y no escribe nada; con la etapa conocida, alreadyOut: true', async () => {
+    clearHorizonCaches()
+    const before = await t.client`select * from race_rosters order by rider_id`
+    const newsBefore = await t.client`select count(*)::int as n from news`
+    const opts = { worldId, riderId: out(), raceKey: KEY, currentDay: g(4) }
+    expect(await retireFromRace(t.db, veiled, opts)).toEqual({
+      ok: true,
+      raceName: RACE.name,
+      alreadyOut: false,
+    })
+    expect(await t.client`select * from race_rosters order by rider_id`).toEqual(before)
+    expect(await t.client`select count(*)::int as n from news`).toEqual(newsBefore)
+    for (const h of [known, worldHorizon])
+      expect(await retireFromRace(t.db, h, opts)).toEqual({
+        ok: true,
+        raceName: RACE.name,
+        alreadyOut: true,
+      })
+  })
+
+  it('10-i: la retirada voluntaria el día de una etapa velada no se enmascara: es un acto del jugador', async () => {
+    clearHorizonCaches()
+    const me = riderIds[6]!
+    await t.client`update riders set user_id = ${USER} where id = ${me}`
+    try {
+      expect(
+        await retireFromRace(t.db, veiled, {
+          worldId,
+          riderId: me,
+          raceKey: KEY,
+          currentDay: g(4),
+        }),
+      ).toEqual({ ok: true, raceName: RACE.name, alreadyOut: false })
+      clearHorizonCaches()
+      // el día de la 4 está en el velo, y aun así la carrera sale de «tus carreras» al día siguiente
+      expect(
+        (await getRiderUpcomingRaces(t.db, veiled, me, g(4) + 1)).some((r) => r.raceKey === KEY),
+      ).toBe(false)
+      expect(await getRiderRaceDays(t.db, veiled, me, g(5), g(5))).toEqual([])
+    } finally {
+      await t.client`update riders set user_id = null where id = ${me}`
+    }
   })
 })
