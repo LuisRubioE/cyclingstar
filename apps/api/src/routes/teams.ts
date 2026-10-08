@@ -33,7 +33,7 @@ export const teamRoutes: RoutePlugin = async (app, ctx) => {
   const { db, currentUserId } = ctx
 
   // Un jugador premium toma el control del equipo bot en el que corre su ciclista (SPEC 7).
-  app.post('/api/teams/take-over', async (request, reply) => {
+  app.post('/api/teams/take-over', { config: { spoiler: 'safe' } }, async (request, reply) => {
     const userId = await currentUserId(request)
     if (!userId) return unauthorized(reply)
     const result = await takeOverBotTeam(db, userId)
@@ -45,7 +45,7 @@ export const teamRoutes: RoutePlugin = async (app, ctx) => {
   })
 
   // El dueño edita su equipo: nombre (validado como el de un ciclista), país y maillot (SPEC 7).
-  app.put('/api/teams/me', async (request, reply) => {
+  app.put('/api/teams/me', { config: { spoiler: 'safe' } }, async (request, reply) => {
     const userId = await currentUserId(request)
     if (!userId) return unauthorized(reply)
     const parsed = teamEditSchema.safeParse(request.body)
@@ -60,15 +60,19 @@ export const teamRoutes: RoutePlugin = async (app, ctx) => {
 
   // Draft de calendario del EQUIPO (lo hace el manager): lista las carreras elegibles con el coste
   // de viaje y permite añadir/quitar del plan. Solo para quien gestiona un equipo.
-  app.get('/api/teams/me/calendar', async (request, reply) => {
-    const userId = await currentUserId(request)
-    if (!userId) return unauthorized(reply)
-    const world = await getCurrentWorld(db)
-    if (!world) return { calendar: null }
-    return {
-      calendar: await getTeamCalendar(db, await request.horizon(), userId, world.currentDay),
-    }
-  })
+  app.get(
+    '/api/teams/me/calendar',
+    { config: { spoiler: 'horizon', veil: { by: ['R'] } } },
+    async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return unauthorized(reply)
+      const world = await getCurrentWorld(db)
+      if (!world) return { calendar: null }
+      return {
+        calendar: await getTeamCalendar(db, await request.horizon(), userId, world.currentDay),
+      }
+    },
+  )
 
   // Plan de carreras del equipo al que PERTENECE el corredor, en SOLO LECTURA (§3.4).
   //
@@ -76,7 +80,7 @@ export const teamRoutes: RoutePlugin = async (app, ctx) => {
   // hoy, que todos los equipos son bots— no podía ver a qué carreras va el suyo. Este endpoint
   // responde justo a eso y a nada más: el programa, sin presupuesto ni salarios, que no son asunto
   // de un miembro de la plantilla.
-  app.get('/api/teams/me/race-plan', async (request, reply) => {
+  app.get('/api/teams/me/race-plan', { config: { spoiler: 'safe' } }, async (request, reply) => {
     const userId = await currentUserId(request)
     if (!userId) return unauthorized(reply)
     const world = await getCurrentWorld(db)
@@ -86,6 +90,7 @@ export const teamRoutes: RoutePlugin = async (app, ctx) => {
 
   app.post<{ Params: { raceId: string } }>(
     '/api/teams/me/calendar/:raceId',
+    { config: { spoiler: 'safe' } },
     async (request, reply) => {
       const userId = await currentUserId(request)
       if (!userId) return unauthorized(reply)
@@ -101,6 +106,7 @@ export const teamRoutes: RoutePlugin = async (app, ctx) => {
 
   app.delete<{ Params: { raceId: string } }>(
     '/api/teams/me/calendar/:raceId',
+    { config: { spoiler: 'safe' } },
     async (request, reply) => {
       const userId = await currentUserId(request)
       if (!userId) return unauthorized(reply)
@@ -115,29 +121,41 @@ export const teamRoutes: RoutePlugin = async (app, ctx) => {
   )
 
   // Explorar el mundo (#13/#14): lista de equipos y ficha de equipo. Público.
-  app.get('/api/teams', async (request) => {
-    const world = await getCurrentWorld(db)
-    if (!world) return { teams: [] }
-    return { teams: await getTeams(db, await request.horizon(), world.worldId) }
-  })
+  app.get(
+    '/api/teams',
+    { config: { spoiler: 'horizon', veil: { by: ['R'] } } },
+    async (request) => {
+      const world = await getCurrentWorld(db)
+      if (!world) return { teams: [] }
+      return { teams: await getTeams(db, await request.horizon(), world.worldId) }
+    },
+  )
 
-  app.get<{ Params: { id: string } }>('/api/teams/:id', async (request, reply) => {
-    const teamId = parseUuid(request.params.id)
-    if (!teamId) return notFound(reply)
-    const team = await getTeamDetail(db, await request.horizon(), teamId)
-    if (!team) return notFound(reply)
-    return { team }
-  })
+  app.get<{ Params: { id: string } }>(
+    '/api/teams/:id',
+    { config: { spoiler: 'horizon', veil: { by: ['R', 'M'] } } },
+    async (request, reply) => {
+      const teamId = parseUuid(request.params.id)
+      if (!teamId) return notFound(reply)
+      const team = await getTeamDetail(db, await request.horizon(), teamId)
+      if (!team) return notFound(reply)
+      return { team }
+    },
+  )
 
   // Noticias del equipo (#16): titulares de sus corredores. Bajo el velo (§11.7, 11-g; E2, paso 8a):
   // sin las de las etapas que quien pide no ha visto, con un marcador por cada etapa velada de cada
   // carrera en cuya lista de salida está el equipo, y los titulares de líder solo a quien le aplica el
   // velo (17-x).
-  app.get<{ Params: { id: string } }>('/api/teams/:id/news', async (request, reply) => {
-    const teamId = parseUuid(request.params.id)
-    if (!teamId) return notFound(reply)
-    const h = await request.horizon()
-    const opts = { leaderNews: await request.spoilerApplies() }
-    return { news: await getTeamNews(db, h, teamId, 15, opts) }
-  })
+  app.get<{ Params: { id: string } }>(
+    '/api/teams/:id/news',
+    { config: { spoiler: 'horizon', veil: { by: ['F'] } } },
+    async (request, reply) => {
+      const teamId = parseUuid(request.params.id)
+      if (!teamId) return notFound(reply)
+      const h = await request.horizon()
+      const opts = { leaderNews: await request.spoilerApplies() }
+      return { news: await getTeamNews(db, h, teamId, 15, opts) }
+    },
+  )
 }

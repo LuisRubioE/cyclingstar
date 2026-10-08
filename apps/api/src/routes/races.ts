@@ -81,90 +81,99 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
   // Órdenes del corredor para una carrera REAL del calendario a la que está convocado (raceKey
   // = `${raceId}:s${season}`). Devuelve sus etapas con altimetría, las órdenes actuales y los
   // compañeros de equipo en el roster (posibles objetivos). Solo si el corredor está convocado.
-  app.get<{ Querystring: { raceKey?: string } }>('/api/my-orders', async (request, reply) => {
-    const userId = await currentUserId(request)
-    if (!userId) return unauthorized(reply)
-    const raceKey = request.query.raceKey ?? ''
-    const parsedKey = parseRaceKey(raceKey)
-    const race = parsedKey ? SEASON_CALENDAR.find((r) => r.id === parsedKey.raceId) : null
-    // La clave se valida ANTES de consultar la base: una raceKey basura es un 404, no un 500.
-    if (!parsedKey || !race) return notFound(reply)
-    const rider = await getRiderForUser(db, userId)
-    if (!rider) return notFound(reply)
-    if (!(await isOnRoster(db, raceKey, rider.id))) {
-      return sendError(reply, 403, 'no_convocado')
-    }
-    // El reloj del mundo, que es lo que convierte un tiempo en una PREVISIÓN: sin saber qué día es
-    // hoy no se puede decir a cuántos días está la etapa.
-    const world = await getCurrentWorld(db)
-    /**
-     * EL PARTE METEOROLÓGICO DE CADA ETAPA (v44). Es la mitad de E5 que faltaba: `weatherForecast`
-     * existía en el motor desde la v42 y no salía por ninguna parte, así que el clima era un
-     * modificador y no una decisión. Sale AQUÍ, que es la pantalla en la que el jugador decide a
-     * quién manda y qué le pide.
-     *
-     * LO QUE HACE QUE ESTO NO MIENTA: el parte se calcula con EXACTAMENTE la misma semilla y el
-     * mismo sitio con los que `packages/db` va a correr la etapa. La semilla es la de `runOneStage`
-     * —mundo, clave de carrera, número de etapa y versión del motor— y el sitio sale de `stagePlace`,
-     * que es la MISMA función que usa `calendarRun`: por eso se extrajo, para que las dos cuentas no
-     * puedan separarse y el parte no acabe anunciando el tiempo de otra carrera.
-     */
-    const hoy = world?.currentDay ?? 0
-    const season = currentSeason(hoy)
-    // Las etapas que el mundo va a correr en la temporada de ESTA clave (congeladas, o su edición si
-    // la carrera aún no se ha congelado), no las de la temporada 0 (docs/generador.md §10.7).
-    const frozen = world
-      ? await raceStagesForWorld(db, world.worldId, raceKey, race.id, parsedKey.season)
-      : null
-    const stages = stagesForSeason(race.id, parsedKey.season).map((deLaTemporada, i) => {
-      const congelada = frozen?.[i]
-      const stage = congelada ? congeladaComoEtapa(deLaTemporada, congelada) : deLaTemporada
-      const spec = calendarStageSpec(stage, stageKm(stage.profile.segments))
-      const dia = i + 1
-      const parte =
-        world == null
-          ? null
-          : weatherForecast(
-              stageSeed({
-                worldSeed: world.worldSeed,
-                raceId: raceKey,
-                stageDay: dia,
-                engineVersion: ENGINE_VERSION,
-              }),
-              stagePlace(race, dia),
-              // Cuántos días faltan DE VERDAD, descansos incluidos: eso sí es distancia en el
-              // calendario y no la fecha del clima.
-              season * DAYS_PER_SEASON + stageDayOfSeason(race, dia) - hoy,
-            )
-      return {
-        day: dia,
-        name: `Stage ${dia}`,
-        // De dónde a dónde se corre: la hoja de órdenes también lo dice (encargo del dueño).
-        from: deLaTemporada.from,
-        to: deLaTemporada.to,
-        label: spec.label,
-        kind: spec.kind,
-        timeTrial: spec.timeTrial,
-        km: spec.km,
-        altimetry: renderAltimetrySvg(stage.profile),
-        forecast:
-          parte == null
-            ? null
-            : {
-                lluvia: Math.round(100 * parte.lluvia),
-                grados: Math.round(parte.grados),
-                fiabilidad: Math.round(100 * parte.fiabilidad),
-              },
+  app.get<{ Querystring: { raceKey?: string } }>(
+    '/api/my-orders',
+    {
+      config: {
+        spoiler: 'safe',
+        veil: { by: ['N', 'L'], why: 'rivales por fama, que no se escribe' },
+      },
+    },
+    async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return unauthorized(reply)
+      const raceKey = request.query.raceKey ?? ''
+      const parsedKey = parseRaceKey(raceKey)
+      const race = parsedKey ? SEASON_CALENDAR.find((r) => r.id === parsedKey.raceId) : null
+      // La clave se valida ANTES de consultar la base: una raceKey basura es un 404, no un 500.
+      if (!parsedKey || !race) return notFound(reply)
+      const rider = await getRiderForUser(db, userId)
+      if (!rider) return notFound(reply)
+      if (!(await isOnRoster(db, raceKey, rider.id))) {
+        return sendError(reply, 403, 'no_convocado')
       }
-    })
-    const orders = await getStageOrders(db, raceKey, rider.id)
-    const teammates = await getRosterTeammates(db, raceKey, rider.id)
-    const rivals = await getRaceRivals(db, raceKey, rider.id)
-    const teams = await getRaceTeams(db, raceKey, rider.id)
-    return { race: { id: race.id, name: race.name }, stages, orders, teammates, rivals, teams }
-  })
+      // El reloj del mundo, que es lo que convierte un tiempo en una PREVISIÓN: sin saber qué día es
+      // hoy no se puede decir a cuántos días está la etapa.
+      const world = await getCurrentWorld(db)
+      /**
+       * EL PARTE METEOROLÓGICO DE CADA ETAPA (v44). Es la mitad de E5 que faltaba: `weatherForecast`
+       * existía en el motor desde la v42 y no salía por ninguna parte, así que el clima era un
+       * modificador y no una decisión. Sale AQUÍ, que es la pantalla en la que el jugador decide a
+       * quién manda y qué le pide.
+       *
+       * LO QUE HACE QUE ESTO NO MIENTA: el parte se calcula con EXACTAMENTE la misma semilla y el
+       * mismo sitio con los que `packages/db` va a correr la etapa. La semilla es la de `runOneStage`
+       * —mundo, clave de carrera, número de etapa y versión del motor— y el sitio sale de `stagePlace`,
+       * que es la MISMA función que usa `calendarRun`: por eso se extrajo, para que las dos cuentas no
+       * puedan separarse y el parte no acabe anunciando el tiempo de otra carrera.
+       */
+      const hoy = world?.currentDay ?? 0
+      const season = currentSeason(hoy)
+      // Las etapas que el mundo va a correr en la temporada de ESTA clave (congeladas, o su edición si
+      // la carrera aún no se ha congelado), no las de la temporada 0 (docs/generador.md §10.7).
+      const frozen = world
+        ? await raceStagesForWorld(db, world.worldId, raceKey, race.id, parsedKey.season)
+        : null
+      const stages = stagesForSeason(race.id, parsedKey.season).map((deLaTemporada, i) => {
+        const congelada = frozen?.[i]
+        const stage = congelada ? congeladaComoEtapa(deLaTemporada, congelada) : deLaTemporada
+        const spec = calendarStageSpec(stage, stageKm(stage.profile.segments))
+        const dia = i + 1
+        const parte =
+          world == null
+            ? null
+            : weatherForecast(
+                stageSeed({
+                  worldSeed: world.worldSeed,
+                  raceId: raceKey,
+                  stageDay: dia,
+                  engineVersion: ENGINE_VERSION,
+                }),
+                stagePlace(race, dia),
+                // Cuántos días faltan DE VERDAD, descansos incluidos: eso sí es distancia en el
+                // calendario y no la fecha del clima.
+                season * DAYS_PER_SEASON + stageDayOfSeason(race, dia) - hoy,
+              )
+        return {
+          day: dia,
+          name: `Stage ${dia}`,
+          // De dónde a dónde se corre: la hoja de órdenes también lo dice (encargo del dueño).
+          from: deLaTemporada.from,
+          to: deLaTemporada.to,
+          label: spec.label,
+          kind: spec.kind,
+          timeTrial: spec.timeTrial,
+          km: spec.km,
+          altimetry: renderAltimetrySvg(stage.profile),
+          forecast:
+            parte == null
+              ? null
+              : {
+                  lluvia: Math.round(100 * parte.lluvia),
+                  grados: Math.round(parte.grados),
+                  fiabilidad: Math.round(100 * parte.fiabilidad),
+                },
+        }
+      })
+      const orders = await getStageOrders(db, raceKey, rider.id)
+      const teammates = await getRosterTeammates(db, raceKey, rider.id)
+      const rivals = await getRaceRivals(db, raceKey, rider.id)
+      const teams = await getRaceTeams(db, raceKey, rider.id)
+      return { race: { id: race.id, name: race.name }, stages, orders, teammates, rivals, teams }
+    },
+  )
 
-  app.put('/api/my-orders', async (request, reply) => {
+  app.put('/api/my-orders', { config: { spoiler: 'safe' } }, async (request, reply) => {
     const userId = await currentUserId(request)
     if (!userId) return unauthorized(reply)
     const parsed = putMyOrdersSchema.safeParse(request.body)

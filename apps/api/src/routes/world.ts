@@ -1,6 +1,7 @@
 import type { TickSummary } from '@cyclingstar/db'
 import type { FastifyPluginAsync } from 'fastify'
 import type { AdminGuard } from '../security.js'
+import { ADMIN_VEIL } from '../spoiler.js'
 
 export interface WorldRouteContext {
   requireAdmin: AdminGuard
@@ -18,10 +19,14 @@ export interface WorldRouteContext {
  */
 export const worldRoutes: FastifyPluginAsync<WorldRouteContext> = async (app, ctx) => {
   const { requireAdmin, onAdminAdvance } = ctx
-  app.post<{ Querystring: { days?: string } }>('/api/world/advance', async (request, reply) => {
-    if (!(await requireAdmin(request, reply))) return
-    const days = Math.min(10, Math.max(1, Number(request.query.days ?? 1) || 1))
-    const summary = await onAdminAdvance(days)
-    return { ok: true, currentDay: summary.currentDay, daysProcessed: summary.daysProcessed }
-  })
+  app.post<{ Querystring: { days?: string } }>(
+    '/api/world/advance',
+    { config: { spoiler: 'horizon', veil: ADMIN_VEIL } },
+    async (request, reply) => {
+      if (!(await requireAdmin(request, reply))) return
+      const days = Math.min(10, Math.max(1, Number(request.query.days ?? 1) || 1))
+      const summary = await onAdminAdvance(days)
+      return { ok: true, currentDay: summary.currentDay, daysProcessed: summary.daysProcessed }
+    },
+  )
 }

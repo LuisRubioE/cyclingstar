@@ -34,16 +34,20 @@ import {
 /**
  * EL SIN DESTRIPE EN LA API (E2, docs/retransmision.md §10.8, §10.13, §14.5 y §14.9; decisión 17-h).
  *
- * Se construye en tres PR. El 3a puso el registro que apunta cada ruta en `app.spoilerRegistry`, sin
- * lanzar, y los cuatro métodos de cada petición sin horizonte. El 7a (este) les da su forma: `viewer()`
+ * Se construyó en tres PR. El 3a puso el registro que apunta cada ruta en `app.spoilerRegistry`, sin
+ * lanzar, y los cuatro métodos de cada petición sin horizonte. El 7a les dio su forma: `viewer()`
  * es el de la sesión, con su usuario memorizado 60 s por el valor de la cookie de sesión (10-n), o el de
  * `cs_viewer` EN LECTURA (§10.8); `spoilerApplies()` dice si `SPOILER_MODE` vale para quien pide
  * (`on`, o `admins` y es administrador); `horizon()` es `computeHorizon` cuando vale y, si no, el del
  * mundo con sesión o el del visitante sin ella (§10.13); y el gancho `onSend` pone a toda ruta con
  * horizonte (`horizon` o `watch`) `Vary: Cookie`, `Cache-Control: private, no-store` (salvo un 2xx que
  * ya traiga el suyo, como el tramo) y, a una petición con sesión, `cs_viewer` firmada de nuevo si la que
- * llega falta, no vale, es de otro usuario o tiene más de un día (10-g). El 8a hará obligatorios
- * `policy` y `veil` y el registro lanzará al arrancar si a una ruta le faltan.
+ * llega falta, no vale, es de otro usuario o tiene más de un día (10-g). El 8a (su tercera forma,
+ * 17-h) hace obligatorios `policy` y `veil`: el registro lanza al arrancar si a una ruta le falta la
+ * política, si una con horizonte no dice su mecanismo o si una L no lleva su motivo escrito. Un
+ * `onRoute` que lanza hace que `ready()` rechace con su mensaje, así que `app.listen` rechaza en
+ * `index.ts` y el proceso sale con 1: una ruta sin clasificar no llega a producción, porque antes deja
+ * B1d en rojo (`spoilerRegistry.test.ts`, que escribe la tabla de §11.3 entera).
  *
  * Además de los cuatro métodos de §14.5, la petición gana `world()`: el mundo y su día de juego, leídos
  * una vez por petición (los usan `horizon()` y las rutas de `/api/me`, que necesitan el mundo de la
@@ -66,19 +70,29 @@ export type SpoilerPolicy =
 /** Cómo aplica el velo (definiciones en §10.6). */
 export type SurfaceMechanism = 'P' | 'R' | 'F' | 'M' | 'G' | 'B' | 'N' | 'L'
 
-/** El mecanismo de una ruta; con L, el motivo escrito es obligatorio (desde el 8a). */
+/** El mecanismo de una ruta; con L, el motivo escrito es obligatorio (el registro lanza sin él). */
 export interface VeilSpec {
   readonly by: readonly [SurfaceMechanism, ...SurfaceMechanism[]]
   readonly why?: string
 }
 
-/** Una ruta registrada. `policy` y `veil` son null mientras la ruta no los declare (hasta el 8a). */
+/** Una ruta registrada, con su política y su mecanismo: sin ellos no arranca (8a). */
 export interface RouteEntry {
   readonly method: HTTPMethods
   readonly url: string
-  readonly policy: SpoilerPolicy | null
-  readonly veil: VeilSpec | null
+  readonly policy: SpoilerPolicy
+  readonly veil: VeilSpec
   readonly origin: 'app' | 'static'
+}
+
+/**
+ * El mecanismo de las trece rutas de administración (§11.3, §14.5): `horizon` con L, todas y no solo
+ * las que devuelven datos de una etapa, para que lleven `private, no-store` y nadie tenga que decidir
+ * ruta a ruta qué dato de administración es de juego.
+ */
+export const ADMIN_VEIL: VeilSpec = {
+  by: ['L'],
+  why: 'solo administradores (requireAdmin): ven el mundo con worldHorizon',
 }
 
 /** Lo que registró Fastify, por `${método} ${url}`. B1a a B1d lo recorren (§16.3). */
@@ -131,6 +145,10 @@ export const STATIC_ROUTES: ReadonlySet<string> = new Set(['/*'])
  * El registro y los métodos de la petición. `deps` es null en una app sin base o sin better-auth (los
  * tests de /health): entonces `viewer()` da null, `horizon()` el del visitante, `world()` null y los
  * otros dos, falso; sin base no se registra ninguna ruta de juego, así que nadie los lee.
+ *
+ * Lanza al registrar una ruta sin política, una con horizonte (`horizon` o `watch`) sin mecanismo o
+ * una L sin motivo (§14.5): `ready()` rechaza con el mensaje. Una `safe` sin `veil` es N. Las `HEAD`
+ * que Fastify crea por cada `GET` heredan su `config` y pasan solas.
  */
 export function registerSpoilerGuard(
   app: FastifyInstance,
@@ -139,11 +157,17 @@ export function registerSpoilerGuard(
   const registry = new Map<string, RouteEntry>()
   app.addHook('onRoute', (r) => {
     const methods = Array.isArray(r.method) ? r.method : [r.method]
+    const at = `${methods.join(',')} ${r.url}`
     const isStatic = STATIC_ROUTES.has(r.url) && r.config?.spoiler === undefined
-    const policy: SpoilerPolicy | null = isStatic ? 'safe' : (r.config?.spoiler ?? null)
-    const veil: VeilSpec | null = isStatic
+    const policy: SpoilerPolicy | undefined = isStatic ? 'safe' : r.config?.spoiler
+    if (policy === undefined)
+      throw new Error(`ruta sin política de destripe (config.spoiler): ${at}`)
+    const veil: VeilSpec | undefined = isStatic
       ? { by: ['N'], why: 'la web compilada: ningún dato de juego' }
-      : (r.config?.veil ?? (policy === 'safe' ? { by: ['N'] } : null))
+      : (r.config?.veil ?? (policy === 'safe' ? { by: ['N'] } : undefined))
+    if (veil === undefined) throw new Error(`ruta con horizonte sin mecanismo (config.veil): ${at}`)
+    if (veil.by.includes('L') && (veil.why ?? '').trim() === '')
+      throw new Error(`mecanismo L sin motivo escrito (config.veil.why): ${at}`)
     for (const method of methods)
       registry.set(`${method} ${r.url}`, {
         method,
