@@ -1,9 +1,9 @@
 import { JERSEY_PRIORITY, type StageReplay } from '@cyclingstar/shared'
+import { ChronicleSentence } from './ChronicleSentence'
 import { Flag } from './Flag'
 import { LeaderJersey, RiderJersey } from './Jersey'
-import { RIDER_LINK_CLASS, RiderName } from './RiderName'
-import { Link } from 'react-router-dom'
-import { chronicleParts, timeTrialStory } from '../domain/stageJournal'
+import { RiderName } from './RiderName'
+import { timeTrialStory } from '../domain/stageJournal'
 import { formatTime } from '../domain/format'
 import { raceTeamLabel } from '../domain/labels'
 
@@ -53,6 +53,10 @@ export function StageStory({
   const leaderName = (riderId: string | null | undefined): string | undefined =>
     riderId ? nameOf.get(riderId) : undefined
   const wornToday = onRoad ? JERSEY_PRIORITY.filter((k) => leaderName(onRoad[k]) !== undefined) : []
+  // LA REVISIÓN DE PLANTILLAS DE LA ETAPA (E2, §12.7; paso 12): la elige la redacción de cada línea
+  // entre las que existían cuando se corrió. La sirven el acta (`/report`) y el paquete de meta; la
+  // ruta de etapa no, y sin ella vale 0, la de toda etapa corrida hasta hoy.
+  const rev = data.tplRev ?? 0
   return (
     <>
       {data.journalUnavailable && (
@@ -113,30 +117,8 @@ export function StageStory({
                   {data.timeTrial ? formatTime(e.tS) : `km ${e.km}`}
                 </span>
                 <span className="text-slate-700">
-                  {/* Cada mención de un ciclista lleva su bandera, y la bandera es la MISMA del
-                      resto de la web (`<Flag/>`, SVG local): los emoji de bandera no se pintan en
-                      Windows. `chronicleParts` devuelve la frase ya partida en texto y banderas. */}
-                  {chronicleParts(e).map((part, j) =>
-                    'flag' in part ? (
-                      <Flag key={j} code={part.flag} size={12} className="mx-0.5 align-baseline" />
-                    ) : 'jersey' in part ? (
-                      // Y el maillot de líder, con el mismo trato que la bandera: dibujo propio,
-                      // nunca un emoji, y con su texto alternativo («Race leader»…).
-                      <LeaderJersey key={j} kind={part.jersey} size={13} className="mx-0.5" />
-                    ) : 'riderId' in part ? (
-                      // …y el nombre lleva a su ficha (v58). El enlace se pinta aquí y no se busca
-                      // en el texto: la marca viene puesta desde `riderFull`/`riderShort`.
-                      <Link
-                        key={j}
-                        to={`/world/riders/${part.riderId}`}
-                        className={RIDER_LINK_CLASS}
-                      >
-                        {part.text}
-                      </Link>
-                    ) : (
-                      <span key={j}>{part.text}</span>
-                    ),
-                  )}
+                  {/* Cada mención con su bandera, su maillot y su enlace (`ChronicleSentence`). */}
+                  <ChronicleSentence e={e} rev={rev} />
                 </span>
               </li>
             ))}

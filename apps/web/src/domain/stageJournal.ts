@@ -14,9 +14,12 @@ import {
   type ChronicleRider,
   GROUP_WORDS,
   type JerseyKind,
+  type NameResolver,
   type StageResultEntry,
+  type Variant,
   isGroupRole,
   isJerseyKind,
+  pickVariant,
 } from '@cyclingstar/shared'
 import { ENGINE_STAGE } from '@cyclingstar/shared'
 import { formatTime } from './format'
@@ -131,11 +134,47 @@ export function ordinalSuffix(n: number): string {
   return mod10 === 1 ? 'st' : mod10 === 2 ? 'nd' : mod10 === 3 ? 'rd' : 'th'
 }
 
-/** Índice determinista para elegir una variante de frase (misma entrada ⇒ misma variante). */
-export function variantIndex(seed: string, mod: number): number {
-  let h = 2166136261
-  for (let i = 0; i < seed.length; i++) h = Math.imul(h ^ seed.charCodeAt(i), 16777619) >>> 0
-  return mod > 0 ? h % mod : 0
+/**
+ * LA SEMILLA NEUTRA DE LAS VARIANTES (E2, docs/retransmision.md §12.7, D-46; paso 12): la plantilla, el
+ * km en décimas y los ids de los protagonistas, ordenados. Ni nombres ni el «and» inglés de
+ * `listNames`, que es lo que llevaba hasta el 12 (`${plantilla}:${km}:${nombres}`): traducir la lista,
+ * renombrar a un corredor o cambiar el orden en que el motor apunta a los protagonistas cambiaba la
+ * redacción elegida de una etapa ya vista. El km de una línea ya llega entero (`buildChronicle`), así
+ * que hoy va por diez; las décimas son para el día en que la línea lleve el km del motor sin redondear.
+ * Un corredor que la API no resuelve llega con `id` null y su id crudo por nombre (`unknownRider`), así
+ * que la semilla sigue siendo un id.
+ */
+export function variantSeed(e: ChronicleEntry): string {
+  const ids = (e.protagonists ?? []).map((p) => p.id ?? p.name).sort()
+  return `${e.plantilla}:${Math.round(e.km * 10)}:${ids.join(',')}`
+}
+
+/**
+ * Una redacción de una frase. Una cadena es una redacción de la revisión 0, y lo son todas las de
+ * hoy; una nueva se escribe `{ since, text }` con el `TEMPLATE_REV` que la estrena (§12.7), y así solo
+ * la pueden elegir las etapas corridas desde que existe.
+ */
+export type Phrasing = string | { readonly since: number; readonly text: string }
+
+const asVariant = (o: Phrasing): Variant<null> =>
+  typeof o === 'string' ? { since: 0, render: () => o } : { since: o.since, render: () => o.text }
+
+/** El resolutor que las frases del journal no usan: ya llevan los nombres dentro (§12.7). */
+const NO_NAMES: NameResolver = {
+  rider: (id) => id,
+  team: (id) => id,
+  race: (raceId) => raceId,
+  country: (iso2) => iso2,
+  route: () => null,
+}
+
+/**
+ * ELIGE UNA REDACCIÓN (D-46) con `pickVariant`: el FNV-1a de la semilla (el hash de `variantIndex`, que
+ * se va en el paso 12, sin cambiar un bit) módulo las redacciones que ya existían en la revisión `rev`
+ * de la etapa. Añadir una redacción con un `since` nuevo no re-sortea el pasado.
+ */
+export function pickPhrasing(seed: string, opts: readonly Phrasing[], rev: number): string {
+  return pickVariant(seed, opts.map(asVariant), rev).render(null, NO_NAMES)
 }
 
 /**
@@ -306,9 +345,13 @@ export function teamsOf(e: ChronicleEntry): string[] {
 /**
  * La frase partida en trozos para pintarla: el texto tal cual y las banderas como marcas, que
  * `StageStory` convierte en el `<Flag/>` de siempre.
+ *
+ * `rev` es la revisión de plantillas de la etapa (`tplRev` del acta y de la cabecera, §12.7; 0 en una
+ * etapa sin línea y en las rutas que no la sirven), y `_locale`, la lengua, que E10 leerá (12-q): las dos
+ * entran en el paso 12 de E2.
  */
-export function chronicleParts(e: ChronicleEntry): ChroniclePart[] {
-  return chronicleTemplate(e)
+export function chronicleParts(_locale: 'en', e: ChronicleEntry, rev: number): ChroniclePart[] {
+  return chronicleTemplate(e, rev)
     .split(MARKED)
     .map((chunk): ChroniclePart => {
       if (chunk.startsWith(FLAG_MARK)) return { flag: chunk.slice(1, -1) }
@@ -326,10 +369,13 @@ export function chronicleParts(e: ChronicleEntry): ChroniclePart[] {
 /**
  * La frase en TEXTO PELADO, sin banderas. Es lo que usan los tests, los contextos sin DOM y
  * cualquier sitio que solo quiera la línea; para pintarla en la web con las banderas del resto del
- * sitio se usa `chronicleParts()`.
+ * sitio se usa `chronicleParts()`. `rev` y `_locale`, como en `chronicleParts()`.
+ *
+ * Quita cada marca entera, y la del enlace a la ficha lleva el nombre dentro: un corredor con id sale
+ * SIN nombre. Para enseñar una línea a alguien, `chronicleParts()` (`ChronicleSentence` en la web).
  */
-export function chronicleLine(e: ChronicleEntry): string {
-  return chronicleTemplate(e).replace(MARKED, '')
+export function chronicleLine(_locale: 'en', e: ChronicleEntry, rev: number): string {
+  return chronicleTemplate(e, rev).replace(MARKED, '')
 }
 
 /**
@@ -339,17 +385,18 @@ export function chronicleLine(e: ChronicleEntry): string {
  * verdad. Devuelve la frase con las banderas y los maillots MARCADOS (ver `FLAG_MARK` y
  * `JERSEY_MARK`); `chronicleParts()` los reparte y `chronicleLine()` los quita.
  */
-function chronicleTemplate(e: ChronicleEntry): string {
+function chronicleTemplate(e: ChronicleEntry, rev: number): string {
   const riders = e.protagonists ?? []
   const who = listRiders(riders)
   const plain = listPlain(riders)
   const teamList = teamsOf(e)
   const team = teamList[0]
   const teams = listNames(teamList)
-  // La semilla de la variante usa los NOMBRES pelados: así la redacción elegida no cambia porque un
-  // corredor gane o pierda el dorsal en la base (la crónica de una etapa es siempre la misma).
-  const seed = `${e.plantilla}:${e.km}:${plain}`
-  const pick = (opts: string[]): string => opts[variantIndex(seed, opts.length)] ?? opts[0] ?? ''
+  // La redacción la elige la SEMILLA NEUTRA (§12.7, D-46; paso 12), entre las que existían en la
+  // revisión de la etapa: la crónica de una etapa se sigue leyendo como el día en que se vio, aunque
+  // cambie el nombre de un corredor, la lengua de la lista o se añada una redacción.
+  const seed = variantSeed(e)
+  const pick = (opts: readonly Phrasing[]): string => pickPhrasing(seed, opts, rev)
   // el grupo del título con la palabra de la barra (D-18, 12-b): `the bunch` sin anotación
   const main = mainNoun(e)
   switch (e.plantilla) {
@@ -1720,13 +1767,16 @@ function chronicleTemplate(e: ChronicleEntry): string {
  * LAS LÍNEAS DE UN SUCESO (§12.5): dos para `crash` (la caída y, en un segundo tiempo, quién está en el
  * suelo: la voz dice la segunda `crashNamesDelayS` después, a la vez que el rótulo con nombres, y el
  * acta las escribe seguidas) y una para todo lo demás. Sin las vacías: una plantilla sin frase no se
- * pinta (D-44).
+ * pinta (D-44). `rev` y `locale`, como en `chronicleLine()` (paso 12).
  */
-export function linesOf(e: ChronicleEntry): string[] {
+export function linesOf(locale: 'en', e: ChronicleEntry, rev: number): string[] {
   const lines =
     e.plantilla === 'crash'
-      ? [chronicleLine(e), chronicleLine({ ...e, plantilla: 'crash_names' })]
-      : [chronicleLine(e)]
+      ? [
+          chronicleLine(locale, e, rev),
+          chronicleLine(locale, { ...e, plantilla: 'crash_names' }, rev),
+        ]
+      : [chronicleLine(locale, e, rev)]
   return lines.filter((l) => l !== '')
 }
 
