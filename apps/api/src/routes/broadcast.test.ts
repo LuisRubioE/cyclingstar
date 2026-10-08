@@ -34,7 +34,9 @@ import {
   healthSchema,
   horizonSummarySchema,
   photoBlocksOf,
+  stageGateErrorSchema,
   stageReplaySchema,
+  visibilityOf,
   watchResponseSchema,
 } from '@cyclingstar/shared'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -42,6 +44,7 @@ import type { AppDeps } from '../app.js'
 import { buildApp } from '../app.js'
 import { clearAdaptedTimelineCache, threeKmRuleRiders, withClimbFeet } from '../broadcastSource.js'
 import { VIEWER_COOKIE, signViewerCookie } from '../viewerCookie.js'
+import { servableUpToDs } from './broadcast.js'
 
 /**
  * LAS RUTAS DE LA RETRANSMISIÓN SOBRE ETAPAS CORRIDAS (docs/retransmision.md §14.2, §14.4, §14.7 y
@@ -63,8 +66,12 @@ import { VIEWER_COOKIE, signViewerCookie } from '../viewerCookie.js'
  * revisión de plantillas de su fila, `tplRev`); una lápida es 404 `broadcast_unavailable` y una etapa sin
  * fila sigue con el adaptador; y B6 de la meta y de la ruta de etapa conocida, con gzip 6 como
  * `@fastify/compress`, y B8 del parse de esa ruta (§16.4). Esta es la prueba de humo de esas dos cifras:
- * la de verdad, sobre las 24 × 2, es `scripts/broadcast-fixtures.mjs --sizes`. El tope de lo alcanzado
- * (B18, 409 `beyond_reached`) llega en el 7b, que re-sella ese caso de B12 (§17.10).
+ * la de verdad, sobre las 24 × 2, es `scripts/broadcast-fixtures.mjs --sizes`.
+ *
+ * El 7b pone la puerta y el tope (§10.11, §14.2): B18, el servidor no adelanta (409 `beyond_reached`,
+ * el borde de la meta y la memoria vacía tras un reinicio); la puerta `previous_unseen` del tramo, la
+ * meta y la cabecera, con su reparto degradado, y la del acta; B6 de la ruta de etapa velada; y re-sella
+ * el caso de B12 de lo servido, que ahora pide cada tramo dentro de lo informado más `prefetchRaceS`.
  */
 
 const RACE_ID = 'race-france'
@@ -691,6 +698,27 @@ describe('las rutas de la retransmisión (§14.2)', () => {
     })
   })
 
+  /**
+   * B6 DE LA RUTA DE ETAPA VELADA (§16.4, 16-n; paso 7b): sin los opcionales de resultado ni `leaders`
+   * y con la altimetría sin marcas (§14.1), contra `maxVeiledStageGzipBytes`, con gzip 6 como
+   * `@fastify/compress`. La otra cuenta no tiene corredor en la carrera, pero `race-france` es de
+   * cabecera: sin nada visto, la 2 está en su velo (y la 1, así que lleva la puerta `previous_unseen`).
+   */
+  it('B6 de la ruta de etapa velada: la ficha sin resultado contra su tope, con gzip 6 (7b)', async () => {
+    const app = appWith('on', {}, 'on')
+    const res = await call(app, 'GET', `${STAGE_URL}/2`, PLAYER_2)
+    expect(res.statusCode).toBe(200)
+    const veiled = stageReplaySchema.parse(res.json())
+    expect(veiled.results).toBeUndefined()
+    expect(veiled.watch?.gate).toEqual({ k: 'previous_unseen', firstUnseen: 1 })
+    const gz = gzipSync(Buffer.from(res.body), { level: 6 }).length
+    console.info(
+      `[broadcast] B6 de la ruta de etapa velada: ${gz} B con gzip 6 y ${res.body.length} B de JSON ` +
+        `(tope ${BROADCAST.maxVeiledStageGzipBytes})`,
+    )
+    expect(gz).toBeLessThanOrEqual(BROADCAST.maxVeiledStageGzipBytes)
+  })
+
   it('sin interruptores, la retransmisión está apagada para todos', async () => {
     const app = appWith()
     const res = await call(app, 'GET', `${STAGE_URL}/2/broadcast`, ADMIN)
@@ -757,30 +785,33 @@ describe('las rutas de la retransmisión (§14.2)', () => {
   /**
    * B12 · LO SERVIDO NO ES VISTO (§10.2, §10.11; O-20). Los tramos hasta el borde de la meta, con lo
    * alcanzado informado hasta `finishS − 1` y sin `POST …/finish`: la etapa sigue sin conocerse y en el
-   * velo; solo la meta la hace vista. En el 7b, con el tope de lo alcanzado, se re-sella pidiendo cada
-   * tramo dentro de lo informado más `prefetchRaceS` (§17.10).
+   * velo; solo la meta la hace vista. RE-SELLADO EN EL 7b (§17.10, regla 1 de §17.1): con el tope de lo
+   * alcanzado, todo tramo más allá de lo informado más `prefetchRaceS` da 409, así que el cliente de
+   * prueba informa tramo a tramo y pide cada tramo dentro de ese tope; antes de cada informe, el tramo
+   * siguiente da 409 `beyond_reached` (B18).
    */
   it('B12 · lo servido no es visto: los tramos hasta la meta y lo alcanzado hasta finishS − 1 no la hacen vista', async () => {
     const app = appWith('on', {}, 'on')
     const key = { userId: PLAYER, worldId, raceKey: RACE_KEY }
     const watchUrl = `/api/me/watch/${encodeURIComponent(RACE_KEY)}/2`
+    const CHUNK = BROADCAST.chunkRaceS * 10
     // El jugador vio la crono; su corredor corre la carrera: en guardia, con la 2 por ver.
     await t.client`insert into race_watch (user_id, world_id, race_key, known_through, how)
                    values (${PLAYER}, ${worldId}, ${RACE_KEY}, 1, 'W')`
     let finishS = 0
-    for (let from = 0; ; from += BROADCAST.chunkRaceS * 10) {
-      const res = await call(
-        app,
-        'GET',
-        `${STAGE_URL}/2/broadcast/chunk?fromDs=${from}&toDs=${from + BROADCAST.chunkRaceS * 10}`,
-        PLAYER,
-      )
-      expect(res.statusCode).toBe(200)
+    for (let from = 0; ; from += CHUNK) {
+      const chunkUrl = (a: number) => `${STAGE_URL}/2/broadcast/chunk?fromDs=${a}&toDs=${a + CHUNK}`
+      const res = await call(app, 'GET', chunkUrl(from), PLAYER)
+      expect(res.statusCode, res.body.slice(0, 200)).toBe(200)
       const c = broadcastChunkSchema.parse(res.json())
       if (c.atFinish) {
         finishS = c.toDs / 10
         break
       }
+      // el siguiente, antes de informar, pasa de lo alcanzado más prefetchRaceS: el tope (B18)
+      const ahead = await call(app, 'GET', chunkUrl(from + CHUNK), PLAYER)
+      expect(ahead.statusCode).toBe(409)
+      expect(apiErrorBodySchema.parse(ahead.json()).error).toBe('beyond_reached')
       const watch = await call(app, 'POST', watchUrl, PLAYER, {
         reachedS: c.toDs / 10,
         mode: 'play',
@@ -794,6 +825,199 @@ describe('las rutas de la retransmisión (§14.2)', () => {
     // en este mundo la 3 también está corrida, y también va en el velo
     expect(h.ready.find((r) => r.raceKey === RACE_KEY)?.stages).toEqual([2, ADAPTED])
     expect(h.watching.find((w) => w.raceKey === RACE_KEY)?.stageDay).toBe(2)
+  })
+
+  /**
+   * B18 · EL SERVIDOR NO ADELANTA, Y LA PUERTA (§10.11, §14.2, §16.4; D-37, decisión 17-m; paso 7b).
+   * Con `SPOILER_MODE` y la retransmisión encendidos para todos, cuatro cuentas sin corredor en la
+   * carrera, que la tienen en guardia por ser de cabecera: una conoce la 1 (la 2, por ver), otra la 1 y
+   * la 2, otra nada (la 2 con la puerta `previous_unseen`) y dos más, cada una con la 1 vista, para los
+   * casos que escriben (la meta y el reinicio). El caso de las dos sesiones y los 320 tramos de B18
+   * está abajo, con el límite propio del tramo (3a).
+   */
+  describe('B18 · el servidor no adelanta, y la puerta de la etapa (7b)', () => {
+    const VIEWER = idDe(903)
+    const KNOWER = idDe(904)
+    const BLIND = idDe(905)
+    const FINISHER = idDe(906)
+    const RESTART = idDe(907)
+    const CHUNK = BROADCAST.chunkRaceS * 10
+    const chunkUrl = (from: number, to: number = from + CHUNK) =>
+      `${STAGE_URL}/2/broadcast/chunk?fromDs=${from}&toDs=${to}`
+    const watchUrl = `/api/me/watch/${encodeURIComponent(RACE_KEY)}/2`
+    let app: ReturnType<typeof buildApp>
+
+    beforeAll(async () => {
+      await t.db.insert(users).values(
+        [VIEWER, KNOWER, BLIND, FINISHER, RESTART].map((id, k) => ({
+          id,
+          email: `b18-${k}@example.com`,
+          name: `B18 ${k}`,
+          emailVerified: true,
+        })),
+      )
+      for (const [user, how] of [
+        [VIEWER, 'W'],
+        [KNOWER, 'WW'],
+        [FINISHER, 'W'],
+        [RESTART, 'W'],
+      ] as const)
+        await t.client`insert into race_watch (user_id, world_id, race_key, known_through, how)
+                       values (${user}, ${worldId}, ${RACE_KEY}, ${how.length}, ${how})`
+      app = appWith('on', {}, 'on')
+    })
+
+    const status = async (url: string, user?: string): Promise<number> =>
+      (await call(app, 'GET', url, user)).statusCode
+
+    it('el tope en décimas: lo alcanzado hacia abajo más prefetchRaceS, como lo cuenta el reproductor', () => {
+      expect(servableUpToDs(0)).toBe(CHUNK)
+      expect(servableUpToDs(950.7)).toBe(9507 + CHUNK)
+      expect(servableUpToDs(0.7 + 0.1)).toBe(8 + CHUNK) // 0,7 + 0,1 es 0,7999… en coma flotante
+      expect(servableUpToDs(1234.56)).toBe(12345 + CHUNK)
+    })
+
+    it('un tramo más allá de lo alcanzado más prefetchRaceS da 409 beyond_reached; tras informar, se sirve', async () => {
+      expect(await status(chunkUrl(0), VIEWER)).toBe(200)
+      const beyond = await call(app, 'GET', chunkUrl(CHUNK), VIEWER)
+      expect(beyond.statusCode).toBe(409)
+      expect(apiErrorBodySchema.parse(beyond.json()).error).toBe('beyond_reached')
+      expect(beyond.headers['cache-control']).toBe('private, no-store')
+      const report = await call(app, 'POST', watchUrl, VIEWER, { reachedS: 950.7, mode: 'play' })
+      expect(watchResponseSchema.parse(report.json()).status).toBe('watching')
+      // el tope es lo informado en décimas hacia abajo más prefetchRaceS: 9.507 + 9.000
+      expect(await status(chunkUrl(9507, 18507), VIEWER)).toBe(200)
+      expect(await status(chunkUrl(9508, 18508), VIEWER)).toBe(409)
+      // lo que no se informó no cuenta: lo pedido y servido no mueve el tope
+      expect(await status(chunkUrl(2 * CHUNK), VIEWER)).toBe(409)
+    })
+
+    it('con la etapa conocida no hay tope; ni para el visitante, ni para quien lee con cs_viewer, ni con SPOILER_MODE apagado', async () => {
+      const far = chunkUrl(3 * CHUNK)
+      expect(await status(far, KNOWER)).toBe(200)
+      expect(await status(far)).toBe(200)
+      expect(await status(far, VIEWER)).toBe(409)
+      // cs_viewer sola: lee con el horizonte del jugador, sin escribir progreso ni tope (§10.8, §10.11)
+      const SECRET = 'v'.repeat(32)
+      const withCookie = appWith('on', { viewerSecret: SECRET }, 'on')
+      const cookie = `${VIEWER_COOKIE}=${signViewerCookie(VIEWER, SECRET, Date.now() / 1000)}`
+      const read = await withCookie.inject({ method: 'GET', url: far, headers: { cookie } })
+      expect(read.statusCode, read.body.slice(0, 200)).toBe(200)
+      // con SPOILER_MODE apagado, nada del 7b: ni puerta ni tope (se revierte así, §17.18)
+      expect((await call(appWith('on'), 'GET', far, VIEWER)).statusCode).toBe(200)
+    })
+
+    it('el que llega al borde lleva atFinish y ningún dato de meta; la meta solo sale por POST …/finish', async () => {
+      let last: BroadcastChunk | null = null
+      for (let from = 0; ; from += CHUNK) {
+        const res = await call(app, 'GET', chunkUrl(from), FINISHER)
+        expect(res.statusCode, res.body.slice(0, 200)).toBe(200)
+        const c = broadcastChunkSchema.parse(res.json())
+        if (c.atFinish) {
+          last = c
+          break
+        }
+        await call(app, 'POST', watchUrl, FINISHER, { reachedS: c.toDs / 10, mode: 'play' })
+        expect(from).toBeLessThan(100 * CHUNK)
+      }
+      const tl = await readStageTimeline(t.db, worldHorizon, RACE_KEY, 2)
+      const { finishDs } = visibilityOf(tl!)
+      // el borde: recortado a la meta, sin nada que se vea en ella (las llegadas, el ganador)
+      expect(last!.toDs).toBe(finishDs)
+      expect(last!.events.every((e) => e[5] < finishDs)).toBe(true)
+      expect(last!.events.map((e) => e[1])).not.toContain('stage_win')
+      expect(await readWatch(t.db, { userId: FINISHER, worldId, raceKey: RACE_KEY })).toMatchObject(
+        { knownThrough: 1, how: 'W', watchingStage: 2 },
+      )
+      // la meta no es un GET: solo POST …/finish la da, y es la que hace vista la etapa
+      expect(await status(`${STAGE_URL}/2/broadcast/finish`, FINISHER)).toBe(404)
+      const fin = await call(app, 'POST', `${STAGE_URL}/2/broadcast/finish`, FINISHER, {
+        mode: 'play',
+      })
+      expect(fin.statusCode, fin.body.slice(0, 200)).toBe(200)
+      expect(broadcastFinishSchema.parse(fin.json()).arrivals.length).toBeGreaterThan(0)
+      expect(await readWatch(t.db, { userId: FINISHER, worldId, raceKey: RACE_KEY })).toMatchObject(
+        { knownThrough: 2, how: 'WW', watchingStage: null },
+      )
+    })
+
+    it('con la memoria del proceso vacía, como tras un reinicio de web, un tramo en el borde se sirve tras un informe (riesgo 19)', async () => {
+      // lo informado en décimas: el primer informe de la etapa se escribe, y race_watch.reached_s es entero
+      await call(app, 'POST', watchUrl, RESTART, { reachedS: 1234.5, mode: 'play' })
+      expect(await readWatch(t.db, { userId: RESTART, worldId, raceKey: RACE_KEY })).toMatchObject({
+        watchingStage: 2,
+        reachedS: 1234,
+      })
+      // otro proceso, con la memoria vacía: sabe 1.234 s, y el borde de lo que la web pide es 1.234,5
+      const restarted = appWith('on', {}, 'on')
+      const edge = chunkUrl(12_345, servableUpToDs(1234.5))
+      const before = await call(restarted, 'GET', edge, RESTART)
+      expect(before.statusCode).toBe(409)
+      // el reproductor informa otra vez (beyond, 3b) y pide el mismo tramo
+      await call(restarted, 'POST', watchUrl, RESTART, { reachedS: 1234.5, mode: 'play' })
+      expect((await call(restarted, 'GET', edge, RESTART)).statusCode).toBe(200)
+    })
+
+    it('403 previous_unseen con su puerta: el tramo y la meta, sin escribir; la cabecera la lleva, con el reparto degradado', async () => {
+      const gate = { k: 'previous_unseen', firstUnseen: 1 }
+      const chunk = await call(app, 'GET', chunkUrl(0), BLIND)
+      expect(chunk.statusCode).toBe(403)
+      expect(stageGateErrorSchema.parse(chunk.json())).toEqual({
+        ok: false,
+        error: 'previous_unseen',
+        gate,
+      })
+      const fin = await call(app, 'POST', `${STAGE_URL}/2/broadcast/finish`, BLIND, {
+        mode: 'play',
+      })
+      expect(fin.statusCode).toBe(403)
+      expect(stageGateErrorSchema.parse(fin.json()).gate).toEqual(gate)
+      expect(await readWatch(t.db, { userId: BLIND, worldId, raceKey: RACE_KEY })).toBeNull()
+      // la cabecera se sirve con la puerta, y nadie lleva el maillot que dejó la 1, que no ha visto
+      const blind = broadcastHeadSchema.parse(
+        (await call(app, 'GET', `${STAGE_URL}/2/broadcast`, BLIND)).json(),
+      )
+      expect(blind.gate).toEqual(gate)
+      expect(blind.cast.filter((c) => c.worn.kind === 'leader')).toEqual([])
+      expect(blind.startState.leaders).toEqual({ gc: null, points: null, kom: null })
+      expect(blind.startState.gcTop).toEqual([])
+      expect(JSON.stringify(blind.cast)).not.toContain(`"stageDay":1`)
+      // quien conoce la 1 la ve como siempre: sin puerta y con el maillot de líder que dejó la crono
+      const seen = broadcastHeadSchema.parse(
+        (await call(app, 'GET', `${STAGE_URL}/2/broadcast`, VIEWER)).json(),
+      )
+      expect(seen.gate).toBeNull()
+      expect(seen.cast.filter((c) => c.worn.kind === 'leader').length).toBeGreaterThan(0)
+      expect(seen.startState.leaders.gc).not.toBeNull()
+    })
+
+    it('el acta: 403 not_seen de la etapa que no se conoce, previous_unseen con una anterior velada; la conocida, entera; sin correr, 404', async () => {
+      const report = (user?: string, day = 2) =>
+        call(app, 'GET', `${STAGE_URL}/${day}/report`, user)
+      const notSeen = await report(VIEWER)
+      expect(notSeen.statusCode).toBe(403)
+      expect(stageGateErrorSchema.parse(notSeen.json())).toEqual({
+        ok: false,
+        error: 'not_seen',
+        gate: { k: 'not_seen' },
+      })
+      const previous = await report(BLIND)
+      expect(previous.statusCode).toBe(403)
+      expect(stageGateErrorSchema.parse(previous.json()).gate).toEqual({
+        k: 'previous_unseen',
+        firstUnseen: 1,
+      })
+      expect(previous.headers['cache-control']).toBe('private, no-store')
+      const known = await report(KNOWER)
+      expect(known.statusCode).toBe(200)
+      expect(stageReplaySchema.parse(known.json()).results?.length).toBeGreaterThan(0)
+      // el visitante no tiene velo: el acta, pública (§11.10)
+      expect((await report()).statusCode).toBe(200)
+      // la 4 no se ha corrido: 404, aunque tenga una anterior velada
+      const notRun = await report(BLIND, 4)
+      expect(notRun.statusCode).toBe(404)
+      expect(apiErrorBodySchema.parse(notRun.json()).error).toBe('no_encontrado')
+    })
   })
 
   describe('el límite propio del tramo (14-q)', () => {
