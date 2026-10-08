@@ -467,6 +467,12 @@ const canJump = (s: PlayerState): boolean =>
   !(s.atFinish && s.inFlight) &&
   (SEEKABLE.has(s.phase) || (s.phase === 'waiting' && !s.atFinish))
 
+/**
+ * ¿Se puede saltar? Lo de `canJump` y, en el digest, nunca: sus mandos son la pausa y `Show results`
+ * (§8.1). Los mandos lo leen para apagar los saltos de la hoja de `⋯`.
+ */
+export const jumpable = (s: PlayerState): boolean => s.view !== 'digest' && canJump(s)
+
 /** ¿Ha llegado lo servido al destino del salto en curso? En recorrido, por la cabeza en lo servido. */
 function seekServed(s: PlayerState, headKmAtEnd: number): boolean {
   if (s.seekS !== null) return s.servedS >= s.seekS
@@ -1136,7 +1142,9 @@ export function cueDeckStep(
  * para que lo saltado no entre de golpe en rótulos (lo resume `While you skipped`, 8-i). La ficha del
  * puerto que viene sale si ya pasó su aviso (`Next climb` aterriza a `climbCardLeadKm` de su pie, 8-n), y
  * lo que se trae (`carried`: la fuga formada en lo saltado que sigue por delante del pelotón) sale con su
- * frase y su ronda, como al formarse (6-m). Devuelve, como `cueDeckStep`, lo admitido para el reductor.
+ * frase y su ronda, como al formarse (6-m). Con `checkNow`, el cuadro de diferencias sale en cuanto la
+ * carrera sigue (tras un salto hacia delante y tras `Previously`, §8.5); hacia atrás, a su cadencia.
+ * Devuelve, como `cueDeckStep`, lo admitido para el reductor.
  */
 export function cueDeckSeat(
   deck: CueDeck,
@@ -1144,6 +1152,7 @@ export function cueDeckSeat(
   ctx: CueDeckContext,
   tti: TimeTrialInstant | null,
   carried: readonly Cue[] = [],
+  checkNow = false,
 ): { readonly deck: CueDeck; readonly admitted: readonly AdmittedCue[] } {
   const climbs = ctx.profile?.climbs ?? []
   let climbNext = climbs.findIndex((c) => instant.headKm < c.topKm)
@@ -1172,7 +1181,8 @@ export function cueDeckSeat(
       names: [],
       round: extra.round,
       climbNext: extra.climbNext,
-      checkAtS: deck.wallS + BROADCAST.gapsTableEveryRealS,
+      // tras un salto, el cuadro de diferencias en cuanto la carrera sigue, detrás del resumen (§8.5)
+      checkAtS: deck.wallS + (checkNow ? 0 : BROADCAST.gapsTableEveryRealS),
       tt: { ...deck.tt, seen: tti, roundAtS: deck.wallS + BROADCAST.breakRoundEveryS },
     },
     admitted,

@@ -23,7 +23,7 @@ import {
 // `StageWatch`, sin diferir: así la página de etapa y esta ficha comparten sus ficheros y la de etapa no
 // pide uno más (las cargas completas cuentan para el límite de peticiones). El precio: abrir una carrera
 // de un día terminada descarga el reproductor también con `Watch` apagado (unos 58 kB, 19 con gzip).
-import { StageWatch } from './StageWatch'
+import { StageWatch, watchViewOf } from './StageWatch'
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm'
 const head = 'mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400'
@@ -146,6 +146,8 @@ export function OneDaySections({
   }
   const radioHead = f.broadcastHead.data
   const paintedRadio = paintedRadioWanted(gate, f.watchable, radioHead)
+  // los modos (§8.1; 10a): `?view=highlights` y el digest, que en una carrera de un día es su etapa
+  const watchView = watchViewOf(params.get('view'))
 
   return (
     <>
@@ -181,6 +183,14 @@ export function OneDaySections({
               raceId={raceId}
               day={1}
               diag={f.diagOn}
+              view={watchView}
+              digest={
+                watchView === 'digest'
+                  ? { from: 1, last: 1, raceName: f.data?.race?.name ?? 'the race' }
+                  : null
+              }
+              oneDay
+              reveal={actions}
               onReport={() => setActive('report')}
               onFinished={() => setFinishedHere(true)}
               onReached={(s) => setReachedHere((x) => Math.max(x, s))}

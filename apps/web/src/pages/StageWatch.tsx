@@ -2,6 +2,7 @@ import {
   BROADCAST,
   type BroadcastFinish,
   type BroadcastHead,
+  type Cue,
   type HorizonSummary,
   type Instant,
   type InstantContext,
@@ -10,19 +11,20 @@ import {
   type TimeTrialInstant,
   type TimelineCore,
   breakHeadline,
-  clockText,
+  digestPace,
   fromDs,
   instantAt,
   paceAt,
   photoBlocksOf,
   shownGroupsOf,
   timeTrialInstantAt,
+  toDs,
+  ttDigestScale,
   ttLastKmFromS,
   ttPaceAt,
 } from '@cyclingstar/shared'
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { broadcastChunkKey, fetchBroadcastChunk, postBroadcastFinish } from '../api/broadcast'
 import {
   beaconWatchProgress,
@@ -36,27 +38,55 @@ import { CueCard, type ShownCueCard } from '../components/broadcast/CueCard'
 import { FixedOverlay } from '../components/broadcast/FixedOverlay'
 import { GroupBar } from '../components/broadcast/GroupBar'
 import {
+  CLOCK_JUMP_LABEL,
   type ControlsState,
-  PLAY_GLYPH,
+  type JumpOption,
   PlayerControls,
+  ROAD_JUMP_LABEL,
 } from '../components/broadcast/PlayerControls'
 import { ProfileStrip } from '../components/broadcast/ProfileStrip'
+import {
+  ArrivalCardView,
+  RecapCard,
+  StageClosingCards,
+  StagePreviewCards,
+} from '../components/broadcast/StageCards'
 import { TimeTrialBoard, TimeTrialOverlay } from '../components/broadcast/TimeTrialBoard'
 import { VoiceTicker } from '../components/broadcast/VoiceTicker'
+import { type RevealActions, RevealConfirm } from '../components/StageGate'
 import { effectRunner } from '../domain/broadcast/effects'
 import {
+  type ArrivalCard,
+  type RecapView,
+  arrivalCardsOf,
+  closingCardsOf,
+  previewCardsOf,
+  previewSeconds,
+  recapRowsOf,
+} from '../domain/broadcast/montage'
+import {
+  type ClockJump,
+  type CueDeck,
   type CueDeckContext,
   DEFAULT_VIEW,
   type PlayerAction,
   type PlayerContext,
   type PlayerState,
+  type RoadJump,
+  type ViewMode,
+  clockCapS,
   controlsHidden,
   cueDeckInit,
+  cueDeckSeat,
   cueDeckStep,
   headAtLine,
+  jumpable,
   playerInit,
   playerStep,
+  recapOf,
+  seekTargetKm,
   ttCandidatesOf,
+  ttSeekTargetS,
 } from '../domain/broadcast/player'
 import {
   type Cursor,
@@ -67,8 +97,22 @@ import {
   ttCursorsOf,
 } from '../domain/broadcast/screen'
 import { servedLineOf, withChunk } from '../domain/broadcast/servedLine'
-import { formatTime } from '../domain/format'
+import { raceRevealQuestion, stageRange } from '../domain/stageGate'
 import { GAP_TREND_INIT, type GapTrendVoice, gapTrendStep, unnamedBefore } from '../domain/voice'
+
+/** El modo de `?view=` (§8.1; 10a): `highlights`, `digest` o, con cualquier otra cosa, `Watch` (DD-03). */
+export function watchViewOf(param: string | null): ViewMode {
+  return param === 'highlights' || param === 'digest' ? param : DEFAULT_VIEW
+}
+
+/** El digest de una carrera (§8.8): de qué etapa empezó, la última y el nombre de la carrera. */
+export interface DigestRun {
+  /** la primera etapa del digest: la de antes de esta sigue en memoria si es del digest (18-e) */
+  readonly from: number
+  /** la última etapa velada de la carrera: tras ella, el cierre */
+  readonly last: number
+  readonly raceName: string
+}
 
 /**
  * `Watch`, LA RETRANSMISIÓN DE LA ETAPA (docs/retransmision.md §6, §8 y §17.6; paso 3c): la capa fija,
@@ -80,12 +124,10 @@ import { GAP_TREND_INIT, type GapTrendVoice, gapTrendStep, unnamedBefore } from 
  * El hook (`useWatchPlayer`) es el de §8.11 y las notas 2 y 3 del 3b: un fotograma por
  * `requestAnimationFrame` con su `dtS`; el instante a `overlayHz` sobre la línea servida
  * (`servedLine.ts`), que pintan todos los componentes; las peticiones de `playerStep`, en orden y cada
- * una tras la respuesta de la anterior (`effects.ts`); y los cuadros, contados por la pantalla. Lo que
- * se aparta, por ser del 3c: la previa no tiene cuadros (son del 10a), así que espera a `▶`; la
- * llegada es solo el ganador, `finishFreezeS`, y el cierre, el resultado y el acta a un toque, los dos
- * provisionales hasta los cuadros del 10a. Los informes de lo alcanzado salen desde el 7a: con sesión,
- * `POST /api/me/watch` con `keepalive` y, al salir, `sendBeacon` (14-g); sin ella (el visitante, o quien
- * lee con `cs_viewer`: la cabecera no trae `view`), al `localStorage`, de donde también se reanuda (11-p).
+ * una tras la respuesta de la anterior (`effects.ts`); y los cuadros, contados por la pantalla. Los
+ * informes de lo alcanzado salen desde el 7a: con sesión, `POST /api/me/watch` con `keepalive` y, al
+ * salir, `sendBeacon` (14-g); sin ella (el visitante, o quien lee con `cs_viewer`: la cabecera no trae
+ * `view`), al `localStorage`, de donde también se reanuda (11-p).
  *
  * Desde el 6a, sobre la línea grabada con el reloj exacto donde la hay: el plano (`CueCard`) con la cola
  * de rótulos del reproductor (`CueDeck`, que el hook avanza en cada fotograma con el instante que pinta,
@@ -109,32 +151,65 @@ import { GAP_TREND_INIT, type GapTrendVoice, gapTrendStep, unnamedBefore } from 
  * Desde el 11a, cada informe de lo alcanzado (y el de salir, al cambiar de pestaña) se le dice también a
  * la página (`onReached`): la `Race Radio` de una etapa sin ver llega hasta lo que se ha visto aquí sin
  * esperar a que la cabecera se pida otra vez (11-i).
+ *
+ * Desde el 10a, el montaje y los modos (§8.1, §8.5 a §8.8): la previa de cuatro cuadros, la llegada (el
+ * ganador, los grupos que llegan y el fuera de control) y el cierre de seis (`StageCards.tsx`, con los
+ * textos de `montage.ts`); `Highlights` (`summaryPace`, o la curva de 8-m en la crono) y el digest
+ * (`digestPace`; la página encadena navegando a la siguiente y lo que se suelta se borra de la caché,
+ * 18-e); los saltos de recorrido y de reloj, `−5 km` y `−10 min` sobre la línea en memoria (§8.5, 9-g),
+ * con el aterrizaje, `While you skipped` y `Previously` con el reloj quieto (8-i, 8-n) y la cola asentada
+ * en el aterrizaje; `Next action`; `Show result` con su confirmación (DD-17); y en escritorio `←` y `→`.
  */
 export function StageWatch({
   head,
   raceId,
   day,
   diag = false,
+  view = DEFAULT_VIEW,
+  digest = null,
+  oneDay = false,
+  reveal = null,
   onReport,
   onFinished,
   onReached,
+  onChain,
 }: {
   head: BroadcastHead
   raceId: string
   day: number
   /** el modo diagnóstico de un administrador (§11.15): sin tope, desde la previa y sin informar */
   diag?: boolean
+  /** la curva con que se entra (§8.1): `Watch`, `?view=highlights` o el digest (10a) */
+  view?: ViewMode
+  /** el digest de la carrera (§8.8), con `view: 'digest'` */
+  digest?: DigestRun | null
+  /** una carrera de un día: la previa sin maillots y el cierre sin general (§8.6) */
+  oneDay?: boolean
+  /** revelar (`Show result`, §8.5): null sin sesión o sin poder (quien lee con `cs_viewer`) */
+  reveal?: RevealActions | null
   /** el acta, la pestaña `Report` de la página (9a) */
   onReport: () => void
   /** la meta respondió: la etapa se vio aquí (la página no la toma por otro dispositivo, D-57) */
   onFinished?: () => void
   /** lo alcanzado que se acaba de informar (11a): hasta ahí llega la radio de una etapa sin ver */
   onReached?: (reachedS: RaceS) => void
+  /** el digest pasa a la etapa siguiente (8-c): la página navega a ella */
+  onChain?: (nextDay: number) => void
 }) {
-  const w = useWatchPlayer(head, raceId, day, diag, onFinished, onReached)
+  const w = useWatchPlayer(head, raceId, day, {
+    diag,
+    view: digest === null && view === 'digest' ? DEFAULT_VIEW : view,
+    digest,
+    oneDay,
+    onFinished,
+    onReached,
+    onChain,
+    reveal: reveal === null ? null : () => reveal.reveal(digest?.last ?? day),
+  })
   const [overlayOpen, setOverlayOpen] = useState(false)
   const [barOpen, setBarOpen] = useState(false)
   const [commentary, setCommentary] = useState(false)
+  const [confirming, setConfirming] = useState(false)
   const reducedMotion = usePrefersReducedMotion()
   // a quién nombra la voz: namedRidersOf antes de cada línea, sobre lo servido (una vez por línea)
   const unnamed = useMemo(() => unnamedBefore(w.core, head.cast, w.ctx), [w.core, head.cast, w.ctx])
@@ -149,8 +224,20 @@ export function StageWatch({
       return cards.length === 0 ? null : breakHeadline('en', cards, w.ctx.own)
     }
   }, [head.cast, w.ctx])
+  const closing = useMemo(
+    () => (w.finish === null ? [] : closingCardsOf(head, w.finish, { oneDay })),
+    [head, w.finish, oneDay],
+  )
   const tt = head.stage.timeTrial ? head.tt : null
   const { phase } = w.controls
+  // Show result: con sesión, fuera del modo diagnóstico y antes de la meta (§8.5)
+  const canShowResult = reveal !== null && !diag && head.view !== null && !w.controls.revealed
+  const revealDay = digest?.last ?? day
+  function askShowResult(): void {
+    if (!canShowResult || reveal === null) return
+    if (reveal.askFirst) setConfirming(true)
+    else w.dispatch({ k: 'showResult' })
+  }
   const card = 'rounded-2xl border border-slate-200 bg-white p-3 shadow-sm'
   return (
     <div className="space-y-3">
@@ -178,11 +265,19 @@ export function StageWatch({
             />
           </div>
           {phase === 'preview' && (
-            <PreviewCard head={head} onPlay={() => w.dispatch({ k: 'play' })} />
+            <StagePreviewCards
+              cards={w.preview}
+              index={w.previewIndex}
+              onWatch={() => w.dispatch({ k: 'play' })}
+            />
           )}
-          {phase === 'arrival' && w.finish !== null && <WinnerCard head={head} finish={w.finish} />}
-          {phase === 'closing' && w.finish !== null && (
-            <ClosingCard head={head} finish={w.finish} raceId={raceId} onReport={onReport} />
+          {phase === 'arrival' && w.arrival !== null && <ArrivalCardView card={w.arrival} />}
+          {phase === 'closing' && closing.length > 0 && (
+            <StageClosingCards
+              cards={closing}
+              nextHref={(d) => `/world/races/${raceId}/stages/${d}?tab=watch`}
+              onReport={onReport}
+            />
           )}
           <div className={card}>
             {tt !== null && w.tti !== null ? (
@@ -200,7 +295,23 @@ export function StageWatch({
           </div>
         </div>
         <div className="space-y-3">
-          <CueCard cue={w.cue} />
+          {/* El plano (§6.1): el resumen de un salto, el aviso del salto en curso o el rótulo. Tocarlo
+              pausa y enseña los mandos («tocar la pantalla» de D-20, 8-p). */}
+          {phase === 'recap' && w.recap !== null ? (
+            <RecapCard recap={w.recap} onDone={() => w.dispatch({ k: 'cardDone' })} />
+          ) : phase === 'seeking' && w.seeking !== null ? (
+            <p className="rounded-2xl bg-slate-900 px-3 py-4 text-sm text-white" role="status">
+              {w.seeking}
+            </p>
+          ) : (
+            <div
+              onClick={() => {
+                if (phase === 'playing' || phase === 'waiting') w.dispatch({ k: 'pause' })
+              }}
+            >
+              <CueCard cue={w.cue} />
+            </div>
+          )}
           <div className={card}>
             <VoiceTicker
               lines={w.lines}
@@ -217,116 +328,34 @@ export function StageWatch({
         <PlayerControls
           state={w.controls}
           commentaryOpen={commentary}
+          jumps={w.jumps}
+          canShowResult={canShowResult}
           onPlay={() => w.dispatch({ k: 'play' })}
           onPause={() => w.dispatch({ k: 'pause' })}
           onSpeed={(x) => w.dispatch({ k: 'speed', x })}
+          onNextAction={() => w.dispatch({ k: 'nextAction' })}
           onCommentary={() => setCommentary((c) => !c)}
+          onJump={w.jump}
+          onView={(v) => w.dispatch({ k: 'view', view: v })}
+          onShowResult={askShowResult}
           onRetry={() => w.dispatch({ k: 'retry' })}
         />
       )}
-    </div>
-  )
-}
-
-/** Antes de la salida: la etapa, lo que dura a ×1 y `▶`. Provisional: los cuatro cuadros de la previa son del 10a. */
-function PreviewCard({ head, onPlay }: { head: BroadcastHead; onPlay: () => void }) {
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl bg-slate-900 p-4 text-white">
-      <div>
-        <p className="text-sm font-semibold uppercase tracking-wide">
-          {head.stage.name} · {head.stage.km} km
-        </p>
-        <p className="text-xs text-white/70">
-          About {Math.max(1, Math.round(head.estimateS / 60))} min
-        </p>
-      </div>
-      <button
-        type="button"
-        onClick={onPlay}
-        className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-900"
-        aria-label="Play"
-      >
-        {PLAY_GLYPH} Watch
-      </button>
-    </div>
-  )
-}
-
-/** El ganador, en la línea (§8.7, paso 3). Provisional hasta los rótulos y los cuadros de la llegada del 10a. */
-function WinnerCard({ head, finish }: { head: BroadcastHead; finish: BroadcastFinish }) {
-  const winner = finish.result.find((r) => !r.dnf && r.puesto === 1)
-  if (winner === undefined) return null
-  const bib = head.cast.find((c) => c.id === winner.riderId)?.bib
-  return (
-    <div className="rounded-2xl bg-slate-900 p-4 text-white" role="status">
-      <p className="text-xs font-semibold uppercase tracking-wide text-amber-300">Stage winner</p>
-      <p className="text-lg font-bold">
-        {bib != null ? `${bib} ` : ''}
-        {winner.name}
-        {winner.teamName ? ` · ${winner.teamName}` : ''} · {formatTime(winner.tiempoS)}
-      </p>
-    </div>
-  )
-}
-
-/**
- * El cierre (§8.6): el resultado de la etapa, los `closingResultTop` primeros y los corredores del
- * espectador, el acta a un toque y la etapa siguiente. Provisional: los cuadros del cierre son del 10a.
- */
-function ClosingCard({
-  head,
-  finish,
-  raceId,
-  onReport,
-}: {
-  head: BroadcastHead
-  finish: BroadcastFinish
-  raceId: string
-  onReport: () => void
-}) {
-  const own = new Set(head.cast.filter((c) => c.own).map((c) => c.id))
-  const finished = finish.result.filter((r) => !r.dnf)
-  const winnerS = finished[0]?.tiempoS ?? 0
-  const rows = finished.filter((r, i) => i < BROADCAST.closingResultTop || own.has(r.riderId))
-  const next = finish.closing.tomorrow
-  const bibOf = new Map(head.cast.map((c) => [c.id, c.bib] as const))
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-        Stage {head.stage.day} · Result
-      </h2>
-      <ol className="mt-2 space-y-1 text-sm">
-        {rows.map((r) => (
-          <li key={r.riderId} className="flex gap-2">
-            <span className="w-6 shrink-0 text-right tabular-nums text-slate-400">{r.puesto}</span>
-            <span className="min-w-0 flex-1 truncate text-slate-700">
-              {bibOf.get(r.riderId) ?? ''} {r.name}
-              {own.has(r.riderId) ? ' (your rider)' : ''}
-              <span className="ml-2 text-xs text-slate-400">{r.teamName ?? ''}</span>
-            </span>
-            <span className="shrink-0 tabular-nums text-slate-500">
-              {r.puesto === 1 ? formatTime(r.tiempoS) : `+${clockText(r.tiempoS - winnerS)}`}
-            </span>
-          </li>
-        ))}
-      </ol>
-      <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
-        <button
-          type="button"
-          onClick={onReport}
-          className="rounded-lg bg-slate-900 px-3 py-1.5 font-medium text-white"
-        >
-          Report
-        </button>
-        {next !== null && (
-          <Link
-            to={`/world/races/${raceId}/stages/${next.stageDay}?tab=watch`}
-            className="text-slate-600 underline"
-          >
-            Next: Stage {next.stageDay} · {next.km} km · {next.label}
-          </Link>
-        )}
-      </div>
+      {confirming && canShowResult && (
+        <RevealConfirm
+          stageDay={revealDay}
+          also={digest === null ? [] : stageRange(day, digest.last - 1)}
+          busy={false}
+          {...(digest === null ? {} : { question: raceRevealQuestion(digest.raceName) })}
+          onConfirm={(dontAsk) => {
+            setConfirming(false)
+            // `Don't ask again` no puede impedir revelar: si no se guarda, la próxima vez se pregunta
+            if (dontAsk) void reveal?.dontAskAgain().catch(() => undefined)
+            w.dispatch({ k: 'showResult' })
+          }}
+          onCancel={() => setConfirming(false)}
+        />
+      )}
     </div>
   )
 }
@@ -353,6 +382,8 @@ function usePrefersReducedMotion(): boolean {
 interface Shown extends ControlsState {
   /** la meta pedida o recibida: la capa fija dice `0 m` (§8.7) */
   readonly atLine: boolean
+  /** `Show result` aceptado: ya no se ofrece */
+  readonly revealed: boolean
 }
 
 /**
@@ -378,53 +409,124 @@ interface WatchScreen {
   readonly trend: GapTrendVoice['lines']
   /** s de carrera entre una caída y sus nombres, al ritmo de ahora (`crashNamesDelayS` de pared) */
   readonly namesDelayS: number
+  /** los cuadros de la previa (§8.6) y el que se ve */
+  readonly preview: ReturnType<typeof previewCardsOf>
+  readonly previewIndex: number
+  /** el cuadro de la llegada que se ve (§8.7) */
+  readonly arrival: ArrivalCard | null
+  /** `While you skipped` o `Previously` (8-i), en `recap` */
+  readonly recap: RecapView | null
+  /** `Skipping to 20 km to go…`, en `seeking` (§8.5) */
+  readonly seeking: string | null
+  /** los saltos de la hoja de `⋯`, con si llevan a algún sitio */
+  readonly jumps: readonly JumpOption[]
+  /** un salto de la hoja o del teclado */
+  readonly jump: (id: JumpOption['id']) => void
 }
 
 /** Un fotograma de pared nunca avanza más que esto: tras un tirón, el reloj no salta. */
 const MAX_FRAME_S = 0.25
 
+const ROAD_JUMPS: readonly RoadJump[] = ['back5', 'fwd5', 'nextClimb', 'final20', 'lastKm']
+const CLOCK_JUMPS: readonly ClockJump[] = ['back10', 'fwd10', 'last20', 'lastStarter']
+
 const controlsOf = (s: PlayerState): Shown => ({
   phase: s.phase,
+  view: s.view,
   speed: s.speed,
+  nextAction: s.nextAction,
+  lastKm: s.lastKm,
   notice: s.notice,
   hidden: controlsHidden(s),
   atLine:
     s.phase === 'arrival' ||
     s.phase === 'closing' ||
     (s.phase === 'waiting' && s.atFinish && s.inFlight),
+  revealed: s.revealed,
 })
 const sameControls = (a: Shown, b: Shown): boolean =>
   a.phase === b.phase &&
+  a.view === b.view &&
   a.speed === b.speed &&
+  a.nextAction === b.nextAction &&
+  a.lastKm === b.lastKm &&
   a.notice === b.notice &&
   a.hidden === b.hidden &&
-  a.atLine === b.atLine
+  a.atLine === b.atLine &&
+  a.revealed === b.revealed
+const sameJumps = (a: readonly JumpOption[], b: readonly JumpOption[]): boolean =>
+  a.length === b.length && a.every((j, i) => j.id === b[i]?.id && j.enabled === b[i]?.enabled)
+
+/**
+ * La primera hora de lo servido, en décimas de [loDs, hiDs], en que el km pintado de la cabeza llega a
+ * `km` (bisección sobre `instantAt`, §8.5); hiDs si no llega.
+ */
+function firstDsAtKm(
+  line: TimelineCore,
+  km: number,
+  loDs: number,
+  hiDs: number,
+  ctx: InstantContext,
+): number {
+  let lo = loDs
+  let hi = hiDs
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1
+    if (instantAt(line, fromDs(mid), ctx).headKm >= km) hi = mid
+    else lo = mid + 1
+  }
+  return lo
+}
+
+interface PlayerOptions {
+  readonly diag: boolean
+  readonly view: ViewMode
+  readonly digest: DigestRun | null
+  readonly oneDay: boolean
+  readonly onFinished: (() => void) | undefined
+  readonly onReached: ((reachedS: RaceS) => void) | undefined
+  readonly onChain: ((nextDay: number) => void) | undefined
+  /** `POST /api/me/reveal` de la etapa (o, en el digest, de la última, que arrastra las demás) */
+  readonly reveal: (() => Promise<unknown>) | null
+}
 
 /**
  * EL HOOK DEL REPRODUCTOR (§8.11; notas 2 y 3 del 3b). Mientras está montado, un bucle de
  * `requestAnimationFrame` le da al reductor un fotograma con sus km a meta y si la cabeza está en la
  * línea (`headAtLine`), con el instante a `overlayHz` sobre la línea servida; ejecuta sus peticiones en
  * orden con `effectRunner` (un tramo, con `fetchQuery` y su clave, que no caduca ni se reintenta; un
- * 429, a los `retryAfterS`; los informes de lo alcanzado, desde el 7a); y cuenta los cuadros: la
- * llegada, `finishFreezeS`, y `Previously`, `cueHoldS[3]`. Ocultar la pestaña pausa; un toque, el ratón
- * o una tecla enseñan los mandos, y la barra espaciadora pausa y sigue (D-20).
+ * 429, a los `retryAfterS`; los informes de lo alcanzado, desde el 7a; la revelación y lo que el digest
+ * suelta, desde el 10a); y cuenta los cuadros: la previa, la llegada y los resúmenes. Ocultar la pestaña
+ * pausa; un toque, el ratón o una tecla enseñan los mandos, la barra espaciadora pausa y sigue (D-20), y
+ * `←` y `→` saltan (8-p).
+ *
+ * Los saltos (10a): el hacia atrás busca la hora en la línea en memoria y se la da al reductor (`back`); el
+ * hacia delante lo lleva el reductor tramo a tramo (`seek`, `seekTime`), y cuando lo servido llega y no
+ * queda nada en vuelo, el hook aterriza: la primera décima en que la cabeza pintada llega al km destino (o
+ * la hora pedida en la crono), los rótulos de clase ≥ 2 saltados (`recapOf`) y la cola asentada ahí
+ * (`cueDeckSeat`), con la fuga que siga delante y el cuadro de diferencias detrás del resumen.
  */
 function useWatchPlayer(
   head: BroadcastHead,
   raceId: string,
   day: number,
-  diag: boolean,
-  onFinished: (() => void) | undefined,
-  onReached: ((reachedS: RaceS) => void) | undefined,
+  opts: PlayerOptions,
 ): WatchScreen {
+  const { diag, view: initialView, digest, oneDay } = opts
   const queryClient = useQueryClient()
-  // el aviso de la meta y el de lo alcanzado, sin reiniciar el reproductor cuando la página los cambia
-  const finishedRef = useRef(onFinished)
-  const reachedRef = useRef(onReached)
+  // los avisos a la página y la revelación, sin reiniciar el reproductor cuando la página los cambia
+  const finishedRef = useRef(opts.onFinished)
+  const reachedRef = useRef(opts.onReached)
+  const chainRef = useRef(opts.onChain)
+  const revealRef = useRef(opts.reveal)
   useEffect(() => {
-    finishedRef.current = onFinished
-    reachedRef.current = onReached
-  }, [onFinished, onReached])
+    finishedRef.current = opts.onFinished
+    reachedRef.current = opts.onReached
+    chainRef.current = opts.onChain
+    revealRef.current = opts.reveal
+  }, [opts.onFinished, opts.onReached, opts.onChain, opts.reveal])
+  const digestFrom = digest?.from ?? null
+  const digestLast = digest?.last ?? null
   const ctx = useMemo<InstantContext>(
     () => ({
       own: new Set(head.cast.filter((c) => c.own).map((c) => c.ix)),
@@ -432,6 +534,10 @@ function useWatchPlayer(
       photoBlocks: photoBlocksOf(head.stage.lengthKm, head.stage.dx),
     }),
     [head],
+  )
+  const preview = useMemo(
+    () => previewCardsOf(head, { digest: initialView === 'digest', oneDay }),
+    [head, initialView, oneDay],
   )
   const first = useMemo(() => instantAt(servedLineOf(head).core, 0, ctx), [head, ctx])
   const firstKeys = useMemo(() => screenKeysOf(servedLineOf(head).core.groups), [head])
@@ -443,7 +549,7 @@ function useWatchPlayer(
   const [keys, setKeys] = useState<readonly string[]>(firstKeys)
   const [cue, setCue] = useState<ShownCueCard | null>(null)
   const [controls, setControls] = useState<Shown>(() =>
-    controlsOf(playerInit(DEFAULT_VIEW, day, null, false).next),
+    controlsOf(playerInit(initialView, day, null, false).next),
   )
   const [lines, setLines] = useState<readonly LiveLine[]>([])
   const [finish, setFinish] = useState<BroadcastFinish | null>(null)
@@ -454,19 +560,34 @@ function useWatchPlayer(
   )
   const [trend, setTrend] = useState<GapTrendVoice['lines']>([])
   const [namesDelayS, setNamesDelayS] = useState(0)
+  const [previewIndex, setPreviewIndex] = useState(0)
+  const [arrival, setArrival] = useState<ArrivalCard | null>(null)
+  const [recap, setRecap] = useState<RecapView | null>(null)
+  const [seeking, setSeeking] = useState<string | null>(null)
+  const [jumps, setJumps] = useState<readonly JumpOption[]>([])
   const dispatchRef = useRef<(a: PlayerAction) => void>(() => {})
+  const jumpRef = useRef<(id: JumpOption['id']) => void>(() => {})
 
   useEffect(() => {
     const plan = { riders: head.cast.length, intervalS: head.tt?.intervalS ?? 60 }
+    // la curva del modo (§8.1, §8.2): en una crono, `ttPaceAt` y, en Highlights y el digest, por la escala
+    // de 8-m; en línea, `pace`, `summaryPace` o `digestPace` de su tipo (8-a)
+    const ttScale = timeTrial ? ttDigestScale(head.profile, plan) : 1
+    const digestZones = digestPace(head.profile, head.stage.kind)
     const pctx: PlayerContext = {
-      // en una crono, el ritmo por fracción de salidos y el último km del último en salir (§9.4); el de
-      // Highlights y el digest, escalados, llegan con el 10a
       baseX: timeTrial
-        ? (_view, t) => ttPaceAt(t, plan, ttLastKmFromS(served.core))
-        : (view, _t, toGoKm) =>
-            paceAt(toGoKm, view === 'highlights' ? BROADCAST.summaryPace : BROADCAST.pace),
+        ? (v, t) => ttPaceAt(t, plan, ttLastKmFromS(served.core)) * (v === 'watch' ? 1 : ttScale)
+        : (v, _t, toGoKm) =>
+            paceAt(
+              toGoKm,
+              v === 'watch'
+                ? BROADCAST.pace
+                : v === 'highlights'
+                  ? BROADCAST.summaryPace
+                  : digestZones,
+            ),
       lengthKm: head.stage.lengthKm,
-      digestNext: null,
+      digestNext: digestLast !== null && day < digestLast ? day + 1 : null,
     }
     let served = servedLineOf(head)
     let instant = instantAt(served.core, 0, ctx)
@@ -479,33 +600,147 @@ function useWatchPlayer(
     // Sin sesión la cabecera no trae `view`, y el progreso no va al servidor: vive en localStorage (11-p).
     const signedIn = head.view !== null
     // En el modo diagnóstico (§11.15) no se reanuda ni se informa: lo visto ahí lo sabe el dueño, no su
-    // cuenta, y la etapa empieza en la previa, como una conocida.
+    // cuenta, y la etapa empieza en la previa, como una conocida. En el digest, la de antes sigue en
+    // memoria si es del digest (18-e).
     const init = playerInit(
-      DEFAULT_VIEW,
+      initialView,
       day,
       diag ? null : signedIn ? (head.view?.reachedS ?? null) : readLocalProgress(raceKey, day),
       diag || (head.view?.known ?? false),
+      digestFrom !== null && day > digestFrom ? day - 1 : null,
     )
     let s = init.next
     let shown = controlsOf(s)
     let phaseWallS = 0
     let lastPhase = s.phase
+    let chained = false
     // la cola de rótulos (§6.5), los cursores por sucesor y la identidad de las filas (D-03)
-    let deck = cueDeckInit(head.startState)
+    let deck: CueDeck = cueDeckInit(head.startState)
     let onScreen = deck.queue.shown
     let cueSeq = 0
     let screenKeys = screenKeysOf(served.core.groups)
     let drawn = cursorsOf(shownGroupsOf(instant), served.core.groups, screenKeys, [])
+    // los cuadros (§8.6, §8.7) y los resúmenes (8-i): el de la previa que se ve, los de la llegada, y el
+    // de Previously, que espera a que lo servido llegue a lo alcanzado
+    let previewShown = 0
+    let arrivalCards: readonly ArrivalCard[] = []
+    let arrivalShown = -1
+    let previouslyPending = s.phase === 'recap'
+    let jumpsShown: readonly JumpOption[] = []
+    let seekingShown: string | null = null
+
+    const deckCtxOf = (line: TimelineCore): CueDeckContext => ({
+      start: head.startState,
+      timeTrial: head.stage.timeTrial,
+      events: line.events,
+      catalog: line.groups,
+      cast: head.cast,
+      profile: head.profile,
+      own: ctx.own,
+      view: s.view,
+      speed: s.speed,
+      tt: head.tt,
+    })
+
+    /** Lo que el digest suelta (18-e): los tramos de esa etapa, de la caché. */
+    const release = (stageDay: number): void => {
+      queryClient.removeQueries({ queryKey: ['broadcast-chunk', raceId, stageDay] })
+    }
+
+    /** La cola asentada en un instante (§8.5): tras volver atrás, o en el aterrizaje de un salto. */
+    function seat(at: Instant, carry: readonly Cue[], checkNow: boolean): void {
+      const tNow = timeTrial ? timeTrialInstantAt(served.core, at.t, ctx) : null
+      const r = cueDeckSeat(deck, at, deckCtxOf(served.core), tNow, carry, checkNow)
+      deck = r.deck
+      for (const a of r.admitted) dispatch(a)
+      // la hora salta: la tendencia del hueco empieza otra vez y los cursores, de cero
+      trendState = { ...GAP_TREND_INIT, lines: trendState.lines, t: at.t }
+      drawn = []
+      instant = at
+      ttNow = tNow
+      painted = { line: served.core, t: at.t }
+    }
 
     function dispatch(a: PlayerAction): void {
+      if (chained) return
       const r = playerStep(s, a, pctx)
       s = r.next
+      if (s.stageDay !== day) {
+        // El digest encadena (8-c): lo que suelta se borra ya, y la etapa siguiente es de la página, que
+        // navega a ella; sus peticiones las hará la página nueva (18-e).
+        chained = true
+        for (const e of r.effects) if (e.k === 'release') release(e.stageDay)
+        runner.stop()
+        chainRef.current?.(s.stageDay)
+        return
+      }
       runner.push(r.effects)
       const next = controlsOf(s)
       if (!sameControls(next, shown)) {
         shown = next
         setControls(next)
       }
+    }
+
+    /** Un salto de la hoja o del teclado (§8.5, 9-g): hacia atrás, sin red; hacia delante, el reductor. */
+    function jump(id: JumpOption['id']): void {
+      if (chained || !jumpable(s)) return
+      if (timeTrial) {
+        const toS = ttSeekTargetS(id as ClockJump, s.t, plan)
+        if (toS === null) return
+        if (id === 'back10') back(toS)
+        else dispatch({ k: 'seekTime', toS })
+        return
+      }
+      const km = seekTargetKm(id as RoadJump, instant.headKm, head.stage.lengthKm, head.profile)
+      if (km === null) return
+      if (id === 'back5') back(fromDs(firstDsAtKm(served.core, km, 0, toDs(s.t), ctx)))
+      else
+        dispatch({
+          k: 'seek',
+          km,
+          headKmAtEnd: instantAt(served.core, s.servedS, ctx).headKm,
+        })
+    }
+
+    /** Volver atrás (§8.5): dentro de lo servido; la cola, vacía y asentada ahí, vuelve a rotular. */
+    function back(toS: RaceS): void {
+      const before = s.t
+      dispatch({ k: 'back', toS })
+      if (s.t < before) seat(instantAt(served.core, s.t, ctx), [], false)
+    }
+
+    /**
+     * EL ATERRIZAJE (§8.5): lo servido llega al destino y nada está en vuelo. La primera décima en que la
+     * cabeza pintada llega al km destino (o la hora pedida de la crono), sin pasar del borde de la meta;
+     * los rótulos de clase ≥ 2 saltados, para `While you skipped`; y la cola asentada ahí, con la fuga que
+     * se formó en lo saltado si sigue delante y el cuadro de diferencias detrás del resumen.
+     */
+    function land(): void {
+      const line = served.core
+      const from = instantAt(line, s.t, ctx)
+      // en la crono, ninguno pasa del último km del último en salir (9-g): ahí se ve a su ritmo
+      const ttLast = timeTrial ? ttLastKmFromS(line) : null
+      const capDs = Math.min(
+        toDs(clockCapS(s)),
+        ttLast === null ? Number.POSITIVE_INFINITY : Math.max(toDs(s.t), toDs(ttLast)),
+      )
+      const toD =
+        s.seekKm !== null
+          ? firstDsAtKm(line, s.seekKm, toDs(s.t), capDs, ctx)
+          : Math.min(capDs, toDs(s.seekS ?? s.t))
+      const to = instantAt(line, fromDs(toD), ctx)
+      const skipped = recapOf(from, to, deckCtxOf(line))
+      dispatch({ k: 'landed', toS: fromDs(toD), skipped: skipped.count })
+      seat(instantAt(line, s.t, ctx), skipped.breakaway === null ? [] : [skipped.breakaway], true)
+      const view: RecapView | null =
+        skipped.count > 0
+          ? {
+              title: 'WHILE YOU SKIPPED',
+              rows: recapRowsOf(skipped.cues, head, (t) => instantAt(line, t, ctx)),
+            }
+          : null
+      setRecap(view)
     }
 
     const runner = effectRunner(
@@ -560,6 +795,13 @@ function useWatchPlayer(
                 reachedRef.current?.(reachedS)
                 writeLocalProgress(raceKey, day, reachedS)
               },
+        // `Show result` (§8.5): la revelación, delante de la meta; si falla, `Connection lost · Retry`
+        reveal: async () => {
+          const r = revealRef.current
+          if (r === null) throw new Error('reveal unavailable')
+          return r()
+        },
+        release,
       },
       {
         chunk: (c) => {
@@ -576,11 +818,21 @@ function useWatchPlayer(
             headKmAtEnd: instantAt(served.core, toS, ctx).headKm,
           }
         },
-        finish: (f) => setFinish(f),
+        finish: (f) => {
+          // la llegada (§8.7), con la palabra de cada grupo del último instante pintado
+          arrivalCards = arrivalCardsOf(head, f, instant, {
+            revealed: s.revealed,
+            digest: s.view === 'digest',
+            oneDay,
+          })
+          arrivalShown = -1
+          setFinish(f)
+        },
         dispatch,
       },
     )
     dispatchRef.current = dispatch
+    jumpRef.current = jump
     setControls(shown)
     setFinish(null)
     setLines([])
@@ -590,6 +842,10 @@ function useWatchPlayer(
     setCue(null)
     setKeys(screenKeys)
     setCursors(drawn)
+    setPreviewIndex(0)
+    setArrival(null)
+    setRecap(null)
+    setSeeking(null)
     runner.push(init.effects)
 
     let raf = 0
@@ -597,8 +853,38 @@ function useWatchPlayer(
     let lastOverlay = Number.NEGATIVE_INFINITY
     let lastBar = Number.NEGATIVE_INFINITY
     const frame = (now: number): void => {
+      if (chained) return
       const dtS = last === null ? 0 : Math.min(MAX_FRAME_S, Math.max(0, (now - last) / 1000))
       last = now
+      // El aterrizaje de un salto: lo servido llegó al destino y no queda nada en vuelo (§8.5).
+      if (s.phase === 'seeking' && !s.inFlight) {
+        land()
+        lastOverlay = Number.NEGATIVE_INFINITY
+        lastBar = Number.NEGATIVE_INFINITY
+      }
+      // Previously (8-l, 8-i): cuando lo servido llega a lo alcanzado, el resumen de lo de antes, y la
+      // cola asentada en la hora de la carrera con la fuga que va delante (su lista no se ha pintado en
+      // esta reproducción) y el cuadro de diferencias, que salen al acabar el resumen: con el reloj
+      // quieto, la cola no corre.
+      if (previouslyPending && s.phase !== 'recap') previouslyPending = false
+      if (previouslyPending && (s.servedS >= s.reachedS || s.atFinish)) {
+        previouslyPending = false
+        const line = served.core
+        const before = recapOf(
+          instantAt(line, 0, ctx),
+          instantAt(line, s.reachedS, ctx),
+          deckCtxOf(line),
+        )
+        seat(instantAt(line, s.t, ctx), before.breakaway === null ? [] : [before.breakaway], true)
+        phaseWallS = 0
+        // nada que contar: la carrera sigue
+        if (before.count === 0) dispatch({ k: 'cardDone' })
+        else
+          setRecap({
+            title: 'PREVIOUSLY',
+            rows: recapRowsOf(before.cues, head, (t) => instantAt(line, t, ctx)),
+          })
+      }
       // el instante, a overlayHz, sobre la línea servida: solo si cambió la hora o la línea
       if (now - lastOverlay >= 1000 / BROADCAST.overlayHz) {
         lastOverlay = now
@@ -613,7 +899,7 @@ function useWatchPlayer(
             trendState = nextTrend
           }
           painted = { line: served.core, t: s.t }
-        }
+        } else if (timeTrial) setTti(ttNow)
         setOverlay(instant)
         // los nombres de una caída, crashNamesDelayS de pared después, en s de carrera al ritmo de ahora
         const x = pctx.baseX(s.view, s.t, instant.toGoKm) * s.speed
@@ -621,6 +907,40 @@ function useWatchPlayer(
         if (delay !== delayShown) {
           delayShown = delay
           setNamesDelayS(delay)
+        }
+        // los saltos que llevan a algún sitio (8-j, 9-g), y el aviso del salto en curso
+        const canJump = jumpable(s)
+        const ttLast = timeTrial ? ttLastKmFromS(served.core) : null
+        const nextJumps: JumpOption[] = timeTrial
+          ? CLOCK_JUMPS.map((id) => ({
+              id,
+              label: CLOCK_JUMP_LABEL[id],
+              enabled:
+                canJump &&
+                (id === 'back10' ? s.phase !== 'preview' : ttLast === null || s.t < ttLast) &&
+                ttSeekTargetS(id, s.t, plan) !== null,
+            }))
+          : ROAD_JUMPS.map((id) => ({
+              id,
+              label: ROAD_JUMP_LABEL[id],
+              enabled:
+                canJump &&
+                (id === 'back5' ? s.phase !== 'preview' : !s.lastKm) &&
+                seekTargetKm(id, instant.headKm, head.stage.lengthKm, head.profile) !== null,
+            }))
+        if (!sameJumps(nextJumps, jumpsShown)) {
+          jumpsShown = nextJumps
+          setJumps(nextJumps)
+        }
+        const label =
+          s.phase !== 'seeking'
+            ? null
+            : s.seekKm !== null
+              ? `Skipping to ${Math.max(1, Math.round(head.stage.lengthKm - s.seekKm))} km to go…`
+              : 'Skipping ahead…'
+        if (label !== seekingShown) {
+          seekingShown = label
+          setSeeking(label)
         }
       }
       if (now - lastBar >= 1000 / BROADCAST.barHz) {
@@ -634,19 +954,14 @@ function useWatchPlayer(
       }
       // La cola de rótulos (§6.5): los de este instante, admitidos con su clase; lo admitido, al
       // reductor (solo apaga Next action); y el que está en pantalla, con su texto fijado al salir.
-      const deckCtx: CueDeckContext = {
-        start: head.startState,
-        timeTrial: head.stage.timeTrial,
-        events: served.core.events,
-        catalog: served.core.groups,
-        cast: head.cast,
-        profile: head.profile,
-        own: ctx.own,
-        view: s.view,
-        speed: s.speed,
-        tt: head.tt,
-      }
-      const step = cueDeckStep(deck, instant, dtS, s.phase === 'playing', deckCtx, ttNow)
+      const step = cueDeckStep(
+        deck,
+        instant,
+        dtS,
+        s.phase === 'playing',
+        deckCtxOf(served.core),
+        ttNow,
+      )
       deck = step.deck
       for (const a of step.admitted) dispatch(a)
       if (deck.queue.shown !== onScreen) {
@@ -671,15 +986,37 @@ function useWatchPlayer(
         toGoKm: instant.toGoKm,
         atLine: headAtLine(instant, served.core),
       })
-      // los cuadros que cuenta la pantalla: la llegada y Previously
+      if (chained) return
+      // los cuadros que cuenta la pantalla: la previa, la llegada y los resúmenes
       if (s.phase !== lastPhase) {
+        if (lastPhase === 'recap') setRecap(null)
         lastPhase = s.phase
         phaseWallS = 0
       } else phaseWallS += dtS
-      if (s.phase === 'arrival' && phaseWallS >= BROADCAST.finishFreezeS)
+      if (s.phase === 'preview') {
+        const i = Math.min(preview.length - 1, Math.floor(phaseWallS / BROADCAST.previewCardS))
+        if (i !== previewShown) {
+          previewShown = i
+          setPreviewIndex(i)
+        }
+        if (phaseWallS >= previewSeconds(preview)) dispatch({ k: 'cardDone' })
+      }
+      if (s.phase === 'recap' && !previouslyPending && phaseWallS >= BROADCAST.cueHoldS[3])
         dispatch({ k: 'cardDone' })
-      if (s.phase === 'recap' && phaseWallS >= BROADCAST.cueHoldS[3]) dispatch({ k: 'cardDone' })
-      raf = window.requestAnimationFrame(frame)
+      if (s.phase === 'arrival') {
+        let acc = 0
+        let i = 0
+        while (i < arrivalCards.length && phaseWallS >= acc + arrivalCards[i]!.holdS) {
+          acc += arrivalCards[i]!.holdS
+          i++
+        }
+        if (i >= arrivalCards.length) dispatch({ k: 'cardDone' })
+        else if (i !== arrivalShown) {
+          arrivalShown = i
+          setArrival(arrivalCards[i] ?? null)
+        }
+      }
+      if (!chained) raf = window.requestAnimationFrame(frame)
     }
     raf = window.requestAnimationFrame(frame)
 
@@ -690,11 +1027,19 @@ function useWatchPlayer(
     const onTouch = (): void => dispatch({ k: 'touch' })
     const onKey = (e: KeyboardEvent): void => {
       dispatch({ k: 'touch' })
-      if (e.key !== ' ' || e.repeat) return
+      if (e.repeat || e.altKey || e.ctrlKey || e.metaKey) return
       const target = e.target instanceof Element ? e.target : null
       if (target?.closest('button, a, input, textarea, select, [role="tab"]')) return
-      e.preventDefault()
-      dispatch({ k: s.phase === 'playing' || s.phase === 'waiting' ? 'pause' : 'play' })
+      if (e.key === ' ') {
+        e.preventDefault()
+        dispatch({ k: s.phase === 'playing' || s.phase === 'waiting' ? 'pause' : 'play' })
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        // en escritorio, `←` y `→` son `−5 km` y `+5 km`; en la crono, `−10 min` y `+10 min` (8-p)
+        if (s.view === 'digest') return
+        e.preventDefault()
+        const backward = e.key === 'ArrowLeft'
+        jump(timeTrial ? (backward ? 'back10' : 'fwd10') : backward ? 'back5' : 'fwd5')
+      }
     }
     document.addEventListener('visibilitychange', onVisibility)
     window.addEventListener('pagehide', onLeave)
@@ -711,8 +1056,22 @@ function useWatchPlayer(
       dispatch({ k: 'leave' })
       runner.stop()
       dispatchRef.current = () => {}
+      jumpRef.current = () => {}
     }
-  }, [head, raceId, day, ctx, queryClient, timeTrial, diag])
+  }, [
+    head,
+    raceId,
+    day,
+    ctx,
+    queryClient,
+    timeTrial,
+    diag,
+    initialView,
+    digestFrom,
+    digestLast,
+    oneDay,
+    preview,
+  ])
 
   return {
     overlay,
@@ -729,5 +1088,12 @@ function useWatchPlayer(
     tti,
     trend,
     namesDelayS,
+    preview,
+    previewIndex,
+    arrival,
+    recap,
+    seeking,
+    jumps,
+    jump: (id) => jumpRef.current(id),
   }
 }

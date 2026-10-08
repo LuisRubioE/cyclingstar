@@ -5,7 +5,7 @@ import {
   stageRouteText,
 } from '@cyclingstar/shared'
 import { type ReactNode, useState } from 'react'
-import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import type { StageClassEntry, StageGcEntry, TeamClassEntry } from '../api/results'
 import { Flag } from '../components/Flag'
 import { RiderJersey } from '../components/Jersey'
@@ -42,7 +42,7 @@ import {
   useStageFacts,
   useStageResult,
 } from './stageView'
-import { StageWatch } from './StageWatch'
+import { type DigestRun, StageWatch, watchViewOf } from './StageWatch'
 
 // Las piezas que la página compartía con el acta y que el 9b sacó a `stageView.tsx` y `queryClient.ts` (la
 // ficha de una carrera de un día también las usa): se reexportan para quien las importa de aquí.
@@ -303,9 +303,14 @@ export function StageReplay() {
  * - La `Race Radio` de una etapa sin ver (§11.16, 11-i; paso 11a): en el velo y con línea grabada, la
  *   radio hasta lo pintado (`PaintedRaceRadio`) en lugar de la puerta; la de una conocida la trae la
  *   ficha, desde el 11a sacada de la línea en el servidor.
+ * - Los modos (§8.1; paso 10a): `?view=highlights` abre `Watch` en `Highlights` y
+ *   `?view=digest&from=5&to=21`, en el digest de la carrera de la 5 a la 21, que encadena navegando a la
+ *   siguiente sin dejar rastro en el historial (8-c); `Show result` de los mandos revela con las mismas
+ *   acciones que la puerta.
  */
 function StagePage({ raceId, day }: { raceId: string; day: number }) {
   const [params] = useSearchParams()
+  const navigate = useNavigate()
   const f = useStageFacts(raceId, day)
   const { data, isPending, isError, diagOn, isAdmin, watchOn, run, isOneDay } = f
   const { watchable, unavailable, seen, settled, dataGate, readingWithCookie } = f
@@ -370,11 +375,20 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
     !diagOn
 
   // La pestaña viaja en la URL (enlace compartido) y se conserva al saltar de etapa: quien está
-  // leyendo crónicas sigue leyendo crónicas.
+  // leyendo crónicas sigue leyendo crónicas. El modo de `Watch` no: la otra etapa abre en el suyo.
   function stageHref(target: number): string {
-    const suffix = params.toString()
-    return `/world/races/${raceId}/stages/${target}${suffix ? `?${suffix}` : ''}`
+    return hrefWith(`/world/races/${raceId}/stages/${target}`, params, { view: null, from: null })
   }
+  // El modo con que se entra en `Watch` (§8.1) y, en el digest, de qué etapa a cuál (8-c)
+  const watchView = watchViewOf(params.get('view'))
+  const digestRun: DigestRun | null =
+    watchView === 'digest' && stageCount > 0
+      ? {
+          from: Math.min(data.day, Number(params.get('from')) || data.day),
+          last: Math.max(data.day, Math.min(stageCount, Number(params.get('to')) || stageCount)),
+          raceName: race?.name ?? 'the race',
+        }
+      : null
 
   const gateCard = (g: StageGate, place: GatePlace): ReactNode => (
     <StageGateCard
@@ -526,9 +540,18 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
                   raceId={raceId}
                   day={data.day}
                   diag={diagOn}
+                  view={digestRun === null && watchView === 'digest' ? 'watch' : watchView}
+                  digest={digestRun}
+                  reveal={actions}
                   onReport={() => setActive('report')}
                   onFinished={() => setFinishedHere(true)}
                   onReached={(s) => setReachedHere((x) => Math.max(x, s))}
+                  onChain={(next) =>
+                    navigate(
+                      `/world/races/${raceId}/stages/${next}?tab=watch&view=digest&from=${digestRun?.from ?? data.day}&to=${digestRun?.last ?? next}`,
+                      { replace: true },
+                    )
+                  }
                 />
               ) : (
                 <p className="text-slate-500">Loading…</p>
