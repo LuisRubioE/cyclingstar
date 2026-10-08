@@ -11,12 +11,13 @@
  * no cambian ni los grupos ni la diferencia ni quién tira, solo la marca del espectador.
  *
  * Las palabras de la pantalla (`toGoText`, `mainGapText`, `versusText`, `barLabelText`, `pullingText` y
- * `wornText`) son las de la web (`apps/web/src/domain/broadcast/screen.ts`, `GroupBar` y los iconos de
- * la barra), que un script de Node no puede importar: van aquí, con los casos de los tests de la web, y
- * la web puede pasar a importarlas de aquí en lugar de tener las suyas.
+ * `wornText`) y los grupos que pinta la barra (`shownGroupsOf`) viven en `screenWords.ts`, que importan
+ * también la web y el script: desde el 10a hay una sola copia (nació aquí como copia de la web, que la
+ * borró). Y lo que la capa fija lee del instante lo decide `instantAt` (la cabeza de la pantalla, 10a):
+ * la verdad lo toma de ahí, como la web, así que sigue a la pantalla sin código propio.
  */
 import type { StageKind } from '../contracts.js'
-import { JERSEY_LABEL, type RiderCard } from '../jerseys.js'
+import type { RiderCard } from '../jerseys.js'
 import type { NameResolver } from '../news.js'
 import { seededRng } from '../rng.js'
 import { riderCardsOf, startStateOf } from './cards.js'
@@ -29,14 +30,8 @@ import {
   packOf,
   photoBlocksOf,
 } from './instant.js'
-import {
-  COUNTRY_NAMES,
-  PULL_MOTIVE_WORDS,
-  type PullingLine,
-  championTitleText,
-  groupLabelText,
-  pullingLineOf,
-} from './names.js'
+import { type PullingLine, pullingLineOf } from './names.js'
+import { shownGroupsOf } from './screenWords.js'
 import {
   type Ds,
   type RaceS,
@@ -229,9 +224,11 @@ export function readingScreenOf(
  * del punto, el organizador pausa»): para cada km, la primera hora en que `Instant.toGoKm` es ≤ km; null
  * si no llega (la cabeza se pinta a medio bloque de la línea, así que por debajo de 50 m no llega). Una
  * pasada por segundos enteros de carrera para todos los km, y se afina a la décima dentro del segundo en
- * que llega cada uno. Por segundos y no por décimas porque la cabeza pintada puede volver atrás unos
- * metros, o unos km cuando su grupo muere y el sucesor aún no tiene marca (6a): lo que vuelve en menos
- * de un segundo de carrera no se ve, porque la capa fija se repinta a `overlayHz` y a ×60 un repintado
+ * que llega cada uno. Desde el 10a la capa fija ya no vuelve atrás cuando el grupo de cabeza muere y los
+ * suyos siguen en carrera (`instantAt`, la cabeza de la pantalla): antes, de 1,6 a 4,0 km durante 7,4 s
+ * de carrera en `race-colombia` e5. Solo vuelve si todos los de delante abandonan, y entonces lo que
+ * enseña es el nuevo primero de la carretera; la pasada por segundos sigue valiendo, porque lo que dura
+ * menos de un segundo de carrera no se ve: la capa fija se repinta a `overlayHz`, y a ×60 un repintado
  * son seis segundos de carrera.
  */
 export function readingCrossings(
@@ -270,7 +267,7 @@ export interface ReadingTruth {
   readonly t: RaceS
   /** el instante entero: la capa fija lee `toGoKm`, `lapsToGo` y `mainGap` (con su referencia, D-17) */
   readonly instant: Instant
-  /** la barra: los grupos con alguien dentro, renumerados por carretera (`shownGroupsOf` de la web, 6a) */
+  /** la barra: los grupos con alguien dentro, renumerados por carretera (`shownGroupsOf`, 6a) */
   readonly bar: readonly GroupNow[]
   /** quién va delante: la fila 1 de la barra */
   readonly front: GroupNow
@@ -286,12 +283,6 @@ export interface ReadingTruth {
   readonly cards: readonly RiderCard[]
 }
 
-/** LA BARRA: los grupos del instante con alguien dentro, renumerados (la regla de `shownGroupsOf`, web, 6a). */
-function barOf(instant: Instant): readonly GroupNow[] {
-  if (instant.groups.every((g) => g.size > 0)) return instant.groups
-  return instant.groups.filter((g) => g.size > 0).map((g, i) => ({ ...g, number: i + 1 }))
-}
-
 /**
  * LA VERDAD A UNA HORA DADA: la del paso por el km (`readingTruthsOf`) o la que el organizador lea en la
  * segunda línea de la capa fija al pausar (el reloj de carrera, 6-f). «El grupo que persigue» es el de
@@ -305,7 +296,7 @@ export function readingTruthAt(
   t: RaceS,
 ): ReadingTruth {
   const instant = instantAt(tl, t, screen.ctx)
-  const bar = barOf(instant)
+  const bar = shownGroupsOf(instant)
   const front = bar[0]
   if (front === undefined) throw new Error(`prueba de lectura: nadie en carrera a la hora ${t}`)
   const gap = instant.mainGap
@@ -352,110 +343,4 @@ export function breakawayKmsOf(tl: StageTimeline, screen: ReadingScreen): number
   return readingTruthsOf(tl, screen, kms).flatMap((x, i) =>
     x?.breakaway === true ? [kms[i]!] : [],
   )
-}
-
-// ------------------------------------------------------------- las palabras de la pantalla
-
-/** `m:ss`, y `h:mm:ss` desde la hora (`clockText` de la web). */
-function clockText(totalS: number): string {
-  const s = Math.max(0, Math.round(totalS))
-  const h = Math.floor(s / 3600)
-  const m = Math.floor((s % 3600) / 60)
-  const ss = String(s % 60).padStart(2, '0')
-  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`
-}
-
-/** La distancia: un decimal, y dentro del último km los metros hacia abajo a la decena (§6.2). */
-function distanceText(toGoKm: number): string {
-  if (toGoKm < 1) return `${Math.floor(Math.max(0, toGoKm) * 100 + 1e-9) * 10} m`
-  return `${toGoKm.toFixed(1)} km`
-}
-
-/** LOS KM A META DE LA CAPA FIJA (§6.2; `toGoText` de la web): `98.5 km to go`, `850 m to go`, `3 laps to go · 42.5 km`, `Last lap · 8.2 km to go`. */
-export function toGoText(toGoKm: number, lapsToGo: number | null): string {
-  if (lapsToGo !== null && lapsToGo > 1) return `${lapsToGo} laps to go · ${toGoKm.toFixed(1)} km`
-  if (lapsToGo === 1) return `Last lap · ${distanceText(toGoKm)} to go`
-  return `${distanceText(toGoKm)} to go`
-}
-
-/** LA DIFERENCIA PRINCIPAL (§6.2; `gapText` de la web): `+3:46`, `+1:02:10`; por debajo de `sameTimeS`, `s.t.`. */
-export function mainGapText(gapS: number): string {
-  return gapS < BROADCAST.sameTimeS ? 's.t.' : `+${clockText(gapS)}`
-}
-
-/** El nombre de un corredor en la pantalla: tal como está guardado (7-a; `nameOf` de la web). */
-const nameOf =
-  (cards: readonly RiderCard[]) =>
-  (r: RiderIx): string =>
-    cards[r]?.name ?? `#${r + 1}`
-
-/** El corredor con su dorsal: `107 Andrea Rossi` (`riderShort` de la web). */
-function riderShort(cards: readonly RiderCard[], r: RiderIx): string {
-  const c = cards[r]
-  if (c === undefined) return `#${r + 1}`
-  return c.bib === null ? c.name : `${c.bib} ${c.name}`
-}
-
-/** CONTRA QUIÉN mide la capa fija: la palabra de voz de ese grupo, `on the bunch` (§6.2, 6-b; `versusText` de la web). */
-export function versusText(behind: GroupNow, cards: readonly RiderCard[]): string {
-  return `on ${groupLabelText('en', behind.label, behind.role, 'voice', nameOf(cards))}`
-}
-
-/**
- * LA FILA DE LA BARRA (§6.2, §6.3; `RowName` de `GroupBar`): los nombres de un grupo de tres o menos,
- * `A · B · C`, o la palabra de su papel con el tamaño, `Lead group · 7` (las mayúsculas de la barra son
- * presentación).
- */
-export function barLabelText(g: GroupNow, cards: readonly RiderCard[]): string {
-  const word = groupLabelText('en', g.label, g.role, 'bar', nameOf(cards))
-  return g.label.k === 'names' ? word : `${word} · ${g.size}`
-}
-
-/**
- * QUIÉN TIRA (§6.4, 6-d; `pullingText` de la web): `Pulling: all 3 in turn` (`both in turn` con dos,
- * `4 of 5 in turn` si no están todos), o cada equipo con su porqué, `(for 107 Andrea Rossi)` si dos de
- * sus relevistas comparten destinatario y, si no, su motivo (`(chasing)`), y `+2 teams` si tiran más de
- * dos. `oneTeam`: la del móvil, con un equipo y `+N teams`.
- */
-export function pullingText(
-  line: PullingLine,
-  cards: readonly RiderCard[],
-  oneTeam = false,
-): string {
-  if (line.k === 'in_turn') {
-    if (line.pulling < line.of) return `Pulling: ${line.pulling} of ${line.of} in turn`
-    return `Pulling: ${line.of === 2 ? 'both' : `all ${line.of}`} in turn`
-  }
-  const teamName = (teamId: string): string => {
-    if (teamId.startsWith('solo:')) return nameOf(cards)(Number(teamId.slice(5)))
-    return cards.find((c) => c.team?.id === teamId)?.team?.name ?? teamId
-  }
-  const shown = oneTeam ? line.teams.slice(0, 1) : line.teams
-  const more = line.moreTeams + (line.teams.length - shown.length)
-  const parts = shown.map((t) => {
-    const why =
-      t.forRider !== null
-        ? `for ${riderShort(cards, t.forRider)}`
-        : t.motive === null
-          ? null
-          : PULL_MOTIVE_WORDS[t.motive]
-    return `${teamName(t.teamId)}${why === null ? '' : ` (${why})`}`
-  })
-  return `Pulling: ${parts.join(', ')}${more > 0 ? ` +${more} ${more === 1 ? 'team' : 'teams'}` : ''}`
-}
-
-/**
- * EL MAILLOT QUE SE VE (§4.8, §7.4), con las palabras de su icono en la barra (`WornJerseyIcon`): el de
- * líder por su clasificación (`Race leader`, `Points leader`, `Mountains leader`, `JERSEY_LABEL`, también
- * el que lo lleva delegado), el de campeón por su título (`Champion of Italy`) o `Team jersey`.
- */
-export function wornText(card: RiderCard): string {
-  switch (card.worn.kind) {
-    case 'leader':
-      return JERSEY_LABEL[card.worn.jersey]
-    case 'champion':
-      return championTitleText('en', card.worn.title, COUNTRY_NAMES)
-    case 'team':
-      return 'Team jersey'
-  }
 }

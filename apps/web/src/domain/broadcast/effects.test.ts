@@ -11,7 +11,9 @@ import type { PlayerAction, PlayerEffect } from './player'
  * (§10.11). Un error se traduce con `failureAction`: un 429 espera su `retry-after` de pared y repite
  * la misma petición; un 409 `beyond_reached` y un fallo se sueltan, y el reductor pide lo que haga
  * falta. Desde el 7a los informes (`report`) salen: en la cola, en su orden, y un fallo suyo no para
- * la imagen; el de salir (`beacon`), en el acto, sin esperar a nadie (§14.11, 14-g).
+ * la imagen; el de salir (`beacon`), en el acto, sin esperar a nadie (§14.11, 14-g). Desde el 10a, la
+ * revelación de `Show result` va en la cola delante de su meta, y tras un fallo no sale nada más de lo
+ * pedido salvo los informes; soltar una etapa del digest (18-e) no es red.
  */
 
 /** Una promesa que el test resuelve o rechaza cuando quiere. */
@@ -49,6 +51,7 @@ function rig() {
   const pending: { readonly what: string; readonly d: ReturnType<typeof deferred<unknown>> }[] = []
   const sleeps: number[] = []
   const beacons: string[] = []
+  const released: number[] = []
   const actions: PlayerAction[] = []
   const chunks: BroadcastChunk[] = []
   const finishes: BroadcastFinish[] = []
@@ -79,6 +82,15 @@ function rig() {
     },
     beacon: (reachedS, mode) => {
       beacons.push(`beacon ${reachedS} ${mode}`)
+    },
+    reveal: () => {
+      calls.push('reveal')
+      const d = deferred<unknown>()
+      pending.push({ what: 'reveal', d })
+      return d.promise
+    },
+    release: (stageDay) => {
+      released.push(stageDay)
     },
   }
   let push: (effects: readonly PlayerEffect[]) => void = () => {}
@@ -113,7 +125,20 @@ function rig() {
     pending.shift()!.d.reject(error)
     await flush()
   }
-  return { runner, calls, pending, sleeps, beacons, actions, chunks, finishes, flush, answer, fail }
+  return {
+    runner,
+    calls,
+    pending,
+    sleeps,
+    beacons,
+    released,
+    actions,
+    chunks,
+    finishes,
+    flush,
+    answer,
+    fail,
+  }
 }
 
 describe('effectRunner · las peticiones del reproductor, en orden (§8.11)', () => {
@@ -278,6 +303,70 @@ describe('effectRunner · los errores de un informe (7a)', () => {
     ).not.toThrow()
     await r.flush()
     expect(r.actions).toEqual([{ k: 'touch' }])
+  })
+})
+
+describe('effectRunner · Show result y el digest (10a)', () => {
+  it('la revelación va delante de su meta: la meta sale cuando la revelación responde, y su respuesta no es una acción', async () => {
+    const r = rig()
+    r.runner.push([{ k: 'reveal' }, { k: 'finish', mode: 'summary' }])
+    await r.flush()
+    expect(r.calls).toEqual(['reveal'])
+    await r.answer({ ok: true })
+    expect(r.calls).toEqual(['reveal', 'finish summary'])
+    expect(r.actions).toEqual([])
+    await r.answer(FINISH)
+    expect(r.actions).toEqual([{ k: 'finished' }])
+  })
+
+  it('una revelación que falla es failed, y la meta de detrás no sale (escribiría la letra de verla); un informe de detrás, sí', async () => {
+    const r = rig()
+    r.runner.push([
+      { k: 'reveal' },
+      { k: 'finish', mode: 'play' },
+      { k: 'report', reachedS: 30, mode: 'play', beacon: false },
+    ])
+    await r.flush()
+    await r.fail(new ApiError('Network error', 0, 'network'))
+    expect(r.actions).toEqual([{ k: 'failed' }])
+    expect(r.calls).toEqual(['reveal', 'report 30 play'])
+    await r.answer({ status: 'watching', rev: '1.0' })
+    expect(r.pending).toHaveLength(0)
+  })
+
+  it('un 429 en la revelación espera su retry-after y repite la misma', async () => {
+    const r = rig()
+    r.runner.push([{ k: 'reveal' }, { k: 'finish', mode: 'play' }])
+    await r.flush()
+    await r.fail(new ApiError('demasiadas_peticiones', 429, 'demasiadas_peticiones', 3))
+    expect(r.sleeps).toEqual([3])
+    expect(r.calls).toEqual(['reveal', 'reveal'])
+    await r.answer({ ok: true })
+    expect(r.calls).toEqual(['reveal', 'reveal', 'finish play'])
+  })
+
+  it('tras un tramo que falla, lo que iba detrás no sale: Retry lo vuelve a pedir', async () => {
+    const r = rig()
+    r.runner.push([
+      { k: 'chunk', fromS: 0, toS: 30 },
+      { k: 'reveal' },
+      { k: 'finish', mode: 'play' },
+    ])
+    await r.flush()
+    await r.fail(new ApiError('Network error', 0, 'network'))
+    expect(r.actions).toEqual([{ k: 'failed' }])
+    expect(r.calls).toEqual(['chunk 0-300'])
+  })
+
+  it('soltar una etapa del digest (18-e) no es red: sale en su turno, sin esperar respuesta', async () => {
+    const r = rig()
+    r.runner.push([
+      { k: 'release', stageDay: 7 },
+      { k: 'chunk', fromS: 0, toS: 30 },
+    ])
+    await r.flush()
+    expect(r.released).toEqual([7])
+    expect(r.calls).toEqual(['chunk 0-300'])
   })
 })
 

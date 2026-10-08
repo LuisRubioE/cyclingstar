@@ -2,6 +2,8 @@ import {
   ARCHETYPE_KEY_ATTR,
   type Attribute,
   ATTRIBUTES,
+  DAYS_PER_SEASON,
+  parseRaceKey,
   raceIdFromKey,
   riderAge,
   seasonPosition,
@@ -20,7 +22,7 @@ import {
   MORALE,
   type StageEffort,
 } from '@cyclingstar/engine'
-import { type SQL, and, desc, eq, gt, isNull, sql } from 'drizzle-orm'
+import { type SQL, and, desc, eq, gt, gte, inArray, isNull, lt, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
 import { type Horizon, type VeilDelta, veilDelta } from './horizon.js'
 import { seasonMinus } from './ranking.js'
@@ -432,6 +434,53 @@ export async function getDailyLog(
     .limit(limitDays)
   const d = await veilDelta(db, h)
   return veilDailyLog(rows.reverse(), veiledRaceDays(h, d, riderId))
+}
+
+/**
+ * EL QUE MÁS KILÓMETROS RODÓ DELANTE (E2, docs/retransmision.md §8.6, el cuadro 4 del cierre; DD-14; paso
+ * 10a): el mayor `kmEnFuga` («kilómetros rodando por DELANTE del grupo principal», `StageEffort`) del parte
+ * de la etapa (`rider_daily_log.parte`, v47) entre `riderIds`, los que la tomaron. Un hecho y no el premio
+ * de un jurado. La fila es la del día de carrera de esa etapa (`carrera:<raceId>:e<n>`, `stageRun.ts`)
+ * dentro de su temporada, leída por la clave primaria corredor a corredor; a igual distancia, el primero
+ * del reparto. Null si nadie rodó delante, o si la etapa se corrió antes del parte. Solo lo lee el paquete
+ * de meta, que ya es el resultado.
+ */
+export async function getStageMostKmOutFront(
+  db: Database,
+  _h: Horizon,
+  raceKey: string,
+  stageDay: number,
+  riderIds: readonly string[],
+): Promise<{ readonly riderId: string; readonly km: number } | null> {
+  const { raceId, season } = parseRaceKey(raceKey)
+  if (season === null || riderIds.length === 0) return null
+  const rows = await db
+    .select({ riderId: riderDailyLog.riderId, parte: riderDailyLog.parte })
+    .from(riderDailyLog)
+    .where(
+      and(
+        inArray(riderDailyLog.riderId, [...riderIds]),
+        gte(riderDailyLog.gameDay, season * DAYS_PER_SEASON),
+        lt(riderDailyLog.gameDay, (season + 1) * DAYS_PER_SEASON),
+        eq(riderDailyLog.activity, `carrera:${raceId}:e${stageDay}`),
+      ),
+    )
+  // a igual distancia (los de una misma fuga ruedan los mismos km), el primero del reparto: el orden de
+  // `riderIds`, que es el de la línea
+  const order = new Map(riderIds.map((id, i) => [id, i] as const))
+  let best: { riderId: string; km: number } | null = null
+  for (const r of rows) {
+    const km = r.parte?.kmEnFuga ?? 0
+    if (km <= 0) continue
+    if (
+      best === null ||
+      km > best.km ||
+      (km === best.km && (order.get(r.riderId) ?? 0) < (order.get(best.riderId) ?? 0))
+    )
+      best = { riderId: r.riderId, km }
+  }
+  // a la décima: el motor suma bloques de 0,1 km y arrastra el error de la coma flotante
+  return best === null ? null : { riderId: best.riderId, km: Math.round(best.km * 10) / 10 }
 }
 
 /**

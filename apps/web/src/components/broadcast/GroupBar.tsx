@@ -4,19 +4,14 @@ import {
   type Instant,
   type RiderCard,
   groupLabelText,
-  pullingLineOf,
-} from '@cyclingstar/shared'
-import { Fragment } from 'react'
-import {
-  gapText,
-  isQuietFinal,
-  mobileRowsOf,
+  mainGapText,
   nameOf,
+  pullingLineOf,
   pullingText,
   shownGroupsOf,
-  transitOf,
-  yourRiderText,
-} from '../../domain/broadcast/screen'
+} from '@cyclingstar/shared'
+import { Fragment } from 'react'
+import { isQuietFinal, mobileRowsOf, transitOf, yourRiderText } from '../../domain/broadcast/screen'
 import { LeaderJersey } from '../Jersey'
 import { WornJerseyIcon } from './WornJerseyIcon'
 
@@ -115,9 +110,11 @@ export function GroupBar({
                 km {clock === 'estimated' && g.number > 1 ? '~' : ''}
                 {g.km.toFixed(1)}
               </span>
-              {g.number > 1 && !quiet && (
+              {/* la fila 1 no lleva hueco: es la cabeza de la pantalla; salvo unos segundos, si la que
+                  iba delante acaba de morir con los suyos en carrera y aún no tienen grupo (10a) */}
+              {(g.number > 1 || g.gap.toHeadS >= BROADCAST.sameTimeS) && !quiet && (
                 <span className="w-14 shrink-0 text-right text-xs font-semibold tabular-nums text-slate-700">
-                  {gapText(g.gap.toHeadS)}
+                  {mainGapText(g.gap.toHeadS)}
                 </span>
               )}
             </div>

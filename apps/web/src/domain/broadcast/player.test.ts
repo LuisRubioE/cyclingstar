@@ -5,14 +5,18 @@ import {
   BROADCAST,
   type Cue,
   type CueKind,
+  type Instant,
   type InstantContext,
   type RaceS,
+  type StageKind,
+  type StageTimeline,
   type StateEvent,
   type TimelineCore,
   type TimelineEvent,
   cueClassOf,
   cutTimeline,
   decodeTimeline,
+  digestPace,
   fromDs,
   instantAt,
   paceAt,
@@ -40,17 +44,22 @@ import {
   type PlayerStep,
   REPORT_MODE,
   RETRY_AFTER_FALLBACK_S,
+  type RoadJump,
   type Speed,
   type ViewMode,
   clockCapS,
   controlsHidden,
   cueDeckInit,
+  cueDeckSeat,
   cueDeckStep,
   failureAction,
   headAtLine,
   playerInit,
   playerStep,
+  recapOf,
+  seekTargetKm,
   ttCandidatesOf,
+  ttSeekTargetS,
 } from './player'
 
 /**
@@ -87,8 +96,12 @@ const CHUNK_DS = BROADCAST.chunkRaceS * 10
 const PREFETCH_DS = BROADCAST.prefetchRaceS * 10
 const DX = 0.1
 
-const zonesOf = (view: ViewMode) => (view === 'highlights' ? BROADCAST.summaryPace : BROADCAST.pace)
-/** La curva del modo sobre los km a meta de la cabeza (§8.2); el digest y su curva son del 10a. */
+const zonesOf = (view: ViewMode) => (view === 'watch' ? BROADCAST.pace : BROADCAST.summaryPace)
+/**
+ * La curva del modo sobre los km a meta de la cabeza (§8.2). El digest, aquí, con la de `Highlights`: su
+ * curva de verdad (`digestPace`) es esa escalada por etapa, y la de una línea de solo cabeza no tiene
+ * perfil con que escalarla; los casos del digest que miran su duración usan la línea grabada.
+ */
 const ctxOf = (lengthKm: number): PlayerContext => ({
   baseX: (view, _t, toGoKm) => paceAt(toGoKm, zonesOf(view)),
   lengthKm,
@@ -252,12 +265,39 @@ describe('playerStep · el reloj (§8.2)', () => {
     expect(playerStep(on, cue(3, false), ctx).next.nextAction).toBe(false)
   })
 
-  it('los mandos se esconden en playing tras controlsHideS sin tocar, y un toque los enseña (8-p)', () => {
+  it('Next action se apaga al entrar un rótulo de clase ≥ 2 o el del último km, y vuelve la velocidad de antes; desde el último km no se enciende', () => {
     const ctx = ctxOf(150)
-    const quieto = run(playing(), [frame(BROADCAST.controlsHideS, 100)], ctx).next
-    expect(controlsHidden(quieto)).toBe(true)
-    expect(controlsHidden(playerStep(quieto, { k: 'touch' }, ctx).next)).toBe(false)
-    expect(controlsHidden(playerStep(quieto, { k: 'pause' }, ctx).next)).toBe(false)
+    const on = run(playing(), [{ k: 'speed', x: 2 }, { k: 'nextAction' }], ctx).next
+    expect(on.nextAction).toBe(true)
+    const off = playerStep(on, { k: 'cueAdmitted', cls: 2, kind: 'attack', round: false }, ctx).next
+    expect(off).toMatchObject({ nextAction: false, speed: 2 })
+    const flamme = playerStep(on, { k: 'cueAdmitted', cls: 1, kind: 'last_km', round: false }, ctx)
+    expect(flamme.next.nextAction).toBe(false)
+    // en el último km el fotograma lo apaga, y el mando no lo enciende
+    const last = playerStep(on, frame(DT, 0.9), ctx).next
+    expect(last).toMatchObject({ nextAction: false, lastKm: true })
+    expect(playerStep(last, { k: 'nextAction' }, ctx).next.nextAction).toBe(false)
+    // y un salto de recorrido desde ahí no lleva a ninguna parte (8-j)
+    expect(playerStep(last, { k: 'seek', km: 149, headKmAtEnd: 149.5 }, ctx).next).toBe(last)
+  })
+
+  it('los mandos se esconden en playing tras controlsHideS sin tocar; un toque los enseña; en pausa, el resumen, la previa y el cierre, no', () => {
+    const ctx = ctxOf(150)
+    const quiet = Array(Math.ceil(BROADCAST.controlsHideS * 60) + 1).fill(
+      frame(DT, 100),
+    ) as PlayerAction[]
+    const playingQuiet = run(playing(), quiet, ctx).next
+    expect(controlsHidden(playingQuiet)).toBe(true)
+    expect(controlsHidden(playerStep(playingQuiet, { k: 'touch' }, ctx).next)).toBe(false)
+    const paused = run(playing(), [{ k: 'pause' }, ...quiet], ctx).next
+    expect(controlsHidden(paused)).toBe(false)
+    const preview = run(playerInit('watch', 1, null, false).next, quiet, ctx).next
+    expect(preview.phase).toBe('preview')
+    expect(controlsHidden(preview)).toBe(false)
+    const recap = run(playerInit('watch', 1, 2000, false).next, quiet, ctx).next
+    expect(recap.phase).toBe('recap')
+    expect(controlsHidden(recap)).toBe(false)
+    expect(controlsHidden({ ...playingQuiet, phase: 'closing' })).toBe(false)
   })
 })
 
@@ -471,6 +511,8 @@ interface RunOptions {
   readonly events: boolean
   readonly speed: Speed
   readonly nextAction?: boolean
+  /** la curva; `watch` si no se dice (10a: `Highlights`) */
+  readonly view?: ViewMode
   /** el servidor responde 429 con este retry-after a la n-ésima petición de tramo que le llega (desde 1) */
   readonly throttleAt?: { readonly request: number; readonly retryAfterS: number }
   /** el servidor pierde lo informado (un reinicio de `web`, riesgo 19) antes de la n-ésima petición de tramo */
@@ -536,7 +578,7 @@ function playStage(name: HeadTrackName, opts: RunOptions): StageRun {
     return cut
   }
 
-  const init = playerInit('watch', 1, null, false)
+  const init = playerInit(opts.view ?? 'watch', 1, null, false)
   let s = init.next
   const queue: PlayerEffect[] = [...init.effects]
   const chunkEffects: Extract<PlayerEffect, { k: 'chunk' }>[] = []
@@ -885,7 +927,7 @@ describe('cueDeckStep · la cola de rótulos del reproductor, paso a paso (§6.5
 
 // ------------------------------------------------------------------- la red al reproducir (8-d)
 
-describe('la red al reproducir (8-d): las cinco etapas enteras sin un solo 409 ni un fotograma esperando un tramo', () => {
+describe('la red al reproducir (8-d): las cinco etapas enteras sin un solo 409, y el reloj esperando un tramo solo si el colchón no llega', () => {
   const B17_WATCH_S = [360, 1320] // la banda de Watch de 8-k, en s de pared (§8.9)
 
   it.each(NAMES.flatMap((n) => [1, 4].map((x) => [n, x] as const)))(
@@ -914,6 +956,41 @@ describe('la red al reproducir (8-d): las cinco etapas enteras sin un solo 409 n
     60_000,
   )
 
+  // 10a: Highlights a ×1 y ×4, y Next action encendido de la salida al último km (8-o), la hora muerta
+  // más rápida que hay: la carrera a ×60·20 en Watch y a ×300·20 en Highlights
+  it.each(
+    NAMES.flatMap((n) => [
+      [n, 'highlights', 1, 'sin'] as const,
+      [n, 'highlights', 4, 'sin'] as const,
+      [n, 'watch', 1, 'con'] as const,
+      [n, 'highlights', 1, 'con'] as const,
+    ]),
+  )(
+    '%s en %s a ×%i, %s Next action (10a)',
+    (name, view, x, withNext) => {
+      const nextAction = withNext === 'con'
+      const r = played(name, { events: false, speed: x as Speed, view, nextAction })
+      const finishS = HEAD_TRACKS[name].finishDs / 10
+      const mode = REPORT_MODE[view]
+      expect(r.finalPhase).toBe('closing')
+      expect(r.conflicts).toBe(0)
+      expect(r.offline || r.paused).toBe(false)
+      expect(r.finishes).toEqual([{ mode, reportBefore: expect.any(Number) as number }])
+      expect(r.finishes[0]!.reportBefore!).toBeLessThan(finishS)
+      expect(r.reports.every((rep) => rep.reachedS < finishS && rep.mode === mode)).toBe(true)
+      expect(r.requests).toBe(r.chunkEffects.length)
+      // el reloj espera un tramo solo si el colchón (lo servido por delante al pedir, chunkRaceS / 2) se
+      // gasta antes de la respuesta (dos peticiones de 150 ms: el informe y el tramo, 8-d)
+      const fastest = (view === 'watch' ? BROADCAST.pace : BROADCAST.summaryPace)[0]!.x * x
+      const rate = fastest * (nextAction ? BROADCAST.nextActionSpeedup : 1)
+      if (rate * 2 * LATENCY_S < BROADCAST.chunkRaceS / 2) expect(r.waitingForChunk).toBe(0)
+      console.info(
+        `[broadcast] 8-d · ${name} en ${view} a ×${x}${nextAction ? ' con Next action' : ''}: ${r.waitingForChunk} fotogramas esperando un tramo, ${r.requests} tramos, ${(r.playWallS / 60).toFixed(1)} min`,
+      )
+    },
+    60_000,
+  )
+
   it('un 429 con retry-after: el reloj espera con Loading lo que dice y el hook repite; nunca Connection lost (14-q)', () => {
     const r = played('race-france-e7', {
       events: false,
@@ -938,18 +1015,510 @@ describe('la red al reproducir (8-d): las cinco etapas enteras sin un solo 409 n
   })
 })
 
+// ----------------------------------------------- los saltos, los modos y el digest (§8.12; 10a)
+
+/** La línea grabada de una congelada, como la lee la API (`decodeTimeline`). */
+function recorded(name: string): StageTimeline {
+  return decodeTimeline(
+    JSON.parse(
+      gunzipSync(
+        readFileSync(
+          new URL(
+            `../../../../api/src/__fixtures__/broadcast/${name}.timeline.gz`,
+            import.meta.url,
+          ),
+        ),
+      ).toString('utf8'),
+    ),
+  )
+}
+
+/** Una etapa del simulador: la línea grabada, su borde de meta, el contexto de la web y su tipo (el digest). */
+interface SimStage {
+  readonly tl: StageTimeline
+  readonly finishDs: number
+  readonly ictx: InstantContext
+  readonly kind: StageKind
+  readonly cuts: Map<number, TimelineCore>
+}
+
+function simStage(name: string, kind: StageKind): SimStage {
+  const tl = recorded(name)
+  return {
+    tl,
+    finishDs: visibilityOf(tl).finishDs,
+    ictx: {
+      own: new Set(),
+      start: startStateOf(tl.cast, tl.riderIds.length),
+      photoBlocks: photoBlocksOf(tl.lengthKm, tl.dx),
+    },
+    kind,
+    cuts: new Map(),
+  }
+}
+
+/**
+ * EL HOOK Y EL SERVIDOR DE MENTIRA, SOBRE LAS LÍNEAS GRABADAS (10a): como `playStage`, a 60 fotogramas por
+ * segundo con el instante a `overlayHz` y las peticiones en orden a 150 ms cada una, más lo que el 10a
+ * le pide al hook: aterrizar un salto (la primera hora de lo servido en que la cabeza pintada llega al km
+ * destino, por bisección, y los rótulos de clase ≥ 2 saltados de `recapOf`), contar los cuadros de la
+ * previa (uno en el digest), de la llegada y del resumen, la revelación y lo que el digest suelta. Las
+ * etapas van por día, y el digest encadena la siguiente con `digestNext`.
+ */
+class Sim {
+  s: PlayerState
+  wall = 0
+  /** las peticiones según salen del reductor, con la etapa que las pidió y la hora de pared */
+  readonly log: { readonly e: PlayerEffect; readonly day: number; readonly wall: number }[] = []
+  /** las acciones del hook y de la red, con lo que pidieron */
+  readonly actions: { readonly a: PlayerAction; readonly wall: number }[] = []
+  private readonly queue: { e: PlayerEffect; day: number }[] = []
+  private current: { e: PlayerEffect; day: number; doneAt: number } | null = null
+  private netFreeAt = 0
+  private readonly known = new Map<number, number>()
+  private phaseSince = 0
+  private lastPhase: PlayerPhase
+  private lastDay: number
+  instant: Instant
+
+  constructor(
+    private readonly stages: ReadonlyMap<number, SimStage>,
+    view: ViewMode,
+    first: number,
+    private readonly digestLast: number | null = null,
+  ) {
+    const init = playerInit(view, first, null, false)
+    this.s = init.next
+    this.lastPhase = this.s.phase
+    this.lastDay = first
+    this.push(init.effects)
+    this.instant = instantAt(this.served(), 0, this.stage().ictx)
+  }
+
+  stage(day = this.s.stageDay): SimStage {
+    return this.stages.get(day)!
+  }
+
+  /** la línea servida de una etapa hasta `servedS` (sin la marca de meta, que ningún tramo lleva) */
+  served(day = this.s.stageDay, servedS = this.s.servedS): TimelineCore {
+    const st = this.stage(day)
+    const ds = Math.min(toDs(servedS), st.finishDs - 1)
+    let cut = st.cuts.get(ds)
+    if (cut === undefined) st.cuts.set(ds, (cut = cutTimeline(st.tl, fromDs(ds))))
+    return cut
+  }
+
+  ctx(): PlayerContext {
+    const st = this.stage()
+    return {
+      baseX: (view, _t, toGoKm) =>
+        paceAt(
+          toGoKm,
+          view === 'watch'
+            ? BROADCAST.pace
+            : view === 'highlights'
+              ? BROADCAST.summaryPace
+              : digestPace(st.tl.profile, st.kind),
+        ),
+      lengthKm: st.tl.lengthKm,
+      digestNext:
+        this.s.view === 'digest' && this.digestLast !== null && this.s.stageDay < this.digestLast
+          ? this.s.stageDay + 1
+          : null,
+    }
+  }
+
+  private push(effects: readonly PlayerEffect[]): void {
+    for (const e of effects) {
+      this.log.push({ e, day: this.s.stageDay, wall: this.wall })
+      // lo que se suelta no es red: el hook lo hace en el acto (18-e)
+      if (e.k !== 'release') this.queue.push({ e, day: this.s.stageDay })
+    }
+  }
+
+  dispatch(a: PlayerAction): void {
+    const r = playerStep(this.s, a, this.ctx())
+    this.s = r.next
+    this.actions.push({ a, wall: this.wall })
+    this.push(r.effects)
+  }
+
+  /** la respuesta del servidor (§10.11): lo informado por etapa, el recorte al borde y el 409 */
+  private respond(x: { e: PlayerEffect; day: number }): void {
+    const { e, day } = x
+    switch (e.k) {
+      case 'report':
+        this.known.set(day, Math.max(this.known.get(day) ?? 0, e.reachedS))
+        return
+      case 'reveal':
+        return
+      case 'chunk': {
+        const st = this.stage(day)
+        const clamped = Math.min(toDs(e.toS), st.finishDs)
+        if (clamped > ((this.known.get(day) ?? 0) + BROADCAST.prefetchRaceS) * 10) {
+          this.dispatch({ k: 'beyond' })
+          return
+        }
+        const toS = fromDs(clamped)
+        this.dispatch({
+          k: 'chunk',
+          toS,
+          atFinish: clamped >= st.finishDs - 1,
+          headKmAtEnd: instantAt(this.served(day, toS), toS, st.ictx).headKm,
+        })
+        return
+      }
+      case 'finish':
+        this.dispatch({ k: 'finished' })
+        return
+      case 'release':
+        return
+    }
+  }
+
+  /** el aterrizaje del hook: la primera décima de lo servido en que la cabeza pintada llega al destino */
+  land(): void {
+    const s = this.s
+    const st = this.stage()
+    const line = this.served()
+    const from = instantAt(line, s.t, st.ictx)
+    let lo = toDs(s.t)
+    let hi = toDs(clockCapS(s))
+    if (s.seekKm !== null) {
+      const km = s.seekKm
+      while (lo < hi) {
+        const mid = (lo + hi) >> 1
+        if (instantAt(line, fromDs(mid), st.ictx).headKm >= km) hi = mid
+        else lo = mid + 1
+      }
+    } else lo = Math.min(hi, toDs(s.seekS ?? s.t))
+    const to = instantAt(line, fromDs(lo), st.ictx)
+    const deckCtx: CueDeckContext = {
+      start: st.ictx.start,
+      timeTrial: st.tl.timeTrial,
+      events: line.events,
+      catalog: line.groups,
+    }
+    this.dispatch({ k: 'landed', toS: fromDs(lo), skipped: recapOf(from, to, deckCtx).count })
+  }
+
+  /** un fotograma de pared: la red, los cuadros, el aterrizaje y el fotograma del reductor */
+  frame(onFrame?: (sim: Sim) => void): void {
+    this.wall += DT
+    const wall = this.wall
+    for (;;) {
+      if (this.current === null) {
+        const x = this.queue.shift()
+        if (x === undefined) break
+        this.current = { ...x, doneAt: Math.max(this.netFreeAt, wall - DT) + LATENCY_S }
+      }
+      if (this.current.doneAt > wall) break
+      const x = this.current
+      this.current = null
+      this.netFreeAt = x.doneAt
+      this.respond(x)
+    }
+    if (this.s.phase !== this.lastPhase || this.s.stageDay !== this.lastDay) {
+      this.lastPhase = this.s.phase
+      this.lastDay = this.s.stageDay
+      this.phaseSince = wall
+    }
+    const held = wall - this.phaseSince
+    const previewS = (this.s.view === 'digest' ? 1 : 4) * BROADCAST.previewCardS
+    if (this.s.phase === 'preview' && held >= previewS) this.dispatch({ k: 'cardDone' })
+    else if (this.s.phase === 'arrival' && held >= BROADCAST.finishFreezeS)
+      this.dispatch({ k: 'cardDone' })
+    else if (this.s.phase === 'recap' && held >= BROADCAST.cueHoldS[3])
+      this.dispatch({ k: 'cardDone' })
+    if (this.s.phase === 'seeking' && !this.s.inFlight && this.current === null) this.land()
+    if (Math.round(wall / DT) % FRAMES_PER_INSTANT === 0)
+      this.instant = instantAt(this.served(), this.s.t, this.stage().ictx)
+    onFrame?.(this)
+    this.dispatch({
+      k: 'frame',
+      dtS: DT,
+      toGoKm: this.instant.toGoKm,
+      atLine: headAtLine(this.instant, this.stage().tl),
+    })
+  }
+
+  /** fotogramas hasta que se cumpla `until`, o hasta `maxWallS` de pared (el test falla si no llega) */
+  run(until: (sim: Sim) => boolean, maxWallS: number, onFrame?: (sim: Sim) => void): void {
+    const end = this.wall + maxWallS
+    while (!until(this)) {
+      if (this.wall > end) throw new Error(`no llega: ${JSON.stringify(this.s)}`)
+      this.frame(onFrame)
+    }
+  }
+
+  /** el km pintado de la cabeza, ahora, sobre la línea servida */
+  headKm(): number {
+    return instantAt(this.served(), this.s.t, this.stage().ictx).headKm
+  }
+}
+
+describe('los saltos de recorrido (§8.5, §8.12; 8-j, 8-t)', () => {
+  const e7 = simStage('race-france-e7', 'llana')
+
+  /** La e7 en Watch a ×4 hasta que la cabeza pasa del km 30, y el salto pedido. */
+  function jumpFrom30(jump: RoadJump): { sim: Sim; fromLog: number; target: number } {
+    const sim = new Sim(new Map([[7, e7]]), 'watch', 7)
+    sim.dispatch({ k: 'speed', x: 4 })
+    sim.run((x) => x.s.phase === 'playing' && x.headKm() >= 30, 600)
+    const target = seekTargetKm(jump, sim.headKm(), e7.tl.lengthKm, e7.tl.profile)
+    expect(target).not.toBeNull()
+    const fromLog = sim.log.length
+    const headKmAtEnd = instantAt(sim.served(), sim.s.servedS, e7.ictx).headKm
+    sim.dispatch({ k: 'seek', km: target!, headKmAtEnd })
+    sim.run((x) => x.s.phase !== 'seeking', 120)
+    return { sim, fromLog, target: target! }
+  }
+
+  it('Final 20 km desde el km 30 de la e7: sus informes con mode seek y sus tramos de 900 s, cada tramo tras su informe, y aterriza en el km 155', () => {
+    const { sim, fromLog, target } = jumpFrom30('final20')
+    expect(target).toBeCloseTo(e7.tl.lengthKm - BROADCAST.seekFinalKm, 6)
+    const seek = sim.log.slice(fromLog).filter((x) => x.e.k === 'report' || x.e.k === 'chunk')
+    // el salto pide tramos hasta que lo servido llega al destino: informe, tramo, informe, tramo…
+    const kinds = seek.map((x) => x.e.k)
+    expect(kinds.length).toBeGreaterThan(6)
+    const seekPart = kinds.slice(0, kinds.lastIndexOf('chunk') + 1)
+    for (let i = 0; i < seekPart.length; i += 2) {
+      expect(seekPart[i], `${i}`).toBe('report')
+      expect(seekPart[i + 1], `${i}`).toBe('chunk')
+    }
+    for (const x of seek.slice(0, seekPart.length)) {
+      if (x.e.k === 'report') expect(x.e.mode).toBe('seek')
+      if (x.e.k === 'chunk') expect(x.e.toS - x.e.fromS).toBe(BROADCAST.chunkRaceS)
+    }
+    // aterriza en el km 155 (la primera décima en que la cabeza pintada llega), sin pedir la meta
+    expect(sim.headKm()).toBeGreaterThanOrEqual(target - 1e-9)
+    expect(sim.headKm()).toBeLessThan(target + 0.1)
+    expect(sim.log.slice(fromLog).some((x) => x.e.k === 'finish')).toBe(false)
+    expect(sim.s.reachedS).toBeCloseTo(sim.s.t, 6)
+  })
+
+  it('Last km aterriza en el 174 y no pide la meta; ningún informe del salto llega a la meta', () => {
+    const { sim, fromLog, target } = jumpFrom30('lastKm')
+    expect(target).toBeCloseTo(e7.tl.lengthKm - 1, 6)
+    expect(sim.headKm()).toBeGreaterThanOrEqual(target - 1e-9)
+    expect(sim.headKm()).toBeLessThan(target + 0.1)
+    const after = sim.log.slice(fromLog)
+    expect(after.some((x) => x.e.k === 'finish')).toBe(false)
+    for (const x of after)
+      if (x.e.k === 'report') expect(x.e.reachedS).toBeLessThan(e7.finishDs / 10)
+    // y de ahí, el último km a su ritmo: Next action no se enciende (8-o)
+    sim.run((x) => x.s.phase === 'playing', 30)
+    sim.frame()
+    sim.dispatch({ k: 'nextAction' })
+    expect(sim.s.nextAction).toBe(false)
+  })
+
+  it('seekTargetKm: Next climb sin puertos por delante no lleva a ningún sitio, ni Final 20 km pasados', () => {
+    const profile = e7.tl.profile
+    const lastClimb = profile.climbs.at(-1)
+    const past = lastClimb === undefined ? 0 : lastClimb.footKm + 0.5
+    expect(seekTargetKm('nextClimb', past, e7.tl.lengthKm, profile)).toBeNull()
+    expect(seekTargetKm('nextClimb', 10, 100, { climbs: [] })).toBeNull()
+    expect(seekTargetKm('final20', 160, 175, profile)).toBeNull()
+    expect(seekTargetKm('lastKm', 174.5, 175, profile)).toBeNull()
+    expect(seekTargetKm('fwd5', 172, 175, profile)).toBe(174)
+    expect(seekTargetKm('back5', 3, 175, profile)).toBe(0)
+    expect(seekTargetKm('back5', 0, 175, profile)).toBeNull()
+  })
+
+  it('ttSeekTargetS: los saltos de reloj de la crono (9-g), las salidas públicas y nunca hacia ninguna parte', () => {
+    const plan = { riders: 120, intervalS: 60 }
+    expect(ttSeekTargetS('fwd10', 1000, plan)).toBe(1000 + BROADCAST.ttSeekStepS)
+    expect(ttSeekTargetS('back10', 300, plan)).toBe(0)
+    expect(ttSeekTargetS('back10', 0, plan)).toBeNull()
+    expect(ttSeekTargetS('last20', 0, plan)).toBe((120 - BROADCAST.ttSeekLastStarters) * 60)
+    expect(ttSeekTargetS('lastStarter', 0, plan)).toBe(119 * 60)
+    expect(ttSeekTargetS('lastStarter', 119 * 60, plan)).toBeNull()
+  })
+})
+
+describe('el resumen para el reloj (§8.11, 8-n) y Previously (8-l)', () => {
+  const e18 = simStage('race-france-e18', 'reina')
+
+  it('Next climb: sin rótulos saltados sigue la carrera; con ellos, While you skipped con el reloj quieto; el primer fotograma de playing está a climbCardLeadKm del pie, y la ficha del puerto entra en la cola', () => {
+    const sim = new Sim(new Map([[18, e18]]), 'watch', 18)
+    sim.run((x) => x.s.phase === 'playing', 30)
+    /** Next climb desde donde esté la cabeza: el puerto al que lleva */
+    const jump = (): (typeof e18.tl.profile.climbs)[number] => {
+      const target = seekTargetKm('nextClimb', sim.headKm(), e18.tl.lengthKm, e18.tl.profile)!
+      const climb = e18.tl.profile.climbs.find(
+        (c) => c.footKm - BROADCAST.climbCardLeadKm === target,
+      )!
+      expect(climb).toBeDefined()
+      sim.dispatch({
+        k: 'seek',
+        km: target,
+        headKmAtEnd: instantAt(sim.served(), sim.s.servedS, e18.ictx).headKm,
+      })
+      sim.run((x) => x.s.phase !== 'seeking', 60)
+      return climb
+    }
+    // el primero (el km 37): de la salida al km 34 no pasa nada de clase ≥ 2, y no hay resumen
+    const first = jump()
+    expect(first.footKm).toBe(37)
+    expect(sim.s.phase).toBe('playing')
+    // el segundo (el km 82,5): con lo saltado, el resumen con el reloj quieto; después, la carrera
+    // desde el aterrizaje
+    const climb = jump()
+    expect(climb.footKm).toBe(82.5)
+    expect(sim.s.phase).toBe('recap')
+    const landedT = sim.s.t
+    let recapFrames = 0
+    sim.run(
+      (x) => x.s.phase === 'playing',
+      10,
+      (x) => {
+        if (x.s.phase !== 'recap') return
+        recapFrames += 1
+        expect(x.s.t).toBe(landedT)
+      },
+    )
+    expect(recapFrames).toBeGreaterThan(60 * BROADCAST.cueHoldS[3] - 2)
+    // el primer fotograma de playing: un fotograma de reloj desde el aterrizaje (×60 lejos de meta)
+    expect(sim.s.t - landedT).toBeLessThanOrEqual(DT * 60 + 1e-9)
+    expect(sim.headKm()).toBeGreaterThanOrEqual(climb.footKm - BROADCAST.climbCardLeadKm - 1e-9)
+    expect(sim.headKm()).toBeLessThan(climb.footKm - BROADCAST.climbCardLeadKm + 0.1)
+    // la cola, asentada en el aterrizaje, saca la ficha del puerto que viene
+    const instant = instantAt(sim.served(), sim.s.t, e18.ictx)
+    const seated = cueDeckSeat(
+      cueDeckInit(e18.ictx.start),
+      instant,
+      {
+        start: e18.ictx.start,
+        timeTrial: false,
+        events: sim.served().events,
+        catalog: sim.served().groups,
+        profile: e18.tl.profile,
+      },
+      null,
+    )
+    expect(seated.admitted.map((a) => a.kind)).toContain('climb_ahead')
+    expect(seated.deck.queue.shown?.cue.kind).toBe('climb_ahead')
+  })
+
+  it('Previously: los recapMaxCues últimos rótulos de clase ≥ 2 antes de lo alcanzado, en orden de carrera, y la fuga que sigue delante', () => {
+    const line = e18.tl
+    const reached = 9000
+    const recap = recapOf(instantAt(line, 0, e18.ictx), instantAt(line, reached, e18.ictx), {
+      start: e18.ictx.start,
+      timeTrial: false,
+      events: line.events,
+      catalog: line.groups,
+    })
+    expect(recap.count).toBeGreaterThan(BROADCAST.recapMaxCues)
+    expect(recap.cues).toHaveLength(BROADCAST.recapMaxCues)
+    for (let i = 1; i < recap.cues.length; i++)
+      expect(recap.cues[i]!.t).toBeGreaterThanOrEqual(recap.cues[i - 1]!.t)
+    for (const c of recap.cues) expect(c.t).toBeLessThanOrEqual(reached)
+    // al reanudar, el reloj vuelve resumeBackS antes de lo alcanzado, quieto bajo el resumen
+    const init = playerInit('watch', 18, reached, false)
+    expect(init.next.phase).toBe('recap')
+    expect(init.next.t).toBeCloseTo(reached - BROADCAST.resumeBackS, 6)
+  })
+})
+
+describe('la letra de cada modo, Show result y el digest (§8.1, §8.5, §8.8; 8-c, 18-e)', () => {
+  const e7 = simStage('race-france-e7', 'llana')
+  const e18 = simStage('race-france-e18', 'reina')
+  const e20 = simStage('race-france-e20', 'reina')
+
+  it('la meta lleva play en Watch, summary en Highlights y digest en el digest, y el informe del borde, justo antes, no llega a la meta', () => {
+    for (const view of ['watch', 'highlights', 'digest'] as const) {
+      const sim = new Sim(new Map([[7, e7]]), view, 7)
+      if (view === 'watch') sim.dispatch({ k: 'speed', x: 4 })
+      sim.run((x) => x.s.phase === 'closing', 600)
+      const fi = sim.log.findIndex((x) => x.e.k === 'finish')
+      const fin = sim.log[fi]!.e
+      const border = sim.log[fi - 1]!.e
+      expect(fin).toEqual({ k: 'finish', mode: REPORT_MODE[view] })
+      expect(border.k).toBe('report')
+      if (border.k === 'report') expect(border.reachedS).toBeLessThan(e7.finishDs / 10)
+      expect(sim.log.filter((x) => x.e.k === 'finish')).toHaveLength(1)
+    }
+  })
+
+  it('un digest de tres etapas: tres metas con mode digest en orden, el cuadro 1 de la siguiente entre ellas, y al empezar la tercera se suelta la primera; nunca más de dos cargadas', () => {
+    const sim = new Sim(
+      new Map([
+        [7, e7],
+        [8, e18],
+        [9, e20],
+      ]),
+      'digest',
+      7,
+      9,
+    )
+    const phases: string[] = []
+    let maxLoaded = 0
+    sim.run(
+      (x) => x.s.phase === 'closing',
+      1200,
+      (x) => {
+        maxLoaded = Math.max(maxLoaded, x.s.loaded.length)
+        const tag = `${x.s.stageDay}:${x.s.phase}`
+        if (phases.at(-1) !== tag) phases.push(tag)
+      },
+    )
+    const finishes = sim.log.filter((x) => x.e.k === 'finish')
+    expect(finishes.map((x) => [x.day, x.e.k === 'finish' && x.e.mode])).toEqual([
+      [7, 'digest'],
+      [8, 'digest'],
+      [9, 'digest'],
+    ])
+    // entre una meta y la siguiente, la llegada y el cuadro 1 de la previa de la siguiente (8-c)
+    expect(phases.filter((p) => p.endsWith(':arrival') || p.endsWith(':preview'))).toEqual([
+      '7:preview',
+      '7:arrival',
+      '8:preview',
+      '8:arrival',
+      '9:preview',
+      '9:arrival',
+    ])
+    // 18-e: al empezar la tercera se suelta la primera, y solo ella
+    const releases = sim.log.filter((x) => x.e.k === 'release')
+    expect(releases.map((x) => x.e.k === 'release' && x.e.stageDay)).toEqual([7])
+    expect(releases[0]!.day).toBe(9)
+    expect(maxLoaded).toBe(2)
+    expect(sim.s.loaded).toEqual([8, 9])
+    // ×1 y sin Next action en todo el digest (§8.1)
+    expect(sim.s.speed).toBe(1)
+  })
+
+  it('Show result: la revelación y después la meta, con el reloj quieto; la llegada y el cierre; en el digest, sin encadenar', () => {
+    for (const view of ['watch', 'digest'] as const) {
+      const sim = new Sim(
+        new Map([
+          [7, e7],
+          [8, e18],
+        ]),
+        view,
+        7,
+        view === 'digest' ? 8 : null,
+      )
+      sim.run((x) => x.s.phase === 'playing' && x.s.t > 1500, 300)
+      const t = sim.s.t
+      const from = sim.log.length
+      sim.dispatch({ k: 'showResult' })
+      expect(sim.log.slice(from).map((x) => x.e.k)).toEqual(['reveal', 'finish'])
+      expect(sim.s).toMatchObject({ phase: 'waiting', revealed: true })
+      sim.run((x) => x.s.phase === 'closing', 30)
+      expect(sim.s.t).toBe(t)
+      expect(sim.s.stageDay).toBe(7)
+      expect(sim.log.slice(from).filter((x) => x.e.k === 'chunk')).toHaveLength(0)
+    }
+  })
+})
+
 // ----------------------------------------------- las comprobaciones de §8.11, al azar (§8.12)
 
 const KINDS: readonly CueKind[] = ['attack', 'break_formed', 'rider', 'crash', 'last_km', 'caught']
 const VIEWS: readonly ViewMode[] = ['watch', 'highlights', 'digest']
 
-/**
- * UNA SECUENCIA AL AZAR de 300 pasos sobre una etapa sintética (la cabeza a velocidad constante): los
- * mandos, los fotogramas (a veces de varios segundos, a veces con una cabeza en la línea que no lo
- * está), las respuestas del servidor a lo que se pidió (un tramo o su 409, un 429, un fallo, la meta)
- * y respuestas que nadie pidió. Tras cada paso, las comprobaciones de §8.11 que el 3b puede hacer.
- * `restarts`: el servidor pierde a veces lo informado, y entonces el 409 salta y se resuelve.
- */
 /** Lo que una secuencia llegó a ver: la cláusula de no vacío de las comprobaciones (como 17-u). */
 interface Coverage {
   /** pasos en que se pidió la meta, y en cuántos fue por el reloj en el borde y no por la cabeza */
@@ -965,6 +1534,16 @@ interface Coverage {
   retried: number
   resumed: number
   roundsKept: number
+  /** 10a: saltos con su tramo, aterrizajes (y con resumen), vueltas atrás, `Show result` que llegan a la meta */
+  seekChunks: number
+  landings: number
+  recaps: number
+  backs: number
+  reveals: number
+  /** 10a: el digest, sus etapas encadenadas y lo que se suelta (18-e) */
+  chains: number
+  releases: number
+  lastKmOff: number
 }
 const emptyCoverage = (): Coverage => ({
   finishes: 0,
@@ -977,61 +1556,130 @@ const emptyCoverage = (): Coverage => ({
   retried: 0,
   resumed: 0,
   roundsKept: 0,
+  seekChunks: 0,
+  landings: 0,
+  recaps: 0,
+  backs: 0,
+  reveals: 0,
+  chains: 0,
+  releases: 0,
+  lastKmOff: 0,
 })
 
+/** Una etapa sintética de una secuencia: la cabeza a velocidad constante hasta su borde. */
+interface SynthStage {
+  readonly finishDs: number
+  readonly finishS: number
+  readonly lengthKm: number
+  readonly lineKm: number
+  /** con un sprint que acelera, la cabeza extrapolada no llega a su último bloque antes del borde */
+  readonly shortKm: number
+}
+
+/**
+ * UNA SECUENCIA AL AZAR de 300 pasos por etapa sobre etapas sintéticas (la cabeza a velocidad constante): los
+ * mandos (con los saltos, volver atrás y `Show result` desde el 10a), los fotogramas (a veces de varios
+ * segundos, a veces con una cabeza en la línea que no lo está), las respuestas del servidor a lo que se
+ * pidió (un tramo o su 409, un 429, un fallo, la meta, la revelación), el aterrizaje de un salto como lo
+ * hace el hook (la hora en que la cabeza llega al km destino, en lo servido) y respuestas que nadie
+ * pidió. En una de cada cinco, el digest de una a cuatro etapas. Tras cada paso, las diez comprobaciones
+ * de §8.11. `restarts`: el servidor pierde a veces lo informado, y entonces el 409 salta y se resuelve.
+ */
 function randomSequence(seed: string, restarts: boolean, cov: Coverage): void {
   const rng = seededRng(seed)
   const pick = <T>(xs: readonly T[]): T => xs[Math.floor(rng() * xs.length)]!
-  const finishDs = 10 * (1200 + Math.floor(rng() * 4800))
-  const finishS = finishDs / 10
-  const lengthKm = Math.round((20 + rng() * 180) * 10) / 10
-  const blocks = Math.round(lengthKm / DX)
-  const lineKm = (blocks - 0.5) * DX
-  // con un sprint que acelera, la cabeza extrapolada no llega a su último bloque antes del borde
-  const shortKm = rng() < 0.3 ? 0.3 : 0
-  const headKm = (t: RaceS): number => Math.min(lineKm, (t / finishS) * (lengthKm - shortKm))
-  const ctx = ctxOf(lengthKm)
-  const resumeAt = rng() < 0.2 ? Math.floor(rng() * finishS * 0.8) : null
-  const init = playerInit(rng() < 0.25 ? 'highlights' : 'watch', 1, resumeAt, false)
+  const view: ViewMode = rng() < 0.2 ? 'digest' : rng() < 0.3 ? 'highlights' : 'watch'
+  const count = view === 'digest' ? 1 + Math.floor(rng() * 4) : 1
+  const stages: SynthStage[] = Array.from({ length: count }, () => {
+    const finishDs = 10 * (1200 + Math.floor(rng() * 4800))
+    const lengthKm = Math.round((20 + rng() * 180) * 10) / 10
+    return {
+      finishDs,
+      finishS: finishDs / 10,
+      lengthKm,
+      lineKm: (Math.round(lengthKm / DX) - 0.5) * DX,
+      shortKm: rng() < 0.3 ? 0.3 : 0,
+    }
+  })
+  const stageOf = (day: number): SynthStage => stages[day - 1]!
+  const headKm = (day: number, t: RaceS): number => {
+    const st = stageOf(day)
+    return Math.min(st.lineKm, (t / st.finishS) * (st.lengthKm - st.shortKm))
+  }
+  /** la primera hora en que la cabeza llega a un km: la bisección del hook, aquí exacta */
+  const timeAtKm = (day: number, km: number): RaceS => {
+    const st = stageOf(day)
+    return (km / (st.lengthKm - st.shortKm)) * st.finishS
+  }
+  const ctxFor = (day: number): PlayerContext => ({
+    ...ctxOf(stageOf(day).lengthKm),
+    digestNext: view === 'digest' && day < count ? day + 1 : null,
+  })
+  const resumeAt =
+    view !== 'digest' && rng() < 0.2 ? Math.floor(rng() * stageOf(1).finishS * 0.8) : null
+  const init = playerInit(view, 1, resumeAt, false)
   if (init.next.phase === 'recap') cov.resumed += 1
   let s = init.next
-  const queue: PlayerEffect[] = [...init.effects]
-  let server = resumeAt ?? 0
+  /** las peticiones en cola, con la etapa que las pidió */
+  const queue: { e: PlayerEffect; day: number }[] = init.effects.map((e) => ({ e, day: 1 }))
+  const server = new Map<number, number>([[1, resumeAt ?? 0]])
   let conflicts = 0
   let finished = false
-  const pending = (): boolean => queue.some((e) => e.k === 'chunk' || e.k === 'finish')
+  const pending = (): boolean =>
+    queue.some((x) => x.e.k === 'chunk' || x.e.k === 'finish' || x.e.k === 'reveal')
+  const hist: string[] = []
 
-  for (let i = 0; i < 300; i++) {
-    // los informes salen en cuanto les toca, y el servidor los guarda en su memoria
-    while (queue[0]?.k === 'report') {
-      const rep = queue.shift()
-      if (rep?.k === 'report') server = Math.max(server, rep.reachedS)
+  for (let i = 0; i < 300 * count; i++) {
+    // los informes salen en cuanto les toca, y el servidor los guarda en su memoria; lo que se suelta, también
+    while (queue[0]?.e.k === 'report' || queue[0]?.e.k === 'release') {
+      const x = queue.shift()!
+      if (x.e.k === 'report') server.set(x.day, Math.max(server.get(x.day) ?? 0, x.e.reachedS))
     }
     const head = queue[0]
+    const ctx = ctxFor(s.stageDay)
     let a: PlayerAction
     let unsolicited = false
     const roll = rng()
-    if (roll < 0.25 && head !== undefined) {
+    if (s.phase === 'seeking' && !s.inFlight && rng() < 0.7) {
+      // el hook aterriza: la hora en que la cabeza llega al destino, en lo servido y antes del borde
+      const target =
+        s.seekKm !== null ? timeAtKm(s.stageDay, s.seekKm) : (s.seekS ?? Number.POSITIVE_INFINITY)
+      a = {
+        k: 'landed',
+        toS: Math.min(target, clockCapS(s)),
+        skipped: rng() < 0.5 ? 0 : 1 + Math.floor(rng() * 8),
+      }
+    } else if (roll < 0.25 && head !== undefined) {
       // la respuesta a lo que se pidió
       const r = rng()
       if (r < 0.1) {
         queue.shift()
         a = { k: 'failed' }
-      } else if (r < 0.2) a = { k: 'throttled', retryAfterS: 1 + Math.floor(rng() * 60) }
-      else if (head.k === 'chunk') {
+        // como effects.ts: tras un fallo no sale nada más de lo pedido (la meta detrás de una revelación,
+        // o la revelación y la meta detrás de un tramo que ya no se espera); `Retry` lo pide otra vez
+        queue.splice(0, queue.length, ...queue.filter((x) => x.e.k === 'report'))
+      } else if (r < 0.2 && head.e.k !== 'reveal')
+        a = { k: 'throttled', retryAfterS: 1 + Math.floor(rng() * 60) }
+      else if (head.e.k === 'chunk') {
         queue.shift()
-        if (restarts && rng() < 0.15) server = Math.max(0, server - 60 - rng() * 900)
-        const clamped = Math.min(toDs(head.toS), finishDs)
-        if (clamped > (server + BROADCAST.prefetchRaceS) * 10) {
+        const st = stageOf(head.day)
+        let known = server.get(head.day) ?? 0
+        if (restarts && rng() < 0.15)
+          server.set(head.day, (known = Math.max(0, known - 60 - rng() * 900)))
+        const clamped = Math.min(toDs(head.e.toS), st.finishDs)
+        if (clamped > (known + BROADCAST.prefetchRaceS) * 10) {
           conflicts += 1
           a = { k: 'beyond' }
         } else
           a = {
             k: 'chunk',
             toS: fromDs(clamped),
-            atFinish: clamped >= finishDs - 1,
-            headKmAtEnd: 0,
+            atFinish: clamped >= st.finishDs - 1,
+            headKmAtEnd: headKm(head.day, fromDs(clamped)),
           }
+      } else if (head.e.k === 'reveal') {
+        queue.shift()
+        continue // la revelación responde sin decirle nada al reductor; la meta va detrás
       } else {
         queue.shift()
         a = { k: 'finished' }
@@ -1045,16 +1693,19 @@ function randomSequence(seed: string, restarts: boolean, cov: Coverage): void {
         { k: 'failed' },
         { k: 'beyond' },
         { k: 'throttled', retryAfterS: 3 },
+        ...(s.phase === 'seeking' ? [] : [{ k: 'landed', toS: s.t + 100, skipped: 2 } as const]),
       ])
     } else if (roll < 0.65) {
       const dtS = rng() < 0.6 ? DT : rng() * 3
+      const st = stageOf(s.stageDay)
       a = {
         k: 'frame',
         dtS,
-        toGoKm: lengthKm - headKm(s.t),
-        atLine: headKm(s.t) >= lineKm - 1e-9 || rng() < 0.02,
+        toGoKm: st.lengthKm - headKm(s.stageDay, s.t),
+        atLine: headKm(s.stageDay, s.t) >= st.lineKm - 1e-9 || rng() < 0.02,
       }
     } else {
+      const st = stageOf(s.stageDay)
       a = pick<PlayerAction>([
         { k: 'play' },
         { k: 'pause' },
@@ -1073,10 +1724,15 @@ function randomSequence(seed: string, restarts: boolean, cov: Coverage): void {
         },
         { k: 'cardDone' },
         { k: 'cardDone' },
-        { k: 'seek', km: rng() * lengthKm, headKmAtEnd: headKm(s.servedS) },
+        {
+          k: 'seek',
+          km: headKm(s.stageDay, s.t) + rng() * st.lengthKm,
+          headKmAtEnd: headKm(s.stageDay, s.servedS),
+        },
+        { k: 'seekTime', toS: s.t + rng() * 2000 },
         { k: 'back', toS: rng() * s.t },
-        { k: 'landed', toS: s.t, skipped: 0 },
-        { k: 'showResult' },
+        // revelar acaba la etapa: poco, para que las secuencias lleguen también a la línea y encadenen
+        rng() < (view === 'digest' ? 0.01 : 0.1) ? { k: 'showResult' } : { k: 'touch' },
       ])
     }
 
@@ -1084,36 +1740,51 @@ function randomSequence(seed: string, restarts: boolean, cov: Coverage): void {
     const r = playerStep(s0, a, ctx)
     const s1 = r.next
     s = s1
-    queue.push(...r.effects)
+    hist.push(`${a.k}:${s0.phase}->${s1.phase}:${r.effects.map((e) => e.k).join('+')}`)
+    for (const e of r.effects) queue.push({ e, day: s1.stageDay })
     if (a.k === 'finished' && s1.phase === 'arrival') finished = true
     if (r.effects.some((e) => e.k === 'finish')) {
       cov.finishes += 1
       if (a.k === 'frame' && !a.atLine) cov.byEdge += 1
     }
-    if (s1.phase === 'arrival' && s0.phase !== 'arrival') cov.arrivals += 1
+    if (s1.phase === 'arrival' && s0.phase !== 'arrival') {
+      cov.arrivals += 1
+      if (s1.revealed) cov.reveals += 1
+    }
     if (s1.phase === 'closing' && s0.phase !== 'closing') cov.closings += 1
     if (a.k === 'beyond' && r.effects.map((e) => e.k).join() === 'report,chunk') cov.conflicts += 1
     if (a.k === 'throttled' && s0.phase === 'waiting') cov.throttledWaiting += 1
     if (s1.notice === 'offline' && s0.notice !== 'offline') cov.offline += 1
     if (a.k === 'retry' && s0.notice === 'offline') cov.retried += 1
     if (a.k === 'cueAdmitted' && a.round && s0.nextAction) cov.roundsKept += 1
+    if (s1.phase === 'seeking' && r.effects.some((e) => e.k === 'chunk')) cov.seekChunks += 1
+    if (a.k === 'landed' && s0.phase === 'seeking' && s1.phase !== 'seeking') {
+      cov.landings += 1
+      if (s1.phase === 'recap') cov.recaps += 1
+    }
+    if (a.k === 'back' && s1.t < s0.t) cov.backs += 1
+    if (s1.stageDay !== s0.stageDay) cov.chains += 1
+    cov.releases += r.effects.filter((e) => e.k === 'release').length
+    if (a.k === 'frame' && s0.nextAction && !s1.nextAction && s1.lastKm) cov.lastKmOff += 1
 
     const fail = (msg: string): never => {
       throw new Error(
-        `${seed}, paso ${i}: ${msg}\n${JSON.stringify({ a, s0, s1, effects: r.effects })}`,
+        `${seed}, paso ${i}: ${msg}\n${JSON.stringify({ a, s0, s1, effects: r.effects, queue, hist: hist.slice(-12) })}`,
       )
     }
+    const st0 = stageOf(s0.stageDay)
+    const chained = s1.stageDay !== s0.stageDay
     if (unsolicited && (r.effects.length > 0 || JSON.stringify(s1) !== JSON.stringify(s0)))
       fail('una respuesta que nadie pidió cambia el estado')
-    // 1. lo alcanzado no baja, y t ≤ servedS (y en el 3b, sin saltos atrás, t tampoco baja). Con una
-    //    salvedad: al volver a una etapa a medias, `Previously` se enseña en la hora a la que se vuelve
-    //    mientras llegan los tramos desde 0; ahí t pasa de lo servido, pero el reloj no corre (ni en
-    //    playing está) hasta tener carrera servida por delante.
-    if (s1.reachedS < s0.reachedS) fail('lo alcanzado baja')
+    // 1. lo alcanzado no baja (en una etapa), y t ≤ servedS. Con una salvedad: al volver a una etapa a
+    //    medias, `Previously` se enseña en la hora a la que se vuelve mientras llegan los tramos desde 0;
+    //    ahí t pasa de lo servido, pero el reloj no corre (ni en playing está) hasta tener carrera servida.
+    if (!chained && s1.reachedS < s0.reachedS) fail('lo alcanzado baja')
     if (s1.t > s1.servedS && !(resumeAt !== null && s1.t === init.next.t))
       fail('t pasa de lo servido')
     if (s1.t > s1.servedS && s1.phase === 'playing') fail('playing sin carrera servida')
-    if (s1.t < s0.t) fail('t baja')
+    // t solo baja al volver atrás, o al encadenar la etapa siguiente del digest
+    if (s1.t < s0.t && a.k !== 'back' && !chained) fail('t baja')
     // 2. nada servido ni pedido pasa de lo informado más prefetchRaceS; cada tramo, de 450 a 900 s
     if (toDs(s1.servedS) > floorDs(s1.reportedS) + PREFETCH_DS)
       fail('servido más allá de lo admitido')
@@ -1124,31 +1795,80 @@ function randomSequence(seed: string, restarts: boolean, cov: Coverage): void {
       const w = toDs(e.toS) - toDs(e.fromS)
       if (w < CHUNK_DS / 2 || w > CHUNK_DS) fail(`tramo de ${w} décimas`)
     }
-    // 3. t solo avanza en playing, con un fotograma
-    if (s1.t > s0.t && !(a.k === 'frame' && s0.phase === 'playing'))
+    // 3. t solo avanza en playing, con un fotograma, o al aterrizar un salto
+    if (
+      s1.t > s0.t &&
+      !(a.k === 'frame' && s0.phase === 'playing') &&
+      !(a.k === 'landed' && s0.phase === 'seeking')
+    )
       fail('t avanza fuera de playing')
+    // 4. un salto aterriza como mucho en la hora en que la cabeza pasa por lengthKm − 1; ningún salto
+    //    pide la meta, y ningún informe con mode 'seek' lleva la hora de la meta
+    if (a.k === 'landed' && s0.phase === 'seeking') {
+      if (s1.t > s0.t && s1.t > timeAtKm(s0.stageDay, st0.lengthKm - 1) + 0.1 && s0.seekKm !== null)
+        fail('un salto aterriza pasado el último km')
+      if (s1.t >= st0.finishS) fail('un salto aterriza en la meta')
+    }
+    if (
+      (a.k === 'seek' || a.k === 'seekTime' || a.k === 'landed') &&
+      r.effects.some((e) => e.k === 'finish')
+    )
+      fail('un salto pide la meta')
+    for (const e of r.effects)
+      if (e.k === 'report' && e.mode === 'seek' && e.reachedS >= st0.finishS)
+        fail('un informe de salto en la meta')
+    if (s1.seekKm !== null && s1.seekKm > st0.lengthKm - 1 + 1e-9)
+      fail('destino pasado el último km')
     // 5 y 6. la meta solo con el último tramo y la cabeza en la línea (o el reloj en el borde), con el
-    //    modo de la curva, y tras el informe del borde, que no es la meta
+    //    modo de la curva, y tras el informe del borde, que no es la meta; o tras revelar (§8.5)
     const fi = r.effects.findIndex((e) => e.k === 'finish')
     if (fi >= 0) {
       const fin = r.effects[fi]!
       const rep = r.effects[fi - 1]
-      if (a.k !== 'frame' || !s0.atFinish || !(a.atLine || s0.t >= clockCapS(s0)))
-        fail('meta sin la línea')
+      const revealed = r.effects[fi - 1]?.k === 'reveal'
+      if (revealed) {
+        if (!(a.k === 'showResult' || ((a.k === 'retry' || a.k === 'play') && s0.revealed)))
+          fail('revelar sin Show result')
+      } else {
+        if (a.k !== 'frame' || !s0.atFinish || !(a.atLine || s0.t >= clockCapS(s0)))
+          fail('meta sin la línea')
+        if (rep?.k !== 'report' || rep.reachedS > clockCapS(s0) || rep.reachedS >= st0.finishS)
+          fail('sin el informe del borde, o un informe en la meta')
+      }
       if (fin.k === 'finish' && fin.mode !== REPORT_MODE[s0.view]) fail('meta con otro modo')
-      if (rep?.k !== 'report' || rep.reachedS > clockCapS(s0) || rep.reachedS >= finishS)
-        fail('sin el informe del borde, o un informe en la meta')
     }
     for (const e of r.effects)
-      if (e.k === 'report' && e.reachedS >= finishS) fail('informe en la meta')
+      if (e.k === 'report' && e.reachedS >= st0.finishS) fail('informe en la meta')
     if ((s1.phase === 'arrival' || s1.phase === 'closing') && !finished) fail('llegada sin la meta')
-    // 7. desde la llegada y el cierre no se pide nada, y en Watch y Highlights no hay otra etapa
-    if ((s0.phase === 'arrival' || s0.phase === 'closing') && r.effects.length > 0)
-      fail('peticiones tras la meta')
-    if (s1.stageDay !== 1 || s1.loaded.length !== 1 || s1.loaded[0] !== 1) fail('otra etapa')
+    // 7. en el digest, ×1 y sin Next action; en Watch y Highlights, desde la llegada y el cierre no se
+    //    pide nada (ni otra etapa); en el digest, solo al encadenar la siguiente
+    if (s1.view === 'digest' && (s1.speed !== 1 || s1.nextAction)) fail('el digest acelera')
+    if ((s0.phase === 'arrival' || s0.phase === 'closing') && r.effects.length > 0) {
+      if (!(chained && view === 'digest')) fail('peticiones tras la meta')
+    }
+    if (view !== 'digest' && (s1.stageDay !== 1 || s1.loaded.length !== 1 || s1.loaded[0] !== 1))
+      fail('otra etapa')
+    // 8. en el digest, al empezar la etapa k + 1 sale release de la k − 1, y nunca hay más de dos
+    if (s1.loaded.length > 2 || !s1.loaded.includes(s1.stageDay)) fail('más de dos etapas cargadas')
+    for (const e of r.effects) {
+      if (e.k !== 'release') continue
+      if (!chained) fail('soltar sin encadenar')
+      if (e.stageDay === s1.stageDay || e.stageDay === s0.stageDay) fail('suelta la que se ve')
+      if (!s0.loaded.includes(e.stageDay) || s1.loaded.includes(e.stageDay))
+        fail('suelta una que no tenía')
+    }
+    if (chained) {
+      if (view !== 'digest' || s1.stageDay !== s0.stageDay + 1) fail('encadena fuera del digest')
+      if (s1.phase !== 'preview' || s0.phase !== 'arrival') fail('encadena sin la llegada')
+      if (s0.loaded.length === 2 && !r.effects.some((e) => e.k === 'release'))
+        fail('encadena sin soltar la de antes')
+      finished = false
+      if (!server.has(s1.stageDay)) server.set(s1.stageDay, 0)
+    }
     // 9. la ronda de la moto no apaga Next action; un 429 no pausa ni da Connection lost
     if (a.k === 'cueAdmitted' && a.round && s1.nextAction !== s0.nextAction)
       fail('la ronda apaga Next action')
+    if (s1.lastKm && s1.nextAction) fail('Next action en el último km')
     if (a.k === 'throttled' && (s1.phase !== s0.phase || s1.notice !== s0.notice))
       fail('un 429 cambia la fase')
     if (s1.phase === 'waiting' && (s1.notice !== 'loading' || !s1.inFlight))
@@ -1167,9 +1887,10 @@ function randomSequence(seed: string, restarts: boolean, cov: Coverage): void {
 }
 
 describe('las comprobaciones de §8.11, en cada paso de 1.000 secuencias al azar (§8.12)', () => {
-  it('1, 2, 3, 5, 6, 7 (Watch y Highlights), 9 y 10; sin reinicios del servidor, ni un 409', () => {
+  it('las diez, con los saltos, Show result y el digest (10a); sin reinicios del servidor, ni un 409', () => {
     const cov = emptyCoverage()
     for (let n = 0; n < 1000; n++) randomSequence(`reproductor:${n}`, n % 4 === 3, cov)
+    console.info(`[broadcast] las secuencias al azar: ${JSON.stringify(cov)}`)
     // y no es vacía: las secuencias llegan a lo que las comprobaciones vigilan
     expect(cov.finishes).toBeGreaterThan(100)
     expect(cov.byEdge).toBeGreaterThan(20)
@@ -1181,32 +1902,21 @@ describe('las comprobaciones de §8.11, en cada paso de 1.000 secuencias al azar
     expect(cov.retried).toBeGreaterThan(20)
     expect(cov.resumed).toBeGreaterThan(100)
     expect(cov.roundsKept).toBeGreaterThan(10)
+    // 10a: los saltos con su red, sus aterrizajes y sus resúmenes, la vuelta atrás, revelar y el digest
+    expect(cov.seekChunks).toBeGreaterThan(100)
+    expect(cov.landings).toBeGreaterThan(100)
+    expect(cov.recaps).toBeGreaterThan(30)
+    expect(cov.backs).toBeGreaterThan(100)
+    expect(cov.reveals).toBeGreaterThan(30)
+    expect(cov.chains).toBeGreaterThan(5)
+    expect(cov.releases).toBeGreaterThan(0)
   })
-
-  it.todo(
-    '4 · un salto aterriza como mucho en lengthKm − 1, no pide la meta ni informa de ella con seek (10a)',
-  )
-  it.todo('7 · en el digest, speed 1 y nextAction falso (10a)')
-  it.todo(
-    '8 · en el digest, release de la k − 1 al empezar la k + 1, y loaded con dos etapas como mucho (10a)',
-  )
 })
 
 // ------------------------------------------------------------------ la crono, la e16 (§9.5; 6b)
 
 describe('la cola de la crono sobre la e16 congelada (§9.5, §9.8; 9-d)', () => {
-  const tl = decodeTimeline(
-    JSON.parse(
-      gunzipSync(
-        readFileSync(
-          new URL(
-            '../../../../api/src/__fixtures__/broadcast/race-france-e16.timeline.gz',
-            import.meta.url,
-          ),
-        ),
-      ).toString('utf8'),
-    ),
-  )
+  const tl = recorded('race-france-e16')
   const tt = tl.tt!
   const n = tl.riderIds.length
   const cast = riderCardsOf(tl.cast, { rider: (id) => id, team: (id) => id }, new Set(), 'elite')

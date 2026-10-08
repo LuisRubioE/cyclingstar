@@ -14,6 +14,7 @@ import {
   adaptiveOfferDue,
   expiredNotices,
   homeBlocks,
+  watchHref,
 } from '../domain/veil'
 import {
   horizonKey,
@@ -21,6 +22,7 @@ import {
   useHorizon,
   useHorizonRev,
   useRevealActions,
+  useWatchOn,
   veilApplies,
 } from '../queryClient'
 import { Panel } from './Panel'
@@ -35,11 +37,12 @@ import { RevealConfirm } from './StageGate'
  *    `Watch`.
  * 2. `Ready to watch`: una fila por carrera en guardia que sigue en curso, la más antigua primero, con una
  *    tarjeta por etapa velada (carrera, número, km y tipo; `Your rider raced` si su corredor estaba en la
- *    lista de salida, nunca porque hiciera algo), `Watch` y, en el menú, `Show result` y `Stop protecting
- *    this race`. `Highlights` llega con los modos del 10a.
- * 3. `While you were away`: por cada carrera en guardia TERMINADA con etapas veladas, `Key stages` (las que
- *    marca el perfil), `Continue from stage 5` y `Show results` (revela la última y arrastra las demás, con
- *    su confirmación). El digest (`Watch the race in 33 minutes`) llega con el 10a (17-o).
+ *    lista de salida, nunca porque hiciera algo), `Watch`, `Highlights` (10a) y, en el menú, `Show result`
+ *    y `Stop protecting this race`.
+ * 3. `While you were away`: por cada carrera en guardia TERMINADA con etapas veladas, el digest (`Watch the
+ *    race in 33 minutes`, con los minutos de `digestMinutes`, 8-b; 10a, 17-o), `Key stages` (las que marca
+ *    el perfil, en `Highlights`), `Continue from stage 5` (en `Watch`) y `Show results` (revela la última y
+ *    arrastra las demás, con su confirmación).
  *
  * Y lo que sale una vez: el acuse de una carrera caducada (`Results of Race Italy are now shown (finished
  * 16 days ago)`, §10.5, que la web confirma con `POST /api/me/reveal` sobre su última etapa, 10-f) y la
@@ -62,6 +65,9 @@ export function WatchBlocks() {
     enabled: wanted && rev !== undefined,
   })
   const health = useHealth()
+  // `Highlights` y el digest son de `Watch`: con `Watch` apagado para quien mira (el velo encendido antes
+  // que `Watch`), no se ofrecen (10a)
+  const { watchOn } = useWatchOn(false, wanted)
   if (h === null || !wanted || calendar.data === undefined) return null
   const blocks = homeBlocks(h, calendar.data.races)
   const expired =
@@ -92,7 +98,7 @@ export function WatchBlocks() {
         <Panel title="Ready to watch">
           <div className="space-y-4">
             {blocks.ready.map((row) => (
-              <ReadyRaceRow key={row.raceKey} row={row} h={h} />
+              <ReadyRaceRow key={row.raceKey} row={row} h={h} watchOn={watchOn} />
             ))}
           </div>
         </Panel>
@@ -101,7 +107,7 @@ export function WatchBlocks() {
         <Panel title="While you were away">
           <div className="space-y-4">
             {blocks.away.map((block) => (
-              <AwayRace key={block.raceKey} block={block} />
+              <AwayRace key={block.raceKey} block={block} watchOn={watchOn} />
             ))}
           </div>
         </Panel>
@@ -130,7 +136,7 @@ function useDropRace(raceKey: string) {
 }
 
 /** Una fila de `Ready to watch`: su cabecera, sus tarjetas y, en el menú, soltar la carrera. */
-function ReadyRaceRow({ row, h }: { row: ReadyRow; h: HorizonSummary }) {
+function ReadyRaceRow({ row, h, watchOn }: { row: ReadyRow; h: HorizonSummary; watchOn: boolean }) {
   const drop = useDropRace(row.raceKey)
   const veiled = h.ready.find((r) => r.raceKey === row.raceKey)?.stages ?? []
   return (
@@ -153,6 +159,7 @@ function ReadyRaceRow({ row, h }: { row: ReadyRow; h: HorizonSummary }) {
             card={c}
             ownRider={row.ownRider}
             before={veiled.filter((d) => d < c.stageDay)}
+            watchOn={watchOn}
           />
         ))}
       </ul>
@@ -166,11 +173,14 @@ function ReadyCard({
   card,
   ownRider,
   before,
+  watchOn,
 }: {
   card: StageCard
   ownRider: boolean
   /** las veladas de antes, que revelarla arrastra */
   before: readonly number[]
+  /** `Watch` encendido para quien mira: `Highlights` (10a) */
+  watchOn: boolean
 }) {
   const [revealed, setRevealed] = useState(false)
   return (
@@ -181,6 +191,11 @@ function ReadyCard({
         <Link to={`/world/races/${card.raceId}/stages/${card.stageDay}`} className={button}>
           Watch
         </Link>
+        {watchOn && (
+          <Link to={watchHref(card.raceId, card.stageDay, false, 'highlights')} className={quiet}>
+            Highlights
+          </Link>
+        )}
         {!revealed && (
           <RevealButton
             raceKey={card.raceKey}
@@ -261,7 +276,7 @@ function RevealButton({
 }
 
 /** Un bloque de `While you were away`: una carrera terminada con etapas veladas. */
-function AwayRace({ block }: { block: AwayBlock }) {
+function AwayRace({ block, watchOn }: { block: AwayBlock; watchOn: boolean }) {
   const [keyOpen, setKeyOpen] = useState(false)
   const oneDay = block.stageCount === 1
   const stageHref = (day: number): string => `/world/races/${block.raceId}/stages/${day}`
@@ -269,6 +284,16 @@ function AwayRace({ block }: { block: AwayBlock }) {
     <div>
       <h3 className="text-sm font-semibold text-slate-800">{block.header}</h3>
       <div className="mt-1.5 flex flex-wrap items-center gap-2">
+        {/* el digest: la carrera entera deprisa, encadenada (§8.8, 8-c) */}
+        {watchOn && (
+          <Link
+            to={watchHref(block.raceId, block.continueFrom, oneDay, 'digest', block.lastStage)}
+            className={button}
+          >
+            Watch the race in {block.digestMinutes}{' '}
+            {block.digestMinutes === 1 ? 'minute' : 'minutes'}
+          </Link>
+        )}
         {oneDay ? (
           <Link to={stageHref(1)} className={button}>
             Watch
@@ -283,7 +308,7 @@ function AwayRace({ block }: { block: AwayBlock }) {
             >
               Key stages
             </button>
-            <Link to={stageHref(block.continueFrom)} className={button}>
+            <Link to={stageHref(block.continueFrom)} className={quiet}>
               Continue from stage {block.continueFrom}
             </Link>
           </>
@@ -297,14 +322,14 @@ function AwayRace({ block }: { block: AwayBlock }) {
           onRevealed={() => undefined}
         />
       </div>
-      {/* Las que marca el perfil (reinas, cronos y la última); las demás se conocen por arrastre al ver
-          las siguientes. En `Highlights` desde el 10a; hasta entonces, cada una abre en `Watch`. */}
+      {/* Las que marca el perfil (reinas, cronos y la última), en `Highlights` (§11.4); las demás se
+          conocen por arrastre al ver las siguientes. */}
       {keyOpen && !oneDay && (
         <ul className="mt-1.5 flex flex-wrap gap-2">
           {block.keyStages.map((d) => (
             <li key={d}>
               <Link
-                to={stageHref(d)}
+                to={watchOn ? watchHref(block.raceId, d, false, 'highlights') : stageHref(d)}
                 className="text-xs font-medium text-brand-cyan hover:underline"
               >
                 Stage {d} →

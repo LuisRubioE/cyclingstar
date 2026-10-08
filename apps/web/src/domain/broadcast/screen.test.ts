@@ -1,4 +1,9 @@
-import type { BannerResult, Cue, GroupCatalogEntry } from '@cyclingstar/shared'
+import {
+  type BannerResult,
+  type Cue,
+  type GroupCatalogEntry,
+  shownGroupsOf,
+} from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
 import {
   castOf,
@@ -13,7 +18,6 @@ import {
   cueText,
   cursorsOf,
   screenKeysOf,
-  shownGroupsOf,
 } from './screen'
 
 /**

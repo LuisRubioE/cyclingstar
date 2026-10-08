@@ -306,6 +306,7 @@ export {
   getCoachView,
   getCurrentWorld,
   getDailyLog,
+  getStageMostKmOutFront,
   countRidersForUser,
   getRiderForUser,
   getRiderHealth,
