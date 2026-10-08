@@ -3,6 +3,7 @@ import { type FormEvent, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { fetchAdminWhoami } from '../api/admin'
 import { authClient } from '../auth/client'
+import { SpoilerSettings } from '../components/SpoilerSettings'
 
 /** Estado de un formulario de ajustes: mensaje de éxito o de error, más "enviando". */
 type Status =
@@ -330,6 +331,9 @@ export function Account() {
           Admin panel →
         </Link>
       )}
+
+      {/* Qué se protege de destripes (E2, §10.4; 9b): solo con el velo para quien mira. */}
+      <SpoilerSettings />
 
       {email && data?.user.emailVerified === false && <VerifyEmailNotice email={email} />}
       {email && <ChangeEmail current={email} verified={data?.user.emailVerified === true} />}
