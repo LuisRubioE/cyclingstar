@@ -2,11 +2,14 @@ import {
   ATTRIBUTES,
   COUNTRIES,
   type Attribute,
+  type Eff,
   type Vocation,
   birthdayDayOfSeason,
+  eff0,
+  matchCount,
+  maxMatchCount,
   raceIdFromKey,
 } from '@cyclingstar/shared'
-import { type Eff, eff0, matchCount, maxMatchCount } from '@cyclingstar/engine'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { type PublicRiderDetail, fetchPublicRider } from '../api/browse'
@@ -204,7 +207,8 @@ function OwnerCondition({ attributes }: { attributes: Record<Attribute, number> 
   const bars = last ? conditionBars(last) : null
 
   // Cerillos del día: la MISMA cuenta que hará la etapa (SPEC 6.6), sobre los atributos efectivos
-  // de hoy —forma, salud y moral incluidas—, para que el jugador vea con qué sale de casa.
+  // de hoy —forma, salud y moral incluidas—, para que el jugador vea con qué sale de casa. Es la copia
+  // de `packages/shared`, atada al motor por test: la web no importa el motor (E2, 10b, §18.5).
   const morale = summaryQuery.data?.morale ?? null
   const matches =
     last && health && morale != null

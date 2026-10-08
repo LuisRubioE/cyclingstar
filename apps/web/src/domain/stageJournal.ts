@@ -18,7 +18,7 @@ import {
   isGroupRole,
   isJerseyKind,
 } from '@cyclingstar/shared'
-import { STAGE } from '@cyclingstar/engine'
+import { ENGINE_STAGE } from '@cyclingstar/shared'
 import { formatTime } from './format'
 import { raceTeamLabel } from './labels'
 
@@ -28,7 +28,7 @@ import { raceTeamLabel } from './labels'
  * (`STAGE.frontNamesMaxRiders`), para que la crónica no diga «cinco en cabeza» en una frase y
  * «Cumbre Escuadra impone el ritmo» en la siguiente: con tres corredores no tira un equipo.
  */
-const SMALL_FRONT_GROUP = STAGE.frontNamesMaxRiders
+const SMALL_FRONT_GROUP = ENGINE_STAGE.frontNamesMaxRiders
 
 /**
  * EL VOCABULARIO DE GRUPOS (v27, SPEC 6.15 y docs/motor.md §16). En la carretera hay TRES cosas y por
@@ -835,7 +835,7 @@ function chronicleTemplate(e: ChronicleEntry): string {
       const left = toGo > 0 ? ` with ${toGo} km to go` : ''
       // La ventaja solo se dice si es de verdad. El "perseguidor" inmediato puede ser el compañero
       // que acaba de soltarse tres segundos antes, y «3s clear» ahí no informa de nada: engaña.
-      const clear = gap >= STAGE.gapReportMinSeconds ? `, ${fmtGap(gap)} clear` : ''
+      const clear = gap >= ENGINE_STAGE.gapReportMinSeconds ? `, ${fmtGap(gap)} clear` : ''
       /**
        * CUANDO EL GRUPO DE CABEZA CRECE HAY QUE DECIR OTRA COSA (v25). «Only N riders left in front»
        * da por hecho que una fuga solo se deshace, y en Race Jaén la frase salió con N CRECIENDO

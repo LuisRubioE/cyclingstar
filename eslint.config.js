@@ -246,4 +246,33 @@ export default tseslint.config(
       'react-hooks/exhaustive-deps': 'warn',
     },
   },
+  {
+    // LA WEB NO CARGA EL MOTOR (E2, paso 10b, los arreglos; docs/retransmision.md §18.5): el motor no
+    // declara `sideEffects`, y una página que importe de él una constante lo carga entero (354 kB y 2,6 s
+    // con la CPU a ×4 antes de la primera pintura de `Watch`). Lo que la web necesita del motor está
+    // copiado en `packages/shared` (`engineCopies.ts`), atado por `apps/api/src/engineCopies.test.ts`.
+    // Los tests de la web sí lo importan: no van al navegador. Lo comprueba también `noEngine.test.ts`.
+    files: ['apps/web/src/**/*.{ts,tsx}'],
+    ignores: ['**/*.test.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@cyclingstar/engine',
+              message:
+                'La web no importa el motor (§18.5): usa la copia de @cyclingstar/shared (engineCopies.ts), atada por test.',
+            },
+          ],
+          patterns: [
+            {
+              group: ['@cyclingstar/engine/*', '**/packages/engine/**'],
+              message: 'La web no importa el motor (§18.5).',
+            },
+          ],
+        },
+      ],
+    },
+  },
 )

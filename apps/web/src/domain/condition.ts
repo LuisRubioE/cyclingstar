@@ -11,9 +11,12 @@
  * propio motor: FITNESS (el fondo construido, `fitnessFactor`) y FRESHNESS (lo descansado que está
  * hoy, `freshnessBar`). La fatiga desaparece como número porque la frescura ya la cuenta: es su
  * cara legible. Lógica pura y probada; la página solo pinta.
+ *
+ * Las dos funciones son las del motor, copiadas en `packages/shared` (`engineCopies.ts`) y atadas por
+ * `apps/api/src/engineCopies.test.ts`: la web no importa el motor, que cargaría entero (E2, 10b, §18.5).
  */
 
-import { fitnessFactor, freshnessBar } from '@cyclingstar/engine'
+import { fitnessFactor, freshnessBar } from '@cyclingstar/shared'
 
 /** Un punto del diario, reducido a lo que hace falta aquí. */
 export interface ConditionPoint {
