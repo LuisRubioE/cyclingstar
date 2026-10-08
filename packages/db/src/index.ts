@@ -160,6 +160,7 @@ export {
   getStageResults,
   getStageSnapshot,
   getStageWinners,
+  teamsOfTheDay,
   type StageWinnerRow,
   type GcRow,
   type PointsRow,

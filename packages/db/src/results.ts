@@ -285,10 +285,17 @@ export interface RaceRiderIdentity {
  * los resultados de la etapa no bastan: solo traen a los clasificados (el que se cayó y no acabó es
  * protagonista de eventos y no aparecería) y no tienen el dorsal, que vive en `race_rosters.bib`.
  * En un roster antiguo, sin dorsales asignados, `bib` viene a null y la crónica degrada sola.
+ *
+ * EL EQUIPO DEL DÍA (E2, docs/retransmision.md §12.7, O-07; paso 12). Sin `teamOfDay`, el equipo es el
+ * de HOY (`riders.team_id`), y un traspaso reescribía las crónicas viejas. Con él, el de cada corredor
+ * es el equipo con el que corrió la etapa (`stage_snapshots.input.riders[].teamId`, o el `TimelineCast`
+ * de su línea), con el nombre que ese equipo tiene hoy; null en el mapa es que corrió sin equipo. Quien
+ * no está en el mapa (inscrito y no tomó la salida) sigue con el de hoy: no sale en la crónica.
  */
 export async function getRaceRiderIdentities(
   db: Database,
   raceId: string,
+  teamOfDay?: ReadonlyMap<string, string | null>,
 ): Promise<RaceRiderIdentity[]> {
   const rows = await db
     .select({
@@ -302,7 +309,31 @@ export async function getRaceRiderIdentities(
     .innerJoin(riders, eq(riders.id, raceRosters.riderId))
     .leftJoin(teams, eq(teams.id, riders.teamId))
     .where(eq(raceRosters.raceId, raceId))
-  return rows.map((r) => ({ ...r, country: r.country ?? '' }))
+  if (teamOfDay === undefined) return rows.map((r) => ({ ...r, country: r.country ?? '' }))
+  const dayTeamIds = [...new Set(teamOfDay.values())].filter((t): t is string => t !== null)
+  const nameOf = new Map(
+    dayTeamIds.length === 0
+      ? []
+      : (
+          await db
+            .select({ id: teams.id, name: teams.name })
+            .from(teams)
+            .where(inArray(teams.id, dayTeamIds))
+        ).map((t) => [t.id, t.name] as const),
+  )
+  return rows.map((r) => {
+    const country = r.country ?? ''
+    if (!teamOfDay.has(r.riderId)) return { ...r, country }
+    const dayTeam = teamOfDay.get(r.riderId) ?? null
+    return { ...r, country, teamName: dayTeam === null ? null : (nameOf.get(dayTeam) ?? null) }
+  })
+}
+
+/** El equipo del día de cada corredor de una etapa corrida: el de su entrada (§12.7), null si corrió sin equipo. */
+export function teamsOfTheDay(
+  started: readonly { readonly riderId: string; readonly teamId?: string | null }[],
+): ReadonlyMap<string, string | null> {
+  return new Map(started.map((r) => [r.riderId, r.teamId ?? null] as const))
 }
 
 /**

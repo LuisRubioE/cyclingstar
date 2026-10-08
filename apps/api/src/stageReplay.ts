@@ -1,6 +1,7 @@
 import {
   type Database,
   type Horizon,
+  type StageResultRow,
   type StageSnapshotRow,
   TimelineUnavailableError,
   getCurrentWorld,
@@ -15,6 +16,7 @@ import {
   getTeamClassifications,
   raceStagesForWorld,
   readStageTimeline,
+  teamsOfTheDay,
   veilCast,
   worldHorizon,
 } from '@cyclingstar/db'
@@ -40,6 +42,7 @@ import {
 } from '@cyclingstar/shared'
 import { leadersThroughStage } from './broadcastSource.js'
 import {
+  type ChronicleEntry,
   type ChronicleEvent,
   type ChronicleNames,
   buildChronicle,
@@ -320,15 +323,12 @@ export async function stageReplayOf(
       journalUnavailable: true,
     }
   }
-  // La identidad de los protagonistas sale del ROSTER (dorsal, equipo, país de todos los
-  // inscritos) y, para quien no esté en él, de los resultados de la etapa: los eventos están
-  // congelados y hay que resolverlos con lo que haya hoy, sin romperse por lo que falte.
-  const identities = await getRaceRiderIdentities(db, raceKey)
-  // …y con el maillot que llevaba PUESTO ese día, que es parte de su identidad en la carretera
-  // exactamente igual que el dorsal: así sale en TODAS las menciones sin tocar una sola frase.
-  // El índice de identidades se construye UNA vez: lo comparten el journal y la radio, así que
-  // no pueden llamar de dos maneras distintas al mismo corredor.
-  const names = chronicleNames([...identities, ...results], onRoad)
+  // La identidad de los protagonistas sale del ROSTER (dorsal, equipo del día, país de todos los
+  // inscritos) y, para quien no esté en él, de los resultados de la etapa, con el maillot que
+  // llevaba PUESTO ese día (`namesOfTheDay`). El índice de identidades se construye UNA vez: lo
+  // comparten el journal y la radio, así que no pueden llamar de dos maneras distintas al mismo
+  // corredor.
+  const names = await namesOfTheDay(db, raceKey, teamsOfTheDay(racedInput.riders), results, onRoad)
   const chronicle = buildChronicle(
     opts.annotate === undefined ? storedEvents : [...opts.annotate(storedEvents)],
     names,
@@ -368,6 +368,69 @@ export async function stageReplayOf(
 
 /** Lo que devuelve la ruta de etapa: un `StageReplay` (la rama sin correr lleva además `label`). */
 export type StageReplayBody = Awaited<ReturnType<typeof stageReplayOf>>
+
+/**
+ * LOS NOMBRES DE UNA ETAPA CORRIDA, CON LA IDENTIDAD DEL DÍA (E2, docs/retransmision.md §12.7, O-07; paso
+ * 12), para el acta y para la voz. Cada inscrito, con su dorsal y el equipo CON EL QUE CORRIÓ
+ * (`teamOfDay`: el de la entrada de la etapa, o el del reparto de su línea), no el de hoy: un traspaso ya
+ * no reescribe las crónicas viejas. Quien no está en la lista de salida, con lo de los resultados; y
+ * todos con el maillot que llevaban puesto (`onRoad`, la clasificación tras la N − 1). El equipo de un
+ * inscrito lo dice su identidad del día también cuando corrió sin equipo: el de los resultados es el de
+ * hoy (`riders.team_id`), y `chronicleNames`, que funde cada campo con el primer valor no nulo, se lo
+ * pondría a quien entonces corría por su cuenta.
+ */
+export async function namesOfTheDay(
+  db: Database,
+  raceKey: string,
+  teamOfDay: ReadonlyMap<string, string | null>,
+  results: readonly StageResultRow[],
+  onRoad: RaceLeaders,
+): Promise<ChronicleNames> {
+  const identities = await getRaceRiderIdentities(db, raceKey, teamOfDay)
+  const rostered = new Set(identities.map((i) => i.riderId))
+  const others = results.map((r) => (rostered.has(r.riderId) ? { ...r, teamName: null } : r))
+  return chronicleNames([...identities, ...others], onRoad)
+}
+
+/**
+ * LOS MOMENTOS DE UN CORREDOR EN UNA ETAPA (E2, docs/retransmision.md §12.9, 12-k, D-47; paso 12): las
+ * líneas del acta de la etapa (`buildChronicle` sin `live` sobre `stage_snapshots.events`, con los
+ * nombres del día, como la ruta de etapa) en que el corredor es protagonista o destinatario (`mentions`:
+ * el `forId` de los que tiran para él), en el orden del acta. El racimo de `groupRuns` en que va cuenta
+ * como suyo: es la línea que dice que se descolgó. Los pinta la tarjeta `Your last race` en lugar de
+ * `personalNarration`. Null si la etapa no se corrió, no guardó sus sucesos (antes de la `0024`) o `h`
+ * la vela (G: la ruta pide la última CONOCIDA, así que no debería).
+ */
+export async function riderMomentsOf(
+  db: Database,
+  h: Horizon,
+  ctx: StageContext,
+  riderId: string,
+): Promise<ChronicleEntry[] | null> {
+  const snapshot = await getStageSnapshot(db, h, ctx.raceKey, ctx.day)
+  const events = (snapshot?.events ?? null) as ChronicleEvent[] | null
+  if (snapshot === null || events === null) return null
+  const { input, timeTrial } = racedOf(ctx, snapshot)
+  const results = [
+    ...(await getStageResults(db, h, ctx.raceKey, ctx.day)),
+    ...(await getStageNonFinishers(
+      db,
+      h,
+      ctx.raceKey,
+      ctx.day,
+      input.riders.map((r) => r.riderId),
+    )),
+  ]
+  const onRoad =
+    ctx.race.stages.length === 1
+      ? NO_LEADERS
+      : await leadersThroughStage(db, ctx.raceKey, ctx.day - 1)
+  const names = await namesOfTheDay(db, ctx.raceKey, teamsOfTheDay(input.riders), results, onRoad)
+  const isMine = (r: { readonly id?: string | null }): boolean => r.id === riderId
+  return buildChronicle(events, names, { byClock: timeTrial }).filter(
+    (e) => e.protagonists.some(isMine) || Object.values(e.mentions ?? {}).some(isMine),
+  )
+}
 
 /** Sin espectador: el horizonte del mundo y nadie propio. */
 const WORLD_VIEWER: RadioViewer = { h: worldHorizon, userId: null }
