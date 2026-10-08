@@ -288,7 +288,7 @@ function fixtureLeaders(stage: FixtureStage): RaceLeaders {
  * El recorrido que corrió una congelada: el de la temporada 0 del calendario, que es el que congeló su
  * mundo (se comprueba que mide lo mismo).
  */
-function fixtureProfile(name: FixtureName): StageProfile {
+export function fixtureProfile(name: FixtureName): StageProfile {
   const stage = fixtureStage(name)
   const profile = stagesForSeason(stage.raceId, 0)[stage.day - 1]?.profile
   if (profile === undefined || Math.abs(stageLengthKm(profile) - stage.lengthKm) > 1e-6)

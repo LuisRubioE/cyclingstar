@@ -5,10 +5,16 @@ import {
   type Instant,
   type InstantContext,
   type LiveLine,
+  type TimeTrialInstant,
+  type TimelineCore,
+  breakHeadline,
   fromDs,
   instantAt,
   paceAt,
   photoBlocksOf,
+  timeTrialInstantAt,
+  ttLastKmFromS,
+  ttPaceAt,
 } from '@cyclingstar/shared'
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -31,6 +37,7 @@ import {
   PlayerControls,
 } from '../components/broadcast/PlayerControls'
 import { ProfileStrip } from '../components/broadcast/ProfileStrip'
+import { TimeTrialBoard, TimeTrialOverlay } from '../components/broadcast/TimeTrialBoard'
 import { VoiceTicker } from '../components/broadcast/VoiceTicker'
 import { effectRunner } from '../domain/broadcast/effects'
 import {
@@ -45,19 +52,21 @@ import {
   headAtLine,
   playerInit,
   playerStep,
+  ttCandidatesOf,
 } from '../domain/broadcast/player'
 import {
   type Cursor,
   clockText,
-  cueText,
+  cueBodyOf,
   cursorsOf,
   isQuietFinal,
   screenKeysOf,
   shownGroupsOf,
-  unnamedFor,
+  ttCursorsOf,
 } from '../domain/broadcast/screen'
 import { servedLineOf, withChunk } from '../domain/broadcast/servedLine'
 import { formatTime } from '../domain/format'
+import { GAP_TREND_INIT, type GapTrendVoice, gapTrendStep, unnamedBefore } from '../domain/voice'
 
 /**
  * `Watch`, LA RETRANSMISIÓN DE LA ETAPA (docs/retransmision.md §6, §8 y §17.6; paso 3c): la capa fija,
@@ -80,6 +89,14 @@ import { formatTime } from '../domain/format'
  * de rótulos del reproductor (`CueDeck`, que el hook avanza en cada fotograma con el instante que pinta,
  * §6.5), y los cursores del perfil y las filas de la barra que siguen al grupo por su sucesor
  * (`cursorsOf` y `screenKeysOf`, D-03).
+ *
+ * Desde el 6b: el rótulo de corredor entero y los que programa el reproductor (la presentación de la
+ * fuga, el cuadro de diferencias, la ficha del puerto; `cueBodyOf`); la voz con la frase de la fuga, la
+ * tendencia del hueco y los nombres de una caída en un segundo tiempo, y a quién nombra con
+ * `namedRidersOf` (`unnamedBefore`); y la crono (§9): su capa fija y su tablero (`TimeTrialOverlay`,
+ * `TimeTrialBoard`) en lugar de la capa y la barra de carretera, un cursor por corredor en ruta, su
+ * ritmo (`ttPaceAt`, con su último km desde que lo pisa el último en salir) y sus rótulos. Lo que cuesta
+ * se calcula a `overlayHz` o al cambiar el instante, no en cada fotograma (B8).
  */
 export function StageWatch({
   head,
@@ -98,7 +115,20 @@ export function StageWatch({
   const [barOpen, setBarOpen] = useState(false)
   const [commentary, setCommentary] = useState(false)
   const reducedMotion = usePrefersReducedMotion()
-  const unnamed = useMemo(() => unnamedFor(head.cast, head.startState), [head])
+  // a quién nombra la voz: namedRidersOf antes de cada línea, sobre lo servido (una vez por línea)
+  const unnamed = useMemo(() => unnamedBefore(w.core, head.cast, w.ctx), [w.core, head.cast, w.ctx])
+  // la frase de la fuga en lugar de la línea de breakaway_formed (12-e)
+  const present = useMemo(() => {
+    const byId = new Map(head.cast.map((c) => [c.id, c] as const))
+    return (line: LiveLine): string | null => {
+      const cards = line.protagonists.flatMap((p) => {
+        const c = p.id == null ? undefined : byId.get(p.id)
+        return c === undefined ? [] : [c]
+      })
+      return cards.length === 0 ? null : breakHeadline('en', cards, w.ctx.own)
+    }
+  }, [head.cast, w.ctx])
+  const tt = head.stage.timeTrial ? head.tt : null
   const { phase } = w.controls
   const card = 'rounded-2xl border border-slate-200 bg-white p-3 shadow-sm'
   return (
@@ -106,12 +136,16 @@ export function StageWatch({
       <ClockNotice clock={head.clock} />
       <div className="space-y-3 lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:gap-4 lg:space-y-0">
         <div className="space-y-3">
-          <FixedOverlay
-            instant={w.controls.atLine ? { ...w.overlay, toGoKm: 0 } : w.overlay}
-            head={head}
-            expanded={overlayOpen}
-            onToggle={() => setOverlayOpen((o) => !o)}
-          />
+          {tt !== null && w.tti !== null ? (
+            <TimeTrialOverlay tti={w.tti} cast={head.cast} />
+          ) : (
+            <FixedOverlay
+              instant={w.controls.atLine ? { ...w.overlay, toGoKm: 0 } : w.overlay}
+              head={head}
+              expanded={overlayOpen}
+              onToggle={() => setOverlayOpen((o) => !o)}
+            />
+          )}
           <div className={card}>
             <ProfileStrip
               profile={head.profile}
@@ -130,14 +164,18 @@ export function StageWatch({
             <ClosingCard head={head} finish={w.finish} raceId={raceId} onReport={onReport} />
           )}
           <div className={card}>
-            <GroupBar
-              instant={w.bar}
-              cast={head.cast}
-              clock={head.clock}
-              expanded={barOpen}
-              onExpand={() => setBarOpen(true)}
-              keys={w.keys}
-            />
+            {tt !== null && w.tti !== null ? (
+              <TimeTrialBoard tti={w.tti} cast={head.cast} tt={tt} />
+            ) : (
+              <GroupBar
+                instant={w.bar}
+                cast={head.cast}
+                clock={head.clock}
+                expanded={barOpen}
+                onExpand={() => setBarOpen(true)}
+                keys={w.keys}
+              />
+            )}
           </div>
         </div>
         <div className="space-y-3">
@@ -147,8 +185,9 @@ export function StageWatch({
               lines={w.lines}
               t={w.overlay.t}
               open={commentary}
-              quiet={isQuietFinal(w.overlay.toGoKm)}
+              quiet={tt === null && isQuietFinal(w.overlay.toGoKm)}
               unnamed={unnamed}
+              extras={{ present, state: w.trend, namesDelayS: w.namesDelayS }}
             />
           </div>
         </div>
@@ -309,6 +348,15 @@ interface WatchScreen {
   readonly lines: readonly LiveLine[]
   readonly finish: BroadcastFinish | null
   readonly dispatch: (a: PlayerAction) => void
+  /** la línea servida, que cambia con cada tramo: la voz decide sobre ella a quién nombra */
+  readonly core: TimelineCore
+  readonly ctx: InstantContext
+  /** la crono: su estado a `overlayHz` (§9.3); null en línea */
+  readonly tti: TimeTrialInstant | null
+  /** las líneas de la tendencia del hueco (§12.5) */
+  readonly trend: GapTrendVoice['lines']
+  /** s de carrera entre una caída y sus nombres, al ritmo de ahora (`crashNamesDelayS` de pared) */
+  readonly namesDelayS: number
 }
 
 /** Un fotograma de pared nunca avanza más que esto: tras un tirón, el reloj no salta. */
@@ -364,17 +412,33 @@ function useWatchPlayer(head: BroadcastHead, raceId: string, day: number): Watch
   )
   const [lines, setLines] = useState<readonly LiveLine[]>([])
   const [finish, setFinish] = useState<BroadcastFinish | null>(null)
+  const [core, setCore] = useState<TimelineCore>(() => servedLineOf(head).core)
+  const timeTrial = head.stage.timeTrial && head.tt !== null
+  const [tti, setTti] = useState<TimeTrialInstant | null>(() =>
+    timeTrial ? timeTrialInstantAt(servedLineOf(head).core, 0, ctx) : null,
+  )
+  const [trend, setTrend] = useState<GapTrendVoice['lines']>([])
+  const [namesDelayS, setNamesDelayS] = useState(0)
   const dispatchRef = useRef<(a: PlayerAction) => void>(() => {})
 
   useEffect(() => {
+    const plan = { riders: head.cast.length, intervalS: head.tt?.intervalS ?? 60 }
     const pctx: PlayerContext = {
-      baseX: (view, _t, toGoKm) =>
-        paceAt(toGoKm, view === 'highlights' ? BROADCAST.summaryPace : BROADCAST.pace),
+      // en una crono, el ritmo por fracción de salidos y el último km del último en salir (§9.4); el de
+      // Highlights y el digest, escalados, llegan con el 10a
+      baseX: timeTrial
+        ? (_view, t) => ttPaceAt(t, plan, ttLastKmFromS(served.core))
+        : (view, _t, toGoKm) =>
+            paceAt(toGoKm, view === 'highlights' ? BROADCAST.summaryPace : BROADCAST.pace),
       lengthKm: head.stage.lengthKm,
       digestNext: null,
     }
     let served = servedLineOf(head)
     let instant = instantAt(served.core, 0, ctx)
+    let ttNow: TimeTrialInstant | null = timeTrial ? timeTrialInstantAt(served.core, 0, ctx) : null
+    let trendState: GapTrendVoice = GAP_TREND_INIT
+    let delayShown = -1
+    const candidates = ttCandidatesOf(head.cast, ctx.own, head.startState, head.tt)
     let painted = { line: served.core, t: 0 }
     const raceKey = head.stage.raceKey
     // Sin sesión la cabecera no trae `view`, y el progreso no va al servidor: vive en localStorage (11-p).
@@ -432,6 +496,7 @@ function useWatchPlayer(head: BroadcastHead, raceId: string, day: number): Watch
         chunk: (c) => {
           served = withChunk(head, served, c)
           setLines(served.lines)
+          setCore(served.core)
           screenKeys = screenKeysOf(served.core.groups)
           setKeys(screenKeys)
           const toS = fromDs(c.toDs)
@@ -450,6 +515,9 @@ function useWatchPlayer(head: BroadcastHead, raceId: string, day: number): Watch
     setControls(shown)
     setFinish(null)
     setLines([])
+    setCore(served.core)
+    setTrend([])
+    setTti(ttNow)
     setCue(null)
     setKeys(screenKeys)
     setCursors(drawn)
@@ -467,13 +535,31 @@ function useWatchPlayer(head: BroadcastHead, raceId: string, day: number): Watch
         lastOverlay = now
         if (painted.line !== served.core || painted.t !== s.t) {
           instant = instantAt(served.core, s.t, ctx)
+          if (timeTrial) {
+            ttNow = timeTrialInstantAt(served.core, s.t, ctx)
+            setTti(ttNow)
+          } else {
+            const nextTrend = gapTrendStep(trendState, instant)
+            if (nextTrend.lines !== trendState.lines) setTrend(nextTrend.lines)
+            trendState = nextTrend
+          }
           painted = { line: served.core, t: s.t }
         }
         setOverlay(instant)
+        // los nombres de una caída, crashNamesDelayS de pared después, en s de carrera al ritmo de ahora
+        const x = pctx.baseX(s.view, s.t, instant.toGoKm) * s.speed
+        const delay = Math.round(BROADCAST.crashNamesDelayS * (Number.isFinite(x) ? x : 1))
+        if (delay !== delayShown) {
+          delayShown = delay
+          setNamesDelayS(delay)
+        }
       }
       if (now - lastBar >= 1000 / BROADCAST.barHz) {
         lastBar = now
-        drawn = cursorsOf(shownGroupsOf(instant), served.core.groups, screenKeys, drawn)
+        drawn =
+          ttNow !== null
+            ? ttCursorsOf(ttNow, head.cast, candidates)
+            : cursorsOf(shownGroupsOf(instant), served.core.groups, screenKeys, drawn)
         setBar(instant)
         setCursors(drawn)
       }
@@ -484,26 +570,31 @@ function useWatchPlayer(head: BroadcastHead, raceId: string, day: number): Watch
         timeTrial: head.stage.timeTrial,
         events: served.core.events,
         catalog: served.core.groups,
+        cast: head.cast,
+        profile: head.profile,
+        own: ctx.own,
+        view: s.view,
+        speed: s.speed,
+        tt: head.tt,
       }
-      const step = cueDeckStep(deck, instant, dtS, s.phase === 'playing', deckCtx)
+      const step = cueDeckStep(deck, instant, dtS, s.phase === 'playing', deckCtx, ttNow)
       deck = step.deck
       for (const a of step.admitted) dispatch(a)
       if (deck.queue.shown !== onScreen) {
         onScreen = deck.queue.shown
         cueSeq += 1
-        setCue(
-          onScreen === null
-            ? null
-            : {
-                text: cueText(onScreen.cue, {
-                  cast: head.cast,
-                  instant,
-                  profile: head.profile,
-                }),
-                cls: onScreen.cls,
-                seq: cueSeq,
-              },
-        )
+        if (onScreen === null) setCue(null)
+        else {
+          const { text, ...body } = cueBodyOf(onScreen.cue, {
+            cast: head.cast,
+            instant,
+            profile: head.profile,
+            own: ctx.own,
+            tt: head.tt,
+            tti: ttNow,
+          })
+          setCue({ text, cls: onScreen.cls, seq: cueSeq, body })
+        }
       }
       dispatch({
         k: 'frame',
@@ -552,7 +643,7 @@ function useWatchPlayer(head: BroadcastHead, raceId: string, day: number): Watch
       runner.stop()
       dispatchRef.current = () => {}
     }
-  }, [head, raceId, day, ctx, queryClient])
+  }, [head, raceId, day, ctx, queryClient, timeTrial])
 
   return {
     overlay,
@@ -564,5 +655,10 @@ function useWatchPlayer(head: BroadcastHead, raceId: string, day: number): Watch
     lines,
     finish,
     dispatch: (a) => dispatchRef.current(a),
+    core,
+    ctx,
+    tti,
+    trend,
+    namesDelayS,
   }
 }

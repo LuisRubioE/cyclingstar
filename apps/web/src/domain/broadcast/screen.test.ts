@@ -94,11 +94,17 @@ describe('cueText · los rótulos de los sucesos y del estado (§6.5, F.3)', () 
     )
   })
 
-  it('SPLIT IN THE BUNCH con su causa, CAUGHT con los km a meta y FLAMME ROUGE con la cabeza', () => {
-    expect(text({ kind: 'split', t: 1, parts: [1], cause: 'viento' })).toBe(
+  it('SPLIT IN THE BUNCH con su causa, ECHELONS, CAUGHT con los km a meta y FLAMME ROUGE con la cabeza', () => {
+    expect(text({ kind: 'split', t: 1, parts: [1], cause: 'viento', echelon: false })).toBe(
       'SPLIT IN THE BUNCH · in the crosswind',
     )
-    expect(text({ kind: 'split', t: 1, parts: [1], cause: null })).toBe('SPLIT IN THE BUNCH')
+    expect(text({ kind: 'split', t: 1, parts: [1], cause: null, echelon: false })).toBe(
+      'SPLIT IN THE BUNCH',
+    )
+    // el abanico (echelon_split) es su propio rótulo (F.3); el `Cue` lo sabe desde el 6b
+    expect(text({ kind: 'split', t: 1, parts: [1], cause: 'viento', echelon: true })).toBe(
+      'ECHELONS',
+    )
     // el grupo cazado ya no está en el instante: la cabeza, por la palabra de §6.3
     expect(text({ kind: 'caught', t: 1, caught: 9, by: 1, toGoKm: 12.44 })).toBe(
       'CAUGHT · the lead group · 12.4 km to go',

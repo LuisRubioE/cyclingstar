@@ -15,8 +15,16 @@
  * Lo del 6a (§6.5, §6.6): las dos tablas, `cueClassOf` (6-g), `cuesBetween`, que da los rótulos de los
  * sucesos revelados entre dos instantes y de los cambios de estado (6-i), y la cola, con sus dos pasos
  * puros sobre su estado, `admitCue` (el `admitir` de §6.5) y `cueFrame` (el fotograma), que el
- * reproductor llama en cada fotograma. La presentación de la fuga reservada en la cola (`isPresentation`
- * y `aheadOfPeloton`, 6-m) y la sustitución de los rótulos de la crono son del 6b.
+ * reproductor llama en cada fotograma.
+ *
+ * Lo del 6b: la presentación de la fuga reservada en la cola (`isPresentation` y `aheadOfPeloton`, 6-m,
+ * §6.7): la lista, la frase y la ronda de la moto no cuentan para `cueQueueMax`, no se descartan, no las
+ * desplaza nadie ni caducan por esperar, la ronda espera detrás de los demás de clase 2, y se tiran solo
+ * cuando ya no presentan nada; y la sustitución en `admitir` del `tt_split` que espera por el siguiente
+ * del mismo control y del `tt_finish` por el siguiente, con la mayor de las dos clases (9-d). Y dos
+ * campos que §4.9 no tenía: `split.echelon` (el corte viene de `echelon_split`: `ECHELONS`, que con solo
+ * la causa no se distinguía de un corte del pelotón por el viento) y `break_presented.riders` (los
+ * escapados al formarse la fuga, de los que sale la frase con su cláusula del equipo de los contados).
  */
 import type { ChronicleEntry } from '../contracts.js'
 import type { JerseyKind } from '../jerseys.js'
@@ -68,13 +76,19 @@ export type Cue =
       readonly riders: readonly RiderIx[]
       readonly gapS: number
     }
-  /** la frase de la fuga (breakHeadline, §7.6) */
+  /**
+   * la frase de la fuga (breakHeadline, §7.6): `named`, los que nombra (los notables y los del
+   * espectador, en el orden de la frase); `others`, cuántos cuenta; `riders`, los escapados al formarse
+   * la fuga, por dorsal, de los que sale la frase entera (no estaba en §4.9: sin ellos no se sabe de qué
+   * equipo son los contados)
+   */
   | {
       readonly kind: 'break_presented'
       readonly t: RaceS
       readonly group: GroupIx
       readonly named: readonly RiderIx[]
       readonly others: number
+      readonly riders: readonly RiderIx[]
     }
   | {
       readonly kind: 'rider'
@@ -90,12 +104,17 @@ export type Cue =
       readonly gained: readonly RiderIx[]
       readonly lost: readonly RiderIx[]
     }
-  /** peloton_split, echelon_split; cause = datos.causa (caida, viento, sector, puerto, caza) */
+  /**
+   * peloton_split, peloton_selection, echelon_split; cause = datos.causa (caida, viento, sector, puerto,
+   * caza); echelon: viene de echelon_split, `ECHELONS` (no estaba en §4.9: con la causa sola, un corte
+   * del pelotón por el viento y un abanico daban el mismo rótulo)
+   */
   | {
       readonly kind: 'split'
       readonly t: RaceS
       readonly parts: readonly GroupIx[]
       readonly cause: string | null
+      readonly echelon: boolean
     }
   | {
       readonly kind: 'caught'
@@ -238,6 +257,44 @@ export function cueClassOf(
       return cue.hotSeat ? 3 : CUE_CLASS.tt_finish
     default:
       return CUE_CLASS[cue.kind]
+  }
+}
+
+/** LA PRESENTACIÓN DE LA FUGA (6-m, §6.7): la lista, la frase y la ronda de la moto, que la cola lleva reservadas. Pura. */
+export function isPresentation(cue: Cue): boolean {
+  return (
+    cue.kind === 'break_formed' ||
+    cue.kind === 'break_presented' ||
+    (cue.kind === 'rider' && cue.context === 'break_round')
+  )
+}
+
+/**
+ * ¿Sigue r por delante del grupo con el título de pelotón en el instante? (6-m) En tránsito cuenta el
+ * grupo que dejó (3-b); sin grupo con el título, sí. Es lo que decide si un rótulo reservado de la
+ * presentación todavía presenta algo.
+ */
+export function aheadOfPeloton(i: Instant, r: RiderIx): boolean {
+  const pack = i.groups.find((g) => g.kind === 'peloton')
+  if (pack === undefined) return true
+  const from = i.inTransit.find((x) => x.rider === r)?.from
+  const g = i.groups.find((x) => x.members.includes(r) || x.g === from)
+  return g !== undefined && g.number < pack.number
+}
+
+/**
+ * ¿Presenta todavía algo un rótulo reservado? (6-m) El de la moto, si su corredor sigue por delante del
+ * pelotón; la lista y la frase, si sigue alguno de los escapados.
+ */
+function stillPresents(cue: Cue, i: Instant): boolean {
+  switch (cue.kind) {
+    case 'rider':
+      return aheadOfPeloton(i, cue.rider)
+    case 'break_formed':
+    case 'break_presented':
+      return cue.riders.some((r) => aheadOfPeloton(i, r))
+    default:
+      return true
   }
 }
 
@@ -393,7 +450,13 @@ function cueOfEvent(e: TimelineEvent, prev: Instant, next: Instant): Cue | null 
           : e.plantilla === 'echelon_split'
             ? 'viento'
             : null
-      return { kind: 'split', t, parts: parts.map((g) => g.g), cause }
+      return {
+        kind: 'split',
+        t,
+        parts: parts.map((g) => g.g),
+        cause,
+        echelon: e.plantilla === 'echelon_split',
+      }
     }
     case 'banner_result': {
       // la pancarta revelada en ese km (la del suceso lleva su km en décimas; la pancarta, el de su bloque)
@@ -529,6 +592,12 @@ export interface QueuedCue {
   readonly cue: Cue
   readonly cls: CueClass
   readonly sinceS: number
+  /**
+   * La presentación de la fuga (6-m): si ya ha presentado a alguien por delante del pelotón en un
+   * fotograma. Se tira cuando «ya no va», así que solo tras haber ido: al formarse, los escapados aún
+   * se pintan un momento en el grupo que dejan (3-b), y la lista no puede caer por eso. No estaba en §6.5.
+   */
+  readonly ahead?: boolean
 }
 
 /** El rótulo en pantalla, hasta la hora de pared `untilS`. */
@@ -550,42 +619,66 @@ export interface CueQueue {
 
 export const EMPTY_CUE_QUEUE: CueQueue = { waiting: [], shown: null }
 
-/** Lo que la cola mira en cada paso: la hora de pared (que corre con el reloj, no en pausa) y los km a meta de la cabeza. */
+/**
+ * Lo que la cola mira en cada paso: la hora de pared (que corre con el reloj, no en pausa), los km a meta
+ * de la cabeza y, si se da, el instante que se pinta, con el que el fotograma tira la presentación de
+ * una fuga que ya no presenta nada (6-m). Sin instante (la crono, o quien no lo tenga), no se tira nada.
+ */
 export interface CueClock {
   readonly wallS: number
   readonly toGoKm: number
+  readonly instant?: Instant
 }
 
 /** ¿Está la cabeza en los últimos quietFinalM? Solo la distancia (D-17, §6.9). */
 const quiet = (toGoKm: number): boolean => toGoKm * 1000 < BROADCAST.quietFinalM
 
-/** La espera con un rótulo más, en su sitio: por clase y, a igual clase, por hora de carrera y por llegada. */
+/** La ronda de la moto: a igual clase, espera detrás de los demás (6-m). */
+const isRound = (c: Cue): boolean => c.kind === 'rider' && c.context === 'break_round'
+
+/**
+ * La espera con un rótulo más, en su sitio: por clase; a igual clase, la ronda de la moto detrás de los
+ * demás (6-m); después, por hora de carrera y por llegada.
+ */
 function enqueue(waiting: readonly QueuedCue[], x: QueuedCue): QueuedCue[] {
   const out = [...waiting]
+  const before = (y: QueuedCue): boolean =>
+    y.cls > x.cls ||
+    (y.cls === x.cls && (isRound(y.cue) === isRound(x.cue) ? y.cue.t <= x.cue.t : !isRound(y.cue)))
   let i = out.length
-  while (i > 0) {
-    const y = out[i - 1]!
-    if (y.cls > x.cls || (y.cls === x.cls && y.cue.t <= x.cue.t)) break
-    i--
-  }
+  while (i > 0 && !before(out[i - 1]!)) i--
   out.splice(i, 0, x)
   return out
 }
 
-/** El índice del que se echa: el de menor clase entre los de clase ≤ máx. y, a igual clase, el que más espera. */
+/**
+ * El índice del que se echa: el de menor clase entre los de clase ≤ máx. y, a igual clase, el que más
+ * espera. Nunca uno de la presentación de la fuga (6-m).
+ */
 function evictable(waiting: readonly QueuedCue[], maxCls: CueClass): number {
   let pick = -1
   waiting.forEach((x, i) => {
-    if (x.cls > maxCls) return
+    if (x.cls > maxCls || isPresentation(x.cue)) return
     const p = pick < 0 ? undefined : waiting[pick]!
     if (p === undefined || x.cls < p.cls || (x.cls === p.cls && x.sinceS < p.sinceS)) pick = i
   })
   return pick
 }
 
+/** El de la crono que espera y que `c` sustituye (9-d): el `tt_split` del mismo control, o el `tt_finish`. */
+function replaced(waiting: readonly QueuedCue[], c: Cue): number {
+  if (c.kind === 'tt_split')
+    return waiting.findIndex((x) => x.cue.kind === 'tt_split' && x.cue.check === c.check)
+  if (c.kind === 'tt_finish') return waiting.findIndex((x) => x.cue.kind === 'tt_finish')
+  return -1
+}
+
 /**
  * ADMITIR (§6.5, 6-h). Pura. `cls` es la de `cueClassOf`. En los últimos `quietFinalM`, el rótulo de
- * corredor se descarta; con menos de `cueQueueMax` esperando, entra; si no, uno de clase 0 o 1 se
+ * corredor se descarta. La presentación de la fuga entra siempre, reservada: no cuenta para
+ * `cueQueueMax` y nadie la echa (6-m). Un `tt_split` que espera se sustituye por el siguiente del mismo
+ * control, y un `tt_finish` por el siguiente, con la mayor de las dos clases: el que espera ya no es
+ * noticia (9-d). Con menos de `cueQueueMax` no reservados esperando, entra; si no, uno de clase 0 o 1 se
  * descarta, uno de clase 2 echa al de menor clase y más viejo de clase ≤ 1 o, si no hay, al de clase 2
  * más viejo, y uno de clase 3 entra siempre (la cola crece: la meta nunca se tira). `admitted` dice si
  * entró: es lo que el reproductor le da al reductor (`cueAdmitted`) y lo que apaga `Next action`.
@@ -598,7 +691,17 @@ export function admitCue(
 ): { readonly queue: CueQueue; readonly admitted: boolean } {
   if (cue.kind === 'rider' && quiet(at.toGoKm)) return { queue: q, admitted: false }
   const x: QueuedCue = { cue, cls, sinceS: at.wallS }
-  if (q.waiting.length < BROADCAST.cueQueueMax)
+  if (isPresentation(cue))
+    return { queue: { ...q, waiting: enqueue(q.waiting, x) }, admitted: true }
+  const old = replaced(q.waiting, cue)
+  if (old >= 0) {
+    const was = q.waiting[old]!
+    const rest = q.waiting.filter((_, i) => i !== old)
+    const merged: QueuedCue = { ...x, cls: was.cls > cls ? was.cls : cls }
+    return { queue: { ...q, waiting: enqueue(rest, merged) }, admitted: true }
+  }
+  const open = q.waiting.filter((w) => !isPresentation(w.cue)).length
+  if (open < BROADCAST.cueQueueMax)
     return { queue: { ...q, waiting: enqueue(q.waiting, x) }, admitted: true }
   if (cls <= 1) return { queue: q, admitted: false }
   let out = evictable(q.waiting, 1)
@@ -608,29 +711,48 @@ export function admitCue(
 }
 
 /**
- * EL FOTOGRAMA DE LA COLA (§6.5, 6-h). Pura. Caduca lo de clase 2 o menos que lleva más de `cueHoldS[3]`
- * de pared esperando (un ATTACK de alguien ya cazado contradiría la barra); quita el de pantalla al
- * acabarse su tiempo (`cueHoldS[clase]`); corta el de clase 0 o 1 si espera uno de clase 3 (la tele
- * corta); y si la pantalla queda libre y la cabeza no está en los últimos `quietFinalM`, saca el primero.
- * La carrera no se frena nunca por la cola (D-21): nada de esto toca el reloj.
+ * EL FOTOGRAMA DE LA COLA (§6.5, 6-h). Pura. Tira la presentación de una fuga que ya no presenta nada
+ * (con el instante: el escapado ya no va por delante del pelotón, o ninguno de la fuga; 6-m); caduca lo
+ * de clase 2 o menos que lleva más de `cueHoldS[3]` de pared esperando (un ATTACK de alguien ya cazado
+ * contradiría la barra), salvo la presentación, que no caduca; quita el de pantalla al acabarse su
+ * tiempo (`cueHoldS[clase]`; la ronda de la moto, `cueHoldS[0]`); corta el de clase 0 o 1 si espera uno
+ * de clase 3 (la tele corta); y si la pantalla queda libre y la cabeza no está en los últimos
+ * `quietFinalM`, saca el primero. La carrera no se frena nunca por la cola (D-21): nada de esto toca el
+ * reloj.
  */
 export function cueFrame(q: CueQueue, at: CueClock): CueQueue {
-  const waiting = q.waiting.filter(
-    (x) => x.cls >= 3 || at.wallS - x.sinceS <= BROADCAST.cueHoldS[3],
-  )
+  const instant = at.instant
+  let changed = false
+  const waiting = q.waiting.flatMap((x): QueuedCue[] => {
+    if (isPresentation(x.cue)) {
+      if (instant === undefined) return [x]
+      if (stillPresents(x.cue, instant)) {
+        if (x.ahead === true) return [x]
+        changed = true
+        return [{ ...x, ahead: true }]
+      }
+      // ya no presenta a nadie: fuera si antes presentaba («ya no va», 6-m), o si en cueHoldS[3] de
+      // pared no ha llegado a ir nadie por delante (una fuga cazada al formarse)
+      if (x.ahead === true || at.wallS - x.sinceS > BROADCAST.cueHoldS[3]) {
+        changed = true
+        return []
+      }
+      return [x]
+    }
+    if (x.cls >= 3 || at.wallS - x.sinceS <= BROADCAST.cueHoldS[3]) return [x]
+    changed = true
+    return []
+  })
   let shown = q.shown
   if (shown !== null && at.wallS >= shown.untilS) shown = null
   if (shown !== null && shown.cls <= 1 && waiting[0]?.cls === 3) shown = null
   if (shown === null && !quiet(at.toGoKm) && waiting.length > 0) {
     const [first, ...rest] = waiting
+    const hold = isRound(first!.cue) ? BROADCAST.cueHoldS[0] : BROADCAST.cueHoldS[first!.cls]
     return {
       waiting: rest,
-      shown: {
-        cue: first!.cue,
-        cls: first!.cls,
-        untilS: at.wallS + BROADCAST.cueHoldS[first!.cls],
-      },
+      shown: { cue: first!.cue, cls: first!.cls, untilS: at.wallS + hold },
     }
   }
-  return waiting.length === q.waiting.length && shown === q.shown ? q : { waiting, shown }
+  return !changed && shown === q.shown ? q : { waiting, shown }
 }

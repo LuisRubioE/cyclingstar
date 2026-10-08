@@ -22,6 +22,7 @@ import {
   type LiveLine,
   NO_LEADERS,
   type PreStageInfo,
+  type ProfileStrip,
   type RaceS,
   type RiderIx,
   type StageClosing,
@@ -36,6 +37,8 @@ import {
   fromDs,
   playbackEstimateS,
   stageQuerySchema,
+  startStateOf,
+  ttPlaybackEstimateS,
   visibilityOf,
 } from '@cyclingstar/shared'
 import type { FastifyReply, FastifyRequest } from 'fastify'
@@ -45,18 +48,14 @@ import {
   serveCast,
   threeKmRuleRiders,
   timelineForStage,
+  withClimbFeet,
 } from '../broadcastSource.js'
-import {
-  type ChronicleEvent,
-  type ChronicleNames,
-  buildChronicle,
-  chronicleNames,
-} from '../chronicle.js'
+import { type ChronicleNames, buildChronicle, chronicleNames } from '../chronicle.js'
 import { badRequest, notFound } from '../http.js'
-import { liveClusters } from '../liveClusters.js'
 import { PLAYER_RATE_LIMIT } from '../security.js'
 import { stageHead } from '../stageHistory.js'
 import { type StageContext, stageContextOf, stageReplayOf } from '../stageReplay.js'
+import { lineVoiceOf, storedWithRoles } from '../voiceRoles.js'
 import type { RoutePlugin } from './context.js'
 import { parseRaceId, parseStageDay } from './params.js'
 
@@ -203,11 +202,13 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
           rider: (id) => identities.riders.get(id)?.name ?? id,
           team: (id) => identities.teams.get(id)?.name ?? id,
         },
-        { own: await ownOf(request, tl) },
+        { own: await ownOf(request, tl), dayCategory: ctx.race.championshipCategory ?? 'elite' },
       )
-      const startState = startStateOf(tl)
+      const startState = startStateOf(tl.cast, tl.riderIds.length)
       // El nombre, la etiqueta y el tipo, como la ruta de etapa para una etapa corrida (stageHead).
       const raced = (await lineSourceOf(db, tl, ctx.raceKey, ctx.day)).racedProfile
+      // Las cimas que el grabador dejó sin pie, con el de su recorrido (nota 5 del 3c, 6b).
+      const profile = withClimbFeet(tl.profile, raced)
       const head =
         raced === null
           ? ctx.spec
@@ -233,15 +234,22 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
           dx: tl.dx,
           blocks: tl.blocks,
         },
-        profile: tl.profile,
+        profile,
         weather: tl.weather,
         cast,
         startState,
         pace: BROADCAST.pace,
-        estimateS: playbackEstimateS(tl.profile, BROADCAST.pace),
+        // La duración que se anuncia (§8.2; en una crono, §9.4 y 9-h): solo el recorrido y el plan público.
+        estimateS:
+          tl.tt === null
+            ? playbackEstimateS(tl.profile, BROADCAST.pace)
+            : ttPlaybackEstimateS(tl.profile, {
+                riders: tl.riderIds.length,
+                intervalS: tl.tt.intervalS,
+              }),
         clock: tl.clock,
         source: tl.clock === 'estimated' ? 'radio' : 'timeline',
-        preview: previewOf(tl, startState),
+        preview: previewOf(tl, profile, startState),
         // Lo visto (7a): de race_watch y de la memoria del proceso; null para el visitante.
         view,
         gate: null,
@@ -290,7 +298,10 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
       if (a === null) return reply
       const tl = await lineOf(a, reply)
       if (tl === null) return reply
-      const replay = await stageReplayOf(db, a.ctx)
+      // el acta con las palabras de papel: esta ruta ya exige Watch encendido (§12.6)
+      const replay = await stageReplayOf(db, a.ctx, {
+        annotate: (stored) => storedWithRoles(tl, stored),
+      })
       if (!replay.run) return notFound(reply)
       await finishWatch(request, a, fromDs(visibilityOf(tl).finishDs), body.data.mode)
       const ix = new Map(tl.riderIds.map((id, i) => [id, i] as const))
@@ -319,7 +330,17 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
       if (!q.success) return badRequest(reply)
       const a = await admitStage(db, request, reply, q.data)
       if (a === null) return reply
-      const replay = await stageReplayOf(db, a.ctx)
+      // Las palabras de papel de la voz (`the chase group`), solo para quien tiene Watch encendido
+      // (§12.6, §14.5): para los demás, el acta de hoy, que dice `the bunch`. Sin línea servible,
+      // tampoco (las etapas sin línea ni radio dicen `the bunch`, como hoy).
+      const tl = (await request.broadcastOn())
+        ? await timelineForStage(db, a.h, a.ctx.raceKey, a.ctx.day)
+        : null
+      const replay = await stageReplayOf(
+        db,
+        a.ctx,
+        tl === null ? {} : { annotate: (stored) => storedWithRoles(tl, stored) },
+      )
       if (!replay.run) return notFound(reply)
       // tplRev: el de la fila de la línea grabada (6a), sin construir el adaptador; sin fila o con
       // lápida, 0 (12-c, §5.6).
@@ -329,11 +350,11 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
   )
 
   /**
-   * LA VOZ DEL TRAMO (§14.3), sin los papeles de grupo (`withGroupRoles`, 6b). Los pasos que no
-   * dependen del tramo (los sucesos de antes de la meta con su hora, los racimos en vivo si
-   * `BROADCAST.liveClusters` está encendida, y los nombres, que son los de la ruta de etapa) se hacen
-   * una vez por línea; el paso 4, `buildChronicle` con `live` hasta el final del tramo, en cada uno, y
-   * el tramo se queda con las líneas nuevas (B19).
+   * LA VOZ DEL TRAMO (§14.3). Los pasos que no dependen del tramo (los sucesos de antes de la meta con
+   * su hora, los papeles de grupo de `withGroupRoles` ANTES de atar las horas, 12-n, los racimos en
+   * vivo si `BROADCAST.liveClusters` está encendida, con la política de nombres real, y los nombres, que
+   * son los de la ruta de etapa) se hacen una vez por línea (`lineVoiceOf`); el paso 4, `buildChronicle`
+   * con `live` hasta el final del tramo, en cada uno, y el tramo se queda con las líneas nuevas (B19).
    */
   const voices = new WeakMap<StageTimeline, Promise<(fromS: RaceS, toS: RaceS) => LiveLines>>()
   function voiceOf(
@@ -353,34 +374,13 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
     tl: StageTimeline,
     ctx: StageContext,
   ): Promise<(fromS: RaceS, toS: RaceS) => LiveLines> {
-    const finishS = fromDs(visibilityOf(tl).finishDs)
     const source = await lineSourceOf(db, tl, ctx.raceKey, ctx.day)
-    // 1. Los sucesos de antes de la meta, cada uno con su hora, en el orden de tl.events.
-    const sucesos: ChronicleEvent[] = []
-    const revealOf = new Map<ChronicleEvent, RaceS>()
-    for (const e of tl.events) {
-      if (e.revealS >= finishS) continue // el mismo borde que chunkOf: lo de la meta va en el paquete de meta
-      // el guardado, con su km original (4-h); la caída sintetizada (D-13) no está guardada
-      const ev: ChronicleEvent = source.stored[e.source] ?? {
-        km: e.km,
-        tS: e.tS,
-        tipo: 'caida',
-        plantilla: e.plantilla,
-        protagonistas: e.riders.map((r) => tl.riderIds[r] ?? ''),
-        ...(e.datos === null ? {} : { datos: { ...e.datos } }),
-      }
-      sucesos.push(ev)
-      revealOf.set(ev, e.revealS)
-    }
-    // 3. Los racimos en vivo (§12.3), solo con BROADCAST.liveClusters: entran con su hora y sus sueltos salen.
-    let entrada: readonly ChronicleEvent[] = sucesos
-    if (BROADCAST.liveClusters) {
-      const racimos = liveClusters(sucesos, source.view, (ev) => revealOf.get(ev) ?? finishS)
-      const absorbidos = new Set(racimos.flatMap((c) => c.members))
-      const enVivo = racimos.filter((c) => c.revealS < finishS)
-      for (const c of enVivo) revealOf.set(c.event, c.revealS)
-      entrada = [...sucesos.filter((ev) => !absorbidos.has(ev)), ...enVivo.map((c) => c.event)]
-    }
+    const { entrada, revealOf } = lineVoiceOf(
+      tl,
+      source.stored,
+      source.view,
+      BROADCAST.liveClusters ? 'named' : 'off',
+    )
     const names = await namesOf(tl, ctx)
     // 4. La voz hasta el final del tramo; el tramo, con las líneas nuevas.
     return (fromS, toS) =>
@@ -504,31 +504,13 @@ function withoutRadio<T extends object>(replay: T): Omit<T, 'radio'> {
   return out
 }
 
-/** La salida (§4.11): quién lleva cada maillot, los diez primeros de la general de salida y cuántos salen. */
-function startStateOf(tl: StageTimeline): StartState {
-  const leaders: { gc: RiderIx | null; points: RiderIx | null; kom: RiderIx | null } = {
-    gc: null,
-    points: null,
-    kom: null,
-  }
-  for (const c of tl.cast.riders) if (c.worn.kind === 'leader') leaders[c.worn.jersey] = c.rider
-  const gcTop = tl.cast.riders
-    .flatMap((c) =>
-      c.start.gcRank !== null && c.start.gcRank <= BROADCAST.virtualGcTop
-        ? [{ rider: c.rider, rank: c.start.gcRank, gapS: c.start.gcDeficitS ?? 0 }]
-        : [],
-    )
-    .sort((x, y) => x.rank - y.rank || x.rider - y.rider)
-  return { leaders, gcTop, racingAtStart: tl.riderIds.length }
-}
-
 /**
  * La previa (D-22, §8.6): el recorrido, el tiempo, los maillots en juego con quién los amenaza y los
  * favoritos. Con el reparto provisional del adaptador, la amenaza solo se sabe de la general (los
  * siguientes de la general de salida) y los favoritos son los tres primeros de esa general: los de
  * atributo los graba el reparto congelado (8-g).
  */
-function previewOf(tl: StageTimeline, start: StartState): StagePreview {
+function previewOf(tl: StageTimeline, route: ProfileStrip, start: StartState): StagePreview {
   const jerseysInPlay = JERSEY_PRIORITY.flatMap((jersey) => {
     const holder = start.leaders[jersey]
     if (holder === null) return []
@@ -542,7 +524,7 @@ function previewOf(tl: StageTimeline, start: StartState): StagePreview {
     return [{ jersey, holder, threats }]
   })
   return {
-    route: tl.profile,
+    route,
     weather: tl.weather,
     jerseysInPlay,
     favourites: [

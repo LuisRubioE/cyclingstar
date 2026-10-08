@@ -7,6 +7,7 @@ import {
   decodeTimeline,
   instantAt,
   photoBlocksOf,
+  timeTrialInstantAt,
 } from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
 
@@ -19,8 +20,8 @@ import { describe, expect, it } from 'vitest'
  *
  * La web no puede importar `load.ts` de `apps/api` (TS6059): lee los `.timeline.gz` congelados con
  * `readFileSync`, `gunzipSync` y `decodeTimeline`, como `readStageTimeline`, y por eso lleva la
- * referencia a los tipos de Node. Mide las cinco en línea: la crono se pinta con `timeTrialInstantAt`,
- * que llega en el 6b con su B8. El parse y el `safeParse` de la cabecera y del tramo mayor se miden
+ * referencia a los tipos de Node. Mide las cinco en línea con `instantAt` y, desde el 6b, la crono, la
+ * e16, con `timeTrialInstantAt`, con el mismo umbral, sobre todos sus fotogramas a pasos de 1 s. El parse y el `safeParse` de la cabecera y del tramo mayor se miden
  * sobre lo que sirve la API de verdad, en `apps/api/src/broadcastFixtures.test.ts` (B6 de lo servido),
  * con los mismos esquemas de `shared` que usa la web: aquí no hay esas respuestas sin volcarlas.
  */
@@ -145,6 +146,26 @@ describe('B8 · el fotograma de Watch en el cliente (§16.4; 16-m, 18-l)', () =>
         `${passes.map((ms) => quantile(ms, 0.95).toFixed(3)).join(', ')} ms`,
     )
     expect(best.sum / DENSE_FRAMES).toBeGreaterThan(5)
+    expect(p95).toBeLessThanOrEqual(B8_INSTANT_P95_MS)
+  })
+})
+
+describe('B8 · el fotograma de la crono, la e16, con timeTrialInstantAt (§16.4; 6b)', () => {
+  it('todos los fotogramas a pasos de 1 s de carrera, con el umbral de §16.4', () => {
+    const tl = lineOf('race-france-e16')
+    const ctx = ctxOf(tl)
+    const ms: number[] = []
+    for (let t = 0; t <= Math.floor(tl.finish.finishS); t++) {
+      const t0 = performance.now()
+      timeTrialInstantAt(tl, t, ctx)
+      ms.push(performance.now() - t0)
+    }
+    const p95 = quantile(ms, 0.95)
+    console.info(
+      `[broadcast] B8 · timeTrialInstantAt sobre la e16: ${ms.length} fotogramas, p50 ` +
+        `${quantile(ms, 0.5).toFixed(3)} ms, p95 ${p95.toFixed(3)} ms (umbral ${B8_INSTANT_P95_MS} ms)`,
+    )
+    expect(ms.length).toBeGreaterThan(20_000)
     expect(p95).toBeLessThanOrEqual(B8_INSTANT_P95_MS)
   })
 })

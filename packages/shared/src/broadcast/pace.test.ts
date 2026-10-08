@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { PACE_PROFILES } from './__fixtures__/paceProfiles.js'
 import { BROADCAST } from './constants.js'
-import { paceAt, playbackEstimateS } from './pace.js'
+import { paceAt, playbackEstimateS, ttPaceAt, ttPlaybackEstimateS } from './pace.js'
 import type { PaceZone, ProfileStrip } from './timeline.js'
 
 /**
@@ -106,5 +106,55 @@ describe('playbackEstimateS · la duración que anuncia la ficha (§8.2)', () =>
     const e7 = strip(PACE_PROFILES['race-france-e7'])
     expect(playbackEstimateS(e7, BROADCAST.pace)).toBe(playbackEstimateS(e7, BROADCAST.pace))
     expect(playbackEstimateS(strip([0]), BROADCAST.pace)).toBe(0)
+  })
+})
+
+describe('ttPaceAt · el ritmo de la crono por el orden de salida (§9.4)', () => {
+  // 10 corredores cada 60 s: en t sale el `⌊t / 60⌋ + 1`
+  const plan = { riders: 10, intervalS: 60 }
+
+  it('×120 hasta que ha salido el 60 %, ×40 hasta el 90 % y ×12 después, con el borde en la zona de antes', () => {
+    expect(ttPaceAt(0, plan, null)).toBe(120) // el primero sale en t = 0
+    expect(ttPaceAt(-5, plan, null)).toBe(120)
+    expect(ttPaceAt(359.9, plan, null)).toBe(120) // 6 de 10: el 60 % justo
+    expect(ttPaceAt(360, plan, null)).toBe(40) // el séptimo
+    expect(ttPaceAt(539.9, plan, null)).toBe(40) // 9 de 10: el 90 % justo
+    expect(ttPaceAt(540, plan, null)).toBe(12) // el último
+    expect(ttPaceAt(99_999, plan, null)).toBe(12)
+  })
+
+  it('×2 desde que el último en salir entra en su último km, y no antes', () => {
+    expect(ttPaceAt(1199.9, plan, 1200)).toBe(12)
+    expect(ttPaceAt(1200, plan, 1200)).toBe(BROADCAST.ttLastKmX)
+    expect(ttPaceAt(1500, plan, 1200)).toBe(2)
+  })
+
+  it('con un solo corredor, todo es la última salida', () => {
+    expect(ttPaceAt(0, { riders: 1, intervalS: 60 }, null)).toBe(12)
+  })
+})
+
+describe('ttPlaybackEstimateS · la duración que anuncia una crono (§9.4)', () => {
+  it('10 km llanos, 10 corredores cada 60 s: 3 + 4,5 + 61,36 + 40,91 = 109,77 s', () => {
+    // el último sale a 540 s y rueda 10 km a 44 km/h (818,18 s): su último km empieza a 1276,36 s;
+    // [0, 360) a ×120, [360, 540) a ×40, [540, 1276,36) a ×12 y el último km, 81,82 s, a ×2
+    const flat = strip(Array.from({ length: 11 }, () => 0))
+    const km = 3600 / 44
+    const expected = 360 / 120 + 180 / 40 + (540 + 10 * km - km - 540) / 12 + km / 2
+    expect(expected).toBeCloseTo(109.7727273, 6)
+    expect(ttPlaybackEstimateS(flat, { riders: 10, intervalS: 60 })).toBeCloseTo(expected, 9)
+  })
+
+  it('no mira la carrera: solo el plan y el perfil; con más corredores, más larga', () => {
+    const flat = strip(Array.from({ length: 11 }, () => 0))
+    const a = ttPlaybackEstimateS(flat, { riders: 10, intervalS: 60 })
+    expect(ttPlaybackEstimateS(flat, { riders: 10, intervalS: 60 })).toBe(a)
+    expect(ttPlaybackEstimateS(flat, { riders: 20, intervalS: 60 })).toBeGreaterThan(a)
+    // un km al 5 % (22 km/h) tras nueve llanos: el último km, a 163,64 s de carrera, va a ×2
+    const climb = strip([...Array.from({ length: 10 }, () => 0), 50])
+    expect(ttPlaybackEstimateS(climb, { riders: 10, intervalS: 60 })).toBeCloseTo(
+      360 / 120 + 180 / 40 + (9 * (3600 / 44)) / 12 + 3600 / 22 / 2,
+      9,
+    )
   })
 })

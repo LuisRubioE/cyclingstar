@@ -40,7 +40,7 @@ import {
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { AppDeps } from '../app.js'
 import { buildApp } from '../app.js'
-import { clearAdaptedTimelineCache, threeKmRuleRiders } from '../broadcastSource.js'
+import { clearAdaptedTimelineCache, threeKmRuleRiders, withClimbFeet } from '../broadcastSource.js'
 import { VIEWER_COOKIE, signViewerCookie } from '../viewerCookie.js'
 
 /**
@@ -127,6 +127,14 @@ const clearLines = (): void => {
   clearStageTimelineCache()
   clearAdaptedTimelineCache()
 }
+
+/** Las líneas del acta que llevan la palabra de papel de la voz (§12.6): `plantilla:papel` o `:maillot`. */
+const rolesOf = (body: unknown): string[] =>
+  (stageReplaySchema.parse(body).chronicle ?? []).flatMap((e) =>
+    e.datos?.mainRole === undefined && e.datos?.mainJersey === undefined
+      ? []
+      : [`${e.plantilla}:${e.datos.mainJersey ?? e.datos.mainRole}`],
+  )
 
 describe('las rutas de la retransmisión (§14.2)', () => {
   let t: TestDb
@@ -310,6 +318,13 @@ describe('las rutas de la retransmisión (§14.2)', () => {
       expect(report.statusCode).toBe(200)
     })
 
+    it('el acta con las palabras de papel solo para quien tiene Watch encendido (§12.6)', async () => {
+      const player = await call(app, 'GET', `${STAGE_URL}/2/report`, PLAYER)
+      const admin = await call(app, 'GET', `${STAGE_URL}/2/report`, ADMIN)
+      expect(rolesOf(player.json())).toEqual([])
+      expect(rolesOf(admin.json()).length).toBeGreaterThan(0)
+    })
+
     describe('la etapa grabada (6a)', () => {
       it('la cabecera: su esquema, el reloj exacto, la línea por la red y el nombre de la etapa que se corrió', async () => {
         const res = await call(app, 'GET', `${STAGE_URL}/2/broadcast`, ADMIN)
@@ -339,9 +354,13 @@ describe('las rutas de la retransmisión (§14.2)', () => {
         expect(gc).toHaveLength(1)
         expect(gc[0]!.worn).toMatchObject({ from: { raceKey: RACE_KEY, stageDay: 1 } })
         expect(head.startState.leaders.gc).toBe(gc[0]!.ix)
-        // el recorrido y el tiempo, los grabados (§5.4)
+        // el recorrido y el tiempo, los grabados (§5.4), con el pie de las cimas que el grabador deja
+        // sin él sacado del recorrido que se corrió (nota 5 del 3c, 6b)
         const tl = await readStageTimeline(t.db, worldHorizon, RACE_KEY, 2)
-        expect(head.profile).toEqual(tl!.profile)
+        expect(head.profile).toEqual(withClimbFeet(tl!.profile, specOf(2).profile))
+        expect(head.profile.altM).toEqual(tl!.profile.altM)
+        expect(tl!.profile.climbs.some((c) => c.lenKm === 0)).toBe(true)
+        expect(head.profile.climbs.every((c) => c.lenKm > 0)).toBe(true)
         expect(head.weather).toEqual(tl!.weather)
       })
 
@@ -393,6 +412,11 @@ describe('las rutas de la retransmisión (§14.2)', () => {
         expect(finish.report.radio).toBeUndefined()
         // la de la fila: el TEMPLATE_REV del tick que la grabó
         expect(finish.report.tplRev).toBe(0)
+        // el acta del paquete de meta, que solo se sirve con Watch encendido, con las palabras de papel
+        expect(rolesOf(finish.report)).toEqual(
+          rolesOf((await call(app, 'GET', `${STAGE_URL}/2/report`, ADMIN)).json()),
+        )
+        expect(rolesOf(finish.report).length).toBeGreaterThan(0)
         // la regla de los 3 km, de las caídas de la línea, con el final al sprint o en alto (6-o)
         expect([threeKmRuleRiders(tl!, false), threeKmRuleRiders(tl!, true)]).toContainEqual(
           finish.threeKmRule,

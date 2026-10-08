@@ -98,7 +98,8 @@ jobs:
       # vez al día pase lo que pase.
       # LAS PUERTAS DE LATENCIA se apartan de la suite y corren SOLAS y en serie, en el paso de abajo:
       # B14 (docs/retransmision.md §16.4 y 16-k, p95 ≤ 5 ms del horizonte contra el Postgres de
-      # servicio) y B8 (16-m, p95 ≤ 0,25 ms del fotograma de `Watch`). Dentro de la suite las medía
+      # servicio) y B8 (16-m: p95 ≤ 0,25 ms del fotograma de `Watch`, y la mediana de `withGroupRoles`,
+      # que vive en `voicePrefix.test.ts` con B19). Dentro de la suite las medía
       # con doscientos ficheros más compitiendo por la CPU: con el mismo `computeHorizon`, el p95 del
       # jugador dio 3,75, 5,05, 5,11 y 6,40 ms en cuatro corridas, y B8 dio 0,42 ms en la del 6a; eso
       # mide el runner, no el código. Los umbrales no cambian.
@@ -107,12 +108,14 @@ jobs:
           pnpm test:rapido
           --exclude packages/db/src/horizonLatency.test.ts
           --exclude apps/web/src/domain/broadcast/clientCost.test.ts
+          --exclude apps/api/src/voicePrefix.test.ts
 
       - name: Las puertas de latencia (B14 y B8), solas
         run: >-
           pnpm exec vitest run --no-file-parallelism
           packages/db/src/horizonLatency.test.ts
           apps/web/src/domain/broadcast/clientCost.test.ts
+          apps/api/src/voicePrefix.test.ts
 
   benches:
     name: Bancos · ${{ matrix.nombre }}

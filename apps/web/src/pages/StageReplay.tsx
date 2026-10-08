@@ -356,9 +356,8 @@ export function StageReplay() {
    * (quien no es administrador con `admins`), `broadcast_unavailable` (una crono sin línea) o cualquier
    * otro error, la página de hoy, sin cambiar nada. Va delante, pero la pestaña por defecto sigue siendo
    * `Story` hasta el 9a, que la decide con lo visto (§6.10). Una carrera de un día redirige a su ficha y
-   * no tiene `Watch` hasta el 9b (§11.17). Y una crono tampoco hasta el 6b: desde el 6a la API sirve la
-   * crono grabada (su cabecera trae `stage.timeTrial`), pero su pantalla, con `timeTrialInstantAt` y
-   * `TimeTrialBoard`, es del 6b (§9.8).
+   * no tiene `Watch` hasta el 9b (§11.17). Una crono grabada, desde el 6b, con su pantalla
+   * (`timeTrialInstantAt` y `TimeTrialBoard`, §9.5); una sin línea responde 404 y abre la de hoy.
    */
   const health = useQuery({ queryKey: ['health'], queryFn: fetchHealth })
   const watchSwitch = health.data?.features?.broadcastWatch ?? 'off'
@@ -368,7 +367,7 @@ export function StageReplay() {
     queryFn: () => fetchBroadcastHead(raceId, dayNum),
     enabled: wantsHead,
   })
-  const watchable = wantsHead && watchHead.isSuccess && !watchHead.data.stage.timeTrial
+  const watchable = wantsHead && watchHead.isSuccess
   const tabIds: readonly StageTabId[] = data?.run
     ? watchable
       ? ['watch', ...STAGE_TAB_IDS]

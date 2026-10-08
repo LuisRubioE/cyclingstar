@@ -41,7 +41,6 @@ import {
   type JerseyKind,
   NO_LEADERS,
   type NameResolver,
-  type NotorietyLevel,
   type ProfileStrip,
   type RaceLeaders,
   type RaceS,
@@ -63,6 +62,7 @@ import {
   photoBlocksOf,
   raceLeaders,
   revealSOf,
+  riderCardsOf,
   toDs,
   toKm10,
 } from '@cyclingstar/shared'
@@ -1068,16 +1068,43 @@ export function threeKmRuleRiders(tl: StageTimeline, summitFinish: boolean): Rid
 /** A la décima: lo que la cabecera sirve del recorrido y del tiempo. */
 const round1 = (x: number): number => Math.round(x * 10) / 10
 
+/** Un bloque del recorrido muestreado, como lo lee el motor. */
+type SampledBlock = ReturnType<typeof sampleProfile>[number]
+
 /**
- * EL PERFIL DE LA CABECERA (`ProfileStrip`, §4.2) de una etapa sin línea, sacado del recorrido que se
- * corrió (`stage_snapshots.input.profile`). La cota al final de cada km entero, de 0 a ceil(lengthKm),
- * en metros enteros, sumando la subida de cada bloque de `sampleProfile` (`g · dx · 10` m) desde
- * `startM`; las cimas con categoría (la del dato oficial o la derivada, como las puntúa el motor), con
- * el pie donde empieza la racha de bloques en subida que acaba en ellas; las volantes; y las vueltas.
- * Sin el nombre de los puertos reales (`STAGE_FEATURES` no sale del motor): `name` null, que la
- * pantalla rotula solo con la categoría (§6.8). El reparto congelado del 4b lo grabará con nombre.
+ * LA RACHA QUE ACABA EN UNA CIMA (nota 5 del 3c; 6b): sus bloques primero y último. La del motor
+ * (`profileStripOf` de `packages/engine/src/sim/timeline.ts`, y la de aquí hasta el 6b) es la racha de
+ * bloques `subida`, que son los de un segmento `puerto`: las cimas de otros segmentos (una categoría
+ * derivada de sus tramos, los muros de Flandes, los puertos reales de `STAGE_FEATURES` que el perfil no
+ * escribe como `puerto`) se quedaban con el pie en la cima y `lenKm` 0, y el perfil no las sombreaba
+ * ni la pantalla decía `summit in` (en las congeladas, 12 de 20 cimas). Sin racha `subida`, la de
+ * pendiente: los bloques con `g ≥ STAGE.climbScoreMinGradient` (2 %, los que puntúan la categoría,
+ * `deriveClimbCategory`) que acaban en el último que sube antes de la pancarta, a un km como mucho,
+ * porque la pancarta va en el km entero de su cima (`featureProfile.ts`) y la carretera puede bajar ya.
+ * Null si no sube ninguno: la cima se queda como la grabó el motor.
  */
-export function profileStripOf(profile: StageProfile): ProfileStrip {
+function climbRunOf(
+  sampled: readonly SampledBlock[],
+  idx: number,
+): { readonly foot: number; readonly end: number } | null {
+  let foot = idx
+  while (foot > 0 && sampled[foot - 1]!.tipo === 'subida') foot -= 1
+  if (foot < idx) return { foot, end: idx }
+  const min = STAGE.climbScoreMinGradient
+  const perKm = Math.round(1 / STAGE.dx)
+  let end = idx
+  while (end > 0 && end > idx - perKm && !(sampled[end]!.g >= min)) end -= 1
+  if (!(sampled[end]!.g >= min)) return null
+  foot = end
+  while (foot > 0 && sampled[foot - 1]!.g >= min) foot -= 1
+  return { foot, end }
+}
+
+/** El recorrido muestreado y su cota al final de cada bloque, desde `startM` (`g · dx · 10` m por bloque). */
+function sampledOf(profile: StageProfile): {
+  readonly sampled: readonly SampledBlock[]
+  readonly altAt: (i: number) => number
+} {
   const dx = STAGE.dx
   const sampled = sampleProfile(profile)
   const startM = profile.startM ?? 0
@@ -1085,29 +1112,48 @@ export function profileStripOf(profile: StageProfile): ProfileStrip {
   const alt = sampled.map((blk) => (m += blk.g * dx * 10))
   /** La cota al final del bloque i; antes del primero, la de salida. */
   const altAt = (i: number): number => (i < 0 ? startM : (alt[Math.min(alt.length - 1, i)] ?? m))
-  const kmCount = Math.ceil(sampled.length / 10)
-  const altM = [Math.round(startM)]
-  for (let k = 1; k <= kmCount; k++) altM.push(Math.round(altAt(Math.min(alt.length, k * 10) - 1)))
+  return { sampled, altAt }
+}
+
+/** Una cima del perfil con su pie, su longitud y su pendiente media, sobre la racha de `climbRunOf`. */
+function climbOf(
+  s: ReturnType<typeof sampledOf>,
+  bannerKm: number,
+  cat: string,
+  name: string | null,
+): ProfileStrip['climbs'][number] {
+  const dx = STAGE.dx
+  const idx = Math.min(s.sampled.length - 1, Math.max(0, Math.floor(bannerKm / dx)))
+  const run = climbRunOf(s.sampled, idx) ?? { foot: idx, end: idx }
+  const footKm = round1(run.foot * dx)
+  const topKm = round1(bannerKm)
+  const lenKm = round1(Math.max(0, topKm - footKm))
+  const rise = s.altAt(run.end) - s.altAt(run.foot - 1)
+  return { footKm, topKm, cat, lenKm, avgPct: lenKm > 0 ? round1(rise / (lenKm * 10)) : 0, name }
+}
+
+/**
+ * EL PERFIL DE LA CABECERA (`ProfileStrip`, §4.2) de una etapa sin línea, sacado del recorrido que se
+ * corrió (`stage_snapshots.input.profile`). La cota al final de cada km entero, de 0 a ceil(lengthKm),
+ * en metros enteros, sumando la subida de cada bloque de `sampleProfile` (`g · dx · 10` m) desde
+ * `startM`; las cimas con categoría (la del dato oficial o la derivada, como las puntúa el motor), con
+ * el pie donde empieza la racha que sube y acaba en ellas (`climbRunOf`); las volantes; y las vueltas.
+ * Sin el nombre de los puertos reales (`STAGE_FEATURES` no sale del motor): `name` null, que la
+ * pantalla rotula solo con la categoría (§6.8). El reparto congelado del 4b lo grabará con nombre.
+ */
+export function profileStripOf(profile: StageProfile): ProfileStrip {
+  const s = sampledOf(profile)
+  const kmCount = Math.ceil(s.sampled.length / 10)
+  const altM = [Math.round(s.altAt(-1))]
+  for (let k = 1; k <= kmCount; k++)
+    altM.push(Math.round(s.altAt(Math.min(s.sampled.length, k * 10) - 1)))
   const climbs: ProfileStrip['climbs'][number][] = []
   for (const banner of profile.banners ?? []) {
     if (banner.tipo !== 'cima') continue
-    const idx = Math.min(sampled.length - 1, Math.max(0, Math.floor(banner.km / dx)))
-    const cat = sampled[idx]?.climbCategory ?? null
+    const idx = Math.min(s.sampled.length - 1, Math.max(0, Math.floor(banner.km / STAGE.dx)))
+    const cat = s.sampled[idx]?.climbCategory ?? null
     if (cat === null) continue
-    let foot = idx
-    while (foot > 0 && sampled[foot - 1]!.tipo === 'subida') foot -= 1
-    const footKm = round1(foot * dx)
-    const topKm = round1(banner.km)
-    const lenKm = round1(Math.max(0, topKm - footKm))
-    const rise = altAt(idx) - altAt(foot - 1)
-    climbs.push({
-      footKm,
-      topKm,
-      cat,
-      lenKm,
-      avgPct: lenKm > 0 ? round1(rise / (lenKm * 10)) : 0,
-      name: null,
-    })
+    climbs.push(climbOf(s, banner.km, cat, null))
   }
   return {
     altM,
@@ -1116,6 +1162,22 @@ export function profileStripOf(profile: StageProfile): ProfileStrip {
       .filter((x) => x.tipo === 'meta_volante')
       .map((x) => round1(x.km)),
     laps: profile.laps ?? 1,
+  }
+}
+
+/**
+ * EL PIE DE LAS CIMAS DE UNA LÍNEA GRABADA (nota 5 del 3c; 6b), al servir la cabecera: el grabador
+ * (`packages/engine`, que E2 ya no toca) escribe las cimas con la regla de antes, y las que no son de un
+ * `puerto` llegan con `lenKm` 0. Sobre el recorrido que se corrió, cada una de esas recibe el pie, la
+ * longitud y la pendiente de `climbRunOf`; las demás, la cota, las volantes y el nombre, tal cual. Sin
+ * recorrido, el perfil grabado. Es recorrido y no carrera: no mira la hora ni el velo.
+ */
+export function withClimbFeet(strip: ProfileStrip, raced: StageProfile | null): ProfileStrip {
+  if (raced === null || strip.climbs.every((c) => c.lenKm > 0)) return strip
+  const s = sampledOf(raced)
+  return {
+    ...strip,
+    climbs: strip.climbs.map((c) => (c.lenKm > 0 ? c : climbOf(s, c.topKm, c.cat, c.name))),
   }
 }
 
@@ -1281,27 +1343,21 @@ export function provisionalCast(
   return { riders, teams, favourites: [] }
 }
 
-/**
- * La notoriedad que el reparto provisional sabe dar (§7.5): la del maillot que lleva. El 6b la
- * completa con `staticNotoriety` (títulos, general, etapas ganadas y nombres conocidos).
- */
-function provisionalNotoriety(worn: WornJersey): NotorietyLevel {
-  if (worn.kind !== 'leader') return 8
-  if (worn.jersey === 'gc') return 0
-  return worn.delegated ? 3 : 2
-}
-
-/** Lo que el rótulo servido necesita de quien mira, además del horizonte. */
+/** Lo que el rótulo servido necesita de quien mira y de la carrera, además del horizonte. */
 export interface ServeCastContext {
   /** los corredores del espectador y de su equipo; vacío para el visitante */
   readonly own: ReadonlySet<RiderIx>
+  /** la categoría del día (`championshipCategory` de la carrera, o élite): la de los títulos que se llevan */
+  readonly dayCategory: 'elite' | 'u23'
 }
 
 /**
- * EL REPARTO SERVIDO (`BroadcastHead.cast`, §7.8), en su primera forma (3a): sin velo, porque hasta el
- * 7a solo hay horizontes con el velo vacío (`_h` lo recibirá en el 7b, con `veilCast`), sin líneas y
- * con la notoriedad del maillot (el 6b le da las líneas y `staticNotoriety`). Los nombres no se
- * congelan: se resuelven al servir, con los de hoy.
+ * EL REPARTO SERVIDO (`BroadcastHead.cast`, §7.8): un `RiderCard` por corredor con sus líneas cortadas
+ * a `cardLinesMax` y su notoriedad (`staticNotoriety`, §7.5), sobre el reparto congelado
+ * (`riderCardsOf`, en `shared` para que la web pruebe con la misma cabecera, B3). Todavía sin velo:
+ * `worldHorizon` llega ya (`h`), y el 7b mete delante `veilCast`, que degrada lo que viene de una etapa
+ * velada antes de cortar y de calcular la notoriedad (§7.8). Los nombres no se congelan: se resuelven
+ * al servir, con los de hoy.
  */
 export function serveCast(
   cast: TimelineCast,
@@ -1309,25 +1365,7 @@ export function serveCast(
   names: Pick<NameResolver, 'rider' | 'team'>,
   ctx: ServeCastContext,
 ): RiderCard[] {
-  return cast.riders.map((c) => {
-    const t = c.team === null ? undefined : cast.teams[c.team]
-    return {
-      ix: c.rider,
-      id: c.riderId,
-      name: names.rider(c.riderId),
-      bib: c.bib,
-      country: c.country,
-      gender: c.gender,
-      team:
-        t === undefined
-          ? null
-          : { id: t.teamId, name: names.team(t.teamId), jerseySeed: t.jerseySeed },
-      worn: c.worn,
-      lines: [],
-      notoriety: provisionalNotoriety(c.worn),
-      own: ctx.own.has(c.rider),
-    }
-  })
+  return riderCardsOf(cast, names, ctx.own, ctx.dayCategory)
 }
 
 // ======================================================= LA FUENTE: timelineForStage y su LRU (3a)

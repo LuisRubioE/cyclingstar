@@ -9,6 +9,7 @@ import {
   type WornJersey,
   assignLeaderJerseys,
   distinctions,
+  isJerseyKind,
   jerseyOf,
   leadingTeam,
   notorietyOf,
@@ -496,5 +497,13 @@ describe('la notoriedad sin fama (§7.5)', () => {
     expect(notorietyOf(card, delante)).toBe(6)
     // Quien ya está en el 5 o por encima se queda donde está.
     expect(notorietyOf({ ...card, notoriety: 3 }, grupos(45))).toBe(3)
+  })
+})
+
+describe('la guarda del maillot que llega en `datos` (§12.6; 6b)', () => {
+  it('isJerseyKind: solo los tres de JERSEY_PRIORITY, y nada que no sea una cadena', () => {
+    for (const j of JERSEY_PRIORITY) expect(isJerseyKind(j)).toBe(true)
+    for (const x of ['GC', 'young', 'team', '', null, undefined, 0, 1, {}, ['gc']])
+      expect(isJerseyKind(x)).toBe(false)
   })
 })

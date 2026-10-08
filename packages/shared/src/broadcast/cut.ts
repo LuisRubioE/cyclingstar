@@ -36,6 +36,7 @@ import type {
   TimelineCore,
 } from './timeline.js'
 import { toDs, toKm10 } from './timeline.js'
+import { ttKmEntries } from './timeTrial.js'
 import {
   type BroadcastChunk,
   type TimelineEventWire,
@@ -229,11 +230,18 @@ export function visibilityOf(tl: TimelineCore): TimelineVisibility {
     const tt = tl.tt
     ttKmDs = tt.kmClockDs.map((row, r) => row.map((d) => (tt.startDs[r] ?? 0) + d))
     ttCheckDs = tt.checkClockDs.map((row, r) => row.map((d) => (tt.startDs[r] ?? 0) + d))
-    // La última llegada (4-w). Sobre una crono cortada da la última llegada vista: la crono entra en
-    // B9 en el 6b, que es quien la mide.
+    // La última llegada (4-w), cuando se ven todas: en una crono cortada (o en la de la web) antes de
+    // la última llegada falta alguna y vale `Infinity`, como en línea sin la marca del último bloque. Con
+    // la última llegada vista (6b, B9) la crono cortada en T paraba su borde en lo último visto y sus
+    // tramos perdían lo de después.
+    const entries = ttKmEntries(tl.blocks)
     let last = Number.NEGATIVE_INFINITY
-    for (const row of ttKmDs) if (row.length > 0) last = Math.max(last, row[row.length - 1]!)
-    finishDs = last === Number.NEGATIVE_INFINITY ? Number.POSITIVE_INFINITY : last
+    let all = true
+    for (const row of ttKmDs) {
+      if (row.length < entries) all = false
+      if (row.length > 0) last = Math.max(last, row[row.length - 1]!)
+    }
+    finishDs = all && last > Number.NEGATIVE_INFINITY ? last : Number.POSITIVE_INFINITY
   } else finishDs = finishRaw ?? Number.POSITIVE_INFINITY
 
   const out: TimelineVisibility = {
