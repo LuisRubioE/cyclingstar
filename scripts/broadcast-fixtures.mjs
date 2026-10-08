@@ -501,6 +501,11 @@ async function runRace({ raceId, days }) {
       throw new Error(
         `${race.id} e${idx}: con la línea escrita, la radio guardada no es null (DD-11)`,
       )
+    // El adaptador (`--adapter`) solo sirve etapas sin línea, que desde el 11b son las únicas que
+    // guardan su radio: la congelada la recupera para que su snapshot sea el que el adaptador lee.
+    if (ADAPTER)
+      await t.client`update stage_snapshots set radio = ${JSON.stringify(storedRadio)}::jsonb
+                     where race_id = ${raceKey} and stage_day = ${idx}`
     const input = snap.input
     const lengthKm = stageLengthKm(input.profile)
     // Los sucesos de la etapa grabada, byte a byte los del 2 (B11 en pequeño: grabar no cambia la carrera).
