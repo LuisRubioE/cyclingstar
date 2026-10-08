@@ -2,6 +2,7 @@ import {
   ARCHETYPE_KEY_ATTR,
   type Attribute,
   ATTRIBUTES,
+  raceIdFromKey,
   riderAge,
   seasonPosition,
   type Gender,
@@ -19,9 +20,10 @@ import {
   MORALE,
   type StageEffort,
 } from '@cyclingstar/engine'
-import { and, desc, eq, gt, isNull, sql } from 'drizzle-orm'
+import { type SQL, and, desc, eq, gt, isNull, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
-import type { Horizon } from './horizon.js'
+import { type Horizon, type VeilDelta, veilDelta } from './horizon.js'
+import { seasonMinus } from './ranking.js'
 import {
   contracts,
   gameState,
@@ -213,11 +215,14 @@ export interface RiderHealth {
   untilDay: number | null
 }
 
-/** Estado de salud del corredor (sano / molestias / enfermo / lesionado) y hasta cuándo dura la baja. */
+/**
+ * Estado de salud del corredor (sano / molestias / enfermo / lesionado) y hasta cuándo dura la baja.
+ * M (E2, §10.6; sup. P5; 8b): con la caída (o la enfermedad) en una etapa que `h` tiene velada, la
+ * salud de antes, que es indistinguible de la de un corredor al que no le pasó nada (§11.6, punto 3).
+ */
 export async function getRiderHealth(
   db: Database,
-  // M (E2, §10.6): la máscara de lo velado llega en el 8b; hasta entonces lo recibe y no lo usa.
-  _h: Horizon,
+  h: Horizon,
   riderId: string,
 ): Promise<RiderHealth | null> {
   const rows = await db
@@ -227,6 +232,8 @@ export async function getRiderHealth(
     .limit(1)
   const r = rows[0]
   if (!r) return null
+  const before = (await veilDelta(db, h)).health.get(riderId)
+  if (before !== undefined) return { state: before.health, untilDay: before.untilDay }
   return { state: r.health as HealthState, untilDay: r.healthUntilDay }
 }
 
@@ -252,11 +259,16 @@ export interface RiderSummary {
 /**
  * Ranking de temporada por puntos entre los corredores en activo del mundo: puesto (cuántos tienen
  * más puntos, +1) y tamaño del campo. Reutilizado por la ficha propia y la pública.
+ *
+ * R (E2, §10.6 y §11.5, 11-f; sup. P1; 8b): el puesto es la posición en el ranking de la temporada A
+ * HORIZONTE, no la cuenta de los que tienen más puntos de verdad. `seasonPoints` son ya los del
+ * corredor a horizonte (los suyos menos los velados), y la cuenta de la base se corrige con los
+ * corredores que tienen puntos velados, que son pocos: cada uno deja de contar por sus puntos de
+ * verdad y cuenta por los suyos a horizonte. Con el velo vacío, la cuenta de siempre.
  */
 export async function getSeasonRank(
   db: Database,
-  // R (E2, §10.6, 11-f): en el 8b el puesto sale del ranking a horizonte; hasta entonces no lo usa.
-  _h: Horizon,
+  h: Horizon,
   worldId: string,
   seasonPoints: number,
 ): Promise<{ seasonRank: number; fieldSize: number }> {
@@ -269,13 +281,27 @@ export async function getSeasonRank(
     .select({ n: sql<number>`count(*)::int` })
     .from(riders)
     .where(activeWorld)
-  return { seasonRank: (betterRows[0]?.n ?? 0) + 1, fieldSize: totalRows[0]?.n ?? 0 }
+  let better = betterRows[0]?.n ?? 0
+  const d = await veilDelta(db, h)
+  if (d.points.size > 0) {
+    const veiled = await db
+      .select({ id: riders.id, points: riders.seasonPoints })
+      .from(riders)
+      .where(and(activeWorld, sql`${riders.id} = any(${sql.param([...d.points.keys()])}::uuid[])`))
+    for (const r of veiled)
+      better +=
+        Number(r.points - seasonMinus(d, r.id) > seasonPoints) - Number(r.points > seasonPoints)
+  }
+  return { seasonRank: better + 1, fieldSize: totalRows[0]?.n ?? 0 }
 }
 
-/** Estado del corredor para la cabecera del perfil: equipo, dinero, moral, fama, puntos y ranking. */
+/**
+ * Estado del corredor para la cabecera del perfil: equipo, dinero, moral, fama, puntos y ranking. R
+ * (E2, §10.6; sups. H2 y P1; 8b): los puntos de la temporada, el dinero (sin los premios de las etapas
+ * que `h` tiene veladas, `VeilDelta.money`) y el puesto, a horizonte.
+ */
 export async function getRiderSummary(
   db: Database,
-  // R (E2, §10.6): la resta de lo velado llega en el 8b; hasta entonces lo pasa sin usarlo.
   h: Horizon,
   riderId: string,
 ): Promise<RiderSummary | null> {
@@ -300,14 +326,16 @@ export async function getRiderSummary(
   const me = rows[0]
   if (!me) return null
 
-  const rank = await getSeasonRank(db, h, me.worldId, me.seasonPoints)
+  const d = await veilDelta(db, h)
+  const seasonPoints = me.seasonPoints - seasonMinus(d, riderId)
+  const rank = await getSeasonRank(db, h, me.worldId, seasonPoints)
   return {
     teamId: me.teamId,
     teamName: me.teamName,
-    money: me.money,
+    money: me.money - (d.money.get(riderId) ?? 0),
     morale: me.morale,
     fame: me.fame,
-    seasonPoints: me.seasonPoints,
+    seasonPoints,
     seasonRank: rank.seasonRank,
     fieldSize: rank.fieldSize,
     nationality: me.nationality,
@@ -330,11 +358,61 @@ export interface DailyLogRow {
   parte: StageEffort | null
 }
 
-/** Serie diaria de carga/forma (SPEC 4, 11) para la gráfica del perfil, orden ascendente. */
+/**
+ * LOS DÍAS DE CARRERA VELADOS DE UN CORREDOR (E2, docs/retransmision.md §11.13, decisión 11-e; sups.
+ * H4 y X1; 8b): día de juego → la actividad que el tick escribe para esa etapa
+ * (`carrera:<raceId>:e<n>`, `stageRun.ts`), en los días de las etapas que `h` tiene veladas de las
+ * carreras en cuya lista de salida está (`VeilDelta.raceDays`). Corriera o no: tras un abandono, los
+ * días que quedaban pasan a ser de entrenamiento o de descanso, y enseñarlo delataría el abandono.
+ */
+export function veiledRaceDays(
+  h: Horizon,
+  d: VeilDelta,
+  riderId: string,
+): ReadonlyMap<number, string> {
+  const days = new Set(d.raceDays.get(riderId) ?? [])
+  const out = new Map<number, string>()
+  for (const v of h.veil)
+    if (days.has(v.gameDay))
+      out.set(v.gameDay, `carrera:${raceIdFromKey(v.raceKey)}:e${v.stageDay}`)
+  return out
+}
+
+/**
+ * La serie de `GET /api/riders/me/form` bajo el velo (11-e): la carga se queda, porque es la condición
+ * (DD-08), y en un día de carrera velado la actividad pasa a la de su etapa y el parte, a null. Es lo que
+ * B1b deja cambiar en esa fila (`log.[veiledDay]`, §11.18).
+ */
+export function veilDailyLog(
+  rows: readonly DailyLogRow[],
+  veiled: ReadonlyMap<number, string>,
+): DailyLogRow[] {
+  return rows.map((r) => {
+    const activity = veiled.get(r.gameDay)
+    return activity === undefined ? r : { ...r, activity, parte: null }
+  })
+}
+
+/**
+ * Lo aprendido en carrera de los días velados (11-e): las filas de `rider_attr_log` con origen `carrera`
+ * o `sobrecompensacion` de esos días, que se multiplican por el puesto y dicen quién terminó (sup. X1).
+ * Las de `entrenamiento`, `declive` y `detraining` se quedan: no dependen de la etapa. La lista va como
+ * UN parámetro de tipo array, como en `veilSql`.
+ */
+function notLearnedOnVeiledDays(days: readonly number[]): SQL | undefined {
+  return days.length === 0
+    ? undefined
+    : sql`not (${riderAttrLog.source} in ('carrera', 'sobrecompensacion') and ${riderAttrLog.gameDay} = any(${sql.param([...days])}::int[]))`
+}
+
+/**
+ * Serie diaria de carga/forma (SPEC 4, 11) para la gráfica del perfil, orden ascendente. F (E2, §10.6,
+ * 11-e; sup. H4; 8b): un día de carrera velado se sirve como día de carrera, con la actividad de su
+ * etapa y sin parte (`veilDailyLog`).
+ */
 export async function getDailyLog(
   db: Database,
-  // F (E2, §10.6, 11-e): sin lo de los días de carrera velados, en el 8b; hasta entonces lo recibe y no lo usa.
-  _h: Horizon,
+  h: Horizon,
   riderId: string,
   limitDays: number,
 ): Promise<DailyLogRow[]> {
@@ -352,7 +430,8 @@ export async function getDailyLog(
     .where(eq(riderDailyLog.riderId, riderId))
     .orderBy(desc(riderDailyLog.gameDay))
     .limit(limitDays)
-  return rows.reverse()
+  const d = await veilDelta(db, h)
+  return veilDailyLog(rows.reverse(), veiledRaceDays(h, d, riderId))
 }
 
 /**
@@ -375,15 +454,15 @@ export interface AttrTrendRow {
 
 /**
  * Δ28 por atributo. Lo que NO aparece es que no se movió: la flecha de `→` se pinta con el cero, no
- * con un hueco.
+ * con un hueco. F (E2, §10.6, 11-e; sup. X1; 8b): sin lo aprendido en carrera los días velados.
  */
 export async function getAttrTrend(
   db: Database,
-  // F (E2, §10.6, 11-e): sin lo de los días de carrera velados, en el 8b; hasta entonces lo recibe y no lo usa.
-  _h: Horizon,
+  h: Horizon,
   riderId: string,
   currentDay: number,
 ): Promise<AttrTrendRow[]> {
+  const d = await veilDelta(db, h)
   const rows = await db
     .select({
       attr: riderAttrLog.attr,
@@ -394,6 +473,7 @@ export async function getAttrTrend(
       and(
         eq(riderAttrLog.riderId, riderId),
         gt(riderAttrLog.gameDay, currentDay - TREND_WINDOW_DAYS),
+        notLearnedOnVeiledDays(d.raceDays.get(riderId) ?? []),
       ),
     )
     .groupBy(riderAttrLog.attr)
@@ -527,15 +607,21 @@ export interface BlockReport {
  * un día y no su descomposición, así que `declive` y `detraining` viajan DENTRO del neto de
  * `entrenamiento` en vez de aparecer como líneas propias. Se dice aquí en vez de pintar una línea
  * «age −0,2» que sería inventada.
+ *
+ * F (E2, §10.6 y §11.13, 11-e; sup. X1; 8b): sin lo aprendido en carrera ni la sobrecompensación de los
+ * días velados, y las sesiones contadas por día, con cada día de carrera velado con la actividad de su
+ * etapa: la lista sale igual abandonara el corredor o no. `raceDays` sigue contando las sesiones
+ * `carrera` a secas, que el tick no escribe nunca: un defecto de hoy que E2 no arregla (§19.7, DD-24);
+ * el 8b solo lo vela.
  */
 export async function getBlockReport(
   db: Database,
-  // F (E2, §10.6, 11-e): sin lo de los días de carrera velados, en el 8b; hasta entonces lo recibe y no lo usa.
-  _h: Horizon,
+  h: Horizon,
   riderId: string,
   currentDay: number,
 ): Promise<BlockReport> {
   const desde = currentDay - TREND_WINDOW_DAYS
+  const d = await veilDelta(db, h)
   const log = await db
     .select({
       attr: riderAttrLog.attr,
@@ -543,7 +629,13 @@ export async function getBlockReport(
       delta: sql<number>`sum(${riderAttrLog.delta})`.as('delta'),
     })
     .from(riderAttrLog)
-    .where(and(eq(riderAttrLog.riderId, riderId), gt(riderAttrLog.gameDay, desde)))
+    .where(
+      and(
+        eq(riderAttrLog.riderId, riderId),
+        gt(riderAttrLog.gameDay, desde),
+        notLearnedOnVeiledDays(d.raceDays.get(riderId) ?? []),
+      ),
+    )
     .groupBy(riderAttrLog.attr, riderAttrLog.source)
 
   const porAttr = new Map<Attribute, { source: AttrLogSource; delta: number }[]>()
@@ -553,14 +645,21 @@ export async function getBlockReport(
     porAttr.set(row.attr as Attribute, lista)
   }
 
+  // Las sesiones, día a día (28 filas como mucho): cada día de carrera velado cuenta con la actividad
+  // de su etapa, corriera o no.
   const dias = await db
-    .select({ activity: riderDailyLog.activity, days: sql<number>`count(*)`.as('days') })
+    .select({ gameDay: riderDailyLog.gameDay, activity: riderDailyLog.activity })
     .from(riderDailyLog)
     .where(and(eq(riderDailyLog.riderId, riderId), gt(riderDailyLog.gameDay, desde)))
-    .groupBy(riderDailyLog.activity)
+  const veiled = veiledRaceDays(h, d, riderId)
+  const porActividad = new Map<string, number>()
+  for (const dia of dias) {
+    const activity = veiled.get(dia.gameDay) ?? dia.activity
+    porActividad.set(activity, (porActividad.get(activity) ?? 0) + 1)
+  }
 
-  const sessions = dias
-    .map((d) => ({ activity: d.activity, days: Number(d.days) }))
+  const sessions = [...porActividad]
+    .map(([activity, days]) => ({ activity, days }))
     .sort((a, b) => b.days - a.days || a.activity.localeCompare(b.activity))
   const raceDays = sessions.filter((s) => s.activity === 'carrera').reduce((a, s) => a + s.days, 0)
 

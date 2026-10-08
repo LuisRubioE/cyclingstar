@@ -16,7 +16,7 @@ import {
 } from '@cyclingstar/shared'
 import { and, eq, isNotNull, isNull, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
-import type { Horizon } from './horizon.js'
+import { type Horizon, veilDelta } from './horizon.js'
 import { contracts, riders, teamRacePlan, teams } from './schema.js'
 
 /**
@@ -260,11 +260,16 @@ function isEligible(race: CalendarRace, division: string): boolean {
  * Calendario del equipo del usuario: carreras elegibles de esta temporada aún por empezar, marcando
  * las que están en su calendario (natural por defecto, salvo excepción) y cuáles son naturales. Vacío
  * si el usuario no gestiona ningún equipo.
+ *
+ * R (E2, docs/retransmision.md §11.13; sups. X8 y P6; 8b): el presupuesto sin los premios de equipo de
+ * las etapas que `h` tiene veladas (`stage_team_results.prize`, 0049): el premio de equipo solo lo
+ * cobran el equipo del ganador de la etapa y los de la general final, con importes fijos, así que la
+ * cifra de hoy diría «tu corredor ganó». Lo velado es una cota inferior del real que no bloquea ninguna
+ * decisión: añadir una carrera no mira el presupuesto (`draftRace`). Velado por defecto, DD-26 (11-t).
  */
 export async function getTeamCalendar(
   db: Database,
-  // R (E2, §10.6, sup. X8): la resta del presupuesto velado llega en el 8b; hasta entonces lo recibe y no lo usa.
-  _h: Horizon,
+  h: Horizon,
   userId: string,
   currentDay: number,
 ): Promise<TeamCalendar | null> {
@@ -305,11 +310,12 @@ export async function getTeamCalendar(
     .sort((a, b) => a.startDay - b.startDay)
 
   const fin = await teamWeeklyFinances(db, team.id, team.division as Division)
+  const d = await veilDelta(db, h)
   return {
     teamId: team.id,
     teamName: team.name,
     teamCountry: team.country,
-    budget: team.budget,
+    budget: team.budget - (d.budget.get(team.id) ?? 0),
     weeklyIncome: fin.income,
     weeklyWages: fin.wages,
     weeklyNet: fin.income - fin.wages,

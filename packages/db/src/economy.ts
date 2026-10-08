@@ -9,10 +9,10 @@ import {
 } from '@cyclingstar/engine'
 import type { RaceLevel } from '@cyclingstar/engine'
 import { HOUSING_RENT_PER_WEEK, type StageRef, weeklyHousingCost } from '@cyclingstar/shared'
-import { and, desc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNotNull, isNull, not, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import type { Database } from './client.js'
-import type { Horizon } from './horizon.js'
+import { type Horizon, veilDelta, veilSql } from './horizon.js'
 import { contracts, riders, stageTeamResults, teams, transactions } from './schema.js'
 
 /**
@@ -243,12 +243,16 @@ export interface Ledger {
   entries: LedgerEntry[]
 }
 
-/** Libro de transacciones y saldo del corredor para el perfil. */
+/**
+ * Libro de transacciones y saldo del corredor para el perfil. F y R (E2, docs/retransmision.md §10.6 y
+ * §11.13; sup. H6; 8b): sin los premios de las etapas que `h` tiene veladas, que dicen su etapa desde
+ * la 0049 (`race_key` y `stage_day`, que escribe `creditRider` con `ref`), y el saldo sin ellos
+ * (`VeilDelta.money`), que es la suma de lo visible. Un premio anterior a la 0049 no dice su etapa y
+ * cuenta como conocido (13-l); el resto de movimientos no nace de ninguna etapa y se ve siempre.
+ */
 export async function getLedger(
   db: Database,
-  // F y R (E2, §10.6, sup. H6): sin los apuntes de las etapas veladas y el saldo de lo visible, en el
-  // 8b; hasta entonces lo recibe y no lo usa.
-  _h: Horizon,
+  h: Horizon,
   riderId: string,
   limit = 60,
 ): Promise<Ledger> {
@@ -265,8 +269,14 @@ export async function getLedger(
       note: transactions.note,
     })
     .from(transactions)
-    .where(eq(transactions.riderId, riderId))
+    .where(
+      and(
+        eq(transactions.riderId, riderId),
+        not(veilSql(h, transactions.raceKey, transactions.gameDay, transactions.stageDay)),
+      ),
+    )
     .orderBy(desc(transactions.gameDay), desc(transactions.createdAt))
     .limit(limit)
-  return { balance: balanceRows[0]?.money ?? 0, entries }
+  const d = await veilDelta(db, h)
+  return { balance: (balanceRows[0]?.money ?? 0) - (d.money.get(riderId) ?? 0), entries }
 }
