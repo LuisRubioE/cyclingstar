@@ -1,36 +1,40 @@
 #!/usr/bin/env node
 /**
- * B17 · EL RITMO MEDIDO (docs/retransmision.md §8.9, §16.4 y §17.3; E2, paso 0: la línea base).
+ * B17 · EL RITMO MEDIDO (docs/retransmision.md §8.9, §16.4, §17.3 y §17.13; E2, paso 0: la línea base;
+ * paso 10b: la línea grabada).
  *
  * Cuánto dura en pantalla cada etapa del banco con las curvas de la retransmisión, y si cada duración
- * cae en su banda (decisión 8-k). Corre `BROADCAST.pace` (`Watch`), `summaryPace` (`Highlights`) y
- * `ttPace` (la crono) con los valores de §15.3 sobre las 24 etapas del mapa 07 §7 —las 21 de
- * `race-france`, `race-flanders`, `race-tramuntana` y `race-colombia` e5— y, por defecto, con las
- * semillas 0 y 1 del banco de `scripts/race-radio.mjs` (mismo campo, misma semilla de etapa).
+ * cae en su banda (decisión 8-k). Corre `BROADCAST.pace` (`Watch`), `summaryPace` (`Highlights`), el
+ * digest (`digestPace` y, en la crono, `ttDigestScale`) y `ttPace` (la crono) sobre las 24 etapas del
+ * mapa 07 §7 —las 21 de `race-france`, `race-flanders`, `race-tramuntana` y `race-colombia` e5— y, por
+ * defecto, con las semillas 0 y 1 del banco de `scripts/race-radio.mjs` (mismo campo, misma semilla de
+ * etapa).
  *
- * DESDE EL 3a IMPORTA LA CURVA (decisión 17-c): `paceAt`, `playbackEstimateS` y las constantes
- * (`BROADCAST.pace`, `summaryPace`, `nominalKmh`) salen de `packages/shared`, y la cifra no se ha
- * movido: con el mismo reloj, la curva importada da las mismas duraciones que la copia del paso 0, al
- * segundo. `digestPace` (10a) y `ttPaceAt` (6b) todavía no existen en `shared`, y siguen aquí como
- * copias de §8.2 y §9.4 con las constantes de §15.3.
+ * LA CURVA ES LA DE `packages/shared` (decisión 17-c): `paceAt`, `playbackEstimateS`, `digestPace`,
+ * `ttPaceAt`, `ttPlaybackEstimateS`, `ttDigestScale` y las constantes de `BROADCAST`. Hasta el 10a el
+ * digest y la crono iban aquí como copias de §8.2 y §9.4; desde el 10b se importan, con las mismas
+ * duraciones (comprobado al segundo con el reloj del adaptador).
  *
- * El reloj de la cabeza es el ESTIMADO, el del adaptador de la radio (§3.8), y desde el 3a es el suyo
- * de verdad (`storedHeadClock`, apps/api/src/broadcastSource.ts): la velocidad del grupo en cabeza de
- * cada foto de la radio guardada (`radioForStorage`, como `stageRun.ts`), con la regla de la v90 (el
- * tramo de la foto k a la k + 1 lo mide la k + 1) y cada foto en el bloque del calendario del motor,
- * integrada y reescalada para que la meta caiga en el tiempo del ganador. El paso 0 llevaba una copia
- * con la regla de la v89 (el tramo con la velocidad de la foto de su inicio), y por eso las duraciones
- * de este informe no son las del paso 0: las mueve el reloj, no la curva. En el 10b, B17 se vuelve a
- * correr sobre la línea grabada.
+ * EL RELOJ DE LA CABEZA (`--reloj`):
  *
- * La crono no tiene radio: su ritmo va por la fracción de salidos, que solo pide el plan de salida
- * público (`timeTrialStartOrder`) y la llegada de cada uno (`results`). La hora a la que el último en
- * salir entra en su último km entero (`lastKmFromS` de §9.4) sale de la traza, que el motor no da
- * hasta el paso 4: aquí se estima repartiendo su tiempo real por el perfil a las velocidades
- * nominales (`nominalKmh`), y el 4b la tendrá exacta. El banco corre cada etapa sin general; la
- * crono de mitad de vuelta (la e16) se corre con la general inventada del juez de ejecutabilidad
- * (`juez-ejec/crono_gc.mjs`), la misma con la que §8.3 y §9.4 la midieron: sale el líder el último,
- * a 120 s.
+ * - `linea` (por defecto, desde el 10b): la LÍNEA GRABADA. Cada etapa se corre con el grabador
+ *   enganchado como lo hace el tick (`startRecording`, packages/engine/src/sim/timelineBench.ts: la
+ *   foto de cada bloque, los tres ganchos y el reparto del banco), y la cabeza es la menor marca de
+ *   reloj de cada km de foto, la que pinta `Watch` y la que mide la rápida
+ *   (`apps/api/src/broadcastPace.test.ts`, `headTrack`); el perfil, el de la cabecera
+ *   (`tl.profile`). Observar no cambia la carrera (B11): las etapas son las mismas que sin grabador.
+ *   En la crono, la hora a la que el último en salir entra en su último km entero sale de su traza
+ *   (`ttLastKmFromS`, §9.4), exacta.
+ * - `adaptador`: el reloj ESTIMADO del adaptador de la radio (§3.8; `storedHeadClock`,
+ *   apps/api/src/broadcastSource.ts), el de las etapas sin línea, con el que corrió B17 del 3a al 10a:
+ *   la velocidad del grupo en cabeza de cada foto de la radio guardada, integrada y reescalada para que
+ *   la meta caiga en el tiempo del ganador. La crono no tiene radio: su ritmo va por la fracción de
+ *   salidos, con el plan de salida público (`timeTrialStartOrder`) y la llegada de cada uno, y la hora
+ *   del último km del último se estima repartiendo su tiempo por el perfil a las velocidades nominales.
+ *
+ * El banco corre cada etapa sin general; la crono de mitad de vuelta (la e16) se corre con la general
+ * inventada del juez de ejecutabilidad (`juez-ejec/crono_gc.mjs`), la misma con la que §8.3 y §9.4 la
+ * midieron: sale el líder el último, a 120 s.
  *
  * Las bandas (8-k): `Watch` de 6:00 a 22:00 en línea; `Highlights` de 1:45 a 7:30 en línea; los
  * últimos 5 km, al menos el 15 % de `Watch` en línea y el 35 % en los FINALES EN SUBIDA; la crono, de
@@ -51,7 +55,7 @@
  *
  * Uso (hacen falta los `dist` de packages/* y de apps/api):
  *   pnpm exec tsc -b
- *   node scripts/bench-pace.mjs [--runs 0,1] [--json fichero.json]
+ *   node scripts/bench-pace.mjs [--runs 0,1] [--reloj linea|adaptador] [--json fichero.json]
  *
  * Sale con código 1 si alguna duración se sale de su banda.
  */
@@ -59,9 +63,15 @@ import { writeFileSync } from 'node:fs'
 import {
   ATTRIBUTES,
   BROADCAST,
+  digestPace,
   paceAt,
+  photoBlocksOf,
   playbackEstimateS,
   seededRng,
+  ttDigestScale,
+  ttLastKmFromS,
+  ttPaceAt,
+  ttPlaybackEstimateS,
 } from '../packages/shared/dist/index.js'
 import { storedHeadClock } from '../apps/api/dist/broadcastSource.js'
 import { eff0, initialEnergy } from '../packages/engine/dist/banister.js'
@@ -78,6 +88,7 @@ import {
   radioForStorage,
   radioKmPoints,
 } from '../packages/engine/dist/sim/raceRadio.js'
+import { startRecording } from '../packages/engine/dist/sim/timelineBench.js'
 import { autoStageOrders } from '../packages/engine/dist/world/autoOrders.js'
 import { generateNpcRider, sampleNpcAge } from '../packages/engine/dist/world/npc.js'
 import { calendarStageSpec } from '../apps/api/dist/stageHistory.js'
@@ -91,21 +102,23 @@ const RUNS = String(opt('runs', '0,1'))
   .split(',')
   .map((s) => Number(s.trim()))
 const JSON_OUT = opt('json', null)
+/** El reloj de la cabeza: la línea grabada (10b) o el estimado del adaptador (3a a 10a). */
+const CLOCK = String(opt('reloj', 'linea'))
+if (CLOCK !== 'linea' && CLOCK !== 'adaptador') {
+  console.error(`--reloj ${CLOCK}: tiene que ser linea o adaptador`)
+  process.exit(2)
+}
 
-// ----------------------------------- la curva, de packages/shared desde el 3a (§8.2, §15.3, 17-c)
+// ---------------------------------------- la curva, de packages/shared (§8.2, §9.4, §15.3, 17-c)
 
 /** `BROADCAST.pace` (`Watch`) y `summaryPace` (`Highlights`): s de carrera por s de pared. */
 const PACE = BROADCAST.pace
 const SUMMARY_PACE = BROADCAST.summaryPace
 /** `BROADCAST.digestBudgetS`: s de pared por etapa en el digest, por tipo de etapa. */
 const DIGEST_BUDGET_S = BROADCAST.digestBudgetS
-/** `BROADCAST.ttPace`: s de carrera por s de pared mientras la fracción de salidos es ≤ `upToStarted`. */
-const TT_PACE = BROADCAST.ttPace
-/** `BROADCAST.ttLastKmX`: el último km del último en salir. */
-const TT_LAST_KM_X = BROADCAST.ttLastKmX
-/** `BROADCAST.nominalKmh`: km/h por pendiente media del km, para la duración anunciada. */
+/** `BROADCAST.nominalKmh`: km/h por pendiente media del km, para la hora estimada del último km de la crono. */
 const nominalKmh = (pct) => BROADCAST.nominalKmh.find((b) => pct <= b.upToPct).kmh
-/** Un perfil con solo las cotas: es lo único que lee la duración anunciada. */
+/** Un perfil con solo las cotas: es lo único que leen la duración anunciada y el digest. */
 const strip = (altM) => ({ altM, climbs: [], sprintsKm: [], laps: 1 })
 
 /**
@@ -123,21 +136,7 @@ function last5Pct(altM, km) {
   return (altM[n] - altM[from]) / ((km - from) * 10)
 }
 
-/** §8.2: el digest, `summaryPace` escalada para que la estimación nominal dure su presupuesto. */
-function digestPace(altM, kind) {
-  const k = playbackEstimateS(strip(altM), SUMMARY_PACE) / DIGEST_BUDGET_S[kind]
-  return SUMMARY_PACE.map((z) => ({ aboveKm: z.aboveKm, x: z.x * k }))
-}
-
-/** §9.4: el `paceAt` de la crono, por fracción de salidos y con el último km del último a ×2. */
-function ttPaceAt(t, plan, lastKmFromS) {
-  if (lastKmFromS !== null && t >= lastKmFromS) return TT_LAST_KM_X
-  const started =
-    Math.min(plan.riders, Math.floor(Math.max(0, t) / plan.intervalS) + 1) / plan.riders
-  return (TT_PACE.find((z) => started <= z.upToStarted) ?? TT_PACE.at(-1)).x
-}
-
-/** ∫ de 0 a `end` de 1 / ttPaceAt: exacta, por tramos, porque la curva cambia en saltos. */
+/** ∫ de 0 a `end` de 1 / `ttPaceAt` (§9.4): exacta, por tramos, porque la curva cambia en saltos. */
 function ttWallS(plan, end, lastKmFromS) {
   let t = 0
   let wall = 0
@@ -151,14 +150,28 @@ function ttWallS(plan, end, lastKmFromS) {
   return wall
 }
 
-/** §9.4: la duración que se anuncia de una crono, solo con el plan y el perfil. */
-function ttPlaybackEstimateS(altM, plan) {
-  const km = altM.length - 1
-  let rodaje = 0
-  for (let k = 0; k < km; k++) rodaje += 3600 / nominalKmh((altM[k + 1] - altM[k]) / 10)
-  const ultimo = 3600 / nominalKmh((altM[km] - altM[km - 1]) / 10)
-  const fin = (plan.riders - 1) * plan.intervalS + rodaje
-  return ttWallS(plan, fin, fin - ultimo)
+/**
+ * La cabeza de una línea grabada en cada km de foto: [km del final de su bloque, s de carrera], la menor
+ * marca de reloj del bloque. La misma cuenta que `headTrack` de apps/api/src/broadcastPace.test.ts.
+ */
+function lineHeadTrack(tl) {
+  const minAt = new Map()
+  for (const e of tl.stateEvents)
+    if (e.t === 'clock')
+      for (const [, ds] of e.marks) minAt.set(e.b, Math.min(minAt.get(e.b) ?? Infinity, ds))
+  const pb = photoBlocksOf(tl.lengthKm, tl.dx)
+  return pb.map((b, k) => [
+    k === pb.length - 1 && b === tl.blocks - 1 ? tl.lengthKm : (b + 1) / 10,
+    minAt.get(b) / 10,
+  ])
+}
+
+/** Corre la etapa del banco con el grabador enganchado (`startRecording`) y cierra su línea. */
+function recordBankStage(race, stage, run) {
+  const { input, seed } = bankStage(race, stage, run)
+  const rec = startRecording(race.id, stage.index, input, seed)
+  const output = simulateStage(input, seed, rec.probe)
+  return { input, output, tl: rec.close(output).timeline }
 }
 
 // ------------------------------------------------- el perfil por km (`ProfileStrip.altM`, §4.2)
@@ -276,7 +289,17 @@ function wallByZone(H, L, zones) {
   return { wall, total: wall.reduce((a, b) => a + b, 0) }
 }
 
-function measureRoad(race, stage, run, label) {
+/** La cabeza de la etapa ([km, s de carrera] por km de foto, la meta incluida) y su perfil por km. */
+function roadHead(race, stage, run) {
+  if (CLOCK === 'linea') {
+    const { tl } = recordBankStage(race, stage, run)
+    return {
+      L: tl.lengthKm,
+      H: lineHeadTrack(tl),
+      altM: tl.profile.altM,
+      raceS: tl.finish.finishS,
+    }
+  }
   const { input, seed } = bankStage(race, stage, run)
   const L = stageLengthKm(input.profile)
   const collector = raceRadioCollector(radioKmPoints(L))
@@ -286,20 +309,26 @@ function measureRoad(race, stage, run, label) {
     ...output.results.filter((r) => r.estado === 'finish' && r.tiempoS > 0).map((r) => r.tiempoS),
   )
   const head = storedHeadClock(stored.kms, L, winnerS)
-  if (head === null) return { kind: 'sin reloj' }
+  if (head === null) return null
   const H = head.kms.map((p, k) => [p.km, head.head[k]])
   H.push([L, head.head[head.head.length - 1]])
+  return { L, H, altM: altMOf(input.profile).altM, raceS: winnerS }
+}
+
+function measureRoad(race, stage, run, label) {
+  const head = roadHead(race, stage, run)
+  if (head === null) return { kind: 'sin reloj' }
+  const { L, H, altM, raceS } = head
   const watch = wallByZone(H, L, PACE)
   const highlights = wallByZone(H, L, SUMMARY_PACE)
-  const { altM } = altMOf(input.profile)
-  const digest = wallByZone(H, L, digestPace(altM, stage.kind))
+  const digest = wallByZone(H, L, digestPace(strip(altM), stage.kind))
   const estimateS = playbackEstimateS(strip(altM), PACE)
   return {
     kind: 'road',
     stageKind: stage.kind,
     label,
     km: L,
-    raceS: winnerS,
+    raceS,
     last5GradePct: last5Pct(altM, L),
     watchS: watch.total,
     zonesS: watch.wall,
@@ -311,7 +340,27 @@ function measureRoad(race, stage, run, label) {
   }
 }
 
-function measureTimeTrial(race, stage, run) {
+/**
+ * El plan de una crono, el borde de la meta (la última llegada) y la hora del último km del último en
+ * salir: de su traza en la línea grabada; con el reloj del adaptador, de los resultados y el perfil.
+ */
+function timeTrialRun(race, stage, run) {
+  if (CLOCK === 'linea') {
+    const { tl } = recordBankStage(race, stage, run)
+    const plan = { riders: tl.riderIds.length, intervalS: tl.tt.intervalS }
+    // el último en salir y su llegada: su salida del plan más su reloj en la meta (9-a)
+    const lastStartDs = Math.max(...tl.tt.startDs)
+    const r = tl.tt.startDs.indexOf(lastStartDs)
+    return {
+      plan,
+      mode: tl.tt.order === 'gc' ? 'general' : 'dorsales',
+      endS: tl.finish.finishS,
+      lastKmFromS: ttLastKmFromS(tl),
+      lastRideEndS: (lastStartDs + tl.tt.kmClockDs[r].at(-1)) / 10,
+      altM: tl.profile.altM,
+      km: tl.lengthKm,
+    }
+  }
   const { input, seed } = bankStage(race, stage, run)
   const output = simulateStage(input, seed)
   const order = timeTrialStartOrder(
@@ -330,7 +379,7 @@ function measureTimeTrial(race, stage, run) {
   const endS = Math.max(...rides.map((x) => x.startS + x.tiempoS))
   const last = rides.reduce((a, b) => (b.startS > a.startS ? b : a))
   // La hora a la que el último en salir entra en su último km entero, repartiendo su tiempo real por
-  // el perfil a las velocidades nominales (sin la traza del paso 4, no hay otra cosa causal).
+  // el perfil a las velocidades nominales (sin la traza de la línea, no hay otra cosa causal).
   const { altM, blocks } = altMOf(input.profile)
   const lastWholeKm = blocks % 10 === 0 ? blocks / 10 - 1 : Math.floor(blocks / 10)
   let before = 0
@@ -341,22 +390,34 @@ function measureTimeTrial(race, stage, run) {
     total += s
     if (k < lastWholeKm) before += s
   }
-  const lastKmFromS = last.startS + last.tiempoS * (before / total)
-  const watchS = ttWallS(plan, endS, lastKmFromS)
-  const estimateS = ttPlaybackEstimateS(altM, plan)
+  return {
+    plan,
+    mode: order.mode,
+    endS,
+    lastKmFromS: last.startS + last.tiempoS * (before / total),
+    lastRideEndS: last.startS + last.tiempoS,
+    altM,
+    km: stageLengthKm(input.profile),
+  }
+}
+
+function measureTimeTrial(race, stage, run) {
+  const tt = timeTrialRun(race, stage, run)
+  const watchS = ttWallS(tt.plan, tt.endS, tt.lastKmFromS)
+  const estimateS = ttPlaybackEstimateS(strip(tt.altM), tt.plan)
   return {
     kind: 'tt',
     stageKind: stage.kind,
-    km: stageLengthKm(input.profile),
-    riders: plan.riders,
-    intervalS: plan.intervalS,
-    mode: order.mode,
-    raceS: endS,
-    lastKmS: last.startS + last.tiempoS - lastKmFromS,
+    km: tt.km,
+    riders: tt.plan.riders,
+    intervalS: tt.plan.intervalS,
+    mode: tt.mode,
+    raceS: tt.endS,
+    lastKmS: tt.lastRideEndS - tt.lastKmFromS,
     watchS,
-    // 8-m: en una crono, Highlights y el digest son una sola curva, ttPaceAt escalada para que la
-    // estimación nominal dure su presupuesto.
-    digestS: (watchS * DIGEST_BUDGET_S.cri) / estimateS,
+    // 8-m: en una crono, Highlights y el digest son una sola curva, `ttPaceAt` escalada para que la
+    // estimación nominal dure su presupuesto (`ttDigestScale`).
+    digestS: watchS / ttDigestScale(strip(tt.altM), tt.plan),
     digestBudgetS: DIGEST_BUDGET_S.cri,
     estimateS,
   }
@@ -413,7 +474,7 @@ const isSummit = (r) => r.label === 'Summit finish'
 const isClimbingFinish = (r) => isSummit(r) && r.last5GradePct >= CLIMBING_FINISH_MIN_PCT
 
 console.log(
-  `\nB17 · el ritmo medido · motor v${ENGINE_VERSION} · semillas ${RUNS.join(', ')} · reloj estimado del adaptador (§3.8, storedHeadClock) · curva de packages/shared\n`,
+  `\nB17 · el ritmo medido · motor v${ENGINE_VERSION} · semillas ${RUNS.join(', ')} · ${CLOCK === 'linea' ? 'la línea grabada (startRecording; la cabeza, su menor marca por km de foto)' : 'reloj estimado del adaptador (§3.8, storedHeadClock)'} · curva de packages/shared\n`,
 )
 console.log(
   `| Etapa | Etiqueta | km | sube en los últimos 5 km | \`Watch\` | ${ZONES.map((z) => `${z} km`).join(' | ')} | últimos 5 km, % | \`Highlights\` | digest (presupuesto) | anunciada · error |`,
@@ -530,7 +591,7 @@ console.log(
 if (JSON_OUT) {
   writeFileSync(
     JSON_OUT,
-    JSON.stringify({ engineVersion: ENGINE_VERSION, runs: RUNS, rows }, null, 1),
+    JSON.stringify({ engineVersion: ENGINE_VERSION, runs: RUNS, clock: CLOCK, rows }, null, 1),
   )
   console.log(`(volcado en ${JSON_OUT})`)
 }
