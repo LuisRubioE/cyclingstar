@@ -3,6 +3,7 @@ import { z } from 'zod'
 import {
   ApiError,
   ContractError,
+  GateError,
   isUnauthorized,
   request,
   requestOptionalAuth,
@@ -168,5 +169,58 @@ describe('web: el retry-after de un 429 (docs/retransmision.md §14.11, 14-q)', 
     expect(retryAfterOf('')).toBeNull()
     expect(retryAfterOf('-3')).toBeNull()
     expect(retryAfterOf('Wed, 21 Oct 2015 07:28:00 GMT')).toBeNull()
+  })
+})
+
+/**
+ * LA PUERTA POR LA RED (E2, docs/retransmision.md §14.2 y §14.11; D-37, 14-h; paso 9a): el 403 de una
+ * ruta de etapa con la puerta es el error de siempre con `gate` al lado (`sendGate`), y `failed()` lo
+ * lanza como `GateError`, que sigue siendo un `ApiError`: las pantallas preguntan `instanceof GateError`
+ * para enseñar `StageGateCard`, y lo demás lo trata como hoy.
+ */
+describe('web: GateError, el 403 con la puerta', () => {
+  it('un 403 con `gate` es un GateError con la puerta, y sigue siendo un ApiError con su código', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        response(
+          { ok: false, error: 'previous_unseen', gate: { k: 'previous_unseen', firstUnseen: 6 } },
+          403,
+        ),
+      ),
+    )
+    const error = await request('/api/x', schema).catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(GateError)
+    expect(error).toBeInstanceOf(ApiError)
+    expect(error).toMatchObject({
+      status: 403,
+      code: 'previous_unseen',
+      gate: { k: 'previous_unseen', firstUnseen: 6 },
+    })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => response({ ok: false, error: 'not_seen', gate: { k: 'not_seen' } }, 403)),
+    )
+    expect(await request('/api/x', schema).catch((e: unknown) => e)).toMatchObject({
+      code: 'not_seen',
+      gate: { k: 'not_seen' },
+    })
+  })
+
+  it('un 403 sin puerta, o con una puerta que no es de las dos, es el ApiError de siempre', async () => {
+    for (const body of [
+      { ok: false, error: 'no_convocado' },
+      { ok: false, error: 'not_seen', gate: { k: 'otra' } },
+      { ok: false, error: 'previous_unseen', gate: { k: 'previous_unseen' } },
+    ]) {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => response(body, 403)),
+      )
+      const error = await request('/api/x', schema).catch((e: unknown) => e)
+      expect(error).toBeInstanceOf(ApiError)
+      expect(error).not.toBeInstanceOf(GateError)
+      expect((error as ApiError).code).toBe(body.error)
+    }
   })
 })
