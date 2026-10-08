@@ -47,6 +47,11 @@ export interface RiderRaceReport {
   komPoints: number
   bonusS: number
   winnerName: string | null
+  /**
+   * Sus momentos en la etapa RE-SIMULADA (abajo). Desde el paso 12 de E2 la web pinta los `moments`, las
+   * líneas del acta que arma la ruta con los sucesos guardados (§12.9, 12-k), y esto se sigue mandando
+   * mientras haya una web que lo lea.
+   */
   personalEvents: RaceReportEvent[]
   /** Cómo se decidió la etapa (fuga, si se cazó o llegó): resumen colectivo breve. */
   story: RaceReportEvent[]

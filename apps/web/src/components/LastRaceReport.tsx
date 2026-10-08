@@ -1,14 +1,25 @@
 import { useQuery } from '@tanstack/react-query'
 import { fetchLastRace, lastRaceKey } from '../api/lastRace'
 import { mentalityLabel, roleLabel } from '../domain/labels'
-import { personalNarration, raceVerdict } from '../domain/narration'
+import { raceVerdict } from '../domain/narration'
 import { useHorizonRev } from '../queryClient'
+import { ChronicleSentence } from './ChronicleSentence'
 import { LastRaceReady } from './LastRaceReady'
 import { StageRoute } from './StageRoute'
 
 /**
+ * La revisión de plantillas con que se redactan los momentos (E2, §12.7; paso 12). El informe no la
+ * lleva, como la ruta de etapa: vale 0, la de toda etapa corrida hasta hoy. Antes de que `TEMPLATE_REV`
+ * pase de 0, el informe y la ruta de etapa tienen que servir la de su etapa (`readStageTemplateRev`).
+ */
+const MOMENTS_REV = 0
+
+/**
  * Panel "Your last race" (backlog extra): compara lo que el corredor ordenó con lo que ocurrió,
- * con su crónica personal (solo los momentos en los que fue protagonista) y un veredicto.
+ * con su crónica personal y un veredicto. La crónica personal son sus MOMENTOS (E2, §12.9, 12-k; paso
+ * 12): las líneas del acta de la etapa en que es protagonista o destinatario, redactadas como el acta y
+ * con la identidad del día. Antes eran `personalEvents` de la etapa re-simulada, con una frase en segunda
+ * persona para siete plantillas (`personalNarration`) y la clave cruda en las demás.
  *
  * Bajo el velo (E2, §11.4; sup. H5; 9b): el informe es el de la última etapa CONOCIDA, y si la última que
  * corrió está velada, la tarjeta lo dice (`Your last race · Race France, Stage 8 · Ready to watch`) con
@@ -30,6 +41,7 @@ export function LastRaceReport() {
     )
   const data = last.data.report
   if (!data) return null
+  const moments = data.moments ?? []
 
   // Solo el 1º es "winner". El resto ve su diferencia; si llegó en el mismo grupo que el ganador la
   // diferencia es 0 (mismo tiempo), lo normal en un esprint — eso NO es haber ganado.
@@ -112,12 +124,14 @@ export function LastRaceReport() {
         </div>
         <div>
           <h3 className="text-xs font-semibold text-slate-500">What happened to you</h3>
-          {data.personalEvents.length > 0 ? (
+          {moments.length > 0 ? (
             <ul className="mt-1 space-y-0.5 text-sm text-slate-600">
-              {data.personalEvents.map((e, i) => (
+              {moments.map((e, i) => (
                 <li key={i} className="flex gap-2">
                   <span className="w-12 shrink-0 tabular-nums text-slate-400">km {e.km}</span>
-                  <span>{personalNarration(e.plantilla)}</span>
+                  <span>
+                    <ChronicleSentence e={e} rev={MOMENTS_REV} />
+                  </span>
                 </li>
               ))}
             </ul>
