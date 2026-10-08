@@ -12,12 +12,14 @@ import {
   removeBlocked,
   setUserPremium,
   updateUserAsAdmin,
+  worldHorizon,
 } from '@cyclingstar/db'
 import { checkReplay } from '@cyclingstar/engine'
 import { currentSeason } from '@cyclingstar/shared'
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { badRequest, notFound, sendError } from '../http.js'
+import { ADMIN_VEIL } from '../spoiler.js'
 import type { AdminRouteContext } from './context.js'
 import { isCalendarRaceId, parseRaceId, parseStageDay } from './params.js'
 
@@ -57,114 +59,158 @@ export const adminRoutes: FastifyPluginAsync<AdminRouteContext> = async (app, ct
     ¿Soy admin? La web lo pregunta para decidir si enseña el panel. 200 con cómo, o el 401 de la
     guarda: la respuesta a «no» es la misma que la de cualquier otra ruta de admin.
   */
-  app.get('/api/admin/whoami', async (request, reply) => {
-    const actor = await requireAdmin(request, reply)
-    if (!actor) return
-    return { ok: true, via: actor.via, userId: actor.via === 'session' ? actor.userId : null }
-  })
+  app.get(
+    '/api/admin/whoami',
+    { config: { spoiler: 'horizon', veil: ADMIN_VEIL } },
+    async (request, reply) => {
+      const actor = await requireAdmin(request, reply)
+      if (!actor) return
+      return { ok: true, via: actor.via, userId: actor.via === 'session' ? actor.userId : null }
+    },
+  )
 
   // Cuentas (panel de administración): listar con búsqueda por correo, cambiar y borrar.
-  app.get<{ Querystring: { q?: string } }>('/api/admin/users', async (request, reply) => {
-    if (!(await requireAdmin(request, reply))) return
-    const q = userSearchSchema.safeParse(request.query.q)
-    if (!q.success) return badRequest(reply)
-    return { ok: true, users: await listUsersForAdmin(db, { search: q.data, rootEmail }) }
-  })
+  app.get<{ Querystring: { q?: string } }>(
+    '/api/admin/users',
+    { config: { spoiler: 'horizon', veil: ADMIN_VEIL } },
+    async (request, reply) => {
+      if (!(await requireAdmin(request, reply))) return
+      const q = userSearchSchema.safeParse(request.query.q)
+      if (!q.success) return badRequest(reply)
+      return { ok: true, users: await listUsersForAdmin(db, { search: q.data, rootEmail }) }
+    },
+  )
 
-  app.patch<{ Params: { id: string } }>('/api/admin/users/:id', async (request, reply) => {
-    const actor = await requireAdmin(request, reply)
-    if (!actor) return
-    const id = userIdSchema.safeParse(request.params.id)
-    const patch = userPatchSchema.safeParse(request.body)
-    if (!id.success || !patch.success) return badRequest(reply)
-    // Quitarse el permiso a uno mismo es la forma más tonta de quedarse sin administrador.
-    if (actor.via === 'session' && actor.userId === id.data && patch.data.isAdmin === false) {
-      return sendError(reply, 409, 'no_puedes_quitarte_admin')
-    }
-    if (!(await updateUserAsAdmin(db, id.data, patch.data))) return notFound(reply)
-    return { ok: true }
-  })
+  app.patch<{ Params: { id: string } }>(
+    '/api/admin/users/:id',
+    { config: { spoiler: 'horizon', veil: ADMIN_VEIL } },
+    async (request, reply) => {
+      const actor = await requireAdmin(request, reply)
+      if (!actor) return
+      const id = userIdSchema.safeParse(request.params.id)
+      const patch = userPatchSchema.safeParse(request.body)
+      if (!id.success || !patch.success) return badRequest(reply)
+      // Quitarse el permiso a uno mismo es la forma más tonta de quedarse sin administrador.
+      if (actor.via === 'session' && actor.userId === id.data && patch.data.isAdmin === false) {
+        return sendError(reply, 409, 'no_puedes_quitarte_admin')
+      }
+      if (!(await updateUserAsAdmin(db, id.data, patch.data))) return notFound(reply)
+      return { ok: true }
+    },
+  )
 
-  app.delete<{ Params: { id: string } }>('/api/admin/users/:id', async (request, reply) => {
-    const actor = await requireAdmin(request, reply)
-    if (!actor) return
-    const id = userIdSchema.safeParse(request.params.id)
-    if (!id.success) return badRequest(reply)
-    // La propia cuenta se borra desde ajustes, con contraseña: aquí sería un clic sin vuelta atrás.
-    if (actor.via === 'session' && actor.userId === id.data) {
-      return sendError(reply, 409, 'borra_tu_cuenta_desde_ajustes')
-    }
-    // El administrador raíz lo pone el despliegue (ADMIN_EMAIL): otro admin no puede echarlo.
-    if (await isRootAdminUser(db, id.data, rootEmail)) {
-      return sendError(reply, 409, 'es_el_admin_raiz')
-    }
-    if (!(await deleteUserAsAdmin(db, id.data))) return notFound(reply)
-    return { ok: true }
-  })
+  app.delete<{ Params: { id: string } }>(
+    '/api/admin/users/:id',
+    { config: { spoiler: 'horizon', veil: ADMIN_VEIL } },
+    async (request, reply) => {
+      const actor = await requireAdmin(request, reply)
+      if (!actor) return
+      const id = userIdSchema.safeParse(request.params.id)
+      if (!id.success) return badRequest(reply)
+      // La propia cuenta se borra desde ajustes, con contraseña: aquí sería un clic sin vuelta atrás.
+      if (actor.via === 'session' && actor.userId === id.data) {
+        return sendError(reply, 409, 'borra_tu_cuenta_desde_ajustes')
+      }
+      // El administrador raíz lo pone el despliegue (ADMIN_EMAIL): otro admin no puede echarlo.
+      if (await isRootAdminUser(db, id.data, rootEmail)) {
+        return sendError(reply, 409, 'es_el_admin_raiz')
+      }
+      if (!(await deleteUserAsAdmin(db, id.data))) return notFound(reply)
+      return { ok: true }
+    },
+  )
 
   // Tick manual protegido (Paso 10): recuperación y desarrollo (SPEC 12).
   if (ctx.onAdminTick) {
     const onAdminTick = ctx.onAdminTick
-    app.post('/admin/tick', async (request, reply) => {
-      if (!(await requireAdmin(request, reply))) return
-      const summary = await onAdminTick()
-      return reply.send({ ok: true, ...summary })
-    })
+    app.post(
+      '/admin/tick',
+      { config: { spoiler: 'horizon', veil: ADMIN_VEIL } },
+      async (request, reply) => {
+        if (!(await requireAdmin(request, reply))) return
+        const summary = await onAdminTick()
+        return reply.send({ ok: true, ...summary })
+      },
+    )
   }
 
   // Avance forzado de días para pruebas (Paso 32): POST /admin/advance?days=N. Ignora el tiempo
   // real y procesa N días de juego (carreras + entrenamiento). Protegido por ADMIN_TOKEN.
   if (ctx.onAdminAdvance) {
     const onAdminAdvance = ctx.onAdminAdvance
-    app.post<{ Querystring: { days?: string } }>('/admin/advance', async (request, reply) => {
-      if (!(await requireAdmin(request, reply))) return
-      const days = Math.min(30, Math.max(1, Number(request.query.days ?? 1) || 1))
-      const summary = await onAdminAdvance(days)
-      return reply.send({ ok: true, ...summary })
-    })
+    app.post<{ Querystring: { days?: string } }>(
+      '/admin/advance',
+      { config: { spoiler: 'horizon', veil: ADMIN_VEIL } },
+      async (request, reply) => {
+        if (!(await requireAdmin(request, reply))) return
+        const days = Math.min(30, Math.max(1, Number(request.query.days ?? 1) || 1))
+        const summary = await onAdminAdvance(days)
+        return reply.send({ ok: true, ...summary })
+      },
+    )
   }
 
   // Lista de bloqueo de nombres (equipos reales, ciclistas/famosos reales), curada por admins.
   // "Base secreta" no enlazada en la web.
-  app.get<{ Querystring: { kind?: string } }>('/api/admin/blocklist', async (request, reply) => {
-    if (!(await requireAdmin(request, reply))) return
-    const kind = kindSchema.safeParse(request.query.kind)
-    if (!kind.success) return badRequest(reply)
-    return { ok: true, items: await listBlocked(db, kind.data as BlockedKind) }
-  })
+  app.get<{ Querystring: { kind?: string } }>(
+    '/api/admin/blocklist',
+    { config: { spoiler: 'horizon', veil: ADMIN_VEIL } },
+    async (request, reply) => {
+      if (!(await requireAdmin(request, reply))) return
+      const kind = kindSchema.safeParse(request.query.kind)
+      if (!kind.success) return badRequest(reply)
+      return { ok: true, items: await listBlocked(db, kind.data as BlockedKind) }
+    },
+  )
 
-  app.post('/api/admin/blocklist', async (request, reply) => {
-    if (!(await requireAdmin(request, reply))) return
-    const parsed = addSchema.safeParse(request.body)
-    if (!parsed.success) return badRequest(reply)
-    const { kind, value, note } = parsed.data
-    const { inserted } = await addBlocked(db, kind as BlockedKind, value, note ?? null)
-    return reply.status(inserted ? 201 : 200).send({ ok: true, inserted })
-  })
+  app.post(
+    '/api/admin/blocklist',
+    { config: { spoiler: 'horizon', veil: ADMIN_VEIL } },
+    async (request, reply) => {
+      if (!(await requireAdmin(request, reply))) return
+      const parsed = addSchema.safeParse(request.body)
+      if (!parsed.success) return badRequest(reply)
+      const { kind, value, note } = parsed.data
+      const { inserted } = await addBlocked(db, kind as BlockedKind, value, note ?? null)
+      return reply.status(inserted ? 201 : 200).send({ ok: true, inserted })
+    },
+  )
 
-  app.delete<{ Params: { id: string } }>('/api/admin/blocklist/:id', async (request, reply) => {
-    if (!(await requireAdmin(request, reply))) return
-    const id = z.string().uuid().safeParse(request.params.id)
-    if (!id.success) return badRequest(reply)
-    await removeBlocked(db, id.data)
-    return { ok: true }
-  })
+  app.delete<{ Params: { id: string } }>(
+    '/api/admin/blocklist/:id',
+    { config: { spoiler: 'horizon', veil: ADMIN_VEIL } },
+    async (request, reply) => {
+      if (!(await requireAdmin(request, reply))) return
+      const id = z.string().uuid().safeParse(request.params.id)
+      if (!id.success) return badRequest(reply)
+      await removeBlocked(db, id.data)
+      return { ok: true }
+    },
+  )
 
   // Salud del mundo para el panel de admin (#84): día, censo y últimos ticks. Solo lectura.
-  app.get('/api/admin/health', async (request, reply) => {
-    if (!(await requireAdmin(request, reply))) return
-    return { ok: true, health: await getWorldHealth(db) }
-  })
+  app.get(
+    '/api/admin/health',
+    { config: { spoiler: 'horizon', veil: ADMIN_VEIL } },
+    async (request, reply) => {
+      if (!(await requireAdmin(request, reply))) return
+      return { ok: true, health: await getWorldHealth(db) }
+    },
+  )
 
   // Concede/retira premium por email (admin). Premium habilita tomar el control de un equipo bot.
-  app.post('/api/admin/premium', async (request, reply) => {
-    if (!(await requireAdmin(request, reply))) return
-    const parsed = premiumSchema.safeParse(request.body)
-    if (!parsed.success) return badRequest(reply)
-    const { updated } = await setUserPremium(db, parsed.data.email, parsed.data.premium)
-    if (!updated) return notFound(reply, 'usuario_no_encontrado')
-    return { ok: true }
-  })
+  app.post(
+    '/api/admin/premium',
+    { config: { spoiler: 'horizon', veil: ADMIN_VEIL } },
+    async (request, reply) => {
+      if (!(await requireAdmin(request, reply))) return
+      const parsed = premiumSchema.safeParse(request.body)
+      if (!parsed.success) return badRequest(reply)
+      const { updated } = await setUserPremium(db, parsed.data.email, parsed.data.premium)
+      if (!updated) return notFound(reply, 'usuario_no_encontrado')
+      return { ok: true }
+    },
+  )
 
   /**
    * EL SNAPSHOT DE UNA ETAPA CORRIDA: la semilla, la entrada y la versión del motor con que corrió.
@@ -185,6 +231,7 @@ export const adminRoutes: FastifyPluginAsync<AdminRouteContext> = async (app, ct
    */
   app.get<{ Params: { raceId: string; day: string }; Querystring: { season?: string } }>(
     '/api/admin/stage-snapshot/:raceId/:day',
+    { config: { spoiler: 'horizon', veil: ADMIN_VEIL } },
     async (request, reply) => {
       if (!(await requireAdmin(request, reply))) return
       const raceId = parseRaceId(request.params.raceId)
@@ -199,7 +246,8 @@ export const adminRoutes: FastifyPluginAsync<AdminRouteContext> = async (app, ct
       const seasonNumber = season ? season.data : world ? currentSeason(world.currentDay) : null
       if (seasonNumber === null) return notFound(reply, 'sin_mundo')
       const raceKey = `${raceId}:s${seasonNumber}`
-      const snapshot = await getStageSnapshot(db, raceKey, day)
+      // Solo administradores (L, §11.3): el mundo entero, sin velo (§10.6, punto 1).
+      const snapshot = await getStageSnapshot(db, worldHorizon, raceKey, day)
       // Una etapa que no se ha corrido no tiene snapshot: es un 404, no una respuesta vacía.
       if (!snapshot) return notFound(reply)
       // Dorsal, nombre y equipo NO los sabe el motor y no debe saberlos: se cruzan aquí, con la

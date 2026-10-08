@@ -8,11 +8,12 @@ import {
   teamStagePrize,
 } from '@cyclingstar/engine'
 import type { RaceLevel } from '@cyclingstar/engine'
-import { HOUSING_RENT_PER_WEEK, weeklyHousingCost } from '@cyclingstar/shared'
+import { HOUSING_RENT_PER_WEEK, type StageRef, weeklyHousingCost } from '@cyclingstar/shared'
 import { and, desc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import type { Database } from './client.js'
-import { contracts, riders, teams, transactions } from './schema.js'
+import type { Horizon } from './horizon.js'
+import { contracts, riders, stageTeamResults, teams, transactions } from './schema.js'
 
 /**
  * Economía del corredor (SPEC 9, Paso 38). Salario semanal (desde el contrato), premios de carrera
@@ -25,7 +26,12 @@ type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
 
 type TxnKind = 'salario' | 'premio' | 'staff' | 'patrocinador' | 'viaje' | 'vivienda' | 'otro'
 
-/** Apunta una transacción y mueve el saldo del corredor en la misma operación. */
+/**
+ * Apunta una transacción y mueve el saldo del corredor en la misma operación. `ref`, desde la 0049
+ * (E2, docs/retransmision.md §13.5, decisión 13-e): la etapa que dio un premio, para que el velo pueda
+ * restarlo (8b). Solo la pasan los premios de `awardRacePrizes`; el viaje se cobra antes de la carrera y
+ * no dice nada del resultado, y el resto de movimientos no nace de ninguna etapa.
+ */
 export async function creditRider(
   tx: Tx,
   riderId: string,
@@ -33,9 +39,18 @@ export async function creditRider(
   kind: TxnKind,
   amount: number,
   note: string,
+  ref?: StageRef,
 ): Promise<void> {
   if (amount === 0) return
-  await tx.insert(transactions).values({ riderId, gameDay, kind, amount, note })
+  await tx.insert(transactions).values({
+    riderId,
+    gameDay,
+    kind,
+    amount,
+    note,
+    raceKey: ref?.raceKey ?? null,
+    stageDay: ref?.stageDay ?? null,
+  })
   await tx
     .update(riders)
     .set({ money: sql`${riders.money} + ${amount}` })
@@ -131,6 +146,10 @@ export async function runTeamFinances(tx: Tx, worldId: string, gameDay: number):
 /**
  * Premios de una etapa ya corrida: premio al ganador y, si es la última etapa, reparto de la
  * general (SPEC 9). Solo se apuntan los de corredores humanos. `standings` viene ordenada.
+ *
+ * `ref` es la etapa que se acaba de correr (E2, docs/retransmision.md §13.5, decisiones 13-e a 13-g):
+ * obligatorio, porque tiene un solo llamador (`stageRun.ts`). Con él cada premio de corredor dice su
+ * etapa en `transactions` y el de equipo deja su libro en `stage_team_results.prize`.
  */
 export async function awardRacePrizes(
   tx: Tx,
@@ -140,6 +159,7 @@ export async function awardRacePrizes(
   stageWinnerId: string,
   isFinalStage: boolean,
   gcOrder: string[],
+  ref: StageRef,
 ): Promise<void> {
   const ids = [...new Set([stageWinnerId, ...gcOrder.slice(0, gcPrizes(level).length)])]
   const rows = await tx
@@ -151,6 +171,13 @@ export async function awardRacePrizes(
 
   // Premio personal del CORREDOR humano (a su bolsillo) + premio de EQUIPO (a su presupuesto): los
   // resultados dan ingresos al equipo, no solo el patrocinio. El de equipo va a todos (NPC o humano).
+  //
+  // EL LIBRO DEL PRESUPUESTO (0049, D-41): lo que suma el equipo en esta etapa se apunta también en su
+  // fila de `stage_team_results`, la que la etapa ya escribió antes (`stageRun.ts`), con un `update` y
+  // nunca con un `insert`: uno crearía, para un equipo sin fila, una con `scored = true` por defecto,
+  // que es justo lo que la fila existe para distinguir (13-f). El ganador y los de la general
+  // terminaron la etapa, así que su equipo tiene fila; si alguna vez no la tuviera, el presupuesto se
+  // movería igual y `stageRun.test.ts` (la suma de `prize`) lo cazaría.
   const creditTeam = async (riderId: string, amount: number) => {
     const teamId = teamByRider.get(riderId)
     if (teamId) {
@@ -158,6 +185,16 @@ export async function awardRacePrizes(
         .update(teams)
         .set({ budget: sql`${teams.budget} + ${amount}` })
         .where(eq(teams.id, teamId))
+      await tx
+        .update(stageTeamResults)
+        .set({ prize: sql`${stageTeamResults.prize} + ${amount}` })
+        .where(
+          and(
+            eq(stageTeamResults.raceId, ref.raceKey),
+            eq(stageTeamResults.stageDay, ref.stageDay),
+            eq(stageTeamResults.teamId, teamId),
+          ),
+        )
     }
   }
 
@@ -169,6 +206,7 @@ export async function awardRacePrizes(
       'premio',
       stagePrize(level),
       `${raceName} · stage win`,
+      ref,
     )
   }
   await creditTeam(stageWinnerId, teamStagePrize(level))
@@ -178,7 +216,15 @@ export async function awardRacePrizes(
     for (let i = 0; i < gcOrder.length && i < prizes.length; i++) {
       const riderId = gcOrder[i]!
       if (humans.has(riderId)) {
-        await creditRider(tx, riderId, gameDay, 'premio', prizes[i]!, `${raceName} · GC #${i + 1}`)
+        await creditRider(
+          tx,
+          riderId,
+          gameDay,
+          'premio',
+          prizes[i]!,
+          `${raceName} · GC #${i + 1}`,
+          ref,
+        )
       }
       await creditTeam(riderId, teamPrizes[i]!)
     }
@@ -198,7 +244,14 @@ export interface Ledger {
 }
 
 /** Libro de transacciones y saldo del corredor para el perfil. */
-export async function getLedger(db: Database, riderId: string, limit = 60): Promise<Ledger> {
+export async function getLedger(
+  db: Database,
+  // F y R (E2, §10.6, sup. H6): sin los apuntes de las etapas veladas y el saldo de lo visible, en el
+  // 8b; hasta entonces lo recibe y no lo usa.
+  _h: Horizon,
+  riderId: string,
+  limit = 60,
+): Promise<Ledger> {
   const balanceRows = await db
     .select({ money: riders.money })
     .from(riders)

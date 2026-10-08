@@ -7,6 +7,7 @@ import { LOCK_CLASS, raceLockKey } from './locks.js'
 import { raceRosters, teams, worlds } from './schema.js'
 import { realTestDatabaseUrl, resetRealTestDb } from './testDb.js'
 import { seedWorld } from './world.js'
+import { worldHorizon } from './horizon.js'
 
 /**
  * El doble cobro tick↔web (el bug de concurrencia real).
@@ -80,11 +81,16 @@ describe.skipIf(REAL_URL == null)('db: congelar escuadra no cobra el viaje dos v
         .orderBy(asc(teams.id))
 
       // Conexión B = una petición web sobre la MISMA carrera, mientras el tick sigue sin confirmar.
-      webStarted = ensureRaceRosterFrozen(b.db, worldId, WORLD_SEED, targetRace, GAME_DAY).then(
-        () => {
-          webDone = true
-        },
-      )
+      webStarted = ensureRaceRosterFrozen(
+        b.db,
+        worldHorizon,
+        worldId,
+        WORLD_SEED,
+        targetRace,
+        GAME_DAY,
+      ).then(() => {
+        webDone = true
+      })
       await sleep(750)
       // Si no se serializara, la web ya habría terminado (y cobrado los viajes por segunda vez).
       expect(webDone, 'la web debería quedarse esperando el candado del tick').toBe(false)

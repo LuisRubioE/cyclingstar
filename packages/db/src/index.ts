@@ -173,7 +173,8 @@ export {
 export { runOneStage, type StageRunSpec } from './stageRun.js'
 // El horizonte y el velo de E2 (docs/retransmision.md §4.10 y §10.6): los tipos y las funciones puras
 // nacen en el 3a (17-g); computeHorizon, el mapa del día, el memo, horizonSummary y touchLastSeen, en
-// el 7a, con clearHorizonCaches solo para los tests (el mundo de B1, §16.3); veilCast, en el 7b.
+// el 7a, con clearHorizonCaches solo para los tests (el mundo de B1, §16.3); veilCast, en el 7b; y el
+// predicado, veilSql, en el 8a.
 export {
   TtlMemo,
   anonHorizon,
@@ -189,6 +190,7 @@ export {
   throughStage,
   touchLastSeen,
   veilCast,
+  veilSql,
   worldHorizon,
   type Horizon,
   type HorizonKind,
@@ -361,6 +363,8 @@ export {
 } from './riderResults.js'
 export {
   getRiderLastRaceReport,
+  lastReadyStageOf,
+  type ReadyStage,
   type RiderRaceReport,
   type RaceReportOrders,
   type RaceReportEvent,

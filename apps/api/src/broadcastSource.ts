@@ -12,6 +12,7 @@ import {
   getTeamClassifications,
   readStageTimeline,
   veilCast,
+  worldHorizon,
 } from '@cyclingstar/db'
 import {
   STAGE,
@@ -506,16 +507,21 @@ export function lineSourceOf(
   if (adapted !== null) return Promise.resolve(adapted)
   let hit = recordedSources.get(tl)
   if (hit === undefined) {
-    const read: Promise<LineSource> = getStageSnapshot(db, raceKey, stageDay).then((snap) => {
-      const input = snap === null ? null : snapshotInputSchema.safeParse(snap.input)
-      return {
-        stored: (snap === null ? null : storedEventsOf(snap.events)) ?? [],
-        view: recordedClockOf(tl),
-        // El recorrido validado en lo que se lee de él; el resto viaja tal cual lo escribió el motor.
-        racedProfile:
-          input?.success === true ? (input.data.profile as unknown as StageProfile) : null,
-      }
-    })
+    // Lo que se guarda aquí es de la LÍNEA, igual para todos los espectadores (va por la línea, sin
+    // espectador): se lee con `worldHorizon`, y lo que cada uno puede ver lo cortan las rutas, por lo
+    // alcanzado y por la puerta (B y G, §10.11 y §14.4).
+    const read: Promise<LineSource> = getStageSnapshot(db, worldHorizon, raceKey, stageDay).then(
+      (snap) => {
+        const input = snap === null ? null : snapshotInputSchema.safeParse(snap.input)
+        return {
+          stored: (snap === null ? null : storedEventsOf(snap.events)) ?? [],
+          view: recordedClockOf(tl),
+          // El recorrido validado en lo que se lee de él; el resto viaja tal cual lo escribió el motor.
+          racedProfile:
+            input?.success === true ? (input.data.profile as unknown as StageProfile) : null,
+        }
+      },
+    )
     hit = read
     recordedSources.set(tl, read)
     void read.catch(() => recordedSources.delete(tl))
@@ -1235,7 +1241,8 @@ export interface StartJerseys {
  * Quién llevaba cada maillot TRAS la etapa `day` (y por tanto quién lo lleva PUESTO en la `day+1`), y
  * cuáles de esos maillots van delegados. Relee las mismas cuatro clasificaciones que la ficha con
  * `throughStage = day`; con `day < 1` no hay nada que arrastrar (la etapa 1 se corre sin maillots) y
- * no toca la base.
+ * no toca la base. Con `worldHorizon` (E2, §10.6): lo piden el adaptador, cuya línea es la misma para
+ * todos y se corta después (§14.4), y la ficha y la meta de una etapa que ya han pasado su puerta.
  */
 export async function jerseysThroughStage(
   db: Database,
@@ -1244,10 +1251,10 @@ export async function jerseysThroughStage(
 ): Promise<StartJerseys> {
   if (day < 1) return { leaders: NO_LEADERS, delegated: new Set() }
   const [gc, points, kom, teams] = await Promise.all([
-    getGcThroughStage(db, raceKey, day),
-    getPointsClassification(db, raceKey, day),
-    getKomClassification(db, raceKey, day),
-    getTeamClassifications(db, raceKey, day),
+    getGcThroughStage(db, worldHorizon, raceKey, day),
+    getPointsClassification(db, worldHorizon, raceKey, day),
+    getKomClassification(db, worldHorizon, raceKey, day),
+    getTeamClassifications(db, worldHorizon, raceKey, day),
   ])
   const leaders = raceLeaders({ gc, points, kom, teams: teams.overall })
   const unranked = new Set(gc.filter((r) => r.dnf).map((r) => r.riderId))
@@ -1478,21 +1485,22 @@ export async function timelineForStage(
  * El adaptador en frío (§18.9): leer el snapshot y validarlo, leer el resultado, los maillots de
  * salida y las identidades del reparto, y construir la línea. Null sin correr, sin radio o sin sucesos
  * (antes de la 0029 o de la 0024), en una crono (3-d), con lo guardado de otra forma, o si el reloj no
- * se puede estimar.
+ * se puede estimar. Lee con `worldHorizon`, como el tick (§14.4): la línea adaptada se guarda en una
+ * LRU por etapa que comparten todos los espectadores, y lo que cada uno ve lo cortan las rutas.
  */
 async function adaptStoredStage(
   db: Database,
   raceKey: string,
   stageDay: number,
 ): Promise<StageTimeline | null> {
-  const snap = await getStageSnapshot(db, raceKey, stageDay)
+  const snap = await getStageSnapshot(db, worldHorizon, raceKey, stageDay)
   if (snap === null || snap.radio == null || snap.events == null) return null
   const input = snapshotInputSchema.safeParse(snap.input)
   if (!input.success || input.data.timeTrial === true) return null
   const radio = storedRaceRadioSchema.safeParse(snap.radio)
   const events = storedEventsOf(snap.events)
   if (!radio.success || events === null) return null
-  const results = await getStageResults(db, raceKey, stageDay)
+  const results = await getStageResults(db, worldHorizon, raceKey, stageDay)
   const finishers = results.filter((r) => !r.dnf && r.tiempoS > 0)
   if (finishers.length === 0) return null
   const winnerS = Math.min(...finishers.map((r) => r.tiempoS))

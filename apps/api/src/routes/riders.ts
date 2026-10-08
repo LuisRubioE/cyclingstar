@@ -1,4 +1,6 @@
 import {
+  type Horizon,
+  type RiderRaceReport,
   type TrainingOrderRow,
   acceptOffer,
   createRider,
@@ -33,6 +35,7 @@ import {
   getRiderUpcomingRaces,
   getTeamTrainingPlan,
   getTrainingOrders,
+  lastReadyStageOf,
   rejectOffer,
   retireFromRace,
   countRidersForUser,
@@ -40,7 +43,9 @@ import {
   setRiderArchetype,
   setTeamTrainingPlan,
   setTrainingOrders,
+  stageGameDay,
   withdrawRace,
+  worldHorizon,
 } from '@cyclingstar/db'
 import {
   BANISTER,
@@ -54,6 +59,7 @@ import {
 } from '@cyclingstar/engine'
 import {
   PLAYER_START_AGE,
+  type PreStageInfo,
   SESSIONS,
   type TrainingChoice,
   birthSeasonForAge,
@@ -64,6 +70,7 @@ import {
 } from '@cyclingstar/shared'
 import { z } from 'zod'
 import { badRequest, notFound, sendError, unauthorized } from '../http.js'
+import { preStageInfoOf, stageContextOf } from '../stageReplay.js'
 import type { RoutePlugin } from './context.js'
 import { parseRaceId, parseRaceKey, parseUuid } from './params.js'
 
@@ -122,7 +129,7 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
 
   // Generación de nombre (Paso 13/15): server-side, respeta la lista de bloqueo y evita
   // colisiones con corredores en activo del mundo (ni bots ni humanos repetidos).
-  app.get('/api/names/generate', async (request, reply) => {
+  app.get('/api/names/generate', { config: { spoiler: 'safe' } }, async (request, reply) => {
     const parsed = nameQuerySchema.safeParse(request.query)
     if (!parsed.success) return badRequest(reply)
     const { country, gender, seed } = parsed.data
@@ -136,32 +143,49 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
   })
 
   // El ciclista del usuario (o null si aún no ha creado uno).
-  app.get('/api/riders/me', async (request, reply) => {
-    const userId = await currentUserId(request)
-    if (!userId) return unauthorized(reply)
-    return { rider: await getRiderForUser(db, userId) }
-  })
+  app.get(
+    '/api/riders/me',
+    {
+      config: {
+        spoiler: 'horizon',
+        veil: {
+          by: ['L'],
+          why: 'DD-08: los atributos propios se enseñan aunque los mueva lo aprendido en carrera',
+        },
+      },
+    },
+    async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return unauthorized(reply)
+      return { rider: await getRiderForUser(db, userId) }
+    },
+  )
 
   // Próximas carreras del ciclista del jugador (convocatorias ya congeladas + en curso).
-  app.get('/api/riders/me/upcoming-races', async (request, reply) => {
-    const userId = await currentUserId(request)
-    if (!userId) return unauthorized(reply)
-    const rider = await getRiderForUser(db, userId)
-    const world = await getCurrentWorld(db)
-    if (!rider || !world) return { races: [] }
-    return { races: await getRiderUpcomingRaces(db, rider.id, world.currentDay) }
-  })
+  app.get(
+    '/api/riders/me/upcoming-races',
+    { config: { spoiler: 'horizon', veil: { by: ['M'] } } },
+    async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return unauthorized(reply)
+      const rider = await getRiderForUser(db, userId)
+      const world = await getCurrentWorld(db)
+      if (!rider || !world) return { races: [] }
+      const h = await request.horizon()
+      return { races: await getRiderUpcomingRaces(db, h, rider.id, world.currentDay) }
+    },
+  )
 
   // Estado de control de equipo del usuario: si es premium y si su equipo sigue siendo bot
   // (reclamable) o ya es suyo. La web lo usa para mostrar el botón de "tomar control".
-  app.get('/api/me/team-control', async (request, reply) => {
+  app.get('/api/me/team-control', { config: { spoiler: 'safe' } }, async (request, reply) => {
     const userId = await currentUserId(request)
     if (!userId) return unauthorized(reply)
     return { control: await getAccountControl(db, userId) }
   })
 
   // Crear el ciclista (SPEC 3.5). El genoma lo genera el servidor (no lo controla el cliente).
-  app.post('/api/riders', async (request, reply) => {
+  app.post('/api/riders', { config: { spoiler: 'safe' } }, async (request, reply) => {
     const userId = await currentUserId(request)
     if (!userId) return unauthorized(reply)
     const parsed = createRiderSchema.safeParse(request.body)
@@ -206,18 +230,46 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
     return reply.status(201).send({ ok: true, id: created.id })
   })
 
-  // Informe personal de la última carrera: qué ordené vs qué pasó (backlog extra).
-  app.get('/api/riders/me/last-race', async (request, reply) => {
-    const userId = await currentUserId(request)
-    if (!userId) return unauthorized(reply)
-    const rider = await getRiderForUser(db, userId)
-    if (!rider) return { report: null }
-    return { report: await getRiderLastRaceReport(db, rider.id) }
-  })
+  /**
+   * La última corrida, si está velada y es posterior a la del informe (E2, docs/retransmision.md §12.9
+   * y §14.2, D-47; paso 8a): lo único que se sabe de ella (`PreStageInfo`, D-42), para «Ready to
+   * watch». La decide la lista de salida y el horizonte (`lastReadyStageOf`), nunca lo que pasó en ella.
+   */
+  async function readyOf(
+    h: Horizon,
+    riderId: string,
+    report: RiderRaceReport | null,
+  ): Promise<PreStageInfo | null> {
+    const last = await lastReadyStageOf(db, h, riderId)
+    if (last === null) return null
+    if (report !== null && last.gameDay <= stageGameDay(report.raceId, report.stageDay)) return null
+    const key = parseRaceKey(last.raceKey)
+    const ctx =
+      key === null ? null : await stageContextOf(db, key.raceId, last.stageDay, key.season)
+    return ctx === null ? null : preStageInfoOf(ctx)
+  }
+
+  // Informe personal de la última carrera: qué ordené vs qué pasó (backlog extra). Sobre la última
+  // etapa CONOCIDA (P y G; E2, docs/retransmision.md §12.9, D-47; paso 8a), y con `ready` si la última
+  // corrida está velada. Sin velo, la respuesta de siempre: sin la clave.
+  app.get(
+    '/api/riders/me/last-race',
+    { config: { spoiler: 'horizon', veil: { by: ['P', 'G'] } } },
+    async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return unauthorized(reply)
+      const rider = await getRiderForUser(db, userId)
+      if (!rider) return { report: null }
+      const h = await request.horizon()
+      const report = await getRiderLastRaceReport(db, h, rider.id)
+      const ready = await readyOf(h, rider.id, report)
+      return ready === null ? { report } : { report, ready }
+    },
+  )
 
   // Cambiar la vocación declarada (la "etiqueta") del corredor. No toca techos ni atributos:
   // el corredor decide luego alinear su entrenamiento; influye en las convocatorias por tipo.
-  app.put('/api/riders/me/archetype', async (request, reply) => {
+  app.put('/api/riders/me/archetype', { config: { spoiler: 'safe' } }, async (request, reply) => {
     const userId = await currentUserId(request)
     if (!userId) return unauthorized(reply)
     const parsed = archetypeSchema.safeParse(request.body)
@@ -229,50 +281,55 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
   })
 
   // --- Planificador de entrenamiento (Paso 18) ---------------------------------------------
-  app.get('/api/riders/me/orders', async (request, reply) => {
-    const userId = await currentUserId(request)
-    if (!userId) return unauthorized(reply)
-    const rider = await getRiderForUser(db, userId)
-    const world = await getCurrentWorld(db)
-    if (!rider || !world)
+  app.get(
+    '/api/riders/me/orders',
+    { config: { spoiler: 'horizon', veil: { by: ['M'] } } },
+    async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return unauthorized(reply)
+      const rider = await getRiderForUser(db, userId)
+      const world = await getCurrentWorld(db)
+      if (!rider || !world)
+        return {
+          currentDay: world?.currentDay ?? 0,
+          horizonDays: TRAINING_HORIZON_DAYS,
+          orders: [],
+          raceDays: [],
+          travelDays: [],
+        }
+      const orders = await getTrainingOrders(
+        db,
+        rider.id,
+        world.currentDay + 1,
+        world.currentDay + TRAINING_HORIZON_DAYS,
+      )
+      // Días con carrera: no se entrenan (la carrera es su carga). Y días de VIAJE, de ida y de vuelta:
+      // tampoco se entrenan, y el plan tiene que enseñarlos ANTES de que lleguen —el jugador planifica
+      // su semana contando con ellos, igual que cuenta con las etapas—.
+      const raceDays = await getRiderRaceDays(
+        db,
+        await request.horizon(),
+        rider.id,
+        world.currentDay + 1,
+        world.currentDay + TRAINING_HORIZON_DAYS,
+      )
+      const travelDays = await getRiderTravelDays(
+        db,
+        rider.id,
+        world.currentDay + 1,
+        world.currentDay + TRAINING_HORIZON_DAYS,
+      )
       return {
-        currentDay: world?.currentDay ?? 0,
+        currentDay: world.currentDay,
         horizonDays: TRAINING_HORIZON_DAYS,
-        orders: [],
-        raceDays: [],
-        travelDays: [],
+        orders,
+        raceDays,
+        travelDays,
       }
-    const orders = await getTrainingOrders(
-      db,
-      rider.id,
-      world.currentDay + 1,
-      world.currentDay + TRAINING_HORIZON_DAYS,
-    )
-    // Días con carrera: no se entrenan (la carrera es su carga). Y días de VIAJE, de ida y de vuelta:
-    // tampoco se entrenan, y el plan tiene que enseñarlos ANTES de que lleguen —el jugador planifica
-    // su semana contando con ellos, igual que cuenta con las etapas—.
-    const raceDays = await getRiderRaceDays(
-      db,
-      rider.id,
-      world.currentDay + 1,
-      world.currentDay + TRAINING_HORIZON_DAYS,
-    )
-    const travelDays = await getRiderTravelDays(
-      db,
-      rider.id,
-      world.currentDay + 1,
-      world.currentDay + TRAINING_HORIZON_DAYS,
-    )
-    return {
-      currentDay: world.currentDay,
-      horizonDays: TRAINING_HORIZON_DAYS,
-      orders,
-      raceDays,
-      travelDays,
-    }
-  })
+    },
+  )
 
-  app.put('/api/riders/me/orders', async (request, reply) => {
+  app.put('/api/riders/me/orders', { config: { spoiler: 'safe' } }, async (request, reply) => {
     const userId = await currentUserId(request)
     if (!userId) return unauthorized(reply)
     const parsed = putOrdersSchema.safeParse(request.body)
@@ -307,7 +364,7 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
    * siguen ahí y siguen siendo editables, que es dictado del dueño; lo que cambia es que ya no hace
    * falta pasar por ellos.
    */
-  app.get('/api/riders/me/plan', async (request, reply) => {
+  app.get('/api/riders/me/plan', { config: { spoiler: 'safe' } }, async (request, reply) => {
     const userId = await currentUserId(request)
     if (!userId) return unauthorized(reply)
     const rider = await getRiderForUser(db, userId)
@@ -321,7 +378,7 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
     }
   })
 
-  app.put('/api/riders/me/plan', async (request, reply) => {
+  app.put('/api/riders/me/plan', { config: { spoiler: 'safe' } }, async (request, reply) => {
     const userId = await currentUserId(request)
     if (!userId) return unauthorized(reply)
     const parsed = putTrainingPlanSchema.safeParse(request.body)
@@ -343,68 +400,74 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
    * que el motor puede cumplir. Si esto viviera en el cliente habría dos implementaciones del
    * modelo, dirían cosas distintas, y el jugador tendría razón al no fiarse de ninguna.
    */
-  app.post('/api/riders/me/plan/preview', async (request, reply) => {
-    const userId = await currentUserId(request)
-    if (!userId) return unauthorized(reply)
-    const parsed = putTrainingPlanSchema.safeParse(request.body)
-    if (!parsed.success) return badRequest(reply)
-    const rider = await getRiderForUser(db, userId)
-    const world = await getCurrentWorld(db)
-    if (!rider || !world) return sendError(reply, 409, 'sin_ciclista')
+  app.post(
+    '/api/riders/me/plan/preview',
+    { config: { spoiler: 'horizon', veil: { by: ['M'] } } },
+    async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return unauthorized(reply)
+      const parsed = putTrainingPlanSchema.safeParse(request.body)
+      if (!parsed.success) return badRequest(reply)
+      const rider = await getRiderForUser(db, userId)
+      const world = await getCurrentWorld(db)
+      if (!rider || !world) return sendError(reply, 409, 'sin_ciclista')
 
-    const log = await getDailyLog(db, rider.id, 1)
-    const ultimo = log[log.length - 1]
-    const desde = world.currentDay + 1
-    const hasta = world.currentDay + TRAINING_HORIZON_DAYS
-    const raceDays = new Set(await getRiderRaceDays(db, rider.id, desde, hasta))
+      const h = await request.horizon()
+      const log = await getDailyLog(db, h, rider.id, 1)
+      const ultimo = log[log.length - 1]
+      const desde = world.currentDay + 1
+      const hasta = world.currentDay + TRAINING_HORIZON_DAYS
+      const raceDays = new Set(await getRiderRaceDays(db, h, rider.id, desde, hasta))
 
-    const { blocks, focusAttr, intensity } = parsed.data.plan
-    const plan: TrainingChoice[] = []
-    for (let i = 0; i < TRAINING_HORIZON_DAYS; i++) {
-      const gameDay = desde + i
-      // Un día de carrera no se entrena: la carrera es su carga, y fingir una sesión encima daría
-      // una proyección que el tick no va a reproducir.
-      if (raceDays.has(gameDay)) {
-        plan.push({ session: 'descanso_activo', intensity: 'normal' })
-        continue
+      const { blocks, focusAttr, intensity } = parsed.data.plan
+      const plan: TrainingChoice[] = []
+      for (let i = 0; i < TRAINING_HORIZON_DAYS; i++) {
+        const gameDay = desde + i
+        // Un día de carrera no se entrena: la carrera es su carga, y fingir una sesión encima daría
+        // una proyección que el tick no va a reproducir.
+        if (raceDays.has(gameDay)) {
+          plan.push({ session: 'descanso_activo', intensity: 'normal' })
+          continue
+        }
+        const bloque = blocks[Math.floor(i / 7)] ?? 'base'
+        plan.push(blockWeek(bloque, rider.archetype, gameDay, focusAttr, intensity ?? 'normal'))
       }
-      const bloque = blocks[Math.floor(i / 7)] ?? 'base'
-      plan.push(blockWeek(bloque, rider.archetype, gameDay, focusAttr, intensity ?? 'normal'))
-    }
 
-    const curva = projectLoad(
-      { ctl: ultimo?.ctl ?? BANISTER.initialCtl, atl: ultimo?.atl ?? BANISTER.initialAtl },
-      plan,
-      rider.attributes.REC,
-    )
-    return {
-      days: curva.map((d) => ({
-        ...d,
-        gameDay: desde + d.day,
-        session: plan[d.day]!.session,
-        intensity: plan[d.day]!.intensity,
-      })),
-      totalTss: planTss(plan),
-      arrivals: [...raceDays]
-        .filter((d) => d >= desde && d <= hasta)
-        .sort((a, b) => a - b)
-        .map((d) => {
-          // El TSB con el que AMANECE el día de carrera: el de la víspera ya aplicada.
-          const anterior = curva[d - desde - 1]
-          const tsb = anterior?.tsb ?? 0
-          return { gameDay: d, raceId: null, tsb, label: arrivalLabel(tsb) }
-        }),
-    }
-  })
+      const curva = projectLoad(
+        { ctl: ultimo?.ctl ?? BANISTER.initialCtl, atl: ultimo?.atl ?? BANISTER.initialAtl },
+        plan,
+        rider.attributes.REC,
+      )
+      return {
+        days: curva.map((d) => ({
+          ...d,
+          gameDay: desde + d.day,
+          session: plan[d.day]!.session,
+          intensity: plan[d.day]!.intensity,
+        })),
+        totalTss: planTss(plan),
+        arrivals: [...raceDays]
+          .filter((d) => d >= desde && d <= hasta)
+          .sort((a, b) => a - b)
+          .map((d) => {
+            // El TSB con el que AMANECE el día de carrera: el de la víspera ya aplicada.
+            const anterior = curva[d - desde - 1]
+            const tsb = anterior?.tsb ?? 0
+            return { gameDay: d, raceId: null, tsb, label: arrivalLabel(tsb) }
+          }),
+      }
+    },
+  )
 
   // Plan de entrenamiento SUGERIDO por el equipo (para que la plantilla entrene junta y gane el
   // bonus de grupo). Cualquier corredor del equipo lo LEE; solo el mánager (dueño) lo edita.
-  app.get('/api/me/team-training', async (request, reply) => {
+  app.get('/api/me/team-training', { config: { spoiler: 'safe' } }, async (request, reply) => {
     const userId = await currentUserId(request)
     if (!userId) return unauthorized(reply)
     const rider = await getRiderForUser(db, userId)
     const world = await getCurrentWorld(db)
-    const summary = rider ? await getRiderSummary(db, rider.id) : null
+    // Solo el equipo de hoy, que no nace de ninguna etapa: con `worldHorizon` (la ruta es `safe`).
+    const summary = rider ? await getRiderSummary(db, worldHorizon, rider.id) : null
     const teamId = summary?.teamId ?? null
     if (!teamId || !world) return { plan: [], canEdit: false, teamName: null }
     const control = await getAccountControl(db, userId)
@@ -421,7 +484,7 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
     }
   })
 
-  app.put('/api/me/team-training', async (request, reply) => {
+  app.put('/api/me/team-training', { config: { spoiler: 'safe' } }, async (request, reply) => {
     const userId = await currentUserId(request)
     if (!userId) return unauthorized(reply)
     const parsed = putOrdersSchema.safeParse(request.body)
@@ -434,22 +497,35 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
   })
 
   // Serie de forma para la gráfica del perfil (Paso 20).
-  app.get('/api/riders/me/form', async (request, reply) => {
-    const userId = await currentUserId(request)
-    if (!userId) return unauthorized(reply)
-    const rider = await getRiderForUser(db, userId)
-    if (!rider) return { log: [], form: null }
-    const log = (await getDailyLog(db, rider.id, 90)).map((p) => ({
-      ...p,
-      ...ciudadesDelDia(p.activity, p.gameDay),
-    }))
-    const latest = log[log.length - 1]
-    const form = latest
-      ? { stars: formStars(latest.ctl, latest.tsb), freshness: freshnessBar(latest.tsb) }
-      : null
-    const health = await getRiderHealth(db, rider.id)
-    return { log, form, health }
-  })
+  app.get(
+    '/api/riders/me/form',
+    {
+      config: {
+        spoiler: 'horizon',
+        veil: {
+          by: ['L', 'F', 'M'],
+          why: 'DD-08: la condición propia se enseña; el parte y la actividad de los días velados, no',
+        },
+      },
+    },
+    async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return unauthorized(reply)
+      const rider = await getRiderForUser(db, userId)
+      if (!rider) return { log: [], form: null }
+      const h = await request.horizon()
+      const log = (await getDailyLog(db, h, rider.id, 90)).map((p) => ({
+        ...p,
+        ...ciudadesDelDia(p.activity, p.gameDay),
+      }))
+      const latest = log[log.length - 1]
+      const form = latest
+        ? { stars: formStars(latest.ctl, latest.tsb), freshness: freshnessBar(latest.tsb) }
+        : null
+      const health = await getRiderHealth(db, h, rider.id)
+      return { log, form, health }
+    },
+  )
 
   /**
    * LA FICHA DEL CORREDOR (docs/entrenamiento.md §2.3 y §4.6). Tres rutas, una regla: **ningún
@@ -466,48 +542,82 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
    */
 
   // Flecha de tendencia: Δ28 por atributo (SPEC 3.2, con la ventana y los niveles de §2.3).
-  app.get('/api/riders/me/trend', async (request, reply) => {
-    const userId = await currentUserId(request)
-    if (!userId) return unauthorized(reply)
-    const rider = await getRiderForUser(db, userId)
-    const world = await getCurrentWorld(db)
-    if (!rider || !world) return { trend: [] }
-    return { trend: await getAttrTrend(db, rider.id, world.currentDay) }
-  })
+  app.get(
+    '/api/riders/me/trend',
+    { config: { spoiler: 'horizon', veil: { by: ['F'] } } },
+    async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return unauthorized(reply)
+      const rider = await getRiderForUser(db, userId)
+      const world = await getCurrentWorld(db)
+      if (!rider || !world) return { trend: [] }
+      return { trend: await getAttrTrend(db, await request.horizon(), rider.id, world.currentDay) }
+    },
+  )
 
   // Opinión del entrenador: una vez por temporada, relativa y borrosa al principio (SPEC 5.6).
-  app.get('/api/riders/me/coach-view', async (request, reply) => {
-    const userId = await currentUserId(request)
-    if (!userId) return unauthorized(reply)
-    const rider = await getRiderForUser(db, userId)
-    const world = await getCurrentWorld(db)
-    if (!rider || !world) return { coachView: null }
-    return {
-      coachView: await getCoachView(db, rider.id, world.worldSeed, world.currentDay),
-    }
-  })
+  app.get(
+    '/api/riders/me/coach-view',
+    {
+      config: {
+        spoiler: 'horizon',
+        veil: {
+          by: ['L'],
+          why: 'DD-08: las notas del preparador miran los atributos propios, que mueve lo aprendido en carrera',
+        },
+      },
+    },
+    async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return unauthorized(reply)
+      const rider = await getRiderForUser(db, userId)
+      const world = await getCurrentWorld(db)
+      if (!rider || !world) return { coachView: null }
+      return {
+        coachView: await getCoachView(db, rider.id, world.worldSeed, world.currentDay),
+      }
+    },
+  )
 
   // Informe del bloque: de dónde salió cada punto de los últimos 28 días (§4.6).
-  app.get('/api/riders/me/report', async (request, reply) => {
-    const userId = await currentUserId(request)
-    if (!userId) return unauthorized(reply)
-    const rider = await getRiderForUser(db, userId)
-    const world = await getCurrentWorld(db)
-    if (!rider || !world) return { report: null }
-    return { report: await getBlockReport(db, rider.id, world.currentDay) }
-  })
+  app.get(
+    '/api/riders/me/report',
+    { config: { spoiler: 'horizon', veil: { by: ['F'] } } },
+    async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return unauthorized(reply)
+      const rider = await getRiderForUser(db, userId)
+      const world = await getCurrentWorld(db)
+      if (!rider || !world) return { report: null }
+      return {
+        report: await getBlockReport(db, await request.horizon(), rider.id, world.currentDay),
+      }
+    },
+  )
 
   // Objetivos de calendario del corredor y su convocatoria (Paso 35).
-  app.get('/api/riders/me/race-prefs', async (request, reply) => {
-    const userId = await currentUserId(request)
-    if (!userId) return unauthorized(reply)
-    const rider = await getRiderForUser(db, userId)
-    const world = await getCurrentWorld(db)
-    if (!rider || !world) return { races: [] }
-    return { races: await getRacePrefs(db, rider.id, currentSeason(world.currentDay)) }
-  })
+  app.get(
+    '/api/riders/me/race-prefs',
+    {
+      config: {
+        spoiler: 'horizon',
+        veil: {
+          by: ['L'],
+          why: 'convocatorias decididas con el mundo al día; no nombran ninguna etapa',
+        },
+      },
+    },
+    async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return unauthorized(reply)
+      const rider = await getRiderForUser(db, userId)
+      const world = await getCurrentWorld(db)
+      if (!rider || !world) return { races: [] }
+      return { races: await getRacePrefs(db, rider.id, currentSeason(world.currentDay)) }
+    },
+  )
 
-  app.put('/api/riders/me/race-prefs', async (request, reply) => {
+  app.put('/api/riders/me/race-prefs', { config: { spoiler: 'safe' } }, async (request, reply) => {
     const userId = await currentUserId(request)
     if (!userId) return unauthorized(reply)
     const parsed = putRacePrefSchema.safeParse(request.body)
@@ -519,49 +629,75 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
   })
 
   // Palmarés del corredor de la sesión (Paso 40).
-  app.get('/api/riders/me/palmares', async (request, reply) => {
-    const userId = await currentUserId(request)
-    if (!userId) return unauthorized(reply)
-    const rider = await getRiderForUser(db, userId)
-    if (!rider) return { palmares: [] }
-    return { palmares: await getPalmares(db, rider.id) }
-  })
+  app.get(
+    '/api/riders/me/palmares',
+    { config: { spoiler: 'horizon', veil: { by: ['F'] } } },
+    async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return unauthorized(reply)
+      const rider = await getRiderForUser(db, userId)
+      if (!rider) return { palmares: [] }
+      return { palmares: await getPalmares(db, await request.horizon(), rider.id) }
+    },
+  )
 
   // Estado del corredor (equipo, moral, dinero, fama, puntos) para la cabecera del perfil.
-  app.get('/api/riders/me/summary', async (request, reply) => {
-    const userId = await currentUserId(request)
-    if (!userId) return unauthorized(reply)
-    const rider = await getRiderForUser(db, userId)
-    if (!rider) return { summary: null }
-    return { summary: await getRiderSummary(db, rider.id) }
-  })
+  app.get(
+    '/api/riders/me/summary',
+    { config: { spoiler: 'horizon', veil: { by: ['R'] } } },
+    async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return unauthorized(reply)
+      const rider = await getRiderForUser(db, userId)
+      if (!rider) return { summary: null }
+      return { summary: await getRiderSummary(db, await request.horizon(), rider.id) }
+    },
+  )
 
   // Libro de transacciones y saldo (Paso 38).
-  app.get('/api/riders/me/ledger', async (request, reply) => {
-    const userId = await currentUserId(request)
-    if (!userId) return unauthorized(reply)
-    const rider = await getRiderForUser(db, userId)
-    if (!rider) return { balance: 0, entries: [], gameDay: null, salary: null }
-    const [ledger, world, contract] = await Promise.all([
-      getLedger(db, rider.id),
-      getCurrentWorld(db),
-      getContract(db, rider.id),
-    ])
-    // Para el aviso de "próximo sueldo": la nómina cae cada día de juego múltiplo de 7 (GD7, GD14…).
-    return { ...ledger, gameDay: world?.currentDay ?? null, salary: contract?.salary ?? null }
-  })
+  app.get(
+    '/api/riders/me/ledger',
+    { config: { spoiler: 'horizon', veil: { by: ['F', 'R'] } } },
+    async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return unauthorized(reply)
+      const rider = await getRiderForUser(db, userId)
+      if (!rider) return { balance: 0, entries: [], gameDay: null, salary: null }
+      const h = await request.horizon()
+      const [ledger, world, contract] = await Promise.all([
+        getLedger(db, h, rider.id),
+        getCurrentWorld(db),
+        getContract(db, rider.id),
+      ])
+      // Para el aviso de "próximo sueldo": la nómina cae cada día de juego múltiplo de 7 (GD7, GD14…).
+      return { ...ledger, gameDay: world?.currentDay ?? null, salary: contract?.salary ?? null }
+    },
+  )
 
   // Bandeja de ofertas y contrato vigente (Paso 36).
-  app.get('/api/riders/me/offers', async (request, reply) => {
-    const userId = await currentUserId(request)
-    if (!userId) return unauthorized(reply)
-    const rider = await getRiderForUser(db, userId)
-    if (!rider) return { offers: [], contract: null }
-    return { offers: await getOffers(db, rider.id), contract: await getContract(db, rider.id) }
-  })
+  app.get(
+    '/api/riders/me/offers',
+    {
+      config: {
+        spoiler: 'horizon',
+        veil: {
+          by: ['L'],
+          why: 'ofertas con el rating y los presupuestos del mundo al día; no nombran ninguna etapa',
+        },
+      },
+    },
+    async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return unauthorized(reply)
+      const rider = await getRiderForUser(db, userId)
+      if (!rider) return { offers: [], contract: null }
+      return { offers: await getOffers(db, rider.id), contract: await getContract(db, rider.id) }
+    },
+  )
 
   app.post<{ Params: { id: string } }>(
     '/api/riders/me/offers/:id/accept',
+    { config: { spoiler: 'safe' } },
     async (request, reply) => {
       const userId = await currentUserId(request)
       if (!userId) return unauthorized(reply)
@@ -580,6 +716,7 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
 
   app.post<{ Params: { id: string } }>(
     '/api/riders/me/offers/:id/reject',
+    { config: { spoiler: 'safe' } },
     async (request, reply) => {
       const userId = await currentUserId(request)
       if (!userId) return unauthorized(reply)
@@ -600,17 +737,22 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
 
   // Auto-inscripción del agente libre a carreras continentales (economía de viajes). Lista lo que
   // puede correr con el coste de viaje, y permite inscribirse/darse de baja hasta que empiece.
-  app.get('/api/riders/me/race-entries', async (request, reply) => {
-    const userId = await currentUserId(request)
-    if (!userId) return unauthorized(reply)
-    const rider = await getRiderForUser(db, userId)
-    const world = await getCurrentWorld(db)
-    if (!rider || !world) return { races: [] }
-    return { races: await getEnterableRaces(db, rider.id, world.currentDay) }
-  })
+  app.get(
+    '/api/riders/me/race-entries',
+    { config: { spoiler: 'safe' } },
+    async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return unauthorized(reply)
+      const rider = await getRiderForUser(db, userId)
+      const world = await getCurrentWorld(db)
+      if (!rider || !world) return { races: [] }
+      return { races: await getEnterableRaces(db, rider.id, world.currentDay) }
+    },
+  )
 
   app.post<{ Params: { raceId: string } }>(
     '/api/riders/me/race-entries/:raceId',
+    { config: { spoiler: 'safe' } },
     async (request, reply) => {
       const userId = await currentUserId(request)
       if (!userId) return unauthorized(reply)
@@ -627,6 +769,7 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
 
   app.delete<{ Params: { raceId: string } }>(
     '/api/riders/me/race-entries/:raceId',
+    { config: { spoiler: 'safe' } },
     async (request, reply) => {
       const userId = await currentUserId(request)
       if (!userId) return unauthorized(reply)
@@ -652,6 +795,7 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
    */
   app.post<{ Params: { raceKey: string } }>(
     '/api/riders/me/races/:raceKey/retire',
+    { config: { spoiler: 'horizon', veil: { by: ['M'] } } },
     async (request, reply) => {
       const userId = await currentUserId(request)
       if (!userId) return unauthorized(reply)
@@ -660,7 +804,7 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
       const rider = await getRiderForUser(db, userId)
       const world = await getCurrentWorld(db)
       if (!rider || !world) return sendError(reply, 409, 'sin_ciclista')
-      const res = await retireFromRace(db, {
+      const res = await retireFromRace(db, await request.horizon(), {
         worldId: world.worldId,
         riderId: rider.id,
         raceKey: request.params.raceKey,
@@ -676,34 +820,58 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
   // no un 500 por consulta uuid inválida como antes.
 
   // Logros de un corredor (#95).
-  app.get<{ Params: { id: string } }>('/api/riders/:id/badges', async (request, reply) => {
-    const riderId = parseUuid(request.params.id)
-    if (!riderId) return notFound(reply)
-    return { badges: await getRiderBadges(db, riderId) }
-  })
+  app.get<{ Params: { id: string } }>(
+    '/api/riders/:id/badges',
+    { config: { spoiler: 'horizon', veil: { by: ['R'] } } },
+    async (request, reply) => {
+      const riderId = parseUuid(request.params.id)
+      if (!riderId) return notFound(reply)
+      return { badges: await getRiderBadges(db, await request.horizon(), riderId) }
+    },
+  )
 
   // Palmarés público de cualquier corredor (lo que ha ganado): para ver el detalle desde su ficha.
-  app.get<{ Params: { id: string } }>('/api/riders/:id/palmares', async (request, reply) => {
-    const riderId = parseUuid(request.params.id)
-    if (!riderId) return notFound(reply)
-    return { palmares: await getPalmares(db, riderId) }
-  })
+  app.get<{ Params: { id: string } }>(
+    '/api/riders/:id/palmares',
+    { config: { spoiler: 'horizon', veil: { by: ['F'] } } },
+    async (request, reply) => {
+      const riderId = parseUuid(request.params.id)
+      if (!riderId) return notFound(reply)
+      return { palmares: await getPalmares(db, await request.horizon(), riderId) }
+    },
+  )
 
   // Resultados públicos de cualquier corredor, AGRUPADOS POR CARRERA: la general de titular (se
   // gane o no) y las etapas como desglose (docs/navegacion.md §3.6).
-  app.get<{ Params: { id: string } }>('/api/riders/:id/results', async (request, reply) => {
-    const riderId = parseUuid(request.params.id)
-    if (!riderId) return notFound(reply)
-    return { results: await getRiderRaceResults(db, riderId) }
-  })
+  app.get<{ Params: { id: string } }>(
+    '/api/riders/:id/results',
+    { config: { spoiler: 'horizon', veil: { by: ['F', 'P'] } } },
+    async (request, reply) => {
+      const riderId = parseUuid(request.params.id)
+      if (!riderId) return notFound(reply)
+      return { results: await getRiderRaceResults(db, await request.horizon(), riderId) }
+    },
+  )
 
-  app.get<{ Params: { id: string } }>('/api/riders/:id', async (request, reply) => {
-    const riderId = parseUuid(request.params.id)
-    if (!riderId) return notFound(reply)
-    const world = await getCurrentWorld(db)
-    const season = world ? currentSeason(world.currentDay) : 0
-    const rider = await getPublicRider(db, riderId, season)
-    if (!rider) return notFound(reply)
-    return { rider }
-  })
+  app.get<{ Params: { id: string } }>(
+    '/api/riders/:id',
+    {
+      config: {
+        spoiler: 'horizon',
+        veil: {
+          by: ['R', 'M', 'L'],
+          why: 'DD-08: los atributos se enseñan aunque los mueva lo aprendido en carrera, también los de un rival',
+        },
+      },
+    },
+    async (request, reply) => {
+      const riderId = parseUuid(request.params.id)
+      if (!riderId) return notFound(reply)
+      const world = await getCurrentWorld(db)
+      const season = world ? currentSeason(world.currentDay) : 0
+      const rider = await getPublicRider(db, await request.horizon(), riderId, season)
+      if (!rider) return notFound(reply)
+      return { rider }
+    },
+  )
 }

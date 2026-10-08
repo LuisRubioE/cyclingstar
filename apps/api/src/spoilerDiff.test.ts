@@ -23,8 +23,9 @@ import {
  * ni las cuatro rutas de la etapa velada (`B1B_SKIP`), y con `strip` de las dos tablas de §11.18
  * (`B1B_WHITELIST` y `B1B_VEIL`): ninguna clave puede cambiar fuera de ellas, ni aunque el cambio parezca
  * inocente. El diferencial caza lo que no es un valor: que exista una fila, que un aviso cuente una
- * etapa de más, que una lista cambie de orden. Fuera del 7a: que cada ruta de la lista blanca sea `L` en
- * el registro (16-o, 8a, cuando las rutas tienen clase) y el de las dos cuentas (§11.14, 8b).
+ * etapa de más, que una lista cambie de orden. Desde el 8a, cuando las rutas tienen clase, cada ruta de
+ * la lista blanca es además `L` en el registro, con su motivo (16-o); queda el de las dos cuentas
+ * (§11.14, 8b).
  */
 
 const pathsOf = (key: string): readonly string[] => [
@@ -70,7 +71,13 @@ describe('B1b · correr la etapa no cambia un byte para quien no la ha visto', (
     ).toEqual([])
   })
 
-  it.todo('8a (16-o): cada ruta de B1B_WHITELIST es L en app.spoilerRegistry, con su why')
+  it('16-o: cada ruta de la lista blanca es L en el registro, con su motivo escrito', () => {
+    const sinL = [...B1B_WHITELIST.keys()].filter((route) => {
+      const entry = w.app.spoilerRegistry.get(route)
+      return entry === undefined || !entry.veil.by.includes('L') || !entry.veil.why?.trim()
+    })
+    expect(sinL).toEqual([])
+  })
   it.todo(
     '8b (§11.14, §11.19): otra cuenta que ve y revela la etapa no cambia un byte de lo que recibe la primera',
   )

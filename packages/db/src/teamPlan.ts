@@ -16,6 +16,7 @@ import {
 } from '@cyclingstar/shared'
 import { and, eq, isNotNull, isNull, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
+import type { Horizon } from './horizon.js'
 import { contracts, riders, teamRacePlan, teams } from './schema.js'
 
 /**
@@ -262,6 +263,8 @@ function isEligible(race: CalendarRace, division: string): boolean {
  */
 export async function getTeamCalendar(
   db: Database,
+  // R (E2, §10.6, sup. X8): la resta del presupuesto velado llega en el 8b; hasta entonces lo recibe y no lo usa.
+  _h: Horizon,
   userId: string,
   currentDay: number,
 ): Promise<TeamCalendar | null> {

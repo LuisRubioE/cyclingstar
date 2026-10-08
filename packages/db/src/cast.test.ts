@@ -190,10 +190,10 @@ describe('db: buildTimelineCast, el reparto congelado de la línea (§7, 7-b, 7-
         continue
       }
       const [gc, points, kom, teams] = [
-        await getGcThroughStage(t.db, A, n - 1),
-        await getPointsClassification(t.db, A, n - 1),
-        await getKomClassification(t.db, A, n - 1),
-        await getTeamClassifications(t.db, A, n - 1),
+        await getGcThroughStage(t.db, worldHorizon, A, n - 1),
+        await getPointsClassification(t.db, worldHorizon, A, n - 1),
+        await getKomClassification(t.db, worldHorizon, A, n - 1),
+        await getTeamClassifications(t.db, worldHorizon, A, n - 1),
       ]
       const lideres = raceLeaders({ gc, points, kom, teams: teams.overall })
       const tablas = { gc: null, points, kom }

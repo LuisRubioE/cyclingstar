@@ -105,9 +105,11 @@ export async function shellMetaFor(
     }
   }
   const title = pageTitle('en', p, 'report')
-  if (stageGateOf(await horizonOf(), `${race.id}:s${p.season}`, day) !== null)
+  // El mismo horizonte decide la puerta y lee el resultado (8a: toda lectora lo recibe, §10.6).
+  const h = await horizonOf()
+  if (stageGateOf(h, `${race.id}:s${p.season}`, day) !== null)
     return { title, ogTitle: title, ogDescription: neutral }
-  const winner = (await getStageResults(db, `${race.id}:s${p.season}`, day)).find(
+  const winner = (await getStageResults(db, h, `${race.id}:s${p.season}`, day)).find(
     (r) => !r.dnf && r.puesto === 1,
   )
   return {

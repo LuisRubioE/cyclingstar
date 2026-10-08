@@ -142,6 +142,50 @@ describe('buildRiderRaceResults', () => {
     )
     expect(out).toEqual([])
   })
+
+  /**
+   * LA FILA DE ETAPAS POR VER (E2, docs/retransmision.md §11.6, punto 2; sups. P4 y H7; paso 8a): la
+   * cuenta de las etapas veladas de una carrera va en su entrada, y la carrera entra aunque el corredor
+   * no tenga ninguna etapa conocida, porque la decide la lista de salida y no lo que pasó: sale igual
+   * para todos los de la lista, abandonaran o no.
+   */
+  it('stagesToWatch: en su carrera, y la carrera entra aunque no tenga ninguna etapa conocida', () => {
+    const conocidas = [
+      { raceId: FRANCE, stageDay: 1, puesto: 12 },
+      { raceId: FRANCE, stageDay: 2, puesto: 8 },
+    ]
+    const toWatch = new Map([
+      [FRANCE, 3],
+      [CATALONIA, 1],
+    ])
+    const out = buildRiderRaceResults(
+      conocidas,
+      new Map([[FRANCE, { puesto: 4, dnf: false }]]),
+      new Map([[FRANCE, 2]]),
+      10,
+      toWatch,
+    )
+    const france = out.find((r) => r.raceId === 'race-france')!
+    expect(france.stagesToWatch).toBe(3)
+    expect(france.stages.map((s) => s.stageDay)).toEqual([1, 2])
+    expect(france.finished).toBe(false)
+    const catalonia = out.find((r) => r.raceId === 'race-catalonia')!
+    expect(catalonia).toMatchObject({
+      stagesToWatch: 1,
+      stages: [],
+      gcPuesto: null,
+      dnf: false,
+      finished: false,
+    })
+    // Sin velo, la entrada de siempre: sin la clave.
+    const [sinVelo] = buildRiderRaceResults(
+      conocidas,
+      new Map([[FRANCE, { puesto: 4, dnf: false }]]),
+      new Map([[FRANCE, 2]]),
+      10,
+    )
+    expect(sinVelo).not.toHaveProperty('stagesToWatch')
+  })
 })
 
 describe('palmaresCities', () => {

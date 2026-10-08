@@ -60,13 +60,13 @@ export const authProxyRoutes: FastifyPluginAsync<AuthProxyContext> = async (app,
   // find-my-way resuelve la ruta estática antes que el comodín, así que el resto de endpoints de
   // better-auth sigue pasando por el comodín sin cambios.
   for (const url of CREDENTIAL_AUTH_PATHS) {
-    app.post(url, { config: { rateLimit: CREDENTIAL_RATE_LIMIT } }, forwardToAuth)
+    app.post(url, { config: { rateLimit: CREDENTIAL_RATE_LIMIT, spoiler: 'safe' } }, forwardToAuth)
   }
 
   app.route({
     method: ['GET', 'POST'],
     url: '/api/auth/*',
-    config: { rateLimit: AUTH_RATE_LIMIT },
+    config: { rateLimit: AUTH_RATE_LIMIT, spoiler: 'safe' },
     handler: forwardToAuth,
   })
 }

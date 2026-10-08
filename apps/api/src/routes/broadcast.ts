@@ -58,7 +58,7 @@ import { type ChronicleNames, buildChronicle, chronicleNames } from '../chronicl
 import { badRequest, notFound, sendError, sendGate } from '../http.js'
 import { PLAYER_RATE_LIMIT } from '../security.js'
 import { stageHead } from '../stageHistory.js'
-import { type StageContext, stageContextOf, stageReplayOf } from '../stageReplay.js'
+import { type StageContext, preStageInfoOf, stageContextOf, stageReplayOf } from '../stageReplay.js'
 import { lineVoiceOf, storedWithRoles } from '../voiceRoles.js'
 import type { RoutePlugin } from './context.js'
 import { parseRaceId, parseStageDay } from './params.js'
@@ -148,7 +148,7 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
   async function lineOf(a: Admitted, reply: FastifyReply): Promise<StageTimeline | null> {
     const tl = await timelineForStage(db, a.h, a.ctx.raceKey, a.ctx.day)
     if (tl !== null) return tl
-    const run = (await getRunStageDays(db, a.ctx.raceKey)).includes(a.ctx.day)
+    const run = (await getRunStageDays(db, a.h, a.ctx.raceKey)).includes(a.ctx.day)
     notFound(reply, run ? 'broadcast_unavailable' : 'no_encontrado')
     return null
   }
@@ -391,7 +391,8 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
         result: replay.results,
         closing: await closingOf(a.ctx, tl, replay, ix),
         report: { ...withoutRadio(replay), tplRev: await tplRevOf(tl, a) },
-        news: await getStageNews(db, a.ctx.worldId, a.ctx.raceKey, a.ctx.day),
+        // La meta se sirve tras su puerta y con ella la etapa pasa a conocida: sus noticias, enteras.
+        news: await getStageNews(db, worldHorizon, a.ctx.worldId, a.ctx.raceKey, a.ctx.day),
         // las caídas de la línea grabada (sus `mishap` de estado); el tipo de final, por la etiqueta
         // (en alto, sin la regla), que es lo que la API sabe del `bunchFinish` del motor (6-o)
         threeKmRule: threeKmRuleRiders(tl, a.ctx.spec.label === 'Summit finish'),
@@ -412,7 +413,10 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
       // ningún velo, y su puerta solo podría ser la de la anterior.
       const gate = stageGateOf(a.h, a.ctx.raceKey, a.ctx.day)
       if (gate !== null) {
-        if (gate.k === 'not_seen' || (await getRunStageDays(db, a.ctx.raceKey)).includes(a.ctx.day))
+        if (
+          gate.k === 'not_seen' ||
+          (await getRunStageDays(db, a.h, a.ctx.raceKey)).includes(a.ctx.day)
+        )
           return sendGate(reply, gate)
         return notFound(reply)
       }
@@ -479,11 +483,15 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
       )
   }
 
-  /** Los nombres de la voz, como los de la ruta de etapa: la lista de salida y el resultado, con los maillots de tras la N − 1. */
+  /**
+   * Los nombres de la voz, como los de la ruta de etapa: la lista de salida y el resultado, con los
+   * maillots de tras la N − 1. Con `worldHorizon` (E2, §10.6): de la hoja solo se toma la identidad de
+   * cada corredor, no su puesto, y la voz se corta por lo alcanzado (B, §10.11).
+   */
   async function namesOf(tl: StageTimeline, ctx: StageContext): Promise<ChronicleNames> {
     const results = [
-      ...(await getStageResults(db, ctx.raceKey, ctx.day)),
-      ...(await getStageNonFinishers(db, ctx.raceKey, ctx.day, tl.riderIds)),
+      ...(await getStageResults(db, worldHorizon, ctx.raceKey, ctx.day)),
+      ...(await getStageNonFinishers(db, worldHorizon, ctx.raceKey, ctx.day, tl.riderIds)),
     ]
     const identities = await getRaceRiderIdentities(db, ctx.raceKey)
     const onRoad =
@@ -558,16 +566,7 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
   async function tomorrowOf(ctx: StageContext): Promise<PreStageInfo | null> {
     if (ctx.day >= ctx.race.stages.length) return null
     const next = await stageContextOf(db, ctx.race.id, ctx.day + 1, ctx.season)
-    if (next === null) return null
-    return {
-      raceName: ctx.race.name,
-      season: ctx.season,
-      stageDay: next.day,
-      stageCount: ctx.race.stages.length,
-      km: next.km,
-      label: next.spec.label,
-      stageKind: next.spec.kind,
-    }
+    return next === null ? null : preStageInfoOf(next)
   }
 }
 

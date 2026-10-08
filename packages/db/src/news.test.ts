@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { emitNews, getGlobalNews, getRiderNews, getTeamNews, newsNames } from './news.js'
 import { news, riders, teams, worlds } from './schema.js'
 import { type TestDb, startTestDb } from './testDb.js'
+import { worldHorizon } from './horizon.js'
 
 /**
  * LAS NOTICIAS CON DATOS EN LA BASE (docs/retransmision.md §12.8 y §13.2, D-45; E2, paso 1a), contra
@@ -236,7 +237,7 @@ describe('db: emitNews guarda los datos y las lecturas redactan al leer', () => 
     }
     const filas = await t.db.select().from(news).where(eq(news.worldId, worldId))
     expect(filas).toHaveLength(13)
-    const leidas = await getGlobalNews(t.db, worldId, 100, { leaderNews: true })
+    const leidas = await getGlobalNews(t.db, worldHorizon, worldId, 100, { leaderNews: true })
     expect(leidas).toHaveLength(13)
     for (const fila of filas) {
       const leida = leidas.find((l) => l.gameDay === fila.gameDay)!
@@ -306,7 +307,7 @@ describe('db: emitNews guarda los datos y las lecturas redactan al leer', () => 
         tplRev: 0,
       },
     ])
-    const leidas = await getGlobalNews(t.db, worldId)
+    const leidas = await getGlobalNews(t.db, worldHorizon, worldId)
     expect(leidas.map((l) => l.gameDay)).toEqual([402, 401, 400])
     expect(leidas[2]).toMatchObject({
       text: vieja,
@@ -417,7 +418,9 @@ describe('db: emitNews guarda los datos y las lecturas redactan al leer', () => 
       riderId: ANA,
       payload: { kind: 'gc_win', ...france, stageDay: 21, riderId: ANA, teamId: TEAM_A },
     })
-    const kinds = (await getGlobalNews(t.db, worldId, 40, { leaderNews: true })).map((l) => l.kind)
+    const kinds = (await getGlobalNews(t.db, worldHorizon, worldId, 40, { leaderNews: true })).map(
+      (l) => l.kind,
+    )
     expect(kinds).toEqual([
       'one_day_win', // race-flanders:s0 va antes que race-france:s0
       'gc_lead_taken', // race-france, etapa 5: quién manda ahora…
@@ -453,13 +456,19 @@ describe('db: emitNews guarda los datos y las lecturas redactan al leer', () => 
       })
     }
     const kinds = (items: { kind: string }[]): string[] => items.map((i) => i.kind).sort()
-    expect(kinds(await getGlobalNews(t.db, worldId))).toEqual(['stage_win'])
-    expect(kinds(await getTeamNews(t.db, TEAM_A))).toEqual(['stage_win'])
-    expect(kinds(await getRiderNews(t.db, worldId, ANA))).toEqual(['stage_win'])
+    expect(kinds(await getGlobalNews(t.db, worldHorizon, worldId))).toEqual(['stage_win'])
+    expect(kinds(await getTeamNews(t.db, worldHorizon, TEAM_A))).toEqual(['stage_win'])
+    expect(kinds(await getRiderNews(t.db, worldHorizon, worldId, ANA))).toEqual(['stage_win'])
     const todos = ['gc_lead_taken', 'jersey_taken', 'stage_win']
-    expect(kinds(await getGlobalNews(t.db, worldId, 40, { leaderNews: true }))).toEqual(todos)
-    expect(kinds(await getTeamNews(t.db, TEAM_A, 15, { leaderNews: true }))).toEqual(todos)
-    expect(kinds(await getRiderNews(t.db, worldId, ANA, 40, { leaderNews: true }))).toEqual(todos)
+    expect(
+      kinds(await getGlobalNews(t.db, worldHorizon, worldId, 40, { leaderNews: true })),
+    ).toEqual(todos)
+    expect(kinds(await getTeamNews(t.db, worldHorizon, TEAM_A, 15, { leaderNews: true }))).toEqual(
+      todos,
+    )
+    expect(
+      kinds(await getRiderNews(t.db, worldHorizon, worldId, ANA, 40, { leaderNews: true })),
+    ).toEqual(todos)
     await t.db.delete(news).where(eq(news.worldId, worldId))
   })
 

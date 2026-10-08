@@ -3,6 +3,7 @@ import { riderAge, seasonPosition } from '@cyclingstar/shared'
 import { eq, inArray } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import type { Database } from './client.js'
+import type { Horizon } from './horizon.js'
 
 type Db = ReturnType<typeof drizzle>
 /** La base o una transacción: el contexto se arma dentro de la del tick. */
@@ -70,9 +71,14 @@ function ordenar(
   }))
 }
 
-/** Las tres clasificaciones de una carrera, calculadas de `race_gc`. */
+/**
+ * Las tres clasificaciones de una carrera, calculadas de `race_gc`. Las lee el contexto de carrera que
+ * el tick le da al motor (`buildRaceContext`), que pasa `worldHorizon`: no se sirven a nadie, y con el
+ * mundo entero no hay nada que cortar (E2, docs/retransmision.md §10.6; P si alguna vez se sirvieran).
+ */
 export async function getRaceClassifications(
   db: Conn,
+  _h: Horizon,
   raceKey: string,
   gameDay: number,
 ): Promise<RaceClassifications> {

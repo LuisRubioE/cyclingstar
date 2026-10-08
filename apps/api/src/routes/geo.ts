@@ -72,7 +72,7 @@ function leerCabeceras(request: FastifyRequest): {
 export const geoRoutes: FastifyPluginAsync<GeoRouteContext> = async (app, ctx) => {
   const lookup = ctx.lookup ?? lookupCountryByIp
 
-  app.get('/api/geo/country', async (request) => {
+  app.get('/api/geo/country', { config: { spoiler: 'safe' } }, async (request) => {
     const { code, fuente, vistas } = leerCabeceras(request)
     if (code) {
       return { country: resolveCountry(code), detectado: code, fuente, cabeceras: vistas }

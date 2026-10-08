@@ -16,6 +16,7 @@ import {
   worlds,
 } from './schema.js'
 import { type TestDb, startTestDb } from './testDb.js'
+import { worldHorizon } from './horizon.js'
 
 /**
  * LA FICHA DEL CORREDOR (paso 10 del rediseño de entrenamiento, docs/entrenamiento.md §2.3 y §4.6).
@@ -115,7 +116,7 @@ describe('db: la ficha del corredor', () => {
   })
 
   it('la flecha suma los 28 días y NO los 60 que guarda la tabla', async () => {
-    const trend = await getAttrTrend(t.db, riderId, HOY)
+    const trend = await getAttrTrend(t.db, worldHorizon, riderId, HOY)
     const mon = trend.find((x) => x.attr === 'MON')!
     // 0,9 + 1,1 dentro de la ventana. Los 9 puntos del día −40 no cuentan: si contaran, la flecha
     // diría «↑» de un corredor que lleva un mes parado.
@@ -124,13 +125,13 @@ describe('db: la ficha del corredor', () => {
 
   it('un atributo que no se movió sale con cero, no con un hueco', async () => {
     // Importa para la UI: `→` se pinta con el cero. Un hueco obligaría a decidir fuera qué hacer.
-    const trend = await getAttrTrend(t.db, riderId, HOY)
+    const trend = await getAttrTrend(t.db, worldHorizon, riderId, HOY)
     expect(trend.length).toBe(ATTRIBUTES.length)
     expect(trend.find((x) => x.attr === 'SPR')!.delta28).toBe(0)
   })
 
   it('lo que baja también se cuenta: la flecha no es solo para las buenas noticias', async () => {
-    const trend = await getAttrTrend(t.db, riderId, HOY)
+    const trend = await getAttrTrend(t.db, worldHorizon, riderId, HOY)
     expect(trend.find((x) => x.attr === 'TAC')!.delta28).toBeCloseTo(-0.5, 6)
   })
 
@@ -180,7 +181,7 @@ describe('db: la ficha del corredor', () => {
   })
 
   it('EL INFORME SEPARA LO QUE ENTRENÓ DE LO QUE APRENDIÓ CORRIENDO', async () => {
-    const informe = await getBlockReport(t.db, riderId, HOY)
+    const informe = await getBlockReport(t.db, worldHorizon, riderId, HOY)
     const mon = informe.rows.find((r) => r.attr === 'MON')!
     expect(mon.total).toBeCloseTo(2, 6)
     const porOrigen = Object.fromEntries(mon.bySource.map((s) => [s.source, s.delta]))
@@ -190,14 +191,14 @@ describe('db: la ficha del corredor', () => {
   })
 
   it('cuenta los días de carrera aparte de los de entrenamiento', async () => {
-    const informe = await getBlockReport(t.db, riderId, HOY)
+    const informe = await getBlockReport(t.db, worldHorizon, riderId, HOY)
     expect(informe.raceDays).toBe(1)
     expect(informe.trainingDays).toBe(2) // dos `puertos`; el `fondo` del día −40 queda fuera
     expect(informe.sessions.find((s) => s.activity === 'puertos')!.days).toBe(2)
   })
 
   it('y tampoco el informe enseña el VALOR del atributo, solo cuánto se movió', async () => {
-    const informe = await getBlockReport(t.db, riderId, HOY)
+    const informe = await getBlockReport(t.db, worldHorizon, riderId, HOY)
     // MON vale 72 en la base. Si el 72 apareciera, el informe sería una forma de leer la ficha.
     expect(JSON.stringify(informe)).not.toContain('72')
   })
@@ -226,13 +227,13 @@ describe('db: la ficha del corredor', () => {
       declineAge: 33,
       ceilings: attrs(70),
     })
-    const informe = await getBlockReport(t.db, r!.id, HOY)
+    const informe = await getBlockReport(t.db, worldHorizon, r!.id, HOY)
     expect(informe.rows).toEqual([])
     expect(informe.trainingDays).toBe(0)
     const vista = (await getCoachView(t.db, r!.id, 'semilla-ficha', HOY))!
     // Sin equipo no hay gimnasio que contar, y eso es `null` y no «normal»: son cosas distintas.
     expect(vista.facilities).toBeNull()
-    const trend = await getAttrTrend(t.db, r!.id, HOY)
+    const trend = await getAttrTrend(t.db, worldHorizon, r!.id, HOY)
     expect(trend.every((x) => x.delta28 === 0)).toBe(true)
   })
 })

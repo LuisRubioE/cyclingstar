@@ -5,10 +5,11 @@ import {
   stagePointsByClass,
 } from '@cyclingstar/engine'
 import { DAYS_PER_SEASON } from '@cyclingstar/shared'
-import { type SQL, and, asc, desc, eq, gt, gte, isNull, sql } from 'drizzle-orm'
+import { type SQL, and, asc, desc, eq, gt, gte, isNull, not, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { BATCH_ROWS, type BatchValue, inChunks, valuesList } from './batch.js'
 import type { Database } from './client.js'
+import { type Horizon, veilSql } from './horizon.js'
 import { palmares, riderPoints, riders, teams } from './schema.js'
 
 /**
@@ -80,8 +81,12 @@ export async function addSeasonPointsBatch(
    * Cuándo y en qué se puntuó. Opcional solo para no romper a quien sume puntos fuera de una
    * carrera; sin ello la puntuación no entra en el ranking rodante, y eso tiene que ser una decisión
    * explícita de quien llama y no un olvido.
+   *
+   * `stageDay`, desde la 0049 (E2, docs/retransmision.md §13.5, decisión 13-g): el número de la etapa
+   * que dio los puntos (la última en los de general), que es lo que el velo necesita para restarlos
+   * (8b). Opcional para quien suma puntos fuera de una etapa; `stageRun.ts` lo pasa siempre.
    */
-  source?: { gameDay: number; raceId: string; kind: 'stage' | 'gc' },
+  source?: { gameDay: number; raceId: string; kind: 'stage' | 'gc'; stageDay?: number },
 ): Promise<void> {
   const totals = new Map<string, number>()
   for (const e of entries) {
@@ -109,12 +114,16 @@ export async function addSeasonPointsBatch(
           points: pts,
           raceId: source.raceId,
           kind: source.kind,
+          stageDay: source.stageDay ?? null,
         })),
     )
   })
 }
 
-/** Inmortaliza un logro en el palmarés (no se reinicia). */
+/**
+ * Inmortaliza un logro en el palmarés (no se reinicia). `stageDay`, desde la 0049 (E2, §13.5, 13-g):
+ * el número de la etapa que lo dio, la última en `gc`; `stageRun.ts` lo pasa siempre.
+ */
 export async function recordPalmares(
   tx: Tx,
   opts: {
@@ -126,6 +135,7 @@ export async function recordPalmares(
     kind: 'gc' | 'stage' | 'kom' | 'points'
     detail?: string
     gameDay: number
+    stageDay?: number
   },
 ): Promise<void> {
   await tx.insert(palmares).values({
@@ -137,6 +147,7 @@ export async function recordPalmares(
     kind: opts.kind,
     detail: opts.detail ?? '',
     gameDay: opts.gameDay,
+    stageDay: opts.stageDay ?? null,
   })
 }
 
@@ -178,6 +189,8 @@ export const RANKING_WINDOW_DAYS = DAYS_PER_SEASON
  */
 export async function getRanking(
   db: Database,
+  // R (E2, §10.6): la resta de lo velado llega en el 8b; hasta entonces lo recibe y no lo usa.
+  _h: Horizon,
   worldId: string,
   currentDay: number,
   limit = 100,
@@ -225,6 +238,8 @@ export async function getRanking(
  */
 export async function getYoungRiders(
   db: Database,
+  // R (E2, §10.6): la resta de lo velado llega en el 8b; hasta entonces lo recibe y no lo usa.
+  _h: Horizon,
   worldId: string,
   season: number,
   limit = 30,
@@ -317,6 +332,8 @@ async function topRider(db: Database, worldId: string, extra?: SQL): Promise<Awa
  */
 export async function getSeasonAwards(
   db: Database,
+  // R (E2, §10.6): la resta de lo velado llega en el 8b; hasta entonces lo recibe y no lo usa.
+  _h: Horizon,
   worldId: string,
   season: number,
 ): Promise<SeasonAwards> {
@@ -356,8 +373,30 @@ export function palmaresCities(row: {
   return { from: c?.from ?? null, to: c?.to ?? null }
 }
 
-/** Palmarés de un corredor, lo más reciente primero. */
-export async function getPalmares(db: Database, riderId: string): Promise<PalmaresRow[]> {
+/**
+ * LA ETAPA DE UNA FILA DEL PALMARÉS, para el predicado del velo (§10.6, punto 3): `race_id` va SIN
+ * temporada, que está en `season`, así que la clave se compone en SQL; `stage_day` desde la 0049, y las
+ * filas de antes caen al día de juego.
+ */
+export function palmaresVeil(h: Horizon): SQL {
+  return veilSql(
+    h,
+    sql`${palmares.raceId} || ':s' || ${palmares.season}`,
+    palmares.gameDay,
+    palmares.stageDay,
+  )
+}
+
+/**
+ * Palmarés de un corredor, lo más reciente primero. F (E2, §10.6; sup. P3): sin las filas de las
+ * etapas que `h` tiene en el velo. Sin aviso por fila: el aviso común de §11.6 depende solo del
+ * horizonte, y lo pinta la web (9b).
+ */
+export async function getPalmares(
+  db: Database,
+  h: Horizon,
+  riderId: string,
+): Promise<PalmaresRow[]> {
   const rows = await db
     .select({
       season: palmares.season,
@@ -367,7 +406,7 @@ export async function getPalmares(db: Database, riderId: string): Promise<Palmar
       detail: palmares.detail,
     })
     .from(palmares)
-    .where(eq(palmares.riderId, riderId))
+    .where(and(eq(palmares.riderId, riderId), not(palmaresVeil(h))))
     .orderBy(desc(palmares.season), desc(palmares.gameDay))
   return rows.map((r) => ({ ...r, ...palmaresCities(r) }))
 }
@@ -383,7 +422,12 @@ export interface Badge {
  * Logros de un corredor (#95), derivados de su palmarés permanente. Se devuelven solo los
  * conseguidos; cada uno tiene su umbral. Sin estado nuevo: se calculan al vuelo.
  */
-export async function getRiderBadges(db: Database, riderId: string): Promise<Badge[]> {
+export async function getRiderBadges(
+  db: Database,
+  // R (E2, §10.6): la resta de lo velado llega en el 8b; hasta entonces lo recibe y no lo usa.
+  _h: Horizon,
+  riderId: string,
+): Promise<Badge[]> {
   const rows = await db
     .select({
       gc: sql<number>`count(*) filter (where ${palmares.kind} = 'gc')::int`,
@@ -473,6 +517,8 @@ export interface HallOfFameRow {
 /** Salón de la fama (#58): corredores por palmarés total de todas las temporadas, con desglose. */
 export async function getHallOfFame(
   db: Database,
+  // R (E2, §10.6): la resta de lo velado llega en el 8b; hasta entonces lo recibe y no lo usa.
+  _h: Horizon,
   worldId: string,
   limit = 30,
 ): Promise<HallOfFameRow[]> {
@@ -515,7 +561,12 @@ export interface AllTimeRecords {
 }
 
 /** Récords de todos los tiempos del mundo (#62), derivados del palmarés permanente. */
-export async function getAllTimeRecords(db: Database, worldId: string): Promise<AllTimeRecords> {
+export async function getAllTimeRecords(
+  db: Database,
+  // R (E2, §10.6): la resta de lo velado llega en el 8b; hasta entonces lo recibe y no lo usa.
+  _h: Horizon,
+  worldId: string,
+): Promise<AllTimeRecords> {
   const mostWinsRows = await db
     .select({
       riderId: palmares.riderId,
@@ -585,9 +636,14 @@ export async function getAllTimeRecords(db: Database, worldId: string): Promise<
   }
 }
 
-/** Ganadores de la general por carrera en una temporada: raceId -> nombre (SPEC, Paso 44). */
+/**
+ * Ganadores de la general por carrera en una temporada: raceId -> nombre (SPEC, Paso 44). P (E2,
+ * §10.6; sups. I1 a I4): el ganador solo sale si la última etapa de su carrera no está en el velo de
+ * `h`, y la fila del índice de carreras se queda sin ganador hasta que el espectador la conozca.
+ */
 export async function getSeasonWinners(
   db: Database,
+  h: Horizon,
   worldId: string,
   season: number,
 ): Promise<Record<string, string>> {
@@ -595,7 +651,14 @@ export async function getSeasonWinners(
     .select({ raceId: palmares.raceId, name: riders.name })
     .from(palmares)
     .innerJoin(riders, eq(riders.id, palmares.riderId))
-    .where(and(eq(palmares.worldId, worldId), eq(palmares.season, season), eq(palmares.kind, 'gc')))
+    .where(
+      and(
+        eq(palmares.worldId, worldId),
+        eq(palmares.season, season),
+        eq(palmares.kind, 'gc'),
+        not(palmaresVeil(h)),
+      ),
+    )
   const out: Record<string, string> = {}
   for (const r of rows) out[r.raceId] = r.name
   return out
@@ -609,9 +672,13 @@ export interface RaceHonour {
   winnerCountry: string
 }
 
-/** Historial de ganadores de la general de una carrera, temporada a temporada (SPEC, Paso 40). */
+/**
+ * Historial de ganadores de la general de una carrera, temporada a temporada (SPEC, Paso 40). F (E2,
+ * §10.6; sup. C5): la edición cuyo final está en el velo de `h` no sale.
+ */
 export async function getRaceHistory(
   db: Database,
+  h: Horizon,
   worldId: string,
   raceId: string,
 ): Promise<RaceHonour[]> {
@@ -625,6 +692,13 @@ export async function getRaceHistory(
     })
     .from(palmares)
     .innerJoin(riders, eq(riders.id, palmares.riderId))
-    .where(and(eq(palmares.worldId, worldId), eq(palmares.raceId, raceId), eq(palmares.kind, 'gc')))
+    .where(
+      and(
+        eq(palmares.worldId, worldId),
+        eq(palmares.raceId, raceId),
+        eq(palmares.kind, 'gc'),
+        not(palmaresVeil(h)),
+      ),
+    )
     .orderBy(desc(palmares.season))
 }

@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { getTeamClassifications } from './teamClassification.js'
 import { riders, stageResults, stageTeamResults, teams, worlds } from './schema.js'
 import { type TestDb, startTestDb } from './testDb.js'
+import { worldHorizon } from './horizon.js'
 
 /**
  * Clasificación por equipos contra Postgres real (PGlite), derivada del histórico de
@@ -140,7 +141,7 @@ describe('db: clasificación por equipos derivada del histórico', () => {
       ['c4', 230],
     ])
 
-    const { stage, overall } = await getTeamClassifications(t.db, RACE, 2)
+    const { stage, overall } = await getTeamClassifications(t.db, worldHorizon, RACE, 2)
 
     // La etapa 2 por separado.
     expect(stage.map((r) => r.teamName)).toEqual(['Alfa', 'Bravo', 'Charlie'])
@@ -173,7 +174,7 @@ describe('db: clasificación por equipos derivada del histórico', () => {
       ['c2', 100],
     ])
 
-    const stage3 = await getTeamClassifications(t.db, RACE, 3)
+    const stage3 = await getTeamClassifications(t.db, worldHorizon, RACE, 3)
     const charlieStage = stage3.stage.find((r) => r.teamName === 'Charlie')!
     expect(charlieStage.out).toBe(true)
     expect(charlieStage.tiempoS).toBe(0)
@@ -189,14 +190,14 @@ describe('db: clasificación por equipos derivada del histórico', () => {
   }, 120_000)
 
   it('la acumulada hasta una etapa no ve las etapas posteriores', async () => {
-    const hasta1 = await getTeamClassifications(t.db, RACE, 1)
+    const hasta1 = await getTeamClassifications(t.db, worldHorizon, RACE, 1)
     expect(hasta1.overall.find((r) => r.teamName === 'Alfa')!.tiempoS).toBe(330)
     // Charlie aún no se había quedado corto en la etapa 1: sigue clasificado.
     expect(hasta1.overall.find((r) => r.teamName === 'Charlie')!.out).toBe(false)
   }, 120_000)
 
   it('sin etapa pedida devuelve solo la acumulada de toda la carrera', async () => {
-    const todo = await getTeamClassifications(t.db, RACE)
+    const todo = await getTeamClassifications(t.db, worldHorizon, RACE)
     expect(todo.stage).toEqual([])
     expect(todo.overall.find((r) => r.teamName === 'Alfa')!.stagesScored).toBe(3)
   }, 120_000)
@@ -204,7 +205,7 @@ describe('db: clasificación por equipos derivada del histórico', () => {
   it('si lo persistido solo cubre parte de la carrera, se deriva todo (despliegue a media vuelta)', async () => {
     // Una carrera EN CURSO al desplegar esto tiene las primeras etapas sin escribir y las
     // siguientes sí. Sumar solo las segundas daría una clasificación silenciosamente falsa.
-    const completa = await getTeamClassifications(t.db, RACE)
+    const completa = await getTeamClassifications(t.db, worldHorizon, RACE)
     const alfa = completa.overall.find((r) => r.teamName === 'Alfa')!
     await t.db.insert(stageTeamResults).values({
       raceId: RACE,
@@ -215,14 +216,18 @@ describe('db: clasificación por equipos derivada del histórico', () => {
       sumaPuestos: 6,
       mejorPuesto: 1,
     })
-    const conParte = await getTeamClassifications(t.db, RACE)
+    const conParte = await getTeamClassifications(t.db, worldHorizon, RACE)
     expect(conParte.overall.find((r) => r.teamName === 'Alfa')!.tiempoS).toBe(alfa.tiempoS)
     expect(conParte.overall).toEqual(completa.overall)
     await t.db.delete(stageTeamResults).where(eq(stageTeamResults.raceId, RACE))
   }, 120_000)
 
   it('una carrera sin resultados no tiene clasificación por equipos', async () => {
-    const vacia = await getTeamClassifications(t.db, 'carrera-que-no-se-ha-corrido:s0')
+    const vacia = await getTeamClassifications(
+      t.db,
+      worldHorizon,
+      'carrera-que-no-se-ha-corrido:s0',
+    )
     expect(vacia).toEqual({ stage: [], overall: [] })
   }, 120_000)
 })
@@ -257,7 +262,7 @@ describe('db: desempate de la clasificación por equipos', () => {
       ['a2', 100],
       ['a3', 100],
     ])
-    const { stage, overall } = await getTeamClassifications(t.db, RACE, 1)
+    const { stage, overall } = await getTeamClassifications(t.db, worldHorizon, RACE, 1)
     for (const row of stage) expect(row.tiempoS).toBe(300)
     // Charlie 1+2+3 = 6, Bravo 4+5+6 = 15, Alfa 7+8+9 = 24.
     expect(stage.map((r) => r.teamName)).toEqual(['Charlie', 'Bravo', 'Alfa'])
@@ -287,7 +292,7 @@ describe('db: desempate de la clasificación por equipos', () => {
         tiempoS: 100,
       })),
     )
-    const { stage } = await getTeamClassifications(t.db, 'empate-etapa:s0', 1)
+    const { stage } = await getTeamClassifications(t.db, worldHorizon, 'empate-etapa:s0', 1)
     expect(stage.map((r) => [r.teamName, r.tiempoS, r.sumaPuestos])).toEqual([
       ['Alfa', 300, 12],
       ['Bravo', 300, 12],
@@ -322,10 +327,10 @@ describe('db: desempate de la clasificación por equipos', () => {
       { raceId: 'empate:s0', stageDay: 1, riderId: s.riderIds.b1!, puesto: 1, tiempoS: 90 },
       { raceId: 'empate:s0', stageDay: 1, riderId: s.riderIds.a1!, puesto: 2, tiempoS: 100 },
     ])
-    const { overall } = await getTeamClassifications(t.db, 'empate:s0', 1)
+    const { overall } = await getTeamClassifications(t.db, worldHorizon, 'empate:s0', 1)
     expect(overall.map((r) => r.teamName)).toEqual(['Bravo', 'Alfa'])
     // Y el orden es ESTABLE: dos consultas seguidas devuelven lo mismo.
-    const otra = await getTeamClassifications(t.db, 'empate:s0', 1)
+    const otra = await getTeamClassifications(t.db, worldHorizon, 'empate:s0', 1)
     expect(otra.overall.map((r) => r.teamName)).toEqual(['Bravo', 'Alfa'])
   }, 120_000)
 })

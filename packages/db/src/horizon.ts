@@ -8,8 +8,8 @@
  * Nace en el PR 3a con los tipos y las funciones PURAS (decisión 17-g): `timelineForStage` recibe un
  * `Horizon` desde que existe (14-p). El 7a añade `computeHorizon` en la forma D (18-a) con su memo y el
  * mapa del día (`lastRunStages`), `horizonSummary`, `touchLastSeen`, `TtlMemo` y, solo para los tests,
- * `clearHorizonCaches`; el 7b, `veilCast` (el reparto bajo el velo, §10.10); `veilSql` llega en el 8a
- * y `veilDelta` en el 8b. Qué horizonte recibe cada petición lo decide `SPOILER_MODE` alrededor de
+ * `clearHorizonCaches`; el 7b, `veilCast` (el reparto bajo el velo, §10.10); el 8a, `veilSql` (el
+ * predicado, §10.6, punto 3), y `veilDelta` llega en el 8b. Qué horizonte recibe cada petición lo decide `SPOILER_MODE` alrededor de
  * `computeHorizon`, no dentro: `request.horizon()`, en la API (§10.13, §14.5).
  */
 import { SEASON_CALENDAR, stageDayOfSeason } from '@cyclingstar/engine'
@@ -29,7 +29,7 @@ import {
   currentSeason,
   parseRaceKey,
 } from '@cyclingstar/shared'
-import { and, eq, isNull, lt, or, sql } from 'drizzle-orm'
+import { type SQL, type SQLWrapper, and, eq, isNull, lt, or, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
 import { users } from './schema.js'
 
@@ -554,9 +554,56 @@ export async function touchLastSeen(
     )
 }
 
+// ---------------------------------------------------------- el predicado (§10.6, punto 3; 8a)
+
+/**
+ * EL PREDICADO DEL VELO (D-32, decisión 10-d): la fila pertenece a una etapa del velo de `h`. Es la
+ * ÚNICA forma de escribir el corte en SQL. `(raceKey, gameDay)` identifica una etapa porque ninguna
+ * carrera declara `doubleAfter`; donde la tabla tiene `stage_day` (`news` desde la 0046; `rider_points`,
+ * `palmares` y `transactions` desde la 0049; `stage_team_results` siempre) se pasa, y una fila con
+ * `stage_day` casa por su etapa, mientras que una vieja, con `stage_day` nulo, cae al día de juego.
+ * `gameDay` null es la segunda firma, para la tabla que no tiene día de juego (`stage_team_results`).
+ * Con el velo vacío, `false`.
+ *
+ * Las tres listas del velo van enlazadas como UN parámetro de tipo array cada una (`sql.param`): una
+ * lista tal cual dentro de `sql`, drizzle-orm 0.45.2 la expande a `($1, $2, …)` y el `::text[]` falla
+ * (medido en PGlite y con postgres-js, `l6/veilsql.mjs`). En SQL:
+ *
+ *   exists (select 1 from unnest($1::text[], $2::int[], $3::int[]) as w(k, d, s)
+ *           where w.k = <raceKey> and (w.s = <stageDay> or (<stageDay> is null and w.d = <gameDay>)))
+ *
+ * En una tabla grande va DETRÁS de un filtro que use un índice (el velo tiene como mucho unas cincuenta
+ * entradas, §10.4). `palmares` lleva la clave sin temporada: se compone con
+ * ``sql`${palmares.raceId} || ':s' || ${palmares.season}` ``.
+ */
+export function veilSql(
+  h: Horizon,
+  raceKey: SQLWrapper,
+  gameDay: SQLWrapper,
+  stageDay?: SQLWrapper,
+): SQL
+export function veilSql(h: Horizon, raceKey: SQLWrapper, gameDay: null, stageDay: SQLWrapper): SQL
+export function veilSql(
+  h: Horizon,
+  raceKey: SQLWrapper,
+  gameDay: SQLWrapper | null,
+  stageDay?: SQLWrapper,
+): SQL {
+  if (h.veil.length === 0) return sql`false`
+  const keys = sql.param(h.veil.map((v) => v.raceKey))
+  const days = sql.param(h.veil.map((v) => v.gameDay))
+  const stages = sql.param(h.veil.map((v) => v.stageDay))
+  const match =
+    stageDay === undefined
+      ? sql`w.d = ${gameDay}`
+      : gameDay === null
+        ? sql`w.s = ${stageDay}`
+        : sql`(w.s = ${stageDay} or (${stageDay} is null and w.d = ${gameDay}))`
+  return sql`exists (select 1 from unnest(${keys}::text[], ${days}::int[], ${stages}::int[]) as w(k, d, s) where w.k = ${raceKey} and ${match})`
+}
+
 /*
- * LOS GEMELOS DEL PREDICADO (§10.6, punto 3), para lo que va por número de etapa. `veilSql`, el
- * predicado en SQL, llega en el 8a.
+ * LOS GEMELOS DEL PREDICADO (§10.6, punto 3), para lo que va por número de etapa.
  */
 
 /** Hasta qué etapa se puede servir una carrera (mecanismo P): la anterior a su primera velada, o lastRun. */

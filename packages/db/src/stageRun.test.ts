@@ -6,17 +6,21 @@ import { worldHorizon } from './horizon.js'
 import { newsNames } from './news.js'
 import {
   news,
+  palmares,
   raceGc,
   raceRosters,
   riderAttrLog,
   riderAttrs,
   riderDailyLog,
   riderHidden,
+  riderPoints,
   riders,
   stageResults,
   stageSnapshots,
   stageTeamResults,
   teams,
+  transactions,
+  users,
   worlds,
 } from './schema.js'
 import { getGcThroughStage, getKomClassification, getPointsClassification } from './results.js'
@@ -322,9 +326,9 @@ describe('db: runOneStage escribe en lote con la misma semántica', () => {
 
     // Y lo persistido coincide EXACTAMENTE con lo que se derivaría del histórico: la regla es la
     // misma función en los dos caminos, y este test lo ata para que no puedan separarse.
-    const persistida = await getTeamClassifications(t.db, RACE_KEY, 2)
+    const persistida = await getTeamClassifications(t.db, worldHorizon, RACE_KEY, 2)
     await t.db.delete(stageTeamResults).where(eq(stageTeamResults.raceId, RACE_KEY))
-    const derivada = await getTeamClassifications(t.db, RACE_KEY, 2)
+    const derivada = await getTeamClassifications(t.db, worldHorizon, RACE_KEY, 2)
     expect(derivada).toEqual(persistida)
     // La acumulada suma las dos etapas, no las recalcula desde la general.
     expect(persistida.overall[0]!.tiempoS).toBe(teamRows[0]!.tiempoS + teamRows[1]!.tiempoS)
@@ -446,9 +450,11 @@ describe('db: runOneStage escribe en lote con la misma semántica', () => {
       })),
     )
     const leaderOf = async (day: number) => ({
-      gc: (await getGcThroughStage(t.db, KEY, day)).find((r) => !r.dnf)?.riderId ?? null,
-      points: soleLeader(await getPointsClassification(t.db, KEY, day)),
-      kom: soleLeader(await getKomClassification(t.db, KEY, day)),
+      gc:
+        (await getGcThroughStage(t.db, worldHorizon, KEY, day)).find((r) => !r.dnf)?.riderId ??
+        null,
+      points: soleLeader(await getPointsClassification(t.db, worldHorizon, KEY, day)),
+      kom: soleLeader(await getKomClassification(t.db, worldHorizon, KEY, day)),
     })
     expect(await leaderOf(1)).toEqual({ gc: retirado, points: null, kom: null })
 
@@ -796,4 +802,134 @@ describe('db: runOneStage con la grabación de la línea temporal (E2, paso 5)',
       tl?.cast.riders.filter((c) => c.worn.kind === 'leader' && c.worn.jersey === 'gc'),
     ).toHaveLength(1)
   }, 120_000)
+})
+
+/**
+ * EL RASTRO DE ETAPA Y EL LIBRO DEL PRESUPUESTO (docs/retransmision.md §13.5 y §13.10, punto 6; D-41,
+ * I-34; E2, paso 8a). Hasta la 0049 un punto, un palmarés o un premio decían de qué día eran y, como
+ * mucho, de qué carrera, y el presupuesto del equipo no tenía libro: `creditTeam` lo sumaba a pelo. El
+ * velo necesita saber de qué ETAPA es cada cosa para restarla (8b), y no había ningún test de
+ * `awardRacePrizes`. Una vuelta de dos etapas de `TEST_TOUR` en un mundo de cuatro equipos, con todos los
+ * corredores de una cuenta: los premios personales solo se pagan a humanos (`economy.ts`).
+ */
+describe('db: awardRacePrizes y los escritores de la 0049 dejan el rastro de etapa (E2, paso 8a)', () => {
+  let t: TestDb
+  let w: TestWorld
+  const KEY = 'race-rastro:s0'
+  const SEMILLA = 'semilla-rastro'
+  /** Los dos días de juego de la vuelta: el 60 y el 61. */
+  const dia = (stageDay: number): number => 59 + stageDay
+
+  const presupuestos = async (): Promise<Map<string, number>> =>
+    new Map(
+      (
+        await t.db
+          .select({ id: teams.id, budget: teams.budget })
+          .from(teams)
+          .where(eq(teams.worldId, w.worldId))
+      ).map((r) => [r.id, r.budget]),
+    )
+
+  let antes = new Map<string, number>()
+  beforeAll(async () => {
+    t = await startTestDb()
+    w = await seedTestWorld(t, { worldSeed: SEMILLA })
+    await enrollAll(t, w, KEY)
+    const [u] = await t.db
+      .insert(users)
+      .values({ email: 'rastro@example.com', name: 'Rastro', emailVerified: true })
+      .returning({ id: users.id })
+    await t.db.update(riders).set({ userId: u!.id }).where(eq(riders.worldId, w.worldId))
+    antes = await presupuestos()
+    for (const stageDay of [1, 2])
+      await t.db.transaction((tx) =>
+        runOneStage(
+          tx,
+          w.worldId,
+          dia(stageDay),
+          SEMILLA,
+          stageSpecOf(KEY, stageDay, TEST_TOUR[stageDay - 1]!, stageDay === 2),
+        ),
+      )
+  }, 180_000)
+
+  afterAll(async () => {
+    await t?.close()
+  })
+
+  it('lo que ganó el presupuesto de cada equipo es la suma de su prize en las etapas de la carrera (§13.10, punto 6)', async () => {
+    const despues = await presupuestos()
+    const filas = await t.db
+      .select({
+        teamId: stageTeamResults.teamId,
+        stageDay: stageTeamResults.stageDay,
+        prize: stageTeamResults.prize,
+      })
+      .from(stageTeamResults)
+      .where(eq(stageTeamResults.raceId, KEY))
+    const prizeDe = new Map<string, number>()
+    for (const f of filas) prizeDe.set(f.teamId, (prizeDe.get(f.teamId) ?? 0) + f.prize)
+    for (const teamId of w.teamIds)
+      expect(despues.get(teamId)! - antes.get(teamId)!, teamId).toBe(prizeDe.get(teamId) ?? 0)
+    // No vacío: cada etapa pagó al equipo de su ganador (`teamStagePrize`), y la última, además, la
+    // general por equipos de sus primeros (`teamGcPrizes`).
+    for (const stageDay of [1, 2])
+      expect(
+        filas.filter((f) => f.stageDay === stageDay).reduce((s, f) => s + f.prize, 0),
+        `etapa ${stageDay}`,
+      ).toBeGreaterThan(0)
+    expect(filas.filter((f) => f.stageDay === 2 && f.prize > 0).length).toBeGreaterThan(1)
+  })
+
+  it('cada premio de corredor lleva su carrera y su etapa; el resto de movimientos, no (13-e)', async () => {
+    const premios = await t.db
+      .select({
+        note: transactions.note,
+        gameDay: transactions.gameDay,
+        raceKey: transactions.raceKey,
+        stageDay: transactions.stageDay,
+      })
+      .from(transactions)
+      .where(eq(transactions.kind, 'premio'))
+    expect(premios.length).toBeGreaterThan(2) // las dos victorias de etapa y la general
+    for (const p of premios) {
+      expect(p.raceKey, p.note).toBe(KEY)
+      expect(dia(p.stageDay!), p.note).toBe(p.gameDay)
+    }
+    expect(premios.filter((p) => p.note.includes('GC #')).every((p) => p.stageDay === 2)).toBe(true)
+    const otros = await t.db
+      .select({ raceKey: transactions.raceKey, stageDay: transactions.stageDay })
+      .from(transactions)
+      .where(sql`${transactions.kind} <> 'premio'`)
+    for (const o of otros) expect(o).toEqual({ raceKey: null, stageDay: null })
+  })
+
+  it('cada punto y cada palmarés de la etapa dicen su número de etapa; los de la general, el de la última', async () => {
+    const puntos = await t.db
+      .select({
+        gameDay: riderPoints.gameDay,
+        kind: riderPoints.kind,
+        stageDay: riderPoints.stageDay,
+      })
+      .from(riderPoints)
+      .where(eq(riderPoints.raceId, KEY))
+    expect(new Set(puntos.map((p) => p.kind))).toEqual(new Set(['stage', 'gc']))
+    for (const p of puntos) {
+      if (p.kind === 'gc') expect(p.stageDay).toBe(2)
+      else expect(dia(p.stageDay!)).toBe(p.gameDay)
+    }
+    const honores = await t.db
+      .select({
+        kind: palmares.kind,
+        detail: palmares.detail,
+        gameDay: palmares.gameDay,
+        stageDay: palmares.stageDay,
+      })
+      .from(palmares)
+      .where(eq(palmares.worldId, w.worldId))
+    expect(honores.map((h) => h.kind).sort()).toEqual(['gc', 'stage', 'stage'])
+    for (const h of honores)
+      if (h.kind === 'stage') expect(h.detail).toBe(`Stage ${h.stageDay}`)
+      else expect(h).toMatchObject({ gameDay: dia(2), stageDay: 2 })
+  })
 })

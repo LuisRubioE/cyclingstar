@@ -4,6 +4,7 @@ import { and, eq, lt } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import type { Database } from './client.js'
 import { getRaceClassifications, standingsByRider } from './classifications.js'
+import { type Horizon, worldHorizon } from './horizon.js'
 import { raceStagesForWorld } from './raceRoutes.js'
 import { stageResults } from './schema.js'
 
@@ -90,9 +91,12 @@ function siguientePuerto(profile: StageProfile, kmDone: number): number | null {
  *
  * Las DEUDAS de relevos nacen vacías y se dice: no hay dónde leerlas todavía. Las escribe R09 en el
  * paso 16, y hasta entonces una lista vacía es más honesta que una inventada.
+ *
+ * Como las clasificaciones del contexto, la lee el tick con `worldHorizon` (E2, §10.6): no se sirve.
  */
 export async function raceMemoryOf(
   db: Conn,
+  _h: Horizon,
   raceKey: string,
   stageDay: number,
 ): Promise<RaceMemory> {
@@ -127,7 +131,8 @@ export async function buildRaceContext(
     },
   )
   const totalStages = stages.length > 0 ? stages.length : 1
-  const clasif = await getRaceClassifications(db, raceKey, gameDay)
+  // El contexto que el tick le da al motor: el mundo entero, sin velo (§10.6, punto 1).
+  const clasif = await getRaceClassifications(db, worldHorizon, raceKey, gameDay)
   const stage = stages[stageDay - 1]
   return {
     stageDay,
@@ -143,7 +148,7 @@ export async function buildRaceContext(
         }
       : {}),
     standings: standingsByRider(clasif),
-    memory: await raceMemoryOf(db, raceKey, stageDay),
+    memory: await raceMemoryOf(db, worldHorizon, raceKey, stageDay),
   }
 }
 

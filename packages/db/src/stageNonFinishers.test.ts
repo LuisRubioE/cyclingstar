@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { getStageNonFinishers, getStageResults } from './results.js'
 import { raceRosters, riderAttrs, riders, stageResults, teams, worlds } from './schema.js'
 import { type TestDb, startTestDb } from './testDb.js'
+import { worldHorizon } from './horizon.js'
 
 /**
  * LOS DNF NO SALÍAN EN LA CLASIFICACIÓN DE LA ETAPA, contra Postgres real (PGlite).
@@ -137,7 +138,7 @@ describe('db: el que no acaba la etapa sigue saliendo en la hoja', () => {
   })
 
   it('sale el que se bajó de la bici, con su motivo', async () => {
-    const fuera = await getStageNonFinishers(t.db, KEY, DAY, salida)
+    const fuera = await getStageNonFinishers(t.db, worldHorizon, KEY, DAY, salida)
     const uno = fuera.find((r) => r.riderId === s.colapso)
     expect(`${uno?.dnf} ${uno?.reason}`).toBe('true colapso')
     // Sin puesto ni tiempo: no está clasificado, y no se le inventa uno.
@@ -145,7 +146,7 @@ describe('db: el que no acaba la etapa sigue saliendo en la hoja', () => {
   })
 
   it('…y el que llegó fuera de control, que es otra cosa y se dice distinto', async () => {
-    const fuera = await getStageNonFinishers(t.db, KEY, DAY, salida)
+    const fuera = await getStageNonFinishers(t.db, worldHorizon, KEY, DAY, salida)
     expect(fuera.find((r) => r.riderId === s.fueraControl)?.reason).toBe('fuera_control')
   })
 
@@ -156,28 +157,28 @@ describe('db: el que no acaba la etapa sigue saliendo en la hoja', () => {
      * por «quién abandonó este día» lo pintaría como DNF de una etapa que sí acabó, y encima
      * duplicado: una vez en el puesto 3 y otra al final tachado.
      */
-    const fuera = await getStageNonFinishers(t.db, KEY, DAY, salida)
+    const fuera = await getStageNonFinishers(t.db, worldHorizon, KEY, DAY, salida)
     expect(fuera.map((r) => r.riderId)).not.toContain(s.tocado)
-    const hoja = await getStageResults(t.db, KEY, DAY)
+    const hoja = await getStageResults(t.db, worldHorizon, KEY, DAY)
     expect(hoja.find((r) => r.riderId === s.tocado)?.puesto).toBe(3)
   })
 
   it('el que se retiró en una etapa ANTERIOR no aparece: no tomó la salida', async () => {
     // La otra pregunta del dueño —«no sé si fue antes de salir o en medio de la etapa»— la contesta
     // la lista de salida: quien no está en ella no salió, y no tiene nada que hacer en esta hoja.
-    const fuera = await getStageNonFinishers(t.db, KEY, DAY, salida)
+    const fuera = await getStageNonFinishers(t.db, worldHorizon, KEY, DAY, salida)
     expect(fuera.map((r) => r.riderId)).not.toContain(s.seFueAntes)
   })
 
   it('los clasificados siguen saliendo como siempre, y no marcados', async () => {
-    const hoja = await getStageResults(t.db, KEY, DAY)
+    const hoja = await getStageResults(t.db, worldHorizon, KEY, DAY)
     expect(hoja.map((r) => r.riderId)).toEqual(s.acabaron)
     expect(hoja.every((r) => !r.dnf && r.reason === null)).toBe(true)
   })
 
   it('una etapa sin abandonos no devuelve a nadie', async () => {
-    expect(await getStageNonFinishers(t.db, KEY, DAY, s.acabaron)).toEqual([])
+    expect(await getStageNonFinishers(t.db, worldHorizon, KEY, DAY, s.acabaron)).toEqual([])
     // …y sin lista de salida tampoco se inventa nada (una etapa antigua, sin snapshot legible).
-    expect(await getStageNonFinishers(t.db, KEY, DAY, [])).toEqual([])
+    expect(await getStageNonFinishers(t.db, worldHorizon, KEY, DAY, [])).toEqual([])
   })
 })

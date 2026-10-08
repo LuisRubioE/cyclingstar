@@ -11,6 +11,7 @@ import {
   getStageSnapshot,
   getTeamClassifications,
   raceStagesForWorld,
+  worldHorizon,
 } from '@cyclingstar/db'
 import {
   type CalendarRace,
@@ -20,7 +21,13 @@ import {
   renderAltimetrySvg,
   stagesForSeason,
 } from '@cyclingstar/engine'
-import { NO_LEADERS, type RaceLeaders, currentSeason, raceLeaders } from '@cyclingstar/shared'
+import {
+  NO_LEADERS,
+  type PreStageInfo,
+  type RaceLeaders,
+  currentSeason,
+  raceLeaders,
+} from '@cyclingstar/shared'
 import { leadersThroughStage } from './broadcastSource.js'
 import {
   type ChronicleEvent,
@@ -91,6 +98,22 @@ export async function stageContextOf(
     stage,
     km,
     spec: calendarStageSpec(stage, km),
+  }
+}
+
+/**
+ * Lo ÚNICO que un título, un aviso o una miniatura saben de una etapa (D-42): por tipo no cabe un
+ * resultado. Es el `tomorrow` del paquete de meta y el `ready` de `GET /api/riders/me/last-race` (8a).
+ */
+export function preStageInfoOf(ctx: StageContext): PreStageInfo {
+  return {
+    raceName: ctx.race.name,
+    season: ctx.season,
+    stageDay: ctx.day,
+    stageCount: ctx.race.stages.length,
+    km: ctx.km,
+    label: ctx.spec.label,
+    stageKind: ctx.spec.kind,
   }
 }
 
@@ -186,7 +209,15 @@ export function stageShellOf(ctx: StageContext, snapshot: StageSnapshotRow | nul
   }
 }
 
-/** La ficha de la etapa (`StageReplay`): sin correr, corrida sin crónica o corrida con crónica y radio. */
+/**
+ * La ficha de la etapa (`StageReplay`): sin correr, corrida sin crónica o corrida con crónica y radio.
+ *
+ * SIN HORIZONTE, A PROPÓSITO (E2, docs/retransmision.md §10.6 y §14.1; paso 8a): lo que se sirve ya lo
+ * han decidido antes de llamarla `stageAccessOf` (la ruta de etapa), la puerta del acta y la de la
+ * meta, y solo llegan aquí una etapa que la pantalla va a enseñar o el modo diagnóstico. Sus lecturas,
+ * todas de la tabla de §10.6, van con `worldHorizon`: la etapa entera, como la lee el tick. Una etapa
+ * conocida no tiene ninguna anterior velada (lo conocido es un prefijo, D-28), así que P no cortaría.
+ */
 export async function stageReplayOf(
   db: Database,
   ctx: StageContext,
@@ -196,7 +227,9 @@ export async function stageReplayOf(
   const raceInfo = raceInfoOf(ctx)
   const ciudades = citiesOf(ctx)
   const snapshot =
-    opts.snapshot === undefined ? await getStageSnapshot(db, raceKey, day) : opts.snapshot
+    opts.snapshot === undefined
+      ? await getStageSnapshot(db, worldHorizon, raceKey, day)
+      : opts.snapshot
   if (!snapshot) return notRunReplayOf(ctx)
   const {
     input: racedInput,
@@ -214,15 +247,20 @@ export async function stageReplayOf(
    */
   const started = racedInput.riders.map((r) => r.riderId)
   const results = [
-    ...(await getStageResults(db, raceKey, day)),
-    ...(await getStageNonFinishers(db, raceKey, day, started)),
+    ...(await getStageResults(db, worldHorizon, raceKey, day)),
+    ...(await getStageNonFinishers(db, worldHorizon, raceKey, day, started)),
   ]
-  const gc = await getGcThroughStage(db, raceKey, day)
+  const gc = await getGcThroughStage(db, worldHorizon, raceKey, day)
   // Montaña y puntos tal como quedaron TRAS esta etapa (acumulado hasta el día `day`).
-  const kom = await getKomClassification(db, raceKey, day)
-  const points = await getPointsClassification(db, raceKey, day)
+  const kom = await getKomClassification(db, worldHorizon, raceKey, day)
+  const points = await getPointsClassification(db, worldHorizon, raceKey, day)
   // Clasificación por equipos: la de ESTA etapa y la acumulada tras ella, igual que la general.
-  const { stage: teamStage, overall: teamGc } = await getTeamClassifications(db, raceKey, day)
+  const { stage: teamStage, overall: teamGc } = await getTeamClassifications(
+    db,
+    worldHorizon,
+    raceKey,
+    day,
+  )
   // LOS MAILLOTS, en dos juegos (ver `stageReplaySchema.leaders`): los de la carretera de ese
   // día —la clasificación tras la N−1, que es lo que cuenta el journal— y los de después de la
   // etapa, que es lo que muestran las tablas de esta misma página. En una carrera de UN DÍA no
