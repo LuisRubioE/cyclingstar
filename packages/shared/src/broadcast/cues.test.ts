@@ -8,10 +8,12 @@ import {
   type CueKind,
   type CueQueue,
   EMPTY_CUE_QUEUE,
+  aheadOfPeloton,
   admitCue,
   cueClassOf,
   cueFrame,
   cuesBetween,
+  isPresentation,
   namedCrashesBetween,
 } from './cues.js'
 import { type Instant, type InstantContext, instantAt, photoBlocksOf } from './instant.js'
@@ -33,8 +35,10 @@ import type { StartState } from './wire.js'
  * de §6.5 y §6.6 tal como las escribe el diseño, `cueClassOf` con los casos de 6-g, `cuesBetween` sobre
  * la etapa de juguete (los rótulos de los sucesos revelados entre dos instantes y los de los cambios de
  * estado, `last_km` y `group_changed`) y las reglas de la cola de §6.5 y 6-h, sus dos pasos puros:
- * `admitCue` (`admitir`) y `cueFrame` (el fotograma). La presentación de la fuga reservada en la cola
- * (`isPresentation`, `aheadOfPeloton`, 6-m) y los rótulos de la crono son del 6b.
+ * `admitCue` (`admitir`) y `cueFrame` (el fotograma). El 6b añade la presentación de la fuga reservada
+ * en la cola (`isPresentation`, `aheadOfPeloton`, 6-m) y la sustitución en `admitir` de los rótulos de
+ * la crono que esperan (9-d); y el corte en abanico, que sale como `ECHELONS` (el `Cue` `split` sabe si
+ * viene de `echelon_split`).
  */
 
 // --------------------------------------------------------------------------------- las tablas
@@ -316,9 +320,20 @@ describe('cuesBetween · los rótulos entre dos instantes, sobre la etapa de jug
     const [split] = cuesBetween(before, after, [
       ev('peloton_split', after.t, [3], { causa: 'puerto' }),
     ])
-    expect(split).toEqual({ kind: 'split', t: after.t, parts: [0, shed], cause: 'puerto' })
+    expect(split).toEqual({
+      kind: 'split',
+      t: after.t,
+      parts: [0, shed],
+      cause: 'puerto',
+      echelon: false,
+    })
     const [echelon] = cuesBetween(before, after, [ev('echelon_split', after.t, [3])])
-    expect(echelon).toMatchObject({ kind: 'split', cause: 'viento' })
+    expect(echelon).toMatchObject({ kind: 'split', cause: 'viento', echelon: true })
+    // un corte del pelotón por el viento no es el abanico: el mismo `cause`, y `echelon` lo distingue (6b)
+    const [wind] = cuesBetween(before, after, [
+      ev('peloton_split', after.t, [3], { causa: 'viento' }),
+    ])
+    expect(wind).toMatchObject({ kind: 'split', cause: 'viento', echelon: false })
   })
 
   it('la pancarta: el índice de la que se ve en ese km; si aún no se ve, nada', () => {
@@ -592,5 +607,225 @@ describe('la cola de rótulos · admitir y el fotograma (§6.5, 6-h; D-21)', () 
     const a = cueFrame(q, far(0))
     expect(a.shown?.cue.kind).toBe('rider')
     expect(a.waiting).toHaveLength(1)
+  })
+})
+
+// ------------------------------------------------------- la presentación de la fuga (6-m; 6b)
+
+/** Un grupo de un instante escrito a mano, en orden de carretera: lo único que mira `aheadOfPeloton`. */
+function road(
+  groups: readonly {
+    readonly members: readonly RiderIx[]
+    readonly kind?: 'peloton' | 'fuga' | 'grupeto'
+  }[],
+  inTransit: Instant['inTransit'] = [],
+): Instant {
+  return {
+    t: 1000,
+    headKm: 50,
+    toGoKm: 100,
+    lapsToGo: null,
+    groups: groups.map((g, i) => ({
+      g: i,
+      number: i + 1,
+      role: 'lead',
+      label: { k: 'role' },
+      kind: g.kind ?? 'fuga',
+      km: 50 - i,
+      size: g.members.length,
+      members: g.members,
+      gap: { toHeadS: i * 30, toAheadS: null, atKm: 49, trend: null },
+      detail: null,
+      jerseys: [],
+      own: false,
+    })),
+    inTransit,
+    mainGap: null,
+    banners: [],
+    virtualGc: null,
+    racing: groups.reduce((s, g) => s + g.members.length, 0),
+    gone: 0,
+  }
+}
+
+describe('isPresentation y aheadOfPeloton (6-m, §6.7)', () => {
+  it('la presentación de la fuga es la lista, la frase y la ronda de la moto; nada más', () => {
+    expect(isPresentation({ kind: 'break_formed', t: 1, group: 0, riders: [1], gapS: 30 })).toBe(
+      true,
+    )
+    expect(
+      isPresentation({
+        kind: 'break_presented',
+        t: 1,
+        group: 0,
+        named: [1],
+        others: 0,
+        riders: [1],
+      }),
+    ).toBe(true)
+    expect(isPresentation({ kind: 'rider', t: 1, rider: 1, context: 'break_round' })).toBe(true)
+    for (const context of ['banner', 'focus', 'own', 'tt_round'] as const)
+      expect(isPresentation({ kind: 'rider', t: 1, rider: 1, context })).toBe(false)
+    expect(isPresentation({ kind: 'attack', t: 1, riders: [1], fromGroup: 0 })).toBe(false)
+  })
+
+  it('por delante del grupo con el título de pelotón, sí; en él o detrás, no; sin título, sí', () => {
+    const i = road([{ members: [1, 2] }, { members: [3, 4], kind: 'peloton' }, { members: [5] }])
+    expect(aheadOfPeloton(i, 1)).toBe(true)
+    expect(aheadOfPeloton(i, 3)).toBe(false)
+    expect(aheadOfPeloton(i, 5)).toBe(false)
+    expect(aheadOfPeloton(road([{ members: [1] }, { members: [2] }]), 2)).toBe(true)
+  })
+
+  it('en tránsito cuenta el grupo que dejó (3-b)', () => {
+    const transit = [
+      { rider: 7, from: 0, to: 1, gap: { toHeadS: 0, toAheadS: null, atKm: 49, trend: null } },
+    ]
+    const i = road([{ members: [1] }, { members: [3, 4], kind: 'peloton' }], transit)
+    expect(aheadOfPeloton(i, 7)).toBe(true)
+    const back = [{ ...transit[0]!, from: 1, to: 0 }]
+    expect(
+      aheadOfPeloton(road([{ members: [1] }, { members: [3, 4], kind: 'peloton' }], back), 7),
+    ).toBe(false)
+  })
+})
+
+describe('la cola con una fuga: la presentación va reservada (6-m, §6.5)', () => {
+  const list: Cue = { kind: 'break_formed', t: 100, group: 0, riders: [1, 2], gapS: 48 }
+  const phrase: Cue = {
+    kind: 'break_presented',
+    t: 100,
+    group: 0,
+    named: [1],
+    others: 1,
+    riders: [1, 2],
+  }
+  const round = (rider: RiderIx, t = 100): Cue => ({
+    kind: 'rider',
+    t,
+    rider,
+    context: 'break_round',
+  })
+  /** La cola llena de rótulos no reservados de clase 1 y 2. */
+  const full = () =>
+    admitAll(EMPTY_CUE_QUEUE, [
+      [cue(10, 'mishap'), 1],
+      [cue(11, 'attack'), 2],
+      [cue(12, 'mishap'), 1],
+    ]).q
+  const ahead = road([{ members: [1, 2] }, { members: [3, 4, 5], kind: 'peloton' }])
+
+  it('con la cola llena entran la lista, la frase y la ronda, y no cuentan para cueQueueMax', () => {
+    let q = full()
+    for (const [c, k] of [
+      [list, 2],
+      [phrase, 2],
+      [round(1), 2],
+      [round(2), 2],
+    ] as const) {
+      const r = admitCue(q, c, k, far(0))
+      expect(r.admitted, c.kind).toBe(true)
+      q = r.queue
+    }
+    expect(q.waiting).toHaveLength(BROADCAST.cueQueueMax + 4)
+    // un 1 sigue sin sitio: los no reservados que esperan siguen siendo cueQueueMax
+    expect(admitCue(q, cue(20, 'mishap'), 1, far(0)).admitted).toBe(false)
+    // y un 2 echa a un no reservado, nunca a la presentación
+    const two = admitCue(q, cue(21, 'attack'), 2, far(0)).queue
+    expect(two.waiting.filter((x) => isPresentation(x.cue))).toHaveLength(4)
+    expect(two.waiting.filter((x) => !isPresentation(x.cue))).toHaveLength(BROADCAST.cueQueueMax)
+  })
+
+  it('la ronda espera detrás de los demás de clase 2 y delante de las clases 1 y 0', () => {
+    const { q } = admitAll(EMPTY_CUE_QUEUE, [
+      [round(1, 50), 2],
+      [cue(60, 'mishap'), 1],
+      [cue(70, 'attack'), 2],
+      [list, 2],
+    ])
+    // la clase 2 por hora de carrera (el ATTACK de los 70 s antes que la lista de los 100), y la ronda,
+    // aunque sea de los 50, detrás de los dos
+    expect(q.waiting.map((x) => x.cue.kind)).toEqual(['attack', 'break_formed', 'rider', 'mishap'])
+  })
+
+  it('no caduca por esperar; en pantalla, la ronda ocupa cueHoldS[0]', () => {
+    const { q } = admitAll(EMPTY_CUE_QUEUE, [
+      [cue(1, 'caught'), 3],
+      [round(1), 2],
+      [cue(2, 'attack'), 2],
+    ])
+    const a = cueFrame(q, { ...far(0), instant: ahead })
+    expect(a.shown?.cue.kind).toBe('caught')
+    // el caught sale a los cueHoldS[3]: el ATTACK ha esperado más y caduca; la ronda, no
+    const b = cueFrame(a, { ...far(BROADCAST.cueHoldS[3] + 0.01), instant: ahead })
+    expect(b.shown?.cue).toEqual(round(1))
+    expect(b.shown?.untilS).toBeCloseTo(BROADCAST.cueHoldS[3] + 0.01 + BROADCAST.cueHoldS[0], 9)
+    expect(b.waiting).toEqual([])
+  })
+
+  it('se tira solo cuando ya no presenta nada: el escapado cazado, o la fuga sin ninguno delante', () => {
+    const { q } = admitAll(EMPTY_CUE_QUEUE, [
+      [cue(1, 'caught'), 3],
+      [round(1), 2],
+      [round(2), 2],
+      [phrase, 2],
+    ])
+    // el 1 ya no va por delante del pelotón: su rótulo de la moto se tira, y el del 2 y la frase siguen
+    const caught1 = road([{ members: [2] }, { members: [1, 3, 4, 5], kind: 'peloton' }])
+    const a = cueFrame(q, { ...far(0), instant: caught1 })
+    expect(a.waiting.map((x) => x.cue)).toEqual([phrase, round(2)])
+    // ninguno delante: la frase y la ronda que quedan, fuera
+    const none = road([{ members: [1, 2, 3, 4, 5], kind: 'peloton' }])
+    expect(cueFrame(a, { ...far(1), instant: none }).waiting).toEqual([])
+    // sin instante no se sabe: no se tira nada
+    expect(cueFrame(q, far(0)).waiting).toHaveLength(3)
+  })
+})
+
+describe('la cola de la crono: el rótulo que espera se sustituye por el siguiente (9-d, §6.5)', () => {
+  const split = (t: RaceS, check: number, rank: number): Cue => ({
+    kind: 'tt_split',
+    t,
+    check,
+    rider: t,
+    timeS: 600,
+    rank,
+    deltaS: null,
+    board: [],
+  })
+  const finish = (t: RaceS, hotSeat: boolean): Cue => ({
+    kind: 'tt_finish',
+    t,
+    rider: t,
+    timeS: 1800,
+    rank: hotSeat ? 1 : 4,
+    deltaS: null,
+    hotSeat,
+    prev: null,
+  })
+
+  it('un tt_split que espera, por el siguiente del mismo control, con la mayor de las dos clases', () => {
+    const { q } = admitAll(EMPTY_CUE_QUEUE, [
+      [split(10, 0, 1), 2],
+      [split(11, 1, 3), 1],
+    ])
+    const r = admitCue(q, split(12, 0, 5), 1, far(0))
+    expect(r.admitted).toBe(true)
+    expect(r.queue.waiting.map((x) => [x.cue.t, x.cls])).toEqual([
+      [12, 2],
+      [11, 1],
+    ])
+  })
+
+  it('un tt_finish que espera, por el siguiente tt_finish, con la mayor de las dos clases', () => {
+    const { q } = admitAll(EMPTY_CUE_QUEUE, [
+      [finish(10, true), 3],
+      [cue(11, 'mishap'), 1],
+    ])
+    const r = admitCue(q, finish(12, false), 1, far(0))
+    expect(r.queue.waiting.map((x) => [x.cue.kind, x.cue.t, x.cls])).toEqual([
+      ['tt_finish', 12, 3],
+      ['mishap', 11, 1],
+    ])
   })
 })

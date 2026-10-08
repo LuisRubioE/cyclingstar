@@ -385,6 +385,8 @@ export function cueText(cue: Cue, ctx: CueTextContext): CueText {
       }
     }
     case 'split':
+      // el abanico es su propio rótulo (F.3): `echelon` dice que viene de echelon_split (6b)
+      if (cue.echelon) return { title: 'ECHELONS', detail: null }
       return {
         title: 'SPLIT IN THE BUNCH',
         detail: cue.cause === null ? null : (SPLIT_CAUSE_WORDS[cue.cause] ?? null),
