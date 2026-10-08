@@ -4,6 +4,8 @@ import { BottomNav } from './components/BottomNav'
 import { Header } from './components/Header'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { SessionExpiryWatcher } from './components/SessionExpiryWatcher'
+import { pageKindOfPath, usePageTitle } from './domain/pageTitle'
+import type { PageKind } from '@cyclingstar/shared'
 
 /**
  * Mapa de rutas (docs/navegacion.md §3.7). Tres esferas y la URL dice cuál es:
@@ -60,6 +62,9 @@ const RiderProfile = lazy(() =>
 const StageReplay = lazy(() =>
   import('./pages/StageReplay').then((m) => ({ default: m.StageReplay })),
 )
+const StageReportPage = lazy(() =>
+  import('./pages/StageReport').then((m) => ({ default: m.StageReportPage })),
+)
 const Team = lazy(() => import('./pages/Team').then((m) => ({ default: m.Team })))
 const TeamCalendar = lazy(() =>
   import('./pages/TeamCalendar').then((m) => ({ default: m.TeamCalendar })),
@@ -85,6 +90,23 @@ function Legacy({ to }: { to: string }) {
     encodeURIComponent(params[key] ?? ''),
   )
   return <Navigate to={`${target}${search}${hash}`} replace />
+}
+
+/**
+ * EL TÍTULO DE LAS PÁGINAS SIN ETAPA (E2, docs/retransmision.md §11.8; paso 9a): corredor, equipo,
+ * noticias y rankings llevan su nombre; la portada y el resto, el de la app. Las de una carrera, una
+ * etapa y su acta se titulan solas, con su información (`usePageTitle` en su página); aquí no se monta
+ * nada para ellas, para que haya un solo escritor por página.
+ */
+function RouteTitle() {
+  const { pathname } = useLocation()
+  const page = pageKindOfPath(pathname)
+  return page === null ? null : <GenericTitle page={page} />
+}
+
+function GenericTitle({ page }: { page: PageKind }) {
+  usePageTitle(null, page)
+  return null
 }
 
 /** Atajo para las páginas que exigen sesión. */
@@ -121,6 +143,7 @@ export function App() {
     */
     <div className="min-h-screen pb-[calc(3.5rem+env(safe-area-inset-bottom))] text-slate-900 sm:pb-0">
       <SessionExpiryWatcher />
+      <RouteTitle />
       <Header />
       <main className="mx-auto max-w-6xl px-3 py-5 sm:px-4">
         <Suspense fallback={<p className="text-slate-500">Loading…</p>}>
@@ -209,6 +232,8 @@ export function App() {
             <Route path="/world/races" element={<RacesIndex />} />
             <Route path="/world/races/:raceId" element={<Race />} />
             <Route path="/world/races/:raceId/stages/:day" element={<StageReplay />} />
+            {/* El acta compartible (E2, §11.10; D-36, DD-12): pública, y con la puerta a quien no la vio. */}
+            <Route path="/world/races/:raceId/stages/:day/report" element={<StageReportPage />} />
             <Route path="/world/teams" element={<Teams />} />
             <Route path="/world/teams/:id" element={<Team />} />
             <Route path="/world/nations" element={<Countries />} />
@@ -286,6 +311,10 @@ export function App() {
             <Route
               path="/races/:raceId/stages/:day"
               element={<Legacy to="/world/races/:raceId/stages/:day" />}
+            />
+            <Route
+              path="/races/:raceId/stages/:day/report"
+              element={<Legacy to="/world/races/:raceId/stages/:day/report" />}
             />
             <Route path="/teams" element={<Legacy to="/world/teams" />} />
             <Route path="/teams/:id" element={<Legacy to="/world/teams/:id" />} />

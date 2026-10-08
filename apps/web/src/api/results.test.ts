@@ -5,7 +5,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { OneDayRadio, OneDayStory } from '../pages/Race'
 import { StageReplay } from '../pages/StageReplay'
-import { diagOf, fetchCalendarStage, stageReplayKey, stageReplayPrefix } from './results'
+import { diagOf, fetchCalendarStage, stageReplayKey } from './results'
 
 /**
  * EL MODO DIAGNÓSTICO, DE LA PÁGINA A LA FICHA (docs/retransmision.md §11.15 y §14.11; D-40, decisión
@@ -14,8 +14,12 @@ import { diagOf, fetchCalendarStage, stageReplayKey, stageReplayPrefix } from '.
  * y la API le da la etapa entera sin gastarla. `fetchCalendarStage` lo pide solo cuando se le pasa, y
  * las dos páginas que piden la ficha (`StageReplay.tsx` y las pestañas de una carrera de un día de
  * `Race.tsx`) lo leen de su URL y lo ponen en la clave, para que una respuesta del modo diagnóstico no
- * sirva nunca la vista normal ni al revés. Y la meta de `Watch` invalida la ficha de la etapa, con
- * `diag` o sin él: vista, ya trae el resultado que llegó velado.
+ * sirva nunca la vista normal ni al revés.
+ *
+ * Re-sellado en el 9a (§10.9, §14.11): la clave lleva además el `rev` del horizonte al final
+ * (`horizonKey`) y la consulta espera a tenerlo; la meta de `Watch` y revelar ya no invalidan la ficha
+ * por su prefijo (`stageReplayPrefix` se va), sino que cambian el `rev`, y con él la clave. Las páginas se
+ * renderizan con `['horizon']` ya en la caché.
  */
 
 /** Una etapa sin correr, la ficha mínima que acepta `stageReplaySchema`. */
@@ -48,33 +52,28 @@ describe('web: la ficha de una etapa con ?diag=1 (14-s)', () => {
     ])
   })
 
-  it('solo diag=1 activa el modo, como en la API; la clave lleva diag al final', () => {
+  it('solo diag=1 activa el modo, como en la API; la clave lleva diag y, desde el 9a, el rev al final', () => {
     expect(diagOf(new URLSearchParams('diag=1'))).toBe(true)
     expect(diagOf(new URLSearchParams('tab=radio&diag=1'))).toBe(true)
     for (const q of ['', 'diag=0', 'diag=true', 'diag='])
       expect(diagOf(new URLSearchParams(q)), q).toBe(false)
-    expect(stageReplayKey('race-france', 7, true)).toEqual(['stage-replay', 'race-france', 7, true])
-    expect(stageReplayKey('race-france', 7, false)).not.toEqual(
-      stageReplayKey('race-france', 7, true),
+    expect(stageReplayKey('race-france', 7, true, '9.1')).toEqual([
+      'stage-replay',
+      'race-france',
+      7,
+      true,
+      '9.1',
+    ])
+    expect(stageReplayKey('race-france', 7, false, '9.1')).not.toEqual(
+      stageReplayKey('race-france', 7, true, '9.1'),
     )
   })
 
-  it('el prefijo de la ficha toma las dos claves de la etapa, con diag y sin él, y ninguna otra: lo que invalida la meta de Watch', async () => {
+  it('9a: tras la meta o al revelar cambia el rev, y la ficha velada no se sirve con la clave nueva', () => {
     const client = new QueryClient()
-    const keys = [
-      stageReplayKey('race-france', 7, false),
-      stageReplayKey('race-france', 7, true),
-      stageReplayKey('race-france', 8, false),
-      stageReplayKey('race-italy', 7, false),
-    ]
-    for (const key of keys) client.setQueryData(key, notRun)
-    await client.invalidateQueries({ queryKey: stageReplayPrefix('race-france', 7) })
-    expect(keys.map((key) => client.getQueryState(key)?.isInvalidated)).toEqual([
-      true,
-      true,
-      false,
-      false,
-    ])
+    client.setQueryData(stageReplayKey('race-france', 7, false, '9.1'), notRun)
+    expect(client.getQueryData(stageReplayKey('race-france', 7, false, '9.2'))).toBeUndefined()
+    expect(client.getQueryData(stageReplayKey('race-france', 7, false, '9.1'))).toEqual(notRun)
   })
 
   /**
@@ -87,6 +86,13 @@ describe('web: la ficha de una etapa con ?diag=1 (14-s)', () => {
     element: ReactElement,
   ): Promise<{ keys: unknown[][]; urls: string[] }> {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    client.setQueryData(['horizon'], {
+      rev: '9.1',
+      scope: 'guarded',
+      ready: [],
+      watching: [],
+      expiredSinceLastVisit: [],
+    })
     renderToStaticMarkup(
       createElement(
         QueryClientProvider,
@@ -118,10 +124,10 @@ describe('web: la ficha de una etapa con ?diag=1 (14-s)', () => {
     const path = '/world/races/:raceId/stages/:day'
     const page = createElement(StageReplay)
     const withDiag = await queriesOf('/world/races/race-france/stages/7?diag=1', path, page)
-    expect(withDiag.keys).toEqual([['stage-replay', 'race-france', 7, true]])
+    expect(withDiag.keys).toEqual([['stage-replay', 'race-france', 7, true, '9.1']])
     expect(withDiag.urls).toEqual(['/api/races/race-france/stages/7?diag=1'])
     const plain = await queriesOf('/world/races/race-france/stages/7?tab=radio', path, page)
-    expect(plain.keys).toEqual([['stage-replay', 'race-france', 7, false]])
+    expect(plain.keys).toEqual([['stage-replay', 'race-france', 7, false, '9.1']])
     expect(plain.urls).toEqual(['/api/races/race-france/stages/7'])
   })
 
@@ -132,10 +138,10 @@ describe('web: la ficha de una etapa con ?diag=1 (14-s)', () => {
       createElement(OneDayRadio, { raceId: 'race-sanremo' }),
     ]) {
       const withDiag = await queriesOf('/world/races/race-sanremo?diag=1', path, tab)
-      expect(withDiag.keys).toEqual([['stage-replay', 'race-sanremo', 1, true]])
+      expect(withDiag.keys).toEqual([['stage-replay', 'race-sanremo', 1, true, '9.1']])
       expect(withDiag.urls).toEqual(['/api/races/race-sanremo/stages/1?diag=1'])
       const plain = await queriesOf('/world/races/race-sanremo', path, tab)
-      expect(plain.keys).toEqual([['stage-replay', 'race-sanremo', 1, false]])
+      expect(plain.keys).toEqual([['stage-replay', 'race-sanremo', 1, false, '9.1']])
       expect(plain.urls).toEqual(['/api/races/race-sanremo/stages/1'])
     }
   })

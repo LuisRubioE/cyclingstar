@@ -17,7 +17,9 @@ describe('web: createQueryClient', () => {
   })
 
   it('la cabecera y el acta no se reintentan: un 403 o un 404 no cambian por repetirlos', () => {
-    expect(client.getQueryDefaults([...broadcastHeadKey('race-france', 7)])).toMatchObject({
+    expect(
+      client.getQueryDefaults([...broadcastHeadKey('race-france', 7, undefined, false, '9.1')]),
+    ).toMatchObject({
       retry: false,
     })
     expect(client.getQueryDefaults(['stage-report', 'race-france', 7])).toMatchObject({
@@ -29,5 +31,18 @@ describe('web: createQueryClient', () => {
     expect(client.getQueryDefaults(['stage-replay', 'race-france', 7])).toEqual({
       staleTime: STALE_TIME.world,
     })
+  })
+})
+
+describe('web: el horizonte en la caché (docs/retransmision.md §10.9, regla 2; paso 9a)', () => {
+  it('[horizon] caduca en el acto y se pide al enfocar la ventana; las demás, no', () => {
+    const client = createQueryClient()
+    expect(client.getQueryDefaults(['horizon'])).toMatchObject({
+      staleTime: 0,
+      refetchOnWindowFocus: true,
+    })
+    expect(client.getQueryDefaults(['stage-replay', 'race-france', 7])).not.toHaveProperty(
+      'refetchOnWindowFocus',
+    )
   })
 })
