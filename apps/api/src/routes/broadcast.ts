@@ -5,7 +5,6 @@ import {
   type WatchRow,
   getCastIdentities,
   getOwnRiderIds,
-  getRaceRiderIdentities,
   getRunStageDays,
   getStageMostKmOutFront,
   getStageNews,
@@ -15,6 +14,7 @@ import {
   readWatch,
   recordProgress,
   stageGateOf,
+  teamsOfTheDay,
   veilCast,
   worldHorizon,
 } from '@cyclingstar/db'
@@ -60,11 +60,17 @@ import {
   timelineForStage,
   withClimbFeet,
 } from '../broadcastSource.js'
-import { type ChronicleNames, buildChronicle, chronicleNames } from '../chronicle.js'
+import { type ChronicleNames, buildChronicle } from '../chronicle.js'
 import { badRequest, notFound, sendError, sendGate } from '../http.js'
 import { PLAYER_RATE_LIMIT } from '../security.js'
 import { stageHead } from '../stageHistory.js'
-import { type StageContext, preStageInfoOf, stageContextOf, stageReplayOf } from '../stageReplay.js'
+import {
+  type StageContext,
+  namesOfTheDay,
+  preStageInfoOf,
+  stageContextOf,
+  stageReplayOf,
+} from '../stageReplay.js'
 import { lineVoiceOf, storedWithRoles } from '../voiceRoles.js'
 import type { RoutePlugin } from './context.js'
 import { parseRaceId, parseStageDay } from './params.js'
@@ -626,12 +632,19 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
       ...(await getStageResults(db, worldHorizon, ctx.raceKey, ctx.day)),
       ...(await getStageNonFinishers(db, worldHorizon, ctx.raceKey, ctx.day, tl.riderIds)),
     ]
-    const identities = await getRaceRiderIdentities(db, ctx.raceKey)
     const onRoad =
       ctx.race.stages.length === 1
         ? NO_LEADERS
         : await leadersThroughStage(db, ctx.raceKey, ctx.day - 1)
-    return chronicleNames([...identities, ...results], onRoad)
+    // Con la identidad del día (§12.7; paso 12): el equipo de cada uno es el del reparto de la línea,
+    // con el que corrió, y no el de hoy.
+    const teamOfDay = teamsOfTheDay(
+      tl.cast.riders.map((c) => ({
+        riderId: c.riderId,
+        teamId: c.team === null ? null : (tl.cast.teams[c.team]?.teamId ?? null),
+      })),
+    )
+    return namesOfTheDay(db, ctx.raceKey, teamOfDay, results, onRoad)
   }
 
   /** El cierre (D-22, I-22): podio, general, maillots de mañana, fuera de carrera y la etapa siguiente. */
