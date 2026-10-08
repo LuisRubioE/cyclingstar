@@ -53,7 +53,10 @@ import { LeaderJersey } from './Jersey'
  * `Grupetto`. El grupo de la montaña era `KOM leader’s group`; `KOM` es en `Watch` la pancarta.
  *
  * Un grupo de tres o menos cuyos corredores no salen todos en la radio guardada (que nombra a los que
- * tiran y a los que hay que ver) se llama por su papel: no se inventa a quien no está.
+ * tiran y a los que hay que ver) se llama por su papel: no se inventa a quien no está. La radio desde la
+ * línea (11a, `radioFromTimeline`) nombra entero todo grupo de hasta `nameWholeGroupUpTo`, así que en
+ * las etapas con línea esos grupos salen por sus nombres, como en la barra; solo uno con un corredor que
+ * la ficha no sabe resolver se queda con su papel.
  */
 export function radioGroupNames(
   groups: readonly Pick<RadioGroup, 'kind' | 'size' | 'riders'>[],
@@ -334,7 +337,19 @@ function GroupCard({ g, name, position }: { g: RadioGroup; name: string; positio
   )
 }
 
-export function RaceRadioPanel({ radio }: { radio: RaceRadio }) {
+/**
+ * `painted`: LA RADIO HASTA LO PINTADO de una etapa que quien mira no conoce (E2, docs/retransmision.md
+ * §11.16, decisión 11-i; paso 11a): solo las fotos cerradas en lo que ha visto, así que el deslizador
+ * acaba en la última, no hay `Finish` y la cabecera lo dice: `Race Radio · up to km 142 · as far as
+ * you've watched`.
+ */
+export function RaceRadioPanel({
+  radio,
+  painted = false,
+}: {
+  radio: RaceRadio
+  painted?: boolean
+}) {
   // Se abre en la SALIDA, donde el pelotón va entero salvo en una crono: es el punto en que la foto
   // se entiende sin haber leído nada, y desde ahí se avanza.
   const [i, setI] = useState(0)
@@ -349,6 +364,11 @@ export function RaceRadioPanel({ radio }: { radio: RaceRadio }) {
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h2 className="text-lg font-semibold text-slate-800">Race Radio</h2>
+        {painted && (
+          <span className="text-sm text-slate-500">
+            · up to km {Math.round(radio.kms[last]?.km ?? 0)} · as far as you&apos;ve watched
+          </span>
+        )}
         <span className="text-sm text-slate-500">
           {row.racing} racing
           {row.gone > 0 ? ` · ${row.gone} out` : ''} of {radio.starters}
@@ -391,9 +411,12 @@ export function RaceRadioPanel({ radio }: { radio: RaceRadio }) {
         <button type="button" className={btn} onClick={() => step(20)} disabled={i >= last}>
           +20
         </button>
-        <button type="button" className={`${btn} ml-auto`} onClick={() => setI(last)}>
-          Finish
-        </button>
+        {/* hasta lo pintado no hay meta a la que saltar: la última foto es la última cerrada (11-i) */}
+        {!painted && (
+          <button type="button" className={`${btn} ml-auto`} onClick={() => setI(last)}>
+            Finish
+          </button>
+        )}
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">

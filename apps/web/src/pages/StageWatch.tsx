@@ -5,6 +5,7 @@ import {
   type Instant,
   type InstantContext,
   type LiveLine,
+  type RaceS,
   type TimeTrialInstant,
   type TimelineCore,
   breakHeadline,
@@ -103,6 +104,10 @@ import { GAP_TREND_INIT, type GapTrendVoice, gapTrendStep, unnamedBefore } from 
  * invalidación de la ficha del 7b), y la página sabe que la etapa se vio AQUÍ (`onFinished`), no en otro
  * dispositivo. Y el modo diagnóstico del dueño (`diag`, §11.15): los tramos y la meta con `?diag=1`, que
  * la API sirve sin tope y sin escribir, desde la previa y sin informar de lo alcanzado.
+ *
+ * Desde el 11a, cada informe de lo alcanzado (y el de salir, al cambiar de pestaña) se le dice también a
+ * la página (`onReached`): la `Race Radio` de una etapa sin ver llega hasta lo que se ha visto aquí sin
+ * esperar a que la cabecera se pida otra vez (11-i).
  */
 export function StageWatch({
   head,
@@ -111,6 +116,7 @@ export function StageWatch({
   diag = false,
   onReport,
   onFinished,
+  onReached,
 }: {
   head: BroadcastHead
   raceId: string
@@ -121,8 +127,10 @@ export function StageWatch({
   onReport: () => void
   /** la meta respondió: la etapa se vio aquí (la página no la toma por otro dispositivo, D-57) */
   onFinished?: () => void
+  /** lo alcanzado que se acaba de informar (11a): hasta ahí llega la radio de una etapa sin ver */
+  onReached?: (reachedS: RaceS) => void
 }) {
-  const w = useWatchPlayer(head, raceId, day, diag, onFinished)
+  const w = useWatchPlayer(head, raceId, day, diag, onFinished, onReached)
   const [overlayOpen, setOverlayOpen] = useState(false)
   const [barOpen, setBarOpen] = useState(false)
   const [commentary, setCommentary] = useState(false)
@@ -406,13 +414,16 @@ function useWatchPlayer(
   day: number,
   diag: boolean,
   onFinished: (() => void) | undefined,
+  onReached: ((reachedS: RaceS) => void) | undefined,
 ): WatchScreen {
   const queryClient = useQueryClient()
-  // el aviso de la meta, sin reiniciar el reproductor cuando la página lo cambia
+  // el aviso de la meta y el de lo alcanzado, sin reiniciar el reproductor cuando la página los cambia
   const finishedRef = useRef(onFinished)
+  const reachedRef = useRef(onReached)
   useEffect(() => {
     finishedRef.current = onFinished
-  }, [onFinished])
+    reachedRef.current = onReached
+  }, [onFinished, onReached])
   const ctx = useMemo<InstantContext>(
     () => ({
       own: new Set(head.cast.filter((c) => c.own).map((c) => c.ix)),
@@ -517,17 +528,30 @@ function useWatchPlayer(
           return f
         },
         sleep: (sec) => new Promise((resolve) => window.setTimeout(resolve, sec * 1000)),
-        // En el modo diagnóstico nada se informa (§11.15): ni al servidor, ni al localStorage.
+        // En el modo diagnóstico nada se informa (§11.15): ni al servidor, ni al localStorage. Lo que se
+        // informa se le dice también a la página, para la radio de una etapa sin ver (11a).
         report: diag
           ? async () => undefined
           : signedIn
-            ? (reachedS, mode) => postWatchProgress(raceKey, day, { reachedS, mode })
-            : async (reachedS) => writeLocalProgress(raceKey, day, reachedS),
+            ? (reachedS, mode) => {
+                reachedRef.current?.(reachedS)
+                return postWatchProgress(raceKey, day, { reachedS, mode })
+              }
+            : async (reachedS) => {
+                reachedRef.current?.(reachedS)
+                writeLocalProgress(raceKey, day, reachedS)
+              },
         beacon: diag
           ? () => undefined
           : signedIn
-            ? (reachedS, mode) => beaconWatchProgress(raceKey, day, { reachedS, mode })
-            : (reachedS) => writeLocalProgress(raceKey, day, reachedS),
+            ? (reachedS, mode) => {
+                reachedRef.current?.(reachedS)
+                beaconWatchProgress(raceKey, day, { reachedS, mode })
+              }
+            : (reachedS) => {
+                reachedRef.current?.(reachedS)
+                writeLocalProgress(raceKey, day, reachedS)
+              },
       },
       {
         chunk: (c) => {
