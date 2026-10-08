@@ -221,6 +221,15 @@ describe('cueClassOf · lo que sube o baja la clase (6-g)', () => {
     expect(of({ ...fin, hotSeat: false })).toBe(1)
   })
 
+  it('la crono entera de §9.5: own 1, la regla de salida 1, la general virtual 2 y 3, el cierre de control 2', () => {
+    expect(of({ kind: 'rider', t: 10, rider: 1, context: 'own' }, null, true)).toBe(1)
+    expect(of({ kind: 'tt_start_order', t: 0 }, null, true)).toBe(1)
+    const rows = [{ rider: 4, group: -1, startRank: 1, virtualS: 0 }]
+    expect(of({ kind: 'virtual_gc', t: 10, rows }, 4, true)).toBe(2)
+    expect(of({ kind: 'virtual_gc', t: 10, rows }, 7, true)).toBe(3)
+    expect(of({ kind: 'time_cut', t: 10, finishIx: 3 }, null, true)).toBe(2)
+  })
+
   it('lo demás, la clase de su CueKind', () => {
     expect(of({ kind: 'last_km', t: 10, leadGapS: 8 })).toBe(2)
     expect(of({ kind: 'caught', t: 10, caught: 1, by: 0, toGoKm: 12.4 })).toBe(3)

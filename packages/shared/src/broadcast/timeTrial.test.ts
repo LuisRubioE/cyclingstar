@@ -6,7 +6,7 @@ import { cutTimeline, visibilityOf } from './cut.js'
 import { type InstantContext, photoBlocksOf } from './instant.js'
 import type { StageTimeline, TimelineCore } from './timeline.js'
 import { fromDs, toDs } from './timeline.js'
-import { timeTrialInstantAt, ttKmEntries } from './timeTrial.js'
+import { timeTrialInstantAt, ttKmEntries, ttLastKmFromS } from './timeTrial.js'
 import type { StartState } from './wire.js'
 
 /**
@@ -220,6 +220,17 @@ describe('timeTrialInstantAt · la crono en t (§9.3, §9.8)', () => {
   it('es causal: lo que se ve en T no cambia al cortar la línea en T', () => {
     for (let t = 0; t <= fromDs(FINISH_DS); t += 911)
       expect(timeTrialInstantAt(cutTimeline(E16, t), t, CTX)).toEqual(at(t))
+  })
+
+  it('ttLastKmFromS: el último en salir, el líder, entra en su último km a su salida más kmClockDs.at(−2)', () => {
+    const last = TT.startDs.indexOf(Math.max(...TT.startDs))
+    expect(last).toBe(CTX.start.leaders.gc)
+    const from = fromDs(TT.startDs[last]! + TT.kmClockDs[last]!.at(-2)!)
+    expect(ttLastKmFromS(E16)).toBe(from)
+    // se sabe cuando ocurre: en la línea cortada antes, null; y en una línea en carretera, null
+    expect(ttLastKmFromS(cutTimeline(E16, from - 0.1))).toBeNull()
+    expect(ttLastKmFromS(cutTimeline(E16, from))).toBe(from)
+    expect(ttLastKmFromS({ ...E16, tt: null })).toBeNull()
   })
 
   it('en la línea de la web, quien aún no ha salido no tiene salida: va por salir', () => {

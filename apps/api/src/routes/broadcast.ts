@@ -22,6 +22,7 @@ import {
   type LiveLine,
   NO_LEADERS,
   type PreStageInfo,
+  type ProfileStrip,
   type RaceS,
   type RiderIx,
   type StageClosing,
@@ -36,6 +37,8 @@ import {
   fromDs,
   playbackEstimateS,
   stageQuerySchema,
+  startStateOf,
+  ttPlaybackEstimateS,
   visibilityOf,
 } from '@cyclingstar/shared'
 import type { FastifyReply, FastifyRequest } from 'fastify'
@@ -45,6 +48,7 @@ import {
   serveCast,
   threeKmRuleRiders,
   timelineForStage,
+  withClimbFeet,
 } from '../broadcastSource.js'
 import {
   type ChronicleEvent,
@@ -203,11 +207,13 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
           rider: (id) => identities.riders.get(id)?.name ?? id,
           team: (id) => identities.teams.get(id)?.name ?? id,
         },
-        { own: await ownOf(request, tl) },
+        { own: await ownOf(request, tl), dayCategory: ctx.race.championshipCategory ?? 'elite' },
       )
-      const startState = startStateOf(tl)
+      const startState = startStateOf(tl.cast, tl.riderIds.length)
       // El nombre, la etiqueta y el tipo, como la ruta de etapa para una etapa corrida (stageHead).
       const raced = (await lineSourceOf(db, tl, ctx.raceKey, ctx.day)).racedProfile
+      // Las cimas que el grabador dejó sin pie, con el de su recorrido (nota 5 del 3c, 6b).
+      const profile = withClimbFeet(tl.profile, raced)
       const head =
         raced === null
           ? ctx.spec
@@ -233,15 +239,22 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
           dx: tl.dx,
           blocks: tl.blocks,
         },
-        profile: tl.profile,
+        profile,
         weather: tl.weather,
         cast,
         startState,
         pace: BROADCAST.pace,
-        estimateS: playbackEstimateS(tl.profile, BROADCAST.pace),
+        // La duración que se anuncia (§8.2; en una crono, §9.4 y 9-h): solo el recorrido y el plan público.
+        estimateS:
+          tl.tt === null
+            ? playbackEstimateS(tl.profile, BROADCAST.pace)
+            : ttPlaybackEstimateS(tl.profile, {
+                riders: tl.riderIds.length,
+                intervalS: tl.tt.intervalS,
+              }),
         clock: tl.clock,
         source: tl.clock === 'estimated' ? 'radio' : 'timeline',
-        preview: previewOf(tl, startState),
+        preview: previewOf(tl, profile, startState),
         // Lo visto (7a): de race_watch y de la memoria del proceso; null para el visitante.
         view,
         gate: null,
@@ -504,31 +517,13 @@ function withoutRadio<T extends object>(replay: T): Omit<T, 'radio'> {
   return out
 }
 
-/** La salida (§4.11): quién lleva cada maillot, los diez primeros de la general de salida y cuántos salen. */
-function startStateOf(tl: StageTimeline): StartState {
-  const leaders: { gc: RiderIx | null; points: RiderIx | null; kom: RiderIx | null } = {
-    gc: null,
-    points: null,
-    kom: null,
-  }
-  for (const c of tl.cast.riders) if (c.worn.kind === 'leader') leaders[c.worn.jersey] = c.rider
-  const gcTop = tl.cast.riders
-    .flatMap((c) =>
-      c.start.gcRank !== null && c.start.gcRank <= BROADCAST.virtualGcTop
-        ? [{ rider: c.rider, rank: c.start.gcRank, gapS: c.start.gcDeficitS ?? 0 }]
-        : [],
-    )
-    .sort((x, y) => x.rank - y.rank || x.rider - y.rider)
-  return { leaders, gcTop, racingAtStart: tl.riderIds.length }
-}
-
 /**
  * La previa (D-22, §8.6): el recorrido, el tiempo, los maillots en juego con quién los amenaza y los
  * favoritos. Con el reparto provisional del adaptador, la amenaza solo se sabe de la general (los
  * siguientes de la general de salida) y los favoritos son los tres primeros de esa general: los de
  * atributo los graba el reparto congelado (8-g).
  */
-function previewOf(tl: StageTimeline, start: StartState): StagePreview {
+function previewOf(tl: StageTimeline, route: ProfileStrip, start: StartState): StagePreview {
   const jerseysInPlay = JERSEY_PRIORITY.flatMap((jersey) => {
     const holder = start.leaders[jersey]
     if (holder === null) return []
@@ -542,7 +537,7 @@ function previewOf(tl: StageTimeline, start: StartState): StagePreview {
     return [{ jersey, holder, threats }]
   })
   return {
-    route: tl.profile,
+    route,
     weather: tl.weather,
     jerseysInPlay,
     favourites: [

@@ -23,6 +23,7 @@ import { COUNTRIES } from '../countries.js'
 import type { ChampionTitle, Distinction, JerseyKind, RiderCard, WornJersey } from '../jerseys.js'
 import type { NameResolver } from '../news.js'
 import { BROADCAST } from './constants.js'
+import type { Cue } from './cues.js'
 import type { GapTrend, GroupLabel, GroupNow, GroupRole, InstantContext } from './instant.js'
 import type { GroupDetail, RiderIx, TimelineEvent } from './timeline.js'
 
@@ -384,6 +385,31 @@ export function breakHeadline(
     withParts.push(`${numberWord(counted.length)} ${counted.length === 1 ? 'other' : 'others'}`)
   const withText = withParts.length === 0 ? '' : ` with ${listAnd(withParts)}`
   return `${capitalized(subject)} ${subjectCount === 1 ? 'goes' : 'go'} clear${withText}${teamClause()}.`
+}
+
+/**
+ * LA FRASE DE LA FUGA COMO RÓTULO (§6.5, §7.6; 6-i): el `break_presented` que el reproductor programa en
+ * cuanto sale el `break_formed` de la fuga, con los mismos escapados. `named`, los que la frase nombra en
+ * su orden (los notables y después los del espectador); `others`, los que cuenta. La frase la escribe
+ * `breakHeadline` sobre las cartas de `riders`. Es lo que B3 comprueba en la API y en la web con la
+ * cabecera de la ruta.
+ */
+export function breakPresentedOf(
+  formed: Extract<Cue, { readonly kind: 'break_formed' }>,
+  cast: readonly RiderCard[],
+  own: ReadonlySet<RiderIx>,
+): Extract<Cue, { readonly kind: 'break_presented' }> {
+  const riders = [...formed.riders].sort((a, b) => a - b)
+  const cards = riders.flatMap((r) => (cast[r] === undefined ? [] : [cast[r]]))
+  const parts = breakHeadlineParts(cards, own)
+  return {
+    kind: 'break_presented',
+    t: formed.t,
+    group: formed.group,
+    named: [...parts.named, ...parts.own],
+    others: parts.others.length,
+    riders,
+  }
 }
 
 /**

@@ -159,6 +159,24 @@ export function timeTrialInstantAt(
 }
 
 /**
+ * DESDE CUÁNDO VA LA CRONO A `ttLastKmX` (§9.4): la hora a la que el último en salir pasa por su último
+ * km entero, su salida más `kmClockDs.at(−2)`, que se sabe cuando ocurre. El último en salir es el de la
+ * salida `(n − 1) · intervalS`, que es público; mientras su salida o ese paso no se ven (en la línea de
+ * la web, una salida sin ver vale `+∞` y su fila llega por tramos), null: el ritmo sigue por salidos.
+ */
+export function ttLastKmFromS(tl: TimelineCore): RaceS | null {
+  const tt = tl.tt
+  if (tt === null) return null
+  const n = tl.riderIds.length
+  const lastStart = toDs((n - 1) * tt.intervalS)
+  const r = tt.startDs.indexOf(lastStart)
+  if (r < 0) return null
+  const entries = ttKmEntries(tl.blocks)
+  const at = tt.kmClockDs[r]?.[entries - 2]
+  return at === undefined || entries < 2 ? null : (lastStart + at) / 10
+}
+
+/**
  * LA GENERAL VIRTUAL DE LA CRONO (9-j): desde que el líder de salida pasa por un control o llega, en su
  * último punto visible, cada uno de los primeros de la general de salida que ya pasó por él, con su
  * déficit de salida más lo que pierde con el líder en ese punto. Sin líder, o antes de su primer paso,

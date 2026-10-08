@@ -1,5 +1,6 @@
 import { worldHorizon } from '@cyclingstar/db'
 import {
+  BROADCAST,
   NO_LEADERS,
   type StageTimeline,
   cutTimeline,
@@ -10,7 +11,9 @@ import {
 } from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
 import {
+  FIXTURES,
   ROAD_FIXTURES,
+  fixtureProfile,
   fixtureStage,
   loadTimeline,
   loadStoredRadio,
@@ -22,12 +25,14 @@ import {
   type StoredStage,
   adaptRadioStage,
   estimatedHeadClock,
+  profileStripOf,
   provisionalCast,
   recordedClockOf,
   revealStoredEvents,
   serveCast,
   storedPhotoBlocks,
   threeKmRuleRiders,
+  withClimbFeet,
 } from './broadcastSource.js'
 import type { ChronicleEvent, StoredRadio } from './chronicle.js'
 
@@ -506,7 +511,7 @@ describe('el reparto provisional del adaptador (17-k) y su primera forma servida
     }
   })
 
-  it('serveCast sin velo: los nombres de hoy, la notoriedad del maillot y los propios', () => {
+  it('serveCast sin velo: los nombres de hoy, la notoriedad de staticNotoriety y los propios', () => {
     const cast = provisionalCast(
       entries,
       identities,
@@ -517,7 +522,8 @@ describe('el reparto provisional del adaptador (17-k) y su primera forma servida
       rider: (id: string) => identities.riders.get(id)?.name ?? '?',
       team: (id: string) => identities.teams.get(id)?.name ?? '?',
     }
-    const cards = serveCast(cast, worldHorizon, names, { own: new Set([2]) })
+    const ctx = { own: new Set([2]), dayCategory: 'elite' as const }
+    const cards = serveCast(cast, worldHorizon, names, ctx)
     expect(cards.map((c) => [c.ix, c.name, c.team?.name ?? null, c.notoriety, c.own])).toEqual([
       [0, 'Ana Solis', 'Team Sol', 0, false],
       [1, 'Bea Roca', 'Team Sol', 3, false],
@@ -525,6 +531,43 @@ describe('el reparto provisional del adaptador (17-k) y su primera forma servida
     ])
     expect(cards[0]!.team).toEqual({ id: 'sol', name: 'Team Sol', jerseySeed: 'j-sol' })
     for (const c of cards) expect(c.lines).toEqual([])
+
+    // Con el reparto congelado: las líneas cortadas a cardLinesMax, y la notoriedad con las que quedan.
+    const title = {
+      scope: 'national',
+      country: 'IT',
+      discipline: 'road',
+      category: 'elite',
+      season: 0,
+      validFromDay: 150,
+      validToDay: 515,
+      source: from,
+      provisional: true,
+    } as const
+    const lines = [
+      { kind: 'gc', rank: 9, deficitS: 300, from },
+      { kind: 'stage_wins', stages: [from] },
+      { kind: 'leads', jersey: 'kom', from },
+      { kind: 'champion', title },
+    ] as const
+    const full = {
+      ...cast,
+      riders: cast.riders.map((r) => (r.rider === 2 ? { ...r, distinctions: lines } : r)),
+    }
+    const caro = serveCast(full, worldHorizon, names, ctx)[2]!
+    expect(caro.lines).toEqual(lines.slice(0, BROADCAST.cardLinesMax))
+    expect(caro.notoriety).toBe(5) // el título, cuarto, no cabe: 9.º de la general
+    // la categoría del día decide si el título cuenta (sub-23 en una carrera élite, no)
+    const u23 = {
+      ...full,
+      riders: full.riders.map((r) =>
+        r.rider === 2 ? { ...r, distinctions: [{ kind: 'champion' as const, title }] } : r,
+      ),
+    }
+    expect(serveCast(u23, worldHorizon, names, ctx)[2]!.notoriety).toBe(4)
+    expect(serveCast(u23, worldHorizon, names, { ...ctx, dayCategory: 'u23' })[2]!.notoriety).toBe(
+      8,
+    )
   })
 })
 
@@ -571,5 +614,60 @@ describe('threeKmRuleRiders · la regla de los 3 km sobre las caídas de la lín
     expect(g).toBe(p.groupOf[3])
     expect(view.clockAt(g!, b)).toBe(p.clock.get(g!)! / 10)
     expect(view.blockOfKm(100.05)).toBe(1000)
+  })
+})
+
+describe('withClimbFeet · el pie de las cimas que el grabador deja sin él (nota 5 del 3c, 6b)', () => {
+  const lines = FIXTURES.map((name) => ({
+    name,
+    tl: loadTimeline(name),
+    raced: fixtureProfile(name),
+  }))
+
+  it('las cimas de un puerto no cambian; las demás ganan pie, longitud y pendiente (11 de las 12 sin pie)', () => {
+    let without = 0
+    let fixed = 0
+    for (const { name, tl, raced } of lines) {
+      const served = withClimbFeet(tl.profile, raced)
+      expect(served.altM, name).toBe(tl.profile.altM)
+      expect(served.sprintsKm, name).toBe(tl.profile.sprintsKm)
+      expect(served.climbs.map((c) => [c.topKm, c.cat, c.name])).toEqual(
+        tl.profile.climbs.map((c) => [c.topKm, c.cat, c.name]),
+      )
+      tl.profile.climbs.forEach((rec, i) => {
+        const c = served.climbs[i]!
+        if (rec.lenKm > 0) return expect(c, `${name} ${rec.name}`).toBe(rec)
+        without++
+        if (c.lenKm === 0) return
+        fixed++
+        expect(c.footKm).toBeLessThan(c.topKm)
+        expect(c.lenKm).toBeCloseTo(c.topKm - c.footKm, 9)
+        expect(c.avgPct, `${name} ${rec.name}`).toBeGreaterThanOrEqual(2)
+      })
+    }
+    // la que queda, el Paterberg (1) de Flandes: su pancarta va 2 km después de lo que sube
+    expect([without, fixed]).toEqual([12, 11])
+    // los de la tele: el Galibier de la e20, 18,2 km al 6,7 % desde el 92,8
+    const e20 = lines.find((x) => x.name === 'race-france-e20')!
+    const galibier = withClimbFeet(e20.tl.profile, e20.raced).climbs.find(
+      (c) => c.name === 'Col du Galibier',
+    )
+    expect(galibier).toMatchObject({ footKm: 92.8, topKm: 111, lenKm: 18.2, avgPct: 6.7 })
+  })
+
+  it('con la regla del adaptador: la línea grabada servida y la del adaptador dan las mismas cimas', () => {
+    for (const { name, tl, raced } of lines) {
+      const served = withClimbFeet(tl.profile, raced).climbs
+      const adapted = profileStripOf(raced).climbs
+      expect(
+        served.map((c) => [c.footKm, c.topKm, c.lenKm, c.avgPct]),
+        name,
+      ).toEqual(adapted.map((c) => [c.footKm, c.topKm, c.lenKm, c.avgPct]))
+    }
+  })
+
+  it('sin el recorrido corrido, el perfil grabado tal cual', () => {
+    const { tl } = lines[0]!
+    expect(withClimbFeet(tl.profile, null)).toBe(tl.profile)
   })
 })

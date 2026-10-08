@@ -12,20 +12,23 @@ import {
   photoAt,
   photoBlocksOf,
   seededRng,
+  timeTrialInstantAt,
   toDs,
   toKm10,
   visibilityOf,
 } from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
-import { ROAD_FIXTURES, loadTimeline } from './__fixtures__/broadcast/load.js'
+import { FIXTURES, loadTimeline } from './__fixtures__/broadcast/load.js'
 
 /**
- * B9 · EL CORTE CAUSAL (docs/retransmision.md §16.4; D-06, I-10). El código de §16.4 sin la crono: en
- * el 3a importa solo `instantAt`, usa `at = instantAt` y recorre `ROAD_FIXTURES` (las cinco en línea),
- * porque `timeTrialInstantAt` no existe hasta el 6b y la crono no tiene `<etapa>.radio.json.gz` (§17.6).
- * Del 3a al 5 `loadTimeline` construía la línea del adaptador de la radio (§3.8); desde el 6a carga la
- * grabada (`<etapa>.timeline.gz`), con sus marcas de verdad, también las que bajan (§4.6). El 6b añade
- * la crono (`const at = tl.timeTrial ? timeTrialInstantAt : instantAt` y `describe.each(FIXTURES)`).
+ * B9 · EL CORTE CAUSAL (docs/retransmision.md §16.4; D-06, I-10). El código de §16.4: del 3a al 6a
+ * importaba solo `instantAt` y recorría `ROAD_FIXTURES` (las cinco en línea), porque `timeTrialInstantAt`
+ * no existía hasta el 6b y la crono no tenía `<etapa>.radio.json.gz` (§17.6). Del 3a al 5 `loadTimeline`
+ * construía la línea del adaptador de la radio (§3.8); desde el 6a carga la grabada
+ * (`<etapa>.timeline.gz`), con sus marcas de verdad, también las que bajan (§4.6). El 6b añade la crono:
+ * `at` es `timeTrialInstantAt` si `tl.timeTrial`, `describe.each(FIXTURES)`, y los pasos de la crono
+ * (`tt.starts`, `tt.km` y `tt.checks`) en la segunda y la tercera cláusula. Los dos casos del primer
+ * tramo y del borde de la meta en línea son de carretera; el de la crono es su última llegada (4-w).
  *
  * Una diferencia con el código de §16.4, a propósito: `atFinish` se compara con `to >= finishDs − 1` y
  * no con `to === finishDs`, porque un tramo solo lleva lo visible ANTES de la meta (`< finishDs`): el
@@ -71,14 +74,19 @@ function recordsOf(c: Omit<BroadcastChunk, 'lines'>): Record<string, string[]> {
     details: split(c.details, (i) => 7 + 3 * c.details[i + 6]!),
     events: c.events.map((x) => JSON.stringify(x)),
     banners: split(c.banners, (i) => 4 + 2 * c.banners[i + 3]!),
+    'tt.starts': split(c.tt?.starts ?? [], () => 2),
+    'tt.km': split(c.tt?.km ?? [], () => 3),
+    'tt.checks': split(c.tt?.checks ?? [], () => 3),
   }
 }
 
 /**
  * Una línea en los registros de un tramo (§4.11), ordenados: lo que los tramos, uno tras otro, tienen
  * que traer. Escrito aquí y no con `chunkOf`, para que la tercera cláusula no se compare consigo misma.
+ * La crono cortada guarda `startDs` entero (§4.6) y los tramos solo llevan las salidas ya vistas: las de
+ * hasta `limitDs`, el borde de lo servido.
  */
-function wireOf(tl: TimelineCore): Record<string, string[]> {
+function wireOf(tl: TimelineCore, limitDs: number): Record<string, string[]> {
   const out: Record<string, unknown[][]> = {
     groupsBorn: [],
     groupsDied: [],
@@ -89,6 +97,9 @@ function wireOf(tl: TimelineCore): Record<string, string[]> {
     details: [],
     events: [],
     banners: [],
+    'tt.starts': [],
+    'tt.km': [],
+    'tt.checks': [],
   }
   tl.groups.forEach((g, i) => {
     out.groupsBorn!.push([i, g.id, g.origin])
@@ -135,16 +146,22 @@ function wireOf(tl: TimelineCore): Record<string, string[]> {
       x.order.length,
       ...x.order.flatMap((o) => [o.rider, o.points]),
     ])
+  if (tl.tt !== null) {
+    tl.tt.startDs.forEach((ds, r) => ds <= limitDs && out['tt.starts']!.push([r, ds]))
+    tl.tt.kmClockDs.forEach((row, r) => row.forEach((d, k) => out['tt.km']!.push([r, k, d])))
+    tl.tt.checkClockDs.forEach((row, r) => row.forEach((d, c) => out['tt.checks']!.push([r, c, d])))
+  }
   return Object.fromEntries(
     Object.entries(out).map(([k, v]) => [k, v.map((x) => JSON.stringify(x)).sort()]),
   )
 }
 
-describe.each(ROAD_FIXTURES)('B9 · el corte causal · %s', (name) => {
+describe.each(FIXTURES)('B9 · el corte causal · %s', (name) => {
   const tl = loadTimeline(name)
   const ctx = ctxOf(tl)
-  const { finishDs } = visibilityOf(tl)
-  const at = instantAt
+  const { finishDs, ttKmDs, ttCheckDs } = visibilityOf(tl)
+  const at = (l: TimelineCore, T: number, c: InstantContext): unknown =>
+    tl.timeTrial ? timeTrialInstantAt(l, T, c) : instantAt(l, T, c)
 
   it('lo que se ve en T no cambia al quitar de la línea todo lo que aún no se ve', () => {
     const rng = seededRng(`b9:${name}`)
@@ -170,7 +187,17 @@ describe.each(ROAD_FIXTURES)('B9 · el corte causal · %s', (name) => {
         expect(
           since(c.banners[i + 2]!, from) && c.banners[i + 2]! <= to && c.banners[i + 2]! < finishDs,
         ).toBe(true)
-      expect(c.tt).toBeNull()
+      if (c.tt === null) expect(tl.timeTrial).toBe(false)
+      else {
+        // la crono: cada salida y cada paso por km y por control, con su visibilidad (§4.6)
+        const inside = (ds: number): boolean => since(ds, from) && ds <= to && ds < finishDs
+        for (let i = 0; i < c.tt.starts.length; i += 2)
+          expect(inside(c.tt.starts[i + 1]!)).toBe(true)
+        for (let i = 0; i < c.tt.km.length; i += 3)
+          expect(inside(ttKmDs![c.tt.km[i]!]![c.tt.km[i + 1]!]!)).toBe(true)
+        for (let i = 0; i < c.tt.checks.length; i += 3)
+          expect(inside(ttCheckDs![c.tt.checks[i]!]![c.tt.checks[i + 1]!]!)).toBe(true)
+      }
       expect(c.atFinish).toBe(to >= finishDs - 1)
     }
   })
@@ -182,27 +209,43 @@ describe.each(ROAD_FIXTURES)('B9 · el corte causal · %s', (name) => {
       for (const [k, v] of Object.entries(recordsOf(chunkOf(tl, from, to))))
         joined.set(k, [...(joined.get(k) ?? []), ...v])
       // el último lleva lo de antes del borde de la meta: la línea cortada una décima antes
-      const cut = wireOf(cutTimeline(tl, Math.min(to, finishDs - 1) / 10))
+      const limit = Math.min(to, finishDs - 1)
+      const cut = wireOf(cutTimeline(tl, limit / 10), limit)
       for (const [k, v] of Object.entries(cut))
         expect([...(joined.get(k) ?? [])].sort(), `${k} hasta ${to}`).toEqual(v)
     }
   })
 
-  it('el primer tramo lleva lo que se ve desde la salida: el grupo de salida, su marca del bloque 0 y su fila del km 0', () => {
-    const c = chunkOf(tl, 0, CHUNK_DS)
-    expect(c.groupsBorn[0]).toEqual([0, tl.groups[0]!.id, 'start'])
-    // la marca de salida, la primera de la etapa: la grabada es el reloj de verdad de la cabeza al
-    // final del bloque 0 (la del adaptador valía 0 Ds, porque su reloj empezaba en la primera foto, §3.8)
-    expect(c.clocks.slice(0, 2)).toEqual([0, 0])
-    expect(c.clocks[2]).toBeGreaterThan(0)
-    expect(c.clocks[2]).toBe(Math.min(...[...photoAt(tl, 0).clock.values()]))
-    // la fila de detalle del grupo de salida en el km 0, que se ve con esa marca
-    expect(c.details.slice(0, 2)).toEqual([0, 0])
-  })
+  it.skipIf(tl.timeTrial)(
+    'el primer tramo lleva lo que se ve desde la salida: el grupo de salida, su marca del bloque 0 y su fila del km 0',
+    () => {
+      const c = chunkOf(tl, 0, CHUNK_DS)
+      expect(c.groupsBorn[0]).toEqual([0, tl.groups[0]!.id, 'start'])
+      // la marca de salida, la primera de la etapa: la grabada es el reloj de verdad de la cabeza al
+      // final del bloque 0 (la del adaptador valía 0 Ds, porque su reloj empezaba en la primera foto, §3.8)
+      expect(c.clocks.slice(0, 2)).toEqual([0, 0])
+      expect(c.clocks[2]).toBeGreaterThan(0)
+      expect(c.clocks[2]).toBe(Math.min(...[...photoAt(tl, 0).clock.values()]))
+      // la fila de detalle del grupo de salida en el km 0, que se ve con esa marca
+      expect(c.details.slice(0, 2)).toEqual([0, 0])
+    },
+  )
 
   it('el borde de la meta es el tiempo del ganador: la marca de la cabeza en el último bloque', () => {
     expect(finishDs).toBe(Math.round(tl.finish.finishS * 10))
   })
+
+  it.runIf(tl.timeTrial)(
+    'en la crono, el borde es la última llegada y el primer tramo trae la primera salida',
+    () => {
+      const tt = tl.tt!
+      expect(finishDs).toBe(Math.max(...tt.kmClockDs.map((row, r) => tt.startDs[r]! + row.at(-1)!)))
+      const first = chunkOf(tl, 0, CHUNK_DS).tt!
+      expect(first.starts.slice(0, 2)).toEqual([tt.startDs.indexOf(0), 0])
+      // a 120 s de intervalo, 900 s de carrera son 8 salidas: la de 0 y las de 120 a 840
+      expect(first.starts.length / 2).toBe(Math.floor(CHUNK_DS / 10 / tt.intervalS) + 1)
+    },
+  )
 })
 
 describe('B9 · la e18 sale con lluvia', () => {

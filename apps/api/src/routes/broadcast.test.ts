@@ -40,7 +40,7 @@ import {
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { AppDeps } from '../app.js'
 import { buildApp } from '../app.js'
-import { clearAdaptedTimelineCache, threeKmRuleRiders } from '../broadcastSource.js'
+import { clearAdaptedTimelineCache, threeKmRuleRiders, withClimbFeet } from '../broadcastSource.js'
 import { VIEWER_COOKIE, signViewerCookie } from '../viewerCookie.js'
 
 /**
@@ -339,9 +339,13 @@ describe('las rutas de la retransmisión (§14.2)', () => {
         expect(gc).toHaveLength(1)
         expect(gc[0]!.worn).toMatchObject({ from: { raceKey: RACE_KEY, stageDay: 1 } })
         expect(head.startState.leaders.gc).toBe(gc[0]!.ix)
-        // el recorrido y el tiempo, los grabados (§5.4)
+        // el recorrido y el tiempo, los grabados (§5.4), con el pie de las cimas que el grabador deja
+        // sin él sacado del recorrido que se corrió (nota 5 del 3c, 6b)
         const tl = await readStageTimeline(t.db, worldHorizon, RACE_KEY, 2)
-        expect(head.profile).toEqual(tl!.profile)
+        expect(head.profile).toEqual(withClimbFeet(tl!.profile, specOf(2).profile))
+        expect(head.profile.altM).toEqual(tl!.profile.altM)
+        expect(tl!.profile.climbs.some((c) => c.lenKm === 0)).toBe(true)
+        expect(head.profile.climbs.every((c) => c.lenKm > 0)).toBe(true)
         expect(head.weather).toEqual(tl!.weather)
       })
 

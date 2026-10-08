@@ -6,6 +6,9 @@ import {
   paceAt,
   photoBlocksOf,
   playbackEstimateS,
+  ttLastKmFromS,
+  ttPaceAt,
+  ttPlaybackEstimateS,
 } from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
 import {
@@ -20,8 +23,8 @@ import { calendarStageSpec } from './stageHistory.js'
 /**
  * B17 · EL RITMO MEDIDO, EN LA RÁPIDA (docs/retransmision.md §8.9, §16.4 y §17.6; D-19, D-60). La curva
  * de `Watch` y la de `Highlights` sobre la cabeza de la línea de las cinco etapas congeladas en línea
- * (la grabada desde el 6a; del 3a al 5, la del adaptador), con las bandas de 8-k; la crono entra en el
- * 6b y el digest en el 10a. El banco
+ * (la grabada desde el 6a; del 3a al 5, la del adaptador), con las bandas de 8-k; la crono, la e16,
+ * desde el 6b con la curva de `ttPaceAt` (§9.4), y el digest en el 10a. El banco
  * largo, sobre las 24 etapas y dos semillas, es `scripts/bench-pace.mjs`, con la misma curva (la de
  * `packages/shared`) y el mismo reloj (`storedHeadClock`).
  *
@@ -46,6 +49,10 @@ const BANDS = {
   climbingLast5MinShare: 0.35,
   /** p90 del error de `estimateS` fuera de los finales en alto, en s (8-k; §15.3 midió 55 s) */
   estimateErrP90S: 60,
+  /** `Watch` de una crono, en s de pared (8-k: 5:00 a 13:00; §9.4 midió la e16 en 11:14-11:23) */
+  ttWatchS: [300, 780],
+  /** el error de `ttPlaybackEstimateS` contra la duración de la curva (§9.4 y §9.8: menos de un 5 %) */
+  ttEstimateErr: 0.05,
 } as const
 
 /** Un final en subida sube de media al menos esto (%) en sus últimos 5 km; lo mismo en scripts/bench-pace.mjs. */
@@ -161,5 +168,43 @@ describe('el perfil de la cabecera del adaptador da la duración anunciada de pa
   ] as const)('%s e%i: %s', (raceId, day, expected) => {
     const strip = profileStripOf(stagesForSeason(raceId, 0)[day - 1]!.profile)
     expect(mmss(playbackEstimateS(strip, BROADCAST.pace))).toBe(expected)
+  })
+})
+
+/**
+ * La curva de la crono sobre su traza (§9.4): `ttPaceAt` es constante entre dos salidas y desde que el
+ * último en salir entra en su último km (`ttLastKmFromS`, de la línea), así que la pared es la suma de
+ * cada tramo entre esos cortes, de la salida al borde de la meta (la última llegada, 4-w).
+ */
+function ttWallS(tl: StageTimeline): number {
+  const plan = { riders: tl.riderIds.length, intervalS: tl.tt!.intervalS }
+  const lastKm = ttLastKmFromS(tl)!
+  const end = tl.finish.finishS
+  const cuts = new Set<number>([0, end, lastKm])
+  for (let i = 1; i < plan.riders; i++) cuts.add(i * plan.intervalS)
+  const ts = [...cuts].filter((t) => t <= end).sort((a, b) => a - b)
+  let wall = 0
+  for (let i = 1; i < ts.length; i++)
+    wall += (ts[i]! - ts[i - 1]!) / ttPaceAt(ts[i - 1]!, plan, lastKm)
+  return wall
+}
+
+describe('B17 · el ritmo de la crono sobre la e16 congelada (8-k, §9.4)', () => {
+  const tl = loadTimeline('race-france-e16')
+  const plan = { riders: tl.riderIds.length, intervalS: tl.tt!.intervalS }
+  const watchS = ttWallS(tl)
+  const estimateS = ttPlaybackEstimateS(tl.profile, plan)
+
+  it(`Watch a ×1 entre 5:00 y 13:00: ${mmss(watchS)}`, () => {
+    expect(watchS).toBeGreaterThanOrEqual(BANDS.ttWatchS[0])
+    expect(watchS).toBeLessThanOrEqual(BANDS.ttWatchS[1])
+  })
+
+  it(`la duración anunciada, ${mmss(estimateS)}, a menos de un 5 % de la de la curva`, () => {
+    expect(Math.abs(estimateS - watchS) / watchS).toBeLessThan(BANDS.ttEstimateErr)
+  })
+
+  it('la curva no lee los sucesos: la misma pared sin ellos', () => {
+    expect(ttWallS({ ...tl, events: [] })).toBe(watchS)
   })
 })

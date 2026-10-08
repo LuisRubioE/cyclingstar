@@ -3,18 +3,27 @@ import { type TestDb, startTestDb } from '@cyclingstar/db/test'
 import { type RadioKm, type SnapshotRider, TIMELINE, radioKmFrom } from '@cyclingstar/engine'
 import {
   BROADCAST,
+  type BroadcastHead,
   CUE_OF_TEMPLATE,
+  type ChampionTitle,
   type InstantContext,
+  JERSEY_PRIORITY,
+  type RiderCard,
   type StageTimeline,
+  breakHeadline,
+  breakPresentedOf,
   broadcastChunkSchema,
   broadcastHeadSchema,
   clockMarksOf,
+  cuesBetween,
   decodeTimeline,
   encodeTimeline,
   fromDs,
   instantAt,
+  namedRidersOf,
   photoAt,
   photoBlocksOf,
+  staticNotoriety,
   toDs,
 } from '@cyclingstar/shared'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -64,7 +73,10 @@ import { type AppDeps, buildApp } from './app.js'
  *   respuestas: `clientCost.test.ts` mide allí el fotograma).
  * - Y cada plantilla de las seis tiene su rótulo en `CUE_OF_TEMPLATE` (§6.6).
  *
- * El 6b le añade B3; el 7b, B13; y el 11a, B16.
+ * El 6b le añade B3, su primera parte (§16.4), sobre la cabecera que sirve la ruta a las seis: en cada
+ * grupo de hasta `nameWholeGroupUpTo` cada 30 s de carrera, `namedRidersOf` nombra a todos y cada uno
+ * tiene su carta con el maillot resuelto, y la cláusula de no vacío con una cabecera sintética. La
+ * segunda parte es de la web (`breakPresentation.test.ts`). El 7b le añadirá B13; y el 11a, B16.
  */
 
 const ROAD = new Set<FixtureName>(FIXTURES.filter((name) => !fixtureStage(name).timeTrial))
@@ -475,6 +487,9 @@ function parseMedianMs(body: string, schema: { safeParse: (x: unknown) => { succ
   return ms.sort((a, b) => a - b)[Math.floor(B8_PARSE_REPS / 2)]!
 }
 
+/** Las cabeceras que sirve la ruta a las seis, de B6, para B3 (sembrar PGlite cuesta: una vez por carrera). */
+const servedHeads = new Map<FixtureName, BroadcastHead>()
+
 describe('B6 de lo servido: la cabecera y el tramo mayor de las seis, con gzip 6 (16-h, 16-n), y B8 de su parse', () => {
   const poolBefore = process.env.DB_POOL_MAX
   const served: {
@@ -519,6 +534,7 @@ describe('B6 de lo servido: la cabecera y el tramo mayor de las seis, con gzip 6
           expect(res.statusCode, res.body.slice(0, 300)).toBe(200)
           const head = broadcastHeadSchema.parse(res.json())
           expect(head.clock).toBe('exact')
+          servedHeads.set(name, head)
           let chunk = 0
           let chunks = 0
           let largest = ''
@@ -569,5 +585,141 @@ describe('B6 de lo servido: la cabecera y el tramo mayor de las seis, con gzip 6
           .join('\n'),
     )
     expect(served.map((s) => s.name).sort()).toEqual([...FIXTURES].sort())
+  })
+})
+
+/** El maillot resuelto de una carta (B3): de líder con su tabla, de campeón con su título, o el de su equipo. */
+function resolved(card: RiderCard | undefined, tl: StageTimeline, r: number): boolean {
+  if (card === undefined || card.ix !== r) return false
+  const w = card.worn
+  if (w.kind === 'leader') return (JERSEY_PRIORITY as readonly string[]).includes(w.jersey)
+  if (w.kind === 'champion') return w.title.scope.length > 0 && w.title.discipline.length > 0
+  // la equipación del día: con equipo, el suyo; sin equipo, `team: null`, que lo dice
+  return (card.team !== null) === (tl.cast.riders[r]?.team !== null)
+}
+
+describe('B3, primera parte: el rótulo y los maillots de la fuga sobre la cabecera de la ruta (§16.4; [DUEÑO 3])', () => {
+  it.each(FIXTURES)(
+    '%s: cada 30 s, cada grupo de hasta 12 nombrado entero y con su maillot',
+    (name) => {
+      const head = servedHeads.get(name)
+      expect(head, 'B6 sirve antes las seis cabeceras').toBeDefined()
+      const tl = loadTimeline(name)
+      const cast = head!.cast
+      expect(cast.map((c) => c.ix)).toEqual(tl.riderIds.map((_, r) => r))
+      if (tl.timeTrial) {
+        // la crono no tiene grupos: cada corredor, en ruta o en el tablero, con su carta resuelta
+        tl.riderIds.forEach((_, r) => expect(resolved(cast[r], tl, r), `${r}`).toBe(true))
+        return
+      }
+      const ctx: InstantContext = {
+        own: new Set(),
+        start: head!.startState,
+        photoBlocks: photoBlocksOf(tl.lengthKm, tl.dx),
+      }
+      let groups = 0
+      let whole = 0
+      for (let t = 0; t < tl.finish.finishS; t += 30) {
+        const i = instantAt(tl, t, ctx)
+        const revealed = tl.events.filter((e) => e.revealS <= t)
+        for (const g of i.groups) {
+          if (g.size === 0) continue
+          groups++
+          const { named, others } = namedRidersOf(g, cast, revealed, ctx)
+          expect(named.length + others, `${name} t ${t} g ${g.g}`).toBe(g.size)
+          if (g.size <= BROADCAST.nameWholeGroupUpTo) {
+            whole++
+            expect(others).toBe(0)
+            expect([...named].sort((a, b) => a - b)).toEqual([...g.members].sort((a, b) => a - b))
+          }
+          for (const r of named)
+            expect(resolved(cast[r], tl, r), `${name} t ${t} r ${r}`).toBe(true)
+        }
+      }
+      expect(whole).toBeGreaterThan(0)
+      expect(groups).toBeGreaterThan(whole)
+    },
+  )
+
+  /**
+   * LA CLÁUSULA DE NO VACÍO: la primera fuga de 3 a 12 de cada etapa en línea, con una cabecera
+   * sintética que da a su primer escapado por dorsal el título de Italia vigente y al segundo el maillot
+   * de la montaña; su `break_presented`, el que sale de su `break_formed`, los nombra a los dos, por su
+   * título. En las congeladas la tienen la e7, la e18 y Flandes (la e20 sale con uno solo y Colombia,
+   * sin fuga).
+   */
+  it('la cabecera sintética: el campeón de Italia y el líder de la montaña, nombrados por su título', () => {
+    const checked: string[] = []
+    for (const name of ROAD_FIXTURES) {
+      const head = servedHeads.get(name)!
+      const tl = loadTimeline(name)
+      const e = tl.events.find(
+        (x) =>
+          x.plantilla === 'breakaway_formed' &&
+          x.riders.length >= 3 &&
+          x.riders.length <= BROADCAST.nameWholeGroupUpTo,
+      )
+      if (e === undefined) continue
+      const ctx: InstantContext = {
+        own: new Set(),
+        start: head.startState,
+        photoBlocks: photoBlocksOf(tl.lengthKm, tl.dx),
+      }
+      const formed = cuesBetween(
+        instantAt(tl, e.revealS - 0.1, ctx),
+        instantAt(tl, e.revealS, ctx),
+        tl.events,
+      ).find((c) => c.kind === 'break_formed')
+      if (formed === undefined || formed.kind !== 'break_formed')
+        throw new Error(`${name}: sin break_formed`)
+      const stage = fixtureStage(name)
+      const from = { raceKey: stage.raceKey, stageDay: Math.max(1, stage.day - 1) }
+      const title: ChampionTitle = {
+        scope: 'national',
+        country: 'IT',
+        discipline: 'road',
+        category: 'elite',
+        season: 0,
+        validFromDay: 0,
+        validToDay: 365,
+        source: from,
+        provisional: true,
+      }
+      const [first, second] = [...formed.riders].sort(
+        (a, b) => (head.cast[a]!.bib ?? a) - (head.cast[b]!.bib ?? b) || a - b,
+      )
+      const opts = {
+        gcThreatTop: BROADCAST.gcThreatTop,
+        knownNameMinWins: BROADCAST.knownNameMinWins,
+      }
+      const cast = head.cast.map((c): RiderCard => {
+        if (c.ix === first) {
+          const worn = { kind: 'champion', title } as const
+          return { ...c, worn, notoriety: staticNotoriety(worn, c.lines, 0, 'elite', opts) }
+        }
+        if (c.ix === second) {
+          const worn = { kind: 'leader', jersey: 'kom', delegated: false, from } as const
+          return { ...c, worn, notoriety: staticNotoriety(worn, c.lines, 0, 'elite', opts) }
+        }
+        return c
+      })
+      const presented = breakPresentedOf(formed, cast, new Set())
+      expect(presented.named, name).toEqual([second, first])
+      expect(presented.named.length + presented.others).toBe(formed.riders.length)
+      const others = formed.riders.length - 2
+      expect(
+        breakHeadline(
+          'en',
+          presented.riders.map((r) => cast[r]!),
+          new Set(),
+        ),
+      ).toMatch(
+        new RegExp(
+          `^The mountains leader and the champion of Italy go clear with ${others === 1 ? 'one other' : `\\w+ others`}`,
+        ),
+      )
+      checked.push(name)
+    }
+    expect(checked).toEqual(['race-france-e7', 'race-france-e18', 'race-flanders-e1'])
   })
 })

@@ -8,6 +8,7 @@ import {
   WITH_THE,
   breakHeadline,
   breakHeadlineParts,
+  breakPresentedOf,
   breakRoundOf,
   cardCaption,
   cardLineText,
@@ -338,6 +339,34 @@ describe('namedRidersOf · a quién se nombra en cada grupo (§7.7)', () => {
     const members = Array.from({ length: 35 }, (_, i) => i)
     const { named, others } = namedRidersOf(group(members), cast, [event([3, 4])], ctx())
     expect(named.length + others).toBe(35)
+  })
+})
+
+describe('breakPresentedOf · la frase como rótulo, del break_formed de la fuga (§6.5, 6-i)', () => {
+  const cast: RiderCard[] = []
+  for (const c of [BERTOLINI, VERHOEVEN, LAMBERT, ARRIETA, HARGREAVES]) cast[c.ix] = c
+  const formed = {
+    kind: 'break_formed',
+    t: 1234,
+    group: 2,
+    riders: [112, 21, 57, 45, 88],
+    gapS: 0,
+  } as const
+
+  it('nombra a los notables en el orden de la frase y cuenta al resto, con los escapados por dorsal', () => {
+    expect(breakPresentedOf(formed, cast, NONE)).toEqual({
+      kind: 'break_presented',
+      t: 1234,
+      group: 2,
+      named: [45, 21],
+      others: 3,
+      riders: [21, 45, 57, 88, 112],
+    })
+  })
+
+  it('el propio va después de los notables, y sale de la cuenta', () => {
+    const p = breakPresentedOf(formed, cast, new Set([57]))
+    expect([p.named, p.others]).toEqual([[45, 21, 57], 2])
   })
 })
 
