@@ -50,17 +50,12 @@ import {
   timelineForStage,
   withClimbFeet,
 } from '../broadcastSource.js'
-import {
-  type ChronicleEvent,
-  type ChronicleNames,
-  buildChronicle,
-  chronicleNames,
-} from '../chronicle.js'
+import { type ChronicleNames, buildChronicle, chronicleNames } from '../chronicle.js'
 import { badRequest, notFound } from '../http.js'
-import { liveClusters } from '../liveClusters.js'
 import { PLAYER_RATE_LIMIT } from '../security.js'
 import { stageHead } from '../stageHistory.js'
 import { type StageContext, stageContextOf, stageReplayOf } from '../stageReplay.js'
+import { lineVoiceOf, storedWithRoles } from '../voiceRoles.js'
 import type { RoutePlugin } from './context.js'
 import { parseRaceId, parseStageDay } from './params.js'
 
@@ -303,7 +298,10 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
       if (a === null) return reply
       const tl = await lineOf(a, reply)
       if (tl === null) return reply
-      const replay = await stageReplayOf(db, a.ctx)
+      // el acta con las palabras de papel: esta ruta ya exige Watch encendido (§12.6)
+      const replay = await stageReplayOf(db, a.ctx, {
+        annotate: (stored) => storedWithRoles(tl, stored),
+      })
       if (!replay.run) return notFound(reply)
       await finishWatch(request, a, fromDs(visibilityOf(tl).finishDs), body.data.mode)
       const ix = new Map(tl.riderIds.map((id, i) => [id, i] as const))
@@ -332,7 +330,17 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
       if (!q.success) return badRequest(reply)
       const a = await admitStage(db, request, reply, q.data)
       if (a === null) return reply
-      const replay = await stageReplayOf(db, a.ctx)
+      // Las palabras de papel de la voz (`the chase group`), solo para quien tiene Watch encendido
+      // (§12.6, §14.5): para los demás, el acta de hoy, que dice `the bunch`. Sin línea servible,
+      // tampoco (las etapas sin línea ni radio dicen `the bunch`, como hoy).
+      const tl = (await request.broadcastOn())
+        ? await timelineForStage(db, a.h, a.ctx.raceKey, a.ctx.day)
+        : null
+      const replay = await stageReplayOf(
+        db,
+        a.ctx,
+        tl === null ? {} : { annotate: (stored) => storedWithRoles(tl, stored) },
+      )
       if (!replay.run) return notFound(reply)
       // tplRev: el de la fila de la línea grabada (6a), sin construir el adaptador; sin fila o con
       // lápida, 0 (12-c, §5.6).
@@ -342,11 +350,11 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
   )
 
   /**
-   * LA VOZ DEL TRAMO (§14.3), sin los papeles de grupo (`withGroupRoles`, 6b). Los pasos que no
-   * dependen del tramo (los sucesos de antes de la meta con su hora, los racimos en vivo si
-   * `BROADCAST.liveClusters` está encendida, y los nombres, que son los de la ruta de etapa) se hacen
-   * una vez por línea; el paso 4, `buildChronicle` con `live` hasta el final del tramo, en cada uno, y
-   * el tramo se queda con las líneas nuevas (B19).
+   * LA VOZ DEL TRAMO (§14.3). Los pasos que no dependen del tramo (los sucesos de antes de la meta con
+   * su hora, los papeles de grupo de `withGroupRoles` ANTES de atar las horas, 12-n, los racimos en
+   * vivo si `BROADCAST.liveClusters` está encendida, con la política de nombres real, y los nombres, que
+   * son los de la ruta de etapa) se hacen una vez por línea (`lineVoiceOf`); el paso 4, `buildChronicle`
+   * con `live` hasta el final del tramo, en cada uno, y el tramo se queda con las líneas nuevas (B19).
    */
   const voices = new WeakMap<StageTimeline, Promise<(fromS: RaceS, toS: RaceS) => LiveLines>>()
   function voiceOf(
@@ -366,34 +374,13 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
     tl: StageTimeline,
     ctx: StageContext,
   ): Promise<(fromS: RaceS, toS: RaceS) => LiveLines> {
-    const finishS = fromDs(visibilityOf(tl).finishDs)
     const source = await lineSourceOf(db, tl, ctx.raceKey, ctx.day)
-    // 1. Los sucesos de antes de la meta, cada uno con su hora, en el orden de tl.events.
-    const sucesos: ChronicleEvent[] = []
-    const revealOf = new Map<ChronicleEvent, RaceS>()
-    for (const e of tl.events) {
-      if (e.revealS >= finishS) continue // el mismo borde que chunkOf: lo de la meta va en el paquete de meta
-      // el guardado, con su km original (4-h); la caída sintetizada (D-13) no está guardada
-      const ev: ChronicleEvent = source.stored[e.source] ?? {
-        km: e.km,
-        tS: e.tS,
-        tipo: 'caida',
-        plantilla: e.plantilla,
-        protagonistas: e.riders.map((r) => tl.riderIds[r] ?? ''),
-        ...(e.datos === null ? {} : { datos: { ...e.datos } }),
-      }
-      sucesos.push(ev)
-      revealOf.set(ev, e.revealS)
-    }
-    // 3. Los racimos en vivo (§12.3), solo con BROADCAST.liveClusters: entran con su hora y sus sueltos salen.
-    let entrada: readonly ChronicleEvent[] = sucesos
-    if (BROADCAST.liveClusters) {
-      const racimos = liveClusters(sucesos, source.view, (ev) => revealOf.get(ev) ?? finishS)
-      const absorbidos = new Set(racimos.flatMap((c) => c.members))
-      const enVivo = racimos.filter((c) => c.revealS < finishS)
-      for (const c of enVivo) revealOf.set(c.event, c.revealS)
-      entrada = [...sucesos.filter((ev) => !absorbidos.has(ev)), ...enVivo.map((c) => c.event)]
-    }
+    const { entrada, revealOf } = lineVoiceOf(
+      tl,
+      source.stored,
+      source.view,
+      BROADCAST.liveClusters ? 'named' : 'off',
+    )
     const names = await namesOf(tl, ctx)
     // 4. La voz hasta el final del tramo; el tramo, con las líneas nuevas.
     return (fromS, toS) =>

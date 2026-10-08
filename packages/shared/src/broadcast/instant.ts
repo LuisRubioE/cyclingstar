@@ -1052,15 +1052,13 @@ function rawRoles(
 }
 
 /**
- * EL CORTE DIAGONAL, causal: el instante a la hora t con lo que se ve hasta t (§4.5, §4.6). Pura.
+ * Lo que un fotograma lee de lo visto a la hora S para los huecos y el papel (pasos 8 y 9 de §4.5): las
+ * marcas vistas, el km de foto de cada lectura, los antecesores por la cadena de sucesores y el papel con
+ * histéresis. Lo comparten `instantAt` y `groupRoleAt` (6b), para que la voz anote el papel que la barra
+ * enseña por construcción.
  */
-export function instantAt(tl: TimelineCore, t: RaceS, ctx: InstantContext): Instant {
-  const ix = indexOf(tl)
-  const S = toDs(t)
-  const pb = ctx.photoBlocks
-  const seen = seenAt(ix, S, pb)
+function frameOf(ix: LineIndex, S: Ds, pb: readonly Block[], seen: Seen) {
   const { marks } = ix
-
   /** Su marca en el bloque, con su reloj de verdad, si se ve. */
   const markOf = (g: GroupIx, b: Block): Ds | null => {
     const m = marks[g]
@@ -1069,28 +1067,10 @@ export function instantAt(tl: TimelineCore, t: RaceS, ctx: InstantContext): Inst
     if (j >= m.b.length || m.b[j] !== b) return null
     return m.eff[j]! <= S ? m.raw[j]! : null
   }
-  // La cabeza en cada km de foto: la menor marca vista, con máximo acumulado (C3). En el borrador de
-  // la línea, por índice de km de foto: este fotograma lo rellena y solo él lo lee.
-  const { head: headDs, atPhoto } = ix.byPhotos.get(pb)!
-  let nHead = 0
-  let acc = 0
-  for (let i = 0; i < pb.length; i++) {
-    const at = atPhoto[i]
-    const n = at === undefined ? 0 : upperBound(at.eff, S)
-    if (at === undefined || n === 0) break // nadie ha cruzado aún este km: tampoco los siguientes
-    acc = Math.max(acc, at.minRaw[n - 1]!)
-    headDs[i] = acc
-    nHead = i + 1
-  }
-  const headAt = (k: Block): Ds | undefined => {
-    const i = lowerBound(pb, k)
-    return i < nHead && pb[i] === k ? headDs[i] : undefined
-  }
   const photoAtOrBefore = (b: Block): Block | null => {
     const k = upperBound(pb, b) - 1
     return k >= 0 ? pb[k]! : null
   }
-  const kmOfPhoto = (k: Block): number => (k + 0.5) * ix.tl.dx
   const sizeAt = (g: GroupIx, b: Block): number => {
     let n = 0
     for (let r = 0; r < ix.tl.riderIds.length; r++) if (seen.groupAtBlock(r, b) === g) n++
@@ -1116,6 +1096,107 @@ export function instantAt(tl: TimelineCore, t: RaceS, ctx: InstantContext): Inst
     }
     return best === null ? null : { g: best.g, d: best.d }
   }
+  const lastBlockOf = (x: Seen['order'][number]): Block | null =>
+    x.last >= 0 ? marks[x.g]!.b[x.last]! : null
+  /** El km de foto de su última lectura propia (paso 8); null si aún no ha cruzado uno con su marca (3-e). */
+  const ownPhotoOf = (x: Seen['order'][number]): Block | null => {
+    const bn = lastBlockOf(x)
+    const k = bn === null ? null : photoAtOrBefore(bn)
+    return k === null || markOf(x.g, k) === null ? null : k
+  }
+  /**
+   * 9. El papel, con la histéresis de 4-q: el crudo de ahora (`now`) si es el de hace roleHysteresisKm
+   *    de su marcha, si no hay con qué comparar o si un movimiento de más de un corredor le tocó entre
+   *    medias.
+   */
+  const roleOf = (x: Seen['order'][number], now: GroupRole): GroupRole => {
+    // sin un km de foto propio (3-e) no hay marcha que medir: el papel de ahora
+    const k = ownPhotoOf(x)
+    if (k === null) return now
+    const back = photoAtOrBefore(k - Math.round(BROADCAST.roleHysteresisKm / ix.tl.dx))
+    if (back === null || k - Math.round(BROADCAST.roleHysteresisKm / ix.tl.dx) < 0) return now
+    const then = markOrAncestor(x.g, back)
+    if (then === null) return now
+    const thenRole = rawRoles(ix, then.d, pb).get(then.g)
+    if (thenRole === undefined || thenRole === now) return now
+    return seen.touchedSince(x.g, then.d) ? now : thenRole
+  }
+  return { markOf, photoAtOrBefore, sizeAt, markOrAncestor, lastBlockOf, roleOf }
+}
+
+/** Los maillots de líder que llevan los miembros de un grupo, en JERSEY_PRIORITY (el primero lo nombra). */
+function jerseysIn(members: readonly RiderIx[], ctx: InstantContext): JerseyKind[] {
+  const leaders = ctx.start.leaders
+  return JERSEY_PRIORITY.filter((j) => {
+    const holder = leaders[j]
+    return holder !== null && members.includes(holder)
+  })
+}
+
+/**
+ * EL PAPEL Y LA ETIQUETA DE UN GRUPO a la hora t, los de `instantAt` sin el resto del instante (§4.5,
+ * pasos 1 a 7 y 9; §6.3): lo que la voz anota en cada suceso (`withGroupRoles`, §12.6). `pick` elige el
+ * grupo en el orden visto (el del título, o el de un corredor); null si no hay ninguno. Calcula el papel
+ * con histéresis solo de ese grupo: la anotación de una etapa entera, con las horas salteadas de sus
+ * sucesos, cuesta así una lectura de lo visto y un papel crudo por suceso, y no uno por grupo vivo (B8).
+ */
+export function groupRoleAt(
+  tl: TimelineCore,
+  t: RaceS,
+  ctx: InstantContext,
+  pick: (x: {
+    readonly g: GroupIx
+    readonly kind: RadioGroupKind
+    readonly members: readonly RiderIx[]
+  }) => boolean,
+): { readonly g: GroupIx; readonly role: GroupRole; readonly label: GroupLabel } | null {
+  const ix = indexOf(tl)
+  const S = toDs(t)
+  const pb = ctx.photoBlocks
+  const seen = seenAt(ix, S, pb)
+  const i = seen.order.findIndex(pick)
+  if (i < 0) return null
+  const x = seen.order[i]!
+  const rolesNow = groupRoleOf(
+    seen.order.map((y) => ({ size: y.members.length, kind: y.kind })),
+    ix.tl.riderIds.length - seen.outs,
+  )
+  const role = frameOf(ix, S, pb, seen).roleOf(x, rolesNow[i]!)
+  const members = x.members
+  return {
+    g: x.g,
+    role,
+    label: groupLabelOf(members.length, members, jerseysIn(members, ctx), role, seen.order.length),
+  }
+}
+
+/**
+ * EL CORTE DIAGONAL, causal: el instante a la hora t con lo que se ve hasta t (§4.5, §4.6). Pura.
+ */
+export function instantAt(tl: TimelineCore, t: RaceS, ctx: InstantContext): Instant {
+  const ix = indexOf(tl)
+  const S = toDs(t)
+  const pb = ctx.photoBlocks
+  const seen = seenAt(ix, S, pb)
+  const { markOf, photoAtOrBefore, markOrAncestor, lastBlockOf, roleOf } = frameOf(ix, S, pb, seen)
+  // La cabeza en cada km de foto: la menor marca vista, con máximo acumulado (C3). En el borrador de
+  // la línea, por índice de km de foto: este fotograma lo rellena y solo él lo lee.
+  const { head: headDs, atPhoto } = ix.byPhotos.get(pb)!
+  let nHead = 0
+  let acc = 0
+  for (let i = 0; i < pb.length; i++) {
+    const at = atPhoto[i]
+    const n = at === undefined ? 0 : upperBound(at.eff, S)
+    if (at === undefined || n === 0) break // nadie ha cruzado aún este km: tampoco los siguientes
+    acc = Math.max(acc, at.minRaw[n - 1]!)
+    headDs[i] = acc
+    nHead = i + 1
+  }
+  const headAt = (k: Block): Ds | undefined => {
+    const i = lowerBound(pb, k)
+    return i < nHead && pb[i] === k ? headDs[i] : undefined
+  }
+  const kmOfPhoto = (k: Block): number => (k + 0.5) * ix.tl.dx
   const toHeadAt = (d: Ds, k: Block): number => (d - (headAt(k) ?? d)) / 10
   const trendOf = (g: GroupIx, k: Block, nowS: number): GapTrend | null => {
     const back = photoAtOrBefore(k - Math.round(BROADCAST.trendWindowKm / ix.tl.dx))
@@ -1130,8 +1211,6 @@ export function instantAt(tl: TimelineCore, t: RaceS, ctx: InstantContext): Inst
   }
 
   // 8. Los huecos: en el último km de foto que cada grupo ha cruzado (D-01, punto 4).
-  const lastBlockOf = (x: Seen['order'][number]): Block | null =>
-    x.last >= 0 ? marks[x.g]!.b[x.last]! : null
   /** reading: su hueco; k: el km de foto de la lectura; own: si es suyo y no de su origen (3-e). */
   const gapOf = new Map<GroupIx, { reading: GapReading; k: Block | null; own: boolean }>()
   /** El hueco de un grupo en un km de foto concreto, sin tendencia ni el de delante. */
@@ -1173,38 +1252,20 @@ export function instantAt(tl: TimelineCore, t: RaceS, ctx: InstantContext): Inst
     })
   })
 
-  // 9. El papel, con la histéresis de 4-q: el crudo de ahora si es el de hace roleHysteresisKm de su
-  //    marcha, si no hay con qué comparar o si un movimiento de más de un corredor le tocó entre medias.
+  // 9. El papel, con la histéresis de 4-q (`frameOf`): sobre el km de foto propio de cada grupo, el
+  //    de su hueco del paso 8.
   const rolesNow = groupRoleOf(
     seen.order.map((x) => ({ size: x.members.length, kind: x.kind })),
     ix.tl.riderIds.length - seen.outs,
   )
-  const roleOf = (x: Seen['order'][number], i: number): GroupRole => {
-    const now = rolesNow[i]!
-    const gap = gapOf.get(x.g)
-    // sin un km de foto propio (3-e) no hay marcha que medir: el papel de ahora
-    const k = gap !== undefined && gap.own ? gap.k : null
-    if (k === null) return now
-    const back = photoAtOrBefore(k - Math.round(BROADCAST.roleHysteresisKm / ix.tl.dx))
-    if (back === null || k - Math.round(BROADCAST.roleHysteresisKm / ix.tl.dx) < 0) return now
-    const then = markOrAncestor(x.g, back)
-    if (then === null) return now
-    const thenRole = rawRoles(ix, then.d, pb).get(then.g)
-    if (thenRole === undefined || thenRole === now) return now
-    return seen.touchedSince(x.g, then.d) ? now : thenRole
-  }
 
   // 10. Lo demás: los maillots y los del espectador de cada grupo, la etiqueta, la diferencia
   //     principal, la general virtual y las pancartas reveladas.
-  const leaders = ctx.start.leaders
   const groups: GroupNow[] = seen.order.map((x, i) => {
     // por RiderIx creciente ya: la composición los mete por corredor, en orden (paso 3)
     const members = x.members
-    const jerseys = JERSEY_PRIORITY.filter((j) => {
-      const holder = leaders[j]
-      return holder !== null && members.includes(holder)
-    })
-    const role = roleOf(x, i)
+    const jerseys = jerseysIn(members, ctx)
+    const role = roleOf(x, rolesNow[i]!)
     const gap = gapOf.get(x.g)!
     const ownK = gap.own ? gap.k : null
     const detailRows = ownK === null ? undefined : ix.tl.detail.get(ownK)

@@ -93,8 +93,22 @@ export async function stageContextOf(
   }
 }
 
+/** Lo que la retransmisión cambia de la ficha (§12.6): los sucesos con que se redacta la crónica. */
+export interface StageReplayOptions {
+  /**
+   * Los sucesos guardados antes de redactarlos: las rutas de la retransmisión les ponen los papeles de
+   * grupo de la voz (`storedWithRoles`, 6b) para quien tiene `Watch` encendido. Los marcadores de la
+   * altimetría siguen leyendo los guardados.
+   */
+  readonly annotate?: (stored: readonly ChronicleEvent[]) => readonly ChronicleEvent[]
+}
+
 /** La ficha de la etapa (`StageReplay`): sin correr, corrida sin crónica o corrida con crónica y radio. */
-export async function stageReplayOf(db: Database, ctx: StageContext) {
+export async function stageReplayOf(
+  db: Database,
+  ctx: StageContext,
+  opts: StageReplayOptions = {},
+) {
   const { race, raceKey, day, spec, stage, km } = ctx
   // Contexto de la etapa: a qué carrera pertenece y cuántas etapas tiene. Sin esto la página de
   // etapa es un callejón sin salida (docs/navegacion.md §6.3): no sabe ni su carrera ni si hay
@@ -196,7 +210,7 @@ export async function stageReplayOf(db: Database, ctx: StageContext) {
   // no pueden llamar de dos maneras distintas al mismo corredor.
   const names = chronicleNames([...identities, ...results], onRoad)
   const chronicle = buildChronicle(
-    storedEvents,
+    opts.annotate === undefined ? storedEvents : [...opts.annotate(storedEvents)],
     names,
     // Una crono se lee por el reloj de carrera, no por el kilómetro (v18); y si se corrió contra
     // el reloj lo dice el snapshot, que es quien vio la etapa.

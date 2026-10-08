@@ -1,6 +1,9 @@
+import { readFileSync } from 'node:fs'
+import { gunzipSync } from 'node:zlib'
 import { describe, expect, it } from 'vitest'
 import type { RadioGroupKind } from '../contracts.js'
 import { synthLine, toyStage, toyStageWithDrop } from './__fixtures__/syntheticLine.js'
+import { decodeTimeline } from './codec.js'
 import { BROADCAST } from './constants.js'
 import { chunkOf, cutTimeline, visibilityOf } from './cut.js'
 import {
@@ -8,6 +11,7 @@ import {
   type InstantContext,
   chaseRefOf,
   groupLabelOf,
+  groupRoleAt,
   groupRoleOf,
   instantAt,
   isGroupRole,
@@ -558,5 +562,52 @@ describe('instantAt · una marca que baja (nota 1 del 4b): la resuelve el instan
     }
     const after = instantAt(tl, at29 / 10 + 1, ctx)
     expect(after.groups.find((g) => g.g === shed)?.members).toContain(6)
+  })
+})
+
+describe('groupRoleAt · el papel y la etiqueta de un grupo, los de instantAt (6b, §12.6)', () => {
+  // la reina e20 de las congeladas, con su línea grabada: la de más grupos y papeles que cambian
+  const tl = decodeTimeline(
+    JSON.parse(
+      gunzipSync(
+        readFileSync(
+          new URL(
+            '../../../../apps/api/src/__fixtures__/broadcast/race-france-e20.timeline.gz',
+            import.meta.url,
+          ),
+        ),
+      ).toString('utf8'),
+    ),
+  )
+  const leaders: StartState['leaders'] = { gc: null, points: null, kom: null }
+  for (const c of tl.cast.riders) if (c.worn.kind === 'leader') leaders[c.worn.jersey] = c.rider
+  const ctx: InstantContext = {
+    own: new Set(),
+    start: { leaders, gcTop: [], racingAtStart: tl.riderIds.length },
+    photoBlocks: photoBlocksOf(tl.lengthKm, tl.dx),
+  }
+
+  it('cada 60 s y para cada grupo, lo mismo que el instante: la voz y la barra dicen la misma palabra', () => {
+    let checked = 0
+    let hysteresis = 0
+    for (let t = 0; t < tl.finish.finishS; t += 60) {
+      const i = instantAt(tl, t, ctx)
+      for (const g of i.groups) {
+        const got = groupRoleAt(tl, t, ctx, (x) => x.g === g.g)
+        expect(got, `t ${t} g ${g.g}`).toEqual({ g: g.g, role: g.role, label: g.label })
+        checked++
+        const raw = groupRoleOf(
+          i.groups.map((x) => ({ size: x.size, kind: x.kind })),
+          i.racing,
+        )[g.number - 1]
+        if (raw !== g.role) hysteresis++
+      }
+      // el del título, como lo pide withGroupRoles
+      const main = i.groups.find((x) => x.kind === 'peloton')
+      expect(groupRoleAt(tl, t, ctx, (x) => x.kind === 'peloton')?.role).toBe(main?.role)
+    }
+    expect(checked).toBeGreaterThan(500)
+    expect(hysteresis).toBeGreaterThan(0) // la histéresis entra: no es solo el papel crudo
+    expect(groupRoleAt(tl, 100, ctx, () => false)).toBeNull()
   })
 })
