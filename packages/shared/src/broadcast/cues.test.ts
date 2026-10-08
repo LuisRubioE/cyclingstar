@@ -779,15 +779,37 @@ describe('la cola con una fuga: la presentación va reservada (6-m, §6.5)', () 
       [round(2), 2],
       [phrase, 2],
     ])
+    // con todos por delante, presentan (y lo apunta la cola); el caught sale a pantalla
+    const a0 = cueFrame(q, { ...far(0), instant: ahead })
+    expect(a0.waiting.every((x) => x.ahead === true)).toBe(true)
     // el 1 ya no va por delante del pelotón: su rótulo de la moto se tira, y el del 2 y la frase siguen
     const caught1 = road([{ members: [2] }, { members: [1, 3, 4, 5], kind: 'peloton' }])
-    const a = cueFrame(q, { ...far(0), instant: caught1 })
+    const a = cueFrame(a0, { ...far(0.5), instant: caught1 })
     expect(a.waiting.map((x) => x.cue)).toEqual([phrase, round(2)])
     // ninguno delante: la frase y la ronda que quedan, fuera
     const none = road([{ members: [1, 2, 3, 4, 5], kind: 'peloton' }])
     expect(cueFrame(a, { ...far(1), instant: none }).waiting).toEqual([])
     // sin instante no se sabe: no se tira nada
     expect(cueFrame(q, far(0)).waiting).toHaveLength(3)
+  })
+
+  it('«ya no va»: al formarse, los escapados aún en el grupo que dejan no tiran la presentación (3-b)', () => {
+    const { q } = admitAll(EMPTY_CUE_QUEUE, [
+      [cue(1, 'caught'), 3],
+      [list, 2],
+      [phrase, 2],
+    ])
+    // todavía en el pelotón (se pintan en el grupo que dejan): nadie ha ido aún por delante, se quedan
+    const forming = road([{ members: [1, 2, 3, 4, 5], kind: 'peloton' }])
+    const a = cueFrame(q, { ...far(0), instant: forming })
+    expect(a.waiting.map((x) => x.cue)).toEqual([list, phrase])
+    // ya por delante, y después cazados: fuera
+    const b = cueFrame(a, { ...far(1), instant: ahead })
+    expect(cueFrame(b, { ...far(2), instant: forming }).waiting).toEqual([])
+    // una fuga cazada al formarse, que nunca va por delante: fuera a los cueHoldS[3] de pared
+    expect(cueFrame(a, { ...far(BROADCAST.cueHoldS[3] + 0.01), instant: forming }).waiting).toEqual(
+      [],
+    )
   })
 })
 

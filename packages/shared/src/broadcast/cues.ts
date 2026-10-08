@@ -592,6 +592,12 @@ export interface QueuedCue {
   readonly cue: Cue
   readonly cls: CueClass
   readonly sinceS: number
+  /**
+   * La presentación de la fuga (6-m): si ya ha presentado a alguien por delante del pelotón en un
+   * fotograma. Se tira cuando «ya no va», así que solo tras haber ido: al formarse, los escapados aún
+   * se pintan un momento en el grupo que dejan (3-b), y la lista no puede caer por eso. No estaba en §6.5.
+   */
+  readonly ahead?: boolean
 }
 
 /** El rótulo en pantalla, hasta la hora de pared `untilS`. */
@@ -716,11 +722,27 @@ export function admitCue(
  */
 export function cueFrame(q: CueQueue, at: CueClock): CueQueue {
   const instant = at.instant
-  const waiting = q.waiting.filter((x) =>
-    isPresentation(x.cue)
-      ? instant === undefined || stillPresents(x.cue, instant)
-      : x.cls >= 3 || at.wallS - x.sinceS <= BROADCAST.cueHoldS[3],
-  )
+  let changed = false
+  const waiting = q.waiting.flatMap((x): QueuedCue[] => {
+    if (isPresentation(x.cue)) {
+      if (instant === undefined) return [x]
+      if (stillPresents(x.cue, instant)) {
+        if (x.ahead === true) return [x]
+        changed = true
+        return [{ ...x, ahead: true }]
+      }
+      // ya no presenta a nadie: fuera si antes presentaba («ya no va», 6-m), o si en cueHoldS[3] de
+      // pared no ha llegado a ir nadie por delante (una fuga cazada al formarse)
+      if (x.ahead === true || at.wallS - x.sinceS > BROADCAST.cueHoldS[3]) {
+        changed = true
+        return []
+      }
+      return [x]
+    }
+    if (x.cls >= 3 || at.wallS - x.sinceS <= BROADCAST.cueHoldS[3]) return [x]
+    changed = true
+    return []
+  })
   let shown = q.shown
   if (shown !== null && at.wallS >= shown.untilS) shown = null
   if (shown !== null && shown.cls <= 1 && waiting[0]?.cls === 3) shown = null
@@ -732,5 +754,5 @@ export function cueFrame(q: CueQueue, at: CueClock): CueQueue {
       shown: { cue: first!.cue, cls: first!.cls, untilS: at.wallS + hold },
     }
   }
-  return waiting.length === q.waiting.length && shown === q.shown ? q : { waiting, shown }
+  return !changed && shown === q.shown ? q : { waiting, shown }
 }

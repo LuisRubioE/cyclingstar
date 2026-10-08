@@ -1,18 +1,29 @@
+/// <reference types="node" />
+import { readFileSync } from 'node:fs'
+import { gunzipSync } from 'node:zlib'
 import {
   BROADCAST,
+  type Cue,
   type CueKind,
   type InstantContext,
   type RaceS,
   type StateEvent,
   type TimelineCore,
   type TimelineEvent,
+  cueClassOf,
   cutTimeline,
+  decodeTimeline,
   fromDs,
   instantAt,
   paceAt,
   photoBlocksOf,
+  riderCardsOf,
   seededRng,
+  startStateOf,
+  timeTrialInstantAt,
   toDs,
+  ttLastKmFromS,
+  ttPaceAt,
   visibilityOf,
 } from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
@@ -39,6 +50,7 @@ import {
   headAtLine,
   playerInit,
   playerStep,
+  ttCandidatesOf,
 } from './player'
 
 /**
@@ -1178,4 +1190,156 @@ describe('las comprobaciones de §8.11, en cada paso de 1.000 secuencias al azar
   it.todo(
     '8 · en el digest, release de la k − 1 al empezar la k + 1, y loaded con dos etapas como mucho (10a)',
   )
+})
+
+// ------------------------------------------------------------------ la crono, la e16 (§9.5; 6b)
+
+describe('la cola de la crono sobre la e16 congelada (§9.5, §9.8; 9-d)', () => {
+  const tl = decodeTimeline(
+    JSON.parse(
+      gunzipSync(
+        readFileSync(
+          new URL(
+            '../../../../api/src/__fixtures__/broadcast/race-france-e16.timeline.gz',
+            import.meta.url,
+          ),
+        ),
+      ).toString('utf8'),
+    ),
+  )
+  const tt = tl.tt!
+  const n = tl.riderIds.length
+  const cast = riderCardsOf(tl.cast, { rider: (id) => id, team: (id) => id }, new Set(), 'elite')
+  const start = startStateOf(tl.cast, n)
+  const ictx: InstantContext = {
+    own: new Set(),
+    start,
+    photoBlocks: photoBlocksOf(tl.lengthKm, tl.dx),
+  }
+  const head = { order: tt.order, intervalS: tt.intervalS, checksKm: [...tt.checksKm] }
+  const deckCtx: CueDeckContext = {
+    start,
+    timeTrial: true,
+    events: tl.events,
+    catalog: tl.groups,
+    cast,
+    profile: tl.profile,
+    own: ictx.own,
+    view: 'watch',
+    speed: 1,
+    tt: head,
+  }
+  const cand = ttCandidatesOf(cast, [], start, head)
+  const finishS = fromDs(visibilityOf(tl).finishDs)
+  const plan = { riders: n, intervalS: tt.intervalS }
+  const lastKm = ttLastKmFromS(tl)
+
+  // A 60 fotogramas por segundo de pared, el instante a overlayHz y la cola en cada fotograma.
+  const dt = 1 / 60
+  let deck: CueDeck = cueDeckInit(start)
+  let t = 0
+  let wall = 0
+  let lastOverlay = Number.NEGATIVE_INFINITY
+  let road = instantAt(tl, 0, ictx)
+  let tti = timeTrialInstantAt(tl, 0, ictx)
+  const emitted: Cue[] = []
+  /** la clase con que salió a pantalla cada uno (la mayor de dos, si sustituyó a otro, 9-d) */
+  const shown = new Map<Cue, number>()
+  const seen = new Set<Cue>()
+  let maxWaiting = 0
+  while (t < finishS) {
+    if (wall - lastOverlay >= 1 / BROADCAST.overlayHz - 1e-9) {
+      road = instantAt(tl, t, ictx)
+      tti = timeTrialInstantAt(tl, t, ictx)
+      lastOverlay = wall
+    }
+    deck = cueDeckStep(deck, road, dt, true, deckCtx, tti).deck
+    for (const x of [...deck.queue.waiting.map((w) => w.cue), deck.queue.shown?.cue]) {
+      if (x === undefined || seen.has(x)) continue
+      seen.add(x)
+      emitted.push(x)
+    }
+    if (deck.queue.shown !== null) shown.set(deck.queue.shown.cue, deck.queue.shown.cls)
+    maxWaiting = Math.max(
+      maxWaiting,
+      deck.queue.waiting.filter((w) => w.cls < 3 && !(w.cue.kind === 'rider')).length,
+    )
+    t = Math.min(finishS, t + ttPaceAt(t, plan, lastKm) * dt)
+    wall += dt
+  }
+  const of = <K extends Cue['kind']>(k: K) =>
+    emitted.filter((c): c is Extract<Cue, { kind: K }> => c.kind === k)
+
+  it('la regla de salida al empezar, un tt_split por cada paso de un candidato o mejor parcial, y su clase', () => {
+    expect(of('tt_start_order')).toHaveLength(1)
+    // lo esperado, de la traza: por control, cada paso a su hora, de un candidato o que bate el mejor
+    let expected = 0
+    tt.checksKm.forEach((_, c) => {
+      const passes = tt.checkClockDs
+        .map((row, r) => ({ r, at: tt.startDs[r]! + row[c]!, timeS: row[c]! / 10 }))
+        .filter((p) => p.at < visibilityOf(tl).finishDs)
+        .sort((a, b) => a.at - b.at || a.r - b.r)
+      let best = Number.POSITIVE_INFINITY
+      for (const p of passes) {
+        if (cand.has(p.r) || p.timeS < best) expected++
+        best = Math.min(best, p.timeS)
+      }
+    })
+    // los admitidos más los que sustituyó el siguiente del mismo control (9-d): todos salieron de la cola
+    expect(of('tt_split').length).toBe(expected)
+    for (const c of of('tt_split'))
+      expect(c.rank === 1 || cand.has(c.rider), `${c.rider} rank ${c.rank}`).toBe(true)
+  })
+
+  it('un tt_finish por cada llegada de un candidato y por cada cambio del sillón', () => {
+    const arrivals = tt.kmClockDs
+      .map((row, r) => ({ r, at: tt.startDs[r]! + row.at(-1)!, timeS: row.at(-1)! / 10 }))
+      .filter((a) => a.at < visibilityOf(tl).finishDs)
+      .sort((a, b) => a.at - b.at || a.r - b.r)
+    let best = Number.POSITIVE_INFINITY
+    let expected = 0
+    let seats = 0
+    for (const a of arrivals) {
+      const seat = a.timeS < best
+      if (cand.has(a.r) || seat) expected++
+      if (seat) seats++
+      best = Math.min(best, a.timeS)
+    }
+    expect(of('tt_finish')).toHaveLength(expected)
+    expect(of('tt_finish').filter((c) => c.hotSeat)).toHaveLength(seats)
+  })
+
+  it('la general virtual al paso del líder por cada control; ninguna se pierde, ni un rótulo de clase 3', () => {
+    // el líder de salida sale el último y su llegada es el borde de la meta: sus dos controles
+    expect(of('virtual_gc')).toHaveLength(tt.checksKm.length)
+    for (const c of of('virtual_gc')) expect(shown.has(c), 'virtual_gc').toBe(true)
+    // un rótulo de clase 3 sale, o lo sustituye el siguiente de su clase, que sale con su clase 3 (9-d)
+    const three = emitted.filter((c) => cueClassOf(c, start, null, true) === 3)
+    expect(three.length).toBeGreaterThan(0)
+    for (const c of three) {
+      if (shown.has(c)) continue
+      const later = emitted.slice(emitted.indexOf(c) + 1)
+      expect(
+        later.some((x) => x.kind === c.kind && shown.get(x) === 3),
+        `${c.kind} a las ${c.t}`,
+      ).toBe(true)
+    }
+    expect(maxWaiting).toBeLessThanOrEqual(BROADCAST.cueQueueMax)
+  })
+
+  it('la ronda ON COURSE y los percances; la duración es la de ttPaceAt (§9.4)', () => {
+    expect(of('rider').filter((c) => c.context === 'tt_round').length).toBeGreaterThan(50)
+    // los percances, de clase 1: entran si caben (con la cola llena de la hora de los ×120, no)
+    const mishaps = new Set(tt.mishaps.map((m) => m.rider))
+    expect(of('mishap').every((c) => mishaps.has(c.rider))).toBe(true)
+    expect(of('mishap').length).toBeGreaterThan(0)
+    expect(wall).toBeGreaterThan(300)
+    expect(wall).toBeLessThan(780)
+    console.info(
+      `[broadcast] la crono e16 a ×1: ${wall.toFixed(0)} s de pared; ${emitted.length} rótulos ` +
+        `generados, ${shown.size} en pantalla; ${of('tt_split').length} SPLIT, ` +
+        `${of('tt_finish').length} FINISH, ${of('virtual_gc').length} VIRTUAL GC, ` +
+        `${of('mishap').length} de ${tt.mishaps.length} percances; cola máxima ${maxWaiting}`,
+    )
+  })
 })
