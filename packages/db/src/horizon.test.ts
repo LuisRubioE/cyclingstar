@@ -27,9 +27,13 @@ import {
   throughStage,
   touchLastSeen,
   veilCast,
+  veilDelta,
   veilSql,
   worldHorizon,
 } from './horizon.js'
+import { emitNews } from './news.js'
+import { getRanking } from './ranking.js'
+import { retireFromRace } from './riderSchedule.js'
 import { palmares, raceRosters, riderPoints, stageTeamResults } from './schema.js'
 import { type TestDb, startTestDb } from './testDb.js'
 import {
@@ -239,7 +243,9 @@ describe('veilCast · el reparto bajo el velo (§10.10; 7b)', () => {
  * jugador, con su corredor en la catalana; el mánager, que posee un equipo con un corredor en la
  * catalana y otro en la ajena; y otra. Los casos que pasan por la petición (la puerta con su 403, lo
  * servido que no es visto, las cookies y `SPOILER_MODE`) están en `apps/api/src/routes/me.test.ts` y
- * `broadcast.test.ts`; el de dos dispositivos, en `watchConcurrency.test.ts` (Postgres de verdad).
+ * `broadcast.test.ts`; el de dos dispositivos, en `watchConcurrency.test.ts` (Postgres de verdad). El 8a
+ * añade el predicado (`veilSql`); el 8b, `veilDelta` con las filas de antes de la 0049 (§13.10, punto
+ * 6), la retirada voluntaria (10-i) y la cuenta del día (11-s).
  */
 const FIXED = '00000000-0000-4000-8000-'
 const idDe = (i: number): string => `${FIXED}${String(i).padStart(12, '0')}`
@@ -759,13 +765,219 @@ describe('B12 · la aritmética del horizonte (§10.14)', () => {
     ).toEqual({ sql: 'false', params: [] })
   })
 
-  /** Lo que §10.14 pone en otros PR, aquí para que encenderlo sea quitar el `todo` (regla 1 de §17.1). */
-  it.todo(
-    'la retirada voluntaria en el día de una etapa velada no entra en VeilDelta.abandons (8b, 10-i)',
-  )
-  it.todo(
-    'la cuenta del día (8b, 11-s): veinte peticiones a la vez el día nuevo hacen una sola cuenta',
-  )
+  /**
+   * `veilDelta` (§10.6, punto 4; paso 8b): lo que las etapas veladas cambiaron en el mundo, fuente a
+   * fuente, para lo que R resta y M enmascara. Con el velo vacío no consulta nada (es el de
+   * `worldHorizon`, el del visitante y el de quien no tiene nada por ver).
+   */
+  it('veilDelta: con el velo vacío, el VeilDelta vacío y ninguna consulta', async () => {
+    const counted = countingDb(t.db)
+    for (const h of [worldHorizon, anonHorizon()]) {
+      const d = await veilDelta(counted.db, h)
+      expect(
+        [d.points, d.money, d.budget, d.palmares, d.health, d.abandons, d.raceDays].map(
+          (x) => x.size,
+        ),
+      ).toEqual([0, 0, 0, 0, 0, 0, 0])
+    }
+    expect(counted.calls()).toBe(0)
+  })
+
+  /**
+   * Las siete fuentes de la tabla de §10.6, punto 4, con lo que cada una deja fuera, y las filas de
+   * antes de la 0049 (`stage_day` nulo), que casan por su día de juego (§13.10, punto 6): un punto y
+   * un palmarés viejos de un día velado se restan; un premio sin etapa no dice de qué etapa es y cuenta
+   * como conocido (13-l). La salud es la de antes del PRIMER suceso velado (la caída más antigua, o la
+   * enfermedad, que solo coge a los sanos); `raceDays`, solo de los corredores del espectador (18-b).
+   */
+  it('veilDelta: puntos, dinero, presupuesto, palmarés, salud, abandonos y días de carrera de lo velado (§10.6; §13.10, punto 6)', async () => {
+    const g = (s: number): number => stageGameDay(OWN, s)
+    const gf = (s: number): number => stageGameDay(FOREIGN, s)
+    const [team] = await t.client<{ id: string }[]>`
+      select id from teams where owner_user_id = ${MANAGER}`
+    const teamId = team!.id
+    await t.client`insert into rider_points (rider_id, game_day, points, race_id, kind, stage_day)
+                   values (${PLAYER_RIDER}, ${g(3)}, 10, ${OWN}, 'stage', 3),
+                          (${PLAYER_RIDER}, ${g(4)}, 5, ${OWN}, 'stage', null),
+                          (${PLAYER_RIDER}, ${gf(3)}, 7, ${FOREIGN}, 'stage', 3),
+                          (${TEAM_RIDER_OWN}, ${g(5)}, 4, ${OWN}, 'stage', 5)`
+    await t.client`insert into transactions (rider_id, game_day, kind, amount, note, race_key, stage_day)
+                   values (${PLAYER_RIDER}, ${g(3)}, 'premio', 1000, 'Stage win', ${OWN}, 3),
+                          (${PLAYER_RIDER}, ${g(3)}, 'premio', 500, 'Old prize', null, null),
+                          (${PLAYER_RIDER}, ${g(3)}, 'salario', 300, 'Salary', null, null)`
+    await t.client`insert into stage_team_results (race_id, stage_day, team_id, prize)
+                   values (${OWN}, 3, ${teamId}, 3000), (${OWN}, 2, ${teamId}, 0),
+                          (${FOREIGN}, 3, ${teamId}, 1500)`
+    const honours = await t.client<{ id: string; detail: string }[]>`
+      insert into palmares (world_id, rider_id, season, race_id, race_name, kind, detail, game_day, stage_day)
+      values (${worldId}, ${PLAYER_RIDER}, 0, 'race-catalonia', 'Catalonia', 'stage', 'Stage 3', ${g(3)}, 3),
+             (${worldId}, ${PLAYER_RIDER}, 0, 'race-catalonia', 'Catalonia', 'stage', 'Stage 5', ${g(5)}, null),
+             (${worldId}, ${PLAYER_RIDER}, 0, 'race-two-seas', 'Two Seas', 'stage', 'Stage 3', ${gf(3)}, 3)
+      returning id, detail`
+    // Dos caídas veladas del corredor del jugador, en la 4 y en la 6: la de la 6 guarda como salud de antes
+    // la que dejó la de la 4, y enseñarla destriparía la 4.
+    for (const [stageDay, prevHealth, prevUntilDay] of [
+      [6, 'lesionado', 120],
+      [4, 'molestias', 99],
+    ] as const)
+      await emitNews(t.db, {
+        worldId,
+        gameDay: g(stageDay),
+        seed: `injury:${OWN}:${stageDay}`,
+        raceKey: OWN,
+        riderId: PLAYER_RIDER,
+        payload: {
+          kind: 'injury',
+          raceId: 'race-catalonia',
+          season: 0,
+          stageDay,
+          riderId: PLAYER_RIDER,
+          teamId: null,
+          days: 5,
+          prevHealth,
+          prevUntilDay,
+        },
+      })
+    // Una enfermedad en carrera: no deja noticia `injury`, solo el abandono.
+    await t.client`update race_rosters set abandoned_day = ${g(5)}, abandoned_reason = 'enfermedad'
+                   where race_id = ${OWN} and rider_id = ${TEAM_RIDER_OWN}`
+    try {
+      const veiledDays = (h: Horizon, raceKeys: readonly string[]): number[] =>
+        h.veil
+          .filter((v) => raceKeys.includes(v.raceKey))
+          .map((v) => v.gameDay)
+          .sort((a, b) => a - b)
+      const hp = await computeHorizon(t.db, me(PLAYER), day())
+      const p = await veilDelta(t.db, hp)
+      expect(Object.fromEntries(p.points)).toEqual({
+        [PLAYER_RIDER]: { season: 15, window: 15 }, // la ajena no está en su velo
+        [TEAM_RIDER_OWN]: { season: 4, window: 4 },
+      })
+      expect(Object.fromEntries(p.money)).toEqual({ [PLAYER_RIDER]: 1000 })
+      expect(Object.fromEntries(p.budget)).toEqual({ [teamId]: 3000 })
+      // la 3 con su etapa y la vieja del día de la 5; la de la ajena, no
+      expect([...p.palmares].sort()).toEqual([honours[0]!.id, honours[1]!.id].sort())
+      expect(Object.fromEntries(p.health)).toEqual({
+        [PLAYER_RIDER]: { health: 'molestias', untilDay: 99 },
+        [TEAM_RIDER_OWN]: { health: 'sano', untilDay: null },
+      })
+      expect([...p.abandons]).toEqual([`${OWN}|${TEAM_RIDER_OWN}`])
+      expect(Object.fromEntries(p.raceDays)).toEqual({
+        [PLAYER_RIDER]: veiledDays(hp, [OWN, HALF]),
+      })
+      // El mánager ve también la ajena (por su equipo) y los días de su plantilla, no los del jugador.
+      const hm = await computeHorizon(t.db, me(MANAGER), day())
+      const m = await veilDelta(t.db, hm)
+      expect(m.points.get(PLAYER_RIDER)).toEqual({ season: 22, window: 22 })
+      expect(Object.fromEntries(m.budget)).toEqual({ [teamId]: 4500 })
+      expect(Object.fromEntries(m.raceDays)).toEqual({
+        [TEAM_RIDER_OWN]: veiledDays(hm, [OWN]),
+        [TEAM_RIDER_FOREIGN]: veiledDays(hm, [FOREIGN]),
+      })
+    } finally {
+      await t.client`delete from rider_points`
+      await t.client`delete from transactions`
+      await t.client`delete from stage_team_results`
+      await t.client`delete from palmares`
+      await t.client`delete from news`
+      await t.client`update race_rosters set abandoned_day = null, abandoned_reason = null`
+    }
+  })
+
+  /**
+   * LA TEMPORADA DE LOS PUNTOS VELADOS: `season` son los que caen desde el primer día de la temporada
+   * del horizonte (los que lleva `riders.season_points`, que el rollover pone a cero), y `window`, todos
+   * los de la ventana del ranking. Una carrera de la temporada pasada a medio correr sigue velada en la
+   * nueva (el caso «temporada anterior» de arriba): sus puntos restan del ranking y no de la temporada.
+   */
+  it('veilDelta: los puntos de una carrera velada de la temporada pasada restan de la ventana y no de la temporada', async () => {
+    await run(LAST_SEASON, [1, 2, 3])
+    try {
+      await t.client`insert into rider_points (rider_id, game_day, points, race_id, kind, stage_day)
+                     values (${PLAYER_RIDER}, ${stageGameDay(LAST_SEASON, 2)}, 9, ${LAST_SEASON}, 'stage', 2)`
+      const h = await computeHorizon(t.db, me(PLAYER), at(DAYS_PER_SEASON + 10))
+      expect(isVeiled(h, LAST_SEASON, 2)).toBe(true)
+      expect((await veilDelta(t.db, h)).points.get(PLAYER_RIDER)).toEqual({ season: 0, window: 9 })
+    } finally {
+      await t.client`delete from rider_points`
+      await t.client`delete from stage_snapshots where race_id = ${LAST_SEASON}`
+    }
+  })
+
+  /**
+   * LA RETIRADA VOLUNTARIA (§10.14; decisión 10-i; paso 8b). El jugador retira a su corredor el día de la
+   * última etapa de la catalana, que tiene velada: `abandoned_day` es ese día de juego y el predicado lo
+   * casaría, pero es un acto suyo y no un resultado, así que no entra en `VeilDelta.abandons` y su
+   * abandono se ve. El de otro corredor, en una etapa velada, sí entra.
+   */
+  it('la retirada voluntaria en el día de una etapa velada no entra en VeilDelta.abandons (10-i)', async () => {
+    const h = await computeHorizon(t.db, me(PLAYER), day())
+    expect(isVeiled(h, OWN, 7)).toBe(true)
+    expect(stageGameDay(OWN, 7)).toBe(OWN_LAST_DAY)
+    try {
+      expect(
+        await retireFromRace(t.db, h, {
+          worldId,
+          riderId: PLAYER_RIDER,
+          raceKey: OWN,
+          currentDay: OWN_LAST_DAY,
+        }),
+      ).toEqual({ ok: true, raceName: race('race-catalonia').name, alreadyOut: false })
+      await t.client`update race_rosters set abandoned_day = ${stageGameDay(OWN, 4)}, abandoned_reason = 'colapso'
+                     where race_id = ${OWN} and rider_id = ${TEAM_RIDER_OWN}`
+      const rows = await t.client<
+        { rider_id: string; abandoned_day: number; abandoned_reason: string }[]
+      >`
+        select rider_id, abandoned_day, abandoned_reason from race_rosters
+        where race_id = ${OWN} and abandoned_day is not null order by rider_id`
+      expect(rows).toEqual([
+        { rider_id: PLAYER_RIDER, abandoned_day: OWN_LAST_DAY, abandoned_reason: 'voluntario' },
+        {
+          rider_id: TEAM_RIDER_OWN,
+          abandoned_day: stageGameDay(OWN, 4),
+          abandoned_reason: 'colapso',
+        },
+      ])
+      clearHorizonCaches()
+      expect([...(await veilDelta(t.db, h)).abandons]).toEqual([`${OWN}|${TEAM_RIDER_OWN}`])
+    } finally {
+      await t.client`update race_rosters set abandoned_day = null, abandoned_reason = null`
+      await t.client`delete from news`
+    }
+  })
+
+  /**
+   * LA CUENTA DEL DÍA (§11.19; decisión 11-s; paso 8b; B12 la cuenta aparte de los otros veinte). Tras el
+   * tick llegan a la vez las primeras peticiones del día nuevo: el total del ranking que resta R y el mapa
+   * de `lastRunStages` se guardan como UNA promesa por (mundo, día) que comparten todas, y si la cuenta
+   * falla se borra y la petición siguiente la repite.
+   */
+  it('la cuenta del día (11-s): veinte peticiones a la vez el día nuevo hacen una sola cuenta del ranking y de lastRunStages; si falla, la siguiente la repite', async () => {
+    const counted = countingDb(t.db)
+    const nuevo = at(OWN_LAST_DAY + 3)
+    const viewers = [PLAYER, MANAGER, OTHER] as const
+    const rankings = await Promise.all(
+      Array.from({ length: 20 }, async (_, i) => {
+        const h = await computeHorizon(counted.db, me(viewers[i % viewers.length]!), nuevo)
+        return getRanking(counted.db, h, worldId, nuevo.currentDay)
+      }),
+    )
+    expect(rankings).toHaveLength(20)
+    expect(counted.snapshotQueries()).toBe(1)
+    expect(counted.rankingQueries()).toBe(1)
+    // Si falla, la siguiente petición la repite (y no se queda el fallo como la cuenta del día).
+    const otro = at(OWN_LAST_DAY + 4)
+    const falla = failingDb(t.db, (q) => q.includes('stage_snapshots') || isRankingTotal(q))
+    await expect(lastRunStages(falla, otro)).rejects.toThrow('la cuenta falla')
+    await expect(getRanking(falla, worldHorizon, worldId, otro.currentDay)).rejects.toThrow(
+      'la cuenta falla',
+    )
+    const again = countingDb(t.db)
+    await lastRunStages(again.db, otro)
+    await getRanking(again.db, worldHorizon, worldId, otro.currentDay)
+    expect(again.snapshotQueries()).toBe(1)
+    expect(again.rankingQueries()).toBe(1)
+  })
 })
 
 /** B12 · el memo con tope (10-m), con el reloj inyectado: sin base. */
@@ -897,25 +1109,38 @@ describe('ProgressMemory (D-55, §10.3)', () => {
   })
 })
 
-/** Un `db` que cuenta sus `execute` (la consulta 1 sola en el memo) y los que leen stage_snapshots. */
+/** El SQL de una consulta de drizzle, como lo manda a la base. */
+const sqlOf = (db: Database, q: unknown): string =>
+  (db as unknown as { dialect: { sqlToQuery(s: unknown): { sql: string } } }).dialect.sqlToQuery(q)
+    .sql
+
+/** La cuenta del total del día del ranking (`ranking.ts`, 11-s): la única que une `rider_points` con `riders`. */
+const isRankingTotal = (q: string): boolean => q.includes('"rider_points" inner join "riders"')
+
+/**
+ * Un `db` que cuenta sus `execute` (la consulta 1 sola en el memo), los que leen stage_snapshots y los
+ * del total del día del ranking.
+ */
 function countingDb(db: Database): {
   readonly db: Database
   readonly calls: () => number
   readonly snapshotQueries: () => number
+  readonly rankingQueries: () => number
   readonly updates: () => number
 } {
   let calls = 0
   let snapshots = 0
+  let rankings = 0
   let updates = 0
-  const dialect = (db as unknown as { dialect: { sqlToQuery(s: unknown): { sql: string } } })
-    .dialect
   const proxy = new Proxy(db, {
     get(target, prop, receiver) {
       const v: unknown = Reflect.get(target, prop, receiver)
       if (prop === 'execute' && typeof v === 'function')
         return (q: unknown) => {
           calls += 1
-          if (dialect.sqlToQuery(q).sql.includes('stage_snapshots')) snapshots += 1
+          const text = sqlOf(db, q)
+          if (text.includes('stage_snapshots')) snapshots += 1
+          if (isRankingTotal(text)) rankings += 1
           return (v as (q: unknown) => unknown).call(target, q)
         }
       if (prop === 'update' && typeof v === 'function')
@@ -930,8 +1155,24 @@ function countingDb(db: Database): {
     db: proxy,
     calls: () => calls,
     snapshotQueries: () => snapshots,
+    rankingQueries: () => rankings,
     updates: () => updates,
   }
+}
+
+/** Un `db` cuyos `execute` que casan con `fails` fallan: la cuenta del día que no sale (11-s). */
+function failingDb(db: Database, fails: (sql: string) => boolean): Database {
+  return new Proxy(db, {
+    get(target, prop, receiver) {
+      const v: unknown = Reflect.get(target, prop, receiver)
+      if (prop === 'execute' && typeof v === 'function')
+        return (q: unknown) =>
+          fails(sqlOf(db, q))
+            ? Promise.reject(new Error('la cuenta falla'))
+            : (v as (q: unknown) => unknown).call(target, q)
+      return typeof v === 'function' ? (v as (...a: unknown[]) => unknown).bind(target) : v
+    },
+  })
 }
 
 /**
