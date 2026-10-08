@@ -5,7 +5,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { OneDayRadio, OneDayStory } from '../pages/Race'
 import { StageReplay } from '../pages/StageReplay'
-import { diagOf, fetchCalendarStage, stageReplayKey } from './results'
+import { diagOf, fetchCalendarStage, stageReplayKey, stageReplayPrefix } from './results'
 
 /**
  * EL MODO DIAGNÓSTICO, DE LA PÁGINA A LA FICHA (docs/retransmision.md §11.15 y §14.11; D-40, decisión
@@ -14,7 +14,8 @@ import { diagOf, fetchCalendarStage, stageReplayKey } from './results'
  * y la API le da la etapa entera sin gastarla. `fetchCalendarStage` lo pide solo cuando se le pasa, y
  * las dos páginas que piden la ficha (`StageReplay.tsx` y las pestañas de una carrera de un día de
  * `Race.tsx`) lo leen de su URL y lo ponen en la clave, para que una respuesta del modo diagnóstico no
- * sirva nunca la vista normal ni al revés.
+ * sirva nunca la vista normal ni al revés. Y la meta de `Watch` invalida la ficha de la etapa, con
+ * `diag` o sin él: vista, ya trae el resultado que llegó velado.
  */
 
 /** Una etapa sin correr, la ficha mínima que acepta `stageReplaySchema`. */
@@ -56,6 +57,24 @@ describe('web: la ficha de una etapa con ?diag=1 (14-s)', () => {
     expect(stageReplayKey('race-france', 7, false)).not.toEqual(
       stageReplayKey('race-france', 7, true),
     )
+  })
+
+  it('el prefijo de la ficha toma las dos claves de la etapa, con diag y sin él, y ninguna otra: lo que invalida la meta de Watch', async () => {
+    const client = new QueryClient()
+    const keys = [
+      stageReplayKey('race-france', 7, false),
+      stageReplayKey('race-france', 7, true),
+      stageReplayKey('race-france', 8, false),
+      stageReplayKey('race-italy', 7, false),
+    ]
+    for (const key of keys) client.setQueryData(key, notRun)
+    await client.invalidateQueries({ queryKey: stageReplayPrefix('race-france', 7) })
+    expect(keys.map((key) => client.getQueryState(key)?.isInvalidated)).toEqual([
+      true,
+      true,
+      false,
+      false,
+    ])
   })
 
   /**

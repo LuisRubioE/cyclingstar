@@ -46,13 +46,20 @@ export function diagOf(search: URLSearchParams): boolean {
   return search.get('diag') === '1'
 }
 
+/** El prefijo de las claves de la ficha de una etapa, con `diag` o sin él: lo que se invalida (abajo). */
+export function stageReplayPrefix(raceId: string, day: number): readonly unknown[] {
+  return ['stage-replay', raceId, day]
+}
+
 /**
  * La clave de React Query de la ficha de una etapa: con `diag`, para que la respuesta del modo
  * diagnóstico no sirva nunca la vista normal ni al revés (§11.15, §10.9). Desde el 9a llevará además el
- * `rev` del horizonte al final (`horizonKey`, §14.11).
+ * `rev` del horizonte al final (`horizonKey`, §14.11). La meta de `Watch` invalida su prefijo: con
+ * `SPOILER_MODE`, la ficha de una etapa que no se había visto llegó sin resultado (7b), y vista ya lo
+ * tiene.
  */
 export function stageReplayKey(raceId: string, day: number, diag: boolean): readonly unknown[] {
-  return ['stage-replay', raceId, day, diag]
+  return [...stageReplayPrefix(raceId, day), diag]
 }
 
 /** Crónica/journal de una etapa de calendario (pública). */

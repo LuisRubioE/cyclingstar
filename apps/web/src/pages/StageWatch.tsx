@@ -20,6 +20,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { broadcastChunkKey, fetchBroadcastChunk, postBroadcastFinish } from '../api/broadcast'
+import { stageReplayPrefix } from '../api/results'
 import {
   beaconWatchProgress,
   forgetLocalProgress,
@@ -480,8 +481,13 @@ function useWatchPlayer(head: BroadcastHead, raceId: string, day: number): Watch
           }),
         finish: async (mode) => {
           const f = await postBroadcastFinish(raceId, day, mode)
-          // con sesión, la meta escribe la letra (14-f); el visitante olvida lo alcanzado y vuelve a la previa (8-l)
-          if (!signedIn) forgetLocalProgress(raceKey, day)
+          // Con sesión, la meta escribe la letra (14-f) y la etapa pasa a conocida: la ficha de la página,
+          // que con SPOILER_MODE llegó sin resultado (7b), se pide otra vez para que `Story` y `Result` la
+          // enseñen. Desde el 9a lo hará el `rev` del horizonte en la clave (§10.9, regla 3). El visitante
+          // olvida lo alcanzado y vuelve a la previa (8-l).
+          if (signedIn)
+            void queryClient.invalidateQueries({ queryKey: stageReplayPrefix(raceId, day) })
+          else forgetLocalProgress(raceKey, day)
           return f
         },
         sleep: (sec) => new Promise((resolve) => window.setTimeout(resolve, sec * 1000)),
