@@ -7,6 +7,7 @@ import {
   getOwnRiderIds,
   getRaceRiderIdentities,
   getRunStageDays,
+  getStageMostKmOutFront,
   getStageNews,
   getStageNonFinishers,
   getStageResults,
@@ -554,13 +555,16 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
             },
           ]
     })
+    // el mayor kmEnFuga (DD-14) no va en la línea grabada: lo guarda el parte de cada corredor
+    // (`rider_daily_log.parte`), y lo lee el cierre desde el 10a
+    const front = await getStageMostKmOutFront(db, worldHorizon, ctx.raceKey, ctx.day, tl.riderIds)
+    const frontRider = front === null ? null : riderOf(front.riderId)
     return {
       podium,
       gcAfter,
       jerseysTomorrow,
-      // el mayor kmEnFuga (DD-14) tampoco va en la línea grabada: lo guarda el parte de cada corredor
-      // (`rider_daily_log.parte`); lo lee el cierre del 10a
-      mostKmOutFront: null,
+      mostKmOutFront:
+        front === null || frontRider === null ? null : { rider: frontRider, km: front.km },
       outOfRace,
       tomorrow: await tomorrowOf(ctx),
     }

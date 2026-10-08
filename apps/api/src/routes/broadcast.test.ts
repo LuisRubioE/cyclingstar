@@ -9,6 +9,7 @@ import {
   readStageTimeline,
   readWatch,
   riderAttrs,
+  riderDailyLog,
   riderHidden,
   riders,
   runOneStage,
@@ -422,6 +423,26 @@ describe('las rutas de la retransmisión (§14.2)', () => {
         expect(finish.arrivals[0]?.gapS).toBe(0)
         expect(finish.result.length).toBeGreaterThan(0)
         expect(finish.closing.podium).toHaveLength(3)
+        // el que más km rodó delante (DD-14; 10a): el mayor kmEnFuga del parte de la etapa, el primero
+        // del reparto a igual distancia
+        const partes = (
+          await t.db
+            .select({
+              riderId: riderDailyLog.riderId,
+              activity: riderDailyLog.activity,
+              parte: riderDailyLog.parte,
+            })
+            .from(riderDailyLog)
+        ).filter((r) => r.activity === `carrera:${RACE_ID}:e2` && r.parte !== null)
+        expect(partes.length).toBeGreaterThan(0)
+        const front = partes
+          .filter((r) => (r.parte?.kmEnFuga ?? 0) > 0)
+          .map((r) => ({ rider: tl!.riderIds.indexOf(r.riderId), km: r.parte!.kmEnFuga }))
+          .sort((a, b) => b.km - a.km || a.rider - b.rider)[0]
+        expect(finish.closing.mostKmOutFront).toEqual(
+          front === undefined ? null : { rider: front.rider, km: Math.round(front.km * 10) / 10 },
+        )
+        expect(finish.closing.mostKmOutFront).not.toBeNull() // en esta etapa, 64,1 km
         expect(finish.report.radio).toBeUndefined()
         // la de la fila: el TEMPLATE_REV del tick que la grabó
         expect(finish.report.tplRev).toBe(0)
