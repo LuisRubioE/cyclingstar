@@ -4,6 +4,7 @@ import {
   type Instant,
   type RiderCard,
   groupLabelText,
+  pullingLineOf,
 } from '@cyclingstar/shared'
 import { Fragment } from 'react'
 import {
@@ -11,8 +12,10 @@ import {
   isQuietFinal,
   mobileRowsOf,
   nameOf,
+  pullingText,
   shownGroupsOf,
   transitOf,
+  yourRiderText,
 } from '../../domain/broadcast/screen'
 import { LeaderJersey } from '../Jersey'
 import { WornJerseyIcon } from './WornJerseyIcon'
@@ -39,6 +42,11 @@ import { WornJerseyIcon } from './WornJerseyIcon'
  * grupo recién nacido que aún no lleva a nadie no tiene fila, y los que van hacia él se cuentan bajo la
  * del grupo que dejan (`↑ 3 bridging across`). Y la identidad de cada fila es la de pantalla
  * (`screenKeysOf`, D-03): un cambio de etiqueta no la cambia.
+ *
+ * Desde el 6b, la línea de quién tira bajo cada fila que tira (`Pulling: Team Beta (for 11 Sam Carter)`,
+ * §6.4, 6-d; en el móvil, solo bajo la del pelotón y las del espectador, con un equipo y `+N teams`), y
+ * debajo de la barra, si el espectador corre, `Your rider · in the bunch · +2:14` con sus variantes
+ * (6-l).
  */
 export function GroupBar({
   instant,
@@ -59,6 +67,11 @@ export function GroupBar({
 }) {
   const quiet = isQuietFinal(instant.toGoKm)
   const groups = shownGroupsOf(instant)
+  const own = yourRiderText(
+    instant,
+    cast,
+    cast.filter((c) => c.own).map((c) => c.ix),
+  )
   const chosen = mobileRowsOf(groups)
   const transit = transitOf(instant)
   const folded = expanded ? [] : groups.filter((g) => !chosen.has(g.g))
@@ -118,6 +131,7 @@ export function GroupBar({
                 {t.across > 0 && <span>↑ {t.across} bridging across</span>}
               </p>
             )}
+            <PullingRow group={g} cast={cast} mobile={g.kind === 'peloton' || g.own} />
           </div>
         )
       })}
@@ -131,7 +145,38 @@ export function GroupBar({
           {foldedRiders === 1 ? 'rider' : 'riders'} ▾
         </button>
       )}
+      {own !== null && (
+        <p data-your-rider="" className="py-1.5 pl-7 text-xs font-medium text-cyan-700">
+          {own}
+        </p>
+      )}
     </div>
+  )
+}
+
+/** La línea de quién tira de una fila (§6.4): en escritorio, entera; en el móvil, la del pelotón y las del espectador, con un equipo. */
+function PullingRow({
+  group,
+  cast,
+  mobile,
+}: {
+  group: GroupNow
+  cast: readonly RiderCard[]
+  mobile: boolean
+}) {
+  const line = pullingLineOf(group.detail, group.members, cast)
+  if (line === null) return null
+  return (
+    <>
+      <p data-pulling="desktop" className="hidden pl-7 text-xs text-slate-500 sm:block">
+        {pullingText(line, cast)}
+      </p>
+      {mobile && (
+        <p data-pulling="mobile" className="pl-7 text-xs text-slate-500 sm:hidden">
+          {pullingText(line, cast, true)}
+        </p>
+      )}
+    </>
   )
 }
 

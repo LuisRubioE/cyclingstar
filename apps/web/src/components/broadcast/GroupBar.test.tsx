@@ -1,4 +1,4 @@
-import { BROADCAST } from '@cyclingstar/shared'
+import { BROADCAST, type GroupDetail, type PullMotive } from '@cyclingstar/shared'
 import type { ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
@@ -329,5 +329,147 @@ describe('ProfileStrip · el perfil con un cursor por grupo y el puerto que vien
       />,
     )
     for (let n = 1; n <= 7; n++) expect(markup).toContain(`data-cursor="${n}"`)
+  })
+})
+
+// ------------------------------------------------------------------------- lo del 6b (§16.6)
+
+const ITALY = {
+  kind: 'champion' as const,
+  title: {
+    scope: 'national' as const,
+    country: 'IT',
+    discipline: 'road' as const,
+    category: 'elite' as const,
+    season: 0,
+    validFromDay: 179,
+    validToDay: 543,
+    source: { raceKey: 'nc-it-road:s0', stageDay: 1 },
+    provisional: true,
+  },
+}
+
+describe('GroupBar · el campeón lleva su maillot (ChampionMark, §7.4; 6b)', () => {
+  it('en una fila nombrada y en la línea de un grupo, con el texto de su título y su bandera', () => {
+    const cast = castOf(30, { 1: { worn: ITALY, country: 'IT' } })
+    const named = html(
+      <GroupBar
+        instant={instantOf([
+          { members: [0, 1], km: 70 },
+          { members: range(2, 30), km: 69, gapS: 60, kind: 'peloton' },
+        ])}
+        cast={cast}
+        clock="exact"
+      />,
+    )
+    expect(named).toContain('data-champion-mark')
+    expect(count(named, 'Champion of Italy')).toBe(1)
+    const line = html(
+      <GroupBar
+        instant={instantOf([
+          { members: [0, 1, 2, 3, 4], km: 70 },
+          { members: range(5, 30), km: 69, gapS: 60, kind: 'peloton' },
+        ])}
+        cast={cast}
+        clock="exact"
+      />,
+    )
+    expect(count(line, 'Champion of Italy')).toBe(1)
+  })
+})
+
+describe('GroupBar · quién tira (Pulling:, §6.4, 6-d; 6b)', () => {
+  const cast = castOf(30)
+  const detail = (
+    pullers: { rider: number; motive: string | null; forRider: number | null }[],
+  ): GroupDetail => ({
+    g: 1,
+    speedKmh: 44,
+    pullingTotal: pullers.length,
+    pullers: pullers.map((p) => ({ ...p, motive: p.motive as PullMotive | null })),
+    mishap: null,
+  })
+
+  it('la fuga que colabora, all 3 in turn; el pelotón, sus equipos con el porqué', () => {
+    const markup = html(
+      <GroupBar
+        instant={instantOf([
+          {
+            members: [0, 1, 2],
+            km: 70,
+            detail: detail([
+              { rider: 0, motive: 'fuga', forRider: null },
+              { rider: 1, motive: 'fuga', forRider: null },
+              { rider: 2, motive: 'fuga', forRider: null },
+            ]),
+          },
+          {
+            members: range(3, 30),
+            km: 69,
+            gapS: 60,
+            kind: 'peloton',
+            detail: detail([
+              { rider: 3, motive: 'persecucion', forRider: null },
+              { rider: 6, motive: 'persecucion', forRider: null },
+              { rider: 4, motive: 'equipo_etapa', forRider: 10 },
+              { rider: 7, motive: 'equipo_etapa', forRider: 10 },
+              { rider: 5, motive: 'rol', forRider: null },
+            ]),
+          },
+        ])}
+        cast={cast}
+        clock="exact"
+      />,
+    )
+    const [front, pack] = rowsOf(markup)
+    expect(textOf(front!)).toContain('Pulling: all 3 in turn')
+    // en escritorio, los dos equipos con más relevistas y su porqué; en el móvil, uno y +N teams
+    expect(textOf(pack!)).toContain('Pulling: Team 0 (chasing), Team 1 (for 11 Rider K10) +1 team')
+    expect(pack).toContain('data-pulling="mobile"')
+    expect(front).not.toContain('data-pulling="mobile"')
+  })
+})
+
+describe('GroupBar · tu corredor (§6.2, 6-l; 6b)', () => {
+  const road = [
+    { members: [0, 1, 2, 3], km: 70 },
+    { members: range(4, 26), km: 69, gapS: 134, kind: 'peloton' as const },
+    { members: range(26, 30), km: 66, gapS: 600 },
+  ]
+  const bar = (own: number[], inTransit: { rider: number; from: number; to: number }[] = []) =>
+    textOf(
+      html(
+        <GroupBar
+          instant={instantOf(road, {
+            inTransit: inTransit.map((x) => ({
+              ...x,
+              gap: { toHeadS: 134, toAheadS: null, atKm: 69, trend: null },
+            })),
+          })}
+          cast={castOf(32, Object.fromEntries(own.map((r) => [r, { own: true }])))}
+          clock="exact"
+        />,
+      ),
+    )
+
+  it('Your rider · in the bunch · +2:14, con la palabra de voz y el hueco de su grupo', () => {
+    expect(bar([10])).toContain('Your rider · in the bunch · +2:14')
+    expect(bar([1])).toContain('Your rider · in the lead group')
+    expect(bar([1])).not.toContain('Your rider · in the lead group ·')
+  })
+
+  it('en tránsito, dropping back from o bridging to; fuera de carrera, out of the race', () => {
+    expect(bar([10], [{ rider: 10, from: 1, to: 2 }])).toContain(
+      'Your rider · dropping back from the bunch · +2:14',
+    )
+    expect(bar([10], [{ rider: 10, from: 1, to: 0 }])).toContain(
+      'Your rider · bridging to the lead group',
+    )
+    expect(bar([31])).toContain('Your rider · out of the race')
+  })
+
+  it('con varios, una cuenta por papel: Your team · 1 in front · 2 in the bunch', () => {
+    expect(bar([1, 10, 11])).toContain('Your team · 1 in front · 2 in the bunch')
+    expect(bar([])).not.toContain('Your')
   })
 })

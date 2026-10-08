@@ -222,7 +222,7 @@ const numberWord = (n: number): string => NUMBER_WORDS[n] ?? String(n)
 const capitalized = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1)
 
 /** El nombre de un país, el de `COUNTRIES` (el `NameResolver` de hoy; el de cada idioma, con E10). */
-const COUNTRY_NAMES: Pick<NameResolver, 'country'> = {
+export const COUNTRY_NAMES: Pick<NameResolver, 'country'> = {
   country: (iso2) => COUNTRIES.find((c) => c.code === iso2)?.name ?? iso2,
 }
 

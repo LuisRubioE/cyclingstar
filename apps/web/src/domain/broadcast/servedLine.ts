@@ -15,11 +15,20 @@
  * adaptador de la radio vale 0 Ds) y su fila de detalle del km 0 (3c). Antes de él, la línea tiene
  * solo el grupo de salida, el 0, `peloton`, desde el bloque 0 y con todos (3-f).
  *
- * Nace en el 3c. La crono (`tt`) llega en el 6b; un código que la web no conozca se lee como null (4-m).
+ * Nace en el 3c. Un código que la web no conozca se lee como null (4-m).
+ *
+ * La crono, desde el 6b (§4.6, §9.2): la preparación pública de la cabecera (`BroadcastHead.tt`: el
+ * orden, el intervalo y los controles) y, de los tramos, cada salida, cada paso por un km entero y cada
+ * paso por un control, a su hora (`BroadcastChunk.tt`). Quien aún no ha salido no tiene salida y vale
+ * `+∞` (`timeTrialInstantAt` lo cuenta por salir); sus filas, los pasos ya vistos, en orden. Una crono
+ * no tiene grupos: tampoco el de salida. Los percances, de sus sucesos revelados (el grabador los
+ * guarda con su km y su pérdida, que la crono no pinta).
  */
 import {
   BANNER_CODE,
   type BannerResult,
+  type TimeTrialTrace,
+  toDs,
   type Block,
   type BroadcastChunk,
   type BroadcastHead,
@@ -59,6 +68,10 @@ interface ServedParts {
   readonly events: readonly TimelineEventWire[]
   /** registros de las pancartas */
   readonly banners: readonly number[]
+  /** la crono: pares [rider, startDs], y tríos [rider, k, Ds] de los km y [rider, c, Ds] de los controles */
+  readonly ttStarts: readonly number[]
+  readonly ttKm: readonly number[]
+  readonly ttChecks: readonly number[]
 }
 
 /** La línea de la web: lo que sabe de la etapa tras los tramos recibidos. */
@@ -83,6 +96,9 @@ const NO_PARTS: ServedParts = {
   details: [],
   events: [],
   banners: [],
+  ttStarts: [],
+  ttKm: [],
+  ttChecks: [],
 }
 
 /** La línea antes del primer tramo: solo la cabecera, y en ella el grupo de salida con todos (3-f). */
@@ -107,6 +123,9 @@ export function withChunk(
     details: [...p.details, ...chunk.details],
     events: [...p.events, ...chunk.events],
     banners: [...p.banners, ...chunk.banners],
+    ttStarts: [...p.ttStarts, ...(chunk.tt?.starts ?? [])],
+    ttKm: [...p.ttKm, ...(chunk.tt?.km ?? [])],
+    ttChecks: [...p.ttChecks, ...(chunk.tt?.checks ?? [])],
   }
   return {
     core: coreOf(head, parts),
@@ -152,9 +171,9 @@ function coreOf(head: BroadcastHead, p: ServedParts): TimelineCore {
   // EL CATÁLOGO: el de salida y los nacidos, con su muerte y su sucesor si ya se ven. Es un prefijo
   // del de la línea (4-a): si faltara uno, los de detrás no se pueden poner y se cortan ahí. El de
   // salida llega en el primer tramo; hasta entonces, el 0 con todos (3-f).
-  const catalog: (GroupCatalogEntry | undefined)[] = [
-    { id: 'peloton', origin: 'start', bornB: 0, diedB: null, successor: null },
-  ]
+  const catalog: (GroupCatalogEntry | undefined)[] = head.stage.timeTrial
+    ? [] // una crono no tiene grupos (§9.1)
+    : [{ id: 'peloton', origin: 'start', bornB: 0, diedB: null, successor: null }]
   for (const [g, id, origin] of p.born)
     catalog[g] = { id, origin, bornB: firstMark.get(g) ?? 0, diedB: null, successor: null }
   for (const [g, diedB, successor] of p.died) {
@@ -308,6 +327,52 @@ function coreOf(head: BroadcastHead, p: ServedParts): TimelineCore {
     detail,
     banners,
     profile: head.profile,
-    tt: null,
+    tt: ttOf(head, riderIds.length, p, events),
+  }
+}
+
+/** Las filas de una crono servida: por corredor, sus entradas vistas en orden, hasta la primera que falte. */
+function rowsOf(n: number, triples: readonly number[]): Ds[][] {
+  const at: Map<number, Ds>[] = Array.from({ length: n }, () => new Map())
+  for (let i = 0; i + 2 < triples.length; i += 3)
+    at[triples[i]!]?.set(triples[i + 1]!, triples[i + 2]!)
+  return at.map((m) => {
+    const row: Ds[] = []
+    for (let k = 0; m.has(k); k++) row.push(m.get(k)!)
+    return row
+  })
+}
+
+/** LA TRAZA DE LA CRONO SERVIDA (§9.2): la preparación de la cabecera y lo visto en los tramos. */
+function ttOf(
+  head: BroadcastHead,
+  n: number,
+  p: ServedParts,
+  events: readonly TimelineEvent[],
+): TimeTrialTrace | null {
+  if (head.tt === null) return null
+  const startDs: Ds[] = Array.from({ length: n }, () => Number.POSITIVE_INFINITY)
+  for (let i = 0; i + 1 < p.ttStarts.length; i += 2) startDs[p.ttStarts[i]!] = p.ttStarts[i + 1]!
+  return {
+    order: head.tt.order,
+    intervalS: head.tt.intervalS,
+    checksKm: [...head.tt.checksKm],
+    startDs,
+    kmClockDs: rowsOf(n, p.ttKm),
+    checkClockDs: rowsOf(n, p.ttChecks),
+    mishaps: events.flatMap((e) => {
+      const rider = e.riders[0]
+      if ((e.plantilla !== 'puncture' && e.plantilla !== 'mechanical') || rider === undefined)
+        return []
+      const lost = e.datos?.perdidaS
+      return [
+        {
+          rider,
+          km: e.km,
+          kind: e.plantilla === 'puncture' ? ('pinchazo' as const) : ('averia' as const),
+          lostDs: typeof lost === 'number' ? toDs(lost) : 0,
+        },
+      ]
+    }),
   }
 }

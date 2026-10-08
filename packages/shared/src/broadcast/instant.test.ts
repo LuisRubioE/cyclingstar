@@ -579,7 +579,11 @@ describe('groupRoleAt · el papel y la etiqueta de un grupo, los de instantAt (6
       ).toString('utf8'),
     ),
   )
-  const leaders: StartState['leaders'] = { gc: null, points: null, kom: null }
+  const leaders: { gc: number | null; points: number | null; kom: number | null } = {
+    gc: null,
+    points: null,
+    kom: null,
+  }
   for (const c of tl.cast.riders) if (c.worn.kind === 'leader') leaders[c.worn.jersey] = c.rider
   const ctx: InstantContext = {
     own: new Set(),

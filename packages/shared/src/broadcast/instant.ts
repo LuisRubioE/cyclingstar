@@ -1098,20 +1098,15 @@ function frameOf(ix: LineIndex, S: Ds, pb: readonly Block[], seen: Seen) {
   }
   const lastBlockOf = (x: Seen['order'][number]): Block | null =>
     x.last >= 0 ? marks[x.g]!.b[x.last]! : null
-  /** El km de foto de su última lectura propia (paso 8); null si aún no ha cruzado uno con su marca (3-e). */
-  const ownPhotoOf = (x: Seen['order'][number]): Block | null => {
-    const bn = lastBlockOf(x)
-    const k = bn === null ? null : photoAtOrBefore(bn)
-    return k === null || markOf(x.g, k) === null ? null : k
-  }
   /**
    * 9. El papel, con la histéresis de 4-q: el crudo de ahora (`now`) si es el de hace roleHysteresisKm
    *    de su marcha, si no hay con qué comparar o si un movimiento de más de un corredor le tocó entre
-   *    medias.
+   *    medias. `k`, el km de foto de su última lectura propia (el del hueco del paso 8; null si aún no
+   *    ha cruzado uno con su marca, 3-e): lo pasa quien llama, que ya lo tiene, para que el fotograma
+   *    no lo busque dos veces (B8).
    */
-  const roleOf = (x: Seen['order'][number], now: GroupRole): GroupRole => {
+  const roleOf = (x: Seen['order'][number], now: GroupRole, k: Block | null): GroupRole => {
     // sin un km de foto propio (3-e) no hay marcha que medir: el papel de ahora
-    const k = ownPhotoOf(x)
     if (k === null) return now
     const back = photoAtOrBefore(k - Math.round(BROADCAST.roleHysteresisKm / ix.tl.dx))
     if (back === null || k - Math.round(BROADCAST.roleHysteresisKm / ix.tl.dx) < 0) return now
@@ -1161,7 +1156,11 @@ export function groupRoleAt(
     seen.order.map((y) => ({ size: y.members.length, kind: y.kind })),
     ix.tl.riderIds.length - seen.outs,
   )
-  const role = frameOf(ix, S, pb, seen).roleOf(x, rolesNow[i]!)
+  const f = frameOf(ix, S, pb, seen)
+  // el km de foto de su última lectura propia, como lo lee el paso 8 de instantAt
+  const bn = f.lastBlockOf(x)
+  const k = bn === null ? null : f.photoAtOrBefore(bn)
+  const role = f.roleOf(x, rolesNow[i]!, k === null || f.markOf(x.g, k) === null ? null : k)
   const members = x.members
   return {
     g: x.g,
@@ -1265,9 +1264,9 @@ export function instantAt(tl: TimelineCore, t: RaceS, ctx: InstantContext): Inst
     // por RiderIx creciente ya: la composición los mete por corredor, en orden (paso 3)
     const members = x.members
     const jerseys = jerseysIn(members, ctx)
-    const role = roleOf(x, rolesNow[i]!)
     const gap = gapOf.get(x.g)!
     const ownK = gap.own ? gap.k : null
+    const role = roleOf(x, rolesNow[i]!, ownK)
     const detailRows = ownK === null ? undefined : ix.tl.detail.get(ownK)
     const detailDs = ownK === null ? undefined : ix.vis.detailDs.get(ownK)
     const rowIx = detailRows?.findIndex((row) => row.g === x.g) ?? -1

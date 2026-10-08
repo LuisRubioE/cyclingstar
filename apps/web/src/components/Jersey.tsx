@@ -1,4 +1,5 @@
 import { JERSEY_LABEL, type JerseyKind, type RaceLeaders, jerseyOf } from '@cyclingstar/shared'
+import { Flag } from './Flag'
 import { jerseyStyle } from './visuals'
 
 /**
@@ -113,6 +114,55 @@ export function LeaderJersey({
       {pattern === 'dots' &&
         DOTS.map(([cx, cy]) => <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="3.4" fill={mark} />)}
     </svg>
+  )
+}
+
+/** La estrella del pecho del maillot de campeón: una marca de forma que no lleva ningún otro maillot. */
+const STAR =
+  'M24 19 L26.4 24.6 L32.4 25.1 L27.8 29 L29.2 34.9 L24 31.8 L18.8 34.9 L20.2 29 L15.6 25.1 L21.6 24.6 Z'
+
+/**
+ * EL MAILLOT DE CAMPEÓN, provisional (E2, docs/retransmision.md §7.4; 7-h, I-47): la silueta de todos
+ * los maillots en un color neutro (`slate-100`), sin banda ni lunares, con una estrella en el pecho
+ * como marca de forma, y la bandera del país pequeña a su lado. Es un maillot porque el dueño pide ver
+ * maillots («cuando se escapan cinco, que se vean sus maillots»): el campeón de Italia de una fuga de
+ * cinco se ve como el quinto maillot y no como una bandera. La estrella lo separa en escala de grises
+ * de los tres de líder (liso, banda, lunares) y de las equipaciones; no imita el arcoíris (SPEC.md).
+ * `role="img"` y el texto del título en `aria-label` y en `<title>`, como `LeaderJersey`. E3 lo
+ * sustituye detrás de `WornJerseyIcon` sin tocar el dato.
+ */
+export function ChampionMark({
+  country,
+  label,
+  size = 15,
+  className = '',
+}: {
+  /** ISO-2 del título; null en el del mundo */
+  country: string | null
+  /** el texto del título, `Champion of Italy` (`championTitleText`) */
+  label: string
+  size?: number
+  className?: string
+}) {
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center gap-0.5 align-text-bottom ${className}`}
+      data-champion-mark=""
+    >
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 48 48"
+        role="img"
+        aria-label={label}
+        className="inline-block shrink-0"
+      >
+        <title>{label}</title>
+        <path d={TORSO} fill="#f1f5f9" stroke="rgba(0,0,0,0.35)" strokeWidth="1.5" />
+        <path d={STAR} fill="#1e293b" />
+      </svg>
+      {country !== null && <Flag code={country} size={Math.max(8, Math.round(size * 0.6))} />}
+    </span>
   )
 }
 

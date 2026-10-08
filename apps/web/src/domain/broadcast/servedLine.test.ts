@@ -22,6 +22,7 @@ import {
   fromDs,
   instantAt,
   photoBlocksOf,
+  timeTrialInstantAt,
   toDs,
   visibilityOf,
 } from '@cyclingstar/shared'
@@ -521,5 +522,56 @@ describe('servedLine · con una congelada grabada de verdad (6a)', () => {
     }
     expect(served.toDs).toBe(finish)
     expect(checked).toBeGreaterThan(100)
+  })
+})
+
+describe('servedLine · la crono congelada, la e16 (6b, §9.2)', () => {
+  const url = new URL(
+    '../../../../api/src/__fixtures__/broadcast/race-france-e16.timeline.gz',
+    import.meta.url,
+  )
+  const tl = decodeTimeline(JSON.parse(gunzipSync(readFileSync(url)).toString('utf8')))
+  const base = headOf(tl)
+  const head: BroadcastHead = {
+    ...base,
+    stage: { ...base.stage, timeTrial: true },
+    tt: { order: tl.tt!.order, intervalS: tl.tt!.intervalS, checksKm: [...tl.tt!.checksKm] },
+  }
+  const finish = visibilityOf(tl).finishDs
+  const ctx: InstantContext = {
+    own: new Set(),
+    start: head.startState,
+    photoBlocks: photoBlocksOf(head.stage.lengthKm, head.stage.dx),
+  }
+
+  it('tras cada tramo, el estado de la crono sobre lo servido es el de la línea entera; sin grupos', () => {
+    const bounds = Array.from(
+      { length: Math.ceil(finish / (BROADCAST.chunkRaceS * 10)) + 1 },
+      (_, i) => i * BROADCAST.chunkRaceS * 10,
+    )
+    let served: ServedLine = servedLineOf(head)
+    expect(served.core.groups).toEqual([])
+    expect(timeTrialInstantAt(served.core, 0, ctx).toStart).toBe(tl.riderIds.length)
+    let checked = 0
+    for (const c of chunksOf(bounds, tl)) {
+      served = withChunk(head, served, c)
+      const upTo = Math.min(c.toDs, finish - 1)
+      for (let ds = Math.max(0, c.fromDs - 600); ds <= upTo; ds += 277) {
+        expect(timeTrialInstantAt(served.core, fromDs(ds), ctx), `t = ${ds}`).toEqual(
+          timeTrialInstantAt(tl, fromDs(ds), ctx),
+        )
+        checked += 1
+      }
+    }
+    expect(served.toDs).toBe(finish)
+    expect(checked).toBeGreaterThan(500)
+    // los percances, de sus sucesos revelados: los cuatro de la e16
+    expect(served.core.tt?.mishaps.map((m) => m.rider).sort((a, b) => a - b)).toEqual(
+      [...tl.tt!.mishaps.map((m) => m.rider)].sort((a, b) => a - b),
+    )
+    // la última llegada es el borde: va en el paquete de meta, no en un tramo
+    expect(timeTrialInstantAt(served.core, fromDs(finish), ctx).finished).toBe(
+      tl.riderIds.length - 1,
+    )
   })
 })
