@@ -53,33 +53,21 @@ const BASE = 'http://localhost:3000'
 export type Bank = 'B1a' | 'B1b' | 'B1c'
 /**
  * Lo que el paso 8 aún no ha cerrado: ruta, PR que la cierra (la columna «Mecanismo en» de §11.3) y
- * bancos que la ven. Nace llena en el 7a, medida con este mundo y el código del 7a: cada test comprueba
+ * bancos que la ven. Nació llena en el 7a, medida con este mundo y el código del 7a: cada test comprueba
  * que nada fuera de ella falla y que cada ruta de ella sigue fallando en sus bancos («ya no destripa:
  * quítala»). Un banco que no aparece no ve la ruta en este mundo: B1a solo ve los cinco valores canario,
  * B1b no barre la etapa velada (`B1B_SKIP`) y B1c compara dos desenlaces con el mismo velo. El 7b quitó
  * las dos de la etapa, la ruta de etapa (G y P, `stageAccessOf`) y el acta (G, `sendGate`); el 8a, sus
  * seis, con P, F y G sobre `veilSql`: la ficha de carrera, las dos de noticias, `last-race` y el
- * palmarés y los resultados de un corredor. Queda vacía al cerrar el 8b y se borra en el 9b (17-n).
+ * palmarés y los resultados de un corredor; y el 8b, las trece de R y M con `veilDelta`: el ranking, los
+ * premios, el salón, los récords, las naciones, la tendencia, el informe, el resumen, el libro de
+ * cuentas, la ficha de un corredor y las dos de equipos. VACÍA desde el 8b (D-54, 17-n): B1a, B1b y B1c
+ * en verde en todas las rutas. La constante y sus `it` se borran en el 9b (§16.3).
  */
 export const PENDING_ROUTES: ReadonlyMap<
   string,
   { readonly pr: string; readonly banks: readonly Bank[] }
-> = new Map<string, { readonly pr: string; readonly banks: readonly Bank[] }>([
-  // 8b: R y M con `veilDelta` (y la F de las rutas que llevan las dos)
-  ['GET /api/rankings', { pr: '8b', banks: ['B1a', 'B1b', 'B1c'] }],
-  ['GET /api/season-awards', { pr: '8b', banks: ['B1b', 'B1c'] }],
-  ['GET /api/hall-of-fame', { pr: '8b', banks: ['B1b', 'B1c'] }],
-  ['GET /api/records', { pr: '8b', banks: ['B1b', 'B1c'] }],
-  ['GET /api/countries', { pr: '8b', banks: ['B1b'] }],
-  ['GET /api/countries/:code', { pr: '8b', banks: ['B1b', 'B1c'] }],
-  ['GET /api/riders/me/trend', { pr: '8b', banks: ['B1b', 'B1c'] }],
-  ['GET /api/riders/me/report', { pr: '8b', banks: ['B1b', 'B1c'] }],
-  ['GET /api/riders/me/summary', { pr: '8b', banks: ['B1b'] }],
-  ['GET /api/riders/me/ledger', { pr: '8b', banks: ['B1a'] }],
-  ['GET /api/riders/:id', { pr: '8b', banks: ['B1b', 'B1c'] }],
-  ['GET /api/teams', { pr: '8b', banks: ['B1b', 'B1c'] }],
-  ['GET /api/teams/:id', { pr: '8b', banks: ['B1b', 'B1c'] }],
-])
+> = new Map<string, { readonly pr: string; readonly banks: readonly Bank[] }>([])
 /**
  * La lista blanca de B1b: ruta → campos que pueden cambiar al correrse una etapa velada. Su ÚNICA fuente es la primera tabla de
  * §11.18, fila a fila y en el mismo orden, con su columna «Campos (`strip`)»: puntos; `[]` recorre un array; `[veiledDay]` quita de
@@ -123,6 +111,8 @@ export interface SpoilerWorld {
   readonly userId: string
   /** La sesión del jugador dueño de OWN_RIDER. */
   readonly cookie: string
+  /** Otra cuenta con su sesión, sin corredor: la de B1b con dos cuentas (§11.14, 8b). */
+  signUp(email: string): Promise<{ readonly userId: string; readonly cookie: string }>
   /** Corredores de más para barrer sus fichas (B1a añade al ganador; B1c no, para que las URL sean las mismas). */
   readonly extraRiders: string[]
   runVeiled(stageSeed: string): Promise<void>
@@ -259,35 +249,32 @@ export async function startSpoilerWorld(baseSeed: string): Promise<SpoilerWorld>
       headers: { 'content-type': 'application/json', origin: BASE },
       payload: JSON.stringify(body),
     })
-  await post('/sign-up/email', {
-    name: 'Player',
-    email: 'player@example.com',
-    password: 'contrasena-larga',
-  })
-  await t.client`update users set email_verified = true where email = 'player@example.com'`
-  const [u] = await t.client<
-    { id: string }[]
-  >`select id from users where email = 'player@example.com'`
-  const login = await post('/sign-in/email', {
-    email: 'player@example.com',
-    password: 'contrasena-larga',
-  })
-  const set = login.headers['set-cookie']
-  const cookie = (Array.isArray(set) ? set : set ? [set] : [])
-    .map((c) => c.split(';')[0])
-    .join('; ')
-  if (!u || cookie === '') throw new Error('el mundo de B1: el jugador no pudo entrar')
-  await t.client`update riders set user_id = ${u.id} where id = ${OWN_RIDER}`
+  /** Una cuenta con su sesión de verdad: alta, correo verificado y entrada. */
+  const signUp = async (email: string): Promise<{ userId: string; cookie: string }> => {
+    await post('/sign-up/email', { name: 'Player', email, password: 'contrasena-larga' })
+    await t.client`update users set email_verified = true where email = ${email}`
+    const [row] = await t.client<{ id: string }[]>`select id from users where email = ${email}`
+    const login = await post('/sign-in/email', { email, password: 'contrasena-larga' })
+    const set = login.headers['set-cookie']
+    const cookie = (Array.isArray(set) ? set : set ? [set] : [])
+      .map((c) => c.split(';')[0])
+      .join('; ')
+    if (!row || cookie === '') throw new Error(`el mundo de B1: ${email} no pudo entrar`)
+    return { userId: row.id, cookie }
+  }
+  const { userId, cookie } = await signUp('player@example.com')
+  await t.client`update riders set user_id = ${userId} where id = ${OWN_RIDER}`
   await t.db
     .insert(raceWatch)
-    .values({ userId: u.id, worldId, raceKey: RACE_KEY, knownThrough: 2, how: 'WW' })
+    .values({ userId, worldId, raceKey: RACE_KEY, knownThrough: 2, how: 'WW' })
 
   const world: SpoilerWorld = {
     t,
     app,
     worldId,
-    userId: u.id,
+    userId,
     cookie,
+    signUp,
     extraRiders: [],
     async runVeiled(stageSeed) {
       await runStage(t, worldId, VEILED, stageSeed)
@@ -303,8 +290,8 @@ export async function startSpoilerWorld(baseSeed: string): Promise<SpoilerWorld>
     },
     async reveal() {
       // lo que hace revealStage (§10.3), escrito a mano: el test no depende de su firma
-      await t.client`update race_watch set known_through = ${VEILED}, how = 'WWR' where user_id = ${u.id}`
-      await t.client`update users set horizon_rev = horizon_rev + 1 where id = ${u.id}`
+      await t.client`update race_watch set known_through = ${VEILED}, how = 'WWR' where user_id = ${userId}`
+      await t.client`update users set horizon_rev = horizon_rev + 1 where id = ${userId}`
     },
     async close() {
       await app.close()
