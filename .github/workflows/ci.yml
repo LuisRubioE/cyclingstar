@@ -96,16 +96,23 @@ jobs:
       # No se pierde nada: los bancos los corre el job `benches` de aquí abajo EN CUANTO SE TOCA EL
       # MOTOR, que es cuando pueden romperse, y `cobertura.yml` los corre enteros con cobertura una
       # vez al día pase lo que pase.
-      # B14 (docs/retransmision.md §16.4 y 16-k) se aparta de la suite y corre SOLO, en el paso de
-      # abajo: es una puerta de latencia (p95 ≤ 5 ms contra el Postgres de servicio) y, dentro de la
-      # suite, la medía con doscientos ficheros más compitiendo por la CPU. Con el mismo
-      # `computeHorizon`, el p95 del jugador dio 3,75, 5,05, 5,11 y 6,40 ms en cuatro corridas: eso
-      # mide el runner, no la consulta. El umbral no cambia.
+      # LAS PUERTAS DE LATENCIA se apartan de la suite y corren SOLAS y en serie, en el paso de abajo:
+      # B14 (docs/retransmision.md §16.4 y 16-k, p95 ≤ 5 ms del horizonte contra el Postgres de
+      # servicio) y B8 (16-m, p95 ≤ 0,25 ms del fotograma de `Watch`). Dentro de la suite las medía
+      # con doscientos ficheros más compitiendo por la CPU: con el mismo `computeHorizon`, el p95 del
+      # jugador dio 3,75, 5,05, 5,11 y 6,40 ms en cuatro corridas, y B8 dio 0,42 ms en la del 6a; eso
+      # mide el runner, no el código. Los umbrales no cambian.
       - name: Test (sin los bancos)
-        run: pnpm test:rapido --exclude packages/db/src/horizonLatency.test.ts
+        run: >-
+          pnpm test:rapido
+          --exclude packages/db/src/horizonLatency.test.ts
+          --exclude apps/web/src/domain/broadcast/clientCost.test.ts
 
-      - name: B14 · la latencia del horizonte, sola
-        run: pnpm exec vitest run packages/db/src/horizonLatency.test.ts
+      - name: Las puertas de latencia (B14 y B8), solas
+        run: >-
+          pnpm exec vitest run --no-file-parallelism
+          packages/db/src/horizonLatency.test.ts
+          apps/web/src/domain/broadcast/clientCost.test.ts
 
   benches:
     name: Bancos · ${{ matrix.nombre }}
