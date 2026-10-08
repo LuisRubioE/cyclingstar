@@ -11,6 +11,7 @@ import {
   raceStagesForWorld,
   readWatch,
   setStageOrders,
+  worldHorizon,
 } from '@cyclingstar/db'
 import {
   ENGINE_VERSION,
@@ -220,8 +221,12 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
       // El espectador se resuelve siempre, con `?diag=1` o sin él: así quien no es administrador recibe
       // lo mismo, cabeceras incluidas (la `cs_viewer` de §14.9), que sin el parámetro (11-h).
       const viewer = await request.viewer()
-      if (q.data.diag === '1' && (await request.diagAllowed())) return stageReplayOf(db, ctx)
-      if (!(await request.spoilerApplies())) return stageReplayOf(db, ctx)
+      // La radio desde la línea nombra siempre a sus corredores propios (11a, R23.7).
+      const userId = viewer?.userId ?? null
+      if (q.data.diag === '1' && (await request.diagAllowed()))
+        return stageReplayOf(db, ctx, { radio: { h: worldHorizon, userId } })
+      if (!(await request.spoilerApplies()))
+        return stageReplayOf(db, ctx, { radio: { h: worldHorizon, userId } })
       // El snapshot con el horizonte de quien pide (G, §10.6): de una etapa velada, sin sucesos ni
       // radio, que la ficha sin resultado (`stageShellOf`) no lee; la entrada es el recorrido (N).
       const h = await request.horizon()
@@ -242,7 +247,7 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
         run: snapshot !== null,
       })
       const body = access.serveResult
-        ? await stageReplayOf(db, ctx, { snapshot })
+        ? await stageReplayOf(db, ctx, { snapshot, radio: { h, userId } })
         : stageShellOf(ctx, snapshot)
       return {
         ...body,

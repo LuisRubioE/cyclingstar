@@ -1,15 +1,41 @@
 import { gunzipSync, gzipSync } from 'node:zlib'
 import { type Horizon, type VeiledStage, veilCast, worldHorizon } from '@cyclingstar/db'
 import { type TestDb, startTestDb } from '@cyclingstar/db/test'
-import { type RadioKm, type SnapshotRider, TIMELINE, radioKmFrom } from '@cyclingstar/engine'
+import {
+  ENGINE_VERSION,
+  type RaceRadio as CollectorRadio,
+  type RadioKm,
+  SEASON_CALENDAR,
+  STAGE,
+  type SnapshotRider,
+  type StageInput,
+  type StageOutput,
+  TIMELINE,
+  freezeStageWeather,
+  profileStripOf,
+  raceRadioCollector,
+  raceRadioFrom,
+  radioForStorage,
+  radioKmFrom,
+  radioKmPoints,
+  realRaceScenario,
+  simulateStage,
+  stageLengthKm,
+  stageSeed,
+  timelineRecorder,
+} from '@cyclingstar/engine'
 import {
   BROADCAST,
   type BroadcastHead,
   CUE_OF_TEMPLATE,
   type CastRider,
   type ChampionTitle,
+  type ChronicleRider,
   type InstantContext,
   JERSEY_PRIORITY,
+  type RaceRadio,
+  type RadioGroup,
+  type RadioNames,
   type RiderCard,
   type StageRef,
   type StageTimeline,
@@ -27,6 +53,7 @@ import {
   namedRidersOf,
   photoAt,
   photoBlocksOf,
+  radioFromTimeline,
   seededRng,
   startStateOf,
   staticNotoriety,
@@ -38,15 +65,18 @@ import {
   type FixtureInvariants,
   type FixtureName,
   ROAD_FIXTURES,
+  fixtureNames,
   fixtureStage,
   loadEvents,
   loadInvariants,
+  loadRadio,
   loadTimeline,
   loadTimelineBody,
   seedFixtureWorld,
 } from './__fixtures__/broadcast/load.js'
 import { type AppDeps, buildApp } from './app.js'
 import { serveCast } from './broadcastSource.js'
+import { type ChronicleNames, buildRaceRadio } from './chronicle.js'
 
 /**
  * LAS SEIS ETAPAS CONGELADAS CON SU LÍNEA GRABADA (docs/retransmision.md §16.2, §16.4, §17.8 y §17.9;
@@ -84,7 +114,9 @@ import { serveCast } from './broadcastSource.js'
  * grupo de hasta `nameWholeGroupUpTo` cada 30 s de carrera, `namedRidersOf` nombra a todos y cada uno
  * tiene su carta con el maillot resuelto, y la cláusula de no vacío con una cabecera sintética. La
  * segunda parte es de la web (`breakPresentation.test.ts`). El 7b le añade B13 (abajo, 17-t): ningún
- * dato del reparto cuya procedencia esté en el velo viaja; y el 11a, B16.
+ * dato del reparto cuya procedencia esté en el velo viaja; y el 11a, B16 (al final, 17-l): la radio
+ * desde la línea (`radioFromTimeline`) es la guardada de hoy (`buildRaceRadio` sobre `radioForStorage`),
+ * en la rápida sobre las seis y, con `CS_BANCOS=1`, sobre las 24 del banco corridas aquí.
  */
 
 const ROAD = new Set<FixtureName>(FIXTURES.filter((name) => !fixtureStage(name).timeTrial))
@@ -867,3 +899,497 @@ describe('B13 · la procedencia: nada del reparto con procedencia velada viaja (
     expect(veiledFields).toBeGreaterThanOrEqual(B13_MIN_VEILED_FIELDS)
   })
 })
+
+// ------------------------------------------------------------- B16, la radio desde la línea (11a)
+
+/**
+ * LA RADIO GUARDADA DE HOY con la lista de seguimiento `lista` y sin prioridades, como la pide B16
+ * (§16.4): `buildRaceRadio(radioForStorage(radio, lista, []), names)`. En una crono, la que guarda hoy la
+ * envoltura: la del colector sin una sola foto (la crono ignora la sonda).
+ */
+function storedRadioOf(
+  radio: CollectorRadio | null,
+  lista: ReadonlySet<string>,
+  names: ChronicleNames,
+): RaceRadio {
+  const built = buildRaceRadio(radioForStorage(radio ?? raceRadioFrom([]), lista, []), names)
+  if (built === null) throw new Error('B16: la radio guardada no pasa su esquema')
+  return built
+}
+
+/** Los nombres del lado de la línea: el mismo `riderOf` que la guardada, `own` y la lista como `nameableAt`. */
+function lineNamesOf(
+  tl: StageTimeline,
+  names: ChronicleNames,
+  lista: ReadonlySet<string>,
+  own: ReadonlySet<number> = new Set(),
+): RadioNames {
+  const listed = new Set(tl.riderIds.flatMap((id, r) => (lista.has(id) ? [r] : [])))
+  return { riderOf: names.riderOf, own, nameableAt: () => listed }
+}
+
+/** Lo que B16 cuenta de lo que no es igualdad estricta, con su causa (`b16Misses`). */
+interface B16Tally {
+  photos: number
+  groups: number
+  /** huecos que la línea redondea un segundo arriba: su reloj va en décimas (§4.1), el de la guardada en coma flotante */
+  gapRounding: number
+  gapToPrevRounding: number
+  /** fotos en que el título de la línea (D-03, el de la barra de Watch) no es el pelotón que guardó el motor */
+  titlePhotos: number
+  /** tramos de grupos con el mismo reloj en décimas, cuyo orden la línea no guarda (5-i) */
+  tieRuns: number
+}
+const newTally = (): B16Tally => ({
+  photos: 0,
+  groups: 0,
+  gapRounding: 0,
+  gapToPrevRounding: 0,
+  titlePhotos: 0,
+  tieRuns: 0,
+})
+
+/** Lo que es un grupo sin su sitio en la fila: lo que se compara como multiconjunto en un tramo de igual reloj. */
+const groupSig = (g: RadioGroup): string =>
+  JSON.stringify([
+    g.size,
+    g.speedKmh,
+    g.mishap === null ? null : [g.mishap.tipo, toDs(g.mishap.lostS)],
+    g.pullingTotal,
+    g.riders.filter((r) => r.role === 'pulling'),
+    g.riders
+      .filter((r) => r.role === 'sheltered')
+      .map((r) => r.id)
+      .sort(),
+    g.unnamed,
+  ])
+
+/**
+ * B16 CON LA LISTA VACÍA, la radio de una etapa no conocida (§12.10, §16.4): foto a foto, la de la línea
+ * contra la guardada, igual en el km, `starters`, `racing`, `gone`, el número de grupos y, en cada grupo,
+ * su tamaño, su velocidad, su percance (a la décima de segundo de la línea), `pullingTotal`, los que
+ * tiran con su motivo, su destinatario y en su orden, los nombrados a rueda como conjunto y `unnamed`.
+ * Tres tolerancias, cada una con su causa y contada: el hueco, un segundo como mucho (la línea guarda los
+ * relojes en décimas, §4.1, y la guardada redondeaba al segundo su resta en coma flotante: un hueco de
+ * x,5 s en décimas era x o x + 1); el `kind`, solo en las fotos en que el título de la línea (la regla
+ * del título por bloque, D-03, la de la barra de `Watch`) no es el pelotón que tenía el motor en esa foto;
+ * y el orden dentro de un tramo de grupos con el mismo reloj en décimas, que la línea no guarda (5-i).
+ */
+function b16Misses(
+  where: string,
+  tl: StageTimeline,
+  full: CollectorRadio | null,
+  line: RaceRadio,
+  stored: RaceRadio,
+  tally: B16Tally,
+): string[] {
+  const out: string[] = []
+  const miss = (what: string): void => {
+    if (out.length < 10) out.push(`${where} ${what}`)
+  }
+  if (line.starters !== stored.starters) miss(`starters ${line.starters} ≠ ${stored.starters}`)
+  if (line.kms.length !== stored.kms.length) {
+    miss(`${line.kms.length} fotos ≠ ${stored.kms.length}`)
+    return out
+  }
+  const blocks = photoBlocksOf(tl.lengthKm, tl.dx)
+  line.kms.forEach((a, i) => {
+    const s = stored.kms[i]!
+    const at = `km ${s.km.toFixed(1)}`
+    tally.photos += 1
+    if (a.km !== s.km) miss(`${at}: el km de la línea es ${a.km}`)
+    if (a.racing !== s.racing || a.gone !== s.gone)
+      miss(`${at}: racing ${a.racing}/${s.racing}, gone ${a.gone}/${s.gone}`)
+    if (a.groups.length !== s.groups.length) {
+      miss(`${at}: ${a.groups.length} grupos ≠ ${s.groups.length}`)
+      return
+    }
+    const p = photoAt(tl, blocks[i]!)
+    const title = p.main === null ? null : (tl.groups[p.main]?.id ?? null)
+    const sameTitle = full === null || full.kms[i]?.mainId === title
+    if (!sameTitle) tally.titlePhotos += 1
+    // las marcas del bloque en orden de carretera: la fila de la línea va por ellas (y, a igual reloj, por id)
+    const clocks = [...p.clock.values()].sort((x, y) => x - y)
+    for (let start = 0; start < a.groups.length;) {
+      let end = start + 1
+      while (end < a.groups.length && clocks[end] === clocks[start]) end++
+      if (end - start > 1) tally.tieRuns += 1
+      const mine = a.groups.slice(start, end)
+      const theirs = s.groups.slice(start, end)
+      const sigs = (gs: readonly RadioGroup[]): string => JSON.stringify(gs.map(groupSig).sort())
+      if (sigs(mine) !== sigs(theirs))
+        miss(`${at}, grupo ${start}: ${sigs(mine)} ≠ ${sigs(theirs)}`)
+      const kinds = (gs: readonly RadioGroup[]): string =>
+        gs
+          .map((g) => g.kind)
+          .sort()
+          .join(',')
+      if (sameTitle && kinds(mine) !== kinds(theirs))
+        miss(`${at}, grupo ${start}: kind ${kinds(mine)} ≠ ${kinds(theirs)}`)
+      for (let j = start; j < end; j++) {
+        tally.groups += 1
+        const dGap = a.groups[j]!.gapS - s.groups[j]!.gapS
+        const dPrev = a.groups[j]!.gapToPrevS - s.groups[j]!.gapToPrevS
+        if (dGap !== 0) tally.gapRounding += 1
+        if (dPrev !== 0) tally.gapToPrevRounding += 1
+        if (Math.abs(dGap) > 1 || Math.abs(dPrev) > 1)
+          miss(
+            `${at}, grupo ${j}: huecos ${a.groups[j]!.gapS}/${a.groups[j]!.gapToPrevS} ≠ ` +
+              `${s.groups[j]!.gapS}/${s.groups[j]!.gapToPrevS}`,
+          )
+      }
+      start = end
+    }
+  })
+  return out
+}
+
+/**
+ * B16 CON LOS DIEZ PRIMEROS DE LA ETAPA en la lista y en `nameableAt`, la etapa conocida (Rdueno-008):
+ * cada uno va en `riders` de su grupo en toda foto en que corre, en las dos radios, y `unnamed` es igual.
+ * No la igualdad entera: la guardada conserva como relevista a uno de la lista que tira por detrás de los
+ * doce de `STORED_PULLERS_MAX` (`raceRadio.ts`), y la línea solo guarda esos doce (§5.4), así que en la
+ * suya va a rueda; se cuentan.
+ */
+function b16KnownMisses(
+  where: string,
+  tl: StageTimeline,
+  line: RaceRadio,
+  stored: RaceRadio,
+  ten: ReadonlySet<string>,
+): { readonly misses: string[]; readonly checks: number; readonly asPuller: number } {
+  const misses: string[] = []
+  let checks = 0
+  let asPuller = 0
+  const blocks = photoBlocksOf(tl.lengthKm, tl.dx)
+  line.kms.forEach((a, i) => {
+    const s = stored.kms[i]!
+    const at = `${where} km ${s.km.toFixed(1)}`
+    const p = photoAt(tl, blocks[i]!)
+    // la fila de la línea: los grupos vivos por su marca y, a igual reloj, por id
+    const order = [...p.clock.entries()]
+      .filter(([g]) => p.groupOf.includes(g))
+      .sort((x, y) => x[1] - y[1] || (tl.groups[x[0]]!.id < tl.groups[y[0]]!.id ? -1 : 1))
+      .map(([g]) => g)
+    tl.riderIds.forEach((id, r) => {
+      if (!ten.has(id) || p.groupOf[r]! < 0) return
+      checks += 1
+      const mine = a.groups[order.indexOf(p.groupOf[r]!)]
+      const theirs = s.groups.find((g) => g.riders.some((x) => x.id === id))
+      if (mine === undefined || !mine.riders.some((x) => x.id === id))
+        misses.push(`${at}: ${id} no va nombrado en la línea`)
+      if (theirs === undefined || theirs.size !== mine?.size)
+        misses.push(`${at}: ${id} no va nombrado en su grupo en la guardada`)
+      const roleIn = (g: RadioGroup | undefined) => g?.riders.find((x) => x.id === id)?.role
+      if (roleIn(theirs) === 'pulling' && roleIn(mine) === 'sheltered') asPuller += 1
+    })
+    const unnamed = (k: RaceRadio['kms'][number]): string =>
+      JSON.stringify(k.groups.map((g) => [g.size, g.unnamed]).sort())
+    if (unnamed(a) !== unnamed(s)) misses.push(`${at}: unnamed ${unnamed(a)} ≠ ${unnamed(s)}`)
+  })
+  return { misses: misses.slice(0, 10), checks, asPuller }
+}
+
+/**
+ * Los diez primeros de una congelada: por llegada (`finish.arrivals`), y a igual tiempo por `RiderIx`,
+ * porque ni la línea ni el manifiesto guardan el puesto. Para B16 basta con que los dos lados reciban la
+ * misma lista (la nocturna usa el puesto de verdad).
+ */
+const firstTenOf = (tl: StageTimeline): Set<string> =>
+  new Set(
+    tl.finish.arrivals
+      .flatMap(([, riders]) => riders)
+      .slice(0, 10)
+      .map((r) => tl.riderIds[r]!),
+  )
+
+/**
+ * B16 · LA RADIO DESDE LA LÍNEA (docs/retransmision.md §16.4 y §12.10; O-16, D-16; paso 11a, decisiones
+ * 17-l y 17-v), la rápida: las cinco congeladas en línea y la crono, con la radio COMPLETA del colector de
+ * cada una (`<etapa>.radio.json.gz`) del lado de la guardada y su línea grabada del otro, con el mismo
+ * `riderOf` (el que arma `load.ts` desde `manifest.json`) y sin nadie propio. La nocturna, abajo.
+ */
+describe('B16 · la radio desde la línea es la guardada de hoy (§16.4; 11a)', () => {
+  const tally = newTally()
+  let known = 0
+  let knownAsPuller = 0
+
+  it.each(ROAD_FIXTURES)(
+    '%s: con la lista vacía, foto a foto, la de hoy; con los diez primeros, cada uno nombrado',
+    (name) => {
+      const tl = loadTimeline(name)
+      const full = loadRadio(name)
+      const names = fixtureNames(name)
+      const none = new Set<string>()
+      const line = radioFromTimeline(tl, lineNamesOf(tl, names, none))
+      expect(line.kms.length).toBeGreaterThan(100)
+      expect(b16Misses(name, tl, full, line, storedRadioOf(full, none, names), tally)).toEqual([])
+      const ten = firstTenOf(tl)
+      expect(ten.size).toBe(10)
+      const k = b16KnownMisses(
+        name,
+        tl,
+        radioFromTimeline(tl, lineNamesOf(tl, names, ten)),
+        storedRadioOf(full, ten, names),
+        ten,
+      )
+      expect(k.misses).toEqual([])
+      known += k.checks
+      knownAsPuller += k.asPuller
+    },
+  )
+
+  it('race-france-e16, la crono: las dos radios vacías', () => {
+    const tl = loadTimeline('race-france-e16')
+    const names = fixtureNames('race-france-e16')
+    const line = radioFromTimeline(tl, lineNamesOf(tl, names, new Set()))
+    expect(line.kms).toHaveLength(0)
+    expect(line).toEqual(storedRadioOf(null, new Set(), names))
+  })
+
+  it('el kind, el orden y el tamaño son los de radioKmFrom sobre la misma foto de la línea: la copia de kindOf, atada', () => {
+    for (const name of ROAD_FIXTURES) {
+      const tl = loadTimeline(name)
+      const line = radioFromTimeline(tl, lineNamesOf(tl, fixtureNames(name), new Set()))
+      photoBlocksOf(tl.lengthKm, tl.dx).forEach((b, i) => {
+        const proj = lineProjection(tl, b)
+        expect(
+          line.kms[i]!.groups.map((g) => [g.kind, g.size, g.gapS]),
+          `${name} b${b}`,
+        ).toEqual(
+          proj.groups.map((g) => [g.kind, g.size, Math.round(Math.round(g.gapS * 10) / 10)]),
+        )
+      })
+    }
+  })
+
+  it('R23.7: con un corredor propio, va en riders de su grupo en todas las fotos en que corre', () => {
+    for (const name of ROAD_FIXTURES) {
+      const tl = loadTimeline(name)
+      // uno del montón: el de en medio por llegada, que casi nunca tira ni va en la lista
+      const order = tl.finish.arrivals.flatMap(([, riders]) => riders)
+      const own = order[Math.floor(order.length / 2)]!
+      const id = tl.riderIds[own]!
+      const radio = radioFromTimeline(
+        tl,
+        lineNamesOf(tl, fixtureNames(name), new Set(), new Set([own])),
+      )
+      let photos = 0
+      let inBigGroup = 0
+      photoBlocksOf(tl.lengthKm, tl.dx).forEach((b, i) => {
+        const p = photoAt(tl, b)
+        if (p.groupOf[own]! < 0) return
+        photos += 1
+        const g = radio.kms[i]!.groups.find((x) => x.riders.some((r) => r.id === id))
+        expect(g, `${name} b${b}: el propio no va nombrado`).toBeDefined()
+        expect(g!.size).toBe([...p.groupOf].filter((x) => x === p.groupOf[own]).length)
+        if (g!.size > BROADCAST.nameWholeGroupUpTo) inBigGroup += 1
+      })
+      expect(photos, name).toBeGreaterThan(100)
+      // en un grupo de los que no se nombran enteros: si no, la prueba no probaría nada
+      expect(inBigGroup, name).toBeGreaterThan(10)
+    }
+  })
+
+  it('no vacío: cada etapa en línea tiene fotos con relevistas nombrados con su motivo; y lo tolerado, contado', () => {
+    for (const name of ROAD_FIXTURES) {
+      const tl = loadTimeline(name)
+      const radio = radioFromTimeline(tl, lineNamesOf(tl, fixtureNames(name), new Set()))
+      const withPullers = radio.kms.filter((k) =>
+        k.groups.some((g) => g.riders.some((r) => r.role === 'pulling' && r.motivo !== null)),
+      ).length
+      expect(withPullers, name).toBeGreaterThan(0)
+    }
+    console.info(
+      `[broadcast] B16 sobre las cinco en línea: ${tally.photos} fotos y ${tally.groups} grupos; ` +
+        `huecos un segundo arriba en ${tally.gapRounding} grupos ` +
+        `(${((100 * tally.gapRounding) / tally.groups).toFixed(1)} %) y ${tally.gapToPrevRounding} ` +
+        `huecos al de delante; ${tally.titlePhotos} fotos con otro título (D-03); ${tally.tieRuns} ` +
+        `tramos de igual reloj. Con los diez primeros: ${known} corredor-foto nombrados en las dos, ` +
+        `${knownAsPuller} relevistas en la guardada y a rueda en la línea`,
+    )
+    expect(tally.groups).toBeGreaterThan(1000)
+    expect(known).toBeGreaterThan(1000)
+  })
+})
+
+/** Las 24 etapas del mapa 07 §7: las 22 en línea, por dos semillas, y las dos cronos, por una (17-l). */
+const B16_LONG = [
+  ...Array.from({ length: 21 }, (_, i) => ['race-france', i + 1] as const),
+  ['race-flanders', 1] as const,
+  ['race-tramuntana', 1] as const,
+  ['race-colombia', 5] as const,
+].flatMap(([raceId, day]) =>
+  SEASON_CALENDAR.find((r) => r.id === raceId)!.stages[day - 1]!.timeTrial === true
+    ? [[raceId, day, 0] as const]
+    : [0, 1].map((s) => [raceId, day, s] as const),
+)
+
+/** Un reparto con la forma del de producción, sin títulos ni general: B16 no lo lee, el cierre de la línea lo pide. */
+function benchCastOf(input: StageInput): TimelineCast {
+  const teams: { teamId: string; jerseySeed: string }[] = []
+  const teamIx = new Map<string, number>()
+  return {
+    riders: input.riders.map((x, rider): CastRider => {
+      let team: number | null = null
+      if (x.teamId != null) {
+        team = teamIx.get(x.teamId) ?? teams.length
+        if (team === teams.length) {
+          teamIx.set(x.teamId, team)
+          teams.push({ teamId: x.teamId, jerseySeed: `${x.teamId}:kit` })
+        }
+      }
+      return {
+        rider,
+        riderId: x.riderId,
+        bib: x.bib ?? rider + 1,
+        team,
+        country: 'ES',
+        gender: 'M',
+        start: { gcRank: null, gcDeficitS: null, from: null },
+        worn: { kind: 'team' },
+        distinctions: [],
+        knownWins: 0,
+      }
+    }),
+    teams,
+    favourites: [],
+  }
+}
+
+/**
+ * UNA ETAPA DEL BANCO CORRIDA CON LA LÍNEA, enganchada como la engancha `startStageTimeline`
+ * (`packages/db/src/timelines.ts`, el colector aparte de §5.3, que su índice no exporta): la foto de
+ * cada bloque al grabador y las de los bloques de foto, además, a la radio de hoy. La línea vuelve por
+ * su JSON, como la lee la API (`readStageTimeline`).
+ */
+function recordedStage(
+  raceId: string,
+  day: number,
+  s: number,
+): {
+  readonly output: StageOutput
+  readonly radio: CollectorRadio | null
+  readonly tl: StageTimeline
+} {
+  const scenario = realRaceScenario(raceId, day).input
+  const timeTrial =
+    SEASON_CALENDAR.find((r) => r.id === raceId)!.stages[day - 1]!.timeTrial === true
+  const input: StageInput = timeTrial ? { ...scenario, timeTrial: true } : scenario
+  const seed = stageSeed({
+    worldSeed: `b11-${s}`,
+    raceId,
+    stageDay: day,
+    engineVersion: ENGINE_VERSION,
+  })
+  const lengthKm = stageLengthKm(input.profile)
+  const blocks = Math.round(lengthKm / STAGE.dx)
+  const radioBlocks = new Set(photoBlocksOf(lengthKm, STAGE.dx))
+  const recorder = timelineRecorder({
+    blocks,
+    dx: STAGE.dx,
+    lengthKm,
+    timeTrial,
+    radioBlocks,
+    riderIds: input.riders.map((r) => r.riderId),
+  })
+  const collector = raceRadioCollector(radioKmPoints(lengthKm))
+  const blockOf = (km: number): number =>
+    Math.max(0, Math.min(blocks - 1, Math.round(km / STAGE.dx - 0.5)))
+  const output = simulateStage(input, seed, {
+    atKm: Array.from({ length: blocks }, (_, b) => (b + 0.5) * STAGE.dx),
+    onSnapshot: (km, riders, mainId) => {
+      if (radioBlocks.has(blockOf(km))) collector.probe.onSnapshot(km, riders, mainId)
+      recorder.onSnapshot(km, riders, mainId)
+    },
+    onEvent: recorder.onEvent,
+    onBanner: recorder.onBanner,
+    onTimeTrialRide: recorder.onTimeTrialRide,
+  })
+  const radio = timeTrial ? null : collector.radio({ incidents: output.incidents })
+  const timeline = recorder.finish({
+    input,
+    output,
+    radio,
+    cast: benchCastOf(input),
+    profile: profileStripOf(input.profile, { raceId, stageDay: day }),
+    weather: freezeStageWeather(input, seed),
+  })
+  const tl = decodeTimeline(JSON.parse(JSON.stringify(encodeTimeline(timeline))))
+  return { output, radio, tl }
+}
+
+/**
+ * B16, LA NOCTURNA (§16.4; decisión 17-l): las 22 etapas en línea del banco por dos semillas y las dos
+ * cronos, corridas aquí con la línea, con un `riderOf` sintético (`Rider <índice>` por cada `riderId` de
+ * la entrada; Rcodigo-096) y los diez primeros de la etapa por su puesto. Solo con `CS_BANCOS=1`: vive en
+ * `apps/api` porque `buildRaceRadio` es de aquí y el motor no puede importarla, y el paso 11 no toca
+ * `packages/engine` (D-54). Las mismas comparaciones y tolerancias que la rápida.
+ */
+describe.runIf(process.env.CS_BANCOS === '1')(
+  'B16 · la radio desde la línea en las 24 del banco (nocturno; 17-l)',
+  () => {
+    const tally = newTally()
+    let known = 0
+    let knownAsPuller = 0
+
+    it.each(B16_LONG)(
+      '%s e%i semilla %i: la radio de la línea es la guardada de hoy',
+      (raceId, day, s) => {
+        const { output, radio, tl } = recordedStage(raceId, day, s)
+        const riderOf = new Map(
+          tl.riderIds.map((id, i): [string, ChronicleRider] => [
+            id,
+            { id, name: `Rider ${i}`, bib: i + 1, team: null, country: null },
+          ]),
+        )
+        const names: ChronicleNames = { riderOf }
+        const where = `${raceId} e${day} s${s}`
+        const none = new Set<string>()
+        const line = radioFromTimeline(tl, lineNamesOf(tl, names, none))
+        const stored = storedRadioOf(radio, none, names)
+        if (tl.timeTrial) {
+          expect(line.kms).toHaveLength(0)
+          expect(line).toEqual(stored)
+          return
+        }
+        expect(b16Misses(where, tl, radio, line, stored, tally)).toEqual([])
+        const ten = new Set(
+          [...output.results]
+            .filter((r) => r.estado === 'finish')
+            .sort((a, b) => a.puesto - b.puesto)
+            .slice(0, 10)
+            .map((r) => r.riderId),
+        )
+        const k = b16KnownMisses(
+          where,
+          tl,
+          radioFromTimeline(tl, lineNamesOf(tl, names, ten)),
+          storedRadioOf(radio, ten, names),
+          ten,
+        )
+        expect(k.misses).toEqual([])
+        known += k.checks
+        knownAsPuller += k.asPuller
+        expect(
+          line.kms.some((km) => km.groups.some((g) => g.riders.some((r) => r.role === 'pulling'))),
+          `${where}: sin relevistas nombrados`,
+        ).toBe(true)
+      },
+      120_000,
+    )
+
+    it('lo tolerado, contado', () => {
+      console.info(
+        `[broadcast] B16 nocturno (${B16_LONG.length} corridas): ${tally.photos} fotos y ` +
+          `${tally.groups} grupos; huecos un segundo arriba en ${tally.gapRounding} grupos ` +
+          `(${((100 * tally.gapRounding) / Math.max(1, tally.groups)).toFixed(1)} %) y ` +
+          `${tally.gapToPrevRounding} al de delante; ${tally.titlePhotos} fotos con otro título ` +
+          `(D-03); ${tally.tieRuns} tramos de igual reloj. Con los diez primeros: ${known} ` +
+          `corredor-foto nombrados en las dos, ${knownAsPuller} relevistas en la guardada y a rueda ` +
+          `en la línea`,
+      )
+      expect(tally.photos).toBeGreaterThan(5000)
+    })
+  },
+)

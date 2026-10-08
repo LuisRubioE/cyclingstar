@@ -4,6 +4,7 @@ import {
   clearHorizonCaches,
   clearStageTimelineCache,
   gameState,
+  getStageSnapshot,
   raceRosters,
   readStageTimeline,
   readWatch,
@@ -26,6 +27,7 @@ import {
   ATTRIBUTES,
   BROADCAST,
   type BroadcastChunk,
+  type ChronicleRider,
   type SwitchMode,
   apiErrorBodySchema,
   broadcastChunkSchema,
@@ -34,6 +36,8 @@ import {
   healthSchema,
   horizonSummarySchema,
   photoBlocksOf,
+  raceRadioSchema,
+  radioFromTimeline,
   stageGateErrorSchema,
   stageReplaySchema,
   visibilityOf,
@@ -43,6 +47,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { AppDeps } from '../app.js'
 import { buildApp } from '../app.js'
 import { clearAdaptedTimelineCache, threeKmRuleRiders, withClimbFeet } from '../broadcastSource.js'
+import { buildRaceRadio } from '../chronicle.js'
 import { VIEWER_COOKIE, signViewerCookie } from '../viewerCookie.js'
 import { servableUpToDs } from './broadcast.js'
 
@@ -552,6 +557,85 @@ describe('las rutas de la retransmisión (§14.2)', () => {
       const back = await call(app, 'GET', `${STAGE_URL}/${ADAPTED}/broadcast`, ADMIN)
       expect(back.statusCode).toBe(200)
       expect(broadcastHeadSchema.parse(back.json()).clock).toBe('estimated')
+    })
+
+    /**
+     * LA RADIO DESDE LA LÍNEA (E2, paso 11a; §12.10 y §11.16, 12-o): el acta y la ruta de etapa de una
+     * etapa con línea la construyen con `radioFromTimeline`, que nombra siempre a los corredores propios
+     * de quien pide (R23.7); con una lápida en su fila, la guardada de siempre (`buildRaceRadio`). En este
+     * mundo de doce todo grupo se nombra entero, así que las dos se rehacen aquí con las caras que trae la
+     * servida (todas) y lo que la ruta lee de la base: la línea y `stage_snapshots.radio`.
+     */
+    it('11a: la radio de la 2 sale de su línea, con los propios de quien pide; con una lápida, la guardada', async () => {
+      const served = async (url: string, user?: string) => {
+        const res = await call(app, 'GET', url, user)
+        expect(res.statusCode, res.body.slice(0, 200)).toBe(200)
+        return stageReplaySchema.parse(res.json()).radio
+      }
+      const forPlayer = await served(`${STAGE_URL}/2/report`, PLAYER)
+      const forAdmin = await served(`${STAGE_URL}/2/report`, ADMIN)
+      const tl = (await readStageTimeline(t.db, worldHorizon, RACE_KEY, 2))!
+      // las caras de la servida: en un mundo de doce, todos los corredores salen nombrados en cada foto
+      const riderOf = new Map<string, ChronicleRider>()
+      for (const k of forPlayer?.kms ?? [])
+        for (const g of k.groups)
+          for (const r of g.riders) {
+            const face: ChronicleRider = {
+              id: r.id,
+              name: r.name,
+              bib: r.bib,
+              team: r.team,
+              country: r.country,
+              ...(r.jersey === undefined ? {} : { jersey: r.jersey }),
+            }
+            riderOf.set(r.id!, face)
+          }
+      expect(riderOf.size).toBe(FIELD)
+      const fromLine = (own: readonly number[]) =>
+        raceRadioSchema.parse(
+          JSON.parse(
+            JSON.stringify(
+              radioFromTimeline(tl, {
+                riderOf,
+                own: new Set(own),
+                nameableAt: () => new Set(),
+              }),
+            ),
+          ),
+        )
+      const ownIx = tl.riderIds.indexOf(OWN_RIDER)
+      expect(ownIx).toBeGreaterThanOrEqual(0)
+      expect(forPlayer).toEqual(fromLine([ownIx]))
+      expect(forAdmin).toEqual(fromLine([]))
+      // la ruta de etapa da la misma (SPOILER_MODE apagado: la ficha de hoy, entera)
+      const page = await call(app, 'GET', `${STAGE_URL}/2`, PLAYER)
+      expect(stageReplaySchema.parse(page.json()).radio).toEqual(forPlayer)
+      // con una lápida en su fila, la guardada de siempre, con las mismas caras
+      const rows = await t.db.select().from(stageTimelines)
+      const saved = rows.find((r) => r.raceId === RACE_KEY && r.stageDay === 2)!
+      await t.client`DELETE FROM stage_timelines WHERE race_id = ${RACE_KEY} AND stage_day = 2`
+      await writeStageTimelineRows(t.db, [
+        tombstoneRow(
+          { raceKey: RACE_KEY, stageDay: 2, gameDay: dayOf(2), tplRev: 0 },
+          { reason: 'I1', message: 'una discrepancia' },
+        ),
+      ])
+      clearLines()
+      try {
+        const snapshot = await getStageSnapshot(t.db, worldHorizon, RACE_KEY, 2)
+        const stored = buildRaceRadio(snapshot!.radio, { riderOf })
+        expect(stored?.kms.length).toBe(forPlayer?.kms.length)
+        // y no es la de la línea: si lo fuera, lo de arriba no probaría de dónde sale cada una
+        expect(raceRadioSchema.parse(JSON.parse(JSON.stringify(stored)))).not.toEqual(forPlayer)
+        expect(await served(`${STAGE_URL}/2/report`, PLAYER)).toEqual(
+          raceRadioSchema.parse(JSON.parse(JSON.stringify(stored))),
+        )
+      } finally {
+        await t.client`DELETE FROM stage_timelines WHERE race_id = ${RACE_KEY} AND stage_day = 2`
+        await writeStageTimelineRows(t.db, [saved])
+        clearLines()
+      }
+      expect(await served(`${STAGE_URL}/2/report`, PLAYER)).toEqual(forPlayer)
     })
 
     describe('la etapa sin fila: el adaptador de la radio (3a)', () => {

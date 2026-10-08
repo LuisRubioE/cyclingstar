@@ -125,6 +125,9 @@ export const BROADCAST = {
   nameWholeGroupUpTo: 12, // corredores: un grupo de hasta 12 se nombra entero. Copia de NAME_WHOLE_GROUP_UP_TO, atada (§15.5)
   byNamesUpTo: 3, // corredores: un grupo de 3 o menos se rotula por sus nombres (GroupLabel 'names'; SPEC §6.15)
   namedGcTop: 10, // puestos de salida que se nombran en un grupo mayor que nameWholeGroupUpTo
+  /** corredores nombrados como mucho por grupo y foto en la Race Radio; el resto se cuenta (+56 riders more). Era
+   *  MAX_NAMED_PER_GROUP de apps/api/src/chronicle.ts (v47), que desde el 11a la lee de aquí, como radioFromTimeline */
+  radioNamedMax: 24,
   breakNamedMax: 2, // corredores que nombra la frase de la fuga; el resto se cuenta (R23.4 admite tres)
   knownNameMinWins: 3, // victorias desde las que un corredor es nombre conocido (nivel 7 de NotorietyLevel)
   gcThreatTop: 10, // puesto de salida hasta el que un corredor amenaza la general (nivel 5 de NotorietyLevel)

@@ -79,7 +79,9 @@ jobs:
   # B10 largo (`packages/db/src/timelineCollector.long1.test.ts` y `long2`, las 22 etapas en línea
   # del banco por dos semillas) y que fallen B6 del JSON de la línea y las familias de B2 que no
   # llegan a su umbral (16-j), que en el tramo de un PR solo se imprimen
-  # (`packages/engine/src/sim/timeline.test.ts`). En su propio runner y sin instrumentar, para no
+  # (`packages/engine/src/sim/timeline.test.ts`); y, desde el 11a, B16 largo (la radio desde la línea
+  # contra la guardada en las 22 en línea del banco por dos semillas y las dos cronos,
+  # `apps/api/src/broadcastFixtures.test.ts`, §17.14). En su propio runner y sin instrumentar, para no
   # robarle la CPU a la cobertura; un fallo aquí sigue siendo rojo.
   bancos:
     name: Bancos de noche (E2)
@@ -95,6 +97,10 @@ jobs:
           packages/db/src/timelineCollector.long1.test.ts
           packages/db/src/timelineCollector.long2.test.ts
           packages/engine/src/sim/timeline.test.ts
+        env:
+          CS_BANCOS: '1'
+      - name: B16 largo, la radio desde la línea contra la guardada
+        run: pnpm exec vitest run apps/api/src/broadcastFixtures.test.ts
         env:
           CS_BANCOS: '1'
 

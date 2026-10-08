@@ -28,12 +28,13 @@ import {
   fetchCalendarStage,
   stageReplayKey,
 } from '../api/results'
-import { postReveal, putSpoilerScope } from '../api/watch'
+import { postReveal, putSpoilerScope, readLocalProgress } from '../api/watch'
 import { authClient } from '../auth/client'
 import { Flag } from '../components/Flag'
 import { RiderJersey } from '../components/Jersey'
 import { RiderName } from '../components/RiderName'
 import { ShowAllButton, TOP_ROWS } from '../components/ShowAll'
+import { PaintedRaceRadio } from '../components/PaintedRaceRadio'
 import { RaceRadioPanel } from '../components/RaceRadioPanel'
 import { ShareStage } from '../components/ShareStage'
 import {
@@ -507,6 +508,9 @@ export function StageReplay() {
  *   this stage on another device · Watch anyway · Show report`.
  * - El modo diagnóstico (§11.15): `?diag=1` de un administrador, con su franja, la etapa entera y nada
  *   escrito: la ficha, la cabecera, los tramos y el acta lo llevan, y `Watch` no informa.
+ * - La `Race Radio` de una etapa sin ver (§11.16, 11-i; paso 11a): en el velo y con línea grabada, la
+ *   radio hasta lo pintado (`PaintedRaceRadio`) en lugar de la puerta; la de una conocida la trae la
+ *   ficha, desde el 11a sacada de la línea en el servidor.
  */
 function StagePage({ raceId, day }: { raceId: string; day: number }) {
   const [params] = useSearchParams()
@@ -575,6 +579,8 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
   const [finishedHere, setFinishedHere] = useState(false)
   const [revealedHere, setRevealedHere] = useState(false)
   const [otherDeviceSeen, setOtherDeviceSeen] = useState(false)
+  // lo alcanzado en `Watch` en esta página (11a): hasta ahí llega la radio de la etapa sin ver
+  const [reachedHere, setReachedHere] = useState(0)
   // quien lee con `cs_viewer` sin sesión: el horizonte es el de su cuenta y no puede escribir (§10.8)
   const readingWithCookie =
     !session.isPending &&
@@ -669,6 +675,28 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
       )
     return <p className="text-slate-500">Loading…</p>
   }
+  /**
+   * LA RACE RADIO DE UNA ETAPA SIN VER (§11.16, 11-i; 11a): en el velo (la puerta `not_seen`) y con línea
+   * grabada, la radio hasta lo pintado en lugar de la puerta, construida aquí con la cabecera y los tramos
+   * de `Watch`. Lo alcanzado: el mayor de lo que dice la cabecera (con sesión) o el `localStorage` (sin
+   * ella, 11-p) y lo visto en esta página. Sin línea (el adaptador, una lápida) o en una crono, que no
+   * tiene radio, la puerta, como hasta ahora; con la anterior sin ver, también.
+   */
+  const radioHead = broadcastHead.data
+  const paintedRadio =
+    gate?.k === 'not_seen' &&
+    watchable &&
+    radioHead !== undefined &&
+    radioHead.source === 'timeline' &&
+    !radioHead.stage.timeTrial
+  const paintedReachedS =
+    radioHead === undefined
+      ? 0
+      : Math.max(
+          reachedHere,
+          radioHead.view?.reachedS ?? 0,
+          radioHead.view === null ? (readLocalProgress(radioHead.stage.raceKey, data.day) ?? 0) : 0,
+        )
   // `Watch` con la anterior sin ver: la puerta de §11.12, de la ficha o de la cabecera
   const watchGate =
     dataGate?.k === 'previous_unseen'
@@ -790,6 +818,7 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
                   diag={diagOn}
                   onReport={() => setActive('report')}
                   onFinished={() => setFinishedHere(true)}
+                  onReached={(s) => setReachedHere((x) => Math.max(x, s))}
                 />
               ) : (
                 <p className="text-slate-500">Loading…</p>
@@ -829,7 +858,17 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
                 ),
               )}
 
+            {active === 'radio' && paintedRadio && (
+              <PaintedRaceRadio
+                head={radioHead}
+                raceId={raceId}
+                day={data.day}
+                reachedS={paintedReachedS}
+                onWatch={() => setActive('watch')}
+              />
+            )}
             {active === 'radio' &&
+              !paintedRadio &&
               withResult((d) =>
                 d.radio ? (
                   <RaceRadioPanel radio={d.radio} />

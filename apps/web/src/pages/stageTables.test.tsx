@@ -13,6 +13,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 import { broadcastHeadKey } from '../api/broadcast'
 import { stageReplayKey } from '../api/results'
+import { RaceRadioPanel } from '../components/RaceRadioPanel'
 import { TOP_ROWS } from '../components/ShowAll'
 import { GcTable, PointsTable, ResultTable, StageReplay } from './StageReplay'
 
@@ -269,8 +270,15 @@ describe('la ficha de etapa sin ver: ?tab= no salta la puerta (sup. E9)', () => 
     tplRev: 1,
   }
 
-  function page(url: string, watch: 'on' | 'off', data: StageReplayData = veiled): string {
+  function page(
+    url: string,
+    watch: 'on' | 'off',
+    data: StageReplayData = veiled,
+    broadcastHead: BroadcastHead = head,
+  ): string {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    // los tramos de la radio hasta lo pintado (11a): ninguno, con nada visto
+    client.setQueryData(['painted-radio', 'race-france', 7, 0], [])
     client.setQueryData(['horizon'], {
       rev: REV,
       scope: 'guarded',
@@ -289,7 +297,7 @@ describe('la ficha de etapa sin ver: ?tab= no salta la puerta (sup. E9)', () => 
     })
     client.setQueryData(['admin-whoami'], null)
     client.setQueryData(stageReplayKey('race-france', 7, false, REV), data)
-    client.setQueryData(broadcastHeadKey('race-france', 7, undefined, false, REV), head)
+    client.setQueryData(broadcastHeadKey('race-france', 7, undefined, false, REV), broadcastHead)
     return renderToStaticMarkup(
       <QueryClientProvider client={client}>
         <MemoryRouter initialEntries={[url]}>
@@ -339,5 +347,83 @@ describe('la ficha de etapa sin ver: ?tab= no salta la puerta (sup. E9)', () => 
       expect(markup).toContain('Stage result')
       expect(markup).toContain('Corredor a')
     }
+  })
+
+  /**
+   * LA RACE RADIO DE LA ETAPA SIN VER (E2, paso 11a; §11.16, decisión 11-i): del 7b al 10 pintaba la
+   * puerta; desde el 11a, en el velo y con línea grabada, la radio hasta lo pintado, construida con la
+   * cabecera y los tramos de `Watch` (aquí, con nada visto, todavía sin fotos). Sin línea (la cabecera
+   * del adaptador), en una crono, con la anterior sin ver o con `Watch` apagado, la puerta de siempre.
+   */
+  const PAINTED = 'the race radio fills in as far as you&#x27;ve watched'
+  it('11a: ?tab=radio de la etapa sin ver con línea, la radio hasta lo pintado y no la puerta', () => {
+    const markup = page('/world/races/race-france/stages/7?tab=radio', 'on')
+    expect(markup).toContain(PAINTED)
+    expect(markup).not.toContain(GATE)
+  })
+
+  it('11a: sin línea, en una crono, con la anterior sin ver o con Watch apagado, ?tab=radio sigue pintando la puerta', () => {
+    const url = '/world/races/race-france/stages/7?tab=radio'
+    const adapter: BroadcastHead = { ...head, clock: 'estimated', source: 'radio' }
+    const crono: BroadcastHead = { ...head, stage: { ...head.stage, timeTrial: true } }
+    for (const markup of [page(url, 'on', veiled, adapter), page(url, 'on', veiled, crono)]) {
+      expect(markup).toContain(GATE)
+      expect(markup).not.toContain(PAINTED)
+    }
+    const previous = page(url, 'on', {
+      ...veiled,
+      watch: { ...veiled.watch!, gate: { k: 'previous_unseen', firstUnseen: 6 } },
+    })
+    expect(previous).not.toContain(PAINTED)
+    expect(page(url, 'off')).toContain(GATE)
+  })
+})
+
+/**
+ * LA RADIO HASTA LO PINTADO EN EL PANEL (11a; §11.16): la cabecera dice hasta qué km llega (`Race Radio ·
+ * up to km 142 · as far as you've watched`) y no hay `Finish`, porque la última foto es la última cerrada.
+ * La radio de siempre conserva su `Finish` y no dice nada de eso.
+ */
+describe('RaceRadioPanel · la radio hasta lo pintado (11-i)', () => {
+  const rider = (id: string) => ({
+    id,
+    name: `Corredor ${id}`,
+    bib: null,
+    team: null,
+    country: null,
+    role: 'sheltered' as const,
+    motivo: null,
+    para: null,
+  })
+  const km = (at: number) => ({
+    km: at,
+    racing: 2,
+    gone: 0,
+    groups: [
+      {
+        kind: 'peloton' as const,
+        size: 2,
+        gapS: 0,
+        gapToPrevS: 0,
+        speedKmh: 41.2,
+        mishap: null,
+        riders: [rider('a'), rider('b')],
+        unnamed: 0,
+        pullingTotal: 0,
+      },
+    ],
+  })
+  const radio = { starters: 2, kms: [km(0.1), km(1.1), km(141.9)] }
+
+  it('pintada: hasta el km de la última foto, sin Finish', () => {
+    const markup = html(<RaceRadioPanel radio={radio} painted />)
+    expect(markup).toContain('· up to km 142 · as far as you&#x27;ve watched')
+    expect(markup).not.toContain('Finish')
+  })
+
+  it('la de siempre: con Finish y sin la cabecera de lo pintado', () => {
+    const markup = html(<RaceRadioPanel radio={radio} />)
+    expect(markup).toContain('Finish')
+    expect(markup).not.toContain('as far as you')
   })
 })

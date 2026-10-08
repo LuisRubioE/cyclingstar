@@ -27,6 +27,15 @@
  *    congelado, ver `apps/api/src/stageHistory.ts`), y entonces esta herramienta DICE QUE NO SE
  *    PUEDE RECONSTRUIR en vez de enseñar una carrera que no pasó.
  *
+ * …SALVO QUE LA ETAPA TENGA SU LÍNEA GRABADA (E2, docs/retransmision.md §12.10, decisión 12-p; paso
+ * 11a). Con `--db`, si la versión no coincide y la etapa tiene fila en `stage_timelines`, la tabla sale
+ * de la línea grabada (`radioFromTimeline`, la misma radio que sirve la API) y la cabecera lo dice:
+ * `fuente: línea grabada · sin depósitos · una foto por km`. Es otra cosa que el replay: la línea no
+ * guarda el depósito de nadie, tiene una foto por km diga lo que diga `--every` y nombra a los doce
+ * primeros que tiran, no a todos. Por eso, con la versión de hoy, `--db` sigue re-simulando: es el
+ * microscopio del dueño, con lo que la radio guardada nunca tuvo. Sin fila, o con una lápida, se
+ * sigue negando. `--api` no la lee: la puerta de administración no sirve la línea.
+ *
  * Y hay DOS maneras de llegar a ese snapshot, la misma etapa por dos puertas:
  *
  *  - `--db` va directo a la base: necesita `DATABASE_URL` en la máquina desde la que se mira.
@@ -53,7 +62,7 @@
  *   --pullers <n>     cuántos relevistas se nombran por grupo (por defecto 2)
  *   --width <n>       ancho de la columna de cada grupo (por defecto 26)
  */
-import { ATTRIBUTES, seededRng } from '../packages/shared/dist/index.js'
+import { ATTRIBUTES, radioFromTimeline, seededRng } from '../packages/shared/dist/index.js'
 import { eff0, initialEnergy } from '../packages/engine/dist/banister.js'
 import { SEASON_CALENDAR } from '../packages/engine/dist/routes/calendar.js'
 import { matchCount } from '../packages/engine/dist/stage/physics.js'
@@ -246,9 +255,79 @@ async function dbSource() {
       throw new Error(`No hay snapshot de ${raceKey} día ${day}: esa etapa no se ha corrido`)
     }
     const identities = await db.getRaceRiderIdentities(conn.db, raceKey)
+    // Con otra versión del motor, la línea grabada si la hay (12-p): con la de hoy, el replay, siempre.
+    if (!checkReplay(snapshot.engineVersion).faithful) {
+      const line = await recordedLineOf(db, conn.db, raceKey)
+      if (line !== null) return lineSource({ raceKey, snapshot, identities, line })
+    }
     return productionSource({ raceKey, snapshot, identities, via: '`stage_snapshots`' })
   } finally {
     await conn.client.end({ timeout: 5 })
+  }
+}
+
+/**
+ * La línea grabada de la etapa (`stage_timelines`), o null sin fila o con una lápida: una etapa corrida
+ * con la grabación encendida que no dejó línea no tiene de dónde sacar la radio (D-12).
+ */
+async function recordedLineOf(db, conn, raceKey) {
+  try {
+    return await db.readStageTimeline(conn, db.worldHorizon, raceKey, day)
+  } catch (err) {
+    if (err instanceof db.TimelineUnavailableError) return null
+    throw err
+  }
+}
+
+/**
+ * LA RADIO DE LA LÍNEA GRABADA (12-p): la del contrato que sirve la API (`radioFromTimeline`), con la
+ * cara de cada uno del roster de la carrera, en la forma que pinta `render`: el puesto de carretera, sin
+ * depósito y los que tiran, en su orden. La crono no tiene radio, como en el replay.
+ */
+function lineSource({ raceKey, snapshot, identities, line }) {
+  const replay = checkReplay(snapshot.engineVersion)
+  const riderOf = new Map(
+    identities.map((i) => [
+      i.riderId,
+      {
+        id: i.riderId,
+        name: i.name,
+        bib: i.bib ?? null,
+        team: i.teamName ?? null,
+        country: i.country || null,
+      },
+    ]),
+  )
+  const names = new Map(identities.map((i) => [i.riderId, `${i.bib ?? '--'} ${lastName(i.name)}`]))
+  const radio = radioFromTimeline(line, {
+    riderOf,
+    own: new Set(),
+    nameableAt: () => new Set(),
+  })
+  const race = SEASON_CALENDAR.find((r) => r.id === raceId)
+  return {
+    input: snapshot.input,
+    names,
+    stageName: race?.stages[day - 1]?.name ?? `Stage ${day}`,
+    raceName: race?.name ?? raceId,
+    origin:
+      `línea grabada · sin depósitos · una foto por km (${raceKey} día ${day}; corrió con el motor ` +
+      `v${replay.ranWith} y este árbol es el v${replay.today}, así que no se re-simula)`,
+    line: {
+      starters: radio.starters,
+      kms: radio.kms.map((k) => ({
+        ...k,
+        groups: k.groups.map((g, i) => ({
+          ...g,
+          position: i + 1,
+          energyPct: null,
+          pulling: g.riders
+            .filter((r) => r.role === 'pulling')
+            .map((r) => ({ riderId: r.id ?? r.name })),
+        })),
+      })),
+      arrivals: line.finish.arrivals,
+    },
   }
 }
 
@@ -340,12 +419,16 @@ const TAIL_W = 16
  */
 function render(radio, names, head) {
   const label = (id) => names.get(id) ?? id
+  // La línea grabada no guarda el depósito de nadie (12-p): sin él, la leyenda y la columna lo dicen.
+  const withEnergy = radio.kms.every((k) => k.groups.every((g) => g.energyPct !== null))
   const out = []
   out.push('')
   out.push(head.title)
   out.push(`fuente: ${head.origin}`)
   out.push(
-    'leyenda: [n] grupo · tamaño · depósito medio   ·   huecos = resta de los relojes de cada grupo con el líder de carrera (exacta)',
+    withEnergy
+      ? 'leyenda: [n] grupo · tamaño · depósito medio   ·   huecos = resta de los relojes de cada grupo con el líder de carrera (exacta)'
+      : 'leyenda: [n] grupo · tamaño   ·   huecos = resta de los relojes de cada grupo con el líder de carrera, al segundo',
   )
   out.push('')
   out.push(
@@ -366,7 +449,8 @@ function render(radio, names, head) {
       const g = shown[i]
       line1 += pad(
         g
-          ? `[${g.position}] ${groupNoun(g, row.racing)} ${g.size} · ${g.energyPct.toFixed(0)}%`
+          ? `[${g.position}] ${groupNoun(g, row.racing)} ${g.size}` +
+              (g.energyPct === null ? '' : ` · ${g.energyPct.toFixed(0)}%`)
           : '',
         WIDTH,
       )
@@ -429,6 +513,30 @@ if (source.input.timeTrial === true) {
       ` es su propio grupo—; su historia es el reloj de meta.\n`,
   )
   process.exit(3)
+}
+
+// LA LÍNEA GRABADA (12-p): una etapa de otra versión del motor con su fila en `stage_timelines` se pinta
+// desde ella, sin re-simular; el desenlace, de sus llegadas.
+if (source.line) {
+  const totalKm = stageLengthKm(source.input.profile)
+  console.log(
+    render(source.line, source.names, {
+      title: `RACE RADIO · ${source.raceName} e${day} «${source.stageName}» · ${totalKm.toFixed(0)} km · ${source.input.riders.length} corredores`,
+      origin: source.origin,
+    }),
+  )
+  console.log('')
+  const [first, ...rest] = source.line.arrivals
+  if (first === undefined) console.log('sin llegadas en la línea')
+  else {
+    const finishers = source.line.arrivals.reduce((n, [, riders]) => n + riders.length, 0)
+    console.log(
+      `llegada: el primer grupo, de ${first[1].length}, en ${mmss(first[0] / 10)}; ` +
+        `${rest.length} grupos más · clasificados ${finishers}`,
+    )
+  }
+  console.log('')
+  process.exit(0)
 }
 
 const totalKm = stageLengthKm(source.input.profile)
