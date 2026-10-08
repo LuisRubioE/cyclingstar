@@ -4,7 +4,11 @@ import {
   defaultRaceTab,
   oneDayStageTab,
   oneDayStageTarget,
+  raceTabLabel,
   raceTabs,
+  stagePageTabOf,
+  stagePageTabs,
+  stageTabLabel,
 } from './raceTabs'
 
 describe('pestañas de una carrera por etapas', () => {
@@ -109,5 +113,121 @@ describe('la Race Radio de una carrera de UN DÍA', () => {
 
   it('y una carrera POR ETAPAS no la lleva aquí: la tiene en cada etapa', () => {
     expect(raceTabs('finished', 21)).not.toContain('radio')
+  })
+})
+
+/**
+ * LAS PESTAÑAS DE LA PÁGINA DE ETAPA (E2, docs/retransmision.md §6.10, §11.17 y §11.19; D-48, 6-r;
+ * paso 9a), con la decisión 1 del dueño durante la implementación (8 de octubre de 2026): con `Watch`
+ * encendido para quien mira, `Watch` es la pestaña por defecto de la etapa que no ha visto, y `Story` y
+ * `Result` se funden en una sola, `Report`, el acta con el resultado y la crónica (los nombres de DD-28),
+ * que abre al terminar de verla o al revelarla. Con `Watch` apagado (el jugador hasta el encendido), las
+ * de hoy, con `report` llamada `Story` (§20.5).
+ */
+describe('las pestañas de la página de etapa (9a)', () => {
+  it('con Watch apagado, las de hoy y en su orden: Story (report), Result, Race Radio, Classifications, Profile', () => {
+    for (const seen of [true, false]) {
+      expect(stagePageTabs(seen, false)).toEqual([
+        'report',
+        'result',
+        'radio',
+        'classifications',
+        'profile',
+      ])
+      expect(stagePageTabs(seen, false).map((id) => stageTabLabel(id, false))).toEqual([
+        'Story',
+        'Result',
+        'Race Radio',
+        'Classifications',
+        'Profile',
+      ])
+    }
+  })
+
+  it('con Watch encendido y sin ver la etapa, Watch delante; Story y Result son una sola, Report', () => {
+    expect(stagePageTabs(false, true)).toEqual([
+      'watch',
+      'profile',
+      'report',
+      'classifications',
+      'radio',
+    ])
+    expect(stagePageTabs(false, true).map((id) => stageTabLabel(id, true))).toEqual([
+      'Watch',
+      'Profile',
+      'Report',
+      'Classifications',
+      'Race Radio',
+    ])
+  })
+
+  it('vista o revelada, Report delante y Watch al final (Watch anyway)', () => {
+    expect(stagePageTabs(true, true)).toEqual([
+      'report',
+      'classifications',
+      'radio',
+      'profile',
+      'watch',
+    ])
+  })
+
+  it('la arrastrada (A) no se ha visto: abre en Watch (6-r). Una vuelta fuera de guardia: se ve la 5 y la 1 abre en Watch', () => {
+    // La 1 queda conocida con A al ver la 5 (D-28), pero `WatchState.seen` es falso: entrar en ella es
+    // sentarse a verla, no leer el acta con el ganador arriba (Rdueno-021).
+    const stage1 = { known: true, seen: false }
+    expect(stage1.known).toBe(true)
+    expect(stagePageTabs(stage1.seen, true)[0]).toBe('watch')
+  })
+
+  it('sin Watch para esta etapa (una crono sin línea, una lápida), Report delante con el acta, vista o no', () => {
+    for (const seen of [true, false])
+      expect(stagePageTabs(seen, true, false)).toEqual([
+        'report',
+        'classifications',
+        'radio',
+        'profile',
+      ])
+  })
+
+  it('con Watch encendido no hay pestaña Result: su contenido está en Report (decisión 1 del dueño)', () => {
+    for (const seen of [true, false]) {
+      expect(stagePageTabs(seen, true)).not.toContain('result')
+      expect(stagePageTabs(seen, true)).toContain('report')
+      expect(stagePageTabs(seen, true)).toContain('classifications')
+      expect(stagePageTabs(seen, true)).toContain('profile')
+    }
+  })
+
+  it('raceTabLabel llama Story a report con Watch apagado y Report con él encendido', () => {
+    expect(raceTabLabel('report', false)).toBe('Story')
+    expect(raceTabLabel('report', true)).toBe('Report')
+    expect(raceTabLabel('watch', true)).toBe('Watch')
+    expect(raceTabLabel('result', false)).toBe('Result')
+    expect(raceTabLabel('radio', true)).toBe('Race Radio')
+    expect(RACE_TAB_LABEL.watch).toBe('Watch')
+    expect(RACE_TAB_LABEL.report).toBe('Report')
+  })
+})
+
+describe('?tab= de la página de etapa: los enlaces viejos y la pestaña fundida (9a; sup. E9)', () => {
+  const on = stagePageTabs(false, true)
+  const off = stagePageTabs(true, false)
+
+  it('?tab=story abre report, con Watch encendido y apagado', () => {
+    expect(stagePageTabOf('story', on)).toBe('report')
+    expect(stagePageTabOf('story', off)).toBe('report')
+  })
+
+  it('?tab=result abre Result con Watch apagado y Report con él encendido, donde está su contenido', () => {
+    expect(stagePageTabOf('result', off)).toBe('result')
+    expect(stagePageTabOf('result', on)).toBe('report')
+  })
+
+  it('una pestaña que existe se respeta; una que no, o ninguna, deja la de por defecto (null)', () => {
+    expect(stagePageTabOf('classifications', on)).toBe('classifications')
+    expect(stagePageTabOf('watch', on)).toBe('watch')
+    expect(stagePageTabOf('watch', off)).toBeNull()
+    expect(stagePageTabOf('nonsense', on)).toBeNull()
+    expect(stagePageTabOf(null, on)).toBeNull()
   })
 })
