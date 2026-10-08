@@ -3,13 +3,14 @@ import {
   BROADCAST,
   type LiveLine,
   type RaceS,
+  type StageTimeline,
   chunkOf,
   decodeTimeline,
   fromDs,
   instantAt,
   visibilityOf,
 } from '@cyclingstar/shared'
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import {
   ROAD_FIXTURES,
   type RoadFixtureName,
@@ -192,6 +193,8 @@ describe('B19 · la voz es prefijo de sí misma (§16.4)', () => {
 const B8_ROLES_MEDIAN_MS = 10
 /** Las vueltas de cada medida: la mediana. */
 const B8_ROLES_REPS = 7
+/** Las vueltas sin medir por las cinco, antes de medir ninguna: el JIT caliente. */
+const B8_ROLES_WARMUP = 2
 
 describe('withGroupRoles · la palabra de la voz es la de la barra (§12.6; 12-b, 12-n)', () => {
   it.each(ROAD_FIXTURES)(
@@ -244,28 +247,57 @@ describe('withGroupRoles · la palabra de la voz es la de la barra (§12.6; 12-b
     expect(roles.get('gruppetto') ?? 0).toBe(0)
   })
 
-  it.each(ROAD_FIXTURES)(
-    '%s: B8, la anotación de la línea entera en frío, mediana ≤ 10 ms',
-    (name) => {
-      const body = loadTimelineBody(name)
-      const stored = loadEvents(name)
-      const ms: number[] = []
-      for (let i = 0; i < B8_ROLES_REPS; i++) {
-        // una línea recién decodificada en cada vuelta: sin el memo de los papeles de la anterior
-        const tl = decodeTimeline(JSON.parse(gunzipSync(body).toString('utf8')))
-        const finishS = fromDs(visibilityOf(tl).finishDs)
-        const hora = new Map(
-          tl.events.flatMap((e) => (e.source >= 0 ? [[e.source, e.revealS]] : [])),
+  /**
+   * En frío, como la ruta la primera vez que sirve una línea (la anota una vez por objeto): cada vuelta
+   * anota la misma línea en OTRO objeto, sin el índice del instante ni el memo de los papeles de la
+   * anterior, que van por objeto. La línea se decodifica una vez y antes (la basura de decodificar, megas
+   * de JSON, no es de la anotación y caía dentro de la medida); el JIT se calienta con las cinco antes
+   * de medir ninguna, como está en un proceso de la API que lleva rato sirviendo (la primera etapa que se
+   * anotaba en frío del todo pagaba la compilación de las demás); y las vueltas medidas van por rondas,
+   * una de cada etapa por ronda, para que un tramo lento del proceso (un ciclo del GC, una
+   * recompilación) caiga en una vuelta de cada etapa y no en todas las de una (6b).
+   */
+  describe('B8', () => {
+    const lines = new Map<RoadFixtureName, StageTimeline>()
+    const storedOf = new Map<RoadFixtureName, ChronicleEvent[]>()
+    const measured = new Map<RoadFixtureName, number[]>()
+    /** Lo que tarda en anotar la línea de `name` en un objeto nuevo, en ms. */
+    const coldAnnotation = (name: RoadFixtureName): number => {
+      const tl: StageTimeline = { ...lines.get(name)! }
+      const stored = storedOf.get(name)!
+      const finishS = fromDs(visibilityOf(tl).finishDs)
+      const hora = new Map(tl.events.flatMap((e) => (e.source >= 0 ? [[e.source, e.revealS]] : [])))
+      const horaDe = new Map(stored.map((ev, j) => [ev, hora.get(j) ?? finishS] as const))
+      const ctx = rolesContextOf(tl)
+      const t0 = performance.now()
+      withGroupRoles(stored, tl, (ev) => horaDe.get(ev) ?? finishS, ctx)
+      return performance.now() - t0
+    }
+
+    beforeAll(() => {
+      for (const name of ROAD_FIXTURES) {
+        lines.set(
+          name,
+          decodeTimeline(JSON.parse(gunzipSync(loadTimelineBody(name)).toString('utf8'))),
         )
-        const horaDe = new Map(stored.map((ev, j) => [ev, hora.get(j) ?? finishS] as const))
-        const ctx = rolesContextOf(tl)
-        const t0 = performance.now()
-        withGroupRoles(stored, tl, (ev) => horaDe.get(ev) ?? finishS, ctx)
-        ms.push(performance.now() - t0)
+        storedOf.set(name, loadEvents(name))
       }
-      const median = ms.sort((a, b) => a - b)[Math.floor(B8_ROLES_REPS / 2)]!
-      console.info(`[broadcast] B8 · withGroupRoles · ${name}: mediana ${median.toFixed(2)} ms`)
-      expect(median).toBeLessThanOrEqual(B8_ROLES_MEDIAN_MS)
-    },
-  )
+      for (let i = 0; i < B8_ROLES_WARMUP; i++)
+        for (const name of ROAD_FIXTURES) coldAnnotation(name)
+      for (let i = 0; i < B8_ROLES_REPS; i++)
+        for (const name of ROAD_FIXTURES)
+          measured.set(name, [...(measured.get(name) ?? []), coldAnnotation(name)])
+    })
+
+    it.each(ROAD_FIXTURES)(
+      '%s: la anotación de la línea entera en frío, mediana ≤ 10 ms',
+      (name) => {
+        const ms = measured.get(name)!
+        expect(ms).toHaveLength(B8_ROLES_REPS)
+        const median = [...ms].sort((a, b) => a - b)[Math.floor(B8_ROLES_REPS / 2)]!
+        console.info(`[broadcast] B8 · withGroupRoles · ${name}: mediana ${median.toFixed(2)} ms`)
+        expect(median).toBeLessThanOrEqual(B8_ROLES_MEDIAN_MS)
+      },
+    )
+  })
 })
