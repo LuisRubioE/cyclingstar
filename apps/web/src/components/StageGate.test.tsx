@@ -84,6 +84,19 @@ describe('StageGateCard: la puerta (§11.10, §11.12)', () => {
     expect(markup).toContain('href="/world/races/race-france/stages/6?tab=watch"')
   })
 
+  it('en Watch, con la anterior sin ver, también Highlights of stage 6, que la abre en Highlights (§8.1; 10a)', () => {
+    const markup = html(card({ gate: previous, place: 'watch' }))
+    const t = text(card({ gate: previous, place: 'watch' }))
+    expect(t).toMatch(/Watch stage 6 Highlights of stage 6 Show result of stage 6 and continue/)
+    expect(markup).toContain(
+      'href="/world/races/race-france/stages/6?tab=watch&amp;view=highlights"',
+    )
+    // sin Watch para quien mira, ni verla ni su resumen
+    expect(text(card({ gate: previous, place: 'watch', watchOn: false }))).not.toContain(
+      'Highlights',
+    )
+  })
+
   it('con la anterior sin ver, lo que enseña el resultado ofrece la anterior', () => {
     const t = text(card({ gate: { k: 'previous_unseen', firstUnseen: 4 } }))
     expect(t).toContain('This page shows the result of Stage 7. Watch it instead?')

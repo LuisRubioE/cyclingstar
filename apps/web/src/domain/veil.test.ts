@@ -16,6 +16,7 @@ import {
   readyRaceKey,
   stagesText,
   waitingStage,
+  watchHref,
 } from './veil'
 
 /**
@@ -225,6 +226,23 @@ describe('homeBlocks (§11.4)', () => {
     expect(blocks.ready.some((r) => r.raceKey === 'race-italy:s0')).toBe(false)
   })
 
+  it('el digest (8-b; 10a): los minutos de las veladas por su tipo y los cuadros, y su enlace desde la primera', () => {
+    // de la 5 a la 21: doce llanas (60 s), tres reinas (150) y dos cronos (120), 1.410 s, más
+    // (5 + 3) · 17 + 36 s de cuadros: 1.582 s, 26 min
+    expect(blocks.away[0]!.digestMinutes).toBe(26)
+    expect(watchHref('race-italy', 5, false, 'digest', 21)).toBe(
+      '/world/races/race-italy/stages/5?tab=watch&view=digest&from=5&to=21',
+    )
+    // las etapas clave y las tarjetas, en Highlights
+    expect(watchHref('race-italy', 12, false, 'highlights')).toBe(
+      '/world/races/race-italy/stages/12?tab=watch&view=highlights',
+    )
+    // una carrera de un día: su ficha, que es su etapa (§11.17)
+    expect(watchHref('race-flanders', 1, true, 'digest')).toBe(
+      '/world/races/race-flanders?tab=watch&view=digest',
+    )
+  })
+
   it('una cuenta nueva ante una carrera de cabecera en curso: Race France is under way · Stage 10 of 21 · Watch from the start', () => {
     const fresh = homeBlocks(
       summary({
@@ -263,6 +281,8 @@ describe('homeBlocks (§11.4)', () => {
     // terminada (la única etapa está velada): va a While you were away
     expect(one.ready).toEqual([])
     expect(one.away[0]?.header).toBe('Race Flanders · ready to watch')
+    // su digest: una clásica (150 s) y sus cuadros, 3 min
+    expect(one.away[0]?.digestMinutes).toBe(3)
   })
 
   it('sin el calendario todavía, nada: las tarjetas necesitan los km y el tipo', () => {

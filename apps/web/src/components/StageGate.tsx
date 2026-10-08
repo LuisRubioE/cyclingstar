@@ -13,9 +13,9 @@ import { type GatePlace, alsoRevealsText, revealPlan, revealQuestion } from '../
  * 7. Watch it instead?`; y en `Watch`, cuando falta por ver la anterior (`previous_unseen`), `You haven't
  * watched stage 6 yet` (§11.12). Tres salidas, ninguna cierra: verla, `Show result` con su confirmación
  * (la primera vez, con `Don't ask again`, DD-17) y, solo para un administrador, el último y en pequeño,
- * `Diagnostic view` (§11.15). `Highlights of stage 6` llega con los modos del 10a. Quien lee con
- * `cs_viewer` sin sesión no puede revelar (las escrituras piden sesión, §10.8) y ve `Sign in to see
- * results as you know them`.
+ * `Diagnostic view` (§11.15). Desde el 10a, con la anterior sin ver, también `Highlights of stage 6`, que
+ * la abre en `Highlights` (§8.1). Quien lee con `cs_viewer` sin sesión no puede revelar (las escrituras
+ * piden sesión, §10.8) y ve `Sign in to see results as you know them`.
  */
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm'
@@ -156,9 +156,14 @@ export function StageGateCard({
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {first !== null
           ? offerWatch && (
-              <Link to={stageHref(first)} className={primary}>
-                Watch stage {first}
-              </Link>
+              <>
+                <Link to={stageHref(first)} className={primary}>
+                  Watch stage {first}
+                </Link>
+                <Link to={`${stageHref(first)}&view=highlights`} className={secondary}>
+                  Highlights of stage {first}
+                </Link>
+              </>
             )
           : offerWatch &&
             (onWatch !== undefined ? (

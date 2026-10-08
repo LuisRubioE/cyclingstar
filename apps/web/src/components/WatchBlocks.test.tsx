@@ -12,8 +12,8 @@ import { WatchBlocks } from './WatchBlocks'
  * caché ya llena (§16.6): el horizonte de quien mira, `/health` y el calendario público. Tres bloques, por
  * este orden: `Continue watching` (las etapas a medias), `Ready to watch` (las veladas de las carreras en
  * guardia que siguen en curso, una fila por carrera) y `While you were away` (las terminadas con etapas
- * veladas: `Key stages`, `Continue from stage 4` y `Show results`; el digest llega con el 10a). Nada de lo
- * que ve depende de lo que pasó en esas etapas.
+ * veladas: el digest, `Key stages`, `Continue from stage 4` y `Show results`; el digest, desde el 10a).
+ * Nada de lo que ve depende de lo que pasó en esas etapas.
  */
 
 const REV = '200.4'
@@ -109,6 +109,21 @@ describe('la portada bajo el velo (§11.4)', () => {
     expect(markup).toContain('Stage 12 · 187 km · mountain stage')
     expect(markup).toContain('Your rider raced')
     expect(markup).toContain('href="/world/races/race-france/stages/11"')
+    // y Highlights, que abre la etapa en su curva (10a)
+    expect(markup).toMatch(
+      /href="\/world\/races\/race-france\/stages\/11\?tab=watch&amp;view=highlights"[^>]*>Highlights<\/a>/,
+    )
+  })
+
+  it('While you were away: el digest con sus minutos calculados, de la primera velada en orden (8-b; 10a)', () => {
+    const markup = home(veiled)
+    // de la 4 a la 21 del Giro: catorce llanas, tres reinas y una crono, 1.410 s, y 180 s de cuadros
+    expect(markup).toContain('Watch the race in 27 minutes')
+    expect(markup).toContain(
+      'href="/world/races/race-italy/stages/4?tab=watch&amp;view=digest&amp;from=4&amp;to=21"',
+    )
+    // delante de Key stages (§11.4)
+    expect(markup.indexOf('Watch the race in')).toBeLessThan(markup.indexOf('Key stages'))
   })
 
   it('While you were away: la terminada, con Key stages, Continue from stage 4 y Show results', () => {

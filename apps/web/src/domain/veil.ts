@@ -17,6 +17,7 @@ import {
   type SpoilerScope,
   type StageKind,
   currentSeason,
+  digestMinutes,
   parseRaceKey,
 } from '@cyclingstar/shared'
 
@@ -128,8 +129,10 @@ export interface AwayBlock {
   readonly continueFrom: number
   /** `Show results`: revela la última y arrastra las demás (§11.11) */
   readonly lastStage: number
-  /** `Key stages`: las veladas que marca el perfil (reinas, cronos y la última) */
+  /** `Key stages`: las veladas que marca el perfil (reinas, cronos y la última), en `Highlights` */
   readonly keyStages: readonly number[]
+  /** `Watch the race in 33 minutes`: el digest de las veladas, con el número de `digestMinutes` (8-b; 10a) */
+  readonly digestMinutes: number
 }
 
 /** Una fila de `Continue watching`: una etapa a medias. */
@@ -149,6 +152,28 @@ export interface HomeBlocks {
 
 const kindWords = (kind: string): string =>
   (STAGE_KIND_WORDS as Record<string, string>)[kind] ?? STAGE_KIND_WORDS.llana
+
+const STAGE_KINDS: ReadonlySet<string> = new Set(['llana', 'media', 'reina', 'cri', 'clasica'])
+/** El tipo de una etapa del calendario (`kind` va como texto), con la crono por su `timeTrial`. */
+const stageKindOf = (s: { readonly kind: string; readonly timeTrial: boolean }): StageKind =>
+  s.timeTrial ? 'cri' : STAGE_KINDS.has(s.kind) ? (s.kind as StageKind) : 'llana'
+
+/**
+ * EL ENLACE A `Watch` CON SU CURVA (§8.1, §11.4; 10a): `Highlights` (`?view=highlights`) o el digest de
+ * una etapa a otra (`?view=digest&from=5&to=21`, 8-c), siempre con `?tab=watch`; en una carrera de un día,
+ * su ficha, que es su etapa (§11.17).
+ */
+export function watchHref(
+  raceId: string,
+  stageDay: number,
+  oneDay: boolean,
+  view: 'highlights' | 'digest',
+  to: number = stageDay,
+): string {
+  const page = oneDay ? `/world/races/${raceId}` : `/world/races/${raceId}/stages/${stageDay}`
+  const range = view === 'digest' && !oneDay ? `&from=${stageDay}&to=${to}` : ''
+  return `${page}?tab=watch&view=${view}${range}`
+}
 
 function cardOf(race: CalendarRaceSummary, raceKey: string, stageDay: number): StageCard | null {
   const s = race.stages.find((x) => x.index === stageDay)
@@ -194,6 +219,12 @@ export function homeBlocks(h: HorizonSummary, races: readonly CalendarRaceSummar
           const s = kinds.get(d)
           return d === S || s?.kind === 'reina' || s?.kind === 'cri' || s?.timeTrial === true
         }),
+        digestMinutes: digestMinutes(
+          r.stages.flatMap((d) => {
+            const s = kinds.get(d)
+            return s === undefined ? [] : [stageKindOf(s)]
+          }),
+        ),
       })
       continue
     }
