@@ -1854,7 +1854,7 @@ CUENTA, cuándo lo cuenta y con cuánta identidad llega cada nombre a la página
 
 Los siete journals del encargo (`race-arabia` e1/e3/e5, `race-muscat`, `race-palma`,
 `race-great-ocean`, `race-tramuntana`) se corrieron con motores **anteriores**, y sus eventos están
-CONGELADOS en `stage_runs.events`. Se ve en los campos que traen:
+CONGELADOS en `stage_snapshots.events`. Se ve en los campos que traen:
 
 | Journal            | Campos de `peloton_split`      | Motor |
 | ------------------ | ------------------------------ | ----- |
@@ -4282,7 +4282,7 @@ el trabajo:
 | ¿Nueve partes de boquete son nueve noticias?   | **Crónica**       | Es puro ordenar el relato… y además arregla los journals YA CORRIDOS, que es lo que el dueño está leyendo HOY                        |
 
 La última fila es la razón de que el agrupamiento de boquetes NO esté en el motor aunque allí habría
-sido más fácil: los eventos de las etapas corridas están congelados en `stage_runs.events` y se
+sido más fácil: los eventos de las etapas corridas están congelados en `stage_snapshots.events` y se
 renderizan al vuelo. Un arreglo en el motor solo vale para las etapas que aún no se han corrido.
 
 ### 2. El motor: la criba lejos de meta (`peloton_selection`)
@@ -5468,7 +5468,7 @@ antes.
 
 ### 4. La crónica: lo único que arregla las etapas YA CORRIDAS
 
-Los eventos de las 73 etapas están CONGELADOS en `stage_runs.events` y se renderizan al vuelo, así
+Los eventos de las 73 etapas están CONGELADOS en `stage_snapshots.events` y se renderizan al vuelo, así
 que esta capa es la única que llega a lo que el dueño está leyendo HOY (el mismo reparto de papeles
 de la v13 y la v21). Ocho pasadas nuevas en `apps/api/src/chronicle.ts`: el orden que pone la fuga
 delante de su resumen, la captura que toma los nombres del último parte de cabeza **si sigue
@@ -8520,7 +8520,7 @@ igual que los 8° de antes.
 
 Porque el RESULTADO de una etapa de calendario sí cambia, y `engine_version` existe justamente para
 que una etapa corrida antes no se confunda con una corrida después: va en la semilla y se sella en
-`stage_runs`. Las etapas ya corridas no se tocan —su `StageInput` está sellado en `stage_snapshots`
+`stage_snapshots.engine_version`. Las etapas ya corridas no se tocan —su `StageInput` está sellado en `stage_snapshots`
 con el clima que tuvieron, así que sus repeticiones salen exactamente igual que el día que se
 corrieron—.
 
@@ -14686,6 +14686,12 @@ si una etapa guardada se puede volver a leer, y moverla **tira todas las crónic
 seguían siendo perfectamente válidas. La regla de la casa es «cada cambio de conducta sube la
 versión»; aquí no hay cambio de conducta, hay capacidad nueva que nadie usa todavía.
 
+> **Corregido en el paso 12 de E2** (la retransmisión, `docs/retransmision.md` §19.5, X-05): subir la
+> versión NO tira las crónicas guardadas, que la ruta de etapa lee de los sucesos congelados sin mirar
+> la versión. Lo que cambia es lo que re-simula: la «Last race», `checkReplay` y `race-radio.mjs --db`.
+> La nota entera, «E2 · paso 12», al final de este fichero. La conclusión de aquí no cambia: sin cambio
+> de conducta, la versión no sube.
+
 ## v79 revertida — el indicador del parte de relevos, séptima refutación (y la más útil)
 
 El criterio estaba escrito desde la v73 y no se relajó: **un solo valor, en banda en los DOS bancos,
@@ -15051,7 +15057,8 @@ Porque no cambia nada para ninguna entrada existente. `sangreDelLider` solo se l
 producción no manda `flags` —son de banco—, así que la función no se ejecuta ni una vez en ninguna
 carrera guardada. Es el mismo caso que `laps` y `doubleAfter` en el paso 18b, y la misma razón para
 no subirla por costumbre: `ENGINE_VERSION` decide si una etapa guardada se puede volver a leer, y
-moverla **tira todas las crónicas** que seguían siendo válidas.
+moverla **tira todas las crónicas** que seguían siendo válidas. (Corregido en el paso 12 de E2, como
+la del paso 18b de arriba: no las tira; cambia la «Last race». Ver «E2 · paso 12», al final.)
 
 Las cuatro huellas tampoco se mueven, por lo mismo: se calculan con la capa apagada.
 
@@ -17989,3 +17996,32 @@ Una constante nueva de `packages/shared`, `BROADCAST.nominalAltitude` (docs/retr
 | la e18 anunciada (dura de 12:30 a 13:37)                   | 11:40                     | 12:07                    |
 
 Re-sellados con la causa: `pace.test.ts` (la e18 y Colombia, y `Highlights` de la e18, de 3:42 a 3:54) y `broadcastPace.test.ts` (las mismas dos; el `it.todo` de Colombia pasa a test). Medido con `scripts/bench-pace.mjs`, que desde el 10b corre sobre la línea grabada (`--reloj linea`, por defecto).
+
+## E2 · paso 12 — CORRECCIÓN: subir `ENGINE_VERSION` no tira las crónicas guardadas; y lo que queda para el dueño
+
+Sin tocar el motor ni subir la versión (D-09). Es la nota que piden `docs/retransmision.md` §17.15 y §19.7 al cerrar la retransmisión (D-58, H-02, X-05), con tres cosas: una doctrina que este fichero escribió al revés, la decisión del dueño sobre las subidas de otras líneas y dos defectos de hoy que E2 encontró y no arregla.
+
+### 1 · Lo que rompe una subida de versión, y lo que no
+
+Este fichero lo dijo dos veces al revés (en el paso 18b de la táctica y en la v80): «`ENGINE_VERSION` decide si una etapa guardada se puede volver a leer, y moverla tira todas las crónicas guardadas». No las tira. La crónica de una etapa corrida se lee de los sucesos que se congelaron al correrla (`stage_snapshots.events`), y la ruta de etapa no mira la versión: «El journal se lee de los eventos CONGELADOS al correr la etapa (no se re-simula)» (`apps/api/src/stageReplay.ts` l. 301-304; antes del paso 3a de E2, `apps/api/src/routes/races.ts` l. 474-477). Desde E2, además, la línea temporal de la retransmisión (`stage_timelines`) se decodifica por su `format` y no por la versión, y la voz y el acta se redactan al leer.
+
+Lo que una subida cambia en lo ya corrido es lo que se RE-SIMULA con el motor del día:
+
+| Pieza                                                          | Qué le pasa con una subida                                                                                                                                                                         | Por qué                                                                                               |
+| -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| el acta, la voz de `Watch` y la línea grabada                  | nada                                                                                                                                                                                               | se leen de lo congelado                                                                               |
+| la «Last race» (`Your last race`, en la ficha y en la portada) | cuenta otra carrera en lo que re-simula: «How the stage unfolded» (`story`) y los `personalEvents`; desde el paso 12, «What happened to you» son los momentos del acta (`moments`), que no cambian | `packages/db/src/raceReport.ts` l. 170, `simulateStage(input, snap.seed)` con el motor de hoy (C16)   |
+| `checkReplay` y `scripts/race-radio.mjs --db`                  | dan por no fiel, y el script se niega a re-simular, todo lo corrido antes; con `--db`, si la etapa tiene línea grabada, la pinta (paso 11a)                                                        | `packages/engine/src/sim/raceRadio.ts` l. 49-55; la cabecera del script                               |
+| la semilla de cada etapa que se corra después                  | cambia                                                                                                                                                                                             | `stageSeed()` lleva la versión (`packages/engine/src/stage/rng.ts` l. 22, desde `stageRun.ts` l. 490) |
+
+La conclusión de las dos notas de antes se queda: sin cambio de conducta, la versión no sube.
+
+### 2 · Las subidas de otra línea antes del 17d de la táctica (DD-25)
+
+Mientras la «Last race» re-simule, toda subida de `ENGINE_VERSION` cambia lo que cuenta de las etapas ya corridas. Lo cierra el paso 17d de la táctica, «el informe deja de re-simular, cruza orden con hecho y el aviso etapa a etapa» (`docs/tactica.md` l. 6979), que no toca el motor (`apps/api` y `domain/dashboard.ts`). Qué hacer hasta entonces con las subidas es del dueño (DD-25, `docs/retransmision.md` §20), y el valor por defecto, que es el que vale mientras no conteste, es **adelantar el 17d antes de la próxima subida de cualquier línea**. La otra salida es subir cuando haga falta y aceptar que la «Last race» de lo ya corrido cambie; frenar las subidas frenaría también los arreglos del motor. E2 no sube la versión en ningún paso.
+
+### 3 · Dos defectos de hoy que E2 encontró y no arregla
+
+**El salto de hasta 138 s (DD-23): ya no está.** `docs/retransmision.md` §3.6 lo midió sobre la v89: un ataque que salía de un grupo de descolgados, por detrás del pelotón, se daba por cazado en su mismo bloque con hueco negativo, y el corredor entraba en el pelotón con el reloj del pelotón; el mayor, `race-colombia` e5, semilla 0, km 183,25, 137,7 s. Es el «defecto abierto» de la v90 que **arregló la v91** («El puente desde atrás no hereda el reloj», arriba: 0 puentes cazados al nacer en los cuatro bancos donde la v90 tenía hasta 554), antes de que E2 abriera código. En las seis etapas congeladas de E2, corridas con la v91, los 24 puentes desde atrás (`attack_go` con `detras: 1`) no tienen ni un `attack_reeled` en su mismo km; el único puente cazado en su km es uno del pelotón, en `race-flanders` e1, cazado en 8 s, que es lo que tiene que pasar. DD-23 no tiene nada que decidir. Lo que E2 hizo para tolerarlo, el corredor en tránsito entre dos grupos (`docs/retransmision.md` §3.3, 3-b), se queda: no estorba y vale para cualquier salto de grupo.
+
+**`getBlockReport` cuenta siempre 0 días de carrera (DD-24): sigue.** Cuenta como días de carrera las sesiones con actividad `'carrera'` a secas (`packages/db/src/riders.ts` l. 664), y el tick escribe `carrera:<raceId>:e<n>` (`packages/db/src/stageRun.ts` l. 757 y 831). En producción el informe del bloque dice `0 race days` (`apps/web/src/components/BlockReport.tsx` l. 53-54) y cuenta los días de carrera como de entrenamiento. Su test no lo ve porque siembra `'carrera'` a secas (`packages/db/src/fichaCorredor.test.ts` l. 122); el 8b de E2 lo vela con tests sobre el formato del tick (l. 260-266) y no lo arregla, porque arreglarlo cambia lo que todo jugador ve hoy en su ficha (decisión 19-b). El arreglo es un PR propio que cuente como de carrera las actividades `carrera:*`, cuando el dueño quiera (DD-24, con ese valor por defecto: fuera de E2).
