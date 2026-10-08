@@ -20,6 +20,12 @@
  * con cada grupo, sino con un índice por línea (sus cambios, por corredor, y las marcas, por grupo y
  * por bloque), para que B8 quepa: de 1 a 5 ms por llamada sobre las líneas grabadas a un p95 de
  * 0,06 a 0,1 ms, con el mismo resultado. `timeTrialInstantAt` (§9.3) llega en el 6b.
+ *
+ * En el 10a, la cabeza de la pantalla: la capa fija lee de la fila 1 de la barra (el primer grupo con
+ * alguien dentro) y no del grupo 1 del instante, que puede ir vacío; no vuelve atrás cuando el grupo de
+ * cabeza muere con los suyos en carrera (`heldLeadOf`); y los huecos de la barra se miden contra ella,
+ * con la misma resta que la diferencia principal, así que la fila de la referencia dice lo mismo que la
+ * capa fija. Los grupos, su composición y su posición no cambian (I2, B21).
  */
 import type { RadioGroupKind } from '../contracts.js'
 import { JERSEY_PRIORITY, type JerseyKind } from '../jerseys.js'
@@ -78,7 +84,11 @@ export interface GapTrend {
 }
 
 export interface GapReading {
-  /** a la cabeza, en el último km de foto que ESTE grupo ha cruzado; si no ha cruzado ninguno, el de su origen (3-e) */
+  /**
+   * a la cabeza de la pantalla (la fila 1, o la cabeza retenida; 10a), en el último km de foto que ESTE
+   * grupo ha cruzado: su marca menos la de ella allí, la misma resta que la diferencia principal; si no
+   * ha cruzado ninguno, el de su origen (3-e)
+   */
   readonly toHeadS: number
   /** al grupo de número anterior en ese mismo bloque; null si ese grupo no tenía marca allí */
   readonly toAheadS: number | null
@@ -125,6 +135,7 @@ export interface InTransit {
 
 /** La diferencia principal de la capa fija (D-17). */
 export interface MainGap {
+  /** la cabeza de la pantalla: la fila 1 de la barra o, unos segundos, la cabeza retenida, que no está en `groups` (10a) */
   readonly ahead: GroupIx
   readonly behind: GroupIx
   /** marca de `behind` menos la de `ahead` en el último km de foto que ha cruzado `behind` */
@@ -149,7 +160,11 @@ export interface VirtualGcRow {
 /** EL INSTANTE (D-04). */
 export interface Instant {
   readonly t: RaceS
-  /** el km pintado del grupo número 1 */
+  /**
+   * el km de la cabeza de la pantalla (10a): el pintado del primer grupo con alguien dentro, la fila 1
+   * de la barra; o, si el que iba delante acaba de morir con los suyos en carrera, lo más lejos que se
+   * pintó (`heldLeadOf`). No vuelve atrás salvo que abandonen todos los de delante
+   */
   readonly headKm: number
   /** máx(0, lengthKm − headKm) */
   readonly toGoKm: number
@@ -516,6 +531,12 @@ interface LineIndex {
     readonly dead: readonly GroupIx[]
     readonly map: ReadonlyMap<GroupIx, readonly GroupIx[]>
   } | null
+  /**
+   * Los grupos que mueren, por su bloque de muerte decreciente: los candidatos a cabeza retenida de la
+   * pantalla (`heldLeadOf`, 10a). En la línea cortada solo están los de muerte vista, que son los únicos
+   * que se miran.
+   */
+  readonly deadByDiedB: readonly { readonly g: GroupIx; readonly diedB: Block }[]
 }
 
 const indexes = new WeakMap<TimelineCore, LineIndex>()
@@ -622,9 +643,104 @@ function indexOf(tl: TimelineCore): LineIndex {
       blockOfLive: new Int32Array(nG),
     },
     preds: null,
+    deadByDiedB: tl.groups
+      .flatMap((x, g) => (x.diedB === null ? [] : [{ g, diedB: x.diedB }]))
+      .sort((a, b) => b.diedB - a.diedB || a.g - b.g),
   }
   indexes.set(tl, out)
   return out
+}
+
+// ----------------------------------------------------------------- la cabeza de la pantalla (10a)
+
+/**
+ * ¿Siguen en carrera los de un grupo muerto? Su sucesor (el grupo al que fue la mayoría al morir, D-03),
+ * o el sucesor de este, vive o aún no se ve; si la cadena acaba en null, abandonaron todos. Solo mira
+ * muertes vistas en S: en la línea cortada, un sucesor que aún no nace no está en el catálogo, y vale lo
+ * mismo que en la entera, donde aún no se ve (B9).
+ */
+function lineageRacing(ix: LineIndex, g: GroupIx, S: Ds): boolean {
+  const { tl, vis } = ix
+  let s = tl.groups[g]?.successor ?? null
+  for (let hops = 0; s !== null && hops <= tl.groups.length; hops++) {
+    if (s < 0 || s >= tl.groups.length) return true
+    const died = vis.groupDiedDs[s]
+    if (died === null || died === undefined || died > S) return true
+    s = tl.groups[s]!.successor
+  }
+  return false
+}
+
+/**
+ * Lo más lejos que llegó a pintarse un grupo antes de que se viera su muerte, en bloques: su bloque de
+ * muerte o lo que cada marca suya pintó hasta la siguiente (la última, hasta la de su muerte), con la
+ * velocidad entre marcas de §4.5 y sin pasar de la foto siguiente. Solo con las marcas vistas en S (B9).
+ */
+function paintedAtDeathOf(
+  ix: LineIndex,
+  g: GroupIx,
+  diedB: Block,
+  S: Ds,
+  cap: (b: Block) => number,
+  speed0: (s: Ds) => number,
+): number {
+  const m = ix.marks[g]
+  let best: number = diedB
+  if (m === undefined) return best
+  let lastB = -1
+  let lastD = 0
+  /** la velocidad de la marca anterior: entre ella y la de antes; la primera, la de su origen (3-a) */
+  let lastV: number | null = null
+  for (let j = 0; j < m.b.length; j++) {
+    const d = m.eff[j]!
+    if (d > S) continue
+    const b = m.b[j]!
+    if (lastB >= 0) {
+      const v = lastV ?? speed0(d)
+      best = Math.max(best, Math.min(cap(lastB), lastB + v * Math.max(0, d - lastD)))
+      lastV = d > lastD ? (b - lastB) / (d - lastD) : 0
+    }
+    lastB = b
+    lastD = d
+  }
+  return best
+}
+
+/**
+ * LA CABEZA RETENIDA (10a; el defecto (a) de la nota 4 del 10b, preparación). El grupo que iba delante
+ * muere y los suyos siguen en carrera: el motor le cambia la etiqueta (todos pasan a un grupo que nace
+ * en el bloque siguiente, y hasta que se ve su primera marca no van en ningún grupo, 3-b: en
+ * `race-colombia` e5, 7,4 s de carrera, tres veces a 25, 21 y 18 km de meta) o lo cazan (su muerte se ve
+ * con su marca, y el que caza llega a ese punto hasta 5 s después). La pantalla no vuelve atrás (D-04) ni
+ * pierde a los de delante por un cambio de identidad (D-03): hasta que un grupo vivo pase de donde murió,
+ * la cabeza de la pantalla es él, en lo más lejos que se pintó. Si abandonaron todos, no. De los muertos
+ * por delante de lo pintado de la fila 1, el que más lejos llegó; null si ninguno.
+ */
+function heldLeadOf(
+  ix: LineIndex,
+  S: Ds,
+  pb: readonly Block[],
+  paintedBlock: number,
+  originOf: (g: GroupIx) => GroupIx | undefined,
+): { readonly g: GroupIx; readonly block: number } | null {
+  const { tl, vis } = ix
+  // un grupo no se pinta más allá de la foto siguiente a su penúltima marca: un km después de morir
+  const slack = Math.ceil(2 / tl.dx)
+  const cap = (b: Block): number => {
+    const k = upperBound(pb, b)
+    return k < pb.length ? pb[k]! : tl.blocks - 1
+  }
+  let best: { g: GroupIx; block: number } | null = null
+  for (const { g, diedB } of ix.deadByDiedB) {
+    if (diedB + slack <= paintedBlock) break
+    const died = vis.groupDiedDs[g]
+    if (died === null || died === undefined || died > S) continue
+    if (!lineageRacing(ix, g, S)) continue
+    const speed0 = (s: Ds): number => (g === 0 ? 0 : originSpeedOf(ix, originOf(g), s))
+    const block = paintedAtDeathOf(ix, g, diedB, S, cap, speed0)
+    if (block > paintedBlock && (best === null || block > best.block)) best = { g, block }
+  }
+  return best
 }
 
 /** Los papeles crudos (sin histéresis) a una hora, por línea entera: el memo del paso 9 (§18.1). */
@@ -814,6 +930,27 @@ function kindsOf(
   })
 }
 
+/** Las dos últimas marcas de o vistas a la hora s, como velocidad en bloques por décima; 0 sin dos (3-a). */
+function originSpeedOf(ix: LineIndex, o: GroupIx | undefined, s: Ds): number {
+  const m = o === undefined ? undefined : ix.marks[o]
+  if (m === undefined) return 0
+  let i0 = -1
+  let i1 = -1
+  if (m.sorted) {
+    i1 = upperBound(m.eff, s) - 1
+    i0 = i1 - 1
+  } else
+    for (let j = 0; j < m.eff.length; j++)
+      if (m.eff[j]! <= s) {
+        i0 = i1
+        i1 = j
+      }
+  if (i0 < 0) return 0
+  const d0 = m.eff[i0]!
+  const d1 = m.eff[i1]!
+  return d1 > d0 ? (m.b[i1]! - m.b[i0]!) / (d1 - d0) : 0
+}
+
 /** Lo que se ve de la línea a la hora S, hasta el paso 7 (grupos, posiciones, composición, orden, pelotón y tipo). */
 interface Seen {
   readonly S: Ds
@@ -942,26 +1079,7 @@ function seenAt(
     const k = upperBound(photoBlocks, b)
     return k < photoBlocks.length ? photoBlocks[k]! : tl.blocks - 1
   }
-  /** Las dos últimas marcas de o vistas a la hora s, como velocidad en bloques por décima; 0 sin dos. */
-  const originSpeed = (o: GroupIx | undefined, s: Ds): number => {
-    const m = o === undefined ? undefined : marks[o]
-    if (m === undefined) return 0
-    let i0 = -1
-    let i1 = -1
-    if (m.sorted) {
-      i1 = upperBound(m.eff, s) - 1
-      i0 = i1 - 1
-    } else
-      for (let j = 0; j < m.eff.length; j++)
-        if (m.eff[j]! <= s) {
-          i0 = i1
-          i1 = j
-        }
-    if (i0 < 0) return 0
-    const d0 = m.eff[i0]!
-    const d1 = m.eff[i1]!
-    return d1 > d0 ? (m.b[i1]! - m.b[i0]!) / (d1 - d0) : 0
-  }
+  const originSpeed = (o: GroupIx | undefined, s: Ds): number => originSpeedOf(ix, o, s)
   let cache = ix.byPhotos.get(photoBlocks)
   if (cache === undefined) {
     const atPhoto = photoBlocks.map((b) => blockMarksOf(ix, b))
@@ -1401,7 +1519,31 @@ export function instantAt(tl: TimelineCore, t: RaceS, ctx: InstantContext): Inst
     return i < nSettled ? fullHead[i] : headDs[i]
   }
   const kmOfPhoto = (k: Block): number => (k + 0.5) * ix.tl.dx
-  const toHeadAt = (d: Ds, k: Block): number => (d - (headAt(k) ?? d)) / 10
+
+  // LA CABEZA DE LA PANTALLA (10a; §6.2, D-04, D-17): de quién son los km a meta de la capa fija y contra
+  // quién se miden la diferencia principal y el hueco de cada fila de la barra. Es la fila 1 de la barra,
+  // el primer grupo con alguien dentro (`shownGroupsOf`): un grupo recién nacido que aún no lleva a nadie
+  // no se pinta, y la capa fija no puede leer de él (el defecto (b) de la nota 4 del 10b, preparación).
+  // Salvo que el que iba delante acabe de morir con los suyos en carrera (`heldLeadOf`, el defecto (a)):
+  // entonces él, donde murió, hasta que un grupo vivo pase de ahí. Y los huecos, contra su marca en el
+  // km de foto de cada uno, la misma resta que la capa fija (§3.5): antes la barra restaba la cabeza de
+  // ese km (la menor marca vista allí), que es otra cuando el que pasó primero ya no va delante (una
+  // fuga cazada), y la capa decía `+0:38` y la fila `+0:47` (la nota 4 del 6b).
+  const row1 = seen.order.find((x) => x.members.length > 0) ?? seen.order[0]
+  const held = row1 === undefined ? null : heldLeadOf(ix, S, pb, row1.painted, seen.originOf)
+  const leadG: GroupIx | undefined = held?.g ?? row1?.g
+  /** La marca de la cabeza de la pantalla en un km de foto: la suya, la de su origen (3-e) o la cabeza de ese km. */
+  const leadMarkAt = (k: Block): Ds | undefined => {
+    if (leadG !== undefined) {
+      const own = markOf(leadG, k)
+      if (own !== null) return own
+      const o = seen.originOf(leadG)
+      const od = o === undefined ? null : markOf(o, k)
+      if (od !== null) return od
+    }
+    return headAt(k)
+  }
+  const toHeadAt = (d: Ds, k: Block): number => (d - (leadMarkAt(k) ?? d)) / 10
   const trendOf = (g: GroupIx, k: Block, nowS: number): GapTrend | null => {
     const back = photoAtOrBefore(k - Math.round(BROADCAST.trendWindowKm / ix.tl.dx))
     if (back === null || back < 0 || k - Math.round(BROADCAST.trendWindowKm / ix.tl.dx) < 0)
@@ -1503,7 +1645,34 @@ export function instantAt(tl: TimelineCore, t: RaceS, ctx: InstantContext): Inst
     const od = o === undefined ? null : markOf(o, k)
     return od ?? (headAt(k) ?? 0) + g.gap.toHeadS * 10
   }
-  const mainGap = mainGapOf(groups, ctx.start, markAtKm)
+  // La diferencia principal, entre lo que se pinta: la cabeza de la pantalla delante y la referencia de
+  // D-17 entre los grupos con alguien dentro. La cabeza retenida no está en `groups` (su muerte se ve, y
+  // I2 la quiere fuera): va delante solo aquí, como `ahead`.
+  const shown = groups.every((g) => g.size > 0) ? groups : groups.filter((g) => g.size > 0)
+  const heldKm = held === null ? null : Math.max(0, (held.block + 0.5) * ix.tl.dx)
+  const mainGap = mainGapOf(
+    held === null || heldKm === null
+      ? shown
+      : [
+          {
+            g: held.g,
+            number: 0,
+            role: 'lead',
+            label: { k: 'role' },
+            kind: 'fuga',
+            km: heldKm,
+            size: 0,
+            members: [],
+            gap: { toHeadS: 0, toAheadS: null, atKm: heldKm, trend: null },
+            detail: null,
+            jerseys: [],
+            own: false,
+          },
+          ...shown,
+        ],
+    ctx.start,
+    markAtKm,
+  )
 
   const inTransit: InTransit[] = seen.inTransit.map((x) => {
     const inFrom = groups.find((g) => g.g === x.from)
@@ -1514,8 +1683,8 @@ export function instantAt(tl: TimelineCore, t: RaceS, ctx: InstantContext): Inst
     return { rider: x.rider, from: x.from, to: x.to, gap: gap ?? startGap }
   })
 
-  const head = groups[0]
-  const headKm = head?.km ?? 0
+  // los km a meta de la capa fija: los de la cabeza de la pantalla (arriba)
+  const headKm = heldKm ?? row1?.km ?? 0
   const toGoKm = Math.max(0, ix.tl.lengthKm - headKm)
   const laps = ix.tl.profile.laps
   const racing = ix.tl.riderIds.length - seen.outs
