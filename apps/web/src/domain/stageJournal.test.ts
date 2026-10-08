@@ -5,7 +5,9 @@ import {
   chronicleLine,
   chronicleParts,
   fmtGap,
+  groupNounOf,
   listNames,
+  mainNoun,
   ordinalSuffix,
   timeTrialStory,
   variantIndex,
@@ -86,10 +88,13 @@ describe('crónica de la etapa', () => {
     expect(chronicleLine(event({ plantilla: 'breakaway_formed' }))).not.toMatch(/^\s|\s{2}/)
   })
 
-  it('un evento desconocido no revienta: se narra en crudo', () => {
-    expect(chronicleLine(event({ plantilla: 'meteorito', protagonists: named('Ana') }))).toBe(
-      'meteorito: Ana',
-    )
+  it('un evento desconocido no revienta: da una línea vacía y nunca la clave cruda (D-44)', () => {
+    // RE-SELLADO EN E2, PASO 6b (docs/retransmision.md §12.5), a propósito: hasta aquí el `default`
+    // narraba «meteorito: Ana», y así salían en el acta `puncture`, `mechanical`, `truce_granted` y
+    // `truce_denied`, que el motor emite. Ahora tienen frase, y lo desconocido no se pinta: la voz y el
+    // acta saltan la línea vacía, y B7 (templateCoverage.test.ts) pone en rojo una plantilla del motor
+    // que llegue aquí.
+    expect(chronicleLine(event({ plantilla: 'meteorito', protagonists: named('Ana') }))).toBe('')
   })
 })
 
@@ -1643,6 +1648,108 @@ describe('el vocabulario de grupos: tres cosas, tres nombres (v27)', () => {
     expect(malas).toEqual([])
   })
 
+  /**
+   * LOS PAPELES DE LA VOZ (E2, paso 6b; §12.6, B7): las diez plantillas que dicen el grupo del título
+   * (`MAIN_GROUP_TEMPLATES`, apps/api/src/voiceRoles.ts) con los cuatro papeles de `mainRole` y los
+   * tres maillots de `mainJersey`, y `crash` con los de `groupRole` y `groupJersey`: cada frase dentro
+   * de su fila de `GROUP_NOUNS`, y la unión dentro de los siete nombres.
+   */
+  const MAIN_GROUP_TEMPLATES = [
+    'attack_go',
+    'attack_short',
+    'attack_reeled',
+    'sprinters_chase',
+    'sprinters_give_up',
+    'peloton_concedes',
+    'peloton_pull',
+    'breakaway_caught',
+    'time_gap',
+    'time_gap_run',
+  ]
+  const ROLES = ['lead', 'chase', 'bunch', 'gruppetto', undefined] as const
+  const JERSEYS = ['gc', 'points', 'kom', undefined] as const
+
+  it('las diez del título con los cuatro papeles y los tres maillots, y la caída con todos, en su fila', () => {
+    const malas: string[] = []
+    const dichos = new Set<string>()
+    const casos = [
+      ...ejemplares
+        .filter((c) => MAIN_GROUP_TEMPLATES.includes(c.plantilla))
+        .flatMap((c) =>
+          ROLES.flatMap((role) =>
+            JERSEYS.map((jersey) => ({
+              plantilla: c.plantilla,
+              who: c.who,
+              datos: {
+                ...c.datos,
+                // el parte de ventaja nombra al título solo sobre el pelotón
+                ...(c.plantilla.startsWith('time_gap') ? { chaseKind: 'peloton' } : {}),
+                ...(role === undefined ? {} : { mainRole: role }),
+                ...(jersey === undefined ? {} : { mainJersey: jersey }),
+              },
+            })),
+          ),
+        ),
+      ...ROLES.flatMap((role) =>
+        JERSEYS.map((jersey) => ({
+          plantilla: 'crash',
+          who: undefined,
+          datos: {
+            ...(role === undefined ? {} : { groupRole: role }),
+            ...(jersey === undefined ? {} : { groupJersey: jersey }),
+          },
+        })),
+      ),
+    ]
+    expect(new Set(casos.map((c) => c.plantilla)).size).toBe(MAIN_GROUP_TEMPLATES.length + 1)
+    for (const caso of casos) {
+      const permitidos = GROUP_NOUNS[caso.plantilla] ?? []
+      for (const km of [10, 40, 70, 100, 130, 160]) {
+        const linea = chronicleLine(
+          event({
+            plantilla: caso.plantilla,
+            km,
+            protagonists: named(...(caso.who ?? ['Ana', 'Bea'])),
+            datos: caso.datos,
+          }),
+        )
+        expect(linea, `${caso.plantilla} ${JSON.stringify(caso.datos)}`).not.toBe('')
+        for (const noun of nounsIn(linea)) {
+          dichos.add(noun)
+          if (!permitidos.includes(noun)) malas.push(`${caso.plantilla}: «${noun}» en «${linea}»`)
+        }
+      }
+    }
+    expect(malas).toEqual([])
+    // la unión, los siete: el título nunca dice the gruppetto, la caída sí
+    expect([...dichos].sort()).toEqual([
+      'the bunch',
+      'the chase group',
+      'the gruppetto',
+      'the lead group',
+      'the mountains leader’s group',
+      'the points leader’s group',
+      'the race leader’s group',
+    ])
+  })
+
+  it('la palabra es la de la barra: el maillot antes que el papel; sin anotación, the bunch', () => {
+    expect(groupNounOf('chase', undefined)).toBe('the chase group')
+    expect(groupNounOf('chase', 'kom')).toBe('the mountains leader’s group')
+    expect(groupNounOf(undefined, undefined)).toBe('the bunch')
+    expect(groupNounOf('peloton', 'yellow')).toBe('the bunch') // lo que no es un papel ni un maillot
+    expect(mainNoun({ datos: { mainRole: 'gruppetto' } })).toBe('the bunch')
+    expect(groupNounOf('gruppetto', undefined)).toBe('the gruppetto')
+    const reeled = (datos: Record<string, string>) =>
+      chronicleLine(
+        event({ plantilla: 'attack_reeled', km: 10, protagonists: named('Ana'), datos }),
+      )
+    expect(reeled({})).toContain('he bunch')
+    expect(reeled({ mainRole: 'chase' })).toMatch(
+      /the chase group|The chase group|swept up|elastic/,
+    )
+  })
+
   it('los siete nombres que quedan son los siete del vocabulario', () => {
     // Lo que la tabla declara no puede ser más que el vocabulario cerrado. Si alguien añade un nombre
     // a una plantilla, esta prueba lo caza.
@@ -1786,5 +1893,59 @@ describe('el desenlace converge en quien decide la etapa (v27)', () => {
     )
     expect(lineas.every((l) => !/\bWeber\b.*\bsit up\b/.test(l))).toBe(true)
     expect(lineas.some((l) => l.includes('sits up'))).toBe(true)
+  })
+})
+
+describe('las plantillas que imprimían su clave cruda y la caída de la línea (E2, D-44; §12.5)', () => {
+  const ana = [rider('Ana Ruiz', { bib: 45, team: 'Team Sol' })]
+  const line = (plantilla: string, datos: Record<string, number | string> = {}, who = ana) =>
+    [10, 40, 70, 100].map((km) => chronicleLine(event({ plantilla, km, protagonists: who, datos })))
+
+  it('el pinchazo y la avería: con coche o sin él, y en la crono sin km a meta', () => {
+    for (const l of line('puncture', { perdidaS: 30, conCoche: 1, toGo: 42 })) {
+      expect(l).toMatch(/punctur/i)
+      expect(l).toContain('with 42 km to go')
+      expect(l).toContain('team car')
+    }
+    for (const l of line('puncture', { perdidaS: 30, conCoche: 0, toGo: 42 }))
+      expect(l).toMatch(/no team car|nowhere near/)
+    for (const l of line('mechanical', { perdidaS: 30, conCoche: 1 }))
+      expect(l).toContain('out on the course')
+    for (const l of line('mechanical', { perdidaS: 30, conCoche: 0, toGo: 12 }))
+      expect(l).toMatch(/no team car|no car behind/)
+    // nunca el tiempo perdido: es del microscopio (§6.6)
+    for (const l of line('puncture', { perdidaS: 30, conCoche: 1, toGo: 42 }))
+      expect(l).not.toMatch(/30s|0:30/)
+  })
+
+  it('la tregua: concedida, y negada con cada uno de sus seis motivos', () => {
+    for (const l of line('truce_granted', { toGo: 80 })) expect(l).toMatch(/truce/)
+    const why = ['decisiva', 'cerca', 'abanico', 'cuesta', 'deuda', 'emboscada', '']
+    const frases = why.map((motivo) => line('truce_denied', { toGo: 9, enJuego: 45, motivo })[0]!)
+    expect(new Set(frases).size).toBe(why.length)
+    expect(frases[1]).toContain('9 km to go')
+    expect(frases[5]).toContain('45s at stake')
+    for (const f of frases) expect(f).toContain('Ana Ruiz')
+  })
+
+  it('la caída: sin nombres, en el grupo de su papel; y sus nombres en un segundo tiempo', () => {
+    for (const l of line('crash', { groupRole: 'gruppetto' })) expect(l).toContain('the gruppetto')
+    for (const l of line('crash', { groupRole: 'chase', groupJersey: 'gc' }))
+      expect(l).toContain('the race leader’s group')
+    for (const l of line('crash')) {
+      expect(l).toContain('the bunch')
+      expect(l).not.toContain('Ana') // el rótulo CRASH sale sin nombres: la voz tampoco los dice
+    }
+    const cuatro = ['Ana', 'Bea', 'Cris', 'Dora'].map((n, i) =>
+      rider(n, { bib: i + 1, team: `Team ${n}` }),
+    )
+    expect(line('crash_names', {}, cuatro.slice(0, 1))[0]).toMatch(/Ana/)
+    expect(line('crash_names', {}, cuatro.slice(0, 2))[0]).toBe(
+      '1 Ana (Team Ana) and 2 Bea (Team Bea) are on the ground.',
+    )
+    expect(line('crash_names', {}, cuatro)[0]).toBe(
+      '1 Ana (Team Ana), 2 Bea (Team Bea), 3 Cris (Team Cris) and 1 other are among those down.',
+    )
+    expect(line('crash_names', {}, [])[0]).toBe('')
   })
 })

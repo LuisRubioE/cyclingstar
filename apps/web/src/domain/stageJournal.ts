@@ -9,11 +9,14 @@
  * así que van en inglés; el vocabulario de los eventos sigue en el idioma del motor.
  */
 
-import type {
-  ChronicleEntry,
-  ChronicleRider,
-  JerseyKind,
-  StageResultEntry,
+import {
+  type ChronicleEntry,
+  type ChronicleRider,
+  GROUP_WORDS,
+  type JerseyKind,
+  type StageResultEntry,
+  isGroupRole,
+  isJerseyKind,
 } from '@cyclingstar/shared'
 import { STAGE } from '@cyclingstar/engine'
 import { formatTime } from './format'
@@ -54,15 +57,36 @@ const CHASE_GROUP = 'the chase group'
 const BUNCH = 'the bunch'
 
 /**
+ * LA PALABRA DEL GRUPO DE LA BARRA EN LA VOZ (E2, D-18; §12.6, 6-b, 12-b). La API anota en `datos` el
+ * papel del grupo del título (`mainRole`) o del caído (`groupRole`) en la hora de la línea y, si es el
+ * grupo de un maillot, ese maillot (`mainJersey`, `groupJersey`), así que la voz dice la misma palabra
+ * que la barra en la misma pantalla: la del grupo del maillot antes que la del papel, en minúsculas y
+ * con artículo; sin anotación (el acta de quien no tiene `Watch`, las etapas sin línea), «the bunch»,
+ * como siempre. Las guardas, porque `datos` llega sin tipo.
+ */
+export function groupNounOf(role: unknown, jersey: unknown): string {
+  if (isJerseyKind(jersey)) return GROUP_WORDS.jersey[jersey][1] // the race leader’s group (6-b)
+  return isGroupRole(role) ? GROUP_WORDS.role[role][1] : BUNCH
+}
+
+/**
+ * La palabra del grupo del título en las diez plantillas de `MAIN_GROUP_TEMPLATES` (API, voiceRoles.ts).
+ * El título no se llama nunca `the gruppetto`: sus filas de `GROUP_NOUNS` no lo tienen, y la API no lo
+ * anota (la histéresis se lo da un momento tras cambiar de grupo); si llegara, dice `the bunch`.
+ */
+export const mainNoun = (e: Pick<ChronicleEntry, 'datos'>): string =>
+  groupNounOf(e.datos?.mainRole === 'gruppetto' ? null : e.datos?.mainRole, e.datos?.mainJersey)
+
+/**
  * CONTRA QUIÉN SE MIDE LA VENTAJA, dicho con el vocabulario de arriba (v27). El motor manda
  * `chaseKind` desde la v27: `peloton` si el grupo de referencia es el grueso de la carrera y `caza`
  * si es un trozo que persigue por delante del resto. Las crónicas congeladas no lo traen, y entonces
  * la frase NO dice sobre quién: inventarse la referencia de una etapa ya corrida sería lo mismo que
  * esta tanda vino a quitar.
  */
-function overWhom(datos: Record<string, number | string> | undefined): string {
+function overWhom(datos: Record<string, number | string> | undefined, main: string): string {
   const kind = String(datos?.chaseKind ?? '')
-  if (kind === 'peloton') return ` over ${BUNCH}`
+  if (kind === 'peloton') return ` over ${main}`
   if (kind === 'caza') return ` over ${CHASE_GROUP}`
   return ''
 }
@@ -326,6 +350,8 @@ function chronicleTemplate(e: ChronicleEntry): string {
   // corredor gane o pierda el dorsal en la base (la crónica de una etapa es siempre la misma).
   const seed = `${e.plantilla}:${e.km}:${plain}`
   const pick = (opts: string[]): string => opts[variantIndex(seed, opts.length)] ?? opts[0] ?? ''
+  // el grupo del título con la palabra de la barra (D-18, 12-b): `the bunch` sin anotación
+  const main = mainNoun(e)
   switch (e.plantilla) {
     // --- La capa táctica (docs/motor.md §13) ------------------------------------------------
     // Un ataque que ocurre y no se cuenta no existe para el jugador. El motor emite todos los
@@ -367,7 +393,7 @@ function chronicleTemplate(e: ChronicleEntry): string {
         ])
       // `cuerda` dice si el pelotón ha decidido dar cuerda al movimiento. Lo que se narra es su
       // REACCIÓN, no el desenlace: a veces el pelotón se pone a cerrar y aun así no llega.
-      const chased = held ? ` ${capitalize(BUNCH)} reacts at once and the pace goes up behind.` : ''
+      const chased = held ? ` ${capitalize(main)} reacts at once and the pace goes up behind.` : ''
       const s1 = jumped === 1
       return pick([
         `${who} go${s1 ? 'es' : ''} clear off the front.${tail}${chased}`,
@@ -388,7 +414,7 @@ function chronicleTemplate(e: ChronicleEntry): string {
       const span = km <= 1 ? 'within the kilometre' : `after ${km} km`
       const tail = attackTail(Number(e.datos?.tierra ?? 0), one)
       return pick([
-        `${who} go${one ? 'es' : ''} clear off the front, but ${BUNCH} has ${one ? 'him' : 'them'} back ${span}.${tail}`,
+        `${who} go${one ? 'es' : ''} clear off the front, but ${main} has ${one ? 'him' : 'them'} back ${span}.${tail}`,
         `A dig from ${who}${tail ? `.${tail}` : ','} ${tail ? 'The' : 'the'} elastic snaps back ${span}.`,
         `${who} tr${one ? 'ies' : 'y'} ${one ? 'his' : 'their'} luck up the road and ${one ? 'is' : 'are'} swept up ${span}.${tail}`,
       ])
@@ -426,7 +452,7 @@ function chronicleTemplate(e: ChronicleEntry): string {
       // salía «152 Markus Weber sit up».
       const one = e.protagonists.length === 1
       return pick([
-        `${capitalize(BUNCH)} closes it down and ${who || 'the attack'} ${one ? 'is' : 'are'} back.`,
+        `${capitalize(main)} closes it down and ${who || 'the attack'} ${one ? 'is' : 'are'} back.`,
         `Nothing doing: ${who || 'the attack'} ${one ? 'is' : 'are'} swept up again.`,
         `The elastic snaps back — ${who || 'the attackers'} sit${one ? 's' : ''} up.`,
       ])
@@ -685,21 +711,21 @@ function chronicleTemplate(e: ChronicleEntry): string {
       const chaseWhy = String(e.datos?.porQue ?? '')
       if (chaseWhy === 'maillot' || chaseWhy === 'general')
         return pick([
-          `${capitalize(BUNCH)} is riding, and not for the stage: ${LEAD_GROUP} is a threat on general classification.`,
-          `This move is dangerous for the overall, and ${BUNCH} knows it — behind, they start to ride in earnest.`,
+          `${capitalize(main)} is riding, and not for the stage: ${LEAD_GROUP} is a threat on general classification.`,
+          `This move is dangerous for the overall, and ${main} knows it — behind, they start to ride in earnest.`,
         ])
       if (boss && team)
         return pick([
           `${team} hit the front and take up the chase for ${riderFull(boss)}.`,
-          `${team} mass at the head of ${BUNCH} to reel ${LEAD_GROUP} in for their sprinter, ${riderShort(boss)}.`,
+          `${team} mass at the head of ${main} to reel ${LEAD_GROUP} in for their sprinter, ${riderShort(boss)}.`,
           `${team} take control, winding up the pace for ${riderFull(boss)}.`,
         ])
       if (boss)
         return pick([
-          `${capitalize(BUNCH)} keeps riding behind, wound up for ${riderFull(boss)}.`,
-          `${capitalize(BUNCH)} organises behind for ${riderShort(boss)}.`,
+          `${capitalize(main)} keeps riding behind, wound up for ${riderFull(boss)}.`,
+          `${capitalize(main)} organises behind for ${riderShort(boss)}.`,
         ])
-      return `${capitalize(BUNCH)} organises behind and takes up the pursuit.`
+      return `${capitalize(main)} organises behind and takes up the pursuit.`
     }
     /**
      * EL PARTE DE VENTAJA, CON LAS CUATRO RESPUESTAS (v27). Era la línea que más se repite en un
@@ -718,7 +744,7 @@ function chronicleTemplate(e: ChronicleEntry): string {
       // hablar de "the lone leader" o "the five out front" en vez de dar por hecho que es la fuga.
       // Las crónicas guardadas antes de v6 no lo traen y caen a la redacción de siempre.
       const lead = e.datos?.leadSize == null ? null : Number(e.datos.leadSize)
-      const over = overWhom(e.datos)
+      const over = overWhom(e.datos, main)
       const clock = toGoTail(e.datos)
       // Con nombres manda el nombre; sin ellos, el grupo. Es la misma regla del parte de cabeza.
       const { text: subject, plural } = gapSubject(who, riders.length, lead)
@@ -747,7 +773,7 @@ function chronicleTemplate(e: ChronicleEntry): string {
       // quién y cuánto queda. Es la línea que resume cien kilómetros de carrera y era justo la que
       // no nombraba a nadie.
       const subject = gapSubject(who, riders.length, lead).text
-      const overWho = overWhom(e.datos)
+      const overWho = overWhom(e.datos, main)
       const clock = toGoTail(e.datos)
       // Cada redacción NOMBRA de quién se habla —la racha resume varios partes y el lector se ha
       // podido perder por el camino de quién era la ventaja— y ninguna pone al grupo de SUJETO: «the
@@ -862,7 +888,7 @@ function chronicleTemplate(e: ChronicleEntry): string {
       // Con un grupo pequeño no tira un equipo, tira un corredor: es el mismo umbral con el que el
       // motor decide nombrar a los de cabeza, para que la crónica no se contradiga en dos frases.
       const small = size > 0 && size <= SMALL_FRONT_GROUP
-      const group = small ? LEAD_GROUP : BUNCH
+      const group = small ? LEAD_GROUP : main
       /**
        * SI YA ESTABAN AHÍ, LA FRASE CUENTA LO QUE HA CAMBIADO (v25). Fuego Escuadra tiraba para
        * Sergio Gómez SEIS veces en Race Jaén con la misma redacción de presentación. La crónica ya
@@ -931,34 +957,34 @@ function chronicleTemplate(e: ChronicleEntry): string {
         if (porQue === 'general')
           return pick([
             `${team} come to the front${left}: ${LEAD_GROUP} is dangerous for ${forWhom || 'their GC leader'} and they cannot sit on it.`,
-            `${team} drive ${BUNCH}${left}: ${LEAD_GROUP} threatens ${forWhom || 'their leader'} on general classification, so they have to ride.`,
+            `${team} drive ${main}${left}: ${LEAD_GROUP} threatens ${forWhom || 'their leader'} on general classification, so they have to ride.`,
             `${team} take up the chase${left} with the general classification in mind, not the stage.`,
           ])
         if (porQue === 'etapa') {
           if (effort === 'tope')
             return pick([
-              `${team} have the bunch strung out in a single line${left}: this finish suits ${forWhom || 'their leader'} and they want it.`,
-              `${team} are drilling it on the front for ${forWhom || 'their leader'} — the bunch is in one long line${left}.`,
+              `${team} have ${main} strung out in a single line${left}: this finish suits ${forWhom || 'their leader'} and they want it.`,
+              `${team} are drilling it on the front for ${forWhom || 'their leader'} — ${main} is in one long line${left}.`,
             ])
           return pick([
             `${team} mass on the front and wind the pace up${left}, riding for the stage with ${forWhom || 'their leader'}.`,
-            `${team} take up the work at the head of the bunch${left}: today's finish is made for ${forWhom || 'their man'}.`,
+            `${team} take up the work at the head of ${main}${left}: today's finish is made for ${forWhom || 'their man'}.`,
             `The pace is in the hands of ${team}${left}, setting the race up for ${forWhom || 'their leader'}.`,
           ])
         }
         if (effort === 'tope')
           return pick([
-            `${team} have the bunch strung out in a single line${left}${forTail}.`,
-            `${team} are drilling it on the front for ${forWhom || 'their leader'} — the bunch is in one long line${left}.`,
+            `${team} have ${main} strung out in a single line${left}${forTail}.`,
+            `${team} are drilling it on the front for ${forWhom || 'their leader'} — ${main} is in one long line${left}.`,
           ])
         if (effort === 'tempo')
           return pick([
             `${team} have taken the front and settled into a steady tempo${left}${forTail}.`,
-            `${team} line up at the head of the bunch and set a manageable pace${left}${forTail}.`,
+            `${team} line up at the head of ${main} and set a manageable pace${left}${forTail}.`,
           ])
         return pick([
           `${team} mass on the front and wind the pace up${left}${forTail}.`,
-          `${team} take up the work at the head of the bunch${left}${forTail}.`,
+          `${team} take up the work at the head of ${main}${left}${forTail}.`,
           `The pace is in the hands of ${team}${left}${forTail}.`,
         ])
       }
@@ -1089,20 +1115,20 @@ function chronicleTemplate(e: ChronicleEntry): string {
       // pero las etapas ya corridas están congeladas y sus concesiones tempranas siguen ahí.
       return e.datos?.cazada === 1
         ? pick([
-            `For now ${BUNCH} eases and gives them their rope.`,
+            `For now ${main} eases and gives them their rope.`,
             `No panic behind: ${LEAD_GROUP} is allowed to go clear — for the moment.`,
-            `${capitalize(BUNCH)} relaxes and leaves them to it, at least for now.`,
+            `${capitalize(main)} relaxes and leaves them to it, at least for now.`,
           ])
         : pick([
-            `${capitalize(BUNCH)} concedes — ${LEAD_GROUP} is given room to fight for the win.`,
-            `${capitalize(BUNCH)} eases and lets them take their rope.`,
-            `No panic behind: ${BUNCH} waves ${LEAD_GROUP} up the road.`,
+            `${capitalize(main)} concedes — ${LEAD_GROUP} is given room to fight for the win.`,
+            `${capitalize(main)} eases and lets them take their rope.`,
+            `No panic behind: ${main} waves ${LEAD_GROUP} up the road.`,
           ])
     case 'sprinters_give_up':
       return pick([
-        `${capitalize(BUNCH)} gives up: the catch is off.`,
-        `It is over behind: ${BUNCH} sits up and the catch is not coming.`,
-        `Behind, ${BUNCH} runs out of legs and abandons the pursuit.`,
+        `${capitalize(main)} gives up: the catch is off.`,
+        `It is over behind: ${main} sits up and the catch is not coming.`,
+        `Behind, ${main} runs out of legs and abandons the pursuit.`,
       ])
     /**
      * LA CAPTURA, CON NOMBRE Y CON CUENTAS (v21). Dos defectos de producción a la vez, los dos de
@@ -1144,16 +1170,16 @@ function chronicleTemplate(e: ChronicleEntry): string {
           return `Caught within sight of the line: ${who} ${size === 1 ? 'is' : 'are'} swallowed up${forKm}.`
         return pick([
           `It is over for ${who}: caught${forKm}${ofWhat}.`,
-          `The chase finally lands${forKm} — ${who} ${size === 1 ? 'is' : 'are'} back in the bunch${ofWhat}.`,
+          `The chase finally lands${forKm} — ${who} ${size === 1 ? 'is' : 'are'} back in ${main}${ofWhat}.`,
         ])
       }
       if (!juntos)
         return pick([
           `${capitalize(LEAD_GROUP)} is caught${forKm}, though there is no bunch left to speak of behind.`,
-          `What is left of ${BUNCH} swallows them${forKm} — the race is in pieces.`,
+          `What is left of ${main} swallows them${forKm} — the race is in pieces.`,
         ])
       return pick([
-        `${capitalize(BUNCH)} catches the ${size} out front${ofWhat} — everyone back together.`,
+        `${capitalize(main)} catches the ${size} out front${ofWhat} — everyone back together.`,
         `${capitalize(LEAD_GROUP)} is caught${ofWhat}; the race is all together again.`,
         `The pursuit succeeds and ${LEAD_GROUP} is reeled back in.`,
       ])
@@ -1599,9 +1625,109 @@ function chronicleTemplate(e: ChronicleEntry): string {
         `The fastest time of the day belongs to ${who} — ${t}${by}.`,
       ])
     }
+    // --- Las que faltaban (E2, D-44; §12.5) ----------------------------------------------------
+    // Cuatro plantillas del motor caían al `default` e imprimían su clave cruda («puncture: …»); la
+    // caída sintetizada de la línea (D-13) es nueva, con sus nombres en un segundo tiempo.
+    case 'puncture':
+    case 'mechanical': {
+      // Sin el tiempo perdido, que es del microscopio (§6.6); la crono no manda toGo (timetrial.ts).
+      const toGo = Number(e.datos?.toGo ?? 0)
+      const where = toGo > 0 ? ` with ${toGo} km to go` : ' out on the course'
+      const car = Number(e.datos?.conCoche ?? 1) === 1
+      if (e.plantilla === 'puncture')
+        return car
+          ? pick([
+              `Puncture for ${who}${where}. The team car is right there with a wheel.`,
+              `${who} punctures${where} and waits for his team car.`,
+            ])
+          : pick([
+              `Puncture for ${who}${where}, and no team car behind him.`,
+              `${who} punctures${where}; his team car is nowhere near.`,
+            ])
+      return car
+        ? pick([
+            `Mechanical trouble for ${who}${where}. He stops for a new bike from the team car.`,
+            `${who} has to stop with a mechanical${where}.`,
+          ])
+        : pick([
+            `Mechanical trouble for ${who}${where}, and no team car in sight.`,
+            `${who} stops with a mechanical${where}, with no car behind him.`,
+          ])
+    }
+    case 'truce_granted': {
+      const toGo = Number(e.datos?.toGo ?? 0)
+      return pick([
+        toGo > 0
+          ? `Nobody attacks while ${who} gets back on: the race grants him a truce with ${toGo} km to go.`
+          : `Nobody attacks while ${who} gets back on: the race grants him a truce.`,
+        `A truce for ${who}: the race eases off and waits for him.`,
+      ])
+    }
+    case 'truce_denied': {
+      // El motivo es lo que la crónica necesita «para no contarlas todas igual» (simulate.ts).
+      const toGo = Number(e.datos?.toGo ?? 0)
+      const stake = Number(e.datos?.enJuego ?? 0)
+      switch (String(e.datos?.motivo ?? '')) {
+        case 'decisiva':
+          return `No truce for ${who}: the race is being decided and nobody waits.`
+        case 'cerca':
+          return toGo > 0
+            ? `Too close to the line to wait: ${who} is on his own with ${toGo} km to go.`
+            : `Too close to the line to wait: ${who} is on his own.`
+        case 'abanico':
+          return `No waiting in the crosswind: the echelons are formed and ${who} has to chase.`
+        case 'cuesta':
+          return `Nobody waits on a climb: ${who} has to chase on his own.`
+        case 'deuda':
+          return `${who} asks for a truce and does not get one: his team is owed no favours today.`
+        case 'emboscada':
+          return stake > 0
+            ? `No truce for ${who}: with ${fmtGap(stake)} at stake, his rivals press on.`
+            : `No truce for ${who}: his rivals press on.`
+        default:
+          return `No truce for ${who}: the race does not wait.`
+      }
+    }
+    case 'crash': {
+      // La caída sintetizada (D-13), sin nombres: su rótulo es CRASH (§6.5). groupRole y groupJersey
+      // los anota la API (12.6); los nombres van en `crash_names`, un segundo tiempo (`linesOf`).
+      const where = groupNounOf(e.datos?.groupRole, e.datos?.groupJersey)
+      return pick([
+        `Crash in ${where}!`,
+        `There is a crash in ${where}.`,
+        `Riders down in ${where}!`,
+      ])
+    }
+    case 'crash_names': {
+      // Los caídos, por dorsal: en la voz, crashNamesDelayS (3 s de pared) después de la anterior;
+      // en el acta, detrás, en el mismo párrafo.
+      if (riders.length === 0) return ''
+      if (riders.length === 1)
+        return pick([`${who} is on the ground.`, `It is ${who} who has gone down.`])
+      const named = riders.slice(0, NAMED_IN_SUMMARY).map(riderFull)
+      const rest = riders.length - named.length
+      if (rest === 0) return `${listNames(named)} are on the ground.`
+      return `${listNames([...named, `${rest} other${rest === 1 ? '' : 's'}`])} are among those down.`
+    }
     default:
-      return `${e.plantilla}${who ? `: ${who}` : ''}${teams ? ` (${teams})` : ''}`
+      // D-44: nunca la clave cruda. La voz y el acta saltan la línea vacía, y B7
+      // (templateCoverage.test.ts) falla si una plantilla del motor llega aquí.
+      return ''
   }
+}
+
+/**
+ * LAS LÍNEAS DE UN SUCESO (§12.5): dos para `crash` (la caída y, en un segundo tiempo, quién está en el
+ * suelo: la voz dice la segunda `crashNamesDelayS` después, a la vez que el rótulo con nombres, y el
+ * acta las escribe seguidas) y una para todo lo demás. Sin las vacías: una plantilla sin frase no se
+ * pinta (D-44).
+ */
+export function linesOf(e: ChronicleEntry): string[] {
+  const lines =
+    e.plantilla === 'crash'
+      ? [chronicleLine(e), chronicleLine({ ...e, plantilla: 'crash_names' })]
+      : [chronicleLine(e)]
+  return lines.filter((l) => l !== '')
 }
 
 /** Diferencia contra el mejor tiempo, formateada (+Ns o +m:ss). */
