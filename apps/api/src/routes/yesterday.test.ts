@@ -40,7 +40,8 @@ import { buildApp } from '../app.js'
  *
  * - `YESTERDAY` son los esquemas de la web de ayer: los de hoy SIN lo que E2 les añade. Cada PR que
  *   ensancha uno le pone aquí su `.omit` de los campos nuevos (1a, 3a, 7b y 8a; el 12, el de `report`,
- *   que va anidado y por eso tiene su propia entrada).
+ *   que va anidado y por eso tiene su propia entrada: un `.omit` de fuera no llega dentro, regla 8 de
+ *   §14.7).
  * - Una lista literal fija sus claves tal como están en la base de E2 (la v91, `b1be481`): con el
  *   `.omit` puesto no cambian, y cambiar o quitar una clave de hoy se ve en el diff.
  * - Las respuestas de hoy de esas rutas, sobre un mundo de verdad (PGlite, con dos etapas corridas por
@@ -65,7 +66,8 @@ const YESTERDAY = {
   teamNewsItem: teamNewsItemSchema.omit(NEWS_DATA),
   // `ready`, del 8a (§12.9): la última corrida, si está velada, con lo único que se sabe de ella.
   lastRaceResponse: lastRaceResponseSchema.omit({ ready: true }),
-  riderRaceReport: riderRaceReportSchema,
+  // `moments`, del 12 (12-k): los momentos del corredor, las líneas del acta en que sale.
+  riderRaceReport: riderRaceReportSchema.omit({ moments: true }),
   // `stagesToWatch`, del 8a (§11.6): las etapas por ver de una carrera, en los resultados del corredor.
   riderRaceResult: riderRaceResultSchema.omit({ stagesToWatch: true }),
   // `features`, del 3a (14-l): los interruptores de E2, que /health publica cuando los recibe.
@@ -423,6 +425,27 @@ describe('la web de ayer: lo que la API manda hoy pasa por sus esquemas', () => 
   it('el informe de la última carrera', async () => {
     const { report } = yesterdayLastRace.parse(await get('/api/riders/me/last-race'))
     expect(report?.stageDay).toBe(2)
+  })
+
+  /**
+   * LOS MOMENTOS DEL CORREDOR (§12.9, 12-k; paso 12): `report.moments`, las líneas del acta de la etapa
+   * en que sale el corredor del jugador. Va anidado en `report`, así que la web de ayer lo valida con
+   * `lastRaceResponseSchema.omit({ ready: true }).extend({ report: riderRaceReportSchema.omit({ moments:
+   * true }).nullable() })` (regla 8 de §14.7): los objetos son strip y lo descarta.
+   */
+  it('el informe de la última carrera, con los momentos del corredor, pasa por el esquema de ayer (12)', async () => {
+    const body = await get('/api/riders/me/last-race')
+    const today = lastRaceResponseSchema.parse(body).report
+    expect(Array.isArray(today?.moments)).toBe(true)
+    for (const e of today?.moments ?? []) {
+      const own = [...e.protagonists, ...Object.values(e.mentions ?? {})].some(
+        (r) => r.id === OWN_RIDER,
+      )
+      expect(own, e.plantilla).toBe(true)
+    }
+    const yesterday = yesterdayLastRace.parse(body).report
+    expect(yesterday?.stageDay).toBe(2)
+    expect(yesterday).not.toHaveProperty('moments')
   })
 
   it('los resultados del corredor', async () => {
