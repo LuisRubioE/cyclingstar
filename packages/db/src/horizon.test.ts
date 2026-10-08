@@ -8,7 +8,7 @@ import {
   type StageRef,
   type TimelineCast,
 } from '@cyclingstar/shared'
-import { sql } from 'drizzle-orm'
+import { not, sql } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import type { Database } from './client.js'
 import {
@@ -27,8 +27,10 @@ import {
   throughStage,
   touchLastSeen,
   veilCast,
+  veilSql,
   worldHorizon,
 } from './horizon.js'
+import { palmares, raceRosters, riderPoints, stageTeamResults } from './schema.js'
 import { type TestDb, startTestDb } from './testDb.js'
 import {
   LETTER_OF_MODE,
@@ -632,10 +634,132 @@ describe('B12 · la aritmética del horizonte (§10.14)', () => {
     expect(b!.at).toBe(a!.at)
   })
 
+  /**
+   * EL PREDICADO (§10.6, punto 3; D-32, 10-d; el caso de B12 de §10.14, paso 8a): `veilSql` es la ÚNICA
+   * forma de escribir el corte en SQL. Con el velo vacío, `false`; una fila con `stage_day` casa por su
+   * etapa (y el día de juego no cuenta); una vieja, de antes de la 0049 y con `stage_day` nulo, por su
+   * día de juego. Las dos firmas de 10-d: sin `stage_day` (el abandono, que guarda un día de juego) y
+   * sin día de juego (`stage_team_results`). Y `palmares`, cuya `race_id` va sin temporada.
+   */
+  it('el predicado: velo vacío, fila con stage_day y fila vieja con stage_day nulo (veilSql, 10-d)', async () => {
+    const g = (s: number): number => stageGameDay(OWN, s)
+    const h: Horizon = {
+      ...worldHorizon,
+      kind: 'viewer',
+      userId: PLAYER,
+      rev: '1.1',
+      veil: [3, 4].map((s) => ({ raceKey: OWN, stageDay: s, gameDay: g(s), reason: 'own_rider' })),
+    }
+    // rider_points: la clave CON temporada en race_id, y stage_day desde la 0049.
+    for (const [kind, raceKey, gameDay, stageDay] of [
+      ['nueva-velada', OWN, g(3), 3],
+      ['nueva-vista', OWN, g(2), 2],
+      ['vieja-velada', OWN, g(3), null],
+      ['vieja-vista', OWN, g(2), null],
+      ['otra-carrera', FOREIGN, g(3), 3],
+      ['manda-la-etapa', OWN, g(2), 4], // con stage_day, el día de juego no cuenta
+    ] as const)
+      await t.client`insert into rider_points (rider_id, game_day, points, race_id, kind, stage_day)
+                     values (${PLAYER_RIDER}, ${gameDay}, 1, ${raceKey}, ${kind}, ${stageDay})`
+    const puntos = async (hh: Horizon, velados: boolean): Promise<string[]> => {
+      const pred = veilSql(hh, riderPoints.raceId, riderPoints.gameDay, riderPoints.stageDay)
+      const rows = await t.db
+        .select({ kind: riderPoints.kind })
+        .from(riderPoints)
+        .where(velados ? pred : not(pred))
+      return rows.map((r) => r.kind).sort()
+    }
+    expect(await puntos(h, true)).toEqual(['manda-la-etapa', 'nueva-velada', 'vieja-velada'])
+    expect(await puntos(h, false)).toEqual(['nueva-vista', 'otra-carrera', 'vieja-vista'])
+    for (const vacio of [worldHorizon, anonHorizon()]) {
+      expect(await puntos(vacio, true)).toEqual([])
+      expect((await puntos(vacio, false)).length).toBe(6)
+    }
+    // Sin stage_day: el abandono guarda un día de juego (`race_rosters.abandoned_day`).
+    await t.client`update race_rosters set abandoned_day = ${g(4)}
+                   where race_id = ${OWN} and rider_id = ${TEAM_RIDER_OWN}`
+    const abandonos = await t.db
+      .select({ riderId: raceRosters.riderId })
+      .from(raceRosters)
+      .where(veilSql(h, raceRosters.raceId, raceRosters.abandonedDay))
+    expect(abandonos).toEqual([{ riderId: TEAM_RIDER_OWN }])
+    // Sin día de juego: stage_team_results va por su etapa.
+    const [team] = await t.client<{ id: string }[]>`select id from teams limit 1`
+    for (const s of [2, 3])
+      await t.client`insert into stage_team_results (race_id, stage_day, team_id) values (${OWN}, ${s}, ${team!.id})`
+    const deEquipo = await t.db
+      .select({ s: stageTeamResults.stageDay })
+      .from(stageTeamResults)
+      .where(veilSql(h, stageTeamResults.raceId, null, stageTeamResults.stageDay))
+    expect(deEquipo).toEqual([{ s: 3 }])
+    // palmares: race_id SIN temporada, que va en `season`; la clave se compone en SQL (§10.6).
+    for (const [detail, stageDay] of [
+      ['Stage 3', 3],
+      ['Stage 2', 2],
+      ['vieja', null],
+    ] as const)
+      await t.client`insert into palmares (world_id, rider_id, season, race_id, race_name, kind, detail, game_day, stage_day)
+                     values (${worldId}, ${PLAYER_RIDER}, 0, 'race-catalonia', 'Catalonia', 'stage', ${detail},
+                             ${stageDay === null ? g(4) : g(stageDay)}, ${stageDay})`
+    const honores = await t.db
+      .select({ d: palmares.detail })
+      .from(palmares)
+      .where(
+        veilSql(
+          h,
+          sql`${palmares.raceId} || ':s' || ${palmares.season}`,
+          palmares.gameDay,
+          palmares.stageDay,
+        ),
+      )
+    expect(honores.map((r) => r.d).sort()).toEqual(['Stage 3', 'vieja'])
+    await t.client`delete from rider_points`
+    await t.client`delete from palmares`
+    await t.client`delete from stage_team_results`
+    await t.client`update race_rosters set abandoned_day = null`
+  })
+
+  /**
+   * LAS LISTAS DEL VELO, CADA UNA UN PARÁMETRO (10-d). Una lista tal cual dentro de `sql`, drizzle-orm
+   * 0.45.2 la expande a `($1, $2)` y el `::text[]` falla («Failed query», medido en PGlite y con
+   * postgres-js); con `sql.param` sale `$1::text[]`. Con una sola etapa también: es el caso en que la
+   * expansión no se nota hasta que llega la segunda.
+   */
+  it('veilSql enlaza cada lista del velo como UN parámetro de tipo array; con el velo vacío, false', async () => {
+    const dialect = (
+      t.db as unknown as {
+        dialect: { sqlToQuery(s: unknown): { sql: string; params: unknown[] } }
+      }
+    ).dialect
+    const de = (veil: readonly VeiledStage[]): Horizon => ({ ...worldHorizon, veil })
+    const una = de([{ raceKey: OWN, stageDay: 3, gameDay: 85, reason: 'follow' }])
+    const dos = de([...una.veil, { raceKey: HALF, stageDay: 2, gameDay: 20, reason: 'follow' }])
+    for (const [hh, n] of [
+      [una, 1],
+      [dos, 2],
+    ] as const) {
+      const q = dialect.sqlToQuery(
+        veilSql(hh, riderPoints.raceId, riderPoints.gameDay, riderPoints.stageDay),
+      )
+      expect(q.sql).toMatch(/unnest\(\$1::text\[\], \$2::int\[\], \$3::int\[\]\) as w\(k, d, s\)/)
+      expect(q.params).toHaveLength(3)
+      expect(q.params.every((p) => Array.isArray(p) && p.length === n)).toBe(true)
+      // y corre: la consulta no falla
+      await expect(
+        t.db
+          .select({ id: riderPoints.id })
+          .from(riderPoints)
+          .where(veilSql(hh, riderPoints.raceId, riderPoints.gameDay, riderPoints.stageDay)),
+      ).resolves.toEqual([])
+    }
+    expect(
+      dialect.sqlToQuery(
+        veilSql(worldHorizon, riderPoints.raceId, riderPoints.gameDay, riderPoints.stageDay),
+      ),
+    ).toEqual({ sql: 'false', params: [] })
+  })
+
   /** Lo que §10.14 pone en otros PR, aquí para que encenderlo sea quitar el `todo` (regla 1 de §17.1). */
-  it.todo(
-    'el predicado (8a): velo vacío, fila con stage_day y fila vieja con stage_day nulo; con veilSql',
-  )
   it.todo(
     'la retirada voluntaria en el día de una etapa velada no entra en VeilDelta.abandons (8b, 10-i)',
   )
