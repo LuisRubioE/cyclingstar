@@ -11,8 +11,18 @@ import { type TestDb, startTestDb } from '@cyclingstar/db/test'
 import { SEASON_CALENDAR } from '@cyclingstar/engine'
 import { STAGE_KIND_WORDS, pageTitle } from '@cyclingstar/shared'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { buildApp } from './app.js'
-import { SHELL_PATH, injectShellMeta, preStageInfoFor, shellMetaFor } from './spaShell.js'
+import { type AppDeps, buildApp } from './app.js'
+import {
+  SHELL_PATH,
+  STAGE_PAGE_SRC,
+  type ViteManifest,
+  injectShellMeta,
+  injectShellPreloads,
+  preStageInfoFor,
+  shellMetaFor,
+  stagePageModules,
+  stagePagePreloads,
+} from './spaShell.js'
 
 /**
  * EL FALLBACK DE LA SPA CON SU TÍTULO Y SUS `og:` (E2, docs/retransmision.md §11.8, §11.10 y §14.10;
@@ -99,6 +109,140 @@ describe('injectShellMeta: el título y las og:, escapados', () => {
     const html = injectShellMeta('<html><head></head><body></body></html>', meta)
     expect(html).toContain('<title>Stage 7 · Race France · Cycling Star</title>')
     expect(html.indexOf('<title>')).toBeLessThan(html.indexOf('</head>'))
+  })
+})
+
+/**
+ * LA PÁGINA DE ETAPA PRECARGA CON EL HTML (E2, paso 10b, los arreglos; docs/retransmision.md §18.5,
+ * D-56: la primera pintura de `Watch` en ≤ 2 s con «Fast 4G» y la CPU a ×4). En una carga en frío la
+ * página de etapa era una cadena: la web, sus ficheros, `/health`, el horizonte, la ficha, la cabecera.
+ * El fallback, que ya sabe que es una etapa, pone en su HTML lo que la página va a pedir de todos modos:
+ * sus ficheros JS (del manifiesto de Vite) y, con `Watch` encendido para quien pide, el horizonte (con el
+ * velo), la ficha y la cabecera, con las URL exactas que pide la web. Así salen con el HTML, a la vez que
+ * el resto, en lugar de uno detrás de otro. Con `Watch` apagado para quien pide, nada: el HTML de siempre.
+ */
+describe('stagePageModules: los ficheros de la página de etapa, del manifiesto de Vite', () => {
+  /** Un manifiesto como el de `vite build --manifest`: claves de fuente o de trozo, `imports` estáticos. */
+  const manifest: ViteManifest = {
+    'index.html': { file: 'assets/index-a.js', imports: ['_react-b.js', '_query-c.js'] },
+    '_react-b.js': { file: 'assets/react-b.js' },
+    '_query-c.js': { file: 'assets/query-c.js', imports: ['_react-b.js'] },
+    [STAGE_PAGE_SRC]: {
+      file: 'assets/StageReplay-d.js',
+      imports: ['index.html', '_react-b.js', 'src/pages/StageWatch.tsx', '_Flag-e.js'],
+    },
+    'src/pages/StageWatch.tsx': {
+      file: 'assets/StageWatch-f.js',
+      imports: ['_Flag-e.js', '_g.js'],
+    },
+    '_Flag-e.js': { file: 'assets/Flag-e.js', imports: ['_query-c.js'] },
+    '_g.js': { file: 'assets/g.js' },
+    'src/pages/Home.tsx': { file: 'assets/Home-h.js', imports: ['_Flag-e.js'] },
+  }
+
+  it('el cierre de la página por sus importaciones estáticas, sin lo que ya carga el índice, en su orden', () => {
+    expect(stagePageModules(manifest)).toEqual([
+      '/assets/StageReplay-d.js',
+      '/assets/StageWatch-f.js',
+      '/assets/Flag-e.js',
+      '/assets/g.js',
+    ])
+  })
+
+  it('sin la página en el manifiesto (otra web, o sin compilar), nada', () => {
+    expect(stagePageModules({ 'index.html': { file: 'assets/index-a.js' } })).toEqual([])
+    expect(stagePageModules({})).toEqual([])
+  })
+})
+
+describe('stagePagePreloads: lo que la página de etapa precarga con el HTML', () => {
+  const MODULES = ['/assets/StageReplay-d.js', '/assets/StageWatch-f.js']
+  const on = (watch: boolean, veil: boolean) => ({
+    watch: () => Promise.resolve(watch),
+    veil: () => Promise.resolve(veil),
+  })
+  const never = {
+    watch: (): Promise<boolean> => {
+      throw new Error('fuera de la página de etapa no se pregunta por quien pide')
+    },
+    veil: (): Promise<boolean> => {
+      throw new Error('fuera de la página de etapa no se pregunta por quien pide')
+    },
+  }
+
+  it('con Watch y el velo para quien pide: el horizonte, la ficha, la cabecera y los ficheros', async () => {
+    expect(
+      await stagePagePreloads(url('/world/races/race-france/stages/7'), on(true, true), MODULES),
+    ).toEqual({
+      fetches: [
+        '/api/me/horizon',
+        '/api/races/race-france/stages/7',
+        '/api/races/race-france/stages/7/broadcast',
+      ],
+      modules: MODULES,
+    })
+  })
+
+  it('sin el velo para quien pide, sin el horizonte: la web no lo pide', async () => {
+    const p = await stagePagePreloads(url('/races/race-france/stages/07'), on(true, false), MODULES)
+    expect(p.fetches).toEqual([
+      '/api/races/race-france/stages/7',
+      '/api/races/race-france/stages/7/broadcast',
+    ])
+    expect(p.modules).toEqual(MODULES)
+  })
+
+  it('sin Watch para quien pide, nada: el HTML de siempre', async () => {
+    for (const veil of [true, false])
+      expect(
+        await stagePagePreloads(url('/world/races/race-france/stages/7'), on(false, veil), MODULES),
+      ).toEqual({ fetches: [], modules: [] })
+  })
+
+  it('en el modo diagnóstico, los ficheros y ninguna petición (la web las pide con ?diag=1)', async () => {
+    expect(
+      await stagePagePreloads(
+        url('/world/races/race-france/stages/7?diag=1'),
+        on(true, true),
+        MODULES,
+      ),
+    ).toEqual({ fetches: [], modules: MODULES })
+  })
+
+  it('la ficha de carrera, el acta y lo que no es una etapa: nada, sin preguntar por quien pide', async () => {
+    for (const path of [
+      '/world/races/race-france',
+      '/world/races/race-france/stages/7/report',
+      '/world/teams',
+    ])
+      expect(await stagePagePreloads(url(path), never, MODULES), path).toEqual({
+        fetches: [],
+        modules: [],
+      })
+  })
+})
+
+describe('injectShellPreloads: las precargas, delante de </head>', () => {
+  it('las peticiones como fetch anónimo (el fetch de la web es same-origin) y los ficheros como módulos', () => {
+    const html = injectShellPreloads(SHELL, {
+      fetches: ['/api/me/horizon'],
+      modules: ['/assets/StageReplay-d.js'],
+    })
+    expect(html).toContain(
+      '<link rel="preload" href="/api/me/horizon" as="fetch" crossorigin="anonymous" />',
+    )
+    expect(html).toContain(
+      '<link rel="modulepreload" crossorigin href="/assets/StageReplay-d.js" />',
+    )
+    expect(html.indexOf('modulepreload')).toBeLessThan(html.indexOf('</head>'))
+    // las peticiones antes que los ficheros: llegan antes de que la página las pida
+    expect(html.indexOf('/api/me/horizon')).toBeLessThan(html.indexOf('modulepreload'))
+  })
+
+  it('sin nada que precargar, el HTML tal cual; y las URL, escapadas', () => {
+    expect(injectShellPreloads(SHELL, { fetches: [], modules: [] })).toBe(SHELL)
+    const html = injectShellPreloads(SHELL, { fetches: ['/a?b=1&c="2"'], modules: [] })
+    expect(html).toContain('href="/a?b=1&amp;c=&quot;2&quot;"')
   })
 })
 
@@ -301,6 +445,72 @@ describe('shellMetaFor y el fallback de la SPA, sobre un mundo mínimo (§14.10)
       expect(api.json()).toEqual({ ok: false, error: 'no_encontrado' })
     } finally {
       await app.close()
+    }
+  })
+
+  it('la página de etapa precarga con Watch encendido para quien pide; con off o admins sin serlo, nada', async () => {
+    const manifest: ViteManifest = {
+      'index.html': { file: 'assets/index-a.js', imports: ['_react-b.js'] },
+      '_react-b.js': { file: 'assets/react-b.js' },
+      [STAGE_PAGE_SRC]: { file: 'assets/StageReplay-d.js', imports: ['index.html', '_Flag-e.js'] },
+      '_Flag-e.js': { file: 'assets/Flag-e.js', imports: ['_react-b.js'] },
+    }
+    // la sesión, del encabezado `x-test-user` (como routes/broadcast.test.ts): el jugador no es administrador
+    const auth = {
+      api: {
+        getSession: async ({ headers }: { headers: Headers }) => {
+          const id = headers.get('x-test-user')
+          return id ? { user: { id } } : null
+        },
+      },
+      handler: async () => new Response('{}', { status: 200 }),
+    } as unknown as NonNullable<AppDeps['auth']>
+    const stage = `/world/races/${RACE_ID}/stages/7`
+    const at = async (
+      broadcastWatch: 'off' | 'admins' | 'on',
+      spoilerMode: 'off' | 'admins' | 'on',
+    ): Promise<string> => {
+      const app = buildApp({
+        db: t.db,
+        auth,
+        serveWeb: true,
+        webIndexHtml: SHELL,
+        webManifest: manifest,
+        migrationsApplied: true,
+        tickIntervalMinutes: 360,
+        switches: { broadcastWatch, spoilerMode },
+      })
+      try {
+        const res = await app.inject({
+          method: 'GET',
+          url: stage,
+          headers: { 'x-test-user': idDe(900) },
+        })
+        expect(res.statusCode).toBe(200)
+        return res.body
+      } finally {
+        await app.close()
+      }
+    }
+    const on = await at('on', 'on')
+    for (const href of [
+      '/api/me/horizon',
+      `/api/races/${RACE_ID}/stages/7`,
+      `/api/races/${RACE_ID}/stages/7/broadcast`,
+    ])
+      expect(on).toContain(
+        `<link rel="preload" href="${href}" as="fetch" crossorigin="anonymous" />`,
+      )
+    expect(on).toContain('<link rel="modulepreload" crossorigin href="/assets/StageReplay-d.js" />')
+    expect(on).toContain('<link rel="modulepreload" crossorigin href="/assets/Flag-e.js" />')
+    expect(on).not.toContain('/assets/react-b.js')
+    // con el velo apagado, sin el horizonte
+    expect(await at('on', 'off')).not.toContain('/api/me/horizon')
+    // Watch apagado, o en admins para un jugador: el HTML de siempre, con su título
+    for (const html of [await at('off', 'on'), await at('admins', 'on')]) {
+      expect(html).not.toContain('rel="preload"')
+      expect(html).not.toContain('modulepreload')
+      expect(html).toContain(`<title>Stage 7 · ${RACE.name} · Cycling Star</title>`)
     }
   })
 })

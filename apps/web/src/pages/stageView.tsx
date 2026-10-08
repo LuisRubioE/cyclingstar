@@ -233,6 +233,33 @@ export interface StageFacts {
   readonly gameDay: number | null | undefined
 }
 
+/** Lo que la página de etapa sabe de la ficha para decidir la cabecera (`stageHeadQuery`). */
+interface StageCard {
+  readonly run: boolean
+  readonly race?: { readonly stageCount: number } | null | undefined
+}
+
+/**
+ * LA CABECERA DE `Watch` (`GET …/broadcast`; E2, paso 10b, los arreglos, §18.5): si la página la quiere (`wants`: con la ficha, la etapa se
+ * ha corrido y es de una carrera por etapas, o la pide la ficha de una carrera de un día, que es donde vive
+ * su `Watch`, §11.17) y si se pide ya (`fetch`). Mientras la ficha no ha llegado, se pide A LA VEZ que ella
+ * si `Watch` está encendido para quien mira: iban una detrás de otra, y eran un viaje entero de la primera
+ * pintura. Pedirla antes de saber solo cuesta una petición de más en dos casos raros (una etapa sin correr,
+ * que da 404, y la página de etapa de una carrera de un día, que redirige a su ficha, que la reutiliza), y
+ * con `Watch` apagado no cambia nada: no se pide, como antes.
+ */
+export function stageHeadQuery(f: {
+  readonly watchOn: boolean
+  readonly enabled: boolean
+  readonly oneDay: boolean
+  readonly data: StageCard | undefined
+}): { readonly wants: boolean; readonly fetch: boolean } {
+  if (!f.watchOn) return { wants: false, fetch: false }
+  const wants =
+    f.data !== undefined && f.data.run && (f.oneDay || (f.data.race?.stageCount ?? 0) !== 1)
+  return { wants, fetch: wants || (f.enabled && f.data === undefined) }
+}
+
 /**
  * `enabled`: pedir ya la ficha (la de una carrera de un día con `Watch` apagado no se pide hasta que se
  * abre una pestaña que la enseña, como hoy). `oneDay`: la cabecera de `Watch` también para una carrera
@@ -262,12 +289,19 @@ export function useStageFacts(
   const sw = useWatchOn(diag || dataGate !== null)
   const run = data?.run === true
   const isOneDay = (data?.race?.stageCount ?? 0) === 1
-  // `Watch` de una carrera de un día vive en su ficha de carrera desde el 9b (§11.17)
-  const wantsHead = sw.watchOn && run && (opts.oneDay === true || !isOneDay)
+  // `Watch` de una carrera de un día vive en su ficha de carrera desde el 9b (§11.17); y la cabecera sale a la
+  // vez que la ficha, no detrás de ella, si `Watch` está encendido para quien mira (10b, §18.5)
+  const headQuery = stageHeadQuery({
+    watchOn: sw.watchOn,
+    enabled,
+    oneDay: opts.oneDay === true,
+    data,
+  })
+  const wantsHead = headQuery.wants
   const broadcastHead = useQuery({
     queryKey: broadcastHeadKey(raceId, day, undefined, diag, rev),
     queryFn: () => fetchBroadcastHead(raceId, day, undefined, { diag }),
-    enabled: wantsHead && rev !== undefined,
+    enabled: headQuery.fetch && rev !== undefined,
     placeholderData: keepPreviousData,
   })
   const watchable = wantsHead && broadcastHead.isSuccess

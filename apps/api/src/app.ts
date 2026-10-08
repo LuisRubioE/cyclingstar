@@ -32,7 +32,15 @@ import { riderRoutes } from './routes/riders.js'
 import { teamRoutes } from './routes/teams.js'
 import { worldRoutes } from './routes/world.js'
 import { GLOBAL_RATE_LIMIT, createAdminGuard } from './security.js'
-import { injectShellMeta, shellMetaFor } from './spaShell.js'
+import {
+  type ViteManifest,
+  injectShellMeta,
+  injectShellPreloads,
+  shellMetaFor,
+  stagePageModules,
+  stagePagePreloads,
+  viteManifestSchema,
+} from './spaShell.js'
 import { registerSpoilerGuard } from './spoiler.js'
 
 export interface AppDeps {
@@ -81,6 +89,12 @@ export interface AppDeps {
    * construir la app.
    */
   webIndexHtml?: string
+  /**
+   * El manifiesto de Vite de la web (E2, paso 10b, los arreglos; §18.5): de él salen los ficheros que la
+   * página de etapa precarga con su HTML (`stagePageModules`). Lo pasan los tests; sin él, el de
+   * `apps/web/dist/.vite/manifest.json`, leído una vez al construir la app (sin manifiesto, ninguno).
+   */
+  webManifest?: ViteManifest
   /** La carpeta de la web compilada. Lo pasan los tests; sin él, `apps/web/dist`. */
   webRoot?: string
 }
@@ -92,6 +106,18 @@ const defaultWebRoot = fileURLToPath(new URL('../../web/dist', import.meta.url))
 function readWebIndexHtml(webRoot: string): string | null {
   try {
     return readFileSync(join(webRoot, 'index.html'), 'utf8')
+  } catch {
+    return null
+  }
+}
+
+/** El manifiesto de Vite de la web compilada, validado, o null si no está o no vale (sin precargas). */
+function readWebManifest(webRoot: string): ViteManifest | null {
+  try {
+    const parsed = viteManifestSchema.safeParse(
+      JSON.parse(readFileSync(join(webRoot, '.vite', 'manifest.json'), 'utf8')),
+    )
+    return parsed.success ? parsed.data : null
   } catch {
     return null
   }
@@ -307,9 +333,18 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
   const webRoot = deps.webRoot ?? defaultWebRoot
   const serveWeb = deps.serveWeb ?? existsSync(join(webRoot, 'index.html'))
   if (serveWeb) {
-    void app.register(fastifyStatic, { root: webRoot, setHeaders: webCacheHeaders(webRoot) })
+    // Sin los ficheros con punto: `.vite/manifest.json` es de la API (lo que precarga la etapa, 10b) y no
+    // de los navegadores; con `ignore`, esa ruta acaba en el fallback de la SPA, como cualquier otra.
+    void app.register(fastifyStatic, {
+      root: webRoot,
+      setHeaders: webCacheHeaders(webRoot),
+      dotfiles: 'ignore',
+    })
     // El index.html, una vez: el fallback le pone el título y las `og:` de una carrera o de una etapa.
     const shellHtml = deps.webIndexHtml ?? readWebIndexHtml(webRoot)
+    // Y los ficheros de la página de etapa, una vez, del manifiesto: los precarga su HTML (10b, §18.5).
+    const manifest = deps.webManifest ?? readWebManifest(webRoot)
+    const stageModules = manifest === null ? [] : stagePageModules(manifest)
     app.setNotFoundHandler(async (request, reply) => {
       const isApiPath = request.url.startsWith('/api') || request.url.startsWith('/health')
       if (request.method === 'GET' && !isApiPath) {
@@ -321,12 +356,20 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
           try {
             const url = new URL(request.url, 'http://localhost')
             const meta = await shellMetaFor(db, () => request.horizon(), url)
-            if (meta !== null)
+            if (meta !== null) {
+              // LA PÁGINA DE ETAPA PRECARGA (10b, §18.5): sus ficheros y las peticiones de la primera
+              // pintura de `Watch` salen con el HTML, si `Watch` está encendido para quien pide.
+              const preloads = await stagePagePreloads(
+                url,
+                { watch: () => request.broadcastOn(), veil: () => request.spoilerApplies() },
+                stageModules,
+              )
               return reply
                 .header('cache-control', 'private, no-store')
                 .header('vary', 'Cookie')
                 .type('text/html; charset=utf-8')
-                .send(injectShellMeta(shellHtml, meta))
+                .send(injectShellPreloads(injectShellMeta(shellHtml, meta), preloads))
+            }
           } catch (err) {
             request.log.warn({ err }, 'spaShell: el index sin título propio')
           }

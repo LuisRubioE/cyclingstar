@@ -4,6 +4,7 @@ import { BottomNav } from './components/BottomNav'
 import { Header } from './components/Header'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { SessionExpiryWatcher } from './components/SessionExpiryWatcher'
+import { isStagePagePath } from './domain/firstPaint'
 import { pageKindOfPath, usePageTitle } from './domain/pageTitle'
 import type { PageKind } from '@cyclingstar/shared'
 
@@ -59,9 +60,8 @@ const ResetPassword = lazy(() =>
 const RiderProfile = lazy(() =>
   import('./pages/RiderProfile').then((m) => ({ default: m.RiderProfile })),
 )
-const StageReplay = lazy(() =>
-  import('./pages/StageReplay').then((m) => ({ default: m.StageReplay })),
-)
+const loadStageReplay = () => import('./pages/StageReplay')
+const StageReplay = lazy(() => loadStageReplay().then((m) => ({ default: m.StageReplay })))
 const StageReportPage = lazy(() =>
   import('./pages/StageReport').then((m) => ({ default: m.StageReportPage })),
 )
@@ -78,6 +78,16 @@ const Training = lazy(() => import('./pages/Training').then((m) => ({ default: m
 const VerifyEmail = lazy(() =>
   import('./pages/VerifyEmail').then((m) => ({ default: m.VerifyEmail })),
 )
+
+/**
+ * LA PÁGINA DE ETAPA SE PIDE YA (E2, paso 10b, los arreglos; docs/retransmision.md §18.5): si la carga es la
+ * de una etapa, sus ficheros salen al evaluarse este módulo, con el resto de la web, y no en el primer render,
+ * un viaje más tarde. Es la misma importación que la de su ruta (el navegador la hace una vez); en cualquier
+ * otra página no se pide nada.
+ */
+if (typeof window !== 'undefined' && isStagePagePath(window.location.pathname))
+  // si falla, lo dice la ruta al pedirla otra vez (su `ErrorBoundary`); aquí no hay a quién decírselo
+  loadStageReplay().catch(() => undefined)
 
 /**
  * Redirección de una ruta vieja a su sitio nuevo, conservando parámetros, query y ancla.

@@ -5,6 +5,12 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Cycling Star</title>
+    <!--
+      /health sale con el HTML (E2, paso 10b; docs/retransmision.md §18.5): toda página lo pide al montar,
+      y con él los interruptores de los que cuelga el resto de la carga. El fetch de la web es same-origin,
+      así que la precarga es crossorigin anónima: con otro modo de credenciales el navegador no la casa.
+    -->
+    <link rel="preload" href="/health" as="fetch" crossorigin="anonymous" />
   </head>
   <body>
     <div id="root"></div>
