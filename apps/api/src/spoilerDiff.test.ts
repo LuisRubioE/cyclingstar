@@ -1,9 +1,13 @@
+import { clearHorizonCaches } from '@cyclingstar/db'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   B1B_SKIP,
   B1B_VEIL,
   B1B_WHITELIST,
   PENDING_ROUTES,
+  RACE_ID,
+  RACE_KEY,
+  VEILED,
   type SpoilerWorld,
   type Swept,
   pendingFor,
@@ -24,8 +28,9 @@ import {
  * (`B1B_WHITELIST` y `B1B_VEIL`): ninguna clave puede cambiar fuera de ellas, ni aunque el cambio parezca
  * inocente. El diferencial caza lo que no es un valor: que exista una fila, que un aviso cuente una
  * etapa de más, que una lista cambie de orden. Desde el 8a, cuando las rutas tienen clase, cada ruta de
- * la lista blanca es además `L` en el registro, con su motivo (16-o); queda el de las dos cuentas
- * (§11.14, 8b).
+ * la lista blanca es además `L` en el registro, con su motivo (16-o); desde el 8b, con `PENDING_ROUTES`
+ * vacía, ninguna ruta cambia fuera de las dos tablas, y otra cuenta que ve y revela la etapa no cambia
+ * un byte de lo que recibe la primera (§11.14).
  */
 
 const pathsOf = (key: string): readonly string[] => [
@@ -78,9 +83,50 @@ describe('B1b · correr la etapa no cambia un byte para quien no la ha visto', (
     })
     expect(sinL).toEqual([])
   })
-  it.todo(
-    '8b (§11.14, §11.19): otra cuenta que ve y revela la etapa no cambia un byte de lo que recibe la primera',
-  )
+  /**
+   * B1b CON DOS CUENTAS (§11.14, punto 3, y §11.19; 8b). Lo visto es privado: una segunda cuenta revela
+   * la etapa 2 (y con ella, por arrastre, la 1), ve la 3 hasta la meta y la revela, y el barrido de la
+   * primera no cambia un byte respecto del de antes. Con las cachés del horizonte vaciadas antes de
+   * barrer, para que todo se recalcule de la base: con un memo vivo, un `userId` mal pasado en una sola
+   * función de `packages/db` pasaría sin verse.
+   */
+  it('§11.14: otra cuenta que ve la etapa entera y la revela no cambia un byte de lo que recibe la primera', async () => {
+    const other = await w.signUp('otra@example.com')
+    const act = (method: 'POST', url: string, payload: unknown) =>
+      w.app.inject({
+        method,
+        url,
+        headers: { cookie: other.cookie, 'content-type': 'application/json' },
+        payload: JSON.stringify(payload),
+      })
+    // La 3 tiene delante dos etapas de cabecera (`race-france`) que la otra cuenta no conoce: sin
+    // revelar la 2, la meta de la 3 sería la puerta `previous_unseen` y no escribiría nada.
+    expect((await act('POST', `/api/me/reveal/${RACE_KEY}/2`, {})).statusCode).toBe(200)
+    const progress = await act('POST', `/api/me/watch/${RACE_KEY}/${VEILED}`, {
+      reachedS: 600,
+      mode: 'play',
+    })
+    expect(progress.statusCode).toBe(200)
+    const finish = await act('POST', `/api/races/${RACE_ID}/stages/${VEILED}/broadcast/finish`, {
+      mode: 'play',
+    })
+    expect(finish.statusCode).toBe(200)
+    expect((await act('POST', `/api/me/reveal/${RACE_KEY}/${VEILED}`, {})).statusCode).toBe(200)
+    // No es vacío: la otra cuenta conoce ya la 3, vista en directo.
+    const [row] = await w.t.client<{ known_through: number; how: string }[]>`
+      select known_through, how from race_watch where user_id = ${other.userId}`
+    expect(row).toEqual({ known_through: VEILED, how: 'ARW' })
+
+    clearHorizonCaches()
+    const again = await sweep(w, 'player', B1B_SKIP)
+    expect(serverErrors(again)).toEqual([])
+    expect([...again.keys()]).toEqual([...after.keys()])
+    const changed = [...after.keys()].filter((k) => {
+      const [x, y] = [after.get(k)!, again.get(k)!]
+      return x.status !== y.status || x.body !== y.body
+    })
+    expect(changed).toEqual([])
+  })
 
   it('no es vacío: con la etapa vista, diez rutas o más cambian respecto del barrido de antes', async () => {
     await w.reveal() // el último: deja la etapa conocida

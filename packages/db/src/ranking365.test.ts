@@ -1,10 +1,21 @@
-import { DAYS_PER_SEASON, birthSeasonForAge } from '@cyclingstar/shared'
+import { DAYS_PER_SEASON, birthSeasonForAge, seededRng } from '@cyclingstar/shared'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { RANKING_WINDOW_DAYS, addSeasonPointsBatch, getRanking } from './ranking.js'
+import { getFreeAgents } from './browse.js'
+import { type Horizon, clearHorizonCaches, worldHorizon } from './horizon.js'
+import {
+  RANKING_WINDOW_DAYS,
+  addSeasonPointsBatch,
+  byPointsThenId,
+  compareIds,
+  getRanking,
+  getSeasonAwards,
+  getYoungRiders,
+  topAtHorizon,
+} from './ranking.js'
+import { getSeasonRank } from './riders.js'
 import { riderPoints, riders, worlds } from './schema.js'
 import { type TestDb, startTestDb } from './testDb.js'
-import { worldHorizon } from './horizon.js'
 
 /**
  * EL RANKING A 365 DÍAS RODANTES (docs/epics.md «G3»), contra Postgres real (PGlite).
@@ -140,5 +151,172 @@ describe('db: el ranking suma los últimos 365 días de juego', () => {
     expect(`${filas[0]?.gameDay} ${filas[0]?.raceId} ${filas[0]?.kind}`).toBe(
       `${HOY - 30} race-x:s5 stage`,
     )
+  })
+})
+
+/**
+ * EL RECORTE DE 11-f (docs/retransmision.md §11.5 y §11.19; paso 8b): una lista con tope a horizonte pide
+ * `limit + d` filas del orden real, con `d` los corredores con puntos velados, resta, reordena y corta, y
+ * da lo mismo que restar a todos y reordenar la lista entera. Con puntos y restas al azar (semilla fija,
+ * 500 casos) y empates de sobra, para que el desempate por id cuente. No es vacío: pedir solo `limit`
+ * filas se equivoca en muchos de los mismos casos.
+ */
+describe('el recorte de 11-f: pedir limit + d basta (500 casos con semilla fija)', () => {
+  it('los limit primeros tras pedir limit + d coinciden con los del recálculo entero', () => {
+    const rng = seededRng('ranking365:11-f')
+    const int = (n: number): number => Math.floor(rng() * n)
+    let soloLimitSeEquivoca = 0
+    for (let c = 0; c < 500; c++) {
+      const n = 1 + int(80)
+      const limit = 1 + int(25)
+      // ids en un orden que no es el de creación, y puntos de 0 a 39: muchos empates
+      const real = Array.from({ length: n }, (_, i) => ({
+        riderId: `${String(int(1_000_000)).padStart(7, '0')}-${i}`,
+        points: int(40),
+      })).sort(byPointsThenId)
+      const minus = new Map<string, number>()
+      for (const r of real) if (r.points > 0 && rng() < 0.3) minus.set(r.riderId, 1 + int(r.points))
+      const adjust = (r: { riderId: string; points: number }) => ({
+        ...r,
+        points: r.points - (minus.get(r.riderId) ?? 0),
+      })
+      const entero = topAtHorizon(real, adjust, byPointsThenId, limit)
+      expect(
+        topAtHorizon(real.slice(0, limit + minus.size), adjust, byPointsThenId, limit),
+      ).toEqual(entero)
+      const corto = topAtHorizon(real.slice(0, limit), adjust, byPointsThenId, limit)
+      if (JSON.stringify(corto) !== JSON.stringify(entero)) soloLimitSeEquivoca += 1
+    }
+    expect(soloLimitSeEquivoca).toBeGreaterThan(50)
+  })
+})
+
+/**
+ * R EN LAS LISTAS DE PUNTOS (docs/retransmision.md §10.6 y §11.5; sups. W1, W2, P1 y X4; paso 8b), sobre
+ * PGlite: el ranking a 365 días, los jóvenes, los agentes libres, los premios del año y el puesto de un
+ * corredor, a horizonte. Cinco corredores sin equipo de la temporada 5; la etapa 3 de `race-a` (diez
+ * días antes de hoy) está velada: le dio 50 puntos a A y 5 a C. A horizonte, B y C empatan a 40 y los
+ * desempata el id; A se queda sin puntos y cae con los de cero.
+ */
+describe('R: las listas de puntos a horizonte (8b)', () => {
+  const HOY_R = DAYS_PER_SEASON * 5 + 100
+  const VELADA = 'race-a:s5'
+  const h: Horizon = {
+    ...worldHorizon,
+    kind: 'viewer',
+    userId: '00000000-0000-4000-8000-000000000777',
+    rev: `${HOY_R}.1`,
+    knownThrough: new Map([[VELADA, 2]]),
+    veil: [{ raceKey: VELADA, stageDay: 3, gameDay: HOY_R - 10, reason: 'follow' }],
+  }
+  let t: TestDb
+  let worldId = ''
+  const ids: Record<'A' | 'B' | 'C' | 'D' | 'E', string> = { A: '', B: '', C: '', D: '', E: '' }
+  /** PGlite admite UNA sesión (`testDb.ts`) y los premios del año piden sus cuatro categorías a la vez. */
+  const poolBefore = process.env.DB_POOL_MAX
+
+  beforeAll(async () => {
+    process.env.DB_POOL_MAX = '1'
+    t = await startTestDb()
+    clearHorizonCaches()
+    const [world] = await t.db
+      .insert(worlds)
+      .values({ worldSeed: 'semilla-r', engineVersion: 1 })
+      .returning({ id: worlds.id })
+    worldId = world!.id
+    for (const [name, age] of [
+      ['A', 21],
+      ['B', 27],
+      ['C', 27],
+      ['D', 22],
+      ['E', 22],
+    ] as const) {
+      const [r] = await t.db
+        .insert(riders)
+        .values({
+          worldId,
+          name: `Corredor ${name}`,
+          country: 'ES',
+          gender: 'M' as const,
+          birthSeason: birthSeasonForAge(age, 5),
+          archetype: 'escalada' as const,
+          faceSeed: `cara-${name}`,
+        })
+        .returning({ id: riders.id })
+      ids[name] = r!.id
+    }
+    const puntuar = async (
+      riderId: string,
+      points: number,
+      gameDay: number,
+      raceId: string,
+      stageDay: number,
+    ): Promise<void> => {
+      await t.db.transaction(async (tx) => {
+        await addSeasonPointsBatch(tx as never, [{ riderId, points }], {
+          gameDay,
+          raceId,
+          kind: 'stage',
+          stageDay,
+        })
+      })
+    }
+    await puntuar(ids.A, 50, HOY_R - 10, VELADA, 3)
+    await puntuar(ids.B, 40, HOY_R - 20, 'race-b:s5', 1)
+    await puntuar(ids.C, 40, HOY_R - 20, 'race-b:s5', 1)
+    await puntuar(ids.C, 5, HOY_R - 10, VELADA, 3)
+    await puntuar(ids.D, 10, HOY_R - 5, 'race-c:s5', 2)
+  }, 180_000)
+
+  afterAll(async () => {
+    await t?.close()
+    if (poolBefore === undefined) delete process.env.DB_POOL_MAX
+    else process.env.DB_POOL_MAX = poolBefore
+  })
+
+  const empate = (): string[] => [ids.B, ids.C].sort(compareIds)
+
+  it('el ranking: el del mundo, y a horizonte sin la etapa velada, reordenado y con los de cero por id', async () => {
+    const mundo = await getRanking(t.db, worldHorizon, worldId, HOY_R)
+    expect(mundo.map((r) => [r.riderId, r.points])).toEqual([
+      [ids.A, 50],
+      [ids.C, 45],
+      [ids.B, 40],
+      [ids.D, 10],
+      [ids.E, 0],
+    ])
+    const velado = await getRanking(t.db, h, worldId, HOY_R)
+    expect(velado.map((r) => [r.riderId, r.points])).toEqual([
+      ...empate().map((id) => [id, 40]),
+      [ids.D, 10],
+      ...[ids.A, ids.E].sort(compareIds).map((id) => [id, 0]),
+    ])
+    // Con tope: el de 2 pide 2 + d (A y C tienen puntos velados), y no los dos primeros de verdad.
+    expect((await getRanking(t.db, h, worldId, HOY_R, 2)).map((r) => r.riderId)).toEqual(empate())
+  })
+
+  it('los jóvenes, los agentes libres y los premios del año, a horizonte', async () => {
+    expect((await getYoungRiders(t.db, h, worldId, 5)).map((r) => [r.riderId, r.points])).toEqual([
+      [ids.D, 10],
+      ...[ids.A, ids.E].sort(compareIds).map((id) => [id, 0]),
+    ])
+    expect(
+      (await getFreeAgents(t.db, h, worldId, 5, { limit: 3 })).map((r) => [r.id, r.seasonPoints]),
+    ).toEqual([...empate().map((id) => [id, 40]), [ids.D, 10]])
+    expect((await getSeasonAwards(t.db, worldHorizon, worldId, 5)).riderOfYear?.riderId).toBe(ids.A)
+    const premios = await getSeasonAwards(t.db, h, worldId, 5)
+    expect(premios.riderOfYear).toMatchObject({ riderId: empate()[0], points: 40 })
+    expect(premios.revelation).toMatchObject({ riderId: ids.D, points: 10 })
+  })
+
+  it('el puesto de un corredor es su posición en el ranking de la temporada a horizonte (11-f)', async () => {
+    expect(await getSeasonRank(t.db, worldHorizon, worldId, 45)).toEqual({
+      seasonRank: 2,
+      fieldSize: 5,
+    })
+    // C, a horizonte, tiene 40: nadie tiene más (A pasa a 0, B empata).
+    expect(await getSeasonRank(t.db, h, worldId, 40)).toEqual({ seasonRank: 1, fieldSize: 5 })
+    // y D, con 10, va tercero, por detrás de B y C y por delante de A, que de verdad tiene 50
+    expect(await getSeasonRank(t.db, h, worldId, 10)).toEqual({ seasonRank: 3, fieldSize: 5 })
   })
 })

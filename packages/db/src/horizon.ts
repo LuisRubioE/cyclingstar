@@ -9,8 +9,10 @@
  * `Horizon` desde que existe (14-p). El 7a añade `computeHorizon` en la forma D (18-a) con su memo y el
  * mapa del día (`lastRunStages`), `horizonSummary`, `touchLastSeen`, `TtlMemo` y, solo para los tests,
  * `clearHorizonCaches`; el 7b, `veilCast` (el reparto bajo el velo, §10.10); el 8a, `veilSql` (el
- * predicado, §10.6, punto 3), y `veilDelta` llega en el 8b. Qué horizonte recibe cada petición lo decide `SPOILER_MODE` alrededor de
- * `computeHorizon`, no dentro: `request.horizon()`, en la API (§10.13, §14.5).
+ * predicado, §10.6, punto 3), y el 8b, `veilDelta` (lo que el velo resta y enmascara, punto 4), su
+ * memo y `DayShared`, la cuenta del día que comparten las peticiones (11-s). Qué horizonte recibe cada
+ * petición lo decide `SPOILER_MODE` alrededor de `computeHorizon`, no dentro: `request.horizon()`, en
+ * la API (§10.13, §14.5).
  */
 import { SEASON_CALENDAR, stageDayOfSeason } from '@cyclingstar/engine'
 import {
@@ -31,7 +33,15 @@ import {
 } from '@cyclingstar/shared'
 import { type SQL, type SQLWrapper, and, eq, isNull, lt, or, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
-import { users } from './schema.js'
+import {
+  news,
+  palmares,
+  raceRosters,
+  riderPoints,
+  stageTeamResults,
+  transactions,
+  users,
+} from './schema.js'
 
 /** Vista en directo, en resumen o digest, revelada, arrastrada, caducada (D-28): una por etapa en race_watch.how. */
 export type KnowledgeLetter = 'W' | 'S' | 'R' | 'A' | 'X'
@@ -65,7 +75,7 @@ export interface Horizon {
   readonly watching: ReadonlyMap<string, { readonly stageDay: number; readonly reachedS: number }>
 }
 
-/** Lo que las etapas veladas cambiaron en el mundo: lo que el mecanismo R resta (D-32). Llega en el 8b. */
+/** Lo que las etapas veladas cambiaron en el mundo: lo que R resta y M enmascara (D-32; `veilDelta`, 8b). */
 export interface VeilDelta {
   /** riderId → rider_points de etapas veladas */
   readonly points: ReadonlyMap<string, { readonly season: number; readonly window: number }>
@@ -156,6 +166,11 @@ export class TtlMemo<V> {
     return this.entries.size
   }
 
+  /** Quita una entrada: la promesa de `veilDelta` que falló no se queda como lo velado del minuto. */
+  delete(key: string): void {
+    this.entries.delete(key)
+  }
+
   /** Solo `clearHorizonCaches`, para los tests (§10.6). */
   clear(): void {
     this.entries.clear()
@@ -169,27 +184,68 @@ const lastSeenMemo = new TtlMemo<true>(
   SPOILER.lastSeenEveryMin * 60_000,
   SPOILER.horizonMemoEntries,
 )
+/**
+ * Lo que las etapas veladas cambiaron, con la clave y la vida del horizonte (18-c, §10.7): la PROMESA,
+ * para que las lecturas de una misma petición (la ficha de un equipo resta puntos y presupuesto y
+ * enmascara la salud) esperen la misma cuenta; se quita si falla.
+ */
+const veilDeltaMemo = new TtlMemo<Promise<VeilDelta>>(
+  SPOILER.horizonMemoS * 1000,
+  SPOILER.horizonMemoEntries,
+)
+
+/** Las cuentas del día que viven en el proceso, vivan en el fichero que vivan: `clearHorizonCaches` las vacía todas. */
+const dayCaches = new Set<{ clear(): void }>()
+
+/**
+ * UNA CUENTA DEL DÍA PARA TODOS (decisión 11-s): una promesa por (mundo, día de juego) que comparten
+ * las peticiones que llegan a la vez tras el tick, en lugar de pagar cada una la suya, y que se borra
+ * si falla, para que la siguiente la repita. Exacta porque lo que cuenta solo lo escribe el tick, que
+ * sube `currentDay` en la misma transacción (`tick.ts`): una clave de otro día ya no se pide. Guarda
+ * UNA clave, la del día de la última petición. Son dos: el mapa de `lastRunStages` (18-a) y el total
+ * del ranking que resta R (`ranking.ts`, §11.5).
+ */
+export class DayShared<V> {
+  private entry: { readonly key: string; readonly value: Promise<V> } | null = null
+
+  constructor() {
+    dayCaches.add(this)
+  }
+
+  get(key: string, make: () => Promise<V>): Promise<V> {
+    if (this.entry?.key === key) return this.entry.value
+    const entry = { key, value: make() }
+    this.entry = entry
+    entry.value.catch(() => {
+      if (this.entry === entry) this.entry = null // un fallo no se queda como la cuenta del día
+    })
+    return entry.value
+  }
+
+  clear(): void {
+    this.entry = null
+  }
+}
 
 /**
  * La última etapa corrida de cada carrera de la temporada actual y la anterior, por (mundo, día de
- * juego): UNA consulta para todos los espectadores (18-a). Es una promesa, para que las peticiones que
- * llegan a la vez tras el tick esperen la misma, y se borra si falla (11-s).
+ * juego): UNA consulta para todos los espectadores (18-a), en una promesa que comparten las peticiones
+ * que llegan a la vez tras el tick y que se borra si falla (11-s).
  */
-let lastRun: {
-  readonly key: string
-  readonly runs: Promise<ReadonlyMap<string, number>>
-} | null = null
+const lastRun = new DayShared<ReadonlyMap<string, number>>()
 
 /**
- * Solo para los tests, como `clearStageTimelineCache` (§5.6): vacía el memo del horizonte, el mapa de
- * `lastRunStages` y el de `touchLastSeen`. En el mundo de B1 el día de juego no cambia al correr la
- * etapa velada y las cachés van por el día: sin vaciarlas, el barrido de después recibiría el horizonte
- * de antes, con el velo vacío (§16.3). El 8b le añade el memo de `veilDelta` y el total del día de R.
+ * Solo para los tests, como `clearStageTimelineCache` (§5.6): vacía el memo del horizonte, el de
+ * `veilDelta`, el de `touchLastSeen` y las cuentas del día (el mapa de `lastRunStages` y el total del
+ * ranking que resta R, 11-s). En el mundo de B1 el día de juego no cambia al correr la etapa velada y
+ * todo esto va por el día: sin vaciarlo, el barrido de después recibiría el horizonte de antes, con el
+ * velo vacío, o restaría la etapa velada a un total de antes (§16.3).
  */
 export function clearHorizonCaches(): void {
   horizonMemo.clear()
   lastSeenMemo.clear()
-  lastRun = null
+  veilDeltaMemo.clear()
+  for (const c of dayCaches) c.clear()
 }
 
 // --------------------------------------------------- el horizonte en un solo punto (§10.6, D-33)
@@ -345,25 +401,20 @@ export async function computeHorizon(
  * quien lee el día D ve todas las etapas hasta D y ninguna más. Un fallo no se queda como el mapa del día.
  */
 export function lastRunStages(db: Database, world: WorldRef): Promise<ReadonlyMap<string, number>> {
-  const key = `${world.worldId}|${world.currentDay}`
-  if (lastRun?.key === key) return lastRun.runs
   const season = currentSeason(world.currentDay)
-  const runs = db
-    .execute(
-      sql`
+  return lastRun.get(`${world.worldId}|${world.currentDay}`, () =>
+    db
+      .execute(
+        sql`
       select race_id as race_key, max(stage_day) as last_run from stage_snapshots
       where race_id like ${`%:s${season}`} or race_id like ${`%:s${season - 1}`}
       group by race_id`,
-    )
-    .then(
-      (rs): ReadonlyMap<string, number> =>
-        new Map(rs.map((r) => [String(r.race_key), Number(r.last_run)])),
-    )
-  lastRun = { key, runs }
-  void runs.catch(() => {
-    if (lastRun?.runs === runs) lastRun = null
-  })
-  return runs
+      )
+      .then(
+        (rs): ReadonlyMap<string, number> =>
+          new Map(rs.map((r) => [String(r.race_key), Number(r.last_run)])),
+      ),
+  )
 }
 
 /**
@@ -601,6 +652,206 @@ export function veilSql(
         : sql`(w.s = ${stageDay} or (${stageDay} is null and w.d = ${gameDay}))`
   return sql`exists (select 1 from unnest(${keys}::text[], ${days}::int[], ${stages}::int[]) as w(k, d, s) where w.k = ${raceKey} and ${match})`
 }
+
+/**
+ * LA ETAPA DE UNA FILA DEL PALMARÉS, para el predicado del velo (§10.6, punto 3): `race_id` va SIN
+ * temporada, que está en `season`, así que la clave se compone en SQL; `stage_day` desde la 0049, y las
+ * filas de antes caen al día de juego. Nace en `ranking.ts` en el 8a y vive aquí desde el 8b, junto al
+ * predicado, porque también la usa `veilDelta`.
+ */
+export function palmaresVeil(h: Horizon): SQL {
+  return veilSql(
+    h,
+    sql`${palmares.raceId} || ':s' || ${palmares.season}`,
+    palmares.gameDay,
+    palmares.stageDay,
+  )
+}
+
+// ------------------------------------------------------ lo que el velo resta (§10.6, punto 4; 8b)
+
+/** El de un velo vacío, sin una consulta: el de `worldHorizon`, el del visitante y el de quien no tiene nada por ver. */
+const NO_DELTA: VeilDelta = {
+  points: new Map(),
+  money: new Map(),
+  budget: new Map(),
+  palmares: new Set(),
+  health: new Map(),
+  abandons: new Set(),
+  raceDays: new Map(),
+}
+
+/**
+ * El día de juego al que se calculó un horizonte con velo: la primera mitad de su `rev`
+ * (`${currentDay}.${horizon_rev}`, que escribe `buildHorizon` aquí mismo; §4.10, D-35), y nunca menos
+ * que el de su última etapa velada, que ya se corrió (un horizonte armado a mano en un test puede traer
+ * otro `rev`). Solo lo usa `veilDelta`, para separar de los puntos velados los de la temporada actual.
+ */
+function dayOfHorizon(h: Horizon): number {
+  const lastVeiled = Math.max(...h.veil.map((v) => v.gameDay))
+  const fromRev = Number.parseInt(h.rev.split('.')[0] ?? '', 10)
+  return Number.isFinite(fromRev) ? Math.max(fromRev, lastVeiled) : lastVeiled
+}
+
+/** Las filas de un `json_agg`, como las entregue el conductor: un array, o nada. */
+function jsonRows(v: unknown): Record<string, unknown>[] {
+  return Array.isArray(v) ? (v as Record<string, unknown>[]) : []
+}
+
+const HEALTH: readonly HealthState[] = ['sano', 'molestias', 'enfermo', 'lesionado']
+
+/**
+ * LO QUE LAS ETAPAS VELADAS CAMBIARON EN EL MUNDO (§10.6, punto 4; §21.6 F.2): lo que el mecanismo R
+ * resta (los puntos, el dinero, el presupuesto y el palmarés) y lo que M enmascara (la salud y el
+ * abandono), y los días de carrera velados del parte y del informe (F, 11-e). Con el velo vacío no
+ * consulta nada. Se pide perezoso, como mucho una vez por petición, y se memoriza con la clave y la vida
+ * del horizonte (18-c): sale del velo, que solo cambia con `horizon_rev`, y de filas que solo escribe el
+ * tick, que solo cambian con el día; la clave lleva además el velo mismo, para que dos horizontes con el
+ * mismo usuario y el mismo `rev` y otro velo (dos mundos en un proceso de tests) no compartan entrada.
+ */
+export function veilDelta(db: Database, h: Horizon): Promise<VeilDelta> {
+  if (h.veil.length === 0) return Promise.resolve(NO_DELTA)
+  const key = `${h.userId ?? '-'}|${h.rev}|${h.veil.map((v) => `${v.raceKey}#${v.stageDay}`).join(',')}`
+  const nowMs = Date.now()
+  const hit = veilDeltaMemo.get(key, nowMs)
+  if (hit !== undefined) return hit
+  const delta = computeVeilDelta(db, h)
+  veilDeltaMemo.set(key, delta, nowMs)
+  delta.catch(() => {
+    if (veilDeltaMemo.get(key, Date.now()) === delta) veilDeltaMemo.delete(key)
+  })
+  return delta
+}
+
+/**
+ * Las siete fuentes de `VeilDelta` (la tabla de §10.6, punto 4) en UNA sentencia, cada una como un
+ * `json_agg` en su subconsulta, como la consulta 2 y la 3 del horizonte: un viaje a la base, que con
+ * siete consultas en paralelo serían siete conexiones del grupo por petición. Cada una lleva `veilSql`
+ * detrás de un filtro por las carreras del velo que usa un índice: la clave de `race_rosters` y de
+ * `stage_team_results` (que empiezan por la carrera), y los índices de la 0049 (`rider_points` y
+ * `transactions`) y de la 0046 (`news`). Las cuatro diferencias con la tabla de §10.6, cada una con su
+ * porqué:
+ *  - `points` filtra por la carrera y no por el día (`rider_points_race_stage_idx`, 0049): es el mismo
+ *    conjunto, porque el predicado exige la carrera, y no pierde una fila cuya etapa casa con otro día.
+ *  - `health` toma la caída velada MÁS ANTIGUA de cada corredor, no la más reciente: con dos veladas, la
+ *    salud de antes de la segunda es la que dejó la primera, y enseñarla destriparía la primera.
+ *  - `health` cuenta también la enfermedad en carrera (`abandoned_reason = 'enfermedad'`, `stageRun.ts`):
+ *    no deja noticia `injury`, solo el abandono, y el dado solo se tira a los sanos, así que su salud de
+ *    antes es `sano` sin fecha.
+ *  - `abandons` compara el motivo con `is distinct from`: un abandono anterior a la v14 no tiene motivo
+ *    (null), y con `<>` no saldría nunca.
+ */
+async function computeVeilDelta(db: Database, h: Horizon): Promise<VeilDelta> {
+  const keys = sql.param([...new Set(h.veil.map((v) => v.raceKey))])
+  const raceIds = sql.param([...new Set(h.veil.map((v) => parseRaceKey(v.raceKey).raceId))])
+  const seasonStart = currentSeason(dayOfHorizon(h)) * DAYS_PER_SEASON
+  // raceDays solo para el corredor del espectador y la plantilla del equipo que posee (18-b): son los
+  // únicos que lo usan (el parte y el informe del corredor propio, sups. H4 y X1).
+  const u = h.userId === null ? null : await viewerRowOf(db, h.userId)
+  const ids =
+    u === null ? [] : [u.riderId, ...u.teamRiders].filter((id): id is string => id !== null)
+  const agg = (q: SQL): SQL => sql`(select coalesce(json_agg(x), '[]'::json) from (${q}) x)`
+  const [row] = await db.execute(sql`
+    select
+      ${agg(sql`
+        select ${riderPoints.riderId} as id,
+               coalesce(sum(${riderPoints.points}) filter (where ${riderPoints.gameDay} >= ${seasonStart}), 0) as season,
+               sum(${riderPoints.points}) as win
+        from ${riderPoints}
+        where ${riderPoints.raceId} = any(${keys}::text[])
+          and ${veilSql(h, riderPoints.raceId, riderPoints.gameDay, riderPoints.stageDay)}
+        group by ${riderPoints.riderId}`)} as points,
+      ${agg(sql`
+        select ${transactions.riderId} as id, sum(${transactions.amount}) as amount
+        from ${transactions}
+        where ${transactions.raceKey} = any(${keys}::text[]) and ${transactions.kind} = 'premio'
+          and ${veilSql(h, transactions.raceKey, transactions.gameDay, transactions.stageDay)}
+        group by ${transactions.riderId}`)} as money,
+      ${agg(sql`
+        select ${stageTeamResults.teamId} as id, sum(${stageTeamResults.prize}) as prize
+        from ${stageTeamResults}
+        where ${stageTeamResults.raceId} = any(${keys}::text[])
+          and ${veilSql(h, stageTeamResults.raceId, null, stageTeamResults.stageDay)}
+        group by ${stageTeamResults.teamId}`)} as budget,
+      ${agg(sql`
+        select ${palmares.id} as id from ${palmares}
+        where ${palmares.raceId} = any(${raceIds}::text[]) and ${palmaresVeil(h)}`)} as palmares,
+      ${agg(sql`
+        select ${news.riderId} as id, ${news.gameDay} as day,
+               ${news.data}->>'prevHealth' as prev, (${news.data}->>'prevUntilDay')::int as until
+        from ${news}
+        where ${news.raceKey} = any(${keys}::text[]) and ${news.kind} = 'injury'
+          and ${news.riderId} is not null
+          and ${veilSql(h, news.raceKey, news.gameDay, news.stageDay)}`)} as injuries,
+      ${agg(sql`
+        select ${raceRosters.raceId} as race, ${raceRosters.riderId} as id,
+               ${raceRosters.abandonedDay} as day, ${raceRosters.abandonedReason} as reason
+        from ${raceRosters}
+        where ${raceRosters.raceId} = any(${keys}::text[]) and ${raceRosters.abandonedDay} is not null
+          and ${raceRosters.abandonedReason} is distinct from 'voluntario'
+          and ${veilSql(h, raceRosters.raceId, raceRosters.abandonedDay)}`)} as abandons,
+      ${
+        ids.length === 0
+          ? sql`'[]'::json`
+          : agg(sql`
+        select ${raceRosters.raceId} as race, ${raceRosters.riderId} as id
+        from ${raceRosters}
+        where ${raceRosters.raceId} = any(${keys}::text[])
+          and ${raceRosters.riderId} = any(${sql.param(ids)}::uuid[])`)
+      } as rosters`)
+
+  const points = new Map<string, { readonly season: number; readonly window: number }>()
+  for (const r of jsonRows(row?.['points']))
+    points.set(String(r['id']), { season: Number(r['season']), window: Number(r['win']) })
+  const money = new Map<string, number>()
+  for (const r of jsonRows(row?.['money'])) money.set(String(r['id']), Number(r['amount']))
+  const budget = new Map<string, number>()
+  for (const r of jsonRows(row?.['budget']))
+    if (Number(r['prize']) !== 0) budget.set(String(r['id']), Number(r['prize']))
+  const palmaresIds = new Set(jsonRows(row?.['palmares']).map((r) => String(r['id'])))
+
+  const abandonRows = jsonRows(row?.['abandons'])
+  const abandons = new Set(abandonRows.map((r) => `${String(r['race'])}|${String(r['id'])}`))
+  // La salud de antes del primer suceso velado de cada corredor: la caída (con lo que guardó su
+  // noticia) o la enfermedad (sano, sin fecha).
+  const events: { readonly id: string; readonly day: number; readonly before: HealthBefore }[] = []
+  for (const r of jsonRows(row?.['injuries'])) {
+    const prev = HEALTH.find((s) => s === r['prev'])
+    if (prev !== undefined)
+      events.push({
+        id: String(r['id']),
+        day: Number(r['day']),
+        before: { health: prev, untilDay: r['until'] == null ? null : Number(r['until']) },
+      })
+  }
+  for (const r of abandonRows)
+    if (r['reason'] === 'enfermedad')
+      events.push({
+        id: String(r['id']),
+        day: Number(r['day']),
+        before: { health: 'sano', untilDay: null },
+      })
+  events.sort((a, b) => a.day - b.day)
+  const health = new Map<string, HealthBefore>()
+  for (const e of events) if (!health.has(e.id)) health.set(e.id, e.before)
+
+  const raceDays = new Map<string, number[]>()
+  for (const r of jsonRows(row?.['rosters'])) {
+    const id = String(r['id'])
+    const days = h.veil.filter((v) => v.raceKey === String(r['race'])).map((v) => v.gameDay)
+    raceDays.set(id, [...(raceDays.get(id) ?? []), ...days])
+  }
+  for (const [id, days] of raceDays)
+    raceDays.set(
+      id,
+      [...new Set(days)].sort((a, b) => a - b),
+    )
+
+  return { points, money, budget, palmares: palmaresIds, health, abandons, raceDays }
+}
+
+/** La salud que la máscara M enseña: la de antes del primer suceso velado. */
+type HealthBefore = { readonly health: HealthState; readonly untilDay: number | null }
 
 /*
  * LOS GEMELOS DEL PREDICADO (§10.6, punto 3), para lo que va por número de etapa.

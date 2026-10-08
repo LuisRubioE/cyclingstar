@@ -5,7 +5,24 @@ import {
   birthSeasonForAge,
 } from '@cyclingstar/shared'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { getAttrTrend, getBlockReport, getCoachView } from './riders.js'
+import {
+  type Horizon,
+  type VeilDelta,
+  type VeiledStage,
+  clearHorizonCaches,
+  stageGameDay,
+  worldHorizon,
+} from './horizon.js'
+import {
+  type BlockReport,
+  type DailyLogRow,
+  getAttrTrend,
+  getBlockReport,
+  getCoachView,
+  getDailyLog,
+  veilDailyLog,
+  veiledRaceDays,
+} from './riders.js'
 import {
   riderAttrLog,
   riderAttrs,
@@ -16,7 +33,6 @@ import {
   worlds,
 } from './schema.js'
 import { type TestDb, startTestDb } from './testDb.js'
-import { worldHorizon } from './horizon.js'
 
 /**
  * LA FICHA DEL CORREDOR (paso 10 del rediseño de entrenamiento, docs/entrenamiento.md §2.3 y §4.6).
@@ -235,5 +251,229 @@ describe('db: la ficha del corredor', () => {
     expect(vista.facilities).toBeNull()
     const trend = await getAttrTrend(t.db, worldHorizon, r!.id, HOY)
     expect(trend.every((x) => x.delta28 === 0)).toBe(true)
+  })
+})
+
+/**
+ * LA FICHA BAJO EL VELO (docs/retransmision.md §11.13 y §11.19, decisión 11-e; sups. H4 y X1; paso 8b).
+ *
+ * Un día de carrera velado se enseña como día de carrera, con la clave de su etapa y sin parte, corriera
+ * el corredor o no: tras un abandono, los días que quedaban pasan a ser de entrenamiento o de descanso, y
+ * enseñarlos delataría el abandono. Lo aprendido en carrera esos días (`carrera` y `sobrecompensacion`)
+ * sale de la tendencia y del informe; lo de entrenar se queda, como la carga (DD-08).
+ *
+ * Con el formato de actividad que escribe el tick (`carrera:<raceId>:e<n>`, `stageRun.ts`) y no con el
+ * `carrera` a secas de arriba, que el tick no escribe nunca (§19.7): el velo se prueba sobre lo que hay
+ * en producción. Es el ejemplo de §11.13: el jugador conoce el Tour hasta la etapa 11 (día 196 de la
+ * temporada), es el día 200 y del 197 al 200 corrieron la 12, la 13, la 14 y la 15, veladas. Dos
+ * corredores: uno las corre todas y el otro abandona en la 13 y luego descansa y entrena.
+ */
+describe('db: la ficha bajo el velo (11-e; 8b)', () => {
+  const KEY = `race-france:s${SEASON}`
+  /** El día de juego de cada etapa del Tour de la temporada 5 (`stageGameDay`, la cuenta del tick). */
+  const g = (stageDay: number): number => stageGameDay(KEY, stageDay)
+  const VELADAS = [12, 13, 14, 15] as const
+  const veil = (stages: readonly number[]): VeiledStage[] =>
+    stages.map((s) => ({ raceKey: KEY, stageDay: s, gameDay: g(s), reason: 'own_rider' }))
+  const horizonOf = (userId: string, stages: readonly number[]): Horizon => ({
+    ...worldHorizon,
+    kind: 'viewer',
+    userId,
+    readOnly: false,
+    rev: `${HOY}.1`,
+    knownThrough: new Map([[KEY, Math.min(...stages) - 1]]),
+    veil: veil(stages),
+  })
+  const FIXED = '00000000-0000-4000-8000-'
+  const USER_ABANDONA = `${FIXED}000000000901`
+  const USER_ACABA = `${FIXED}000000000902`
+  const ABANDONA = `${FIXED}000000000011`
+  const ACABA = `${FIXED}000000000012`
+  let t: TestDb
+
+  /** La actividad de cada día, del 196 al 200, de quien abandona en la 13 y de quien termina. */
+  const ACTIVIDAD: Readonly<Record<string, readonly string[]>> = {
+    [ABANDONA]: [
+      'carrera:race-france:e11',
+      'carrera:race-france:e12',
+      'carrera:race-france:e13',
+      'descanso_activo',
+      'fondo',
+    ],
+    [ACABA]: [11, 12, 13, 14, 15].map((s) => `carrera:race-france:e${s}`),
+  }
+
+  beforeAll(async () => {
+    t = await startTestDb()
+    clearHorizonCaches()
+    const [w] = await t.db
+      .insert(worlds)
+      .values({ worldSeed: 'semilla-ficha-velo', engineVersion: 1 })
+      .returning({ id: worlds.id })
+    for (const [id, email] of [
+      [USER_ABANDONA, 'abandona@example.com'],
+      [USER_ACABA, 'acaba@example.com'],
+    ] as const)
+      await t.client`insert into users (id, email, name) values (${id}, ${email}, 'Ficha')`
+    for (const [id, userId] of [
+      [ABANDONA, USER_ABANDONA],
+      [ACABA, USER_ACABA],
+    ] as const) {
+      await t.db.insert(riders).values({
+        id,
+        worldId: w!.id,
+        userId,
+        name: `Corredor ${id.slice(-2)}`,
+        country: 'ES',
+        gender: 'M' as const,
+        archetype: 'escalada' as const,
+        birthSeason: birthSeasonForAge(24, SEASON),
+        faceSeed: `cara-${id}`,
+      })
+      await t.client`insert into race_rosters (race_id, rider_id, bib) values (${KEY}, ${id}, 1)`
+      // un día de entrenamiento antes del Tour, y los cinco del ejemplo
+      await t.client`insert into rider_daily_log (rider_id, game_day, tss, ctl, atl, tsb, activity)
+                     values (${id}, ${g(1) - 3}, 60, 50, 50, 0, 'puertos')`
+      for (const [i, activity] of ACTIVIDAD[id]!.entries()) {
+        const parte = activity.startsWith('carrera:')
+          ? JSON.stringify({ kmAlFrente: 10 + i, ataques: i })
+          : null
+        await t.client`insert into rider_daily_log (rider_id, game_day, tss, ctl, atl, tsb, activity, parte)
+                       values (${id}, ${g(11) + i}, ${100 + i}, 55, ${60 + i}, ${-5 - i}, ${activity},
+                               ${parte}::jsonb)`
+      }
+    }
+    await t.client`update race_rosters set abandoned_day = ${g(13)}, abandoned_reason = 'colapso'
+                   where rider_id = ${ABANDONA}`
+    // Lo aprendido: en la 11, conocida; en las veladas, por el puesto (y la sobrecompensación de quien
+    // termina); y el entrenamiento del que abandonó, que no depende de la etapa.
+    await t.db.insert(riderAttrLog).values([
+      { riderId: ABANDONA, gameDay: g(11), attr: 'MON' as const, delta: 0.2, source: 'carrera' },
+      { riderId: ABANDONA, gameDay: g(12), attr: 'TAC' as const, delta: 0.5, source: 'carrera' },
+      { riderId: ABANDONA, gameDay: g(13), attr: 'TAC' as const, delta: 0.3, source: 'carrera' },
+      {
+        riderId: ABANDONA,
+        gameDay: g(15),
+        attr: 'MON' as const,
+        delta: 0.1,
+        source: 'entrenamiento',
+      },
+      { riderId: ACABA, gameDay: g(11), attr: 'MON' as const, delta: 0.2, source: 'carrera' },
+      ...VELADAS.map((s) => ({
+        riderId: ACABA,
+        gameDay: g(s),
+        attr: 'TAC' as const,
+        delta: 0.4,
+        source: 'carrera' as const,
+      })),
+      {
+        riderId: ACABA,
+        gameDay: g(15),
+        attr: 'RES' as const,
+        delta: 0.5,
+        source: 'sobrecompensacion',
+      },
+    ])
+  }, 180_000)
+
+  afterAll(async () => {
+    await t?.close()
+  })
+
+  it('el ejemplo de §11.13 es el de la temporada 5: la 11 el día 196, la 15 el 200, y hoy es el 200', () => {
+    expect(VELADAS.map((s) => g(s) - SEASON * 364)).toEqual([197, 198, 199, 200])
+    expect(g(11) - SEASON * 364).toBe(196)
+    expect(g(15)).toBe(HOY)
+  })
+
+  it('veiledRaceDays: los días velados de las carreras de SU lista de salida, con la clave de su etapa', () => {
+    const h = horizonOf(USER_ACABA, VELADAS)
+    const d: VeilDelta = {
+      points: new Map(),
+      money: new Map(),
+      budget: new Map(),
+      palmares: new Set(),
+      health: new Map(),
+      abandons: new Set(),
+      raceDays: new Map([[ACABA, VELADAS.map(g)]]),
+    }
+    expect([...veiledRaceDays(h, d, ACABA)]).toEqual(
+      VELADAS.map((s) => [g(s), `carrera:race-france:e${s}`]),
+    )
+    // Un corredor que no estaba en la lista de salida no tiene días de carrera velados.
+    expect(veiledRaceDays(h, d, ABANDONA).size).toBe(0)
+  })
+
+  it('veilDailyLog: la carga se queda; la actividad pasa a la de su etapa y el parte, a null (la tabla de §11.13)', () => {
+    const rows: DailyLogRow[] = ACTIVIDAD[ABANDONA]!.map((activity, i) => ({
+      gameDay: g(11) + i,
+      ctl: 55,
+      atl: 60 + i,
+      tsb: -5 - i,
+      tss: 100 + i,
+      activity,
+      parte: null,
+    }))
+    const veiled = new Map(VELADAS.map((s) => [g(s), `carrera:race-france:e${s}`]))
+    const served = veilDailyLog(rows, veiled)
+    expect(served[0]).toBe(rows[0]) // la 11, conocida: la misma fila
+    expect(served.map((r) => r.activity)).toEqual(ACTIVIDAD[ACABA])
+    expect(served.map((r) => [r.ctl, r.atl, r.tsb, r.tss])).toEqual(
+      rows.map((r) => [r.ctl, r.atl, r.tsb, r.tss]),
+    )
+    expect(served.slice(1).every((r) => r.parte === null)).toBe(true)
+  })
+
+  it('getDailyLog: los días velados, como días de carrera de su etapa y sin parte, abandonara o no (sup. H4)', async () => {
+    const abandona = await getDailyLog(t.db, horizonOf(USER_ABANDONA, VELADAS), ABANDONA, 90)
+    const acaba = await getDailyLog(t.db, horizonOf(USER_ACABA, VELADAS), ACABA, 90)
+    const desde = (rows: readonly DailyLogRow[]) => rows.filter((r) => r.gameDay >= g(11))
+    expect(desde(abandona).map((r) => r.activity)).toEqual(ACTIVIDAD[ACABA])
+    expect(desde(acaba).map((r) => r.activity)).toEqual(ACTIVIDAD[ACABA])
+    for (const rows of [abandona, acaba]) {
+      expect(desde(rows)[0]!.parte).not.toBeNull() // la 11, conocida, con su parte
+      expect(
+        desde(rows)
+          .slice(1)
+          .every((r) => r.parte === null),
+      ).toBe(true)
+    }
+    // Sin velo, lo de siempre: el descanso y el fondo de quien abandonó.
+    const visto = await getDailyLog(t.db, worldHorizon, ABANDONA, 90)
+    expect(desde(visto).map((r) => r.activity)).toEqual(ACTIVIDAD[ABANDONA])
+  })
+
+  it('getBlockReport y getAttrTrend: sin lo aprendido en carrera los días velados, y las mismas sesiones abandonara o no (sup. X1)', async () => {
+    const hAbandona = horizonOf(USER_ABANDONA, VELADAS)
+    const hAcaba = horizonOf(USER_ACABA, VELADAS)
+    const abandona = await getBlockReport(t.db, hAbandona, ABANDONA, HOY)
+    const acaba = await getBlockReport(t.db, hAcaba, ACABA, HOY)
+    expect(abandona.sessions).toEqual(acaba.sessions)
+    expect(abandona.trainingDays).toBe(acaba.trainingDays)
+    expect(abandona.sessions).toContainEqual({ activity: 'carrera:race-france:e14', days: 1 })
+    // El informe sigue contando `carrera` a secas, que el tick no escribe: 0 días de carrera (§19.7).
+    expect([abandona.raceDays, acaba.raceDays]).toEqual([0, 0])
+    const porAttr = (r: BlockReport) =>
+      Object.fromEntries(r.rows.map((x) => [x.attr, Number(x.total.toFixed(6))]))
+    // Lo aprendido en la 11, conocida, y el entrenamiento se quedan; TAC (por el puesto) y RES (la
+    // sobrecompensación) de las veladas, no.
+    expect(porAttr(abandona)).toEqual({ MON: 0.3 })
+    expect(porAttr(acaba)).toEqual({ MON: 0.2 })
+    const trend = async (h: Horizon, riderId: string) =>
+      Object.fromEntries(
+        (await getAttrTrend(t.db, h, riderId, HOY)).map((x) => [
+          x.attr,
+          Number(x.delta28.toFixed(6)),
+        ]),
+      )
+    expect(await trend(hAcaba, ACABA)).toMatchObject({ MON: 0.2, TAC: 0, RES: 0 })
+    // No es vacío: sin velo sale todo, y conocida la 12, su puesto vuelve a contar.
+    expect(await trend(worldHorizon, ACABA)).toMatchObject({ MON: 0.2, TAC: 1.6, RES: 0.5 })
+    expect(await trend(horizonOf(USER_ABANDONA, [13, 14, 15]), ABANDONA)).toMatchObject({
+      MON: 0.3,
+      TAC: 0.5,
+    })
+    const visto = await getBlockReport(t.db, worldHorizon, ABANDONA, HOY)
+    expect(visto.sessions).toContainEqual({ activity: 'descanso_activo', days: 1 })
   })
 })

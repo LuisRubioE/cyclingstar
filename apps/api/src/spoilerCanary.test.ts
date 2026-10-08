@@ -57,11 +57,21 @@ async function plantCanary(w: SpoilerWorld): Promise<void> {
   // el tiempo del ganador: la ruta de etapa y la del acta
   await w.t
     .client`update stage_results set tiempo_s = ${CANARY.timeS} where race_id = ${RACE_KEY} and stage_day = ${VEILED} and puesto = 1`
-  // un premio del día, insertado: awardRacePrizes solo paga a humanos (economy.ts); lo sirve /api/riders/me/ledger.
-  // Desde el 8a la fila lleva además race_key y stage_day (la 0049); sin ellos, el velo la casa por game_day (10-d).
+  // un premio del día, insertado como lo escribe awardRacePrizes (que solo paga a humanos, economy.ts): desde el 8a con su
+  // etapa, race_key y stage_day (la 0049), y con el saldo movido a la vez, como creditRider. Lo sirven
+  // /api/riders/me/ledger y, sumado, /summary. RE-SELLADO EN EL 8b: la fila iba sin etapa y sin mover el saldo, y desde
+  // el 8b un premio sin etapa cuenta como conocido (13-l: ni la resta del saldo ni el filtro del libro pueden casarlo con
+  // una etapa, porque `race_key` nulo no casa con ninguna) y la resta del saldo quitaba un premio que el saldo no tenía.
   await w.t
-    .client`insert into transactions (rider_id, game_day, kind, amount, note) values (${OWN_RIDER}, ${day}, 'premio', ${CANARY.money}, 'Race France · stage win')`
-  // los puntos del día: solo salen sumados (ranking.ts), así que 7373 solo cae si son los únicos del corredor en la ventana
+    .client`insert into transactions (rider_id, game_day, kind, amount, note, race_key, stage_day) values (${OWN_RIDER}, ${day}, 'premio', ${CANARY.money}, 'Race France · stage win', ${RACE_KEY}, ${VEILED})`
+  await w.t.client`update riders set money = money + ${CANARY.money} where id = ${OWN_RIDER}`
+  // los puntos del día: solo salen sumados (ranking.ts), así que 7373 solo cae si son los únicos del corredor en la ventana.
+  // RE-SELLADO EN EL 8b: `riders.season_points` se mueve con ellos, como en addSeasonPointsBatch, para que la temporada del
+  // corredor siga siendo la suma de sus puntos y la resta de R (§10.6) no reste lo que la temporada no tiene.
+  await w.t.client`update riders r set season_points = r.season_points + p.delta
+                   from (select rider_id, sum(${CANARY.points} - points)::int as delta from rider_points
+                         where game_day = ${day} group by rider_id) p
+                   where r.id = p.rider_id`
   await w.t.client`update rider_points set points = ${CANARY.points} where game_day = ${day}`
   // el palmarés del día: /api/riders/:id/palmares sirve `detail`
   await w.t.client`update palmares set detail = ${`Stage ${CANARY.word}`} where game_day = ${day}`

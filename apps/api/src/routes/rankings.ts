@@ -22,8 +22,8 @@ import type { RoutePlugin } from './context.js'
  * Todo público (el feed de noticias enriquece si hay sesión con ciclista).
  *
  * Cada lectura recibe el horizonte de quien pide (`request.horizon()`, E2, docs/retransmision.md
- * §10.6; paso 8a): el del visitante, el del mundo con `SPOILER_MODE` apagado para él, o el suyo. Las
- * restas (R) llegan en el 8b; el feed ya pasa el filtro F (§11.7).
+ * §10.6; paso 8a): el del visitante, el del mundo con `SPOILER_MODE` apagado para él, o el suyo. El
+ * feed pasa el filtro F (§11.7, 8a) y las demás, la resta R (`veilDelta`, 8b).
  */
 export const rankingRoutes: RoutePlugin = async (app, ctx) => {
   const { db, currentUserId } = ctx

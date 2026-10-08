@@ -2,7 +2,7 @@ import { SEASON_CALENDAR, raceLastDay, stageDayOfSeason } from '@cyclingstar/eng
 import { TRANSPORT_COST, travelTier } from '@cyclingstar/shared'
 import { and, eq, inArray, isNull } from 'drizzle-orm'
 import type { Database } from './client.js'
-import type { Horizon } from './horizon.js'
+import { type Horizon, type VeilDelta, veilDelta } from './horizon.js'
 import { emitNews } from './news.js'
 import { raceRosters, riders } from './schema.js'
 
@@ -14,11 +14,29 @@ import { raceRosters, riders } from './schema.js'
 
 const SEASON_DAYS = 364
 
-/** Conjunto de días de juego con carrera para el corredor, dentro de [fromDay, toDay]. */
+/**
+ * EL ABANDONO QUE `h` PUEDE VER (M, E2, docs/retransmision.md §10.6 y §11.2; sups. X2, X9 y X10; 8b):
+ * el día del abandono, o null si cayó en una etapa que `h` tiene velada (`VeilDelta.abandons`). Las tres
+ * puertas leen la misma máscara y a la vez, porque si una enmascarara y otra no, la otra delataría. La
+ * retirada voluntaria no entra nunca en ella (10-i): es un acto del jugador, no un resultado.
+ */
+function abandonedDayAt(
+  d: VeilDelta,
+  raceKey: string,
+  riderId: string,
+  abandonedDay: number | null,
+): number | null {
+  return abandonedDay != null && d.abandons.has(`${raceKey}|${riderId}`) ? null : abandonedDay
+}
+
+/**
+ * Conjunto de días de juego con carrera para el corredor, dentro de [fromDay, toDay]. M (sup. X10, 11-b;
+ * 8b): con el abandono velado, los días que quedaban de la carrera siguen siendo de carrera, en el
+ * planificador y en su proyección.
+ */
 export async function getRiderRaceDays(
   db: Database,
-  // M (E2, §10.6, sups. X2, X9 y X10): la máscara del abandono velado llega en el 8b; hasta entonces lo recibe y no lo usa.
-  _h: Horizon,
+  h: Horizon,
   riderId: string,
   fromDay: number,
   toDay: number,
@@ -27,9 +45,12 @@ export async function getRiderRaceDays(
     .select({ raceId: raceRosters.raceId, abandonedDay: raceRosters.abandonedDay })
     .from(raceRosters)
     .where(eq(raceRosters.riderId, riderId))
+  const d = await veilDelta(db, h)
 
   const days = new Set<number>()
-  for (const { raceId, abandonedDay } of rosters) {
+  for (const row of rosters) {
+    const raceId = row.raceId
+    const abandonedDay = abandonedDayAt(d, raceId, riderId, row.abandonedDay)
     // Clave del calendario: `${raceId}:s${season}`. Una clave sin temporada no es del calendario.
     const m = /^(.*):s(\d+)$/.exec(raceId)
     if (!m) continue
@@ -305,12 +326,13 @@ export interface RiderUpcomingRace {
 
 /**
  * Carreras a las que el corredor está inscrito y aún no han terminado (su convocatoria ya congelada en
- * race_rosters ~2 semanas antes). Ordenadas por día de salida; incluye las que están en curso hoy.
+ * race_rosters ~2 semanas antes). Ordenadas por día de salida; incluye las que están en curso hoy. M
+ * (sup. X2; 8b): con el abandono velado, la carrera sigue en curso; unas órdenes para un corredor que ya
+ * no corre se ignoran sin daño.
  */
 export async function getRiderUpcomingRaces(
   db: Database,
-  // M (E2, §10.6, sups. X2, X9 y X10): la máscara del abandono velado llega en el 8b; hasta entonces lo recibe y no lo usa.
-  _h: Horizon,
+  h: Horizon,
   riderId: string,
   currentDay: number,
 ): Promise<RiderUpcomingRace[]> {
@@ -322,8 +344,11 @@ export async function getRiderUpcomingRaces(
     })
     .from(raceRosters)
     .where(eq(raceRosters.riderId, riderId))
+  const d = await veilDelta(db, h)
   const out: RiderUpcomingRace[] = []
-  for (const { raceId, bib, abandonedDay } of rosters) {
+  for (const row of rosters) {
+    const { raceId, bib } = row
+    const abandonedDay = abandonedDayAt(d, raceId, riderId, row.abandonedDay)
     const m = /^(.*):s(\d+)$/.exec(raceId)
     if (!m) continue // una clave sin temporada no es del calendario
     const baseId = m[1]!
@@ -373,11 +398,15 @@ export type RetireOutcome =
  *   ha empezado es renunciar a la convocatoria, que es otra cosa y no existe todavía,
  * - que sea POR ETAPAS: en una prueba de un día no hay «mañana» al que no tomar la salida,
  * - e IDEMPOTENTE: retirarse dos veces no mueve el día ni duplica el titular.
+ *
+ * M (E2, §11.2; sup. X9, decisión 11-j; 8b): si el corredor ya abandonó en una etapa que `h` tiene
+ * velada, la respuesta es la de una retirada normal (`alreadyOut: false`) y no se escribe nada: cualquier
+ * otra delataría la caída. La carrera sigue en «tus carreras» hasta que se conozca esa etapa, porque la
+ * máscara de `getRiderUpcomingRaces` sigue en pie: una incoherencia aceptada (§11.2).
  */
 export async function retireFromRace(
   db: Database,
-  // M (E2, §10.6, sups. X2, X9 y X10): la máscara del abandono velado llega en el 8b; hasta entonces lo recibe y no lo usa.
-  _h: Horizon,
+  h: Horizon,
   opts: { worldId: string; riderId: string; raceKey: string; currentDay: number },
 ): Promise<RetireOutcome> {
   const [row] = await db
@@ -397,7 +426,13 @@ export async function retireFromRace(
   if (opts.currentDay < startGameDay || opts.currentDay > lastGameDay) {
     return { ok: false, reason: 'no_en_marcha' }
   }
-  if (row.abandonedDay != null) return { ok: true, raceName: race.name, alreadyOut: true }
+  if (row.abandonedDay != null) {
+    const d = await veilDelta(db, h)
+    const seen = abandonedDayAt(d, opts.raceKey, opts.riderId, row.abandonedDay) !== null
+    return seen
+      ? { ok: true, raceName: race.name, alreadyOut: true }
+      : { ok: true, raceName: race.name, alreadyOut: false }
+  }
 
   const updated = await db
     .update(raceRosters)
