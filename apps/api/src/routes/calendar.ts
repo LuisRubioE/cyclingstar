@@ -14,6 +14,7 @@ import {
   getTeamClassifications,
   predictStartlist,
   raceStagesForWorld,
+  worldHorizon,
 } from '@cyclingstar/db'
 import {
   BASE_SEASON,
@@ -34,10 +35,13 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
   const { db } = ctx
 
   // Calendario de temporada autorizado (Paso 34): 28 carreras con sus etapas cargadas. Público.
-  app.get('/api/calendar', async () => {
+  // El ganador de cada carrera, a horizonte (P, sups. I1 a I4; E2, paso 8a): la de final velado, sin él.
+  app.get('/api/calendar', async (request) => {
     const world = await getCurrentWorld(db)
     const season = world ? currentSeason(world.currentDay) : 0
-    const winners = world ? await getSeasonWinners(db, world.worldId, season) : {}
+    const winners = world
+      ? await getSeasonWinners(db, await request.horizon(), world.worldId, season)
+      : {}
     // La edición de la temporada del mundo (docs/generador.md sección 10): mismas carreras, mismos
     // días y mismas etapas que la temporada 0, con los km y las etiquetas de ESTE año.
     const races = calendarForSeason(season).map((race) => ({
@@ -77,6 +81,12 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
   })
 
   // Página de una carrera del calendario: general de la temporada, ganadores de etapa e historial.
+  //
+  // A HORIZONTE (E2, docs/retransmision.md §11.5; sups. C1 a C6; paso 8a): una carrera con etapas en el
+  // velo de quien pide se sirve tras la última que conoce (P: la general, los puntos, la montaña, los
+  // equipos, los maillots y los ganadores de etapa), sin la edición de esta temporada en el palmarés
+  // si su final está velado (F), y con `status` y `runDays` libres, que son calendario (L). Fuera de
+  // guardia, la de hoy.
   app.get<{ Params: { raceId: string } }>('/api/calendar/:raceId', async (request, reply) => {
     const raceId = parseRaceId(request.params.raceId)
     const race = raceId ? SEASON_CALENDAR.find((r) => r.id === raceId) : null
@@ -144,6 +154,7 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
     }
     const season = currentSeason(world.currentDay)
     const raceKey = `${race.id}:s${season}`
+    const h = await request.horizon()
     // Lo que el mundo corre este año y lo que corrió el anterior: congelado, o la edición si aún no.
     const frozen = await raceStagesForWorld(db, world.worldId, raceKey, race.id, season)
     const anterior =
@@ -158,22 +169,22 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
         : null
     // La general va COMPLETA: la web muestra el top 20 y ofrece "Show all" (regla común de tablas,
     // docs/navegacion.md §7.3). Antes se truncaba aquí y no había forma de ver el resto.
-    const gc = await getRaceGc(db, raceKey)
-    const stageWinners = await getStageWinners(db, raceKey)
-    const history = await getRaceHistory(db, world.worldId, race.id)
+    const gc = await getRaceGc(db, h, raceKey)
+    const stageWinners = await getStageWinners(db, h, raceKey)
+    const history = await getRaceHistory(db, h, world.worldId, race.id)
     // Puntos y montaña: las otras dos clasificaciones que el jugador consulta junto a la general.
-    const points = await getPointsClassification(db, raceKey)
-    const kom = await getKomClassification(db, raceKey)
+    const points = await getPointsClassification(db, h, raceKey)
+    const kom = await getKomClassification(db, h, raceKey)
     // Clasificación por equipos acumulada de la carrera. Se sirve de lo que el tick dejó escrito y,
     // en carreras corridas antes de que existiera, se deriva al vuelo desde `stage_results`.
-    const { overall: teamGc } = await getTeamClassifications(db, raceKey)
+    const { overall: teamGc } = await getTeamClassifications(db, h, raceKey)
     // Estado de la carrera ESTA temporada; es lo que decide qué pestañas tiene su página y cuál abre
     // por defecto (§7.1). La regla de "terminada" es la misma que usa el tick para repartir puntos de
     // general: existe resultado de su última etapa.
-    const runDays = await getRunStageDays(db, raceKey)
+    const runDays = await getRunStageDays(db, h, raceKey)
     // Los recorridos que se corrieron de verdad, en una sola consulta para toda la carrera.
     const raced = new Map<number, RacedStage>()
-    for (const row of await getRacedStageProfiles(db, raceKey)) {
+    for (const row of await getRacedStageProfiles(db, h, raceKey)) {
       if (!row.profile) continue
       const profile = row.profile as StageProfile
       raced.set(row.stageDay, {
@@ -236,12 +247,21 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
       // por advisory lock en la propia función de db, no una acción del usuario, y la web no tiene
       // ningún POST al que moverla. Se aísla: si falla, la lista se sirve igualmente con la
       // previsión de equipos en vez de devolver un 500.
+      // L (E2, §10.6 y §11.3): la lista se congela con el mundo al día y antes de la salida, así que
+      // se lee y se congela con `worldHorizon`, para cualquiera.
       try {
-        await ensureRaceRosterFrozen(db, world.worldId, world.worldSeed, race, world.currentDay)
+        await ensureRaceRosterFrozen(
+          db,
+          worldHorizon,
+          world.worldId,
+          world.worldSeed,
+          race,
+          world.currentDay,
+        )
       } catch (err) {
         request.log.warn({ err, raceId: race.id }, 'no se pudo congelar la escuadra de la carrera')
       }
-      const startlist = await predictStartlist(db, world.worldId, race, season)
+      const startlist = await predictStartlist(db, worldHorizon, world.worldId, race, season)
       return { upcoming: true, daysUntil, ...startlist }
     },
   )

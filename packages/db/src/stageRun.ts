@@ -48,6 +48,7 @@ import { BATCH_ROWS, type BatchValue, inChunks, valuesList } from './batch.js'
 import { awardRacePrizes } from './economy.js'
 import { buildRaceContext } from './raceContext.js'
 import { gcFinishersWhere, gcOrderBy, gcRosterOn } from './gcSort.js'
+import { worldHorizon } from './horizon.js'
 import { emitNews } from './news.js'
 import { addSeasonPointsBatch, recordPalmares } from './ranking.js'
 import { getGcThroughStage, getKomClassification, getPointsClassification } from './results.js'
@@ -1262,18 +1263,19 @@ export function soleLeader(rows: readonly { riderId: string; puntos: number }[])
 /**
  * Los primeros de la general, de los puntos y de la montaña tras la etapa `stageDay`, con las lecturas
  * de la ficha de la etapa (`results.ts`), dentro de la transacción del día. La general tiene un orden
- * total (tiempo, puestos, último puesto e id) y su primero no puede ser un no clasificado.
+ * total (tiempo, puestos, último puesto e id) y su primero no puede ser un no clasificado. El tick lee
+ * el mundo entero: `worldHorizon` (E2, §10.6, punto 1).
  */
 async function classificationLeaders(
   tx: Tx,
   raceKey: string,
   stageDay: number,
 ): Promise<{ gc: string | null; points: string | null; kom: string | null }> {
-  const gc = (await getGcThroughStage(tx, raceKey, stageDay))[0]
+  const gc = (await getGcThroughStage(tx, worldHorizon, raceKey, stageDay))[0]
   return {
     gc: gc !== undefined && !gc.dnf ? gc.riderId : null,
-    points: soleLeader(await getPointsClassification(tx, raceKey, stageDay)),
-    kom: soleLeader(await getKomClassification(tx, raceKey, stageDay)),
+    points: soleLeader(await getPointsClassification(tx, worldHorizon, raceKey, stageDay)),
+    kom: soleLeader(await getKomClassification(tx, worldHorizon, raceKey, stageDay)),
   }
 }
 

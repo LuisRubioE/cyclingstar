@@ -4,6 +4,7 @@ import { getGcThroughStage, getKomClassification, getPointsClassification } from
 import { raceRosters, riderAttrs, riders, stageResults, teams, worlds } from './schema.js'
 import { gcDeficitTable, stageOrdersFrom } from './stageRun.js'
 import { type TestDb, startTestDb } from './testDb.js'
+import { worldHorizon } from './horizon.js'
 
 /**
  * El falso líder por NO correr una etapa, contra Postgres real (PGlite).
@@ -128,7 +129,7 @@ describe('db: faltar a una etapa no puede hacerte líder de la general', () => {
   })
 
   it('quien no tiene todas las etapas no está clasificado, aunque nadie anotara su abandono', async () => {
-    const gc = await getGcThroughStage(t.db, KEY, STAGES)
+    const gc = await getGcThroughStage(t.db, worldHorizon, KEY, STAGES)
     const clasificados = gc.filter((r) => !r.dnf).map((r) => r.riderId)
     expect(clasificados).toEqual(s.completos)
     // Los dos que se saltaron la última salen marcados y AL FINAL, por detrás de todos los demás.
@@ -143,7 +144,7 @@ describe('db: faltar a una etapa no puede hacerte líder de la general', () => {
   })
 
   it('el líder es el más rápido de verdad, no el que menos etapas corrió', async () => {
-    const gc = await getGcThroughStage(t.db, KEY, STAGES)
+    const gc = await getGcThroughStage(t.db, worldHorizon, KEY, STAGES)
     // Sin la corrección, los dos ausentes sumaban 2 horas contra las 3 de los demás y encabezaban
     // la general con una hora de «ventaja»: exactamente lo de Race Colombia.
     expect(gc[0]!.riderId).toBe(s.completos[0])
@@ -166,7 +167,7 @@ describe('db: faltar a una etapa no puede hacerte líder de la general', () => {
    * INVIERTE en vez de ajustarse: lo que estaba mal era lo que se afirmaba.
    */
   it('a mitad de carrera está clasificado hasta el que abandonará después', async () => {
-    const gc = await getGcThroughStage(t.db, KEY, 2)
+    const gc = await getGcThroughStage(t.db, worldHorizon, KEY, 2)
     expect(
       gc
         .filter((r) => !r.dnf)
@@ -174,7 +175,7 @@ describe('db: faltar a una etapa no puede hacerte líder de la general', () => {
         .sort(),
     ).toEqual([...s.completos, s.ausente, s.abandonado].sort())
     // Y en la etapa 3, la suya, sí sale marcado: es la MISMA consulta la que lo distingue.
-    const enLaTres = await getGcThroughStage(t.db, KEY, STAGES)
+    const enLaTres = await getGcThroughStage(t.db, worldHorizon, KEY, STAGES)
     expect(enLaTres.find((r) => r.riderId === s.abandonado)!.dnf).toBe(true)
   })
 
@@ -184,7 +185,7 @@ describe('db: faltar a una etapa no puede hacerte líder de la general', () => {
    * la clasificación entera y se le mandaba al final con el tiempo tachado.
    */
   it('el que abandonará conserva su puesto en las etapas que corrió', async () => {
-    const gc = await getGcThroughStage(t.db, KEY, 2)
+    const gc = await getGcThroughStage(t.db, worldHorizon, KEY, 2)
     const puesto = gc.findIndex((r) => r.riderId === s.abandonado)
     // Es el más lento de los cinco mientras corre, así que va último — pero CLASIFICADO y con su
     // tiempo, no descolgado al final por una marca que aún no le corresponde.
@@ -200,9 +201,9 @@ describe('db: faltar a una etapa no puede hacerte líder de la general', () => {
    * que el dueño vio en producción y el que hay que poder enseñar arreglado.
    */
   it('el maillot amarillo se lo lleva el primer CLASIFICADO, no el ausente', async () => {
-    const gc = await getGcThroughStage(t.db, KEY, STAGES)
-    const points = await getPointsClassification(t.db, KEY, STAGES)
-    const kom = await getKomClassification(t.db, KEY, STAGES)
+    const gc = await getGcThroughStage(t.db, worldHorizon, KEY, STAGES)
+    const points = await getPointsClassification(t.db, worldHorizon, KEY, STAGES)
+    const kom = await getKomClassification(t.db, worldHorizon, KEY, STAGES)
     const maillots = assignLeaderJerseys({ gc, points, kom })
     expect(maillots.gc).toBe(s.completos[0])
     expect(maillots.gc).not.toBe(s.ausente)

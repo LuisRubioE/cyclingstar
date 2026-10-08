@@ -12,6 +12,7 @@ import { HOUSING_RENT_PER_WEEK, type StageRef, weeklyHousingCost } from '@cyclin
 import { and, desc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import type { Database } from './client.js'
+import type { Horizon } from './horizon.js'
 import { contracts, riders, stageTeamResults, teams, transactions } from './schema.js'
 
 /**
@@ -243,7 +244,14 @@ export interface Ledger {
 }
 
 /** Libro de transacciones y saldo del corredor para el perfil. */
-export async function getLedger(db: Database, riderId: string, limit = 60): Promise<Ledger> {
+export async function getLedger(
+  db: Database,
+  // F y R (E2, §10.6, sup. H6): sin los apuntes de las etapas veladas y el saldo de lo visible, en el
+  // 8b; hasta entonces lo recibe y no lo usa.
+  _h: Horizon,
+  riderId: string,
+  limit = 60,
+): Promise<Ledger> {
   const balanceRows = await db
     .select({ money: riders.money })
     .from(riders)

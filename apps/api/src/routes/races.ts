@@ -213,13 +213,15 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
       const viewer = await request.viewer()
       if (q.data.diag === '1' && (await request.diagAllowed())) return stageReplayOf(db, ctx)
       if (!(await request.spoilerApplies())) return stageReplayOf(db, ctx)
-      const [h, watchOn, row, snapshot] = await Promise.all([
-        request.horizon(),
+      // El snapshot con el horizonte de quien pide (G, §10.6): de una etapa velada, sin sucesos ni
+      // radio, que la ficha sin resultado (`stageShellOf`) no lee; la entrada es el recorrido (N).
+      const h = await request.horizon()
+      const [watchOn, row, snapshot] = await Promise.all([
         request.broadcastOn(),
         viewer === null
           ? null
           : readWatch(db, { userId: viewer.userId, worldId: ctx.worldId, raceKey: ctx.raceKey }),
-        getStageSnapshot(db, ctx.raceKey, ctx.day),
+        getStageSnapshot(db, h, ctx.raceKey, ctx.day),
       ])
       const access = stageAccessOf({
         h,

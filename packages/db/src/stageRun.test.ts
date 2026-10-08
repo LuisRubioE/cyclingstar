@@ -326,9 +326,9 @@ describe('db: runOneStage escribe en lote con la misma semántica', () => {
 
     // Y lo persistido coincide EXACTAMENTE con lo que se derivaría del histórico: la regla es la
     // misma función en los dos caminos, y este test lo ata para que no puedan separarse.
-    const persistida = await getTeamClassifications(t.db, RACE_KEY, 2)
+    const persistida = await getTeamClassifications(t.db, worldHorizon, RACE_KEY, 2)
     await t.db.delete(stageTeamResults).where(eq(stageTeamResults.raceId, RACE_KEY))
-    const derivada = await getTeamClassifications(t.db, RACE_KEY, 2)
+    const derivada = await getTeamClassifications(t.db, worldHorizon, RACE_KEY, 2)
     expect(derivada).toEqual(persistida)
     // La acumulada suma las dos etapas, no las recalcula desde la general.
     expect(persistida.overall[0]!.tiempoS).toBe(teamRows[0]!.tiempoS + teamRows[1]!.tiempoS)
@@ -450,9 +450,11 @@ describe('db: runOneStage escribe en lote con la misma semántica', () => {
       })),
     )
     const leaderOf = async (day: number) => ({
-      gc: (await getGcThroughStage(t.db, KEY, day)).find((r) => !r.dnf)?.riderId ?? null,
-      points: soleLeader(await getPointsClassification(t.db, KEY, day)),
-      kom: soleLeader(await getKomClassification(t.db, KEY, day)),
+      gc:
+        (await getGcThroughStage(t.db, worldHorizon, KEY, day)).find((r) => !r.dnf)?.riderId ??
+        null,
+      points: soleLeader(await getPointsClassification(t.db, worldHorizon, KEY, day)),
+      kom: soleLeader(await getKomClassification(t.db, worldHorizon, KEY, day)),
     })
     expect(await leaderOf(1)).toEqual({ gc: retirado, points: null, kom: null })
 

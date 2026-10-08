@@ -12,6 +12,7 @@ import {
   removeBlocked,
   setUserPremium,
   updateUserAsAdmin,
+  worldHorizon,
 } from '@cyclingstar/db'
 import { checkReplay } from '@cyclingstar/engine'
 import { currentSeason } from '@cyclingstar/shared'
@@ -199,7 +200,8 @@ export const adminRoutes: FastifyPluginAsync<AdminRouteContext> = async (app, ct
       const seasonNumber = season ? season.data : world ? currentSeason(world.currentDay) : null
       if (seasonNumber === null) return notFound(reply, 'sin_mundo')
       const raceKey = `${raceId}:s${seasonNumber}`
-      const snapshot = await getStageSnapshot(db, raceKey, day)
+      // Solo administradores (L, §11.3): el mundo entero, sin velo (§10.6, punto 1).
+      const snapshot = await getStageSnapshot(db, worldHorizon, raceKey, day)
       // Una etapa que no se ha corrido no tiene snapshot: es un 404, no una respuesta vacía.
       if (!snapshot) return notFound(reply)
       // Dorsal, nombre y equipo NO los sabe el motor y no debe saberlos: se cruzan aquí, con la

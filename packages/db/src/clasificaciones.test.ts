@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { YOUNG_MAX_AGE, getRaceClassifications, standingsByRider } from './classifications.js'
 import { raceGc, riders, worlds } from './schema.js'
 import { type TestDb, startTestDb } from './testDb.js'
+import { worldHorizon } from './horizon.js'
 
 /**
  * LAS CLASIFICACIONES SECUNDARIAS (docs/tactica.md paso 4).
@@ -64,7 +65,7 @@ describe('db: puntos, montaña y joven', () => {
   })
 
   it('los puntos van de MÁS a menos, que es como se gana esa clasificación', async () => {
-    const c = await getRaceClassifications(t.db, 'x:s4', GAME_DAY)
+    const c = await getRaceClassifications(t.db, worldHorizon, 'x:s4', GAME_DAY)
     expect(c.puntos.map((f) => f.riderId)).toEqual([ids[1], ids[2], ids[0], ids[3]])
     expect(c.puntos[0]?.points).toBe(30)
   })
@@ -72,12 +73,12 @@ describe('db: puntos, montaña y joven', () => {
   it('la montaña es OTRA clasificación: su orden no es el de los puntos', async () => {
     // Importa: si las dos salieran iguales, el módulo estaría devolviendo la misma lista dos veces y
     // nadie se enteraría hasta que una regla decidiera con ella.
-    const c = await getRaceClassifications(t.db, 'x:s4', GAME_DAY)
+    const c = await getRaceClassifications(t.db, worldHorizon, 'x:s4', GAME_DAY)
     expect(c.montana.map((f) => f.riderId)).toEqual([ids[3], ids[2], ids[0], ids[1]])
   })
 
   it('LA DE JÓVENES ES LA GENERAL FILTRADA, así que va por TIEMPO y menos es mejor', async () => {
-    const c = await getRaceClassifications(t.db, 'x:s4', GAME_DAY)
+    const c = await getRaceClassifications(t.db, worldHorizon, 'x:s4', GAME_DAY)
     // Solo los de 22 y 24 entran; el de 30 y el de 33 no.
     expect(c.joven.map((f) => f.riderId)).toEqual([ids[1], ids[0]])
     expect(c.joven[0]?.points).toBe(3550)
@@ -87,14 +88,14 @@ describe('db: puntos, montaña y joven', () => {
   it('EL HUECO AL DE DELANTE, que es lo que decide si vale la pena pelear hoy', async () => {
     // Ir segundo a un punto y ir segundo a cuarenta son dos carreras distintas, y «rank 2» no las
     // distingue. Es el dato del que cuelga R05.
-    const c = await getRaceClassifications(t.db, 'x:s4', GAME_DAY)
+    const c = await getRaceClassifications(t.db, worldHorizon, 'x:s4', GAME_DAY)
     expect(c.puntos[0]?.toNextRank).toBe(0)
     expect(c.puntos[1]?.toNextRank).toBe(5)
     expect(c.puntos[2]?.toNextRank).toBe(15)
   })
 
   it('vueltas del revés, por corredor: es como el motor las quiere', async () => {
-    const c = await getRaceClassifications(t.db, 'x:s4', GAME_DAY)
+    const c = await getRaceClassifications(t.db, worldHorizon, 'x:s4', GAME_DAY)
     const porCorredor = standingsByRider(c)
     // El veterano líder de la montaña tiene dos filas y NO la de joven.
     const suyas = porCorredor.get(ids[3]!) ?? []
@@ -108,7 +109,7 @@ describe('db: puntos, montaña y joven', () => {
   })
 
   it('una carrera sin filas devuelve tres listas vacías, no revienta', async () => {
-    const c = await getRaceClassifications(t.db, 'no-existe:s4', GAME_DAY)
+    const c = await getRaceClassifications(t.db, worldHorizon, 'no-existe:s4', GAME_DAY)
     expect(c).toEqual({ puntos: [], montana: [], joven: [] })
   })
 })

@@ -65,7 +65,9 @@ export const teamRoutes: RoutePlugin = async (app, ctx) => {
     if (!userId) return unauthorized(reply)
     const world = await getCurrentWorld(db)
     if (!world) return { calendar: null }
-    return { calendar: await getTeamCalendar(db, userId, world.currentDay) }
+    return {
+      calendar: await getTeamCalendar(db, await request.horizon(), userId, world.currentDay),
+    }
   })
 
   // Plan de carreras del equipo al que PERTENECE el corredor, en SOLO LECTURA (§3.4).
@@ -113,24 +115,29 @@ export const teamRoutes: RoutePlugin = async (app, ctx) => {
   )
 
   // Explorar el mundo (#13/#14): lista de equipos y ficha de equipo. Público.
-  app.get('/api/teams', async () => {
+  app.get('/api/teams', async (request) => {
     const world = await getCurrentWorld(db)
     if (!world) return { teams: [] }
-    return { teams: await getTeams(db, world.worldId) }
+    return { teams: await getTeams(db, await request.horizon(), world.worldId) }
   })
 
   app.get<{ Params: { id: string } }>('/api/teams/:id', async (request, reply) => {
     const teamId = parseUuid(request.params.id)
     if (!teamId) return notFound(reply)
-    const team = await getTeamDetail(db, teamId)
+    const team = await getTeamDetail(db, await request.horizon(), teamId)
     if (!team) return notFound(reply)
     return { team }
   })
 
-  // Noticias del equipo (#16): titulares de sus corredores.
+  // Noticias del equipo (#16): titulares de sus corredores. Bajo el velo (§11.7, 11-g; E2, paso 8a):
+  // sin las de las etapas que quien pide no ha visto, con un marcador por cada etapa velada de cada
+  // carrera en cuya lista de salida está el equipo, y los titulares de líder solo a quien le aplica el
+  // velo (17-x).
   app.get<{ Params: { id: string } }>('/api/teams/:id/news', async (request, reply) => {
     const teamId = parseUuid(request.params.id)
     if (!teamId) return notFound(reply)
-    return { news: await getTeamNews(db, teamId) }
+    const h = await request.horizon()
+    const opts = { leaderNews: await request.spoilerApplies() }
+    return { news: await getTeamNews(db, h, teamId, 15, opts) }
   })
 }

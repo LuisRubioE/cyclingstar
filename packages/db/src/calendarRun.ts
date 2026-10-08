@@ -31,6 +31,7 @@ import { drizzle } from 'drizzle-orm/postgres-js'
 import { BATCH_ROWS, type BatchValue, inChunks, valuesList } from './batch.js'
 import { creditRider } from './economy.js'
 import { gcFinishersWhere, gcOrderBy, gcRosterOn } from './gcSort.js'
+import type { Horizon } from './horizon.js'
 import { LOCK_CLASS, hashInt, raceLockKey } from './locks.js'
 import {
   gameState,
@@ -783,6 +784,8 @@ export interface RaceStartlist {
  */
 export async function predictStartlist(
   db: Db,
+  // L (E2, §10.6): la lista se congela con el mundo al día; quien llama pasa worldHorizon y no se usa.
+  _h: Horizon,
   worldId: string,
   race: CalendarRace,
   season: number,
@@ -1230,6 +1233,8 @@ async function refreezeIfOverfilled(
  */
 export async function ensureRaceRosterFrozen(
   db: Db,
+  // L (E2, §10.6): la lista se congela con el mundo al día; quien llama pasa worldHorizon y no se usa.
+  _h: Horizon,
   worldId: string,
   worldSeed: string,
   race: CalendarRace,

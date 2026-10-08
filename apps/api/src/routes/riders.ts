@@ -41,6 +41,7 @@ import {
   setTeamTrainingPlan,
   setTrainingOrders,
   withdrawRace,
+  worldHorizon,
 } from '@cyclingstar/db'
 import {
   BANISTER,
@@ -149,7 +150,8 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
     const rider = await getRiderForUser(db, userId)
     const world = await getCurrentWorld(db)
     if (!rider || !world) return { races: [] }
-    return { races: await getRiderUpcomingRaces(db, rider.id, world.currentDay) }
+    const h = await request.horizon()
+    return { races: await getRiderUpcomingRaces(db, h, rider.id, world.currentDay) }
   })
 
   // Estado de control de equipo del usuario: si es premium y si su equipo sigue siendo bot
@@ -206,13 +208,15 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
     return reply.status(201).send({ ok: true, id: created.id })
   })
 
-  // Informe personal de la última carrera: qué ordené vs qué pasó (backlog extra).
+  // Informe personal de la última carrera: qué ordené vs qué pasó (backlog extra). Sobre la última
+  // etapa CONOCIDA (P y G; E2, docs/retransmision.md §12.9, D-47; paso 8a).
   app.get('/api/riders/me/last-race', async (request, reply) => {
     const userId = await currentUserId(request)
     if (!userId) return unauthorized(reply)
     const rider = await getRiderForUser(db, userId)
     if (!rider) return { report: null }
-    return { report: await getRiderLastRaceReport(db, rider.id) }
+    const h = await request.horizon()
+    return { report: await getRiderLastRaceReport(db, h, rider.id) }
   })
 
   // Cambiar la vocación declarada (la "etiqueta") del corredor. No toca techos ni atributos:
@@ -253,6 +257,7 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
     // su semana contando con ellos, igual que cuenta con las etapas—.
     const raceDays = await getRiderRaceDays(
       db,
+      await request.horizon(),
       rider.id,
       world.currentDay + 1,
       world.currentDay + TRAINING_HORIZON_DAYS,
@@ -352,11 +357,12 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
     const world = await getCurrentWorld(db)
     if (!rider || !world) return sendError(reply, 409, 'sin_ciclista')
 
-    const log = await getDailyLog(db, rider.id, 1)
+    const h = await request.horizon()
+    const log = await getDailyLog(db, h, rider.id, 1)
     const ultimo = log[log.length - 1]
     const desde = world.currentDay + 1
     const hasta = world.currentDay + TRAINING_HORIZON_DAYS
-    const raceDays = new Set(await getRiderRaceDays(db, rider.id, desde, hasta))
+    const raceDays = new Set(await getRiderRaceDays(db, h, rider.id, desde, hasta))
 
     const { blocks, focusAttr, intensity } = parsed.data.plan
     const plan: TrainingChoice[] = []
@@ -404,7 +410,8 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
     if (!userId) return unauthorized(reply)
     const rider = await getRiderForUser(db, userId)
     const world = await getCurrentWorld(db)
-    const summary = rider ? await getRiderSummary(db, rider.id) : null
+    // Solo el equipo de hoy, que no nace de ninguna etapa: con `worldHorizon` (la ruta es `safe`).
+    const summary = rider ? await getRiderSummary(db, worldHorizon, rider.id) : null
     const teamId = summary?.teamId ?? null
     if (!teamId || !world) return { plan: [], canEdit: false, teamName: null }
     const control = await getAccountControl(db, userId)
@@ -439,7 +446,8 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
     if (!userId) return unauthorized(reply)
     const rider = await getRiderForUser(db, userId)
     if (!rider) return { log: [], form: null }
-    const log = (await getDailyLog(db, rider.id, 90)).map((p) => ({
+    const h = await request.horizon()
+    const log = (await getDailyLog(db, h, rider.id, 90)).map((p) => ({
       ...p,
       ...ciudadesDelDia(p.activity, p.gameDay),
     }))
@@ -447,7 +455,7 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
     const form = latest
       ? { stars: formStars(latest.ctl, latest.tsb), freshness: freshnessBar(latest.tsb) }
       : null
-    const health = await getRiderHealth(db, rider.id)
+    const health = await getRiderHealth(db, h, rider.id)
     return { log, form, health }
   })
 
@@ -472,7 +480,7 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
     const rider = await getRiderForUser(db, userId)
     const world = await getCurrentWorld(db)
     if (!rider || !world) return { trend: [] }
-    return { trend: await getAttrTrend(db, rider.id, world.currentDay) }
+    return { trend: await getAttrTrend(db, await request.horizon(), rider.id, world.currentDay) }
   })
 
   // Opinión del entrenador: una vez por temporada, relativa y borrosa al principio (SPEC 5.6).
@@ -494,7 +502,9 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
     const rider = await getRiderForUser(db, userId)
     const world = await getCurrentWorld(db)
     if (!rider || !world) return { report: null }
-    return { report: await getBlockReport(db, rider.id, world.currentDay) }
+    return {
+      report: await getBlockReport(db, await request.horizon(), rider.id, world.currentDay),
+    }
   })
 
   // Objetivos de calendario del corredor y su convocatoria (Paso 35).
@@ -524,7 +534,7 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
     if (!userId) return unauthorized(reply)
     const rider = await getRiderForUser(db, userId)
     if (!rider) return { palmares: [] }
-    return { palmares: await getPalmares(db, rider.id) }
+    return { palmares: await getPalmares(db, await request.horizon(), rider.id) }
   })
 
   // Estado del corredor (equipo, moral, dinero, fama, puntos) para la cabecera del perfil.
@@ -533,7 +543,7 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
     if (!userId) return unauthorized(reply)
     const rider = await getRiderForUser(db, userId)
     if (!rider) return { summary: null }
-    return { summary: await getRiderSummary(db, rider.id) }
+    return { summary: await getRiderSummary(db, await request.horizon(), rider.id) }
   })
 
   // Libro de transacciones y saldo (Paso 38).
@@ -542,8 +552,9 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
     if (!userId) return unauthorized(reply)
     const rider = await getRiderForUser(db, userId)
     if (!rider) return { balance: 0, entries: [], gameDay: null, salary: null }
+    const h = await request.horizon()
     const [ledger, world, contract] = await Promise.all([
-      getLedger(db, rider.id),
+      getLedger(db, h, rider.id),
       getCurrentWorld(db),
       getContract(db, rider.id),
     ])
@@ -660,7 +671,7 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
       const rider = await getRiderForUser(db, userId)
       const world = await getCurrentWorld(db)
       if (!rider || !world) return sendError(reply, 409, 'sin_ciclista')
-      const res = await retireFromRace(db, {
+      const res = await retireFromRace(db, await request.horizon(), {
         worldId: world.worldId,
         riderId: rider.id,
         raceKey: request.params.raceKey,
@@ -679,14 +690,14 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
   app.get<{ Params: { id: string } }>('/api/riders/:id/badges', async (request, reply) => {
     const riderId = parseUuid(request.params.id)
     if (!riderId) return notFound(reply)
-    return { badges: await getRiderBadges(db, riderId) }
+    return { badges: await getRiderBadges(db, await request.horizon(), riderId) }
   })
 
   // Palmarés público de cualquier corredor (lo que ha ganado): para ver el detalle desde su ficha.
   app.get<{ Params: { id: string } }>('/api/riders/:id/palmares', async (request, reply) => {
     const riderId = parseUuid(request.params.id)
     if (!riderId) return notFound(reply)
-    return { palmares: await getPalmares(db, riderId) }
+    return { palmares: await getPalmares(db, await request.horizon(), riderId) }
   })
 
   // Resultados públicos de cualquier corredor, AGRUPADOS POR CARRERA: la general de titular (se
@@ -694,7 +705,7 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
   app.get<{ Params: { id: string } }>('/api/riders/:id/results', async (request, reply) => {
     const riderId = parseUuid(request.params.id)
     if (!riderId) return notFound(reply)
-    return { results: await getRiderRaceResults(db, riderId) }
+    return { results: await getRiderRaceResults(db, await request.horizon(), riderId) }
   })
 
   app.get<{ Params: { id: string } }>('/api/riders/:id', async (request, reply) => {
@@ -702,7 +713,7 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
     if (!riderId) return notFound(reply)
     const world = await getCurrentWorld(db)
     const season = world ? currentSeason(world.currentDay) : 0
-    const rider = await getPublicRider(db, riderId, season)
+    const rider = await getPublicRider(db, await request.horizon(), riderId, season)
     if (!rider) return notFound(reply)
     return { rider }
   })

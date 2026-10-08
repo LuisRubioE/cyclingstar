@@ -21,6 +21,7 @@ import {
 } from '@cyclingstar/engine'
 import { and, desc, eq, gt, isNull, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
+import type { Horizon } from './horizon.js'
 import {
   contracts,
   gameState,
@@ -213,7 +214,12 @@ export interface RiderHealth {
 }
 
 /** Estado de salud del corredor (sano / molestias / enfermo / lesionado) y hasta cuándo dura la baja. */
-export async function getRiderHealth(db: Database, riderId: string): Promise<RiderHealth | null> {
+export async function getRiderHealth(
+  db: Database,
+  // M (E2, §10.6): la máscara de lo velado llega en el 8b; hasta entonces lo recibe y no lo usa.
+  _h: Horizon,
+  riderId: string,
+): Promise<RiderHealth | null> {
   const rows = await db
     .select({ health: riders.health, healthUntilDay: riders.healthUntilDay })
     .from(riders)
@@ -249,6 +255,8 @@ export interface RiderSummary {
  */
 export async function getSeasonRank(
   db: Database,
+  // R (E2, §10.6, 11-f): en el 8b el puesto sale del ranking a horizonte; hasta entonces no lo usa.
+  _h: Horizon,
   worldId: string,
   seasonPoints: number,
 ): Promise<{ seasonRank: number; fieldSize: number }> {
@@ -265,7 +273,12 @@ export async function getSeasonRank(
 }
 
 /** Estado del corredor para la cabecera del perfil: equipo, dinero, moral, fama, puntos y ranking. */
-export async function getRiderSummary(db: Database, riderId: string): Promise<RiderSummary | null> {
+export async function getRiderSummary(
+  db: Database,
+  // R (E2, §10.6): la resta de lo velado llega en el 8b; hasta entonces lo pasa sin usarlo.
+  h: Horizon,
+  riderId: string,
+): Promise<RiderSummary | null> {
   const rows = await db
     .select({
       worldId: riders.worldId,
@@ -287,7 +300,7 @@ export async function getRiderSummary(db: Database, riderId: string): Promise<Ri
   const me = rows[0]
   if (!me) return null
 
-  const rank = await getSeasonRank(db, me.worldId, me.seasonPoints)
+  const rank = await getSeasonRank(db, h, me.worldId, me.seasonPoints)
   return {
     teamId: me.teamId,
     teamName: me.teamName,
@@ -320,6 +333,8 @@ export interface DailyLogRow {
 /** Serie diaria de carga/forma (SPEC 4, 11) para la gráfica del perfil, orden ascendente. */
 export async function getDailyLog(
   db: Database,
+  // F (E2, §10.6, 11-e): sin lo de los días de carrera velados, en el 8b; hasta entonces lo recibe y no lo usa.
+  _h: Horizon,
   riderId: string,
   limitDays: number,
 ): Promise<DailyLogRow[]> {
@@ -364,6 +379,8 @@ export interface AttrTrendRow {
  */
 export async function getAttrTrend(
   db: Database,
+  // F (E2, §10.6, 11-e): sin lo de los días de carrera velados, en el 8b; hasta entonces lo recibe y no lo usa.
+  _h: Horizon,
   riderId: string,
   currentDay: number,
 ): Promise<AttrTrendRow[]> {
@@ -513,6 +530,8 @@ export interface BlockReport {
  */
 export async function getBlockReport(
   db: Database,
+  // F (E2, §10.6, 11-e): sin lo de los días de carrera velados, en el 8b; hasta entonces lo recibe y no lo usa.
+  _h: Horizon,
   riderId: string,
   currentDay: number,
 ): Promise<BlockReport> {

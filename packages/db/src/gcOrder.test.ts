@@ -4,7 +4,13 @@ import { and, asc, eq } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { gcFinishersWhere, gcOrderBy, gcRosterOn } from './gcSort.js'
 import { getRiderGcStandings } from './riderResults.js'
-import { getGcThroughStage, getRaceGc } from './results.js'
+import {
+  getGcThroughStage,
+  getKomClassification,
+  getPointsClassification,
+  getRaceGc,
+  getStageWinners,
+} from './results.js'
 import { runCalendarDay } from './calendarRun.js'
 import {
   palmares,
@@ -18,7 +24,10 @@ import {
   worlds,
 } from './schema.js'
 import { runOneStage } from './stageRun.js'
+import { getTeamClassifications } from './teamClassification.js'
 import { type TestDb, startTestDb } from './testDb.js'
+import { type Horizon, worldHorizon } from './horizon.js'
+import { type TestWorld, enrollAll, seedTestWorld, stageSpecOf } from './timelineTestWorld.js'
 
 /**
  * Coherencia de la clasificación general contra Postgres real (PGlite).
@@ -171,14 +180,14 @@ describe('db: general coherente en carreras de un día y con desempate por puest
     // figura como DNF: en una prueba de un día una caída no "hace abandonar la vuelta" —el corredor
     // ya ha llegado a meta y tiene su puesto—.
     const stageOrder = results.map((r) => r.riderId)
-    const gc = await getRaceGc(t.db, ONE_DAY_KEY)
+    const gc = await getRaceGc(t.db, worldHorizon, ONE_DAY_KEY)
     expect(gc.filter((r) => r.dnf)).toHaveLength(0)
     expect(gc.map((r) => r.riderId)).toEqual(stageOrder)
-    const through = await getGcThroughStage(t.db, ONE_DAY_KEY, 1)
+    const through = await getGcThroughStage(t.db, worldHorizon, ONE_DAY_KEY, 1)
     expect(through.map((r) => r.riderId)).toEqual(stageOrder)
 
     // 4) Y el orden es ESTABLE: dos consultas seguidas devuelven lo mismo (antes no lo era).
-    const gcOtraVez = await getRaceGc(t.db, ONE_DAY_KEY)
+    const gcOtraVez = await getRaceGc(t.db, worldHorizon, ONE_DAY_KEY)
     expect(gcOtraVez.map((r) => r.riderId)).toEqual(stageOrder)
   }, 180_000)
 
@@ -228,7 +237,7 @@ describe('db: general coherente en carreras de un día y con desempate por puest
     expect(reparte.map((r) => r.riderId)).toEqual([b!, c!])
 
     // La general que se MUESTRA sí lo lleva, al final y marcado: la ficha tiene que poder enseñarlo.
-    const muestra = await getRaceGc(t.db, KEY)
+    const muestra = await getRaceGc(t.db, worldHorizon, KEY)
     expect(muestra.map((r) => r.riderId)).toEqual([b!, c!, a!])
     expect(muestra[2]!.dnf).toBe(true)
   }, 60_000)
@@ -311,7 +320,7 @@ describe('db: general coherente en carreras de un día y con desempate por puest
       { raceId: TIE_KEY, riderId: e!, tiempoTotalS: 3600, sumaPuestos: 8, ultimoPuesto: 3 },
     ])
 
-    const gc = await getRaceGc(t.db, TIE_KEY)
+    const gc = await getRaceGc(t.db, worldHorizon, TIE_KEY)
     const porId = [d!, e!].sort()
     expect(gc.map((r) => r.riderId)).toEqual([a!, porId[0]!, porId[1]!, c!, b!])
   }, 60_000)
@@ -321,18 +330,120 @@ describe('db: general coherente en carreras de un día y con desempate por puest
   it('el puesto de la general que ve el corredor en su ficha es el de la carrera', async () => {
     // La ficha del corredor no recalcula nada por su cuenta: numera la MISMA general que la página
     // de carrera, así que el 3.º de la general es el 3.º en su ficha, gane o no.
-    const gc = await getRaceGc(t.db, TIE_KEY)
+    const gc = await getRaceGc(t.db, worldHorizon, TIE_KEY)
     for (const [i, row] of gc.entries()) {
-      const standings = await getRiderGcStandings(t.db, row.riderId, [TIE_KEY])
+      const standings = await getRiderGcStandings(t.db, worldHorizon, row.riderId, [TIE_KEY])
       expect(standings.get(TIE_KEY)).toEqual({ puesto: i + 1, dnf: false })
     }
 
     // Quien abandona deja de estar clasificado: cae al final y se marca como tal.
     const abandona = gc[0]!.riderId
     await t.db.insert(raceRosters).values({ raceId: TIE_KEY, riderId: abandona, abandonedDay: 3 })
-    const conAbandono = await getRaceGc(t.db, TIE_KEY)
+    const conAbandono = await getRaceGc(t.db, worldHorizon, TIE_KEY)
     expect(conAbandono.at(-1)!.riderId).toBe(abandona)
-    const standings = await getRiderGcStandings(t.db, abandona, [TIE_KEY])
+    const standings = await getRiderGcStandings(t.db, worldHorizon, abandona, [TIE_KEY])
     expect(standings.get(TIE_KEY)).toEqual({ puesto: conAbandono.length, dnf: true })
   }, 60_000)
+})
+
+/**
+ * P, LA CLASIFICACIÓN TRAS LA ÚLTIMA CONOCIDA (E2, docs/retransmision.md §10.6 y §11.5; sups. C1, C2 y
+ * C4; paso 8a): a quien tiene en el velo la etapa 3 de una carrera, las lecturas de la ficha le dan
+ * EXACTAMENTE lo que daban cuando la 2 era la última corrida: la general (que hoy se lee de `race_gc` y
+ * cortada se rehace de `stage_results`), los puntos, la montaña, los equipos, los ganadores de etapa y
+ * el puesto de la ficha de cada corredor. Es B1b leído por debajo de la API, con cuarenta corredores y
+ * un abandono en la etapa velada, que no se cuenta.
+ */
+describe('db: P · la general cortada por el velo es la que había tras la última conocida', () => {
+  let t: TestDb
+  let w: TestWorld
+  const KEY = 'vuelta-corte:s0'
+  const velo: Horizon = {
+    ...worldHorizon,
+    kind: 'viewer',
+    userId: idDe(999),
+    rev: '1.1',
+    veil: [{ raceKey: KEY, stageDay: 3, gameDay: 3, reason: 'follow' }],
+  }
+  /** Lo que la ficha de la carrera lee, con un horizonte; en serie (PGlite admite una sesión, testDb.ts). */
+  const ficha = async (h: Horizon) => {
+    const standings: unknown[] = []
+    for (const id of w.riderIds.slice(0, 6))
+      standings.push([...(await getRiderGcStandings(t.db, h, id, [KEY]))])
+    return {
+      gc: await getRaceGc(t.db, h, KEY),
+      points: await getPointsClassification(t.db, h, KEY),
+      kom: await getKomClassification(t.db, h, KEY),
+      teams: (await getTeamClassifications(t.db, h, KEY)).overall,
+      winners: await getStageWinners(t.db, h, KEY),
+      standings,
+    }
+  }
+  let trasLaDos: Awaited<ReturnType<typeof ficha>> | null = null
+
+  beforeAll(async () => {
+    t = await startTestDb()
+    w = await seedTestWorld(t, { worldSeed: 'corte-del-velo' })
+    await enrollAll(t, w, KEY)
+    for (const stageDay of [1, 2])
+      await t.db.transaction((tx) =>
+        runOneStage(
+          tx,
+          w.worldId,
+          stageDay,
+          'corte',
+          stageSpecOf(KEY, stageDay, TEST_TOUR[stageDay - 1]!, false),
+        ),
+      )
+    trasLaDos = await ficha(worldHorizon)
+    await t.db.transaction((tx) =>
+      runOneStage(tx, w.worldId, 3, 'corte', stageSpecOf(KEY, 3, TEST_TOUR[2]!, false)),
+    )
+    // Un abandono en la etapa velada, como lo deja el tick: sin fila desde ella y con su día.
+    const [lider] = await getRaceGc(t.db, worldHorizon, KEY)
+    await t.db
+      .delete(stageResults)
+      .where(
+        and(
+          eq(stageResults.raceId, KEY),
+          eq(stageResults.stageDay, 3),
+          eq(stageResults.riderId, lider!.riderId),
+        ),
+      )
+    await t.db
+      .update(raceRosters)
+      .set({ abandonedDay: 3, abandonedReason: 'lesion' })
+      .where(and(eq(raceRosters.raceId, KEY), eq(raceRosters.riderId, lider!.riderId)))
+  }, 180_000)
+
+  afterAll(async () => {
+    await t?.close()
+  })
+
+  it('con la 3 velada, la ficha es byte a byte la de tras la 2; con el mundo, la de ahora', async () => {
+    const cortada = await ficha(velo)
+    expect(JSON.stringify(cortada)).toBe(JSON.stringify(trasLaDos))
+    expect(trasLaDos!.gc.length).toBeGreaterThan(30)
+    expect(trasLaDos!.winners.map((r) => r.stageDay)).toEqual([1, 2])
+    // No es vacío: quien no tiene velo ve la 3 y el abandono.
+    const ahora = await ficha(worldHorizon)
+    expect(ahora.winners.map((r) => r.stageDay)).toEqual([1, 2, 3])
+    expect(ahora.gc.at(-1)?.dnf).toBe(true)
+    expect(JSON.stringify(ahora.gc)).not.toBe(JSON.stringify(trasLaDos!.gc))
+  })
+
+  it('la retirada voluntaria no se vela: es un acto del jugador, no un resultado (10-i)', async () => {
+    const retirado = w.riderIds[10]!
+    await t.db
+      .update(raceRosters)
+      .set({ abandonedDay: 4, abandonedReason: 'voluntario' })
+      .where(and(eq(raceRosters.raceId, KEY), eq(raceRosters.riderId, retirado)))
+    const gc = await getRaceGc(t.db, velo, KEY)
+    expect(gc.find((r) => r.riderId === retirado)?.dnf).toBe(true)
+    expect(gc.at(-1)?.riderId).toBe(retirado)
+    await t.db
+      .update(raceRosters)
+      .set({ abandonedDay: null, abandonedReason: null })
+      .where(and(eq(raceRosters.raceId, KEY), eq(raceRosters.riderId, retirado)))
+  })
 })

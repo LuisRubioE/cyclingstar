@@ -57,20 +57,14 @@ export type Bank = 'B1a' | 'B1b' | 'B1c'
  * que nada fuera de ella falla y que cada ruta de ella sigue fallando en sus bancos («ya no destripa:
  * quítala»). Un banco que no aparece no ve la ruta en este mundo: B1a solo ve los cinco valores canario,
  * B1b no barre la etapa velada (`B1B_SKIP`) y B1c compara dos desenlaces con el mismo velo. El 7b quitó
- * las dos de la etapa, la ruta de etapa (G y P, `stageAccessOf`) y el acta (G, `sendGate`). Queda vacía
- * al cerrar el 8b y se borra en el 9b (17-n).
+ * las dos de la etapa, la ruta de etapa (G y P, `stageAccessOf`) y el acta (G, `sendGate`); el 8a, sus
+ * seis, con P, F y G sobre `veilSql`: la ficha de carrera, las dos de noticias, `last-race` y el
+ * palmarés y los resultados de un corredor. Queda vacía al cerrar el 8b y se borra en el 9b (17-n).
  */
 export const PENDING_ROUTES: ReadonlyMap<
   string,
   { readonly pr: string; readonly banks: readonly Bank[] }
 > = new Map<string, { readonly pr: string; readonly banks: readonly Bank[] }>([
-  // 8a: P, F y G con `veilSql`
-  ['GET /api/calendar/:raceId', { pr: '8a', banks: ['B1b', 'B1c'] }],
-  ['GET /api/news', { pr: '8a', banks: ['B1a', 'B1b', 'B1c'] }],
-  ['GET /api/riders/me/last-race', { pr: '8a', banks: ['B1b', 'B1c'] }],
-  ['GET /api/riders/:id/palmares', { pr: '8a', banks: ['B1a'] }],
-  ['GET /api/riders/:id/results', { pr: '8a', banks: ['B1b', 'B1c'] }],
-  ['GET /api/teams/:id/news', { pr: '8a', banks: ['B1a', 'B1b', 'B1c'] }],
   // 8b: R y M con `veilDelta` (y la F de las rutas que llevan las dos)
   ['GET /api/rankings', { pr: '8b', banks: ['B1a', 'B1b', 'B1c'] }],
   ['GET /api/season-awards', { pr: '8b', banks: ['B1b', 'B1c'] }],

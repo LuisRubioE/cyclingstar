@@ -116,6 +116,7 @@ import {
   runOneStage,
   teams,
   timelineTickLog,
+  worldHorizon,
   worlds,
 } from '../packages/db/dist/index.js'
 
@@ -488,7 +489,7 @@ async function runRace({ raceId, days }) {
     )
     if (!congelada) continue
 
-    const snap = await getStageSnapshot(t.db, raceKey, idx)
+    const snap = await getStageSnapshot(t.db, worldHorizon, raceKey, idx)
     const input = snap.input
     const lengthKm = stageLengthKm(input.profile)
     // Los sucesos de la etapa grabada, byte a byte los del 2 (B11 en pequeño: grabar no cambia la carrera).
@@ -731,8 +732,7 @@ async function benchAdapter(t, raceKey, stages) {
     timelineForStage,
   } = await import('../apps/api/dist/broadcastSource.js')
   const { storedRaceRadioSchema } = await import('../apps/api/dist/chronicle.js')
-  const { getCastIdentities, getStageResults, worldHorizon } =
-    await import('../packages/db/dist/index.js')
+  const { getCastIdentities, getStageResults } = await import('../packages/db/dist/index.js')
   const rows = []
   for (const s of stages) {
     clearAdaptedTimelineCache()
@@ -748,12 +748,12 @@ async function benchAdapter(t, raceKey, stages) {
     let tl = first.value
     if (!s.timeTrial)
       for (let i = 0; i < ADAPTER_REPS; i++) {
-        const snap = await timed(() => getStageSnapshot(t.db, raceKey, s.day))
+        const snap = await timed(() => getStageSnapshot(t.db, worldHorizon, raceKey, s.day))
         const v = await timed(() => ({
           radio: storedRaceRadioSchema.parse(snap.value.radio),
           events: storedEventsOf(snap.value.events),
         }))
-        const res = await timed(() => getStageResults(t.db, raceKey, s.day))
+        const res = await timed(() => getStageResults(t.db, worldHorizon, raceKey, s.day))
         const jer = await timed(() => jerseysThroughStage(t.db, raceKey, s.day - 1))
         const input = snap.value.input
         const entries = input.riders.map((r) => ({
@@ -799,8 +799,9 @@ async function benchAdapter(t, raceKey, stages) {
       }
     const radioKb = s.timeTrial
       ? 0
-      : Buffer.byteLength(JSON.stringify((await getStageSnapshot(t.db, raceKey, s.day)).radio)) /
-        1024
+      : Buffer.byteLength(
+          JSON.stringify((await getStageSnapshot(t.db, worldHorizon, raceKey, s.day)).radio),
+        ) / 1024
     rows.push({
       name: s.name,
       timeTrial: s.timeTrial,

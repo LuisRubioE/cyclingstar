@@ -240,7 +240,8 @@ async function dbSource() {
     const world = await db.getCurrentWorld(conn.db)
     const season = num('season', null) ?? currentSeason(world?.currentDay ?? 1)
     const raceKey = `${raceId}:s${season}`
-    const snapshot = await db.getStageSnapshot(conn.db, raceKey, day)
+    // El mundo entero, como el tick y la administración (docs/retransmision.md §10.6, punto 1).
+    const snapshot = await db.getStageSnapshot(conn.db, db.worldHorizon, raceKey, day)
     if (!snapshot) {
       throw new Error(`No hay snapshot de ${raceKey} día ${day}: esa etapa no se ha corrido`)
     }

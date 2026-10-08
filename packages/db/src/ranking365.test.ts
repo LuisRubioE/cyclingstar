@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { RANKING_WINDOW_DAYS, addSeasonPointsBatch, getRanking } from './ranking.js'
 import { riderPoints, riders, worlds } from './schema.js'
 import { type TestDb, startTestDb } from './testDb.js'
+import { worldHorizon } from './horizon.js'
 
 /**
  * EL RANKING A 365 DÍAS RODANTES (docs/epics.md «G3»), contra Postgres real (PGlite).
@@ -90,7 +91,7 @@ describe('db: el ranking suma los últimos 365 días de juego', () => {
   })
 
   const puntosDe = async (riderId: string, day = HOY): Promise<number> => {
-    const filas = await getRanking(t.db, s.worldId, day)
+    const filas = await getRanking(t.db, worldHorizon, s.worldId, day)
     return filas.find((r) => r.riderId === riderId)?.points ?? -1
   }
 
@@ -118,7 +119,7 @@ describe('db: el ranking suma los últimos 365 días de juego', () => {
   })
 
   it('el que no ha puntuado en un año sale con 0, no desaparece del mundo', async () => {
-    const filas = await getRanking(t.db, s.worldId, HOY)
+    const filas = await getRanking(t.db, worldHorizon, s.worldId, HOY)
     const nadie = filas.find((r) => r.riderId === s.justoFuera)
     expect(`sigue en la lista: ${nadie !== undefined}`).toBe('sigue en la lista: true')
   })

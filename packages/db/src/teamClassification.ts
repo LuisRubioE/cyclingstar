@@ -1,6 +1,7 @@
 import { and, asc, eq, lte, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
 import { gcFinishersWhere, gcOrderBy, gcRosterOn } from './gcSort.js'
+import { type Horizon, throughStage } from './horizon.js'
 import { raceGc, raceRosters, riders, stageResults, stageTeamResults, teams } from './schema.js'
 
 /**
@@ -132,11 +133,30 @@ interface StageScoreRow extends TeamStageScore {
  * corridas ANTES de que existiera la clasificación por equipos— se deriva al vuelo desde
  * `stage_results`, igual que `getGcThroughStage` reconstruye la general: así el histórico no queda
  * con agujeros y no hace falta reescribir datos ya guardados.
+ *
+ * Con P (E2, docs/retransmision.md §10.6; paso 8a): nunca más allá de la última etapa que `h` deja
+ * ver. Si el velo corta antes de la pedida (o de la última corrida, sin pedir ninguna), la acumulada es
+ * la de tras la última conocida, y la de la etapa pedida, si está velada, no sale.
  */
 export async function getTeamClassifications(
   db: Database,
+  h: Horizon,
   raceId: string,
-  throughStage?: number,
+  pedida?: number,
+): Promise<TeamClassifications> {
+  const corte = throughStage(h, raceId, pedida ?? Number.POSITIVE_INFINITY)
+  const hasta = Number.isFinite(corte) ? corte : undefined
+  if (hasta !== undefined && hasta < 1) return { stage: [], overall: [] }
+  const ofStage = pedida !== undefined && hasta === pedida ? pedida : undefined
+  return teamClassificationsThrough(db, raceId, hasta, ofStage)
+}
+
+/** La de `getTeamClassifications`, ya con el corte decidido: la acumulada hasta `throughStage` y la de `ofStage`. */
+async function teamClassificationsThrough(
+  db: Database,
+  raceId: string,
+  throughStage: number | undefined,
+  ofStage: number | undefined,
 ): Promise<TeamClassifications> {
   const upTo = throughStage != null ? lte(stageTeamResults.stageDay, throughStage) : undefined
   const storedRows = await db
@@ -175,9 +195,9 @@ export async function getTeamClassifications(
 
   const bestGc = await teamBestGcRank(db, raceId, throughStage)
   const stage =
-    throughStage != null
+    ofStage != null
       ? buildRows(
-          scores.filter((s) => s.stageDay === throughStage),
+          scores.filter((s) => s.stageDay === ofStage),
           identity,
           stageCompare,
         )

@@ -10,6 +10,7 @@ import {
   setFollow,
   setSpoilerScope,
   stageGateOf,
+  worldHorizon,
 } from '@cyclingstar/db'
 import {
   type HorizonSummary,
@@ -123,7 +124,7 @@ export const meRoutes: RoutePlugin = async (app, routeCtx) => {
       // La meta de la etapa es la de su línea: sin línea no hay retransmisión que informar.
       const tl = await timelineForStage(db, h, stage.raceKey, stage.day)
       if (tl === null) {
-        const run = (await getRunStageDays(db, stage.raceKey)).includes(stage.day)
+        const run = (await getRunStageDays(db, h, stage.raceKey)).includes(stage.day)
         return notFound(reply, run ? 'broadcast_unavailable' : 'no_encontrado')
       }
       const finishS = fromDs(visibilityOf(tl).finishDs)
@@ -155,7 +156,9 @@ export const meRoutes: RoutePlugin = async (app, routeCtx) => {
       if (!revealBodySchema.safeParse(request.body ?? {}).success) return badRequest(reply)
       const world = await request.world()
       if (world === null) return notFound(reply)
-      if (!(await getRunStageDays(db, stage.raceKey)).includes(stage.day)) return notFound(reply)
+      // Cuántas etapas se han corrido es calendario (L): con el mundo entero.
+      if (!(await getRunStageDays(db, worldHorizon, stage.raceKey)).includes(stage.day))
+        return notFound(reply)
       // Con la carrera caducada, el acuse del aviso (10-f): X en todas las que faltan.
       const lastRun = (await lastRunStages(db, world)).get(stage.raceKey) ?? stage.day
       const expired = raceExpired(stage.raceKey, lastRun, world.currentDay)

@@ -570,7 +570,7 @@ describe('db: el mundo vivo, migrado con las migraciones de E2 encima', () => {
       stage_day: null,
       tpl_rev: null,
     })
-    const feed = await getGlobalNews(t.db, world!.id)
+    const feed = await getGlobalNews(t.db, worldHorizon, world!.id)
     expect(feed).toHaveLength(1)
     expect(feed[0]).toMatchObject({
       kind: 'contract',

@@ -1,6 +1,7 @@
 import { ATTRIBUTES, type Attribute, type Vocation } from '@cyclingstar/shared'
 import { and, desc, eq, isNull, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
+import type { Horizon } from './horizon.js'
 import { type HealthState, getSeasonRank } from './riders.js'
 import { riderAttrs, riders, teams } from './schema.js'
 
@@ -21,7 +22,12 @@ export interface TeamListRow {
 }
 
 /** Todos los equipos del mundo, por categoría (división) y, dentro de cada una, por puntos (#13). */
-export async function getTeams(db: Database, worldId: string): Promise<TeamListRow[]> {
+export async function getTeams(
+  db: Database,
+  // R (E2, §10.6): la resta de lo velado llega en el 8b; hasta entonces lo recibe y no lo usa.
+  _h: Horizon,
+  worldId: string,
+): Promise<TeamListRow[]> {
   // Los puntos del equipo se calculan EN VIVO como la suma de los puntos de su plantilla (la columna
   // teams.points_season no se mantenía: siempre estaba a 0). Así se reflejan de verdad y se resetean
   // solos al reiniciar los puntos de los corredores en el rollover.
@@ -72,7 +78,12 @@ export interface TeamDetail {
 }
 
 /** Ficha de un equipo con su plantilla (#15). */
-export async function getTeamDetail(db: Database, teamId: string): Promise<TeamDetail | null> {
+export async function getTeamDetail(
+  db: Database,
+  // R y M (E2, §10.6): la resta y la máscara de lo velado llegan en el 8b; hasta entonces lo recibe y no lo usa.
+  _h: Horizon,
+  teamId: string,
+): Promise<TeamDetail | null> {
   const teamRows = await db.select().from(teams).where(eq(teams.id, teamId)).limit(1)
   const team = teamRows[0]
   if (!team) return null
@@ -122,6 +133,8 @@ export interface CountrySummaryRow {
 /** Países con corredores en activo, con cuántos y su total de puntos de temporada (ranking, #7). */
 export async function getCountriesSummary(
   db: Database,
+  // R (E2, §10.6): la resta de lo velado llega en el 8b; hasta entonces lo recibe y no lo usa.
+  _h: Horizon,
   worldId: string,
 ): Promise<CountrySummaryRow[]> {
   const totalPoints = sql<number>`coalesce(sum(${riders.seasonPoints}), 0)::int`
@@ -156,6 +169,8 @@ export interface CountryRiderRow {
 /** Corredores en activo de un país, ordenados por puntos de temporada (ranking nacional, #7). */
 export async function getCountryRiders(
   db: Database,
+  // R y M (E2, §10.6): la resta y la máscara de lo velado llegan en el 8b; hasta entonces lo recibe y no lo usa.
+  _h: Horizon,
   worldId: string,
   country: string,
 ): Promise<CountryRiderRow[]> {
@@ -209,6 +224,8 @@ export interface FreeAgentRow {
  */
 export async function getFreeAgents(
   db: Database,
+  // R (E2, §10.6): la resta de lo velado llega en el 8b; hasta entonces lo recibe y no lo usa.
+  _h: Horizon,
   worldId: string,
   season: number,
   opts: { country?: string; archetype?: string; limit?: number } = {},
@@ -268,6 +285,8 @@ export interface PublicRiderDetail {
 /** Ficha pública de un corredor (#14). `season` para calcular la edad. */
 export async function getPublicRider(
   db: Database,
+  // R y M (E2, §10.6) en el 8b; los atributos son L por DD-08 (sup. X11).
+  h: Horizon,
   riderId: string,
   season: number,
 ): Promise<PublicRiderDetail | null> {
@@ -301,7 +320,7 @@ export async function getPublicRider(
   const attributes = {} as Record<Attribute, number>
   for (const a of ATTRIBUTES) attributes[a] = 0
   for (const row of attrRows) attributes[row.attr] = row.value
-  const rank = await getSeasonRank(db, r.worldId, r.seasonPoints)
+  const rank = await getSeasonRank(db, h, r.worldId, r.seasonPoints)
   return {
     id: r.id,
     name: r.name,

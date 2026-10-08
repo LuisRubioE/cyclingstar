@@ -1,10 +1,23 @@
 import { and, asc, desc, eq, inArray, lte, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
 import { gcOrderBy } from './gcSort.js'
+import { type Horizon, isVeiled, throughStage } from './horizon.js'
 import { raceGc, raceRosters, riders, stageResults, stageSnapshots, teams } from './schema.js'
 import type { Queryable } from './titles.js'
 
-/** Lecturas de resultados y clasificaciones para la web del replay (Paso 31, pulido). */
+/**
+ * Lecturas de resultados y clasificaciones para la web del replay (Paso 31, pulido).
+ *
+ * TODAS RECIBEN EL HORIZONTE de quien mira, de segundo parámetro (E2, docs/retransmision.md §10.6,
+ * D-32; paso 8a): el tick, la administración y los bancos pasan `worldHorizon`. Con él aplican su
+ * mecanismo:
+ *  - P, las clasificaciones de una carrera: se sirven tras la última etapa que `h` deja ver
+ *    (`throughStage`), nunca con una etapa del velo dentro (`hastaLaConocida`).
+ *  - G, lo de una etapa (su hoja, sus no clasificados, sus sucesos y su radio): nada si la etapa está
+ *    en el velo. Qué etapa se sirve lo decide antes la ruta (`stageAccessOf` y las puertas, §14.1),
+ *    que pasa `worldHorizon` cuando ya ha decidido servirla; esto es la segunda red.
+ *  - N y L, el recorrido corrido y cuántas etapas se han corrido: lo reciben y no lo usan.
+ */
 
 export interface GcRow {
   riderId: string
@@ -21,7 +34,24 @@ export interface GcRow {
   dnf: boolean
 }
 
-export async function getRaceGc(db: Database, raceId: string): Promise<GcRow[]> {
+/**
+ * Hasta qué etapa sirve P una lectura de la carrera `raceId` (§10.6, punto 5): la pedida (o todas, con
+ * `pedida` sin dar), recortada a la anterior a la primera etapa del velo de `h`. undefined: todas.
+ */
+function hastaLaConocida(h: Horizon, raceId: string, pedida?: number): number | undefined {
+  const k = throughStage(h, raceId, pedida ?? Number.POSITIVE_INFINITY)
+  return Number.isFinite(k) ? k : undefined
+}
+
+/**
+ * La general de una carrera, ahora (`race_gc`): los que abandonaron al final y el resto por el orden
+ * total de `gcSort.ts`. Con P (§10.6, E2 paso 8a): si `h` tiene en el velo alguna etapa de la carrera,
+ * la general es la de tras la última que deja ver, `raceGcAfterStage`, que da EXACTAMENTE las filas
+ * que tenía `race_gc` entonces (B1b: correr la etapa velada no cambia un byte).
+ */
+export async function getRaceGc(db: Database, h: Horizon, raceId: string): Promise<GcRow[]> {
+  const k = hastaLaConocida(h, raceId)
+  if (k !== undefined) return raceGcAfterStage(db, raceId, k)
   const rows = await db
     .select({
       riderId: raceGc.riderId,
@@ -50,6 +80,68 @@ export async function getRaceGc(db: Database, raceId: string): Promise<GcRow[]> 
     ...r,
     isBot: userId === null,
     dnf: abandonedDay !== null,
+  }))
+}
+
+/**
+ * LA GENERAL TAL COMO LA DEJÓ LA ETAPA `k` (mecanismo P de `getRaceGc`): lo que `race_gc` tenía cuando
+ * `k` era la última corrida, sacado de `stage_results` hasta `k` con las cuentas del tick
+ * (`stageRun.ts`): el tiempo neto de cada etapa sin bajar de cero, los puntos, la suma de puestos y el
+ * puesto de la última que acabó. Las mismas filas, en el mismo orden y con las mismas claves que la
+ * lectura de `race_gc`.
+ *
+ * Abandonó (DNF) quien no tiene todas las etapas corridas hasta `k`, la regla de `getGcThroughStage`:
+ * el que se baja de la bici o llega fuera de control no deja fila desde esa etapa, y entonces el tick
+ * le apunta `abandoned_day`, que es lo que mira `getRaceGc`. Así un abandono en una etapa velada no se
+ * cuenta (sus filas hasta `k` están todas), y no hace falta casar días de juego. La retirada voluntaria
+ * sí, la haga cuando la haga: es un acto del jugador y no un resultado (10-i).
+ */
+async function raceGcAfterStage(db: Database, raceId: string, k: number): Promise<GcRow[]> {
+  if (k < 1) return []
+  const tiempoTotalS = sql<number>`sum(greatest(0, ${stageResults.tiempoS} - ${stageResults.bonificacionS}))::int`
+  const sumaPuestos = sql<number>`sum(${stageResults.puesto})::int`
+  const ultimoPuesto = sql<number>`(array_agg(${stageResults.puesto} order by ${stageResults.stageDay} desc))[1]`
+  const corridas = db
+    .select({ n: sql<number>`count(distinct ${stageResults.stageDay})::int`.as('n') })
+    .from(stageResults)
+    .where(and(eq(stageResults.raceId, raceId), lte(stageResults.stageDay, k)))
+  const dnf = sql<boolean>`(count(distinct ${stageResults.stageDay}) < (${corridas}) or coalesce(bool_or(${raceRosters.abandonedReason} = 'voluntario' and ${raceRosters.abandonedDay} is not null), false))`
+  const rows = await db
+    .select({
+      riderId: stageResults.riderId,
+      name: riders.name,
+      country: riders.country,
+      teamId: teams.id,
+      teamName: teams.name,
+      userId: riders.userId,
+      tiempoTotalS,
+      puntosVolante: sql<number>`sum(${stageResults.puntosVolante})::int`,
+      puntosMontana: sql<number>`sum(${stageResults.puntosMontana})::int`,
+      dnf,
+    })
+    .from(stageResults)
+    .innerJoin(riders, eq(riders.id, stageResults.riderId))
+    .leftJoin(teams, eq(teams.id, riders.teamId))
+    .leftJoin(
+      raceRosters,
+      and(
+        eq(raceRosters.raceId, stageResults.raceId),
+        eq(raceRosters.riderId, stageResults.riderId),
+      ),
+    )
+    .where(and(eq(stageResults.raceId, raceId), lte(stageResults.stageDay, k)))
+    .groupBy(stageResults.riderId, riders.name, riders.country, teams.id, teams.name, riders.userId)
+    .orderBy(
+      sql`case when ${dnf} then 1 else 0 end`,
+      asc(tiempoTotalS),
+      asc(sumaPuestos),
+      asc(ultimoPuesto),
+      asc(stageResults.riderId),
+    )
+  return rows.map(({ userId, dnf: abandono, ...r }) => ({
+    ...r,
+    isBot: userId === null,
+    dnf: abandono,
   }))
 }
 
@@ -82,11 +174,14 @@ export interface StageResultRow {
   reason: string | null
 }
 
+/** La hoja de una etapa: sus clasificados. G: nada si la etapa está en el velo de `h`. */
 export async function getStageResults(
   db: Database,
+  h: Horizon,
   raceId: string,
   stageDay: number,
 ): Promise<StageResultRow[]> {
+  if (isVeiled(h, raceId, stageDay)) return []
   return db
     .select({
       riderId: stageResults.riderId,
@@ -137,11 +232,13 @@ export async function getStageResults(
  */
 export async function getStageNonFinishers(
   db: Database,
+  h: Horizon,
   raceId: string,
   stageDay: number,
   startedRiderIds: readonly string[],
 ): Promise<StageResultRow[]> {
-  if (startedRiderIds.length === 0) return []
+  // G (E2, §10.6): quién no acabó una etapa velada es su desenlace.
+  if (startedRiderIds.length === 0 || isVeiled(h, raceId, stageDay)) return []
   const clasificados = await db
     .select({ riderId: stageResults.riderId })
     .from(stageResults)
@@ -236,12 +333,14 @@ export async function getRaceRiderIdentities(
  *
  * `q` es la base de las rutas o la transacción del día del tick: los titulares de líder la llaman
  * dentro de la etapa que se acaba de escribir (docs/retransmision.md §12.8; E2, paso 1a), y lo mismo
- * `getPointsClassification` y `getKomClassification`.
+ * `getPointsClassification` y `getKomClassification`. `h` va detrás de `q` (§10.6, punto 1): con P, la
+ * general es la de tras `pedida` o, si el velo de `h` empieza antes, la de tras la última que deja ver.
  */
 export async function getGcThroughStage(
   q: Queryable,
+  h: Horizon,
   raceId: string,
-  stageDay: number,
+  pedida: number,
 ): Promise<
   {
     riderId: string
@@ -254,6 +353,7 @@ export async function getGcThroughStage(
     dnf: boolean
   }[]
 > {
+  const stageDay = hastaLaConocida(h, raceId, pedida) ?? pedida
   const net = sql<number>`sum(${stageResults.tiempoS} - ${stageResults.bonificacionS})::int`
   const sumaPuestos = sql<number>`sum(${stageResults.puesto})::int`
   const ultimoPuesto = sql<number>`(array_agg(${stageResults.puesto} order by ${stageResults.stageDay} desc))[1]`
@@ -319,14 +419,19 @@ export interface PointsRow {
 }
 
 /**
- * Clasificación por puntos (metas volantes). Acumulada en toda la carrera, o solo hasta `throughStage`
- * (inclusive) si se indica —para ver la clasificación tal como quedó tras una etapa concreta—.
+ * Clasificación por puntos (metas volantes). Acumulada en toda la carrera, o solo hasta `pedida`
+ * (inclusive) si se indica —para ver la clasificación tal como quedó tras una etapa concreta—. Con P
+ * (E2, §10.6), nunca más allá de la última etapa que `h` deja ver. A igualdad de puntos, por el id del
+ * corredor: sin él el orden de los empatados era el que devolviera Postgres, y la misma clasificación
+ * cortada por el velo podía salir en otro orden que la de ayer (B1b).
  */
 export async function getPointsClassification(
   q: Queryable,
+  h: Horizon,
   raceId: string,
-  throughStage?: number,
+  pedida?: number,
 ): Promise<PointsRow[]> {
+  const throughStage = hastaLaConocida(h, raceId, pedida)
   const total = sql<number>`sum(${stageResults.puntosVolante})::int`
   const rows = await q
     .select({
@@ -345,7 +450,7 @@ export async function getPointsClassification(
       ),
     )
     .groupBy(stageResults.riderId, riders.name, riders.country)
-    .orderBy(desc(total))
+    .orderBy(desc(total), asc(stageResults.riderId))
   return rows.filter((r) => r.puntos > 0)
 }
 
@@ -358,8 +463,16 @@ export interface StageWinnerRow {
   isBot: boolean
 }
 
-/** Ganadores de cada etapa de una carrera (puesto 1), en orden de etapa (Paso 44). */
-export async function getStageWinners(db: Database, raceId: string): Promise<StageWinnerRow[]> {
+/**
+ * Ganadores de cada etapa de una carrera (puesto 1), en orden de etapa (Paso 44). Con P (E2, §10.6):
+ * de la 1 a la última que `h` deja ver.
+ */
+export async function getStageWinners(
+  db: Database,
+  h: Horizon,
+  raceId: string,
+): Promise<StageWinnerRow[]> {
+  const k = hastaLaConocida(h, raceId)
   const rows = await db
     .select({
       stageDay: stageResults.stageDay,
@@ -372,20 +485,29 @@ export async function getStageWinners(db: Database, raceId: string): Promise<Sta
     .from(stageResults)
     .innerJoin(riders, eq(riders.id, stageResults.riderId))
     .leftJoin(teams, eq(teams.id, riders.teamId))
-    .where(and(eq(stageResults.raceId, raceId), eq(stageResults.puesto, 1)))
+    .where(
+      and(
+        eq(stageResults.raceId, raceId),
+        eq(stageResults.puesto, 1),
+        k === undefined ? undefined : lte(stageResults.stageDay, k),
+      ),
+    )
     .orderBy(asc(stageResults.stageDay))
   return rows.map(({ userId, ...r }) => ({ ...r, isBot: userId === null }))
 }
 
 /**
- * Clasificación de la montaña (cimas). Acumulada en toda la carrera, o solo hasta `throughStage`
- * (inclusive) si se indica —para ver la montaña tal como quedó tras una etapa concreta—.
+ * Clasificación de la montaña (cimas). Acumulada en toda la carrera, o solo hasta `pedida`
+ * (inclusive) si se indica —para ver la montaña tal como quedó tras una etapa concreta—. Con P y el
+ * desempate por id, como la de puntos.
  */
 export async function getKomClassification(
   q: Queryable,
+  h: Horizon,
   raceId: string,
-  throughStage?: number,
+  pedida?: number,
 ): Promise<PointsRow[]> {
+  const throughStage = hastaLaConocida(h, raceId, pedida)
   const total = sql<number>`sum(${stageResults.puntosMontana})::int`
   const rows = await q
     .select({
@@ -404,7 +526,7 @@ export async function getKomClassification(
       ),
     )
     .groupBy(stageResults.riderId, riders.name, riders.country)
-    .orderBy(desc(total))
+    .orderBy(desc(total), asc(stageResults.riderId))
   return rows.filter((r) => r.puntos > 0)
 }
 
@@ -418,8 +540,14 @@ export interface StageSnapshotRow {
   radio: unknown
 }
 
+/**
+ * El snapshot de una etapa corrida, o null si no se ha corrido. G (E2, §10.6): la entrada es el
+ * recorrido y la lista de salida, que no son resultado (N); los sucesos y la radio, solo con la etapa
+ * fuera del velo de `h`: velada, salen a null, como en una etapa de antes de guardarlos.
+ */
 export async function getStageSnapshot(
   db: Database,
+  h: Horizon,
   raceId: string,
   stageDay: number,
 ): Promise<StageSnapshotRow | null> {
@@ -434,7 +562,8 @@ export async function getStageSnapshot(
     .from(stageSnapshots)
     .where(and(eq(stageSnapshots.raceId, raceId), eq(stageSnapshots.stageDay, stageDay)))
     .limit(1)
-  return rows[0] ?? null
+  const row = rows[0] ?? null
+  return row !== null && isVeiled(h, raceId, stageDay) ? { ...row, events: null, radio: null } : row
 }
 
 /** El recorrido que se corrió de verdad en una etapa, sacado de su snapshot. */
@@ -455,6 +584,8 @@ export interface RacedProfileRow {
  */
 export async function getRacedStageProfiles(
   db: Database,
+  // N (§10.6): el recorrido corrido no es resultado; lo recibe por la tabla de §10.6 y no lo usa.
+  _h: Horizon,
   raceId: string,
 ): Promise<RacedProfileRow[]> {
   const rows = await db
@@ -471,8 +602,16 @@ export async function getRacedStageProfiles(
   })
 }
 
-/** Días de etapa que ya se han corrido (tienen resultados), para listar el estado de la vuelta. */
-export async function getRunStageDays(db: Database, raceId: string): Promise<number[]> {
+/**
+ * Días de etapa que ya se han corrido (tienen resultados), para listar el estado de la vuelta. L
+ * (§10.6, sup. C6): cuántas etapas se han corrido es calendario, no resultado; recibe el horizonte y
+ * no lo usa.
+ */
+export async function getRunStageDays(
+  db: Database,
+  _h: Horizon,
+  raceId: string,
+): Promise<number[]> {
   const rows = await db
     .selectDistinct({ stageDay: stageResults.stageDay })
     .from(stageResults)

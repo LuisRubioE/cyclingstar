@@ -5,9 +5,10 @@ import {
   stageCities,
   stageDayOfSeason,
 } from '@cyclingstar/engine'
-import { and, eq, sql } from 'drizzle-orm'
+import { and, eq, inArray, not, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
-import { riders, stageResults, stageSnapshots } from './schema.js'
+import { type Horizon, stageGameDay, veilSql } from './horizon.js'
+import { raceRosters, riders, stageResults, stageSnapshots } from './schema.js'
 
 /**
  * Informe personal de carrera (item extra del backlog): "qué ordené vs qué pasó". Toma la etapa
@@ -78,9 +79,19 @@ function raceMeta(
   }
 }
 
-/** Informe de la última carrera del corredor, o null si aún no ha corrido ninguna. */
+/**
+ * Informe de la última carrera del corredor, o null si aún no ha corrido ninguna.
+ *
+ * LA ÚLTIMA ETAPA CONOCIDA (E2, docs/retransmision.md §12.9, D-47; sups. H1 y H5; paso 8a), con P y G:
+ * de las etapas en que corrió, la más reciente que NO está en el velo de `h`; el veredicto de la web
+ * (`raceVerdict`) se pinta sobre ella. Si la última corrida está velada, la ruta lo dice aparte
+ * (`lastReadyStageOf`, el `ready` de `lastRaceResponseSchema`). Lo demás no cambia: re-simula la
+ * etapa (abajo) y escribe su `story`; que deje de re-simular es el paso 17d de la táctica (§17.16), y
+ * quien llegue segundo conserva el horizonte.
+ */
 export async function getRiderLastRaceReport(
   db: Database,
+  h: Horizon,
   riderId: string,
 ): Promise<RiderRaceReport | null> {
   const rows = await db
@@ -94,7 +105,14 @@ export async function getRiderLastRaceReport(
       puntosMontana: stageResults.puntosMontana,
     })
     .from(stageResults)
-    .where(eq(stageResults.riderId, riderId))
+    .where(
+      and(
+        eq(stageResults.riderId, riderId),
+        h.veil.length === 0
+          ? undefined
+          : not(veilSql(h, stageResults.raceId, null, stageResults.stageDay)),
+      ),
+    )
   if (rows.length === 0) return null
 
   // La etapa más reciente por día de juego absoluto.
@@ -193,4 +211,44 @@ export async function getRiderLastRaceReport(
     personalEvents,
     story,
   }
+}
+
+/** Una etapa velada que espera al espectador: la de `ready` en `GET /api/riders/me/last-race` (D-47). */
+export interface ReadyStage {
+  readonly raceKey: string
+  readonly stageDay: number
+  /** su día de juego (`stageGameDay`), para compararla con la del informe */
+  readonly gameDay: number
+}
+
+/**
+ * LA ÚLTIMA CORRIDA, SI ESTÁ VELADA (E2, docs/retransmision.md §12.9 y §14.2, D-47; sups. H1 y H5):
+ * de las carreras con etapas en el velo de `h` en cuya lista de salida está el corredor, la última etapa
+ * corrida de la más reciente; null si no hay ninguna. Se decide por la lista de salida y el horizonte,
+ * nunca por lo que pasó en las etapas veladas (§11.6, punto 3): por sus filas de `stage_results` se
+ * sabría si abandonó en una. Por eso una carrera solo se descarta si el corredor la dejó ANTES de su
+ * primera etapa velada, que es algo que el espectador ya conoce; un abandono en una etapa velada, o
+ * después, no cuenta. La ruta la compara con la del informe y solo la sirve si es posterior.
+ */
+export async function lastReadyStageOf(
+  db: Database,
+  h: Horizon,
+  riderId: string,
+): Promise<ReadyStage | null> {
+  if (h.veil.length === 0) return null
+  const veladas = [...new Set(h.veil.map((v) => v.raceKey))]
+  const enLista = await db
+    .select({ raceKey: raceRosters.raceId, abandonedDay: raceRosters.abandonedDay })
+    .from(raceRosters)
+    .where(and(eq(raceRosters.riderId, riderId), inArray(raceRosters.raceId, veladas)))
+  let best: ReadyStage | null = null
+  for (const { raceKey, abandonedDay } of enLista) {
+    const etapas = h.veil.filter((v) => v.raceKey === raceKey)
+    const primera = Math.min(...etapas.map((v) => v.stageDay))
+    if (abandonedDay !== null && abandonedDay < stageGameDay(raceKey, primera)) continue
+    const ultima = Math.max(...etapas.map((v) => v.stageDay))
+    const gameDay = stageGameDay(raceKey, ultima)
+    if (best === null || gameDay > best.gameDay) best = { raceKey, stageDay: ultima, gameDay }
+  }
+  return best
 }

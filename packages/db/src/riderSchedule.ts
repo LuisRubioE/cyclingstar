@@ -2,6 +2,7 @@ import { SEASON_CALENDAR, raceLastDay, stageDayOfSeason } from '@cyclingstar/eng
 import { TRANSPORT_COST, travelTier } from '@cyclingstar/shared'
 import { and, eq, inArray, isNull } from 'drizzle-orm'
 import type { Database } from './client.js'
+import type { Horizon } from './horizon.js'
 import { emitNews } from './news.js'
 import { raceRosters, riders } from './schema.js'
 
@@ -16,6 +17,8 @@ const SEASON_DAYS = 364
 /** Conjunto de días de juego con carrera para el corredor, dentro de [fromDay, toDay]. */
 export async function getRiderRaceDays(
   db: Database,
+  // M (E2, §10.6, sups. X2, X9 y X10): la máscara del abandono velado llega en el 8b; hasta entonces lo recibe y no lo usa.
+  _h: Horizon,
   riderId: string,
   fromDay: number,
   toDay: number,
@@ -306,6 +309,8 @@ export interface RiderUpcomingRace {
  */
 export async function getRiderUpcomingRaces(
   db: Database,
+  // M (E2, §10.6, sups. X2, X9 y X10): la máscara del abandono velado llega en el 8b; hasta entonces lo recibe y no lo usa.
+  _h: Horizon,
   riderId: string,
   currentDay: number,
 ): Promise<RiderUpcomingRace[]> {
@@ -371,6 +376,8 @@ export type RetireOutcome =
  */
 export async function retireFromRace(
   db: Database,
+  // M (E2, §10.6, sups. X2, X9 y X10): la máscara del abandono velado llega en el 8b; hasta entonces lo recibe y no lo usa.
+  _h: Horizon,
   opts: { worldId: string; riderId: string; raceKey: string; currentDay: number },
 ): Promise<RetireOutcome> {
   const [row] = await db

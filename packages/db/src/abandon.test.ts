@@ -17,6 +17,7 @@ import {
 } from './schema.js'
 import { runOneStage } from './stageRun.js'
 import { type TestDb, startTestDb } from './testDb.js'
+import { worldHorizon } from './horizon.js'
 
 /**
  * Consecuencias de un abandono en la capa de datos (docs/motor.md §VI.3 y §V.5), contra Postgres
@@ -143,7 +144,7 @@ describe('db: consecuencias de un abandono', () => {
       runOneStage(tx, worldId, START_DAY + 1, 'semilla-abandono', stageSpec(2)),
     )
     expect(raced.size).toBe(FIELD)
-    const gcBefore = await getRaceGc(t.db, RACE_KEY)
+    const gcBefore = await getRaceGc(t.db, worldHorizon, RACE_KEY)
     expect(gcBefore).toHaveLength(FIELD)
 
     // Uno abandona (da igual la causa: la marca es la misma para las cinco).
@@ -179,7 +180,7 @@ describe('db: consecuencias de un abandono', () => {
     // estaban en la lista de salida.
     expect(raced2.size).toBe(enLista.length)
     // …ni tiene resultado en esa etapa…
-    const res3 = await getStageResults(t.db, RACE_KEY, 3)
+    const res3 = await getStageResults(t.db, worldHorizon, RACE_KEY, 3)
     expect(res3.some((r) => r.riderId === out)).toBe(false)
     // …ni su tiempo de general se mueve desde el día en que se fue.
     const before = gcBefore.find((r) => r.riderId === out)!.tiempoTotalS
@@ -200,7 +201,7 @@ describe('db: consecuencias de un abandono', () => {
      * Lo destapó el v77 por la misma puerta que la cuenta de arriba: al cambiar qué equipos
      * persiguen en una vuelta, cambia a quién le toca hundirse.
      */
-    const gcAfter = await getRaceGc(t.db, RACE_KEY)
+    const gcAfter = await getRaceGc(t.db, worldHorizon, RACE_KEY)
     const iOut = gcAfter.findIndex((r) => r.riderId === out)
     expect(gcAfter[iOut]?.dnf).toBe(true)
     expect(gcAfter.slice(iOut).every((r) => r.dnf)).toBe(true)
@@ -210,7 +211,7 @@ describe('db: consecuencias de un abandono', () => {
   it('el jugador puede retirarse él mismo de una carrera en marcha, y es idempotente', async () => {
     const me = riderIds[1]!
     const day = START_DAY + 3
-    const first = await retireFromRace(t.db, {
+    const first = await retireFromRace(t.db, worldHorizon, {
       worldId,
       riderId: me,
       raceKey: RACE_KEY,
@@ -265,7 +266,7 @@ describe('db: consecuencias de un abandono', () => {
     expect(titular).toBe('Corredor 1 abandons the Race France — withdraws.')
 
     // Repetirlo no mueve el día ni duplica el titular.
-    const again = await retireFromRace(t.db, {
+    const again = await retireFromRace(t.db, worldHorizon, {
       worldId,
       riderId: me,
       raceKey: RACE_KEY,
@@ -290,14 +291,14 @@ describe('db: consecuencias de un abandono', () => {
     expect(trasRepetir).toHaveLength(1)
 
     // Y desaparece de «mis carreras»: ya no está en ella.
-    const upcoming = await getRiderUpcomingRaces(t.db, me, day + 1)
+    const upcoming = await getRiderUpcomingRaces(t.db, worldHorizon, me, day + 1)
     expect(upcoming.some((r) => r.raceKey === RACE_KEY)).toBe(false)
   })
 
   it('no se puede retirar de una carrera en la que no está inscrito ni de una que no ha empezado', async () => {
     const me = riderIds[2]!
     expect(
-      await retireFromRace(t.db, {
+      await retireFromRace(t.db, worldHorizon, {
         worldId,
         riderId: me,
         raceKey: 'race-lombardy:s0',
@@ -305,7 +306,7 @@ describe('db: consecuencias de un abandono', () => {
       }),
     ).toEqual({ ok: false, reason: 'no_inscrito' })
     expect(
-      await retireFromRace(t.db, {
+      await retireFromRace(t.db, worldHorizon, {
         worldId,
         riderId: me,
         raceKey: RACE_KEY,
