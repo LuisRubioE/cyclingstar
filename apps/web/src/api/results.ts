@@ -43,10 +43,8 @@ export interface CalendarStageOptions {
   readonly diag?: boolean
 }
 
-/** El `?diag=1` de la página (§11.15): solo su valor exacto lo activa, como en la API (`stageQuerySchema`). */
-export function diagOf(search: URLSearchParams): boolean {
-  return search.get('diag') === '1'
-}
+/** El `?diag=1` de la página (§11.15). Vive en `queryClient.ts` desde el 9b. */
+export { diagOf } from '../queryClient'
 
 /**
  * La clave de React Query de la ficha de una etapa: con `diag`, para que la respuesta del modo

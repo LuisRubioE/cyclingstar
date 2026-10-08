@@ -1,16 +1,35 @@
 import { useQuery } from '@tanstack/react-query'
-import { fetchLastRace } from '../api/lastRace'
+import { fetchLastRace, lastRaceKey } from '../api/lastRace'
 import { mentalityLabel, roleLabel } from '../domain/labels'
 import { personalNarration, raceVerdict } from '../domain/narration'
+import { useHorizonRev } from '../queryClient'
+import { LastRaceReady } from './LastRaceReady'
 import { StageRoute } from './StageRoute'
 
 /**
  * Panel "Your last race" (backlog extra): compara lo que el corredor ordenó con lo que ocurrió,
  * con su crónica personal (solo los momentos en los que fue protagonista) y un veredicto.
+ *
+ * Bajo el velo (E2, §11.4; sup. H5; 9b): el informe es el de la última etapa CONOCIDA, y si la última que
+ * corrió está velada, la tarjeta lo dice (`Your last race · Race France, Stage 8 · Ready to watch`) con
+ * `Watch`, sin el informe de una etapa anterior debajo, que no es «la última».
  */
 export function LastRaceReport() {
-  const { data, isPending } = useQuery({ queryKey: ['rider', 'last-race'], queryFn: fetchLastRace })
-  if (isPending || !data) return null
+  const rev = useHorizonRev()
+  const last = useQuery({
+    queryKey: lastRaceKey(rev),
+    queryFn: fetchLastRace,
+    enabled: rev !== undefined,
+  })
+  if (last.isPending || !last.data) return null
+  if (last.data.ready !== null)
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <LastRaceReady ready={last.data.ready} />
+      </div>
+    )
+  const data = last.data.report
+  if (!data) return null
 
   // Solo el 1º es "winner". El resto ve su diferencia; si llegó en el mismo grupo que el ganador la
   // diferencia es 0 (mismo tiempo), lo normal en un esprint — eso NO es haber ganado.

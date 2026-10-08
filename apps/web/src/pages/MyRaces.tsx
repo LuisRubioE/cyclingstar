@@ -20,7 +20,9 @@ import {
   raceResultKind,
   raceResultPlace,
   stagesSummary,
+  stagesToWatchText,
 } from '../domain/riderResults'
+import { horizonKey, useHorizonRev } from '../queryClient'
 
 type TabId = 'upcoming' | 'enter' | 'results'
 
@@ -53,7 +55,12 @@ function whenLabel(daysUntil: number, ongoing: boolean): string {
  */
 function UpcomingTab() {
   const queryClient = useQueryClient()
-  const upcoming = useQuery({ queryKey: ['rider', 'upcoming'], queryFn: fetchMyUpcomingRaces })
+  const rev = useHorizonRev()
+  const upcoming = useQuery({
+    queryKey: horizonKey(['rider', 'upcoming'], rev),
+    queryFn: fetchMyUpcomingRaces,
+    enabled: rev !== undefined,
+  })
   const entries = useQuery({ queryKey: ['race-entries'], queryFn: fetchEnterableRaces })
   // Qué carrera está esperando confirmación de retirada. Retirarse no se deshace (docs/motor.md
   // §V.5), así que el botón nunca actúa a la primera: primero pregunta.
@@ -376,10 +383,11 @@ function EnterTab({ money }: { money: number | null }) {
  * plegadas debajo, cada una con su enlace a la crónica.
  */
 function ResultsTab({ riderId }: { riderId: string | null }) {
+  const rev = useHorizonRev()
   const { data, isPending, isError } = useQuery({
-    queryKey: ['rider', 'results', riderId],
+    queryKey: horizonKey(['rider', 'results', riderId], rev),
     queryFn: () => fetchRiderResults(riderId!),
-    enabled: !!riderId,
+    enabled: !!riderId && rev !== undefined,
   })
   const [expanded, setExpanded] = useState(false)
 
@@ -424,6 +432,12 @@ function ResultsTab({ riderId }: { riderId: string | null }) {
                     {r.raceName}
                   </Link>
                   <span className="ml-2 text-xs text-slate-400">Season {r.season + 1}</span>
+                  {/* Con etapas en su velo (sup. H7; 9b): `Race France · 3 stages to watch`. */}
+                  {stagesToWatchText(r) !== null && (
+                    <span className="ml-2 text-xs font-medium text-emerald-700">
+                      · {stagesToWatchText(r)}
+                    </span>
+                  )}
                   {/* Un día: la etapa ES la carrera, y su de dónde a dónde va junto al nombre. */}
                   {r.isOneDay && (
                     <StageRoute
@@ -493,8 +507,17 @@ function ResultsTab({ riderId }: { riderId: string | null }) {
  * `/race-entry`, que estaba huérfana.
  */
 export function MyRaces() {
-  const summary = useQuery({ queryKey: ['rider', 'summary'], queryFn: fetchRiderSummary })
-  const rider = useQuery({ queryKey: ['rider', 'me'], queryFn: fetchMyRider })
+  const rev = useHorizonRev()
+  const summary = useQuery({
+    queryKey: horizonKey(['rider', 'summary'], rev),
+    queryFn: fetchRiderSummary,
+    enabled: rev !== undefined,
+  })
+  const rider = useQuery({
+    queryKey: horizonKey(['rider', 'me'], rev),
+    queryFn: fetchMyRider,
+    enabled: rev !== undefined,
+  })
 
   // Ser agente libre solo decide si la pestaña de inscripción EXISTE; nunca cuál está abierta.
   const freeAgent = summary.data != null && summary.data.teamId == null

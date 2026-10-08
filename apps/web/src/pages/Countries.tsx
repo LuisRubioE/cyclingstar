@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom'
 import { type CountrySummary, fetchCountries } from '../api/browse'
 import { Flag } from '../components/Flag'
 import { Panel, SectionBar } from '../components/Panel'
+import { horizonKey, useHorizonRev } from '../queryClient'
+import { VeilNotice } from '../components/VeilNotice'
 
 const CONTINENT_LABEL: Record<Continent, string> = {
   Europe: 'Europe',
@@ -37,9 +39,11 @@ function NationCard({ c }: { c: CountrySummary }) {
 
 /** Naciones (#7): países con corredores en activo, agrupados por continente. */
 export function Countries() {
+  const rev = useHorizonRev()
   const { data, isPending, isError } = useQuery({
-    queryKey: ['countries'],
+    queryKey: horizonKey(['countries'], rev),
     queryFn: fetchCountries,
+    enabled: rev !== undefined,
   })
 
   if (isPending) return <p className="text-slate-500">Loading…</p>
@@ -57,6 +61,7 @@ export function Countries() {
   return (
     <section className="space-y-4">
       <SectionBar>Nations</SectionBar>
+      <VeilNotice kind="results" />
       <p className="text-sm text-slate-500">
         Every country with riders in the game, by continent. Tap one for its national ranking.
       </p>

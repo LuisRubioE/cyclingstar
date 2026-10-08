@@ -46,6 +46,9 @@ import {
   resolveOrders,
   withOrderPatch,
 } from '../domain/raceOrdersDraft'
+import { OrdersGate } from '../components/OrdersGate'
+import { waitingStage } from '../domain/veil'
+import { horizonKey, useHorizon, useHorizonRev, veilApplies } from '../queryClient'
 
 const NEEDS_TARGET: StageRole[] = ['lanzador', 'gregario', 'marcador']
 
@@ -257,7 +260,12 @@ const selectClass =
 /** Consola de órdenes de etapa: el piloto automático para tus próximas carreras inscritas (Paso 29). */
 export function RaceOrders() {
   const queryClient = useQueryClient()
-  const upcoming = useQuery({ queryKey: ['rider', 'upcoming'], queryFn: fetchMyUpcomingRaces })
+  const rev = useHorizonRev()
+  const upcoming = useQuery({
+    queryKey: horizonKey(['rider', 'upcoming'], rev),
+    queryFn: fetchMyUpcomingRaces,
+    enabled: rev !== undefined,
+  })
   const [searchParams] = useSearchParams()
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
 
@@ -329,6 +337,14 @@ export function RaceOrders() {
       })
     }
   }
+
+  // LA PUERTA DE LA N+1 (E2, §11.12, DD-09; 9b): con una etapa corrida y sin ver, la página abre con el
+  // aviso y sus tres salidas; `Give orders anyway` la deja tal cual para esa carrera.
+  const horizon = useHorizon()
+  const waiting =
+    selectedKey !== null && veilApplies(rev) ? waitingStage(horizon.data, selectedKey) : null
+  const [ordersAnyway, setOrdersAnyway] = useState<ReadonlySet<string>>(new Set())
+  const gated = waiting !== null && selectedKey !== null && !ordersAnyway.has(selectedKey)
 
   // Solo se guarda lo que se está viendo: la carrera seleccionada Y ya cargada.
   const canSave = !!selectedKey && !!data && !mutation.isPending
@@ -413,7 +429,15 @@ export function RaceOrders() {
       {mutation.isSuccess && <p className="text-sm text-emerald-600">Orders saved.</p>}
       {mutation.isError && <p className="text-sm text-red-600">Could not save your orders.</p>}
 
-      <div className="space-y-4">
+      {gated && selectedKey !== null && waiting !== null && (
+        <OrdersGate
+          raceKey={selectedKey}
+          stageDay={waiting}
+          onGiveOrders={() => setOrdersAnyway((prev) => new Set([...prev, selectedKey]))}
+        />
+      )}
+
+      <div className={`space-y-4${gated ? ' hidden' : ''}`}>
         {(data?.stages ?? []).map((stage) => {
           const order = orders[stage.day] ?? defaultOrder(stage.day)
           return (

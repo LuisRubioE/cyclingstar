@@ -33,8 +33,9 @@ import { clearAdaptedTimelineCache } from '../broadcastSource.js'
  *
  * Los bancos recorren `app.spoilerRegistry`, lo que registra Fastify, y no una lista a mano: una ruta
  * nueva entra sola en el barrido, y si pide un `:param` que este mundo no sabe rellenar, el barrido
- * falla (`PARAM`). `PENDING_ROUTES` es lo que todavía destripa con su PR; los tests comprueban las dos
- * cosas, que nada fuera de la lista falla y que cada ruta de la lista sigue fallando.
+ * falla (`PARAM`). Desde el 8b ninguna ruta destripa (D-54), y `PENDING_ROUTES`, la lista de lo que
+ * todavía destripaba con el PR que lo cerraba, que nació llena en el 7a y vaciaron el 7b, el 8a y el 8b, se
+ * borró en el 9b con sus `it` (§16.3, 17-n): los bancos comparan con la lista vacía a secas.
  */
 
 export const RACE_ID = 'race-france'
@@ -50,24 +51,6 @@ export const OWN_RIDER = idDe(0)
 const FIELD = 12
 const BASE = 'http://localhost:3000'
 
-export type Bank = 'B1a' | 'B1b' | 'B1c'
-/**
- * Lo que el paso 8 aún no ha cerrado: ruta, PR que la cierra (la columna «Mecanismo en» de §11.3) y
- * bancos que la ven. Nació llena en el 7a, medida con este mundo y el código del 7a: cada test comprueba
- * que nada fuera de ella falla y que cada ruta de ella sigue fallando en sus bancos («ya no destripa:
- * quítala»). Un banco que no aparece no ve la ruta en este mundo: B1a solo ve los cinco valores canario,
- * B1b no barre la etapa velada (`B1B_SKIP`) y B1c compara dos desenlaces con el mismo velo. El 7b quitó
- * las dos de la etapa, la ruta de etapa (G y P, `stageAccessOf`) y el acta (G, `sendGate`); el 8a, sus
- * seis, con P, F y G sobre `veilSql`: la ficha de carrera, las dos de noticias, `last-race` y el
- * palmarés y los resultados de un corredor; y el 8b, las trece de R y M con `veilDelta`: el ranking, los
- * premios, el salón, los récords, las naciones, la tendencia, el informe, el resumen, el libro de
- * cuentas, la ficha de un corredor y las dos de equipos. VACÍA desde el 8b (D-54, 17-n): B1a, B1b y B1c
- * en verde en todas las rutas. La constante y sus `it` se borran en el 9b (§16.3).
- */
-export const PENDING_ROUTES: ReadonlyMap<
-  string,
-  { readonly pr: string; readonly banks: readonly Bank[] }
-> = new Map<string, { readonly pr: string; readonly banks: readonly Bank[] }>([])
 /**
  * La lista blanca de B1b: ruta → campos que pueden cambiar al correrse una etapa velada. Su ÚNICA fuente es la primera tabla de
  * §11.18, fila a fila y en el mismo orden, con su columna «Campos (`strip`)»: puntos; `[]` recorre un array; `[veiledDay]` quita de
@@ -368,8 +351,6 @@ export async function sweep(
   return out
 }
 export const routeOf = (key: string): string => key.split(' ').slice(0, 2).join(' ')
-export const pendingFor = (key: string, bank: Bank): boolean =>
-  PENDING_ROUTES.get(routeOf(key))?.banks.includes(bank) ?? false
 /** Un 5xx no es una respuesta igual ni distinta: es un banco que no ha mirado. Cada B1 tiene un `it` que exige esta lista vacía. */
 export const serverErrors = (bodies: ReadonlyMap<string, Swept>): string[] =>
   [...bodies].filter(([, r]) => r.status >= 500).map(([k]) => k)

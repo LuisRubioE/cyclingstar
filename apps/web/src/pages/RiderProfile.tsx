@@ -32,6 +32,8 @@ import { TeamLink } from '../components/TeamLink'
 import { conditionBars, conditionLabel } from '../domain/condition'
 import { HEALTH_LOOK, healthNote, healthUntilLabel } from '../domain/health'
 import { palmaresLabel, archetypeLabel } from '../domain/labels'
+import { horizonKey, useHorizonRev } from '../queryClient'
+import { VeilNotice } from '../components/VeilNotice'
 
 /**
  * LAS FRASES POR REGLA (docs/entrenamiento.md §2.3). El servidor manda códigos y el texto vive aquí,
@@ -179,8 +181,17 @@ function MatchRow({ value, max }: { value: number | null; max: number }) {
  * que sus consultas (`/api/riders/me/...`) no se disparan nunca en la vista pública.
  */
 function OwnerCondition({ attributes }: { attributes: Record<Attribute, number> }) {
-  const formQuery = useQuery({ queryKey: ['rider', 'form'], queryFn: fetchForm })
-  const summaryQuery = useQuery({ queryKey: ['rider', 'summary'], queryFn: fetchRiderSummary })
+  const rev = useHorizonRev()
+  const formQuery = useQuery({
+    queryKey: horizonKey(['rider', 'form'], rev),
+    queryFn: fetchForm,
+    enabled: rev !== undefined,
+  })
+  const summaryQuery = useQuery({
+    queryKey: horizonKey(['rider', 'summary'], rev),
+    queryFn: fetchRiderSummary,
+    enabled: rev !== undefined,
+  })
   const healthQuery = useQuery({ queryKey: ['health'], queryFn: fetchHealth })
 
   const form = formQuery.data?.form ?? null
@@ -281,7 +292,12 @@ function OwnerCondition({ attributes }: { attributes: Record<Attribute, number> 
 
 /** Objetivos de temporada del corredor: qué carreras ha pedido y si le convocaron. Solo mío. */
 function OwnerObjectives() {
-  const { data } = useQuery({ queryKey: ['rider', 'race-prefs'], queryFn: fetchRacePrefs })
+  const rev = useHorizonRev()
+  const { data } = useQuery({
+    queryKey: horizonKey(['rider', 'race-prefs'], rev),
+    queryFn: fetchRacePrefs,
+    enabled: rev !== undefined,
+  })
   const wanted = (data ?? []).filter((r) => r.wanted)
   if (wanted.length === 0) return null
   return (
@@ -319,24 +335,29 @@ function OwnerObjectives() {
 export function RiderProfile() {
   const { id: routeId } = useParams()
   // Mi corredor: hace falta para saber si el `:id` de la URL soy yo. Sin sesión devuelve null.
-  const mine = useQuery({ queryKey: ['rider', 'me'], queryFn: fetchMyRider })
+  const rev = useHorizonRev()
+  const mine = useQuery({
+    queryKey: horizonKey(['rider', 'me'], rev),
+    queryFn: fetchMyRider,
+    enabled: rev !== undefined,
+  })
   const riderId = routeId ?? mine.data?.id ?? null
   const owner = riderId != null && mine.data?.id === riderId
 
   const riderQuery = useQuery({
-    queryKey: ['public-rider', riderId],
+    queryKey: horizonKey(['public-rider', riderId], rev),
     queryFn: () => fetchPublicRider(riderId!),
-    enabled: !!riderId,
+    enabled: !!riderId && rev !== undefined,
   })
   const palmaresQuery = useQuery({
-    queryKey: ['public-rider', riderId, 'palmares'],
+    queryKey: horizonKey(['public-rider', riderId, 'palmares'], rev),
     queryFn: () => fetchRiderPalmares(riderId!),
-    enabled: !!riderId,
+    enabled: !!riderId && rev !== undefined,
   })
   const resultsQuery = useQuery({
-    queryKey: ['public-rider', riderId, 'results'],
+    queryKey: horizonKey(['public-rider', riderId, 'results'], rev),
     queryFn: () => fetchRiderResults(riderId!),
-    enabled: !!riderId,
+    enabled: !!riderId && rev !== undefined,
   })
   // El día de juego actual, para decir hasta cuándo dura una baja. Es la misma consulta pública que
   // ya hace la cabecera (misma clave ⇒ misma caché), así que no añade tráfico.
@@ -348,7 +369,11 @@ export function RiderProfile() {
    * que **el perfil de otro ni siquiera las pide**: no es que la UI las esconda, es que el dato no
    * sale del servidor. Fisgonear el potencial de otro es una función de ojeo que todavía no existe.
    */
-  const trendQuery = useQuery({ queryKey: ['rider-trend'], queryFn: fetchTrend, enabled: owner })
+  const trendQuery = useQuery({
+    queryKey: horizonKey(['rider-trend'], rev),
+    queryFn: fetchTrend,
+    enabled: owner && rev !== undefined,
+  })
   const coachQuery = useQuery({
     queryKey: ['coach-view'],
     queryFn: fetchCoachView,
@@ -392,6 +417,7 @@ export function RiderProfile() {
   return (
     <section className="space-y-4">
       <SectionBar>{rider.name}</SectionBar>
+      <VeilNotice kind="results" />
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Panel title="Rider" className="lg:col-span-2">

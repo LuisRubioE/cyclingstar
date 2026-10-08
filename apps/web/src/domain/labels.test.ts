@@ -49,6 +49,10 @@ describe('web: diccionario de dominio (español interno → inglés de UI)', () 
     expect(newsLabel('jersey_taken')).toBe('Jersey')
   })
 
+  it('el marcador de una etapa velada lleva la familia Watch, igual para todos (E2, paso 9b; sup. N2)', () => {
+    expect(newsLabel('stage_ready')).toBe('Watch')
+  })
+
   it('traduce los tipos de apunte y de palmarés', () => {
     expect(ledgerKindLabel('salario')).toBe('Salary')
     expect(ledgerKindLabel('viaje')).toBe('Travel')

@@ -14,6 +14,7 @@ import {
 import { Logo } from './Logo'
 import { NavTabs, type NavTabItem } from './Tabs'
 import { WorldClock } from './WorldClock'
+import { horizonKey, useHorizonRev } from '../queryClient'
 
 /**
  * Cabecera de DOS niveles (docs/navegacion.md §3.1-§3.4).
@@ -89,11 +90,13 @@ export function Header() {
   const { data: session } = authClient.useSession()
   const { pathname } = useLocation()
   const health = useQuery({ queryKey: ['health'], queryFn: fetchHealth })
-  // ¿Pertenezco a un equipo? Solo importa con sesión; sin ella la consulta ni se lanza.
+  // ¿Pertenezco a un equipo? Solo importa con sesión; sin ella la consulta ni se lanza. El resumen es
+  // de una ruta con horizonte (sus puntos y su dinero, R): su clave lleva el `rev` (§10.9; 9b).
+  const rev = useHorizonRev()
   const summary = useQuery({
-    queryKey: ['rider', 'summary'],
+    queryKey: horizonKey(['rider', 'summary'], rev),
     queryFn: fetchRiderSummary,
-    enabled: Boolean(session),
+    enabled: Boolean(session) && rev !== undefined,
   })
 
   const section = sectionOf(pathname)

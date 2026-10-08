@@ -23,6 +23,7 @@ import {
   onlyEdited,
   withEdit,
 } from '../domain/trainingPlan'
+import { horizonKey, useHorizonRev } from '../queryClient'
 
 /**
  * CUÁNTOS DÍAS SE PLANIFICAN. La API acepta y devuelve 28 (`TRAINING_HORIZON_DAYS`) desde hace
@@ -56,7 +57,12 @@ function sessionEffect(session: Session, intensity: Intensity): string {
 }
 
 export function Training() {
-  const query = useQuery({ queryKey: ['orders'], queryFn: fetchOrders })
+  const rev = useHorizonRev()
+  const query = useQuery({
+    queryKey: horizonKey(['orders'], rev),
+    queryFn: fetchOrders,
+    enabled: rev !== undefined,
+  })
   const team = useQuery({ queryKey: ['team-training'], queryFn: fetchTeamTraining })
   // Ediciones sin guardar, por día de juego. Viven APARTE de los datos del servidor: un refetch en
   // segundo plano actualiza la base pero jamás pisa lo que el jugador ha tocado.

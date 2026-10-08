@@ -36,6 +36,16 @@ export function revealQuestion(stageDay: number): string {
   return `Show the result of Stage ${stageDay}? You won't be able to watch it without knowing.`
 }
 
+/** La pregunta de `Show results` de una carrera entera (§11.4, §11.11; 9b): revela su última etapa y arrastra las demás. */
+export function raceRevealQuestion(raceName: string): string {
+  return `Show the results of ${raceName}? You won't be able to watch it without knowing.`
+}
+
+/** Las etapas de `from` a `to`, ambas incluidas: lo que revelar una arrastra con `A`. */
+export function stageRange(from: number, to: number): number[] {
+  return range(from, to)
+}
+
 /** Lo que revelar arrastra, dicho antes de aceptar (§11.11); null si no arrastra nada. */
 export function alsoRevealsText(also: readonly number[]): string | null {
   const [first] = also

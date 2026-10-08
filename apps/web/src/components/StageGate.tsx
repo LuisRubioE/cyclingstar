@@ -44,12 +44,15 @@ export function RevealConfirm({
   busy,
   onConfirm,
   onCancel,
+  question,
 }: {
   stageDay: number
   also: readonly number[]
   busy: boolean
   onConfirm: (dontAskAgain: boolean) => void
   onCancel: () => void
+  /** otra pregunta: la de revelar una carrera entera, `Show results` de la portada (9b) */
+  question?: string
 }) {
   const [dontAsk, setDontAsk] = useState(false)
   const alsoText = alsoRevealsText(also)
@@ -59,7 +62,7 @@ export function RevealConfirm({
       aria-label="Show the result"
       className="mt-3 space-y-2 rounded-xl bg-slate-50 p-3"
     >
-      <p className="text-sm text-slate-700">{revealQuestion(stageDay)}</p>
+      <p className="text-sm text-slate-700">{question ?? revealQuestion(stageDay)}</p>
       {alsoText !== null && <p className="text-sm text-slate-500">{alsoText}</p>}
       <label className="flex items-center gap-2 text-sm text-slate-600">
         <input type="checkbox" checked={dontAsk} onChange={(e) => setDontAsk(e.target.checked)} />

@@ -2,9 +2,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { type ReactElement, createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { OneDayRadio, OneDayStory } from '../pages/Race'
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { Race } from '../pages/Race'
 import { StageReplay } from '../pages/StageReplay'
+import { healthWith, horizonWith, raceViewWith } from '../pages/__fixtures__/world'
+import { raceViewKey } from './race'
 import { diagOf, fetchCalendarStage, stageReplayKey } from './results'
 
 /**
@@ -36,6 +38,32 @@ function response(body: unknown): Response {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+})
+
+// La ficha de una carrera de un día terminada va diferida (`lazy`, `OneDayRace.tsx`, 9b): un primer render
+// la pide y, ya cargada, los de los tests la pintan con sus consultas.
+beforeAll(async () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, enabled: false } } })
+  client.setQueryData(['health'], healthWith('off', 'on', 100))
+  client.setQueryData(['horizon'], horizonWith({ rev: '9.1' }))
+  client.setQueryData(raceViewKey('race-sanremo', false, '9.1'), raceViewWith(1))
+  renderToStaticMarkup(
+    createElement(
+      QueryClientProvider,
+      { client },
+      createElement(
+        MemoryRouter,
+        { initialEntries: ['/world/races/race-sanremo'] },
+        createElement(
+          Routes,
+          null,
+          createElement(Route, { path: '/world/races/:raceId', element: createElement(Race) }),
+        ),
+      ),
+    ),
+  )
+  await import('../pages/OneDayRace')
+  await new Promise((resolve) => setTimeout(resolve, 0))
 })
 
 describe('web: la ficha de una etapa con ?diag=1 (14-s)', () => {
@@ -84,15 +112,15 @@ describe('web: la ficha de una etapa con ?diag=1 (14-s)', () => {
     url: string,
     path: string,
     element: ReactElement,
-  ): Promise<{ keys: unknown[][]; urls: string[] }> {
+  ): Promise<{ keys: unknown[][]; urls: string[]; enabled: unknown[] }> {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    client.setQueryData(['horizon'], {
-      rev: '9.1',
-      scope: 'guarded',
-      ready: [],
-      watching: [],
-      expiredSinceLastVisit: [],
-    })
+    client.setQueryData(['horizon'], horizonWith({ rev: '9.1' }))
+    // Re-sellado en el 9b: el `rev` sale del horizonte solo con SPOILER_MODE encendido, que dice /health
+    // (con él apagado es `'world'` sin pedir nada); sin /health en la caché, las consultas esperan.
+    client.setQueryData(['health'], healthWith('off', 'on', 100))
+    // la ficha de una carrera de un día terminada (9b), con y sin `?diag=1`
+    for (const diag of [false, true])
+      client.setQueryData(raceViewKey('race-sanremo', diag, '9.1'), raceViewWith(1))
     renderToStaticMarkup(
       createElement(
         QueryClientProvider,
@@ -117,6 +145,8 @@ describe('web: la ficha de una etapa con ?diag=1 (14-s)', () => {
     return {
       keys: queries.map((q) => [...q.queryKey]),
       urls: fetchMock.mock.calls.map((c) => c[0]),
+      // si la página la deja pedir: una consulta desactivada también queda en la caché con su clave
+      enabled: queries.map((q) => (q.options as { enabled?: unknown }).enabled),
     }
   }
 
@@ -131,18 +161,34 @@ describe('web: la ficha de una etapa con ?diag=1 (14-s)', () => {
     expect(plain.urls).toEqual(['/api/races/race-france/stages/7'])
   })
 
-  it('Race.tsx, en las pestañas Story y Race Radio de una carrera de un día, igual', async () => {
+  // Re-sellado en el 9b: las pestañas de una carrera de un día ya no son `OneDayStory` y `OneDayRadio` sino la
+  // ficha entera (`OneDaySections`), que pide la ruta de su etapa al abrir una de las dos con `Watch`
+  // apagado, y con él encendido, al abrirse (§11.17). `?tab=story` es el acta, `report` (D-48).
+  it('Race.tsx, en las pestañas Story (report) y Race Radio de una carrera de un día, igual', async () => {
     const path = '/world/races/:raceId'
-    for (const tab of [
-      createElement(OneDayStory, { raceId: 'race-sanremo', onFullResult: () => {} }),
-      createElement(OneDayRadio, { raceId: 'race-sanremo' }),
-    ]) {
-      const withDiag = await queriesOf('/world/races/race-sanremo?diag=1', path, tab)
+    const page = createElement(Race)
+    for (const tab of ['story', 'radio']) {
+      const withDiag = await queriesOf(`/world/races/race-sanremo?tab=${tab}&diag=1`, path, page)
       expect(withDiag.keys).toEqual([['stage-replay', 'race-sanremo', 1, true, '9.1']])
       expect(withDiag.urls).toEqual(['/api/races/race-sanremo/stages/1?diag=1'])
-      const plain = await queriesOf('/world/races/race-sanremo', path, tab)
+      const plain = await queriesOf(`/world/races/race-sanremo?tab=${tab}`, path, page)
       expect(plain.keys).toEqual([['stage-replay', 'race-sanremo', 1, false, '9.1']])
       expect(plain.urls).toEqual(['/api/races/race-sanremo/stages/1'])
     }
+  })
+
+  it('9b: con Watch apagado, la ficha de una carrera de un día en Result no pide la ruta de su etapa (como hoy)', async () => {
+    const plain = await queriesOf(
+      '/world/races/race-sanremo',
+      '/world/races/:raceId',
+      createElement(Race),
+    )
+    expect(plain.enabled).toEqual([false])
+    const story = await queriesOf(
+      '/world/races/race-sanremo?tab=story',
+      '/world/races/:raceId',
+      createElement(Race),
+    )
+    expect(story.enabled).toEqual([true])
   })
 })

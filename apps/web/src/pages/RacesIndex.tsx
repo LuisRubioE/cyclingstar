@@ -19,6 +19,8 @@ import {
   championshipsByNation,
   nationDay,
 } from '../domain/raceTimeline'
+import { finalVeiled, raceKeyOn, raceVeil } from '../domain/veil'
+import { horizonKey, useHealth, useHorizon, useHorizonRev } from '../queryClient'
 
 /**
  * `World → Races`: la ÚNICA página de carreras del mundo (docs/navegacion.md §3.3).
@@ -72,7 +74,16 @@ const FORMAT_FILTERS: { key: FormatFilter; label: string }[] = [
  * Una carrera de la línea temporal: cabecera plegable con su día, su clase y quién ganó, y dentro
  * el recorrido etapa a etapa (lo que el índice viejo no tenía y el calendario sí).
  */
-function RaceCard({ race, status }: { race: CalendarRaceSummary; status: RaceTimelineStatus }) {
+function RaceCard({
+  race,
+  status,
+  finalHidden,
+}: {
+  race: CalendarRaceSummary
+  status: RaceTimelineStatus
+  /** la última etapa está en el velo de quien mira (sup. I1; 9b) */
+  finalHidden: boolean
+}) {
   const [open, setOpen] = useState(false)
   const totalKm = race.stages.reduce((sum, s) => sum + s.km, 0)
   const oneDay = race.stages.length === 1
@@ -113,6 +124,9 @@ function RaceCard({ race, status }: { race: CalendarRaceSummary; status: RaceTim
         <span className="w-28 shrink-0 truncate text-right text-xs sm:w-36">
           {race.winner ? (
             <span className="font-medium text-amber-700">🏆 {race.winner}</span>
+          ) : finalHidden ? (
+            // la API no manda el ganador de una carrera de final velado (P; 8a): se dice que está por ver
+            <span className="font-medium text-emerald-700">Finished · ready to watch</span>
           ) : status === 'ongoing' ? (
             <span className="font-medium text-emerald-600">Racing now</span>
           ) : (
@@ -169,7 +183,16 @@ function RaceCard({ race, status }: { race: CalendarRaceSummary; status: RaceTim
  * entre semana y la ruta el fin de semana, y según el país la Elite y el Sub-23 coinciden o no. Por
  * eso se agrupan por día, y así se ve de un vistazo qué pruebas comparten fecha.
  */
-function NationRow({ code, races }: { code: string; races: CalendarRaceSummary[] }) {
+function NationRow({
+  code,
+  races,
+  hidden,
+}: {
+  code: string
+  races: CalendarRaceSummary[]
+  /** si la prueba tiene el final en el velo de quien mira (sup. I2; 9b) */
+  hidden: (race: CalendarRaceSummary) => boolean
+}) {
   const name = champCountryName(races[0]!)
   const days = champEventsByDay(races)
   const first = days[0]![0]
@@ -188,7 +211,13 @@ function NationRow({ code, races }: { code: string; races: CalendarRaceSummary[]
               <Link
                 key={r.id}
                 to={`/world/races/${r.id}`}
-                title={r.winner ? `Winner: ${r.winner}` : champEventLabel(r)}
+                title={
+                  r.winner
+                    ? `Winner: ${r.winner}`
+                    : hidden(r)
+                      ? `${champEventLabel(r)} · Finished · ready to watch`
+                      : champEventLabel(r)
+                }
                 className="rounded bg-slate-900/5 px-1.5 py-0.5 text-[11px] font-medium text-slate-600 hover:bg-brand-cyan/15 hover:text-brand-navy"
               >
                 {r.winner ? '🏆 ' : ''}
@@ -206,7 +235,13 @@ function NationRow({ code, races }: { code: string; races: CalendarRaceSummary[]
  * Los campeonatos nacionales, aparte: son 532 carreras de un día y en la línea temporal la
  * sepultarían. Tienen su propio filtro, y aquí se agrupan por nación.
  */
-function NationalChampsBlock({ races }: { races: CalendarRaceSummary[] }) {
+function NationalChampsBlock({
+  races,
+  hidden,
+}: {
+  races: CalendarRaceSummary[]
+  hidden: (race: CalendarRaceSummary) => boolean
+}) {
   const nations = championshipsByNation(races)
   if (nations.length === 0) {
     return (
@@ -227,7 +262,7 @@ function NationalChampsBlock({ races }: { races: CalendarRaceSummary[] }) {
       </p>
       <div className="grid gap-x-4 gap-y-0.5 sm:grid-cols-2">
         {nations.map(([code, list]) => (
-          <NationRow key={code} code={code} races={list} />
+          <NationRow key={code} code={code} races={list} hidden={hidden} />
         ))}
       </div>
     </Panel>
@@ -235,7 +270,21 @@ function NationalChampsBlock({ races }: { races: CalendarRaceSummary[] }) {
 }
 
 export function RacesIndex() {
-  const { data, isPending, isError } = useQuery({ queryKey: ['calendar'], queryFn: fetchCalendar })
+  const rev = useHorizonRev()
+  const { data, isPending, isError } = useQuery({
+    queryKey: horizonKey(['calendar'], rev),
+    queryFn: fetchCalendar,
+    enabled: rev !== undefined,
+  })
+  // Bajo el velo (E2, §11.3; sups. I1 e I2; 9b): la carrera de final velado llega sin ganador (P, 8a), y la
+  // fila dice que está por ver. Solo del horizonte de quien mira (I-39).
+  const horizon = useHorizon()
+  const health = useHealth()
+  const hidden = (race: CalendarRaceSummary): boolean =>
+    finalVeiled(
+      raceVeil(horizon.data, raceKeyOn(race.id, health.data?.gameDay)),
+      Math.max(1, race.stages.length),
+    )
   const [query, setQuery] = useState('')
   const [classFilter, setClassFilter] = useState<ClassFilter>('all')
   const [formatFilter, setFormatFilter] = useState<FormatFilter>('all')
@@ -309,7 +358,7 @@ export function RacesIndex() {
       </div>
 
       {showingChamps ? (
-        <NationalChampsBlock races={champs} />
+        <NationalChampsBlock races={champs} hidden={hidden} />
       ) : timeline.total === 0 ? (
         <p className="rounded-md border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
           No race matches that search.
@@ -348,10 +397,15 @@ export function RacesIndex() {
             ) : row.status === 'finished' ? (
               // Lo ya corrido, atenuado: sigue ahí, pero no compite con lo que viene.
               <div key={row.race.id} className="opacity-60">
-                <RaceCard race={row.race} status={row.status} />
+                <RaceCard race={row.race} status={row.status} finalHidden={hidden(row.race)} />
               </div>
             ) : (
-              <RaceCard key={row.race.id} race={row.race} status={row.status} />
+              <RaceCard
+                key={row.race.id}
+                race={row.race}
+                status={row.status}
+                finalHidden={hidden(row.race)}
+              />
             ),
           )}
         </Panel>

@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest'
 import { HORIZON_KEYS, type SessionSeen, cacheOwnerChanged, horizonKey } from './queryClient'
 
 /**
- * LAS CLAVES CON HORIZONTE (E2, docs/retransmision.md §10.9 y §14.11; D-35, I-32, 14-r; paso 9a).
+ * LAS CLAVES CON HORIZONTE (E2, docs/retransmision.md §10.9 y §14.11; D-35, I-32, 14-r; pasos 9a y 9b).
  *
  * Toda consulta de una familia de `HORIZON_KEYS` depende de lo que ha visto quien mira: su clave lleva
  * el `rev` del horizonte como ÚLTIMO elemento, y la única forma de construirla es `horizonKey`. Olvidarlo
@@ -231,8 +231,41 @@ function problemsOf(
 describe('las claves con horizonte (§10.9, 14-r)', () => {
   const files = sources().map((path) => ({ path, text: readFileSync(path, 'utf8') }))
 
-  it('HORIZON_KEYS son las familias de las rutas de etapa (9a); el mundo entra en el 9b', () => {
-    expect([...FAMILIES].sort()).toEqual(['broadcast-head', 'stage-replay', 'stage-report'])
+  it('HORIZON_KEYS son las familias de las rutas de etapa (9a) y las del mundo (9b): toda ruta horizon con P, F, R, M o G', () => {
+    // La etapa (9a): la ficha, la cabecera de la retransmisión y el acta. El mundo (9b, §11.3): la ficha
+    // de carrera y el calendario (P), los dos feeds (F), los agregados (R y M, desde el 8b), las fichas de
+    // corredor y de equipo y lo propio (R, M, F, P y G). Las rutas solo L o safe (la lista de salida, las
+    // ofertas, las convocatorias, las órdenes de carrera) no cambian con lo visto y quedan fuera.
+    expect([...FAMILIES].sort()).toEqual(
+      [
+        'badges',
+        'block-report',
+        'broadcast-head',
+        'calendar',
+        'countries',
+        'country',
+        'hall-of-fame',
+        'ledger',
+        'news',
+        'orders',
+        'plan-preview',
+        'public-rider',
+        'race',
+        'rankings',
+        'rankings-young',
+        'records',
+        'rider',
+        'rider-summary',
+        'rider-trend',
+        'season-awards',
+        'stage-replay',
+        'stage-report',
+        'team',
+        'team-calendar',
+        'team-news',
+        'teams',
+      ].sort(),
+    )
   })
 
   it('horizonKey pone el rev como último elemento, y la clave cambia con él', () => {
@@ -253,12 +286,22 @@ describe('las claves con horizonte (§10.9, 14-r)', () => {
     expect(problems).toEqual([])
   })
 
-  it('no es vacío: la página de etapa, su acta y las de la carrera de un día tienen consultas con horizonte', () => {
+  it('no es vacío: la etapa, su acta, la ficha de carrera, el feed, los rankings y la portada tienen consultas con horizonte', () => {
     const { horizonQueries } = problemsOf(files, SRC)
     const where = horizonQueries.map((w) => w.split(':')[0])
-    for (const page of ['pages/StageReplay.tsx', 'pages/StageReport.tsx', 'pages/Race.tsx'])
+    // la ficha, la cabecera y el acta de la página de etapa viven desde el 9b en `stageView.tsx`, que
+    // comparte con la ficha de una carrera de un día
+    for (const page of [
+      'pages/stageView.tsx',
+      'pages/StageReport.tsx',
+      'pages/Race.tsx',
+      'pages/News.tsx',
+      'pages/Rankings.tsx',
+      'pages/Home.tsx',
+      'components/Header.tsx',
+    ])
       expect(where, page).toContain(page)
-    expect(horizonQueries.length).toBeGreaterThanOrEqual(5)
+    expect(horizonQueries.length).toBeGreaterThanOrEqual(40)
   })
 
   it('caza lo que tiene que cazar: una clave a mano, una función que no usa horizonKey y una consulta sin enabled', () => {
@@ -270,7 +313,8 @@ describe('las claves con horizonte (§10.9, 14-r)', () => {
           "function badKey(raceId: string) { return ['broadcast-head', raceId] }",
           'const b = useQuery({ queryKey: badKey(raceId), queryFn: f, enabled: rev !== undefined })',
           "const c = useQuery({ queryKey: horizonKey(['stage-report', raceId], rev), queryFn: f })",
-          "const d = useQuery({ queryKey: ['news'], queryFn: f })",
+          // re-sellado en el 9b: `['news']` es ya de una familia con horizonte; la que no lo es, `['market']`
+          "const d = useQuery({ queryKey: ['market'], queryFn: f })",
         ].join('\n'),
       },
     ]

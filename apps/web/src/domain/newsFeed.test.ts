@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import type { NewsItem } from '@cyclingstar/shared'
-import { NO_FILTER, groupByGameDay, headlineTarget, matchesFilter, raceOfItem } from './newsFeed'
+import { type NewsItem, SPOILER } from '@cyclingstar/shared'
+import {
+  NO_FILTER,
+  feedEntries,
+  groupByGameDay,
+  headlineTarget,
+  matchesFilter,
+  raceOfItem,
+  readyTarget,
+  stageReadyOf,
+} from './newsFeed'
 
 function item(partial: Partial<NewsItem>): NewsItem {
   return {
@@ -127,5 +136,81 @@ describe('a dónde lleva un titular', () => {
 
   it('y un titular sin corredor ni carrera no es un enlace', () => {
     expect(headlineTarget(noticia({ kind: 'contract', riderId: null }), null)).toBeNull()
+  })
+})
+
+/**
+ * EL MARCADOR DE UNA ETAPA VELADA (E2, docs/retransmision.md §11.7 y §4.12; D-45, I-39, 14-j; paso 9b). La API
+ * manda, en lugar de las noticias de cada etapa velada, UN titular `stage_ready` con texto neutro y la
+ * carrera y la etapa como datos (8a). La web lo convierte en `StageReadyItem`, lo lleva a la etapa (que
+ * abre en `Watch`) y, con más de `SPOILER.newsGroupAbove` etapas veladas de una carrera, los junta en una
+ * línea, `Race France · 4 stages ready to watch`, que solo mira el horizonte.
+ */
+describe('stage_ready: el marcador de una etapa velada (9b)', () => {
+  const marker = (stageDay: number, gameDay: number, raceId = 'race-france'): NewsItem =>
+    item({
+      kind: 'stage_ready',
+      gameDay,
+      text: `Stage ${stageDay} of Race France is ready to watch`,
+      raceId,
+      raceKey: `${raceId}:s0`,
+      stageDay,
+    })
+
+  it('stageReadyOf lo convierte en StageReadyItem; un titular normal, o uno sin etapa, no', () => {
+    expect(stageReadyOf(marker(7, 191))).toEqual({
+      kind: 'stage_ready',
+      raceId: 'race-france',
+      season: 0,
+      stageDay: 7,
+      gameDay: 191,
+    })
+    expect(stageReadyOf(item({ kind: 'stage_win', raceId: 'race-france', stageDay: 7 }))).toBeNull()
+    expect(stageReadyOf(item({ kind: 'stage_ready', raceId: null }))).toBeNull()
+  })
+
+  it('lleva a la etapa, que abre en Watch (no a la carrera ni a un corredor)', () => {
+    expect(readyTarget({ raceId: 'race-france', stageDay: 7 })).toBe(
+      '/world/races/race-france/stages/7',
+    )
+  })
+
+  it(`hasta ${SPOILER.newsGroupAbove} de una carrera van sueltos, cada uno en su sitio`, () => {
+    const news = [marker(3, 189), item({ gameDay: 189 }), marker(2, 188), marker(1, 187)]
+    const entries = feedEntries(news)
+    expect(entries.map((e) => e.kind)).toEqual(['ready', 'news', 'ready', 'ready'])
+  })
+
+  it(`con más de ${SPOILER.newsGroupAbove}, una línea por carrera en el sitio del más reciente, con las etapas en orden`, () => {
+    const news = [
+      marker(4, 190),
+      item({ gameDay: 190, kind: 'contract', text: 'A signs for B.' }),
+      marker(3, 189),
+      marker(1, 182, 'race-flanders'),
+      marker(2, 188),
+      marker(1, 187),
+    ]
+    const entries = feedEntries(news)
+    expect(entries.map((e) => e.kind)).toEqual(['ready-group', 'news', 'ready'])
+    const group = entries[0]
+    expect(group).toMatchObject({
+      kind: 'ready-group',
+      raceId: 'race-france',
+      raceName: 'Race France',
+      stages: [1, 2, 3, 4],
+      gameDay: 190,
+    })
+    // la de otra carrera, con una sola etapa velada, sigue suelta
+    expect(entries[2]).toMatchObject({ kind: 'ready', ready: { raceId: 'race-flanders' } })
+  })
+
+  it('agrupa por día de juego los marcadores y los titulares juntos', () => {
+    const days = groupByGameDay(
+      feedEntries([marker(2, 188), item({ gameDay: 188 }), marker(1, 187)]),
+    )
+    expect(days.map((d) => [d.gameDay, d.items.length])).toEqual([
+      [188, 2],
+      [187, 1],
+    ])
   })
 })
