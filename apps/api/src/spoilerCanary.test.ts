@@ -120,9 +120,11 @@ describe('B1a · el canario', () => {
     const watch = new URL(`/world/races/${RACE_ID}/stages/${VEILED}`, 'http://localhost')
     const report = new URL(`/world/races/${RACE_ID}/stages/${VEILED}/report`, 'http://localhost')
     for (const url of [watch, report])
-      expect(JSON.stringify(await shellMetaFor(w.t.db, h, url))).not.toContain(winnerName)
+      expect(
+        JSON.stringify(await shellMetaFor(w.t.db, () => Promise.resolve(h), url)),
+      ).not.toContain(winnerName)
     // no vacío (DD-12): el robot de vista previa, sin cookie, ve el acta con el ganador, marcado
-    const robot = await shellMetaFor(w.t.db, anonHorizon(), report)
+    const robot = await shellMetaFor(w.t.db, () => Promise.resolve(anonHorizon()), report)
     expect(robot?.ogDescription).toContain(`Spoiler · Winner: ${winnerName}`)
     const info = await preStageInfoFor(w.t.db, RACE_ID, VEILED, 0)
     expect(info).not.toBeNull()

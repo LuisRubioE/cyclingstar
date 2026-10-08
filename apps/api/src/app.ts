@@ -293,11 +293,11 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
         // EL TÍTULO Y LAS `og:` ANTES DEL JAVASCRIPT (E2, §14.10; D-42, DD-12; paso 9a): en una carrera,
         // una etapa o su acta, el mismo título que pondrá la web y una vista previa neutra, salvo el
         // ganador del acta fuera del velo de quien pide. Depende de quien pide: privado y por cookie.
-        // Si no hay meta o algo falla, el index de siempre.
+        // El horizonte, solo para el acta. Si no hay meta o algo falla, el index de siempre.
         if (shellHtml !== null && db) {
           try {
             const url = new URL(request.url, 'http://localhost')
-            const meta = await shellMetaFor(db, await request.horizon(), url)
+            const meta = await shellMetaFor(db, () => request.horizon(), url)
             if (meta !== null)
               return reply
                 .header('cache-control', 'private, no-store')

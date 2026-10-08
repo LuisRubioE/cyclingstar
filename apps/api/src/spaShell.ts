@@ -65,9 +65,15 @@ export async function preStageInfoFor(
  * La meta de una página, o null si la URL no es de una carrera o de una etapa del calendario (entonces
  * index.html tal cual). La carrera titula con la información de su etapa 1, como la web (11-c); la etapa,
  * con la de Watch; el acta, con la suya, y su descripción lleva el ganador solo si la etapa se corrió y
- * no tiene puerta para `h` (`stageGateOf`): ni velada ni con una anterior velada.
+ * no tiene puerta para el horizonte de quien pide (`stageGateOf`): ni velada ni con una anterior velada.
+ * `horizonOf` se llama solo para el acta: las demás páginas (y lo que no es una página de carrera) no
+ * resuelven la sesión de quien pide ni le calculan el horizonte.
  */
-export async function shellMetaFor(db: Database, h: Horizon, url: URL): Promise<ShellMeta | null> {
+export async function shellMetaFor(
+  db: Database,
+  horizonOf: () => Promise<Horizon>,
+  url: URL,
+): Promise<ShellMeta | null> {
   const m = SHELL_PATH.exec(url.pathname)
   if (m === null) return null
   const race = SEASON_CALENDAR.find((r) => r.id === m[1])
@@ -99,7 +105,7 @@ export async function shellMetaFor(db: Database, h: Horizon, url: URL): Promise<
     }
   }
   const title = pageTitle('en', p, 'report')
-  if (stageGateOf(h, `${race.id}:s${p.season}`, day) !== null)
+  if (stageGateOf(await horizonOf(), `${race.id}:s${p.season}`, day) !== null)
     return { title, ogTitle: title, ogDescription: neutral }
   const winner = (await getStageResults(db, `${race.id}:s${p.season}`, day)).find(
     (r) => !r.dnf && r.puesto === 1,

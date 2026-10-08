@@ -111,6 +111,12 @@ const NEXT_DAY = 3
 const WINNER = 'Canary Wyner'
 const idDe = (i: number): string => `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`
 const url = (path: string): URL => new URL(path, 'http://localhost')
+/** El horizonte de quien pide, como lo pasa `app.ts` (`() => request.horizon()`). */
+const of = (h: Horizon) => (): Promise<Horizon> => Promise.resolve(h)
+/** Fuera del acta el fallback no pide el horizonte: pedirlo resolvería la sesión de balde. */
+const noHorizon = (): Promise<Horizon> => {
+  throw new Error('el horizonte solo se pide para el acta')
+}
 
 describe('shellMetaFor y el fallback de la SPA, sobre un mundo mínimo (§14.10)', () => {
   let t: TestDb
@@ -186,7 +192,7 @@ describe('shellMetaFor y el fallback de la SPA, sobre un mundo mínimo (§14.10)
   })
 
   it('la ficha de carrera titula con la información de su etapa 1, como la web (11-c)', async () => {
-    const meta = await shellMetaFor(t.db, anonHorizon(), url(`/world/races/${RACE_ID}`))
+    const meta = await shellMetaFor(t.db, noHorizon, url(`/world/races/${RACE_ID}`))
     const p1 = await preStageInfoFor(t.db, RACE_ID, 1, undefined)
     expect(meta).toEqual({
       title: pageTitle('en', p1, 'race'),
@@ -194,39 +200,56 @@ describe('shellMetaFor y el fallback de la SPA, sobre un mundo mínimo (§14.10)
       ogDescription: `${RACE.stages.length} stages`,
     })
     expect(meta!.title).toBe(`${RACE.name} · Cycling Star`)
-    const oneDay = await shellMetaFor(t.db, anonHorizon(), url(`/world/races/${ONE_DAY.id}`))
+    const oneDay = await shellMetaFor(t.db, noHorizon, url(`/world/races/${ONE_DAY.id}`))
     expect(oneDay!.ogDescription).toBe(STAGE_KIND_WORDS.clasica)
   })
 
-  it('la etapa: el título de Watch y la descripción neutra, sea quien sea', async () => {
+  it('la etapa: el título de Watch y la descripción neutra, sea quien sea (no pide el horizonte)', async () => {
     const p = await preStageInfoFor(t.db, RACE_ID, RUN_DAY, undefined)
-    for (const h of [anonHorizon(), veiled, worldHorizon]) {
-      const meta = await shellMetaFor(t.db, h, url(`/world/races/${RACE_ID}/stages/${RUN_DAY}`))
-      expect(meta).toEqual({
-        title: `Stage ${RUN_DAY} · ${RACE.name} · Cycling Star`,
-        ogTitle: `Stage ${RUN_DAY} · ${RACE.name} · Watch the race`,
-        ogDescription: `${Math.round(p!.km)} km · ${STAGE_KIND_WORDS[p!.stageKind]}`,
-      })
+    const stage = url(`/world/races/${RACE_ID}/stages/${RUN_DAY}`)
+    expect(await shellMetaFor(t.db, noHorizon, stage)).toEqual({
+      title: `Stage ${RUN_DAY} · ${RACE.name} · Cycling Star`,
+      ogTitle: `Stage ${RUN_DAY} · ${RACE.name} · Watch the race`,
+      ogDescription: `${Math.round(p!.km)} km · ${STAGE_KIND_WORDS[p!.stageKind]}`,
+    })
+  })
+
+  it('pide el horizonte de quien pide solo para el acta, y una vez', async () => {
+    let asked = 0
+    const counting = (): Promise<Horizon> => {
+      asked += 1
+      return Promise.resolve(veiled)
     }
+    for (const path of [
+      `/world/races/${RACE_ID}`,
+      `/world/races/${RACE_ID}/stages/${RUN_DAY}`,
+      '/world/races/race-nowhere/stages/2/report',
+      '/world/teams',
+      '/account',
+    ])
+      await shellMetaFor(t.db, counting, url(path))
+    expect(asked).toBe(0)
+    await shellMetaFor(t.db, counting, url(`/world/races/${RACE_ID}/stages/${RUN_DAY}/report`))
+    expect(asked).toBe(1)
   })
 
   it('el acta lleva el ganador, marcado Spoiler, solo fuera del velo de quien pide (DD-12, 14-k)', async () => {
     const report = url(`/world/races/${RACE_ID}/stages/${RUN_DAY}/report`)
     const p = await preStageInfoFor(t.db, RACE_ID, RUN_DAY, undefined)
     const neutral = `${Math.round(p!.km)} km · ${STAGE_KIND_WORDS[p!.stageKind]}`
-    const robot = await shellMetaFor(t.db, anonHorizon(), report)
+    const robot = await shellMetaFor(t.db, of(anonHorizon()), report)
     expect(robot).toEqual({
       title: `Stage ${RUN_DAY} report · ${RACE.name} · Cycling Star`,
       ogTitle: `Stage ${RUN_DAY} report · ${RACE.name} · Cycling Star`,
       ogDescription: `Spoiler · Winner: ${WINNER} · ${neutral}`,
     })
-    const player = await shellMetaFor(t.db, veiled, report)
+    const player = await shellMetaFor(t.db, of(veiled), report)
     expect(player!.ogDescription).toBe(neutral)
     expect(JSON.stringify(player)).not.toContain(WINNER)
     // la siguiente, con la 2 en el velo, tiene su puerta `previous_unseen`: tampoco lleva a nadie
     const next = await shellMetaFor(
       t.db,
-      veiled,
+      of(veiled),
       url(`/world/races/${RACE_ID}/stages/${NEXT_DAY}/report`),
     )
     expect(JSON.stringify(next)).not.toContain(WINNER)
@@ -235,7 +258,7 @@ describe('shellMetaFor y el fallback de la SPA, sobre un mundo mínimo (§14.10)
   it('el acta de una etapa sin correr no tiene ganador que contar', async () => {
     const meta = await shellMetaFor(
       t.db,
-      anonHorizon(),
+      of(anonHorizon()),
       url(`/world/races/${RACE_ID}/stages/${NEXT_DAY}/report`),
     )
     expect(meta!.ogDescription).not.toContain('Winner')
@@ -247,7 +270,7 @@ describe('shellMetaFor y el fallback de la SPA, sobre un mundo mínimo (§14.10)
       `/world/races/${RACE_ID}/stages/${RACE.stages.length + 1}`,
       '/world/teams',
     ])
-      expect(await shellMetaFor(t.db, anonHorizon(), url(path)), path).toBeNull()
+      expect(await shellMetaFor(t.db, noHorizon, url(path)), path).toBeNull()
   })
 
   it('el manejador de 404 sirve el HTML inyectado, privado y por cookie; el resto, como hoy', async () => {
