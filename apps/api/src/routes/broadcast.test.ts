@@ -622,7 +622,7 @@ describe('las rutas de la retransmisión (§14.2)', () => {
       ])
       clearLines()
       try {
-        const snapshot = await getStageSnapshot(t.db, RACE_KEY, 2)
+        const snapshot = await getStageSnapshot(t.db, worldHorizon, RACE_KEY, 2)
         const stored = buildRaceRadio(snapshot!.radio, { riderOf })
         expect(stored?.kms.length).toBe(forPlayer?.kms.length)
         // y no es la de la línea: si lo fuera, lo de arriba no probaría de dónde sale cada una
