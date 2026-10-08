@@ -8,7 +8,9 @@ import {
   type StageGcEntry,
   type StageResultEntry,
   type TeamClassEntry,
+  diagOf,
   fetchCalendarStage,
+  stageReplayKey,
 } from '../api/results'
 import { type RaceLeaders, stageRouteText } from '@cyclingstar/shared'
 import { Flag } from '../components/Flag'
@@ -342,9 +344,12 @@ export function StageReplay() {
   const { raceId = '', day = '' } = useParams()
   const dayNum = Number(day)
   const [params] = useSearchParams()
+  // `?diag=1` de la página, reenviado a la ficha y en su clave (E2, §11.15, 14-s; paso 7b): el dueño
+  // ve la etapa entera sin gastarla. El aviso en pantalla y el botón llegan en el 9a.
+  const diag = diagOf(params)
   const { data, isPending, isError } = useQuery({
-    queryKey: ['stage-replay', raceId, dayNum],
-    queryFn: () => fetchCalendarStage(raceId, dayNum),
+    queryKey: stageReplayKey(raceId, dayNum, diag),
+    queryFn: () => fetchCalendarStage(raceId, dayNum, { diag }),
   })
   // Una etapa sin correr solo tiene recorrido que enseñar: no hay historia, resultado ni general.
   // El conjunto de pestañas depende de eso, así que las opciones se calculan aquí (con `data` aún
@@ -367,7 +372,10 @@ export function StageReplay() {
     queryFn: () => fetchBroadcastHead(raceId, dayNum),
     enabled: wantsHead,
   })
-  const watchable = wantsHead && watchHead.isSuccess
+  // Con la puerta `previous_unseen` (7b, D-37) la cabecera se sirve, pero sus tramos dan 403: hasta que
+  // el 9a pinte la puerta (`StageGateCard`), `Watch` no se ofrece, y el reproductor no se queda en
+  // `Connection lost` pidiendo un tramo que no se le va a dar.
+  const watchable = wantsHead && watchHead.isSuccess && watchHead.data.gate === null
   const tabIds: readonly StageTabId[] = data?.run
     ? watchable
       ? ['watch', ...STAGE_TAB_IDS]
