@@ -1,8 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
-import { fetchAdminWhoami } from '../api/admin'
 import { fetchStageReport, stageReportKey } from '../api/broadcast'
-import { fetchHealth } from '../api/health'
 import { ApiError, GateError } from '../api/request'
 import { diagOf, fetchCalendarStage, stageReplayKey } from '../api/results'
 import { authClient } from '../auth/client'
@@ -10,7 +8,8 @@ import { Flag } from '../components/Flag'
 import { ShareStage } from '../components/ShareStage'
 import { DiagnosticStrip, StageGateCard } from '../components/StageGate'
 import { stageTitleInfo, usePageTitle } from '../domain/pageTitle'
-import { useHorizonRev } from '../queryClient'
+import { useHealth, useHorizonRev } from '../queryClient'
+import { useWatchOn } from '../watchSwitch'
 import { StageReportView, raceKeyOf, useRevealActions } from './StageReplay'
 
 /**
@@ -55,17 +54,10 @@ function ReportPage({ raceId, day }: { raceId: string; day: number }) {
     enabled: rev !== undefined,
     placeholderData: keepPreviousData,
   })
-  const health = useQuery({ queryKey: ['health'], queryFn: fetchHealth })
-  const watchSwitch = health.data?.features?.broadcastWatch ?? 'off'
+  const health = useHealth()
   const gate = acta.error instanceof GateError ? acta.error.gate : null
-  const whoami = useQuery({
-    queryKey: ['admin-whoami'],
-    queryFn: fetchAdminWhoami,
-    retry: false,
-    enabled: watchSwitch === 'admins' || diag || gate !== null,
-  })
-  const isAdmin = whoami.data?.via === 'session'
-  const watchOn = watchSwitch === 'on' || (watchSwitch === 'admins' && isAdmin)
+  // `Watch` encendido para quien mira, y si es un administrador (el modo diagnóstico y su botón)
+  const { watchOn, isAdmin } = useWatchOn(diag || gate !== null)
   const readingWithCookie =
     !session.isPending &&
     session.data == null &&

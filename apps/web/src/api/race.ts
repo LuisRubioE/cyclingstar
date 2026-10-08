@@ -13,6 +13,7 @@ import {
   raceStartlistSchema,
   raceViewSchema,
 } from '@cyclingstar/shared'
+import { horizonKey } from '../queryClient'
 import { request } from './request'
 
 export type {
@@ -46,10 +47,31 @@ export function endDay(view: RaceView): number {
   return view.race.startDay + view.race.stageCount + view.restAfter.length - 1
 }
 
-export async function fetchRace(raceId: string): Promise<RaceView> {
-  return request(`/api/calendar/${raceId}`, raceViewSchema, {
+/**
+ * La ficha de una carrera. Con `diag`, el `?diag=1` del modo diagnóstico (E2, docs/retransmision.md §11.15,
+ * 11-h; la API lo acepta desde el 8a y la web lo reenvía desde el 9b): un administrador con sesión la
+ * recibe con el horizonte del mundo; para cualquier otro la API lo ignora.
+ */
+export async function fetchRace(
+  raceId: string,
+  opts: { readonly diag?: boolean } = {},
+): Promise<RaceView> {
+  return request(`/api/calendar/${raceId}${opts.diag === true ? '?diag=1' : ''}`, raceViewSchema, {
     errorMessage: 'Could not load the race.',
   })
+}
+
+/**
+ * La clave de la ficha de carrera (§10.9): con `diag`, para que la del modo diagnóstico no sirva nunca la
+ * vista normal ni al revés, y el `rev` del horizonte al final (9b): con la etapa vista o revelada, la ficha
+ * se pide otra vez ya con ella.
+ */
+export function raceViewKey(
+  raceId: string,
+  diag: boolean,
+  rev: string | undefined,
+): readonly unknown[] {
+  return horizonKey(['race', raceId, diag], rev)
 }
 
 export async function fetchStartlist(raceId: string): Promise<RaceStartlist> {

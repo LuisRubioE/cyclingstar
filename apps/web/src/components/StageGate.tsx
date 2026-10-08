@@ -1,7 +1,10 @@
-import type { StageGate } from '@cyclingstar/shared'
+import type { HorizonSummary, StageGate } from '@cyclingstar/shared'
+import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { postReveal, putSpoilerScope } from '../api/watch'
 import { type GatePlace, alsoRevealsText, revealPlan, revealQuestion } from '../domain/stageGate'
+import { useHorizon } from '../queryClient'
 
 /**
  * LA PUERTA Y REVELAR SIN CASTIGO (E2, docs/retransmision.md §6.10, §10.12, §11.10 a §11.12 y §11.15;
@@ -35,6 +38,42 @@ export interface RevealActions {
 }
 
 /**
+ * REVELAR DESDE LA PUERTA (§10.3, §11.11; D-38, DD-17; nació en `StageReplay.tsx` con el 9a y el 9b la trae aquí, junto a la puerta, para la portada y las órdenes): `POST /api/me/reveal/:raceKey/:day`, que escribe
+ * `R` en la etapa y `A` en las anteriores que faltaran, y el `rev` que devuelve en `['horizon']`: con él
+ * cambian de una vez las claves de la ficha, la cabecera y el acta (regla 3 de §10.9), y la página se
+ * pide otra vez ya conocida. `Don't ask again` guarda `users.reveal_confirm = false` con el alcance que
+ * ya tenía (`PUT /api/me/spoiler-scope`). Null sin la clave de la carrera, o para quien lee con
+ * `cs_viewer` sin sesión (pasa `null`): las escrituras piden sesión (§10.8).
+ */
+export function useRevealActions(
+  raceKey: string | null,
+  onRevealed: () => void,
+): RevealActions | null {
+  const queryClient = useQueryClient()
+  const horizon = useHorizon()
+  if (raceKey === null) return null
+  const withRev = (rev: string, patch: Partial<HorizonSummary> = {}): void => {
+    queryClient.setQueryData<HorizonSummary | null>(['horizon'], (old) =>
+      old == null ? old : { ...old, ...patch, rev },
+    )
+  }
+  return {
+    askFirst: horizon.data?.revealConfirm ?? true,
+    reveal: async (stageDay) => {
+      const { rev } = await postReveal(raceKey, stageDay)
+      onRevealed()
+      withRev(rev)
+      // las listas del horizonte (lo que queda por ver) también cambian: se piden otra vez
+      void queryClient.invalidateQueries({ queryKey: ['horizon'] })
+    },
+    dontAskAgain: async () => {
+      const { rev } = await putSpoilerScope(horizon.data?.scope ?? 'guarded', false)
+      withRev(rev, { revealConfirm: false })
+    },
+  }
+}
+
+/**
  * LA CONFIRMACIÓN DE REVELAR (§11.11, DD-17): la pregunta, lo que arrastra si faltaban anteriores y
  * `Don't ask again`. Se exporta para probarla sin estado.
  */
@@ -44,12 +83,15 @@ export function RevealConfirm({
   busy,
   onConfirm,
   onCancel,
+  question,
 }: {
   stageDay: number
   also: readonly number[]
   busy: boolean
   onConfirm: (dontAskAgain: boolean) => void
   onCancel: () => void
+  /** otra pregunta: la de revelar una carrera entera, `Show results` de la portada (9b) */
+  question?: string
 }) {
   const [dontAsk, setDontAsk] = useState(false)
   const alsoText = alsoRevealsText(also)
@@ -59,7 +101,7 @@ export function RevealConfirm({
       aria-label="Show the result"
       className="mt-3 space-y-2 rounded-xl bg-slate-50 p-3"
     >
-      <p className="text-sm text-slate-700">{revealQuestion(stageDay)}</p>
+      <p className="text-sm text-slate-700">{question ?? revealQuestion(stageDay)}</p>
       {alsoText !== null && <p className="text-sm text-slate-500">{alsoText}</p>}
       <label className="flex items-center gap-2 text-sm text-slate-600">
         <input type="checkbox" checked={dontAsk} onChange={(e) => setDontAsk(e.target.checked)} />

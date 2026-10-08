@@ -1,5 +1,13 @@
+import {
+  type HorizonSummary,
+  type RaceLeaders,
+  type RaceRouteSource,
+  type RouteSource,
+  type StageGate,
+  type StageReplay as StageReplayData,
+} from '@cyclingstar/shared'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Fragment, useState } from 'react'
+import { Fragment, type ReactNode, Suspense, lazy, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import type { RaceClass, RaceFormat } from '../api/calendar'
 import { fetchRacePrefs, setRacePref } from '../api/objectives'
@@ -14,14 +22,24 @@ import {
   endDay as raceEndDay,
   fetchRace,
   fetchStartlist,
+  raceViewKey,
 } from '../api/race'
-import { diagOf, fetchCalendarStage, stageReplayKey } from '../api/results'
-import type { RaceLeaders, RaceRouteSource, RouteSource } from '@cyclingstar/shared'
+import { diagOf } from '../api/results'
+import { putFollow } from '../api/watch'
+import { authClient } from '../auth/client'
 import { Flag } from '../components/Flag'
 import { Jersey, RiderJersey } from '../components/Jersey'
+import { PaintedRaceRadio } from '../components/PaintedRaceRadio'
 import { RiderName } from '../components/RiderName'
 import { ShowAllButton, TOP_ROWS } from '../components/ShowAll'
 import { RaceRadioPanel } from '../components/RaceRadioPanel'
+import { ShareStage } from '../components/ShareStage'
+import {
+  DiagnosticStrip,
+  StageGateCard,
+  TwoDeviceNotice,
+  useRevealActions,
+} from '../components/StageGate'
 import { StageRoute } from '../components/StageRoute'
 import { StageStory } from '../components/StageStory'
 import { TeamClassNote, TeamClassTable } from '../components/TeamClassTable'
@@ -36,8 +54,27 @@ import {
   raceTeamLabel,
 } from '../domain/labels'
 import { usePageTitle } from '../domain/pageTitle'
-import { RACE_TAB_LABEL, type RaceTabId, raceTabs } from '../domain/raceTabs'
-import { useHorizonRev } from '../queryClient'
+import { stageRowLink, stageRowState } from '../domain/raceStages'
+import { type RaceTabId, raceTabLabel, raceTabOf, raceTabs } from '../domain/raceTabs'
+import { type ReadyRace, finalVeiled, raceKeyOn, raceVeil, raceVeilNotice } from '../domain/veil'
+import { useHealth, useHorizon, useHorizonRev, veilApplies } from '../queryClient'
+import { useWatchOn } from '../watchSwitch'
+import {
+  RESULT_TABS,
+  StageReportView,
+  paintedRadioWanted,
+  paintedReachedOf,
+  raceKeyOf,
+  usePinnedHead,
+  useStageFacts,
+  useStageResult,
+} from './stageView'
+
+/**
+ * `Watch` de una carrera de un día, cargado solo cuando se pinta: el reproductor pesa, y quien no tiene
+ * `Watch` encendido (el jugador hasta el encendido, §20.5) no lo descarga al abrir la ficha.
+ */
+const StageWatch = lazy(() => import('./StageWatch').then((m) => ({ default: m.StageWatch })))
 
 function fmtTime(seconds: number): string {
   const h = Math.floor(seconds / 3600)
@@ -360,8 +397,21 @@ function RouteTab({ data }: { data: RaceView }) {
  * SIN MAILLOTS a propósito: cada línea es el ganador de un día distinto, y el único juego de
  * maillots que esta página tiene es el de HOY. Poner el amarillo de hoy junto al ganador de la
  * etapa 3 diría algo que no es verdad de esa etapa. Los maillots de cada día están en su ficha.
+ *
+ * BAJO EL VELO (E2, §11.17; sup. C4; 9b): cada fila enseña lo que el servidor manda (`stageRowState`): el
+ * ganador de las etapas que el velo de quien mira deja pasar, con su acta; `Ready to watch` en las corridas
+ * sin ganador servido, que llevan a la etapa (que abre en `Watch`); y `Not raced yet` en las demás. Hasta el
+ * 9b una etapa corrida y velada decía `Not raced yet`, que es falso.
  */
-function StagesTab({ data, raceId }: { data: RaceView; raceId: string }) {
+function StagesTab({
+  data,
+  raceId,
+  watchOn,
+}: {
+  data: RaceView
+  raceId: string
+  watchOn: boolean
+}) {
   const winnerOf = new Map(data.stageWinners.map((w) => [w.stageDay, w]))
   return (
     <div className={card}>
@@ -369,6 +419,8 @@ function StagesTab({ data, raceId }: { data: RaceView; raceId: string }) {
       <ol className="space-y-1.5">
         {data.stages.map((stage) => {
           const winner = winnerOf.get(stage.index)
+          const state = stageRowState(stage, winnerOf, data.runDays)
+          const link = stageRowLink(raceId, stage.index, state, watchOn)
           return (
             <Fragment key={stage.index}>
               <li className="border-b border-slate-100 py-1.5 last:border-0">
@@ -376,24 +428,28 @@ function StagesTab({ data, raceId }: { data: RaceView; raceId: string }) {
                   <StageLine stage={stage} oneDay={data.stages.length === 1} />
                 </div>
                 <div className="mt-0.5 flex items-center gap-2 pl-5 text-sm">
-                  {winner ? (
+                  {state === 'report' && winner ? (
                     <>
                       <Flag code={winner.country} size={14} />
                       <RiderName riderId={winner.riderId} name={winner.name} isBot={winner.isBot} />
                       <span className="hidden text-xs text-slate-400 sm:inline">
                         {raceTeamLabel(winner.teamName)}
                       </span>
-                      {/* Directo a la crónica, no a la etapa en su pestaña por defecto: un clic
-                          menos en cada una de las 21 etapas de una gran vuelta. */}
-                      <Link
-                        to={`/world/races/${raceId}/stages/${stage.index}?tab=story`}
-                        className="ml-auto shrink-0 text-xs font-medium text-brand-cyan hover:underline"
-                      >
-                        Read the story →
-                      </Link>
                     </>
+                  ) : state === 'watch' ? (
+                    <span className="text-xs font-medium text-emerald-700">Ready to watch</span>
                   ) : (
                     <span className="text-xs text-slate-400">Not raced yet</span>
+                  )}
+                  {/* Directo al acta (o a la etapa, si está por ver), no a la etapa en su pestaña por
+                      defecto: un clic menos en cada una de las 21 etapas de una gran vuelta. */}
+                  {link !== null && (
+                    <Link
+                      to={link.to}
+                      className="ml-auto shrink-0 text-xs font-medium text-brand-cyan hover:underline"
+                    >
+                      {link.label}
+                    </Link>
                   )}
                 </div>
               </li>
@@ -502,69 +558,6 @@ function ClassificationsTab({ data }: { data: RaceView }) {
   )
 }
 
-/**
- * Pestaña `Story` de una carrera de UN DÍA: el journal de su única etapa, aquí mismo.
- *
- * Antes esto costaba tres clics —`Stages`, entrar en la lista de un solo elemento, y ya dentro
- * `Story`— para lo único que de verdad importa de una clásica. La crónica se pide solo cuando se
- * abre la pestaña, así que la ficha de carrera no carga nada de más. Con el `?diag=1` de la página,
- * en la petición y en la clave (E2, §11.15, 14-s; paso 7b), y desde el 9a con el `rev` del horizonte en
- * la clave, que espera a tenerlo (§10.9): la ruta de etapa depende de lo que ha visto quien mira.
- */
-export function OneDayStory({
-  raceId,
-  onFullResult,
-}: {
-  raceId: string
-  onFullResult: () => void
-}) {
-  const [params] = useSearchParams()
-  const diag = diagOf(params)
-  const rev = useHorizonRev()
-  const { data, isPending, isError } = useQuery({
-    queryKey: stageReplayKey(raceId, 1, diag, rev),
-    queryFn: () => fetchCalendarStage(raceId, 1, { diag }),
-    enabled: rev !== undefined,
-    // con otro `rev` se queda la de antes mientras llega la nueva, sin volver a «Loading…»
-    placeholderData: keepPreviousData,
-  })
-  if (isPending) return <p className="text-slate-500">Loading…</p>
-  if (isError) return <p className="text-red-600">Could not load the story.</p>
-  return <StageStory data={data} onFullResult={onFullResult} />
-}
-
-/**
- * Pestaña `Race Radio` de una carrera de UN DÍA: la carrera kilómetro a kilómetro de su única etapa.
- *
- * Cuelga de la MISMA consulta que la crónica (`stageReplayKey(raceId, 1, diag, rev)`), así que abrir
- * las dos pestañas no pide nada dos veces.
- */
-export function OneDayRadio({ raceId }: { raceId: string }) {
-  const [params] = useSearchParams()
-  const diag = diagOf(params)
-  const rev = useHorizonRev()
-  const { data, isPending, isError } = useQuery({
-    queryKey: stageReplayKey(raceId, 1, diag, rev),
-    queryFn: () => fetchCalendarStage(raceId, 1, { diag }),
-    enabled: rev !== undefined,
-    // con otro `rev` se queda la de antes mientras llega la nueva, sin volver a «Loading…»
-    placeholderData: keepPreviousData,
-  })
-  if (isPending) return <p className="text-slate-500">Loading…</p>
-  if (isError) return <p className="text-red-600">Could not load the race radio.</p>
-  if (!data.radio) {
-    return (
-      <div className={card}>
-        <h2 className={head}>Race Radio</h2>
-        <p className="text-sm text-slate-500">
-          This race was run before the race radio was recorded, so there is nothing to replay.
-        </p>
-      </div>
-    )
-  }
-  return <RaceRadioPanel radio={data.radio} />
-}
-
 /** Pestaña `Roll of honour`: quién ganó la carrera en temporadas anteriores. */
 function HonoursTab({ data }: { data: RaceView }) {
   return (
@@ -595,28 +588,80 @@ const STATUS_BADGE: Record<RaceStatus, { label: string; className: string }> = {
 
 const RACE_PANEL = 'race-section'
 
+/** La pestaña `Startlist`: la lista provisional, o por qué no la hay. */
+function StartlistTab({
+  status,
+  startlist,
+}: {
+  status: RaceStatus
+  startlist: RaceStartlist | undefined
+}) {
+  if (startlist?.upcoming) return <Startlist data={startlist} />
+  return (
+    <div className={card}>
+      <h2 className={head}>Startlist</h2>
+      {status === 'racing' ? (
+        <p className="text-sm text-slate-500">
+          Entries are closed and the race is under way — everyone on the road is in the general
+          classification.
+        </p>
+      ) : (
+        <p className="text-sm text-slate-500">
+          The startlist is published about two weeks before the start, when teams name their squads.
+        </p>
+      )}
+    </div>
+  )
+}
+
+/** El contador de una pestaña (`Tabs.tsx`, `badge`; sup. T4): cuenta etapas por ver, nunca resultados. */
+function StagesBadge({ n }: { n: number }) {
+  return (
+    <span
+      className="rounded-full bg-brand-cyan px-1.5 py-0.5 text-[10px] font-semibold text-white"
+      aria-label={`${n} ${n === 1 ? 'stage' : 'stages'} ready to watch`}
+    >
+      {n}
+    </span>
+  )
+}
+
 /**
- * La tira de pestañas y su panel. Vive en su propio componente porque el conjunto de pestañas
- * depende del estado de la carrera, y ese estado solo se conoce con los datos ya cargados: así el
- * `useTabParam` se monta cuando sus opciones son estables, sin hooks condicionados.
+ * La tira de pestañas y su panel de una carrera POR ETAPAS, o de una de un día sin terminar. Vive en su
+ * propio componente porque el conjunto de pestañas depende del estado de la carrera, y ese estado solo se
+ * conoce con los datos ya cargados: así el `useTabParam` se monta cuando sus opciones son estables, sin
+ * hooks condicionados.
  */
 function RaceSections({
   data,
   raceId,
   status,
   startlist,
+  watchOn,
+  veil,
 }: {
   data: RaceView
   raceId: string
   status: RaceStatus
   startlist: RaceStartlist | undefined
+  watchOn: boolean
+  veil: ReadyRace | null
 }) {
-  const tabIds = raceTabs(status, data.race.stageCount)
+  const [params] = useSearchParams()
+  // una vuelta, o una carrera de un día sin terminar, no mira `seen` ni `watchOn` (§11.17)
+  const tabIds = raceTabs(status, data.race.stageCount, true, watchOn)
   // La pestaña por defecto la manda el estado (la primera del conjunto). `useTabParam` valida el
   // `?tab=` contra las opciones de ESTE estado y no escribe nada en la URL hasta que se toca una,
   // así que un enlace compartido abre donde toca y el resto se comporta como espera el jugador.
-  const [active, setActive] = useTabParam(tabIds, tabIds[0] as RaceTabId)
-  const options = tabIds.map((id) => ({ key: id, label: RACE_TAB_LABEL[id] }))
+  const [active, setActive] = useTabParam(
+    tabIds,
+    raceTabOf(params.get('tab'), tabIds) ?? (tabIds[0] as RaceTabId),
+  )
+  const options: TabOption<RaceTabId>[] = tabIds.map((id) => ({
+    key: id,
+    label: raceTabLabel(id, watchOn),
+    ...(id === 'stages' && veil !== null ? { badge: <StagesBadge n={veil.stages.length} /> } : {}),
+  }))
   return (
     <>
       <Tabs
@@ -628,50 +673,283 @@ function RaceSections({
         panelId={RACE_PANEL}
       />
       <TabPanel panelId={RACE_PANEL} active={active}>
-        {(active === 'classifications' || active === 'result') && (
-          <ClassificationsTab data={data} />
-        )}
-        {active === 'story' && (
-          <OneDayStory raceId={raceId} onFullResult={() => setActive('result')} />
-        )}
-        {active === 'radio' && <OneDayRadio raceId={raceId} />}
-        {active === 'stages' && <StagesTab data={data} raceId={raceId} />}
+        {active === 'classifications' && <ClassificationsTab data={data} />}
+        {active === 'stages' && <StagesTab data={data} raceId={raceId} watchOn={watchOn} />}
         {active === 'route' && <RouteTab data={data} />}
-        {active === 'startlist' &&
-          (startlist?.upcoming ? (
-            <Startlist data={startlist} />
-          ) : (
-            <div className={card}>
-              <h2 className={head}>Startlist</h2>
-              {status === 'racing' ? (
-                <p className="text-sm text-slate-500">
-                  Entries are closed and the race is under way — everyone on the road is in the
-                  general classification.
-                </p>
-              ) : (
-                <p className="text-sm text-slate-500">
-                  The startlist is published about two weeks before the start, when teams name their
-                  squads.
-                </p>
-              )}
-            </div>
-          ))}
+        {active === 'startlist' && <StartlistTab status={status} startlist={startlist} />}
         {active === 'honours' && <HonoursTab data={data} />}
       </TabPanel>
     </>
   )
 }
 
+/**
+ * LA CARRERA DE UN DÍA TERMINADA (E2, docs/retransmision.md §11.17; 11-o, sup. C3 y E9; paso 9b), con la
+ * decisión 1 del dueño durante la implementación. Su ficha ES la de su etapa 1: con `Watch` encendido para
+ * quien mira lleva `Watch`, `Report` (el acta: el resultado y la crónica) y `Race Radio`, con la misma puerta
+ * que la página de una etapa y sus mismas piezas (`useStageFacts`, `useStageResult`, `StageGateCard`,
+ * `StageWatch`, `PaintedRaceRadio`), y abre en `Watch` si no la ha visto y en `Report` si la vio o la reveló.
+ * Por eso, con `Watch` encendido, la ficha pide la ruta de su etapa al abrirse y no al tocar la pestaña:
+ * de ella depende la pestaña por defecto; mientras llega, la cabecera sin pestañas.
+ *
+ * Con `Watch` apagado (el jugador hasta el encendido, §20.5), las de hoy: `Result` primero, el acta al lado
+ * con el nombre `Story` y la radio, y la ruta de la etapa se sigue pidiendo solo al abrir una de las dos
+ * (la primera carga no pide nada más que hoy). Lo que enseña el resultado de una carrera que quien mira
+ * tiene en su velo pinta la puerta, también con `Watch` apagado.
+ *
+ * Arregla de paso la `Race Radio` de una carrera sin ver (nota 6 del 11a): decía `This race was run before
+ * the race radio was recorded`, que no era verdad; ahora pinta la puerta o, con `Watch` y línea grabada, la
+ * radio hasta lo pintado.
+ */
+function OneDaySections({
+  data,
+  raceId,
+  watchOn,
+  watchSettled,
+  veil,
+}: {
+  data: RaceView
+  raceId: string
+  watchOn: boolean
+  watchSettled: boolean
+  veil: ReadyRace | null
+}) {
+  const [params] = useSearchParams()
+  // Con `Watch` apagado las pestañas no dependen de la etapa: la de la URL decide si hace falta pedirla.
+  const offTabs = raceTabs('finished', 1, true, false)
+  const offActive = raceTabOf(params.get('tab'), offTabs) ?? offTabs[0]
+  // la carrera en el velo de quien mira: con `Watch` apagado, `Result` pinta la puerta sin pedir nada
+  const veiled = veil !== null && veil.stages.includes(1)
+  const needStage = watchSettled && (watchOn || offActive === 'report' || offActive === 'radio')
+  const f = useStageFacts(raceId, 1, { oneDay: true, enabled: needStage })
+  const tabsKnown = watchSettled && (!watchOn || f.settled)
+  const tabIds = raceTabs('finished', 1, f.seen, watchOn, f.watchable)
+  // La pestaña por defecto, fijada la primera vez que se sabe: la carrera que pasa a vista mientras se
+  // mira (la meta, o el otro dispositivo) no saca a nadie de `Watch`.
+  const [start, setStart] = useState<{ readonly tab: RaceTabId; readonly seen: boolean }>()
+  if (start === undefined && tabsKnown) setStart({ tab: tabIds[0] ?? 'route', seen: f.seen })
+  const pinned = start !== undefined && tabIds.includes(start.tab) ? start.tab : tabIds[0]
+  const [active, setActive] = useTabParam(
+    tabIds,
+    raceTabOf(params.get('tab'), tabIds) ?? pinned ?? 'route',
+  )
+
+  const [finishedHere, setFinishedHere] = useState(false)
+  const [revealedHere, setRevealedHere] = useState(false)
+  const [otherDeviceSeen, setOtherDeviceSeen] = useState(false)
+  const [reachedHere, setReachedHere] = useState(0)
+  const actions = useRevealActions(
+    f.readingWithCookie ? null : raceKeyOf(raceId, f.broadcastHead.data, f.gameDay),
+    () => setRevealedHere(true),
+  )
+  const { full, gate, actaError } = useStageResult(f, raceId, 1, RESULT_TABS.has(active))
+  const watchHead = usePinnedHead(f.broadcastHead.data)
+
+  if (!tabsKnown) return <p className="text-slate-500">Loading…</p>
+
+  const options = tabIds.map((id) => ({ key: id, label: raceTabLabel(id, watchOn) }))
+  const pagePath = `/world/races/${raceId}`
+  const diagHref = f.isAdmin ? `${pagePath}?diag=1` : null
+  const otherDevice =
+    start !== undefined &&
+    !start.seen &&
+    f.seen &&
+    !finishedHere &&
+    !revealedHere &&
+    !otherDeviceSeen &&
+    active === 'watch' &&
+    !f.diagOn
+  const gateCard = (g: StageGate): ReactNode => (
+    <StageGateCard
+      gate={g}
+      stageDay={1}
+      place="result"
+      raceId={raceId}
+      watchOn={watchOn}
+      watchable={f.watchable}
+      onWatch={() => setActive('watch')}
+      actions={actions}
+      signIn={f.readingWithCookie}
+      diagHref={diagHref}
+    />
+  )
+  /** Lo que enseña el resultado: la puerta, o lo que trae la ruta de la etapa o el acta. */
+  const withResult = (render: (d: StageReplayData) => ReactNode): ReactNode => {
+    if (gate !== null) return gateCard(gate)
+    if (full !== null) return render(full)
+    if (actaError || f.isError)
+      return (
+        <div className={card}>
+          <p className="text-sm text-red-600">Could not load the race.</p>
+        </div>
+      )
+    return <p className="text-slate-500">Loading…</p>
+  }
+  const radioHead = f.broadcastHead.data
+  const paintedRadio = paintedRadioWanted(gate, f.watchable, radioHead)
+
+  return (
+    <>
+      {watchOn && (
+        <ShareStage
+          raceId={raceId}
+          day={1}
+          report={full !== null || (f.data?.watch?.known ?? true)}
+        />
+      )}
+      <Tabs
+        options={options}
+        value={active}
+        onChange={setActive}
+        label="Race"
+        variant="underline"
+        panelId={RACE_PANEL}
+      />
+      {otherDevice && (
+        <TwoDeviceNotice
+          onWatchAnyway={() => setOtherDeviceSeen(true)}
+          onShowReport={() => {
+            setOtherDeviceSeen(true)
+            setActive('report')
+          }}
+        />
+      )}
+      <TabPanel panelId={RACE_PANEL} active={active}>
+        {active === 'watch' &&
+          (watchHead !== undefined ? (
+            <Suspense fallback={<p className="text-slate-500">Loading…</p>}>
+              <StageWatch
+                head={watchHead}
+                raceId={raceId}
+                day={1}
+                diag={f.diagOn}
+                onReport={() => setActive('report')}
+                onFinished={() => setFinishedHere(true)}
+                onReached={(s) => setReachedHere((x) => Math.max(x, s))}
+              />
+            </Suspense>
+          ) : (
+            <p className="text-slate-500">Loading…</p>
+          ))}
+
+        {active === 'report' && (
+          <>
+            {/* Sin `Watch` para su etapa (§17.19): una crono sin línea, una lápida (D-12). */}
+            {watchOn && f.unavailable && (
+              <p className="text-sm text-slate-500">Broadcast unavailable for this race</p>
+            )}
+            {withResult((d) =>
+              watchOn ? (
+                <StageReportView
+                  data={d}
+                  onWatchAnyway={f.watchable && f.seen ? () => setActive('watch') : undefined}
+                />
+              ) : (
+                <StageStory data={d} onFullResult={() => setActive('result')} />
+              ),
+            )}
+          </>
+        )}
+
+        {/* `Result`, solo con `Watch` apagado: el de la ficha de carrera, o la puerta si está en el velo. */}
+        {active === 'result' &&
+          (veiled ? gateCard({ k: 'not_seen' }) : <ClassificationsTab data={data} />)}
+
+        {active === 'radio' && paintedRadio && (
+          <PaintedRaceRadio
+            head={radioHead}
+            raceId={raceId}
+            day={1}
+            reachedS={paintedReachedOf(radioHead, 1, reachedHere)}
+            onWatch={() => setActive('watch')}
+          />
+        )}
+        {active === 'radio' &&
+          !paintedRadio &&
+          withResult((d) =>
+            d.radio ? (
+              <RaceRadioPanel radio={d.radio} />
+            ) : (
+              <div className={card}>
+                <h2 className={head}>Race Radio</h2>
+                <p className="text-sm text-slate-500">
+                  This race was run before the race radio was recorded, so there is nothing to
+                  replay.
+                </p>
+              </div>
+            ),
+          )}
+
+        {active === 'route' && <RouteTab data={data} />}
+        {active === 'honours' && <HonoursTab data={data} />}
+      </TabPanel>
+    </>
+  )
+}
+
+/**
+ * `Follow without spoilers` y `Stop protecting this race` (E2, docs/retransmision.md §10.4, D-30; 9b): seguir
+ * una carrera la pone en guardia (sus etapas corridas y no vistas se velan en toda la web) y soltarla la saca
+ * aunque sea propia o de cabecera (`follow = −1` gana a toda fuente). Solo con el velo para quien mira y con
+ * sesión: las escrituras de `/api/me/*` la piden (§10.8). El `rev` de después cambia las claves de una vez.
+ */
+function FollowRace({ raceKey, protecting }: { raceKey: string; protecting: boolean }) {
+  const queryClient = useQueryClient()
+  const follow = useMutation({
+    mutationFn: () => putFollow(raceKey, protecting ? 'drop' : 'follow'),
+    onSuccess: ({ rev }) => {
+      queryClient.setQueryData<HorizonSummary | null>(['horizon'], (old) =>
+        old == null ? old : { ...old, rev },
+      )
+      // lo que queda por ver también cambia: el horizonte se pide otra vez
+      void queryClient.invalidateQueries({ queryKey: ['horizon'] })
+    },
+  })
+  return (
+    <span className="inline-flex items-center gap-2">
+      <button
+        type="button"
+        onClick={() => follow.mutate()}
+        disabled={follow.isPending}
+        className="rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-200 disabled:opacity-60"
+      >
+        {protecting ? 'Stop protecting this race' : 'Follow without spoilers'}
+      </button>
+      {follow.isError && <span className="text-xs text-red-600">Could not change this race.</span>}
+    </span>
+  )
+}
+
+/** La URL de la página con unos parámetros cambiados (null quita el parámetro). */
+function hrefWith(path: string, params: URLSearchParams, patch: Record<string, string | null>) {
+  const next = new URLSearchParams(params)
+  for (const [k, v] of Object.entries(patch)) {
+    if (v === null) next.delete(k)
+    else next.set(k, v)
+  }
+  const q = next.toString()
+  return q === '' ? path : `${path}?${q}`
+}
+
 export function Race() {
   const { raceId = '' } = useParams()
+  const [params] = useSearchParams()
+  const diag = diagOf(params)
+  const rev = useHorizonRev()
   const queryClient = useQueryClient()
+  // La ficha, a horizonte (P, F; 8a): con etapas veladas, las clasificaciones y los ganadores de tras la
+  // última conocida. Con `?diag=1`, la del mundo para un administrador (§11.15). Con otro `rev` se queda la
+  // de antes mientras llega la nueva.
   const { data, isPending, isError } = useQuery({
-    queryKey: ['race', raceId],
-    queryFn: () => fetchRace(raceId),
+    queryKey: raceViewKey(raceId, diag, rev),
+    queryFn: () => fetchRace(raceId, { diag }),
+    enabled: rev !== undefined,
+    placeholderData: keepPreviousData,
   })
-  // Lista provisional de inscritos (solo devuelve algo si la carrera está próxima y no se ha corrido).
+  // Lista provisional de inscritos (solo devuelve algo si la carrera está próxima y no se ha corrido). Es
+  // L (se congela antes de la salida): no depende de lo visto y no espera al horizonte.
   const { data: startlist } = useQuery({
-    queryKey: ['race', raceId, 'startlist'],
+    queryKey: ['race-startlist', raceId],
     queryFn: () => fetchStartlist(raceId),
   })
   // Objetivos del jugador: si su ciclista puede marcar esta carrera como objetivo (influye en la
@@ -682,6 +960,17 @@ export function Race() {
     mutationFn: (wanted: boolean) => setRacePref(raceId, wanted),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['race-prefs'] }),
   })
+  // Lo que quien mira tiene por ver de esta carrera (§11.5): solo del horizonte (I-39).
+  const health = useHealth()
+  const horizon = useHorizon()
+  const session = authClient.useSession()
+  const raceKey = raceKeyOn(raceId, health.data?.gameDay)
+  const veilRaw = raceVeil(horizon.data, raceKey)
+  // `Watch` encendido para quien mira y si es un administrador (el modo diagnóstico y su botón)
+  const sw = useWatchOn(diag || veilRaw !== null)
+  const diagOn = diag && sw.isAdmin
+  // en el modo diagnóstico la ficha llega entera: nada que avisar
+  const veil = diagOn ? null : veilRaw
   // El título (E2, §11.8; 9a): la carrera, con la información de su etapa 1, como el fallback de la SPA
   // antes del JavaScript (11-c). Nada del desenlace.
   usePageTitle(
@@ -695,7 +984,6 @@ export function Race() {
   if (isError) return <p className="text-red-600">Could not load the race.</p>
 
   const status = data.status
-  const winner = data.gc.find((r) => !r.dnf) ?? data.gc[0]
   const untilStart = daysUntilStart(data)
   const stageCount = data.race.stageCount
   const startDay = data.race.startDay
@@ -705,6 +993,16 @@ export function Race() {
   // En una carrera de un día la carrera Y la etapa son la misma cosa: los datos de la etapa (los
   // kilómetros y el tipo de recorrido) son los de la carrera, y su sitio es esta cabecera.
   const single = stageCount === 1 ? data.stages[0] : undefined
+  // La cabecera `Winner` (sup. C1): solo si la última etapa no está en el velo de quien mira (la conoce, o
+  // la carrera está fuera de su guardia o caducada). Si lo está, `Finished · ready to watch`: la general
+  // que llega es la de tras la última conocida, y su primero no es el ganador.
+  const finalHidden = status === 'finished' && finalVeiled(veil, stageCount)
+  const winner = finalHidden ? undefined : (data.gc.find((r) => !r.dnf) ?? data.gc[0])
+  const firstToWatch = veil === null ? null : Math.min(...veil.stages)
+  // Seguir o soltar la carrera: con el velo para quien mira y con sesión (§10.4)
+  const canFollow =
+    veilApplies(rev) && !diagOn && raceKey !== null && !session.isPending && session.data != null
+  const pagePath = `/world/races/${raceId}`
 
   return (
     <section className="space-y-5">
@@ -754,6 +1052,9 @@ export function Race() {
             <span className="text-xs text-slate-400">{raceTeamLabel(winner.teamName)}</span>
           </p>
         )}
+        {finalHidden && (
+          <p className="mt-2 text-sm font-medium text-emerald-700">Finished · ready to watch</p>
+        )}
         {status === 'upcoming' && (
           <p className="mt-2 text-sm text-slate-500">
             {untilStart != null && untilStart > 0
@@ -766,32 +1067,81 @@ export function Race() {
             Under way — {data.runDays.length} of {stageCount} stages raced.
           </p>
         )}
-        {myPref && (
+        {/* LO QUE ESCONDE (§11.5, sup. C2): las tablas son las de tras la última etapa conocida, y lo
+            dice con un texto que solo depende del horizonte, con la primera por ver a un toque. */}
+        {veil !== null && stageCount > 1 && firstToWatch !== null && (
+          <p
+            role="note"
+            className="mt-2 flex flex-wrap items-center gap-x-1.5 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900 ring-1 ring-amber-200"
+          >
+            <span>{raceVeilNotice(veil.stages, stageCount)}</span>
+            <span aria-hidden>·</span>
+            <Link to={`${pagePath}/stages/${firstToWatch}`} className="font-medium underline">
+              {sw.watchOn ? `Watch stage ${firstToWatch}` : `Stage ${firstToWatch} →`}
+            </Link>
+          </p>
+        )}
+        {(myPref || canFollow) && (
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={() => targetMutation.mutate(!myPref.wanted)}
-              disabled={targetMutation.isPending}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition disabled:opacity-60 ${
-                myPref.wanted
-                  ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-              title="Your team weighs your targeted races when picking squads (and missing one you targeted stings your morale)."
-            >
-              {myPref.wanted ? '★ Targeted' : '☆ Target this race'}
-            </button>
-            {myPref.callup === 'selected' && (
+            {myPref && (
+              <button
+                type="button"
+                onClick={() => targetMutation.mutate(!myPref.wanted)}
+                disabled={targetMutation.isPending}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition disabled:opacity-60 ${
+                  myPref.wanted
+                    ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+                title="Your team weighs your targeted races when picking squads (and missing one you targeted stings your morale)."
+              >
+                {myPref.wanted ? '★ Targeted' : '☆ Target this race'}
+              </button>
+            )}
+            {myPref?.callup === 'selected' && (
               <span className="text-xs font-medium text-emerald-600">You're in the squad</span>
             )}
-            {myPref.callup === 'not-selected' && (
+            {myPref?.callup === 'not-selected' && (
               <span className="text-xs text-slate-400">Not selected this time</span>
+            )}
+            {canFollow && raceKey !== null && (
+              <FollowRace raceKey={raceKey} protecting={veil !== null} />
             )}
           </div>
         )}
+        {/* El modo diagnóstico del dueño (§11.15, 11-h): solo a un administrador con algo velado. */}
+        {!diag && sw.isAdmin && veilRaw !== null && (
+          <p className="mt-2 text-right">
+            <Link
+              to={hrefWith(pagePath, params, { diag: '1' })}
+              className="text-xs text-slate-400 hover:text-slate-600"
+            >
+              Diagnostic view
+            </Link>
+          </p>
+        )}
       </div>
 
-      <RaceSections data={data} raceId={raceId} status={status} startlist={startlist} />
+      {diagOn && <DiagnosticStrip exitHref={hrefWith(pagePath, params, { diag: null })} />}
+
+      {stageCount === 1 && status === 'finished' ? (
+        <OneDaySections
+          data={data}
+          raceId={raceId}
+          watchOn={sw.watchOn}
+          watchSettled={sw.settled}
+          veil={veil}
+        />
+      ) : (
+        <RaceSections
+          data={data}
+          raceId={raceId}
+          status={status}
+          startlist={startlist}
+          watchOn={sw.watchOn}
+          veil={veil}
+        />
+      )}
     </section>
   )
 }
