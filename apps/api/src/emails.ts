@@ -1,7 +1,9 @@
+import { type PreStageInfo, stageReadyNotice } from '@cyclingstar/shared'
 import type { MailMessage } from './mailer.js'
 
 /**
- * Los tres correos que manda la app. Son PLANTILLAS PURAS: reciben un enlace y devuelven
+ * Los tres correos que manda la app, y la plantilla del de «etapa lista» (E2), que todavía no manda
+ * nadie (abajo). Son PLANTILLAS PURAS: reciben un enlace y devuelven
  * asunto, texto y HTML. Ni red, ni entorno, ni reloj — así se pueden probar enteras.
  *
  * Van en inglés porque la web está en inglés; el comentario es castellano, como el resto del
@@ -130,6 +132,39 @@ export function changeEmailConfirmationEmail(url: string, newEmail: string): Mai
       cta: { label: 'Approve the change', url },
       footer:
         'If it was not you, ignore this email and change your password: your address stays as it is.',
+    }),
+  }
+}
+
+/** El pie del correo de etapa lista: la promesa de no destripar, dicha donde se lee. */
+const READY_FOOTER = 'Results stay hidden until you watch the stage.'
+
+/**
+ * «ETAPA LISTA PARA VER» (E2, docs/retransmision.md §11.9; D-42, 11-d; paso 9a). Plantilla pura, como
+ * las otras tres: sin red, sin entorno y sin reloj. Nace con el `locale` delante (12-q) y solo recibe
+ * la `PreStageInfo` de la etapa y si el corredor propio está en la LISTA DE SALIDA, así que por tipo no
+ * cabe un resultado; el asunto y la primera línea son los de `stageReadyNotice`, que también usarán un
+ * aviso del navegador o un contador, si E4 los crea.
+ *
+ * NADIE LA ENVÍA TODAVÍA: cuándo, a quién, con qué baja y por qué canal es de E4 (DD-10), y la decisión
+ * de enviar no puede mirar el resultado (§11.9, regla 1): el disparador es que una etapa en guardia
+ * para el jugador se ha corrido, nunca «tu corredor ganó».
+ */
+export function stageReadyEmail(
+  _locale: 'en',
+  p: PreStageInfo,
+  ownRiderOnStartlist: boolean,
+  url: string,
+): MailBody {
+  const n = stageReadyNotice('en', p, ownRiderOnStartlist)
+  return {
+    subject: n.subject,
+    text: [n.text, '', 'Watch it here:', url, '', READY_FOOTER].join('\n'),
+    html: layout({
+      title: n.subject,
+      body: escapeHtml(n.text),
+      cta: { label: 'Watch', url },
+      footer: READY_FOOTER,
     }),
   }
 }
