@@ -1,7 +1,8 @@
 /**
- * Informe personal de la última carrera (qué ordené vs qué pasó). El servidor reconstruye la
- * crónica desde el snapshot sellado; aquí solo hablamos HTTP: las frases están en `domain/narration`
- * y las traducciones de rol/mentalidad en `domain/labels`.
+ * Informe personal de la última carrera (qué ordené vs qué pasó). El servidor manda los momentos del
+ * corredor como líneas del acta (`moments`, E2 paso 12); aquí solo hablamos HTTP: esas líneas las
+ * redacta `domain/stageJournal` (como el acta), el veredicto está en `domain/narration` y las
+ * traducciones de rol/mentalidad en `domain/labels`.
  */
 
 import {
