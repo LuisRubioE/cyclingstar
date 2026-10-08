@@ -4,13 +4,11 @@ import {
   B1B_SKIP,
   B1B_VEIL,
   B1B_WHITELIST,
-  PENDING_ROUTES,
   RACE_ID,
   RACE_KEY,
   VEILED,
   type SpoilerWorld,
   type Swept,
-  pendingFor,
   routeOf,
   serverErrors,
   startSpoilerWorld,
@@ -28,9 +26,9 @@ import {
  * (`B1B_WHITELIST` y `B1B_VEIL`): ninguna clave puede cambiar fuera de ellas, ni aunque el cambio parezca
  * inocente. El diferencial caza lo que no es un valor: que exista una fila, que un aviso cuente una
  * etapa de más, que una lista cambie de orden. Desde el 8a, cuando las rutas tienen clase, cada ruta de
- * la lista blanca es además `L` en el registro, con su motivo (16-o); desde el 8b, con `PENDING_ROUTES`
- * vacía, ninguna ruta cambia fuera de las dos tablas, y otra cuenta que ve y revela la etapa no cambia
- * un byte de lo que recibe la primera (§11.14).
+ * la lista blanca es además `L` en el registro, con su motivo (16-o); desde el 8b ninguna ruta cambia
+ * fuera de las dos tablas, y otra cuenta que ve y revela la etapa no cambia un byte de lo que recibe la
+ * primera (§11.14). `PENDING_ROUTES`, vacía desde el 8b, se borró en el 9b con su `it` (§16.3, 17-n).
  */
 
 const pathsOf = (key: string): readonly string[] => [
@@ -64,16 +62,7 @@ describe('B1b · correr la etapa no cambia un byte para quien no la ha visto', (
   })
 
   it('fuera de las dos tablas de §11.18, ninguna respuesta cambia al correrse la etapa', () => {
-    expect(differing(before, after).filter((k) => !pendingFor(k, 'B1b'))).toEqual([])
-  })
-
-  it('cada ruta pendiente de B1b sigue cambiando; si ya no, se quita de PENDING_ROUTES', () => {
-    const still = new Set(differing(before, after).map(routeOf))
-    expect(
-      [...PENDING_ROUTES]
-        .filter(([route, p]) => p.banks.includes('B1b') && !still.has(route))
-        .map(([route]) => route),
-    ).toEqual([])
+    expect(differing(before, after)).toEqual([])
   })
 
   it('16-o: cada ruta de la lista blanca es L en el registro, con su motivo escrito', () => {

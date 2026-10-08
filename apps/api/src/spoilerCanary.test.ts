@@ -5,14 +5,12 @@ import { stageReadyEmail } from './emails.js'
 import { preStageInfoFor, shellMetaFor } from './spaShell.js'
 import {
   OWN_RIDER,
-  PENDING_ROUTES,
   RACE_ID,
   RACE_KEY,
   VEILED,
   type SpoilerWorld,
   type Swept,
   dayOf,
-  pendingFor,
   routeOf,
   serverErrors,
   startSpoilerWorld,
@@ -24,8 +22,9 @@ import {
  *
  * Tras correr la etapa velada se plantan valores que solo existen en su desenlace, en campos que la API
  * sirve, y se barren todas las `GET` del registro con la sesión del jugador, que no la ha visto: ninguna
- * respuesta fuera de `PENDING_ROUTES` puede llevarlos, y cada ruta de la lista tiene que seguir
- * llevándolos (si ya no, se quita). No se busca el nombre del ganador en las respuestas JSON, que sale
+ * respuesta puede llevarlos. Hasta el 8b, las rutas que aún destripaban iban en `PENDING_ROUTES` y su
+ * `it` comprobaba que lo seguían haciendo; vacía desde el 8b, la constante y su `it` se borraron en el 9b
+ * (§16.3, 17-n). No se busca el nombre del ganador en las respuestas JSON, que sale
  * con razón en la lista de salida: eso es B1c. Sí se busca en el título, las `og:` y el correo, que no
  * llevan ninguna lista (§11.8, §11.9): es el tercer `it`, que entra en el 9a con `spaShell.ts` y
  * `stageReadyEmail`.
@@ -106,19 +105,11 @@ describe('B1a · el canario', () => {
 
   it('ninguna respuesta le cuenta el desenlace a quien no ha visto la etapa', async () => {
     const leaks = leaking(await veiledSweep())
-    expect(leaks.filter((k) => !pendingFor(k, 'B1a'))).toEqual([])
+    expect(leaks).toEqual([])
   })
 
   it('ninguna respuesta del barrido es un 5xx: un 500 no cuenta ni destripa, es un banco que no ha mirado', async () => {
     expect(serverErrors(await veiledSweep())).toEqual([])
-  })
-
-  it('cada ruta pendiente de B1a sigue destripando; si ya no, se quita de PENDING_ROUTES', async () => {
-    const leaks = new Set(leaking(await veiledSweep()).map(routeOf))
-    const stale = [...PENDING_ROUTES]
-      .filter(([route, p]) => p.banks.includes('B1a') && !leaks.has(route))
-      .map(([route]) => route)
-    expect(stale).toEqual([])
   })
 
   it('ni el título, ni las og:, ni el aviso llevan al ganador; el robot sin cookie sí lo ve en el acta, marcado', async () => {

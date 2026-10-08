@@ -1,10 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   B1C_WHITELIST,
-  PENDING_ROUTES,
   type SpoilerWorld,
   normalize,
-  pendingFor,
   routeOf,
   serverErrors,
   startSpoilerWorld,
@@ -53,13 +51,7 @@ describe('B1c · dos desenlaces, los mismos bytes', () => {
       const paths = B1C_WHITELIST.get(routeOf(k)) ?? []
       return normalize(strip(ra.get(k)!, paths)) !== normalize(strip(rb.get(k)!, paths))
     })
-    expect(differ.filter((k) => !pendingFor(k, 'B1c'))).toEqual([])
-    const still = new Set(differ.map(routeOf))
-    expect(
-      [...PENDING_ROUTES]
-        .filter(([route, p]) => p.banks.includes('B1c') && !still.has(route))
-        .map(([route]) => route),
-    ).toEqual([])
+    expect(differ).toEqual([])
   })
 
   it('no es vacío: el visitante sin cuenta, que no tiene nada velado, ve dos carreras distintas en cinco rutas o más', async () => {
