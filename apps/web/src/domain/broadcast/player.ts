@@ -13,7 +13,7 @@
  *
  * Nace en el 3b con el reloj, la red, la previa, la llegada y el cierre de `Watch` y `Highlights`. Los
  * saltos (`seek`, `back`, `landed`), `Show result` y el digest (con `release` y `loaded`) llegan en el
- * 10a: hasta entonces sus acciones no cambian nada. La cola de rótulos llega en el 6a (`CueDeck`, al
+ * 10a (§8.5, §8.8, 8-c, 8-i, 8-j, 8-n, 8-o, 18-e). La cola de rótulos llega en el 6a (`CueDeck`, al
  * final): un estado aparte del reloj, que el hook avanza en cada fotograma con el instante que pinta y
  * que le da al reductor solo lo que admite (`cueAdmitted`). Los efectos de informe (`report`) se
  * ejecutan desde el 7a, que trae `POST /api/me/watch` (§17.6).
@@ -39,6 +39,24 @@
  *   más de lo que el servidor admite. Y los tramos salen de 450 a 900 s de carrera, no de 900: es lo que
  *   deja pedir la regla de 8-d (informar de lo pintado cuando quedan menos de chunkRaceS / 2), y son
  *   del orden del doble de los 16 a 32 por etapa que estimaba §8.5.
+ *
+ * Y lo que se aparta en el 10a:
+ * - `PlayerState.seekS` y la acción `seekTime`: los saltos de reloj de la crono (`−10 min`, `+10 min`,
+ *   `Last 20 starters`, `Last starter`; 9-g) van a una hora y no a un km, y el salto se acaba cuando lo
+ *   servido la pasa, no cuando la cabeza llega a un km. Como los de recorrido, nunca cruzan la meta.
+ * - Un salto que empieza con un tramo en vuelo espera a su respuesta y sigue desde ella: la cola de
+ *   peticiones es una sola (§8.11). El informe de cada vuelta del salto es lo servido (8-j), en décimas
+ *   hacia abajo; el aterrizaje no pasa del borde de la meta.
+ * - `PlayerState.lastKm`: la cabeza en el último km en el último fotograma (`toGoKm ≤ 1`): `Next action`
+ *   se apaga y no se enciende (8-o). §8.11 lo decía del rótulo `last_km`, que también lo apaga; tras un
+ *   salto la cola se rehace en el aterrizaje y ese rótulo puede no salir.
+ * - `PlayerState.revealed`: `Show result` aceptado. Pide la revelación y la meta (`reveal` y `finish`,
+ *   §8.5); con el modo de la curva, que el servidor no escribe porque la etapa ya es conocida
+ *   (`recordProgress`, «una etapa ya conocida no registra nada»). La llegada se salta los grupos que
+ *   llegan (§8.7) y, en el digest, no encadena: tras `Show results` viene el cierre.
+ * - `playerInit` recibe, en el digest, la etapa de antes (`previous`): la página encadena navegando a la
+ *   siguiente (8-c), y así `loaded` sigue sabiendo cuál soltar (18-e).
+ * - Volver atrás en pausa se queda en pausa; desde el resumen o esperando un tramo, sigue la carrera.
  */
 import {
   BROADCAST,
@@ -118,6 +136,12 @@ export interface PlayerState {
   readonly stageDay: number
   /** las etapas con tramos y línea en memoria; en el digest, como mucho dos (18-e) */
   readonly loaded: readonly number[]
+  /** la hora destino del salto de reloj en curso de la crono (9-g); null fuera de uno. No estaba en §8.11 */
+  readonly seekS: RaceS | null
+  /** la cabeza en el último km (toGoKm ≤ 1) en el último fotograma: Next action apagado (8-o). No estaba en §8.11 */
+  readonly lastKm: boolean
+  /** `Show result` aceptado: la meta se pidió tras revelar (§8.5). No estaba en §8.11 */
+  readonly revealed: boolean
 }
 
 /**
@@ -153,6 +177,8 @@ export type PlayerAction =
     }
   /** headKmAtEnd: el km de la cabeza en servedS (10a) */
   | { readonly k: 'seek'; readonly km: number; readonly headKmAtEnd: number }
+  /** un salto de reloj de la crono, a la hora toS (9-g; 10a). No estaba en §8.11 */
+  | { readonly k: 'seekTime'; readonly toS: RaceS }
   /** el hook biseca en la línea servida, sin red (10a) */
   | { readonly k: 'back'; readonly toS: RaceS }
   /** la respuesta de un tramo: su toDs en s, si llega al borde de la meta y el km de la cabeza en toS */
@@ -345,15 +371,18 @@ function resume(s: PlayerState): PlayerState {
 /**
  * La entrada: la previa en 0 (sin lo alcanzado, o con la etapa ya conocida), o lo alcanzado menos
  * resumeBackS con `Previously` (pantalla) y los tramos de 0 en adelante, uno tras otro, hasta pasar
- * lo alcanzado (8-l). Lo informado es lo que el servidor ya sabe: el `reachedS` de la cabecera.
+ * lo alcanzado (8-l). Lo informado es lo que el servidor ya sabe: el `reachedS` de la cabecera. En el
+ * digest, siempre la previa (su cuadro 1), y `previous` es la etapa que acaba de verse: sigue en memoria
+ * hasta que empiece la siguiente (18-e).
  */
 export function playerInit(
   view: ViewMode,
   stageDay: number,
   reachedS: RaceS | null,
   known: boolean,
+  previous: number | null = null,
 ): PlayerStep {
-  const resumed = !known && reachedS !== null && reachedS > 0 ? reachedS : null
+  const resumed = view !== 'digest' && !known && reachedS !== null && reachedS > 0 ? reachedS : null
   const reached = resumed === null ? 0 : fromDs(floorDs(resumed))
   return fetchMore({
     phase: resumed === null ? 'preview' : 'recap',
@@ -371,7 +400,13 @@ export function playerInit(
     idleS: 0,
     sinceReportS: 0,
     stageDay,
-    loaded: [stageDay],
+    loaded:
+      view === 'digest' && previous !== null && previous !== stageDay
+        ? [previous, stageDay]
+        : [stageDay],
+    seekS: null,
+    lastKm: false,
+    revealed: false,
   })
 }
 
@@ -381,10 +416,16 @@ const none = (s: PlayerState): PlayerStep => ({ next: s, effects: [] })
 
 /** Un fotograma: el reloj de §8.2, la línea de §8.7, el informe periódico y la red de §8.5. */
 function frame(
-  s: PlayerState,
+  before: PlayerState,
   a: Extract<PlayerAction, { k: 'frame' }>,
   ctx: PlayerContext,
 ): PlayerStep {
+  // El último km se ve a su ritmo (8-o): ahí Next action se apaga y no se enciende.
+  const lastKm = Number.isFinite(a.toGoKm) && a.toGoKm <= 1
+  const s: PlayerState =
+    lastKm !== before.lastKm || (lastKm && before.nextAction)
+      ? { ...before, lastKm, nextAction: lastKm ? false : before.nextAction }
+      : before
   if (s.phase !== 'playing') return fetchMore(s)
   const dtS = Number.isFinite(a.dtS) ? Math.max(0, a.dtS) : 0
   const cap = clockCapS(s)
@@ -416,6 +457,175 @@ function frame(
   return chain(out, fetchMore)
 }
 
+// ------------------------------------------------------------------------- los saltos (§8.5; 10a)
+
+/** Las fases desde las que se salta, se vuelve atrás o se revela: antes de la meta y sin un salto en curso. */
+const SEEKABLE: ReadonlySet<PlayerPhase> = new Set(['preview', 'playing', 'paused', 'recap'])
+/** ¿Se puede saltar o revelar? Con la meta pedida (en `waiting`, o pausada mientras llega), no. */
+const canJump = (s: PlayerState): boolean =>
+  !s.revealed &&
+  !(s.atFinish && s.inFlight) &&
+  (SEEKABLE.has(s.phase) || (s.phase === 'waiting' && !s.atFinish))
+
+/** ¿Ha llegado lo servido al destino del salto en curso? En recorrido, por la cabeza en lo servido. */
+function seekServed(s: PlayerState, headKmAtEnd: number): boolean {
+  if (s.seekS !== null) return s.servedS >= s.seekS
+  return s.seekKm === null || headKmAtEnd >= s.seekKm
+}
+
+/**
+ * UNA VUELTA DEL SALTO (§8.5, 8-t): saltar es alcanzar, así que primero se informa de lo servido con
+ * `mode: 'seek'` y después se pide el tramo siguiente, que lo informado ya permite (B18). Con el último
+ * tramo dentro, o con lo servido en el destino, no se pide nada: el hook busca la hora destino en la
+ * línea servida y aterriza (`landed`).
+ */
+function seekMore(s: PlayerState, headKmAtEnd: number): PlayerStep {
+  if (s.inFlight || s.atFinish || seekServed(s, headKmAtEnd)) return none(s)
+  const servedDs = toDs(s.servedS)
+  let next = s
+  const effects: PlayerEffect[] = []
+  if (servedDs > floorDs(s.reportedS)) {
+    const reachedS = fromDs(servedDs)
+    next = { ...next, reportedS: reachedS, sinceReportS: 0 }
+    effects.push({ k: 'report', reachedS, mode: 'seek', beacon: false })
+  }
+  const upTo = Math.min(servedDs + CHUNK_DS, floorDs(next.reportedS) + PREFETCH_DS)
+  if (upTo <= servedDs) return { next, effects }
+  effects.push({ k: 'chunk', fromS: fromDs(servedDs), toS: fromDs(upTo) })
+  return { next: { ...next, inFlight: true }, effects }
+}
+
+/** Empezar un salto hacia delante: de recorrido (`seekKm`) o de reloj (`seekS`). */
+function startSeek(
+  s: PlayerState,
+  target: { readonly km: number } | { readonly toS: RaceS },
+  headKmAtEnd: number,
+  ctx: PlayerContext,
+): PlayerStep {
+  // en el último km no queda adónde saltar: ningún salto pasa de un km antes de meta (8-j)
+  if (s.view === 'digest' || !canJump(s) || ('km' in target && s.lastKm)) return none(s)
+  const seeking: PlayerState = {
+    ...s,
+    phase: 'seeking',
+    notice: null,
+    nextAction: false,
+    idleS: 0,
+    ...('km' in target
+      ? { seekKm: Math.min(target.km, ctx.lengthKm - 1), seekS: null }
+      : { seekKm: null, seekS: Math.max(s.t, target.toS) }),
+  }
+  return seekMore(seeking, headKmAtEnd)
+}
+
+/**
+ * EL ATERRIZAJE (§8.5): `t` a la hora destino, que el hook buscó en la línea servida (la primera en que
+ * la cabeza pintada llega al km destino; en la crono, la hora pedida), sin pasar del borde de la meta;
+ * lo alcanzado sube a ella y se informa con `mode: 'seek'` si es nuevo. Con rótulos de clase ≥ 2
+ * saltados, `While you skipped` con el reloj quieto (8-n); sin ellos, sigue la carrera.
+ */
+function land(s: PlayerState, a: Extract<PlayerAction, { k: 'landed' }>): PlayerStep {
+  if (s.phase !== 'seeking' || s.inFlight) return none(s)
+  const cap = clockCapS(s)
+  const toS = Number.isFinite(a.toS) ? a.toS : s.t
+  const t = Math.max(s.t, Math.min(toS, cap))
+  let next: PlayerState = {
+    ...s,
+    t,
+    reachedS: Math.max(s.reachedS, t),
+    seekKm: null,
+    seekS: null,
+    idleS: 0,
+  }
+  const effects: PlayerEffect[] = []
+  if (floorDs(next.reachedS) > floorDs(next.reportedS)) {
+    const reachedS = fromDs(floorDs(next.reachedS))
+    next = { ...next, reportedS: reachedS, sinceReportS: 0 }
+    effects.push({ k: 'report', reachedS, mode: 'seek', beacon: false })
+  }
+  next = a.skipped > 0 ? { ...next, phase: 'recap', notice: null } : resume(next)
+  return chain({ next, effects }, fetchMore)
+}
+
+/** Volver atrás (§8.5): dentro de lo servido, sin red ni cuenta nueva; lo alcanzado no baja. */
+function back(s: PlayerState, toS: RaceS): PlayerStep {
+  // en el digest no hay saltos: sus mandos son la pausa y `Show results` (§8.1)
+  if (s.view === 'digest' || !canJump(s) || s.phase === 'preview' || !Number.isFinite(toS))
+    return none(s)
+  // dentro de lo servido: lo de antes está en la línea en memoria (§8.5)
+  const t = Math.max(0, Math.min(toS, s.t, s.servedS))
+  if (t >= s.t) return none(s)
+  const moved: PlayerState = { ...s, t, idleS: 0 }
+  // en pausa se queda en pausa; desde el resumen o esperando un tramo, sigue la carrera
+  return fetchMore(s.phase === 'paused' ? moved : resume({ ...moved, notice: null }))
+}
+
+/**
+ * `Show result` ACEPTADO (§8.5, D-38, DD-17): se revela y después se pide la meta, en ese orden, con el
+ * reloj quieto; la respuesta lleva a la llegada sin los grupos que llegan (§8.7). La confirmación es de
+ * la pantalla. Lo que estuviera en vuelo responde antes y no cambia nada (el último tramo ya no se espera).
+ */
+function showResult(s: PlayerState): PlayerStep {
+  if (!canJump(s) && !(s.phase === 'seeking' && !s.revealed)) return none(s)
+  return {
+    next: {
+      ...s,
+      phase: 'waiting',
+      notice: 'loading',
+      inFlight: true,
+      atFinish: true,
+      revealed: true,
+      nextAction: false,
+      seekKm: null,
+      seekS: null,
+    },
+    effects: [{ k: 'reveal' }, { k: 'finish', mode: REPORT_MODE[s.view] }],
+  }
+}
+
+/** Tras un fallo de `Show result`: otra vez la revelación y la meta. */
+function revealAgain(s: PlayerState): PlayerStep {
+  return {
+    next: { ...s, phase: 'waiting', notice: 'loading', inFlight: true, atFinish: true },
+    effects: [{ k: 'reveal' }, { k: 'finish', mode: REPORT_MODE[s.view] }],
+  }
+}
+
+/**
+ * EL DIGEST ENCADENA (§8.8, 8-c): tras la llegada de una etapa, con otra velada detrás y sin `Show
+ * results`, el cuadro 1 de la previa de la siguiente, sin tocar: la carrera entera en un acto. Al
+ * empezarla se suelta la de antes de la anterior (18-e): en memoria, la que se acaba de ver y esta.
+ */
+function chainDigest(s: PlayerState, nextDay: number): PlayerStep {
+  const keep = s.loaded.filter((d) => d === s.stageDay)
+  const released = s.loaded.filter((d) => d !== s.stageDay)
+  const start: PlayerState = {
+    ...s,
+    phase: 'preview',
+    speed: 1,
+    nextAction: false,
+    t: 0,
+    reachedS: 0,
+    reportedS: 0,
+    servedS: 0,
+    atFinish: false,
+    seekKm: null,
+    seekS: null,
+    inFlight: false,
+    notice: null,
+    idleS: 0,
+    sinceReportS: 0,
+    stageDay: nextDay,
+    loaded: [...keep, nextDay],
+    lastKm: false,
+    revealed: false,
+  }
+  const r = fetchMore(start)
+  return {
+    next: r.next,
+    effects: [...released.map((d): PlayerEffect => ({ k: 'release', stageDay: d })), ...r.effects],
+  }
+}
+
 /** EL REPRODUCTOR, un paso. Puro: el mismo estado y la misma acción dan siempre lo mismo. */
 export function playerStep(s: PlayerState, a: PlayerAction, ctx: PlayerContext): PlayerStep {
   switch (a.k) {
@@ -423,20 +633,25 @@ export function playerStep(s: PlayerState, a: PlayerAction, ctx: PlayerContext):
       return frame(s, a, ctx)
 
     case 'play':
+      // tras `Show result` no se vuelve a la carrera: `▶` repite lo que falló, como `Retry`
+      if (s.revealed) return s.notice === 'offline' ? revealAgain(s) : none(s)
       if (s.phase === 'preview' || s.phase === 'recap' || s.phase === 'paused')
         return fetchMore(resume({ ...s, notice: null }))
       return none(s)
 
     case 'retry':
-      // `Retry` repite lo que falló: el tramo, o la meta en el fotograma siguiente (§10.12, D-57).
+      // `Retry` repite lo que falló: el tramo, o la meta en el fotograma siguiente (§10.12, D-57); tras
+      // `Show result`, la revelación y la meta.
       if (s.notice !== 'offline') return none(s)
+      if (s.revealed) return revealAgain(s)
       return fetchMore(resume({ ...s, notice: null }))
 
     case 'pause':
     case 'hidden':
     case 'leave': {
       const r = reportIfNew(s, a.k === 'leave')
-      if (!RUNNING.has(r.next.phase)) return r
+      // la espera de `Show result` no se pausa: lo que se pidió llega igual
+      if (!RUNNING.has(r.next.phase) || r.next.revealed) return r
       return { next: { ...r.next, phase: 'paused', notice: null }, effects: r.effects }
     }
 
@@ -448,16 +663,24 @@ export function playerStep(s: PlayerState, a: PlayerAction, ctx: PlayerContext):
       return none(s.view === 'digest' ? s : { ...s, speed: a.x })
 
     case 'view':
-      // Watch y Highlights cambian la curva, no la hora (§8.1); el digest se entra y se sale en el 10a.
+      // Watch y Highlights cambian la curva, no la hora (§8.1); al digest se entra por su botón y no
+      // se sale de él con el conmutador (§8.8).
       if (s.view === 'digest' || a.view === 'digest') return none(s)
       return none({ ...s, view: a.view })
 
     case 'nextAction':
-      return none(s.view === 'digest' ? s : { ...s, nextAction: !s.nextAction })
+      // ni en el digest ni en el último km, que se ve a su ritmo (8-o)
+      if (s.view === 'digest' || (s.lastKm && !s.nextAction)) return none(s)
+      return none({ ...s, nextAction: !s.nextAction })
 
     case 'cueAdmitted':
-      // La única acción que mira los sucesos: apaga Next action, y la ronda de la moto no (6-m, B9).
-      if (s.nextAction && !a.round && a.cls >= BROADCAST.nextActionMinClass)
+      // La única acción que mira los sucesos: apaga Next action, y la ronda de la moto no (6-m, B9); el
+      // rótulo del último km, también (8-o).
+      if (
+        s.nextAction &&
+        !a.round &&
+        (a.cls >= BROADCAST.nextActionMinClass || a.kind === 'last_km')
+      )
         return none({ ...s, nextAction: false })
       return none(s)
 
@@ -469,6 +692,7 @@ export function playerStep(s: PlayerState, a: PlayerAction, ctx: PlayerContext):
         atFinish: a.atFinish,
         inFlight: false,
       }
+      if (s.phase === 'seeking') return seekMore(next, a.headKmAtEnd)
       return fetchMore(s.phase === 'waiting' ? resume(next) : next)
     }
 
@@ -480,15 +704,34 @@ export function playerStep(s: PlayerState, a: PlayerAction, ctx: PlayerContext):
 
     case 'beyond': {
       // 409 `beyond_reached` (§14.11): el servidor sabe menos de lo informado (un reinicio vacía su
-      // memoria, riesgo 19). Se informa de lo alcanzado y se pide otra vez el mismo tramo.
+      // memoria, riesgo 19). Se informa de lo alcanzado y se pide otra vez el mismo tramo; en un salto,
+      // de lo servido, con `mode: 'seek'` (8-j).
       if (!s.inFlight || s.atFinish) return none(s)
+      if (s.phase === 'seeking') {
+        const reachedS = fromDs(toDs(s.servedS))
+        return chain(
+          {
+            next: { ...s, inFlight: false, reportedS: reachedS, sinceReportS: 0 },
+            effects: [{ k: 'report', reachedS, mode: 'seek', beacon: false }],
+          },
+          (x) => seekMore(x, Number.NEGATIVE_INFINITY),
+        )
+      }
       return chain(withReport({ ...s, inFlight: false }, false), fetchMore)
     }
 
     case 'failed':
-      // Red caída o un 5xx (D-57): pausa con `Connection lost · Retry`; lo alcanzado es lo pintado.
+      // Red caída o un 5xx (D-57): pausa con `Connection lost · Retry`; lo alcanzado es lo pintado. Un
+      // salto que falla se deja donde estaba: `Retry` sigue la carrera desde la hora de antes.
       if (!s.inFlight) return none(s)
-      return none({ ...s, inFlight: false, phase: 'paused', notice: 'offline' })
+      return none({
+        ...s,
+        inFlight: false,
+        phase: 'paused',
+        notice: 'offline',
+        seekKm: null,
+        seekS: null,
+      })
 
     case 'finished':
       if (!(s.inFlight && s.atFinish)) return none(s) // solo la meta que se pidió
@@ -496,16 +739,29 @@ export function playerStep(s: PlayerState, a: PlayerAction, ctx: PlayerContext):
 
     case 'cardDone':
       if (s.phase === 'preview' || s.phase === 'recap') return fetchMore(resume(s))
-      // tras la llegada, el cierre; el último cuadro del cierre se queda y Next abre otra etapa (§8.8)
-      if (s.phase === 'arrival') return none({ ...s, phase: 'closing' })
+      if (s.phase === 'arrival') {
+        // en el digest, la siguiente etapa velada; tras la última, o tras `Show results`, el cierre
+        if (s.view === 'digest' && ctx.digestNext !== null && !s.revealed)
+          return chainDigest(s, ctx.digestNext)
+        // el último cuadro del cierre se queda y Next abre otra etapa (§8.8)
+        return none({ ...s, phase: 'closing' })
+      }
       return none(s)
 
     case 'seek':
-    case 'back':
+      return startSeek(s, { km: a.km }, a.headKmAtEnd, ctx)
+
+    case 'seekTime':
+      return startSeek(s, { toS: a.toS }, Number.NEGATIVE_INFINITY, ctx)
+
     case 'landed':
+      return land(s, a)
+
+    case 'back':
+      return back(s, a.toS)
+
     case 'showResult':
-      // los saltos y Show result llegan en el 10a (§8.5, §17.13)
-      return none(s)
+      return showResult(s)
   }
 }
 
@@ -872,5 +1128,149 @@ export function cueDeckStep(
   return {
     deck: { queue, wallS, seen, names, lastVirtualLeader, round, checkAtS, climbNext, tt },
     admitted,
+  }
+}
+
+/**
+ * LA COLA TRAS UN SALTO (§8.5; la nota 4 del 6b): se vacía y se asienta en el instante del aterrizaje,
+ * para que lo saltado no entre de golpe en rótulos (lo resume `While you skipped`, 8-i). La ficha del
+ * puerto que viene sale si ya pasó su aviso (`Next climb` aterriza a `climbCardLeadKm` de su pie, 8-n), y
+ * lo que se trae (`carried`: la fuga formada en lo saltado que sigue por delante del pelotón) sale con su
+ * frase y su ronda, como al formarse (6-m). Devuelve, como `cueDeckStep`, lo admitido para el reductor.
+ */
+export function cueDeckSeat(
+  deck: CueDeck,
+  instant: Instant,
+  ctx: CueDeckContext,
+  tti: TimeTrialInstant | null,
+  carried: readonly Cue[] = [],
+): { readonly deck: CueDeck; readonly admitted: readonly AdmittedCue[] } {
+  const climbs = ctx.profile?.climbs ?? []
+  let climbNext = climbs.findIndex((c) => instant.headKm < c.topKm)
+  if (climbNext < 0) climbNext = climbs.length
+  const extra = roadExtras(carried, instant, instant, ctx, { round: null, climbNext }, deck.wallS)
+  let queue: CueQueue = EMPTY_CUE_QUEUE
+  const admitted: AdmittedCue[] = []
+  const at = { wallS: deck.wallS, toGoKm: instant.toGoKm, instant }
+  for (const cue of extra.cues) {
+    const cls = cueClassOf(cue, ctx.start, deck.lastVirtualLeader, ctx.timeTrial)
+    const r = admitCue(queue, cue, cls, at)
+    queue = r.queue
+    if (r.admitted)
+      admitted.push({
+        k: 'cueAdmitted',
+        cls,
+        kind: cue.kind,
+        round: cue.kind === 'rider' && cue.context === 'break_round',
+      })
+  }
+  return {
+    deck: {
+      ...deck,
+      queue: cueFrame(queue, at),
+      seen: instant,
+      names: [],
+      round: extra.round,
+      climbNext: extra.climbNext,
+      checkAtS: deck.wallS + BROADCAST.gapsTableEveryRealS,
+      tt: { ...deck.tt, seen: tti, roundAtS: deck.wallS + BROADCAST.breakRoundEveryS },
+    },
+    admitted,
+  }
+}
+
+/** Lo que resumen `While you skipped` y `Previously` (8-i). */
+export interface Recap {
+  /** los `recapMaxCues` últimos rótulos de clase ≥ `skippedMinClass`, en orden de carrera */
+  readonly cues: readonly Cue[]
+  /** cuántos de esa clase hubo: con ninguno, el salto no para en el resumen (§8.11) */
+  readonly count: number
+  /** la última fuga formada entre las dos horas que sigue por delante del pelotón: su presentación entera (6-m) */
+  readonly breakaway: Extract<Cue, { readonly kind: 'break_formed' }> | null
+}
+
+/**
+ * EL RESUMEN DE LO QUE NO SE VIO (§8.5; 8-i): los rótulos de `cuesBetween` entre dos instantes con clase
+ * ≥ `skippedMinClass` (2), los `recapMaxCues` (5) últimos en orden de carrera, y la fuga que se formó entre
+ * medias si alguno de los suyos sigue por delante del pelotón. `While you skipped` lo pide entre la hora
+ * de antes del salto y la del aterrizaje; `Previously`, entre la salida y lo alcanzado. Puro.
+ */
+export function recapOf(prev: Instant, next: Instant, ctx: CueDeckContext): Recap {
+  const all = cuesBetween(prev, next, ctx.events, ctx.catalog)
+  const kept = all.filter(
+    (c) =>
+      cueClassOf(c, ctx.start, ctx.start.leaders.gc, ctx.timeTrial) >= BROADCAST.skippedMinClass,
+  )
+  let breakaway: Recap['breakaway'] = null
+  for (const c of all)
+    if (c.kind === 'break_formed' && c.riders.some((r) => aheadOfPeloton(next, r))) breakaway = c
+  return { cues: kept.slice(-BROADCAST.recapMaxCues), count: kept.length, breakaway }
+}
+
+// --------------------------------------------------------------- los destinos de los saltos (§8.5)
+
+/** Los saltos de recorrido de los mandos (§8.5; pantalla): `−5 km`, `+5 km`, `Next climb`, `Final 20 km`, `Last km`. */
+export type RoadJump = 'back5' | 'fwd5' | 'nextClimb' | 'final20' | 'lastKm'
+
+/**
+ * EL KM DESTINO DE UN SALTO DE RECORRIDO (§8.5, 8-j), del km pintado de la cabeza; null si el mando está
+ * apagado. Todos son del recorrido, que es público, y ninguno pasa de un km antes de meta: `+5 km`, la
+ * cabeza más `seekStepKm`; `Next climb`, el pie del siguiente puerto menos `climbCardLeadKm`, para que
+ * salga su ficha; `Final 20 km`, la longitud menos `seekFinalKm`, apagado si la cabeza ya los pasó;
+ * `Last km`, la longitud menos 1. `−5 km` vuelve atrás (sin red), apagado en la salida.
+ */
+export function seekTargetKm(
+  jump: RoadJump,
+  headKm: number,
+  lengthKm: number,
+  profile: Pick<ProfileStrip, 'climbs'>,
+): number | null {
+  const last = lengthKm - 1
+  const ahead = (km: number): number | null =>
+    km > headKm + 1e-6 && headKm < last - 1e-6 ? Math.min(km, last) : null
+  switch (jump) {
+    case 'back5':
+      return headKm > 1e-6 ? Math.max(0, headKm - BROADCAST.seekStepKm) : null
+    case 'fwd5':
+      return ahead(headKm + BROADCAST.seekStepKm)
+    case 'nextClimb': {
+      const c = profile.climbs.find((x) => x.footKm - BROADCAST.climbCardLeadKm > headKm + 1e-6)
+      return c === undefined ? null : ahead(Math.max(0, c.footKm - BROADCAST.climbCardLeadKm))
+    }
+    case 'final20':
+      return ahead(lengthKm - BROADCAST.seekFinalKm)
+    case 'lastKm':
+      return ahead(last)
+  }
+}
+
+/** Los saltos de reloj de la crono (9-g; pantalla): `−10 min`, `+10 min`, `Last 20 starters`, `Last starter`. */
+export type ClockJump = 'back10' | 'fwd10' | 'last20' | 'lastStarter'
+
+/**
+ * LA HORA DESTINO DE UN SALTO DE LA CRONO (§9.4, 9-g): `±ttSeekStepS` de reloj, o la salida del
+ * vigésimo empezando por el final (`ttSeekLastStarters`) o la del último, que son públicas (el orden y el
+ * intervalo). null si el mando no lleva a ningún sitio. Ninguno cruza la meta: el aterrizaje lo recorta
+ * el hook al borde de lo servido y antes del último km del último en salir.
+ */
+export function ttSeekTargetS(
+  jump: ClockJump,
+  t: RaceS,
+  plan: { readonly riders: number; readonly intervalS: number },
+): RaceS | null {
+  const startOf = (i: number): RaceS => Math.max(0, i) * plan.intervalS
+  switch (jump) {
+    case 'back10':
+      return t > 0 ? Math.max(0, t - BROADCAST.ttSeekStepS) : null
+    case 'fwd10':
+      return t + BROADCAST.ttSeekStepS
+    case 'last20': {
+      const s = startOf(plan.riders - BROADCAST.ttSeekLastStarters)
+      return s > t ? s : null
+    }
+    case 'lastStarter': {
+      const s = startOf(plan.riders - 1)
+      return s > t ? s : null
+    }
   }
 }

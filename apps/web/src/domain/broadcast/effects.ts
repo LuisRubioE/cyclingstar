@@ -20,7 +20,13 @@
  * 7b, si el servidor sabe menos de lo informado, el 409 de ese tramo (`beyond`), que informa otra vez.
  * Un 429 espera y repite el mismo informe. El de salir (`beacon`, en `pagehide` o al desmontar) no hace
  * cola: sale en el acto, porque la página se va y la cola se para justo después. El servidor no da 409
- * hasta el 7b (B18). `reveal` y `release` son del 10a.
+ * hasta el 7b (B18).
+ *
+ * Desde el 10a, `reveal` (`POST /api/me/reveal`, `Show result`) va en la cola como un tramo, delante de
+ * su meta; `release` (soltar los tramos de una etapa del digest, 18-e) tampoco espera: no es red. Y tras
+ * un fallo (`failed`) no sale nada más de lo pedido: la meta que iba detrás de una revelación que falló
+ * no puede salir (escribiría la letra de verla), y lo que iba detrás de un tramo que ya no se esperaba
+ * (`Show result` con un tramo en vuelo) lo vuelve a pedir `Retry`.
  */
 import {
   type BroadcastChunk,
@@ -44,6 +50,10 @@ export interface WatchPorts {
   readonly report: (reachedS: RaceS, mode: WatchMode) => Promise<unknown>
   /** el informe de salir, sin esperar respuesta: `sendBeacon` (14-g); sin sesión, el `localStorage` */
   readonly beacon: (reachedS: RaceS, mode: WatchMode) => void
+  /** `POST /api/me/reveal/:raceKey/:day` (10a, `Show result`); lanza si falla */
+  readonly reveal?: () => Promise<unknown>
+  /** soltar los tramos y la línea de una etapa del digest (18-e, 10a) */
+  readonly release?: (stageDay: number) => void
 }
 
 /** A quién le llega cada respuesta: la pantalla (la línea y la meta) y el reductor (las acciones). */
@@ -69,7 +79,10 @@ export function effectRunner(ports: WatchPorts, sink: WatchSink): EffectRunner {
   let running = false
   let stopped = false
 
-  /** Una petición hasta que responde o se suelta: un 429 espera y repite la misma. */
+  /**
+   * Una petición hasta que responde o se suelta: un 429 espera y repite la misma. Tras un fallo, lo que
+   * quedaba pedido detrás (salvo los informes) no sale.
+   */
   async function attempt<T>(send: () => Promise<T>, done: (value: T) => void): Promise<void> {
     for (;;) {
       try {
@@ -79,6 +92,11 @@ export function effectRunner(ports: WatchPorts, sink: WatchSink): EffectRunner {
       } catch (error) {
         if (stopped) return
         const a = failureAction(error)
+        if (a.k === 'failed') {
+          const reports = queue.filter((e) => e.k === 'report')
+          queue.length = 0
+          queue.push(...reports)
+        }
         sink.dispatch(a)
         if (a.k !== 'throttled') return
         await ports.sleep(a.retryAfterS)
@@ -130,8 +148,17 @@ export function effectRunner(ports: WatchPorts, sink: WatchSink): EffectRunner {
           case 'report':
             await report(e.reachedS, e.mode)
             break
-          case 'reveal': // POST /api/me/reveal llega en el 10a, con Show result
-          case 'release': // el digest, en el 10a
+          case 'reveal': {
+            const reveal = ports.reveal
+            if (reveal !== undefined)
+              await attempt(
+                () => reveal(),
+                () => undefined,
+              )
+            break
+          }
+          case 'release':
+            ports.release?.(e.stageDay)
             break
         }
       }
