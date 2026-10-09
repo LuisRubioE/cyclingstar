@@ -1,4 +1,5 @@
 import {
+  type RaceEvent,
   SEASON_CALENDAR,
   type StageInput,
   simulateStage,
@@ -12,7 +13,7 @@ import { raceRosters, riders, stageResults, stageSnapshots } from './schema.js'
 
 /**
  * Informe personal de carrera (item extra del backlog): "qué ordené vs qué pasó". Toma la etapa
- * más reciente que corrió el corredor, reconstruye la crónica desde el snapshot sellado y extrae
+ * más reciente que corrió el corredor, lee la crónica congelada en el snapshot sellado y extrae
  * solo los momentos en los que fue protagonista, junto a sus órdenes y su resultado.
  */
 
@@ -85,9 +86,10 @@ function raceMeta(
  * LA ÚLTIMA ETAPA CONOCIDA (E2, docs/retransmision.md §12.9, D-47; sups. H1 y H5; paso 8a), con P y G:
  * de las etapas en que corrió, la más reciente que NO está en el velo de `h`; el veredicto de la web
  * (`raceVerdict`) se pinta sobre ella. Si la última corrida está velada, la ruta lo dice aparte
- * (`lastReadyStageOf`, el `ready` de `lastRaceResponseSchema`). Lo demás no cambia: re-simula la
- * etapa (abajo) y escribe su `story`; que deje de re-simular es el paso 17d de la táctica (§17.16), y
- * quien llegue segundo conserva el horizonte.
+ * (`lastReadyStageOf`, el `ready` de `lastRaceResponseSchema`). Lo demás no cambia, salvo que ya no
+ * re-simula la etapa: sus sucesos y su `story` salen de lo guardado al correrla (abajo; fuera del
+ * plan, 9 de octubre de 2026, la parte «deja de re-simular» del paso 17d de la táctica, §17.16). Lo
+ * que queda del 17d (cruzar orden con hecho) reescribe esta función y conserva el horizonte.
  */
 export async function getRiderLastRaceReport(
   db: Database,
@@ -144,12 +146,16 @@ export async function getRiderLastRaceReport(
   const winnerName = winnerRows[0]?.name ?? null
   const winnerTime = winnerRows[0]?.tiempoS ?? latest.tiempoS
 
-  // Órdenes y crónica personal desde el snapshot sellado (re-simulación determinista).
+  // Órdenes y crónica personal desde el snapshot sellado.
   let orders: RaceReportOrders | null = null
   let personalEvents: RaceReportEvent[] = []
   const story: RaceReportEvent[] = []
   const snapRows = await db
-    .select({ seed: stageSnapshots.seed, input: stageSnapshots.input })
+    .select({
+      seed: stageSnapshots.seed,
+      input: stageSnapshots.input,
+      events: stageSnapshots.events,
+    })
     .from(stageSnapshots)
     .where(
       and(eq(stageSnapshots.raceId, latest.raceId), eq(stageSnapshots.stageDay, latest.stageDay)),
@@ -167,8 +173,21 @@ export async function getRiderLastRaceReport(
         contestClimbs: mine.orders.contestClimbs,
       }
     }
-    const output = simulateStage(input, snap.seed)
-    personalEvents = output.events
+    /**
+     * LOS SUCESOS DE LA ETAPA, LOS CONGELADOS AL CORRERLA (`stage_snapshots.events`, desde la 0024): los
+     * mismos que lee la ruta de etapa. Volver a correrla con el motor de hoy contaba otra carrera si el
+     * motor había cambiado (C16, docs/retransmision.md), y costaba en cada petición una simulación
+     * síncrona de la etapa entera: con 176 corredores, más de 3 s en los que el proceso no atendía a
+     * nadie más (fuera del plan, 9 de octubre de 2026; las cifras, en
+     * docs/diseno/e2-retransmision/implementacion.md).
+     *
+     * UNA ETAPA ANTERIOR A LA 0024 NO LOS TIENE (null) Y SE SIGUE RE-SIMULANDO, como antes: es lo único
+     * que hay para ella, con el motor de hoy, que puede no ser el que la corrió.
+     */
+    const events: readonly RaceEvent[] = Array.isArray(snap.events)
+      ? (snap.events as RaceEvent[])
+      : simulateStage(input, snap.seed).events
+    personalEvents = events
       .filter((e) => e.protagonistas.includes(riderId))
       .map((e) => ({ km: Math.round(e.km), plantilla: e.plantilla }))
       .sort((a, b) => a.km - b.km)
@@ -177,8 +196,8 @@ export async function getRiderLastRaceReport(
           !arr[i - 1] || arr[i - 1]!.plantilla !== e.plantilla || arr[i - 1]!.km !== e.km,
       )
     // Resumen colectivo: cómo se decidió la etapa (fuga formada, y si se cazó o llegó).
-    const formed = output.events.find((e) => e.tipo === 'fuga_formada')
-    const caught = output.events.find((e) => e.tipo === 'fuga_cazada')
+    const formed = events.find((e) => e.tipo === 'fuga_formada')
+    const caught = events.find((e) => e.tipo === 'fuga_cazada')
     if (formed) {
       const n = formed.protagonistas.length
       if (caught) {
