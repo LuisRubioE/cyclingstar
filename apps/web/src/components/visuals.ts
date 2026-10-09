@@ -61,13 +61,23 @@ export interface JerseyStyle {
   pattern: JerseyPattern
 }
 
-/** Estilo de maillot determinista a partir de la semilla del equipo. */
+/**
+ * Los estilos ya calculados, por semilla (E2, 10b, los arreglos): la barra de `Watch` pinta los mismos
+ * maillots cuatro veces por segundo.
+ */
+const jerseyStyles = new Map<string, JerseyStyle>()
+
+/** Estilo de maillot determinista a partir de la semilla del equipo; una vez por semilla. */
 export function jerseyStyle(seed: string): JerseyStyle {
+  const hit = jerseyStyles.get(seed)
+  if (hit !== undefined) return hit
   const r = seededPicker(seed)
   const base = pickFrom(JERSEY_COLORS, r())
   let secondary = pickFrom(JERSEY_COLORS, r())
   if (secondary === base) secondary = pickFrom(JERSEY_COLORS, r())
   const accent = '#ffffff'
   const pattern = pickFrom(JERSEY_PATTERNS, r())
-  return { base, secondary, accent, pattern }
+  const style: JerseyStyle = { base, secondary, accent, pattern }
+  jerseyStyles.set(seed, style)
+  return style
 }

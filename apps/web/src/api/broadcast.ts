@@ -5,7 +5,8 @@
  *
  * Las cuatro rutas de la etapa: la cabecera (`GET …/broadcast`), un tramo (`GET …/broadcast/chunk`),
  * la meta (`POST …/broadcast/finish`, la única que trae la llegada, el resultado y el acta, y la que
- * escribe la letra de lo visto con su `mode`, 14-f) y el acta (`GET …/report`). Todas con `?season=`
+ * escribe la letra de lo visto con su `mode`, 14-f) y el acta (`GET …/report`); y desde el 10b, el salto
+ * de recorrido en el servidor (`POST …/broadcast/seek`, 8-t). Todas con `?season=`
  * si la etapa es de otra temporada que la de hoy; sin él, la de hoy. El progreso y el revelado
  * (`POST /api/me/…`) son de `watch.ts`, en el 7a.
  *
@@ -23,12 +24,14 @@ import {
   type BroadcastChunk,
   type BroadcastFinish,
   type BroadcastHead,
+  type BroadcastSeek,
   type Ds,
   type StageReport,
   type WatchMode,
   broadcastChunkSchema,
   broadcastFinishSchema,
   broadcastHeadSchema,
+  broadcastSeekSchema,
   stageReplaySchema,
 } from '@cyclingstar/shared'
 import { horizonKey } from '../queryClient'
@@ -136,6 +139,25 @@ export async function postBroadcastFinish(
     `${stagePath(raceId, day)}/broadcast/finish${query({ season, diag: diagParam(opts) })}`,
     broadcastFinishSchema,
     { method: 'POST', json: { mode }, errorMessage: 'Could not load the finish.' },
+  )
+}
+
+/**
+ * EL SALTO EN EL SERVIDOR (8-t, §14.2; 10b, los arreglos): el km destino del recorrido y dónde acaba lo
+ * servido; responde los tramos hasta el destino juntos, la hora de destino y si quedó informada.
+ */
+export async function postBroadcastSeek(
+  raceId: string,
+  day: number,
+  km: number,
+  fromDs: Ds,
+  season?: number,
+  opts: StageRequestOptions = {},
+): Promise<BroadcastSeek> {
+  return request(
+    `${stagePath(raceId, day)}/broadcast/seek${query({ season, diag: diagParam(opts) })}`,
+    broadcastSeekSchema,
+    { method: 'POST', json: { km, fromDs }, errorMessage: 'Could not skip ahead.' },
   )
 }
 

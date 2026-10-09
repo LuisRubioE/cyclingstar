@@ -1,4 +1,5 @@
 import { type Instant, type ProfileStrip as ProfileData, shownGroupsOf } from '@cyclingstar/shared'
+import { memo, useMemo } from 'react'
 import { type Cursor, climbAheadText, climbCatText } from '../../domain/broadcast/screen'
 
 /**
@@ -24,22 +25,14 @@ const H = 100
 const TOP = 18 // sitio para las categorías y los números de los cursores
 const BOTTOM = 96
 
-export function ProfileStrip({
-  profile,
-  lengthKm,
-  instant,
-  clock,
-  reducedMotion = false,
-  cursors: given,
-}: {
-  profile: ProfileData
-  lengthKm: number
-  instant: Instant
-  clock: 'exact' | 'estimated'
-  reducedMotion?: boolean
-  /** los del reproductor, que siguen al grupo por su sucesor (`cursorsOf`) */
-  cursors?: readonly Cursor[]
-}) {
+/**
+ * EL DIBUJO QUE NO SE MUEVE (10b, los arreglos; §18.5): la cota, los puertos con su categoría y las
+ * volantes, una vez por etapa. Los cursores cambian a `barHz` y lo demás de la pantalla a `overlayHz`;
+ * rehacer en cada pintura los caminos del perfil (un punto por km, y por medio km en los puertos) era
+ * trabajo de más en cada commit de React, el que se juntaba con el estilo y la maquetación en las tareas
+ * largas. Lo que se pinta es lo mismo.
+ */
+function reliefOf(profile: ProfileData, lengthKm: number) {
   const alt = profile.altM.length > 0 ? profile.altM : [0, 0]
   const lo = Math.min(...alt)
   const hi = Math.max(...alt)
@@ -65,6 +58,58 @@ export function ProfileStrip({
     pts.push(`${x(to).toFixed(1)},${y(to).toFixed(1)}`)
     return `M${x(from).toFixed(1)},${H} L${pts.join(' L')} L${x(to).toFixed(1)},${H} Z`
   }
+  const relief = (
+    <>
+      <path d={area} fill="#e2e8f0" />
+      {profile.climbs.map((c) => (
+        <g key={`${c.footKm}-${c.topKm}`}>
+          <path d={band(c.footKm, c.topKm)} fill="#fcd34d" fillOpacity={0.55} />
+          <text
+            x={x(c.topKm)}
+            y={Math.max(9, y(c.topKm) - 4)}
+            fontSize={9}
+            textAnchor="middle"
+            fill="#92400e"
+          >
+            {climbCatText(c.cat).replace('Cat. ', '')}
+          </text>
+        </g>
+      ))}
+      {profile.sprintsKm.map((km) => (
+        <line
+          key={km}
+          x1={x(km)}
+          x2={x(km)}
+          y1={H}
+          y2={y(km)}
+          stroke="#059669"
+          strokeWidth={1.5}
+          strokeDasharray="3 2"
+        />
+      ))}
+    </>
+  )
+  return { x, y, relief }
+}
+
+/** Sin cambios en sus props (los cursores y la barra cambian a `barHz`), no se pinta otra vez (10b). */
+export const ProfileStrip = memo(function ProfileStrip({
+  profile,
+  lengthKm,
+  instant,
+  clock,
+  reducedMotion = false,
+  cursors: given,
+}: {
+  profile: ProfileData
+  lengthKm: number
+  instant: Instant
+  clock: 'exact' | 'estimated'
+  reducedMotion?: boolean
+  /** los del reproductor, que siguen al grupo por su sucesor (`cursorsOf`) */
+  cursors?: readonly Cursor[]
+}) {
+  const { x, y, relief } = useMemo(() => reliefOf(profile, lengthKm), [profile, lengthKm])
   const ahead = climbAheadText(profile, instant.headKm)
   const drawn: readonly Cursor[] =
     given ??
@@ -88,33 +133,7 @@ export function ProfileStrip({
         role="img"
         aria-label={`Stage profile, ${lengthKm.toFixed(1)} km`}
       >
-        <path d={area} fill="#e2e8f0" />
-        {profile.climbs.map((c) => (
-          <g key={`${c.footKm}-${c.topKm}`}>
-            <path d={band(c.footKm, c.topKm)} fill="#fcd34d" fillOpacity={0.55} />
-            <text
-              x={x(c.topKm)}
-              y={Math.max(9, y(c.topKm) - 4)}
-              fontSize={9}
-              textAnchor="middle"
-              fill="#92400e"
-            >
-              {climbCatText(c.cat).replace('Cat. ', '')}
-            </text>
-          </g>
-        ))}
-        {profile.sprintsKm.map((km) => (
-          <line
-            key={km}
-            x1={x(km)}
-            x2={x(km)}
-            y1={H}
-            y2={y(km)}
-            stroke="#059669"
-            strokeWidth={1.5}
-            strokeDasharray="3 2"
-          />
-        ))}
+        {relief}
         {cursors.map((g) => {
           const km = reducedMotion ? Math.floor(g.km) : g.km
           const color = g.own ? '#06b6d4' : g.number === 1 ? '#4f46e5' : '#475569'
@@ -153,4 +172,4 @@ export function ProfileStrip({
       {ahead !== null && <figcaption className="text-xs text-slate-500">{ahead}</figcaption>}
     </figure>
   )
-}
+})

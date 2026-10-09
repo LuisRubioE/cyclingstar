@@ -28,8 +28,8 @@ import {
  * petición.
  *
  * La tabla va en el orden de §11.3, por fichero, con la línea del registro de hoy (`app.get(` y, si
- * va en otra, la de la URL). Son 92 entradas: 91 rutas de nuestro código, con el comodín `GET, POST` de
- * `/api/auth/*` contado una vez por método, porque el registro va por método. Las `HEAD` que Fastify
+ * va en otra, la de la URL). Son 93 entradas: 92 rutas de nuestro código (con el salto del 10b), con el
+ * comodín `GET, POST` de `/api/auth/*` contado una vez por método, porque el registro va por método. Las `HEAD` que Fastify
  * crea solas por cada `GET` (`exposeHeadRoutes`) no van en la tabla: heredan el `config` de su `GET`, y
  * el tercer caso lo comprueba sin fijar cuántas son (53 hoy).
  */
@@ -100,6 +100,8 @@ const TABLE: Readonly<Record<string, readonly [SpoilerPolicy, VeilSpec]>> = {
   'GET /api/races/:raceId/stages/:day/broadcast': ['watch', { by: ['B', 'G'] }], // l. 246-247
   'GET /api/races/:raceId/stages/:day/broadcast/chunk': ['watch', { by: ['B'] }], // l. 335-336
   'POST /api/races/:raceId/stages/:day/broadcast/finish': ['watch', { by: ['G'] }], // l. 362-363
+  // el salto en el servidor (8-t, §14.2; 10b, los arreglos): como la meta, `watch` · G
+  'POST /api/races/:raceId/stages/:day/broadcast/seek': ['watch', { by: ['G'] }],
   'GET /api/races/:raceId/stages/:day/report': ['watch', { by: ['G'] }], // l. 403-404
   // routes/me.ts (E2, paso 7a): lo visto, el revelado, la guardia y el horizonte de cada uno (§14.2)
   'POST /api/me/watch/:raceKey/:day': ['watch', { by: ['B'] }], // l. 99-100

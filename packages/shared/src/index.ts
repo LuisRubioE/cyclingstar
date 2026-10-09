@@ -11,6 +11,8 @@ export * from './contracts.js'
 // contracts.js (`wire.ts`), que tiene que estar ya cargado (14-a).
 export * from './broadcast/index.js'
 export * from './countries.js'
+// Lo que la web lee del motor, copiado y atado por test (E2, 10b): la web no importa el motor (§18.5).
+export * from './engineCopies.js'
 export * from './jerseys.js'
 export * from './news.js'
 export * from './regions.js'

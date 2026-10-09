@@ -37,6 +37,7 @@ import {
   type GroupDetail,
   type GroupIx,
   type GroupOrigin,
+  type InstantContext,
   type LiveLine,
   MISHAP_CODE,
   type MishapKind,
@@ -49,6 +50,8 @@ import {
   type TimelineEventWire,
   fromDs,
   fromKm10,
+  instantAt,
+  visibilityOf,
 } from '@cyclingstar/shared'
 
 /** Lo que llega en los tramos, tal cual, para rehacer la línea con cada uno. */
@@ -133,6 +136,32 @@ export function withChunk(
     toDs: Math.max(line.toDs, chunk.toDs),
     parts,
   }
+}
+
+/**
+ * UN TRAMO, JUNTADO EN SUS TAREAS (10b, los arreglos; §18.5 y D-56). Al llegar cada tramo la web hacía
+ * de golpe, en la tarea de su respuesta (con su `Response.json` y su `safeParse`), la línea nueva
+ * (`withChunk`) y su índice (el primer `instantAt` sobre ella, para la cabeza en su borde): de 55 a 77 ms
+ * con la CPU a ×4 al final de Colombia e5, en `Highlights`. Aquí cada cosa va en su tarea: `next` cede el
+ * hilo antes de rehacer la línea, antes de su visibilidad (`visibilityOf`, que guarda la suya por línea
+ * y el índice reutiliza) y antes de indexarla. Lo que se pinta no cambia: mientras tanto la pantalla
+ * sigue con la línea de antes, que a cualquier hora de lo servido da el mismo instante que la nueva
+ * (B9), y quien llama la cambia, con el borde, cuando esto acaba. Si `next` falla (la pantalla se fue),
+ * no sigue. Pura salvo `next`: la línea de entrada no cambia.
+ */
+export async function withChunkSpread(
+  head: BroadcastHead,
+  line: ServedLine,
+  chunk: BroadcastChunk,
+  ctx: InstantContext,
+  next: () => Promise<void>,
+): Promise<{ readonly line: ServedLine; readonly headKmAtEnd: number }> {
+  await next()
+  const out = withChunk(head, line, chunk)
+  await next()
+  visibilityOf(out.core)
+  await next()
+  return { line: out, headKmAtEnd: instantAt(out.core, fromDs(chunk.toDs), ctx).headKm }
 }
 
 /** El código de vuelta a su nombre; null si la web no lo conoce (4-m). */

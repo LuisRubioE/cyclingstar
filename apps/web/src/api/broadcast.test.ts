@@ -8,6 +8,7 @@ import {
   fetchBroadcastHead,
   fetchStageReport,
   postBroadcastFinish,
+  postBroadcastSeek,
   stageReportKey,
 } from './broadcast'
 import { ApiError, ContractError } from './request'
@@ -85,6 +86,41 @@ describe('web: los clientes de la retransmisión', () => {
       body: '{"mode":"summary"}',
       headers: { 'content-type': 'application/json' },
     })
+  })
+
+  it('el salto en el servidor (8-t, 10b) es un POST con el km y lo servido, y su respuesta se valida', async () => {
+    const seek = { chunk: emptyChunk, reachedS: 812.4, written: true, rev: '41.3' }
+    const fetchMock = vi.fn<(path: string, init?: RequestInit) => Promise<Response>>(async () =>
+      response(seek),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    await expect(postBroadcastSeek('race-france', 7, 155, 9000)).resolves.toEqual(seek)
+    await postBroadcastSeek('race-france', 7, 155, 0, undefined, { diag: true })
+    expect(fetchMock.mock.calls).toEqual([
+      [
+        '/api/races/race-france/stages/7/broadcast/seek',
+        {
+          method: 'POST',
+          body: '{"km":155,"fromDs":9000}',
+          headers: { 'content-type': 'application/json' },
+        },
+      ],
+      [
+        '/api/races/race-france/stages/7/broadcast/seek?diag=1',
+        {
+          method: 'POST',
+          body: '{"km":155,"fromDs":0}',
+          headers: { 'content-type': 'application/json' },
+        },
+      ],
+    ])
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => response({ chunk: emptyChunk, rev: 'x' })),
+    )
+    expect(
+      await postBroadcastSeek('race-france', 7, 155, 0).catch((e: unknown) => e),
+    ).toBeInstanceOf(ContractError)
   })
 
   it('un 429 en un tramo llega al reproductor como throttled con su retry-after, y un 409 beyond_reached como beyond', async () => {

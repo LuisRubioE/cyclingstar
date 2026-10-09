@@ -35,13 +35,16 @@ import {
   broadcastChunkSchema,
   broadcastFinishSchema,
   broadcastHeadSchema,
+  broadcastSeekSchema,
   healthSchema,
   horizonSummarySchema,
+  instantAt,
   photoBlocksOf,
   raceRadioSchema,
   radioFromTimeline,
   stageGateErrorSchema,
   stageReplaySchema,
+  startStateOf,
   visibilityOf,
   watchResponseSchema,
 } from '@cyclingstar/shared'
@@ -1134,6 +1137,214 @@ describe('las rutas de la retransmisión (§14.2)', () => {
       const notRun = await report(BLIND, 4)
       expect(notRun.statusCode).toBe(404)
       expect(apiErrorBodySchema.parse(notRun.json()).error).toBe('no_encontrado')
+    })
+  })
+
+  /**
+   * EL SALTO EN EL SERVIDOR (8-t, §8.5 y §14.2; E2, paso 10b, los arreglos). La aceptación midió 14,56 s
+   * para `Final 20 km` desde el km 30 de una llana con «Slow 4G» (12 tramos y 13 informes, uno detrás de
+   * otro), con umbral de 5 s, y el diseño tiene para eso esta ruta: el km destino y dónde acaba lo servido
+   * en la web; la hora de destino con la bisección de §8.5 sobre la línea, nunca más allá de
+   * `lengthKm − 1`; lo alcanzado escrito con `mode: 'seek'`; los tramos de lo servido al destino en una
+   * respuesta (los mismos que la web habría pedido uno a uno, juntos), con su voz; la puerta; y el `rev` de
+   * después de escribir. Política `watch` · G, como la meta (B1d).
+   */
+  describe('el salto en el servidor, POST …/broadcast/seek (8-t; 10b)', () => {
+    const SEEKER = idDe(910)
+    const SEEK_BLIND = idDe(911)
+    const SEEK_KNOWER = idDe(912)
+    const SEEK_READER = idDe(913)
+    const CHUNK = BROADCAST.chunkRaceS * 10
+    const seekUrl = `${STAGE_URL}/2/broadcast/seek`
+    const chunkUrl = (from: number, to: number = from + CHUNK) =>
+      `${STAGE_URL}/2/broadcast/chunk?fromDs=${from}&toDs=${to}`
+    let app: ReturnType<typeof buildApp>
+    let tl: NonNullable<Awaited<ReturnType<typeof readStageTimeline>>>
+    let finishDs = 0
+    /** La hora en décimas en que la cabeza de la línea entera llega a `km`: la bisección de §8.5. */
+    const destOf = (km: number): number => {
+      const ctx = {
+        own: new Set<number>(),
+        start: startStateOf(tl.cast, tl.riderIds.length),
+        photoBlocks: photoBlocksOf(tl.lengthKm, tl.dx),
+      }
+      let lo = 0
+      let hi = finishDs - 1
+      while (lo < hi) {
+        const mid = (lo + hi) >> 1
+        if (instantAt(tl, mid / 10, ctx).headKm >= km) hi = mid
+        else lo = mid + 1
+      }
+      return lo
+    }
+
+    beforeAll(async () => {
+      await t.db.insert(users).values(
+        [SEEKER, SEEK_BLIND, SEEK_KNOWER, SEEK_READER].map((id, k) => ({
+          id,
+          email: `seek-${k}@example.com`,
+          name: `Seek ${k}`,
+          emailVerified: true,
+        })),
+      )
+      for (const [user, how] of [
+        [SEEKER, 'W'],
+        [SEEK_KNOWER, 'WW'],
+        [SEEK_READER, 'W'],
+      ] as const)
+        await t.client`insert into race_watch (user_id, world_id, race_key, known_through, how)
+                       values (${user}, ${worldId}, ${RACE_KEY}, ${how.length}, ${how})`
+      app = appWith('on', {}, 'on')
+      tl = (await readStageTimeline(t.db, worldHorizon, RACE_KEY, 2))!
+      finishDs = visibilityOf(tl).finishDs
+    })
+
+    it('Final 20 km desde el primer tramo: una respuesta con los tramos que la web habría pedido, la voz y lo alcanzado escrito con seek', async () => {
+      const first = await call(app, 'GET', chunkUrl(0), SEEKER)
+      expect(first.statusCode).toBe(200)
+      const km = tl.lengthKm - BROADCAST.seekFinalKm
+      const res = await call(app, 'POST', seekUrl, SEEKER, { km, fromDs: CHUNK })
+      expect(res.statusCode, res.body.slice(0, 300)).toBe(200)
+      const seek = broadcastSeekSchema.parse(res.json())
+      const dest = destOf(km)
+      expect(seek.reachedS).toBe(dest / 10)
+      expect(seek.written).toBe(true)
+      // de lo servido al primer borde de tramo que pasa del destino, como los pedía la web: (CHUNK, k·CHUNK]
+      const k = Math.ceil((dest - CHUNK) / CHUNK)
+      expect(seek.chunk.fromDs).toBe(CHUNK)
+      expect(seek.chunk.toDs).toBe(Math.min(CHUNK + k * CHUNK, finishDs))
+      expect(seek.chunk.toDs).toBeGreaterThanOrEqual(dest)
+      expect(seek.chunk.atFinish).toBe(false)
+      // lo mismo que los tramos uno a uno (sin tope, para quien ya conoce la etapa), juntos: datos y voz
+      const parts: BroadcastChunk[] = []
+      for (let from = CHUNK; from < seek.chunk.toDs; from += CHUNK) {
+        const c = await call(app, 'GET', chunkUrl(from), SEEK_KNOWER)
+        expect(c.statusCode).toBe(200)
+        parts.push(broadcastChunkSchema.parse(c.json()))
+      }
+      for (const field of [
+        'groupsBorn',
+        'groupsDied',
+        'moves',
+        'main',
+        'clocks',
+        'mishaps',
+        'details',
+        'events',
+        'banners',
+        'lines',
+      ] as const)
+        expect(seek.chunk[field], field).toEqual(parts.flatMap((p) => p[field] as unknown[]))
+      expect(seek.chunk.lines.length).toBeGreaterThan(0)
+      // lo alcanzado, escrito con seek: la etapa sigue a medias (un salto nunca la hace vista, 8-j)
+      expect(await readWatch(t.db, { userId: SEEKER, worldId, raceKey: RACE_KEY })).toMatchObject({
+        knownThrough: 1,
+        how: 'W',
+        watchingStage: 2,
+        reachedS: Math.floor(dest / 10),
+      })
+      // el rev de después de escribir es el que da el horizonte justo después (§14.2)
+      const h = horizonSummarySchema.parse(
+        (await call(app, 'GET', '/api/me/horizon', SEEKER)).json(),
+      )
+      expect(seek.rev).toBe(h.rev)
+      // y el tope de los tramos (B18) sale de ahí: hasta el destino más prefetchRaceS, y no más
+      expect((await call(app, 'GET', chunkUrl(seek.chunk.toDs), SEEKER)).statusCode).toBe(
+        seek.chunk.toDs + CHUNK <= servableUpToDs(dest / 10) ? 200 : 409,
+      )
+      expect(
+        (
+          await call(
+            app,
+            'GET',
+            chunkUrl(servableUpToDs(dest / 10), servableUpToDs(dest / 10) + 10),
+            SEEKER,
+          )
+        ).statusCode,
+      ).toBe(409)
+    })
+
+    it('nunca más allá de lengthKm − 1: el destino se recorta y el tramo no llega a la meta (8-j)', async () => {
+      const res = await call(app, 'POST', seekUrl, SEEK_KNOWER, { km: tl.lengthKm + 5, fromDs: 0 })
+      expect(res.statusCode).toBe(200)
+      const seek = broadcastSeekSchema.parse(res.json())
+      const dest = destOf(tl.lengthKm - 1)
+      expect(seek.reachedS).toBe(dest / 10)
+      expect(seek.chunk.toDs).toBeLessThanOrEqual(finishDs)
+      expect(seek.chunk.events.every((e) => e[5] < finishDs)).toBe(true)
+      expect(seek.chunk.events.map((e) => e[1])).not.toContain('stage_win')
+      // el primero, desde 0, como el primer tramo: lo que se ve en la salida también viaja
+      const zero = broadcastChunkSchema.parse(
+        (await call(app, 'GET', chunkUrl(0), SEEK_KNOWER)).json(),
+      )
+      expect(seek.chunk.groupsBorn.slice(0, zero.groupsBorn.length)).toEqual(zero.groupsBorn)
+    })
+
+    it('403 previous_unseen con su puerta y sin escribir nada; 400 con un cuerpo que no vale', async () => {
+      const res = await call(app, 'POST', seekUrl, SEEK_BLIND, { km: 50, fromDs: 0 })
+      expect(res.statusCode).toBe(403)
+      expect(stageGateErrorSchema.parse(res.json()).gate).toEqual({
+        k: 'previous_unseen',
+        firstUnseen: 1,
+      })
+      expect(await readWatch(t.db, { userId: SEEK_BLIND, worldId, raceKey: RACE_KEY })).toBeNull()
+      for (const body of [
+        {},
+        { km: 50 },
+        { fromDs: 0 },
+        { km: -1, fromDs: 0 },
+        { km: 50, fromDs: 0.5 },
+      ])
+        expect(
+          (await call(app, 'POST', seekUrl, SEEKER, body)).statusCode,
+          JSON.stringify(body),
+        ).toBe(400)
+    })
+
+    it('sin sesión, con cs_viewer o en el modo diagnóstico se sirve sin escribir: written en falso', async () => {
+      const km = 60
+      const anon = broadcastSeekSchema.parse(
+        (await call(app, 'POST', seekUrl, undefined, { km, fromDs: 0 })).json(),
+      )
+      expect(anon.written).toBe(false)
+      expect(anon.reachedS).toBe(destOf(km) / 10)
+      expect(anon.chunk.toDs).toBeGreaterThanOrEqual(destOf(km))
+      const SECRET = 'k'.repeat(32)
+      const withCookie = appWith('on', { viewerSecret: SECRET }, 'on')
+      const cookie = `${VIEWER_COOKIE}=${signViewerCookie(SEEK_READER, SECRET, Date.now() / 1000)}`
+      const read = await withCookie.inject({
+        method: 'POST',
+        url: seekUrl,
+        headers: { cookie },
+        payload: { km, fromDs: 0 },
+      })
+      expect(read.statusCode, read.body.slice(0, 200)).toBe(200)
+      expect(broadcastSeekSchema.parse(read.json()).written).toBe(false)
+      expect(
+        await readWatch(t.db, { userId: SEEK_READER, worldId, raceKey: RACE_KEY }),
+      ).toMatchObject({ knownThrough: 1, how: 'W', watchingStage: null })
+      const diag = await call(app, 'POST', `${seekUrl}?diag=1`, ADMIN, { km, fromDs: 0 })
+      expect(broadcastSeekSchema.parse(diag.json()).written).toBe(false)
+    })
+
+    it('la etapa ya conocida no cambia: lo visto se queda, y se sirve sin tope', async () => {
+      const res = await call(app, 'POST', seekUrl, SEEK_KNOWER, { km: 120, fromDs: 0 })
+      expect(res.statusCode).toBe(200)
+      expect(
+        await readWatch(t.db, { userId: SEEK_KNOWER, worldId, raceKey: RACE_KEY }),
+      ).toMatchObject({ knownThrough: 2, how: 'WW', watchingStage: null })
+    })
+
+    it('BROADCAST_WATCH: 404 broadcast_off a quien no alcanza, también en el salto', async () => {
+      for (const [mode, user] of [
+        ['off', ADMIN],
+        ['admins', PLAYER],
+        ['admins', undefined],
+      ] as const) {
+        const res = await call(appWith(mode), 'POST', seekUrl, user, { km: 50, fromDs: 0 })
+        expect(res.statusCode, `${mode} ${user}`).toBe(404)
+        expect(apiErrorBodySchema.parse(res.json()).error).toBe('broadcast_off')
+      }
     })
   })
 

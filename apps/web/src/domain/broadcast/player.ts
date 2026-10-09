@@ -138,6 +138,13 @@ export interface PlayerState {
   readonly loaded: readonly number[]
   /** la hora destino del salto de reloj en curso de la crono (9-g); null fuera de uno. No estaba en §8.11 */
   readonly seekS: RaceS | null
+  /**
+   * cómo sigue el salto en curso (8-t; 10b, los arreglos): `server`, el de recorrido pide de una vez lo que
+   * falta hasta el destino (`POST …/broadcast/seek`); `chunks`, tramo a tramo, como hasta el 10b (los de
+   * reloj de la crono, y lo que quede tras la respuesta del servidor o si la ruta falla); null fuera de un
+   * salto. No estaba en §8.11
+   */
+  readonly seekVia: 'server' | 'chunks' | null
   /** la cabeza en el último km (toGoKm ≤ 1) en el último fotograma: Next action apagado (8-o). No estaba en §8.11 */
   readonly lastKm: boolean
   /** `Show result` aceptado: la meta se pidió tras revelar (§8.5). No estaba en §8.11 */
@@ -190,6 +197,21 @@ export type PlayerAction =
     }
   /** fin de un salto: la hora destino y los Cue de clase ≥ 2 saltados (10a) */
   | { readonly k: 'landed'; readonly toS: RaceS; readonly skipped: number }
+  /**
+   * la respuesta del salto en el servidor (8-t; 10b): como un tramo (su toDs en s, si llega al borde de la
+   * meta y el km de la cabeza en toS), más la hora de destino (`reachedS`) y si el servidor la dejó
+   * informada (`written`; sin sesión o en el modo diagnóstico, no). No estaba en §8.11
+   */
+  | {
+      readonly k: 'seekServed'
+      readonly toS: RaceS
+      readonly atFinish: boolean
+      readonly headKmAtEnd: number
+      readonly reachedS: RaceS
+      readonly written: boolean
+    }
+  /** la ruta del salto falló, sea lo que sea: el salto sigue por el camino de hoy, tramo a tramo (10b) */
+  | { readonly k: 'seekFallback' }
   /** red caída, un 5xx o cualquier otra respuesta que no sea un 429 ni un 409 `beyond_reached` */
   | { readonly k: 'failed' }
   /** un 409 `beyond_reached` de un tramo: se informa de lo alcanzado y se pide otra vez (§14.11). No estaba en §8.11 */
@@ -213,6 +235,11 @@ export type PlayerEffect =
     }
   /** GET …/broadcast/chunk, de fromS a toS en décimas enteras */
   | { readonly k: 'chunk'; readonly fromS: RaceS; readonly toS: RaceS }
+  /**
+   * POST …/broadcast/seek (8-t; 10b): el salto de recorrido en el servidor, al km destino, desde lo servido
+   * (fromS, el borde de la línea servida); lo que responde es `seekServed` o, si falla, `seekFallback`
+   */
+  | { readonly k: 'seek'; readonly km: number; readonly fromS: RaceS }
   /** POST …/broadcast/finish con { mode }: es la que escribe la letra (14-f) */
   | { readonly k: 'finish'; readonly mode: WatchMode }
   /** POST /api/me/reveal/:raceKey/:day (10a) */
@@ -405,6 +432,7 @@ export function playerInit(
         ? [previous, stageDay]
         : [stageDay],
     seekS: null,
+    seekVia: null,
     lastKm: false,
     revealed: false,
   })
@@ -487,6 +515,13 @@ function seekServed(s: PlayerState, headKmAtEnd: number): boolean {
  */
 function seekMore(s: PlayerState, headKmAtEnd: number): PlayerStep {
   if (s.inFlight || s.atFinish || seekServed(s, headKmAtEnd)) return none(s)
+  // EL SALTO EN EL SERVIDOR (8-t; 10b): uno de recorrido pide de una vez lo que falta hasta el destino. Lo
+  // que quede después (no debería quedar nada), o todo si la ruta falla (`seekFallback`), va tramo a tramo.
+  if (s.seekVia === 'server' && s.seekKm !== null)
+    return {
+      next: { ...s, inFlight: true, seekVia: 'chunks' },
+      effects: [{ k: 'seek', km: s.seekKm, fromS: s.servedS }],
+    }
   const servedDs = toDs(s.servedS)
   let next = s
   const effects: PlayerEffect[] = []
@@ -517,8 +552,8 @@ function startSeek(
     nextAction: false,
     idleS: 0,
     ...('km' in target
-      ? { seekKm: Math.min(target.km, ctx.lengthKm - 1), seekS: null }
-      : { seekKm: null, seekS: Math.max(s.t, target.toS) }),
+      ? { seekKm: Math.min(target.km, ctx.lengthKm - 1), seekS: null, seekVia: 'server' as const }
+      : { seekKm: null, seekS: Math.max(s.t, target.toS), seekVia: 'chunks' as const }),
   }
   return seekMore(seeking, headKmAtEnd)
 }
@@ -540,6 +575,7 @@ function land(s: PlayerState, a: Extract<PlayerAction, { k: 'landed' }>): Player
     reachedS: Math.max(s.reachedS, t),
     seekKm: null,
     seekS: null,
+    seekVia: null,
     idleS: 0,
   }
   const effects: PlayerEffect[] = []
@@ -583,6 +619,7 @@ function showResult(s: PlayerState): PlayerStep {
       nextAction: false,
       seekKm: null,
       seekS: null,
+      seekVia: null,
     },
     effects: [{ k: 'reveal' }, { k: 'finish', mode: REPORT_MODE[s.view] }],
   }
@@ -616,6 +653,7 @@ function chainDigest(s: PlayerState, nextDay: number): PlayerStep {
     atFinish: false,
     seekKm: null,
     seekS: null,
+    seekVia: null,
     inFlight: false,
     notice: null,
     idleS: 0,
@@ -702,6 +740,37 @@ export function playerStep(s: PlayerState, a: PlayerAction, ctx: PlayerContext):
       return fetchMore(s.phase === 'waiting' ? resume(next) : next)
     }
 
+    case 'seekServed': {
+      // EL SALTO EN EL SERVIDOR (8-t; 10b): como un tramo, y la hora de destino pasa a ser lo informado
+      // (saltar es alcanzar, 8-j): si el servidor no la informó (sin sesión, o en el modo diagnóstico), la
+      // informa la web ya, como lo hacía tramo a tramo; si la informó, el aterrizaje no la repite.
+      if (!s.inFlight || s.atFinish) return none(s) // nadie lo pidió, o ya se espera la meta
+      const reportedS = fromDs(floorDs(Math.max(s.reportedS, a.reachedS)))
+      const informs = !a.written && reportedS > s.reportedS
+      const next: PlayerState = {
+        ...s,
+        servedS: Math.max(s.servedS, a.toS),
+        atFinish: a.atFinish,
+        inFlight: false,
+        reportedS,
+        sinceReportS: reportedS > s.reportedS ? 0 : s.sinceReportS,
+      }
+      const report: PlayerEffect[] = informs
+        ? [{ k: 'report', reachedS: reportedS, mode: 'seek', beacon: false }]
+        : []
+      const after =
+        s.phase === 'seeking'
+          ? seekMore(next, a.headKmAtEnd)
+          : fetchMore(s.phase === 'waiting' ? resume(next) : next)
+      return { next: after.next, effects: [...report, ...after.effects] }
+    }
+
+    case 'seekFallback':
+      // la ruta del salto falló (la red, un 429, una API sin ella): el camino de hoy, tramo a tramo (8-t)
+      if (!s.inFlight || s.atFinish) return none(s)
+      if (s.phase !== 'seeking') return fetchMore({ ...s, inFlight: false })
+      return seekMore({ ...s, inFlight: false, seekVia: 'chunks' }, Number.NEGATIVE_INFINITY)
+
     case 'throttled':
       // Un 429 no es un fallo (14-q): la petición sigue en vuelo, el hook la repite a los retryAfterS
       // de pared, y el reloj sigue con lo servido; si lo alcanza, espera con `Loading`, como con
@@ -737,6 +806,7 @@ export function playerStep(s: PlayerState, a: PlayerAction, ctx: PlayerContext):
         notice: 'offline',
         seekKm: null,
         seekS: null,
+        seekVia: null,
       })
 
     case 'finished':

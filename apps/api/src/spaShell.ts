@@ -7,6 +7,7 @@ import {
   stageQuerySchema,
   stageReadyNotice,
 } from '@cyclingstar/shared'
+import { z } from 'zod'
 import { escapeHtml } from './emails.js'
 import { stageContextOf } from './stageReplay.js'
 
@@ -133,4 +134,102 @@ export function injectShellMeta(html: string, meta: ShellMeta): string {
     ? html.replace(/<title>[\s\S]*?<\/title>/, () => title)
     : html.replace('</head>', () => `${title}\n  </head>`)
   return titled.replace('</head>', () => `  ${og}\n  </head>`)
+}
+
+// --------------------------------------- lo que la página de etapa precarga (10b, los arreglos; §18.5)
+
+/**
+ * EL MANIFIESTO DE VITE (`apps/web/dist/.vite/manifest.json`, `build.manifest`): por cada fuente o trozo,
+ * su fichero y sus importaciones estáticas, por clave. Se valida al leerlo (Zod en los bordes); lo demás
+ * que trae (`css`, `dynamicImports`, `isEntry`…) no se usa.
+ */
+export const viteManifestSchema = z.record(
+  z.string(),
+  z.object({ file: z.string(), imports: z.array(z.string()).optional() }),
+)
+export type ViteManifest = z.infer<typeof viteManifestSchema>
+
+/** La página de etapa en el manifiesto: la fuente de su ruta en `App.tsx`. */
+export const STAGE_PAGE_SRC = 'src/pages/StageReplay.tsx'
+
+/** Los ficheros de una clave y de todo lo que importa estáticamente, en orden de anchura, con su `/`. */
+function closureOf(manifest: ViteManifest, key: string): string[] {
+  const out: string[] = []
+  const seen = new Set<string>()
+  const todo = [key]
+  while (todo.length > 0) {
+    const k = todo.shift()!
+    const chunk = manifest[k]
+    if (seen.has(k) || chunk === undefined) continue
+    seen.add(k)
+    out.push(`/${chunk.file}`)
+    todo.push(...(chunk.imports ?? []))
+  }
+  return out
+}
+
+/**
+ * LOS FICHEROS DE LA PÁGINA DE ETAPA: el cierre de `src/pages/StageReplay.tsx` por sus importaciones
+ * estáticas, sin lo que ya carga el índice (sus `modulepreload` vienen en `index.html`), con la página
+ * primero. Vacío si la página no está en el manifiesto.
+ */
+export function stagePageModules(manifest: ViteManifest): string[] {
+  const main = new Set(closureOf(manifest, 'index.html'))
+  return closureOf(manifest, STAGE_PAGE_SRC).filter((f) => !main.has(f))
+}
+
+/** Lo que el HTML de la página precarga: peticiones de la API (`fetch`) y ficheros JS (módulos). */
+export interface ShellPreloads {
+  readonly fetches: readonly string[]
+  readonly modules: readonly string[]
+}
+
+const NO_PRELOADS: ShellPreloads = { fetches: [], modules: [] }
+
+/**
+ * LO QUE LA PÁGINA DE ETAPA PRECARGA CON EL HTML (E2, paso 10b, los arreglos; §18.5, D-56). En una carga en
+ * frío la página de etapa era una cadena: la web, los ficheros de la página, `/health`, el horizonte, la
+ * ficha y la cabecera, cada uno tras el anterior, unos 175 ms por viaje con la red de un teléfono. El
+ * fallback ya sabe que es una etapa, así que pone en su HTML lo que la página va a pedir de todos modos,
+ * para que salga con él: sus ficheros JS (`modules`, de `stagePageModules`) y, si no es el modo diagnóstico
+ * (la web lo pide con `?diag=1`), las tres peticiones de la primera pintura con las URL exactas que pide la
+ * web (`fetchHorizon`, `fetchCalendarStage` y `fetchBroadcastHead`): el horizonte si el velo vale para
+ * quien pide, y la ficha y la cabecera. Solo con `Watch` encendido para quien pide (`watch`, que es
+ * `request.broadcastOn()`): con `off`, o con `admins` para quien no es administrador, el HTML de siempre.
+ * Fuera de la página de una etapa (la ficha de carrera, el acta) no se pregunta nada por quien pide.
+ */
+export async function stagePagePreloads(
+  url: URL,
+  on: { readonly watch: () => Promise<boolean>; readonly veil: () => Promise<boolean> },
+  modules: readonly string[],
+): Promise<ShellPreloads> {
+  const m = SHELL_PATH.exec(url.pathname)
+  if (m === null || m[2] === undefined || m[3] !== undefined) return NO_PRELOADS
+  if (!(await on.watch())) return NO_PRELOADS
+  if (url.searchParams.get('diag') === '1') return { fetches: [], modules }
+  const stage = `/api/races/${m[1]!}/stages/${Number(m[2])}`
+  return {
+    fetches: [...((await on.veil()) ? ['/api/me/horizon'] : []), stage, `${stage}/broadcast`],
+    modules,
+  }
+}
+
+/**
+ * Las precargas delante de `</head>`: las peticiones como `fetch` con `crossorigin` anónimo, que es como
+ * casa con el `fetch` de la web (same-origin; con otro modo de credenciales el navegador no la usa y la
+ * pide dos veces), y los ficheros como `modulepreload`, como los de `index.html`. Las peticiones primero:
+ * así llegan antes de que la página las pida. Sin nada, el HTML tal cual.
+ */
+export function injectShellPreloads(html: string, p: ShellPreloads): string {
+  const links = [
+    ...p.fetches.map(
+      (href) =>
+        `<link rel="preload" href="${escapeHtml(href)}" as="fetch" crossorigin="anonymous" />`,
+    ),
+    ...p.modules.map(
+      (href) => `<link rel="modulepreload" crossorigin href="${escapeHtml(href)}" />`,
+    ),
+  ]
+  if (links.length === 0) return html
+  return html.replace('</head>', () => `  ${links.join('\n    ')}\n  </head>`)
 }

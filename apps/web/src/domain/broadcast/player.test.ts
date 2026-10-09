@@ -1086,6 +1086,11 @@ class Sim {
     view: ViewMode,
     first: number,
     private readonly digestLast: number | null = null,
+    /**
+     * el salto en el servidor (8-t; 10b): `written`, el de una sesión (informa la hora de destino);
+     * `unwritten`, el del visitante o el modo diagnóstico (no la informa); `fails`, la ruta falla
+     */
+    private readonly seekRoute: 'written' | 'unwritten' | 'fails' = 'written',
   ) {
     const init = playerInit(view, first, null, false)
     this.s = init.next
@@ -1173,6 +1178,38 @@ class Sim {
         return
       case 'release':
         return
+      case 'seek': {
+        // la ruta del salto (routes/broadcast.ts): la hora de destino por bisección sobre la línea entera,
+        // nunca más allá de lengthKm − 1, y lo servido hasta el primer borde de tramo que la pasa
+        if (this.seekRoute === 'fails') {
+          this.dispatch({ k: 'seekFallback' })
+          return
+        }
+        const st = this.stage(day)
+        const km = Math.min(e.km, st.tl.lengthKm - 1)
+        let lo = 0
+        let hi = st.finishDs - 1
+        while (lo < hi) {
+          const mid = (lo + hi) >> 1
+          if (instantAt(st.tl, fromDs(mid), st.ictx).headKm >= km) hi = mid
+          else lo = mid + 1
+        }
+        const from = toDs(e.fromS)
+        const steps = lo > from ? Math.ceil((lo - from) / CHUNK_DS) : 0
+        const to = Math.max(from, Math.min(from + steps * CHUNK_DS, st.finishDs))
+        const written = this.seekRoute === 'written'
+        if (written) this.known.set(day, Math.max(this.known.get(day) ?? 0, fromDs(lo)))
+        const toS = fromDs(to)
+        this.dispatch({
+          k: 'seekServed',
+          toS,
+          atFinish: to >= st.finishDs - 1,
+          headKmAtEnd: instantAt(this.served(day, toS), toS, st.ictx).headKm,
+          reachedS: fromDs(lo),
+          written,
+        })
+        return
+      }
     }
   }
 
@@ -1261,8 +1298,11 @@ describe('los saltos de recorrido (§8.5, §8.12; 8-j, 8-t)', () => {
   const e7 = simStage('race-france-e7', 'llana')
 
   /** La e7 en Watch a ×4 hasta que la cabeza pasa del km 30, y el salto pedido. */
-  function jumpFrom30(jump: RoadJump): { sim: Sim; fromLog: number; target: number } {
-    const sim = new Sim(new Map([[7, e7]]), 'watch', 7)
+  function jumpFrom30(
+    jump: RoadJump,
+    route: 'written' | 'unwritten' | 'fails' = 'written',
+  ): { sim: Sim; fromLog: number; target: number } {
+    const sim = new Sim(new Map([[7, e7]]), 'watch', 7, null, route)
     sim.dispatch({ k: 'speed', x: 4 })
     sim.run((x) => x.s.phase === 'playing' && x.headKm() >= 30, 600)
     const target = seekTargetKm(jump, sim.headKm(), e7.tl.lengthKm, e7.tl.profile)
@@ -1274,8 +1314,14 @@ describe('los saltos de recorrido (§8.5, §8.12; 8-j, 8-t)', () => {
     return { sim, fromLog, target: target! }
   }
 
-  it('Final 20 km desde el km 30 de la e7: sus informes con mode seek y sus tramos de 900 s, cada tramo tras su informe, y aterriza en el km 155', () => {
-    const { sim, fromLog, target } = jumpFrom30('final20')
+  /**
+   * RE-SELLADO en el 10b (los arreglos; 8-t): el salto de recorrido va primero por el servidor (el `it` de
+   * abajo), y este, tramo a tramo, es ahora el camino de respaldo, el de cuando esa ruta falla. Lo que
+   * comprueba no cambia: los informes con `mode: 'seek'` y los tramos de 900 s, cada tramo tras su informe.
+   */
+  it('si la ruta del salto falla, Final 20 km desde el km 30 de la e7 sigue tramo a tramo: sus informes con mode seek y sus tramos de 900 s, cada tramo tras su informe, y aterriza en el km 155', () => {
+    const { sim, fromLog, target } = jumpFrom30('final20', 'fails')
+    expect(sim.log.slice(fromLog).filter((x) => x.e.k === 'seek')).toHaveLength(1)
     expect(target).toBeCloseTo(e7.tl.lengthKm - BROADCAST.seekFinalKm, 6)
     const seek = sim.log.slice(fromLog).filter((x) => x.e.k === 'report' || x.e.k === 'chunk')
     // el salto pide tramos hasta que lo servido llega al destino: informe, tramo, informe, tramo…
@@ -1295,6 +1341,38 @@ describe('los saltos de recorrido (§8.5, §8.12; 8-j, 8-t)', () => {
     expect(sim.headKm()).toBeLessThan(target + 0.1)
     expect(sim.log.slice(fromLog).some((x) => x.e.k === 'finish')).toBe(false)
     expect(sim.s.reachedS).toBeCloseTo(sim.s.t, 6)
+  })
+
+  it('Final 20 km por el servidor (8-t, 10b): una sola petición desde lo servido, ni un informe ni un tramo hasta aterrizar, en el km 155, con lo informado en el destino', () => {
+    const { sim, fromLog, target } = jumpFrom30('final20')
+    const during = sim.log.slice(fromLog)
+    const seek = during.filter((x) => x.e.k === 'seek')
+    expect(seek).toHaveLength(1)
+    expect(seek[0]!.e).toMatchObject({ k: 'seek', km: target })
+    // ninguna otra petición hasta aterrizar: la que sale después es la carrera que sigue
+    const landedAt = sim.actions.findIndex((x) => x.a.k === 'landed')
+    const landedWall = sim.actions[landedAt]!.wall
+    expect(
+      during.filter((x) => x.wall < landedWall && (x.e.k === 'report' || x.e.k === 'chunk')),
+    ).toEqual([])
+    expect(sim.headKm()).toBeGreaterThanOrEqual(target - 1e-9)
+    expect(sim.headKm()).toBeLessThan(target + 0.1)
+    // el servidor informó el destino: el aterrizaje no lo repite, y lo alcanzado es la hora pintada
+    expect(during.filter((x) => x.e.k === 'report' && x.wall <= landedWall)).toEqual([])
+    expect(sim.s.reportedS).toBeCloseTo(sim.s.t, 6)
+    expect(sim.s.reachedS).toBeCloseTo(sim.s.t, 6)
+    // y es una ida y vuelta: el salto dura la latencia de una petición, no la de doce tramos y sus informes
+    expect(landedWall - seek[0]!.wall).toBeLessThan(0.5)
+  })
+
+  it('sin sesión o en el modo diagnóstico el servidor no informa el destino: lo informa la web, con mode seek, al llegar la respuesta', () => {
+    const { sim, fromLog, target } = jumpFrom30('final20', 'unwritten')
+    const during = sim.log.slice(fromLog)
+    const reports = during.filter((x) => x.e.k === 'report')
+    expect(reports.length).toBeGreaterThan(0)
+    expect(reports[0]!.e).toMatchObject({ k: 'report', mode: 'seek' })
+    expect(sim.headKm()).toBeGreaterThanOrEqual(target - 1e-9)
+    expect(sim.s.reportedS).toBeCloseTo(sim.s.t, 6)
   })
 
   it('Last km aterriza en el 174 y no pide la meta; ningún informe del salto llega a la meta', () => {
@@ -1536,6 +1614,9 @@ interface Coverage {
   roundsKept: number
   /** 10a: saltos con su tramo, aterrizajes (y con resumen), vueltas atrás, `Show result` que llegan a la meta */
   seekChunks: number
+  /** 10b: saltos por el servidor, con su respuesta y con su respaldo tramo a tramo */
+  seekServed: number
+  seekFallbacks: number
   landings: number
   recaps: number
   backs: number
@@ -1557,6 +1638,8 @@ const emptyCoverage = (): Coverage => ({
   resumed: 0,
   roundsKept: 0,
   seekChunks: 0,
+  seekServed: 0,
+  seekFallbacks: 0,
   landings: 0,
   recaps: 0,
   backs: 0,
@@ -1626,7 +1709,21 @@ function randomSequence(seed: string, restarts: boolean, cov: Coverage): void {
   let conflicts = 0
   let finished = false
   const pending = (): boolean =>
-    queue.some((x) => x.e.k === 'chunk' || x.e.k === 'finish' || x.e.k === 'reveal')
+    queue.some(
+      (x) => x.e.k === 'chunk' || x.e.k === 'finish' || x.e.k === 'reveal' || x.e.k === 'seek',
+    )
+  /** la ruta del salto (10b): la primera décima en que la cabeza llega al km, nunca más allá del borde */
+  const destDsOf = (day: number, km: number): number => {
+    const st = stageOf(day)
+    let lo = 0
+    let hi = st.finishDs - 1
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1
+      if (headKm(day, fromDs(mid)) >= Math.min(km, st.lengthKm - 1)) hi = mid
+      else lo = mid + 1
+    }
+    return lo
+  }
   const hist: string[] = []
 
   for (let i = 0; i < 300 * count; i++) {
@@ -1652,7 +1749,28 @@ function randomSequence(seed: string, restarts: boolean, cov: Coverage): void {
     } else if (roll < 0.25 && head !== undefined) {
       // la respuesta a lo que se pidió
       const r = rng()
-      if (r < 0.1) {
+      if (head.e.k === 'seek') {
+        // el salto en el servidor (8-t, 10b): su respuesta o, si falla (sea lo que sea), el respaldo
+        queue.shift()
+        if (r < 0.4) a = { k: 'seekFallback' }
+        else {
+          const st = stageOf(head.day)
+          const dest = destDsOf(head.day, head.e.km)
+          const from = toDs(head.e.fromS)
+          const steps = dest > from ? Math.ceil((dest - from) / CHUNK_DS) : 0
+          const to = Math.max(from, Math.min(from + steps * CHUNK_DS, st.finishDs))
+          const written = rng() < 0.7
+          if (written) server.set(head.day, Math.max(server.get(head.day) ?? 0, fromDs(dest)))
+          a = {
+            k: 'seekServed',
+            toS: fromDs(to),
+            atFinish: to >= st.finishDs - 1,
+            headKmAtEnd: headKm(head.day, fromDs(to)),
+            reachedS: fromDs(dest),
+            written,
+          }
+        }
+      } else if (r < 0.1) {
         queue.shift()
         a = { k: 'failed' }
         // como effects.ts: tras un fallo no sale nada más de lo pedido (la meta detrás de una revelación,
@@ -1693,6 +1811,15 @@ function randomSequence(seed: string, restarts: boolean, cov: Coverage): void {
         { k: 'failed' },
         { k: 'beyond' },
         { k: 'throttled', retryAfterS: 3 },
+        { k: 'seekFallback' },
+        {
+          k: 'seekServed',
+          toS: s.servedS + rng() * 5000,
+          atFinish: false,
+          headKmAtEnd: 0,
+          reachedS: s.t + 50,
+          written: rng() < 0.5,
+        },
         ...(s.phase === 'seeking' ? [] : [{ k: 'landed', toS: s.t + 100, skipped: 2 } as const]),
       ])
     } else if (roll < 0.65) {
@@ -1758,6 +1885,8 @@ function randomSequence(seed: string, restarts: boolean, cov: Coverage): void {
     if (a.k === 'retry' && s0.notice === 'offline') cov.retried += 1
     if (a.k === 'cueAdmitted' && a.round && s0.nextAction) cov.roundsKept += 1
     if (s1.phase === 'seeking' && r.effects.some((e) => e.k === 'chunk')) cov.seekChunks += 1
+    if (a.k === 'seekServed' && !unsolicited) cov.seekServed += 1
+    if (a.k === 'seekFallback' && !unsolicited) cov.seekFallbacks += 1
     if (a.k === 'landed' && s0.phase === 'seeking' && s1.phase !== 'seeking') {
       cov.landings += 1
       if (s1.phase === 'recap') cov.recaps += 1
@@ -1904,6 +2033,9 @@ describe('las comprobaciones de §8.11, en cada paso de 1.000 secuencias al azar
     expect(cov.roundsKept).toBeGreaterThan(10)
     // 10a: los saltos con su red, sus aterrizajes y sus resúmenes, la vuelta atrás, revelar y el digest
     expect(cov.seekChunks).toBeGreaterThan(100)
+    // 10b: el salto por el servidor, con su respuesta y con su respaldo
+    expect(cov.seekServed).toBeGreaterThan(100)
+    expect(cov.seekFallbacks).toBeGreaterThan(50)
     expect(cov.landings).toBeGreaterThan(100)
     expect(cov.recaps).toBeGreaterThan(30)
     expect(cov.backs).toBeGreaterThan(100)

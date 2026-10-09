@@ -167,6 +167,8 @@ describe('api: la web compilada, con caché larga solo en los ficheros con huell
   writeFileSync(join(root, 'assets', 'index-B1x2c3D4.js'), 'console.log(1)\n')
   writeFileSync(join(root, 'assets', 'index-Cq9w8e7R.css'), 'body{margin:0}\n')
   writeFileSync(join(root, 'favicon.svg'), '<svg xmlns="http://www.w3.org/2000/svg"/>')
+  mkdirSync(join(root, '.vite'))
+  writeFileSync(join(root, '.vite', 'manifest.json'), '{"src/pages/Secret.tsx":{"file":"x.js"}}')
   const webApp = buildApp({
     migrationsApplied: true,
     serveWeb: true,
@@ -199,6 +201,12 @@ describe('api: la web compilada, con caché larga solo en los ficheros con huell
     const res = await webApp.inject({ method: 'GET', url: '/favicon.svg' })
     expect(res.statusCode).toBe(200)
     expect(res.headers['cache-control']).toBe('public, max-age=0')
+  })
+
+  it('el manifiesto de Vite (.vite/, 10b) no se sirve: es de la API, que saca de él lo que precarga la etapa', async () => {
+    const res = await webApp.inject({ method: 'GET', url: '/.vite/manifest.json' })
+    expect(res.body).not.toContain('Secret')
+    expect(res.headers['content-type']).not.toContain('application/json')
   })
 
   it('un fichero de assets/ que no existe no se sirve como inmutable', async () => {
