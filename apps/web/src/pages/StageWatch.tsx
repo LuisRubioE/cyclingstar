@@ -1,5 +1,6 @@
 import {
   BROADCAST,
+  type BroadcastChunk,
   type BroadcastFinish,
   type BroadcastHead,
   type Cue,
@@ -25,7 +26,12 @@ import {
 } from '@cyclingstar/shared'
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { broadcastChunkKey, fetchBroadcastChunk, postBroadcastFinish } from '../api/broadcast'
+import {
+  broadcastChunkKey,
+  fetchBroadcastChunk,
+  postBroadcastFinish,
+  postBroadcastSeek,
+} from '../api/broadcast'
 import {
   beaconWatchProgress,
   forgetLocalProgress,
@@ -747,6 +753,22 @@ function useWatchPlayer(
       setRecap(view)
     }
 
+    /** Un tramo, o los de un salto juntos: la pantalla los junta a su línea; el reductor recibe su borde. */
+    const takeChunk = (c: BroadcastChunk): Extract<PlayerAction, { k: 'chunk' }> => {
+      served = withChunk(head, served, c)
+      setLines(served.lines)
+      setCore(served.core)
+      screenKeys = screenKeysOf(served.core.groups)
+      setKeys(screenKeys)
+      const toS = fromDs(c.toDs)
+      return {
+        k: 'chunk',
+        toS,
+        atFinish: c.atFinish,
+        headKmAtEnd: instantAt(served.core, toS, ctx).headKm,
+      }
+    }
+
     const runner = effectRunner(
       {
         chunk: (fromD, toD) =>
@@ -806,22 +828,27 @@ function useWatchPlayer(
           return r()
         },
         release,
+        // El salto de recorrido en el servidor (8-t, 10b): una petición en lugar de un informe y un tramo por
+        // vuelta. Lo que informa el servidor se le dice a la página, como un informe, y su `rev`, igual.
+        seek: async (km, fromD) => {
+          const res = await postBroadcastSeek(raceId, day, km, fromD, undefined, { diag })
+          if (res.written) {
+            reachedRef.current?.(res.reachedS)
+            const known = queryClient.getQueryData<HorizonSummary | null>(['horizon'])
+            if (known != null && known.rev !== res.rev)
+              void queryClient.invalidateQueries({ queryKey: ['horizon'] })
+          }
+          return res
+        },
       },
       {
-        chunk: (c) => {
-          served = withChunk(head, served, c)
-          setLines(served.lines)
-          setCore(served.core)
-          screenKeys = screenKeysOf(served.core.groups)
-          setKeys(screenKeys)
-          const toS = fromDs(c.toDs)
-          return {
-            k: 'chunk',
-            toS,
-            atFinish: c.atFinish,
-            headKmAtEnd: instantAt(served.core, toS, ctx).headKm,
-          }
-        },
+        chunk: takeChunk,
+        seek: (res) => ({
+          ...takeChunk(res.chunk),
+          k: 'seekServed',
+          reachedS: res.reachedS,
+          written: res.written,
+        }),
         finish: (f) => {
           // la llegada (§8.7), con la palabra de cada grupo del último instante pintado
           arrivalCards = arrivalCardsOf(head, f, instant, {

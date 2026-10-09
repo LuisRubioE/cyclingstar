@@ -1,4 +1,10 @@
-import type { BroadcastChunk, BroadcastFinish, Ds, WatchMode } from '@cyclingstar/shared'
+import type {
+  BroadcastChunk,
+  BroadcastFinish,
+  BroadcastSeek,
+  Ds,
+  WatchMode,
+} from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
 import { ApiError } from '../../api/request'
 import { type WatchPorts, type WatchSink, effectRunner } from './effects'
@@ -92,12 +98,30 @@ function rig() {
     release: (stageDay) => {
       released.push(stageDay)
     },
+    seek: (km, fromDs) => {
+      const what = `seek ${km} ${fromDs}`
+      calls.push(what)
+      const d = deferred<unknown>()
+      pending.push({ what, d })
+      return d.promise as Promise<BroadcastSeek>
+    },
   }
   let push: (effects: readonly PlayerEffect[]) => void = () => {}
   const sink: WatchSink = {
     chunk: (c) => {
       chunks.push(c)
       return { k: 'chunk', toS: c.toDs / 10, atFinish: c.atFinish, headKmAtEnd: 0 }
+    },
+    seek: (res) => {
+      chunks.push(res.chunk)
+      return {
+        k: 'seekServed',
+        toS: res.chunk.toDs / 10,
+        atFinish: res.chunk.atFinish,
+        headKmAtEnd: 155,
+        reachedS: res.reachedS,
+        written: res.written,
+      }
     },
     finish: (f) => {
       finishes.push(f)
@@ -367,6 +391,76 @@ describe('effectRunner · Show result y el digest (10a)', () => {
     await r.flush()
     expect(r.released).toEqual([7])
     expect(r.calls).toEqual(['chunk 0-300'])
+  })
+})
+
+/**
+ * EL SALTO EN EL SERVIDOR (8-t; E2, paso 10b, los arreglos). Un salto de recorrido sale como una sola
+ * petición (`POST …/broadcast/seek`): su respuesta, los tramos de lo servido al destino juntos, va a la
+ * pantalla y al reductor (`seekServed`). Si falla, por lo que sea (la red, un 429, un 404 de una API sin la
+ * ruta), no se repite ni se espera: el reductor sigue por el camino de hoy, tramo a tramo (`seekFallback`).
+ */
+describe('effectRunner · el salto en el servidor (8-t; 10b)', () => {
+  const SEEK: BroadcastSeek = {
+    chunk: chunkTo(56_000),
+    reachedS: 5_543.2,
+    written: true,
+    rev: '9.4',
+  }
+
+  it('una petición con el km y lo servido en décimas; su respuesta, a la pantalla y al reductor', async () => {
+    const r = rig()
+    r.runner.push([{ k: 'seek', km: 155, fromS: 900 }])
+    await r.flush()
+    expect(r.calls).toEqual(['seek 155 9000'])
+    await r.answer(SEEK)
+    expect(r.chunks.map((c) => c.toDs)).toEqual([56_000])
+    expect(r.actions).toEqual([
+      {
+        k: 'seekServed',
+        toS: 5600,
+        atFinish: false,
+        headKmAtEnd: 155,
+        reachedS: 5_543.2,
+        written: true,
+      },
+    ])
+  })
+
+  it('si falla, sea lo que sea, seekFallback: ni se espera ni se repite, y la cola sigue', async () => {
+    for (const error of [
+      new ApiError('Network error', 0, 'network'),
+      new ApiError('demasiadas_peticiones', 429, 'demasiadas_peticiones', 20),
+      new ApiError('no_encontrado', 404, 'no_encontrado'),
+    ]) {
+      const r = rig()
+      r.runner.push([
+        { k: 'seek', km: 155, fromS: 900 },
+        { k: 'report', reachedS: 900, mode: 'seek', beacon: false },
+      ])
+      await r.flush()
+      await r.fail(error)
+      expect(r.actions, error.message).toEqual([{ k: 'seekFallback' }])
+      expect(r.sleeps).toEqual([])
+      expect(r.calls).toEqual(['seek 155 9000', 'report 900 seek'])
+    }
+  })
+
+  it('sin la ruta en los puertos (o sin dónde ponerla en la pantalla), seekFallback en el acto', async () => {
+    const actions: PlayerAction[] = []
+    const runner = effectRunner(
+      {
+        chunk: async () => chunkTo(300),
+        finish: async () => FINISH,
+        sleep: async () => {},
+        report: async () => ({}),
+        beacon: () => {},
+      },
+      { chunk: () => ({ k: 'touch' }), finish: () => {}, dispatch: (a) => actions.push(a) },
+    )
+    runner.push([{ k: 'seek', km: 155, fromS: 900 }])
+    for (let i = 0; i < 10; i++) await Promise.resolve()
+    expect(actions).toEqual([{ k: 'seekFallback' }])
   })
 })
 

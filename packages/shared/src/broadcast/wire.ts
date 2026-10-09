@@ -54,6 +54,7 @@ import type {
   MishapKind,
   PaceZone,
   ProfileStrip,
+  RaceS,
   RiderIx,
   StageWeather,
 } from './timeline.js'
@@ -195,6 +196,21 @@ export interface BroadcastFinish {
   readonly news: readonly NewsItem[]
   /** los que se cayeron dentro de STAGE.truce.threeKmRuleKm y llegan con el tiempo de su grupo (6-o) */
   readonly threeKmRule: readonly RiderIx[]
+}
+
+/**
+ * POST …/broadcast/seek (8-t, §14.2; E2, paso 10b, los arreglos): el salto de recorrido en el servidor, una ida y
+ * vuelta en lugar de un informe y un tramo por vuelta. `chunk`, los tramos de lo servido en la web hasta el
+ * destino juntos en uno (los tramos seguidos son el tramo de todo el intervalo, B9), con la voz de cada uno;
+ * `reachedS`, la hora en que la cabeza llega al km destino (la bisección de §8.5): lo alcanzado del salto,
+ * que el servidor informó con `mode: 'seek'` (8-j) si `written` (con sesión y fuera del modo diagnóstico; si
+ * no, lo informa la web, como siempre: el visitante, en su `localStorage`); `rev`, el de después (§14.2).
+ */
+export interface BroadcastSeek {
+  readonly chunk: BroadcastChunk
+  readonly reachedS: RaceS
+  readonly written: boolean
+  readonly rev: string
 }
 
 /** El acta: el stageReplaySchema de hoy, con watch (7b) y tplRev (12-c). */
@@ -430,6 +446,12 @@ export const broadcastFinishSchema = z.object({
   news: z.array(newsItemSchema),
   threeKmRule: z.array(ix),
 }) satisfies z.ZodType<BroadcastFinish>
+export const broadcastSeekSchema = z.object({
+  chunk: broadcastChunkSchema,
+  reachedS: z.number().min(0),
+  written: z.boolean(),
+  rev: z.string(),
+}) satisfies z.ZodType<BroadcastSeek>
 // El acta (`GET …/report`) se valida con `stageReplaySchema` de contracts.ts: `StageReport` es `StageReplay`.
 export const horizonSummarySchema = z.object({
   rev: z.string(),
@@ -461,11 +483,13 @@ export const WIRE_MATCH = {
   chunk: true,
   finish: true,
   horizon: true,
+  seek: true,
 } as const satisfies {
   head: SchemaMatches<typeof broadcastHeadSchema, BroadcastHead>
   chunk: SchemaMatches<typeof broadcastChunkSchema, BroadcastChunk>
   finish: SchemaMatches<typeof broadcastFinishSchema, BroadcastFinish>
   horizon: SchemaMatches<typeof horizonSummarySchema, HorizonSummary>
+  seek: SchemaMatches<typeof broadcastSeekSchema, BroadcastSeek>
 }
 
 // ---------------------------------------------------------- las entradas de las rutas nuevas (§14.2)
@@ -495,6 +519,15 @@ export const chunkQuerySchema = stageQuerySchema
   })
 /** El cuerpo de `POST …/broadcast/finish`: con qué modo se llegó a la meta (la letra, §10.3). */
 export const finishBodySchema = z.object({ mode: watchModeSchema })
+/**
+ * El cuerpo de `POST …/broadcast/seek` (8-t; 10b): `km`, el km del recorrido al que se salta (el servidor no
+ * pasa de `lengthKm − 1`, 8-j); y `fromDs`, dónde acaba lo servido en la web, de donde sale el tramo, porque
+ * la línea servida junta tramos seguidos (`withChunk`). No estaba en §14.2, que solo decía `{ km }`.
+ */
+export const seekBodySchema = z.object({
+  km: z.number().finite().min(0).max(1000),
+  fromDs: z.number().int().min(0).max(864_000),
+})
 /** 403 con la puerta: el error de siempre más `gate`. */
 export const stageGateErrorSchema = apiErrorBodySchema.extend({ gate: stageGateSchema })
 

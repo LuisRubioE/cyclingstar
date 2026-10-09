@@ -22,6 +22,10 @@
  * cola: sale en el acto, porque la página se va y la cola se para justo después. El servidor no da 409
  * hasta el 7b (B18).
  *
+ * Desde el 10b (los arreglos), un salto de recorrido es una sola petición, `seek` (`POST …/broadcast/seek`,
+ * 8-t), cuya respuesta junta la pantalla (`sink.seek`); si falla, sea lo que sea, el reductor recibe
+ * `seekFallback` y sigue por el camino de antes, tramo a tramo, sin esperar ni repetir nada.
+ *
  * Desde el 10a, `reveal` (`POST /api/me/reveal`, `Show result`) va en la cola como un tramo, delante de
  * su meta; `release` (soltar los tramos de una etapa del digest, 18-e) tampoco espera: no es red. Y tras
  * un fallo (`failed`) no sale nada más de lo pedido: la meta que iba detrás de una revelación que falló
@@ -31,6 +35,7 @@
 import {
   type BroadcastChunk,
   type BroadcastFinish,
+  type BroadcastSeek,
   type Ds,
   type RaceS,
   type WatchMode,
@@ -54,6 +59,8 @@ export interface WatchPorts {
   readonly reveal?: () => Promise<unknown>
   /** soltar los tramos y la línea de una etapa del digest (18-e, 10a) */
   readonly release?: (stageDay: number) => void
+  /** POST …/broadcast/seek (8-t; 10b): el salto de recorrido en el servidor, al km destino desde lo servido */
+  readonly seek?: (km: number, fromDs: Ds) => Promise<BroadcastSeek>
 }
 
 /** A quién le llega cada respuesta: la pantalla (la línea y la meta) y el reductor (las acciones). */
@@ -64,6 +71,8 @@ export interface WatchSink {
   readonly finish: (finish: BroadcastFinish) => void
   /** una acción para el reductor */
   readonly dispatch: (a: PlayerAction) => void
+  /** la respuesta del salto en el servidor: la pantalla junta su tramo y da la acción `seekServed` (10b) */
+  readonly seek?: (res: BroadcastSeek) => PlayerAction
 }
 
 export interface EffectRunner {
@@ -160,6 +169,21 @@ export function effectRunner(ports: WatchPorts, sink: WatchSink): EffectRunner {
           case 'release':
             ports.release?.(e.stageDay)
             break
+          case 'seek': {
+            // EL SALTO EN EL SERVIDOR (8-t; 10b): una petición; si falla, sea lo que sea (la red, un 429,
+            // una API sin la ruta), ni se espera ni se repite: el reductor sigue tramo a tramo
+            const seek = ports.seek
+            const served = sink.seek
+            let action: PlayerAction = { k: 'seekFallback' }
+            if (seek !== undefined && served !== undefined)
+              try {
+                action = served(await seek(e.km, toDs(e.fromS)))
+              } catch {
+                action = { k: 'seekFallback' }
+              }
+            if (!stopped) sink.dispatch(action)
+            break
+          }
         }
       }
     } finally {

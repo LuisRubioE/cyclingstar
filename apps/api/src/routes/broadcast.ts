@@ -23,6 +23,8 @@ import {
   type BroadcastChunk,
   type BroadcastFinish,
   type BroadcastHead,
+  type BroadcastSeek,
+  type InstantContext,
   JERSEY_PRIORITY,
   type LiveLine,
   NO_LEADERS,
@@ -40,7 +42,10 @@ import {
   chunkQuerySchema,
   finishBodySchema,
   fromDs,
+  instantAt,
+  photoBlocksOf,
   playbackEstimateS,
+  seekBodySchema,
   stageQuerySchema,
   startStateOf,
   ttPlaybackEstimateS,
@@ -87,6 +92,9 @@ import { parseRaceId, parseStageDay } from './params.js'
  */
 
 type StageParams = { readonly raceId: string; readonly day: string }
+
+/** Un tramo, en décimas: lo que la web pide de una vez (`chunkRaceS`, §14.3). */
+const CHUNK_DS = BROADCAST.chunkRaceS * 10
 
 /** Lo que una ruta de etapa sabe tras admitir la petición. */
 interface Admitted {
@@ -140,6 +148,29 @@ function knownIn(row: WatchRow | null, day: number): boolean {
  */
 export function servableUpToDs(reachedS: RaceS): number {
   return Math.floor(reachedS * 10 + 1e-6) + BROADCAST.prefetchRaceS * 10
+}
+
+/**
+ * LA HORA DE DESTINO DE UN SALTO (§8.5; 8-t): la primera décima de [loDs, hiDs] en que el km pintado de la
+ * cabeza llega a `km`, por bisección sobre `instantAt`; hiDs si no llega. La misma cuenta que hace la web
+ * al aterrizar sobre su línea servida (`firstDsAtKm`, StageWatch.tsx): el instante sobre lo servido es el
+ * de la línea entera (B9), así que los dos dan la misma décima.
+ */
+export function firstDsAtKm(
+  tl: StageTimeline,
+  km: number,
+  loDs: number,
+  hiDs: number,
+  ctx: InstantContext,
+): number {
+  let lo = loDs
+  let hi = hiDs
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1
+    if (instantAt(tl, fromDs(mid), ctx).headKm >= km) hi = mid
+    else lo = mid + 1
+  }
+  return lo
 }
 
 export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
@@ -402,6 +433,103 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
       } satisfies BroadcastFinish
     },
   )
+
+  /**
+   * EL SALTO EN EL SERVIDOR (8-t, §8.5 y §14.2; E2, paso 10b, los arreglos). Con «Slow 4G», `Final 20 km`
+   * desde el km 30 de una llana eran 12 tramos y 13 informes uno detrás de otro (14,56 s; umbral, 5 s):
+   * cada tramo esperaba al informe que lo permitía (B18), porque la hora de destino es futuro y la web no
+   * la tiene (D-06). El servidor tiene la línea entera: con el km destino (nunca más allá de
+   * `lengthKm − 1`, 8-j) calcula la hora de destino con la bisección de §8.5, la escribe como lo alcanzado
+   * con `mode: 'seek'` (por la memoria del proceso, como un informe: D-55) y devuelve en una respuesta los
+   * tramos de lo servido en la web al destino, los mismos que la web habría pedido uno a uno (de
+   * `chunkRaceS` en `chunkRaceS` desde `fromDs`, hasta el primer borde que pasa del destino), juntos en uno,
+   * con la voz de cada uno. La puerta `previous_unseen`, como el tramo y la meta; sin sesión, con
+   * `cs_viewer` o en el modo diagnóstico, se sirve sin escribir nada (`written` en falso: lo informa la
+   * web, como siempre). El `rev`, el de después de escribir (§14.2).
+   */
+  app.post<{ Params: StageParams }>(
+    '/api/races/:raceId/stages/:day/broadcast/seek',
+    { config: { rateLimit: PLAYER_RATE_LIMIT, spoiler: 'watch', veil: { by: ['G'] } } },
+    async (request, reply) => {
+      const q = stageQuerySchema.safeParse(request.query)
+      const body = seekBodySchema.safeParse(request.body)
+      if (!q.success || !body.success) return badRequest(reply)
+      if (!(await request.broadcastOn())) return notFound(reply, 'broadcast_off')
+      const a = await admitStage(db, request, reply, q.data)
+      if (a === null) return reply
+      const tl = await lineOf(a, reply)
+      if (tl === null) return reply
+      const gate = stageGateOf(a.h, a.ctx.raceKey, a.ctx.day)
+      if (gate?.k === 'previous_unseen') return sendGate(reply, gate)
+      const { finishDs } = visibilityOf(tl)
+      // la hora de destino, como la busca la web al aterrizar: sobre la línea, con el reparto de quien mira
+      const ctx: InstantContext = {
+        own: await ownOf(request, tl),
+        start: startStateOf(veilCast(tl.cast, a.h), tl.riderIds.length),
+        photoBlocks: photoBlocksOf(tl.lengthKm, tl.dx),
+      }
+      const destDs = firstDsAtKm(
+        tl,
+        Math.min(body.data.km, tl.lengthKm - 1),
+        0,
+        Math.max(0, finishDs - 1),
+        ctx,
+      )
+      const reached = await seekWatch(request, a, fromDs(destDs), fromDs(finishDs))
+      // los tramos de lo servido al destino, con los bordes de la web (de chunkRaceS en chunkRaceS)
+      const from = body.data.fromDs
+      const steps = destDs > from ? Math.ceil((destDs - from) / CHUNK_DS) : 0
+      const toDs = Math.max(from, Math.min(from + steps * CHUNK_DS, finishDs))
+      const voice = await voiceOf(tl, a.ctx)
+      const lines: LiveLine[] = []
+      for (let b = from; b < toDs; b += CHUNK_DS)
+        lines.push(...voice(fromDs(b), fromDs(Math.min(b + CHUNK_DS, toDs))))
+      return {
+        chunk: { ...chunkOf(tl, from, toDs), lines },
+        reachedS: fromDs(destDs),
+        written: reached.written,
+        rev: reached.rev,
+      } satisfies BroadcastSeek
+    },
+  )
+
+  /**
+   * LO ALCANZADO DE UN SALTO (§10.3; 8-j, D-55): con sesión y fuera del modo diagnóstico, el informe de la
+   * hora de destino con `mode: 'seek'`, por la memoria del proceso, como `POST /api/me/watch`; y el `rev`
+   * de después de escribir (§14.2): el de la escritura si subió; si no, el del horizonte de quien pide; y
+   * `'world'` si el velo no vale para quien pide.
+   */
+  async function seekWatch(
+    request: FastifyRequest,
+    a: Admitted,
+    reachedS: RaceS,
+    finishS: RaceS,
+  ): Promise<{ readonly written: boolean; readonly rev: string }> {
+    const viewer = a.diag ? null : await request.viewer()
+    const world = await request.world()
+    let horizonRev: number | null = null
+    let wrote = false
+    if (viewer !== null && !viewer.readOnly && world !== null) {
+      const key = { userId: viewer.userId, worldId: a.ctx.worldId, raceKey: a.ctx.raceKey }
+      const r = await routeCtx.progress.report(
+        db,
+        key,
+        a.ctx.day,
+        reachedS,
+        'seek',
+        finishS,
+        Date.now(),
+      )
+      horizonRev = r.horizonRev
+      wrote = true
+    }
+    const rev = !(await request.spoilerApplies())
+      ? 'world'
+      : horizonRev === null || world === null
+        ? (await request.horizon()).rev
+        : `${world.currentDay}.${horizonRev}`
+    return { written: wrote, rev }
+  }
 
   app.get<{ Params: StageParams }>(
     '/api/races/:raceId/stages/:day/report',
