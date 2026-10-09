@@ -39,10 +39,24 @@ export function inVoice(line: LiveLine, unnamed: (riderId: string) => boolean): 
 }
 
 /**
+ * Las respuestas ya dadas, por contexto y reparto, y dentro por línea (10b, los arreglos). La de una
+ * línea no depende de cuánto se ha servido mientras lo servido la traiga: el instante es causal (B9) y
+ * los sucesos revelados antes de ella llegan con ella o antes. Así un tramo nuevo, que cambia la línea
+ * servida, no la rehace. Antes el memo era de cada línea servida, y cada tramo rehacía de golpe, al
+ * pintar la voz, un instante por cada descuelgue de la etapa: de 26 a 44 ms con la CPU a ×4 al final de
+ * Colombia e5, la mitad de las tareas largas de `Highlights`. Solo guarda respuestas, no la línea servida.
+ */
+const answersOf = new WeakMap<
+  InstantContext,
+  WeakMap<readonly RiderCard[], WeakMap<LiveLine, Map<string, boolean>>>
+>()
+
+/**
  * A QUIÉN NOMBRA LA VOZ (§7.7; 12-m; sustituye al criterio provisional `unnamedFor` del 3c): para cada
  * línea, el corredor está nombrado si `namedRidersOf` lo nombra en su grupo un instante antes de la
  * línea, con los sucesos revelados antes de ella; sin grupo (ya no corre), sin nombrar. Una vez por
- * línea (la voz la pinta a `overlayHz`): un instante por descuelgue, y no por fotograma.
+ * línea (la voz la pinta a `overlayHz`): un instante por descuelgue, y no por fotograma. Desde el 10b,
+ * una vez por línea y contexto, con cualquier línea servida que la traiga (`answersOf`).
  */
 export function unnamedBefore(
   tl: TimelineCore,
@@ -50,12 +64,19 @@ export function unnamedBefore(
   ctx: InstantContext,
 ): (line: LiveLine) => (riderId: string) => boolean {
   const ixOf = new Map(cast.map((c) => [c.id, c.ix] as const))
+  let byCast = answersOf.get(ctx)
+  if (byCast === undefined) answersOf.set(ctx, (byCast = new WeakMap()))
+  let byLine = byCast.get(cast)
+  if (byLine === undefined) byCast.set(cast, (byLine = new WeakMap()))
+  const answers = byLine
   const memo = new WeakMap<LiveLine, (riderId: string) => boolean>()
   return (line) => {
     const hit = memo.get(line)
     if (hit !== undefined) return hit
     let before: Instant | null = null
-    const answer = new Map<string, boolean>()
+    let given = answers.get(line)
+    if (given === undefined) answers.set(line, (given = new Map<string, boolean>()))
+    const answer = given
     const unnamed = (riderId: string): boolean => {
       const known = answer.get(riderId)
       if (known !== undefined) return known
@@ -76,6 +97,37 @@ export function unnamedBefore(
     }
     memo.set(line, unnamed)
     return unnamed
+  }
+}
+
+/**
+ * LA VOZ CALCULADA ANTES DE PINTARLA (10b, los arreglos; §18.5): a quién nombra cada descuelgue nuevo (los
+ * de un tramo, o los muchos de un salto), lo mismo que `inVoice` pedirá al pintarlo, en tareas de como
+ * mucho `sliceMs`: `next` cede el hilo antes de empezar (lo de antes en la tarea fue juntar la línea) y
+ * entre una y otra. Se guarda en `answersOf`, y la voz lo encuentra hecho: tras un salto de 130 km, la
+ * primera pintura de la voz calculaba todos de golpe (38 ms con la CPU a ×4). Las demás líneas no piden
+ * nada (`inVoice`).
+ */
+export async function answerAhead(
+  tl: TimelineCore,
+  cast: readonly RiderCard[],
+  ctx: InstantContext,
+  lines: readonly LiveLine[],
+  next: () => Promise<void>,
+  sliceMs = 8,
+  now: () => number = () => performance.now(),
+): Promise<void> {
+  const asking = lines.filter((l) => l.plantilla === 'rider_sits_up')
+  if (asking.length === 0) return
+  const unnamed = unnamedBefore(tl, cast, ctx)
+  await next()
+  let start = now()
+  for (const line of asking) {
+    inVoice(line, unnamed(line))
+    if (now() - start >= sliceMs) {
+      await next()
+      start = now()
+    }
   }
 }
 

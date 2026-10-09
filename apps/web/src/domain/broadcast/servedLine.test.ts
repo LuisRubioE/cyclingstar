@@ -27,7 +27,8 @@ import {
   visibilityOf,
 } from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
-import { type ServedLine, servedLineOf, withChunk } from './servedLine'
+import { answerAhead, inVoice, unnamedBefore } from '../voice'
+import { type ServedLine, servedLineOf, withChunk, withChunkSpread } from './servedLine'
 
 /**
  * LA LÍNEA SERVIDA (docs/retransmision.md §4.6, §4.11 y §14.11; nota 1 del 3b): la web rehace la
@@ -573,5 +574,206 @@ describe('servedLine · la crono congelada, la e16 (6b, §9.2)', () => {
     expect(timeTrialInstantAt(served.core, fromDs(finish), ctx).finished).toBe(
       tl.riderIds.length - 1,
     )
+  })
+})
+
+/**
+ * LO QUE SE HACE AL LLEGAR UN TRAMO, REPARTIDO (10b, los arreglos; §18.5 y D-56). Las tareas largas de
+ * `Highlights` eran el tramo juntado de golpe en la tarea de su respuesta (rehacer la línea e indexarla
+ * para la cabeza en su borde) y, al pintarlo, la voz rehaciendo a quién nombra en cada descuelgue de la
+ * etapa. Lo que se pinta no cambia: la línea juntada en sus tareas es la de `withChunk`, con la misma
+ * cabeza en el borde, y a quién nombra la voz en una línea no depende de cuánto se ha servido mientras
+ * lo servido la traiga (B9), así que se calcula una vez por línea.
+ */
+describe('servedLine · el tramo juntado en sus tareas (10b, los arreglos)', () => {
+  it('cede el hilo antes de rehacer la línea, antes de su visibilidad y antes de indexarla; la línea es la de withChunk y la cabeza, la de su borde', async () => {
+    let served: ServedLine = servedLineOf(HEAD)
+    let checked = 0
+    for (const c of chunksOf(every(450))) {
+      const before = served
+      const kept = shapeOf(before.core)
+      const steps: string[] = []
+      const r = await withChunkSpread(HEAD, before, c, CTX, async () => {
+        steps.push('cede')
+      })
+      const sync = withChunk(HEAD, before, c)
+      expect(steps).toEqual(['cede', 'cede', 'cede'])
+      expect(shapeOf(r.line.core)).toEqual(shapeOf(sync.core))
+      expect(r.line.lines).toEqual(sync.lines)
+      expect(r.line.toDs).toBe(sync.toDs)
+      expect(r.headKmAtEnd).toBe(instantAt(sync.core, fromDs(c.toDs), CTX).headKm)
+      // pura: la de entrada no cambia, y la pantalla puede seguir pintando con ella mientras tanto
+      expect(shapeOf(before.core)).toEqual(kept)
+      served = r.line
+      checked += 1
+    }
+    expect(checked).toBeGreaterThan(5)
+    expect(served.toDs).toBe(FINISH_DS)
+  })
+
+  it('si ceder falla (la pantalla se fue), no sigue: ni la línea ni el índice', async () => {
+    const steps: string[] = []
+    const c = chunksOf(every(450))[0]!
+    await expect(
+      withChunkSpread(HEAD, servedLineOf(HEAD), c, CTX, async () => {
+        steps.push('cede')
+        throw new Error('parado')
+      }),
+    ).rejects.toThrow('parado')
+    expect(steps).toEqual(['cede'])
+  })
+})
+
+describe('la voz sobre lo servido: a quién nombra cada línea, una vez (10b, los arreglos)', () => {
+  const url = new URL(
+    '../../../../api/src/__fixtures__/broadcast/race-france-e18.timeline.gz',
+    import.meta.url,
+  )
+  const tl = decodeTimeline(JSON.parse(gunzipSync(readFileSync(url)).toString('utf8')))
+  const head = headOf(tl)
+  const finish = visibilityOf(tl).finishDs
+  const ctxOf = (): InstantContext => ({
+    own: new Set([4]),
+    start: head.startState,
+    photoBlocks: photoBlocksOf(head.stage.lengthKm, head.stage.dx),
+  })
+  const full = ctxOf()
+  const bounds = Array.from(
+    { length: Math.ceil(finish / (BROADCAST.chunkRaceS * 10)) + 1 },
+    (_, i) => i * BROADCAST.chunkRaceS * 10,
+  )
+  /** Los que no salen en ningún suceso: en un grupo grande, sin tirar, nadie los nombra. */
+  const quiet = new Set(tl.riderIds.map((_, r) => r))
+  for (const e of tl.events) for (const r of e.riders) quiet.delete(r)
+  /**
+   * Descuelgues de mentira, dos por tramo a su mitad: uno de los del primer grupo de la carretera (si es
+   * una fuga, nombrados) con tres callados del grupo mayor, y otro de esos tres solos, para que haya de
+   * todo.
+   */
+  const chunks = chunksOf(bounds, tl).map((c) => {
+    const revealS = fromDs(Math.round((c.fromDs + c.toDs) / 2))
+    const at = instantAt(tl, revealS, full)
+    const front = at.groups[0]?.members.slice(0, 4) ?? []
+    const big = at.groups.reduce((a, g) => (g.size > a.size ? g : a))
+    const rest = big.members
+      .filter(
+        (r) =>
+          quiet.has(r) &&
+          !full.own.has(r) &&
+          !front.includes(r) &&
+          !(big.detail?.pullers ?? []).some((p) => p.rider === r),
+      )
+      .slice(0, 3)
+    const sitsUp = (riders: readonly number[], dt: number): LiveLine => ({
+      km: Math.round(at.headKm),
+      tS: revealS - 30,
+      plantilla: 'rider_sits_up',
+      protagonists: riders.map((r) => ({
+        id: tl.riderIds[r]!,
+        name: `Rider ${r}`,
+        bib: r + 1,
+        team: null,
+        country: null,
+      })),
+      revealS: revealS + dt,
+    })
+    return { ...c, lines: [sitsUp([...front, ...rest], 0), sitsUp(rest, 1)] }
+  })
+  const answersOn = (core: TimelineCore, ctx: InstantContext, lines: readonly LiveLine[]) => {
+    const unnamed = unnamedBefore(core, head.cast, ctx)
+    return lines.map((l) => l.protagonists.map((p) => unnamed(l)(p.id!)))
+  }
+
+  it('sobre lo servido, tras cada tramo, lo mismo que sobre la línea entera (B9): la respuesta no depende de cuánto se ha servido', () => {
+    let served: ServedLine = servedLineOf(head)
+    const onFull = answersOn(
+      tl,
+      full,
+      chunks.flatMap((c) => c.lines),
+    )
+    let checked = 0
+    for (const c of chunks) {
+      served = withChunk(head, served, c)
+      // con un contexto nuevo cada vez, nada de lo calculado antes: todo sobre esta línea servida
+      expect(answersOn(served.core, ctxOf(), served.lines), `hasta ${c.toDs}`).toEqual(
+        onFull.slice(0, served.lines.length),
+      )
+      checked += served.lines.length
+    }
+    const flat = onFull.flat()
+    expect(flat.filter((x) => x).length).toBeGreaterThan(10)
+    expect(flat.filter((x) => !x).length).toBeGreaterThan(5)
+    expect(checked).toBeGreaterThan(100)
+  })
+
+  it('una línea ya respondida no se rehace con otra línea servida del mismo contexto; con otro contexto, sí', () => {
+    const ctx = ctxOf()
+    let served: ServedLine = servedLineOf(head)
+    let found: { line: LiveLine; id: string } | null = null
+    for (const c of chunks) {
+      served = withChunk(head, served, c)
+      const line = c.lines[0]!
+      const unnamed = unnamedBefore(served.core, head.cast, ctx)(line)
+      const named = line.protagonists.find((p) => p.id !== tl.riderIds[4] && !unnamed(p.id!))
+      if (named !== undefined) {
+        found = { line, id: named.id! }
+        break
+      }
+    }
+    expect(found).not.toBeNull()
+    const { line, id } = found!
+    // antes del primer tramo todos van en el grupo de salida, sin sucesos: ahí nadie estaría nombrado
+    const empty = servedLineOf(head).core
+    expect(unnamedBefore(empty, head.cast, ctxOf())(line)(id)).toBe(true)
+    // con el mismo contexto, la respuesta ya dada: un tramo nuevo no la rehace
+    expect(unnamedBefore(empty, head.cast, ctx)(line)(id)).toBe(false)
+    expect(unnamedBefore(served.core, head.cast, ctx)(line)(id)).toBe(false)
+  })
+
+  it('answerAhead deja hechas, en tareas cortas, las respuestas que pedirá la voz al pintar las líneas nuevas', async () => {
+    const ctx = ctxOf()
+    let served: ServedLine = servedLineOf(head)
+    for (const c of chunks) served = withChunk(head, served, c)
+    // un reloj de mentira: cada lectura, 5 ms más; con tareas de 8 ms, cede cada dos o tres líneas
+    let clock = 0
+    let yields = 0
+    await answerAhead(
+      served.core,
+      head.cast,
+      ctx,
+      served.lines,
+      async () => {
+        yields += 1
+      },
+      8,
+      () => (clock += 5),
+    )
+    expect(yields).toBeGreaterThan(served.lines.length / 4)
+    expect(yields).toBeLessThan(served.lines.length)
+    // hechas: sobre la línea de antes del primer tramo, la voz dice lo mismo que sobre la servida
+    const empty = servedLineOf(head).core
+    const ahead = served.lines.map((l) => inVoice(l, unnamedBefore(empty, head.cast, ctx)(l)))
+    const fresh = served.lines.map((l) =>
+      inVoice(l, unnamedBefore(served.core, head.cast, ctxOf())(l)),
+    )
+    expect(ahead).toEqual(fresh)
+    expect(fresh.filter((x) => !x).length).toBeGreaterThan(0)
+    expect(fresh.filter((x) => x).length).toBeGreaterThan(0)
+  })
+
+  it('answerAhead cede antes de empezar si hay algo que calcular (lo de antes en la tarea fue juntar la línea); si no, nada', async () => {
+    let served: ServedLine = servedLineOf(head)
+    for (const c of chunks) served = withChunk(head, served, c)
+    const said = (plantilla: string): LiveLine => ({ ...served.lines[0]!, plantilla })
+    for (const [lines, expected] of [
+      [[said('attack_go'), said('crash'), said('front_group')], 0],
+      [[said('attack_go'), said('rider_sits_up')], 1],
+    ] as const) {
+      let yields = 0
+      await answerAhead(served.core, head.cast, ctxOf(), lines, async () => {
+        yields += 1
+      })
+      expect(yields, lines.map((l) => l.plantilla).join(', ')).toBe(expected)
+    }
   })
 })

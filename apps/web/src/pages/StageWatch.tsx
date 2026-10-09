@@ -102,9 +102,15 @@ import {
   screenKeysOf,
   ttCursorsOf,
 } from '../domain/broadcast/screen'
-import { servedLineOf, withChunk } from '../domain/broadcast/servedLine'
+import { servedLineOf, withChunkSpread } from '../domain/broadcast/servedLine'
 import { raceRevealQuestion, stageRange } from '../domain/stageGate'
-import { GAP_TREND_INIT, type GapTrendVoice, gapTrendStep, unnamedBefore } from '../domain/voice'
+import {
+  GAP_TREND_INIT,
+  type GapTrendVoice,
+  answerAhead,
+  gapTrendStep,
+  unnamedBefore,
+} from '../domain/voice'
 
 /** El modo de `?view=` (§8.1; 10a): `highlights`, `digest` o, con cualquier otra cosa, `Watch` (DD-03). */
 export function watchViewOf(param: string | null): ViewMode {
@@ -624,6 +630,7 @@ function useWatchPlayer(
     let phaseWallS = 0
     let lastPhase = s.phase
     let chained = false
+    let live = true // hasta que la pantalla se va (10b: un tramo se junta en sus tareas)
     // la cola de rótulos (§6.5), los cursores por sucesor y la identidad de las filas (D-03)
     let deck: CueDeck = cueDeckInit(head.startState)
     let onScreen = deck.queue.shown
@@ -753,20 +760,25 @@ function useWatchPlayer(
       setRecap(view)
     }
 
-    /** Un tramo, o los de un salto juntos: la pantalla los junta a su línea; el reductor recibe su borde. */
-    const takeChunk = (c: BroadcastChunk): Extract<PlayerAction, { k: 'chunk' }> => {
-      served = withChunk(head, served, c)
+    /**
+     * Un tramo, o los de un salto juntos: la pantalla los junta a su línea en sus tareas, con la voz de
+     * sus líneas ya calculada, y mientras tanto pinta con la de antes (`withChunkSpread`, `answerAhead`;
+     * 10b); el reductor recibe su borde. Si la pantalla se va entre medias (o el digest encadena), ceder
+     * falla y no cambia nada.
+     */
+    const nextTask = (): Promise<void> =>
+      new Promise((resolve, reject) =>
+        window.setTimeout(() => (live && !chained ? resolve() : reject(new Error('stopped'))), 0),
+      )
+    const takeChunk = async (c: BroadcastChunk): Promise<Extract<PlayerAction, { k: 'chunk' }>> => {
+      const r = await withChunkSpread(head, served, c, ctx, nextTask)
+      await answerAhead(r.line.core, head.cast, ctx, c.lines, nextTask)
+      served = r.line
       setLines(served.lines)
       setCore(served.core)
       screenKeys = screenKeysOf(served.core.groups)
       setKeys(screenKeys)
-      const toS = fromDs(c.toDs)
-      return {
-        k: 'chunk',
-        toS,
-        atFinish: c.atFinish,
-        headKmAtEnd: instantAt(served.core, toS, ctx).headKm,
-      }
+      return { k: 'chunk', toS: fromDs(c.toDs), atFinish: c.atFinish, headKmAtEnd: r.headKmAtEnd }
     }
 
     const runner = effectRunner(
@@ -843,8 +855,8 @@ function useWatchPlayer(
       },
       {
         chunk: takeChunk,
-        seek: (res) => ({
-          ...takeChunk(res.chunk),
+        seek: async (res) => ({
+          ...(await takeChunk(res.chunk)),
           k: 'seekServed',
           reachedS: res.reachedS,
           written: res.written,
@@ -1086,6 +1098,7 @@ function useWatchPlayer(
       window.removeEventListener('keydown', onKey)
       dispatch({ k: 'leave' })
       runner.stop()
+      live = false
       dispatchRef.current = () => {}
       jumpRef.current = () => {}
     }

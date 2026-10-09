@@ -63,16 +63,20 @@ export interface WatchPorts {
   readonly seek?: (km: number, fromDs: Ds) => Promise<BroadcastSeek>
 }
 
-/** A quién le llega cada respuesta: la pantalla (la línea y la meta) y el reductor (las acciones). */
+/**
+ * A quién le llega cada respuesta: la pantalla (la línea y la meta) y el reductor (las acciones). Desde
+ * el 10b (los arreglos), la pantalla puede juntar un tramo en sus tareas (`withChunkSpread`) y dar la
+ * acción con una promesa: el reductor la recibe cuando acaba, y lo de detrás en la cola espera a ella.
+ */
 export interface WatchSink {
   /** un tramo: la pantalla lo junta a su línea y da la acción `chunk` con el km de la cabeza en su borde */
-  readonly chunk: (chunk: BroadcastChunk) => PlayerAction
+  readonly chunk: (chunk: BroadcastChunk) => PlayerAction | Promise<PlayerAction>
   /** el paquete de meta; después, el reductor recibe `finished` */
   readonly finish: (finish: BroadcastFinish) => void
   /** una acción para el reductor */
   readonly dispatch: (a: PlayerAction) => void
   /** la respuesta del salto en el servidor: la pantalla junta su tramo y da la acción `seekServed` (10b) */
-  readonly seek?: (res: BroadcastSeek) => PlayerAction
+  readonly seek?: (res: BroadcastSeek) => PlayerAction | Promise<PlayerAction>
 }
 
 export interface EffectRunner {
@@ -90,13 +94,17 @@ export function effectRunner(ports: WatchPorts, sink: WatchSink): EffectRunner {
 
   /**
    * Una petición hasta que responde o se suelta: un 429 espera y repite la misma. Tras un fallo, lo que
-   * quedaba pedido detrás (salvo los informes) no sale.
+   * quedaba pedido detrás (salvo los informes) no sale. Lo que se hace con la respuesta (`done`) puede
+   * ser una promesa (10b): la cola sigue cuando acaba.
    */
-  async function attempt<T>(send: () => Promise<T>, done: (value: T) => void): Promise<void> {
+  async function attempt<T>(
+    send: () => Promise<T>,
+    done: (value: T) => void | Promise<void>,
+  ): Promise<void> {
     for (;;) {
       try {
         const value = await send()
-        if (!stopped) done(value)
+        if (!stopped) await done(value)
         return
       } catch (error) {
         if (stopped) return
@@ -142,7 +150,10 @@ export function effectRunner(ports: WatchPorts, sink: WatchSink): EffectRunner {
           case 'chunk':
             await attempt(
               () => ports.chunk(toDs(e.fromS), toDs(e.toS)),
-              (chunk) => sink.dispatch(sink.chunk(chunk)),
+              async (chunk) => {
+                const a = await sink.chunk(chunk)
+                if (!stopped) sink.dispatch(a)
+              },
             )
             break
           case 'finish':
@@ -177,7 +188,9 @@ export function effectRunner(ports: WatchPorts, sink: WatchSink): EffectRunner {
             let action: PlayerAction = { k: 'seekFallback' }
             if (seek !== undefined && served !== undefined)
               try {
-                action = served(await seek(e.km, toDs(e.fromS)))
+                const res = await seek(e.km, toDs(e.fromS))
+                if (stopped) break
+                action = await served(res)
               } catch {
                 action = { k: 'seekFallback' }
               }
