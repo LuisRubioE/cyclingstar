@@ -1,4 +1,5 @@
 import type { CueClass, RiderCard } from '@cyclingstar/shared'
+import { memo } from 'react'
 import { type CueBody, type CueText, cardTexts } from '../../domain/broadcast/screen'
 import { Flag } from '../Flag'
 import { Jersey, LeaderJersey } from '../Jersey'
@@ -30,7 +31,8 @@ export interface ShownCueCard {
  * La clase pinta el fondo: la 3 (la meta, la caza, el corte) de rojo; la 2, de oscuro; el resto, más
  * claro.
  */
-export function CueCard({ cue }: { cue: ShownCueCard | null }) {
+/** Con el mismo rótulo, no se pinta otra vez (10b, los arreglos): cambia con la cola, no a `overlayHz`. */
+export const CueCard = memo(function CueCard({ cue }: { cue: ShownCueCard | null }) {
   const tone =
     cue === null
       ? ''
@@ -98,7 +100,7 @@ export function CueCard({ cue }: { cue: ShownCueCard | null }) {
       )}
     </div>
   )
-}
+})
 
 /**
  * LA CARTA DEL CORREDOR (§7.1): el maillot que lleva (`WornJerseyIcon`: el de líder, `ChampionMark` o

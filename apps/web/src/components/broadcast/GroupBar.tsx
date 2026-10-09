@@ -10,7 +10,7 @@ import {
   pullingText,
   shownGroupsOf,
 } from '@cyclingstar/shared'
-import { Fragment } from 'react'
+import { Fragment, memo } from 'react'
 import { isQuietFinal, mobileRowsOf, transitOf, yourRiderText } from '../../domain/broadcast/screen'
 import { LeaderJersey } from '../Jersey'
 import { WornJerseyIcon } from './WornJerseyIcon'
@@ -43,14 +43,7 @@ import { WornJerseyIcon } from './WornJerseyIcon'
  * debajo de la barra, si el espectador corre, `Your rider · in the bunch · +2:14` con sus variantes
  * (6-l).
  */
-export function GroupBar({
-  instant,
-  cast,
-  clock,
-  expanded = false,
-  onExpand,
-  keys,
-}: {
+interface GroupBarProps {
   instant: Instant
   cast: readonly RiderCard[]
   clock: 'exact' | 'estimated'
@@ -59,7 +52,27 @@ export function GroupBar({
   onExpand?: () => void
   /** la identidad en pantalla de cada `GroupIx` (`screenKeysOf`); sin ella, el `GroupIx` */
   keys?: readonly string[]
-}) {
+}
+
+/**
+ * Sin cambios en lo que pinta, la barra no se pinta otra vez (10b, los arreglos; §18.5): cambia a
+ * `barHz`, y la pantalla se pinta a `overlayHz`. `onExpand` no cuenta: siempre abre las filas plegadas.
+ */
+export const sameBar = (a: GroupBarProps, b: GroupBarProps): boolean =>
+  a.instant === b.instant &&
+  a.cast === b.cast &&
+  a.clock === b.clock &&
+  a.expanded === b.expanded &&
+  a.keys === b.keys
+
+export const GroupBar = memo(function GroupBar({
+  instant,
+  cast,
+  clock,
+  expanded = false,
+  onExpand,
+  keys,
+}: GroupBarProps) {
   const quiet = isQuietFinal(instant.toGoKm)
   const groups = shownGroupsOf(instant)
   const own = yourRiderText(
@@ -149,7 +162,7 @@ export function GroupBar({
       )}
     </div>
   )
-}
+}, sameBar)
 
 /** La línea de quién tira de una fila (§6.4): en escritorio, entera; en el móvil, la del pelotón y las del espectador, con un equipo. */
 function PullingRow({

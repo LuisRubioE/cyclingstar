@@ -166,9 +166,61 @@ export function voiceItemsOf(
   unnamed: (line: LiveLine) => (riderId: string) => boolean,
   extras: VoiceExtras = {},
 ): VoiceItem[] {
+  let said = saidOf.get(lines)
+  if (
+    said === undefined ||
+    said.unnamed !== unnamed ||
+    said.present !== extras.present ||
+    said.state !== extras.state ||
+    said.namesDelayS !== extras.namesDelayS
+  ) {
+    said = {
+      unnamed,
+      present: extras.present,
+      state: extras.state,
+      namesDelayS: extras.namesDelayS,
+      items: allSaid(lines, unnamed, extras),
+    }
+    saidOf.set(lines, said)
+  }
+  // lo dicho hasta t: el principio de lo dicho en toda la línea, lo de hora ≤ t
+  const items = said.items
+  let lo = 0
+  let hi = items.length
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1
+    if (items[mid]!.revealS <= t) lo = mid + 1
+    else hi = mid
+  }
+  return items.slice(0, lo)
+}
+
+/**
+ * LO DICHO EN TODA LA LÍNEA SERVIDA, POR HORA (10b, los arreglos; §18.5), y con qué se contó. La voz
+ * hasta t es su principio: cada elemento entra si su hora es ≤ t (una línea, su hora; los nombres de una
+ * caída, la suya, que es posterior; una de estado, la suya), y el orden estable por hora no depende de
+ * cuáles entran. Se cuenta otra vez cuando cambian las líneas (un tramo), `unnamed` (su línea servida),
+ * la frase de la fuga, las líneas de estado o la espera de los nombres; no a cada pintura.
+ */
+const saidOf = new WeakMap<
+  readonly LiveLine[],
+  {
+    readonly unnamed: (line: LiveLine) => (riderId: string) => boolean
+    readonly present: VoiceExtras['present']
+    readonly state: VoiceExtras['state']
+    readonly namesDelayS: number | undefined
+    readonly items: readonly VoiceItem[]
+  }
+>()
+
+function allSaid(
+  lines: readonly LiveLine[],
+  unnamed: (line: LiveLine) => (riderId: string) => boolean,
+  extras: VoiceExtras,
+): VoiceItem[] {
   const out: VoiceItem[] = []
   for (const l of lines) {
-    if (l.revealS > t || !inVoice(l, unnamed(l))) continue
+    if (!inVoice(l, unnamed(l))) continue
     const phrase = l.plantilla === 'breakaway_formed' ? (extras.present?.(l) ?? null) : null
     if (phrase !== null) {
       out.push({ k: 'text', revealS: l.revealS, km: l.km, text: phrase })
@@ -176,11 +228,11 @@ export function voiceItemsOf(
     }
     out.push({ k: 'entry', revealS: l.revealS, km: l.km, e: l })
     const namesAt = l.revealS + (extras.namesDelayS ?? 0)
-    if (l.plantilla === 'crash' && l.protagonists.length > 0 && namesAt <= t)
+    if (l.plantilla === 'crash' && l.protagonists.length > 0)
       out.push({ k: 'entry', revealS: namesAt, km: l.km, e: { ...l, plantilla: 'crash_names' } })
   }
   for (const x of extras.state ?? [])
-    if (x.revealS <= t) out.push({ k: 'text', revealS: x.revealS, km: x.km, text: x.text })
+    out.push({ k: 'text', revealS: x.revealS, km: x.km, text: x.text })
   // estable: a igual hora, la línea de la API antes que la de estado
   return out
     .map((x, i) => ({ x, i }))

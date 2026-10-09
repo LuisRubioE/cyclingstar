@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { ChronicleRider, Instant, LiveLine } from '@cyclingstar/shared'
 import { instantOf } from '../components/broadcast/__fixtures__/screen'
 import { linesOf, mainNoun } from './stageJournal'
-import { GAP_TREND_INIT, gapTrendStep, inVoice, voiceItemsOf } from './voice'
+import { GAP_TREND_INIT, type VoiceItem, gapTrendStep, inVoice, voiceItemsOf } from './voice'
 
 /**
  * LO QUE LA VOZ CALLA PORQUE YA LO DICE EL ESTADO (docs/retransmision.md §12.2; D-43, punto 5; 12-m).
@@ -124,6 +124,66 @@ describe('voiceItemsOf · la voz hasta t, con lo que pone la web (§12.5)', () =
       [120, 'attack_go'],
     ])
     expect(voiceItemsOf(lines, 114, all, { state, namesDelayS: 15 })).toHaveLength(2)
+  })
+
+  /**
+   * LO DICHO HASTA t, SIN REHACERLO A CADA PINTURA (10b, los arreglos; §18.5). La voz se pinta a
+   * `overlayHz` y cada pintura recorría y ordenaba toda la voz de la etapa y pedía la frase de cada fuga:
+   * lo dicho hasta t es el principio de lo dicho en toda la línea servida, por hora, y se guarda mientras
+   * no cambien sus líneas ni lo demás que lo decide.
+   */
+  it('a cualquier hora, lo mismo que contarlo de nuevo; la frase de cada fuga se pide una vez por línea', () => {
+    const plantillas = ['attack_go', 'crash', 'breakaway_formed', 'rider_sits_up', 'front_group']
+    const lines = Array.from({ length: 120 }, (_, i) =>
+      line(plantillas[i % plantillas.length]!, 100 + 7 * i + (i % 3), [`r${i % 9}`]),
+    )
+    const state = [10, 300, 301, 650].map((revealS) => ({
+      revealS,
+      km: 1,
+      text: `estado ${revealS}`,
+    }))
+    const unnamed = (l: LiveLine) => (id: string) => id !== 'r4' || l.revealS > 500
+    const asked = new Map<LiveLine, number>()
+    const present = (l: LiveLine): string | null => {
+      asked.set(l, (asked.get(l) ?? 0) + 1)
+      return l.revealS % 2 === 0 ? `fuga ${l.revealS}` : null
+    }
+    /** Lo de antes del 10b: contar y ordenar lo dicho hasta t. */
+    const counted = (t: number) => {
+      const out: { revealS: number; key: string }[] = []
+      for (const l of lines) {
+        if (l.revealS > t || !inVoice(l, unnamed(l))) continue
+        const phrase = l.plantilla === 'breakaway_formed' ? (present(l) ?? null) : null
+        if (phrase !== null) out.push({ revealS: l.revealS, key: phrase })
+        else {
+          out.push({ revealS: l.revealS, key: `${l.plantilla}@${l.revealS}` })
+          if (l.plantilla === 'crash' && l.revealS + 15 <= t)
+            out.push({ revealS: l.revealS + 15, key: `crash_names@${l.revealS}` })
+        }
+      }
+      for (const x of state) if (x.revealS <= t) out.push({ revealS: x.revealS, key: x.text })
+      return out
+        .map((x, i) => ({ x, i }))
+        .sort((a, b) => a.x.revealS - b.x.revealS || a.i - b.i)
+        .map(({ x }) => x)
+    }
+    const keyOf = (x: VoiceItem) =>
+      x.k === 'text'
+        ? x.text
+        : `${x.e.plantilla}@${x.e.plantilla === 'crash_names' ? x.revealS - 15 : x.revealS}`
+    const ts = [0, 10, 99, 100, 101, 300, 300.5, 301, 455, 500, 650, 700, 949, 2000]
+    const expected = ts.map((t) => counted(t).map((x) => [x.revealS, x.key]))
+    asked.clear()
+    const got = ts.map((t) =>
+      voiceItemsOf(lines, t, unnamed, { present, state, namesDelayS: 15 }).map((x) => [
+        x.revealS,
+        keyOf(x),
+      ]),
+    )
+    expect(got).toEqual(expected)
+    // la frase de cada fuga, una vez en las catorce pinturas
+    expect([...asked.values()].every((n) => n === 1)).toBe(true)
+    expect(asked.size).toBe(lines.filter((l) => l.plantilla === 'breakaway_formed').length)
   })
 })
 

@@ -3,8 +3,12 @@ import type { ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { ClockNotice } from './ClockNotice'
-import { GroupBar } from './GroupBar'
+import { ChampionMark, Jersey, LeaderJersey } from '../Jersey'
+import { jerseyStyle } from '../visuals'
+import { CueCard } from './CueCard'
+import { GroupBar, sameBar } from './GroupBar'
 import { ProfileStrip } from './ProfileStrip'
+import { WornJerseyIcon } from './WornJerseyIcon'
 import { castOf, headOf, instantOf, leaderWorn, range } from './__fixtures__/screen'
 
 /**
@@ -471,5 +475,53 @@ describe('GroupBar · tu corredor (§6.2, 6-l; 6b)', () => {
   it('con varios, una cuenta por papel: Your team · 1 in front · 2 in the bunch', () => {
     expect(bar([1, 10, 11])).toContain('Your team · 1 in front · 2 in the bunch')
     expect(bar([])).not.toContain('Your')
+  })
+})
+
+/**
+ * LO QUE CAMBIA A `barHz` NO SE PINTA OTRA VEZ A `overlayHz` (10b, los arreglos; §18.5). La pantalla
+ * se pinta a `overlayHz` con la capa fija; la barra, el perfil y sus cursores cambian a `barHz` y el
+ * rótulo con la cola. Pintarlos de nuevo con lo mismo era trabajo de más en cada commit de React, el
+ * que, con el estilo y la maquetación, llenaba las tareas largas de `Highlights`. Lo que se pinta no
+ * cambia (los tests de arriba).
+ */
+describe('la barra, el perfil y el rótulo, sin pintarse otra vez con lo mismo (10b)', () => {
+  const memoType = Symbol.for('react.memo')
+  it('los tres van memorizados, y los maillots de sus filas y sus rótulos también', () => {
+    for (const c of [
+      GroupBar,
+      ProfileStrip,
+      CueCard,
+      WornJerseyIcon,
+      Jersey,
+      LeaderJersey,
+      ChampionMark,
+    ])
+      expect((c as unknown as { $$typeof: symbol }).$$typeof).toBe(memoType)
+  })
+
+  it('el estilo de una equipación se calcula una vez por semilla', () => {
+    expect(jerseyStyle('rq-team-3')).toBe(jerseyStyle('rq-team-3'))
+    expect(jerseyStyle('rq-team-3')).not.toBe(jerseyStyle('rq-team-4'))
+  })
+
+  it('la barra se pinta otra vez si cambia lo que enseña, no por otro onExpand (siempre abre)', () => {
+    const props = {
+      instant: instantOf([{ members: range(0, 10), km: 12, kind: 'peloton' }]),
+      cast: castOf(10),
+      clock: 'exact' as const,
+      expanded: false,
+      onExpand: () => {},
+      keys: ['0'],
+    }
+    expect(sameBar(props, { ...props, onExpand: () => {} })).toBe(true)
+    for (const changed of [
+      { instant: instantOf([{ members: range(0, 10), km: 13, kind: 'peloton' }]) },
+      { cast: castOf(10) },
+      { clock: 'estimated' as const },
+      { expanded: true },
+      { keys: ['0'] },
+    ])
+      expect(sameBar(props, { ...props, ...changed }), Object.keys(changed)[0]).toBe(false)
   })
 })

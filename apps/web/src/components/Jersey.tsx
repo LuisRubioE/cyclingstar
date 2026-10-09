@@ -1,4 +1,5 @@
 import { JERSEY_LABEL, type JerseyKind, type RaceLeaders, jerseyOf } from '@cyclingstar/shared'
+import { memo } from 'react'
 import { Flag } from './Flag'
 import { jerseyStyle } from './visuals'
 
@@ -13,7 +14,7 @@ const TORSO =
  * Maillot procedural (#5): SVG determinista a partir de la semilla del equipo. Sin edición todavía
  * (el editor llegará con los equipos de jugador); por ahora da identidad visual a los equipos NPC.
  */
-export function Jersey({ seed, size = 28 }: { seed: string; size?: number }) {
+export const Jersey = memo(function Jersey({ seed, size = 28 }: { seed: string; size?: number }) {
   const { base, secondary, accent, pattern } = jerseyStyle(seed)
   return (
     <svg
@@ -50,7 +51,7 @@ export function Jersey({ seed, size = 28 }: { seed: string; size?: number }) {
       <path d="M20 8 Q24 12 28 8 L26 6 Q24 8 22 6 Z" fill={accent} opacity="0.85" />
     </svg>
   )
-}
+})
 
 /**
  * EL COLOR Y LA MARCA DE CADA MAILLOT DE LÍDER.
@@ -88,7 +89,7 @@ const DOTS: readonly [number, number][] = [
  * Maillot de líder: la misma silueta que el de equipo, en color plano. Pequeño y alineado con el
  * texto, para que quepa dentro de una frase de la crónica y en una fila de tabla sin desmontarla.
  */
-export function LeaderJersey({
+export const LeaderJersey = memo(function LeaderJersey({
   kind,
   size = 15,
   className = '',
@@ -115,7 +116,7 @@ export function LeaderJersey({
         DOTS.map(([cx, cy]) => <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="3.4" fill={mark} />)}
     </svg>
   )
-}
+})
 
 /** La estrella del pecho del maillot de campeón: una marca de forma que no lleva ningún otro maillot. */
 const STAR =
@@ -131,7 +132,7 @@ const STAR =
  * `role="img"` y el texto del título en `aria-label` y en `<title>`, como `LeaderJersey`. E3 lo
  * sustituye detrás de `WornJerseyIcon` sin tocar el dato.
  */
-export function ChampionMark({
+export const ChampionMark = memo(function ChampionMark({
   country,
   label,
   size = 15,
@@ -164,7 +165,7 @@ export function ChampionMark({
       {country !== null && <Flag code={country} size={Math.max(8, Math.round(size * 0.6))} />}
     </span>
   )
-}
+})
 
 /**
  * El maillot que lleva ESTE corredor, si lleva alguno. Es el atajo que usan todas las tablas: se
