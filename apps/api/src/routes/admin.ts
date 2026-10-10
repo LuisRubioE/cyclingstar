@@ -11,10 +11,11 @@ import {
   listUsersForAdmin,
   removeBlocked,
   setUserPremium,
+  teamsOfTheDay,
   updateUserAsAdmin,
   worldHorizon,
 } from '@cyclingstar/db'
-import { checkReplay } from '@cyclingstar/engine'
+import { type StageInput, checkReplay } from '@cyclingstar/engine'
 import { currentSeason } from '@cyclingstar/shared'
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
@@ -251,8 +252,10 @@ export const adminRoutes: FastifyPluginAsync<AdminRouteContext> = async (app, ct
       // Una etapa que no se ha corrido no tiene snapshot: es un 404, no una respuesta vacía.
       if (!snapshot) return notFound(reply)
       // Dorsal, nombre y equipo NO los sabe el motor y no debe saberlos: se cruzan aquí, con la
-      // misma consulta que ya usan el journal y el camino `--db` de la radio.
-      const riders = await getRaceRiderIdentities(db, raceKey)
+      // misma consulta que ya usan el journal y el camino `--db` de la radio, y el equipo del día, el
+      // de la entrada de la etapa, como el journal (E2, §12.7; paso 12).
+      const input = snapshot.input as StageInput
+      const riders = await getRaceRiderIdentities(db, raceKey, teamsOfTheDay(input.riders))
       return {
         ok: true,
         raceKey,

@@ -336,6 +336,7 @@ export function StageWatch({
               quiet={tt === null && isQuietFinal(w.overlay.toGoKm)}
               unnamed={unnamed}
               extras={{ present, state: w.trend, namesDelayS: w.namesDelayS }}
+              rev={head.tplRev}
             />
           </div>
         </div>

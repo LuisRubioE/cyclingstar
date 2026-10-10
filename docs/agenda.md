@@ -118,7 +118,7 @@ de plazos.**
 
 ### 3.1 El esquema de las noticias: sigue siendo un defecto, ya no es una hemorragia
 
-Lo medido no cambia. La **crónica** guarda sucesos (`stages.radio`, `jsonb`, con `plantilla`,
+Lo medido no cambia. La **crónica** guarda sucesos (`stage_snapshots.events`, `jsonb`, con `plantilla`,
 `protagonistas` y `datos`) y quien los redacta es la web (`narration.ts` y `stageJournal.ts`), así
 que es traducible por construcción y hasta retroactivamente. Las **noticias** hacen lo contrario:
 `emitNews` llama a `renderNews(kind, seed, data)` al ESCRIBIR y la tabla `news` solo guarda `kind` y

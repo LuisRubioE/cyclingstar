@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
 import {
   type NameResolver,
@@ -227,6 +228,37 @@ describe('shared: el titular se redacta al leer desde sus datos (B4)', () => {
     for (const kind of KINDS) {
       const variants: readonly Variant<never>[] = NEWS_VARIANTS[kind]
       expect(variants.map((v) => v.since)).toEqual([0])
+    }
+  })
+})
+
+/**
+ * B5 · LA ESTABILIDAD, LA PARTE DE LAS NOTICIAS (docs/retransmision.md §12.7 y §16.4; E2, paso 12). El
+ * `sha256` de los trece goldens tal como se leen, con la revisión 0 y la semilla de los goldens: se sella
+ * UNA vez, en el paso 12, y desde entonces solo cambia con un re-sellado deliberado, con la causa escrita
+ * aquí. La otra mitad, las líneas de voz y de acta de las seis etapas congeladas, está en
+ * `apps/web/src/domain/stageJournal.corpus.test.ts`. La semilla de un titular ya era neutra desde el 1a
+ * (`news:<kind>:<seed>`, sin nombres) y cada kind tiene una sola redacción, así que la semilla neutra del
+ * paso 12 no cambia ninguno de los trece.
+ */
+const B5_NEWS_SHA256 = '32677995ab32d6d885e7cac3b6e94dfdfa7e1c8e6e5d2914431ee353440e3f47'
+
+describe('B5 · las noticias ya escritas se leen igual (§12.7, §16.4)', () => {
+  it('el sha256 de los trece goldens, como se leen', () => {
+    const lines = GOLDENS.map(({ payload }) => `${payload.kind} ${render(payload)}`)
+    expect(createHash('sha256').update(lines.join('\n')).digest('hex')).toBe(B5_NEWS_SHA256)
+  })
+
+  it('una redacción nueva con un since nuevo no mueve ninguno: solo la puede elegir su revisión', () => {
+    for (const { payload } of GOLDENS) {
+      const today = NEWS_VARIANTS[payload.kind] as readonly Variant<NewsPayload>[]
+      const tomorrow = [
+        ...today,
+        { since: TEMPLATE_REV + 1, render: () => 'una redacción nueva' },
+      ] satisfies Variant<NewsPayload>[]
+      // la semilla con que renderNews elige la redacción de un titular
+      const seed = `news:${payload.kind}:semilla`
+      expect(pickVariant(seed, tomorrow, TEMPLATE_REV).render(payload, SHORT)).toBe(render(payload))
     }
   })
 })

@@ -236,7 +236,7 @@ export function chronicleNames(
 
 /**
  * Un corredor que la crónica no sabe resolver. Pasa de verdad: los eventos están CONGELADOS en
- * `stage_runs.events` y se renderizan al vuelo, así que quien ya no esté ni en el roster ni en los
+ * `stage_snapshots.events` y se renderizan al vuelo, así que quien ya no esté ni en el roster ni en los
  * resultados llega aquí como un id suelto. No se inventa nada —se enseña el id, que al menos es
  * estable— y los tres campos de identidad se quedan vacíos: sin dorsal y sin bandera.
  */

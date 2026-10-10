@@ -194,7 +194,9 @@ function LastRaceCard() {
       : data.timeGapToWinnerS > 0
         ? `+${Math.floor(data.timeGapToWinnerS / 60)}'${String(data.timeGapToWinnerS % 60).padStart(2, '0')}"`
         : 'same time'
-  const highlight = data.personalEvents[data.personalEvents.length - 1] ?? null
+  // el último momento del corredor en el acta (E2, §12.9, 12-k; paso 12), no la etapa re-simulada
+  const moments = data.moments ?? []
+  const highlight = moments[moments.length - 1] ?? null
 
   return (
     <Panel

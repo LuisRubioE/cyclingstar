@@ -22,6 +22,7 @@ export function VoiceTicker({
   quiet = false,
   unnamed,
   extras,
+  rev = 0,
 }: {
   lines: readonly LiveLine[]
   t: number
@@ -32,6 +33,8 @@ export function VoiceTicker({
   /** por línea, el corredor no estaba nombrado antes de ella (`inVoice`, `unnamedBefore`) */
   unnamed: (line: LiveLine) => (riderId: string) => boolean
   extras?: VoiceExtras
+  /** la revisión de plantillas de la etapa (`BroadcastHead.tplRev`, §12.7; paso 12): la que elige cada redacción */
+  rev?: number
 }) {
   const said = voiceItemsOf(lines, t, unnamed, extras)
   const last = quiet ? undefined : said[said.length - 1]
@@ -40,7 +43,7 @@ export function VoiceTicker({
   return (
     <div className="space-y-2">
       <p className="min-h-[1.25rem] truncate text-sm text-slate-700" aria-live="off">
-        {last !== undefined && <Item item={last} />}
+        {last !== undefined && <Item item={last} rev={rev} />}
       </p>
       {open && (
         <ol className="max-h-72 space-y-1.5 overflow-y-auto border-t border-slate-100 pt-2">
@@ -50,7 +53,7 @@ export function VoiceTicker({
                 km {l.km}
               </span>
               <span className="text-slate-700">
-                <Item item={l} />
+                <Item item={l} rev={rev} />
               </span>
             </li>
           ))}
@@ -60,15 +63,15 @@ export function VoiceTicker({
   )
 }
 
-function Item({ item }: { item: VoiceItem }) {
-  return item.k === 'text' ? <>{item.text}</> : <Sentence e={item.e} />
+function Item({ item, rev }: { item: VoiceItem; rev: number }) {
+  return item.k === 'text' ? <>{item.text}</> : <Sentence e={item.e} rev={rev} />
 }
 
 /** Una frase de la voz con sus banderas y sus maillots, como en el acta (`StageStory`). */
-function Sentence({ e }: { e: ChronicleEntry }) {
+function Sentence({ e, rev }: { e: ChronicleEntry; rev: number }) {
   return (
     <>
-      {chronicleParts(e).map((part, j) =>
+      {chronicleParts('en', e, rev).map((part, j) =>
         'flag' in part ? (
           <Flag key={j} code={part.flag} size={12} className="mx-0.5 align-baseline" />
         ) : 'jersey' in part ? (

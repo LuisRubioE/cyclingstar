@@ -603,29 +603,60 @@ y cuánto queda**. De ahí salen los datos obligatorios del parte de ventaja (`t
 protagonistas cuando la cabeza es pequeña, `gapS`, `chaseKind` y `toGo`. Lo vigila
 `sim/coherence.test.ts` sobre los eventos crudos del motor.
 
-**El vocabulario de grupos (v27).** En la carretera hay TRES cosas, y por tanto hay tres nombres:
+**El vocabulario de grupos (v27; reescrito por la retransmisión, E2, con DD-04).** En la carretera
+hay CUATRO papeles, y cada uno tiene un solo nombre, el mismo en la barra de la retransmisión, la
+`Race Radio`, la voz y el acta (`GROUP_WORDS`, `packages/shared/src/broadcast/names.ts`; D-18 de
+`docs/retransmision.md` §6.3). La barra lo escribe con mayúscula y sin artículo; la voz y el acta,
+en minúscula y con él:
 
-| Nombre            | Qué es                                                                    |
-| ----------------- | ------------------------------------------------------------------------- |
-| `the lead group`  | los que van delante, sean la fuga del día o un trozo de pelotón cribado    |
-| `the chase group` | el grupo que persigue a los de delante, sea quien sea                      |
-| `the bunch`       | el grueso de la carrera, que ya no pelea por la etapa                      |
+| Nombre            | En la barra   | Qué es                                                             |
+| ----------------- | ------------- | ------------------------------------------------------------------ |
+| `the lead group`  | `Lead group`  | el primero de la carretera, si no es el grueso                     |
+| `the chase group` | `Chase group` | el que persigue a los de delante, sea quien sea                    |
+| `the bunch`       | `Bunch`       | el grueso: el grupo del pelotón con al menos 2/3 de los que corren |
+| `the gruppetto`   | `Gruppetto`   | lo que va detrás del grueso y no persigue                          |
 
-Con tres corredores o menos, el grupo se nombra por sus corredores. `chaseKind` (`peloton` / `caza`)
-es lo que reparte los dos últimos: mientras el grupo que persigue ES el grueso, se le llama `the
-bunch`; en cuanto una criba los separa, el que persigue es `the chase group` y `the bunch` queda para
-lo que ya no decide.
+`the lead group` es la fuga del día o un trozo de pelotón cribado. `the chase group` va entre la
+cabeza y el grueso; sin grueso, es todo lo que va del segundo al grupo del pelotón, y también el trozo
+de atrás de una criba contra el que el motor mide su boquete (`chaseReferenceIndex`). `the gruppetto`
+va detrás del grueso; sin grueso, detrás del grupo del pelotón y sin ser el que persigue.
 
-Se retiran «the break», «the peloton», «the favourites», «the sprinters' teams», «the fast men», «the
-lead-out trains», «the chasers», «the escapees» y «the front group». Los dos motivos, medidos:
-Race Andalucía e1 exponía al lector a **quince** nombres de grupo distintos en una sola etapa, y —el
-que de verdad rompe la lectura— desde una criba «the bunch», «the chase» y «the favourites» dejan de
-ser sinónimos y pasan a ser grupos DISTINTOS. Un papel dentro de un grupo (los sprinters, los
-favoritos) puede seguir nombrándose, pero nunca como sujeto de un grupo.
+Y el grupo de un maillot de líder se nombra por su maillot y no por su papel cuando persigue o va
+descolgado (con más de tres corredores y un líder dentro; si hay dos, manda la general, luego los
+puntos y luego la montaña): `the race leader’s group`, `the points leader’s group` y `the mountains
+leader’s group` (`Race leader’s group`, `Points leader’s group` y `Mountains leader’s group` en la
+barra). Son SIETE nombres (DD-04), y nunca dos para el mismo grupo en la misma pantalla: la voz dice
+la palabra que la barra enseña a la hora de la línea (la API pone el papel y el maillot del grupo en
+los datos de la línea: `mainRole`, `groupRole`, `mainJersey` y `groupJersey`); sin esa anotación (el
+acta de quien no tiene `Watch` encendido, una etapa sin línea grabada), `the bunch`. Un solo grupo en
+carretera es `the bunch` (`Bunch together` en la barra). Con tres corredores o menos, el grupo se
+nombra por sus corredores, sea cual sea su papel.
+
+**Qué grupo es el grueso lo decide el corte de dos tercios**, sobre el instante de la retransmisión
+(`groupRoleOf`, con `BROADCAST.bunchMinShare`, atada por test a `PELOTON_MIN_SHARE` del motor), y no
+`chaseKind` (`peloton` / `caza`), con el que el motor sigue diciendo contra quién mide la ventaja en
+sus partes de cabeza (`time_gap` y `front_group`, que van al acta y no a la voz). Un grupo de 65 de
+124 que lleva el título de pelotón no es el grueso: persigue, y se llama `the chase group`. El papel
+tiene una histéresis de 1 km (`BROADCAST.roleHysteresisKm`), para que la barra no parpadee cuando dos
+grupos se cruzan el papel en un par de bloques.
+
+La palabra del grueso es `Bunch`, la de esta especificación y la del journal, y no `Peloton`, la de
+la tele y la de la radio de antes: es del dueño (DD-04), y cambiarla es cambiar una entrada de
+`GROUP_WORDS` y la tabla del motor de abajo. Se retiran «the break», «the peloton», «the favourites»,
+«the sprinters' teams», «the fast men», «the lead-out trains», «the chasers», «the escapees» y «the
+front group», y en la radio `Peloton`, `No man’s land` (el suelto se nombra por su nombre), `2nd
+group` y `3rd group` (el número de carretera no es identidad), `Group` y la grafía `Grupetto`. Los
+dos motivos, medidos: Race Andalucía e1 exponía al lector a **quince** nombres de grupo distintos en
+una sola etapa, y —el que de verdad rompe la lectura— desde una criba «the bunch», «the chase» y
+«the favourites» dejan de ser sinónimos y pasan a ser grupos DISTINTOS. Un papel dentro de un grupo
+(los sprinters, los favoritos) puede seguir nombrándose, pero nunca como sujeto de un grupo.
 
 La tabla de qué nombres puede imprimir cada plantilla vive en `sim/coherence.ts` (`GROUP_NOUNS`),
-porque es quien cuenta cuántos ve un lector por etapa; `stageJournal.test.ts` comprueba que ninguna
-frase imprima uno que no tenga declarado, y así la tabla y el texto no se pueden separar.
+porque es quien cuenta cuántos ve un lector por etapa: desde E2, seis como mucho, los tres papeles
+del grupo del título y los tres del grupo del maillot (`the gruppetto` solo lo dice una caída, que
+sintetiza la retransmisión). `stageJournal.test.ts` comprueba que ninguna frase imprima uno que no
+tenga declarado, también con los cuatro papeles y los tres maillots que anota la API, y así la tabla
+y el texto no se pueden separar.
 
 **Carreras de un día.** Una prueba de un día NO lleva bonificaciones de tiempo: no hay general que
 construir, la etapa ES el resultado. El motor es puro y no sabe de calendarios, así que las reparte

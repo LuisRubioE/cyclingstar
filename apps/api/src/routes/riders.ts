@@ -69,8 +69,9 @@ import {
   putTrainingPlanSchema,
 } from '@cyclingstar/shared'
 import { z } from 'zod'
+import type { ChronicleEntry } from '../chronicle.js'
 import { badRequest, notFound, sendError, unauthorized } from '../http.js'
-import { preStageInfoOf, stageContextOf } from '../stageReplay.js'
+import { preStageInfoOf, riderMomentsOf, stageContextOf } from '../stageReplay.js'
 import type { RoutePlugin } from './context.js'
 import { parseRaceId, parseRaceKey, parseUuid } from './params.js'
 
@@ -249,9 +250,28 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
     return ctx === null ? null : preStageInfoOf(ctx)
   }
 
+  /**
+   * LOS MOMENTOS DEL CORREDOR EN LA ETAPA DEL INFORME (E2, docs/retransmision.md §12.9, 12-k; paso 12):
+   * las líneas del acta en que es protagonista o destinatario, de los sucesos guardados de esa etapa y con
+   * la identidad del día (`riderMomentsOf`). Se arman aquí y no en `getRiderLastRaceReport`, porque
+   * `packages/db` no puede llamar a `buildChronicle`, que vive en `apps/api`. Sin sucesos guardados, el
+   * informe va sin la clave.
+   */
+  async function withMoments(
+    h: Horizon,
+    riderId: string,
+    report: RiderRaceReport,
+  ): Promise<RiderRaceReport & { readonly moments?: readonly ChronicleEntry[] }> {
+    const key = parseRaceKey(report.raceId)
+    const ctx =
+      key === null ? null : await stageContextOf(db, key.raceId, report.stageDay, key.season)
+    const moments = ctx === null ? null : await riderMomentsOf(db, h, ctx, riderId)
+    return moments === null ? report : { ...report, moments }
+  }
+
   // Informe personal de la última carrera: qué ordené vs qué pasó (backlog extra). Sobre la última
-  // etapa CONOCIDA (P y G; E2, docs/retransmision.md §12.9, D-47; paso 8a), y con `ready` si la última
-  // corrida está velada. Sin velo, la respuesta de siempre: sin la clave.
+  // etapa CONOCIDA (P y G; E2, docs/retransmision.md §12.9, D-47; paso 8a), con los momentos del
+  // corredor (12-k; paso 12) y con `ready` si la última corrida está velada. Sin velo, sin esa clave.
   app.get(
     '/api/riders/me/last-race',
     { config: { spoiler: 'horizon', veil: { by: ['P', 'G'] } } },
@@ -261,8 +281,9 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
       const rider = await getRiderForUser(db, userId)
       if (!rider) return { report: null }
       const h = await request.horizon()
-      const report = await getRiderLastRaceReport(db, h, rider.id)
-      const ready = await readyOf(h, rider.id, report)
+      const known = await getRiderLastRaceReport(db, h, rider.id)
+      const report = known === null ? null : await withMoments(h, rider.id, known)
+      const ready = await readyOf(h, rider.id, known)
       return ready === null ? { report } : { report, ready }
     },
   )

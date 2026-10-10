@@ -81,14 +81,14 @@ describe('linesOf · la caída y luego sus nombres (§12.5, D-13)', () => {
   })
 
   it('dos frases para crash, sin nombres la primera; una para lo demás; ninguna para lo que no tiene frase', () => {
-    const [crash, names] = linesOf(e('crash', [ana, bea]))
+    const [crash, names] = linesOf('en', e('crash', [ana, bea]), 0)
     expect(crash).toMatch(/[Cc]rash|Riders down/)
     expect(crash).not.toContain('Ana')
     expect(names).toBe('4 Ana (Team Sol) and 9 Bea (Team Luna) are on the ground.')
-    expect(linesOf(e('attack_reeled', [ana]))).toHaveLength(1)
-    expect(linesOf(e('meteorito', [ana]))).toEqual([])
+    expect(linesOf('en', e('attack_reeled', [ana]), 0)).toHaveLength(1)
+    expect(linesOf('en', e('meteorito', [ana]), 0)).toEqual([])
     // una caída sin caídos conocidos: solo la primera
-    expect(linesOf(e('crash', []))).toHaveLength(1)
+    expect(linesOf('en', e('crash', []), 0)).toHaveLength(1)
   })
 })
 

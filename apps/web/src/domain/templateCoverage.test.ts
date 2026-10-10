@@ -210,16 +210,20 @@ describe('B7 · toda plantilla del motor tiene frase, rótulo y regla de revelad
   it.each([...ENGINE_TEMPLATES, 'crash'])(
     '%s: una frase, nunca vacía ni la clave cruda (D-44)',
     (p) => {
-      const line = chronicleLine({
-        km: 50,
-        tS: 3000,
-        plantilla: p,
-        protagonists: [
-          { id: null, name: 'Ana Ruiz', bib: 11, team: 'Team Sol', country: null },
-          { id: null, name: 'Bea Roca', bib: 12, team: 'Team Luna', country: null },
-        ],
-        datos: {},
-      })
+      const line = chronicleLine(
+        'en',
+        {
+          km: 50,
+          tS: 3000,
+          plantilla: p,
+          protagonists: [
+            { id: null, name: 'Ana Ruiz', bib: 11, team: 'Team Sol', country: null },
+            { id: null, name: 'Bea Roca', bib: 12, team: 'Team Luna', country: null },
+          ],
+          datos: {},
+        },
+        0,
+      )
       expect(line).not.toBe('')
       expect(line.startsWith(`${p}:`)).toBe(false)
     },

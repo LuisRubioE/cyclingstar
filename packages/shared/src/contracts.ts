@@ -1304,7 +1304,7 @@ export type StageClassEntry = PointsEntry
  * cada uno.
  *
  * Los tres campos que no son el nombre son NULABLES a propósito: los eventos de las etapas ya
- * corridas están congelados en `stage_runs.events` y se resuelven al vuelo contra el roster de hoy.
+ * corridas están congelados en `stage_snapshots.events` y se resuelven al vuelo contra el roster de hoy.
  * Un corredor que ya no está en él, un roster antiguo sin dorsales o un país vacío tienen que
  * degradar (sin dorsal, sin bandera), nunca romper la página.
  */
@@ -1665,8 +1665,19 @@ export const riderRaceReportSchema = z.object({
   komPoints: z.number(),
   bonusS: z.number(),
   winnerName: z.string().nullable(),
+  /**
+   * Los momentos del corredor en la etapa re-simulada, solo `{ km, plantilla }`. Desde el paso 12 de E2
+   * la web pinta `moments` y deja de pintar esto; se sigue mandando mientras haya una web que lo lea.
+   */
   personalEvents: z.array(raceReportEventSchema),
   story: z.array(raceReportEventSchema),
+  /**
+   * LOS MOMENTOS DEL CORREDOR (E2, docs/retransmision.md §12.9 y §14.2, 12-k; paso 12): las líneas del
+   * acta de esa etapa (sus sucesos guardados, no una re-simulación) en que es protagonista o destinatario
+   * (`mentions`), en el orden del acta, con la identidad del día. Opcional: falta en una etapa que no
+   * guardó sus sucesos, y la web de ayer lo descarta (strip).
+   */
+  moments: z.array(chronicleEntrySchema).optional(),
 })
 export type RiderRaceReport = z.infer<typeof riderRaceReportSchema>
 /**

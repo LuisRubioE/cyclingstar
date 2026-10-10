@@ -1,6 +1,6 @@
 import type { RiderRaceReport } from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
-import { narrate, personalNarration, raceVerdict } from './narration'
+import { raceVerdict } from './narration'
 
 const report = (over: Partial<RiderRaceReport> = {}): RiderRaceReport => ({
   raceName: 'Le Tour',
@@ -20,24 +20,15 @@ const report = (over: Partial<RiderRaceReport> = {}): RiderRaceReport => ({
   ...over,
 })
 
-describe('web: narración de la crónica', () => {
-  it('es determinista: misma entrada, misma frase', () => {
-    const a = narrate('stage_win', ['Ana Ruiz'], 7)
-    const b = narrate('stage_win', ['Ana Ruiz'], 7)
-    expect(a).toBe(b)
-    expect(a).toContain('Ana Ruiz')
-  })
-
-  it('devuelve la clave del evento si no hay plantilla (no inventa texto)', () => {
-    expect(narrate('evento_desconocido', ['Ana'])).toBe('evento_desconocido')
-  })
-
-  it('narra en segunda persona los momentos del propio corredor', () => {
-    expect(personalNarration('stage_win')).toContain('You won the stage')
-    expect(personalNarration('peloton_selection')).toContain('when the group split')
-    expect(personalNarration('lo_que_sea')).toBe('lo_que_sea')
-  })
-
+/*
+ * RE-SELLADO EN E2, PASO 12 (docs/retransmision.md §12.9, D-47), a propósito: se van los tres casos de
+ * `narrate()` y `personalNarration`, que se borran con ellos. `narrate()` no tenía llamadas en
+ * producción, y los momentos del corredor en `Your last race` son desde el 12 las líneas del acta
+ * (`moments`, 12-k; `apps/api/src/routes/lastRace.test.ts`). Se queda el de `raceVerdict`, la única
+ * prueba de una función que la tarjeta y la portada siguen pintando, con la misma lógica: desde el 8a
+ * sobre la última etapa CONOCIDA.
+ */
+describe('web: el veredicto de la última carrera', () => {
   it('el veredicto respeta el orden de prioridades del informe', () => {
     expect(raceVerdict(report({ position: 1 }))).toContain('took the win')
     expect(raceVerdict(report({ position: 3 }))).toContain('podium')
