@@ -156,9 +156,22 @@ mundo (la reparación es idempotente). La comparación ignora mayúsculas y espa
   También avanza el mundo en su proceso (`autoTick`), salvo con `AUTO_TICK=off`, que se pone cuando
   el servicio `tick` está en marcha: mientras simula una etapa grande, la web no contesta durante
   segundos (`docs/retransmision.md` 18-k). Con `off`, el mundo avanza solo cuando corre el cron de
-  `tick` (`railway.tick.json`, cada 6 h): vale con `TICK_INTERVAL_MINUTES` de 360; con días más
-  cortos hay que acortar el cron o dejar `on`. `POST /admin/tick` y `/admin/advance` funcionan igual.
-- Cron del tick: invoca el avance del mundo según `TICK_INTERVAL_MINUTES`.
+  `tick` (`railway.tick.json`, cada 5 minutos). **Antes de ponerlo**, en Railway: que exista el
+  servicio `tick` (sin él, el mundo se para), que su último despliegue sea el mismo commit que el de
+  `web` y que tenga su mismo `TICK_INTERVAL_MINUTES` (con el cron de antes, a horas fijas, el sondeo
+  de `web` llegaba siempre antes, así que un `tick` atrasado o roto no se notaba). Después, que el
+  día siguiente llegue a su hora (la cuenta atrás de la cabecera) y que el panel de administración
+  muestre su fila en `tick_log`. `POST /admin/tick` y `/admin/advance` funcionan igual.
+- Cron del tick: cada 5 minutos avanza los días vencidos según `TICK_INTERVAL_MINUTES`, como el
+  sondeo del auto-tick. Sondea en lugar de esperar a la hora del día nuevo porque esa hora no es
+  fija: sale de `worlds.created_at` (la hora en que nació el mundo, re-anclada tras cada avance
+  manual) y no de las horas del reloj. Con el cron de antes (`0 */6 * * *`) y `AUTO_TICK=off`, cada
+  día llegaría con el desfase entre las dos: 4 h 41 min en el mundo del 2 de octubre de 2026, nacido
+  a las 07:18:31 UTC, con la cabecera en `next update in moments` todo ese rato. Cada pasada sin días
+  pendientes deja su fila `sin días pendientes` en `tick_log`, como el auto-tick, y es un arranque
+  corto del contenedor, que Railway cobra por uso: si pesa en la factura, `*/15 * * * *` también
+  vale (el día llega hasta un cuarto de hora tarde). Railway no baja de 5 minutos ni garantiza el
+  minuto exacto.
 - Las migraciones son aditivas (Drizzle) y se aplican solas al arrancar; no hay pasos manuales. La
   excepción es la 0044, que reinicia el mundo (ver «Migración 0044» más abajo). La 0045 borra los
   datos de la vuelta de prueba (ver «Migración 0045»).

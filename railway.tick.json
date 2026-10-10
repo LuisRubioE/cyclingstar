@@ -6,7 +6,7 @@
   },
   "deploy": {
     "startCommand": "node scripts/migrate.mjs && node apps/api/dist/tick/main.js",
-    "cronSchedule": "0 */6 * * *",
+    "cronSchedule": "*/5 * * * *",
     "restartPolicyType": "NEVER"
   }
 }

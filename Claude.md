@@ -18,7 +18,7 @@
 - pnpm typecheck && pnpm test en verde antes de cerrar cualquier paso.
 
 ## Despliegue
-- Railway: servicio web (API + estaticos) y servicio tick (cron 0 */6 * * *, el proceso termina).
+- Railway: servicio web (API + estaticos) y servicio tick (cron */5 * * * *, el proceso termina).
 - Las migraciones corren al arrancar el servicio, con advisory lock.
 
 ## Estilo de trabajo

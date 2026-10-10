@@ -3,7 +3,7 @@ import { ENGINE_VERSION } from '@cyclingstar/engine'
 import { loadTickEnv } from '../env.js'
 
 /**
- * Punto de arranque del servicio `tick` (cron de Railway cada 6 horas):
+ * Punto de arranque del servicio `tick` (cron de Railway cada 5 minutos, `railway.tick.json`):
  * `node apps/api/dist/tick/main.js`. Corre, procesa los días pendientes y termina (SPEC 12).
  */
 async function main(): Promise<void> {

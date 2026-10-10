@@ -218,7 +218,7 @@ Dos servicios sobre el mismo repositorio, cada uno con su fichero de configuraci
 | Servicio | Config              | Arranque                                                         |
 | -------- | ------------------- | ---------------------------------------------------------------- |
 | `web`    | `railway.json`      | `node apps/api/dist/index.js`; healthcheck en `/health`.         |
-| `tick`   | `railway.tick.json` | Cron `0 */6 * * *`: migra, avanza los días pendientes y termina. |
+| `tick`   | `railway.tick.json` | Cron `*/5 * * * *`: migra, avanza los días pendientes y termina. |
 
 El servicio `web` construye todo (`pnpm build`, incluida la SPA); el servicio `tick` solo compila
 TypeScript (`pnpm exec tsc -b`), porque no sirve estáticos y así sus despliegues son más rápidos.
@@ -243,19 +243,30 @@ apps/api/dist/tick/main.js`: sin ese primer tramo, un cron que arrancase antes q
 
 ### El mundo avanza por dos caminos
 
-Hoy conviven dos mecanismos, ambos idempotentes y protegidos por advisory lock, así que no se
-pisan:
+Conviven dos mecanismos, ambos idempotentes y protegidos por advisory lock, así que no se pisan:
 
 1. **Auto-tick en proceso** — el servicio `web` sondea cada 1-5 minutos y se pone al día según el
    tiempo real transcurrido (`apps/api/src/index.ts`). Por eso `railway.json` fija
-   `sleepApplication: false`: si el proceso duerme, el mundo se para.
-2. **Servicio cron cada 6 h** — `railway.tick.json`, red de seguridad independiente del servicio
-   web.
+   `sleepApplication: false`: si el proceso duerme, el mundo se para. `AUTO_TICK=off` lo apaga.
+2. **Servicio cron cada 5 minutos** — `railway.tick.json`: el mismo sondeo, fuera del proceso de
+   `web`.
 
-Es redundante y confuso. La recomendación (ver informe de la rama `claude/fix-tooling-ci`) es
-quedarse con el auto-tick en proceso y retirar el servicio cron una vez comprobado que el `web` no
-se duerme ni se reinicia en bucle, porque el cron a 6 h se queda corto en cuanto se baja
-`TICK_INTERVAL_MINUTES` para acelerar la alfa. Mientras tanto se mantienen los dos.
+El cron sondea en lugar de esperar a la hora del día nuevo porque esa hora no es fija: un día dura
+`TICK_INTERVAL_MINUTES` contados desde `worlds.created_at`, la hora en que nació el mundo, que
+además se re-ancla tras cada avance manual (`reanchorClock`, `packages/db/src/tick.ts`). El cron de
+antes, `0 */6 * * *`, llevaba ese ritmo a horas fijas y no su fase: con el auto-tick apagado, cada
+día habría llegado con el desfase entre las dos (4 h 41 min en el mundo del 2 de octubre de 2026,
+nacido a las 07:18:31 UTC). Cada pasada sin días pendientes deja su fila en `tick_log`, como el
+auto-tick.
+
+Lo recomendado desde E2 (`docs/retransmision.md` 18-k) es `AUTO_TICK=off` en `web` cuando el
+servicio `tick` existe, despliega el mismo commit que `web` y tiene su mismo
+`TICK_INTERVAL_MINUTES`: simular es síncrono, y una etapa grande deja la web sin contestar de 3 a
+5 s. Con `on` sondean los dos, y cada día lo procesa el que llega primero. Compruébalo antes de
+apagar el auto-tick: con el cron de antes, el sondeo de `web` llegaba siempre antes, así que un
+`tick` atrasado o roto no se notaba. Sustituye a la recomendación de la rama `claude/fix-tooling-ci`
+(retirar el cron, que a 6 h se quedaba corto en cuanto se baja `TICK_INTERVAL_MINUTES`): cada 5
+minutos, el día llega como mucho unos minutos tarde, sea cual sea su duración.
 
 ### Healthcheck
 
