@@ -50,7 +50,7 @@ Juego persistente de navegador por ticks. Cada usuario encarna a un ciclista pro
 
 ## 2. El tiempo del mundo
 
-- 1 día de juego = 6 horas reales (tick con cron `0 */6 * * *`). 4 días de juego por día real.
+- 1 día de juego = 6 horas reales (el cron del tick sondea cada 5 minutos y procesa los días vencidos). 4 días de juego por día real.
 - Temporada = 364 días de juego (unos 91 días reales). El ciclista cumple un año por temporada.
 - Días 1 a 14 pretemporada; 15 a 290 competición; 291 a 364 receso y mercado.
 - El tick es idempotente, con `pg_advisory_lock`, y procesa en orden los días pendientes si algún cron falló (una transacción por día de juego).
@@ -996,7 +996,7 @@ Orden del tick por día pendiente (una transacción): salud y enfermedad, viajes
 ## 12. Infraestructura (Railway, plan Hobby existente)
 
 - Servicio `web`: monolito Fastify que sirve API y estáticos de Vite.
-- Servicio `tick`: mismo repositorio, arranque `node dist/scripts/tick.js`, Cron Schedule `0 */6 * * *`; corre, procesa y termina.
+- Servicio `tick`: mismo repositorio, arranque `node scripts/migrate.mjs && node apps/api/dist/tick/main.js`, Cron Schedule `*/5 * * * *` (sondea, porque la hora del día nuevo sale de la creación del mundo y no del reloj); corre, procesa y termina.
 - Postgres de Railway en el mismo proyecto. Con el crédito incluido del plan Hobby, el consumo esperado del conjunto queda dentro de los 5 dólares mensuales ya contratados.
 - Endpoint `POST /admin/tick` protegido para desarrollo y recuperación manual.
 
