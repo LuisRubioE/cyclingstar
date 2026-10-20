@@ -35,6 +35,38 @@ convierte en `docs/visual.md`. Tamaño: **500 a 700 líneas**. Modelo de densida
 Una lente decide qué se mira primero y qué pesa más, no qué se deja fuera: las cuatro cubren las
 dieciséis secciones de abajo.
 
+## Lo que los mapas han cambiado del encargo, y que ninguna propuesta puede pasar por alto
+
+1. **El examen no es solo de presentación.** La vista previa cuenta cada día de carrera como
+   descanso activo y se equivoca en las vueltas desde la segunda etapa (mapa 02 §3); el panel de los 28
+   días no pinta lo que sale de los bloques (mapa 02 §1); y dos planes solapados hacen que la pantalla
+   lea uno y el tick entrene otro (mapa 02 §2). Cada propuesta decide qué de esto arregla E3 (en la API
+   y en la web, no en el motor) y qué deja anotado para otra línea, y lo dice.
+2. **La frontera se rompe por los números, no por los ocultos**: los diez atributos internos de
+   cualquier corredor viajan con decimales en `/api/riders/:id`, y `tsb`, `ctl` y `atl` en la vista
+   previa; los contratos son _strip_ y solo validan en la web (mapa 02 §8 y §9).
+3. **La semilla del maillot es la identidad del equipo NPC**: cambiarla, como hace el selector de hoy,
+   hace que el tick siguiente cree un clon (mapa 03 §2.2). El editor no puede guardar el dibujo en esa
+   semilla.
+4. **Ya hay gemelos en visión normal** (mapa 03 §3), el maillot se ve a 13 px en `Watch` (mapa 03
+   §1.2) y los líderes comparten color y figura con las equipaciones (mapa 03 §4.1).
+5. **El dorsal del equipo líder no existe**: el dueño lo mandó quitar el 15 de agosto de 2026 porque
+   en su móvil se leía «Ill», aunque `docs/navegacion.md` §7.4 y `docs/retransmision.md` lo den por
+   pintado (mapa 04, contradicción 1). La propuesta decide si vuelve y cómo, sin darlo por hecho.
+6. **El dueño no ha hablado del aspecto** (mapa 04 §2): las decisiones de gusto no tienen precedente
+   suyo y van a la página de opciones. Su única palabra de gusto es la del arcoíris (`00-encargo.md`
+   §7.1), y a 13 px cada una de cinco bandas mide 0,54 px (mapa 03 §7).
+7. **La escala de estrellas del SPEC está vieja**: manda el código, medias estrellas cada diez puntos
+   (`packages/shared/src/rider.ts` l. 218-240; mapa 04, contradicción 2).
+8. **El estilo de hoy fue una decisión** (el PR #105, «UI overhaul (manager style)», mapa 04 §2), para
+   el público de Hattrick y de Pro Cycling Manager: conservarlo o romperlo se decide con motivo.
+9. **Ninguna pantalla desborda a 360 px** (mapa 05 §2): el problema del teléfono es lo recortado
+   (`/team/calendar`), la letra de 8 a 11 px, los objetivos de 13 a 20 px, el contraste, la barra
+   inferior con cinco destinos y lo largo de las páginas (`/me/training` mide casi nueve pantallas).
+10. **Sin red, la web se cae** (mapa 05 §13), y desde iOS 26 cualquier web de la pantalla de inicio se
+    abre como app (mapa 05 §14).
+11. **El peso**: las banderas de `flag-icons` son el 91 % de la CSS comprimida (mapa 01 §8).
+
 ## Estructura obligatoria (misma numeración en las cuatro, para que los jueces crucen)
 
 0. **Resumen** (25 a 35 l.): la idea central, en qué se distingue de lo obvio, qué resuelve y qué
