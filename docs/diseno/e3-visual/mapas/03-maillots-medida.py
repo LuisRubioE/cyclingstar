@@ -7,7 +7,8 @@ Qué mide, sobre el código de 58c14da y un mundo recién creado con el código 
      matriz de ΔE00 de sus 14 colores en cinco vistas (normal, protanopía, deuteranopía, tritanopía
      y grises) y los pares por debajo de 10 y de 20.
   2. La equipación de cada equipo del mundo, con `jerseyStyle` portado aquí (visuals.ts l. 7-83) y
-     cotejado, equipo a equipo, con el `jerseyStyle` de la web, que el generador transpila y ejecuta.
+     cotejado, equipo a equipo, con el `jerseyStyle` de la web, que el generador transpila y ejecuta;
+     y cuántos equipos cambian de aspecto si la paleta gana o pierde un color o un patrón.
   3. Los pelotones: en cada carrera de la temporada 0 que no es campeonato nacional, los pares de
      equipos INDISTINGUIBLES (mismo patrón y ΔE00 de su color base por debajo de 10) en cada vista.
   4. Los líderes (`LEADER_JERSEY`, apps/web/src/components/Jersey.tsx l. 73-77): el trío, sus marcas
@@ -32,10 +33,11 @@ de 0,25 a 2,3 en los maillots del juego (a 13 px, de 1,2 a 2,3) y de hasta 4,8 e
 
 Uso (el mundo lo genera el código del juego, en Node, desde un clon compilado de 58c14da):
 
-  python3 03-maillots-medida.py --generador <dir>/mundo.mjs        # escribe el generador
-  node <dir>/mundo.mjs --root <clon> --out <dir>                    # deja <dir>/mundo03.json
-  <scratchpad>/venv/bin/python -I 03-maillots-medida.py --repo <repositorio> \\
-      --mundo <dir>/mundo03.json [--json <salida.json>]
+  PY="<scratchpad>/venv/bin/python -I -B"     # -B: que no deje __pycache__ en el repositorio
+  $PY 03-maillots-medida.py --generador <dir>/mundo.mjs      # escribe el generador
+  node <dir>/mundo.mjs --root <clon> --out <dir>              # deja <dir>/mundo03.json (1 min)
+  $PY 03-maillots-medida.py --repo <repositorio> --mundo <dir>/mundo03.json [--json <salida>]
+                                                              # unos 2,5 min; el informe, por stdout
 
 El generador (`GENERADOR_MJS`, al final) levanta PGlite con todas las migraciones, crea el mundo
 con `runTick` y `GENESIS_WORLD_SEED`, lee los equipos, pide a `predictStartlist` el pelotón de cada
@@ -661,7 +663,7 @@ def main():
         "filete de líder (1,5 u)": 1.5,
         "banda de la UCI de la variante (2 u)": 2,
     }
-    for s in (12, 13, 14, 15, 16, 18, 26, 34, 72, 96):
+    for s in (12, 13, 14, 15, 16, 18, 26, 28, 34, 72, 96):
         p(f"  {s:3d} px: " + "; ".join(f"{k} {u * s / 48:.2f}" for k, u in elems.items()))
 
     # 7. Las variantes del dueño, dibujadas.
