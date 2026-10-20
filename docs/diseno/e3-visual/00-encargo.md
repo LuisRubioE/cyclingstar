@@ -211,3 +211,47 @@ trabajan como mucho de dos en dos.
    en el fichero, no en el informe.
 9. No edites ficheros de otros agentes salvo que tu rol lo diga. No hagas commits ni push: lo hace el
    orquestador.
+
+## 7. Lo que el dueño ha añadido durante el diseño
+
+### 7.1 La señal de campeón: «un maillot arco iris diferente» (20 de octubre de 2026)
+
+El dueño, en la conversación de diseño de E3, textual:
+
+> «una cosa, lo del arco iris, si esta registrado y tiene que ser diferente... igual puede ser un
+> maillot arco iris diferente... con diferentes colores, diferente orden, diferente disposicion,
+> incluso verticales en vez de horizontales... o que el resto en vez de ser blanco sea de otro color,
+> no se, creatividad por favor»
+
+Lo que dice la UCI de su marca, comprobado ese día por el orquestador (no es asesoramiento jurídico):
+
+- **Qué es la marca.** La guía visual de los maillots de la UCI (versión 5.3, abril de 2025,
+  publicada por la Federciclismo: <https://www.federciclismo.it/download/4678/regolamenti-uci/227161/norme-uci-vestiario-aprile-2025.pdf>)
+  define la marca «Rainbow Stripes» como `five horizontal stripes composed of colours blue, red,
+black, yellow and green (in this order)`, dice que `is registered internationally as a trademark
+in the name of the UCI` y que es `a unique identifier of the UCI World Championships and of the UCI
+alone`.
+- **La vertical y la diagonal ya son suyas.** La misma guía regula el uso de las bandas en vertical y
+  en diagonal (con el azul a la izquierda) y fija el orden (`No other order will be approved`). Poner
+  las cinco bandas en vertical, en diagonal o en otro orden no las saca de la marca.
+- **La UCI cobra licencia y la retira**: la de Ritchey, que llevaba décadas usando los colores, caducó
+  a final de 2024 y `is not eligible for renewal`
+  (<https://cyclingweekly.com/news/no-more-rainbow-bands-for-us-bike-brand-after-uci-agreement-ends>).
+- **El orden no da distancia a los ojos del público**: un lector de inrng (2011) observa que muchos
+  fabricantes usaron los colores en otro orden y que `most people don't seem to notice`
+  (<https://inrng.com/2011/06/rainbow-jersey-uci-trademark/>). Es un testimonio, no una prueba.
+- **Lo que no se ha comprobado**: el registro concreto (número, clases de productos, países) en la
+  base de la OMPI o de la EUIPO. `SPEC.md` §8 ya pide verificar contra EUIPO y USPTO antes del
+  lanzamiento.
+
+Lo que esto pide a las propuestas, a los jueces y a la página de opciones:
+
+1. **Tomar en serio cada variante del dueño** (otros colores, otro orden, otra disposición, en
+   vertical, otro color de fondo en lugar del blanco) y juzgarla con cuatro criterios: la distancia a
+   la marca de la UCI con los hechos de arriba, la forma a 16, 28 y 72 px, el daltonismo medido, y que
+   la figura quede **reservada** (ningún maillot de equipo ni de líder puede usarla, para que la forma
+   sola diga «campeón» en cualquier visión).
+2. **Ser creativas**, que es lo que pide el dueño: además de su variante más fuerte, al menos una
+   señal propia que no dependa de bandas de colores y que se reconozca de un vistazo.
+3. La página de opciones pinta las variantes del dueño junto a las alternativas, con una columna de
+   distancia a la marca de la UCI razonada.

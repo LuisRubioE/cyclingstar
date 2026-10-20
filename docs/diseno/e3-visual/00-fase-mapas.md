@@ -111,6 +111,12 @@ fichero (y, el mapa 05, también `capturas/`). Trabaja en `<scratchpad>/<tu-mapa
 - **Lo que piden los demás encargos del maillot**: E8 (el patrocinador: qué compra y qué pierde,
   `docs/encargos.md` l. 435-489, y G2.7 y G2.8 de `docs/epics.md`), E9 (el maillot como contenido de
   usuario y su moderación) y E12. Y la prohibición de `SPEC.md` §8, con su texto literal.
+- **La marca de la UCI y la idea del dueño** (`00-encargo.md` §7.1): parte de los hechos que ya
+  recoge ese apartado (no los rehagas) y, si puedes, encuentra el registro de la marca «Rainbow
+  Stripes» en la OMPI o en la EUIPO (número, clases de productos, países), con su fuente; si no lo
+  encuentras, dilo. Mide también, con la misma simulación, las variantes de bandas que propone el
+  dueño (los cinco colores de la UCI en otro orden y en vertical, otra paleta, otro fondo) frente a
+  las equipaciones de hoy: ¿cuántos maillots de equipo de un pelotón se confundirían con ellas?
 
 ### Mapa 04 · El corpus (`mapas/04-documentos.md`)
 
