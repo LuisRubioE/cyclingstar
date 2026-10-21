@@ -1,6 +1,6 @@
 # E3 · Estado del proceso de diseño
 
-Estado: **en curso**, fase 3 (síntesis). Empezado el 20 de octubre de 2026 sobre `58c14da` (`main`,
+Estado: **en curso**, fase 4 (refutación). Empezado el 20 de octubre de 2026 sobre `58c14da` (`main`,
 con E2 en producción desde el 10 de octubre y el motor v91). El documento final será
 `docs/visual.md`. Se actualiza este fichero al terminar cada fase, con commit y push, para poder
 retomar el trabajo si la sesión se corta.
@@ -74,17 +74,31 @@ retomar el trabajo si la sesión se corta.
   dueño en <https://claude.ai/artifact/2EfAEEFWAF429zyaZc9ucX> (privada).
 - `borrador/ensamblar.sh`, adaptado del de E2.
 
+- **Las decisiones del dueño del 21 de octubre** (`00-encargo.md` §7.2 y §7.3, y `borrador/00-decisiones.md`
+  §0, D-00a a D-00h): la paleta A y la letra del sistema; el campeón nacional viste su bandera, con
+  una estrella dorada colocada país a país y las dos letras ISO desde 72 px; el mundial, blanco con
+  una estrella de arcoíris en degradado; ningún maillot por debajo de 28 px, y vistas grandes (delante,
+  detrás y culote) con las zonas del patrocinador; quince colores y siete figuras, sin repetir nunca
+  un maillot, y sin maillots de equipo que se parezcan a una bandera; y bandera, nombre y maillot
+  siempre juntos y en ese orden. La página de opciones, actualizada con lo decidido (versión 3).
+- Fase 3b, los tres redactores (21 de octubre de 2026; L1 y L2 se cortaron por el límite de uso del
+  dueño y se retomaron con sus decisiones): L1, §1 a §7 (1.335 líneas); L2, §8 a §13 (unas 1.320,
+  con D-00f a D-00h); L3, §14 a §20 (940; el plan, 24 pasos y 42 PR).
+- Fase 3c, el ensamblado: `borrador/visual-v0.md`, 3.586 líneas sin la cabecera, con los 34 injertos,
+  33 objeciones y 21 huecos en algún bloque de cierre y dos remisiones ambiguas a otros documentos;
+  `borrador/dudas.md` reúne lo que los redactores dejaron para la coherencia.
+
 ## En curso
 
-- Fase 3b, los tres redactores, con `03-fase-sintesis.md` §3b: L1 (§1 a §7) y L2 (§8 a §13) a la vez,
-  y después L3 (§14 a §20), que depende de los dos.
+- Fase 4, los tres refutadores (`refutaciones/hallazgos-codigo.json`, `-cobertura.json` y `-uso.json`),
+  de dos en dos, con `04-fase-refutacion.md` §4, sobre `borrador/visual-v0.md`.
+- Con el tercero, la página de opciones gana la hoja de revisión de los 133 nacionales (D-00f).
 
 ## Pendiente
 
-1. Fase 3c: el ensamblado de la v0 con `borrador/ensamblar.sh --v0 --comprobar`.
-2. Fases 4 a 6: cuatro refutadores, tres correctores, la coherencia, tres auditores y el cierre
-   (`refutaciones/`).
-3. Fase 7: el ensamblado de `docs/visual.md`, las líneas de estado de E3 en `docs/encargos.md` y su
+1. Fases 5 y 6: tres correctores (uno por lote), la coherencia, dos auditores y el cierre
+   (`refutaciones/`, `borrador/00-cabecera.md`).
+2. Fase 7: el ensamblado de `docs/visual.md`, las líneas de estado de E3 en `docs/encargos.md` y su
    sección en `docs/diseno/README.md`, y el PR, solo con documentos y sin fusionar hasta que conteste
    el dueño.
 
