@@ -63,16 +63,25 @@ retomar el trabajo si la sesión se corta.
   prefieren la banda de honor de `identidad` y uno la estrella sobre marino de `sistema`; en el
   vocabulario del maillot hay tres opiniones distintas. Todo va a la página de opciones.
 
+- Fase 3a, el arquitecto (21 de octubre de 2026): `juicios/veredicto.json` (base `telefono` por
+  unanimidad; 34 injertos, 33 objeciones, 21 huecos, 26 contradicciones de hecho),
+  `borrador/00-glosario.md`, `borrador/00-decisiones.md` (59 decisiones `D-nn` y 20 del dueño `DD-nn`)
+  y `borrador/00-esqueleto.md` (21 secciones, de §0 a §20, unas 3.710 líneas en tres lotes). Valores
+  por defecto de gusto: la paleta A de `telefono`, la letra del sistema, la banda de honor de
+  `identidad` como señal de campeón, y los 12 colores de `telefono` con 6 figuras y la regla de
+  contraste de `identidad`. El arreglo del clon del maillot es el PR 1 del plan.
+- Fase 3d, la página de opciones (`opciones/index.html` y `opciones/medidas.py`), publicada para el
+  dueño en <https://claude.ai/artifact/2EfAEEFWAF429zyaZc9ucX> (privada).
+- `borrador/ensamblar.sh`, adaptado del de E2.
+
 ## En curso
 
-- Fase 3a, el arquitecto: `juicios/veredicto.json`, `borrador/00-glosario.md`,
-  `borrador/00-decisiones.md` y `borrador/00-esqueleto.md`, con `03-fase-sintesis.md`.
-- Fase 3d, a la vez, la página de opciones del dueño (`opciones/index.html`), con las alternativas de
-  gusto de las propuestas y de los jueces.
+- Fase 3b, los tres redactores, con `03-fase-sintesis.md` §3b: L1 (§1 a §7) y L2 (§8 a §13) a la vez,
+  y después L3 (§14 a §20), que depende de los dos.
 
 ## Pendiente
 
-1. Fase 3b y 3c: los tres lotes de redacción y el ensamblado de la v0.
+1. Fase 3c: el ensamblado de la v0 con `borrador/ensamblar.sh --v0 --comprobar`.
 2. Fases 4 a 6: cuatro refutadores, tres correctores, la coherencia, tres auditores y el cierre
    (`refutaciones/`).
 3. Fase 7: el ensamblado de `docs/visual.md`, las líneas de estado de E3 en `docs/encargos.md` y su

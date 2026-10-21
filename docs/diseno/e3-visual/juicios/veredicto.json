@@ -377,7 +377,10 @@
     {
       "id": "I-17",
       "tipo": "injerto",
-      "origen": { "propuesta": "lectura y sistema", "seccion": "lectura §4.1; sistema §4 (las escalas)" },
+      "origen": {
+        "propuesta": "lectura y sistema",
+        "seccion": "lectura §4.1; sistema §4 (las escalas)"
+      },
       "fuentes": ["I-cobertura-07"],
       "que": "La ficha de corredor como composición cerrada: cabecera; condición (forma en estrellas, fondo y frescura en barra, cerillos como iconos de 2 a 5, salud); atributos en filas de 44 px con estrellas y la marca de cuatro pasos solo en la propia; la frase del entrenador a la vista; la ajena sin lo privado.",
       "porque": "El encargo nombra «una ficha de corredor» entre los siete componentes (§1.1) y telefono solo tiene RiderHeader.",
