@@ -1,6 +1,6 @@
 # E3 · Estado del proceso de diseño
 
-Estado: **en curso**, fase 2 (juicios). Empezado el 20 de octubre de 2026 sobre `58c14da` (`main`,
+Estado: **en curso**, fase 3 (síntesis). Empezado el 20 de octubre de 2026 sobre `58c14da` (`main`,
 con E2 en producción desde el 10 de octubre y el motor v91). El documento final será
 `docs/visual.md`. Se actualiza este fichero al terminar cada fase, con commit y push, para poder
 retomar el trabajo si la sesión se corta.
@@ -55,15 +55,24 @@ retomar el trabajo si la sesión se corta.
   - La propuesta `lectura` se cortó por el límite de uso del dueño durante su relectura final y se
     retomó al restablecerse.
 
+- Fase 2, los tres jueces (21 de octubre de 2026): **los tres eligen `telefono`** (cobertura 8 de
+  10, coherencia 8, 8 y 7, ejecutabilidad 7, 7,5 y 8, experiencia 9 en los tres). `juicios/codigo`
+  (12 comprobaciones, 11 injertos, 13 objeciones), `juicios/cobertura` (9 comprobaciones) y
+  `juicios/uso` (14 injertos, 13 objeciones), cada uno con su `.md` y su `.json`. En el gusto
+  coinciden en la paleta A de `telefono` y la letra del sistema; en la señal de campeón, dos de tres
+  prefieren la banda de honor de `identidad` y uno la estrella sobre marino de `sistema`; en el
+  vocabulario del maillot hay tres opiniones distintas. Todo va a la página de opciones.
+
 ## En curso
 
-- Fase 2, los tres jueces (`juicios/cobertura`, `codigo` y `uso`, con su `.md` y su `.json`), de dos en
-  dos, con `02-fase-juicios.md`; después, el veredicto lo escribe el arquitecto de la fase 3.
+- Fase 3a, el arquitecto: `juicios/veredicto.json`, `borrador/00-glosario.md`,
+  `borrador/00-decisiones.md` y `borrador/00-esqueleto.md`, con `03-fase-sintesis.md`.
+- Fase 3d, a la vez, la página de opciones del dueño (`opciones/index.html`), con las alternativas de
+  gusto de las propuestas y de los jueces.
 
 ## Pendiente
 
-1. Fase 3, la síntesis (`borrador/`: esqueleto, glosario, decisiones, tres lotes de redacción y la
-   v0) y la página de opciones para el dueño (`opciones/`).
+1. Fase 3b y 3c: los tres lotes de redacción y el ensamblado de la v0.
 2. Fases 4 a 6: cuatro refutadores, tres correctores, la coherencia, tres auditores y el cierre
    (`refutaciones/`).
 3. Fase 7: el ensamblado de `docs/visual.md`, las líneas de estado de E3 en `docs/encargos.md` y su

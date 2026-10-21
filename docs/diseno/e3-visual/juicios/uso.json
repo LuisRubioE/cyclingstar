@@ -1,0 +1,355 @@
+{
+  "foco": "uso",
+  "ganadora": "telefono",
+  "puntuaciones": [
+    {
+      "propuesta": "telefono",
+      "cobertura": 8,
+      "coherencia": 7,
+      "ejecutabilidad": 8,
+      "experiencia": 9,
+      "justificacion": "La única que diseña desde el pulgar y lo hace cumplir: nueve comprobaciones a 360 y 320 px con umbral, valor de hoy y del prototipo, en el CI de cada PR y con trinquete; su prototipo del cuadro da lo que dice (respuesta a 152 px, acción a 687 de 800, 1.277 px, letra mínima 12, 0 axe; medido por el juez). Solo ella vio que sin red el jugador con sesión acaba en Log in (ProtectedRoute.tsx l. 12-13) y su paleta del maillot es la única con todo par a 12,3 o más de ΔE00 en las tres dicromacias. Pierde ejecutabilidad por una prueba sin mundo definido, sin lista de pantallas ni respuesta por pantalla, y coherencia por «lo que no es token no tiene clase» sin cerrar el tema de Tailwind v4, la barra de grupos contada sin sus huecos (GroupBar.tsx l. 235) y cuatro enlaces de 20 px en su propio prototipo."
+    },
+    {
+      "propuesta": "sistema",
+      "cobertura": 7,
+      "coherencia": 9,
+      "ejecutabilidad": 8,
+      "experiencia": 6,
+      "justificacion": "El sistema que obliga el compilador: tema cerrado medido sobre 146 fuentes (2.457 apariciones que dejan de resolver), deuda por fichero, diez reglas de lint medidas (1.417 avisos), data-state para los tests y 37 PR con su test; sus cifras de color se reproducen exactas. En el teléfono es floja: la puerta de cada PR mira /_ui y no las pantallas, sin 320 px, umbrales de rendimiento por fijar en el paso 18, el guardado al final de 4.999 px, la escala con los cinco tramos pintados (la respuesta es un contorno de 2 px), y sin la carga del día de carrera la llegada a la segunda carrera del mes cuenta la primera como descanso. Su maqueta no tiene pestañas ni barra inferior y pone Best bajo Fine."
+    },
+    {
+      "propuesta": "lectura",
+      "cobertura": 8,
+      "coherencia": 8,
+      "ejecutabilidad": 6,
+      "experiencia": 7,
+      "justificacion": "La mejor lectura de pantalla: preguntas y capas, glosario cerrado, fila propia anclada, ↺ Back to Build, línea de estado, resolución en el tipo, y encuentra el desfase de semanas entre vista previa y tick (riders.ts l. 453 frente a train.ts l. 216, cierto). Pero su criterio del teléfono corre a mano, su prototipo falla su propio select-name y desborda una celda de 40 px a 360, su SegmentMeter mide 10 × 3 px, su reparto de maillots por ámbito no está medido en las 310 carreras, y su recarga sin red da Log in y no You're offline."
+    },
+    {
+      "propuesta": "identidad",
+      "cobertura": 6,
+      "coherencia": 7,
+      "ejecutabilidad": 5,
+      "experiencia": 5,
+      "justificacion": "La mejor en maillots y campeón: medidos a 13 px con densidad 1 y 2, en grises y con continuidad, con un veredicto del editor que nombra equipo y visión. Lo demás es delgado: §5 es un párrafo con un umbral de rendimiento que hoy ya se cumple (2,5 s con Fast 4G; hoy 1,64 a 2,10, mapa 05 §12) y objetivos al 95 %, sin métrica de respuesta ni 320; el cuadro son tres líneas sin prototipo; los estados de los componentes son escuetos (los tramos apagados de Scale5, sin aspecto); el plan migra todas las páginas en 3 PR y pone el arnés del teléfono en el paso 11 «desde el paso 1»."
+    }
+  ],
+  "injertos": [
+    {
+      "id": "I-uso-01",
+      "de": "sistema",
+      "seccion": "§2, §3, §12",
+      "que": "El tema cerrado (--color-*: initial y las demás familias), vocabulario.test.ts con deuda.json por fichero y las reglas ui/1 a ui/10 con su lista de ficheros heredados.",
+      "porque": "telefono §3.4 dice que lo que no es token no tiene clase, y en Tailwind v4 es falso mientras el tema por defecto siga abierto: 2.457 apariciones solo resuelven por él (sistema §0), y la línea base de telefono no las cuenta."
+    },
+    {
+      "id": "I-uso-02",
+      "de": "sistema",
+      "seccion": "§4, §12",
+      "que": "data-ui, data-variant y data-state en cada componente, los tests sobre eso y no sobre clases, y la página /_ui con cada estado y datos fijos como primera página de telefono.spec.ts.",
+      "porque": "telefono re-sella seis tests que fijan clases (§12) sin decir qué sellan después, y /_ui es donde el dueño mira el sistema en su teléfono (sistema §14)."
+    },
+    {
+      "id": "I-uso-03",
+      "de": "sistema",
+      "seccion": "§3.3",
+      "que": "La densidad por puntero, @custom-variant fine (@media (pointer: fine)): fila de 36 px y botón de 32 con ratón.",
+      "porque": "telefono fija filas de 48 y controles de 44 también en escritorio, y el público de Hattrick y PCM lee tablas densas (mapa 04 §2)."
+    },
+    {
+      "id": "I-uso-04",
+      "de": "sistema",
+      "seccion": "§3.1",
+      "que": "El ámbito oscuro [data-surface='dark'] con sus nueve tokens y sus 25 parejas medidas.",
+      "porque": "telefono §10 pasa los botones de WatchBlocks y PlayerControls a Button sobre navy-dark sin definir su variante oscura."
+    },
+    {
+      "id": "I-uso-05",
+      "de": "identidad",
+      "seccion": "§6.1, §6.7",
+      "que": "El filete claro rgba(255,255,255,0.6) del maillot sobre superficie oscura y el parámetro surface de WornJerseyIcon.",
+      "porque": "El maillot navy #172a5b de telefono sobre su navy-dark #0b2740 (el rótulo de clase 2, CueCard.tsx l. 42) queda a 6,9 de ΔE00 en visión normal, 3,8 en tritanopía y 2,3 en grises, con razón de luminancia 1,10 (medido por el juez, oscuro.py)."
+    },
+    {
+      "id": "I-uso-06",
+      "de": "identidad",
+      "seccion": "§6.1, §6.3, §15",
+      "que": "La regla de contraste entre base y segundo color (KIT_CONTRAST_MIN = 20 en las cinco vistas), el veredicto del editor con equipo y visión (pantalla: Too close to Mistral Racing for colour-blind viewers (deuteranopia). Try another colour or figure.) y que el NPC ceda ante el humano (D7).",
+      "porque": "telefono deja 12,9 pares por carrera indistinguibles en grises a 13 px frente a los 3,86 de identidad, y con 28 rivales un maillot al azar choca con probabilidad 0,51 (telefono §6.3): el mánager necesita saber con quién choca y tener sitio donde elegir."
+    },
+    {
+      "id": "I-uso-07",
+      "de": "lectura",
+      "seccion": "§4.1",
+      "que": "La fila propia anclada tras … en toda tabla con top 20: barra own #a87300 de 3 px (4,10:1), fondo #fdf4dc, nombre en 600 y aria-current.",
+      "porque": "Con el RankTable de telefono el corredor del jugador en el puesto 34 no sale, y Show all 140 son unos 6.720 px de filas de 48 (estimado)."
+    },
+    {
+      "id": "I-uso-08",
+      "de": "lectura",
+      "seccion": "§4.2",
+      "que": "El glosario cerrado de pantalla (Day 56 · in 6 days, +0:40, Race Var .1 · one day, travel out y travel back, los siete orígenes del día, las cargas Rest a Very hard, 6,173,210) en apps/web/src/design/words.ts, impuesto por los componentes.",
+      "porque": "telefono fija Day N y formatTime pero deja las palabras de la carga y de los orígenes repartidas por §7.4, sin una lista cerrada que el agente no tenga que decidir."
+    },
+    {
+      "id": "I-uso-09",
+      "de": "lectura",
+      "seccion": "§7.4",
+      "que": "↺ Back to Build en un día editado: borra la orden y devuelve el día a su bloque.",
+      "porque": "telefono enseña el origen de cada día pero no da vuelta desde Your edit: la precedencia se ve pero no se deshace donde se decide."
+    },
+    {
+      "id": "I-uso-10",
+      "de": "lectura",
+      "seccion": "§1.5, §7.5 n.º 3",
+      "que": "Indexar la semana de la vista previa por plan.startDay y que PUT /plan conserve el startDay del plan vivo.",
+      "porque": "La vista previa toma blocks[Math.floor(i / 7)] desde mañana (riders.ts l. 453) y el tick cuenta desde fila.startDay (train.ts l. 216), y PUT /plan fuerza mañana (riders.ts l. 413): desde el segundo día tras guardar, las semanas que telefono pinta con plan.startDay (§7.4) y la escala no hablan de los mismos días."
+    },
+    {
+      "id": "I-uso-11",
+      "de": "lectura",
+      "seccion": "§7.3",
+      "que": "La tira de siete días por semana (carrera, viaje, entrenamiento con su carga), no pulsable y con su resumen en texto (pantalla: 1 training day); con una palabra por celda (Out, Back, Race) y el Meter de 8 px de alto de telefono en lugar de los segmentos de 10 × 3.",
+      "porque": "Deja ver sin abrir nada que la semana 1 apenas entrena; en su prototipo la celda 53 ✈ back mide 40 px con 45 de contenido a 360 (medido por el juez)."
+    },
+    {
+      "id": "I-uso-12",
+      "de": "lectura",
+      "seccion": "§9 n.º 3",
+      "que": "La resolución en el tipo: estrellas z.number().multipleOf(0.5).min(0).max(5), barras z.number().int().min(0).max(100), tramos y flechas enumerados.",
+      "porque": "El frontera.test.ts de telefono caza los números internos por el nombre del campo (ctl, tsb…), y un campo renombrado que lleve decimales pasa."
+    },
+    {
+      "id": "I-uso-13",
+      "de": "lectura",
+      "seccion": "§8.3",
+      "que": "La hora de los datos en el aviso sin red (pantalla: You're offline. Showing what you saw at 14:02.), sacada de dataUpdatedAt.",
+      "porque": "En el teléfono, sin red, no se distingue una general de esta mañana de una de ayer."
+    },
+    {
+      "id": "I-uso-14",
+      "de": "sistema",
+      "seccion": "§4 n.º 15, §11",
+      "que": "El esqueleto visible solo a los 300 ms (LOADING_DELAY_MS).",
+      "porque": "telefono lo pinta desde el principio (§8.3), y en caliente la web responde en 1,07 a 1,18 s (telefono §8.2): parpadearía en cada respuesta rápida."
+    }
+  ],
+  "objeciones": [
+    {
+      "id": "O-uso-01",
+      "seccion_ganadora": "§5.3, §13",
+      "que": "El mundo de la prueba del teléfono no está definido: génesis y tres días con las cuatro cuentas del mapa 05 no da las pantallas que se miden. La síntesis fija semilla, días, cuentas, escrituras con SQL y si el mundo se guarda o se genera en cada pasada, con su coste.",
+      "evidencia": "El mundo del mapa 05 pidió 50 días (849 s) y cuatro escrituras con SQL (correo confirmado, 400 de dinero, contrato del corredor del mánager y premium) para tener carreras terminadas, viaje y convocatorias (mapa 05 §1)."
+    },
+    {
+      "id": "O-uso-02",
+      "seccion_ganadora": "§5.3",
+      "que": "Faltan la lista de las unas 35 pantallas, el elemento que lleva data-answer en cada una y cuáles son de herramienta (comprobación 9): un agente tendría que decidir la respuesta de /world/nations. Hace falta la tabla ruta, cuenta, elemento respuesta y herramienta sí o no.",
+      "evidencia": "telefono §5.3 solo dice «en unas 35 pantallas» y «cada pantalla marca qué contesta»; lectura §5.4 n.º 4 nombra ocho páginas, que sirven de arranque."
+    },
+    {
+      "id": "O-uso-03",
+      "seccion_ganadora": "§3.4, §12",
+      "que": "Nada impide reinventar: «lo que no es token no tiene clase» es falso con el tema por defecto de Tailwind v4 abierto, y la regla de ESLint no tiene reglas escritas ni lista de ficheros heredados. Se resuelve con I-uso-01.",
+      "evidencia": "index.css trae un @theme de seis colores sin vaciar las familias por defecto (mapa 01 §2.1); sistema §0 midió 2.457 apariciones que solo resuelven por el tema por defecto."
+    },
+    {
+      "id": "O-uso-04",
+      "seccion_ganadora": "§4 RankTable, §5.2",
+      "que": "El enlace del nombre «ocupa la celda de identidad (44 px)» en el texto, pero no en el prototipo. La síntesis escribe que el enlace es la celda entera, en bloque y con 44 px de alto mínimo, y que la prueba cuenta los enlaces de tabla como controles y no como enlaces dentro de una frase.",
+      "evidencia": "En su prototipo, cuatro enlaces de nombre miden de 185 a 208 × 20 px a 360 (medido por el juez, protos.json); solo pasan por el espaciado de WCAG 2.5.8, que §5.2 reserva al enlace dentro de una frase."
+    },
+    {
+      "id": "O-uso-05",
+      "seccion_ganadora": "§4 ActionBar, UpdateToast, OfflineBanner",
+      "que": "Lo fijo no tiene orden ni tope: barra de acción de 60, barra inferior de 56 más la muesca, UpdateToast de 48 y OfflineBanner de 32. Faltan un solo aviso a la vez sobre la barra de acción, la consecuencia en un renglón con … y entera en aria-describedby, y la barra escondida mientras el teclado está abierto.",
+      "evidencia": "A 320 × 640 la consecuencia del prototipo (Race Var: Fine (was Loaded)) ya parte en dos renglones (captura del juez, telefono-320-pantalla1.png)."
+    },
+    {
+      "id": "O-uso-06",
+      "seccion_ganadora": "§6.6, §10",
+      "que": "Con KIT_MIN_PX = 16 la fila de maillots de la barra de grupos parte en dos renglones a 320 px, y §10 fija filas de 36: o el hueco baja a 4 px por debajo de 360, o la fila crece, decidido con lo que E2 fijó para esa barra.",
+      "evidencia": "GroupBar.tsx l. 235 lleva gap-x-2 y pl-7: 12 × 16 + 11 × 8 = 280 px, que caben en los 308 útiles a 360 y no en los 268 de 320; telefono §6.6 cuenta 216 px."
+    },
+    {
+      "id": "O-uso-07",
+      "seccion_ganadora": "§7.2, §7.4",
+      "que": "La vista previa sigue indexando las semanas desde mañana mientras la pantalla pinta las semanas con plan.startDay: escala y semanas no hablan de los mismos días. Se resuelve con I-uso-10.",
+      "evidencia": "apps/api/src/routes/riders.ts l. 453 y l. 413; packages/db/src/train.ts l. 216."
+    },
+    {
+      "id": "O-uso-08",
+      "seccion_ganadora": "§5.2, §3.2",
+      "que": "Los rótulos de la barra inferior caben con 1 px de margen a 320 px medidos con Inter, no con la letra del sistema que la propuesta elige; con San Francisco o Roboto no están medidos. Falta el plan B si la comprobación 2 falla: los rótulos cortos de sistema §15 (Home, Rider, Team) o solo icono por debajo de 340 px, decidido con E6.",
+      "evidencia": "Dashboard a 12/600 mide 62 px en una celda de 64 a 320 (telefono §5.2 y su prototipo, captura del juez); telefono §14: «lo medido es Chromium sin cabeza con Inter»."
+    },
+    {
+      "id": "O-uso-09",
+      "seccion_ganadora": "§3.1",
+      "que": "«Ningún estado va solo en color» no tiene mecanismo: Chip y Notice tienen que exigir texto en el tipo y un icono por tono (check, warning, error), y el dinero llevar siempre su signo.",
+      "evidencia": "good #167a3a y bad #b42318 quedan a 9,0 de ΔE00 en deuteranopía y a 1,21 de razón de luminancia (medido por el juez, estado.py)."
+    },
+    {
+      "id": "O-uso-10",
+      "seccion_ganadora": "§7.1, §7.3",
+      "que": "Dos instrucciones para el mismo tramo: si manda la del prototipo, que nombra la semana, faltan la regla que elige semana y tramo y el campo de la API que la trae; si manda la tabla fija de §7.3, el prototipo no es la pantalla.",
+      "evidencia": "Prototipo: You'll start tired. Make week 1 lighter to arrive Fine. Tabla de §7.3: You'll start tired. A lighter week before it brings you to Fine or Spot on."
+    },
+    {
+      "id": "O-uso-11",
+      "seccion_ganadora": "§4 RankTable, §5.1",
+      "que": "El escritorio sin columnas: «desde 640 el renglón 2 vuelve a columnas» no dice cuáles en cada una de las tablas de §5.1 ni a 1.024 px; falta un mecanismo como el priority por columna de sistema §4 n.º 10.",
+      "evidencia": "telefono §4, fila de RankTable; sistema §4 n.º 10 y §5."
+    },
+    {
+      "id": "O-uso-12",
+      "seccion_ganadora": "§6.4, §15 decisión 3",
+      "que": "La estrella sobre blanco se parece a la marca de la UCI a su tamaño de uso: «blanco con algo en el pecho». Es gusto, pero va al dueño con estas cifras junto a la banda de honor.",
+      "evidencia": "A 16 px queda a 16,6 de la marca en visión normal y a 10,5 en grises (telefono §6.4); mapa 03 §7.2; los cuerpos oscuros quedan de 34,4 a 50,1 (sistema §6.4, identidad §6.5)."
+    },
+    {
+      "id": "O-uso-13",
+      "seccion_ganadora": "§13",
+      "que": "Falta un paso 0 con el mundo de prueba y la tabla de pantallas, de los que depende el paso 1 (Playwright y la línea base), con su coste.",
+      "evidencia": "El mundo del mapa 05 tarda unos 15 minutos en generarse (capturas/README.md); telefono §13 paso 1 no lo cuenta."
+    }
+  ],
+  "huecos": [
+    {
+      "id": "H-uso-01",
+      "que": "Un mundo de prueba reproducible para el criterio del teléfono: telefono dice génesis y tres días, sistema por construir, identidad el banco de capturas y lectura el mundo de 50 días guardado; ninguna escribe semilla, días, cuentas ni escrituras con SQL."
+    },
+    {
+      "id": "H-uso-02",
+      "que": "La letra y el motor de un teléfono de verdad: todo se mide en Chromium de Linux sin cabeza; nadie mide anchos con San Francisco o Roboto, ni WebKit con barras fijas, 100dvh y env(safe-area-inset-*) (viewport-fit=cover, no comprobado en un dispositivo, telefono §8.1)."
+    },
+    {
+      "id": "H-uso-03",
+      "que": "El teclado virtual con barras fijas, y el teléfono en horizontal: a 800 × 360 la barra inferior y la de acción dejan unos 244 px (estimado); ningún manifiesto fija orientation ni dice cómo se ve."
+    },
+    {
+      "id": "H-uso-04",
+      "que": "La letra ampliada (WCAG 1.4.4 al 200 % y la escala de letra de Android): ninguna repite la prueba con texto grande, y hay altos fijos (tramos de 36, celdas de 40, barra de acción de 60)."
+    },
+    {
+      "id": "H-uso-05",
+      "que": "Los tonos de estado entre sí en las cuatro visiones: nadie los mide; verde y rojo bajan de 10 de ΔE00 en deuteranopía en telefono (9,0) e identidad (8,1), medido por el juez, y axe no exige texto ni icono junto al tono."
+    },
+    {
+      "id": "H-uso-06",
+      "que": "Una pasada con lector de pantalla en un teléfono (VoiceOver, TalkBack): los role=img de la escala y del maillot y los aria-live de Watch solo se comprueban en el marcado."
+    },
+    {
+      "id": "H-uso-07",
+      "que": "La carga del día de carrera en la vista previa queda estimada en tres (150 TSS o la mediana del diario) y sin arreglar en sistema; ninguna la contrasta con el diario (una etapa medida cargó 252,8, mapa 02 §3), así que la escala de una vuelta puede seguir mintiendo."
+    }
+  ],
+  "comprobaciones": [
+    {
+      "afirmacion": "El prototipo del cuadro da la respuesta a 152 px, ninguna falta de la prueba del teléfono y la acción a 687 px de 800 (§7.1, §5.3).",
+      "propuesta": "telefono",
+      "resultado": "a medias",
+      "evidencia": "Medido por el juez (medir-protos.mjs, protos.json): data-answer a 152, data-primary-action a 687, alto 1.277 (1.349 a 320), letra mínima 12, 0 campos bajo 16 px, sin desborde a 360 ni a 320, 0 nodos de axe-core 4.10.3. Pero cuatro enlaces de nombre miden de 185 a 208 × 20 px: pasan solo por el espaciado de 2.5.8, que su §5.2 reserva al enlace dentro de una frase."
+    },
+    {
+      "afirmacion": "La maqueta mide 1.709 px plegada y 4.999 con los 28 días abiertos, el pronóstico empieza a 200 px, 0 de 48 controles bajo 44 px y 0 fallos de axe (§7.2).",
+      "propuesta": "sistema",
+      "resultado": "a medias",
+      "evidencia": "Reproducidos 1.709, 4.999, 0 de 11 y 0 de 48 controles bajo 44, y 0 de axe. La primera carrera sale a 260 px y la maqueta no tiene pestañas de nivel 2 ni barra inferior (ningún elemento fijo); y pinta Best entre 163 y 188 px, bajo Fine (de 150 a 210), no bajo Spot on como dice su §4 n.º 21 (dom.mjs)."
+    },
+    {
+      "afirmacion": "En el prototipo la primera llegada ocupa de 228 a 367 px, ningún texto baja de 12 px y no hay desborde (§7.2).",
+      "propuesta": "lectura",
+      "resultado": "a medias",
+      "evidencia": "228 a 367, 12 px y scrollWidth 360, reproducidos. Pero axe da select-name en 2 nodos, que su criterio 3 (§5.4) pide a cero, y la celda 53 ✈ back mide 40 px de alto con 45 de contenido (dom.mjs); el prototipo acaba a 871 px."
+    },
+    {
+      "afirmacion": "Doce colores con nombre; ningún par baja de 15,9 de ΔE00 en visión normal ni de 12,3 en las dicromacias; 12 de 66 bajo 10 en grises (§6.1, §6.2).",
+      "propuesta": "telefono",
+      "resultado": "cierta",
+      "evidencia": "color.py: 15,9 (navy y purple); 12,3 en protanopía y deuteranopía (green y red) y en tritanopía (orange y pink); 12 pares bajo 10 en grises."
+    },
+    {
+      "afirmacion": "Con doce familias el mínimo cae a 5,7: doce tonos no caben separados en el eje azul y amarillo de un daltónico (§6.1).",
+      "propuesta": "sistema",
+      "resultado": "falsa",
+      "evidencia": "Como regla general la desmienten los 12 colores de telefono, a 12,3 o más en las tres dicromacias (color.py); el 5,7 vale solo para la docena de sistema con lima y marrón (§15)."
+    },
+    {
+      "afirmacion": "Los contrastes y ΔE00 de las cuatro escalas de llegada: telefono texto blanco de 5,02 a 6,57 y Cooked con Loaded a 6,3 en deuteranopía; sistema tinta de 5,32 a 14,60 y peor par 10,6 en tritanopía; identidad texto de 5,95 a 10,10 y vecinos a 12,6 o más en cinco vistas; lectura activo contra apagado de 3,62 a 5,18:1 y 32,0 o más de ΔE00.",
+      "propuesta": "las cuatro",
+      "resultado": "cierta",
+      "evidencia": "color.py reproduce las cuatro tablas. El tramo activo de telefono queda a 38 o más de ΔE00 del apagado en toda visión; sistema queda a 6,9 en grises entre Spot on y Rusty."
+    },
+    {
+      "afirmacion": "Sin red, el jugador con sesión ve Log in porque ProtectedRoute.tsx l. 12-13 lee la sesión que no llega como sin sesión (§1.6, §8.3).",
+      "propuesta": "telefono",
+      "resultado": "cierta",
+      "evidencia": "apps/web/src/components/ProtectedRoute.tsx l. 12-13: if (!data) devuelve Navigate a /login; su captura pwa/out/sinred-recargar-propuesta.png enseña Log in con la barra del visitante."
+    },
+    {
+      "afirmacion": "HorizonWatcher.tsx l. 33 vacía la caché cuando la sesión no llega sin red (§1.6).",
+      "propuesta": "telefono",
+      "resultado": "a medias",
+      "evidencia": "Solo si cambia una sesión ya resuelta: cacheOwnerChanged exige prev.resolved y next.resolved (apps/web/src/queryClient.ts l. 165-167); en una recarga en frío sin red no vacía nada."
+    },
+    {
+      "afirmacion": "Recargar sin red sirve el armazón con You're offline. (§8.3).",
+      "propuesta": "lectura",
+      "resultado": "falsa",
+      "evidencia": "Sin tocar ProtectedRoute.tsx l. 12-13, que lectura no toca, la sesión que no llega lleva a /login, como mide la captura de telefono."
+    },
+    {
+      "afirmacion": "Doce maillots de 16 px ocupan 216 de los 336 px de la fila de la barra de grupos (§6.6).",
+      "propuesta": "telefono",
+      "resultado": "a medias",
+      "evidencia": "La línea lleva gap-x-2 y pl-7 (apps/web/src/components/broadcast/GroupBar.tsx l. 235): 12 × 16 + 11 × 8 = 280 px; caben en los 308 útiles a 360 y parten en dos renglones a 320 (268)."
+    },
+    {
+      "afirmacion": "La vista previa toma blocks[Math.floor(i / 7)] desde mañana y el tick cuenta las semanas desde el día del guardado: pasado un día, escalera y proyección van desplazadas (§1.5).",
+      "propuesta": "lectura",
+      "resultado": "cierta",
+      "evidencia": "apps/api/src/routes/riders.ts l. 453; packages/db/src/train.ts l. 216 (semana desde fila.startDay); PUT /plan fija startDay en mañana (riders.ts l. 413)."
+    }
+  ],
+  "gusto": [
+    {
+      "decision": "paleta",
+      "opciones": [
+        "telefono A, manager sobrio (igual a lectura a): cabecera #123a5c, acento #0b6e8a, oro #e0a106, tarjetas blancas sobre #eef2f6, sin barras de color",
+        "sistema A, el PR #105 liso (igual a telefono B, lectura b e identidad B): cabecera de Panel #006e8c con blanco a 5,82, barra de página #d99400 con ink a 6,95",
+        "identidad A, noche y oro: #14213d, #e0a526, botón #123a5c, enlace #1c5aa6"
+      ],
+      "defecto": "telefono A: las barras de color cuestan 36 px por panel y 48 por página en 800 de alto (telefono §3.1), y en los prototipos la primera carrera sale a 180 px con pestañas (telefono) frente a 260 sin ellas (sistema)."
+    },
+    {
+      "decision": "tipografia",
+      "opciones": [
+        "la pila del sistema, 0 KB (telefono, sistema y lectura)",
+        "la del sistema con Barlow Semi Condensed 600 en títulos y cifras (identidad A, 22.984 bytes el latín)",
+        "Inter variable para todo (de 47,1 a 48,3 KB el latín)"
+      ],
+      "defecto": "La del sistema: la primera pintura ya llega a 3,2 s con Slow 4G (mapa 05 §12), toda letra propia añade espera o cambio de letra, y la del sistema trae los alfabetos de E10."
+    },
+    {
+      "decision": "campeon",
+      "opciones": [
+        "identidad A, la banda de honor: oro #e0a526 sobre noche #14213d la mundial; la bandera en tres franjas sobre papel #f6f3ea con filo noche de 2,4 u la nacional",
+        "telefono A y lectura a, la estrella del juego sobre cuerpo blanco (radio 13 u en telefono; mundial en #e0a106 con borde navy)",
+        "sistema S1, estrella #f0b323 sobre #14284b, con canesú dorado la mundial",
+        "la variante del dueño que aguanta el teléfono: el espectro continuo en la banda diagonal sobre noche (identidad C), junto a las cinco variantes literales con su distancia a la marca (telefono §6.4)"
+      ],
+      "defecto": "La banda de honor: a 13 px con densidad 1 solo la diagonal sigue siendo una forma (identidad §6.5, hojas/pix-13-1.png), y la mundial queda a 44,3 de la marca de la UCI frente a 11,2 a 16,6 de las estrellas sobre blanco (lectura §6.4, telefono §6.4). Exige quitar Sash del vocabulario de equipo y medir la nacional contra la marca, que identidad no da."
+    },
+    {
+      "decision": "maillot",
+      "opciones": [
+        "telefono A: 12 colores con nombre y 7 figuras para 16 px (651 combinaciones)",
+        "identidad A: 14 colores y 6 figuras con regla de contraste entre base y segundo (443 permitidos; 3,86 pares por carrera en grises)",
+        "sistema A: 10 colores y 7 figuras (610 diseños), el más fácil de recordar"
+      ],
+      "defecto": "telefono A sin Sash y con la regla de contraste de identidad, medida por la página de opciones: es la única paleta en que dos colores cualesquiera se separan 12,3 o más de ΔE00 para un daltónico (color.py), y el editor los ofrece por nombre."
+    }
+  ]
+}
