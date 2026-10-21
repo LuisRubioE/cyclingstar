@@ -1,6 +1,6 @@
 # E3 · Estado del proceso de diseño
 
-Estado: **en curso**, fase 1 (propuestas). Empezado el 20 de octubre de 2026 sobre `58c14da` (`main`,
+Estado: **en curso**, fase 2 (juicios). Empezado el 20 de octubre de 2026 sobre `58c14da` (`main`,
 con E2 en producción desde el 10 de octubre y el motor v91). El documento final será
 `docs/visual.md`. Se actualiza este fichero al terminar cada fase, con commit y push, para poder
 retomar el trabajo si la sesión se corta.
@@ -35,19 +35,38 @@ retomar el trabajo si la sesión se corta.
   la UCI de su marca, en `00-encargo.md` §7.1.
 - `01-fase-propuestas.md` gana la lista de lo que los mapas cambian del encargo.
 
+- Fase 1, las cuatro propuestas (20 y 21 de octubre de 2026), unas 2.770 líneas:
+  - `propuestas/telefono.md` (698 l.): todo se especifica a 360 × 800; «se juega bien en un teléfono»
+    es una prueba del CI de nueve comprobaciones con una línea base que solo baja; la web instalable
+    pide a la red primero y nunca guarda la API; las banderas en un sprite; maillot de 12 colores y 7
+    figuras; el campeón, la estrella del juego sobre blanco.
+  - `propuestas/sistema.md` (696 l.): el sistema lo hacen cumplir el compilador y los tests; el
+    `@theme` cerrado con su deuda medida (2.457 de 6.322 clases) en un trinquete; 25 componentes y
+    `QueryView` para los estados; el maillot como dato (`teams.jersey_design`); el campeón, estrella
+    dorada sobre azul marino con canesú dorado el mundial.
+  - `propuestas/identidad.md` (675 l.): cada identidad con su forma reservada (la diagonal del
+    campeón, los lunares del líder de la montaña); `kitDistance` como función única; 14 colores y 6
+    figuras asignados por pelotón; la equipación en `team_kits` con historia; el campeón, una banda
+    de honor diagonal; las variantes del dueño medidas y su versión más fuerte como alternativa.
+  - `propuestas/lectura.md` (698 l.): cada pantalla contesta una pregunta y la respuesta va en la
+    primera pantalla del teléfono, en cuatro capas; una sola función de precedencia para el tick y la
+    vista previa; la frontera con `.strict()` por ruta y un test de que todo campo se lee; el campeón,
+    la estrella del juego sobre cuerpo blanco reservado.
+  - La propuesta `lectura` se cortó por el límite de uso del dueño durante su relectura final y se
+    retomó al restablecerse.
+
 ## En curso
 
-- Fase 1, las cuatro propuestas (`propuestas/telefono.md`, `sistema.md`, `identidad.md` y
-  `lectura.md`), de dos en dos, con `01-fase-propuestas.md`.
+- Fase 2, los tres jueces (`juicios/cobertura`, `codigo` y `uso`, con su `.md` y su `.json`), de dos en
+  dos, con `02-fase-juicios.md`; después, el veredicto lo escribe el arquitecto de la fase 3.
 
 ## Pendiente
 
-1. Fase 2, tres jueces y el veredicto (`juicios/`).
-2. Fase 3, la síntesis (`borrador/`: esqueleto, glosario, decisiones, tres lotes de redacción y la
+1. Fase 3, la síntesis (`borrador/`: esqueleto, glosario, decisiones, tres lotes de redacción y la
    v0) y la página de opciones para el dueño (`opciones/`).
-3. Fases 4 a 6: cuatro refutadores, tres correctores, la coherencia, tres auditores y el cierre
+2. Fases 4 a 6: cuatro refutadores, tres correctores, la coherencia, tres auditores y el cierre
    (`refutaciones/`).
-4. Fase 7: el ensamblado de `docs/visual.md`, las líneas de estado de E3 en `docs/encargos.md` y su
+3. Fase 7: el ensamblado de `docs/visual.md`, las líneas de estado de E3 en `docs/encargos.md` y su
    sección en `docs/diseno/README.md`, y el PR, solo con documentos y sin fusionar hasta que conteste
    el dueño.
 

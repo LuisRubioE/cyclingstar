@@ -408,7 +408,7 @@ Cada semana es **la del plan guardado, con sus fechas** desde `plan.startDay`, q
 usaba (mapa 02 §8). `R` es la celda de carrera (`warn`, con `Race` escrito), `✈` el icono `travel`
 (`info`) y el entrenamiento lleva su `SegmentMeter`: se ve sin abrir nada que la semana 1 tiene un
 solo día de entrenamiento. Tocar un bloque recalcula las llegadas sin guardar y saca la `SaveBar` con
-el efecto (`Race Sardegna: Fine → Spot on`). Guardar conserva el `startDay` del plan vivo; empezar de
+el efecto (`Race Sardegna: Loaded → Fine`). Guardar conserva el `startDay` del plan vivo; empezar de
 cero es `Start a new plan tomorrow`; tras el plan, `After your plan · Day 79 to 83 · Coach`.
 
 ### 7.4 El día a día, con el origen de cada día
