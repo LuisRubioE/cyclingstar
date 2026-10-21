@@ -1,0 +1,795 @@
+#!/usr/bin/env python3
+"""E3, la página de opciones: las medidas que enseña `opciones/index.html`, y sus dibujos.
+
+Este script es la única fuente de los colores y de los dibujos de la página: los escribe, con las
+cifras, en el bloque `<script type="text/plain" id="datos">` de `index.html`, y la página solo los
+pinta. Mide únicamente lo que la página enseña:
+
+  1. La razón de contraste WCAG 2.x de cada pareja de texto y fondo de la pantalla tipo, en las
+     cuatro paletas (un color con transparencia se compone antes sobre su fondo, en sRGB, como el
+     navegador).
+  2. Las matrices de los filtros `feColorMatrix` del conmutador de visión: Machado, Oliveira y
+     Fernandes (2009), severidad 1, de `colour.blindness.matrix_cvd_Machado2009` (colour-science
+     0.4.7), y la luminancia de Rec. 709 para los grises.
+  3. Los maillots, dibujados en SVG en la rejilla de 48 u de `TORSO` (apps/web/src/components/
+     Jersey.tsx l. 10-11) y pintados en Chromium (Playwright de /opt/node22, navegadores de
+     /opt/pw-browsers) a 13 y a 28 px con densidad 1. La distancia entre dos dibujos es la del mapa 03
+     (`drawn_distance` de mapas/03-maillots-medida.py): la media de ΔE00 píxel a píxel, pesada por la
+     cobertura, en cinco visiones (normal, las tres dicromacias en RGB lineal y recortadas, y grises).
+     - De cada vocabulario del maillot del equipo: los diseños que permiten sus reglas, un pelotón de
+       ejemplo de 22 (voraz: empieza con los tres líderes de hoy ya puestos y añade cada vez el diseño
+       más lejano de los ya puestos en las cuatro visiones de color, a 13 px) y sus pares por debajo
+       de 10 a 13 y a 28 px.
+     - De cada señal de campeón: la distancia a la marca de la UCI (V0 del mapa 03 §7.2) y al diseño
+       más cercano de cada vocabulario, a 13 px.
+
+Uso:
+  <scratchpad>/venv/bin/python -I -B medidas.py [--html index.html] [--trabajo <dir>]
+"""
+
+import argparse
+import json
+import math
+import os
+import re
+import subprocess
+import sys
+import tempfile
+import warnings
+from datetime import date
+from pathlib import Path
+
+warnings.filterwarnings("ignore")
+import numpy as np  # noqa: E402
+import colour  # noqa: E402
+
+AQUI = Path(__file__).resolve().parent
+VISIONES = ("normal", "protan", "deutan", "tritan", "gris")
+COLOR4 = ("normal", "protan", "deutan", "tritan")
+CS = colour.RGB_COLOURSPACES["sRGB"]
+MACHADO = {
+    "protan": colour.blindness.matrix_cvd_Machado2009("Protanomaly", 1),
+    "deutan": colour.blindness.matrix_cvd_Machado2009("Deuteranomaly", 1),
+    "tritan": colour.blindness.matrix_cvd_Machado2009("Tritanomaly", 1),
+}
+REC709 = np.array([0.2126, 0.7152, 0.0722])
+
+# ------------------------------------------------------------------------------------- el color
+
+
+def hex_rgb(h):
+    h = h.lstrip("#")
+    return np.array([int(h[i : i + 2], 16) / 255 for i in (0, 2, 4)])
+
+
+def color(v):
+    """'#rrggbb' o '#rrggbb@alfa' -> (rgb, alfa)."""
+    if "@" in v:
+        h, a = v.split("@")
+        return hex_rgb(h), float(a)
+    return hex_rgb(v), 1.0
+
+
+def css(v):
+    rgb, a = color(v)
+    if a == 1.0:
+        return v
+    r, g, b = (int(round(c * 255)) for c in rgb)
+    return f"rgb({r} {g} {b} / {a:g})"
+
+
+def to_linear(srgb):
+    return colour.cctf_decoding(np.clip(srgb, 0, 1), function="sRGB")
+
+
+def luminancia(rgb):
+    return float(to_linear(rgb) @ REC709)
+
+
+def wcag(fg, bg):
+    """Razón WCAG 2.x de `fg` (que puede llevar alfa) sobre `bg` (opaco)."""
+    f, a = color(fg)
+    b, _ = color(bg)
+    f = f * a + b * (1 - a)
+    la, lb = sorted([luminancia(f), luminancia(b)], reverse=True)
+    return (la + 0.05) / (lb + 0.05)
+
+
+def en_vision(lin, v):
+    if v == "normal":
+        return lin
+    if v == "gris":
+        y = lin @ REC709
+        return np.stack([y, y, y], axis=-1)
+    return np.clip(lin @ MACHADO[v].T, 0, 1)
+
+
+def lab(srgb, v):
+    xyz = colour.RGB_to_XYZ(en_vision(to_linear(srgb), v), CS, apply_cctf_decoding=False)
+    return colour.XYZ_to_Lab(xyz, CS.whitepoint)
+
+
+def de_colores(a, b, v):
+    return float(colour.difference.delta_E_CIE2000(lab(hex_rgb(a), v), lab(hex_rgb(b), v)))
+
+
+# ------------------------------------------------------------------------------------ las paletas
+
+# Cada token de la pantalla tipo, con el valor de la propuesta; lo que la propuesta no da va en
+# `aprox` y la página lo dice. Un valor con «@» lleva alfa.
+TEL_A = {
+    "hdr-bg": "#123a5c", "hdr-ink": "#ffffff", "hdr-ink-2": "#ffffff@0.75",
+    "tabs-bg": "#0b2740", "tabs-ink": "#ffffff@0.75", "tabs-ink-on": "#ffffff", "tabs-mark": "#e0a106",
+    "canvas": "#eef2f6", "title-bg": "#eef2f6", "title-ink": "#10202f", "title-ink-2": "#435266",
+    "title-rule": "#eef2f6",
+    "panel-bg": "#ffffff", "panel-hdr-bg": "#ffffff", "panel-hdr-ink": "#10202f", "panel-rule": "#ffffff",
+    "th-bg": "#ffffff", "th-ink": "#566579",
+    "ink": "#10202f", "ink-2": "#435266", "ink-3": "#566579", "line": "#d8dee6", "link": "#0b6e8a",
+    "btn-bg": "#0b6e8a", "btn-ink": "#ffffff", "btn-hov-bg": "#085a71", "btn-hov-ink": "#ffffff",
+    "btn-dis-bg": "#e9edf2", "btn-dis-ink": "#6b7787", "btn-dis-line": "#e9edf2",
+    "btn2-bg": "#ffffff", "btn2-ink": "#10202f", "btn2-line": "#7b8794",
+    "warn-bg": "#fff3d6", "warn-ink": "#8f4e00", "skel": "#f5f7fa", "skel-ink": "#566579",
+    "err-bg": "#fdeceb", "err-ink": "#b42318", "focus": "#1d4ed8",
+}
+SIS_A = {
+    "hdr-bg": "#123a5c", "hdr-ink": "#ffffff", "hdr-ink-2": "#b4bfcf",
+    "tabs-bg": "#0b2740", "tabs-ink": "#b4bfcf", "tabs-ink-on": "#ffffff", "tabs-mark": "#1499bb",
+    "canvas": "#e8edf2", "title-bg": "#d99400", "title-ink": "#0f172b", "title-ink-2": "#0f172b",
+    "title-rule": "#d99400",
+    "panel-bg": "#ffffff", "panel-hdr-bg": "#006e8c", "panel-hdr-ink": "#ffffff", "panel-rule": "#006e8c",
+    "th-bg": "#f1f5f9", "th-ink": "#536379",
+    "ink": "#0f172b", "ink-2": "#536379", "ink-3": "#536379", "line": "#d6dee8", "link": "#006e8c",
+    "btn-bg": "#123a5c", "btn-ink": "#ffffff", "btn-hov-bg": "#0b2740", "btn-hov-ink": "#ffffff",
+    "btn-dis-bg": "#f1f5f9", "btn-dis-ink": "#536379", "btn-dis-line": "#d6dee8",
+    "btn2-bg": "#ffffff", "btn2-ink": "#0f172b", "btn2-line": "#7d8da3",
+    "warn-bg": "#fdf1d6", "warn-ink": "#8f3900", "skel": "#f1f5f9", "skel-ink": "#536379",
+    "err-bg": "#fdeceb", "err-ink": "#b8000a", "focus": "#006e8c",
+}
+IDE_A = {
+    "hdr-bg": "#14213d", "hdr-ink": "#ffffff", "hdr-ink-2": "#b9c4d6",
+    "tabs-bg": "#2b3a55", "tabs-ink": "#b9c4d6", "tabs-ink-on": "#ffffff", "tabs-mark": "#e0a526",
+    "canvas": "#eef1f5", "title-bg": "#e0a526", "title-ink": "#14213d", "title-ink-2": "#14213d",
+    "title-rule": "#e0a526",
+    "panel-bg": "#ffffff", "panel-hdr-bg": "#ffffff", "panel-hdr-ink": "#16202f", "panel-rule": "#ffffff",
+    "th-bg": "#ffffff", "th-ink": "#566173",
+    "ink": "#16202f", "ink-2": "#566173", "ink-3": "#566173", "line": "#d6dce4", "link": "#1c5aa6",
+    "btn-bg": "#123a5c", "btn-ink": "#ffffff", "btn-hov-bg": "#0e2e4a", "btn-hov-ink": "#ffffff",
+    "btn-dis-bg": "#ffffff", "btn-dis-ink": "#566173", "btn-dis-line": "#d6dce4",
+    "btn2-bg": "#ffffff", "btn2-ink": "#16202f", "btn2-line": "#7b8596",
+    "warn-bg": "#fdf0d9", "warn-ink": "#8a4b00", "skel": "#e3e8ef", "skel-ink": "#566173",
+    "err-bg": "#fbe8e6", "err-ink": "#b3261e", "focus": "#1c5aa6",
+}
+SIS_C = dict(
+    SIS_A,
+    **{
+        "hdr-bg": "#0f1d33", "tabs-mark": "#e8a200",
+        "title-bg": "#0f1d33", "title-ink": "#ffffff", "title-ink-2": "#b4bfcf", "title-rule": "#e8a200",
+        "panel-hdr-bg": "#0f1d33", "panel-hdr-ink": "#ffffff", "panel-rule": "#e8a200",
+        "btn-bg": "#e8a200", "btn-ink": "#0f172b", "btn-hov-bg": "#f2b52a", "btn-hov-ink": "#0f172b",
+    },
+)
+PALETAS = {
+    "telefono-a": {
+        "tokens": TEL_A, "radio": 8,
+        "aprox": "la cabecera de tabla (sin fondo propio) y el botón secundario; el resto, de la tabla de §3.1",
+    },
+    "sistema-a": {
+        "tokens": SIS_A, "radio": 8,
+        "aprox": "el reloj y la pestaña inactiva en el #b4bfcf del ámbito oscuro, la línea bajo el título "
+        "en ink y el esqueleto en surface-sunken; el resto, de §3.1 y §4",
+    },
+    "identidad-a": {
+        "tokens": IDE_A, "radio": 12,
+        "aprox": "las pestañas en night-2, la cabecera de tabla y el botón secundario; el resto, de §3.1 y §4",
+    },
+    "sistema-c": {
+        "tokens": SIS_C, "radio": 8,
+        "aprox": "la propuesta da el cromo #0f1d33, el botón #e8a200 (encima #f2b52a) y el filete dorado; "
+        "la barra de página en cromo, el grosor del filete (3 px) y los demás tokens (los de sistema A) "
+        "son aproximados",
+    },
+}
+PARES = [
+    ("cab", "Cabecera, «Cycling Star»", "hdr-ink", "hdr-bg", "texto"),
+    ("reloj", "Cabecera, reloj del mundo", "hdr-ink-2", "hdr-bg", "texto"),
+    ("pest", "Pestaña", "tabs-ink", "tabs-bg", "texto"),
+    ("pest-on", "Pestaña activa", "tabs-ink-on", "tabs-bg", "texto"),
+    ("titulo", "Título de página", "title-ink", "title-bg", "texto"),
+    ("subtitulo", "Línea bajo el título", "title-ink-2", "title-bg", "texto"),
+    ("panel", "Título de panel", "panel-hdr-ink", "panel-hdr-bg", "texto"),
+    ("th", "Cabecera de tabla", "th-ink", "th-bg", "texto"),
+    ("nombre", "Corredor y tiempo", "ink", "panel-bg", "texto"),
+    ("equipo", "Equipo", "ink-2", "panel-bg", "texto"),
+    ("puesto", "Puesto", "ink-3", "panel-bg", "texto"),
+    ("enlace", "Enlace", "link", "panel-bg", "texto"),
+    ("btn", "Botón", "btn-ink", "btn-bg", "texto"),
+    ("btn-hov", "Botón, encima", "btn-hov-ink", "btn-hov-bg", "texto"),
+    ("btn-dis", "Botón, deshabilitado", "btn-dis-ink", "btn-dis-bg", "exento"),
+    ("btn2", "Botón secundario", "btn2-ink", "btn2-bg", "texto"),
+    ("btn2-borde", "Borde del botón secundario", "btn2-line", "panel-bg", "grafico"),
+    ("aviso", "Aviso", "warn-ink", "warn-bg", "texto"),
+    ("carga", "Carga", "skel-ink", "panel-bg", "texto"),
+    ("error", "Error", "err-ink", "err-bg", "texto"),
+]
+
+# ------------------------------------------------------------------------------------ el dibujo
+
+TORSO = (
+    "M16 8 L10 12 L7 20 L12 23 L14 18 L14 40 Q24 43 34 40 L34 18 L36 23 L41 20 L38 12 L32 8 "
+    "Q24 12 16 8 Z"
+)
+COLLAR = "M20 8 Q24 12 28 8 L26 6 Q24 8 22 6 Z"
+STAR = (
+    "M24 19 L26.4 24.6 L32.4 25.1 L27.8 29 L29.2 34.9 L24 31.8 L18.8 34.9 L20.2 29 L15.6 25.1 "
+    "L21.6 24.6 Z"
+)
+SLEEVE_L = "M16 8 L10 12 L7 20 L12 23 L14 18 Z"
+SLEEVE_R = "M32 8 L38 12 L41 20 L36 23 L34 18 Z"
+PANEL_L = "M14 18 L20 18 L20 40 Q17 39.5 14 40 Z"
+PANEL_R = "M34 18 L28 18 L28 40 Q31 39.5 34 40 Z"
+DOTS = [(19, 22), (29, 22), (24, 29), (19, 36), (29, 36)]
+UCI = ["#0078c8", "#c8143c", "#000000", "#fae100", "#32b432"]  # guía UCI 5.3, p. 5 (mapa 03 §7.1)
+BRAND5 = ["#0b2740", "#123a5c", "#1499bb", "#35bdda", "#d99400"]  # index.css l. 6-10 (mapa 03 §7.2)
+ESPECTRO = ["#e53935", "#fb8c00", "#fdd835", "#43a047", "#1e88e5", "#5e35b1", "#d81b60"]
+LEAD = 'stroke="#000" stroke-opacity=".35" stroke-width="1.5"'
+TORSO_DEFS = f'<path id="t__ID__" d="{TORSO}"/><clipPath id="c__ID__"><use href="#t__ID__"/></clipPath>'
+
+
+def doc(defs, body):
+    return '<svg viewBox="0 0 48 48">' + (f"<defs>{defs}</defs>" if defs else "") + body + "</svg>"
+
+
+def r(x, y, w, h):
+    return f'<rect x="{x:g}" y="{y:g}" width="{w:g}" height="{h:g}"/>'
+
+
+def p(d):
+    return f'<path d="{d}"/>'
+
+
+def relleno(formas, c):
+    return "".join(f.replace("/>", f' fill="{c}"/>') for f in formas)
+
+
+def banda(p0, p1, ancho, desplaza=0.0):
+    """Paralelogramo de `ancho` u a lo largo de p0-p1 (el `band_poly` de la propuesta identidad)."""
+    (x0, y0), (x1, y1) = p0, p1
+    dx, dy = x1 - x0, y1 - y0
+    L = math.hypot(dx, dy)
+    nx, ny = -dy / L, dx / L
+    a, b = desplaza - ancho / 2, desplaza + ancho / 2
+    pts = [(x0 + nx * a, y0 + ny * a), (x1 + nx * a, y1 + ny * a), (x1 + nx * b, y1 + ny * b), (x0 + nx * b, y0 + ny * b)]
+    return "M" + " L".join(f"{x:.2f} {y:.2f}" for x, y in pts) + " Z"
+
+
+def estrella(cx, cy, R, ri):
+    pts = []
+    for k in range(10):
+        ang = math.radians(-90 + 36 * k)
+        rad = R if k % 2 == 0 else ri
+        pts.append((cx + rad * math.cos(ang), cy + rad * math.sin(ang)))
+    return "M" + " L".join(f"{x:.2f} {y:.2f}" for x, y in pts) + " Z"
+
+
+def semianillo(cx, cy, r1, r2):
+    return (
+        f"M{cx - r2:g} {cy:g} A{r2:g} {r2:g} 0 0 1 {cx + r2:g} {cy:g} "
+        f"L{cx + r1:g} {cy:g} A{r1:g} {r1:g} 0 0 0 {cx - r1:g} {cy:g} Z"
+    )
+
+
+SLEEVES = [p(SLEEVE_L), p(SLEEVE_R)]
+SASH_ID = banda((10, 10), (38, 42), 10)  # identidad §6.5: M13.76 6.71 L41.76 38.71 L34.24 45.29 L6.24 13.29 Z
+SASH_PARTES = [banda((10, 10), (38, 42), 10 / 3, o) for o in (-10 / 3, 0.0, 10 / 3)]
+YOKE_SIS = [r(0, 0, 48, 21)] + SLEEVES
+
+
+def campeon(campo, figura, cuello=None, defs="", filete=LEAD, cuello_op=""):
+    cuerpo = (
+        f'<use href="#t__ID__" fill="{campo}"/><g clip-path="url(#c__ID__)">{figura}</g>'
+        f'<use href="#t__ID__" fill="none" {filete}/>'
+    )
+    if cuello:
+        cuerpo += f'<path d="{COLLAR}" fill="{cuello}"{cuello_op}/>'
+    return doc(TORSO_DEFS + defs, cuerpo)
+
+
+def variante(fondo, franjas, defs=""):
+    """Las variantes del mapa 03 §7.2: silueta con filete de líder y cinco bandas de 2 u."""
+    return doc(defs, f'<path d="{TORSO}" fill="{fondo}" {LEAD}/>{franjas}')
+
+
+def bandas_h(cols, y0=22.0, h=2.0):
+    return "".join(f'<rect x="14" y="{y0 + i * h:g}" width="20" height="{h:g}" fill="{c}"/>' for i, c in enumerate(cols))
+
+
+def bandas_v(cols, x0=19.0, w=2.0):
+    return "".join(f'<rect x="{x0 + i * w:g}" y="18" width="{w:g}" height="22" fill="{c}"/>' for i, c in enumerate(cols))
+
+
+def degradado(gid, x1, y1, x2, y2):
+    stops = "".join(f'<stop offset="{i / 6:.3f}" stop-color="{c}"/>' for i, c in enumerate(ESPECTRO))
+    return f'<linearGradient id="{gid}" x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" gradientUnits="userSpaceOnUse">{stops}</linearGradient>'
+
+
+BANDERA_SASH = {  # identidad, datos/bandas-nacionales.json (material generado de flag-icons)
+    "IT": ["#009246", "#fdfdfd", "#ce2b37"],
+    "ES": ["#aa161b", "#f1bf00", "#aa161b"],
+    "BE": ["#000001", "#fed80e", "#f31830"],
+}
+BANDERAS = {  # la bandera junto al maillot (la de hoy la pinta Flag.tsx), simplificada, 4:3
+    "IT": '<svg viewBox="0 0 4 3"><rect width="4" height="3" fill="#ce2b37"/><rect width="2.667" height="3" fill="#f4f5f0"/><rect width="1.333" height="3" fill="#009246"/></svg>',
+    "ES": '<svg viewBox="0 0 4 3"><rect width="4" height="3" fill="#aa151b"/><rect y=".75" width="4" height="1.5" fill="#f1bf00"/></svg>',
+    "BE": '<svg viewBox="0 0 4 3"><rect width="4" height="3" fill="#ef3340"/><rect width="2.667" height="3" fill="#fdda24"/><rect width="1.333" height="3" fill="#000"/></svg>',
+}
+
+
+def banda_nacional(cols):
+    partes = "".join(f'<path d="{d}" fill="{c}"/>' for d, c in zip(SASH_PARTES, cols))
+    filo = f'<path d="{SASH_ID}" fill="none" stroke="#14213d" stroke-width="2.4"/>'
+    return campeon("#f6f3ea", partes + filo, cols[0])
+
+
+S1 = estrella(24, 29, 9.5, 3.9)
+STAR_TEL = estrella(24, 28.5, 13, 6.2)
+BLANCO85 = ("#ffffff", ' fill-opacity=".85"')
+
+DISENOS_CAMPEON = {
+    # identidad A, la banda de honor (§6.5)
+    "C-banda-mundo": campeon("#14213d", f'<path d="{SASH_ID}" fill="#e0a526"/>', "#e0a526"),
+    "C-banda-IT": banda_nacional(BANDERA_SASH["IT"]),
+    "C-banda-ES": banda_nacional(BANDERA_SASH["ES"]),
+    "C-banda-BE": banda_nacional(BANDERA_SASH["BE"]),
+    # sistema S1 (§6.4): estrella de oro sobre marino; el mundial con el canesú dorado
+    "C-s1-nac": campeon("#14284b", f'<path d="{S1}" fill="#f0b323"/>', *BLANCO85),
+    "C-s1-mundo": campeon("#14284b", relleno(YOKE_SIS, "#f0b323") + f'<path d="{S1}" fill="#f0b323"/>', *BLANCO85),
+    # telefono A (§6.4): estrella de 13 u sobre blanco
+    "C-tel-nac": campeon("#ffffff", f'<path d="{STAR_TEL}" fill="#123a5c"/>'),
+    "C-tel-mundo": campeon("#ffffff", f'<path d="{STAR_TEL}" fill="#e0a106" stroke="#123a5c" stroke-width="1.6"/>'),
+    # lectura (a) (§6.4): la estrella de hoy (16,8 u) sobre blanco
+    "C-lec-nac": campeon("#ffffff", f'<path d="{STAR}" fill="#0b2740"/>'),
+    "C-lec-mundo": campeon("#ffffff", f'<path d="{STAR}" fill="#a87300"/>', "#a87300", filete='stroke="#123a5c" stroke-width="2"'),
+    # identidad C (§15): el espectro a lo largo de la banda, sobre noche, cuello blanco
+    "C-espectro": campeon(
+        "#14213d", f'<path d="{SASH_ID}" fill="url(#g__ID__)"/>', "#ffffff",
+        degradado("g__ID__", 10.5, 10.4, 37.5, 41.6),
+    ),
+    # sistema D1 (§15): tres bandas de 4,5 u sobre marino; el mundial con el canesú dorado
+    "C-d1-nac": campeon(
+        "#14284b", relleno([r(0, 23, 48, 4.5)], "#1499bb") + relleno([r(0, 28, 48, 4.5)], "#f0b323")
+        + relleno([r(0, 33, 48, 4.5)], "#ffffff"), *BLANCO85,
+    ),
+    "C-d1-mundo": campeon(
+        "#14284b", relleno(YOKE_SIS, "#f0b323") + relleno([r(0, 23, 48, 4.5)], "#1499bb")
+        + relleno([r(0, 28, 48, 4.5)], "#f0b323") + relleno([r(0, 33, 48, 4.5)], "#ffffff"), *BLANCO85,
+    ),
+    # lectura (b) (§15): tres arcos de 2,5 u (oro, cian, blanco) sobre marino; centro y radios, míos
+    "C-arcos": campeon(
+        "#0b2740",
+        f'<path d="{semianillo(24, 33, 10, 12.5)}" fill="#e8b400"/>'
+        f'<path d="{semianillo(24, 33, 7.5, 10)}" fill="#35bdda"/>'
+        f'<path d="{semianillo(24, 33, 5, 7.5)}" fill="#ffffff"/>',
+    ),
+    # la marca de la UCI y las variantes del dueño (mapa 03 §7.2; V7, propuesta identidad §6.5)
+    "V0": variante("#ffffff", bandas_h(UCI)),
+    "V1": variante("#ffffff", bandas_h(UCI[::-1])),
+    "V2": variante("#ffffff", bandas_v(UCI)),
+    "V3": variante("#ffffff", bandas_v(UCI[::-1])),
+    "V4": variante("#ffffff", bandas_h(BRAND5)),
+    "V5": variante("#1e293b", bandas_h(UCI)),
+    "V6": variante("#d99400", bandas_h(UCI)),
+    "V7": variante(
+        "#14213d", '<rect x="14" y="23" width="20" height="9" fill="url(#g__ID__)"/>',
+        degradado("g__ID__", 14, 0, 34, 0),
+    ),
+}
+
+# Las tarjetas de la decisión 3: (id, [(diseño, etiqueta, bandera, bandera desde px)]).
+OPCIONES_CAMPEON = [
+    ("banda", [("C-banda-mundo", "Mundial", None, 0), ("C-banda-IT", "Italia", "IT", 0),
+               ("C-banda-ES", "España", "ES", 0), ("C-banda-BE", "Bélgica", "BE", 0)]),
+    ("estrella-marino", [("C-s1-nac", "Nacional (Italia)", "IT", 0), ("C-s1-mundo", "Mundial", None, 0)]),
+    ("estrella-blanco", [("C-tel-nac", "Nacional, telefono", "IT", 0), ("C-tel-mundo", "Mundial, telefono", None, 0),
+                         ("C-lec-nac", "Nacional, lectura", "IT", 16), ("C-lec-mundo", "Mundial, lectura", None, 0)]),
+    ("espectro", [("C-espectro", "Mundial", None, 0)]),
+    ("bandas-anchas", [("C-d1-nac", "Nacional (Italia)", "IT", 0), ("C-d1-mundo", "Mundial", None, 0)]),
+    ("arcos", [("C-arcos", "Mundial", None, 0)]),
+    ("v1", [("V1", "V1", None, 0)]),
+    ("v2", [("V2", "V2, su orden", None, 0), ("V3", "V3, invertida", None, 0)]),
+    ("v4", [("V4", "V4", None, 0)]),
+    ("v5", [("V5", "V5, sobre #1e293b", None, 0), ("V6", "V6, sobre #d99400", None, 0)]),
+    ("v7", [("V7", "V7", None, 0)]),
+]
+
+LIDERES = {  # Jersey.tsx l. 73-86, los de hoy
+    "L-gc": ("#facc15", None, "plain"),
+    "L-points": ("#16a34a", "#bbf7d0", "band"),
+    "L-kom": ("#2563eb", "#ffffff", "dots"),
+}
+
+
+def lider(base, marca, figura):
+    s = f'<path d="{TORSO}" fill="{base}" {LEAD}/>'
+    if figura == "band":
+        s += f'<rect x="14" y="25" width="20" height="7" fill="{marca}"/>'
+    if figura == "dots":
+        s += "".join(f'<circle cx="{x}" cy="{y}" r="3.4" fill="{marca}"/>' for x, y in DOTS)
+    return doc("", s)
+
+
+def equipo_hoy(base, sec, patron):
+    """`Jersey` de hoy (Jersey.tsx l. 17-54), para decorar la pantalla tipo."""
+    s = f'<path d="{TORSO}" fill="{base}" stroke="#000" stroke-opacity=".18" stroke-width="1"/>'
+    if patron == "band":
+        s += f'<rect x="14" y="24" width="20" height="6" fill="{sec}"/>'
+    elif patron == "shoulders":
+        s += f'<path d="{SLEEVE_L}" fill="{sec}"/><path d="{SLEEVE_R}" fill="{sec}"/>'
+    elif patron == "panels":
+        s += f'<path d="{PANEL_L}" fill="{sec}"/><path d="{PANEL_R}" fill="{sec}"/>'
+    return doc("", s + f'<path d="{COLLAR}" fill="#fff" opacity=".85"/>')
+
+
+EQUIPOS_HOY = {  # colores de JERSEY_COLORS (visuals.ts l. 34-49)
+    "H-a": equipo_hoy("#2563eb", "#f59e0b", "band"),
+    "H-b": equipo_hoy("#1e293b", "#0ea5e9", "shoulders"),
+}
+
+# ------------------------------------------------------------------------ los vocabularios
+
+VOCABS = {
+    "telefono": {
+        "colores": [
+            ("black", "#1b1d21", "base"), ("navy", "#172a5b", "base"), ("blue", "#0f6de9", "base"),
+            ("sky", "#4cc3ff", "base"), ("teal", "#0f9e8f", "base"), ("green", "#236102", "base"),
+            ("orange", "#f48d32", "base"), ("red", "#c62639", "base"), ("pink", "#f7418a", "base"),
+            ("purple", "#4e2cae", "base"), ("yellow", "#ffd60a", "segundo"), ("white", "#ffffff", "segundo"),
+        ],
+        "figuras": [
+            ("Plain", []), ("Chest band", [r(0, 23, 48, 10)]), ("Hoops", [r(0, 17, 48, 7), r(0, 30, 48, 7)]),
+            ("Halves", [r(24, 0, 24, 48)]), ("Yoke", [r(0, 0, 48, 19)] + SLEEVES),
+            ("Sash", [p(banda((10, 10), (38, 42), 10))]), ("Sides", [r(0, 0, 21, 48), r(27, 0, 21, 48)]),
+        ],
+        "aprox_figuras": ["Sash"],
+        "cuello": "blanco", "filete": ('stroke="#000" stroke-opacity=".18" stroke-width="1"'),
+        "regla": None, "demo": ("#0f6de9", "#ffffff"),
+    },
+    "sistema": {
+        "colores": [
+            ("negro", "#151b24", "base"), ("azul", "#2a66db", "base"), ("celeste", "#4bc6fa", "base"),
+            ("verde azulado", "#00584f", "base"), ("granate", "#68111c", "base"), ("rojo", "#d02c2a", "base"),
+            ("naranja", "#fd8637", "base"), ("rosa", "#b36c8f", "base"), ("morado", "#5e2b99", "base"),
+            ("gris", "#a2acb7", "base"), ("blanco", "#ffffff", "segundo"),
+        ],
+        "figuras": [
+            ("plain", []), ("halves", [r(24, 0, 24, 48)]), ("hoop", [r(0, 25, 48, 8)]), ("yoke", YOKE_SIS),
+            ("sash", [p(banda((10, 10), (38, 42), 9))]), ("sides", [r(14, 18, 7, 30), r(27, 18, 7, 30)]),
+            ("sleeves", SLEEVES),
+        ],
+        "aprox_figuras": ["sash"],
+        "cuello": "blanco", "filete": LEAD, "regla": None, "demo": ("#2a66db", "#ffffff"),
+    },
+    "identidad": {
+        "colores": [
+            ("white", "#ffffff", "base"), ("black", "#16181d", "base"), ("yellow", "#ffd60a", "base"),
+            ("sky", "#8fd0f5", "base"), ("silver", "#c8ced7", "base"), ("red", "#d7261e", "base"),
+            ("royal", "#2a5bd7", "base"), ("green", "#2f9e44", "base"), ("orange", "#f26b0f", "base"),
+            ("violet", "#7e44d0", "base"), ("navy", "#1f3a93", "base"), ("maroon", "#7a1426", "base"),
+            ("forest", "#1d6b35", "base"), ("teal", "#00897b", "base"),
+        ],
+        "figuras": [
+            ("Plain", []), ("Band", [r(0, 24, 48, 8)]), ("Yoke", [r(0, 0, 48, 25)]), ("Sleeves", SLEEVES),
+            ("Stripe", [r(20, 0, 8, 48)]), ("Halves", [r(24, 0, 24, 48)]),
+        ],
+        "aprox_figuras": [],
+        "cuello": "segundo", "filete": 'stroke="#000" stroke-opacity=".3" stroke-width="__SW__"',
+        "regla": "de20", "demo": ("#2a5bd7", "#ffffff"),
+    },
+    "lectura": {
+        "colores": [
+            ("negro", "#1d1d1f", "base"), ("marino", "#1c2f5e", "base"), ("azul", "#2453c7", "base"),
+            ("celeste", "#5ab4e5", "base"), ("turquesa", "#0b7d74", "base"), ("verde", "#1f5e2e", "base"),
+            ("lima", "#a6c935", "base"), ("naranja", "#ee7a1a", "base"), ("rojo", "#c81e2d", "base"),
+            ("granate", "#6e1a2b", "base"), ("rosa", "#e0559a", "base"), ("morado", "#5b2a86", "base"),
+            ("gris", "#8b9097", "base"), ("amarillo", "#f4d21f", "segundo"), ("blanco", "#ffffff", "segundo"),
+        ],
+        "figuras": [
+            ("plain", []), ("band", [r(0, 23, 48, 8)]), ("halves", [r(24, 0, 24, 48)]),
+            ("yoke", [r(0, 0, 48, 21)] + SLEEVES), ("sash", [p(banda((10, 10), (38, 42), 9.6))]),
+            ("sleeves", SLEEVES),
+        ],
+        "aprox_figuras": ["sash"],
+        "cuello": "blanco", "filete": 'stroke="#000" stroke-opacity=".18" stroke-width="1"',
+        "regla": "wcag2", "demo": ("#2453c7", "#ffffff"),
+    },
+}
+
+
+def maillot(V, fi, base, sec):
+    formas = V["figuras"][fi][1]
+    cuerpo = f'<use href="#t__ID__" fill="{base}"/>'
+    if formas:
+        cuerpo += f'<g clip-path="url(#c__ID__)">{relleno(formas, sec)}</g>'
+    cuerpo += f'<use href="#t__ID__" fill="none" {V["filete"]}/>'
+    if V["cuello"] == "segundo":
+        cuerpo += f'<path d="{COLLAR}" fill="{sec}"/>'
+    else:
+        cuerpo += f'<path d="{COLLAR}" fill="#fff" fill-opacity=".85"/>'
+    return doc(TORSO_DEFS, cuerpo)
+
+
+def pareja_valida(V, a, b):
+    if V["regla"] == "de20":
+        return all(de_colores(a, b, v) >= 20 for v in VISIONES)
+    if V["regla"] == "wcag2":
+        return wcag(a, b) >= 2
+    return True
+
+
+def candidatos(vid):
+    """Los diseños que permiten las reglas de la propuesta: {clave: svg}."""
+    V = VOCABS[vid]
+    cols = V["colores"]
+    bases = [i for i, c in enumerate(cols) if c[2] == "base"]
+    pares = [(b, s) for b in bases for s in range(len(cols)) if s != b and pareja_valida(V, cols[b][1], cols[s][1])]
+    out = {}
+    for fi, (_, formas) in enumerate(V["figuras"]):
+        if not formas and V["cuello"] != "segundo":
+            for b in bases:
+                out[f"{vid[0]}{fi}.{b}"] = maillot(V, fi, cols[b][1], "#ffffff")
+        else:
+            for b, s in pares:
+                out[f"{vid[0]}{fi}.{b}.{s}"] = maillot(V, fi, cols[b][1], cols[s][1])
+    return out, len(pares)
+
+
+# ----------------------------------------------------------------------------- el rasterizador
+
+RASTER_MJS = r"""/* global process, console */
+// Pinta cada SVG de <trabajos.json> en un lienzo de px × px de Chromium (Playwright de /opt/node22,
+// navegadores de /opt/pw-browsers), sobre blanco (RGB) y sobre transparente (alfa = cobertura).
+import { createRequire } from 'node:module'
+import { readFileSync, writeFileSync } from 'node:fs'
+const require = createRequire('/opt/node22/lib/node_modules/')
+const { chromium } = require('playwright')
+const [entrada, salida] = process.argv.slice(2)
+const trabajos = JSON.parse(readFileSync(entrada, 'utf8'))
+const browser = await chromium.launch()
+const page = await browser.newPage({ deviceScaleFactor: 1 })
+await page.setContent('<html><body></body></html>')
+const partes = []
+for (let i = 0; i < trabajos.length; i += 250) {
+  const lote = trabajos.slice(i, i + 250)
+  const res = await page.evaluate(async (lote) => {
+    const out = []
+    for (const t of lote) {
+      const img = new Image()
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(t.svg)
+      await img.decode()
+      const pinta = (fondo) => {
+        const c = document.createElement('canvas')
+        c.width = t.px
+        c.height = t.px
+        const ctx = c.getContext('2d')
+        if (fondo) {
+          ctx.fillStyle = fondo
+          ctx.fillRect(0, 0, t.px, t.px)
+        }
+        ctx.drawImage(img, 0, 0, t.px, t.px)
+        return ctx.getImageData(0, 0, t.px, t.px).data
+      }
+      const a = pinta('#ffffff')
+      const b = pinta(null)
+      let s = ''
+      for (let k = 0; k < a.length; k += 4) {
+        s += String.fromCharCode(a[k], a[k + 1], a[k + 2], b[k + 3])
+      }
+      out.push(btoa(s))
+    }
+    return out
+  }, lote)
+  for (const b64 of res) partes.push(Buffer.from(b64, 'base64'))
+}
+writeFileSync(salida, Buffer.concat(partes))
+console.log(browser.version())
+await browser.close()
+"""
+
+
+def ancho_filete(px):
+    return f"{max(1.0, min(2.0, 26.0 / px)):.2f}"
+
+
+def para_medir(svg, px):
+    s = svg.replace("<svg ", f'<svg xmlns="http://www.w3.org/2000/svg" width="{px}" height="{px}" ', 1)
+    return s.replace("__ID__", "m").replace("__SW__", ancho_filete(px))
+
+
+def rasteriza(trabajos, dir_trabajo):
+    """trabajos: [(clave, svg, px)] -> ({(clave, px): (rgb P×3, cobertura P)}, versión de Chromium)."""
+    dir_trabajo.mkdir(parents=True, exist_ok=True)
+    mjs = dir_trabajo / "raster.mjs"
+    mjs.write_text(RASTER_MJS, encoding="utf-8")
+    entrada, salida = dir_trabajo / "trabajos.json", dir_trabajo / "pixeles.bin"
+    entrada.write_text(json.dumps([{"svg": para_medir(s, px), "px": px} for _, s, px in trabajos]), encoding="utf-8")
+    env = dict(os.environ, PLAYWRIGHT_BROWSERS_PATH=os.environ.get("PLAYWRIGHT_BROWSERS_PATH", "/opt/pw-browsers"))
+    res = subprocess.run(["node", str(mjs), str(entrada), str(salida)], env=env, capture_output=True, text=True)
+    if res.returncode != 0:
+        sys.exit(f"Chromium ha fallado:\n{res.stderr}")
+    datos = np.frombuffer(salida.read_bytes(), dtype=np.uint8)
+    out, o = {}, 0
+    for clave, _, px in trabajos:
+        n = px * px * 4
+        a = datos[o : o + n].reshape(px * px, 4).astype(float) / 255
+        out[(clave, px)] = (a[:, :3], a[:, 3])
+        o += n
+    return out, res.stdout.strip()
+
+
+class Dibujos:
+    """Los CIELAB de un conjunto de dibujos del mismo tamaño, en cada visión, para medir distancias."""
+
+    def __init__(self, claves, px_map, px):
+        self.claves = list(claves)
+        self.idx = {k: i for i, k in enumerate(self.claves)}
+        rgb = np.stack([px_map[(k, px)][0] for k in self.claves])
+        self.cov = np.stack([px_map[(k, px)][1] for k in self.claves])
+        self.lab = {v: lab(rgb, v) for v in VISIONES}
+
+    def a_todos(self, otro, k, v):
+        """Distancia del dibujo `k` de `otro` a todos los de este conjunto, en la visión `v`."""
+        i = otro.idx[k]
+        la = np.broadcast_to(otro.lab[v][i], self.lab[v].shape)
+        d = colour.difference.delta_E_CIE2000(la, self.lab[v])
+        w = np.maximum(otro.cov[i][None, :], self.cov)
+        return (d * w).sum(1) / w.sum(1)
+
+
+def voraz(D, lideres, n=22):
+    """El pelotón de ejemplo: los líderes ya puestos y, cada vez, el diseño más lejano de los puestos."""
+    minimo = np.full(len(D.claves), np.inf)
+    for k in lideres.claves:
+        for v in COLOR4:
+            minimo = np.minimum(minimo, D.a_todos(lideres, k, v))
+    elegidos = []
+    for _ in range(n):
+        i = int(np.argmax(minimo))
+        elegidos.append(D.claves[i])
+        for v in COLOR4:
+            minimo = np.minimum(minimo, D.a_todos(D, D.claves[i], v))
+        minimo[i] = -np.inf
+    return elegidos
+
+
+def pares_bajo(D, claves, umbral=10.0):
+    out = {}
+    for v in VISIONES:
+        n = 0
+        for a in range(len(claves)):
+            d = D.a_todos(D, claves[a], v)
+            n += int(sum(d[D.idx[claves[b]]] < umbral for b in range(a + 1, len(claves))))
+        out[v] = n
+    return out
+
+
+def r1(x):
+    return round(float(x), 1)
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--html", default=str(AQUI / "index.html"))
+    ap.add_argument("--trabajo", default=None)
+    args = ap.parse_args()
+    trabajo = Path(args.trabajo) if args.trabajo else Path(tempfile.mkdtemp(prefix="opciones-"))
+
+    # 1. Las paletas: contrastes.
+    paletas = {}
+    for pid, P in PALETAS.items():
+        t = P["tokens"]
+        pares = []
+        for clave, etiqueta, fg, bg, tipo in PARES:
+            pares.append({"id": clave, "etiqueta": etiqueta, "fg": css(t[fg]), "bg": css(t[bg]),
+                          "ratio": round(wcag(t[fg], t[bg]), 2), "tipo": tipo})
+        paletas[pid] = {"tokens": {k: css(v) for k, v in t.items()}, "radio": P["radio"],
+                        "aprox": P["aprox"], "pares": pares}
+
+    # 2. Los filtros.
+    def valores(m):
+        filas = [list(m[i]) + [0, 0] for i in range(3)] + [[0, 0, 0, 1, 0]]
+        return " ".join(f"{x:.6f}".rstrip("0").rstrip(".") if x else "0" for f in filas for x in f)
+
+    visiones = {v: valores(MACHADO[v]) for v in ("protan", "deutan", "tritan")}
+    visiones["gris"] = valores(np.array([REC709, REC709, REC709]))
+
+    # 3. Los maillots: candidatos de cada vocabulario, señales, líderes; todo a 13 px y 28 px.
+    cand, n_pares = {}, {}
+    for vid in VOCABS:
+        cand[vid], n_pares[vid] = candidatos(vid)
+    lideres = {k: lider(*v) for k, v in LIDERES.items()}
+    todos = {**lideres, **DISENOS_CAMPEON}
+    for vid in VOCABS:
+        todos.update(cand[vid])
+    trabajos = [(k, s, 13) for k, s in todos.items()]
+    print(f"Pintando {len(trabajos)} dibujos a 13 px en Chromium…", file=sys.stderr)
+    px_map, chromium = rasteriza(trabajos, trabajo)
+
+    L13 = Dibujos(lideres, px_map, 13)
+    S13 = Dibujos(DISENOS_CAMPEON, px_map, 13)
+    D13 = {vid: Dibujos(cand[vid], px_map, 13) for vid in VOCABS}
+    pelotones = {vid: voraz(D13[vid], L13) for vid in VOCABS}
+    px28, _ = rasteriza([(k, cand[vid][k], 28) for vid in VOCABS for k in pelotones[vid]], trabajo)
+    px_map.update(px28)
+    vocab = {}
+    for vid, V in VOCABS.items():
+        D = D13[vid]
+        pel = pelotones[vid]
+        D28 = Dibujos(pel, px_map, 28)
+        cols = V["colores"]
+        demo_b, demo_s = V["demo"]
+        figuras = []
+        for fi, (nombre, _) in enumerate(V["figuras"]):
+            k = f"F-{vid}-{fi}"
+            todos[k] = maillot(V, fi, demo_b, demo_s)
+            figuras.append([nombre, k, nombre in V["aprox_figuras"]])
+        vocab[vid] = {
+            "colores": [list(c) for c in cols],
+            "figuras": figuras,
+            "n": len(cand[vid]),
+            "nPares": n_pares[vid],
+            "peloton": pel,
+            "pares": {"13": pares_bajo(D, pel), "28": pares_bajo(D28, pel)},
+        }
+        print(f"{vid}: {len(cand[vid])} diseños, {n_pares[vid]} parejas; pares <10 a 13 px {vocab[vid]['pares']['13']}, a 28 {vocab[vid]['pares']['28']}", file=sys.stderr)
+
+    # 4. Las señales de campeón: a V0 y al diseño más cercano de cada vocabulario, a 13 px.
+    campeon_d = {}
+    usados = set()
+    for k in DISENOS_CAMPEON:
+        uci = [r1(S13.a_todos(S13, k, v)[S13.idx["V0"]]) for v in VISIONES]
+        cerca = {}
+        for vid in VOCABS:
+            fila = []
+            for v in VISIONES:
+                d = D13[vid].a_todos(S13, k, v)
+                i = int(np.argmin(d))
+                fila.append([r1(d[i]), D13[vid].claves[i]])
+                usados.add(D13[vid].claves[i])
+            cerca[vid] = fila
+        campeon_d[k] = {"uci": uci, "cerca": cerca}
+    for vid in VOCABS:
+        usados.update(vocab[vid]["peloton"])
+
+    svg = {k: todos[k] for k in list(lideres) + list(DISENOS_CAMPEON) + sorted(usados)}
+    svg.update(EQUIPOS_HOY)
+    svg.update({k: todos[k] for vid in VOCABS for _, k, _ in vocab[vid]["figuras"]})
+
+    datos = {
+        "fecha": date.today().isoformat(),
+        "colour": colour.__version__,
+        "chromium": chromium,
+        "visiones": visiones,
+        "paletas": paletas,
+        "vocab": vocab,
+        "campeon": {"opciones": [[oid, [list(x) for x in ds]] for oid, ds in OPCIONES_CAMPEON], "disenos": campeon_d},
+        "banderas": BANDERAS,
+        "svg": svg,
+    }
+    texto = json.dumps(datos, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
+    html = Path(args.html)
+    fuente = html.read_text(encoding="utf-8")
+    patron = re.compile(r'(<script type="text/plain" id="datos">)(.*?)(</script>)', re.S)
+    if not patron.search(fuente):
+        sys.exit(f"No encuentro el bloque de datos en {html}")
+    html.write_text(patron.sub(lambda m: m.group(1) + texto + m.group(3), fuente, count=1), encoding="utf-8")
+
+    # El informe, para quien lo corre.
+    print(f"Chromium {chromium}; colour-science {colour.__version__}; datos: {len(texto) / 1024:.0f} KB")
+    for pid, P in paletas.items():
+        print(pid, ", ".join(f"{x['id']} {x['ratio']:.2f}" for x in P["pares"]))
+    for k, c in campeon_d.items():
+        mejor = {vid: min(x[0] for x in c["cerca"][vid]) for vid in VOCABS}
+        print(f"{k:14s} UCI {c['uci']}  peor equipo por vocabulario {mejor}")
+
+
+if __name__ == "__main__":
+    main()
