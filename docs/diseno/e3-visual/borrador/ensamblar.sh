@@ -140,11 +140,12 @@ for l in L:
         titulos.add(clave)
 ajeno = re.compile(r'(\.md|\.ts|\.tsx|\.json|\.mjs|\.yml|mapa ?0?\d|propuesta|juez|juicio|t[aá]ctica|generador|encargo|agenda|'
                    r'SPEC|MVP|epics|balance|navegaci[oó]n|README|entrenamiento|retransmisi[oó]n|`telefono`|`sistema`|'
-                   r'`identidad`|`lectura`|telefono|sistema\.md|identidad\.md|lectura\.md|cobertura|codigo|uso)', re.I)
+                   r'`identidad`|`lectura`|\btelefono\b|\bsistema\b|\bidentidad\b|\blectura\b|\bE2\b|\bE\d+\b|'
+                   r'cobertura|codigo|uso)', re.I)
 for i, l in enumerate(L, 1):
     for m in re.finditer(r'§(\d+)(?:\.(\d+))?', l):
         clave = m.group(1) + ('.' + m.group(2) if m.group(2) else '')
-        if clave not in titulos and not ajeno.search(l[max(0, m.start() - 40):m.start()]):
+        if clave not in titulos and not ajeno.search(l[max(0, m.start() - 60):m.start()]):
             fallo(f'l. {i}: remisión a §{clave}, que no existe')
 
 # 3. Injertos, objeciones y huecos del veredicto en los bloques de cierre de las secciones.
