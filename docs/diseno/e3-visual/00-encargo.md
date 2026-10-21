@@ -255,3 +255,37 @@ Lo que esto pide a las propuestas, a los jueces y a la página de opciones:
    señal propia que no dependa de bandas de colores y que se reconozca de un vistazo.
 3. La página de opciones pinta las variantes del dueño junto a las alternativas, con una columna de
    distancia a la marca de la UCI razonada.
+
+### 7.2 Las decisiones de gusto y el tamaño del maillot (21 de octubre de 2026)
+
+El dueño, tras mirar la página de opciones, textual:
+
+> «Paleta: telefono A · Tipografía: sistema · Campeón: A ver, aqui tengo sentimientos encontrados...
+> lo primero el maillot de pais debe por si mismo identificar el pais... o sea, diria que todo el
+> maillot coloreado con los colores y forma de la bandera, no? Puedes hacerlo? Nada de tener que
+> pegar despues la bandera... porque normalmente lo que me gustaria es que siempre van juntos
+> Bandera del pais - Nombre - Maillot... si pones aqui la bandera para mostrar al campeon nacional,
+> queda confuso...»
+>
+> «En cuanto al campeón del mundo, tus propuestas estan interesantes... pero quizas una que tenga
+> una estrella para que vaya con el logo de cyclingstar, tiene sentido... y quizas que la estrella
+> sea de arco iris??? con el fondo blanco diria yo... que opinas???»
+>
+> «Otra cosa, los maillots creo que nunca deberian mostrarse a 13 o 16 pixels, minimo 28 pixels e
+> incluso eso ya es muy pequeño...»
+>
+> «Maillot: que tal 15 colores y 7 figuras??? Y que no se puedan repetir nunca... o sea, que no deje
+> 2 equipos con mismo maillot... Y lo dicho, nunca mostrarlos a 13 px, minimo 28....»
+
+Lo que queda decidido, y que manda sobre cualquier otro texto del rastro (el detalle, en
+`borrador/00-decisiones.md` §0):
+
+1. **La paleta**, la A de `telefono` («manager sobrio»), y **la letra**, la del sistema.
+2. **El campeón nacional** viste la bandera de su país: el maillot entero con los colores y el dibujo
+   de la bandera, sin una bandera aparte al lado. **El del mundo**, un maillot blanco con una
+   estrella de arcoíris, que enlaza con la estrella del logotipo de Cycling Star.
+3. **Un maillot no se pinta nunca por debajo de 28 px.**
+4. **El vocabulario del maillot del equipo**: quince colores y siete figuras, y nunca dos equipos con
+   el mismo maillot.
+5. **La identidad de un corredor va siempre junta y en este orden**: la bandera de su país, su nombre
+   y su maillot.
