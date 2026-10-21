@@ -4,7 +4,7 @@ Una guía de estilo no impide nada: el `@theme` ya existe (`index.css` l. 5-12) 
 
 ### 5.1 El tema cerrado
 
-El cierre son estas 17 líneas, las primeras del `@theme` de §3.11, que hasta el paso 22 van comentadas:
+El cierre son estas 17 líneas, las primeras del `@theme` de §3.9, que hasta el paso 22 van comentadas:
 
 ```css
 --color-*: initial;
@@ -72,7 +72,7 @@ Diez selectores de `no-restricted-syntax` en `apps/web/eslint-ui.mjs`, cada uno 
 | `ui/2`  | una `<table>`                                                                                             | `ui/2 table: use <RankTable> from components/ui`                                    | 15         |
 | `ui/3`  | `<input>`, `<select>` o `<textarea>`                                                                      | `ui/3 field: use <Field> from components/ui`                                        | 42         |
 | `ui/4`  | `title` en un elemento HTML                                                                               | `ui/4 title: nothing lives only in a title; use <InfoButton>`                       | 23         |
-| `ui/5`  | los textos `Loading…`, `Could not load` y `Could not reach`                                               | `ui/5 hand-made state: use <QueryView>`                                             | 70         |
+| `ui/5`  | los textos `Loading…`, `Could not load` y `Could not reach` (pantalla)                                    | `ui/5 hand-made state: use <QueryView>`                                             | 70         |
 | `ui/6`  | una clase de color de la paleta de Tailwind (`text-`, `bg-`, `border-`… con `slate`, `indigo`… y su paso) | `ui/6 Tailwind palette colour: use a token`                                         | 1.058      |
 | `ui/7`  | un valor arbitrario (`-[…]`)                                                                              | `ui/7 arbitrary value: use a token, or add it to ARBITRARY_ALLOWED with its reason` | 39         |
 | `ui/8`  | un literal hexadecimal (`#rgb`, `#rrggbb`, `#rrggbbaa`)                                                   | `ui/8 hex colour: use a token`                                                      | 28         |
