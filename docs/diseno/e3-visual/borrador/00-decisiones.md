@@ -90,6 +90,45 @@ Mistral Racing.`, pantalla).
   la temporada 0 tiene un par por debajo de 10; si alguna lo tiene, el PR lo dice y propone qué color
   o qué figura sobra.
 
+### D-00f · El nacional: la estrella revisada país a país y las dos letras del país donde se leen (amplía D-00d)
+
+- **La estrella dorada del pecho, aceptada por el dueño**, con una tabla de ajustes por país
+  (`NATIONAL_STAR_OVERRIDES`): las banderas que ya llevan una estrella o un emblema donde va la
+  estrella (Vietnam, China, Marruecos, Ghana, Camerún, Chile, Cuba…) mueven la estrella a otro
+  sitio del pecho o la cambian de color, según la revisión.
+- **La revisión, caso a caso**: una hoja con los 133 maillots nacionales a 28 y a 72 px (en la página
+  de opciones y como artefacto del PR que los introduce), que el dueño mira una vez; cada ajuste va
+  con su porqué a la tabla, y `champion.test.ts` la fija.
+- **Las dos letras del código ISO del país** (`ES`, `MA`; `COUNTRIES` solo tiene ISO-2, `packages/
+shared/src/countries.ts` l. 6-11) en el pecho, **solo donde se leen**: en el mínimo de 12 px de
+  letra de D-05, que con el `viewBox` de 48 piden unas 8 u de altura, es decir desde 72 px (a 72 px,
+  1 u = 1,5 px). Por debajo de 72 px, la estrella sola; la bandera junto al nombre y el texto
+  (`Champion of Spain`) dicen el resto. Resuelven las banderas gemelas en grande (Indonesia `ID` y
+  Mónaco `MC`, Chad y Rumanía). Las banderas que ya llevan texto (Brasil, Arabia Saudí, Irak) entran
+  en la misma revisión. Lo que la letra pide (familia, peso, color con filo) lo decide §9.
+- **El mundial no lleva letras**: es el campeón del mundo, no de un país.
+
+### D-00g · El maillot en grande: delante, detrás y culote, con las zonas del patrocinador (amplía D-00b y D-30)
+
+- `KIT_PX` gana las vistas grandes: `showcase` 160 y `poster` 320, solo en `/team/identity`, la ficha
+  del equipo y la cabecera de la ficha del corredor. El mínimo de 28 px no cambia.
+- **Tres vistas del equipo**: el maillot por delante (el de siempre), **por detrás** (la misma figura
+  continuada, el nombre del equipo sobre los hombros y el sitio del dorsal) y **el culote** (un
+  vocabulario reducido, el que defina §8). Las vistas pequeñas, de 28 a 96 px, enseñan solo el
+  maillot por delante.
+- **Las zonas del patrocinador** (D-30, para E8): pecho, espalda, mangas y costados del culote, cada
+  una con su caja en el `viewBox`; un nombre de patrocinador solo se pinta donde su letra llega a 12
+  px; por debajo, la zona es un bloque del color del patrocinador o no se pinta. Quién compra qué y
+  cuánto cuesta es de E8; la moderación de lo que se escribe, de E9.
+- **Los campeones** cambian solo el maillot; el culote es el del equipo.
+
+### D-00h · Prohibidos los maillots de equipo que se parecen a la bandera de un campeón nacional
+
+La tabla de choques (D-24) reserva todo maillot de equipo que quede a menos de `KIT_MIN_DISTANCE` (10)
+de un maillot nacional de campeón, a 28 px y en las cuatro visiones (los 21 que mide §9 frente a 17
+nacionales, entre ellos `plain.red`, `plain.green`, `plain.teal` y `plain.taupe`): el editor los tacha
+con su porqué (`Too close to the champion of Morocco.`, pantalla). Decidido por el dueño.
+
 ## A. La base y dónde vive cada cosa
 
 ### D-01 · La base es `telefono`, y el documento es una fusión

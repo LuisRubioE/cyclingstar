@@ -13,18 +13,27 @@ pinta. Mide únicamente lo que la página enseña:
      0.4.7), y la luminancia de Rec. 709 para los grises.
   3. Los maillots, dibujados en SVG en la rejilla de 48 u de `TORSO` (apps/web/src/components/
      Jersey.tsx l. 10-11) y pintados en Chromium (Playwright de /opt/node22, navegadores de
-     /opt/pw-browsers) a 13 y a 28 px con densidad 1. La distancia entre dos dibujos es la del mapa 03
+     /opt/pw-browsers) con densidad 1. La distancia entre dos dibujos es la del mapa 03
      (`drawn_distance` de mapas/03-maillots-medida.py): la media de ΔE00 píxel a píxel, pesada por la
      cobertura, en cinco visiones (normal, las tres dicromacias en RGB lineal y recortadas, y grises).
-     - De cada vocabulario del maillot del equipo: los diseños que permiten sus reglas, un pelotón de
-       ejemplo de 22 (voraz: empieza con los tres líderes de hoy ya puestos y añade cada vez el diseño
-       más lejano de los ya puestos en las cuatro visiones de color, a 13 px) y sus pares por debajo
-       de 10 a 13 y a 28 px.
-     - De cada señal de campeón: la distancia a la marca de la UCI (V0 del mapa 03 §7.2) y al diseño
-       más cercano de cada vocabulario, a 13 px.
+     Desde lo que decidió el dueño el 21-10-2026 (borrador/00-decisiones.md, D-00b), toda cifra que la
+     página enseña es a 28 px, el mínimo de un maillot:
+     - El vocabulario que eligió (D-00e; borrador/08-equipacion.md §8.1-8.3): sus diseños con la regla
+       de contraste y la reserva, cotejados con los de medir28.json, y un pelotón de ejemplo de 22 sin
+       maillot repetido (voraz: con los tres líderes de §9.7 ya puestos, cada vez el diseño permitido
+       más lejano de los ya puestos en las cuatro visiones de color) con sus pares por debajo de 10.
+     - Las señales que eligió (D-00d; borrador/09-campeon.md §9.1): el nacional que viste su bandera
+       (la de flag-icons, la de la web) con y sin la estrella dorada, y el mundial blanco con la
+       estrella de arcoíris y su gemela de oro; y las alternativas que no eligió. De cada una, la
+       distancia a la marca de la UCI (V0 del mapa 03 §7.2) y al maillot permitido más cercano.
+       Las que ya midió el redactor de §8 y §9 (medir28.json) se toman de allí y se cotejan.
+     - De los cuatro vocabularios de las propuestas, que el dueño no eligió: su pelotón de ejemplo
+       (el de antes, voraz a 13 px con los líderes de hoy) y sus pares por debajo de 10 a 28 px.
 
 Uso:
-  <scratchpad>/venv/bin/python -I -B medidas.py [--html index.html] [--trabajo <dir>]
+  <scratchpad>/venv/bin/python -I -B medidas.py --banderas <flag-icons/flags/4x3> \
+      --medir28 <scratchpad>/redactor-L2/medir28.json [--html index.html] [--trabajo <dir>]
+  (flag-icons está en apps/web/node_modules de un clon con las dependencias instaladas)
 """
 
 import argparse
@@ -417,23 +426,6 @@ def lider(base, marca, figura):
     return doc("", s)
 
 
-def equipo_hoy(base, sec, patron):
-    """`Jersey` de hoy (Jersey.tsx l. 17-54), para decorar la pantalla tipo."""
-    s = f'<path d="{TORSO}" fill="{base}" stroke="#000" stroke-opacity=".18" stroke-width="1"/>'
-    if patron == "band":
-        s += f'<rect x="14" y="24" width="20" height="6" fill="{sec}"/>'
-    elif patron == "shoulders":
-        s += f'<path d="{SLEEVE_L}" fill="{sec}"/><path d="{SLEEVE_R}" fill="{sec}"/>'
-    elif patron == "panels":
-        s += f'<path d="{PANEL_L}" fill="{sec}"/><path d="{PANEL_R}" fill="{sec}"/>'
-    return doc("", s + f'<path d="{COLLAR}" fill="#fff" opacity=".85"/>')
-
-
-EQUIPOS_HOY = {  # colores de JERSEY_COLORS (visuals.ts l. 34-49)
-    "H-a": equipo_hoy("#2563eb", "#f59e0b", "band"),
-    "H-b": equipo_hoy("#1e293b", "#0ea5e9", "shoulders"),
-}
-
 # ------------------------------------------------------------------------ los vocabularios
 
 VOCABS = {
@@ -542,6 +534,142 @@ def candidatos(vid):
     return out, len(pares)
 
 
+# ------------------------------------------ lo que decidió el dueño el 21-10-2026 (D-00b a D-00e)
+# La geometría de borrador/09-campeon.md §9.1 y §9.7 y de 08-equipacion.md §8.1 y §8.3, la misma que
+# midió el redactor de §8 y §9 (<scratchpad>/redactor-L2/medir28.py).
+LOGO_STAR = "M36 2 L39.2 9.2 L47 10 L41.2 15.3 L42.9 23 L36 19.1 L29.1 23 L30.8 15.3 L25 10 L32.8 9.2 Z"
+ARCOIRIS = ["#e53935", "#fb8c00", "#fdd835", "#43a047", "#1e88e5", "#5e35b1"]  # CHAMPION_RAINBOW
+NAVY_DARK, ORO, PLATA = "#0b2740", "#e0a526", "#c0c7d2"
+PAISES = [  # (código, nombre, nombre en el juego, corredor de ejemplo)
+    ("IT", "Italia", "Italy", "Luca Bertolini"),
+    ("ES", "España", "Spain", "Javier Ortega"),
+    ("NL", "Países Bajos", "Netherlands", "Daan de Vries"),
+    ("JP", "Japón", "Japan", "Kenta Mori"),
+    ("MA", "Marruecos", "Morocco", "Yassine El Amrani"),
+    ("ID", "Indonesia", "Indonesia", "Rizky Pratama"),
+    ("MC", "Mónaco", "Monaco", "Louis Garnier"),
+]
+BANDERAS_WEB = [c[0] for c in PAISES] + ["FR", "GB"]
+CAJA_BANDERA = 'x="1.333" y="8" width="45.333" height="34"'  # NATIONAL_FLAG_BOX (§9.1)
+
+
+def estrella_logo(ancho, cx, cy, relleno_, filo):
+    """La estrella del logotipo (Logo.tsx l. 31) con `starTransform` (§9.1) y su filo navy-dark."""
+    s = ancho / 22.0
+    return (
+        f'<path d="{LOGO_STAR}" transform="translate({cx:g} {cy:g}) scale({s:.4f}) translate(-36 -12.5)" '
+        f'fill="{relleno_}" stroke="{NAVY_DARK}" stroke-width="{filo / s:.3f}" stroke-linejoin="round"/>'
+    )
+
+
+def mundial_d00(relleno_=None):
+    """El mundial: blanco y la estrella de 18 u; sin relleno, el arcoíris en diagonal (§9.1)."""
+    defs = TORSO_DEFS
+    if relleno_ is None:
+        stops = "".join(f'<stop offset="{i / 5:.3f}" stop-color="{c}"/>' for i, c in enumerate(ARCOIRIS))
+        defs += f'<linearGradient id="g__ID__" x1="0" y1="0" x2="1" y2="1">{stops}</linearGradient>'
+        relleno_ = "url(#g__ID__)"
+    cuerpo = (
+        f'<use href="#t__ID__" fill="#ffffff"/><use href="#t__ID__" fill="none" {LEAD}/>'
+        f'<path d="{COLLAR}" fill="#fff" fill-opacity=".85"/>' + estrella_logo(18, 24, 28.5, relleno_, 1.5)
+    )
+    return doc(defs, cuerpo)
+
+
+def bandera_web(cc, carpeta):
+    """La bandera de la web (flag-icons 4x3, la de Flag.tsx): su viewBox y su dibujo, con ids propios."""
+    fuente = (carpeta / f"{cc.lower()}.svg").read_text(encoding="utf-8")
+    m = re.search(r"<svg([^>]*)>(.*)</svg>", fuente, re.S)
+    vb = re.search(r'viewBox="([^"]+)"', m.group(1)).group(1)
+    pre = f"bandera-{cc.lower()}-"
+    dentro = re.sub(r'id="([^"]+)"', lambda x: f'id="{pre}{x.group(1)}"', m.group(2))
+    dentro = re.sub(r"url\(#([^)]+)\)", lambda x: f"url(#{pre}{x.group(1)})", dentro)
+    dentro = re.sub(r'href="#([^"]+)"', lambda x: f'href="#{pre}{x.group(1)}"', dentro)
+    return vb, re.sub(r">\s+<", "><", dentro.strip())
+
+
+def nacional_d00(cc, con_estrella, banderas, para_medir):
+    """El nacional: la bandera entera recortada por TORSO, filete, cuello y, si va, la estrella dorada."""
+    if para_medir:
+        vb, dentro = banderas[cc]
+        capa = f'<svg {CAJA_BANDERA} viewBox="{vb}" preserveAspectRatio="xMidYMid slice">{dentro}</svg>'
+    else:  # en la página, la bandera se define una vez (<symbol>) y cada maillot la usa
+        capa = f'<use href="#bandera-{cc.lower()}" {CAJA_BANDERA}/>'
+    cuerpo = (
+        f'<use href="#t__ID__" fill="#ffffff"/><g clip-path="url(#c__ID__)">{capa}</g>'
+        f'<use href="#t__ID__" fill="none" {LEAD}/><path d="{COLLAR}" fill="#fff" fill-opacity=".85"/>'
+    )
+    if con_estrella:
+        cuerpo += estrella_logo(10, 24, 25, ORO, 1.0)
+    return doc(TORSO_DEFS, cuerpo)
+
+
+def lideres_d00():
+    """Los tres de líder de §9.7: banda blanca de 10 u en el verde y lunares de 4 u en el azul."""
+    def uno(base, extra):
+        return doc(TORSO_DEFS, f'<use href="#t__ID__" fill="{base}"/>{extra}<use href="#t__ID__" fill="none" {LEAD}/>')
+
+    banda_ = f'<g clip-path="url(#c__ID__)">{relleno([r(0, 23, 48, 10)], "#ffffff")}</g>'
+    lunares = "".join(f'<circle cx="{x}" cy="{y}" r="4" fill="#ffffff"/>' for x, y in DOTS)
+    return {"L2-gc": uno("#facc15", ""), "L2-points": uno("#16a34a", banda_), "L2-kom": uno("#2563eb", lunares)}
+
+
+COLORES_D00E = [c[:2] for c in VOCABS["telefono"]["colores"][:10]] + [
+    ("taupe", "#876969"), ("brown", "#4b1e0f"), ("plum", "#5a4b5a"), ("yellow", "#ffd60a"), ("white", "#ffffff"),
+]
+FIGURAS_D00E = [
+    ("plain", []), ("band", [r(0, 23, 48, 10)]), ("hoops", [r(0, 17, 48, 7), r(0, 30, 48, 7)]),
+    ("halves", [r(24, 0, 24, 48)]), ("yoke", [r(0, 0, 48, 19)] + SLEEVES),
+    ("sides", [r(0, 0, 21, 48), r(27, 0, 21, 48)]), ("sash", [p(SASH_ID)]),
+]
+FIGURA_PANTALLA = {"plain": "Plain", "band": "Chest band", "hoops": "Hoops", "halves": "Halves",
+                   "yoke": "Yoke", "sides": "Sides", "sash": "Sash"}
+FILETE_D00E = 'stroke="#000" stroke-opacity=".3" stroke-width="1"'  # 1 u a todos los tamaños (§8.3)
+
+
+def maillot_d00e(base, sec, formas):
+    cuerpo = f'<use href="#t__ID__" fill="{base}"/>'
+    if formas:
+        cuerpo += f'<g clip-path="url(#c__ID__)">{relleno(formas, sec)}</g>'
+    cuerpo += f'<use href="#t__ID__" fill="none" {FILETE_D00E}/><path d="{COLLAR}" fill="#fff" fill-opacity=".85"/>'
+    return doc(TORSO_DEFS, cuerpo)
+
+
+def candidatos_d00e():
+    """Los que pasan la regla de contraste (ΔE00 >= 20 en las cinco vistas), con su código de §8.1."""
+    hexs = dict(COLORES_D00E)
+    nombres = list(hexs)
+    bases = [n for n in nombres if n not in ("yellow", "white")]
+    out, total = {}, 0
+    for fig, formas in FIGURAS_D00E:
+        for b in bases:
+            if not formas:
+                out[f"Q:plain.{b}"] = maillot_d00e(hexs[b], "#ffffff", [])
+                total += 1
+                continue
+            for s in nombres:
+                if s == b:
+                    continue
+                total += 1
+                if all(de_colores(hexs[b], hexs[s], v) >= 20 for v in VISIONES):
+                    out[f"Q:{fig}.{b}.{s}"] = maillot_d00e(hexs[b], hexs[s], formas)
+    return out, total
+
+
+def canonico(clave):
+    """`halves.blue.red` y `halves.red.blue` son el mismo maillot (canonicalKit, §8.1)."""
+    fig, b, *s = clave[2:].split(".")
+    if fig == "halves" and s and s[0] not in ("yellow", "white"):
+        a, c = sorted([b, s[0]])
+        return f"Q:halves.{a}.{c}"
+    return clave
+
+
+def nombre_d00e(clave):
+    fig, b, *s = clave[2:].split(".")
+    return FIGURA_PANTALLA[fig] + ", " + b + (" y " + s[0] if s else "")
+
+
 # ----------------------------------------------------------------------------- el rasterizador
 
 RASTER_MJS = r"""/* global process, console */
@@ -644,12 +772,15 @@ class Dibujos:
         return (d * w).sum(1) / w.sum(1)
 
 
-def voraz(D, lideres, n=22):
-    """El pelotón de ejemplo: los líderes ya puestos y, cada vez, el diseño más lejano de los puestos."""
+def voraz(D, lideres, n=22, permitido=None, canon=None):
+    """El pelotón de ejemplo: los líderes ya puestos y, cada vez, el diseño más lejano de los puestos.
+    Con `permitido`, solo entre esos; con `canon`, sin repetir maillot (ni su espejo)."""
     minimo = np.full(len(D.claves), np.inf)
     for k in lideres.claves:
         for v in COLOR4:
             minimo = np.minimum(minimo, D.a_todos(lideres, k, v))
+    if permitido is not None:
+        minimo[~permitido] = -np.inf
     elegidos = []
     for _ in range(n):
         i = int(np.argmax(minimo))
@@ -657,6 +788,9 @@ def voraz(D, lideres, n=22):
         for v in COLOR4:
             minimo = np.minimum(minimo, D.a_todos(D, D.claves[i], v))
         minimo[i] = -np.inf
+        if canon:
+            c = canon(D.claves[i])
+            minimo[[j for j, k in enumerate(D.claves) if canon(k) == c]] = -np.inf
     return elegidos
 
 
@@ -679,6 +813,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--html", default=str(AQUI / "index.html"))
     ap.add_argument("--trabajo", default=None)
+    ap.add_argument("--banderas", default=str(AQUI.parents[3] / "apps/web/node_modules/flag-icons/flags/4x3"))
+    ap.add_argument("--medir28", default=None, help="las cifras a 28 px del redactor de §8 y §9")
     args = ap.parse_args()
     trabajo = Path(args.trabajo) if args.trabajo else Path(tempfile.mkdtemp(prefix="opciones-"))
 
@@ -701,67 +837,122 @@ def main():
     visiones = {v: valores(MACHADO[v]) for v in ("protan", "deutan", "tritan")}
     visiones["gris"] = valores(np.array([REC709, REC709, REC709]))
 
-    # 3. Los maillots: candidatos de cada vocabulario, señales, líderes; todo a 13 px y 28 px.
+    # 3. Los cuatro vocabularios de las propuestas, que el dueño no eligió: su pelotón de ejemplo, el
+    #    de antes (voraz a 13 px con los líderes de hoy), que la página ya solo pinta y mide a 28 px.
     cand, n_pares = {}, {}
     for vid in VOCABS:
         cand[vid], n_pares[vid] = candidatos(vid)
     lideres = {k: lider(*v) for k, v in LIDERES.items()}
-    todos = {**lideres, **DISENOS_CAMPEON}
+    todos = dict(lideres)
     for vid in VOCABS:
         todos.update(cand[vid])
-    trabajos = [(k, s, 13) for k, s in todos.items()]
-    print(f"Pintando {len(trabajos)} dibujos a 13 px en Chromium…", file=sys.stderr)
-    px_map, chromium = rasteriza(trabajos, trabajo)
+    print(f"Pintando {len(todos)} dibujos a 13 px (para escoger los pelotones de antes)…", file=sys.stderr)
+    px13, chromium = rasteriza([(k, s, 13) for k, s in todos.items()], trabajo)
+    L13 = Dibujos(lideres, px13, 13)
+    pelotones = {vid: voraz(Dibujos(cand[vid], px13, 13), L13) for vid in VOCABS}
+    del px13
 
-    L13 = Dibujos(lideres, px_map, 13)
-    S13 = Dibujos(DISENOS_CAMPEON, px_map, 13)
-    D13 = {vid: Dibujos(cand[vid], px_map, 13) for vid in VOCABS}
-    pelotones = {vid: voraz(D13[vid], L13) for vid in VOCABS}
-    px28, _ = rasteriza([(k, cand[vid][k], 28) for vid in VOCABS for k in pelotones[vid]], trabajo)
-    px_map.update(px28)
+    # 4. Lo que decidió el dueño (D-00b a D-00e), a 28 px.
+    m28 = json.loads(Path(args.medir28).read_text(encoding="utf-8")) if args.medir28 else None
+    carpeta = Path(args.banderas)
+    if not carpeta.is_dir():
+        sys.exit(f"No encuentro las banderas de flag-icons en {carpeta} (--banderas)")
+    banderas = {cc: bandera_web(cc, carpeta) for cc in BANDERAS_WEB}
+    cand_q, total_q = candidatos_d00e()
+    lid28 = lideres_d00()
+    nuevas_medir = {"W-arcoiris": mundial_d00(), "W-oro": mundial_d00(ORO), "W-continental": mundial_d00(PLATA)}
+    nuevas_pagina = {"W-arcoiris": nuevas_medir["W-arcoiris"], "W-oro": nuevas_medir["W-oro"]}
+    for cc, *_ in PAISES:
+        for con, suf in ((True, ""), (False, "-sin")):
+            nuevas_medir[f"N-{cc}{suf}"] = nacional_d00(cc, con, banderas, True)
+            nuevas_pagina[f"N-{cc}{suf}"] = nacional_d00(cc, con, banderas, False)
+    sen28 = {**nuevas_medir, **DISENOS_CAMPEON}
+    trab28 = [(k, s, 28) for k, s in {**cand_q, **sen28, **lid28}.items()]
+    trab28 += [(k, cand[vid][k], 28) for vid in VOCABS for k in pelotones[vid]]
+    print(f"Pintando {len(trab28)} dibujos a 28 px…", file=sys.stderr)
+    px28, _ = rasteriza(trab28, trabajo)
+    Q = Dibujos(cand_q, px28, 28)
+    S = Dibujos(sen28, px28, 28)
+    L = Dibujos(lid28, px28, 28)
+    # Lo reservado por distancia (§8.1): a menos de 10 de un líder, del mundial o del continental en
+    # alguna de las cuatro visiones; y los 21 que medir28.json deja a menos de 10 de algún nacional.
+    reservado = np.zeros(len(Q.claves), bool)
+    for conj, claves in ((L, L.claves), (S, ["W-arcoiris", "W-continental"])):
+        for k in claves:
+            for v in COLOR4:
+                reservado |= Q.a_todos(conj, k, v) < 10
+    perm536 = ~reservado
+    res_nac = {"Q:" + c for c in (m28["nacionales"]["kits_cercanos"] if m28 else [])}
+    perm515 = perm536 & np.array([k not in res_nac for k in Q.claves])
+    cuentas = {
+        "combinaciones": total_q, "contraste": len(cand_q), "reservadosDistancia": int(reservado.sum()),
+        "permitidosAntes": int(perm536.sum()), "reservadosNac": len(res_nac), "permitidos": int(perm515.sum()),
+        "distintos": len({canonico(k) for k, ok in zip(Q.claves, perm515) if ok}),
+    }
+    pel_q = voraz(Q, L, permitido=perm515, canon=canonico)
+    pares_q = pares_bajo(Dibujos(pel_q, px28, 28), pel_q)
+
+    def medida(k):
+        """A la marca (V0) y al permitido más cercano (de los 536, como medir28.json), en cinco vistas."""
+        uci = [r1(S.a_todos(S, k, v)[S.idx["V0"]]) for v in VISIONES]
+        cerca = []
+        for v in VISIONES:
+            d = Q.a_todos(S, k, v)
+            d[~perm536] = np.inf
+            i = int(np.argmin(d))
+            cerca.append([r1(d[i]), Q.claves[i]])
+        return {"uci": uci, "cerca": cerca}
+
+    cifras = {k: dict(medida(k), fuente="medidas") for k in nuevas_medir if k != "W-continental"}
+    cotejo = []
+    if m28:
+        for k in list(cifras):
+            km = {"W-arcoiris": "W-mundo"}.get(k, k)
+            if km in m28["senales"]:
+                ms = m28["senales"][km]
+                cotejo += [abs(a - b) for a, b in zip(ms["uci"], cifras[k]["uci"])]
+                cotejo += [abs(a[0] - b[0]) for a, b in zip(ms["cerca"], cifras[k]["cerca"])]
+                cifras[k] = {"uci": ms["uci"], "cerca": [[d, "Q:" + c] for d, c in ms["cerca"]], "fuente": "medir28"}
+    alternativas = {k: medida(k) for k in DISENOS_CAMPEON}
+
     vocab = {}
     for vid, V in VOCABS.items():
-        D = D13[vid]
-        pel = pelotones[vid]
-        D28 = Dibujos(pel, px_map, 28)
-        cols = V["colores"]
         demo_b, demo_s = V["demo"]
         figuras = []
         for fi, (nombre, _) in enumerate(V["figuras"]):
             k = f"F-{vid}-{fi}"
             todos[k] = maillot(V, fi, demo_b, demo_s)
             figuras.append([nombre, k, nombre in V["aprox_figuras"]])
-        vocab[vid] = {
-            "colores": [list(c) for c in cols],
-            "figuras": figuras,
-            "n": len(cand[vid]),
-            "nPares": n_pares[vid],
-            "peloton": pel,
-            "pares": {"13": pares_bajo(D, pel), "28": pares_bajo(D28, pel)},
-        }
-        print(f"{vid}: {len(cand[vid])} diseños, {n_pares[vid]} parejas; pares <10 a 13 px {vocab[vid]['pares']['13']}, a 28 {vocab[vid]['pares']['28']}", file=sys.stderr)
+        pel = pelotones[vid]
+        vocab[vid] = {"colores": [list(c) for c in V["colores"]], "figuras": figuras, "n": len(cand[vid]),
+                      "nPares": n_pares[vid], "peloton": pel, "pares28": pares_bajo(Dibujos(pel, px28, 28), pel)}
+    figuras_q = []
+    for i, (fig, formas) in enumerate(FIGURAS_D00E):
+        todos[f"F-q-{i}"] = maillot_d00e("#0f6de9", "#ffffff", formas)
+        figuras_q.append([FIGURA_PANTALLA[fig], f"F-q-{i}"])
 
-    # 4. Las señales de campeón: a V0 y al diseño más cercano de cada vocabulario, a 13 px.
-    campeon_d = {}
-    usados = set()
-    for k in DISENOS_CAMPEON:
-        uci = [r1(S13.a_todos(S13, k, v)[S13.idx["V0"]]) for v in VISIONES]
-        cerca = {}
-        for vid in VOCABS:
-            fila = []
-            for v in VISIONES:
-                d = D13[vid].a_todos(S13, k, v)
-                i = int(np.argmin(d))
-                fila.append([r1(d[i]), D13[vid].claves[i]])
-                usados.add(D13[vid].claves[i])
-            cerca[vid] = fila
-        campeon_d[k] = {"uci": uci, "cerca": cerca}
-    for vid in VOCABS:
-        usados.update(vocab[vid]["peloton"])
-
-    svg = {k: todos[k] for k in list(lideres) + list(DISENOS_CAMPEON) + sorted(usados)}
-    svg.update(EQUIPOS_HOY)
+    usados_q = set(pel_q) | {c[1] for x in [*cifras.values(), *alternativas.values()] for c in x["cerca"]}
+    svg = {**lid28, **DISENOS_CAMPEON, **nuevas_pagina, **{k: cand_q[k] for k in sorted(usados_q)}}
+    svg.update({k: todos[k] for vid in VOCABS for k in vocab[vid]["peloton"]})
     svg.update({k: todos[k] for vid in VOCABS for _, k, _ in vocab[vid]["figuras"]})
+    svg.update({k: todos[k] for _, k in figuras_q})
+    d00 = {
+        "colores": [[n, h, "segundo" if n in ("yellow", "white") else "base"] for n, h in COLORES_D00E],
+        "figuras": figuras_q,
+        "cuentas": cuentas,
+        "m28": dict(m28["vocabulario"], permitidos515=m28["nacionales"]["permitidos_reservando_nacionales"],
+                    distintos515=m28["nacionales"]["distintos_reservando_nacionales"]) if m28 else None,
+        "paleta": {"min": {v: m28["colores"][f"min_{v}"] for v in VISIONES},
+                   "bajo10": {v: m28["colores"][f"pares_bajo10_{v}"] for v in VISIONES}} if m28 else None,
+        "peloton": pel_q,
+        "pares28": pares_q,
+        "reservadosNac": sorted(res_nac),
+        "paises": PAISES,
+        "cifras": cifras,
+        "cotejo": round(max(cotejo), 2) if cotejo else None,
+        "nacPeor": m28["nacionales"]["peor_distancia_por_vision"] if m28 else None,
+        "nacLista": m28["nacionales"]["lista"] if m28 else [],
+    }
 
     datos = {
         "fecha": date.today().isoformat(),
@@ -770,8 +961,11 @@ def main():
         "visiones": visiones,
         "paletas": paletas,
         "vocab": vocab,
-        "campeon": {"opciones": [[oid, [list(x) for x in ds]] for oid, ds in OPCIONES_CAMPEON], "disenos": campeon_d},
+        "d00": d00,
+        "alternativas": {"opciones": [[oid, [list(x) for x in ds]] for oid, ds in OPCIONES_CAMPEON], "cifras": alternativas},
         "banderas": BANDERAS,
+        "banderasWeb": {cc: list(banderas[cc]) for cc in BANDERAS_WEB},
+        "nombres": {k: nombre_d00e(k) for k in usados_q},
         "svg": svg,
     }
     texto = json.dumps(datos, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
@@ -784,11 +978,12 @@ def main():
 
     # El informe, para quien lo corre.
     print(f"Chromium {chromium}; colour-science {colour.__version__}; datos: {len(texto) / 1024:.0f} KB")
-    for pid, P in paletas.items():
-        print(pid, ", ".join(f"{x['id']} {x['ratio']:.2f}" for x in P["pares"]))
-    for k, c in campeon_d.items():
-        mejor = {vid: min(x[0] for x in c["cerca"][vid]) for vid in VOCABS}
-        print(f"{k:14s} UCI {c['uci']}  peor equipo por vocabulario {mejor}")
+    print("vocabulario del dueño:", cuentas, "| medir28:", d00["m28"])
+    print("pelotón sin repetir, pares <10 a 28 px:", pares_q, "| cotejo con medir28, mayor diferencia:", d00["cotejo"])
+    for vid in VOCABS:
+        print(vid, "pares <10 a 28 px:", vocab[vid]["pares28"])
+    for k, c in {**cifras, **alternativas}.items():
+        print(f"{k:14s} UCI {c['uci']}  equipo {[x[0] for x in c['cerca']]}  {c.get('fuente', 'medidas')}")
 
 
 if __name__ == "__main__":

@@ -289,3 +289,42 @@ Lo que queda decidido, y que manda sobre cualquier otro texto del rastro (el det
    el mismo maillot.
 5. **La identidad de un corredor va siempre junta y en este orden**: la bandera de su país, su nombre
    y su maillot.
+
+### 7.3 La estrella caso a caso, las dos letras del país y el maillot en grande (21 de octubre de 2026)
+
+El dueño, textual:
+
+> «Me parece bien lo de la estrella... aunque algunas banderas justo tienen una estrella dorada...
+> habrá que ver caso a caso para cada uno de los paises soportados... y quizas prohibir algunas
+> combinaciones de paises para que no coincidan demasiado parecidos a una bandera, exacto... Oye, y si
+> pusieramos en el maillot 2 letras con el codigo ISO del pais? o sea el maillot de españa es la
+> bandera de españa y en el pecho 2 letras ES... el de marruecos, pues es la bandera de marruecos y en
+> el pecho 2 letras MA... y asi ya no se confunde con ningun equipo.»
+>
+> «Por cierto, 28 px dijimos que es el tamaño mas pequeño, pero en ocasiones tiene que poder verse
+> mucho mayores... incluso quizas me gustaria que se puedan poner publicidad en el maillot si el
+> equipo vende el espacio a un sponsor... para eso tiene que poder verse en la pagina del equipo el
+> maillot en tamaño grande... e incluso quizas tambien la parte de atras del maillot?? y el pantalon?
+> (los equipos ciclistas tienen pantalon? o les dan libertad para ir como quieran???)»
+>
+> «ok, me parece bien en degradado»
+
+Lo que queda decidido (el detalle, en `borrador/00-decisiones.md` §0, D-00f a D-00h):
+
+1. **La estrella dorada del nacional, aceptada, revisada país a país**: las banderas que ya llevan una
+   estrella (o algo en el sitio de la estrella) tienen su ajuste, y el dueño revisa los 133 de una
+   vez en una hoja.
+2. **Prohibidos los maillots de equipo que se parezcan demasiado a la bandera de un campeón
+   nacional**, medido.
+3. **Las dos letras del código ISO del país en el pecho del nacional** (`ES`, `MA`), donde se puedan
+   leer.
+4. **El maillot en grande**: además de 28 px como mínimo, vistas grandes en la página del equipo, con
+   la espalda y el culote, y las zonas que un patrocinador puede comprar (E8).
+5. **El degradado del arcoíris del mundial**, aceptado.
+
+Respuesta a su pregunta, comprobada: los equipos profesionales corren con un equipo entero e
+idéntico, maillot y culote, aprobado por la UCI. Fuentes secundarias citan el art. 1.3.034 («only
+their approved team kit»), sin verificar contra el reglamento vigente. La UCI multó en 2020 a EF por
+enseñar un maillot distinto del aprobado. Su guía de los maillots de campeón (v5.3, la de §7.1) dice
+del culote `all bib short must be plain color in white or black`, con las zonas de patrocinador en
+los costados y `No piping is allowed on the bibshort`.
