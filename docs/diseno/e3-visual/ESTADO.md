@@ -1,6 +1,6 @@
 # E3 · Estado del proceso de diseño
 
-Estado: **en curso**, fase 5 (corrección). Empezado el 20 de octubre de 2026 sobre `58c14da` (`main`,
+Estado: **en curso**, fase 6 (coherencia y auditoría). Empezado el 20 de octubre de 2026 sobre `58c14da` (`main`,
 con E2 en producción desde el 10 de octubre y el motor v91). El documento final será
 `docs/visual.md`. Se actualiza este fichero al terminar cada fase, con commit y push, para poder
 retomar el trabajo si la sesión se corta.
@@ -95,14 +95,30 @@ retomar el trabajo si la sesión se corta.
   estrella por la regla de §9.5, las letras desde 72 px y los casos que revisar marcados) y una
   equipación de ejemplo en grande (delante, detrás y culote, con las zonas del patrocinador).
 
+- **Más decisiones del dueño, del 22 de octubre** (`00-encargo.md` §7.4 a §7.7; `borrador/00-decisiones.md`
+  §0, D-00i a D-00q): el modo oscuro opcional (claro por defecto); ninguna marca para el equipo líder;
+  un cambio de maillot por temporada; el nacional sin estrella; `Undertrained` en lugar de `Rusty`;
+  el TSS fuera; **sin web instalable, porque el dueño hará una app**; la prueba del teléfono en el CI;
+  y el clon del maillot, borrado en el PR 1. Su idea de vender el premium solo en la web, con lo que
+  dicen hoy las tiendas, queda para E8 (§7.7).
+- Fase 5, los tres correctores (22 de octubre de 2026; L1 y L2 se cortaron por el límite semanal del
+  dueño y se retomaron): L1, 58 aplicados y 4 en parte de 62; L2, 41 aplicados, 7 en parte y 3
+  desestimados (los tres por la web instalable retirada) de 51; L3, 48 aplicados y 1 desestimado de
+  49, más 24 remisiones. 58 cruzadas entre lotes. El plan queda en 41 PR (unas 85 sesiones,
+  estimado), con las migraciones 0050 a 0054.
+- La página de opciones, versiones 5 y 6: el nacional sin estrella, la reserva nueva (491 maillots
+  permitidos y 458 distintos) y la paleta A en modo oscuro.
+
 ## En curso
 
-- Fase 5, los tres correctores, uno por lote, con `04-fase-refutacion.md` §5 y los hallazgos de
-  `refutaciones/por-lote/L1.json` (62), `L2.json` (51) y `L3.json` (49): L1 y L2 a la vez, después L3.
+- Fase 6a, la coherencia (un agente): las 58 cruzadas de `refutaciones/cruzadas-L1.json`, `-L2.json` y
+  `-L3.json`, `borrador/dudas.md`, el glosario fundido y `refutaciones/coherencia.json`; después, la v1
+  con `borrador/ensamblar.sh --comprobar`.
 
 ## Pendiente
 
-1. Fase 6: la coherencia, dos auditores y el cierre (`refutaciones/`, `borrador/00-cabecera.md`).
+1. Fase 6b y 6c: dos auditores (`05-fase-auditoria.md`) y el cierre (`refutaciones/resultado-final.json`,
+   `borrador/00-cabecera.md`).
 2. Fase 7: el ensamblado de `docs/visual.md`, las líneas de estado de E3 en `docs/encargos.md` y su
    sección en `docs/diseno/README.md`, y el PR, solo con documentos y sin fusionar hasta que conteste
    el dueño.
