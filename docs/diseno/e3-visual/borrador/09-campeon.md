@@ -68,8 +68,8 @@ La marca es `five horizontal stripes composed of colours blue, red, black, yello
 
 **Las distancias, a 28 px** (medido aquí: `medir28.py`, con el rasterizador de `opciones/medidas.py`, Chromium 141.0.7390.37; la marca es la V0 del mapa 03 §7.2, cinco bandas de 2 u sobre blanco; la equipación es la permitida más cercana de las 491 de §8.1, en cada vista, medida otra vez con `<scratchpad>/corrector-L2/medir-nacional3.py` tras reservar los grises de los líderes, que se llevan la `sides.orange.white` que en grises quedaba a 9,4 del mundial y a 8,6 del continental):
 
-| Señal          | A la marca: normal, protanopía, deuteranopía, tritanopía y grises | Equipación más cercana, en las mismas cinco                                                                                   | Líder más cercano, en las cuatro |
-| -------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| Señal          | A la marca: normal, protanopía, deuteranopía, tritanopía y grises | Equipación más cercana, en las mismas cinco                                                                                  | Líder más cercano, en las cuatro |
+| -------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
 | el mundial     | 12,7; 11,6; 11,7; 12,1; 9,2                                       | 14,6 `sides.taupe.white`; 12,2 `yoke.teal.white`; 11,3 `sides.pink.white`; 14,5 `sides.taupe.white`; 10,0 `sides.pink.white` | 25,9                             |
 | el continental | 13,0; 12,4; 12,4; 11,7; 8,3                                       | 12,8; 11,3; 10,4; 14,0; 9,7                                                                                                  | 25,6                             |
 

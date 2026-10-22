@@ -125,9 +125,11 @@ shared/src/countries.ts` l. 6-11) en el pecho, **solo donde se leen**: en el mí
 ### D-00h · Prohibidos los maillots de equipo que se parecen a la bandera de un campeón nacional
 
 La tabla de choques (D-24) reserva todo maillot de equipo que quede a menos de `KIT_MIN_DISTANCE` (10)
-de un maillot nacional de campeón, a 28 px y en las cuatro visiones (los 21 que mide §9 frente a 17
-nacionales, entre ellos `plain.red`, `plain.green`, `plain.teal` y `plain.taupe`): el editor los tacha
-con su porqué (`Too close to the champion of Morocco.`, pantalla). Decidido por el dueño.
+de un maillot nacional de campeón, a 28 px y en las cuatro visiones: el editor los tacha con su
+porqué (`Too close to the champion of Morocco.`, pantalla). Decidido por el dueño. Las cifras son las
+de §8 y §9 tras D-00m (el nacional sin estrella): 26 maillots de equipo reservados frente a 16
+nacionales, medidos por el corrector de §8 y §9 (las de «21 frente a 17» y «12 frente a 10» eran de
+las versiones con estrella).
 
 ### D-00i · Un modo oscuro opcional: claro por defecto (sustituye a D-04; DD-05 decidida)
 
@@ -490,7 +492,7 @@ registro del tick qué borró. Si no encuentra ninguno, no hace nada.
 
 ### D-28 · Los líderes
 
-**Decisión.** Los tres que nombró el dueño ([DUEÑO 1]), con sus colores, y las marcas de telefono §6.5: general `#facc15` liso; puntos `#16a34a` con banda **blanca** de 10 u (hoy `#bbf7d0` de 7 u, a 2,72:1 de su base); montaña `#2563eb` con cinco lunares blancos de 4 u de radio (hoy 3,4). Entre sí no bajan de 18,8 en las cuatro visiones ni de 13,3 en grises (telefono). Sus figuras quedan reservadas por distancia (D-20): la banda del verde es también una figura de equipo (`band`), así que lo que se reserva es quedar a menos de 10 de él. `leaderJerseys.test.tsx` se re-sella con la banda de 10 u y los lunares de 4.
+**Decisión.** Los tres que nombró el dueño ([DUEÑO 1]), con sus colores, y las marcas de telefono §6.5: general `#facc15` liso; puntos `#16a34a` con banda **blanca** de 10 u (hoy `#bbf7d0` de 7 u, a 2,72:1 de su base); montaña `#2563eb` con cinco lunares blancos de 4 u de radio (hoy 3,4). Entre sí no bajan de 18,8 en las cuatro visiones ni de 13,3 en grises (telefono). Sus figuras quedan reservadas por distancia (D-20): la banda del verde es también una figura de equipo (`band`), así que lo que se reserva es quedar a menos de 10 de él. **Corregido en la fase 5** (L2, Ruso-028, con medida nueva): frente a los tres líderes esa distancia se mide en las cinco vistas, grises incluidos, porque el amarillo y el verde comparten figura con los equipos (`plain` y `band`) y solo los separa el color; en grises `plain.sky` quedaba a 5,3 del amarillo y `band.pink.yellow` a 3,4 del verde (`medir28.json`), y la reserva se lleva 19 maillots más (§8.1 y §9.7, decisión 8-q). `leaderJerseys.test.tsx` se re-sella con la banda de 10 u y los lunares de 4.
 
 **Evidencia.** telefono §6.5; mapa 03 §4.1; cobertura, tabla, fila 10.
 

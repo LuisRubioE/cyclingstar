@@ -33,21 +33,20 @@ export const planPreviewDaySchema = ordersDaySchema.extend({
   kind: z.enum(['race', 'travel', 'train']),
   load: loadLevelSchema,
 })
-export const planPreviewRaceSchema = z
-  .object({
-    raceKey: z.string(),
-    raceId: z.string(), // el id de calendario, el de /world/races/:raceId
-    name: z.string(),
-    country: z.string().nullable(),
-    raceClass: z.string(),
-    stageCount: z.number().int().min(1),
-    startDay: z.number().int(),
-    endDay: z.number().int(),
-    ongoing: z.boolean(),
-    arrival: arrivalLabelSchema.nullable(), // la de su primera etapa en el horizonte; null en curso
-    travelOut: z.array(z.number().int()),
-    travelBack: z.array(z.number().int()),
-  })
+export const planPreviewRaceSchema = z.object({
+  raceKey: z.string(),
+  raceId: z.string(), // el id de calendario, el de /world/races/:raceId
+  name: z.string(),
+  country: z.string().nullable(),
+  raceClass: z.string(),
+  stageCount: z.number().int().min(1),
+  startDay: z.number().int(),
+  endDay: z.number().int(),
+  ongoing: z.boolean(),
+  arrival: arrivalLabelSchema.nullable(), // la de su primera etapa en el horizonte; null en curso
+  travelOut: z.array(z.number().int()),
+  travelBack: z.array(z.number().int()),
+})
 // Petición: strict, en la raíz y en su plan (§13.3)
 export const planPreviewRequestSchema = z
   .object({
