@@ -23,6 +23,7 @@ lo que ESLint pide para que el CI pase (un `global` y dos nombres sin uso), sin 
 | `medir-nacional2.py` (salida, `medir-nacional2.json`)                 | la estrella del nacional colocada país a país (D-00f), que el dueño quitó después (D-00m); se guarda porque `medir-nacional3.py` la reutiliza                                                                                       | §9.5              |
 | `medir-nacional3.py` (salida, `medir-nacional3.json`)                 | el nacional sin estrella a 28 px: la reserva por las banderas, los 491 maillots permitidos y 458 distintos, las gemelas y los nacionales frente a los líderes y la marca                                                            | §8.1, §9, §19.6   |
 | `juez-cobertura-medida.py`                                            | la medida del juez de cobertura: el par de colores más cercano de la paleta del maillot de cada propuesta, y la señal de campeón por defecto de cada una y la de hoy (`ChampionMark`) frente a la marca de la UCI, a 13, 16 y 28 px | §9.2              |
+| `filete.py` (salida, `filete.txt`)                                    | el filete claro del maillot (`kit-edge` y `kit-edge-strong`) mezclado sobre los cuatro fondos claros donde se pinta, con su razón WCAG, y el alfa que pediría 3:1; lo escribió el cierre para A-L1-007                              | §3.1 y §16.2      |
 
 Además se apoyan en dos ficheros que ya estaban en el rastro: `../opciones/medidas.py`, el
 rasterizador con Chromium y la simulación de daltonismo de la página de opciones, y

@@ -87,6 +87,15 @@ Estos apéndices dicen de dónde sale cada pieza del documento y dónde cayó, p
 - **De `lectura`**: sus quince colores con `rosa` y `gris`, a 1,6 en deuteranopía (D-20); validar por ámbito (D-24); la prueba a mano antes de fusionar (D-18); los códigos `order` y `empty` (D-38); `teams.jersey` (D-22); la instrucción que nombra la semana (D-42); y el nombre del patrocinador desde 28 px (D-30).
 - **Del dueño, el 21 y el 22 de octubre**: la banda de honor (el defecto de D-26) y los doce colores y seis figuras (el de D-20), sustituidos por D-00d y D-00e; la estrella dorada del nacional, que había aceptado (D-00m); el juego solo en claro (D-04, sustituida por D-00i); la espera de 28 días entre dos maillots (D-00k); el dorsal y el `Chip` del equipo líder (D-00j); `Rusty`, `Too tired` y `Too fresh` (D-00n); la web instalable entera (D-00p); y dejar los clones en producción (D-00q).
 
+**Lo desestimado de la refutación**: cuatro de los 162 hallazgos (fases 4 a 6; el recuento, en §0.7), los cuatro porque lo que corregían salió del documento cuando el dueño retiró la web instalable (D-00p, «DD-14: No, pronto haremos app, asi que quita la web instalable», `00-encargo.md` §7.6). Lo que pedían era cierto en la v0, y la auditoría sostiene el motivo:
+
+| Hallazgo       | Gravedad | Lo que pedía                                                                                                       | Por qué no se aplica                                               |
+| -------------- | -------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| Rcodigo-039    | baja     | que el atajo `Races` del manifiesto llevara `?source=pwa-shortcut`, como `Training`, para que el sensor lo contara | sin manifiesto ni sensor no hay atajos que contar                  |
+| Rcodigo-040    | media    | la firma de `decide` y que `sw.js` se registrara como módulo, porque `decide.js` exporta                           | sin service worker no hay script que registrar                     |
+| Rcobertura-035 | media    | el sitio de `InstallHint` frente a `UpdateToast` y su prueba                                                       | `InstallHint` sale con la web instalable; DD-15, «no aplica»       |
+| Rcobertura-049 | media    | que los umbrales del medidor de la app nativa (D-52) se contaran en jugadores y no en sesiones                     | el medidor salió con la web instalable: no queda umbral que contar |
+
 ### 20.3 C. La cobertura del encargo
 
 | Lo que pide el encargo (`00-encargo.md`)                                                                                                                                                                                                                                                              | Dónde se cumple                                                                                                        |
