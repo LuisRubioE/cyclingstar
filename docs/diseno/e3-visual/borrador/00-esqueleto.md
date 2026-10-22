@@ -66,7 +66,7 @@ Veintiuna secciones (la 0 es la cabecera), en el orden final. Longitud objetivo 
 | §9  | Los maillots (II): la señal de campeón, los líderes, el patrocinador y `WornJerseyIcon` | `borrador/09-campeon.md`      | 250       | L2   |
 | §10 | El examen práctico (I): el cuadro de entrenamiento                                      | `borrador/10-cuadro.md`       | 240       | L2   |
 | §11 | El examen práctico (II): lo que hay debajo, lo que se deja y el viaje                   | `borrador/11-debajo.md`       | 160       | L2   |
-| §12 | La web instalable                                                                       | `borrador/12-instalable.md`   | 190       | L2   |
+| §12 | Sin red, el peso y la primera pintura                                                   | `borrador/12-instalable.md`   | 190       | L2   |
 | §13 | La regla de la frontera                                                                 | `borrador/13-frontera.md`     | 150       | L2   |
 | §14 | Lo que E2 dejó a E3                                                                     | `borrador/14-e2.md`           | 100       | L3   |
 | §15 | Constantes y tokens                                                                     | `borrador/15-constantes.md`   | 110       | L3   |

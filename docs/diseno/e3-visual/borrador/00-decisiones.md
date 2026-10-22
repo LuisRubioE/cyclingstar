@@ -177,6 +177,46 @@ con ella, medido por la página de opciones); las cifras nuevas de permitidos y 
 §9. La estrella queda solo para el campeón del mundo, con su arcoíris. La hoja de revisión de los 133
 nacionales se queda, sin estrella, para las banderas que llevan texto y las gemelas.
 
+### D-00n · La llegada en palabras que se entienden (DD-10 decidida)
+
+Decidido por el dueño el 22 de octubre de 2026 (`00-encargo.md` §7.6): `Rusty` no se entiende, ni
+`Too fresh`. **El tramo más fresco se llama `Undertrained`** (pantalla), y los extremos de `Scale5`
+dicen la causa: `◀ Too much training` y `Too little training ▶` (pantalla). Los otros cuatro
+(`Cooked`, `Loaded`, `Fine`, `Spot on`) y los cortes de `arrivalLabel` (`projection.ts` l. 75-81) no
+cambian, y el motor no se toca: el código interno sigue siendo `oxidado` y solo cambia su texto de
+pantalla (`ARRIVAL_LABEL`, `PlanLadder.tsx` l. 63-69, y la instrucción del tramo de §10).
+
+### D-00o · El TSS, fuera (DD-11 decidida)
+
+Decidido por el dueño: D-41 tal cual. El TSS sale de la pantalla y de la API, y la carga se dice en
+cinco palabras.
+
+### D-00p · Sin web instalable: el dueño hará una app (sustituye a D-45, D-46, D-48, D-51 y D-52; DD-14 y DD-15 decididas)
+
+Decidido por el dueño el 22 de octubre de 2026 (`00-encargo.md` §7.6): «pronto haremos app, así que
+quita la web instalable». **E3 no hace** el manifiesto, los iconos de pantalla de inicio, las metas
+de Apple, el service worker, el aviso de instalar (`InstallHint`), la versión nueva por service
+worker, ni el medidor que revisaría la app nativa (`POST /api/telemetry/vitals`,
+`telemetry_vitals_daily`). **Se queda lo que vale sin web instalable**: la conducta sin red de los
+componentes (D-47: `useOnline`, `ErrorState`, nada que se quede en `Loading…` para siempre, la sesión
+«desconocida» cuando no hay red), las banderas en un sprite (D-49) y el presupuesto de peso y de
+primera pintura (D-50), que son de la web y del teléfono, no de la instalación. **El teléfono sigue
+siendo el criterio de aceptación** (D-18): la web es el juego hasta que exista la app, y la app usará
+el mismo sistema (sus tokens se exportan también a JSON para ella, `tokens.json`, generado del
+`@theme`). **Esto cambia el encargo** (`docs/encargos.md` l. 218-226, «la aplicación INSTALABLE») y
+la decisión de `docs/agenda.md` §4.15.1, y lo cambia el dueño. Lo que E4 pedía de la web instalable
+(el aviso al teléfono en iPhone) pasa a la app. La sección §12 se queda con su número y pasa a
+llamarse «Sin red, el peso y la primera pintura».
+
+### D-00q · La prueba del teléfono en el CI y el clon, borrado (DD-16 y DD-17 decididas)
+
+DD-16: el valor por defecto, D-18. DD-17: el dueño cambió el maillot de un solo equipo en producción y
+no hay más jugadores que él, así que **el PR 1 borra el clon que exista**: después de arreglar el
+defecto, un paso de una sola vez e idempotente, en el tick y no con SQL a mano, encuentra los
+equipos NPC creados por la siembra con la semilla de génesis que un equipo con dueño abandonó, y los
+borra con sus corredores y todo lo que cuelga de ellos, en una transacción, dejando escrito en el
+registro del tick qué borró. Si no encuentra ninguno, no hace nada.
+
 ## A. La base y dónde vive cada cosa
 
 ### D-01 · La base es `telefono`, y el documento es una fusión

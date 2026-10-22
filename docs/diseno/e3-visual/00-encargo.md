@@ -359,3 +359,26 @@ El dueño, tras ver la hoja de los 133 nacionales en la página de opciones, tex
 Lo que queda decidido (`borrador/00-decisiones.md` §0, D-00m): **el maillot del campeón nacional es
 su bandera, sin estrella**; y todo maillot de equipo que se le parezca demasiado queda prohibido. Las
 dos letras ISO desde 72 px (§7.3) se quedan, porque el dueño solo quitó la estrella.
+
+### 7.6 La llegada en palabras claras, y sin web instalable (22 de octubre de 2026)
+
+El dueño, textual:
+
+> «DD-10... Rusty no se entiende...ni too fresh... quizas ponle algo como "poco entrenamiento" o "bajo
+> de forma" pero en ingles... claro. DD-11: Si, quitalo mejor. DD-14: No, pronto haremos app, asi que
+> quita la web instalable. DD-15: no aplica. DD-16: ok por defecto. DD-17: cambié uno solo... y si lo
+> hay ahora mismo puedes borrar, no hay jugadores aun salvo yo»
+
+Lo que queda decidido (`borrador/00-decisiones.md` §0, D-00n a D-00q):
+
+1. **La llegada, en palabras que se entiendan** (DD-10): el tramo de `Rusty` pasa a llamarse
+   `Undertrained` y los extremos de la escala dicen la causa (`◀ Too much training`,
+   `Too little training ▶`, pantalla); los cortes no cambian y el motor no se toca.
+2. **El TSS fuera de la pantalla y de la API** (DD-11).
+3. **Sin web instalable** (DD-14 y DD-15): el dueño hará pronto una app, así que E3 no hace
+   manifiesto, ni iconos de pantalla de inicio, ni service worker, ni aviso de instalar, ni el medidor
+   que revisaría la app nativa. **Esto cambia el encargo** (`docs/encargos.md` l. 218-226 y
+   `docs/agenda.md` §4.15.1), y lo cambia el dueño.
+4. **La prueba del teléfono en el CI**, como se propone (DD-16).
+5. **El clon del maillot se borra** (DD-17): el dueño cambió el maillot de un solo equipo y no hay
+   más jugadores que él, así que el PR 1, además de arreglar el defecto, borra el clon que exista.
