@@ -416,7 +416,7 @@ Las dos están decididas por el dueño (D-00a), que miró `opciones/index.html` 
 - `apps/web/scripts/ui-icons.mjs` y `apps/web/scripts/icons/<nombre>.svg`: el generador de `icons.tsx` y sus 26 fuentes, con huella, la comprobación de las siluetas de tono y la hoja de contactos (D-08); `play` y `pause` en `IconName` y en la fila de los iconos de §G.3.
 - En el ámbito oscuro, tres valores más para la tabla de §G.2: `accent-strong` `#7fd6e9`, `disabled-bg` `#1f4567` y `disabled-ink` `#a3b2c3`; y los medidos que pedía: `line` `#2c5274` y `line-strong` `#7f97b0`.
 - El modo oscuro (D-00i): `data-theme` (`dark` en `<html>`), los valores de la tabla de §3.3 para §G.2, los tokens `on-bad` y `on-arrival`, `Theme` (`'light' | 'dark'`), `users.theme` (y su `pgEnum` `theme`), `GET /api/me/theme` y `PUT /api/me/theme` con `themeBodySchema`, `THEME_STORAGE_KEY` (`'cs-theme'`), `useTheme()` (`apps/web/src/theme.ts`), `apps/web/public/theme.js` y los textos (pantalla) `Appearance`, `Light` y `Dark`. «El ámbito oscuro» de §G.1 deja de decir «no es un modo oscuro».
-- `apps/web/tokens.json` y `apps/web/scripts/tokens-json.mjs`: los tokens para la app del dueño, generados del `index.css` (D-00p).
+- `packages/shared/tokens.json` (exportado como `@cyclingstar/shared/tokens.json`) y `apps/web/scripts/tokens-json.mjs`: los tokens para la app del dueño, generados del `index.css` (D-00p; su sitio, el de §12.3, por C-L3-12).
 - `Undertrained`, el texto del tramo `oxidado` (D-00n), en lugar de `Rusty`.
 
 **Dudas para el ensamblador.**

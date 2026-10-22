@@ -161,7 +161,7 @@ Tres números que hoy se enseñan aunque el SPEC pida otra forma (mapa 02 §8; D
 
 **Decisiones de esta sección.**
 
-- 13-a. La flecha cruza con cinco códigos en castellano, `sube_mucho`, `sube`, `igual`, `baja` y `baja_mucho`, como el resto de códigos de juego que el contrato ya tiene en castellano (la regla 3 del glosario; D-38), que traduce del glifo `TREND_ARROW_CODE` en `rider.ts` y que usa la ruta `/trend` en el 19b; `AttributeList` pasa a leer el código y pinta el icono `trend` girado (§3.7), con el texto `Improving fast`, `Improving`, `Steady`, `Slipping` y `Slipping fast` (`AttributeList.tsx` l. 59-69). Descartado: mandar el glifo, que es forma de pantalla de la web de hoy y no un código.
+- 13-a. La flecha cruza con cinco códigos en castellano, `sube_mucho`, `sube`, `igual`, `baja` y `baja_mucho`, como el resto de códigos de juego que el contrato ya tiene en castellano (D-38), que traduce del glifo `TREND_ARROW_CODE` en `rider.ts` y que usa la ruta `/trend` en el 19b; `AttributeList` pasa a leer el código y pinta el icono `trend` girado (§3.7), con el texto `Improving fast`, `Improving`, `Steady`, `Slipping` y `Slipping fast` (`AttributeList.tsx` l. 59-69). Descartado: mandar el glifo, que es forma de pantalla de la web de hoy y no un código.
 - 13-b. `markSchema` (de 0 a 3) se añade a los tres de D-54, porque la marca de cuarto de banda del corredor propio también es una resolución que tiene que ir en el tipo.
 - 13-c. `RESPONSE_EXEMPT` tiene una sola entrada, `/api/auth/*`; la web compilada y las páginas de `spaShell` no son `/api` y no la necesitan.
 - 13-d. `CANARY_POST_READS` incluye `POST /api/teams/me/kit/check` desde el 18a, porque también es una lectura por POST.
