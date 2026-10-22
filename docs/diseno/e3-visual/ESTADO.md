@@ -1,6 +1,6 @@
 # E3 · Estado del proceso de diseño
 
-Estado: **en curso**, fase 4 (refutación). Empezado el 20 de octubre de 2026 sobre `58c14da` (`main`,
+Estado: **en curso**, fase 5 (corrección). Empezado el 20 de octubre de 2026 sobre `58c14da` (`main`,
 con E2 en producción desde el 10 de octubre y el motor v91). El documento final será
 `docs/visual.md`. Se actualiza este fichero al terminar cada fase, con commit y push, para poder
 retomar el trabajo si la sesión se corta.
@@ -88,16 +88,21 @@ retomar el trabajo si la sesión se corta.
   33 objeciones y 21 huecos en algún bloque de cierre y dos remisiones ambiguas a otros documentos;
   `borrador/dudas.md` reúne lo que los redactores dejaron para la coherencia.
 
+- Fase 4, los tres refutadores (21 y 22 de octubre de 2026; el de `uso` se cortó por el límite de uso
+  del dueño y se retomó): **162 hallazgos**, 21 altos, 73 medios y 68 bajos (`codigo` 68,
+  `cobertura` 51 y `uso` 43), repartidos por lote en `refutaciones/por-lote/` (L1 62, L2 51 y L3 49).
+- La página de opciones, versión 4: la hoja de revisión de los 133 maillots nacionales (con la
+  estrella por la regla de §9.5, las letras desde 72 px y los casos que revisar marcados) y una
+  equipación de ejemplo en grande (delante, detrás y culote, con las zonas del patrocinador).
+
 ## En curso
 
-- Fase 4, los tres refutadores (`refutaciones/hallazgos-codigo.json`, `-cobertura.json` y `-uso.json`),
-  de dos en dos, con `04-fase-refutacion.md` §4, sobre `borrador/visual-v0.md`.
-- Con el tercero, la página de opciones gana la hoja de revisión de los 133 nacionales (D-00f).
+- Fase 5, los tres correctores, uno por lote, con `04-fase-refutacion.md` §5 y los hallazgos de
+  `refutaciones/por-lote/L1.json` (62), `L2.json` (51) y `L3.json` (49): L1 y L2 a la vez, después L3.
 
 ## Pendiente
 
-1. Fases 5 y 6: tres correctores (uno por lote), la coherencia, dos auditores y el cierre
-   (`refutaciones/`, `borrador/00-cabecera.md`).
+1. Fase 6: la coherencia, dos auditores y el cierre (`refutaciones/`, `borrador/00-cabecera.md`).
 2. Fase 7: el ensamblado de `docs/visual.md`, las líneas de estado de E3 en `docs/encargos.md` y su
    sección en `docs/diseno/README.md`, y el PR, solo con documentos y sin fusionar hasta que conteste
    el dueño.
