@@ -162,6 +162,21 @@ Aceptadas por el dueño tal como se proponen: DD-07, DD-08, DD-12, DD-13 y de DD
 el filo oscuro de las dos estrellas, DD-21). Pendientes de que el dueño lea su explicación: DD-10,
 DD-11, DD-14, DD-15, DD-16 y DD-17; mientras tanto vale su valor por defecto.
 
+### D-00m · El nacional, sin estrella (sustituye a la estrella de D-00d y de D-00f)
+
+Decidido por el dueño el 22 de octubre de 2026 (`00-encargo.md` §7.5). **El maillot del campeón
+nacional es su bandera, entera y sin estrella.** Desaparecen la estrella dorada del pecho, su regla de
+sitio y de relleno y su tabla de ajustes (`NATIONAL_STAR`, `NATIONAL_STAR_SITES` y
+`NATIONAL_STAR_OVERRIDES`). Se quedan las dos letras ISO desde 72 px (D-00f), que el dueño no quitó,
+y siguen resolviendo en grande las banderas gemelas (Indonesia y Mónaco). **La reserva de D-00h se
+vuelve a medir sin la estrella**: todo maillot de equipo a menos de `KIT_MIN_DISTANCE` (10) de un
+maillot nacional, a 28 px y en las cuatro visiones, queda prohibido, y el editor lo tacha con su
+porqué (`Too close to the champion of Morocco.`, pantalla). Sin la estrella, la reserva crece
+(Marruecos frente a `plain.red`: 5,3 en visión normal y 2,6 en grises sin estrella, contra 6,3 y 3,1
+con ella, medido por la página de opciones); las cifras nuevas de permitidos y reservados las da §8 y
+§9. La estrella queda solo para el campeón del mundo, con su arcoíris. La hoja de revisión de los 133
+nacionales se queda, sin estrella, para las banderas que llevan texto y las gemelas.
+
 ## A. La base y dónde vive cada cosa
 
 ### D-01 · La base es `telefono`, y el documento es una fusión

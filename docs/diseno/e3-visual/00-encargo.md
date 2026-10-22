@@ -348,3 +348,14 @@ Lo que queda decidido (el detalle, en `borrador/00-decisiones.md` §0, D-00i a D
 4. **Aceptadas tal como se proponen**: DD-07, DD-08, DD-12, DD-13 y de DD-18 a DD-23.
 5. **Pendientes de explicación**: DD-10, DD-11, DD-14, DD-15, DD-16 y DD-17. Mientras el dueño no
    conteste, vale su valor por defecto.
+
+### 7.5 El nacional, sin estrella (22 de octubre de 2026)
+
+El dueño, tras ver la hoja de los 133 nacionales en la página de opciones, textual:
+
+> «y viendo el muestrario... mejor a los maillots de campeon nacional, quitales la estrella y ya... si
+> hay un maillot de equipo igual, lo prohibes y listo»
+
+Lo que queda decidido (`borrador/00-decisiones.md` §0, D-00m): **el maillot del campeón nacional es
+su bandera, sin estrella**; y todo maillot de equipo que se le parezca demasiado queda prohibido. Las
+dos letras ISO desde 72 px (§7.3) se quedan, porque el dueño solo quitó la estrella.
