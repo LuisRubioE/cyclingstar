@@ -27,11 +27,13 @@ pinta. Mide únicamente lo que la página enseña:
        estrella de arcoíris y su gemela de oro; y las alternativas que no eligió. De cada una, la
        distancia a la marca de la UCI (V0 del mapa 03 §7.2) y al maillot permitido más cercano.
        Las que ya midió el redactor de §8 y §9 (medir28.json) se toman de allí y se cotejan.
-     - La estrella del nacional caso a caso y sus dos letras (D-00f; 09-campeon.md §9.5): el sitio y el
-       relleno de cada uno de los 133 países salen de medir-nacional2.json (--nacional2), que también da
-       su equipación más cercana y sus gemelas; aquí se dibujan con la bandera de la web, se pintan los
-       133 a 28 px y se cotejan con esas cifras, y se escribe la hoja de revisión de la página. La
-       reserva de D-00h son los 12 maillots que esa medida deja a menos de 10 de algún nacional.
+     - El nacional sin estrella (D-00m, que sustituye a la estrella de D-00d y D-00f): la bandera de la
+       web recortada por la silueta y, desde 72 px, sus dos letras, con el color que da
+       medir-nacional2.json (--nacional2). Se pintan los 133 a 28 px y se cotejan con la medida del
+       corrector de §8 y §9 (medir-nacional3.json, --nacional3), de la que salen la reserva (los 26
+       maillots a menos de 10 de algún nacional), la equipación más cercana de cada país y las gemelas
+       de la hoja de la página. La reserva cuenta también los líderes en grises.
+     - El modo oscuro opcional (D-00i; 03-fundamentos.md §3.3): los contrastes de la pantalla tipo.
      - El maillot en grande (D-00g; 08-equipacion.md §8.10): delante, detrás y culote a 160 y a 320 px
        con las zonas del patrocinador. Solo se dibuja.
      - De los cuatro vocabularios de las propuestas, que el dueño no eligió: su pelotón de ejemplo
@@ -40,6 +42,7 @@ pinta. Mide únicamente lo que la página enseña:
 Uso:
   <scratchpad>/venv/bin/python -I -B medidas.py --banderas <flag-icons/flags/4x3> \
       --medir28 <scratchpad>/redactor-L2/medir28.json --nacional2 <scratchpad>/redactor-L2/medir-nacional2.json \
+      --nacional3 <scratchpad>/corrector-L2/medir-nacional3.json \
       [--html index.html] [--trabajo <dir>]
   (flag-icons está en apps/web/node_modules de un clon con las dependencias instaladas)
 """
@@ -176,6 +179,24 @@ IDE_A = {
     "warn-bg": "#fdf0d9", "warn-ink": "#8a4b00", "skel": "#e3e8ef", "skel-ink": "#566173",
     "err-bg": "#fbe8e6", "err-ink": "#b3261e", "focus": "#1c5aa6",
 }
+# El modo oscuro opcional de telefono A (D-00i): los tokens de borrador/03-fundamentos.md §3.3, la paleta C
+# de telefono más lo que midió el corrector de L1 (<scratchpad>/corrector-L1/oscuro.py). La cabecera, las
+# pestañas y las marcas no cambian; ink-2 e ink-3 son el blanco al 75 %.
+TEL_A_OSCURO = dict(
+    TEL_A,
+    **{
+        "canvas": "#071a2d", "title-bg": "#071a2d", "title-ink": "#ffffff", "title-ink-2": "#ffffff@0.75",
+        "title-rule": "#071a2d",
+        "panel-bg": "#0b2740", "panel-hdr-bg": "#0b2740", "panel-hdr-ink": "#ffffff", "panel-rule": "#0b2740",
+        "th-bg": "#0b2740", "th-ink": "#ffffff@0.75",
+        "ink": "#ffffff", "ink-2": "#ffffff@0.75", "ink-3": "#ffffff@0.75", "line": "#2c5274", "link": "#35bdda",
+        "btn-bg": "#35bdda", "btn-ink": "#0b2740", "btn-hov-bg": "#7fd6e9", "btn-hov-ink": "#0b2740",
+        "btn-dis-bg": "#1f4567", "btn-dis-ink": "#a3b2c3", "btn-dis-line": "#1f4567",
+        "btn2-bg": "#0b2740", "btn2-ink": "#ffffff", "btn2-line": "#7f97b0",
+        "warn-bg": "#3d2c0c", "warn-ink": "#f5b04f", "skel": "#123a5c", "skel-ink": "#ffffff@0.75",
+        "err-bg": "#45191f", "err-ink": "#ff8f86", "focus": "#ffd166",
+    },
+)
 SIS_C = dict(
     SIS_A,
     **{
@@ -189,6 +210,11 @@ PALETAS = {
     "telefono-a": {
         "tokens": TEL_A, "radio": 8,
         "aprox": "la cabecera de tabla (sin fondo propio) y el botón secundario; el resto, de la tabla de §3.1",
+    },
+    "telefono-a-oscuro": {
+        "tokens": TEL_A_OSCURO, "radio": 8,
+        "aprox": "nada: los tokens son los de §3.3 del borrador (la paleta C de telefono y lo medido por el "
+        "corrector de L1); la cabecera de tabla, sin fondo propio, como en el claro",
     },
     "sistema-a": {
         "tokens": SIS_A, "radio": 8,
@@ -613,33 +639,10 @@ def nacional_d00(cc, con_estrella, banderas, para_medir):
     return doc(TORSO_DEFS, cuerpo)
 
 
-# La regla de la estrella del nacional y sus dos letras (D-00f; borrador/09-campeon.md §9.5). El sitio
-# y el relleno de cada país los midió el redactor (medir-nacional2.json); aquí solo se dibujan.
-NATIONAL_STAR_SITES = {"high": (24, 14.8), "right": (31.5, 14.5), "left": (16.5, 14.5), "center": (24, 25)}
-RELLENO_ESTRELLA = {"gold": ORO, "white": "#ffffff", "navy": NAVY_DARK}
-ESTRELLA_AMARILLA = {"CN", "ET", "PH", "MY", "VN", "BF", "CM", "CV", "MO", "SR"}  # ya llevan una (§9.5)
-EN_EMBLEMA = {"JP", "LA", "XK", "GB", "GE"}  # la regla sienta la estrella dentro de un emblema (§9.5)
-CON_TEXTO = {"BR", "SA"}  # banderas con texto (§9.5)
-
-
-def nacional_regla(cc, regla, banderas, para_medir_, letras=False):
-    """El nacional de §9.5: la bandera, la estrella de 10 u en su sitio y su relleno y, desde 72 px, las
-    dos letras de su código (8 u a 700, base en y 38,5, filo de 2 u del otro color por debajo)."""
-    sitio, relleno_, (letra, filo_letra) = regla
-    if para_medir_:
-        vb, dentro = banderas[cc]
-        capa = f'<svg {CAJA_BANDERA} viewBox="{vb}" preserveAspectRatio="xMidYMid slice">{dentro}</svg>'
-    else:
-        capa = f'<use href="#bandera-{cc.lower()}" {CAJA_BANDERA}/>'
-    cuerpo = (
-        f'<use href="#t__ID__" fill="#ffffff"/><g clip-path="url(#c__ID__)">{capa}</g>'
-        f'<use href="#t__ID__" fill="none" {LEAD}/><path d="{COLLAR}" fill="#fff" fill-opacity=".85"/>'
-    )
-    color_filo = "#ffffff" if relleno_ == "navy" else NAVY_DARK
-    cuerpo += estrella_logo(10, *NATIONAL_STAR_SITES[sitio], RELLENO_ESTRELLA[relleno_], 1.0, color_filo)
-    if letras:
-        cuerpo += letras_svg(cc, letra, filo_letra)
-    return doc(TORSO_DEFS, cuerpo)
+# Las dos letras del nacional (D-00f, que D-00m deja): su color sale de medir-nacional2.json (el de más
+# contraste con el campo de la bandera bajo la caja), y la estrella del pecho ya no existe (D-00m).
+CON_TEXTO = {"BR", "SA"}  # banderas con texto (borrador §9.5)
+FILETE_OSCURO = 'stroke="#fff" stroke-opacity=".6"'  # el filete claro de surface="dark" (§8.3 y §9.10)
 
 
 def letras_svg(cc, letra, filo_letra):
@@ -962,7 +965,8 @@ def main():
     ap.add_argument("--trabajo", default=None)
     ap.add_argument("--banderas", default=str(AQUI.parents[3] / "apps/web/node_modules/flag-icons/flags/4x3"))
     ap.add_argument("--medir28", default=None, help="las cifras a 28 px del redactor de §8 y §9")
-    ap.add_argument("--nacional2", default=None, help="la regla de la estrella del nacional, medida (§9.5)")
+    ap.add_argument("--nacional2", default=None, help="el color de las letras de cada nacional (§9.5)")
+    ap.add_argument("--nacional3", default=None, help="el nacional sin estrella, medido por el corrector (D-00m)")
     args = ap.parse_args()
     trabajo = Path(args.trabajo) if args.trabajo else Path(tempfile.mkdtemp(prefix="opciones-"))
 
@@ -1003,6 +1007,8 @@ def main():
     # 4. Lo que decidió el dueño (D-00b a D-00h), a 28 px.
     m28 = json.loads(Path(args.medir28).read_text(encoding="utf-8")) if args.medir28 else None
     n2 = json.loads(Path(args.nacional2).read_text(encoding="utf-8")) if args.nacional2 else None
+    n3 = json.loads(Path(args.nacional3).read_text(encoding="utf-8")) if args.nacional3 else None
+    n3g = n3["lideres_tambien_en_grises"] if n3 else None
     carpeta = Path(args.banderas)
     if not carpeta.is_dir():
         sys.exit(f"No encuentro las banderas de flag-icons en {carpeta} (--banderas)")
@@ -1011,22 +1017,19 @@ def main():
         (AQUI.parents[3] / "packages/shared/src/countries.ts").read_text(encoding="utf-8"),
     )
     banderas = {cc: bandera_web(cc, carpeta) for cc, _ in paises}
-    regla = {}  # (sitio, relleno, (letra, filo de la letra)), de medir-nacional2.json
+    letra_de = {}  # (letra, filo de la letra), de medir-nacional2.json
     for cc, _ in paises:
         p_ = (n2 or {}).get("paises", {}).get(cc)
-        if p_:
-            letra = p_["letras"]["relleno"]
-            regla[cc] = (p_["sitio"], p_["relleno"], (letra, "#ffffff" if letra == NAVY_DARK else NAVY_DARK))
-        else:
-            regla[cc] = ("high", "gold", ("#ffffff", NAVY_DARK))
+        letra = p_["letras"]["relleno"] if p_ else "#ffffff"
+        letra_de[cc] = (letra, "#ffffff" if letra == NAVY_DARK else NAVY_DARK)
     cand_q, total_q = candidatos_d00e()
     lid28 = lideres_d00()
     mundiales = {"W-arcoiris": mundial_d00(), "W-oro": mundial_d00(ORO), "W-continental": mundial_d00(PLATA)}
-    nac_medir = {f"R-{cc}": nacional_regla(cc, regla[cc], banderas, True) for cc, _ in paises}
+    nac_medir = {f"R-{cc}": nacional_d00(cc, False, banderas, True) for cc, _ in paises}
     nuevas_pagina = dict(mundiales)
     for cc, _ in paises:
-        nuevas_pagina[f"R-{cc}"] = nacional_regla(cc, regla[cc], banderas, False)
-    letras = {cc: letras_svg(cc, *regla[cc][2]) for cc, _ in paises}
+        nuevas_pagina[f"R-{cc}"] = nacional_d00(cc, False, banderas, False)
+    letras = {cc: letras_svg(cc, *letra_de[cc]) for cc, _ in paises}
     sen28 = {**mundiales, **nac_medir, **DISENOS_CAMPEON}
     trab28 = [(k, s, 28) for k, s in {**cand_q, **sen28, **lid28}.items()]
     trab28 += [(k, cand[vid][k], 28) for vid in VOCABS for k in pelotones[vid]]
@@ -1035,19 +1038,24 @@ def main():
     Q = Dibujos(cand_q, px28, 28)
     S = Dibujos(sen28, px28, 28)
     L = Dibujos(lid28, px28, 28)
-    # Lo reservado (§8.1 y D-00h): a menos de 10 de un líder, del mundial o del continental en alguna de
-    # las cuatro visiones; y los 12 que medir-nacional2.json deja a menos de 10 de algún nacional.
+    # Lo reservado (§8.1, D-00h y D-00m): a menos de 10 de un líder (en las cuatro visiones y también en
+    # grises), del mundial o del continental (en las cuatro); y los 26 que medir-nacional3.json deja a
+    # menos de 10 de algún nacional sin estrella.
     reservado = np.zeros(len(Q.claves), bool)
     for conj, claves in ((L, L.claves), (S, ["W-arcoiris", "W-continental"])):
         for k in claves:
             for v in COLOR4:
                 reservado |= Q.a_todos(conj, k, v) < 10
-    perm536 = ~reservado
-    lista_nac = n2["a28"]["lista"] if n2 else (m28["nacionales"]["kits_cercanos"] if m28 else [])
+    en4 = reservado.copy()
+    for k in L.claves:
+        reservado |= Q.a_todos(L, k, "gris") < 10
+    perm536 = ~reservado  # (el nombre viene de cuando eran 536; ahora son los de antes de los nacionales)
+    lista_nac = n3g["lista"] if n3g else (n2["a28"]["lista"] if n2 else [])
     res_nac = {"Q:" + c for c in lista_nac}
     perm = perm536 & np.array([k not in res_nac for k in Q.claves])
     cuentas = {
         "combinaciones": total_q, "contraste": len(cand_q), "reservadosDistancia": int(reservado.sum()),
+        "reservadosGrises": int((reservado & ~en4).sum()),
         "permitidosAntes": int(perm536.sum()), "reservadosNac": len(res_nac), "permitidos": int(perm.sum()),
         "distintos": len({canonico(k) for k, ok in zip(Q.claves, perm) if ok}),
     }
@@ -1073,37 +1081,57 @@ def main():
     cifras = {k: dict(medida(k), fuente="medidas") for k in ["W-arcoiris", "W-oro"] + ejemplos}
     cotejo, cotejo_nac = [], []
     if m28 and "W-mundo" in m28["senales"]:
-        ms = m28["senales"]["W-mundo"]
-        cotejo += [abs(a - b) for a, b in zip(ms["uci"], cifras["W-arcoiris"]["uci"])]
-        cotejo += [abs(a[0] - b[0]) for a, b in zip(ms["cerca"], cifras["W-arcoiris"]["cerca"])]
-        cifras["W-arcoiris"] = {"uci": ms["uci"], "cerca": [[d, "Q:" + c] for d, c in ms["cerca"]], "fuente": "medir28"}
-    if n2:  # las 133 de la regla, contra las del redactor: la marca en cinco vistas y el equipo en cuatro
+        cotejo += [abs(a - b) for a, b in zip(m28["senales"]["W-mundo"]["uci"], cifras["W-arcoiris"]["uci"])]
+    if n3g:  # los 133 sin estrella, contra los del corrector: el equipo más cercano en cuatro visiones,
+        uci_min = {v: 99.0 for v in VISIONES}  # la marca (su mínimo) y Marruecos frente a plain.red
         for cc, _ in paises:
             k = f"R-{cc}"
-            uci = [r1(S.a_todos(S, k, v)[S.idx["V0"]]) for v in VISIONES]
+            for v in VISIONES:
+                uci_min[v] = min(uci_min[v], r1(S.a_todos(S, k, v)[S.idx["V0"]]))
             dmin = r1(min(float(cerca_de(k, v).min()) for v in COLOR4))
-            cotejo_nac += [abs(a - b) for a, b in zip(n2["a28"]["uci"][cc], uci)]
-            cotejo_nac.append(abs(n2["a28"]["kit_mas_cercano"][cc][0] - dmin))
+            cotejo_nac.append(abs(n3g["kit_mas_cercano"][cc][0] - dmin))
+        cotejo_nac += [abs(uci_min[v] - n3["uci_min"][v]) for v in VISIONES]
+        rojo = Q.idx["Q:plain.red"]
+        cotejo_nac += [abs(r1(Q.a_todos(S, "R-MA", v)[rojo]) - x) for v, x in zip(VISIONES, n3["MA_plain_red"])]
+        cotejo_nac += [abs(a[0] - b[0]) for a, b in zip(n3g["mas_cercano_de_cada_senal"]["W-mundo"], cifras["W-arcoiris"]["cerca"])]
     alternativas = {k: medida(k) for k in DISENOS_CAMPEON}
 
-    # La hoja de revisión de §9.5: los 133 con la regla, sus marcas y su orden.
+    # La hoja de los 133 (D-00m): sin estrella, para las banderas con texto y las gemelas; el equipo más
+    # cercano (de los de antes de reservar los nacionales) y las gemelas, de medir-nacional3.json.
     gemela = {}
-    for a, b, d in (n2["a28"]["gemelas"] if n2 else []):
+    for a, b, d in (n3["gemelas"] if n3 else []):
         for x, y in ((a, b), (b, a)):
             if x not in gemela or d < gemela[x][1]:
                 gemela[x] = [y, d]
+    # Y su distancia a los tres líderes (§9.5): la menor de los tres en la peor de las cuatro visiones,
+    # y en grises; se coteja con lider_min_4 y lideres_en_grises del corrector.
+    lider_de = {}
+    grises_bajo = {k: set() for k in L.claves}
+    for cc, _ in paises:
+        d4 = np.min([L.a_todos(S, f"R-{cc}", v) for v in COLOR4], axis=0)
+        dg = L.a_todos(S, f"R-{cc}", "gris")
+        lider_de[cc] = [r1(d4.min()), r1(dg.min())]
+        for k in L.claves:
+            if dg[L.idx[k]] < 10:
+                grises_bajo[k].add(cc)
+    lider_cotejo = None
+    if n3:
+        peor = min(paises, key=lambda p: lider_de[p[0]][0])[0]
+        cotejo_nac.append(abs(lider_de[peor][0] - n3["lider_min_4"]))
+        otros = sum(len(grises_bajo[k] ^ set(n3["lideres_en_grises"]["L-" + k.split("-", 1)[1]]["bajo_10"]))
+                    for k in L.claves)
+        lider_cotejo = {"peor": peor, "corrector": n3["lider_min_4_pais"], "listasGrisesDistintas": otros}
     hoja = []
     for cc, nombre in paises:
-        p_ = (n2 or {}).get("paises", {}).get(cc, {})
-        sitio, rel, _ = regla[cc]
-        cerca_ = n2["a28"]["kit_mas_cercano"][cc] if n2 else None
+        cerca_ = n3g["kit_mas_cercano"][cc] if n3g else None
         marcas = [m for m, si in (
-            ("sin-campo", p_.get("revisar")), ("emblema", cc in EN_EMBLEMA), ("estrella", cc in ESTRELLA_AMARILLA),
             ("texto", cc in CON_TEXTO), ("gemela", cc in gemela), ("reserva", bool(cerca_) and cerca_[0] < 10),
         ) if si]
-        grupo = 1 if ("sin-campo" in marcas or "emblema" in marcas) else 2 if (sitio != "high" or rel != "gold") else 3
-        hoja.append([cc, nombre, sitio, rel, grupo, marcas, ["Q:" + cerca_[1], cerca_[0]] if cerca_ else None, gemela.get(cc)])
-    hoja.sort(key=lambda x: x[4])
+        # §9.5: primero las banderas con texto, luego las gemelas y después el resto
+        grupo = 1 if "texto" in marcas else 2 if "gemela" in marcas else 3
+        hoja.append([cc, nombre, grupo, marcas, ["Q:" + cerca_[1], cerca_[0]] if cerca_ else None, gemela.get(cc),
+                     lider_de[cc]])
+    hoja.sort(key=lambda x: x[2])
 
     # El maillot en grande (§8.10), con un patrocinador de ejemplo.
     hexs = dict(COLORES_D00E)
@@ -1139,8 +1167,12 @@ def main():
         figuras_q.append([FIGURA_PANTALLA[fig], f"F-q-{i}"])
 
     usados_q = set(pel_q) | {c[1] for x in [*cifras.values(), *alternativas.values()] for c in x["cerca"]}
-    usados_q |= {x[6][0] for x in hoja if x[6]} | {ejemplo}
+    usados_q |= {x[4][0] for x in hoja if x[4]} | {ejemplo}
     svg = {**lid28, **DISENOS_CAMPEON, **nuevas_pagina, **grande, **{k: cand_q[k] for k in sorted(usados_q)}}
+    # Para la pantalla en modo oscuro: los maillots de sus filas con el filete claro de surface="dark".
+    for k in [pel_q[0], pel_q[1], *lid28]:
+        svg[k + "~osc"] = svg[k].replace('stroke="#000" stroke-opacity=".3"', FILETE_OSCURO).replace(
+            'stroke="#000" stroke-opacity=".35"', FILETE_OSCURO)
     svg.update({k: todos[k] for vid in VOCABS for k in vocab[vid]["peloton"]})
     svg.update({k: todos[k] for vid in VOCABS for _, k, _ in vocab[vid]["figuras"]})
     svg.update({k: todos[k] for _, k in figuras_q})
@@ -1149,9 +1181,10 @@ def main():
         "figuras": figuras_q,
         "cuentas": cuentas,
         "m28": dict(m28["vocabulario"]) if m28 else None,
-        "n2": {"permitidos": n2["a28"]["permitidos_tras_reservar"], "distintos": n2["a28"]["distintos_tras_reservar"],
-               "nacionales": n2["a28"]["nacionales_con_kit_bajo_10"], "gemelas": len(n2["a28"]["gemelas"]),
-               "liderMin": n2["a28"]["lider_min"], "uciMin": n2["a28"]["uci_min"]} if n2 else None,
+        "n3": {"permitidos": n3g["permitidos"], "distintos": n3g["distintos"], "antes": n3g["permitidos_antes_de_nacionales"],
+               "reservados": n3g["reservados_por_nacionales"], "nacionales": n3g["nacionales_con_kit_bajo_10"],
+               "grises": n3["reservados_lideres_grises_extra"], "gemelas": len(n3["gemelas"]), "ma": n3["MA_plain_red"],
+               "liderMin": n3["lider_min_4"], "liderMinPais": n3["lider_min_4_pais"], "uciMin": n3["uci_min"]} if n3 else None,
         "paleta": {"min": {v: m28["colores"][f"min_{v}"] for v in VISIONES},
                    "bajo10": {v: m28["colores"][f"pares_bajo10_{v}"] for v in VISIONES}} if m28 else None,
         "peloton": pel_q,
@@ -1162,6 +1195,7 @@ def main():
         "cotejo": round(max(cotejo), 2) if cotejo else None,
         "cotejoNac": round(max(cotejo_nac), 2) if cotejo_nac else None,
         "hoja": hoja,
+        "liderCotejo": lider_cotejo,
         "letras": letras,
         "grande": {"ejemplo": ejemplo, "patrocinador": list(patrocinador), "capacidades": capacidades},
     }
@@ -1192,8 +1226,8 @@ def main():
     print(f"Chromium {chromium}; colour-science {colour.__version__}; datos: {len(texto) / 1024:.0f} KB")
     print("vocabulario del dueño:", cuentas, "| medir28:", d00["m28"])
     print("pelotón sin repetir, pares <10 a 28 px:", pares_q, "| cotejo con medir28, mayor diferencia:", d00["cotejo"],
-          "| con medir-nacional2, en las 133:", d00["cotejoNac"])
-    print("hoja:", {g: sum(1 for x in hoja if x[4] == g) for g in (1, 2, 3)}, "| ejemplo en grande:", ejemplo, capacidades)
+          "| con medir-nacional3, en las 133:", d00["cotejoNac"])
+    print("hoja:", {g: sum(1 for x in hoja if x[2] == g) for g in (1, 2, 3)}, "| líderes:", lider_cotejo, "| ejemplo en grande:", ejemplo, capacidades)
     for vid in VOCABS:
         print(vid, "pares <10 a 28 px:", vocab[vid]["pares28"])
     for k, c in {**cifras, **alternativas}.items():
