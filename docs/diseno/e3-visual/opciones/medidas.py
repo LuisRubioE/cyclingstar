@@ -27,12 +27,20 @@ pinta. Mide únicamente lo que la página enseña:
        estrella de arcoíris y su gemela de oro; y las alternativas que no eligió. De cada una, la
        distancia a la marca de la UCI (V0 del mapa 03 §7.2) y al maillot permitido más cercano.
        Las que ya midió el redactor de §8 y §9 (medir28.json) se toman de allí y se cotejan.
+     - La estrella del nacional caso a caso y sus dos letras (D-00f; 09-campeon.md §9.5): el sitio y el
+       relleno de cada uno de los 133 países salen de medir-nacional2.json (--nacional2), que también da
+       su equipación más cercana y sus gemelas; aquí se dibujan con la bandera de la web, se pintan los
+       133 a 28 px y se cotejan con esas cifras, y se escribe la hoja de revisión de la página. La
+       reserva de D-00h son los 12 maillots que esa medida deja a menos de 10 de algún nacional.
+     - El maillot en grande (D-00g; 08-equipacion.md §8.10): delante, detrás y culote a 160 y a 320 px
+       con las zonas del patrocinador. Solo se dibuja.
      - De los cuatro vocabularios de las propuestas, que el dueño no eligió: su pelotón de ejemplo
        (el de antes, voraz a 13 px con los líderes de hoy) y sus pares por debajo de 10 a 28 px.
 
 Uso:
   <scratchpad>/venv/bin/python -I -B medidas.py --banderas <flag-icons/flags/4x3> \
-      --medir28 <scratchpad>/redactor-L2/medir28.json [--html index.html] [--trabajo <dir>]
+      --medir28 <scratchpad>/redactor-L2/medir28.json --nacional2 <scratchpad>/redactor-L2/medir-nacional2.json \
+      [--html index.html] [--trabajo <dir>]
   (flag-icons está en apps/web/node_modules de un clon con las dependencias instaladas)
 """
 
@@ -553,12 +561,13 @@ BANDERAS_WEB = [c[0] for c in PAISES] + ["FR", "GB"]
 CAJA_BANDERA = 'x="1.333" y="8" width="45.333" height="34"'  # NATIONAL_FLAG_BOX (§9.1)
 
 
-def estrella_logo(ancho, cx, cy, relleno_, filo):
-    """La estrella del logotipo (Logo.tsx l. 31) con `starTransform` (§9.1) y su filo navy-dark."""
+def estrella_logo(ancho, cx, cy, relleno_, filo, color_filo=NAVY_DARK):
+    """La estrella del logotipo (Logo.tsx l. 31) con `starTransform` (§9.1) y su filo, navy-dark salvo
+    en la estrella navy del nacional, que lo lleva blanco (§9.5)."""
     s = ancho / 22.0
     return (
         f'<path d="{LOGO_STAR}" transform="translate({cx:g} {cy:g}) scale({s:.4f}) translate(-36 -12.5)" '
-        f'fill="{relleno_}" stroke="{NAVY_DARK}" stroke-width="{filo / s:.3f}" stroke-linejoin="round"/>'
+        f'fill="{relleno_}" stroke="{color_filo}" stroke-width="{filo / s:.3f}" stroke-linejoin="round"/>'
     )
 
 
@@ -602,6 +611,135 @@ def nacional_d00(cc, con_estrella, banderas, para_medir):
     if con_estrella:
         cuerpo += estrella_logo(10, 24, 25, ORO, 1.0)
     return doc(TORSO_DEFS, cuerpo)
+
+
+# La regla de la estrella del nacional y sus dos letras (D-00f; borrador/09-campeon.md §9.5). El sitio
+# y el relleno de cada país los midió el redactor (medir-nacional2.json); aquí solo se dibujan.
+NATIONAL_STAR_SITES = {"high": (24, 14.8), "right": (31.5, 14.5), "left": (16.5, 14.5), "center": (24, 25)}
+RELLENO_ESTRELLA = {"gold": ORO, "white": "#ffffff", "navy": NAVY_DARK}
+ESTRELLA_AMARILLA = {"CN", "ET", "PH", "MY", "VN", "BF", "CM", "CV", "MO", "SR"}  # ya llevan una (§9.5)
+EN_EMBLEMA = {"JP", "LA", "XK", "GB", "GE"}  # la regla sienta la estrella dentro de un emblema (§9.5)
+CON_TEXTO = {"BR", "SA"}  # banderas con texto (§9.5)
+
+
+def nacional_regla(cc, regla, banderas, para_medir_, letras=False):
+    """El nacional de §9.5: la bandera, la estrella de 10 u en su sitio y su relleno y, desde 72 px, las
+    dos letras de su código (8 u a 700, base en y 38,5, filo de 2 u del otro color por debajo)."""
+    sitio, relleno_, (letra, filo_letra) = regla
+    if para_medir_:
+        vb, dentro = banderas[cc]
+        capa = f'<svg {CAJA_BANDERA} viewBox="{vb}" preserveAspectRatio="xMidYMid slice">{dentro}</svg>'
+    else:
+        capa = f'<use href="#bandera-{cc.lower()}" {CAJA_BANDERA}/>'
+    cuerpo = (
+        f'<use href="#t__ID__" fill="#ffffff"/><g clip-path="url(#c__ID__)">{capa}</g>'
+        f'<use href="#t__ID__" fill="none" {LEAD}/><path d="{COLLAR}" fill="#fff" fill-opacity=".85"/>'
+    )
+    color_filo = "#ffffff" if relleno_ == "navy" else NAVY_DARK
+    cuerpo += estrella_logo(10, *NATIONAL_STAR_SITES[sitio], RELLENO_ESTRELLA[relleno_], 1.0, color_filo)
+    if letras:
+        cuerpo += (
+            f'<text x="24" y="38.5" text-anchor="middle" font-family="system-ui, sans-serif" font-size="8" '
+            f'font-weight="700" letter-spacing="0.32" fill="{letra}" stroke="{filo_letra}" stroke-width="2" '
+            f'paint-order="stroke" stroke-linejoin="round">{cc}</text>'
+        )
+    return doc(TORSO_DEFS, cuerpo)
+
+
+# El maillot en grande (D-00g; borrador/08-equipacion.md §8.10): delante, detrás y culote, con las zonas
+# del patrocinador. Solo se dibuja: no entra en ninguna distancia.
+TORSO_BACK = TORSO.replace("Q24 12 16 8 Z", "Q24 10 16 8 Z")
+POCKETS = "M14.5 33.5H33.5 M20.8 33.5V40.5 M27.2 33.5V40.5"
+BIB = "M12 8 L36 8 L38 40 L26 40 L24 26 L22 40 L10 40 Z"
+BIB_STRAPS = "M15 8 L16.5 1 L19.5 1 L18.5 8 Z M33 8 L31.5 1 L28.5 1 L29.5 8 Z"
+BIB_PANELS = "M12 8 L16 8 L14 40 L10 40 Z M36 8 L32 8 L34 40 L38 40 Z"
+SPONSOR_ZONES = {  # (x, y, ancho, alto, vertical)
+    "chest": [(14, 23, 20, 10, False)],
+    "back": [(14, 18, 20, 9, False)],
+    "sleeves": [(10, 13, 3.5, 6, True), (34.5, 13, 3.5, 6, True)],
+    "bibSides": [(11.65, 14, 2.7, 20, True), (33.65, 14, 2.7, 20, True)],
+}
+BACK_NAME_BOX = (12, 11, 24, 5, False)
+BACK_NUMBER_BOX = (18, 28, 12, 8, False)
+INK = "#10202f"
+LETRA_SVG = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+
+
+def capacidad(caja, px):
+    """`zoneCapacity`: las mayúsculas de 12 px que caben (12 px son 576 / px u; cada una, 0,65 em)."""
+    _, _, w, h, vertical = caja
+    fu = 576 / px
+    largo, alto = (h, w) if vertical else (w, h)
+    return 0 if alto < fu else int(largo // (0.65 * fu))
+
+
+def tinta_sobre(fondo):
+    return "#ffffff" if wcag("#ffffff", fondo) >= wcag(INK, fondo) else INK
+
+
+def texto_en(caja, px, texto, fondo):
+    x, y, w, h, vertical = caja
+    cx, cy = x + w / 2, y + h / 2
+    giro = f' transform="rotate(-90 {cx:g} {cy:g})"' if vertical else ""
+    return (
+        f'<text x="{cx:g}" y="{cy:g}" text-anchor="middle" dominant-baseline="central" font-family="{LETRA_SVG}" '
+        f'font-size="{576 / px:.3f}" font-weight="700" fill="{tinta_sobre(fondo)}"{giro}>{texto}</text>'
+    )
+
+
+def marco(caja, px, punteado=False):
+    x, y, w, h, _ = caja
+    u = 48 / px  # un píxel de pantalla, en u
+    patron = f"{u:.3f} {2 * u:.3f}" if punteado else f"{4 * u:.3f} {3 * u:.3f}"
+    return (
+        f'<rect x="{x:g}" y="{y:g}" width="{w:g}" height="{h:g}" fill="none" stroke="#5c6370" '
+        f'stroke-width="{1.5 * u:.3f}" stroke-dasharray="{patron}"/>'
+    )
+
+
+def zona(caja, px, patrocinador, fondo):
+    """La regla 8-p: el nombre si cabe, si no su marca, si no la caja en su color; siempre su marco."""
+    nombre, marca_, color = patrocinador
+    cabe = capacidad(caja, px)
+    if len(nombre) <= cabe:
+        dentro = texto_en(caja, px, nombre, fondo)
+    elif len(marca_) <= cabe:
+        dentro = texto_en(caja, px, marca_, fondo)
+    else:
+        x, y, w, h, _ = caja
+        dentro = f'<rect x="{x:g}" y="{y:g}" width="{w:g}" height="{h:g}" fill="{color}"/>'
+    return dentro + marco(caja, px)
+
+
+def vista_frente(base, sec, formas, px, patrocinador):
+    cuerpo = f'<use href="#t__ID__" fill="{base}"/><g clip-path="url(#c__ID__)">{relleno(formas, sec)}</g>'
+    cuerpo += f'<use href="#t__ID__" fill="none" {FILETE_D00E}/><path d="{COLLAR}" fill="#fff" fill-opacity=".85"/>'
+    cuerpo += zona(SPONSOR_ZONES["chest"][0], px, patrocinador, base)
+    cuerpo += "".join(zona(c, px, patrocinador, sec) for c in SPONSOR_ZONES["sleeves"])
+    return doc(TORSO_DEFS, cuerpo)
+
+
+def vista_espalda(base, sec, formas, px, patrocinador, equipo):
+    defs = f'<path id="t__ID__" d="{TORSO_BACK}"/><clipPath id="c__ID__"><use href="#t__ID__"/></clipPath>'
+    espejo = f'<g transform="translate(48 0) scale(-1 1)">{relleno(formas, sec)}</g>'  # kitBackPath
+    cuerpo = f'<use href="#t__ID__" fill="{base}"/><g clip-path="url(#c__ID__)">{espejo}</g>'
+    cuerpo += f'<path d="{POCKETS}" fill="none" stroke="#000" stroke-opacity=".3" stroke-width=".5"/>'
+    cuerpo += f'<use href="#t__ID__" fill="none" {FILETE_D00E}/>'
+    if len(equipo) <= capacidad(BACK_NAME_BOX, px):  # nunca cortado ni más pequeño
+        cuerpo += texto_en(BACK_NAME_BOX, px, equipo.upper(), sec)
+    cuerpo += marco(BACK_NAME_BOX, px, True) + marco(BACK_NUMBER_BOX, px, True)
+    cuerpo += zona(SPONSOR_ZONES["back"][0], px, patrocinador, base)
+    cuerpo += "".join(zona(c, px, patrocinador, sec) for c in SPONSOR_ZONES["sleeves"])
+    return doc(defs, cuerpo)
+
+
+def vista_culote(cuerpo_color, panel, px, patrocinador):
+    defs = f'<path id="t__ID__" d="{BIB}"/><clipPath id="c__ID__"><use href="#t__ID__"/></clipPath>'
+    cuerpo = f'<path d="{BIB_STRAPS}" fill="{cuerpo_color}"/><use href="#t__ID__" fill="{cuerpo_color}"/>'
+    cuerpo += f'<g clip-path="url(#c__ID__)"><path d="{BIB_PANELS}" fill="{panel}"/><rect x="0" y="37" width="48" height="3" fill="{panel}"/></g>'
+    cuerpo += f'<use href="#t__ID__" fill="none" {FILETE_D00E}/>'
+    cuerpo += "".join(zona(c, px, patrocinador, panel) for c in SPONSOR_ZONES["bibSides"])
+    return doc(defs, cuerpo)
 
 
 def lideres_d00():
@@ -728,7 +866,11 @@ def ancho_filete(px):
 
 
 def para_medir(svg, px):
-    s = svg.replace("<svg ", f'<svg xmlns="http://www.w3.org/2000/svg" width="{px}" height="{px}" ', 1)
+    s = svg.replace(
+        "<svg ",
+        f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="{px}" height="{px}" ',
+        1,
+    )
     return s.replace("__ID__", "m").replace("__SW__", ancho_filete(px))
 
 
@@ -815,6 +957,7 @@ def main():
     ap.add_argument("--trabajo", default=None)
     ap.add_argument("--banderas", default=str(AQUI.parents[3] / "apps/web/node_modules/flag-icons/flags/4x3"))
     ap.add_argument("--medir28", default=None, help="las cifras a 28 px del redactor de §8 y §9")
+    ap.add_argument("--nacional2", default=None, help="la regla de la estrella del nacional, medida (§9.5)")
     args = ap.parse_args()
     trabajo = Path(args.trabajo) if args.trabajo else Path(tempfile.mkdtemp(prefix="opciones-"))
 
@@ -852,21 +995,34 @@ def main():
     pelotones = {vid: voraz(Dibujos(cand[vid], px13, 13), L13) for vid in VOCABS}
     del px13
 
-    # 4. Lo que decidió el dueño (D-00b a D-00e), a 28 px.
+    # 4. Lo que decidió el dueño (D-00b a D-00h), a 28 px.
     m28 = json.loads(Path(args.medir28).read_text(encoding="utf-8")) if args.medir28 else None
+    n2 = json.loads(Path(args.nacional2).read_text(encoding="utf-8")) if args.nacional2 else None
     carpeta = Path(args.banderas)
     if not carpeta.is_dir():
         sys.exit(f"No encuentro las banderas de flag-icons en {carpeta} (--banderas)")
-    banderas = {cc: bandera_web(cc, carpeta) for cc in BANDERAS_WEB}
+    paises = re.findall(
+        r"code: '([A-Z]{2})', name: '([^']*)'",
+        (AQUI.parents[3] / "packages/shared/src/countries.ts").read_text(encoding="utf-8"),
+    )
+    banderas = {cc: bandera_web(cc, carpeta) for cc, _ in paises}
+    regla = {}  # (sitio, relleno, (letra, filo de la letra)), de medir-nacional2.json
+    for cc, _ in paises:
+        p_ = (n2 or {}).get("paises", {}).get(cc)
+        if p_:
+            letra = p_["letras"]["relleno"]
+            regla[cc] = (p_["sitio"], p_["relleno"], (letra, "#ffffff" if letra == NAVY_DARK else NAVY_DARK))
+        else:
+            regla[cc] = ("high", "gold", ("#ffffff", NAVY_DARK))
     cand_q, total_q = candidatos_d00e()
     lid28 = lideres_d00()
-    nuevas_medir = {"W-arcoiris": mundial_d00(), "W-oro": mundial_d00(ORO), "W-continental": mundial_d00(PLATA)}
-    nuevas_pagina = {"W-arcoiris": nuevas_medir["W-arcoiris"], "W-oro": nuevas_medir["W-oro"]}
-    for cc, *_ in PAISES:
-        for con, suf in ((True, ""), (False, "-sin")):
-            nuevas_medir[f"N-{cc}{suf}"] = nacional_d00(cc, con, banderas, True)
-            nuevas_pagina[f"N-{cc}{suf}"] = nacional_d00(cc, con, banderas, False)
-    sen28 = {**nuevas_medir, **DISENOS_CAMPEON}
+    mundiales = {"W-arcoiris": mundial_d00(), "W-oro": mundial_d00(ORO), "W-continental": mundial_d00(PLATA)}
+    nac_medir = {f"R-{cc}": nacional_regla(cc, regla[cc], banderas, True) for cc, _ in paises}
+    nuevas_pagina = dict(mundiales)
+    for cc, _ in paises:
+        nuevas_pagina[f"R-{cc}"] = nacional_regla(cc, regla[cc], banderas, False)
+        nuevas_pagina[f"R-{cc}@L"] = nacional_regla(cc, regla[cc], banderas, False, letras=True)
+    sen28 = {**mundiales, **nac_medir, **DISENOS_CAMPEON}
     trab28 = [(k, s, 28) for k, s in {**cand_q, **sen28, **lid28}.items()]
     trab28 += [(k, cand[vid][k], 28) for vid in VOCABS for k in pelotones[vid]]
     print(f"Pintando {len(trab28)} dibujos a 28 px…", file=sys.stderr)
@@ -874,46 +1030,92 @@ def main():
     Q = Dibujos(cand_q, px28, 28)
     S = Dibujos(sen28, px28, 28)
     L = Dibujos(lid28, px28, 28)
-    # Lo reservado por distancia (§8.1): a menos de 10 de un líder, del mundial o del continental en
-    # alguna de las cuatro visiones; y los 21 que medir28.json deja a menos de 10 de algún nacional.
+    # Lo reservado (§8.1 y D-00h): a menos de 10 de un líder, del mundial o del continental en alguna de
+    # las cuatro visiones; y los 12 que medir-nacional2.json deja a menos de 10 de algún nacional.
     reservado = np.zeros(len(Q.claves), bool)
     for conj, claves in ((L, L.claves), (S, ["W-arcoiris", "W-continental"])):
         for k in claves:
             for v in COLOR4:
                 reservado |= Q.a_todos(conj, k, v) < 10
     perm536 = ~reservado
-    res_nac = {"Q:" + c for c in (m28["nacionales"]["kits_cercanos"] if m28 else [])}
-    perm515 = perm536 & np.array([k not in res_nac for k in Q.claves])
+    lista_nac = n2["a28"]["lista"] if n2 else (m28["nacionales"]["kits_cercanos"] if m28 else [])
+    res_nac = {"Q:" + c for c in lista_nac}
+    perm = perm536 & np.array([k not in res_nac for k in Q.claves])
     cuentas = {
         "combinaciones": total_q, "contraste": len(cand_q), "reservadosDistancia": int(reservado.sum()),
-        "permitidosAntes": int(perm536.sum()), "reservadosNac": len(res_nac), "permitidos": int(perm515.sum()),
-        "distintos": len({canonico(k) for k, ok in zip(Q.claves, perm515) if ok}),
+        "permitidosAntes": int(perm536.sum()), "reservadosNac": len(res_nac), "permitidos": int(perm.sum()),
+        "distintos": len({canonico(k) for k, ok in zip(Q.claves, perm) if ok}),
     }
-    pel_q = voraz(Q, L, permitido=perm515, canon=canonico)
+    pel_q = voraz(Q, L, permitido=perm, canon=canonico)
     pares_q = pares_bajo(Dibujos(pel_q, px28, 28), pel_q)
+
+    def cerca_de(k, v):
+        d = Q.a_todos(S, k, v)
+        d[~perm536] = np.inf
+        return d
 
     def medida(k):
         """A la marca (V0) y al permitido más cercano (de los 536, como medir28.json), en cinco vistas."""
         uci = [r1(S.a_todos(S, k, v)[S.idx["V0"]]) for v in VISIONES]
         cerca = []
         for v in VISIONES:
-            d = Q.a_todos(S, k, v)
-            d[~perm536] = np.inf
+            d = cerca_de(k, v)
             i = int(np.argmin(d))
             cerca.append([r1(d[i]), Q.claves[i]])
         return {"uci": uci, "cerca": cerca}
 
-    cifras = {k: dict(medida(k), fuente="medidas") for k in nuevas_medir if k != "W-continental"}
-    cotejo = []
-    if m28:
-        for k in list(cifras):
-            km = {"W-arcoiris": "W-mundo"}.get(k, k)
-            if km in m28["senales"]:
-                ms = m28["senales"][km]
-                cotejo += [abs(a - b) for a, b in zip(ms["uci"], cifras[k]["uci"])]
-                cotejo += [abs(a[0] - b[0]) for a, b in zip(ms["cerca"], cifras[k]["cerca"])]
-                cifras[k] = {"uci": ms["uci"], "cerca": [[d, "Q:" + c] for d, c in ms["cerca"]], "fuente": "medir28"}
+    ejemplos = [f"R-{c[0]}" for c in PAISES]
+    cifras = {k: dict(medida(k), fuente="medidas") for k in ["W-arcoiris", "W-oro"] + ejemplos}
+    cotejo, cotejo_nac = [], []
+    if m28 and "W-mundo" in m28["senales"]:
+        ms = m28["senales"]["W-mundo"]
+        cotejo += [abs(a - b) for a, b in zip(ms["uci"], cifras["W-arcoiris"]["uci"])]
+        cotejo += [abs(a[0] - b[0]) for a, b in zip(ms["cerca"], cifras["W-arcoiris"]["cerca"])]
+        cifras["W-arcoiris"] = {"uci": ms["uci"], "cerca": [[d, "Q:" + c] for d, c in ms["cerca"]], "fuente": "medir28"}
+    if n2:  # las 133 de la regla, contra las del redactor: la marca en cinco vistas y el equipo en cuatro
+        for cc, _ in paises:
+            k = f"R-{cc}"
+            uci = [r1(S.a_todos(S, k, v)[S.idx["V0"]]) for v in VISIONES]
+            dmin = r1(min(float(cerca_de(k, v).min()) for v in COLOR4))
+            cotejo_nac += [abs(a - b) for a, b in zip(n2["a28"]["uci"][cc], uci)]
+            cotejo_nac.append(abs(n2["a28"]["kit_mas_cercano"][cc][0] - dmin))
     alternativas = {k: medida(k) for k in DISENOS_CAMPEON}
+
+    # La hoja de revisión de §9.5: los 133 con la regla, sus marcas y su orden.
+    gemela = {}
+    for a, b, d in (n2["a28"]["gemelas"] if n2 else []):
+        for x, y in ((a, b), (b, a)):
+            if x not in gemela or d < gemela[x][1]:
+                gemela[x] = [y, d]
+    hoja = []
+    for cc, nombre in paises:
+        p_ = (n2 or {}).get("paises", {}).get(cc, {})
+        sitio, rel, _ = regla[cc]
+        cerca_ = n2["a28"]["kit_mas_cercano"][cc] if n2 else None
+        marcas = [m for m, si in (
+            ("sin-campo", p_.get("revisar")), ("emblema", cc in EN_EMBLEMA), ("estrella", cc in ESTRELLA_AMARILLA),
+            ("texto", cc in CON_TEXTO), ("gemela", cc in gemela), ("reserva", bool(cerca_) and cerca_[0] < 10),
+        ) if si]
+        grupo = 1 if ("sin-campo" in marcas or "emblema" in marcas) else 2 if (sitio != "high" or rel != "gold") else 3
+        hoja.append([cc, nombre, sitio, rel, grupo, marcas, ["Q:" + cerca_[1], cerca_[0]] if cerca_ else None, gemela.get(cc)])
+    hoja.sort(key=lambda x: x[4])
+
+    # El maillot en grande (§8.10), con un patrocinador de ejemplo.
+    hexs = dict(COLORES_D00E)
+    ejemplo = "Q:yoke.navy.yellow"
+    if ejemplo not in Q.idx or not perm[Q.idx[ejemplo]]:
+        ejemplo = next(k for k in pel_q if not k.startswith("Q:plain"))
+    fig_e, base_e, sec_e = ejemplo[2:].split(".")
+    formas_e = dict(FIGURAS_D00E)[fig_e]
+    patrocinador = ("VELOTEC", "VT", "#0f9e8f")
+    grande = {
+        "G-frente-160": vista_frente(hexs[base_e], hexs[sec_e], formas_e, 160, patrocinador),
+        "G-espalda-160": vista_espalda(hexs[base_e], hexs[sec_e], formas_e, 160, patrocinador, "Mistral Racing"),
+        "G-culote-160": vista_culote(hexs["black"], hexs[sec_e], 160, patrocinador),
+        "G-espalda-320": vista_espalda(hexs[base_e], hexs[sec_e], formas_e, 320, patrocinador, "Mistral Racing"),
+    }
+    capacidades = {z: [capacidad(c[0], px) for px in (72, 96, 160, 320)] for z, c in SPONSOR_ZONES.items()}
+    capacidades["name"] = [capacidad(BACK_NAME_BOX, px) for px in (72, 96, 160, 320)]
 
     vocab = {}
     for vid, V in VOCABS.items():
@@ -932,7 +1134,8 @@ def main():
         figuras_q.append([FIGURA_PANTALLA[fig], f"F-q-{i}"])
 
     usados_q = set(pel_q) | {c[1] for x in [*cifras.values(), *alternativas.values()] for c in x["cerca"]}
-    svg = {**lid28, **DISENOS_CAMPEON, **nuevas_pagina, **{k: cand_q[k] for k in sorted(usados_q)}}
+    usados_q |= {x[6][0] for x in hoja if x[6]} | {ejemplo}
+    svg = {**lid28, **DISENOS_CAMPEON, **nuevas_pagina, **grande, **{k: cand_q[k] for k in sorted(usados_q)}}
     svg.update({k: todos[k] for vid in VOCABS for k in vocab[vid]["peloton"]})
     svg.update({k: todos[k] for vid in VOCABS for _, k, _ in vocab[vid]["figuras"]})
     svg.update({k: todos[k] for _, k in figuras_q})
@@ -940,8 +1143,10 @@ def main():
         "colores": [[n, h, "segundo" if n in ("yellow", "white") else "base"] for n, h in COLORES_D00E],
         "figuras": figuras_q,
         "cuentas": cuentas,
-        "m28": dict(m28["vocabulario"], permitidos515=m28["nacionales"]["permitidos_reservando_nacionales"],
-                    distintos515=m28["nacionales"]["distintos_reservando_nacionales"]) if m28 else None,
+        "m28": dict(m28["vocabulario"]) if m28 else None,
+        "n2": {"permitidos": n2["a28"]["permitidos_tras_reservar"], "distintos": n2["a28"]["distintos_tras_reservar"],
+               "nacionales": n2["a28"]["nacionales_con_kit_bajo_10"], "gemelas": len(n2["a28"]["gemelas"]),
+               "liderMin": n2["a28"]["lider_min"], "uciMin": n2["a28"]["uci_min"]} if n2 else None,
         "paleta": {"min": {v: m28["colores"][f"min_{v}"] for v in VISIONES},
                    "bajo10": {v: m28["colores"][f"pares_bajo10_{v}"] for v in VISIONES}} if m28 else None,
         "peloton": pel_q,
@@ -950,8 +1155,9 @@ def main():
         "paises": PAISES,
         "cifras": cifras,
         "cotejo": round(max(cotejo), 2) if cotejo else None,
-        "nacPeor": m28["nacionales"]["peor_distancia_por_vision"] if m28 else None,
-        "nacLista": m28["nacionales"]["lista"] if m28 else [],
+        "cotejoNac": round(max(cotejo_nac), 2) if cotejo_nac else None,
+        "hoja": hoja,
+        "grande": {"ejemplo": ejemplo, "patrocinador": list(patrocinador), "capacidades": capacidades},
     }
 
     datos = {
@@ -964,7 +1170,7 @@ def main():
         "d00": d00,
         "alternativas": {"opciones": [[oid, [list(x) for x in ds]] for oid, ds in OPCIONES_CAMPEON], "cifras": alternativas},
         "banderas": BANDERAS,
-        "banderasWeb": {cc: list(banderas[cc]) for cc in BANDERAS_WEB},
+        "banderasWeb": {cc: list(banderas[cc]) for cc, _ in paises},
         "nombres": {k: nombre_d00e(k) for k in usados_q},
         "svg": svg,
     }
@@ -979,7 +1185,9 @@ def main():
     # El informe, para quien lo corre.
     print(f"Chromium {chromium}; colour-science {colour.__version__}; datos: {len(texto) / 1024:.0f} KB")
     print("vocabulario del dueño:", cuentas, "| medir28:", d00["m28"])
-    print("pelotón sin repetir, pares <10 a 28 px:", pares_q, "| cotejo con medir28, mayor diferencia:", d00["cotejo"])
+    print("pelotón sin repetir, pares <10 a 28 px:", pares_q, "| cotejo con medir28, mayor diferencia:", d00["cotejo"],
+          "| con medir-nacional2, en las 133:", d00["cotejoNac"])
+    print("hoja:", {g: sum(1 for x in hoja if x[4] == g) for g in (1, 2, 3)}, "| ejemplo en grande:", ejemplo, capacidades)
     for vid in VOCABS:
         print(vid, "pares <10 a 28 px:", vocab[vid]["pares28"])
     for k, c in {**cifras, **alternativas}.items():
