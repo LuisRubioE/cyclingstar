@@ -129,6 +129,39 @@ de un maillot nacional de campeón, a 28 px y en las cuatro visiones (los 21 que
 nacionales, entre ellos `plain.red`, `plain.green`, `plain.teal` y `plain.taupe`): el editor los tacha
 con su porqué (`Too close to the champion of Morocco.`, pantalla). Decidido por el dueño.
 
+### D-00i · Un modo oscuro opcional: claro por defecto (sustituye a D-04; DD-05 decidida)
+
+El juego es claro por defecto y el jugador puede activar el modo oscuro en sus opciones (`/account`,
+`Appearance: Light · Dark`, pantalla). El ámbito oscuro de `Watch`, la cabecera y la barra se queda
+igual en los dos modos. El modo oscuro redefine los tokens de color bajo `:root[data-theme="dark"]`
+(la paleta C de telefono como punto de partida), con cada pareja de texto y fondo medida a 4,5:1 o
+más en `tokens.test.ts` y todos los estados de los componentes revisados en `/_ui` en los dos modos.
+La preferencia se guarda en la cuenta (para que siga al jugador de un aparato a otro) y en
+`localStorage` (para pintarla antes de la primera pintura, sin destello); sin cuenta, solo en
+`localStorage`. No sigue a `prefers-color-scheme`: el dueño pidió claro por defecto. Va en el plan
+después de que el sistema claro esté entero.
+
+### D-00j · Ninguna marca para el equipo líder (amplía D-29; DD-06 decidida)
+
+Ni dorsal ni etiqueta: se quita también el `Chip` `Leads overall` de la tabla por equipos de la etapa
+(D-29, §9.8). La clasificación por equipos de la general dice quién lidera por su orden. Decidido por
+el dueño.
+
+### D-00k · Un cambio de maillot por temporada como mucho (sustituye a DD-09)
+
+`KIT_CHANGES_PER_SEASON` = 1 (sustituye a `KIT_CHANGE_COOLDOWN_DAYS`); el editor responde `429
+kit_reciente` con `You can change your kit once per season.` (pantalla) y dice cuándo vuelve a poder.
+**No cuentan** lo que añade o quita un patrocinador en sus zonas (D-00g) ni la traducción del mundo de
+hoy (DD-07). Lo que añade el orquestador, que el dueño puede quitar: el primer cambio de quien toma
+un equipo libre tampoco cuenta, para que un mánager nuevo pueda poner su maillot. Decidido por el
+dueño.
+
+### D-00l · Lo demás de §19
+
+Aceptadas por el dueño tal como se proponen: DD-07, DD-08, DD-12, DD-13 y de DD-18 a DD-23 (incluido
+el filo oscuro de las dos estrellas, DD-21). Pendientes de que el dueño lea su explicación: DD-10,
+DD-11, DD-14, DD-15, DD-16 y DD-17; mientras tanto vale su valor por defecto.
+
 ## A. La base y dónde vive cada cosa
 
 ### D-01 · La base es `telefono`, y el documento es una fusión

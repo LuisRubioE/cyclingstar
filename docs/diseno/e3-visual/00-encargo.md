@@ -328,3 +328,23 @@ their approved team kit»), sin verificar contra el reglamento vigente. La UCI m
 enseñar un maillot distinto del aprobado. Su guía de los maillots de campeón (v5.3, la de §7.1) dice
 del culote `all bib short must be plain color in white or black`, con las zonas de patrocinador en
 los costados y `No piping is allowed on the bibshort`.
+
+### 7.4 Las decisiones del dueño sobre §19 (22 de octubre de 2026)
+
+El dueño, tras leer la v0, textual:
+
+> «DD-05: Si, querré un modo oscuro opcional.. o sea, por defecto light, pero en opciones, que se pueda
+> activar el modo oscuro. DD-06: Nada, sin marca para el equipo lider. DD-07: Sí. DD-08: Ok. DD-09:
+> Máximo 1 cambio por cada temporada (sin contar los añadidos de un sponsor). DD-10: No se que es
+> esto, explicame mas. DD-11: No se que es esto, explicame mas. DD-12: ok. DD-13: ok. DD-14, 15, 16,
+> 17: explicame mas. El resto ok con lo que propones.»
+
+Lo que queda decidido (el detalle, en `borrador/00-decisiones.md` §0, D-00i a D-00k):
+
+1. **Un modo oscuro opcional** (DD-05): claro por defecto y oscuro si el jugador lo activa en sus
+   opciones.
+2. **Ninguna marca para el equipo líder** (DD-06): ni dorsal ni etiqueta.
+3. **Un cambio de maillot por temporada como mucho** (DD-09), sin contar lo que añade un patrocinador.
+4. **Aceptadas tal como se proponen**: DD-07, DD-08, DD-12, DD-13 y de DD-18 a DD-23.
+5. **Pendientes de explicación**: DD-10, DD-11, DD-14, DD-15, DD-16 y DD-17. Mientras el dueño no
+   conteste, vale su valor por defecto.
