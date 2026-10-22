@@ -105,8 +105,9 @@ shared/src/countries.ts` l. 6-11) en el pecho, **solo donde se leen**: en el mí
   letra de D-05, que con el `viewBox` de 48 piden unas 8 u de altura, es decir desde 72 px (a 72 px,
   1 u = 1,5 px). Por debajo de 72 px, la estrella sola; la bandera junto al nombre y el texto
   (`Champion of Spain`) dicen el resto. Resuelven las banderas gemelas en grande (Indonesia `ID` y
-  Mónaco `MC`, Chad y Rumanía). Las banderas que ya llevan texto (Brasil, Arabia Saudí, Irak) entran
-  en la misma revisión. Lo que la letra pide (familia, peso, color con filo) lo decide §9.
+  Mónaco `MC`, Indonesia y Singapur `SG`, Italia `IT` y Perú `PE`, las más cercanas de §19.6; Chad, que lo sería
+  de Rumanía, no está entre los 133). Las banderas que ya llevan texto (Brasil y Arabia Saudí; Irak
+  tampoco está) entran en la misma revisión. Lo que la letra pide (familia, peso, color con filo) lo decide §9.
 - **El mundial no lleva letras**: es el campeón del mundo, no de un país.
 
 ### D-00g · El maillot en grande: delante, detrás y culote, con las zonas del patrocinador (amplía D-00b y D-30)
