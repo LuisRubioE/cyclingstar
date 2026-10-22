@@ -118,7 +118,7 @@ En el trabajo `Bancos de noche (E2)` (`cobertura.yml` l. 104-122), tres pasos m�
 
 - 16-a, retirada con la web instalable (D-00p): sin `apps/web/sw/decide.test.ts`, `vitest.config.ts` l. 7 no cambia.
 - 16-b. `peso.test.mjs` corre con `node --test` en el trabajo `Build`, después de `pnpm -r build`, porque mide `dist/`; vitest no lo recoge ni debe recogerlo.
-- 16-c. El banco nocturno del maillot se llama `kitWorld.long.test.ts` y se salta sin `CS_BANCOS=1`, como `timelineCollector.long1.test.ts` de E2; con el nombre de §G.10, `kitWorld.bench.ts`, vitest no lo encontraría.
+- 16-c. El banco nocturno del maillot se llama `kitWorld.long.test.ts` y se salta sin `CS_BANCOS=1`, como `timelineCollector.long1.test.ts` de E2; con el nombre que le daba el glosario de la v0, `kitWorld.bench.ts`, vitest no lo encontraría.
 - 16-d. La prueba de cada noche es `nocturno.spec.ts`, el nombre del glosario que usan §7 y §12; D-50 la llamaba `rendimiento.spec.ts`. Lleva el rendimiento, los umbrales de `Watch` de E2, la letra al doble y la pasada de lado.
 - 16-e. Una sola prueba de huellas para lo generado de la web, `generados.test.ts`, con las de los PNG y los SVG copiados en `apps/web/scripts/huellas.json`, porque un PNG no tiene cabecera donde escribirla.
 - 16-f. `champion.test.ts` va en `packages/db`, junto a `drawnDistance` (9-h), y fija también la reserva de D-00h, ya sin la estrella del nacional (D-00m).

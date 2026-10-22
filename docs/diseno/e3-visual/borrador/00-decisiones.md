@@ -91,11 +91,11 @@ Mistral Racing.`, pantalla).
   la temporada 0 tiene un par por debajo de 10; si alguna lo tiene, el PR lo dice y propone qué color
   o qué figura sobra.
 
-### D-00f · El nacional: la estrella revisada país a país y las dos letras del país donde se leen (amplía D-00d)
+### D-00f · El nacional: la estrella revisada país a país y las dos letras del país donde se leen (amplía D-00d; la estrella la quitó D-00m)
 
 - **La estrella dorada del pecho, aceptada por el dueño**, con una tabla de ajustes por país
   (`NATIONAL_STAR_OVERRIDES`): las banderas que ya llevan una estrella o un emblema donde va la
-  estrella (Vietnam, China, Marruecos, Ghana, Camerún, Chile, Cuba…) mueven la estrella a otro
+  estrella (Vietnam, China, Marruecos, Camerún, Chile, Cuba…; Ghana, Chad e Irak no están entre los 133 países del juego) mueven la estrella a otro
   sitio del pecho o la cambian de color, según la revisión.
 - **La revisión, caso a caso**: una hoja con los 133 maillots nacionales a 28 y a 72 px (en la página
   de opciones y como artefacto del PR que los introduce), que el dueño mira una vez; cada ajuste va
@@ -417,6 +417,8 @@ registro del tick qué borró. Si no encuentra ninguno, no hace nada.
 
 ### D-20 · El vocabulario del maillot del equipo (el defecto de DD-04)
 
+**Nota del orquestador (22 de octubre de 2026).** La sustituye D-00e (quince colores y siete figuras, sin repetir) con las cifras de §8.
+
 **Decisión.** **Doce colores con nombre** (telefono §6.1): de base, `black` `#1b1d21`, `navy` `#172a5b`, `blue` `#0f6de9`, `sky` `#4cc3ff`, `teal` `#0f9e8f`, `green` `#236102`, `orange` `#f48d32`, `red` `#c62639`, `pink` `#f7418a` y `purple` `#4e2cae`; solo de segundo color, `yellow` `#ffd60a` y `white` `#ffffff`. Ningún par baja de 15,9 de ΔE00 en visión normal ni de 12,3 en las tres dicromacias (medido por telefono y re-medido por cobertura C6 y uso C4; X-02). **Seis figuras** (las de telefono sin `Sash`, porque la diagonal es del campeón, D-26), con 6 u como trazo mínimo (1,6 px a 13 y 2 px a 16): `plain` (nada), `band` (banda de pecho de y 23 a 33), `hoops` (dos aros, de y 17 a 24 y de 30 a 37), `halves` (la mitad derecha, de x 24 a 48, con su manga), `yoke` (hombros, mangas y pecho alto, hasta y 19) y `sides` (costados y mangas, de x 0 a 21 y de 27 a 48). **La regla de contraste** (I-25): base y segundo color a `KIT_CONTRAST_MIN` = 20 de ΔE00 o más en las cinco vistas (las cuatro y los grises), para que la figura se vea en grises. **Lo reservado**: el cuerpo amarillo (líder de la general), los lunares (montaña), la diagonal (el campeón) y todo maillot que a 13 o a 16 px quede a menos de 10 de una señal reservada en alguna de las cuatro visiones. **Cuántos**: 10 lisos y 5 × 10 × 11 con figura, 560 combinaciones antes de reserva y contraste; lo permitido y las carreras están sin medir con seis figuras (O-25). **La puerta**: la página de opciones lo mide ahora y `kits.test.ts` lo repite en el paso 16; si alguna de las 310 carreras de la temporada 0 tiene un par por debajo de 10 en alguna de las cuatro visiones a 13 o a 16 px, el defecto pasa a la alternativa B de DD-04 (identidad A: 14 colores y seis figuras, 443 permitidos, medido con la diagonal reservada) y el PR lo dice.
 
 **Evidencia.** telefono §6.1 y §6.2; identidad §6.1; cobertura C6; uso C4 y §8 (su defecto es este); X-02; O-25.
@@ -426,6 +428,8 @@ registro del tick qué borró. Si no encuentra ninguno, no hace nada.
 **Sección.** §8.
 
 ### D-21 · El tamaño mínimo es 13 px: `Watch` no cambia
+
+**Nota del orquestador (22 de octubre de 2026).** La sustituye D-00b: ningún maillot por debajo de 28 px.
 
 **Decisión.** `KIT_MIN_PX` = 13, el tamaño de `GroupBar.tsx` l. 242, `CueCard` y `TimeTrialBoard`, que no cambia: E3 no mueve el diseño de E2. `KIT_PX` = `{ strip: 13, row: 16, card: 28, team: 40, page: 72, hero: 96 }`. Todo lo que se mide del maillot (el vocabulario, lo reservado, la señal) se mide a 13 y a 16 px (`KIT_CHECK_SIZES`); telefono ya midió su vocabulario a 13 px (0 carreras en las cuatro visiones, telefono §6.2).
 
@@ -467,6 +471,8 @@ registro del tick qué borró. Si no encuentra ninguno, no hace nada.
 
 ### D-25 · El editor
 
+**Nota del orquestador (22 de octubre de 2026).** La espera entre cambios la sustituye D-00k: un cambio por temporada como mucho.
+
 **Decisión.** `/team/identity`, a 360 px: el maillot a 72 px (`data-answer`) y, al lado, a 13 y a 16 px sobre `surface` y sobre `navy-dark`, junto a sus ocho rivales más frecuentes y a las señales reservadas; las seis figuras en losetas de 72 con su nombre (`Plain`, `Chest band`, `Hoops`, `Halves`, `Yoke`, `Sides`, pantalla); los colores en muestras de 44 con su nombre, tachadas con su porqué las que chocarían (`Too close to the yellow jersey`, pantalla); el veredicto del servidor, `POST /api/teams/me/kit/check` a los 300 ms del último toque, con equipo y visión (I-25: `Too close to Mistral Racing for colour-blind viewers (deuteranopia). Try another colour or figure.`, pantalla); y `Save kit` en la `ActionBar`. `PUT /api/teams/me/kit` con cuerpo `{ kit }` y `kitSchema` `.strict()` (un objeto sin anidados, así que `.strict()` basta), y estos códigos: 400 `kit_igual`, 400 `kit_contraste`, 409 `kit_reservado`, 409 `kit_se_confunde`, 429 `kit_reciente` (`KIT_CHANGE_COOLDOWN_DAYS`, DD-09; el primer cambio tras tomar el equipo, libre). Vale desde el día siguiente. `PUT /api/teams/me` deja de aceptar `jerseySeed` en el PR 18a (`routes/teams.ts` l. 23; `teamControl.ts` l. 182-186) y las doce candidatas desaparecen (`TeamManager.tsx` l. 21-26). **Para E9**: la historia de `team_kits`, `revertKit(tx, teamId, reason)` con `set_by` `moderator` y `POST /api/admin/teams/:id/kit/revert`; el flujo de denuncia es de E9.
 
 **Evidencia.** telefono §6.3; identidad §6.3; sistema §6.3; I-25; O-19.
@@ -474,6 +480,8 @@ registro del tick qué borró. Si no encuentra ninguno, no hace nada.
 **Sección.** §8.
 
 ### D-26 · La señal de campeón: la banda de honor (el defecto de DD-03)
+
+**Nota del orquestador (22 de octubre de 2026).** La sustituyen D-00d y D-00m: el nacional viste su bandera, sin estrella, y el mundial es blanco con la estrella de arcoíris; la banda de honor queda como alternativa descartada por el dueño.
 
 **Decisión.** El dibujo de identidad §6.5 (I-12), recortado por `TORSO` y con filete `rgba(0,0,0,0.35)` de 1,5 u: `SASH_PATH` = `M13.76 6.71 L41.76 38.71 L34.24 45.29 L6.24 13.29 Z`, una banda de 10 u del hombro izquierdo a la cadera derecha. **Mundial**: campo `#14213d` (`CHAMPION_NIGHT`), banda y cuello `#e0a526` (`CHAMPION_GOLD`), sin bandera. **Nacional**: campo `#f6f3ea` (`CHAMPION_PAPER`); la banda partida en tres franjas paralelas de 10/3 u (`SASH_STRIPES`) con los colores de su bandera (`NATIONAL_SASH`, generado y revisado, con `NATIONAL_SASH_OVERRIDES` para los errores conocidos como Corea); filo `#14213d` de 2,4 u (`NATIONAL_SASH_EDGE_U`); cuello del color de la primera franja; y la bandera al lado, como hoy (`Jersey.tsx` l. 165), porque 26 países salen con una banda de un color con blanco en medio. **Continental** (E12): banda `#c0c7d2` (`CHAMPION_SILVER`) sobre noche, provisional. Ruta y crono, élite y sub-23 comparten dibujo y los separa el texto (`championTitleText`: `Time trial champion of Italy`, `U23 champion of Italy`, pantalla), porque `wearableTitles` solo deja llevar los de la disciplina y la categoría del día (`jerseys.ts` l. 270-275; cobertura C1; X-17). **Reservada**: ningún maillot de equipo, de líder ni de patrocinador lleva diagonal. **Medido por el juez de cobertura** (X-16) a 13 px: la mundial a 45,7 de la marca de la UCI (37,6 en grises), la nacional de Italia a 22,6 (15,7) y la de España a 26,0 (18,1); frente al vocabulario de identidad, la mundial a 24,5 en visión normal y 15,8 en grises (identidad). Frente al vocabulario de D-20 está sin medir: lo mide `champion.test.ts` (las 134 señales a 10 o más de todo maillot permitido y de los líderes, en las cinco vistas, a 13 y a 16 px). **La 7-h de E2** (H-09): con el filo de 2,4 u, a densidad 2 las 133 nacionales quedan a 14,0 o más de todo maillot y a 14,2 de los líderes en las cinco vistas (identidad `exp5b_nacional.py`); a densidad 1, frente a los líderes, lo mide `champion.test.ts`.
 
@@ -701,7 +709,7 @@ registro del tick qué borró. Si no encuentra ninguno, no hace nada.
 
 ### D-50 · El peso y su presupuesto
 
-**Decisión.** `apps/web/scripts/peso.test.mjs` mide tras `vite build`, con zlib de Node a nivel 9 (X-26): la hoja que bloquea, `CSS_BLOCKING_MAX_GZ` = 15 KB (hoy 94,3 con el gzip de Vite y 92,4 por la red, la misma hoja con dos compresores); el JS del arranque, `ENTRY_JS_MAX_GZ` = 160 KB (hoy unos 157: 250,9 de arranque menos 94,3 de CSS, mapa 01 §8); la precarga, `PRECACHE_MAX_GZ` = 250 KB; el sprite, `FLAG_SPRITE_MAX` = 60 KB. **Sin evidencia de los jueces** (H-03): `packages/shared` gana `"sideEffects": false` en el paso 6 solo si `peso.test.mjs` enseña que `request.js` suelta los 42 KB de `broadcast/*` y `pnpm test` sigue en verde; si no, queda anotado en §12. **Cada noche**, `rendimiento.spec.ts` con Slow 4G, CPU ×4 y la mediana de cinco: primera pintura en frío de 3,0 s o menos (hoy de 3,16 a 3,23; con el sprite, 2,93), lista en frío de 5,0 o menos (hoy de 4,7 a 5,8) y en caliente de 2,0, o 3,0 en el entrenamiento.
+**Decisión.** `apps/web/scripts/peso.test.mjs` mide tras `vite build`, con zlib de Node a nivel 9 (X-26): la hoja que bloquea, `CSS_BLOCKING_MAX_GZ` = 15 KB (hoy 94,3 con el gzip de Vite y 92,4 por la red, la misma hoja con dos compresores); el JS del arranque, `ENTRY_JS_MAX_GZ` = 160 KB (hoy unos 157: 250,9 de arranque menos 94,3 de CSS, mapa 01 §8); la precarga, `PRECACHE_MAX_GZ` = 250 KB; el sprite, `FLAG_SPRITE_MAX` = 60 KB. **Sin evidencia de los jueces** (H-03): `packages/shared` gana `"sideEffects": false` en el paso 6 solo si `peso.test.mjs` enseña que `request.js` suelta los 42 KB de `broadcast/*` y `pnpm test` sigue en verde; si no, queda anotado en §12. **Cada noche**, `nocturno.spec.ts` con Slow 4G, CPU ×4 y la mediana de cinco: primera pintura en frío de 3,0 s o menos (hoy de 3,16 a 3,23; con el sprite, 2,93), lista en frío de 5,0 o menos (hoy de 4,7 a 5,8) y en caliente de 2,0, o 3,0 en el entrenamiento.
 
 **Evidencia.** telefono §5.3 y §8.3; mapa 01 §8; mapa 05 §12; codigo, fila 5 (el presupuesto de 255 KB de sistema deja crecer el JS); H-03.
 

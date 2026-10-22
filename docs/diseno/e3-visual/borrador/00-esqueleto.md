@@ -436,7 +436,7 @@ Los maillots (`Kit`, `LeaderJersey`, `ChampionSash`, `WornJerseyIcon`, `KitPicke
 
 **Del dueño:** DD-11.
 
-### §12 · La web instalable
+### §12 · Sin red, el peso y la primera pintura (antes «La web instalable», que retiró el dueño, D-00p)
 
 `borrador/12-instalable.md` · 190 líneas · L2
 
@@ -584,7 +584,7 @@ Los maillots (`Kit`, `LeaderJersey`, `ChampionSash`, `WornJerseyIcon`, `KitPicke
 2. **17.2 La tabla de pasos.** Una fila por PR: paso y PR, qué entra, tests primero (fichero), depende de, tamaño, lo que ve el dueño y se revierte con (el modelo es `docs/retransmision.md` §17.2).
 3. **17.3 a 17.26 Una subsección por paso, del 1 al 24.** Lo que entra, sus tests primero (fichero y casos), lo que ve el dueño y su marcha atrás. La 17.3 (paso 1, el clon) dice que es independiente de todo y se fusiona antes que nada (D-32; H-21). La 17.4 (paso 2) construye el mundo y la tabla de pantallas antes de la línea base (O-26; O-11). La 17.21 (paso 19) son los tres PR de la frontera (O-03). La 17.23 (paso 21) es la cola larga por deuda, con la lista de pantallas y su deuda (I-02; O-07). La 17.26 (paso 24) corrige los documentos de D-58 (H-12) y cierra con la prueba del dueño.
 4. **17.27 Orden y dependencias.** El grafo: el paso 1, suelto; el camino del teléfono (2 a 12); el del examen (13 a 15, con el 13a que solo depende del 2); el de los maillots (16 a 18, que depende del 9); la frontera (19, tras el 13); `Watch` (20); la cola larga (21, tras el 9); el cierre (22 a 24).
-5. **17.28 Lo primero que ve el dueño, y cuándo E3 está terminado.** La web instalable en el 3; el examen en el 14; los maillots nuevos en el 17; terminado con el trinquete a cero, sin `deuda.json` y con la prueba del dueño.
+5. **17.28 Lo primero que ve el dueño, y cuándo E3 está terminado.** La web instalable en el 3 (retirada por el dueño, D-00p); el examen en el 14; los maillots nuevos en el 17; terminado con el trinquete a cero, sin `deuda.json` y con la prueba del dueño.
 
 **Escribe entero:** la tabla de pasos; por paso, sus tests con fichero y casos.
 
@@ -662,13 +662,13 @@ Los maillots (`Kit`, `LeaderJersey`, `ChampionSash`, `WornJerseyIcon`, `KitPicke
 
 Tres lotes de redacción y la cabecera. Los correctores de la fase 5 trabajan por estos mismos lotes. Cada redactor lee `00-encargo.md`, este esqueleto, `00-glosario.md`, `00-decisiones.md`, `juicios/veredicto.json`, `propuestas/telefono.md` entera (la base) y las fuentes que citan las entradas de §B de sus secciones.
 
-| Lote      | Secciones                                                                                                                                                 | Líneas    | Depende de                                                                                                | Lee además (si ya está) | Ola    |
-| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | --------------------------------------------------------------------------------------------------------- | ----------------------- | ------ |
-| L1        | §1 (Diagnóstico), §2 (Principios), §3 (Fundamentos), §4 (Componentes), §5 (El sistema que se hace cumplir), §6 (El teléfono), §7 (La prueba del teléfono) | 1.260     | ninguno: el glosario y las decisiones son el contrato                                                     | nada más                | 1      |
-| L2        | §8 (La equipación), §9 (La señal de campeón y el resto del maillot), §10 (El cuadro), §11 (Lo que hay debajo), §12 (La web instalable), §13 (La frontera) | 1.260     | ninguno: nombra los componentes por el glosario                                                           | §4, §7                  | 1      |
-| L3        | §14 (Lo que E2 dejó), §15 (Constantes), §16 (Tests), §17 (El plan), §18 (Riesgos), §19 (Decisiones del dueño), §20 (Apéndices)                            | 1.090     | L1 y L2: el plan, las constantes, los tests y las decisiones del dueño se escriben con lo que ellos fijan | todas                   | 2      |
-| L0        | §0 (Cabecera y resumen)                                                                                                                                   | 100       | todo, tras la refutación (fase 6)                                                                         | todas                   | cierre |
-| **Total** | 21 secciones                                                                                                                                              | **3.710** |                                                                                                           |                         |        |
+| Lote      | Secciones                                                                                                                                                                     | Líneas    | Depende de                                                                                                | Lee además (si ya está) | Ola    |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | --------------------------------------------------------------------------------------------------------- | ----------------------- | ------ |
+| L1        | §1 (Diagnóstico), §2 (Principios), §3 (Fundamentos), §4 (Componentes), §5 (El sistema que se hace cumplir), §6 (El teléfono), §7 (La prueba del teléfono)                     | 1.260     | ninguno: el glosario y las decisiones son el contrato                                                     | nada más                | 1      |
+| L2        | §8 (La equipación), §9 (La señal de campeón y el resto del maillot), §10 (El cuadro), §11 (Lo que hay debajo), §12 (Sin red, el peso y la primera pintura), §13 (La frontera) | 1.260     | ninguno: nombra los componentes por el glosario                                                           | §4, §7                  | 1      |
+| L3        | §14 (Lo que E2 dejó), §15 (Constantes), §16 (Tests), §17 (El plan), §18 (Riesgos), §19 (Decisiones del dueño), §20 (Apéndices)                                                | 1.090     | L1 y L2: el plan, las constantes, los tests y las decisiones del dueño se escriben con lo que ellos fijan | todas                   | 2      |
+| L0        | §0 (Cabecera y resumen)                                                                                                                                                       | 100       | todo, tras la refutación (fase 6)                                                                         | todas                   | cierre |
+| **Total** | 21 secciones                                                                                                                                                                  | **3.710** |                                                                                                           |                         |        |
 
 Reglas de dependencia:
 
