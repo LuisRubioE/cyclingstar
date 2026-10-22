@@ -28,3 +28,11 @@ Lo que la pasada de coherencia (`04-fase-refutacion.md` §6) no ha podido cerrar
 - **D-34** dice `Racing now · stage 3 of 5`; las secciones, con su ruta (`Racing now · stage 3 of 5, Gandia → Alcoi`, [DUEÑO 7]; C-L1-04). **D-35** da `After your plan · Days 79 to 83 · Coach` y §10.6, `Days 74 to 78` con otro plan: los dos casos valen, y el glosario usa el de §10.6.
 - **D-25** conserva `KIT_CHANGE_COOLDOWN_DAYS` y **D-20**, **D-21** y **D-26** sus doce colores, sus 13 px y su banda de honor, sustituidas por D-00b, D-00d, D-00e y D-00k sin una nota junto a ellas, como la que ya llevan D-32 y D-56. §0 manda sobre todo, así que no es un error; una nota evitaría que alguien las lea sueltas.
 - **El esqueleto**: el título de su ficha de §12 (l. 439, «La web instalable») no es el de la tabla §B, que ya dice «Sin red, el peso y la primera pintura» y es la que usa el ensamblado.
+
+## Cerradas en el cierre (fase 6c, 22 de octubre de 2026)
+
+- **La duda 2**, la clave de la comprobación propia de la pantalla 09: la decidió el auditor de L1 y L3, `"360-barra"` (§7.3).
+- **La duda 4**, el filete claro: medido en el cierre (`medidas/filete.py`), de 2,09 a 2,43:1 sobre `surface`, `surface-2`, `canvas` y `own-tint`, exento de 3:1 con su motivo y con un suelo en `tokens.test.ts` (§3.1, §16.2; A-L1-007 y 0-c).
+- **La duda 6**, la longitud: desestimada con motivo por el auditor de L3 (A-L3-008), porque no es un fallo de contenido.
+- **Las dudas 1, 3 y 5** se quedan como están: los estilos del `<dialog>` los ve la comprobación 1 en el PR 17c; qué campos de `ChampionTitle` viajan lo fija `frontera.test.ts`, que no deja cruzar un campo que no se pinte (§13); y las cifras de `Scale5` coinciden en los máximos, que son los que deciden.
+- **Las del orquestador**: la cabecera da la deuda de 2.740 (C-L1-16); la página de opciones pinta los nacionales sin estrella desde su versión 5 (C-L2-17); D-50 dice `nocturno.spec.ts`; D-00f nombra gemelas que están entre los 133 (Indonesia y Mónaco, Indonesia y Singapur, Italia y Perú); D-20, D-21, D-25, D-26 y D-56 llevan su nota de sustitución; el esqueleto da el título de §12 y el nombre de la `0054_modo_oscuro`.

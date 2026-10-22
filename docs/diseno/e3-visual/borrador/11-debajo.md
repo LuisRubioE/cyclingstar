@@ -1,6 +1,6 @@
 ## 11. El examen práctico (II): lo que hay debajo, lo que se deja y el viaje
 
-El encargo dice que los cinco defectos son de presentación y que ninguno se arregla con más motor (`docs/encargos.md` l. 270-271). Lo segundo es cierto y lo primero a medias: el motor está bien, pero la vista previa proyecta otra cosa que el tick y el plan que se pinta puede no ser el que se entrena (mapa 02, resumen; `01-fase-propuestas.md`, cambio 1). Esta sección arregla eso en `apps/api`, `packages/db` y `packages/shared`, sin cambiar la conducta del motor ni subir `ENGINE_VERSION` (91, `packages/engine/src/constants.ts` l. 853), y pone el viaje donde se decide. Lo que se ve es §10. Las líneas son las de `58c14da`.
+El encargo dice que los cinco defectos son de presentación y que ninguno se arregla con más motor (`docs/encargos.md` l. 292-293). Lo segundo es cierto y lo primero a medias: el motor está bien, pero la vista previa proyecta otra cosa que el tick y el plan que se pinta puede no ser el que se entrena (mapa 02, resumen; `01-fase-propuestas.md`, cambio 1). Esta sección arregla eso en `apps/api`, `packages/db` y `packages/shared`, sin cambiar la conducta del motor ni subir `ENGINE_VERSION` (91, `packages/engine/src/constants.ts` l. 853), y pone el viaje donde se decide. Lo que se ve es §10. Las líneas son las de `58c14da`.
 
 ### 11.1 Lo que E3 arregla debajo, y lo que deja
 

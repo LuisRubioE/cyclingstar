@@ -1,7 +1,7 @@
 # E3 · Estado del proceso de diseño
 
-Estado: **en curso**, fase 6 (coherencia y auditoría). Empezado el 20 de octubre de 2026 sobre `58c14da` (`main`,
-con E2 en producción desde el 10 de octubre y el motor v91). El documento final será
+Estado: **terminado** el 22 de octubre de 2026, a la espera de que conteste el dueño. Empezado el 20 de octubre de 2026 sobre `58c14da` (`main`,
+con E2 en producción desde el 10 de octubre y el motor v91). El documento final es
 `docs/visual.md`. Se actualiza este fichero al terminar cada fase, con commit y push, para poder
 retomar el trabajo si la sesión se corta.
 
@@ -109,19 +109,31 @@ retomar el trabajo si la sesión se corta.
 - La página de opciones, versiones 5 y 6: el nacional sin estrella, la reserva nueva (491 maillots
   permitidos y 458 distintos) y la paleta A en modo oscuro.
 
-## En curso
-
-- Fase 6a, la coherencia (un agente): las 58 cruzadas de `refutaciones/cruzadas-L1.json`, `-L2.json` y
-  `-L3.json`, `borrador/dudas.md`, el glosario fundido y `refutaciones/coherencia.json`; después, la v1
-  con `borrador/ensamblar.sh --comprobar`.
+- Fase 6a, la coherencia (22 de octubre de 2026): las 58 cruzadas (31 aplicadas, 25 que ya estaban y 2
+  para el orquestador), 12 arreglos propios (`K-001` a `K-012`), el glosario fundido y la v1 con
+  `borrador/ensamblar.sh --comprobar` a 0 fallos.
+- Fase 6b, los dos auditores (22 de octubre de 2026): **262 veredictos**, 257 cerrados, 5 desestimados
+  con motivo y uno abierto (A-L1-007), en `refutaciones/auditorias-L1.json`, `-L2.json` y `-L3.json`.
+  En 27 el propio auditor escribió lo que faltaba; el de L1 y L3 registró en `borrador/00-decisiones.md`
+  las 122 decisiones de las secciones de sus lotes.
+- Fase 6c, el cierre (22 de octubre de 2026): A-L1-007 cerrado con una medida (el filete claro del
+  maillot, de 2,09 a 2,43:1, exento de 3:1 con su motivo, `medidas/filete.py`); las dos cruzadas del
+  orquestador comprobadas; D-00f, D-56 y el esqueleto al día; los cuatro hallazgos desestimados con su
+  porqué en §20.2; `refutaciones/resultado-final.json` (de los 162 hallazgos, 158 aplicados enteros y 4
+  desestimados, ninguno en parte ni abierto); `borrador/00-cabecera.md`; y `medidas/`, la copia de los
+  scripts del scratchpad que el documento cita, con su README, y sus rutas cambiadas en las secciones.
+- Fase 7, el ensamblado (22 de octubre de 2026): `docs/visual.md`, 3.975 líneas, con
+  `borrador/ensamblar.sh --final --comprobar` a 0 fallos y 0 avisos (34 de 34 injertos, 33 de 33
+  objeciones y 21 de 21 huecos en algún bloque de cierre); la línea de estado de E3 en
+  `docs/encargos.md` y su sección en `docs/diseno/README.md`; `prettier --check .` y `eslint .` en verde
+  sobre la rama, en un clon; y el PR, solo con documentos, sin fusionar hasta que conteste el dueño.
 
 ## Pendiente
 
-1. Fase 6b y 6c: dos auditores (`05-fase-auditoria.md`) y el cierre (`refutaciones/resultado-final.json`,
-   `borrador/00-cabecera.md`).
-2. Fase 7: el ensamblado de `docs/visual.md`, las líneas de estado de E3 en `docs/encargos.md` y su
-   sección en `docs/diseno/README.md`, y el PR, solo con documentos y sin fusionar hasta que conteste
-   el dueño.
+1. La respuesta del dueño al PR: las tres cosas que añadió el orquestador (§19.5 del documento), los
+   costes de lo decidido (§19.6) y, antes del PR 17a del plan, la hoja de los 133 maillots nacionales.
+2. Fusionar el PR cuando el dueño conteste, y abrir el código de E3 solo cuando él lo diga (la regla de
+   arranque, §0.1 del documento).
 
 ## Cómo retomar si la sesión se corta
 

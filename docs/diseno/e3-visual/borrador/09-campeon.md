@@ -142,7 +142,7 @@ No vuelve como dibujo (D-29, DD-06). El dueño lo mandó quitar porque en su tel
 
 ### 9.9 Lo que compra el patrocinador
 
-Para E8, que vende sitio en la camiseta («Que pueda pagar por imponer su color o por llevar su logotipo en el sitio bueno», `docs/encargos.md` l. 463-465; [DUEÑO 4]), E3 da el vocabulario y sus reglas (D-30, I-14, O-24), y nada más:
+Para E8, que vende sitio en la camiseta («Que pueda pagar por imponer su color o por llevar su logotipo en el sitio bueno», `docs/encargos.md` l. 485-487; [DUEÑO 4]), E3 da el vocabulario y sus reglas (D-30, I-14, O-24), y nada más:
 
 ```ts
 // packages/shared/src/kit.ts
