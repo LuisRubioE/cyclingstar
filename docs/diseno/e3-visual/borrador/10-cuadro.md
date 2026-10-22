@@ -1,6 +1,6 @@
 ## 10. El examen práctico (I): el cuadro de entrenamiento
 
-El cuadro (`/me/training`: `apps/web/src/pages/Training.tsx`, 334 l., que monta `PlanLadder.tsx`, 263 l.) es el examen obligatorio de E3: una pantalla con el motor bien y que no se entiende. Esta sección la redibuja a 360 px con los componentes del catálogo (§4) y nada más (D-40), y cierra lo que se ve de sus tres defectos: la lista de llegadas (D-34), la escala (D-42) y los dos vocabularios con su precedencia (D-40), con la carga en palabras (D-41). Lo que la pantalla necesita debajo (la vista previa nueva, `resolveTrainingDay`, el plan vivo y el viaje) es §11. Las líneas de código son las de `58c14da`. Hoy, a 360 px, lo que hace el plan empieza a 1.060 px y `Save day edits` (pantalla) cierra una página de 6.807 (mapa 05 §3; captura 01). El dueño lo contó así ([DUEÑO 12]; `docs/agenda.md` l. 1560-1563): arriba y abajo pueden decir cosas distintas sin que se sepa cuál manda, los dos vocabularios no coinciden y no se entiende `Day 182 · You'll arrive: Rusty` (pantalla).
+El cuadro (`/me/training`: `apps/web/src/pages/Training.tsx`, 334 l., que monta `PlanLadder.tsx`, 263 l.) es el examen obligatorio de E3: una pantalla con el motor bien y que no se entiende. Esta sección la redibuja a 360 px con los componentes del catálogo (§4) y nada más (D-40), y cierra lo que se ve de sus tres defectos: la lista de llegadas (D-34), la escala (D-42) y los dos vocabularios con su precedencia (D-40), con la carga en palabras (D-41 y D-00o) y la llegada en palabras que se entienden (D-00n). Lo que la pantalla necesita debajo (la vista previa nueva, `resolveTrainingDay`, el plan vivo y el viaje) es §11. Las líneas de código son las de `58c14da`. Hoy, a 360 px, lo que hace el plan empieza a 1.060 px y `Save day edits` (pantalla) cierra una página de 6.807 (mapa 05 §3; captura 01). El dueño lo contó así ([DUEÑO 12]; `docs/agenda.md` l. 1560-1563): arriba y abajo pueden decir cosas distintas sin que se sepa cuál manda, los dos vocabularios no coinciden y no se entiende `Day 182 · You'll arrive: Rusty` (pantalla).
 
 ### 10.1 Lo que contesta, en el orden en que se lee
 
@@ -19,19 +19,20 @@ El jugador del mapa 05 el día 50 (José Quintáns, en `Mixed`, con el plan `Bui
 
 ```text
  ★ Cycling Star               Day 50 · S1 · 4h 56m  (◉)    AppHeader 48
- Profile  [Training]  Race orders  My races                 Tabs page 44
+ Profile  [Training]  Race orders  My races                 Tabs nav 44
  Training                                                   PageHeader, h1 en page
  Mixed · your plan runs Day 51 to Day 78                    línea de estado, meta ink-2
 ┌ How you'll arrive ─────────────────────────────────────┐  Panel, data-answer
 │ Race Var · .1 · one day                                │  row 600, enlace en bloque de 44
 │ Day 52 · in 2 days · travel Day 51 and Day 53          │  meta ink-2
-│ [Cooked][■Loaded■][ Fine ][Spot on][ Rusty ]           │  Scale5, tramos de 36
-│ ◀ Too tired                              Too fresh ▶   │  caption ink-3
+│ [Cooked][■Loaded■][ Fine ][Spot on][Under- ]           │  Scale5, tramos de 36;
+│                                       [trained]        │  Spot on con borde good de 2 px
+│ ◀ Too much training          Too little training ▶     │  caption ink-3
 │ You'll start tired. A lighter week before it brings    │  meta ink-2: la instrucción
 │ you to Fine or Spot on.                                │
 │ Race Sardegna · .1 · 5 stages                          │
 │ Days 56 to 60 · in 6 days · travel Day 55 and Day 61   │
-│ [Cooked][ Loaded ][■ Fine ■][Spot on][ Rusty ]         │
+│ [Cooked][ Loaded ][■ Fine ■][Spot on][Under-trained]   │
 │ Ready to race, not at your best. A Taper week before   │
 │ it can make it Spot on.                                │
 │ Show all 5 races                                    ▾  │  Disclosure, 44
@@ -41,24 +42,27 @@ El jugador del mapa 05 el día 50 (José Quintáns, en `Mixed`, con el plan `Bui
 │ ( Coach decides )( ■ Mixed ■ )( I decide )             │  Segmented, 44
 │ On a day, what wins: race › travel › your edit ›       │  meta ink-2  (ⓘ InfoButton)
 │ block › team plan › coach.                        ⓘ    │
-│ Week 1 · Days 51 to 57                  [ Build    ▾ ] │  row 600; Field select de 48
+│ Week 1 · Days 51 to 57                  [ Build    ▾ ] │  row 600; Field inline select de 48
 │  51    52    53    54    55    56    57                │  caption ink-3
-│ ✈Out  Race  ✈Back ▮▮▯▯  ✈Out  Race  Race               │  la tira: 7 celdas de 41
+│  ✈    Race   ✈    ▮▮▯▯   ✈    Race  Race               │  la tira: 7 celdas de 41 × 48,
+│  Out         Back        Out                           │  el icono encima de la palabra
 │ 1 training day                                         │  meta ink-2
 │ Week 2 · Days 58 to 64                  [ Specific ▾ ] │
-│ Race  Race  Race  ✈Back ▮▮▮▯ ▮▮▯▯ ▮▮▮▯                 │
+│ Race  Race  Race   ✈   ▮▮▮▯ ▮▮▯▯ ▮▮▮▯                  │
+│                   Back                                 │
 │ 3 training days                                        │
 │ Week 3 · Days 65 to 71 ·· Week 4 · Days 72 to 78       │  (igual)
-│ Emphasis [ My strength ▾ ]   Intensity [ Normal ▾ ]    │  Field, 48
+│ Emphasis [ My strength ▾ ]   Intensity [ Normal ▾ ]    │  Field inline, 48
 │ Load this month: steady  ▮▮▯▯                          │  Meter
 │ Start a new plan tomorrow                              │  Button quiet, 44
 ├ Edit day by day ──────────────────── Show the 28 days ▾┤  Disclosure, plegado
 └────────────────────────────────────────────────────────┘
 ═ Race Sardegna: Fine (was Loaded)          [ Save plan ] ═  ActionBar 60, data-primary-action
- Dashboard   My Rider   My Team   World   News              BottomNav 56
+ Dashboard     My Rider       World        News            BottomNav 56: cuatro destinos,
+                                                            el agente libre no tiene My Team
 ```
 
-**Dónde cae cada cosa** (estimado con los tokens de §3 y las alturas de §4): `AppHeader` y `Tabs` ocupan hasta 92 px, el `PageHeader` con su línea de estado hasta unos 176, y el `Panel` de la respuesta empieza hacia los 188, dentro de los 520 de `ANSWER_MAX_TOP_PX`; la primera tarjeta cabe entera antes de los 400 y la segunda asoma en la primera pantalla. La `ActionBar` va fija de 684 a 744, sobre la `BottomNav`, con su botón en el 40 % de abajo (`THUMB_ZONE`). Plegada, la página mide unos 1.700 px, por debajo de los 3.200 de `TOOL_PAGE_MAX_PX`. **Medido** en el prototipo de telefono, que es esta pantalla sin la línea de estado (`proto/entrenamiento.html`, reproducido por el juez de uso, C1; X-18): la respuesta a 152 px con 297 a la vista, la acción a 687 de 800, 1.277 px de alto y ninguna falta de la prueba, salvo cuatro enlaces de nombre de 20 px de alto, que aquí no se repiten porque el nombre de cada carrera enlaza en un bloque de 44 px (D-16). **Las nueve comprobaciones** (§7.1): no hay ancho fijo de texto (1); nada se corta, los nombres de carrera y la cabecera de `TripRow` parten de línea (2); la letra más pequeña es `caption`, 12 px, en los ejes y la tira (3); los `select` van en `body`, 16 px (4); el `Segmented`, los `Field`, los `Disclosure`, `↺ Back to Build` y los enlaces miden 44 o 48 de alto (5); los contrastes son los de los tokens y la escala es `role="img"` con su texto (6); y la 7, la 8 y la 9, arriba.
+**Dónde cae cada cosa** (estimado con los tokens de §3 y las alturas de §4): `AppHeader` y `Tabs` ocupan hasta 92 px, el `PageHeader` con su línea de estado hasta unos 176, y el `Panel` de la respuesta empieza hacia los 188, dentro de los 520 de `ANSWER_MAX_TOP_PX`; la primera tarjeta cabe entera antes de los 400 y la segunda asoma en la primera pantalla. La `ActionBar` va fija de 684 a 744, sobre la `BottomNav`, con su botón en el 40 % de abajo (`THUMB_ZONE`). Plegada, la página mide unos 1.700 px, por debajo de los 3.200 de `TOOL_PAGE_MAX_PX`. **Medido** en un prototipo de telefono más simple que esta pantalla (`proto/entrenamiento.html`: sin la tira de siete días ni `TripRow`, con `Coach` por `Coach decides`, la consecuencia de la `ActionBar` en varios renglones y los tramos con 2 px de hueco; reproducido por el juez de uso, C1; X-18): la respuesta a 152 px con 297 a la vista, la acción a 687 de 800, 1.277 px de alto y ninguna falta de la prueba, salvo cuatro enlaces de nombre de 20 px de alto, que aquí no se repiten porque el nombre de cada carrera enlaza en un bloque de 44 px (D-16). Esta pantalla está sin medir: la mide la prueba del teléfono en el PR 14. **Las diez comprobaciones** (§7.1): no hay ancho fijo de texto (1); nada se corta, los nombres de carrera y la cabecera de `TripRow` parten de línea (2); la letra más pequeña es `caption`, 12 px, en los ejes y la tira (3); los `select` van en `body`, 16 px (4); el `Segmented`, los `Field`, los `Disclosure`, `Back to Build` y los enlaces miden 44 o 48 de alto (5); los contrastes son los de los tokens y la escala es `role="img"` con su texto (6); la 7, la 8 y la 9, arriba; y la 10 no tiene maillots que medir en esta pantalla.
 
 **El día a día, abierto** (`Show the 28 days`, pantalla), con una orden puesta el día 62:
 
@@ -71,14 +75,14 @@ El jugador del mapa 05 el día 50 (José Quintáns, en `Mixed`, con el plan `Bui
 │▌3 days off training                                   │
 │▌  Day 51 Out · Day 52 Race · Day 53 Back              │  meta ink-2
 │▌Day 54            [Build · week 1]   ▮▮▯▯ Load: steady│  borde line-strong; Chip neutral; Meter
-│▌  [ Endurance ride     ▾ ] [ Normal ▾ ]               │  dos Field de 48, en body
+│▌  [ Endurance ride     ▾ ] [ Normal ▾ ]               │  dos Field inline de 48, en body
 │▌Trip to Race Sardegna (IT) · Days 55 to 61 ·          │  TripRow: ida, etapas, descanso, vuelta
 │▌7 days off training                                   │
 │▌  Day 55 Out · Days 56 to 60 Race · Day 61 Back       │
 │ Week 2 · Days 58 to 64 · Specific                     │
 │▌Day 62            [Your edit]        ▯▯▯▯ Load: rest  │  borde own; Chip accent
 │▌  [ Full rest          ▾ ] [ Normal ▾ ]               │
-│▌  ↺ Back to Specific                                  │  Button quiet, 44
+│▌  ↺ Back to Specific                                  │  Button quiet, 44, icon retry
 │▌Day 63            [Specific · week 2] ▮▮▮▯ Load: hard │
 │ …                                                     │
 │ [ Adopt team plan ]                                   │  Button secondary, solo en Mixed
@@ -98,21 +102,21 @@ Hoy la lista no dice de qué carrera habla (`raceId: null` siempre, `apps/api/sr
 | 3, la escala         | `Scale5` con `arrival`, y sus ejes (§10.4)                                                                                                                                                                                           | §4.8            |
 | 4, qué hacer         | la instrucción fija del tramo (§10.4)                                                                                                                                                                                                | `meta` `ink-2`  |
 
-Sus estados (pantalla): **en curso**, `ongoing: true` y `arrival: null`: el renglón 2 dice `Racing now · stage 3 of 5`, la etapa que toca, contada con los días de carrera de `days[]`, y no hay escala; **sin dato**, `arrival: null` sin `ongoing`: la escala sin ningún tramo encendido y `Not enough data yet`; **más de tres carreras**: tres a la vista y el resto tras `Show all 5 races` / `Show fewer` (`Disclosure`); **ninguna**: `EmptyState` `No races in the next four weeks. This month is for building.`; **cargando**: `Skeleton` de tres tarjetas de su alto final; **error**: `ErrorState` `Couldn't load your training plan · Try again`; **sin red**: `OfflineState` (§4.2, §12.4). Debajo del `Panel`, siempre, `Only the start is forecast: later stages depend on how you race them.` (pantalla): la llegada a la tercera etapa depende de cómo se corran las dos primeras, que nadie sabe, y por eso no se pinta.
+Sus estados (pantalla): **en curso**, `ongoing: true` y `arrival: null`: el renglón 2 dice `Racing now · stage 3 of 5`, la etapa que toca, contada con los días de carrera de `days[]`, y la escala va en su estado `inactive` (§4.8), sin ningún tramo encendido; **sin dato**, `arrival: null` sin `ongoing`: la escala sin ningún tramo encendido y `Not enough data yet`; **más de tres carreras**: tres a la vista y el resto tras `Show all 5 races` / `Show fewer` (`Disclosure`); **ninguna**: `EmptyState` `No races in the next four weeks. This month is for building.`; **cargando**: `Skeleton` de tres tarjetas de su alto final; **error**: `ErrorState` `Couldn't load your training plan · Try again`; **sin red**: `OfflineState` (§4.2, §12.4). Debajo del `Panel`, siempre, `Only the start is forecast: later stages depend on how you race them.` (pantalla): la llegada a la tercera etapa depende de cómo se corran las dos primeras, que nadie sabe, y por eso no se pinta.
 
 ### 10.4 Defecto 2: la escala
 
-Hoy son cinco chapas sueltas de cinco tonos, una por fila, sin orden ni leyenda (`ARRIVAL_LABEL`, `PlanLadder.tsx` l. 63-69), y `Rusty` se lee como «cansado». **`Scale5`** (§4.8; D-42) pone los cinco tramos en el orden de `ARRIVAL_ORDER`, por TSB de cansado a fresco, con los dos malos en los extremos y el bueno en medio: cinco tramos iguales de 36 px de alto en el ancho del panel (312 px menos cuatro huecos de 4: 59 px cada uno), los inactivos en `surface-2` con borde `line-strong` y `caption` `ink-2`, el activo relleno de su `arrival-*` con `caption` 700 en blanco, y los ejes `◀ Too tired` y `Too fresh ▶` (pantalla) debajo, en `caption` `ink-3`. Marca el tramo, no un punto dentro de él: un punto pediría el TSB, que no cruza la frontera (mapa 04, tensión 23; §13). Es `role="img"` con `aria-label` `You'll arrive Loaded: second of five, from too tired to too fresh` (pantalla). Los cortes y las palabras son los de hoy (`arrivalLabel`, `packages/engine/src/training/projection.ts` l. 75-81) y no se tocan (DD-10). Debajo, **una instrucción fija por tramo** (O-32: la del prototipo, que nombraba la semana, `Make week 1 lighter to arrive Fine.`, pediría una regla y un campo que nadie ha diseñado):
+Hoy son cinco chapas sueltas de cinco tonos, una por fila, sin orden ni leyenda (`ARRIVAL_LABEL`, `PlanLadder.tsx` l. 63-69), y `Rusty` se lee como «cansado». El dueño: «Rusty no se entiende...ni too fresh... quizas ponle algo como "poco entrenamiento" o "bajo de forma" pero en ingles... claro» (`00-encargo.md` §7.6, 22 de octubre de 2026). **`Scale5`** (§4.8; D-42) pone los cinco tramos en el orden de `ARRIVAL_ORDER`, por TSB de cansado a fresco, con los dos malos en los extremos y el mejor, `Spot on`, en el cuarto, porque los cortes de hoy no son simétricos (DD-10): cinco tramos iguales de 36 px de alto en el ancho del panel (312 px menos cuatro huecos de 4: 59 px cada uno a 360, y 51,2 a 320), los inactivos en `surface-2` con borde `line-strong` y `caption` `ink-2`, el activo relleno de su `arrival-*` con `caption` 700 en blanco, y los ejes debajo, en `caption` `ink-3`, que dicen la causa (D-00n): `◀ Too much training` y `Too little training ▶` (pantalla). **El mejor se ve siempre** (10-g): el tramo `perfecto` lleva, activo o no, un borde de 2 px en `good` en lugar del de 1 px `line-strong`, y el `aria-label` lo dice. **La palabra cabe en dos renglones** (10-h): `Undertrained` mide de 74,7 a 90,1 px a 12 px y 600 (Inter, DejaVu Sans y Liberation Sans) y `Spot on` de 44,5 a 52,2, y el tramo, 51,2 a 320, así que la palabra puede partir, `Spot on` por su espacio y `Undertrained` por su guion blando (`Under&shy;trained`, U+00AD), en `Under-` y `trained`, que miden de 38,7 a 49,1; dos renglones de 16 caben en los 36 del tramo, y los dos ejes, de 101 a 120,6 px cada uno, caben juntos en un renglón también a 320 (medido aquí, `<scratchpad>/corrector-L2/letras2.mjs`). Marca el tramo, no un punto dentro de él: un punto pediría el TSB, que no cruza la frontera (mapa 04, tensión 23; §13). Es `role="img"` con el `aria-label` de §4.8, que lleva la carrera (`Scale5Props.race`): `Race Var: you'll arrive Loaded, 2 of 5, from too much training to too little training; best is Spot on` (pantalla). Los cortes de hoy (`arrivalLabel`, `packages/engine/src/training/projection.ts` l. 75-81) no se tocan, ni el motor ni el código interno, que sigue siendo `oxidado`: solo cambia el texto de pantalla del tramo más fresco, `Undertrained` en lugar de `Rusty` (D-00n, decidido por el dueño). Debajo, **una instrucción fija por tramo**, que empieza por la causa, como los ejes (O-32: la del prototipo, que nombraba la semana, `Make week 1 lighter to arrive Fine.`, pediría una regla y un campo que nadie ha diseñado):
 
 | Código     | Tramo (pantalla) | Puesto | TSB al amanecer | El activo                          | Instrucción (pantalla)                                                         |
 | ---------- | ---------------- | ------ | --------------- | ---------------------------------- | ------------------------------------------------------------------------------ |
-| `fundido`  | `Cooked`         | 1 de 5 | menos de −30    | `arrival-cooked` `#b42318`, 6,57:1 | `You'll start exhausted. Make the week before it a Taper or a Recovery week.`  |
-| `cargado`  | `Loaded`         | 2      | de −30 a −10    | `arrival-loaded` `#b45309`, 5,02   | `You'll start tired. A lighter week before it brings you to Fine or Spot on.`  |
-| `bien`     | `Fine`           | 3      | de −10 a +5     | `arrival-fine` `#566579`, 5,94     | `Ready to race, not at your best. A Taper week before it can make it Spot on.` |
-| `perfecto` | `Spot on`        | 4      | de +5 a +25     | `arrival-spoton` `#167a3a`, 5,41   | `This is the best way to arrive. Keep the plan.`                               |
-| `oxidado`  | `Rusty`          | 5      | más de +25      | `arrival-rusty` `#1d5fa8`, 6,45    | `You'll arrive under-trained. Put a Build week two or three weeks before it.`  |
+| `fundido`  | `Cooked`         | 1 de 5 | menos de −30    | `arrival-cooked` `#b42318`, 6,57:1 | `Far too much training: you'll start exhausted. Make the week before it a Taper or a Recovery week.` |
+| `cargado`  | `Loaded`         | 2      | de −30 a −10    | `arrival-loaded` `#b45309`, 5,02   | `Too much training: you'll start tired. A lighter week before it brings you to Fine or Spot on.` |
+| `bien`     | `Fine`           | 3      | de −10 a +5     | `arrival-fine` `#566579`, 5,94     | `A little tired: ready to race, not at your best. A Taper week before it can make it Spot on.` |
+| `perfecto` | `Spot on`        | 4, el mejor | de +5 a +25 | `arrival-spoton` `#167a3a`, 5,41 | `The best way to arrive: trained and rested. Keep the plan.` |
+| `oxidado`  | `Undertrained`   | 5      | más de +25      | `arrival-rusty` `#1d5fa8`, 6,45    | `Too little training: you'll arrive rested but out of form. Put a Build week two or three weeks before it.` |
 
-Los contrastes, del texto blanco sobre el activo, son los de telefono §3.1, reproducidos por el juez de uso (C5; X-20). `Cooked` y `Loaded` quedan a 6,3 de ΔE00 en deuteranopía, así que la escala se lee por el puesto y por la palabra, no por el color; el tramo activo queda a 38 o más del inactivo en toda visión (X-20).
+Los contrastes, del texto blanco sobre el activo, son los de telefono §3.1, reproducidos por el juez de uso (C5; X-20); el token `arrival-rusty` conserva su nombre, que no se ve. El borde `good` del mejor queda a 5,41:1 sobre `surface` (§3.1). `Cooked` y `Loaded` quedan a 6,3 de ΔE00 en deuteranopía, así que la escala se lee por el puesto y por la palabra, no por el color; el tramo activo queda a 38 o más del inactivo en toda visión (X-20).
 
 ### 10.5 Defecto 3: los dos vocabularios y la precedencia
 
@@ -124,25 +128,25 @@ Hoy, arriba, el jugador elige bloques (`Build`, `PlanLadder.tsx` l. 33-39) y, ab
 
 | `source`     | `Chip` (pantalla)                        | Tono      | Borde         | Cuándo                                                            |
 | ------------ | ---------------------------------------- | --------- | ------------- | ----------------------------------------------------------------- |
-| `carrera`    | `Race` y `Race Sardegna · stage 2 of 5`  | `warn`    | `warn`        | el corredor corre ese día; no se entrena (`train.ts` l. 73 y 197) |
+| `carrera`    | `Race` y `Race Sardegna · stage 2 of 5`  | `neutral` | `warn`        | el corredor corre ese día; no se entrena (`train.ts` l. 73 y 197) |
 | `viaje`      | `Travel`, dentro de su `TripRow` (§11.6) | `info`    | `accent`      | ida o vuelta; sesión `Travel`, 15 TSS (l. 200-203)                |
-| `orden`      | `Your edit`, con `↺ Back to Build`       | `accent`  | `own`         | hay una orden, guardada o sin guardar                             |
+| `orden`      | `Your edit`, con `Back to Build`         | `accent`  | `own`         | hay una orden, guardada o sin guardar                             |
 | `bloque`     | `Build · week 1` (el bloque y su semana) | `neutral` | `line-strong` | la semana del plan vivo tiene bloque                              |
 | `equipo`     | `Team plan`                              | `neutral` | `ink-3`       | solo en `Mixed`, sin orden ni bloque                              |
 | `entrenador` | `Coach decides on the day`               | `neutral` | `line`        | lo demás en `Mixed`, y todo en `Coach decides`                    |
 | `descanso`   | `Rest (I decide)`                        | `neutral` | `line`        | solo en `I decide`, sin orden ni bloque (l. 266-271)              |
 
-**`↺ Back to Build`** (I-27): un `Button` `quiet` de 44 px en la fila de un día `Your edit`, que quita la orden y devuelve el día a lo que tendría sin ella; el texto nombra a dónde vuelve: `↺ Back to Build` (el bloque de su semana), `↺ Back to team plan`, `↺ Back to coach` o, en `I decide`, `↺ Back to rest` (pantalla; 10-a). Quitar una orden es un cambio sin guardar, como ponerla.
+El día de carrera va en `Chip` `neutral`, sin icono, y con su borde `warn`: el triángulo de `warn` (§3.2) es el de los avisos y del velo (`RankTable` `veiled`, §4.5), y un día de carrera, lo normal del juego, no es un problema (10-i); la celda `Race` de la tira sigue en `caption` 600 `warn` sobre `warn-bg`, sin icono. **`Back to Build`** (I-27): un `Button` `quiet` de 44 px con `icon="retry"` (§3.7; el icono, no el glifo `↺` dentro del texto, que §3.7 saca de los textos), en la fila de un día `Your edit`, que quita la orden y devuelve el día a lo que tendría sin ella; el texto nombra a dónde vuelve: `Back to Build` (el bloque de su semana), `Back to team plan`, `Back to coach` o, en `I decide`, `Back to rest` (pantalla; 10-a). Quitar una orden es un cambio sin guardar, como ponerla.
 
 ### 10.6 Las semanas con sus días y la tira de siete días
 
-**Las semanas son las del plan vivo, con sus días** (D-35, I-08, O-10): `Week 1 · Days 51 to 57` (pantalla), contadas desde `plan.startDay`, que ya viaja y nadie pintaba (mapa 02 §8). Hoy las cuatro semanas no tienen fechas (`PlanLadder.tsx` l. 149-171) y la vista previa las proyecta desde mañana (`riders.ts` l. 453) mientras el tick las cuenta desde el `startDay` guardado (`packages/db/src/train.ts` l. 216): desde el día siguiente al guardado, escalera y proyección hablan de días distintos (X-05). Con la vista previa indexada por el plan vivo y `PUT /plan` que conserva su `startDay` (§11.2, §11.5), las semanas pintadas son las que entrena el tick. Cada semana: su título en `row` 600, el `select` de su bloque (`Field` de 48, con `Leave it to the coach` como opción vacía, `PlanLadder.tsx` l. 160, y el porqué del bloque debajo en `meta`, `BLOCK_WHY`, l. 42-48), la tira y su resumen. Sin plan vivo, la semana 1 empieza mañana. Si el horizonte de 28 días pasa del final del plan, una línea más: `After your plan · Days 74 to 78 · Coach` (pantalla; `· Rest` en `I decide`). `Start a new plan tomorrow` (pantalla, `Button` `quiet`) vuelve a contar las semanas desde mañana sin guardar, y la consecuencia lo dice: `New plan from Day 51` (pantalla).
+**Las semanas son las del plan vivo, con sus días** (D-35, I-08, O-10): `Week 1 · Days 51 to 57` (pantalla), contadas desde `plan.startDay`, que ya viaja y nadie pintaba (mapa 02 §8). Hoy las cuatro semanas no tienen fechas (`PlanLadder.tsx` l. 149-171) y la vista previa las proyecta desde mañana (`riders.ts` l. 453) mientras el tick las cuenta desde el `startDay` guardado (`packages/db/src/train.ts` l. 216): desde el día siguiente al guardado, escalera y proyección hablan de días distintos (X-05). Con la vista previa indexada por el plan vivo y `PUT /plan` que conserva su `startDay` (§11.2, §11.5), las semanas pintadas son las que entrena el tick. Cada semana: su título en `row` 600, el `select` de su bloque (`Field` `inline` de 48, §4.3, sin rótulo propio y con `aria-labelledby` al título de la semana, con `Leave it to the coach` como opción vacía, `PlanLadder.tsx` l. 160, y el porqué del bloque debajo en `meta`, `BLOCK_WHY`, l. 42-48), la tira y su resumen. Sin plan vivo, la semana 1 empieza mañana. Si el horizonte de 28 días pasa del final del plan, una línea más: `After your plan · Days 74 to 78 · Coach` (pantalla; `· Rest` en `I decide`). `Start a new plan tomorrow` (pantalla, `Button` `quiet`) vuelve a contar las semanas desde mañana sin guardar, y la consecuencia lo dice: `New plan from Day 51` (pantalla).
 
-**La tira de siete días** (I-28), bajo cada semana y sin abrir nada: siete celdas de 41 px de ancho (312 px menos seis huecos de 4), cada una con su día en `caption` `ink-3` y debajo **una palabra o un `Meter`**: `Race` en `caption` 600 `warn` sobre `warn-bg`; el icono `travel` de 16 px con `Out` o `Back` en `caption` sobre `info-bg`; y un día de entrenamiento, el `Meter` de cuatro segmentos de 8 px de alto (§4.8) con su carga (§10.7), sin palabra. No se pulsa: es una `<ol aria-label="Week 1, days 51 to 57">` cuyos `<li>` dicen su día en texto para el lector de pantalla (`Day 54: steady training`). Debajo, el resumen en `meta` `ink-2` (pantalla): `1 training day`, `3 training days`, `7 training days` o `No training: racing and travel`, contando los días de entrenamiento con carga. La celda `53 ✈ back` del prototipo de lectura se salía a 360 (uso C3); con una palabra por celda, `Back` mide unos 27 px de los 41 (estimado).
+**La tira de siete días** (I-28), bajo cada semana y sin abrir nada: siete celdas de 41 px de ancho a 360 (312 px menos seis huecos de 4) y 35,4 a 320 ((272 − 24) / 7), de 48 px de alto, cada una con su día en `caption` `ink-3` y debajo **una palabra o un `Meter`**: `Race` en `caption` 600 `warn` sobre `warn-bg`; en la de viaje, el icono `travel` de 16 px **encima** de `Out` o `Back`, en `caption` sobre `info-bg`, y no a su lado, porque icono, hueco y palabra en línea miden 46 y 47 px con Inter y con DejaVu Sans, más que la celda (refutador de uso, `maqueta.mjs`); y un día de entrenamiento, el `Meter` de cuatro segmentos de 8 px de alto (§4.8) con su carga (§10.7), sin palabra. Lo más ancho de una celda es `Race` en `caption` 600, de 28,8 a 32,6 px, que cabe en los 35 de 320. No se pulsa: es una `<ol aria-label="Week 1, days 51 to 57">` cuyos `<li>` dicen su día en texto para el lector de pantalla (`Day 54: steady training`). Debajo, el resumen en `meta` `ink-2` (pantalla): `1 training day`, `3 training days`, `7 training days` o `No training: racing and travel`, contando los días de entrenamiento con carga. La celda `53 ✈ back` del prototipo de lectura se salía a 360 (uso C3); con el icono encima, `Back` mide unos 27 px de los 35 a 41 (estimado).
 
 ### 10.7 La carga en palabras y el TSS fuera
 
-Hoy el cuadro enseña `1300 TSS over four weeks.` (`PlanLadder.tsx` l. 233; captura 01) y `105 TSS` por día (`Training.tsx` l. 279-281): una cifra sin escala, que el dueño ya descartó en otra parte («eso no aporta, ni se entiende», de la casilla `Matches / 1` de la ficha, [DUEÑO 8]; `RiderProfile.tsx` l. 147, sin versión, según el mapa 04). Con E3 la carga se dice en cinco palabras (D-41, DD-11), `Rest`, `Easy`, `Steady`, `Hard` y `Very hard` (pantalla), con `loadLevelOf(tss)` (`packages/shared/src/training.ts`) y `LOAD_STEPS_TSS` = 0, 25, 80 y 110: `Rest` con 0, `Easy` hasta 25, `Steady` hasta 80, `Hard` hasta 110 y `Very hard` por encima. Se pinta con el `Meter` (de 0 a 4 segmentos llenos) y la palabra detrás de `Load:` (`▮▮▮▯ Load: hard`, pantalla), porque el selector de intensidad ya usa `Easy` y `Hard` para otra cosa (`INTENSITY_LABELS`, `shared/training.ts` l. 11-15; 10-b). Qué sesión del catálogo cae en qué palabra (TSS de `SESSION_CATALOG`, l. 54-153), por intensidad:
+Hoy el cuadro enseña `1300 TSS over four weeks.` (`PlanLadder.tsx` l. 233; captura 01) y `105 TSS` por día (`Training.tsx` l. 279-281): una cifra sin escala, que el dueño ya descartó en otra parte («eso no aporta, ni se entiende», de la casilla `Matches / 1` de la ficha, [DUEÑO 8]; `RiderProfile.tsx` l. 147, sin versión, según el mapa 04). Con E3 la carga se dice en cinco palabras (D-41; D-00o, decidido por el dueño: «Si, quitalo mejor»), `Rest`, `Easy`, `Steady`, `Hard` y `Very hard` (pantalla), con `loadLevelOf(tss)` (`packages/shared/src/training.ts`) y `LOAD_STEPS_TSS` = 0, 25, 80 y 110: `Rest` con 0, `Easy` hasta 25, `Steady` hasta 80, `Hard` hasta 110 y `Very hard` por encima. Se pinta con el `Meter` (de 0 a 4 segmentos llenos) y la palabra detrás de `Load:` (`▮▮▮▯ Load: hard`, pantalla), porque el selector de intensidad ya usa `Easy` y `Hard` para otra cosa (`INTENSITY_LABELS`, `shared/training.ts` l. 11-15; 10-b). Qué sesión del catálogo cae en qué palabra (TSS de `SESSION_CATALOG`, l. 54-153), por intensidad:
 
 | Sesión (pantalla)                          | `Easy` (suave)                                                   | `Normal`         | `Hard` (fuerte)  |
 | ------------------------------------------ | ---------------------------------------------------------------- | ---------------- | ---------------- |
@@ -171,7 +175,8 @@ Hoy el cuadro enseña `1300 TSS over four weeks.` (`PlanLadder.tsx` l. 233; capt
 │ On a day, what wins: race › travel › coach. Your       │
 │ blocks and edits are not used.                     ⓘ   │
 │ Week 1 · Days 51 to 57                                 │  sin select de bloque
-│ ✈Out  Race  ✈Back ▮▮▯▯  ✈Out  Race  Race               │  lo que hará el entrenador
+│  ✈    Race   ✈    ▮▮▯▯   ✈    Race  Race               │  lo que hará el entrenador
+│  Out         Back        Out                           │
 ├ Edit day by day ──────────────────── Show the 28 days ▾┤
 │ ▍Coach mode: nothing you set here is used. Switch to   │  Notice note, borde de 4 px
 │ ▍Mixed to edit.                    [ Switch to Mixed ] │  Button secondary
@@ -206,22 +211,28 @@ Las marcas para los tests (§16): `data-answer` en el `Panel` `How you'll arrive
 
 ---
 
-**Injertos aplicados.** I-08 (§10.6: las semanas con sus días, desde el `startDay` del plan vivo; el contrato, §11.2), I-27 (§10.5: `↺ Back to Build`, con lo que nombra en cada modo), I-28 (§10.6: la tira de siete días, una palabra o un `Meter` por celda, no pulsable, con su resumen), I-32 (§10.1: la línea de estado del `PageHeader` en sus tres casos).
+**Injertos aplicados.** I-08 (§10.6: las semanas con sus días, desde el `startDay` del plan vivo; el contrato, §11.2), I-27 (§10.5: `Back to Build`, con el icono `retry` y lo que nombra en cada modo), I-28 (§10.6: la tira de siete días, una palabra o un `Meter` por celda, no pulsable, con su resumen), I-32 (§10.1: la línea de estado del `PageHeader` en sus tres casos).
 
 **Objeciones resueltas.** O-10 (§10.6: lo que se ve; el arreglo de la API, §11.2), O-32 (§10.4: una instrucción fija por tramo).
 
-**Huecos rellenados.** Ninguno asignado. Contradicciones de hecho escritas: X-18 (§10.2: los prototipos, y los enlaces de 20 px que no se repiten) y X-20 (§10.4: los contrastes de la escala).
+**Huecos rellenados.** Ninguno asignado. Contradicciones de hecho escritas: X-18 (§10.2: el prototipo medido es más simple que esta pantalla, que mide el PR 14, y los enlaces de 20 px no se repiten) y X-20 (§10.4: los contrastes de la escala).
 
 **Decisiones de esta sección.**
 
-- 10-a. `↺ Back to …` nombra a dónde vuelve el día (el bloque, el plan de equipo, el entrenador o el descanso), porque en una semana sin bloque «Back to Build» mentiría. Descartado: un `Undo` sin destino.
-- 10-b. La carga se escribe detrás de `Load:` porque `Easy` y `Hard` son también dos intensidades del selector (`INTENSITY_LABELS`). Ver la duda 1.
+- 10-a. `Back to …` nombra a dónde vuelve el día (el bloque, el plan de equipo, el entrenador o el descanso), porque en una semana sin bloque «Back to Build» mentiría, y lleva el icono `retry` del catálogo. Descartado: un `Undo` sin destino, y el glifo `↺` dentro del texto.
+- 10-b. La carga se escribe detrás de `Load:` porque `Easy` y `Hard` son también dos intensidades del selector (`INTENSITY_LABELS`).
 - 10-c. La carga del mes es el redondeo de la media de los niveles de `days[]`, en la web, para no añadir un campo a la vista previa (D-34). Descartado: un `monthLoad` de la API.
 - 10-d. El resumen de la tira cuenta los días de entrenamiento con carga: un `Full rest` no es un día de entrenamiento.
 - 10-e. La línea de estado sin plan vivo dice `Mixed · no plan: your coach decides`, y en `entrenador`, `Coach decides · your coach picks every day`.
 - 10-f. Se añade §10.11, la tabla de qué sustituye a qué, para que quien implemente sepa qué líneas de hoy desaparecen; y cada fila de día lleva `data-source`, que §G.4 no tenía.
+- 10-g. El mejor tramo, `Spot on`, se señala siempre con un borde de 2 px en `good`, también inactivo, y el `aria-label` acaba en `best is Spot on`. Descartado: el icono `check` delante de la palabra, que con `Spot on` mide de 62 a 70 px y no cabe en los 51,2 de un tramo a 320.
+- 10-h. La palabra del tramo puede partir en dos renglones, `Spot on` por su espacio y `Undertrained` por un guion blando. Descartado: bajar la letra de 12 px, o un nombre más corto que el que eligió el dueño (D-00n).
+- 10-i. El día de carrera va en `Chip` `neutral`, sin el triángulo de `warn`, con su borde `warn`. Descartado: el tono `warn`, que pinta lo normal del juego con el icono de los avisos.
+- 10-j. En la celda de viaje el icono va encima de la palabra, y la celda mide 48 px de alto. Descartado: el icono al lado, que se sale de la celda a 320 y a 360.
+- 10-k. Los `select` de la semana y del día son `Field` `inline` (§4.3), sin rótulo propio y con `aria-labelledby` al título de su fila. Descartado: un rótulo encima de cada uno, unos 24 px más por día abierto, 672 en los 28.
+- 10-l. Las instrucciones de los tramos empiezan por la causa, como los ejes de D-00n (`Too much training`, `Too little training`). Descartado: dejarlas como estaban, que hablaban de cansancio y no de entrenamiento.
 
-**Propuesto para el glosario.** `data-source` (el `source` de un día, en su fila del cuadro, para los tests); textos (pantalla): `Mixed · no plan: your coach decides`; `Coach decides · your coach picks every day`; `On a day, what wins: race › travel › your edit › block. Days you leave empty are rest.`; `On a day, what wins: race › travel › coach. Your blocks and edits are not used.`; `↺ Back to team plan`, `↺ Back to coach`, `↺ Back to rest`; `Race Sardegna · stage 2 of 5`; `Show fewer`; `New plan from Day 51`; `Mode: Mixed (was Coach decides)`; `2 changes · arrivals stay the same`; `Load: hard`; `Switch to Mixed`; `No training: racing and travel`; `travel Day 51 and Day 53`; y el texto del `InfoButton` de §10.10.
+**Propuesto para el glosario.** `data-source` (el `source` de un día, en su fila del cuadro, para los tests); `Field` `inline` (§4.3); textos (pantalla): `Undertrained` (el tramo `oxidado`, en lugar de `Rusty`, D-00n); `◀ Too much training` y `Too little training ▶` (los ejes de `Scale5`, en lugar de `◀ Too tired` y `Too fresh ▶`); `Race Var: you'll arrive Loaded, 2 of 5, from too much training to too little training; best is Spot on`; las cinco instrucciones de §10.4; `Mixed · no plan: your coach decides`; `Coach decides · your coach picks every day`; `On a day, what wins: race › travel › your edit › block. Days you leave empty are rest.`; `On a day, what wins: race › travel › coach. Your blocks and edits are not used.`; `Back to Build`, `Back to team plan`, `Back to coach`, `Back to rest` (con el icono `retry`); `Race Sardegna · stage 2 of 5`; `Show fewer`; `New plan from Day 51`; `Mode: Mixed (was Coach decides)`; `2 changes · arrivals stay the same`; `Load: hard`; `Switch to Mixed`; `No training: racing and travel`; `travel Day 51 and Day 53`; y el texto del `InfoButton` de §10.10.
 
 **Dudas para el ensamblador.**
 

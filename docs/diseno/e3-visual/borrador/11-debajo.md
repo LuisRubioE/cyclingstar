@@ -4,9 +4,9 @@ El encargo dice que los cinco defectos son de presentación y que ninguno se arr
 
 ### 11.1 Lo que E3 arregla debajo, y lo que deja
 
-**Arregla** (D-33): una llegada por carrera y no por etapa, con su carrera (§11.2; hoy `raceId: null`, `apps/api/src/routes/riders.ts` l. 477); una vista previa que proyecta el plan vivo con el modo, las órdenes, el plan de equipo, la carga de carrera, el viaje y el primer día (§11.2 y §11.3; hoy ninguna de las siete, `riders.ts` l. 424-481); una sola función de precedencia para el tick y la pantalla (§11.4; hoy la cadena vive en `packages/db/src/train.ts` l. 195-272 y la web inventa los días con `defaultCoachPlan`, `apps/web/src/domain/trainingPlan.ts` l. 37); un solo plan vivo (§11.5; hoy dos filas solapadas, y la pantalla lee una y el tick entrena otra, mapa 02 §2); el TSS fuera de la pantalla y de la API (D-41, DD-11; §10.7 y §13.5); y la portada que habla del plan (§11.7). Lo único que toca `packages/engine/` son tres constantes que el motor no lee (D-37, §11.3).
+**Arregla** (D-33): una llegada por carrera y no por etapa, con su carrera (§11.2; hoy `raceId: null`, `apps/api/src/routes/riders.ts` l. 477); una vista previa que proyecta el plan vivo con el modo, las órdenes, el plan de equipo, la carga de carrera, el viaje y el primer día (§11.2 y §11.3; hoy ninguna de las siete, `riders.ts` l. 424-481); una sola función de precedencia para el tick y la pantalla (§11.4; hoy la cadena vive en `packages/db/src/train.ts` l. 195-272 y la web inventa los días con `defaultCoachPlan`, `apps/web/src/domain/trainingPlan.ts` l. 37); un solo plan vivo (§11.5; hoy dos filas solapadas, y la pantalla lee una y el tick entrena otra, mapa 02 §2); el TSS fuera de la pantalla y de la API (D-41, D-00o; §10.7 y §13.5); y la portada que habla del plan (§11.7). Lo único que toca `packages/engine/` son tres constantes que el motor no lee (D-37, §11.3).
 
-**Deja escrito, para su línea**: que el entrenador no mire el calendario (`daysToNextRace: null`, `train.ts` l. 256), por lo que sano y con TSB 0 hace la semana `base` en 1.820 de 1.820 días (mapa 02 §2): es conducta del tick y cambia lo que se entrena, así que es de la línea de entrenamiento, y E3 lo enseña como es; los cortes y las palabras de `arrivalLabel` (`packages/engine/src/training/projection.ts` l. 75-81), que se quedan salvo que el dueño elija otros (DD-10); `sinRitmo`, el rango de ganancia y el objetivo D1 (`docs/entrenamiento.md` l. 1119-1148), del entrenamiento, para los que la tarjeta de §10.3 deja sitio; el `0 race days` de `getBlockReport`, que es la decisión 24 del dueño de E2 (`docs/retransmision.md` §20.2); y la pantalla de órdenes ([DUEÑO 18], H-08), que pasa al catálogo con la cola larga y cuyo «qué pesa cada orden» es de la línea de táctica.
+**Deja escrito, para su línea**: que el entrenador no mire el calendario (`daysToNextRace: null`, `train.ts` l. 256), por lo que sano y con TSB 0 hace la semana `base` en 1.820 de 1.820 días (mapa 02 §2): es conducta del tick y cambia lo que se entrena, así que es de la línea de entrenamiento, y E3 lo enseña como es; los cortes de `arrivalLabel` (`packages/engine/src/training/projection.ts` l. 75-81), que se quedan: el dueño solo cambió el texto de pantalla del tramo más fresco, `Undertrained` en lugar de `Rusty`, y los ejes de la escala (D-00n, §10.4); `sinRitmo`, el rango de ganancia y el objetivo D1 (`docs/entrenamiento.md` l. 1119-1148), del entrenamiento, para los que la tarjeta de §10.3 deja sitio; el `0 race days` de `getBlockReport`, que es la decisión 24 del dueño de E2 (`docs/retransmision.md` §20.2); la razón del entrenador por día y la desviación del jugador informada (`el entrenador proponía descanso: post-vuelta`, `docs/entrenamiento.md` l. 1287-1291; [DOC 51] y la contradicción 9 del mapa 04), que piden a `coachPlan` un campo que hoy no da, para la línea de entrenamiento: el `Chip` `Coach decides on the day` (§10.5) deja sitio a esa razón en su renglón; y la pantalla de órdenes ([DUEÑO 18], H-08), que pasa al catálogo con la cola larga y cuyo «qué pesa cada orden» es de la línea de táctica.
 
 ### 11.2 La vista previa nueva
 
@@ -20,19 +20,19 @@ export const loadLevelSchema = z.number().int().min(0).max(4) // LoadLevel: de R
 const dayBlockSchema = z.object({ code: coachBlockSchema, week: z.number().int().min(1).max(4) })
 
 /** Un día de los 28, en GET /orders: qué se entrena, quién lo decide y de qué carrera es. */
-export const ordersDaySchema = z
-  .object({
-    gameDay: z.number().int(),
-    session: z.enum(SESSIONS).nullable(), // null el día de carrera
-    intensity: intensitySchema.nullable(),
-    source: trainingDaySourceSchema,
-    block: dayBlockSchema.strict().nullable(), // con source 'bloque'
-    raceKey: z.string().nullable(), // con source 'carrera' o 'viaje'
-  })
-  .strict()
-export const planPreviewDaySchema = ordersDaySchema
-  .extend({ kind: z.enum(['race', 'travel', 'train']), load: loadLevelSchema })
-  .strict()
+// Respuestas: z.object, nunca strict (una clave de más daría un 500 en el serializador, §13.3)
+export const ordersDaySchema = z.object({
+  gameDay: z.number().int(),
+  session: z.enum(SESSIONS).nullable(), // null el día de carrera
+  intensity: intensitySchema.nullable(),
+  source: trainingDaySourceSchema,
+  block: dayBlockSchema.nullable(), // con source 'bloque'
+  raceKey: z.string().nullable(), // con source 'carrera' o 'viaje'
+})
+export const planPreviewDaySchema = ordersDaySchema.extend({
+  kind: z.enum(['race', 'travel', 'train']),
+  load: loadLevelSchema,
+})
 export const planPreviewRaceSchema = z
   .object({
     raceKey: z.string(),
@@ -48,7 +48,7 @@ export const planPreviewRaceSchema = z
     travelOut: z.array(z.number().int()),
     travelBack: z.array(z.number().int()),
   })
-  .strict()
+// Petición: strict, en la raíz y en su plan (§13.3)
 export const planPreviewRequestSchema = z
   .object({
     mode: trainingModeSchema,
@@ -58,14 +58,15 @@ export const planPreviewRequestSchema = z
     startFresh: z.boolean().default(false), // la vista previa de `Start a new plan tomorrow`
   })
   .strict()
-export const planPreviewResponseSchema = z
-  .object({ races: z.array(planPreviewRaceSchema), days: z.array(planPreviewDaySchema).max(28) })
-  .strict()
+export const planPreviewResponseSchema = z.object({
+  races: z.array(planPreviewRaceSchema),
+  days: z.array(planPreviewDaySchema).max(28),
+})
 export type PlanPreviewRace = z.infer<typeof planPreviewRaceSchema>
 export type PlanPreviewDay = z.infer<typeof planPreviewDaySchema>
 ```
 
-Fuera: `ctl`, `atl`, `tsb`, `tss` y `totalTss`. `races[]` sale de `getRiderRaceDays`, que pasa a devolver objetos con la carrera y la etapa, como ya hace `getRiderTravelDays` (`packages/db/src/riderSchedule.ts` l. 37-70 y 175-226; hoy tira la carrera que tiene en la mano, l. 59-69), y de `getRiderUpcomingRaces` (l. 333-376). `arrival` es la de la salida de la primera etapa de la carrera que cae en el horizonte, la única de fiar (mapa 02 §3); una carrera en curso trae `ongoing: true` y `arrival: null`. La ruta sigue con `spoiler: 'horizon'` y `veil: { by: ['M'] }` y gana su esquema de respuesta (§13.2). **El plan vivo**: las semanas se cuentan desde el `startDay` de `getPlanForDay(db, riderId, currentDay + 1)`, o desde mañana sin plan o con `startFresh`; en `entrenador`, cada día llama a `coachPlan` con el TSB proyectado de ese día y la salud y la tensión de hoy (lectura §7.5, punto 2), que es lo que hará el tick con sus frenos.
+Fuera: `ctl`, `atl`, `tsb`, `tss` y `totalTss`. Los cinco de respuesta son `z.object`, porque el serializador valida con `safeEncode` y daría un 500 ante una clave de más (`fastify-type-provider-zod` 7.0.0, `dist/cjs/core.cjs` l. 114-120; medido por el refutador de código con zod 4.4.3: una respuesta con un `raceName` de más contra un `.strict()` falla con `unrecognized_keys`, y con `z.object` sale sin ella), y `getRiderUpcomingRaces` (l. 333-376) trae `raceName`, `daysUntil` o `bib`; `.strict()` queda solo en `planPreviewRequestSchema` y en su `plan`. `races[]` sale de `getRiderRaceDays`, que pasa a devolver objetos con la carrera y la etapa, como ya hace `getRiderTravelDays` (`packages/db/src/riderSchedule.ts` l. 37-70 y 175-226; hoy tira la carrera que tiene en la mano, l. 59-69), y de `getRiderUpcomingRaces` (l. 333-376). `arrival` es la de la salida de la primera etapa de la carrera que cae en el horizonte, la única de fiar (mapa 02 §3); una carrera en curso trae `ongoing: true` y `arrival: null`. La ruta sigue con `spoiler: 'horizon'` y `veil: { by: ['M'] }` y gana su esquema de respuesta (§13.2). **El plan vivo**: las semanas se cuentan desde el `startDay` de `getPlanForDay(db, riderId, currentDay + 1)`, o desde mañana sin plan o con `startFresh`; en `entrenador`, cada día llama a `coachPlan` con el TSB proyectado de ese día y la salud y la tensión de hoy (lectura §7.5, punto 2), que es lo que hará el tick con sus frenos.
 
 ### 11.3 La carga de un día de carrera, el viaje y el primer día
 
@@ -77,7 +78,7 @@ Hoy la vista previa proyecta cada día de carrera como `descanso_activo`, 25 TSS
 | de viaje         | 15, la sesión `viaje` del tick (`train.ts` l. 200-203; `shared/training.ts` l. 153), con `getRiderTravelDays`                                                                                                                                                                                   |
 | de entrenamiento | el de la sesión que da `resolveTrainingDay` (§11.4), por su intensidad (`SESSION_CATALOG`, l. 54-153)                                                                                                                                                                                           |
 
-El TSB con que amanece un día es el de la víspera ya aplicada; el de mañana es `ctl − atl` del último diario, no 0. La mediana del mundo es un agregado de todas las etapas de 28 días, que no destripa ninguna; se calcula una vez por mundo y día de juego y se guarda en memoria. Las tres constantes viven en `packages/engine/src/constants.ts` con su comentario de intención y su línea en `docs/balance.md` (`Claude.md`: toda constante de juego), sin subir `ENGINE_VERSION`, porque el motor no las lee; el PR 13b, que las añade, es el único de E3 que toca `packages/engine/`, y por eso corre los ocho tramos de bancos que el CI lanza con ese diff (`.github/workflows/ci.yml` l. 189; unos 73 minutos, `docs/retransmision.md` §17.1, regla 4). **El contraste con el diario** (H-20; sin evidencia de los jueces): `apps/api/src/routes/planPreviewDiary.test.ts`, sobre el mundo de los bancos, proyecta desde un día la llegada a la salida de cada carrera, deja correr esos días al tick, la compara con la que sale del diario real, escribe el acuerdo (la fracción de carreras en el mismo tramo) y fija un trinquete en el valor medido.
+El TSB con que amanece un día es el de la víspera ya aplicada; el de mañana es `ctl − atl` del último diario, no 0. La mediana del mundo es un agregado de todas las etapas de 28 días, que no destripa ninguna; se calcula una vez por mundo y día de juego y se guarda en memoria. Las tres constantes viven en `packages/engine/src/constants.ts` con su comentario de intención y su línea en `docs/balance.md` (`Claude.md`: toda constante de juego), sin subir `ENGINE_VERSION`, porque el motor no las lee; el PR 13b, que las añade, es el único de E3 que toca `packages/engine/`, y por eso corre los ocho tramos de bancos que el CI lanza con ese diff (`.github/workflows/ci.yml` l. 189; unos 73 minutos, `docs/retransmision.md` §17.1, regla 4). **El contraste con el diario** (H-20; sin evidencia de los jueces): `apps/api/src/routes/planPreviewDiary.test.ts` corre en el trabajo `Teléfono`, sobre el mundo de la prueba (§7.2), y no sobre el de los bancos, que tiene una sola carrera, `race-france`, ya en curso (`apps/api/src/__fixtures__/spoilerWorld.ts` l. 29-31, 41, 51 y 128-131), sin ninguna llegada que comparar, y que se tendría que construir con el tick, unos 17 s por día en PGlite (mapa 05 §1). Para los corredores con una carrera que sale entre los días 41 y 50, proyecta desde el día 40 su llegada a la salida y la compara con la del diario de esos días, que el mundo ya trae, sin correr el tick; escribe el acuerdo (la fracción de carreras en el mismo tramo) de la vista previa nueva y el de la de hoy (`riders.ts` l. 424-481, copiada como referencia en el test), y falla si el de la nueva no supera al de la de hoy, salvo que los dos sean 1. Unos 20 s (estimado).
 
 ### 11.4 `resolveTrainingDay` y el diferencial del tick
 
@@ -142,11 +143,11 @@ Casos nuevos en `planPorBloques.test.ts`: guardar el día 100 y otra vez el 110 
 
 ### 11.6 El viaje, donde se decide
 
-El dato se arregló el 26 de septiembre de 2026 (`getRiderTravelDays` con `returnTravelDaysFor`, `riderSchedule.ts` l. 128-143 y 175-226; `travelDaysLabel`, `apps/web/src/domain/labels.ts` l. 157-161); queda cómo se ve (D-43; I-34; mapa 02 §6). **Ida, carrera y vuelta son un viaje**: `TripRow` (§4.5) agrupa en el día a día la ida, las etapas, los días de descanso de una vuelta (editables) y la vuelta, bajo su cabecera, `Trip to Race Sardegna (IT) · Days 55 to 61 · 7 days off training` (pantalla), con el icono `travel` y una línea por tramo, `Day 55 Out · Days 56 to 60 Race · Day 61 Back`; sus datos son `travelDays[]` (`contracts.ts` l. 380-386) y los días de `days[]` con su `raceKey`. **Se ve donde se decide**: `On your programme` (`apps/web/src/pages/MyRaces.tsx` l. 96-182), las carreras a las que de verdad se va y que hoy no nombran el viaje, gana su línea con el icono `travel`: `Day 51 out, Day 53 back · paid 48` (pantalla) para un agente libre, que se lo pagó al inscribirse (`raceAttendanceCost`, `packages/db/src/calendarRun.ts` l. 715-722), y `Day 51 out, Day 53 back` para el corredor de un equipo, que no paga; `upcomingRaceSchema` (`contracts.ts` l. 256-267) gana `travelOut`, `travelBack` y `travelPaid` (nulo si no pagó), con la misma regla que cobra (11-b). **Una numeración**: `Day N`, el día de la temporada, en todas partes; fuera el `GD N` de `MyRaces.tsx` l. 205 y 230, y `in N days` solo a siete días o menos. **Un icono**: el `travel` del catálogo (§3.7) en lugar del `✈️` de `Training.tsx` l. 227 y del `✈` rojo de `TeamCalendar.tsx` l. 94. **El porqué del viaje caro**, en un `InfoButton` y no en el `title` de `TeamCalendar.tsx` l. 89-96: `Overseas trip: it costs more, and 2 travel days each way with no training.` (pantalla).
+El dato se arregló el 26 de septiembre de 2026 (`getRiderTravelDays` con `returnTravelDaysFor`, `riderSchedule.ts` l. 128-143 y 175-226; `travelDaysLabel`, `apps/web/src/domain/labels.ts` l. 157-161); queda cómo se ve (D-43; I-34; mapa 02 §6). **Ida, carrera y vuelta son un viaje**: `TripRow` (§4.5) agrupa en el día a día la ida, las etapas, los días de descanso de una vuelta (editables) y la vuelta, bajo su cabecera, `Trip to Race Sardegna (IT) · Days 55 to 61 · 7 days off training` (pantalla), con el icono `travel` y una línea por tramo, `Day 55 Out · Days 56 to 60 Race · Day 61 Back`; sus datos son `travelDays[]` (`contracts.ts` l. 380-386) y los días de `days[]` con su `raceKey`. **Se ve donde se decide**: `On your programme` (`apps/web/src/pages/MyRaces.tsx` l. 96-182), las carreras a las que de verdad se va y que hoy no nombran el viaje, gana su línea con el icono `travel`: `Day 51 out, Day 53 back · paid 48` (pantalla) para un agente libre, que se lo pagó al inscribirse (`raceAttendanceCost`, `packages/db/src/calendarRun.ts` l. 715-722), y `Day 51 out, Day 53 back` para el corredor de un equipo, que no paga; `upcomingRaceSchema` (`contracts.ts` l. 256-267) gana `travelOut`, `travelBack` y `travelPaid` (nulo si no pagó), con la misma regla que cobra (11-b). **Una numeración**: `Day N`, el día de la temporada, en todas partes; fuera el `GD N` de `MyRaces.tsx` l. 205 y 235, y `in N days` solo a siete días o menos. **Un icono**: el `travel` del catálogo (§3.7) en lugar del `✈️` de `Training.tsx` l. 227 y del `✈` rojo de `TeamCalendar.tsx` l. 94. **El porqué del viaje caro**, en un `InfoButton` y no en el `title` de `TeamCalendar.tsx` l. 89-96: `Overseas trip: it costs more, and 2 travel days each way with no training.` (pantalla).
 
 ### 11.7 La portada habla del plan
 
-Hoy la portada mira solo las órdenes (`apps/web/src/domain/dashboard.ts` l. 77-91) y le dice `Your training queue is empty` (l. 82) a quien tiene sus cuatro bloques (mapa 05 §3; mapa 04, contradicción 8; O-22). Con E3 (D-43, I-20), `DashboardInputs` gana `mode`, `plan: { endDay } | null` (el último día del plan vivo, `startDay + 27`) y `tomorrowTravel: { raceName, out, back } | null`, y `dashboardActions` da, en este orden (pantalla):
+Hoy la portada mira solo las órdenes (`apps/web/src/domain/dashboard.ts` l. 77-91) y le dice `Your training queue is empty` (l. 82) a quien tiene sus cuatro bloques (mapa 05 §3; mapa 04, contradicción 8; O-22). Con E3 (D-43, I-20), `DashboardInputs` gana `mode`, `plan: { endDay } | null` (el último día del plan vivo, `startDay + 27`) y `tomorrowTravel: { raceName, out, back } | null`, y `buildDashboard` (`dashboard.ts` l. 54) da, en este orden (pantalla):
 
 | Cuándo                                                                                                              | Título                            | Detalle                                             | Botón                 |
 | ------------------------------------------------------------------------------------------------------------------- | --------------------------------- | --------------------------------------------------- | --------------------- |
@@ -162,7 +163,7 @@ En `entrenador` no sale ninguno de los dos últimos: ahí planificar no es lo qu
 
 **Objeciones resueltas.** O-09 (§11.3: las tres constantes en el motor, sin subir `ENGINE_VERSION`, con su línea en `docs/balance.md` y los bancos del 13b), O-10 (§11.2: la vista previa cuenta desde el `startDay` del plan vivo; lo que se ve, §10.6), O-22 (§11.7: `Your training queue is empty` solo cuando es verdad).
 
-**Huecos rellenados.** H-04 (§11.5: `0051_un_plan_vivo` y su consecuencia), H-20 (§11.3: `planPreviewDiary.test.ts`, con su trinquete). Contradicciones de hecho escritas: X-05 (§11.2: el desfase de semanas) y X-06 (§11.3: `applyDailyLoad`, sin tocar el motor).
+**Huecos rellenados.** H-04 (§11.5: `0051_un_plan_vivo` y su consecuencia), H-20 (§11.3: `planPreviewDiary.test.ts`, en el mundo de la prueba y frente a la vista previa de hoy). Contradicciones de hecho escritas: X-05 (§11.2: el desfase de semanas) y X-06 (§11.3: `applyDailyLoad`, sin tocar el motor).
 
 **Decisiones de esta sección.**
 
@@ -171,5 +172,7 @@ En `entrenador` no sale ninguno de los dos últimos: ahí planificar no es lo qu
 - 11-c. `edits` es la ventana entera de órdenes de la pantalla, como la manda `PUT /orders`, y no una lista de diferencias: así la vista previa y el guardado leen lo mismo.
 - 11-d. La mediana de carrera del corredor sale de su diario con el horizonte de quien pide; la del mundo, de todas las etapas, porque es un agregado que no dice nada de ninguna.
 - 11-e. `PLAN_END_WARN_DAYS` = 7, una semana antes del final del plan, porque planificar cuatro semanas pide más aviso que los dos días de `TRAINING_WARN_DAYS`.
+- 11-f. Los esquemas de respuesta de la vista previa y de `GET /orders` son `z.object` y no `.strict()`, que queda para la petición. Descartado: `.strict()` en la respuesta, que convierte un campo de más en un 500 y apaga el quitar lo no declarado de §13.
+- 11-g. `planPreviewDiary.test.ts` mide en el mundo de la prueba, desde el día 40, contra el diario que ya trae, y exige que la vista previa nueva acierte más que la de hoy. Descartado: el mundo de los bancos, sin llegadas que comparar, y un trinquete en el primer valor medido, que no prueba que la nueva acierte más.
 
 **Propuesto para el glosario.** `trainingDaySourceSchema`, `loadLevelSchema`, `planPreviewDaySchema` y `planPreviewRaceSchema` (en `contracts.ts`); `upcomingRaceSchema` gana `travelOut`, `travelBack` y `travelPaid` (paso 15; una fila de §G.7); `PLAN_END_WARN_DAYS` = 7 (`apps/web/src/domain/dashboard.ts`); y los textos (pantalla) `Day 55 Out · Days 56 to 60 Race · Day 61 Back`, `Day 51 out, Day 53 back`, `Overseas trip: it costs more, and 2 travel days each way with no training.`, `See your plan` y `After that, your coach picks the sessions.`
