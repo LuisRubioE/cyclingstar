@@ -3575,7 +3575,7 @@ Cinco caminos. **El clon** (1), suelto. **El teléfono** (2 a 12): primero la pr
 - 17-p. El coste se da en sesiones de trabajo estimadas (una por S, dos por M y tres por L), como E2; el de CI, en minutos de la prueba y de los bancos.
 - 17-r. Las líneas de diff de un tamaño no cuentan lo generado (los `snapshot` de drizzle-kit, las tablas y celdas generadas, los iconos, `tokens.json` y las líneas base), porque su tamaño no dice nada del trabajo y las estimaciones de las secciones no lo contaban.
 - 17-s. `flag-icons` pasa a `devDependencies` de versión exacta y sus 133 SVG se copian con su huella a `apps/web/src/assets/flags/`, porque el sprite, `flagCells` y el nacional desde 72 px salen de ellos (Rcodigo-054). Descartado: quitarlo del `package.json`, que dejaría sin entradas al generador y al test de huellas tras un `pnpm install` limpio.
-- 17-t. Los pasos 3 y 5, que el dueño retiró con la web instalable (D-00p), se quedan sin PR y con su número, y el 23 pasa a ser el modo oscuro: renumerar los pasos rompería las remisiones de §1 a §16 y de `00-decisiones.md` (el paso 4, el 6, el 22, el 24…). Descartado: correr los números, que dejaría la mitad de esas remisiones apuntando a otro paso.
+- 17-t. Los pasos 3 y 5, que el dueño retiró con la web instalable (D-00p), se quedan sin PR y con su número, y el 23 pasa a ser el modo oscuro: renumerar los pasos rompería las remisiones de §1 a §16 y de las decisiones D-nn (el paso 4, el 6, el 22, el 24…). Descartado: correr los números, que dejaría la mitad de esas remisiones apuntando a otro paso.
 - 17-u. El paso 2 son dos PR, el mundo y los trabajos del CI (2a, M) y la prueba con su línea base (2b, L), porque los guiones que porta pasan de 1.100 líneas (Ruso-043).
 - 17-v. La barrera por ruta del 4 distingue `network` de `outdated` con `navigator.onLine`, y el 10 pasa esa regla a `errorKindOf`, que la barrera llama desde entonces: así la web aguanta sin red antes del catálogo y la regla vive en un solo sitio desde el 10.
 - 17-w. `champions` y `champion` (4-l) entran en el 17a y no en el 12b: el maillot de campeón que llevan lo dibuja `ChampionJersey`, que nace en el 17a.
@@ -3729,7 +3729,7 @@ D-27; O-15; I-12 e I-13. Lo que dijo en sus cuatro días (`00-encargo.md` §7.1,
 
 ### 19.5 Lo que añadió el orquestador, y el dueño puede quitar
 
-Tres cosas que el dueño no dijo y que el documento implementa por defecto, marcadas en `00-decisiones.md` §0 para que las quite si no las quiere:
+Tres cosas que el dueño no dijo y que el documento implementa por defecto, escritas junto a las decisiones del dueño que las traen (D-00k, D-00i y D-00m), para que las quite si no las quiere:
 
 1. **El primer cambio de maillot de quien toma un equipo no cuenta** (D-00k). Sin él, quien toma un equipo cuyo dueño anterior ya cambió el maillot esa temporada no podría poner el suyo hasta la siguiente. Su mecanismo es `teams.managed_since_day`, que escribe `takeOverBotTeam` (8-g). Quitarlo: `kitChangeAllowed` deja de descontar esa fila y la columna se queda sin lector; hace falta la respuesta antes del 18a.
 2. **El modo oscuro no sigue al del teléfono** (D-00i). El dueño pidió «por defecto light», y el orquestador lo leyó como claro aunque el teléfono esté en oscuro: ninguna regla lee `prefers-color-scheme` (§3.3). Quitarlo: sin elección del jugador valdría la del sistema, `theme.js` leería `matchMedia('(prefers-color-scheme: dark)')` cuando no hay `cs-theme`, y `users.theme` ganaría un tercer valor, `system`, como defecto; hace falta antes del 23.
