@@ -1,0 +1,87 @@
+[
+  {
+    "id": "C-L3-01",
+    "seccion_destino": "§7.3 (L1)",
+    "que": "Rcobertura-040 y 14-g: la pantalla 09 gana una comprobación propia, el borde inferior de `[data-ui=\"GroupBar\"]` a 744 px o menos con la barra inferior a la vista (800 si E6 acepta `useHideBottomNav`), medida en el mundo de la prueba; si falla, `TEAM_KIT_LINES_MAX` baja a 1 bajo la fila del espectador cuando no es la 1 (§14.4)."
+  },
+  {
+    "id": "C-L3-02",
+    "seccion_destino": "§7.2, §7.4 y §7.6 (L1)",
+    "que": "Ruso-043 y 17-u: el paso 2 son dos PR. El 2a pone el mundo, `serve.mjs`, los trabajos `Teléfono` y `Teléfono de noche` con sus cachés y la letra, y `nocturno.spec.ts`, y mide el tamaño y la restauración del mundo (en §7.2, «El PR del paso 2 mide…» pasa a «el PR 2a»); el 2b pone `telefono.spec.ts`, `control.html`, `pantallas.ts` y escribe `telefono-baseline.json` (en §7.4, «El PR del paso 2 lo escribe…» pasa a «el PR 2b»). Y §7.6: la comprobación de la letra en el `h1` de `/_ui` no puede correr antes del 9a, que es el que crea `/_ui`; hasta entonces, el `h1` de `control.html`."
+  },
+  {
+    "id": "C-L3-03",
+    "seccion_destino": "§7.5 (L1)",
+    "que": "Rcobertura-037: `nocturno.spec.ts` mide además en `Watch` (la pantalla 09, a ×1 y a ×4) los umbrales de `docs/retransmision.md` §18.5: la capa fija y la barra a 30 fps o más (un contador de `requestAnimationFrame` sobre sus repintados), ninguna tarea de más de 50 ms durante la reproducción (`PerformanceObserver` de `longtask`) y la primera pintura de `Watch` en 2 s o menos con `Fast 4G`; y hasta que una página lleve su `data-answer`, «lista» es la de `capturas/pintura.mjs` (`main` ya no dice `Loading…`). Así lo dicen §14.1 y §16.5."
+  },
+  {
+    "id": "C-L3-04",
+    "seccion_destino": "§3.3 (L1)",
+    "que": "Rcobertura-038: la lista de quienes llevan el ámbito oscuro gana `TimeTrialOverlay` (`broadcast/TimeTrialBoard.tsx` l. 12-33), la capa fija de la crono, que §14.3 viste como la de carretera."
+  },
+  {
+    "id": "C-L3-05",
+    "seccion_destino": "§4.4 (L1), l. 649 de la v0",
+    "que": "Ruso-035: las pestañas de la página de etapa son cuatro, `Watch · Profile · Report · Classifications` (`stageTabLabel`, `apps/web/src/domain/raceTabs.ts` l. 224-226, fijadas en `raceTabs.test.ts` l. 290-310); el dibujo de §4.4 no lleva `Profile`."
+  },
+  {
+    "id": "C-L3-06",
+    "seccion_destino": "§1.5 (L1, l. 64 de la v0), §7.1 (L1, l. 1178 de la v0) y §4.8 (L1)",
+    "que": "Ruso-039: las cotas de `ProfileStrip` no miden 8 px en pantalla: son 9 y 8 unidades de un `viewBox` de 600 pintado a 310 px, unos 4 y 5 px (medido por el refutador de uso con `getScreenCTM()`); `getComputedStyle` no escala el SVG. Lo mismo `FormChart` (`fontSize=\"10\"`, 5,2 px a 360). §14.4 y 14-h los pasan a HTML; `FormChart` en §4.8 tiene que decir que sus rótulos (`0`, `50` y `100`) van en HTML a la izquierda del dibujo, en el PR 21h."
+  },
+  {
+    "id": "C-L3-07",
+    "seccion_destino": "§9.5 (L2)",
+    "que": "Ruso-037: tras «por debajo, el texto y la bandera junto al nombre», añadir «y en la barra de `Watch`, las dos letras del país junto al maillot del campeón nacional, en `caption` 600 `ink-2` (§14.4)»."
+  },
+  {
+    "id": "C-L3-08",
+    "seccion_destino": "§8 (L2): el bloque «Propuesto para el glosario» y la duda 2",
+    "que": "Rcodigo-055 y Rcodigo-068: `LegacyJersey` es un componente con JSX y va en `apps/web/src/components/ui/LegacyJersey.tsx`, con `ui/LegacyJersey.test.tsx`, y no en `ui/legacyJersey.ts`, que no compila con `\"jsx\": \"react-jsx\"` (`apps/web/tsconfig.json`)."
+  },
+  {
+    "id": "C-L3-09",
+    "seccion_destino": "§11.1 y §11.4 (L2)",
+    "que": "Rcodigo-050 y Rcodigo-059: «la web borra `defaultCoachPlan`» pasa a «la web deja de usar `defaultCoachPlan` (`trainingPlan.ts` l. 11 y 37); la función se queda en `packages/shared`, porque la usa el simulador del motor (`packages/engine/src/sim/world.ts` l. 44 y 1093), y el PR 14 no toca `packages/engine/`». D-38 ya está corregida en `00-decisiones.md`."
+  },
+  {
+    "id": "C-L3-10",
+    "seccion_destino": "§13.4 (L2)",
+    "que": "Ruso-042: «con la sesión del jugador y la del mánager» pasa a «con la sesión del jugador y la del mánager que el 19a añade a `spoilerWorld.ts` (`manager@example.com`, con `premium` y dueña de `Team 0`), y las rutas que ese mundo no rellena, con su respuesta del mundo de la prueba guardada en `apps/api/src/__fixtures__/responses/<ruta>.json`»: hoy ese mundo solo da de alta `player@example.com` (l. 248-249) y ningún equipo tiene dueño (l. 160-169)."
+  },
+  {
+    "id": "C-L3-11",
+    "seccion_destino": "§9.5 y §12.2 (L2)",
+    "que": "Rcodigo-054 y 17-s: `flag-icons` sale de `main.tsx` l. 9 pero no del proyecto: pasa a `devDependencies` de `apps/web/package.json` a la versión exacta `7.5.0`, porque `flag-sprite.mjs`, `flagCells` y su huella leen sus SVG; el script copia además los 133 SVG 4x3 a `apps/web/src/assets/flags/` con su huella, y `ChampionJersey` los carga desde 72 px con `import.meta.glob` (9-j). §12.2 puede decirlo en una frase."
+  },
+  {
+    "id": "C-L3-12",
+    "seccion_destino": "§3.9 (L1) y §12.3 (L2); la pasada de coherencia",
+    "que": "`tokens.json` tiene dos sitios y dos formas: §3.9 y 3-l lo ponen en `apps/web/tokens.json` con `{ sha256, light, dark, surfaceDark, text, spacing, radius, shadow, breakpoints }` (y descartan `packages/shared` porque su `dist/` lo compila `tsc`); §12.3 y 12-b, en `packages/shared/tokens.json`, exportado por su `package.json`, con `{ version, source, sha256, light, dark, darkScope }`. Hay que dejar uno; §15.1 y el PR 7 de §17.7 no nombran la ruta y remiten a los dos."
+  },
+  {
+    "id": "C-L3-13",
+    "seccion_destino": "§12.4 (L2)",
+    "que": "17-y: las dos metas que «se quedan» en `index.html`, `viewport-fit=cover` y `theme-color`, no existen hoy (`00-encargo.md` §2: «ni `theme-color` (`apps/web/index.html`)»); entran en el PR 11, el del marco, que es el que reserva el área segura. Conviene que §12.4 lo diga, para que nadie las busque en el código de hoy."
+  },
+  {
+    "id": "C-L3-14",
+    "seccion_destino": "§8.2 (L2)",
+    "que": "Ruso-041 y 16-i: la cuenta de cuántas carreras fallarían sin cada color y cada figura son 22 traducciones más, de 13 a 26 minutos a 28 px, así que `kits.test.ts` solo la calcula si la puerta falla, o de noche con `CS_BANCOS=1`; en la rápida, la puerta cuesta de 2 a 4 minutos (estimado)."
+  },
+  {
+    "id": "C-L3-15",
+    "seccion_destino": "00-decisiones.md §0 y §I (el orquestador)",
+    "que": "Tres frases que §14 y §17 ya no siguen, para quien mantenga las decisiones: (1) D-00b dice «la lista de corredores del grupo, al tocarlo, como hoy», y hoy no existe (`GroupBar.tsx` l. 101-105: las filas son `<div>`; Ruso-036): es nueva en E3 (§14.4, 14-g). (2) D-56 dice que la televisión empieza hacia los 228 px (estimado por telefono con la ruta en el `h1`), y §14.2 da unos 250, con la ruta en su renglón (Ruso-035); y su «barra de grupos con los maillots a 13 px (D-21)» la sustituye D-00b. (3) D-32 deja los clones («por defecto se quedan») y D-00q los borra. D-38, D-57 y D-58 los ha corregido este lote con su evidencia."
+  },
+  {
+    "id": "C-L3-16",
+    "seccion_destino": "00-glosario.md (la pasada de coherencia)",
+    "que": "§G.11, los pasos del plan: 24 pasos con el 3 y el 5 sin PR (retirados por D-00p), el 2 en dos PR (2a M y 2b L), el 17 en tres (17a L, 17b M y 17c L), el 20 en L, el 23 `El modo oscuro` M en lugar de `El sensor`, el 1 en M y el total de 41 PR (7 S, 24 M y 10 L). §G.6, las constantes de §15.2 (entran `PHONE_FONT`, `THEME_STORAGE_KEY`, `NATIONAL_CODE`, `BIB_STYLES`, las del maillot grande y `KIT_CHANGES_PER_SEASON`; salen las de la web instalable y las de la estrella del nacional). §G.8, la `0054_modo_oscuro` con `users.theme` y las tres columnas nuevas de `teams` en la `0052`. §G.9 entero sale (D-00p). §G.10: salen `instalable.spec.ts`, `decide.test.ts`, `install.test.ts` y `telemetry.test.ts`; entran `theme.test.ts`, `kitViews.test.tsx`, `KitShowcase.test.tsx`, `Sheet.test.tsx`, `sponsorZones.test.ts` y `ui/LegacyJersey.test.tsx`. Y `fitTeamChips` y `removeJerseyClones` en §G.5."
+  },
+  {
+    "id": "C-L3-17",
+    "seccion_destino": "§8.3 (L2)",
+    "que": "Ruso-036: «y la lista del grupo sigue al tocarlo» pasa a «y la lista del grupo se abre al tocar su fila, que es nueva en E3 (§14.4)»: hoy ninguna fila de `GroupBar` se pulsa (l. 101-105)."
+  }
+]

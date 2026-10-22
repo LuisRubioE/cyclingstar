@@ -382,3 +382,27 @@ Lo que queda decidido (`borrador/00-decisiones.md` §0, D-00n a D-00q):
 4. **La prueba del teléfono en el CI**, como se propone (DD-16).
 5. **El clon del maillot se borra** (DD-17): el dueño cambió el maillot de un solo equipo y no hay
    más jugadores que él, así que el PR 1, además de arreglar el defecto, borra el clon que exista.
+
+### 7.7 Vender el premium solo en la web (22 de octubre de 2026, para E8)
+
+El dueño, textual, sobre la comisión de las tiendas:
+
+> «del tema de la comision, lo que puedo hacer es que para comprar un premium obliga a entrar en la web
+> y hacerlo ahi... con eso sirve???»
+
+Lo que encontró el orquestador ese día, que no es asesoramiento jurídico y que es de E8:
+
+- **Apple, fuera de EE. UU.** Su regla 3.1.3(b) («Multiplatform Services») deja reconocer en la app lo
+  comprado en la web solo si eso mismo también se vende dentro de la app, con la compra integrada.
+  Además prohíbe empujar desde la app a pagar fuera. Hay rechazos documentados de apps que dan
+  funciones pagadas en la web sin ofrecerlas dentro. La excepción de las apps de lectura no cubre los
+  juegos.
+- **Apple, en EE. UU.** Desde mayo de 2025 se puede enlazar a pagar en la web, hoy con un 0 % de
+  comisión, pero es provisional. En agosto de 2026 Apple pidió cobrar un 15 % (un 5 % a los
+  pequeños), y el Tribunal Supremo aceptó en junio de 2026 su apelación.
+- **Google Play**, en EE. UU., el Reino Unido y el Espacio Económico Europeo desde el 30 de junio de
+  2026: se puede enlazar a la web o usar otro cobro, pero Google cobra igualmente una tarifa de
+  servicio, un 10 % sobre el primer millón de dólares al año.
+- **La lectura:** vender solo en la web funciona en la web y, hoy, en EE. UU. En el iPhone del resto del
+  mundo, probablemente obligue a ofrecer también la compra dentro de la app. Lo decide E8, con un
+  especialista.
