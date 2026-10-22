@@ -638,12 +638,17 @@ def nacional_regla(cc, regla, banderas, para_medir_, letras=False):
     color_filo = "#ffffff" if relleno_ == "navy" else NAVY_DARK
     cuerpo += estrella_logo(10, *NATIONAL_STAR_SITES[sitio], RELLENO_ESTRELLA[relleno_], 1.0, color_filo)
     if letras:
-        cuerpo += (
-            f'<text x="24" y="38.5" text-anchor="middle" font-family="system-ui, sans-serif" font-size="8" '
-            f'font-weight="700" letter-spacing="0.32" fill="{letra}" stroke="{filo_letra}" stroke-width="2" '
-            f'paint-order="stroke" stroke-linejoin="round">{cc}</text>'
-        )
+        cuerpo += letras_svg(cc, letra, filo_letra)
     return doc(TORSO_DEFS, cuerpo)
+
+
+def letras_svg(cc, letra, filo_letra):
+    """`NATIONAL_CODE`: las dos letras, que la página añade al nacional desde 72 px."""
+    return (
+        f'<text x="24" y="38.5" text-anchor="middle" font-family="system-ui, sans-serif" font-size="8" '
+        f'font-weight="700" letter-spacing="0.32" fill="{letra}" stroke="{filo_letra}" stroke-width="2" '
+        f'paint-order="stroke" stroke-linejoin="round">{cc}</text>'
+    )
 
 
 # El maillot en grande (D-00g; borrador/08-equipacion.md §8.10): delante, detrás y culote, con las zonas
@@ -1021,7 +1026,7 @@ def main():
     nuevas_pagina = dict(mundiales)
     for cc, _ in paises:
         nuevas_pagina[f"R-{cc}"] = nacional_regla(cc, regla[cc], banderas, False)
-        nuevas_pagina[f"R-{cc}@L"] = nacional_regla(cc, regla[cc], banderas, False, letras=True)
+    letras = {cc: letras_svg(cc, *regla[cc][2]) for cc, _ in paises}
     sen28 = {**mundiales, **nac_medir, **DISENOS_CAMPEON}
     trab28 = [(k, s, 28) for k, s in {**cand_q, **sen28, **lid28}.items()]
     trab28 += [(k, cand[vid][k], 28) for vid in VOCABS for k in pelotones[vid]]
@@ -1157,6 +1162,7 @@ def main():
         "cotejo": round(max(cotejo), 2) if cotejo else None,
         "cotejoNac": round(max(cotejo_nac), 2) if cotejo_nac else None,
         "hoja": hoja,
+        "letras": letras,
         "grande": {"ejemplo": ejemplo, "patrocinador": list(patrocinador), "capacidades": capacidades},
     }
 
