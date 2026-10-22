@@ -126,7 +126,8 @@ retomar el trabajo si la sesión se corta.
   `borrador/ensamblar.sh --final --comprobar` a 0 fallos y 0 avisos (34 de 34 injertos, 33 de 33
   objeciones y 21 de 21 huecos en algún bloque de cierre); la línea de estado de E3 en
   `docs/encargos.md` y su sección en `docs/diseno/README.md`; `prettier --check .` y `eslint .` en verde
-  sobre la rama, en un clon; y el PR, solo con documentos, sin fusionar hasta que conteste el dueño.
+  sobre la rama, en un clon; y el PR, solo con documentos, sin fusionar hasta que conteste el dueño:
+  <https://github.com/LuisRubioE/cyclingstar/pull/306>.
 
 ## Pendiente
 
