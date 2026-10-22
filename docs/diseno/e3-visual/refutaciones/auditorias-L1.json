@@ -1,0 +1,738 @@
+[
+  {
+    "id": "Rcodigo-001",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "01-diagnostico.md l. 98 (§1.9): «ningún test de `packages/db` ni de `apps/api` llama a `updateOwnedTeam`, y los 17 de `packages/db/src` que nombran `jerseySeed` solo lo usan como dato de prueba (por ejemplo `cast.test.ts` l. 259; contado con `grep`)», la frase que pedía; añade, por D-00q, que en producción hay como mucho un clon.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-002",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "02-principios.md l. 13 (fila 2.7): «`LeaderJersey` y `ChampionJersey` (§9)». No queda `ChampionSash` en ninguna de las catorce secciones de L1 y L3 fuera del índice de nombres cambiados de §20.5 (20-apendices.md l. 164, que lo da como «`ChampionSash` es `ChampionJersey` (9-g)»).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-003",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "03-fundamentos.md l. 34 (fila `own`, `own-tint`): «`ink` encima 15,08 (†; el 16,26 de lectura no se reproduce)»; la misma cifra en D-03 (00-decisiones.md l. 262) y en §6.2 (06-telefono.md l. 70).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-004",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "03-fundamentos.md l. 146 («Veintiséis iconos propios en `apps/web/src/components/ui/icons.tsx`») y l. 156 (fila `play`, `pause`: «los mandos de `PlayerControls` (§14) | `PLAY_GLYPH` (`▶︎`) y `❚❚` (`PlayerControls.tsx` l. 34 y 123)»); `IconName` con 26 nombres, `play` y `pause` entre ellos (04-componentes.md l. 16-20, contados); 3-e (03 l. 404) y D-07 (00-decisiones.md l. 298) dicen 26; §14.6 pinta los dos iconos (14-e2.md l. 99). Comprobado en el clon de `58c14da`: `PlayerControls.tsx` l. 34 es `PLAY_GLYPH = '▶︎'`.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-005",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "03-fundamentos.md l. 163 (§3.7): los siete sitios, uno a uno (`🏆` de `TeamCalendar.tsx` l. 282 a `Winner`, `🏠` de `Market.tsx` l. 86 fuera, los de `HowToPlay.tsx` l. 32 y 49 fuera, `✓` y `✗` de `AdminNames.tsx` l. 243 a `Chip` `OK` y `Failed`, `★` y `☆` de `Race.tsx` l. 875 a `star-full` y `star-empty`, el `⚠` de la plantilla de `RaceOrders.tsx` l. 422 a `Look for the warning below.`), y 3-d (l. 403). `OK` y `Failed` en lugar de «`good` y `bad`» sueltos, porque `Chip` exige texto: mejor, con motivo.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-006",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "03-fundamentos.md l. 167 (§3.8): «las celdas de las banderas para medir (`packages/db/src/flagCells.generated.bin` y `flagCells.generated.ts`, que escribe `apps/web/scripts/flag-sprite.mjs`, §9.5), la hoja de revisión de los 133 maillots nacionales (D-00f y D-00m, §9.5)»; D-08 (00-decisiones.md l. 306) igual. `NATIONAL_SASH` no sale en ninguna sección de L1 (grep).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-007",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "03-fundamentos.md l. 186 (§3.9): `packages/shared/package.json` (l. 8-13) solo publica `\".\"`; «El paso 7 le añade `\"./colorMath\": { \"types\": \"./dist/colorMath.d.ts\", \"default\": \"./dist/colorMath.js\" }`, todos lo importan como `@cyclingstar/shared/colorMath`, y cada módulo que el documento saque del barril gana su entrada igual (`legacyJersey.ts`, §8.6)». El PR 7 lo trae (17-plan.md l. 83).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-008",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 3 (la entrada de §4: «`Kit`, `LeaderJersey`, `ChampionJersey`, `WornJerseyIcon`, `KitPicker` y `LegacyJersey`») y l. 414 (primera columna de la fila de los maillots en §4.11, con `ChampionJersey`).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-009",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 53 (§4.2): «**Tres respuestas no son un error** (Rcodigo-009): `GateError` (l. 50-56) … va a la prop `gate` y la página pinta `StageGateCard` (`StageGate.tsx` l. 88) …; un `ApiError` 429 es `slow`, y `QueryView` repite la consulta sola a los `retryAfterS` (l. 128) …; y un 401 lo resuelve `SessionExpiryWatcher` … mientras `QueryView` sigue en `loading`; `QueryView.test.tsx` gana los tres casos»; la prop `gate` en el tipo (l. 81). Los tres casos, en §16.2 (16-tests.md l. 28).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-010",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 119-133: `export type ButtonProps = ButtonBase & ( { readonly children: string; readonly icon?: IconName; readonly ariaLabel?: string } | { readonly children?: never; readonly icon: IconName; readonly ariaLabel: string } )`, la unión que pedía.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-011",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 250 (§4.6): «(`00-encargo.md` §7.2, l. 266-267; D-00c)». Comprobado en `00-encargo.md`: l. 266-267 son «siempre van juntos / Bandera del pais - Nombre - Maillot».",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-012",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 255 (`import type { WornTeam } from '../broadcast/WornJerseyIcon' // §9.10: { name, kit } o { name, legacySeed }`) y l. 265-266 (`readonly team?: WornTeam | null`, con el comentario que remite a 17-e para el tipo de transición del 9b); 17-e (17-plan.md l. 227) dice que §4.6 escribe el tipo final.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-013",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 269-272: `readonly leader?: JerseyKind | null` («`jerseyOf(leaders, riderId)` (§6.1)») y `readonly champion?: ChampionTitle | null`; l. 250, «Qué maillot» (líder de `leaders`, campeón de `champions`, si no la equipación); 4-m (l. 440). La parte «el campeón solo donde llega `RiderCard.worn`» se sustituyó por algo mejor y con motivo, el `champions` por respuesta de Rcobertura-017 (§6.1, 06-telefono.md l. 22; 4-l, l. 439), que lleva el de campeón también a las tablas, como pide D-00c.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-014",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 416 (§4.11): «`KitSize` (§8), que es `28 | 40 | 48 | 72 | 96 | 160 | 320` (`KIT_PX` = `{ row: 28, card: 40, team: 48, page: 72, hero: 96, showcase: 160, poster: 320 }`, D-00b y D-00g; las dos grandes, solo en las vistas grandes de §8.10, desde el 17c)».",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-015",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 435 (4-h): «El filtro oscurece también el texto: en el claro, el blanco al 90 % sobre `bad` al 90 % da 6,1:1 (6,09 medido por el refutador de código, Rcodigo-015; 6,11 con `oscuro.py`…), y en el oscuro, 5,92 (†); los dos, por encima de 4,5». Ya no dice que la razón sube.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-016",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "05-cumplimiento.md l. 31 (§5.1): «sobre el `@theme` de §3.9 con el cierre activo». No queda ninguna remisión a §3.11 (grep en §1 a §7).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-017",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 94 (`ActionBar` «fija, con `bottom-[var(--action-bar-bottom)]`») y l. 365 (§4.9: el marco escribe `--action-bar-bottom`, `calc(3.5rem + env(safe-area-inset-bottom))` por debajo de 640 y 0 desde 640); 05-cumplimiento.md l. 33 («`bottom-[var(--action-bar-bottom)]` … Ningún otro: seis») y 5-a (l. 109); `ARBITRARY_ALLOWED` con los seis en 15-constantes.md l. 40. `--toast-bottom` no entra porque `UpdateToast` e `InstallHint` los retiró el dueño con la web instalable (D-00p): la parte que sigue valiendo está, y la otra ya no tiene objeto.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-018",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "05-cumplimiento.md l. 80 (fila `ui/10`: `JSXText`, `Literal` y `TemplateElement`, la clase ampliada y el mensaje `ui/10 emoji or glyph in the interface: use <Icon>`), l. 82 (el porqué, con `TemplateElement[value.raw=/…/u]`) y 5-f (l. 114). Al auditar, la clase llevaba `\\u{25B6}` suelto (lo añadió la corrección para coger `PLAY_GLYPH`), y eso marcaba también el `Too little training ▶` de los ejes de `Scale5` (D-00n): ver A-L1-001, que lo arregla.",
+    "accion": "lo he cerrado yo junto con A-L1-001: la clase deja el `▶` solo y coge `PLAY_GLYPH` por su secuencia con U+FE0E (05-cumplimiento.md l. 80, 82 y 114)."
+  },
+  {
+    "id": "Rcodigo-019",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "06-telefono.md l. 70 (§6.2): «el fondo `own-tint` (`ink` encima, 15,08, §3.1)».",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-020",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "06-telefono.md l. 22 (§6.1, «Lo que cada fila necesita para su identidad», 6-d corregida): el dorsal de la lista de salida por `riderId` (`bib`, `contracts.ts` l. 654-655), `pointsEntrySchema` (l. 522-528) y `hallOfFameRowSchema` (l. 899-909) ganan `teamId` y `teamName` nulables en el 12b, el salón de la fama con el maillot del equipo de hoy; 6-d (l. 158) con los rangos `contracts.ts` l. 485-986 y l. 1357-1380. El plan lo lleva (17-plan.md l. 107, PR 12b, y 17-q, l. 231).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-021",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "07-prueba.md l. 20 (§7.1, la comprobación 10): «desde el paso 17 lo llevan `Kit`, `LeaderJersey` y `ChampionJersey`».",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcodigo-022",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "07-prueba.md l. 32 (§7.2): la clave es `telefono-mundo-v1-` más la huella de `packages/db/drizzle/**`, «de las fuentes de `packages/db/src`, `packages/engine/src` y `packages/shared/src` sin sus tests (`!**/*.test.ts`), y de `apps/web/e2e/world/build.mjs`», con el porqué del 17b y `ensureKits`; 7-h (l. 198) y D-18 lo dicen; §17.1, regla 7, cuenta el 17b entre los que reconstruyen el mundo (17-plan.md l. 13). Mejor que los seis ficheros que pedía: cubre todo el código que construye el mundo.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-001",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "02-principios.md l. 13 (`ChampionJersey` en la fila 2.7) y 07-prueba.md l. 20 (la comprobación 10, con `ChampionJersey`); lo mismo que Rcodigo-002 y Rcodigo-021.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-002",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "03-fundamentos.md l. 167 (§3.8): las celdas `flagCells.generated.bin` y `.ts` que escribe `apps/web/scripts/flag-sprite.mjs` y la hoja de revisión de los 133 (D-00f y D-00m), sin `NATIONAL_SASH`; D-08 (00-decisiones.md l. 306).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-003",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "03-fundamentos.md l. 291-292, dentro del `index.css` de §3.9: «/* Densidad por puntero (D-06): con ratón, fila de tabla sin maillot de 36 (con maillot, nunca menos de 44: D-00b) y Button sm de 32. */», casa con 3-g (l. 406).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-004",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 3 y l. 414: la fila de los maillots de §4.11 es «`Kit`, `LeaderJersey`, `ChampionJersey`, `WornJerseyIcon`, `KitPicker` y `LegacyJersey`»; `KitShowcase` (y `Sheet`) no van en esa fila sino en una propia de §4.4 (l. 159-160) y de §4.11 (l. 413), porque no sustituyen a nada de hoy (C-L2-01): la corrección que pedía, mejorada con motivo.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-005",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 53 (§4.2): «y en una ruta que no existe (la `*` de `App.tsx` l. 339, la pantalla 46), el `Page not found` de hoy (`App.tsx` l. 128-131) con `Go to Dashboard`, un `TextLink` a `/`, en lugar de `Try again`»; los textos, en el glosario (§G.12).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-006",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 94 (fila `ActionBar`, estados): «`disabled` (con `disabledReason`: el botón en `disabled-bg` y `disabled-ink` con `aria-disabled`, y el porqué en el sitio de la consecuencia, en `meta` `ink-2`, enlazado con `aria-describedby`: `This kit is already worn by Mistral Racing.`)».",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-007",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 185 (`Hidden until you watch stage 3, Gandia → Alcoi · Watch`, con `StageRoute`, [DUEÑO 7]), l. 187 (el `<caption>` `General classification after stage 3, Gandia → Alcoi`), l. 317 y l. 327 (`Racing now · stage 3 of 5, Gandia → Alcoi`, con su prop `racing.route`) y l. 376 (§4.10, la fila «una etapa | `Stage 3 · Gandia → Alcoi`, con `StageRoute` ([DUEÑO 7]) | `stage 3` sin sus ciudades»). Lo de §10.4 y §10.5 es de L2 (cruzada C-L1-04, aplicada en la coherencia).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-008",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 186 (§4.5, «Una fila de abandono» tras las 20 y la propia, `DNF` en `caption` 600 `ink-3`, el nombre sin tachar, `data-state=\"inactive\"`, fuera de `Show all N`), l. 203 (el comentario de `rank`) y l. 377 (§4.10, «un abandono | `DNF` … | el nombre tachado»).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-009",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 250 (§4.6, «**Qué maillot** (D-00c …; de qué día, `docs/navegacion.md` l. 478-482)»: en `Watch` y la crónica el que lleva ese día, en una tabla de la etapa N el de tras la N, en la ficha de carrera el de tras la última etapa que conoce quien mira, con `jerseyOf`) y l. 269 (el comentario de `leader`: «el de líder de la clasificación que enseña»).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-010",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 250: «En una frase (`inline`), todo en un renglón, como pasa a escribirse la crónica (§14.1), que hoy pone el maillot delante de la bandera (`stageJournal.ts` l. 283 y 288)»; §14.1 lo aplica (14-e2.md l. 25).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-011",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 250 («**Sin equipo** (un agente libre en carrera…), el maillot es el hueco de su ancho (§9.10) y el segundo renglón dice `Individual` (pantalla; `NO_TEAM_LABEL`, `labels.ts` l. 281); en una frase, `(Individual)`»), l. 265 (el comentario de `team`) y l. 378 (§4.10, «el corredor sin equipo | `Individual` … | un renglón vacío»).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-012",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 281 (fila `RiderHeader`): «en el primer renglón, contiguos y en este orden (D-00c), la `Flag` a 24 de alto, el nombre en `text-page` como `h1` y el maillot que lleva a 40 (`KIT_PX.card`)…; debajo, un `Chip` de jugador, otro de salud y el papel», con el texto `José Quintáns · Player · Climber` y la bandera con el país en su `aria-label`.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-013",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 286 (la ficha, «que conserva todo lo que la ficha enseña hoy»): `FormChart` y `Where the energy went` en un `Disclosure` ([DUEÑO 10]), la moral en `StarRating` (DD-12), `Season objectives`, `Season` con los puntos en `Stat`, los logros y, tras (6), el panel `Rider`, `BlockReport` y `LastRaceReport`; `FormChart` en el catálogo (§4.8, l. 340; 4-o, l. 442; D-09). Sus rótulos del eje vertical (`0`, `50` y `100`) van en HTML (14-h), en lugar del «sin cifras» que pedía, porque chocaba con §16.2 y el PR 21h (C-L3-06). Su PR, el 21h (17-plan.md l. 157), y su test, `FormChart.test.tsx` (16-tests.md l. 28).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-014",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 286 («y no como iconos, como pedía el SPEC (decisión 4-c)») y 4-c (l. 430: «el PR 24 corrige esas dos líneas: los cerillos, visibles como los segmentos de un `Meter` con `n of N`»); el PR 24 los lleva (17-plan.md l. 169: «`SPEC.md` … l. 90 y 410 (los cerillos, como los segmentos de un `Meter` con `n of N`, 4-c)») y D-09 y D-58 los citan (00-decisiones.md l. 792).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-015",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 416: `KitSize` = `28 | 40 | 48 | 72 | 96 | 160 | 320` y `KIT_PX` con `showcase: 160` y `poster: 320`; lo mismo que Rcodigo-014.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-016",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "05-cumplimiento.md l. 31: «§3.9»; lo mismo que Rcodigo-016.",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-017",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "06-telefono.md l. 22 (§6.1): «las respuestas de la ficha de carrera y de la etapa ganan, junto a sus `leaders`, `champions: Record<riderId, ChampionTitle>` … con el velo de E2 …; y `GET /api/riders/:id` gana `champion` para `RiderHeader`. `RankTable` pasa a `RiderLabel` el de líder si lo hay, si no el de campeón, si no la equipación; `RankTable.test.tsx` gana el caso de una fila de campeón nacional que pinta `ChampionJersey`»; `champion` en `RiderLabelProps` (04-componentes.md l. 271-272) y en `RiderHeader` (l. 281); 4-l (l. 439). Lo del plan está (17-plan.md l. 131, PR 17a con el caso de `RankTable.test.tsx`; 17-q, l. 231; 17-w, l. 245) y lo de §8.5 es de L2 (cruzada C-L1-01, aplicada).",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-018",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "06-telefono.md l. 70: «`Show all 140` (pantalla) son unos 7.840 px de filas de 56 (140 × 56, estimado con las filas de §4.5)».",
+    "accion": "nada"
+  },
+  {
+    "id": "Rcobertura-019",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "07-prueba.md l. 55 (pantalla 16): «`KitPicker`, con el maillot a 160 px en su `KitShowcase` (§8.7; D-00g)». Lo de §8.7 es de L2 (cruzada C-L2-05).",
+    "accion": "nada"
+  },
+  {
+    "id": "Ruso-001",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "03-fundamentos.md l. 161 (§3.7): «**Las siluetas de los cuatro iconos de tono son fijas** …: `check`, una marca de verificación sin contorno; `warning`, un triángulo con `!`; `error`, un octógono con `×`; `info`, un círculo con `i`. `ui-icons.mjs` (§3.8) rasteriza los cuatro a 16 px y falla si dos comparten más del 75 % de sus píxeles pintados»; 3-e (l. 404).",
+    "accion": "nada"
+  },
+  {
+    "id": "Ruso-002",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 51 (§4.2): «la página salta poco al llegar los datos: a 320 px, una fila de clasificación cuyo nombre parte de línea mide unos 76 px y no 56 (estimado por el refutador de uso…, Ruso-002), y ahí la página crece un poco»; 4-n (l. 441). La segunda parte (esqueleto de 64 a 320 y 56 desde 360) se desestimó con un motivo que se sostiene: pide un corte de 360 px que el tema no tiene (D-06 deja solo `sm` y `lg`, §3.5), y un valor arbitrario no lo deja `ARBITRARY_ALLOWED` (§5.1).",
+    "accion": "nada"
+  },
+  {
+    "id": "Ruso-003",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 94 (`ActionBar`: la consecuencia «parte en dos renglones como mucho (`line-clamp-2`, con `data-clip-ok` solo para lo que pase de dos) y va entera en `aria-describedby`: con dos renglones de 20 px la barra sigue en sus 60»), l. 365 (§4.9, con las medidas de 312/327 frente a 217/204 px), 06-telefono.md l. 116 (fila de §6.4: «desde el tercer renglón | `line-clamp-2` con `data-clip-ok`, entera en `aria-describedby`»), 05-cumplimiento.md l. 86 (el dato de `/_ui`: «una consecuencia de `ActionBar` de tres renglones a 320 px, que corta con `data-clip-ok`») y D-12 corregida con la medida.",
+    "accion": "nada"
+  },
+  {
+    "id": "Ruso-004",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 95 (fila `Segmented`): «el texto de una opción parte en dos renglones si no cabe (`whitespace-normal`, `text-center`, `leading-5`, `px-2`) y nunca se corta, y con dos renglones la opción sigue en `min-h-11`».",
+    "accion": "nada"
+  },
+  {
+    "id": "Ruso-005",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 156 (fila `Tabs`): «`scrollIntoView({ inline: 'center', block: 'nearest' })`, que no mueve la página»; 07-prueba.md l. 20 (antes de medir, `scrollY` vale 0) y 16-tests.md l. 18 (`telefono.spec.ts` «con `scrollY` a 0 antes de medir (Ruso-005)»).",
+    "accion": "nada"
+  },
+  {
+    "id": "Ruso-006",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 157 (fila `AppHeader`: por debajo de 640 el logotipo en un enlace de 44 × 44, el reloj que no se corta y `Account`; `Cycling Star` solo desde 640, `sm:inline`; `signed-out` sin el reloj por debajo de 640, 4-k), 06-telefono.md l. 78 y el dibujo de l. 82-99 (`[logo]  Day 50 · S1 · 4h 56m  [o]`); 4-f y 4-k (l. 433 y 438) y D-17 corregidas. No queda `@max-[21.25rem]` en ninguna sección (grep). El dibujo de §10.2 es de L2 (cruzada).",
+    "accion": "nada"
+  },
+  {
+    "id": "Ruso-007",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 157 (accesibilidad de `AppHeader`: «el logotipo, un enlace de 44 × 44 como mínimo con `aria-label=\"Cycling Star home\"` (desde 640 lleva `Cycling Star` y mide 44 de alto)»); su caso en `AppHeader.test.tsx` (16-tests.md l. 28; 17-plan.md l. 101).",
+    "accion": "nada"
+  },
+  {
+    "id": "Ruso-008",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 158 (fila `BottomNav`): el activo, «pastilla `bg-gold` con el icono en `text-navy-dark`, 6,72:1 …; rótulo `white` 600», el inactivo sin pastilla, con la medida de 1,30 y 1,50 que lo motiva; la pareja `navy-dark` sobre `gold` (6,72) en la tabla de §3.1 (03-fundamentos.md l. 20 y 26), que `tokens.test.ts` comprueba con su umbral (§3.3, l. 92).",
+    "accion": "nada"
+  },
+  {
+    "id": "Ruso-009",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 224 («Con `href`, el enlace es el bloque de los dos renglones entero (`block`, `min-h-16`), y el botón queda fuera del enlace, a 8 px») y l. 231 (`readonly href?: string // los dos renglones enlazan, en bloque, a la carrera`); su caso en `ActionRow.test.tsx` (16-tests.md l. 28; 17-plan.md l. 105).",
+    "accion": "nada"
+  },
+  {
+    "id": "Ruso-010",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 365 (§4.9): `--fixed-bottom` es «la suma de los altos medidos de lo fijo visible (con un `ResizeObserver` sobre cada pieza, no con las cifras de esta tabla, que son mínimas y crecen con la letra al doble; Ruso-010)». Lo de `InstallHint` (su `min-h-12` y su texto de iPhone en §4.7, §12.6 y G.12) ya no tiene objeto: el dueño retiró la web instalable y con ella `InstallHint` (D-00p; 04-componentes.md l. 296), así que la parte que sigue valiendo está entera.",
+    "accion": "nada"
+  },
+  {
+    "id": "Ruso-011",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 317 (§4.8, «**La palabra no se corta**»: cada tramo mide 51,2 a 320 (49,2 por dentro), la palabra parte en dos renglones con `whitespace-normal`, `text-center` y `leading-4`, y `Undertrained` lleva un guion blando, con sus medidas) y 06-telefono.md l. 119 (fila de §6.4). §10.4 es de L2 (cruzada C-L1-04).",
+    "accion": "nada"
+  },
+  {
+    "id": "Ruso-012",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "07-prueba.md l. 166 (§7.7, tarea 8): «cambia el nombre del equipo, y con el teclado abierto ni la `ActionBar` ni la barra inferior tapan el campo; al cerrarlo vuelve `Save changes`, y guarda», con D-00k (un cambio de maillot por temporada); §4.9 remite a ella (04-componentes.md l. 365).",
+    "accion": "nada"
+  },
+  {
+    "id": "Ruso-013",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "05-cumplimiento.md l. 86 (§5.4, «**Lo fijo, en su marco**»: cada pieza fija en un marco de 360 × 160 px con `transform-gpu`, que en Tailwind 4.3.3 es `transform: translateZ(0)`, uno por estado, y la página sin `ActionBar` ni `BottomNav` propias) y 5-g (l. 115); 07-prueba.md l. 20 («en `/_ui` no corren ni la 7 ni la 8 …: donde no corren, la línea base guarda `null`») y el ejemplo de l. 128-129 (`[0, 0, 0, 0, 0, 0, null, null, null, 0]`).",
+    "accion": "nada"
+  },
+  {
+    "id": "Ruso-014",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "06-telefono.md l. 80 (§6.3: la regla fija de contenedor, `@max-[4.75rem]:hidden` y `hidden @max-[4.75rem]:inline`, con `whitespace-nowrap overflow-hidden` y sin `data-clip-ok`, en lugar del plan B), 04-componentes.md l. 158, 05-cumplimiento.md l. 33 (`@max-[4.75rem]:` en la lista), 6-e (06 l. 159) y D-17 corregida; fuera de L1, 15-constantes.md l. 40, 16-tests.md l. 86 y 18-riesgos.md l. 11 ya dicen lo mismo. No queda «plan B» como mecanismo en ninguna sección (grep: solo en 16 l. 86, «ya no hay plan B que se dispare»).",
+    "accion": "nada"
+  },
+  {
+    "id": "Ruso-015",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "06-telefono.md l. 127 (§6.5): «A 800 × 360 rige `sm:` (640): la `BottomNav` no se pinta, la navegación de nivel 1 va en la cabecera en `Tabs` `nav`, y la `ActionBar`, abajo del todo, deja 300 px de contenido (360 − 60; Ruso-015)… E3 no cambia nada de lado».",
+    "accion": "nada"
+  },
+  {
+    "id": "Ruso-016",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "07-prueba.md l. 10 (la comprobación 2: «todo elemento visible cuyo `scrollWidth` pase de su `clientWidth` en más de 1 px y cuyo `overflow-x` no sea `auto` ni `scroll` … cuenta igual lo recortado (`hidden`, `clip`, `ellipsis`) que lo que desborda su caja sin recortarse»), 7-l (l. 202) y D-18 corregida; `control.html` gana el `span` que desborda (16-tests.md l. 18; 17-plan.md l. 71).",
+    "accion": "nada"
+  },
+  {
+    "id": "Ruso-017",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "07-prueba.md l. 13 (la comprobación 5: qué es de frase «lo dice el marcado»: `data-inline-link` o un `p` o un `Notice` como antepasado más cercano de la lista de `tr`, `li`, `RankTable`, `ActionRow`, `TripRow` y `GroupBar`; cualquier otro enlace es un control), 7-m (l. 203), `TextLink` con `data-inline-link` (04-componentes.md l. 97), el `Watch` de la fila velada como `Button` `quiet` de 44 (l. 185), 4-p (l. 443) y D-17 y D-18; `control.html` con el enlace de fila de 20 px (16-tests.md l. 18).",
+    "accion": "nada"
+  },
+  {
+    "id": "Ruso-018",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "07-prueba.md l. 77 (la pantalla 38: «la primera contrarreloj corrida, tras `Play`, el salto `+10 min` y `Pause`», en `FixedOverlay`), §7.2 (`build.mjs` la busca y la guarda en `cuentas.json`) y 7-i (l. 199); las pantallas pasan a 46 en §7 y en D-18. Lo de §14.4 está (14-e2.md l. 91: los dos botones de la crono, `Button` `quiet` de 44, y sus nombres sin `truncate`).",
+    "accion": "nada"
+  },
+  {
+    "id": "Ruso-019",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "07-prueba.md l. 122 (§7.4, «tres reglas la hacen estable»: (1) solo se comparan cifras del mismo mundo, con la base medida sobre el mundo nuevo para que la reescritura no esconda una subida, (2) la 09 y la 38 en pausa tras un salto de los mandos (7-j, l. 200), (3) pasar de `null` a una cifra no es una subida); 7-h (l. 198) y 7-b (l. 192, la 09 ya corre con axe).",
+    "accion": "nada"
+  },
+  {
+    "id": "Ruso-020",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "07-prueba.md l. 120 (§7.4): el filtro «sigue si alguna ruta empieza por `apps/web/`, `apps/api/`, `packages/db/`, `packages/shared/` o `packages/engine/`», con el porqué; D-18 corregida, y fuera de L1, §17.1 regla 7 («sus cinco caminos», 17-plan.md l. 13) y DD-16 (19-dueno.md l. 37).",
+    "accion": "nada"
+  },
+  {
+    "id": "Ruso-021",
+    "tipo": "hallazgo",
+    "origen": "por-lote/L1.json",
+    "veredicto": "cerrado",
+    "evidencia": "07-prueba.md l. 151 (§7.6, «**La letra de la prueba se fija**»: `fonts-dejavu-core`, `apps/web/e2e/fonts.conf` por `FONTCONFIG_FILE`, `PHONE_FONT` = `'DejaVu Sans'`, y la comprobación por CDP con `CSS.getPlatformFontsForNode`, en lugar de `document.fonts.check`, que con las letras del sistema da siempre verdadero: mejor, con motivo), 7-k (l. 201), §7.5 (l. 145, «la letra de §7.6») y §7.8; el PR 2b escribe la base con ella (17-plan.md l. 71).",
+    "accion": "nada"
+  },
+  {
+    "id": "C-L2-01",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L2.json n.º 1 → §4.4, §4.11 y §G.3; coherencia.json fila 19 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 159 (`Sheet`: `<dialog>` a pantalla completa, cabecera de 48 con el título y `close` de 44 × 44, el foco a `close` al abrir, `history.pushState`, la cierran `close`, `Escape` y el «atrás», el foco vuelve; `aria-modal=\"true\"` y `aria-labelledby`; estados `open` y `closed`) y l. 160 (`KitShowcase`: `Tabs` `page` `Front` · `Back` · `Shorts` sobre un `Kit` de 160, el `button` con `aria-label=\"Show the kit full screen\"` que abre la `Sheet` con el de 320; `ready` y `hidden` con `LegacyJersey`); la entrada de §4 (l. 3) y su fila propia en §4.11 (l. 413), que no sustituyen a nada de hoy; en el glosario, §G.3 (00-glosario.md l. 199 y 225).",
+    "accion": "nada"
+  },
+  {
+    "id": "C-L2-02",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L2.json n.º 2 → §4.6; coherencia.json fila 20 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 281 (fila `RiderHeader`): «el maillot es un `button` que abre la `Sheet` (§4.4) con `Front`, el mismo a 320, y, si es el de su equipo, `Back`, el `Kit` de su equipo por detrás con su dorsal si corre ese día (`#214`) (§8.10)», y en accesibilidad, `aria-label=\"Show the kit full screen\"`. §15.2 lo dice igual (15-constantes.md l. 36: las vistas grandes «en la `Sheet` que abre el maillot de 40 de `RiderHeader`»).",
+    "accion": "nada"
+  },
+  {
+    "id": "C-L2-03",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L2.json n.º 3 → §4.8; coherencia.json fila 21 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 317 (`Scale5`): (1) `Undertrained` y los ejes `◀ Too much training` y `Too little training ▶`; (2) «el tramo `perfecto`, `Spot on`, que es el cuarto y no el del medio, lleva, activo o no, un borde de 2 px en `good` (5,41:1 sobre `surface`)» (10-g), sin el `check` que no cabe; (3) la palabra en dos renglones, `Spot on` por su espacio y `Under\\u00ADtrained` por su guion blando, con sus medidas, y sin la frase vieja de «unos 52 px y cabe»; (4) el `aria-label` acaba en `best is Spot on` (pantalla).",
+    "accion": "nada"
+  },
+  {
+    "id": "C-L2-04",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L2.json n.º 4 → §2.7, §3.8, §4.11 y el glosario; coherencia.json fila 22 (aplicada); también en por-lote/L3-cruzadas.json n.º 11",
+    "veredicto": "cerrado",
+    "evidencia": "02-principios.md l. 44 (§2.7: lo reservado por construcción, el cuerpo amarillo, los lunares, la estrella del mundial y del continental y el cuerpo blanco, y lo reservado por distancia, los líderes también en grises y las banderas de los campeones, D-00h y D-00m) y l. 13 (`ChampionJersey`); 03-fundamentos.md l. 167 (`flagCells` y la hoja, sin `NATIONAL_SASH`); 04-componentes.md l. 414 (`ChampionJersey`). En §1 a §7 no queda `ChampionSash`, `NATIONAL_SASH`, `SASH_*`, `CHAMPION_NIGHT`, `CHAMPION_PAPER`, `NATIONAL_STAR*` ni `CHAMPION_GOLD` (grep); en el glosario, `ChampionSash` solo en la tabla de alias (00-glosario.md l. 579).",
+    "accion": "nada"
+  },
+  {
+    "id": "C-L2-05",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L2.json n.º 5 → §7.3; coherencia.json fila 23 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "07-prueba.md l. 55 (pantalla 16: «`KitPicker`, con el maillot a 160 px en su `KitShowcase` (§8.7; D-00g)») y l. 89 («la 12 (`Team.tsx`) sigue con su `data-answer` en la `RankTable` de la plantilla, que ahora va bajo un `Panel` con el maillot a 160 (§8.10)», hacia los 504 px, y si pasa de 520 las pestañas van a la `Sheet`, 8-x).",
+    "accion": "nada"
+  },
+  {
+    "id": "C-L2-06 · parte de L1 (§3.1 y §3.8)",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L2.json n.º 6 → §3.1 y §3.8 (L1) y §15 (L3); coherencia.json fila 24 (aplicada); la parte de §15, en auditorias-L3.json",
+    "veredicto": "cerrado",
+    "evidencia": "03-fundamentos.md l. 37-38 (§3.1: `kit-edge` y `kit-edge-strong`, `rgb(0 0 0 / 0.3)` y `rgb(0 0 0 / 0.35)`, y `kit-ink` `#10202f` en los dos modos, con sus usos y sus medidas de 6,35 y 4,79), l. 88 (la tabla del modo oscuro), l. 106 (la del ámbito: 6,35, 5,29 y 3,21) y el `index.css` de §3.9 (l. 242-245, el `@theme`; l. 335-336, el modo oscuro; l. 355-356, el ámbito). Van en §3.9 y no en §3.8, que es lo generado, porque §3.9 es donde vive `index.css`: mejor sitio, con motivo.",
+    "accion": "nada"
+  },
+  {
+    "id": "Ruso-028",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L2.json n.º 7 → §2.7; coherencia.json fila 25 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "02-principios.md l. 44: «la forma de los líderes de la general y de los puntos, que comparten figura con los equipos (`plain` y `band`), se reserva por distancia en las cinco vistas, grises incluidos (§8.1, 8-q)».",
+    "accion": "nada"
+  },
+  {
+    "id": "Ruso-029",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L2.json n.º 8 → §4.3; coherencia.json fila 26 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 96 (fila `Field`, variantes): «y `inline`: el rótulo a la izquierda del control, en `meta` 600 `ink` y en el mismo renglón, y si el rótulo es el título de la fila (la semana, el día), el control no lo repite y lleva `aria-labelledby` a ese título (los `select` de la semana y del día y `Emphasis` e `Intensity` del cuadro, §10.2 y §10.6; 10-k; Ruso-029)».",
+    "accion": "nada"
+  },
+  {
+    "id": "Ruso-030",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L2.json n.º 9 → §6.3 y §4.4; coherencia.json fila 27 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "06-telefono.md l. 82-99 (el dibujo del marco de `/me/training`: cuatro destinos del agente libre, `Dashboard` · `My Rider` · `World` · `News`, en celdas de 90 px, y la nota de los cinco del mánager por debajo de 380 px) y l. 80 (`nav.ts` l. 51-54 y 62-64); 04-componentes.md l. 158 («de 3 a 5 destinos del mismo ancho según la cuenta (`bottomBarLinks`, `apps/web/src/domain/nav.ts` l. 62-64: tres sin sesión, cuatro sin equipo y cinco con él; Ruso-030)»).",
+    "accion": "nada"
+  },
+  {
+    "id": "C-L2-15",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L2.json n.º 21 → §4.2, §4.7, §4.9 y §4.11; coherencia.json fila 39 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 53 (`errorKindOf`: «un `import()` de un trozo que falla, `outdated` si `navigator.onLine` es cierto … y `network` sin red (§12.1, 12-c; … 17-v)») y l. 296 (`UpdateToast` e `InstallHint`, retirados con la web instalable, D-00p); ni la tabla de §4.7 (l. 290-294), ni la de lo fijo de §4.9 (l. 359-363), ni la de §4.11 los tienen.",
+    "accion": "nada"
+  },
+  {
+    "id": "C-L3-01",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L3.json n.º 1 → §7.3; coherencia.json fila 42 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "07-prueba.md l. 89 («La 09 gana una comprobación propia (Rcobertura-040; 14-g): el borde inferior de `[data-ui=\"GroupBar\"]` a 744 px o menos con la barra inferior a la vista (800 si E6 acepta `useHideBottomNav`), medido en el mundo de la prueba … si falla, `TEAM_KIT_LINES_MAX` baja a 1 bajo la fila del espectador cuando no es la 1»). Faltaba dónde se guarda (la duda 2 de `dudas.md` para los auditores).",
+    "accion": "lo he cerrado yo: 07-prueba.md l. 89, la cifra va en una clave aparte, `\"360-barra\"`, de la 09 en `telefono-baseline.json`, para no mover el orden de las diez de §7.1 (A-L1-006)."
+  },
+  {
+    "id": "C-L3-02",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L3.json n.º 2 → §7.2, §7.4 y §7.6; coherencia.json fila 43 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "07-prueba.md l. 32 («El PR 2a, que pone el mundo y los trabajos del CI (§17.4), mide el tamaño del archivo en la caché…»), l. 122 («El PR 2b lo escribe con las medidas de hoy»), l. 149 (Playwright y axe-core entran en el 2a) y l. 151 (la letra se comprueba en el `h1` de `apps/web/e2e/control.html` hasta el PR 9a y desde ahí en el de `/_ui`; el 2b escribe la base con ella); l. 20 (el 2b pone `data-kit`).",
+    "accion": "nada"
+  },
+  {
+    "id": "C-L3-03",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L3.json n.º 3 → §7.5; coherencia.json fila 44 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "07-prueba.md l. 145 (§7.5): «**En `Watch`**, además, los umbrales que fijó E2 (`docs/retransmision.md` §18.5; Rcobertura-037), en la pantalla 09 a ×1 y a ×4: la capa fija y la barra a 30 fotogramas por segundo o más (un contador de `requestAnimationFrame`…), ninguna tarea de más de 50 ms (`PerformanceObserver` de `longtask`) y la primera pintura de `Watch` en 2 s o menos con `Fast 4G`», y «lista» es la de `capturas/pintura.mjs` hasta que la página lleve su `data-answer`.",
+    "accion": "nada"
+  },
+  {
+    "id": "C-L3-04",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L3.json n.º 4 → §3.3; coherencia.json fila 45 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "03-fundamentos.md l. 94 (§3.3, «El ámbito oscuro»): «Lo llevan `AppHeader`, `BottomNav`, la capa fija (`FixedOverlay`) y la de la crono (`TimeTrialOverlay`, `broadcast/TimeTrialBoard.tsx` l. 12-33, §14.3), el rótulo…».",
+    "accion": "nada"
+  },
+  {
+    "id": "C-L3-05",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L3.json n.º 5 → §4.4; coherencia.json fila 46 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 156 (fila `Tabs`, texto): «`Watch · Profile · Report · Classifications` (`stageTabLabel`, `raceTabs.ts` l. 224-226)».",
+    "accion": "nada"
+  },
+  {
+    "id": "C-L3-06",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L3.json n.º 6 → §1.5, §7.1 y §4.8; coherencia.json fila 47 (aplicada)",
+    "veredicto": "cerrado",
+    "evidencia": "01-diagnostico.md l. 10 (tabla: «letra de unos 4 a 11 px») y l. 64 (§1.5: «el mapa 05 las dio en 8 px con `getComputedStyle`, que no escala el SVG, y en pantalla son 9 y 8 unidades de un `viewBox` de 600 pintado a 310 px, unos 4 y 5 px»); 07-prueba.md l. 11 (la comprobación 3, «unos 4 y 5 px en `Watch`»); 04-componentes.md l. 340 (`FormChart`: «los rótulos de los dos ejes van en HTML, junto al dibujo (los del vertical, a su izquierda), y ningún `<text>` dentro del SVG»; su PR, el 21h, 17-plan.md l. 157).",
+    "accion": "nada"
+  },
+  {
+    "id": "C-L3-12 · parte de L1 (§3.9)",
+    "tipo": "cruzada",
+    "origen": "cruzadas-L3.json n.º 12 → §3.9 (L1) y §12.3 (L2); coherencia.json fila 53 (aplicada); la parte de §12.3 es de L2",
+    "veredicto": "cerrado",
+    "evidencia": "03-fundamentos.md l. 180 (la fila de los tokens para la app: `packages/shared/tokens.json`, exportado como `@cyclingstar/shared/tokens.json`, generado por `apps/web/scripts/tokens-json.mjs`, §12.3), l. 188 (la forma de §12.3, `{ version, source, sha256, light, dark, darkScope }`), l. 167 (§3.8) y 3-l (l. 411, corregida con su motivo); 15-constantes.md l. 24 y el PR 7 (17-plan.md l. 83) remiten al mismo sitio. Quedaba en el bloque «Propuesto para el glosario» de §3 (l. 419) el sitio viejo, `apps/web/tokens.json`.",
+    "accion": "lo he cerrado yo: 03-fundamentos.md l. 419, `packages/shared/tokens.json` (exportado como `@cyclingstar/shared/tokens.json`), como el glosario (00-glosario.md l. 430)."
+  },
+  {
+    "id": "K-001",
+    "tipo": "coherencia",
+    "origen": "coherencia.json fila 59 (aplicada) → §1 y §2",
+    "veredicto": "cerrado",
+    "evidencia": "01-diagnostico.md l. 10 y l. 64 (unos 4 y 5 px, con el porqué del 8 de `getComputedStyle`); 02-principios.md l. 11 (fila 2.5, «unos 4 px en `Watch`») y l. 36 (§2.5: «las cotas del perfil, que hoy se pintan a unos 4 y 5 px, pasan a 12, en HTML sobre el dibujo, §14.4»).",
+    "accion": "nada"
+  },
+  {
+    "id": "K-002",
+    "tipo": "coherencia",
+    "origen": "coherencia.json fila 60 (aplicada) → §3.3",
+    "veredicto": "cerrado",
+    "evidencia": "03-fundamentos.md l. 92 («`useTheme()` … da el modo al `Segmented` de `/account`; los maillots no lo leen, porque su filete es un token, `kit-edge` (o `kit-edge-strong`), que el modo oscuro redefine (§8.3, §9.10)»), como §8.3, 8-s y §9.10.",
+    "accion": "nada"
+  },
+  {
+    "id": "K-003",
+    "tipo": "coherencia",
+    "origen": "coherencia.json fila 61 (aplicada) → §4",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 14 (`UiState` con `| 'readonly'`, el estado que usa `KitPicker` en §8.7).",
+    "accion": "nada"
+  },
+  {
+    "id": "K-004",
+    "tipo": "coherencia",
+    "origen": "coherencia.json fila 62 (aplicada) → §4.10",
+    "veredicto": "cerrado",
+    "evidencia": "04-componentes.md l. 382 («la carga | `Rest`, `Easy`, `Steady`, `Hard`, `Very hard`, siempre tras `Load:` (`Load: hard`), porque `Easy` y `Hard` son también intensidades del selector (10-b; 20-a) | `105 TSS`; `Easy` o `Hard` sueltos») y l. 383 («la tendencia | `Improving fast`, `Improving`, `Steady`, `Slipping`, `Slipping fast`, con el icono `trend` girado (13-a)»).",
+    "accion": "nada"
+  },
+  {
+    "id": "K-007 · parte de L1 (§4)",
+    "tipo": "coherencia",
+    "origen": "coherencia.json fila 65 (aplicada) → §4, §9, §10, §13, §15, §16, §17 y §20; la parte de §15 a §20, en auditorias-L3.json",
+    "veredicto": "cerrado",
+    "evidencia": "En el texto que se ensambla de §1 a §7 no queda ninguna remisión `§G.n` (búsqueda fuera de los bloques que `ensamblar.sh` quita). Quedaba una sin el signo: «en minúscula tras los dos puntos como en G.12» (04-componentes.md l. 286, la condición de la ficha), que remitía al glosario sin nombrarlo, y el glosario no va en `docs/visual.md`.",
+    "accion": "lo he cerrado yo: 04-componentes.md l. 286, fuera «como en G.12»; el ejemplo (`Fitness: good`, `Freshness: low`) dice solo lo que remitía."
+  },
+  {
+    "id": "A-L1-001",
+    "tipo": "comprobacion",
+    "origen": "regla 3: lo que dos secciones de L1 comparten (§4.8 y §5.3); aviso de Rcodigo-018",
+    "veredicto": "cerrado",
+    "evidencia": "La clase de `ui/10` (05-cumplimiento.md l. 80) llevaba `\\u{25B6}` suelto, que la corrección añadió para coger `PLAY_GLYPH`, y `Scale5` (04-componentes.md l. 317) y §10.4 escriben como texto de pantalla `Too little training ▶`, U+25B6, que decidió el dueño (D-00n); con la regla en `error` desde el paso 22 (§5.3), el eje de la escala no pasaría el lint, y tampoco `km ▶` de `RaceRadioPanel.tsx` l. 406, junto a un `◀ km` (U+25C0, l. 403) que la clase no tiene (comprobado en el clon de `58c14da`). `PLAY_GLYPH` es `▶︎`, U+25B6 seguido de U+FE0E (`PlayerControls.tsx` l. 34).",
+    "accion": "lo he cerrado yo: 05-cumplimiento.md l. 80 (la clase sin `\\u{25B6}`, más la secuencia `\\u{25B6}\\u{FE0E}` de `PLAY_GLYPH`, y fuera el `◀` y el `▶` solos, que son texto en los ejes de `Scale5`), l. 82 (el porqué, con las dos líneas de `RaceRadioPanel.tsx`) y 5-f (l. 114)."
+  },
+  {
+    "id": "A-L1-002",
+    "tipo": "comprobacion",
+    "origen": "regla 3: cada «Decisiones de esta sección» de §1 a §7 en 00-decisiones.md",
+    "veredicto": "cerrado",
+    "evidencia": "De las 58 decisiones de §3 a §7 (3-a a 3-l, 4-a a 4-p, 5-a a 5-h, 6-a a 6-g y 7-a a 7-o; §1 y §2 no toman ninguna), `00-decisiones.md` solo nombraba siete de pasada (3-i, 4-c, 4-f, 4-k, 5-b, 7-h y 7-l) y no tenía registro de las de las secciones. Las correcciones de D-03, D-07, D-08, D-09, D-12, D-14, D-17 y D-18 que hizo el corrector de L1 sí están (comprobado por grep: 15,08 en D-03; 26 iconos en D-07; `flagCells` en D-08; los cerillos como `Meter` en D-09; `line-clamp-2` en D-12; `@max-[4.75rem]` y el logotipo de 44 × 44 en D-17; los cinco caminos, `packages/shared/src` y las 46 pantallas en D-18).",
+    "accion": "lo he cerrado yo: 00-decisiones.md, sección nueva al final, «Registro de la auditoría de L1 y L3: las decisiones de las secciones» (hoy l. 885-1012), una fila por decisión con lo que decide y la decisión de arriba que precisa o aplica; las 58 de L1, hoy l. 891-948. Las de L2 las registra su auditor junto a cada decisión (ya lo hace en D-54)."
+  },
+  {
+    "id": "A-L1-003",
+    "tipo": "comprobacion",
+    "origen": "regla 3: rayas, guiones y bloques de código en §1 a §7",
+    "veredicto": "cerrado",
+    "evidencia": "Ninguna raya (—, –) ni guion entre espacios fuera del código en los siete ficheros, también en los bloques que el ensamblado quita; las comillas invertidas, por pares en cada línea; 21 bloques de código (`text`, `ts`, `css` y `json`), todos cerrados y con las llaves y los paréntesis por pares (el `index.css` de §3.9, l. 192-382, 5 y 5; el `json` de §7.4, l. 124-139, 4 y 4). Comprobado con un script sobre los ficheros de sección y con `ensamblar.sh --comprobar` (0 fallos).",
+    "accion": "nada"
+  },
+  {
+    "id": "A-L1-004",
+    "tipo": "comprobacion",
+    "origen": "regla 3: nombres de §1 a §7 en 00-glosario.md con la misma grafía",
+    "veredicto": "cerrado",
+    "evidencia": "Los nombres entre comillas invertidas del texto que se ensambla (componentes, constantes, funciones, ficheros y rutas) que no están en el glosario ni en el código de `58c14da` son APIs del navegador o de ESLint (`ResizeObserver`, `PerformanceObserver`, `TemplateElement`, `scrollWidth`…), guiones del rastro (`capturas/*.mjs`, `oscuro.py`…), props (`ariaLabel`, `busyLabel`), los ficheros de cada componente y su test, que el glosario cubre con `apps/web/src/components/ui/*.test.tsx` y la fila de cada componente en §G.3, y dos campos nuevos sin entrada: `label` y `shortLabel`, los dos rótulos de cada destino de `BottomNav` (06-telefono.md l. 80; 17-plan.md l. 101), que pedía el bloque «Propuesto para el glosario» de §6 (l. 166). `useHideBottomNav` y `sinRitmo` son nombres de E2 y de `docs/entrenamiento.md`, no de E3.",
+    "accion": "lo he cerrado yo: 00-glosario.md l. 201 (fila `BottomNav` de §G.3: «sus dos rótulos, `label` y `shortLabel` (el corto en celdas de menos de 76 px, `@max-[4.75rem]:`)»). La entrada vieja de `tokens.json` del bloque de §3, en C-L3-12."
+  },
+  {
+    "id": "A-L1-005",
+    "tipo": "comprobacion",
+    "origen": "regla 3: cifras que §1 a §7 comparten con otras secciones",
+    "veredicto": "cerrado",
+    "evidencia": "Coinciden en todas las secciones que las usan (grep): 26 iconos (§3.7, §4.6, §15.1, D-07); seis arbitrarios permitidos (§5.1, 5-a, §15.2); 2.740 de 6.322 apariciones en 183 clases (§5.1, 5-b, el PR 8 de §17.8, la cabecera); las deudas por página de §5.1 (`Race.tsx` 187 de 408, `MyRaces.tsx` 132 de 312, `TeamCalendar.tsx` 110 de 256, `AdminNames.tsx` 104 de 213, `RacesIndex.tsx` 100 de 252), las del 21a al 21e; 46 pantallas (§7.3, §16.2, §17.4, §17.23); diez tareas del dueño (§7.7, DD-20, el 24 de §17.2); 744 px de la 09 (§7.3, §14.4, §18.2, DD-13); 161 MB y unos 15 minutos del mundo y de 5 a 7 minutos por PR (§7.2, §7.4, §17.1, DD-16); los cinco caminos del filtro (§7.4, §17.1, DD-16); 303 de 310 carreras con gemelos (§1.8, §2.7) y 220 de 310 con dos maillots idénticos (§1.8, §19.2, §19.6); 15,08 de `ink` sobre `own-tint` (§3.1, §6.2, D-03).",
+    "accion": "nada"
+  },
+  {
+    "id": "A-L1-006",
+    "tipo": "comprobacion",
+    "origen": "dudas.md, «Abiertas, para los auditores», n.º 2 (§7.3 y §14.4)",
+    "veredicto": "cerrado",
+    "evidencia": "La comprobación propia de la pantalla 09 da 0 o 1, pero ninguna sección decía en qué clave de `telefono-baseline.json` se guarda, que lleva diez cifras por ancho en el orden de §7.1 (07-prueba.md l. 122-139); `dudas.md` lo dejaba al PR 17a.",
+    "accion": "lo he cerrado yo: 07-prueba.md l. 89, «que `telefono-baseline.json` guarda aparte, en una clave `\"360-barra\"` de la 09 con esa cifra sola, para no mover el orden de las diez de §7.1»."
+  },
+  {
+    "id": "A-L1-007",
+    "tipo": "comprobacion",
+    "origen": "dudas.md, «Abiertas, para los auditores», n.º 4 (§3.1 y §5.5)",
+    "veredicto": "abierto",
+    "evidencia": "El filete claro de `kit-edge` y `kit-edge-strong` (`rgb(0 0 0 / 0.3)` y `rgb(0 0 0 / 0.35)`, 03-fundamentos.md l. 37) no tiene pareja medida en `tokens.test.ts`, que §5.5 pide a cada `--color-*`; solo lo están sus valores oscuros (6,35, 5,29 y 3,21, l. 106). Es un filete y no un texto, y decir contra qué fondo y con qué umbral se comprueba pide una medida que esta auditoría no hace, por orden del dueño.",
+    "accion": "necesita una medida: el PR 7 (§17.7), que escribe `tokens.test.ts`, mide el filete claro contra `surface` y `canvas` y fija su umbral, o lo exime con su motivo, como el deshabilitado."
+  },
+  {
+    "id": "A-L1-008",
+    "tipo": "comprobacion",
+    "origen": "decisiones del dueño (00-encargo.md §7.2 a §7.6; D-00a a D-00q) en §1 a §7",
+    "veredicto": "cerrado",
+    "evidencia": "Sin restos de lo que sustituyeron, buscado en el texto que se ensambla: los 13 y 16 px solo salen como lo de hoy (§1.8, la tabla de §1, la línea base de 7-g) o lo que se quita (§2.7, «que sustituye a los 13 px de D-21»); la web instalable, solo retirada (§1.7, §4.7, §6.5, §7.5, §7.7); `Rusty`, `Too tired` y `Too fresh` solo en la columna «Nunca» de §4.10 y en el diagnóstico de hoy ([DUEÑO 12], §1.10), y el token `arrival-rusty` conserva el nombre del código por 3-k, que sigue a D-00n (el dueño solo cambió el texto de pantalla); el TSS, solo lo de hoy (§1.3, §1.10) y lo que sustituye `Meter` (§4.8); la estrella del nacional, ninguna (el nacional es su bandera, §2.7); y ningún «sin modo oscuro»: el claro por defecto, el oscuro en `/account` y sin `prefers-color-scheme` (§3.3).",
+    "accion": "nada"
+  }
+]

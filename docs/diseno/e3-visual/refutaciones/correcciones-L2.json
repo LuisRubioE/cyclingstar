@@ -1,0 +1,416 @@
+[
+  {
+    "id": "Rcodigo-023",
+    "estado": "aplicado",
+    "donde": "borrador/08-equipacion.md l. 30 (§8.1, la fila `yoke`)",
+    "motivo": "Comprobado con la cuadrática del escote de `TORSO` (`Jersey.tsx` l. 10-11): en x = 24 baja a y = 10 y el canesú llega a y = 19, 9 u, 5,25 px a 28. Los 6,42 eran el grosor junto a los hombros."
+  },
+  {
+    "id": "Rcodigo-024",
+    "estado": "aplicado",
+    "donde": "borrador/08-equipacion.md l. 34 (§8.1); borrador/08-equipacion.md l. 80 (el bloque de `kit.ts`)",
+    "motivo": "`kitCodeSchema` pasa a `z.custom<KitCode>((v) => typeof v === 'string' && parseKit(v) !== null)`, escrito en el bloque de `kit.ts` junto a `kitCode` y `canonicalKit`, con el porqué (un `z.string()` con `refine` infiere `string`; la comprobación con tsc 5.9.3 y zod 4.4.3 es del refutador)."
+  },
+  {
+    "id": "Rcodigo-025",
+    "estado": "aplicado",
+    "donde": "borrador/08-equipacion.md l. 93 (el bloque de `contracts.ts`); borrador/08-equipacion.md l. 248 (§8.7, las rutas); borrador/13-frontera.md l. 110 (§13.3)",
+    "motivo": "`teamRefSchema`, `conflictSchema` y `kitVerdictSchema` son `z.object`; `.strict()` queda en `kitSchema` y en los cuerpos de `PUT /api/teams/me/kit` y `POST /api/teams/me/kit/check`. §13.3 gana la regla general con la medida del refutador (`core.cjs` l. 114-120)."
+  },
+  {
+    "id": "Rcodigo-026",
+    "estado": "aplicado",
+    "donde": "borrador/08-equipacion.md l. 135 (§8.3, `KitProps`)",
+    "motivo": "`KitProps` escrito entero, con `view`, `KitBigSize` en `back` y `bib`, `bib: BibStyle`, el dorsal y la superficie. En lugar de `chest?` lleva `sponsors?` (una `SponsorMark` por zona), porque D-00g vende también la espalda, las mangas y el culote; §9.9 lo dice igual. `kitViews.test.tsx` lo comprueba con `@ts-expect-error`."
+  },
+  {
+    "id": "Rcodigo-027",
+    "estado": "aplicado",
+    "donde": "borrador/08-equipacion.md l. 149 (§8.3, la tabla de tamaños)",
+    "motivo": "Corregido como pide: `StageCards.tsx` l. 110 y 292 llaman a `LeaderJersey` directamente."
+  },
+  {
+    "id": "Rcodigo-028",
+    "estado": "aplicado",
+    "donde": "borrador/08-equipacion.md l. 154 (§8.4)",
+    "motivo": "El oráculo es un JSON que escribe una vez el script de Python con su huella; el CI no tiene Python."
+  },
+  {
+    "id": "Rcodigo-029",
+    "estado": "aplicado",
+    "donde": "borrador/08-equipacion.md l. 156 (§8.4)",
+    "motivo": "Renombrado como en 16-c, con el porqué (`vitest.config.ts` l. 7)."
+  },
+  {
+    "id": "Rcodigo-030",
+    "estado": "aplicado",
+    "donde": "borrador/08-equipacion.md l. 186 (§8.5, `setKit`); borrador/08-equipacion.md l. 250 (§8.7, la regla y sus casos); borrador/08-equipacion.md l. 348 (8-t); borrador/08-equipacion.md l. 335 (8-g)",
+    "motivo": "Resuelto entero. `setKit` escribe con `on conflict (team_id, valid_from_day) do update` (la última escritura del día para mañana vale, y las de antes no las llevó nadie), y solo un 23505 de `teams_world_kit_uidx` es `KitTakenError`; cualquier otro error sube. Tomar un equipo ya no escribe una fila `system`: escribe `teams.managed_since_day` (nueva columna nula en la 0052), que da el primer cambio libre de D-00k sin depender de una fila que el upsert borraría. `kits.test.ts` gana los casos: tomar un equipo y guardar maillot el mismo día da 200, dos guardados el mismo día cuentan uno, y el segundo cambio de la temporada da 429. `ensureKits` escribe cada equipo en un savepoint."
+  },
+  {
+    "id": "Rcodigo-031",
+    "estado": "parcial",
+    "donde": "borrador/08-equipacion.md l. 248 (§8.7); borrador/08-equipacion.md l. 350 (8-v)",
+    "motivo": "Choca con D-00k (decisión del dueño, §0), que fija «el editor responde `429 kit_reciente`», así que se queda el 429. Lo que el hallazgo teme se cierra en el texto: `kit_reciente` va sin `retry-after`, con `{ ok: false, error: 'kit_reciente', nextChangeDay }`, `KitPicker` lo distingue por su código del `demasiadas_peticiones` del límite (`app.ts` l. 210-211; `api/request.ts` l. 121-129) y el reproductor de `Watch`, que trata todo 429 como espera (`player.ts` l. 330-332), no llama nunca a estas rutas. El coste de usar el código del límite para una regla del juego va a §19 (cruzada C-L2-13), con el 409 del hallazgo como alternativa."
+  },
+  {
+    "id": "Rcobertura-020",
+    "estado": "aplicado",
+    "donde": "borrador/08-equipacion.md l. 102 (el bloque de `contracts.ts`); borrador/08-equipacion.md l. 248 (§8.7)",
+    "motivo": "En lugar de `.max(1)`, un solo `conflict` nulo, como `reserved` y `takenBy`: el rival que más carreras comparte de los que chocan, que es el que nombra la pantalla. Los ocho rivales siguen en `GET /api/teams/me/kit` porque el `Disclosure` los pinta."
+  },
+  {
+    "id": "Rcobertura-021",
+    "estado": "aplicado",
+    "donde": "borrador/08-equipacion.md l. 156 (§8.4)",
+    "motivo": "El mismo cambio que Rcodigo-029."
+  },
+  {
+    "id": "Rcobertura-022",
+    "estado": "aplicado",
+    "donde": "borrador/08-equipacion.md l. 266 (§8.10, el dibujo a 360); borrador/08-equipacion.md l. 286 (§8.10); borrador/08-equipacion.md l. 150 (§8.3, la tabla); borrador/08-equipacion.md l. 352 (8-x)",
+    "motivo": "Resuelto entero: la ficha del equipo dibujada a 360 × 800, con `KitShowcase` a 160 y sus pestañas entre el `PageHeader` y la plantilla, los puntos y el presupuesto a su derecha, dónde cae cada cosa (la `RankTable` hacia los 504 px, estimado, dentro de los 520 de la comprobación 7) y qué se hace si la comprobación la mide más abajo (las pestañas pasan a la `Sheet`). En la ficha del corredor, `RiderHeader` conserva su maillot de 40 y al tocarlo abre la `Sheet` con el de 320, por delante y, si es el de su equipo, por detrás con su dorsal. §4.6, §15.2 y el PR 17c, por cruzada."
+  },
+  {
+    "id": "Rcobertura-023",
+    "estado": "parcial",
+    "donde": "borrador/08-equipacion.md l. 264 (§8.10); borrador/08-equipacion.md l. 264 (§8.10)",
+    "motivo": "`KitShowcase` y `Sheet` quedan especificados aquí con su anatomía, estados y ARIA, con el texto del hallazgo (el `<dialog>` con `aria-modal`, el foco a `close`, `Escape`, el «atrás» con su entrada de historial, el foco de vuelta). Sus filas en §4.4, §4.11 y §G.3 son del lote L1: cruzada C-L2-01."
+  },
+  {
+    "id": "Ruso-022",
+    "estado": "aplicado",
+    "donde": "borrador/08-equipacion.md l. 116 (§8.2); borrador/08-equipacion.md l. 346 (8-r)",
+    "motivo": "Aplicado con las dos caras de D-00e: el PR sigue diciendo y proponiendo qué color o qué figura sobra (D-00e), pero no lo quita; repite la traducción con otro orden, hace ceder a los NPC (DD-08), y si aún falla, `it.todo` con la cifra, se fusiona y §19 gana DD-24 (cruzada C-L2-12). §8.6 añade qué hace la traducción si a un equipo no le queda ningún maillot que cumpla."
+  },
+  {
+    "id": "Ruso-023",
+    "estado": "parcial",
+    "donde": "borrador/08-equipacion.md l. 143 (§8.3)",
+    "motivo": "Corregido en §8.3, con las medidas del refutador. Lo de §14.4 (las fichas por renglón con `ResizeObserver` y `+N teams`) es del lote L3: cruzada Ruso-023."
+  },
+  {
+    "id": "Ruso-024",
+    "estado": "aplicado",
+    "donde": "borrador/08-equipacion.md l. 196 (§8.7); borrador/08-equipacion.md l. 230 (§8.7, la estimación)",
+    "motivo": "El orden de `/team/identity` escrito como pide, con la tarjeta de identidad de hoy fuera y los rivales plegados en `Show the teams you race`; la respuesta hacia los 190 px y la página hacia los 3.000 (estimado), y el PR 18b lo mide. §7.3 da para la 16 el maillot a 72 y el editor lo enseña a 160: cruzada C-L2-05."
+  },
+  {
+    "id": "Ruso-025",
+    "estado": "aplicado",
+    "donde": "borrador/08-equipacion.md l. 230 (§8.7)",
+    "motivo": "Anillo de 3 px `ink` a 2 px y `check` de 16 en `white` con filo `kit-ink` (no `ink`, que el modo oscuro de D-00i aclara), `data-state` `active`/`inactive`, con su caso en `KitPicker.test.tsx` y su estado en `/_ui`."
+  },
+  {
+    "id": "Ruso-026",
+    "estado": "aplicado",
+    "donde": "borrador/08-equipacion.md l. 230 (§8.7)",
+    "motivo": "La tachadura es una diagonal de 2 px en `white` con filo de 1 px en `kit-ink`; re-medido aquí (`corrector-L2/contraste2.py`): con uno de los dos tonos queda a 4,79:1 o más de los quince colores (el peor, `pink`). Toda muestra lleva un borde de 1 px `line-strong`, 3,66:1 sobre `surface`."
+  },
+  {
+    "id": "Ruso-027",
+    "estado": "aplicado",
+    "donde": "borrador/08-equipacion.md l. 292 (§8.10, la regla); borrador/08-equipacion.md l. 296 (§8.10, la tabla rehecha); borrador/08-equipacion.md l. 301 (§8.10); borrador/09-campeon.md l. 163 (§9.9)",
+    "motivo": "La tabla rehecha con 1,07 em (2, 3, 5 y 10 en el pecho; 6 y 12 en el nombre de la espalda, comprobado con el mismo cálculo de `capacidad` de `opciones/medidas.py`). Lo que se pinta lo decide el ancho medido: la marca de la lista cerrada lleva el suyo (Chromium, 12 px, 600, DejaVu Sans) y el nombre del equipo se mide en el aparato (`fitsText`, con `measureText`); `MISTRAL RACING` mide de 103,6 a 115,3 px (medido aquí, `letras2.mjs`), así que cabe a 320 y no a 160."
+  },
+  {
+    "id": "Rcodigo-032",
+    "estado": "aplicado",
+    "donde": "borrador/09-campeon.md l. 141 (§9.8)",
+    "motivo": "El texto decía que `stageTables.test.tsx` seguía pasando; no pasa, y se re-sella en el 12b como pide el hallazgo, con la causa escrita."
+  },
+  {
+    "id": "Rcodigo-033",
+    "estado": "aplicado",
+    "donde": "borrador/09-campeon.md l. 141 (§9.8)",
+    "motivo": "El nombre y después el maillot, el orden de 4-i y de D-00c, y la bandera fuera."
+  },
+  {
+    "id": "Rcodigo-034",
+    "estado": "aplicado",
+    "donde": "borrador/09-campeon.md l. 195 (§9.10)",
+    "motivo": "Re-medido aquí (`corrector-L2/contraste2.py`, con la mezcla en sRGB de 8 bits): 6,35, 5,29 y 3,21; el refutador da 6,34 sin redondear la mezcla. La «noche» de identidad no es de esta paleta."
+  },
+  {
+    "id": "Rcobertura-024",
+    "estado": "aplicado",
+    "donde": "borrador/08-equipacion.md l. 192 (§8.6); borrador/08-equipacion.md l. 334 (8-f); borrador/09-campeon.md l. 63 (§9.1); borrador/09-campeon.md l. 220 (9-d); borrador/09-campeon.md l. 223 (9-g); borrador/09-campeon.md l. 224 (9-h); borrador/10-cuadro.md l. 224 (10-b)",
+    "motivo": "Fuera todas las remisiones a «la duda N», que no entran en el documento: en §8.6 (DD-07 ya aceptada, D-00l), 8-f, §9.1 (lo mira el dueño en la hoja del 16a), 9-d, 9-g, 9-h y 10-b."
+  },
+  {
+    "id": "Rcobertura-025",
+    "estado": "aplicado",
+    "donde": "borrador/09-campeon.md l. 105 (§9.5)",
+    "motivo": "La hoja es del PR 16a (17-m), con la respuesta del dueño antes del 17a; con D-00m va sin estrella, para las banderas con texto y las gemelas."
+  },
+  {
+    "id": "Rcobertura-026",
+    "estado": "aplicado",
+    "donde": "borrador/09-campeon.md l. 109 (§9.6); borrador/09-campeon.md l. 227 (9-k)",
+    "motivo": "Medido aquí sin estrella (D-00m; `corrector-L2/medir-nacional3.py` y `extra3.py`): en grises, 8 nacionales a menos de 10 del verde (el peor, Uzbekistán, 5,9), 7 del amarillo (Honduras, 7,2) y 1 del azul (Burkina Faso, 9,8); en las cuatro visiones, 10,0 o más (San Vicente, en el borde). Escrito como coste para §19, porque ni la bandera ni el líder se cambian, y `champion.test.ts` lo escribe sin umbral. Contestada también la otra mitad de la 7-h: el nacional es un maillot con su bandera, no una bandera entre maillots."
+  },
+  {
+    "id": "Rcobertura-027",
+    "estado": "aplicado",
+    "donde": "borrador/09-campeon.md l. 141 (§9.8)",
+    "motivo": "El mismo cambio que Rcodigo-033; cierra también la duda de L3 (17-h)."
+  },
+  {
+    "id": "Rcobertura-028",
+    "estado": "aplicado",
+    "donde": "borrador/09-campeon.md l. 195 (§9.10)",
+    "motivo": "Corregido como pide."
+  },
+  {
+    "id": "Ruso-028",
+    "estado": "aplicado",
+    "donde": "borrador/08-equipacion.md l. 34 (§8.1); borrador/08-equipacion.md l. 345 (8-q); borrador/09-campeon.md l. 137 (§9.7); borrador/00-decisiones.md l. 493 (D-28)",
+    "motivo": "Aplicado y medido (`corrector-L2/medir-nacional3.py`): se reservan 19 maillots más (entre ellos `plain.sky`, `plain.pink`, `plain.teal` y `band.pink.yellow`) y el permitido más cercano queda a 10,4 del amarillo y 10,2 del verde en grises. Las cuentas de §8.1 pasan a 491 permitidos y 458 distintos (con los nacionales sin estrella de D-00m). Cambia D-28 en `00-decisiones.md`, con la medida nueva; D-00b sigue igual (los grises se informan en todo lo demás). El principio 2.7 es del lote L1: cruzada Ruso-028."
+  },
+  {
+    "id": "Rcodigo-035",
+    "estado": "aplicado",
+    "donde": "borrador/10-cuadro.md l. 140 (§10.5); borrador/10-cuadro.md l. 223 (10-a)",
+    "motivo": "`Back to …` con `icon=\"retry\"` y sin el glifo en el texto, en §10.5, en la tabla de orígenes, en 10-a y en el glosario; en los dibujos de texto, `↺` sigue representando el icono, como `✈` el de viaje."
+  },
+  {
+    "id": "Rcobertura-029",
+    "estado": "aplicado",
+    "donde": "borrador/10-cuadro.md l. 22 (§10.2)",
+    "motivo": "Corregido como pide."
+  },
+  {
+    "id": "Rcobertura-030",
+    "estado": "aplicado",
+    "donde": "borrador/10-cuadro.md l. 66 (§10.2)",
+    "motivo": "Diez, con la 10 sin maillots que medir en esta pantalla."
+  },
+  {
+    "id": "Rcobertura-031",
+    "estado": "aplicado",
+    "donde": "borrador/10-cuadro.md l. 106 (§10.3)",
+    "motivo": "Corregido como pide."
+  },
+  {
+    "id": "Rcobertura-032",
+    "estado": "parcial",
+    "donde": "borrador/10-cuadro.md l. 110 (§10.4); borrador/10-cuadro.md l. 110 (§10.4); borrador/10-cuadro.md l. 229 (10-g)",
+    "motivo": "El texto, corregido (el mejor es el cuarto, porque los cortes no son simétricos). El mejor se señala siempre, pero con un borde de 2 px en `good` y no con el icono `check` delante de la palabra, que no cabe: `Spot on` mide de 44,5 a 52,2 px a 12 px (medido aquí, `letras2.mjs`) y con el icono y su hueco pasa de 62, frente a los 51,2 px de un tramo a 320. El `aria-label` acaba en `best is Spot on`. §4.8 es del lote L1: cruzada C-L2-03."
+  },
+  {
+    "id": "Rcobertura-033",
+    "estado": "aplicado",
+    "donde": "borrador/10-cuadro.md l. 110 (§10.4)",
+    "motivo": "Se usa el de §4.8, con la carrera, y con los ejes de D-00n y la marca del mejor; §4.8 tiene que decir lo mismo: cruzada C-L2-03."
+  },
+  {
+    "id": "Ruso-029",
+    "estado": "parcial",
+    "donde": "borrador/10-cuadro.md l. 46 (§10.2, los dibujos); borrador/10-cuadro.md l. 144 (§10.6); borrador/10-cuadro.md l. 233 (10-k)",
+    "motivo": "Los dibujos y el texto de §10 usan `Field` `inline`, con `aria-labelledby` al título de su fila; la variante en §4.3 es del lote L1: cruzada Ruso-029."
+  },
+  {
+    "id": "Ruso-030",
+    "estado": "parcial",
+    "donde": "borrador/10-cuadro.md l. 62 (§10.2)",
+    "motivo": "Corregido el dibujo de §10.2 (cuatro destinos para el agente libre); §6.3 l. 1102-1103 y §4.4 l. 651 son del lote L1: cruzada Ruso-030."
+  },
+  {
+    "id": "Ruso-031",
+    "estado": "aplicado",
+    "donde": "borrador/10-cuadro.md l. 66 (§10.2)",
+    "motivo": "Escrito qué mide el prototipo y que esta pantalla está sin medir hasta el PR 14."
+  },
+  {
+    "id": "Ruso-032",
+    "estado": "aplicado",
+    "donde": "borrador/10-cuadro.md l. 132 (§10.5, la tabla); borrador/10-cuadro.md l. 231 (10-i)",
+    "motivo": "Tono `neutral` sin icono y borde `warn`; la celda `Race` de la tira se queda."
+  },
+  {
+    "id": "Ruso-033",
+    "estado": "aplicado",
+    "donde": "borrador/10-cuadro.md l. 146 (§10.6); borrador/10-cuadro.md l. 48 (§10.2, el dibujo); borrador/10-cuadro.md l. 232 (10-j)",
+    "motivo": "El icono encima de la palabra, la celda de 48 px de alto y los tres dibujos (las dos semanas de §10.2 y la de §10.8) con el icono encima."
+  },
+  {
+    "id": "Rcodigo-036",
+    "estado": "aplicado",
+    "donde": "borrador/11-debajo.md l. 23 (§11.2, el bloque); borrador/11-debajo.md l. 68 (§11.2); borrador/11-debajo.md l. 174 (11-f)",
+    "motivo": "Fuera `.strict()` de los cinco esquemas de respuesta; queda en `planPreviewRequestSchema` y en su `plan`."
+  },
+  {
+    "id": "Rcodigo-037",
+    "estado": "aplicado",
+    "donde": "borrador/11-debajo.md l. 145 (§11.6)",
+    "motivo": "Corregido como pide."
+  },
+  {
+    "id": "Rcodigo-038",
+    "estado": "aplicado",
+    "donde": "borrador/11-debajo.md l. 149 (§11.7)",
+    "motivo": "Corregido como pide."
+  },
+  {
+    "id": "Rcobertura-034",
+    "estado": "parcial",
+    "donde": "borrador/11-debajo.md l. 9 (§11.1)",
+    "motivo": "Añadido a lo que E3 deja escrito, con su línea de `docs/entrenamiento.md` y el sitio en el `Chip`. Que la corrección de l. 1697 en el PR 24 diga qué queda es de §17.26 (lote L3): cruzada Rcobertura-034."
+  },
+  {
+    "id": "Ruso-034",
+    "estado": "aplicado",
+    "donde": "borrador/11-debajo.md l. 80 (§11.3); borrador/11-debajo.md l. 175 (11-g)",
+    "motivo": "Reescrito como pide: el mundo de la prueba, desde el día 40, contra el diario que ya trae y frente a la vista previa de hoy, sin correr el tick; falla si la nueva no acierta más (salvo que las dos acierten todo). Los «unos 20 s» del trabajo `Teléfono` en §16.2 son del lote L3: cruzada Ruso-034."
+  },
+  {
+    "id": "Rcodigo-039",
+    "estado": "desestimado",
+    "donde": "borrador/12-instalable.md l. 55 (§12.4)",
+    "motivo": "El manifiesto y sus atajos salen del documento: el dueño quitó la web instalable (D-00p, `00-encargo.md` §7.6, decisión del dueño en §0) y con ella el sensor de `?source=`."
+  },
+  {
+    "id": "Rcodigo-040",
+    "estado": "desestimado",
+    "donde": "borrador/12-instalable.md l. 55 (§12.4)",
+    "motivo": "`decide.js`, `sw.js` y su registro salen con el service worker (D-00p): no hay script que registrar."
+  },
+  {
+    "id": "Rcobertura-035",
+    "estado": "desestimado",
+    "donde": "borrador/12-instalable.md l. 55 (§12.4)",
+    "motivo": "`InstallHint` sale con la web instalable (D-00p); DD-15 la decidió el dueño como «no aplica»."
+  },
+  {
+    "id": "Rcodigo-041",
+    "estado": "aplicado",
+    "donde": "borrador/13-frontera.md l. 11 (§13.1); borrador/13-frontera.md l. 51 (§13.2, `markSchema`)",
+    "motivo": "Corregido en los dos sitios."
+  },
+  {
+    "id": "Rcodigo-042",
+    "estado": "aplicado",
+    "donde": "borrador/13-frontera.md l. 56 (§13.2); borrador/13-frontera.md l. 164 (13-a)",
+    "motivo": "`TREND_ARROW_CODE` en `rider.ts`, tipado con `satisfies Record<TrendArrow, string>` (no con el esquema de `contracts.ts`, que importa `rider.ts`); 13-a dice que la ruta `/trend` lo usa en el 19b y que `AttributeList` lee el código y pinta el icono `trend` girado."
+  },
+  {
+    "id": "Rcodigo-043",
+    "estado": "aplicado",
+    "donde": "borrador/13-frontera.md l. 110 (§13.3); borrador/13-frontera.md l. 132 (§13.5)",
+    "motivo": "Comprobado en el clon: `rows.map((r) => ({ ...r, personal: false }))` en `packages/db/src/news.ts` l. 446-448 y la ruta en `apps/api/src/routes/teams.ts` l. 150-152."
+  },
+  {
+    "id": "Rcobertura-036",
+    "estado": "aplicado",
+    "donde": "borrador/13-frontera.md l. 125 (§13.5)",
+    "motivo": "Comprobado: `FormChart` pinta `fitness` y `freshness` de `conditionSeries` (`FormChart.tsx` l. 27, 76 y 82), y §4.6 la conserva; la fila dice las dos cosas y qué pasa si la gráfica sale."
+  },
+  {
+    "id": "D-L2-01",
+    "estado": "aplicado",
+    "donde": "borrador/09-campeon.md l. 195 (§9.10)",
+    "motivo": "dudas.md (L1): «El fondo `ink-2` de CueCard choca con el ámbito oscuro». §9.10 dice `navy`, como 14-a."
+  },
+  {
+    "id": "D-L2-02",
+    "estado": "aplicado",
+    "donde": "borrador/12-instalable.md l. 25 (§12.2)",
+    "motivo": "dudas.md (L1): el `include` de vitest no recogía `decide.test.ts` ni `peso.test.mjs`. `decide.test.ts` sale con el service worker (D-00p) y `peso.test.mjs` corre con `node --test` en el trabajo `Build`, como decidió L3."
+  },
+  {
+    "id": "D-L2-03",
+    "estado": "aplicado",
+    "donde": "borrador/12-instalable.md l. 33 (§12.2)",
+    "motivo": "dudas.md (L1): `rendimiento.spec.ts` frente a `nocturno.spec.ts`. Manda `nocturno.spec.ts`, como el glosario y L3; D-50 en `00-decisiones.md` sigue diciendo el otro (para la coherencia)."
+  },
+  {
+    "id": "D-L2-04",
+    "estado": "parcial",
+    "donde": "borrador/09-campeon.md l. 223 (9-g)",
+    "motivo": "dudas.md (L2): L1 y el glosario dicen `ChampionSash` y `NATIONAL_SASH`. Estas secciones dicen `ChampionJersey` y sin `NATIONAL_SASH`; §2.7, §3.8 y la tabla de §4.11 son del lote L1: cruzada C-L2-04."
+  },
+  {
+    "id": "D-L2-05",
+    "estado": "aplicado",
+    "donde": "borrador/09-campeon.md l. 224 (9-h)",
+    "motivo": "dudas.md (L2): `champion.test.ts` va en `packages/db` (9-h), como cerró L3."
+  },
+  {
+    "id": "D-L2-06",
+    "estado": "aplicado",
+    "donde": "borrador/08-equipacion.md l. 192 (§8.6)",
+    "motivo": "dudas.md (L2): la alternativa de DD-07 chocaba con D-00e. El dueño aceptó DD-07 (D-00l) y la alternativa ya no se ofrece."
+  },
+  {
+    "id": "D-L2-07",
+    "estado": "parcial",
+    "donde": "borrador/08-equipacion.md l. 356 (§8); borrador/09-campeon.md l. 230 (§9)",
+    "motivo": "dudas.md (L2): lo que el glosario tiene que añadir. Está en los bloques «Propuesto para el glosario» de §8 y §9, corregidos con D-00k, D-00m y D-00p; fundirlo es de la coherencia."
+  },
+  {
+    "id": "D-L2-08",
+    "estado": "aplicado",
+    "donde": "borrador/09-campeon.md l. 109 (§9.6)",
+    "motivo": "dudas.md (L2): «la estrella dorada no separa las banderas a 28 px; 21 frente a 17». Con D-00m no hay estrella y la reserva se ha medido otra vez: 26 maillots frente a 16 nacionales, tras los grises de los líderes (28 frente a 18 sin ellos). §19: cruzada C-L2-14."
+  },
+  {
+    "id": "D-L2-09",
+    "estado": "aplicado",
+    "donde": "borrador/09-campeon.md l. 73 (§9.2)",
+    "motivo": "dudas.md (L2): el mundial a 9,2 de la marca en grises. Sigue escrito como su coste en §9.2 (no cambia con D-00m, que solo toca al nacional)."
+  },
+  {
+    "id": "D-L2-10",
+    "estado": "aplicado",
+    "donde": "borrador/08-equipacion.md l. 34 (§8.1)",
+    "motivo": "dudas.md (L2): las cifras de D-00h con la estrella en su sitio (12 frente a 10, 524 y 491). Sustituidas por las medidas sin estrella y con los grises de los líderes: 491 permitidos y 458 distintos. D-00m remite a §8 y §9; §19, por cruzada C-L2-14."
+  },
+  {
+    "id": "D-L2-11",
+    "estado": "aplicado",
+    "donde": "borrador/09-campeon.md l. 238 (§9, dudas)",
+    "motivo": "dudas.md (L2): Ghana, Chad e Irak no están entre los 133. Con D-00m la estrella y sus ejemplos desaparecen; §9.5 ya no los nombra."
+  },
+  {
+    "id": "D-L2-12",
+    "estado": "aplicado",
+    "donde": "borrador/08-equipacion.md l. 186 (§8.5); borrador/08-equipacion.md l. 290 (§8.10)",
+    "motivo": "dudas.md (L2 y L3): casar `teams.bib` con su migración. Va en la `0052` (16a), con `kit_canonical` y `managed_since_day`; 17-g del plan, por cruzada C-L2-10."
+  },
+  {
+    "id": "D-L2-13",
+    "estado": "aplicado",
+    "donde": "borrador/09-campeon.md l. 50 (§9.1)",
+    "motivo": "dudas.md (L2): el filo `navy-dark` era lo único sin aceptar; el dueño lo aceptó (DD-21, D-00l)."
+  },
+  {
+    "id": "D-L2-14",
+    "estado": "aplicado",
+    "donde": "opciones/medidas.py l. 873-879 (ya resuelto allí; nada que cambiar en §8 a §13)",
+    "motivo": "dudas.md (L2): `opciones/medidas.py` no declaraba `xmlns:xlink` y 65 banderas fallaban. Hoy `para_medir` lo declara (`opciones/medidas.py` l. 873-879) y la versión 4 de la página pinta las 133; `medir-nacional3.py` tuvo que dejar de añadirlo otra vez, porque duplicado rompe el SVG."
+  },
+  {
+    "id": "D-L2-15",
+    "estado": "aplicado",
+    "donde": "borrador/08-equipacion.md l. 135 (§8.3); borrador/08-equipacion.md l. 264 (§8.10)",
+    "motivo": "dudas.md (L3): el plan remitía a §8 y §9 sin nombres de código para las vistas. Ya los tienen: `KitView`, `KitBigSize`, `BibStyle`, `KitProps`, `KitShowcase` y `Sheet`, y el culote en la 0052."
+  },
+  {
+    "id": "D-L2-16",
+    "estado": "parcial",
+    "donde": "borrador/08-equipacion.md l. 143 (§8.3)",
+    "motivo": "dudas.md (L3): las cinco fichas por renglón, estimadas. §8.3 da los 282 y 242 px útiles medidos por el refutador de uso; la regla de §14.4 es del lote L3 (cruzada Ruso-023)."
+  },
+  {
+    "id": "D-L2-17",
+    "estado": "aplicado",
+    "donde": "borrador/09-campeon.md l. 141 (§9.8)",
+    "motivo": "dudas.md (L3): el orden del nombre y el maillot del equipo de §9.8 (17-h). El nombre y después el maillot."
+  },
+  {
+    "id": "D-L2-18",
+    "estado": "aplicado",
+    "donde": "borrador/12-instalable.md l. 55 (§12.4)",
+    "motivo": "dudas.md (orquestador): «(§4.22.3; mapa 04…)» tenía que decir `docs/agenda.md` §4.22.3. La frase estaba en la vieja §12.8, el medidor de la app nativa, que sale con D-00p; las remisiones a otros documentos que quedan en §12 llevan su nombre."
+  }
+]

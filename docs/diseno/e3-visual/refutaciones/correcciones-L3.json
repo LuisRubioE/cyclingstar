@@ -1,0 +1,554 @@
+[
+  {
+    "id": "Rcodigo-044",
+    "estado": "aplicado",
+    "donde": "borrador/14-e2.md l. 95 (§14.5); borrador/14-e2.md l. 12 (§14, la tabla)",
+    "motivo": "Comprobado en el clon: `CueCard.tsx` l. 46 lleva `min-h-[72px]` y l. 48 `rounded-2xl`. Se corrigen las tres citas."
+  },
+  {
+    "id": "Rcodigo-045",
+    "estado": "aplicado",
+    "donde": "borrador/14-e2.md l. 95 (§14.5)",
+    "motivo": "El blanco al 75 % da 9,10 sobre `navy-dark` y 7,36 sobre `navy` (§3.3); se invierte el orden de los fondos."
+  },
+  {
+    "id": "Rcobertura-037",
+    "estado": "aplicado",
+    "donde": "borrador/14-e2.md l. 27 (§14.1); borrador/16-tests.md l. 103 (§16.5); borrador/17-plan.md l. 131 (§17.17, PR 17a); borrador/17-plan.md l. 153 (§17.20, PR 20)",
+    "motivo": "Los tres umbrales de `docs/retransmision.md` §18.5 (l. 12446-12453, leídos) entran en `nocturno.spec.ts` sobre la pantalla 09 a ×1 y a ×4, con cómo se miden (contador de `requestAnimationFrame` y `PerformanceObserver` de `longtask`), y el 17a y el 20 escriben el antes y el después. §7.5, que es de L1, va a cruzadas (C-L3-03)."
+  },
+  {
+    "id": "Rcobertura-038",
+    "estado": "aplicado",
+    "donde": "borrador/14-e2.md l. 9 (§14, la tabla); borrador/14-e2.md l. 15 (§14, la tabla); borrador/14-e2.md l. 16 (§14, la tabla); borrador/14-e2.md l. 46 (§14.3); borrador/14-e2.md l. 99 (§14.6)",
+    "motivo": "Tres filas nuevas y su texto: `TimeTrialOverlay` en el ámbito oscuro con el reloj en `row` y el sillón en `gold`, `ClockNotice` en `Notice` `info`, y `RevealConfirm`, `TwoDeviceNotice` y `DiagnosticStrip` en `Notice` y `Button` sin cambiar su lógica. Añadir `TimeTrialOverlay` a la lista del ámbito de §3.3 es de L1: cruzada C-L3-04."
+  },
+  {
+    "id": "Rcobertura-039",
+    "estado": "aplicado",
+    "donde": "borrador/14-e2.md l. 25 (§14.1); borrador/16-tests.md l. 71 (§16.3); borrador/17-plan.md l. 131 (§17.17, PR 17a); borrador/17-plan.md l. 169 (§17.24, PR 24)",
+    "motivo": "D-00c manda sobre D-56 (§0). Comprobado en el clon: `riderFull` (`stageJournal.ts` l. 278-292) pone el maillot delante y `stageJournal.test.ts` l. 1121 lo fija; `docs/navegacion.md` l. 496-497 lo escribe. El orden nuevo, en el rótulo, la crónica, la voz, la crono, la radio y la barra, con el re-sello en el 17a. Funde la cruzada C-L1-03. La crónica se escribe con la bandera y el maillot dibujados y no con los emoji del comentario del código, que son ilustrativos."
+  },
+  {
+    "id": "Rcobertura-040",
+    "estado": "aplicado",
+    "donde": "borrador/14-e2.md l. 89 (§14.4); borrador/14-e2.md l. 125 (14-g); borrador/18-riesgos.md l. 34 (§18.2)",
+    "motivo": "Los altos de E3 frente a los 430 px de E2 (`docs/retransmision.md` l. 12450), con su suma estimada en prosa (hacia los 740 px con un renglón de fichas y los 836 con cuatro), y la comprobación propia de la pantalla 09 (el borde de `GroupBar` a 744 px o menos) con su arreglo si falla (14-g). Añadirla a la tabla de §7.3 es de L1: cruzada C-L3-01."
+  },
+  {
+    "id": "Ruso-035",
+    "estado": "aplicado",
+    "donde": "borrador/14-e2.md l. 34 (§14.2, el dibujo); borrador/14-e2.md l. 42 (§14.2); borrador/14-e2.md l. 7 (§14, la tabla)",
+    "motivo": "El dibujo es el de la captura 08: el `h1` de hoy con el tipo de etapa, la ruta con su distancia en su renglón (`StageRoute`) y las cuatro pestañas de `stageTabLabel`; la capa fija hacia los 250 px (estimado). Las medidas de 391 y 456 px son del refutador de uso. §4.4 es de L1: cruzada C-L3-05; D-56 dice 228 (de telefono): cruzada C-L3-15."
+  },
+  {
+    "id": "Ruso-036",
+    "estado": "aplicado",
+    "donde": "borrador/14-e2.md l. 72 (§14.4); borrador/14-e2.md l. 125 (14-g); borrador/16-tests.md l. 55 (§16.2)",
+    "motivo": "Comprobado en el clon: las filas de `GroupBar.tsx` son `<div>` (l. 101-105). La fila pasa a `<button>` de 44 con `aria-expanded` y `aria-controls`, y su lista de `RiderLabel` se pinta al abrir, no a `barHz`; el botón de las plegadas, `Button` `quiet` de 44. El «como hoy» de D-00b es de §0 (del orquestador): cruzada C-L3-15, y el «sigue» de §8.3, C-L3-17."
+  },
+  {
+    "id": "Ruso-037",
+    "estado": "aplicado",
+    "donde": "borrador/14-e2.md l. 74 (§14.4)",
+    "motivo": "Las dos letras del país junto al maillot del campeón nacional en la barra, porque en ella no está el texto que separa a las gemelas por debajo de 72 px (§9.5, 85 parejas a menos de 10). La frase de §9.5 es de L2: cruzada C-L3-07."
+  },
+  {
+    "id": "Ruso-038",
+    "estado": "aplicado",
+    "donde": "borrador/14-e2.md l. 82 (§14.4, el dibujo)",
+    "motivo": "El dibujo dice ya que la fila 2 es la del espectador, que es la que lleva su línea en el móvil junto a la fila 1 (`GroupBar.tsx` l. 135)."
+  },
+  {
+    "id": "Ruso-039",
+    "estado": "aplicado",
+    "donde": "borrador/14-e2.md l. 91 (§14.4); borrador/14-e2.md l. 126 (14-h); borrador/17-plan.md l. 157 (§17.21)",
+    "motivo": "Las cotas del perfil y los tres rótulos de `FormChart`, en HTML sobre el dibujo, con la medida del refutador (`getScreenCTM()`: 4,65 px a 360). `FormChart` entra en el 21h, el PR de la ficha (Rcodigo-061 la separa del 21j). Las cifras de «8 px» de §1.5 y §7.1 son de L1: cruzada C-L3-06."
+  },
+  {
+    "id": "Ruso-040",
+    "estado": "aplicado",
+    "donde": "borrador/14-e2.md l. 95 (§14.5); borrador/14-e2.md l. 99 (§14.6); borrador/14-e2.md l. 127 (14-i); borrador/16-tests.md l. 54 (§16.2)",
+    "motivo": "Comprobado en el clon: `truncate` en `CueCard.tsx` l. 63, 80, 85 y 88, `StageCards.tsx` l. 243 y 275, `VoiceTicker.tsx` l. 45 y `TimeTrialBoard.tsx` l. 87. Los nombres parten de línea; la voz se queda en un renglón con `data-clip-ok`; sus casos, en los tests del PR 20."
+  },
+  {
+    "id": "Rcodigo-046",
+    "estado": "aplicado",
+    "donde": "borrador/15-constantes.md l. 53 (§15.2); borrador/15-constantes.md l. 58 (§15.2); borrador/15-constantes.md l. 59 (§15.2); borrador/15-constantes.md l. 60 (§15.2); borrador/15-constantes.md l. 50 (§15.2); borrador/15-constantes.md l. 102 (15-d)",
+    "motivo": "Las constantes de §8.10 y de §9.1 entran con su valor, su intención y su paso, y `KIT_SPONSOR_TEXT_MIN_PX` queda solo para la marca del patrocinador. `NATIONAL_STAR_SITES` no entra: D-00m quitó la estrella del nacional."
+  },
+  {
+    "id": "Rcodigo-047",
+    "estado": "aplicado",
+    "donde": "borrador/15-constantes.md l. 52 (§15.2)",
+    "motivo": "El sitio de `NATIONAL_STAR` ya no hace falta: D-00m (decisión del dueño, posterior al hallazgo) quitó la estrella del nacional, y la constante sale con `NATIONAL_STAR_SITES`, `NATIONAL_STAR_OVERRIDES` y `CHAMPION_GOLD` («Lo que sale de §G.6»)."
+  },
+  {
+    "id": "Rcodigo-048",
+    "estado": "aplicado",
+    "donde": "borrador/15-constantes.md l. 56 (§15.2)",
+    "motivo": "La cifra del hallazgo, 524 y 491, ya no es la vigente: con el nacional sin estrella (D-00m) y los líderes también en grises (8-q), §8.1 da 491 permitidos y 458 distintos (`corrector-L2/medir-nacional3.py`), que es lo que se escribe."
+  },
+  {
+    "id": "Rcobertura-041",
+    "estado": "aplicado",
+    "donde": "borrador/15-constantes.md l. 52 (§15.2)",
+    "motivo": "El mismo caso que Rcodigo-047: la estrella del nacional y su sitio salen por D-00m."
+  },
+  {
+    "id": "Rcobertura-042",
+    "estado": "aplicado",
+    "donde": "borrador/15-constantes.md l. 55 (§15.2); borrador/15-constantes.md l. 53 (§15.2); borrador/15-constantes.md l. 102 (15-d)",
+    "motivo": "La fila se separa en `KIT_SPONSOR_TEXT_MIN_PX` = 72 y `NATIONAL_CODE` con `minPx: 72`, y entran las constantes de §8.10 con sus valores (las de la espalda, el culote y las zonas)."
+  },
+  {
+    "id": "Rcobertura-043",
+    "estado": "aplicado",
+    "donde": "borrador/15-constantes.md l. 56 (§15.2)",
+    "motivo": "El mismo caso que Rcodigo-048, con la cifra vigente tras D-00m y 8-q."
+  },
+  {
+    "id": "Rcodigo-049",
+    "estado": "aplicado",
+    "donde": "borrador/16-tests.md l. 37 (§16.2); borrador/16-tests.md l. 73 (§16.3)",
+    "motivo": "Comprobado en el clon: el fichero existe y su caso de l. 58 fija el relleno con `defaultCoachPlan`. Pasa a ampliado, con su fila de re-sello en el 14."
+  },
+  {
+    "id": "Rcodigo-050",
+    "estado": "aplicado",
+    "donde": "borrador/16-tests.md l. 74 (§16.3); borrador/15-constantes.md l. 85 (§15.3); borrador/17-plan.md l. 9 (§17.1, regla 3); borrador/00-decisiones.md l. 591 (D-38)",
+    "motivo": "Comprobado en el clon: `packages/engine/src/sim/world.ts` l. 44 la importa y l. 1093 la llama. La función se queda; el 14 solo quita su uso en la web y no toca el motor. Es evidencia nueva contra la letra de D-38, que se corrige; §11.4 es de L2: cruzada C-L3-09."
+  },
+  {
+    "id": "Rcodigo-051",
+    "estado": "aplicado",
+    "donde": "borrador/16-tests.md l. 88 (§16.4)",
+    "motivo": "La cifra vigente es 491 y 458 (D-00m y 8-q), no la de 524 y 491 que pedía el hallazgo, que es de antes de quitar la estrella."
+  },
+  {
+    "id": "Rcodigo-052",
+    "estado": "aplicado",
+    "donde": "borrador/16-tests.md l. 89 (§16.4)",
+    "motivo": "Sin estrella (D-00m) §9.6 mide 26 maillots frente a 16 nacionales; las 12 frente a 10 del hallazgo eran con la estrella en su sitio."
+  },
+  {
+    "id": "Rcobertura-044",
+    "estado": "aplicado",
+    "donde": "borrador/16-tests.md l. 88 (§16.4); borrador/16-tests.md l. 89 (§16.4)",
+    "motivo": "Los dos arreglos de Rcodigo-051 y Rcodigo-052, con las cifras vigentes."
+  },
+  {
+    "id": "Ruso-041",
+    "estado": "aplicado",
+    "donde": "borrador/16-tests.md l. 44 (§16.2); borrador/16-tests.md l. 127 (16-i); borrador/16-tests.md l. 58 (§16.2); borrador/16-tests.md l. 107 (§16.5)",
+    "motivo": "La cuenta por color y por figura son 22 traducciones más (de 13 a 26 min a 28 px), así que solo corre si la puerta falla o de noche; `kits.test.ts` cuesta de 2 a 4 min y la rápida suma de 3 a 5 min entre los tres, con `planPreviewDiary.test.ts` fuera de ella. §8.2 es de L2: cruzada C-L3-14."
+  },
+  {
+    "id": "Ruso-042",
+    "estado": "aplicado",
+    "donde": "borrador/16-tests.md l. 51 (§16.2); borrador/16-tests.md l. 128 (16-j); borrador/17-plan.md l. 145 (§17.19, PR 19a)",
+    "motivo": "El mundo de los bancos solo da de alta `player@example.com` (`spoilerWorld.ts` l. 248-249) y ningún equipo tiene dueño (l. 160-169), según el hallazgo. El 19a añade `manager@example.com`, dueña de `Team 0`, y las respuestas guardadas para lo que ese mundo no rellena. §13.4 es de L2: cruzada C-L3-10."
+  },
+  {
+    "id": "Rcodigo-053",
+    "estado": "aplicado",
+    "donde": "borrador/17-plan.md l. 13 (§17.1, regla 7)",
+    "motivo": "Con la clave de §7.2 que ya corrigió L1 (todas las fuentes de `packages/db/src`, `packages/engine/src` y `packages/shared/src` sin tests, Rcodigo-022), la lista sale de la tabla de §17.2: 17 PR y el 1 si va tras el 2a, el 17b entre ellos. Funde C-L1-12, punto 1."
+  },
+  {
+    "id": "Rcodigo-054",
+    "estado": "aplicado",
+    "donde": "borrador/17-plan.md l. 79 (§17.6, PR 6); borrador/17-plan.md l. 241 (17-s); borrador/17-plan.md l. 131 (§17.17, PR 17a)",
+    "motivo": "Comprobado en el clon: `flag-icons` es `^7.5.0` en `apps/web/package.json` l. 18. Pasa a `devDependencies` de versión exacta y sus SVG se copian con su huella. §9.5 y §12.2 son de L2: cruzada C-L3-11."
+  },
+  {
+    "id": "Rcodigo-055",
+    "estado": "aplicado",
+    "donde": "borrador/17-plan.md l. 93 (§17.9, PR 9b)",
+    "motivo": "Un componente con JSX va en `.tsx` (`\"jsx\": \"react-jsx\"`), con su `ui/LegacyJersey.test.tsx`. §8 (L2) dice `ui/legacyJersey.ts` en su bloque de glosario: cruzada C-L3-08."
+  },
+  {
+    "id": "Rcodigo-056",
+    "estado": "aplicado",
+    "donde": "borrador/17-plan.md l. 107 (§17.12, PR 12b); borrador/16-tests.md l. 68 (§16.3)",
+    "motivo": "Como §9.8 (corregido por L2): `stageTables.test.tsx` se re-sella en el 12b."
+  },
+  {
+    "id": "Rcodigo-057",
+    "estado": "aplicado",
+    "donde": "borrador/17-plan.md l. 107 (§17.12, PR 12b)",
+    "motivo": "Comprobado en el clon: `gcRowSchema` en l. 485, `pointsEntrySchema` en l. 523 y `teamClassEntrySchema` en l. 541 de `contracts.ts`; las líneas finas, las del hallazgo. Las filas de general, etapa y equipos llevan `teamId`; las de puntos y montaña y el salón de la fama ganan `teamId` y `teamName` nulables en el 12b, y el dorsal sale de la lista de salida. Funde C-L1-02."
+  },
+  {
+    "id": "Rcodigo-058",
+    "estado": "aplicado",
+    "donde": "borrador/17-plan.md l. 117 (§17.14, PR 14)",
+    "motivo": "El fichero existe; el PR lo amplía y re-sella sus casos de l. 15-104."
+  },
+  {
+    "id": "Rcodigo-059",
+    "estado": "aplicado",
+    "donde": "borrador/17-plan.md l. 117 (§17.14, PR 14)",
+    "motivo": "El mismo arreglo que Rcodigo-050: la función y sus casos se quedan, porque la usa el simulador del motor."
+  },
+  {
+    "id": "Rcodigo-060",
+    "estado": "aplicado",
+    "donde": "borrador/17-plan.md l. 121 (§17.15, PR 15)",
+    "motivo": "Comprobado en el clon: los dos `GD` están en l. 205 y 235."
+  },
+  {
+    "id": "Rcodigo-061",
+    "estado": "aplicado",
+    "donde": "borrador/17-plan.md l. 157 (§17.21); borrador/00-decisiones.md l. 771 (D-57)",
+    "motivo": "El orden y las cifras de la medida de §5.1 con los tokens de este documento, que da el hallazgo (`redactor-L1/cierre-sistema.mjs`), sin el `Install app` de `Account.tsx`, que se fue con la web instalable (D-00p). `RiderProfile.tsx` entra en el 21h con `FormChart` (Ruso-039). D-57 decía las cifras de `sistema`, y se corrige."
+  },
+  {
+    "id": "Rcodigo-062",
+    "estado": "aplicado",
+    "donde": "borrador/17-plan.md l. 169 (§17.24, PR 24); borrador/00-decisiones.md l. 779 (D-58)",
+    "motivo": "Comprobado con `grep -n \"dorsal amarillo\" docs/retransmision.md`: l. 12493 es la política de `aria-live`, y las del dorsal son 4869, 12884, 12993, 13055 y 13440; además l. 4831 dice que el dorsal «sigue en la tabla» por equipos, que tampoco es verdad hoy, y entra en la lista. D-58 se corrige con la misma evidencia."
+  },
+  {
+    "id": "Rcodigo-063",
+    "estado": "aplicado",
+    "donde": "borrador/17-plan.md l. 231 (17-q)",
+    "motivo": "17-q dice qué filas ganan `teamId` y `teamName` (las de puntos y montaña y el salón de la fama, en el 12b), que el dorsal sale de la lista de salida por `riderId` y que el maillot de campeón va en un campo por respuesta (C-L1-02)."
+  },
+  {
+    "id": "Rcobertura-045",
+    "estado": "aplicado",
+    "donde": "borrador/17-plan.md l. 93 (§17.9); borrador/18-riesgos.md l. 32 (§18.2); borrador/20-apendices.md l. 164 (§20.5); borrador/20-apendices.md l. 178 (20-a)",
+    "motivo": "Fuera todas las remisiones a «la duda N» de una sección: (§8.6), (§9.1) y (13-a)."
+  },
+  {
+    "id": "Ruso-043",
+    "estado": "aplicado",
+    "donde": "borrador/17-plan.md l. 69 (§17.4); borrador/17-plan.md l. 71 (§17.4); borrador/17-plan.md l. 243 (17-u); borrador/17-plan.md l. 211 (§17.26); borrador/00-decisiones.md l. 771 (D-57)",
+    "motivo": "El paso 2 se parte en 2a (M: el mundo, el servidor, los trabajos del CI y `nocturno.spec.ts`) y 2b (L: la prueba, su control y la línea base). Las cifras totales no son las del hallazgo (43 PR) porque el dueño retiró después la web instalable (tres PR menos) y pidió el modo oscuro (uno más): quedan 41 PR, 7 S, 24 M y 10 L, unas 85 sesiones. D-57 se corrige."
+  },
+  {
+    "id": "Rcodigo-064",
+    "estado": "aplicado",
+    "donde": "borrador/18-riesgos.md l. 30 (§18.2)",
+    "motivo": "Con el nacional sin estrella (D-00m) §9.6 mide 26 maillots frente a 16 nacionales; las 12 frente a 10 que pedía el hallazgo eran con la estrella."
+  },
+  {
+    "id": "Rcodigo-065",
+    "estado": "aplicado",
+    "donde": "borrador/18-riesgos.md l. 33 (§18.2)",
+    "motivo": "Los permitidos vigentes son 491 (§8.1, §8.6), no los 524 del hallazgo."
+  },
+  {
+    "id": "Rcobertura-046",
+    "estado": "aplicado",
+    "donde": "borrador/18-riesgos.md l. 30 (§18.2); borrador/18-riesgos.md l. 33 (§18.2)",
+    "motivo": "Los dos arreglos de Rcodigo-064 y Rcodigo-065, con las cifras vigentes."
+  },
+  {
+    "id": "Rcodigo-066",
+    "estado": "aplicado",
+    "donde": "borrador/19-dueno.md l. 24 (§19.2); borrador/19-dueno.md l. 89 (§19.6)",
+    "motivo": "La cifra vigente es la de D-00m: 26 maillots frente a 16 nacionales (`corrector-L2/medir-nacional3.py`). El paréntesis de D-00h en `00-decisiones.md` ya lo corrigió el orquestador con esas cifras; no se toca."
+  },
+  {
+    "id": "Rcodigo-067",
+    "estado": "aplicado",
+    "donde": "borrador/19-dueno.md l. 25 (§19.2)",
+    "motivo": "491 permitidos y 458 distintos, la cifra vigente tras D-00m y 8-q."
+  },
+  {
+    "id": "Rcobertura-047",
+    "estado": "aplicado",
+    "donde": "borrador/19-dueno.md l. 24 (§19.2); borrador/19-dueno.md l. 25 (§19.2); borrador/19-dueno.md l. 54 (§19.3)",
+    "motivo": "Las tres cifras, con las vigentes tras D-00m y 8-q."
+  },
+  {
+    "id": "Rcobertura-048",
+    "estado": "aplicado",
+    "donde": "borrador/19-dueno.md l. 28 (§19.2); borrador/19-dueno.md l. 92 (§19.6); borrador/19-dueno.md l. 120 (19-b)",
+    "motivo": "La excepción a D-00e (lo grabado antes del 17b conserva sus gemelos, en 220 de las 310 carreras) y su alternativa, repintar lo grabado, en la fila de DD-07, que el dueño aceptó tal como se proponía."
+  },
+  {
+    "id": "Rcobertura-049",
+    "estado": "desestimado",
+    "donde": "borrador/19-dueno.md l. 35 (§19.2)",
+    "motivo": "El medidor y sus umbrales ya no existen: el dueño retiró la web instalable y con ella el medidor que revisaría la app nativa (D-00p; «DD-14: No, pronto haremos app, asi que quita la web instalable», `00-encargo.md` §7.6). La fila de DD-14 dice lo decidido; no queda nada que contar en sesiones ni en jugadores."
+  },
+  {
+    "id": "Rcobertura-050",
+    "estado": "aplicado",
+    "donde": "borrador/19-dueno.md l. 44 (§19.2)",
+    "motivo": "Comprobado en §8.10 (corregido por L2): en un maillot de campeón `chest` no se pinta. Va a la consecuencia de DD-23 y su alternativa, y a §18.1 (E8) y §19.6."
+  },
+  {
+    "id": "Rcobertura-051",
+    "estado": "aplicado",
+    "donde": "borrador/19-dueno.md l. 89 (§19.6); borrador/19-dueno.md l. 90 (§19.6)",
+    "motivo": "La viñeta pasa a §19.6 con las cifras vigentes tras D-00m, que no son las del hallazgo (con la estrella): 26 maillots frente a 16 nacionales, Marruecos frente a `plain.red` a 5,3, 3,7 y 2,6, `plain.red` y `plain.green` reservados, y 85 parejas de gemelas (Indonesia y Singapur, 1,8)."
+  },
+  {
+    "id": "Rcodigo-068",
+    "estado": "aplicado",
+    "donde": "borrador/20-apendices.md l. 164 (§20.5)",
+    "motivo": "El mismo arreglo que Rcodigo-055."
+  },
+  {
+    "id": "C-L1-02",
+    "estado": "aplicado",
+    "donde": "borrador/17-plan.md l. 107 (§17.12, PR 12b); borrador/17-plan.md l. 131 (§17.17, PR 17a); borrador/17-plan.md l. 231 (17-q); borrador/17-plan.md l. 227 (17-e); borrador/17-plan.md l. 245 (17-w)",
+    "motivo": "El 12b gana el equipo de las filas que no lo traen y el dorsal de la lista de salida; `champions` y `champion` entran en el 17a con su caso en `RankTable.test.tsx`; 17-q dice «un campo por respuesta» y 17-e remite al tipo final de §4.6."
+  },
+  {
+    "id": "C-L1-03",
+    "estado": "aplicado",
+    "donde": "borrador/14-e2.md l. 25 (§14.1)",
+    "motivo": "Fundida con Rcobertura-039."
+  },
+  {
+    "id": "C-L1-09",
+    "estado": "aplicado",
+    "donde": "borrador/14-e2.md l. 91 (§14.4); borrador/14-e2.md l. 99 (§14.6)",
+    "motivo": "Los dos botones de `TimeTrialBoard` (l. 60-77) pasan a `Button` `quiet` de 44 y sus nombres parten de línea; `PlayerControls` pinta los iconos `play` y `pause`."
+  },
+  {
+    "id": "C-L1-10",
+    "estado": "aplicado",
+    "donde": "borrador/15-constantes.md l. 40 (§15.2); borrador/15-constantes.md l. 34 (§15.2); borrador/15-constantes.md l. 65 (§15.2); borrador/15-constantes.md l. 14 (§15.1); borrador/15-constantes.md l. 22 (§15.1); borrador/15-constantes.md l. 36 (§15.2)",
+    "motivo": "`ARBITRARY_ALLOWED` con sus seis valores, `on-bad` y `on-arrival` en la cuenta de color, el modo oscuro de §3.3, `THEME_STORAGE_KEY`, `PHONE_FONT`, 26 iconos y `KIT_PX` con `showcase` y `poster`."
+  },
+  {
+    "id": "C-L1-11",
+    "estado": "aplicado",
+    "donde": "borrador/16-tests.md l. 28 (§16.2); borrador/16-tests.md l. 18 (§16.2); borrador/16-tests.md l. 23 (§16.2); borrador/16-tests.md l. 27 (§16.2); borrador/16-tests.md l. 86 (§16.4)",
+    "motivo": "Todos los casos que pedía L1: `QueryView` con `GateError`, 429 y 401; `AppHeader`, `ActionRow`, `RankTable` con campeón y `FormChart`; `control.html` con el `span` que desborda y el enlace de fila de 20 px; `tokens.test.ts` con el oscuro y 3-j; `scrollY` a 0 y la letra por CDP; las siluetas de tono; y la regla `@max-[4.75rem]:` en §16.4."
+  },
+  {
+    "id": "C-L1-12",
+    "estado": "aplicado",
+    "donde": "borrador/17-plan.md l. 13 (§17.1, regla 7); borrador/17-plan.md l. 71 (§17.4); borrador/17-plan.md l. 83 (§17.7, PR 7); borrador/17-plan.md l. 101 (§17.11, PR 11); borrador/17-plan.md l. 169 (§17.24, PR 24); borrador/17-plan.md l. 165 (§17.23, PR 23); borrador/17-plan.md l. 157 (§17.21)",
+    "motivo": "Los siete puntos: la regla 7 con la clave nueva y la medida de la base; el 2b con DejaVu Sans y la pantalla 38; el 7 con `./colorMath` y `tokens.json`; el 11 con la regla fija y el aviso a E6; el 24 con `SPEC.md` l. 90 y 410; el modo oscuro, en el PR 23 tras el 22, con su migración `0054_modo_oscuro`; y `FormChart` en el 21h."
+  },
+  {
+    "id": "C-L1-13",
+    "estado": "aplicado",
+    "donde": "borrador/18-riesgos.md l. 11 (§18.1); borrador/18-riesgos.md l. 24 (§18.2)",
+    "motivo": "Sin plan B: la regla fija de contenedor y la letra del CI fijada; queda como riesgo San Francisco y Roboto, que mira la prueba del dueño."
+  },
+  {
+    "id": "C-L1-14",
+    "estado": "aplicado",
+    "donde": "borrador/19-dueno.md l. 37 (§19.2); borrador/19-dueno.md l. 41 (§19.2)",
+    "motivo": "DD-16, con los cinco caminos y las reconstrucciones con la medida de la base; DD-20, con nueve tareas y una décima con lector de pantalla."
+  },
+  {
+    "id": "C-L1-16",
+    "estado": "parcial",
+    "donde": "borrador/17-plan.md l. 87 (§17.8, PR 8)",
+    "motivo": "La cabecera §0 es del orquestador y no se toca; lo de L3 (el PR 8, y D-57 con las cifras de la deuda por página) ya dice 2.740."
+  },
+  {
+    "id": "C-L1-17",
+    "estado": "parcial",
+    "donde": "borrador/15-constantes.md l. 105 (§15); borrador/16-tests.md l. 130 (§16); borrador/17-plan.md l. 250 (§17)",
+    "motivo": "Fundir el glosario es de la pasada de coherencia; los bloques «Propuesto para el glosario» de §14 a §17 llevan lo que les toca (lo del maillot grande, el modo oscuro, las pruebas nuevas y retiradas, §G.11)."
+  },
+  {
+    "id": "C-L2-04",
+    "estado": "parcial",
+    "donde": "borrador/15-constantes.md l. 67 (§15.2); borrador/20-apendices.md l. 164 (§20.5)",
+    "motivo": "Lo de L3 aplicado: §15 y §20.5 dicen `ChampionJersey` y sacan `SASH_*`, `CHAMPION_NIGHT`, `CHAMPION_PAPER`, `NATIONAL_SASH*`, `NATIONAL_STAR*` y `CHAMPION_GOLD`. §2.7, §3.8 y §4.11 son de L1 y el glosario de la coherencia; no se tocan."
+  },
+  {
+    "id": "Ruso-023",
+    "estado": "aplicado",
+    "donde": "borrador/14-e2.md l. 76 (§14.4)",
+    "motivo": "El texto del refutador de uso: sin `pl-7` y con `gap-x-1`, 310 y 270 px, cinco fichas de 50,4 px, el segundo renglón con `+N teams`, y la cuenta con el ancho medido (`fitTeamChips`, 14-f)."
+  },
+  {
+    "id": "Rcobertura-034",
+    "estado": "aplicado",
+    "donde": "borrador/17-plan.md l. 169 (§17.24, PR 24)",
+    "motivo": "La corrección de l. 1697 dice lo que queda (la razón del entrenador por día y la desviación del jugador informada, l. 1287-1291), que E3 deja a la línea de entrenamiento."
+  },
+  {
+    "id": "Ruso-034",
+    "estado": "aplicado",
+    "donde": "borrador/16-tests.md l. 36 (§16.2); borrador/16-tests.md l. 126 (16-h)",
+    "motivo": "En el trabajo `Teléfono`, sobre el mundo de la prueba desde el día 40 y sin tick, unos 20 s, y falla si la nueva no acierta más que la de hoy salvo que las dos acierten todo."
+  },
+  {
+    "id": "C-L2-07",
+    "estado": "aplicado",
+    "donde": "borrador/15-constantes.md l. 61 (§15.2); borrador/15-constantes.md l. 60 (§15.2); borrador/15-constantes.md l. 67 (§15.2); borrador/15-constantes.md l. 12 (§15.1)",
+    "motivo": "`KIT_CHANGES_PER_SEASON` en el 18a, `KIT_CAPITAL_EM` en el 17c, fuera las de la web instalable con su remisión a §12.4 (12-e ya no existe), `KIT_PX` con los sitios de las vistas grandes y los tokens del maillot de C-L2-06."
+  },
+  {
+    "id": "C-L2-08",
+    "estado": "aplicado",
+    "donde": "borrador/16-tests.md l. 48 (§16.2); borrador/16-tests.md l. 44 (§16.2); borrador/16-tests.md l. 40 (§16.2); borrador/16-tests.md l. 46 (§16.2); borrador/16-tests.md l. 30 (§16.2); borrador/16-tests.md l. 42 (§16.2); borrador/16-tests.md l. 19 (§16.2)",
+    "motivo": "Todos los casos: el 429 sin `retry-after` y con `nextChangeDay`, el mismo día y la temporada siguiente; la tabla de `kitChangeAllowed`; el oráculo JSON de `kitDistance`; las pruebas de las vistas grandes; el clon borrado y el segundo tick; `champion.test.ts` sin estrella; el re-sello de `stageTables.test.tsx` en el 12b (§16.3); fuera las de la web instalable; y `sinred.spec.ts` sin la recarga y con la sesión que no llega."
+  },
+  {
+    "id": "C-L2-09",
+    "estado": "aplicado",
+    "donde": "borrador/17-plan.md l. 57 (§17.3); borrador/17-plan.md l. 125 (§17.16); borrador/17-plan.md l. 135 (§17.17); borrador/17-plan.md l. 139 (§17.18); borrador/17-plan.md l. 3 (§17); borrador/17-plan.md l. 83 (§17.7)",
+    "motivo": "El plan entero: el 1 borra el clon; el 16a con la `0052` y sus tres columnas y la hoja sin estrella; el 17c con la ficha del equipo, `KitShowcase` y la `Sheet`; el 18a con D-00k y `managed_since_day`; fuera los pasos 3 y 5 y el medidor del 23; `tokens.json` en el 7; la general por equipos sin marca del líder (12b y 17a)."
+  },
+  {
+    "id": "C-L2-10",
+    "estado": "aplicado",
+    "donde": "borrador/17-plan.md l. 229 (17-g)",
+    "motivo": "El culote es un dato, `teams.bib`, en la `0052` del 16a con `kit_canonical` y `managed_since_day`."
+  },
+  {
+    "id": "C-L2-11",
+    "estado": "aplicado",
+    "donde": "borrador/15-constantes.md l. 39 (§15.2); borrador/16-tests.md l. 19 (§16.2); borrador/17-plan.md l. 75 (§17.5); borrador/20-apendices.md l. 37 (§20.1)",
+    "motivo": "Las remisiones a §12 de §15 a §20 apuntan a las subsecciones de ahora (§12.1 sin red, §12.2 las banderas y el peso, §12.3 `tokens.json`, §12.4 lo retirado); `ensamblar.sh --comprobar` sobre una copia en `<scratchpad>/corrector-L3/ensayo` da 0 fallos y 0 avisos."
+  },
+  {
+    "id": "C-L2-12",
+    "estado": "aplicado",
+    "donde": "borrador/19-dueno.md l. 45 (§19.2); borrador/19-dueno.md l. 122 (19-d)",
+    "motivo": "DD-24 entra en la tabla como no abierta: se abre solo si la puerta falla en el 16a tras repetir la traducción y hacer ceder a los NPC, con la cuenta por color y por figura."
+  },
+  {
+    "id": "C-L2-13",
+    "estado": "aplicado",
+    "donde": "borrador/19-dueno.md l. 93 (§19.6); borrador/19-dueno.md l. 78 (§19.5); borrador/18-riesgos.md l. 37 (§18.2)",
+    "motivo": "El coste del 429 y su alternativa (el 409), y el primer cambio libre como añadido del orquestador, con su mecanismo, `teams.managed_since_day`."
+  },
+  {
+    "id": "C-L2-14",
+    "estado": "aplicado",
+    "donde": "borrador/19-dueno.md l. 89 (§19.6); borrador/19-dueno.md l. 91 (§19.6)",
+    "motivo": "Las cifras de `medir-nacional3.py`: 26 frente a 16, 19 más por los líderes en grises, 491 y 458, Marruecos a 5,3, 3,7 y 2,6, 85 gemelas, y los grises de los nacionales frente a los líderes (8, 7 y 1, y San Vicente a 10,0). D-00h ya lo había corregido el orquestador."
+  },
+  {
+    "id": "C-L2-16",
+    "estado": "aplicado",
+    "donde": "borrador/20-apendices.md l. 19 (§20.1); borrador/20-apendices.md l. 31 (§20.1); borrador/20-apendices.md l. 49 (§20.2); borrador/20-apendices.md l. 60 (§20.2); borrador/20-apendices.md l. 140 (§20.4)",
+    "motivo": "I-11, I-23, O-02, O-13 y X-10, retirados o en parte retirados con la web instalable, cada uno en su fila."
+  },
+  {
+    "id": "C-L2-17",
+    "estado": "parcial",
+    "donde": "borrador/19-dueno.md l. 67 (§19.4)",
+    "motivo": "La página de opciones es del orquestador y no se toca; §19.4 y §17.16 piden la hoja sin estrella, en el orden de §9.5."
+  },
+  {
+    "id": "D-L3-01",
+    "estado": "aplicado",
+    "donde": "borrador/14-e2.md l. 119 (14-a)",
+    "motivo": "dudas.md (L1): el fondo `ink-2` de `CueCard` chocaba con el ámbito oscuro. Lo cierra 14-a: la clase 1 es `navy`."
+  },
+  {
+    "id": "D-L3-02",
+    "estado": "aplicado",
+    "donde": "borrador/16-tests.md l. 11 (§16.1, regla 5)",
+    "motivo": "dudas.md (L1): el `include` de vitest. `decide.test.ts` se fue con el service worker (D-00p) y `vitest.config.ts` no cambia; `peso.test.mjs` corre con `node --test` en `Build` (16-b)."
+  },
+  {
+    "id": "D-L3-03",
+    "estado": "parcial",
+    "donde": "borrador/16-tests.md l. 122 (16-d)",
+    "motivo": "dudas.md (L1): `rendimiento.spec.ts` frente a `nocturno.spec.ts`. Manda `nocturno.spec.ts` en §7, §12 y §16; D-50 de `00-decisiones.md` sigue diciendo el otro, y ya lo remitió L1 a la coherencia (C-L1-18)."
+  },
+  {
+    "id": "D-L3-04",
+    "estado": "aplicado",
+    "donde": "borrador/17-plan.md l. 87 (§17.8)",
+    "motivo": "dudas.md (L1): la deuda es la medida con los tokens de este documento, 2.740; la cabecera es del orquestador (C-L1-16)."
+  },
+  {
+    "id": "D-L3-05",
+    "estado": "aplicado",
+    "donde": "borrador/16-tests.md l. 124 (16-f)",
+    "motivo": "dudas.md (L2): `champion.test.ts` va en `packages/db`."
+  },
+  {
+    "id": "D-L3-06",
+    "estado": "aplicado",
+    "donde": "borrador/19-dueno.md l. 28 (§19.2)",
+    "motivo": "dudas.md (L2): la alternativa de DD-07 chocaba con D-00e. El dueño aceptó DD-07 (D-00l); solo queda el cuándo, o repintar lo grabado, con su coste."
+  },
+  {
+    "id": "D-L3-07",
+    "estado": "aplicado",
+    "donde": "borrador/19-dueno.md l. 89 (§19.6)",
+    "motivo": "dudas.md (L2): «la estrella dorada no separa las banderas; 21 frente a 17». Con D-00m no hay estrella, y §19.6 da las cifras sin ella: 26 frente a 16."
+  },
+  {
+    "id": "D-L3-08",
+    "estado": "aplicado",
+    "donde": "borrador/19-dueno.md l. 88 (§19.6)",
+    "motivo": "dudas.md (L2): el mundial a 12,7 de la marca y 9,2 en grises a 28 px, escrito como coste en §19.6 y §18.2."
+  },
+  {
+    "id": "D-L3-09",
+    "estado": "aplicado",
+    "donde": "borrador/19-dueno.md l. 24 (§19.2)",
+    "motivo": "dudas.md (L2): §19 citaba las cifras viejas. Ahora da las vigentes tras D-00m y 8-q."
+  },
+  {
+    "id": "D-L3-10",
+    "estado": "aplicado",
+    "donde": "borrador/17-plan.md l. 229 (17-g)",
+    "motivo": "dudas.md (L2 y L3): casar `teams.bib` con su migración: la `0052`."
+  },
+  {
+    "id": "D-L3-11",
+    "estado": "aplicado",
+    "donde": "borrador/19-dueno.md l. 42 (§19.2)",
+    "motivo": "dudas.md (L2): el filo `navy-dark` era lo único sin aceptar; el dueño lo aceptó (D-00l)."
+  },
+  {
+    "id": "D-L3-12",
+    "estado": "aplicado",
+    "donde": "borrador/17-plan.md l. 135 (§17.17, PR 17c)",
+    "motivo": "dudas.md (L3): el plan remitía a §8 y §9 sin nombres para las vistas grandes; ya los tiene."
+  },
+  {
+    "id": "D-L3-13",
+    "estado": "parcial",
+    "donde": "borrador/14-e2.md l. 76 (§14.4)",
+    "motivo": "dudas.md (L3): las cinco fichas por renglón ya están medidas por el refutador de uso (50,4 px con DejaVu Sans) y se cuentan con el ancho medido; los 88 px del rótulo siguen estimados y los mide el PR 20; el orden de la tabla por equipos lo cerró §9.8 (17-h)."
+  },
+  {
+    "id": "D-L3-14",
+    "estado": "parcial",
+    "donde": "borrador/17-plan.md l. 5 (§17)",
+    "motivo": "dudas.md (L3): la longitud. Tras la corrección, §14 129 líneas, §15 107, §16 132, §17 256, §18 66, §19 125 y §20 180 (con `wc -l`, tras Prettier); no se ha medido contra el objetivo de §B, que es del ensamblador."
+  },
+  {
+    "id": "D-L3-15",
+    "estado": "aplicado",
+    "donde": "borrador/17-plan.md l. 10 (§17.1, regla 4)",
+    "motivo": "dudas.md (L3): las migraciones. Siguen cinco y sin huecos: `0050` (1), `0051` (13a), `0052` con `team_kits` y tres columnas de `teams` (16a), `0053` (19c) y `0054_modo_oscuro` con `users.theme` (23), que sustituye a la de la telemetría (D-00p)."
+  },
+  {
+    "id": "D-L3-16",
+    "estado": "aplicado",
+    "donde": "borrador/17-plan.md l. 169 (§17.24)",
+    "motivo": "dudas.md (orquestador): el §18.8 de la lista del PR 24 dice ya `docs/retransmision.md`."
+  },
+  {
+    "id": "D-L3-17",
+    "estado": "aplicado",
+    "donde": "borrador/14-e2.md l. 99 (§14.6)",
+    "motivo": "dudas.md (orquestador): «como fija E2 (§18.8)» dice ya `docs/retransmision.md` §18.8."
+  },
+  {
+    "id": "D-L3-18",
+    "estado": "parcial",
+    "donde": "borrador/14-e2.md l. 129 (§14)",
+    "motivo": "dudas.md (L3): lo que el glosario tenía que añadir. Va en los bloques de §14 a §17, sin `INSTALL_SESSION_GAP_MS` ni `sw/baja.js`, que salieron con D-00p; fundirlo es de la coherencia."
+  },
+  {
+    "id": "D-L3-19",
+    "estado": "aplicado",
+    "donde": "borrador/17-plan.md l. 231 (17-q)",
+    "motivo": "dudas.md (L3): las filas que no traen el maillot de su equipo. 17-q, corregida con Rcodigo-057 y Rcodigo-063, y 17-e con el tipo de transición."
+  }
+]

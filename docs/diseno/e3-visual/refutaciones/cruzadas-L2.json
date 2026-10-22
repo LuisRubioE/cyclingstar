@@ -1,0 +1,117 @@
+[
+  {
+    "id": "C-L2-01",
+    "seccion_destino": "§4.4, §4.11 y §G.3 (lote L1)",
+    "que": "Rcobertura-023: añadir las filas de dos componentes nuevos que usa §8.10 (8-w). `Sheet` (`ui/Sheet.tsx`): «diálogo a pantalla completa: `<dialog>` con `aria-modal=\"true\"` y `aria-labelledby` a su título, `bg-surface`, cabecera de 48 con el título en `title` y `close` de 44 × 44 (`aria-label=\"Close\"`, pantalla); al abrirse, el foco va a `close` y se añade una entrada de historial (`history.pushState`); la cierran `close`, `Escape` y el «atrás» del sistema, y al cerrarse el foco vuelve a lo que la abrió; estados `open` y `closed`». `KitShowcase` (`ui/KitShowcase.tsx`): «`Tabs` `page` (`Front`, `Back`, `Shorts`, pantalla) sobre un `Kit` de 160 con su `view`; el maillot es un `button` con `aria-label=\"Show the kit full screen\"` que abre la `Sheet` con el de 320; estados `ready` y `hidden` (sin maillot guardado: `LegacyJersey`, solo por delante y sin pestañas)». Las dos, también en la tabla «Qué sustituye cada uno» (§4.11: no sustituyen a nada de hoy) y en §G.3."
+  },
+  {
+    "id": "C-L2-02",
+    "seccion_destino": "§4.6 (lote L1)",
+    "que": "Rcobertura-022: `RiderHeader` conserva su maillot de 40 (el que lleva ese día, `WornJerseyIcon`); tocarlo abre la `Sheet` con `Front`, el mismo a 320, y, si es el de su equipo, `Back`, el `Kit` de su equipo por detrás con su dorsal si corre ese día (`#214`) (§8.10). §15.2 y el PR 17c, que ponían `showcase` y `poster` en la cabecera, quedan así (cruzada C-L2-07 y C-L2-09)."
+  },
+  {
+    "id": "C-L2-03",
+    "seccion_destino": "§4.8 (lote L1)",
+    "que": "Rcobertura-032, Rcobertura-033 y D-00n en `Scale5`: (1) el tramo `oxidado` se llama `Undertrained` y los ejes son `◀ Too much training` y `Too little training ▶` (pantalla), en lugar de `Rusty`, `◀ Too tired` y `Too fresh ▶`; (2) el mejor, `Spot on`, es el cuarto y no el del medio, y lleva siempre, activo o no, un borde de 2 px en `good` (5,41:1 sobre `surface`) en lugar del de 1 px `line-strong` (10-g; el icono `check` delante de la palabra no cabe: `Spot on` mide de 44,5 a 52,2 px a 12 px y el tramo, 51,2 a 320, medido en `<scratchpad>/corrector-L2/letras2.mjs`); (3) la palabra puede partir en dos renglones, `Spot on` por su espacio y `Under&shy;trained` por su guion blando (U+00AD): `Undertrained` mide de 74,7 a 90,1 px a 12 px y 600, y sus mitades de 38,7 a 49,1; dos renglones de 16 caben en los 36 del tramo (10-h); la frase de §4.8 «A 320 px cada tramo mide unos 52 px y la palabra más larga, `Spot on`, cabe (estimado)» pasa a esto, porque con DejaVu Sans no cabe en un renglón; (4) el `aria-label` pasa a `Race Var: you'll arrive Loaded, 2 of 5, from too much training to too little training; best is Spot on` (pantalla), el que usa §10.4."
+  },
+  {
+    "id": "C-L2-04",
+    "seccion_destino": "§2.7, §3.8, la tabla de §4.11 y el glosario (lote L1)",
+    "que": "dudas.md (L2) y D-00m: el componente es `ChampionJersey` (9-g) y no `ChampionSash`; `NATIONAL_SASH`, `SASH_*`, `CHAMPION_NIGHT` y `CHAMPION_PAPER` salen, y lo generado del campeón son `flagCells` y su hoja (§9.5). Con D-00m el nacional no lleva estrella (salen `NATIONAL_STAR`, `NATIONAL_STAR_SITES`, `NATIONAL_STAR_OVERRIDES` y `CHAMPION_GOLD`): la estrella reservada es la del mundial y el continental, y el nacional se protege con la reserva por distancia de D-00h. En §2.7, «la forma de cada identidad está reservada» tiene que decirlo así."
+  },
+  {
+    "id": "C-L2-05",
+    "seccion_destino": "§7.3 (lote L1)",
+    "que": "Ruso-024 y Rcobertura-022: la pantalla 16 (`/team/identity`) tiene su `data-answer` en `KitPicker` con el maillot a 160 (`KitShowcase`, §8.7), no a 72. La pantalla 12 (`Team.tsx`) sigue con la `RankTable` de la plantilla, ahora bajo un `Panel` con el maillot a 160 (§8.10), con la `RankTable` hacia los 504 px (estimado); si la comprobación 7 la mide por encima de 520, las pestañas pasan a la `Sheet` (8-x)."
+  },
+  {
+    "id": "C-L2-06",
+    "seccion_destino": "§3.1 y §3.8 (lote L1) y §15 (lote L3)",
+    "que": "D-00i, los tokens de lo que se pinta sobre un maillot (§8.3, 8-s; §9.10): `kit-edge`, el filete de `Kit`, `rgb(0 0 0 / 0.3)` en el tema claro y `rgb(255 255 255 / 0.6)` en el modo oscuro y en el ámbito oscuro; `kit-edge-strong`, el de `LeaderJersey` y `ChampionJersey`, `rgb(0 0 0 / 0.35)` en claro y `rgb(255 255 255 / 0.6)` en oscuro; y `kit-ink`, `#10202f` en los dos modos (la marca del patrocinador, el nombre y el dorsal de la espalda, la tachadura y el `check` de las muestras del editor, porque van sobre los colores del maillot, que no cambian con el tema). Medido: el filete claro da 6,35:1 sobre `navy-dark`, 5,29 sobre `navy` y 3,21 sobre `bad`; `white` o `kit-ink` quedan a 4,79:1 o más de los quince colores (`<scratchpad>/corrector-L2/contraste2.py`). `tokens.test.ts` los mira en los dos modos."
+  },
+  {
+    "id": "Ruso-028",
+    "seccion_destino": "§2.7 (lote L1)",
+    "que": "El principio 2.7 dice «La forma de cada identidad está reservada y ningún maillot de equipo la puede llevar»: añadir «la de los líderes de la general y de los puntos, que comparten figura con los equipos (`plain` y `band`), se reserva por distancia en las cinco vistas, grises incluidos» (8-q; D-28 corregida en `00-decisiones.md`)."
+  },
+  {
+    "id": "Ruso-029",
+    "seccion_destino": "§4.3 (lote L1)",
+    "que": "Añadir a `Field` la variante `inline`: «el rótulo a la izquierda del control, en `meta` 600 `ink`, en el mismo renglón; si el rótulo es el título de la fila (la semana, el día), el control no lo repite y lleva `aria-labelledby` a ese título». La usan los `select` de la semana y del día y `Emphasis` e `Intensity` del cuadro (§10.2, §10.6; 10-k)."
+  },
+  {
+    "id": "Ruso-030",
+    "seccion_destino": "§6.3 l. 1102-1103 de la v0 y §4.4 l. 651 de la v0 (lote L1)",
+    "que": "El dibujo del marco de `/me/training` de §6.3 pinta cinco destinos para José Quintáns, agente libre: son cuatro (`Dashboard`, `My Rider`, `World`, `News`; `sectionLinks` solo pone `My Team` con `hasTeam`, `apps/web/src/domain/nav.ts` l. 51-54 y 62-64; captura 01), y cada celda mide 90 px a 360 y no 72, la cifra de la que depende el plan B de §6.3. En §4.4: «de 3 a 5 destinos según la cuenta (`bottomBarLinks`, `nav.ts` l. 62-64): tres sin sesión, cuatro sin equipo y cinco con él». §10.2 ya está corregido."
+  },
+  {
+    "id": "Ruso-023",
+    "seccion_destino": "§14.4 (lote L3)",
+    "que": "La barra de `Watch` a 28 px: dentro de la tarjeta (`StageWatch.tsx` l. 255, `border` y `p-3`; `main` con `px-3`, `App.tsx` l. 158; la línea con `pl-7`, `GroupBar.tsx` l. 235) quedan 282 px a 360 y 242 a 320 (§8.3). Texto del refutador de uso: «en el móvil, la línea de equipos va sin `pl-7` y con `gap-x-1`: quedan 310 px a 360 y 270 a 320, y caben cinco fichas de 50,4 px por renglón (268 px con DejaVu Sans); `+N teams` ocupa más que una ficha, así que el segundo renglón lleva como mucho tres fichas y `+N teams` a 320 y cuatro y `+N teams` a 360; la barra cuenta lo que cabe con la anchura medida (`ResizeObserver`), no con una cifra fija». §8.3 ya remite a eso."
+  },
+  {
+    "id": "Rcobertura-034",
+    "seccion_destino": "§17.26 (lote L3)",
+    "que": "La corrección del PR 24 a `docs/entrenamiento.md` l. 1697 («todas implementadas») tiene que decir qué queda: la razón del entrenador por día y la desviación del jugador informada (`docs/entrenamiento.md` l. 1287-1291), que E3 deja a la línea de entrenamiento (§11.1)."
+  },
+  {
+    "id": "Ruso-034",
+    "seccion_destino": "§16.2 (lote L3)",
+    "que": "`planPreviewDiary.test.ts` corre en el trabajo `Teléfono`, sobre el mundo de la prueba (§7.2), desde el día 40 y sin correr el tick (§11.3): «Teléfono · unos 20 s (estimado)», en lugar de los «unos 30 s» sobre el mundo de los bancos; falla si la vista previa nueva no acierta más que la de hoy, salvo que las dos acierten todo."
+  },
+  {
+    "id": "C-L2-07",
+    "seccion_destino": "§15 (lote L3)",
+    "que": "Constantes: `KIT_CHANGES_PER_SEASON` = 1 sustituye a `KIT_CHANGE_COOLDOWN_DAYS` (D-00k; `packages/shared/src/kit.ts`, §8.7, paso 18a); nueva `KIT_CAPITAL_EM` = 1,07 (`kit.ts`, §8.10, 17c); salen con D-00p `INSTALL_HINT_AFTER_SESSIONS`, `INSTALL_SESSION_GAP_MS`, `NAV_TIMEOUT_MS`, `UPDATE_CHECK_MIN_MS`, `PRECACHE_MAX_GZ` y `NATIVE_REVIEW_*`, con la remisión a 12-e; en la fila de `KIT_PX`, `showcase` y `poster` van en `/team/identity`, en la ficha del equipo y en la `Sheet` que abre el maillot de 40 de `RiderHeader`; y los tokens de C-L2-06."
+  },
+  {
+    "id": "C-L2-08",
+    "seccion_destino": "§16 (lote L3)",
+    "que": "Tests que cambian: `apps/api/src/routes/kit.test.ts` gana 429 `kit_reciente` sin `retry-after` y con `nextChangeDay` en el cuerpo, «tomar un equipo y guardar maillot el mismo día da 200», «dos guardados el mismo día cuentan uno», el segundo cambio de la temporada en 429 y la temporada siguiente libre (D-00k; Rcodigo-030, Rcodigo-031); `kits.test.ts`, la tabla de `kitChangeAllowed`; `kitDistance.test.ts` contra `__fixtures__/kitDistance.golden.json` (Rcodigo-028); nacen `KitShowcase.test.tsx` y `Sheet.test.tsx` (las pestañas, el foco, `Escape` y el «atrás»); `jerseyClone.test.ts` con el clon borrado y un segundo tick que no hace nada (D-00q); `champion.test.ts` sin la regla de la estrella, con los grises de los nacionales frente a los líderes escritos sin umbral (9-k); `stageTables.test.tsx` se re-sella en el 12b (Rcodigo-032); salen `decide.test.ts`, `InstallHint.test.tsx` y los del medidor (D-00p); `sinred.spec.ts` deja el caso de recargar y gana el de la sesión que no llega (§12.1)."
+  },
+  {
+    "id": "C-L2-09",
+    "seccion_destino": "§17 (lote L3)",
+    "que": "El plan: el PR 1 borra el clon (`removeJerseyClones`, D-00q, §8.9); el 16a lleva la `0052` con `bib`, `kit_canonical` y `managed_since_day`, y la hoja de los 133 sin estrella como su artefacto (§9.5); el 17c, la ficha del equipo con `KitShowcase` y la `Sheet` (§8.10); el 18a, D-00k (`kitChangeAllowed`, el 429 sin `retry-after`, y `takeOverBotTeam` que escribe `managed_since_day` y no una fila `system`); con D-00p salen los pasos y las partes de paso del manifiesto, los iconos, las metas de Apple, el service worker, `UpdateToast`, `InstallHint` y el medidor (los PR de los pasos 3, 5 y 23 y lo que el 4 traía del service worker), y las remisiones a 12-a y 12-c; `tokens.json` nace en el PR del `@theme` cerrado (paso 7) y lo regenera cada PR que lo toque (§12.3); el 17a pinta la clasificación por equipos sin marca de líder (D-00j)."
+  },
+  {
+    "id": "C-L2-10",
+    "seccion_destino": "§17, 17-g (lote L3)",
+    "que": "dudas.md: el culote se guarda como dato, en `teams.bib`, y su columna va en la `0052` del 16a (§8.5), con `kit_canonical` y `managed_since_day`."
+  },
+  {
+    "id": "C-L2-11",
+    "seccion_destino": "§15, §16, §17, §18 y §20 (lote L3)",
+    "que": "§12 cambia de nombre y de subsecciones con D-00p: «Sin red, el peso y la primera pintura»; la conducta sin red es ahora §12.1 (antes §12.4), las banderas y el peso §12.2 (antes §12.7), `tokens.json` §12.3 y lo que se retira §12.4; las antiguas §12.1 a §12.3, §12.5, §12.6 y §12.8 no existen. El ensayo del ensamblado (`<scratchpad>/corrector-L2/ensayo`) da como remisiones rotas, el 22 de octubre, nueve de la v1, todas en §15 a §20 (a §12.5, §12.6, §12.7 y §12.8, y una a §18.8 que ya estaba), y hay otras que no rompen pero apuntan a lo que no es (las de §15 a «§12.3, §12.5» y «§12.6», las de §16 a «los cuatro casos de §12.4» y «la tabla de §12.3», las de §17 a «§12.1» del manifiesto y «§12.2» de las metas, y las tablas de §20). El título de §12 en la tabla §B de `00-esqueleto.md` también cambia."
+  },
+  {
+    "id": "C-L2-12",
+    "seccion_destino": "§19 (lote L3)",
+    "que": "Ruso-022: nueva decisión del dueño DD-24, que solo se abre si la puerta de §8.2 falla tras repetir la traducción y hacer ceder a los NPC: quitar un color o una figura del vocabulario de D-00e, con la cuenta que escribe `kits.test.ts` (cuántas carreras fallarían sin cada color y cada figura); por defecto, ninguno, y el caso queda en `it.todo` con su cifra."
+  },
+  {
+    "id": "C-L2-13",
+    "seccion_destino": "§19 (lote L3)",
+    "que": "D-00k y Rcodigo-031: el coste de usar el 429 de `kit_reciente` que fija D-00k, que es el código del límite de peticiones (`@fastify/rate-limit`, con `retry-after`); la web lo distingue por su código y el reproductor no llama a estas rutas, pero cualquier código futuro que lea «429 = espera» lo leería mal; la alternativa es el 409 que proponía el refutador de código. Y lo que añadió el orquestador a D-00k, el primer cambio libre de quien toma un equipo, ahora con su mecanismo: `teams.managed_since_day` (§8.5, 8-g)."
+  },
+  {
+    "id": "C-L2-14",
+    "seccion_destino": "§19 (lote L3) y D-00h en `00-decisiones.md` §0",
+    "que": "Las cifras nuevas de la reserva, sin estrella (D-00m) y con los grises de los líderes (8-q), medidas en `<scratchpad>/corrector-L2/medir-nacional3.py`: 26 maillots de equipo reservados frente a 16 nacionales (28 frente a 18 sin los grises de los líderes), 491 permitidos y 458 distintos (antes 524 y 491); el peor, Marruecos frente a `plain.red`, 5,3 en visión normal, 3,7 en la peor dicromacia y 2,6 en grises; 85 pares de nacionales gemelos a menos de 10 (antes 74). Y el coste de los grises: 8 nacionales a menos de 10 del verde de los puntos (Uzbekistán, 5,9), 7 del amarillo (Honduras, 7,2) y 1 del azul (Burkina Faso, 9,8), y San Vicente a 10,0 del amarillo en protanopía, sin arreglo posible porque ni la bandera ni el líder se cambian (§9.6). D-00h cita todavía «los 21 que mide §9 frente a 17 nacionales»: D-00m remite las cifras a §8 y §9, y §0 no lo toca este corrector."
+  },
+  {
+    "id": "C-L2-15",
+    "seccion_destino": "§4.2, §4.7, §4.9 y §4.11 (lote L1)",
+    "que": "D-00p: salen `UpdateToast` e `InstallHint` (§4.7, la fila de lo fijo de §4.9 y §4.11). Y §12.1 usa el `ErrorState` `outdated` también para un trozo que no carga con red, lo que pasa tras un despliegue sin service worker (12-c): `errorKindOf` (§4.2) tiene que dar `outdated` a un fallo de `import()` con `navigator.onLine` cierto y `network` sin red."
+  },
+  {
+    "id": "C-L2-16",
+    "seccion_destino": "§20 (lote L3)",
+    "que": "D-00p retira I-11, I-23, O-02, O-13 y X-10 con la web instalable; §12 los nombra en sus bloques de cierre como retirados, y las tablas de §20 que los dan por aplicados en §12.2 y §12.3 tienen que decirlo."
+  },
+  {
+    "id": "C-L2-17",
+    "seccion_destino": "opciones/index.html (la página de opciones, no es una sección)",
+    "que": "D-00m: la versión 4 pinta los nacionales y la hoja de los 133 con la estrella dorada; con D-00m hay que pintarlos sin ella, con el orden de la hoja de §9.5 (primero las banderas con texto, luego las gemelas) y la reserva nueva (26 maillots; `<scratchpad>/corrector-L2/medir-nacional3.json`). `medir-nacional2.py` ya no sirve tal cual con el `para_medir` de hoy: añade `xmlns:xlink` otra vez y el SVG duplicado no se decodifica."
+  }
+]

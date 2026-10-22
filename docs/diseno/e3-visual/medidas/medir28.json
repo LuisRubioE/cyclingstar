@@ -1,0 +1,1638 @@
+{
+  "colores": {
+    "nuevos": ["#876969", "#4b1e0f", "#5a4b5a"],
+    "min_dicro_de_los_nuevos": 13.2,
+    "min_normal_de_los_nuevos": 14.7,
+    "min_normal": 14.7,
+    "pares_bajo10_normal": 0,
+    "min_protan": 12.3,
+    "pares_bajo10_protan": 0,
+    "min_deutan": 12.3,
+    "pares_bajo10_deutan": 0,
+    "min_tritan": 12.3,
+    "pares_bajo10_tritan": 0,
+    "min_gris": 0.4,
+    "pares_bajo10_gris": 21,
+    "doce_min_protan": 12.3,
+    "doce_min_deutan": 12.3,
+    "doce_min_tritan": 12.3,
+    "a_lideres": {
+      "#876969": {
+        "normal": [44.7, 44.5, 31.5],
+        "protan": [40.1, 25.2, 31.0],
+        "deutan": [39.2, 16.7, 35.8],
+        "tritan": [29.3, 44.7, 46.0]
+      },
+      "#4b1e0f": {
+        "normal": [71.9, 58.9, 45.3],
+        "protan": [68.5, 41.5, 51.9],
+        "deutan": [67.3, 32.7, 52.8],
+        "tritan": [63.9, 61.6, 57.5]
+      },
+      "#5a4b5a": {
+        "normal": [60.5, 43.7, 29.0],
+        "protan": [57.3, 41.0, 26.4],
+        "deutan": [57.3, 33.4, 24.6],
+        "tritan": [45.5, 50.6, 41.3]
+      }
+    },
+    "a_blanco_y_amarillo": {
+      "#876969": 29.3,
+      "#4b1e0f": 63.9,
+      "#5a4b5a": 45.5
+    }
+  },
+  "vocabulario": {
+    "combinaciones": 1105,
+    "pasan_contraste": 547,
+    "reservados_por_distancia": 11,
+    "permitidos": 536,
+    "permitidos_distintos_con_espejo": 503
+  },
+  "chromium": "141.0.7390.37",
+  "senales": {
+    "W-mundo": {
+      "uci": [12.7, 11.6, 11.7, 12.1, 9.2],
+      "cerca": [
+        [14.6, "sides.taupe.white"],
+        [12.2, "yoke.teal.white"],
+        [11.3, "sides.pink.white"],
+        [14.5, "sides.taupe.white"],
+        [9.4, "sides.orange.white"]
+      ],
+      "lider_mas_cercano_4v": 25.9
+    },
+    "W-continental": {
+      "uci": [13.0, 12.4, 12.4, 11.7, 8.3],
+      "cerca": [
+        [12.8, "sides.taupe.white"],
+        [11.3, "yoke.teal.white"],
+        [10.4, "sides.pink.white"],
+        [14.0, "sides.blue.white"],
+        [8.6, "sides.orange.white"]
+      ],
+      "lider_mas_cercano_4v": 25.6
+    },
+    "N-ES": {
+      "uci": [42.3, 42.0, 36.4, 40.6, 29.6],
+      "cerca": [
+        [18.4, "hoops.red.yellow"],
+        [13.0, "hoops.red.orange"],
+        [10.6, "hoops.red.orange"],
+        [12.4, "hoops.red.orange"],
+        [9.1, "hoops.green.orange"]
+      ],
+      "lider_mas_cercano_4v": 20.0
+    },
+    "N-FR": {
+      "uci": [28.7, 26.6, 25.3, 25.5, 21.3],
+      "cerca": [
+        [27.2, "halves.taupe.white"],
+        [24.3, "hoops.teal.white"],
+        [22.7, "halves.teal.white"],
+        [25.6, "halves.blue.white"],
+        [18.4, "sides.sky.blue"]
+      ],
+      "lider_mas_cercano_4v": 28.1
+    },
+    "N-IT": {
+      "uci": [23.4, 20.5, 19.1, 21.9, 15.6],
+      "cerca": [
+        [23.4, "halves.teal.white"],
+        [18.3, "hoops.teal.white"],
+        [16.8, "hoops.pink.white"],
+        [22.3, "halves.teal.white"],
+        [14.8, "hoops.orange.white"]
+      ],
+      "lider_mas_cercano_4v": 19.2
+    },
+    "N-BE": {
+      "uci": [39.1, 36.8, 34.8, 34.7, 23.3],
+      "cerca": [
+        [28.8, "hoops.taupe.yellow"],
+        [21.1, "yoke.orange.green"],
+        [18.9, "yoke.orange.red"],
+        [19.8, "halves.taupe.yellow"],
+        [16.4, "yoke.sky.blue"]
+      ],
+      "lider_mas_cercano_4v": 17.9
+    },
+    "N-NL": {
+      "uci": [42.6, 42.6, 39.6, 39.4, 35.2],
+      "cerca": [
+        [23.2, "band.taupe.white"],
+        [20.4, "yoke.pink.green"],
+        [18.9, "yoke.teal.green"],
+        [23.6, "yoke.sky.red"],
+        [12.3, "band.green.yellow"]
+      ],
+      "lider_mas_cercano_4v": 24.7
+    },
+    "N-GB": {
+      "uci": [34.8, 31.3, 28.9, 33.0, 25.0],
+      "cerca": [
+        [24.6, "plain.red"],
+        [19.3, "sides.brown.teal"],
+        [19.7, "sides.green.teal"],
+        [24.4, "sides.red.white"],
+        [14.6, "sides.green.teal"]
+      ],
+      "lider_mas_cercano_4v": 26.9
+    },
+    "N-DE": {
+      "uci": [55.1, 52.2, 50.0, 53.0, 42.4],
+      "cerca": [
+        [17.8, "yoke.orange.black"],
+        [14.2, "yoke.orange.black"],
+        [11.1, "yoke.orange.black"],
+        [13.7, "yoke.orange.black"],
+        [10.4, "yoke.pink.black"]
+      ],
+      "lider_mas_cercano_4v": 31.1
+    },
+    "N-PT": {
+      "uci": [42.6, 40.8, 34.9, 41.1, 28.8],
+      "cerca": [
+        [23.8, "halves.orange.red"],
+        [8.0, "plain.green"],
+        [11.3, "sides.orange.red"],
+        [22.0, "halves.orange.red"],
+        [7.7, "plain.blue"]
+      ],
+      "lider_mas_cercano_4v": 18.0
+    },
+    "N-DK": {
+      "uci": [42.1, 40.3, 32.6, 40.1, 31.1],
+      "cerca": [
+        [15.5, "plain.red"],
+        [15.5, "plain.red"],
+        [12.7, "plain.red"],
+        [15.2, "band.red.orange"],
+        [11.6, "band.red.orange"]
+      ],
+      "lider_mas_cercano_4v": 16.0
+    },
+    "N-NO": {
+      "uci": [38.8, 35.9, 31.9, 37.3, 27.5],
+      "cerca": [
+        [22.6, "plain.red"],
+        [18.8, "plain.taupe"],
+        [22.0, "plain.red"],
+        [24.6, "plain.red"],
+        [11.6, "plain.blue"]
+      ],
+      "lider_mas_cercano_4v": 23.9
+    },
+    "N-SI": {
+      "uci": [36.9, 34.0, 31.6, 31.2, 26.5],
+      "cerca": [
+        [21.3, "yoke.red.white"],
+        [18.8, "yoke.plum.white"],
+        [20.9, "yoke.plum.white"],
+        [20.3, "yoke.purple.white"],
+        [10.2, "yoke.purple.white"]
+      ],
+      "lider_mas_cercano_4v": 36.2
+    },
+    "N-SK": {
+      "uci": [30.3, 28.2, 25.7, 27.9, 20.5],
+      "cerca": [
+        [17.4, "yoke.red.white"],
+        [15.2, "yoke.red.white"],
+        [17.1, "yoke.red.white"],
+        [19.6, "yoke.red.white"],
+        [8.6, "yoke.blue.white"]
+      ],
+      "lider_mas_cercano_4v": 28.2
+    },
+    "N-CO": {
+      "uci": [42.2, 41.6, 38.6, 30.8, 21.4],
+      "cerca": [
+        [20.2, "yoke.taupe.yellow"],
+        [17.4, "yoke.taupe.yellow"],
+        [17.2, "yoke.red.yellow"],
+        [18.1, "yoke.taupe.yellow"],
+        [10.2, "yoke.red.yellow"]
+      ],
+      "lider_mas_cercano_4v": 24.7
+    },
+    "N-US": {
+      "uci": [40.5, 36.0, 34.8, 39.6, 31.8],
+      "cerca": [
+        [23.3, "yoke.taupe.navy"],
+        [20.2, "halves.plum.teal"],
+        [21.6, "yoke.pink.navy"],
+        [23.9, "halves.navy.orange"],
+        [17.0, "halves.purple.orange"]
+      ],
+      "lider_mas_cercano_4v": 29.1
+    },
+    "N-AU": {
+      "uci": [56.7, 50.7, 52.3, 48.5, 46.0],
+      "cerca": [
+        [20.8, "plain.purple"],
+        [17.3, "halves.pink.navy"],
+        [20.1, "halves.teal.navy"],
+        [19.1, "plain.purple"],
+        [11.0, "halves.blue.brown"]
+      ],
+      "lider_mas_cercano_4v": 36.7
+    },
+    "N-CH": {
+      "uci": [40.6, 39.3, 30.8, 38.7, 26.6],
+      "cerca": [
+        [18.5, "sides.orange.red"],
+        [12.5, "sides.teal.green"],
+        [14.7, "sides.red.orange"],
+        [15.8, "sides.orange.red"],
+        [9.1, "plain.pink"]
+      ],
+      "lider_mas_cercano_4v": 14.4
+    },
+    "N-AR": {
+      "uci": [26.8, 25.2, 26.6, 25.4, 17.7],
+      "cerca": [
+        [15.4, "plain.sky"],
+        [12.9, "plain.sky"],
+        [13.6, "plain.sky"],
+        [15.0, "plain.sky"],
+        [7.9, "plain.sky"]
+      ],
+      "lider_mas_cercano_4v": 15.2
+    },
+    "N-MX": {
+      "uci": [24.7, 22.0, 20.7, 23.4, 17.4],
+      "cerca": [
+        [24.1, "halves.teal.white"],
+        [19.9, "hoops.teal.white"],
+        [18.8, "halves.pink.white"],
+        [24.2, "halves.teal.white"],
+        [17.1, "yoke.sky.blue"]
+      ],
+      "lider_mas_cercano_4v": 22.3
+    },
+    "N-EC": {
+      "uci": [39.1, 38.5, 35.1, 33.1, 23.6],
+      "cerca": [
+        [19.9, "yoke.taupe.yellow"],
+        [15.8, "yoke.green.yellow"],
+        [14.2, "yoke.red.yellow"],
+        [16.8, "yoke.taupe.yellow"],
+        [9.4, "yoke.red.yellow"]
+      ],
+      "lider_mas_cercano_4v": 24.0
+    },
+    "N-PL": {
+      "uci": [23.8, 20.3, 16.2, 21.3, 15.2],
+      "cerca": [
+        [10.4, "yoke.red.white"],
+        [8.3, "yoke.red.white"],
+        [7.7, "yoke.red.white"],
+        [10.6, "yoke.red.white"],
+        [6.1, "yoke.taupe.white"]
+      ],
+      "lider_mas_cercano_4v": 24.7
+    },
+    "N-AT": {
+      "uci": [41.5, 41.1, 33.7, 39.0, 31.4],
+      "cerca": [
+        [15.5, "band.red.orange"],
+        [15.2, "band.red.orange"],
+        [12.9, "plain.red"],
+        [14.7, "band.red.yellow"],
+        [9.9, "band.red.yellow"]
+      ],
+      "lider_mas_cercano_4v": 14.0
+    },
+    "N-IE": {
+      "uci": [21.7, 19.3, 18.4, 20.2, 13.0],
+      "cerca": [
+        [21.4, "halves.teal.white"],
+        [18.0, "hoops.orange.white"],
+        [16.5, "halves.pink.white"],
+        [20.4, "halves.teal.white"],
+        [12.1, "plain.sky"]
+      ],
+      "lider_mas_cercano_4v": 18.9
+    },
+    "N-CZ": {
+      "uci": [28.2, 26.0, 22.7, 26.0, 20.1],
+      "cerca": [
+        [16.3, "yoke.red.white"],
+        [13.6, "yoke.red.white"],
+        [14.3, "yoke.red.white"],
+        [17.3, "yoke.red.white"],
+        [8.8, "yoke.red.white"]
+      ],
+      "lider_mas_cercano_4v": 30.6
+    },
+    "N-CA": {
+      "uci": [17.5, 15.9, 14.6, 17.1, 10.6],
+      "cerca": [
+        [16.6, "sides.taupe.white"],
+        [16.2, "sides.taupe.white"],
+        [13.7, "sides.pink.white"],
+        [16.5, "sides.taupe.white"],
+        [12.3, "sides.orange.white"]
+      ],
+      "lider_mas_cercano_4v": 22.8
+    },
+    "N-NZ": {
+      "uci": [54.0, 50.0, 51.6, 48.6, 45.2],
+      "cerca": [
+        [17.4, "plain.navy"],
+        [14.6, "sash.navy.pink"],
+        [17.3, "sash.navy.taupe"],
+        [17.8, "plain.navy"],
+        [10.1, "yoke.navy.taupe"]
+      ],
+      "lider_mas_cercano_4v": 34.5
+    },
+    "N-SE": {
+      "uci": [44.6, 41.6, 43.7, 38.4, 32.9],
+      "cerca": [
+        [28.3, "band.blue.yellow"],
+        [21.9, "halves.orange.purple"],
+        [22.5, "halves.orange.purple"],
+        [21.4, "band.green.yellow"],
+        [11.3, "halves.teal.plum"]
+      ],
+      "lider_mas_cercano_4v": 28.4
+    },
+    "N-JP": {
+      "uci": [23.0, 19.6, 16.2, 21.4, 14.5],
+      "cerca": [
+        [17.2, "yoke.red.white"],
+        [16.2, "yoke.red.white"],
+        [13.7, "yoke.red.white"],
+        [16.9, "yoke.red.white"],
+        [12.9, "yoke.red.white"]
+      ],
+      "lider_mas_cercano_4v": 26.2
+    },
+    "N-KZ": {
+      "uci": [32.0, 25.1, 28.1, 28.8, 19.5],
+      "cerca": [
+        [15.1, "plain.teal"],
+        [15.3, "plain.teal"],
+        [14.5, "plain.teal"],
+        [9.1, "plain.teal"],
+        [6.1, "plain.teal"]
+      ],
+      "lider_mas_cercano_4v": 14.5
+    },
+    "N-UA": {
+      "uci": [38.8, 34.6, 36.4, 34.5, 27.7],
+      "cerca": [
+        [24.5, "band.blue.yellow"],
+        [16.7, "yoke.orange.purple"],
+        [15.7, "yoke.orange.purple"],
+        [20.1, "band.blue.yellow"],
+        [9.2, "yoke.sky.green"]
+      ],
+      "lider_mas_cercano_4v": 25.5
+    },
+    "N-EE": {
+      "uci": [32.9, 31.0, 32.8, 30.8, 26.9],
+      "cerca": [
+        [25.1, "band.blue.black"],
+        [24.0, "band.blue.black"],
+        [24.3, "yoke.taupe.sky"],
+        [22.9, "band.blue.black"],
+        [17.0, "band.teal.brown"]
+      ],
+      "lider_mas_cercano_4v": 28.6
+    },
+    "N-LV": {
+      "uci": [51.0, 49.5, 41.7, 49.0, 41.6],
+      "cerca": [
+        [15.6, "plain.red"],
+        [13.1, "plain.red"],
+        [11.4, "band.green.pink"],
+        [15.3, "plain.red"],
+        [7.6, "band.plum.teal"]
+      ],
+      "lider_mas_cercano_4v": 20.2
+    },
+    "N-LT": {
+      "uci": [39.8, 36.7, 33.5, 36.4, 25.5],
+      "cerca": [
+        [21.9, "yoke.taupe.yellow"],
+        [7.4, "yoke.red.yellow"],
+        [9.5, "yoke.red.orange"],
+        [21.2, "yoke.green.yellow"],
+        [5.0, "yoke.red.sky"]
+      ],
+      "lider_mas_cercano_4v": 24.0
+    },
+    "N-BY": {
+      "uci": [44.6, 43.2, 37.6, 42.7, 33.8],
+      "cerca": [
+        [22.1, "yoke.black.red"],
+        [9.0, "plain.green"],
+        [6.6, "plain.red"],
+        [19.9, "plain.red"],
+        [3.1, "plain.red"]
+      ],
+      "lider_mas_cercano_4v": 19.0
+    },
+    "N-ZA": {
+      "uci": [39.7, 35.9, 34.8, 35.7, 29.8],
+      "cerca": [
+        [30.5, "band.plum.teal"],
+        [21.8, "plain.taupe"],
+        [21.9, "plain.taupe"],
+        [24.0, "yoke.green.orange"],
+        [14.0, "plain.blue"]
+      ],
+      "lider_mas_cercano_4v": 26.5
+    },
+    "N-BR": {
+      "uci": [36.4, 33.3, 33.5, 30.6, 22.7],
+      "cerca": [
+        [26.2, "band.teal.plum"],
+        [17.4, "band.orange.plum"],
+        [20.9, "band.orange.plum"],
+        [18.2, "band.teal.purple"],
+        [10.2, "band.pink.green"]
+      ],
+      "lider_mas_cercano_4v": 20.4
+    },
+    "N-CL": {
+      "uci": [29.9, 26.6, 23.5, 27.5, 21.2],
+      "cerca": [
+        [17.7, "yoke.red.white"],
+        [15.7, "yoke.green.white"],
+        [15.1, "yoke.red.white"],
+        [16.2, "yoke.red.white"],
+        [10.7, "yoke.taupe.white"]
+      ],
+      "lider_mas_cercano_4v": 29.7
+    },
+    "N-VE": {
+      "uci": [41.9, 40.4, 37.3, 37.0, 27.5],
+      "cerca": [
+        [17.8, "yoke.red.yellow"],
+        [15.2, "yoke.red.yellow"],
+        [18.2, "yoke.red.yellow"],
+        [19.3, "yoke.red.yellow"],
+        [9.2, "yoke.red.yellow"]
+      ],
+      "lider_mas_cercano_4v": 27.9
+    },
+    "N-FI": {
+      "uci": [30.7, 28.9, 30.4, 27.7, 25.2],
+      "cerca": [
+        [16.7, "halves.navy.white"],
+        [15.9, "halves.navy.white"],
+        [16.5, "halves.navy.white"],
+        [15.4, "halves.navy.white"],
+        [14.6, "halves.navy.white"]
+      ],
+      "lider_mas_cercano_4v": 33.0
+    },
+    "N-HR": {
+      "uci": [44.7, 41.3, 38.3, 41.3, 33.3],
+      "cerca": [
+        [26.6, "plain.taupe"],
+        [20.9, "yoke.pink.green"],
+        [25.0, "plain.pink"],
+        [25.9, "yoke.purple.orange"],
+        [13.9, "band.blue.sky"]
+      ],
+      "lider_mas_cercano_4v": 26.4
+    },
+    "N-HU": {
+      "uci": [36.0, 35.9, 32.6, 34.2, 27.2],
+      "cerca": [
+        [24.5, "band.taupe.white"],
+        [13.6, "band.green.white"],
+        [14.4, "band.red.orange"],
+        [18.9, "yoke.sky.red"],
+        [8.5, "band.blue.yellow"]
+      ],
+      "lider_mas_cercano_4v": 13.5
+    },
+    "N-RO": {
+      "uci": [36.8, 34.3, 33.0, 30.8, 20.3],
+      "cerca": [
+        [29.5, "halves.taupe.yellow"],
+        [23.2, "halves.teal.yellow"],
+        [20.7, "halves.pink.yellow"],
+        [22.0, "halves.taupe.yellow"],
+        [14.9, "yoke.sky.blue"]
+      ],
+      "lider_mas_cercano_4v": 19.0
+    },
+    "N-RU": {
+      "uci": [29.8, 27.9, 26.1, 27.1, 21.0],
+      "cerca": [
+        [17.0, "yoke.plum.white"],
+        [14.2, "yoke.plum.white"],
+        [16.5, "yoke.plum.white"],
+        [17.8, "yoke.purple.white"],
+        [6.0, "yoke.red.white"]
+      ],
+      "lider_mas_cercano_4v": 34.2
+    },
+    "N-RS": {
+      "uci": [34.0, 32.1, 29.4, 33.2, 25.5],
+      "cerca": [
+        [24.3, "plain.taupe"],
+        [18.9, "yoke.teal.green"],
+        [20.0, "yoke.pink.green"],
+        [22.1, "yoke.orange.red"],
+        [13.7, "yoke.orange.red"]
+      ],
+      "lider_mas_cercano_4v": 22.5
+    },
+    "N-BG": {
+      "uci": [26.5, 22.6, 19.6, 24.3, 16.8],
+      "cerca": [
+        [19.3, "yoke.taupe.white"],
+        [8.5, "yoke.green.white"],
+        [8.0, "yoke.red.white"],
+        [19.5, "yoke.taupe.white"],
+        [4.1, "yoke.taupe.white"]
+      ],
+      "lider_mas_cercano_4v": 25.3
+    },
+    "N-GR": {
+      "uci": [26.1, 24.4, 26.2, 23.7, 19.1],
+      "cerca": [
+        [23.5, "halves.blue.white"],
+        [21.6, "yoke.pink.white"],
+        [23.1, "plain.teal"],
+        [21.3, "plain.blue"],
+        [17.2, "plain.pink"]
+      ],
+      "lider_mas_cercano_4v": 21.8
+    },
+    "N-TR": {
+      "uci": [43.6, 42.3, 33.7, 41.5, 29.9],
+      "cerca": [
+        [13.5, "plain.red"],
+        [11.4, "plain.green"],
+        [11.4, "plain.red"],
+        [12.8, "plain.red"],
+        [7.0, "plain.blue"]
+      ],
+      "lider_mas_cercano_4v": 15.3
+    },
+    "N-IL": {
+      "uci": [29.4, 27.2, 28.5, 25.3, 22.3],
+      "cerca": [
+        [20.8, "hoops.blue.white"],
+        [18.5, "hoops.pink.white"],
+        [20.0, "hoops.teal.white"],
+        [18.8, "hoops.blue.white"],
+        [15.6, "hoops.taupe.white"]
+      ],
+      "lider_mas_cercano_4v": 23.8
+    },
+    "N-KR": {
+      "uci": [22.5, 21.3, 21.0, 20.8, 16.0],
+      "cerca": [
+        [22.3, "sides.taupe.white"],
+        [21.1, "yoke.teal.white"],
+        [20.7, "sides.pink.white"],
+        [22.5, "sides.taupe.white"],
+        [16.5, "band.sky.green"]
+      ],
+      "lider_mas_cercano_4v": 29.1
+    },
+    "N-CN": {
+      "uci": [43.3, 41.2, 33.0, 41.3, 27.8],
+      "cerca": [
+        [12.3, "plain.red"],
+        [8.0, "plain.green"],
+        [10.2, "plain.red"],
+        [9.6, "plain.red"],
+        [5.2, "plain.blue"]
+      ],
+      "lider_mas_cercano_4v": 16.7
+    },
+    "N-UY": {
+      "uci": [31.5, 29.5, 30.5, 26.6, 24.2],
+      "cerca": [
+        [26.4, "yoke.blue.white"],
+        [22.9, "yoke.pink.white"],
+        [24.0, "yoke.teal.white"],
+        [23.3, "sides.purple.white"],
+        [18.6, "yoke.blue.yellow"]
+      ],
+      "lider_mas_cercano_4v": 29.3
+    },
+    "N-PE": {
+      "uci": [25.6, 23.5, 20.2, 24.1, 17.2],
+      "cerca": [
+        [24.4, "hoops.taupe.white"],
+        [20.7, "hoops.teal.white"],
+        [18.1, "hoops.pink.white"],
+        [21.8, "hoops.orange.white"],
+        [16.0, "yoke.sky.blue"]
+      ],
+      "lider_mas_cercano_4v": 19.6
+    },
+    "N-CR": {
+      "uci": [35.7, 31.2, 30.2, 31.4, 26.2],
+      "cerca": [
+        [26.5, "yoke.red.white"],
+        [24.9, "band.pink.green"],
+        [25.9, "yoke.red.white"],
+        [25.7, "yoke.red.white"],
+        [18.3, "hoops.green.teal"]
+      ],
+      "lider_mas_cercano_4v": 34.5
+    },
+    "N-MA": {
+      "uci": [46.3, 44.7, 36.6, 45.1, 34.4],
+      "cerca": [
+        [6.3, "plain.red"],
+        [4.7, "plain.red"],
+        [4.3, "plain.red"],
+        [4.3, "plain.red"],
+        [3.1, "plain.red"]
+      ],
+      "lider_mas_cercano_4v": 18.1
+    },
+    "N-ER": {
+      "uci": [36.3, 32.2, 29.8, 35.2, 24.6],
+      "cerca": [
+        [27.6, "plain.taupe"],
+        [18.2, "yoke.red.orange"],
+        [14.9, "plain.red"],
+        [26.7, "yoke.pink.green"],
+        [11.2, "band.pink.green"]
+      ],
+      "lider_mas_cercano_4v": 19.9
+    },
+    "N-LU": {
+      "uci": [33.7, 32.8, 30.4, 30.8, 23.5],
+      "cerca": [
+        [16.4, "yoke.sky.red"],
+        [14.7, "yoke.sky.red"],
+        [16.5, "yoke.sky.red"],
+        [16.7, "yoke.sky.red"],
+        [9.1, "yoke.sky.blue"]
+      ],
+      "lider_mas_cercano_4v": 19.2
+    },
+    "N-RW": {
+      "uci": [34.7, 29.0, 31.1, 33.5, 25.3],
+      "cerca": [
+        [23.0, "yoke.green.sky"],
+        [18.3, "band.pink.yellow"],
+        [19.1, "yoke.taupe.sky"],
+        [14.7, "band.blue.yellow"],
+        [9.1, "band.pink.yellow"]
+      ],
+      "lider_mas_cercano_4v": 16.5
+    },
+    "N-DZ": {
+      "uci": [30.5, 26.7, 26.3, 29.0, 23.2],
+      "cerca": [
+        [14.7, "halves.green.white"],
+        [6.2, "halves.red.white"],
+        [8.8, "halves.green.white"],
+        [11.7, "halves.green.white"],
+        [4.5, "halves.green.white"]
+      ],
+      "lider_mas_cercano_4v": 26.0
+    },
+    "N-IR": {
+      "uci": [36.3, 32.9, 29.3, 34.2, 24.0],
+      "cerca": [
+        [26.4, "yoke.orange.green"],
+        [17.4, "yoke.green.orange"],
+        [15.0, "band.red.orange"],
+        [20.5, "yoke.red.sky"],
+        [10.7, "band.pink.yellow"]
+      ],
+      "lider_mas_cercano_4v": 12.4
+    },
+    "N-GT": {
+      "uci": [19.9, 18.3, 19.2, 18.5, 12.7],
+      "cerca": [
+        [20.4, "sides.taupe.sky"],
+        [17.5, "hoops.teal.white"],
+        [18.2, "hoops.teal.white"],
+        [18.8, "halves.teal.white"],
+        [11.9, "plain.sky"]
+      ],
+      "lider_mas_cercano_4v": 20.1
+    },
+    "N-BO": {
+      "uci": [41.0, 39.8, 36.3, 37.7, 29.1],
+      "cerca": [
+        [23.7, "yoke.green.orange"],
+        [11.2, "yoke.orange.green"],
+        [12.3, "band.red.orange"],
+        [21.6, "yoke.green.pink"],
+        [8.6, "band.red.sky"]
+      ],
+      "lider_mas_cercano_4v": 18.4
+    },
+    "N-GE": {
+      "uci": [22.5, 20.5, 17.5, 21.1, 12.6],
+      "cerca": [
+        [14.7, "sides.red.white"],
+        [12.1, "sides.green.white"],
+        [11.1, "sides.red.white"],
+        [13.8, "sides.red.white"],
+        [8.4, "sides.red.white"]
+      ],
+      "lider_mas_cercano_4v": 23.5
+    },
+    "N-IN": {
+      "uci": [30.8, 30.0, 29.0, 28.8, 20.3],
+      "cerca": [
+        [19.8, "yoke.green.orange"],
+        [16.9, "band.orange.red"],
+        [13.8, "yoke.red.orange"],
+        [18.1, "yoke.green.orange"],
+        [9.5, "yoke.blue.sky"]
+      ],
+      "lider_mas_cercano_4v": 14.9
+    },
+    "N-EG": {
+      "uci": [49.3, 49.6, 45.1, 47.5, 42.1],
+      "cerca": [
+        [24.5, "band.red.orange"],
+        [20.7, "band.red.orange"],
+        [21.6, "plain.red"],
+        [24.1, "band.red.yellow"],
+        [16.5, "band.red.sky"]
+      ],
+      "lider_mas_cercano_4v": 23.5
+    },
+    "N-ET": {
+      "uci": [41.1, 38.7, 36.3, 37.1, 27.9],
+      "cerca": [
+        [23.1, "yoke.orange.green"],
+        [14.5, "yoke.green.orange"],
+        [14.2, "plain.red"],
+        [21.9, "yoke.orange.green"],
+        [6.0, "plain.blue"]
+      ],
+      "lider_mas_cercano_4v": 18.5
+    },
+    "N-TH": {
+      "uci": [31.3, 30.7, 28.3, 29.5, 25.6],
+      "cerca": [
+        [24.1, "yoke.plum.white"],
+        [22.4, "yoke.plum.teal"],
+        [22.4, "yoke.taupe.white"],
+        [24.4, "yoke.plum.white"],
+        [17.6, "hoops.green.teal"]
+      ],
+      "lider_mas_cercano_4v": 30.7
+    },
+    "N-ID": {
+      "uci": [32.8, 34.4, 28.4, 31.0, 23.0],
+      "cerca": [
+        [21.2, "yoke.orange.red"],
+        [14.9, "yoke.teal.green"],
+        [18.2, "yoke.orange.red"],
+        [19.6, "yoke.orange.red"],
+        [10.1, "yoke.sky.blue"]
+      ],
+      "lider_mas_cercano_4v": 15.2
+    },
+    "N-PH": {
+      "uci": [45.3, 41.4, 39.3, 40.0, 35.2],
+      "cerca": [
+        [23.0, "yoke.taupe.navy"],
+        [19.2, "yoke.teal.purple"],
+        [20.2, "yoke.teal.purple"],
+        [22.4, "yoke.orange.purple"],
+        [12.1, "band.green.teal"]
+      ],
+      "lider_mas_cercano_4v": 31.7
+    },
+    "N-CU": {
+      "uci": [39.0, 35.7, 35.6, 35.7, 30.4],
+      "cerca": [
+        [25.1, "hoops.navy.white"],
+        [22.7, "hoops.purple.teal"],
+        [24.2, "hoops.navy.pink"],
+        [24.3, "hoops.purple.white"],
+        [15.0, "hoops.purple.teal"]
+      ],
+      "lider_mas_cercano_4v": 32.0
+    },
+    "N-PA": {
+      "uci": [36.2, 34.6, 32.5, 31.2, 26.6],
+      "cerca": [
+        [24.4, "sash.red.white"],
+        [23.3, "sash.taupe.white"],
+        [24.0, "sash.taupe.white"],
+        [24.3, "halves.purple.orange"],
+        [15.8, "sash.red.yellow"]
+      ],
+      "lider_mas_cercano_4v": 29.7
+    },
+    "N-MD": {
+      "uci": [38.0, 36.2, 34.1, 34.3, 23.5],
+      "cerca": [
+        [28.9, "band.orange.plum"],
+        [21.5, "band.orange.green"],
+        [19.3, "sides.orange.red"],
+        [22.7, "yoke.taupe.yellow"],
+        [12.2, "sides.sky.blue"]
+      ],
+      "lider_mas_cercano_4v": 24.5
+    },
+    "N-NG": {
+      "uci": [22.5, 18.8, 18.9, 20.7, 15.4],
+      "cerca": [
+        [21.1, "halves.teal.white"],
+        [16.5, "hoops.teal.white"],
+        [16.3, "hoops.pink.white"],
+        [20.2, "halves.teal.white"],
+        [14.4, "hoops.orange.white"]
+      ],
+      "lider_mas_cercano_4v": 20.3
+    },
+    "N-KE": {
+      "uci": [53.2, 50.1, 48.3, 51.9, 45.1],
+      "cerca": [
+        [21.7, "hoops.black.taupe"],
+        [14.2, "yoke.red.black"],
+        [13.8, "yoke.red.black"],
+        [21.1, "band.black.red"],
+        [11.2, "hoops.black.taupe"]
+      ],
+      "lider_mas_cercano_4v": 29.3
+    },
+    "N-TN": {
+      "uci": [42.1, 41.1, 32.8, 39.9, 28.7],
+      "cerca": [
+        [16.0, "band.red.orange"],
+        [11.8, "band.green.teal"],
+        [12.8, "sides.orange.red"],
+        [14.2, "band.red.orange"],
+        [7.9, "plain.blue"]
+      ],
+      "lider_mas_cercano_4v": 14.3
+    },
+    "N-MY": {
+      "uci": [44.9, 40.4, 36.6, 42.1, 33.8],
+      "cerca": [
+        [27.0, "halves.black.red"],
+        [23.4, "halves.plum.teal"],
+        [24.2, "halves.plum.orange"],
+        [23.2, "halves.plum.orange"],
+        [16.9, "halves.navy.blue"]
+      ],
+      "lider_mas_cercano_4v": 30.1
+    },
+    "N-VN": {
+      "uci": [43.5, 42.2, 34.4, 40.8, 29.3],
+      "cerca": [
+        [14.4, "sides.orange.red"],
+        [8.4, "plain.green"],
+        [8.7, "sides.orange.red"],
+        [9.0, "plain.red"],
+        [4.8, "plain.taupe"]
+      ],
+      "lider_mas_cercano_4v": 16.0
+    },
+    "N-AE": {
+      "uci": [48.6, 47.2, 44.9, 46.5, 40.8],
+      "cerca": [
+        [31.2, "band.plum.white"],
+        [19.9, "band.green.teal"],
+        [21.2, "band.green.pink"],
+        [28.1, "band.green.orange"],
+        [15.7, "band.red.orange"]
+      ],
+      "lider_mas_cercano_4v": 24.5
+    },
+    "N-AM": {
+      "uci": [42.7, 42.2, 38.6, 39.3, 29.7],
+      "cerca": [
+        [25.2, "yoke.orange.red"],
+        [20.9, "yoke.pink.green"],
+        [23.3, "band.red.black"],
+        [23.2, "band.orange.purple"],
+        [11.3, "plain.red"]
+      ],
+      "lider_mas_cercano_4v": 28.0
+    },
+    "N-IS": {
+      "uci": [45.4, 41.1, 42.6, 40.7, 35.6],
+      "cerca": [
+        [20.6, "halves.taupe.navy"],
+        [17.4, "halves.teal.purple"],
+        [18.5, "halves.teal.purple"],
+        [22.8, "band.purple.orange"],
+        [11.0, "halves.teal.purple"]
+      ],
+      "lider_mas_cercano_4v": 28.7
+    },
+    "N-AZ": {
+      "uci": [34.9, 29.5, 29.9, 33.7, 23.2],
+      "cerca": [
+        [22.0, "yoke.taupe.sky"],
+        [14.3, "yoke.green.sky"],
+        [9.6, "yoke.red.sky"],
+        [21.5, "yoke.taupe.sky"],
+        [7.9, "yoke.red.orange"]
+      ],
+      "lider_mas_cercano_4v": 24.4
+    },
+    "N-UZ": {
+      "uci": [32.4, 27.5, 28.7, 31.1, 22.2],
+      "cerca": [
+        [24.7, "plain.teal"],
+        [16.8, "plain.teal"],
+        [17.0, "yoke.red.sky"],
+        [17.8, "plain.teal"],
+        [7.3, "band.pink.yellow"]
+      ],
+      "lider_mas_cercano_4v": 16.0
+    },
+    "N-SA": {
+      "uci": [41.7, 36.9, 37.7, 39.6, 34.1],
+      "cerca": [
+        [13.6, "hoops.green.teal"],
+        [10.6, "plain.red"],
+        [11.0, "hoops.brown.taupe"],
+        [10.1, "plain.green"],
+        [6.8, "hoops.green.pink"]
+      ],
+      "lider_mas_cercano_4v": 23.7
+    },
+    "N-QA": {
+      "uci": [45.8, 43.1, 36.5, 45.1, 36.2],
+      "cerca": [
+        [18.6, "plain.red"],
+        [13.8, "plain.plum"],
+        [13.7, "halves.taupe.brown"],
+        [16.2, "halves.taupe.brown"],
+        [9.4, "plain.purple"]
+      ],
+      "lider_mas_cercano_4v": 26.6
+    },
+    "N-SG": {
+      "uci": [32.5, 34.0, 28.2, 30.8, 23.0],
+      "cerca": [
+        [21.3, "yoke.orange.red"],
+        [15.3, "yoke.teal.green"],
+        [17.8, "yoke.orange.red"],
+        [19.1, "yoke.orange.red"],
+        [10.7, "yoke.sky.taupe"]
+      ],
+      "lider_mas_cercano_4v": 15.5
+    },
+    "N-DO": {
+      "uci": [41.6, 40.0, 37.4, 38.2, 33.9],
+      "cerca": [
+        [26.4, "sides.sky.red"],
+        [22.1, "sides.teal.plum"],
+        [23.2, "sash.pink.navy"],
+        [25.8, "sash.orange.green"],
+        [13.9, "sides.sky.red"]
+      ],
+      "lider_mas_cercano_4v": 27.8
+    },
+    "N-PY": {
+      "uci": [42.5, 41.6, 38.9, 38.3, 33.3],
+      "cerca": [
+        [24.3, "band.taupe.white"],
+        [17.5, "yoke.pink.green"],
+        [22.3, "yoke.teal.green"],
+        [22.7, "yoke.purple.orange"],
+        [12.9, "band.taupe.sky"]
+      ],
+      "lider_mas_cercano_4v": 23.8
+    },
+    "N-MK": {
+      "uci": [43.5, 42.8, 34.9, 39.9, 27.8],
+      "cerca": [
+        [18.4, "sides.orange.red"],
+        [11.5, "sides.orange.green"],
+        [10.5, "sides.orange.red"],
+        [12.1, "sides.orange.red"],
+        [8.3, "sides.orange.red"]
+      ],
+      "lider_mas_cercano_4v": 19.2
+    },
+    "N-KG": {
+      "uci": [41.8, 40.9, 32.7, 41.0, 26.0],
+      "cerca": [
+        [16.2, "band.red.orange"],
+        [8.1, "band.green.orange"],
+        [10.1, "sides.red.orange"],
+        [11.4, "band.red.orange"],
+        [7.0, "plain.pink"]
+      ],
+      "lider_mas_cercano_4v": 16.9
+    },
+    "N-HK": {
+      "uci": [40.9, 38.5, 31.2, 39.4, 27.4],
+      "cerca": [
+        [14.0, "plain.red"],
+        [12.8, "band.green.teal"],
+        [12.1, "band.red.orange"],
+        [12.3, "band.red.orange"],
+        [7.5, "plain.blue"]
+      ],
+      "lider_mas_cercano_4v": 12.6
+    },
+    "N-GU": {
+      "uci": [42.4, 39.5, 39.4, 39.3, 33.7],
+      "cerca": [
+        [23.4, "sides.teal.purple"],
+        [16.7, "sides.teal.purple"],
+        [18.7, "sides.teal.purple"],
+        [24.9, "sides.teal.purple"],
+        [9.6, "sides.pink.green"]
+      ],
+      "lider_mas_cercano_4v": 24.7
+    },
+    "N-BH": {
+      "uci": [44.5, 42.8, 34.3, 42.4, 31.7],
+      "cerca": [
+        [8.5, "plain.red"],
+        [8.1, "plain.red"],
+        [6.9, "plain.red"],
+        [8.3, "plain.red"],
+        [4.3, "plain.red"]
+      ],
+      "lider_mas_cercano_4v": 18.4
+    },
+    "N-XK": {
+      "uci": [44.4, 41.2, 43.4, 40.5, 36.4],
+      "cerca": [
+        [18.0, "band.navy.taupe"],
+        [12.1, "band.purple.teal"],
+        [11.9, "band.purple.teal"],
+        [17.5, "band.navy.taupe"],
+        [6.5, "band.plum.teal"]
+      ],
+      "lider_mas_cercano_4v": 24.9
+    },
+    "N-HN": {
+      "uci": [27.8, 21.9, 25.1, 25.8, 16.1],
+      "cerca": [
+        [15.2, "plain.sky"],
+        [12.3, "plain.sky"],
+        [12.5, "plain.sky"],
+        [10.3, "plain.sky"],
+        [5.9, "plain.sky"]
+      ],
+      "lider_mas_cercano_4v": 15.2
+    },
+    "N-AD": {
+      "uci": [37.6, 35.0, 33.6, 32.6, 21.9],
+      "cerca": [
+        [30.0, "halves.taupe.yellow"],
+        [24.1, "yoke.orange.red"],
+        [21.3, "yoke.orange.red"],
+        [21.4, "halves.taupe.yellow"],
+        [15.8, "yoke.sky.blue"]
+      ],
+      "lider_mas_cercano_4v": 19.1
+    },
+    "N-AL": {
+      "uci": [49.7, 49.7, 40.6, 47.6, 37.2],
+      "cerca": [
+        [17.5, "plain.red"],
+        [10.5, "plain.green"],
+        [15.1, "plain.red"],
+        [15.2, "plain.red"],
+        [10.7, "plain.red"]
+      ],
+      "lider_mas_cercano_4v": 24.9
+    },
+    "N-BA": {
+      "uci": [47.9, 44.0, 45.1, 38.6, 33.5],
+      "cerca": [
+        [25.2, "yoke.purple.yellow"],
+        [22.7, "yoke.purple.yellow"],
+        [24.1, "yoke.purple.yellow"],
+        [18.1, "yoke.purple.yellow"],
+        [14.6, "yoke.navy.sky"]
+      ],
+      "lider_mas_cercano_4v": 33.3
+    },
+    "N-BF": {
+      "uci": [41.1, 40.9, 35.3, 37.2, 28.7],
+      "cerca": [
+        [25.8, "yoke.orange.red"],
+        [9.1, "yoke.orange.green"],
+        [10.1, "band.red.orange"],
+        [23.0, "yoke.sky.red"],
+        [7.8, "band.blue.sky"]
+      ],
+      "lider_mas_cercano_4v": 16.0
+    },
+    "N-BJ": {
+      "uci": [38.7, 35.4, 32.0, 32.5, 20.6],
+      "cerca": [
+        [21.8, "yoke.taupe.yellow"],
+        [10.3, "yoke.green.yellow"],
+        [10.3, "yoke.red.yellow"],
+        [20.9, "halves.teal.yellow"],
+        [7.4, "yoke.blue.yellow"]
+      ],
+      "lider_mas_cercano_4v": 16.8
+    },
+    "N-CM": {
+      "uci": [41.9, 39.4, 34.0, 39.1, 28.2],
+      "cerca": [
+        [23.9, "plain.red"],
+        [14.0, "plain.red"],
+        [12.0, "plain.red"],
+        [19.4, "plain.red"],
+        [7.8, "plain.red"]
+      ],
+      "lider_mas_cercano_4v": 20.5
+    },
+    "N-CY": {
+      "uci": [14.2, 13.7, 13.0, 12.9, 7.8],
+      "cerca": [
+        [14.1, "sides.taupe.white"],
+        [13.3, "sides.taupe.white"],
+        [11.3, "sides.pink.white"],
+        [13.3, "sides.taupe.white"],
+        [8.7, "sides.orange.white"]
+      ],
+      "lider_mas_cercano_4v": 20.6
+    },
+    "N-MU": {
+      "uci": [42.6, 38.5, 36.6, 40.7, 32.7],
+      "cerca": [
+        [25.9, "band.plum.yellow"],
+        [19.0, "yoke.orange.red"],
+        [19.3, "hoops.orange.plum"],
+        [22.9, "hoops.orange.navy"],
+        [11.5, "band.blue.sky"]
+      ],
+      "lider_mas_cercano_4v": 22.5
+    },
+    "N-OM": {
+      "uci": [28.0, 25.0, 23.5, 27.2, 18.9],
+      "cerca": [
+        [21.4, "yoke.taupe.white"],
+        [10.2, "yoke.green.white"],
+        [7.3, "yoke.red.white"],
+        [21.1, "yoke.taupe.white"],
+        [6.3, "yoke.blue.white"]
+      ],
+      "lider_mas_cercano_4v": 23.5
+    },
+    "N-TW": {
+      "uci": [47.5, 43.6, 37.6, 43.5, 34.1],
+      "cerca": [
+        [22.6, "plain.red"],
+        [18.2, "yoke.green.pink"],
+        [23.4, "halves.plum.orange"],
+        [21.9, "plain.red"],
+        [10.3, "sides.navy.blue"]
+      ],
+      "lider_mas_cercano_4v": 30.2
+    },
+    "N-AG": {
+      "uci": [46.8, 45.3, 43.1, 44.3, 36.7],
+      "cerca": [
+        [26.4, "yoke.taupe.black"],
+        [22.9, "yoke.taupe.black"],
+        [23.6, "yoke.pink.black"],
+        [26.8, "yoke.taupe.black"],
+        [15.8, "sides.sky.red"]
+      ],
+      "lider_mas_cercano_4v": 26.7
+    },
+    "N-BB": {
+      "uci": [40.8, 38.2, 38.6, 36.9, 28.5],
+      "cerca": [
+        [30.6, "sides.orange.plum"],
+        [26.1, "yoke.orange.plum"],
+        [27.0, "sides.orange.plum"],
+        [26.2, "plain.taupe"],
+        [15.7, "sides.sky.red"]
+      ],
+      "lider_mas_cercano_4v": 27.1
+    },
+    "N-BM": {
+      "uci": [41.7, 38.9, 32.2, 39.7, 30.3],
+      "cerca": [
+        [15.0, "plain.red"],
+        [13.7, "plain.red"],
+        [12.3, "plain.red"],
+        [14.6, "plain.red"],
+        [8.8, "plain.red"]
+      ],
+      "lider_mas_cercano_4v": 20.3
+    },
+    "N-BZ": {
+      "uci": [35.4, 33.4, 33.4, 32.8, 28.1],
+      "cerca": [
+        [27.3, "band.taupe.white"],
+        [22.8, "yoke.teal.plum"],
+        [23.1, "plain.pink"],
+        [25.9, "band.blue.white"],
+        [15.7, "hoops.blue.sky"]
+      ],
+      "lider_mas_cercano_4v": 25.7
+    },
+    "N-CI": {
+      "uci": [20.4, 18.7, 17.8, 18.1, 10.7],
+      "cerca": [
+        [19.6, "halves.orange.white"],
+        [17.7, "hoops.orange.white"],
+        [16.3, "hoops.orange.white"],
+        [18.9, "halves.orange.white"],
+        [10.4, "hoops.orange.white"]
+      ],
+      "lider_mas_cercano_4v": 20.3
+    },
+    "N-CV": {
+      "uci": [58.2, 52.3, 54.0, 52.8, 50.4],
+      "cerca": [
+        [16.4, "band.navy.taupe"],
+        [13.2, "band.navy.teal"],
+        [14.1, "band.navy.pink"],
+        [13.7, "band.navy.yellow"],
+        [9.0, "band.brown.pink"]
+      ],
+      "lider_mas_cercano_4v": 33.3
+    },
+    "N-DM": {
+      "uci": [39.8, 36.7, 35.0, 37.0, 27.4],
+      "cerca": [
+        [25.7, "band.green.orange"],
+        [13.4, "yoke.green.orange"],
+        [12.1, "plain.red"],
+        [24.9, "yoke.plum.teal"],
+        [9.0, "plain.blue"]
+      ],
+      "lider_mas_cercano_4v": 21.4
+    },
+    "N-GW": {
+      "uci": [35.8, 33.1, 31.0, 31.8, 20.1],
+      "cerca": [
+        [23.9, "yoke.teal.yellow"],
+        [15.7, "halves.green.orange"],
+        [10.2, "yoke.red.yellow"],
+        [19.4, "yoke.teal.yellow"],
+        [8.5, "yoke.pink.yellow"]
+      ],
+      "lider_mas_cercano_4v": 17.2
+    },
+    "N-JM": {
+      "uci": [37.2, 33.8, 34.4, 33.9, 24.3],
+      "cerca": [
+        [24.2, "sash.green.yellow"],
+        [13.8, "sides.green.orange"],
+        [14.1, "sides.red.orange"],
+        [22.9, "band.teal.plum"],
+        [10.9, "plain.pink"]
+      ],
+      "lider_mas_cercano_4v": 18.8
+    },
+    "N-JO": {
+      "uci": [52.2, 49.7, 47.3, 50.3, 42.2],
+      "cerca": [
+        [25.3, "yoke.taupe.black"],
+        [15.9, "yoke.orange.black"],
+        [14.3, "yoke.red.black"],
+        [24.8, "yoke.taupe.black"],
+        [10.3, "yoke.pink.black"]
+      ],
+      "lider_mas_cercano_4v": 26.3
+    },
+    "N-KY": {
+      "uci": [52.8, 48.3, 48.7, 47.9, 43.8],
+      "cerca": [
+        [23.0, "sash.navy.taupe"],
+        [18.8, "sash.navy.taupe"],
+        [21.2, "sash.navy.taupe"],
+        [21.9, "sash.navy.taupe"],
+        [13.8, "sash.black.blue"]
+      ],
+      "lider_mas_cercano_4v": 38.2
+    },
+    "N-LA": {
+      "uci": [48.4, 48.8, 44.0, 44.9, 39.6],
+      "cerca": [
+        [22.5, "band.red.sky"],
+        [21.0, "sides.teal.plum"],
+        [22.6, "hoops.red.black"],
+        [23.4, "band.red.sky"],
+        [12.6, "sides.pink.green"]
+      ],
+      "lider_mas_cercano_4v": 26.9
+    },
+    "N-LB": {
+      "uci": [31.6, 30.5, 25.9, 29.8, 21.5],
+      "cerca": [
+        [21.7, "hoops.red.white"],
+        [15.0, "hoops.green.white"],
+        [13.5, "hoops.red.white"],
+        [20.6, "hoops.red.white"],
+        [10.0, "hoops.blue.yellow"]
+      ],
+      "lider_mas_cercano_4v": 15.8
+    },
+    "N-LC": {
+      "uci": [28.2, 24.6, 26.3, 27.9, 15.6],
+      "cerca": [
+        [20.3, "sides.taupe.sky"],
+        [18.7, "sides.taupe.sky"],
+        [18.9, "yoke.taupe.sky"],
+        [17.2, "sides.taupe.sky"],
+        [8.5, "plain.sky"]
+      ],
+      "lider_mas_cercano_4v": 25.8
+    },
+    "N-MC": {
+      "uci": [31.5, 31.9, 26.9, 30.7, 21.5],
+      "cerca": [
+        [21.0, "yoke.orange.red"],
+        [16.0, "yoke.teal.green"],
+        [18.4, "yoke.orange.red"],
+        [18.8, "yoke.orange.red"],
+        [10.4, "yoke.sky.blue"]
+      ],
+      "lider_mas_cercano_4v": 13.9
+    },
+    "N-ME": {
+      "uci": [45.5, 46.3, 37.5, 43.5, 33.5],
+      "cerca": [
+        [15.6, "band.red.orange"],
+        [9.5, "plain.green"],
+        [8.8, "plain.red"],
+        [10.3, "plain.red"],
+        [6.6, "plain.red"]
+      ],
+      "lider_mas_cercano_4v": 18.7
+    },
+    "N-ML": {
+      "uci": [34.7, 32.4, 30.3, 24.8, 14.7],
+      "cerca": [
+        [28.0, "sides.green.yellow"],
+        [19.8, "sides.green.yellow"],
+        [15.9, "band.orange.red"],
+        [22.7, "halves.teal.yellow"],
+        [13.2, "plain.sky"]
+      ],
+      "lider_mas_cercano_4v": 12.2
+    },
+    "N-MN": {
+      "uci": [46.2, 43.5, 42.7, 42.1, 35.9],
+      "cerca": [
+        [22.7, "sides.navy.taupe"],
+        [16.5, "plain.plum"],
+        [18.1, "plain.plum"],
+        [25.8, "plain.purple"],
+        [4.9, "plain.red"]
+      ],
+      "lider_mas_cercano_4v": 30.5
+    },
+    "N-MO": {
+      "uci": [39.6, 33.5, 35.1, 36.9, 31.0],
+      "cerca": [
+        [15.1, "plain.teal"],
+        [9.9, "plain.taupe"],
+        [9.2, "plain.taupe"],
+        [12.0, "band.green.teal"],
+        [5.5, "band.red.orange"]
+      ],
+      "lider_mas_cercano_4v": 16.7
+    },
+    "N-MT": {
+      "uci": [29.5, 28.0, 23.3, 28.0, 20.7],
+      "cerca": [
+        [16.1, "halves.sky.red"],
+        [13.6, "halves.sky.red"],
+        [15.3, "halves.sky.red"],
+        [16.9, "halves.orange.red"],
+        [6.7, "halves.sky.red"]
+      ],
+      "lider_mas_cercano_4v": 20.6
+    },
+    "N-NA": {
+      "uci": [38.4, 36.1, 33.5, 35.8, 27.4],
+      "cerca": [
+        [28.2, "plain.taupe"],
+        [19.7, "yoke.green.pink"],
+        [17.6, "plain.red"],
+        [28.7, "band.green.pink"],
+        [10.1, "plain.red"]
+      ],
+      "lider_mas_cercano_4v": 24.5
+    },
+    "N-PR": {
+      "uci": [33.9, 32.8, 29.6, 30.5, 22.4],
+      "cerca": [
+        [23.7, "hoops.red.white"],
+        [21.6, "hoops.green.teal"],
+        [22.2, "hoops.red.white"],
+        [23.7, "hoops.red.white"],
+        [12.8, "hoops.red.orange"]
+      ],
+      "lider_mas_cercano_4v": 24.6
+    },
+    "N-SC": {
+      "uci": [36.7, 34.1, 31.1, 34.1, 23.7],
+      "cerca": [
+        [27.8, "halves.orange.red"],
+        [19.9, "sash.green.teal"],
+        [17.9, "yoke.red.orange"],
+        [23.7, "sash.red.yellow"],
+        [13.9, "plain.blue"]
+      ],
+      "lider_mas_cercano_4v": 20.7
+    },
+    "N-SN": {
+      "uci": [36.7, 34.3, 32.3, 27.1, 18.3],
+      "cerca": [
+        [30.5, "halves.green.yellow"],
+        [21.5, "yoke.orange.green"],
+        [18.2, "yoke.orange.red"],
+        [26.3, "halves.teal.yellow"],
+        [17.1, "yoke.sky.blue"]
+      ],
+      "lider_mas_cercano_4v": 17.6
+    },
+    "N-SR": {
+      "uci": [36.1, 31.0, 28.3, 34.4, 25.1],
+      "cerca": [
+        [26.3, "hoops.green.pink"],
+        [17.5, "hoops.green.teal"],
+        [13.2, "plain.red"],
+        [24.1, "hoops.green.orange"],
+        [11.5, "yoke.green.teal"]
+      ],
+      "lider_mas_cercano_4v": 20.3
+    },
+    "N-SV": {
+      "uci": [44.6, 41.5, 43.9, 38.2, 36.4],
+      "cerca": [
+        [18.9, "band.blue.white"],
+        [14.1, "band.purple.white"],
+        [13.4, "band.purple.white"],
+        [17.5, "band.purple.white"],
+        [10.9, "band.plum.yellow"]
+      ],
+      "lider_mas_cercano_4v": 21.5
+    },
+    "N-SX": {
+      "uci": [47.1, 45.0, 42.7, 42.7, 35.7],
+      "cerca": [
+        [22.9, "yoke.navy.pink"],
+        [19.0, "yoke.pink.green"],
+        [19.9, "yoke.plum.orange"],
+        [18.3, "yoke.purple.orange"],
+        [11.5, "yoke.purple.teal"]
+      ],
+      "lider_mas_cercano_4v": 27.7
+    },
+    "N-SZ": {
+      "uci": [41.1, 39.4, 37.7, 38.2, 31.5],
+      "cerca": [
+        [26.4, "plain.taupe"],
+        [22.4, "hoops.pink.green"],
+        [23.7, "hoops.teal.green"],
+        [25.7, "hoops.green.pink"],
+        [12.6, "halves.green.pink"]
+      ],
+      "lider_mas_cercano_4v": 31.0
+    },
+    "N-TT": {
+      "uci": [47.7, 47.4, 40.6, 45.5, 37.2],
+      "cerca": [
+        [18.1, "sash.red.black"],
+        [14.3, "plain.green"],
+        [15.8, "plain.red"],
+        [17.3, "sash.red.black"],
+        [10.5, "plain.red"]
+      ],
+      "lider_mas_cercano_4v": 23.8
+    },
+    "N-VC": {
+      "uci": [33.0, 30.5, 30.1, 21.5, 12.7],
+      "cerca": [
+        [20.4, "sides.green.yellow"],
+        [15.0, "sides.green.yellow"],
+        [16.0, "sides.green.yellow"],
+        [21.1, "sides.taupe.white"],
+        [11.9, "sides.blue.yellow"]
+      ],
+      "lider_mas_cercano_4v": 11.6
+    },
+    "N-ZW": {
+      "uci": [40.1, 37.4, 34.1, 36.0, 26.4],
+      "cerca": [
+        [26.5, "hoops.green.orange"],
+        [19.0, "yoke.green.orange"],
+        [18.5, "yoke.red.orange"],
+        [24.5, "hoops.green.orange"],
+        [15.8, "halves.orange.red"]
+      ],
+      "lider_mas_cercano_4v": 23.4
+    }
+  },
+  "nacionales": {
+    "cuantas": 133,
+    "kits_a_menos_de_10_de_alguna": 21,
+    "peor_distancia_por_vision": {
+      "normal": 6.3,
+      "protan": 4.7,
+      "deutan": 4.3,
+      "tritan": 4.3,
+      "gris": 3.1
+    },
+    "nacionales_con_un_kit_a_menos_de_10": 17,
+    "lista": [
+      "PT",
+      "PL",
+      "KZ",
+      "LT",
+      "BY",
+      "BG",
+      "CN",
+      "MA",
+      "DZ",
+      "VN",
+      "AZ",
+      "KG",
+      "BH",
+      "BF",
+      "OM",
+      "ME",
+      "MO"
+    ],
+    "uci_min": {
+      "normal": 14.2,
+      "protan": 13.7,
+      "deutan": 13.0,
+      "tritan": 12.9,
+      "gris": 7.8
+    },
+    "kits_cercanos": [
+      "plain.teal",
+      "plain.green",
+      "plain.red",
+      "plain.taupe",
+      "band.green.orange",
+      "band.red.black",
+      "band.red.orange",
+      "hoops.red.orange",
+      "halves.green.white",
+      "halves.red.white",
+      "halves.brown.white",
+      "yoke.green.white",
+      "yoke.orange.green",
+      "yoke.red.sky",
+      "yoke.red.orange",
+      "yoke.red.yellow",
+      "yoke.red.white",
+      "yoke.taupe.white",
+      "sides.black.red",
+      "sides.orange.green",
+      "sides.orange.red"
+    ],
+    "permitidos_reservando_nacionales": 515,
+    "distintos_reservando_nacionales": 482
+  },
+  "lideres": {
+    "L-gc": {
+      "uci": null,
+      "cerca": [
+        [13.7, "sides.green.yellow"],
+        [10.8, "sides.green.yellow"],
+        [11.9, "sides.green.yellow"],
+        [11.8, "sides.plum.yellow"],
+        [5.3, "plain.sky"]
+      ],
+      "lider_mas_cercano_4v": 19.8
+    },
+    "L-points": {
+      "uci": null,
+      "cerca": [
+        [14.9, "band.green.white"],
+        [14.1, "sash.orange.white"],
+        [11.0, "band.taupe.white"],
+        [10.5, "band.blue.white"],
+        [3.4, "band.pink.yellow"]
+      ],
+      "lider_mas_cercano_4v": 19.8
+    },
+    "L-kom": {
+      "uci": null,
+      "cerca": [
+        [16.8, "plain.blue"],
+        [13.1, "yoke.sky.blue"],
+        [14.4, "yoke.sky.blue"],
+        [13.8, "plain.blue"],
+        [11.0, "yoke.sky.taupe"]
+      ],
+      "lider_mas_cercano_4v": 20.6
+    }
+  }
+}

@@ -1,0 +1,533 @@
+{
+  "base": "http://localhost:3005",
+  "at": "2026-10-20T19:51:57.727Z",
+  "profiles": {
+    "Slow 4G": {
+      "latency": 562.5,
+      "downloadThroughput": 180000,
+      "uploadThroughput": 84375
+    },
+    "Fast 4G": {
+      "latency": 165,
+      "downloadThroughput": 1012500,
+      "uploadThroughput": 450000
+    }
+  },
+  "cpu": 4,
+  "paints": [
+    {
+      "page": "portada del jugador",
+      "path": "/",
+      "profile": "Slow 4G",
+      "fcp": 3228,
+      "lcp": 3228,
+      "ready": 5700.100000000559,
+      "bytes": 354544,
+      "requests": 37,
+      "byType": {
+        "html": 1723,
+        "api": 63298,
+        "js": 194857,
+        "css": 94666
+      },
+      "lcpElement": "p: Cycling Star is a fictional cycling-manager simulation game.",
+      "runs": [
+        {
+          "fcp": 3244,
+          "lcp": 3244,
+          "lcpElement": "p: Cycling Star is a fictional cycling-manager simulation game.",
+          "ready": 5700.100000000559,
+          "bytes": 354544,
+          "requests": 37,
+          "byType": {
+            "html": 1723,
+            "api": 63298,
+            "js": 194857,
+            "css": 94666
+          }
+        },
+        {
+          "fcp": 3228,
+          "lcp": 3228,
+          "lcpElement": "p: Cycling Star is a fictional cycling-manager simulation game.",
+          "ready": 5702.300000000745,
+          "bytes": 354544,
+          "requests": 37,
+          "byType": {
+            "html": 1723,
+            "api": 63298,
+            "js": 194857,
+            "css": 94666
+          }
+        },
+        {
+          "fcp": 3120,
+          "lcp": 3120,
+          "lcpElement": "p: Cycling Star is a fictional cycling-manager simulation game.",
+          "ready": 5581.299999999814,
+          "bytes": 354544,
+          "requests": 37,
+          "byType": {
+            "html": 1723,
+            "api": 63298,
+            "js": 194857,
+            "css": 94666
+          }
+        }
+      ]
+    },
+    {
+      "page": "portada del jugador",
+      "path": "/",
+      "profile": "Fast 4G",
+      "fcp": 1196,
+      "lcp": 1196,
+      "ready": 2007.2000000001863,
+      "bytes": 354544,
+      "requests": 37,
+      "byType": {
+        "html": 1723,
+        "api": 63298,
+        "js": 194857,
+        "css": 94666
+      },
+      "lcpElement": "p: Cycling Star is a fictional cycling-manager simulation game.",
+      "runs": [
+        {
+          "fcp": 1196,
+          "lcp": 1196,
+          "lcpElement": "p: Cycling Star is a fictional cycling-manager simulation game.",
+          "ready": 2007.7000000001863,
+          "bytes": 354544,
+          "requests": 37,
+          "byType": {
+            "html": 1723,
+            "api": 63298,
+            "js": 194857,
+            "css": 94666
+          }
+        },
+        {
+          "fcp": 1180,
+          "lcp": 1180,
+          "lcpElement": "p: Cycling Star is a fictional cycling-manager simulation game.",
+          "ready": 2007.2000000001863,
+          "bytes": 354544,
+          "requests": 37,
+          "byType": {
+            "html": 1723,
+            "api": 63298,
+            "js": 194857,
+            "css": 94666
+          }
+        },
+        {
+          "fcp": 1208,
+          "lcp": 1208,
+          "lcpElement": "p: Cycling Star is a fictional cycling-manager simulation game.",
+          "ready": 1993.199999999255,
+          "bytes": 354544,
+          "requests": 37,
+          "byType": {
+            "html": 1723,
+            "api": 63298,
+            "js": 194857,
+            "css": 94666
+          }
+        }
+      ]
+    },
+    {
+      "page": "portada del visitante",
+      "path": "/",
+      "profile": "Slow 4G",
+      "fcp": 3132,
+      "lcp": 3132,
+      "ready": 4880.700000000186,
+      "bytes": 293267,
+      "requests": 26,
+      "byType": {
+        "html": 1723,
+        "api": 2021,
+        "js": 194857,
+        "css": 94666
+      },
+      "lcpElement": "p: Cycling Star is a fictional cycling-manager simulation game.",
+      "runs": [
+        {
+          "fcp": 3068,
+          "lcp": 3068,
+          "lcpElement": "p: Cycling Star is a fictional cycling-manager simulation game.",
+          "ready": 4784.9000000003725,
+          "bytes": 293267,
+          "requests": 26,
+          "byType": {
+            "html": 1723,
+            "api": 2021,
+            "js": 194857,
+            "css": 94666
+          }
+        },
+        {
+          "fcp": 3132,
+          "lcp": 3132,
+          "lcpElement": "p: Cycling Star is a fictional cycling-manager simulation game.",
+          "ready": 4880.700000000186,
+          "bytes": 293267,
+          "requests": 26,
+          "byType": {
+            "html": 1723,
+            "api": 2021,
+            "js": 194857,
+            "css": 94666
+          }
+        },
+        {
+          "fcp": 3172,
+          "lcp": 3172,
+          "lcpElement": "p: Cycling Star is a fictional cycling-manager simulation game.",
+          "ready": 4896.0999999996275,
+          "bytes": 293267,
+          "requests": 26,
+          "byType": {
+            "html": 1723,
+            "api": 2021,
+            "js": 194857,
+            "css": 94666
+          }
+        }
+      ]
+    },
+    {
+      "page": "portada del visitante",
+      "path": "/",
+      "profile": "Fast 4G",
+      "fcp": 1168,
+      "lcp": 1168,
+      "ready": 1698.5999999996275,
+      "bytes": 293267,
+      "requests": 26,
+      "byType": {
+        "html": 1723,
+        "api": 2021,
+        "js": 194857,
+        "css": 94666
+      },
+      "lcpElement": "p: Cycling Star is a fictional cycling-manager simulation game.",
+      "runs": [
+        {
+          "fcp": 1156,
+          "lcp": 1156,
+          "lcpElement": "p: Cycling Star is a fictional cycling-manager simulation game.",
+          "ready": 1698.5999999996275,
+          "bytes": 293267,
+          "requests": 26,
+          "byType": {
+            "html": 1723,
+            "api": 2021,
+            "js": 194857,
+            "css": 94666
+          }
+        },
+        {
+          "fcp": 1168,
+          "lcp": 1168,
+          "lcpElement": "p: Cycling Star is a fictional cycling-manager simulation game.",
+          "ready": 1702.9000000003725,
+          "bytes": 293267,
+          "requests": 26,
+          "byType": {
+            "html": 1723,
+            "api": 2021,
+            "js": 194857,
+            "css": 94666
+          }
+        },
+        {
+          "fcp": 1168,
+          "lcp": 1168,
+          "lcpElement": "p: Cycling Star is a fictional cycling-manager simulation game.",
+          "ready": 1695.300000000745,
+          "bytes": 293267,
+          "requests": 26,
+          "byType": {
+            "html": 1723,
+            "api": 2021,
+            "js": 194857,
+            "css": 94666
+          }
+        }
+      ]
+    },
+    {
+      "page": "plan de entrenamiento",
+      "path": "/me/training",
+      "profile": "Slow 4G",
+      "fcp": 3276,
+      "lcp": 3276,
+      "ready": 5217.399999999441,
+      "bytes": 290148,
+      "requests": 25,
+      "byType": {
+        "html": 1723,
+        "api": 13405,
+        "js": 180354,
+        "css": 94666
+      },
+      "lcpElement": "p: Cycling Star is a fictional cycling-manager simulation game.",
+      "runs": [
+        {
+          "fcp": 3176,
+          "lcp": 3176,
+          "lcpElement": "p: Cycling Star is a fictional cycling-manager simulation game.",
+          "ready": 5217.399999999441,
+          "bytes": 290148,
+          "requests": 25,
+          "byType": {
+            "html": 1723,
+            "api": 13405,
+            "js": 180354,
+            "css": 94666
+          }
+        },
+        {
+          "fcp": 3304,
+          "lcp": 3304,
+          "lcpElement": "p: Cycling Star is a fictional cycling-manager simulation game.",
+          "ready": 5214.799999999814,
+          "bytes": 290148,
+          "requests": 25,
+          "byType": {
+            "html": 1723,
+            "api": 13405,
+            "js": 180354,
+            "css": 94666
+          }
+        },
+        {
+          "fcp": 3276,
+          "lcp": 3276,
+          "lcpElement": "p: Cycling Star is a fictional cycling-manager simulation game.",
+          "ready": 5288.5,
+          "bytes": 290148,
+          "requests": 25,
+          "byType": {
+            "html": 1723,
+            "api": 13405,
+            "js": 180354,
+            "css": 94666
+          }
+        }
+      ]
+    },
+    {
+      "page": "plan de entrenamiento",
+      "path": "/me/training",
+      "profile": "Fast 4G",
+      "fcp": 1256,
+      "lcp": 1256,
+      "ready": 2096.7999999998137,
+      "bytes": 290148,
+      "requests": 25,
+      "byType": {
+        "html": 1723,
+        "api": 13405,
+        "js": 180354,
+        "css": 94666
+      },
+      "lcpElement": "p: Cycling Star is a fictional cycling-manager simulation game.",
+      "runs": [
+        {
+          "fcp": 1300,
+          "lcp": 1300,
+          "lcpElement": "p: Cycling Star is a fictional cycling-manager simulation game.",
+          "ready": 2186.5,
+          "bytes": 290148,
+          "requests": 25,
+          "byType": {
+            "html": 1723,
+            "api": 13405,
+            "js": 180354,
+            "css": 94666
+          }
+        },
+        {
+          "fcp": 1200,
+          "lcp": 1200,
+          "lcpElement": "p: Cycling Star is a fictional cycling-manager simulation game.",
+          "ready": 2077.7000000001863,
+          "bytes": 290148,
+          "requests": 25,
+          "byType": {
+            "html": 1723,
+            "api": 13405,
+            "js": 180354,
+            "css": 94666
+          }
+        },
+        {
+          "fcp": 1256,
+          "lcp": 1256,
+          "lcpElement": "p: Cycling Star is a fictional cycling-manager simulation game.",
+          "ready": 2096.7999999998137,
+          "bytes": 290148,
+          "requests": 25,
+          "byType": {
+            "html": 1723,
+            "api": 13405,
+            "js": 180354,
+            "css": 94666
+          }
+        }
+      ]
+    },
+    {
+      "page": "etapa (Watch, visitante)",
+      "path": "/world/races/race-valencia/stages/3",
+      "profile": "Slow 4G",
+      "fcp": 3276,
+      "lcp": 3276,
+      "ready": 4754.5999999996275,
+      "bytes": 377943,
+      "requests": 34,
+      "byType": {
+        "html": 1982,
+        "api": 17258,
+        "js": 247899,
+        "css": 94666,
+        "svg": 16138
+      },
+      "lcpElement": "p: Cycling Star is a fictional cycling-manager simulation game.",
+      "runs": [
+        {
+          "fcp": 3324,
+          "lcp": 3324,
+          "lcpElement": "p: Cycling Star is a fictional cycling-manager simulation game.",
+          "ready": 4754.5999999996275,
+          "bytes": 377943,
+          "requests": 34,
+          "byType": {
+            "html": 1982,
+            "api": 17258,
+            "js": 247899,
+            "css": 94666,
+            "svg": 16138
+          }
+        },
+        {
+          "fcp": 3092,
+          "lcp": 3092,
+          "lcpElement": "p: Cycling Star is a fictional cycling-manager simulation game.",
+          "ready": 4715.5999999996275,
+          "bytes": 377943,
+          "requests": 34,
+          "byType": {
+            "html": 1982,
+            "api": 17258,
+            "js": 247899,
+            "css": 94666,
+            "svg": 16138
+          }
+        },
+        {
+          "fcp": 3276,
+          "lcp": 3276,
+          "lcpElement": "p: Cycling Star is a fictional cycling-manager simulation game.",
+          "ready": 4757.5,
+          "bytes": 377943,
+          "requests": 34,
+          "byType": {
+            "html": 1982,
+            "api": 17258,
+            "js": 247899,
+            "css": 94666,
+            "svg": 16138
+          }
+        }
+      ]
+    },
+    {
+      "page": "etapa (Watch, visitante)",
+      "path": "/world/races/race-valencia/stages/3",
+      "profile": "Fast 4G",
+      "fcp": 1200,
+      "lcp": 1200,
+      "ready": 1639.7999999998137,
+      "bytes": 377943,
+      "requests": 34,
+      "byType": {
+        "html": 1982,
+        "api": 17258,
+        "js": 247899,
+        "css": 94666,
+        "svg": 16138
+      },
+      "lcpElement": "p: Cycling Star is a fictional cycling-manager simulation game.",
+      "runs": [
+        {
+          "fcp": 1200,
+          "lcp": 1200,
+          "lcpElement": "p: Cycling Star is a fictional cycling-manager simulation game.",
+          "ready": 1639.7999999998137,
+          "bytes": 377943,
+          "requests": 34,
+          "byType": {
+            "html": 1982,
+            "api": 17258,
+            "js": 247899,
+            "css": 94666,
+            "svg": 16138
+          }
+        },
+        {
+          "fcp": 1344,
+          "lcp": 1344,
+          "lcpElement": "p: Cycling Star is a fictional cycling-manager simulation game.",
+          "ready": 1847.2000000001863,
+          "bytes": 377943,
+          "requests": 34,
+          "byType": {
+            "html": 1982,
+            "api": 17258,
+            "js": 247899,
+            "css": 94666,
+            "svg": 16138
+          }
+        },
+        {
+          "fcp": 1192,
+          "lcp": 1192,
+          "lcpElement": "p: Cycling Star is a fictional cycling-manager simulation game.",
+          "ready": 1639.7999999998137,
+          "bytes": 377943,
+          "requests": 34,
+          "byType": {
+            "html": 1982,
+            "api": 17258,
+            "js": 247899,
+            "css": 94666,
+            "svg": 16138
+          }
+        }
+      ]
+    }
+  ],
+  "offline": [
+    {
+      "width": 360,
+      "unloadedChunk": "Something went wrong\n\nThe page hit an unexpected error. Your saved data is safe — try again, and reload if it keeps happening.\n\nFailed to fetch dynamically imported module: http://localhost:3005/assets/News-_tGWW2yY.js\n\nTry again\nReload the page",
+      "visited": "José Quintáns\n\nResults from 3 stages you haven't watched are hidden\n·\nManage\n\nRider\n\nJosé Quintáns\nPlayer\nNiggle\n\nClimber · Spain\n\nAge\n18 · born day 196 of the season\nTeam\nFree agent\nRole\nClimber\nChange role\nSeason rank\n#470 of 3,902\nSeason\nSeason points\n0\nCondition\n★★★★★\n★★★★★\nNiggleCan race, but a",
+      "uncachedData": "Loading…",
+      "reload": "Error: page.reload: net::ERR_INTERNET_DISCONNECTED",
+      "reloadUrl": "chrome-error://chromewebdata/"
+    },
+    {
+      "width": 1280,
+      "unloadedChunk": "Something went wrong\n\nThe page hit an unexpected error. Your saved data is safe — try again, and reload if it keeps happening.\n\nFailed to fetch dynamically imported module: http://localhost:3005/assets/News-_tGWW2yY.js\n\nTry again\nReload the page",
+      "visited": "José Quintáns\n\nResults from 3 stages you haven't watched are hidden\n·\nManage\n\nRider\n\nJosé Quintáns\nPlayer\nNiggle\n\nClimber · Spain\n\nAge\n18 · born day 196 of the season\nTeam\nFree agent\nRole\nClimber\nChange role\nSeason rank\n#470 of 3,902\nSeason\nSeason points\n0\nCondition\n★★★★★\n★★★★★\nNiggleCan race, but a",
+      "uncachedData": "Loading…",
+      "reload": "Error: page.reload: net::ERR_INTERNET_DISCONNECTED",
+      "reloadUrl": "chrome-error://chromewebdata/"
+    }
+  ]
+}

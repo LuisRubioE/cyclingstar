@@ -1,0 +1,428 @@
+[
+  {
+    "id": "Rcodigo-001",
+    "estado": "aplicado",
+    "donde": "borrador/01-diagnostico.md l. 98",
+    "motivo": "La búsqueda sí da 17 ficheros con jerseySeed como dato y ninguno llama a updateOwnedTeam (recontado con grep). Se cambia la prueba citada y, por D-00q, la frase de cuántos clones hay."
+  },
+  {
+    "id": "Rcodigo-002",
+    "estado": "aplicado",
+    "donde": "borrador/02-principios.md l. 13",
+    "motivo": "El componente es ChampionJersey (9-g)."
+  },
+  {
+    "id": "Rcodigo-003",
+    "estado": "aplicado",
+    "donde": "borrador/03-fundamentos.md l. 34; y D-03 en borrador/00-decisiones.md",
+    "motivo": "Re-medido con <scratchpad>/corrector-L1/oscuro.py: 15,08. Se corrige también D-03, porque es la misma cifra."
+  },
+  {
+    "id": "Rcodigo-004",
+    "estado": "aplicado",
+    "donde": "borrador/03-fundamentos.md l. 152; IconName en borrador/04-componentes.md l. 15-19, 3-e y D-07",
+    "motivo": "PlayerControls.tsx l. 34 y 123 pintan ▶︎ y ❚❚ como texto y ninguno de los 24 iconos los sustituía. Pasan a 26 iconos; D-07 se corrige con esta evidencia nueva."
+  },
+  {
+    "id": "Rcodigo-005",
+    "estado": "aplicado",
+    "donde": "borrador/03-fundamentos.md l. 159",
+    "motivo": "Los siete sitios comprobados en el código; 3-d los trata uno a uno. Al ✓ y al ✗ se les da texto (OK, Failed) porque Chip exige texto."
+  },
+  {
+    "id": "Rcodigo-006",
+    "estado": "aplicado",
+    "donde": "borrador/03-fundamentos.md l. 163; y D-08",
+    "motivo": "Con D-00d NATIONAL_SASH desaparece; lo generado son las celdas de flagCells. Se funde con Rcobertura-002 y se corrige D-08."
+  },
+  {
+    "id": "Rcodigo-007",
+    "estado": "aplicado",
+    "donde": "borrador/03-fundamentos.md l. 182",
+    "motivo": "packages/shared/package.json solo publica \".\" en exports (comprobado). Se añade la entrada de colorMath y la regla para todo módulo fuera del barril (legacyJersey.ts)."
+  },
+  {
+    "id": "Rcodigo-008",
+    "estado": "aplicado",
+    "donde": "borrador/04-componentes.md l. 3 y la fila de §4.11, l. 409",
+    "motivo": "ChampionJersey en la introducción y en la fila de §4.11, con KitShowcase y LegacyJersey (Rcobertura-004)."
+  },
+  {
+    "id": "Rcodigo-009",
+    "estado": "aplicado",
+    "donde": "borrador/04-componentes.md l. 52",
+    "motivo": "GateError, el 429 con retryAfterS y el 401 comprobados en api/request.ts l. 50-56, 128 y 74-75. QueryView gana la prop gate y su test los tres casos."
+  },
+  {
+    "id": "Rcodigo-010",
+    "estado": "aplicado",
+    "donde": "borrador/04-componentes.md l. 119",
+    "motivo": "ButtonProps pasa a la unión de texto o solo icono, con el resto en ButtonBase."
+  },
+  {
+    "id": "Rcodigo-011",
+    "estado": "aplicado",
+    "donde": "borrador/04-componentes.md l. 247",
+    "motivo": "Las dos frases del dueño están en 00-encargo.md l. 266-267 (comprobado)."
+  },
+  {
+    "id": "Rcodigo-012",
+    "estado": "aplicado",
+    "donde": "borrador/04-componentes.md l. 263; con el comentario de 17-e",
+    "motivo": "team pasa a WornTeam | null (§9.10), que admite la semilla grabada; el comentario remite a 17-e para el tipo de transición del 9b."
+  },
+  {
+    "id": "Rcodigo-013",
+    "estado": "parcial",
+    "donde": "borrador/04-componentes.md l. 267",
+    "motivo": "Se aplica la prop leader (JerseyKind, de jerseyOf) en lugar de un WornJersey inventado. Lo de que el campeón solo salga donde llega RiderCard.worn se sustituye por la otra cara, Rcobertura-017: un champions por respuesta lleva el de campeón también a las tablas, como pide D-00c."
+  },
+  {
+    "id": "Rcodigo-014",
+    "estado": "aplicado",
+    "donde": "borrador/04-componentes.md l. 411 (§4.11)",
+    "motivo": "KitSize y KIT_PX con showcase y poster (D-00g), desde el 17c; se funde con Rcobertura-015."
+  },
+  {
+    "id": "Rcodigo-015",
+    "estado": "aplicado",
+    "donde": "borrador/04-componentes.md l. 430",
+    "motivo": "brightness-90 filtra también el texto: 6,09 medido por el refutador y 6,11 con oscuro.py, que redondea a 8 bits; se escribe 6,1 y el 5,92 del modo oscuro."
+  },
+  {
+    "id": "Rcodigo-016",
+    "estado": "aplicado",
+    "donde": "borrador/05-cumplimiento.md l. 31",
+    "motivo": "El @theme entero está en §3.9."
+  },
+  {
+    "id": "Rcodigo-017",
+    "estado": "parcial",
+    "donde": "borrador/05-cumplimiento.md l. 33; §4.3 y §4.9 de borrador/04-componentes.md; 5-a",
+    "motivo": "Entra bottom-[var(--action-bar-bottom)], que escribe el marco. No entra --toast-bottom: UpdateToast e InstallHint los retiró el dueño con la web instalable (D-00p, 00-decisiones.md §0). La lista queda en seis valores, con el cambio de Ruso-014; §15.2, a cruzadas."
+  },
+  {
+    "id": "Rcodigo-018",
+    "estado": "aplicado",
+    "donde": "borrador/05-cumplimiento.md l. 82; la fila de ui/10 en la tabla de §5.3 y 5-f",
+    "motivo": "Clase ampliada y TemplateElement, con el mensaje nuevo. Se añade además U+25B6, el ▶︎ de PLAY_GLYPH, que la clase propuesta dejaba fuera y que Rcodigo-004 sustituye por un icono. El ↺ de §10.5 cae dentro: va a cruzadas."
+  },
+  {
+    "id": "Rcodigo-019",
+    "estado": "aplicado",
+    "donde": "borrador/06-telefono.md l. 70",
+    "motivo": "15,08, la misma medida que Rcodigo-003."
+  },
+  {
+    "id": "Rcodigo-020",
+    "estado": "aplicado",
+    "donde": "borrador/06-telefono.md l. 22; 6-d",
+    "motivo": "Comprobado en contracts.ts: pointsEntrySchema (l. 522-528) y hallOfFameRowSchema (l. 899-909) no traen equipo, bib está en l. 654-655 y stageResultEntrySchema en l. 1357. Se reescribe 6-d con la otra cara de Rcobertura-017 (champions por respuesta)."
+  },
+  {
+    "id": "Rcodigo-021",
+    "estado": "aplicado",
+    "donde": "borrador/07-prueba.md l. 20",
+    "motivo": "ChampionJersey."
+  },
+  {
+    "id": "Rcodigo-022",
+    "estado": "aplicado",
+    "donde": "borrador/07-prueba.md l. 32; 7-h y D-18",
+    "motivo": "La clave mira las fuentes de packages/db/src, packages/engine/src y packages/shared/src sin tests, que incluyen los seis ficheros que pedía y el resto del código que construye el mundo (kitDistance.ts, seasonRivals.ts, kit.ts), con la reescritura de la línea base de Ruso-019. D-18 se corrige; §17.1, regla 7, a cruzadas."
+  },
+  {
+    "id": "Rcobertura-001",
+    "estado": "aplicado",
+    "donde": "borrador/02-principios.md l. 13; y borrador/07-prueba.md l. 20",
+    "motivo": "El mismo arreglo que Rcodigo-002 y Rcodigo-021."
+  },
+  {
+    "id": "Rcobertura-002",
+    "estado": "aplicado",
+    "donde": "borrador/03-fundamentos.md l. 163",
+    "motivo": "Se nombran flagCells y la hoja de revisión (D-00f y D-00m: la hoja se queda sin estrella)."
+  },
+  {
+    "id": "Rcobertura-003",
+    "estado": "aplicado",
+    "donde": "borrador/03-fundamentos.md l. 283",
+    "motivo": "El comentario del index.css dice ya la regla de 3-g y D-00b."
+  },
+  {
+    "id": "Rcobertura-004",
+    "estado": "aplicado",
+    "donde": "borrador/04-componentes.md l. 409",
+    "motivo": "La fila de §4.11 lleva ChampionJersey, KitShowcase y LegacyJersey."
+  },
+  {
+    "id": "Rcobertura-005",
+    "estado": "aplicado",
+    "donde": "borrador/04-componentes.md l. 52",
+    "motivo": "La ruta * pinta el Page not found de hoy (App.tsx l. 128-131, 339) con Go to Dashboard."
+  },
+  {
+    "id": "Rcobertura-006",
+    "estado": "aplicado",
+    "donde": "borrador/04-componentes.md l. 93",
+    "motivo": "La ActionBar gana el estado disabled con el porqué en el sitio de la consecuencia."
+  },
+  {
+    "id": "Rcobertura-007",
+    "estado": "aplicado",
+    "donde": "borrador/04-componentes.md l. 182; el caption, §4.8 (Scale5, racing) y la fila «una etapa» de §4.10",
+    "motivo": "Las menciones de etapa de §4 llevan su origen y destino ([DUEÑO 7]) y §4.10 gana la fila; las props veil y racing llevan la ruta. Los textos de §10.4 y §10.5, a cruzadas."
+  },
+  {
+    "id": "Rcobertura-008",
+    "estado": "aplicado",
+    "donde": "borrador/04-componentes.md l. 183; la fila «un abandono» de §4.10 y el comentario de rank en RankTableProps",
+    "motivo": "La fila de abandono y su palabra (DNF) en §4.5 y §4.10."
+  },
+  {
+    "id": "Rcobertura-009",
+    "estado": "aplicado",
+    "donde": "borrador/04-componentes.md l. 247",
+    "motivo": "Qué maillot en cada sitio, con docs/navegacion.md l. 478-482 (comprobado) y jerseyOf; no choca con D-00c, que dice el líder, el campeón o la equipación y no de qué día."
+  },
+  {
+    "id": "Rcobertura-010",
+    "estado": "aplicado",
+    "donde": "borrador/04-componentes.md l. 247",
+    "motivo": "La crónica de hoy pone el maillot delante (stageJournal.ts l. 283 y 288); §4.6 remite a §14.1, a cruzadas."
+  },
+  {
+    "id": "Rcobertura-011",
+    "estado": "aplicado",
+    "donde": "borrador/04-componentes.md l. 247; la fila «el corredor sin equipo» de §4.10",
+    "motivo": "Individual (NO_TEAM_LABEL, labels.ts l. 281, comprobado) en el segundo renglón y en la frase."
+  },
+  {
+    "id": "Rcobertura-012",
+    "estado": "aplicado",
+    "donde": "borrador/04-componentes.md l. 278",
+    "motivo": "RiderHeader en el orden de D-00c, con la bandera; el maillot a 40 es el de campeón si lo hay (4-l)."
+  },
+  {
+    "id": "Rcobertura-013",
+    "estado": "aplicado",
+    "donde": "borrador/04-componentes.md l. 283; FormChart en §4.8 y §4.11, 4-o y D-09",
+    "motivo": "Las piezas de hoy comprobadas en RiderProfile.tsx (l. 271-533): la composición las conserva, FormChart entra en el catálogo (§4.8, 4-o) y D-09 se corrige; se añaden BlockReport, LastRaceReport y el panel Rider, que el hallazgo no nombraba. Su PR y su test, a cruzadas."
+  },
+  {
+    "id": "Rcobertura-014",
+    "estado": "aplicado",
+    "donde": "borrador/04-componentes.md l. 425; y D-09",
+    "motivo": "SPEC.md l. 90 y l. 410 dicen «como iconos» (comprobado); 4-c y D-09 lo escriben, y la corrección del SPEC en el PR 24 va a cruzadas."
+  },
+  {
+    "id": "Rcobertura-015",
+    "estado": "aplicado",
+    "donde": "borrador/04-componentes.md l. 411",
+    "motivo": "El mismo arreglo que Rcodigo-014."
+  },
+  {
+    "id": "Rcobertura-016",
+    "estado": "aplicado",
+    "donde": "borrador/05-cumplimiento.md l. 31",
+    "motivo": "El mismo arreglo que Rcodigo-016."
+  },
+  {
+    "id": "Rcobertura-017",
+    "estado": "aplicado",
+    "donde": "borrador/06-telefono.md l. 22; RiderLabelProps (champion), RiderHeader, 4-l y 6-d",
+    "motivo": "champions por respuesta y champion en GET /api/riders/:id, con el velo de E2 (jerseys.ts l. 176), y RankTable pasa el de líder, el de campeón o la equipación. Es D-00c. El contrato (§8.5, §13) y el plan (12b, 17a, 17-q), a cruzadas."
+  },
+  {
+    "id": "Rcobertura-018",
+    "estado": "aplicado",
+    "donde": "borrador/06-telefono.md l. 70",
+    "motivo": "140 × 56 = 7.840, estimado con las filas de §4.5."
+  },
+  {
+    "id": "Rcobertura-019",
+    "estado": "aplicado",
+    "donde": "borrador/07-prueba.md l. 55",
+    "motivo": "KitShowcase a 160 (D-00g); el «72 px» de §8.7, a cruzadas."
+  },
+  {
+    "id": "Ruso-001",
+    "estado": "aplicado",
+    "donde": "borrador/03-fundamentos.md l. 157",
+    "motivo": "Siluetas fijas y la comprobación del 75 % en ui-icons.mjs."
+  },
+  {
+    "id": "Ruso-002",
+    "estado": "parcial",
+    "donde": "borrador/04-componentes.md l. 50",
+    "motivo": "Se corrige la frase: a 320 la página crece un poco cuando un nombre parte de línea. No se aplica el esqueleto de 64 a 320 y 56 desde 360: pide un corte de 360 que el tema no tiene (D-06 solo deja sm y lg, 03-fundamentos.md §3.5), y a 360, el ancho de referencia, 56 es el alto de verdad (4-n)."
+  },
+  {
+    "id": "Ruso-003",
+    "estado": "aplicado",
+    "donde": "borrador/04-componentes.md l. 93; §4.9, la fila de §6.4, el dato de /_ui de §5.4 y D-12",
+    "motivo": "Con la medida del refutador como evidencia nueva: line-clamp-2, entera en aria-describedby, en §4.3, §4.9, §6.4 y /_ui; D-12 se corrige."
+  },
+  {
+    "id": "Ruso-004",
+    "estado": "aplicado",
+    "donde": "borrador/04-componentes.md l. 94",
+    "motivo": "El texto de una opción de Segmented parte en dos renglones y no se corta."
+  },
+  {
+    "id": "Ruso-005",
+    "estado": "aplicado",
+    "donde": "borrador/04-componentes.md l. 155; y la comprobación de scrollY en borrador/07-prueba.md l. 20",
+    "motivo": "block: 'nearest' y la comprobación de scrollY 0 antes de medir."
+  },
+  {
+    "id": "Ruso-006",
+    "estado": "aplicado",
+    "donde": "borrador/04-componentes.md l. 156; §6.3, el dibujo de §6.3, 4-f, 4-k, §5.1 y D-17",
+    "motivo": "Cycling Star solo desde 640; sin sesión, Log in y Sign up sin el reloj (4-k); fuera @max-[21.25rem] del nombre. El dibujo de §10.2, a cruzadas."
+  },
+  {
+    "id": "Ruso-007",
+    "estado": "aplicado",
+    "donde": "borrador/04-componentes.md l. 156; 4-f y D-17",
+    "motivo": "El logotipo es un enlace de 44 × 44. El caso de AppHeader.test.tsx, a cruzadas."
+  },
+  {
+    "id": "Ruso-008",
+    "estado": "aplicado",
+    "donde": "borrador/04-componentes.md l. 157; y las filas de gold y navy-dark de §3.1",
+    "motivo": "Re-medido con oscuro.py: 1,30 la pastilla de antes y 1,50 el rótulo; la nueva, gold con el icono navy-dark, 6,72."
+  },
+  {
+    "id": "Ruso-009",
+    "estado": "aplicado",
+    "donde": "borrador/04-componentes.md l. 221",
+    "motivo": "El enlace de ActionRow es el bloque de los dos renglones. Su caso en ActionRow.test.tsx, a cruzadas."
+  },
+  {
+    "id": "Ruso-010",
+    "estado": "parcial",
+    "donde": "borrador/04-componentes.md l. 362",
+    "motivo": "Se aplica --fixed-bottom con los altos medidos (ResizeObserver). El resto (min-h-12 y el texto de iPhone de InstallHint en §4.7, §12.6 y G.12) se desestima: el dueño retiró InstallHint con la web instalable (D-00p, 00-decisiones.md §0)."
+  },
+  {
+    "id": "Ruso-011",
+    "estado": "aplicado",
+    "donde": "borrador/04-componentes.md l. 314; la fila de §6.4",
+    "motivo": "51,2 px y la palabra en dos renglones. Con D-00n, Undertrained mide 77,6 y 90,1 px en una palabra (medido con <scratchpad>/corrector-L1/textos.mjs) y lleva un guion blando. §10.4, a cruzadas."
+  },
+  {
+    "id": "Ruso-012",
+    "estado": "aplicado",
+    "donde": "borrador/07-prueba.md l. 164; y §4.9 de borrador/04-componentes.md",
+    "motivo": "La tarea 8 escribe el nombre del equipo con el teclado abierto; respeta el cambio de maillot por temporada (D-00k)."
+  },
+  {
+    "id": "Ruso-013",
+    "estado": "aplicado",
+    "donde": "borrador/05-cumplimiento.md l. 86; §7.1, 7-d y el ejemplo de §7.4",
+    "motivo": "Lo fijo se pinta en un marco con transform-gpu (comprobado con el compilador: transform translateZ(0)), y en /_ui no corren la 7 ni la 8."
+  },
+  {
+    "id": "Ruso-014",
+    "estado": "aplicado",
+    "donde": "borrador/06-telefono.md l. 80; §4.4, §5.1, la fila de §6.4, 6-e y D-17",
+    "motivo": "Regla fija de contenedor a 76 px de celda, con las medidas del refutador; D-17 se corrige con esa evidencia nueva. §16.4 y §18.1, a cruzadas."
+  },
+  {
+    "id": "Ruso-015",
+    "estado": "aplicado",
+    "donde": "borrador/06-telefono.md l. 126",
+    "motivo": "A 800 × 360 rige sm:, y sin manifiesto (D-00p) nada fija la orientación."
+  },
+  {
+    "id": "Ruso-016",
+    "estado": "aplicado",
+    "donde": "borrador/07-prueba.md l. 10; 7-l y D-18",
+    "motivo": "La comprobación 2 cuenta lo que desborda sin recortarse; D-18 se corrige. El caso de control.html, a cruzadas."
+  },
+  {
+    "id": "Ruso-017",
+    "estado": "aplicado",
+    "donde": "borrador/07-prueba.md l. 13; §4.3 (TextLink), §4.5 (fila velada), 4-p, 7-m, D-17 y D-18",
+    "motivo": "Qué es de frase lo dice el marcado (data-inline-link o el antepasado más cercano), y el Watch de la fila velada es un Button quiet de 44. El enlace de fila de control.html, a cruzadas."
+  },
+  {
+    "id": "Ruso-018",
+    "estado": "aplicado",
+    "donde": "borrador/07-prueba.md l. 77; §7.2 (cuentas.json), MundoDePrueba, 7-i y D-18",
+    "motivo": "La pantalla 38, la contrarreloj, que build.mjs busca y guarda en cuentas.json; las pantallas pasan a 46 en §7 y en D-18. §14.4, a cruzadas."
+  },
+  {
+    "id": "Ruso-019",
+    "estado": "aplicado",
+    "donde": "borrador/07-prueba.md l. 120; §7.3 (la 09 y la 38), TelefonoPantalla.prepare, 7-b, 7-j y D-18",
+    "motivo": "Las tres reglas; la primera, con la medida de la base del PR sobre el mundo nuevo para que la reescritura no esconda una subida (7-h). La 09 y la 38, en pausa tras un salto de E2 (7-j), y por eso corre en ellas axe (7-b, corregida)."
+  },
+  {
+    "id": "Ruso-020",
+    "estado": "aplicado",
+    "donde": "borrador/07-prueba.md l. 118; y D-18",
+    "motivo": "Cinco caminos en el filtro; D-18 se corrige. §16.2, §17.1 y DD-16, a cruzadas."
+  },
+  {
+    "id": "Ruso-021",
+    "estado": "aplicado",
+    "donde": "borrador/07-prueba.md l. 149; §7.5, §7.8, 7-k y D-18",
+    "motivo": "La letra de la prueba fijada en DejaVu Sans con fonts.conf. La comprobación se hace por CDP (CSS.getPlatformFontsForNode) y no con document.fonts.check, que devuelve verdadero con las letras del sistema aunque no estén y no comprobaría nada. D-18 se corrige; el PR 2, a cruzadas."
+  },
+  {
+    "id": "D-L1-01",
+    "estado": "aplicado",
+    "donde": "borrador/03-fundamentos.md, Dudas para el ensamblador; §3.3 y 3-j",
+    "motivo": "El fondo ink-2 de CueCard lo cerró §14 (14-a: la clase 1 del rótulo pasa a navy). Con D-00i, el ámbito oscuro declara con su valor claro lo que el modo oscuro redefine (3-j), así que bad y navy-dark bajo CueCard tampoco cambian en el modo oscuro."
+  },
+  {
+    "id": "D-L1-02",
+    "estado": "aplicado",
+    "donde": "borrador/05-cumplimiento.md, Dudas para el ensamblador",
+    "motivo": "El include de vitest lo resolvió §16 (16-b: peso.test.mjs con node --test en el trabajo Build), y apps/web/sw/decide.test.ts desaparece con el service worker (D-00p)."
+  },
+  {
+    "id": "D-L1-03",
+    "estado": "aplicado",
+    "donde": "borrador/00-decisiones.md, D-09; borrador/04-componentes.md §4.6 y 4-c",
+    "motivo": "D-09 cita ya SPEC.md §6.6 (l. 402-410) y los cerillos como segmentos de un Meter (4-c); el SPEC se corrige en el PR 24 (cruzada C-L1-12)."
+  },
+  {
+    "id": "D-L1-04",
+    "estado": "parcial",
+    "donde": "borrador/07-prueba.md §7.5 y Dudas para el ensamblador",
+    "motivo": "§7.5 usa nocturno.spec.ts, el nombre que decidió §16 y el glosario; la palabra de D-50 (rendimiento.spec.ts) es de la sección §12 y queda para la pasada de coherencia (cruzada C-L1-18)."
+  },
+  {
+    "id": "D-L1-05",
+    "estado": "parcial",
+    "donde": "borrador/00-decisiones.md, D-14; borrador/05-cumplimiento.md, Dudas para el ensamblador",
+    "motivo": "D-14 dice ya las dos cifras, 2.457 con los tokens de sistema y 2.740 con los de este documento, la de deuda.json. El resumen §A del esqueleto y la cabecera de §0 los escribe el orquestador (cruzada C-L1-16)."
+  },
+  {
+    "id": "D-L1-06",
+    "estado": "parcial",
+    "donde": "bloques «Propuesto para el glosario» de borrador/03 a 07",
+    "motivo": "El glosario lo funde la pasada de coherencia: los nombres que pedía la duda (KitSize, KIT_PX, RiderLabel, las diez comprobaciones, tracking-caps, veiled, UiState, ARBITRARY_ALLOWED, UI_RULES y UI_HEREDADOS, heredados.test.ts, data-kit, TelefonoPantalla, serve.mjs, isKeyboardOpen, useOnline, formatGameDay, errorKindOf, rowHeight) y los nuevos de la corrección van en esos bloques (cruzada C-L1-17)."
+  },
+  {
+    "id": "D-L1-07",
+    "estado": "aplicado",
+    "donde": "borrador/02-principios.md l. 13; 03-fundamentos.md §3.8; 04-componentes.md l. 3 y §4.11; 07-prueba.md l. 20",
+    "motivo": "ChampionSash pasa a ChampionJersey y NATIONAL_SASH a las celdas de flagCells en las secciones de L1 (la duda de L2 sobre L1)."
+  },
+  {
+    "id": "D-L1-08",
+    "estado": "aplicado",
+    "donde": "borrador/04-componentes.md, RiderLabelProps",
+    "motivo": "§4.6 escribe el tipo final, team: WornTeam | null, con el comentario de 17-e para el tipo de transición del 9b (la duda de L3)."
+  },
+  {
+    "id": "D-L1-09",
+    "estado": "aplicado",
+    "donde": "las siete secciones de L1",
+    "motivo": "Comprobadas con las reglas de ensamblar.sh --comprobar sobre las siete (rayas, guiones, comillas invertidas, frases cortadas y remisiones a subsecciones que no existen): ningún fallo, y toda remisión a otro documento lleva su nombre."
+  }
+]

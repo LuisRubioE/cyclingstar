@@ -1,0 +1,20 @@
+kit-edge         sobre surface   -> #b2b2b2  2.12:1
+kit-edge         sobre surface-2 -> #acadaf  2.09:1
+kit-edge         sobre canvas    -> #a7a9ac  2.09:1
+kit-edge         sobre own-tint  -> #b1ab9a  2.09:1
+kit-edge-strong  sobre surface   -> #a6a6a6  2.43:1
+kit-edge-strong  sobre surface-2 -> #9fa1a2  2.42:1
+kit-edge-strong  sobre canvas    -> #9b9da0  2.42:1
+kit-edge-strong  sobre own-tint  -> #a49f8f  2.41:1
+el blanco del mundial sobre surface: 1.00:1
+el amarillo de la general sobre surface: 1.53:1
+el blanco del mundial sobre surface-2: 1.07:1
+el amarillo de la general sobre surface-2: 1.43:1
+el blanco del mundial sobre canvas: 1.12:1
+el amarillo de la general sobre canvas: 1.36:1
+el blanco del mundial sobre own-tint: 1.10:1
+el amarillo de la general sobre own-tint: 1.40:1
+alfa mínima para 3:1 sobre surface: 0.418
+alfa mínima para 3:1 sobre surface-2: 0.420
+alfa mínima para 3:1 sobre canvas: 0.423
+alfa mínima para 3:1 sobre own-tint: 0.421
