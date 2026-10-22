@@ -73,7 +73,7 @@ D-27; O-15; I-12 e I-13. Lo que dijo en sus cuatro días (`00-encargo.md` §7.1,
 
 ### 19.5 Lo que añadió el orquestador, y el dueño puede quitar
 
-Tres cosas que el dueño no dijo y que el documento implementa por defecto, marcadas en `00-decisiones.md` §0 para que las quite si no las quiere:
+Tres cosas que el dueño no dijo y que el documento implementa por defecto, escritas junto a las decisiones del dueño que las traen (D-00k, D-00i y D-00m), para que las quite si no las quiere:
 
 1. **El primer cambio de maillot de quien toma un equipo no cuenta** (D-00k). Sin él, quien toma un equipo cuyo dueño anterior ya cambió el maillot esa temporada no podría poner el suyo hasta la siguiente. Su mecanismo es `teams.managed_since_day`, que escribe `takeOverBotTeam` (8-g). Quitarlo: `kitChangeAllowed` deja de descontar esa fila y la columna se queda sin lector; hace falta la respuesta antes del 18a.
 2. **El modo oscuro no sigue al del teléfono** (D-00i). El dueño pidió «por defecto light», y el orquestador lo leyó como claro aunque el teléfono esté en oscuro: ninguna regla lee `prefers-color-scheme` (§3.3). Quitarlo: sin elección del jugador valdría la del sistema, `theme.js` leería `matchMedia('(prefers-color-scheme: dark)')` cuando no hay `cs-theme`, y `users.theme` ganaría un tercer valor, `system`, como defecto; hace falta antes del 23.
