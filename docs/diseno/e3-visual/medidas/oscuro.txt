@@ -1,0 +1,88 @@
+1. Parejas del modo oscuro (D-00i)
+  ok    17.58 (≥ 4.5) ink sobre canvas (h1 de PageHeader): #ffffff sobre #071a2d
+  ok    15.23 (≥ 4.5) ink sobre surface (texto, nombre, valor): #ffffff sobre #0b2740
+  ok    11.76 (≥ 4.5) ink sobre surface-2: #ffffff sobre #123a5c
+  ok    10.21 (≥ 4.5) ink-2 sobre canvas (línea de estado): #c1c6ca sobre #071a2d
+  ok     9.10 (≥ 4.5) ink-2 sobre surface (segundo renglón, consecuencia): #c2c9cf sobre #0b2740
+  ok     7.36 (≥ 4.5) ink-2 sobre surface-2 (Chip neutral, tramo inactivo, InfoButton): #c4ced6 sobre #123a5c
+  ok     9.10 (≥ 4.5) ink-3 sobre surface (rótulo, eje, equipo): #c2c9cf sobre #0b2740
+  ok    10.21 (≥ 4.5) ink-3 sobre canvas: #c1c6ca sobre #071a2d
+  ok     6.85 (≥ 4.5) accent sobre surface (enlace, quiet): #35bdda sobre #0b2740
+  ok     7.90 (≥ 4.5) accent sobre canvas (vuelta de PageHeader): #35bdda sobre #071a2d
+  ok     5.29 (≥ 4.5) accent sobre surface-2: #35bdda sobre #123a5c
+  ok     5.39 (≥ 4.5) accent sobre info-bg (tono info): #35bdda sobre #0d3a55
+  ok     6.85 (≥ 4.5) on-accent sobre accent (primario, Chip accent, Segmented): #0b2740 sobre #35bdda
+  ok     9.21 (≥ 4.5) on-accent sobre accent-strong (primario encima y pulsado): #0b2740 sobre #7fd6e9
+  ok     8.17 (≥ 4.5) gold-ink sobre surface (texto dorado): #f0b429 sobre #0b2740
+  ok     6.31 (≥ 4.5) gold-ink sobre surface-2: #f0b429 sobre #123a5c
+  ok     7.87 (≥ 4.5) good sobre surface (Stat con signo): #5bd08c sobre #0b2740
+  ok     6.44 (≥ 4.5) good sobre good-bg (Chip, Notice): #5bd08c sobre #0e3b2e
+  ok     8.13 (≥ 4.5) warn sobre surface: #f5b04f sobre #0b2740
+  ok     7.16 (≥ 4.5) warn sobre warn-bg: #f5b04f sobre #3d2c0c
+  ok     6.91 (≥ 4.5) bad sobre surface (error, Stat con signo): #ff8f86 sobre #0b2740
+  ok     6.75 (≥ 4.5) bad sobre bad-bg: #ff8f86 sobre #45191f
+  ok     6.91 (≥ 4.5) on-bad sobre bad (Button danger): #0b2740 sobre #ff8f86
+  ok    12.47 (≥ 4.5) ink sobre good-bg (título de Notice): #ffffff sobre #0e3b2e
+  ok    13.43 (≥ 4.5) ink sobre warn-bg (título de Notice; OfflineBanner): #ffffff sobre #3d2c0c
+  ok    14.87 (≥ 4.5) ink sobre bad-bg: #ffffff sobre #45191f
+  ok    11.98 (≥ 4.5) ink sobre info-bg: #ffffff sobre #0d3a55
+  ok     7.73 (≥ 4.5) ink-2 sobre good-bg (texto de Notice): #c3cecb sobre #0e3b2e
+  ok     8.22 (≥ 4.5) ink-2 sobre warn-bg: #cecac2 sobre #3d2c0c
+  ok     8.91 (≥ 4.5) ink-2 sobre bad-bg: #d0c6c7 sobre #45191f
+  ok     7.46 (≥ 4.5) ink-2 sobre info-bg: #c2ced4 sobre #0d3a55
+  ok     7.46 (≥ 4.5) ink-3 sobre info-bg (día de viaje): #c2ced4 sobre #0d3a55
+  ok    14.39 (≥ 4.5) ink sobre own-tint (la fila propia): #ffffff sobre #2e2a16
+  ok     8.77 (≥ 4.5) ink-2 sobre own-tint: #cbcac5 sobre #2e2a16
+  ok     8.77 (≥ 4.5) ink-3 sobre own-tint (equipo en la fila propia): #cbcac5 sobre #2e2a16
+  ok     4.61 (≥ 4.5) disabled-ink sobre disabled-bg (WCAG lo exime; se pide 4,5): #a3b2c3 sobre #1f4567
+  ok     6.91 (≥ 4.5) on-arrival sobre arrival-cooked: #0b2740 sobre #ff8f86
+  ok     7.45 (≥ 4.5) on-arrival sobre arrival-loaded: #0b2740 sobre #f5a35c
+  ok     7.05 (≥ 4.5) on-arrival sobre arrival-fine: #0b2740 sobre #a3b2c3
+  ok     7.87 (≥ 4.5) on-arrival sobre arrival-spoton: #0b2740 sobre #5bd08c
+  ok     7.11 (≥ 4.5) on-arrival sobre arrival-rusty: #0b2740 sobre #82b4f5
+  ok     5.05 (≥ 3.0) line-strong sobre surface (borde de campo y de control): #7f97b0 sobre #0b2740
+  ok     5.82 (≥ 3.0) line-strong sobre canvas: #7f97b0 sobre #071a2d
+  ok     3.90 (≥ 3.0) line-strong sobre surface-2 (borde del tramo inactivo): #7f97b0 sobre #123a5c
+  ok    12.19 (≥ 3.0) focus sobre canvas: #ffd166 sobre #071a2d
+  ok    10.57 (≥ 3.0) focus sobre surface: #ffd166 sobre #0b2740
+  ok     8.16 (≥ 3.0) focus sobre surface-2: #ffd166 sobre #123a5c
+  ok     3.68 (≥ 3.0) accent sobre line (segmento lleno contra vacío de Meter): #35bdda sobre #2c5274
+  ok     6.72 (≥ 3.0) gold sobre surface (estrella llena): #e0a106 sobre #0b2740
+  ok     6.35 (≥ 3.0) own sobre own-tint (la barra de 3 px): #e0a106 sobre #2e2a16
+  ok     6.72 (≥ 3.0) own sobre surface: #e0a106 sobre #0b2740
+  ok     6.44 (≥ 3.0) good sobre good-bg como icono y borde: #5bd08c sobre #0e3b2e
+  ok     6.91 (≥ 3.0) arrival-cooked sobre surface (tramo): #ff8f86 sobre #0b2740
+  ok     7.45 (≥ 3.0) arrival-loaded sobre surface: #f5a35c sobre #0b2740
+  ok     7.05 (≥ 3.0) arrival-fine sobre surface: #a3b2c3 sobre #0b2740
+  ok     7.87 (≥ 3.0) arrival-spoton sobre surface: #5bd08c sobre #0b2740
+  ok     7.11 (≥ 3.0) arrival-rusty sobre surface: #82b4f5 sobre #0b2740
+
+2. Lo que no es una pareja de token contra token
+  Button danger encima (brightness-90, el filtro oscurece también el texto):  5.92 (#0a233a sobre #e68179)
+  canvas contra surface: 1.15; surface contra surface-2: 1.30 (fondos, sin umbral)
+  line sobre surface 1.86 y sobre canvas 2.15 (decorativo, sin umbral)
+
+3. Control: cifras ya publicadas del ámbito oscuro (§3.3)
+  ink sobre #0b2740 15.23 (15,23) · blanco al 75 % sobre #0b2740 9.10 (9,10) · #35bdda sobre #0b2740 6.85 (6,85)
+
+4. ΔE00 entre los tonos de estado del modo oscuro (se informa, no es umbral: D-13)
+  good  / warn : normal 39.8 · protan  9.7 · deutan 14.2 · tritan 54.2 · grises  0.8 · luminancia 1.03
+  good  / bad  : normal 60.6 · protan 11.8 · deutan  3.6 · tritan 62.0 · grises  3.2 · luminancia 1.14
+  good  / info : normal 31.7 · protan 35.0 · deutan 34.7 · tritan  5.2 · grises  3.4 · luminancia 1.15
+  warn  / bad  : normal 27.4 · protan 16.8 · deutan 10.9 · tritan  7.7 · grises  4.0 · luminancia 1.18
+  warn  / info : normal 45.9 · protan 42.4 · deutan 48.0 · tritan 52.7 · grises  4.2 · luminancia 1.19
+  bad   / info : normal 59.3 · protan 28.3 · deutan 38.3 · tritan 59.6 · grises  0.2 · luminancia 1.01
+  los tramos de la llegada, vecinos en la escala
+  cooked  / loaded : normal 20.0 · protan 13.0 · deutan  8.3 · tritan  4.7 · grises  1.9
+  loaded  / fine   : normal 33.1 · protan 32.7 · deutan 34.9 · tritan 32.7 · grises  1.4
+  fine    / spoton : normal 30.7 · protan 28.4 · deutan 24.7 · tritan 16.9 · grises  2.7
+  spoton  / rusty  : normal 41.6 · protan 42.0 · deutan 38.6 · tritan  9.4 · grises  2.5
+  el tramo activo más cercano al inactivo (surface-2), en la peor visión: 46.9
+
+5. Tema claro: las cifras que corrigen los hallazgos de L1
+  ink sobre own-tint 15.08 (el borrador decía 16,26; Rcodigo-003)
+  Button danger encima en claro, blanco y bad al 90 %: 6.11 (#e6e6e6 sobre #a22016; Rcodigo-015)
+  pastilla de hoy, surface-2 del ámbito #123a5c contra la barra #0b2740: 1.30; blanco contra on-navy-2 sobre la barra: 1.50 (Ruso-008)
+  pastilla nueva, gold sobre navy-dark: 6.72; el icono navy-dark sobre gold: 6.72
+
+0 parejas por debajo de su umbral

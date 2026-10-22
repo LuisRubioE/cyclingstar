@@ -1,0 +1,145 @@
+@import 'tailwindcss';
+
+/*
+ * EL SISTEMA VISUAL DE CYCLING STAR (E3, propuesta `sistema`). Lo que no está aquí no existe: las
+ * familias de valores de Tailwind se vacían con `initial` y solo se generan utilidades para estos
+ * tokens. `bg-indigo-600`, `text-[11px]` o `shadow-md` dejan de producir CSS, y el test
+ * `apps/web/src/ui/vocabulario.test.ts` falla si alguna clase del código no resuelve.
+ */
+@theme {
+  --color-*: initial;
+  --font-*: initial;
+  --font-weight-*: initial;
+  --text-*: initial;
+  --tracking-*: initial;
+  --leading-*: initial;
+  --radius-*: initial;
+  --shadow-*: initial;
+  --inset-shadow-*: initial;
+  --drop-shadow-*: initial;
+  --text-shadow-*: initial;
+  --blur-*: initial;
+  --perspective-*: initial;
+  --aspect-*: initial;
+  --animate-*: initial;
+  --breakpoint-*: initial;
+  --container-*: initial;
+
+  /* superficies */
+  --color-canvas: #e8edf2;
+  --color-surface: #ffffff;
+  --color-surface-sunken: #f1f5f9;
+  --color-line: #d6dee8;
+  --color-line-strong: #7d8da3;
+  /* tinta */
+  --color-ink: #0f172b;
+  --color-ink-soft: #314158;
+  --color-ink-muted: #536379;
+  --color-ink-inverse: #ffffff;
+  /* marca */
+  --color-brand-navy: #123a5c;
+  --color-brand-navy-deep: #0b2740;
+  --color-brand-cyan: #1499bb;
+  --color-brand-cyan-strong: #006e8c;
+  --color-brand-gold: #d99400;
+  /* acción */
+  --color-action: #123a5c;
+  --color-action-hover: #0b2740;
+  --color-link: #006e8c;
+  --color-focus: #006e8c;
+  /* estado */
+  --color-positive: #00704e;
+  --color-positive-tint: #e6f5ee;
+  --color-negative: #b8000a;
+  --color-negative-tint: #fdeceb;
+  --color-warning: #8f3900;
+  --color-warning-tint: #fdf1d6;
+  --color-info: #00639e;
+  --color-info-tint: #e6f2fb;
+  /* la escala de llegada */
+  --color-form-cooked: #7a1e14;
+  --color-form-loaded: #e0893a;
+  --color-form-fine: #e4e9ef;
+  --color-form-peak: #1f7a4c;
+  --color-form-rusty: #3d5a80;
+  /* la capa de Watch */
+  --color-broadcast: #0f172b;
+  --color-broadcast-raised: #1d293d;
+  --color-broadcast-ink: #ffffff;
+  --color-broadcast-ink-muted: #b4bfcf;
+  --color-broadcast-up: #fcd34d;
+  --color-broadcast-down: #6ee7b7;
+  /* lo que Tailwind necesita para bordes y fondos neutros */
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  /* letra: la del sistema, sin descarga */
+  --font-sans:
+    system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', 'Noto Sans', Arial, sans-serif,
+    'Apple Color Emoji', 'Segoe UI Emoji';
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1rem;
+  --text-label: 0.75rem;
+  --text-label--line-height: 1rem;
+  --text-label--letter-spacing: 0.04em;
+  --text-label--font-weight: 600;
+  --text-data: 0.875rem;
+  --text-data--line-height: 1.25rem;
+  --text-body: 1rem;
+  --text-body--line-height: 1.5rem;
+  --text-title: 1rem;
+  --text-title--line-height: 1.5rem;
+  --text-title--font-weight: 600;
+  --text-heading: 1.25rem;
+  --text-heading--line-height: 1.75rem;
+  --text-heading--font-weight: 700;
+  --text-display: 1.75rem;
+  --text-display--line-height: 2.25rem;
+  --text-display--font-weight: 700;
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --tracking-tight: -0.01em;
+
+  /* espaciado: el paso de v4 (las utilidades de paso libre las acota el test) */
+  --spacing: 0.25rem;
+
+  /* radios y sombras */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --shadow-panel: 0 1px 2px 0 rgb(15 23 43 / 0.08), 0 0 0 1px rgb(15 23 43 / 0.06);
+  --shadow-bar: 0 -2px 8px rgb(15 23 43 / 0.25);
+
+  /* cortes y anchos */
+  --breakpoint-sm: 40rem;
+  --breakpoint-lg: 64rem;
+  --container-page: 72rem;
+  --container-prose: 40rem;
+  --container-form: 28rem;
+
+  /* el esqueleto de carga */
+  --animate-pulse: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  @keyframes pulse {
+    50% {
+      opacity: 0.5;
+    }
+  }
+}
+
+/* Ámbitos: lo oscuro redefine los tokens que cambian; los componentes no saben dónde están. */
+@layer base {
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+  }
+  [data-surface='dark'] {
+    --color-focus: #ffffff;
+    --color-ink: #ffffff;
+    --color-ink-muted: #b4bfcf;
+  }
+}

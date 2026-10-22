@@ -1,0 +1,100 @@
+1. Referencia en el tema claro (D-03, ya medido por telefono; se repite como control)
+  line sobre surface                                         #d8dee6 sobre #ffffff   1.35
+  line sobre canvas                                          #d8dee6 sobre #eef2f6   1.20
+  line-strong sobre surface                                  #7b8794 sobre #ffffff   3.66
+  line-strong sobre canvas                                   #7b8794 sobre #eef2f6   3.25
+  surface-2 sobre surface (de una superficie a la otra)      #f5f7fa sobre #ffffff   1.07
+
+2. Ámbito oscuro: candidatos de line-strong (umbral 3:1 contra las dos superficies)
+  #6f8aa6: sobre #0b2740 4.25 · sobre #123a5c 3.28
+  #7891ab: sobre #0b2740 4.67 · sobre #123a5c 3.61
+  #7f97b0: sobre #0b2740 5.05 · sobre #123a5c 3.90
+  #8299b1: sobre #0b2740 5.18 · sobre #123a5c 4.00
+  #869db5: sobre #0b2740 5.44 · sobre #123a5c 4.20
+  #8ea4bb: sobre #0b2740 5.93 · sobre #123a5c 4.58
+  #93a8bf: sobre #0b2740 6.23 · sobre #123a5c 4.81
+   candidatos de line (decorativo: visible sobre las dos y muy por debajo de line-strong)
+  #24496c: sobre #0b2740 1.63 · sobre #123a5c 1.26
+  #29506f: sobre #0b2740 1.79 · sobre #123a5c 1.38
+  #2c5274: sobre #0b2740 1.86 · sobre #123a5c 1.44
+  #2f5679: sobre #0b2740 1.98 · sobre #123a5c 1.53
+  #335a7d: sobre #0b2740 2.10 · sobre #123a5c 1.62
+  #375f82: sobre #0b2740 2.26 · sobre #123a5c 1.75
+
+3. Ámbito oscuro: accent-strong (primario encima y pulsado; on-accent #0b2740 encima)
+  #35bdda: on-accent encima  6.85 · sobre #0b2740  6.85 · sobre #123a5c  5.29 · ΔE00 con #35bdda  0.0
+  #5ccbe3: on-accent encima  8.06 · sobre #0b2740  8.06 · sobre #123a5c  6.22 · ΔE00 con #35bdda  4.3
+  #6fd1e6: on-accent encima  8.66 · sobre #0b2740  8.66 · sobre #123a5c  6.69 · ΔE00 con #35bdda  6.3
+  #7fd6e9: on-accent encima  9.21 · sobre #0b2740  9.21 · sobre #123a5c  7.11 · ΔE00 con #35bdda  8.1
+  #8fdcec: on-accent encima  9.88 · sobre #0b2740  9.88 · sobre #123a5c  7.63 · ΔE00 con #35bdda 10.2
+   disabled-bg y disabled-ink en el ámbito
+  bg #1b4062 (sobre #0b2740 1.42; sobre #123a5c 1.10) · ink #9aabbd encima 4.57
+  bg #1b4062 (sobre #0b2740 1.42; sobre #123a5c 1.10) · ink #a3b2c3 encima 4.97
+  bg #1b4062 (sobre #0b2740 1.42; sobre #123a5c 1.10) · ink #aab8c8 encima 5.32
+  bg #1f4567 (sobre #0b2740 1.53; sobre #123a5c 1.18) · ink #9aabbd encima 4.24
+  bg #1f4567 (sobre #0b2740 1.53; sobre #123a5c 1.18) · ink #a3b2c3 encima 4.61
+  bg #1f4567 (sobre #0b2740 1.53; sobre #123a5c 1.18) · ink #aab8c8 encima 4.94
+  bg #234a6c (sobre #0b2740 1.64; sobre #123a5c 1.27) · ink #9aabbd encima 3.94
+  bg #234a6c (sobre #0b2740 1.64; sobre #123a5c 1.27) · ink #a3b2c3 encima 4.28
+  bg #234a6c (sobre #0b2740 1.64; sobre #123a5c 1.27) · ink #aab8c8 encima 4.59
+   lo que ya está fijado, como control
+  ink-2 (blanco al 75 %) sobre surface del ámbito            #c2c9cf sobre #0b2740   9.10
+  ink-2 (blanco al 75 %) sobre surface-2 del ámbito          #c4ced6 sobre #123a5c   7.36
+  on-navy-2 (blanco al 80 %) sobre navy                      #d0d8de sobre #123a5c   8.15
+  on-navy-2 (blanco al 80 %) sobre navy-dark                 #ced4d9 sobre #0b2740  10.19
+  focus #ffd166 sobre navy-dark                              #ffd166 sobre #0b2740  10.57
+  focus #ffd166 sobre navy                                   #ffd166 sobre #123a5c   8.16
+  gold sobre navy-dark                                       #e0a106 sobre #0b2740   6.72
+  gold sobre navy (subrayado de Tabs nav, gráfico)           #e0a106 sobre #123a5c   5.19
+  accent #35bdda sobre navy (enlace en el ámbito)            #35bdda sobre #123a5c   5.29
+
+4. Parejas del tema claro que usan los componentes de §4 y nadie midió
+  ink sobre good-bg (título de Notice)                       #10202f sobre #e6f4ea  14.57
+  ink sobre warn-bg                                          #10202f sobre #fff3d6  15.00
+  ink sobre bad-bg                                           #10202f sobre #fdeceb  14.47
+  ink sobre info-bg                                          #10202f sobre #e3f2f7  14.42
+  ink-2 sobre good-bg (texto de Notice)                      #435266 sobre #e6f4ea   7.01
+  ink-2 sobre warn-bg                                        #435266 sobre #fff3d6   7.22
+  ink-2 sobre bad-bg                                         #435266 sobre #fdeceb   6.97
+  ink-2 sobre info-bg                                        #435266 sobre #e3f2f7   6.94
+  ink-2 sobre own-tint (segundo renglón de la fila propia)   #435266 sobre #fdf4dc   7.26
+  ink-3 sobre own-tint (equipo en la fila propia)            #566579 sobre #fdf4dc   5.42
+  ink-3 sobre info-bg (día de viaje)                         #566579 sobre #e3f2f7   5.18
+  accent sobre surface-2 (enlace en cabecera de tabla)       #0b6e8a sobre #f5f7fa   5.42
+  ink-2 sobre surface-2 (tramo inactivo, Chip neutral)       #435266 sobre #f5f7fa   7.42
+  line-strong sobre surface-2 (borde del tramo inactivo)     #7b8794 sobre #f5f7fa   3.41
+  own sobre own-tint (la barra de 3 px)                      #a87300 sobre #fdf4dc   3.74
+  disabled-ink sobre surface                                 #6b7787 sobre #ffffff   4.55
+  white sobre bad (Button danger)                            #ffffff sobre #b42318   6.57
+  white sobre accent-strong (primario pulsado)               #ffffff sobre #085a71   7.75
+
+5. ΔE00 entre los tonos de estado (H-18; se informa, no es umbral: D-13)
+  tono (texto, borde e icono)
+    good     / warn    : normal 42.1 · protan 10.1 · deutan  9.6 · tritan 51.6 · grises  4.3 · luminancia 1.19
+    good     / bad     : normal 62.2 · protan 13.6 · deutan  9.0 · tritan 58.8 · grises  4.8 · luminancia 1.21
+    good     / info    : normal 34.5 · protan 35.6 · deutan 34.9 · tritan  5.7 · grises  1.8 · luminancia 1.07
+    warn     / bad     : normal 18.9 · protan  6.3 · deutan  1.7 · tritan 10.1 · grises  0.5 · luminancia 1.02
+    warn     / info    : normal 43.0 · protan 39.5 · deutan 43.6 · tritan 48.3 · grises  2.5 · luminancia 1.11
+    bad      / info    : normal 53.2 · protan 36.9 · deutan 43.2 · tritan 54.6 · grises  3.0 · luminancia 1.13
+  fondo del tono
+    good-bg  / warn-bg : normal 11.8 · protan  7.8 · deutan  9.3 · tritan 15.1 · grises  0.7 · luminancia 1.03
+    good-bg  / bad-bg  : normal 16.5 · protan  2.4 · deutan  0.5 · tritan 17.4 · grises  0.2 · luminancia 1.01
+    good-bg  / info-bg : normal  7.1 · protan  7.2 · deutan  7.0 · tritan  2.3 · grises  0.2 · luminancia 1.01
+    warn-bg  / bad-bg  : normal 13.5 · protan 10.1 · deutan  8.9 · tritan  2.8 · grises  0.8 · luminancia 1.04
+    warn-bg  / info-bg : normal 16.0 · protan 15.2 · deutan 16.7 · tritan 17.2 · grises  0.9 · luminancia 1.04
+    bad-bg   / info-bg : normal 15.0 · protan  4.8 · deutan  7.4 · tritan 20.4 · grises  0.1 · luminancia 1.00
+
+6. Complementos del ámbito oscuro
+  surface-2 del ámbito sobre su surface                      #123a5c sobre #0b2740   1.30
+  line-strong #7f97b0 sobre disabled-bg #1f4567              #7f97b0 sobre #1f4567   3.30
+  disabled-bg #1f4567 sobre surface-2 del ámbito             #1f4567 sobre #123a5c   1.18
+  white sobre accent-strong del ámbito? (no se usa: on-accent) #ffffff sobre #7fd6e9   1.65
+  on-accent #0b2740 sobre accent-strong #7fd6e9              #0b2740 sobre #7fd6e9   9.21
+  ΔE00 accent / accent-strong del ámbito en las cinco vistas: normal  8.1 · protan  7.4 · deutan  8.7 · tritan  5.9 · grises  7.2
+
+7. Gráficos de §4 (WCAG 1.4.11 pide 3:1)
+  accent sobre line (segmento lleno contra vacío de Meter)   #0b6e8a sobre #d8dee6   4.29
+  gold sobre surface (estrella sin contorno)                 #e0a106 sobre #ffffff   2.27
+  gold-ink sobre surface (contorno de la estrella llena)     #7a5000 sobre #ffffff   7.06
+  own sobre surface (la barra de la fila propia)             #a87300 sobre #ffffff   4.10
+  bad con brightness 90 %: blanco encima                     #ffffff sobre #a22016   7.62
