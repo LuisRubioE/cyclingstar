@@ -134,8 +134,8 @@ retomar el trabajo si la sesión se corta.
 1. El dueño contestó el 25 de octubre de 2026: «Me parece bien todo» (`00-encargo.md` §7.8). Quedan
    suyas la hoja de los 133 maillots nacionales cuando la adjunte el PR 16a y la verificación de la
    marca de la UCI antes del lanzamiento.
-2. Fusionar el PR, y abrir el código de E3 cuando el dueño lo diga (la regla de arranque, §0.1 del
-   documento), empezando por el PR 1 (el clon).
+2. Hecho el 25 de octubre de 2026: el PR del diseño, fusionado (#306, `912c5fa`), y el código de E3,
+   abierto por el dueño. Lo que entra en cada PR, en `implementacion.md`.
 
 ## Cómo retomar si la sesión se corta
 

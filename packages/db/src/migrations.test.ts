@@ -199,6 +199,20 @@ describe('db: migraciones desde cero', () => {
     ])
   })
 
+  /**
+   * LA SEMILLA DEL DIBUJO (E3, docs/visual.md §8.9; la 0050): el maillot que elige el dueño va a su
+   * columna, nula y sin defecto, para que `jersey_seed` siga siendo la identidad del equipo y el tick no
+   * cree un clon al cambiarlo. Añadirla no reescribe la tabla.
+   */
+  it('la columna de la 0050: teams.jersey_style_seed, text y nula', async () => {
+    const cols = await t.client<
+      { data_type: string; is_nullable: string; column_default: string | null }[]
+    >`
+      select data_type, is_nullable, column_default from information_schema.columns
+      where table_schema = 'public' and table_name = 'teams' and column_name = 'jersey_style_seed'`
+    expect(cols).toEqual([{ data_type: 'text', is_nullable: 'YES', column_default: null }])
+  })
+
   it('users: las cuatro columnas de la 0048 nacen con su defecto (guarded, 0, null, true)', async () => {
     const [u] = await t.client<{ id: string }[]>`
       insert into users (email, name) values ('defectos@example.com', 'Defectos') returning id`

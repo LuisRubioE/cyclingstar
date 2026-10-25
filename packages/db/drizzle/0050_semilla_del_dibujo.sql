@@ -1,0 +1,1 @@
+ALTER TABLE "teams" ADD COLUMN "jersey_style_seed" text;

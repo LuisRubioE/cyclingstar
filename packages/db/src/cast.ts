@@ -31,6 +31,7 @@ import {
 } from '@cyclingstar/shared'
 import { and, eq, exists, inArray, lt, lte, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
+import { teamDrawSeed } from './jerseyClone.js'
 import { palmares, stageResults, teams } from './schema.js'
 import type { Queryable } from './titles.js'
 
@@ -143,7 +144,7 @@ export async function buildTimelineCast(q: Queryable, ctx: CastContext): Promise
       ? []
       : (
           await q
-            .select({ id: teams.id, jerseySeed: teams.jerseySeed })
+            .select({ id: teams.id, jerseySeed: teamDrawSeed })
             .from(teams)
             .where(inArray(teams.id, teamIds))
         ).map((t) => [t.id, t.jerseySeed] as const),

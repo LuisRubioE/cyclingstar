@@ -1,7 +1,7 @@
 # Los encargos: qué pedirle a Fable, uno por documento
 
 Estado: **lista de encargos.** Cada punto de aquí es UN documento de diseño por escribir, del tamaño y con el método de `docs/tactica.md` y `docs/entrenamiento.md`.
-E1 está IMPLEMENTADO; E2 está EN IMPLEMENTACIÓN; E3 tiene el DISEÑO ESCRITO, sin implementar; los demás no están empezados. El estado de cada uno va al principio de su sección.
+E1 está IMPLEMENTADO; E2 está EN IMPLEMENTACIÓN; E3 está EN IMPLEMENTACIÓN; los demás no están empezados. El estado de cada uno va al principio de su sección.
 
 **Los códigos van en el orden en que se van a desarrollar**: E2 primero, E13 último. No es una
 etiqueta arbitraria, es el plan.
@@ -180,7 +180,7 @@ el del equipo), y es exactamente el rótulo con el que la televisión presenta a
 
 **Fichero:** `docs/visual.md` · **Tamaño esperado:** mediano
 
-**Estado: DISEÑO ESCRITO, sin implementar (22 de octubre de 2026).** El diseño está en
+**Estado: EN IMPLEMENTACIÓN desde el 25 de octubre de 2026, sobre el motor v91.** El diseño está en
 `docs/visual.md`: veintiuna secciones, de la 0 a la 20, y 3.973 líneas, hechas con el
 método de `docs/diseno/README.md` escalado a un documento mediano: cinco mapas del código, de los
 documentos y de las pantallas (con 98 capturas a 360 y a 1.280 px), cuatro propuestas independientes,
@@ -199,8 +199,9 @@ lo que dice de ella esta sección (la decisión ya tomada de la aplicación inst
 notificación de E4 en iPhone que dependía de ella) lo sustituye la §12 del documento, que conserva
 la conducta sin red, el peso y las banderas, y da `tokens.json` a la app. Le queda mirar una vez la hoja
 de los 133 maillots nacionales cuando la adjunte el PR 16a, y verificar la marca de la UCI antes
-del lanzamiento (§19.6 del documento). El código no se abre hasta que el dueño lo diga; el plan son veinticuatro
-pasos y cuarenta y un PR, con los tests primero (§17).
+del lanzamiento (§19.6 del documento). El dueño abrió el código el 25 de octubre; el plan son veinticuatro pasos y
+cuarenta y un PR, con los tests primero (§17), y lo que entra en cada uno está en
+`docs/diseno/e3-visual/implementacion.md`.
 
 El rediseño gráfico general, que es una disciplina distinta de la arquitectura de información (dónde
 vive cada cosa) y de la identidad de marca (el logotipo y los maillots). Aquí se decide **tipografía,

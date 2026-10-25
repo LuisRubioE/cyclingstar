@@ -32,6 +32,7 @@ import { BATCH_ROWS, type BatchValue, inChunks, valuesList } from './batch.js'
 import { creditRider } from './economy.js'
 import { gcFinishersWhere, gcOrderBy, gcRosterOn } from './gcSort.js'
 import type { Horizon } from './horizon.js'
+import { teamDrawSeed, teamDrawSeedOrNull } from './jerseyClone.js'
 import { LOCK_CLASS, hashInt, raceLockKey } from './locks.js'
 import {
   gameState,
@@ -405,7 +406,7 @@ async function resolveFieldTeams(
       division: teams.division,
       country: teams.country,
       ownerUserId: teams.ownerUserId,
-      jerseySeed: teams.jerseySeed,
+      jerseySeed: teamDrawSeed,
     })
     .from(teams)
     .where(and(eq(teams.worldId, worldId), inArray(teams.division, race.openTo)))
@@ -803,7 +804,7 @@ export async function predictStartlist(
         teamName: teams.name,
         teamCountry: teams.country,
         teamDivision: teams.division,
-        teamJersey: teams.jerseySeed,
+        teamJersey: teamDrawSeedOrNull,
         bib: raceRosters.bib,
       })
       .from(raceRosters)
