@@ -242,6 +242,55 @@ jobs:
         if: steps.motor.outputs.correr == 'si'
         run: pnpm exec vitest run ${{ matrix.ficheros }}
 
+  # LA PRUEBA DEL TELÉFONO (E3, docs/visual.md §7.4; PR 2a). «Si no se juega bien en un teléfono, este
+  # documento no está terminado»: el encargo de E3 hace del teléfono un criterio de aceptación, y este
+  # trabajo lo convierte en una prueba. Desde el PR 2b mide diez comprobaciones en `/_ui` y en las 46
+  # pantallas, a 360 × 800 y 320 × 640, contra una línea base que solo baja; en el 2a construye o
+  # restaura el mundo de la prueba, lo sirve y comprueba que contesta.
+  #
+  # Corre cuando cambia algo que se ve en el teléfono, con el mismo patrón que los bancos: el trabajo
+  # existe siempre y lo que se salta es el trabajo de dentro. La web pinta lo que escribe `shared`, y el
+  # motor construye el mundo de la prueba y lleva las palabras de la llegada (Ruso-020), así que los
+  # cinco caminos son `apps/web`, `apps/api`, `packages/db`, `packages/shared` y `packages/engine`. Sin
+  # base fiable con la que comparar, se corre.
+  #
+  # El coste (DD-16, aceptado por el dueño): de 5 a 7 minutos por PR con el mundo de la caché, y unos 15
+  # más cuando cambia su clave y hay que reconstruirlo (§7.2).
+  telefono:
+    name: Teléfono
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      FONTCONFIG_FILE: ${{ github.workspace }}/apps/web/e2e/fonts.conf
+      E2E_BASE: http://localhost:3005
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: ¿Toca lo que se ve en el teléfono?
+        id: toca
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.sha }}
+        run: |
+          if [ -z "$BASE" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            echo 'Sin base con la que comparar: se corre la prueba.'
+            echo 'correr=si' >> "$GITHUB_OUTPUT"
+          elif git diff --name-only "$BASE" "$HEAD" | grep -qE '^(apps/web/|apps/api/|packages/db/|packages/shared/|packages/engine/)'; then
+            echo 'Cambia algo que se ve en el teléfono: se corre la prueba.'
+            echo 'correr=si' >> "$GITHUB_OUTPUT"
+          else
+            echo 'No cambia nada que se vea en el teléfono: la prueba se salta.'
+            echo 'correr=no' >> "$GITHUB_OUTPUT"
+          fi
+      - uses: ./.github/actions/setup
+        if: steps.toca.outputs.correr == 'si'
+      - name: Build
+        if: steps.toca.outputs.correr == 'si'
+        run: pnpm build
+      - uses: ./.github/actions/telefono
+        if: steps.toca.outputs.correr == 'si'
+
   quality:
     name: Lint · Format
     runs-on: ubuntu-latest

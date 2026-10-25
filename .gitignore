@@ -17,3 +17,8 @@ docs/galeria-recorridos/
 
 # Worktrees temporales de agentes (infraestructura de trabajo, nunca versionada)
 .claude/worktrees/
+
+# La prueba del teléfono (E3, docs/visual.md §7.2): el mundo lo construye apps/web/e2e/world/build.mjs y
+# el CI lo guarda en su caché; los resultados de Playwright, cada pasada.
+apps/web/e2e/world/.mundo/
+apps/web/e2e/.resultados/

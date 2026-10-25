@@ -122,6 +122,40 @@ jobs:
         env:
           CS_BANCOS: '1'
 
+  # LO QUE LA PRUEBA DEL TELÉFONO MIRA CADA NOCHE (E3, docs/visual.md §7.5 y §16.5; PR 2a): el
+  # rendimiento con la red y la CPU de un teléfono en las cuatro páginas del mapa 05 §12, `Watch` con los
+  # umbrales de E2, y desde el PR 2b la letra al doble y la pantalla de lado. Sobre el mismo mundo que el
+  # trabajo `Teléfono` de `ci.yml`, de la caché.
+  #
+  # INFORMA Y NO PARA NADA (D-19): `continue-on-error`, como la auditoría. Un umbral roto pone el trabajo
+  # en rojo y deja las cifras en el informe, pero no el flujo: un rojo de noche cuelga del commit de `main`
+  # de esa noche, y Railway salta el redespliegue de un commit en rojo (lo cuenta la cabecera de la
+  # cobertura, arriba). Los umbrales que la web de hoy aún no cumple van como `test.fixme`, con su cifra.
+  telefono-noche:
+    name: Teléfono de noche
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    continue-on-error: true
+    env:
+      FONTCONFIG_FILE: ${{ github.workspace }}/apps/web/e2e/fonts.conf
+      E2E_BASE: http://localhost:3005
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Build
+        run: pnpm build
+      - uses: ./.github/actions/telefono
+      - name: Las pasadas de la noche
+        run: pnpm --filter @cyclingstar/web exec playwright test --project=nocturno
+      - name: Sube el informe de la noche
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: telefono-noche
+          path: apps/web/e2e/.resultados/
+          retention-days: 14
+          if-no-files-found: ignore
+
   audit:
     name: Auditoría de dependencias (informativo)
     runs-on: ubuntu-latest
