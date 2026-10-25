@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef } from 'react'
 import { writeAdminHint } from '../adminHint'
 import { authClient } from '../auth/client'
-import { type SessionSeen, adminHintOf, cacheOwnerChanged } from '../queryClient'
+import { type SessionSeen, adminHintOf, cacheOwnerChanged, sessionSeenOf } from '../queryClient'
 
 /**
  * EL VIGILANTE DE LA CACHÉ (E2, docs/retransmision.md §10.9, regla 4, y §14.11; D-35, 14-r; paso 9a).
@@ -16,23 +16,29 @@ import { type SessionSeen, adminHintOf, cacheOwnerChanged } from '../queryClient
  * es la carga de la página (`cacheOwnerChanged`), y un paso por pendiente en medio no borra el último
  * valor visto. No pinta nada.
  *
+ * UNA SESIÓN SIN SABER NO ES UN VALOR (E3, docs/visual.md §12.1; PR 4, X-04): cuando la red no trae la
+ * respuesta de la sesión (`unknown`), `useSession()` deja de estar pendiente sin usuario, y contarlo como
+ * «nadie» vaciaba la caché en cuanto la sesión llegaba (de nadie a un id), con lo que la página ya había
+ * pedido. Así que `unknown` cuenta como pendiente (`sessionSeenOf`): no se apunta y no vacía nunca.
+ *
  * Y desde el 9b guarda la pista de administrador de este navegador (`adminHint.ts`) cada vez que una
  * respuesta dice si quien mira lo es (`adminHintOf`: `whoami`, y el horizonte con `SPOILER_MODE=admins`),
  * para que la carga siguiente no tenga que preguntarlo.
  */
 export function HorizonWatcher(): null {
   const queryClient = useQueryClient()
-  const { data, isPending } = authClient.useSession()
-  const userId = data?.user.id ?? null
+  const seen = sessionSeenOf(authClient.useSession())
+  const pending = seen === null
+  const userId = seen?.userId ?? null
   const last = useRef<SessionSeen>({ resolved: false, userId: null })
   const owner = useRef<string | null>(null)
   useEffect(() => {
-    owner.current = isPending ? null : userId
-    if (isPending) return
+    owner.current = pending ? null : userId
+    if (pending) return
     const next: SessionSeen = { resolved: true, userId }
     if (cacheOwnerChanged(last.current, next)) queryClient.clear()
     last.current = next
-  }, [isPending, userId, queryClient])
+  }, [pending, userId, queryClient])
   useEffect(
     () =>
       queryClient.getQueryCache().subscribe((event) => {

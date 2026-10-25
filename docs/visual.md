@@ -1,6 +1,6 @@
 # El sistema visual: diseñado desde el teléfono, medido y que se hace cumplir (diseño final)
 
-Estado: en implementación desde el 25 de octubre de 2026, sobre `912c5fa`: la versión de producción con el motor v91 y E2 encendido, más este diseño (#306). El dueño abrió ese día el código, con todas sus decisiones contestadas (§19; DD-24 solo se abre si falla una puerta del PR 16a). Pasos implementados (cada PR añade el suyo; el detalle, las cifras, lo que se aparta del diseño y lo que el paso siguiente tiene que saber, en `docs/diseno/e3-visual/implementacion.md`): el 1, el clon; el 2a, el mundo de la prueba y los trabajos del CI; el 2b, la prueba del teléfono y la línea base de hoy.
+Estado: en implementación desde el 25 de octubre de 2026, sobre `912c5fa`: la versión de producción con el motor v91 y E2 encendido, más este diseño (#306). El dueño abrió ese día el código, con todas sus decisiones contestadas (§19; DD-24 solo se abre si falla una puerta del PR 16a). Pasos implementados (cada PR añade el suyo; el detalle, las cifras, lo que se aparta del diseño y lo que el paso siguiente tiene que saber, en `docs/diseno/e3-visual/implementacion.md`): el 1, el clon; el 2a, el mundo de la prueba y los trabajos del CI; el 2b, la prueba del teléfono y la línea base de hoy; el 4, la web sin red.
 
 ## 0. Cabecera y resumen
 

@@ -4,11 +4,14 @@ import { broadcastChunkKey, broadcastHeadKey } from './api/broadcast'
 import {
   type AdminStatus,
   STALE_TIME,
+  type SessionSeen,
   adminHintOf,
   adminStatusOf,
+  cacheOwnerChanged,
   createQueryClient,
   horizonWanted,
   revOf,
+  sessionSeenOf,
 } from './queryClient'
 
 /**
@@ -183,5 +186,64 @@ describe('web: adminStatusOf y adminHintOf (9b)', () => {
     expect(adminHintOf(['horizon'], h('190.4'), 'on')).toBeUndefined()
     expect(adminHintOf(['horizon'], null, 'admins')).toBeUndefined()
     expect(adminHintOf(['race', 'race-france'], h('190.4'), 'admins')).toBeUndefined()
+  })
+})
+
+/**
+ * CON LA SESIÓN SIN SABER, EL VIGILANTE NO VACÍA LA CACHÉ (E3, docs/visual.md §12.1 y §16.2; PR 4, X-04).
+ * Con la red caída, `useSession()` deja de estar pendiente sin usuario y con `error`; contado como «nadie»,
+ * en cuanto la sesión llegaba (de nadie a un id) `<HorizonWatcher />` vaciaba la caché, con lo que la
+ * página ya había pedido. Las respuestas son las de better-auth 1.6.25 (`net.test.ts` las mira contra el
+ * cliente de verdad), y `vacia` repite lo que hace el vigilante en su efecto con cada una.
+ */
+describe('sessionSeenOf: lo que el vigilante apunta de la sesión (PR 4, X-04)', () => {
+  type Answer = Parameters<typeof sessionSeenOf>[0]
+  const pending: Answer = { data: null, error: null, isPending: true }
+  const offline: Answer = { data: null, error: new TypeError('Failed to fetch'), isPending: false }
+  const down: Answer = { data: null, error: { status: 503 }, isPending: false }
+  const nobody: Answer = { data: null, error: null, isPending: false }
+  const expired: Answer = { data: null, error: { status: 401 }, isPending: false }
+  const ana: Answer = { data: { user: { id: 'ana' } }, error: null, isPending: false }
+  const anaOffline: Answer = { ...ana, error: new TypeError('Failed to fetch') }
+  const bea: Answer = { data: { user: { id: 'bea' } }, error: null, isPending: false }
+
+  /** Cuántas veces vacía el vigilante la caché con estas respuestas, en orden, desde la carga. */
+  function vacia(answers: readonly Answer[], seenOf = sessionSeenOf): number {
+    let last: SessionSeen = { resolved: false, userId: null }
+    let clears = 0
+    for (const answer of answers) {
+      const next = seenOf(answer)
+      if (next === null) continue
+      if (cacheOwnerChanged(last, next)) clears++
+      last = next
+    }
+    return clears
+  }
+
+  it('pendiente y sin saber no apuntan nada; los demás, de quién es la sesión', () => {
+    expect(sessionSeenOf(pending)).toBeNull()
+    expect(sessionSeenOf(offline)).toBeNull()
+    expect(sessionSeenOf(down)).toBeNull()
+    expect(sessionSeenOf(nobody)).toEqual({ resolved: true, userId: null })
+    expect(sessionSeenOf(expired)).toEqual({ resolved: true, userId: null })
+    expect(sessionSeenOf(ana)).toEqual({ resolved: true, userId: 'ana' })
+    expect(sessionSeenOf(anaOffline)).toEqual({ resolved: true, userId: 'ana' })
+  })
+
+  it('una carga en frío sin la sesión que luego llega no vacía nunca la caché', () => {
+    expect(vacia([pending, offline, pending, down, pending, ana])).toBe(0)
+    expect(vacia([pending, ana, anaOffline, ana])).toBe(0)
+  })
+
+  it('lo que vaciaba antes: contar la sesión sin saber como «nadie»', () => {
+    const antes = (a: Answer): SessionSeen | null =>
+      a.isPending ? null : { resolved: true, userId: a.data?.user.id ?? null }
+    expect(vacia([pending, offline, pending, ana], antes)).toBe(1)
+  })
+
+  it('un cambio de dueño de verdad sigue vaciándola, aunque pase por la sesión sin saber', () => {
+    expect(vacia([pending, ana, offline, bea])).toBe(1)
+    expect(vacia([pending, ana, offline, expired])).toBe(1)
+    expect(vacia([pending, nobody, offline, ana])).toBe(1)
   })
 })

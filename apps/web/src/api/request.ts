@@ -14,6 +14,7 @@
 
 import { type StageGate, apiErrorBodySchema, stageGateErrorSchema } from '@cyclingstar/shared'
 import type { ZodType } from 'zod'
+import { REQUEST_TIMEOUT_MS } from '../net'
 
 /** Fallo de red o respuesta de error de la API. `status` es 0 cuando ni siquiera hubo respuesta. */
 export class ApiError extends Error {
@@ -138,11 +139,38 @@ async function fetchOrThrow(path: string, options: RequestOptions): Promise<Resp
   }
   if (Object.keys(headers).length > 0) init.headers = headers
   if (options.keepalive === true) init.keepalive = true
+  // Toda petición se corta a los `REQUEST_TIMEOUT_MS` (E3, docs/visual.md §4.2; PR 4): en una red que
+  // no contesta, una petición colgada dejaba la página cargando sin fin. `AbortSignal.timeout` es de
+  // Safari 16 (la web ya pide 16.4, por Tailwind 4): sin él, la petición sale sin corte, no sin datos.
+  if (typeof AbortSignal.timeout === 'function')
+    init.signal = AbortSignal.timeout(REQUEST_TIMEOUT_MS)
   try {
     return await fetch(path, init)
-  } catch {
+  } catch (e) {
     // Sin respuesta: offline, DNS, CORS… status 0 para distinguirlo de un error de la API.
-    throw new ApiError('Network error — please check your connection.', 0, 'network')
+    throw timedOut(e) ?? new ApiError('Network error — please check your connection.', 0, 'network')
+  }
+}
+
+/** Sin respuesta en el plazo: como sin red, status 0, pero con su código. */
+function timedOut(e: unknown): ApiError | null {
+  return e instanceof DOMException && e.name === 'TimeoutError'
+    ? new ApiError('The server took too long to answer.', 0, 'timeout')
+    : null
+}
+
+/**
+ * El cuerpo de una respuesta. El corte por tiempo también llega mientras se lee, y la red puede caerse a
+ * mitad (`TypeError`): los dos son un `ApiError` de status 0, como si no hubiera llegado nada. Un cuerpo
+ * que no es JSON sigue lanzando lo que lanza.
+ */
+async function readJson(res: Response): Promise<unknown> {
+  try {
+    return await res.json()
+  } catch (e) {
+    if (e instanceof TypeError)
+      throw new ApiError('Network error — please check your connection.', 0, 'network')
+    throw timedOut(e) ?? e
   }
 }
 
@@ -165,7 +193,7 @@ export async function request<T>(
 ): Promise<T> {
   const res = await fetchOrThrow(path, options)
   if (!res.ok) throw await failed(res, options.errorMessage ?? 'Request failed.')
-  return parse(path, schema, await res.json())
+  return parse(path, schema, await readJson(res))
 }
 
 /**
@@ -180,5 +208,5 @@ export async function requestOptionalAuth<T>(
   const res = await fetchOrThrow(path, options)
   if (res.status === 401) return null
   if (!res.ok) throw await failed(res, options.errorMessage ?? 'Request failed.')
-  return parse(path, schema, await res.json())
+  return parse(path, schema, await readJson(res))
 }

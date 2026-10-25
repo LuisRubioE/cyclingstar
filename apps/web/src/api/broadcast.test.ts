@@ -85,6 +85,7 @@ describe('web: los clientes de la retransmisión', () => {
       method: 'POST',
       body: '{"mode":"summary"}',
       headers: { 'content-type': 'application/json' },
+      signal: expect.any(AbortSignal),
     })
   })
 
@@ -103,6 +104,7 @@ describe('web: los clientes de la retransmisión', () => {
           method: 'POST',
           body: '{"km":155,"fromDs":9000}',
           headers: { 'content-type': 'application/json' },
+          signal: expect.any(AbortSignal),
         },
       ],
       [
@@ -111,6 +113,7 @@ describe('web: los clientes de la retransmisión', () => {
           method: 'POST',
           body: '{"km":155,"fromDs":0}',
           headers: { 'content-type': 'application/json' },
+          signal: expect.any(AbortSignal),
         },
       ],
     ])
