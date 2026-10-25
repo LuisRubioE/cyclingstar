@@ -81,8 +81,9 @@ export default tseslint.config(
     },
   },
   {
-    // Scripts de operación y de CI: Node puro en ESM, fuera de la build de TypeScript.
-    files: ['scripts/**/*.{js,mjs,cjs}'],
+    // Scripts de operación y de CI: Node puro en ESM, fuera de la build de TypeScript. Los de la web
+    // (el generador del sprite y los presupuestos de peso, E3 PR 6), también.
+    files: ['scripts/**/*.{js,mjs,cjs}', 'apps/web/scripts/**/*.{js,mjs,cjs}'],
     languageOptions: { globals: globals.node },
   },
   {

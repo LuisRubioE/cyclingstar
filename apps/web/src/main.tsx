@@ -6,7 +6,6 @@ import { App } from './App'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { HorizonWatcher } from './components/HorizonWatcher'
 import { createQueryClient } from './queryClient'
-import 'flag-icons/css/flag-icons.min.css'
 import './index.css'
 
 const queryClient = createQueryClient()

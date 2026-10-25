@@ -18,7 +18,6 @@
     "@cyclingstar/shared": "workspace:*",
     "@tanstack/react-query": "^5.101.4",
     "better-auth": "^1.6.25",
-    "flag-icons": "^7.5.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router": "^8.3.0",
@@ -32,6 +31,7 @@
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.0.5",
     "axe-core": "4.10.3",
+    "flag-icons": "7.5.0",
     "tailwindcss": "^4.3.3",
     "vite": "^8.2.0"
   }

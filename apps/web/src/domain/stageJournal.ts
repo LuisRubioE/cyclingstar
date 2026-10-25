@@ -204,8 +204,8 @@ export function listNames(names: string[]): string {
 //
 // La bandera NO puede ir como emoji: `components/Flag.tsx` explica por qué (en Windows y en muchos
 // navegadores de escritorio los emoji de bandera salen como dos letras), y toda la web la pinta como
-// SVG local con las clases `fi fi-xx`. Como esto es un módulo de texto puro y sin React, la frase se
-// compone con una MARCA invisible alrededor del código de país y `chronicleParts()` la parte en
+// imagen, del sprite de las banderas (E3, PR 6). Como esto es un módulo de texto puro y sin React, la
+// frase se compone con una MARCA invisible alrededor del código de país y `chronicleParts()` la parte en
 // trozos para que `StageStory` intercale el mismo `<Flag/>` del resto de la web. `chronicleLine()`
 // devuelve el texto pelado (sin banderas) y sigue siendo lo que usan los tests y cualquier contexto
 // sin DOM.

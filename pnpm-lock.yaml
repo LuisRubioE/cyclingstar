@@ -101,9 +101,6 @@ importers:
       better-auth:
         specifier: ^1.6.25
         version: 1.6.25(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@electric-sql/pglite@0.5.4)(kysely@0.29.4)(postgres@3.4.9))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(vitest@4.1.10)
-      flag-icons:
-        specifier: ^7.5.0
-        version: 7.5.0
       react:
         specifier: ^19.2.8
         version: 19.2.8
@@ -138,6 +135,9 @@ importers:
       axe-core:
         specifier: 4.10.3
         version: 4.10.3
+      flag-icons:
+        specifier: 7.5.0
+        version: 7.5.0
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
