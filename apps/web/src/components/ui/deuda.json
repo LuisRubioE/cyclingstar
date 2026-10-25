@@ -1,0 +1,527 @@
+{
+  "tailwindcss": "4.3.3",
+  "total": {
+    "tema": 2760,
+    "arbitrarios": 46,
+    "espaciado": 38,
+    "layout": 0
+  },
+  "ficheros": {
+    "apps/web/src/App.tsx": {
+      "tema": 23,
+      "arbitrarios": 1,
+      "espaciado": 3,
+      "layout": 0
+    },
+    "apps/web/src/components/AttributeList.tsx": {
+      "tema": 22,
+      "arbitrarios": 3,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/Badges.tsx": {
+      "tema": 5,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/BlockReport.tsx": {
+      "tema": 14,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/BottomNav.tsx": {
+      "tema": 3,
+      "arbitrarios": 2,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/ErrorBoundary.tsx": {
+      "tema": 19,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/FormChart.tsx": {
+      "tema": 12,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/Header.tsx": {
+      "tema": 16,
+      "arbitrarios": 3,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/LastRaceReady.tsx": {
+      "tema": 7,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/LastRaceReport.tsx": {
+      "tema": 46,
+      "arbitrarios": 0,
+      "espaciado": 2,
+      "layout": 0
+    },
+    "apps/web/src/components/OrdersGate.tsx": {
+      "tema": 19,
+      "arbitrarios": 0,
+      "espaciado": 1,
+      "layout": 0
+    },
+    "apps/web/src/components/PaintedRaceRadio.tsx": {
+      "tema": 14,
+      "arbitrarios": 0,
+      "espaciado": 1,
+      "layout": 0
+    },
+    "apps/web/src/components/Panel.tsx": {
+      "tema": 18,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/PlanLadder.tsx": {
+      "tema": 72,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/ProtectedRoute.tsx": {
+      "tema": 1,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/RaceEffortLog.tsx": {
+      "tema": 18,
+      "arbitrarios": 1,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/RaceRadioPanel.tsx": {
+      "tema": 58,
+      "arbitrarios": 7,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/RaceResults.tsx": {
+      "tema": 21,
+      "arbitrarios": 2,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/RiderName.tsx": {
+      "tema": 3,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/RoleEditor.tsx": {
+      "tema": 27,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/ShareStage.tsx": {
+      "tema": 10,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/ShowAll.tsx": {
+      "tema": 3,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/SpoilerSettings.tsx": {
+      "tema": 16,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/StageGate.tsx": {
+      "tema": 47,
+      "arbitrarios": 0,
+      "espaciado": 1,
+      "layout": 0
+    },
+    "apps/web/src/components/StageReadyLine.tsx": {
+      "tema": 7,
+      "arbitrarios": 1,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/StageRoute.tsx": {
+      "tema": 1,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/StageStory.tsx": {
+      "tema": 23,
+      "arbitrarios": 0,
+      "espaciado": 1,
+      "layout": 0
+    },
+    "apps/web/src/components/StarRating.tsx": {
+      "tema": 2,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/Tabs.tsx": {
+      "tema": 19,
+      "arbitrarios": 2,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/TeamClassTable.tsx": {
+      "tema": 10,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/TeamFeed.tsx": {
+      "tema": 5,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/TeamManager.tsx": {
+      "tema": 39,
+      "arbitrarios": 0,
+      "espaciado": 1,
+      "layout": 0
+    },
+    "apps/web/src/components/TextField.tsx": {
+      "tema": 11,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/VeilNotice.tsx": {
+      "tema": 7,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/WatchBlocks.tsx": {
+      "tema": 45,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/WorldClock.tsx": {
+      "tema": 5,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/broadcast/ClockNotice.tsx": {
+      "tema": 6,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/broadcast/CueCard.tsx": {
+      "tema": 15,
+      "arbitrarios": 2,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/broadcast/FixedOverlay.tsx": {
+      "tema": 9,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/broadcast/GroupBar.tsx": {
+      "tema": 29,
+      "arbitrarios": 0,
+      "espaciado": 6,
+      "layout": 0
+    },
+    "apps/web/src/components/broadcast/PlayerControls.tsx": {
+      "tema": 21,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/broadcast/ProfileStrip.tsx": {
+      "tema": 2,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/broadcast/StageCards.tsx": {
+      "tema": 56,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/broadcast/TimeTrialBoard.tsx": {
+      "tema": 13,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/broadcast/VoiceTicker.tsx": {
+      "tema": 6,
+      "arbitrarios": 1,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/ui/ErrorState.tsx": {
+      "tema": 9,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/ui/OfflineBanner.tsx": {
+      "tema": 8,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/components/ui/OfflineState.tsx": {
+      "tema": 3,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/domain/health.ts": {
+      "tema": 12,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/domain/riderResults.ts": {
+      "tema": 4,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/domain/stageJournal.ts": {
+      "tema": 1,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/pages/Account.tsx": {
+      "tema": 93,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/pages/AdminNames.tsx": {
+      "tema": 104,
+      "arbitrarios": 2,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/pages/AdminPanel.tsx": {
+      "tema": 76,
+      "arbitrarios": 1,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/pages/Countries.tsx": {
+      "tema": 14,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/pages/Country.tsx": {
+      "tema": 27,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/pages/CreateRider.tsx": {
+      "tema": 62,
+      "arbitrarios": 0,
+      "espaciado": 1,
+      "layout": 0
+    },
+    "apps/web/src/pages/Finances.tsx": {
+      "tema": 41,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/pages/ForgotPassword.tsx": {
+      "tema": 23,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/pages/HallOfFame.tsx": {
+      "tema": 30,
+      "arbitrarios": 2,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/pages/Home.tsx": {
+      "tema": 86,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/pages/HowToPlay.tsx": {
+      "tema": 39,
+      "arbitrarios": 0,
+      "espaciado": 3,
+      "layout": 0
+    },
+    "apps/web/src/pages/Login.tsx": {
+      "tema": 32,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/pages/Market.tsx": {
+      "tema": 35,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/pages/MyRaces.tsx": {
+      "tema": 132,
+      "arbitrarios": 3,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/pages/News.tsx": {
+      "tema": 39,
+      "arbitrarios": 1,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/pages/OneDayRace.tsx": {
+      "tema": 15,
+      "arbitrarios": 0,
+      "espaciado": 1,
+      "layout": 0
+    },
+    "apps/web/src/pages/Privacy.tsx": {
+      "tema": 13,
+      "arbitrarios": 0,
+      "espaciado": 1,
+      "layout": 0
+    },
+    "apps/web/src/pages/Race.tsx": {
+      "tema": 187,
+      "arbitrarios": 1,
+      "espaciado": 4,
+      "layout": 0
+    },
+    "apps/web/src/pages/RaceOrders.tsx": {
+      "tema": 80,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/pages/RacesIndex.tsx": {
+      "tema": 100,
+      "arbitrarios": 3,
+      "espaciado": 1,
+      "layout": 0
+    },
+    "apps/web/src/pages/Rankings.tsx": {
+      "tema": 33,
+      "arbitrarios": 1,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/pages/Register.tsx": {
+      "tema": 43,
+      "arbitrarios": 0,
+      "espaciado": 1,
+      "layout": 0
+    },
+    "apps/web/src/pages/ResetPassword.tsx": {
+      "tema": 20,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/pages/RiderProfile.tsx": {
+      "tema": 82,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/pages/StageReplay.tsx": {
+      "tema": 69,
+      "arbitrarios": 0,
+      "espaciado": 2,
+      "layout": 0
+    },
+    "apps/web/src/pages/StageReport.tsx": {
+      "tema": 21,
+      "arbitrarios": 0,
+      "espaciado": 1,
+      "layout": 0
+    },
+    "apps/web/src/pages/StageWatch.tsx": {
+      "tema": 6,
+      "arbitrarios": 1,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/pages/Team.tsx": {
+      "tema": 40,
+      "arbitrarios": 0,
+      "espaciado": 1,
+      "layout": 0
+    },
+    "apps/web/src/pages/TeamCalendar.tsx": {
+      "tema": 110,
+      "arbitrarios": 5,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/pages/TeamIdentity.tsx": {
+      "tema": 22,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/pages/TeamSquad.tsx": {
+      "tema": 72,
+      "arbitrarios": 1,
+      "espaciado": 2,
+      "layout": 0
+    },
+    "apps/web/src/pages/Teams.tsx": {
+      "tema": 20,
+      "arbitrarios": 0,
+      "espaciado": 0,
+      "layout": 0
+    },
+    "apps/web/src/pages/Training.tsx": {
+      "tema": 80,
+      "arbitrarios": 0,
+      "espaciado": 2,
+      "layout": 0
+    },
+    "apps/web/src/pages/VerifyEmail.tsx": {
+      "tema": 30,
+      "arbitrarios": 0,
+      "espaciado": 1,
+      "layout": 0
+    },
+    "apps/web/src/pages/stageView.tsx": {
+      "tema": 22,
+      "arbitrarios": 0,
+      "espaciado": 1,
+      "layout": 0
+    }
+  }
+}
