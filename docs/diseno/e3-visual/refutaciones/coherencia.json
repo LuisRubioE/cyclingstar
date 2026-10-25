@@ -1,0 +1,492 @@
+[
+  {
+    "id": "C-L1-01",
+    "seccion_destino": "§8.5, §9.10 y §13 (L2)",
+    "estado": "aplicada",
+    "donde": "08-equipacion.md §8.5 (párrafo «El maillot de campeón en las tablas y en la ficha»); 09-campeon.md §9.10; 13-frontera.md §13.5 (tras la tabla)",
+    "motivo": "§8.5 escribe los esquemas: `championTitleSchema` (nuevo, el Zod de `ChampionTitle`, jerseys.ts l. 163), `champions` en `raceViewSchema` (contracts.ts l. 606) y `stageReplaySchema` (l. 1561) junto a sus `leaders`, y `champion` en `publicRiderDetailSchema` (l. 775-798), con el velo; §9.10 dice que `RiderLabel` pasa `{ kind: 'champion', title }`; §13.5 los añade a lo que cruza porque se pinta. Los nombres de los esquemas, buscados con grep en contracts.ts."
+  },
+  {
+    "id": "C-L1-02",
+    "seccion_destino": "§17 (L3): PR 12b, PR 17a, 17-q y 17-e",
+    "estado": "ya_estaba",
+    "donde": "17-plan.md §17.12 (PR 12b), §17.17 (PR 17a), 17-q y 17-e",
+    "motivo": "El corrector de L3 lo aplicó: `pointsEntrySchema` y `hallOfFameRowSchema` ganan `teamId` y `teamName` en el 12b, el dorsal sale de la lista de salida, `champions` es un campo por respuesta y el 17a lleva el caso de `RankTable.test.tsx`."
+  },
+  {
+    "id": "C-L1-03",
+    "seccion_destino": "§14.1 (L3)",
+    "estado": "ya_estaba",
+    "donde": "14-e2.md §14.1, «Salvo el orden de la identidad»",
+    "motivo": "La crónica y la voz escriben ya el dorsal, la bandera, el nombre, el maillot y el equipo entre paréntesis, con el re-sello de `stageJournal.test.ts` l. 1121 y la corrección de `docs/navegacion.md` l. 496-497 en el PR 24."
+  },
+  {
+    "id": "C-L1-04",
+    "seccion_destino": "§10.4 y §10.5 (L2)",
+    "estado": "aplicada",
+    "donde": "10-cuadro.md §10.3 (estado en curso), §10.4 (la palabra en dos renglones), §10.5 (tabla de orígenes)",
+    "motivo": "(1) `Racing now · stage 3 of 5, Gandia → Alcoi` con `StageRoute` en §10.3, y el `Chip` del día de carrera solo `Race`, con la carrera y la etapa debajo (`Race Sardegna · Stage 2 · Olbia → Nuoro`) en §10.5. (2) y (3) §10.4 ya partía la palabra; se casan sus cifras con las de §4.8 (las dos remiten a lo medido con DejaVu Sans, 90,1, 52,2 y 49,1 px como máximo) y la notación `Under\\u00ADtrained` de §4.8 en lugar de `Under&shy;trained`. (4) Ya estaba: `Back to …` con el icono `retry` y sin el glifo."
+  },
+  {
+    "id": "C-L1-05",
+    "seccion_destino": "§10.2 (L2)",
+    "estado": "aplicada",
+    "donde": "10-cuadro.md §10.2, el dibujo a 360 px",
+    "motivo": "La cabecera ya no pinta `Cycling Star` por debajo de 640 y el `Segmented` dice que una opción puede partir en dos renglones. La barra inferior no pasa a los rótulos cortos: Ruso-030, posterior, midió que José Quintáns, agente libre, tiene cuatro destinos en celdas de 90 px a 360, y con cuatro caben los largos, que es lo que el dibujo ya pintaba. La consecuencia de la `ActionBar` del dibujo cabe en un renglón."
+  },
+  {
+    "id": "C-L1-06",
+    "seccion_destino": "§8.7 (L2)",
+    "estado": "ya_estaba",
+    "donde": "08-equipacion.md §8.7, tabla de estados, «programado»",
+    "motivo": "Dice ya «el nuevo a 160 px»."
+  },
+  {
+    "id": "C-L1-07",
+    "seccion_destino": "§8.10 (L2)",
+    "estado": "aplicada",
+    "donde": "08-equipacion.md §8.10, «Los tamaños»",
+    "motivo": "(1) La `Sheet` ya entraba en el catálogo (8-w, C-L2-01); quedaba el caso de 320 × 640, donde la `Sheet` deja 296 px con sus márgenes: el maillot de 320 va a todo lo ancho, sin margen lateral, y la comprobación 1 lo vigila en `/_ui` (sin medir; anotado en dudas.md). (2) Ya estaba: `RiderHeader` conserva su maillot de 40 y al tocarlo abre la `Sheet`."
+  },
+  {
+    "id": "C-L1-08",
+    "seccion_destino": "§8.3 y §9.10 (L2)",
+    "estado": "ya_estaba",
+    "donde": "08-equipacion.md §8.3 y 8-s; 09-campeon.md §9.10",
+    "motivo": "El corrector de L2 lo resolvió con otro mecanismo, más simple: el filete es un token (`kit-edge`, `kit-edge-strong`) que el modo oscuro redefine, así que los maillots no leen `useTheme()`. §3.3, que decía lo de `useTheme`, se casa con eso en K-002."
+  },
+  {
+    "id": "C-L1-09",
+    "seccion_destino": "§14.4 y §14.6 (L3)",
+    "estado": "ya_estaba",
+    "donde": "14-e2.md §14.4 («La crono») y §14.6",
+    "motivo": "Los dos botones de la crono pasan a `Button` `quiet` de 44 y sus nombres parten de línea; `PlayerControls` pinta `play` y `pause`."
+  },
+  {
+    "id": "C-L1-10",
+    "seccion_destino": "§15 (L3)",
+    "estado": "ya_estaba",
+    "donde": "15-constantes.md §15.1 y §15.2",
+    "motivo": "`ARBITRARY_ALLOWED` con seis valores, `on-bad` y `on-arrival`, la tabla del modo oscuro, `THEME_STORAGE_KEY`, `PHONE_FONT`, los 26 iconos y `KIT_PX` con `showcase` y `poster` están en las dos tablas."
+  },
+  {
+    "id": "C-L1-11",
+    "seccion_destino": "§16.2 y §16.4 (L3)",
+    "estado": "ya_estaba",
+    "donde": "16-tests.md §16.2 y §16.4",
+    "motivo": "Están todos los tests que pedía (`QueryView`, `AppHeader`, `ActionRow`, `RankTable` con campeón, `FormChart`, `control.html` con el `span` que desborda y el enlace de 20 px, `tokens.test.ts` con el oscuro, `scrollY` y la letra por CDP, `ui-icons.mjs`) y `@max-[4.75rem]:` en §16.4."
+  },
+  {
+    "id": "C-L1-12",
+    "seccion_destino": "§17 (L3): §17.1 regla 7, PR 2, PR 7, PR 11, PR 24 y un PR nuevo tras el 22",
+    "estado": "ya_estaba",
+    "donde": "17-plan.md §17.1 regla 7, §17.4, §17.7, §17.11, §17.21, §17.23 y §17.24",
+    "motivo": "Las siete partes están: la clave del mundo con las fuentes, el 2b con DejaVu Sans y la pantalla 38, el 7 con `./colorMath` y el generador de `tokens.json` (su ruta, en C-L3-12), el 11 con la regla de contenedor y el aviso a E6, el 24 con `SPEC.md` l. 90 y 410, el modo oscuro en el 23 y `FormChart` en el 21h."
+  },
+  {
+    "id": "C-L1-13",
+    "seccion_destino": "§18.1 (L3)",
+    "estado": "ya_estaba",
+    "donde": "18-riesgos.md §18.1, fila de E6",
+    "motivo": "Dice ya la regla fija de contenedor, la letra del CI fijada y que San Francisco y Roboto los mira la prueba del dueño."
+  },
+  {
+    "id": "C-L1-14",
+    "seccion_destino": "§19 (L3): DD-16 y DD-20",
+    "estado": "ya_estaba",
+    "donde": "19-dueno.md §19.2, filas DD-16 y DD-20",
+    "motivo": "Los cinco caminos, las 17 reconstrucciones con su medida y las nueve tareas más la décima."
+  },
+  {
+    "id": "C-L1-15",
+    "seccion_destino": "§12 (L2)",
+    "estado": "aplicada",
+    "donde": "12-instalable.md §12.4 (el `<head>` y su ejemplo); 02-principios.md tabla, fila 2.6; 04-componentes.md §4.6, fila de `Flag`; 07-prueba.md §7.5",
+    "motivo": "§12.4 dice que `index.html` carga `apps/web/public/theme.js` en `<head>` antes de la hoja, desde el PR 23, y que la CSP no cambia; el ejemplo lleva la línea del guion. `PRECACHE_MAX_GZ` ya no estaba en §7.5. Con §12 rehecho, las remisiones de L1 a §12 apuntan a su subsección (§12.1 la sesión, §12.2 el sprite y el peso)."
+  },
+  {
+    "id": "C-L1-16",
+    "seccion_destino": "§0, la cabecera (orquestador)",
+    "estado": "desestimada",
+    "donde": "ninguno: la cabecera, `borrador/00-cabecera.md`, no existe todavía",
+    "motivo": "Para el orquestador, anotada sin tocar: el resumen y la cabecera tienen que dar la deuda de este documento, 2.740 de 6.322 apariciones en 183 clases, no las 2.457 de `sistema`. Repetida en dudas.md."
+  },
+  {
+    "id": "C-L1-17",
+    "seccion_destino": "00-glosario.md (pasada de coherencia)",
+    "estado": "aplicada",
+    "donde": "00-glosario.md, entero",
+    "motivo": "Fundidos los bloques de §3 a §7 y los puntos de la duda D-L1-06: `KitSize` y `KIT_PX` con `showcase` y `poster`, `RiderLabel` con `leader`, `champion` e `Individual`, `RiderHeader` con la bandera y la `Sheet`, `ChampionJersey`, `KitShowcase`, `LegacyJersey`, `FormChart` y `Sheet` en §G.3, fuera `UpdateToast` e `InstallHint`, 26 iconos, §G.1 con diez comprobaciones y 46 pantallas, el modo oscuro entero, `data-inline-link`, los textos de D-00n, fuera `Leads overall`, `ARBITRARY_ALLOWED`, `tokens.json`, `tracking-caps`, `veiled`, `UiState`, `UI_RULES` y `UI_HEREDADOS`, `heredados.test.ts`, `data-kit`, `TelefonoPantalla`, `serve.mjs`, `isKeyboardOpen`, `useOnline`, `formatGameDay`, `errorKindOf` y `rowHeight`."
+  },
+  {
+    "id": "C-L1-18",
+    "seccion_destino": "00-decisiones.md, D-50 (§12, L2)",
+    "estado": "ya_estaba",
+    "donde": "12-instalable.md §12.2; 16-tests.md §16.5 y 16-d",
+    "motivo": "En las secciones manda ya `nocturno.spec.ts` (16-d). D-50, en `00-decisiones.md`, sigue diciendo `rendimiento.spec.ts`: es del orquestador, que mantiene las decisiones, y queda en dudas.md."
+  },
+  {
+    "id": "C-L2-01",
+    "seccion_destino": "§4.4, §4.11 y §G.3 (lote L1)",
+    "estado": "aplicada",
+    "donde": "04-componentes.md, entrada de §4, tabla de §4.4 (filas `Sheet` y `KitShowcase`) y tabla de §4.11; 00-glosario.md §G.3",
+    "motivo": "Las dos filas con su anatomía, estados, textos y accesibilidad; en §4.11, una fila propia (no sustituyen a nada de hoy) y `KitShowcase` sale de la lista de los maillots; la entrada de §4 lo dice."
+  },
+  {
+    "id": "C-L2-02",
+    "seccion_destino": "§4.6 (lote L1)",
+    "estado": "aplicada",
+    "donde": "04-componentes.md §4.6, fila de `RiderHeader`",
+    "motivo": "El maillot de 40 es un `button` que abre la `Sheet` con `Front` a 320 y, si es el de su equipo, `Back` con su dorsal si corre ese día; en accesibilidad, su `aria-label`."
+  },
+  {
+    "id": "C-L2-03",
+    "seccion_destino": "§4.8 (lote L1)",
+    "estado": "aplicada",
+    "donde": "04-componentes.md §4.8, `Scale5`",
+    "motivo": "(1) Ya estaba (`Undertrained` y los ejes). (2) El mejor, `Spot on`, el cuarto, con su borde de 2 px en `good` siempre (10-g). (3) Ya estaba la palabra en dos renglones; la frase «unos 52 px y cabe (estimado)» ya no estaba. (4) El `aria-label` acaba en `best is Spot on`."
+  },
+  {
+    "id": "C-L2-04",
+    "seccion_destino": "§2.7, §3.8, la tabla de §4.11 y el glosario (lote L1)",
+    "estado": "aplicada",
+    "donde": "02-principios.md §2.7; 00-glosario.md",
+    "motivo": "§3.8 y §4.11 ya decían `ChampionJersey` y `flagCells`, sin `NATIONAL_SASH` (ya_estaba). §2.7 deja de decir que «la forma de cada identidad está reservada» y dice lo que se reserva por construcción (la estrella del mundial y del continental, el cuerpo blanco, el amarillo y los lunares) y lo que se reserva por distancia (los líderes, también en grises, y las banderas de los campeones, D-00h). El glosario, sin `ChampionSash`, `SASH_*`, `CHAMPION_NIGHT`, `CHAMPION_PAPER`, `NATIONAL_SASH*`, `NATIONAL_STAR*` ni `CHAMPION_GOLD`."
+  },
+  {
+    "id": "C-L2-05",
+    "seccion_destino": "§7.3 (lote L1)",
+    "estado": "aplicada",
+    "donde": "07-prueba.md §7.3 (fila 16 y párrafo «Lo que se mide aparte en dos pantallas»); 08-equipacion.md §8.7",
+    "motivo": "La 16 tiene su `data-answer` en `KitPicker`, con el maillot a 160 en su `KitShowcase`, y §8.7 dice que lo lleva la raíz de `KitPicker` (el dibujo, igual). La 12 sigue con la `RankTable` de la plantilla bajo el `Panel` del maillot, hacia los 504 px (estimado), y si pasa de 520 las pestañas van a la `Sheet` (8-x)."
+  },
+  {
+    "id": "C-L2-06",
+    "seccion_destino": "§3.1 y §3.8 (lote L1) y §15 (lote L3)",
+    "estado": "aplicada",
+    "donde": "03-fundamentos.md §3.1 (dos filas), §3.3 (las dos tablas) y §3.9 (`index.css`: el `@theme`, el modo oscuro y el ámbito)",
+    "motivo": "`kit-edge`, `kit-edge-strong` y `kit-ink` entran en el tema con sus valores claros y oscuros y las medidas del corrector de L2 (6,35, 5,29 y 3,21; 4,79). Se escriben en §3.9 y no en §3.8, que es el material generado, porque §3.9 es donde vive `index.css`. §15.1 ya los tenía."
+  },
+  {
+    "id": "Ruso-028",
+    "seccion_destino": "§2.7 (lote L1)",
+    "estado": "aplicada",
+    "donde": "02-principios.md §2.7",
+    "motivo": "La forma de los líderes de la general y de los puntos, que comparten figura con los equipos, se reserva por distancia en las cinco vistas, grises incluidos (8-q), escrito junto a lo de C-L2-04."
+  },
+  {
+    "id": "Ruso-029",
+    "seccion_destino": "§4.3 (lote L1)",
+    "estado": "aplicada",
+    "donde": "04-componentes.md §4.3, fila de `Field`, columna de variantes",
+    "motivo": "La variante `inline`, con el rótulo al lado en `meta` 600 `ink` y el `aria-labelledby` al título de la fila cuando lo es."
+  },
+  {
+    "id": "Ruso-030",
+    "seccion_destino": "§6.3 de la v0 y §4.4 de la v0 (lote L1)",
+    "estado": "aplicada",
+    "donde": "06-telefono.md §6.3 (el dibujo del marco y el párrafo de la barra); 04-componentes.md §4.4, fila de `BottomNav`",
+    "motivo": "El dibujo pinta cuatro destinos para el agente libre, en celdas de 90 px y con los rótulos largos, y dice que el mánager, con cinco, ve los cortos por debajo de 380 px; §4.4 dice de 3 a 5 destinos según la cuenta (`bottomBarLinks`, nav.ts l. 62-64)."
+  },
+  {
+    "id": "Ruso-023",
+    "seccion_destino": "§14.4 (lote L3)",
+    "estado": "ya_estaba",
+    "donde": "14-e2.md §14.4, «Cuántas fichas caben»",
+    "motivo": "Los 310 y 270 px sin `pl-7`, cinco fichas por renglón y la cuenta con el ancho medido."
+  },
+  {
+    "id": "Rcobertura-034",
+    "seccion_destino": "§17.26 (lote L3)",
+    "estado": "ya_estaba",
+    "donde": "17-plan.md §17.24, PR 24",
+    "motivo": "La corrección de `docs/entrenamiento.md` l. 1697 dice ya lo que queda (l. 1287-1291). La cruzada nombraba §17.26; el PR 24 está en §17.24."
+  },
+  {
+    "id": "Ruso-034",
+    "seccion_destino": "§16.2 (lote L3)",
+    "estado": "ya_estaba",
+    "donde": "16-tests.md §16.2, fila de `planPreviewDiary.test.ts`",
+    "motivo": "Corre en `Teléfono`, sobre el mundo de la prueba, desde el día 40, unos 20 s."
+  },
+  {
+    "id": "C-L2-07",
+    "seccion_destino": "§15 (lote L3)",
+    "estado": "ya_estaba",
+    "donde": "15-constantes.md §15.1 y §15.2",
+    "motivo": "`KIT_CHANGES_PER_SEASON`, `KIT_CAPITAL_EM`, lo que sale con D-00p (con su remisión a §12.4, porque 12-e ya no existe), la fila de `KIT_PX` y los tokens del maillot."
+  },
+  {
+    "id": "C-L2-08",
+    "seccion_destino": "§16 (lote L3)",
+    "estado": "ya_estaba",
+    "donde": "16-tests.md §16.2",
+    "motivo": "Todos los tests que cambian o nacen, y los que salen con D-00p."
+  },
+  {
+    "id": "C-L2-09",
+    "seccion_destino": "§17 (lote L3)",
+    "estado": "ya_estaba",
+    "donde": "17-plan.md §17.2, §17.3, §17.7, §17.12, §17.16, §17.17 y §17.18",
+    "motivo": "El PR 1 con `removeJerseyClones`, la `0052` con sus tres columnas, la hoja del 16a, el 17c, el 18a con `managed_since_day`, fuera los pasos 3 y 5, `tokens.json` en el 7 y la tabla por equipos sin marca."
+  },
+  {
+    "id": "C-L2-10",
+    "seccion_destino": "§17, 17-g (lote L3)",
+    "estado": "ya_estaba",
+    "donde": "17-plan.md 17-g",
+    "motivo": "Cerrada: `teams.bib` en la `0052`."
+  },
+  {
+    "id": "C-L2-11",
+    "seccion_destino": "§15, §16, §17, §18 y §20 (lote L3)",
+    "estado": "ya_estaba",
+    "donde": "15-constantes.md a 20-apendices.md; comprobado con grep de «§12» en todas las secciones",
+    "motivo": "Ninguna remisión apunta ya a §12.5 a §12.8 ni a 12-e; las de §15 a §20 casan con la §12 nueva (§12.1 sin red, §12.2 banderas y peso, §12.3 `tokens.json`, §12.4 lo retirado). El título de la tabla §B del esqueleto ya es «Sin red, el peso y la primera pintura»."
+  },
+  {
+    "id": "C-L2-12",
+    "seccion_destino": "§19 (lote L3)",
+    "estado": "ya_estaba",
+    "donde": "19-dueno.md §19.2, DD-24",
+    "motivo": "DD-24, que solo se abre si la puerta falla."
+  },
+  {
+    "id": "C-L2-13",
+    "seccion_destino": "§19 (lote L3)",
+    "estado": "ya_estaba",
+    "donde": "19-dueno.md §19.5 (1) y §19.6",
+    "motivo": "El coste del 429 con la alternativa del 409, y el primer cambio libre con `managed_since_day`."
+  },
+  {
+    "id": "C-L2-14",
+    "seccion_destino": "§19 (lote L3) y D-00h en `00-decisiones.md` §0",
+    "estado": "ya_estaba",
+    "donde": "19-dueno.md §19.2 y §19.6; 00-decisiones.md D-00h",
+    "motivo": "§19 da 26 frente a 16, 491 y 458 y 85 parejas; D-00h ya dice 26 frente a 16 (lo corrigió el orquestador)."
+  },
+  {
+    "id": "C-L2-15",
+    "seccion_destino": "§4.2, §4.7, §4.9 y §4.11 (lote L1)",
+    "estado": "aplicada",
+    "donde": "04-componentes.md §4.2, `errorKindOf`",
+    "motivo": "`errorKindOf` da `outdated` a un `import()` que falla con `navigator.onLine` cierto y `network` sin red, con la remisión a 12-c y a 17-v. `UpdateToast` e `InstallHint` ya no estaban en §4.7, §4.9 ni §4.11."
+  },
+  {
+    "id": "C-L2-16",
+    "seccion_destino": "§20 (lote L3)",
+    "estado": "ya_estaba",
+    "donde": "20-apendices.md §20.1, §20.2 y §20.4",
+    "motivo": "I-11, I-23, O-02, O-13 y X-10 se dicen retirados con la web instalable en sus filas."
+  },
+  {
+    "id": "C-L2-17",
+    "seccion_destino": "opciones/index.html (la página de opciones, no es una sección)",
+    "estado": "desestimada",
+    "donde": "ninguno: la página de opciones es del orquestador",
+    "motivo": "Para el orquestador, anotada sin tocar: la versión 4 de la página pinta los nacionales y la hoja de los 133 con la estrella; hay que pintarlos sin ella, con el orden de la hoja de §9.5 y la reserva de 26 maillots, y `medidas.py` necesita otra vez `xmlns:xlink`. Repetida en dudas.md."
+  },
+  {
+    "id": "C-L3-01",
+    "seccion_destino": "§7.3 (L1)",
+    "estado": "aplicada",
+    "donde": "07-prueba.md §7.3, «Lo que se mide aparte en dos pantallas»",
+    "motivo": "La comprobación propia de la 09: el borde inferior de `GroupBar` a 744 px o menos (800 con `useHideBottomNav`), que da 0 o 1 como la 7, y `TEAM_KIT_LINES_MAX` a 1 bajo la fila del espectador si falla."
+  },
+  {
+    "id": "C-L3-02",
+    "seccion_destino": "§7.2, §7.4 y §7.6 (L1)",
+    "estado": "aplicada",
+    "donde": "07-prueba.md §7.1 (el `data-kit` de hoy), §7.2, §7.4 y §7.6",
+    "motivo": "El 2a mide el mundo en la caché y trae Playwright y axe-core; el 2b pone `data-kit`, escribe `telefono-baseline.json` y retoma las cifras con DejaVu Sans; la letra se comprueba en el `h1` de `control.html` hasta el 9a y desde ahí en el de `/_ui`."
+  },
+  {
+    "id": "C-L3-03",
+    "seccion_destino": "§7.5 (L1)",
+    "estado": "aplicada",
+    "donde": "07-prueba.md §7.5",
+    "motivo": "`nocturno.spec.ts` mide en la 09, a ×1 y a ×4, los 30 fotogramas, las tareas de más de 50 ms y la primera pintura de `Watch` en 2 s con `Fast 4G`, y «lista» es la de `capturas/pintura.mjs` hasta que la página lleve su `data-answer`."
+  },
+  {
+    "id": "C-L3-04",
+    "seccion_destino": "§3.3 (L1)",
+    "estado": "aplicada",
+    "donde": "03-fundamentos.md §3.3, el ámbito oscuro",
+    "motivo": "La lista de quienes lo llevan gana `TimeTrialOverlay` (`broadcast/TimeTrialBoard.tsx` l. 12-33)."
+  },
+  {
+    "id": "C-L3-05",
+    "seccion_destino": "§4.4 (L1), l. 649 de la v0",
+    "estado": "aplicada",
+    "donde": "04-componentes.md §4.4, fila de `Tabs`",
+    "motivo": "`Watch · Profile · Report · Classifications`, con `stageTabLabel`."
+  },
+  {
+    "id": "C-L3-06",
+    "seccion_destino": "§1.5, §7.1 y §4.8 (L1)",
+    "estado": "aplicada",
+    "donde": "01-diagnostico.md tabla y §1.5; 07-prueba.md §7.1, comprobación 3; 04-componentes.md §4.8, `FormChart`",
+    "motivo": "Las cotas del perfil son unos 4 y 5 px en pantalla y no 8 (el mapa 05 las midió con `getComputedStyle`); `FormChart` lleva `0`, `50` y `100` en el eje vertical, en HTML a la izquierda del dibujo, en lugar de «sin cifras en el eje vertical», que chocaba con 14-h, §16.2 y el PR 21h. §2 se casa en K-001."
+  },
+  {
+    "id": "C-L3-07",
+    "seccion_destino": "§9.5 (L2)",
+    "estado": "aplicada",
+    "donde": "09-campeon.md §9.5, «Las gemelas»",
+    "motivo": "En la barra de `Watch`, las dos letras del país junto al maillot del campeón nacional, en `caption` 600 `ink-2` (§14.4). No es una bandera junto al maillot, así que no choca con D-00c."
+  },
+  {
+    "id": "C-L3-08",
+    "seccion_destino": "§8 (L2): el bloque «Propuesto para el glosario» y la duda 2",
+    "estado": "aplicada",
+    "donde": "08-equipacion.md §8.6; 00-glosario.md §G.3 y §G.5",
+    "motivo": "`LegacyJersey` va en `apps/web/src/components/ui/LegacyJersey.tsx`, con `ui/LegacyJersey.test.tsx`, y `legacyJerseyStyle` en `packages/shared/src/legacyJersey.ts`, fuera del barril: §8.6 lo dice ahora en el cuerpo (antes solo lo decían §3.9 y §17.9) y el glosario lo recoge. El bloque y la duda de §8 los quita el ensamblado."
+  },
+  {
+    "id": "C-L3-09",
+    "seccion_destino": "§11.1 y §11.4 (L2)",
+    "estado": "aplicada",
+    "donde": "11-debajo.md §11.4",
+    "motivo": "La web deja de usar `defaultCoachPlan`, que se queda en `packages/shared` porque la usa el simulador del motor, y el 14 no toca `packages/engine/`. §11.1 habla del uso de hoy y no dice que se borre."
+  },
+  {
+    "id": "C-L3-10",
+    "seccion_destino": "§13.4 (L2)",
+    "estado": "aplicada",
+    "donde": "13-frontera.md §13.4",
+    "motivo": "La sesión del mánager que el 19a añade a `spoilerWorld.ts` y las respuestas guardadas de las rutas que ese mundo no rellena."
+  },
+  {
+    "id": "C-L3-11",
+    "seccion_destino": "§9.5 y §12.2 (L2)",
+    "estado": "aplicada",
+    "donde": "09-campeon.md §9.5, «La bandera»; 12-instalable.md §12.2",
+    "motivo": "`flag-icons` a `devDependencies` en la versión exacta 7.5.0, la copia de los 133 SVG a `apps/web/src/assets/flags/` con su huella y la carga con `import.meta.glob` desde 72 px; §12.2, en una frase."
+  },
+  {
+    "id": "C-L3-12",
+    "seccion_destino": "§3.9 (L1) y §12.3 (L2); la pasada de coherencia",
+    "estado": "aplicada",
+    "donde": "03-fundamentos.md §3.8, §3.9 (fila y párrafo) y 3-l; 12-instalable.md §12.3 y 12-b; 15-constantes.md §15.1; 17-plan.md §17.7 (PR 7)",
+    "motivo": "Un solo sitio: `packages/shared/tokens.json`, en la raíz del paquete y exportado como `@cyclingstar/shared/tokens.json`, con la forma de §12.3 (`{ version, source, sha256, light, dark, darkScope }`). Motivo: la app del dueño será otro consumidor y una app importa de un paquete, no de otra app; y el reparo de 3-l (el `dist/` de `tsc` no copiaría un JSON) no vale, porque la entrada de `exports` apunta al fichero de la raíz y no a `dist/`. 3-l queda corregida con esa evidencia, y §3.9, §15.1 y el PR 7 remiten a §12.3."
+  },
+  {
+    "id": "C-L3-13",
+    "seccion_destino": "§12.4 (L2)",
+    "estado": "aplicada",
+    "donde": "12-instalable.md §12.4 (título, párrafo y 12-a)",
+    "motivo": "`viewport-fit=cover` y `theme-color` no se quedan, entran en el PR 11, porque hoy no están en `index.html` (l. 1-19, §1.7); el título de §12.4 pasa a «Lo que se retira, y lo que entra en `index.html`»."
+  },
+  {
+    "id": "C-L3-14",
+    "seccion_destino": "§8.2 (L2)",
+    "estado": "ya_estaba",
+    "donde": "08-equipacion.md §8.2; 16-tests.md §16.2 y 16-i",
+    "motivo": "§8.2 dice que la cuenta de qué color o figura sobra la escribe el test cuando la puerta falla, y §16.2 y 16-i, que solo se calcula entonces o de noche con `CS_BANCOS=1`, con sus 13 a 26 minutos. No hace falta repetirlo en §8.2."
+  },
+  {
+    "id": "C-L3-15",
+    "seccion_destino": "00-decisiones.md §0 y §I (el orquestador)",
+    "estado": "ya_estaba",
+    "donde": "00-decisiones.md D-00b, D-56 (nota del orquestador) y D-32 (nota del orquestador)",
+    "motivo": "El orquestador ya lo escribió: D-00b dice que la lista del grupo es nueva en E3, D-56 lleva su nota (250 px y la barra de D-00b) y D-32 la suya (el clon lo borra D-00q). No se toca `00-decisiones.md`."
+  },
+  {
+    "id": "C-L3-16",
+    "seccion_destino": "00-glosario.md (la pasada de coherencia)",
+    "estado": "aplicada",
+    "donde": "00-glosario.md §G.5, §G.6, §G.8, §G.9, §G.10 y §G.11",
+    "motivo": "§G.11 con 24 pasos, el 3 y el 5 sin PR, el 2 y el 17 partidos y 41 PR (7 S, 24 M y 10 L); §G.6 con las constantes de §15.2; §G.8 con la `0054_modo_oscuro` y las tres columnas de `teams`; §G.10 con los tests nuevos y sin los de la web instalable; `fitTeamChips` y `removeJerseyClones` en §G.5. §G.9 no desaparece: pierde todo lo de la web instalable y queda para lo generado de la web, que no tenía otro sitio, y así §G.10 a §G.13 conservan el número que citan `00-decisiones.md` y las secciones."
+  },
+  {
+    "id": "C-L3-17",
+    "seccion_destino": "§8.3 (L2)",
+    "estado": "aplicada",
+    "donde": "08-equipacion.md §8.3",
+    "motivo": "«y la lista del grupo se abre al tocar su fila, que es nueva en E3 (§14.4)»."
+  },
+  {
+    "id": "K-001",
+    "seccion_destino": "§1 y §2",
+    "estado": "aplicada",
+    "donde": "01-diagnostico.md (tabla y §1.5); 02-principios.md (tabla, fila 2.5, y §2.5)",
+    "motivo": "Las cotas del perfil de `Watch` decían 8 px en §1 y §2 y se pintan a unos 4 y 5 (Ruso-039, §14.4): las dos secciones dicen ya lo medido en pantalla. §2.5 añade que pasan a HTML."
+  },
+  {
+    "id": "K-002",
+    "seccion_destino": "§3.3",
+    "estado": "aplicada",
+    "donde": "03-fundamentos.md §3.3, «Dónde se guarda la preferencia»",
+    "motivo": "§3.3 decía que `useTheme()` da el modo a los maillots y que estos toman `surface=\"dark\"`; §8.3, 8-s y §9.10 hacen del filete un token que el modo oscuro redefine. Manda lo de §8 y §9, y `useTheme()` queda para el `Segmented` de `/account`."
+  },
+  {
+    "id": "K-003",
+    "seccion_destino": "§4",
+    "estado": "aplicada",
+    "donde": "04-componentes.md, `ui/types.ts` y §4.1",
+    "motivo": "`KitPicker` usa `data-state=\"readonly\"` (§8.7) y `UiState` no lo tenía, contra la regla de §5.5: `UiState` gana `readonly`."
+  },
+  {
+    "id": "K-004",
+    "seccion_destino": "§4.10",
+    "estado": "aplicada",
+    "donde": "04-componentes.md §4.10, filas de la carga y de la tendencia",
+    "motivo": "Cierran dos dudas de los redactores (de §10 y de §13): la carga siempre tras `Load:`, porque `Easy` y `Hard` son también intensidades (10-b, 20-a), y la tendencia con sus cinco palabras (13-a), cuyo `Steady` no choca con el de la carga."
+  },
+  {
+    "id": "K-005",
+    "seccion_destino": "§10.2",
+    "estado": "aplicada",
+    "donde": "10-cuadro.md §10.2, el dibujo",
+    "motivo": "Las dos instrucciones del dibujo eran las de la v0; pasan a las de la tabla de §10.4, que empiezan por la causa (10-l)."
+  },
+  {
+    "id": "K-006",
+    "seccion_destino": "§8.10",
+    "estado": "aplicada",
+    "donde": "08-equipacion.md §8.10, el dibujo de la ficha del equipo",
+    "motivo": "El visitante a 360 px veía `Cycling Star` en la cabecera; sin sesión y por debajo de 640, la cabecera pinta el logotipo, `Log in` y `Sign up` y nada más (4-f, 4-k)."
+  },
+  {
+    "id": "K-007",
+    "seccion_destino": "§4, §9, §10, §13, §15, §16, §17 y §20",
+    "estado": "aplicada",
+    "donde": "04-componentes.md (`ui/types.ts`, §4.1); 09-campeon.md 9-d; 10-cuadro.md 10-f; 13-frontera.md 13-a; 15-constantes.md §15.2; 16-tests.md 16-c; 17-plan.md (entrada); 20-apendices.md §20.5",
+    "motivo": "Remitían a §G.4, §G.5, §G.1, §G.6, §G.10, §G.11 y §G.13 del glosario, que no va en `docs/visual.md`: cada remisión dice ahora lo que remite o nombra el glosario (la regla 4 del encargo de esta pasada, que toda remisión a otro documento lo nombre)."
+  },
+  {
+    "id": "K-008",
+    "seccion_destino": "§18.1",
+    "estado": "aplicada",
+    "donde": "18-riesgos.md §18.1, fila de E8",
+    "motivo": "La venta del premium solo en la web se daba «sin cita en el rastro»; el dueño está citado en `00-encargo.md` §7.7, y la fila lo cita textual con lo que encontró el orquestador ese día, sin decidirlo (es de E8)."
+  },
+  {
+    "id": "K-009",
+    "seccion_destino": "§12.3",
+    "estado": "aplicada",
+    "donde": "12-instalable.md §12.3",
+    "motivo": "Decía que lee «el cerrado del paso 7» (el tema se cierra en el 22: el 7 es el de los tokens), remitía el ámbito oscuro a §3.8 (está en §3.3) y hacía nacer `tokens.json` «en el PR del `@theme` cerrado» (nace en el 7, §17.7)."
+  },
+  {
+    "id": "K-010",
+    "seccion_destino": "§9.1 y §9.7",
+    "estado": "aplicada",
+    "donde": "09-campeon.md §9.1 (`ChampionJersey`) y §9.7",
+    "motivo": "El filete de líderes y campeones se nombraba por su valor; es el token `kit-edge-strong` de §9.10 y §15.1, que sigue al tema."
+  },
+  {
+    "id": "K-011",
+    "seccion_destino": "00-glosario.md",
+    "estado": "aplicada",
+    "donde": "00-glosario.md §G.7 y §G.12",
+    "motivo": "El glosario de la v0 decía que `CastTeam` gana `kit`; §8.5 lo descarta (el maillot se resuelve al servir con `kitsOn`). Y su ejemplo `After your plan · Days 79 to 83 · Coach` pasa al de §10.6, `Days 74 to 78`: los dos valen, y manda la sección."
+  },
+  {
+    "id": "K-012",
+    "seccion_destino": "§8.5",
+    "estado": "aplicada",
+    "donde": "08-equipacion.md §8.5",
+    "motivo": "`championTitleSchema` es un nombre nuevo de esta pasada, para el esquema que pedía C-L1-01: `ChampionTitle` es una interfaz de `jerseys.ts` sin Zod (buscado con grep en `packages/shared/src`). Entra en el glosario."
+  }
+]

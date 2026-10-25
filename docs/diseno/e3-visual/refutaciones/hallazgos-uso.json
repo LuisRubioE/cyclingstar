@@ -1,0 +1,389 @@
+[
+  {
+    "id": "Ruso-001",
+    "seccion": "§3.7",
+    "linea": 333,
+    "gravedad": "media",
+    "afirmacion": "los tonos de §3.2; `info` también en `InfoButton`",
+    "fallo": "El mecanismo de «ningún estado va solo en color» es el icono de cada tono (D-13; §3.2, l. 249), y por color `warn` y `bad` son el mismo para un deuteranope: 1,7 de ΔE00 entre su texto y su borde y 0,5 en grises (tabla de l. 267; re-medido con `<scratchpad>/refutador-uso/colores.py`), y entre sus fondos, 8,9 en deuteranopía, 2,8 en tritanopía y 0,8 en grises. Pero el documento solo da los nombres de los cuatro iconos, no su silueta, y `ui-icons.mjs` valida la rejilla, el trazo y el color (l. 344), no que se distingan. Un agente que dibuje `warning` y `error` como un círculo con `!`, que es lo habitual, deja `Notice` y `Chip` `warn` y `bad` separados solo por el texto.",
+    "correccion": "Añadir a §3.7, tras la tabla: «Las siluetas de los cuatro iconos de tono son fijas: `check`, una marca de verificación sin contorno; `warning`, un triángulo con `!`; `error`, un octógono con `×`; `info`, un círculo con `i`. `ui-icons.mjs` rasteriza los cuatro a 16 px y falla si dos de ellos comparten más del 75 % de sus píxeles pintados.»"
+  },
+  {
+    "id": "Ruso-002",
+    "seccion": "§4.2",
+    "linea": 559,
+    "gravedad": "baja",
+    "afirmacion": "así que la página no salta al llegar los datos",
+    "fallo": "El esqueleto de una clasificación pinta filas de 56 (l. 563), y la fila de `RankTable` crece cuando el nombre parte de línea, porque nunca se corta (l. 671 y 736). A 320 px, con el puesto (24), el dorsal (`#214`, de 31,2 a 38,5 px), la bandera (21), el maillot (28), la diferencia (`+12:05`, de 47,1 a 60,3), el margen de 12 y los huecos, al nombre le quedan unos 80 a 90 px (estimado con los anchos medidos en `<scratchpad>/refutador-uso/textos.tsv`), y `José Quintáns` mide de 104 a 116: parte en dos y la fila pasa a unos 76 px. En la pantalla 05 a 320 las filas reales miden más que el esqueleto y la página salta al llegar los datos.",
+    "correccion": "Cambiar por «así que la página salta poco al llegar los datos: a 320 px, una fila cuyo nombre parte de línea mide unos 76 px y no 56», y en `Skeleton` `rows` (l. 563): «en una clasificación de corredores, 64 px a 320 y 56 desde 360»; `SkeletonShape` ya admite `rowHeight` 64 (l. 571)."
+  },
+  {
+    "id": "Ruso-003",
+    "seccion": "§4.3",
+    "linea": 599,
+    "gravedad": "alta",
+    "afirmacion": "a la izquierda la consecuencia en `meta` `ink-2` en un renglón con `…`",
+    "fallo": "Dos fallos medibles. (1) La comprobación 2 (§7.1, l. 1177) cuenta como falta todo texto con `text-overflow: ellipsis` que no cabe y no lleva `[data-clip-ok]`, y `data-clip-ok` solo lo lleva el equipo de `RiderLabel` y de `RankTable` (l. 736 y 1120; §G.4): la consecuencia cortada es una falta en cada pantalla con `edit` (01, 16, 25 y 29), y `/_ui` lleva a propósito «una consecuencia de `ActionBar` que no cabe a 320 px» (§5.4, l. 981) mientras «la prueba del teléfono sobre `/_ui` tiene que seguir a cero» (l. 983) desde el 9a (l. 3083): no puede pasar. (2) Cortada no se lee. Maquetada con las medidas de §4.3 (`px-3`, el botón `primary` con `px-4` y 8 px de hueco; `<scratchpad>/refutador-uso/maqueta.mjs`, Chromium 141), a 360 px `Race Sardegna: Fine (was Loaded)` pide 231 px con Inter y 241 con DejaVu Sans y tiene 217 y 204; `2 changes · Race Sardegna: Fine (was Loaded)` pide 312 y 327; a 320 quedan 177 y 164. Todos los ejemplos del documento salen cortados (`Race Sardegna: Fine (was Lo…`), cuando la consecuencia es lo que la tarea 3 del dueño tiene que leer (§7.7, l. 1316) y el dibujo de §10.2 (l. 1951) la pinta entera.",
+    "correccion": "Cambiar por «a la izquierda la consecuencia en `meta` `ink-2`, que parte en dos renglones como mucho (`line-clamp-2`, con `data-clip-ok` solo para lo que pase de dos) y va entera en `aria-describedby`; con dos renglones de 20 px la barra sigue en sus 60». Igual en §4.9 (l. 827: «La consecuencia de la `ActionBar` va en dos renglones como mucho»), en la fila de §6.4 (l. 1123: «desde el tercer renglón | `line-clamp-2` con `data-clip-ok`, entera en `aria-describedby`»), en el dato de `/_ui` (l. 981: «una consecuencia de tres renglones a 320 px, que corta con `data-clip-ok`») y en D-12 de `00-decisiones.md`, con esta medida como evidencia nueva: a 360, dos renglones dan 2 × 204 = 408 px, más que los 327 del caso más largo con DejaVu Sans."
+  },
+  {
+    "id": "Ruso-004",
+    "seccion": "§4.3",
+    "linea": 600,
+    "gravedad": "baja",
+    "afirmacion": "de 2 a 4 opciones del mismo ancho a todo lo ancho, `min-h-11`",
+    "fallo": "No dice qué hace el texto de una opción que no cabe, y el del cuadro no cabe: a 360 cada una de las tres opciones mide unos 104 px (312 / 3) y a 320 unos 90, y `Coach decides` en `meta` 600 mide 100,8 px con Inter y 113 con DejaVu Sans sin relleno (`<scratchpad>/refutador-uso/textos.tsv`). Con `truncate`, lo habitual en un control segmentado, la comprobación 2 lo cuenta; el dibujo de §10.2 (l. 1935) lo pinta en un renglón.",
+    "correccion": "Añadir a la anatomía de `Segmented` (l. 600): «el texto de una opción parte en dos renglones si no cabe (`whitespace-normal`, `text-center`, `leading-5`, `px-2`) y nunca se corta; con dos renglones la opción sigue en `min-h-11`»."
+  },
+  {
+    "id": "Ruso-005",
+    "seccion": "§4.4",
+    "linea": 649,
+    "gravedad": "media",
+    "afirmacion": "la activa se centra al entrar (`scrollIntoView({ inline: 'center' })`)",
+    "fallo": "`scrollIntoView` con solo `inline` deja `block` en su valor por defecto, `start`, y desplaza también la ventana. Medido en Chromium 141 con una cabecera no fija de 48 px, como `AppHeader` (§4.9, l. 827), y un carril de seis pestañas a 360 px (`<scratchpad>/refutador-uso/scroll-tabs.mjs`): `window.scrollY` pasa de 0 a 48 al centrar la sexta, así que cada pantalla de segundo nivel abre con la cabecera y el reloj del mundo fuera de la vista; con `block: 'nearest'` el carril se centra igual (`scrollLeft` 150) y la página no se mueve (`scrollY` 0).",
+    "correccion": "Cambiar por «la activa se centra al entrar (`scrollIntoView({ inline: 'center', block: 'nearest' })`, que no mueve la página)», y añadir a `telefono.spec.ts` que `scrollY` vale 0 tras cargar una pantalla con `Tabs`, antes de medir."
+  },
+  {
+    "id": "Ruso-006",
+    "seccion": "§4.4",
+    "linea": 650,
+    "gravedad": "alta",
+    "afirmacion": "el logotipo de 28 y `Cycling Star` en `text-title` 700 `white` (por debajo de 340 px, solo el logotipo); el reloj del mundo en `meta` `on-navy-2`; `Account` como icono en 44 × 44",
+    "fallo": "A 360 px no cabe. Maquetada con `px-3` y 8 px de hueco (`<scratchpad>/refutador-uso/maqueta.mjs`): con `Day 50 · S1 · 4h 56m` sobra 0 px con Inter y faltan 19 con DejaVu Sans; con un reloj de tres cifras de día y dos de temporada, `Day 182 · S12 · 23h 59m` (el día 182 es el de [DUEÑO 12], l. 1897), faltan 14 y 45 px, y el documento pasa a medir 374 y 405 px de ancho: la comprobación 1 falla en todas las pantallas. Sin ningún hueco tampoco cabe con DejaVu (343 px de 336). La variante `signed-out` añade `Log in` y `Sign up` (46,8 y 58,2 px de texto con Inter, más 32 de relleno cada uno; `<scratchpad>/refutador-uso/textos2.mjs`): con el reloj, que «va siempre» (l. 654), pide 357 px sin el nombre y 472 con él. Los dibujos de §6.3 (l. 1094) y de §10.2 (l. 1915) lo pintan cabiendo.",
+    "correccion": "Cambiar la anatomía de `AppHeader` (l. 650) por: «por debajo de 640 px, el logotipo (un enlace de 44 × 44), el reloj del mundo en `meta` `on-navy-2`, que no se corta, y `Account` en 44 × 44; `Cycling Star` en `text-title` 700 solo desde 640 (`sm:inline`); en `signed-out`, por debajo de 640, el logotipo, `Log in` y `Sign up`, sin el reloj, que el visitante tiene en la línea de estado de la portada». Quitar `@max-[21.25rem]` del nombre en §5.1 (l. 928), §6.3 (l. 1087) y 4-f (l. 888), y corregir los dibujos de l. 1094 y 1915: `[logo]   Day 50 · S1 · 4h 56m   [o]`. Con DejaVu Sans, lo que queda mide 279 px a 360 con el reloj más largo."
+  },
+  {
+    "id": "Ruso-007",
+    "seccion": "§4.4",
+    "linea": 650,
+    "gravedad": "media",
+    "afirmacion": "el logotipo, enlace con `aria-label=\"Cycling Star home\"`",
+    "fallo": "La anatomía da al logotipo 28 px y no da tamaño a su enlace, cuando sí lo da a `Account` (44 × 44). Un enlace de 28 × 28, o de 28 de alto con el nombre, es una falta de la comprobación 5 (l. 1180: «la caja de cada `a[href]` … 44 × 44») en las 46 páginas y a los dos anchos, en la pieza que sale en todas: la línea base no llega a cero sin que el agente decida una medida que el documento no escribe.",
+    "correccion": "En la columna de accesibilidad de `AppHeader` (l. 650): «el logotipo es un enlace de 44 × 44 como mínimo (`min-h-11 min-w-11`, con el dibujo de 28 centrado; desde 640 el mismo enlace lleva `Cycling Star` y mide 44 de alto), con `aria-label=\"Cycling Star home\"`»; y su caso en `AppHeader.test.tsx` (§17.13)."
+  },
+  {
+    "id": "Ruso-008",
+    "seccion": "§4.4",
+    "linea": 651,
+    "gravedad": "media",
+    "afirmacion": "cada destino `active` (pastilla `bg-surface-2` del ámbito, icono y rótulo `white`) o `inactive` (`on-navy-2`)",
+    "fallo": "El destino activo se distingue del inactivo por una pastilla que apenas se ve y por un blanco algo más blanco. Medido con `<scratchpad>/refutador-uso/colores.py` (razón WCAG 2.x): la pastilla `#123a5c` (la `surface-2` del ámbito, §3.3 l. 279) contra la barra `#0b2740` da 1,30:1, y el rótulo activo, blanco, contra el inactivo, `on-navy-2` sobre la barra, 1,50:1. WCAG 1.4.11 pide 3:1 a lo que indica el estado de un componente; con 1,30 el «dónde estoy» de la barra inferior queda en `aria-current`, que no ve quien mira.",
+    "correccion": "En §4.4 (l. 651): «cada destino `active` (pastilla `bg-gold` de 56 × 28 con el icono en `text-navy-dark`, 6,72:1 contra la barra; rótulo `white` 600) o `inactive` (icono y rótulo `on-navy-2`, sin pastilla)», y la pareja `gold` contra `navy-dark` del estado activo en `tokens.test.ts`, con umbral 3:1."
+  },
+  {
+    "id": "Ruso-009",
+    "seccion": "§4.5",
+    "linea": 717,
+    "gravedad": "alta",
+    "afirmacion": "readonly href?: string // el primer renglón enlaza a la carrera",
+    "fallo": "El primer renglón de `ActionRow` es `row` 15/20 (l. 710), así que su enlace mide 20 px de alto. La comprobación 5 cuenta «los enlaces de tabla y de fila como controles» (l. 1180) y les pide 44 × 44: son faltas en las 20 filas del calendario del equipo, en las 20 inscribibles y en las del programa (pantallas 15, 03 y 02). El PR 12a promete «la 2 y la 5 de la 15, a cero» (l. 3097) y no puede cumplirlo. La tarjeta de carrera del cuadro sí lo resuelve con «un bloque de 44 px» (l. 1990); `ActionRow`, no.",
+    "correccion": "En §4.5 (l. 710) añadir: «con `href`, el enlace es el bloque de los dos renglones entero (`block`, `min-h-16`), sin el botón, que queda fuera del enlace con 8 px de separación»; y en el tipo (l. 717): `readonly href?: string // los dos renglones enlazan, en bloque, a la carrera`, con su caso en `ActionRow.test.tsx` (9b)."
+  },
+  {
+    "id": "Ruso-010",
+    "seccion": "§4.7",
+    "linea": 774,
+    "gravedad": "baja",
+    "afirmacion": "48 de alto, sobre la `ActionBar` (o sobre la `BottomNav` si no hay barra)",
+    "fallo": "`InstallHint` tiene «el mismo sitio y la misma forma» (l. 775), y su texto de iPhone, `Add Cycling Star to your Home Screen: tap Share, then Add to Home Screen`, mide 504,7 px en `meta` con Inter y 535 con DejaVu Sans (`<scratchpad>/refutador-uso/textos.tsv`): con el icono `share` de 20, el cierre de 44, el relleno y los huecos quedan unos 248 px por renglón a 360, así que son tres renglones, unos 76 px de alto y no 48. Si `--fixed-bottom` (l. 827) se suma con las alturas de §4.9 (56 + 60 + 48), los 28 px que sobran tapan contenido.",
+    "correccion": "En §4.7 (l. 774): «`min-h-12` (48), y el texto parte de línea»; en §4.9 (l. 827): «el marco escribe `--fixed-bottom` con la altura medida de cada pieza fija visible (`ResizeObserver`), no con las de esta tabla»; y el texto de iPhone pasa a `Install: tap Share, then Add to Home Screen` (pantalla; 288,5 px con Inter y 308,3 con DejaVu Sans, dos renglones), en §4.7, §12.6 y G.12."
+  },
+  {
+    "id": "Ruso-011",
+    "seccion": "§4.8",
+    "linea": 798,
+    "gravedad": "media",
+    "afirmacion": "A 320 px cada tramo mide unos 52 px y la palabra más larga, `Spot on`, cabe (estimado; lo mide la comprobación 2)",
+    "fallo": "No cabe con la letra de un Ubuntu, y la comprobación 2 no lo mediría. A 320 el panel deja 320 − 24 − 24 = 272 px, y cinco tramos con cuatro huecos de 4 dan 51,2 px, 49,2 por dentro de su borde de 1 px. `Spot on` en `caption` 700, el del tramo activo, mide 44,9 px con Inter y 52,2 con DejaVu Sans (`<scratchpad>/refutador-uso/textos.tsv`); en la maqueta (`maqueta.mjs`) su columna crece a 52 px y los cinco tramos dejan de ser iguales. El tramo no lleva `overflow` oculto, así que la 2 tal como está no lo cuenta (Ruso-016).",
+    "correccion": "Cambiar por «A 320 px cada tramo mide 51 px; la palabra puede partir en dos renglones (`whitespace-normal`, `text-center`, `leading-4`: dos renglones de 16 caben en los 36 del tramo), así que `Spot on` sale `Spot` y `on` cuando no cabe, y los cinco tramos siguen iguales (`grid-cols-5`, que es `minmax(0, 1fr)`)», y lo mismo en §10.4 (l. 1999)."
+  },
+  {
+    "id": "Ruso-012",
+    "seccion": "§4.9",
+    "linea": 827,
+    "gravedad": "baja",
+    "afirmacion": "en un aparato la mira la prueba del dueño (§7.7)",
+    "fallo": "Ninguna de las once tareas de §7.7 (l. 1312-1324) escribe en un campo con la `ActionBar` o la `BottomNav` a la vista: la 1 (`/login`) no tiene `ActionBar`, y la 3, la 4, la 5 y la 8 cambian `select`, botones y muestras, que no abren el teclado. El único sitio del diseño con texto y `ActionBar` a la vez es `/team/identity` (el nombre del equipo con `Save changes`, 8-h, l. 1573), y la tarea 8 no toca el nombre: la regla del teclado, que es «sin evidencia de los jueces» (H-16), no la mira nadie.",
+    "correccion": "En la tarea 8 de §7.7 (l. 1321): «cambia figura y colores y el nombre del equipo; con el teclado abierto, ni la `ActionBar` ni la barra inferior tapan el campo; al cerrarlo vuelve `Save changes`, y guarda»."
+  },
+  {
+    "id": "Ruso-013",
+    "seccion": "§5.4",
+    "linea": 981,
+    "gravedad": "media",
+    "afirmacion": "que pinta cada componente de §4 en cada uno de sus estados con datos fijos y sin llamar a la API (D-10)",
+    "fallo": "Cuatro componentes de §4 son `fixed` (`ActionBar`, `BottomNav`, `UpdateToast` e `InstallHint`, §4.9), y `AppHeader` y `OfflineBanner` dependen de su sitio en el marco: pintados en `/_ui` en cada estado (la `ActionBar` tiene seis, l. 599), se apilan al pie de la ventana y tapan lo demás, lo que rompe la comprobación 5 (objetivos tapados), la 8 y lo que el dueño mira en su teléfono. El documento no dice cómo se pintan. Y la tabla de §7.3 no da a `/_ui` su `data-answer` ni dice si tiene `edit`, pero el ejemplo de la línea base (l. 1287) le pone 0 en la 7 y en la 8, cuando la 8 corre «solo en las pantallas con `edit`» (7-d, l. 1350).",
+    "correccion": "Añadir a §5.4: «cada componente fijo se pinta dentro de un marco de 360 × 160 px con `transform: translateZ(0)`, que hace de bloque contenedor de lo `fixed`, uno por estado; la página no lleva `ActionBar` ni `BottomNav` propias»; y a §7.3 y §7.4: «en `/_ui` no corren la 7 ni la 8, que guardan `null`», con el ejemplo de l. 1287-1288 en `[0, 0, 0, 0, 0, 0, null, null, null, 0]`."
+  },
+  {
+    "id": "Ruso-014",
+    "seccion": "§6.3",
+    "linea": 1089,
+    "gravedad": "alta",
+    "afirmacion": "**El plan B**: el PR del paso 11 corre la comprobación 2 a 320 px con la letra del CI, y si encuentra un rótulo cortado, por debajo de 340 px los rótulos pasan a `Home`, `Rider`, `Team`, `World` y `News` (pantalla)",
+    "fallo": "Tres fallos. (1) Con la comprobación 2 tal como está (l. 1177) el plan no se dispara nunca: el rótulo no lleva `truncate` (§6.4, l. 1124: «nunca» se corta), así que desborda sin `overflow` oculto y la 2 no lo cuenta (Ruso-016). (2) El corte en 340 px no basta: medido (`<scratchpad>/refutador-uso/textos.tsv` y `maqueta.mjs`), `Dashboard` en `caption` 600 mide 63,3 px con Inter y 73,2 con DejaVu Sans, la `sans-serif` por defecto de un Ubuntu, y su celda mide 72 a 360 y 64 a 320 (cinco destinos del mismo ancho, l. 651): con DejaVu tampoco cabe a 360, donde el plan B no actúa, y con Inter cabe a 320 con 0,7 px de holgura. (3) Es la queja que el diseño dice arreglar (`Dashb…`, §1.4, l. 58; captura 16), y la deja pendiente de una medida que no puede llegar.",
+    "correccion": "Sustituir el plan B por una regla fija: «cada destino de `BottomNav` es `@container`; su rótulo largo lleva `@max-[4.75rem]:hidden` y el corto (`Home`, `Rider`, `Team`, `World`, `News`) `hidden @max-[4.75rem]:inline`, es decir, el corto en toda celda de menos de 76 px (con cinco destinos, por debajo de 380 px de ventana); cada rótulo va con `whitespace-nowrap overflow-hidden` y sin `data-clip-ok`, para que la comprobación 2 cuente cualquiera que no quepa». Cambiar `@max-[21.25rem]:` por `@max-[4.75rem]:` en `ARBITRARY_ALLOWED` (§5.1, l. 928) y en §4.4 (l. 651), §6.3 (l. 1089 y 1105), §16.4 (l. 2943), 6-e (l. 1163), §18.1 (l. 3243) y D-17, y avisar a E6 como ya dice 6-e."
+  },
+  {
+    "id": "Ruso-015",
+    "seccion": "§6.5",
+    "linea": 1131,
+    "gravedad": "baja",
+    "afirmacion": "A 800 × 360 las dos barras dejan unos 244 px de contenido (estimado por uso)",
+    "fallo": "A 800 px de ancho rige `sm:` (640): la `BottomNav` no se pinta (`sm:hidden`, §3.5 l. 316 y §4.4 l. 651) y la `ActionBar` va abajo del todo (l. 599). Con una sola barra quedan 300 px (360 − 60), y la navegación de nivel 1 sube a la cabecera en `Tabs` `nav` (§6.3, l. 1087): de lado, un teléfono ve la navegación de escritorio. Los 244 restan dos barras que de lado no están.",
+    "correccion": "Cambiar por «A 800 × 360 rige `sm:`: la `BottomNav` no se pinta, la navegación de nivel 1 va en la cabecera y la `ActionBar` deja 300 px de contenido; E3 no cambia nada de lado»."
+  },
+  {
+    "id": "Ruso-016",
+    "seccion": "§7.1",
+    "linea": 1177,
+    "gravedad": "alta",
+    "afirmacion": "todo elemento visible con `overflow-x` `hidden` o `clip`, o con `text-overflow: ellipsis`, cuyo `scrollWidth` pase de su `clientWidth` en más de 1 px, sin `[data-clip-ok]` en él ni en un antepasado",
+    "fallo": "La regla del documento es que nada se corta (§6.4, l. 1117-1125): el rótulo de `BottomNav`, la palabra de un tramo, la celda de la tira o la cabecera no llevan `truncate` ni `overflow-hidden`, así que cuando no caben desbordan su caja y se pisan con la vecina, y esta comprobación no lo ve, porque solo mira lo recortado. Medido en una maqueta con las medidas de §3 y §4 (`<scratchpad>/refutador-uso/maqueta.mjs`): `Dashboard` pide 73 px en su celda de 72 a 360 y de 64 a 320 con DejaVu Sans; `Spot on` en 700 pide 52 en un tramo de 49 a 320; la celda de viaje de la tira pide 46 y 47 en 41 a 360 y 35 a 320; y ninguna cuenta como falta. La pasada nocturna de la letra al doble (§7.8, l. 1331) se apoya solo en la 1 y la 2, así que tampoco lo verá. Y el plan B de los rótulos (§6.3, l. 1089) depende de esta comprobación.",
+    "correccion": "Cambiar el «Cómo» de la comprobación 2 por: «todo elemento visible cuyo `scrollWidth` pase de su `clientWidth` en más de 1 px y cuyo `overflow-x` no sea `auto` ni `scroll` (un carril que se desplaza no cuenta), sin `[data-clip-ok]` en él ni en un antepasado: cuenta igual lo recortado (`hidden`, `clip`, `ellipsis`) que lo que desborda su caja»; y `control.html` (l. 3051) gana un segundo recorte, un `<span>` con `white-space: nowrap` que desborda su celda sin `overflow` oculto, que la 2 tiene que contar."
+  },
+  {
+    "id": "Ruso-017",
+    "seccion": "§7.1",
+    "linea": 1180,
+    "gravedad": "media",
+    "afirmacion": "un enlace dentro de una frase (en línea y con más texto en su bloque), 24 × 24 o con un círculo de 24 px que no toque otro objetivo; los enlaces de tabla y de fila cuentan como controles",
+    "fallo": "La prueba no tiene con qué saber qué es «de fila». Con el criterio que sí da («en línea y con más texto en su bloque»), el enlace del primer renglón de `ActionRow` (la carrera seguida de su clase, `.Pro`, l. 710), el nombre de `RiderLabel` en una fila de la barra de grupos o el `TextLink` `Watch` de la fila velada de `RankTable` (l. 676) son «de frase» y pasan con 24 px, aunque la regla los quiere de 44. Cada agente que escriba `telefono.spec.ts` lo resolverá a su manera, y la cifra de la 5 cambiará con él.",
+    "correccion": "Añadir a la comprobación 5: «cuenta como control todo `a[href]` dentro de `tr`, `li`, `[data-ui=\"RankTable\"]`, `[data-ui=\"ActionRow\"]`, `[data-ui=\"TripRow\"]` o `[data-ui=\"GroupBar\"]`; solo un `a[href]` dentro de un `p` o de un `[data-ui=\"Notice\"]`, o con `data-inline-link`, usa la regla de 24 de WCAG 2.5.8»; la fila velada de `RankTable` (l. 676) pinta su `Watch` como `Button` `quiet` de 44; y `control.html` (l. 3051) gana un enlace de fila de 20 px de alto que tiene que contar."
+  },
+  {
+    "id": "Ruso-018",
+    "seccion": "§7.3",
+    "linea": 1203,
+    "gravedad": "media",
+    "afirmacion": "`TELEFONO_PANTALLAS` (O-27) tiene una entrada por cada fila con medidas de `capturas/README.md` (01 a 37 y 40 a 47)",
+    "fallo": "Ninguna de las 45 es una contrarreloj: la 08 y la 09 son la etapa 3 de Race Valencia, en línea, y la 35 es Race Jaén, de un día. La crono pinta otra pieza, `TimeTrialBoard`, con dos botones de unos 16 y 20 px de alto (`TimeTrialBoard.tsx` l. 60-77: `text-xs` y `font-semibold`, sin relleno), sus nombres con `truncate` (l. 87) y sus maillots, que E3 pasa a 28 en filas de 36 (§14.4, l. 2724): la prueba no la mira nunca, y el trinquete a cero no dice nada de ella.",
+    "correccion": "Añadir la pantalla 38 a §7.3: «`/world/races/<la primera carrera del mundo de la prueba con una contrarreloj corrida>/stages/<su día>`, visitante, `data-answer` en `FixedOverlay`, ocho segundos después de `Play`», resuelta como la 12 y la 13 desde `GET /api/races` (`MundoDePrueba` gana `firstTimeTrialStage`); y a §14.4: «los dos botones de la crono son `Button` `quiet` de 44 y sus nombres parten de línea»."
+  },
+  {
+    "id": "Ruso-019",
+    "seccion": "§7.4",
+    "linea": 1281,
+    "gravedad": "media",
+    "afirmacion": "desde ahí el CI falla si una cifra sube, y también si baja sin que el PR la apunte, como `deuda.json` (§5.2)",
+    "fallo": "`deuda.json` cuenta clases del código, que solo cambian con el código; esta línea base cuenta nodos de texto, objetivos y nodos de axe de páginas con datos, que cambian con el mundo. Cuando el mundo se reconstruye (§17.1, regla 7: los PR 13a, 13b, 16a, 19c y 23, y cualquier PR de otra línea que toque `packages/engine/src/` o las migraciones), salen otras carreras, otras filas y otros nombres, y las cifras de la 3, la 5 y la 6 suben o bajan sin que la web cambie: el PR falla por algo que no ha hecho, o tiene que apuntar bajadas que no son suyas. La pantalla 09 se mide «ocho segundos después de `Play`» (l. 1215), con un reloj real, en un ejecutor más o menos cargado: lo que hay en pantalla no es siempre lo mismo, y un trinquete exacto fallará al azar. Y no dice qué es pasar de `null` a una cifra, que ocurre cuando el 14 y el 18b ponen `edit` en la 01, la 29 y la 16 (l. 3109 y 3133).",
+    "correccion": "Añadir a §7.4: «(1) cuando cambia la clave del mundo, el trabajo `Teléfono` reconstruye el mundo y reescribe en el mismo PR la línea base de las pantallas con datos, y el PR la apunta entera con su causa; el trinquete solo compara cifras del mismo mundo; (2) la 09 no espera ocho segundos de reloj: lleva la retransmisión a un segundo fijo con el salto de los mandos de E2 y se mide en pausa; (3) pasar de `null` a una cifra no es una subida: la cifra nueva entra en la línea base en el PR que añade la comprobación»."
+  },
+  {
+    "id": "Ruso-020",
+    "seccion": "§7.4",
+    "linea": 1281,
+    "gravedad": "media",
+    "afirmacion": "sigue si alguna ruta empieza por `apps/web/`, `apps/api/` o `packages/db/`",
+    "fallo": "La web pinta lo que escribe `packages/shared`: el vocabulario y la geometría del maillot, los colores de líder y de campeón, `NATIONAL_STAR_OVERRIDES` (§9.1), los esquemas de `contracts.ts`, las palabras de `broadcast/screenWords.ts` y `trainingDay.ts`; y `packages/engine` lleva `arrivalLabel` (DD-10) y construye el mundo de la prueba. Un PR que solo toque esos paquetes cambia lo que se ve en el teléfono y no corre la prueba, así que «el CI falla si una cifra sube» no vale para él; la regla 7 de §17.1 ya cuenta con que un cambio de `packages/engine/src/` reconstruye el mundo, pero sin este filtro no se mide.",
+    "correccion": "Cambiar por «sigue si alguna ruta empieza por `apps/web/`, `apps/api/`, `packages/db/`, `packages/shared/` o `packages/engine/`», y lo mismo en D-18, en §16.2 (l. 2875), en §17.1 (regla 7, l. 2994) y en DD-16."
+  },
+  {
+    "id": "Ruso-021",
+    "seccion": "§7.8",
+    "linea": 1328,
+    "gravedad": "alta",
+    "afirmacion": "un trinquete que dependiera de la letra del ejecutor sería inestable",
+    "fallo": "El trinquete del CI ya depende de la letra del ejecutor, y el documento no la fija. `--font-sans` empieza por `system-ui` (§3.4, l. 292), que Chromium de Linux resuelve con fontconfig: en el contenedor de diseño da Inter (`fc-match system-ui` da `Inter-Regular.otf`), y en un Ubuntu sin Inter da DejaVu Sans, más ancha. Medido (`<scratchpad>/refutador-uso/medir-textos.mjs`): `Dashboard` 63,3 frente a 73,2 px; `Cycling Star` 107,4 frente a 122,5; la consecuencia larga 311,6 frente a 326,9; la ficha de equipo de la barra 45,2 frente a 50,4, cinco por renglón frente a cuatro a 360 (`maqueta.mjs`). Con eso cambia lo que parte de línea y lo que se sale, y con ello las comprobaciones 1, 2, 5, 7 y 9 y el plan B de §6.3. Las cifras de hoy (mapa 05) se tomaron con Inter: un cambio de la imagen del ejecutor o de `playwright install --with-deps` mueve la línea base sin tocar la web.",
+    "correccion": "Añadir a §7.6: «La letra de la prueba se fija: el trabajo `Teléfono` instala `fonts-dejavu-core` y usa un `fonts.conf` propio (variable `FONTCONFIG_FILE`) que resuelve `system-ui` y `sans-serif` a `DejaVu Sans`; `telefono.config.ts` exporta `PHONE_FONT = 'DejaVu Sans'`, y `telefono.spec.ts` falla al empezar si `document.fonts.check('12px \"DejaVu Sans\"')` es falso». La misma letra en la pasada nocturna (§7.5) y en el PR 2, que escribe la línea base con ella; y en §7.8 cambiar la frase por «la letra del CI está fijada (§7.6); lo que la prueba no ve son San Francisco y Roboto, que mira la prueba del dueño»."
+  },
+  {
+    "id": "Ruso-022",
+    "seccion": "§8.2",
+    "linea": 1465,
+    "gravedad": "media",
+    "afirmacion": "Si alguna carrera falla, el mismo PR lo dice y propone qué color o qué figura sobra",
+    "fallo": "Quitar un color o una figura cambia una decisión del dueño (D-00e: quince colores y siete figuras), y quien implemente no tiene a quién preguntar (`00-encargo.md` l. 66). Con la puerta en rojo, `kits.test.ts` no deja fusionar el 16a, y detrás van el 16b, el 17a, el 17b, el 17c, el 18a, el 18b y el 19c: el plan se para sin valor por defecto. No es improbable: las 310 carreras con el vocabulario de D-00e están sin medir (O-25, en esta misma línea).",
+    "correccion": "Cambiar por: «Si alguna carrera falla, el PR no toca el vocabulario: (1) la traducción se repite con los equipos de las carreras que fallan al principio del orden; (2) si aún falla, los NPC de esas carreras ceden con la regla de DD-08 hasta que pase; (3) si sigue fallando, el caso pasa a `it.todo` con la cifra en el nombre (`… 3 carreras con un par por debajo de 10 …`), el PR se fusiona y §19 gana la decisión DD-24 del dueño, quitar un color o una figura, con la cuenta por color y por figura que escribe el test»."
+  },
+  {
+    "id": "Ruso-023",
+    "seccion": "§8.3",
+    "linea": 1471,
+    "gravedad": "media",
+    "afirmacion": "a 28 serían 12 × 28 + 11 × 8 = 424 px, más que los 308 útiles a 360",
+    "fallo": "Los 308 px no cuentan la tarjeta de la barra: `GroupBar` vive en `card` de `StageWatch.tsx` (l. 255: `border` y `p-3`) dentro de `main` (`px-3`, `App.tsx` l. 158), y la línea lleva `pl-7` (`GroupBar.tsx` l. 235): quedan 282 px a 360 y 242 a 320. Cada ficha (el maillot de 28, 4 de hueco y `×3` en `caption` 600) mide 45,2 px con Inter y 50,4 con DejaVu Sans, y maquetada (`<scratchpad>/refutador-uso/maqueta.mjs`) caben cinco por renglón solo con Inter a 360; a 320, y con DejaVu a 360, cuatro. §14.4 (l. 2711) dice «caben cinco por renglón» y, con `TEAM_KIT_LINES_MAX` = 2, un agente pintará diez fichas que a 320 ocupan tres renglones, o pondrá `+N teams` donde no cabe: `+3 teams` mide 54,3 y 64,2 px, más que una ficha.",
+    "correccion": "En §8.3 (l. 1471), «los 308 útiles a 360» por «los 282 útiles a 360 (242 a 320) dentro de la tarjeta de `Watch`»; y en §14.4 (l. 2711): «en el móvil, la línea de equipos va sin `pl-7` y con `gap-x-1`: quedan 310 px a 360 y 270 a 320, y caben cinco fichas de 50,4 px por renglón (268 px con DejaVu Sans); `+N teams` ocupa más que una ficha, así que el segundo renglón lleva como mucho tres fichas y `+N teams` a 320 y cuatro y `+N teams` a 360; la barra cuenta lo que cabe con la anchura medida (`ResizeObserver`), no con una cifra fija»."
+  },
+  {
+    "id": "Ruso-024",
+    "seccion": "§8.7",
+    "linea": 1524,
+    "gravedad": "media",
+    "afirmacion": "sustituye a las doce semillas de `TeamManager.tsx` l. 21-26 y al panel `Jersey` de `TeamIdentity.tsx` l. 175-184",
+    "fallo": "En `TeamIdentity.tsx` el panel `Jersey` va tras la tarjeta de identidad (l. 137-155) y el panel `The team` (l. 156-174); en la captura 16, `The team` empieza hacia los 445 px y sigue pasada la primera pantalla. Puesto donde está el panel que sustituye, el `data-answer` del editor (l. 1530) cae por debajo de los 800 px y la comprobación 7 (520) falla en la pantalla 16. Y el alto: la página mide hoy 1.948 px (`capturas/README.md`); el editor dibujado en l. 1527-1553, sumado con las medidas de §8.7 (la vista de 160, siete losetas de 72 en tres filas, 13 y 15 muestras en tres filas cada paleta, cuatro botones de culote y ocho rivales de 44), mide unos 1.700 px (estimado), y quitando el panel `Jersey` y las semillas (unos 270 px) la página queda hacia los 3.400, más que los 3.200 de la comprobación 9, que corre en esta pantalla de herramienta.",
+    "correccion": "Añadir a §8.7 el orden de `/team/identity`: «`PageHeader` (`Identity` y la línea de estado `Noord Cycling · WorldTour`), el `Panel` `Your kit` con `KitPicker` (la respuesta), los campos de nombre y país de `TeamManager`, el panel `The team` y `History`; `Teams you race this season` va plegado en un `Disclosure` (`Show the teams you race`, pantalla)». Con ese orden, la respuesta queda hacia los 190 px y la página por debajo de 3.200 px; el PR 18b lo mide en la línea base de la 16."
+  },
+  {
+    "id": "Ruso-025",
+    "seccion": "§8.7",
+    "linea": 1538,
+    "gravedad": "media",
+    "afirmacion": "aria-pressed en la elegida",
+    "fallo": "La loseta y la muestra elegidas solo llevan `aria-pressed`: el documento no dice cómo se ven, ni en la tabla de estados de §8.7 (l. 1558-1571) ni en §4. Un agente pondrá un borde de color, que un daltónico no separa del color de la muestra cuando son parecidos, o nada. Es el estado que más se mira del editor.",
+    "correccion": "Añadir a §8.7: «la loseta o la muestra elegida lleva un anillo de 3 px en `ink` (16,54:1 sobre `surface`) a 2 px de su borde y el icono `check` de 16 en su esquina superior derecha, en blanco con filo de 1 px en `ink`; `data-state=\"active\"`, y las demás, `inactive`», con su caso en `KitPicker.test.tsx` (18b) y su estado en `/_ui`."
+  },
+  {
+    "id": "Ruso-026",
+    "seccion": "§8.7",
+    "linea": 1556,
+    "gravedad": "media",
+    "afirmacion": "Una muestra que no se puede elegir con la base y la figura de ese momento sale tachada y su porqué aparece debajo en `meta` al tocarla, nunca en un `title`.",
+    "fallo": "No dice de qué color es la tachadura, y ningún color sirve para las quince muestras: medido con `<scratchpad>/refutador-uso/colores.py`, `ink` queda por debajo de 3:1 sobre `black`, `navy`, `green`, `red`, `purple`, `brown` y `plum` (de 1,02 a 2,94), y el blanco sobre `sky`, `orange`, `yellow` y `white` (de 1,00 a 2,41). Una marca de estado por debajo de 3:1 no cumple WCAG 1.4.11. Y la muestra `white` sobre el `Panel` blanco da 1,00:1 y la `yellow` 1,41: sin borde no se ve dónde se toca.",
+    "correccion": "Añadir a §8.7: «la tachadura es una diagonal de 2 px en blanco con filo de 1 px en `ink`, que con uno de sus dos tonos queda a 4,79:1 o más de cada uno de los quince colores; toda muestra lleva un borde de 1 px `line-strong` (3,66 sobre `surface`)», y los dos casos en `KitPicker.test.tsx` (18b)."
+  },
+  {
+    "id": "Ruso-027",
+    "seccion": "§8.10",
+    "linea": 1591,
+    "gravedad": "baja",
+    "afirmacion": "cada mayúscula avanza unos 0,65 em (estimado, como en §9.9)",
+    "fallo": "Con la letra del sistema no vale para las mayúsculas anchas. Medido a 12 px y 600 (`<scratchpad>/refutador-uso/letras.mjs`): `ABC` mide 25,5 px con Inter y 27,3 con DejaVu Sans, pero `MWM` de 31,3 a 37,1 y `WMW` de 32,7 a 38,4, de 0,87 a 1,07 em por letra. El pecho mide 30 px a 72 y 27 con su margen de 1 u, así que la tabla (3 mayúsculas a 72, l. 1595) y la marca de pecho «de dos o tres mayúsculas» (§9.9, l. 1826) solo caben con letras estrechas, y `Kit.test.tsx` solo comprueba los 12 px de alto, no que la marca quepa en su caja.",
+    "correccion": "En §8.10 (l. 1591): «`zoneCapacity` cuenta 1,07 em por mayúscula, la de `W` a 600 con DejaVu Sans, así que en el pecho caben 2 a 72 px, 3 a 96, 5 a 160 y 10 a 320», con la tabla de l. 1593-1598 rehecha con esa regla; y en §9.9 (l. 1826): «la lista cerrada de patrocinadores (DD-19) guarda cada marca con su ancho medido en Chromium a 12 px y 600, y una marca más ancha que la caja de su tamaño no se pinta»."
+  },
+  {
+    "id": "Ruso-028",
+    "seccion": "§9.7",
+    "linea": 1800,
+    "gravedad": "media",
+    "afirmacion": "Están a 10 o más en las cuatro porque lo que queda más cerca está reservado (§8.1)",
+    "fallo": "El líder de la general y el de los puntos no tienen forma propia: el amarillo es liso, la figura `plain` de los equipos, y el verde lleva la banda de `band` (l. 1781). Entre ellos y los maillots permitidos solo separa el color, y la misma línea da las cifras: del amarillo, el permitido más cercano queda a 10,8 en protanopía y a 5,3 en grises (`plain.sky`); del verde, a 3,4 en grises (`band.pink.yellow`). El principio 2.7 dice que «La forma de cada identidad está reservada y ningún maillot de equipo la puede llevar» (l. 184), y el encargo pide «forma además de color» (`00-encargo.md` l. 27-29): un líder se distingue de un equipo solo por el color, y en grises, lo que ve un teléfono con el filtro de grises o una acromatopsia, por debajo del umbral.",
+    "correccion": "En §8.1 (l. 1390) y §9.7 (l. 1800): «para las señales de líder, lo reservado se mide en las cinco vistas, grises incluidos: queda reservado todo maillot a menos de `KIT_MIN_DISTANCE` de un líder en alguna de las cinco (al menos `plain.sky` del amarillo y `band.pink.yellow` del verde)»; la tabla de choques y `champion.test.ts` lo aplican, y el 16a recuenta los permitidos. Y en el principio 2.7 (l. 184): «la de los líderes de la general y de los puntos, que comparten figura con los equipos, se reserva por distancia en las cinco vistas»."
+  },
+  {
+    "id": "Ruso-029",
+    "seccion": "§10.2",
+    "linea": 1938,
+    "gravedad": "baja",
+    "afirmacion": "[ Build    ▾ ] │  row 600; Field select de 48",
+    "fallo": "`Field` lleva el «rótulo encima en `meta` 600 `ink`, siempre visible» (§4.3, l. 601) y no tiene otra variante, y el catálogo es cerrado (D-09). Los dibujos del cuadro ponen `select` sin rótulo encima: el del bloque junto a `Week 1 · Days 51 to 57` (l. 1938 y 1942), los dos de cada día (`[ Endurance ride ▾ ] [ Normal ▾ ]`, l. 1968 y 1974) y `Emphasis` e `Intensity` con el rótulo a la izquierda (l. 1946). Quien implemente tendrá que elegir entre poner un rótulo encima de cada uno (unos 24 px más por día abierto, 672 en los 28) o inventar una variante que el catálogo no tiene.",
+    "correccion": "Añadir a `Field` en §4.3 (l. 601) la variante `inline`: «el rótulo a la izquierda del control, en `meta` 600 `ink`, en el mismo renglón; si el rótulo es el título de la fila (la semana, el día), el control lleva `aria-labelledby` a ese título y no lo repite», y en los dibujos de §10.2, «Field inline»."
+  },
+  {
+    "id": "Ruso-030",
+    "seccion": "§10.2",
+    "linea": 1952,
+    "gravedad": "baja",
+    "afirmacion": "Dashboard   My Rider   My Team   World   News              BottomNav 56",
+    "fallo": "El jugador del dibujo es el de la prueba, José Quintáns, agente libre (l. 1912), y su barra tiene cuatro destinos y no cinco: `sectionLinks` solo pone `My Team` con `hasTeam` (`apps/web/src/domain/nav.ts` l. 51-54, que usa `bottomBarLinks`, l. 62-64), y la captura 01 lo enseña (`Dashboard`, `My Rider`, `World`, `News`). Con cuatro, cada celda mide 90 px a 360 y no 72, que es la cifra de la que depende el plan B de §6.3; el dibujo del marco de §6.3 (l. 1102-1103) repite los cinco para la misma pantalla.",
+    "correccion": "En §10.2 (l. 1952) y §6.3 (l. 1102-1103): «Dashboard   My Rider   World   News   BottomNav 56 (cuatro destinos: el agente libre no tiene `My Team`)», y en §4.4 (l. 651): «de 3 a 5 destinos según la cuenta (`bottomBarLinks`, `nav.ts` l. 62-64): tres sin sesión, cuatro sin equipo y cinco con él»."
+  },
+  {
+    "id": "Ruso-031",
+    "seccion": "§10.2",
+    "linea": 1955,
+    "gravedad": "media",
+    "afirmacion": "**Medido** en el prototipo de telefono, que es esta pantalla sin la línea de estado",
+    "fallo": "El prototipo no es esta pantalla. `propuesta-telefono/proto/entrenamiento.html` (en el scratchpad) tiene el `Segmented` con `Coach`, `Mixed` e `I decide`, no `Coach decides`; no tiene la tira de siete días ni `TripRow`; lleva la instrucción que nombra la semana (`Make week 1 lighter to arrive Fine.`, que D-42 descarta); los tramos con 2 px de hueco y no 4; el reloj a 13 px y no en `meta`; la consecuencia de la `ActionBar` que parte de línea (`flex:1`, sin `ellipsis`) y no en un renglón con `…`; y los rótulos de la barra inferior con `text-overflow:ellipsis`. Sus 1.277 px y su «ninguna falta» no miden lo que dibuja §10.2, y el texto los presenta como medida de esta pantalla.",
+    "correccion": "Cambiar por «**Medido** en un prototipo de telefono más simple que esta pantalla (`proto/entrenamiento.html`: sin la tira de siete días ni `TripRow`, con `Coach` por `Coach decides` y la consecuencia en varios renglones), reproducido por el juez de uso (C1; X-18): …», y cerrar el párrafo con «Esta pantalla está sin medir: la mide la prueba del teléfono en el PR 14»."
+  },
+  {
+    "id": "Ruso-032",
+    "seccion": "§10.5",
+    "linea": 2021,
+    "gravedad": "baja",
+    "afirmacion": "| `carrera`    | `Race` y `Race Sardegna · stage 2 of 5`  | `warn`    | `warn`        |",
+    "fallo": "`ChipProps` saca el icono del tono (l. 791: «warn warning»), así que cada día de carrera del día a día lleva el triángulo de aviso delante de `Race`. Es el mismo icono de peligro que el documento usa para el velo (`RankTable` `veiled`, l. 676) y para los avisos: un día de carrera, lo normal del juego, se lee como un problema, y el aviso de verdad pierde su señal.",
+    "correccion": "Cambiar el tono de `carrera` a `neutral`, sin icono, y conservar su borde `warn`: «| `carrera` | `Race` y `Race Sardegna · stage 2 of 5` | `neutral` | `warn` |»; la celda `Race` de la tira (`caption` 600 `warn` sobre `warn-bg`, sin icono) se queda."
+  },
+  {
+    "id": "Ruso-033",
+    "seccion": "§10.6",
+    "linea": 2035,
+    "gravedad": "media",
+    "afirmacion": "con una palabra por celda, `Back` mide unos 27 px de los 41 (estimado)",
+    "fallo": "La misma frase pone en la celda de viaje «el icono `travel` de 16 px con `Out` o `Back`», y el dibujo los pinta en línea (`✈Out`, `✈Back`, l. 1940): icono, hueco y palabra miden 46 y 47 px con Inter y con DejaVu Sans (`<scratchpad>/refutador-uso/maqueta.mjs`), y la celda mide 41 a 360 y 35,4 a 320 ((272 − 24) / 7). La tira se sale de su panel en las semanas con viaje, que en el jugador de la prueba son la 1 y la 2 (días 51, 53, 55 y 61); el 27 de la estimación no cuenta el icono.",
+    "correccion": "En §10.6 (l. 2035): «en la celda de viaje, el icono `travel` de 16 px va encima de la palabra (`Out` o `Back`, en `caption`), no a su lado: lo más ancho de una celda es `Race` en `caption` 600, 28,8 px con Inter y 32,6 con DejaVu Sans, que caben en los 35 de 320; la celda mide 48 px de alto (el día, el icono y la palabra)», y los dibujos de l. 1940, 1943 y 2068 con el icono encima."
+  },
+  {
+    "id": "Ruso-034",
+    "seccion": "§11.3",
+    "linea": 2199,
+    "gravedad": "alta",
+    "afirmacion": "sobre el mundo de los bancos, proyecta desde un día la llegada a la salida de cada carrera, deja correr esos días al tick, la compara con la que sale del diario real, escribe el acuerdo (la fracción de carreras en el mismo tramo) y fija un trinquete en el valor medido",
+    "fallo": "En el mundo de los bancos no hay con qué medirlo. `apps/api/src/__fixtures__/spoilerWorld.ts` (l. 29-31, 41, 51 y 160-206) tiene dos equipos, doce corredores y una sola carrera, `race-france`, con la 1 y la 2 corridas por `runOneStage` (l. 128-131) y el reloj en el día de la 3: la única carrera del horizonte está en curso, así que la vista previa la da con `ongoing: true` y `arrival: null` (§11.2) y no hay ninguna llegada que comparar. Tampoco se construye con el tick: `runTick` llama a `seedWorld` (`tick.ts` l. 265), que sembraría las 219 escuadras de la génesis, y cada día cuesta unos 17 s en PGlite (mapa 05 §1), no «unos 30 s» (§16.2, l. 2897). Y un trinquete «en el valor medido», sin suelo, pasa con lo que mida el primer día: no prueba que la vista previa nueva acierte más que la de hoy.",
+    "correccion": "Cambiar por: «`planPreviewDiary.test.ts` corre en el trabajo `Teléfono`, sobre el mundo de la prueba (§7.2): para los corredores con una carrera que sale entre los días 41 y 50, proyecta desde el día 40 su llegada a la salida y la compara con la del diario de esos días, que el mundo ya trae, sin correr el tick. Escribe el acuerdo de la vista previa nueva y el de la de hoy (`riders.ts` l. 424-481, copiada como referencia en el test) y falla si el de la nueva no es mayor»; y en §16.2 (l. 2897), «Teléfono · unos 20 s (estimado)»."
+  },
+  {
+    "id": "Ruso-035",
+    "seccion": "§14.2",
+    "linea": 2675,
+    "gravedad": "media",
+    "afirmacion": "Watch    Report    Classifications             Tabs page, 44",
+    "fallo": "El dibujo no es la pantalla de hoy y no dice que la cambie, cuando D-56 dice que «se quedan … los textos» (§14.1, l. 2667). La página de etapa tiene cuatro pestañas, `Watch`, `Profile`, `Report` y `Classifications` (`stageTabLabel`, `apps/web/src/domain/raceTabs.ts` l. 224-226, fijadas en `raceTabs.test.ts` l. 290-310; captura 09): falta `Profile`, también en §4.4 (l. 649). El `h1` de hoy es `Stage 3 · Summit finish` y debajo va la ruta con la distancia, `Orihuela → San Vicente del Raspeig · 158 km` (captura 09); el dibujo (l. 2674) pone `Stage 3 · Gandia → Alcoi` y pierde el tipo de etapa y los kilómetros. Con la ruta de la pantalla 08 en el `h1` (`title` 600), el texto mide 391 px con Inter y 456 con DejaVu Sans (`<scratchpad>/refutador-uso/textos2.mjs`) en los 268 que deja el botón `share`: dos renglones, y la capa fija empieza 24 px más abajo que los 228 estimados.",
+    "correccion": "Rehacer el dibujo de §14.2: «‹ Race Valencia · Stage 3 of 5 › (44) / `Stage 3 · Summit finish` en `title`, con `share` de 44 a la derecha / `Orihuela → San Vicente del Raspeig · 158 km` en `meta` `ink-2` (`StageRoute`) / `Watch · Profile · Report · Classifications` (`Tabs` `page`, 44) / la capa fija, hacia los 250 px (estimado)»; y en §4.4 (l. 649), `Watch · Profile · Report · Classifications`."
+  },
+  {
+    "id": "Ruso-036",
+    "seccion": "§14.4",
+    "linea": 2711,
+    "gravedad": "alta",
+    "afirmacion": "y se abre al tocar el grupo, como `+3 groups · 41 riders` (l. 32)",
+    "fallo": "Lo que se abre no existe hoy ni está diseñado. En `GroupBar.tsx` las filas son `<div>` (l. 101-105) y el único botón es el de las filas plegadas (l. 149-157), que abre filas, no la lista de un grupo; D-00b dice «la lista de corredores del grupo, al tocarlo, como hoy», y hoy en el móvil un grupo de 4 a 12 solo enseña iconos sin nombre (`RidersLine`, l. 222-249). Con E3 la línea pasa a fichas por equipo, así que la única forma de saber quién va en una escapada de cinco es tocar, y el documento no dice qué se toca, qué se abre, dónde, con qué ARIA ni de qué tamaño. Además las filas son de `min-h-9`, 36 px (esta línea), y el botón plegado es `py-1.5` con `text-xs`, unos 28 px: si son objetivos, la comprobación 5 los cuenta en las pantallas 08, 09 y 35.",
+    "correccion": "Añadir a §14.4: «Cada fila de grupo es un `<button>` a todo lo ancho de `min-h-11` (44) con `aria-expanded` y `aria-controls`; al tocarla abre debajo, en el flujo, la lista de sus corredores (`<ul>`, una fila de 44 por corredor con `RiderLabel`: dorsal, bandera, nombre y maillot de 28, y el equipo debajo), que se pinta al abrir y no a `barHz`; otro toque la cierra, y abrir otra cierra la anterior. El botón `+N groups · M riders` pasa a `Button` `quiet` de 44 a todo lo ancho», con su caso en `GroupBar.test.tsx` (17a) y su estado en `/_ui`; y en D-00b, «como hoy» por «nueva en E3»."
+  },
+  {
+    "id": "Ruso-037",
+    "seccion": "§14.4",
+    "linea": 2711,
+    "gravedad": "media",
+    "afirmacion": "primero, aparte, cada corredor que viste un maillot de líder o de campeón, con su `WornJerseyIcon` de 28 y sin cuenta",
+    "fallo": "En la línea de equipos un campeón nacional es solo su maillot, sin bandera ni nombre a la vista (el nombre va en `aria-label`), y §9.5 (l. 1766) mide que a 28 px varios nacionales son gemelos: Italia y Perú a 2,3 de ΔE00, Italia con Irlanda y con Nigeria a 2,9, Indonesia y Mónaco a 1,7, en la peor de las cuatro visiones. Su remedio, «por debajo [de 72 px], el texto», no existe en la barra: dos campeones de Italia y de Irlanda en la misma escapada, posibles en el WorldTour, se ven iguales para un deuteranope y casi iguales para cualquiera.",
+    "correccion": "En §14.4 (l. 2711): «… con su `WornJerseyIcon` de 28 y, en lugar de la cuenta, las dos letras de su país en `caption` 600 `ink-2` si el maillot es de campeón nacional (`IT`, `IE`); el de líder y el mundial, sin letras»; y en §9.5 (l. 1766), tras «por debajo, el texto»: «y en la barra de `Watch`, las dos letras junto al maillot (§14.4)»."
+  },
+  {
+    "id": "Ruso-038",
+    "seccion": "§14.4",
+    "linea": 2718,
+    "gravedad": "baja",
+    "afirmacion": "[k] ×3  [k] ×2  [k] ×2  [k] ×1  [k] ×1          cinco por renglón",
+    "fallo": "El dibujo pone la línea de equipos bajo `CHASE GROUP · 12`, la fila 2, y el párrafo de encima dice que «en el móvil la línea sigue saliendo solo bajo la fila 1 y las del espectador» (l. 2711; `GroupBar.tsx` l. 135, `mobile={g.number === 1 || g.own}`). El dibujo no dice que el espectador vaya en ese grupo, así que una de las dos cosas es falsa, y quien implemente no sabe si a 360 la fila 2 lleva línea.",
+    "correccion": "En el dibujo (l. 2717): «CHASE GROUP · 12 · el grupo del espectador», o quitar del dibujo de 360 los dos renglones de fichas de esa fila (l. 2718 y 2719)."
+  },
+  {
+    "id": "Ruso-039",
+    "seccion": "§14.4",
+    "linea": 2724,
+    "gravedad": "alta",
+    "afirmacion": "y las cotas, de 9 y 8 px (l. 70 y 161) a 12 px con `tabular-nums`, que es lo que mide la comprobación 3 dentro del SVG",
+    "fallo": "En `ProfileStrip.tsx` las cotas son unidades del `viewBox` de 600 × 100 (l. 23-24 y 130-133), que se escala con `w-full h-auto` al ancho de la tarjeta: 310 px a 360 y 270 a 320. Medido con `getScreenCTM()`, como hará la comprobación 3 (`<scratchpad>/refutador-uso/perfil.mjs`): `font-size` 9 se pinta a 4,65 px a 360 y a 4,05 a 320, y 12 a 6,2 y 5,4 px. Poner 12 no da 12 px: la 3 seguirá contando las cotas. Los «8 px» de §1.5 (l. 64) y de la tabla de §7.1 (l. 1178) salen de `getComputedStyle` (`capturas/medir.mjs` l. 88), que no escala el SVG: hoy se ven a 4 y 5 px. Lo mismo pasa con `FormChart.tsx` (`viewBox` de 600 de ancho y `fontSize=\"10\"`, l. 56 y 67: 5,2 px a 360), en `/me/profile` (pantalla 04), que ninguna sección ni ningún paso tocan.",
+    "correccion": "En §14.4 (l. 2724): «las cotas salen del SVG: van en HTML, en `caption` 12 px con `tabular-nums`, en una capa `absolute` sobre el perfil, colocadas con el mismo `x(km)` en porcentaje del ancho; el SVG ya no lleva `<text>`». Lo mismo para `FormChart` en el PR 21j: sus tres rótulos (`0`, `50` y `100`) en HTML a la izquierda del dibujo. Y en §1.5 (l. 64) y §7.1 (l. 1178), «8 px» por «4 a 5 px (9 y 8 unidades de un `viewBox` de 600 pintado a 310 px)»."
+  },
+  {
+    "id": "Ruso-040",
+    "seccion": "§14.5",
+    "linea": 2728,
+    "gravedad": "alta",
+    "afirmacion": "Los maillots (l. 61, 84, 90, 116 y 122) pasan a 28 por `WornJerseyIcon` con `surface=\"dark\"`",
+    "fallo": "§14 cambia los maillots y deja los recortes de `Watch`, que la comprobación 2 cuenta y la regla de §6.4 prohíbe: `CueCard.tsx` corta con `truncate` los nombres del rótulo (l. 63, 80 y 85) y su etiqueta (l. 88); `StageCards.tsx`, las filas de la previa y del cierre (l. 243 y 275); `VoiceTicker.tsx`, la línea de la voz (l. 45), que en la captura 09 sale `The gap has grown by 9 seconds in five kilo…`; y `TimeTrialBoard.tsx`, los nombres de la crono (l. 87). Con un maillot de 28 en la misma línea queda menos sitio y se cortará más. Las pantallas 08, 09 y 35 no pueden llegar a cero en la 2, y el rótulo corta nombres de corredor, que «nunca» se cortan (l. 1119).",
+    "correccion": "Añadir a §14.5: «Los nombres del rótulo (`CueCard.tsx` l. 63 y 80-88), de la previa y el cierre (`StageCards.tsx` l. 243 y 275) y de la crono (`TimeTrialBoard.tsx` l. 87) dejan `truncate` y parten de línea; la línea de la voz (`VoiceTicker.tsx` l. 45) sigue en un renglón, que es el ritmo de E2, y lleva `data-clip-ok`, porque la frase entera queda en el historial de la voz». Con sus casos en `CueCard.test.tsx` y `StageCards.test.tsx` (PR 20) y una fila más en la tabla de §14 (l. 2652)."
+  },
+  {
+    "id": "Ruso-041",
+    "seccion": "§16.2",
+    "linea": 2905,
+    "gravedad": "media",
+    "afirmacion": "y, por color y por figura, cuántas carreras fallarían sin él",
+    "fallo": "Saber cuántas carreras fallarían sin un color o sin una figura pide repetir la traducción sin él: 22 traducciones más (quince colores y siete figuras), y una cuesta de 35 a 70 s a 28 px (§8.6, l. 1520), así que son de 13 a 26 minutos más en la suite rápida, cuando la fila le pone «30 s (telefono), más la traducción, de 35 a 70 s». Los 30 s de telefono son de su vocabulario a 13 y 16 px, y a 28 px cada distancia cuesta unas tres veces más (§8.4, l. 1482). Y el resumen de la sección (l. 2917, «de 1,5 a 2,5 min entre los cuatro») no casa con sus filas aun sin eso: de 65 a 100 s de `kits.test.ts`, 30 de `jerseyClone.test.ts`, 10 de `planPreview.test.ts` y 30 de `planPreviewDiary.test.ts` dan de 2,3 a 2,8 minutos.",
+    "correccion": "En §16.2 (l. 2905) y §8.2 (l. 1465): «la cuenta por color y por figura solo se calcula si la puerta falla, o de noche con `CS_BANCOS=1`; en la rápida, `kits.test.ts` cuesta de 2 a 4 minutos (estimado: la génesis, `seasonRivals` y una traducción a 28 px)»; y en l. 2917, «de 3 a 5 min entre los tres (estimado)», con `planPreviewDiary.test.ts` fuera de la rápida (Ruso-034)."
+  },
+  {
+    "id": "Ruso-042",
+    "seccion": "§16.2",
+    "linea": 2911,
+    "gravedad": "media",
+    "afirmacion": "cada ruta del jugador serializa su respuesta real del mundo de los bancos sin 500, con la sesión del jugador y la del mánager (O-03)",
+    "fallo": "El mundo de los bancos no tiene mánager: `spoilerWorld.ts` da de alta una sola cuenta, `player@example.com`, con su corredor (l. 248-249), y ningún equipo tiene dueño (`teams.owner_user_id` sin escribir, l. 160-169). Con esa sesión, las rutas de equipo que E3 declara o cambia (`GET /api/teams/me`, `GET` y `PUT /api/teams/me/kit`, `POST /api/teams/me/kit/check`, `GET /api/me/team-training`, el calendario del equipo) contestan 409 `sin_equipo` o 401 y nunca serializan una respuesta real, así que el riesgo del 500 de O-03 (§13.4) queda abierto justo en las rutas nuevas.",
+    "correccion": "Añadir a §16.2 y §17.21: «el PR 19a añade a `spoilerWorld.ts` una segunda cuenta, `manager@example.com`, con `premium` y dueña de `Team 0` (`owner_user_id`), y `responses.test.ts` recorre con ella las rutas de equipo; las que el mundo de los bancos no puede rellenar llevan su respuesta del mundo de la prueba guardada en `apps/api/src/__fixtures__/responses/<ruta>.json`»."
+  },
+  {
+    "id": "Ruso-043",
+    "seccion": "§17.4",
+    "linea": 3049,
+    "gravedad": "media",
+    "afirmacion": "**PR 2** · M · no depende de nada",
+    "fallo": "M es hasta 800 líneas de diff (l. 2989), y solo los guiones que el PR porta suman más: `capturas/mundo.mjs` 248 líneas, `servir.mjs` 93, `medir.mjs` 145 (mide siete de las diez comprobaciones, sin trinquete), `capturas.mjs` 382 (la lista de pantallas y sus esperas) y `pintura.mjs` 268 (lo que hará `nocturno.spec.ts`): 1.136 en total (`wc -l`). Encima van las comprobaciones 7 a 10, `control.html`, el trinquete y `telefono-baseline.json` (46 pantallas por dos anchos), `playwright.config.ts`, `pantallas.ts` con sus `edit` e `intercept`, los dos trabajos del CI con sus cachés, `ui/constants.ts`, `kit.ts` con `KIT_MIN_PX` y `data-kit` en `Jersey.tsx`. Es un L, y su tamaño entra en las 80 sesiones de §17.28.",
+    "correccion": "Partir el paso 2 en dos PR: «**2a** · M: `build.mjs`, `serve.mjs`, los dos trabajos del CI con sus cachés y `nocturno.spec.ts`; **2b** · L: `telefono.spec.ts` con las diez comprobaciones, `control.html`, `pantallas.ts`, `telefono.config.ts`, `ui/constants.ts`, `KIT_MIN_PX` en `kit.ts`, `data-kit` y `telefono-baseline.json`»; y en §17.2, §17.27, §17.28 y G.11: 43 PR, 11 S, 24 M y 8 L, unas 83 sesiones."
+  }
+]

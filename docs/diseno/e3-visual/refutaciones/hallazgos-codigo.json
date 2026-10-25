@@ -1,0 +1,614 @@
+[
+  {
+    "id": "Rcodigo-001",
+    "seccion": "§1.9",
+    "linea": 98,
+    "gravedad": "baja",
+    "afirmacion": "Ningún test lo cubre (la búsqueda de `jerseySeed` en los tests de `packages/db` no da nada).",
+    "fallo": "La búsqueda sí da resultados: 17 ficheros de test de `packages/db/src` nombran `jerseySeed` (`cast.test.ts` l. 259, `train.test.ts`, `gcOrder.test.ts`, `news.test.ts`…), como dato de prueba. Lo que no existe es un test que llame a `updateOwnedTeam` (`grep -rln updateOwnedTeam` sobre los `*.test.ts` de `packages/db/src` y `apps/api/src` no da nada), que es lo que probaría el clon. La conclusión vale; la prueba citada, no.",
+    "correccion": "Sustituir el paréntesis por: «(ningún test de `packages/db` ni de `apps/api` llama a `updateOwnedTeam`; los 17 que nombran `jerseySeed` solo lo usan como dato de prueba, p. ej. `cast.test.ts` l. 259)»."
+  },
+  {
+    "id": "Rcodigo-002",
+    "seccion": "§2",
+    "linea": 153,
+    "gravedad": "baja",
+    "afirmacion": "`LeaderJersey` y `ChampionSash` (§9)",
+    "fallo": "El componente se llama `ChampionJersey`: la decisión 9-g (l. 1886) dice «El componente se llama `ChampionJersey` y no `ChampionSash`», y §9.1 (l. 1693) lo crea en `apps/web/src/components/ui/ChampionJersey.tsx`. Con dos nombres, quien implemente puede crear dos ficheros.",
+    "correccion": "En la fila 2.7, cambiar `ChampionSash` por `ChampionJersey`."
+  },
+  {
+    "id": "Rcodigo-003",
+    "seccion": "§3.1",
+    "linea": 242,
+    "gravedad": "baja",
+    "afirmacion": "`ink` encima 16,26",
+    "fallo": "Re-medido con `<scratchpad>/venv` (colour-science 0.4.7, razón WCAG 2.x): `ink` `#10202f` sobre `own-tint` `#fdf4dc` da 15,08:1, no 16,26. El resto de la tabla se reproduce a la centésima (p. ej. `ink` sobre `surface` 16,54; la barra `own` 4,10 contra blanco y 3,74 contra `own-tint`).",
+    "correccion": "En la fila `own`, `own-tint`: «`ink` encima 15,08»."
+  },
+  {
+    "id": "Rcodigo-004",
+    "seccion": "§3.7",
+    "linea": 326,
+    "gravedad": "media",
+    "afirmacion": "Veinticuatro iconos propios en `apps/web/src/components/ui/icons.tsx`",
+    "fallo": "Faltan los dos que pide `Watch`: los mandos de E2 pintan `❚❚` y `PLAY_GLYPH` (`▶︎`) como texto (`apps/web/src/components/broadcast/PlayerControls.tsx` l. 34 y l. 123), y `❚` es U+275A, dentro del rango `\\u{2600}` a `\\u{27BF}` de `ui/10` (§5.3). Ninguno de los 24 es `play` ni `pause`, así que tras el paso 22, con las reglas en `error` (l. 930), `PlayerControls.tsx` falla el lint o se queda con un glifo que §3.7 prohíbe. El documento no lo trata en §3.7, §14.6 ni §17.22.",
+    "correccion": "«Veintiséis iconos propios en `apps/web/src/components/ui/icons.tsx`»: añadir a la tabla la fila «`play`, `pause` | los mandos de `PlayerControls` (§14.6) | `PLAY_GLYPH` y `❚❚` (`PlayerControls.tsx` l. 34 y 123)», a `IconName` (§4) los dos nombres, y a 3-e y D-07 la cifra de 26, con esta evidencia."
+  },
+  {
+    "id": "Rcodigo-005",
+    "seccion": "§3.7",
+    "linea": 340,
+    "gravedad": "media",
+    "afirmacion": "Tres emoji no tienen icono y pasan a palabra (decisión 3-d)",
+    "fallo": "El inventario de §3.7 se deja siete sitios con caracteres de los rangos de `ui/10` (barrido de `apps/web/src` sin tests): `🏆` en `TeamCalendar.tsx` l. 282, `🏠` en `Market.tsx` l. 86 (`Team pays rent`), `🔥🔥🔥` en `HowToPlay.tsx` l. 32 y `📈` en l. 49, `✓` y `✗` en `AdminNames.tsx` l. 243, `★` y `☆` en `Race.tsx` l. 875 (`Target this race`, que no es `StarRating`) y el `⚠` dentro del texto de `RaceOrders.tsx` l. 422, en una plantilla. Los seis primeros fallan `ui/10` tras el paso 22 sin una regla escrita para ellos, y el último contradice §3.7 aunque el lint no lo vea.",
+    "correccion": "Añadir a 3-d: «`🏆` de `TeamCalendar.tsx` l. 282 pasa a `Winner` como en `RacesIndex`; `🏠` de `Market.tsx` l. 86 se va (el texto `Team pays rent` lo dice); los de `HowToPlay.tsx` l. 32 y 49, decorativos y con `aria-hidden`, se quitan, porque el `h2` ya dice `Matches` y `Form`; `✓` y `✗` de `AdminNames.tsx` l. 243 pasan a `Chip` `good` y `bad`; `★` y `☆` de `Race.tsx` l. 875 pasan al icono `star-full` y `star-empty` dentro del `Button`; y el `⚠` de `RaceOrders.tsx` l. 422 pasa a `look for the warning below.`», cada uno en el PR de la cola larga de su página."
+  },
+  {
+    "id": "Rcodigo-006",
+    "seccion": "§3.8",
+    "linea": 344,
+    "gravedad": "baja",
+    "afirmacion": "`og-default.png`, `NATIONAL_SASH`, la tabla de choques",
+    "fallo": "Con D-00d la banda nacional ya no existe: §9.5 (l. 1762) dice «`NATIONAL_SASH`, su generador y sus sobrescrituras desaparecen» y §15.2 (l. 2820) la da por borrada. Lo que se genera del nacional son `flagCells.generated.ts` y `flagCells.generated.bin` (§9.5).",
+    "correccion": "Sustituir `NATIONAL_SASH` por «las celdas de banderas para medir (`packages/db/src/flagCells.generated.ts` y `.bin`)»."
+  },
+  {
+    "id": "Rcodigo-007",
+    "seccion": "§3.9",
+    "linea": 355,
+    "gravedad": "media",
+    "afirmacion": "`packages/shared/src/colorMath.ts`, fuera del barril (I-31)",
+    "fallo": "`packages/shared/package.json` (l. 8-13) solo publica `\".\"` en `exports`, así que un módulo fuera del barril no se puede importar por el nombre del paquete: `@cyclingstar/shared/colorMath` da `ERR_PACKAGE_PATH_NOT_EXPORTED` en Node y TS2307 con `moduleResolution` `NodeNext` o `Bundler` (`tsconfig.base.json`, `apps/web/tsconfig.json`). Lo importan `apps/web/src/tokens.test.ts`, `packages/db/src/kitDistance.ts` y la API (§3.9, §8.4), y el documento no dice cómo.",
+    "correccion": "Añadir tras la tabla de §3.9: «`packages/shared/package.json` gana en `exports` la entrada `\"./colorMath\": { \"types\": \"./dist/colorMath.d.ts\", \"default\": \"./dist/colorMath.js\" }`, y todos lo importan como `@cyclingstar/shared/colorMath` (paso 7)». Lo mismo para cualquier otro módulo de `shared` que el documento saque del barril."
+  },
+  {
+    "id": "Rcodigo-008",
+    "seccion": "§4",
+    "linea": 513,
+    "gravedad": "baja",
+    "afirmacion": "los maillots (`Kit`, `LeaderJersey`, `ChampionSash`, `WornJerseyIcon` y `KitPicker`) solo se listan en §4.11",
+    "fallo": "El nombre es `ChampionJersey` (9-g, l. 1886); la última fila de §4.11 (l. 869) repite `ChampionSash`.",
+    "correccion": "Cambiar `ChampionSash` por `ChampionJersey` aquí y en la primera columna de la última fila de §4.11 (l. 869)."
+  },
+  {
+    "id": "Rcodigo-009",
+    "seccion": "§4.2",
+    "linea": 561,
+    "gravedad": "media",
+    "afirmacion": "`ApiError` con `status` 404, `notFound`; con `status` 0 o cortada por tiempo, `network`; cualquier otra, `server`",
+    "fallo": "`api/request.ts` lanza más casos de los que la regla separa: `GateError extends ApiError` (l. 50-56), el 403 con la puerta del velo que `StageReport.tsx` l. 58 convierte en la puerta de E2 (`acta.error instanceof GateError`); el 429 con `retryAfterS` (l. 128-129), que E2 trata como espera y no como fallo (`domain/broadcast/player.ts` l. 330-332); y el 401 (`isUnauthorized`, l. 75). Con la regla escrita, `Report` pasado a `QueryView` en el PR 10 pintaría `Couldn't load the report` con `Error 403` en lugar de la puerta, y un 429 sería un error con `Try again`.",
+    "correccion": "Añadir a `errorKindOf` y a la tabla de §4.2: «`GateError` no es un error: `QueryView` lo pasa a una prop `gate?: (gate: StageGate) => ReactNode` y la página pinta `StageGate`; un `ApiError` 429 es `slow` y se repite solo a los `retryAfterS`; un 401 lo resuelve `SessionExpiryWatcher` y `QueryView` sigue con el esqueleto». `QueryView.test.tsx` gana los tres casos."
+  },
+  {
+    "id": "Rcodigo-010",
+    "seccion": "§4.3",
+    "linea": 614,
+    "gravedad": "baja",
+    "afirmacion": "readonly children: string",
+    "fallo": "La misma sección pide botones de solo icono («solo icono, 44 × 44», l. 598), y los usan §4.4 (`Account` como icono de 44 × 44), §4.7 (cerrar con `close`, 44 × 44) y §14.2 (`chevron-left` y `chevron-right` de solo icono con `ariaLabel`, l. 2681). Con `children: string` obligatorio no compilan sin un texto vacío o falso.",
+    "correccion": "Escribir `ButtonProps` como unión: `type ButtonProps = ButtonBase & ({ readonly children: string; readonly ariaLabel?: string } | { readonly children?: never; readonly icon: IconName; readonly ariaLabel: string })`, con el resto de las props en `ButtonBase`."
+  },
+  {
+    "id": "Rcodigo-011",
+    "seccion": "§4.6",
+    "linea": 736,
+    "gravedad": "baja",
+    "afirmacion": "(`00-encargo.md` §7.2, l. 265-266; D-00c)",
+    "fallo": "En `00-encargo.md` la frase de «siempre van juntos» y la del orden de la bandera, el nombre y el maillot están en las l. 266-267; la l. 265 es la anterior, la del maillot coloreado con la bandera.",
+    "correccion": "«(`00-encargo.md` §7.2, l. 266-267; D-00c)»."
+  },
+  {
+    "id": "Rcodigo-012",
+    "seccion": "§4.6",
+    "linea": 750,
+    "gravedad": "media",
+    "afirmacion": "readonly team?: { readonly name: string; readonly kit: KitCode } | null",
+    "fallo": "17-e (l. 3217) dice que §4.6 escribe el tipo final y que el 17a lo ensancha a `WornTeam | null` (§9.10, l. 1846-1848: `{ name, kit }` o `{ name, legacySeed }`). Con este tipo, la fila de una etapa grabada antes de la traducción (`kit` nulo y solo `legacySeed`, §8.6) no se puede pasar a `RiderLabel`, y el 9b (l. 3085) lo crea con `{ name, legacySeed }`, que este tipo tampoco admite.",
+    "correccion": "«readonly team?: WornTeam | null // de WornJerseyIcon.tsx (§9.10): { name, kit } o { name, legacySeed }», con `import type { WornTeam } from '../broadcast/WornJerseyIcon'`."
+  },
+  {
+    "id": "Rcodigo-013",
+    "seccion": "§4.6",
+    "linea": 751,
+    "gravedad": "media",
+    "afirmacion": "readonly worn?: WornJersey // el maillot que lleva ese día (§9.10); sin él, el del equipo",
+    "fallo": "En las tablas de clasificación no hay `WornJersey`: su variante de líder exige `delegated` y `from: StageRef` (`packages/shared/src/jerseys.ts` l. 183-195), y `Race.tsx` l. 220 y 256 y `StageReplay.tsx` l. 101 y 147 solo tienen `RaceLeaders` y `jerseyOf(leaders, riderId)`, un `JerseyKind`. Ninguna fila (`gcRowSchema`, `pointsEntrySchema`, `stageResultEntrySchema`; `contracts.ts` l. 485-528 y l. 1357-1380) trae un título de campeón. `RankTable` (§4.5) no puede dar a `RiderLabel` el maillot de líder sin inventar un `from`.",
+    "correccion": "Añadir a `RiderLabelProps`: «readonly leader?: JerseyKind | null // en las tablas, de jerseyOf(leaders, riderId); se pinta con LeaderJersey cuando no hay worn», y decir en §4.5 que en las tablas de resultados el maillot es `leader` o la equipación, y el de campeón solo donde llega `RiderCard.worn` (`Watch` y `Report`)."
+  },
+  {
+    "id": "Rcodigo-014",
+    "seccion": "§4.11",
+    "linea": 871,
+    "gravedad": "baja",
+    "afirmacion": "que es `28 | 40 | 48 | 72 | 96` (`KIT_PX` = `{ row: 28, card: 40, team: 48, page: 72, hero: 96 }`, D-00b)",
+    "fallo": "D-00g y §8.1 (l. 1425) amplían `KitSize` a `28 | 40 | 48 | 72 | 96 | 160 | 320` y `KIT_PX` con `showcase: 160` y `poster: 320` (§8.3 l. 1471; §15.2 l. 2791).",
+    "correccion": "«que es `28 | 40 | 48 | 72 | 96 | 160 | 320` (`KIT_PX` = `{ row: 28, card: 40, team: 48, page: 72, hero: 96, showcase: 160, poster: 320 }`, D-00b y D-00g; las dos grandes, desde el 17c)»."
+  },
+  {
+    "id": "Rcodigo-015",
+    "seccion": "§4",
+    "linea": 890,
+    "gravedad": "baja",
+    "afirmacion": "el blanco encima pasa de 6,57 a unos 7,6 (estimado: los canales sRGB por 0,9)",
+    "fallo": "Tailwind 4.3.3 compila `brightness-90` a `filter: … brightness(90%)` (comprobado con `__unstable__loadDesignSystem` sobre el tema de §3.9), y un `filter` oscurece el elemento entero, texto incluido. Medido con `<scratchpad>/venv`: blanco al 90 % sobre `bad` al 90 % da 6,09:1; los 7,64 solo saldrían si el texto no se filtrara. La razón baja, no sube.",
+    "correccion": "«el filtro oscurece también el texto: blanco al 90 % sobre `bad` al 90 %, 6,09:1 (medido), por encima de 4,5»."
+  },
+  {
+    "id": "Rcodigo-016",
+    "seccion": "§5.1",
+    "linea": 926,
+    "gravedad": "baja",
+    "afirmacion": "sobre el `@theme` de §3.11 con el cierre activo",
+    "fallo": "§3 llega a §3.10; el `@theme` entero está en §3.9 (l. 363-483).",
+    "correccion": "«sobre el `@theme` de §3.9 con el cierre activo»."
+  },
+  {
+    "id": "Rcodigo-017",
+    "seccion": "§5.1",
+    "linea": 928,
+    "gravedad": "media",
+    "afirmacion": "y la máscara del desvanecido de `Tabs`, `[mask-image:linear-gradient(to_right,black_calc(100%-1.5rem),transparent)]`. Ningún otro.",
+    "fallo": "La `ActionBar` va «fija, a `bottom` 56 px más el área segura (sobre la `BottomNav`) y a 0 desde 640» (§4.3, l. 599), y `UpdateToast` e `InstallHint` encima de ella (§4.7, §4.9). Con Tailwind 4.3.3 ese desplazamiento solo se escribe como arbitrario (`bottom-[calc(3.5rem+env(safe-area-inset-bottom))]` resuelve; `bottom-14` no suma el área segura), como hace hoy `App.tsx` l. 154 con `pb-[calc(3.5rem+env(safe-area-inset-bottom))]`. `vocabulario.test.ts` cuenta los arbitrarios de todo `apps/web/src`, `ui/` incluido (§5.2, l. 934 y 937), y falla con un fichero nuevo que tenga alguno: `ui/ActionBar.tsx` no podría entrar.",
+    "correccion": "Añadir a la lista y a 5-a: «`bottom-[var(--action-bar-bottom)]` y `bottom-[var(--toast-bottom)]`, dos variables que escribe el marco junto a `--fixed-bottom` (§4.9): `--action-bar-bottom` vale `calc(3.5rem + env(safe-area-inset-bottom))` por debajo de 640 y 0 desde 640, y `--toast-bottom`, eso más 60 px con la `ActionBar` visible». La lista pasa a siete valores, y §15.2 (`ARBITRARY_ALLOWED`) dice «los siete valores de §5.1»."
+  },
+  {
+    "id": "Rcodigo-018",
+    "seccion": "§5.3",
+    "linea": 975,
+    "gravedad": "baja",
+    "afirmacion": "un emoji en un texto o un literal (`\\u{1F300}` a `\\u{1FAFF}` y `\\u{2600}` a `\\u{27BF}`)",
+    "fallo": "Los glifos que §3.7 (l. 333-338) manda sustituir por iconos caen fuera de esos rangos: `ℹ` U+2139 (`RaceOrders.tsx` l. 718), `ⓘ` U+24D8, `▲` U+25B2, `▼` U+25BC, `↑` U+2191, `↓` U+2193, `↗` U+2197, `↘` U+2198 (los de `TREND_ARROWS`, `packages/shared/src/rider.ts` l. 271), `←` U+2190, `‹` U+2039, `›` U+203A y `⋯` U+22EF, y también el `↺` U+21BA de §10.5 (comprobado código a código con `python3`). La regla no los marca y el tema cerrado no los impide. Además, los selectores que §5.3 toma de `sistema` solo miran `JSXText` y `Literal` (`propuesta-sistema/tw/eslint.ui.mjs` l. 27-28), no `TemplateElement`: el `⚠` de `RaceOrders.tsx` l. 422, dentro de una plantilla, pasa.",
+    "correccion": "Ampliar la clase de `ui/10` a `[\\u{1F300}-\\u{1FAFF}\\u{2600}-\\u{27BF}\\u{2139}\\u{2190}\\u{2191}\\u{2193}\\u{2196}-\\u{2199}\\u{21BA}\\u{2039}\\u{203A}\\u{22EF}\\u{24D8}\\u{25B2}\\u{25BC}]` (sin `→` U+2192, que §3.7 conserva en `StageRoute`), con el mensaje `ui/10 emoji or glyph in the interface: use <Icon>`, con un tercer selector `TemplateElement[value.raw=…]` además de `JSXText` y `Literal`, y que el paso 8 recuente sus avisos de hoy."
+  },
+  {
+    "id": "Rcodigo-019",
+    "seccion": "§6.2",
+    "linea": 1079,
+    "gravedad": "baja",
+    "afirmacion": "el fondo `own-tint` (`ink` encima, 16,26)",
+    "fallo": "Medido: `ink` `#10202f` sobre `own-tint` `#fdf4dc` da 15,08:1 (`<scratchpad>/venv`, razón WCAG 2.x); 16,54 es sobre `surface`.",
+    "correccion": "«el fondo `own-tint` (`ink` encima, 15,08)»."
+  },
+  {
+    "id": "Rcodigo-020",
+    "seccion": "§6",
+    "linea": 1162,
+    "gravedad": "alta",
+    "afirmacion": "las columnas de 640 y de 1.024 de cada tabla son datos que la API ya manda (`gcRowSchema`, `stageResultEntrySchema`, `teamClassEntrySchema`, `hallOfFameRowSchema`, `countryRiderSchema`, `teamRiderSchema` y `ledgerEntrySchema`, `contracts.ts` l. 485-986): ninguna pide un campo nuevo",
+    "fallo": "Las columnas viajan, pero la identidad que §6.1 pone en cada fila no: `RiderLabel` lleva el dorsal y el maillot de 28 (l. 1022, y el dibujo de l. 1041), y ninguna fila de resultados trae `bib`; `pointsEntrySchema` (l. 522-528), que sirve a puntos y montaña (`Race.tsx` l. 241, `StageReplay.tsx` l. 124), no trae ni `teamId` ni `teamName`, así que «el equipo en el segundo renglón» no se puede pintar; `hallOfFameRowSchema` (l. 899-909) tampoco trae equipo y su dibujo (l. 1071) lleva maillot. Y `stageResultEntrySchema` está en l. 1357-1380, fuera del rango citado.",
+    "correccion": "Reescribir 6-d: «las columnas de 640 y de 1.024 ya viajan; la identidad no del todo: en el 12b `pointsEntrySchema` y `hallOfFameRowSchema` ganan `teamId` y `teamName` nulables, y el dorsal de las filas de carrera sale de la lista de salida por `riderId` (`bib`, `contracts.ts` l. 654-655); los esquemas están en `contracts.ts` l. 485-986 y l. 1357-1380». En el salón de la fama, sin carrera, el maillot es el del equipo actual por `teamId` (`GET /api/teams`)."
+  },
+  {
+    "id": "Rcodigo-021",
+    "seccion": "§7.1",
+    "linea": 1187,
+    "gravedad": "baja",
+    "afirmacion": "desde el paso 17 lo llevan `Kit`, `LeaderJersey` y `ChampionSash`",
+    "fallo": "El componente es `ChampionJersey` (9-g, l. 1886).",
+    "correccion": "«desde el paso 17 lo llevan `Kit`, `LeaderJersey` y `ChampionJersey`»."
+  },
+  {
+    "id": "Rcodigo-022",
+    "seccion": "§7.2",
+    "linea": 1199,
+    "gravedad": "media",
+    "afirmacion": "Se guarda con `actions/cache` y la clave `telefono-mundo-v1-` más la huella de `packages/db/drizzle/**`, `packages/engine/src/**` y `apps/web/e2e/world/build.mjs`",
+    "fallo": "El mundo lo construye el código de `packages/db/src` (`seedWorld`, `world.ts` l. 459; `runTick`, `tick.ts` l. 265; `train.ts`), que la clave no mira. El PR 17b mete `ensureKits` en el tick (§17.19, l. 3125) sin tocar `drizzle/` ni `engine/`: el mundo de la caché, el del 16a, se queda sin filas de `team_kits`, y como `serve.mjs` va «sin tick» (l. 1199) nunca se traducen; la prueba del teléfono mediría del 17b al 19c todos los equipos con `kit` nulo. Igual con cualquier cambio de `seedWorld` o del tick.",
+    "correccion": "Añadir a la clave la huella de `packages/db/src/{tick,world,train,kits,calendarRun,riderSchedule}.ts`; y en §17.1, regla 7, contar el 17b entre los PR que reconstruyen el mundo."
+  },
+  {
+    "id": "Rcodigo-023",
+    "seccion": "§8.1",
+    "linea": 1386,
+    "gravedad": "baja",
+    "afirmacion": "6,42 bajo el cuello",
+    "fallo": "El escote de `TORSO` (`Jersey.tsx` l. 10-11, `L32 8 Q24 12 16 8`) baja hasta y = 10 en x = 24 (punto medio de la cuadrática: 0,25 × 8 + 0,5 × 12 + 0,25 × 8), y el canesú llega a y = 19: bajo el cuello mide 9 u, 9 × 28 / 48 = 5,25 px. Los 6,42 px (11 u) son el grosor junto a los hombros, en y = 8.",
+    "correccion": "En la fila `yoke`: «5,25 bajo el cuello (9 u)»."
+  },
+  {
+    "id": "Rcodigo-024",
+    "seccion": "§8.1",
+    "linea": 1390,
+    "gravedad": "media",
+    "afirmacion": "`kitCodeSchema` es el `z.string()` que `parseKit` acepta",
+    "fallo": "Un `z.string()` con `refine` infiere `string`, no `KitCode`. Comprobado con el tsc 5.9.3 y el zod 4.4.3 del clon, con el bloque de `kit.ts` de esta sección: con `kit: kitCodeSchema.nullable()` en un contrato, `const c: KitCode | null = dato.kit` da TS2322 («Type 'string' is not assignable to type 'KitCode | null'»). `Kit` (`code: KitCode`, §8.3), `RiderLabel` (§4.6) y `WornTeam` (§9.10) no aceptarían lo que llega de la API sin un `as`.",
+    "correccion": "«`kitCodeSchema` es `z.custom<KitCode>((v) => typeof v === 'string' && parseKit(v) !== null)`, que infiere `KitCode` y pasa el serializador (sin `transform`; `z.safeEncode` lo acepta, comprobado)», y escribir esa línea en el bloque de `kit.ts` en lugar de nombrarla en el comentario de `parseKit`."
+  },
+  {
+    "id": "Rcodigo-025",
+    "seccion": "§8.1",
+    "linea": 1449,
+    "gravedad": "media",
+    "afirmacion": "export const kitVerdictSchema = z.strictObject({",
+    "fallo": "`KitVerdict` es una respuesta (`POST /api/teams/me/kit/check` «contesta un `KitVerdict`», §8.7). El serializador que monta la API, `fastify-type-provider-zod` 7.0.0, llama a `safeEncode(schema, data)` y lanza `ResponseSerializationError` si falla (`dist/cjs/core.cjs` l. 114-120): con `z.strictObject` una clave de más da un 500 en lugar de quitarse (medido con zod 4.4.3: `z.safeEncode(z.strictObject({ ok: z.boolean() }), { ok: true, extra: 1 })` falla y con `z.object` sale `{ ok: true }`). §13.3 (l. 2586) deja `.strict()` solo para las peticiones. Lo mismo vale para `teamRefSchema` y `conflictSchema`.",
+    "correccion": "Escribir `teamRefSchema`, `conflictSchema` y `kitVerdictSchema` con `z.object`; `.strict()` solo en `kitSchema` y en los cuerpos de `PUT /api/teams/me/kit` y `POST /api/teams/me/kit/check`."
+  },
+  {
+    "id": "Rcodigo-026",
+    "seccion": "§8.3",
+    "linea": 1469,
+    "gravedad": "baja",
+    "afirmacion": "props `{ code: KitCode; size: KitSize; teamName: string; surface?: KitSurface }`",
+    "fallo": "Faltan las props que piden las secciones siguientes: la vista (`KitView`; §8.10, l. 1585: «el tipo de `KitProps` no deja otra cosa» que `front` por debajo de 160), el culote (`BibStyle`, §8.10), el dorsal de la espalda (l. 1587) y `chest` (§9.9, l. 1826: «`Kit` gana la prop `chest?`»). `kitViews.test.tsx` comprueba que `back` y `bib` no compilan por debajo de 160 (l. 1600), y eso pide un tipo que no está escrito.",
+    "correccion": "Escribir en §8.3: `type KitProps = { readonly code: KitCode; readonly teamName: string; readonly surface?: KitSurface; readonly chest?: { readonly mark: string; readonly name: string } } & ({ readonly view?: 'front'; readonly size: KitSize } | { readonly view: 'back' | 'bib'; readonly size: KitBigSize; readonly bib: BibStyle; readonly number?: number })`."
+  },
+  {
+    "id": "Rcodigo-027",
+    "seccion": "§8.3",
+    "linea": 1477,
+    "gravedad": "baja",
+    "afirmacion": "`RiderJersey` (`Race.tsx` l. 220 y 256, `StageReplay.tsx` l. 101 y 147, `stageView.tsx` l. 98, `StageStory.tsx` l. 141, `StageCards.tsx` l. 110 y 292)",
+    "fallo": "`StageCards.tsx` l. 110 y 292 no usan `RiderJersey`: llaman directamente a `<LeaderJersey kind={r.jersey} size={15} />`. §9.10 (l. 1866) sí los da como `LeaderJersey`.",
+    "correccion": "«`RiderJersey` (`Race.tsx` l. 220 y 256, `StageReplay.tsx` l. 101 y 147, `stageView.tsx` l. 98, `StageStory.tsx` l. 141) y `LeaderJersey` directo (`StageCards.tsx` l. 110 y 292)»."
+  },
+  {
+    "id": "Rcodigo-028",
+    "seccion": "§8.4",
+    "linea": 1482,
+    "gravedad": "baja",
+    "afirmacion": "`kitDistance.test.ts` compara 50 pares fijos con el script de Python a 0,5 o menos.",
+    "fallo": "El CI no tiene Python: `.github/actions/setup/action.yml` solo instala pnpm y Node (l. 8 y 11), colour-science solo está en el `venv` del scratchpad, y `mapas/03-maillots-medida.py` vive en `docs/`. Tal como está escrito, el test no puede correr en el CI.",
+    "correccion": "«`kitDistance.test.ts` compara 50 pares fijos con `packages/db/src/__fixtures__/kitDistance.golden.json`, que escribe una vez `mapas/03-maillots-medida.py` (con su huella y la de la geometría en la cabecera), a 0,5 o menos»."
+  },
+  {
+    "id": "Rcodigo-029",
+    "seccion": "§8.4",
+    "linea": 1484,
+    "gravedad": "baja",
+    "afirmacion": "dos humanos que chocan no se fuerzan, y `kitWorld.bench.ts` los cuenta cada noche",
+    "fallo": "16-c (l. 2974) lo renombra `kitWorld.long.test.ts`, porque `vitest.config.ts` l. 7 solo recoge `*.test.{ts,tsx}` bajo `src/`: con este nombre no correría.",
+    "correccion": "«dos humanos que chocan no se fuerzan, y `kitWorld.long.test.ts` los cuenta cada noche»."
+  },
+  {
+    "id": "Rcodigo-030",
+    "seccion": "§8.5",
+    "linea": 1514,
+    "gravedad": "alta",
+    "afirmacion": "si salta el índice (23505) lanza `KitTakenError` con el equipo que lo lleva, que la ruta contesta como 409 `kit_ocupado`",
+    "fallo": "23505 es cualquier violación de unicidad, y `team_kits` tiene otra: su clave `(team_id, valid_from_day)` (l. 1507). Tomar un equipo escribe una fila `system` con el maillot vigente para mañana (§8.7, l. 1573) y la traducción escribe con `valid_from_day = currentDay + 1` (l. 1514); el primer cambio de maillot, que el documento declara libre (8-g), inserta otra fila del mismo equipo para el mismo día y salta la clave, no el índice: el mánager recibe `kit_ocupado` con su propio equipo. Igual si un patrocinio y un cambio caen el mismo día.",
+    "correccion": "«`setKit` escribe con `insert … on conflict (team_id, valid_from_day) do update set kit = excluded.kit, set_by = excluded.set_by, sponsor_deal_id = excluded.sponsor_deal_id`, y solo un 23505 con `constraint_name = 'teams_world_kit_uidx'` es `KitTakenError`»; `kits.test.ts` gana el caso «tomar un equipo y guardar maillot el mismo día da 200»."
+  },
+  {
+    "id": "Rcodigo-031",
+    "seccion": "§8.7",
+    "linea": 1573,
+    "gravedad": "baja",
+    "afirmacion": "429 `kit_reciente` (antes de `KIT_CHANGE_COOLDOWN_DAYS` = 28 días de juego, DD-09)",
+    "fallo": "Hoy el 429 es solo del límite de peticiones (`apps/api/src/security.ts` l. 10 y l. 20: «Un 429 lleva `retry-after`»), y ninguna ruta devuelve un 429 de dominio. La web lee `retry-after` de todo 429 (`api/request.ts` l. 128) y E2 trata un `ApiError` 429 como espera y no como fallo (`domain/broadcast/player.ts` l. 330-332). Una espera de 28 días de juego no es un límite de ritmo.",
+    "correccion": "«409 `kit_reciente`», y lo mismo en la fila de `apps/api/src/routes/kit.test.ts` de §16.2 (l. 2908)."
+  },
+  {
+    "id": "Rcodigo-032",
+    "seccion": "§9.8",
+    "linea": 1804,
+    "gravedad": "media",
+    "afirmacion": "`stageTables.test.tsx` sigue pasando con el maillot en cada fila, porque cuenta por etiqueta exacta y toma el primer enlace de la fila (l. 35-36 y 43-48; X-13, codigo C10)",
+    "fallo": "`wearers` (`apps/web/src/pages/stageTables.test.tsx` l. 43-48) saca el nombre con `/<a [^>]*>([^<]+)<\\/a>/`, un `<a>` cuyo contenido es solo texto. Con `RankTable` la celda de identidad entera es el enlace (§4.5, l. 675) y contiene la bandera, el nombre y el `<svg>` del maillot (`RiderLabel` con `link: false`, §4.6): la expresión no casa, devuelve `''` y fallan los `toEqual` de l. 100-102, 117, 141-142 y 153.",
+    "correccion": "«`stageTables.test.tsx` se re-sella en el 12b: `wearers` toma el nombre del nodo `data-ui=\"RiderLabel\"` de la fila (o del `aria-label` del enlace de identidad), con la causa escrita, y sigue contando por etiqueta exacta»."
+  },
+  {
+    "id": "Rcodigo-033",
+    "seccion": "§9.8",
+    "linea": 1804,
+    "gravedad": "baja",
+    "afirmacion": "la clasificación por equipos pinta el maillot de cada equipo con `Kit` a 28 px delante del nombre, donde hoy va la bandera (`TeamClassTable.tsx` l. 35; identidad §6.4)",
+    "fallo": "4-i (l. 891), §6.1 (l. 1023) y 17-h (l. 3220, «y no el maillot delante del nombre que dice §9.8») ponen el nombre y después el maillot, el orden de D-00c.",
+    "correccion": "«la clasificación por equipos pinta el nombre de cada equipo seguido de su `Kit` de 28 px, y quita la bandera (`TeamClassTable.tsx` l. 35; identidad §6.4)»."
+  },
+  {
+    "id": "Rcodigo-034",
+    "seccion": "§9.10",
+    "linea": 1858,
+    "gravedad": "baja",
+    "afirmacion": "`rgba(255,255,255,0.6)`, 6,55:1 sobre la noche (identidad §6.1)",
+    "fallo": "La «noche» de identidad es su `night` `#14213d` (`propuestas/identidad.md` l. 112), que no está en esta paleta. Medido sobre los fondos oscuros de este documento: 6,34:1 sobre `navy-dark` `#0b2740`, 5,30 sobre `navy` `#123a5c` y 3,21 sobre `bad` `#b42318`, que son los del rótulo (§14.5).",
+    "correccion": "«`rgba(255,255,255,0.6)`: 6,34:1 sobre `navy-dark`, 5,30 sobre `navy` y 3,21 sobre `bad` (medido)»."
+  },
+  {
+    "id": "Rcodigo-035",
+    "seccion": "§10.5",
+    "linea": 2029,
+    "gravedad": "baja",
+    "afirmacion": "**`↺ Back to Build`** (I-27): un `Button` `quiet` de 44 px en la fila de un día `Your edit`",
+    "fallo": "§3.7 saca los glifos del texto y da el icono `retry` (l. 334), y `ButtonProps` tiene `icon?: IconName` (l. 615). Con `↺` (U+21BA) dentro de `children`, el botón lleva un glifo que §3.7 no deja y que `ui/10` tampoco caza.",
+    "correccion": "«**`Back to Build`** (I-27): un `Button` `quiet` de 44 px con `icon=\"retry\"`», y lo mismo en `Back to team plan`, `Back to coach` y `Back to rest`, en 10-a y en el dibujo de §10.2."
+  },
+  {
+    "id": "Rcodigo-036",
+    "seccion": "§11.2",
+    "linea": 2148,
+    "gravedad": "media",
+    "afirmacion": "block: dayBlockSchema.strict().nullable(), // con source 'bloque'",
+    "fallo": "`ordersDaySchema`, `planPreviewDaySchema`, `planPreviewRaceSchema`, `planPreviewResponseSchema` y `dayBlockSchema` son esquemas de respuesta y llevan `.strict()`. El serializador valida con `safeEncode` y da un 500 ante una clave de más (`fastify-type-provider-zod` 7.0.0, `dist/cjs/core.cjs` l. 114-120; medido con zod 4.4.3: una respuesta con `raceName` de más contra el `.strict()` falla con `unrecognized_keys`, y con `z.object` sale sin ella). Eso apaga el quitar lo no declarado, que es el mecanismo de §13 (l. 2503 y 2586), y convierte cualquier campo de más de `getRiderUpcomingRaces` (l. 333-376, que trae `raceName`, `daysUntil` o `bib`) en un 500.",
+    "correccion": "Quitar `.strict()` de `dayBlockSchema`, `ordersDaySchema`, `planPreviewDaySchema`, `planPreviewRaceSchema` y `planPreviewResponseSchema`; dejarlo solo en `planPreviewRequestSchema` y en su `plan`."
+  },
+  {
+    "id": "Rcodigo-037",
+    "seccion": "§11.6",
+    "linea": 2264,
+    "gravedad": "baja",
+    "afirmacion": "fuera el `GD N` de `MyRaces.tsx` l. 205 y 230",
+    "fallo": "El segundo `GD` está en `MyRaces.tsx` l. 235 (`GD {race.startDay}`); la l. 230 es `onEnter: (id: string) => void`.",
+    "correccion": "«fuera el `GD N` de `MyRaces.tsx` l. 205 y 235»."
+  },
+  {
+    "id": "Rcodigo-038",
+    "seccion": "§11.7",
+    "linea": 2268,
+    "gravedad": "baja",
+    "afirmacion": "y `dashboardActions` da, en este orden (pantalla)",
+    "fallo": "En `apps/web/src/domain/dashboard.ts` no hay `dashboardActions`: la función es `buildDashboard(input: DashboardInputs): DashboardAction[]` (l. 54).",
+    "correccion": "«y `buildDashboard` (`dashboard.ts` l. 54) da, en este orden (pantalla)»."
+  },
+  {
+    "id": "Rcodigo-039",
+    "seccion": "§12.1",
+    "linea": 2337,
+    "gravedad": "baja",
+    "afirmacion": "\"url\": \"/world/races\",",
+    "fallo": "El sensor cuenta los arranques desde el manifiesto por `?source=` (`vitalsSchema.source`, `pwa` o `pwa-shortcut`, §12.8 l. 2459), y el atajo `Training` lleva `?source=pwa-shortcut` (l. 2332) pero `Races` no: sus arranques saldrían con `source` nulo, como una visita normal.",
+    "correccion": "«\"url\": \"/world/races?source=pwa-shortcut\",»."
+  },
+  {
+    "id": "Rcodigo-040",
+    "seccion": "§12.3",
+    "linea": 2373,
+    "gravedad": "media",
+    "afirmacion": "**`decide(request)`**, en `apps/web/sw/decide.js`",
+    "fallo": "La firma del bloque es `decide(request, origin)` (l. 2395). Y `decide.js` es un módulo (`export function`), mientras que `navigator.serviceWorker.register('/sw.js')` registra por defecto un script clásico, donde `import` y `export` son error de sintaxis; el documento no dice si `vite-plugin-sw.ts` mete `decide.js` dentro de `dist/sw.js` o si se registra con `{ type: 'module' }`.",
+    "correccion": "«**`decide(request, origin)`**, en `apps/web/sw/decide.js`; `vite-plugin-sw.ts` lo copia sin `export` dentro de `dist/sw.js`, que sigue siendo un script clásico, y `registerServiceWorker()` registra `/sw.js` sin `type`»."
+  },
+  {
+    "id": "Rcodigo-041",
+    "seccion": "§13.1",
+    "linea": 2497,
+    "gravedad": "baja",
+    "afirmacion": "(la marca de cuarto de banda bajo cada estrella, `AttributeList.tsx` l. 33-48)",
+    "fallo": "`ProgressMark` está en `AttributeList.tsx` l. 39-51, como dice §4.6 (l. 765); l. 33-38 es su comentario. El mismo rango sale en el comentario de `markSchema` (l. 2537).",
+    "correccion": "«`AttributeList.tsx` l. 39-51», aquí y en el comentario de `markSchema` (l. 2537)."
+  },
+  {
+    "id": "Rcodigo-042",
+    "seccion": "§13.2",
+    "linea": 2535,
+    "gravedad": "media",
+    "afirmacion": "/** La flecha de 28 días, en sus cinco niveles (trendArrow, rider.ts l. 286-292). */",
+    "fallo": "`trendArrow` devuelve `TrendArrow`, los glifos de `TREND_ARROWS = ['↓', '↘', '→', '↗', '↑']` (`packages/shared/src/rider.ts` l. 271-292), y la web compara esos glifos (`AttributeList.tsx` l. 53-70). Nada traduce un glifo a `sube_mucho`…`baja_mucho`, así que ni la ruta `/trend` sabe qué mandar ni la web qué pintar.",
+    "correccion": "Añadir en `rider.ts`: `export const TREND_ARROW_CODE = { '↑': 'sube_mucho', '↗': 'sube', '→': 'igual', '↘': 'baja', '↓': 'baja_mucho' } as const satisfies Record<TrendArrow, string>`, que usa la ruta `/trend` en el 19b, y escribir en 13-a que `AttributeList` pasa a leer el código y pinta el icono `trend` girado."
+  },
+  {
+    "id": "Rcodigo-043",
+    "seccion": "§13.3",
+    "linea": 2586,
+    "gravedad": "baja",
+    "afirmacion": "(`apps/api/src/routes/news.ts` l. 448; `contracts.ts` l. 766-773)",
+    "fallo": "No existe `apps/api/src/routes/news.ts` (las rutas son `admin`, `authProxy`, `broadcast`, `calendar`, `context`, `geo`, `health`, `me`, `params`, `races`, `rankings`, `riders`, `teams` y `world`). Las claves de más salen de `packages/db/src/news.ts` l. 446-448 (`rows.map((r) => ({ ...r, personal: false }))`) y las sirve `apps/api/src/routes/teams.ts` l. 152.",
+    "correccion": "«(`packages/db/src/news.ts` l. 446-448, servido en `apps/api/src/routes/teams.ts` l. 152; `contracts.ts` l. 766-773)»."
+  },
+  {
+    "id": "Rcodigo-044",
+    "seccion": "§14.5",
+    "linea": 2728,
+    "gravedad": "baja",
+    "afirmacion": "**El alto reservado** pasa de 72 px (`min-h-[72px]`, l. 45)",
+    "fallo": "En `CueCard.tsx` el `min-h-[72px]` está en la l. 46 y el `rounded-2xl` en la l. 48 (l. 45 es `return (`); esta sección cita l. 45 y l. 47, y la tabla de §14 (l. 2658), «72 px reservados (l. 45)».",
+    "correccion": "«(`min-h-[72px]`, l. 46)» y «`rounded-2xl` (l. 48)» en §14.5, y «72 px reservados (l. 46)» en la tabla de §14."
+  },
+  {
+    "id": "Rcodigo-045",
+    "seccion": "§14.5",
+    "linea": 2728,
+    "gravedad": "baja",
+    "afirmacion": "el secundario, en `ink-2` solo sobre `navy` y `navy-dark` (9,10 y 7,36, §3.3)",
+    "fallo": "Al revés: el blanco al 75 % da 9,10:1 sobre `navy-dark` `#0b2740` y 7,36 sobre `navy` `#123a5c` (§3.3, l. 280; re-medido: 9,11 y 7,35).",
+    "correccion": "«el secundario, en `ink-2` solo sobre `navy-dark` y `navy` (9,10 y 7,36, §3.3)»."
+  },
+  {
+    "id": "Rcodigo-046",
+    "seccion": "§15",
+    "linea": 2762,
+    "gravedad": "media",
+    "afirmacion": "las constantes, en la tabla de §15.2, que es la única del documento",
+    "fallo": "§9.1 (l. 1653-1691) y §8.10 (l. 1587-1613) definen constantes que §15.2 no recoge: `NATIONAL_STAR_SITES`, `NATIONAL_CODE` (con su propio `minPx: 72`), `TORSO_BACK`, `POCKETS`, `BIB`, `BIB_PANELS`, `BACK_NAME_BOX`, `BACK_NUMBER_BOX`, `BIB_STYLES` y `SPONSOR_ZONES`. 15-d (l. 2855) dice que, si §9 da constantes separadas, la tabla toma las suyas, y §9.1 las da, pero la fila de `KIT_SPONSOR_TEXT_MIN_PX` (l. 2811) sigue cubriendo las letras del país.",
+    "correccion": "Añadir a §15.2 una fila por cada una (fichero `packages/shared/src/kit.ts`; paso 16a las de §9.1 y 17c las de §8.10), y dejar la fila de `KIT_SPONSOR_TEXT_MIN_PX` solo para el nombre del patrocinador: las letras del país usan `NATIONAL_CODE.minPx` = 72."
+  },
+  {
+    "id": "Rcodigo-047",
+    "seccion": "§15.2",
+    "linea": 2808,
+    "gravedad": "media",
+    "afirmacion": "10 u en (24, 25) con filo de 1 u",
+    "fallo": "`NATIONAL_STAR` no tiene sitio fijo: §9.1 (l. 1669-1676) lo pone «en el primero de estos sitios que sea campo de su bandera», y el de por defecto es `high` [24, 14,8], bajo el cuello (9-i, l. 1888). (24, 25) es `center`, el último, que la regla da a 8 países (§9.5).",
+    "correccion": "«10 u con filo de 1 u, en el primero de `NATIONAL_STAR_SITES` que sea campo (`high` [24, 14,8] por defecto, §9.5)»."
+  },
+  {
+    "id": "Rcodigo-048",
+    "seccion": "§15.2",
+    "linea": 2812,
+    "gravedad": "media",
+    "afirmacion": "una entrada por cada uno de los 1.105 códigos; los 515 permitidos",
+    "fallo": "§8.1 (l. 1390), §8.6 (l. 1520) y §9.6 (l. 1772) dan 524 permitidos y 491 distintos, medidos con la estrella del nacional en su sitio (`<scratchpad>/redactor-L2/medir-nacional2.json`: `permitidos_tras_reservar` 524, `distintos_tras_reservar` 491). 515 es la medida anterior, sin esa regla (`medir28.json`: `permitidos_reservando_nacionales` 515). Si `kitConflicts.test.ts` fija la cifra de esta tabla, falla.",
+    "correccion": "«una entrada por cada uno de los 1.105 códigos; los 524 permitidos (491 distintos)»."
+  },
+  {
+    "id": "Rcodigo-049",
+    "seccion": "§16.2",
+    "linea": 2898,
+    "gravedad": "media",
+    "afirmacion": "`apps/web/src/domain/trainingPlan.test.ts` (nuevo)",
+    "fallo": "Ya existe (106 líneas) y prueba lo que el 14 cambia: `buildServerPlan`, `applyEdits`, `withEdit` y `adoptTeamSuggestions` (l. 3), y su caso de l. 58, «respeta las órdenes ya guardadas y rellena el resto con el plan del entrenador», fija el relleno con `defaultCoachPlan` de `trainingPlan.ts` l. 37.",
+    "correccion": "«`apps/web/src/domain/trainingPlan.test.ts` (ampliado)», y añadir a §16.3 la fila «`apps/web/src/domain/trainingPlan.test.ts` l. 15-104 | el plan semanal con el relleno de `defaultCoachPlan` | los días de `days[]` de `GET /orders` (`resolveTrainingDay`) | 14»."
+  },
+  {
+    "id": "Rcodigo-050",
+    "seccion": "§16.3",
+    "linea": 2931,
+    "gravedad": "alta",
+    "afirmacion": "`defaultCoachPlan`, que solo usaba la web (`trainingPlan.ts` l. 37) | se borran con la función, que el 14 deja sin ningún uso",
+    "fallo": "No la usa solo la web: el simulador del motor la importa y la llama (`packages/engine/src/sim/world.ts` l. 44 y l. 1093, `choice: defaultCoachPlan(gameDay, h.vocation)`, el plan del entrenador bot del mundo de los bancos; lo documentan l. 232 y 716). Borrarla rompe `packages/engine` y haría que el 14 tocara el motor, con sus ocho tramos de bancos, contra §17.1, regla 3.",
+    "correccion": "Cambiar la fila a: «`packages/shared/src/training.test.ts` l. 32-55 | `defaultCoachPlan` | no cambia: la función se queda porque la usa el simulador del motor (`packages/engine/src/sim/world.ts` l. 44 y 1093); el 14 solo quita su uso en la web (`trainingPlan.ts` l. 11 y 37) | 14»."
+  },
+  {
+    "id": "Rcodigo-051",
+    "seccion": "§16.4",
+    "linea": 2945,
+    "gravedad": "media",
+    "afirmacion": "(515 y 482 distintos)",
+    "fallo": "§8.1 (l. 1390) mide 524 permitidos y 491 distintos con la reserva de D-00h y la estrella en su sitio (`<scratchpad>/redactor-L2/medir-nacional2.json`); 515 y 482 son de `medir28.json`, la medida anterior.",
+    "correccion": "«(524 y 491 distintos)»."
+  },
+  {
+    "id": "Rcodigo-052",
+    "seccion": "§16.4",
+    "linea": 2946,
+    "gravedad": "media",
+    "afirmacion": "los 21 maillots frente a 17 nacionales",
+    "fallo": "§9.6 (l. 1772) mide 12 maillots frente a 10 nacionales (Baréin, Bielorrusia, China, Argelia, Kirguistán, Lituania, Marruecos, Montenegro, Omán y Portugal) con la estrella de §9.5 (`medir-nacional2.json`: `kits_a_menos_de_10_de_algun_nacional` 12). 21 y 17 son de `medir28.json`, sin la regla de la estrella.",
+    "correccion": "«los 12 maillots frente a 10 nacionales»."
+  },
+  {
+    "id": "Rcodigo-053",
+    "seccion": "§17.1",
+    "linea": 2994,
+    "gravedad": "baja",
+    "afirmacion": "es decir en los PR 13a, 13b, 16a, 19c y 23 (y en el 1, si se fusiona después del 2)",
+    "fallo": "El 17b cambia el mundo que construye `build.mjs` (mete `ensureKits` en el tick, §17.19 l. 3125) y no está en la lista; con la clave de §7.2 tampoco lo reconstruye (ver el hallazgo de §7.2).",
+    "correccion": "Con la clave ampliada de §7.2: «es decir en los PR 13a, 13b, 16a, 17b, 19c y 23, y en los que toquen `packages/db/src/{tick,world,train,kits,calendarRun,riderSchedule}.ts` (y en el 1, si se fusiona después del 2)»."
+  },
+  {
+    "id": "Rcodigo-054",
+    "seccion": "§17.8",
+    "linea": 3071,
+    "gravedad": "alta",
+    "afirmacion": "`flag-icons` sale de `main.tsx` l. 9 y de `package.json`",
+    "fallo": "Lo siguen necesitando tres piezas del documento: `apps/web/scripts/flag-sprite.mjs` saca el sprite y las celdas de los SVG de `flag-icons` (§12.7, §9.5); `flagCells.generated.ts` lleva «la huella SHA-256 de `flag-icons` y del script» (l. 1762), que `generados.test.ts` recalcula; y desde 72 px el nacional pinta «el SVG 4x3 de `flag-icons` de su país, cargado solo cuando se pinta» (9-l, l. 1762). Hoy es una dependencia de la web (`apps/web/package.json` l. 18, `^7.5.0`); sin ella, un `pnpm install` limpio deja sin entradas al generador y al test de huellas.",
+    "correccion": "«`flag-icons` sale de `main.tsx` l. 9 y pasa a `devDependencies` de `apps/web/package.json`, versión exacta `7.5.0`; `flag-sprite.mjs` copia también los 133 SVG 4x3 a `apps/web/src/assets/flags/` con su huella, y `ChampionJersey` los carga con `import.meta.glob` (9-l)»."
+  },
+  {
+    "id": "Rcodigo-055",
+    "seccion": "§17.11",
+    "linea": 3085,
+    "gravedad": "baja",
+    "afirmacion": "`LegacyJersey` en `ui/legacyJersey.ts`",
+    "fallo": "`LegacyJersey` es el componente SVG de `Jersey.tsx` l. 17-54, con JSX: en un `.ts` no compila (`apps/web/tsconfig.json` da `\"jsx\": \"react-jsx\"`, que solo vale en `.tsx`), y §3.9 pide un componente por fichero con su `.test.tsx`.",
+    "correccion": "«`LegacyJersey` en `ui/LegacyJersey.tsx`, con `ui/LegacyJersey.test.tsx`»."
+  },
+  {
+    "id": "Rcodigo-056",
+    "seccion": "§17.14",
+    "linea": 3099,
+    "gravedad": "media",
+    "afirmacion": "`stageTables.test.tsx` sigue pasando y `leaderJerseys.test.tsx` l. 81-88 sigue sellando que no hay dorsal",
+    "fallo": "Como en §9.8: `wearers` (`stageTables.test.tsx` l. 43-48) exige un `<a>` con solo texto, y la celda de identidad de `RankTable` enlaza con la bandera, el nombre y el `<svg>` dentro; el test falla en el 12b.",
+    "correccion": "«`stageTables.test.tsx` se re-sella (su `wearers` lee el nombre del nodo `data-ui=\"RiderLabel\"`) y `leaderJerseys.test.tsx` l. 81-88 sigue sellando que no hay dorsal»."
+  },
+  {
+    "id": "Rcodigo-057",
+    "seccion": "§17.14",
+    "linea": 3099,
+    "gravedad": "alta",
+    "afirmacion": "las filas no lo traen (`gcRowSchema` y `stageResultEntrySchema` solo llevan `teamId` y `teamName`, `contracts.ts` l. 493-507, y `teamClassEntrySchema` ni eso, l. 541-552)",
+    "fallo": "No casa con `contracts.ts`: `teamClassEntrySchema` sí lleva `teamId` y `teamName` (l. 542-543); `stageResultEntrySchema` está en l. 1357-1380 (su `teamId`, l. 1365); y falta `pointsEntrySchema` (l. 522-528), la de puntos y montaña (`Race.tsx` l. 241, `StageReplay.tsx` l. 124), que no lleva ni `teamId` ni `teamName`, igual que `hallOfFameRowSchema` (l. 899-909). En esas tablas «la tabla lo toma por `teamId`» no funciona, y ninguna fila trae el dorsal que «Ve el dueño» promete.",
+    "correccion": "«las filas de general y de etapa llevan `teamId` (`contracts.ts` l. 494 y l. 1365) y la de equipos el suyo (l. 542); `pointsEntrySchema` (l. 522-528) y `hallOfFameRowSchema` (l. 899-909) no llevan equipo y ganan en este PR `teamId` y `teamName` nulables; el dorsal sale de la lista de salida por `riderId` (`bib`, l. 654-655)»."
+  },
+  {
+    "id": "Rcodigo-058",
+    "seccion": "§17.16",
+    "linea": 3109,
+    "gravedad": "media",
+    "afirmacion": "`apps/web/src/domain/trainingPlan.test.ts` (nuevo, con las funciones puras de §10",
+    "fallo": "El fichero existe (106 líneas) y su caso de l. 58 fija el relleno con `defaultCoachPlan` que el 14 quita: el PR lo amplía y lo re-sella, no lo crea.",
+    "correccion": "«`apps/web/src/domain/trainingPlan.test.ts` (ampliado, con sus casos de l. 15-104 re-sellados contra `days[]` y con las funciones puras de §10»."
+  },
+  {
+    "id": "Rcodigo-059",
+    "seccion": "§17.16",
+    "linea": 3109,
+    "gravedad": "alta",
+    "afirmacion": "y fuera `defaultCoachPlan` con sus casos de `training.test.ts` l. 32-55, que ya no usa nadie",
+    "fallo": "La usa el motor: `packages/engine/src/sim/world.ts` l. 44 (la importa) y l. 1093 (`choice: defaultCoachPlan(gameDay, h.vocation)`). Borrarla rompe el simulador de los bancos y obliga al 14 a tocar `packages/engine/`, que §17.1, regla 3, reserva al 13b.",
+    "correccion": "«y fuera el uso de `defaultCoachPlan` en `apps/web/src/domain/trainingPlan.ts` (l. 11 y 37); la función y `training.test.ts` l. 32-55 se quedan, porque la usa `packages/engine/src/sim/world.ts` l. 1093»."
+  },
+  {
+    "id": "Rcodigo-060",
+    "seccion": "§17.17",
+    "linea": 3113,
+    "gravedad": "baja",
+    "afirmacion": "fuera el `GD` de `MyRaces.tsx` l. 205 y 230",
+    "fallo": "El segundo `GD` está en la l. 235; la l. 230 es `onEnter: (id: string) => void`.",
+    "correccion": "«fuera el `GD` de `MyRaces.tsx` l. 205 y 235»."
+  },
+  {
+    "id": "Rcodigo-061",
+    "seccion": "§17.23",
+    "linea": 3149,
+    "gravedad": "baja",
+    "afirmacion": "**21f** `Account.tsx` (81, con `Install app`), **21g** `RaceOrders.tsx` (75, con `Rain`, `Showers` y `Dry`, y al catálogo sin cambiar lo que pesa cada orden, H-08), **21h** `Home.tsx` (70), **21i** `TeamSquad.tsx` (68)",
+    "fallo": "Son cifras de `sistema`, con sus tokens, y su orden no es el de la deuda que nace en `deuda.json`. Re-medido con `<scratchpad>/redactor-L1/cierre-sistema.mjs` sobre el `@theme` de §3.9 cerrado (la misma pasada de §5.1: 2.740 de 6.322, 183 clases): `Account.tsx` 93, `Home.tsx` 86, `RiderProfile.tsx` 82, `RaceOrders.tsx` 80, `Training.tsx` 80, `AdminPanel.tsx` 76, `PlanLadder.tsx` 72 y `TeamSquad.tsx` 72; `RiderProfile.tsx` ni aparece en la lista.",
+    "correccion": "«**21f** `Account.tsx` (93, con `Install app`), **21g** `Home.tsx` (86), **21h** `RiderProfile.tsx` (82), **21i** `RaceOrders.tsx` (80, con `Rain`, `Showers` y `Dry`, y al catálogo sin cambiar lo que pesa cada orden, H-08)», `TeamSquad.tsx` (72) y `AdminPanel.tsx` (76) al 21j, y «las nueve primeras con la medida de §5.1» (`Training.tsx` y `PlanLadder.tsx` los migra el 14)."
+  },
+  {
+    "id": "Rcodigo-062",
+    "seccion": "§17.26",
+    "linea": 3161,
+    "gravedad": "baja",
+    "afirmacion": "`docs/retransmision.md` l. 4869, 12493, 12884, 13055 y 13440 (el dorsal)",
+    "fallo": "`docs/retransmision.md` l. 12493 es la política de `aria-live` de D-57 y no habla del dorsal; las líneas del dorsal amarillo son 4869, 12884, 12993, 13055 y 13440 (`grep -n \"dorsal amarillo\"`).",
+    "correccion": "«`docs/retransmision.md` l. 4869, 12884, 12993, 13055 y 13440 (el dorsal)»."
+  },
+  {
+    "id": "Rcodigo-063",
+    "seccion": "§17",
+    "linea": 3221,
+    "gravedad": "media",
+    "afirmacion": "Ninguna fila de resultados gana un campo, como quería 6-d",
+    "fallo": "`pointsEntrySchema` (`contracts.ts` l. 522-528) y `hallOfFameRowSchema` (l. 899-909) no llevan `teamId`, así que su maillot no se encuentra por `teamId`; y el dorsal no viaja en ninguna fila de resultados (ver los hallazgos de §6, 6-d, y de §17.14).",
+    "correccion": "«`pointsEntrySchema` y `hallOfFameRowSchema` ganan `teamId` y `teamName` nulables en el 12b; las demás filas no ganan campo; el dorsal se toma de la lista de salida por `riderId`»."
+  },
+  {
+    "id": "Rcodigo-064",
+    "seccion": "§18.2",
+    "linea": 3260,
+    "gravedad": "media",
+    "afirmacion": "21 maillots de equipo quedan a menos de 10 de 17 nacionales a 28 px",
+    "fallo": "§9.6 (l. 1772), con la estrella de §9.5: 12 maillots frente a 10 nacionales (`<scratchpad>/redactor-L2/medir-nacional2.json`). 21 y 17 son de `medir28.json`, la medida sin la regla.",
+    "correccion": "«12 maillots de equipo quedan a menos de 10 de 10 nacionales a 28 px»."
+  },
+  {
+    "id": "Rcodigo-065",
+    "seccion": "§18.2",
+    "linea": 3262,
+    "gravedad": "baja",
+    "afirmacion": "219 × 515 distancias a 28 px",
+    "fallo": "§8.6 (l. 1520) cuenta «219 × 524 distancias»: los permitidos son 524 (§8.1, l. 1390).",
+    "correccion": "«219 × 524 distancias a 28 px»."
+  },
+  {
+    "id": "Rcodigo-066",
+    "seccion": "§19.2",
+    "linea": 3317,
+    "gravedad": "media",
+    "afirmacion": "21 maillots de equipo se reservan por 17 banderas (D-00h)",
+    "fallo": "§9.6 mide 12 maillots y 10 banderas con la estrella de §9.5 (`<scratchpad>/redactor-L2/medir-nacional2.json`: `kits_a_menos_de_10_de_algun_nacional` 12; `nacionales_con_kit_bajo_10`, 10 países). La cifra de aquí y el paréntesis de D-00h en `00-decisiones.md` («los 21 que mide §9 frente a 17 nacionales, entre ellos `plain.red`, `plain.green`, `plain.teal` y `plain.taupe`») son de `medir28.json`, la medida anterior: `plain.teal` y `plain.taupe` ya no están en la lista de §9.6.",
+    "correccion": "«12 maillots de equipo se reservan por 10 banderas (D-00h)», y actualizar el paréntesis de D-00h en `00-decisiones.md` con esa medida («los 12 que mide §9 frente a 10 nacionales, entre ellos `plain.red` y `plain.green`»), con `medir-nacional2.json` como evidencia nueva."
+  },
+  {
+    "id": "Rcodigo-067",
+    "seccion": "§19.2",
+    "linea": 3318,
+    "gravedad": "media",
+    "afirmacion": "515 maillots permitidos y 482 distintos para 219 equipos, a 28 px (§8.1)",
+    "fallo": "§8.1 (l. 1390) dice 524 y 491, que es lo que mide `<scratchpad>/redactor-L2/medir-nacional2.json`; 515 y 482 son de `medir28.json`, la medida anterior.",
+    "correccion": "«524 maillots permitidos y 491 distintos para 219 equipos, a 28 px (§8.1)»."
+  },
+  {
+    "id": "Rcodigo-068",
+    "seccion": "§20.5",
+    "linea": 3571,
+    "gravedad": "baja",
+    "afirmacion": "`LegacyJersey` en `ui/legacyJersey.ts` (§8, duda 2)",
+    "fallo": "Es un componente con JSX en un `.ts`: no compila con `\"jsx\": \"react-jsx\"` (`apps/web/tsconfig.json`), que solo vale en `.tsx`.",
+    "correccion": "«`LegacyJersey` en `ui/LegacyJersey.tsx` (§8, duda 2)»."
+  }
+]

@@ -125,3 +125,65 @@ lo mismo que el andamio de arriba: rehacerlos costaría todo el análisis otra v
   y la resolución cruzada. Su contenido está fundido en `resultado-final.json`.
 - **Las instrucciones de cada fase y el estado del proceso**: `01-fase-propuestas.md` a
   `05-fase-auditoria.md` y `ESTADO.md`.
+
+## `e3-visual/`: el material del sistema visual (E3)
+
+**El documento final ya está escrito y vive fuera de aquí**: `docs/visual.md` (3.973 líneas, del
+22 de octubre de 2026). Es el diseño de E3, **sin implementar**: el dueño contestó todas sus decisiones
+(la §19 del documento; las últimas, el 25 de octubre), y el código no se abre hasta que él lo diga. Este
+directorio es lo que se leyó, se midió y se escribió para redactarlo, y se parte en dos por su destino,
+como los de arriba.
+
+### Cómo se llegó
+
+Cinco mapas del código, de los documentos y de las pantallas (`mapas/`), con 98 capturas a 360 y a
+1.280 px sobre la API local con un mundo de PGlite (`capturas/`) → cuatro propuestas independientes
+(`telefono`, `sistema`, `identidad` y `lectura`) → tres jueces con focos distintos (el código y el
+coste; la cobertura y la fidelidad al dueño; la ejecutabilidad y la experiencia en el teléfono),
+**unánimes por `telefono`** (96,5 de 120, frente a 87,5 de `sistema`), con los **34 injertos** que
+pidieron → un esqueleto con glosario y 59 decisiones cerradas, y tres redactores por lotes → **la
+página de opciones** (`opciones/index.html`), donde el dueño decidió el gusto mirando, cada opción en
+visión normal, en las tres dicromacias y en grises, y añadió 17 decisiones suyas (`D-00a` a `D-00q`),
+entre ellas quitar la web instalable porque hará una app → **tres refutadores adversarios** (código,
+cobertura y uso) que sacaron **162 hallazgos**, 21 de ellos altos → **tres correctores**, uno por
+lote, con 58 cruzadas a las secciones de otros lotes → una pasada de coherencia → **dos auditores**
+que volvieron a mirar cada hallazgo, cada cruzada y sus propias comprobaciones contra el texto:
+**262 veredictos** → el cierre, que fundió las auditorías en el resultado final y escribió
+la cabecera → el ensamblado, con `borrador/ensamblar.sh --final --comprobar`. De los 162 hallazgos,
+158 están aplicados enteros y 4 desestimados, ninguno en parte; lo
+desestimado, con su porqué, está en el apéndice B (§20.2) del documento, y el recuento, en su §0.7.
+
+### Lo que se queda: material citado
+
+El documento nombra estos ficheros por sus identificadores o los da como fuente de sus cifras, y sin
+ellos no llevarían a ninguna parte. Se quedan mientras `docs/visual.md` sea el diseño que manda.
+
+| Fichero                                                          | Qué es                                                                                                                                                                                                                                                    | Quién lo cita                                                                                |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `mapas/01..05-*.md` y `03-maillots-medida.py`                    | Los cinco mapas: la web y su sistema visual (01), el examen práctico y la frontera (02), los maillots con su medida de daltonismo (03), el corpus del dueño con [DUEÑO 1] a [DUEÑO 26], [DOC 1] a [DOC 53] y 23 contradicciones (04) y las pantallas (05) | el documento, a cada paso («mapa 05 §12»)                                                    |
+| `capturas/`                                                      | Las 98 capturas de hoy a 360 y a 1.280 px, con sus medidas (`medidas.json`), la primera pintura simulada (`pintura.json`) y los scripts que las rehacen                                                                                                   | §1 y once secciones más («captura 09»)                                                       |
+| `juicios/veredicto.json`                                         | La consolidación de los tres juicios: el cálculo de la ganadora, los 34 injertos, las 33 objeciones, los 21 huecos, las 26 contradicciones de hecho y las cuatro decisiones de gusto                                                                      | los bloques de cierre de cada sección y §20, que trazan cada `I-nn`, `O-nn`, `H-nn` y `X-nn` |
+| `juicios/codigo.md`, `cobertura.md` y `uso.md` (con sus `.json`) | Los tres juicios, con sus comprobaciones en el código, de donde salen muchas cifras medidas                                                                                                                                                               | «juez de cobertura, C7» y similares                                                          |
+| `opciones/index.html` y `opciones/medidas.py`                    | La página de opciones que vio el dueño, en su versión 6, y su rasterizador con Chromium y la simulación de daltonismo, que usan también los scripts de `medidas/`                                                                                         | §3, §8, §9 y §19.3                                                                           |
+| `medidas/`                                                       | Los scripts del scratchpad que el documento da como fuente de sus cifras (la reserva por las banderas, los 491 maillots permitidos, el modo oscuro, la deuda de 2.740), con sus salidas y un README de cómo se vuelven a correr                           | §3, §4, §5, §8, §9, §10, §17 y §19                                                           |
+| `refutaciones/resultado-final.json`                              | El detalle de los 162 hallazgos, uno a uno, con sus entradas de corrección y sus veredictos de auditoría, y los recuentos por gravedad, por foco y por sección                                                                                            | §0.7, y cada `Rcodigo-nnn`, `Rcobertura-nnn` y `Ruso-nnn` del texto                          |
+| `borrador/00-decisiones.md`                                      | Las 59 decisiones que cerró la síntesis (`D-01` a `D-59`) y las 17 del dueño (`D-00a` a `D-00q`), que mandan sobre ellas, con su evidencia y sus descartes                                                                                                | el documento escribe cada `D-nn` como hecho                                                  |
+| `00-encargo.md`                                                  | El encargo que leyó cada agente, resumido en ocho puntos, y en su §7 las palabras del dueño durante el diseño, con su fecha                                                                                                                               | §0, §9, §19 y cada cita del dueño                                                            |
+
+### Lo que es andamio: se puede borrar sin romper nada
+
+El documento no remite a ellos para leerse: lo que tomó de cada uno está escrito en él. Se guardan por
+lo mismo que el andamio de arriba: rehacerlos costaría todo el análisis otra vez.
+
+- **Las cuatro propuestas** (`propuestas/`), la ganadora antes de los injertos y las otras tres. El
+  documento las nombra como origen de una idea, de una cifra o de un descarte (`telefono §6.1`), pero
+  escribe lo que toma de ellas.
+- **`borrador/` menos `00-decisiones.md`**: el esqueleto y el glosario de la síntesis, los veintiún
+  ficheros de sección, los ensamblados `visual-v0.md` y `-v1.md` y `dudas.md`. Las secciones y
+  `ensamblar.sh` regeneran el documento final (`--final --comprobar`), pero el documento no depende de
+  ellos.
+- **El resto de `refutaciones/`**: los hallazgos de los tres refutadores y su reparto por lotes
+  (`hallazgos-*.json`, `por-lote/`), las correcciones, las cruzadas, la coherencia y las tres
+  auditorías. Su contenido está fundido en `resultado-final.json`.
+- **Las instrucciones de cada fase y el estado del proceso**: `00-fase-mapas.md`,
+  `01-fase-propuestas.md` a `05-fase-auditoria.md` y `ESTADO.md`.

@@ -1,0 +1,6498 @@
+{
+  "chromium": "141.0.7390.37",
+  "paises": {
+    "ES": {
+      "nombre": "Spain",
+      "sitios": {
+        "high": {
+          "dominante": "#aa151b",
+          "disco": "#aa151b",
+          "cubre": 0.341,
+          "campo": false,
+          "oro_normal": 47.3,
+          "blanco_normal": 57.2
+        },
+        "right": {
+          "dominante": "#aa151b",
+          "disco": "#aa151b",
+          "cubre": 0.298,
+          "campo": false,
+          "oro_normal": 47.3,
+          "blanco_normal": 57.2
+        },
+        "left": {
+          "dominante": "#aa151b",
+          "disco": "#aa151b",
+          "cubre": 0.298,
+          "campo": false,
+          "oro_normal": 47.3,
+          "blanco_normal": 57.2
+        },
+        "center": {
+          "dominante": "#f1bf00",
+          "disco": "#f1bf00",
+          "cubre": 0.167,
+          "campo": false,
+          "oro_normal": 8.2,
+          "blanco_normal": 31.5
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": true,
+      "se_lee": 33.9,
+      "letras": {
+        "dominante": "#aa151b",
+        "relleno": "#ffffff",
+        "wcag": 7.41
+      }
+    },
+    "FR": {
+      "nombre": "France",
+      "sitios": {
+        "high": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.009,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "right": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.5,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "left": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.5,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "center": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 76.7,
+      "letras": {
+        "dominante": "#ffffff",
+        "relleno": "#0b2740",
+        "wcag": 15.23
+      }
+    },
+    "IT": {
+      "nombre": "Italy",
+      "sitios": {
+        "high": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.009,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "right": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.5,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "left": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.5,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "center": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 76.7,
+      "letras": {
+        "dominante": "#ffffff",
+        "relleno": "#0b2740",
+        "wcag": 15.23
+      }
+    },
+    "BE": {
+      "nombre": "Belgium",
+      "sitios": {
+        "high": {
+          "dominante": "#ffd90c",
+          "disco": "#ffd90c",
+          "cubre": 0.017,
+          "campo": true,
+          "oro_normal": 14.8,
+          "blanco_normal": 30.3
+        },
+        "right": {
+          "dominante": "#ffd90c",
+          "disco": "#ffd90c",
+          "cubre": 0.5,
+          "campo": false,
+          "oro_normal": 14.8,
+          "blanco_normal": 30.3
+        },
+        "left": {
+          "dominante": "#ffd90c",
+          "disco": "#ffd90c",
+          "cubre": 0.5,
+          "campo": false,
+          "oro_normal": 14.8,
+          "blanco_normal": 30.3
+        },
+        "center": {
+          "dominante": "#ffd90c",
+          "disco": "#ffd90c",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 14.8,
+          "blanco_normal": 30.3
+        }
+      },
+      "sitio": "high",
+      "relleno": "navy",
+      "revisar": false,
+      "se_lee": 72.2,
+      "letras": {
+        "dominante": "#ffd90c",
+        "relleno": "#0b2740",
+        "wcag": 11.01
+      }
+    },
+    "NL": {
+      "nombre": "Netherlands",
+      "sitios": {
+        "high": {
+          "dominante": "#ae1c28",
+          "disco": "#ae1c28",
+          "cubre": 0.07,
+          "campo": true,
+          "oro_normal": 47.5,
+          "blanco_normal": 55.6
+        },
+        "right": {
+          "dominante": "#ae1c28",
+          "disco": "#ae1c28",
+          "cubre": 0.048,
+          "campo": true,
+          "oro_normal": 47.5,
+          "blanco_normal": 55.6
+        },
+        "left": {
+          "dominante": "#ae1c28",
+          "disco": "#ae1c28",
+          "cubre": 0.048,
+          "campo": true,
+          "oro_normal": 47.5,
+          "blanco_normal": 55.6
+        },
+        "center": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 32.1,
+      "letras": {
+        "dominante": "#21468b",
+        "relleno": "#ffffff",
+        "wcag": 9.08
+      }
+    },
+    "GB": {
+      "nombre": "United Kingdom",
+      "sitios": {
+        "high": {
+          "dominante": "#c8102e",
+          "disco": "#c8102e",
+          "cubre": 0.179,
+          "campo": false,
+          "oro_normal": 46.0,
+          "blanco_normal": 52.0
+        },
+        "right": {
+          "dominante": "#ffffff",
+          "disco": "#c8102e",
+          "cubre": 0.684,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "left": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.465,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "center": {
+          "dominante": "#c8102e",
+          "disco": "#c8102e",
+          "cubre": 0.013,
+          "campo": true,
+          "oro_normal": 46.0,
+          "blanco_normal": 52.0
+        }
+      },
+      "sitio": "center",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 26.6,
+      "letras": {
+        "dominante": "#c8102e",
+        "relleno": "#ffffff",
+        "wcag": 5.88
+      }
+    },
+    "DE": {
+      "nombre": "Germany",
+      "sitios": {
+        "high": {
+          "dominante": "#000001",
+          "disco": "#000001",
+          "cubre": 0.061,
+          "campo": true,
+          "oro_normal": 65.4,
+          "blanco_normal": 100.0
+        },
+        "right": {
+          "dominante": "#000001",
+          "disco": "#000001",
+          "cubre": 0.031,
+          "campo": true,
+          "oro_normal": 65.4,
+          "blanco_normal": 100.0
+        },
+        "left": {
+          "dominante": "#000001",
+          "disco": "#000001",
+          "cubre": 0.031,
+          "campo": true,
+          "oro_normal": 65.4,
+          "blanco_normal": 100.0
+        },
+        "center": {
+          "dominante": "#ff0000",
+          "disco": "#ff0000",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 36.9,
+          "blanco_normal": 45.8
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 59.4,
+      "letras": {
+        "dominante": "#ffcc00",
+        "relleno": "#0b2740",
+        "wcag": 10.08
+      }
+    },
+    "PT": {
+      "nombre": "Portugal",
+      "sitios": {
+        "high": {
+          "dominante": "#ff0000",
+          "disco": "#ff0000",
+          "cubre": 0.083,
+          "campo": true,
+          "oro_normal": 37.0,
+          "blanco_normal": 45.8
+        },
+        "right": {
+          "dominante": "#ff0000",
+          "disco": "#ff0000",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 36.9,
+          "blanco_normal": 45.8
+        },
+        "left": {
+          "dominante": "#006600",
+          "disco": "#006600",
+          "cubre": 0.193,
+          "campo": false,
+          "oro_normal": 46.8,
+          "blanco_normal": 56.2
+        },
+        "center": {
+          "dominante": "#fe0000",
+          "disco": "#ff0000",
+          "cubre": 0.627,
+          "campo": false,
+          "oro_normal": 37.0,
+          "blanco_normal": 45.9
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 31.2,
+      "letras": {
+        "dominante": "#ff0000",
+        "relleno": "#ffffff",
+        "wcag": 4.0
+      }
+    },
+    "DK": {
+      "nombre": "Denmark",
+      "sitios": {
+        "high": {
+          "dominante": "#c8102e",
+          "disco": "#c8102e",
+          "cubre": 0.118,
+          "campo": true,
+          "oro_normal": 46.0,
+          "blanco_normal": 52.0
+        },
+        "right": {
+          "dominante": "#c8102e",
+          "disco": "#c8102e",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 46.0,
+          "blanco_normal": 52.0
+        },
+        "left": {
+          "dominante": "#ffffff",
+          "disco": "#c8102e",
+          "cubre": 0.456,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "center": {
+          "dominante": "#ffffff",
+          "disco": "#c8102e",
+          "cubre": 0.412,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 26.6,
+      "letras": {
+        "dominante": "#c8102e",
+        "relleno": "#ffffff",
+        "wcag": 5.88
+      }
+    },
+    "NO": {
+      "nombre": "Norway",
+      "sitios": {
+        "high": {
+          "dominante": "#ed2939",
+          "disco": "#ed2939",
+          "cubre": 0.297,
+          "campo": false,
+          "oro_normal": 41.2,
+          "blanco_normal": 45.4
+        },
+        "right": {
+          "dominante": "#ed2939",
+          "disco": "#ed2939",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 41.2,
+          "blanco_normal": 45.4
+        },
+        "left": {
+          "dominante": "#002664",
+          "disco": "#ed2939",
+          "cubre": 0.535,
+          "campo": false,
+          "oro_normal": 73.1,
+          "blanco_normal": 77.8
+        },
+        "center": {
+          "dominante": "#002664",
+          "disco": "#002664",
+          "cubre": 0.412,
+          "campo": false,
+          "oro_normal": 73.1,
+          "blanco_normal": 77.8
+        }
+      },
+      "sitio": "right",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 29.6,
+      "letras": {
+        "dominante": "#ed2939",
+        "relleno": "#ffffff",
+        "wcag": 4.22
+      }
+    },
+    "SI": {
+      "nombre": "Slovenia",
+      "sitios": {
+        "high": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.061,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "right": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.053,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "left": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.487,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "center": {
+          "dominante": "#0000bf",
+          "disco": "#0000bf",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 81.3,
+          "blanco_normal": 73.6
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 76.7,
+      "letras": {
+        "dominante": "#d50000",
+        "relleno": "#ffffff",
+        "wcag": 5.48
+      }
+    },
+    "SK": {
+      "nombre": "Slovakia",
+      "sitios": {
+        "high": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.21,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "right": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.053,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "left": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.268,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "center": {
+          "dominante": "#0b4ea2",
+          "disco": "#0b4ea2",
+          "cubre": 0.601,
+          "campo": false,
+          "oro_normal": 65.7,
+          "blanco_normal": 57.9
+        }
+      },
+      "sitio": "right",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 76.7,
+      "letras": {
+        "dominante": "#ee1c25",
+        "relleno": "#ffffff",
+        "wcag": 4.35
+      }
+    },
+    "CO": {
+      "nombre": "Colombia",
+      "sitios": {
+        "high": {
+          "dominante": "#ffe800",
+          "disco": "#ffe800",
+          "cubre": 0.017,
+          "campo": true,
+          "oro_normal": 19.2,
+          "blanco_normal": 30.3
+        },
+        "right": {
+          "dominante": "#ffe800",
+          "disco": "#ffe800",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 19.2,
+          "blanco_normal": 30.3
+        },
+        "left": {
+          "dominante": "#ffe800",
+          "disco": "#ffe800",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 19.2,
+          "blanco_normal": 30.3
+        },
+        "center": {
+          "dominante": "#00148e",
+          "disco": "#ffe800",
+          "cubre": 0.465,
+          "campo": false,
+          "oro_normal": 79.9,
+          "blanco_normal": 78.9
+        }
+      },
+      "sitio": "high",
+      "relleno": "navy",
+      "revisar": false,
+      "se_lee": 74.4,
+      "letras": {
+        "dominante": "#da0010",
+        "relleno": "#ffffff",
+        "wcag": 5.27
+      }
+    },
+    "US": {
+      "nombre": "United States",
+      "sitios": {
+        "high": {
+          "dominante": "#192f5d",
+          "disco": "#192f5d",
+          "cubre": 0.114,
+          "campo": true,
+          "oro_normal": 68.7,
+          "blanco_normal": 72.6
+        },
+        "right": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.592,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "left": {
+          "dominante": "#192f5d",
+          "disco": "#192f5d",
+          "cubre": 0.009,
+          "campo": true,
+          "oro_normal": 68.7,
+          "blanco_normal": 72.6
+        },
+        "center": {
+          "dominante": "#192f5d",
+          "disco": "#192f5d",
+          "cubre": 0.487,
+          "campo": false,
+          "oro_normal": 68.7,
+          "blanco_normal": 72.6
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 49.2,
+      "letras": {
+        "dominante": "#ffffff",
+        "relleno": "#0b2740",
+        "wcag": 15.23
+      }
+    },
+    "AU": {
+      "nombre": "Australia",
+      "sitios": {
+        "high": {
+          "dominante": "#00008b",
+          "disco": "#00008b",
+          "cubre": 0.402,
+          "campo": false,
+          "oro_normal": 81.9,
+          "blanco_normal": 83.2
+        },
+        "right": {
+          "dominante": "#00008b",
+          "disco": "#00008b",
+          "cubre": 0.075,
+          "campo": true,
+          "oro_normal": 81.9,
+          "blanco_normal": 83.2
+        },
+        "left": {
+          "dominante": "#ff0000",
+          "disco": "#ff0000",
+          "cubre": 0.5,
+          "campo": false,
+          "oro_normal": 36.9,
+          "blanco_normal": 45.8
+        },
+        "center": {
+          "dominante": "#00008b",
+          "disco": "#00008b",
+          "cubre": 0.215,
+          "campo": false,
+          "oro_normal": 81.9,
+          "blanco_normal": 83.2
+        }
+      },
+      "sitio": "right",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 52.2,
+      "letras": {
+        "dominante": "#00008b",
+        "relleno": "#ffffff",
+        "wcag": 15.3
+      }
+    },
+    "CH": {
+      "nombre": "Switzerland",
+      "sitios": {
+        "high": {
+          "dominante": "#ffffff",
+          "disco": "#ff0000",
+          "cubre": 0.493,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "right": {
+          "dominante": "#ff0000",
+          "disco": "#ff0000",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 36.9,
+          "blanco_normal": 45.8
+        },
+        "left": {
+          "dominante": "#ff0000",
+          "disco": "#ff0000",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 36.9,
+          "blanco_normal": 45.8
+        },
+        "center": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.035,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        }
+      },
+      "sitio": "right",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 31.2,
+      "letras": {
+        "dominante": "#ff0000",
+        "relleno": "#ffffff",
+        "wcag": 4.0
+      }
+    },
+    "AR": {
+      "nombre": "Argentina",
+      "sitios": {
+        "high": {
+          "dominante": "#74acdf",
+          "disco": "#74acdf",
+          "cubre": 0.035,
+          "campo": true,
+          "oro_normal": 46.5,
+          "blanco_normal": 28.0
+        },
+        "right": {
+          "dominante": "#74acdf",
+          "disco": "#74acdf",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 46.5,
+          "blanco_normal": 28.0
+        },
+        "left": {
+          "dominante": "#74acdf",
+          "disco": "#74acdf",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 46.5,
+          "blanco_normal": 28.0
+        },
+        "center": {
+          "dominante": "#fefdfd",
+          "disco": "#ffffff",
+          "cubre": 0.833,
+          "campo": false,
+          "oro_normal": 32.6,
+          "blanco_normal": 0.4
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 48.2,
+      "letras": {
+        "dominante": "#74acdf",
+        "relleno": "#0b2740",
+        "wcag": 6.32
+      }
+    },
+    "MX": {
+      "nombre": "Mexico",
+      "sitios": {
+        "high": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.009,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "right": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.5,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "left": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.5,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "center": {
+          "dominante": "#fefefe",
+          "disco": "#ffffff",
+          "cubre": 0.825,
+          "campo": false,
+          "oro_normal": 32.7,
+          "blanco_normal": 0.2
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 76.7,
+      "letras": {
+        "dominante": "#ffffff",
+        "relleno": "#0b2740",
+        "wcag": 15.23
+      }
+    },
+    "EC": {
+      "nombre": "Ecuador",
+      "sitios": {
+        "high": {
+          "dominante": "#973f00",
+          "disco": "#ffe800",
+          "cubre": 0.555,
+          "campo": false,
+          "oro_normal": 36.6,
+          "blanco_normal": 54.8
+        },
+        "right": {
+          "dominante": "#ffe800",
+          "disco": "#ffe800",
+          "cubre": 0.482,
+          "campo": false,
+          "oro_normal": 19.2,
+          "blanco_normal": 30.3
+        },
+        "left": {
+          "dominante": "#ffe800",
+          "disco": "#ffe800",
+          "cubre": 0.469,
+          "campo": false,
+          "oro_normal": 19.2,
+          "blanco_normal": 30.3
+        },
+        "center": {
+          "dominante": "#a6cefe",
+          "disco": "#df0000",
+          "cubre": 0.711,
+          "campo": false,
+          "oro_normal": 45.7,
+          "blanco_normal": 20.6
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": true,
+      "se_lee": 31.7,
+      "letras": {
+        "dominante": "#da0010",
+        "relleno": "#ffffff",
+        "wcag": 5.28
+      }
+    },
+    "PL": {
+      "nombre": "Poland",
+      "sitios": {
+        "high": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.009,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "right": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "left": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "center": {
+          "dominante": "#dc143c",
+          "disco": "#dc143c",
+          "cubre": 0.465,
+          "campo": false,
+          "oro_normal": 45.5,
+          "blanco_normal": 48.6
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 76.7,
+      "letras": {
+        "dominante": "#dc143c",
+        "relleno": "#ffffff",
+        "wcag": 4.99
+      }
+    },
+    "AT": {
+      "nombre": "Austria",
+      "sitios": {
+        "high": {
+          "dominante": "#c8102e",
+          "disco": "#c8102e",
+          "cubre": 0.07,
+          "campo": true,
+          "oro_normal": 46.0,
+          "blanco_normal": 52.0
+        },
+        "right": {
+          "dominante": "#c8102e",
+          "disco": "#c8102e",
+          "cubre": 0.053,
+          "campo": true,
+          "oro_normal": 46.0,
+          "blanco_normal": 52.0
+        },
+        "left": {
+          "dominante": "#c8102e",
+          "disco": "#c8102e",
+          "cubre": 0.053,
+          "campo": true,
+          "oro_normal": 46.0,
+          "blanco_normal": 52.0
+        },
+        "center": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 26.6,
+      "letras": {
+        "dominante": "#c8102e",
+        "relleno": "#ffffff",
+        "wcag": 5.88
+      }
+    },
+    "IE": {
+      "nombre": "Ireland",
+      "sitios": {
+        "high": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.009,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "right": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.5,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "left": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.5,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "center": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 76.7,
+      "letras": {
+        "dominante": "#ffffff",
+        "relleno": "#0b2740",
+        "wcag": 15.23
+      }
+    },
+    "CZ": {
+      "nombre": "Czechia",
+      "sitios": {
+        "high": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.009,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "right": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "left": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.127,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "center": {
+          "dominante": "#11457e",
+          "disco": "#d7141a",
+          "cubre": 0.588,
+          "campo": false,
+          "oro_normal": 65.3,
+          "blanco_normal": 62.2
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 76.7,
+      "letras": {
+        "dominante": "#d7141a",
+        "relleno": "#ffffff",
+        "wcag": 5.24
+      }
+    },
+    "CA": {
+      "nombre": "Canada",
+      "sitios": {
+        "high": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.288,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "right": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.061,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "left": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.061,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "center": {
+          "dominante": "#d52b1e",
+          "disco": "#d52b1e",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 38.9,
+          "blanco_normal": 48.8
+        }
+      },
+      "sitio": "right",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 76.7,
+      "letras": {
+        "dominante": "#ffffff",
+        "relleno": "#0b2740",
+        "wcag": 15.23
+      }
+    },
+    "NZ": {
+      "nombre": "New Zealand",
+      "sitios": {
+        "high": {
+          "dominante": "#00247d",
+          "disco": "#00247d",
+          "cubre": 0.402,
+          "campo": false,
+          "oro_normal": 76.1,
+          "blanco_normal": 76.2
+        },
+        "right": {
+          "dominante": "#00247d",
+          "disco": "#00247d",
+          "cubre": 0.022,
+          "campo": true,
+          "oro_normal": 76.1,
+          "blanco_normal": 76.2
+        },
+        "left": {
+          "dominante": "#c8102e",
+          "disco": "#c8102e",
+          "cubre": 0.504,
+          "campo": false,
+          "oro_normal": 46.0,
+          "blanco_normal": 52.0
+        },
+        "center": {
+          "dominante": "#00247d",
+          "disco": "#00247d",
+          "cubre": 0.184,
+          "campo": false,
+          "oro_normal": 76.1,
+          "blanco_normal": 76.2
+        }
+      },
+      "sitio": "right",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 49.9,
+      "letras": {
+        "dominante": "#00247d",
+        "relleno": "#ffffff",
+        "wcag": 13.56
+      }
+    },
+    "SE": {
+      "nombre": "Sweden",
+      "sitios": {
+        "high": {
+          "dominante": "#005293",
+          "disco": "#005293",
+          "cubre": 0.118,
+          "campo": true,
+          "oro_normal": 62.6,
+          "blanco_normal": 56.9
+        },
+        "right": {
+          "dominante": "#005293",
+          "disco": "#005293",
+          "cubre": 0.026,
+          "campo": true,
+          "oro_normal": 62.6,
+          "blanco_normal": 56.9
+        },
+        "left": {
+          "dominante": "#fecb00",
+          "disco": "#fecb00",
+          "cubre": 0.211,
+          "campo": false,
+          "oro_normal": 11.0,
+          "blanco_normal": 30.8
+        },
+        "center": {
+          "dominante": "#fecb00",
+          "disco": "#fecb00",
+          "cubre": 0.25,
+          "campo": false,
+          "oro_normal": 11.0,
+          "blanco_normal": 30.8
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 36.4,
+      "letras": {
+        "dominante": "#005293",
+        "relleno": "#ffffff",
+        "wcag": 7.99
+      }
+    },
+    "JP": {
+      "nombre": "Japan",
+      "sitios": {
+        "high": {
+          "dominante": "#bc002d",
+          "disco": "#ffffff",
+          "cubre": 0.467,
+          "campo": false,
+          "oro_normal": 48.8,
+          "blanco_normal": 54.6
+        },
+        "right": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.228,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "left": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.228,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "center": {
+          "dominante": "#bc002d",
+          "disco": "#bc002d",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 48.8,
+          "blanco_normal": 54.6
+        }
+      },
+      "sitio": "center",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 30.2,
+      "letras": {
+        "dominante": "#ffffff",
+        "relleno": "#0b2740",
+        "wcag": 15.23
+      }
+    },
+    "KZ": {
+      "nombre": "Kazakhstan",
+      "sitios": {
+        "high": {
+          "dominante": "#00abc2",
+          "disco": "#00abc2",
+          "cubre": 0.319,
+          "campo": false,
+          "oro_normal": 46.0,
+          "blanco_normal": 33.1
+        },
+        "right": {
+          "dominante": "#00abc2",
+          "disco": "#00abc2",
+          "cubre": 0.118,
+          "campo": true,
+          "oro_normal": 46.0,
+          "blanco_normal": 33.1
+        },
+        "left": {
+          "dominante": "#00abc2",
+          "disco": "#00abc2",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 46.0,
+          "blanco_normal": 33.1
+        },
+        "center": {
+          "dominante": "#ffec2d",
+          "disco": "#00abc2",
+          "cubre": 0.456,
+          "campo": false,
+          "oro_normal": 19.9,
+          "blanco_normal": 29.6
+        }
+      },
+      "sitio": "right",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 43.1,
+      "letras": {
+        "dominante": "#00abc2",
+        "relleno": "#0b2740",
+        "wcag": 5.52
+      }
+    },
+    "UA": {
+      "nombre": "Ukraine",
+      "sitios": {
+        "high": {
+          "dominante": "#0057b8",
+          "disco": "#0057b8",
+          "cubre": 0.017,
+          "campo": true,
+          "oro_normal": 64.6,
+          "blanco_normal": 54.5
+        },
+        "right": {
+          "dominante": "#0057b8",
+          "disco": "#0057b8",
+          "cubre": 0.035,
+          "campo": true,
+          "oro_normal": 64.6,
+          "blanco_normal": 54.5
+        },
+        "left": {
+          "dominante": "#0057b8",
+          "disco": "#0057b8",
+          "cubre": 0.035,
+          "campo": true,
+          "oro_normal": 64.6,
+          "blanco_normal": 54.5
+        },
+        "center": {
+          "dominante": "#ffd700",
+          "disco": "#0057b8",
+          "cubre": 0.465,
+          "campo": false,
+          "oro_normal": 14.3,
+          "blanco_normal": 30.5
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 31.4,
+      "letras": {
+        "dominante": "#ffd700",
+        "relleno": "#0b2740",
+        "wcag": 10.86
+      }
+    },
+    "EE": {
+      "nombre": "Estonia",
+      "sitios": {
+        "high": {
+          "dominante": "#1791ff",
+          "disco": "#1791ff",
+          "cubre": 0.035,
+          "campo": true,
+          "oro_normal": 57.2,
+          "blanco_normal": 38.4
+        },
+        "right": {
+          "dominante": "#1791ff",
+          "disco": "#1791ff",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 57.2,
+          "blanco_normal": 38.4
+        },
+        "left": {
+          "dominante": "#1791ff",
+          "disco": "#1791ff",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 57.2,
+          "blanco_normal": 38.4
+        },
+        "center": {
+          "dominante": "#000001",
+          "disco": "#000001",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 65.4,
+          "blanco_normal": 100.0
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 37.8,
+      "letras": {
+        "dominante": "#ffffff",
+        "relleno": "#0b2740",
+        "wcag": 15.23
+      }
+    },
+    "LV": {
+      "nombre": "Latvia",
+      "sitios": {
+        "high": {
+          "dominante": "#981e32",
+          "disco": "#981e32",
+          "cubre": 0.017,
+          "campo": true,
+          "oro_normal": 52.8,
+          "blanco_normal": 59.1
+        },
+        "right": {
+          "dominante": "#981e32",
+          "disco": "#981e32",
+          "cubre": 0.031,
+          "campo": true,
+          "oro_normal": 52.8,
+          "blanco_normal": 59.1
+        },
+        "left": {
+          "dominante": "#981e32",
+          "disco": "#981e32",
+          "cubre": 0.031,
+          "campo": true,
+          "oro_normal": 52.8,
+          "blanco_normal": 59.1
+        },
+        "center": {
+          "dominante": "#ffffff",
+          "disco": "#981e32",
+          "cubre": 0.254,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 37.1,
+      "letras": {
+        "dominante": "#981e32",
+        "relleno": "#ffffff",
+        "wcag": 8.18
+      }
+    },
+    "LT": {
+      "nombre": "Lithuania",
+      "sitios": {
+        "high": {
+          "dominante": "#fdb913",
+          "disco": "#fdb913",
+          "cubre": 0.07,
+          "campo": true,
+          "oro_normal": 6.4,
+          "blanco_normal": 31.5
+        },
+        "right": {
+          "dominante": "#fdb913",
+          "disco": "#fdb913",
+          "cubre": 0.053,
+          "campo": true,
+          "oro_normal": 6.4,
+          "blanco_normal": 31.5
+        },
+        "left": {
+          "dominante": "#fdb913",
+          "disco": "#fdb913",
+          "cubre": 0.053,
+          "campo": true,
+          "oro_normal": 6.4,
+          "blanco_normal": 31.5
+        },
+        "center": {
+          "dominante": "#006a44",
+          "disco": "#006a44",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 47.1,
+          "blanco_normal": 52.8
+        }
+      },
+      "sitio": "high",
+      "relleno": "navy",
+      "revisar": false,
+      "se_lee": 63.0,
+      "letras": {
+        "dominante": "#c1272d",
+        "relleno": "#ffffff",
+        "wcag": 5.84
+      }
+    },
+    "BY": {
+      "nombre": "Belarus",
+      "sitios": {
+        "high": {
+          "dominante": "#ce1720",
+          "disco": "#ce1720",
+          "cubre": 0.017,
+          "campo": true,
+          "oro_normal": 42.5,
+          "blanco_normal": 51.1
+        },
+        "right": {
+          "dominante": "#ce1720",
+          "disco": "#ce1720",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 42.5,
+          "blanco_normal": 51.1
+        },
+        "left": {
+          "dominante": "#ce1720",
+          "disco": "#ce1720",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 42.5,
+          "blanco_normal": 51.1
+        },
+        "center": {
+          "dominante": "#ce1720",
+          "disco": "#ce1720",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 42.5,
+          "blanco_normal": 51.1
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 25.0,
+      "letras": {
+        "dominante": "#007c30",
+        "relleno": "#ffffff",
+        "wcag": 5.35
+      }
+    },
+    "ZA": {
+      "nombre": "South Africa",
+      "sitios": {
+        "high": {
+          "dominante": "#e1392d",
+          "disco": "#e1392d",
+          "cubre": 0.432,
+          "campo": false,
+          "oro_normal": 37.5,
+          "blanco_normal": 45.7
+        },
+        "right": {
+          "dominante": "#e1392d",
+          "disco": "#e1392d",
+          "cubre": 0.053,
+          "campo": true,
+          "oro_normal": 37.5,
+          "blanco_normal": 45.7
+        },
+        "left": {
+          "dominante": "#007847",
+          "disco": "#007847",
+          "cubre": 0.412,
+          "campo": false,
+          "oro_normal": 44.1,
+          "blanco_normal": 48.7
+        },
+        "center": {
+          "dominante": "#007847",
+          "disco": "#007847",
+          "cubre": 0.048,
+          "campo": true,
+          "oro_normal": 44.1,
+          "blanco_normal": 48.7
+        }
+      },
+      "sitio": "right",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 28.8,
+      "letras": {
+        "dominante": "#000c8a",
+        "relleno": "#ffffff",
+        "wcag": 14.79
+      }
+    },
+    "BR": {
+      "nombre": "Brazil",
+      "sitios": {
+        "high": {
+          "dominante": "#f8e509",
+          "disco": "#229e45",
+          "cubre": 0.507,
+          "campo": false,
+          "oro_normal": 19.0,
+          "blanco_normal": 30.3
+        },
+        "right": {
+          "dominante": "#229e45",
+          "disco": "#229e45",
+          "cubre": 0.421,
+          "campo": false,
+          "oro_normal": 38.3,
+          "blanco_normal": 40.0
+        },
+        "left": {
+          "dominante": "#229e45",
+          "disco": "#229e45",
+          "cubre": 0.425,
+          "campo": false,
+          "oro_normal": 38.3,
+          "blanco_normal": 40.0
+        },
+        "center": {
+          "dominante": "#2b49a3",
+          "disco": "#2b49a3",
+          "cubre": 0.241,
+          "campo": false,
+          "oro_normal": 67.2,
+          "blanco_normal": 58.7
+        }
+      },
+      "sitio": "high",
+      "relleno": "navy",
+      "revisar": true,
+      "se_lee": 73.7,
+      "letras": {
+        "dominante": "#f8e509",
+        "relleno": "#0b2740",
+        "wcag": 11.75
+      }
+    },
+    "CL": {
+      "nombre": "Chile",
+      "sitios": {
+        "high": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.009,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "right": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "left": {
+          "dominante": "#0039a6",
+          "disco": "#ffffff",
+          "cubre": 0.294,
+          "campo": false,
+          "oro_normal": 73.2,
+          "blanco_normal": 65.2
+        },
+        "center": {
+          "dominante": "#d52b1e",
+          "disco": "#d52b1e",
+          "cubre": 0.465,
+          "campo": false,
+          "oro_normal": 38.9,
+          "blanco_normal": 48.8
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 76.7,
+      "letras": {
+        "dominante": "#d52b1e",
+        "relleno": "#ffffff",
+        "wcag": 5.01
+      }
+    },
+    "VE": {
+      "nombre": "Venezuela",
+      "sitios": {
+        "high": {
+          "dominante": "#ffcc00",
+          "disco": "#ffcc00",
+          "cubre": 0.07,
+          "campo": true,
+          "oro_normal": 11.2,
+          "blanco_normal": 30.8
+        },
+        "right": {
+          "dominante": "#ffcc00",
+          "disco": "#ffcc00",
+          "cubre": 0.053,
+          "campo": true,
+          "oro_normal": 11.2,
+          "blanco_normal": 30.8
+        },
+        "left": {
+          "dominante": "#ffcc00",
+          "disco": "#ffcc00",
+          "cubre": 0.053,
+          "campo": true,
+          "oro_normal": 11.2,
+          "blanco_normal": 30.8
+        },
+        "center": {
+          "dominante": "#00247d",
+          "disco": "#00247d",
+          "cubre": 0.044,
+          "campo": true,
+          "oro_normal": 76.1,
+          "blanco_normal": 76.2
+        }
+      },
+      "sitio": "high",
+      "relleno": "navy",
+      "revisar": false,
+      "se_lee": 69.2,
+      "letras": {
+        "dominante": "#cf142b",
+        "relleno": "#ffffff",
+        "wcag": 5.54
+      }
+    },
+    "FI": {
+      "nombre": "Finland",
+      "sitios": {
+        "high": {
+          "dominante": "#ffffff",
+          "disco": "#002f6c",
+          "cubre": 0.358,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "right": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "left": {
+          "dominante": "#002f6c",
+          "disco": "#002f6c",
+          "cubre": 0.162,
+          "campo": false,
+          "oro_normal": 71.2,
+          "blanco_normal": 73.0
+        },
+        "center": {
+          "dominante": "#002f6c",
+          "disco": "#002f6c",
+          "cubre": 0.022,
+          "campo": true,
+          "oro_normal": 71.2,
+          "blanco_normal": 73.0
+        }
+      },
+      "sitio": "right",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 76.7,
+      "letras": {
+        "dominante": "#ffffff",
+        "relleno": "#0b2740",
+        "wcag": 15.23
+      }
+    },
+    "HR": {
+      "nombre": "Croatia",
+      "sitios": {
+        "high": {
+          "dominante": "#ff0000",
+          "disco": "#ff0000",
+          "cubre": 0.603,
+          "campo": false,
+          "oro_normal": 36.9,
+          "blanco_normal": 45.8
+        },
+        "right": {
+          "dominante": "#ff0000",
+          "disco": "#ff0000",
+          "cubre": 0.329,
+          "campo": false,
+          "oro_normal": 36.9,
+          "blanco_normal": 45.8
+        },
+        "left": {
+          "dominante": "#ff0000",
+          "disco": "#ff0000",
+          "cubre": 0.338,
+          "campo": false,
+          "oro_normal": 36.9,
+          "blanco_normal": 45.8
+        },
+        "center": {
+          "dominante": "#ff0000",
+          "disco": "#ffffff",
+          "cubre": 0.544,
+          "campo": false,
+          "oro_normal": 36.9,
+          "blanco_normal": 45.8
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": true,
+      "se_lee": 31.2,
+      "letras": {
+        "dominante": "#171796",
+        "relleno": "#ffffff",
+        "wcag": 13.13
+      }
+    },
+    "HU": {
+      "nombre": "Hungary",
+      "sitios": {
+        "high": {
+          "dominante": "#d43516",
+          "disco": "#d43516",
+          "cubre": 0.07,
+          "campo": true,
+          "oro_normal": 36.3,
+          "blanco_normal": 48.1
+        },
+        "right": {
+          "dominante": "#d43516",
+          "disco": "#d43516",
+          "cubre": 0.053,
+          "campo": true,
+          "oro_normal": 36.3,
+          "blanco_normal": 48.1
+        },
+        "left": {
+          "dominante": "#d43516",
+          "disco": "#d43516",
+          "cubre": 0.053,
+          "campo": true,
+          "oro_normal": 36.3,
+          "blanco_normal": 48.1
+        },
+        "center": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 25.8,
+      "letras": {
+        "dominante": "#388d00",
+        "relleno": "#ffffff",
+        "wcag": 4.22
+      }
+    },
+    "RO": {
+      "nombre": "Romania",
+      "sitios": {
+        "high": {
+          "dominante": "#ffde00",
+          "disco": "#ffde00",
+          "cubre": 0.017,
+          "campo": true,
+          "oro_normal": 16.3,
+          "blanco_normal": 30.4
+        },
+        "right": {
+          "dominante": "#ffde00",
+          "disco": "#ffde00",
+          "cubre": 0.5,
+          "campo": false,
+          "oro_normal": 16.3,
+          "blanco_normal": 30.4
+        },
+        "left": {
+          "dominante": "#ffde00",
+          "disco": "#ffde00",
+          "cubre": 0.5,
+          "campo": false,
+          "oro_normal": 16.3,
+          "blanco_normal": 30.4
+        },
+        "center": {
+          "dominante": "#ffde00",
+          "disco": "#ffde00",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 16.3,
+          "blanco_normal": 30.4
+        }
+      },
+      "sitio": "high",
+      "relleno": "navy",
+      "revisar": false,
+      "se_lee": 73.0,
+      "letras": {
+        "dominante": "#ffde00",
+        "relleno": "#0b2740",
+        "wcag": 11.39
+      }
+    },
+    "RU": {
+      "nombre": "Russia",
+      "sitios": {
+        "high": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.061,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "right": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.053,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "left": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.053,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "center": {
+          "dominante": "#0039a6",
+          "disco": "#0039a6",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 73.2,
+          "blanco_normal": 65.2
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 76.7,
+      "letras": {
+        "dominante": "#d52b1e",
+        "relleno": "#ffffff",
+        "wcag": 5.01
+      }
+    },
+    "RS": {
+      "nombre": "Serbia",
+      "sitios": {
+        "high": {
+          "dominante": "#c6363c",
+          "disco": "#c6363c",
+          "cubre": 0.201,
+          "campo": false,
+          "oro_normal": 42.7,
+          "blanco_normal": 48.7
+        },
+        "right": {
+          "dominante": "#c6363c",
+          "disco": "#c6363c",
+          "cubre": 0.053,
+          "campo": true,
+          "oro_normal": 42.7,
+          "blanco_normal": 48.7
+        },
+        "left": {
+          "dominante": "#c6363c",
+          "disco": "#c6363c",
+          "cubre": 0.662,
+          "campo": false,
+          "oro_normal": 42.7,
+          "blanco_normal": 48.7
+        },
+        "center": {
+          "dominante": "#0c4076",
+          "disco": "#0c4076",
+          "cubre": 0.5,
+          "campo": false,
+          "oro_normal": 66.3,
+          "blanco_normal": 64.5
+        }
+      },
+      "sitio": "right",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 23.8,
+      "letras": {
+        "dominante": "#ffffff",
+        "relleno": "#0b2740",
+        "wcag": 15.23
+      }
+    },
+    "BG": {
+      "nombre": "Bulgaria",
+      "sitios": {
+        "high": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.061,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "right": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.053,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "left": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.053,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "center": {
+          "dominante": "#00966e",
+          "disco": "#00966e",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 40.9,
+          "blanco_normal": 40.3
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 76.7,
+      "letras": {
+        "dominante": "#d62612",
+        "relleno": "#ffffff",
+        "wcag": 5.07
+      }
+    },
+    "GR": {
+      "nombre": "Greece",
+      "sitios": {
+        "high": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.546,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "right": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.491,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "left": {
+          "dominante": "#0d5eaf",
+          "disco": "#ffffff",
+          "cubre": 0.518,
+          "campo": false,
+          "oro_normal": 61.2,
+          "blanco_normal": 52.2
+        },
+        "center": {
+          "dominante": "#0d5eaf",
+          "disco": "#0d5eaf",
+          "cubre": 0.531,
+          "campo": false,
+          "oro_normal": 61.2,
+          "blanco_normal": 52.2
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": true,
+      "se_lee": 76.7,
+      "letras": {
+        "dominante": "#ffffff",
+        "relleno": "#0b2740",
+        "wcag": 15.23
+      }
+    },
+    "TR": {
+      "nombre": "Turkey",
+      "sitios": {
+        "high": {
+          "dominante": "#e30a17",
+          "disco": "#e30a17",
+          "cubre": 0.205,
+          "campo": false,
+          "oro_normal": 40.1,
+          "blanco_normal": 48.8
+        },
+        "right": {
+          "dominante": "#e30a17",
+          "disco": "#e30a17",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 40.1,
+          "blanco_normal": 48.8
+        },
+        "left": {
+          "dominante": "#e30a17",
+          "disco": "#e30a17",
+          "cubre": 0.127,
+          "campo": false,
+          "oro_normal": 40.1,
+          "blanco_normal": 48.8
+        },
+        "center": {
+          "dominante": "#e30a17",
+          "disco": "#e30a17",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 40.1,
+          "blanco_normal": 48.8
+        }
+      },
+      "sitio": "right",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 25.8,
+      "letras": {
+        "dominante": "#e30a17",
+        "relleno": "#ffffff",
+        "wcag": 4.86
+      }
+    },
+    "IL": {
+      "nombre": "Israel",
+      "sitios": {
+        "high": {
+          "dominante": "#0038b8",
+          "disco": "#ffffff",
+          "cubre": 0.459,
+          "campo": false,
+          "oro_normal": 74.1,
+          "blanco_normal": 64.2
+        },
+        "right": {
+          "dominante": "#0038b8",
+          "disco": "#ffffff",
+          "cubre": 0.465,
+          "campo": false,
+          "oro_normal": 74.1,
+          "blanco_normal": 64.2
+        },
+        "left": {
+          "dominante": "#0038b8",
+          "disco": "#ffffff",
+          "cubre": 0.465,
+          "campo": false,
+          "oro_normal": 74.1,
+          "blanco_normal": 64.2
+        },
+        "center": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.399,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": true,
+      "se_lee": 41.3,
+      "letras": {
+        "dominante": "#0038b8",
+        "relleno": "#ffffff",
+        "wcag": 9.3
+      }
+    },
+    "KR": {
+      "nombre": "South Korea",
+      "sitios": {
+        "high": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.323,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "right": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.246,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "left": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.259,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "center": {
+          "dominante": "#0047a0",
+          "disco": "#0047a0",
+          "cubre": 0.425,
+          "campo": false,
+          "oro_normal": 68.2,
+          "blanco_normal": 60.7
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": true,
+      "se_lee": 76.7,
+      "letras": {
+        "dominante": "#ffffff",
+        "relleno": "#0b2740",
+        "wcag": 15.23
+      }
+    },
+    "CN": {
+      "nombre": "China",
+      "sitios": {
+        "high": {
+          "dominante": "#ee1c25",
+          "disco": "#ee1c25",
+          "cubre": 0.118,
+          "campo": true,
+          "oro_normal": 39.6,
+          "blanco_normal": 46.5
+        },
+        "right": {
+          "dominante": "#ee1c25",
+          "disco": "#ee1c25",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 39.6,
+          "blanco_normal": 46.5
+        },
+        "left": {
+          "dominante": "#ee1c25",
+          "disco": "#ee1c25",
+          "cubre": 0.096,
+          "campo": true,
+          "oro_normal": 39.6,
+          "blanco_normal": 46.5
+        },
+        "center": {
+          "dominante": "#ee1c25",
+          "disco": "#ee1c25",
+          "cubre": 0.009,
+          "campo": true,
+          "oro_normal": 39.6,
+          "blanco_normal": 46.5
+        }
+      },
+      "sitio": "high",
+      "relleno": "white",
+      "revisar": false,
+      "se_lee": 35.7,
+      "letras": {
+        "dominante": "#ee1c25",
+        "relleno": "#ffffff",
+        "wcag": 4.35
+      }
+    },
+    "UY": {
+      "nombre": "Uruguay",
+      "sitios": {
+        "high": {
+          "dominante": "#0038a8",
+          "disco": "#ffffff",
+          "cubre": 0.555,
+          "campo": false,
+          "oro_normal": 73.6,
+          "blanco_normal": 65.4
+        },
+        "right": {
+          "dominante": "#0038a8",
+          "disco": "#0038a8",
+          "cubre": 0.491,
+          "campo": false,
+          "oro_normal": 73.6,
+          "blanco_normal": 65.4
+        },
+        "left": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.395,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.1
+        },
+        "center": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.535,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": true,
+      "se_lee": 43.0,
+      "letras": {
+        "dominante": "#0038a8",
+        "relleno": "#ffffff",
+        "wcag": 9.85
+      }
+    },
+    "PE": {
+      "nombre": "Peru",
+      "sitios": {
+        "high": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.009,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "right": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.5,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "left": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.5,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "center": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 76.7,
+      "letras": {
+        "dominante": "#ffffff",
+        "relleno": "#0b2740",
+        "wcag": 15.23
+      }
+    },
+    "CR": {
+      "nombre": "Costa Rica",
+      "sitios": {
+        "high": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.275,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "right": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.333,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "left": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.333,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "center": {
+          "dominante": "#d90000",
+          "disco": "#d90000",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 39.9,
+          "blanco_normal": 50.9
+        }
+      },
+      "sitio": "center",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 23.6,
+      "letras": {
+        "dominante": "#ffffff",
+        "relleno": "#0b2740",
+        "wcag": 15.23
+      }
+    },
+    "MA": {
+      "nombre": "Morocco",
+      "sitios": {
+        "high": {
+          "dominante": "#c1272d",
+          "disco": "#c1272d",
+          "cubre": 0.017,
+          "campo": true,
+          "oro_normal": 43.7,
+          "blanco_normal": 51.4
+        },
+        "right": {
+          "dominante": "#c1272d",
+          "disco": "#c1272d",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 43.7,
+          "blanco_normal": 51.4
+        },
+        "left": {
+          "dominante": "#c1272d",
+          "disco": "#c1272d",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 43.7,
+          "blanco_normal": 51.4
+        },
+        "center": {
+          "dominante": "#c1272d",
+          "disco": "#c1272d",
+          "cubre": 0.614,
+          "campo": false,
+          "oro_normal": 43.7,
+          "blanco_normal": 51.4
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 26.4,
+      "letras": {
+        "dominante": "#c1272d",
+        "relleno": "#ffffff",
+        "wcag": 5.84
+      }
+    },
+    "ER": {
+      "nombre": "Eritrea",
+      "sitios": {
+        "high": {
+          "dominante": "#239e46",
+          "disco": "#239e46",
+          "cubre": 0.376,
+          "campo": false,
+          "oro_normal": 38.3,
+          "blanco_normal": 40.0
+        },
+        "right": {
+          "dominante": "#239e46",
+          "disco": "#239e46",
+          "cubre": 0.083,
+          "campo": true,
+          "oro_normal": 38.3,
+          "blanco_normal": 40.0
+        },
+        "left": {
+          "dominante": "#be0027",
+          "disco": "#239e46",
+          "cubre": 0.592,
+          "campo": false,
+          "oro_normal": 47.5,
+          "blanco_normal": 54.4
+        },
+        "center": {
+          "dominante": "#be0027",
+          "disco": "#be0027",
+          "cubre": 0.452,
+          "campo": false,
+          "oro_normal": 47.5,
+          "blanco_normal": 54.4
+        }
+      },
+      "sitio": "right",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 35.4,
+      "letras": {
+        "dominante": "#b4d7f4",
+        "relleno": "#0b2740",
+        "wcag": 10.13
+      }
+    },
+    "LU": {
+      "nombre": "Luxembourg",
+      "sitios": {
+        "high": {
+          "dominante": "#ed2939",
+          "disco": "#ed2939",
+          "cubre": 0.07,
+          "campo": true,
+          "oro_normal": 41.2,
+          "blanco_normal": 45.4
+        },
+        "right": {
+          "dominante": "#ed2939",
+          "disco": "#ed2939",
+          "cubre": 0.053,
+          "campo": true,
+          "oro_normal": 41.2,
+          "blanco_normal": 45.4
+        },
+        "left": {
+          "dominante": "#ed2939",
+          "disco": "#ed2939",
+          "cubre": 0.053,
+          "campo": true,
+          "oro_normal": 41.2,
+          "blanco_normal": 45.4
+        },
+        "center": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 29.6,
+      "letras": {
+        "dominante": "#00a1de",
+        "relleno": "#0b2740",
+        "wcag": 5.19
+      }
+    },
+    "RW": {
+      "nombre": "Rwanda",
+      "sitios": {
+        "high": {
+          "dominante": "#00a1de",
+          "disco": "#00a1de",
+          "cubre": 0.017,
+          "campo": true,
+          "oro_normal": 55.7,
+          "blanco_normal": 34.0
+        },
+        "right": {
+          "dominante": "#00a1de",
+          "disco": "#00a1de",
+          "cubre": 0.162,
+          "campo": false,
+          "oro_normal": 55.6,
+          "blanco_normal": 34.0
+        },
+        "left": {
+          "dominante": "#00a1de",
+          "disco": "#00a1de",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 55.7,
+          "blanco_normal": 34.0
+        },
+        "center": {
+          "dominante": "#fad201",
+          "disco": "#00a1de",
+          "cubre": 0.465,
+          "campo": false,
+          "oro_normal": 13.3,
+          "blanco_normal": 30.6
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 40.9,
+      "letras": {
+        "dominante": "#20603d",
+        "relleno": "#ffffff",
+        "wcag": 7.49
+      }
+    },
+    "DZ": {
+      "nombre": "Algeria",
+      "sitios": {
+        "high": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.603,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "right": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.079,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "left": {
+          "dominante": "#006233",
+          "disco": "#006233",
+          "cubre": 0.079,
+          "campo": true,
+          "oro_normal": 48.9,
+          "blanco_normal": 56.0
+        },
+        "center": {
+          "dominante": "#006233",
+          "disco": "#d21034",
+          "cubre": 0.535,
+          "campo": false,
+          "oro_normal": 48.9,
+          "blanco_normal": 56.0
+        }
+      },
+      "sitio": "right",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 76.7,
+      "letras": {
+        "dominante": "#006233",
+        "relleno": "#ffffff",
+        "wcag": 7.51
+      }
+    },
+    "IR": {
+      "nombre": "Iran",
+      "sitios": {
+        "high": {
+          "dominante": "#239f40",
+          "disco": "#239f40",
+          "cubre": 0.205,
+          "campo": false,
+          "oro_normal": 38.0,
+          "blanco_normal": 40.0
+        },
+        "right": {
+          "dominante": "#239f40",
+          "disco": "#239f40",
+          "cubre": 0.162,
+          "campo": false,
+          "oro_normal": 38.0,
+          "blanco_normal": 40.0
+        },
+        "left": {
+          "dominante": "#239f40",
+          "disco": "#239f40",
+          "cubre": 0.184,
+          "campo": false,
+          "oro_normal": 38.0,
+          "blanco_normal": 40.0
+        },
+        "center": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.645,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.1
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": true,
+      "se_lee": 35.7,
+      "letras": {
+        "dominante": "#da0000",
+        "relleno": "#ffffff",
+        "wcag": 5.27
+      }
+    },
+    "GT": {
+      "nombre": "Guatemala",
+      "sitios": {
+        "high": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.009,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "right": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.5,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "left": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.5,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "center": {
+          "dominante": "#fefefe",
+          "disco": "#ffffff",
+          "cubre": 0.658,
+          "campo": false,
+          "oro_normal": 32.7,
+          "blanco_normal": 0.2
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 76.7,
+      "letras": {
+        "dominante": "#ffffff",
+        "relleno": "#0b2740",
+        "wcag": 15.23
+      }
+    },
+    "BO": {
+      "nombre": "Bolivia",
+      "sitios": {
+        "high": {
+          "dominante": "#d52b1e",
+          "disco": "#d52b1e",
+          "cubre": 0.07,
+          "campo": true,
+          "oro_normal": 38.9,
+          "blanco_normal": 48.8
+        },
+        "right": {
+          "dominante": "#d52b1e",
+          "disco": "#d52b1e",
+          "cubre": 0.053,
+          "campo": true,
+          "oro_normal": 38.9,
+          "blanco_normal": 48.8
+        },
+        "left": {
+          "dominante": "#d52b1e",
+          "disco": "#d52b1e",
+          "cubre": 0.053,
+          "campo": true,
+          "oro_normal": 38.9,
+          "blanco_normal": 48.8
+        },
+        "center": {
+          "dominante": "#ffe000",
+          "disco": "#ffe000",
+          "cubre": 0.803,
+          "campo": false,
+          "oro_normal": 16.9,
+          "blanco_normal": 30.3
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 25.0,
+      "letras": {
+        "dominante": "#007934",
+        "relleno": "#ffffff",
+        "wcag": 5.55
+      }
+    },
+    "GE": {
+      "nombre": "Georgia",
+      "sitios": {
+        "high": {
+          "dominante": "#ff0000",
+          "disco": "#ffffff",
+          "cubre": 0.135,
+          "campo": false,
+          "oro_normal": 36.9,
+          "blanco_normal": 45.8
+        },
+        "right": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.149,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "left": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.149,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "center": {
+          "dominante": "#ff0000",
+          "disco": "#ff0000",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 36.9,
+          "blanco_normal": 45.8
+        }
+      },
+      "sitio": "center",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 31.2,
+      "letras": {
+        "dominante": "#ff0000",
+        "relleno": "#ffffff",
+        "wcag": 4.0
+      }
+    },
+    "IN": {
+      "nombre": "India",
+      "sitios": {
+        "high": {
+          "dominante": "#ff9933",
+          "disco": "#ff9933",
+          "cubre": 0.07,
+          "campo": true,
+          "oro_normal": 12.1,
+          "blanco_normal": 32.9
+        },
+        "right": {
+          "dominante": "#ff9933",
+          "disco": "#ff9933",
+          "cubre": 0.053,
+          "campo": true,
+          "oro_normal": 12.1,
+          "blanco_normal": 32.9
+        },
+        "left": {
+          "dominante": "#ff9933",
+          "disco": "#ff9933",
+          "cubre": 0.053,
+          "campo": true,
+          "oro_normal": 12.1,
+          "blanco_normal": 32.9
+        },
+        "center": {
+          "dominante": "#fefefe",
+          "disco": "#ffffff",
+          "cubre": 0.732,
+          "campo": false,
+          "oro_normal": 33.0,
+          "blanco_normal": 0.4
+        }
+      },
+      "sitio": "high",
+      "relleno": "navy",
+      "revisar": false,
+      "se_lee": 53.4,
+      "letras": {
+        "dominante": "#128807",
+        "relleno": "#ffffff",
+        "wcag": 4.61
+      }
+    },
+    "EG": {
+      "nombre": "Egypt",
+      "sitios": {
+        "high": {
+          "dominante": "#ce1126",
+          "disco": "#ce1126",
+          "cubre": 0.07,
+          "campo": true,
+          "oro_normal": 43.9,
+          "blanco_normal": 51.2
+        },
+        "right": {
+          "dominante": "#ce1126",
+          "disco": "#ce1126",
+          "cubre": 0.053,
+          "campo": true,
+          "oro_normal": 43.9,
+          "blanco_normal": 51.2
+        },
+        "left": {
+          "dominante": "#ce1126",
+          "disco": "#ce1126",
+          "cubre": 0.053,
+          "campo": true,
+          "oro_normal": 43.9,
+          "blanco_normal": 51.2
+        },
+        "center": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.785,
+          "campo": false,
+          "oro_normal": 32.7,
+          "blanco_normal": 0.1
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 25.3,
+      "letras": {
+        "dominante": "#000001",
+        "relleno": "#ffffff",
+        "wcag": 20.99
+      }
+    },
+    "ET": {
+      "nombre": "Ethiopia",
+      "sitios": {
+        "high": {
+          "dominante": "#298c08",
+          "disco": "#298c08",
+          "cubre": 0.092,
+          "campo": true,
+          "oro_normal": 37.9,
+          "blanco_normal": 45.1
+        },
+        "right": {
+          "dominante": "#298c08",
+          "disco": "#298c08",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 37.9,
+          "blanco_normal": 45.1
+        },
+        "left": {
+          "dominante": "#298c08",
+          "disco": "#298c08",
+          "cubre": 0.044,
+          "campo": true,
+          "oro_normal": 37.9,
+          "blanco_normal": 45.1
+        },
+        "center": {
+          "dominante": "#006bc6",
+          "disco": "#006bc6",
+          "cubre": 0.57,
+          "campo": false,
+          "oro_normal": 59.7,
+          "blanco_normal": 48.1
+        }
+      },
+      "sitio": "high",
+      "relleno": "white",
+      "revisar": false,
+      "se_lee": 35.6,
+      "letras": {
+        "dominante": "#ef2118",
+        "relleno": "#ffffff",
+        "wcag": 4.28
+      }
+    },
+    "TH": {
+      "nombre": "Thailand",
+      "sitios": {
+        "high": {
+          "dominante": "#f4f5f8",
+          "disco": "#f4f5f8",
+          "cubre": 0.336,
+          "campo": false,
+          "oro_normal": 33.2,
+          "blanco_normal": 2.5
+        },
+        "right": {
+          "dominante": "#f4f5f8",
+          "disco": "#f4f5f8",
+          "cubre": 0.417,
+          "campo": false,
+          "oro_normal": 33.2,
+          "blanco_normal": 2.5
+        },
+        "left": {
+          "dominante": "#f4f5f8",
+          "disco": "#f4f5f8",
+          "cubre": 0.417,
+          "campo": false,
+          "oro_normal": 33.2,
+          "blanco_normal": 2.5
+        },
+        "center": {
+          "dominante": "#2d2a4a",
+          "disco": "#2d2a4a",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 66.6,
+          "blanco_normal": 73.7
+        }
+      },
+      "sitio": "center",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 50.0,
+      "letras": {
+        "dominante": "#f4f5f8",
+        "relleno": "#0b2740",
+        "wcag": 13.97
+      }
+    },
+    "ID": {
+      "nombre": "Indonesia",
+      "sitios": {
+        "high": {
+          "dominante": "#e70011",
+          "disco": "#e70011",
+          "cubre": 0.017,
+          "campo": true,
+          "oro_normal": 39.7,
+          "blanco_normal": 48.6
+        },
+        "right": {
+          "dominante": "#e70011",
+          "disco": "#e70011",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 39.7,
+          "blanco_normal": 48.6
+        },
+        "left": {
+          "dominante": "#e70011",
+          "disco": "#e70011",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 39.7,
+          "blanco_normal": 48.6
+        },
+        "center": {
+          "dominante": "#ffffff",
+          "disco": "#e70011",
+          "cubre": 0.465,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 26.3,
+      "letras": {
+        "dominante": "#ffffff",
+        "relleno": "#0b2740",
+        "wcag": 15.23
+      }
+    },
+    "PH": {
+      "nombre": "Philippines",
+      "sitios": {
+        "high": {
+          "dominante": "#0038a8",
+          "disco": "#0038a8",
+          "cubre": 0.022,
+          "campo": true,
+          "oro_normal": 73.6,
+          "blanco_normal": 65.4
+        },
+        "right": {
+          "dominante": "#0038a8",
+          "disco": "#0038a8",
+          "cubre": 0.009,
+          "campo": true,
+          "oro_normal": 73.6,
+          "blanco_normal": 65.4
+        },
+        "left": {
+          "dominante": "#0038a8",
+          "disco": "#0038a8",
+          "cubre": 0.307,
+          "campo": false,
+          "oro_normal": 73.6,
+          "blanco_normal": 65.4
+        },
+        "center": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.272,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        }
+      },
+      "sitio": "high",
+      "relleno": "white",
+      "revisar": false,
+      "se_lee": 56.1,
+      "letras": {
+        "dominante": "#ce1126",
+        "relleno": "#ffffff",
+        "wcag": 5.63
+      }
+    },
+    "CU": {
+      "nombre": "Cuba",
+      "sitios": {
+        "high": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.498,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "right": {
+          "dominante": "#002a8f",
+          "disco": "#ffffff",
+          "cubre": 0.535,
+          "campo": false,
+          "oro_normal": 75.9,
+          "blanco_normal": 72.2
+        },
+        "left": {
+          "dominante": "#002a8f",
+          "disco": "#cb1515",
+          "cubre": 0.548,
+          "campo": false,
+          "oro_normal": 75.9,
+          "blanco_normal": 72.2
+        },
+        "center": {
+          "dominante": "#cb1515",
+          "disco": "#cb1515",
+          "cubre": 0.162,
+          "campo": false,
+          "oro_normal": 41.8,
+          "blanco_normal": 51.9
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": true,
+      "se_lee": 76.7,
+      "letras": {
+        "dominante": "#002a8f",
+        "relleno": "#ffffff",
+        "wcag": 12.15
+      }
+    },
+    "PA": {
+      "nombre": "Panama",
+      "sitios": {
+        "high": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.502,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "right": {
+          "dominante": "#db0000",
+          "disco": "#db0000",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 39.7,
+          "blanco_normal": 50.6
+        },
+        "left": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.325,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "center": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.544,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        }
+      },
+      "sitio": "right",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 23.9,
+      "letras": {
+        "dominante": "#0000ab",
+        "relleno": "#ffffff",
+        "wcag": 13.22
+      }
+    },
+    "MD": {
+      "nombre": "Moldova",
+      "sitios": {
+        "high": {
+          "dominante": "#ffde00",
+          "disco": "#ffde00",
+          "cubre": 0.271,
+          "campo": false,
+          "oro_normal": 16.3,
+          "blanco_normal": 30.4
+        },
+        "right": {
+          "dominante": "#ffde00",
+          "disco": "#ffde00",
+          "cubre": 0.658,
+          "campo": false,
+          "oro_normal": 16.3,
+          "blanco_normal": 30.4
+        },
+        "left": {
+          "dominante": "#00319c",
+          "disco": "#00319c",
+          "cubre": 0.61,
+          "campo": false,
+          "oro_normal": 74.9,
+          "blanco_normal": 68.6
+        },
+        "center": {
+          "dominante": "#fefe00",
+          "disco": "#ffde00",
+          "cubre": 0.702,
+          "campo": false,
+          "oro_normal": 25.1,
+          "blanco_normal": 30.5
+        }
+      },
+      "sitio": "high",
+      "relleno": "navy",
+      "revisar": true,
+      "se_lee": 73.0,
+      "letras": {
+        "dominante": "#ffde00",
+        "relleno": "#0b2740",
+        "wcag": 11.37
+      }
+    },
+    "NG": {
+      "nombre": "Nigeria",
+      "sitios": {
+        "high": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.009,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "right": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.5,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "left": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.5,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "center": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 76.7,
+      "letras": {
+        "dominante": "#ffffff",
+        "relleno": "#0b2740",
+        "wcag": 15.23
+      }
+    },
+    "KE": {
+      "nombre": "Kenya",
+      "sitios": {
+        "high": {
+          "dominante": "#000001",
+          "disco": "#000001",
+          "cubre": 0.428,
+          "campo": false,
+          "oro_normal": 65.4,
+          "blanco_normal": 100.0
+        },
+        "right": {
+          "dominante": "#000001",
+          "disco": "#000001",
+          "cubre": 0.232,
+          "campo": false,
+          "oro_normal": 65.4,
+          "blanco_normal": 100.0
+        },
+        "left": {
+          "dominante": "#000001",
+          "disco": "#000001",
+          "cubre": 0.237,
+          "campo": false,
+          "oro_normal": 65.4,
+          "blanco_normal": 100.0
+        },
+        "center": {
+          "dominante": "#bb0000",
+          "disco": "#bb0000",
+          "cubre": 0.404,
+          "campo": false,
+          "oro_normal": 43.8,
+          "blanco_normal": 55.8
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": true,
+      "se_lee": 59.4,
+      "letras": {
+        "dominante": "#006600",
+        "relleno": "#ffffff",
+        "wcag": 7.25
+      }
+    },
+    "TN": {
+      "nombre": "Tunisia",
+      "sitios": {
+        "high": {
+          "dominante": "#e70013",
+          "disco": "#e70013",
+          "cubre": 0.297,
+          "campo": false,
+          "oro_normal": 39.8,
+          "blanco_normal": 48.6
+        },
+        "right": {
+          "dominante": "#e70013",
+          "disco": "#e70013",
+          "cubre": 0.088,
+          "campo": true,
+          "oro_normal": 39.8,
+          "blanco_normal": 48.6
+        },
+        "left": {
+          "dominante": "#e70013",
+          "disco": "#e70013",
+          "cubre": 0.088,
+          "campo": true,
+          "oro_normal": 39.8,
+          "blanco_normal": 48.6
+        },
+        "center": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.491,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        }
+      },
+      "sitio": "right",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 26.3,
+      "letras": {
+        "dominante": "#e70013",
+        "relleno": "#ffffff",
+        "wcag": 4.76
+      }
+    },
+    "MY": {
+      "nombre": "Malaysia",
+      "sitios": {
+        "high": {
+          "dominante": "#000066",
+          "disco": "#000066",
+          "cubre": 0.507,
+          "campo": false,
+          "oro_normal": 81.6,
+          "blanco_normal": 91.5
+        },
+        "right": {
+          "dominante": "#cc0000",
+          "disco": "#ffffff",
+          "cubre": 0.535,
+          "campo": false,
+          "oro_normal": 41.4,
+          "blanco_normal": 52.9
+        },
+        "left": {
+          "dominante": "#000066",
+          "disco": "#000066",
+          "cubre": 0.417,
+          "campo": false,
+          "oro_normal": 81.6,
+          "blanco_normal": 91.4
+        },
+        "center": {
+          "dominante": "#cc0000",
+          "disco": "#000066",
+          "cubre": 0.592,
+          "campo": false,
+          "oro_normal": 41.4,
+          "blanco_normal": 52.9
+        }
+      },
+      "sitio": "high",
+      "relleno": "white",
+      "revisar": true,
+      "se_lee": 80.3,
+      "letras": {
+        "dominante": "#cc0000",
+        "relleno": "#ffffff",
+        "wcag": 5.89
+      }
+    },
+    "VN": {
+      "nombre": "Vietnam",
+      "sitios": {
+        "high": {
+          "dominante": "#da251d",
+          "disco": "#da251d",
+          "cubre": 0.157,
+          "campo": false,
+          "oro_normal": 39.2,
+          "blanco_normal": 48.6
+        },
+        "right": {
+          "dominante": "#da251d",
+          "disco": "#da251d",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 39.2,
+          "blanco_normal": 48.6
+        },
+        "left": {
+          "dominante": "#da251d",
+          "disco": "#da251d",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 39.2,
+          "blanco_normal": 48.6
+        },
+        "center": {
+          "dominante": "#ffff00",
+          "disco": "#da251d",
+          "cubre": 0.0,
+          "campo": false,
+          "oro_normal": 25.2,
+          "blanco_normal": 30.5
+        }
+      },
+      "sitio": "right",
+      "relleno": "white",
+      "revisar": false,
+      "se_lee": 39.0,
+      "letras": {
+        "dominante": "#da251d",
+        "relleno": "#ffffff",
+        "wcag": 4.93
+      }
+    },
+    "AE": {
+      "nombre": "United Arab Emirates",
+      "sitios": {
+        "high": {
+          "dominante": "#00732f",
+          "disco": "#00732f",
+          "cubre": 0.07,
+          "campo": true,
+          "oro_normal": 44.5,
+          "blanco_normal": 50.9
+        },
+        "right": {
+          "dominante": "#00732f",
+          "disco": "#00732f",
+          "cubre": 0.048,
+          "campo": true,
+          "oro_normal": 44.5,
+          "blanco_normal": 50.9
+        },
+        "left": {
+          "dominante": "#ff0000",
+          "disco": "#00732f",
+          "cubre": 0.461,
+          "campo": false,
+          "oro_normal": 36.9,
+          "blanco_normal": 45.8
+        },
+        "center": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 27.3,
+      "letras": {
+        "dominante": "#000001",
+        "relleno": "#ffffff",
+        "wcag": 20.99
+      }
+    },
+    "AM": {
+      "nombre": "Armenia",
+      "sitios": {
+        "high": {
+          "dominante": "#d90012",
+          "disco": "#d90012",
+          "cubre": 0.07,
+          "campo": true,
+          "oro_normal": 41.1,
+          "blanco_normal": 50.6
+        },
+        "right": {
+          "dominante": "#d90012",
+          "disco": "#d90012",
+          "cubre": 0.053,
+          "campo": true,
+          "oro_normal": 41.1,
+          "blanco_normal": 50.6
+        },
+        "left": {
+          "dominante": "#d90012",
+          "disco": "#d90012",
+          "cubre": 0.053,
+          "campo": true,
+          "oro_normal": 41.1,
+          "blanco_normal": 50.6
+        },
+        "center": {
+          "dominante": "#0033a0",
+          "disco": "#0033a0",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 74.6,
+          "blanco_normal": 67.6
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 23.6,
+      "letras": {
+        "dominante": "#f2a800",
+        "relleno": "#0b2740",
+        "wcag": 7.53
+      }
+    },
+    "IS": {
+      "nombre": "Iceland",
+      "sitios": {
+        "high": {
+          "dominante": "#003897",
+          "disco": "#003897",
+          "cubre": 0.288,
+          "campo": false,
+          "oro_normal": 72.7,
+          "blanco_normal": 66.6
+        },
+        "right": {
+          "dominante": "#003897",
+          "disco": "#003897",
+          "cubre": 0.009,
+          "campo": true,
+          "oro_normal": 72.7,
+          "blanco_normal": 66.6
+        },
+        "left": {
+          "dominante": "#d72828",
+          "disco": "#003897",
+          "cubre": 0.557,
+          "campo": false,
+          "oro_normal": 40.5,
+          "blanco_normal": 48.5
+        },
+        "center": {
+          "dominante": "#d72828",
+          "disco": "#d72828",
+          "cubre": 0.531,
+          "campo": false,
+          "oro_normal": 40.5,
+          "blanco_normal": 48.5
+        }
+      },
+      "sitio": "right",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 44.5,
+      "letras": {
+        "dominante": "#003897",
+        "relleno": "#ffffff",
+        "wcag": 10.43
+      }
+    },
+    "AZ": {
+      "nombre": "Azerbaijan",
+      "sitios": {
+        "high": {
+          "dominante": "#00b9e4",
+          "disco": "#00b9e4",
+          "cubre": 0.07,
+          "campo": true,
+          "oro_normal": 50.2,
+          "blanco_normal": 30.1
+        },
+        "right": {
+          "dominante": "#00b9e4",
+          "disco": "#00b9e4",
+          "cubre": 0.053,
+          "campo": true,
+          "oro_normal": 50.2,
+          "blanco_normal": 30.1
+        },
+        "left": {
+          "dominante": "#00b9e4",
+          "disco": "#00b9e4",
+          "cubre": 0.053,
+          "campo": true,
+          "oro_normal": 50.2,
+          "blanco_normal": 30.1
+        },
+        "center": {
+          "dominante": "#ed2939",
+          "disco": "#ed2939",
+          "cubre": 0.254,
+          "campo": false,
+          "oro_normal": 41.2,
+          "blanco_normal": 45.4
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 49.8,
+      "letras": {
+        "dominante": "#3f9c35",
+        "relleno": "#0b2740",
+        "wcag": 4.37
+      }
+    },
+    "UZ": {
+      "nombre": "Uzbekistan",
+      "sitios": {
+        "high": {
+          "dominante": "#0099b5",
+          "disco": "#0099b5",
+          "cubre": 0.231,
+          "campo": false,
+          "oro_normal": 47.6,
+          "blanco_normal": 36.2
+        },
+        "right": {
+          "dominante": "#0099b5",
+          "disco": "#0099b5",
+          "cubre": 0.101,
+          "campo": true,
+          "oro_normal": 47.6,
+          "blanco_normal": 36.2
+        },
+        "left": {
+          "dominante": "#0099b5",
+          "disco": "#0099b5",
+          "cubre": 0.154,
+          "campo": false,
+          "oro_normal": 47.6,
+          "blanco_normal": 36.2
+        },
+        "center": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        }
+      },
+      "sitio": "right",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 36.3,
+      "letras": {
+        "dominante": "#1eb53a",
+        "relleno": "#0b2740",
+        "wcag": 5.6
+      }
+    },
+    "SA": {
+      "nombre": "Saudi Arabia",
+      "sitios": {
+        "high": {
+          "dominante": "#165d31",
+          "disco": "#165d31",
+          "cubre": 0.319,
+          "campo": false,
+          "oro_normal": 49.3,
+          "blanco_normal": 57.2
+        },
+        "right": {
+          "dominante": "#165d31",
+          "disco": "#165d31",
+          "cubre": 0.211,
+          "campo": false,
+          "oro_normal": 49.3,
+          "blanco_normal": 57.2
+        },
+        "left": {
+          "dominante": "#165d31",
+          "disco": "#165d31",
+          "cubre": 0.228,
+          "campo": false,
+          "oro_normal": 49.3,
+          "blanco_normal": 57.2
+        },
+        "center": {
+          "dominante": "#165d31",
+          "disco": "#165d31",
+          "cubre": 0.311,
+          "campo": false,
+          "oro_normal": 49.3,
+          "blanco_normal": 57.2
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": true,
+      "se_lee": 35.2,
+      "letras": {
+        "dominante": "#165d31",
+        "relleno": "#ffffff",
+        "wcag": 7.94
+      }
+    },
+    "QA": {
+      "nombre": "Qatar",
+      "sitios": {
+        "high": {
+          "dominante": "#8d1b3d",
+          "disco": "#8d1b3d",
+          "cubre": 0.026,
+          "campo": true,
+          "oro_normal": 57.9,
+          "blanco_normal": 61.3
+        },
+        "right": {
+          "dominante": "#8d1b3d",
+          "disco": "#8d1b3d",
+          "cubre": 0.026,
+          "campo": true,
+          "oro_normal": 57.9,
+          "blanco_normal": 61.3
+        },
+        "left": {
+          "dominante": "#8d1b3d",
+          "disco": "#8d1b3d",
+          "cubre": 0.544,
+          "campo": false,
+          "oro_normal": 57.9,
+          "blanco_normal": 61.3
+        },
+        "center": {
+          "dominante": "#8d1b3d",
+          "disco": "#8d1b3d",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 57.9,
+          "blanco_normal": 61.3
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 39.9,
+      "letras": {
+        "dominante": "#8d1b3d",
+        "relleno": "#ffffff",
+        "wcag": 8.91
+      }
+    },
+    "SG": {
+      "nombre": "Singapore",
+      "sitios": {
+        "high": {
+          "dominante": "#df0000",
+          "disco": "#df0000",
+          "cubre": 0.017,
+          "campo": true,
+          "oro_normal": 39.3,
+          "blanco_normal": 50.0
+        },
+        "right": {
+          "dominante": "#df0000",
+          "disco": "#df0000",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 39.3,
+          "blanco_normal": 50.0
+        },
+        "left": {
+          "dominante": "#df0000",
+          "disco": "#df0000",
+          "cubre": 0.18,
+          "campo": false,
+          "oro_normal": 39.3,
+          "blanco_normal": 50.0
+        },
+        "center": {
+          "dominante": "#ffffff",
+          "disco": "#df0000",
+          "cubre": 0.465,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 24.7,
+      "letras": {
+        "dominante": "#ffffff",
+        "relleno": "#0b2740",
+        "wcag": 15.23
+      }
+    },
+    "DO": {
+      "nombre": "Dominican Republic",
+      "sitios": {
+        "high": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.214,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "right": {
+          "dominante": "#ce1126",
+          "disco": "#ce1126",
+          "cubre": 0.075,
+          "campo": true,
+          "oro_normal": 43.9,
+          "blanco_normal": 51.2
+        },
+        "left": {
+          "dominante": "#002d62",
+          "disco": "#002d62",
+          "cubre": 0.044,
+          "campo": true,
+          "oro_normal": 70.4,
+          "blanco_normal": 74.5
+        },
+        "center": {
+          "dominante": "#fefefe",
+          "disco": "#ffffff",
+          "cubre": 0.632,
+          "campo": false,
+          "oro_normal": 32.7,
+          "blanco_normal": 0.1
+        }
+      },
+      "sitio": "right",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 25.3,
+      "letras": {
+        "dominante": "#ffffff",
+        "relleno": "#0b2740",
+        "wcag": 15.23
+      }
+    },
+    "PY": {
+      "nombre": "Paraguay",
+      "sitios": {
+        "high": {
+          "dominante": "#d52b1e",
+          "disco": "#d52b1e",
+          "cubre": 0.07,
+          "campo": true,
+          "oro_normal": 38.9,
+          "blanco_normal": 48.8
+        },
+        "right": {
+          "dominante": "#d52b1e",
+          "disco": "#d52b1e",
+          "cubre": 0.053,
+          "campo": true,
+          "oro_normal": 38.9,
+          "blanco_normal": 48.8
+        },
+        "left": {
+          "dominante": "#d52b1e",
+          "disco": "#d52b1e",
+          "cubre": 0.053,
+          "campo": true,
+          "oro_normal": 38.9,
+          "blanco_normal": 48.8
+        },
+        "center": {
+          "dominante": "#fefefe",
+          "disco": "#ffffff",
+          "cubre": 0.421,
+          "campo": false,
+          "oro_normal": 32.6,
+          "blanco_normal": 0.3
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 25.0,
+      "letras": {
+        "dominante": "#0038a8",
+        "relleno": "#ffffff",
+        "wcag": 9.85
+      }
+    },
+    "MK": {
+      "nombre": "North Macedonia",
+      "sitios": {
+        "high": {
+          "dominante": "#d20000",
+          "disco": "#d20000",
+          "cubre": 0.419,
+          "campo": false,
+          "oro_normal": 40.7,
+          "blanco_normal": 51.9
+        },
+        "right": {
+          "dominante": "#d20000",
+          "disco": "#d20000",
+          "cubre": 0.329,
+          "campo": false,
+          "oro_normal": 40.6,
+          "blanco_normal": 51.9
+        },
+        "left": {
+          "dominante": "#d20000",
+          "disco": "#d20000",
+          "cubre": 0.329,
+          "campo": false,
+          "oro_normal": 40.6,
+          "blanco_normal": 51.9
+        },
+        "center": {
+          "dominante": "#ffe600",
+          "disco": "#d20000",
+          "cubre": 0.123,
+          "campo": false,
+          "oro_normal": 18.6,
+          "blanco_normal": 30.3
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": true,
+      "se_lee": 25.2,
+      "letras": {
+        "dominante": "#d20000",
+        "relleno": "#ffffff",
+        "wcag": 5.61
+      }
+    },
+    "KG": {
+      "nombre": "Kyrgyzstan",
+      "sitios": {
+        "high": {
+          "dominante": "#ff0000",
+          "disco": "#ff0000",
+          "cubre": 0.314,
+          "campo": false,
+          "oro_normal": 36.9,
+          "blanco_normal": 45.8
+        },
+        "right": {
+          "dominante": "#ff0000",
+          "disco": "#ff0000",
+          "cubre": 0.083,
+          "campo": true,
+          "oro_normal": 36.9,
+          "blanco_normal": 45.8
+        },
+        "left": {
+          "dominante": "#ff0000",
+          "disco": "#ff0000",
+          "cubre": 0.083,
+          "campo": true,
+          "oro_normal": 36.9,
+          "blanco_normal": 45.8
+        },
+        "center": {
+          "dominante": "#ffff00",
+          "disco": "#ffff00",
+          "cubre": 0.728,
+          "campo": false,
+          "oro_normal": 25.2,
+          "blanco_normal": 30.5
+        }
+      },
+      "sitio": "right",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 31.2,
+      "letras": {
+        "dominante": "#ff0000",
+        "relleno": "#ffffff",
+        "wcag": 4.0
+      }
+    },
+    "HK": {
+      "nombre": "Hong Kong",
+      "sitios": {
+        "high": {
+          "dominante": "#ec1b2e",
+          "disco": "#ec1b2e",
+          "cubre": 0.279,
+          "campo": false,
+          "oro_normal": 41.1,
+          "blanco_normal": 46.6
+        },
+        "right": {
+          "dominante": "#ec1b2e",
+          "disco": "#ec1b2e",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 41.1,
+          "blanco_normal": 46.6
+        },
+        "left": {
+          "dominante": "#ec1b2e",
+          "disco": "#ec1b2e",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 41.1,
+          "blanco_normal": 46.6
+        },
+        "center": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.61,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.1
+        }
+      },
+      "sitio": "right",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 28.4,
+      "letras": {
+        "dominante": "#ec1b2e",
+        "relleno": "#ffffff",
+        "wcag": 4.41
+      }
+    },
+    "GU": {
+      "nombre": "Guam",
+      "sitios": {
+        "high": {
+          "dominante": "#cbe0e5",
+          "disco": "#3b5aa3",
+          "cubre": 0.703,
+          "campo": false,
+          "oro_normal": 34.8,
+          "blanco_normal": 11.1
+        },
+        "right": {
+          "dominante": "#3b5aa3",
+          "disco": "#3b5aa3",
+          "cubre": 0.189,
+          "campo": false,
+          "oro_normal": 60.6,
+          "blanco_normal": 52.2
+        },
+        "left": {
+          "dominante": "#3b5aa3",
+          "disco": "#3b5aa3",
+          "cubre": 0.228,
+          "campo": false,
+          "oro_normal": 60.6,
+          "blanco_normal": 52.2
+        },
+        "center": {
+          "dominante": "#cbe0e5",
+          "disco": "#cbe0e5",
+          "cubre": 0.504,
+          "campo": false,
+          "oro_normal": 34.8,
+          "blanco_normal": 11.1
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": true,
+      "se_lee": 71.2,
+      "letras": {
+        "dominante": "#3b5aa3",
+        "relleno": "#ffffff",
+        "wcag": 6.61
+      }
+    },
+    "BH": {
+      "nombre": "Bahrain",
+      "sitios": {
+        "high": {
+          "dominante": "#ce1126",
+          "disco": "#ce1126",
+          "cubre": 0.017,
+          "campo": true,
+          "oro_normal": 43.9,
+          "blanco_normal": 51.2
+        },
+        "right": {
+          "dominante": "#ce1126",
+          "disco": "#ce1126",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 43.9,
+          "blanco_normal": 51.2
+        },
+        "left": {
+          "dominante": "#ce1126",
+          "disco": "#ce1126",
+          "cubre": 0.101,
+          "campo": true,
+          "oro_normal": 43.9,
+          "blanco_normal": 51.2
+        },
+        "center": {
+          "dominante": "#ce1126",
+          "disco": "#ce1126",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 43.9,
+          "blanco_normal": 51.2
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 25.3,
+      "letras": {
+        "dominante": "#ce1126",
+        "relleno": "#ffffff",
+        "wcag": 5.63
+      }
+    },
+    "XK": {
+      "nombre": "Kosovo",
+      "sitios": {
+        "high": {
+          "dominante": "#244aa5",
+          "disco": "#244aa5",
+          "cubre": 0.214,
+          "campo": false,
+          "oro_normal": 67.2,
+          "blanco_normal": 58.6
+        },
+        "right": {
+          "dominante": "#244aa5",
+          "disco": "#244aa5",
+          "cubre": 0.184,
+          "campo": false,
+          "oro_normal": 67.2,
+          "blanco_normal": 58.6
+        },
+        "left": {
+          "dominante": "#244aa5",
+          "disco": "#244aa5",
+          "cubre": 0.184,
+          "campo": false,
+          "oro_normal": 67.2,
+          "blanco_normal": 58.6
+        },
+        "center": {
+          "dominante": "#d0a650",
+          "disco": "#d0a650",
+          "cubre": 0.026,
+          "campo": true,
+          "oro_normal": 5.6,
+          "blanco_normal": 30.5
+        }
+      },
+      "sitio": "center",
+      "relleno": "navy",
+      "revisar": false,
+      "se_lee": 50.7,
+      "letras": {
+        "dominante": "#244aa5",
+        "relleno": "#ffffff",
+        "wcag": 8.08
+      }
+    },
+    "HN": {
+      "nombre": "Honduras",
+      "sitios": {
+        "high": {
+          "dominante": "#18c3df",
+          "disco": "#18c3df",
+          "cubre": 0.035,
+          "campo": true,
+          "oro_normal": 47.0,
+          "blanco_normal": 29.1
+        },
+        "right": {
+          "dominante": "#18c3df",
+          "disco": "#18c3df",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 47.0,
+          "blanco_normal": 29.1
+        },
+        "left": {
+          "dominante": "#18c3df",
+          "disco": "#18c3df",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 47.0,
+          "blanco_normal": 29.1
+        },
+        "center": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.105,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 50.9,
+      "letras": {
+        "dominante": "#18c3df",
+        "relleno": "#0b2740",
+        "wcag": 7.19
+      }
+    },
+    "AD": {
+      "nombre": "Andorra",
+      "sitios": {
+        "high": {
+          "dominante": "#fedf00",
+          "disco": "#fedf00",
+          "cubre": 0.127,
+          "campo": false,
+          "oro_normal": 16.7,
+          "blanco_normal": 30.4
+        },
+        "right": {
+          "dominante": "#fedf00",
+          "disco": "#fedf00",
+          "cubre": 0.443,
+          "campo": false,
+          "oro_normal": 16.7,
+          "blanco_normal": 30.4
+        },
+        "left": {
+          "dominante": "#fedf00",
+          "disco": "#fedf00",
+          "cubre": 0.443,
+          "campo": false,
+          "oro_normal": 16.7,
+          "blanco_normal": 30.4
+        },
+        "center": {
+          "dominante": "#de5713",
+          "disco": "#fedf00",
+          "cubre": 0.785,
+          "campo": false,
+          "oro_normal": 27.5,
+          "blanco_normal": 43.1
+        }
+      },
+      "sitio": "high",
+      "relleno": "navy",
+      "revisar": true,
+      "se_lee": 73.1,
+      "letras": {
+        "dominante": "#fedf00",
+        "relleno": "#0b2740",
+        "wcag": 11.44
+      }
+    },
+    "AL": {
+      "nombre": "Albania",
+      "sitios": {
+        "high": {
+          "dominante": "#ff0000",
+          "disco": "#ff0000",
+          "cubre": 0.419,
+          "campo": false,
+          "oro_normal": 36.9,
+          "blanco_normal": 45.8
+        },
+        "right": {
+          "dominante": "#ff0000",
+          "disco": "#ff0000",
+          "cubre": 0.298,
+          "campo": false,
+          "oro_normal": 37.0,
+          "blanco_normal": 45.8
+        },
+        "left": {
+          "dominante": "#ff0000",
+          "disco": "#ff0000",
+          "cubre": 0.303,
+          "campo": false,
+          "oro_normal": 37.0,
+          "blanco_normal": 45.8
+        },
+        "center": {
+          "dominante": "#000001",
+          "disco": "#000001",
+          "cubre": 0.246,
+          "campo": false,
+          "oro_normal": 65.4,
+          "blanco_normal": 100.0
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": true,
+      "se_lee": 31.2,
+      "letras": {
+        "dominante": "#ff0000",
+        "relleno": "#ffffff",
+        "wcag": 4.0
+      }
+    },
+    "BA": {
+      "nombre": "Bosnia and Herzegovina",
+      "sitios": {
+        "high": {
+          "dominante": "#ffcc00",
+          "disco": "#ffcc00",
+          "cubre": 0.052,
+          "campo": true,
+          "oro_normal": 11.2,
+          "blanco_normal": 30.8
+        },
+        "right": {
+          "dominante": "#ffcc00",
+          "disco": "#ffcc00",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 11.2,
+          "blanco_normal": 30.8
+        },
+        "left": {
+          "dominante": "#000099",
+          "disco": "#ffcc00",
+          "cubre": 0.526,
+          "campo": false,
+          "oro_normal": 81.8,
+          "blanco_normal": 80.4
+        },
+        "center": {
+          "dominante": "#000099",
+          "disco": "#000099",
+          "cubre": 0.5,
+          "campo": false,
+          "oro_normal": 81.8,
+          "blanco_normal": 80.4
+        }
+      },
+      "sitio": "high",
+      "relleno": "navy",
+      "revisar": false,
+      "se_lee": 69.2,
+      "letras": {
+        "dominante": "#000099",
+        "relleno": "#ffffff",
+        "wcag": 14.38
+      }
+    },
+    "BF": {
+      "nombre": "Burkina Faso",
+      "sitios": {
+        "high": {
+          "dominante": "#de0000",
+          "disco": "#de0000",
+          "cubre": 0.175,
+          "campo": false,
+          "oro_normal": 39.4,
+          "blanco_normal": 50.1
+        },
+        "right": {
+          "dominante": "#de0000",
+          "disco": "#de0000",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 39.4,
+          "blanco_normal": 50.1
+        },
+        "left": {
+          "dominante": "#de0000",
+          "disco": "#de0000",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 39.4,
+          "blanco_normal": 50.1
+        },
+        "center": {
+          "dominante": "#fff300",
+          "disco": "#fff300",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 22.1,
+          "blanco_normal": 30.3
+        }
+      },
+      "sitio": "right",
+      "relleno": "white",
+      "revisar": false,
+      "se_lee": 40.0,
+      "letras": {
+        "dominante": "#35a100",
+        "relleno": "#0b2740",
+        "wcag": 4.53
+      }
+    },
+    "BJ": {
+      "nombre": "Benin",
+      "sitios": {
+        "high": {
+          "dominante": "#ffd600",
+          "disco": "#ffd600",
+          "cubre": 0.035,
+          "campo": true,
+          "oro_normal": 14.0,
+          "blanco_normal": 30.5
+        },
+        "right": {
+          "dominante": "#ffd600",
+          "disco": "#ffd600",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 14.0,
+          "blanco_normal": 30.5
+        },
+        "left": {
+          "dominante": "#319400",
+          "disco": "#319400",
+          "cubre": 0.202,
+          "campo": false,
+          "oro_normal": 36.6,
+          "blanco_normal": 43.4
+        },
+        "center": {
+          "dominante": "#de2110",
+          "disco": "#de2110",
+          "cubre": 0.465,
+          "campo": false,
+          "oro_normal": 38.2,
+          "blanco_normal": 48.6
+        }
+      },
+      "sitio": "high",
+      "relleno": "navy",
+      "revisar": false,
+      "se_lee": 71.6,
+      "letras": {
+        "dominante": "#de2110",
+        "relleno": "#ffffff",
+        "wcag": 4.85
+      }
+    },
+    "CM": {
+      "nombre": "Cameroon",
+      "sitios": {
+        "high": {
+          "dominante": "#ce1126",
+          "disco": "#ce1126",
+          "cubre": 0.017,
+          "campo": true,
+          "oro_normal": 43.9,
+          "blanco_normal": 51.2
+        },
+        "right": {
+          "dominante": "#ce1126",
+          "disco": "#ce1126",
+          "cubre": 0.5,
+          "campo": false,
+          "oro_normal": 43.9,
+          "blanco_normal": 51.2
+        },
+        "left": {
+          "dominante": "#ce1126",
+          "disco": "#ce1126",
+          "cubre": 0.5,
+          "campo": false,
+          "oro_normal": 43.9,
+          "blanco_normal": 51.2
+        },
+        "center": {
+          "dominante": "#ce1126",
+          "disco": "#ce1126",
+          "cubre": 0.377,
+          "campo": false,
+          "oro_normal": 43.8,
+          "blanco_normal": 51.2
+        }
+      },
+      "sitio": "high",
+      "relleno": "white",
+      "revisar": false,
+      "se_lee": 42.6,
+      "letras": {
+        "dominante": "#ce1126",
+        "relleno": "#ffffff",
+        "wcag": 5.63
+      }
+    },
+    "CY": {
+      "nombre": "Cyprus",
+      "sitios": {
+        "high": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.175,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "right": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.281,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "left": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.096,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "center": {
+          "dominante": "#d47600",
+          "disco": "#ffffff",
+          "cubre": 0.461,
+          "campo": false,
+          "oro_normal": 15.7,
+          "blanco_normal": 39.7
+        }
+      },
+      "sitio": "left",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 76.7,
+      "letras": {
+        "dominante": "#ffffff",
+        "relleno": "#0b2740",
+        "wcag": 15.23
+      }
+    },
+    "MU": {
+      "nombre": "Mauritius",
+      "sitios": {
+        "high": {
+          "dominante": "#ee2737",
+          "disco": "#ee2737",
+          "cubre": 0.341,
+          "campo": false,
+          "oro_normal": 41.1,
+          "blanco_normal": 45.4
+        },
+        "right": {
+          "dominante": "#ee2737",
+          "disco": "#ee2737",
+          "cubre": 0.298,
+          "campo": false,
+          "oro_normal": 41.1,
+          "blanco_normal": 45.4
+        },
+        "left": {
+          "dominante": "#ee2737",
+          "disco": "#ee2737",
+          "cubre": 0.298,
+          "campo": false,
+          "oro_normal": 41.1,
+          "blanco_normal": 45.4
+        },
+        "center": {
+          "dominante": "#ffcd00",
+          "disco": "#151f6d",
+          "cubre": 0.465,
+          "campo": false,
+          "oro_normal": 11.5,
+          "blanco_normal": 30.8
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": true,
+      "se_lee": 29.7,
+      "letras": {
+        "dominante": "#00a04d",
+        "relleno": "#0b2740",
+        "wcag": 4.45
+      }
+    },
+    "OM": {
+      "nombre": "Oman",
+      "sitios": {
+        "high": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.061,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "right": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.053,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "left": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.18,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "center": {
+          "dominante": "#ef2d29",
+          "disco": "#ef2d29",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 38.2,
+          "blanco_normal": 45.3
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 76.7,
+      "letras": {
+        "dominante": "#009025",
+        "relleno": "#ffffff",
+        "wcag": 4.19
+      }
+    },
+    "TW": {
+      "nombre": "Taiwan",
+      "sitios": {
+        "high": {
+          "dominante": "#000095",
+          "disco": "#000095",
+          "cubre": 0.183,
+          "campo": false,
+          "oro_normal": 81.8,
+          "blanco_normal": 81.2
+        },
+        "right": {
+          "dominante": "#ff0000",
+          "disco": "#ff0000",
+          "cubre": 0.061,
+          "campo": true,
+          "oro_normal": 36.9,
+          "blanco_normal": 45.8
+        },
+        "left": {
+          "dominante": "#ffffff",
+          "disco": "#000095",
+          "cubre": 0.627,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.1
+        },
+        "center": {
+          "dominante": "#ff0000",
+          "disco": "#ff0000",
+          "cubre": 0.395,
+          "campo": false,
+          "oro_normal": 36.9,
+          "blanco_normal": 45.8
+        }
+      },
+      "sitio": "right",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 31.2,
+      "letras": {
+        "dominante": "#ff0000",
+        "relleno": "#ffffff",
+        "wcag": 4.0
+      }
+    },
+    "AG": {
+      "nombre": "Antigua and Barbuda",
+      "sitios": {
+        "high": {
+          "dominante": "#fcd116",
+          "disco": "#fcd116",
+          "cubre": 0.284,
+          "campo": false,
+          "oro_normal": 12.6,
+          "blanco_normal": 30.4
+        },
+        "right": {
+          "dominante": "#000001",
+          "disco": "#000001",
+          "cubre": 0.404,
+          "campo": false,
+          "oro_normal": 65.4,
+          "blanco_normal": 100.0
+        },
+        "left": {
+          "dominante": "#000001",
+          "disco": "#000001",
+          "cubre": 0.364,
+          "campo": false,
+          "oro_normal": 65.4,
+          "blanco_normal": 100.0
+        },
+        "center": {
+          "dominante": "#0072c6",
+          "disco": "#0072c6",
+          "cubre": 0.175,
+          "campo": false,
+          "oro_normal": 57.6,
+          "blanco_normal": 45.9
+        }
+      },
+      "sitio": "high",
+      "relleno": "navy",
+      "revisar": true,
+      "se_lee": 70.3,
+      "letras": {
+        "dominante": "#ffffff",
+        "relleno": "#0b2740",
+        "wcag": 15.23
+      }
+    },
+    "BB": {
+      "nombre": "Barbados",
+      "sitios": {
+        "high": {
+          "dominante": "#ffc726",
+          "disco": "#ffc726",
+          "cubre": 0.026,
+          "campo": true,
+          "oro_normal": 9.3,
+          "blanco_normal": 30.3
+        },
+        "right": {
+          "dominante": "#ffc726",
+          "disco": "#ffc726",
+          "cubre": 0.5,
+          "campo": false,
+          "oro_normal": 9.3,
+          "blanco_normal": 30.3
+        },
+        "left": {
+          "dominante": "#ffc726",
+          "disco": "#ffc726",
+          "cubre": 0.5,
+          "campo": false,
+          "oro_normal": 9.3,
+          "blanco_normal": 30.3
+        },
+        "center": {
+          "dominante": "#ffc726",
+          "disco": "#ffc726",
+          "cubre": 0.592,
+          "campo": false,
+          "oro_normal": 9.3,
+          "blanco_normal": 30.3
+        }
+      },
+      "sitio": "high",
+      "relleno": "navy",
+      "revisar": false,
+      "se_lee": 67.9,
+      "letras": {
+        "dominante": "#ffc726",
+        "relleno": "#0b2740",
+        "wcag": 9.76
+      }
+    },
+    "BM": {
+      "nombre": "Bermuda",
+      "sitios": {
+        "high": {
+          "dominante": "#cd132c",
+          "disco": "#cd132c",
+          "cubre": 0.336,
+          "campo": false,
+          "oro_normal": 44.7,
+          "blanco_normal": 51.1
+        },
+        "right": {
+          "dominante": "#cf142b",
+          "disco": "#cf142b",
+          "cubre": 0.224,
+          "campo": false,
+          "oro_normal": 44.2,
+          "blanco_normal": 50.8
+        },
+        "left": {
+          "dominante": "#c8102e",
+          "disco": "#c9112e",
+          "cubre": 0.504,
+          "campo": false,
+          "oro_normal": 46.0,
+          "blanco_normal": 52.0
+        },
+        "center": {
+          "dominante": "#cf142b",
+          "disco": "#ce142b",
+          "cubre": 0.219,
+          "campo": false,
+          "oro_normal": 44.3,
+          "blanco_normal": 50.9
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": true,
+      "se_lee": 25.3,
+      "letras": {
+        "dominante": "#cf142b",
+        "relleno": "#ffffff",
+        "wcag": 5.54
+      }
+    },
+    "BZ": {
+      "nombre": "Belize",
+      "sitios": {
+        "high": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.721,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.1
+        },
+        "right": {
+          "dominante": "#003f87",
+          "disco": "#003f87",
+          "cubre": 0.675,
+          "campo": false,
+          "oro_normal": 68.9,
+          "blanco_normal": 64.7
+        },
+        "left": {
+          "dominante": "#003f87",
+          "disco": "#003f87",
+          "cubre": 0.675,
+          "campo": false,
+          "oro_normal": 68.9,
+          "blanco_normal": 64.7
+        },
+        "center": {
+          "dominante": "#eeeeee",
+          "disco": "#fdfdfd",
+          "cubre": 0.667,
+          "campo": false,
+          "oro_normal": 30.9,
+          "blanco_normal": 3.4
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": true,
+      "se_lee": 76.7,
+      "letras": {
+        "dominante": "#fefefe",
+        "relleno": "#0b2740",
+        "wcag": 15.16
+      }
+    },
+    "CI": {
+      "nombre": "Ivory Coast",
+      "sitios": {
+        "high": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.009,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "right": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.5,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "left": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.5,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "center": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 76.7,
+      "letras": {
+        "dominante": "#ffffff",
+        "relleno": "#0b2740",
+        "wcag": 15.23
+      }
+    },
+    "CV": {
+      "nombre": "Cape Verde",
+      "sitios": {
+        "high": {
+          "dominante": "#081873",
+          "disco": "#081873",
+          "cubre": 0.009,
+          "campo": true,
+          "oro_normal": 78.1,
+          "blanco_normal": 81.5
+        },
+        "right": {
+          "dominante": "#081873",
+          "disco": "#081873",
+          "cubre": 0.009,
+          "campo": true,
+          "oro_normal": 78.1,
+          "blanco_normal": 81.5
+        },
+        "left": {
+          "dominante": "#081873",
+          "disco": "#081873",
+          "cubre": 0.009,
+          "campo": true,
+          "oro_normal": 78.1,
+          "blanco_normal": 81.5
+        },
+        "center": {
+          "dominante": "#081873",
+          "disco": "#081873",
+          "cubre": 0.601,
+          "campo": false,
+          "oro_normal": 78.1,
+          "blanco_normal": 81.5
+        }
+      },
+      "sitio": "high",
+      "relleno": "white",
+      "revisar": false,
+      "se_lee": 72.6,
+      "letras": {
+        "dominante": "#081873",
+        "relleno": "#ffffff",
+        "wcag": 15.12
+      }
+    },
+    "DM": {
+      "nombre": "Dominica",
+      "sitios": {
+        "high": {
+          "dominante": "#e72910",
+          "disco": "#108c00",
+          "cubre": 0.742,
+          "campo": false,
+          "oro_normal": 36.6,
+          "blanco_normal": 47.0
+        },
+        "right": {
+          "dominante": "#108c00",
+          "disco": "#108c00",
+          "cubre": 0.193,
+          "campo": false,
+          "oro_normal": 39.1,
+          "blanco_normal": 45.7
+        },
+        "left": {
+          "dominante": "#108c00",
+          "disco": "#108c00",
+          "cubre": 0.228,
+          "campo": false,
+          "oro_normal": 39.1,
+          "blanco_normal": 45.7
+        },
+        "center": {
+          "dominante": "#e72910",
+          "disco": "#e72910",
+          "cubre": 0.43,
+          "campo": false,
+          "oro_normal": 36.6,
+          "blanco_normal": 47.0
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": true,
+      "se_lee": 28.2,
+      "letras": {
+        "dominante": "#ffffff",
+        "relleno": "#0b2740",
+        "wcag": 15.23
+      }
+    },
+    "GW": {
+      "nombre": "Guinea-Bissau",
+      "sitios": {
+        "high": {
+          "dominante": "#fcd116",
+          "disco": "#fcd116",
+          "cubre": 0.017,
+          "campo": true,
+          "oro_normal": 12.6,
+          "blanco_normal": 30.4
+        },
+        "right": {
+          "dominante": "#fcd116",
+          "disco": "#fcd116",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 12.6,
+          "blanco_normal": 30.4
+        },
+        "left": {
+          "dominante": "#ce1126",
+          "disco": "#fcd116",
+          "cubre": 0.539,
+          "campo": false,
+          "oro_normal": 43.9,
+          "blanco_normal": 51.2
+        },
+        "center": {
+          "dominante": "#009e49",
+          "disco": "#009e49",
+          "cubre": 0.465,
+          "campo": false,
+          "oro_normal": 39.3,
+          "blanco_normal": 40.2
+        }
+      },
+      "sitio": "high",
+      "relleno": "navy",
+      "revisar": false,
+      "se_lee": 70.3,
+      "letras": {
+        "dominante": "#009e49",
+        "relleno": "#0b2740",
+        "wcag": 4.34
+      }
+    },
+    "JM": {
+      "nombre": "Jamaica",
+      "sitios": {
+        "high": {
+          "dominante": "#009900",
+          "disco": "#009900",
+          "cubre": 0.026,
+          "campo": true,
+          "oro_normal": 38.3,
+          "blanco_normal": 43.2
+        },
+        "right": {
+          "dominante": "#009900",
+          "disco": "#009900",
+          "cubre": 0.377,
+          "campo": false,
+          "oro_normal": 38.3,
+          "blanco_normal": 43.2
+        },
+        "left": {
+          "dominante": "#009900",
+          "disco": "#009900",
+          "cubre": 0.377,
+          "campo": false,
+          "oro_normal": 38.3,
+          "blanco_normal": 43.2
+        },
+        "center": {
+          "dominante": "#ffcc00",
+          "disco": "#ffcc00",
+          "cubre": 0.114,
+          "campo": true,
+          "oro_normal": 11.2,
+          "blanco_normal": 30.8
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 32.8,
+      "letras": {
+        "dominante": "#009900",
+        "relleno": "#0b2740",
+        "wcag": 4.03
+      }
+    },
+    "JO": {
+      "nombre": "Jordan",
+      "sitios": {
+        "high": {
+          "dominante": "#000001",
+          "disco": "#000001",
+          "cubre": 0.096,
+          "campo": true,
+          "oro_normal": 65.4,
+          "blanco_normal": 100.0
+        },
+        "right": {
+          "dominante": "#000001",
+          "disco": "#000001",
+          "cubre": 0.031,
+          "campo": true,
+          "oro_normal": 65.4,
+          "blanco_normal": 100.0
+        },
+        "left": {
+          "dominante": "#000001",
+          "disco": "#000001",
+          "cubre": 0.461,
+          "campo": false,
+          "oro_normal": 65.4,
+          "blanco_normal": 100.0
+        },
+        "center": {
+          "dominante": "#ff0000",
+          "disco": "#ff0000",
+          "cubre": 0.022,
+          "campo": true,
+          "oro_normal": 36.9,
+          "blanco_normal": 45.8
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 59.4,
+      "letras": {
+        "dominante": "#009900",
+        "relleno": "#0b2740",
+        "wcag": 4.03
+      }
+    },
+    "KY": {
+      "nombre": "Cayman Islands",
+      "sitios": {
+        "high": {
+          "dominante": "#000066",
+          "disco": "#000066",
+          "cubre": 0.41,
+          "campo": false,
+          "oro_normal": 81.6,
+          "blanco_normal": 91.5
+        },
+        "right": {
+          "dominante": "#000066",
+          "disco": "#000066",
+          "cubre": 0.425,
+          "campo": false,
+          "oro_normal": 81.6,
+          "blanco_normal": 91.5
+        },
+        "left": {
+          "dominante": "#c8102e",
+          "disco": "#c8102e",
+          "cubre": 0.504,
+          "campo": false,
+          "oro_normal": 46.0,
+          "blanco_normal": 52.0
+        },
+        "center": {
+          "dominante": "#000066",
+          "disco": "#000066",
+          "cubre": 0.18,
+          "campo": false,
+          "oro_normal": 81.6,
+          "blanco_normal": 91.5
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": true,
+      "se_lee": 55.3,
+      "letras": {
+        "dominante": "#000066",
+        "relleno": "#ffffff",
+        "wcag": 17.62
+      }
+    },
+    "LA": {
+      "nombre": "Laos",
+      "sitios": {
+        "high": {
+          "dominante": "#ce1126",
+          "disco": "#ce1126",
+          "cubre": 0.341,
+          "campo": false,
+          "oro_normal": 43.9,
+          "blanco_normal": 51.2
+        },
+        "right": {
+          "dominante": "#ce1126",
+          "disco": "#ce1126",
+          "cubre": 0.298,
+          "campo": false,
+          "oro_normal": 43.9,
+          "blanco_normal": 51.2
+        },
+        "left": {
+          "dominante": "#ce1126",
+          "disco": "#ce1126",
+          "cubre": 0.298,
+          "campo": false,
+          "oro_normal": 43.9,
+          "blanco_normal": 51.2
+        },
+        "center": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        }
+      },
+      "sitio": "center",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 76.7,
+      "letras": {
+        "dominante": "#ce1126",
+        "relleno": "#ffffff",
+        "wcag": 5.63
+      }
+    },
+    "LB": {
+      "nombre": "Lebanon",
+      "sitios": {
+        "high": {
+          "dominante": "#ee161f",
+          "disco": "#ee161f",
+          "cubre": 0.341,
+          "campo": false,
+          "oro_normal": 39.4,
+          "blanco_normal": 46.9
+        },
+        "right": {
+          "dominante": "#ee161f",
+          "disco": "#ee161f",
+          "cubre": 0.298,
+          "campo": false,
+          "oro_normal": 39.4,
+          "blanco_normal": 46.9
+        },
+        "left": {
+          "dominante": "#ee161f",
+          "disco": "#ee161f",
+          "cubre": 0.298,
+          "campo": false,
+          "oro_normal": 39.4,
+          "blanco_normal": 46.9
+        },
+        "center": {
+          "dominante": "#01a850",
+          "disco": "#00a850",
+          "cubre": 0.189,
+          "campo": false,
+          "oro_normal": 38.9,
+          "blanco_normal": 38.3
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": true,
+      "se_lee": 28.5,
+      "letras": {
+        "dominante": "#ee161f",
+        "relleno": "#ffffff",
+        "wcag": 4.4
+      }
+    },
+    "LC": {
+      "nombre": "Saint Lucia",
+      "sitios": {
+        "high": {
+          "dominante": "#65cfff",
+          "disco": "#65cfff",
+          "cubre": 0.515,
+          "campo": false,
+          "oro_normal": 51.3,
+          "blanco_normal": 24.9
+        },
+        "right": {
+          "dominante": "#65cfff",
+          "disco": "#65cfff",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 51.3,
+          "blanco_normal": 25.0
+        },
+        "left": {
+          "dominante": "#65cfff",
+          "disco": "#65cfff",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 51.3,
+          "blanco_normal": 25.0
+        },
+        "center": {
+          "dominante": "#000001",
+          "disco": "#65cfff",
+          "cubre": 0.439,
+          "campo": false,
+          "oro_normal": 65.4,
+          "blanco_normal": 100.0
+        }
+      },
+      "sitio": "right",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 59.9,
+      "letras": {
+        "dominante": "#ffce00",
+        "relleno": "#0b2740",
+        "wcag": 10.21
+      }
+    },
+    "MC": {
+      "nombre": "Monaco",
+      "sitios": {
+        "high": {
+          "dominante": "#f31830",
+          "disco": "#f31830",
+          "cubre": 0.017,
+          "campo": true,
+          "oro_normal": 41.0,
+          "blanco_normal": 45.8
+        },
+        "right": {
+          "dominante": "#f31830",
+          "disco": "#f31830",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 41.0,
+          "blanco_normal": 45.8
+        },
+        "left": {
+          "dominante": "#f31830",
+          "disco": "#f31830",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 41.0,
+          "blanco_normal": 45.8
+        },
+        "center": {
+          "dominante": "#ffffff",
+          "disco": "#f31830",
+          "cubre": 0.465,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 29.7,
+      "letras": {
+        "dominante": "#ffffff",
+        "relleno": "#0b2740",
+        "wcag": 15.23
+      }
+    },
+    "ME": {
+      "nombre": "Montenegro",
+      "sitios": {
+        "high": {
+          "dominante": "#c40308",
+          "disco": "#c40308",
+          "cubre": 0.319,
+          "campo": false,
+          "oro_normal": 42.8,
+          "blanco_normal": 54.0
+        },
+        "right": {
+          "dominante": "#c40308",
+          "disco": "#c40308",
+          "cubre": 0.083,
+          "campo": true,
+          "oro_normal": 42.8,
+          "blanco_normal": 54.0
+        },
+        "left": {
+          "dominante": "#c40308",
+          "disco": "#c40308",
+          "cubre": 0.083,
+          "campo": true,
+          "oro_normal": 42.8,
+          "blanco_normal": 54.0
+        },
+        "center": {
+          "dominante": "#d2a938",
+          "disco": "#cb9933",
+          "cubre": 0.671,
+          "campo": false,
+          "oro_normal": 4.9,
+          "blanco_normal": 31.8
+        }
+      },
+      "sitio": "right",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 28.4,
+      "letras": {
+        "dominante": "#c40308",
+        "relleno": "#ffffff",
+        "wcag": 6.24
+      }
+    },
+    "ML": {
+      "nombre": "Mali",
+      "sitios": {
+        "high": {
+          "dominante": "#ffff00",
+          "disco": "#ffff00",
+          "cubre": 0.017,
+          "campo": true,
+          "oro_normal": 25.2,
+          "blanco_normal": 30.5
+        },
+        "right": {
+          "dominante": "#ffff00",
+          "disco": "#ffff00",
+          "cubre": 0.5,
+          "campo": false,
+          "oro_normal": 25.2,
+          "blanco_normal": 30.5
+        },
+        "left": {
+          "dominante": "#ffff00",
+          "disco": "#ffff00",
+          "cubre": 0.5,
+          "campo": false,
+          "oro_normal": 25.2,
+          "blanco_normal": 30.5
+        },
+        "center": {
+          "dominante": "#ffff00",
+          "disco": "#ffff00",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 25.2,
+          "blanco_normal": 30.5
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 76.7,
+      "letras": {
+        "dominante": "#ffff00",
+        "relleno": "#0b2740",
+        "wcag": 14.19
+      }
+    },
+    "MN": {
+      "nombre": "Mongolia",
+      "sitios": {
+        "high": {
+          "dominante": "#0066b3",
+          "disco": "#0066b3",
+          "cubre": 0.017,
+          "campo": true,
+          "oro_normal": 59.0,
+          "blanco_normal": 49.6
+        },
+        "right": {
+          "dominante": "#0066b3",
+          "disco": "#0066b3",
+          "cubre": 0.5,
+          "campo": false,
+          "oro_normal": 59.0,
+          "blanco_normal": 49.6
+        },
+        "left": {
+          "dominante": "#0066b3",
+          "disco": "#0066b3",
+          "cubre": 0.5,
+          "campo": false,
+          "oro_normal": 59.0,
+          "blanco_normal": 49.6
+        },
+        "center": {
+          "dominante": "#0066b3",
+          "disco": "#0066b3",
+          "cubre": 0.0,
+          "campo": true,
+          "oro_normal": 59.0,
+          "blanco_normal": 49.6
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 26.7,
+      "letras": {
+        "dominante": "#0066b3",
+        "relleno": "#ffffff",
+        "wcag": 5.91
+      }
+    },
+    "MO": {
+      "nombre": "Macau",
+      "sitios": {
+        "high": {
+          "dominante": "#00785e",
+          "disco": "#00785e",
+          "cubre": 0.122,
+          "campo": false,
+          "oro_normal": 44.7,
+          "blanco_normal": 47.7
+        },
+        "right": {
+          "dominante": "#00785e",
+          "disco": "#00785e",
+          "cubre": 0.079,
+          "campo": true,
+          "oro_normal": 44.7,
+          "blanco_normal": 47.7
+        },
+        "left": {
+          "dominante": "#00785e",
+          "disco": "#00785e",
+          "cubre": 0.079,
+          "campo": true,
+          "oro_normal": 44.7,
+          "blanco_normal": 47.7
+        },
+        "center": {
+          "dominante": "#ffffff",
+          "disco": "#00785e",
+          "cubre": 0.298,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        }
+      },
+      "sitio": "right",
+      "relleno": "white",
+      "revisar": false,
+      "se_lee": 40.6,
+      "letras": {
+        "dominante": "#00785e",
+        "relleno": "#ffffff",
+        "wcag": 5.45
+      }
+    },
+    "MT": {
+      "nombre": "Malta",
+      "sitios": {
+        "high": {
+          "dominante": "#cf142b",
+          "disco": "#cf142b",
+          "cubre": 0.507,
+          "campo": false,
+          "oro_normal": 44.2,
+          "blanco_normal": 50.8
+        },
+        "right": {
+          "dominante": "#cf142b",
+          "disco": "#cf142b",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 44.2,
+          "blanco_normal": 50.8
+        },
+        "left": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.237,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "center": {
+          "dominante": "#cf142b",
+          "disco": "#cf142b",
+          "cubre": 0.5,
+          "campo": false,
+          "oro_normal": 44.2,
+          "blanco_normal": 50.8
+        }
+      },
+      "sitio": "right",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 24.8,
+      "letras": {
+        "dominante": "#cf142b",
+        "relleno": "#ffffff",
+        "wcag": 5.54
+      }
+    },
+    "NA": {
+      "nombre": "Namibia",
+      "sitios": {
+        "high": {
+          "dominante": "#3662a2",
+          "disco": "#3662a2",
+          "cubre": 0.384,
+          "campo": false,
+          "oro_normal": 57.5,
+          "blanco_normal": 49.6
+        },
+        "right": {
+          "dominante": "#c70000",
+          "disco": "#c70000",
+          "cubre": 0.377,
+          "campo": false,
+          "oro_normal": 42.0,
+          "blanco_normal": 53.7
+        },
+        "left": {
+          "dominante": "#3662a2",
+          "disco": "#3662a2",
+          "cubre": 0.553,
+          "campo": false,
+          "oro_normal": 57.5,
+          "blanco_normal": 49.6
+        },
+        "center": {
+          "dominante": "#c70000",
+          "disco": "#c70000",
+          "cubre": 0.022,
+          "campo": true,
+          "oro_normal": 42.0,
+          "blanco_normal": 53.7
+        }
+      },
+      "sitio": "center",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 27.8,
+      "letras": {
+        "dominante": "#38a100",
+        "relleno": "#0b2740",
+        "wcag": 4.55
+      }
+    },
+    "PR": {
+      "nombre": "Puerto Rico",
+      "sitios": {
+        "high": {
+          "dominante": "#ffffff",
+          "disco": "#ffffff",
+          "cubre": 0.498,
+          "campo": false,
+          "oro_normal": 32.8,
+          "blanco_normal": 0.0
+        },
+        "right": {
+          "dominante": "#ed0000",
+          "disco": "#ffffff",
+          "cubre": 0.535,
+          "campo": false,
+          "oro_normal": 38.1,
+          "blanco_normal": 48.1
+        },
+        "left": {
+          "dominante": "#ed0000",
+          "disco": "#0050f0",
+          "cubre": 0.548,
+          "campo": false,
+          "oro_normal": 38.1,
+          "blanco_normal": 48.1
+        },
+        "center": {
+          "dominante": "#0050f0",
+          "disco": "#0050f0",
+          "cubre": 0.158,
+          "campo": false,
+          "oro_normal": 69.4,
+          "blanco_normal": 54.3
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": true,
+      "se_lee": 76.7,
+      "letras": {
+        "dominante": "#ed0000",
+        "relleno": "#ffffff",
+        "wcag": 4.56
+      }
+    },
+    "SC": {
+      "nombre": "Seychelles",
+      "sitios": {
+        "high": {
+          "dominante": "#fcd955",
+          "disco": "#d92223",
+          "cubre": 0.437,
+          "campo": false,
+          "oro_normal": 13.8,
+          "blanco_normal": 27.8
+        },
+        "right": {
+          "dominante": "#d92223",
+          "disco": "#d92223",
+          "cubre": 0.053,
+          "campo": true,
+          "oro_normal": 40.5,
+          "blanco_normal": 48.8
+        },
+        "left": {
+          "dominante": "#fcd955",
+          "disco": "#fcd955",
+          "cubre": 0.149,
+          "campo": false,
+          "oro_normal": 13.8,
+          "blanco_normal": 27.8
+        },
+        "center": {
+          "dominante": "#d92223",
+          "disco": "#d92223",
+          "cubre": 0.022,
+          "campo": true,
+          "oro_normal": 40.5,
+          "blanco_normal": 48.8
+        }
+      },
+      "sitio": "right",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 25.1,
+      "letras": {
+        "dominante": "#ffffff",
+        "relleno": "#0b2740",
+        "wcag": 15.23
+      }
+    },
+    "SN": {
+      "nombre": "Senegal",
+      "sitios": {
+        "high": {
+          "dominante": "#ffff00",
+          "disco": "#ffff00",
+          "cubre": 0.017,
+          "campo": true,
+          "oro_normal": 25.2,
+          "blanco_normal": 30.5
+        },
+        "right": {
+          "dominante": "#ffff00",
+          "disco": "#ffff00",
+          "cubre": 0.5,
+          "campo": false,
+          "oro_normal": 25.2,
+          "blanco_normal": 30.5
+        },
+        "left": {
+          "dominante": "#ffff00",
+          "disco": "#ffff00",
+          "cubre": 0.5,
+          "campo": false,
+          "oro_normal": 25.2,
+          "blanco_normal": 30.5
+        },
+        "center": {
+          "dominante": "#0b7226",
+          "disco": "#ffff00",
+          "cubre": 0.154,
+          "campo": false,
+          "oro_normal": 44.1,
+          "blanco_normal": 51.3
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 76.7,
+      "letras": {
+        "dominante": "#ffff00",
+        "relleno": "#0b2740",
+        "wcag": 14.19
+      }
+    },
+    "SR": {
+      "nombre": "Suriname",
+      "sitios": {
+        "high": {
+          "dominante": "#377e3f",
+          "disco": "#377e3f",
+          "cubre": 0.603,
+          "campo": false,
+          "oro_normal": 39.5,
+          "blanco_normal": 46.0
+        },
+        "right": {
+          "dominante": "#377e3f",
+          "disco": "#377e3f",
+          "cubre": 0.535,
+          "campo": false,
+          "oro_normal": 39.5,
+          "blanco_normal": 46.0
+        },
+        "left": {
+          "dominante": "#377e3f",
+          "disco": "#377e3f",
+          "cubre": 0.535,
+          "campo": false,
+          "oro_normal": 39.5,
+          "blanco_normal": 46.0
+        },
+        "center": {
+          "dominante": "#ecc81d",
+          "disco": "#b40a2d",
+          "cubre": 0.211,
+          "campo": false,
+          "oro_normal": 11.3,
+          "blanco_normal": 30.7
+        }
+      },
+      "sitio": "high",
+      "relleno": "white",
+      "revisar": true,
+      "se_lee": 39.3,
+      "letras": {
+        "dominante": "#377e3f",
+        "relleno": "#ffffff",
+        "wcag": 4.98
+      }
+    },
+    "SV": {
+      "nombre": "El Salvador",
+      "sitios": {
+        "high": {
+          "dominante": "#0f47af",
+          "disco": "#0f47af",
+          "cubre": 0.07,
+          "campo": true,
+          "oro_normal": 69.2,
+          "blanco_normal": 59.8
+        },
+        "right": {
+          "dominante": "#0f47af",
+          "disco": "#0f47af",
+          "cubre": 0.035,
+          "campo": true,
+          "oro_normal": 69.2,
+          "blanco_normal": 59.8
+        },
+        "left": {
+          "dominante": "#0f47af",
+          "disco": "#0f47af",
+          "cubre": 0.035,
+          "campo": true,
+          "oro_normal": 69.2,
+          "blanco_normal": 59.8
+        },
+        "center": {
+          "dominante": "#fefefe",
+          "disco": "#ffffff",
+          "cubre": 0.785,
+          "campo": false,
+          "oro_normal": 32.7,
+          "blanco_normal": 0.2
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 37.5,
+      "letras": {
+        "dominante": "#0f47af",
+        "relleno": "#ffffff",
+        "wcag": 8.27
+      }
+    },
+    "SX": {
+      "nombre": "Sint Maarten",
+      "sitios": {
+        "high": {
+          "dominante": "#ed2939",
+          "disco": "#ed2939",
+          "cubre": 0.017,
+          "campo": true,
+          "oro_normal": 41.2,
+          "blanco_normal": 45.4
+        },
+        "right": {
+          "dominante": "#ed2939",
+          "disco": "#ed2939",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 41.2,
+          "blanco_normal": 45.4
+        },
+        "left": {
+          "dominante": "#ed2939",
+          "disco": "#ed2939",
+          "cubre": 0.075,
+          "campo": true,
+          "oro_normal": 41.2,
+          "blanco_normal": 45.4
+        },
+        "center": {
+          "dominante": "#002395",
+          "disco": "#002395",
+          "cubre": 0.553,
+          "campo": false,
+          "oro_normal": 77.7,
+          "blanco_normal": 73.8
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 29.6,
+      "letras": {
+        "dominante": "#002395",
+        "relleno": "#ffffff",
+        "wcag": 12.54
+      }
+    },
+    "SZ": {
+      "nombre": "Eswatini",
+      "sitios": {
+        "high": {
+          "dominante": "#3e5eb9",
+          "disco": "#3e5eb9",
+          "cubre": 0.69,
+          "campo": false,
+          "oro_normal": 61.9,
+          "blanco_normal": 50.7
+        },
+        "right": {
+          "dominante": "#3e5eb9",
+          "disco": "#3e5eb9",
+          "cubre": 0.623,
+          "campo": false,
+          "oro_normal": 61.9,
+          "blanco_normal": 50.7
+        },
+        "left": {
+          "dominante": "#3e5eb9",
+          "disco": "#3e5eb9",
+          "cubre": 0.623,
+          "campo": false,
+          "oro_normal": 61.9,
+          "blanco_normal": 50.7
+        },
+        "center": {
+          "dominante": "#000000",
+          "disco": "#000000",
+          "cubre": 0.583,
+          "campo": false,
+          "oro_normal": 65.2,
+          "blanco_normal": 100.0
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": true,
+      "se_lee": 27.1,
+      "letras": {
+        "dominante": "#3e5eb9",
+        "relleno": "#ffffff",
+        "wcag": 5.99
+      }
+    },
+    "TT": {
+      "nombre": "Trinidad and Tobago",
+      "sitios": {
+        "high": {
+          "dominante": "#e00000",
+          "disco": "#e00000",
+          "cubre": 0.205,
+          "campo": false,
+          "oro_normal": 39.2,
+          "blanco_normal": 49.8
+        },
+        "right": {
+          "dominante": "#e00000",
+          "disco": "#e00000",
+          "cubre": 0.039,
+          "campo": true,
+          "oro_normal": 39.2,
+          "blanco_normal": 49.8
+        },
+        "left": {
+          "dominante": "#000001",
+          "disco": "#000001",
+          "cubre": 0.342,
+          "campo": false,
+          "oro_normal": 65.4,
+          "blanco_normal": 100.0
+        },
+        "center": {
+          "dominante": "#000001",
+          "disco": "#000001",
+          "cubre": 0.202,
+          "campo": false,
+          "oro_normal": 65.4,
+          "blanco_normal": 99.9
+        }
+      },
+      "sitio": "right",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 24.9,
+      "letras": {
+        "dominante": "#e00000",
+        "relleno": "#ffffff",
+        "wcag": 5.04
+      }
+    },
+    "VC": {
+      "nombre": "Saint Vincent and the Grenadines",
+      "sitios": {
+        "high": {
+          "dominante": "#f4f100",
+          "disco": "#f4f100",
+          "cubre": 0.048,
+          "campo": true,
+          "oro_normal": 22.8,
+          "blanco_normal": 30.4
+        },
+        "right": {
+          "dominante": "#f4f100",
+          "disco": "#f4f100",
+          "cubre": 0.101,
+          "campo": true,
+          "oro_normal": 22.8,
+          "blanco_normal": 30.4
+        },
+        "left": {
+          "dominante": "#f4f100",
+          "disco": "#f4f100",
+          "cubre": 0.101,
+          "campo": true,
+          "oro_normal": 22.8,
+          "blanco_normal": 30.4
+        },
+        "center": {
+          "dominante": "#199a00",
+          "disco": "#f4f100",
+          "cubre": 0.496,
+          "campo": false,
+          "oro_normal": 37.6,
+          "blanco_normal": 42.7
+        }
+      },
+      "sitio": "high",
+      "relleno": "gold",
+      "revisar": false,
+      "se_lee": 75.0,
+      "letras": {
+        "dominante": "#f4f100",
+        "relleno": "#0b2740",
+        "wcag": 12.64
+      }
+    },
+    "ZW": {
+      "nombre": "Zimbabwe",
+      "sitios": {
+        "high": {
+          "dominante": "#ffd200",
+          "disco": "#ffd200",
+          "cubre": 0.358,
+          "campo": false,
+          "oro_normal": 12.9,
+          "blanco_normal": 30.6
+        },
+        "right": {
+          "dominante": "#ffd200",
+          "disco": "#ffd200",
+          "cubre": 0.377,
+          "campo": false,
+          "oro_normal": 12.9,
+          "blanco_normal": 30.6
+        },
+        "left": {
+          "dominante": "#ffd200",
+          "disco": "#ffd200",
+          "cubre": 0.412,
+          "campo": false,
+          "oro_normal": 12.9,
+          "blanco_normal": 30.6
+        },
+        "center": {
+          "dominante": "#000001",
+          "disco": "#d40000",
+          "cubre": 0.618,
+          "campo": false,
+          "oro_normal": 65.4,
+          "blanco_normal": 100.0
+        }
+      },
+      "sitio": "high",
+      "relleno": "navy",
+      "revisar": true,
+      "se_lee": 70.7,
+      "letras": {
+        "dominante": "#ffd200",
+        "relleno": "#0b2740",
+        "wcag": 10.5
+      }
+    }
+  },
+  "a28": {
+    "permitidos": 536,
+    "kits_a_menos_de_10_de_algun_nacional": 12,
+    "lista": [
+      "plain.green",
+      "plain.red",
+      "band.green.orange",
+      "band.red.black",
+      "band.red.orange",
+      "halves.red.white",
+      "yoke.orange.red",
+      "yoke.red.orange",
+      "yoke.red.yellow",
+      "yoke.red.white",
+      "sides.black.red",
+      "sides.orange.red"
+    ],
+    "permitidos_tras_reservar": 524,
+    "distintos_tras_reservar": 491,
+    "nacionales_con_kit_bajo_10": ["BH", "BY", "CN", "DZ", "KG", "LT", "MA", "ME", "OM", "PT"],
+    "kit_mas_cercano": {
+      "ES": [11.7, "band.red.orange"],
+      "FR": [22.2, "sash.pink.white"],
+      "IT": [15.4, "sash.pink.white"],
+      "BE": [18.5, "yoke.orange.red"],
+      "NL": [19.2, "band.taupe.white"],
+      "GB": [19.3, "sides.brown.teal"],
+      "DE": [11.1, "yoke.orange.black"],
+      "PT": [9.4, "band.green.orange"],
+      "DK": [14.5, "plain.red"],
+      "NO": [20.2, "plain.taupe"],
+      "SI": [21.4, "yoke.purple.white"],
+      "SK": [18.7, "yoke.red.white"],
+      "CO": [18.7, "band.orange.navy"],
+      "US": [20.4, "halves.plum.teal"],
+      "AU": [17.0, "yoke.navy.taupe"],
+      "CH": [13.3, "band.green.white"],
+      "AR": [14.6, "sides.taupe.sky"],
+      "MX": [18.5, "hoops.pink.white"],
+      "EC": [16.7, "yoke.red.yellow"],
+      "PL": [10.7, "yoke.red.white"],
+      "AT": [14.4, "band.green.white"],
+      "IE": [16.1, "sash.orange.white"],
+      "CZ": [17.1, "yoke.red.white"],
+      "CA": [15.8, "sides.pink.white"],
+      "NZ": [13.3, "yoke.navy.taupe"],
+      "SE": [21.6, "band.green.yellow"],
+      "JP": [13.7, "yoke.red.white"],
+      "KZ": [10.2, "plain.teal"],
+      "UA": [18.3, "yoke.orange.purple"],
+      "EE": [23.3, "band.blue.black"],
+      "LV": [13.2, "band.green.pink"],
+      "LT": [8.7, "yoke.red.orange"],
+      "BY": [6.5, "plain.red"],
+      "ZA": [20.9, "plain.taupe"],
+      "BR": [16.9, "band.teal.purple"],
+      "CL": [18.1, "yoke.red.white"],
+      "VE": [18.4, "yoke.plum.yellow"],
+      "FI": [17.9, "halves.navy.white"],
+      "HR": [20.5, "yoke.pink.green"],
+      "HU": [12.8, "band.green.white"],
+      "RO": [21.1, "yoke.orange.red"],
+      "RU": [16.8, "yoke.plum.white"],
+      "RS": [19.5, "yoke.teal.green"],
+      "BG": [10.4, "yoke.red.white"],
+      "GR": [21.1, "hoops.pink.white"],
+      "TR": [11.3, "plain.green"],
+      "IL": [19.0, "hoops.pink.white"],
+      "KR": [20.7, "band.teal.purple"],
+      "CN": [9.0, "plain.green"],
+      "UY": [23.1, "sides.purple.white"],
+      "PE": [16.7, "sash.pink.white"],
+      "CR": [24.9, "band.pink.green"],
+      "MA": [4.7, "plain.red"],
+      "ER": [15.0, "plain.red"],
+      "LU": [14.1, "yoke.sky.red"],
+      "RW": [15.0, "band.blue.yellow"],
+      "DZ": [7.8, "halves.red.white"],
+      "IR": [14.9, "band.red.orange"],
+      "GT": [16.9, "hoops.teal.white"],
+      "BO": [11.6, "yoke.orange.green"],
+      "GE": [11.1, "sides.red.white"],
+      "IN": [17.9, "yoke.red.orange"],
+      "EG": [22.1, "band.red.orange"],
+      "ET": [16.1, "band.green.teal"],
+      "TH": [22.4, "yoke.plum.teal"],
+      "ID": [15.6, "band.green.white"],
+      "PH": [21.6, "yoke.teal.purple"],
+      "CU": [22.9, "hoops.plum.teal"],
+      "PA": [22.1, "sash.taupe.white"],
+      "MD": [20.0, "sides.orange.red"],
+      "NG": [14.8, "sash.pink.white"],
+      "KE": [14.2, "yoke.red.black"],
+      "TN": [13.4, "band.green.teal"],
+      "MY": [23.1, "halves.plum.teal"],
+      "VN": [11.4, "sides.orange.red"],
+      "AE": [20.5, "band.green.white"],
+      "AM": [21.5, "yoke.pink.green"],
+      "IS": [20.0, "halves.teal.purple"],
+      "AZ": [12.6, "yoke.red.sky"],
+      "UZ": [17.6, "sash.teal.white"],
+      "SA": [10.5, "plain.green"],
+      "QA": [13.7, "halves.taupe.brown"],
+      "SG": [16.6, "yoke.teal.green"],
+      "DO": [22.0, "sides.teal.plum"],
+      "PY": [19.4, "yoke.pink.green"],
+      "MK": [11.6, "sides.orange.red"],
+      "KG": [8.5, "band.green.orange"],
+      "HK": [12.6, "band.red.orange"],
+      "GU": [17.1, "sides.teal.purple"],
+      "BH": [6.8, "plain.red"],
+      "XK": [11.9, "band.purple.teal"],
+      "HN": [12.2, "plain.sky"],
+      "AD": [19.6, "yoke.orange.red"],
+      "AL": [11.5, "plain.green"],
+      "BA": [19.8, "yoke.purple.yellow"],
+      "BF": [11.9, "band.red.yellow"],
+      "BJ": [12.4, "halves.red.orange"],
+      "CM": [13.5, "halves.red.orange"],
+      "CY": [12.8, "halves.pink.white"],
+      "MU": [18.3, "band.red.yellow"],
+      "OM": [9.8, "yoke.red.white"],
+      "TW": [18.2, "yoke.green.pink"],
+      "AG": [22.7, "yoke.teal.black"],
+      "BB": [24.5, "yoke.orange.plum"],
+      "BM": [11.9, "plain.red"],
+      "BZ": [20.4, "band.taupe.white"],
+      "CI": [14.7, "sash.orange.white"],
+      "CV": [15.3, "band.navy.teal"],
+      "DM": [11.1, "plain.red"],
+      "GW": [13.2, "halves.red.orange"],
+      "JM": [14.6, "sash.red.orange"],
+      "JO": [15.7, "yoke.red.black"],
+      "KY": [18.4, "yoke.navy.taupe"],
+      "LA": [21.0, "sides.teal.plum"],
+      "LB": [13.6, "hoops.red.white"],
+      "LC": [20.6, "sides.taupe.sky"],
+      "MC": [16.9, "band.green.white"],
+      "ME": [9.5, "plain.red"],
+      "ML": [14.9, "yoke.orange.red"],
+      "MN": [16.6, "plain.plum"],
+      "MO": [11.6, "band.taupe.white"],
+      "MT": [13.4, "halves.sky.red"],
+      "NA": [17.6, "plain.red"],
+      "PR": [23.1, "hoops.green.teal"],
+      "SC": [17.6, "halves.orange.red"],
+      "SN": [15.5, "yoke.orange.red"],
+      "SR": [14.9, "plain.red"],
+      "SV": [15.1, "band.purple.white"],
+      "SX": [19.2, "yoke.purple.orange"],
+      "SZ": [22.2, "hoops.pink.green"],
+      "TT": [15.7, "sash.green.pink"],
+      "VC": [14.4, "sides.green.yellow"],
+      "ZW": [20.0, "hoops.red.orange"]
+    },
+    "uci": {
+      "ES": [42.6, 42.0, 36.9, 41.1, 30.3],
+      "FR": [32.4, 30.6, 29.2, 29.6, 25.2],
+      "IT": [27.0, 24.5, 23.0, 25.9, 19.6],
+      "BE": [40.1, 37.7, 36.0, 35.9, 25.8],
+      "NL": [43.2, 43.3, 40.9, 40.6, 36.7],
+      "GB": [34.8, 31.3, 28.9, 33.0, 25.0],
+      "DE": [51.7, 48.5, 46.4, 49.2, 38.0],
+      "PT": [43.2, 40.8, 35.6, 41.6, 29.4],
+      "DK": [43.3, 41.3, 33.9, 41.6, 32.8],
+      "NO": [38.5, 35.5, 32.4, 37.7, 27.7],
+      "SI": [40.0, 36.9, 35.0, 33.8, 28.6],
+      "SK": [33.1, 31.0, 28.8, 30.7, 22.6],
+      "CO": [43.4, 42.3, 39.3, 31.9, 23.1],
+      "US": [39.1, 34.7, 33.7, 38.9, 30.5],
+      "AU": [55.7, 50.2, 52.0, 48.0, 44.3],
+      "CH": [41.8, 40.5, 32.6, 40.3, 28.8],
+      "AR": [28.2, 26.9, 28.1, 26.9, 19.6],
+      "MX": [27.6, 25.1, 23.6, 26.8, 20.2],
+      "EC": [40.1, 39.4, 35.9, 34.6, 25.1],
+      "PL": [26.7, 23.0, 18.8, 24.2, 17.9],
+      "AT": [42.3, 42.1, 35.2, 40.5, 33.1],
+      "IE": [25.3, 23.3, 22.3, 24.2, 17.0],
+      "CZ": [30.7, 28.5, 25.3, 28.8, 22.2],
+      "CA": [20.1, 18.3, 16.9, 19.3, 12.1],
+      "NZ": [52.8, 49.2, 51.0, 48.1, 43.5],
+      "SE": [44.7, 42.1, 43.8, 38.7, 33.5],
+      "JP": [23.0, 19.6, 16.2, 21.4, 14.5],
+      "KZ": [33.9, 27.2, 29.8, 30.5, 21.3],
+      "UA": [38.4, 34.2, 35.5, 34.6, 27.5],
+      "EE": [33.5, 31.8, 33.7, 32.2, 28.5],
+      "LV": [51.4, 49.7, 42.4, 49.5, 42.2],
+      "LT": [39.9, 35.9, 33.0, 36.7, 25.7],
+      "BY": [44.1, 42.4, 37.4, 42.2, 33.0],
+      "ZA": [40.2, 35.6, 34.9, 36.2, 29.7],
+      "BR": [35.8, 32.8, 33.4, 30.9, 22.4],
+      "CL": [32.8, 29.4, 26.1, 30.4, 24.0],
+      "VE": [42.0, 40.5, 38.1, 37.5, 28.5],
+      "FI": [33.7, 32.0, 34.0, 31.0, 27.7],
+      "HR": [45.1, 41.6, 38.8, 41.6, 33.8],
+      "HU": [36.9, 37.0, 34.2, 35.6, 29.1],
+      "RO": [38.1, 35.3, 34.3, 32.2, 22.8],
+      "RU": [32.6, 30.8, 29.5, 30.0, 23.1],
+      "RS": [34.2, 32.3, 30.2, 33.6, 25.9],
+      "BG": [29.4, 25.1, 21.8, 27.2, 18.6],
+      "GR": [27.2, 25.8, 27.9, 25.8, 20.2],
+      "TR": [43.4, 41.7, 33.8, 41.4, 29.4],
+      "IL": [30.5, 29.0, 30.1, 27.0, 23.6],
+      "KR": [24.3, 23.3, 23.4, 22.9, 17.1],
+      "CN": [42.2, 39.5, 32.1, 40.0, 26.8],
+      "UY": [33.3, 31.7, 32.5, 28.6, 26.3],
+      "PE": [29.2, 27.5, 24.1, 28.2, 21.2],
+      "CR": [35.7, 31.2, 30.2, 31.4, 26.2],
+      "MA": [46.0, 43.7, 36.4, 44.9, 33.9],
+      "ER": [36.4, 32.5, 30.1, 35.3, 24.7],
+      "LU": [34.9, 34.3, 32.3, 32.4, 25.8],
+      "RW": [35.9, 30.0, 31.6, 34.9, 26.8],
+      "DZ": [33.2, 29.1, 28.8, 31.9, 25.4],
+      "IR": [37.1, 33.8, 30.3, 35.2, 25.4],
+      "GT": [23.4, 21.9, 22.6, 22.0, 16.1],
+      "BO": [41.2, 39.6, 36.5, 38.0, 29.5],
+      "GE": [22.5, 20.5, 17.5, 21.1, 12.6],
+      "IN": [31.1, 30.3, 29.8, 29.4, 21.5],
+      "EG": [49.9, 50.2, 46.2, 48.5, 43.4],
+      "ET": [40.0, 37.5, 35.1, 36.2, 27.0],
+      "TH": [31.3, 30.7, 28.3, 29.5, 25.6],
+      "ID": [33.6, 35.4, 29.9, 32.1, 24.2],
+      "PH": [44.0, 40.4, 38.0, 39.5, 34.4],
+      "CU": [39.4, 36.3, 36.0, 36.1, 30.1],
+      "PA": [37.0, 35.3, 34.2, 32.3, 27.5],
+      "MD": [38.2, 36.4, 34.3, 34.7, 24.2],
+      "NG": [26.2, 22.8, 22.8, 24.7, 19.4],
+      "KE": [50.8, 47.6, 46.0, 49.6, 42.3],
+      "TN": [42.6, 41.1, 33.7, 40.7, 29.6],
+      "MY": [43.0, 38.6, 35.0, 40.5, 31.9],
+      "VN": [43.7, 41.8, 34.9, 40.9, 30.1],
+      "AE": [49.4, 48.5, 46.1, 47.7, 42.4],
+      "AM": [43.0, 42.1, 39.8, 39.9, 29.8],
+      "IS": [43.8, 40.0, 41.4, 39.7, 33.9],
+      "AZ": [35.8, 30.5, 30.8, 34.6, 24.2],
+      "UZ": [34.0, 29.8, 30.5, 33.0, 24.5],
+      "SA": [41.8, 36.7, 37.5, 39.9, 33.8],
+      "QA": [44.7, 41.6, 35.7, 44.3, 35.0],
+      "SG": [32.9, 34.5, 29.3, 31.6, 23.9],
+      "DO": [41.9, 39.8, 37.9, 38.9, 34.6],
+      "PY": [43.3, 42.3, 40.1, 39.4, 34.9],
+      "MK": [45.0, 43.8, 36.3, 41.3, 29.7],
+      "KG": [42.4, 41.0, 33.6, 41.5, 26.9],
+      "HK": [41.4, 38.6, 32.1, 40.1, 28.5],
+      "GU": [43.2, 40.8, 40.8, 40.5, 35.1],
+      "BH": [44.0, 41.9, 34.0, 41.9, 30.9],
+      "XK": [43.7, 40.4, 43.0, 40.3, 35.6],
+      "HN": [29.9, 24.6, 27.5, 28.2, 19.1],
+      "AD": [37.8, 35.0, 33.8, 33.4, 23.2],
+      "AL": [49.0, 48.5, 40.2, 47.3, 37.0],
+      "BA": [48.3, 44.4, 45.9, 39.3, 34.5],
+      "BF": [41.4, 40.6, 35.9, 37.4, 29.6],
+      "BJ": [39.0, 35.5, 32.2, 33.1, 22.1],
+      "CM": [41.0, 37.9, 33.2, 38.1, 27.3],
+      "CY": [17.3, 17.0, 16.3, 16.2, 10.8],
+      "MU": [42.7, 38.4, 36.8, 40.7, 33.3],
+      "OM": [30.4, 27.3, 25.8, 29.3, 20.5],
+      "TW": [47.6, 43.1, 37.8, 43.4, 34.6],
+      "AG": [45.7, 44.3, 42.6, 43.9, 36.1],
+      "BB": [40.9, 38.1, 38.5, 37.2, 29.4],
+      "BM": [41.6, 38.5, 32.3, 39.7, 30.0],
+      "BZ": [37.2, 35.7, 35.6, 35.0, 30.2],
+      "CI": [24.1, 22.8, 21.8, 22.1, 14.8],
+      "CV": [55.2, 49.6, 51.4, 51.0, 47.1],
+      "DM": [39.3, 35.9, 34.4, 36.6, 26.5],
+      "GW": [36.4, 33.4, 31.2, 33.0, 21.7],
+      "JM": [37.9, 34.7, 35.4, 34.5, 25.7],
+      "JO": [49.0, 46.3, 44.0, 46.8, 38.1],
+      "KY": [52.5, 48.2, 49.0, 47.7, 43.0],
+      "LA": [48.4, 48.8, 44.0, 44.9, 39.6],
+      "LB": [32.8, 31.3, 26.6, 31.1, 22.5],
+      "LC": [29.4, 26.0, 27.7, 29.3, 17.9],
+      "MC": [32.4, 33.0, 28.5, 31.7, 22.9],
+      "ME": [45.1, 45.4, 37.3, 43.5, 33.2],
+      "ML": [36.7, 34.4, 32.2, 27.8, 18.5],
+      "MN": [45.8, 43.5, 42.6, 42.1, 35.0],
+      "MO": [39.0, 33.5, 35.0, 36.8, 31.0],
+      "MT": [29.7, 28.1, 24.0, 28.4, 21.2],
+      "NA": [38.4, 36.1, 33.5, 35.8, 27.4],
+      "PR": [35.3, 34.2, 31.7, 32.2, 23.1],
+      "SC": [36.4, 33.5, 31.0, 33.7, 23.2],
+      "SN": [37.8, 34.8, 32.6, 29.6, 20.4],
+      "SR": [36.3, 31.2, 28.6, 34.7, 25.2],
+      "SV": [44.3, 41.7, 43.8, 38.8, 36.5],
+      "SX": [48.2, 46.1, 44.5, 43.6, 36.5],
+      "SZ": [41.4, 39.9, 38.3, 39.1, 32.5],
+      "TT": [47.8, 47.1, 41.3, 46.2, 38.1],
+      "VC": [34.5, 31.7, 31.0, 23.8, 15.0],
+      "ZW": [39.7, 36.7, 33.7, 36.3, 27.0]
+    },
+    "uci_min": {
+      "normal": 17.3,
+      "protan": 17.0,
+      "deutan": 16.2,
+      "tritan": 16.2,
+      "gris": 10.8
+    },
+    "lider_min": 11.5,
+    "gemelas": [
+      ["ID", "SG", 1.7],
+      ["ID", "MC", 1.7],
+      ["IT", "PE", 2.3],
+      ["IT", "IE", 2.9],
+      ["IT", "NG", 2.9],
+      ["SG", "MC", 2.9],
+      ["AT", "HU", 3.6],
+      ["AR", "HN", 4.2],
+      ["IE", "NG", 4.3],
+      ["MA", "BH", 4.5],
+      ["IE", "CI", 4.7],
+      ["BY", "MA", 4.8],
+      ["PE", "NG", 4.9],
+      ["VN", "BF", 5.0],
+      ["NL", "PY", 5.1],
+      ["IE", "PE", 5.1],
+      ["BY", "BH", 5.1],
+      ["BE", "RO", 5.2],
+      ["MX", "PE", 5.6],
+      ["IT", "MX", 5.7],
+      ["BJ", "GW", 5.8],
+      ["HU", "LU", 6.0],
+      ["MX", "NG", 6.1],
+      ["GT", "NG", 6.1],
+      ["HU", "IR", 6.4],
+      ["AU", "NZ", 6.5],
+      ["RO", "AD", 6.5],
+      ["HU", "PY", 6.8],
+      ["ML", "SN", 7.0],
+      ["FR", "IT", 7.2],
+      ["SI", "RU", 7.2],
+      ["TN", "KG", 7.3],
+      ["MX", "IE", 7.4],
+      ["TN", "HK", 7.4],
+      ["PE", "CI", 7.5],
+      ["AT", "IR", 7.6],
+      ["IT", "CI", 7.8],
+      ["BE", "AD", 7.9],
+      ["NG", "CI", 7.9],
+      ["NL", "HU", 8.0],
+      ["PL", "CL", 8.1],
+      ["BY", "CN", 8.1],
+      ["TR", "TN", 8.1],
+      ["IT", "ML", 8.2],
+      ["RU", "BG", 8.2],
+      ["CN", "BH", 8.2],
+      ["FR", "MX", 8.4],
+      ["AT", "EG", 8.6],
+      ["IE", "ML", 8.6],
+      ["FR", "PE", 8.9],
+      ["PL", "BG", 8.9],
+      ["TR", "KG", 8.9],
+      ["EG", "AE", 8.9],
+      ["KG", "HK", 8.9],
+      ["KG", "BF", 9.0],
+      ["FR", "IE", 9.1],
+      ["CN", "MA", 9.1],
+      ["VN", "HK", 9.1],
+      ["KG", "ME", 9.1],
+      ["CH", "HK", 9.4],
+      ["RO", "MD", 9.4],
+      ["PT", "KG", 9.5],
+      ["CH", "KG", 9.5],
+      ["LU", "PY", 9.5],
+      ["MA", "SA", 9.6],
+      ["IR", "LB", 9.6],
+      ["EG", "PY", 9.6],
+      ["VN", "KG", 9.6],
+      ["BY", "ME", 9.8],
+      ["HU", "BO", 9.8],
+      ["TR", "ME", 9.8],
+      ["BY", "AL", 9.9],
+      ["TR", "HK", 9.9],
+      ["NL", "LU", 10.0]
+    ]
+  }
+}

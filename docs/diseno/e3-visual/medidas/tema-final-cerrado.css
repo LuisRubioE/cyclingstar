@@ -1,0 +1,119 @@
+@import 'tailwindcss';
+
+/* EL SISTEMA VISUAL (docs/visual.md §3): tokens.test.ts comprueba cada pareja. Sin `inline`. */
+@theme {
+  --color-*: initial;
+  --font-*: initial;
+  --font-weight-*: initial;
+  --text-*: initial;
+  --tracking-*: initial;
+  --leading-*: initial;
+  --radius-*: initial;
+  --shadow-*: initial;
+  --inset-shadow-*: initial;
+  --drop-shadow-*: initial;
+  --text-shadow-*: initial;
+  --blur-*: initial;
+  --perspective-*: initial;
+  --aspect-*: initial;
+  --animate-*: initial;
+  --breakpoint-*: initial;
+  --container-*: initial;
+  --color-canvas: #eef2f6;
+  --color-surface: #ffffff;
+  --color-surface-2: #f5f7fa;
+  --color-line: #d8dee6;
+  --color-line-strong: #7b8794;
+  --color-ink: #10202f;
+  --color-ink-2: #435266;
+  --color-ink-3: #566579;
+  --color-white: #ffffff;
+  --color-navy: #123a5c;
+  --color-navy-dark: #0b2740;
+  --color-on-navy-2: rgb(255 255 255 / 0.8);
+  --color-cyan: #1499bb;
+  --color-accent: #0b6e8a;
+  --color-accent-strong: #085a71;
+  --color-on-accent: #ffffff;
+  --color-gold: #e0a106;
+  --color-gold-ink: #7a5000;
+  --color-good: #167a3a;
+  --color-good-bg: #e6f4ea;
+  --color-warn: #8f4e00;
+  --color-warn-bg: #fff3d6;
+  --color-bad: #b42318;
+  --color-bad-bg: #fdeceb;
+  --color-info-bg: #e3f2f7;
+  --color-focus: #1d4ed8;
+  --color-disabled-ink: #6b7787;
+  --color-disabled-bg: #e9edf2;
+  --color-own: #a87300;
+  --color-own-tint: #fdf4dc;
+  --color-arrival-cooked: #b42318;
+  --color-arrival-loaded: #b45309;
+  --color-arrival-fine: #566579;
+  --color-arrival-spoton: #167a3a;
+  --color-arrival-rusty: #1d5fa8;
+
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', Arial, sans-serif;
+  --font-weight-normal: 400;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --tracking-caps: 0.04em;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1rem;
+  --text-meta: 0.875rem;
+  --text-meta--line-height: 1.25rem;
+  --text-row: 0.9375rem;
+  --text-row--line-height: 1.25rem;
+  --text-row--font-weight: 600;
+  --text-body: 1rem;
+  --text-body--line-height: 1.5rem;
+  --text-title: 1.125rem;
+  --text-title--line-height: 1.5rem;
+  --text-title--font-weight: 600;
+  --text-page: 1.5rem;
+  --text-page--line-height: 2rem;
+  --text-page--font-weight: 700;
+  --text-display: 2rem;
+  --text-display--line-height: 2.5rem;
+  --text-display--font-weight: 700;
+
+  --spacing: 0.25rem;
+  --radius-ui: 0.5rem;
+  --shadow-card: 0 1px 2px rgb(16 32 47 / 0.08);
+  --shadow-bar: 0 -2px 8px rgb(0 0 0 / 0.12);
+  --breakpoint-sm: 40rem;
+  --breakpoint-lg: 64rem;
+  --container-page: 72rem;
+  --container-form: 28rem;
+  /* Con el cierre, Tailwind 4.3.3 sigue emitiendo sus @keyframes pulse y spin (comprobado). */
+  --animate-pulse: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-spin: spin 1s linear infinite;
+}
+
+/* Densidad por puntero (D-06): con ratón, fila de tabla de 36 y Button sm de 32. */
+@custom-variant fine (@media (pointer: fine));
+
+/* EL ÁMBITO OSCURO (D-04, §3.3): un token de tinta nunca es un fondo aquí dentro. */
+[data-surface='dark'] {
+  --color-surface: #0b2740;
+  --color-surface-2: #123a5c;
+  --color-line: #2c5274;
+  --color-line-strong: #7f97b0;
+  --color-ink: #ffffff;
+  --color-ink-2: rgb(255 255 255 / 0.75);
+  --color-ink-3: rgb(255 255 255 / 0.75);
+  --color-accent: #35bdda;
+  --color-accent-strong: #7fd6e9;
+  --color-on-accent: #0b2740;
+  --color-focus: #ffd166;
+  --color-disabled-bg: #1f4567;
+  --color-disabled-ink: #a3b2c3;
+  color: var(--color-ink);
+}
+
+body {
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
+}

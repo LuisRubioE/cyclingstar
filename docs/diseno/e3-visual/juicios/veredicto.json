@@ -1,0 +1,1675 @@
+{
+  "cabecera": {
+    "fase": "E3 · fase 3a (arquitecto)",
+    "arbol": "58c14da (main, 20-10-2026). Entre 58c14da y e3e4010 solo cambian documentos: git diff --stat 58c14da HEAD -- apps packages, vacío.",
+    "engine_version": 91,
+    "engine_version_donde": "packages/engine/src/constants.ts l. 853; E3 no la sube",
+    "ultima_migracion": "0049_rastro_de_etapa",
+    "proxima_migracion": "0050 (packages/db/drizzle/meta/_journal.json, 50 entradas)",
+    "estados": "Todo injerto, objeción y hueco nace «pendiente». El ensamblador (fase 3c) lo marca «aplicado» cuando su id aparece en el bloque de cierre de alguna sección de borrador/ («Injertos aplicados», «Objeciones resueltas», «Huecos rellenados») y anota en aplicado_en las secciones de esos bloques.",
+    "ficheros_leidos": "00-encargo.md, 01-fase-propuestas.md, 03-fase-sintesis.md, las cuatro propuestas enteras, los tres juicios (.md y .json), el resumen de los cinco mapas y sus secciones 01 §2, §8, §9; 02 §2, §3, §5, §6, §8, §9; 03 §1, §2, §4, §5, §6; 04 §2, §9; 05 §1, §13, §14. Comprobado en el código por el arquitecto, sin medir: world.ts l. 395-500 y 536-612 (el clon y teamIndexFromSeed), teamControl.ts l. 182-186, routes/teams.ts l. 19-27, calendarRun.ts l. 400-455 (la selección de campo es determinista), schema.ts l. 1137-1155 (team_race_plan), PlanLadder.tsx l. 50-69 y 125-146, Claude.md, el theme.css de Tailwind 4.3.3 del clon y docs/retransmision.md l. 5203-5212 y 12490-12500."
+  },
+  "juicios": [
+    {
+      "foco": "Coherencia con el código y coste: si es verdad en el código lo que cada propuesta dice de él, si cuesta lo que dice y si deja el juego desplegable en cada paso.",
+      "ganadora": "telefono",
+      "resumen": "Gana telefono: la única que probó contra el servidor lo que propone. El serializador de Zod que ya monta la API quita lo no declarado, también anidado (C1); sin red, quien tiene sesión ve Log in (C3); la navegación primero por la red guarda las precargas de E2; la hoja que bloquea baja de 92 a 9 KB. Baja en ejecutabilidad por el sistema como código: la regla de ESLint solo en pages/, sin cola larga de páginas, teams.kit no nulo sin camino de relleno y black-translucent sin área segura. sistema tiene la maquinaria verdadera y medida (el cierre del tema con initial, C4; el lint ya corre sobre .tsx, C6; el trinquete por fichero) y falla donde se decide: su .strict() no caza las claves anidadas (C2), su recarga sin red acaba en /login y deja la carga de carrera por un motivo falso (C8). identidad acierta en el dato del maillot (team_kits, ensureKits en el tick, contratos con línea) y falla en peso y plan (banderas sin huella, C7). lectura es la que mejor leyó el examen: el desfase de semanas (C5).",
+      "ficheros": ["juicios/codigo.md", "juicios/codigo.json"],
+      "puntuaciones": [
+        {
+          "propuesta": "telefono",
+          "cobertura": 8,
+          "coherencia": 8,
+          "ejecutabilidad": 7,
+          "experiencia": 9,
+          "suma": 32
+        },
+        {
+          "propuesta": "sistema",
+          "cobertura": 8,
+          "coherencia": 6,
+          "ejecutabilidad": 8,
+          "experiencia": 6,
+          "suma": 28
+        },
+        {
+          "propuesta": "lectura",
+          "cobertura": 7,
+          "coherencia": 7,
+          "ejecutabilidad": 6,
+          "experiencia": 8,
+          "suma": 28
+        },
+        {
+          "propuesta": "identidad",
+          "cobertura": 6,
+          "coherencia": 5,
+          "ejecutabilidad": 5,
+          "experiencia": 6,
+          "suma": 22
+        }
+      ],
+      "cuentas": {
+        "injertos": 11,
+        "objeciones": 13,
+        "huecos": 4,
+        "comprobaciones": 12
+      }
+    },
+    {
+      "foco": "Cobertura del encargo y fidelidad al dueño: los ocho puntos y la tabla de 00-encargo.md §1 y §2, la palabra del dueño sobre la señal de campeón (§7.1), los [DUEÑO n] y [DOC n] del mapa 04, lo que docs/retransmision.md deja a E3, los siete componentes, las cinco categorías de maillot, la prohibición del arcoíris y los once cambios de 01-fase-propuestas.md, y qué decide cada propuesta que le toca al dueño sin decirlo.",
+      "ganadora": "telefono",
+      "resumen": "Gana telefono por cobertura y fidelidad: la única sin ○ (11 ● y 8 ◐), la única que convierte el teléfono en una prueba del CI con línea base que solo baja y la única que vio la guarda que manda a /login sin red (C3). Sus cifras de paleta y de campeón se reproducen (C6 y C7). identidad gana los seis ítems de maillot, lo que el encargo llama «lo más visible del documento»: la banda de honor, la tabla de las variantes del dueño y team_kits con historia. lectura gana el examen y la frontera (el desfase de semanas, cierto; la resolución en el tipo). sistema gana los componentes y la identidad del corredor. Midió las señales por defecto contra la marca de la UCI a 13 px: la estrella sobre blanco de telefono a 15,1 y 9,2 en grises, la de lectura a 11,2 y 7,4, la estrella sobre marino de sistema a 50,3 y la banda mundial de identidad a 45,7 (su nacional de Italia, a 22,6 y 15,7). Pide que el §6 de la síntesis sea más de identidad que de la ganadora.",
+      "ficheros": ["juicios/cobertura.md", "juicios/cobertura.json"],
+      "puntuaciones": [
+        {
+          "propuesta": "telefono",
+          "cobertura": 8,
+          "coherencia": 8,
+          "ejecutabilidad": 7.5,
+          "experiencia": 9,
+          "suma": 32.5
+        },
+        {
+          "propuesta": "lectura",
+          "cobertura": 7.5,
+          "coherencia": 7.5,
+          "ejecutabilidad": 7,
+          "experiencia": 7.5,
+          "suma": 29.5
+        },
+        {
+          "propuesta": "sistema",
+          "cobertura": 6,
+          "coherencia": 9,
+          "ejecutabilidad": 8,
+          "experiencia": 6.5,
+          "suma": 29.5
+        },
+        {
+          "propuesta": "identidad",
+          "cobertura": 6.5,
+          "coherencia": 7,
+          "ejecutabilidad": 7,
+          "experiencia": 6,
+          "suma": 26.5
+        }
+      ],
+      "cuentas": {
+        "injertos": 15,
+        "objeciones": 14,
+        "huecos": 10,
+        "comprobaciones": 9
+      }
+    },
+    {
+      "foco": "Ejecutabilidad y experiencia en el teléfono: si un agente sin nadie a quien preguntar puede implementar cada sección sin decidir nada, y si se lee y se juega mejor en un teléfono de 360 px, con el pulgar, letra legible, objetivos de 44 px, la respuesta arriba y con visión daltónica.",
+      "ganadora": "telefono",
+      "resumen": "Gana telefono: la única que convierte «se juega bien en un teléfono» en una prueba que falla, con nueve comprobaciones a 360 y a 320 px en el CI de cada PR y un trinquete, y la única cuya pantalla rehecha se ve entera con barra de acción y barra inferior; su prototipo se reproduce (la respuesta a 152 px, la acción a 687 de 800, 0 nodos de axe), con cuatro enlaces de nombre de 20 px de alto (C1). Su paleta del maillot es la única con todo par a 12,3 o más en las dicromacias (C4). Pierde por la prueba sin mundo ni lista de pantallas, el tema abierto y la barra de grupos mal contada (C7: 280 px, no 216). sistema es el sistema que obliga el compilador, flojo en el teléfono; lectura, la mejor lectura (la fila propia anclada, ↺ Back to Build, el desfase), con un criterio que corre a mano; identidad, la mejor en maillots y campeón y delgada en lo demás.",
+      "ficheros": ["juicios/uso.md", "juicios/uso.json"],
+      "puntuaciones": [
+        {
+          "propuesta": "telefono",
+          "cobertura": 8,
+          "coherencia": 7,
+          "ejecutabilidad": 8,
+          "experiencia": 9,
+          "suma": 32
+        },
+        {
+          "propuesta": "sistema",
+          "cobertura": 7,
+          "coherencia": 9,
+          "ejecutabilidad": 8,
+          "experiencia": 6,
+          "suma": 30
+        },
+        {
+          "propuesta": "lectura",
+          "cobertura": 8,
+          "coherencia": 8,
+          "ejecutabilidad": 6,
+          "experiencia": 7,
+          "suma": 29
+        },
+        {
+          "propuesta": "identidad",
+          "cobertura": 6,
+          "coherencia": 7,
+          "ejecutabilidad": 5,
+          "experiencia": 5,
+          "suma": 23
+        }
+      ],
+      "cuentas": {
+        "injertos": 14,
+        "objeciones": 13,
+        "huecos": 7,
+        "comprobaciones": 11
+      }
+    }
+  ],
+  "ganadora": {
+    "propuesta": "telefono",
+    "metodo": "mayoría: los tres jueces eligen telefono (unanimidad); la suma de puntuaciones da el mismo orden y no hace falta para decidir",
+    "votos": {
+      "telefono": 3,
+      "sistema": 0,
+      "lectura": 0,
+      "identidad": 0
+    },
+    "sumas_por_juez": {
+      "telefono": { "codigo": 32, "cobertura": 32.5, "uso": 32 },
+      "sistema": { "codigo": 28, "cobertura": 29.5, "uso": 30 },
+      "lectura": { "codigo": 28, "cobertura": 29.5, "uso": 29 },
+      "identidad": { "codigo": 22, "cobertura": 26.5, "uso": 23 }
+    },
+    "total": {
+      "telefono": 96.5,
+      "sistema": 87.5,
+      "lectura": 86.5,
+      "identidad": 71.5
+    },
+    "por_eje": {
+      "cobertura": { "telefono": 24, "lectura": 22.5, "sistema": 21, "identidad": 18.5 },
+      "coherencia": { "sistema": 24, "telefono": 23, "lectura": 22.5, "identidad": 19 },
+      "ejecutabilidad": { "sistema": 24, "telefono": 22.5, "lectura": 19, "identidad": 17 },
+      "experiencia": { "telefono": 27, "lectura": 22.5, "sistema": 18.5, "identidad": 17 }
+    },
+    "calculo": "Cada juez puntúa cada propuesta en cuatro ejes de 1 a 10 y se suman los cuatro ejes de los tres juicios, con un máximo de 120. telefono: 32 (codigo) + 32,5 (cobertura) + 32 (uso) = 96,5; sistema: 28 + 29,5 + 30 = 87,5; lectura: 28 + 29,5 + 29 = 86,5; identidad: 22 + 26,5 + 23 = 71,5. telefono gana por 9 puntos sobre sistema.",
+    "nota": "Sumadas por eje, telefono es la mejor en cobertura (24) y en experiencia (27) y sistema en coherencia y en ejecutabilidad (24 y 24). identidad queda la última en la suma y gana, según el juez de cobertura, los seis ítems de maillot: por eso el §8 y el §9 del documento son más de identidad que de la base, y el §5 es de sistema.",
+    "fusion": {
+      "telefono (base)": "todo se especifica a 360 × 800 y 320 × 640; la prueba del teléfono con nueve comprobaciones y trinquete; ActionBar y la acción bajo el pulgar; RankTable y ActionRow (una fila, dos renglones, una acción); la paleta A y la letra del sistema; la web instalable con navegación primero por la red, medida, y sin tocar nunca la API; la sesión en tres estados; las banderas en un sprite; los doce colores con nombre del maillot; la frontera por construcción con el serializador; los tres arreglos de API del examen; el sensor de la app nativa.",
+      "sistema": "el tema cerrado al final, la deuda por fichero que solo baja y las diez reglas de lint; data-ui, data-variant y data-state y componentes sin className; la página /_ui; la densidad por puntero; el ámbito oscuro; la tabla de choques precalculada; colorMath.ts; Disclosure; legacyJerseyStyle; la cola larga de páginas por deuda.",
+      "identidad": "la banda de honor como señal de campeón y sus variantes medidas; la diagonal reservada; team_kits con historia y ensureKits en el tick; la traducción del mundo por parecido; la lista de contratos que gana el maillot; la regla de contraste entre base y segundo color; el veredicto con equipo y visión; el NPC que cede; el filete claro sobre fondo oscuro y surface; las zonas del patrocinador con set_by; el material generable como regla; la imagen de compartir.",
+      "lectura": "el desfase de semanas y la vista previa del plan vivo; la resolución en el tipo y response obligatorio en el registro de E2; el glosario de pantalla; la fila propia anclada; ↺ Back to Build; la tira de siete días; la hora de los datos sin red; la portada que habla del plan; la línea de estado del PageHeader; TripRow; la ficha de corredor."
+    }
+  },
+  "ranking": [
+    ["telefono", 96.5],
+    ["sistema", 87.5],
+    ["lectura", 86.5],
+    ["identidad", 71.5]
+  ],
+  "votos": {
+    "telefono": 3,
+    "sistema": 0,
+    "lectura": 0,
+    "identidad": 0
+  },
+  "injertos": [
+    {
+      "id": "I-01",
+      "tipo": "injerto",
+      "origen": { "propuesta": "sistema", "seccion": "§0, §2.1, §12 y §13 (pasos 2 y 17)" },
+      "fuentes": ["I-codigo-01", "I-cobertura-12", "I-uso-01"],
+      "que": "El tema cerrado como último paso (--color-*: initial y las familias de letra, radio, sombra, corte y contenedor), vocabulario.test.ts sobre __unstable__loadDesignSystem con la versión de Tailwind fijada, deuda.json por fichero (2.457 apariciones medidas) y las diez reglas ui/1 a ui/10 con su lista de heredados.",
+      "porque": "Con el tema por defecto abierto, la frase de telefono §3.4 «lo que no es token no tiene clase» es falsa (uso O-03); cerrar el tema en 4.3.3 es real y deja los arbitrarios resolviendo (codigo C4), y el encargo justifica E3 con «cada pantalla nueva reinventa su aspecto».",
+      "destino": ["§5", "§16", "§17"],
+      "decision": ["D-14"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-02",
+      "tipo": "injerto",
+      "origen": { "propuesta": "sistema", "seccion": "§13, paso 16" },
+      "fuentes": ["I-codigo-02"],
+      "que": "La migración de la cola larga de páginas por deuda medida (Race 166, MyRaces 98, TeamCalendar 93, AdminNames 92, RacesIndex 83, Account 81, RaceOrders 75, Home 70, TeamSquad 68 y el resto), unos 10 PR.",
+      "porque": "Sin ella, el paso que cierra el tema y pone las reglas en error no puede hacerse; el plan de telefono pasa de 22 a unos 32 a 40 PR (codigo O-07).",
+      "destino": ["§17"],
+      "decision": ["D-57"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-03",
+      "tipo": "injerto",
+      "origen": { "propuesta": "sistema", "seccion": "§2.4, §4 y §12" },
+      "fuentes": ["I-codigo-03", "I-uso-02"],
+      "que": "data-ui, data-variant y data-state en la raíz de cada componente; componentes que no aceptan className para su color, letra, radio y sombra (solo layout); los seis tests con clases literales re-sellados contra data-*; y la página /_ui con cada componente en cada estado con datos fijos, primera página de la prueba del teléfono.",
+      "porque": "Si no, cada cambio de paleta rompe los tests, y en Tailwind v4 dos clases de una familia las ordena la CSS emitida, no el orden escrito (la maqueta de sistema dejó un select en 26 px).",
+      "destino": ["§4", "§5", "§16"],
+      "decision": ["D-10"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-04",
+      "tipo": "injerto",
+      "origen": { "propuesta": "sistema", "seccion": "§5 y §12" },
+      "fuentes": ["I-codigo-04"],
+      "que": "La prueba del teléfono también sobre /_ui con datos fijos en cada PR, y la de rendimiento cada noche. La síntesis conserva además la pasada sobre las 45 pantallas en cada PR que toca la web, la API o packages/db, contra un mundo guardado en la caché del CI (D-18).",
+      "porque": "Un mundo con cuatro cuentas pide 849 s y cuatro escrituras con SQL (mapa 05 §1), con un Playwright que el repositorio no tiene (codigo C11); el trinquete por PR es el núcleo de la base y se conserva con la caché.",
+      "destino": ["§7", "§16"],
+      "decision": ["D-18"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-05",
+      "tipo": "injerto",
+      "origen": { "propuesta": "identidad", "seccion": "§6.2 y §13, paso 3" },
+      "fuentes": ["I-codigo-05"],
+      "que": "El relleno del maillot como paso idempotente del tick tras seedWorld (ensureKits, el patrón de backfillRosters, tick.ts l. 265 y 283), sin columna NOT NULL en teams, y el maillot nuevo vigente desde el día siguiente.",
+      "porque": "El reparto (ΔE00 dibujado contra los rivales) no se escribe en SQL y un NOT NULL sin DEFAULT rompe el test del mundo vivo (migrate.ts l. 80; codigo C9).",
+      "destino": ["§8", "§17"],
+      "decision": ["D-22"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-06",
+      "tipo": "injerto",
+      "origen": { "propuesta": "identidad", "seccion": "§6.2" },
+      "fuentes": ["I-codigo-06"],
+      "que": "La lista de lo que gana el maillot: startlistTeamSchema, teamListItemSchema y teamDetailSchema (contracts.ts l. 665, 692 y 718), la fila de la clasificación por equipos, RiderCard.team (broadcast/wire.ts l. 354), CastTeam (cast.ts l. 151-154) y serveCast (broadcastSource.ts), con kitOn(teamId, díaDeLaEtapa).",
+      "porque": "telefono solo nombra cast.ts, y el agente no tiene a quién preguntar por los otros cinco sitios.",
+      "destino": ["§8"],
+      "decision": ["D-22"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-07",
+      "tipo": "injerto",
+      "origen": { "propuesta": "sistema", "seccion": "§3.5 y §6.3" },
+      "fuentes": ["I-codigo-07"],
+      "que": "La tabla de choques precalculada (kitConflicts.generated.ts, solo servidor), generada por script con la huella de la geometría de kit.ts (identidad §6.2), que checkKit consulta sin dibujar.",
+      "porque": "Así el servidor no rasteriza ni aplica Machado y CIEDE2000 en cada petición, y una figura retocada sin regenerar hace caer el test.",
+      "destino": ["§8", "§16"],
+      "decision": ["D-24"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-08",
+      "tipo": "injerto",
+      "origen": { "propuesta": "lectura", "seccion": "§1.5 y §7.5, puntos 2 y 3" },
+      "fuentes": ["I-codigo-08", "I-cobertura-06", "I-uso-10"],
+      "que": "La vista previa proyecta el plan vivo: indexa las semanas por su startDay, el cuerpo gana edits (las órdenes sin guardar), lee el modo, las órdenes guardadas y el plan de equipo; PUT /plan conserva el startDay del plan vivo, y Start a new plan tomorrow empieza de cero.",
+      "porque": "El desfase es cierto (codigo C5, cobertura C2, uso C8): desde el día siguiente al guardado, las semanas pintadas con plan.startDay y la escala proyectada desde mañana hablan de días distintos.",
+      "destino": ["§10", "§11"],
+      "decision": ["D-35"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-09",
+      "tipo": "injerto",
+      "origen": { "propuesta": "lectura", "seccion": "§9, puntos 1, 3 y 4" },
+      "fuentes": ["I-codigo-09", "I-cobertura-11", "I-uso-12"],
+      "que": "schema.response obligatorio en el registro de E2 (registerSpoilerGuard, spoiler.ts l. 155-183) en lugar de exposes; la resolución en el tipo (estrellas multipleOf(0.5) de 0 a 5, barras enteras de 0 a 100, tramos y flechas enumerados); y el testigo de la moral (57,31415) en el canario.",
+      "porque": "Con el serializador (codigo C1) un 63.4172 deja de poder salir; un campo renombrado con decimales pasa el test de nombres de telefono (uso).",
+      "destino": ["§13"],
+      "decision": ["D-54"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-10",
+      "tipo": "injerto",
+      "origen": { "propuesta": "sistema", "seccion": "§3.1" },
+      "fuentes": ["I-codigo-10", "I-uso-04"],
+      "que": "El ámbito oscuro [data-surface='dark'], que redefine los tokens para que el mismo Button y los mismos componentes sirvan en Watch, en la cabecera y en la barra inferior.",
+      "porque": "telefono §10 pasa los botones de WatchBlocks y PlayerControls a Button sobre navy-dark sin decir qué hacen sus componentes allí.",
+      "destino": ["§3", "§14"],
+      "decision": ["D-04"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-11",
+      "tipo": "injerto",
+      "origen": { "propuesta": "sistema", "seccion": "§8; lectura §8.2" },
+      "fuentes": ["I-codigo-11"],
+      "que": "El service worker no intercepta /api/*, /health ni /api/auth/* (sin respondWith) y no persiste la caché de React Query.",
+      "porque": "index.html precarga /health (l. 13) y el HTML de etapa precarga la API (app.ts l. 371): interceptarlas les cambia caché y credenciales.",
+      "destino": ["§12"],
+      "decision": ["D-46"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-12",
+      "tipo": "injerto",
+      "origen": { "propuesta": "identidad", "seccion": "§6.5, §6.1 y decisión D3" },
+      "fuentes": ["I-cobertura-01", "uso §8 (gusto)"],
+      "que": "La banda de honor como señal de campeón por defecto (SASH_PATH, la mundial oro #e0a526 sobre noche #14213d, la nacional con las tres franjas de su bandera sobre papel #f6f3ea, filo #14213d de 2,4 u y la bandera al lado) y la diagonal fuera del vocabulario de los equipos (Sash sale de las figuras de telefono).",
+      "porque": "Medida por el juez de cobertura a 13 px: la mundial a 45,7 de la marca de la UCI (37,6 en grises) y la nacional de Italia a 22,6 (15,7), frente a 15,1 y 9,2 de la estrella sobre blanco; es la única forma que sobrevive a 13 px y densidad 1 mirada en píxeles (identidad §6.5) y recoge del dueño «diferente disposicion» y «que el resto en vez de ser blanco sea de otro color». Dos jueces de tres la prefieren.",
+      "destino": ["§8", "§9", "§19"],
+      "decision": ["D-26", "DD-03"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-13",
+      "tipo": "injerto",
+      "origen": { "propuesta": "identidad", "seccion": "§6.5 y decisión D3" },
+      "fuentes": ["I-cobertura-02"],
+      "que": "La tabla de las variantes del dueño (V1 a V7), las ideas del orquestador y las señales propias con los cuatro criterios de 00-encargo.md §7.1; y la alternativa C, el espectro de siete paradas a lo largo de la banda diagonal sobre noche, con su coste escrito (reescribir SPEC.md l. 874 y verificar ante la EUIPO y la USPTO).",
+      "porque": "Es el «maillot arco iris diferente» del dueño en su forma más fuerte (cambia color, orden, disposición y fondo) y mide casi como la banda; la C de telefono, tres franjas sobre blanco, conserva justo los dos rasgos que él ofreció cambiar.",
+      "destino": ["§9", "§19"],
+      "decision": ["D-27", "DD-03"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-14",
+      "tipo": "injerto",
+      "origen": { "propuesta": "identidad", "seccion": "§6.2, §6.3 y §6.6" },
+      "fuentes": ["I-cobertura-03"],
+      "que": "team_kits (team_id, valid_from_day, kit, set_by, sponsor_deal_id) y kitOn(teamId, día) en lugar de la columna única teams.kit; el patrocinio con set_by sponsor, que vuelve al maillot anterior al acabar el contrato.",
+      "porque": "Lo que compra el patrocinador dura lo que su contrato, E9 necesita la historia para revertir y una etapa vieja enseña el maillot de aquel día sin repintar el pasado.",
+      "destino": ["§8", "§9"],
+      "decision": ["D-22", "D-30"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-15",
+      "tipo": "injerto",
+      "origen": { "propuesta": "identidad y sistema", "seccion": "identidad §6.1; sistema §6.2" },
+      "fuentes": ["I-cobertura-04"],
+      "que": "La traducción del mundo de hoy al vocabulario por parecido (63 equipos conservan su color base, frente a 15 con sorteo, medido con el vocabulario de identidad) y legacyJerseyStyle(seed), el jerseyStyle de hoy congelado, para las etapas grabadas antes del cambio.",
+      "porque": "telefono repinta los 219 equipos «también en las etapas grabadas»; el reparto congelado es de E2 (cast.ts l. 146-154) y la afición reconoce a un equipo por su maillot.",
+      "destino": ["§8"],
+      "decision": ["D-23", "DD-07"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-16",
+      "tipo": "injerto",
+      "origen": { "propuesta": "identidad", "seccion": "§6.3 y decisión D7" },
+      "fuentes": ["I-cobertura-05", "I-uso-06"],
+      "que": "«El NPC cede» como decisión del dueño: si el maillot de un humano choca con un NPC, se traduce el del NPC esa noche y su ficha lo dice (New kit for Mistral Racing, pantalla).",
+      "porque": "Con checkKit igual para todos, un equipo PRS elige entre unos 31 maillots (identidad, medido); quién cede lo decide el dueño, no el validador.",
+      "destino": ["§8", "§19"],
+      "decision": ["D-24", "DD-08"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-17",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "lectura y sistema",
+        "seccion": "lectura §4.1; sistema §4 (las escalas)"
+      },
+      "fuentes": ["I-cobertura-07"],
+      "que": "La ficha de corredor como composición cerrada: cabecera; condición (forma en estrellas, fondo y frescura en barra, cerillos como iconos de 2 a 5, salud); atributos en filas de 44 px con estrellas y la marca de cuatro pasos solo en la propia; la frase del entrenador a la vista; la ajena sin lo privado.",
+      "porque": "El encargo nombra «una ficha de corredor» entre los siete componentes (§1.1) y telefono solo tiene RiderHeader.",
+      "destino": ["§4"],
+      "decision": ["D-09"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-18",
+      "tipo": "injerto",
+      "origen": { "propuesta": "sistema y lectura", "seccion": "sistema §4 n.º 22; lectura §4.1" },
+      "fuentes": ["I-cobertura-08"],
+      "que": "El dorsal (donde el contexto lo tiene) y el equipo en la identidad mínima del corredor (RiderLabel), con la regla de telefono de no cortar nunca el nombre.",
+      "porque": "[DUEÑO 26]: «Cada vez que menciones un ciclista, pon su dorsal, su equipo entre paréntesis y su bandera» (docs/balance.md l. 1842, v13).",
+      "destino": ["§4"],
+      "decision": ["D-09"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-19",
+      "tipo": "injerto",
+      "origen": { "propuesta": "lectura", "seccion": "§4.2" },
+      "fuentes": ["I-cobertura-09", "I-uso-08"],
+      "que": "El glosario cerrado de pantalla (día, diferencia, carrera, viaje, origen de un día, carga y dinero) con su columna «Nunca» (GD 56, +0:00:20, the Race Var, 105 TSS, 17214), en apps/web/src/domain/words.ts.",
+      "porque": "«Una cosa, varias palabras» es la mitad de la jerarquía que pide el encargo, y telefono solo fija Day N y formatTime.",
+      "destino": ["§4"],
+      "decision": ["D-15"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-20",
+      "tipo": "injerto",
+      "origen": { "propuesta": "lectura", "seccion": "§7.5, punto 4" },
+      "fuentes": ["I-cobertura-10"],
+      "que": "La portada habla del plan (dashboard.ts l. 77-91): Your plan ends on Day 78 y Plan the next weeks (pantalla), y fuera Your training queue is empty a quien tiene sus bloques.",
+      "porque": "Es el tercer vocabulario del examen (mapa 05 §3; mapa 04, contradicción 8), y telefono no lo trata.",
+      "destino": ["§11"],
+      "decision": ["D-43"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-21",
+      "tipo": "injerto",
+      "origen": { "propuesta": "sistema", "seccion": "§3.3" },
+      "fuentes": ["I-cobertura-13", "I-uso-03"],
+      "que": "La densidad por puntero: @custom-variant fine (@media (pointer: fine)), fila de tabla de 36 px y botón pequeño de 32 con ratón; 44 con dedo.",
+      "porque": "El estilo del PR #105 se hizo para el público de Hattrick y PCM, que lee tablas densas en escritorio (mapa 04 §2), y telefono fija 48 y 44 también allí.",
+      "destino": ["§3", "§6"],
+      "decision": ["D-06"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-22",
+      "tipo": "injerto",
+      "origen": { "propuesta": "sistema", "seccion": "§15" },
+      "fuentes": ["I-cobertura-14"],
+      "que": "El formato de las decisiones del dueño: cada una con su valor por defecto, su porqué y «si elige otra cosa».",
+      "porque": "El encargo lo pide (§1, l. 64-65) y tres decisiones de telefono no dicen qué cambia si el dueño elige otra cosa.",
+      "destino": ["§19"],
+      "decision": [],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-23",
+      "tipo": "injerto",
+      "origen": { "propuesta": "identidad", "seccion": "principio 9, §6.7, §8 y §10" },
+      "fuentes": ["I-cobertura-15"],
+      "que": "El material generable como regla: iconos de la interfaz, iconos de la web instalable, og-default.png de 1.200 × 630, NATIONAL_SASH, la tabla de choques y el sprite de banderas salen de scripts del repositorio con test de huella y se revisan en el PR.",
+      "porque": "Es el punto 8 del encargo, que telefono despacha en una línea, y la imagen de compartir que E2 dejó «hasta que E3 decida otra».",
+      "destino": ["§3", "§12", "§14", "§17"],
+      "decision": ["D-08"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-24",
+      "tipo": "injerto",
+      "origen": { "propuesta": "identidad", "seccion": "§6.1 y §6.7" },
+      "fuentes": ["I-uso-05"],
+      "que": "El filete claro rgba(255,255,255,0.6) del maillot sobre superficie oscura y el parámetro surface de WornJerseyIcon.",
+      "porque": "Sin él, el navy #172a5b de telefono sobre navy-dark #0b2740 queda a 6,9 de ΔE00 en visión normal, 3,8 en tritanopía y 2,3 en grises (uso, oscuro.py).",
+      "destino": ["§8", "§9"],
+      "decision": ["D-31"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-25",
+      "tipo": "injerto",
+      "origen": { "propuesta": "identidad", "seccion": "§6.1 y §6.3" },
+      "fuentes": ["I-uso-06"],
+      "que": "La regla de contraste entre base y segundo color (KIT_CONTRAST_MIN = 20 en las cinco vistas) y el veredicto del editor con equipo y visión (Too close to Mistral Racing for colour-blind viewers (deuteranopia). Try another colour or figure., pantalla).",
+      "porque": "telefono deja 12,9 pares por carrera en grises a 13 px frente a 3,86, y con 28 rivales un maillot al azar choca con probabilidad 0,51 (telefono §6.3): el mánager necesita saber con quién choca.",
+      "destino": ["§8"],
+      "decision": ["D-20", "D-25"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-26",
+      "tipo": "injerto",
+      "origen": { "propuesta": "lectura", "seccion": "§4.1, DataTable" },
+      "fuentes": ["I-uso-07"],
+      "que": "La fila propia anclada tras … en toda tabla con top 20: barra own #a87300 de 3 px (4,10:1), fondo own-tint #fdf4dc, nombre en 600 y aria-current.",
+      "porque": "Con el RankTable de telefono, el corredor del jugador en el puesto 34 no sale, y Show all 140 son unos 6.720 px de filas de 48 (estimado).",
+      "destino": ["§4", "§6"],
+      "decision": ["D-16"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-27",
+      "tipo": "injerto",
+      "origen": { "propuesta": "lectura", "seccion": "§7.4" },
+      "fuentes": ["I-uso-09"],
+      "que": "↺ Back to Build en un día editado: borra la orden y devuelve el día a su bloque.",
+      "porque": "telefono enseña el origen del día pero no da vuelta desde Your edit.",
+      "destino": ["§10"],
+      "decision": ["D-40"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-28",
+      "tipo": "injerto",
+      "origen": { "propuesta": "lectura", "seccion": "§7.3" },
+      "fuentes": ["I-uso-11"],
+      "que": "La tira de siete días por semana (carrera, viaje, entrenamiento con su carga), no pulsable, con su resumen en texto (1 training day, pantalla), una palabra por celda (Race, Out, Back) y el Meter de cuatro segmentos de 8 px.",
+      "porque": "Se ve sin abrir nada que la semana 1 apenas entrena; la celda 53 ✈ back del prototipo de lectura se sale a 360 (uso C3) y su SegmentMeter de 10 × 3 px no se lee.",
+      "destino": ["§10"],
+      "decision": ["D-40"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-29",
+      "tipo": "injerto",
+      "origen": { "propuesta": "lectura", "seccion": "§8.3" },
+      "fuentes": ["I-uso-13"],
+      "que": "La hora de los datos en el aviso sin red (You're offline. Showing what you saw at 14:02., pantalla), sacada de dataUpdatedAt de la consulta principal de la página.",
+      "porque": "En el teléfono no se distingue una general de esta mañana de una de ayer.",
+      "destino": ["§12"],
+      "decision": ["D-47"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-30",
+      "tipo": "injerto",
+      "origen": { "propuesta": "sistema", "seccion": "§4 n.º 15 y §11" },
+      "fuentes": ["I-uso-14"],
+      "que": "El esqueleto visible solo a los 300 ms (LOADING_DELAY_MS).",
+      "porque": "En caliente la web responde en 1,07 a 1,18 s (telefono §8.2) y un esqueleto pintado desde el principio parpadearía en cada respuesta rápida.",
+      "destino": ["§4"],
+      "decision": ["D-11"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-31",
+      "tipo": "injerto",
+      "origen": { "propuesta": "sistema", "seccion": "§2.5 y §3.5" },
+      "fuentes": ["arquitecto"],
+      "que": "colorMath.ts en packages/shared, fuera del barril: razón WCAG 2.x, Machado 2009 con severidad 1 en RGB lineal, CIELAB D65 y CIEDE2000, con valores dorados sacados de colour-science 0.4.7 (diferencia ≤ 0,01).",
+      "porque": "La usan tokens.test.ts (contraste), kit.ts y kitDistance (ΔE00 en cuatro visiones): telefono pide Machado y CIEDE2000 en TypeScript en kit.test.ts sin decir dónde viven, y una sola implementación evita dos cifras distintas para lo mismo.",
+      "destino": ["§3", "§8", "§16"],
+      "decision": ["D-02", "D-24"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-32",
+      "tipo": "injerto",
+      "origen": { "propuesta": "lectura", "seccion": "§2.3 y §4.1, PageHeader" },
+      "fuentes": ["arquitecto"],
+      "que": "La línea de estado del PageHeader: lo permanente de la página bajo su título (Mixed · your plan runs Day 51 to Day 78, pantalla).",
+      "porque": "Es lo permanente y lo eventual de la televisión (encargo §1, el norte) aplicado al cuadro: el modo y el estado del plan se leen sin bajar, y telefono no tiene sitio para ello.",
+      "destino": ["§4", "§10"],
+      "decision": ["D-09", "D-40"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-33",
+      "tipo": "injerto",
+      "origen": { "propuesta": "sistema", "seccion": "§4 n.º 6" },
+      "fuentes": ["arquitecto"],
+      "que": "Disclosure: botón quiet con chevrón y región debajo, para los paneles plegados (Show the 28 days) y lo que no es una explicación de una línea.",
+      "porque": "telefono pliega el día a día ([DUEÑO 11]) sin componente que lo haga, e InfoButton solo cubre el porqué de una línea.",
+      "destino": ["§4"],
+      "decision": ["D-09"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-34",
+      "tipo": "injerto",
+      "origen": { "propuesta": "lectura", "seccion": "§4.1 y §7.4" },
+      "fuentes": ["arquitecto"],
+      "que": "TripRow: ida, carrera y vuelta en un bloque con su cabecera (icono travel, la carrera, los días y no training), y debajo cada día.",
+      "porque": "telefono §7.5 pide que el viaje sea un bloque en el panel de los días y no le da componente; con TripRow el catálogo lo cubre.",
+      "destino": ["§4", "§11"],
+      "decision": ["D-43"],
+      "estado": "pendiente"
+    }
+  ],
+  "objeciones": [
+    {
+      "id": "O-01",
+      "fuentes": ["O-codigo-01"],
+      "contra": "telefono",
+      "seccion_objetada": "§6.3 y §13, paso 13",
+      "que": "teams.kit jsonb no nulo con su relleno «en la migración»: el reparto no se escribe en SQL y seedWorld inserta sin él (world.ts l. 478-493).",
+      "evidencia": "codigo C9: migrate.ts l. 80; tick.ts l. 283 (relleno idempotente en el tick).",
+      "resolucion": "team_kits aparte (D-22) y ensureKits en el tick; ninguna columna NOT NULL en teams.",
+      "decision": ["D-22"],
+      "destino": ["§8"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-02",
+      "fuentes": ["O-codigo-02"],
+      "contra": "telefono",
+      "seccion_objetada": "§8.1 y §13, paso 2",
+      "que": "apple-mobile-web-app-status-bar-style black-translucent con viewport-fit=cover antes de que la cabecera reserve el área segura de arriba: instalada en iPhone, la hora se pinta sobre la cabecera.",
+      "evidencia": "codigo C12: solo BottomNav.tsx l. 44 y App.tsx l. 154 usan safe-area-inset.",
+      "resolucion": "La barra de estado por defecto (default) desde el paso de la instalable; la cabecera reserva env(safe-area-inset-top) en el paso del marco igualmente.",
+      "decision": ["D-45"],
+      "destino": ["§12"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-03",
+      "fuentes": ["O-codigo-03"],
+      "contra": "telefono",
+      "seccion_objetada": "§9.1 y §13, paso 16",
+      "que": "Declarar schema.response convierte en 500 todo dato que no casa con su esquema (medido con un Date en un z.string()); cada ruta necesita su respuesta real serializada en un test, y codificar las de la retransmisión (de 0,87 a 3,8 MB) está sin medir: es de 3 a 4 PR, no un L.",
+      "evidencia": "codigo C1; app.ts l. 194-196.",
+      "resolucion": "Cada ruta entra con un test que serializa su respuesta real del mundo de los bancos; las de la retransmisión van las últimas, tras medir el coste, con un umbral; tres PR (19a, 19b y 19c).",
+      "decision": ["D-54"],
+      "destino": ["§13", "§17"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-04",
+      "fuentes": ["O-codigo-04"],
+      "contra": "telefono",
+      "seccion_objetada": "§9, punto 4",
+      "que": "exposes: 'public' | 'owner' no comprueba nada y obliga a tocar las 92 rutas y la tabla literal del registro (spoilerRegistry.test.ts l. 31).",
+      "evidencia": "codigo §6, objeción 4.",
+      "resolucion": "response obligatorio en registerSpoilerGuard (I-09), que trabaja: con el serializador, lo no declarado no sale.",
+      "decision": ["D-54"],
+      "destino": ["§13"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-05",
+      "fuentes": ["O-codigo-05"],
+      "contra": "telefono",
+      "seccion_objetada": "§9, punto 3",
+      "que": "El canario ampliado barre «las POST»: barrer todas ejecuta mutaciones en el mundo de prueba.",
+      "evidencia": "spoilerWorld.ts l. 334 (hoy solo GET).",
+      "resolucion": "Solo las POST de lectura, en una lista cerrada (hoy la vista previa).",
+      "decision": ["D-54"],
+      "destino": ["§13"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-06",
+      "fuentes": ["O-codigo-06", "O-uso-03"],
+      "contra": "telefono",
+      "seccion_objetada": "§3.4, §4 y §12",
+      "que": "Nada impide reinventar: con el tema por defecto abierto, «lo que no es token no tiene clase» es falso, y la regla de ESLint solo mira pages/ (components/, 53 ficheros con los hexadecimales de v3 de broadcast/, queda fuera) y no tiene reglas escritas ni lista de heredados.",
+      "evidencia": "codigo C4 y C6; sistema §0 (2.457 apariciones que solo resuelven por el tema por defecto); mapa 01 §2.4.",
+      "resolucion": "I-01: el tema cerrado al final, deuda.json y ui/1 a ui/10 sobre apps/web/src/** salvo components/ui/.",
+      "decision": ["D-14"],
+      "destino": ["§5"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-07",
+      "fuentes": ["O-codigo-07"],
+      "contra": "telefono",
+      "seccion_objetada": "§13",
+      "que": "El plan no tiene la migración de la cola larga de páginas a los tokens; con ella el total es de unos 32 PR, no 22 (estimado por el juez).",
+      "evidencia": "sistema §13, paso 16 (la deuda por pantalla).",
+      "resolucion": "I-02: el paso 21, diez PR por deuda; el plan queda en unos 40 PR (estimado).",
+      "decision": ["D-57"],
+      "destino": ["§17"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-08",
+      "fuentes": ["O-codigo-08"],
+      "contra": "telefono",
+      "seccion_objetada": "§8.3, punto 4",
+      "que": "El sprite de banderas tiene que entrar por Vite, con huella en assets/, o se sirve con max-age=0; y sus 133 coordenadas se generan y se comparan en un test.",
+      "evidencia": "app.ts l. 131-133 y 141; codigo C7.",
+      "resolucion": "El sprite se importa desde apps/web/src/assets/ y sus coordenadas salen de un script con test de huella.",
+      "decision": ["D-49"],
+      "destino": ["§12"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-09",
+      "fuentes": ["O-codigo-09"],
+      "contra": "telefono",
+      "seccion_objetada": "§7.2 y §11",
+      "que": "PREVIEW_RACE_DAY_TSS es una constante de juego: va en packages/engine/src/constants.ts con su intención y su línea en docs/balance.md, sin subir ENGINE_VERSION porque el motor no la lee; la curva se compone con applyDailyLoad.",
+      "evidencia": "Claude.md («toda constante de juego vive en packages/engine/src/constants.ts»); codigo C8.",
+      "resolucion": "Aceptada entera; el PR que la añade paga los ocho tramos de bancos (ci.yml l. 189), y se dice.",
+      "decision": ["D-37"],
+      "destino": ["§11", "§15"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-10",
+      "fuentes": ["O-codigo-10", "O-cobertura-05", "O-uso-07"],
+      "contra": "telefono",
+      "seccion_objetada": "§7.2 a §7.4",
+      "que": "No arregla el desfase de semanas entre la vista previa (desde mañana) y el tick (desde el startDay guardado): las semanas con fechas de su pantalla no son las que proyecta su escala.",
+      "evidencia": "riders.ts l. 439, 453 y 413 frente a train.ts l. 216; codigo C5, cobertura C2, uso C8.",
+      "resolucion": "I-08: la vista previa indexa por el startDay del plan vivo y PUT /plan lo conserva.",
+      "decision": ["D-35"],
+      "destino": ["§10", "§11"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-11",
+      "fuentes": ["O-codigo-11"],
+      "contra": "telefono",
+      "seccion_objetada": "§5.3 y §13, paso 1",
+      "que": "Playwright y axe-core no son dependencias del repositorio: el paso los fija de versión, guarda Chromium en la caché del CI y resuelve el mundo de la prueba.",
+      "evidencia": "codigo C11; capturas/README.md l. 63-71.",
+      "resolucion": "Paso 2: Playwright 1.56.1 y axe-core 4.10.3 como devDependencies fijadas de apps/web, Chromium y el mundo en la caché del CI.",
+      "decision": ["D-18"],
+      "destino": ["§7", "§17"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-12",
+      "fuentes": ["O-codigo-12", "O-cobertura-09", "O-uso-06"],
+      "contra": "telefono",
+      "seccion_objetada": "§6.6 y §10",
+      "que": "KIT_MIN_PX = 16 sube los maillots de 13 px de GroupBar (l. 242), CueCard y TimeTrialBoard: cambia la pantalla de E2 que el dueño verá, y a 320 px la fila de doce maillots parte en dos (uso C7: 280 px con el hueco y el relleno, no 216).",
+      "evidencia": "mapa 03 §1.2; GroupBar.tsx l. 235; docs/retransmision.md §6.1 y §6.2.",
+      "resolucion": "KIT_MIN_PX = 13: Watch no cambia de tamaño; el vocabulario y la señal se miden a 13 y a 16 px, como ya midió telefono (0 carreras a 13 y a 16 px).",
+      "decision": ["D-21"],
+      "destino": ["§8", "§14"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-13",
+      "fuentes": ["O-codigo-13"],
+      "contra": "telefono",
+      "seccion_objetada": "§8.2",
+      "que": "Precargar al instalar todo el JS y la CSS (80 ficheros, unos 320 KB con gzip) compite con Slow 4G con lo que el jugador pide después.",
+      "evidencia": "sistema §8 (unos 220 KB: el arranque y los cinco destinos de la barra inferior, estimado).",
+      "resolucion": "Se precargan la entrada, su CSS, los trozos de los cinco destinos, el manifiesto, los iconos y el sprite; con Save-Data, solo la cáscara; PRECACHE_MAX_GZ = 250 KB.",
+      "decision": ["D-46"],
+      "destino": ["§12"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-14",
+      "fuentes": ["O-cobertura-01", "O-uso-12"],
+      "contra": "telefono",
+      "seccion_objetada": "§6.4 y §15, decisión 3",
+      "que": "La señal por defecto conserva el cuerpo blanco: a 13 px la estrella nacional queda a 15,1 de la marca de la UCI y a 9,2 en grises («blanco con algo en el pecho»), y el dueño ofreció «que el resto en vez de ser blanco sea de otro color».",
+      "evidencia": "cobertura C7 (re-medido con el rasterizador del mapa 03); mapa 03 §7.3; 00-encargo.md l. 223.",
+      "resolucion": "La banda de honor por defecto (I-12); la estrella sobre blanco va a la página de opciones como alternativa D con estas cifras.",
+      "decision": ["D-26", "DD-03"],
+      "destino": ["§9"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-15",
+      "fuentes": ["O-cobertura-02"],
+      "contra": "telefono",
+      "seccion_objetada": "§15, decisión 3 C",
+      "que": "El motivo del descarte de la C estira el SPEC: SPEC.md l. 874 prohíbe imitar «el arcoíris del campeón del mundo», no «la camiseta blanca con franjas en el pecho»; y la variante más fuerte del dueño tiene que cambiar lo que él ofreció cambiar.",
+      "evidencia": "SPEC.md l. 874; 00-encargo.md l. 221-224.",
+      "resolucion": "La C de telefono se presenta como señal propia con bandas, descartada por medida y no por el SPEC; la variante más fuerte del dueño es la C de identidad (I-13).",
+      "decision": ["D-27"],
+      "destino": ["§9", "§19"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-16",
+      "fuentes": ["O-cobertura-03"],
+      "contra": "telefono",
+      "seccion_objetada": "§4",
+      "que": "Falta la ficha de corredor, uno de los siete componentes del encargo: RiderHeader es solo su cabecera.",
+      "evidencia": "00-encargo.md §1.1.",
+      "resolucion": "I-17.",
+      "decision": ["D-09"],
+      "destino": ["§4"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-17",
+      "fuentes": ["O-cobertura-04"],
+      "contra": "telefono",
+      "seccion_objetada": "§4, RiderLabel",
+      "que": "La identidad mínima del corredor va sin dorsal ni equipo.",
+      "evidencia": "[DUEÑO 26], docs/balance.md l. 1842 (v13).",
+      "resolucion": "I-18.",
+      "decision": ["D-09"],
+      "destino": ["§4"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-18",
+      "fuentes": ["O-cobertura-06"],
+      "contra": "telefono",
+      "seccion_objetada": "§10",
+      "que": "No nombra la previa ni el cierre, y deja «pendiente» el resumen accesible de la capa fija, que no existe.",
+      "evidencia": "cobertura C5: FixedOverlay.tsx l. 38-71; docs/retransmision.md l. 12495 y l. 12500.",
+      "resolucion": "§14 escribe la frase del resumen con su segunda línea, cuándo se lee y cómo se viste la previa y el cierre.",
+      "decision": ["D-56"],
+      "destino": ["§14"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-19",
+      "fuentes": ["O-cobertura-07"],
+      "contra": "telefono",
+      "seccion_objetada": "§6.3 y §11",
+      "que": "Dos decisiones del dueño fuera de §15: KIT_CHANGE_COOLDOWN_DAYS = 14 y que humanos y NPC choquen igual en checkKit.",
+      "evidencia": "identidad D6 y D7 y lectura, decisión 11, las llevan al dueño (con 28 y 7 días).",
+      "resolucion": "DD-08 (el NPC cede) y DD-09 (la espera, 28 días de juego por defecto).",
+      "decision": ["DD-08", "DD-09"],
+      "destino": ["§8", "§19"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-20",
+      "fuentes": ["O-cobertura-08"],
+      "contra": "telefono",
+      "seccion_objetada": "§3.1 y §9",
+      "que": "La moral pasa del porcentaje a cinco palabras sin decisión del dueño; SPEC.md l. 85 la quiere «en estrellas o iconos».",
+      "evidencia": "[DOC 12]; mapa 04, contradicción 4; sistema la pone en estrellas.",
+      "resolucion": "DD-12, con las medias estrellas por defecto.",
+      "decision": ["D-44", "DD-12"],
+      "destino": ["§13", "§19"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-21",
+      "fuentes": ["O-cobertura-10"],
+      "contra": "telefono",
+      "seccion_objetada": "§15, decisión 7",
+      "que": "Repintar los 219 equipos «también en las etapas grabadas» contradice el reparto congelado de E2 y su promesa de que una etapa vieja enseña el maillot de aquel día.",
+      "evidencia": "cast.ts l. 146-154; docs/retransmision.md l. 4868.",
+      "resolucion": "I-15: legacyJerseyStyle para lo grabado antes; DD-07 decide la traducción.",
+      "decision": ["D-23", "DD-07"],
+      "destino": ["§8", "§19"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-22",
+      "fuentes": ["O-cobertura-11"],
+      "contra": "telefono",
+      "seccion_objetada": "§7.5",
+      "que": "Your training queue is empty a quien tiene su plan de bloques, sin tratar.",
+      "evidencia": "dashboard.ts l. 82; mapa 05 §3; mapa 04, contradicción 8.",
+      "resolucion": "I-20.",
+      "decision": ["D-43"],
+      "destino": ["§11"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-23",
+      "fuentes": ["O-cobertura-12"],
+      "contra": "telefono",
+      "seccion_objetada": "§15",
+      "que": "Decisiones sin consecuencia: la 6, la mitad del TSS de la 7 y el aviso de instalar de la 8 no dicen qué cambia si el dueño elige otra cosa.",
+      "evidencia": "00-encargo.md §1, l. 64-65.",
+      "resolucion": "I-22: cada DD con su defecto, su porqué, lo que cambia si elige otra cosa y antes de qué paso hace falta.",
+      "decision": [],
+      "destino": ["§19"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-24",
+      "fuentes": ["O-cobertura-13"],
+      "contra": "telefono",
+      "seccion_objetada": "§6.6",
+      "que": "El nombre del patrocinador es texto libre que modera E9; la lista cerrada de patrocinadores generados de identidad quita esa superficie, y ese nombre hace de «logotipo» en la mecánica del dueño.",
+      "evidencia": "docs/encargos.md l. 463-465; identidad §6.6.",
+      "resolucion": "El nombre sale de una lista cerrada de patrocinadores generados (DD-19) y se pinta solo desde 72 px (D-30).",
+      "decision": ["D-30", "DD-19"],
+      "destino": ["§9"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-25",
+      "fuentes": ["O-cobertura-14"],
+      "contra": "telefono",
+      "seccion_objetada": "§6.1",
+      "que": "Si entra la banda de honor, Sash sale del vocabulario y hay que volver a medir las 651 combinaciones, los 127 separados y las 310 carreras con seis figuras, que nadie ha medido.",
+      "evidencia": "telefono §6.1 y §6.2 (medidas con siete figuras).",
+      "resolucion": "La medida se hace en la página de opciones y es la puerta de kits.test.ts: si alguna carrera de la temporada 0 tiene un par por debajo de 10 en las cuatro visiones a 13 o a 16 px, el defecto pasa a la alternativa B (identidad A).",
+      "decision": ["D-20"],
+      "destino": ["§8", "§16"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-26",
+      "fuentes": ["O-uso-01", "O-uso-13"],
+      "contra": "telefono",
+      "seccion_objetada": "§5.3 y §13",
+      "que": "El mundo de la prueba no está definido: génesis y tres días con las cuatro cuentas del mapa 05 no dan las pantallas que se miden (el mapa 05 pidió 50 días, 849 s, y cuatro escrituras con SQL); y falta un paso previo con el mundo y la tabla de pantallas, de los que depende la línea base.",
+      "evidencia": "mapa 05 §1; capturas/README.md.",
+      "resolucion": "El paso 2 construye el mundo (port de capturas/mundo.mjs con sus cuatro escrituras), lo guarda en la caché del CI y escribe la tabla de pantallas.",
+      "decision": ["D-18"],
+      "destino": ["§7", "§17"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-27",
+      "fuentes": ["O-uso-02"],
+      "contra": "telefono",
+      "seccion_objetada": "§5.3",
+      "que": "Faltan la lista de las unas 35 pantallas, el elemento que lleva data-answer en cada una y cuáles son de herramienta.",
+      "evidencia": "lectura §5.4 n.º 4 da ocho páginas.",
+      "resolucion": "TELEFONO_PANTALLAS: las 45 pantallas del mapa 05 con ruta, cuenta, elemento data-answer y si son de herramienta.",
+      "decision": ["D-18"],
+      "destino": ["§7"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-28",
+      "fuentes": ["O-uso-04"],
+      "contra": "telefono",
+      "seccion_objetada": "§4 RankTable y §5.2",
+      "que": "El enlace del nombre «ocupa la celda de identidad (44 px)» en el texto y en el prototipo mide 20 de alto.",
+      "evidencia": "uso C1: cuatro enlaces de 185 a 208 × 20 px.",
+      "resolucion": "El enlace es la celda entera, en bloque y con 44 px de alto; la prueba cuenta los enlaces de tabla como controles, no como enlaces de frase.",
+      "decision": ["D-16"],
+      "destino": ["§4", "§6"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-29",
+      "fuentes": ["O-uso-05"],
+      "contra": "telefono",
+      "seccion_objetada": "§4 ActionBar, UpdateToast y OfflineBanner",
+      "que": "Lo fijo no tiene orden ni tope: barra de acción de 60, barra inferior de 56 más la muesca, UpdateToast de 48 y OfflineBanner de 32; a 320 la consecuencia parte en dos renglones.",
+      "evidencia": "uso, medido en el prototipo de telefono.",
+      "resolucion": "Orden de abajo arriba, un solo aviso a la vez, la consecuencia en un renglón con … y entera en aria-describedby, y las barras escondidas mientras el teclado está abierto.",
+      "decision": ["D-12"],
+      "destino": ["§4"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-30",
+      "fuentes": ["O-uso-08"],
+      "contra": "telefono",
+      "seccion_objetada": "§5.2 y §3.2",
+      "que": "Los rótulos de la barra inferior caben con 1 px de margen a 320 medidos con Inter, no con la letra del sistema que la propuesta elige.",
+      "evidencia": "uso; telefono §14 (Chromium sin cabeza con Inter).",
+      "resolucion": "Plan B escrito: si la comprobación 2 encuentra un rótulo cortado, por debajo de 340 px los rótulos pasan a Home, Rider, Team, World y News, con E6.",
+      "decision": ["D-17"],
+      "destino": ["§6"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-31",
+      "fuentes": ["O-uso-09"],
+      "contra": "telefono",
+      "seccion_objetada": "§3.1",
+      "que": "«Ningún estado va solo en color» no tiene mecanismo: good y bad quedan a 9,0 de ΔE00 en deuteranopía y a 1,21 de luminancia.",
+      "evidencia": "uso, estado.py.",
+      "resolucion": "Chip y Notice exigen tono y texto en el tipo y llevan un icono por tono; el dinero, siempre con signo.",
+      "decision": ["D-13"],
+      "destino": ["§3", "§4"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-32",
+      "fuentes": ["O-uso-10"],
+      "contra": "telefono",
+      "seccion_objetada": "§7.1 frente a §7.3",
+      "que": "Dos instrucciones para el mismo tramo: el prototipo nombra la semana (Make week 1 lighter to arrive Fine) y §7.3 da una fija.",
+      "evidencia": "uso, medido en proto/entrenamiento.html.",
+      "resolucion": "Manda la instrucción fija de la tabla de §7.3; nombrar la semana pediría una regla y un campo de API que nadie ha diseñado.",
+      "decision": ["D-42"],
+      "destino": ["§10"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-33",
+      "fuentes": ["O-uso-11"],
+      "contra": "telefono",
+      "seccion_objetada": "§4 RankTable y §5.1",
+      "que": "El escritorio sin columnas: «desde 640 el renglón 2 vuelve a columnas» no dice cuáles en cada tabla ni a 1.024.",
+      "evidencia": "sistema §4 n.º 10 (priority por columna).",
+      "resolucion": "Cada columna lleva priority (primary, secondary, optional) y §6 escribe por tabla qué columnas salen a 640 y a 1.024.",
+      "decision": ["D-16"],
+      "destino": ["§6"],
+      "estado": "pendiente"
+    }
+  ],
+  "huecos": [
+    {
+      "id": "H-01",
+      "fuentes": ["H-codigo-01"],
+      "que": "Los rivales de temporada: validar un maillot «a menos de 10 de quien coincide contigo» pide saber quién corre con quién, y predictStartlist es una transacción por carrera (calendarRun.ts l. 785) que solo usa routes/calendar.ts l. 290; nadie dice dónde se guarda ese conjunto ni qué pasa con un maillot guardado cuando un mánager añade una carrera.",
+      "resolucion": "seasonRivals construye el campo de cada carrera de la temporada con la misma selección determinista del tick (selectFieldTeams y ownedTeamAttendance con team_race_plan, calendarRun.ts l. 400-455) extraída a una función pura, sin tabla nueva; si una carrera añadida hace chocar a un humano con un NPC, el NPC cede esa noche; dos humanos que chocan no se fuerzan y los cuenta el banco nocturno.",
+      "decision": ["D-24"],
+      "destino": ["§8"],
+      "sin_evidencia_de_los_jueces": true,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-02",
+      "fuentes": ["H-codigo-02"],
+      "que": "jerseySeed sigue cruzando la frontera (contracts.ts l. 665, 692 y 718; broadcast/wire.ts l. 354) cuando el maillot ya es dato.",
+      "resolucion": "Sale de esos contratos en el PR 19c, cuando kit ya los ha sustituido.",
+      "decision": ["D-22", "D-55"],
+      "destino": ["§8", "§13"],
+      "sin_evidencia_de_los_jueces": false,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-03",
+      "fuentes": ["H-codigo-03"],
+      "que": "El peso que queda en el arranque: request.js lleva 42 KB de broadcast/* por el barril de packages/shared, que no declara sideEffects (mapa 01 §8).",
+      "resolucion": "packages/shared gana sideEffects: false en el paso del peso solo si peso.test.mjs enseña que request.js suelta esos 42 KB y pnpm test sigue en verde; si no, queda anotado.",
+      "decision": ["D-50"],
+      "destino": ["§12"],
+      "sin_evidencia_de_los_jueces": true,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-04",
+      "fuentes": ["H-codigo-04"],
+      "que": "Los planes de entrenamiento ya solapados en producción: el arreglo vale desde el siguiente guardado y nadie los limpia.",
+      "resolucion": "Una migración de datos (drizzle-kit, custom) borra los solapes de hoy y conserva el de start_day mayor, que es el que leerá la regla nueva.",
+      "decision": ["D-39"],
+      "destino": ["§11"],
+      "sin_evidencia_de_los_jueces": false,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-05",
+      "fuentes": ["H-cobertura-01"],
+      "que": "El resumen accesible de la capa fija (docs/retransmision.md §18.8, l. 12495 y 12500): ninguna propuesta lo escribe y dos lo dan por hecho; no existe (FixedOverlay.tsx l. 38-71).",
+      "resolucion": "El botón de la capa fija gana un aria-label con la frase de §18.8 y la segunda línea en palabras, recalculado cuando cambia el km; aria-live sigue en off.",
+      "decision": ["D-56"],
+      "destino": ["§14"],
+      "sin_evidencia_de_los_jueces": false,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-06",
+      "fuentes": ["H-cobertura-02"],
+      "que": "[DUEÑO 19]: la línea de depuración Your country: … de CreateRider.tsx l. 29, «mientras se depura»: nadie decide retirarla o diseñarla.",
+      "resolucion": "Se queda como texto de ayuda del campo del país (Field, meta ink-2) hasta que el dueño diga que se quite (DD-18).",
+      "decision": ["DD-18"],
+      "destino": ["§19"],
+      "sin_evidencia_de_los_jueces": false,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-07",
+      "fuentes": ["H-cobertura-03"],
+      "que": "El título más largo en el rótulo, U23 time trial champion of Saint Vincent and the Grenadines (59 caracteres, [DOC 40]), en los dos renglones de 360 px: nadie lo prueba.",
+      "resolucion": "Un caso de CueCard.test.tsx y una pantalla de /_ui con ese título a 320 y a 360 px: dos renglones, sin corte del nombre.",
+      "decision": ["D-56"],
+      "destino": ["§14", "§16"],
+      "sin_evidencia_de_los_jueces": false,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-08",
+      "fuentes": ["H-cobertura-04"],
+      "que": "[DUEÑO 18], la pantalla de órdenes: «el resultado es casi lo mismo ponga lo que ponga ahí» (raceOrdersAdvice.ts l. 6-7, v58); ninguna la diseña más allá de pasarla al catálogo.",
+      "resolucion": "E3 la pasa al catálogo (RaceOrders, 75 apariciones de deuda) y deja anotado que contar lo que pesa cada orden es de la línea de táctica, no de presentación.",
+      "decision": ["D-33"],
+      "destino": ["§18"],
+      "sin_evidencia_de_los_jueces": false,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-09",
+      "fuentes": ["H-cobertura-05"],
+      "que": "La decisión 7-h de E2 ([DOC 41]) descartó «la banda con la bandera, que en gris se confunde con el verde»: nadie explica con su medida por qué una banda nacional ya no cae en ese defecto.",
+      "resolucion": "Con el filo de 2,4 u, a densidad 2 las 133 bandas quedan a 14,0 o más de todo maillot y a 14,2 de los líderes en las cinco vistas (identidad, exp5b_nacional.py); a densidad 1 frente a los líderes está sin medir y lo mide champion.test.ts.",
+      "decision": ["D-26"],
+      "destino": ["§9"],
+      "sin_evidencia_de_los_jueces": false,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-10",
+      "fuentes": ["H-cobertura-06"],
+      "que": "Los lunares de la montaña y el «amarillo con serifa característica» (SPEC.md l. 874; tensión 14 del mapa 04): nadie pesa si imitan la identidad de una carrera real, y la verificación ante EUIPO y USPTO de la señal y de los lunares no tiene PR ni responsable.",
+      "resolucion": "No es un PR de E3: es la tarea de verificación que SPEC §8 pone antes del lanzamiento, con el dueño como responsable; §18 la deja escrita con lo que hay que verificar.",
+      "decision": ["D-59"],
+      "destino": ["§18"],
+      "sin_evidencia_de_los_jueces": false,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-11",
+      "fuentes": ["H-cobertura-07"],
+      "que": "La edad en el rótulo (decisión 7-l de E2, «si E3 la pide», docs/retransmision.md l. 5233): nadie la decide.",
+      "resolucion": "E3 no la pide: el rótulo tiene dos renglones a 360 px y la edad no ayuda a entender la carrera en ese momento.",
+      "decision": ["D-56"],
+      "destino": ["§14"],
+      "sin_evidencia_de_los_jueces": true,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-12",
+      "fuentes": ["H-cobertura-08"],
+      "que": "Los documentos que E3 corrige (SPEC §3.2, docs/entrenamiento.md l. 1697, los seis pasajes del dorsal y, si el dueño elige un arcoíris, SPEC.md l. 874): ningún plan tiene el PR de documentos.",
+      "resolucion": "El paso 24 corrige la lista de D-58.",
+      "decision": ["D-58"],
+      "destino": ["§17"],
+      "sin_evidencia_de_los_jueces": false,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-13",
+      "fuentes": ["H-cobertura-09", "H-uso-02"],
+      "que": "Un teléfono de verdad: todo está medido en Chromium de Linux sin cabeza; nadie mide con San Francisco o Roboto, ni WebKit con barras fijas, 100dvh y env(safe-area-inset-*), y la prueba del dueño en su teléfono (decisión 6 de E2) no bloquea ningún paso.",
+      "resolucion": "La prueba del dueño, con diez tareas a una mano, es la puerta del paso de cierre (24); lo demás no se bloquea y §18 lo deja como riesgo.",
+      "decision": ["D-19", "DD-20"],
+      "destino": ["§7", "§19"],
+      "sin_evidencia_de_los_jueces": false,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-14",
+      "fuentes": ["H-cobertura-10"],
+      "que": "Lo real y lo generado (contradicción 15, [DOC 36]): nadie da forma en el sistema a las marcas que E1 ya escribe (Real route (source cited)), y E12 la va a necesitar.",
+      "resolucion": "Chip neutral con los tres textos de E1 (docs/balance.md l. 17430); E12 decide dónde se usa.",
+      "decision": ["D-59"],
+      "destino": ["§4"],
+      "sin_evidencia_de_los_jueces": false,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-15",
+      "fuentes": ["H-uso-01"],
+      "que": "Un mundo de prueba reproducible para el criterio del teléfono: génesis y tres días, por construir, el banco de capturas o el mundo de 50 días guardado; ninguna lo escribe.",
+      "resolucion": "apps/web/e2e/world/build.mjs: el port de capturas/mundo.mjs con GENESIS_WORLD_SEED, 50 días y las cuatro escrituras del mapa 05 §1, guardado en la caché del CI con la huella de las migraciones, el motor y el script.",
+      "decision": ["D-18"],
+      "destino": ["§7"],
+      "sin_evidencia_de_los_jueces": false,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-16",
+      "fuentes": ["H-uso-03"],
+      "que": "El teclado virtual con barras fijas y el teléfono en horizontal: a 800 × 360 la barra inferior y la de acción dejan unos 244 px (estimado), y ningún manifiesto fija orientation.",
+      "resolucion": "La barra de acción y la inferior se esconden mientras el teclado está abierto (visualViewport); el manifiesto no fija orientation; en horizontal solo se mide el reflujo, sin bloquear.",
+      "decision": ["D-12", "D-19"],
+      "destino": ["§6", "§7"],
+      "sin_evidencia_de_los_jueces": true,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-17",
+      "fuentes": ["H-uso-04"],
+      "que": "La letra ampliada (WCAG 1.4.4 al 200 % y la escala de letra de Android): ninguna repite la prueba con texto grande, y hay altos fijos de 36, 40 y 60 px.",
+      "resolucion": "Una pasada nocturna con la letra raíz al doble para las comprobaciones 1 y 2, que informa y no bloquea; los altos fijos son mínimos (min-height), no altos.",
+      "decision": ["D-19"],
+      "destino": ["§7"],
+      "sin_evidencia_de_los_jueces": true,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-18",
+      "fuentes": ["H-uso-05"],
+      "que": "Los tonos de estado entre sí en las cuatro visiones: nadie los mide; verde y rojo bajan de 10 en deuteranopía en telefono (9,0) e identidad (8,1), y axe no exige texto ni icono.",
+      "resolucion": "El mecanismo es forma y texto (D-13); tokens.test.ts informa del ΔE00 entre tonos de estado sin hacerlo umbral.",
+      "decision": ["D-13"],
+      "destino": ["§3"],
+      "sin_evidencia_de_los_jueces": false,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-19",
+      "fuentes": ["H-uso-06"],
+      "que": "Una pasada con lector de pantalla en un teléfono (VoiceOver, TalkBack): los role=img de la escala y del maillot y los aria-live de Watch solo se comprueban en el marcado.",
+      "resolucion": "Una de las tareas de la prueba del dueño, si usa lector de pantalla; si no, queda como riesgo en §18.",
+      "decision": ["D-19"],
+      "destino": ["§7", "§18"],
+      "sin_evidencia_de_los_jueces": false,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-20",
+      "fuentes": ["H-uso-07"],
+      "que": "La carga del día de carrera en la vista previa queda estimada (150 TSS o la mediana del diario) y nadie la contrasta con el diario (una etapa medida cargó 252,8, mapa 02 §3).",
+      "resolucion": "Un test sobre el mundo de los bancos compara la llegada proyectada a la salida de cada carrera con la que sale del diario real, informa del acuerdo y fija un trinquete en el valor medido.",
+      "decision": ["D-36"],
+      "destino": ["§11", "§16"],
+      "sin_evidencia_de_los_jueces": false,
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-21",
+      "fuentes": ["arquitecto"],
+      "que": "El defecto vivo de producción: cambiar el maillot hace que el tick cree un clon del equipo, porque seedWorld identifica los equipos por su semilla (world.ts l. 459-468; medido en el mapa 03 §2.2). Nadie dice qué pasa con los clones que ya hay en producción, ni que teamIndexFromSeed (l. 542-545) da 0 a una semilla cambiada, así que un equipo humano con la semilla cambiada que pierde su dueño se renombraría como el índice 0 de su división, con su país (l. 574, 594 y 598).",
+      "resolucion": "El primer PR del plan (paso 1), independiente y pequeño: jersey_style_seed nula para el dibujo, jersey_seed que no se vuelve a escribir, teamIndexFromSeed que devuelve null para una semilla que no es de la génesis, y una consulta de diagnóstico de los clones; qué se hace con ellos lo decide el dueño (DD-17).",
+      "decision": ["D-32", "DD-17"],
+      "destino": ["§8", "§17", "§19"],
+      "sin_evidencia_de_los_jueces": true,
+      "estado": "pendiente"
+    }
+  ],
+  "contradicciones": [
+    {
+      "id": "X-01",
+      "tema": "¿Valida .strict() las claves de más de GET /api/teams/:id/news?",
+      "posturas": {
+        "sistema §9, identidad §9, lectura §9 y mapa 02 §9 p. 6": "una versión .strict() de cada esquema habría cazado las seis claves de más",
+        "codigo": "falso: en Zod 4.4.3, .strict() solo mira la raíz"
+      },
+      "resultado": "falsa",
+      "resolucion": "Las seis claves salen del ...r de cada ítem, dentro de z.array(teamNewsItemSchema): una clave de más en un ítem pasa y una en la raíz falla. El mecanismo es el serializador, que sí quita lo anidado.",
+      "evidencia": "news.ts l. 448; contracts.ts l. 766-773; medido por el juez en el clon.",
+      "juez": "codigo (C2)",
+      "decision": ["D-54"]
+    },
+    {
+      "id": "X-02",
+      "tema": "¿Caben doce colores separados para un daltónico?",
+      "posturas": {
+        "sistema §6.1": "con doce familias el mínimo cae a 5,7: doce tonos no caben en el eje azul y amarillo",
+        "telefono §6.1": "doce colores, ningún par por debajo de 15,9 en visión normal ni de 12,3 en las dicromacias"
+      },
+      "resultado": "telefono cierta; sistema falsa como regla",
+      "resolucion": "Las dos cifras son ciertas: el 5,7 vale para la docena de sistema con lima y marrón; los doce de telefono caben porque dos son el amarillo y el blanco, solo de segundo color.",
+      "evidencia": "cobertura C6 y uso C4 (re-medido con colour-science y Machado 2009): 15,9; 12,3; 12,3; 12,3; 12 pares por debajo de 10 en grises.",
+      "juez": "cobertura (C6), uso (C4)",
+      "decision": ["D-20"]
+    },
+    {
+      "id": "X-03",
+      "tema": "Recargar sin red con la sesión abierta",
+      "posturas": {
+        "sistema §8, identidad §8 y lectura §8.3": "el service worker sirve la cáscara con You're offline.",
+        "telefono §1.6 y §8.3": "la cáscara arranca, pero el jugador ve Log in"
+      },
+      "resultado": "telefono cierta",
+      "resolucion": "ProtectedRoute lleva a /login cuando la sesión no trae datos, sin rama para el fallo de red; hace falta la sesión en tres estados.",
+      "evidencia": "ProtectedRoute.tsx l. 12-13; la captura pwa/out/sinred-recargar-propuesta.png de telefono.",
+      "juez": "codigo (C3), cobertura (C3), uso (C6 y C9)",
+      "decision": ["D-47"]
+    },
+    {
+      "id": "X-04",
+      "tema": "¿Vacía HorizonWatcher la caché sin red?",
+      "posturas": {
+        "telefono §1.6": "HorizonWatcher.tsx l. 33 vacía la caché por lo mismo",
+        "uso": "solo si cambia una sesión ya resuelta"
+      },
+      "resultado": "a medias",
+      "resolucion": "cacheOwnerChanged exige prev.resolved y next.resolved: en una recarga en frío sin red no vacía nada; HorizonWatcher no se toca y gana un test de que unknown nunca vacía la caché.",
+      "evidencia": "queryClient.ts l. 165-167.",
+      "juez": "uso (comprobación 8 del .json)",
+      "decision": ["D-47"]
+    },
+    {
+      "id": "X-05",
+      "tema": "El desfase de semanas de la vista previa",
+      "posturas": {
+        "lectura §1.5": "la vista previa toma blocks[Math.floor(i / 7)] desde mañana y el tick cuenta desde el día del guardado",
+        "telefono, sistema, identidad": "no lo ven"
+      },
+      "resultado": "cierta",
+      "resolucion": "Desde el día siguiente al guardado, escalera y proyección van desplazadas respecto de lo que se entrena.",
+      "evidencia": "riders.ts l. 439, 453 y 413; train.ts l. 216; PlanLadder.tsx l. 97-99.",
+      "juez": "codigo (C5), cobertura (C2), uso (C8)",
+      "decision": ["D-35"]
+    },
+    {
+      "id": "X-06",
+      "tema": "¿La carga del día de carrera en la proyección pide al motor?",
+      "posturas": {
+        "sistema §7.3": "pide una estimación del motor; queda para otra línea",
+        "telefono, identidad, lectura": "se estima en la API (150 TSS o la mediana del diario)"
+      },
+      "resultado": "a medias",
+      "resolucion": "projectLoad solo acepta sesiones del catálogo, pero el motor ya exporta applyDailyLoad, que packages/db usa: la API compone la curva día a día sin tocar el motor.",
+      "evidencia": "projection.ts l. 40-48; packages/engine/src/index.ts l. 365; stageRun.ts l. 13.",
+      "juez": "codigo (C8)",
+      "decision": ["D-36"]
+    },
+    {
+      "id": "X-07",
+      "tema": "Las banderas como ficheros de public/flags/",
+      "posturas": {
+        "identidad §3.3 y lectura §5.3": "sacan el peso de la CSS sin coste; lectura: assets/ ya no cuenta para el límite por IP",
+        "telefono §8.3 y sistema §8": "un sprite o ficheros con huella, con la caché primero"
+      },
+      "resultado": "a medias",
+      "resolucion": "Hoy 142 banderas ya van sueltas con huella en dist/assets/ e inmutables; en la raíz saldrían con max-age=0 y cada revalidación gasta el cupo de 300 por minuto e IP. lectura lee al revés app.ts l. 127-133.",
+      "evidencia": "app.ts l. 131-133 y 141; security.ts l. 10; medido por el juez en el clon.",
+      "juez": "codigo (C7)",
+      "decision": ["D-49"]
+    },
+    {
+      "id": "X-08",
+      "tema": "El maillot en jsonb not null con su relleno en la migración",
+      "posturas": {
+        "telefono §6.3 y sistema §6.2": "migración de drizzle-kit con relleno y not null",
+        "identidad §6.2": "team_kits y ensureKits en el tick"
+      },
+      "resultado": "a medias",
+      "resolucion": "Hay SQL de datos en migraciones, pero el reparto (ΔE00 dibujado contra los rivales) no se escribe en SQL y un NOT NULL sin DEFAULT rompe el test del mundo vivo.",
+      "evidencia": "0032_techos_por_edad.sql; tick.ts l. 283; migrate.ts l. 80; world.ts l. 478-493.",
+      "juez": "codigo (C9)",
+      "decision": ["D-22"]
+    },
+    {
+      "id": "X-09",
+      "tema": "La prueba del teléfono corre en el CI con Playwright y axe-core",
+      "posturas": {
+        "telefono §5.3, sistema §5 e identidad §5": "en el CI",
+        "codigo": "ninguno está en un package.json"
+      },
+      "resultado": "a medias",
+      "resolucion": "Es dependencia nueva, con Chromium en la caché del CI y un mundo con cuatro cuentas que hoy pide SQL.",
+      "evidencia": "capturas/README.md l. 63-71; mapa 05 §1.",
+      "juez": "codigo (C11)",
+      "decision": ["D-18"]
+    },
+    {
+      "id": "X-10",
+      "tema": "viewport-fit=cover y black-translucent en el primer paso de la instalable",
+      "posturas": {
+        "telefono §8.1 y §13": "en el paso 2",
+        "codigo": "la cabecera no reserva safe-area-inset-top"
+      },
+      "resultado": "a medias",
+      "resolucion": "Instalada en iPhone, la hora se pintaría sobre la cabecera hasta el paso del marco.",
+      "evidencia": "BottomNav.tsx l. 44; App.tsx l. 154.",
+      "juez": "codigo (C12)",
+      "decision": ["D-45"]
+    },
+    {
+      "id": "X-11",
+      "tema": "El tema cerrado con initial",
+      "posturas": {
+        "sistema §0 y §2": "con initial deja de generarse la paleta de Tailwind y los arbitrarios siguen resolviendo"
+      },
+      "resultado": "cierta",
+      "resolucion": "Cerrado, no resuelven bg-indigo-600, text-white, max-w-6xl, rounded-2xl ni shadow-sm; sí text-[11px] y p-5.",
+      "evidencia": "__unstable__loadDesignSystem en tailwindcss@4.3.3/dist/lib.js; medido por el juez.",
+      "juez": "codigo (C4)",
+      "decision": ["D-14"]
+    },
+    {
+      "id": "X-12",
+      "tema": "¿Corre ya el lint sobre .tsx?",
+      "posturas": {
+        "sistema §1.1": "sí, y las reglas nuevas no piden otro trabajo del CI",
+        "00-encargo.md §6.7": "eslint . sobre todo .js y .mjs"
+      },
+      "resultado": "cierta (sistema); el encargo se queda corto",
+      "resolucion": "pnpm lint es eslint . y la configuración cubre .tsx.",
+      "evidencia": "eslint.config.js l. 228 y 255; package.json l. 23; ci.yml l. 252.",
+      "juez": "codigo (C6)",
+      "decision": ["D-14"]
+    },
+    {
+      "id": "X-13",
+      "tema": "stageTables.test.tsx con el maillot de equipo en cada fila",
+      "posturas": {
+        "identidad §12": "sigue pasando"
+      },
+      "resultado": "cierta",
+      "resolucion": "Cuenta por etiqueta exacta y toma el primer enlace de la fila; leaderJerseys.test.tsx l. 86-87 tampoco cae con el maillot delante del nombre.",
+      "evidencia": "stageTables.test.tsx l. 35-36 y 43-48.",
+      "juez": "codigo (C10)",
+      "decision": ["D-29"]
+    },
+    {
+      "id": "X-14",
+      "tema": "¿Es el equipo líder la fila 1 de la clasificación por equipos?",
+      "posturas": {
+        "lectura §6.5 y decisión 5": "sí, así que el dorsal no hace falta"
+      },
+      "resultado": "a medias",
+      "resolucion": "Cierto en la acumulada; falso en la de la etapa, que pinta la misma TeamClassTable y donde la fila 1 es el ganador del día.",
+      "evidencia": "StageReplay.tsx l. 230 y 236; Race.tsx l. 531; TeamClassTable.tsx l. 18-56.",
+      "juez": "cobertura (C4)",
+      "decision": ["D-29"]
+    },
+    {
+      "id": "X-15",
+      "tema": "El resumen accesible de la capa fija",
+      "posturas": {
+        "sistema §10 y lectura §10": "se queda como está",
+        "telefono §10": "pendiente"
+      },
+      "resultado": "falsa (sistema y lectura); telefono cierta",
+      "resolucion": "FixedOverlay es un button con aria-live=off cuyo nombre es su texto visible, sin la frase de docs/retransmision.md l. 12495.",
+      "evidencia": "FixedOverlay.tsx l. 38-71; mapa 04, DOC 44.",
+      "juez": "cobertura (C5)",
+      "decision": ["D-56"]
+    },
+    {
+      "id": "X-16",
+      "tema": "Las distancias de las señales por defecto a la marca de la UCI",
+      "posturas": {
+        "telefono §6.4": "16,6 y 10,5 a 16 px",
+        "sistema §6.4": "50,1 a 13 px",
+        "lectura §6.4": "11,2 y 7,4 a 13 px",
+        "identidad §6.5": "44,3 la mundial a 13 px"
+      },
+      "resultado": "ciertas, con lo que no dicen",
+      "resolucion": "Re-medidas: 16,7 y 10,5; 50,3; 11,2 y 7,4; 45,7. A 13 px, la estrella de telefono queda a 9,2 en grises y la de lectura a 9,9 en la peor dicromacia, por debajo del 10; la nacional de identidad, que no daba cifra, a 22,6 (Italia) y 26,0 (España), con 15,7 y 18,1 en grises. Mandan las cifras del juez.",
+      "evidencia": "juez-cobertura/medida.py con el rasterizador del mapa 03 recortado al torso; el ChampionMark de hoy da 12,2, como en el mapa 03 §7.3.",
+      "juez": "cobertura (C7)",
+      "decision": ["D-26"]
+    },
+    {
+      "id": "X-17",
+      "tema": "Un solo dibujo para ruta, crono, élite y sub-23",
+      "posturas": {
+        "sistema §6.4, identidad §6.5 y lectura §6.4": "wearableTitles solo deja llevar los títulos de la disciplina y la categoría del día"
+      },
+      "resultado": "cierta",
+      "resolucion": "Basta un dibujo y el texto los separa (Time trial champion of Italy, pantalla).",
+      "evidencia": "jerseys.ts l. 270-275 (UCI 1.3.063 y 1.3.068).",
+      "juez": "cobertura (C1)",
+      "decision": ["D-26"]
+    },
+    {
+      "id": "X-18",
+      "tema": "Los prototipos del cuadro",
+      "posturas": {
+        "telefono §7.1": "respuesta a 152 px, ninguna falta, acción a 687 de 800",
+        "sistema §7.2": "1.709 px plegada, 4.999 abierta, pronóstico a 200 px, 0 de 48 controles bajo 44, 0 de axe",
+        "lectura §7.2": "primera llegada de 228 a 367 px, nada bajo 12 px, sin desborde"
+      },
+      "resultado": "a medias las tres",
+      "resolucion": "telefono reproducido con cuatro enlaces de 20 px de alto; sistema reproducido, con la primera carrera a 260 px, sin pestañas ni barra inferior y Best pintado bajo Fine; lectura reproducido, con select-name en 2 nodos y una celda que se sale.",
+      "evidencia": "juez-uso/medir-protos.mjs, protos.json y dom.mjs.",
+      "juez": "uso (C1, C2 y C3)",
+      "decision": ["D-40", "D-16"]
+    },
+    {
+      "id": "X-19",
+      "tema": "Doce maillots de 16 px en la fila de la barra de grupos",
+      "posturas": {
+        "telefono §6.6": "ocupan 216 de los 336 px"
+      },
+      "resultado": "a medias",
+      "resolucion": "Con gap-x-2 y pl-7: 12 × 16 + 11 × 8 = 280 px; caben en los 308 útiles a 360 y parten en dos renglones a 320.",
+      "evidencia": "GroupBar.tsx l. 235.",
+      "juez": "uso (C7)",
+      "decision": ["D-21"]
+    },
+    {
+      "id": "X-20",
+      "tema": "Los contrastes y ΔE00 de las cuatro escalas de llegada",
+      "posturas": {
+        "telefono §3.1, sistema §4 n.º 21, identidad §3.1 y lectura §3.1": "sus tablas"
+      },
+      "resultado": "ciertas",
+      "resolucion": "Texto en el tramo de telefono de 5,02 a 6,57; Cooked y Loaded a 6,3 en deuteranopía, y el activo a 38 o más del apagado en toda visión.",
+      "evidencia": "juez-uso/color.py.",
+      "juez": "uso (C5)",
+      "decision": ["D-42"]
+    },
+    {
+      "id": "X-21",
+      "tema": "El serializador de Zod de la API",
+      "posturas": {
+        "telefono §9.1": "quita lo no declarado"
+      },
+      "resultado": "cierta, también anidado",
+      "resolucion": "{ id, stars, ctl, attributes, days: [{ gameDay, tsb }] } sale {id, stars, days: [{ gameDay }]}; hoy ninguna ruta declara response, y un Date en un z.string() da 500.",
+      "evidencia": "app.ts l. 162-163; fastify-type-provider-zod core.cjs l. 114-120.",
+      "juez": "codigo (C1)",
+      "decision": ["D-54"]
+    },
+    {
+      "id": "X-22",
+      "tema": "El recuento de clases",
+      "posturas": {
+        "mapa 01 §2.2": "6.244 apariciones y 468 clases",
+        "sistema §1": "6.322 apariciones y 477 clases"
+      },
+      "resultado": "las dos ciertas",
+      "resolucion": "El escáner de Tailwind de sistema ve también los .ts. deuda.json usa el de sistema, porque es el del compilador que decide qué resuelve.",
+      "evidencia": "sistema §1 y tw/cierre.mjs; mapa 01, cómo se ha medido.",
+      "juez": "ninguno (arquitecto)",
+      "decision": ["D-14"]
+    },
+    {
+      "id": "X-23",
+      "tema": "El mundo de la prueba del teléfono",
+      "posturas": {
+        "telefono §5.3": "génesis y tres días, de 2 a 3 minutos (estimado)",
+        "uso": "no da las pantallas medidas"
+      },
+      "resultado": "falsa",
+      "resolucion": "El mapa 05 pidió 50 días (849 s) y cuatro escrituras con SQL para tener carreras, viaje, un mánager y un plan de bloques.",
+      "evidencia": "mapa 05 §1.",
+      "juez": "uso (O-uso-01)",
+      "decision": ["D-18"]
+    },
+    {
+      "id": "X-24",
+      "tema": "Desde qué tamaño se pinta el nombre del patrocinador",
+      "posturas": {
+        "telefono §6.6": "desde 40 px",
+        "identidad §6.6": "desde 64 px, alto de 4,2 u",
+        "sistema §6.6 y lectura §6.5": "desde 28 px"
+      },
+      "resultado": "ninguna medida; resuelto por cálculo",
+      "resolucion": "La letra mínima de 12 px vale también en SVG (la comprobación 3 de la prueba). A 72 px una unidad mide 1,5 px y una letra de 8 u mide 12 px, que cabe en la banda de pecho de 10 u; a 40 px la letra de 12 px no cabe en los 8,3 px de la banda, y a 64 px la de identidad mide 5,6 px. Umbral: 72 px.",
+      "evidencia": "telefono §6.1 (banda de pecho de y 23 a 33); viewBox de 48 u (Jersey.tsx l. 10-11); cálculo, px = u × tamaño / 48 (mapa 03 §1.3).",
+      "juez": "ninguno (arquitecto)",
+      "decision": ["D-30"]
+    },
+    {
+      "id": "X-25",
+      "tema": "La firma de WornJerseyIcon",
+      "posturas": {
+        "docs/retransmision.md l. 5210, telefono, sistema y lectura": "WornJerseyIcon({ worn, team }) más el tamaño",
+        "identidad §6.7": "la del código, { card, size }, más surface, y se corrige retransmision"
+      },
+      "resultado": "decisión de diseño sobre un hecho cierto (el código recibe { card, size }, WornJerseyIcon.tsx l. 12-18)",
+      "resolucion": "Manda el contrato de E2 más size y surface; el código se cambia en el paso del dibujo y retransmision gana size y surface en el paso de documentos.",
+      "evidencia": "mapa 03 §1.1; WornJerseyIcon.tsx l. 12-31.",
+      "juez": "ninguno (arquitecto)",
+      "decision": ["D-31"]
+    },
+    {
+      "id": "X-26",
+      "tema": "El peso de la hoja que bloquea la primera pintura",
+      "posturas": {
+        "mapa 01 §8": "94,29 KB con el gzip de Vite; sin banderas, 8,5 con gzip -9",
+        "telefono §8.3": "de 92,4 a 9,2 KB por la red",
+        "mapa 05 §12": "92 KB de CSS en todas"
+      },
+      "resultado": "las tres ciertas",
+      "resolucion": "Es la misma hoja medida con dos compresores (el informe de Vite y la compresión del servidor). El presupuesto se mide en peso.test.mjs con zlib de Node a nivel 9 sobre el fichero de dist/.",
+      "evidencia": "mapa 01 §8; telefono §8.3 (peso-medir.mjs); mapa 05 §12.",
+      "juez": "ninguno (arquitecto)",
+      "decision": ["D-50"]
+    }
+  ],
+  "gusto": [
+    {
+      "decision": "paleta",
+      "dd": "DD-01",
+      "pagina": "opciones/index.html",
+      "opciones": [
+        {
+          "id": "A",
+          "nombre": "manager sobrio",
+          "origen": "telefono A (igual a lectura a)",
+          "valores": "cabecera navy #123a5c, acento #0b6e8a, oro #e0a106, tarjetas blancas sobre #eef2f6, sin degradados ni barras de color; todo texto a 4,5:1 o más"
+        },
+        {
+          "id": "B",
+          "nombre": "el manager de hoy, accesible",
+          "origen": "sistema A (igual a telefono B, identidad B y lectura b)",
+          "valores": "las barras de hoy, lisas: cabecera de Panel #006e8c con blanco (5,82) y barra de página #d99400 con ink (6,95)"
+        },
+        {
+          "id": "C",
+          "nombre": "noche y oro",
+          "origen": "identidad A",
+          "valores": "#14213d y #e0a526, botón #123a5c, enlace #1c5aa6; fija la marca del juego, que es de D20"
+        },
+        {
+          "id": "D",
+          "nombre": "retransmisión",
+          "origen": "sistema C",
+          "valores": "cromo #0f1d33 en cabecera y paneles, botón dorado #e8a200 con ink, filete dorado decorativo"
+        }
+      ],
+      "votos_jueces": { "codigo": "A", "cobertura": "A", "uso": "A" },
+      "defecto": "A",
+      "porque": "Unanimidad. Conserva la identidad del PR #105 (navy, cian y oro), quita las dos superficies que hoy fallan el contraste (de 2,06 a 3,33, mapa 01 §2.3) y devuelve al teléfono los 36 px por panel y 48 por página de las barras (telefono §3.1); en los prototipos, la primera carrera sale a 180 px con pestañas, frente a 260 sin ellas (uso). Con el tema cerrado, cambiar de paleta son seis tokens."
+    },
+    {
+      "decision": "tipografia",
+      "dd": "DD-02",
+      "pagina": "opciones/index.html",
+      "opciones": [
+        {
+          "id": "A",
+          "nombre": "la del sistema",
+          "origen": "telefono A, sistema, lectura a, identidad B",
+          "valores": "system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Arial, sans-serif; 0 KB"
+        },
+        {
+          "id": "B",
+          "nombre": "Inter variable",
+          "origen": "telefono B, sistema, identidad C",
+          "valores": "de 47,1 a 48,3 KB el latín y de 83,1 a 85 el latín extendido (medido por sistema y telefono), desde apps/web/public/fonts/ con font-display: swap"
+        },
+        {
+          "id": "C",
+          "nombre": "la del sistema con Barlow Semi Condensed 600 en títulos y cifras",
+          "origen": "identidad A (telefono C con Barlow Condensed 600 y 700)",
+          "valores": "22.984 bytes el latín del peso 600 (medido por identidad), solo en títulos, cifras de la capa fija y barras"
+        }
+      ],
+      "votos_jueces": { "codigo": "A", "cobertura": "A", "uso": "A" },
+      "defecto": "A",
+      "porque": "Unanimidad. Cero bytes y ningún salto de letra con Slow 4G, con la primera pintura ya en 3,2 s (mapa 05 §12), y los alfabetos de E10 ya en el aparato; ninguna con serifa, por el «amarillo con serifa característica» de SPEC.md l. 874. Otra letra se serviría desde public/fonts/, porque la CSP solo deja font-src 'self' data: (app.ts l. 183)."
+    },
+    {
+      "decision": "senal_de_campeon",
+      "dd": "DD-03",
+      "pagina": "opciones/index.html",
+      "opciones": [
+        {
+          "id": "A",
+          "nombre": "la banda de honor",
+          "origen": "identidad A",
+          "valores": "SASH_PATH M13.76 6.71 L41.76 38.71 L34.24 45.29 L6.24 13.29 Z; mundial oro #e0a526 sobre noche #14213d; nacional, las tres franjas de su bandera sobre papel #f6f3ea con filo #14213d de 2,4 u y la bandera al lado; a 13 px la mundial a 45,7 de la marca (37,6 en grises) y la nacional de Italia a 22,6 (15,7)"
+        },
+        {
+          "id": "B",
+          "nombre": "la estrella dorada sobre marino",
+          "origen": "sistema S1",
+          "valores": "torso #14284b, estrella #f0b323 de radio 9,5 u y 3,9 u en (24, 29); la mundial con canesú dorado; a 50,3 de la marca a 13 px; el marino y el oro fuera de la paleta del equipo"
+        },
+        {
+          "id": "C",
+          "nombre": "el arcoíris diferente del dueño, en su forma más fuerte",
+          "origen": "identidad C",
+          "valores": "la banda de A con un degradado continuo de siete paradas iguales (#e53935, #fb8c00, #fdd835, #43a047, #1e88e5, #5e35b1, #d81b60) sobre noche y cuello blanco; a 48,7 de la marca (38,2 en grises); pide reescribir SPEC.md l. 874 y verificar ante la EUIPO y la USPTO"
+        },
+        {
+          "id": "D",
+          "nombre": "la estrella sobre blanco",
+          "origen": "telefono A y lectura a (el ChampionMark provisional que el dueño ya ha visto en Watch)",
+          "valores": "cuerpo #ffffff reservado, estrella navy de 13 u y 6,2 u en (24, 28,5); mundial #e0a106 con borde navy; a 13 px a 15,1 de la marca y 9,2 en grises"
+        },
+        {
+          "id": "E",
+          "nombre": "las otras señales con bandas",
+          "origen": "telefono C, sistema D1, lectura (b), identidad B",
+          "valores": "tres franjas de 7 u navy, cian y oro sobre blanco (23,0 de la marca); tres bandas #1499bb, #f0b323 y blanco sobre marino (42,3); tres arcos oro, cian y blanco sobre #0b2740 (54,9; un diseño a 9,8 en tritanopía); el galón M7 9 L24 25 L41 9 L41 20 L24 36 L7 20 Z (47,6)"
+        },
+        {
+          "id": "V",
+          "nombre": "las variantes literales del dueño",
+          "origen": "00-encargo.md §7.1; telefono §6.4, identidad §6.5, sistema §15.3, lectura §15.3, mapa 03 §7.2",
+          "valores": "otros colores, otro orden, en vertical o en diagonal, otro fondo; cada una con su columna de distancia a la marca de la UCI y su veredicto: ninguna pasa los cuatro criterios"
+        }
+      ],
+      "votos_jueces": { "codigo": "B", "cobertura": "A", "uso": "A" },
+      "defecto": "A",
+      "porque": "Dos jueces de tres. Es la que más recoge de la palabra del dueño sin acercarse a la marca de la UCI (otra disposición, y un fondo que no es blanco en la mundial), la única forma que sobrevive a 13 px y densidad 1 mirada en píxeles, y la que reconoce al campeón nacional por sus colores como en el ciclismo real. Comparte la diagonal reservada con la C, así que si el dueño elige su arcoíris solo cambian los colores. El coste que señala el juez de código (133 colores nacionales generados, con errores conocidos como Corea) se paga con NATIONAL_SASH generado, revisado y con sus sobrescrituras, y con la bandera al lado. Obliga a quitar Sash del vocabulario de los equipos."
+    },
+    {
+      "decision": "vocabulario_del_maillot",
+      "dd": "DD-04",
+      "pagina": "opciones/index.html",
+      "opciones": [
+        {
+          "id": "A",
+          "nombre": "doce colores y seis figuras, con la regla de contraste",
+          "origen": "telefono A sin Sash, con la regla de identidad (el defecto del juez de uso)",
+          "valores": "black #1b1d21, navy #172a5b, blue #0f6de9, sky #4cc3ff, teal #0f9e8f, green #236102, orange #f48d32, red #c62639, pink #f7418a, purple #4e2cae de base y yellow #ffd60a y white #ffffff solo de segundo; figuras plain, band, hoops, halves, yoke y sides; base y segundo a 20 o más en las cinco vistas; 560 combinaciones antes de reserva y contraste, lo permitido sin medir"
+        },
+        {
+          "id": "B",
+          "nombre": "catorce colores y seis figuras sin diagonal",
+          "origen": "identidad A (el defecto del juez de cobertura)",
+          "valores": "white, black, yellow, sky, silver, red, royal, green, orange, violet, navy, maroon, forest, teal; figuras plain, band, yoke, sleeves, stripe, halves; 443 permitidos; 0 carreras con un par por debajo de 10 en las cuatro visiones a 13, 16 y 28 px; 3,86 pares por carrera en grises"
+        },
+        {
+          "id": "C",
+          "nombre": "diez colores y seis figuras",
+          "origen": "sistema, sin sash (el defecto del juez de código)",
+          "valores": "#151b24, #2a66db, #4bc6fa, #00584f, #68111c, #d02c2a, #fd8637, #b36c8f, #5e2b99, #a2acb7 y el blanco de segundo; figuras plain, halves, hoop, yoke, sides, sleeves; con sash eran 610 diseños y el 96,6 % de los pares a 10 o más a 13 px; sin sash, sin medir"
+        }
+      ],
+      "votos_jueces": { "codigo": "C", "cobertura": "B", "uso": "A" },
+      "defecto": "A",
+      "porque": "Es la paleta de la base y la única en que dos colores cualesquiera se separan 12,3 o más de ΔE00 en las tres dicromacias (re-medido por dos jueces), lo que importa en un editor donde el mánager elige por nombre y el servidor reserva por color; la regla de contraste de identidad ataca su punto débil, los grises (12,9 pares por carrera frente a 3,86); y es compatible con la banda (sin diagonal) y con dejar Watch a 13 px, donde telefono ya midió 0 carreras con siete figuras. Con seis figuras está sin medir: la página de opciones lo mide y kits.test.ts es la puerta; si alguna carrera de la temporada 0 tiene un par por debajo de 10 en las cuatro visiones a 13 o 16 px, el defecto pasa a B, medida con la diagonal reservada."
+    }
+  ],
+  "decisiones_sin_evidencia_de_los_jueces": {
+    "ids": ["D-04", "D-12", "D-17", "D-18", "D-24", "D-30", "D-32", "D-36", "D-50", "D-54", "D-56"],
+    "nota": "Partes de decisiones de borrador/00-decisiones.md que la síntesis tomó sin que ningún juez las midiera o las pidiera con mecanismo: los valores del ámbito oscuro con los nombres de la base (D-04, line y line-strong por medir); cómo se detecta el teclado (D-12); el plan B de los rótulos por debajo de 340 px (D-17); la caché del mundo de la prueba en el CI, su tamaño y su tiempo (D-18); seasonRivals y su coste (D-24); el umbral de 72 px del texto del patrocinador, por cálculo (D-30); el diseño del arreglo del clon (D-32); el trinquete de la carga de carrera (D-36); sideEffects en packages/shared (D-50); los 20 ms de presupuesto de serialización de las rutas de la retransmisión (D-54); y la edad fuera del rótulo (D-56). Cada una dice en el documento quién la mide y en qué paso."
+  },
+  "ficheros_de_la_sintesis": [
+    "juicios/veredicto.json",
+    "borrador/00-glosario.md",
+    "borrador/00-decisiones.md",
+    "borrador/00-esqueleto.md"
+  ]
+}

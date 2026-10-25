@@ -1,0 +1,372 @@
+{
+  "foco": "cobertura",
+  "ganadora": "telefono",
+  "puntuaciones": [
+    {
+      "propuesta": "telefono",
+      "cobertura": 8,
+      "coherencia": 8,
+      "ejecutabilidad": 7.5,
+      "experiencia": 9,
+      "justificacion": "La única sin ○ en la tabla cruzada y con más ● (11 de 19). Cubre los ocho puntos del encargo con mecanismo, y en los dos que el encargo pone como condición de cierre (el teléfono, §1.2, y la web que no se rompe con la red mala, §1.5) es la única que mide y la única que vio que sin red la guarda manda a /login (comprobación 3). Sus cifras de paleta y de campeón se reproducen (comprobaciones 6 y 7). Pierde en la ficha de corredor (solo RiderHeader), el dorsal en la identidad ([DUEÑO 26]), el material generable, el desfase de semanas (comprobación 2), la previa, el cierre y el resumen de §18.8; su señal por defecto conserva el cuerpo blanco y queda a 9,2 de la marca en grises a 13 px."
+    },
+    {
+      "propuesta": "lectura",
+      "cobertura": 7.5,
+      "coherencia": 7.5,
+      "ejecutabilidad": 7,
+      "experiencia": 7.5,
+      "justificacion": "El examen y la frontera más completos: el único hallazgo nuevo y cierto del examen (el desfase de semanas, comprobación 2), la resolución en el tipo, el glosario y la jerarquía de la televisión; y la que más contradicciones del mapa 04 cierra (reloj, rótulos, tablas, cola vacía). Pierde en lo más visible: su señal nacional queda a 7,4 de la marca en grises (comprobación 7), su editor valida contra la división y no contra con quién corre, el dorsal sale con una razón a medias (comprobación 4), las filas fijas de 44 px cortan el nombre ([DUEÑO 17]) y su criterio del teléfono es a mano. Da por hecho el resumen de §18.8 (comprobación 5)."
+    },
+    {
+      "propuesta": "identidad",
+      "cobertura": 6.5,
+      "coherencia": 7,
+      "ejecutabilidad": 7,
+      "experiencia": 6,
+      "justificacion": "La que mejor trata la única palabra de gusto del dueño: siete variantes suyas medidas en píxeles, su forma más fuerte como alternativa con el coste del SPEC escrito, la diagonal reservada por construcción, team_kits con historia, la migración con continuidad, el patrocinador en la misma función y el material generable como principio. Pero le falta uno de los siete componentes del encargo (la ficha de corredor), el examen va en prosa, calla el TSS y la moral, su criterio del teléfono es el más delgado y su paleta por defecto hace marca del juego un color de campeón, que es de D20."
+    },
+    {
+      "propuesta": "sistema",
+      "cobertura": 6,
+      "coherencia": 9,
+      "ejecutabilidad": 8,
+      "experiencia": 6.5,
+      "justificacion": "El sistema mejor blindado contra reinventar (tema cerrado medido con el compilador de Tailwind 4.3.3, trinquete, diez reglas de lint, QueryView) y el más coherente con Tailwind v4. En cobertura pierde donde el encargo y el dueño son explícitos: deja la carga del día de carrera con una razón falsa (las otras tres la estiman en la API sin motor), conserva el TSS en la pantalla del examen, no sustituye el dorsal ni corrige los seis pasajes, oscurece dos colores de líder sin decirlo, no trata el material generable (punto 8) y da por hecho el resumen de §18.8 (comprobación 5). Unos 37 PR."
+    }
+  ],
+  "injertos": [
+    {
+      "id": "I-cobertura-01",
+      "de": "identidad",
+      "seccion": "§6.4, §6.1 y decisión 3",
+      "que": "La banda de honor como señal por defecto: SASH_PATH (M13.76 6.71 L41.76 38.71 L34.24 45.29 L6.24 13.29 Z), la mundial en oro #e0a526 sobre noche #14213d, la nacional con las tres franjas de su bandera sobre papel #f6f3ea, filo #14213d de 2,4 u y la bandera al lado; y Sash fuera del vocabulario de equipo, para que la diagonal quede reservada.",
+      "porque": "Medido a 13 px con el rasterizador del mapa 03: la mundial a 45,7 de la marca de la UCI (37,6 en grises) y la nacional de Italia a 22,6 (15,7), frente a 15,1 y 9,2 de la estrella sobre blanco de telefono; es la única forma que identidad vio sobrevivir a 13 px en píxeles, y recoge del dueño «diferente disposicion» y «que el resto en vez de ser blanco sea de otro color» (00-encargo.md l. 222-223)."
+    },
+    {
+      "id": "I-cobertura-02",
+      "de": "identidad",
+      "seccion": "decisión 3 y página de opciones",
+      "que": "La tabla de V1 a V7, las ideas del orquestador y las seis señales propias con los cuatro criterios de 00-encargo.md §7.1; y la C, el espectro de siete paradas a lo largo de la banda sobre noche, con su coste escrito (cambiar SPEC.md l. 874 y verificar marcas).",
+      "porque": "Es el «maillot arco iris diferente» del dueño en su forma más fuerte (cambia color, orden, disposición y fondo) y mide casi como la A; la C de telefono, tres franjas sobre blanco, conserva justo los dos rasgos de la marca que el dueño ofreció cambiar."
+    },
+    {
+      "id": "I-cobertura-03",
+      "de": "identidad",
+      "seccion": "§6.3 y §6.6",
+      "que": "team_kits (team_id, valid_from_day, kit, set_by, sponsor_deal_id) y kitOn(teamId, día) en lugar de la columna única teams.kit; el patrocinio con set_by: 'sponsor', que vuelve al anterior al acabar el contrato.",
+      "porque": "Lo que compra el patrocinador (punto 4c del encargo) dura lo que su contrato, E9 necesita la historia para revertir, y una etapa vieja enseña el maillot de aquel día sin repintar el pasado."
+    },
+    {
+      "id": "I-cobertura-04",
+      "de": "identidad y sistema",
+      "seccion": "§6.3 y decisión 7",
+      "que": "La traducción del mundo de hoy al vocabulario por parecido (63 equipos conservan su color base frente a 15 con sorteo; identidad §6.1) y legacyJerseyStyle(seed), el jerseyStyle de hoy congelado para lo grabado antes del cambio (sistema §6.2).",
+      "porque": "telefono repinta los 219 equipos «también en las etapas grabadas»; el reparto congelado es de E2 (cast.ts l. 146-154) y la afición reconoce a un equipo por su maillot."
+    },
+    {
+      "id": "I-cobertura-05",
+      "de": "identidad",
+      "seccion": "§6.3 y §15",
+      "que": "«El NPC cede» (identidad D7) como decisión del dueño: si el maillot de un humano choca con un NPC, se traduce el del NPC esa noche y su ficha lo dice (New kit for Mistral Racing).",
+      "porque": "Con checkKit igual para todos, un humano elige entre unas 340 combinaciones (telefono §6.3, estimado) y uno de PRS entre 31 (identidad §6.3, medido): quién cede lo decide el dueño, no el validador."
+    },
+    {
+      "id": "I-cobertura-06",
+      "de": "lectura",
+      "seccion": "§7.2 y §7.4",
+      "que": "La vista previa proyecta el plan vivo (su startDay, las órdenes sin guardar en edits, el modo y el plan de equipo); PUT /plan conserva el startDay vivo y Start a new plan tomorrow empieza de cero.",
+      "porque": "El desfase es cierto (comprobación 2), y con las semanas pintadas desde plan.startDay la cabecera de la semana y Scale5 de telefono se contradicen desde el día siguiente al guardado."
+    },
+    {
+      "id": "I-cobertura-07",
+      "de": "lectura y sistema",
+      "seccion": "§4",
+      "que": "La ficha de corredor como composición cerrada: cabecera; condición (forma en estrellas, fondo y frescura en barra, cerillos como iconos de 2 a 5, salud); atributos en filas de 44 px con estrellas y la marca de cuatro pasos solo en la propia; la frase del entrenador; la ajena sin lo privado.",
+      "porque": "El encargo nombra «una ficha de corredor» entre los siete componentes (00-encargo.md §1.1) y telefono solo tiene RiderHeader."
+    },
+    {
+      "id": "I-cobertura-08",
+      "de": "sistema y lectura",
+      "seccion": "§4, RiderLabel",
+      "que": "El dorsal y el equipo en la identidad mínima del corredor (RiderIdentity, sistema §4 n.º 22; RiderTag, lectura §4.1), con la regla de telefono de no cortar nunca el nombre.",
+      "porque": "[DUEÑO 26]: «Cada vez que menciones un ciclista, pon su dorsal, su equipo entre paréntesis y su bandera» (docs/balance.md l. 1842, v13), que el mapa 04 extiende a toda lista."
+    },
+    {
+      "id": "I-cobertura-09",
+      "de": "lectura",
+      "seccion": "§4",
+      "que": "El glosario cerrado de pantalla (lectura §4.2): día, diferencia, carrera, viaje, origen de un día, carga y dinero, con su columna «Nunca» (GD 56, +0:00:20, the Race Var, 105 TSS, 17214).",
+      "porque": "«Una cosa, varias palabras» es la mitad de la jerarquía que pide el encargo (§1.1), y telefono solo arregla Day N y formatTime."
+    },
+    {
+      "id": "I-cobertura-10",
+      "de": "lectura",
+      "seccion": "§7.5",
+      "que": "La portada habla del plan (dashboard.ts l. 77-91): Your plan ends on Day 78 y Plan the next weeks, y fuera Your training queue is empty a quien tiene sus bloques.",
+      "porque": "Es el tercer vocabulario del examen (mapa 05 §3; contradicción 8 del mapa 04), y telefono no lo trata."
+    },
+    {
+      "id": "I-cobertura-11",
+      "de": "lectura",
+      "seccion": "§9",
+      "que": "La resolución en el tipo: estrellas z.number().multipleOf(0.5).min(0).max(5), barras enteras de 0 a 100, tramos y flechas enumerados; y el testigo de la moral (57,31415) en el canario.",
+      "porque": "La regla es «a su resolución» (encargo §1.7): un campo de nombre permitido con un 63.4172 dentro pasa el test de nombres de telefono."
+    },
+    {
+      "id": "I-cobertura-12",
+      "de": "sistema",
+      "seccion": "§4 y §12",
+      "que": "El @theme cerrado (--color-*: initial y las demás familias) en el último paso, el trinquete deuda.json por fichero y las diez reglas ui/1 a ui/10.",
+      "porque": "El encargo justifica E3 con «sin ella, cada pantalla nueva reinventa su aspecto» (§1.1) y faltan once épicas; la regla de telefono solo mira pages/ y su trinquete mide faltas del teléfono, no deuda de diseño."
+    },
+    {
+      "id": "I-cobertura-13",
+      "de": "sistema",
+      "seccion": "§3.3",
+      "que": "Densidad por puntero (@custom-variant fine): fila de 36 px y botón de 32 con ratón, 44 con dedo.",
+      "porque": "El estilo del PR #105 se hizo para el público de Hattrick y PCM (cambio 8 de 01-fase-propuestas.md; mapa 04 §2), que juega con tablas densas en escritorio; telefono no da otra altura con ratón (§3.3)."
+    },
+    {
+      "id": "I-cobertura-14",
+      "de": "sistema",
+      "seccion": "§15",
+      "que": "El formato de su §15: cada decisión con su defecto, su porqué y «si elige otra cosa».",
+      "porque": "El encargo pide «su valor por defecto razonado y lo que cambia si elige otra cosa» (00-encargo.md §1, l. 64-65); la decisión 6, la mitad del TSS de la 7 y el aviso de instalar de la 8 de telefono no lo dicen."
+    },
+    {
+      "id": "I-cobertura-15",
+      "de": "identidad",
+      "seccion": "§3.3, §8.1 y §10",
+      "que": "El material generable como regla (identidad principio 9 y §6.7): iconos, iconos de la web instalable, og-default.png de 1.200 × 630 y, con la banda, NATIONAL_SASH, todo de scripts del repositorio con test de huella y revisado en la página de opciones.",
+      "porque": "Es el punto 8 del encargo («eso cambia el presupuesto realista del encargo»), que telefono despacha en una línea, y la imagen de compartir que E2 dejó «hasta que E3 decida otra» (docs/retransmision.md l. 7299)."
+    }
+  ],
+  "objeciones": [
+    {
+      "id": "O-cobertura-01",
+      "seccion_ganadora": "§6.4 y §15, decisión 3",
+      "que": "La señal por defecto conserva el cuerpo blanco: el «blanco con algo en el pecho» de la marca de la UCI. Cambiar el defecto (I-cobertura-01) o, al menos, pintar la cifra en la página de opciones.",
+      "evidencia": "Medido a 13 px (el tamaño de GroupBar, mapa 03 §1.2): la estrella nacional a 15,1 de la marca y 9,2 en grises; la mundial a 8,6 en grises a 16 px; el dueño ofreció «que el resto en vez de ser blanco sea de otro color» (00-encargo.md l. 223)."
+    },
+    {
+      "id": "O-cobertura-02",
+      "seccion_ganadora": "§15, decisión 3 C",
+      "que": "El motivo del descarte de la C estira el SPEC: se descarta por su medida, y la variante más fuerte del dueño tiene que cambiar lo que él ofreció cambiar (I-cobertura-02).",
+      "evidencia": "SPEC.md l. 874 prohíbe imitar «el arcoíris del campeón del mundo», no «la camiseta blanca con franjas en el pecho» que dice telefono §15.3."
+    },
+    {
+      "id": "O-cobertura-03",
+      "seccion_ganadora": "§4",
+      "que": "Falta la ficha de corredor, uno de los siete componentes del encargo (I-cobertura-07).",
+      "evidencia": "00-encargo.md §1.1; telefono §4 solo tiene RiderHeader, «la cabecera de la ficha»."
+    },
+    {
+      "id": "O-cobertura-04",
+      "seccion_ganadora": "§4, RiderLabel",
+      "que": "La identidad mínima del corredor va sin dorsal ni equipo (I-cobertura-08).",
+      "evidencia": "[DUEÑO 26], docs/balance.md l. 1842 (v13); telefono §4, RiderLabel: bandera, nombre y maillot."
+    },
+    {
+      "id": "O-cobertura-05",
+      "seccion_ganadora": "§7.2 a §7.4",
+      "que": "No ve el desfase de semanas entre la vista previa y el tick: con las semanas pintadas desde plan.startDay y la escala proyectada desde mañana, la pantalla se contradice desde el día siguiente al guardado (I-cobertura-06).",
+      "evidencia": "apps/api/src/routes/riders.ts l. 439 y 453 frente a packages/db/src/train.ts l. 216; PUT /plan fuerza mañana (riders.ts l. 413); PlanLadder.tsx l. 97-99 pide la vista previa al abrir."
+    },
+    {
+      "id": "O-cobertura-06",
+      "seccion_ganadora": "§10",
+      "que": "No nombra la previa ni el cierre, y deja el resumen accesible de la capa fija «pendiente»: la síntesis escribe la frase y cuándo se lee, o dice quién lo hace.",
+      "evidencia": "01-fase-propuestas.md §10 los pide; FixedOverlay.tsx l. 38-71 no tiene la frase de docs/retransmision.md l. 12495 (54.3 km to go, lead group 5 riders, bunch at 2 minutes 14)."
+    },
+    {
+      "id": "O-cobertura-07",
+      "seccion_ganadora": "§6.3 y §11",
+      "que": "Dos decisiones del dueño fuera de §15: KIT_CHANGE_COOLDOWN_DAYS = 14 y que humanos y NPC choquen igual en checkKit (I-cobertura-05).",
+      "evidencia": "identidad D6 (28 días) y D7, lectura decisión 11 (7 días) las llevan al dueño; telefono §11 fija 14 como constante."
+    },
+    {
+      "id": "O-cobertura-08",
+      "seccion_ganadora": "§3.1 y §9",
+      "que": "La moral pasa del porcentaje a cinco palabras sin decisión del dueño; las estrellas (sistema) y las palabras van a §15 con lo que hay hoy.",
+      "evidencia": "SPEC.md l. 85 la quiere «en estrellas o iconos» ([DOC 12]; contradicción 4 del mapa 04); hoy en porcentaje (RiderProfile.tsx l. 273)."
+    },
+    {
+      "id": "O-cobertura-09",
+      "seccion_ganadora": "§6.6 y §14",
+      "que": "KIT_MIN_PX = 16 sube los maillots de GroupBar, CueCard y TimeTrialBoard de 13 a 16 px: es un cambio de la pantalla de E2 que el dueño verá, no solo un re-sellado de tests; la aceptación se sigue midiendo a 13 px.",
+      "evidencia": "telefono §6.6 y §14; GroupBar.tsx l. 242 (mapa 03 §1.2); docs/retransmision.md §6.1 y §6.2; lectura §10 conserva los 13 y 14 px."
+    },
+    {
+      "id": "O-cobertura-10",
+      "seccion_ganadora": "§15, decisión 7",
+      "que": "Repintar los 219 equipos «también en las etapas grabadas» contradice el reparto congelado de E2 y su promesa de que una etapa vieja enseña el maillot de aquel día (I-cobertura-04).",
+      "evidencia": "packages/db/src/cast.ts l. 146-154 (CastTeam.jerseySeed congelada); telefono §6.3 dice lo contrario que su decisión 7."
+    },
+    {
+      "id": "O-cobertura-11",
+      "seccion_ganadora": "§7.5",
+      "que": "Your training queue is empty a quien tiene su plan de bloques, sin tratar (I-cobertura-10).",
+      "evidencia": "Mapa 05 §3; contradicción 8 del mapa 04."
+    },
+    {
+      "id": "O-cobertura-12",
+      "seccion_ganadora": "§15",
+      "que": "Decisiones sin consecuencia: la 6, la mitad del TSS de la 7 y el aviso de instalar de la 8 no dicen qué cambia si el dueño elige otra cosa (I-cobertura-14).",
+      "evidencia": "00-encargo.md §1, l. 64-65."
+    },
+    {
+      "id": "O-cobertura-13",
+      "seccion_ganadora": "§6.6",
+      "que": "El nombre del patrocinador es texto libre que modera E9; la lista cerrada de patrocinadores generados de identidad quita esa superficie. La síntesis lo decide con E8 y E9 y escribe que ese nombre hace de «logotipo» en la mecánica del dueño.",
+      "evidencia": "telefono §6.6 («hasta 12 caracteres… moderado por E9»); identidad §6.6; docs/encargos.md l. 463-465 («imponer su color o por llevar su logotipo en el sitio bueno»)."
+    },
+    {
+      "id": "O-cobertura-14",
+      "seccion_ganadora": "§6.1",
+      "que": "Si entra la banda de honor, Sash sale del vocabulario y hay que volver a medir las 651 combinaciones, los 127 separados y las 310 carreras con seis figuras.",
+      "evidencia": "telefono §6.1 y §6.2; nadie ha medido el vocabulario de telefono sin Sash."
+    }
+  ],
+  "huecos": [
+    {
+      "id": "H-cobertura-01",
+      "que": "El resumen accesible de la capa fija (docs/retransmision.md §18.8, l. 12495): ninguna propuesta lo escribe y dos (sistema y lectura) lo dan por hecho; no existe (FixedOverlay.tsx l. 38-71)."
+    },
+    {
+      "id": "H-cobertura-02",
+      "que": "[DUEÑO 19]: la línea de depuración Your country: … de CreateRider.tsx l. 29, «mientras se depura»: nadie decide retirarla o diseñarla."
+    },
+    {
+      "id": "H-cobertura-03",
+      "que": "El título más largo en el rótulo, U23 time trial champion of Saint Vincent and the Grenadines (59 caracteres, [DOC 40]), en los dos renglones de 360 px: nadie lo prueba."
+    },
+    {
+      "id": "H-cobertura-04",
+      "que": "[DUEÑO 18], la pantalla de órdenes: el dueño dijo que «el resultado es casi lo mismo ponga lo que ponga ahí» (raceOrdersAdvice.ts l. 6-7, v58) y el mapa 04 fija que cuente lo que pesa; ninguna la diseña más allá de pasarla al catálogo."
+    },
+    {
+      "id": "H-cobertura-05",
+      "que": "La decisión 7-h de E2 ([DOC 41]: se descartó «la banda con la bandera, que en gris se confunde con el verde»): solo lectura la cita, y nadie explica con su medida por qué una banda nacional ya no cae en ese defecto."
+    },
+    {
+      "id": "H-cobertura-06",
+      "que": "Los lunares de la montaña y el «amarillo con serifa característica» (SPEC.md l. 874; tensión 14 del mapa 04): nadie pesa si los lunares imitan la identidad de una carrera real, y la verificación ante EUIPO y USPTO de la señal y de los lunares no tiene PR ni responsable en ningún plan."
+    },
+    {
+      "id": "H-cobertura-07",
+      "que": "La edad en el rótulo (decisión 7-l de E2, «si E3 la pide», docs/retransmision.md l. 5233): nadie la decide."
+    },
+    {
+      "id": "H-cobertura-08",
+      "que": "Los documentos que E3 corrige: SPEC §3.2 (contradicción 2), docs/entrenamiento.md l. 1697 (contradicción 9) y, si el dueño elige un arcoíris, SPEC.md l. 874. Ningún plan tiene el PR de documentos; telefono corrige solo docs/navegacion.md §7.4 y sistema ninguno de los seis pasajes del dorsal."
+    },
+    {
+      "id": "H-cobertura-09",
+      "que": "Un teléfono de verdad: todo está medido en Chromium de Linux; la prueba del dueño en su teléfono (decisión 6 de E2, implementacion.md l. 17) no bloquea ningún paso de ningún plan, y viewport-fit=cover, el área segura e iOS 26 siguen sin probar en un aparato."
+    },
+    {
+      "id": "H-cobertura-10",
+      "que": "Lo real y lo generado (contradicción 15, [DOC 36]): nadie da forma en el sistema a las marcas que E1 ya escribe (Real route (source cited)), y E12 la va a necesitar."
+    }
+  ],
+  "comprobaciones": [
+    {
+      "afirmacion": "wearableTitles solo deja llevar los títulos de la disciplina y la categoría del día, así que un solo dibujo sirve para ruta, crono, élite y sub-23 y el texto los separa.",
+      "propuesta": "sistema, identidad, lectura",
+      "resultado": "cierta",
+      "evidencia": "packages/shared/src/jerseys.ts l. 270-275: filtra por discipline y category y ordena por alcance (UCI 1.3.063 y 1.3.068)."
+    },
+    {
+      "afirmacion": "La vista previa toma los bloques desde mañana y el tick desde el día del guardado: pasado un día, escalera y proyección van desplazadas respecto de lo que se entrena.",
+      "propuesta": "lectura",
+      "resultado": "cierta",
+      "evidencia": "apps/api/src/routes/riders.ts l. 439 (desde = currentDay + 1) y l. 453 (blocks[Math.floor(i / 7)]) frente a packages/db/src/train.ts l. 216 (la semana se cuenta desde fila.startDay, el día siguiente al guardado); PUT /plan fuerza mañana (l. 413); PlanLadder.tsx l. 97-99 pide la vista previa al abrir con el plan guardado. Las otras tres no lo ven."
+    },
+    {
+      "afirmacion": "Sin red, quien tiene sesión ve Log in: ProtectedRoute lee la sesión que no llega como «sin sesión» y HorizonWatcher vacía la caché.",
+      "propuesta": "telefono",
+      "resultado": "cierta",
+      "evidencia": "apps/web/src/components/ProtectedRoute.tsx l. 12-13 (if (!data) Navigate to /login, sin rama de error de red); HorizonWatcher.tsx l. 33 (queryClient.clear() cuando el usuario resuelto cambia)."
+    },
+    {
+      "afirmacion": "Sin red, recargar sirve el armazón con You're offline.",
+      "propuesta": "lectura",
+      "resultado": "a medias",
+      "evidencia": "El armazón llega, pero la guarda de ProtectedRoute.tsx l. 12-13 manda a /login (comprobación anterior); sistema §8 e identidad §8 caen en lo mismo."
+    },
+    {
+      "afirmacion": "En la clasificación por equipos el líder ya es la fila 1, así que el dorsal no hace falta.",
+      "propuesta": "lectura",
+      "resultado": "a medias",
+      "evidencia": "Cierto en la acumulada (StageReplay.tsx l. 236, Race.tsx l. 531); falso en la de la etapa, que usa la misma TeamClassTable (StageReplay.tsx l. 230, teamStage; TeamClassTable.tsx l. 18-56), donde la fila 1 es el ganador del día."
+    },
+    {
+      "afirmacion": "El resumen accesible de la capa fija (docs/retransmision.md §18.8) se queda como está.",
+      "propuesta": "sistema, lectura",
+      "resultado": "falsa",
+      "evidencia": "FixedOverlay.tsx l. 38-71: un button con aria-live=\"off\" cuyo nombre accesible es su texto visible, sin la frase de docs/retransmision.md l. 12495; telefono §10 la da por pendiente, que es cierto (mapa 04, DOC 44)."
+    },
+    {
+      "afirmacion": "Con doce familias el mínimo cae a 5,7: doce tonos no caben separados en el eje azul y amarillo de un daltónico.",
+      "propuesta": "sistema",
+      "resultado": "falsa",
+      "evidencia": "Medido (juez-cobertura/medida.py, ΔE00 de colores planos tras Machado 2009): los doce de telefono dan 15,9 normal y 12,3 en las tres dicromacias, y los diez de sistema 18,1, 14,5, 11,7 y 13,2, las dos cifras como dicen. Doce caben si dos son el amarillo y el blanco. Los 14 de identidad bajan a 2,7 en protanopía (#2a5bd7 y #7e44d0) y los 15 de lectura a 3,0 (#1f5e2e y #c81e2d) y 1,6 en deuteranopía."
+    },
+    {
+      "afirmacion": "Ningún par de los doce colores baja de 15,9 en visión normal ni de 12,3 en las dicromacias.",
+      "propuesta": "telefono",
+      "resultado": "cierta",
+      "evidencia": "Medido: 15,9 (#172a5b y #4e2cae) normal; 12,3 en protanopía, deuteranopía y tritanopía; ningún par por debajo de 10 en color (12 en grises)."
+    },
+    {
+      "afirmacion": "Distancias de las señales por defecto a la marca de la UCI: telefono 16,6 y 10,5 a 16 px; sistema 50,1 a 13 px; lectura 11,2 y 7,4 a 13 px; identidad (mundial) 44,3 a 13 px.",
+      "propuesta": "telefono, sistema, identidad, lectura",
+      "resultado": "cierta",
+      "evidencia": "Medido con el rasterizador del mapa 03 recortado al torso (el ChampionMark de hoy da 12,2, como en el mapa 03 §7.3): 16,7 y 10,5; 50,3; 11,2 y 7,4; 45,7. Lo que no dicen: a 13 px la estrella de telefono queda a 9,2 en grises y la de lectura a 9,9 en la peor dicromacia; la nacional de identidad, sin cifra en su texto, queda a 22,6 (Italia) y 26,0 (España), con 15,7 y 18,1 en grises."
+    }
+  ],
+  "gusto": [
+    {
+      "decision": "paleta",
+      "opciones": [
+        "telefono A «manager sobrio» (navy #123a5c, acento #0b6e8a, oro #e0a106, tarjetas blancas sobre #eef2f6, sin degradados ni barras), que lectura (a) repite con #0b6e88 y la banda #e8f0f5",
+        "sistema A «manager accesible»: las barras de hoy, lisas (#006e8c con blanco a 5,82; oro #d99400 con ink a 6,95), que son también telefono B y lectura (b)",
+        "identidad A «noche y oro» (#14213d, #e0a526), avisando de que fija la marca del juego, que es de D20",
+        "sistema C «retransmisión» (#0f1d33 en cabecera y paneles, botón #e8a200)"
+      ],
+      "defecto": "telefono A: conserva la identidad del PR #105, devuelve al teléfono los 36 px por panel y 48 por página de las barras, y todo texto a 4,5:1 o más."
+    },
+    {
+      "decision": "tipografia",
+      "opciones": [
+        "la del sistema (system-ui y la pila de Tailwind), 0 KB",
+        "Barlow Semi Condensed 600 solo en títulos, cifras y capa fija (22.984 bytes el latín, medido por identidad)",
+        "Inter variable para todo (47,1 KB el latín y 83,1 el latín extendido, medido por sistema)"
+      ],
+      "defecto": "la del sistema: cero bytes y el chino de E10 ya en el aparato; ninguna con serifa, por el «amarillo con serifa característica» de SPEC.md l. 874."
+    },
+    {
+      "decision": "campeon",
+      "opciones": [
+        "identidad A, la banda de honor (mundial oro #e0a526 sobre noche #14213d; nacional, las franjas de la bandera sobre papel #f6f3ea con filo de 2,4 u)",
+        "sistema S1, estrella dorada #f0b323 sobre azul marino #14284b; el mundial con canesú dorado",
+        "la estrella sobre blanco de telefono y lectura (el ChampionMark que el dueño ya ha visto en Watch), con su 9,2 y 7,4 en grises a 13 px",
+        "identidad C, el espectro de siete paradas en la diagonal sobre noche: el «arco iris diferente» del dueño, con el coste del SPEC",
+        "sistema D1, tres bandas anchas #1499bb, #f0b323 y blanco sobre azul marino",
+        "lectura (b), tres arcos oro, cian y blanco sobre marino #0b2740",
+        "las variantes literales del dueño, V1 a V7, con su columna de distancia a la marca de la UCI"
+      ],
+      "defecto": "identidad A: la que más recoge de la palabra del dueño sin acercarse a la marca (22,6 la nacional de Italia y 45,7 la mundial, a 13 px) y la única forma que identidad vio sobrevivir a 13 px en píxeles."
+    },
+    {
+      "decision": "maillot",
+      "opciones": [
+        "identidad A: 14 colores y 6 figuras sin diagonal, contraste entre base y segundo de 20 o más; 443 permitidos; 0 carreras con un par por debajo de 10 en cuatro visiones a 13, 16 y 28 px; 3,9 pares por carrera en grises",
+        "telefono A sin Sash: 12 colores, la única paleta con todos sus pares a 12,3 o más en las dicromacias (medido); pendiente de medir con seis figuras",
+        "sistema: 10 colores y 7 figuras (sin sash si gana la banda); 610 diseños, el 96,6 % de los pares a 10 o más a 13 px"
+      ],
+      "defecto": "identidad A, porque reserva la diagonal y está medida con ella; telefono A es la alternativa B, más robusta color a color."
+    }
+  ]
+}

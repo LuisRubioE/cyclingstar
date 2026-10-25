@@ -1,0 +1,492 @@
+[
+  {
+    "id": "Rcodigo-044",
+    "seccion": "§14.5",
+    "linea": 2728,
+    "gravedad": "baja",
+    "afirmacion": "**El alto reservado** pasa de 72 px (`min-h-[72px]`, l. 45)",
+    "fallo": "En `CueCard.tsx` el `min-h-[72px]` está en la l. 46 y el `rounded-2xl` en la l. 48 (l. 45 es `return (`); esta sección cita l. 45 y l. 47, y la tabla de §14 (l. 2658), «72 px reservados (l. 45)».",
+    "correccion": "«(`min-h-[72px]`, l. 46)» y «`rounded-2xl` (l. 48)» en §14.5, y «72 px reservados (l. 46)» en la tabla de §14.",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-045",
+    "seccion": "§14.5",
+    "linea": 2728,
+    "gravedad": "baja",
+    "afirmacion": "el secundario, en `ink-2` solo sobre `navy` y `navy-dark` (9,10 y 7,36, §3.3)",
+    "fallo": "Al revés: el blanco al 75 % da 9,10:1 sobre `navy-dark` `#0b2740` y 7,36 sobre `navy` `#123a5c` (§3.3, l. 280; re-medido: 9,11 y 7,35).",
+    "correccion": "«el secundario, en `ink-2` solo sobre `navy-dark` y `navy` (9,10 y 7,36, §3.3)».",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-046",
+    "seccion": "§15",
+    "linea": 2762,
+    "gravedad": "media",
+    "afirmacion": "las constantes, en la tabla de §15.2, que es la única del documento",
+    "fallo": "§9.1 (l. 1653-1691) y §8.10 (l. 1587-1613) definen constantes que §15.2 no recoge: `NATIONAL_STAR_SITES`, `NATIONAL_CODE` (con su propio `minPx: 72`), `TORSO_BACK`, `POCKETS`, `BIB`, `BIB_PANELS`, `BACK_NAME_BOX`, `BACK_NUMBER_BOX`, `BIB_STYLES` y `SPONSOR_ZONES`. 15-d (l. 2855) dice que, si §9 da constantes separadas, la tabla toma las suyas, y §9.1 las da, pero la fila de `KIT_SPONSOR_TEXT_MIN_PX` (l. 2811) sigue cubriendo las letras del país.",
+    "correccion": "Añadir a §15.2 una fila por cada una (fichero `packages/shared/src/kit.ts`; paso 16a las de §9.1 y 17c las de §8.10), y dejar la fila de `KIT_SPONSOR_TEXT_MIN_PX` solo para el nombre del patrocinador: las letras del país usan `NATIONAL_CODE.minPx` = 72.",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-047",
+    "seccion": "§15.2",
+    "linea": 2808,
+    "gravedad": "media",
+    "afirmacion": "10 u en (24, 25) con filo de 1 u",
+    "fallo": "`NATIONAL_STAR` no tiene sitio fijo: §9.1 (l. 1669-1676) lo pone «en el primero de estos sitios que sea campo de su bandera», y el de por defecto es `high` [24, 14,8], bajo el cuello (9-i, l. 1888). (24, 25) es `center`, el último, que la regla da a 8 países (§9.5).",
+    "correccion": "«10 u con filo de 1 u, en el primero de `NATIONAL_STAR_SITES` que sea campo (`high` [24, 14,8] por defecto, §9.5)».",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-048",
+    "seccion": "§15.2",
+    "linea": 2812,
+    "gravedad": "media",
+    "afirmacion": "una entrada por cada uno de los 1.105 códigos; los 515 permitidos",
+    "fallo": "§8.1 (l. 1390), §8.6 (l. 1520) y §9.6 (l. 1772) dan 524 permitidos y 491 distintos, medidos con la estrella del nacional en su sitio (`<scratchpad>/redactor-L2/medir-nacional2.json`: `permitidos_tras_reservar` 524, `distintos_tras_reservar` 491). 515 es la medida anterior, sin esa regla (`medir28.json`: `permitidos_reservando_nacionales` 515). Si `kitConflicts.test.ts` fija la cifra de esta tabla, falla.",
+    "correccion": "«una entrada por cada uno de los 1.105 códigos; los 524 permitidos (491 distintos)».",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-049",
+    "seccion": "§16.2",
+    "linea": 2898,
+    "gravedad": "media",
+    "afirmacion": "`apps/web/src/domain/trainingPlan.test.ts` (nuevo)",
+    "fallo": "Ya existe (106 líneas) y prueba lo que el 14 cambia: `buildServerPlan`, `applyEdits`, `withEdit` y `adoptTeamSuggestions` (l. 3), y su caso de l. 58, «respeta las órdenes ya guardadas y rellena el resto con el plan del entrenador», fija el relleno con `defaultCoachPlan` de `trainingPlan.ts` l. 37.",
+    "correccion": "«`apps/web/src/domain/trainingPlan.test.ts` (ampliado)», y añadir a §16.3 la fila «`apps/web/src/domain/trainingPlan.test.ts` l. 15-104 | el plan semanal con el relleno de `defaultCoachPlan` | los días de `days[]` de `GET /orders` (`resolveTrainingDay`) | 14».",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-050",
+    "seccion": "§16.3",
+    "linea": 2931,
+    "gravedad": "alta",
+    "afirmacion": "`defaultCoachPlan`, que solo usaba la web (`trainingPlan.ts` l. 37) | se borran con la función, que el 14 deja sin ningún uso",
+    "fallo": "No la usa solo la web: el simulador del motor la importa y la llama (`packages/engine/src/sim/world.ts` l. 44 y l. 1093, `choice: defaultCoachPlan(gameDay, h.vocation)`, el plan del entrenador bot del mundo de los bancos; lo documentan l. 232 y 716). Borrarla rompe `packages/engine` y haría que el 14 tocara el motor, con sus ocho tramos de bancos, contra §17.1, regla 3.",
+    "correccion": "Cambiar la fila a: «`packages/shared/src/training.test.ts` l. 32-55 | `defaultCoachPlan` | no cambia: la función se queda porque la usa el simulador del motor (`packages/engine/src/sim/world.ts` l. 44 y 1093); el 14 solo quita su uso en la web (`trainingPlan.ts` l. 11 y 37) | 14».",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-051",
+    "seccion": "§16.4",
+    "linea": 2945,
+    "gravedad": "media",
+    "afirmacion": "(515 y 482 distintos)",
+    "fallo": "§8.1 (l. 1390) mide 524 permitidos y 491 distintos con la reserva de D-00h y la estrella en su sitio (`<scratchpad>/redactor-L2/medir-nacional2.json`); 515 y 482 son de `medir28.json`, la medida anterior.",
+    "correccion": "«(524 y 491 distintos)».",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-052",
+    "seccion": "§16.4",
+    "linea": 2946,
+    "gravedad": "media",
+    "afirmacion": "los 21 maillots frente a 17 nacionales",
+    "fallo": "§9.6 (l. 1772) mide 12 maillots frente a 10 nacionales (Baréin, Bielorrusia, China, Argelia, Kirguistán, Lituania, Marruecos, Montenegro, Omán y Portugal) con la estrella de §9.5 (`medir-nacional2.json`: `kits_a_menos_de_10_de_algun_nacional` 12). 21 y 17 son de `medir28.json`, sin la regla de la estrella.",
+    "correccion": "«los 12 maillots frente a 10 nacionales».",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-053",
+    "seccion": "§17.1",
+    "linea": 2994,
+    "gravedad": "baja",
+    "afirmacion": "es decir en los PR 13a, 13b, 16a, 19c y 23 (y en el 1, si se fusiona después del 2)",
+    "fallo": "El 17b cambia el mundo que construye `build.mjs` (mete `ensureKits` en el tick, §17.19 l. 3125) y no está en la lista; con la clave de §7.2 tampoco lo reconstruye (ver el hallazgo de §7.2).",
+    "correccion": "Con la clave ampliada de §7.2: «es decir en los PR 13a, 13b, 16a, 17b, 19c y 23, y en los que toquen `packages/db/src/{tick,world,train,kits,calendarRun,riderSchedule}.ts` (y en el 1, si se fusiona después del 2)».",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-054",
+    "seccion": "§17.8",
+    "linea": 3071,
+    "gravedad": "alta",
+    "afirmacion": "`flag-icons` sale de `main.tsx` l. 9 y de `package.json`",
+    "fallo": "Lo siguen necesitando tres piezas del documento: `apps/web/scripts/flag-sprite.mjs` saca el sprite y las celdas de los SVG de `flag-icons` (§12.7, §9.5); `flagCells.generated.ts` lleva «la huella SHA-256 de `flag-icons` y del script» (l. 1762), que `generados.test.ts` recalcula; y desde 72 px el nacional pinta «el SVG 4x3 de `flag-icons` de su país, cargado solo cuando se pinta» (9-l, l. 1762). Hoy es una dependencia de la web (`apps/web/package.json` l. 18, `^7.5.0`); sin ella, un `pnpm install` limpio deja sin entradas al generador y al test de huellas.",
+    "correccion": "«`flag-icons` sale de `main.tsx` l. 9 y pasa a `devDependencies` de `apps/web/package.json`, versión exacta `7.5.0`; `flag-sprite.mjs` copia también los 133 SVG 4x3 a `apps/web/src/assets/flags/` con su huella, y `ChampionJersey` los carga con `import.meta.glob` (9-l)».",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-055",
+    "seccion": "§17.11",
+    "linea": 3085,
+    "gravedad": "baja",
+    "afirmacion": "`LegacyJersey` en `ui/legacyJersey.ts`",
+    "fallo": "`LegacyJersey` es el componente SVG de `Jersey.tsx` l. 17-54, con JSX: en un `.ts` no compila (`apps/web/tsconfig.json` da `\"jsx\": \"react-jsx\"`, que solo vale en `.tsx`), y §3.9 pide un componente por fichero con su `.test.tsx`.",
+    "correccion": "«`LegacyJersey` en `ui/LegacyJersey.tsx`, con `ui/LegacyJersey.test.tsx`».",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-056",
+    "seccion": "§17.14",
+    "linea": 3099,
+    "gravedad": "media",
+    "afirmacion": "`stageTables.test.tsx` sigue pasando y `leaderJerseys.test.tsx` l. 81-88 sigue sellando que no hay dorsal",
+    "fallo": "Como en §9.8: `wearers` (`stageTables.test.tsx` l. 43-48) exige un `<a>` con solo texto, y la celda de identidad de `RankTable` enlaza con la bandera, el nombre y el `<svg>` dentro; el test falla en el 12b.",
+    "correccion": "«`stageTables.test.tsx` se re-sella (su `wearers` lee el nombre del nodo `data-ui=\"RiderLabel\"`) y `leaderJerseys.test.tsx` l. 81-88 sigue sellando que no hay dorsal».",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-057",
+    "seccion": "§17.14",
+    "linea": 3099,
+    "gravedad": "alta",
+    "afirmacion": "las filas no lo traen (`gcRowSchema` y `stageResultEntrySchema` solo llevan `teamId` y `teamName`, `contracts.ts` l. 493-507, y `teamClassEntrySchema` ni eso, l. 541-552)",
+    "fallo": "No casa con `contracts.ts`: `teamClassEntrySchema` sí lleva `teamId` y `teamName` (l. 542-543); `stageResultEntrySchema` está en l. 1357-1380 (su `teamId`, l. 1365); y falta `pointsEntrySchema` (l. 522-528), la de puntos y montaña (`Race.tsx` l. 241, `StageReplay.tsx` l. 124), que no lleva ni `teamId` ni `teamName`, igual que `hallOfFameRowSchema` (l. 899-909). En esas tablas «la tabla lo toma por `teamId`» no funciona, y ninguna fila trae el dorsal que «Ve el dueño» promete.",
+    "correccion": "«las filas de general y de etapa llevan `teamId` (`contracts.ts` l. 494 y l. 1365) y la de equipos el suyo (l. 542); `pointsEntrySchema` (l. 522-528) y `hallOfFameRowSchema` (l. 899-909) no llevan equipo y ganan en este PR `teamId` y `teamName` nulables; el dorsal sale de la lista de salida por `riderId` (`bib`, l. 654-655)».",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-058",
+    "seccion": "§17.16",
+    "linea": 3109,
+    "gravedad": "media",
+    "afirmacion": "`apps/web/src/domain/trainingPlan.test.ts` (nuevo, con las funciones puras de §10",
+    "fallo": "El fichero existe (106 líneas) y su caso de l. 58 fija el relleno con `defaultCoachPlan` que el 14 quita: el PR lo amplía y lo re-sella, no lo crea.",
+    "correccion": "«`apps/web/src/domain/trainingPlan.test.ts` (ampliado, con sus casos de l. 15-104 re-sellados contra `days[]` y con las funciones puras de §10».",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-059",
+    "seccion": "§17.16",
+    "linea": 3109,
+    "gravedad": "alta",
+    "afirmacion": "y fuera `defaultCoachPlan` con sus casos de `training.test.ts` l. 32-55, que ya no usa nadie",
+    "fallo": "La usa el motor: `packages/engine/src/sim/world.ts` l. 44 (la importa) y l. 1093 (`choice: defaultCoachPlan(gameDay, h.vocation)`). Borrarla rompe el simulador de los bancos y obliga al 14 a tocar `packages/engine/`, que §17.1, regla 3, reserva al 13b.",
+    "correccion": "«y fuera el uso de `defaultCoachPlan` en `apps/web/src/domain/trainingPlan.ts` (l. 11 y 37); la función y `training.test.ts` l. 32-55 se quedan, porque la usa `packages/engine/src/sim/world.ts` l. 1093».",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-060",
+    "seccion": "§17.17",
+    "linea": 3113,
+    "gravedad": "baja",
+    "afirmacion": "fuera el `GD` de `MyRaces.tsx` l. 205 y 230",
+    "fallo": "El segundo `GD` está en la l. 235; la l. 230 es `onEnter: (id: string) => void`.",
+    "correccion": "«fuera el `GD` de `MyRaces.tsx` l. 205 y 235».",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-061",
+    "seccion": "§17.23",
+    "linea": 3149,
+    "gravedad": "baja",
+    "afirmacion": "**21f** `Account.tsx` (81, con `Install app`), **21g** `RaceOrders.tsx` (75, con `Rain`, `Showers` y `Dry`, y al catálogo sin cambiar lo que pesa cada orden, H-08), **21h** `Home.tsx` (70), **21i** `TeamSquad.tsx` (68)",
+    "fallo": "Son cifras de `sistema`, con sus tokens, y su orden no es el de la deuda que nace en `deuda.json`. Re-medido con `<scratchpad>/redactor-L1/cierre-sistema.mjs` sobre el `@theme` de §3.9 cerrado (la misma pasada de §5.1: 2.740 de 6.322, 183 clases): `Account.tsx` 93, `Home.tsx` 86, `RiderProfile.tsx` 82, `RaceOrders.tsx` 80, `Training.tsx` 80, `AdminPanel.tsx` 76, `PlanLadder.tsx` 72 y `TeamSquad.tsx` 72; `RiderProfile.tsx` ni aparece en la lista.",
+    "correccion": "«**21f** `Account.tsx` (93, con `Install app`), **21g** `Home.tsx` (86), **21h** `RiderProfile.tsx` (82), **21i** `RaceOrders.tsx` (80, con `Rain`, `Showers` y `Dry`, y al catálogo sin cambiar lo que pesa cada orden, H-08)», `TeamSquad.tsx` (72) y `AdminPanel.tsx` (76) al 21j, y «las nueve primeras con la medida de §5.1» (`Training.tsx` y `PlanLadder.tsx` los migra el 14).",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-062",
+    "seccion": "§17.26",
+    "linea": 3161,
+    "gravedad": "baja",
+    "afirmacion": "`docs/retransmision.md` l. 4869, 12493, 12884, 13055 y 13440 (el dorsal)",
+    "fallo": "`docs/retransmision.md` l. 12493 es la política de `aria-live` de D-57 y no habla del dorsal; las líneas del dorsal amarillo son 4869, 12884, 12993, 13055 y 13440 (`grep -n \"dorsal amarillo\"`).",
+    "correccion": "«`docs/retransmision.md` l. 4869, 12884, 12993, 13055 y 13440 (el dorsal)».",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-063",
+    "seccion": "§17",
+    "linea": 3221,
+    "gravedad": "media",
+    "afirmacion": "Ninguna fila de resultados gana un campo, como quería 6-d",
+    "fallo": "`pointsEntrySchema` (`contracts.ts` l. 522-528) y `hallOfFameRowSchema` (l. 899-909) no llevan `teamId`, así que su maillot no se encuentra por `teamId`; y el dorsal no viaja en ninguna fila de resultados (ver los hallazgos de §6, 6-d, y de §17.14).",
+    "correccion": "«`pointsEntrySchema` y `hallOfFameRowSchema` ganan `teamId` y `teamName` nulables en el 12b; las demás filas no ganan campo; el dorsal se toma de la lista de salida por `riderId`».",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-064",
+    "seccion": "§18.2",
+    "linea": 3260,
+    "gravedad": "media",
+    "afirmacion": "21 maillots de equipo quedan a menos de 10 de 17 nacionales a 28 px",
+    "fallo": "§9.6 (l. 1772), con la estrella de §9.5: 12 maillots frente a 10 nacionales (`<scratchpad>/redactor-L2/medir-nacional2.json`). 21 y 17 son de `medir28.json`, la medida sin la regla.",
+    "correccion": "«12 maillots de equipo quedan a menos de 10 de 10 nacionales a 28 px».",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-065",
+    "seccion": "§18.2",
+    "linea": 3262,
+    "gravedad": "baja",
+    "afirmacion": "219 × 515 distancias a 28 px",
+    "fallo": "§8.6 (l. 1520) cuenta «219 × 524 distancias»: los permitidos son 524 (§8.1, l. 1390).",
+    "correccion": "«219 × 524 distancias a 28 px».",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-066",
+    "seccion": "§19.2",
+    "linea": 3317,
+    "gravedad": "media",
+    "afirmacion": "21 maillots de equipo se reservan por 17 banderas (D-00h)",
+    "fallo": "§9.6 mide 12 maillots y 10 banderas con la estrella de §9.5 (`<scratchpad>/redactor-L2/medir-nacional2.json`: `kits_a_menos_de_10_de_algun_nacional` 12; `nacionales_con_kit_bajo_10`, 10 países). La cifra de aquí y el paréntesis de D-00h en `00-decisiones.md` («los 21 que mide §9 frente a 17 nacionales, entre ellos `plain.red`, `plain.green`, `plain.teal` y `plain.taupe`») son de `medir28.json`, la medida anterior: `plain.teal` y `plain.taupe` ya no están en la lista de §9.6.",
+    "correccion": "«12 maillots de equipo se reservan por 10 banderas (D-00h)», y actualizar el paréntesis de D-00h en `00-decisiones.md` con esa medida («los 12 que mide §9 frente a 10 nacionales, entre ellos `plain.red` y `plain.green`»), con `medir-nacional2.json` como evidencia nueva.",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-067",
+    "seccion": "§19.2",
+    "linea": 3318,
+    "gravedad": "media",
+    "afirmacion": "515 maillots permitidos y 482 distintos para 219 equipos, a 28 px (§8.1)",
+    "fallo": "§8.1 (l. 1390) dice 524 y 491, que es lo que mide `<scratchpad>/redactor-L2/medir-nacional2.json`; 515 y 482 son de `medir28.json`, la medida anterior.",
+    "correccion": "«524 maillots permitidos y 491 distintos para 219 equipos, a 28 px (§8.1)».",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-068",
+    "seccion": "§20.5",
+    "linea": 3571,
+    "gravedad": "baja",
+    "afirmacion": "`LegacyJersey` en `ui/legacyJersey.ts` (§8, duda 2)",
+    "fallo": "Es un componente con JSX en un `.ts`: no compila con `\"jsx\": \"react-jsx\"` (`apps/web/tsconfig.json`), que solo vale en `.tsx`.",
+    "correccion": "«`LegacyJersey` en `ui/LegacyJersey.tsx` (§8, duda 2)».",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcobertura-037",
+    "seccion": "§14",
+    "linea": 2650,
+    "gravedad": "media",
+    "afirmacion": "Esta sección viste `Watch` y no lo rediseña (D-56)",
+    "fallo": "`00-encargo.md` §2 (l. 81) cuenta `docs/retransmision.md` §18.5 entre lo que E2 dejó a E3, y sus umbrales son de `Watch`: «la capa fija y la barra repintan a 30 fps o más; ninguna tarea del hilo principal pasa de 50 ms durante la reproducción; la primera pintura de `Watch` llega en 2 s o menos con `Fast 4G`» (l. 12452). E3 cambia lo que repinta la barra (los equipos agregados en cada `barHz`, §14.4), el rótulo y la capa fija, y §14 no cita esos umbrales; la prueba de cada noche (§7.5, §16.5) mide `Watch` solo en primera pintura y «lista» con Slow 4G, sin fotogramas ni tareas largas.",
+    "correccion": "Añadir a §14.1 y a la pasada del rendimiento de §16.5: «`nocturno.spec.ts` mide en `Watch` (la pantalla 09, a ×1 y a ×4) los umbrales de `docs/retransmision.md` §18.5: la capa fija y la barra a 30 fps o más, ninguna tarea de más de 50 ms durante la reproducción y la primera pintura en 2 s o menos con Fast 4G y CPU ×4; el PR 17a y el PR 20 escriben en su descripción la cifra de antes y la de después».",
+    "foco": "cobertura"
+  },
+  {
+    "id": "Rcobertura-038",
+    "seccion": "§14",
+    "linea": 2659,
+    "gravedad": "media",
+    "afirmacion": "la crono, la voz, la crónica y la radio",
+    "fallo": "La crono tiene su propia capa fija, `TimeTrialOverlay` («LA CAPA FIJA DE LA CRONO», `apps/web/src/components/broadcast/TimeTrialBoard.tsx` l. 12-33, en `bg-slate-900` con el sillón en `text-amber-300`), y `Watch` pinta además `ClockNotice` (`broadcast/ClockNotice.tsx` l. 7-17, `bg-amber-50` y `text-amber-800`) y las piezas de la puerta `RevealConfirm`, `TwoDeviceNotice` y `DiagnosticStrip` (`StageGate.tsx` l. 41, 219 y 248). E2 deja a E3 «el aspecto de la capa fija, la barra y el rótulo» (`docs/retransmision.md` l. 12708), pero §14 y la lista del ámbito oscuro (D-04, §3.3, l. 275) solo nombran `FixedOverlay`, y esta fila solo cambia el tamaño de los maillots de la crono.",
+    "correccion": "Añadir filas a la tabla de §14: «la capa fija de la crono | `TimeTrialOverlay`, `bg-slate-900` y el sillón en `amber-300` | como la de carretera (§14.3): en el ámbito oscuro, el reloj en `row` `tabular-nums` blanco y el sillón en `gold` (6,72) | 20»; «el aviso de lo estimado | `ClockNotice` en ámbar | `Notice` `info` con su texto de hoy | 20»; «la puerta | `RevealConfirm`, `TwoDeviceNotice` y `DiagnosticStrip`, con clases propias | `Notice` y `Button` del catálogo, sin cambiar su lógica | 20»; y añadir `TimeTrialOverlay` a la lista del ámbito oscuro de §3.3.",
+    "foco": "cobertura"
+  },
+  {
+    "id": "Rcobertura-039",
+    "seccion": "§14.1",
+    "linea": 2667,
+    "gravedad": "alta",
+    "afirmacion": "Se quedan sin tocarse (D-56; O-18): la disposición y el orden de `Watch` (`docs/retransmision.md` §6), sus textos",
+    "fallo": "D-00c manda sobre D-56 (`00-decisiones.md` §0: «manda esta sección») y dice que la identidad va «siempre» como bandera, nombre y maillot, y que «ninguna otra pieza pone una bandera junto al maillot». Las piezas de E2 que §14 deja como están lo rompen: el rótulo (`RiderCardView`, `CueCard.tsx` l. 116-122) pinta maillot, dorsal, nombre, bandera y, pegado a la bandera, el maillot del equipo; la crónica y la voz (`riderFull`, `stageJournal.ts` l. 283 y 288) ponen el maillot delante de la bandera, `🟨 🇸🇮 42 Andrej Pucnik (Al Assad Cycling)`, y un test lo fija (`stageJournal.test.ts` l. 1121, «el maillot abre la mención, delante de la bandera y del dorsal»); la crono (`TimeTrialBoard.tsx` l. 86), la lista de corredores del rótulo (`CueCard.tsx` l. 61-63) y sus filas (l. 84-90) ponen el maillot delante del nombre y sin bandera. §14.4 y §14.5 solo cambian el tamaño, y §16.3 no re-sella ese test. Es la palabra del dueño del 21 de octubre en las pantallas que más mira.",
+    "correccion": "Añadir a §14.1: «Salvo el orden de la identidad, que D-00c cambia en todas las piezas de E2: el rótulo pinta `#214`, la bandera, el nombre y el maillot que lleva, y en su renglón el equipo, con su maillot solo si el corredor lleva el de líder o el de campeón; la crónica y la voz escriben `42 🇸🇮 Andrej Pucnik 🟨 (Al Assad Cycling)` (`riderFull`, `stageJournal.ts` l. 283-292); la crono, la radio y las filas del rótulo, la bandera, el nombre y el maillot; y la barra (§14.4), con el dorsal delante.» Añadir a §16.3 el re-sello de `apps/web/src/domain/stageJournal.test.ts` l. 1121 en el 17a («el maillot cierra la identidad, tras el nombre», D-00c), y a §17.26 `docs/navegacion.md` l. 496-497, que dice que en la crónica el maillot va «delante de la bandera».",
+    "foco": "cobertura"
+  },
+  {
+    "id": "Rcobertura-040",
+    "seccion": "§14.4",
+    "linea": 2711,
+    "gravedad": "media",
+    "afirmacion": "caben cinco por renglón en 308 px (estimado), con `TEAM_KIT_LINES_MAX` = 2 renglones",
+    "fallo": "E2 fijó el alto de `Watch` a 360 × 800 con lo permanente arriba (`docs/retransmision.md` §6.1 y §6.2; [DOC 39]): unos 430 px de 800 con los mandos y 380 sin ellos, contando «la línea de iconos bajo la fila 1 cuando es un grupo de cuatro a doce (20 px más)» (l. 12450). E3 cambia esa línea de 20 px por hasta dos renglones de fichas de 28 bajo la fila 1 y bajo la del espectador (aquí), sube el rótulo de 72 a 88 (§14.5) y la voz a renglones de 28 (l. 2724), y nadie suma el alto nuevo ni comprueba que la barra y `Your rider` sigan en la primera pantalla: la comprobación 7 solo mira el borde de arriba de la capa fija.",
+    "correccion": "Añadir a §14.4 la tabla de altos de `Watch` a 360 × 800 con E3 (la cabeza, 44, el `h1`, 24, y las pestañas, 44; la capa fija; el perfil, 56; la barra con sus filas de 36 y sus dos líneas de fichas; el rótulo, 88; la voz, 28; los mandos, 48) con su suma estimada, y a la pantalla 09 de §7.3 una comprobación más: el borde inferior de `[data-ui=\"GroupBar\"]` a 744 px o menos (800 menos la `BottomNav`), medido en el mundo de la prueba.",
+    "foco": "cobertura"
+  },
+  {
+    "id": "Rcobertura-041",
+    "seccion": "§15.2",
+    "linea": 2808,
+    "gravedad": "baja",
+    "afirmacion": "10 u en (24, 25) con filo de 1 u",
+    "fallo": "`NATIONAL_STAR` es `{ widthU: 10, edgeU: 1 }`, sin sitio (§9.1, l. 1670), y la estrella va «por defecto arriba, bajo el cuello» (9-i, l. 1888), en `NATIONAL_STAR_SITES.high` = (24, 14,8) (l. 1672), con los cuatro sitios de la regla de §9.5. (24, 25) es el sitio `center`, el de antes de la regla (`dudas.md`, L2: «la estrella del nacional en su sitio nuevo cambia las cifras»).",
+    "correccion": "Cambiar por «10 u con filo de 1 u, en el primero de `NATIONAL_STAR_SITES` que sea campo de la bandera (`high` en (24, 14,8), `right`, `left` y `center`; §9.5)», y añadir `NATIONAL_STAR_SITES` a la columna del nombre.",
+    "foco": "cobertura"
+  },
+  {
+    "id": "Rcobertura-042",
+    "seccion": "§15.2",
+    "linea": 2811,
+    "gravedad": "media",
+    "afirmacion": "por debajo, ninguna letra en un maillot: ni el nombre del patrocinador ni las dos del país del nacional (la letra de 12 px; D-00f, D-00g)",
+    "fallo": "§9.1 da a las letras del país su propia constante, `NATIONAL_CODE` con `minPx: 72` (l. 1686), y 15-d (l. 2855) dice que si §9 les da una propia «esta tabla toma las suyas»; no la toma. Y la tabla, que se presenta como «la única del documento» (l. 2762), no tiene las constantes que escriben §8.10 y §9.1 por D-00g y D-00f: `NATIONAL_CODE`, `NATIONAL_STAR_SITES`, `BIB_STYLES`, `BIB`, `BIB_PANELS`, `TORSO_BACK`, `POCKETS`, `SPONSOR_ZONES`, `BACK_NAME_BOX` y `BACK_NUMBER_BOX`. El encargo pide cada constante «con su valor y su intención» (`00-encargo.md` §1, l. 61-62).",
+    "correccion": "Separar la fila en `KIT_SPONSOR_TEXT_MIN_PX` = 72 (el nombre o la marca del patrocinador, §9.9, paso 16a) y `NATIONAL_CODE` = `{ x: 24, y: 38.5, sizeU: 8, edgeU: 2, minPx: 72 }` (las dos letras del país, §9.1, paso 16a); y añadir, con fichero `packages/shared/src/kit.ts`, §8.10 y paso 17c, las filas de `TORSO_BACK`, `POCKETS`, `BIB`, `BIB_PANELS`, `BIB_STYLES` (`black`, `black.panel`, `base`, `base.panel`), `SPONSOR_ZONES`, `BACK_NAME_BOX` (12, 11, 24 y 5) y `BACK_NUMBER_BOX` (18, 28, 12 y 8), con los valores de §8.10.",
+    "foco": "cobertura"
+  },
+  {
+    "id": "Rcobertura-043",
+    "seccion": "§15.2",
+    "linea": 2812,
+    "gravedad": "media",
+    "afirmacion": "los 515 permitidos",
+    "fallo": "§8.1 (l. 1390: «quedan **524 permitidos, 491 distintos**»), §8.4 (l. 1482: «`KIT_ALLOWED` (los 524 que pasan contraste y reserva)»), §8.6 (l. 1520) y §9.6 (l. 1772: «quedan 524 permitidos (491 distintos)») dan la cifra medida con la estrella en su sitio de §9.5 (`dudas.md`, L2: «quedan 524 permitidos y 491 distintos»); 515 es la de antes de la regla de la estrella. El test de la tabla de choques y quien lo implemente tendrían dos cifras.",
+    "correccion": "Cambiar «los 515 permitidos» por «los 524 permitidos (491 distintos)».",
+    "foco": "cobertura"
+  },
+  {
+    "id": "Rcobertura-044",
+    "seccion": "§16.4",
+    "linea": 2945,
+    "gravedad": "media",
+    "afirmacion": "§8 midió la paleta y lo permitido a 28 px (515 y 482 distintos)",
+    "fallo": "§8.1 (l. 1390) y §9.6 (l. 1772) dicen 524 permitidos y 491 distintos, y la fila siguiente (l. 2946) dice que §9 midió «los 21 maillots frente a 17 nacionales», cuando §9.6 mide 12 maillots frente a 10 nacionales con la regla de la estrella de §9.5. Son las cifras de antes de esa regla (`dudas.md`, L2), en la tabla de lo que cada PR tiene que medir.",
+    "correccion": "Cambiar «(515 y 482 distintos)» por «(524 y 491 distintos)», y en l. 2946 «los 21 maillots frente a 17 nacionales» por «los 12 maillots frente a 10 nacionales (§9.6)».",
+    "foco": "cobertura"
+  },
+  {
+    "id": "Rcobertura-045",
+    "seccion": "§17.11",
+    "linea": 3085,
+    "gravedad": "baja",
+    "afirmacion": "el dibujo de hoy congelado sin cambiar su aspecto (§8, duda 2)",
+    "fallo": "Las «dudas» de las secciones no entran en el documento, y el plan y los apéndices las citan: «(§8, duda 2)» (l. 3085 y 3571), «(§9, duda 5)» (l. 3261) y «(§13, duda 1)» (l. 3585). El cierre (`04-fase-refutacion.md` §7) exige que no queden referencias a `borrador/`.",
+    "correccion": "En l. 3085 y 3571, borrar «(§8, duda 2)» o escribir «(§8.6)»; en l. 3261, «(§9, duda 5)» pasa a «(§9.1)»; en l. 3585, «(§13, duda 1)» pasa a «(13-a)».",
+    "foco": "cobertura"
+  },
+  {
+    "id": "Rcobertura-046",
+    "seccion": "§18.2",
+    "linea": 3260,
+    "gravedad": "media",
+    "afirmacion": "21 maillots de equipo quedan a menos de 10 de 17 nacionales a 28 px",
+    "fallo": "§9.6 (l. 1772), medido con la regla de la estrella de §9.5, da 12 maillots frente a 10 nacionales y deja libres `plain.teal` y `plain.taupe`; y dos filas más abajo (l. 3262) el riesgo del primer tick cuenta «219 × 515 distancias», cuando son 219 × 524 (§8.6, l. 1520). `dudas.md` (L2) avisa de que L3 citaba las cifras viejas, y siguen.",
+    "correccion": "Cambiar por «12 maillots de equipo quedan a menos de 10 de 10 nacionales a 28 px (§9.6)», y en l. 3262 «219 × 515» por «219 × 524».",
+    "foco": "cobertura"
+  },
+  {
+    "id": "Rcobertura-047",
+    "seccion": "§19.2",
+    "linea": 3317,
+    "gravedad": "media",
+    "afirmacion": "21 maillots de equipo se reservan por 17 banderas (D-00h)",
+    "fallo": "La fila de DD-03, la que lee el dueño, lleva la cifra de antes de la regla de la estrella: §9.6 (l. 1772) reserva 12 maillots por 10 banderas. La de DD-04 (l. 3318) dice «515 maillots permitidos y 482 distintos» y §19.3 (l. 3346) «quedan 515 maillots permitidos», cuando §8.1 (l. 1390) y §9.6 dan 524 y 491.",
+    "correccion": "En DD-03, «21 maillots de equipo se reservan por 17 banderas (D-00h)» pasa a «12 maillots de equipo se reservan por 10 banderas (D-00h, §9.6)»; en DD-04, «515 maillots permitidos y 482 distintos» pasa a «524 maillots permitidos y 491 distintos»; en §19.3, l. 3346, «quedan 515 maillots permitidos» pasa a «quedan 524 maillots permitidos (491 distintos)».",
+    "foco": "cobertura"
+  },
+  {
+    "id": "Rcobertura-048",
+    "seccion": "§19.2",
+    "linea": 3321,
+    "gravedad": "media",
+    "afirmacion": "**cerrada por D-00e**: sí, con continuidad (D-23)",
+    "fallo": "D-00e es palabra del dueño, «que no se puedan repetir nunca... o sea, que no deje 2 equipos con mismo maillot» (`00-encargo.md` l. 277-278), y §8.6 decide que lo grabado antes del 17b se pinta con `legacyJerseyStyle` y «conserva sus gemelos, porque es historia» (l. 1520): las etapas de hoy vistas otra vez en `Watch` o en `Report` seguirán enseñando dos equipos con el mismo maillot (hay pares idénticos en 220 de las 310 carreras, mapa 03 §3.2). Es una excepción a la regla del dueño que toma el documento (D-23, «el pasado no se repinta»), y la fila de DD-07 solo dice «el pasado conserva su aspecto», sin la excepción ni su alternativa.",
+    "correccion": "Añadir a «Consecuencia y cifra» de DD-07: «excepción a D-00e: las etapas grabadas antes del 17b siguen con los maillots de su día, y en 220 de las 310 carreras de la temporada 0 eso son dos equipos con el mismo maillot»; y a «Si dice lo contrario»: «o repintar lo grabado con el maillot traducido (`kitOn` con el día del 17b para toda etapa anterior), que cambia lo que el jugador vio y descarta D-23».",
+    "foco": "cobertura"
+  },
+  {
+    "id": "Rcobertura-049",
+    "seccion": "§19.2",
+    "linea": 3328,
+    "gravedad": "media",
+    "afirmacion": "sí, con los umbrales de D-52",
+    "fallo": "D-52 dice «si en una semana el 50 % o más de los jugadores activos entra desde un teléfono», y la decisión 12-f (l. 2483) lo cambia a sesiones porque el sensor no guarda cuentas (§12.8, l. 2466: «el sensor no cuenta jugadores»). Es otra regla: un jugador de escritorio que abre diez sesiones pesa diez veces, y el encargo habla de «qué parte entra desde el móvil» (`00-encargo.md` §1, punto 2). La fila de la decisión del dueño sigue diciendo «los umbrales de D-52» y no lo nombra.",
+    "correccion": "Cambiar por «sí, con los umbrales de D-52 contados en sesiones y no en jugadores (12-f), porque el sensor no guarda cuentas», y añadir a «Si dice lo contrario»: «contar jugadores pide un identificador anónimo por aparato, en `localStorage`, que el sensor mandaría con cada sesión».",
+    "foco": "cobertura"
+  },
+  {
+    "id": "Rcobertura-050",
+    "seccion": "§19.2",
+    "linea": 3337,
+    "gravedad": "baja",
+    "afirmacion": "E3 da las cuatro zonas de D-00g (pecho, espalda, mangas y costados del culote) como interfaz y no vende ninguna",
+    "fallo": "§8.10 (l. 1600) y §9.9 (l. 1826) deciden que en un maillot de campeón «el pecho es de la estrella y de las letras del país» y `chest` no se pinta: el patrocinador que compre el pecho no se ve en el corredor de su equipo que gane un título, que lo lleva un año en todas las carreras de su disciplina. Es una regla de lo que se vende, del dueño con E8 (DD-23), y la fila no la dice.",
+    "correccion": "Añadir a «Consecuencia y cifra» de DD-23: «en un maillot de campeón el pecho no se vende (§8.10): el patrocinador del pecho no sale en ese corredor mientras sea campeón»; y a «Si dice lo contrario»: «su marca en el pecho del campeón, bajo la estrella y sobre las letras, medida otra vez en `champion.test.ts`».",
+    "foco": "cobertura"
+  },
+  {
+    "id": "Rcobertura-051",
+    "seccion": "§19.4",
+    "linea": 3370,
+    "gravedad": "alta",
+    "afirmacion": "ningún equipo puede vestir de rojo, verde, turquesa o topo lisos",
+    "fallo": "La sección del dueño le da cifras que §9.6 (l. 1772), la que mide con la regla de la estrella de §9.5, ya no da: §9.6 cuenta 10 nacionales (Baréin, Bielorrusia, China, Argelia, Kirguistán, Lituania, Marruecos, Montenegro, Omán y Portugal) y 12 maillots, el peor Marruecos frente a `plain.red` a 4,7; §19.4 dice 21 maillots y 17 nacionales (con Polonia, Kazajistán, Bulgaria, Vietnam, Azerbaiyán, Burkina Faso y Macao), el peor a 4,3, y prohíbe `plain.teal` y `plain.taupe`, que con la regla quedan libres (`dudas.md`, L2: «`plain.teal` y `plain.taupe` quedan libres … §19 (L3) cita todavía las cifras viejas»). El dueño decide D-00h y la hoja de los 133 mirando esta cuenta, y se le enseña una restricción mayor que la real. Tampoco le dice que 74 pares de nacionales quedan a menos de 10 entre sí a 28 px (§9.5, l. 1766): solo nombra Indonesia y Mónaco.",
+    "correccion": "Reescribir la viñeta con las cifras de §9.6: «**La estrella dorada no separa del todo las banderas a 28 px**: 12 maillots de equipo quedan a menos de 10 de 10 nacionales en alguna visión (Baréin, Bielorrusia, China, Argelia, Kirguistán, Lituania, Marruecos, Montenegro, Omán y Portugal), el peor Marruecos frente a `plain.red`, a 4,7. Por D-00h la tabla de choques los reserva, entre ellos `plain.red` y `plain.green`: ningún equipo puede vestir de rojo ni de verde lisos. Y entre sí, 74 pares de nacionales quedan a menos de 10 a 28 px; los más cercanos, Indonesia con Singapur y con Mónaco (1,7): los separan sus letras desde 72 px y, por debajo, el texto (`Champion of Indonesia`, pantalla).»",
+    "foco": "cobertura"
+  },
+  {
+    "id": "Ruso-035",
+    "seccion": "§14.2",
+    "linea": 2675,
+    "gravedad": "media",
+    "afirmacion": "Watch    Report    Classifications             Tabs page, 44",
+    "fallo": "El dibujo no es la pantalla de hoy y no dice que la cambie, cuando D-56 dice que «se quedan … los textos» (§14.1, l. 2667). La página de etapa tiene cuatro pestañas, `Watch`, `Profile`, `Report` y `Classifications` (`stageTabLabel`, `apps/web/src/domain/raceTabs.ts` l. 224-226, fijadas en `raceTabs.test.ts` l. 290-310; captura 09): falta `Profile`, también en §4.4 (l. 649). El `h1` de hoy es `Stage 3 · Summit finish` y debajo va la ruta con la distancia, `Orihuela → San Vicente del Raspeig · 158 km` (captura 09); el dibujo (l. 2674) pone `Stage 3 · Gandia → Alcoi` y pierde el tipo de etapa y los kilómetros. Con la ruta de la pantalla 08 en el `h1` (`title` 600), el texto mide 391 px con Inter y 456 con DejaVu Sans (`<scratchpad>/refutador-uso/textos2.mjs`) en los 268 que deja el botón `share`: dos renglones, y la capa fija empieza 24 px más abajo que los 228 estimados.",
+    "correccion": "Rehacer el dibujo de §14.2: «‹ Race Valencia · Stage 3 of 5 › (44) / `Stage 3 · Summit finish` en `title`, con `share` de 44 a la derecha / `Orihuela → San Vicente del Raspeig · 158 km` en `meta` `ink-2` (`StageRoute`) / `Watch · Profile · Report · Classifications` (`Tabs` `page`, 44) / la capa fija, hacia los 250 px (estimado)»; y en §4.4 (l. 649), `Watch · Profile · Report · Classifications`.",
+    "foco": "uso"
+  },
+  {
+    "id": "Ruso-036",
+    "seccion": "§14.4",
+    "linea": 2711,
+    "gravedad": "alta",
+    "afirmacion": "y se abre al tocar el grupo, como `+3 groups · 41 riders` (l. 32)",
+    "fallo": "Lo que se abre no existe hoy ni está diseñado. En `GroupBar.tsx` las filas son `<div>` (l. 101-105) y el único botón es el de las filas plegadas (l. 149-157), que abre filas, no la lista de un grupo; D-00b dice «la lista de corredores del grupo, al tocarlo, como hoy», y hoy en el móvil un grupo de 4 a 12 solo enseña iconos sin nombre (`RidersLine`, l. 222-249). Con E3 la línea pasa a fichas por equipo, así que la única forma de saber quién va en una escapada de cinco es tocar, y el documento no dice qué se toca, qué se abre, dónde, con qué ARIA ni de qué tamaño. Además las filas son de `min-h-9`, 36 px (esta línea), y el botón plegado es `py-1.5` con `text-xs`, unos 28 px: si son objetivos, la comprobación 5 los cuenta en las pantallas 08, 09 y 35.",
+    "correccion": "Añadir a §14.4: «Cada fila de grupo es un `<button>` a todo lo ancho de `min-h-11` (44) con `aria-expanded` y `aria-controls`; al tocarla abre debajo, en el flujo, la lista de sus corredores (`<ul>`, una fila de 44 por corredor con `RiderLabel`: dorsal, bandera, nombre y maillot de 28, y el equipo debajo), que se pinta al abrir y no a `barHz`; otro toque la cierra, y abrir otra cierra la anterior. El botón `+N groups · M riders` pasa a `Button` `quiet` de 44 a todo lo ancho», con su caso en `GroupBar.test.tsx` (17a) y su estado en `/_ui`; y en D-00b, «como hoy» por «nueva en E3».",
+    "foco": "uso"
+  },
+  {
+    "id": "Ruso-037",
+    "seccion": "§14.4",
+    "linea": 2711,
+    "gravedad": "media",
+    "afirmacion": "primero, aparte, cada corredor que viste un maillot de líder o de campeón, con su `WornJerseyIcon` de 28 y sin cuenta",
+    "fallo": "En la línea de equipos un campeón nacional es solo su maillot, sin bandera ni nombre a la vista (el nombre va en `aria-label`), y §9.5 (l. 1766) mide que a 28 px varios nacionales son gemelos: Italia y Perú a 2,3 de ΔE00, Italia con Irlanda y con Nigeria a 2,9, Indonesia y Mónaco a 1,7, en la peor de las cuatro visiones. Su remedio, «por debajo [de 72 px], el texto», no existe en la barra: dos campeones de Italia y de Irlanda en la misma escapada, posibles en el WorldTour, se ven iguales para un deuteranope y casi iguales para cualquiera.",
+    "correccion": "En §14.4 (l. 2711): «… con su `WornJerseyIcon` de 28 y, en lugar de la cuenta, las dos letras de su país en `caption` 600 `ink-2` si el maillot es de campeón nacional (`IT`, `IE`); el de líder y el mundial, sin letras»; y en §9.5 (l. 1766), tras «por debajo, el texto»: «y en la barra de `Watch`, las dos letras junto al maillot (§14.4)».",
+    "foco": "uso"
+  },
+  {
+    "id": "Ruso-038",
+    "seccion": "§14.4",
+    "linea": 2718,
+    "gravedad": "baja",
+    "afirmacion": "[k] ×3  [k] ×2  [k] ×2  [k] ×1  [k] ×1          cinco por renglón",
+    "fallo": "El dibujo pone la línea de equipos bajo `CHASE GROUP · 12`, la fila 2, y el párrafo de encima dice que «en el móvil la línea sigue saliendo solo bajo la fila 1 y las del espectador» (l. 2711; `GroupBar.tsx` l. 135, `mobile={g.number === 1 || g.own}`). El dibujo no dice que el espectador vaya en ese grupo, así que una de las dos cosas es falsa, y quien implemente no sabe si a 360 la fila 2 lleva línea.",
+    "correccion": "En el dibujo (l. 2717): «CHASE GROUP · 12 · el grupo del espectador», o quitar del dibujo de 360 los dos renglones de fichas de esa fila (l. 2718 y 2719).",
+    "foco": "uso"
+  },
+  {
+    "id": "Ruso-039",
+    "seccion": "§14.4",
+    "linea": 2724,
+    "gravedad": "alta",
+    "afirmacion": "y las cotas, de 9 y 8 px (l. 70 y 161) a 12 px con `tabular-nums`, que es lo que mide la comprobación 3 dentro del SVG",
+    "fallo": "En `ProfileStrip.tsx` las cotas son unidades del `viewBox` de 600 × 100 (l. 23-24 y 130-133), que se escala con `w-full h-auto` al ancho de la tarjeta: 310 px a 360 y 270 a 320. Medido con `getScreenCTM()`, como hará la comprobación 3 (`<scratchpad>/refutador-uso/perfil.mjs`): `font-size` 9 se pinta a 4,65 px a 360 y a 4,05 a 320, y 12 a 6,2 y 5,4 px. Poner 12 no da 12 px: la 3 seguirá contando las cotas. Los «8 px» de §1.5 (l. 64) y de la tabla de §7.1 (l. 1178) salen de `getComputedStyle` (`capturas/medir.mjs` l. 88), que no escala el SVG: hoy se ven a 4 y 5 px. Lo mismo pasa con `FormChart.tsx` (`viewBox` de 600 de ancho y `fontSize=\"10\"`, l. 56 y 67: 5,2 px a 360), en `/me/profile` (pantalla 04), que ninguna sección ni ningún paso tocan.",
+    "correccion": "En §14.4 (l. 2724): «las cotas salen del SVG: van en HTML, en `caption` 12 px con `tabular-nums`, en una capa `absolute` sobre el perfil, colocadas con el mismo `x(km)` en porcentaje del ancho; el SVG ya no lleva `<text>`». Lo mismo para `FormChart` en el PR 21j: sus tres rótulos (`0`, `50` y `100`) en HTML a la izquierda del dibujo. Y en §1.5 (l. 64) y §7.1 (l. 1178), «8 px» por «4 a 5 px (9 y 8 unidades de un `viewBox` de 600 pintado a 310 px)».",
+    "foco": "uso"
+  },
+  {
+    "id": "Ruso-040",
+    "seccion": "§14.5",
+    "linea": 2728,
+    "gravedad": "alta",
+    "afirmacion": "Los maillots (l. 61, 84, 90, 116 y 122) pasan a 28 por `WornJerseyIcon` con `surface=\"dark\"`",
+    "fallo": "§14 cambia los maillots y deja los recortes de `Watch`, que la comprobación 2 cuenta y la regla de §6.4 prohíbe: `CueCard.tsx` corta con `truncate` los nombres del rótulo (l. 63, 80 y 85) y su etiqueta (l. 88); `StageCards.tsx`, las filas de la previa y del cierre (l. 243 y 275); `VoiceTicker.tsx`, la línea de la voz (l. 45), que en la captura 09 sale `The gap has grown by 9 seconds in five kilo…`; y `TimeTrialBoard.tsx`, los nombres de la crono (l. 87). Con un maillot de 28 en la misma línea queda menos sitio y se cortará más. Las pantallas 08, 09 y 35 no pueden llegar a cero en la 2, y el rótulo corta nombres de corredor, que «nunca» se cortan (l. 1119).",
+    "correccion": "Añadir a §14.5: «Los nombres del rótulo (`CueCard.tsx` l. 63 y 80-88), de la previa y el cierre (`StageCards.tsx` l. 243 y 275) y de la crono (`TimeTrialBoard.tsx` l. 87) dejan `truncate` y parten de línea; la línea de la voz (`VoiceTicker.tsx` l. 45) sigue en un renglón, que es el ritmo de E2, y lleva `data-clip-ok`, porque la frase entera queda en el historial de la voz». Con sus casos en `CueCard.test.tsx` y `StageCards.test.tsx` (PR 20) y una fila más en la tabla de §14 (l. 2652).",
+    "foco": "uso"
+  },
+  {
+    "id": "Ruso-041",
+    "seccion": "§16.2",
+    "linea": 2905,
+    "gravedad": "media",
+    "afirmacion": "y, por color y por figura, cuántas carreras fallarían sin él",
+    "fallo": "Saber cuántas carreras fallarían sin un color o sin una figura pide repetir la traducción sin él: 22 traducciones más (quince colores y siete figuras), y una cuesta de 35 a 70 s a 28 px (§8.6, l. 1520), así que son de 13 a 26 minutos más en la suite rápida, cuando la fila le pone «30 s (telefono), más la traducción, de 35 a 70 s». Los 30 s de telefono son de su vocabulario a 13 y 16 px, y a 28 px cada distancia cuesta unas tres veces más (§8.4, l. 1482). Y el resumen de la sección (l. 2917, «de 1,5 a 2,5 min entre los cuatro») no casa con sus filas aun sin eso: de 65 a 100 s de `kits.test.ts`, 30 de `jerseyClone.test.ts`, 10 de `planPreview.test.ts` y 30 de `planPreviewDiary.test.ts` dan de 2,3 a 2,8 minutos.",
+    "correccion": "En §16.2 (l. 2905) y §8.2 (l. 1465): «la cuenta por color y por figura solo se calcula si la puerta falla, o de noche con `CS_BANCOS=1`; en la rápida, `kits.test.ts` cuesta de 2 a 4 minutos (estimado: la génesis, `seasonRivals` y una traducción a 28 px)»; y en l. 2917, «de 3 a 5 min entre los tres (estimado)», con `planPreviewDiary.test.ts` fuera de la rápida (Ruso-034).",
+    "foco": "uso"
+  },
+  {
+    "id": "Ruso-042",
+    "seccion": "§16.2",
+    "linea": 2911,
+    "gravedad": "media",
+    "afirmacion": "cada ruta del jugador serializa su respuesta real del mundo de los bancos sin 500, con la sesión del jugador y la del mánager (O-03)",
+    "fallo": "El mundo de los bancos no tiene mánager: `spoilerWorld.ts` da de alta una sola cuenta, `player@example.com`, con su corredor (l. 248-249), y ningún equipo tiene dueño (`teams.owner_user_id` sin escribir, l. 160-169). Con esa sesión, las rutas de equipo que E3 declara o cambia (`GET /api/teams/me`, `GET` y `PUT /api/teams/me/kit`, `POST /api/teams/me/kit/check`, `GET /api/me/team-training`, el calendario del equipo) contestan 409 `sin_equipo` o 401 y nunca serializan una respuesta real, así que el riesgo del 500 de O-03 (§13.4) queda abierto justo en las rutas nuevas.",
+    "correccion": "Añadir a §16.2 y §17.21: «el PR 19a añade a `spoilerWorld.ts` una segunda cuenta, `manager@example.com`, con `premium` y dueña de `Team 0` (`owner_user_id`), y `responses.test.ts` recorre con ella las rutas de equipo; las que el mundo de los bancos no puede rellenar llevan su respuesta del mundo de la prueba guardada en `apps/api/src/__fixtures__/responses/<ruta>.json`».",
+    "foco": "uso"
+  },
+  {
+    "id": "Ruso-043",
+    "seccion": "§17.4",
+    "linea": 3049,
+    "gravedad": "media",
+    "afirmacion": "**PR 2** · M · no depende de nada",
+    "fallo": "M es hasta 800 líneas de diff (l. 2989), y solo los guiones que el PR porta suman más: `capturas/mundo.mjs` 248 líneas, `servir.mjs` 93, `medir.mjs` 145 (mide siete de las diez comprobaciones, sin trinquete), `capturas.mjs` 382 (la lista de pantallas y sus esperas) y `pintura.mjs` 268 (lo que hará `nocturno.spec.ts`): 1.136 en total (`wc -l`). Encima van las comprobaciones 7 a 10, `control.html`, el trinquete y `telefono-baseline.json` (46 pantallas por dos anchos), `playwright.config.ts`, `pantallas.ts` con sus `edit` e `intercept`, los dos trabajos del CI con sus cachés, `ui/constants.ts`, `kit.ts` con `KIT_MIN_PX` y `data-kit` en `Jersey.tsx`. Es un L, y su tamaño entra en las 80 sesiones de §17.28.",
+    "correccion": "Partir el paso 2 en dos PR: «**2a** · M: `build.mjs`, `serve.mjs`, los dos trabajos del CI con sus cachés y `nocturno.spec.ts`; **2b** · L: `telefono.spec.ts` con las diez comprobaciones, `control.html`, `pantallas.ts`, `telefono.config.ts`, `ui/constants.ts`, `KIT_MIN_PX` en `kit.ts`, `data-kit` y `telefono-baseline.json`»; y en §17.2, §17.27, §17.28 y G.11: 43 PR, 11 S, 24 M y 8 L, unas 83 sesiones.",
+    "foco": "uso"
+  }
+]

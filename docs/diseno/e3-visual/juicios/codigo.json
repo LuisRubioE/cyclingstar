@@ -1,0 +1,329 @@
+{
+  "foco": "codigo",
+  "ganadora": "telefono",
+  "puntuaciones": [
+    {
+      "propuesta": "telefono",
+      "cobertura": 8,
+      "coherencia": 8,
+      "ejecutabilidad": 7,
+      "experiencia": 9,
+      "justificacion": "La única que ha probado contra el servidor lo que propone: el serializador de respuesta (comprobación 1), la sesión sin red (3), la navegación primero por la red frente a las precargas de E2 (app.ts l. 371) y la hoja de 92 a 9 KB. Cubre las dieciséis secciones con umbrales. Baja en ejecutabilidad por el sistema como código: la regla de ESLint solo en pages/, sin la cola larga de páginas, teams.kit no nulo sin camino de relleno y el black-translucent del paso 2 sin área segura arriba."
+    },
+    {
+      "propuesta": "sistema",
+      "cobertura": 8,
+      "coherencia": 6,
+      "ejecutabilidad": 8,
+      "experiencia": 6,
+      "justificacion": "Su maquinaria es verdad medida (el cierre del tema en Tailwind 4.3.3, el lint que ya cubre .tsx, el trinquete de deuda) y es la más ejecutable por un agente sin preguntas (data-*, /_ui, 37 PR por deuda). Pierde coherencia donde se decide: su .strict() no caza las claves anidadas de teams/:id/news (2), su recarga sin red acaba en /login (3), deja la carga de carrera de la proyección por un motivo falso (8) y su presupuesto de 255 KB de arranque no frena el JS. Su teléfono es el escritorio corregido."
+    },
+    {
+      "propuesta": "identidad",
+      "cobertura": 6,
+      "coherencia": 5,
+      "ejecutabilidad": 5,
+      "experiencia": 6,
+      "justificacion": "La mejor en el dato del maillot: team_kits con historia, ensureKits en el tick con el patrón de backfillRosters (tick.ts l. 283) y los contratos que lo llevan, con línea. Fuera del maillot cuesta caro y mide poco: banderas en public/flags/ sin huella (max-age=0 y cupo por IP), 23 KB de letra por defecto, .strict() superficial, sin red roto al recargar, ninguna regla que impida reinventar y 15 PR para todo (tres para 146 botones, 63 paneles y 70 estados)."
+    },
+    {
+      "propuesta": "lectura",
+      "cobertura": 7,
+      "coherencia": 7,
+      "ejecutabilidad": 6,
+      "experiencia": 8,
+      "justificacion": "La que mejor ha leído el código del examen: el desfase de semanas entre vista previa y tick (riders.ts l. 453 frente a train.ts l. 216), el startDay del plan vivo y una vista previa que lee modo, órdenes y plan de equipo; en la frontera aporta la resolución en el tipo y el response obligatorio en el registro. Cae en lo de servir (banderas sin huella con app.ts l. 127-133 leído al revés, recarga sin red) y deja la prueba del teléfono a mano, que no se hace cumplir."
+    }
+  ],
+  "injertos": [
+    {
+      "id": "I-codigo-01",
+      "de": "sistema",
+      "seccion": "§2.1, §12 y §13 (pasos 2 y 17)",
+      "que": "El tema cerrado como último PR: initial en las familias de color, letra, radio, sombra y contenedor del @theme, con vocabulario.test.ts sobre __unstable__loadDesignSystem a versión fija, sus dos sondas y deuda.json por fichero.",
+      "porque": "Es real en Tailwind 4.3.3 (medido: dejan de resolver bg-indigo-600, text-white, max-w-6xl, rounded-2xl y shadow-sm) y cierra lo que la regla de ESLint de telefono deja abierto; hasta el último PR todo sigue resolviendo y el juego sigue desplegable."
+    },
+    {
+      "id": "I-codigo-02",
+      "de": "sistema",
+      "seccion": "§13 paso 16",
+      "que": "La migración de la cola larga de páginas por deuda medida (Race 166, MyRaces 98, TeamCalendar 93, AdminNames 92, RacesIndex 83…), unos 10 PR.",
+      "porque": "El plan de telefono no la tiene, y sin ella su paso 17 no puede poner la regla de ESLint en error."
+    },
+    {
+      "id": "I-codigo-03",
+      "de": "sistema",
+      "seccion": "§4 y §12",
+      "que": "data-ui, data-variant y data-state en cada componente, componentes que no aceptan className para su color, letra, radio y sombra (solo layout), y los seis tests de clases re-sellados contra data-* (CueCard.test.tsx l. 34, GroupBar.test.tsx l. 82…).",
+      "porque": "Si los tests vuelven a fijar clases, cada cambio de paleta los rompe; y en Tailwind v4 dos clases de una familia en el mismo elemento las ordena la CSS emitida, no el orden escrito."
+    },
+    {
+      "id": "I-codigo-04",
+      "de": "sistema",
+      "seccion": "§5 y §12",
+      "que": "La prueba del teléfono en el CI sobre la página /_ui con datos fijos (unos 2 min por PR) y la de las pantallas con mundo de prueba cada noche.",
+      "porque": "Crear en cada PR un mundo con cuatro cuentas pide lo que el mapa 05 hizo con SQL (§1), y Playwright y axe-core no están en ningún package.json (capturas/README.md l. 63-71)."
+    },
+    {
+      "id": "I-codigo-05",
+      "de": "identidad",
+      "seccion": "§6.2 y §13 paso 3",
+      "que": "El relleno del maillot como paso idempotente del tick tras seedWorld (el patrón de backfillRosters, tick.ts l. 265 y 283), con la columna nula hasta que se llena y el maillot nuevo válido desde el día siguiente.",
+      "porque": "El reparto (ΔE00 dibujado contra los rivales) no se escribe en SQL, y un NOT NULL sin DEFAULT rompe el test del mundo vivo (migrate.ts l. 80)."
+    },
+    {
+      "id": "I-codigo-06",
+      "de": "identidad",
+      "seccion": "§6.2",
+      "que": "La lista de lo que gana el maillot: startlistTeamSchema, teamListItemSchema y teamDetailSchema (contracts.ts l. 665, 692 y 718), RiderCard.team (broadcast/wire.ts l. 354), CastTeam (cast.ts l. 151-154) y provisionalCast (broadcastSource.ts l. 1324).",
+      "porque": "telefono solo nombra cast.ts, y el agente que implemente no tiene a quién preguntar por los otros cinco sitios."
+    },
+    {
+      "id": "I-codigo-07",
+      "de": "sistema",
+      "seccion": "§3.5 y §6.3",
+      "que": "La tabla de choques entre diseños precalculada (jerseyConflicts.ts, fuera del barril de shared) que el validador solo consulta, con la huella de la geometría en el fichero generado (identidad §6.2).",
+      "porque": "checkKit no tiene que rasterizar ni aplicar Machado y CIEDE2000 en cada petición, y una figura retocada sin regenerar la tabla hace caer el test."
+    },
+    {
+      "id": "I-codigo-08",
+      "de": "lectura",
+      "seccion": "§7.5 (puntos 2 y 3)",
+      "que": "La vista previa con el startDay del plan vivo, el cuerpo con edits, modo y plan de equipo, y PUT /plan que conserva ese startDay en lugar de fijar mañana (riders.ts l. 413).",
+      "porque": "Hoy la vista previa cuenta las semanas desde mañana (riders.ts l. 453) y el tick desde startDay (train.ts l. 216): sin esto, las cabeceras Days 51 to 57 de telefono §7.4 y la proyección hablan de semanas distintas desde el día siguiente al guardado."
+    },
+    {
+      "id": "I-codigo-09",
+      "de": "lectura",
+      "seccion": "§9 (puntos 1 y 3)",
+      "que": "schema.response obligatorio en el registro de E2 (registerSpoilerGuard, spoiler.ts l. 155-183), y la resolución en el tipo: multipleOf(0.5) en estrellas, enteros de 0 a 100 en barras y enumerados en tramos y flechas; en lugar del exposes de telefono.",
+      "porque": "Con el serializador que ya monta la API (medido) un 63.4172 deja de poder salir: es una declaración por ruta que trabaja, no una que solo se escribe."
+    },
+    {
+      "id": "I-codigo-10",
+      "de": "sistema",
+      "seccion": "§3.1",
+      "que": "El ámbito oscuro [data-surface='dark'] que redefine nueve tokens y deja el mismo Button en Watch.",
+      "porque": "telefono §10 viste la capa fija con tokens sueltos y no dice qué hacen sus componentes sobre navy-dark; con el ámbito, WatchBlocks y PlayerControls usan el catálogo sin variantes nuevas."
+    },
+    {
+      "id": "I-codigo-11",
+      "de": "sistema y lectura",
+      "seccion": "sistema §8; lectura §8.2",
+      "que": "El service worker no intercepta /api/*, /health ni /api/auth/* (sin respondWith) y no persiste la caché de React Query.",
+      "porque": "index.html precarga /health (l. 13) y el HTML de etapa precarga la API (app.ts l. 371): interceptarlas les cambia la caché y las credenciales con que casan las precargas."
+    }
+  ],
+  "objeciones": [
+    {
+      "id": "O-codigo-01",
+      "seccion_ganadora": "§6.3 y §13 paso 13",
+      "que": "teams.kit jsonb no nulo con su relleno en la migración: el reparto no se puede escribir en SQL. Columna nula (o DEFAULT neutro con marca), relleno en el tick (I-codigo-05) y NOT NULL, si se quiere, en una migración posterior.",
+      "evidencia": "seedWorld inserta los equipos sin maillot (world.ts l. 478-493); precedentes: 0032_techos_por_edad.sql (SQL de datos) y backfillRosters (tick.ts l. 283); test del mundo vivo (migrate.ts l. 80)."
+    },
+    {
+      "id": "O-codigo-02",
+      "seccion_ganadora": "§8.1 y §13 paso 2",
+      "que": "apple-mobile-web-app-status-bar-style black-translucent con viewport-fit=cover antes de que la cabecera reserve el área segura de arriba: instalada en iPhone, la hora se pintaría sobre la cabecera hasta el paso 8. Barra por defecto en el paso 2, o env(safe-area-inset-top) en la cabecera en el mismo PR.",
+      "evidencia": "Solo BottomNav.tsx l. 44 y App.tsx l. 154 usan safe-area-inset (grep); no comprobado en un dispositivo."
+    },
+    {
+      "id": "O-codigo-03",
+      "seccion_ganadora": "§9 punto 1 y §13 paso 16",
+      "que": "Declarar schema.response convierte en 500 en producción todo dato que no casa con su esquema; cada ruta necesita su respuesta real serializada en un test, y el coste de codificar con Zod las rutas de la retransmisión está sin medir. El paso es de 3 a 4 PR, no un L.",
+      "evidencia": "Medido en el clon: un Date en un z.string() da FST_ERR_RESPONSE_SERIALIZATION; hoy no hay fechas en contracts.ts (grep); las respuestas de etapa pesan de 0,87 a 3,8 MB de JSON (app.ts l. 194-196)."
+    },
+    {
+      "id": "O-codigo-04",
+      "seccion_ganadora": "§9 punto 4",
+      "que": "exposes: 'public' | 'owner' no comprueba nada y obliga a tocar las 92 rutas y la tabla literal del registro; se sustituye por schema.response obligatorio (I-codigo-09).",
+      "evidencia": "spoilerRegistry.test.ts l. 14-35 (93 entradas comparadas en los dos sentidos); registerSpoilerGuard, spoiler.ts l. 155-183."
+    },
+    {
+      "id": "O-codigo-05",
+      "seccion_ganadora": "§9 punto 3",
+      "que": "El canario ampliado barre «las POST»: solo las de lectura, en una lista cerrada (hoy la vista previa), porque barrer todas ejecuta mutaciones en el mundo de prueba.",
+      "evidencia": "El barrido de hoy solo hace GET (spoilerWorld.ts l. 334, mapa 02 §9); la vista previa es POST /api/riders/me/plan/preview (riders.ts l. 424-426)."
+    },
+    {
+      "id": "O-codigo-06",
+      "seccion_ganadora": "§4 y §12",
+      "que": "La regla de ESLint contra colores sueltos y letra menor de 12 px solo mira pages/; components/ (53 ficheros, con Panel.tsx, Tabs.tsx y los hexadecimales de v3 de broadcast/) queda fuera. Va en apps/web/src/** menos ui/.",
+      "evidencia": "eslint.config.js l. 228 y l. 255 ya cubren apps/web/**/*.{ts,tsx}; mapa 01 §1 y §2.4."
+    },
+    {
+      "id": "O-codigo-07",
+      "seccion_ganadora": "§13",
+      "que": "El plan no tiene la migración de la cola larga de páginas a los tokens; con ella (I-codigo-02) el total es de unos 32 PR, no 22 (estimado).",
+      "evidencia": "telefono §13: pasos con S 1, M 1 y L 2 suman 22; sistema §0 midió 2.457 apariciones de clase que dejan de resolver con el tema cerrado y 1.417 avisos de lint en 83 ficheros."
+    },
+    {
+      "id": "O-codigo-08",
+      "seccion_ganadora": "§8.3 punto 4",
+      "que": "El sprite de banderas tiene que entrar por Vite, con huella en assets/, o se sirve con max-age=0; y sus 133 coordenadas se generan y se comparan con el fichero en un test.",
+      "evidencia": "app.ts l. 131-141: solo assets/ es inmutable y lo demás de la raíz queda con el public, max-age=0 de @fastify/static; límite de 300 peticiones por minuto e IP (security.ts l. 10)."
+    },
+    {
+      "id": "O-codigo-09",
+      "seccion_ganadora": "§7.2 y §11",
+      "que": "PREVIEW_RACE_DAY_TSS es una constante de juego: va en packages/engine/src/constants.ts con su intención y su línea en docs/balance.md, sin subir ENGINE_VERSION porque el motor no la lee; y la curva de la vista previa se compone en la API con applyDailyLoad, porque projectLoad no acepta un TSS por día.",
+      "evidencia": "Claude.md l. 12; projection.ts l. 40-48 (sessionTss de cada TrainingChoice); applyDailyLoad exportado (packages/engine/src/index.ts l. 365) y usado ya por packages/db (stageRun.ts l. 13)."
+    },
+    {
+      "id": "O-codigo-10",
+      "seccion_ganadora": "§7.4",
+      "que": "No arregla el desfase de semanas entre la vista previa y el tick, así que las semanas con fechas de su pantalla no son las que proyecta; se resuelve con I-codigo-08.",
+      "evidencia": "riders.ts l. 453 frente a train.ts l. 216, con PUT /plan que fija mañana (riders.ts l. 413)."
+    },
+    {
+      "id": "O-codigo-11",
+      "seccion_ganadora": "§5.3 y §13 paso 1",
+      "que": "Playwright y axe-core no son dependencias del repositorio: el paso 1 los fija de versión, guarda Chromium en la caché del CI y, con I-codigo-04, deja el mundo de prueba para la pasada nocturna.",
+      "evidencia": "Ningún package.json los declara (grep); los guiones de capturas/ los usan instalados fuera (capturas/README.md l. 63-71); el mundo del mapa 05 necesitó SQL para cuatro cosas (mapa 05 §1)."
+    },
+    {
+      "id": "O-codigo-12",
+      "seccion_ganadora": "§6.6",
+      "que": "KIT_MIN_PX = 16 sube los maillots de 13 px de GroupBar, CueCard y TimeTrialBoard: es un cambio del diseño de E2 que el paso 14 no cuenta como tal y que E2 y E6 tendrían que aceptar; el vocabulario medido a 13 px lo evita.",
+      "evidencia": "GroupBar.tsx l. 242 (WornJerseyIcon a 13 px); mapa 03 §1.2; sistema §6.1, identidad §6.1 y lectura §6.1 miden a 13 px."
+    },
+    {
+      "id": "O-codigo-13",
+      "seccion_ganadora": "§8.2",
+      "que": "Precargar al instalar todo el JS y la CSS (80 ficheros, unos 320 KB con gzip) compite con Slow 4G con lo que el jugador pide después; basta el arranque y los cinco destinos de la barra (unos 220 KB, sistema §8) y el resto al usarse.",
+      "evidencia": "telefono §8.2 (estimado por la propia propuesta); Slow 4G a 1,44 Mbit/s (mapa 05 §12)."
+    }
+  ],
+  "huecos": [
+    {
+      "id": "H-codigo-01",
+      "que": "Los rivales de temporada: validar un maillot contra los equipos con los que coincide pide saber quién corre con quién, y predictStartlist es una transacción por carrera (calendarRun.ts l. 785) que solo usa routes/calendar.ts l. 290. Ninguna propuesta dice dónde se calcula y se guarda ese conjunto, ni qué pasa con un maillot ya guardado cuando un mánager añade una carrera en TeamCalendar."
+    },
+    {
+      "id": "H-codigo-02",
+      "que": "jerseySeed sigue cruzando la frontera en contracts.ts l. 665, 692 y 718 y en broadcast/wire.ts l. 354 cuando el maillot ya es dato y la pantalla no la usa: ninguna aplica la regla de §9 a su propio cambio."
+    },
+    {
+      "id": "H-codigo-03",
+      "que": "El peso que queda en el arranque: request.js lleva 42 KB de broadcast/* por el barril de packages/shared, que no declara sideEffects (mapa 01 §8); sin banderas, es lo siguiente que pesa y ninguna lo corta."
+    },
+    {
+      "id": "H-codigo-04",
+      "que": "Los planes de entrenamiento ya solapados en producción: el arreglo vale desde el siguiente guardado y ninguna propuesta los limpia con un paso del tick o una migración de datos."
+    }
+  ],
+  "comprobaciones": [
+    {
+      "afirmacion": "El serializador de Zod que ya monta la API quita lo que el esquema de respuesta no declara, también dentro de los arrays.",
+      "propuesta": "telefono",
+      "resultado": "cierta",
+      "evidencia": "app.ts l. 162-163; fastify-type-provider-zod 7.0.0 core.cjs l. 114-120 (safeEncode y JSON.stringify). Medido con juez-codigo/frontera.cjs: { id, stars, ctl, attributes, days: [{ gameDay, tsb }] } sale {\"id\":\"r1\",\"stars\":3.5,\"days\":[{\"gameDay\":5}]}; hoy ninguna ruta declara response (grep); un Date en un z.string() da 500."
+    },
+    {
+      "afirmacion": "Validar cada respuesta con la versión .strict() de su esquema habría cazado las seis claves de más de GET /api/teams/:id/news.",
+      "propuesta": "sistema, identidad, lectura",
+      "resultado": "falsa",
+      "evidencia": "Las seis salen del ...r de cada ítem (news.ts l. 448), dentro de z.array(teamNewsItemSchema) (contracts.ts l. 766-773); en Zod 4.4.3 .strict() solo mira la raíz: medido, una clave de más en un ítem pasa y una en la raíz falla. El mapa 02 §9 punto 6 (l. 332-335) se equivoca igual."
+    },
+    {
+      "afirmacion": "Sin red, el jugador con sesión ve Log in y la caché de React Query se vacía.",
+      "propuesta": "telefono",
+      "resultado": "cierta",
+      "evidencia": "ProtectedRoute.tsx l. 12-13 y HorizonWatcher.tsx l. 33; vista la captura propuesta-telefono/pwa/out/sinred-recargar-propuesta.png. Lo que sistema §8, identidad §8 y lectura §8.3 prometen al recargar sin red no se da en las rutas protegidas."
+    },
+    {
+      "afirmacion": "Con initial en el @theme deja de generarse la paleta de Tailwind y los valores arbitrarios siguen resolviendo.",
+      "propuesta": "sistema",
+      "resultado": "cierta",
+      "evidencia": "__unstable__loadDesignSystem existe en tailwindcss@4.3.3/dist/lib.js; medido con juez-codigo/cierre.cjs: cerrado, no resuelven bg-indigo-600, text-white, max-w-6xl, rounded-2xl ni shadow-sm; sí text-[11px] y p-5."
+    },
+    {
+      "afirmacion": "La vista previa numera las semanas del plan desde mañana y el tick desde el startDay guardado.",
+      "propuesta": "lectura",
+      "resultado": "cierta",
+      "evidencia": "riders.ts l. 453 (blocks[Math.floor(i / 7)] con i desde mañana) frente a train.ts l. 216 (semana desde fila.startDay); PUT /plan fija mañana (riders.ts l. 413)."
+    },
+    {
+      "afirmacion": "El lint ya corre sobre .tsx en el CI, así que las reglas de interfaz no piden otro trabajo.",
+      "propuesta": "sistema",
+      "resultado": "cierta",
+      "evidencia": "eslint.config.js l. 228 y l. 255; pnpm lint es eslint . (package.json l. 23; ci.yml l. 252). 00-encargo.md §6.7 dice solo .js y .mjs y se queda corto."
+    },
+    {
+      "afirmacion": "Las banderas como ficheros de public/flags/ (o /flags/4x3/) sacan el peso de la CSS sin coste, y assets/ ya no cuenta para el límite por IP.",
+      "propuesta": "identidad, lectura",
+      "resultado": "a medias",
+      "evidencia": "Sale el peso, pero hoy 142 banderas ya van sueltas en dist/assets/ con huella (medido en el clon) e inmutables (app.ts l. 141); en la raíz saldrían public, max-age=0 (app.ts l. 131-133) y cada revalidación gasta el cupo de 300 por minuto e IP (security.ts l. 10). El comentario de app.ts l. 127-133 dice que assets/ deja de pedirse, no de contar."
+    },
+    {
+      "afirmacion": "La carga real del día de carrera en la proyección pide una estimación del motor.",
+      "propuesta": "sistema",
+      "resultado": "a medias",
+      "evidencia": "projectLoad solo acepta sesiones del catálogo (projection.ts l. 40-48), pero el motor exporta applyDailyLoad (index.ts l. 365), que packages/db ya usa (stageRun.ts l. 13): la API compone la curva sin tocar el motor. telefono, identidad y lectura no dicen cómo."
+    },
+    {
+      "afirmacion": "El maillot en un jsonb not null con su relleno dentro de la migración de drizzle-kit.",
+      "propuesta": "telefono, sistema",
+      "resultado": "a medias",
+      "evidencia": "Hay SQL de datos en migraciones (0032_techos_por_edad.sql) y relleno idempotente en el tick (tick.ts l. 283), pero el reparto (ΔE00 dibujado contra rivales) no es SQL y un NOT NULL sin DEFAULT rompe el test del mundo vivo (migrate.ts l. 80). ensureKits de identidad sigue el patrón."
+    },
+    {
+      "afirmacion": "stageTables.test.tsx sigue pasando con el maillot de equipo en cada fila de la clasificación.",
+      "propuesta": "identidad",
+      "resultado": "cierta",
+      "evidencia": "Cuenta por etiqueta exacta (stageTables.test.tsx l. 35-36) y toma el primer enlace de cada fila (l. 43-48); leaderJerseys.test.tsx l. 86-87 tampoco cae con el maillot delante del nombre."
+    },
+    {
+      "afirmacion": "La prueba del teléfono corre en el CI con Playwright y axe-core.",
+      "propuesta": "telefono, sistema, identidad",
+      "resultado": "a medias",
+      "evidencia": "Ninguno está en un package.json (grep); los guiones del mapa 05 los usan instalados fuera (capturas/README.md l. 63-71): es dependencia nueva, Chromium en la caché del CI y un mundo con cuatro cuentas que hoy pide SQL (mapa 05 §1)."
+    },
+    {
+      "afirmacion": "viewport-fit=cover y la barra de estado black-translucent en el paso 2 dejan la web instalada bien pintada en iPhone.",
+      "propuesta": "telefono",
+      "resultado": "a medias",
+      "evidencia": "Sin dispositivo: la cabecera no reserva safe-area-inset-top (solo lo usan BottomNav.tsx l. 44 y App.tsx l. 154), así que la hora se pintaría sobre la cabecera hasta el paso 8."
+    }
+  ],
+  "gusto": [
+    {
+      "decision": "paleta",
+      "opciones": [
+        "manager sobrio (telefono A, lectura a): navy #123a5c, acento #0b6e8a, oro, tarjetas blancas sobre #eef2f6 sin barras de color",
+        "el manager de hoy, accesible (sistema A, telefono B, identidad B, lectura b): cabecera de Panel #006e8c lisa con blanco y barra #d99400 con tinta",
+        "noche y oro (identidad A): #14213d y #e0a526"
+      ],
+      "defecto": "manager sobrio (telefono A): con el tema cerrado las tres cuestan seis tokens, y la sobria quita las dos superficies de color que hoy fallan el contraste (de 2,06 a 3,33, mapa 01 §2.3), que son las que más pares obligan a medir."
+    },
+    {
+      "decision": "tipografia",
+      "opciones": [
+        "la pila del sistema, 0 KB (telefono A, sistema, lectura a, identidad B)",
+        "Inter variable propia: 47,1 a 48,3 KB el latín y 83,1 a 85 el latín extendido",
+        "Barlow Semi Condensed solo en títulos y cifras: 22.984 B el peso 600 en latín (identidad A)"
+      ],
+      "defecto": "la del sistema: cero bytes y ningún salto de letra con Slow 4G; si el dueño elige otra, se sirve desde public/fonts/, porque la CSP solo deja font-src 'self' data: (app.ts l. 183)."
+    },
+    {
+      "decision": "campeon",
+      "opciones": [
+        "S1, estrella oro #f0b323 sobre torso marino #14284b, el mundial con canesú dorado (sistema)",
+        "estrella sobre cuerpo blanco reservado (telefono A, lectura a)",
+        "banda de honor diagonal: oro #e0a526 sobre noche #14213d y la bandera sobre papel #f6f3ea (identidad A)",
+        "una variante del dueño: tres franjas navy, cian y oro sobre blanco (telefono C) o el espectro en la banda diagonal (identidad C)"
+      ],
+      "defecto": "S1: cuesta lo mismo que la estrella sobre blanco (una figura sobre TORSO, desde el ChampionMark de Jersey.tsx l. 135) y queda a 50,1 de la marca de la UCI a 13 px frente a 11,2 (lectura) o 16,6 a 16 px (telefono); la banda de honor pide 133 colores nacionales generados, con errores conocidos (Corea, identidad §6.5)."
+    },
+    {
+      "decision": "maillot",
+      "opciones": [
+        "10 colores y 7 figuras, 610 diseños medidos a 13 px (sistema)",
+        "12 colores y 7 figuras, 651 combinaciones medidas a 16 px (telefono A)",
+        "14 colores y 6 figuras con regla de contraste, 443 permitidos (identidad A)",
+        "15 colores y 6 figuras, 605 diseños (lectura a)"
+      ],
+      "defecto": "el de sistema: medido a 13 px, el tamaño de GroupBar.tsx l. 242, sin mover el diseño de E2, y con una tabla de choques pequeña que el servidor consulta sin dibujar."
+    }
+  ]
+}

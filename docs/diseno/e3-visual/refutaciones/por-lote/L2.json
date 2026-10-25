@@ -1,0 +1,512 @@
+[
+  {
+    "id": "Rcodigo-023",
+    "seccion": "§8.1",
+    "linea": 1386,
+    "gravedad": "baja",
+    "afirmacion": "6,42 bajo el cuello",
+    "fallo": "El escote de `TORSO` (`Jersey.tsx` l. 10-11, `L32 8 Q24 12 16 8`) baja hasta y = 10 en x = 24 (punto medio de la cuadrática: 0,25 × 8 + 0,5 × 12 + 0,25 × 8), y el canesú llega a y = 19: bajo el cuello mide 9 u, 9 × 28 / 48 = 5,25 px. Los 6,42 px (11 u) son el grosor junto a los hombros, en y = 8.",
+    "correccion": "En la fila `yoke`: «5,25 bajo el cuello (9 u)».",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-024",
+    "seccion": "§8.1",
+    "linea": 1390,
+    "gravedad": "media",
+    "afirmacion": "`kitCodeSchema` es el `z.string()` que `parseKit` acepta",
+    "fallo": "Un `z.string()` con `refine` infiere `string`, no `KitCode`. Comprobado con el tsc 5.9.3 y el zod 4.4.3 del clon, con el bloque de `kit.ts` de esta sección: con `kit: kitCodeSchema.nullable()` en un contrato, `const c: KitCode | null = dato.kit` da TS2322 («Type 'string' is not assignable to type 'KitCode | null'»). `Kit` (`code: KitCode`, §8.3), `RiderLabel` (§4.6) y `WornTeam` (§9.10) no aceptarían lo que llega de la API sin un `as`.",
+    "correccion": "«`kitCodeSchema` es `z.custom<KitCode>((v) => typeof v === 'string' && parseKit(v) !== null)`, que infiere `KitCode` y pasa el serializador (sin `transform`; `z.safeEncode` lo acepta, comprobado)», y escribir esa línea en el bloque de `kit.ts` en lugar de nombrarla en el comentario de `parseKit`.",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-025",
+    "seccion": "§8.1",
+    "linea": 1449,
+    "gravedad": "media",
+    "afirmacion": "export const kitVerdictSchema = z.strictObject({",
+    "fallo": "`KitVerdict` es una respuesta (`POST /api/teams/me/kit/check` «contesta un `KitVerdict`», §8.7). El serializador que monta la API, `fastify-type-provider-zod` 7.0.0, llama a `safeEncode(schema, data)` y lanza `ResponseSerializationError` si falla (`dist/cjs/core.cjs` l. 114-120): con `z.strictObject` una clave de más da un 500 en lugar de quitarse (medido con zod 4.4.3: `z.safeEncode(z.strictObject({ ok: z.boolean() }), { ok: true, extra: 1 })` falla y con `z.object` sale `{ ok: true }`). §13.3 (l. 2586) deja `.strict()` solo para las peticiones. Lo mismo vale para `teamRefSchema` y `conflictSchema`.",
+    "correccion": "Escribir `teamRefSchema`, `conflictSchema` y `kitVerdictSchema` con `z.object`; `.strict()` solo en `kitSchema` y en los cuerpos de `PUT /api/teams/me/kit` y `POST /api/teams/me/kit/check`.",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-026",
+    "seccion": "§8.3",
+    "linea": 1469,
+    "gravedad": "baja",
+    "afirmacion": "props `{ code: KitCode; size: KitSize; teamName: string; surface?: KitSurface }`",
+    "fallo": "Faltan las props que piden las secciones siguientes: la vista (`KitView`; §8.10, l. 1585: «el tipo de `KitProps` no deja otra cosa» que `front` por debajo de 160), el culote (`BibStyle`, §8.10), el dorsal de la espalda (l. 1587) y `chest` (§9.9, l. 1826: «`Kit` gana la prop `chest?`»). `kitViews.test.tsx` comprueba que `back` y `bib` no compilan por debajo de 160 (l. 1600), y eso pide un tipo que no está escrito.",
+    "correccion": "Escribir en §8.3: `type KitProps = { readonly code: KitCode; readonly teamName: string; readonly surface?: KitSurface; readonly chest?: { readonly mark: string; readonly name: string } } & ({ readonly view?: 'front'; readonly size: KitSize } | { readonly view: 'back' | 'bib'; readonly size: KitBigSize; readonly bib: BibStyle; readonly number?: number })`.",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-027",
+    "seccion": "§8.3",
+    "linea": 1477,
+    "gravedad": "baja",
+    "afirmacion": "`RiderJersey` (`Race.tsx` l. 220 y 256, `StageReplay.tsx` l. 101 y 147, `stageView.tsx` l. 98, `StageStory.tsx` l. 141, `StageCards.tsx` l. 110 y 292)",
+    "fallo": "`StageCards.tsx` l. 110 y 292 no usan `RiderJersey`: llaman directamente a `<LeaderJersey kind={r.jersey} size={15} />`. §9.10 (l. 1866) sí los da como `LeaderJersey`.",
+    "correccion": "«`RiderJersey` (`Race.tsx` l. 220 y 256, `StageReplay.tsx` l. 101 y 147, `stageView.tsx` l. 98, `StageStory.tsx` l. 141) y `LeaderJersey` directo (`StageCards.tsx` l. 110 y 292)».",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-028",
+    "seccion": "§8.4",
+    "linea": 1482,
+    "gravedad": "baja",
+    "afirmacion": "`kitDistance.test.ts` compara 50 pares fijos con el script de Python a 0,5 o menos.",
+    "fallo": "El CI no tiene Python: `.github/actions/setup/action.yml` solo instala pnpm y Node (l. 8 y 11), colour-science solo está en el `venv` del scratchpad, y `mapas/03-maillots-medida.py` vive en `docs/`. Tal como está escrito, el test no puede correr en el CI.",
+    "correccion": "«`kitDistance.test.ts` compara 50 pares fijos con `packages/db/src/__fixtures__/kitDistance.golden.json`, que escribe una vez `mapas/03-maillots-medida.py` (con su huella y la de la geometría en la cabecera), a 0,5 o menos».",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-029",
+    "seccion": "§8.4",
+    "linea": 1484,
+    "gravedad": "baja",
+    "afirmacion": "dos humanos que chocan no se fuerzan, y `kitWorld.bench.ts` los cuenta cada noche",
+    "fallo": "16-c (l. 2974) lo renombra `kitWorld.long.test.ts`, porque `vitest.config.ts` l. 7 solo recoge `*.test.{ts,tsx}` bajo `src/`: con este nombre no correría.",
+    "correccion": "«dos humanos que chocan no se fuerzan, y `kitWorld.long.test.ts` los cuenta cada noche».",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-030",
+    "seccion": "§8.5",
+    "linea": 1514,
+    "gravedad": "alta",
+    "afirmacion": "si salta el índice (23505) lanza `KitTakenError` con el equipo que lo lleva, que la ruta contesta como 409 `kit_ocupado`",
+    "fallo": "23505 es cualquier violación de unicidad, y `team_kits` tiene otra: su clave `(team_id, valid_from_day)` (l. 1507). Tomar un equipo escribe una fila `system` con el maillot vigente para mañana (§8.7, l. 1573) y la traducción escribe con `valid_from_day = currentDay + 1` (l. 1514); el primer cambio de maillot, que el documento declara libre (8-g), inserta otra fila del mismo equipo para el mismo día y salta la clave, no el índice: el mánager recibe `kit_ocupado` con su propio equipo. Igual si un patrocinio y un cambio caen el mismo día.",
+    "correccion": "«`setKit` escribe con `insert … on conflict (team_id, valid_from_day) do update set kit = excluded.kit, set_by = excluded.set_by, sponsor_deal_id = excluded.sponsor_deal_id`, y solo un 23505 con `constraint_name = 'teams_world_kit_uidx'` es `KitTakenError`»; `kits.test.ts` gana el caso «tomar un equipo y guardar maillot el mismo día da 200».",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-031",
+    "seccion": "§8.7",
+    "linea": 1573,
+    "gravedad": "baja",
+    "afirmacion": "429 `kit_reciente` (antes de `KIT_CHANGE_COOLDOWN_DAYS` = 28 días de juego, DD-09)",
+    "fallo": "Hoy el 429 es solo del límite de peticiones (`apps/api/src/security.ts` l. 10 y l. 20: «Un 429 lleva `retry-after`»), y ninguna ruta devuelve un 429 de dominio. La web lee `retry-after` de todo 429 (`api/request.ts` l. 128) y E2 trata un `ApiError` 429 como espera y no como fallo (`domain/broadcast/player.ts` l. 330-332). Una espera de 28 días de juego no es un límite de ritmo.",
+    "correccion": "«409 `kit_reciente`», y lo mismo en la fila de `apps/api/src/routes/kit.test.ts` de §16.2 (l. 2908).",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-032",
+    "seccion": "§9.8",
+    "linea": 1804,
+    "gravedad": "media",
+    "afirmacion": "`stageTables.test.tsx` sigue pasando con el maillot en cada fila, porque cuenta por etiqueta exacta y toma el primer enlace de la fila (l. 35-36 y 43-48; X-13, codigo C10)",
+    "fallo": "`wearers` (`apps/web/src/pages/stageTables.test.tsx` l. 43-48) saca el nombre con `/<a [^>]*>([^<]+)<\\/a>/`, un `<a>` cuyo contenido es solo texto. Con `RankTable` la celda de identidad entera es el enlace (§4.5, l. 675) y contiene la bandera, el nombre y el `<svg>` del maillot (`RiderLabel` con `link: false`, §4.6): la expresión no casa, devuelve `''` y fallan los `toEqual` de l. 100-102, 117, 141-142 y 153.",
+    "correccion": "«`stageTables.test.tsx` se re-sella en el 12b: `wearers` toma el nombre del nodo `data-ui=\"RiderLabel\"` de la fila (o del `aria-label` del enlace de identidad), con la causa escrita, y sigue contando por etiqueta exacta».",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-033",
+    "seccion": "§9.8",
+    "linea": 1804,
+    "gravedad": "baja",
+    "afirmacion": "la clasificación por equipos pinta el maillot de cada equipo con `Kit` a 28 px delante del nombre, donde hoy va la bandera (`TeamClassTable.tsx` l. 35; identidad §6.4)",
+    "fallo": "4-i (l. 891), §6.1 (l. 1023) y 17-h (l. 3220, «y no el maillot delante del nombre que dice §9.8») ponen el nombre y después el maillot, el orden de D-00c.",
+    "correccion": "«la clasificación por equipos pinta el nombre de cada equipo seguido de su `Kit` de 28 px, y quita la bandera (`TeamClassTable.tsx` l. 35; identidad §6.4)».",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-034",
+    "seccion": "§9.10",
+    "linea": 1858,
+    "gravedad": "baja",
+    "afirmacion": "`rgba(255,255,255,0.6)`, 6,55:1 sobre la noche (identidad §6.1)",
+    "fallo": "La «noche» de identidad es su `night` `#14213d` (`propuestas/identidad.md` l. 112), que no está en esta paleta. Medido sobre los fondos oscuros de este documento: 6,34:1 sobre `navy-dark` `#0b2740`, 5,30 sobre `navy` `#123a5c` y 3,21 sobre `bad` `#b42318`, que son los del rótulo (§14.5).",
+    "correccion": "«`rgba(255,255,255,0.6)`: 6,34:1 sobre `navy-dark`, 5,30 sobre `navy` y 3,21 sobre `bad` (medido)».",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-035",
+    "seccion": "§10.5",
+    "linea": 2029,
+    "gravedad": "baja",
+    "afirmacion": "**`↺ Back to Build`** (I-27): un `Button` `quiet` de 44 px en la fila de un día `Your edit`",
+    "fallo": "§3.7 saca los glifos del texto y da el icono `retry` (l. 334), y `ButtonProps` tiene `icon?: IconName` (l. 615). Con `↺` (U+21BA) dentro de `children`, el botón lleva un glifo que §3.7 no deja y que `ui/10` tampoco caza.",
+    "correccion": "«**`Back to Build`** (I-27): un `Button` `quiet` de 44 px con `icon=\"retry\"`», y lo mismo en `Back to team plan`, `Back to coach` y `Back to rest`, en 10-a y en el dibujo de §10.2.",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-036",
+    "seccion": "§11.2",
+    "linea": 2148,
+    "gravedad": "media",
+    "afirmacion": "block: dayBlockSchema.strict().nullable(), // con source 'bloque'",
+    "fallo": "`ordersDaySchema`, `planPreviewDaySchema`, `planPreviewRaceSchema`, `planPreviewResponseSchema` y `dayBlockSchema` son esquemas de respuesta y llevan `.strict()`. El serializador valida con `safeEncode` y da un 500 ante una clave de más (`fastify-type-provider-zod` 7.0.0, `dist/cjs/core.cjs` l. 114-120; medido con zod 4.4.3: una respuesta con `raceName` de más contra el `.strict()` falla con `unrecognized_keys`, y con `z.object` sale sin ella). Eso apaga el quitar lo no declarado, que es el mecanismo de §13 (l. 2503 y 2586), y convierte cualquier campo de más de `getRiderUpcomingRaces` (l. 333-376, que trae `raceName`, `daysUntil` o `bib`) en un 500.",
+    "correccion": "Quitar `.strict()` de `dayBlockSchema`, `ordersDaySchema`, `planPreviewDaySchema`, `planPreviewRaceSchema` y `planPreviewResponseSchema`; dejarlo solo en `planPreviewRequestSchema` y en su `plan`.",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-037",
+    "seccion": "§11.6",
+    "linea": 2264,
+    "gravedad": "baja",
+    "afirmacion": "fuera el `GD N` de `MyRaces.tsx` l. 205 y 230",
+    "fallo": "El segundo `GD` está en `MyRaces.tsx` l. 235 (`GD {race.startDay}`); la l. 230 es `onEnter: (id: string) => void`.",
+    "correccion": "«fuera el `GD N` de `MyRaces.tsx` l. 205 y 235».",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-038",
+    "seccion": "§11.7",
+    "linea": 2268,
+    "gravedad": "baja",
+    "afirmacion": "y `dashboardActions` da, en este orden (pantalla)",
+    "fallo": "En `apps/web/src/domain/dashboard.ts` no hay `dashboardActions`: la función es `buildDashboard(input: DashboardInputs): DashboardAction[]` (l. 54).",
+    "correccion": "«y `buildDashboard` (`dashboard.ts` l. 54) da, en este orden (pantalla)».",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-039",
+    "seccion": "§12.1",
+    "linea": 2337,
+    "gravedad": "baja",
+    "afirmacion": "\"url\": \"/world/races\",",
+    "fallo": "El sensor cuenta los arranques desde el manifiesto por `?source=` (`vitalsSchema.source`, `pwa` o `pwa-shortcut`, §12.8 l. 2459), y el atajo `Training` lleva `?source=pwa-shortcut` (l. 2332) pero `Races` no: sus arranques saldrían con `source` nulo, como una visita normal.",
+    "correccion": "«\"url\": \"/world/races?source=pwa-shortcut\",».",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-040",
+    "seccion": "§12.3",
+    "linea": 2373,
+    "gravedad": "media",
+    "afirmacion": "**`decide(request)`**, en `apps/web/sw/decide.js`",
+    "fallo": "La firma del bloque es `decide(request, origin)` (l. 2395). Y `decide.js` es un módulo (`export function`), mientras que `navigator.serviceWorker.register('/sw.js')` registra por defecto un script clásico, donde `import` y `export` son error de sintaxis; el documento no dice si `vite-plugin-sw.ts` mete `decide.js` dentro de `dist/sw.js` o si se registra con `{ type: 'module' }`.",
+    "correccion": "«**`decide(request, origin)`**, en `apps/web/sw/decide.js`; `vite-plugin-sw.ts` lo copia sin `export` dentro de `dist/sw.js`, que sigue siendo un script clásico, y `registerServiceWorker()` registra `/sw.js` sin `type`».",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-041",
+    "seccion": "§13.1",
+    "linea": 2497,
+    "gravedad": "baja",
+    "afirmacion": "(la marca de cuarto de banda bajo cada estrella, `AttributeList.tsx` l. 33-48)",
+    "fallo": "`ProgressMark` está en `AttributeList.tsx` l. 39-51, como dice §4.6 (l. 765); l. 33-38 es su comentario. El mismo rango sale en el comentario de `markSchema` (l. 2537).",
+    "correccion": "«`AttributeList.tsx` l. 39-51», aquí y en el comentario de `markSchema` (l. 2537).",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-042",
+    "seccion": "§13.2",
+    "linea": 2535,
+    "gravedad": "media",
+    "afirmacion": "/** La flecha de 28 días, en sus cinco niveles (trendArrow, rider.ts l. 286-292). */",
+    "fallo": "`trendArrow` devuelve `TrendArrow`, los glifos de `TREND_ARROWS = ['↓', '↘', '→', '↗', '↑']` (`packages/shared/src/rider.ts` l. 271-292), y la web compara esos glifos (`AttributeList.tsx` l. 53-70). Nada traduce un glifo a `sube_mucho`…`baja_mucho`, así que ni la ruta `/trend` sabe qué mandar ni la web qué pintar.",
+    "correccion": "Añadir en `rider.ts`: `export const TREND_ARROW_CODE = { '↑': 'sube_mucho', '↗': 'sube', '→': 'igual', '↘': 'baja', '↓': 'baja_mucho' } as const satisfies Record<TrendArrow, string>`, que usa la ruta `/trend` en el 19b, y escribir en 13-a que `AttributeList` pasa a leer el código y pinta el icono `trend` girado.",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcodigo-043",
+    "seccion": "§13.3",
+    "linea": 2586,
+    "gravedad": "baja",
+    "afirmacion": "(`apps/api/src/routes/news.ts` l. 448; `contracts.ts` l. 766-773)",
+    "fallo": "No existe `apps/api/src/routes/news.ts` (las rutas son `admin`, `authProxy`, `broadcast`, `calendar`, `context`, `geo`, `health`, `me`, `params`, `races`, `rankings`, `riders`, `teams` y `world`). Las claves de más salen de `packages/db/src/news.ts` l. 446-448 (`rows.map((r) => ({ ...r, personal: false }))`) y las sirve `apps/api/src/routes/teams.ts` l. 152.",
+    "correccion": "«(`packages/db/src/news.ts` l. 446-448, servido en `apps/api/src/routes/teams.ts` l. 152; `contracts.ts` l. 766-773)».",
+    "foco": "codigo"
+  },
+  {
+    "id": "Rcobertura-020",
+    "seccion": "§8.1",
+    "linea": 1452,
+    "gravedad": "baja",
+    "afirmacion": "/** los ocho primeros, de más a menos carreras compartidas */",
+    "fallo": "La regla de §13.1 dice que «toda respuesta de la API es un subconjunto de lo que una pantalla enseña a quien la pide», y el veredicto del editor nombra un solo rival (`Too close to Mistral Racing for colour-blind viewers (deuteranopia). Try another colour or figure.`, §8.7, l. 1564): siete de los ocho `conflicts` viajan sin pintarse. `frontera.test.ts` no lo vería, porque mira nombres de campo (§13.2, punto 3). Es la regla que este documento fija, rota en su propia ruta nueva.",
+    "correccion": "Pasar `conflicts` a `.max(1)` con el comentario `/** el rival que más carreras comparte: el que nombra la pantalla (§8.7) */`, y en el texto de §8.7, «el veredicto del servidor, con el rival que más carreras comparte y su visión».",
+    "foco": "cobertura"
+  },
+  {
+    "id": "Rcobertura-021",
+    "seccion": "§8.4",
+    "linea": 1484,
+    "gravedad": "baja",
+    "afirmacion": "dos humanos que chocan no se fuerzan, y `kitWorld.bench.ts` los cuenta cada noche",
+    "fallo": "§16.1 (l. 2869), 16-c (l. 2974), §16.2 (l. 2907), §16.5 (l. 2960) y §17.19 (l. 3125) llaman al banco `kitWorld.long.test.ts`, porque con `.bench.ts` vitest no lo encontraría (`vitest.config.ts` l. 7), y §20.5 (l. 3571) lo da por renombrado.",
+    "correccion": "Cambiar `kitWorld.bench.ts` por `kitWorld.long.test.ts`.",
+    "foco": "cobertura"
+  },
+  {
+    "id": "Rcobertura-022",
+    "seccion": "§8.10",
+    "linea": 1585,
+    "gravedad": "alta",
+    "afirmacion": "solo en `/team/identity` (§8.7), la ficha del equipo (`Team.tsx`, hoy a 44, l. 87) y la cabecera de la ficha del corredor (`RiderHeader`, §4.6)",
+    "fallo": "El dueño lo pidió para la página del equipo: «para eso tiene que poder verse en la pagina del equipo el maillot en tamaño grande... e incluso quizas tambien la parte de atras del maillot?? y el pantalon?» (`00-encargo.md` §7.3, l. 304-307; D-00g, «vistas grandes en la página del equipo, con la espalda y el culote»). El documento solo dibuja el editor del mánager (§8.7). La ficha del equipo, que ve cualquiera, no tiene dibujo, ni sitio para `KitShowcase`, ni respuesta en §7.3 (la 12 es la plantilla, l. 1218); §8.3 manda `Team.tsx` l. 87 a `team` 48 (l. 1478) y §4.6 pone `RiderHeader` a 40 (l. 760), mientras §15.2 (l. 2791) y el PR 17c (l. 3127) los ponen en grande. El agente del 17c no sabe qué pintar ni dónde, y el dueño no vería lo que pidió.",
+    "correccion": "Añadir a §8.10: «**En la ficha del equipo** (`Team.tsx`, pantalla 12): bajo el `PageHeader`, un `Panel` `Kit` con `KitShowcase` a 160 y sus pestañas `Front`, `Back` y `Shorts` (al tocar, la `Sheet` con la de 320), y debajo la plantilla con `data-answer`, que sigue en los 520 px (comprobación 7). **En la ficha del corredor**, `RiderHeader` conserva el maillot de 40 y al tocarlo abre la `Sheet` con el que lleva a 320, por delante y, si corre ese día, por detrás con su dorsal.» Y en §8.3, l. 1478, `Team.tsx` l. 87 pasa de `team` 48 a «`showcase` 160, en `KitShowcase`».",
+    "foco": "cobertura"
+  },
+  {
+    "id": "Rcobertura-023",
+    "seccion": "§8.10",
+    "linea": 1585,
+    "gravedad": "media",
+    "afirmacion": "`poster` no cabe en un `Panel` a 360 (312 px útiles) y se abre al tocar en una `Sheet` a pantalla completa (336)",
+    "fallo": "D-09 cierra el catálogo y §5.5 (l. 989) dice que un componente nuevo solo entra «con su fila en §4 de este documento». `Sheet` y `KitShowcase` (l. 1585 y 1530) no tienen fila en §4: ni anatomía, ni estados, ni ARIA. Una `Sheet` a pantalla completa es un diálogo modal (foco atrapado, cierre, el «atrás» del sistema), algo que ningún componente de §4 resuelve, y el agente que lo escriba tendría que decidirlo.",
+    "correccion": "Añadir a §4.4 la fila `Sheet`: «diálogo a pantalla completa: `<dialog>` con `aria-modal`, `bg-surface`, cabecera de 48 con el título en `title` y `close` de 44 × 44 (`aria-label=\"Close\"`); al abrir, el foco va a `close`, y al cerrar vuelve a lo que la abrió; la cierran `close`, `Escape` y el «atrás» del sistema (una entrada de historial); estados `open` y `closed`»; y la fila `KitShowcase`: «`Tabs` `page` (`Front`, `Back`, `Shorts`) sobre un `Kit` de 160 con su `view`; tocarlo abre la `Sheet` con el de 320; estados `ready` y `hidden` (sin maillot)»; las dos, también en §4.11 y en §G.3.",
+    "foco": "cobertura"
+  },
+  {
+    "id": "Rcobertura-024",
+    "seccion": "§9.1",
+    "linea": 1724,
+    "gravedad": "baja",
+    "afirmacion": "(calculado, sin mirar en un aparato; la duda 5)",
+    "fallo": "Las «Dudas para el ensamblador» de cada sección no entran en la v0 ni en `docs/visual.md`, pero el texto las cita por número: «(la duda 5)» (l. 1520 y 1724), «Ver la duda 1.» (l. 1630 y 2112), «(la duda 1)» (l. 1883), «Ver la duda 2.» (l. 1886) y «Ver la duda 4.» (l. 1887). El cierre (`04-fase-refutacion.md` §7) exige que no queden referencias a `borrador/`, y estas remiten a él.",
+    "correccion": "En l. 1520, «(la duda 5)» pasa a «(§19.2, DD-07)»; en l. 1630, borrar «Ver la duda 1.»; en l. 1724, «la duda 5» pasa a «la hoja del 16a lo mira, §18.2»; en l. 1883, borrar «, que §G.5 no recoge (la duda 1)»; en l. 1886 y 1887, borrar «Ver la duda 2.» y «Ver la duda 4.»; en l. 2112, borrar «Ver la duda 1.».",
+    "foco": "cobertura"
+  },
+  {
+    "id": "Rcobertura-025",
+    "seccion": "§9.5",
+    "linea": 1768,
+    "gravedad": "baja",
+    "afirmacion": "que pinta la página de opciones y adjunta el PR del paso 17",
+    "fallo": "§17.1, regla 9 (l. 2996), §17.18 (l. 3117), 17-m (l. 3226), §17.28 (l. 3195), §18.2 (l. 3258) y §19.4 (l. 3359) hacen la hoja entregable del PR 16a, el que fija la tabla de ajustes y la de choques; §9.5 la pone en el paso 17. D-00f dice «como artefacto del PR que los introduce», y el agente no sabe cuál es.",
+    "correccion": "Cambiar «adjunta el PR del paso 17» por «adjunta el PR 16a (17-m), con la respuesta del dueño antes del 17a».",
+    "foco": "cobertura"
+  },
+  {
+    "id": "Rcobertura-026",
+    "seccion": "§9.6",
+    "linea": 1772,
+    "gravedad": "media",
+    "afirmacion": "**Frente a los líderes**, ninguno de los 133 baja de 11,5 en las cuatro visiones; en grises no está medido.",
+    "fallo": "La 7-h de E2 descartó la banda de bandera porque «en gris se confunde con el verde» (`docs/retransmision.md` l. 5229), y H-09 pedía explicar «con su medida» por qué el nacional ya no cae en ese defecto; la respuesta de §9.6 deja justo los grises sin medir. La 7-h descartó además «la bandera con una estrella encima, que ... enseñaba al campeón de la fuga como una bandera entre cuatro maillots» (l. 5229), lo más parecido a lo que ahora se elige, y §9.6, que se titula «La 7-h de E2, contestada», no la contesta.",
+    "correccion": "Añadir: «`champion.test.ts` escribe la distancia en grises de los 133 al verde de los puntos, y el PR 16a la apunta aquí con su cifra; el que baje de 10 va a la hoja de revisión con su porqué. La otra mitad de la 7-h, la bandera con una estrella encima, se descartó porque era una bandera entre maillots: el nacional de D-00d es un maillot, con la silueta `TORSO`, el filete y el cuello de todos (§9.1), y en la barra se lee como un maillot más».",
+    "foco": "cobertura"
+  },
+  {
+    "id": "Rcobertura-027",
+    "seccion": "§9.8",
+    "linea": 1804,
+    "gravedad": "media",
+    "afirmacion": "la clasificación por equipos pinta el maillot de cada equipo con `Kit` a 28 px delante del nombre, donde hoy va la bandera",
+    "fallo": "§4.5 (l. 671: «el nombre del equipo seguido de su `Kit` de 28»), §6.1 (l. 1023), la decisión 4-i (l. 891), 17-h (l. 3220: «y no el maillot delante del nombre que dice §9.8») y el PR 17a (l. 3123) ponen el nombre y después el maillot, el orden de D-00c. `dudas.md` (L3, «duda: el orden del nombre y el maillot del equipo de §9.8») lo anota y §9.8 sigue igual.",
+    "correccion": "Cambiar por «la clasificación por equipos pinta el nombre de cada equipo seguido de su `Kit` a 28 px (4-i, el orden de D-00c), donde hoy va la bandera delante».",
+    "foco": "cobertura"
+  },
+  {
+    "id": "Rcobertura-028",
+    "seccion": "§9.10",
+    "linea": 1858,
+    "gravedad": "baja",
+    "afirmacion": "porque sus fondos son `bad`, `navy-dark` e `ink-2` (D-56, §14.5)",
+    "fallo": "§14.5 (l. 2728) y 14-a (l. 2752) cambian el fondo de la clase 1 a `navy` «y no `ink-2` como escribía D-56», porque dentro del ámbito oscuro `ink-2` es blanco al 75 %; §9.10 cita §14.5 con el fondo viejo.",
+    "correccion": "Cambiar «`bad`, `navy-dark` e `ink-2` (D-56, §14.5)» por «`bad`, `navy-dark` y `navy` (14-a, §14.5)».",
+    "foco": "cobertura"
+  },
+  {
+    "id": "Rcobertura-029",
+    "seccion": "§10.2",
+    "linea": 1916,
+    "gravedad": "baja",
+    "afirmacion": "Tabs page 44",
+    "fallo": "Las pestañas de nivel 2 (`Profile`, `Training`, `Race orders`, `My races`) van en `navy-dark` (§3.1, l. 229) y son la variante `nav`, en el ámbito oscuro (§4.4, l. 649), como dibuja el marco de §6.3 para la misma pantalla (l. 1095: «Tabs nav, 44»); `page` es la del contenido, con subrayado `accent`. Dos dibujos de `/me/training` con dos variantes.",
+    "correccion": "Cambiar «Tabs page 44» por «Tabs nav 44».",
+    "foco": "cobertura"
+  },
+  {
+    "id": "Rcobertura-030",
+    "seccion": "§10.2",
+    "linea": 1955,
+    "gravedad": "baja",
+    "afirmacion": "**Las nueve comprobaciones** (§7.1)",
+    "fallo": "§7.1 tiene diez (la 10, la del maillot, D-00b), y la línea base guarda diez cifras por pantalla y ancho (l. 1287-1292).",
+    "correccion": "Cambiar por «**Las diez comprobaciones** (§7.1)» y cerrar la lista con «; y la 10 no tiene maillots que medir en esta pantalla».",
+    "foco": "cobertura"
+  },
+  {
+    "id": "Rcobertura-031",
+    "seccion": "§10.3",
+    "linea": 1995,
+    "gravedad": "baja",
+    "afirmacion": "el renglón 2 dice `Racing now · stage 3 of 5`, la etapa que toca, contada con los días de carrera de `days[]`, y no hay escala",
+    "fallo": "§4.8 (l. 798) define para este mismo caso el estado `inactive` de `Scale5`: la escala se pinta sin ningún tramo encendido y con `Racing now · stage 3 of 5`; §10.3 dice que no hay escala. Quien implemente el 9b y el 14 hará dos cosas distintas, y el test de `Scale5` no sabrá cuál.",
+    "correccion": "Cambiar «y no hay escala» por «y la escala va en su estado `inactive` (§4.8), sin ningún tramo encendido».",
+    "foco": "cobertura"
+  },
+  {
+    "id": "Rcobertura-032",
+    "seccion": "§10.4",
+    "linea": 1999,
+    "gravedad": "media",
+    "afirmacion": "con los dos malos en los extremos y el bueno en medio",
+    "fallo": "`perfecto` (`Spot on`, «This is the best way to arrive») es el cuarto de cinco (tabla de l. 2001-2007), no el del medio, que es `bien` (`Fine`, «not at your best»). El encargo pide arreglar justo eso: que las cinco etiquetas sean una escala «con dos extremos malos y el bueno en medio» (`00-encargo.md` §1, punto 6). Con los tramos inactivos iguales (`surface-2` y `line-strong`, l. 1999) nada señala cuál es el bueno si el corredor no está en él: un `Loaded` no ve hacia dónde ir, y el defecto 2 sigue a medias.",
+    "correccion": "Cambiar por «con los dos malos en los extremos y el mejor, `Spot on`, en el cuarto, porque los cortes de hoy no son simétricos (DD-10)», y añadir a `Scale5` (aquí y en §4.8): «el tramo `perfecto` lleva siempre, activo o no, el icono `check` de 16 delante de su palabra (en `good` inactivo y en blanco activo), y el `aria-label` acaba en `; best is Spot on`».",
+    "foco": "cobertura"
+  },
+  {
+    "id": "Rcobertura-033",
+    "seccion": "§10.4",
+    "linea": 1999,
+    "gravedad": "baja",
+    "afirmacion": "`You'll arrive Loaded: second of five, from too tired to too fresh`",
+    "fallo": "§4.8 (l. 798) da otro texto para el mismo `aria-label` del mismo componente: `Race Var: you'll arrive Loaded, 2 of 5, from too tired to too fresh`. Es un texto de pantalla y el documento escribe dos.",
+    "correccion": "Usar el de §4.8, que lleva la carrera (`Scale5Props.race`): cambiar el de §10.4 por `Race Var: you'll arrive Loaded, 2 of 5, from too tired to too fresh`.",
+    "foco": "cobertura"
+  },
+  {
+    "id": "Rcobertura-034",
+    "seccion": "§11.1",
+    "linea": 2128,
+    "gravedad": "baja",
+    "afirmacion": "**Deja escrito, para su línea**: que el entrenador no mire el calendario",
+    "fallo": "`docs/entrenamiento.md` l. 1287-1291 ([DOC 51] del mapa 04) pedía que `GET /orders` diera `coach` por día con su razón y que «la desviación del jugador» fuera «informada» (`el entrenador proponía descanso: post-vuelta`), y la contradicción 9 del mapa 04 lo cuenta como no hecho. E3 da los bloques por día (`days[]`, §11.4) pero ni la razón del entrenador ni la desviación informada, y esta lista de lo que deja no las nombra; el PR 24 corrige «todas implementadas» (`docs/entrenamiento.md` l. 1697) sin decir qué queda.",
+    "correccion": "Añadir a la lista: «la razón del entrenador por día y la desviación del jugador informada (`docs/entrenamiento.md` l. 1287-1291), que piden a `coachPlan` un campo que hoy no da, para la línea de entrenamiento; el `Chip` `Coach decides on the day` deja sitio a esa razón en su renglón»; y en §17.26, que la corrección de l. 1697 diga qué queda.",
+    "foco": "cobertura"
+  },
+  {
+    "id": "Rcobertura-035",
+    "seccion": "§12.6",
+    "linea": 2430,
+    "gravedad": "media",
+    "afirmacion": "como `Notice` `note` en la portada, **tras la tercera sesión**",
+    "fallo": "§4.7 (l. 775) define `InstallHint` como aviso flotante con «el mismo sitio y la misma forma que `UpdateToast`», §4.9 (l. 824) lo fija sobre la `ActionBar` o la `BottomNav` con la regla de uno solo a la vez (D-12: «`UpdateToast` gana a `InstallHint`, que espera a la siguiente sesión»), y §16.2 prueba `InstallHint.test.tsx`. §12.6 lo convierte en un `Notice` en el flujo de la portada, que no compite con `UpdateToast` y no se puede cerrar (`Notice` solo cierra en `info` y `good`, l. 771), mientras dice «una sola vez tras cerrarlo».",
+    "correccion": "Cambiar «como `Notice` `note` en la portada,» por «como el aviso flotante de §4.7, sobre la `BottomNav` o la `ActionBar`, en cualquier pantalla,».",
+    "foco": "cobertura"
+  },
+  {
+    "id": "Rcobertura-036",
+    "seccion": "§13.5",
+    "linea": 2601,
+    "gravedad": "media",
+    "afirmacion": "`{ gameDay, fitness, freshness }` con `barSchema`: `conditionBars` pasa al servidor",
+    "fallo": "La columna «Hoy, en la web» dice que el diario de 90 días alimenta «las dos barras de `conditionBars`», pero también la gráfica de 90 días (`conditionSeries`, `apps/web/src/domain/condition.ts` l. 57; `FormChart`, `RiderProfile.tsx` l. 279), que es la única razón para mandar 90 días de 0 a 100. La ficha de §4.6 no pinta esa gráfica, solo un `Meter` de cuatro segmentos con su palabra (§4.8, l. 814, «Nunca la cifra»): con ese diseño la API mandaría 90 cifras de 0 a 100 para pintar dos niveles de 0 a 4, contra «en su forma de pantalla» (D-53, l. 2495).",
+    "correccion": "En la fila, la columna «Hoy, en la web» pasa a «las dos barras de `conditionBars` y la gráfica de 90 días (`FormChart`, `RiderProfile.tsx` l. 279)», y el arreglo, a «`{ gameDay, fitness, freshness }` con `barSchema`, porque la gráfica de §4.6 pinta la serie entera; si la gráfica sale de la ficha, la ruta da solo el día de hoy en los cuatro niveles del `Meter`».",
+    "foco": "cobertura"
+  },
+  {
+    "id": "Ruso-022",
+    "seccion": "§8.2",
+    "linea": 1465,
+    "gravedad": "media",
+    "afirmacion": "Si alguna carrera falla, el mismo PR lo dice y propone qué color o qué figura sobra",
+    "fallo": "Quitar un color o una figura cambia una decisión del dueño (D-00e: quince colores y siete figuras), y quien implemente no tiene a quién preguntar (`00-encargo.md` l. 66). Con la puerta en rojo, `kits.test.ts` no deja fusionar el 16a, y detrás van el 16b, el 17a, el 17b, el 17c, el 18a, el 18b y el 19c: el plan se para sin valor por defecto. No es improbable: las 310 carreras con el vocabulario de D-00e están sin medir (O-25, en esta misma línea).",
+    "correccion": "Cambiar por: «Si alguna carrera falla, el PR no toca el vocabulario: (1) la traducción se repite con los equipos de las carreras que fallan al principio del orden; (2) si aún falla, los NPC de esas carreras ceden con la regla de DD-08 hasta que pase; (3) si sigue fallando, el caso pasa a `it.todo` con la cifra en el nombre (`… 3 carreras con un par por debajo de 10 …`), el PR se fusiona y §19 gana la decisión DD-24 del dueño, quitar un color o una figura, con la cuenta por color y por figura que escribe el test».",
+    "foco": "uso"
+  },
+  {
+    "id": "Ruso-023",
+    "seccion": "§8.3",
+    "linea": 1471,
+    "gravedad": "media",
+    "afirmacion": "a 28 serían 12 × 28 + 11 × 8 = 424 px, más que los 308 útiles a 360",
+    "fallo": "Los 308 px no cuentan la tarjeta de la barra: `GroupBar` vive en `card` de `StageWatch.tsx` (l. 255: `border` y `p-3`) dentro de `main` (`px-3`, `App.tsx` l. 158), y la línea lleva `pl-7` (`GroupBar.tsx` l. 235): quedan 282 px a 360 y 242 a 320. Cada ficha (el maillot de 28, 4 de hueco y `×3` en `caption` 600) mide 45,2 px con Inter y 50,4 con DejaVu Sans, y maquetada (`<scratchpad>/refutador-uso/maqueta.mjs`) caben cinco por renglón solo con Inter a 360; a 320, y con DejaVu a 360, cuatro. §14.4 (l. 2711) dice «caben cinco por renglón» y, con `TEAM_KIT_LINES_MAX` = 2, un agente pintará diez fichas que a 320 ocupan tres renglones, o pondrá `+N teams` donde no cabe: `+3 teams` mide 54,3 y 64,2 px, más que una ficha.",
+    "correccion": "En §8.3 (l. 1471), «los 308 útiles a 360» por «los 282 útiles a 360 (242 a 320) dentro de la tarjeta de `Watch`»; y en §14.4 (l. 2711): «en el móvil, la línea de equipos va sin `pl-7` y con `gap-x-1`: quedan 310 px a 360 y 270 a 320, y caben cinco fichas de 50,4 px por renglón (268 px con DejaVu Sans); `+N teams` ocupa más que una ficha, así que el segundo renglón lleva como mucho tres fichas y `+N teams` a 320 y cuatro y `+N teams` a 360; la barra cuenta lo que cabe con la anchura medida (`ResizeObserver`), no con una cifra fija».",
+    "foco": "uso"
+  },
+  {
+    "id": "Ruso-024",
+    "seccion": "§8.7",
+    "linea": 1524,
+    "gravedad": "media",
+    "afirmacion": "sustituye a las doce semillas de `TeamManager.tsx` l. 21-26 y al panel `Jersey` de `TeamIdentity.tsx` l. 175-184",
+    "fallo": "En `TeamIdentity.tsx` el panel `Jersey` va tras la tarjeta de identidad (l. 137-155) y el panel `The team` (l. 156-174); en la captura 16, `The team` empieza hacia los 445 px y sigue pasada la primera pantalla. Puesto donde está el panel que sustituye, el `data-answer` del editor (l. 1530) cae por debajo de los 800 px y la comprobación 7 (520) falla en la pantalla 16. Y el alto: la página mide hoy 1.948 px (`capturas/README.md`); el editor dibujado en l. 1527-1553, sumado con las medidas de §8.7 (la vista de 160, siete losetas de 72 en tres filas, 13 y 15 muestras en tres filas cada paleta, cuatro botones de culote y ocho rivales de 44), mide unos 1.700 px (estimado), y quitando el panel `Jersey` y las semillas (unos 270 px) la página queda hacia los 3.400, más que los 3.200 de la comprobación 9, que corre en esta pantalla de herramienta.",
+    "correccion": "Añadir a §8.7 el orden de `/team/identity`: «`PageHeader` (`Identity` y la línea de estado `Noord Cycling · WorldTour`), el `Panel` `Your kit` con `KitPicker` (la respuesta), los campos de nombre y país de `TeamManager`, el panel `The team` y `History`; `Teams you race this season` va plegado en un `Disclosure` (`Show the teams you race`, pantalla)». Con ese orden, la respuesta queda hacia los 190 px y la página por debajo de 3.200 px; el PR 18b lo mide en la línea base de la 16.",
+    "foco": "uso"
+  },
+  {
+    "id": "Ruso-025",
+    "seccion": "§8.7",
+    "linea": 1538,
+    "gravedad": "media",
+    "afirmacion": "aria-pressed en la elegida",
+    "fallo": "La loseta y la muestra elegidas solo llevan `aria-pressed`: el documento no dice cómo se ven, ni en la tabla de estados de §8.7 (l. 1558-1571) ni en §4. Un agente pondrá un borde de color, que un daltónico no separa del color de la muestra cuando son parecidos, o nada. Es el estado que más se mira del editor.",
+    "correccion": "Añadir a §8.7: «la loseta o la muestra elegida lleva un anillo de 3 px en `ink` (16,54:1 sobre `surface`) a 2 px de su borde y el icono `check` de 16 en su esquina superior derecha, en blanco con filo de 1 px en `ink`; `data-state=\"active\"`, y las demás, `inactive`», con su caso en `KitPicker.test.tsx` (18b) y su estado en `/_ui`.",
+    "foco": "uso"
+  },
+  {
+    "id": "Ruso-026",
+    "seccion": "§8.7",
+    "linea": 1556,
+    "gravedad": "media",
+    "afirmacion": "Una muestra que no se puede elegir con la base y la figura de ese momento sale tachada y su porqué aparece debajo en `meta` al tocarla, nunca en un `title`.",
+    "fallo": "No dice de qué color es la tachadura, y ningún color sirve para las quince muestras: medido con `<scratchpad>/refutador-uso/colores.py`, `ink` queda por debajo de 3:1 sobre `black`, `navy`, `green`, `red`, `purple`, `brown` y `plum` (de 1,02 a 2,94), y el blanco sobre `sky`, `orange`, `yellow` y `white` (de 1,00 a 2,41). Una marca de estado por debajo de 3:1 no cumple WCAG 1.4.11. Y la muestra `white` sobre el `Panel` blanco da 1,00:1 y la `yellow` 1,41: sin borde no se ve dónde se toca.",
+    "correccion": "Añadir a §8.7: «la tachadura es una diagonal de 2 px en blanco con filo de 1 px en `ink`, que con uno de sus dos tonos queda a 4,79:1 o más de cada uno de los quince colores; toda muestra lleva un borde de 1 px `line-strong` (3,66 sobre `surface`)», y los dos casos en `KitPicker.test.tsx` (18b).",
+    "foco": "uso"
+  },
+  {
+    "id": "Ruso-027",
+    "seccion": "§8.10",
+    "linea": 1591,
+    "gravedad": "baja",
+    "afirmacion": "cada mayúscula avanza unos 0,65 em (estimado, como en §9.9)",
+    "fallo": "Con la letra del sistema no vale para las mayúsculas anchas. Medido a 12 px y 600 (`<scratchpad>/refutador-uso/letras.mjs`): `ABC` mide 25,5 px con Inter y 27,3 con DejaVu Sans, pero `MWM` de 31,3 a 37,1 y `WMW` de 32,7 a 38,4, de 0,87 a 1,07 em por letra. El pecho mide 30 px a 72 y 27 con su margen de 1 u, así que la tabla (3 mayúsculas a 72, l. 1595) y la marca de pecho «de dos o tres mayúsculas» (§9.9, l. 1826) solo caben con letras estrechas, y `Kit.test.tsx` solo comprueba los 12 px de alto, no que la marca quepa en su caja.",
+    "correccion": "En §8.10 (l. 1591): «`zoneCapacity` cuenta 1,07 em por mayúscula, la de `W` a 600 con DejaVu Sans, así que en el pecho caben 2 a 72 px, 3 a 96, 5 a 160 y 10 a 320», con la tabla de l. 1593-1598 rehecha con esa regla; y en §9.9 (l. 1826): «la lista cerrada de patrocinadores (DD-19) guarda cada marca con su ancho medido en Chromium a 12 px y 600, y una marca más ancha que la caja de su tamaño no se pinta».",
+    "foco": "uso"
+  },
+  {
+    "id": "Ruso-028",
+    "seccion": "§9.7",
+    "linea": 1800,
+    "gravedad": "media",
+    "afirmacion": "Están a 10 o más en las cuatro porque lo que queda más cerca está reservado (§8.1)",
+    "fallo": "El líder de la general y el de los puntos no tienen forma propia: el amarillo es liso, la figura `plain` de los equipos, y el verde lleva la banda de `band` (l. 1781). Entre ellos y los maillots permitidos solo separa el color, y la misma línea da las cifras: del amarillo, el permitido más cercano queda a 10,8 en protanopía y a 5,3 en grises (`plain.sky`); del verde, a 3,4 en grises (`band.pink.yellow`). El principio 2.7 dice que «La forma de cada identidad está reservada y ningún maillot de equipo la puede llevar» (l. 184), y el encargo pide «forma además de color» (`00-encargo.md` l. 27-29): un líder se distingue de un equipo solo por el color, y en grises, lo que ve un teléfono con el filtro de grises o una acromatopsia, por debajo del umbral.",
+    "correccion": "En §8.1 (l. 1390) y §9.7 (l. 1800): «para las señales de líder, lo reservado se mide en las cinco vistas, grises incluidos: queda reservado todo maillot a menos de `KIT_MIN_DISTANCE` de un líder en alguna de las cinco (al menos `plain.sky` del amarillo y `band.pink.yellow` del verde)»; la tabla de choques y `champion.test.ts` lo aplican, y el 16a recuenta los permitidos. Y en el principio 2.7 (l. 184): «la de los líderes de la general y de los puntos, que comparten figura con los equipos, se reserva por distancia en las cinco vistas».",
+    "foco": "uso"
+  },
+  {
+    "id": "Ruso-029",
+    "seccion": "§10.2",
+    "linea": 1938,
+    "gravedad": "baja",
+    "afirmacion": "[ Build    ▾ ] │  row 600; Field select de 48",
+    "fallo": "`Field` lleva el «rótulo encima en `meta` 600 `ink`, siempre visible» (§4.3, l. 601) y no tiene otra variante, y el catálogo es cerrado (D-09). Los dibujos del cuadro ponen `select` sin rótulo encima: el del bloque junto a `Week 1 · Days 51 to 57` (l. 1938 y 1942), los dos de cada día (`[ Endurance ride ▾ ] [ Normal ▾ ]`, l. 1968 y 1974) y `Emphasis` e `Intensity` con el rótulo a la izquierda (l. 1946). Quien implemente tendrá que elegir entre poner un rótulo encima de cada uno (unos 24 px más por día abierto, 672 en los 28) o inventar una variante que el catálogo no tiene.",
+    "correccion": "Añadir a `Field` en §4.3 (l. 601) la variante `inline`: «el rótulo a la izquierda del control, en `meta` 600 `ink`, en el mismo renglón; si el rótulo es el título de la fila (la semana, el día), el control lleva `aria-labelledby` a ese título y no lo repite», y en los dibujos de §10.2, «Field inline».",
+    "foco": "uso"
+  },
+  {
+    "id": "Ruso-030",
+    "seccion": "§10.2",
+    "linea": 1952,
+    "gravedad": "baja",
+    "afirmacion": "Dashboard   My Rider   My Team   World   News              BottomNav 56",
+    "fallo": "El jugador del dibujo es el de la prueba, José Quintáns, agente libre (l. 1912), y su barra tiene cuatro destinos y no cinco: `sectionLinks` solo pone `My Team` con `hasTeam` (`apps/web/src/domain/nav.ts` l. 51-54, que usa `bottomBarLinks`, l. 62-64), y la captura 01 lo enseña (`Dashboard`, `My Rider`, `World`, `News`). Con cuatro, cada celda mide 90 px a 360 y no 72, que es la cifra de la que depende el plan B de §6.3; el dibujo del marco de §6.3 (l. 1102-1103) repite los cinco para la misma pantalla.",
+    "correccion": "En §10.2 (l. 1952) y §6.3 (l. 1102-1103): «Dashboard   My Rider   World   News   BottomNav 56 (cuatro destinos: el agente libre no tiene `My Team`)», y en §4.4 (l. 651): «de 3 a 5 destinos según la cuenta (`bottomBarLinks`, `nav.ts` l. 62-64): tres sin sesión, cuatro sin equipo y cinco con él».",
+    "foco": "uso"
+  },
+  {
+    "id": "Ruso-031",
+    "seccion": "§10.2",
+    "linea": 1955,
+    "gravedad": "media",
+    "afirmacion": "**Medido** en el prototipo de telefono, que es esta pantalla sin la línea de estado",
+    "fallo": "El prototipo no es esta pantalla. `propuesta-telefono/proto/entrenamiento.html` (en el scratchpad) tiene el `Segmented` con `Coach`, `Mixed` e `I decide`, no `Coach decides`; no tiene la tira de siete días ni `TripRow`; lleva la instrucción que nombra la semana (`Make week 1 lighter to arrive Fine.`, que D-42 descarta); los tramos con 2 px de hueco y no 4; el reloj a 13 px y no en `meta`; la consecuencia de la `ActionBar` que parte de línea (`flex:1`, sin `ellipsis`) y no en un renglón con `…`; y los rótulos de la barra inferior con `text-overflow:ellipsis`. Sus 1.277 px y su «ninguna falta» no miden lo que dibuja §10.2, y el texto los presenta como medida de esta pantalla.",
+    "correccion": "Cambiar por «**Medido** en un prototipo de telefono más simple que esta pantalla (`proto/entrenamiento.html`: sin la tira de siete días ni `TripRow`, con `Coach` por `Coach decides` y la consecuencia en varios renglones), reproducido por el juez de uso (C1; X-18): …», y cerrar el párrafo con «Esta pantalla está sin medir: la mide la prueba del teléfono en el PR 14».",
+    "foco": "uso"
+  },
+  {
+    "id": "Ruso-032",
+    "seccion": "§10.5",
+    "linea": 2021,
+    "gravedad": "baja",
+    "afirmacion": "| `carrera`    | `Race` y `Race Sardegna · stage 2 of 5`  | `warn`    | `warn`        |",
+    "fallo": "`ChipProps` saca el icono del tono (l. 791: «warn warning»), así que cada día de carrera del día a día lleva el triángulo de aviso delante de `Race`. Es el mismo icono de peligro que el documento usa para el velo (`RankTable` `veiled`, l. 676) y para los avisos: un día de carrera, lo normal del juego, se lee como un problema, y el aviso de verdad pierde su señal.",
+    "correccion": "Cambiar el tono de `carrera` a `neutral`, sin icono, y conservar su borde `warn`: «| `carrera` | `Race` y `Race Sardegna · stage 2 of 5` | `neutral` | `warn` |»; la celda `Race` de la tira (`caption` 600 `warn` sobre `warn-bg`, sin icono) se queda.",
+    "foco": "uso"
+  },
+  {
+    "id": "Ruso-033",
+    "seccion": "§10.6",
+    "linea": 2035,
+    "gravedad": "media",
+    "afirmacion": "con una palabra por celda, `Back` mide unos 27 px de los 41 (estimado)",
+    "fallo": "La misma frase pone en la celda de viaje «el icono `travel` de 16 px con `Out` o `Back`», y el dibujo los pinta en línea (`✈Out`, `✈Back`, l. 1940): icono, hueco y palabra miden 46 y 47 px con Inter y con DejaVu Sans (`<scratchpad>/refutador-uso/maqueta.mjs`), y la celda mide 41 a 360 y 35,4 a 320 ((272 − 24) / 7). La tira se sale de su panel en las semanas con viaje, que en el jugador de la prueba son la 1 y la 2 (días 51, 53, 55 y 61); el 27 de la estimación no cuenta el icono.",
+    "correccion": "En §10.6 (l. 2035): «en la celda de viaje, el icono `travel` de 16 px va encima de la palabra (`Out` o `Back`, en `caption`), no a su lado: lo más ancho de una celda es `Race` en `caption` 600, 28,8 px con Inter y 32,6 con DejaVu Sans, que caben en los 35 de 320; la celda mide 48 px de alto (el día, el icono y la palabra)», y los dibujos de l. 1940, 1943 y 2068 con el icono encima.",
+    "foco": "uso"
+  },
+  {
+    "id": "Ruso-034",
+    "seccion": "§11.3",
+    "linea": 2199,
+    "gravedad": "alta",
+    "afirmacion": "sobre el mundo de los bancos, proyecta desde un día la llegada a la salida de cada carrera, deja correr esos días al tick, la compara con la que sale del diario real, escribe el acuerdo (la fracción de carreras en el mismo tramo) y fija un trinquete en el valor medido",
+    "fallo": "En el mundo de los bancos no hay con qué medirlo. `apps/api/src/__fixtures__/spoilerWorld.ts` (l. 29-31, 41, 51 y 160-206) tiene dos equipos, doce corredores y una sola carrera, `race-france`, con la 1 y la 2 corridas por `runOneStage` (l. 128-131) y el reloj en el día de la 3: la única carrera del horizonte está en curso, así que la vista previa la da con `ongoing: true` y `arrival: null` (§11.2) y no hay ninguna llegada que comparar. Tampoco se construye con el tick: `runTick` llama a `seedWorld` (`tick.ts` l. 265), que sembraría las 219 escuadras de la génesis, y cada día cuesta unos 17 s en PGlite (mapa 05 §1), no «unos 30 s» (§16.2, l. 2897). Y un trinquete «en el valor medido», sin suelo, pasa con lo que mida el primer día: no prueba que la vista previa nueva acierte más que la de hoy.",
+    "correccion": "Cambiar por: «`planPreviewDiary.test.ts` corre en el trabajo `Teléfono`, sobre el mundo de la prueba (§7.2): para los corredores con una carrera que sale entre los días 41 y 50, proyecta desde el día 40 su llegada a la salida y la compara con la del diario de esos días, que el mundo ya trae, sin correr el tick. Escribe el acuerdo de la vista previa nueva y el de la de hoy (`riders.ts` l. 424-481, copiada como referencia en el test) y falla si el de la nueva no es mayor»; y en §16.2 (l. 2897), «Teléfono · unos 20 s (estimado)».",
+    "foco": "uso"
+  }
+]
