@@ -7,8 +7,11 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p e2e",
+    "clean": "rm -rf dist",
+    "e2e:mundo": "node e2e/world/build.mjs",
+    "e2e:servir": "node e2e/world/serve.mjs",
+    "e2e:nocturno": "playwright test --project=nocturno"
   },
   "dependencies": {
     "@cyclingstar/engine": "workspace:*",
@@ -23,10 +26,12 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@playwright/test": "1.56.1",
     "@tailwindcss/vite": "^4.3.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.0.5",
+    "axe-core": "4.10.3",
     "tailwindcss": "^4.3.3",
     "vite": "^8.2.0"
   }

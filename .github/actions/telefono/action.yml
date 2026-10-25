@@ -1,0 +1,80 @@
+name: El mundo de la prueba del teléfono
+description: >-
+  La letra, Chromium y el mundo de la prueba del teléfono (E3, docs/visual.md §7.2, §7.4 y §7.6), de la
+  caché o construidos, y el mundo servido en E2E_BASE. Lo usan el trabajo Teléfono de ci.yml y el de
+  cada noche de cobertura.yml. Necesita el repositorio instalado y compilado (`pnpm build`).
+
+runs:
+  using: composite
+  steps:
+    # LA LETRA SE FIJA (§7.6, decisión 7-k): con `e2e/fonts.conf`, que el trabajo pasa en
+    # `FONTCONFIG_FILE`, fontconfig solo ve las tres letras de DejaVu, y toda pila de la web acaba en
+    # DejaVu Sans. Con la de la imagen del ejecutor, un cambio de imagen movería la línea base sin tocar
+    # la web. Si la letra no es esa, se para aquí y no en la primera comprobación.
+    - name: La letra de la prueba (DejaVu Sans)
+      shell: bash
+      run: |
+        if ! dpkg -s fonts-dejavu-core fontconfig > /dev/null 2>&1; then
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends fonts-dejavu-core fontconfig
+        fi
+        letra="$(fc-match system-ui)"
+        echo "system-ui: $letra"
+        case "$letra" in
+          *'"DejaVu Sans"'*) ;;
+          *) echo "La letra de la prueba no es DejaVu Sans (FONTCONFIG_FILE=$FONTCONFIG_FILE)"; exit 1 ;;
+        esac
+
+    # Chromium 141, el de Playwright 1.56.1 (§7.6): unos 150 MB que no se bajan en cada PR.
+    - name: Chromium de Playwright 1.56.1, de la caché
+      id: chromium
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-1.56.1
+    - name: Chromium, si no estaba
+      if: steps.chromium.outputs.cache-hit != 'true'
+      shell: bash
+      run: pnpm --filter @cyclingstar/web exec playwright install --with-deps chromium
+    - name: Las bibliotecas del sistema que pide Chromium
+      if: steps.chromium.outputs.cache-hit == 'true'
+      shell: bash
+      run: pnpm --filter @cyclingstar/web exec playwright install-deps chromium
+
+    # EL MUNDO (§7.2): unos 15 minutos de construir, así que se guarda. La clave lleva todo lo que lo
+    # construye: las migraciones, las fuentes de `packages/db`, del motor y de `shared` sin sus tests, y
+    # `build.mjs`. Con solo migraciones y motor, la prueba mediría un mundo viejo cuando el tick cambia sin
+    # tocar ni lo uno ni lo otro (Rcodigo-022). Una caché de una rama la lee esa rama y las que salen de
+    # `main`; la de `main` la deja el primer push que la construye.
+    - name: El mundo de la prueba, de la caché
+      id: mundo
+      uses: actions/cache@v4
+      with:
+        path: apps/web/e2e/world/.mundo
+        key: >-
+          telefono-mundo-v1-${{ hashFiles('packages/db/drizzle/**', 'packages/db/src/**/*.ts',
+          '!packages/db/src/**/*.test.ts', 'packages/engine/src/**/*.ts', '!packages/engine/src/**/*.test.ts',
+          'packages/shared/src/**/*.ts', '!packages/shared/src/**/*.test.ts', 'apps/web/e2e/world/build.mjs') }}
+    - name: El mundo, si no estaba (unos 15 minutos)
+      if: steps.mundo.outputs.cache-hit != 'true'
+      shell: bash
+      run: node apps/web/e2e/world/build.mjs
+    - name: El tamaño del mundo
+      shell: bash
+      run: du -h apps/web/e2e/world/.mundo/*
+
+    - name: Sirve el mundo y comprueba que contesta
+      shell: bash
+      run: |
+        node apps/web/e2e/world/serve.mjs > "$RUNNER_TEMP/serve.log" 2>&1 &
+        for i in $(seq 1 90); do
+          grep -q '^listening ' "$RUNNER_TEMP/serve.log" && break
+          sleep 1
+        done
+        if ! grep -q '^listening ' "$RUNNER_TEMP/serve.log"; then
+          cat "$RUNNER_TEMP/serve.log"
+          exit 1
+        fi
+        curl -fsS "$E2E_BASE/health"
+        echo
+        curl -fsS -o /dev/null -w 'la web: %{http_code}, %{size_download} B\n' "$E2E_BASE/"
