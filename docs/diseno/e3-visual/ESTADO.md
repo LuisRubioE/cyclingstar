@@ -122,7 +122,7 @@ retomar el trabajo si la sesión se corta.
   porqué en §20.2; `refutaciones/resultado-final.json` (de los 162 hallazgos, 158 aplicados enteros y 4
   desestimados, ninguno en parte ni abierto); `borrador/00-cabecera.md`; y `medidas/`, la copia de los
   scripts del scratchpad que el documento cita, con su README, y sus rutas cambiadas en las secciones.
-- Fase 7, el ensamblado (22 de octubre de 2026): `docs/visual.md`, 3.975 líneas, con
+- Fase 7, el ensamblado (22 de octubre de 2026): `docs/visual.md`, 3.973 líneas, con
   `borrador/ensamblar.sh --final --comprobar` a 0 fallos y 0 avisos (34 de 34 injertos, 33 de 33
   objeciones y 21 de 21 huecos en algún bloque de cierre); la línea de estado de E3 en
   `docs/encargos.md` y su sección en `docs/diseno/README.md`; `prettier --check .` y `eslint .` en verde
@@ -131,10 +131,11 @@ retomar el trabajo si la sesión se corta.
 
 ## Pendiente
 
-1. La respuesta del dueño al PR: las tres cosas que añadió el orquestador (§19.5 del documento), los
-   costes de lo decidido (§19.6) y, antes del PR 17a del plan, la hoja de los 133 maillots nacionales.
-2. Fusionar el PR cuando el dueño conteste, y abrir el código de E3 solo cuando él lo diga (la regla de
-   arranque, §0.1 del documento).
+1. El dueño contestó el 25 de octubre de 2026: «Me parece bien todo» (`00-encargo.md` §7.8). Quedan
+   suyas la hoja de los 133 maillots nacionales cuando la adjunte el PR 16a y la verificación de la
+   marca de la UCI antes del lanzamiento.
+2. Fusionar el PR, y abrir el código de E3 cuando el dueño lo diga (la regla de arranque, §0.1 del
+   documento), empezando por el PR 1 (el clon).
 
 ## Cómo retomar si la sesión se corta
 

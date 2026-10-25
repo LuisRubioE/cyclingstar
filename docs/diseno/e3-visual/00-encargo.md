@@ -406,3 +406,17 @@ Lo que encontró el orquestador ese día, que no es asesoramiento jurídico y qu
 - **La lectura:** vender solo en la web funciona en la web y, hoy, en EE. UU. En el iPhone del resto del
   mundo, probablemente obligue a ofrecer también la compra dentro de la app. Lo decide E8, con un
   especialista.
+
+### 7.8 Todo aceptado (25 de octubre de 2026)
+
+Tras leer el resumen del PR del diseño, con las tres cosas que añadió el orquestador (§19.5 del
+documento), lo que cuesta lo decidido (§19.6) y la hoja de los 133 maillots nacionales, el dueño,
+textual:
+
+> «Me parece bien todo... Está ya acabado entonces el diseño y se puede empezar a programar??»
+
+Se quedan, por tanto, los tres añadidos (el primer cambio de maillot de quien toma un equipo no
+cuenta, el modo oscuro no sigue al del teléfono y las dos letras ISO del nacional), el 429 de
+`kit_reciente`, la reserva de los 26 maillots y lo que pide la marca de la UCI. La hoja de los 133
+no pide ningún cambio: si al verla en el PR 16a el dueño quiere tocar una bandera, entra allí con su
+porqué (§9.5).

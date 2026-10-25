@@ -128,9 +128,9 @@ lo mismo que el andamio de arriba: rehacerlos costaría todo el análisis otra v
 
 ## `e3-visual/`: el material del sistema visual (E3)
 
-**El documento final ya está escrito y vive fuera de aquí**: `docs/visual.md` (3.975 líneas, del
-22 de octubre de 2026). Es el diseño de E3, **sin implementar**: el dueño contestó mientras se diseñaba
-23 de sus 24 decisiones (la §19 del documento), y el código no se abre hasta que él lo diga. Este
+**El documento final ya está escrito y vive fuera de aquí**: `docs/visual.md` (3.973 líneas, del
+22 de octubre de 2026). Es el diseño de E3, **sin implementar**: el dueño contestó todas sus decisiones
+(la §19 del documento; las últimas, el 25 de octubre), y el código no se abre hasta que él lo diga. Este
 directorio es lo que se leyó, se midió y se escribió para redactarlo, y se parte en dos por su destino,
 como los de arriba.
 

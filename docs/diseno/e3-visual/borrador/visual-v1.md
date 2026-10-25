@@ -1,6 +1,6 @@
 # El sistema visual: diseñado desde el teléfono, medido y que se hace cumplir (diseño final)
 
-Estado: diseño escrito, sin implementar. Ensamblado el 22 de octubre de 2026 sobre `58c14da` (`main` de ese día, con E2 en implementación desde el 3 de octubre y el motor v91), con 23 de las 24 decisiones del dueño contestadas (§19). No se abre código de E3 hasta que el dueño lo diga (la regla de arranque, en §0.1).
+Estado: diseño escrito, sin implementar. Ensamblado el 22 de octubre de 2026 sobre `58c14da` (`main` de ese día, con E2 en implementación desde el 3 de octubre y el motor v91), con todas las decisiones del dueño contestadas el 21, el 22 y el 25 de octubre (§19; DD-24 solo se abre si falla una puerta del PR 16a). No se abre código de E3 hasta que el dueño lo diga (la regla de arranque, en §0.1).
 
 ## 0. Cabecera y resumen
 
@@ -14,7 +14,7 @@ Este documento vive en `docs/visual.md`. Es el diseño ÚNICO de E3 que se imple
 
 **Lo que el dueño cambió del encargo mientras se diseñaba** (`00-encargo.md` §7; D-00a a D-00q). La web instalable no se hace, porque el dueño hará una app («DD-14: No, pronto haremos app, asi que quita la web instalable», §7.6; D-00p): se quedan la conducta sin red, las banderas en un sprite y el peso (§12), y `tokens.json` lleva el sistema a la app (§12.3). La señal de campeón es suya: el nacional viste su bandera entera, sin estrella, y el mundial, blanco con la estrella del logotipo en arcoíris (D-00d y D-00m). Y fijó cinco reglas que el encargo no traía: ningún maillot por debajo de 28 px (D-00b), quince colores y siete figuras sin repetir nunca un maillot (D-00e), las vistas grandes con espalda y culote (D-00g), un cambio de maillot por temporada (D-00k) y el modo oscuro opcional, claro por defecto (D-00i).
 
-**El estado.** Diseño escrito, sin implementar. Veintiuna secciones, de la 0 a la 20, que escribieron tres lotes (fase 3), refutadas por tres refutadores y corregidas por lotes (fases 4 y 5), repasadas por una pasada de coherencia y auditadas hallazgo a hallazgo contra el texto (fase 6), con el recuento en §0.7, y ensambladas en este fichero el 22 de octubre de 2026 (fase 7). Mide 3.975 líneas, sin los bloques de nombres propuestos y de dudas que el ensamblado quita (el v0 medía 3.586 y el v1, tras la coherencia, 3.815). Todo el rastro está en `docs/diseno/e3-visual/`.
+**El estado.** Diseño escrito, sin implementar. Veintiuna secciones, de la 0 a la 20, que escribieron tres lotes (fase 3), refutadas por tres refutadores y corregidas por lotes (fases 4 y 5), repasadas por una pasada de coherencia y auditadas hallazgo a hallazgo contra el texto (fase 6), con el recuento en §0.7, y ensambladas en este fichero el 22 de octubre de 2026 (fase 7). Mide 3.973 líneas, sin los bloques de nombres propuestos y de dudas que el ensamblado quita (el v0 medía 3.586 y el v1, tras la coherencia, 3.815). Todo el rastro está en `docs/diseno/e3-visual/`.
 
 **El árbol.** Todo lo que el documento cita (ficheros, líneas, cifras medidas) está leído contra `58c14da` (20 de octubre de 2026), que era `main` al empezar y lo sigue siendo al ensamblar: `git diff --stat 58c14da HEAD -- . ':!docs'` sale vacío (comprobado al escribir esta cabecera). `ENGINE_VERSION` es 91 (`packages/engine/src/constants.ts` l. 853) y E3 no la sube; la última migración es la `0049_rastro_de_etapa`, así que las de E3 son de la `0050` a la `0054` (§17.1, regla 4).
 
@@ -69,7 +69,7 @@ Sumadas por eje, `telefono` gana en cobertura (24) y en experiencia (27) y `sist
 7. **Lo primero, el clon.** El PR 1, independiente y pequeño, arregla el defecto vivo de producción: cambiar el maillot hacía que el tick creara un clon del equipo, porque `seedWorld` reconoce los equipos por su semilla; y borra el clon que hay (D-00q; §8.9 y §17.3).
 8. **El examen, con lo de debajo.** Una llegada por carrera en una escala de cinco tramos con sus dos extremos malos (`Undertrained`, pantalla, en lugar de `Rusty`) y sus ejes; cada día con su origen; el viaje como un bloque, con la ida y la vuelta; un solo guardado; y el TSS fuera. Debajo, sin tocar el motor: la vista previa del plan vivo con la carga de carrera y el viaje, una sola función de precedencia para el tick y la pantalla, y un solo plan vivo (§10 y §11).
 9. **La frontera por construcción.** El serializador que la API ya monta quita lo que el esquema no declara, el registro de E2 exige el esquema de respuesta de cada ruta, la resolución va en el tipo, un test exige que cada campo se pinte y el canario busca números internos: los atributos de cualquier corredor dejan de viajar con decimales (§13).
-10. **Veinticuatro pasos y cuarenta y un PR, tests primero.** Unas 85 sesiones de trabajo (estimado, §17.26). El dueño ve el juego sin red tras el PR 4, el examen tras el 14, los maillots nuevos tras el 17a a 17c y el modo oscuro tras el 23; 23 de sus 24 decisiones están contestadas, y la última solo se abre si falla la puerta del 16a (§19).
+10. **Veinticuatro pasos y cuarenta y un PR, tests primero.** Unas 85 sesiones de trabajo (estimado, §17.26). El dueño ve el juego sin red tras el PR 4, el examen tras el 14, los maillots nuevos tras el 17a a 17c y el modo oscuro tras el 23; todas sus decisiones están contestadas, y la última, DD-24, solo se abre si falla la puerta del 16a (§19).
 
 ### 0.5 Mapa del documento
 
@@ -3658,7 +3658,7 @@ Lo que E3 toca de otras épicas, lo que puede salir mal de lo suyo y lo que deja
 
 ## 19. Decisiones que son del dueño
 
-Veinticuatro decisiones no las toma este documento, porque son de qué juego quiere el dueño y no de diseño: las veinte que cerró la síntesis con su valor por defecto (`DD-01` a `DD-20`), las tres que añadió esta sección en la v0 (`DD-21` a `DD-23`) y `DD-24`, que añade la corrección de §8 (Ruso-022). **Las veintitrés primeras están contestadas**: el 21 de octubre de 2026, las cuatro de gusto, mirando la página de opciones (`00-encargo.md` §7.2 y §7.3; D-00a a D-00h), y el 22, todas las demás (§7.4 a §7.6; D-00i a D-00q), unas cambiando el valor por defecto y otras aceptándolo («El resto ok con lo que propones», §7.4). **DD-24 no está abierta**: solo se abre si la puerta de §8.2 falla en el PR 16a. Lo que el orquestador añadió a la palabra del dueño va marcado, para que lo pueda quitar (§19.5), y lo que cuesta lo decidido, con sus cifras medidas, en §19.6. El formato es el de `docs/retransmision.md` §20 (I-22): qué se decide, lo que decidió el dueño con su cita, la consecuencia con su cifra, dónde vive y desde qué PR, y qué cambia si cambia de opinión (O-23).
+Veinticuatro decisiones no las toma este documento, porque son de qué juego quiere el dueño y no de diseño: las veinte que cerró la síntesis con su valor por defecto (`DD-01` a `DD-20`), las tres que añadió esta sección en la v0 (`DD-21` a `DD-23`) y `DD-24`, que añade la corrección de §8 (Ruso-022). **Las veintitrés primeras están contestadas**: el 21 de octubre de 2026, las cuatro de gusto, mirando la página de opciones (`00-encargo.md` §7.2 y §7.3; D-00a a D-00h), y el 22, todas las demás (§7.4 a §7.6; D-00i a D-00q), unas cambiando el valor por defecto y otras aceptándolo («El resto ok con lo que propones», §7.4). **DD-24 no está abierta**: solo se abre si la puerta de §8.2 falla en el PR 16a. Lo que el orquestador añadió a la palabra del dueño va marcado (§19.5), y lo que cuesta lo decidido, con sus cifras medidas, en §19.6; **el 25 de octubre el dueño aceptó las dos cosas** («Me parece bien todo», `00-encargo.md` §7.8). El formato es el de `docs/retransmision.md` §20 (I-22): qué se decide, lo que decidió el dueño con su cita, la consecuencia con su cifra, dónde vive y desde qué PR, y qué cambia si cambia de opinión (O-23).
 
 ### 19.1 Cómo se lee
 
@@ -3731,7 +3731,7 @@ D-27; O-15; I-12 e I-13. Lo que dijo en sus cuatro días (`00-encargo.md` §7.1,
 
 ### 19.5 Lo que añadió el orquestador, y el dueño puede quitar
 
-Tres cosas que el dueño no dijo y que el documento implementa por defecto, escritas junto a las decisiones del dueño que las traen (D-00k, D-00i y D-00m), para que las quite si no las quiere:
+Tres cosas que el dueño no dijo y que el documento implementa por defecto, escritas junto a las decisiones del dueño que las traen (D-00k, D-00i y D-00m), para que las quitara si no las quería. **El dueño las aceptó el 25 de octubre de 2026** («Me parece bien todo», `00-encargo.md` §7.8); lo que dice cada una sobre quitarla queda para si cambia de opinión:
 
 1. **El primer cambio de maillot de quien toma un equipo no cuenta** (D-00k). Sin él, quien toma un equipo cuyo dueño anterior ya cambió el maillot esa temporada no podría poner el suyo hasta la siguiente. Su mecanismo es `teams.managed_since_day`, que escribe `takeOverBotTeam` (8-g). Quitarlo: `kitChangeAllowed` deja de descontar esa fila y la columna se queda sin lector; hace falta la respuesta antes del 18a.
 2. **El modo oscuro no sigue al del teléfono** (D-00i). El dueño pidió «por defecto light», y el orquestador lo leyó como claro aunque el teléfono esté en oscuro: ninguna regla lee `prefers-color-scheme` (§3.3). Quitarlo: sin elección del jugador valdría la del sistema, `theme.js` leería `matchMedia('(prefers-color-scheme: dark)')` cuando no hay `cs-theme`, y `users.theme` ganaría un tercer valor, `system`, como defecto; hace falta antes del 23.
@@ -3755,14 +3755,12 @@ Las cifras son de §8 y §9 (`docs/diseno/e3-visual/medidas/medir-nacional3.py`,
 
 ### 19.7 Cuándo hace falta cada respuesta
 
-| Antes del PR   | Qué                                                                                                                          |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| ya contestadas | DD-01 a DD-23, el 21 y el 22 de octubre de 2026                                                                              |
-| 17a            | la respuesta a la hoja de los 133 nacionales del 16a, sin estrella (D-00f, D-00m), y si se quitan las dos letras ISO (§19.5) |
-| 17b            | DD-24, solo si la puerta del 16a falla                                                                                       |
-| 18a            | si se quita el primer cambio libre de quien toma un equipo (§19.5), y el 409 en lugar del 429 (§19.6)                        |
-| 23             | si el modo oscuro sigue al del teléfono cuando el jugador no ha elegido (§19.5)                                              |
-| con E8         | la venta del premium (§18.1) y lo que se vende del maillot (DD-19 y DD-23)                                                   |
+| Antes del PR   | Qué                                                                                                                        |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| ya contestadas | DD-01 a DD-23, el 21 y el 22 de octubre de 2026; lo de §19.5 y §19.6, el 25                                                |
+| 17a            | si el dueño, al ver la hoja de los 133 nacionales del 16a, pide tocar alguna bandera (D-00f, D-00m); si no, ninguna cambia |
+| 17b            | DD-24, solo si la puerta del 16a falla                                                                                     |
+| con E8         | la venta del premium (§18.1) y lo que se vende del maillot (DD-19 y DD-23)                                                 |
 
 ---
 

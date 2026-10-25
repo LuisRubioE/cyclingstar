@@ -181,7 +181,7 @@ el del equipo), y es exactamente el rótulo con el que la televisión presenta a
 **Fichero:** `docs/visual.md` · **Tamaño esperado:** mediano
 
 **Estado: DISEÑO ESCRITO, sin implementar (22 de octubre de 2026).** El diseño está en
-`docs/visual.md`: veintiuna secciones, de la 0 a la 20, y 3.975 líneas, hechas con el
+`docs/visual.md`: veintiuna secciones, de la 0 a la 20, y 3.973 líneas, hechas con el
 método de `docs/diseno/README.md` escalado a un documento mediano: cinco mapas del código, de los
 documentos y de las pantallas (con 98 capturas a 360 y a 1.280 px), cuatro propuestas independientes,
 tres jueces unánimes por `telefono`, que es la base, con los 34 injertos que pidieron, tres redactores
@@ -193,13 +193,13 @@ abierto). Todo el rastro está en `docs/diseno/e3-visual/`. **El dueño decidió
 mientras se diseñaba** (el 21 y el 22 de octubre de 2026, `docs/diseno/e3-visual/00-encargo.md` §7):
 la paleta, la letra, la señal de campeón (el nacional viste su bandera; el mundial, blanco con la
 estrella del logotipo en arcoíris), el vocabulario del maillot (quince colores y siete figuras, sin
-repetir nunca un maillot y nunca por debajo de 28 px), el modo oscuro opcional y 23 de las 24
-decisiones de la §19 del documento. Y **retiró de este encargo la web instalable, porque habrá app**:
+repetir nunca un maillot y nunca por debajo de 28 px), el modo oscuro opcional y todas las
+decisiones de la §19 del documento (las últimas, «Me parece bien todo», el 25 de octubre). Y **retiró de este encargo la web instalable, porque habrá app**:
 lo que dice de ella esta sección (la decisión ya tomada de la aplicación instalable, y la
 notificación de E4 en iPhone que dependía de ella) lo sustituye la §12 del documento, que conserva
-la conducta sin red, el peso y las banderas, y da `tokens.json` a la app. Quedan del dueño tres cosas
-que añadió el orquestador (§19.5 del documento) y la respuesta a la hoja de los 133 maillots
-nacionales antes del PR 17a. El código no se abre hasta que el dueño lo diga; el plan son veinticuatro
+la conducta sin red, el peso y las banderas, y da `tokens.json` a la app. Le queda mirar una vez la hoja
+de los 133 maillots nacionales cuando la adjunte el PR 16a, y verificar la marca de la UCI antes
+del lanzamiento (§19.6 del documento). El código no se abre hasta que el dueño lo diga; el plan son veinticuatro
 pasos y cuarenta y un PR, con los tests primero (§17).
 
 El rediseño gráfico general, que es una disciplina distinta de la arquitectura de información (dónde

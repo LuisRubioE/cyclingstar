@@ -15,6 +15,10 @@ decisión de abajo diga otra cosa, **manda esta sección**, y quien redacte una 
 reabrirla. Lo que el orquestador añade a la palabra del dueño va marcado como tal, para que el dueño
 lo vea en §19 y lo pueda quitar.
 
+**El 25 de octubre de 2026 el dueño lo aceptó todo** («Me parece bien todo», `00-encargo.md`
+§7.8): los tres añadidos del orquestador de D-00i, D-00k y D-00m y lo que cuesta lo decidido
+(§19.5 y §19.6 del documento). No cambia ninguna decisión.
+
 ### D-00a · La paleta y la letra: las de los tres jueces
 
 DD-01 = A, «manager sobrio» (D-03), y DD-02 = A, la letra del sistema (D-05). Decididas por el dueño.
