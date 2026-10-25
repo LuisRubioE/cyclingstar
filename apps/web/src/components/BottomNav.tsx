@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, useLocation } from 'react-router-dom'
 import { fetchRiderSummary } from '../api/rider'
-import { authClient } from '../auth/client'
+import { useSessionState } from '../auth/useSessionState'
 import { bottomBarLinks, sectionOf } from '../domain/nav'
 import { horizonKey, useHorizonRev } from '../queryClient'
 
@@ -21,7 +21,9 @@ import { horizonKey, useHorizonRev } from '../queryClient'
  *   barra sin iconos el estado tiene que verse sin depender solo del color.
  */
 export function BottomNav() {
-  const { data: session } = authClient.useSession()
+  // Como la cabecera: con la sesión sin saber y la marca, la barra del jugador (§12.1; PR 4), y el
+  // resumen solo con la sesión confirmada.
+  const { state, signedIn } = useSessionState()
   const { pathname } = useLocation()
   // Misma consulta (y misma caché) que la cabecera: saber si pertenezco a un equipo no cuesta una
   // petición extra.
@@ -29,11 +31,11 @@ export function BottomNav() {
   const summary = useQuery({
     queryKey: horizonKey(['rider', 'summary'], rev),
     queryFn: fetchRiderSummary,
-    enabled: Boolean(session) && rev !== undefined,
+    enabled: state === 'signed-in' && rev !== undefined,
   })
 
   const links = bottomBarLinks({
-    signedIn: Boolean(session),
+    signedIn,
     hasTeam: Boolean(summary.data?.teamId),
   })
   const section = sectionOf(pathname)

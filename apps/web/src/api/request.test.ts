@@ -9,6 +9,7 @@ import {
   requestOptionalAuth,
   retryAfterOf,
 } from './request'
+import { REQUEST_TIMEOUT_MS } from '../net'
 
 const schema = z.object({ ok: z.boolean(), value: z.number() })
 
@@ -18,6 +19,17 @@ function response(body: unknown, status = 200): Response {
     ok: status >= 200 && status < 300,
     status,
     json: async () => body,
+  } as Response
+}
+
+/** Un 200 cuyo cuerpo no llega a leerse: `json()` lanza `error`. */
+function cortada(error: unknown): Response {
+  return {
+    ok: true,
+    status: 200,
+    json: async (): Promise<unknown> => {
+      throw error
+    },
   } as Response
 }
 
@@ -105,7 +117,65 @@ describe('web: wrapper request()', () => {
       method: 'PUT',
       body: '{"a":1}',
       headers: { 'content-type': 'application/json' },
+      signal: expect.any(AbortSignal),
     })
+  })
+
+  it('toda petición se corta a los REQUEST_TIMEOUT_MS, y el corte es un ApiError de status 0 con su código (E3, PR 4)', async () => {
+    const fetchMock = vi.fn<(path: string, init?: RequestInit) => Promise<Response>>(async () => {
+      throw new DOMException('The operation timed out.', 'TimeoutError')
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const timeout = vi.spyOn(AbortSignal, 'timeout')
+    const error = await request('/api/x', schema).catch((e: unknown) => e)
+    expect(timeout).toHaveBeenCalledWith(REQUEST_TIMEOUT_MS)
+    expect(fetchMock.mock.calls[0]![1]?.signal).toBeInstanceOf(AbortSignal)
+    expect(error).toBeInstanceOf(ApiError)
+    expect((error as ApiError).status).toBe(0)
+    expect((error as ApiError).code).toBe('timeout')
+    expect(REQUEST_TIMEOUT_MS).toBe(15_000)
+    timeout.mockRestore()
+  })
+
+  it('sin AbortSignal.timeout (un navegador anterior a Safari 16), la petición sale igual, sin corte', async () => {
+    const timeout = Object.getOwnPropertyDescriptor(AbortSignal, 'timeout')!
+    Object.defineProperty(AbortSignal, 'timeout', { value: undefined, configurable: true })
+    try {
+      const fetchMock = vi.fn<(path: string, init?: RequestInit) => Promise<Response>>(async () =>
+        response({ ok: true, value: 3 }),
+      )
+      vi.stubGlobal('fetch', fetchMock)
+      await expect(request('/api/x', schema)).resolves.toEqual({ ok: true, value: 3 })
+      expect(fetchMock.mock.calls[0]![1]).not.toHaveProperty('signal')
+    } finally {
+      Object.defineProperty(AbortSignal, 'timeout', timeout)
+    }
+  })
+
+  it('el corte también llega mientras se lee el cuerpo, y la red que se cae a mitad: los dos, ApiError de status 0 (E3, PR 4)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => cortada(new DOMException('The operation timed out.', 'TimeoutError'))),
+    )
+    const timeout = await request('/api/x', schema).catch((e: unknown) => e)
+    expect(timeout).toBeInstanceOf(ApiError)
+    expect((timeout as ApiError).code).toBe('timeout')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => cortada(new TypeError('network error'))),
+    )
+    const red = await requestOptionalAuth('/api/x', schema).catch((e: unknown) => e)
+    expect(red).toBeInstanceOf(ApiError)
+    expect((red as ApiError).status).toBe(0)
+    expect((red as ApiError).code).toBe('network')
+  })
+
+  it('un cuerpo que no es JSON sigue siendo lo que era: no se disfraza de fallo de red', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => cortada(new SyntaxError('Unexpected token <'))),
+    )
+    await expect(request('/api/x', schema)).rejects.toBeInstanceOf(SyntaxError)
   })
 
   it('keepalive (E2, 7a): pasa a la petición solo si se pide, para que el informe de lo alcanzado sobreviva a cerrar la página', async () => {

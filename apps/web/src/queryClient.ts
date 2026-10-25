@@ -39,6 +39,7 @@ import { postReveal, putSpoilerScope } from './api/watch'
 import { authClient } from './auth/client'
 import type { RevealActions } from './components/StageGate'
 import { veilApplies } from './domain/veil'
+import { sessionStateOf } from './net'
 
 const MINUTE = 60_000
 
@@ -164,6 +165,21 @@ export interface SessionSeen {
  */
 export function cacheOwnerChanged(prev: SessionSeen, next: SessionSeen): boolean {
   return prev.resolved && next.resolved && prev.userId !== next.userId
+}
+
+/**
+ * Lo que el vigilante apunta de una respuesta de `useSession()`: nada mientras está pendiente, ni con la
+ * sesión sin saber (`unknown`, E3, docs/visual.md §12.1; PR 4, X-04). Con la red caída, `useSession()`
+ * deja de estar pendiente sin usuario, y contarlo como «nadie» vaciaba la caché en cuanto la sesión
+ * llegaba: de nadie a un id.
+ */
+export function sessionSeenOf(answer: {
+  readonly data: { readonly user: { readonly id: string } } | null | undefined
+  readonly error: unknown
+  readonly isPending: boolean
+}): SessionSeen | null {
+  if (answer.isPending || sessionStateOf(answer) === 'unknown') return null
+  return { resolved: true, userId: answer.data?.user.id ?? null }
 }
 
 /**

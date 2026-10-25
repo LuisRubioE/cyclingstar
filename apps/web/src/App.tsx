@@ -1,11 +1,15 @@
-import { type ReactNode, Suspense, lazy } from 'react'
+import { type ReactNode, Suspense } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom'
 import { BottomNav } from './components/BottomNav'
 import { Header } from './components/Header'
+import { PausedOffline } from './components/PausedOffline'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { RouteBoundary } from './components/RouteBoundary'
 import { SessionExpiryWatcher } from './components/SessionExpiryWatcher'
+import { OfflineBanner } from './components/ui/OfflineBanner'
 import { isStagePagePath } from './domain/firstPaint'
 import { pageKindOfPath, usePageTitle } from './domain/pageTitle'
+import { lazyPage } from './lazyPage'
 import type { PageKind } from '@cyclingstar/shared'
 
 /**
@@ -25,57 +29,74 @@ import type { PageKind } from '@cyclingstar/shared'
  * `<Navigate replace>`: no deja rastro en el historial y el botón "atrás" no rebota.
  *
  * Cada página se carga con `React.lazy` bajo un único `Suspense`: como solo se renderiza una ruta a
- * la vez, una frontera basta para partir el bundle por página.
+ * la vez, una frontera basta para partir el bundle por página. Desde E3 (PR 4), con `lazyPage`, y bajo la
+ * barrera por ruta: un trozo que no carga se pinta en su sitio y se puede reintentar (`RouteBoundary`).
  */
 
 // Carga diferida por página. Las páginas exportan componentes con nombre, de ahí el `.then(…)`.
-const Account = lazy(() => import('./pages/Account').then((m) => ({ default: m.Account })))
-const AdminNames = lazy(() => import('./pages/AdminNames').then((m) => ({ default: m.AdminNames })))
-const AdminPanel = lazy(() => import('./pages/AdminPanel').then((m) => ({ default: m.AdminPanel })))
-const Countries = lazy(() => import('./pages/Countries').then((m) => ({ default: m.Countries })))
-const Country = lazy(() => import('./pages/Country').then((m) => ({ default: m.Country })))
-const CreateRider = lazy(() =>
+const Account = lazyPage(() => import('./pages/Account').then((m) => ({ default: m.Account })))
+const AdminNames = lazyPage(() =>
+  import('./pages/AdminNames').then((m) => ({ default: m.AdminNames })),
+)
+const AdminPanel = lazyPage(() =>
+  import('./pages/AdminPanel').then((m) => ({ default: m.AdminPanel })),
+)
+const Countries = lazyPage(() =>
+  import('./pages/Countries').then((m) => ({ default: m.Countries })),
+)
+const Country = lazyPage(() => import('./pages/Country').then((m) => ({ default: m.Country })))
+const CreateRider = lazyPage(() =>
   import('./pages/CreateRider').then((m) => ({ default: m.CreateRider })),
 )
-const Finances = lazy(() => import('./pages/Finances').then((m) => ({ default: m.Finances })))
-const ForgotPassword = lazy(() =>
+const Finances = lazyPage(() => import('./pages/Finances').then((m) => ({ default: m.Finances })))
+const ForgotPassword = lazyPage(() =>
   import('./pages/ForgotPassword').then((m) => ({ default: m.ForgotPassword })),
 )
-const HallOfFame = lazy(() => import('./pages/HallOfFame').then((m) => ({ default: m.HallOfFame })))
-const Home = lazy(() => import('./pages/Home').then((m) => ({ default: m.Home })))
-const HowToPlay = lazy(() => import('./pages/HowToPlay').then((m) => ({ default: m.HowToPlay })))
-const Login = lazy(() => import('./pages/Login').then((m) => ({ default: m.Login })))
-const Market = lazy(() => import('./pages/Market').then((m) => ({ default: m.Market })))
-const MyRaces = lazy(() => import('./pages/MyRaces').then((m) => ({ default: m.MyRaces })))
-const News = lazy(() => import('./pages/News').then((m) => ({ default: m.News })))
-const Privacy = lazy(() => import('./pages/Privacy').then((m) => ({ default: m.Privacy })))
-const Race = lazy(() => import('./pages/Race').then((m) => ({ default: m.Race })))
-const RaceOrders = lazy(() => import('./pages/RaceOrders').then((m) => ({ default: m.RaceOrders })))
-const RacesIndex = lazy(() => import('./pages/RacesIndex').then((m) => ({ default: m.RacesIndex })))
-const Rankings = lazy(() => import('./pages/Rankings').then((m) => ({ default: m.Rankings })))
-const Register = lazy(() => import('./pages/Register').then((m) => ({ default: m.Register })))
-const ResetPassword = lazy(() =>
+const HallOfFame = lazyPage(() =>
+  import('./pages/HallOfFame').then((m) => ({ default: m.HallOfFame })),
+)
+const Home = lazyPage(() => import('./pages/Home').then((m) => ({ default: m.Home })))
+const HowToPlay = lazyPage(() =>
+  import('./pages/HowToPlay').then((m) => ({ default: m.HowToPlay })),
+)
+const Login = lazyPage(() => import('./pages/Login').then((m) => ({ default: m.Login })))
+const Market = lazyPage(() => import('./pages/Market').then((m) => ({ default: m.Market })))
+const MyRaces = lazyPage(() => import('./pages/MyRaces').then((m) => ({ default: m.MyRaces })))
+const News = lazyPage(() => import('./pages/News').then((m) => ({ default: m.News })))
+const Privacy = lazyPage(() => import('./pages/Privacy').then((m) => ({ default: m.Privacy })))
+const Race = lazyPage(() => import('./pages/Race').then((m) => ({ default: m.Race })))
+const RaceOrders = lazyPage(() =>
+  import('./pages/RaceOrders').then((m) => ({ default: m.RaceOrders })),
+)
+const RacesIndex = lazyPage(() =>
+  import('./pages/RacesIndex').then((m) => ({ default: m.RacesIndex })),
+)
+const Rankings = lazyPage(() => import('./pages/Rankings').then((m) => ({ default: m.Rankings })))
+const Register = lazyPage(() => import('./pages/Register').then((m) => ({ default: m.Register })))
+const ResetPassword = lazyPage(() =>
   import('./pages/ResetPassword').then((m) => ({ default: m.ResetPassword })),
 )
-const RiderProfile = lazy(() =>
+const RiderProfile = lazyPage(() =>
   import('./pages/RiderProfile').then((m) => ({ default: m.RiderProfile })),
 )
 const loadStageReplay = () => import('./pages/StageReplay')
-const StageReplay = lazy(() => loadStageReplay().then((m) => ({ default: m.StageReplay })))
-const StageReportPage = lazy(() =>
+const StageReplay = lazyPage(() => loadStageReplay().then((m) => ({ default: m.StageReplay })))
+const StageReportPage = lazyPage(() =>
   import('./pages/StageReport').then((m) => ({ default: m.StageReportPage })),
 )
-const Team = lazy(() => import('./pages/Team').then((m) => ({ default: m.Team })))
-const TeamCalendar = lazy(() =>
+const Team = lazyPage(() => import('./pages/Team').then((m) => ({ default: m.Team })))
+const TeamCalendar = lazyPage(() =>
   import('./pages/TeamCalendar').then((m) => ({ default: m.TeamCalendar })),
 )
-const TeamIdentity = lazy(() =>
+const TeamIdentity = lazyPage(() =>
   import('./pages/TeamIdentity').then((m) => ({ default: m.TeamIdentity })),
 )
-const TeamSquad = lazy(() => import('./pages/TeamSquad').then((m) => ({ default: m.TeamSquad })))
-const Teams = lazy(() => import('./pages/Teams').then((m) => ({ default: m.Teams })))
-const Training = lazy(() => import('./pages/Training').then((m) => ({ default: m.Training })))
-const VerifyEmail = lazy(() =>
+const TeamSquad = lazyPage(() =>
+  import('./pages/TeamSquad').then((m) => ({ default: m.TeamSquad })),
+)
+const Teams = lazyPage(() => import('./pages/Teams').then((m) => ({ default: m.Teams })))
+const Training = lazyPage(() => import('./pages/Training').then((m) => ({ default: m.Training })))
+const VerifyEmail = lazyPage(() =>
   import('./pages/VerifyEmail').then((m) => ({ default: m.VerifyEmail })),
 )
 
@@ -145,6 +166,7 @@ function NotFound() {
 }
 
 export function App() {
+  const { pathname } = useLocation()
   return (
     /*
       El hueco de abajo es para la barra inferior del teléfono (§5): la barra es fija y taparía el
@@ -155,190 +177,195 @@ export function App() {
       <SessionExpiryWatcher />
       <RouteTitle />
       <Header />
+      {/* Sin red, la franja que lo dice, con la hora de lo que se ve (§12.1; PR 4). */}
+      <OfflineBanner />
       <main className="mx-auto max-w-6xl px-3 py-5 sm:px-4">
-        <Suspense fallback={<p className="text-slate-500">Loading…</p>}>
-          <Routes>
-            {/* Dashboard y feed global */}
-            <Route path="/" element={<Home />} />
-            <Route path="/news" element={<News />} />
+        <PausedOffline />
+        <RouteBoundary resetKey={pathname}>
+          <Suspense fallback={<p className="text-slate-500">Loading…</p>}>
+            <Routes>
+              {/* Dashboard y feed global */}
+              <Route path="/" element={<Home />} />
+              <Route path="/news" element={<News />} />
 
-            {/* Lo mío (§3.2) */}
-            <Route
-              path="/me/profile"
-              element={
-                <Private>
-                  <RiderProfile />
-                </Private>
-              }
-            />
-            <Route
-              path="/me/training"
-              element={
-                <Private>
-                  <Training />
-                </Private>
-              }
-            />
-            <Route
-              path="/me/orders"
-              element={
-                <Private>
-                  <RaceOrders />
-                </Private>
-              }
-            />
-            <Route
-              path="/me/races"
-              element={
-                <Private>
-                  <MyRaces />
-                </Private>
-              }
-            />
-            <Route
-              path="/me/contract"
-              element={
-                <Private>
-                  <Market />
-                </Private>
-              }
-            />
-            <Route
-              path="/me/finances"
-              element={
-                <Private>
-                  <Finances />
-                </Private>
-              }
-            />
+              {/* Lo mío (§3.2) */}
+              <Route
+                path="/me/profile"
+                element={
+                  <Private>
+                    <RiderProfile />
+                  </Private>
+                }
+              />
+              <Route
+                path="/me/training"
+                element={
+                  <Private>
+                    <Training />
+                  </Private>
+                }
+              />
+              <Route
+                path="/me/orders"
+                element={
+                  <Private>
+                    <RaceOrders />
+                  </Private>
+                }
+              />
+              <Route
+                path="/me/races"
+                element={
+                  <Private>
+                    <MyRaces />
+                  </Private>
+                }
+              />
+              <Route
+                path="/me/contract"
+                element={
+                  <Private>
+                    <Market />
+                  </Private>
+                }
+              />
+              <Route
+                path="/me/finances"
+                element={
+                  <Private>
+                    <Finances />
+                  </Private>
+                }
+              />
 
-            {/* Mi equipo (§3.4): visible para MIEMBROS, no solo para mánagers */}
-            <Route
-              path="/team/squad"
-              element={
-                <Private>
-                  <TeamSquad />
-                </Private>
-              }
-            />
-            <Route
-              path="/team/calendar"
-              element={
-                <Private>
-                  <TeamCalendar />
-                </Private>
-              }
-            />
-            <Route
-              path="/team/identity"
-              element={
-                <Private>
-                  <TeamIdentity />
-                </Private>
-              }
-            />
+              {/* Mi equipo (§3.4): visible para MIEMBROS, no solo para mánagers */}
+              <Route
+                path="/team/squad"
+                element={
+                  <Private>
+                    <TeamSquad />
+                  </Private>
+                }
+              />
+              <Route
+                path="/team/calendar"
+                element={
+                  <Private>
+                    <TeamCalendar />
+                  </Private>
+                }
+              />
+              <Route
+                path="/team/identity"
+                element={
+                  <Private>
+                    <TeamIdentity />
+                  </Private>
+                }
+              />
 
-            {/* El mundo (§3.3): todo público, se vea con sesión o sin ella */}
-            <Route path="/world/races" element={<RacesIndex />} />
-            <Route path="/world/races/:raceId" element={<Race />} />
-            <Route path="/world/races/:raceId/stages/:day" element={<StageReplay />} />
-            {/* El acta compartible (E2, §11.10; D-36, DD-12): pública, y con la puerta a quien no la vio. */}
-            <Route path="/world/races/:raceId/stages/:day/report" element={<StageReportPage />} />
-            <Route path="/world/teams" element={<Teams />} />
-            <Route path="/world/teams/:id" element={<Team />} />
-            <Route path="/world/nations" element={<Countries />} />
-            <Route path="/world/nations/:code" element={<Country />} />
-            <Route path="/world/rankings" element={<Rankings />} />
-            <Route path="/world/hall-of-fame" element={<HallOfFame />} />
-            {/* Misma página que /me/profile: una ficha, dos modos (§3.6) */}
-            <Route path="/world/riders/:id" element={<RiderProfile />} />
+              {/* El mundo (§3.3): todo público, se vea con sesión o sin ella */}
+              <Route path="/world/races" element={<RacesIndex />} />
+              <Route path="/world/races/:raceId" element={<Race />} />
+              <Route path="/world/races/:raceId/stages/:day" element={<StageReplay />} />
+              {/* El acta compartible (E2, §11.10; D-36, DD-12): pública, y con la puerta a quien no la vio. */}
+              <Route path="/world/races/:raceId/stages/:day/report" element={<StageReportPage />} />
+              <Route path="/world/teams" element={<Teams />} />
+              <Route path="/world/teams/:id" element={<Team />} />
+              <Route path="/world/nations" element={<Countries />} />
+              <Route path="/world/nations/:code" element={<Country />} />
+              <Route path="/world/rankings" element={<Rankings />} />
+              <Route path="/world/hall-of-fame" element={<HallOfFame />} />
+              {/* Misma página que /me/profile: una ficha, dos modos (§3.6) */}
+              <Route path="/world/riders/:id" element={<RiderProfile />} />
 
-            {/* Páginas sueltas, sin sección */}
-            <Route path="/how-to-play" element={<HowToPlay />} />
-            <Route path="/privacy" element={<Privacy />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/login" element={<Login />} />
-            {/*
+              {/* Páginas sueltas, sin sección */}
+              <Route path="/how-to-play" element={<HowToPlay />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/login" element={<Login />} />
+              {/*
               Las tres páginas de los enlaces que llegan por correo. Públicas: el enlace se
               abre a menudo desde el móvil o desde otro navegador, sin sesión, y exigirla ahí sería
               decirle a esa persona que ha fallado cuando no.
             */}
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/verify-email" element={<VerifyEmail />} />
-            <Route
-              path="/account"
-              element={
-                <Private>
-                  <Account />
-                </Private>
-              }
-            />
-            <Route
-              path="/create"
-              element={
-                <Private>
-                  <CreateRider />
-                </Private>
-              }
-            />
-            {/* Panel de admin: la API decide quién entra (sesión de administrador). */}
-            <Route
-              path="/admin"
-              element={
-                <Private>
-                  <AdminPanel />
-                </Private>
-              }
-            />
-            {/* Nombres bloqueados: sesión de admin, o el ADMIN_TOKEN para quien no la tenga. */}
-            <Route path="/admin/names" element={<AdminNames />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/verify-email" element={<VerifyEmail />} />
+              <Route
+                path="/account"
+                element={
+                  <Private>
+                    <Account />
+                  </Private>
+                }
+              />
+              <Route
+                path="/create"
+                element={
+                  <Private>
+                    <CreateRider />
+                  </Private>
+                }
+              />
+              {/* Panel de admin: la API decide quién entra (sesión de administrador). */}
+              <Route
+                path="/admin"
+                element={
+                  <Private>
+                    <AdminPanel />
+                  </Private>
+                }
+              />
+              {/* Nombres bloqueados: sesión de admin, o el ADMIN_TOKEN para quien no la tenga. */}
+              <Route path="/admin/names" element={<AdminNames />} />
 
-            {/*
+              {/*
               Rutas viejas → nuevas (§3.7). Se mantienen una temporada para no romper enlaces
               guardados ni los que aún apuntan al sitio antiguo desde dentro de las páginas.
               Aquí se ve resuelta la colisión: `/races` era MIS carreras y `/races/:raceId` una
               carrera del mundo; cada una se va ahora a su esfera.
             */}
-            <Route path="/rider" element={<Legacy to="/me/profile" />} />
-            <Route path="/training" element={<Legacy to="/me/training" />} />
-            <Route path="/race-orders" element={<Legacy to="/me/orders" />} />
-            <Route path="/races" element={<Legacy to="/me/races" />} />
-            {/* La auto-inscripción renace como pestaña de My races (§3.2), no como página */}
-            <Route path="/race-entry" element={<Legacy to="/me/races" />} />
-            <Route path="/market" element={<Legacy to="/me/contract" />} />
-            <Route path="/finances" element={<Legacy to="/me/finances" />} />
-            <Route path="/team-calendar" element={<Legacy to="/team/calendar" />} />
-            {/*
+              <Route path="/rider" element={<Legacy to="/me/profile" />} />
+              <Route path="/training" element={<Legacy to="/me/training" />} />
+              <Route path="/race-orders" element={<Legacy to="/me/orders" />} />
+              <Route path="/races" element={<Legacy to="/me/races" />} />
+              {/* La auto-inscripción renace como pestaña de My races (§3.2), no como página */}
+              <Route path="/race-entry" element={<Legacy to="/me/races" />} />
+              <Route path="/market" element={<Legacy to="/me/contract" />} />
+              <Route path="/finances" element={<Legacy to="/me/finances" />} />
+              <Route path="/team-calendar" element={<Legacy to="/team/calendar" />} />
+              {/*
               `World → Calendar` y `World → Races` eran dos páginas que respondían a las mismas dos
               preguntas ("¿qué viene?" y "¿qué pasó?"). Se fusionaron en `/world/races`, que es donde
               vive la jerarquía (`/world/races/:raceId` es una carrera), y el calendario queda como
               redirección permanente.
             */}
-            <Route path="/world/calendar" element={<Legacy to="/world/races" />} />
-            <Route path="/calendar" element={<Legacy to="/world/races" />} />
-            <Route path="/races/:raceId" element={<Legacy to="/world/races/:raceId" />} />
-            <Route
-              path="/races/:raceId/stages/:day"
-              element={<Legacy to="/world/races/:raceId/stages/:day" />}
-            />
-            <Route
-              path="/races/:raceId/stages/:day/report"
-              element={<Legacy to="/world/races/:raceId/stages/:day/report" />}
-            />
-            <Route path="/teams" element={<Legacy to="/world/teams" />} />
-            <Route path="/teams/:id" element={<Legacy to="/world/teams/:id" />} />
-            <Route path="/countries" element={<Legacy to="/world/nations" />} />
-            <Route path="/countries/:code" element={<Legacy to="/world/nations/:code" />} />
-            <Route path="/rankings" element={<Legacy to="/world/rankings" />} />
-            <Route path="/hall-of-fame" element={<Legacy to="/world/hall-of-fame" />} />
-            <Route path="/riders/:id" element={<Legacy to="/world/riders/:id" />} />
-            {/* /routes era la prueba de desarrollo de altimetrías: borrada (§1.1) */}
-            <Route path="/routes" element={<Legacy to="/world/races" />} />
+              <Route path="/world/calendar" element={<Legacy to="/world/races" />} />
+              <Route path="/calendar" element={<Legacy to="/world/races" />} />
+              <Route path="/races/:raceId" element={<Legacy to="/world/races/:raceId" />} />
+              <Route
+                path="/races/:raceId/stages/:day"
+                element={<Legacy to="/world/races/:raceId/stages/:day" />}
+              />
+              <Route
+                path="/races/:raceId/stages/:day/report"
+                element={<Legacy to="/world/races/:raceId/stages/:day/report" />}
+              />
+              <Route path="/teams" element={<Legacy to="/world/teams" />} />
+              <Route path="/teams/:id" element={<Legacy to="/world/teams/:id" />} />
+              <Route path="/countries" element={<Legacy to="/world/nations" />} />
+              <Route path="/countries/:code" element={<Legacy to="/world/nations/:code" />} />
+              <Route path="/rankings" element={<Legacy to="/world/rankings" />} />
+              <Route path="/hall-of-fame" element={<Legacy to="/world/hall-of-fame" />} />
+              <Route path="/riders/:id" element={<Legacy to="/world/riders/:id" />} />
+              {/* /routes era la prueba de desarrollo de altimetrías: borrada (§1.1) */}
+              <Route path="/routes" element={<Legacy to="/world/races" />} />
 
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+        </RouteBoundary>
       </main>
       <footer className="mx-auto max-w-6xl px-4 py-8 text-xs text-slate-400">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-200 pt-4">

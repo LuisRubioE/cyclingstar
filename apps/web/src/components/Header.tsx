@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, useLocation } from 'react-router-dom'
 import { fetchHealth } from '../api/health'
 import { fetchRiderSummary } from '../api/rider'
-import { authClient } from '../auth/client'
+import { useSessionState } from '../auth/useSessionState'
 import {
   type MainLink,
   type Section,
@@ -87,7 +87,10 @@ function MainNavLink({ link, active }: { link: MainLink; active: boolean }) {
 }
 
 export function Header() {
-  const { data: session } = authClient.useSession()
+  // Con la sesión sin saber y la marca de este navegador, la cabecera del jugador (§12.1; PR 4): nunca
+  // `Log in` a quien tenía sesión y ha perdido la red. Sin nada de la cuenta: el resumen solo se pide con
+  // la sesión confirmada (`useSessionState`).
+  const { state, signedIn } = useSessionState()
   const { pathname } = useLocation()
   const health = useQuery({ queryKey: ['health'], queryFn: fetchHealth })
   // ¿Pertenezco a un equipo? Solo importa con sesión; sin ella la consulta ni se lanza. El resumen es
@@ -96,13 +99,13 @@ export function Header() {
   const summary = useQuery({
     queryKey: horizonKey(['rider', 'summary'], rev),
     queryFn: fetchRiderSummary,
-    enabled: Boolean(session) && rev !== undefined,
+    enabled: state === 'signed-in' && rev !== undefined,
   })
 
   const section = sectionOf(pathname)
   const tabs = tabsOf(section)
   const mainLinks = sectionLinks({
-    signedIn: Boolean(session),
+    signedIn,
     hasTeam: Boolean(summary.data?.teamId),
   })
 
@@ -129,7 +132,7 @@ export function Header() {
         )}
 
         <div className="flex shrink-0 items-center gap-3 text-sm">
-          {session ? (
+          {signedIn ? (
             <Link to="/account" className="text-white/80 hover:text-white">
               Account
             </Link>
@@ -163,7 +166,7 @@ export function Header() {
             <MainNavLink key={link.section} link={link} active={section === link.section} />
           ))}
           <span className="ml-auto flex shrink-0 items-center gap-1 pl-2">
-            {!session && <MainNavLink link={HOW_TO_PLAY} active={section === 'help'} />}
+            {!signedIn && <MainNavLink link={HOW_TO_PLAY} active={section === 'help'} />}
             <MainNavLink link={NEWS} active={section === 'news'} />
           </span>
         </div>

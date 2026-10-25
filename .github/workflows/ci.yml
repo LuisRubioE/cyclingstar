@@ -258,6 +258,10 @@ jobs:
   # falta que solo saliera con los datos de otro mundo no puede dejar el commit en rojo, porque Railway no
   # redespliega un commit en rojo.
   #
+  # Y SIN RED (PR 4; §12.1): tras la prueba, los casos de `apps/web/e2e/sinred.spec.ts` sobre el mismo
+  # mundo y la web del PR (un trozo que no carga, la franja, lo pausado y la sesión que no llega), en
+  # menos de un minuto. Corre aunque la prueba del teléfono falle, para ver las dos.
+  #
   # Corre cuando cambia algo que se ve en el teléfono, con el mismo patrón que los bancos: el trabajo
   # existe siempre y lo que se salta es el trabajo de dentro. La web pinta lo que escribe `shared`, y el
   # motor construye el mundo de la prueba y lleva las palabras de la llegada (Ruso-020), así que los
@@ -300,6 +304,7 @@ jobs:
         if: steps.toca.outputs.correr == 'si'
         run: pnpm build
       - uses: ./.github/actions/telefono
+        id: mundo
         if: steps.toca.outputs.correr == 'si'
       - name: La web de la base, sobre el mismo mundo
         id: base
@@ -348,6 +353,13 @@ jobs:
           TELEFONO_INSTRUMENTO: ${{ steps.base.outputs.instrumento }}
           TELEFONO_SALIDA: ${{ runner.temp }}/pr.json
         run: pnpm --filter @cyclingstar/web exec playwright test --project=telefono
+      # Con su propia carpeta y sin el informe JSON: Playwright vacía la de salida al empezar, y el
+      # informe es el de la prueba del teléfono.
+      - name: Sin red
+        if: ${{ !cancelled() && steps.mundo.outcome == 'success' }}
+        run: |
+          pnpm --filter @cyclingstar/web exec playwright test --project=sinred --reporter=list \
+            --output "$RUNNER_TEMP/resultados-sinred"
       - name: Lo medido, de la base y del PR
         if: always() && steps.toca.outputs.correr == 'si'
         uses: actions/upload-artifact@v4
@@ -356,9 +368,12 @@ jobs:
           path: |
             ${{ runner.temp }}/base.json
             ${{ runner.temp }}/pr.json
+            ${{ runner.temp }}/resultados-sinred/
             apps/web/e2e/.resultados/
           retention-days: 14
           if-no-files-found: ignore
+          # `.resultados` empieza por punto, y sin esto `upload-artifact` la deja fuera
+          include-hidden-files: true
 
   quality:
     name: Lint · Format
