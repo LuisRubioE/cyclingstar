@@ -364,7 +364,7 @@ Ninguno: lo de hoy sigue resolviendo, porque el cierre va comentado y los hereda
 - **Los avisos `ui/`**: 1.485 en 89 ficheros, 1.453 en 84 `.tsx` y 32 en cinco `.ts` (`visuals.ts` 20, `health.ts` 4, `riderResults.ts` 4, y `montage.ts` y `screen.ts` de la retransmisión, 2 cada uno). Por regla: `ui/1` 111, `ui/2` 15, `ui/3` 42, `ui/4` 23, `ui/5` 70, `ui/6` 1.068, `ui/7` 44, `ui/8` 48, `ui/9` 8 y `ui/10` 56. Frente a los 1.417 de `sistema` en 83 `.tsx`: iguales `ui/1` a `ui/5`, `ui/8` (28 en los `.tsx`) y `ui/9`; en los `.tsx`, dos más en `ui/6`, cinco en `ui/7` y 29 en `ui/10` (la ampliada, con sus plantillas); y los 32 de los `.ts`. `pnpm lint` sigue en 0 errores.
 - **El tiempo**: `vocabulario.test.ts`, menos de 1 s; `heredados.test.ts`, unos 3 s; `pnpm lint`, 13 s en local.
 - **El peso**: la hoja que bloquea, de 8,94 a 8,87 KB comprimida (las cuatro clases que solo venían de los tests); el JS no cambia.
-- **La prueba del teléfono**, con la web del PR sobre el mismo mundo que la base: tiene que dar las 92 medidas idénticas, porque nada de lo que se pinta cambia.
+- **La prueba del teléfono**, con la web del PR sobre el mismo mundo que la base: las 92 medidas, idénticas (94 tests en 6,2 minutos).
 
 ### Lo que ve el dueño
 
