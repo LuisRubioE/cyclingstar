@@ -67,23 +67,18 @@ interface Pagina {
   readonly plan?: true
   /**
    * La lista en frío de hoy con Slow 4G, si no cumple siempre el umbral: la mediana de cinco con DejaVu
-   * Sans en cuatro pasadas del contenedor de diseño al escribir este fichero (el mapa 05 §12, con Inter,
-   * dio 5,70 y 5,22). Pasa a ser un test de verdad cuando el PR que la baja quita el `fixme`.
+   * Sans en las pasadas del contenedor de diseño (el mapa 05 §12, con Inter, dio 5,70 y 5,22). Pasa a ser
+   * un test de verdad cuando el PR que la baja quita el `fixme`: el del plan, el PR 6, que la dejó de
+   * 4,85 a 4,89 (antes, de 5,04 a 5,19).
    */
   readonly hoyListaFrio?: string
 }
 
 /** Las cuatro páginas del mapa 05 §12. */
 const PAGINAS: readonly Pagina[] = [
-  { nombre: 'la portada del jugador', ruta: '/', jugador: true, hoyListaFrio: 'de 4,80 a 5,60' },
+  { nombre: 'la portada del jugador', ruta: '/', jugador: true, hoyListaFrio: 'de 4,59 a 5,35' },
   { nombre: 'la portada del visitante', ruta: '/', jugador: false },
-  {
-    nombre: 'el plan',
-    ruta: '/me/training',
-    jugador: true,
-    plan: true,
-    hoyListaFrio: 'de 5,04 a 5,19',
-  },
+  { nombre: 'el plan', ruta: '/me/training', jugador: true, plan: true },
   { nombre: 'Watch', ruta: ETAPA, jugador: false },
 ]
 
@@ -363,12 +358,12 @@ test.describe('cada noche (§16.5)', () => {
     expect(cifras.medidas).toHaveLength(PAGINAS.length)
   })
 
-  // 1. El rendimiento (§7.5). La primera pintura en frío de hoy va de 3,09 a 3,18 s con DejaVu Sans (de
-  //    3,13 a 3,28 con Inter, mapa 05 §12): las banderas son el 91 % de la hoja que la bloquea, y la baja
-  //    el sprite del PR 6 (2,93 s, telefono).
+  // 1. El rendimiento (§7.5). La primera pintura en frío iba de 3,09 a 3,18 s con DejaVu Sans (de 3,13 a
+  //    3,28 con Inter, mapa 05 §12): las banderas eran el 91 % de la hoja que la bloquea. Con su sprite
+  //    (PR 6), de 2,89 a 2,93 en el contenedor de diseño, en dos pasadas.
   for (const p of PAGINAS) {
     const de = (m: readonly Medida[]) => m.find((x) => x.pagina === p.nombre)!
-    test.fixme(`${p.nombre}: primera pintura en frío ≤ 3,0 s (hoy de 3,09 a 3,18; la baja el PR 6)`, () => {
+    test(`${p.nombre}: primera pintura en frío ≤ 3,0 s`, () => {
       expect(de(cifras.medidas).primeraPinturaFrioMs).toBeLessThanOrEqual(
         UMBRAL.primeraPinturaFrioMs,
       )

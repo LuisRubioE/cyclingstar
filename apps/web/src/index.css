@@ -15,3 +15,18 @@
 body {
   background-color: #e8edf2;
 }
+
+/* La caja de una bandera (`components/Flag.tsx`; E3, docs/visual.md §12.2, PR 6): la de `.fi` de
+   `flag-icons`, sin capa como estaba, para que nada se mueva al pintar del sprite. El `::before` le da
+   el renglón de 1 em de alto, y ha de ser un espacio que no se colapsa (U+00A0, como el de `.fi`): con
+   uno normal, la caja se queda sin renglón y mide 0 de alto. */
+.flag {
+  position: relative;
+  display: inline-block;
+  width: 1.333333em;
+  line-height: 1em;
+  background-repeat: no-repeat;
+}
+.flag::before {
+  content: '\00a0';
+}

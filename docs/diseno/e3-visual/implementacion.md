@@ -16,6 +16,7 @@ La base de E3 es `912c5fa` (25-10-2026): `main` con el diseño fusionado (#306) 
 | 2 · 2a, el mundo de la prueba  | `@playwright/test` 1.56.1 y `axe-core` 4.10.3; `playwright.config.ts` con sus dos proyectos; `e2e/world/build.mjs` y `serve.mjs` (§7.2); `e2e/fonts.conf`; los trabajos `Teléfono` (con el filtro de los cinco caminos) y `Teléfono de noche`, con la acción compuesta `.github/actions/telefono`                                                                                                                                             | `build.mjs`, que para si el mundo no acaba como se espera (219 equipos, el día 50, la toma del equipo, una crono corrida); `nocturno.spec.ts` con sus cuatro pasadas, dos hasta el 2b                                        | `fonts.conf` deja ver a Chromium solo los seis ficheros de DejaVu, no es un alias sobre la configuración del sistema; `Teléfono de noche` informa (`continue-on-error`); los umbrales que hoy no se cumplen, `test.fixme` con su cifra           |
 | 2 · 2b, la prueba del teléfono | `telefono.spec.ts` con las diez comprobaciones en las 46 pantallas a 360 y 320, `control.html`, `pantallas.ts`, `medidas.ts`, `navega.ts` y `trinquete.ts`; `ui/constants.ts` y `shared/kit.ts`; `data-kit` en `Jersey.tsx`; `telefono-baseline.json` con las faltas de hoy; `Teléfono` mide la base y el PR; las pasadas 3 y 4 de la noche                                                                                                   | el instrumento contra `control.html` y su letra por CDP; las reglas del trinquete con cifras de mentira; `kit.test.ts`                                                                                                       | el trinquete compara con la base medida sobre el mismo mundo en cada PR y el fichero apunta la dirección; la comprobación 1 contra `clientWidth`; la 38 salta a `Last starter`                                                                   |
 | 4 · 4, sin red                 | `net.ts` (`SessionState`, `sessionStateOf`, `REQUEST_TIMEOUT_MS`, la marca `cs:signed-in` y `useOnline`) y `useSessionState`; el corte a 15 s en `api/request.ts`; `ProtectedRoute`, `Header` y `BottomNav` con `unknown`; `OfflineBanner`, `OfflineState` y `ErrorState`; la barrera por ruta y las páginas con su fallo tipado (`lazyPage`); `PausedOffline`; `sessionSeenOf` en `HorizonWatcher`; `sinred.spec.ts` y su paso en `Teléfono` | `net.test.ts` contra el cliente de better-auth 1.6.25; `queryClient.test.ts`, `OfflineBanner`, `OfflineState`, `ErrorState` (con la barrera), `PausedOffline` y `request.test.ts`; `sinred.spec.ts`, ocho casos y un `fixme` | `HorizonWatcher` sí se toca; mientras better-auth vuelve a pedir la sesión vale la última respuesta; lo de la cuenta solo con `signed-in`; `PausedOffline` hasta el 10; la hora, la de la consulta más reciente; reintentar un trozo es recargar |
+| 6 · 6, el peso                 | `scripts/flag-sprite.mjs`, que pinta las 133 banderas en `assets/flags.webp` y copia sus SVG a `assets/flags/`; `flagSprite.generated.ts`; `Flag.tsx` del sprite, con la caja de `.fi`; `flag-icons` fuera de `main.tsx` y en `devDependencies` 7.5.0; `"sideEffects": false` en `shared`; `scripts/peso.test.mjs` en `Build`; los umbrales de la noche                                                                                       | `peso.test.mjs` (los tres presupuestos), `generados.test.ts` (las huellas del sprite y de los SVG copiados) y `Flag.test.tsx`                                                                                                | el sprite lleva un anillo que repite el borde de cada bandera (52,7 KB y no 47); lo pinta Chromium; `Flag` conserva su API hasta el 9b                                                                                                           |
 
 ## PR 1 · El clon
 
@@ -224,3 +225,64 @@ En modo avión, una página ya vista dice `You're offline. Showing what you saw 
 3. **El 11, la cabecera nueva**, lee `useSessionState().signedIn` para la navegación y `state === 'signed-in'` para todo lo que pide de la cuenta (desviación 3).
 4. **La mutación en pausa** (`sinred.spec.ts`, `fixme`) se enciende con la `ActionBar` del 9a.
 5. **En local**, con el servidor de 2a: `E2E_BASE=http://localhost:3005 pnpm --filter @cyclingstar/web exec playwright test --project=sinred` (y `E2E_CUENTAS` si el mundo no está en `e2e/world/.mundo`).
+
+## PR 6 · El peso
+
+### Lo que entró
+
+- **`apps/web/scripts/flag-sprite.mjs`**: pinta las 133 banderas del juego (`COUNTRIES`), de los SVG 4x3 de `flag-icons` 7.5.0, en `src/assets/flags.webp`, doce columnas por doce filas de celdas de 64 × 48, en WebP de calidad 0,8; escribe `src/components/ui/flagSprite.generated.ts` (`FLAG_SPRITE`, con la geometría, el anillo, la calidad y tres huellas, y `FLAG_CELLS`, la celda de cada país); y copia los 133 SVG a `src/assets/flags/`, que `ChampionJersey` pintará desde 72 px (§9.5; el 17a). Pinta con el Chromium de Playwright y es determinista: dos pasadas dan el mismo fichero, byte a byte. No corre en el CI.
+- **`Flag.tsx` pinta del sprite**, escalado en `em`, en la caja `.flag` de `index.css`, que es la de `.fi` de `flag-icons` (en línea, 1,333333 em de ancho y un renglón de 1 em que da su `::before`), sin capa, como estaba. Sin país, la misma caja vacía, que no se lee (§4.6), y no el `🏳️` de antes.
+- **`flag-icons` sale de `main.tsx`** y pasa a `devDependencies` a la versión exacta `7.5.0`: el generador y la huella siguen leyendo sus SVG (17-s).
+- **`"sideEffects": false` en `packages/shared`** (H-03; desviación 5).
+- **`apps/web/scripts/peso.test.mjs`**, los tres presupuestos de §12.2 con `node --test` sobre `dist/`, en un paso nuevo del trabajo `Build` (`El peso de la web`).
+- **`src/generados.test.ts`**: que `flags.webp` es el que escribió el generador, que se hizo con los SVG y los países de hoy, que cada país tiene su celda y que la copia de los SVG es la de `flag-icons`, sin tocar. Si falla, se regenera.
+- **Los umbrales de `nocturno.spec.ts`**: la primera pintura en frío de las cuatro páginas pasa de `fixme` a test, como anunciaba su nombre («la baja el PR 6»), y la lista en frío del plan también, porque baja de 5,0; la de la portada del jugador sigue `fixme`, con su cifra de hoy.
+
+### Lo que se aparta del diseño, y por qué
+
+1. **El sprite lleva un anillo de 2 píxeles que repite el borde de cada bandera, y pesa 52,7 KB, no 47.** Sin él, al escalar se colaba en el borde la bandera vecina, una raya de uno o dos píxeles de pantalla que se veía a simple vista a 16 px: el WebP con pérdida suaviza los bordes de sus bloques, que son los de las celdas, y Chromium ajusta a píxeles de pantalla la posición y el tamaño del fondo. Medido con un sprite de prueba de la misma geometría y cada celda de un color plano, el borde dejaba de llevar color ajeno al enseñar cada celda 1,5 píxeles por dentro, a todos los tamaños de hoy (de 11 a 34) y con relación de píxeles 2 y 3. Huecos entre celdas no: hasta uno de un píxel costaba 10 KB, porque descuadra las celdas de los macrobloques de 16 del WebP, y uno de 16 dejaba el sprite en 69. Así que cada bandera se pinta a 60 × 44 en el centro de su celda, los 2 píxeles de alrededor repiten su borde, y `Flag` enseña solo esos 60 × 44: la bandera entera, en 4:3 (las dos escalas se compensan), y lo que se cuele es su propio color. Cuesta 5 KB, y el tope es 60.
+2. **El sprite lo pinta Chromium**, con `canvas.toDataURL('image/webp', 0.8)`, y no una herramienta de imágenes: el Chromium de Playwright ya está para la prueba del teléfono y no hay que añadir otra dependencia con binarios. Como no corre en el CI, `generados.test.ts` guarda las huellas.
+3. **`Flag` conserva su API de hoy** (`size`, la altura en px, 20 por defecto) y los tamaños de cada página: los de §4.6 (12, 16 o 24, y 21 × 16 en una fila) llegan con `ui/Flag.tsx` en el 9b. Hasta entonces, las pocas banderas de 26 a 34 px se ven algo más blandas que el SVG, porque se amplían desde 44 píxeles de alto.
+4. **La caja es la de `.fi`, sin capa**, para que nada se mueva: las 92 medidas de la prueba del teléfono salen idénticas a las de la base. Pero esa prueba no ve una bandera invisible: la primera versión ponía en el `::before` un espacio normal, que se colapsa, y las banderas medían 0 de alto, y las 92 medidas salieron igual de idénticas. Lo cazó una comparación a ojo con las de antes, y ahora lo vigila `Flag.test.tsx`: el `::before` de `.flag` es U+00A0, como el de `.fi`.
+5. **`"sideEffects": false` en `shared` entra**, porque se cumplen sus dos condiciones (H-03): `request.js` suelta lo de `broadcast/*` (de 46,2 a 30,6 KB con gzip) y `pnpm test` sigue en verde. Y una tercera que el diseño no pedía: ningún módulo de `shared` hace nada al importarse (revisado), y las 46 pantallas de la prueba del teléfono corren con el paquete ya sacudido. vitest no sacude el árbol como Rollup, así que `pnpm test` en verde, solo, no lo probaba.
+6. **Los KB son de 1.000 bytes**, los del informe de Vite, y el gzip, el de Node a nivel 9 (X-26).
+
+### Las cifras (para la descripción del PR)
+
+| Lo que pesa, con gzip          | `main`   | con el PR |
+| ------------------------------ | -------- | --------- |
+| la hoja que bloquea la pintura | 92,1 KB  | 8,7 KB    |
+| el JS de arranque              | 157,4 KB | 144,1 KB  |
+| el sprite (tal cual)           | no hay   | 52,7 KB   |
+
+- **Las banderas**, a ojo, la de antes y la del sprite lado a lado, en catorce de las más difíciles (escudos, estrellas, franjas finas) a 12, 16, 20, 24 y 34 px y con relación de píxeles 2 y 3: las mismas, con bordes limpios; a 34 px, la del sprite algo más blanda.
+- **La prueba del teléfono**, con la web del PR sobre el mismo mundo que la base: las 92 medidas, idénticas (94 tests en 6,3 minutos), y `telefono-baseline.json` no cambia.
+- **La noche** (Slow 4G, CPU ×4, la mediana de cinco), en el contenedor, `main` una pasada y el PR dos, sobre el mismo mundo:
+
+  | Página                   | Primera pintura en frío, `main` | con el PR     | Lista en frío, `main` | con el PR     |
+  | ------------------------ | ------------------------------- | ------------- | --------------------- | ------------- |
+  | la portada del jugador   | 3,20 s                          | 2,91 y 2,92 s | 5,65 s                | 4,59 y 5,35 s |
+  | la portada del visitante | 3,18 s                          | 2,90 y 2,90 s | 4,86 s                | 4,60 y 4,57 s |
+  | el plan                  | 3,16 s                          | 2,89 y 2,92 s | 5,17 s                | 4,85 y 4,89 s |
+  | `Watch`                  | 3,18 s                          | 2,92 y 2,93 s | 4,75 s                | 4,58 y 4,60 s |
+
+  Lo que preveía el diseño, de 3,20 a 2,93 s (telefono §8.3). La lista en caliente no cambia (la caché inmutable de `assets/` ya la servía), ni `Watch` con Fast 4G (de 1,09 a 1,16 s). El margen de la primera pintura es corto, unos 70 ms en la peor medida: en el CI de cada noche, que informa y no para nada, puede salir por encima algún día.
+
+- **Los tests**: `generados.test.ts` (5), `Flag.test.tsx` (6) y `peso.test.mjs` (3, fuera de vitest); `lastRaceReport.test.tsx` reconoce la bandera por su nombre y no por la clase `fi-es`.
+
+### Lo que ve el dueño
+
+La web pinta antes: la hoja que bloquea la primera pintura baja de 92 a 9 KB, y el JS de arranque, 13 KB. Las banderas son las mismas; a 26 px o más se ven algo más blandas hasta el 9b.
+
+### El riesgo del despliegue
+
+- **Si el sprite no carga**, la caja de la bandera queda vacía, sin emoji. Va con huella en `assets/` y la caché de un año, como el resto.
+- **`"sideEffects": false`**: un módulo de `shared` que hiciera algo al importarse, sin que nadie usara lo que exporta, desaparecería del paquete de la web. Hoy no hay ninguno.
+- Se revierte con un revert.
+
+### Notas para el paso siguiente
+
+1. **Regenerar el sprite**, si cambian `flag-icons` o `COUNTRIES` (lo dice `generados.test.ts`): `pnpm build` y `node apps/web/scripts/flag-sprite.mjs`, con el Chromium de Playwright (`PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers` en el contenedor).
+2. **El 9b** pasa `Flag` a `ui/Flag.tsx` con los tamaños de §4.6 y el filete `line`; la celda útil, 60 × 44, cubre 24 px a relación 2 casi uno a uno.
+3. **El 17a**: `ChampionJersey` carga el SVG de su país de `src/assets/flags/` con `import.meta.glob`.
+4. **`shared` no puede tener módulos que hagan algo al importarse** (`"sideEffects": false`): lo que haga falta, que se exporte y se llame.

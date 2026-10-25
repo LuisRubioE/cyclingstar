@@ -397,6 +397,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
       - run: pnpm -r build
+      # LOS PRESUPUESTOS DE PESO (E3, docs/visual.md §12.2; PR 6, D-50): la hoja que bloquea la primera
+      # pintura, el JS de arranque y el sprite de las banderas, sobre la web recién compilada.
+      - name: El peso de la web
+        run: node --test apps/web/scripts/peso.test.mjs
 
   migrations:
     name: Migraciones (base vacía)

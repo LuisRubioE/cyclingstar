@@ -64,7 +64,7 @@ describe('Your last race: los momentos del corredor (§12.9, 12-k)', () => {
     expect(html).toContain('km 152')
     expect(html).toContain('href="/world/riders/r-ana"')
     expect(html).toContain('Ana Ruiz')
-    expect(html).toContain('fi-es') // la bandera, la misma <Flag/> del resto de la web
+    expect(html).toContain('aria-label="Spain"') // la bandera, la misma <Flag/> del resto de la web
     expect(html).not.toContain('attack_reeled')
     expect(html).not.toContain('rider_sits_up')
     // los momentos de la etapa re-simulada ya no salen
