@@ -117,5 +117,7 @@ export async function removeJerseyClones(tx: Tx, worldId: string): Promise<strin
       .where(eq(teams.id, team.id))
     notes.push(`jersey clone removed: ${clone.name} (${clone.id}), ${bornIds.length} riders`)
   }
-  return notes.join(' · ')
+  // Sin nota, `null`: el tick junta las suyas filtrando solo los `null`, y una cadena vacía dejaría un
+  // « · » suelto en `tick_log` cada vez que un equipo sin semilla de génesis no tiene candidato.
+  return notes.length > 0 ? notes.join(' · ') : null
 }

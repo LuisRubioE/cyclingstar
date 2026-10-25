@@ -165,5 +165,8 @@ describe('db: el clon del maillot (E3, §8.9; PR 1)', () => {
       .from(teams)
       .where(eq(teams.id, team.id))
     expect(rows).toEqual([{ name: team.name, country: team.country }])
+    // Sin clon que le corresponda, el paso no borra nada ni deja nota (`null`, no una cadena vacía).
+    expect(await t.db.transaction((tx) => removeJerseyClones(tx, worldId))).toBeNull()
+    expect(await counts()).toEqual({ teams: 219, riders: 3900 })
   }, 180_000)
 })
