@@ -1,7 +1,7 @@
 {
   "tailwindcss": "4.3.3",
   "total": {
-    "tema": 2760,
+    "tema": 2740,
     "arbitrarios": 46,
     "espaciado": 38,
     "layout": 0
@@ -274,24 +274,6 @@
     "apps/web/src/components/broadcast/VoiceTicker.tsx": {
       "tema": 6,
       "arbitrarios": 1,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/components/ui/ErrorState.tsx": {
-      "tema": 9,
-      "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/components/ui/OfflineBanner.tsx": {
-      "tema": 8,
-      "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/components/ui/OfflineState.tsx": {
-      "tema": 3,
-      "arbitrarios": 0,
       "espaciado": 0,
       "layout": 0
     },

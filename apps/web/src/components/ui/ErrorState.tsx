@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react'
+import { Button } from './Button'
+import { Icon } from './Icon'
 
 /**
  * UN FALLO, EN EL SITIO DEL CONTENIDO (E3, docs/visual.md §4.2; PR 4). Cuatro tipos, que en el PR 10
@@ -7,7 +9,9 @@ import type { ReactNode } from 'react'
  * la web que ya no existe tras un despliegue) y `notFound`. En el PR 4 lo usa la barrera por ruta, ante un
  * trozo de JS que no carga: `network` sin red y `outdated` con ella (12-c; 17-v).
  *
- * Nace con las clases de hoy y pasa a los tokens en el PR 9a (17-c); su test mira `data-*` y ARIA.
+ * Anatomía (PR 9a, con los tokens; 17-c): el icono `error` de 24 en `bad`, la frase en `body` 600, el
+ * código de `server` en `caption` `ink-3` y `Try again` (`Button` `secondary` con `retry`), ocupado
+ * mientras reintenta.
  */
 
 export type ErrorKind = 'server' | 'network' | 'outdated' | 'notFound'
@@ -40,61 +44,35 @@ export function errorTitle({ kind, label, chunk, message }: ErrorStateProps): st
 
 export function ErrorState(props: ErrorStateProps) {
   const { kind, status, onRetry, retrying = false, action } = props
-  const boton = 'rounded-lg border border-slate-300 px-4 py-2.5 font-medium text-slate-700'
   return (
     <div
       role="alert"
       data-ui="ErrorState"
       data-state="error"
       data-kind={kind}
-      className="flex flex-col items-start gap-2 py-6"
+      className="grid justify-items-start gap-2 py-6"
     >
-      <ErrorIcon />
-      <p className="text-base font-semibold text-slate-900">{errorTitle(props)}</p>
+      <span className="inline-flex text-bad">
+        <Icon name="error" size={24} />
+      </span>
+      <p className="text-body font-semibold text-ink">{errorTitle(props)}</p>
       {kind === 'server' && status !== undefined && (
-        <p className="text-xs text-slate-500">Error {status}</p>
+        <p className="text-caption text-ink-3">Error {status}</p>
       )}
       {kind === 'outdated' ? (
-        <button type="button" className={boton} onClick={() => window.location.reload()}>
+        <Button icon="retry" onClick={() => window.location.reload()}>
           Reload
-        </button>
+        </Button>
       ) : kind === 'notFound' ? (
         action
       ) : (
         onRetry && (
-          <button
-            type="button"
-            className={boton}
-            // ocupado y no deshabilitado (§4.1): se puede enfocar, y el clic, mientras reintenta, no hace nada
-            onClick={retrying ? undefined : onRetry}
-            aria-busy={retrying || undefined}
-            data-state={retrying ? 'busy' : undefined}
-          >
-            {retrying ? 'Trying again…' : 'Try again'}
-          </button>
+          // ocupado y no deshabilitado (§4.1): se puede enfocar, y el clic, mientras reintenta, no hace nada
+          <Button icon="retry" onClick={onRetry} busy={retrying} busyLabel="Trying again…">
+            Try again
+          </Button>
         )
       )}
     </div>
-  )
-}
-
-/** El icono `error` hasta los iconos del catálogo, en el 9a. */
-function ErrorIcon() {
-  return (
-    <svg
-      width={24}
-      height={24}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      className="text-red-600"
-    >
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7.5v5.5M12 16.5h.01" />
-    </svg>
   )
 }
