@@ -538,10 +538,15 @@ export async function seedWorld(tx: Tx, worldId: string, worldSeed: string): Pro
 
 const DIV_RANK: Record<Division, number> = { WT: 0, PRS: 1, CON: 2 }
 
-/** Índice del equipo dentro de su división, leído de su semilla de maillot (…:team:DIV:i:jersey). */
-function teamIndexFromSeed(jerseySeed: string): number {
-  const m = jerseySeed.match(/:team:[A-Z]+:(\d+):jersey$/)
-  return m ? Number.parseInt(m[1]!, 10) : 0
+/**
+ * Índice del equipo dentro de su división, leído de su semilla de génesis (…:team:DIV:i:jersey), o
+ * `null` si la semilla no es de la génesis (E3, docs/visual.md §8.9). Antes daba 0 a cualquier otra,
+ * así que un equipo con el maillot cambiado que perdía su dueño se renombraba como el índice 0 de su
+ * división, con su país; ahora `reconcileTeams` ni lo poda ni lo renombra.
+ */
+export function teamIndexFromSeed(jerseySeed: string): number | null {
+  const m = jerseySeed.match(/:team:(?:WT|PRS|CON):(\d+):jersey$/)
+  return m ? Number.parseInt(m[1]!, 10) : null
 }
 
 /**
@@ -567,11 +572,19 @@ export async function reconcileTeams(tx: Tx, worldId: string): Promise<number> {
 
   const used = new Set<string>()
   for (const t of rows) {
-    if (t.ownerUserId !== null) used.add(t.name.toLowerCase()) // los equipos humanos mandan
+    // Los equipos humanos mandan, y los que no tienen semilla de génesis conservan el suyo (§8.9).
+    if (t.ownerUserId !== null || teamIndexFromSeed(t.jerseySeed) === null)
+      used.add(t.name.toLowerCase())
   }
-  const bots = rows.filter((t) => t.ownerUserId === null)
-  const inRange = (t: (typeof bots)[number]) =>
-    teamIndexFromSeed(t.jerseySeed) < TEAM_DIST[t.division].length
+  // Un equipo sin semilla de génesis (un maillot cambiado antes de la 0050) no tiene índice: ni se poda
+  // ni se renombra, porque no se sabe qué equipo de la génesis es (E3, §8.9).
+  const bots = rows
+    .filter((t) => t.ownerUserId === null)
+    .flatMap((t) => {
+      const index = teamIndexFromSeed(t.jerseySeed)
+      return index === null ? [] : [{ ...t, index }]
+    })
+  const inRange = (t: (typeof bots)[number]) => t.index < TEAM_DIST[t.division].length
 
   // Poda de equipos NPC sobrantes: si un mundo se expandió a más equipos de los reales (p. ej. un
   // Continental de 200 cuando el reparto son 185), los de índice fuera de rango se eliminan. Sus
@@ -588,14 +601,10 @@ export async function reconcileTeams(tx: Tx, worldId: string): Promise<number> {
   // que la asignación sea un punto fijo determinista (no-op en un mundo nuevo).
   const keep = bots
     .filter(inRange)
-    .sort(
-      (a, b) =>
-        DIV_RANK[a.division] - DIV_RANK[b.division] ||
-        teamIndexFromSeed(a.jerseySeed) - teamIndexFromSeed(b.jerseySeed),
-    )
+    .sort((a, b) => DIV_RANK[a.division] - DIV_RANK[b.division] || a.index - b.index)
   const renames: BatchValue[][] = []
   for (const t of keep) {
-    const country = teamCountryByIndex(t.division, teamIndexFromSeed(t.jerseySeed))
+    const country = teamCountryByIndex(t.division, t.index)
     const name = makeLangTeamName(t.jerseySeed, country, used)
     if (t.country !== country || t.name !== name) {
       renames.push([t.id, country, name])
@@ -782,7 +791,8 @@ export async function clusterTeamNationalities(tx: Tx, worldId: string): Promise
     id: t.id,
     division: t.division,
     country: t.country,
-    order: teamIndexFromSeed(t.jerseySeed),
+    // Sin semilla de génesis (§8.9), al final de su división: el orden sigue siendo determinista.
+    order: teamIndexFromSeed(t.jerseySeed) ?? Number.MAX_SAFE_INTEGER,
   }))
 
   // Al reubicar un bot a otro equipo, su residencia SIGUE al nuevo equipo (un bot vive en el país de

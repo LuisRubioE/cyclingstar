@@ -6,6 +6,7 @@ import {
   raceWatch,
   spoilerScopeEnum,
   stageTimelines,
+  teams,
   tickLog,
   users,
   worlds,
@@ -25,6 +26,12 @@ describe('db: esquema fundacional', () => {
 
   it('lo visto vive en race_watch (E2, §13.4; la 0048)', () => {
     expect(getTableName(raceWatch)).toBe('race_watch')
+  })
+
+  it('la semilla del dibujo vive en teams.jersey_style_seed, aparte de la identidad (E3, §8.9; la 0050)', () => {
+    expect(teams.jerseyStyleSeed.name).toBe('jersey_style_seed')
+    expect(teams.jerseyStyleSeed.notNull).toBe(false)
+    expect(teams.jerseySeed.notNull).toBe(true)
   })
 
   /**

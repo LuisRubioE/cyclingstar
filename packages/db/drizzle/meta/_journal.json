@@ -351,6 +351,13 @@
       "when": 1791457364417,
       "tag": "0049_rastro_de_etapa",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1792949506517,
+      "tag": "0050_semilla_del_dibujo",
+      "breakpoints": true
     }
   ]
 }

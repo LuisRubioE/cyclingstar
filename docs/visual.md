@@ -1,6 +1,6 @@
 # El sistema visual: diseñado desde el teléfono, medido y que se hace cumplir (diseño final)
 
-Estado: diseño escrito, sin implementar. Ensamblado el 22 de octubre de 2026 sobre `58c14da` (`main` de ese día, con E2 en implementación desde el 3 de octubre y el motor v91), con todas las decisiones del dueño contestadas el 21, el 22 y el 25 de octubre (§19; DD-24 solo se abre si falla una puerta del PR 16a). No se abre código de E3 hasta que el dueño lo diga (la regla de arranque, en §0.1).
+Estado: en implementación desde el 25 de octubre de 2026, sobre `912c5fa`: la versión de producción con el motor v91 y E2 encendido, más este diseño (#306). El dueño abrió ese día el código, con todas sus decisiones contestadas (§19; DD-24 solo se abre si falla una puerta del PR 16a). Pasos implementados (cada PR añade el suyo; el detalle, las cifras, lo que se aparta del diseño y lo que el paso siguiente tiene que saber, en `docs/diseno/e3-visual/implementacion.md`): el 1, el clon.
 
 ## 0. Cabecera y resumen
 
@@ -18,7 +18,7 @@ Este documento vive en `docs/visual.md`. Es el diseño ÚNICO de E3 que se imple
 
 **El árbol.** Todo lo que el documento cita (ficheros, líneas, cifras medidas) está leído contra `58c14da` (20 de octubre de 2026), que era `main` al empezar y lo sigue siendo al ensamblar: `git diff --stat 58c14da HEAD -- . ':!docs'` sale vacío (comprobado al escribir esta cabecera). `ENGINE_VERSION` es 91 (`packages/engine/src/constants.ts` l. 853) y E3 no la sube; la última migración es la `0049_rastro_de_etapa`, así que las de E3 son de la `0050` a la `0054` (§17.1, regla 4).
 
-**Regla de arranque** (`docs/encargos.md` l. 15-26). Aquí todavía no se toca código: lo único que se ha hecho es escribir el diseño. La regla se dio por cumplida el 3 de octubre de 2026 para E2, con el motor v91 en producción, pero el código de E3 no se abre hasta que el dueño lo diga, y cuando se abra, lo primero es bajar la última versión de producción y trabajar sobre ella. Por eso toda cita de línea se recomprueba al empezar cada PR (§17.1): si una línea se ha movido, manda el nombre del símbolo citado; y si E2 ha tocado mientras tanto un fichero que E3 dibuja (`Watch` y lo que §14 hereda), manda lo que haya en producción y §14 se lee contra eso.
+**Regla de arranque** (`docs/encargos.md` l. 15-26). Aquí todavía no se toca código: lo único que se ha hecho es escribir el diseño. La regla se dio por cumplida el 3 de octubre de 2026 para E2, con el motor v91 en producción, pero el código de E3 no se abre hasta que el dueño lo diga, y cuando se abra, lo primero es bajar la última versión de producción y trabajar sobre ella. Por eso toda cita de línea se recomprueba al empezar cada PR (§17.1): si una línea se ha movido, manda el nombre del símbolo citado; y si E2 ha tocado mientras tanto un fichero que E3 dibuja (`Watch` y lo que §14 hereda), manda lo que haya en producción y §14 se lee contra eso. El dueño abrió el código de E3 el 25 de octubre de 2026 («Sí, fusiónalo y empieza por el PR 1 y sigue con todo lo demás del E3»).
 
 ### 0.2 Método, base y fusión
 

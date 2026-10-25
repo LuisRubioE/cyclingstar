@@ -266,6 +266,14 @@ export const teams = pgTable(
     budget: integer('budget').notNull().default(0),
     philosophy: philosophyEnum('philosophy').notNull(),
     jerseySeed: text('jersey_seed').notNull(),
+    /**
+     * LA SEMILLA DEL DIBUJO (E3, docs/visual.md §8.9; la 0050). `jersey_seed` es la IDENTIDAD del
+     * equipo: `seedWorld` reconoce por ella los equipos de la génesis, y cambiarla hacía que el tick
+     * siguiente creara un clon del equipo con la semilla vieja. El maillot que elige el dueño va aquí,
+     * y todo lo que dibuja lee `coalesce(jersey_style_seed, jersey_seed)` (`teamDrawSeed`). Nula en
+     * los equipos que no han cambiado de maillot. Muere en la 0053, cuando `team_kits` la sustituya.
+     */
+    jerseyStyleSeed: text('jersey_style_seed'),
     facilities: real('facilities').notNull().default(1),
     /**
      * EL STAFF: médicos, fisios, nutricionistas. Multiplica la ganancia de entrenamiento igual que

@@ -2,6 +2,7 @@ import { ATTRIBUTES, type Attribute, type Vocation } from '@cyclingstar/shared'
 import { and, asc, desc, eq, isNull, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
 import { type Horizon, type VeilDelta, veilDelta } from './horizon.js'
+import { teamDrawSeed } from './jerseyClone.js'
 import { compareIds, seasonMinus, topAtHorizon } from './ranking.js'
 import { type HealthState, getSeasonRank } from './riders.js'
 import { riderAttrs, riders, teams } from './schema.js'
@@ -95,7 +96,7 @@ export async function getTeams(db: Database, h: Horizon, worldId: string): Promi
       division: teams.division,
       budget: teams.budget,
       pointsSeason: teamPoints,
-      jerseySeed: teams.jerseySeed,
+      jerseySeed: teamDrawSeed,
       riderCount: sql<number>`count(${riders.id})::int`,
     })
     .from(teams)
@@ -183,7 +184,8 @@ export async function getTeamDetail(
     division: team.division,
     budget: team.budget - (d.budget.get(team.id) ?? 0),
     pointsSeason,
-    jerseySeed: team.jerseySeed,
+    // El maillot que se dibuja (E3, §8.9; la 0050): el elegido si lo hay, y si no el de génesis.
+    jerseySeed: team.jerseyStyleSeed ?? team.jerseySeed,
     human: team.ownerUserId !== null,
     roster: roster.map((r) => ({
       id: r.id,

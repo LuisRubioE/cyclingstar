@@ -3,6 +3,7 @@ import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import { lockCalendarDay, runCalendarDay } from './calendarRun.js'
 import { runCallups } from './callups.js'
+import { removeJerseyClones } from './jerseyClone.js'
 import { dedupeWorldNames } from './dedupeNames.js'
 import { runMarket } from './contracts.js'
 import { runPayroll, runTeamFinances } from './economy.js'
@@ -263,6 +264,11 @@ export async function runTick(databaseUrl: string, opts: RunTickOptions): Promis
       // Génesis del mundo NPC (SPEC 10, Paso 33): equipos y ~1.600 corredores. Idempotente, así
       // que rellena también un mundo creado antes de este paso; solo hace trabajo una vez.
       await db.transaction((tx) => seedWorld(tx, genesis.worldId, worldSeed))
+      // EL CLON DEL MAILLOT (E3, docs/visual.md §8.9; D-00q): borra, una sola vez, el equipo que
+      // `seedWorld` creó cuando un maillot cambiado borraba la semilla de génesis de su equipo. Tras
+      // `seedWorld`, en su propia transacción y antes de las reconciliaciones; sin nada que hacer, una
+      // consulta y ninguna nota.
+      const notaClon = await db.transaction((tx) => removeJerseyClones(tx, genesis.worldId))
       const wanted =
         opts.forceDays != null
           ? genesis.currentDay + opts.forceDays
@@ -377,6 +383,7 @@ export async function runTick(databaseUrl: string, opts: RunTickOptions): Promis
         notes:
           [
             notaE1,
+            notaClon,
             // `timeline: 312 grabadas, 1 sin línea` y sus notas (§5.5); null si no se corrió ninguna etapa.
             timelineLog?.summary() ?? null,
             capped
