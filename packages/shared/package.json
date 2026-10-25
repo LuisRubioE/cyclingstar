@@ -10,7 +10,12 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    }
+    },
+    "./colorMath": {
+      "types": "./dist/colorMath.d.ts",
+      "default": "./dist/colorMath.js"
+    },
+    "./tokens.json": "./tokens.json"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

@@ -20,8 +20,8 @@
  * de su celda y los 2 píxeles de alrededor repiten su borde (`margin`): `Flag` enseña solo esos 60 × 44,
  * entera y en 4:3, y lo que se cuele es su propio color.
  *
- * No corre en el CI; `src/generados.test.ts` mira que lo escrito está al día. Con `shared` compilado
- * (`pnpm build`):
+ * No corre en el CI; `src/components/ui/generados.test.ts` mira que lo escrito está al día. Con `shared`
+ * compilado (`pnpm build`):
  *
  *   node apps/web/scripts/flag-sprite.mjs
  */
@@ -39,6 +39,8 @@ const WEB = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const FLAG_ICONS = join(WEB, 'node_modules', 'flag-icons')
 const ASSETS = join(WEB, 'src', 'assets')
 const GENERATED = join(WEB, 'src', 'components', 'ui', 'flagSprite.generated.ts')
+/** Las huellas de lo generado que no tiene cabecera donde escribirla (§16.2; 16-e). */
+const HUELLAS = join(WEB, 'scripts', 'huellas.json')
 
 /** Doce columnas: 133 banderas en un sprite de 768 × 576. */
 const COLS = 12
@@ -139,7 +141,7 @@ writeFileSync(
   `/**
  * GENERADO por \`apps/web/scripts/flag-sprite.mjs\`: no se edita a mano (E3, docs/visual.md §12.2; PR 6).
  * Las ${codes.length} banderas del juego (\`COUNTRIES\`), de \`flag-icons\` ${version}, en \`src/assets/flags.webp\`;
- * \`src/generados.test.ts\` mira que está al día.
+ * \`src/components/ui/generados.test.ts\` mira que está al día.
  */
 
 export const FLAG_SPRITE = {
@@ -157,8 +159,6 @@ export const FLAG_SPRITE = {
   sha256: '${sha256(webp)}',
   /** el sha256 de lo que lo hace: los parámetros, los países y sus SVG, en orden */
   sourceSha256: '${sourceSha256}',
-  /** el sha256 de la copia de los SVG en \`src/assets/flags/\`, en orden */
-  svgSha256: '${copias.digest('hex')}',
 } as const
 
 /** La celda de cada país en el sprite: columna y fila. */
@@ -167,6 +167,16 @@ ${celdas}
 }
 `,
 )
+
+// La huella de la copia de los SVG, que no tiene cabecera: en `huellas.json`, con las demás.
+let huellas = {}
+try {
+  huellas = JSON.parse(readFileSync(HUELLAS, 'utf8'))
+} catch {
+  // la primera vez
+}
+huellas['src/assets/flags'] = copias.digest('hex')
+writeFileSync(HUELLAS, `${JSON.stringify(huellas, null, 2)}\n`)
 
 console.log(
   `${codes.length} banderas en ${COLS} × ${rows}: flags.webp, ${(webp.length / 1000).toFixed(1)} KB; ` +
