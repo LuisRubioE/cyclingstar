@@ -8,9 +8,10 @@ runs:
   using: composite
   steps:
     # LA LETRA SE FIJA (§7.6, decisión 7-k): con `e2e/fonts.conf`, que el trabajo pasa en
-    # `FONTCONFIG_FILE`, fontconfig solo ve las tres letras de DejaVu, y toda pila de la web acaba en
-    # DejaVu Sans. Con la de la imagen del ejecutor, un cambio de imagen movería la línea base sin tocar
-    # la web. Si la letra no es esa, se para aquí y no en la primera comprobación.
+    # `FONTCONFIG_FILE`, Chromium solo ve los seis ficheros de `fonts-dejavu-core`, y toda pila de la web
+    # acaba en DejaVu Sans. Con la de la imagen del ejecutor, un cambio de imagen movería la línea base sin
+    # tocar la web. Si `system-ui` no es DejaVu Sans, se para aquí; la comprobación de verdad, la de la
+    # letra que pinta Chromium, la hace la prueba por CDP.
     - name: La letra de la prueba (DejaVu Sans)
       shell: bash
       run: |
@@ -18,6 +19,8 @@ runs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends fonts-dejavu-core fontconfig
         fi
+        echo 'Los ficheros de DejaVu del sistema:'
+        find /usr/share/fonts -iname 'dejavu*' -type f | sort
         letra="$(fc-match system-ui)"
         echo "system-ui: $letra"
         case "$letra" in
