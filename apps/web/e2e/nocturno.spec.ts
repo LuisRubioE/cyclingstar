@@ -1,17 +1,20 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { KIT_MIN_PX } from '@cyclingstar/shared'
+import { type Browser, type BrowserContext, type Page, expect, test } from '@playwright/test'
 import {
-  type Browser,
-  type BrowserContext,
-  type Page,
-  expect,
-  request,
-  test,
-} from '@playwright/test'
+  MIN_FIELD_FONT_PX,
+  MIN_FONT_PX,
+  MIN_INLINE_TARGET_PX,
+  MIN_TARGET_PX,
+} from '../src/components/ui/constants'
+import { medirPagina } from './medidas'
+import { type Sesion, type Telefono, abrePantalla, mundoDe, nextIp, sesionesDe } from './navega'
+import { TELEFONO_PANTALLAS } from './pantallas'
+import { ANSWER_MAX_TOP_PX, PHONE_REF, TOOL_PAGE_MAX_PX } from './telefono.config'
 
 /**
- * LO QUE CORRE CADA NOCHE (E3, docs/visual.md §7.5 y §16.5; PR 2a). Cuatro pasadas sobre el mundo de
+ * LO QUE CORRE CADA NOCHE (E3, docs/visual.md §7.5 y §16.5; PR 2a, y las pasadas 3 y 4 desde el 2b). Cuatro pasadas sobre el mundo de
  * `world/build.mjs`, que informan y no paran ningún PR (D-19, D-50): el rendimiento con la red y la CPU
  * de un teléfono, `Watch` con los umbrales de E2, la letra al doble y de lado. Corre en el trabajo
  * `Teléfono de noche` de `cobertura.yml`, con `playwright test --project=nocturno`.
@@ -25,11 +28,6 @@ import {
  * (§17.1, regla 1): lo quita el PR que lo arregla. Las cifras de cada noche van adjuntas al informe
  * (`nocturno.json`), cumplan o no.
  */
-
-const HERE = fileURLToPath(new URL('.', import.meta.url))
-const CUENTAS = JSON.parse(
-  readFileSync(process.env.E2E_CUENTAS ?? resolve(HERE, 'world/.mundo/cuentas.json'), 'utf8'),
-) as { password: string; accounts: Record<'jugador', { email: string }> }
 
 /** Los perfiles de red de Chrome DevTools, en bytes por segundo y milisegundos. */
 const PERFILES = {
@@ -69,7 +67,7 @@ interface Pagina {
   readonly plan?: true
   /**
    * La lista en frío de hoy con Slow 4G, si no cumple siempre el umbral: la mediana de cinco con DejaVu
-   * Sans en tres pasadas del contenedor de diseño al escribir este fichero (el mapa 05 §12, con Inter,
+   * Sans en cuatro pasadas del contenedor de diseño al escribir este fichero (el mapa 05 §12, con Inter,
    * dio 5,70 y 5,22). Pasa a ser un test de verdad cuando el PR que la baja quita el `fixme`.
    */
   readonly hoyListaFrio?: string
@@ -84,32 +82,14 @@ const PAGINAS: readonly Pagina[] = [
     ruta: '/me/training',
     jugador: true,
     plan: true,
-    hoyListaFrio: 'de 5,04 a 5,08',
+    hoyListaFrio: 'de 5,04 a 5,19',
   },
   { nombre: 'Watch', ruta: ETAPA, jugador: false },
 ]
 
-let ip = 0
-/** Una IP propia por contexto: el límite de la API es de 300 peticiones por minuto e IP. */
-const nextIp = () => `10.9.${Math.floor(++ip / 250)}.${(ip % 250) + 1}`
-
 const mediana = (xs: readonly (number | null)[]): number | null => {
   const s = xs.filter((x): x is number => x !== null).sort((a, b) => a - b)
   return s.length === 0 ? null : s[Math.floor(s.length / 2)]!
-}
-
-async function sesionDelJugador(baseURL: string) {
-  const api = await request.newContext({
-    baseURL,
-    extraHTTPHeaders: { origin: baseURL, 'x-forwarded-for': nextIp() },
-  })
-  const res = await api.post('/api/auth/sign-in/email', {
-    data: { email: CUENTAS.accounts.jugador.email, password: CUENTAS.password },
-  })
-  expect(res.ok(), `la sesión del jugador: ${res.status()}`).toBe(true)
-  const estado = await api.storageState()
-  await api.dispose()
-  return estado
 }
 
 async function emula(context: BrowserContext, page: Page, perfil: Perfil) {
@@ -159,7 +139,7 @@ async function mide(
   baseURL: string,
   p: Pagina,
   perfil: Perfil,
-  estado: Awaited<ReturnType<typeof sesionDelJugador>> | null,
+  estado: Sesion | null,
 ): Promise<Medida> {
   const frio: { pintura: number | null; lista: number }[] = []
   const caliente: number[] = []
@@ -263,12 +243,80 @@ async function reproduce(
   return { velocidad, ...r, kmRecorridos }
 }
 
+/** El teléfono de lado (H-16): el de referencia, girado. */
+const DE_LADO: Telefono = {
+  ...PHONE_REF,
+  viewport: { width: PHONE_REF.viewport.height, height: PHONE_REF.viewport.width },
+}
+
+/** Las comprobaciones 1 y 2 de una pantalla, o lo que impidió medirla. */
+type Pasada = Readonly<Record<string, { reflujo: number; recortes: number } | { error: string }>>
+
+/**
+ * Las pasadas 3 y 4 (§16.5): las 46 pantallas con la letra raíz al 200 % (H-17; WCAG 1.4.4 y la escala
+ * de letra de Android), a 360 × 800, y de lado, a 800 × 360 (H-16), con las comprobaciones 1 y 2 de la
+ * prueba del teléfono. Una pantalla que no se puede abrir se apunta y no para la pasada.
+ */
+async function pasada(
+  browser: Browser,
+  baseURL: string,
+  telefono: Telefono,
+  alDoble: boolean,
+): Promise<Pasada> {
+  const world = await mundoDe(baseURL)
+  const sesiones = await sesionesDe(baseURL, world)
+  const out: Record<string, { reflujo: number; recortes: number } | { error: string }> = {}
+  for (const p of TELEFONO_PANTALLAS) {
+    try {
+      const { context, page } = await abrePantalla(browser, baseURL, p, telefono, world, sesiones)
+      try {
+        if (alDoble) {
+          await page.evaluate(() => {
+            document.documentElement.style.fontSize = '200%'
+          })
+          await page.waitForTimeout(300)
+          await page.evaluate(() => window.scrollTo(0, 0))
+        }
+        const m = await page.evaluate(medirPagina, {
+          minFontPx: MIN_FONT_PX,
+          minFieldFontPx: MIN_FIELD_FONT_PX,
+          minTargetPx: MIN_TARGET_PX,
+          minInlineTargetPx: MIN_INLINE_TARGET_PX,
+          kitMinPx: KIT_MIN_PX,
+          answerMaxTopPx: ANSWER_MAX_TOP_PX,
+          toolPageMaxPx: TOOL_PAGE_MAX_PX,
+          answer: null,
+          tool: false,
+        })
+        out[p.id] = { reflujo: m.reflujo, recortes: m.recortes }
+      } finally {
+        await context.close()
+      }
+    } catch (e) {
+      out[p.id] = { error: String(e).slice(0, 300) }
+    }
+  }
+  return out
+}
+
+/** Cuántas pantallas fallan una comprobación de una pasada, y cuántas faltas suman. */
+const resumen = (p: Pasada, clave: 'reflujo' | 'recortes') => {
+  const vals = Object.values(p).map((x) => ('error' in x ? null : x[clave]))
+  return {
+    pantallas: vals.filter((v) => v !== null && v > 0).length,
+    faltas: vals.reduce<number>((n, v) => n + (v ?? 0), 0),
+    sinMedir: vals.filter((v) => v === null).length,
+  }
+}
+
 /** Lo que mide una noche: lo que va al informe y lo que leen los umbrales. */
 interface Cifras {
   readonly umbrales: typeof UMBRAL
   readonly medidas: readonly Medida[]
   readonly watchPrimeraPinturaMs: number | null
   readonly reproducciones: readonly Reproduccion[]
+  readonly alDoble: Pasada
+  readonly deLado: Pasada
 }
 
 test.describe('cada noche (§16.5)', () => {
@@ -286,18 +334,22 @@ test.describe('cada noche (§16.5)', () => {
     }
     info.setTimeout(30 * 60_000)
     const baseURL = info.project.use.baseURL ?? 'http://localhost:3005'
-    const estado = await sesionDelJugador(baseURL)
+    const estado = (await sesionesDe(baseURL, await mundoDe(baseURL))).jugador ?? null
     const medidas: Medida[] = []
     for (const p of PAGINAS)
       medidas.push(await mide(browser, baseURL, p, 'Slow 4G', p.jugador ? estado : null))
     const watch = await mide(browser, baseURL, PAGINAS[3]!, 'Fast 4G', null)
     const reproducciones: Reproduccion[] = []
     for (const v of [1, 4] as const) reproducciones.push(await reproduce(browser, baseURL, v))
+    const alDoble = await pasada(browser, baseURL, PHONE_REF, true)
+    const deLado = await pasada(browser, baseURL, DE_LADO, false)
     cifras = {
       umbrales: UMBRAL,
       medidas,
       watchPrimeraPinturaMs: watch.primeraPinturaFrioMs,
       reproducciones,
+      alDoble,
+      deLado,
     }
     mkdirSync(info.project.outputDir, { recursive: true })
     writeFileSync(fichero, JSON.stringify(cifras, null, 2))
@@ -357,8 +409,19 @@ test.describe('cada noche (§16.5)', () => {
     })
   }
 
-  // 3 y 4. La letra al doble (H-17) y de lado (H-16) usan las 46 pantallas y las comprobaciones 1 y 2,
-  //        que entran con el PR 2b (`e2e/pantallas.ts` y `telefono.spec.ts`).
-  test.fixme('la letra al doble: las 46 y /_ui a 360 × 800 con la letra raíz al 200 % (entra con el 2b)', () => {})
-  test.fixme('de lado: las 46 a 800 × 360 con la comprobación 1 (entra con el 2b)', () => {})
+  // 3 y 4. La letra al doble (H-17) y de lado (H-16), en las 46 pantallas con las comprobaciones 1 y 2 de
+  //        la prueba del teléfono (`/_ui` se suma con el PR 9a, que lo crea).
+  test('la letra al doble y de lado: se abren las 46', () => {
+    expect(resumen(cifras.alDoble, 'reflujo').sinMedir).toBe(0)
+    expect(resumen(cifras.deLado, 'reflujo').sinMedir).toBe(0)
+  })
+  test.fixme('la letra al doble: ningún reflujo en las 46 (hoy, en 26)', () => {
+    expect(resumen(cifras.alDoble, 'reflujo')).toEqual({ pantallas: 0, faltas: 0, sinMedir: 0 })
+  })
+  test.fixme('la letra al doble: ningún recorte en las 46 (hoy 724, en las 46)', () => {
+    expect(resumen(cifras.alDoble, 'recortes')).toEqual({ pantallas: 0, faltas: 0, sinMedir: 0 })
+  })
+  test('de lado: ningún reflujo en las 46', () => {
+    expect(resumen(cifras.deLado, 'reflujo')).toEqual({ pantallas: 0, faltas: 0, sinMedir: 0 })
+  })
 })

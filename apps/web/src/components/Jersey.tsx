@@ -13,6 +13,11 @@ const TORSO =
 /**
  * Maillot procedural (#5): SVG determinista a partir de la semilla del equipo. Sin edición todavía
  * (el editor llegará con los equipos de jugador); por ahora da identidad visual a los equipos NPC.
+ *
+ * `data-kit`, en los tres maillots de este fichero, es lo que busca la comprobación 10 de la prueba del
+ * teléfono (E3, docs/visual.md §7.1; 7-g): ninguno por debajo de 28 px. Lleva el papel del maillot
+ * (`team`, `leader-gc`, `champion`…) y no cambia su aspecto; desde el paso 17 lo llevan `Kit`,
+ * `LeaderJersey` y `ChampionJersey` con su código.
  */
 export const Jersey = memo(function Jersey({ seed, size = 28 }: { seed: string; size?: number }) {
   const { base, secondary, accent, pattern } = jerseyStyle(seed)
@@ -24,6 +29,7 @@ export const Jersey = memo(function Jersey({ seed, size = 28 }: { seed: string; 
       role="img"
       aria-label="Team jersey"
       className="shrink-0"
+      data-kit="team"
     >
       {/* Torso del maillot: hombros, mangas y cuerpo. */}
       <path d={TORSO} fill={base} stroke="rgba(0,0,0,0.18)" strokeWidth="1" />
@@ -108,6 +114,7 @@ export const LeaderJersey = memo(function LeaderJersey({
       role="img"
       aria-label={label}
       className={`inline-block shrink-0 align-text-bottom ${className}`}
+      data-kit={`leader-${kind}`}
     >
       <title>{label}</title>
       <path d={TORSO} fill={base} stroke="rgba(0,0,0,0.35)" strokeWidth="1.5" />
@@ -157,6 +164,7 @@ export const ChampionMark = memo(function ChampionMark({
         role="img"
         aria-label={label}
         className="inline-block shrink-0"
+        data-kit="champion"
       >
         <title>{label}</title>
         <path d={TORSO} fill="#f1f5f9" stroke="rgba(0,0,0,0.35)" strokeWidth="1.5" />

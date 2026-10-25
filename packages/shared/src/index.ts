@@ -14,6 +14,7 @@ export * from './countries.js'
 // Lo que la web lee del motor, copiado y atado por test (E2, 10b): la web no importa el motor (§18.5).
 export * from './engineCopies.js'
 export * from './jerseys.js'
+export * from './kit.js'
 export * from './news.js'
 export * from './regions.js'
 export * from './rider.js'

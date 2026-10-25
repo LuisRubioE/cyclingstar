@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Control · phone test</title>
+    <!--
+      LA PÁGINA DE CONTROL DE LA PRUEBA DEL TELÉFONO (E3, docs/visual.md §7.1 y §17.4; PR 2b, 17-b).
+      Cada comprobación tiene aquí las faltas que se dicen al lado, ni una más: si `telefono.spec.ts` no
+      las cuenta exactas, el instrumento ha dejado de medir y la prueba falla antes de mirar la web. Lo
+      demás de la página cumple las diez, para que una falta de más se vea. La letra es la pila de la web
+      (la de hoy, con `system-ui` delante, la de §3.4): con `e2e/fonts.conf`, DejaVu Sans.
+    -->
+    <style>
+      html {
+        font-family:
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Roboto,
+          'Helvetica Neue',
+          'Noto Sans',
+          Arial,
+          sans-serif;
+        font-size: 16px;
+        color: #0f172a;
+        background: #ffffff;
+      }
+      body {
+        margin: 0;
+      }
+      main {
+        padding: 16px;
+      }
+      h1 {
+        margin: 0 0 16px;
+        font-size: 24px;
+      }
+      p {
+        margin: 0 0 16px;
+      }
+      .bloque {
+        margin-bottom: 16px;
+      }
+      .boton {
+        min-width: 44px;
+        min-height: 44px;
+        font-size: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 1 · el reflujo: un bloque de 400 px, hijo de `body`, que no recorta ningún antepasado. -->
+    <div data-falta="1" style="width: 400px; height: 8px; background: #e2e8f0"></div>
+    <main>
+      <h1>Control page</h1>
+      <!-- 8 · la acción fuera del pulgar: arriba del todo, no en el 40 % de abajo de la ventana. -->
+      <button type="button" class="boton" data-primary-action data-falta="8">Save</button>
+
+      <!-- 2 · dos recortes: un texto con elipsis y un `span` que desborda su celda sin recortarse. -->
+      <div
+        class="bloque"
+        data-falta="2"
+        style="width: 120px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis"
+      >
+        A sentence that does not fit in its box
+      </div>
+      <table class="bloque" style="table-layout: fixed; width: 240px; border-collapse: collapse">
+        <tr>
+          <td data-falta="2" style="width: 60px">
+            <span style="white-space: nowrap">Overflowing</span>
+          </td>
+          <td>Next cell</td>
+        </tr>
+      </table>
+
+      <!-- 3 · un texto de 11 px. -->
+      <p data-falta="3" style="font-size: 11px">Small print</p>
+
+      <!-- 4 · un campo de 14 px (con su etiqueta, y de 44 de alto para que no sea un objetivo corto). -->
+      <label class="bloque" style="display: block">
+        Name
+        <input data-falta="4" type="text" style="font-size: 14px; height: 44px; width: 200px" />
+      </label>
+
+      <!-- 5 · dos objetivos cortos: un botón de 30 y un enlace de fila de 20 px de alto (Ruso-017). -->
+      <div class="bloque">
+        <button type="button" data-falta="5" style="height: 30px; min-width: 44px">Go</button>
+      </div>
+      <ul class="bloque" style="list-style: none; padding: 0">
+        <li>
+          <a href="#fila" data-falta="5" style="display: inline-block; line-height: 20px"
+            >Row link</a
+          >
+        </li>
+      </ul>
+      <!-- Un enlace de frase de 24 px de alto, que cumple (7-m): no cuenta. -->
+      <p>
+        Read the <a href="#reglas" style="display: inline-block; line-height: 24px">rules</a> first.
+      </p>
+
+      <!-- 6 · un contraste de 2,6:1 (#a0a0a0 sobre blanco). -->
+      <p data-falta="6" style="color: #a0a0a0">Low contrast</p>
+
+      <!-- 10 · un maillot de 13 px. -->
+      <svg
+        data-kit="control"
+        data-falta="10"
+        width="13"
+        height="13"
+        viewBox="0 0 48 48"
+        role="img"
+        aria-label="Team jersey"
+      >
+        <rect width="48" height="48" fill="#0f172a" />
+      </svg>
+
+      <!-- 7 · la respuesta, a 900 px del borde de arriba. -->
+      <section data-ui="Panel" data-answer data-falta="7" style="margin-top: 900px">
+        <p>The answer</p>
+      </section>
+
+      <!-- 9 · 4.000 px de alto. -->
+      <div data-falta="9" style="height: 4000px"></div>
+    </main>
+  </body>
+</html>
