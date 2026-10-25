@@ -4,6 +4,7 @@ import prettier from 'eslint-config-prettier'
 import react from 'eslint-plugin-react'
 import reactHooks from 'eslint-plugin-react-hooks'
 import globals from 'globals'
+import { UI_FILES, UI_HEREDADOS, UI_IGNORES, UI_RULES } from './apps/web/eslint-ui.mjs'
 
 /**
  * Módulos de Node prohibidos en packages/engine (sin el prefijo `node:`; el prefijo se
@@ -276,4 +277,18 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // LAS DIEZ REGLAS DEL SISTEMA (E3, docs/visual.md §5.3; PR 8): `ui/1` a `ui/10`, en `error` para todo
+    // fichero de la web salvo los tests, `components/ui/**` y lo generado. Ningún otro bloque usa
+    // `no-restricted-syntax` en `apps/web`: los dos que hay son del motor.
+    files: UI_FILES,
+    ignores: UI_IGNORES,
+    rules: { 'no-restricted-syntax': ['error', ...UI_RULES] },
+  },
+  // Los heredados, en `warn`: en flat config este bloque REEMPLAZA al anterior para estos ficheros, así
+  // que avisan sin parar el CI (`pnpm lint` no lleva `--max-warnings`). La lista solo encoge
+  // (`heredados.test.ts`) y el paso 22 la vacía: sin ficheros, el bloque no está.
+  ...(UI_HEREDADOS.length === 0
+    ? []
+    : [{ files: UI_HEREDADOS, rules: { 'no-restricted-syntax': ['warn', ...UI_RULES] } }]),
 )

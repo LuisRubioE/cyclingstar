@@ -1,4 +1,12 @@
 @import 'tailwindcss';
+/* Lo que se sirve sale solo de los fuentes de producción (E3, PR 8): las clases de muestra de los tests,
+   de sus __fixtures__, de la prueba del teléfono y de las reglas del lint no van a la hoja. */
+@source not './**/*.test.{ts,tsx}';
+@source not './**/__fixtures__';
+@source not './components/ui/deuda.json';
+@source not '../e2e';
+@source not '../scripts';
+@source not '../eslint-ui.mjs';
 
 /* EL SISTEMA VISUAL (docs/visual.md §3): tokens.test.ts comprueba cada pareja. Sin `inline`. */
 @theme {
