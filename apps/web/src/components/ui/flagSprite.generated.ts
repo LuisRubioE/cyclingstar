@@ -1,7 +1,7 @@
 /**
  * GENERADO por `apps/web/scripts/flag-sprite.mjs`: no se edita a mano (E3, docs/visual.md §12.2; PR 6).
  * Las 133 banderas del juego (`COUNTRIES`), de `flag-icons` 7.5.0, en `src/assets/flags.webp`;
- * `src/generados.test.ts` mira que está al día.
+ * `src/components/ui/generados.test.ts` mira que está al día.
  */
 
 export const FLAG_SPRITE = {
@@ -19,8 +19,6 @@ export const FLAG_SPRITE = {
   sha256: '668cdb2b6105554b63a2ba54860c413bdfb1508014d6506d4c235ba862552a13',
   /** el sha256 de lo que lo hace: los parámetros, los países y sus SVG, en orden */
   sourceSha256: '060d75bb4bbc2f8df26465a871139bc4bf6868cb9c5b6026a14e8f34978f8701',
-  /** el sha256 de la copia de los SVG en `src/assets/flags/`, en orden */
-  svgSha256: 'bff7d6430879ea147992e1c1acebcd490d27843618aba9f8b6d2e58980e4b0b4',
 } as const
 
 /** La celda de cada país en el sprite: columna y fila. */

@@ -17,6 +17,7 @@ La base de E3 es `912c5fa` (25-10-2026): `main` con el diseño fusionado (#306) 
 | 2 · 2b, la prueba del teléfono | `telefono.spec.ts` con las diez comprobaciones en las 46 pantallas a 360 y 320, `control.html`, `pantallas.ts`, `medidas.ts`, `navega.ts` y `trinquete.ts`; `ui/constants.ts` y `shared/kit.ts`; `data-kit` en `Jersey.tsx`; `telefono-baseline.json` con las faltas de hoy; `Teléfono` mide la base y el PR; las pasadas 3 y 4 de la noche                                                                                                   | el instrumento contra `control.html` y su letra por CDP; las reglas del trinquete con cifras de mentira; `kit.test.ts`                                                                                                       | el trinquete compara con la base medida sobre el mismo mundo en cada PR y el fichero apunta la dirección; la comprobación 1 contra `clientWidth`; la 38 salta a `Last starter`                                                                   |
 | 4 · 4, sin red                 | `net.ts` (`SessionState`, `sessionStateOf`, `REQUEST_TIMEOUT_MS`, la marca `cs:signed-in` y `useOnline`) y `useSessionState`; el corte a 15 s en `api/request.ts`; `ProtectedRoute`, `Header` y `BottomNav` con `unknown`; `OfflineBanner`, `OfflineState` y `ErrorState`; la barrera por ruta y las páginas con su fallo tipado (`lazyPage`); `PausedOffline`; `sessionSeenOf` en `HorizonWatcher`; `sinred.spec.ts` y su paso en `Teléfono` | `net.test.ts` contra el cliente de better-auth 1.6.25; `queryClient.test.ts`, `OfflineBanner`, `OfflineState`, `ErrorState` (con la barrera), `PausedOffline` y `request.test.ts`; `sinred.spec.ts`, ocho casos y un `fixme` | `HorizonWatcher` sí se toca; mientras better-auth vuelve a pedir la sesión vale la última respuesta; lo de la cuenta solo con `signed-in`; `PausedOffline` hasta el 10; la hora, la de la consulta más reciente; reintentar un trozo es recargar |
 | 6 · 6, el peso                 | `scripts/flag-sprite.mjs`, que pinta las 133 banderas en `assets/flags.webp` y copia sus SVG a `assets/flags/`; `flagSprite.generated.ts`; `Flag.tsx` del sprite, con la caja de `.fi`; `flag-icons` fuera de `main.tsx` y en `devDependencies` 7.5.0; `"sideEffects": false` en `shared`; `scripts/peso.test.mjs` en `Build`; los umbrales de la noche                                                                                       | `peso.test.mjs` (los tres presupuestos), `generados.test.ts` (las huellas del sprite y de los SVG copiados) y `Flag.test.tsx`                                                                                                | el sprite lleva un anillo que repite el borde de cada bandera (52,7 KB y no 47); lo pinta Chromium; `Flag` conserva su API hasta el 9b                                                                                                           |
+| 7 · 7, los tokens              | el `index.css` de §3.9, con el cierre comentado y los heredados, sin el modo oscuro; `kit-edge`, `kit-edge-strong` y `kit-ink`; `colorMath.ts` fuera del barril, con su entrada en `exports`; `scripts/tokens-json.mjs` y `packages/shared/tokens.json`, exportado; `generados.test.ts` donde lo pone §16.2, con `scripts/huellas.json`                                                                                                       | `colorMath.test.ts` contra colour-science 0.4.7; `tokens.test.ts`, cada pareja de §3.1 a §3.3 y el ΔE00 informado; `generados.test.ts` con `tokens.json`                                                                     | el empate de la mezcla se redondea al par, como el `round` del diseño; `tokens.test.ts` lee `tokens.json`; `spacing.DEFAULT` y sin `brand-*` en `tokens.json`                                                                                    |
 
 ## PR 1 · El clon
 
@@ -286,3 +287,44 @@ La web pinta antes: la hoja que bloquea la primera pintura baja de 92 a 9 KB, y 
 2. **El 9b** pasa `Flag` a `ui/Flag.tsx` con los tamaños de §4.6 y el filete `line`; la celda útil, 60 × 44, cubre 24 px a relación 2 casi uno a uno.
 3. **El 17a**: `ChampionJersey` carga el SVG de su país de `src/assets/flags/` con `import.meta.glob`.
 4. **`shared` no puede tener módulos que hagan algo al importarse** (`"sideEffects": false`): lo que haga falta, que se exporte y se llame.
+
+## PR 7 · Los tokens
+
+### Lo que entró
+
+- **`apps/web/src/index.css`, el de §3.9**: el `@theme` con los 40 colores de §3.1 (y los tres de lo que se pinta sobre el maillot, `kit-edge`, `kit-edge-strong` y `kit-ink`, §8.3), la letra, el paso de 4 px, `radius-ui`, las dos sombras, los dos cortes y los dos contenedores; el cierre, comentado, y los seis `brand-*` heredados, que borra el paso 22; las variantes `fine` y `dark`; el ámbito oscuro con lo que redefine; y `body` con `canvas` e `ink`. Sin el modo oscuro (`:root[data-theme='dark']`) ni lo que el ámbito declara para él (3-j): entran en el 23.
+- **`packages/shared/src/colorMath.ts`**, fuera del barril y con su entrada `"./colorMath"` en `exports` (Rcodigo-007): `wcagContrast`, `simulateCvd` (Machado 2009, severidad 1, en RGB lineal), `deltaE00` (CIEDE2000 en CIELAB D65), el tipo `Vision`, y lo que los une (`parseColor`, `over`, la mezcla en sRGB y a 8 bits, `srgbToLinear`, `linearToLab`, `viewLab` y `distance`, con los grises). Las matrices de Machado y de sRGB a XYZ y el blanco D65 son las de colour-science 0.4.7, con toda su precisión.
+- **`apps/web/scripts/tokens-json.mjs`** y el **`packages/shared/tokens.json`** que escribe (§12.3), con `light` y `darkScope` y su entrada `"./tokens.json"` en `exports`; `--check` sale con 1 si no está al día.
+- **`apps/web/src/tokens.test.ts`**: cada pareja de las tablas de §3.1 a §3.3, en el claro y en el ámbito, con su umbral, y el ΔE00 de los tonos en las cuatro visiones y en grises, en la salida.
+- **`generados.test.ts` pasa a `src/components/ui/`**, donde lo pone §16.2, y gana la huella de `tokens.json`; la de la copia de los SVG de las banderas sale de `flagSprite.generated.ts` y va a **`apps/web/scripts/huellas.json`**, la de lo que no tiene cabecera donde escribirla (16-e), que escribe `flag-sprite.mjs`.
+- **`docs/diseno/e3-visual/medidas/dorados-colorMath.py`**, que escribe los valores dorados de `colorMath.test.ts` (`colorMath.golden.json`) con colour-science 0.4.7 y el método de `fundamentos.py`.
+
+### Lo que se aparta del diseño, y por qué
+
+1. **En el empate, la mezcla redondea al par.** Las cifras de §3 salen del `round` de Python, que en el empate va al par, y el negro al 30 % sobre blanco cae en 178,5 justos: con `Math.round`, 179 y una razón de 2,10, y con el par, 178 y la de 2,12 del diseño (la de `kit-edge` sobre `surface`). `colorMath.ts` redondea como el diseño midió. El navegador, por su parte, pasa el alfa a 8 bits antes de mezclar (77/255 para 0,3) y aquí da 178 también, pero en otros casos puede diferir en una unidad del método del diseño: el método es la referencia, porque es el de todas las cifras de §3.
+2. **`tokens.test.ts` lee los valores de `tokens.json`**, no del CSS: así el CSS tiene un solo lector, `tokens-json.mjs`, y `generados.test.ts` garantiza que el JSON es el del `index.css` de hoy.
+3. **En `tokens.json`, lo que es su espacio entero va como `DEFAULT`** (`--spacing` es `spacing.DEFAULT`), que §12.3 no decía, y **no van los `brand-*` heredados**: la app no los usará.
+4. **Los umbrales de cada pareja**, que las tablas dan por su uso: 4,5 para los textos; 3 para los bordes, el foco, la barra de la fila propia, cada tramo contra `surface`, el `gold` sobre la cabecera y el icono `navy-dark` sobre `gold`; 3 para el deshabilitado, exento, también en el ámbito (quitar la exención es del modo oscuro, en el 23); y los suelos medidos de los filetes del maillot en el claro, 2,09 y 2,41.
+5. **`generados.test.ts` y `huellas.json` donde los pone §16.2**: el PR 6 los dejó en `src/` y la huella de los SVG en el fichero generado.
+
+### Las cifras (para la descripción del PR)
+
+- **`colorMath.test.ts`**: 13 tests contra colour-science 0.4.7, a 0,01: 13 contrastes, 4 mezclas, 27 colores en las tres dicromacias, 9 Lab y 45 ΔE00 en cuatro visiones y en grises.
+- **`tokens.test.ts`**: 70 parejas del claro y 24 del ámbito, todas por encima de su umbral; y la tabla del ΔE00 de los tonos de §3.2, que sale cifra a cifra (las treinta). Probado al revés: con un `ink-3` más claro o el acento cian en el ámbito, falla donde debe.
+- **La prueba del teléfono**, con la web del PR sobre el mismo mundo que la base: las 92 medidas, idénticas (94 tests en 6,2 minutos). El fondo nuevo y el texto en `ink` no mueven ninguna cifra de axe.
+- **El peso**: la hoja que bloquea, de 8,7 a 8,9 KB (los tokens); el JS de arranque no cambia.
+
+### Lo que ve el dueño
+
+Casi nada: el fondo de la página pasa de `#e8edf2` a `#eef2f6`, y el texto sin color propio, del negro a `ink`, `#10202f`. La letra empieza ahora por `system-ui`, que en cada sistema es la que ya salía.
+
+### El riesgo del despliegue
+
+Ninguno: lo de hoy sigue resolviendo, porque el cierre va comentado y los heredados siguen. Se revierte con un revert.
+
+### Notas para el paso siguiente
+
+1. **Quien toque el `@theme`** corre `node apps/web/scripts/tokens-json.mjs`; si no, falla `generados.test.ts`.
+2. **El 23**, el modo oscuro: el bloque `:root[data-theme='dark']` y lo que el ámbito declara para él (3-j), con sus parejas en `tokens.test.ts`, que ya mira que el modo no declare nada que el ámbito no; `tokens.json` gana `dark` solo.
+3. **El 16a** importa `simulateCvd`, `deltaE00` y `VISIONS` de `@cyclingstar/shared/colorMath` para `kitDistance`, y cada módulo que salga del barril gana su entrada en `exports` igual (`legacyJersey.ts`, §8.6).
+4. **Los valores dorados se regeneran** con `docs/diseno/e3-visual/medidas/dorados-colorMath.py` en un entorno con colour-science 0.4.7 (el CI no tiene Python).
