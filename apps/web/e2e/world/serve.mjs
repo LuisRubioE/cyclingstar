@@ -14,6 +14,9 @@
  *
  * Uso, desde la raíz del repositorio compilado:
  *   node apps/web/e2e/world/serve.mjs [--world apps/web/e2e/world/.mundo/mundo-50.tar.gz] [--port 3005]
+ *     [--web <carpeta de una web compilada>]
+ * `--web` sirve otra web sobre el mismo mundo y con la misma API: la de la base de un PR, que la prueba
+ * del teléfono mide para comparar con la del PR (7-h).
  * Escribe `listening <url>` en la salida cuando está listo; SIGINT o SIGTERM lo paran.
  */
 import { readFileSync } from 'node:fs'
@@ -30,6 +33,7 @@ const arg = (name, fallback) => {
 }
 const WORLD = resolve(arg('--world', resolve(HERE, '.mundo/mundo-50.tar.gz')))
 const PORT = Number(arg('--port', '3005'))
+const WEB = arg('--web', null)
 const BASE = `http://localhost:${PORT}`
 const SECRET = 's'.repeat(32)
 
@@ -79,6 +83,7 @@ const app = buildApp({
   viewerSecret: SECRET,
   secureCookies: false,
   geoLookup: async () => ({ code: 'ES', proveedor: 'doble' }),
+  ...(WEB === null ? {} : { webRoot: resolve(WEB) }),
   logger: { level: arg('--log', 'warn') },
 })
 await app.listen({ port: PORT, host: '127.0.0.1' })
