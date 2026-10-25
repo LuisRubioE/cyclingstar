@@ -79,7 +79,7 @@ Nada en pantalla. Elegir maillot en `/team/identity` deja de crear un equipo, y 
 
 **El mundo, en el contenedor de diseño** (cuatro núcleos): 635 s de principio a fin, 619 de ellos de calendario (490 hasta el día 40 y 123 hasta el 50, unos 12 s por día) y 16 de volcado. `mundo-50.tar.gz` pesa 161.162.801 bytes, los 161 MB de §7.2. Acaba con 219 equipos, 3.902 corredores, 107 etapas corridas con su línea, 360 noticias y el día 50; la primera crono corrida es la del campeonato de Australia (`nc-au-itt`, etapa 1, el día 8).
 
-**El mundo, en el CI**: lo mide el CI del PR (el tiempo de construirlo, su tamaño en la caché y lo que tarda en restaurarse) y va en su descripción.
+**El mundo, en el CI** (`ubuntu-latest`, Ubuntu 24.04, cuatro núcleos; la segunda ejecución del PR, la primera que llegó a construirlo): 393,8 s, 6,6 minutos y no los 15 estimados (304,6 hasta el día 40 y 74,4 hasta el 50); 156 MiB en disco y 160.303.347 bytes en la caché (`telefono-mundo-v1-` y la huella), que se sube en 1,5 s; y el mundo, servido y contestando, 8 s después. Chromium, la primera vez, se instala en 19,8 s con sus bibliotecas, y su caché (`playwright-1.56.1`) pesa 280.132.964 bytes, y no los 150 MB estimados, porque Playwright 1.56 baja Chromium y su `headless shell` (174 y 104 MiB). El trabajo entero, con las dos cosas por construir, 7 min 39 s. Lo que tarda en restaurarse el mundo de la caché, en la descripción del PR. Ese mundo acabó con 361 noticias: cuatro construcciones del mismo código han dado 354, 360, 361 y 361.
 
 **La noche, en local** (`playwright test --project=nocturno` contra `serve.mjs`, 360 × 800 con relación 2, CPU ×4, DejaVu Sans; la mediana de cinco cargas; unos 170 s la pasada entera). De la menor a la mayor de tres pasadas:
 
