@@ -28,8 +28,8 @@
     "postgres": "^3.4.9"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.5.4",
-    "@electric-sql/pglite-socket": "^0.2.7",
-    "drizzle-kit": "^0.31.10"
+    "@electric-sql/pglite": "^0.5.11",
+    "@electric-sql/pglite-socket": "^0.2.14",
+    "drizzle-kit": "^0.31.11"
   }
 }
