@@ -159,6 +159,7 @@ describe('revelar sin castigo (§11.11, DD-17)', () => {
       km: 187,
       run: true,
       altimetry: '<svg/>',
+      champions: {},
       results: [],
       chronicle: [],
     }

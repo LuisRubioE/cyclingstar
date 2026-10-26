@@ -24,7 +24,7 @@ import {
 import { putFollow } from '../api/watch'
 import { authClient } from '../auth/client'
 import { Flag } from '../components/Flag'
-import { Jersey } from '../components/Jersey'
+import { TeamJersey, wornTeam } from '../components/ui/TeamJersey'
 import { RiderName } from '../components/RiderName'
 import { GcRankTable, PointsRankTable } from '../components/RaceRankTables'
 import { DiagnosticStrip } from '../components/StageGate'
@@ -133,7 +133,7 @@ function Startlist({ data }: { data: RaceStartlist }) {
                   {g.teams.map((t) => (
                     <div key={t.id}>
                       <div className="flex items-center gap-1.5 text-sm font-medium">
-                        <Jersey seed={t.jerseySeed} size={18} />
+                        <TeamJersey team={wornTeam(t.name, t.kit, t.jerseySeed)} size={28} />
                         {t.country && <Flag code={t.country} size={14} />}
                         <TeamLink teamId={t.id} name={t.name} className="text-slate-700" />
                       </div>
@@ -156,7 +156,7 @@ function Startlist({ data }: { data: RaceStartlist }) {
                 <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
                   {g.teams.map((t) => (
                     <span key={t.id} className="flex items-center gap-1.5 text-sm">
-                      <Jersey seed={t.jerseySeed} size={16} />
+                      <TeamJersey team={wornTeam(t.name, t.kit, t.jerseySeed)} size={28} />
                       {t.country && <Flag code={t.country} size={14} />}
                       <TeamLink teamId={t.id} name={t.name} className="text-slate-700" />
                     </span>
@@ -409,7 +409,13 @@ function ClassificationsTab({
   identity: TableIdentity
   own: { readonly riderId: string | null; readonly teamId: string | null }
 }) {
-  const ctx = { leaders: data.leaders, identity, ownRiderId: own.riderId, answer: true } as const
+  const ctx = {
+    leaders: data.leaders,
+    champions: data.champions,
+    identity,
+    ownRiderId: own.riderId,
+    answer: true,
+  } as const
   // Sub-pestaña en `?cls=`, validada contra las opciones: un enlace a una clasificación concreta
   // funciona, y hasta que el jugador toca una no se escribe nada en la URL.
   const [active, setActive] = useTabParam(CLASS_TAB_IDS, 'gc', 'cls')

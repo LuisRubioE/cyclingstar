@@ -1,3 +1,4 @@
+import { type ChampionTitle, KIT_PX, type KitCode } from '@cyclingstar/shared'
 import { legacyJerseyStyle } from '@cyclingstar/shared/legacyJersey'
 import { type ReactNode, useId, useState } from 'react'
 import { ActionBarView, type ActionBarState } from '../../components/ui/ActionBar'
@@ -5,6 +6,7 @@ import { ActionRow } from '../../components/ui/ActionRow'
 import { AppHeader } from '../../components/ui/AppHeader'
 import { BottomNav, type BottomNavItem } from '../../components/ui/BottomNav'
 import { Button } from '../../components/ui/Button'
+import { ChampionJersey } from '../../components/ui/ChampionJersey'
 import { Chip } from '../../components/ui/Chip'
 import { Disclosure } from '../../components/ui/Disclosure'
 import { ErrorState } from '../../components/ui/ErrorState'
@@ -14,6 +16,8 @@ import { Flag } from '../../components/ui/Flag'
 import { Icon } from '../../components/ui/Icon'
 import { ICONS } from '../../components/ui/icons'
 import { InfoButton } from '../../components/ui/InfoButton'
+import { Kit } from '../../components/ui/Kit'
+import { LeaderJersey } from '../../components/ui/LeaderJersey'
 import { LegacyJersey } from '../../components/ui/LegacyJersey'
 import { Meter } from '../../components/ui/Meter'
 import { Notice } from '../../components/ui/Notice'
@@ -24,13 +28,14 @@ import { Panel } from '../../components/ui/Panel'
 import { QueryView } from '../../components/ui/QueryView'
 import { RankTable, type RankTableColumn } from '../../components/ui/RankTable'
 import { RiderHeader } from '../../components/ui/RiderHeader'
-import { type LegacyTeam, RiderLabel } from '../../components/ui/RiderLabel'
+import { RiderLabel } from '../../components/ui/RiderLabel'
 import { Scale5 } from '../../components/ui/Scale5'
 import { Segmented } from '../../components/ui/Segmented'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { StarRating } from '../../components/ui/StarRating'
 import { Stat } from '../../components/ui/Stat'
 import { Tabs } from '../../components/ui/Tabs'
+import { TeamJersey, type WornTeam } from '../../components/ui/TeamJersey'
 import { TextLink, gluedLastWord } from '../../components/ui/TextLink'
 import { TripRow } from '../../components/ui/TripRow'
 import type { IconName, Tone } from '../../components/ui/types'
@@ -492,7 +497,7 @@ const GANDIA = { from: 'Gandia', to: 'Alcoi' } as const
 const PROPIA = GC_ROWS.find((r) => r.id === OWN_RIDER_ID) as UiGcRow
 const LARGO = GC_ROWS[2] as UiGcRow
 const PRIMERO = GC_ROWS[0] as UiGcRow
-const MISTRAL = UI_TEAMS[1] as LegacyTeam
+const MISTRAL = UI_TEAMS[1] as WornTeam
 
 /** Una semilla de la génesis por patrón, para enseñar los cinco dibujos de hoy. */
 const POR_PATRON = (() => {
@@ -677,6 +682,81 @@ function Maillots() {
   )
 }
 
+/* ── El 17a: los maillots ────────────────────────────────────────────────────────────────────────── */
+
+/** Una por figura, para enseñar las siete (§8.1). */
+const UNA_POR_FIGURA: readonly KitCode[] = [
+  'plain.navy',
+  'band.red.white',
+  'hoops.blue.yellow',
+  'halves.red.blue',
+  'yoke.black.orange',
+  'sides.green.white',
+  'sash.teal.white',
+]
+
+/** Los campeones del 17a: el mundial y el continental, con su estrella, y dos nacionales. */
+const CAMPEONES: readonly ChampionTitle[] = [
+  { ...ITALY_TITLE, scope: 'world', country: null },
+  { ...ITALY_TITLE, scope: 'continental', country: null },
+  { ...ITALY_TITLE, country: 'ES' },
+  { ...ITALY_TITLE, country: 'MA' },
+]
+
+function Equipaciones() {
+  return (
+    <>
+      <Demo name="Kit">
+        <Estado name="the seven figures, at 28">
+          <div className="flex flex-wrap items-center gap-3">
+            {UNA_POR_FIGURA.map((code) => (
+              <Kit key={code} code={code} teamName={code} size={KIT_PX.row} />
+            ))}
+          </div>
+        </Estado>
+        <Estado name="one kit at each size">
+          <div className="flex flex-wrap items-end gap-3">
+            {Object.values(KIT_PX).map((size) => (
+              <Kit key={size} code="sash.teal.white" teamName="Mistral Racing" size={size} />
+            ))}
+          </div>
+        </Estado>
+        <Estado name="hidden · a code that doesn't match">
+          <Kit code={'zigzag.red.blue' as KitCode} teamName="Mistral Racing" size={KIT_PX.row} />
+        </Estado>
+      </Demo>
+      <Demo name="LeaderJersey">
+        <Estado name="the three, at 28 and 40">
+          <div className="flex flex-wrap items-center gap-3">
+            {(['gc', 'points', 'kom'] as const).map((kind) => (
+              <span key={kind} className="flex items-center gap-1">
+                <LeaderJersey kind={kind} size={KIT_PX.row} />
+                <LeaderJersey kind={kind} size={KIT_PX.card} />
+              </span>
+            ))}
+          </div>
+        </Estado>
+      </Demo>
+      <Demo name="ChampionJersey">
+        <Estado name="world, continental and two nationals, at 28">
+          <div className="flex flex-wrap items-center gap-3">
+            {CAMPEONES.map((t) => (
+              <ChampionJersey key={`${t.scope}-${t.country}`} title={t} size={KIT_PX.row} />
+            ))}
+          </div>
+        </Estado>
+        <Estado name="from 72, the flag's SVG and its two letters">
+          <div className="flex flex-wrap items-center gap-3">
+            {CAMPEONES.map((t) => (
+              <ChampionJersey key={`${t.scope}-${t.country}`} title={t} size={KIT_PX.page} />
+            ))}
+          </div>
+        </Estado>
+      </Demo>
+    </>
+  )
+}
+
 function Clasificaciones() {
   return (
     <Demo name="RankTable">
@@ -702,7 +782,7 @@ function Clasificaciones() {
               <span className="text-row whitespace-nowrap text-ink">
                 {gluedLastWord(r.team.name)}
                 <span className="ml-1 inline-flex align-middle">
-                  <LegacyJersey seed={r.team.legacySeed} size={28} team={r.team.name} />
+                  <TeamJersey team={r.team} size={28} />
                 </span>
               </span>
             )}
@@ -1088,6 +1168,7 @@ export function UiPage() {
       <Etiquetas />
       <Cabeceras />
       <Maillots />
+      <Equipaciones />
       <Clasificaciones />
       <Filas />
       <Escalas />

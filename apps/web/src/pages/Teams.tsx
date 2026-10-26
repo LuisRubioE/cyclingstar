@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { type TeamListItem, fetchTeams } from '../api/browse'
 import { Flag } from '../components/Flag'
-import { Jersey } from '../components/Jersey'
+import { TeamJersey, wornTeam } from '../components/ui/TeamJersey'
 import { Panel, SectionBar } from '../components/Panel'
 import { horizonKey, useHorizonRev } from '../queryClient'
 import { VeilNotice } from '../components/VeilNotice'
@@ -31,7 +31,7 @@ function DivisionBlock({ division, teams }: { division: string; teams: TeamListI
             className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:border-indigo-300"
           >
             <span className="flex items-center gap-2">
-              <Jersey seed={t.jerseySeed} size={26} />
+              <TeamJersey team={wornTeam(t.name, t.kit, t.jerseySeed)} size={28} />
               <Flag code={t.country} size={16} />
               <span
                 className={`rounded-full px-2 py-0.5 text-xs font-medium ${DIVISION_BADGE[t.division] ?? ''}`}

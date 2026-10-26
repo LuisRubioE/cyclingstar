@@ -1,16 +1,16 @@
 import {
-  COUNTRY_NAMES,
   type ChampionTitle,
   type JerseyKind,
   KIT_PX,
+  type KitSize,
   type WornJersey,
-  championTitleText,
 } from '@cyclingstar/shared'
 import type { ReactNode } from 'react'
 import { NO_TEAM_LABEL } from '../../domain/labels'
-import { ChampionMark, LeaderJersey } from '../Jersey'
+import { ChampionJersey } from './ChampionJersey'
 import { Flag } from './Flag'
-import { LegacyJersey } from './LegacyJersey'
+import { LeaderJersey } from './LeaderJersey'
+import { TeamJersey, type WornTeam } from './TeamJersey'
 import { TextLink, gluedLastWord } from './TextLink'
 
 /**
@@ -29,15 +29,10 @@ import { TextLink, gluedLastWord } from './TextLink'
  *
  * **Qué maillot** (D-00c): el que lleva ese día (`worn`, de `RiderCard`) manda; si no, en una tabla, el de
  * líder de la clasificación que enseña (`leader`) y, si no, el de campeón (`champion`); si no, la
- * equipación. Hasta el 17a, con los dibujos de hoy: `LeaderJersey`, el de campeón sin la bandera de al
- * lado, que D-00c quita, y `LegacyJersey` con la semilla del equipo (`team: { name, legacySeed }`, 17-e).
+ * equipación. Desde el 17a, con los dibujos nuevos (§8.3, §9.1 y §9.7): `LeaderJersey`, `ChampionJersey`
+ * y la equipación del equipo ese día, su `Kit` o, con la semilla de antes de la traducción, su dibujo de
+ * hoy (`team: WornTeam`, 17-e).
  */
-
-/** El equipo de ese día, hasta el 17a (17-e): su nombre y la semilla de su dibujo de hoy. */
-export interface LegacyTeam {
-  readonly name: string
-  readonly legacySeed: string
-}
 
 export interface RiderLabelProps {
   readonly rider: {
@@ -52,7 +47,7 @@ export interface RiderLabelProps {
   /** solo donde el contexto lo tiene */
   readonly bib?: number | null
   /** el equipo de ese día; null, un agente libre (`Individual`) */
-  readonly team?: LegacyTeam | null
+  readonly team?: WornTeam | null
   /** donde llega `RiderCard.worn` (`Watch`, `Report`): el que lleva ese día; manda sobre los dos de abajo */
   readonly worn?: WornJersey
   /** en una tabla, el de líder de la clasificación que enseña: `jerseyOf(leaders, riderId)` (§6.1) */
@@ -70,7 +65,7 @@ export interface RiderLabelProps {
 export type RiderJerseyChoice =
   | { readonly kind: 'leader'; readonly jersey: JerseyKind }
   | { readonly kind: 'champion'; readonly title: ChampionTitle }
-  | { readonly kind: 'team'; readonly team: LegacyTeam }
+  | { readonly kind: 'team'; readonly team: WornTeam }
   /** un agente libre: el hueco de su ancho (§9.10) */
   | { readonly kind: 'none' }
   /** sin equipo que pintar: ni maillot ni hueco */
@@ -102,19 +97,11 @@ export function ChosenJersey({
   size,
 }: {
   readonly choice: RiderJerseyChoice
-  readonly size: 28 | 40
+  readonly size: KitSize
 }) {
   if (choice.kind === 'leader') return <LeaderJersey kind={choice.jersey} size={size} />
-  if (choice.kind === 'champion')
-    return (
-      <ChampionMark
-        country={null}
-        label={championTitleText('en', choice.title, COUNTRY_NAMES)}
-        size={size}
-      />
-    )
-  if (choice.kind === 'team')
-    return <LegacyJersey seed={choice.team.legacySeed} size={size} team={choice.team.name} />
+  if (choice.kind === 'champion') return <ChampionJersey title={choice.title} size={size} />
+  if (choice.kind === 'team') return <TeamJersey team={choice.team} size={size} />
   if (choice.kind === 'none')
     return (
       <span

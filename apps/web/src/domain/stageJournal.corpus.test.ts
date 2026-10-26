@@ -100,8 +100,14 @@ function b5Lines(): string[] {
  * que se pintan en 1.020 líneas (las 52 caídas de la voz, en dos: la caída y sus nombres). Al sellarlo,
  * la semilla neutra cambió la redacción de 367 de esas líneas (128 del acta y 239 de la voz) de las 672
  * que eligen entre dos o más (232 y 440): el 55 %, donde 1 − 1/n estimaba de la mitad a dos tercios.
+ *
+ * RE-SELLADO EN EL 17a (E3, docs/visual.md §14.1; D-00c): la mención de un corredor pasa a escribirse en
+ * el orden que fijó el dueño, el dorsal, la bandera, el nombre y el maillot, y después el equipo; antes
+ * abría con el maillot y la bandera. Lo que dice cada etapa no cambia: la frase pelada (`chronicleLine`)
+ * es la misma byte a byte en las 1.020, y quitando las marcas de bandera y de maillot también lo pintado;
+ * cambian de sitio las marcas, en 831 de ellas. Era `d54f2219c8ede513c00471cc09c514bcf20f8a4f53f8a90a0ca8121f9796224b`.
  */
-const B5_SHA256 = 'd54f2219c8ede513c00471cc09c514bcf20f8a4f53f8a90a0ca8121f9796224b'
+const B5_SHA256 = '833679eca9e3f19df7ce87f8c27aed31618789734ffc04c809384e58649cc091'
 
 const CHILD = process.env.CORPUS_CHILD_OUT
 

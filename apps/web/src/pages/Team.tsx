@@ -4,7 +4,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { fetchTeam, fetchTeamControl, fetchTeamNews, takeOverTeam } from '../api/browse'
 import { Flag } from '../components/Flag'
 import { DiagnosticStrip } from '../components/StageGate'
-import { Jersey } from '../components/Jersey'
+import { TeamJersey, wornTeam } from '../components/ui/TeamJersey'
 import { Panel, SectionBar } from '../components/Panel'
 import { SquadTable } from '../components/SquadTable'
 import { TeamFeed } from '../components/TeamFeed'
@@ -80,7 +80,7 @@ export function Team() {
       <VeilNotice kind="results" />
       <Panel bodyClassName="p-4">
         <div className="flex items-center gap-3">
-          <Jersey seed={data.jerseySeed} size={44} />
+          <TeamJersey team={wornTeam(data.name, data.kit, data.jerseySeed)} size={40} />
           {data.country && <Flag code={data.country} size={30} />}
           <p className="text-sm text-slate-500">
             {DIVISION_LABEL[data.division] ?? data.division}

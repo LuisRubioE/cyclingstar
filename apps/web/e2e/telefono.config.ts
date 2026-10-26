@@ -24,6 +24,13 @@ export const PHONE_MIN = {
 /** El borde de arriba de la respuesta de la pantalla, a 360 × 800 (la comprobación 7). */
 export const ANSWER_MAX_TOP_PX = 520
 
+/**
+ * El borde de abajo de la barra de grupos de `Watch` en la pantalla 09, a 360 × 800 y con la barra
+ * inferior a la vista: los 800 menos sus 56 (`h-14`, `BottomNav.tsx`). Pasa a 800 si E6 acepta
+ * `useHideBottomNav` (la comprobación propia de la 09: §7.3 y §14.8; Rcobertura-040, 14-g).
+ */
+export const GROUP_BAR_MAX_BOTTOM_PX = 744
+
 /** La parte de abajo de la ventana que alcanza el pulgar, donde va la acción (la comprobación 8). */
 export const THUMB_ZONE = 0.4
 

@@ -64,7 +64,8 @@ describe('RiderHeader', () => {
       provisional: true,
     }
     const s = pinta({ ...LISTA, champion: titulo })
-    expect(s).toContain('data-kit="champion"')
+    // desde el 17a, ChampionJersey, con su alcance en data-kit (E3, §9.1)
+    expect(s).toContain('data-kit="champion-national"')
     expect(s.match(/data-ui="Flag"/g)).toHaveLength(1)
   })
 

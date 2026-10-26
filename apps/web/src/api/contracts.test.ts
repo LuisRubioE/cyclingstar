@@ -309,8 +309,9 @@ describe('contratos: calendario y carrera', () => {
       points: [],
       kom: [],
       teamGc: [],
-      // Sin mundo tampoco hay maillots: nadie lidera nada todavía.
+      // Sin mundo tampoco hay maillots: nadie lidera nada todavía, y nadie es campeón (17a).
       leaders: { gc: null, points: null, kom: null, team: null },
+      champions: {},
       stageWinners: [],
       history: [],
     }
@@ -575,6 +576,7 @@ describe('contratos: mundo, equipo y dinero', () => {
       fame: 30,
       attributes,
       health: { state: 'lesionado', untilDay: 143 },
+      champion: null,
     }
     expect(publicRiderDetailResponseSchema.parse({ rider })).toEqual({ rider })
     // Sin salud la ficha ya no vale: la insignia del perfil cuenta con ella.
@@ -587,6 +589,53 @@ describe('contratos: mundo, equipo y dinero', () => {
         rider: { ...rider, health: { state: 'resfriado', untilDay: null } },
       }).success,
     ).toBe(false)
+  })
+
+  it('el título de campeón (E3, §8.5; 4-l): el de la ficha, nulo o entero; los de una tabla, por corredor', () => {
+    const title = {
+      scope: 'national',
+      country: 'IT',
+      discipline: 'road',
+      category: 'elite',
+      season: 0,
+      validFromDay: 179,
+      validToDay: 543,
+      source: { raceKey: 'nc-it-road:s0', stageDay: 1 },
+      provisional: true,
+    } as const
+    const rider = {
+      id: 'r1',
+      name: 'Ana Ruiz',
+      country: 'IT',
+      residence: 'IT',
+      archetype: 'escalada',
+      age: 24,
+      isBot: false,
+      teamId: null,
+      teamName: null,
+      seasonPoints: 120,
+      seasonRank: 12,
+      fieldSize: 900,
+      fame: 30,
+      attributes,
+      health: { state: 'sano', untilDay: null },
+    }
+    // sin el campo (una API de antes del 17a), null
+    expect(publicRiderDetailResponseSchema.parse({ rider }).rider.champion).toBeNull()
+    expect(
+      publicRiderDetailResponseSchema.parse({ rider: { ...rider, champion: title } }).rider
+        .champion,
+    ).toEqual(title)
+    // un alcance que no existe no pasa
+    expect(
+      publicRiderDetailResponseSchema.safeParse({
+        rider: { ...rider, champion: { ...title, scope: 'galactic' } },
+      }).success,
+    ).toBe(false)
+    const stage = { day: 3, name: 'Stage 3', km: 196, run: true, altimetry: '<svg/>' }
+    expect(stageReplaySchema.parse({ ...stage, champions: { r1: title } }).champions).toEqual({
+      r1: title,
+    })
   })
 
   it('acepta el estado de control de equipo, con equipo y sin él', () => {
@@ -667,7 +716,8 @@ describe('contratos: la etapa y las noticias, tal como las tolera la web de hoy'
     // los opcionales de resultado y `leaders` ENTERO se pueden omitir. `leaders` no puede ir a medias:
     // dentro lleva `onRoad` y `afterStage` obligatorios.
     const veiled = { day: 3, name: 'Stage 3 · Hills', km: 196, run: true, altimetry: '<svg/>' }
-    expect(stageReplaySchema.parse(veiled)).toEqual(veiled)
+    // sin campeones, con su defecto: una API de antes del 17a no los manda (E3, §8.5; 4-l)
+    expect(stageReplaySchema.parse(veiled)).toEqual({ ...veiled, champions: {} })
     for (const key of ['day', 'name', 'km', 'run', 'altimetry']) {
       const incompleta: Record<string, unknown> = { ...veiled }
       delete incompleta[key]
@@ -676,14 +726,22 @@ describe('contratos: la etapa y las noticias, tal como las tolera la web de hoy'
     const onRoad = { gc: 'r1', points: null, kom: null, team: null }
     expect(stageReplaySchema.safeParse({ ...veiled, leaders: { onRoad } }).success).toBe(false)
     const leaders = { onRoad, afterStage: onRoad }
-    expect(stageReplaySchema.parse({ ...veiled, leaders })).toEqual({ ...veiled, leaders })
+    expect(stageReplaySchema.parse({ ...veiled, leaders })).toEqual({
+      ...veiled,
+      leaders,
+      champions: {},
+    })
   })
 
   it('la etapa velada del 7b llega con lo visto (`watch`), y una puerta que no conoce no pasa', () => {
     // §14.1 y §14.2 (paso 7b): con SPOILER_MODE aplicado, la ruta de etapa gana `watch`, opcional.
     const veiled = { day: 3, name: 'Stage 3 · Hills', km: 196, run: true, altimetry: '<svg/>' }
     const watch = { known: false, reachedS: 1200, gate: { k: 'not_seen' }, seen: false } as const
-    expect(stageReplaySchema.parse({ ...veiled, watch })).toEqual({ ...veiled, watch })
+    expect(stageReplaySchema.parse({ ...veiled, watch })).toEqual({
+      ...veiled,
+      watch,
+      champions: {},
+    })
     const previous = { ...watch, gate: { k: 'previous_unseen', firstUnseen: 2 } } as const
     expect(stageReplaySchema.parse({ ...veiled, watch: previous }).watch).toEqual(previous)
     const bad = { ...watch, gate: { k: 'quien_sabe' } }

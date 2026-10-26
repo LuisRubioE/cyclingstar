@@ -6,7 +6,8 @@ import {
   ttBoardRows,
   ttOverlayText,
 } from '../../domain/broadcast/screen'
-import { WornJerseyIcon } from './WornJerseyIcon'
+import { Flag } from '../ui/Flag'
+import { WornJerseyIcon, wornTeamOf } from './WornJerseyIcon'
 
 /**
  * LA CAPA FIJA DE LA CRONO (docs/retransmision.md §9.5; D-23): el reloj y las tres cuentas
@@ -83,8 +84,11 @@ export function TimeTrialBoard({
                   <span className="w-6 shrink-0 text-right text-xs tabular-nums text-slate-400">
                     {r.rank}
                   </span>
-                  {card !== undefined && <WornJerseyIcon card={card} size={13} />}
-                  <span className="min-w-0 flex-1 truncate">{r.name}</span>
+                  {card !== undefined && <Flag country={card.country} />}
+                  <span className="min-w-0 flex-1 break-words">{r.name}</span>
+                  {card !== undefined && (
+                    <WornJerseyIcon worn={card.worn} team={wornTeamOf(card)} size={28} />
+                  )}
                   <span className="shrink-0 tabular-nums text-slate-700">{r.time}</span>
                 </li>
               )

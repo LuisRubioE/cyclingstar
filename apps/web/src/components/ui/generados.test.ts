@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { COUNTRIES } from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
 import { FLAG_CELL_PIXELS } from '../../../../../packages/db/src/flagCells.generated'
+import { FLAG_INK, FLAG_INK_SHA256 } from './flagInk.generated'
 import { FLAG_CELLS, FLAG_SPRITE } from './flagSprite.generated'
 import { ICONS } from './icons'
 import type { IconName } from './types'
@@ -18,6 +19,7 @@ import type { IconName } from './types'
  *
  *   node apps/web/scripts/flag-sprite.mjs    el sprite de las banderas y su copia de SVG (PR 6), y las
  *                                            celdas para medir de packages/db (PR 16a)
+ *   node apps/web/scripts/flag-ink.mjs       el color de las letras del campeón nacional (PR 17a)
  *   node apps/web/scripts/tokens-json.mjs    packages/shared/tokens.json (PR 7)
  *   node apps/web/scripts/ui-icons.mjs       los iconos de la interfaz (PR 9a)
  *
@@ -92,6 +94,36 @@ describe('las celdas de las banderas para medir (generadas, PR 16a)', () => {
     expect(hash.digest('hex'), 'node apps/web/scripts/flag-sprite.mjs').toBe(
       FLAG_CELL_PIXELS.sourceSha256,
     )
+  })
+})
+
+describe('el color de las letras del campeón nacional (generado, PR 17a)', () => {
+  const MEDIDA = join(
+    WEB,
+    '..',
+    '..',
+    'docs',
+    'diseno',
+    'e3-visual',
+    'medidas',
+    'medir-nacional2.json',
+  )
+
+  it('flagInk.generated.ts es el de medir-nacional2.json: uno por país del juego, 79 en blanco y 54 en navy-dark', () => {
+    const raw = readFileSync(MEDIDA)
+    expect(sha256(raw), 'node apps/web/scripts/flag-ink.mjs').toBe(FLAG_INK_SHA256)
+    expect(Object.keys(FLAG_INK).sort()).toEqual(codes)
+    const paises = (
+      JSON.parse(raw.toString('utf8')) as {
+        paises: Record<string, { letras: { relleno: string } }>
+      }
+    ).paises
+    for (const code of codes)
+      expect(FLAG_INK[code], code).toBe(
+        paises[code]?.letras.relleno === '#ffffff' ? 'white' : 'navy-dark',
+      )
+    const blancas = Object.values(FLAG_INK).filter((ink) => ink === 'white').length
+    expect([blancas, codes.length - blancas]).toEqual([79, 54])
   })
 })
 

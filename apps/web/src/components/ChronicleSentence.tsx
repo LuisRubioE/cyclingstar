@@ -2,7 +2,7 @@ import type { ChronicleEntry } from '@cyclingstar/shared'
 import { Link } from 'react-router-dom'
 import { chronicleParts } from '../domain/stageJournal'
 import { Flag } from './Flag'
-import { LeaderJersey } from './Jersey'
+import { LeaderJersey } from './ui/LeaderJersey'
 import { RIDER_LINK_CLASS } from './RiderName'
 
 /**
@@ -22,7 +22,9 @@ export function ChronicleSentence({ e, rev }: { e: ChronicleEntry; rev: number }
         'flag' in part ? (
           <Flag key={j} code={part.flag} size={12} className="mx-0.5 align-baseline" />
         ) : 'jersey' in part ? (
-          <LeaderJersey key={j} kind={part.jersey} size={13} className="mx-0.5" />
+          <span key={j} className="mx-0.5 inline-flex align-middle">
+            <LeaderJersey kind={part.jersey} size={28} />
+          </span>
         ) : 'riderId' in part ? (
           <Link key={j} to={`/world/riders/${part.riderId}`} className={RIDER_LINK_CLASS}>
             {part.text}

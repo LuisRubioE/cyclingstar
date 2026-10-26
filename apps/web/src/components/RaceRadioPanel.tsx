@@ -13,7 +13,7 @@ import {
   groupRoleOf,
 } from '@cyclingstar/shared'
 import { Flag } from './Flag'
-import { LeaderJersey } from './Jersey'
+import { LeaderJersey } from './ui/LeaderJersey'
 
 /**
  * LA RACE RADIO: la carrera en UN punto del recorrido.
@@ -206,19 +206,15 @@ function RiderLine({ r }: { r: RadioRider }) {
       <span className={`w-3 shrink-0 text-center ${mark.cls}`} title={mark.title}>
         {mark.icon}
       </span>
-      {r.jersey ? (
-        <LeaderJersey kind={r.jersey} size={14} />
-      ) : (
-        <span className="w-[14px] shrink-0" aria-hidden="true" />
-      )}
+      {/* el orden de D-00c (E3, §14.1; PR 17a): el dorsal, la bandera, el nombre y el maillot */}
+      <span className="w-7 shrink-0 text-right font-mono text-[11px] text-slate-400">
+        {r.bib ?? ''}
+      </span>
       {r.country ? (
         <Flag code={r.country} size={12} />
       ) : (
         <span className="w-3 shrink-0" aria-hidden="true" />
       )}
-      <span className="w-7 shrink-0 text-right font-mono text-[11px] text-slate-400">
-        {r.bib ?? ''}
-      </span>
       {/* El nombre lleva a su ficha (v58): «cuando salga el nombre de un ciclista que tenga enlace
           a su ficha». Sin id —una etapa congelada de alguien que ya no está— se lee igual, sin
           enlace, que es mejor que un enlace roto. */}
@@ -239,6 +235,7 @@ function RiderLine({ r }: { r: RadioRider }) {
           r.name
         )}
       </span>
+      {r.jersey && <LeaderJersey kind={r.jersey} size={28} />}
       {r.team && <span className="min-w-0 truncate text-[11px] text-slate-400">{r.team}</span>}
       {motivo && (
         <span className="ml-auto min-w-0 truncate text-[11px] text-slate-400 italic">{motivo}</span>

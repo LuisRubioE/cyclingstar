@@ -25,7 +25,14 @@ import { diagOf, fetchCalendarStage, stageReplayKey } from './results'
  */
 
 /** Una etapa sin correr, la ficha mínima que acepta `stageReplaySchema`. */
-const notRun = { day: 7, name: 'Stage 7', km: 180, run: false, altimetry: '<svg/>' }
+const notRun = {
+  day: 7,
+  name: 'Stage 7',
+  km: 180,
+  run: false,
+  altimetry: '<svg/>',
+  champions: {},
+}
 
 function response(body: unknown): Response {
   return {

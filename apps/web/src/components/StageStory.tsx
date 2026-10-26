@@ -1,7 +1,8 @@
 import { JERSEY_PRIORITY, type StageReplay } from '@cyclingstar/shared'
 import { ChronicleSentence } from './ChronicleSentence'
 import { Flag } from './Flag'
-import { LeaderJersey, RiderJersey } from './Jersey'
+import { RiderJersey } from './Jersey'
+import { LeaderJersey } from './ui/LeaderJersey'
 import { RiderName } from './RiderName'
 import { timeTrialStory } from '../domain/stageJournal'
 import { formatTime } from '../domain/format'
@@ -100,7 +101,7 @@ export function StageStory({
               <span className="text-slate-400">On the road today</span>
               {wornToday.map((kind) => (
                 <span key={kind} className="flex items-center gap-1">
-                  <LeaderJersey kind={kind} size={14} />
+                  <LeaderJersey kind={kind} size={28} />
                   {leaderName(onRoad?.[kind])}
                 </span>
               ))}
@@ -138,7 +139,7 @@ export function StageStory({
                     maillots que se llevaban PUESTOS en la carretera, igual que la crónica de arriba
                     y que la tabla de `Result`. Los de después de la etapa están en
                     `Classifications`, que es la pestaña que muestra el estado nuevo. */}
-                <RiderJersey leaders={data.leaders?.onRoad} riderId={r.riderId} className="" />
+                <RiderJersey leaders={data.leaders?.onRoad} riderId={r.riderId} />
                 <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
                 <span className="text-xs text-slate-400">{raceTeamLabel(r.teamName)}</span>
               </li>

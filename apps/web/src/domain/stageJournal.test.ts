@@ -1118,7 +1118,10 @@ describe('el maillot de líder en la crónica', () => {
       expect(chronicleLine('en', e, REV)).not.toContain(String.fromCharCode(marca))
   })
 
-  it('el maillot abre la mención, delante de la bandera y del dorsal', () => {
+  // Re-sellado en el 17a (E3, docs/visual.md §14.1 y §16.3; D-00c): hasta entonces el maillot abría la
+  // mención, delante de la bandera y del dorsal; el dueño fijó que la bandera, el nombre y el maillot
+  // van siempre juntos y en ese orden, así que el maillot cierra la identidad, tras el nombre.
+  it('el maillot cierra la identidad: el dorsal, la bandera, el nombre y el maillot (D-00c)', () => {
     const partes = chronicleParts(
       'en',
       event({ plantilla: 'stage_win', protagonists: [lider], datos: { won: 'sprint' } }),
@@ -1126,8 +1129,12 @@ describe('el maillot de líder en la crónica', () => {
     )
     const iJersey = partes.findIndex((p) => 'jersey' in p)
     const iFlag = partes.findIndex((p) => 'flag' in p)
-    expect(iJersey).toBeGreaterThanOrEqual(0)
-    expect(iJersey).toBeLessThan(iFlag)
+    const iName = partes.findIndex(
+      (p) => 'riderId' in p || ('text' in p && p.text.includes('Ole Andersen')),
+    )
+    expect(iFlag).toBeGreaterThanOrEqual(0)
+    expect(iFlag).toBeLessThan(iName)
+    expect(iName).toBeLessThan(iJersey)
     const texto = partes.map((p) => ('text' in p ? p.text : '')).join('')
     expect(texto).toContain('163 Ole Andersen (Aurora)')
   })

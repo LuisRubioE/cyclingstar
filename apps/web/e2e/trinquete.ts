@@ -26,6 +26,13 @@ export const COMPROBACIONES = [
 ] as const
 
 /**
+ * La comprobación propia de la 09 (§7.3; Rcobertura-040, 14-g; PR 17a): el borde de abajo de la barra de
+ * grupos. El fichero la guarda aparte, en la clave `"360-barra"` de la 09 con esa cifra sola, para no
+ * mover el orden de las diez; el trinquete la mira con las mismas reglas.
+ */
+export const COMPROBACION_DE_LA_BARRA = ['la barra de grupos'] as const
+
+/**
  * Lo que está mal de un PR frente a su base, en una pantalla y un ancho; vacío si nada.
  *
  * - Ninguna cifra sube sobre la base medida (`m > r`).
@@ -37,18 +44,19 @@ export const COMPROBACIONES = [
  * Sin medida de la base (`r` sin definir: una pantalla nueva, o una que la base no pudo abrir) no hay con
  * qué comparar; sin fichero en la base (`b` sin definir: el PR que lo crea), o con `instrumentoCambia`
  * (el PR toca las comprobaciones o las pantallas, o cambia la clave del mundo: §7.4, regla 1), el fichero
- * se reescribe y solo cuenta que no suba.
+ * se reescribe y solo cuenta que no suba. Con `nombres`, las cifras son las de otras comprobaciones: la
+ * de la barra de la 09.
  */
 export function faltasDelTrinquete(
   m: Cifras,
   r: Cifras | undefined,
   h: Cifras | undefined,
   b: Cifras | undefined,
-  opciones: { readonly instrumentoCambia: boolean },
+  opciones: { readonly instrumentoCambia: boolean; readonly nombres?: readonly string[] },
 ): string[] {
   if (h === undefined) return ['no está en telefono-baseline.json']
   if (r === undefined) return []
-  return COMPROBACIONES.flatMap((nombre, i) => {
+  return (opciones.nombres ?? COMPROBACIONES).flatMap((nombre, i) => {
     const mi = m[i] ?? null
     const ri = r[i] ?? null
     const hi = h[i] ?? null

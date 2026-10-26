@@ -1,4 +1,4 @@
-import { type RaceLeaders, jerseyOf } from '@cyclingstar/shared'
+import { type ChampionTitle, type RaceLeaders, jerseyOf } from '@cyclingstar/shared'
 import type { StageResultEntry } from '../api/results'
 import { formatTime } from '../domain/format'
 import { raceTeamLabel } from '../domain/labels'
@@ -22,6 +22,11 @@ import type { Layout } from './ui/types'
 export interface RaceTableContext {
   /** los maillots de líder de lo que la tabla enseña: tras la etapa, o los de la carretera en la llegada */
   readonly leaders: RaceLeaders | undefined
+  /**
+   * el título que lleva cada corredor el día de la tabla (`champions` de la respuesta; E3, §6.1, 4-l): el
+   * de campeón, si no lleva uno de líder
+   */
+  readonly champions?: Readonly<Record<string, ChampionTitle>>
   /** el dorsal y el dibujo del equipo (`useRaceIdentity`); sin él, ni dorsal ni equipación */
   readonly identity?: TableIdentity
   /** el corredor del jugador: su fila, anclada si no está entre las 20 */
@@ -67,6 +72,7 @@ function identidad(r: RiderRow, ctx: RaceTableContext) {
       bib={id.bibOf(r.riderId)}
       {...(team === undefined ? {} : { team })}
       leader={jerseyOf(ctx.leaders, r.riderId)}
+      champion={ctx.champions?.[r.riderId] ?? null}
       link={false}
       teamLine={false}
     />

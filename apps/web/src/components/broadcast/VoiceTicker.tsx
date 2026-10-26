@@ -2,7 +2,7 @@ import type { ChronicleEntry, LiveLine } from '@cyclingstar/shared'
 import { chronicleParts } from '../../domain/stageJournal'
 import { type VoiceExtras, type VoiceItem, voiceItemsOf } from '../../domain/voice'
 import { Flag } from '../Flag'
-import { LeaderJersey } from '../Jersey'
+import { LeaderJersey } from '../ui/LeaderJersey'
 
 /**
  * LA VOZ (docs/retransmision.md §6.1, §6.10, §12.2 y §12.5; D-43): la última línea dicha, y con
@@ -75,7 +75,9 @@ function Sentence({ e, rev }: { e: ChronicleEntry; rev: number }) {
         'flag' in part ? (
           <Flag key={j} code={part.flag} size={12} className="mx-0.5 align-baseline" />
         ) : 'jersey' in part ? (
-          <LeaderJersey key={j} kind={part.jersey} size={13} className="mx-0.5" />
+          <span key={j} className="mx-0.5 inline-flex align-middle">
+            <LeaderJersey kind={part.jersey} size={28} />
+          </span>
         ) : (
           <span key={j}>{part.text}</span>
         ),

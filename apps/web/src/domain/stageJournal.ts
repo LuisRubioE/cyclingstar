@@ -280,14 +280,15 @@ const jerseyMark = (jersey: JerseyKind | null | undefined): string =>
   jersey ? `${JERSEY_MARK}${jersey}${JERSEY_MARK}` : ''
 
 /**
- * Un corredor, con toda la identidad que se le conozca: `🟨 🇸🇮 42 Andrej Pucnik (Al Assad Cycling)`.
+ * Un corredor, con toda la identidad que se le conozca: `42 🇸🇮 Andrej Pucnik 🟨 (Al Assad Cycling)`.
  * Lo que falte se cae solo —sin maillot, sin dorsal, sin bandera, sin equipo— porque los eventos de
  * las etapas ya corridas están congelados y se resuelven contra el roster de HOY: un corredor que ya
  * no esté en él llega sin nada más que su nombre y la frase tiene que seguir leyéndose.
  *
- * EL MAILLOT VA DELANTE DEL TODO, antes incluso de la bandera. En la carretera el maillot es lo
- * primero que se ve —se reconoce al amarillo antes de leerle el dorsal— y ponerlo al frente deja
- * intacto el bloque `bandera + dorsal + nombre` que el lector ya tiene aprendido.
+ * EL ORDEN ES EL DE D-00c (E3, docs/visual.md §14.1; PR 17a), el de toda la web: el dorsal, la bandera,
+ * el nombre y el maillot que lleva, y después el equipo. Hasta el 17a el maillot abría la mención,
+ * delante de la bandera; el dueño fijó que la bandera, el nombre y el maillot «siempre van juntos», en
+ * ese orden (`00-encargo.md` §7.2, punto 5).
  *
  * Medido sobre las ocho etapas corridas de Race Colombia: el maillot aparece en el 0-11 % de las
  * menciones (de 0 a 12 líneas por crónica, siempre en las que de verdad hablan de los líderes).
@@ -308,16 +309,16 @@ export function riderFull(r: ChronicleRider): string {
    * nada y la frase se lee sin equipo, como hasta ahora.
    */
   const team = r.bib != null ? ` (${raceTeamLabel(r.team)})` : r.team ? ` (${r.team})` : ''
-  return `${jerseyMark(r.jersey)}${flagMark(r.country)}${bib}${nombreMarcado(r)}${team}`
+  return `${bib}${flagMark(r.country)}${nombreMarcado(r)}${jerseyMark(r.jersey)}${team}`
 }
 
 /**
- * El corredor en versión corta —bandera y nombre— para las frases que YA dicen su equipo aparte y
- * repetirlo sonaría a tartamudeo: «Al Assad Cycling tira para su sprinter, 🇦🇪 11 Marwan Al Maktoum
- * (Al Assad Cycling)». Fuera de ese caso la identidad va siempre completa.
+ * El corredor en versión corta —sin el equipo— para las frases que YA dicen su equipo aparte y
+ * repetirlo sonaría a tartamudeo: «Al Assad Cycling tira para su sprinter, 11 🇦🇪 Marwan Al Maktoum
+ * (Al Assad Cycling)». Fuera de ese caso la identidad va siempre completa. En el orden de D-00c.
  */
 export function riderShort(r: ChronicleRider): string {
-  return `${jerseyMark(r.jersey)}${flagMark(r.country)}${r.bib != null ? `${r.bib} ` : ''}${nombreMarcado(r)}`
+  return `${r.bib != null ? `${r.bib} ` : ''}${flagMark(r.country)}${nombreMarcado(r)}${jerseyMark(r.jersey)}`
 }
 
 /** El nombre, marcado con su id cuando lo hay, para que la vista pueda enlazarlo a su ficha (v58). */

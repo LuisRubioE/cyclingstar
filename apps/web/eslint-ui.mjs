@@ -151,7 +151,6 @@ export const UI_HEREDADOS = [
   'apps/web/src/components/ErrorBoundary.tsx',
   'apps/web/src/components/Flag.tsx',
   'apps/web/src/components/FormChart.tsx',
-  'apps/web/src/components/Jersey.tsx',
   'apps/web/src/components/LastRaceReady.tsx',
   'apps/web/src/components/LastRaceReport.tsx',
   'apps/web/src/components/Logo.tsx',

@@ -10,10 +10,15 @@ import {
   pullingText,
   shownGroupsOf,
 } from '@cyclingstar/shared'
-import { Fragment, memo } from 'react'
+import { Fragment, memo, useId, useLayoutEffect, useRef, useState } from 'react'
 import { isQuietFinal, mobileRowsOf, transitOf, yourRiderText } from '../../domain/broadcast/screen'
-import { LeaderJersey } from '../Jersey'
-import { WornJerseyIcon } from './WornJerseyIcon'
+import { type LineChip, fitTeamChips, teamLineOf } from '../../domain/broadcast/teamChips'
+import { Button } from '../ui/Button'
+import { Flag } from '../ui/Flag'
+import { LeaderJersey } from '../ui/LeaderJersey'
+import { RiderLabel } from '../ui/RiderLabel'
+import { TeamJersey } from '../ui/TeamJersey'
+import { WornJerseyIcon, wornTeamOf } from './WornJerseyIcon'
 
 /**
  * LA BARRA DE GRUPOS (docs/retransmision.md §6.2, §6.3, 6-c y 6-e; D-17, D-18). Una fila por grupo
@@ -42,6 +47,14 @@ import { WornJerseyIcon } from './WornJerseyIcon'
  * §6.4, 6-d; en el móvil, solo bajo la del pelotón y las del espectador, con un equipo y `+N teams`), y
  * debajo de la barra, si el espectador corre, `Your rider · in the bunch · +2:14` con sus variantes
  * (6-l).
+ *
+ * Desde el 17a (E3, docs/visual.md §14.4; D-00b, D-00c, 14-d, 14-g), ningún maillot por debajo de 28 px.
+ * Cada fila es un botón de 44 que abre debajo, en el flujo, la lista de sus corredores, una fila de 44
+ * con su `RiderLabel` cada uno; otro toque la cierra, y abrir otra cierra la anterior. Un grupo de tres o
+ * menos se nombra en su fila con el dorsal, la bandera, el nombre y el maillot, y parte de línea en lugar
+ * de cortar. Uno de cuatro a `nameWholeGroupUpTo` lleva la línea de equipos (`teamLineOf`): delante, los
+ * de líder y campeón (el nacional, con las letras de su país), y un `Kit` por equipo con su cuenta, los
+ * que caben en dos renglones con el ancho medido (`fitTeamChips`) y `+N teams`, que abre la lista.
  */
 interface GroupBarProps {
   instant: Instant
@@ -92,68 +105,42 @@ export const GroupBar = memo(function GroupBar({
     used.add(key)
     return key
   }
+  // la fila abierta, por su identidad en pantalla: abrir otra cierra la anterior (14-g)
+  const [open, setOpen] = useState<string | null>(null)
   return (
-    <div className="divide-y divide-slate-100" aria-live="off">
+    <div
+      data-ui="GroupBar"
+      data-variant={expanded ? 'expanded' : 'default'}
+      data-state={open === null ? 'closed' : 'open'}
+      className="divide-y divide-slate-100"
+      aria-live="off"
+    >
       {groups.map((g) => {
-        const fold = folded.includes(g)
-        const t = transit.get(g.g)
+        const key = rowKey(g)
         return (
-          <div
-            key={rowKey(g)}
-            data-group-row={g.number}
-            data-mobile={fold ? 'folded' : undefined}
-            className={`${fold ? 'hidden sm:block' : 'block'} py-1.5`}
-          >
-            <div className="flex items-center gap-2 text-sm">
-              <span className="w-5 shrink-0 text-right text-xs font-semibold tabular-nums text-slate-400">
-                {g.number}
-              </span>
-              <RowName group={g} cast={cast} />
-              {g.label.k !== 'names' &&
-                g.jerseys.map((j) => <LeaderJersey key={j} kind={j} size={14} />)}
-              {g.own && (
-                <span
-                  className="h-2 w-2 shrink-0 rounded-full bg-cyan-500"
-                  role="img"
-                  aria-label="Your rider"
-                  title="Your rider"
-                />
-              )}
-              <span className="ml-auto shrink-0 text-xs tabular-nums text-slate-400">
-                km {clock === 'estimated' && g.number > 1 ? '~' : ''}
-                {g.km.toFixed(1)}
-              </span>
-              {/* la fila 1 no lleva hueco: es la cabeza de la pantalla; salvo unos segundos, si la que
-                  iba delante acaba de morir con los suyos en carrera y aún no tienen grupo (10a) */}
-              {(g.number > 1 || g.gap.toHeadS >= BROADCAST.sameTimeS) && !quiet && (
-                <span className="w-14 shrink-0 text-right text-xs font-semibold tabular-nums text-slate-700">
-                  {mainGapText(g.gap.toHeadS)}
-                </span>
-              )}
-            </div>
-            {g.label.k !== 'names' && g.size <= BROADCAST.nameWholeGroupUpTo && (
-              <RidersLine group={g} cast={cast} mobile={g.number === 1 || g.own} />
-            )}
-            {t !== undefined && (t.back > 0 || t.across > 0) && (
-              <p className="pl-7 text-xs text-slate-500">
-                {t.back > 0 && <span>↓ {t.back} dropping back</span>}
-                {t.back > 0 && t.across > 0 && ' · '}
-                {t.across > 0 && <span>↑ {t.across} bridging across</span>}
-              </p>
-            )}
-            <PullingRow group={g} cast={cast} mobile={g.kind === 'peloton' || g.own} />
-          </div>
+          <GroupRow
+            key={key}
+            group={g}
+            cast={cast}
+            clock={clock}
+            quiet={quiet}
+            folded={folded.includes(g)}
+            transit={transit.get(g.g)}
+            open={open === key}
+            onToggle={() => setOpen((o) => (o === key ? null : key))}
+          />
         )
       })}
       {folded.length > 0 && (
-        <button
-          type="button"
-          onClick={onExpand}
-          className="w-full py-1.5 pl-7 text-left text-xs font-medium text-slate-500 sm:hidden"
-        >
-          +{folded.length} {folded.length === 1 ? 'group' : 'groups'} · {foldedRiders}{' '}
-          {foldedRiders === 1 ? 'rider' : 'riders'} ▾
-        </button>
+        <div className="sm:hidden">
+          <Button
+            variant="quiet"
+            layout="w-full"
+            {...(onExpand === undefined ? {} : { onClick: onExpand })}
+          >
+            {`+${folded.length} ${folded.length === 1 ? 'group' : 'groups'} · ${foldedRiders} ${foldedRiders === 1 ? 'rider' : 'riders'}`}
+          </Button>
+        </div>
       )}
       {own !== null && (
         <p data-your-rider="" className="py-1.5 pl-7 text-xs font-medium text-cyan-700">
@@ -190,20 +177,122 @@ function PullingRow({
   )
 }
 
+/** Una fila de la barra: un botón de 44 con el grupo, su línea, sus tránsitos, quién tira y su lista. */
+export function GroupRow({
+  group: g,
+  cast,
+  clock,
+  quiet,
+  folded,
+  transit: t,
+  open,
+  onToggle,
+}: {
+  group: GroupNow
+  cast: readonly RiderCard[]
+  clock: 'exact' | 'estimated'
+  quiet: boolean
+  folded: boolean
+  transit: { readonly back: number; readonly across: number } | undefined
+  open: boolean
+  onToggle: () => void
+}) {
+  const listId = useId()
+  return (
+    <div
+      data-group-row={g.number}
+      data-mobile={folded ? 'folded' : undefined}
+      className={folded ? 'hidden sm:block' : 'block'}
+    >
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={listId}
+        onClick={onToggle}
+        className="flex min-h-11 w-full items-center gap-2 text-left text-meta"
+      >
+        <span className="w-5 shrink-0 text-right text-caption font-semibold tabular-nums text-ink-3">
+          {g.number}
+        </span>
+        <RowName group={g} cast={cast} />
+        {g.label.k !== 'names' && g.jerseys.map((j) => <LeaderJersey key={j} kind={j} size={28} />)}
+        {g.own && (
+          <span
+            className="h-2 w-2 shrink-0 rounded-full bg-cyan-500"
+            role="img"
+            aria-label="Your rider"
+            title="Your rider"
+          />
+        )}
+        <span className="ml-auto shrink-0 text-xs tabular-nums text-slate-400">
+          km {clock === 'estimated' && g.number > 1 ? '~' : ''}
+          {g.km.toFixed(1)}
+        </span>
+        {/* la fila 1 no lleva hueco: es la cabeza de la pantalla; salvo unos segundos, si la que
+            iba delante acaba de morir con los suyos en carrera y aún no tienen grupo (10a) */}
+        {(g.number > 1 || g.gap.toHeadS >= BROADCAST.sameTimeS) && !quiet && (
+          <span className="w-14 shrink-0 text-right text-xs font-semibold tabular-nums text-slate-700">
+            {mainGapText(g.gap.toHeadS)}
+          </span>
+        )}
+      </button>
+      {g.label.k !== 'names' && g.size <= BROADCAST.nameWholeGroupUpTo && (
+        <TeamLine group={g} cast={cast} mobile={g.number === 1 || g.own} onMore={onToggle} />
+      )}
+      {t !== undefined && (t.back > 0 || t.across > 0) && (
+        <p className="pl-7 text-xs text-slate-500">
+          {t.back > 0 && <span>↓ {t.back} dropping back</span>}
+          {t.back > 0 && t.across > 0 && ' · '}
+          {t.across > 0 && <span>↑ {t.across} bridging across</span>}
+        </p>
+      )}
+      <PullingRow group={g} cast={cast} mobile={g.kind === 'peloton' || g.own} />
+      {/* la lista se pinta al abrir, no a cada barHz; cerrada, queda su sitio para aria-controls */}
+      <ul id={listId} data-group-list={g.number} hidden={!open}>
+        {open &&
+          g.members.map((r) => {
+            const card = cast[r]
+            if (card === undefined) return null
+            return (
+              <li key={r} className="flex min-h-11 items-center">
+                <RiderLabel
+                  rider={{ id: card.id, name: card.name, human: true, country: card.country }}
+                  bib={card.bib}
+                  team={wornTeamOf(card)}
+                  worn={card.worn}
+                  link={false}
+                />
+              </li>
+            )
+          })}
+      </ul>
+    </div>
+  )
+}
+
+/** Un corredor nombrado en su fila (D-00c): el dorsal, la bandera, el nombre y el maillot que lleva. */
+function NamedRider({ card }: { card: RiderCard }) {
+  return (
+    <span className="inline-flex items-center gap-1">
+      {card.bib !== null && <span className="tabular-nums text-ink-2">#{card.bib}</span>}
+      <Flag country={card.country} />
+      <span>{card.name}</span>
+      <WornJerseyIcon worn={card.worn} team={wornTeamOf(card)} size={28} />
+    </span>
+  )
+}
+
 /** El nombre de la fila: los corredores con su maillot (tres o menos) o la palabra con el tamaño. */
 function RowName({ group, cast }: { group: GroupNow; cast: readonly RiderCard[] }) {
   if (group.label.k === 'names')
     return (
-      <span className="flex min-w-0 items-center gap-1 truncate font-medium text-slate-800">
+      <span className="flex min-w-0 flex-wrap items-center gap-x-1 font-semibold text-ink">
         {group.label.riders.map((r, i) => {
           const card = cast[r]
           return (
             <Fragment key={r}>
-              {i > 0 && <span className="text-slate-300"> · </span>}
-              <span className="inline-flex min-w-0 items-center gap-1">
-                {card !== undefined && <WornJerseyIcon card={card} />}
-                <span className="truncate">{nameOf(cast)(r)}</span>
-              </span>
+              {i > 0 && <span className="text-ink-3"> · </span>}
+              {card === undefined ? <span>{nameOf(cast)(r)}</span> : <NamedRider card={card} />}
             </Fragment>
           )
         })}
@@ -218,32 +307,113 @@ function RowName({ group, cast }: { group: GroupNow; cast: readonly RiderCard[] 
   )
 }
 
-/** La línea de un grupo de cuatro a doce: sus corredores por dorsal, cada uno con su maillot (6-c). */
-function RidersLine({
+/** Una ficha de la línea: el de delante con su maillot (y las letras del nacional) o un equipo con su cuenta. */
+function Chip({ chip, cast }: { chip: LineChip; cast: readonly RiderCard[] }) {
+  if (chip.kind === 'front') {
+    const card = cast[chip.rider]
+    return (
+      <span data-chip="front" className="inline-flex items-center gap-1">
+        <WornJerseyIcon
+          worn={chip.worn}
+          team={card === undefined ? null : wornTeamOf(card)}
+          size={28}
+        />
+        {chip.letters !== null && (
+          <span aria-hidden="true" className="text-caption font-semibold text-ink-2">
+            {chip.letters}
+          </span>
+        )}
+      </span>
+    )
+  }
+  const first = cast[chip.riders[0] ?? -1]
+  const team = first === undefined ? null : wornTeamOf(first)
+  const n = chip.riders.length
+  return (
+    <span
+      data-chip="team"
+      role="img"
+      aria-label={`${team?.name ?? 'Individual'}, ${n} ${n === 1 ? 'rider' : 'riders'}`}
+      className="inline-flex items-center gap-1"
+    >
+      {team === null ? (
+        <span aria-hidden="true" className="inline-block h-7 w-7 shrink-0" />
+      ) : (
+        <TeamJersey team={team} size={28} />
+      )}
+      <span aria-hidden="true" className="text-caption font-semibold tabular-nums text-ink-2">
+        ×{n}
+      </span>
+    </span>
+  )
+}
+
+/**
+ * La línea de equipos de un grupo de cuatro a doce (§14.4): las fichas que caben en dos renglones, con
+ * lo medido (`ResizeObserver`), y `+N teams`, que abre la lista del grupo. Sin medir (en el servidor, o
+ * antes de la primera pintura), todas.
+ */
+function TeamLine({
   group,
   cast,
   mobile,
+  onMore,
 }: {
   group: GroupNow
   cast: readonly RiderCard[]
   /** también en el móvil: la fila 1 y las del espectador */
   mobile: boolean
+  onMore: () => void
 }) {
+  const chips = teamLineOf(group.members, cast)
+  const ref = useRef<HTMLDivElement>(null)
+  const [shown, setShown] = useState<number | null>(null)
+  useLayoutEffect(() => {
+    const line = ref.current
+    if (line === null || typeof ResizeObserver === 'undefined') return
+    const measure = () => {
+      const items = [...line.querySelectorAll<HTMLElement>('[data-chip]')]
+      const more = line.querySelector<HTMLElement>('[data-chip-more]')
+      const k = fitTeamChips(
+        line.clientWidth,
+        items.map((el) => el.offsetWidth),
+        more === null ? {} : { moreWidthPx: more.offsetWidth },
+      )
+      setShown(k >= items.length ? null : k)
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(line)
+    return () => observer.disconnect()
+  }, [chips.length, group.members])
+  const hidden = shown === null ? 0 : chips.length - shown
   return (
     <div
+      ref={ref}
       data-riders-line={mobile ? 'mobile' : 'desktop'}
-      className={`${mobile ? 'flex' : 'hidden sm:flex'} flex-wrap items-center gap-x-2 gap-y-0.5 pl-7 pt-0.5`}
+      className={`${mobile ? 'flex' : 'hidden sm:flex'} relative flex-wrap items-center gap-x-1 gap-y-1 pb-1 sm:pl-6`}
     >
-      {group.members.map((r) => {
-        const card = cast[r]
-        if (card === undefined) return null
-        return (
-          <span key={r} className="inline-flex items-center gap-1">
-            <WornJerseyIcon card={card} size={13} />
-            <span className="hidden sm:inline text-xs text-slate-600">{card.name}</span>
-          </span>
-        )
-      })}
+      {chips.map((chip, i) => (
+        // la que no cabe sigue en el árbol, invisible y fuera del flujo, con su ancho para la próxima medida
+        <span
+          key={chip.kind === 'front' ? `f${chip.rider}` : `t${chip.teamId}`}
+          data-chip-hidden={shown !== null && i >= shown ? '' : undefined}
+          className={shown !== null && i >= shown ? 'invisible absolute' : 'inline-flex'}
+        >
+          <Chip chip={chip} cast={cast} />
+        </span>
+      ))}
+      {/* solo si algo no cabe; hasta que se pinta, `fitTeamChips` estima su ancho */}
+      {hidden > 0 && (
+        <button
+          type="button"
+          data-chip-more=""
+          onClick={onMore}
+          className="inline-flex min-h-11 items-center text-caption font-semibold text-accent"
+        >
+          +{hidden} {hidden === 1 ? 'team' : 'teams'}
+        </button>
+      )}
     </div>
   )
 }

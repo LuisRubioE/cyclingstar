@@ -1,6 +1,9 @@
+import type { ChampionTitle, TeamListItem } from '@cyclingstar/shared'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
+import { identityFromTeams } from '../../domain/tableIdentity'
+import { GcRankTable } from '../RaceRankTables'
 import { RankTable, type RankTableColumn, type RankTableProps, rankTableLines } from './RankTable'
 
 /**
@@ -266,5 +269,64 @@ describe('RankTable: lo que piden las tablas del 12b', () => {
       /<span data-column="gc" data-priority="secondary"[^>]*><span>2 overall<\/span>/,
     )
     expect(s).toMatch(/<td data-column="gc" data-priority="secondary"[^>]*>2<\/td>/)
+  })
+})
+
+describe('RankTable: el maillot de campeón en una general (E3, docs/visual.md §6.1; 4-l; Rcobertura-017)', () => {
+  const ITALY: ChampionTitle = {
+    scope: 'national',
+    country: 'IT',
+    discipline: 'road',
+    category: 'elite',
+    season: 0,
+    validFromDay: 179,
+    validToDay: 543,
+    source: { raceKey: 'nc-it-road:s0', stageDay: 1 },
+    provisional: true,
+  }
+  const equipo = (id: string, kit: TeamListItem['kit']): TeamListItem => ({
+    id,
+    name: `Team ${id}`,
+    country: 'IT',
+    division: 'WT',
+    budget: 0,
+    pointsSeason: 0,
+    jerseySeed: `seed-${id}`,
+    kit,
+    riderCount: 25,
+  })
+  const corredor = (riderId: string, teamId: string, t: number) => ({
+    riderId,
+    name: `Rider ${riderId}`,
+    country: 'IT',
+    teamId,
+    teamName: `Team ${teamId}`,
+    isBot: true,
+    tiempoTotalS: t,
+  })
+  const s = renderToStaticMarkup(
+    <MemoryRouter>
+      <GcRankTable
+        rows={[corredor('a', 't1', 100), corredor('b', 't2', 110), corredor('c', 't1', 120)]}
+        leaders={{ gc: 'a', points: null, kom: null, team: null }}
+        champions={{ a: ITALY, b: ITALY }}
+        identity={identityFromTeams([equipo('t1', 'halves.red.blue'), equipo('t2', null)])}
+      />
+    </MemoryRouter>,
+  )
+  const fila = (riderId: string) =>
+    s.split('<tr').find((tr) => tr.includes(`href="/world/riders/${riderId}"`)) ?? ''
+
+  it('el campeón nacional pinta ChampionJersey con su texto, no la equipación', () => {
+    expect(fila('b')).toContain('data-ui="ChampionJersey"')
+    expect(fila('b')).toContain('aria-label="Champion of Italy"')
+    expect(fila('b')).not.toContain('Team t2 kit')
+  })
+
+  it('el de líder manda sobre el de campeón (D-00c), y el resto lleva su equipación nueva', () => {
+    expect(fila('a')).toContain('aria-label="Race leader"')
+    expect(fila('a')).not.toContain('ChampionJersey')
+    expect(fila('c')).toContain('data-kit="halves.red.blue"')
+    expect(fila('c')).toContain('aria-label="Team t1 kit"')
   })
 })

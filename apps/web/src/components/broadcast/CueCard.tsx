@@ -1,9 +1,10 @@
 import type { CueClass, RiderCard } from '@cyclingstar/shared'
 import { memo } from 'react'
 import { type CueBody, type CueText, cardTexts } from '../../domain/broadcast/screen'
-import { Flag } from '../Flag'
-import { Jersey, LeaderJersey } from '../Jersey'
-import { WornJerseyIcon } from './WornJerseyIcon'
+import { Flag } from '../ui/Flag'
+import { LeaderJersey } from '../ui/LeaderJersey'
+import { TeamJersey } from '../ui/TeamJersey'
+import { WornJerseyIcon, wornTeamOf } from './WornJerseyIcon'
 
 /** El rótulo que está en pantalla: su texto, fijado al salir, su clase y lo que se pinta con iconos. */
 export interface ShownCueCard {
@@ -27,9 +28,13 @@ export interface ShownCueCard {
  *
  * La región está siempre, vacía entre rótulo y rótulo, y es `aria-live="polite"` (D-57, §18.8): un
  * lector de pantalla dice cada rótulo al salir sin cortar lo que estaba diciendo. Ocupa su sitio
- * aunque esté vacía (72 px en el teléfono, §6.1), para que la voz no salte de sitio con cada rótulo.
- * La clase pinta el fondo: la 3 (la meta, la caza, el corte) de rojo; la 2, de oscuro; el resto, más
- * claro.
+ * aunque esté vacía (88 px desde el 17a, el título y dos renglones de 28 con maillot; §14.5, 14-b), para
+ * que la voz no salte de sitio con cada rótulo. La clase pinta el fondo: la 3 (la meta, la caza, el
+ * corte) de rojo; la 2, de oscuro; el resto, más claro.
+ *
+ * Desde el 17a (E3, docs/visual.md §14.1 y §14.5; D-00b, D-00c): los maillots a 28 px y con el filete
+ * claro (`surface="dark"`), en el orden de D-00c: el dorsal, la bandera, el nombre y el maillot que
+ * lleva; y los nombres no se cortan, parten de línea (Ruso-040).
  */
 /** Con el mismo rótulo, no se pinta otra vez (10b, los arreglos): cambia con la cola, no a `overlayHz`. */
 export const CueCard = memo(function CueCard({ cue }: { cue: ShownCueCard | null }) {
@@ -43,7 +48,7 @@ export const CueCard = memo(function CueCard({ cue }: { cue: ShownCueCard | null
           : 'bg-slate-700 text-white'
   const body = cue?.body
   return (
-    <div aria-live="polite" aria-atomic="true" className="min-h-[72px]" data-cue-card="">
+    <div aria-live="polite" aria-atomic="true" className="min-h-22" data-cue-card="">
       {cue !== null && (
         <div key={cue.seq} data-cue-class={cue.cls} className={`rounded-2xl px-3 py-2 ${tone}`}>
           {cue.text.title !== '' && (
@@ -57,10 +62,11 @@ export const CueCard = memo(function CueCard({ cue }: { cue: ShownCueCard | null
               className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5 sm:grid-cols-3"
             >
               {body.riders.map((c) => (
-                <li key={c.ix} className="flex min-w-0 items-center gap-1 text-xs">
-                  <WornJerseyIcon card={c} size={14} />
+                <li key={c.ix} className="flex min-w-0 flex-wrap items-center gap-1 text-xs">
                   <span className="tabular-nums text-white/70">{c.bib ?? ''}</span>
-                  <span className="truncate">{c.name}</span>
+                  <Flag country={c.country} />
+                  <span className="min-w-0 break-words">{c.name}</span>
+                  <WornJerseyIcon worn={c.worn} team={wornTeamOf(c)} size={28} surface="dark" />
                 </li>
               ))}
               {(body.more ?? 0) > 0 && (
@@ -77,17 +83,23 @@ export const CueCard = memo(function CueCard({ cue }: { cue: ShownCueCard | null
                   <span className="w-4 shrink-0 text-right tabular-nums text-white/60">
                     {r.left}
                   </span>
-                  <span className="flex min-w-0 flex-1 items-center gap-1 truncate">
+                  <span className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
                     {r.cards.map((c, i) => (
                       <span key={c.ix} className="inline-flex min-w-0 items-center gap-1">
                         {i > 0 && <span className="text-white/40">·</span>}
-                        <WornJerseyIcon card={c} size={13} />
-                        <span className="truncate">{c.name}</span>
+                        <Flag country={c.country} />
+                        <span className="break-words">{c.name}</span>
+                        <WornJerseyIcon
+                          worn={c.worn}
+                          team={wornTeamOf(c)}
+                          size={28}
+                          surface="dark"
+                        />
                       </span>
                     ))}
-                    {r.label !== null && <span className="truncate">{r.label}</span>}
+                    {r.label !== null && <span className="break-words">{r.label}</span>}
                     {r.jerseys.map((j) => (
-                      <LeaderJersey key={j} kind={j} size={12} />
+                      <LeaderJersey key={j} kind={j} size={28} surface="dark" />
                     ))}
                   </span>
                   <span className="shrink-0 tabular-nums">{r.right}</span>
@@ -103,35 +115,42 @@ export const CueCard = memo(function CueCard({ cue }: { cue: ShownCueCard | null
 })
 
 /**
- * LA CARTA DEL CORREDOR (§7.1): el maillot que lleva (`WornJerseyIcon`: el de líder, `ChampionMark` o
- * la equipación), el dorsal, el nombre tal como está guardado (7-a), la bandera, la equipación y el
- * nombre de su equipo, el titular (`cardCaption`), hasta tres líneas (`cardLineText`, ya cortadas al
- * servir) y `Your rider`, que es una marca y no una línea. En el móvil, dos renglones.
+ * LA CARTA DEL CORREDOR (§7.1; E3, §14.1, D-00c): en el primer renglón, el dorsal (`#214`), la bandera,
+ * el nombre tal como está guardado (7-a) y el maillot que lleva (`WornJerseyIcon`: el de líder, el de
+ * campeón o la equipación), y `Your rider`, que es una marca y no una línea; en el segundo, el equipo,
+ * con su maillot solo si el corredor lleva el de líder o el de campeón, el titular (`cardCaption`) y
+ * hasta tres líneas (`cardLineText`, ya cortadas al servir).
  */
 export function RiderCardView({ card }: { card: RiderCard }) {
   const { caption, lines } = cardTexts(card)
+  const team = wornTeamOf(card)
   return (
     <div data-rider-card={card.ix} className="text-sm">
       <p className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
-        <WornJerseyIcon card={card} size={16} />
-        {card.bib !== null && <span className="font-semibold tabular-nums">{card.bib}</span>}
+        {card.bib !== null && <span className="font-semibold tabular-nums">#{card.bib}</span>}
+        <Flag country={card.country} />
         <span className="font-semibold">{card.name}</span>
-        <Flag code={card.country} size={11} />
-        {card.team !== null && (
-          <span className="inline-flex items-center gap-1 text-white/80">
-            <Jersey seed={card.team.jerseySeed} size={13} />
-            {card.team.name}
-          </span>
-        )}
+        <WornJerseyIcon worn={card.worn} team={team} size={28} surface="dark" />
         {card.own && (
           <span className="rounded bg-cyan-500 px-1 text-[10px] font-bold uppercase text-slate-900">
             Your rider
           </span>
         )}
       </p>
-      {(caption !== null || lines.length > 0) && (
-        <p className="text-xs text-white/80">
-          {[caption, ...lines].filter((x) => x !== null).join(' · ')}
+      {(team !== null || caption !== null || lines.length > 0) && (
+        <p className="flex min-w-0 flex-wrap items-center gap-x-1 text-xs text-white/80">
+          {team !== null && (
+            <span data-rider-team="" className="inline-flex items-center gap-1">
+              {card.worn.kind !== 'team' && <TeamJersey team={team} size={28} surface="dark" />}
+              {team.name}
+            </span>
+          )}
+          {(caption !== null || lines.length > 0) && (
+            <span>
+              {team !== null && '· '}
+              {[caption, ...lines].filter((x) => x !== null).join(' · ')}
+            </span>
+          )}
         </p>
       )}
     </div>

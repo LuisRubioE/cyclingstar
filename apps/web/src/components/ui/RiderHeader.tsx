@@ -2,8 +2,9 @@ import { type ChampionTitle, KIT_PX } from '@cyclingstar/shared'
 import { Chip } from './Chip'
 import { ErrorState } from './ErrorState'
 import { Flag } from './Flag'
-import { ChosenJersey, type LegacyTeam, type RiderLabelProps, riderJerseyOf } from './RiderLabel'
+import { ChosenJersey, type RiderLabelProps, riderJerseyOf } from './RiderLabel'
 import { Skeleton } from './Skeleton'
+import type { WornTeam } from './TeamJersey'
 import { withLayout } from './styles'
 import { gluedLastWord } from './TextLink'
 import type { Layout, Tone } from './types'
@@ -27,7 +28,7 @@ interface RiderHeaderReady {
   readonly state?: 'ready'
   readonly rider: RiderLabelProps['rider']
   /** el equipo de hoy; null, un agente libre */
-  readonly team: LegacyTeam | null
+  readonly team: WornTeam | null
   /** su título vigente, si lo tiene (desde el 17a) */
   readonly champion?: ChampionTitle | null
   /** un corredor de un jugador: el `Chip` `Player` */

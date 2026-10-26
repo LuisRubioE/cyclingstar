@@ -44,6 +44,7 @@ const replay: StageReplay = {
   km: 180,
   run: true,
   altimetry: '<svg />',
+  champions: {},
   results: [row('hoy', 1), row('ayer', 2), row('otro', 3)],
   leaders: { onRoad, afterStage },
 }

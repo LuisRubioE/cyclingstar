@@ -7,7 +7,7 @@ import type {
   PreviewCard,
   RecapView,
 } from '../../domain/broadcast/montage'
-import { LeaderJersey } from '../Jersey'
+import { LeaderJersey } from '../ui/LeaderJersey'
 import { PLAY_GLYPH } from './PlayerControls'
 
 /**
@@ -107,7 +107,7 @@ export function PreviewCardView({ card }: { card: PreviewCard }) {
           <ul className="mt-1 space-y-1 text-sm text-white/85">
             {card.rows.map((r) => (
               <li key={r.text} className="flex items-start gap-2">
-                {r.jersey !== null && <LeaderJersey kind={r.jersey} size={15} />}
+                {r.jersey !== null && <LeaderJersey kind={r.jersey} size={28} />}
                 <span>{r.text}</span>
               </li>
             ))}
@@ -289,7 +289,7 @@ export function ClosingCardView({
           <ul className="mt-2 space-y-1 text-sm text-slate-700">
             {card.rows.map((r) => (
               <li key={r.jersey} className="flex items-center gap-2">
-                <LeaderJersey kind={r.jersey} size={15} />
+                <LeaderJersey kind={r.jersey} size={28} />
                 <span>{r.text}</span>
               </li>
             ))}
