@@ -8,20 +8,26 @@ import { RiderName } from '../components/RiderName'
 import { archetypeLabel } from '../domain/labels'
 import { horizonKey, useHorizonRev } from '../queryClient'
 import { VeilNotice } from '../components/VeilNotice'
+import { EmptyState } from '../components/ui/EmptyState'
+import { QueryView } from '../components/ui/QueryView'
 
 /** Ranking nacional (#7): corredores de un país por puntos de temporada. */
 export function Country() {
   const { code = '' } = useParams()
   const rev = useHorizonRev()
-  const { data, isPending, isError } = useQuery({
+  const query = useQuery({
     queryKey: horizonKey(['country', code], rev),
     queryFn: () => fetchCountryRiders(code),
     enabled: rev !== undefined,
   })
   const info = COUNTRIES.find((c) => c.code === code.toUpperCase())
 
-  if (isPending) return <p className="text-slate-500">Loading…</p>
-  if (isError) return <p className="text-red-600">Could not load this country.</p>
+  // Los estados, con `QueryView` (E3, PR 10).
+  if (query.data === undefined)
+    return (
+      <QueryView query={query} label="this country" skeleton={{ kind: 'rows', rowHeight: 56 }} />
+    )
+  const data = query.data
 
   return (
     <section className="space-y-4">
@@ -41,7 +47,7 @@ export function Country() {
       </p>
 
       {data.length === 0 ? (
-        <p className="text-sm text-slate-500">No active riders from this country yet.</p>
+        <EmptyState icon="rider" text="No active riders from this country yet." />
       ) : (
         <Panel title="National ranking" bodyClassName="p-0">
           <div className="overflow-x-auto">

@@ -6,6 +6,7 @@ import { Jersey } from '../components/Jersey'
 import { Panel, SectionBar } from '../components/Panel'
 import { horizonKey, useHorizonRev } from '../queryClient'
 import { VeilNotice } from '../components/VeilNotice'
+import { QueryView } from '../components/ui/QueryView'
 
 const DIVISION_BADGE: Record<string, string> = {
   WT: 'bg-indigo-100 text-indigo-700',
@@ -51,13 +52,15 @@ function DivisionBlock({ division, teams }: { division: string; teams: TeamListI
 
 export function Teams() {
   const rev = useHorizonRev()
-  const { data, isPending, isError } = useQuery({
+  const query = useQuery({
     queryKey: horizonKey(['teams'], rev),
     queryFn: fetchTeams,
     enabled: rev !== undefined,
   })
-  if (isPending) return <p className="text-slate-500">Loading…</p>
-  if (isError) return <p className="text-red-600">Could not load teams.</p>
+  // Los estados, con `QueryView` (E3, PR 10).
+  if (query.data === undefined)
+    return <QueryView query={query} label="teams" skeleton={{ kind: 'rows', rowHeight: 44 }} />
+  const data = query.data
 
   return (
     <section className="space-y-4">

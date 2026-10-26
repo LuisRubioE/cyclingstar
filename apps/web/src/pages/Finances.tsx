@@ -8,6 +8,8 @@ import { money } from '../domain/format'
 import { ledgerKindLabel } from '../domain/labels'
 import { horizonKey, useHorizonRev } from '../queryClient'
 import { VeilNotice } from '../components/VeilNotice'
+import { EmptyState } from '../components/ui/EmptyState'
+import { QueryView } from '../components/ui/QueryView'
 
 const KIND_TONE: Record<string, string> = {
   salario: 'text-emerald-600',
@@ -90,14 +92,16 @@ function NextSalaryCard({ gameDay, salary }: { gameDay: number; salary: number }
 
 export function Finances() {
   const rev = useHorizonRev()
-  const { data, isPending, isError } = useQuery({
+  const query = useQuery({
     queryKey: horizonKey(['ledger'], rev),
     queryFn: fetchLedger,
     enabled: rev !== undefined,
   })
 
-  if (isPending) return <p className="text-slate-500">Loading…</p>
-  if (isError) return <p className="text-red-600">Could not load your finances.</p>
+  // Los estados, con `QueryView` (E3, PR 10).
+  if (query.data === undefined)
+    return <QueryView query={query} label="your finances" skeleton={{ kind: 'stat' }} />
+  const data = query.data
 
   return (
     <section className="space-y-4">
@@ -120,10 +124,7 @@ export function Finances() {
       <HousingCard />
 
       {data.entries.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
-          No transactions yet. Salary lands weekly once you have a contract; prizes come from
-          racing.
-        </p>
+        <EmptyState text="No transactions yet. Salary lands weekly once you have a contract; prizes come from racing." />
       ) : (
         <Panel bodyClassName="p-0">
           <table className="w-full text-sm">

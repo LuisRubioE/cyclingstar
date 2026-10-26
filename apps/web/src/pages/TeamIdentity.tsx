@@ -1,6 +1,5 @@
 import { COUNTRIES } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
 import {
   type TeamDetail,
   fetchTeam,
@@ -15,6 +14,9 @@ import { InfoRow, Panel, SectionBar } from '../components/Panel'
 import { TeamFeed } from '../components/TeamFeed'
 import { TeamManager } from '../components/TeamManager'
 import { archetypeLabel } from '../domain/labels'
+import { Button } from '../components/ui/Button'
+import { EmptyState } from '../components/ui/EmptyState'
+import { QueryView } from '../components/ui/QueryView'
 import { horizonKey, useHorizonRev } from '../queryClient'
 
 /**
@@ -103,25 +105,25 @@ export function TeamIdentity() {
   })
   const control = useQuery({ queryKey: ['team-control'], queryFn: fetchTeamControl })
 
-  if (summary.isPending) return <p className="text-slate-500">Loading…</p>
+  // Los estados, con `QueryView` (E3, PR 10): un fallo del resumen ya no se pinta como «sin equipo».
+  if (summary.data === undefined)
+    return <QueryView query={summary} label="your rider" skeleton={{ kind: 'panel' }} />
 
   if (!teamId) {
     return (
       <section className="space-y-4">
         <SectionBar>Identity</SectionBar>
-        <p className="rounded-md border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
-          You do not belong to a team yet. Browse the peloton in{' '}
-          <Link to="/world/teams" className="font-medium text-indigo-600 hover:underline">
-            World → Teams
-          </Link>
-          .
-        </p>
+        <EmptyState
+          icon="team"
+          text="You do not belong to a team yet. Browse the peloton in World, under Teams."
+          action={<Button to="/world/teams">Browse the teams</Button>}
+        />
       </section>
     )
   }
 
-  if (team.isPending) return <p className="text-slate-500">Loading…</p>
-  if (team.isError || !team.data) return <p className="text-red-600">Could not load your team.</p>
+  if (team.data === undefined)
+    return <QueryView query={team} label="your team" skeleton={{ kind: 'panel' }} />
 
   const data = team.data
   const country = COUNTRIES.find((c) => c.code === data.country)
@@ -186,13 +188,22 @@ export function TeamIdentity() {
       {/* Si además gestiono el equipo, aquí es donde se cambian nombre, país y maillot (§3.4). */}
       {ownedByMe && <TeamManager team={data} />}
 
+      {/* Los estados, con `QueryView` (E3, PR 10): cargando o con un fallo ya no se pinta «nada todavía». */}
       <Panel title="History" bodyClassName="p-0">
         {news.data && news.data.length > 0 ? (
           <TeamFeed items={news.data} padding="px-4" />
         ) : (
-          <p className="px-4 py-6 text-center text-sm text-slate-500">
-            Nothing has happened to this team yet — its story starts with the next race.
-          </p>
+          <div className="px-4">
+            <QueryView
+              query={news}
+              label="your team's history"
+              skeleton={{ kind: 'rows', rowHeight: 44 }}
+              isEmpty={(d) => d.length === 0}
+              empty={{
+                text: 'Nothing has happened to this team yet — its story starts with the next race.',
+              }}
+            />
+          </div>
         )}
       </Panel>
     </section>

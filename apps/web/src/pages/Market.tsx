@@ -5,6 +5,8 @@ import { Panel, SectionBar, InfoRow } from '../components/Panel'
 import { TeamLink } from '../components/TeamLink'
 import { type Offer, fetchMarket, respondToOffer } from '../api/market'
 import { roleLabel } from '../domain/labels'
+import { EmptyState } from '../components/ui/EmptyState'
+import { QueryView } from '../components/ui/QueryView'
 
 const DIVISION_BADGE: Record<string, string> = {
   WT: 'bg-indigo-100 text-indigo-700',
@@ -109,7 +111,7 @@ function OfferCard({
 
 export function Market() {
   const queryClient = useQueryClient()
-  const { data, isPending, isError } = useQuery({ queryKey: ['market'], queryFn: fetchMarket })
+  const query = useQuery({ queryKey: ['market'], queryFn: fetchMarket })
 
   const respond = useMutation({
     mutationFn: ({ id, action }: { id: string; action: 'accept' | 'reject' }) =>
@@ -120,8 +122,10 @@ export function Market() {
     },
   })
 
-  if (isPending) return <p className="text-slate-500">Loading…</p>
-  if (isError) return <p className="text-red-600">Could not load the market.</p>
+  // Los estados, con `QueryView` (E3, PR 10).
+  if (query.data === undefined)
+    return <QueryView query={query} label="the market" skeleton={{ kind: 'panel' }} />
+  const data = query.data
 
   return (
     <section className="space-y-4">
@@ -153,9 +157,7 @@ export function Market() {
       )}
 
       {data.offers.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
-          No offers on the table right now. New ones arrive as the world advances.
-        </p>
+        <EmptyState text="No offers on the table right now. New ones arrive as the world advances." />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {data.offers.map((offer) => (

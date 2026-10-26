@@ -12,6 +12,7 @@ import { TeamManager } from '../components/TeamManager'
 import { archetypeLabel } from '../domain/labels'
 import { diagOf, horizonKey, useHorizonRev, useWatchOn } from '../queryClient'
 import { VeilNotice } from '../components/VeilNotice'
+import { QueryView } from '../components/ui/QueryView'
 
 const DIVISION_LABEL: Record<string, string> = {
   WT: 'World Tour',
@@ -30,7 +31,7 @@ export function Team() {
   const { id = '' } = useParams()
   const queryClient = useQueryClient()
   const rev = useHorizonRev()
-  const { data, isPending, isError } = useQuery({
+  const query = useQuery({
     queryKey: horizonKey(['team', id], rev),
     queryFn: () => fetchTeam(id),
     enabled: rev !== undefined,
@@ -56,8 +57,10 @@ export function Team() {
       void queryClient.invalidateQueries({ queryKey: ['rider', 'me'] })
     },
   })
-  if (isPending) return <p className="text-slate-500">Loading…</p>
-  if (isError) return <p className="text-red-600">Could not load the team.</p>
+  // Los estados, con `QueryView` (E3, PR 10).
+  if (query.data === undefined)
+    return <QueryView query={query} label="the team" skeleton={{ kind: 'rows', rowHeight: 56 }} />
+  const data = query.data
 
   // Este es el equipo de mi ciclista, sigue siendo bot y soy premium ⇒ puedo tomar el control.
   const isMyTeam = control?.team?.id === data.id

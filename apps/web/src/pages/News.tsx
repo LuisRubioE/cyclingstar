@@ -8,6 +8,8 @@ import { Flag } from '../components/Flag'
 import { SectionBar } from '../components/Panel'
 import { DiagnosticStrip } from '../components/StageGate'
 import { StageReadyLine } from '../components/StageReadyLine'
+import { EmptyState } from '../components/ui/EmptyState'
+import { QueryView } from '../components/ui/QueryView'
 import { newsLabel } from '../domain/labels'
 import {
   NO_FILTER,
@@ -99,12 +101,13 @@ export function News() {
   const [params] = useSearchParams()
   const diag = diagOf(params)
   const rev = useHorizonRev()
-  const { data, isPending, isError } = useQuery({
+  const query = useQuery({
     queryKey: newsKey(diag, rev),
     queryFn: () => fetchNews({ diag }),
     enabled: rev !== undefined,
     placeholderData: keepPreviousData,
   })
+  const data = query.data
   const calendar = useQuery({
     queryKey: horizonKey(['calendar'], rev),
     queryFn: fetchCalendar,
@@ -157,8 +160,11 @@ export function News() {
     }
   }, [withRace, races])
 
-  if (isPending) return <p className="text-slate-500">Loading…</p>
-  if (isError) return <p className="text-red-600">Could not load the news feed.</p>
+  // Los estados, con `QueryView` (E3, PR 10).
+  if (data === undefined)
+    return (
+      <QueryView query={query} label="the news feed" skeleton={{ kind: 'rows', rowHeight: 44 }} />
+    )
 
   const shown = withRace.filter(({ item, raceId }) => matchesFilter(item, filter, raceId))
   const visible = shown.map(({ item }) => item)
@@ -222,11 +228,14 @@ export function News() {
       </div>
 
       {days.length === 0 ? (
-        <p className="rounded-md border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
-          {filtered
-            ? 'No headlines match these filters.'
-            : 'Nothing has happened yet. Advance the world and the headlines will roll in.'}
-        </p>
+        <EmptyState
+          icon="news"
+          text={
+            filtered
+              ? 'No headlines match these filters.'
+              : 'Nothing has happened yet. Advance the world and the headlines will roll in.'
+          }
+        />
       ) : (
         <div className="space-y-4">
           {days.map((day) => {
