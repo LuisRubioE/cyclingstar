@@ -19,8 +19,14 @@
  * eso los esquemas compartidos viven aquí y no en `wire.ts`, que carga `BROADCAST`.
  */
 import { z } from 'zod'
-import { jerseyKindSchema, pullMotiveSchema, type PullMotive } from '../contracts.js'
-import type { ChampionTitle, Distinction, WornJersey } from '../jerseys.js'
+import {
+  championTitleSchema,
+  jerseyKindSchema,
+  pullMotiveSchema,
+  stageRefSchema,
+  type PullMotive,
+} from '../contracts.js'
+import type { Distinction, WornJersey } from '../jerseys.js'
 import type {
   BannerResult,
   Block,
@@ -34,7 +40,6 @@ import type {
   MishapKind,
   ProfileStrip,
   RiderIx,
-  StageRef,
   StageTimeline,
   StageWeather,
   StateEvent,
@@ -146,22 +151,10 @@ const ds = int.min(0)
 const orNone = int.min(-1)
 const mishapKindSchema = z.enum(['caida', 'pinchazo', 'averia']) satisfies z.ZodType<MishapKind>
 
-/** Las piezas que el formato comparte con la red: viven aquí y `wire.ts` las importa (4-x). */
-export const stageRefSchema = z.object({
-  raceKey: z.string(),
-  stageDay: int.min(1),
-}) satisfies z.ZodType<StageRef>
-export const championTitleSchema = z.object({
-  scope: z.enum(['world', 'continental', 'national']),
-  country: z.string().length(2).nullable(),
-  discipline: z.enum(['road', 'itt']),
-  category: z.enum(['elite', 'u23']),
-  season: int,
-  validFromDay: int,
-  validToDay: int,
-  source: stageRefSchema,
-  provisional: z.boolean(),
-}) satisfies z.ZodType<ChampionTitle>
+/**
+ * Las piezas que el formato comparte con la red: viven aquí y `wire.ts` las importa (4-x). La etapa y
+ * el título, en `contracts.ts` desde el 17a, que los sirve también en las tablas (E3, §8.5).
+ */
 export const wornJerseySchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('leader'),

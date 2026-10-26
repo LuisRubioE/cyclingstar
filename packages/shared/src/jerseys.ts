@@ -277,8 +277,14 @@ const SCOPE_RANK = { world: 0, continental: 1, national: 2 } as const satisfies 
   number
 >
 
-/** Los títulos que un corredor puede LLEVAR hoy: de la disciplina y la categoría del día (1.3.063, 1.3.068), el de mayor alcance primero. */
-function wearableTitles(input: WornInput, riderId: string): readonly ChampionTitle[] {
+/**
+ * Los títulos que un corredor puede LLEVAR hoy: de la disciplina y la categoría del día (1.3.063,
+ * 1.3.068), el de mayor alcance primero. La usan también las tablas y la ficha (E3, §8.5; 4-l, 17a).
+ */
+export function wearableTitles(
+  input: Pick<WornInput, 'titles' | 'discipline' | 'category'>,
+  riderId: string,
+): readonly ChampionTitle[] {
   return (input.titles.get(riderId) ?? [])
     .filter((t) => t.discipline === input.discipline && t.category === input.category)
     .sort((a, b) => SCOPE_RANK[a.scope] - SCOPE_RANK[b.scope])

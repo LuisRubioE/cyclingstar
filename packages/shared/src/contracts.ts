@@ -15,8 +15,9 @@
 
 import { z } from 'zod'
 // Solo tipos (14-a): `import type` se borra al compilar y este fichero no carga nada de broadcast/.
+import type { StageRef } from './broadcast/timeline.js'
 import type { PreStageInfo, StageGate, SwitchMode, WatchState } from './broadcast/wire.js'
-import type { RaceLeaders } from './jerseys.js'
+import type { ChampionTitle, RaceLeaders } from './jerseys.js'
 import { BIB_STYLES, kitCodeSchema } from './kit.js'
 import { newsPayloadSchema } from './news.js'
 import { ATTRIBUTES, GENDERS, HEALTH_STATES, type PublicRider, VOCATIONS } from './rider.js'
@@ -564,6 +565,36 @@ export const raceLeadersSchema: z.ZodType<RaceLeaders> = z.object({
   team: z.string().nullable(),
 })
 
+/** Una etapa de una carrera (E2): la pieza que el formato guardado comparte con la red (4-x). */
+export const stageRefSchema = z.object({
+  raceKey: z.string(),
+  stageDay: z.number().int().min(1),
+}) satisfies z.ZodType<StageRef>
+
+/**
+ * EL TÍTULO DE CAMPEÓN (E3, docs/visual.md §8.5; 4-l, 17-w), el Zod de `ChampionTitle`. Nació en
+ * `broadcast/codec.ts` para el reparto grabado y pasa aquí en el 17a, para que lo lleven también las
+ * tablas y la ficha del corredor; el códec lo importa de aquí, así que su formato no cambia.
+ */
+export const championTitleSchema = z.object({
+  scope: z.enum(['world', 'continental', 'national']),
+  country: z.string().length(2).nullable(),
+  discipline: z.enum(['road', 'itt']),
+  category: z.enum(['elite', 'u23']),
+  season: z.number().int(),
+  validFromDay: z.number().int(),
+  validToDay: z.number().int(),
+  source: stageRefSchema,
+  provisional: z.boolean(),
+}) satisfies z.ZodType<ChampionTitle>
+
+/**
+ * LOS CAMPEONES DE UNA TABLA (E3, §8.5; 4-l): el título que lleva cada corredor el día de la tabla, por
+ * `riderId`, el de la disciplina y la categoría del día y de mayor alcance (`wearableTitles`), sin los
+ * que vienen de una etapa velada para quien mira. Una vez por respuesta, junto a sus `leaders`.
+ */
+export const championsSchema = z.record(z.string(), championTitleSchema).default({})
+
 // --- /api/calendar/:raceId (ficha de carrera) ----------------------------------------------
 
 export const gcRowSchema = z.object({
@@ -733,6 +764,8 @@ export const raceViewSchema = z.object({
    * día y mientras no se haya corrido nada.
    */
   leaders: raceLeadersSchema,
+  /** los títulos que se llevan el día de esas tablas, el de tras la última etapa que quien mira conoce */
+  champions: championsSchema,
   stageWinners: z.array(stageWinnerSchema),
   history: z.array(raceHonourSchema),
 })
@@ -900,6 +933,11 @@ export const publicRiderDetailSchema = z.object({
    * solo sale en modo propietario.
    */
   health: riderHealthSchema,
+  /**
+   * Su título vigente de mayor alcance, el de ruta antes que el de crono, para `RiderHeader` (E3, §8.5;
+   * 4-l); null sin título o si viene de una etapa velada para quien mira.
+   */
+  champion: championTitleSchema.nullable().default(null),
 })
 export type PublicRiderDetail = z.infer<typeof publicRiderDetailSchema>
 export const publicRiderDetailResponseSchema = z.object({ rider: publicRiderDetailSchema })
@@ -1754,6 +1792,8 @@ export const stageReplaySchema = z.object({
    * crónica no lleva ids; se calcula una sola vez y se proyecta, así que no pueden discrepar.
    */
   leaders: z.object({ onRoad: raceLeadersSchema, afterStage: raceLeadersSchema }).optional(),
+  /** los títulos que se llevan el día de esta etapa, el de las tablas de esta ficha (E3, §8.5; 4-l) */
+  champions: championsSchema,
   /**
    * LA RADIO DE CARRERA, km a km. Ausente en las etapas corridas antes de guardarla: no se inventa
    * re-simulando, que contaría una carrera distinta de la que quedó en el marcador.
