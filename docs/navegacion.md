@@ -266,6 +266,13 @@ actual no gestiona el foco al abrirse (`Header.tsx:129`).
 > teléfono, que es justo lo que la barra viene a arreglar. Máximo cinco entradas, con el mismo
 > rótulo que en escritorio (un destino no cambia de nombre según la pantalla).
 >
+> **Cambia con E3 (PR 11; `docs/visual.md` §6.3, decisión 6-e, que se comparte con E6):** cada
+> destino lleva su icono, y en una celda de menos de 76 px va su rótulo corto (`Home`, `Rider`,
+> `Team`, `World`, `News`): con cinco destinos, en toda ventana de menos de 380, la de 360 incluida,
+> porque `Dashboard` mide 73 px con la letra de la prueba del teléfono. Lo decide una regla fija de
+> contenedor (`@max-[4.75rem]:`), no el ancho de la ventana; con cuatro destinos o desde 380, el
+> rótulo es el de escritorio. La cabecera, desde 640, sigue con el largo.
+>
 > Qué destinos salen según la sesión y el equipo lo decide `apps/web/src/domain/nav.ts`, compartido
 > con la cabecera y probado en `nav.test.ts`: una sola regla para las dos formas de pintarla.
 >

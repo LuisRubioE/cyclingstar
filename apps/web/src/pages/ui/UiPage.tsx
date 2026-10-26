@@ -2,6 +2,8 @@ import { legacyJerseyStyle } from '@cyclingstar/shared/legacyJersey'
 import { type ReactNode, useId, useState } from 'react'
 import { ActionBarView, type ActionBarState } from '../../components/ui/ActionBar'
 import { ActionRow } from '../../components/ui/ActionRow'
+import { AppHeader } from '../../components/ui/AppHeader'
+import { BottomNav, type BottomNavItem } from '../../components/ui/BottomNav'
 import { Button } from '../../components/ui/Button'
 import { Chip } from '../../components/ui/Chip'
 import { Disclosure } from '../../components/ui/Disclosure'
@@ -33,6 +35,16 @@ import { TextLink, gluedLastWord } from '../../components/ui/TextLink'
 import { TripRow } from '../../components/ui/TripRow'
 import type { IconName, Tone } from '../../components/ui/types'
 import { formatTime } from '../../domain/format'
+import {
+  DASHBOARD,
+  HOW_TO_PLAY,
+  type MainLink,
+  MY_RIDER,
+  MY_TEAM,
+  NEWS,
+  WORLD,
+} from '../../domain/nav'
+import { worldClock } from '../../domain/words'
 import { NO_TEAM_LABEL } from '../../domain/labels'
 import {
   GC_ROWS,
@@ -893,6 +905,93 @@ function Consultas() {
   )
 }
 
+/* ── El 11: el marco ─────────────────────────────────────────────────────────────────────────── */
+
+/** El reloj más ancho: el último día de la temporada 12, con 23 h 59 min por delante (Ruso-006). */
+const RELOJ_ANCHO = worldClock(12 * 364, (23 * 60 + 59) * 60_000)
+
+/**
+ * Una sección para lo que en la web va de borde a borde (la cabecera): por debajo de 640, a todo lo ancho
+ * de la ventana, sin el margen de `/_ui`, que se queda en su título y sus rótulos. Es hija de `main`, y
+ * con su margen negativo no sale de su caja de relleno (la comprobación 2 la mira).
+ */
+function DemoAncho({
+  name,
+  estados,
+}: {
+  readonly name: string
+  readonly estados: readonly (readonly [string, ReactNode])[]
+}) {
+  const id = useId()
+  return (
+    <section data-ui-demo={name} aria-labelledby={id} className="-mx-3 flex flex-col gap-4 sm:mx-0">
+      <h2 id={id} className="px-3 text-title text-ink sm:px-0">
+        {name}
+      </h2>
+      {estados.map(([nombre, contenido]) => (
+        <div key={nombre} className="flex flex-col gap-2">
+          <p className="px-3 text-caption font-semibold tracking-caps text-ink-3 uppercase sm:px-0">
+            {nombre}
+          </p>
+          {contenido}
+        </div>
+      ))}
+    </section>
+  )
+}
+
+const destino = (l: MainLink): BottomNavItem => ({
+  key: l.section,
+  to: '/_ui',
+  label: l.label,
+  shortLabel: l.shortLabel,
+  icon: l.icon,
+})
+
+function Marcos() {
+  return (
+    <>
+      <DemoAncho
+        name="AppHeader"
+        estados={[
+          [
+            'signed in · the widest clock',
+            <AppHeader key="in" state="signed-in" clock={RELOJ_ANCHO} />,
+          ],
+          [
+            'signed out · the clock only from 640',
+            <AppHeader key="out" state="signed-out" clock={RELOJ_ANCHO} />,
+          ],
+          [
+            "unknown · offline, the player's (D-47)",
+            <AppHeader key="unknown" state="unknown" clock={null} />,
+          ],
+        ]}
+      />
+      <Demo name="BottomNav">
+        <Estado name="five · the short labels below 76 px a cell">
+          <Marco>
+            <BottomNav
+              items={[DASHBOARD, MY_RIDER, MY_TEAM, WORLD, NEWS].map(destino)}
+              activeKey="me"
+            />
+          </Marco>
+        </Estado>
+        <Estado name="four · a free agent">
+          <Marco>
+            <BottomNav items={[DASHBOARD, MY_RIDER, WORLD, NEWS].map(destino)} activeKey="world" />
+          </Marco>
+        </Estado>
+        <Estado name="three · signed out">
+          <Marco>
+            <BottomNav items={[WORLD, HOW_TO_PLAY, NEWS].map(destino)} activeKey={null} />
+          </Marco>
+        </Estado>
+      </Demo>
+    </>
+  )
+}
+
 function Iconos() {
   const nombres = Object.keys(ICONS) as IconName[]
   return (
@@ -977,6 +1076,7 @@ export function UiPage() {
       <Filas />
       <Escalas />
       <Consultas />
+      <Marcos />
       <Iconos />
       <AmbitoOscuro />
     </main>

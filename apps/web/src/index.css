@@ -112,9 +112,11 @@
 
 :root {
   color-scheme: light;
-  /* El sitio de la ActionBar (§4.9): lo escribe el marco con lo que mide (PR 11); hasta entonces, y en
-     `/_ui`, abajo del todo de su bloque contenedor. */
+  /* Lo fijo de abajo (§4.9; PR 11): el sitio de la ActionBar, sobre la BottomNav, y la suma de los dos
+     altos, el relleno de abajo del marco. Los escriben, con lo que miden, la BottomNav y la ActionBar al
+     montarse (`ui/fixedBottom.ts`); sin ellas, y en `/_ui`, 0. */
   --action-bar-bottom: 0px;
+  --fixed-bottom: 0px;
 }
 
 /* Un carril que se desplaza de lado sin barra a la vista (Tabs, §4.4). */

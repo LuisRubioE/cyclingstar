@@ -1,20 +1,16 @@
 import { type KeyboardEvent, type ReactNode, useCallback, useRef } from 'react'
-import { NavLink, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 
 /**
- * Pestañas reutilizables (docs/navegacion.md §3, §7). ÚNICO componente de pestañas del proyecto:
- * absorbió a `RaceTabs` (flujo de carrera) y a `PageTabs` (segundo nivel de página).
+ * Pestañas reutilizables (docs/navegacion.md §3, §7): absorbió a `RaceTabs` (flujo de carrera) y a
+ * `PageTabs` (segundo nivel de página). Las pestañas que son rutas, las de la cabecera, son desde el PR 11
+ * de E3 las de `ui/Tabs.tsx` (`nav`, con `items`); aquí quedan las controladas de las páginas:
  *
- * Hay dos sabores y comparten aspecto, para que el jugador reconozca el patrón esté donde esté:
- *
- * - `NavTabs`  → pestañas que SON rutas. Cambiar de pestaña navega. Úsalo cuando la pestaña merece
- *                URL propia (las de contexto de la cabecera, `My Rider`, `My Team`, `World`).
  * - `Tabs`     → pestañas controladas (valor + onChange). Úsalo dentro de una página cuando la
  *                pestaña es un estado de la vista, no un destino (Race: Route/Startlist/…).
  *                Combínalo con `useTabParam` si quieres que además viva en `?tab=`.
  *
  * Variantes visuales:
- * - `header`    → sobre la banda azul de la cabecera (nivel 2 del menú).
  * - `page`      → dentro del contenido, sobre fondo claro.
  * - `underline` → pestañas principales de una página, subrayadas sobre una línea divisoria.
  * - `pill`      → sub-pestañas (p. ej. las clasificaciones dentro de la página de carrera).
@@ -36,12 +32,6 @@ const SCROLLER =
 function tabClass(variant: TabVariant, active: boolean): string {
   const base = 'shrink-0 whitespace-nowrap text-sm transition'
   switch (variant) {
-    case 'header':
-      return `${base} rounded-md px-3 py-1.5 ${
-        active
-          ? 'bg-white/20 font-semibold text-white'
-          : 'text-white/75 hover:bg-white/10 hover:text-white'
-      }`
     case 'underline':
       return `${base} border-b-2 px-3 py-2 font-medium ${
         active
@@ -61,66 +51,7 @@ function tabClass(variant: TabVariant, active: boolean): string {
   }
 }
 
-export type TabVariant = 'header' | 'page' | 'underline' | 'pill'
-
-/** Una pestaña-ruta de `NavTabs`. */
-export interface NavTabItem {
-  /** Ruta destino. Es también la clave de React. */
-  to: string
-  /** Texto visible (en inglés). */
-  label: string
-  /**
-   * Exige coincidencia exacta de la URL para marcarla activa. Por defecto `false`: la pestaña
-   * `/world/races` sigue activa dentro de `/world/races/tour-de-france`, que es lo que se quiere.
-   */
-  end?: boolean
-  /** Adorno opcional a la derecha (un contador, un punto de "hay novedades"). */
-  badge?: ReactNode
-}
-
-/**
- * Tira de pestañas que navegan. La pestaña activa la decide la URL (`NavLink`), así que también
- * queda bien al entrar por enlace directo o al recargar.
- *
- * ```tsx
- * <NavTabs
- *   label="Race sections"
- *   items={[
- *     { to: `/world/races/${id}`, label: 'Route', end: true },
- *     { to: `/world/races/${id}/startlist`, label: 'Startlist' },
- *   ]}
- * />
- * ```
- */
-export function NavTabs({
-  items,
-  label,
-  variant = 'page',
-  className = '',
-}: {
-  items: readonly NavTabItem[]
-  /** Nombre accesible de la tira (`aria-label`), p. ej. "World sections". */
-  label: string
-  variant?: TabVariant
-  className?: string
-}) {
-  if (items.length === 0) return null
-  return (
-    <nav aria-label={label} className={`${SCROLLER} ${className}`}>
-      {items.map((item) => (
-        <NavLink
-          key={item.to}
-          to={item.to}
-          end={item.end ?? false}
-          className={({ isActive }) => tabClass(variant, isActive)}
-        >
-          {item.label}
-          {item.badge != null && <span className="ml-1.5">{item.badge}</span>}
-        </NavLink>
-      ))}
-    </nav>
-  )
-}
+export type TabVariant = 'page' | 'underline' | 'pill'
 
 /** Una pestaña de `Tabs`, identificada por su clave. */
 export interface TabOption<K extends string> {

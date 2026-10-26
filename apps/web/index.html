@@ -3,7 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      El marco (E3, docs/visual.md §12.4; PR 11): con viewport-fit=cover, env(safe-area-inset-*) vale algo
+      en WebKit y el hueco de la barra de abajo sirve en un iPhone con la barra de inicio; theme-color,
+      el navy de la cabecera, para la barra del navegador en Android.
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#123a5c" />
     <title>Cycling Star</title>
     <!--
       /health sale con el HTML (E2, paso 10b; docs/retransmision.md §18.5): toda página lo pide al montar,

@@ -22,6 +22,8 @@ export interface TabItem {
   readonly label: string
   /** solo con la ruta exacta; por defecto, también en sus hijas */
   readonly end?: boolean
+  /** la activa la decide quien las pinta, y no la ruta: el nivel 1, por su sección (PR 11) */
+  readonly active?: boolean
 }
 
 export interface TabOption<K extends string> {
@@ -99,7 +101,8 @@ function NavTab({
   readonly onActive: (el: HTMLAnchorElement | null) => void
 }) {
   const { pathname } = useResolvedPath(item.to)
-  const es = useMatch({ path: pathname, end: item.end ?? false }) !== null
+  const enRuta = useMatch({ path: pathname, end: item.end ?? false }) !== null
+  const es = item.active ?? enRuta
   const aspecto = ASPECTO[variant]
   return (
     <Link

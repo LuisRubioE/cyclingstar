@@ -51,7 +51,7 @@ export const STALE_TIME = {
   world: 30 * MINUTE,
   /** Lo que el propio jugador edita desde la web: órdenes, objetivos, finanzas. */
   personal: 2 * MINUTE,
-  /** El reloj del mundo: se refresca solo al vencer la cuenta atrás (WorldClock lo invalida). */
+  /** El reloj del mundo: se refresca solo al vencer la cuenta atrás (la invalida `useWorldCountdown`). */
   health: 5 * MINUTE,
 } as const
 

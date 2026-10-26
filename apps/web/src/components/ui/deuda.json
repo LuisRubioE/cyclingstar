@@ -1,15 +1,15 @@
 {
   "tailwindcss": "4.3.3",
   "total": {
-    "tema": 2517,
-    "arbitrarios": 46,
+    "tema": 2497,
+    "arbitrarios": 40,
     "espaciado": 35,
     "layout": 0
   },
   "ficheros": {
     "apps/web/src/App.tsx": {
       "tema": 10,
-      "arbitrarios": 1,
+      "arbitrarios": 0,
       "espaciado": 1,
       "layout": 0
     },
@@ -31,12 +31,6 @@
       "espaciado": 0,
       "layout": 0
     },
-    "apps/web/src/components/BottomNav.tsx": {
-      "tema": 3,
-      "arbitrarios": 2,
-      "espaciado": 0,
-      "layout": 0
-    },
     "apps/web/src/components/ErrorBoundary.tsx": {
       "tema": 19,
       "arbitrarios": 0,
@@ -46,12 +40,6 @@
     "apps/web/src/components/FormChart.tsx": {
       "tema": 12,
       "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/components/Header.tsx": {
-      "tema": 16,
-      "arbitrarios": 3,
       "espaciado": 0,
       "layout": 0
     },
@@ -170,7 +158,7 @@
       "layout": 0
     },
     "apps/web/src/components/Tabs.tsx": {
-      "tema": 19,
+      "tema": 18,
       "arbitrarios": 2,
       "espaciado": 0,
       "layout": 0

@@ -1,13 +1,14 @@
-import { useEffect, useId, useState } from 'react'
+import { type Ref, useEffect, useId, useState } from 'react'
 import { useOnline } from '../../net'
 import { ButtonContent, buttonClass } from './Button'
+import { useFixedPiece } from './fixedBottom'
 import { Icon } from './Icon'
 import { useKeyboardOpen } from './keyboard'
 
 /**
  * LA BARRA DE GUARDAR (E3, docs/visual.md §4.3 y §4.9; PR 9a, D-12). Fija abajo, sobre la `BottomNav`
- * (en `--action-bar-bottom`, que escribe el marco; 0 hasta el PR 11 y en `/_ui`), de 60 de alto: a la
- * izquierda lo que cambia al guardar, en dos renglones como mucho y entero para el lector; a la derecha
+ * (en `--action-bar-bottom`, que el marco escribe con su alto medido desde el PR 11; 0 en `/_ui`), de 60:
+ * a la izquierda lo que cambia al guardar, en dos renglones como mucho y entero para el lector; a la derecha
  * un botón `primary` de 48 con `data-primary-action`, el que mira la prueba del teléfono (la
  * comprobación 8). Una sola por página.
  *
@@ -73,7 +74,12 @@ export function ActionBarView({
   actionLabel,
   onSave,
   disabledReason,
-}: Omit<ActionBarProps, 'status'> & { readonly state: ActionBarState }) {
+  ref,
+}: Omit<ActionBarProps, 'status'> & {
+  readonly state: ActionBarState
+  /** el de lo fijo (`useFixedPiece`), que pone `ActionBar`; en `/_ui`, ninguno */
+  readonly ref?: Ref<HTMLDivElement>
+}) {
   const textId = useId()
   if (state === 'hidden') return null
 
@@ -109,6 +115,7 @@ export function ActionBarView({
 
   return (
     <div
+      ref={ref}
       data-ui="ActionBar"
       data-variant="default"
       data-state={state}
@@ -146,8 +153,12 @@ export function ActionBarView({
   )
 }
 
-/** La barra, con la red, el teclado y los dos segundos de `Saved`. */
+/**
+ * La barra, con la red, el teclado y los dos segundos de `Saved`; apuntada en lo fijo, para que el marco
+ * la sume a su relleno de abajo (PR 11).
+ */
 export function ActionBar(props: ActionBarProps) {
+  const ref = useFixedPiece('bar')
   const online = useOnline()
   const keyboardOpen = useKeyboardOpen()
   const [savedExpired, setSavedExpired] = useState(false)
@@ -167,5 +178,5 @@ export function ActionBar(props: ActionBarProps) {
     savedExpired,
     disabledReason: props.disabledReason,
   })
-  return <ActionBarView state={state} {...props} />
+  return <ActionBarView ref={ref} state={state} {...props} />
 }
